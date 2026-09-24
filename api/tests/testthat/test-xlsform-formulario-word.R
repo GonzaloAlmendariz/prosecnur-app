@@ -180,3 +180,256 @@ test_that("reporte_formulario_word rinde end-to-end desde la Matriz PULSO IAC-CI
   txt <- paste(officer::docx_summary(doc)$text, collapse = "\n")
   expect_true(grepl("Docentes", txt, fixed = TRUE))
 })
+
+# =============================================================================
+# Contrato OOXML del artefacto y regresiones del render (checklist
+# `docs/qa/checklist-motor-formulario-papel-2026-09-24.md`, items 6, 9, 10 y 11
+# mas la compatibilidad prometida de `columns`).
+#
+# El `.docx` se genera DENTRO del test, con el motor. Nunca contra un archivo
+# del cliente ni contra una ruta de una maquina: `test-reporte-ppt-saneo-ooxml.R:70`
+# apunta a un path absoluto local y por eso en CI se salta SIEMPRE.
+# =============================================================================
+
+# Instrumento minimo que produce los tres tipos de tramo del plan de columnas:
+# prologo (portada + instrucciones, 1 columna), una seccion de preguntas cortas
+# que cabe en media pagina (2 columnas) y una seccion con matriz de escala que
+# no cabe (1 columna). Es la alternancia del instrumento de referencia.
+.form_word_fixture_tramos <- function() {
+  survey <- data.frame(
+    type = c(
+      "begin_group", "select_one sino", "select_one sino", "select_one sino", "end_group",
+      "begin_group", "note",
+      "select_one esc5", "select_one esc5", "select_one esc5", "select_one esc5", "end_group"
+    ),
+    name = c("gA", "q1", "q2", "q3", "gAe",
+             "gB", "instr", "m1", "m2", "m3", "m4", "gBe"),
+    label = c(
+      "Datos generales", "¿Trabajas?", "¿Estudias?", "¿Vives solo?", "",
+      "Percepciones", "Por favor señala cuán de acuerdo estás con cada frase.",
+      "Me siento seguro en mi barrio", "Confío en las autoridades",
+      "La escuela me escucha", "Participo en actividades", ""
+    ),
+    paper_group = c("", "", "", "", "", "", "bat", "bat", "bat", "bat", "bat", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("sino", "sino", rep("esc5", 5)),
+    name = c("1", "2", as.character(1:5)),
+    label = c("Sí", "No",
+              "Totalmente en desacuerdo", "En desacuerdo", "Indiferente",
+              "De acuerdo", "Totalmente de acuerdo"),
+    stringsAsFactors = FALSE
+  )
+  list(survey = survey, choices = choices,
+       settings = list(form_title = "Instrumento de tramos"))
+}
+
+# Genera el .docx del fixture con el valor de `columns` pedido.
+.form_word_fixture_docx <- function(columns) {
+  fx <- .form_word_fixture_tramos()
+  out <- tempfile(fileext = ".docx")
+  reporte_formulario_word(
+    survey = fx$survey, choices = fx$choices, settings = fx$settings,
+    output_file = out,
+    options = list(columns = columns, matrix_groups = list(list(
+      members = c("m1", "m2", "m3", "m4"), tenor = "Grado de acuerdo", special = "auto")))
+  )
+  out
+}
+
+# `word/document.xml` ya parseado, con el namespace w: resuelto.
+.form_word_document_xml <- function(path) {
+  d <- tempfile("docx_xml_")
+  utils::unzip(path, files = "word/document.xml", exdir = d)
+  xml2::read_xml(file.path(d, "word", "document.xml"))
+}
+
+test_that("item 10: el .docx del motor pasa el verificador OOXML", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  skip_if_not_installed("zip")
+
+  for (cols in list(1L, "auto")) {
+    out <- .form_word_fixture_docx(cols)
+    rep <- expect_docx_ooxml_valid(out)
+
+    # El inventario de desorden se afirma ENTERO, no solo "no hay nuevos": asi
+    # el dia que officer corrija uno de estos, el test avisa de que la lista de
+    # excepciones quedo rancia en vez de seguir en verde por no mirar.
+    expect_setequal(rep$desorden, .OOXML_DESORDEN_OFFICER_071)
+    expect_identical(rep$desorden_nuevo, character(0))
+    expect_identical(unname(rep$comentarios), c(0L, 0L, 0L))
+  }
+})
+
+test_that("item 10 (defecto conocido aguas arriba): officer 0.7.1 emite sectPr fuera de secuencia", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # ECMA-376 CT_SectPr pide `... type, pgSz, pgMar, ..., cols, ...`; officer
+  # 0.7.1 escribe `headerReference footerReference pgMar pgSz type cols`. Es un
+  # defecto de la libreria, no del motor: reordenar el XML en memoria rompe el
+  # post-proceso de officer (documentado en reporte_formulario_word.R). Se
+  # DECLARA aqui, con su version, en vez de dar verde por no mirarlo. El dia que
+  # officer lo arregle, este test cae y hay que quitar la excepcion.
+  expect_identical(as.character(utils::packageVersion("officer")), "0.7.1")
+
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  ordenes <- unique(vapply(
+    xml2::xml_find_all(doc, "//w:sectPr", ns),
+    function(s) paste(xml2::xml_name(xml2::xml_children(s)), collapse = " "),
+    character(1)
+  ))
+  expect_identical(ordenes, "headerReference footerReference pgMar pgSz type cols")
+})
+
+test_that("compatibilidad de `columns`: 1 y 2 no cambian la forma del .docx de hoy", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # Promesa hecha al usuario en el item 12 del checklist: mientras la decision
+  # de honrar `columns = 2` en Word siga bloqueada, NINGUN export existente
+  # cambia de forma. Una sola seccion y cero columnas de texto.
+  for (cols in list(1L, 2L)) {
+    out <- .form_word_fixture_docx(cols)
+    doc <- .form_word_document_xml(out)
+    ns <- xml2::xml_ns(doc)
+    expect_length(xml2::xml_find_all(doc, "//w:sectPr", ns), 1L)
+    nums <- xml2::xml_attr(xml2::xml_find_all(doc, "//w:cols", ns), "num")
+    expect_true(all(is.na(nums)), info = sprintf("columns=%s emitio w:cols w:num", cols))
+  }
+
+  # Y "auto" SI corta en tramos: secciones continuas, con al menos una a dos
+  # columnas con la canaleta del instrumento de referencia (425 twips).
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
+  expect_gt(length(sect), 1L)
+  tipos <- vapply(sect, function(s) {
+    xml2::xml_attr(xml2::xml_find_first(s, "./w:type", ns), "val")
+  }, character(1))
+  expect_true(all(tipos == "continuous"))
+
+  dos_col <- Filter(function(s) {
+    identical(xml2::xml_attr(xml2::xml_find_first(s, "./w:cols", ns), "num"), "2")
+  }, sect)
+  expect_gte(length(dos_col), 1L)
+  cols_node <- xml2::xml_find_first(dos_col[[1]], "./w:cols", ns)
+  expect_identical(xml2::xml_attr(cols_node, "sep"), "1")
+  expect_identical(xml2::xml_attr(cols_node, "space"), "425")
+})
+
+test_that("item 9: el pie sobrevive en todas las secciones y ninguna lleva titlePg", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # Se mide por XML, no por PDF: convertir el .docx exige LibreOffice, que NO
+  # esta en el CI (poppler si, LibreOffice no). El mobiliario es propiedad del
+  # `sectPr`: una seccion nueva sin `footerReference` se queda sin pie, y
+  # `titlePg` deja sin pie la PRIMERA pagina de cada seccion.
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
+  expect_gte(length(sect), 2L)  # con una sola seccion esto no prueba nada
+
+  expect_length(xml2::xml_find_all(doc, "//w:titlePg", ns), 0L)
+  for (k in seq_along(sect)) {
+    expect_length(xml2::xml_find_all(sect[[k]], "./w:footerReference", ns), 1L)
+    expect_length(xml2::xml_find_all(sect[[k]], "./w:headerReference", ns), 1L)
+  }
+})
+
+test_that("cantSplit solo vive en tramos de una columna (es contenido perdido, no estetica)", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # En una seccion con `w:cols num=2`, una tabla con `cantSplit` cuyas filas no
+  # caben en lo que resta de columna hace que LibreOffice las DESCARTE en vez de
+  # pasarlas a la columna siguiente: las filas estan en el document.xml y no
+  # llegan al PDF. Perder contenido es peor que una tabla partida.
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+
+  # Se recorre el cuerpo en orden: un parrafo que lleva `sectPr` CIERRA su
+  # tramo, asi que cada tabla pertenece al tramo que se cierra despues de ella.
+  hijos <- xml2::xml_children(xml2::xml_find_first(doc, "//w:body", ns))
+  tramo <- 1L
+  tablas <- list()
+  for (nodo in hijos) {
+    nombre <- xml2::xml_name(nodo)
+    if (identical(nombre, "tbl")) {
+      tablas[[length(tablas) + 1L]] <- list(
+        tramo = tramo,
+        filas = length(xml2::xml_find_all(nodo, "./w:tr", ns)),
+        cant_split = length(xml2::xml_find_all(nodo, ".//w:cantSplit", ns))
+      )
+    } else if (identical(nombre, "p") &&
+               length(xml2::xml_find_all(nodo, "./w:pPr/w:sectPr", ns))) {
+      tramo <- tramo + 1L
+    }
+  }
+  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
+  cols_de <- vapply(sect, function(s) {
+    n <- xml2::xml_attr(xml2::xml_find_first(s, "./w:cols", ns), "num")
+    if (is.na(n)) 1L else as.integer(n)
+  }, integer(1))
+
+  expect_gt(length(tablas), 0L)
+  expect_true(any(cols_de == 2L))  # sin tramo de dos columnas esto no discrimina
+  for (t in tablas) {
+    if (identical(cols_de[[t$tramo]], 2L)) {
+      expect_identical(t$cant_split, 0L,
+                       info = "tabla con cantSplit dentro de un tramo de dos columnas")
+    } else {
+      # En un tramo de una columna si va, y en TODAS las filas (item 3).
+      expect_identical(t$cant_split, t$filas)
+    }
+  }
+})
+
+test_that("item 11: las categorias con asteriscos llegan literales al .docx", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # Este test nacio EN ROJO y destapo un defecto real: el modelo conservaba la
+  # categoria y lo declaraba en `warnings`, pero el RENDERER la volvia a limpiar
+  # (`.form_word_options_flextable()` aplicaba `.form_pdf_clean_text()` sobre
+  # etiquetas que ya venian conservadas), asi que el .docx imprimia «De 5 a 10»
+  # mientras el warning afirmaba «Categoria conservada tal cual». Rojo literal:
+  #   Failure: categoria que no llego literal al .docx: De 5* a 10*
+  #   Failure: categoria que no llego literal al .docx: Nota al pie (*)
+  #   Failure: categoria que no llego literal al .docx: 3 * a la semana
+  # Reparado en `f28f84f02`. Se mide sobre el ARTEFACTO a proposito: el gate
+  # anterior se detenia en `block$options$label` y por eso daba verde.
+  survey <- data.frame(type = "select_one frec", name = "q1",
+                       label = "Frecuencia semanal", stringsAsFactors = FALSE)
+  choices <- data.frame(
+    list_name = rep("frec", 3), name = c("1", "2", "3"),
+    label = c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"),
+    stringsAsFactors = FALSE
+  )
+  out <- tempfile(fileext = ".docx")
+  res <- reporte_formulario_word(
+    survey = survey, choices = choices, settings = list(form_title = "Categorias"),
+    output_file = out, options = list(columns = 1)
+  )
+  doc <- .form_word_document_xml(out)
+  textos <- xml2::xml_text(xml2::xml_find_all(doc, "//w:t", xml2::xml_ns(doc)))
+  for (lbl in choices$label) {
+    expect_true(any(textos == lbl),
+                info = sprintf("categoria que no llego literal al .docx: %s", lbl))
+  }
+  expect_true(any(grepl("De 5 a 10", res$warnings, fixed = TRUE)))
+})
