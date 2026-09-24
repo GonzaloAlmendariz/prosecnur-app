@@ -4,16 +4,27 @@
 # `formulario_pdf_build_model()` (agnostico del renderer) y lo pinta con
 # officer + flextable, replicando las caracteristicas del motor PDF
 # (`reporte_formulario_pdf.R`): portada con titulo grande, bandas de seccion
-# navy, matrices Likert con cabecera extremos/categorias + columna especial +
+# monocroma, matrices Likert con cabecera extremos/categorias + columna especial +
 # tenor con subnumeracion X.1/X.2, listas de opciones codificadas, y los dos
 # lenguajes de logica (saltos / condiciones). Comparte helpers internos del PDF
 # (`.form_pdf_matrix_partition_options`, `.form_pdf_matrix_header_mode`,
 # `.form_pdf_matrix_label_frac`, `.form_pdf_clean_text`) para no duplicar dominio.
 
-.FORM_WORD_NAVY    <- "#002457"
-.FORM_WORD_SOFT    <- "#5A6B85"
-.FORM_WORD_INK     <- "#1A1A1A"
-.FORM_WORD_ZEBRA   <- "#F1F4F9"
+# PALETA DE IMPRESION MONOCROMA. El instrumento en papel es un insumo de campo:
+# se imprime por cientos y se fotocopia, asi que no hay color que valga. Los
+# valores salen de medir la referencia (Ser Adolescente): texto 000000 en sus 224
+# ocurrencias de `w:color`, y rellenos F2F2F2 (656) / E8E8E8 (125) / D9D9D9 (19).
+# Aqui habia navy #002457 para la banda de seccion con texto blanco encima: son
+# 88% de tinta a todo el ancho por ejemplar, y el texto reversado es lo primero
+# que se empasta al fotocopiar. Ver docs/qa/goal-formulario-replica-ser-adolescente-2026-09-24.md
+#
+# La jerarquia ya no la lleva el color (no hay), la llevan cuerpo, negrita y
+# relleno. Por eso no quedan tokens de "acento" ni de "texto secundario": todo
+# el texto es negro y lo que distingue una pista de un enunciado es el tamano y
+# la cursiva, como en la referencia.
+.FORM_WORD_INK     <- "#000000"   # TODO el texto
+.FORM_WORD_BAND    <- "#D9D9D9"   # banda de seccion y cabecera de matriz
+.FORM_WORD_ZEBRA   <- "#F2F2F2"   # relleno suave de fila alterna
 # Rejilla: gris medio, no azul palido. El instrumento se IMPRIME Y SE FOTOCOPIA
 # (insumo de campo), y la estructura de las filas cuelga de los bordes, no del
 # relleno: el relleno de la referencia (F2F2F2, 5% de tinta) y nuestra zebra
@@ -21,9 +32,6 @@
 # medida: A6A6A6 en 2 666 de sus bordes (~35% de tinta) frente al 19% del azul
 # que habia aqui. Ver docs/qa/goal-formulario-replica-ser-adolescente-2026-09-24.md
 .FORM_WORD_LINE    <- "#A6A6A6"
-# Cabecera de matriz: gris azulado pálido (paridad con tbl_header del PDF), no
-# navy sólido — la paleta minimalista reserva el navy para la banda de sección.
-.FORM_WORD_TBLHEAD <- "#E9EEF6"
 
 # Ancho util aproximado de una carta con margenes por defecto de officer (pulg).
 # officer emite A4 (11906 x 16838 twips) con margenes de 1417: 9072 twips utiles.
@@ -206,11 +214,11 @@
   ft <- flextable::width(ft, j = "lbl", width = lbl_w)
   for (cid in scale_ids) ft <- flextable::width(ft, j = cid, width = col_w)
 
-  # --- Estilo (cabecera gris azulado pálido tipo PDF: título navy, categorías
-  # soft; escala centrada, zebra por fila) ---
-  ft <- flextable::bg(ft, bg = .FORM_WORD_TBLHEAD, part = "header")
-  ft <- flextable::color(ft, color = .FORM_WORD_SOFT, part = "header")
-  ft <- flextable::color(ft, j = "lbl", color = .FORM_WORD_NAVY, part = "header")
+  # --- Estilo: cabecera con relleno gris, todo el texto negro; la jerarquia la
+  # llevan negrita y cuerpo, no el color. Escala centrada, zebra por fila. ---
+  ft <- flextable::bg(ft, bg = .FORM_WORD_BAND, part = "header")
+  ft <- flextable::color(ft, color = .FORM_WORD_INK, part = "header")
+  ft <- flextable::color(ft, j = "lbl", color = .FORM_WORD_INK, part = "header")
   ft <- flextable::bold(ft, part = "header")
   ft <- flextable::fontsize(ft, size = 7, part = "header")
   ft <- flextable::fontsize(ft, size = 9, part = "body")
@@ -231,14 +239,14 @@
   for (pr in parent_rows) ft <- flextable::merge_at(ft, i = pr, j = col_ids, part = "body")
   if (length(child_rows)) ft <- flextable::padding(ft, i = child_rows, j = "lbl", padding.left = 16, part = "body")
   # Salto por-FILA (filtro): "Si responde «No», salto a la N" bajo la etiqueta,
-  # italic navy, como la referencia. Se compone la celda (etiqueta + salto).
+  # en cursiva, como la referencia. Se compone la celda (etiqueta + salto).
   item_skips <- vapply(items, function(it) .form_pdf_clean_text(it$skip %||% ""), character(1))
   for (ri in which(nzchar(item_skips))) {
     ft <- flextable::compose(ft, i = ri, j = "lbl", part = "body",
       value = flextable::as_paragraph(
         flextable::as_chunk(df$lbl[ri]),
         flextable::as_chunk(paste0("\n", item_skips[ri]),
-          props = officer::fp_text(italic = TRUE, color = .FORM_WORD_NAVY,
+          props = officer::fp_text(italic = TRUE, color = .FORM_WORD_INK,
                                    font.size = 8, font.family = "Calibri"))))
   }
   # La rejilla completa la pone .form_word_table_base; no hace falta el interior
@@ -275,13 +283,13 @@
     ft <- flextable::width(ft, j = "skip", width = skip_w)
     ft <- flextable::align(ft, j = "skip", align = "right", part = "body")
     ft <- flextable::italic(ft, j = "skip", part = "body")
-    ft <- flextable::color(ft, j = "skip", color = .FORM_WORD_NAVY, part = "body")
+    ft <- flextable::color(ft, j = "skip", color = .FORM_WORD_INK, part = "body")
     ft <- flextable::fontsize(ft, j = "skip", size = 8, part = "body")
   } else {
     ft <- flextable::width(ft, j = "label", width = usable - 0.4)
   }
   ft <- flextable::align(ft, j = "code", align = "center", part = "body")
-  ft <- flextable::color(ft, j = "code", color = .FORM_WORD_NAVY, part = "body")
+  ft <- flextable::color(ft, j = "code", color = .FORM_WORD_INK, part = "body")
   ft <- flextable::bold(ft, j = "code", part = "body")
   ft <- flextable::fontsize(ft, j = "label", size = 9, part = "body")
   even <- which(seq_len(nrow(df)) %% 2L == 0L)
@@ -316,8 +324,8 @@
   grepl(.FORM_WORD_PAPER_FRAMED, tolower(norm))
 }
 
-# Bloque `paper` enmarcado -> flextable 1x1 con borde navy. El titulo va como
-# primer chunk (bold navy, mayusculas) y el cuerpo debajo, en la MISMA celda,
+# Bloque `paper` enmarcado -> flextable 1x1 con borde negro. El titulo va como
+# primer chunk (bold, mayusculas) y el cuerpo debajo, en la MISMA celda,
 # para que el marco abarque a los dos.
 .form_word_paper_flextable <- function(block, usable = .FORM_WORD_USABLE_IN) {
   title <- .form_pdf_clean_text(block$title %||% "")
@@ -329,7 +337,7 @@
   if (nzchar(title)) {
     chunks <- c(chunks, list(flextable::as_chunk(
       toupper(title),
-      props = officer::fp_text(font.size = 10, bold = TRUE, color = .FORM_WORD_NAVY,
+      props = officer::fp_text(font.size = 10, bold = TRUE, color = .FORM_WORD_INK,
                                font.family = "Calibri"))))
   }
   if (nzchar(body)) {
@@ -348,7 +356,7 @@
   ft <- flextable::font(ft, fontname = "Calibri", part = "all")
   ft <- flextable::border_remove(ft)
   ft <- flextable::border_outer(
-    ft, border = officer::fp_border(color = .FORM_WORD_NAVY, width = 1), part = "body")
+    ft, border = officer::fp_border(color = .FORM_WORD_INK, width = 1), part = "body")
   flextable::set_table_properties(
     ft, layout = "fixed",
     opts_word = list(split = !.form_word_tramo_is_full(usable))
@@ -365,29 +373,29 @@
   ""
 }
 
-# Encabezado (logo + regla navy) y pie (PULSO PUCP + n.º de pagina) del
+# Encabezado (logo + regla) y pie (PULSO PUCP + n.º de pagina) del
 # formulario. Se devuelven como piezas para poder RE-ADJUNTARLAS a cada seccion:
 # en OOXML el mobiliario es propiedad del `sectPr`, asi que una seccion nueva sin
 # `headerReference`/`footerReference` se queda sin pie (item 9 del checklist).
 # Si el logo no existe, cae a texto "PULSO PUCP" en el encabezado.
 .form_word_furniture_parts <- function() {
-  navy <- .FORM_WORD_NAVY
+  tinta <- .FORM_WORD_INK
   logo <- .form_word_logo_path()
   hdr_runs <- if (nzchar(logo)) {
     list(officer::external_img(src = logo, width = 1.15, height = 0.45))
   } else {
     list(officer::ftext("PULSO PUCP",
-      prop = officer::fp_text(font.size = 9, bold = TRUE, color = navy, font.family = "Calibri")))
+      prop = officer::fp_text(font.size = 9, bold = TRUE, color = tinta, font.family = "Calibri")))
   }
   header_par <- officer::fpar(
     values = hdr_runs,
     fp_p = officer::fp_par(text.align = "left", padding.bottom = 4,
-      border.bottom = officer::fp_border(color = navy, width = 1))
+      border.bottom = officer::fp_border(color = tinta, width = 1))
   )
-  soft_fp <- officer::fp_text(font.size = 8, color = .FORM_WORD_SOFT, font.family = "Calibri")
+  soft_fp <- officer::fp_text(font.size = 8, color = .FORM_WORD_INK, font.family = "Calibri")
   footer_par <- officer::fpar(
     officer::ftext("PULSO PUCP",
-      prop = officer::fp_text(font.size = 8, bold = TRUE, color = navy, font.family = "Calibri")),
+      prop = officer::fp_text(font.size = 8, bold = TRUE, color = tinta, font.family = "Calibri")),
     officer::ftext("     ·     Página ", prop = soft_fp),
     officer::run_word_field("PAGE", prop = soft_fp),
     fp_p = officer::fp_par(text.align = "center", padding.top = 4,
@@ -556,15 +564,15 @@ formulario_word_render <- function(model, output_file) {
     # Condicion de apertura (lenguaje "condiciones") antes del bloque.
     if (nzchar(block$opening_condition %||% "")) {
       doc <- .form_word_par(doc, block$opening_condition, size = 9, italic = TRUE,
-                            color = .FORM_WORD_NAVY, space_after = 2, space_before = 2,
+                            color = .FORM_WORD_INK, space_after = 2, space_before = 2,
                             keep_with_next = TRUE)
     }
 
     if (identical(kind, "cover")) {
-      doc <- .form_word_par(doc, block$title, size = 20, bold = TRUE, color = .FORM_WORD_NAVY,
+      doc <- .form_word_par(doc, block$title, size = 20, bold = TRUE, color = .FORM_WORD_INK,
                             align = "center", space_before = 6, space_after = 2)
       # Regla corta centrada bajo el titulo (paridad con la portada del PDF).
-      doc <- .form_word_par(doc, strrep("─", 10), size = 11, color = .FORM_WORD_NAVY,
+      doc <- .form_word_par(doc, strrep("─", 10), size = 11, color = .FORM_WORD_INK,
                             align = "center", space_after = 10)
 
     } else if (identical(kind, "paper")) {
@@ -578,8 +586,8 @@ formulario_word_render <- function(model, output_file) {
         doc <- .form_word_blank(doc)
       } else {
         if (nzchar(block$title %||% "")) {
-          doc <- .form_word_par(doc, toupper(block$title), size = 10.5, bold = TRUE, color = "#FFFFFF",
-                                shade = .FORM_WORD_NAVY, space_before = 4, space_after = 2,
+          doc <- .form_word_par(doc, toupper(block$title), size = 10.5, bold = TRUE, color = .FORM_WORD_INK,
+                                shade = .FORM_WORD_BAND, space_before = 4, space_after = 2,
                                 keep_with_next = nzchar(block$body %||% ""))
         }
         if (nzchar(block$body %||% "")) {
@@ -592,11 +600,11 @@ formulario_word_render <- function(model, output_file) {
       num <- .form_pdf_clean_text(block$number %||% "")
       ttl <- if (nzchar(num)) paste0(num, "  ", block$title) else (block$title %||% "")
       # La banda de sección no se queda sola al pie: arrastra lo que sigue.
-      doc <- .form_word_par(doc, toupper(ttl), size = 11, bold = TRUE, color = "#FFFFFF",
-                            shade = .FORM_WORD_NAVY, align = "center", space_after = 4,
+      doc <- .form_word_par(doc, toupper(ttl), size = 11, bold = TRUE, color = .FORM_WORD_INK,
+                            shade = .FORM_WORD_BAND, align = "center", space_after = 4,
                             keep_with_next = TRUE)
       if (nzchar(block$hint %||% "")) {
-        doc <- .form_word_par(doc, block$hint, size = 8.5, italic = TRUE, color = .FORM_WORD_SOFT,
+        doc <- .form_word_par(doc, block$hint, size = 8.5, italic = TRUE, color = .FORM_WORD_INK,
                               keep_with_next = TRUE)
       }
 
@@ -609,7 +617,7 @@ formulario_word_render <- function(model, output_file) {
                               space_before = 4, space_after = 2, keep_with_next = TRUE)
       }
       if (nzchar(block$hint %||% "")) {
-        doc <- .form_word_par(doc, block$hint, size = 8.5, italic = TRUE, color = .FORM_WORD_SOFT,
+        doc <- .form_word_par(doc, block$hint, size = 8.5, italic = TRUE, color = .FORM_WORD_INK,
                               keep_with_next = TRUE)
       }
       ft <- .form_word_matrix_flextable(block, usable = usable)
@@ -634,7 +642,7 @@ formulario_word_render <- function(model, output_file) {
         doc <- .form_word_par(doc, lbl, size = 10, bold = TRUE, space_before = 4, space_after = 3,
                               keep_with_next = has_body)
         if (nzchar(block$hint %||% "")) {
-          doc <- .form_word_par(doc, block$hint, size = 8.5, italic = TRUE, color = .FORM_WORD_SOFT,
+          doc <- .form_word_par(doc, block$hint, size = 8.5, italic = TRUE, color = .FORM_WORD_INK,
                                 keep_with_next = has_body)
         }
         opts <- block$options %||% list()
@@ -645,9 +653,9 @@ formulario_word_render <- function(model, output_file) {
             doc <- .form_word_blank(doc)
           }
         } else if (isTRUE(block$coded_list)) {
-          doc <- .form_word_par(doc, "Código: ______", size = 9, color = .FORM_WORD_SOFT, space_after = 6)
+          doc <- .form_word_par(doc, "Código: ______", size = 9, color = .FORM_WORD_INK, space_after = 6)
         } else if ((block$type %||% "") %in% c("text", "integer", "decimal", "date", "time", "datetime")) {
-          doc <- .form_word_par(doc, strrep("_", 60), size = 9, color = .FORM_WORD_SOFT, space_after = 6)
+          doc <- .form_word_par(doc, strrep("_", 60), size = 9, color = .FORM_WORD_INK, space_after = 6)
         }
       }
     }
@@ -655,7 +663,7 @@ formulario_word_render <- function(model, output_file) {
     # Salto (lenguaje "saltos") despues del bloque.
     if (nzchar(block$skip %||% "")) {
       doc <- .form_word_par(doc, block$skip, size = 9, italic = TRUE,
-                            color = .FORM_WORD_NAVY, space_before = 2, space_after = 4)
+                            color = .FORM_WORD_INK, space_before = 2, space_after = 4)
     }
   }
   doc
