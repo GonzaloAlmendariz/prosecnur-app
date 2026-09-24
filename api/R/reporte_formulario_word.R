@@ -497,6 +497,27 @@
 # Bloque `paper` enmarcado -> flextable 1x1 con borde negro. El titulo va como
 # primer chunk (bold, mayusculas) y el cuerpo debajo, en la MISMA celda,
 # para que el marco abarque a los dos.
+# Casillas del folio de la portada: rotulo + N celdas vacias para escribir el
+# numero de encuesta a mano. En la referencia esto vive en la PAGINA 1, no en la
+# cabecera corrida -- su pagina 3 no lo lleva. Por eso va en el cuerpo: ahi se
+# puede usar una flextable de verdad, con sus bordes. La cabecera de officer solo
+# admite `block_table`, que sale sin rejilla (el XML trae las celdas y en el papel
+# no se ve nada) y no respeta el ancho pedido.
+.form_word_casillas_folio <- function(n = 4L, ancho_celda = 0.22) {
+  df <- as.data.frame(matrix("", nrow = 1, ncol = n), stringsAsFactors = FALSE)
+  names(df) <- paste0("c", seq_len(n))
+  ft <- flextable::flextable(df)
+  ft <- flextable::delete_part(ft, part = "header")
+  for (cid in names(df)) ft <- flextable::width(ft, j = cid, width = ancho_celda)
+  ft <- flextable::height(ft, height = 0.24, part = "body")
+  ft <- flextable::hrule(ft, rule = "exact", part = "body")
+  ft <- flextable::border_remove(ft)
+  bd <- officer::fp_border(color = .FORM_WORD_INK, width = 0.5)
+  ft <- flextable::border_outer(ft, border = bd, part = "body")
+  ft <- flextable::border_inner_v(ft, border = bd, part = "body")
+  flextable::set_table_properties(ft, layout = "fixed", opts_word = list(split = FALSE))
+}
+
 # Caja de escritura: tabla 1x1 vacia con borde y alto fijo. La referencia NO usa
 # guiones bajos para que el encuestador escriba, usa una celda: los guiones se
 # corren al escribir encima y, con una tipografia estrecha, una tira fija de 60
@@ -571,7 +592,7 @@
 # en OOXML el mobiliario es propiedad del `sectPr`, asi que una seccion nueva sin
 # `headerReference`/`footerReference` se queda sin pie (item 9 del checklist).
 # Si el logo no existe, cae a texto "PULSO PUCP" en el encabezado.
-.form_word_furniture_parts <- function() {
+.form_word_furniture_parts <- function(model = NULL) {
   tinta <- .FORM_WORD_INK
   logo <- .form_word_logo_path()
   hdr_runs <- if (nzchar(logo)) {
@@ -585,16 +606,22 @@
     fp_p = officer::fp_par(text.align = "left", padding.bottom = 4,
       border.bottom = officer::fp_border(color = tinta, width = 1))
   )
+  header_items <- list(header_par)
   soft_fp <- officer::fp_text(font.size = .FORM_WORD_SZ_MIN, color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT)
   footer_par <- officer::fpar(
     officer::ftext("PULSO PUCP",
       prop = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, bold = TRUE, color = tinta, font.family = .FORM_WORD_FONT)),
     officer::ftext("     ·     Página ", prop = soft_fp),
     officer::run_word_field("PAGE", prop = soft_fp),
+    # «Página N de M»: el total es otro campo de Word. Ojo al verificarlo — un
+    # campo no se calcula hasta que el documento se abre o se convierte, asi que
+    # en `document.xml` puede salir vacio o como 1; se comprueba en el PDF.
+    officer::ftext(" de ", prop = soft_fp),
+    officer::run_word_field("NUMPAGES", prop = soft_fp),
     fp_p = officer::fp_par(text.align = "center", padding.top = 4,
       border.top = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5))
   )
-  list(header = header_par, footer = footer_par)
+  list(header = header_items, footer = footer_par)
 }
 
 # `prop_section` de UN tramo: columnas + mobiliario heredado.
@@ -619,7 +646,10 @@
   officer::prop_section(
     type = type,
     section_columns = cols,
-    header_default = officer::block_list(furniture$header),
+    # `furniture$header` es una LISTA de bloques (rotulo, casillas, logo), asi
+    # que se despliega con do.call: `block_list(lista)` la anidaria como un
+    # solo bloque.
+    header_default = do.call(officer::block_list, furniture$header),
     footer_default = officer::block_list(furniture$footer)
   )
 }
@@ -659,7 +689,7 @@ formulario_word_render <- function(model, output_file) {
   dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
   doc <- officer::read_docx()
 
-  furniture <- .form_word_furniture_parts()
+  furniture <- .form_word_furniture_parts(model)
   plan <- .form_word_column_plan(model)
   emit_sections <- .form_word_sections_enabled(model, plan)
 
@@ -667,7 +697,8 @@ formulario_word_render <- function(model, output_file) {
     tramo <- plan[[ti]]
     usable <- if (emit_sections) .form_word_tramo_usable_in(tramo$columns) else .FORM_WORD_USABLE_IN
     for (bi in seq.int(tramo$from, tramo$to)) {
-      doc <- .form_word_add_block(doc, model$blocks[[bi]], usable = usable)
+      doc <- .form_word_add_block(doc, model$blocks[[bi]], usable = usable,
+                                  folio = !identical(model$show_questionnaire_number, FALSE))
     }
     # Un `block_section` CIERRA el tramo que termina ahi: se emite DESPUES de
     # pintar sus bloques. El ultimo lo cierra la seccion por defecto (abajo).
@@ -750,7 +781,8 @@ formulario_word_render <- function(model, output_file) {
 
 # Pinta UN bloque del modelo. `usable` es el ancho (pulg) del tramo en curso:
 # en un tramo de dos columnas las tablas se encogen a la mitad.
-.form_word_add_block <- function(doc, block, usable = .FORM_WORD_USABLE_IN) {
+.form_word_add_block <- function(doc, block, usable = .FORM_WORD_USABLE_IN,
+                                 folio = TRUE) {
   {
     kind <- block$kind %||% ""
 
@@ -762,6 +794,11 @@ formulario_word_render <- function(model, output_file) {
     }
 
     if (identical(kind, "cover")) {
+      if (isTRUE(folio)) {
+        doc <- .form_word_par(doc, "N.º de encuesta", size = .FORM_WORD_SZ_MIN,
+                              color = .FORM_WORD_INK, align = "right", space_after = 1)
+        doc <- flextable::body_add_flextable(doc, .form_word_casillas_folio(), align = "right")
+      }
       doc <- .form_word_par(doc, block$title, size = .FORM_WORD_SZ_TITULO, bold = TRUE, color = .FORM_WORD_INK,
                             align = "center", space_before = 6, space_after = 2)
       # Regla corta centrada bajo el titulo (paridad con la portada del PDF).
