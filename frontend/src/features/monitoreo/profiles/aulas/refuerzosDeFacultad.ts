@@ -241,7 +241,7 @@ export function refuerzosDeFacultad(
     const quien = texto(f.teacher);
     if (!quien) continue;
     const estados = `${texto(f.sample_status)} ${texto(f.operational_status)}`.toLowerCase();
-    if (seResolvio(f) || /agendada|reagendada|contactada|rechaz/.test(estados)) {
+    if (seResolvio(f) || /agendad|contactada|rechaz/.test(estados)) {
       yaContactados.add(quien.toLocaleUpperCase());
     }
   }

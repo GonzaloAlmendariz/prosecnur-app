@@ -83,7 +83,13 @@ monitoreo_aulas_marcar_refuerzo <- function(plan = list(), codigo = "", para = "
   if (nzchar(.mar_txt(para))) plan[[pos]]$activated_for <- .mar_txt(para)
   if (nzchar(.mar_txt(motivo))) plan[[pos]]$activation_reason <- .mar_txt(motivo)
 
-  list(plan = plan, marcada = plan[[pos]])
+  # Se marca igual —quien decide puede saber algo que el plan no—, pero se
+  # AVISA si el docente ya rechazó otro curso-horario (2026-09-24, R 5.1).
+  rechazaron <- monitoreo_aulas_docentes_que_rechazaron(plan)
+  aviso <- if (.madr_docente_rechazo(.mar_txt(fila$teacher), rechazaron)) {
+    sprintf("Ojo: %s ya rechazó otro curso-horario del plan.", .mar_txt(fila$teacher))
+  } else ""
+  list(plan = plan, marcada = plan[[pos]], aviso = aviso)
 }
 
 #' La frase que la vista enseña tras marcar.
@@ -101,8 +107,9 @@ monitoreo_aulas_marcar_refuerzo_texto <- function(out) {
   # `respetada` y no emite una sola escritura sobre ellas mientras tengan
   # contenido. Asi que hoy esta marca vive SOLO en la app, y decir otra cosa
   # mandaria al agendador a buscar un color que nadie va a escribir.
-  sprintf("%s queda como %s por contactar%s. Por ahora se ve en la app: las hojas de agenda son del equipo y la app no escribe en ellas.",
-          cod, tipo, if (nzchar(para)) sprintf(" para %s", para) else "")
+  base <- sprintf("%s queda como %s por contactar%s. Por ahora se ve en la app: las hojas de agenda son del equipo y la app no escribe en ellas.",
+                  cod, tipo, if (nzchar(para)) sprintf(" para %s", para) else "")
+  if (nzchar(.mar_txt(out$aviso))) paste(base, out$aviso) else base
 }
 
 #' Retira una marca de refuerzo que puso la app.
