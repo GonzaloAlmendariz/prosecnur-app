@@ -133,6 +133,12 @@ export function composicionReferencial(
    * creer que se midió y salió cero. La población SÍ se conoce, así que se dice
    * qué falta, no que no haya nada.
    */
+  if (String(comp.fuente ?? "") === "sin_padron") {
+    return {
+      vacio: "Este estudio no cruza las respuestas con un padrón (no hay padrón cargado o el formulario no pide el código del estudiante), así que no se puede describir a quién se está alcanzando por sexo y carrera.",
+      personas, dimensiones: [],
+    };
+  }
   if (String(comp.fuente ?? "") === "sin_cruce" || personas <= 0) {
     return {
       vacio: "Todavía ninguna respuesta resuelve contra el padrón, así que no se puede describir a quién se está alcanzando. La composición de la población sí se conoce y aparecerá en cuanto haya respuestas cruzadas.",

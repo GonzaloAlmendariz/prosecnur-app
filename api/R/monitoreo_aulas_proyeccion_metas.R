@@ -198,6 +198,8 @@ monitoreo_aulas_proyeccion_metas <- function(unidades, efectivas = NULL,
       obtenidas = obt, obtenidas_M = obt_m, obtenidas_F = obt_f,
       aulas_aplicadas = sum(aplicadas),
       aulas_agendadas = sum(pend), elegibles_agendados = el_pend,
+      # Cuáles son, con día, hora y elegibles por sexo (…_detalle.R).
+      agendadas = .mapm_detalle_agendadas(unidades[pend]),
       tasa_usada = tau, tasa_es_del_diseno = isTRUE(usar_diseno),
       # **Sobre qué descansa la tasa obtenida.** No hay umbral que la vuelva
       # fiable, así que en vez de un booleano que mienta va el material para

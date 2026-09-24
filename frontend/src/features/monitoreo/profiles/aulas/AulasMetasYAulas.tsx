@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { fmt } from "./kpisDeAulas";
+import { AulasAgendadasDeLaFila } from "./AulasAgendadasDeLaFila";
 import { claseDeFacultad } from "./tonoDeFacultad";
 import { carrilesDeLaFila, filasAlfabeticas } from "./metasDeLaPestana";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
@@ -108,7 +109,7 @@ export function AulasMetasYAulas({ filas , eje}: {
                         columna, pero la prosa del perfil habla su vocabulario. */}
                     <span className="aulas-metas-aulas">
                       {fmt(f.aulas_aplicadas)} cursos-horario aplicados ·{" "}
-                      {fmt(f.aulas_agendadas)} agendados
+                      <AulasAgendadasDeLaFila total={f.aulas_agendadas} agendadas={f.agendadas} />
                     </span>
                   </td>
                 </tr>

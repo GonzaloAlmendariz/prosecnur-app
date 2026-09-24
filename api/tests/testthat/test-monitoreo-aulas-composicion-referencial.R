@@ -70,8 +70,10 @@ test_that("sólo se describe a quien RESOLVIÓ, y a quien acreditó", {
 })
 
 test_that("sin cruce lo DICE, en vez de publicar ceros con voz de medición", {
+  # Sin `resueltas` el cruce no se intentó: `sin_padron` (2026-09-24), que
+  # también es un vacío declarado y no ceros.
   r <- monitoreo_aulas_composicion_referencial(.mcr_cfg())
-  expect_identical(r$fuente, "sin_cruce")
+  expect_identical(r$fuente, "sin_padron")
   expect_identical(r$personas, 0L)
   # El denominador sigue ahí: la población se conoce desde el marco, lo que
   # falta es lo recogido.
@@ -104,5 +106,9 @@ test_that("una config sin perfiles del marco no revienta ni inventa", {
   expect_identical(r$dimensiones$sexo$poblacion_total, 0L)
   # Lo recogido sigue describiéndose: es la mitad que sí se conoce.
   expect_identical(r$dimensiones$sexo$obtenidas_total, 4L)
-  expect_identical(monitoreo_aulas_composicion_referencial(list())$fuente, "sin_cruce")
+  expect_identical(monitoreo_aulas_composicion_referencial(list())$fuente, "sin_padron")
+})
+
+test_that("sin cruce intentado dice sin_padron, no «todavía» (HSVG26ULT2, 2026-09-24)", {
+  expect_identical(monitoreo_aulas_composicion_referencial(list(), resueltas = NULL)$fuente, "sin_padron")
 })

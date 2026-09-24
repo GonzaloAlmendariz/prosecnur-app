@@ -1300,6 +1300,11 @@ export type MonitoreoAulasProyeccionFila = {
   aulas_agendadas: number;
   /** Elegibles de lo agendado y todavía sin aplicar: la base de la proyección. */
   elegibles_agendados: number;
+  /**
+   * Cuáles son esas aulas agendadas y sin aplicar, por fecha y hora, con sus
+   * elegibles por sexo del padrón (`hombres`/`mujeres` en null sin sexo).
+   */
+  agendadas?: MonitoreoAulasAgendadaDeLaFila[];
   /** La tasa con la que se proyecta, y de cuál de las dos salió. */
   tasa_usada: number | null;
   tasa_es_del_diseno: boolean;
@@ -1325,6 +1330,20 @@ export type MonitoreoAulasProyeccionFila = {
   /** Vacío cuando no aplica; nunca ausente. */
   supuesto_meta: string;
   supuesto_sexo: string;
+};
+
+export type MonitoreoAulasAgendadaDeLaFila = {
+  codigo: string;
+  curso: string;
+  seccion: string;
+  /** `YYYY-MM-DD`, o vacío. */
+  fecha: string;
+  hora: string;
+  horario: string;
+  lugar: string;
+  elegibles: number | null;
+  hombres: number | null;
+  mujeres: number | null;
 };
 
 /** Las cuatro combinaciones, ya calculadas por el motor. */

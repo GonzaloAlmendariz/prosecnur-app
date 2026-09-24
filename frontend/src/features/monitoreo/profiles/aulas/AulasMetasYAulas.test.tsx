@@ -121,3 +121,21 @@ describe("cambiar de tasa no puede mover lo que no cambia", () => {
     expect(anchos(b, "es-proyectado")).not.toEqual(anchos(a, "es-proyectado"));
   });
 });
+
+describe("«N agendados» con su detalle (2026-09-24)", () => {
+  it("el disparo nombra la cifra y sin detalle queda la cifra sola", async () => {
+    const { AulasAgendadasDeLaFila } = await import("./AulasAgendadasDeLaFila");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const con = renderToStaticMarkup(<AulasAgendadasDeLaFila total={2} agendadas={[
+      { codigo: "CH 1", curso: "X", seccion: "", fecha: "2099-09-30", hora: "8:00 am", horario: "",
+        lugar: "A406", elegibles: 31, hombres: 26, mujeres: 5 },
+      { codigo: "CH 2", curso: "Y", seccion: "", fecha: "2099-10-01", hora: "", horario: "",
+        lugar: "", elegibles: 10, hombres: 4, mujeres: 6 },
+    ]} />);
+    expect(con).toContain("aulas-agendadas-disparo");
+    expect(con).toContain("2 agendados");
+    const sin = renderToStaticMarkup(<AulasAgendadasDeLaFila total={3} agendadas={undefined} />);
+    expect(sin).toBe("3 agendados");
+    expect(renderToStaticMarkup(<AulasAgendadasDeLaFila total={1} agendadas={[]} />)).toBe("1 agendado");
+  });
+});

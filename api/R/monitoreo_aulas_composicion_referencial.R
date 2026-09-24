@@ -121,7 +121,11 @@ monitoreo_aulas_composicion_referencial <- function(cfg = list(), resueltas = NU
                   "estudio es por su eje declarado y no se mide aquí."),
     # De dónde sale lo obtenido, que es la mitad de la información: sin padrón
     # no hay composición y eso se declara en vez de publicar ceros.
-    fuente = if (hay_cruce && any(mask)) "padron" else "sin_cruce",
+    # `sin_padron`: el cruce no se intentó —eje por aula, o sin padrón ni
+    # código—, que no es lo mismo que «todavía no cruza nada» y se arregla
+    # distinto (cargando el padrón, no esperando respuestas). HSVG26ULT2,
+    # 2026-09-24: el panel pedía paciencia a un estudio sin padrón.
+    fuente = if (hay_cruce && any(mask)) "padron" else if (is.null(resueltas)) "sin_padron" else "sin_cruce",
     personas = as.integer(sum(mask)),
     dimensiones = dims
   )
