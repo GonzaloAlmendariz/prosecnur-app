@@ -1912,6 +1912,12 @@
     invisible(NULL)
   }
 
+  # El archivo de marco que Muestra general declara por componente (ADR 0090)
+  # es input: sin él no se puede repetir el sorteo.
+  for (marco in (s$calc_muestra_general %||% list())$marcos %||% list()) {
+    if (is.list(marco)) add_fid(marco$file_id)
+  }
+
   estudio <- s$calc_muestra_estudio %||% NULL
   workspace <- if (is.list(estudio)) estudio$workspace %||% NULL else NULL
   bindings <- if (is.list(workspace)) workspace$source_bindings %||% list() else list()
