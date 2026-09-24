@@ -80,6 +80,12 @@ describe("composicionReferencial: el view-model", () => {
     expect(v.dimensiones.length).toBe(2);
   });
 
+  it("`sin_padron` dice la causa, no pide esperar (HSVG26ULT2, 2026-09-24)", () => {
+    const v = composicionReferencial(bloque({ ...COMPOSICION, fuente: "sin_padron", personas: 0 }));
+    expect(v.vacio).toContain("no cruza las respuestas con un padrón");
+    expect(v.vacio).not.toContain("Todavía");
+  });
+
   it("sin composición en el payload dice por qué, no un cero", () => {
     expect(composicionReferencial(bloque(null)).vacio).toContain("no publica la composición");
     expect(composicionReferencial(null).vacio).toContain("no publica la composición");
