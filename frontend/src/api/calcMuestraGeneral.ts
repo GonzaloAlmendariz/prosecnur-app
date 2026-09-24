@@ -18,7 +18,7 @@
  *    reconocible devuelve `null`, no un objeto a medias.
  */
 import { ApiError, apiFetch, handle, headers } from "./core";
-import type { CalcMuestraComponente, CalcMuestraEstudio } from "./calcMuestra";
+import type { CalcMuestraAvisoParametro, CalcMuestraComponente, CalcMuestraEstudio } from "./calcMuestra";
 
 export type CalcMuestraGeneralMetodo = "mas" | "sistematico" | "pps";
 
@@ -501,4 +501,119 @@ export async function apiCalcMuestraGeneralExportar(componenteId: string): Promi
   const file_id = asText(exp?.file_id);
   if (!exp || !file_id) throw sinForma("/general/exportar");
   return { file_id, filename: asText(exp.filename), size: asCount(exp.size) };
+}
+
+// ---------------------------------------------------------------------------
+// Parámetros por técnica, memoria de cálculo y avisos (E7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Un parámetro que la técnica consume, con el rótulo y la ayuda del motor.
+ * `opciones` sólo cuando el motor lo declara de opciones cerradas.
+ */
+export type CalcMuestraParametroDeTecnica = {
+  clave: string;
+  rotulo: string;
+  ayuda: string;
+  tipo: "numero" | "opciones";
+  opciones: string[];
+};
+
+/** Catálogo `técnica → parámetros que consume`, en el orden del motor. */
+export type CalcMuestraCatalogoParametros = Record<string, CalcMuestraParametroDeTecnica[]>;
+
+/**
+ * `GET /tecnicas/parametros` → `{ok, tecnicas: [{tecnica, parametros}]}`.
+ * Una técnica sin parámetros es válida (lista vacía); un payload sin
+ * `tecnicas` reconocibles devuelve `null`.
+ */
+export function normalizeCalcMuestraCatalogoParametros(raw: unknown): CalcMuestraCatalogoParametros | null {
+  const r = asRecord(raw);
+  if (!r || r.tecnicas == null) return null;
+  const catalogo: CalcMuestraCatalogoParametros = {};
+  for (const item of asList(r.tecnicas)) {
+    const t = asRecord(item);
+    const tecnica = asText(t?.tecnica);
+    if (!t || !tecnica) continue;
+    catalogo[tecnica] = asList(t.parametros)
+      .map((p): CalcMuestraParametroDeTecnica | null => {
+        const row = asRecord(p);
+        const clave = asText(row?.clave);
+        if (!row || !clave) return null;
+        const opciones = asList(row.opciones).map(asText).filter(Boolean);
+        // Sin opciones que ofrecer, un campo «de opciones» no es elegible: número.
+        const tipo = asText(row.tipo) === "opciones" && opciones.length > 0 ? "opciones" : "numero";
+        return { clave, rotulo: asText(row.rotulo) || clave, ayuda: asText(row.ayuda), tipo, opciones: tipo === "opciones" ? opciones : [] };
+      })
+      .filter((p): p is CalcMuestraParametroDeTecnica => p != null);
+  }
+  return Object.keys(catalogo).length > 0 ? catalogo : null;
+}
+
+export async function apiCalcMuestraTecnicasParametros(): Promise<CalcMuestraCatalogoParametros> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/calc-muestra/tecnicas/parametros", { headers: headers() }),
+  );
+  const catalogo = normalizeCalcMuestraCatalogoParametros(raw);
+  if (!catalogo) throw sinForma("/tecnicas/parametros");
+  return catalogo;
+}
+
+/** Un paso de la memoria sustituida: fórmula, valores puestos y resultado. */
+export type CalcMuestraMemoriaPaso = {
+  paso: string;
+  formula: string;
+  sustitucion: string;
+  resultado: string;
+};
+
+/**
+ * `resultado.memoria_calculo`. El data.frame llega por filas
+ * (`[{paso, formula, …}]`); si llegara por columnas (`{paso: [...], …}`) se
+ * recompone. Filas sin `paso` se descartan.
+ */
+export function normalizeCalcMuestraMemoriaCalculo(raw: unknown): CalcMuestraMemoriaPaso[] {
+  if (raw == null) return [];
+  const columnas = !Array.isArray(raw) && typeof raw === "object" ? (raw as Record<string, unknown>) : null;
+  const columna = (clave: string, i: number): unknown => {
+    const valores = columnas?.[clave];
+    return Array.isArray(valores) ? valores[i] : null;
+  };
+  const pasos = columnas?.paso;
+  const filas: unknown[] = Array.isArray(pasos)
+    ? pasos.map((paso: unknown, i) => ({
+        paso,
+        formula: columna("formula", i),
+        sustitucion: columna("sustitucion", i),
+        resultado: columna("resultado", i),
+      }))
+    : asList(raw);
+  return filas
+    .map((item): CalcMuestraMemoriaPaso | null => {
+      const row = asRecord(item);
+      const paso = asText(row?.paso);
+      if (!row || !paso) return null;
+      return {
+        paso,
+        formula: asText(row.formula),
+        sustitucion: asText(row.sustitucion),
+        resultado: asText(row.resultado),
+      };
+    })
+    .filter((row): row is CalcMuestraMemoriaPaso => row != null);
+}
+
+/** `avisos_parametros` del componente o del resultado; sin forma → vacío. */
+export function normalizeCalcMuestraAvisosParametros(raw: unknown): CalcMuestraAvisoParametro[] {
+  return asList(raw)
+    .map((item): CalcMuestraAvisoParametro | null => {
+      const row = asRecord(item);
+      const param = asText(row?.param);
+      const texto = asText(row?.texto);
+      const recibido = asNumOrNull(row?.recibido);
+      const usado = asNumOrNull(row?.usado);
+      if (!row || !param || !texto || recibido == null || usado == null) return null;
+      return { param, recibido, usado, texto };
+    })
+    .filter((row): row is CalcMuestraAvisoParametro => row != null);
 }

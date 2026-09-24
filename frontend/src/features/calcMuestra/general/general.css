@@ -610,6 +610,128 @@
   white-space: nowrap;
 }
 
+/* --- Mesa de Muestra general y Acreditación (E7) ---------------------------- */
+
+/* Sin pestañas locales no hay rail: el canvas toma el ancho entero (G4). */
+.cmv2-workbench.cmg-sin-rail {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* La pastilla «Desplaza para ver más» sólo cuando hay desborde real (G5). */
+.cmv2-table-wrap.cmg-tabla-desplazable::after {
+  content: none;
+  display: none;
+}
+
+.cmv2-table-wrap.cmg-tabla-desplazable[data-desborda="true"]::after {
+  content: "Desplaza para ver más";
+  display: block;
+}
+
+.cmv2-table-wrap.cmg-tabla-desplazable:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* Parámetros de la técnica: sólo los que consume, con su ayuda. */
+/* Cada campo mide lo suyo: el aviso o una ayuda larga no estiran al vecino. */
+.cmg-parametros--tecnica {
+  align-items: start;
+  margin-top: var(--cmv2-space-3);
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmg-parametros-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cmv2-space-2);
+  margin-top: var(--cmv2-space-3);
+}
+
+.cmg-aviso-param,
+.cmg-avisos-resultado li {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
+}
+
+.cmg-aviso-param > svg,
+.cmg-avisos-resultado li > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.cmg-campo .cmg-aviso-param {
+  color: var(--pulso-warn-fg);
+}
+
+.cmg-avisos-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 var(--cmv2-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+/* Memoria de cálculo: el paso se lee como rótulo de fila, no como cabecera. */
+.cmg-memoria-tabla tbody th {
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: none;
+  white-space: normal;
+}
+
+.cmg-memoria-tabla code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.cmg-nota-param {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-heavy);
+}
+
+/* «Cursos-horario / QR» entero: el canal es dato operativo, no se recorta. */
+.cmg-tabla-desplazable select.cmv2-channel-select {
+  min-width: 156px;
+}
+
+.cmg-ir-seleccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.cmg-motivo {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-ficha-notas {
+  grid-column: 1 / -1;
+}
+
+.cmg-ficha-notas textarea {
+  min-height: 64px;
+}
+
 /* --- Compacto (1024 px y menos) --------------------------------------------- */
 
 @media (max-width: 1180px) {
