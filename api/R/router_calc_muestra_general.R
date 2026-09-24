@@ -97,5 +97,34 @@ mount_calc_muestra_general <- function(pr) {
                  "Este componente todavía no tiene un sorteo.")
       }
       c(list(ok = TRUE), corrida)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/general/exportar
+    # Body: { componente_id }. Libro de entrega de la corrida vigente
+    # (Corrida, Memoria de cálculo, Estratos, Listado); mismo patrón de
+    # descarga que /aulas/exportar (archivo registrado + file_id).
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/general/exportar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      componente_id <- calc_str(body$componente_id, "")
+      s <- session_get(sid)
+      estado <- .cm_general_estado(s$calc_muestra_general)
+      corrida <- estado$corridas[[componente_id]]
+      if (is.null(corrida)) {
+        stop_api(404, "E_CALC_MUESTRA_GENERAL_SIN_CORRIDA",
+                 "Este componente todavía no tiene un sorteo que exportar.")
+      }
+      estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
+      comp <- estudio$componentes[[.cm_general_buscar_componente(estudio, componente_id)]]
+      resultado <- comp$resultado %||% calc_muestra_calcular_componente(comp)
+      out_path <- tempfile("calc_muestra_general_", fileext = ".xlsx")
+      calc_muestra_general_exportar_workbook(corrida, estado$marcos[[componente_id]] %||% list(),
+                                             comp, resultado, out_path)
+      out_name <- .export_filename(sid, "calc_muestra_sorteo", "xlsx")
+      meta <- .register_output_file(sid, "calc_muestra_general_sorteo", out_path, original_name = out_name)
+      list(ok = TRUE, export = list(file_id = meta$file_id, filename = meta$original_name, size = meta$size))
     }))
 }

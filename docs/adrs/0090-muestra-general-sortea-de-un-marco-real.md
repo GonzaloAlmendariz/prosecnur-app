@@ -101,7 +101,7 @@ Entrega: listado XLSX con una hoja de metadatos de la corrida (E6).
 | `POST /api/calc-muestra/general/seleccionar` | `{componente_id, metodo, semilla?, orden_por?, reservas_por_estrato?}` | `{ok, corrida: {run_id, semilla, rng_kind, r_version, metodo, marco_hash, config_hash, n_titulares, n_reservas}, estratos: [{clave, N_h, n_h, pi}], unidades: [...]}` |
 | `GET /api/calc-muestra/general/corrida` | `?componente_id` | la corrida vigente completa, para rehidratar al reabrir |
 | `GET /api/calc-muestra/state` (existente) | — | gana `general: {marcos, corridas sin unidades}` |
-| `GET /api/calc-muestra/general/exportar` | `?componente_id&run_id` | XLSX |
+| `POST /api/calc-muestra/general/exportar` | `{componente_id}` | `{ok, export: {file_id, filename, size}}` — libro con Corrida, Memoria de cálculo (sustituida), Estratos y Listado; patrón de `/aulas/exportar` |
 
 Errores con `stop_api` y códigos `E_CALC_MUESTRA_GENERAL_*` registrados en
 `errors_registry.R`.

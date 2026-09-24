@@ -149,6 +149,12 @@ test_that("HTTP: /general/marco y /general/seleccionar por el wire real", {
   nada <- http_get(srv, "/api/calc-muestra/general/corrida?componente_id=otro", sid = sid)
   expect_identical(nada$status, 404L)
 
+  exp <- http_post_json(srv, "/api/calc-muestra/general/exportar", sid = sid,
+                        body = list(componente_id = "cmp-general"))
+  expect_identical(exp$status, 200L)
+  expect_true(nzchar(exp$json$export$file_id))
+  expect_match(exp$json$export$filename, "\\.xlsx$")
+
   mal <- http_post_json(srv, "/api/calc-muestra/general/marco", sid = sid, body = list(
     componente_id = "cmp-general", file_id = subida$json$file_id, hoja = "padron",
     columnas = list(id = "distrito")
