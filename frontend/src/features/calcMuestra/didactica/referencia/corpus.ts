@@ -244,7 +244,7 @@ export const GLOSARIO: GlosarioEntry[] = [
     llano:
       'Repartir la muestra total entre los cajones (facultad × sexo) según su peso real: si una facultad tiene el 21% de la población, recibe el 21% de las encuestas.',
     tecnico:
-      'Asignación n_h = round(n · N_h / N) por estrato, con desglose por sexo proporcional a la composición del estrato (sin forzar 50/50). Los redondeos celda a celda exigen un ajuste de cuadratura posterior para cerrar exacto en el total.',
+      'Asignación n_h ∝ n · N_h / N por estrato, redondeada por mayor resto (piso de cada cuota y las unidades sobrantes a los mayores decimales), con desglose por sexo proporcional a la composición del estrato (sin forzar 50/50). El mayor resto cierra exacto en el total sin cargar el residuo a un solo estrato.',
     fuenteId: 'propuesta-2026',
   },
   {

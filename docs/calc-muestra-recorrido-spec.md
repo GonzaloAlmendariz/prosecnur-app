@@ -32,6 +32,8 @@
 
 **Guardas canónicas:** el Excel oficial imprime mal el Total (1,431/1,069); lo correcto es la suma de cuotas después del residuo A5 (1,232/1,268). El valor H=1,267 es la suma previa a cuadratura, no la meta final. Una pestaña que reconstruye A5–A6 detecta ambos descuadres.
 
+**Desde 2026-09-24 el motor reparte A3–A5 por mayor resto** (decisión P1 de Gonzalo; `distribuir_proporcional_pesos` en `api/R/helpers_calc_comunes.R`): piso de cada cuota y las unidades sobrantes a los mayores decimales, así que la suma cierra sin cargar el residuo a la facultad mayor. La tabla de arriba documenta la cuadratura con que se armó 2025; sobre hsvg2026 el cambio no movió ninguna cuota.
+
 ---
 
 ## Cadena B — de la muestra a las AULAS (estudiantes/aula por facultad)
