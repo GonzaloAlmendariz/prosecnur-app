@@ -1721,6 +1721,10 @@ calc_muestra_calcular_componente <- function(comp) {
   pesos <- vapply(estratos, function(e) e$N, integer(1))
   piso <- if (par$n_minimo_estrato > 0L) par$n_minimo_estrato else 0L
   cuotas <- .cm_distribuir_con_piso(n_total = n_objetivo, pesos = pesos, piso = piso)
+  # El n a campo por estrato, con el MISMO reparto que usa el sorteo: sin él la
+  # pantalla mostraba las completas (537 en total) junto a un sorteo de 716 y
+  # los dos se llamaban «n».
+  cuotas_campo <- .cm_distribuir_con_piso(n_total = campo$n_operativo, pesos = pesos, piso = piso)
   distribucion_estratos <- lapply(seq_along(estratos), function(i) {
     e <- estratos[[i]]
     n_i <- as.integer(cuotas[[i]])
@@ -1728,6 +1732,7 @@ calc_muestra_calcular_componente <- function(comp) {
       estrato     = e$label,
       N           = e$N,
       n           = n_i,
+      n_campo     = as.integer(cuotas_campo[[i]]),
       precision_e = if (n_i > 0L) calc_e_desde_n_muestra(
         n = n_i, N = e$N, p = par$p, z = par$z, deff = par$deff
       ) else NA_real_,

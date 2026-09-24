@@ -3763,7 +3763,7 @@ function NestedOutputs({ componentes }: { componentes: CalcMuestraComponente[] }
             {estratos.map(({ comp, row }, i) => (
               <span key={`${comp.id}-estrato-${i}`}>
                 <strong>{row.estrato}</strong>
-                <em>N {fmtInt(row.N)} · n {fmtInt(row.n)}</em>
+                <em>N {fmtInt(row.N)} · {fmtInt(row.n)} completas{row.n_campo != null ? ` · ${fmtInt(row.n_campo)} a campo` : ""}</em>
               </span>
             ))}
           </div>
