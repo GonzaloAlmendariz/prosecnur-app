@@ -9,4 +9,3 @@ export { SeleccionActores } from "./SeleccionActores";
 export { SeleccionGeneral } from "./SeleccionGeneral";
 export { productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl } from "./catalogos";
 export { labelMarcoOcasional, type MarcoOcasional } from "./marcoOcasional";
-export { motivoReporteDeshabilitado } from "./secciones";
