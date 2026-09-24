@@ -164,75 +164,48 @@ calc_e_desde_n_muestra <- function(n, N, p = 0.5, z = 1.96, deff = 1) {
 
 #' Distribuye un total proporcionalmente a una columna de pesos.
 #'
-#' Por defecto usa "cuadratura": los residuos del redondeo se absorben en la
-#' categoría mayor para que la suma exacta coincida con `n_total`.
+#' Reparto por mayor resto (Hamilton): piso de cada cuota cruda y las
+#' unidades sobrantes a los mayores decimales, empates por el orden de
+#' entrada. La suma cierra exacta y ninguna categoría con peso queda en cero
+#' por arrastrar el residuo de otra (research H01; decisión de Gonzalo del
+#' 2026-09-24, P1 del loop de Cálculo de muestra).
+#'
+#' Hasta esa decisión, «cuadratura» hacía ceiling y cargaba el residuo entero
+#' en la categoría mayor —5 sobre (100,1×6) daba 0,1,1,1,1,1,1: suma 6 y la
+#' del 94 % en cero— y «round_residuo_controlado» hacía round() con el residuo
+#' también a la mayor. Ambos nombres se aceptan y hoy significan mayor resto;
+#' sobre hsvg2026 el cambio no movió ninguna cifra (delta medido, docs/qa/
+#' goal-calc-muestra-paridad-aulas-2026-09-23.md).
 #'
 #' @param n_total Tamaño total a distribuir.
 #' @param pesos Vector numérico con pesos relativos (típicamente N por categoría).
-#' @param redondeo `"arriba"`, `"cuadratura"` o
-#'   `"round_residuo_controlado"`. El último modo conserva el `round()`
-#'   metodológico y aplica el residuo a la categoría de mayor peso; se usa
-#'   únicamente en la distribución universitaria P1/P2.
+#' @param redondeo `"cuadratura"` o `"round_residuo_controlado"` (ambos mayor
+#'   resto) o `"arriba"` (ceiling de cada cuota, sin cuadrar la suma).
 #' @return Vector entero con asignación por categoría.
 distribuir_proporcional_pesos <- function(n_total, pesos, redondeo = "cuadratura") {
   if (length(pesos) == 0L) return(integer())
-  total_peso <- sum(pesos, na.rm = TRUE)
-  if (total_peso <= 0) return(rep(0L, length(pesos)))
-  prop <- pesos / total_peso
-  crudo <- n_total * prop
-  asignado <- if (identical(redondeo, "round_residuo_controlado")) {
-    round(crudo)
-  } else {
-    ceiling(crudo)
-  }
-  asignado[is.na(asignado)] <- 0L
-
-  if (identical(redondeo, "cuadratura")) {
-    asignado <- ajustar_cuadratura_residuo(asignado, n_total, pesos)
-  } else if (identical(redondeo, "round_residuo_controlado")) {
-    asignado <- ajustar_round_residuo_controlado(asignado, n_total, pesos)
-  }
-  as.integer(asignado)
-}
-
-#' Ajusta el residuo posterior a round() sin alterar la cuadratura legacy.
-#'
-#' Los empates se resuelven por el orden de entrada. Un residuo positivo se
-#' suma a la categoría de mayor peso; uno negativo se descuenta de esa misma
-#' categoría y, solo si no alcanza, continúa por peso descendente.
-ajustar_round_residuo_controlado <- function(asignado, n_objetivo, pesos) {
-  asignado <- as.integer(asignado)
-  diff <- as.integer(n_objetivo - sum(asignado))
-  if (diff == 0L || !length(asignado)) return(asignado)
-
   pesos <- suppressWarnings(as.numeric(pesos))
-  pesos[!is.finite(pesos)] <- -Inf
-  orden <- order(-pesos, seq_along(pesos))
-  if (diff > 0L) {
-    asignado[orden[[1L]]] <- asignado[orden[[1L]]] + diff
-    return(asignado)
-  }
-
-  pendiente <- -diff
-  for (idx in orden) {
-    descuento <- min(asignado[[idx]], pendiente)
-    asignado[[idx]] <- asignado[[idx]] - descuento
-    pendiente <- pendiente - descuento
-    if (pendiente == 0L) break
-  }
-  asignado
+  pesos[!is.finite(pesos) | pesos < 0] <- 0
+  total_peso <- sum(pesos)
+  if (total_peso <= 0) return(rep(0L, length(pesos)))
+  # En double: n·peso pasa de 2^31 con marcos de millones.
+  crudo <- as.numeric(n_total) * pesos / total_peso
+  if (identical(redondeo, "arriba")) return(as.integer(ceiling(crudo)))
+  reparto_mayor_resto(crudo, n_total)
 }
 
-#' Ajusta una asignación entera para que su suma == n_objetivo.
-#'
-#' El residuo se aplica completo a la categoría con mayor peso.
-ajustar_cuadratura_residuo <- function(asignado, n_objetivo, pesos = NULL) {
-  diff <- n_objetivo - sum(asignado)
-  if (diff == 0L) return(asignado)
-  idx <- if (!is.null(pesos)) which.max(pesos) else which.max(asignado)
-  asignado[idx] <- asignado[idx] + diff
-  asignado[asignado < 0L] <- 0L
-  asignado
+#' Redondea cuotas crudas a enteros que suman exactamente `n_total`: piso de
+#' cada una y las unidades que faltan a los mayores decimales (empates por
+#' orden de entrada).
+reparto_mayor_resto <- function(crudo, n_total) {
+  base <- floor(crudo)
+  faltan <- as.integer(round(as.numeric(n_total) - sum(base)))
+  if (faltan > 0L) {
+    orden <- order(-(crudo - base), seq_along(crudo))
+    idx <- orden[seq_len(min(faltan, length(crudo)))]
+    base[idx] <- base[idx] + 1
+  }
+  as.integer(base)
 }
 
 # ---------------------------------------------------------------------------
