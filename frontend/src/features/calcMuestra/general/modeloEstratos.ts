@@ -18,9 +18,13 @@ import { safeNumber, type ComponentePatch } from "../sharedCore";
 
 type ComponenteEstratos = Pick<CalcMuestraComponente, "id" | "tecnica" | "marco" | "resultado">;
 
-/** La columna «p esperada» sólo existe donde el motor la consume. */
-export function usaProporcionPorEstrato(tecnica: string): boolean {
-  return tecnica === "prob_estratificado";
+/**
+ * La columna «p esperada» sólo existe donde el motor la consume: el
+ * estratificado de una proporción. Con una media el motor calcula con el CV
+ * global e ignora la p de cada estrato, así que pedirla sería decorativo.
+ */
+export function usaProporcionPorEstrato(tecnica: string, tipoIndicador?: string | null): boolean {
+  return tecnica === "prob_estratificado" && tipoIndicador !== "media";
 }
 
 /** Una p utilizable por el motor: número en (0, 1) abierto. */

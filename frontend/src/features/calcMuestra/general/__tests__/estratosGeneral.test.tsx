@@ -73,6 +73,9 @@ describe("columnas", () => {
   it("la p sólo en el estratificado", () => {
     expect(usaProporcionPorEstrato("prob_estratificado")).toBe(true);
     expect(usaProporcionPorEstrato("no_prob_cuotas")).toBe(false);
+    // Con una media el motor usa el CV global: la p por estrato no se pide.
+    expect(usaProporcionPorEstrato("prob_estratificado", "media")).toBe(false);
+    expect(usaProporcionPorEstrato("prob_estratificado", "proporcion")).toBe(true);
     const estratificado = renderToStaticMarkup(<EstratosGeneralVista comp={comp()} marcoDeclarado={false} onComponente={noop} />);
     expect(estratificado).toContain("p esperada");
     expect(estratificado).toContain("Neyman puede repartir mejor");
