@@ -103,8 +103,12 @@ export function parametrosVisibles(
   valores: CalcMuestraParametros,
 ): CalcMuestraParametroDeTecnica[] {
   const indicador = parametros.find((p) => p.clave === "tipo_indicador");
-  const oculta = indicador && tipoIndicadorDe(valores) === "media" ? "p" : "cv";
-  const resto = parametros.filter((p) => p.clave !== "tipo_indicador" && p.clave !== oculta);
+  const esMedia = Boolean(indicador) && tipoIndicadorDe(valores) === "media";
+  // Con una media se oculta p y también la asignación: el motor reparte
+  // proporcional porque Neyman y potencia necesitan la variabilidad de cada
+  // estrato, que una media no declara.
+  const ocultas = new Set(esMedia ? ["p", "asignacion"] : ["cv"]);
+  const resto = parametros.filter((p) => p.clave !== "tipo_indicador" && !ocultas.has(p.clave));
   return indicador ? [indicador, ...resto] : resto;
 }
 

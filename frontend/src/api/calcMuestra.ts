@@ -590,7 +590,7 @@ export type CalcMuestraResultado = {
   avisos_parametros?: CalcMuestraAvisoParametro[];
   /** Estratificado con fórmula por estrato (p por estrato, Neyman o potencia). */
   asignacion?: CalcMuestraAsignacion;
-  formula_n?: "proporcional_por_estrato" | "neyman" | "potencia";
+  formula_n?: "proporcional_por_estrato" | "neyman" | "potencia" | "media_global";
   /**
    * Memoria sustituida (técnicas de elementos): data.frame serializado como
    * filas `{paso, formula, sustitucion, resultado}`. Payload crudo; se lee con
