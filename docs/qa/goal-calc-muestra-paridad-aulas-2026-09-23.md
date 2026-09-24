@@ -110,5 +110,6 @@ hecho o la muestra continua que porpones».
   aplica (el recomendador no tiene consumidor en la UI).
 - Cerrado (947e1c7e4): con una media la tabla de estratos ya no pide la p
   de cada estrato (`usaProporcionPorEstrato` mira `tipo_indicador`).
-- Tareas aparte: π a 4 decimales en rutas de aulas; test del respaldo
-  multipart de monitoreo.
+- Medido y descartado: π a 4 decimales en rutas de aulas no deforma nada en
+  hsvg2026 ([medición](pi-wire-aulas-hsvg2026-2026-09-24.md)).
+- Tarea aparte: test del respaldo multipart de monitoreo.
