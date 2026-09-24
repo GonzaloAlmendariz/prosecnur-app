@@ -134,7 +134,7 @@ function MetaDelActor({
         value={metaCuotaFijada(comp)}
         placeholder={sugerido == null ? undefined : String(sugerido)}
         title={sugerido == null ? "Cuota sin fijar." : `Sin fijar. El motor aplica ${sugerido}.`}
-        onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota" } })}
+        onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota", origen: "usuario" } })}
       />
     );
   }

@@ -92,14 +92,14 @@ hecho o la muestra continua que porpones».
    | Estudiantes (aula/QR) | técnica | completas | a campo | margen |
    |---|---|---|---|---|
    | N = 2.000 | cobertura censal 60 % | 1.200 | 2.000 | — |
-   | N = 2.052 | conglomerado | 1.231 | 1.847 | ±2,5 % |
+   | N = 2.050 | conglomerado | 1.230 | 1.845 | ±2,5 % |
    | N = 3.000 / 3.001 | conglomerado | 1.519 / 1.519 | 2.279 | ±2,5 % |
    | N = 20.000 | conglomerado | 2.665 | 3.998 | ±2,5 % |
 
    | Docentes | técnica | completas | a campo | margen |
    |---|---|---|---|---|
    | N = 250 | cobertura censal 60 % | 150 | 250 | — |
-   | N = 259 | MAS | 155 | 259 | ±5 % |
+   | N = 258 | MAS | 155 | 258 | ±5 % |
    | N = 1.000 | MAS | 278 | 464 | ±5 % |
 
    Muestra monótona, salto ≤ 1 entre N y N + 1, un único cambio de técnica.

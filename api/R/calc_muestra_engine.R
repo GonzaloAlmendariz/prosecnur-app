@@ -782,6 +782,8 @@ calc_muestra_normalize_componente <- function(comp = list()) {
       if (!is.null(inferencia$tope_operativo)) {
         parametros_in <- fill_default(parametros_in, "tope_operativo", inferencia$tope_operativo)
       }
+      meta_in <- .cm_cuadro_liberar_meta(meta_in, actor_categoria, canal_recojo, N)
+      valor_meta_antes <- meta_in$valor
       if (!is.null(inferencia$minimo_cuota)) {
         meta_in <- fill_default(meta_in, "valor", inferencia$minimo_cuota)
       }
@@ -791,6 +793,7 @@ calc_muestra_normalize_componente <- function(comp = list()) {
       if (!is.null(inferencia$minimo_n)) {
         meta_in <- fill_default(meta_in, "valor", inferencia$minimo_n)
       }
+      meta_in <- .cm_cuadro_sellar_meta(meta_in, valor_meta_antes)
       # Parámetros canónicos para estudiantes ≥3001: aplicar como defaults
       if (!is.null(inferencia$params_canonicos)) {
         for (key in names(inferencia$params_canonicos)) {
@@ -1147,8 +1150,8 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     # las de aulas para que un .pulso viejo no cambie su n, y las censales y
     # de cuotas porque la inferencia de acreditación reconoce «no declarado»
     # comparando contra ese 1.5 (`fill_default`): con 1 el estudiante de
-    # N ≥ 3001 perdía su deff canónico 2 y su margen publicado se achicaba
-    # (el n ya no depende del deff: son los 1 800 del cuadro maestro).
+    # aulas perdía su deff canónico 2 y bajaba de 1904 a 1176 con N = 5000
+    # (ADR 0091: el n sale de ±2,5 % con ese deff).
     deff              = calc_num(par$deff,
                                  if (tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) 1 else .CM_DEFAULTS_PARAMS$deff,
                                  min = 1, max = 10),
@@ -1193,7 +1196,10 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     tipo              = calc_enum(meta$tipo, tipo_opts, "objetivo"),
     valor             = calc_int(meta$valor, 0L, min = 0L),
     variable_control  = calc_str(meta$variable_control, ""),
-    sub_cuotas        = if (is.list(meta$sub_cuotas)) meta$sub_cuotas else list()
+    sub_cuotas        = if (is.list(meta$sub_cuotas)) meta$sub_cuotas else list(),
+    # «cuadro» si la puso la inferencia de acreditación (se recalcula);
+    # «usuario» si la tecleó alguien (manda). Vacío: legado sin marca.
+    origen            = calc_enum(meta$origen, c("", "usuario", "cuadro"), "")
   )
 }
 
@@ -2720,7 +2726,8 @@ calc_muestra_aplicar_preset_hsvg <- function() {
   parametros <- .cm_normalize_parametros(tpl$parametros, "prob_conglomerado_multietapico")
 
   # Pasar por normalize para que aplique la inferencia del cuadro maestro
-  # (estudiantes + aula_qr + N≥3001 → conglomerados con parámetros canónicos).
+  # (estudiantes + aula_qr, del lado probabilístico del corte por precisión del
+  # ADR 0091 → conglomerados con parámetros canónicos).
   raw <- list(
     actor           = calc_str(tpl$actor, "Estudiantes pregrado"),
     actor_id        = calc_str(tpl$actor_id, "estudiantes"),

@@ -251,8 +251,8 @@ Observaciones metodológicas:
 | H14 | R5 | engine:1885 | Dominios independientes: precisión global NA | e global por varianza estratificada | medio |
 | H15 | R5/R9 | engine:1643-1897 | Sin Neyman, costos, potencia ni control n_h ≥ 2 | Opciones de asignación + aviso n_h<2 | medio |
 | H16 | R14 | engine:753-756, :763-775 | Inferencia de acreditación sobrescribe técnica; fill_default pisa valores explícitos iguales al default | Respetar elección; distinguir ausente de default | medio |
-| H17 | R14 | engine:903-922 | Salto N=3000 (1800 completas) → N=3001 (1519) | Transición monótona. **Cerrado 2026-09-24** (ADR 0091): corte por precisión; censo mientras la muestra a ±2,5 % deff 2 pediría ≥ 60 % (N ≈ 2 052), luego el n de esa precisión; monótona y sin saltos | medio |
-| H18 | R14 | engine:895-901 | Docentes N ≥ 251 → cuotas 150 aun con nómina completa | Ofrecer MAS/estratificado por dedicación. **Cerrado 2026-09-24** (ADR 0091): con nómina, MAS a ±5 % (estratificado por dedicación si el marco la trae) desde N ≈ 259; antes, censo 60 % | medio |
+| H17 | R14 | engine:903-922 | Salto N=3000 (1800 completas) → N=3001 (1519) | Transición monótona. **Cerrado 2026-09-24** (ADR 0091): corte por precisión; censo mientras la muestra a ±2,5 % deff 2 pediría ≥ 60 % (desde N = 2 050), luego el n de esa precisión; monótona y sin saltos | medio |
+| H18 | R14 | engine:895-901 | Docentes N ≥ 251 → cuotas 150 aun con nómina completa | Ofrecer MAS/estratificado por dedicación. **Cerrado 2026-09-24** (ADR 0091): con nómina, MAS a ±5 % (estratificado por dedicación si el marco la trae) desde N = 258; antes, censo 60 % | medio |
 | H19 | R13 | engine:1556-1557, :208 | «Aplica TCL, n ≥ 30 estable» en censal | Texto sobre sesgo de no respuesta y cobertura | medio |
 | H20 | R15 | engine:1127; helpers:125; engine:1631 | p = 0 o 1 aceptado → n = 0 sin error | p ∈ (0,1) abierto | medio |
 | H21 | R2 | engine:1123-1155 | Sin n para medias ni error relativo | tipo_indicador/tipo_error | medio |
