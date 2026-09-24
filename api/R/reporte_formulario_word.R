@@ -170,14 +170,25 @@
     else if (nzchar(.form_pdf_clean_text(it$subletter %||% ""))) "child"
     else "normal"
   }, character(1))
+  # COLUMNA PROPIA PARA EL NUMERO (L5 del GOAL). Antes iba pegado a la etiqueta
+  # dentro de la misma celda (`paste0(num, ".  ", base)`), asi que las etiquetas
+  # arrancaban a alturas distintas segun tuviera el numero una o dos cifras. La
+  # referencia le da una columna angosta propia: su P7 mide `[276, 4814, 826...]`,
+  # ~276 twips para el numero. El enunciado madre no lleva numero aqui porque su
+  # fila se fusiona entera mas abajo.
   df <- data.frame(
+    num = vapply(items, function(it) {
+      if (isTRUE(it$is_parent)) return("")
+      subl <- .form_pdf_clean_text(it$subletter %||% "")
+      if (nzchar(subl)) return(subl)
+      .form_pdf_clean_text(it$number %||% "")
+    }, character(1)),
     lbl = vapply(items, function(it) {
       num <- .form_pdf_clean_text(it$number %||% "")
-      subl <- .form_pdf_clean_text(it$subletter %||% "")
       base <- .form_pdf_clean_text(it$label %||% "")
-      if (isTRUE(it$is_parent)) { if (nzchar(num)) paste0(num, ".  ", base) else base }
-      else if (nzchar(subl)) paste0(subl, ")  ", base)
-      else if (nzchar(num)) paste0(num, ".  ", base) else base
+      # La madre conserva su numero EN LA ETIQUETA: su fila va fusionada, no
+      # tiene celda de numero donde ponerlo.
+      if (isTRUE(it$is_parent) && nzchar(num)) paste0(num, ".  ", base) else base
     }, character(1)),
     stringsAsFactors = FALSE
   )
@@ -185,7 +196,7 @@
   for (k in seq_len(n_scale)) df[[paste0("s", k)]] <- ifelse(roles == "parent", "", scale_codes[k])
   if (has_special) df[["sp"]] <- ifelse(roles == "parent", "", sp_code)
   col_ids <- names(df)
-  scale_ids <- setdiff(col_ids, "lbl")
+  scale_ids <- setdiff(col_ids, c("num", "lbl"))
 
   ft <- flextable::flextable(df)
   # Cuerpo base para TODA la tabla, ANTES de los tamanos por columna (que lo
@@ -239,8 +250,17 @@
   # que el PDF, .form_pdf_matrix_label_frac), la escala se reparte el resto. ---
   total_cols <- n_scale + (if (has_special) 1L else 0L)
   frac <- .form_pdf_matrix_label_frac(total_cols)
-  lbl_w <- usable * frac
-  col_w <- (usable - lbl_w) / max(1L, total_cols)
+  # La columna del numero sale del ancho total ANTES de repartir: si se le restara
+  # solo a la etiqueta, la escala se ensancharia sola al anadirla.
+  # 0.26 in y no 0.2: con el padding de 3 pt por lado, 0.2 deja 8.4 pt utiles y
+  # "11" en Arial Narrow 10 pt necesita ~9 -- los items de dos cifras envolvian a
+  # dos lineas y su fila salia mas alta que las demas. El XML no lo delataba (la
+  # celda "solo tiene digitos" igual); se vio en el render.
+  num_w <- 0.26
+  resto <- usable - num_w
+  lbl_w <- resto * frac
+  col_w <- (resto - lbl_w) / max(1L, total_cols)
+  ft <- flextable::width(ft, j = "num", width = num_w)
   ft <- flextable::width(ft, j = "lbl", width = lbl_w)
   for (cid in scale_ids) ft <- flextable::width(ft, j = cid, width = col_w)
 
@@ -255,6 +275,8 @@
   ft <- flextable::color(ft, j = "lbl", color = .FORM_WORD_INK, part = "body")
   ft <- flextable::align(ft, j = scale_ids, align = "center", part = "all")
   ft <- flextable::align(ft, j = "lbl", align = "left", part = "all")
+  ft <- flextable::align(ft, j = "num", align = "center", part = "all")
+  ft <- flextable::padding(ft, j = "num", padding.left = 2, padding.right = 2, part = "all")
   # En extremos, las anclas van pegadas a su extremo (izq/der), no centradas.
   if (merge_extremos) {
     ft <- flextable::align(ft, i = 1, j = left_ids, align = "center", part = "header")
