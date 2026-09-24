@@ -20,6 +20,7 @@ import {
   type CalcMuestraGeneralMetodo,
   type CalcMuestraGeneralUnidad,
 } from "../../../api/calcMuestraGeneral";
+import { fmtDec, fmtInt, fmtPct } from "../sharedCore";
 import { proponerColumnas } from "./propuestaColumnas";
 
 // ---------------------------------------------------------------------------
@@ -417,13 +418,17 @@ export function formatearPi(pi: number | null): string {
 /** Peso base con dos decimales; separador de miles de es-PE (coma). */
 export function formatearPeso(peso: number | null): string {
   if (peso == null || !Number.isFinite(peso)) return "—";
-  const [entero, decimal] = peso.toFixed(2).split(".");
-  return `${entero.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${decimal}`;
+  return fmtDec(peso, 2);
 }
 
+/**
+ * @deprecated Usa `fmtInt` de `../sharedCore`: un solo formato es-PE en todo
+ * Cálculo de muestra. Se conserva como alias para los consumidores que aún lo
+ * importan.
+ */
 export function formatearEntero(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "—";
-  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return fmtInt(n);
 }
 
 export function hashCorto(hash: string, largo = 10): string {
@@ -474,3 +479,105 @@ export function exportReducer(estado: ExportEstado, accion: ExportAccion): Expor
 }
 
 export const MOTIVO_SIN_CORRIDA_EXPORT = "Sortea primero: el libro sale de la corrida vigente.";
+
+// ---------------------------------------------------------------------------
+// Por qué un botón no se puede usar (E11 · V7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Por qué «Sortear» está deshabilitado, en una línea visible junto al botón.
+ * El bloqueo de la técnica tiene su propio bloque y no pasa por aquí; mientras
+ * se sortea el botón ya lo dice con su spinner.
+ */
+export function motivoNoSortear(args: {
+  semillaValida: boolean;
+  /** `false` en PPS y en cobertura censal: no llevan reservas. */
+  usaReservas: boolean;
+  reservasValidas: boolean;
+}): string | null {
+  if (!args.semillaValida) return "Falta una semilla válida para sortear.";
+  if (args.usaReservas && !args.reservasValidas) return "Las reservas deben ser un entero de 0 a 10,000.";
+  return null;
+}
+
+/** Por qué «Declarar marco» está deshabilitado; `null` si se puede declarar. */
+export function motivoNoDeclarar(estado: ArchivoMarcoEstado): string | null {
+  if (estado.fase === "subiendo" || estado.fase === "declarando") return null;
+  if (!estado.archivo) return "Sube primero el archivo del marco.";
+  if (!estado.columnas.id) return "Elige la columna de Id de la unidad.";
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Acreditación › Actores: el campo de meta de cada fila (E11 · V11, V16)
+// ---------------------------------------------------------------------------
+
+/**
+ * `detalle` es la frase entera (título y lector de pantalla); `piezas` son
+ * sus unidades visibles: cada una cabe en una línea de la columna «Meta
+ * mínima» a 1024 px y el salto sólo cae entre piezas, nunca dentro (V15).
+ */
+export type CampoMetaDelActor =
+  /** Cuotas: el n que fija el usuario; vacío, el que sugiere el motor. */
+  | { tipo: "cuota"; rotulo: string }
+  /** Conveniencia o cobertura: la fracción del marco a cubrir. */
+  | { tipo: "cobertura"; clave: "cobertura_objetivo"; rotulo: string; detalle: string; piezas: readonly string[] }
+  /**
+   * Muestra de elementos (MAS, estratificado, sistemático): el n completo se
+   * infla por la respuesta esperada; lo que se lee es esa tasa y el margen,
+   * no una sobremuestra que el cuadro deja en 0 % (ADR 0091).
+   */
+  | { tipo: "respuesta"; clave: "tasa_respuesta"; rotulo: string; detalle: string; piezas: readonly string[] }
+  /** Conglomerados: la sobremuestra de aulas sí es el ajuste operativo. */
+  | { tipo: "sobremuestra"; clave: "oversample_pct"; rotulo: string; detalle: string; piezas: readonly string[] };
+
+const TECNICAS_DE_RESPUESTA: ReadonlySet<CalcMuestraTecnica> = new Set([
+  "prob_aleatorio_simple",
+  "prob_estratificado",
+  "sistematico",
+]);
+
+export function campoMetaDelActor(comp: Pick<CalcMuestraComponente, "tecnica" | "parametros">): CampoMetaDelActor {
+  const p = comp.parametros;
+  if (comp.tecnica === "no_prob_cuotas") return { tipo: "cuota", rotulo: "Cuota" };
+  if (comp.tecnica === "no_prob_conveniencia") {
+    const piso = `Piso ${fmtInt(p.n_minimo_estrato)}`;
+    const tope = `tope ${fmtInt(p.tope_operativo)}`;
+    return {
+      tipo: "cobertura",
+      clave: "cobertura_objetivo",
+      rotulo: "Cobertura",
+      detalle: `${piso} · ${tope}`,
+      piezas: [piso, tope],
+    };
+  }
+  if (TECNICAS_DE_RESPUESTA.has(comp.tecnica)) {
+    const margen = Number.isFinite(p.e) && p.e > 0 ? fmtPct(p.e) : "";
+    const extra = Number.isFinite(p.oversample_pct) && p.oversample_pct > 0 ? fmtPct(p.oversample_pct) : "";
+    const cifras = margen && extra ? `±${margen} · +${extra}` : margen ? `margen ±${margen}` : extra ? `+${extra}` : "";
+    return {
+      tipo: "respuesta",
+      clave: "tasa_respuesta",
+      rotulo: "Respuesta esperada",
+      detalle: [
+        "Respuesta esperada",
+        margen ? `margen ±${margen}` : "",
+        extra ? `sobremuestra ${extra}` : "",
+      ].filter(Boolean).join(" · "),
+      piezas: ["Respuesta", cifras].filter(Boolean),
+    };
+  }
+  if (comp.tecnica === "prob_conglomerado_multietapico") {
+    return { tipo: "sobremuestra", clave: "oversample_pct", rotulo: "Sobremuestra", detalle: "Sobremuestra", piezas: ["Sobremuestra"] };
+  }
+  return { tipo: "cobertura", clave: "cobertura_objetivo", rotulo: "Cobertura", detalle: "Cobertura", piezas: ["Cobertura"] };
+}
+
+/** Pie de la cuota: frase entera y sus piezas cortas (V15). */
+export function pieDeCuota(sugerido: number | null): { detalle: string; piezas: readonly string[] } {
+  if (sugerido == null) return { detalle: "Cuota", piezas: ["Cuota"] };
+  return {
+    detalle: `Cuota · vacía, el motor aplica ${fmtInt(sugerido)}`,
+    piezas: ["Cuota vacía", `motor: ${fmtInt(sugerido)}`],
+  };
+}

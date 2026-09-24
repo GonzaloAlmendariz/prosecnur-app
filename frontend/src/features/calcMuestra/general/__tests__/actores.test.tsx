@@ -13,7 +13,7 @@ import type { CalcMuestraComponente, CalcMuestraTecnica } from "../../../../api/
 import type { CalcMuestraGeneralCorrida, CalcMuestraGeneralMarco } from "../../../../api/calcMuestraGeneral";
 import { parsearDireccion } from "../../../../lib/navegacion/direccion";
 import { actorEnFoco, estadoDelActor, tecnicaDelActor } from "../actores";
-import { SeleccionActores, SeleccionActoresVista } from "../SeleccionActores";
+import { actoresDelSelector, SeleccionActores, SeleccionActoresVista } from "../SeleccionActores";
 import { SelectorActor, type ActorDelSelector } from "../SelectorActor";
 import { useMuestraGeneralStore } from "../store";
 import { searchConActor } from "../useActorEnFoco";
@@ -89,6 +89,14 @@ describe("estado del marco y del sorteo por actor", () => {
       .toEqual({ fase: "sorteado", etiqueta: "Sorteado", detalle: "120 de N=5,000" });
     expect(estadoDelActor({ tecnica: censal, cargado: true, marco: MARCO, corrida: corrida("censo", 5000) }).detalle)
       .toBe("5,000 a contactar");
+  });
+
+  it("un sorteo que ya no es vigente es «Sorteo viejo», nunca «Sorteado» (QA E11 ronda 2)", () => {
+    const viejo = estadoDelActor({ tecnica: prob, cargado: true, marco: MARCO, corrida: corrida("probabilistica", 120), vigente: false });
+    expect(viejo.fase).toBe("sorteo_viejo");
+    expect(viejo.etiqueta).toBe("Sorteo viejo");
+    expect(estadoDelActor({ tecnica: censal, cargado: true, marco: MARCO, corrida: corrida("censo", 5000), vigente: false }).fase)
+      .toBe("sorteo_viejo");
   });
 
   it("antes de rehidratar no afirma «sin marco»; cuotas no espera nada", () => {
@@ -197,8 +205,10 @@ describe("Acreditación › Selección", () => {
     expect(html).toContain('class="cmg-seleccion cmg-seleccion--actor"');
     expect(html).not.toContain("Ir a Marco");
     expect(html).not.toContain('id="cmv2-section-general-seleccion"');
-    // Un solo dueño de scroll y una sola sección.
-    expect(html.match(/role="tabpanel"/g)).toHaveLength(1);
+    // Un solo dueño de scroll y una sola sección; sin pestaña que la controle
+    // no es un tabpanel, es la región nombrada por el encabezado (E11 · V3).
+    expect(html).not.toContain('role="tabpanel"');
+    expect(html.match(/aria-labelledby="cmg-seccion-titulo"/g)).toHaveLength(1);
     expect(html.match(/cmv2-tab-panel/g)).toHaveLength(1);
   });
 
@@ -243,5 +253,29 @@ describe("el estado del sorteo está indexado por componente_id", () => {
     expect(s.corridas["cmp-est"]?.corrida.run_id).toBe("run-cmp-est");
     expect(s.marcos["cmp-adm"]?.N).toBe(5000);
     expect(s.marcos["cmp-est"]).toBeUndefined();
+  });
+});
+
+describe("actoresDelSelector conecta la vigencia del sorteo (QA E11 ronda 2)", () => {
+  it("un sorteo de un marco que ya cambió sale «Sorteo viejo», aunque el actor tenga corrida", () => {
+    const marcoNuevo: CalcMuestraGeneralMarco = { ...MARCO, marco_hash: "0000111122223333" };
+    const [, , est] = actoresDelSelector(ACTORES, {
+      cargado: true,
+      marcos: { "cmp-est": marcoNuevo },
+      corridas: { "cmp-est": corrida("probabilistica", 120) },
+    });
+    expect(est.estado.fase).toBe("sorteo_viejo");
+    expect(est.estado.etiqueta).toBe("Sorteo viejo");
+  });
+
+  it("con el mismo marco y el mismo cálculo el sorteo sigue «Sorteado»", () => {
+    // Un cálculo vigente trae n_objetivo; sin él el sorteo quedó de un cálculo que ya no existe.
+    const calculados = ACTORES.map((c) => ({ ...c, resultado: { n_objetivo: 100, n_operativo: 120 } }) as unknown as CalcMuestraComponente);
+    const [, , est] = actoresDelSelector(calculados, {
+      cargado: true,
+      marcos: { "cmp-est": MARCO },
+      corridas: { "cmp-est": corrida("probabilistica", 120) },
+    });
+    expect(est.estado.fase).toBe("sorteado");
   });
 });

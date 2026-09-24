@@ -1,4 +1,5 @@
 import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calcMuestra";
+import "./general.css";
 
 type CampoContexto = "cliente" | "tipo_cliente" | "descripcion_libre";
 
@@ -27,8 +28,10 @@ export function FichaEstudio({
   return (
     <section className="cmv2-panel cmv2-basics" aria-labelledby="cmg-ficha-estudio-titulo">
       <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Ficha del estudio</span>
-        <strong id="cmg-ficha-estudio-titulo">{acreditacion ? "Proceso de acreditación" : "Contexto y marco"}</strong>
+        <div>
+          <span className="cmv2-eyebrow">Ficha del estudio</span>
+          <h3 className="cmg-panel-titulo" id="cmg-ficha-estudio-titulo">{acreditacion ? "Proceso de acreditación" : "Contexto y marco"}</h3>
+        </div>
       </div>
       <div className="cmv2-form-grid">
         <label>

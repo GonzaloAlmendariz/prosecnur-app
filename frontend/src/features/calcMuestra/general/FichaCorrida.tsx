@@ -4,8 +4,10 @@ import { Download, Loader2, Shuffle } from "lucide-react";
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
 import { apiCalcMuestraGeneralExportar, type CalcMuestraGeneralCorrida } from "../../../api/calcMuestraGeneral";
 import { downloadUrl } from "../../../api/core";
-import { Alert } from "../../../components/Alert";
 import { EmptyState } from "../../../components/States";
+import { fmtDec, fmtInt } from "../sharedCore";
+import { AvisoModulo } from "../universidad/shared/AvisoModulo";
+import { CifraFila, CifraMotor } from "../universidad/ui";
 import { ErrorDelMotor } from "./ErrorDelMotor";
 import {
   EXPORT_INICIAL,
@@ -13,14 +15,17 @@ import {
   TEXTO_COBERTURA_CENSAL,
   errorGeneralDesde,
   exportReducer,
-  formatearEntero,
   formatearFechaUtc,
   formatearPi,
   hashCorto,
-  nDesfasado,
 } from "./modelo";
-import { nombreDeCorrida } from "./tituloCorrida";
+import { vigenciaSorteo } from "./bandaDisenoModelo";
+import { filasDesdeCorrida } from "./repartoEstratos";
+import { RepartoEstratosGrafico } from "./RepartoEstratosGrafico";
+import { corridaEstratificada, nombreDeCorrida } from "./tituloCorrida";
+import { useMuestraGeneralStore } from "./store";
 import { guardarEstudioPendiente } from "./useMuestraGeneral";
+import "./mesa.css";
 
 /**
  * La corrida vigente: qué se sorteó, con qué y cómo repetirlo, más el libro de
@@ -38,9 +43,12 @@ export function FichaCorrida({
   const componenteId = componente?.id ?? null;
   const c = corrida?.corrida ?? null;
   const esCenso = c?.modalidad === "censo";
-  // En un censo no hay n a campo que comparar: se listó el marco entero.
-  const desfase = esCenso ? null : nDesfasado(corrida, componente);
+  const marco = useMuestraGeneralStore((s) => (componenteId ? s.marcos[componenteId] ?? null : null));
+  // La misma vigencia que la banda y el estado de la mesa: marco, cálculo y n.
+  const vigencia = vigenciaSorteo({ comp: componente, corrida, marco });
+  const desactualizado = vigencia.estado === "desactualizado" ? vigencia : null;
   const nombre = corrida && c ? nombreDeCorrida(corrida, componente) : null;
+  const estratificada = Boolean(corrida && c && !esCenso && corridaEstratificada(corrida) && corrida.estratos.length > 1);
 
   async function exportar() {
     if (!componenteId || !corrida) return;
@@ -60,9 +68,9 @@ export function FichaCorrida({
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Corrida vigente</span>
-          <strong id="cmg-ficha-titulo">
+          <h3 id="cmg-ficha-titulo" className="cmg-panel-titulo">
             {nombre ? nombre.titulo : "Sin sorteo"}
-          </strong>
+          </h3>
         </div>
         <div className="cmv2-panel-head-actions cmg-exportar">
           <button
@@ -99,40 +107,36 @@ export function FichaCorrida({
       ) : (
         <>
           {esCenso && <p className="cmg-nota cmg-censo">{TEXTO_COBERTURA_CENSAL}</p>}
-          {desfase != null && (
-            <Alert kind="warn">
-              El n a campo actual es {formatearEntero(desfase)}; esta corrida usó {formatearEntero(corrida.n_fuente)}. Vuelve a sortear.
-            </Alert>
-          )}
-          {c.piso_incumplible && (
-            <Alert kind="warn">El piso por estrato no alcanza con este n: algunos estratos quedaron por debajo.</Alert>
-          )}
-          {c.reservas_omitidas_pps && (
-            <Alert kind="info">En PPS no se sortean reservas; se pidieron y se omitieron.</Alert>
-          )}
+          {/* Región viva persistente: un aviso que aparece después de montar
+              (el n a campo cambió en Método) se anuncia sin robar el foco. */}
+          <div className="cmg-avisos-vivos" aria-live="polite">
+            {desactualizado && (
+              <AvisoModulo tone="warn" role="note" title="El sorteo quedó desactualizado">
+                {desactualizado.texto} Vuelve a sortear.
+              </AvisoModulo>
+            )}
+            {c.piso_incumplible && (
+              <AvisoModulo tone="warn" role="note">
+                El piso por estrato no alcanza con este n: algunos estratos quedaron por debajo.
+              </AvisoModulo>
+            )}
+            {c.reservas_omitidas_pps && (
+              <AvisoModulo tone="info" role="note">En PPS no se sortean reservas; se pidieron y se omitieron.</AvisoModulo>
+            )}
+          </div>
 
-          <dl
-            className="cmg-metricas"
-            data-qa-geometry-group="calc-muestra/general-ficha-metricas"
-            data-qa-geometry-contract="equal"
-          >
-            <div className="cmg-metrica" data-qa-geometry-member>
-              <dt>{esCenso ? "Unidades a contactar" : "n a campo usado"}</dt>
-              <dd>{formatearEntero(esCenso ? c.n_titulares : corrida.n_fuente)}</dd>
-            </div>
-            <div className="cmg-metrica" data-qa-geometry-member>
-              <dt>{esCenso ? "π" : "Titulares"}</dt>
-              <dd>{esCenso ? "1" : formatearEntero(c.n_titulares)}</dd>
-            </div>
-            <div className="cmg-metrica" data-qa-geometry-member>
-              <dt>Reservas</dt>
-              <dd>{formatearEntero(c.n_reservas)}</dd>
-            </div>
-            <div className="cmg-metrica" data-qa-geometry-member>
-              <dt>N del marco</dt>
-              <dd>{formatearEntero(c.N)}</dd>
-            </div>
-          </dl>
+          <CifraFila>
+            <CifraMotor
+              label={esCenso ? "Unidades a contactar" : "n a campo usado"}
+              value={fmtInt(esCenso ? c.n_titulares : corrida.n_fuente)}
+              detalle={esCenso ? "el marco entero" : "del cálculo vigente al sortear"}
+              tono={desactualizado?.motivo === "n" ? "alerta" : undefined}
+              hero
+            />
+            <CifraMotor label={esCenso ? "π" : "Titulares"} value={esCenso ? "1" : fmtInt(c.n_titulares)} detalle={esCenso ? "cada unidad" : "a contactar primero"} />
+            <CifraMotor label="Reservas" value={fmtInt(c.n_reservas)} detalle={c.n_reservas > 0 ? "se liberan por lotes" : "sin reservas"} />
+            <CifraMotor label="N del marco" value={fmtInt(c.N)} detalle={`huella ${hashCorto(c.marco_hash, 8)}`} />
+          </CifraFila>
 
           <dl className="cmg-traza">
             <div><dt>Modalidad</dt><dd>{nombre?.modalidad}</dd></div>
@@ -145,6 +149,15 @@ export function FichaCorrida({
             <div><dt>Fecha</dt><dd>{formatearFechaUtc(corrida.sorteado_at)}</dd></div>
           </dl>
 
+          {estratificada && (
+            <RepartoEstratosGrafico
+              titulo="Reparto del sorteo por estrato"
+              filas={filasDesdeCorrida(corrida)}
+              origen="corrida"
+              tablaAlternativa={false}
+            />
+          )}
+
           <div className="cmg-tabla-wrap">
             <table className="cmg-tabla">
               <caption className="cmg-sr-only">Reparto por estrato de la corrida</caption>
@@ -155,17 +168,21 @@ export function FichaCorrida({
                   <th scope="col" className="cmg-num cmg-simbolo">n<sub>h</sub> a campo</th>
                   <th scope="col" className="cmg-num">Reservas</th>
                   <th scope="col" className="cmg-num cmg-simbolo">π</th>
+                  <th scope="col" className="cmg-num">Peso base</th>
                 </tr>
               </thead>
               <tbody>
                 {corrida.estratos.map((e) => (
                   <tr key={e.clave}>
-                    <td>{e.clave}</td>
-                    <td className="cmg-num">{formatearEntero(e.N_h)}</td>
-                    <td className="cmg-num">{formatearEntero(e.n_h)}</td>
-                    <td className="cmg-num">{formatearEntero(e.n_reservas)}</td>
+                    <th scope="row" className="cmg-fila-estrato">{e.clave}</th>
+                    <td className="cmg-num">{fmtInt(e.N_h)}</td>
+                    <td className="cmg-num">{fmtInt(e.n_h)}</td>
+                    <td className="cmg-num">{fmtInt(e.n_reservas)}</td>
                     <td className="cmg-num" title={e.pi == null ? undefined : String(e.pi)}>
                       {c.metodo === "pps" ? "por unidad" : formatearPi(e.pi)}
+                    </td>
+                    <td className="cmg-num">
+                      {c.metodo === "pps" || e.pi == null || e.pi <= 0 ? "por unidad" : fmtDec(1 / e.pi, 2)}
                     </td>
                   </tr>
                 ))}

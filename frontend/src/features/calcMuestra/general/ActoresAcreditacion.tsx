@@ -9,6 +9,7 @@ import { safeNumber, type ComponentePatch } from "../sharedCore";
 import { NumberCell } from "../universidad/aulas";
 import { tecnicaDelActor } from "./actores";
 import { actorVisual, CANAL_OPTIONS, primaryMetric } from "./catalogos";
+import { campoMetaDelActor, pieDeCuota } from "./modelo";
 import { origenDeTecnica } from "./secciones";
 import { useDesbordaHorizontal } from "./useDesbordaHorizontal";
 import "./general.css";
@@ -33,12 +34,19 @@ export function ActoresAcreditacion({
   const location = useLocation();
   const { ref, desborda } = useDesbordaHorizontal<HTMLDivElement>();
   return (
-    <section className="cmv2-panel" aria-labelledby="cmg-actores-marco-titulo">
+    <section
+      className="cmv2-panel cmg-actores-acred"
+      aria-labelledby="cmg-actores-marco-titulo"
+      // Pinta los componentes del estudio ya hidratado: no espera a nadie.
+      data-audit-ready="true"
+    >
       <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Marco por actor</span>
-        <strong id="cmg-actores-marco-titulo">Actores del estudio</strong>
+        <div>
+          <span className="cmv2-eyebrow">Marco por actor</span>
+          <h3 className="cmg-panel-titulo" id="cmg-actores-marco-titulo">Actores del estudio</h3>
+        </div>
       </div>
-      <p className="cmg-nota">
+      <p className="cmg-nota" id="cmg-actores-nota">
         El cuadro maestro PULSO de acreditación elige la técnica de cada actor según actor, canal y N. Sin N, el actor conserva su técnica inicial.
       </p>
       <div
@@ -49,16 +57,18 @@ export function ActoresAcreditacion({
         role={desborda ? "region" : undefined}
         aria-label={desborda ? "Tabla de actores, desplazable" : undefined}
       >
-        <table className="cmv2-table">
+        {/* es-PE escribe «0.5»: `lang` alcanza también a los `NumberCell` (V10). */}
+        <table className="cmv2-table cmg-tabla-actores" aria-describedby="cmg-actores-nota" lang="es-PE">
+          <caption className="cmg-sr-only">Marco, canal, meta y técnica de cada actor</caption>
           <thead>
             <tr>
-              <th>Actor</th>
-              <th>Canal</th>
-              <th>Marco (N)</th>
-              <th>Meta mínima</th>
-              <th>Técnica</th>
-              <th>Resultado</th>
-              <th><span className="cmg-sr-only">Selección</span></th>
+              <th scope="col">Actor</th>
+              <th scope="col">Canal</th>
+              <th scope="col" className="cmg-num">Marco (N)</th>
+              <th scope="col" className="cmg-num">Meta mínima</th>
+              <th scope="col">Técnica</th>
+              <th scope="col">Resultado</th>
+              <th scope="col"><span className="cmg-sr-only">Selección</span></th>
             </tr>
           </thead>
           <tbody>
@@ -68,12 +78,12 @@ export function ActoresAcreditacion({
               const origen = origenDeTecnica(comp);
               return (
                 <tr key={comp.id} className={`cmv2-actor-row cmv2-actor-row--${meta.key}`}>
-                  <td>
+                  <th scope="row">
                     <div className="cmv2-actor-cell">
                       <span className="cmv2-actor-dot" aria-hidden="true" />
                       <strong>{meta.label}</strong>
                     </div>
-                  </td>
+                  </th>
                   <td>
                     <select
                       className="cmv2-channel-select"
@@ -84,15 +94,15 @@ export function ActoresAcreditacion({
                       {CANAL_OPTIONS.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
                     </select>
                   </td>
-                  <td>
+                  <td className="cmg-num">
                     <NumberCell
                       value={comp.marco.marco_validado}
-                      title={`Marco (N) de ${meta.label}`}
+                      ariaLabel={`Marco (N) de ${meta.label}`}
                       onChange={(v) => onComponente(comp.id, { marco: { marco_validado: v, universo_bruto: v, marco_contactable: v } })}
                     />
                   </td>
-                  <td>
-                    <MetaDelActor comp={comp} onComponente={onComponente} />
+                  <td className="cmg-num">
+                    <MetaDelActor comp={comp} actor={meta.label} onComponente={onComponente} />
                   </td>
                   <td>
                     <div className="cmv2-target-stack">
@@ -100,7 +110,7 @@ export function ActoresAcreditacion({
                       <small title={origen.detalle || undefined}>{origen.etiqueta}</small>
                     </div>
                   </td>
-                  <td><strong>{primaryMetric(comp)}</strong></td>
+                  <td className="cmg-actor-resultado"><strong>{primaryMetric(comp)}</strong></td>
                   <td>
                     <Link
                       className="cmv2-ghost cmg-ir-seleccion"
@@ -122,58 +132,69 @@ export function ActoresAcreditacion({
 
 function MetaDelActor({
   comp,
+  actor,
   onComponente,
 }: {
   comp: CalcMuestraComponente;
+  actor: string;
   onComponente: (id: string, patch: ComponentePatch) => void;
 }) {
-  const sugerido = sugerenciaCuota(comp);
-  if (comp.tecnica === "no_prob_cuotas") {
-    return (
-      <NumberCell
-        value={metaCuotaFijada(comp)}
-        placeholder={sugerido == null ? undefined : String(sugerido)}
-        title={sugerido == null ? "Cuota sin fijar." : `Sin fijar. El motor aplica ${sugerido}.`}
-        onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota", origen: "usuario" } })}
-      />
-    );
-  }
-  if (comp.tecnica === "no_prob_conveniencia") {
+  const campo = campoMetaDelActor(comp);
+  if (campo.tipo === "cuota") {
+    const sugerido = sugerenciaCuota(comp);
     return (
       <div className="cmv2-target-stack">
-        <PercentCell value={comp.parametros.cobertura_objetivo} onChange={(v) => onComponente(comp.id, { parametros: { cobertura_objetivo: v } })} />
-        <small>Piso {comp.parametros.n_minimo_estrato} · tope {comp.parametros.tope_operativo}</small>
-      </div>
-    );
-  }
-  if (comp.tecnica === "prob_conglomerado_multietapico" || comp.tecnica === "prob_aleatorio_simple" || comp.tecnica === "prob_estratificado") {
-    return (
-      <div className="cmv2-target-stack">
-        <PercentCell value={comp.parametros.oversample_pct} onChange={(v) => onComponente(comp.id, { parametros: { oversample_pct: v } })} />
-        <small>Sobremuestra</small>
+        <NumberCell
+          value={metaCuotaFijada(comp)}
+          placeholder={sugerido == null ? undefined : String(sugerido)}
+          ariaLabel={`Cuota de ${actor}`}
+          onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota", origen: "usuario" } })}
+        />
+        <PieDeMeta {...pieDeCuota(sugerido)} />
       </div>
     );
   }
   return (
     <div className="cmv2-target-stack">
-      <PercentCell value={comp.parametros.cobertura_objetivo} onChange={(v) => onComponente(comp.id, { parametros: { cobertura_objetivo: v } })} />
-      <small>Cobertura</small>
+      <PercentCell
+        value={comp.parametros[campo.clave]}
+        ariaLabel={`${campo.rotulo} de ${actor}`}
+        onChange={(v) => onComponente(comp.id, { parametros: { [campo.clave]: v } })}
+      />
+      <PieDeMeta detalle={campo.detalle} piezas={campo.piezas} />
     </div>
   );
 }
 
-function PercentCell({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+/**
+ * Pie de la meta: piezas cortas que no se parten por dentro (V15); el lector
+ * de pantalla y el título reciben la frase entera.
+ */
+function PieDeMeta({ detalle, piezas }: { detalle: string; piezas: readonly string[] }) {
+  return (
+    <small className="cmg-meta-pie" title={detalle}>
+      <span className="cmg-sr-only">{detalle}</span>
+      {piezas.map((pieza, i) => (
+        <span key={`${i}-${pieza}`} className="cmg-meta-pieza" aria-hidden="true">{pieza}</span>
+      ))}
+    </small>
+  );
+}
+
+function PercentCell({ value, ariaLabel, onChange }: { value: number; ariaLabel: string; onChange: (value: number) => void }) {
   return (
     <label className="cmv2-number-cell cmv2-percent-cell">
       <input
         type="number"
+        lang="es-PE"
         min={0}
         max={100}
         step={5}
+        aria-label={ariaLabel}
         value={Number.isFinite(value) ? String(Math.round(value * 100)) : ""}
         onChange={(e) => onChange(safeNumber(e.currentTarget.value, 0) / 100)}
       />
-      <span>%</span>
+      <span aria-hidden="true">%</span>
     </label>
   );
 }

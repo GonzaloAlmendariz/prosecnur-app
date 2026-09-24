@@ -1,5 +1,8 @@
 import type { CalcMuestraGeneralMarco } from "../../../api/calcMuestraGeneral";
-import { formatearEntero, formatearFechaUtc, hashCorto } from "./modelo";
+import { fmtInt } from "../sharedCore";
+import { CifraFila, CifraMotor } from "../universidad/ui";
+import { formatearFechaUtc, hashCorto } from "./modelo";
+import "./mesa.css";
 
 const ESTRATOS_VISIBLES = 12;
 
@@ -8,37 +11,26 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
   const conEstrato = Boolean(marco.columnas.estrato);
   const visibles = marco.estratos.slice(0, ESTRATOS_VISIBLES);
   const resto = marco.estratos.slice(ESTRATOS_VISIBLES);
+  const columnas = [marco.columnas.id, marco.columnas.estrato, marco.columnas.tamano].filter(Boolean).join(" · ");
   return (
     <div className="cmg-resumen-marco">
-      <dl
-        className="cmg-metricas"
-        data-qa-geometry-group="calc-muestra/general-marco-metricas"
-        data-qa-geometry-contract="equal"
-      >
-        <div className="cmg-metrica" data-qa-geometry-member>
-          <dt>N del marco</dt>
-          <dd>{formatearEntero(marco.N)}</dd>
-        </div>
-        <div className="cmg-metrica" data-qa-geometry-member>
-          <dt>Estratos</dt>
-          <dd>{conEstrato ? formatearEntero(marco.estratos.length) : "Sin estrato"}</dd>
-        </div>
-        <div className="cmg-metrica" data-qa-geometry-member>
-          <dt>Columnas</dt>
-          <dd className="cmg-columnas-declaradas">
-            <code>{marco.columnas.id}</code>
-            {marco.columnas.estrato && <> · <code>{marco.columnas.estrato}</code></>}
-            {marco.columnas.tamano && <> · <code>{marco.columnas.tamano}</code></>}
-          </dd>
-        </div>
-        <div className="cmg-metrica" data-qa-geometry-member>
-          <dt>Huella</dt>
-          <dd><code title={marco.marco_hash}>{hashCorto(marco.marco_hash)}</code></dd>
-        </div>
-      </dl>
+      <CifraFila>
+        <CifraMotor label="N del marco" value={fmtInt(marco.N)} detalle="unidades en el archivo" hero />
+        <CifraMotor
+          label="Estratos"
+          value={conEstrato ? fmtInt(marco.estratos.length) : "Sin estrato"}
+          detalle={conEstrato ? `columna ${marco.columnas.estrato}` : "un solo grupo"}
+        />
+        <CifraMotor label="Columnas" value={columnas} detalle="id · estrato · tamaño" monospace />
+        <CifraMotor
+          label="Declarado"
+          value={formatearFechaUtc(marco.declarado_at)}
+          detalle={marco.hoja ? `hoja ${marco.hoja}` : undefined}
+        />
+      </CifraFila>
       <p className="cmg-nota">
-        {marco.hoja ? <>Hoja <strong>{marco.hoja}</strong> · </> : null}
-        declarado {formatearFechaUtc(marco.declarado_at)}. El N del cálculo sale de este archivo.
+        Huella <code className="cmg-huella" title={marco.marco_hash}>{hashCorto(marco.marco_hash)}</code>
+        {" "}(SHA-256). El N del cálculo sale de este archivo.
       </p>
       {conEstrato && marco.estratos.length > 0 && (
         <div className="cmg-estratos-marco">
@@ -49,7 +41,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
             </thead>
             <tbody>
               {visibles.map((e) => (
-                <tr key={e.clave}><td>{e.clave}</td><td className="cmg-num">{formatearEntero(e.N_h)}</td></tr>
+                <tr key={e.clave}><td>{e.clave}</td><td className="cmg-num">{fmtInt(e.N_h)}</td></tr>
               ))}
             </tbody>
           </table>
@@ -60,7 +52,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
                 <caption className="cmg-sr-only">N por estrato del marco (continuación)</caption>
                 <tbody>
                   {resto.map((e) => (
-                    <tr key={e.clave}><td>{e.clave}</td><td className="cmg-num">{formatearEntero(e.N_h)}</td></tr>
+                    <tr key={e.clave}><td>{e.clave}</td><td className="cmg-num">{fmtInt(e.N_h)}</td></tr>
                   ))}
                 </tbody>
               </table>

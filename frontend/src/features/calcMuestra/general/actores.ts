@@ -53,29 +53,39 @@ export function tecnicaDelActor(tecnica: CalcMuestraTecnica | undefined): Tecnic
   };
 }
 
-export type FaseDelActor = "leyendo" | "sin_sorteo" | "sin_marco" | "marco" | "sorteado";
+export type FaseDelActor = "leyendo" | "sin_sorteo" | "sin_marco" | "marco" | "sorteado" | "sorteo_viejo";
 
 export type EstadoDelActor = {
   fase: FaseDelActor;
-  /** Rótulo corto del estado: «Sin marco», «Marco declarado», «Sorteado». */
+  /** Rótulo corto del estado: «Sin marco», «Marco declarado», «Sorteado», «Sorteo viejo». */
   etiqueta: string;
   /** La cifra que acompaña al estado, o "" si no hay. */
   detalle: string;
 };
 
-/** En qué punto están el marco y el sorteo del actor. */
+/**
+ * En qué punto están el marco y el sorteo del actor.
+ *
+ * `vigente` es el veredicto de `vigenciaSorteo` (bandaDisenoModelo.ts), que el
+ * llamador calcula: el mismo que usan la banda, las fichas y la tarjeta. Un
+ * sorteo de un marco o un cálculo que ya cambiaron es «Sorteo viejo», nunca
+ * «Sorteado» en verde (QA E11 ronda 2). Se recibe hecho para no importar el
+ * modelo de la banda, que ya importa este archivo.
+ */
 export function estadoDelActor(args: {
   tecnica: TecnicaDelActor;
   cargado: boolean;
   marco: CalcMuestraGeneralMarco | null;
   corrida: CalcMuestraGeneralCorrida | null;
+  vigente?: boolean;
 }): EstadoDelActor {
-  const { tecnica, cargado, marco, corrida } = args;
+  const { tecnica, cargado, marco, corrida, vigente = true } = args;
   if (!tecnica.sorteable) return { fase: "sin_sorteo", etiqueta: "Sin sorteo", detalle: "no da π" };
   if (!cargado) return { fase: "leyendo", etiqueta: "Leyendo…", detalle: "" };
   if (!marco) return { fase: "sin_marco", etiqueta: "Sin marco", detalle: "" };
   if (!corrida) return { fase: "marco", etiqueta: "Marco declarado", detalle: `N=${formatearEntero(marco.N)}` };
   const meta = corrida.corrida;
+  if (!vigente) return { fase: "sorteo_viejo", etiqueta: "Sorteo viejo", detalle: "vuelve a sortear" };
   return {
     fase: "sorteado",
     etiqueta: "Sorteado",
