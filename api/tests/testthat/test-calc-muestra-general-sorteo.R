@@ -143,3 +143,14 @@ test_that("la tabla por estrato publica la π de CADA estrato (no la del primero
   p <- calc_muestra_general_sortear(.marco_sorteo(N = 999L), .cols, "pps", n = 60L, semilla = 1L)
   expect_true(all(is.na(p$estratos$pi)))
 })
+
+test_that("el sorteo usa la asignación que recibe (la del cálculo) en vez de recalcularla", {
+  m <- .marco_sorteo(N = 600L)
+  asig <- c(A = 10L, B = 25L, C = 40L)
+  r <- calc_muestra_general_sortear(m, .cols, "mas", n = 75L, semilla = 3L, asignacion = asig)
+  expect_identical(setNames(r$estratos$n_h, r$estratos$clave), asig[r$estratos$clave])
+  expect_equal(r$estratos$pi, r$estratos$n_h / r$estratos$N_h)
+  # Una asignación que pide más que N_h se topa en N_h.
+  big <- calc_muestra_general_sortear(m, .cols, "mas", n = 75L, semilla = 3L, asignacion = c(A = 1e6L, B = 1L, C = 1L))
+  expect_identical(big$estratos$n_h[big$estratos$clave == "A"], big$estratos$N_h[big$estratos$clave == "A"])
+})

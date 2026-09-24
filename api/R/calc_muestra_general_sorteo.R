@@ -164,11 +164,13 @@
 #' @param reservas_por_estrato réplicas por estrato (no en PPS).
 #' @param piso mínimo por estrato para el reparto.
 #' @param orden_por columna que ordena el marco para el sistemático.
+#' @param asignacion n_h por clave de estrato (el reparto del cálculo); si
+#'   falta, se reparte n proporcional a N_h.
 #' @return list(corrida, estratos, unidades).
 calc_muestra_general_sortear <- function(marco, columnas, metodo = "mas", n,
                                          semilla = .CM_GENERAL_SEMILLA_DEFAULT,
                                          reservas_por_estrato = 0L, piso = 0L,
-                                         orden_por = NULL) {
+                                         orden_por = NULL, asignacion = NULL) {
   metodo <- calc_enum(metodo, .CM_GENERAL_METODOS, "mas")
   semilla <- calc_int(semilla, .CM_GENERAL_SEMILLA_DEFAULT, min = 1L, max = .Machine$integer.max)
   n <- calc_int(n, 0L, min = 0L)
@@ -178,10 +180,21 @@ calc_muestra_general_sortear <- function(marco, columnas, metodo = "mas", n,
   df <- .cm_general_preparar_marco(marco, columnas, metodo, orden_por)
   claves <- sort(unique(df$estrato), method = "radix")
   N_h <- vapply(claves, function(k) sum(df$estrato == k), integer(1))
-  n_h <- .cm_general_reparto(min(n, nrow(df)), N_h, piso)
+  # `asignacion` (n_h por clave de estrato) es el reparto que publicó el
+  # cálculo del componente: si llega, se sortea exactamente ése y no se
+  # recalcula aquí —dos repartos de la misma cosa divergen en cuanto uno
+  # cambia de regla (proporcional → Neyman)—.
+  n_h <- if (!is.null(asignacion) && length(asignacion)) {
+    a <- suppressWarnings(as.integer(asignacion[claves]))
+    a[is.na(a)] <- 0L
+    as.integer(pmin(pmax(0L, a), N_h))
+  } else {
+    .cm_general_reparto(min(n, nrow(df)), N_h, piso)
+  }
 
   marco_hash <- .cm_general_hash_marco(df)
   config <- list(metodo = metodo, n = n, piso = as.integer(piso),
+                 asignacion = if (is.null(asignacion)) NULL else as.list(n_h),
                  reservas_por_estrato = as.integer(reservas_por_estrato),
                  orden_por = orden_por %||% "", columnas = columnas[c("id", "estrato", "tamano")])
   config_hash <- .cm_aulas_hash(config)
