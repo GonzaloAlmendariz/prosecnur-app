@@ -1,0 +1,487 @@
+/* Muestra general › Marco (archivo) y › Selección (ADR 0090).
+ * Hereda la paleta del módulo por las variables --cmv2-* de calcMuestra.css y
+ * los tokens --pulso-*; no define colores propios. */
+
+.cmg-archivo-form,
+.cmg-resumen-marco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+.cmg-resumen-marco + .cmg-archivo-form {
+  margin-top: var(--cmv2-space-4);
+  padding-top: var(--cmv2-space-4);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmg-archivo-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--cmv2-space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.cmg-archivo-nombre {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+/* --- Campos ----------------------------------------------------------------- */
+
+.cmg-columnas,
+.cmg-parametros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+.cmg-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cmg-campo--hoja {
+  max-width: 320px;
+}
+
+.cmg-campo > label {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmg-requerido {
+  color: var(--pulso-text-soft);
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-campo small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
+}
+
+.cmg-campo input,
+.cmg-campo select {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  outline: none;
+}
+
+.cmg-campo input:focus-visible,
+.cmg-campo select:focus-visible {
+  border-color: var(--cmv2-accent-border);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+}
+
+.cmg-campo input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+.cmg-campo input:disabled,
+.cmg-campo select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cmg-semilla {
+  display: flex;
+  gap: var(--cmv2-space-2);
+  min-width: 0;
+}
+
+.cmg-semilla input {
+  flex: 1 1 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-semilla .cmv2-ghost {
+  flex: 0 0 auto;
+}
+
+/* --- Métodos ---------------------------------------------------------------- */
+
+/* Las tarjetas de método pintan su propio estado activo (`.cmv2-method.is-active`);
+ * el indicador deslizante del grupo queda transparente para no duplicarlo. */
+.cmg-metodos {
+  --pulso-gliding-indicator-bg: transparent;
+  --pulso-gliding-indicator-border: transparent;
+  --pulso-gliding-indicator-shadow: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cmv2-space-2);
+  margin-bottom: var(--cmv2-space-4);
+}
+
+.cmg-metodo {
+  min-height: 72px;
+}
+
+.cmg-metodo:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.cmg-metodo:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* --- Métricas y trazabilidad ------------------------------------------------ */
+
+.cmg-metricas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--cmv2-space-2);
+  margin: 0;
+}
+
+.cmg-metrica {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+}
+
+.cmg-metrica dt {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.cmg-metrica dd {
+  margin: 3px 0 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.cmg-metrica dd.cmg-columnas-declaradas {
+  font-size: 12px;
+}
+
+.cmg-traza {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px var(--cmv2-space-4);
+  margin: var(--cmv2-space-3) 0;
+}
+
+.cmg-traza div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmg-traza dt {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: uppercase;
+}
+
+.cmg-traza dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  overflow-wrap: break-word;
+}
+
+.cmg-archivo code,
+.cmg-seleccion code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.cmg-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.4;
+}
+
+.cmg-ficha .cmv2-panel-head,
+.cmg-unidades .cmv2-panel-head {
+  flex-wrap: wrap;
+}
+
+.cmg-exportar {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.cmg-exportar small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  text-align: right;
+}
+
+.cmg-sortear {
+  margin-top: var(--cmv2-space-3);
+}
+
+.cmg-censo {
+  margin-bottom: var(--cmv2-space-3);
+  color: var(--pulso-text);
+}
+
+.cmg-ficha > .pulso-alert {
+  margin-bottom: var(--cmv2-space-3);
+}
+
+/* --- Tablas ----------------------------------------------------------------- */
+
+/* Sólo desplazamiento horizontal: el vertical es del panel de la sección. */
+.cmg-tabla-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+}
+
+.cmg-estratos-marco {
+  max-width: 520px;
+}
+
+.cmg-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.cmg-tabla th,
+.cmg-tabla td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--cmv2-border);
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.cmg-tabla th {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* N_h, n_h y π no se pasan a mayúsculas: «NH» y «Π» dicen otra cosa. */
+.cmg-tabla th.cmg-simbolo {
+  color: var(--pulso-text);
+  font-size: 12px;
+  text-transform: none;
+}
+
+.cmg-tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.cmg-tabla--compacta {
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+}
+
+.cmg-tabla .cmg-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmg-mas {
+  margin-top: var(--cmv2-space-2);
+}
+
+.cmg-mas summary {
+  color: var(--cmv2-accent-fg);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  cursor: pointer;
+}
+
+.cmg-mas[open] summary {
+  margin-bottom: var(--cmv2-space-2);
+}
+
+.cmg-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.cmg-estado {
+  display: inline-flex;
+  padding: 2px 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  white-space: nowrap;
+}
+
+.cmg-estado--titular {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmg-estado--reserva {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+/* --- Filtro y paginación ---------------------------------------------------- */
+
+.cmg-filtros {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+}
+
+.cmg-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  cursor: pointer;
+}
+
+.cmg-filtros .cmg-filtro[aria-checked="true"] {
+  color: var(--pulso-surface);
+}
+
+.cmg-filtro:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmg-filtro-n {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.cmg-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cmv2-space-3);
+  margin-top: var(--cmv2-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-vacio-tabla {
+  margin: 0;
+  padding: var(--cmv2-space-4);
+  border: 1px dashed var(--cmv2-border-strong);
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  text-align: center;
+}
+
+.cmg-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-2);
+}
+
+.cmg-error-lista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.cmg-error-lista span {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmg-error-lista ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmg-error-lista li code {
+  padding: 1px 6px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+/* --- Compacto (1024 px y menos) --------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .cmg-columnas,
+  .cmg-parametros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cmg-metricas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmg-metodo {
+    transition: none;
+  }
+}
