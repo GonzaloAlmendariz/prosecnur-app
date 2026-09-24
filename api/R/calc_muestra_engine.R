@@ -1598,8 +1598,13 @@ calc_muestra_calcular_componente <- function(comp) {
     sobremuestra             = sobremuestra,
     precision_alcanzada      = NA_real_,
     origen_tamano            = comp$origen_tamano,
-    advertencia              = paste("Intención censal: se reporta cobertura, no margen de error.",
-                                     "Aplica TCL: con n >= 30 la lectura es estable.")
+    # Un censo no tiene error de muestreo, pero sí sesgo de no respuesta: con
+    # cobertura parcial, quienes responden pueden no parecerse a quienes no
+    # (research H19; AAPOR). «n ≥ 30 da estabilidad» no aplica a eso.
+    advertencia              = paste(
+      "Intención censal: se reporta cobertura, no margen de error.",
+      sprintf("Con una cobertura esperada del %.0f %%, el riesgo es el sesgo de no respuesta: conviene comparar quién respondió con el marco (sexo, programa, etc.).",
+              100 * cobertura_obj))
   )
 }
 
