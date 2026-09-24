@@ -14,6 +14,8 @@
  * posición, en ~1 %. Medido sobre HSVG2026 el 2026-09-17.
  */
 
+import { pctPerfil } from "./kpisDeAulas";
+
 export type MapaFacultades = Record<string, string>;
 
 /** Los códigos de la variable, en orden numérico cuando lo son. */
@@ -84,7 +86,7 @@ export function veredictoDelCruce(
     return { tono: "neutro", texto: control.motivo ? String(control.motivo) : "" };
   }
   const pct = (Number(control.coinciden ?? 0) / comparables) * 100;
-  const cifra = `${comparables.toLocaleString("es-PE")} respuestas comparables · ${pct.toFixed(1)} % coinciden con la facultad de su curso-horario`;
+  const cifra = `${comparables.toLocaleString("es-PE")} respuestas comparables · ${pctPerfil(pct)} coinciden con la facultad de su curso-horario`;
   if (pct < 50) {
     return {
       tono: "atencion",
