@@ -308,7 +308,40 @@
 }
 
 # Lista de opciones (pregunta suelta) -> flextable de 2 columnas: codigo | etiqueta.
-.form_word_options_flextable <- function(opts, usable = .FORM_WORD_USABLE_IN) {
+# Enunciado como PRIMERA FILA de la tabla de la pregunta (L4 del GOAL). En la
+# referencia cada pregunta es UNA tabla y su primera fila es el enunciado
+# sombreado; aqui el enunciado era un parrafo suelto encima de la tabla, sin
+# relacion estructural con ella: si la pagina cortaba justo ahi el enunciado se
+# quedaba arriba y sus opciones abajo, y en papel eso es una pregunta sin texto.
+# `hint` va en la MISMA celda, como segundo chunk en cursiva y cuerpo menor.
+.form_word_cabecera_enunciado <- function(ft, col_ids, enunciado, hint = "") {
+  enunciado <- .form_pdf_clean_text(enunciado %||% "")
+  hint <- .form_pdf_clean_text(hint %||% "")
+  if (!nzchar(enunciado)) return(ft)
+  vals <- stats::setNames(as.list(rep("", length(col_ids))), col_ids)
+  vals[[col_ids[1]]] <- enunciado
+  ft <- do.call(flextable::set_header_labels, c(list(ft), vals))
+  ft <- flextable::merge_at(ft, i = 1, j = col_ids, part = "header")
+  chunks <- list(flextable::as_chunk(
+    enunciado,
+    props = officer::fp_text(font.size = .FORM_WORD_SZ, bold = TRUE,
+                             color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT)))
+  if (nzchar(hint)) {
+    chunks <- c(chunks, list(flextable::as_chunk(
+      paste0("\n", hint),
+      props = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, italic = TRUE,
+                               color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT))))
+  }
+  ft <- flextable::compose(ft, i = 1, j = col_ids[1], part = "header",
+                           value = do.call(flextable::as_paragraph, chunks))
+  ft <- flextable::bg(ft, bg = .FORM_WORD_ZEBRA, part = "header")
+  ft <- flextable::align(ft, align = "left", part = "header")
+  ft <- flextable::valign(ft, valign = "top", part = "header")
+  ft
+}
+
+.form_word_options_flextable <- function(opts, usable = .FORM_WORD_USABLE_IN,
+                                        enunciado = "", hint = "") {
   if (!length(opts)) return(NULL)
   # Categorias de respuesta: limpieza INOCUA (ver .form_word_matrix_flextable).
   codes  <- vapply(opts, function(o) .form_pdf_clean_text_safe(o$code %||% ""), character(1))
@@ -325,7 +358,10 @@
     data.frame(code = codes, label = labels, stringsAsFactors = FALSE)
   }
   ft <- flextable::flextable(df)
-  ft <- flextable::delete_part(ft, part = "header")
+  # Sin enunciado no hay cabecera que pintar y la tabla arranca en las opciones.
+  if (!nzchar(.form_pdf_clean_text(enunciado %||% ""))) {
+    ft <- flextable::delete_part(ft, part = "header")
+  }
   # Cuerpo base para TODA la tabla, ANTES de los tamanos por columna (que lo
   # pisan donde toca). Sin esto, la columna que nadie dimensiona se queda con
   # el default de flextable, 11 pt: el codigo de las opciones salia mas grande
@@ -353,6 +389,7 @@
   ft <- flextable::fontsize(ft, j = "label", size = .FORM_WORD_SZ, part = "body")
   even <- which(seq_len(nrow(df)) %% 2L == 0L)
   if (length(even)) ft <- flextable::bg(ft, i = even, bg = .FORM_WORD_ZEBRA, part = "body")
+  ft <- .form_word_cabecera_enunciado(ft, names(df), enunciado, hint)
   ft <- .form_word_table_base(ft, names(df), no_split = .form_word_tramo_is_full(usable))
   ft
 }
@@ -391,15 +428,20 @@
 # corren al escribir encima y, con una tipografia estrecha, una tira fija de 60
 # ya no cabe en una columna -- envuelve y deja un guion suelto en la linea de
 # abajo. Una celda no depende del ancho de la fuente ni de la columna.
-.form_word_caja_vacia <- function(usable = .FORM_WORD_USABLE_IN, alto = 0.3) {
+.form_word_caja_vacia <- function(usable = .FORM_WORD_USABLE_IN, alto = 0.3,
+                                  enunciado = "", hint = "") {
   ft <- flextable::flextable(data.frame(cell = "", stringsAsFactors = FALSE))
-  ft <- flextable::delete_part(ft, part = "header")
+  if (!nzchar(.form_pdf_clean_text(enunciado %||% ""))) {
+    ft <- flextable::delete_part(ft, part = "header")
+  }
+  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
   ft <- flextable::width(ft, j = "cell", width = usable)
   ft <- flextable::height(ft, height = alto, part = "body")
   ft <- flextable::hrule(ft, rule = "exact", part = "body")
+  ft <- .form_word_cabecera_enunciado(ft, "cell", enunciado, hint)
   ft <- flextable::border_remove(ft)
-  ft <- flextable::border_outer(
-    ft, border = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5), part = "body")
+  ft <- flextable::border_outer(ft, border = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5), part = "all")
+  ft <- flextable::border_inner_h(ft, border = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5), part = "all")
   flextable::set_table_properties(ft, layout = "fixed",
                                   opts_word = list(split = FALSE))
 }
@@ -715,32 +757,29 @@ formulario_word_render <- function(model, output_file) {
       } else {
         num <- .form_pdf_clean_text(block$number %||% "")
         lbl <- if (nzchar(num)) paste0(num, ".  ", block$label) else (block$label %||% "")
-        # Mismo criterio que la matriz: el enunciado viaja con sus opciones.
-        has_body <- length(block$options %||% list()) > 0 || isTRUE(block$coded_list) ||
-          (block$type %||% "") %in% c("text", "integer", "decimal", "date", "time", "datetime")
-        doc <- .form_word_par(doc, lbl, size = .FORM_WORD_SZ, bold = TRUE, space_before = 4, space_after = 3,
-                              keep_with_next = has_body)
-        if (nzchar(block$hint %||% "")) {
-          doc <- .form_word_par(doc, block$hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, color = .FORM_WORD_INK,
-                                keep_with_next = has_body)
-        }
+        # El enunciado ya NO va como parrafo suelto: entra como primera fila de la
+        # tabla de la pregunta (L4). Solo cae al parrafo cuando la pregunta no
+        # tiene cuerpo tabular donde alojarlo.
         opts <- block$options %||% list()
-        if (length(opts)) {
-          ft <- .form_word_options_flextable(opts, usable = usable)
-          if (!is.null(ft)) {
-            doc <- flextable::body_add_flextable(doc, ft, align = "left")
-            doc <- .form_word_blank(doc)
+        hint <- block$hint %||% ""
+        es_campo <- (block$type %||% "") %in%
+          c("text", "integer", "decimal", "date", "time", "datetime")
+        ft <- if (length(opts)) {
+          .form_word_options_flextable(opts, usable = usable, enunciado = lbl, hint = hint)
+        } else if (isTRUE(block$coded_list) || es_campo) {
+          ancho <- if (isTRUE(block$coded_list)) min(2.2, usable) else usable
+          .form_word_caja_vacia(usable = ancho, alto = 0.3, enunciado = lbl, hint = hint)
+        } else NULL
+        if (!is.null(ft)) {
+          doc <- flextable::body_add_flextable(doc, ft, align = "left")
+          doc <- .form_word_blank(doc)
+        } else {
+          doc <- .form_word_par(doc, lbl, size = .FORM_WORD_SZ, bold = TRUE,
+                                space_before = 4, space_after = 3)
+          if (nzchar(hint)) {
+            doc <- .form_word_par(doc, hint, size = .FORM_WORD_SZ_MIN, italic = TRUE,
+                                  color = .FORM_WORD_INK)
           }
-        } else if (isTRUE(block$coded_list)) {
-          doc <- .form_word_par(doc, "Código:", size = .FORM_WORD_SZ_MIN,
-                                color = .FORM_WORD_INK, space_after = 1)
-          doc <- flextable::body_add_flextable(
-            doc, .form_word_caja_vacia(usable = min(0.9, usable), alto = 0.26), align = "left")
-          doc <- .form_word_blank(doc)
-        } else if ((block$type %||% "") %in% c("text", "integer", "decimal", "date", "time", "datetime")) {
-          doc <- flextable::body_add_flextable(
-            doc, .form_word_caja_vacia(usable = usable), align = "left")
-          doc <- .form_word_blank(doc)
         }
       }
     }
