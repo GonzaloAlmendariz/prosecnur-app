@@ -61,7 +61,7 @@ versiona**. Dos archivos y no son intercambiables:
 
 | | Afirmación | Cómo se mide |
 |---|---|---|
-| **V1** | El cuerpo del documento va en **Arial Narrow**, no Calibri | `w:rFonts w:ascii` en `document.xml`: 100 % Arial Narrow salvo el título |
+| **V1** | El cuerpo va en una **tipografía estrecha** | Word: `w:rFonts` 100 % Arial Narrow ✅. **PDF: Helvetica-Narrow, con reserva declarada** — Arial Narrow es del sistema y en el runner Linux del CI cairo caería a otra en silencio; un PDF distinto según la máquina es peor que otra tipografía. Cumplirlo literalmente exige empaquetar la fuente (decisión de packaging) |
 | **V2** | **Cero color.** Ni un `w:color` ni un `w:fill` fuera de la escala de grises | todo `w:color` = `000000`; todo `w:fill` con R=G=B |
 | **V3** | Cuerpo base **10 pt** (`w:sz` = 20), cabecera de escala 8 pt (16) | histograma de `w:sz`: el 90 % en {16, 20} |
 | **V4** | **Todas** las celdas llevan borde de 0,5 pt (`w:sz` = 4) | cero tablas sin `insideH`/`insideV`; grosor dominante 4 |
@@ -90,18 +90,18 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 
 | | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| **L3** | Rejilla: bordes completos en todas las celdas | **Word ☑** `a6059a042` (8 %→100 % de celdas) · PDF ☐ |
-| **L1** | Paleta → escala de grises | **Word ☑** `07ea38d40` (199 textos `000000`, rellenos R=G=B) · PDF ☐ |
-| **L2** | Tipografía → Arial Narrow, cuerpo 10/8 pt | **Word ☑** `73f55c4d5` · PDF ☐ |
+| **L3** | Rejilla: bordes completos | **Word ☑** `a6059a042` · **PDF ☑** `4c5d524d3` — línea entre filas en listas y matrices |
+| **L1** | Paleta → escala de grises | **Word ☑** `07ea38d40` · **PDF ☑** `57363712b` — paleta local en `reporte_formulario_paleta.R`, sin tocar el theme compartido |
+| **L2** | Tipografía estrecha | **Word ☑** `73f55c4d5` (Arial Narrow) · **PDF ☑ con reserva** `04ccec36f` (Helvetica-Narrow, ver V1) |
 | **L4** | Enunciado dentro de la tabla | **Word ☑** `3d6d57e38` · PDF ☐ |
 | **L5** | Columna propia para el número | **Word ☑** `20a8a2b6f` · PDF ☐ |
-| **L6** | Márgenes a 680 twips, útil ≥ 10 500 | **Word ☑** `9a2fb7f02` — 10 546 vs 10 549 de la referencia · PDF ☐ |
+| **L6** | Densidad y márgenes | **Word ☑** `9a2fb7f02` (10 546 vs 10 549) · **PDF ☑** `4186e3647` — 61,4 → 54 pt por pregunta; el instrumento pasa de 2 páginas a 1 |
 | **L7** | Banda de sección: caja con borde y relleno gris | **Word ◐** relleno gris y texto negro hechos en `07ea38d40`; **falta el borde** (`.form_word_par()` no expone parámetros de borde) · PDF ☐ |
 | **L8** | Opciones cortas en fila horizontal | **Word ☑** `7f64804a1` — corte por ancho medido · PDF ☐ |
 | **L9** | Campos de escritura = celda vacía | **Word ☑** `fa6b7b9e2` · PDF ☐ |
 | **L10** | Pie «Página N de M» + casillas del folio | **Word ☑** `39cca7bba` — el folio va en la portada, no en la cabecera · PDF ☐ |
 | **L11** | Cabeceras sin partir palabras | **Word ☑** `72425151f` — envoltorio por ancho medido · PDF ☐ |
-| **L12** | **El PDF no equilibra las columnas de un tramo** | renderer PDF | ☐ (ítem 25 del checklist) |
+| **L12** | El PDF equilibra las columnas de un tramo | **PDF ☑** `3877c1b64` — tinta der/izq 0,44 → 0,85 |
 | **L13** | Bloque de consentimiento: párrafo justificado + caja de acuerdo | modelo + renderers | ☐ |
 | **L14** | Tabla corta partida entre columnas (`keepNext` en filas) | renderer Word | ☐ (ítem 22 del checklist) |
 
