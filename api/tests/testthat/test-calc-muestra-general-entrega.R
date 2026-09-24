@@ -81,3 +81,18 @@ test_that("cuando el tope en N muerde, la memoria escribe el mín(·, N)", {
   expect_match(fila$sustitucion, "censo del marco", fixed = TRUE)
   expect_identical(fila$resultado, "300")
 })
+
+test_that("la memoria del estratificado por estrato cuenta su propia fórmula (no la global)", {
+  mk <- function(a) calc_muestra_normalize_componente(list(tecnica = "prob_estratificado",
+    marco = list(marco_validado = 5000L, universo_bruto = 5000L, marco_contactable = 5000L, estado = "validado",
+                 estratos = list(list(label = "A", N = 3000L, p_facultad = .1), list(label = "B", N = 2000L, p_facultad = .5))),
+    parametros = list(e = .05, deff = 1, tasa_respuesta = .8, oversample_pct = 0, n_minimo_estrato = 0L, asignacion = a)))
+  prop <- calc_muestra_calcular_componente(mk("proporcional"))$memoria_calculo
+  expect_identical(prop$resultado[[2]], "225.949 → 226")
+  expect_match(prop$paso[[2]], "Cochran 5.25", fixed = TRUE)
+  ney <- calc_muestra_calcular_componente(mk("neyman"))$memoria_calculo
+  expect_identical(ney$resultado[[2]], "211.864 → 212")
+  expect_match(ney$sustitucion[[1]], "√(", fixed = TRUE)
+  expect_identical(ney$sustitucion[[4]], "⌈212 / 0.8⌉")
+  expect_false(any(grepl("356", ney$resultado)))
+})
