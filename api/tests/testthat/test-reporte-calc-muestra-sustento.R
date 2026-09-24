@@ -50,9 +50,14 @@ test_that("las plantillas publican la memoria de cálculo y la validada, el sort
     expect_true(grepl("## Memoria de cálculo", qmd, fixed = TRUE), info = nombre)
     expect_true(grepl("bundle$memorias", qmd, fixed = TRUE), info = nombre)
   }
-  validada <- paste(readLines(.cm_locate_template("diseno_validado.qmd"), warn = FALSE), collapse = "\n")
-  expect_true(grepl("## Selección de las unidades", validada, fixed = TRUE))
-  expect_true(grepl("bundle$general", validada, fixed = TRUE))
+  # El sorteo es un hecho, no una propuesta: va en las DOS plantillas. En la
+  # preliminar faltaba y un usuario que ya había sorteado no lo veía en su
+  # reporte (recorrido de usuario nuevo, 2026-09-24).
+  for (nombre in c("diseno_validado.qmd", "propuesta_preliminar.qmd")) {
+    qmd <- paste(readLines(.cm_locate_template(nombre), warn = FALSE), collapse = "\n")
+    expect_true(grepl("## Selección de las unidades", qmd, fixed = TRUE), info = nombre)
+    expect_true(grepl("bundle$general", qmd, fixed = TRUE), info = nombre)
+  }
 })
 
 test_that("el bundle lleva la memoria sólo de los componentes de elementos con resultado", {
