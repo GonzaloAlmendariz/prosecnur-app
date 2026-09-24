@@ -21,5 +21,5 @@ defectos propios de aulas vistos en la baseline visual y la deuda menor de E11.
 | A6 | Contraste: «cifra validada» 1.94:1, «Proyecto activo» 3.02:1, 33 textos < 4.5 en Marco | universidad/**, `didactica/` (BadgeMotor) | frontend-react | ☐ |
 | A7 | 8 inputs numéricos de Selección de aulas con rótulo visual no asociado | universidad/aulas/** | frontend-react | ☐ |
 | D1 | V5: el tooltip del reparto no se cierra cuando el foco desplaza el contenedor | `general/RepartoEstratosGrafico.tsx` | frontend-react (ola 2) | ☐ |
-| D2 | V10: decimal «0,04» en inputs numéricos (medir `lang` es-PE; `index.html` lang) | `frontend/index.html` | lead (medir) | ☐ |
+| D2 | V10: decimal «0,04» en inputs numéricos | `frontend/index.html` | lead (medido) | ☑ medido, no controlable: Chromium (Playwright, 2026-09-24) pinta «0,04» con `lang` es, es-PE y en, y con locale de contexto es-PE, es-ES y en-US — el separador de `<input type=number>` sale de la configuración regional del sistema operativo. `lang` no lo cambia (los `lang="es-PE"` de W2 quedan como semántica). Controlarlo exige inputs de texto con `inputmode="decimal"` y parseo propio: cambio transversal, fuera de alcance |
 | D3 | 1024: fila de aviso del encabezado de Muestra general en su propia línea (cabecera+banda 155–171 px) | `general/EncabezadoSeccion.tsx`, `mesa.css` | frontend-react (ola 2) | ☐ |
