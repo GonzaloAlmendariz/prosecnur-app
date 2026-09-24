@@ -149,3 +149,37 @@ test_that("el reparto por facultad se calcula en el MOTOR, sobre el plan entero"
   expect_identical(cob$LETRAS$con_meta, 2L)
   expect_identical(cob$LETRAS$sin_aplicar, 1L)
 })
+
+test_that("las aplicadas SIN fecha en el libro se cuentan y se nombran (2026-09-24)", {
+  # CCSS 23/09: CH 12, CH 15 y CH 24 tenian respuestas y STATUS MUESTRA en
+  # «en_contacto», sin fecha. El panel las contaba como «Aplicados» sin avisar.
+  df <- marco(list(
+    fila("CH 1", "titular", "cerrando", muestra = "agendada"),
+    fila("CH 2", "titular", "cerrando", muestra = "en_contacto"),
+    fila("CH 3", "titular", "lista", muestra = "agendada"),
+    fila("CH 4", "titular", "lista", muestra = "agendada"),
+    fila("CH 5", "titular", "pendiente", muestra = "rechazo"),
+    fila("R 5.1", "chain_reserve", "en_reserva", "CH 5"),
+    fila("CH 6", "titular", "pendiente", muestra = "rechazo"),
+    fila("R 6.1", "chain_reserve", "lista", "CH 6", muestra = "agendada")
+  ))
+  df$scheduled_date <- c("2026-09-22", "", "2026-09-20", "2026-09-30", "", "", "", "2026-09-25")
+  df$operational_status <- ""
+  d <- monitoreo_aulas_rol_y_estado(df, hoy = as.Date("2026-09-24"))
+  expect_identical(d$titulares$aplicado, 2L)
+  expect_identical(d$titulares$aplicado_sin_agenda, 1L)
+  expect_identical(d$acciones$aplicado_sin_agenda, "CH 2")
+  # La fecha pasada sin respuestas es un subconjunto de «agendado».
+  expect_identical(d$titulares$agendado, 2L)
+  expect_identical(d$titulares$agendado_vencido, 1L)
+  expect_identical(d$acciones$agendado_vencido, "CH 3")
+  # Un rechazado con su reserva ya agendada no pide nada hoy.
+  expect_identical(d$acciones$rechazado, "CH 5")
+})
+
+test_that("sin la columna de fecha no se afirma nada sobre la agenda", {
+  d <- monitoreo_aulas_rol_y_estado(marco(list(fila("CH 1", "titular", "cerrando"))))
+  expect_null(d$titulares$aplicado_sin_agenda)
+  expect_null(d$acciones$aplicado_sin_agenda)
+  expect_identical(d$titulares$aplicado, 1L)
+})

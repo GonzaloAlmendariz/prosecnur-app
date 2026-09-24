@@ -54,8 +54,8 @@ export function AulasDesenlacesDelLibro({ desenlaces }: {
                   titular: los titulares caídos ya no se mueven. */}
               {t.total && (t.aplicados || t.agendados || t.sinAgendar) ? (
                 <span className="aulas-abc-puntos">
-                  {t.aplicados ? <b className="es-aplicado">{fmt(t.aplicados)} aplicados</b> : null}
-                  {t.agendados ? <b className="es-agendado">{fmt(t.agendados)} agendados</b> : null}
+                  {t.aplicados ? <b className="es-aplicado">{fmt(t.aplicados)} {t.aplicados === 1 ? "aplicado" : "aplicados"}</b> : null}
+                  {t.agendados ? <b className="es-agendado">{fmt(t.agendados)} {t.agendados === 1 ? "agendado" : "agendados"}</b> : null}
                   {t.sinAgendar ? <b className="es-pendiente">{fmt(t.sinAgendar)} sin agendar</b> : null}
                 </span>
               ) : null}
@@ -79,8 +79,8 @@ export function AulasDesenlacesDelLibro({ desenlaces }: {
                   nadie lo escriba; la diferencia dice cuánto le falta al
                   registro para estar al día. */}
               {t.total && t.enCurso ? (
-                <i title="El hecho ya ocurrió y el libro todavía no lo dice: el verbo se teclea al aplicar.">
-                  {t.declarados ? `${fmt(t.enCurso)} sin declarar` : "sin declarar"}
+                <i title="Ya ocurrió y el libro todavía no lo registra: se anota al aplicar.">
+                  {t.declarados ? `${fmt(t.enCurso)} sin anotar` : "sin anotar en el libro"}
                 </i>
               ) : null}
             </span>
@@ -95,8 +95,9 @@ export function AulasDesenlacesDelLibro({ desenlaces }: {
               {/* Un titular caído sin relevo NO es un reemplazo: su hueco sigue
                   abierto y alguien tiene que llamar. */}
               <strong>{fmt(d.caidosSinRelevo)}</strong>{" "}
-              {d.caidosSinRelevo === 1 ? "curso-horario cayó" : "cursos-horario cayeron"} y
-              todavía no tienen relevo activado: su hueco sigue abierto.
+              {d.caidosSinRelevo === 1
+                ? "curso-horario cayó y todavía no tiene relevo activado: su hueco sigue abierto."
+                : "cursos-horario cayeron y todavía no tienen relevo activado: su hueco sigue abierto."}
             </>
           ) : null}
           {d.caidosSinRelevo && d.sinAulaUtilizada ? " · " : null}

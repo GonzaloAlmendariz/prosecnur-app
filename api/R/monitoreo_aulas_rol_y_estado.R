@@ -30,9 +30,11 @@
 #' @param df data.frame del plan seguido, con `sample_role`,
 #'   `application_state`, `sample_status`, `operational_status`,
 #'   `titular_operational_code` y `operational_code`.
+#' @param hoy el dia del corte: una fecha agendada anterior sin aplicar esta
+#'   vencida.
 #' @return lista con un elemento por rol; cada uno con sus estados y su total.
 #' @export
-monitoreo_aulas_rol_y_estado <- function(df) {
+monitoreo_aulas_rol_y_estado <- function(df, hoy = Sys.Date()) {
   vacio <- list(
     titulares = list(total = 0L, aplicado = 0L, agendado = 0L, sin_agendar = 0L,
                      rechazado = 0L, reemplazado = 0L),
@@ -67,9 +69,47 @@ monitoreo_aulas_rol_y_estado <- function(df) {
   resueltas <- unique(cadena[aplicado])
   cadena_resuelta <- cadena %in% resueltas
 
+  # **Aplicadas SIN agenda.** Gonzalo, 2026-09-24, sobre este panel: «aun no
+  # avisa las que se han aplicado pero sin agendar». Se aplicaron y el libro no
+  # les puso fecha: el campo va por delante del registro, y quien coordina tiene
+  # que anotarlas para que la agenda y lo aplicado cuadren. Es la definicion del
+  # libro (`.calan_aplicadas_sin_agendar`: aplicada y sin fecha), dicha con el
+  # predicado compartido. Sin la columna de fecha —un plan anterior— no se
+  # afirma nada: los campos viajan NULL y la vista dibuja el tramo entero.
+  hay_fecha <- "scheduled_date" %in% names(df)
+  fecha_txt <- if (hay_fecha) trimws(as.character(df$scheduled_date)) else rep("", n)
+  fecha_txt[is.na(fecha_txt)] <- ""
+  con_fecha <- .maau_con_fecha(muestra, fecha_txt, df$operational_status)
+  sin_agenda <- aplicado & !con_fecha
+  # **Agendadas con la fecha ya pasada y sin una respuesta**: la cita existio y
+  # nadie la cumplio, o se cumplio y no llego nada. En los dos casos hay que
+  # preguntar hoy, que es lo contrario de «tiene fecha, esperar».
+  fecha <- suppressWarnings(as.Date(substr(fecha_txt, 1L, 10L)))
+  vencido <- agendado & !is.na(fecha) & fecha < as.Date(hoy)
+  codigos <- function(m) {
+    x <- unique(cod[m & nzchar(cod)])
+    x[order(suppressWarnings(as.numeric(gsub("[^0-9.]", "", x))), x)]
+  }
+  si_fecha <- function(v) if (hay_fecha) v else NULL
+  con_relevo <- cadena %in% unique(cadena[es_reserva & (aplicado | agendado)])
+
   list(
+    # Los codigos de lo que PIDE una accion, para que la vista pueda nombrarlos
+    # en vez de decir «6». Son titulares y relevos, nunca cientos: el banco no
+    # entra.
+    acciones = list(
+      aplicado_sin_agenda = si_fecha(codigos(sin_agenda & !es_banco)),
+      agendado_vencido = si_fecha(codigos(vencido & !es_banco)),
+      sin_agendar = codigos(es_titular & !aplicado & !reemplazado & !rechazado & !agendado),
+      # Solo los que NADIE cubre todavia: un rechazado cuya reserva ya esta
+      # agendada o aplicada no pide nada hoy.
+      rechazado = codigos(es_titular & !aplicado & !reemplazado & rechazado & !con_relevo)
+    ),
     titulares = list(
       total = as.integer(sum(es_titular)),
+      # Subconjuntos, no tramos: `aplicado` y `agendado` siguen sumando el total.
+      aplicado_sin_agenda = si_fecha(as.integer(sum(es_titular & sin_agenda))),
+      agendado_vencido = si_fecha(as.integer(sum(es_titular & !aplicado & !reemplazado & agendado & vencido))),
       aplicado = as.integer(sum(es_titular & aplicado)),
       # El orden importa: un titular reemplazado o rechazado ya no esta
       # «agendado» ni «sin agendar», aunque su fila conserve la fecha.
@@ -83,6 +123,7 @@ monitoreo_aulas_rol_y_estado <- function(df) {
       # UTILIZADO es haber entrado, no haber terminado: una reserva agendada ya
       # gasto su turno en la cadena.
       utilizado = as.integer(sum(es_reserva & (aplicado | agendado))),
+      utilizado_sin_agenda = si_fecha(as.integer(sum(es_reserva & sin_agenda))),
       # AL AIRE: nunca se va a usar porque su slot ya esta cubierto.
       al_aire = as.integer(sum(es_reserva & !(aplicado | agendado) & cadena_resuelta)),
       # EN CADENA: su titular sigue sin resolverse, asi que todavia puede entrar.

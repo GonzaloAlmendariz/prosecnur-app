@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
-import { estadoPorRol, sinColocar } from "./estadoPorRol";
+import { accionesDeHoy, estadoPorRol, sinColocar } from "./estadoPorRol";
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
 
 /**
@@ -85,5 +85,48 @@ describe("estadoPorRol", () => {
       titulares: { total: 10, aplicado: 3, agendado: 2, sin_agendar: 1 },
     })} />);
     expect(html).toContain("sin clasificar");
+  });
+});
+
+describe("aplicadas sin agenda y lo que hay que hacer hoy (2026-09-24)", () => {
+  // CCSS 23/09, medido: 22 titulares aplicados, 3 de ellos sin fecha en el
+  // libro (CH 12, CH 15, CH 24). El panel los metía en «Aplicados» sin avisar.
+  const CCSS = {
+    acciones: {
+      aplicado_sin_agenda: ["CH 12", "CH 15", "CH 24"],
+      agendado_vencido: "CH 6", // Plumber desempaqueta el vector de largo uno
+      sin_agendar: ["CH 3", "CH 31", "CH 35", "CH 36"],
+      rechazado: [],
+    },
+    titulares: { total: 50, aplicado: 22, agendado: 22, sin_agendar: 4, rechazado: 2, reemplazado: 0,
+                 aplicado_sin_agenda: 3, agendado_vencido: 1 },
+    reemplazos: { total: 85, utilizado: 3, en_cadena: 44, al_aire: 38, utilizado_sin_agenda: 0 },
+    banco: { total: 1, utilizado: 0, disponible: 1 },
+  };
+
+  it("parte «Aplicados» sin mover la suma", () => {
+    const tit = estadoPorRol(tablero(CCSS))![0];
+    expect(tit.tramos.find((t) => t.clave === "aplicado")?.aulas).toBe(19);
+    expect(tit.tramos.find((t) => t.clave === "aplicado_sin_agenda")?.aulas).toBe(3);
+    expect(tit.tramos.find((t) => t.clave === "agendado")?.aulas).toBe(21);
+    expect(tit.tramos.find((t) => t.clave === "agendado_vencido")?.aulas).toBe(1);
+    expect(sinColocar(tit)).toBe(0);
+  });
+
+  it("nombra los códigos de lo que pide trabajo, y calla lo que no tiene casos", () => {
+    const acciones = accionesDeHoy(tablero(CCSS));
+    expect(acciones.map((a) => a.clave)).toEqual(["aplicado_sin_agenda", "agendado_vencido", "sin_agendar"]);
+    expect(acciones[1].codigos).toEqual(["CH 6"]);
+    const html = renderToStaticMarkup(<AulasEstadoPorRol dashboard={tablero(CCSS)} />);
+    expect(html).toContain("el libro no les puso fecha");
+    expect(html).toContain("CH 15");
+    expect(html).toContain("Aplicados sin agenda");
+    expect(html).not.toContain("Rechazados sin relevo");
+  });
+
+  it("sin el subconjunto publicado, «Aplicados» va entero y con su nombre corto", () => {
+    const tit = estadoPorRol(tablero(REAL))![0];
+    expect(tit.tramos.map((t) => t.etiqueta)).toContain("Aplicados");
+    expect(tit.tramos.some((t) => t.clave === "aplicado_sin_agenda")).toBe(false);
   });
 });
