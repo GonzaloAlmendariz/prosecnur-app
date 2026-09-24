@@ -37,9 +37,20 @@ import "./general.css";
  * con semilla reproducible y publica π y peso base por unidad. Es la sección
  * entera: trae su propio panel porque la página no crece.
  */
-export function SeleccionGeneral({ componente }: { componente: CalcMuestraComponente | null }) {
+export function SeleccionGeneral({
+  componente,
+  enActor = false,
+}: {
+  componente: CalcMuestraComponente | null;
+  /**
+   * Montada dentro de Acreditación › Selección, bajo el «Archivo del marco»
+   * del actor: la sección (id, rol y scroll) es de quien la monta, y el vacío
+   * no lleva a una sección Marco que ese modo no tiene.
+   */
+  enActor?: boolean;
+}) {
   const general = useMuestraGeneral(componente?.id ?? null);
-  return <SeleccionGeneralVista componente={componente} {...general} />;
+  return <SeleccionGeneralVista componente={componente} enActor={enActor} {...general} />;
 }
 
 /** La sección con el estado ya rehidratado (separada para probarla sin efectos). */
@@ -49,8 +60,10 @@ export function SeleccionGeneralVista({
   error: errorCarga,
   marco,
   corrida,
+  enActor = false,
 }: {
   componente: CalcMuestraComponente | null;
+  enActor?: boolean;
   cargado: boolean;
   error: string | null;
   marco: CalcMuestraGeneralMarco | null;
@@ -104,10 +117,9 @@ export function SeleccionGeneralVista({
 
   return (
     <div
-      id="cmv2-section-general-seleccion"
-      className="cmv2-tab-panel cmg-seleccion"
-      role="tabpanel"
-      aria-label="Selección"
+      {...(enActor
+        ? { className: "cmg-seleccion cmg-seleccion--actor" }
+        : { id: "cmv2-section-general-seleccion", className: "cmv2-tab-panel cmg-seleccion", role: "tabpanel", "aria-label": "Selección" })}
       data-audit-ready={cargado ? "true" : "false"}
       data-qa-geometry-group="calc-muestra/general-seleccion"
       data-qa-geometry-contract="intrinsic"
@@ -118,16 +130,25 @@ export function SeleccionGeneralVista({
         <ErrorBlock label="No se pudo leer el estado del sorteo" detail={errorCarga} />
       ) : !componente || !marco ? (
         <section className="cmv2-panel" data-qa-geometry-member>
-          <EmptyState
-            icon={<Database size={20} aria-hidden="true" />}
-            title="Falta declarar el marco"
-            hint="El sorteo sale del archivo de unidades. Declara su archivo y sus columnas en Marco."
-            cta={(
-              <button type="button" className="cmv2-primary" onClick={() => irASeccion("marco")}>
-                Ir a Marco
-              </button>
-            )}
-          />
+          {enActor ? (
+            <EmptyState
+              variant="inline"
+              icon={<Database size={18} aria-hidden="true" />}
+              title="Todavía no hay sorteo"
+              hint="Declara arriba el archivo del marco de este actor para sortear."
+            />
+          ) : (
+            <EmptyState
+              icon={<Database size={20} aria-hidden="true" />}
+              title="Falta declarar el marco"
+              hint="El sorteo sale del archivo de unidades. Declara su archivo y sus columnas en Marco."
+              cta={(
+                <button type="button" className="cmv2-primary" onClick={() => irASeccion("marco")}>
+                  Ir a Marco
+                </button>
+              )}
+            />
+          )}
         </section>
       ) : (
         <>

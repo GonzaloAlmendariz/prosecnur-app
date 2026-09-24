@@ -47,12 +47,31 @@ export const CODIGO_TECNICA_SIN_SORTEO = "E_CALC_MUESTRA_GENERAL_TECNICA";
  * la pantalla antes de pedir nada: si el motor responde otra cosa, manda él.
  */
 export function modalidadDeTecnica(tecnica: CalcMuestraTecnica | undefined): "probabilistica" | "censo" | "sin_sorteo" {
+  // Sin técnica todavía (componente a medio crear): decide el motor.
+  if (!tecnica) return "probabilistica";
   if (tecnica === "intencion_censal" || tecnica === "barrido") return "censo";
-  if (tecnica === "listado_externo_meta_fija" || tecnica?.startsWith("no_prob_")) return "sin_sorteo";
-  return "probabilistica";
+  // La misma lista que `.CM_TECNICAS_DE_ELEMENTOS` del motor: el resto
+  // recibe 409 E_CALC_MUESTRA_GENERAL_TECNICA.
+  return TECNICAS_DE_ELEMENTOS.has(tecnica) ? "probabilistica" : "sin_sorteo";
 }
 
+const TECNICAS_DE_ELEMENTOS: ReadonlySet<CalcMuestraTecnica> = new Set<CalcMuestraTecnica>([
+  "prob_aleatorio_simple",
+  "prob_estratificado",
+  "sistematico",
+]);
+
+/** Probabilísticas que el sorteo de elementos no cubre (se sortean por etapas o en otra parte). */
+const PROBABILISTICAS_FUERA_DEL_SORTEO: ReadonlySet<string> = new Set([
+  "prob_conglomerado_multietapico",
+  "prob_estratificado_independiente",
+  "medicion_recurrente",
+]);
+
 export function motivoSinSorteo(tecnica: string): string {
+  if (PROBABILISTICAS_FUERA_DEL_SORTEO.has(tecnica)) {
+    return `La técnica «${tecnica}» no sortea elementos de un marco único: este sorteo no la cubre.`;
+  }
   return `La técnica «${tecnica}» no selecciona unidades con probabilidad conocida: no hay sorteo ni π que publicar.`;
 }
 

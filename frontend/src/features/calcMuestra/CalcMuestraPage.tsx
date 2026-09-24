@@ -182,7 +182,7 @@ import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySec
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { EstratosTable, MatrizServiciosTable, estrato, matrizGizEjemplo } from "./ComponenteTablas";
-import { ArchivoMarcoGeneral, MarcoShapeSelector, SeleccionGeneral, labelMarcoOcasional, type MarcoOcasional } from "./general";
+import { ArchivoMarcoGeneral, MarcoShapeSelector, SeleccionActores, SeleccionGeneral, labelMarcoOcasional, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
 type GuidancePoint = {
@@ -587,6 +587,7 @@ function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
     return [
       { id: "actores", label: "Actores", detail: "marco y canal", icon: ClipboardList, targetId: "cmv2-section-acreditacion-actores" },
       { id: "contexto", label: "Contexto", detail: "programa y fuente", icon: Database, targetId: "cmv2-section-acreditacion-contexto" },
+      { id: "seleccion", label: "Selección", detail: "marco y sorteo por actor", icon: Grid3X3, targetId: "cmv2-section-acreditacion-seleccion" },
       { id: "resultados", label: "Resultados", detail: "metas por actor", icon: BarChart3, targetId: "cmv2-section-acreditacion-resultados" },
     ];
   }
@@ -3306,9 +3307,7 @@ function AcreditacionDesk({
   onCalcular: () => void;
   calculando: boolean;
 }) {
-  const selectedSection = ["actores", "contexto", "resultados"].includes(activeSection)
-    ? activeSection
-    : "actores";
+  const selectedSection = ["actores", "contexto", "seleccion", "resultados"].includes(activeSection) ? activeSection : "actores";
   return (
     <div className="cmv2-desk">
       <ShellHeader
@@ -3333,6 +3332,7 @@ function AcreditacionDesk({
           <StudyBasics estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} />
           </div>
         )}
+        {selectedSection === "seleccion" && <SeleccionActores componentes={estudio.componentes} />}
         {selectedSection === "resultados" && (
           <div id="cmv2-section-acreditacion-resultados" className="cmv2-tab-panel" role="tabpanel" aria-label="Resultados">
             <ResultadoPanel componentes={estudio.componentes} />

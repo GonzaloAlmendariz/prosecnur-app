@@ -467,6 +467,149 @@
   color: var(--pulso-danger-fg);
 }
 
+/* --- Acreditación › Selección (E5) ------------------------------------------ */
+
+/* La sección es el único dueño de scroll (`.cmv2-tab-panel`); el bloque del
+ * actor y su Selección crecen en flujo, sin overflow propio. */
+.cmg-actor-trabajo,
+.cmg-seleccion--actor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.cmg-actores-lista {
+  display: grid;
+  /* auto-fill: con un solo actor la tarjeta conserva su ancho y el sobrante es
+   * de la fila (C3); con muchos, la fila baja sin estirar el marco (C2). */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--cmv2-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmg-actores-item {
+  display: flex;
+  min-width: 0;
+}
+
+.cmg-actor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+  color: var(--pulso-text);
+  text-align: left;
+  /* El botón global no parte línea: aquí el nombre y el estado sí. */
+  white-space: normal;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmg-actor:hover:not(.is-active) {
+    border-color: color-mix(in srgb, var(--cmv2-accent) 22%, var(--pulso-border));
+  }
+}
+
+.cmg-actor:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* Selección con el acento del módulo; el estado del marco va en su chip. */
+.cmg-actor.is-active {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cmv2-accent) 18%, var(--pulso-border));
+}
+
+.cmg-actor-nombre {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  overflow-wrap: anywhere;
+}
+
+.cmg-actor-tecnica {
+  color: var(--cmv2-accent-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmg-actor-tecnica--cuotas,
+.cmg-actor-tecnica--sin_sorteo {
+  color: var(--pulso-text-soft);
+}
+
+/* Ficha y cifra son unidades que no se parten; la fila sí baja. */
+.cmg-actor-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cmg-actor-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-state-unset-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-state-unset-bg);
+  color: var(--pulso-state-unset-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-actor-estado > svg {
+  flex: 0 0 auto;
+}
+
+.cmg-actor-estado--marco {
+  border-color: var(--pulso-state-partial-border);
+  background: var(--pulso-state-partial-bg);
+  color: var(--pulso-state-partial-fg);
+}
+
+.cmg-actor-estado--sorteado {
+  border-color: var(--pulso-state-ready-border);
+  background: var(--pulso-state-ready-bg);
+  color: var(--pulso-state-ready-fg);
+}
+
+.cmg-actor-estado--sin_sorteo {
+  border-color: var(--pulso-state-unchecked-border);
+  background: var(--pulso-state-unchecked-bg);
+  color: var(--pulso-state-unchecked-fg);
+}
+
+.cmg-actor-cifra {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* --- Compacto (1024 px y menos) --------------------------------------------- */
 
 @media (max-width: 1180px) {
@@ -481,7 +624,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cmg-metodo {
+  .cmg-metodo,
+  .cmg-actor {
     transition: none;
   }
 }

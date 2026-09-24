@@ -3,7 +3,7 @@ tipo: seccion
 ruta_app: "/calc-muestra?modo=marco-disponible&seccion=resultados"
 nodo: "calc-muestra/marco-disponible/resultados"
 padres: ["[[Muestra general]]"]
-orden: 3
+orden: 4
 documentacion: parcial
 tags:
   - Seccion

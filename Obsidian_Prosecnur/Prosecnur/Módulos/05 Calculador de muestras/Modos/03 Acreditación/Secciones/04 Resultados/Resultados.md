@@ -3,7 +3,7 @@ tipo: seccion
 ruta_app: "/calc-muestra?modo=acreditacion&seccion=resultados"
 nodo: "calc-muestra/acreditacion/resultados"
 padres: ["[[Acreditación]]"]
-orden: 3
+orden: 4
 documentacion: parcial
 tags:
   - Seccion
