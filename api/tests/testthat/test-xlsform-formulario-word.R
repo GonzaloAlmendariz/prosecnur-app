@@ -413,8 +413,17 @@ test_that("item 11: las categorias con asteriscos llegan literales al .docx", {
   #   Failure: categoria que no llego literal al .docx: 3 * a la semana
   # Reparado en `f28f84f02`. Se mide sobre el ARTEFACTO a proposito: el gate
   # anterior se detenia en `block$options$label` y por eso daba verde.
-  survey <- data.frame(type = "select_one frec", name = "q1",
-                       label = "Frecuencia semanal", stringsAsFactors = FALSE)
+  #
+  # LAS DOS MITADES DEL INVARIANTE VIVEN JUNTAS, y por eso el enunciado con
+  # markdown esta en el MISMO test: «la categoria se conserva **y** el enunciado
+  # se limpia». Comprobar solo la primera mitad deja la suite verde si alguien
+  # "arregla" esto volviendo inocua la limpieza para todo, que es romper la
+  # separacion por el otro lado.
+  survey <- data.frame(
+    type = "select_one frec", name = "q1",
+    label = "¿Cuántas veces **comes** fruta? Usa `código` exacto",
+    stringsAsFactors = FALSE
+  )
   choices <- data.frame(
     list_name = rep("frec", 3), name = c("1", "2", "3"),
     label = c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"),
@@ -427,9 +436,23 @@ test_that("item 11: las categorias con asteriscos llegan literales al .docx", {
   )
   doc <- .form_word_document_xml(out)
   textos <- xml2::xml_text(xml2::xml_find_all(doc, "//w:t", xml2::xml_ns(doc)))
+  # Mitad 1: la CATEGORIA se conserva tal cual.
   for (lbl in choices$label) {
     expect_true(any(textos == lbl),
                 info = sprintf("categoria que no llego literal al .docx: %s", lbl))
   }
   expect_true(any(grepl("De 5 a 10", res$warnings, fixed = TRUE)))
+
+  # Mitad 2 (control inverso): el ENUNCIADO se desmarca. Se mira SOLO el run del
+  # enunciado: un "cero asteriscos en todo el .docx" seria falso —las categorias
+  # de arriba llevan los suyos a proposito—, y confundir las dos mitades es
+  # justamente como se rompe esto.
+  enunciado <- textos[grepl("comes", textos, fixed = TRUE)]
+  expect_length(enunciado, 1L)
+  expect_true(grepl("comes fruta", enunciado, fixed = TRUE))
+  expect_true(grepl("código exacto", enunciado, fixed = TRUE))
+  expect_false(grepl("*", enunciado, fixed = TRUE),
+               label = "el enunciado conserva el markdown `**`")
+  expect_false(grepl("`", enunciado, fixed = TRUE),
+               label = "el enunciado conserva los backticks")
 })
