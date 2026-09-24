@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ApiError, type JobSnapshot } from "../../../../api/client";
 import {
-  cmCrearEtaEstable,
+  cmCrearEtaEstable, cmCrearRelojDeEtapa,
   cmFormatElapsed,
   cmFraccionEsDelTotal,
   cmJobEta,
@@ -456,3 +456,27 @@ describe("el tiempo restante no crece mientras el motor no avanza", () => {
     expect(ultimo).toMatch(/· \d\d:\d\d$/);
   });
 });
+
+describe("reloj de etapa para la ETA (QA de aulas, 2026-09-24: «~190:17»)", () => {
+  const snap = (phase: string, current: number, total: number) =>
+    ({ status: "running", progress: { phase, current, total } }) as unknown as Parameters<ReturnType<typeof cmCrearRelojDeEtapa>>[0];
+
+  it("certeza_cobertura no promete tiempo restante: su fracción es un tope por estrato", () => {
+    const reloj = cmCrearRelojDeEtapa();
+    expect(reloj(snap("certeza_cobertura", 1, 16), 761_000, 1 / 16)).toBeNull();
+  });
+
+  it("en una fase de etapa, la ETA usa lo que lleva la etapa, no el job entero", () => {
+    const reloj = cmCrearRelojDeEtapa();
+    expect(reloj(snap("perfil", 1, 4), 100_000, 0.25)).toBe(0);
+    expect(reloj(snap("perfil", 2, 4), 160_000, 0.5)).toBe(60_000);
+    // La fracción retrocede: empezó otra etapa y el reloj se reinicia.
+    expect(reloj(snap("perfil", 1, 4), 200_000, 0.25)).toBe(0);
+  });
+
+  it("si la fracción es del total, cuenta el job entero", () => {
+    const reloj = cmCrearRelojDeEtapa();
+    expect(reloj(snap("comparar", 3, 10), 90_000, 0.3)).toBe(90_000);
+  });
+});
+
