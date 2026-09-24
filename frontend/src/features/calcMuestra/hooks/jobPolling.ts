@@ -79,6 +79,37 @@ export function cmFraccionEsDelTotal(snap: JobSnapshot): boolean {
   return fase != null && CM_FASES_DEL_TOTAL.has(fase);
 }
 
+/**
+ * Fases cuya fracción NO mide avance: `certeza_cobertura` publica «evaluación
+ * i de 16», y 16 es el TOPE de la búsqueda, que suele parar antes; además se
+ * reinicia en cada estrato. Extrapolar con eso anunció «~190:17» a los 12:41
+ * (QA de aulas, 2026-09-24): con f = 1/16 el estimado es 15 veces lo
+ * transcurrido. Sin avance medible, no se promete un tiempo restante.
+ */
+const CM_FASES_SIN_ETA = new Set(["certeza_cobertura"]);
+
+/**
+ * Tiempo que la ETA puede usar: el del job entero si la fracción es del total;
+ * si es de una etapa, sólo lo que lleva ESA etapa (desde que la fase cambió o la
+ * fracción retrocedió, que es cuando empieza otra). Con el tiempo del job
+ * entero sobre la fracción de una etapa el estimado se multiplicaba.
+ */
+export function cmCrearRelojDeEtapa(): (snap: JobSnapshot, elapsedMs: number, fraccion: number | null) => number | null {
+  let fase: string | null = null;
+  let fraccionPrevia: number | null = null;
+  let inicio = 0;
+  return (snap, elapsedMs, fraccion) => {
+    const faseActual = cmJobFase(snap);
+    if (faseActual !== null && CM_FASES_SIN_ETA.has(faseActual)) return null;
+    if (cmFraccionEsDelTotal(snap)) return elapsedMs;
+    const retrocedio = fraccion !== null && fraccionPrevia !== null && fraccion < fraccionPrevia;
+    if (faseActual !== fase || retrocedio) inicio = elapsedMs;
+    fase = faseActual;
+    fraccionPrevia = fraccion;
+    return elapsedMs - inicio;
+  };
+}
+
 export function cmJobStageMessage(snap: JobSnapshot): string | null {
   const progress = snap.progress;
   if (progress && typeof progress === "object" && "message" in progress && typeof progress.message === "string" && progress.message) {
@@ -280,6 +311,7 @@ export async function esperarJob(
   // Uno por corrida: es la memoria que impide que el estimado crezca mientras
   // el motor sigue clavado en el mismo hito.
   const etaEstable = cmCrearEtaEstable();
+  const relojDeEtapa = cmCrearRelojDeEtapa();
   let notFoundSeguidos = 0;
   for (;;) {
     // El usuario pidió cancelar: cortamos el polling de inmediato (el backend
@@ -321,6 +353,7 @@ export async function esperarJob(
       }
       const elapsedMs = now() - start;
       const fraccion = cmJobFraccion(snap);
+      const elapsedEta = relojDeEtapa(snap, elapsedMs, fraccion);
       opciones.onProgress?.(
         cmTextoProgreso({
           label,
@@ -328,7 +361,7 @@ export async function esperarJob(
           elapsedMs,
           fraccion,
           fraccionEsDelTotal: cmFraccionEsDelTotal(snap),
-          etaMs: etaEstable(elapsedMs, fraccion),
+          etaMs: elapsedEta === null ? null : etaEstable(elapsedEta, fraccion),
           avisoLargoMs,
         }),
       );
