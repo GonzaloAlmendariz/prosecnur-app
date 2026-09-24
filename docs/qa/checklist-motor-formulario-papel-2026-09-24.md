@@ -23,18 +23,22 @@ dos renderers, o se declara explícitamente como exclusiva de uno.
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | **Dos columnas por secciones**, el salto de calidad más grande | modelo + ambos renderers | en curso |
-| 2 | **Decidir el corte por ancho medido**, no por ojo | modelo | en curso |
-| 3 | **Una matriz no se parte entre páginas** (`cantSplit` + `keepNext`) | renderer Word | en curso |
-| 4 | **Gate por holgura al pie**, no por conteo de páginas | test / QA | **replanteado** — ver §4 |
-| 5 | **Consentimiento como tabla 1×1 con bordes** | renderer Word | en curso |
-| 6 | **Una sola numeración**: el número lo pone quien numera | modelo | en curso |
-| 7 | **El número va en la matriz, no en el enunciado previo** | modelo | en curso |
+| 1 | **Dos columnas por secciones**, el salto de calidad más grande | modelo + ambos renderers | **cerrado** |
+| 2 | **Decidir el corte por ancho medido**, no por ojo | modelo | **cerrado con reserva** — ver §2 |
+| 3 | **Una matriz no se parte entre páginas** (`cantSplit` + `keepNext`) | renderer Word | **cerrado** |
+| 4 | **Gate por holgura al pie**, no por conteo de páginas | test / QA | replanteado; test en curso |
+| 5 | **Consentimiento como tabla 1×1 con bordes** | renderer Word | **cerrado** |
+| 6 | **Una sola numeración**: el número lo pone quien numera | modelo | **cerrado** |
+| 7 | **El número va en la matriz, no en el enunciado previo** | modelo | **cerrado** (el conteo, en el 14) |
 | 8 | **Segunda persona consistente** en los enunciados generados | — | **descartado** — ver §8 |
-| 9 | **El pie sobrevive en la última página** (`titlePg`) | renderer Word | en curso |
-| 10 | **Verificador OOXML del artefacto** | test | pendiente |
-| 11 | **`clean_text` borra `*` y backticks de las categorías** | modelo | en curso — ver §11 |
+| 9 | **El pie sobrevive en la última página** (`titlePg`) | renderer Word | **cerrado** |
+| 10 | **Verificador OOXML del artefacto** | test | en curso |
+| 11 | **`clean_text` borra `*` y backticks de las categorías** | modelo + ambos renderers | **cerrado** — ver §11 |
 | 12 | **El renderer Word ignora `columns` desde siempre** | renderer Word | **bloqueado** — decide Gonzalo |
+| 13 | **Las cabeceras de matriz parten palabras** | ambos renderers | pendiente — ver §13 |
+| 14 | **`n_questions` no tiene grano declarado** | modelo + API | **bloqueado** — decide Gonzalo |
+| 15 | **La geometría del motor no alcanza a la de la referencia** | modelo | **bloqueado** — decide Gonzalo |
+
 
 
 ---
@@ -75,6 +79,20 @@ El criterio de Magda fue a ojo, tabla por tabla. El ancho está declarado en el 
 
 El modelo ya sabe si un bloque es matriz o lista de opciones; esa es la señal. La regla es
 agrupar bloques contiguos del mismo tipo en un tramo y darle a cada tramo su sección.
+
+**Cerrado con reserva, y la reserva importa.** El criterio implementado decide bien —todas
+las matrices verdaderas van a una columna, como en la referencia— pero **no mide un ancho
+continuo**: barrido el espacio de entradas, el término `110 * nchar` nunca alcanza su tope
+(una lista de opciones jamás pasa de 4 000 < 4 323), así que el criterio equivale a *«hay
+una matriz en modo categorías, o una matriz de más de 5 columnas ⇒ 1 columna; el resto ⇒
+2»*. Es decir, la señal de **tipo** que este mismo ítem decía que el modelo ya tenía.
+Llamarlo «por ancho medido» sobrevende lo que hace: de los tres umbrales
+(`lbl_min=2600`, `col_min=340..1400`, `110*nchar`), dos son inertes.
+
+Además, comparar `min_width_twips` con los `tblGrid` de la referencia **es inválido**: son
+magnitudes distintas (uno pretende ser cota inferior, el otro es ancho ocupado) y, de
+hacerlo, los 4907–5250 de la referencia son todos mayores que el `half` del motor, así que
+clasificaría sus tres secciones de dos columnas como de una. La causa está en §15.
 
 ## 3. Una matriz no se parte entre páginas
 
@@ -209,6 +227,59 @@ honrar `columns = 2` en Word **cambia la forma de todo export .docx existente** 
 pedido a dos columnas. Las salidas son (a) honrarlo y aceptar el cambio, (b) dejar `2` como
 está y que sólo `auto` produzca columnas, o (c) quitar el toggle del diálogo para Word.
 Mientras se decide, el trabajo en curso toma (b): `1` y `2` conservan la salida de hoy.
+
+## 13. Las cabeceras de matriz parten palabras
+
+`Totalment/e`, `desacue/rdo`. No es una decisión de rotulación: es Word partiendo
+una palabra porque la celda no la contiene, y el pre-wrap del renderer lo enmascara —
+`wrap_chars = 11` está en **caracteres** y la celda en **pulgadas**, sin que nada
+compruebe que la palabra más larga cabe.
+
+Medido: para una escala de 5 en Word, `matrix_label_frac(5) = 0.60` deja **725 twips**
+por columna de escala. La referencia usa `frac ≈ 0.45` y **786–925 twips**, sobre una
+caja además 15 % más ancha (§15). El motor da más a la etiqueta y menos a la escala.
+
+**No se resuelve mandando la escala a `extremos`**, y esto es criterio metodológico, no
+estético: el instrumento es autoadministrado (*«Marca una sola respuesta»*), y `extremos`
+es convención de administración con encuestador. Borrar los rótulos intermedios obliga a
+interpolar categorías no verbalizadas, sesga hacia la tendencia central y rompe la
+comparabilidad con la misma escala aplicada por CATI/CAPI o web. La referencia rotula las
+siete categorías de sus escalas de 7 puntos.
+
+Escalera correcta, en orden: (1) derivar `wrap_chars` del ancho real de columna y del
+cuerpo tipográfico; (2) si la palabra más larga no cabe, bajar `matrix_label_frac` y/o
+ensanchar la caja del tramo; (3) si sigue sin caber, **leyenda en el enunciado y códigos
+desnudos en la cabecera**, que es lo que hace la referencia y queda declarado en
+`warnings`; (4) `extremos` sólo por decisión explícita del autor o escala numérica.
+Nunca por ancho.
+
+Mitigado de momento: una escala de más de 6 puntos ya **avisa** de que el modo automático
+le va a quitar los rótulos intermedios, en vez de hacerlo en silencio.
+
+## 14. `n_questions` no tiene grano declarado — **bloqueado**
+
+Se publica en la respuesta de la API y hay tests que lo fijan, así que hoy es un número
+citable y no reproducible. Medido, se equivoca **en los dos sentidos a la vez**:
+
+- **Sobreestima**: una `note` de instrucción se emite con `kind = "question"` y el conteo
+  cuenta `kind %in% c("question","matrix")`. Suma exactamente el número de notas.
+- **Subestima**: una matriz sin `tenor` aporta 1 al conteo mientras consume 3 números.
+
+Los dos errores no se cancelan y su signo depende del instrumento. No es «preguntas
+numeradas», no es «ítems» y no es «bloques de pregunta». Está bloqueado porque arreglarlo
+es elegir un grano y renombrar el campo, y eso rompe consumidores de la API.
+
+## 15. La geometría del motor no alcanza a la de la referencia — **bloqueado**
+
+Medido sobre el `.docx` de referencia: `pgMar left=680 right=680` → ancho de texto
+**10 549 twips**, y **10 660** en la sección de matrices (`right=569`). Magda recortó los
+márgenes a ~1,2 cm. El motor trabaja con **9 072** (A4 de officer, márgenes de ~2,5 cm):
+su media columna mide 4 323 twips contra los 5 062 de la referencia, **15 % menos**.
+
+Consecuencia directa: los anchos de la referencia (4907–5250 en sus secciones de dos
+columnas) **no caben** en media columna del motor. El patrón de reparto sí se replica; la
+densidad no. Decidir si el motor adopta los márgenes de la referencia —lo que cambia todos
+los exports— o si el objetivo estético se declara inalcanzable en anchos.
 
 ---
 
