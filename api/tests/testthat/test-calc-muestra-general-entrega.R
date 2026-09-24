@@ -69,3 +69,15 @@ test_that("el resultado de un diseño de elementos trae su memoria de cálculo; 
     tecnica = "intencion_censal", marco = list(marco_validado = 300L, marco_contactable = 300L, estado = "validado"))))
   expect_null(censal$memoria_calculo)
 })
+
+test_that("cuando el tope en N muerde, la memoria escribe el mín(·, N)", {
+  comp <- calc_muestra_normalize_componente(list(tecnica = "prob_aleatorio_simple",
+    marco = list(marco_validado = 300L, universo_bruto = 300L, marco_contactable = 300L, estado = "validado"),
+    parametros = list(e = .05, tasa_respuesta = .5, oversample_pct = .2)))
+  r <- calc_muestra_calcular_componente(comp)
+  expect_identical(as.integer(r$n_operativo), 300L)
+  fila <- r$memoria_calculo[5, ]
+  expect_match(fila$sustitucion, "mín(", fixed = TRUE)
+  expect_match(fila$sustitucion, "censo del marco", fixed = TRUE)
+  expect_identical(fila$resultado, "300")
+})

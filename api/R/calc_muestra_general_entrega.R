@@ -54,8 +54,14 @@ calc_muestra_general_memoria <- function(comp, resultado) {
          sprintf("⌈%s / %s⌉", as.integer(resultado$n_objetivo), .cm_general_num(rr)),
          as.character(as.integer(base))),
     list("n a campo",
-         "casos a abordar + ⌈casos · sobremuestra⌉, con tope en N",
-         sprintf("%s + ⌈%s · %s⌉", as.integer(base), as.integer(base), .cm_general_num(os)),
+         "mín(casos a abordar + ⌈casos · sobremuestra⌉, N)",
+         {
+           sin_tope <- as.integer(base) + as.integer(ceiling(base * os))
+           if (is.finite(N) && N > 0 && sin_tope > N) {
+             sprintf("mín(%s + ⌈%s · %s⌉, %s) = mín(%s, %s): censo del marco", as.integer(base), as.integer(base),
+                     .cm_general_num(os), .cm_general_num(N, 10L), sin_tope, .cm_general_num(N, 10L))
+           } else sprintf("%s + ⌈%s · %s⌉", as.integer(base), as.integer(base), .cm_general_num(os))
+         },
          as.character(as.integer(resultado$n_operativo))),
     list("Margen de error alcanzado",
          "e = z · √(p(1 − p) · deff · (N − n) / (n (N − 1)))",
