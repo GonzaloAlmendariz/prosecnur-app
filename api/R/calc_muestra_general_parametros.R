@@ -12,10 +12,10 @@
 # todo parámetro que cambia el resultado en algún escenario está declarado.
 
 .CM_PARAMETROS_POR_TECNICA <- list(
-  prob_aleatorio_simple = c("z", "p", "e", "tasa_respuesta", "oversample_pct"),
-  sistematico = c("z", "p", "e", "tasa_respuesta", "oversample_pct"),
+  prob_aleatorio_simple = c("z", "p", "e", "tasa_respuesta", "oversample_pct", "tipo_indicador", "cv"),
+  sistematico = c("z", "p", "e", "tasa_respuesta", "oversample_pct", "tipo_indicador", "cv"),
   prob_estratificado = c("z", "p", "e", "deff", "tasa_respuesta", "oversample_pct", "n_minimo_estrato",
-                         "asignacion"),
+                         "asignacion", "tipo_indicador", "cv"),
   intencion_censal = c("cobertura_objetivo", "tasa_respuesta"),
   barrido = c("cobertura_objetivo", "tau", "oversample_pct", "promedio_conglomerado"),
   no_prob_cuotas = c("tasa_respuesta", "oversample_pct"),
@@ -44,6 +44,11 @@
   promedio_conglomerado = list(rotulo = "Tamaño medio del conglomerado", ayuda = "Personas por unidad de conglomerado."),
   estadistico_conglomerado = list(rotulo = "Estadístico del conglomerado", ayuda = "Media, mediana o el menor de ambos.",
                                   tipo = "opciones", opciones = c("media", "mediana", "min_media_mediana")),
+  tipo_indicador = list(rotulo = "Qué se estima",
+                        ayuda = "Una proporción (porcentaje de personas) usa p y un margen en puntos; una media (ingreso, horas, puntaje) usa el coeficiente de variación y un margen relativo.",
+                        tipo = "opciones", opciones = c("proporcion", "media")),
+  cv = list(rotulo = "Coeficiente de variación esperado",
+            ayuda = "Sólo para medias: desviación estándar / media. Sin estimación previa, 1 es conservador para variables sesgadas como el ingreso."),
   asignacion = list(rotulo = "Asignación entre estratos",
                     ayuda = "Proporcional reparte según el tamaño del estrato; Neyman, según tamaño × variabilidad (necesita la proporción esperada de cada estrato) y da menos error con el mismo n.",
                     tipo = "opciones", opciones = c("proporcional", "neyman"))

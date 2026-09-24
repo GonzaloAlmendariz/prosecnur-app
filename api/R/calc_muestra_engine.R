@@ -1167,6 +1167,10 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     # Asignación entre estratos del estratificado del motor general (E3):
     # proporcional a N_h (histórica) o de Neyman, ∝ N_h·S_h.
     asignacion        = calc_enum(par$asignacion, .CM_ASIGNACIONES, "proporcional"),
+    # Qué se estima (H21): una proporción (e absoluto) o una media (e
+    # relativo, con el coeficiente de variación esperado).
+    tipo_indicador    = calc_enum(par$tipo_indicador, .CM_TIPOS_INDICADOR, "proporcion"),
+    cv                = calc_num(par$cv, 1, min = 0.01, max = 10),
     estadistico_conglomerado = calc_enum(par$estadistico_conglomerado,
                                          c("media", "mediana", "min_media_mediana"), "media"),
     n_minimo_estrato  = calc_int(par$n_minimo_estrato, .CM_DEFAULTS_PARAMS$n_minimo_estrato,
@@ -1290,7 +1294,7 @@ calc_muestra_calcular_componente <- function(comp) {
       resultado$n_objetivo < resultado$n_teorico) {
     ea <- resultado$precision_alcanzada %||% NA
     alcance <- if (is.na(ea)) "el error total no se puede estimar (hay estratos sin casos)"
-               else sprintf("el error alcanzado es ±%.1f puntos, no ±%.1f", 100 * ea, 100 * comp$parametros$e)
+               else sprintf("el error alcanzado es ±%.1f %s, no ±%.1f", 100 * ea, if (.cm_general_es_media(comp$parametros)) "% de la media" else "puntos", 100 * comp$parametros$e)
     resultado$advertencia <- paste(c(sprintf(
       "La meta declarada (%d) es menor que el n que exige el margen (%d): %s.",
       as.integer(resultado$n_objetivo), as.integer(resultado$n_teorico), alcance), resultado$advertencia), collapse = " ")
@@ -1660,12 +1664,13 @@ calc_muestra_calcular_componente <- function(comp) {
     ))
   }
 
-  n_teorico <- calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
+  media <- .cm_general_es_media(par)
+  n_teorico <- if (media) .cm_general_n_media(N, par$cv, par$z, par$e, 1) else
+    calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
   campo <- .cm_general_inflar_operativo(n_objetivo, par, N)
-  precision_alcanzada <- calc_e_desde_n_muestra(
-    n = n_objetivo, N = N, p = par$p, z = par$z, deff = 1
-  )
+  precision_alcanzada <- if (media) .cm_general_error_media(n_objetivo, N, par$cv, par$z, 1) else
+    calc_e_desde_n_muestra(n = n_objetivo, N = N, p = par$p, z = par$z, deff = 1)
 
   out <- list(
     n_teorico            = as.integer(n_teorico),
@@ -1714,9 +1719,13 @@ calc_muestra_calcular_componente <- function(comp) {
     ))
   }
 
-  por_estrato <- .cm_general_estratificado_por_estrato(estratos, par)
+  media <- .cm_general_es_media(par) && !identical(comp$tecnica, "prob_estratificado_independiente")
+  # La fórmula por estrato es de proporciones (p_h): con una media se usa la
+  # global con su CV.
+  por_estrato <- !media && .cm_general_estratificado_por_estrato(estratos, par)
   diseno <- if (por_estrato) .cm_general_n_estratificado(estratos, par) else NULL
-  n_teorico <- if (por_estrato) diseno$n else
+  n_teorico <- if (por_estrato) diseno$n else if (media)
+    .cm_general_n_media(N, par$cv, par$z, par$e, par$deff) else
     calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
   # Los dominios independientes de aulas caen aquí cuando no traen estratos;
@@ -1726,9 +1735,8 @@ calc_muestra_calcular_componente <- function(comp) {
   } else {
     .cm_general_inflar_operativo(n_objetivo, par, N)
   }
-  precision_alcanzada <- calc_e_desde_n_muestra(
-    n = n_objetivo, N = N, p = par$p, z = par$z, deff = par$deff
-  )
+  precision_alcanzada <- if (media) .cm_general_error_media(n_objetivo, N, par$cv, par$z, par$deff) else
+    calc_e_desde_n_muestra(n = n_objetivo, N = N, p = par$p, z = par$z, deff = par$deff)
 
   base_result <- list(
     n_teorico            = as.integer(n_teorico),
