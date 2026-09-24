@@ -7,6 +7,7 @@
 # recálculo: si difieren, el que miente es el motor y así se ve.
 
 .cm_general_num <- function(x, digits = 4L) {
+  if (length(x) > 1L) return(vapply(x, .cm_general_num, character(1), digits = digits))
   if (is.null(x) || !length(x) || is.na(x)) return("—")
   trimws(formatC(as.numeric(x), format = "fg", digits = digits, big.mark = ""))
 }
@@ -34,7 +35,11 @@ calc_muestra_general_memoria <- function(comp, resultado) {
   n0 <- z^2 * p * (1 - p) * deff / e^2
   n_fpc <- if (is.finite(N) && N > 0) n0 / (1 + (n0 - 1) / N) else n0
   base <- ceiling(as.numeric(resultado$n_objetivo) / rr)
-  filas <- list(
+  estratos <- comp$marco$estratos %||% list()
+  por_estrato <- identical(comp$tecnica, "prob_estratificado") &&
+    .cm_general_estratificado_por_estrato(estratos, par)
+  filas <- if (por_estrato) .cm_general_memoria_por_estrato(comp, resultado, estratos, par, N)
+           else list(
     list("Tamaño sin corrección (Cochran)",
          "n0 = z² · p · (1 − p) · deff / e²",
          sprintf("%s² · %s · %s · %s / %s²", .cm_general_num(z), .cm_general_num(p),
@@ -68,6 +73,7 @@ calc_muestra_general_memoria <- function(comp, resultado) {
          sprintf("con n = %s y N = %s", as.integer(resultado$n_objetivo), .cm_general_num(N, 10L)),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
+  if (por_estrato) filas <- c(filas, .cm_general_memoria_campo(resultado, base, os, rr))
   data.frame(
     paso = vapply(filas, `[[`, "", 1L),
     formula = vapply(filas, `[[`, "", 2L),
@@ -181,4 +187,58 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
 
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   invisible(path)
+}
+
+# Pasos 1–2 y error de un estratificado calculado por estrato (Cochran 5.25 /
+# 5.26): la memoria global contradecía al n —mostraba «356.816 → 212» con
+# Neyman—, así que el estratificado por estrato se defiende con su fórmula.
+.cm_general_memoria_por_estrato <- function(comp, resultado, estratos, par, N) {
+  v <- .cm_general_estratos_varianza(estratos, par)
+  W <- v$N_h / sum(v$N_h)
+  neyman <- identical(par$asignacion %||% "proporcional", "neyman")
+  suma_s2 <- sum(W * v$S2_h)
+  num <- if (neyman) sum(W * v$S_h)^2 else suma_s2
+  V <- (as.numeric(par$e) / as.numeric(par$z))^2
+  terminos <- if (neyman) {
+    sprintf("%s·√(%s·%s)", .cm_general_num(W, 3L), .cm_general_num(v$p_h, 3L), .cm_general_num(1 - v$p_h, 3L))
+  } else {
+    sprintf("%s·%s·%s", .cm_general_num(W, 3L), .cm_general_num(v$p_h, 3L), .cm_general_num(1 - v$p_h, 3L))
+  }
+  if (length(terminos) > 6L) terminos <- c(terminos[1:5], sprintf("… (%d estratos)", length(terminos)))
+  suma_txt <- paste(terminos, collapse = " + ")
+  if (neyman) suma_txt <- sprintf("(%s)²", suma_txt)
+  n_crudo <- num / (V + suma_s2 / N)
+  list(
+    list("Varianza por estrato",
+         if (neyman) "(Σ W_h · S_h)², con S_h² = p_h(1 − p_h) · deff" else "Σ W_h · p_h(1 − p_h) · deff",
+         suma_txt,
+         .cm_general_num(num, 6L)),
+    list(if (neyman) "Tamaño con asignación de Neyman (Cochran 5.26)" else "Tamaño estratificado (Cochran 5.25)",
+         "n = varianza / ((e / z)² + Σ W_h S_h² / N)",
+         sprintf("%s / ((%s / %s)² + %s / %s)", .cm_general_num(num, 6L), .cm_general_num(par$e),
+                 .cm_general_num(par$z), .cm_general_num(suma_s2, 6L), .cm_general_num(N, 10L)),
+         sprintf("%s → %s", .cm_general_num(n_crudo, 6L), as.integer(resultado$n_teorico))),
+    list("Encuestas completas objetivo",
+         "n objetivo = n (o la meta declarada, si la hay)",
+         sprintf("%s", as.integer(resultado$n_teorico)),
+         as.character(as.integer(resultado$n_objetivo)))
+  )
+}
+
+.cm_general_memoria_campo <- function(resultado, base, os, rr) {
+  list(
+    list("Casos a abordar por no respuesta",
+         "⌈n objetivo / tasa de respuesta⌉",
+         sprintf("⌈%s / %s⌉", as.integer(resultado$n_objetivo), .cm_general_num(rr)),
+         as.character(as.integer(base))),
+    list("n a campo",
+         "mín(casos a abordar + ⌈casos · sobremuestra⌉, N)",
+         sprintf("%s + ⌈%s · %s⌉", as.integer(base), as.integer(base), .cm_general_num(os)),
+         as.character(as.integer(resultado$n_operativo))),
+    list("Margen de error alcanzado",
+         "e = z · √(Σ W_h² S_h² (1 − n_h / N_h) / n_h), con el reparto efectivo",
+         sprintf("con n = %s repartidos entre %s estratos", as.integer(resultado$n_objetivo),
+                 length(resultado$distribucion_estratos %||% list())),
+         .cm_general_num(resultado$precision_alcanzada, 4L))
+  )
 }
