@@ -145,6 +145,7 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
     "Para repetir el sorteo: el mismo archivo de marco (mismo hash), la misma semilla y el mismo método dan el mismo listado en cualquier máquina.",
     "El peso base de cada titular es 1/π. Las reservas no tienen π propia: si se libera un lote, la π del estrato se recalcula como (n_h + liberadas)/N_h."
   )
+  notas <- c(notas, .cm_general_nota_varianza(cr$metodo, cr$modalidad))
   if (isTRUE(cr$piso_incumplible)) notas <- c(notas, "El piso por estrato no cabía en n: se repartió proporcional sin piso.")
   if (isTRUE(cr$reservas_omitidas_pps)) notas <- c(notas, "En PPS no se sortean reservas: su π al liberarlas no sería exacta.")
   openxlsx::writeData(wb, "Corrida", notas, startRow = fila_nota, startCol = 1)
@@ -294,4 +295,19 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
          sprintf("con n = %s y N = %s", as.integer(resultado$n_objetivo), .cm_general_num(N, 10L)),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
+}
+
+# Cómo estimar la varianza con esta muestra (research H28). El sorteo publica
+# π de primer orden, no π_ij: el sistemático y el PPS necesitan una
+# aproximación, y quien analiza tiene que saber cuál (Särndal et al. 1992,
+# §3.3; Wolter 2007, cap. 8).
+.cm_general_nota_varianza <- function(metodo, modalidad = NULL) {
+  if (identical(modalidad, "censo")) {
+    return("Estimación: cobertura censal; no hay error de muestreo, sí sesgo posible de no respuesta.")
+  }
+  switch(metodo %||% "mas",
+    mas = "Estimación: pesos 1/π; varianza de muestreo aleatorio simple sin reemplazo (estratificada si hay estratos), con corrección por población finita.",
+    sistematico = "Estimación: pesos 1/π; el sistemático no tiene estimador insesgado de varianza con un solo arranque: se aproxima como aleatorio simple (conservador si el orden del marco agrupa unidades parecidas; revisar si el orden es periódico).",
+    pps = "Estimación: pesos 1/π; varianza aproximada con la fórmula con reemplazo (Hansen–Hurwitz), conservadora para un PPS sin reemplazo; las certezas (π = 1) no aportan varianza.",
+    "Estimación: pesos 1/π.")
 }

@@ -96,3 +96,17 @@ test_that("la memoria del estratificado por estrato cuenta su propia fórmula (n
   expect_identical(ney$sustitucion[[4]], "⌈212 / 0.8⌉")
   expect_false(any(grepl("356", ney$resultado)))
 })
+
+test_that("H28: la entrega dice cómo estimar la varianza según el método", {
+  expect_match(.cm_general_nota_varianza("sistematico"), "aleatorio simple")
+  expect_match(.cm_general_nota_varianza("pps"), "Hansen–Hurwitz")
+  expect_match(.cm_general_nota_varianza("mas", "censo"), "no hay error de muestreo")
+  res <- calc_muestra_general_resumen(list(corridas = list(c1 = list(corrida = list(metodo = "pps"), unidades = data.frame(id = 1)))))
+  expect_null(res$corridas$c1$unidades)
+  expect_match(res$corridas$c1$nota_varianza, "Hansen")
+  for (nombre in c("diseno_validado.qmd", "propuesta_preliminar.qmd")) {
+    qmd <- paste(readLines(.cm_locate_template(nombre), warn = FALSE), collapse = "\n")
+    expect_true(grepl("nota_varianza", qmd, fixed = TRUE), info = nombre)
+    expect_false(grepl("prosecnurapp:::", qmd, fixed = TRUE), info = nombre)
+  }
+})
