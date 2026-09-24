@@ -183,6 +183,9 @@ calc_muestra_general_resumen <- function(estado) {
     corridas = lapply(estado$corridas, function(c) {
       if (!is.list(c)) return(NULL)
       c$unidades <- NULL
+      # Viaja al reporte ya redactada: la plantilla Quarto no debe llamar
+      # funciones internas del paquete (el render puede cargar el instalado).
+      c$nota_varianza <- .cm_general_nota_varianza(c$corrida$metodo, c$corrida$modalidad)
       c
     })
   )

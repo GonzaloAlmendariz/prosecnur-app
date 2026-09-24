@@ -255,6 +255,8 @@ if (!length(corridas)) {
       Valor = c(modo, fmt_int(cr$N), fmt_int(cr$n_titulares), fmt_int(cr$n_reservas),
                 as.character(cr$semilla), cr$rng_kind %||% "—", cr$run_id %||% "—", cr$marco_hash %||% "—")
     )
+    nota <- corridas[[cid]]$nota_varianza %||% ""
+    if (nzchar(nota)) ficha <- rbind(ficha, tibble(Campo = "Estimación de varianza", Valor = nota))
     cat("\n**", actor, "**\n\n", sep = "")
     print(tabla_pulso(ficha, caption = paste("Sorteo —", actor)))
     est <- as.data.frame(corridas[[cid]]$estratos %||% list())
