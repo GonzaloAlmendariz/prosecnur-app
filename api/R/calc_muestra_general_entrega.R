@@ -203,8 +203,9 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
   v <- .cm_general_estratos_varianza(estratos, par)
   W <- v$N_h / sum(v$N_h)
   neyman <- identical(par$asignacion %||% "proporcional", "neyman")
+  potencia <- identical(par$asignacion %||% "proporcional", "potencia")
   suma_s2 <- sum(W * v$S2_h)
-  num <- if (neyman) sum(W * v$S_h)^2 else suma_s2
+  num <- .cm_general_n_estratificado(estratos, par)$num
   V <- (as.numeric(par$e) / as.numeric(par$z))^2
   deff <- as.numeric(par$deff %||% 1)
   con_deff <- if (abs(deff - 1) > 1e-12) sprintf("·%s", .cm_general_num(deff)) else ""
@@ -216,13 +217,18 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
   if (length(terminos) > 6L) terminos <- c(terminos[1:5], sprintf("… (%d estratos)", length(terminos)))
   suma_txt <- paste(terminos, collapse = " + ")
   if (neyman) suma_txt <- sprintf("(%s)²", suma_txt)
+  if (potencia) suma_txt <- sprintf("Σ W_h² S_h² / a_h con a_h ∝ √N_h · S_h (%d estratos)", length(W))
   n_crudo <- num / (V + suma_s2 / N)
   list(
     list("Varianza por estrato",
-         if (neyman) "(Σ W_h · S_h)², con S_h² = p_h(1 − p_h) · deff" else "Σ W_h · p_h(1 − p_h) · deff",
+         if (neyman) "(Σ W_h · S_h)², con S_h² = p_h(1 − p_h) · deff"
+         else if (potencia) "Σ W_h² S_h² / a_h (asignación de potencia, Bankier)"
+         else "Σ W_h · p_h(1 − p_h) · deff",
          suma_txt,
          .cm_general_num(num, 6L)),
-    list(if (neyman) "Tamaño con asignación de Neyman (Cochran 5.26)" else "Tamaño estratificado (Cochran 5.25)",
+    list(if (neyman) "Tamaño con asignación de Neyman (Cochran 5.26)"
+         else if (potencia) "Tamaño con asignación de potencia (Cochran 5.24)"
+         else "Tamaño estratificado (Cochran 5.25)",
          "n = varianza / ((e / z)² + Σ W_h S_h² / N)",
          sprintf("%s / ((%s / %s)² + %s / %s)", .cm_general_num(num, 6L), .cm_general_num(par$e),
                  .cm_general_num(par$z), .cm_general_num(suma_s2, 6L), .cm_general_num(N, 10L)),

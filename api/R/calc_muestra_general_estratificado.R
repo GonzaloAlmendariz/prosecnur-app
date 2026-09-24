@@ -13,7 +13,19 @@
 #   proporcional: n = Σ W_h S_h² / (V + Σ W_h S_h² / N)
 #   Neyman:       n = (Σ W_h S_h)² / (V + Σ W_h S_h² / N)
 
-.CM_ASIGNACIONES <- c("proporcional", "neyman")
+.CM_ASIGNACIONES <- c("proporcional", "neyman", "potencia")
+
+# Pesos de reparto de cada asignación (a qué es proporcional n_h):
+#   proporcional ∝ N_h · Neyman ∝ N_h·S_h · potencia ∝ √N_h·S_h
+# La de potencia (Bankier 1988, q = 1/2) es el término medio cuando además del
+# total se reporta cada estrato: la proporcional deja a los chicos casi sin
+# casos y la igual pierde precisión global.
+.cm_general_pesos_asignacion <- function(asignacion, v) {
+  switch(asignacion %||% "proporcional",
+    neyman = v$N_h * v$S_h,
+    potencia = sqrt(v$N_h) * v$S_h,
+    v$N_h)
+}
 
 .cm_general_estratos_varianza <- function(estratos, par) {
   N_h <- vapply(estratos, function(e) as.numeric(e$N), numeric(1))
@@ -33,7 +45,7 @@
 # fórmula global no sabe: p por estrato o asignación de Neyman.
 .cm_general_estratificado_por_estrato <- function(estratos, par) {
   if (!length(estratos)) return(FALSE)
-  identical(par$asignacion %||% "proporcional", "neyman") ||
+  !identical(par$asignacion %||% "proporcional", "proporcional") ||
     .cm_general_estratos_varianza(estratos, par)$alguna_p
 }
 
@@ -44,11 +56,16 @@
   W <- v$N_h / N
   V <- (as.numeric(par$e) / as.numeric(par$z))^2
   suma_s2 <- sum(W * v$S2_h)
-  num <- if (identical(par$asignacion %||% "proporcional", "neyman")) sum(W * v$S_h)^2 else suma_s2
+  pesos <- .cm_general_pesos_asignacion(par$asignacion, v)
+  # Fórmula general para una asignación con fracciones a_h (Cochran 5.24):
+  # n = Σ W_h² S_h² / a_h / (V + Σ W_h S_h² / N). Con a_h = W_h es la
+  # proporcional (ΣW_h S_h²) y con a_h ∝ W_h S_h, Neyman ((ΣW_h S_h)²).
+  a <- if (sum(pesos) > 0) pesos / sum(pesos) else W
+  ok <- a > 0
+  num <- sum((W^2 * v$S2_h)[ok] / a[ok])
   n <- num / (V + suma_s2 / N)
-  list(n = as.integer(min(N, ceiling(n - 1e-9))), n_crudo = n,
-       pesos = if (identical(par$asignacion %||% "proporcional", "neyman")) v$N_h * v$S_h else v$N_h,
-       varianza = v)
+  list(n = as.integer(min(N, ceiling(n - 1e-9))), n_crudo = n, num = num,
+       pesos = pesos, varianza = v)
 }
 
 #' Error del estratificado con la asignación efectiva:

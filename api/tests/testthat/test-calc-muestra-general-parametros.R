@@ -59,7 +59,7 @@ test_that("la asignación del estratificado se declara como opciones proporciona
   ps <- calc_muestra_parametros_tecnica("prob_estratificado")$parametros
   a <- Filter(function(p) identical(p$clave, "asignacion"), ps)[[1]]
   expect_identical(a$tipo, "opciones")
-  expect_identical(unlist(a$opciones), c("proporcional", "neyman"))
+  expect_identical(unlist(a$opciones), c("proporcional", "neyman", "potencia"))
   # Las únicas opciones del estratificado son la asignación y qué se estima
   # (proporción o media, H21); el resto son números.
   opciones <- vapply(Filter(function(p) identical(p$tipo, "opciones"), ps), `[[`, "", "clave")
@@ -76,5 +76,5 @@ test_that("HTTP: /api/calc-muestra/tecnicas/parametros publica el catálogo", {
   est <- r$json$tecnicas[[which(tecs == "prob_estratificado")]]$parametros
   asig <- Filter(function(p) identical(p$clave, "asignacion"), est)[[1]]
   expect_identical(asig$tipo, "opciones")
-  expect_identical(unlist(asig$opciones), c("proporcional", "neyman"))
+  expect_identical(unlist(asig$opciones), c("proporcional", "neyman", "potencia"))
 })
