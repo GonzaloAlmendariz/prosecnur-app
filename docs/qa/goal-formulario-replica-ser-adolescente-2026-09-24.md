@@ -92,15 +92,15 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 |---|---|---|---|
 | **L3** | Rejilla: bordes completos en todas las celdas | **Word ☑** `a6059a042` (8 %→100 % de celdas) · PDF ☐ |
 | **L1** | Paleta → escala de grises | **Word ☑** `07ea38d40` (199 textos `000000`, rellenos R=G=B) · PDF ☐ |
-| **L2** | Tipografía: Calibri → Arial Narrow, cuerpo base 10 pt | ambos renderers | ☐ |
-| **L4** | El enunciado entra en la tabla, en celda `F2F2F2` con borde | ambos renderers | ☐ |
-| **L5** | Columna propia para el número de ítem | ambos renderers | ☐ |
-| **L6** | Márgenes a 680 twips y ancho útil ≥ 10 500 | modelo + renderers | ☐ (es el ítem 15 del checklist) |
+| **L2** | Tipografía → Arial Narrow, cuerpo 10/8 pt | **Word ☑** `73f55c4d5` · PDF ☐ |
+| **L4** | Enunciado dentro de la tabla | **Word ☑** `3d6d57e38` · PDF ☐ |
+| **L5** | Columna propia para el número | **Word ☑** `20a8a2b6f` · PDF ☐ |
+| **L6** | Márgenes a 680 twips, útil ≥ 10 500 | **Word ☑** `9a2fb7f02` — 10 546 vs 10 549 de la referencia · PDF ☐ |
 | **L7** | Banda de sección: caja con borde y relleno gris | **Word ◐** relleno gris y texto negro hechos en `07ea38d40`; **falta el borde** (`.form_word_par()` no expone parámetros de borde) · PDF ☐ |
-| **L8** | Opciones cortas en **fila horizontal** (`Femenino 1 Masculino 2 Otro 3`) | ambos renderers | ☐ |
-| **L9** | Campos de escritura = celda de tabla vacía, no línea de guiones | ambos renderers | ☐ |
-| **L10** | Pie «Página N de M» y cabecera con casillas de nº de encuesta | ambos renderers | ☐ |
-| **L11** | Cabeceras de escala sin partir palabras | ambos renderers | ☐ (ítem 13 del checklist) |
+| **L8** | Opciones cortas en fila horizontal | **Word ☑** `7f64804a1` — corte por ancho medido · PDF ☐ |
+| **L9** | Campos de escritura = celda vacía | **Word ☑** `fa6b7b9e2` · PDF ☐ |
+| **L10** | Pie «Página N de M» + casillas del folio | **Word ☑** `39cca7bba` — el folio va en la portada, no en la cabecera · PDF ☐ |
+| **L11** | Cabeceras sin partir palabras | **Word ☑** `72425151f` — envoltorio por ancho medido · PDF ☐ |
 | **L12** | **El PDF no equilibra las columnas de un tramo** | renderer PDF | ☐ (ítem 25 del checklist) |
 | **L13** | Bloque de consentimiento: párrafo justificado + caja de acuerdo | modelo + renderers | ☐ |
 | **L14** | Tabla corta partida entre columnas (`keepNext` en filas) | renderer Word | ☐ (ítem 22 del checklist) |
