@@ -52,3 +52,23 @@ test_that("tecleado en el libro sin marca de la app, se sella como refuerzo DECL
   expect_identical(a$caso, "C")
   expect_identical(a$procedencia_fuente, "declarada")
 })
+
+test_that("los operativos que empezaron sin la categoría no pierden nada (2026-09-24)", {
+  # HSVG y CCSS salieron a campo antes de «REFUERZO AGENDADO»: sus refuerzos
+  # agendados dicen «AGENDADA» a secas. Tienen que seguir contando como agendados
+  # y como refuerzo (C) por su sello, sin exigir el estado nuevo.
+  plan <- list(
+    .rag_u("CH 40", operational_status = "aplicada", effective_surveys = 14),
+    .rag_u("R 40.1", rol = "chain_reserve", titular_operational_code = "CH 40",
+           replacement_order = 1, sample_status = "AGENDADA",
+           scheduled_date = "2026-09-25", activation_origin = "refuerzo",
+           activated_for = "Nivel 9")
+  )
+  expect_true(.maau_agendada("AGENDADA", ""))
+  s <- monitoreo_aulas_sellar_procedencia(plan, hoy = as.Date("2026-09-24"))
+  expect_equal(s$selladas, 0)
+  o <- monitoreo_aulas_refuerzos(plan, data.frame(), list(), hoy = as.Date("2026-09-24"))
+  a <- Filter(function(x) identical(x$codigo, "R 40.1"), o$activadas)[[1]]
+  expect_identical(a$caso, "C")
+  expect_identical(a$procedencia_fuente, "declarada")
+})
