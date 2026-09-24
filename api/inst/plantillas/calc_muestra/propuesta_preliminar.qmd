@@ -212,6 +212,23 @@ if (!is.null(tf) && length(tf)) {
 }
 ```
 
+## Memoria de cálculo
+
+```{r memoria_calculo, results='asis'}
+memorias <- bundle$memorias %||% list()
+if (!length(memorias)) {
+  cat("_Ningún componente de este estudio se calcula con la fórmula de elementos (MAS, estratificado o sistemático); su tamaño se documenta en el detalle por componente._\n")
+} else {
+  for (actor in names(memorias)) {
+    m <- memorias[[actor]]
+    names(m) <- c("Paso", "Fórmula", "Sustitución", "Resultado")
+    cat("\n**", actor, "**\n\n", sep = "")
+    print(tabla_pulso(m, caption = paste("Memoria de cálculo —", actor)))
+    cat("\n")
+  }
+}
+```
+
 ## Sustento metodológico
 
 ```{r sustento_metodologico}

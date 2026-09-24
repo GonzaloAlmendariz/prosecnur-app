@@ -21,7 +21,8 @@ reporte_calc_muestra <- function(estudio, output_file,
                                   formato = c("html", "pdf"),
                                   quiet = FALSE,
                                   progress_path = NULL,
-                                  tasas_facultad = NULL) {
+                                  tasas_facultad = NULL,
+                                  general = NULL) {
   formato <- match.arg(formato)
 
   if (!requireNamespace("quarto", quietly = TRUE)) {
@@ -73,7 +74,12 @@ reporte_calc_muestra <- function(estudio, output_file,
     formato = formato,
     modo = modo,
     tasas_facultad = tasas_facultad,
-    metodologia = tryCatch(.cm_aulas_methodological_sources(), error = function(e) NULL)
+    metodologia = tryCatch(.cm_aulas_methodological_sources(), error = function(e) NULL),
+    # Memoria de cálculo sustituida y sorteo de Muestra general (ADR 0090):
+    # el reporte defiende el n con la fórmula y los valores puestos en ella, y
+    # dice cómo se eligieron las unidades y cómo repetirlo.
+    memorias = .cm_reporte_memorias(estudio),
+    general = general
   )
   path_rds <- file.path(tmp_root, "bundle_calc_muestra.rds")
   saveRDS(bundle, file = path_rds, version = 3)
@@ -132,6 +138,19 @@ reporte_calc_muestra <- function(estudio, output_file,
   invisible(output_file)
 }
 
+# Memorias de cálculo de los componentes de elementos que tienen resultado.
+# Lista con nombre = actor; vacía si ninguno aplica.
+.cm_reporte_memorias <- function(estudio) {
+  out <- list()
+  for (comp in estudio$componentes %||% list()) {
+    if (!is.list(comp) || is.null(comp$resultado)) next
+    if (!comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) next
+    m <- tryCatch(calc_muestra_general_memoria(comp, comp$resultado), error = function(e) NULL)
+    if (is.data.frame(m)) out[[comp$actor %||% comp$id]] <- m
+  }
+  out
+}
+
 .cm_reporte_filtrar_componentes <- function(estudio) {
   ws <- estudio$workspace %||% NULL
   escenarios <- ws$escenarios %||% list()
@@ -164,7 +183,8 @@ reporte_calc_muestra <- function(estudio, output_file,
 calc_muestra_render_job <- function(estudio, formato = "html",
                                      result_path = NULL,
                                      progress_path = NULL,
-                                     tasas_facultad = NULL) {
+                                     tasas_facultad = NULL,
+                                     general = NULL) {
   if (is.null(result_path) || !nzchar(result_path)) {
     stop("result_path requerido para el job de reporte.", call. = FALSE)
   }
@@ -174,7 +194,8 @@ calc_muestra_render_job <- function(estudio, formato = "html",
     formato        = formato,
     quiet          = TRUE,
     progress_path  = progress_path,
-    tasas_facultad = tasas_facultad
+    tasas_facultad = tasas_facultad,
+    general        = general
   )
   list(ok = TRUE, path = result_path, formato = formato,
        generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))

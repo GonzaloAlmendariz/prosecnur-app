@@ -1340,7 +1340,8 @@ mount_calc_muestra <- function(pr) {
         kind   = "calc_muestra_reporte",
         func   = calc_muestra_render_job,
         args   = list(estudio = estudio, formato = formato,
-                      tasas_facultad = tasas_fac),
+                      tasas_facultad = tasas_fac,
+                      general = calc_muestra_general_resumen(s$calc_muestra_general)),
         result_filename = filename,
         on_complete = on_complete
       )
