@@ -1650,7 +1650,8 @@ calc_muestra_calcular_componente <- function(comp) {
 
   if (!inferencia$permitido) {
     n_teorico <- if (N > 0L) {
-      calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
+      if (.cm_general_es_media(par)) .cm_general_n_media(N, par$cv, par$z, par$e, 1)
+      else calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
     } else NA_integer_
     return(list(
       n_teorico              = n_teorico,
@@ -1705,7 +1706,9 @@ calc_muestra_calcular_componente <- function(comp) {
 
   if (!inferencia$permitido) {
     n_teorico <- if (N > 0L) {
-      calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
+      if (.cm_general_es_media(par) && !identical(comp$tecnica, "prob_estratificado_independiente"))
+        .cm_general_n_media(N, par$cv, par$z, par$e, par$deff)
+      else calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
     } else NA_integer_
     return(list(
       n_teorico              = n_teorico,
@@ -1777,6 +1780,17 @@ calc_muestra_calcular_componente <- function(comp) {
   # los dos se llamaban «n».
   cuotas_campo <- repartir(campo$n_operativo)
   aviso_error <- NULL
+  aviso_media <- NULL
+  if (media) {
+    # Neyman y potencia necesitan la variabilidad de cada estrato, que con una
+    # media no se declara: se reparte proporcional y se dice (el front
+    # anunciaba Neyman mientras el motor repartía proporcional).
+    base_result$asignacion <- "proporcional"
+    base_result$formula_n <- "media_global"
+    if (!identical(par$asignacion %||% "proporcional", "proporcional")) {
+      aviso_media <- "Con una media se reparte proporcional al tamaño del estrato: Neyman y potencia necesitan la variabilidad de cada estrato."
+    }
+  }
   if (por_estrato) {
     # El error alcanzado sale de la asignación efectiva, no de la fórmula
     # global: es el que el diseño de verdad logra con esos n_h.
@@ -1809,10 +1823,14 @@ calc_muestra_calcular_componente <- function(comp) {
       n           = n_i,
       n_campo     = as.integer(cuotas_campo[[i]]),
       # Con la fórmula por estrato, la precisión del estrato usa SU p.
-      precision_e = if (n_i > 0L) calc_e_desde_n_muestra(
-        n = n_i, N = e$N, z = par$z, deff = par$deff,
-        p = if (por_estrato && !is.null(e$p_facultad) && !is.na(e$p_facultad)) e$p_facultad else par$p
-      ) else NA_real_,
+      precision_e = if (n_i <= 0L) NA_real_
+        # Con una media, el error del estrato es RELATIVO y sale del CV (lo
+        # publicaba con la fórmula de proporción: ±3,2 % donde era ±6,5 %).
+        else if (media) .cm_general_error_media(n_i, e$N, par$cv, par$z, par$deff)
+        else calc_e_desde_n_muestra(
+          n = n_i, N = e$N, z = par$z, deff = par$deff,
+          p = if (por_estrato && !is.null(e$p_facultad) && !is.na(e$p_facultad)) e$p_facultad else par$p
+        ),
       regla       = if (n_i >= e$N) "censo_estrato"
                     else if (piso > 0L && n_i <= piso && !isTRUE(attr(cuotas, "piso_incumplible"))) sprintf("piso_%d", piso)
                     else "proporcional"
@@ -1844,7 +1862,7 @@ calc_muestra_calcular_componente <- function(comp) {
 
   c(base_result, list(
     distribucion_estratos = distribucion_estratos,
-    advertencia = paste(c(campo$advertencia, aviso_piso, aviso_vacios, aviso_error, cierre), collapse = " ")
+    advertencia = paste(c(campo$advertencia, aviso_media, aviso_piso, aviso_vacios, aviso_error, cierre), collapse = " ")
   ))
 }
 

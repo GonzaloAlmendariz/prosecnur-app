@@ -46,10 +46,12 @@ calc_muestra_general_declarar_marco <- function(estudio, estado, componente_id, 
   estado <- .cm_general_estado(estado)
   idx <- .cm_general_buscar_componente(estudio, componente_id)
   columnas <- .cm_general_columnas(columnas)
-  # Con tamaño declarado se valida como PPS: un tamaño inválido se dice al
-  # declarar, no al sortear.
-  metodo_validacion <- if (nzchar(columnas$tamano)) "pps" else "mas"
-  df <- .cm_general_preparar_marco(datos, columnas, metodo_validacion)
+  # El tamaño sólo lo exige el PPS: al declarar se cuentan los inválidos y se
+  # publican, pero no impiden declarar el marco de un MAS (una columna
+  # propuesta con ceros bloqueaba el marco entero). El PPS los rechaza al
+  # sortear.
+  df <- .cm_general_preparar_marco(datos, columnas, "mas")
+  tamanos_invalidos <- if (nzchar(columnas$tamano)) sum(!is.finite(df$tamano) | df$tamano <= 0) else 0L
   claves <- sort(unique(df$estrato), method = "radix")
   N_h <- vapply(claves, function(k) sum(df$estrato == k), integer(1))
   marco_hash <- .cm_general_hash_marco(df)
@@ -96,6 +98,7 @@ calc_muestra_general_declarar_marco <- function(estudio, estado, componente_id, 
   marco <- list(
     file_id = file_id, hoja = hoja, columnas = columnas, marco_hash = marco_hash,
     N = N, estratos = lapply(seq_along(claves), function(h) list(clave = claves[[h]], N_h = N_h[[h]])),
+    tamanos_invalidos = as.integer(tamanos_invalidos),
     declarado_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
   estado$marcos[[componente_id]] <- marco
@@ -145,7 +148,12 @@ calc_muestra_general_seleccionar <- function(estudio, estado, componente_id, dat
              "El componente no tiene un n a campo calculado; revisa Método.")
   }
   columnas <- .cm_general_columnas(marco$columnas)
-  piso <- if (nzchar(columnas$estrato)) as.integer(comp$parametros$n_minimo_estrato %||% 0L) else 0L
+  # El piso por estrato es del estratificado. En un MAS con columna de
+  # estrato el sorteo estratifica implícitamente, proporcional y SIN piso: con
+  # el piso oculto de 30 las π se desiguaban (0,06 a 0,75) y el diseño dejaba
+  # de ser el MAS que la memoria y el título declaran.
+  piso <- if (nzchar(columnas$estrato) && identical(comp$tecnica, "prob_estratificado"))
+    as.integer(comp$parametros$n_minimo_estrato %||% 0L) else 0L
   # Con estratos, se sortea el n a campo por estrato que publicó el cálculo
   # (`n_campo`), no un reparto recalculado aquí.
   asignacion <- NULL
