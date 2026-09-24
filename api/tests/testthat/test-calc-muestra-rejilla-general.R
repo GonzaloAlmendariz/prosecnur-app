@@ -373,3 +373,21 @@ test_that("H24: la potencia protege al estrato chico frente a la proporcional", 
   expect_lt(chico(pot)$precision_e, chico(prop)$precision_e)
   expect_equal(chico(pot)$precision_e, calc_e_desde_n_muestra(n = chico(pot)$n, N = 1000, p = .3, z = 1.96, deff = 1))
 })
+
+test_that("H05 en cuotas: docentes de acreditación con N = 251 no mandan a campo más que el marco", {
+  comp <- .cm_iniciar_acreditacion()$componentes[[2]]
+  comp$marco$marco_validado <- 251L; comp$marco$universo_bruto <- 251L
+  comp$marco$marco_contactable <- 251L; comp$marco$estado <- "validado"
+  comp <- calc_muestra_normalize_componente(comp)
+  expect_identical(comp$tecnica, "no_prob_cuotas")
+  r <- calc_muestra_calcular_componente(comp)
+  expect_lte(as.integer(r$n_operativo), 251L)
+  expect_match(r$advertencia, "marco completo")
+})
+
+test_that("H05 en cuotas: una meta mayor que el marco se ajusta al marco y se dice", {
+  r <- .rejilla_calc(tecnica = "no_prob_cuotas", N = 80L, meta = list(valor = 150L))
+  expect_identical(as.integer(r$n_objetivo), 80L)
+  expect_identical(as.integer(r$n_operativo), 80L)
+  expect_match(r$advertencia, "supera el marco")
+})

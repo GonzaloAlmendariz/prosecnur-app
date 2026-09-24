@@ -1287,6 +1287,29 @@ calc_muestra_calcular_componente <- function(comp) {
   )
 
   resultado$inferencia <- inferencia
+  # Tope en el marco también para cuotas y conveniencia (H05 cubría sólo las
+  # técnicas probabilísticas): docentes de acreditación con N = 251 pasaban a
+  # cuotas de 150 y mandaban 275 a campo, más que la población entera.
+  if (comp$tecnica %in% c("no_prob_cuotas", "no_prob_conveniencia")) {
+    N_marco <- as.integer(if ((comp$marco$marco_contactable %||% 0L) > 0L) comp$marco$marco_contactable
+                          else comp$marco$marco_validado %||% 0L)
+    if (N_marco > 0L) {
+      avisos_tope <- NULL
+      if (!is.na(resultado$n_objetivo %||% NA) && resultado$n_objetivo > N_marco) {
+        avisos_tope <- sprintf("La meta (%d) supera el marco (%d): se piden todas las unidades.",
+                               as.integer(resultado$n_objetivo), N_marco)
+        resultado$n_objetivo <- N_marco
+      }
+      if (!is.na(resultado$n_operativo %||% NA) && resultado$n_operativo > N_marco) {
+        avisos_tope <- c(avisos_tope, sprintf(
+          "El n a campo (%d) alcanza el marco: se aborda el marco completo (%d).",
+          as.integer(resultado$n_operativo), N_marco))
+        resultado$sobremuestra <- as.integer(max(0L, N_marco - (resultado$n_operativo - (resultado$sobremuestra %||% 0L))))
+        resultado$n_operativo <- N_marco
+      }
+      if (length(avisos_tope)) resultado$advertencia <- paste(c(avisos_tope, resultado$advertencia), collapse = " ")
+    }
+  }
   # Una meta menor que el n que exige el margen manda, pero se dice (H12): el
   # diseño no alcanza el error declarado y el resultado publica cuál alcanza.
   if (comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS &&
