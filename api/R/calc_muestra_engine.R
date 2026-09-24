@@ -1126,7 +1126,16 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     z                 = calc_num(par$z, .CM_DEFAULTS_PARAMS$z, min = 0.5, max = 5),
     p                 = calc_num(par$p, .CM_DEFAULTS_PARAMS$p, min = 0, max = 1),
     e                 = calc_num(par$e, .CM_DEFAULTS_PARAMS$e, min = 0.001, max = 0.5),
-    deff              = calc_num(par$deff, .CM_DEFAULTS_PARAMS$deff, min = 1, max = 10),
+    # El deff 1.5 por defecto es de las técnicas de aulas (conglomerado y
+    # dominios independientes; un .pulso viejo sin deff no debe cambiar su n).
+    # En un diseño de elementos —MAS, estratificado, sistemático— el deff de
+    # referencia es 1: heredar 1.5 inflaba 370 a 545 con N=10.000 sin que nadie
+    # lo hubiera declarado (research H07).
+    deff              = calc_num(par$deff,
+                                 if (tecnica %in% c("prob_conglomerado_multietapico",
+                                                    "prob_estratificado_independiente"))
+                                   .CM_DEFAULTS_PARAMS$deff else 1,
+                                 min = 1, max = 10),
     tau               = calc_num(par$tau, .CM_DEFAULTS_PARAMS$tau, min = 0, max = 1),
     oversample_pct    = calc_num(par$oversample_pct, .CM_DEFAULTS_PARAMS$oversample_pct,
                                  min = 0, max = 2),
