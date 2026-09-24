@@ -2111,7 +2111,20 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 formulario_pdf_render <- function(model, output_file) {
-  grDevices::pdf(output_file, paper = "a4", width = 8.27, height = 11.69, onefile = TRUE)
+  # TIPOGRAFIA ESTRECHA (L2). La referencia usa Arial Narrow, y es estrecha a
+  # proposito: es lo que permite meter una matriz de nueve columnas en un A4 sin
+  # partir los rotulos de la escala.
+  #
+  # Se usa Helvetica-Narrow y NO Arial Narrow, a sabiendas de que la vara pedia
+  # la segunda. Motivo medido: `cairo_pdf(family = "Arial Narrow")` funciona en
+  # esta maquina y hasta embebe la fuente, pero Arial Narrow es una fuente del
+  # SISTEMA — en el runner Linux del CI no existe, y cairo cae a otra EN
+  # SILENCIO. Un PDF que sale distinto segun la maquina que lo genera es peor
+  # que uno con otra tipografia: el defecto no avisa y no es reproducible.
+  # Helvetica-Narrow viene con el dispositivo `pdf()` de R (`pdfFonts()`), es
+  # metricamente muy cercana y sale igual en todas partes.
+  grDevices::pdf(output_file, paper = "a4", width = 8.27, height = 11.69,
+                 onefile = TRUE, family = "Helvetica-Narrow")
   on.exit(grDevices::dev.off(), add = TRUE)
 
   page_no <- 0L
