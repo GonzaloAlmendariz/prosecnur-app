@@ -1344,6 +1344,8 @@ export type MonitoreoAulasAgendadaDeLaFila = {
   elegibles: number | null;
   hombres: number | null;
   mujeres: number | null;
+  /** Elegibles por nivel curricular («6» → 3); vacío si el marco no la trae. */
+  niveles?: Record<string, number> | unknown[];
 };
 
 /** Las cuatro combinaciones, ya calculadas por el motor. */

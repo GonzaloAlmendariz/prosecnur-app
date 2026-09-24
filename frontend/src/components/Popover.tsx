@@ -100,7 +100,10 @@ export function Popover({
     const panel = panelRef.current;
     if (!anchor || !panel) return;
     const a = anchor.getBoundingClientRect();
-    const p = panel.getBoundingClientRect();
+    // El tamaño SIN transformar: la entrada anima desde scale(0.97) y el rect
+    // medido en ese instante sale un 3 % corto, así que un panel alto se
+    // clampeaba mal y se salía del borde inferior (aulas, 2026-09-24).
+    const p = { width: panel.offsetWidth, height: panel.offsetHeight };
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 

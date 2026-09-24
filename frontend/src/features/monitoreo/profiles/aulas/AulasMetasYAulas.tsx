@@ -48,6 +48,11 @@ export function AulasMetasYAulas({ filas , eje}: {
         <span><i className="aulas-metas-swatch" data-tramo="aplicado" />Aplicado</span>
         <span><i className="aulas-metas-swatch" data-tramo="proyectado" />Proyectado de lo agendado</span>
         <span><i className="aulas-metas-swatch" data-tramo="meta" />Meta</span>
+        {orden.some((f) => f.sin_sexo) ? (
+          <span className="aulas-metas-nota">
+            Cada curso-horario mezcla niveles: en cada fila sólo cuentan los alumnos de ese nivel.
+          </span>
+        ) : null}
       </p>
       <div className="aulas-metas-scroll">
         <table className="aulas-metas-tabla es-fija">
@@ -107,10 +112,25 @@ export function AulasMetasYAulas({ filas , eje}: {
                         COLUMNA de «Avance por facultad y sexo» sí dicen «aulas»
                         porque son las palabras con las que él pidió esa
                         columna, pero la prosa del perfil habla su vocabulario. */}
+                    {f.sin_sexo ? (
+                      // **Por nivel se cuentan ALUMNOS, no aulas.** Gonzalo,
+                      // 2026-09-24: «pareciera que los niveles tuvieran N
+                      // agendadas, cuando en realidad en cada aula hay de
+                      // todo». Las aulas son dónde están; la cifra es de ese
+                      // nivel.
+                      <span className="aulas-metas-aulas">
+                        por aplicar: {fmt(Math.round(f.elegibles_agendados ?? 0))} alumnos de{" "}
+                        {etiquetaDeValorEnGrafico(f.facultad, eje).toLowerCase()} en{" "}
+                        <AulasAgendadasDeLaFila total={f.aulas_agendadas} agendadas={f.agendadas}
+                          nivel={f.facultad}
+                          rotulo={`${fmt(f.aulas_agendadas)} ${f.aulas_agendadas === 1 ? "curso-horario agendado" : "cursos-horario agendados"}`} />
+                      </span>
+                    ) : (
                     <span className="aulas-metas-aulas">
                       {fmt(f.aulas_aplicadas)} cursos-horario aplicados ·{" "}
                       <AulasAgendadasDeLaFila total={f.aulas_agendadas} agendadas={f.agendadas} />
                     </span>
+                    )}
                   </td>
                 </tr>
                 {carriles.map(([sexo, tono, meta, obtenidas, proyectadas]) => {

@@ -139,3 +139,37 @@ describe("«N agendados» con su detalle (2026-09-24)", () => {
     expect(renderToStaticMarkup(<AulasAgendadasDeLaFila total={1} agendadas={[]} />)).toBe("1 agendado");
   });
 });
+
+describe("el contenido del desplegable (2026-09-24)", () => {
+  const fila = (extra: Record<string, unknown>) => ({
+    codigo: "CH 4", curso: "X", seccion: "", fecha: "2099-09-30", hora: "9:00 am", horario: "",
+    lugar: "", elegibles: 13, hombres: 6, mujeres: 7, ...extra,
+  });
+
+  it("con nivel, las columnas son los niveles y el de la fila va resaltado", async () => {
+    const { DetalleDeAgendadas } = await import("./AulasAgendadasDeLaFila");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(<DetalleDeAgendadas total={2} nivel="6" agendadas={[
+      fila({ niveles: { "6": 3, "7": 10 } }),
+      fila({ codigo: "CH 9", elegibles: 5, niveles: { "8": 5 } }),
+    ]} />);
+    expect(html).toContain("Niv. 6");
+    expect(html).toContain("Niv. 8");
+    expect(html).not.toContain(">H<");
+    expect(html).toContain("Nivel 6");
+    // 3 alumnos del nivel 6 entre 18 elegibles.
+    expect(html).toMatch(/Nivel 6<\/dt><dd>3</);
+    expect(html).toMatch(/Todos los niveles<\/dt><dd>18</);
+  });
+
+  it("sin nivel, hombres y mujeres; y la fecha pasada se marca", async () => {
+    const { DetalleDeAgendadas } = await import("./AulasAgendadasDeLaFila");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const html = renderToStaticMarkup(<DetalleDeAgendadas total={1} agendadas={[
+      fila({ fecha: "2020-01-10", niveles: [] }),
+    ]} />);
+    expect(html).toContain("Hombres");
+    expect(html).toContain("confirmar si se aplicó");
+    expect(html).toContain("1 con la fecha ya pasada");
+  });
+});

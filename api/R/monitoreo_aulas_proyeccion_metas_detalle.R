@@ -19,7 +19,7 @@
 #'
 #' @param unidades filas del plan ya filtradas por la máscara del motor.
 #' @return lista de `{codigo, curso, seccion, fecha, hora, horario, lugar,
-#'   elegibles, hombres, mujeres}`.
+#'   elegibles, hombres, mujeres, niveles}`.
 #' @keywords internal
 .mapm_detalle_agendadas <- function(unidades) {
   unidades <- unidades %||% list()
@@ -41,7 +41,12 @@
       lugar = txt(u$scheduled_venue %||% u$venue),
       elegibles = num(u$eligible_n),
       hombres = if (hay_sexo) sum(n[sexos %in% "M"]) else NA_real_,
-      mujeres = if (hay_sexo) sum(n[sexos %in% "F"]) else NA_real_
+      mujeres = if (hay_sexo) sum(n[sexos %in% "F"]) else NA_real_,
+      # Elegibles por NIVEL curricular (`level_composition`, «6:3|7:10»), para
+      # los estudios cuya cuota va por nivel (CCSS, 2026-09-24: «en vez de
+      # hombres y mujeres, alumnos de los niveles»). Lista con nombre; vacía si
+      # el marco no la trae.
+      niveles = as.list(.cm_aulas_composicion_leer(u$level_composition))
     )
   })
   # «11:00 am» y «6:45 pm» no ordenan como texto: se pasan a minutos.

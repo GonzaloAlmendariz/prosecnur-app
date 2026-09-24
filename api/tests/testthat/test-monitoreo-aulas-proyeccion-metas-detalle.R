@@ -39,3 +39,11 @@ test_that("la proyección publica tantas agendadas como cuenta", {
   expect_identical(o[[1]]$aulas_agendadas, length(o[[1]]$agendadas))
   expect_identical(o[[1]]$agendadas[[1]]$codigo, "CH 1")
 })
+
+test_that("el detalle trae los alumnos por nivel curricular (CCSS, 2026-09-24)", {
+  d <- .mapm_detalle_agendadas(list(list(operational_code = "CH 4", eligible_n = 13,
+                                         level_composition = "6:3|7:10")))
+  expect_equal(d[[1]]$niveles, list(`6` = 3, `7` = 10))
+  vacio <- .mapm_detalle_agendadas(list(list(operational_code = "CH 5")))
+  expect_length(vacio[[1]]$niveles, 0L)
+})
