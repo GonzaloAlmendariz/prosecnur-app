@@ -47,6 +47,7 @@ dos renderers, o se declara explícitamente como exclusiva de uno.
 | 22 | Tabla corta partida entre columnas | renderer Word | **nos pasa** — ver §22 |
 | 23 | Párrafos de relleno y marcos vacíos | renderer Word | **no nos pasa** (0 medidos) |
 | 24 | El borde de párrafo se dibuja `space` pt por fuera | renderer Word | **no nos pasa** (`space=0`) |
+| 25 | **El PDF no equilibra las dos columnas de un tramo** | renderer PDF | pendiente — ver §25 |
 
 
 
@@ -364,6 +365,34 @@ partirse, y para eso repiten cabecera con `tblHeader` (§21).
 5. Y un recordatorio de esta sesión: **leer el `<w:cols>` con regex se para en el `/>` del
    primer hijo** y hace creer que una sección de 2 columnas declara una sola. Se parsea con
    un parser, que es la lección que el helper OOXML del repo ya tenía escrita.
+
+## 25. El PDF no equilibra las dos columnas de un tramo
+
+Destapado al generar un XLSForm de ejemplo end-to-end y comparar los dos renderers sobre el
+**mismo** modelo y el mismo `column_plan` (tramos 1-2-1-2).
+
+- **Word equilibra**: en el tramo sociodemográfico, P1–P3 quedan en la columna izquierda y
+  P4–P5 pasan a la derecha; el de vivienda reparte P12 a la izquierda y P13–P14 a la
+  derecha. El instrumento entero ocupa **1 página**.
+- **El PDF no**: apila todo en la columna izquierda y deja la derecha **vacía**, con el
+  divisor central dibujado sobre media página en blanco. El mismo instrumento ocupa
+  **2 páginas**.
+
+La causa es que el PDF implementa el tramo marcando `full_width` en los bloques de los
+tramos de una columna y dejando que el resto fluya por su maquinaria de dos columnas, que
+llena la izquierda de arriba abajo y sólo desborda a la derecha cuando se acaba la página.
+Un `sectPr` continuous de Word, en cambio, **equilibra** el contenido entre columnas al
+cerrar la sección. No es el mismo comportamiento, y por eso el mismo plan produce dos
+documentos distintos.
+
+Consecuencia práctica: hoy la ventaja del ítem 1 sólo se cobra en el `.docx`. En el PDF los
+tramos cortos gastan el doble de papel que el Word y se ven peor que antes del cambio, con
+media página en blanco a la derecha.
+
+Cierre: el renderer PDF necesita repartir los bloques del tramo entre las dos columnas
+midiendo su alto —ya tiene `.form_pdf_block_height()`— en vez de llenar la izquierda hasta
+el fondo. Queda **pendiente**, no cerrado: llegó después del gate y no se toca código sin
+verificación al cierre de la unidad.
 
 ---
 
