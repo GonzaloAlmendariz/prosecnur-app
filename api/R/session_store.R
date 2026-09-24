@@ -81,8 +81,10 @@ session_set <- function(sid, key, value) {
   # Es el mismo assign para cualquier otro valor (listas y data.frames incluidos).
   s[key] <- list(value)
   # Marcar dirty EXCEPTO para keys internas del propio sistema de proyecto
-  # (sino se entraría en bucle: setear project_dirty vuelve a marcar dirty).
-  if (!(key %in% c("project_path", "project_dirty", "project_last_saved_at"))) {
+  # (sino se entraría en bucle: setear project_dirty vuelve a marcar dirty) y
+  # para las cachés que el save descarta siempre (session_schema.R).
+  if (!(key %in% c("project_path", "project_dirty", "project_last_saved_at",
+                   .session_schema_claves_sin_dirty()))) {
     s <- .mark_project_dirty(s)
   }
   .session_env[[sid]] <- s
@@ -114,7 +116,8 @@ session_set_many <- function(sid, named_values) {
   s <- session_get(sid)
   s[keys] <- unname(named_values)
 
-  internal_keys <- c("project_path", "project_dirty", "project_last_saved_at")
+  internal_keys <- c("project_path", "project_dirty", "project_last_saved_at",
+                     .session_schema_claves_sin_dirty())
   if (any(!keys %in% internal_keys)) {
     s <- .mark_project_dirty(s)
   }

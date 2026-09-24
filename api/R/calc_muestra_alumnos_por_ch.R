@@ -250,9 +250,14 @@ calc_muestra_alumnos_por_ch <- function(aula_frame, frame_hash = NA_character_) 
   stop_api(
     409,
     "E_CALC_MUESTRA_ALUMNOS_CH_DECISION",
+    # Tras AD2 el guardado del estudio re-sella la config de sesión, así que
+    # esto sólo ocurre si el pedido trae una config con otra decisión (una
+    # pantalla que no recargó el estado) o si la del estudio no está
+    # confirmada. Recalcular no arregla ninguna de las dos.
     paste0(
-      "La decisión de alumnos por CH cambió desde esta corrida. ",
-      "Recalcula y vuelve a generar los artefactos de Aulas."
+      "La decisión de alumnos por CH cambió o no está confirmada: esta ",
+      "configuración de Aulas lleva otra. Confirma la decisión en ",
+      "Alumnos por CH y recarga la página para que Aulas use la vigente."
     ),
     details = list(reason = "decision_stale")
   )
@@ -268,6 +273,9 @@ calc_muestra_alumnos_por_ch <- function(aula_frame, frame_hash = NA_character_) 
   session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
   session_set(sid, "calc_muestra_aulas_export", NULL)
   session_set(sid, "calc_muestra_aulas_stale_job_result", NULL)
+  # La config de Aulas pasa a firmar la decisión nueva; sin esto la certeza
+  # (que la toma de la sesión) rebotaba con 409 tras cada confirmación (AD2).
+  .cm_alumnos_por_ch_sellar_decision_en_config(sid)
   invisible(TRUE)
 }
 
