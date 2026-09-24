@@ -15,11 +15,14 @@
 
 /* --- Cabecera: sección + estado + banda ------------------------------------ */
 
+/* E15 · P5: cabecera + banda en ~107 px a 1440 (aulas ~95), iguales en toda
+ * pestaña de la sección: una línea de título y estado, y una fila de cifras
+ * con el rótulo «Diseño vigente» sobre su filete, como una leyenda. */
 .cmg-cabecera {
   display: flex;
   flex-direction: column;
-  gap: var(--cmv2-space-3);
-  padding: var(--cmv2-space-3) var(--cmv2-space-4);
+  gap: 6px;
+  padding: 6px var(--cmv2-space-3);
   border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius-card);
   background: var(--cmv2-surface-raised);
@@ -44,28 +47,35 @@
 }
 
 .cmg-encabezado-icono {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   flex: 0 0 auto;
 }
 
+/* El modo y la sección en una sola línea: «MUESTRA GENERAL  Método». */
 .cmg-encabezado-texto {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  gap: 8px;
   flex: 0 0 auto;
 }
 
 .cmg-encabezado h2 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   letter-spacing: 0;
 }
 
+/* Una línea que no parte: el texto entero queda en el DOM y en `title` (C4). */
 .cmg-encabezado-linea {
+  flex: 0 1 auto;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 0;
   padding-left: 10px;
   border-left: 1px solid var(--cmv2-border);
@@ -157,41 +167,46 @@
 /* --- Banda «Diseño vigente» ------------------------------------------------ */
 
 .cmg-banda {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--cmv2-space-2);
+  gap: 0;
   min-width: 0;
-  padding-top: var(--cmv2-space-3);
+  padding-top: 7px;
   border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 70%, transparent);
 }
 
+/* Leyenda sobre el filete: nombra la banda sin gastar una fila. La cadena
+ * repite las cifras y queda para lectores de pantalla (como en compacto). */
 .cmg-banda-head {
+  position: absolute;
+  top: -7px;
+  left: 0;
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  min-width: 0;
+  align-items: center;
+  max-width: 100%;
+  padding-right: 8px;
+  background: var(--cmv2-surface-raised);
+  line-height: 13px;
+}
+
+.cmg-banda-cadena {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .cmg-banda-titulo {
   margin: 0;
   color: var(--cmv2-accent-fg);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.cmg-banda-cadena {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px 6px;
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
 }
 
 .cmg-banda-flecha {
@@ -205,10 +220,23 @@
   grid-template-columns: none;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
+  gap: 6px;
+}
+
+.cmg-banda-cifras .cmv2-uni-cifra {
+  gap: 1px;
+  padding: 4px 8px;
+}
+
+.cmg-banda-cifras .cmv2-uni-cifra-label {
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
 }
 
 .cmg-banda-cifras .cmv2-uni-cifra-valor {
-  font-size: 18px;
+  font-size: 15px;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .cmg-banda-cifras .cmv2-uni-cifra-detalle {
@@ -281,6 +309,71 @@
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* --- Pestañas de sección (E15 · P1–P3, patrón 1 de aulas) ------------------ */
+
+/* El rail de aulas (`ContextTabRail`, icon-only con tooltip) a la izquierda y
+ * la pestaña activa a la derecha. `.cmv2-main` sigue siendo el único dueño de
+ * scroll: el workbench recorta sin volverse contenedor de scroll (`clip`), así
+ * el rail se queda a la vista (sticky) mientras la pestaña se desplaza. */
+.cmg-mesa .cmv2-university-workbench {
+  overflow: clip;
+}
+
+.cmg-pestanas {
+  display: grid;
+  grid-template-columns: var(--pulso-rail-compressed-width) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+}
+
+.cmg-pestanas > .cmg-pestanas-rail {
+  position: sticky;
+  top: 0;
+  height: auto;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-panel);
+}
+
+.cmg-pestana-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+/* El cuerpo de la pestaña (el grupo medido) apila su contenido con el mismo
+ * ritmo que el panel; la cabecera queda fuera del grupo. */
+.cmg-pestana-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+.cmg-ficha-estudio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+/* El botón que calcula, al pie de la pestaña donde se fijan sus datos (P4). */
+.cmg-accion-calcular {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-2) var(--cmv2-space-3);
+  margin-top: var(--cmv2-space-3);
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+/* En Selección de Acreditación el selector de actor, justo debajo, ya es la
+ * lista de actores con su estado: las fichas de la banda la repetirían. */
+.cmg-mesa[data-seccion="seleccion"] .cmg-banda-actores {
+  display: none;
 }
 
 /* --- Títulos de panel como encabezados reales (H3/H4) ----------------------- */

@@ -1,8 +1,9 @@
-import { ArrowRight, Calculator, CheckCircle2, CircleDot, Loader2, TriangleAlert, type LucideIcon } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowRight, CheckCircle2, CircleDot, TriangleAlert, type LucideIcon } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
-import { useSeccion } from "../../../lib/navegacion/useDireccion";
-import { accionVisible, type EstadoMesa, type TonoEstadoMesa } from "./bandaDisenoModelo";
+import type { EstadoMesa, TonoEstadoMesa } from "./bandaDisenoModelo";
+import { enlaceSiguiente, searchConSeccionYPestana } from "./modeloPestanas";
+import type { ModoMesa } from "./secciones";
 import "./mesa.css";
 
 const ICONO: Record<TonoEstadoMesa, LucideIcon> = {
@@ -13,23 +14,27 @@ const ICONO: Record<TonoEstadoMesa, LucideIcon> = {
 
 /**
  * Estado de la mesa y la siguiente condición: qué falta (declarar el marco,
- * calcular, sortear) y el paso que lo resuelve. El texto vive en una región
- * `status`: cambiar de estado se anuncia sin robar el foco. Ir a otra sección
- * es navegación, así que es un enlace a su dirección, no un botón.
+ * calcular, sortear) y dónde se resuelve. El texto vive en una región
+ * `status`: cambiar de estado se anuncia sin robar el foco.
+ *
+ * Nunca ejecuta (E15 · P4): Calcular vive en Método › Parámetros y Sortear en
+ * Selección › Sorteo, como en aulas cada pestaña tiene su acción. Lo que hay
+ * aquí es un ENLACE a la dirección de esa pestaña; si ya se está en ella, no
+ * se pinta.
  */
 export function SiguienteCondicion({
+  modo,
   estado,
   seccion,
-  onCalcular,
-  calculando = false,
+  pestana = null,
 }: {
+  modo: ModoMesa;
   estado: EstadoMesa;
   seccion: string;
-  onCalcular?: () => void;
-  calculando?: boolean;
+  pestana?: string | null;
 }) {
-  const nav = useSeccion("calc-muestra");
-  const accion = accionVisible(estado, seccion);
+  const location = useLocation();
+  const enlace = enlaceSiguiente(modo, estado.accion, { seccion, pestana });
   const Icono = ICONO[estado.tono];
 
   return (
@@ -48,23 +53,12 @@ export function SiguienteCondicion({
           </span>
         )}
       </p>
-      {accion?.tipo === "calcular" && (
-        <button
-          type="button"
+      {enlace && (
+        <Link
           className="cmv2-ghost cmg-siguiente-accion"
-          onClick={() => onCalcular?.()}
-          disabled={!onCalcular || calculando}
-          aria-busy={calculando || undefined}
+          to={`${location.pathname}${searchConSeccionYPestana(location.search, enlace.seccion, enlace.pestana)}`}
         >
-          {calculando
-            ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-            : <Calculator size={14} aria-hidden="true" />}
-          {calculando ? "Calculando…" : accion.etiqueta}
-        </button>
-      )}
-      {accion?.tipo === "seccion" && (
-        <Link className="cmv2-ghost cmg-siguiente-accion" to={nav.hrefDe("seccion", accion.seccion)}>
-          {accion.etiqueta}
+          {enlace.etiqueta}
           <ArrowRight size={14} aria-hidden="true" />
         </Link>
       )}

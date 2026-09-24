@@ -43,7 +43,7 @@ const CORRIDA: CalcMuestraGeneralCorrida = {
   sorteado_at: "2026-09-24T06:19:57Z",
 };
 
-function seleccion(estado: { cargado?: boolean; marco?: CalcMuestraGeneralMarco | null; componente?: CalcMuestraComponente } = {}) {
+function seleccion(estado: { cargado?: boolean; marco?: CalcMuestraGeneralMarco | null; componente?: CalcMuestraComponente; pestana?: string } = {}) {
   return renderToStaticMarkup(
     <MemoryRouter initialEntries={["/calc-muestra?modo=marco-disponible&seccion=seleccion"]}>
       <SeleccionGeneralVista
@@ -52,6 +52,7 @@ function seleccion(estado: { cargado?: boolean; marco?: CalcMuestraGeneralMarco 
         error={null}
         marco={estado.marco ?? null}
         corrida={null}
+        pestana={estado.pestana}
       />
     </MemoryRouter>,
   );
@@ -73,9 +74,15 @@ describe("Selección", () => {
     const html = seleccion({ marco: MARCO });
     expect(html).toContain('value="20260924"');
     expect(html).toContain("Declara una columna de tamaño en Marco para usar PPS.");
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*aria-describedby="cmg-exportar-estado"[^>]*>.*Descargar listado \(XLSX\)/);
-    expect(html).toContain("Sortea primero: el libro sale de la corrida vigente.");
-    expect(html).toContain("Todavía no hay sorteo");
+    // E15 · P1: la descarga es de la corrida y vive en su pestaña.
+    const corrida = seleccion({ marco: MARCO, pestana: "seleccion-corrida" });
+    expect(corrida).toMatch(/<button[^>]*disabled=""[^>]*aria-describedby="cmg-exportar-estado"[^>]*>.*Descargar listado \(XLSX\)/);
+    expect(corrida).toContain("Sortea primero: el libro sale de la corrida vigente.");
+    expect(corrida).toContain("Todavía no hay sorteo");
+    // Unidades sin sorteo contiene su vacío y lleva a Sorteo (C3).
+    const unidades = seleccion({ marco: MARCO, pestana: "seleccion-unidades" });
+    expect(unidades).toContain("Todavía no hay sorteo");
+    expect(unidades).toMatch(/href="\/calc-muestra\?modo=marco-disponible&amp;seccion=seleccion&amp;pestana=seleccion-sorteo"[^>]*>Ir a Sorteo/);
   });
 });
 

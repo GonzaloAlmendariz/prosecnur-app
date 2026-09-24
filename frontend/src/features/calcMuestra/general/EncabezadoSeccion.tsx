@@ -19,19 +19,21 @@ const ICONO: Record<string, typeof Database> = {
  * antetítulo, la sección como H2 y, a la derecha, el estado de la mesa con la
  * siguiente condición. Ya no es una tarjeta que repite lo que dice el rail:
  * lo que agrega es en qué punto está el diseño y qué falta.
+ *
+ * Sin acción global (E15 · P4, patrones 9–10 de aulas): la cabecera no
+ * calcula ni sortea; a lo sumo enlaza con la pestaña donde eso se hace.
  */
 export function EncabezadoSeccion({
   modo,
   seccion,
+  pestana = null,
   estado,
-  onCalcular,
-  calculando = false,
 }: {
   modo: ModoMesa;
   seccion: string;
+  /** La pestaña activa ya resuelta: la siguiente condición no enlaza consigo misma. */
+  pestana?: string | null;
   estado?: EstadoMesa;
-  onCalcular?: () => void;
-  calculando?: boolean;
 }) {
   const { titulo, linea } = encabezadoDeSeccion(modo, seccion);
   const Icono = ICONO[seccion] ?? Database;
@@ -43,9 +45,9 @@ export function EncabezadoSeccion({
           <span className="cmv2-eyebrow">{MODO_ETIQUETA[modo]}</span>
           <h2 id="cmg-seccion-titulo">{titulo}</h2>
         </div>
-        <p className="cmg-encabezado-linea">{linea}</p>
+        <p className="cmg-encabezado-linea" title={linea}>{linea}</p>
       </div>
-      {estado && <SiguienteCondicion estado={estado} seccion={seccion} onCalcular={onCalcular} calculando={calculando} />}
+      {estado && <SiguienteCondicion modo={modo} estado={estado} seccion={seccion} pestana={pestana} />}
     </header>
   );
 }

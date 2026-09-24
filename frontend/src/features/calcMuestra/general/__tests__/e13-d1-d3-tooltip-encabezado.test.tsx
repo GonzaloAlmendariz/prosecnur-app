@@ -184,13 +184,15 @@ describe("D3 · estado y siguiente condición en la línea del título (compacto
   it("el texto de la siguiente condición queda entero en el DOM y en title", () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
-        <EncabezadoSeccion modo="marco_disponible" seccion="metodo" estado={ESTADO} onCalcular={() => undefined} />
+        <EncabezadoSeccion modo="marco_disponible" seccion="metodo" pestana="metodo-tecnica" estado={ESTADO} />
       </MemoryRouter>,
     );
     expect(html).toContain(`title="${ESTADO.siguiente}"`);
     expect(html).toContain(`<span class="cmg-siguiente-valor">${ESTADO.siguiente}</span>`);
     expect(html).toContain('role="status"');
-    expect(html).toContain("Recalcular");
+    // E15 · P4: la cabecera no recalcula; enlaza con la pestaña donde se hace.
+    expect(html).not.toContain("<button");
+    expect(html).toMatch(/<a [^>]*href="\/\?seccion=metodo&amp;pestana=metodo-parametros"[^>]*>Calcular en Parámetros/);
   });
 
   it("en compacto el título no cede, la fila no se parte y el texto se recorta a una línea", () => {

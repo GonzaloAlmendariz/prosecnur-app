@@ -172,7 +172,7 @@ function actoresCon(marcos: Record<string, CalcMuestraGeneralMarco>, corridas: R
   });
 }
 
-function vista(activoId: string | null, actores = actoresCon({}, {}), cargado = true) {
+function vista(activoId: string | null, actores = actoresCon({}, {}), cargado = true, pestana?: string) {
   return renderToStaticMarkup(
     <MemoryRouter initialEntries={["/calc-muestra?modo=acreditacion&seccion=seleccion"]}>
       <SeleccionActoresVista
@@ -180,6 +180,7 @@ function vista(activoId: string | null, actores = actoresCon({}, {}), cargado = 
         activo={ACTORES.find((c) => c.id === activoId) ?? null}
         cargado={cargado}
         onElegir={() => {}}
+        pestana={pestana}
       />
     </MemoryRouter>,
   );
@@ -201,15 +202,19 @@ describe("Acreditación › Selección", () => {
   it("reutiliza el marco y el sorteo de Muestra general, sin la sección ni el salto a Marco del otro modo", () => {
     const html = vista("cmp-adm");
     expect(html).toMatch(/id="cmv2-section-acreditacion-seleccion"[^>]*data-audit-ready="true"/);
-    expect(html).toContain("Archivo del marco");
     expect(html).toContain('class="cmg-seleccion cmg-seleccion--actor"');
     expect(html).not.toContain("Ir a Marco");
     expect(html).not.toContain('id="cmv2-section-general-seleccion"');
-    // Un solo dueño de scroll y una sola sección; sin pestaña que la controle
-    // no es un tabpanel, es la región nombrada por el encabezado (E11 · V3).
-    expect(html).not.toContain('role="tabpanel"');
+    // El archivo del actor vive en su pestaña (E15 · P1), no encima del sorteo.
+    expect(html).not.toContain("cmg-archivo");
+    expect(vista("cmp-adm", undefined, true, "seleccion-marco")).toContain('class="cmv2-panel cmg-archivo"');
+    // Un solo dueño de scroll y una sola sección, nombrada por el encabezado;
+    // dentro, UN tabpanel real, nombrado por la pestaña que lo controla.
     expect(html.match(/aria-labelledby="cmg-seccion-titulo"/g)).toHaveLength(1);
     expect(html.match(/cmv2-tab-panel/g)).toHaveLength(1);
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(1);
+    expect(html).toMatch(/id="cmg-panel-seleccion" class="cmg-pestana-panel" role="tabpanel" aria-labelledby="cmg-tab-seleccion-seleccion-sorteo"/);
+    expect(html).toMatch(/id="cmg-tab-seleccion-seleccion-sorteo"[^>]*role="tab"[^>]*aria-selected="true"[^>]*aria-controls="cmg-panel-seleccion"/);
   });
 
   it("el selector publica el estado de cada actor", () => {
@@ -224,14 +229,16 @@ describe("Acreditación › Selección", () => {
     expect(html).toContain("Docentes va por cuotas");
     expect(html).toContain("no selecciona unidades con probabilidad conocida");
     expect(html).not.toContain("Sortear");
-    expect(html).not.toContain("Archivo del marco");
+    expect(html).not.toContain("cmg-archivo");
   });
 
   it("si el actor sin sorteo ya declaró marco, lo sigue viendo: cambiarlo puede cambiar su técnica", () => {
     const html = vista("cmp-doc", actoresCon({ "cmp-doc": MARCO }, {}));
     expect(html).toContain("Docentes va por cuotas");
-    expect(html).toContain("Archivo del marco");
     expect(html).not.toContain("Sortear");
+    // El archivo sigue a una pestaña: la de «Archivo del marco».
+    expect(html).toContain('id="cmg-tab-seleccion-seleccion-marco"');
+    expect(vista("cmp-doc", actoresCon({ "cmp-doc": MARCO }, {}), true, "seleccion-marco")).toContain('class="cmv2-panel cmg-archivo"');
   });
 
   it("sin actores contiene su propio vacío", () => {
