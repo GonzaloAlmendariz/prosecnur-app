@@ -211,6 +211,60 @@
   unique(pat$categoria[hit])
 }
 
+# Claves que escribir NO vuelve el proyecto «sin guardar» (AD3, 2026-09-24).
+#
+# Una caché que el save descarta no cambia lo que se guardaría: marcarla dirty
+# dejaba el proyecto «sin guardar» con sólo abrir el Explorador. La exención
+# sale de dos fuentes que ya existen, sin lista paralela: la fila del censo
+# (`cache_stripped`) y el propio `.pulso_strip_caches`, del que sólo cuentan
+# los resets de NIVEL SUPERIOR del cuerpo. Un reset dentro de un `if` es
+# condicional —`rp_data` y compañía se strippean en multibase pero VIAJAN en
+# un proyecto legacy single-base— y ahí escribir sí es una edición. Si alguien
+# mueve un reset a una rama, la clave vuelve a marcar dirty: el error cae del
+# lado seguro. Se calcula una vez por proceso; session_set lo consulta siempre.
+.session_schema_memo <- new.env(parent = emptyenv())
+
+.session_schema_claves_sin_dirty <- function() {
+  memo <- .session_schema_memo$claves_sin_dirty
+  if (!is.null(memo)) return(memo)
+  cuerpo <- body(.pulso_strip_caches)
+  sentencias <- if (is.call(cuerpo) && identical(cuerpo[[1]], as.name("{"))) {
+    as.list(cuerpo)[-1]
+  } else {
+    list(cuerpo)
+  }
+  es_reset <- function(rhs) {
+    is.null(rhs) || identical(rhs, FALSE) ||
+      (is.call(rhs) && identical(rhs[[1]], as.name("list")) && length(rhs) == 1L)
+  }
+  reseteadas <- character(0)
+  for (e in sentencias) {
+    if (!is.call(e) || length(e) != 3L ||
+        !as.character(e[[1]])[1] %in% c("<-", "=")) next
+    lhs <- e[[2]]
+    rhs <- e[[3]]
+    # `s <- .session_state_clear(s, c("a", "b"))`
+    if (identical(lhs, quote(s)) && is.call(rhs) &&
+        identical(rhs[[1]], as.name(".session_state_clear")) && length(rhs) >= 3L) {
+      keys <- rhs[[3]]
+      lits <- if (is.character(keys)) keys else if (is.call(keys)) as.list(keys)[-1] else list()
+      lits <- unlist(lits[vapply(lits, is.character, logical(1))], use.names = FALSE)
+      reseteadas <- c(reseteadas, as.character(lits))
+      next
+    }
+    # `s$clave <- NULL | FALSE | list()` directo sobre `s`.
+    if (is.call(lhs) && identical(lhs[[1]], as.name("$")) &&
+        identical(lhs[[2]], quote(s)) && es_reset(rhs)) {
+      reseteadas <- c(reseteadas, as.character(lhs[[3]]))
+    }
+  }
+  schema <- session_schema()
+  cache <- schema$clave[schema$tipo == "literal" & schema$categoria == "cache_stripped"]
+  out <- sort(unique(intersect(cache, reseteadas)))
+  .session_schema_memo$claves_sin_dirty <- out
+  out
+}
+
 # Esquema censado: clave | tipo | categoria | modulo | origen | nota.
 session_schema <- function() {
   tabla <- c(
@@ -373,6 +427,7 @@ session_schema <- function() {
     "calc_muestra_referencia_asistencia", "literal", "persistible", "router_calc_muestra.R", "session_set", "agregados del estudio ANTERIOR: celda/k/tasa/IC, embudos, composicion, cuotas, serie semanal y cadenas de reemplazo (fila por cadena del historico, sin PII). La fuente raw no viaja y su binding queda pendiente, asi que si el agregado no se guarda la lectura se pierde y hay que volver a subir la base",
     "calc_muestra_reporte",        "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_config",   "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
+    "calc_muestra_general",        "literal", "persistible",    "router_calc_muestra_general.R", "session_set", "ADR 0090: marcos declarados de Muestra general y Acreditación y sus corridas de sorteo (con unidades, pi y pesos); el archivo del marco entra a files/ por .pulso_collect_calc_muestra_fids",
     "calc_muestra_aulas_criterios_contexto", "literal", "cache_stripped", "router_calc_muestra_criterios.R", "session_set", "contexto atomico estudiante x CH para preview; nunca viaja en .pulso",
     "calc_muestra_explorador_cache", "literal", "cache_stripped", "project_pulso.R", "directa", "distribuciones por columna del Explorador; el save las resetea y se recalculan del marco",
     "calc_muestra_aulas_frame",    "literal", "persistible",    "router_calc_muestra.R", "session_set", "sanitizada en save: unique_student_ids SUBROGADOS sin mapa (F114) y population/exclusions fuera",
