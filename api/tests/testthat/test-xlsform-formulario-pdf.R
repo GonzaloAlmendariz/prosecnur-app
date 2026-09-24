@@ -1219,14 +1219,29 @@ test_that("item 7: la pregunta es la matriz, no la instruccion que la precede", 
 # Instrumento del gate: seis preguntas sueltas que empujan la bateria hacia el
 # final de la primera pagina, y una matriz de ocho items —el caso en el que una
 # matriz se parte si nadie lo impide—.
+# OJO al tamano del fixture: el gate del §4 exige que el PDF ocupe DOS paginas,
+# porque con una sola no discrimina (una palabra fuera del marco en la pagina 2
+# es justo lo que se quiere cazar). Cuando el motor se hizo mas denso —L6 del
+# GOAL, que metio el instrumento de ejemplo en una pagina— este fixture cupo en
+# una y el gate se cayo. Se agranda el fixture, NUNCA se relaja la asercion: un
+# gate que pasa por haberse quedado sin material no es un gate.
 .form_gate_fixture <- function() {
+  n_q <- 14L
   survey <- data.frame(
-    type = c(rep("select_one sino", 6), rep("select_one esc5", 8)),
-    name = c(paste0("q", 1:6), paste0("m", 1:8)),
+    type = c(rep("select_one sino", n_q), rep("select_one esc5", 8)),
+    name = c(paste0("q", seq_len(n_q)), paste0("m", 1:8)),
     label = c(
       "\u00bfTrabajas actualmente en algo remunerado?", "\u00bfEstudias?",
       "\u00bfVives solo?", "\u00bfTienes hijos?",
       "\u00bfUsas transporte p\u00fablico?", "\u00bfTienes seguro de salud?",
+      "\u00bfHas cambiado de domicilio en el \u00faltimo a\u00f1o?",
+      "\u00bfPerteneces a alguna organizaci\u00f3n vecinal?",
+      "\u00bfHas necesitado atenci\u00f3n m\u00e9dica este a\u00f1o?",
+      "\u00bfCuentas con conexi\u00f3n a internet en casa?",
+      "\u00bfHas participado en alguna votaci\u00f3n?",
+      "\u00bfRecibes alg\u00fan apoyo del Estado?",
+      "\u00bfTrabajas y estudias a la vez?",
+      "\u00bfTienes alguna discapacidad reconocida?",
       "Me siento seguro en mi barrio durante el d\u00eda",
       "Conf\u00edo en las autoridades de mi distrito",
       "La escuela escucha a los estudiantes",
@@ -1236,7 +1251,7 @@ test_that("item 7: la pregunta es la matriz, no la instruccion que la precede", 
       "Las decisiones del municipio me afectan",
       "Me interesa la pol\u00edtica local"
     ),
-    paper_group = c(rep("", 6), rep("bat", 8)),
+    paper_group = c(rep("", n_q), rep("bat", 8)),
     stringsAsFactors = FALSE
   )
   choices <- data.frame(
