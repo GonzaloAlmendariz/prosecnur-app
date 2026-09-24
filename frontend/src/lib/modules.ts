@@ -323,6 +323,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         sections: [
           { id: "marco", label: "Marco", icon: IconStudyDesign, to: "/calc-muestra?modo=marco-disponible&seccion=marco", layoutPolicy: "viewport" },
           { id: "metodo", label: "Método", icon: ListChecks, to: "/calc-muestra?modo=marco-disponible&seccion=metodo", layoutPolicy: "viewport" },
+          { id: "seleccion", label: "Selección", icon: Shuffle, to: "/calc-muestra?modo=marco-disponible&seccion=seleccion", layoutPolicy: "viewport" },
           { id: "resultados", label: "Resultados", icon: BarChart3, to: "/calc-muestra?modo=marco-disponible&seccion=resultados", layoutPolicy: "viewport" },
         ],
       },

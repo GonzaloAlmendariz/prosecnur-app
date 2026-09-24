@@ -182,6 +182,7 @@ import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySec
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { EstratosTable, MatrizServiciosTable, estrato, matrizGizEjemplo } from "./ComponenteTablas";
+import { ArchivoMarcoGeneral, MarcoShapeSelector, SeleccionGeneral, labelMarcoOcasional, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
 type GuidancePoint = {
@@ -190,13 +191,6 @@ type GuidancePoint = {
   detail: string;
   icon?: typeof Database;
 };
-type MarcoOcasional =
-  | "marco_total"
-  | "estratos"
-  | "conglomerados"
-  | "servicios"
-  | "cuotas_controladas"
-  | "cobertura";
 type CalcMuestraSectionNavItem = {
   id: string;
   label: string;
@@ -564,7 +558,7 @@ function railTitleForDesk(desk: ActiveDesk) {
 
 function deskSubtitleForDesk(desk: ActiveDesk) {
   if (desk === "opinion_universitaria") return "Base institucional, cuotas, cursos-horario y seguimiento de aplicación.";
-  if (desk === "marco_disponible") return "Unidad, forma del marco, método y resultados.";
+  if (desk === "marco_disponible") return "Marco, método, selección y resultados.";
   if (desk === "acreditacion") return "Actores, canales, mínimos y reporte metodológico.";
   if (desk === "territorial_handoff") return "Territorio, rutas y viviendas se resuelven en Hojas de Ruta.";
   if (desk === "legacy") return "Sesión antigua conservada para compatibilidad.";
@@ -585,6 +579,7 @@ function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
     return [
       { id: "marco", label: "Marco", detail: "unidad y cobertura", icon: Database, targetId: "cmv2-section-general-marco" },
       { id: "metodo", label: "Método", detail: "muestra, cobertura o cuotas", icon: Settings2, targetId: "cmv2-section-general-metodo" },
+      { id: "seleccion", label: "Selección", detail: "sorteo, π y pesos", icon: Grid3X3, targetId: "cmv2-section-general-seleccion" },
       { id: "resultados", label: "Resultados", detail: "n, distribución y reporte", icon: BarChart3, targetId: "cmv2-section-general-resultados" },
     ];
   }
@@ -3534,7 +3529,7 @@ function MarcoDisponibleDesk({
   const comp = estudio.componentes[0] ?? defaultComponente();
   const matrizMode = (comp.marco.matriz_operativa?.length ?? 0) > 0;
   const estratosMode = (comp.marco.estratos?.length ?? 0) > 0 && !matrizMode;
-  const selectedSection = ["marco", "metodo", "resultados"].includes(activeSection)
+  const selectedSection = ["marco", "metodo", "seleccion", "resultados"].includes(activeSection)
     ? activeSection
     : "marco";
 
@@ -3557,6 +3552,7 @@ function MarcoDisponibleDesk({
             <div className="cmv2-desk-grid">
               <div className="cmv2-stack">
           <MarcoShapeSelector selected={workspace.marco_disponible} onSelect={onEnsureKind} />
+                <ArchivoMarcoGeneral componente={estudio.componentes[0] ?? null} />
                 <VariablesControl workspace={workspace} onWorkspace={onWorkspace} />
               </div>
               <aside className="cmv2-side">
@@ -3581,6 +3577,7 @@ function MarcoDisponibleDesk({
         </div>
         )}
 
+        {selectedSection === "seleccion" && <SeleccionGeneral componente={estudio.componentes[0] ?? null} />}
         {selectedSection === "resultados" && (
           <div id="cmv2-section-general-resultados" className="cmv2-tab-panel" role="tabpanel" aria-label="Resultados">
           <ResultadoPanel componentes={estudio.componentes} />
@@ -3607,44 +3604,6 @@ function MarcoDisponibleDesk({
         )}
       </div>
     </div>
-  );
-}
-
-function MarcoShapeSelector({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (kind: MarcoOcasional) => void;
-}) {
-  const shapes: Array<{ id: MarcoOcasional; label: string; copy: string; icon: typeof Table2 }> = [
-    { id: "marco_total", label: "Marco total", copy: "Tengo un N enumerable de la población objetivo.", icon: Database },
-    { id: "estratos", label: "Capas / variables de control", copy: "Tengo N por estrato, actor, sexo, edad, distrito u otra capa.", icon: Layers3 },
-    { id: "conglomerados", label: "Conglomerados", copy: "Seleccionaré cursos-horario, sedes, servicios, instituciones u otras unidades agrupadas.", icon: Grid3X3 },
-    { id: "servicios", label: "Atenciones por servicio y municipalidad", copy: "Patrón GIZ: volumen por celda, n por territorio y cuotas proporcionales.", icon: Table2 },
-    { id: "cuotas_controladas", label: "Control no probabilístico", copy: "No hay selección probabilística final, pero sí variables de control.", icon: Target },
-    { id: "cobertura", label: "Cobertura de marco", copy: "Quiero saber cuánto del marco corresponde cubrir o contactar.", icon: BarChart3 },
-  ];
-  return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Forma del marco</span>
-        <strong>Qué elementos contiene</strong>
-      </div>
-      <div className="cmv2-shape-grid">
-        {shapes.map((shape) => {
-          const Icon = shape.icon;
-          const active = selected === labelMarcoOcasional(shape.id);
-          return (
-            <button key={shape.id} type="button" className={`cmv2-shape ${active ? "is-active" : ""}`} onClick={() => onSelect(shape.id)}>
-              <Icon size={16} />
-              <strong>{shape.label}</strong>
-              <span>{shape.copy}</span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
   );
 }
 
@@ -3913,16 +3872,4 @@ function LegacyDesk({ onNew, onClear }: { onNew: () => void; onClear: () => void
       </div>
     </section>
   );
-}
-
-function labelMarcoOcasional(kind: MarcoOcasional) {
-  const labels: Record<MarcoOcasional, string> = {
-    marco_total: "Marco total enumerable",
-    estratos: "Marco por capas o variables de control",
-    conglomerados: "Marco con unidades agrupadas",
-    servicios: "Atenciones por servicio y municipalidad",
-    cuotas_controladas: "Control no probabilístico con variables disponibles",
-    cobertura: "Marco a cubrir o contactar",
-  };
-  return labels[kind];
 }
