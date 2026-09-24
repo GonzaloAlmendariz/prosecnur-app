@@ -73,7 +73,7 @@ calc_muestra_general_memoria <- function(comp, resultado) {
          sprintf("con n = %s y N = %s", as.integer(resultado$n_objetivo), .cm_general_num(N, 10L)),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
-  if (por_estrato) filas <- c(filas, .cm_general_memoria_campo(resultado, base, os, rr))
+  if (por_estrato) filas <- c(filas, .cm_general_memoria_campo(resultado, base, os, rr, N))
   data.frame(
     paso = vapply(filas, `[[`, "", 1L),
     formula = vapply(filas, `[[`, "", 2L),
@@ -199,10 +199,12 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
   suma_s2 <- sum(W * v$S2_h)
   num <- if (neyman) sum(W * v$S_h)^2 else suma_s2
   V <- (as.numeric(par$e) / as.numeric(par$z))^2
+  deff <- as.numeric(par$deff %||% 1)
+  con_deff <- if (abs(deff - 1) > 1e-12) sprintf("·%s", .cm_general_num(deff)) else ""
   terminos <- if (neyman) {
-    sprintf("%s·√(%s·%s)", .cm_general_num(W, 3L), .cm_general_num(v$p_h, 3L), .cm_general_num(1 - v$p_h, 3L))
+    sprintf("%s·√(%s·%s%s)", .cm_general_num(W, 3L), .cm_general_num(v$p_h, 3L), .cm_general_num(1 - v$p_h, 3L), con_deff)
   } else {
-    sprintf("%s·%s·%s", .cm_general_num(W, 3L), .cm_general_num(v$p_h, 3L), .cm_general_num(1 - v$p_h, 3L))
+    sprintf("%s·%s·%s%s", .cm_general_num(W, 3L), .cm_general_num(v$p_h, 3L), .cm_general_num(1 - v$p_h, 3L), con_deff)
   }
   if (length(terminos) > 6L) terminos <- c(terminos[1:5], sprintf("… (%d estratos)", length(terminos)))
   suma_txt <- paste(terminos, collapse = " + ")
@@ -225,7 +227,15 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
   )
 }
 
-.cm_general_memoria_campo <- function(resultado, base, os, rr) {
+.cm_general_sustitucion_campo <- function(base, os, N) {
+  sin_tope <- as.integer(base) + as.integer(ceiling(base * os))
+  if (is.finite(N) && N > 0 && sin_tope > N) {
+    sprintf("mín(%s + ⌈%s · %s⌉, %s) = mín(%s, %s): censo del marco", as.integer(base), as.integer(base),
+            .cm_general_num(os), .cm_general_num(N, 10L), sin_tope, .cm_general_num(N, 10L))
+  } else sprintf("%s + ⌈%s · %s⌉", as.integer(base), as.integer(base), .cm_general_num(os))
+}
+
+.cm_general_memoria_campo <- function(resultado, base, os, rr, N) {
   list(
     list("Casos a abordar por no respuesta",
          "⌈n objetivo / tasa de respuesta⌉",
@@ -233,7 +243,7 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
          as.character(as.integer(base))),
     list("n a campo",
          "mín(casos a abordar + ⌈casos · sobremuestra⌉, N)",
-         sprintf("%s + ⌈%s · %s⌉", as.integer(base), as.integer(base), .cm_general_num(os)),
+         .cm_general_sustitucion_campo(base, os, N),
          as.character(as.integer(resultado$n_operativo))),
     list("Margen de error alcanzado",
          "e = z · √(Σ W_h² S_h² (1 − n_h / N_h) / n_h), con el reparto efectivo",

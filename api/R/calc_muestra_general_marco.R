@@ -69,13 +69,26 @@ calc_muestra_general_declarar_marco <- function(estudio, estado, componente_id, 
     NULL
   }
   comp$marco$estratos <- if (nzchar(columnas$estrato)) {
-    lapply(seq_along(claves), function(h) {
-      e <- previo_de(claves[[h]]) %||% list(id = paste0("est-", h))
+    nuevos <- lapply(seq_along(claves), function(h) {
+      e <- previo_de(claves[[h]]) %||% list()
       e$label <- claves[[h]]
       e$N <- N_h[[h]]
       e$N_a <- NULL; e$N_b <- NULL
       e
     })
+    # Ids únicos: un estrato previo puede traer un id («est-1») que la
+    # numeración nueva le daría a otro; la tabla usa el id como llave.
+    usados <- character(0)
+    for (h in seq_along(nuevos)) {
+      id <- as.character(nuevos[[h]]$id %||% "")
+      if (!nzchar(id) || id %in% usados) {
+        i <- h
+        repeat { id <- paste0("est-", i); if (!id %in% usados && !id %in% vapply(nuevos, function(x) as.character(x$id %||% ""), "")[-h]) break; i <- i + length(nuevos) }
+      }
+      nuevos[[h]]$id <- id
+      usados <- c(usados, id)
+    }
+    nuevos
   } else list()
   comp$resultado <- NULL
   estudio$componentes[[idx]] <- calc_muestra_normalize_componente(comp)
