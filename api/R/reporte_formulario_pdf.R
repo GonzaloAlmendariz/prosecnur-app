@@ -1480,15 +1480,17 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 .form_pdf_draw_cover <- function(block, x, y, w) {
   tk <- .form_pdf_tokens()
   cx <- x + w / 2
-  y <- y - 0.018
+  # Portada mas apretada (L6): el contenido arrancaba 105 pt mas abajo que en el
+  # .docx sobre el mismo instrumento, y buena parte era aire de la portada.
+  y <- y - 0.011
   lines <- .form_pdf_wrap(block$title, 46)
   grid::grid.text(paste(lines, collapse = "\n"), x = grid::unit(cx, "npc"),
                   y = grid::unit(y, "npc"), just = c("center", "top"),
-                  gp = grid::gpar(fontsize = 16.5, fontface = "bold", col = tk$navy, lineheight = 1.06))
-  y <- y - length(lines) * 0.026 - 0.008
+                  gp = grid::gpar(fontsize = 15, fontface = "bold", col = tk$ink, lineheight = 1.04))
+  y <- y - length(lines) * 0.023 - 0.005
   grid::grid.lines(x = grid::unit(c(cx - 0.055, cx + 0.055), "npc"),
-                   y = grid::unit(y, "npc"), gp = grid::gpar(col = tk$navy, lwd = 1.4))
-  y - 0.018
+                   y = grid::unit(y, "npc"), gp = grid::gpar(col = tk$ink, lwd = 1.2))
+  y - 0.011
 }
 
 .form_pdf_draw_paper <- function(block, x, y, w) {
@@ -1558,7 +1560,12 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   label_chars <- max(6L, floor(lbl_w * 125))
   n_lines <- max(1L, length(.form_pdf_wrap(.form_pdf_clean_text_safe(opt$label %||% ""), label_chars)))
   chip_below <- has_skip && !chip_right
-  h <- max(0.021, n_lines * 0.013 + (if (chip_below) 0.015 else 0) + 0.008)
+  # DENSIDAD (L6). Medido contra el .docx sobre el mismo instrumento: el PDF
+  # gastaba 61,4 pt por pregunta frente a 51,6 del Word, un 19 % mas, y el
+  # exceso estaba aqui — 0,021 npc de alto minimo de fila son 17,7 pt en A4,
+  # contra los ~14 que usa el .docx. Un formulario en papel no es un documento
+  # de oficina: la densidad ES la funcion.
+  h <- max(0.0178, n_lines * 0.0125 + (if (chip_below) 0.014 else 0) + 0.0055)
   list(skip = skip, has_skip = has_skip, chip_w = chip_w, chip_right = chip_right,
        chip_below = chip_below, lbl_w = lbl_w, label_chars = label_chars,
        n_lines = n_lines, h = h)
@@ -2108,8 +2115,12 @@ formulario_pdf_render <- function(model, output_file) {
   on.exit(grDevices::dev.off(), add = TRUE)
 
   page_no <- 0L
-  y_top <- 0.885
-  y_bottom <- 0.072
+  # Caja de texto (L6). La regla de cabecera esta en 0.922 y el contenido
+  # arrancaba en 0.885: 31 pt de aire entre una y otro. El pie deja el suyo en
+  # .form_pdf_footer. Medido contra el .docx sobre el mismo instrumento, el
+  # contenido del PDF empezaba 105 pt mas abajo.
+  y_top <- 0.906
+  y_bottom <- 0.058
   col_x <- c(0.058, 0.525)
   col_w <- 0.405
   full_x <- 0.058
