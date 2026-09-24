@@ -38,6 +38,15 @@ dos renderers, o se declara explícitamente como exclusiva de uno.
 | 13 | **Las cabeceras de matriz parten palabras** | ambos renderers | pendiente — ver §13 |
 | 14 | **`n_questions` no tiene grano declarado** | modelo + API | **bloqueado** — decide Gonzalo |
 | 15 | **La geometría del motor no alcanza a la de la referencia** | modelo | **bloqueado** — decide Gonzalo |
+| 16 | Sección de 1 columna con su propio `<w:col w:w>` | renderer Word | **no nos pasa** — ver §16 |
+| 17 | El ancho útil se toma por sección, no de una constante | renderer Word | **riesgo latente** |
+| 18 | Sangría negativa que saca texto del margen | renderer Word | **no nos pasa** (0 medidas) |
+| 19 | Tabla más ancha que su columna | renderer Word | **1 twip de más** — ver §19 |
+| 20 | Banda sin `keepNext`, y la cadena rota por huecos | renderer Word | **no nos pasa** (4/4 con cadena intacta) |
+| 21 | Cabecera de matriz repetida con `tblHeader` | renderer Word | **ya lo hacemos** |
+| 22 | Tabla corta partida entre columnas | renderer Word | **nos pasa** — ver §22 |
+| 23 | Párrafos de relleno y marcos vacíos | renderer Word | **no nos pasa** (0 medidos) |
+| 24 | El borde de párrafo se dibuja `space` pt por fuera | renderer Word | **no nos pasa** (`space=0`) |
 
 
 
@@ -280,6 +289,64 @@ Consecuencia directa: los anchos de la referencia (4907–5250 en sus secciones 
 columnas) **no caben** en media columna del motor. El patrón de reparto sí se replica; la
 densidad no. Decidir si el motor adopta los márgenes de la referencia —lo que cambia todos
 los exports— o si el objetivo estético se declara inalcanzable en anchos.
+
+## 16–24. Los nueve defectos de layout Word medidos sobre la referencia
+
+**Origen:** otra sesión siguió puliendo el `.docx` de referencia contra capturas de Word
+del usuario y midió nueve defectos con su causa exacta. **No son medidas mías**; lo que sí
+verifiqué es cuáles alcanzan a *nuestro* motor, y ese es el veredicto de la tabla.
+
+**Aviso sobre el archivo de referencia**: cambió a las 11:13 del 2026-09-24, después de la
+copia de las 10:25 con la que se midió el §4 de este documento (md5 distinto). Las cifras
+de holgura del §4 son del estado anterior. Re-medido el archivo actual: siguen siendo 7
+`sectPr` con el reparto 1-2-2-1-2-2-1, pero ahora **0 sangrías negativas** (había 48),
+`tblHeader` de 0 a 12, `keepNext` de 1336 a 1454, y los `<w:col w:w="8838"/>` **han
+desaparecido**. El archivo de hoy es el golden corregido.
+
+**§16 — el hallazgo principal de esa ronda, y el menos obvio.** Una sección de UNA columna
+puede declarar su propio ancho con `<w:cols w:space="425" w:equalWidth="0"><w:col
+w:w="8838"/></w:cols>`. Word encoge **todo el texto** de la sección al 82,9 % del ancho
+útil; las tablas no se enteran porque llevan su propio `tblW`, así que las bandas salen más
+cortas que las tablas que encabezan y ningún `tblGrid` lo explica. **LibreOffice lo
+ignora**: el defecto sólo aparecía en capturas de Word. Nuestro motor **no lo produce**:
+sus secciones de una columna salen como `<w:cols/>` sin hijos, que es justo la forma
+corregida.
+
+**§17 — los márgenes no son iguales en todas las secciones del mismo documento.** En la
+referencia el cuerpo tiene 10 660 twips útiles (margen derecho 569) y la hoja del aplicador
+10 549 (680). Normalizar a una constante desborda medio documento. Nuestro renderer usa
+`.FORM_WORD_USABLE_IN = 6.3`, **una constante**. Hoy no muerde porque todas nuestras
+secciones comparten `pgMar`; el día que una no lo haga, sí. Riesgo latente, no defecto.
+
+**§19 — tabla más ancha que su columna.** Ancho de columna = (útil − `space`) / `num`.
+Nuestras tablas de tramo a dos columnas miden 4 323, exactamente el ancho de columna. La
+del tramo de una mide **9 073 contra 9 072 útiles**, y el propio `<w:cols>` suma 9 073: un
+twip de redondeo (0,0007 in). No desborda en la práctica, pero es la misma familia y
+conviene cerrarlo al tocar la geometría.
+
+**§22 — tabla corta partida entre columnas. Éste sí nos pasa**, y ya lo reportó el
+implementador: una pregunta fluye con su cabecera al pie de la columna izquierda y sus
+filas arriba en la derecha, sin enunciado. No se arregla con `cantSplit` —en dos columnas
+LibreOffice **descarta** las filas en vez de pasarlas—. La receta medida es `keepNext` en
+los párrafos de todas las filas menos la última, **sólo** en tablas cortas (≤12 filas) de
+secciones a dos columnas. Las matrices largas quedan fuera a propósito: ésas tienen que
+partirse, y para eso repiten cabecera con `tblHeader` (§21).
+
+**Cómo se verifica esto**, que aquí importa tanto como el arreglo:
+
+1. **Medir píxeles, no fiarse del XML.** Lo que cerró esa ronda fue renderizar las páginas
+   y buscar, por página, el píxel con tinta más a la derecha contra el margen. Leer `tblW`
+   no detecta un derrame.
+2. **Para juzgar una banda contra su tabla, comparar proporciones**: 83,3 % medido en la
+   captura frente a 8838/10660 = 82,9 % señaló la causa sin abrir Word.
+3. **Antes de descartar una captura ajena por «ser de otra versión», comprobarlo con una
+   huella.** Allí fue el patrón de corte de palabras de la cabecera, que depende del ancho
+   de columna. Casi se entierra el hallazgo principal por dar por vieja la captura buena.
+4. **Un render de LibreOffice no juzga una página a dos columnas**: cambia el orden del
+   contenido entre columnas, no sólo la paginación.
+5. Y un recordatorio de esta sesión: **leer el `<w:cols>` con regex se para en el `/>` del
+   primer hijo** y hace creer que una sección de 2 columnas declara una sola. Se parsea con
+   un parser, que es la lección que el helper OOXML del repo ya tenía escrita.
 
 ---
 
