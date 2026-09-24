@@ -558,11 +558,78 @@
 
 # Normaliza acentos para que "introducción" case con "intro" y
 # "consentimiento informado" con "consent".
+# Consentimiento en sentido estricto: el marco lo comparten mas bloques (caja,
+# recuadro, intro declarada), pero la casilla de acuerdo solo tiene sentido aqui.
+.FORM_WORD_PAPER_CONSENT <- "consent|consentimiento|asentimiento"
+.form_word_paper_is_consent <- function(block) {
+  raw <- paste(c(block$paper_kind %||% "", block$layout %||% ""), collapse = " ")
+  norm <- iconv(raw, to = "ASCII//TRANSLIT")
+  if (is.na(norm)) norm <- raw
+  grepl(.FORM_WORD_PAPER_CONSENT, tolower(norm))
+}
+
 .form_word_paper_is_framed <- function(block) {
   raw <- paste(c(block$paper_kind %||% "", block$layout %||% ""), collapse = " ")
   norm <- iconv(raw, to = "ASCII//TRANSLIT")
   if (is.na(norm)) norm <- raw
   grepl(.FORM_WORD_PAPER_FRAMED, tolower(norm))
+}
+
+# Casilla de acuerdo bajo el texto del consentimiento: una celda marcable por
+# categoria, rotulada con SU PROPIA etiqueta. Las etiquetas salen del instrumento
+# (`model$consent_options`, que el modelo arma desde la pregunta declarada en
+# `consent_var`), NUNCA de aqui: escribir "Si"/"No" a mano seria inventar las
+# categorias de respuesta de un instrumento acordado con el cliente, que es
+# justo lo que prohibe la regla que no se negocia del checklist. Sin
+# `consent_var` declarado no se pinta la casilla y se dice por que.
+.form_word_acuerdo_flextable <- function(opts, usable = .FORM_WORD_USABLE_IN) {
+  if (!length(opts)) return(NULL)
+  labels <- vapply(opts, function(o) .form_pdf_clean_text_safe(o$label %||% o$code %||% ""), character(1))
+  # Columna de relleno al principio. Sin `tblW` el .docx no dice cuanto mide la
+  # tabla y LibreOffice la estira al contenedor: las casillas salian del ancho de
+  # media pagina aunque el `tblGrid` dijera 374 twips. En vez de pelear con
+  # `tblW` (con `layout = "autofit"` + `width` se encogian OTRAS tablas), la
+  # tabla ocupa el ancho util entero y el sobrante se va a una celda muda sin
+  # borde, a la izquierda. Determinista y sin efectos a distancia.
+  ids <- c("pad", as.vector(rbind(paste0("l", seq_along(labels)), paste0("m", seq_along(labels)))))
+  vals <- c("", as.vector(rbind(labels, rep("", length(labels)))))
+  df <- as.data.frame(as.list(stats::setNames(vals, ids)), stringsAsFactors = FALSE)
+  ft <- flextable::flextable(df)
+  ft <- flextable::delete_part(ft, part = "header")
+  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+  # El rotulo mide lo que mide su texto, no media pagina: repartir el ancho a
+  # partes iguales dejaba dos bloques enormes con una rendija entre medias, que
+  # no se parece a una casilla marcable.
+  marca_w <- 0.26
+  # +0.30 in de holgura, no +0.14: el ancho se ESTIMA (sans x 0,84) y si el
+  # rotulo no cabe se parte en dos lineas y el alto exacto de la fila lo recorta.
+  # Es el mismo error del numero de item: ajustar al pixel con una medida
+  # aproximada es como no ajustar.
+  w_lbl <- vapply(labels, .form_word_ancho_pt, numeric(1), size = .FORM_WORD_SZ) / 72 + 0.30
+  ft <- flextable::width(ft, j = "pad",
+                         width = max(0.1, usable - sum(w_lbl) - marca_w * length(labels)))
+  for (i in seq_along(labels)) {
+    ft <- flextable::width(ft, j = paste0("l", i), width = w_lbl[i])
+    ft <- flextable::width(ft, j = paste0("m", i), width = marca_w)
+    ft <- flextable::align(ft, j = paste0("l", i), align = "right", part = "body")
+    ft <- flextable::bold(ft, j = paste0("l", i), part = "body")
+  }
+  ft <- flextable::height(ft, height = 0.26, part = "body")
+  # "atleast" y no "exact": con alto exacto, un rotulo que se parta queda
+  # CORTADO a media letra en vez de empujar la fila.
+  ft <- flextable::hrule(ft, rule = "atleast", part = "body")
+  ft <- flextable::border_remove(ft)
+  bd <- officer::fp_border(color = .FORM_WORD_INK, width = 0.5)
+  # Se enmarcan SOLO las celdas de marca: el rotulo va suelto a su izquierda, como
+  # en la referencia («☐ Si  ☐ No»), no dentro de una caja.
+  # `vline_left`/`hline_top` no aceptan `j`: se dibuja celda a celda con
+  # `flextable::border()`, que sí toma i/j y pone las cuatro caras.
+  for (i in seq_along(labels)) {
+    ft <- flextable::border(ft, i = 1, j = paste0("m", i), part = "body",
+                            border.top = bd, border.bottom = bd,
+                            border.left = bd, border.right = bd)
+  }
+  flextable::set_table_properties(ft, layout = "fixed", opts_word = list(split = FALSE))
 }
 
 # Bloque `paper` enmarcado -> flextable 1x1 con borde negro. El titulo va como
@@ -616,26 +683,24 @@
   title <- .form_pdf_clean_text(block$title %||% "")
   body  <- .form_pdf_clean_text(block$body %||% "")
   if (!nzchar(title) && !nzchar(body)) return(NULL)
-  ft <- flextable::flextable(data.frame(cell = "", stringsAsFactors = FALSE))
+  # Titulo y cuerpo en FILAS distintas. Compartiendo parrafo heredaban la misma
+  # alineacion, y el cuerpo va justificado: el titulo salia con sus palabras
+  # empujadas a los dos extremos ("CONSENTIMIENTO      INFORMADO").
+  ft <- flextable::flextable(data.frame(
+    cell = c(if (nzchar(title)) toupper(title), if (nzchar(body)) body),
+    stringsAsFactors = FALSE))
   ft <- flextable::delete_part(ft, part = "header")
-  chunks <- list()
+  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
   if (nzchar(title)) {
-    chunks <- c(chunks, list(flextable::as_chunk(
-      toupper(title),
-      props = officer::fp_text(font.size = .FORM_WORD_SZ, bold = TRUE, color = .FORM_WORD_INK,
-                               font.family = .FORM_WORD_FONT))))
+    ft <- flextable::bold(ft, i = 1, j = "cell", part = "body")
+    ft <- flextable::align(ft, i = 1, j = "cell", align = "left", part = "body")
   }
-  if (nzchar(body)) {
-    sep <- if (length(chunks)) "\n" else ""
-    chunks <- c(chunks, list(flextable::as_chunk(
-      paste0(sep, body),
-      props = officer::fp_text(font.size = .FORM_WORD_SZ, color = .FORM_WORD_INK,
-                               font.family = .FORM_WORD_FONT))))
-  }
-  ft <- flextable::compose(ft, i = 1, j = "cell", part = "body",
-                           value = do.call(flextable::as_paragraph, chunks))
+  chunks <- list()
   ft <- flextable::width(ft, j = "cell", width = usable)
-  ft <- flextable::align(ft, j = "cell", align = "justify", part = "body")
+  if (nzchar(body)) {
+    fila_cuerpo <- if (nzchar(title)) 2L else 1L
+    ft <- flextable::align(ft, i = fila_cuerpo, j = "cell", align = "justify", part = "body")
+  }
   ft <- flextable::padding(ft, padding = 7, part = "body")
   ft <- flextable::valign(ft, valign = "top", part = "body")
   ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
@@ -779,7 +844,8 @@ formulario_word_render <- function(model, output_file) {
     usable <- if (emit_sections) .form_word_tramo_usable_in(tramo$columns) else .FORM_WORD_USABLE_IN
     for (bi in seq.int(tramo$from, tramo$to)) {
       doc <- .form_word_add_block(doc, model$blocks[[bi]], usable = usable,
-                                  folio = !identical(model$show_questionnaire_number, FALSE))
+                                  folio = !identical(model$show_questionnaire_number, FALSE),
+                                  consent_options = model$consent_options %||% list())
     }
     # Un `block_section` CIERRA el tramo que termina ahi: se emite DESPUES de
     # pintar sus bloques. El ultimo lo cierra la seccion por defecto (abajo).
@@ -863,7 +929,7 @@ formulario_word_render <- function(model, output_file) {
 # Pinta UN bloque del modelo. `usable` es el ancho (pulg) del tramo en curso:
 # en un tramo de dos columnas las tablas se encogen a la mitad.
 .form_word_add_block <- function(doc, block, usable = .FORM_WORD_USABLE_IN,
-                                 folio = TRUE) {
+                                 folio = TRUE, consent_options = list()) {
   {
     kind <- block$kind %||% ""
 
@@ -894,6 +960,13 @@ formulario_word_render <- function(model, output_file) {
       } else NULL
       if (!is.null(ft)) {
         doc <- flextable::body_add_flextable(doc, ft, align = "left")
+        # Casilla de acuerdo: solo bajo el consentimiento, y solo si el
+        # instrumento declaro su pregunta (`consent_var`). Ver
+        # .form_word_acuerdo_flextable: las etiquetas no se inventan aqui.
+        if (.form_word_paper_is_consent(block) && length(consent_options)) {
+          fa <- .form_word_acuerdo_flextable(consent_options, usable = usable)
+          if (!is.null(fa)) doc <- flextable::body_add_flextable(doc, fa, align = "left")
+        }
         doc <- .form_word_blank(doc)
       } else {
         if (nzchar(block$title %||% "")) {

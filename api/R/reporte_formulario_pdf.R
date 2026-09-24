@@ -1149,6 +1149,18 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     matrix_layout = matrix_layout,
     logic_language = logic_language,
     show_questionnaire_number = show_qnum,
+    # Categorias de la pregunta de consentimiento, para que un renderer pueda
+    # pintar la casilla de acuerdo bajo el texto del consentimiento SIN inventar
+    # sus etiquetas: salen del instrumento, no del motor. Vacio si no se declaro
+    # `consent_var` o si esa pregunta no tiene lista de opciones.
+    consent_options = local({
+      if (!nzchar(consent_var)) return(list())
+      # `.form_pdf_chr` es ESCALAR (devuelve x[[1]]): sobre la columna entera
+      # colapsaria a un solo nombre y la busqueda no encontraria nada.
+      cr <- which(as.character(survey$name) == consent_var)
+      if (!length(cr)) return(list())
+      choices_by_list[[.form_pdf_type_list(survey$type[cr[1]])]] %||% list()
+    }),
     show_header_title = show_header_title,
     blocks = blocks,
     warnings = unique(warnings),
