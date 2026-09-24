@@ -9,6 +9,7 @@ import { MarcoShapeSelector } from "./MarcoShapeSelector";
 import type { MarcoOcasional } from "./marcoOcasional";
 import { MetodoGeneral } from "./MetodoGeneral";
 import { PropuestaTraspaso } from "./PropuestaTraspaso";
+import { SalidaReporte, type ReporteEstudio } from "./SalidaReporte";
 import { ResultadosComponentes } from "./ResultadosComponentes";
 import { hayResultado } from "./secciones";
 import { SeleccionGeneral } from "./SeleccionGeneral";
@@ -39,6 +40,8 @@ export function MesaGeneral({
   onMonitoreo,
   calculando,
   reporteListo,
+  reporte,
+  onCambiarTipo,
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
@@ -54,6 +57,8 @@ export function MesaGeneral({
   onMonitoreo: () => void;
   calculando: boolean;
   reporteListo: boolean;
+  reporte: ReporteEstudio;
+  onCambiarTipo: () => void;
 }) {
   const comp = estudio.componentes[0] ?? defaultComponente();
   const primero = estudio.componentes[0] ?? null;
@@ -89,7 +94,7 @@ export function MesaGeneral({
                 <VariablesControl workspace={workspace} onWorkspace={onWorkspace} />
               </div>
               <aside className="cmv2-side" aria-label="Ficha del estudio">
-                <FichaEstudio variante="general" estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} />
+                <FichaEstudio variante="general" estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} onCambiarTipo={onCambiarTipo} />
               </aside>
             </div>
           </section>
@@ -124,7 +129,9 @@ export function MesaGeneral({
                 onNotas={(notas) => onWorkspace({ ...workspace, notas_diseno: notas })}
                 onCerrar={() => onPatchEstudio({ modo_trabajo: "diseno_validado" })}
                 onMonitoreo={onMonitoreo}
-              />
+              >
+                <SalidaReporte reporte={reporte} />
+              </PropuestaTraspaso>
             </div>
           </section>
         )}

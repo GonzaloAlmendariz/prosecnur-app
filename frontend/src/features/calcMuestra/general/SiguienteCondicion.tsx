@@ -40,9 +40,11 @@ export function SiguienteCondicion({
           {estado.etiqueta}
         </span>
         {estado.siguiente && (
-          <span className="cmg-siguiente-texto">
+          <span className="cmg-siguiente-texto" title={estado.siguiente}>
             {estado.tono !== "ok" && <span className="cmg-siguiente-rotulo">Siguiente</span>}
-            {estado.siguiente}
+            {/* En compacto se recorta a una línea: el texto entero sigue en el
+                DOM (lo lee el lector de pantalla) y en `title` (C4). */}
+            <span className="cmg-siguiente-valor">{estado.siguiente}</span>
           </span>
         )}
       </p>

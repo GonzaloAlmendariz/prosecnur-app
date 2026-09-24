@@ -21,16 +21,25 @@ import { useCalcMuestraStore } from "../store";
 export async function autosaveEstudioActual(
   put: (estudio: CalcMuestraEstudio) => Promise<unknown> = apiCalcMuestraEstudioPut,
 ): Promise<void> {
-  const enviado = useCalcMuestraStore.getState().estudio;
+  const store = useCalcMuestraStore.getState();
+  const enviado = store.estudio;
+  store.setGuardando(true);
   try {
     await put(enviado);
     if (useCalcMuestraStore.getState().estudio === enviado) {
       useCalcMuestraStore.getState().markClean();
     }
   } catch (e) {
+    // Un PUT fallido se DICE: antes sólo iba a consola y el indicador se
+    // quedaba en «Guardando…» para siempre (dirty seguía true).
     console.warn("[calc-muestra] autosave fallo:", e);
+    useCalcMuestraStore.getState().setErrorGuardado(true);
+  } finally {
+    useCalcMuestraStore.getState().setGuardando(false);
   }
 }
+
+export { IndicadorGuardadoCalcMuestra } from "./IndicadorGuardadoCalcMuestra";
 
 // Hidrata el estudio desde el backend al montar y autosave con debounce 2s.
 // Patrón espejo de `useMuestraAulasAutosave.ts`.

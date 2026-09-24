@@ -7,6 +7,7 @@ import { ContextoReporte } from "./ContextoReporte";
 import { EncabezadoSeccion } from "./EncabezadoSeccion";
 import { FichaEstudio } from "./FichaEstudio";
 import { ResultadosComponentes } from "./ResultadosComponentes";
+import { SalidaReporte, type ReporteEstudio } from "./SalidaReporte";
 import { SeleccionActores } from "./SeleccionActores";
 import { useDisenoVigente } from "./useDisenoVigente";
 import "./mesa.css";
@@ -28,6 +29,8 @@ export function MesaAcreditacion({
   onComponente,
   onCalcular,
   calculando,
+  reporte,
+  onCambiarTipo,
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
@@ -38,6 +41,8 @@ export function MesaAcreditacion({
   onComponente: (id: string, patch: ComponentePatch) => void;
   onCalcular: () => void;
   calculando: boolean;
+  reporte: ReporteEstudio;
+  onCambiarTipo: () => void;
 }) {
   const selectedSection = SECCIONES.includes(activeSection) ? activeSection : "actores";
   const { cargado, marcos, corridas } = useDisenoVigente();
@@ -84,7 +89,7 @@ export function MesaAcreditacion({
               data-qa-geometry-contract="intrinsic"
             >
               <div className="cmg-contexto-ficha" data-qa-geometry-member>
-                <FichaEstudio variante="acreditacion" estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} />
+                <FichaEstudio variante="acreditacion" estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} onCambiarTipo={onCambiarTipo} />
               </div>
               <ContextoReporte estudio={estudio} workspace={workspace} componentes={estudio.componentes} />
             </div>
@@ -101,6 +106,9 @@ export function MesaAcreditacion({
             data-qa-geometry-contract="intrinsic"
           >
             <ResultadosComponentes modo="acreditacion" componentes={estudio.componentes} calculando={calculando} onCalcular={calcular} />
+            <section className="cmv2-panel cmg-salida-acreditacion" aria-label="Reporte del diseño" data-qa-geometry-member>
+              <SalidaReporte reporte={reporte} />
+            </section>
           </section>
         )}
       </div>

@@ -627,7 +627,7 @@
       "frontend/src/features/recopiladores/recopiladores.css": 3311,
       "frontend/src/app/tokens.css": 556,
       "api/R/calc_muestra_aulas.R": 4723,
-      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3040,
+      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3002,
       "api/R/graficador_dimensiones.R": 5007,
       "frontend/src/features/monitoreo/profiles/aulas/aulasMonitoreo.css": 5885
     },

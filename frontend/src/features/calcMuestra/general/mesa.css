@@ -870,6 +870,38 @@
     display: none;
   }
 
+  /* El estado y la siguiente condición van en la línea del título cuando
+   * caben (D3): el título no cede, el texto de la condición se recorta a una
+   * línea (entero en `title` y en el DOM) y la acción queda a la derecha. Si ni
+   * así caben, la fila entera baja, como antes. */
+  .cmg-encabezado-id {
+    flex: 0 0 auto;
+  }
+
+  .cmg-siguiente {
+    flex: 1 1 300px;
+    flex-wrap: nowrap;
+  }
+
+  .cmg-siguiente-estado {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .cmg-siguiente-texto {
+    flex: 0 1 auto;
+    align-items: center; /* una caja con overflow no da línea base fiable */
+    overflow: hidden;
+  }
+
+  .cmg-siguiente-valor {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .cmg-banda {
     gap: 0;
     padding-top: 6px;
@@ -947,4 +979,33 @@ body:has(.cmg-mesa) .pulso-module-command-bar[data-modulo="calc-muestra"] .pulso
   .cmg-reparto-rect {
     animation: none;
   }
+}
+
+/* --- Reporte y cambio de tipo, dentro de sus secciones (B1) ------------------- */
+
+.cmg-reporte {
+  display: grid;
+  gap: 8px;
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmg-reporte-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.cmg-cambiar-tipo {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmg-salida-acreditacion .cmg-reporte {
+  padding-top: 0;
+  border-top: 0;
 }
