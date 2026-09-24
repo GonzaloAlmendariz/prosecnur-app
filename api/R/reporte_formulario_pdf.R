@@ -637,8 +637,8 @@
   opts <- choices_by_list[[list_name]] %||% list()
   lbl <- parsed$value
   for (o in opts) {
-    if (identical(.form_pdf_clean_text(o$code), .form_pdf_clean_text(parsed$value))) {
-      cand <- .form_pdf_clean_text(o$label %||% "")
+    if (identical(.form_pdf_clean_text_safe(o$code), .form_pdf_clean_text_safe(parsed$value))) {
+      cand <- .form_pdf_clean_text_safe(o$label %||% "")
       if (nzchar(cand)) lbl <- cand
       break
     }
@@ -888,7 +888,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         if (!length(sk)) return("")
         lopts <- choices_by_list[[.form_pdf_type_list(survey$type[r])]] %||% list()
         lbl_by_code <- stats::setNames(
-          vapply(lopts, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1)),
+          vapply(lopts, function(o) .form_pdf_clean_text_safe(o$label %||% o$code), character(1)),
           vapply(lopts, function(o) .form_pdf_chr(o$code), character(1)))
         parts <- character(0)
         for (code in names(sk)) {
@@ -1106,8 +1106,12 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   )
 }
 
+# OJO: limpieza INOCUA. Esta capa corre al DIBUJAR, sobre texto que el modelo ya
+# limpio con el criterio que le tocaba (enunciados con la completa, categorias
+# con la segura). Re-limpiar aqui con perdida borraba `*` y backticks de las
+# categorias justo antes de pintarlas, despues de que el modelo las conservara.
 .form_pdf_wrap <- function(text, chars) {
-  text <- .form_pdf_clean_text(text)
+  text <- .form_pdf_clean_text_safe(text)
   if (!nzchar(text)) return(character(0))
   unlist(strwrap(text, width = max(12L, as.integer(chars)), simplify = FALSE), use.names = FALSE)
 }
@@ -1119,7 +1123,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # grafico abierto (lo hay durante `formulario_pdf_render`, y block_height corre
 # despues de abrir el pdf); si la medicion falla, cae al wrap por caracteres.
 .form_pdf_wrap_fit <- function(text, w, fontsize = 7.3, fontface = "plain") {
-  text <- .form_pdf_clean_text(text)
+  text <- .form_pdf_clean_text_safe(text)
   if (!nzchar(text)) return(character(0))
   if (!is.finite(w) || w <= 0) return(.form_pdf_wrap(text, 40L))
   gp0 <- grid::gpar(fontsize = fontsize, fontface = fontface, lineheight = 1.05)
@@ -1205,8 +1209,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # Alto de cabecera segun el modo (misma resolucion que el dibujo).
     header_mode <- .form_pdf_matrix_header_mode(part$scale, block$header_mode %||% "auto")
     if (identical(header_mode, "categorias")) {
-      cat_labels <- vapply(part$scale, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1))
-      sp_label <- if (has_special) .form_pdf_clean_text(part$special$label %||% part$special$code) else ""
+      cat_labels <- vapply(part$scale, function(o) .form_pdf_clean_text_safe(o$label %||% o$code), character(1))
+      sp_label <- if (has_special) .form_pdf_clean_text_safe(part$special$label %||% part$special$code) else ""
       geom <- .form_pdf_matrix_cat_header_geom(cat_labels, sp_label, has_special, col_w, total_cols)
       header_h <- geom$height + 0.006
     } else {
@@ -1448,8 +1452,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # opciones y del flag `multiple`, no del ancho.
 .form_pdf_options_code_mark <- function(options, multiple) {
   code_visible <- vapply(options, function(opt) {
-    code <- .form_pdf_clean_text(opt$code %||% "")
-    label <- .form_pdf_clean_text(opt$label %||% "")
+    code <- .form_pdf_clean_text_safe(opt$code %||% "")
+    label <- .form_pdf_clean_text_safe(opt$label %||% "")
     nzchar(code) &&
       !identical(tolower(code), tolower(label)) &&
       nchar(code, type = "width") <= 8L &&
@@ -1480,7 +1484,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   chip_right <- has_skip && chip_w <= label_area * 0.5
   lbl_w <- if (chip_right) max(0.05, label_area - chip_w - 0.006) else label_area
   label_chars <- max(6L, floor(lbl_w * 125))
-  n_lines <- max(1L, length(.form_pdf_wrap(.form_pdf_clean_text(opt$label %||% ""), label_chars)))
+  n_lines <- max(1L, length(.form_pdf_wrap(.form_pdf_clean_text_safe(opt$label %||% ""), label_chars)))
   chip_below <- has_skip && !chip_right
   h <- max(0.021, n_lines * 0.013 + (if (chip_below) 0.015 else 0) + 0.008)
   list(skip = skip, has_skip = has_skip, chip_w = chip_w, chip_right = chip_right,
@@ -1528,7 +1532,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       }
     }
     # Label de la opcion (sin el salto pegado: el salto ahora es un chip aparte).
-    .form_pdf_text(.form_pdf_clean_text(opt$label %||% ""), xx + code_w + 0.004, y - 0.005,
+    .form_pdf_text(.form_pdf_clean_text_safe(opt$label %||% ""), xx + code_w + 0.004, y - 0.005,
                    geom$lbl_w, chars = geom$label_chars, fontsize = 7.9,
                    col = tk$ink, line_h = 0.012)
     if (geom$has_skip) {
@@ -1813,8 +1817,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # --- Cabecera CATEGORIAS: cada label de escala rotulada SOBRE su columna. Si
     # la etiqueta cabe en el ancho de columna se dibuja HORIZONTAL (Si/No,
     # escalas cortas); si es larga se rota 90° (categorias estilo Polarizacion). ---
-    cat_labels <- vapply(scale, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1))
-    sp_label <- if (has_special) .form_pdf_clean_text(special$label %||% special$code) else ""
+    cat_labels <- vapply(scale, function(o) .form_pdf_clean_text_safe(o$label %||% o$code), character(1))
+    sp_label <- if (has_special) .form_pdf_clean_text_safe(special$label %||% special$code) else ""
     geom <- .form_pdf_matrix_cat_header_geom(cat_labels, sp_label, has_special, col_w, total_cols)
     header_h <- geom$height
     cat_fs <- geom$cat_fs
@@ -1859,7 +1863,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     special_cw <- max(6L, floor(col_w * 118))
     left_lines <- if (n_scale >= 1L) .form_pdf_wrap(scale[[1]]$label %||% scale[[1]]$code, anchor_cw) else character(0)
     right_lines <- if (n_scale >= 2L) .form_pdf_wrap(scale[[n_scale]]$label %||% scale[[n_scale]]$code, anchor_cw) else character(0)
-    special_lines <- if (has_special) .form_pdf_wrap(.form_pdf_clean_text(special$label %||% special$code), special_cw) else character(0)
+    special_lines <- if (has_special) .form_pdf_wrap(.form_pdf_clean_text_safe(special$label %||% special$code), special_cw) else character(0)
     hdr_lines <- max(1L, length(left_lines), length(right_lines), length(special_lines))
     header_h <- hdr_lines * 0.0110 + 0.010
     hy <- y - header_h / 2
