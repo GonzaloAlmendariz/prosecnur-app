@@ -27,7 +27,7 @@ import {
   nDesfasado,
 } from "./modelo";
 import { precisionEnPalabras } from "./modeloParametros";
-import { hayResultado } from "./secciones";
+import { hayResultado, type ModoMesa } from "./secciones";
 import { CLAVE_SIN_ESTRATO } from "./tituloCorrida";
 
 // ---------------------------------------------------------------------------
@@ -80,10 +80,17 @@ export function nDelMarco(
 // Sorteo vigente: una sola definición para banda, fichas, estado y Selección
 // ---------------------------------------------------------------------------
 
-export type MotivoDesactualizado = "marco" | "calculo" | "n";
+export type MotivoDesactualizado = "marco" | "calculo" | "n" | "tecnica";
 
 export type VigenciaSorteo =
-  | { estado: "sin-sorteo" }
+  | {
+      estado: "sin-sorteo";
+      /**
+       * Hay una corrida guardada pero la técnica actual no se sortea: la
+       * corrida es de un diseño anterior y no cuenta. `null` si no hay corrida.
+       */
+      huerfana?: string | null;
+    }
   | { estado: "vigente" }
   | {
       estado: "desactualizado";
@@ -94,11 +101,22 @@ export type VigenciaSorteo =
       nCampo: number | null;
     };
 
+const MODALIDAD_EN_PALABRAS: Record<"censo" | "probabilistica", string> = {
+  censo: "cobertura censal",
+  probabilistica: "muestra probabilística",
+};
+
 /**
- * Un sorteo cuenta como vigente sólo si responde al diseño actual: se hizo
- * sobre el mismo marco (huella y N), el componente sigue calculado y, fuera
- * del censo, con el mismo n a campo. Una corrida guardada que ya no cumple
- * eso existe, pero no es «sorteado»: es un sorteo desactualizado.
+ * Un sorteo cuenta como vigente sólo si responde al diseño actual: la técnica
+ * actual se sortea y con la misma modalidad, se hizo sobre el mismo marco
+ * (huella y N), el componente sigue calculado y, fuera del censo, con el
+ * mismo n a campo. Una corrida guardada que ya no cumple eso existe, pero no
+ * es «sorteado».
+ *
+ * Si la técnica actual no se sortea (no da π), la corrida vieja no es un
+ * «sorteo viejo» sino ningún sorteo: «Sorteo viejo» invita a sortear de nuevo
+ * y Selección no lo ofrece para esa técnica (E15 P6). Si la técnica se sortea
+ * pero con otra modalidad (censo ↔ probabilística), sí es un sorteo viejo.
  */
 export function vigenciaSorteo(args: {
   comp: CalcMuestraComponente | null;
@@ -107,8 +125,14 @@ export function vigenciaSorteo(args: {
 }): VigenciaSorteo {
   const { comp, corrida } = args;
   const marco = args.marco ?? null;
-  if (!corrida) return { estado: "sin-sorteo" };
+  if (!corrida) return { estado: "sin-sorteo", huerfana: null };
   const c = corrida.corrida;
+  if (comp && !tecnicaDelActor(comp.tecnica).sorteable) {
+    return {
+      estado: "sin-sorteo",
+      huerfana: `La técnica actual no se sortea: la corrida guardada (${MODALIDAD_EN_PALABRAS[c.modalidad]}) es de un diseño anterior y no cuenta.`,
+    };
+  }
   if (marco?.marco_hash && c.marco_hash && marco.marco_hash !== c.marco_hash) {
     return {
       estado: "desactualizado",
@@ -122,6 +146,15 @@ export function vigenciaSorteo(args: {
       estado: "desactualizado",
       motivo: "calculo",
       texto: "El sorteo quedó de un cálculo que ya no existe: calcula de nuevo.",
+      nCampo: null,
+    };
+  }
+  const modalidadActual = modalidadDeTecnica(comp.tecnica);
+  if (modalidadActual !== "sin_sorteo" && modalidadActual !== c.modalidad) {
+    return {
+      estado: "desactualizado",
+      motivo: "tecnica",
+      texto: `El sorteo se hizo como ${MODALIDAD_EN_PALABRAS[c.modalidad]}; la técnica actual pide ${MODALIDAD_EN_PALABRAS[modalidadActual]}.`,
       nCampo: null,
     };
   }
@@ -292,7 +325,7 @@ export function estadoMesaAcreditacion(args: {
       clave: "desactualizado",
       tono: "alerta",
       etiqueta: "Sorteo desactualizado",
-      siguiente: `${plural(desactualizados.length, "actor tiene", "actores tienen")} un sorteo que ya no responde a su marco o a su n.`,
+      siguiente: `${plural(desactualizados.length, "actor tiene", "actores tienen")} un sorteo que ya no responde a su marco, su n o su técnica.`,
       accion: irA("seleccion", "Ir a Selección"),
     };
   }
@@ -359,7 +392,16 @@ export function estratosDeclarados(
   return comp?.marco?.estratos?.length ?? 0;
 }
 
-function cifraMargen(comp: CalcMuestraComponente): CifraBanda {
+/**
+ * El margen alcanzado frente al pedido: una sola lectura para la tarjeta de la
+ * banda y el veredicto de Resultados. `cumple` es `null` si no se pueden
+ * comparar (sin π, sin margen pedido o sin cálculo).
+ */
+export function margenComparado(comp: CalcMuestraComponente): {
+  alcanzado: string;
+  pedido: string | null;
+  cumple: boolean | null;
+} {
   const r = comp.resultado ?? null;
   const precision = presentResultadoPrecision({
     naturaleza: comp.naturaleza,
@@ -371,14 +413,23 @@ function cifraMargen(comp: CalcMuestraComponente): CifraBanda {
   const alcanzado = safeNumber(r?.precision_alcanzada, NaN);
   const comparable = comp.naturaleza === "prob" && Number.isFinite(pedido) && Number.isFinite(alcanzado) && pedido > 0;
   return {
+    alcanzado: valor !== "—" && !valor.startsWith("±") ? `±${valor}` : valor,
+    pedido: Number.isFinite(pedido) ? `±${fmtPct(pedido)}` : null,
+    cumple: comparable ? alcanzado <= pedido * (1 + 1e-6) : null,
+  };
+}
+
+function cifraMargen(comp: CalcMuestraComponente): CifraBanda {
+  const m = margenComparado(comp);
+  return {
     clave: "margen",
     label: "Margen alcanzado",
-    value: valor !== "—" && !valor.startsWith("±") ? `±${valor}` : valor,
+    value: m.alcanzado,
     detalle: comp.naturaleza === "no_prob"
       ? "no aplica sin π"
-      : Number.isFinite(pedido) ? `pedido ±${fmtPct(pedido)}` : undefined,
-    origen: r ? "motor" : undefined,
-    tono: comparable ? (alcanzado <= pedido * (1 + 1e-6) ? "ok" : "alerta") : undefined,
+      : m.pedido ? `pedido ${m.pedido}` : undefined,
+    origen: comp.resultado ? "motor" : undefined,
+    tono: m.cumple == null ? undefined : m.cumple ? "ok" : "alerta",
   };
 }
 
@@ -443,8 +494,9 @@ export function cifrasDisenoGeneral(args: {
   }
 
   if (seccion === "seleccion") {
-    const c = corrida?.corrida ?? null;
     const vigencia = vigenciaSorteo({ comp, corrida, marco });
+    // Una corrida de una técnica que ya no se sortea no se publica (E15 P6).
+    const c = vigencia.estado === "sin-sorteo" ? null : corrida?.corrida ?? null;
     cifras.push(
       {
         clave: "semilla",
@@ -461,7 +513,7 @@ export function cifrasDisenoGeneral(args: {
         value: c
           ? c.modalidad === "censo" ? fmtInt(c.n_titulares) : `${fmtInt(c.n_titulares)} + ${fmtInt(c.n_reservas)}`
           : "—",
-        detalle: corrida
+        detalle: c && corrida
           ? [
               c?.modalidad === "censo" ? null : "titulares + reservas",
               vigencia.estado === "desactualizado" ? "desactualizado" : formatearFechaUtc(corrida.sorteado_at),
@@ -488,7 +540,9 @@ export function cadenaDisenoGeneral(args: {
   } else {
     pasos.push("n por calcular");
   }
-  if (corrida) pasos.push(`semilla ${corrida.corrida.semilla}`);
+  if (corrida && vigenciaSorteo({ comp, corrida, marco }).estado !== "sin-sorteo") {
+    pasos.push(`semilla ${corrida.corrida.semilla}`);
+  }
   return pasos;
 }
 
@@ -496,7 +550,7 @@ export function cadenaDisenoGeneral(args: {
 // Acreditación
 // ---------------------------------------------------------------------------
 
-export type FaseActor = "sin-n" | "sin-calculo" | "calculado" | "sorteado" | "desactualizado";
+export type FaseActor = "sin-n" | "sin-calculo" | "calculado" | "sin-sorteo" | "sorteado" | "desactualizado";
 
 export type ActorBanda = {
   id: string;
@@ -514,6 +568,7 @@ export const FASE_ACTOR_ETIQUETA: Record<FaseActor, string> = {
   "sin-n": "Sin N",
   "sin-calculo": "Por calcular",
   calculado: "Calculado",
+  "sin-sorteo": "Sin sorteo",
   sorteado: "Sorteado",
   desactualizado: "Sorteo viejo",
 };
@@ -550,6 +605,9 @@ export function faseDelActor(
 ): FaseActor {
   if (!(nDelMarco(c, null) > 0)) return "sin-n";
   if (!hayResultado([c])) return "sin-calculo";
+  // Lo mismo que Selección: una técnica sin π dice «Sin sorteo», tenga o no
+  // una corrida de un diseño anterior (E15 P6).
+  if (!tecnicaDelActor(c.tecnica).sorteable) return "sin-sorteo";
   const v = vigenciaSorteo({ comp: c, corrida, marco });
   if (v.estado === "vigente") return "sorteado";
   if (v.estado === "desactualizado") return "desactualizado";
@@ -714,4 +772,151 @@ export function requisitosReporteAcreditacion(args: {
       seccion: "resultados",
     },
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Veredicto de Resultados (E15 P7): la conclusión antes que la tabla, como
+// `CoberturaObjetivoStrip` en aulas. Sólo cifras que ya existen.
+// ---------------------------------------------------------------------------
+
+export type VeredictoResultados = {
+  tono: "ok" | "alerta" | "neutral";
+  titulo: string;
+  /** Las cifras del veredicto en una línea. */
+  detalle: string;
+  /** Qué falta, con nombre; `null` si nada. */
+  falta: string | null;
+};
+
+function listaConNombre(items: readonly string[], max = 3): string {
+  const visibles = items.slice(0, max);
+  const resto = items.length - visibles.length;
+  if (resto > 0) return `${visibles.join(", ")} y ${fmtInt(resto)} más`;
+  if (visibles.length <= 1) return visibles.join("");
+  return `${visibles.slice(0, -1).join(", ")} y ${visibles[visibles.length - 1]}`;
+}
+
+function veredictoGeneral(componentes: readonly CalcMuestraComponente[]): VeredictoResultados | null {
+  const calculados = componentes.filter((c) => hayResultado([c]));
+  if (calculados.length === 0) return null;
+  const suma = (campo: "n_objetivo" | "n_operativo") =>
+    calculados.reduce((acc, c) => acc + safeNumber(c.resultado?.[campo], 0), 0);
+  const nTexto = `${fmtInt(suma("n_objetivo"))} completas · ${fmtInt(suma("n_operativo"))} a campo`;
+  const sinCalcular = componentes.filter((c) => !hayResultado([c]));
+
+  if (componentes.length === 1) {
+    const comp = calculados[0];
+    const m = margenComparado(comp);
+    if (m.cumple == null) {
+      return {
+        tono: "neutral",
+        titulo: "n calculado",
+        detalle: comp.naturaleza === "no_prob" ? `${nTexto} · sin π no hay margen` : nTexto,
+        falta: null,
+      };
+    }
+    return {
+      tono: m.cumple ? "ok" : "alerta",
+      titulo: m.cumple ? "El n cumple el margen pedido" : "El n no alcanza el margen pedido",
+      detalle: `${nTexto} · margen ${m.alcanzado} frente a ${m.pedido ?? "—"} pedido`,
+      falta: null,
+    };
+  }
+
+  const noCumplen = calculados.filter((c) => margenComparado(c).cumple === false);
+  if (sinCalcular.length > 0) {
+    return {
+      tono: "alerta",
+      titulo: `${sinCalcular.length === 1 ? "Falta" : "Faltan"} ${fmtInt(sinCalcular.length)} de ${plural(componentes.length, "componente", "componentes")} por calcular`,
+      detalle: nTexto,
+      falta: `Falta: ${listaConNombre(sinCalcular.map(nombreActor))}.`,
+    };
+  }
+  if (noCumplen.length > 0) {
+    return {
+      tono: "alerta",
+      titulo: `${fmtInt(noCumplen.length)} de ${plural(componentes.length, "componente", "componentes")} no ${noCumplen.length === 1 ? "alcanza" : "alcanzan"} su margen`,
+      detalle: nTexto,
+      falta: `Falta: ${listaConNombre(noCumplen.map(nombreActor))}.`,
+    };
+  }
+  return { tono: "ok", titulo: "Todos los componentes calculados", detalle: nTexto, falta: null };
+}
+
+function veredictoAcreditacion(args: {
+  componentes: readonly CalcMuestraComponente[];
+  corridas: CorridasPorId;
+  marcos: MarcosPorId;
+  cargado: boolean;
+}): VeredictoResultados | null {
+  const { componentes, corridas, marcos, cargado } = args;
+  const total = componentes.length;
+  const calculados = componentes.filter((c) => hayResultado([c]));
+  if (calculados.length === 0) return null;
+  const sorteos = conteoSorteosAcreditacion({ componentes, corridas, marcos });
+  const sinCalcular = componentes
+    .filter((c) => !hayResultado([c]))
+    .map((c) => `${nombreActor(c)} (${nDelMarco(c, null) > 0 ? "por calcular" : "sin N"})`);
+  const sinSortear = componentes
+    .filter((c) => hayResultado([c]) && nDelMarco(c, null) > 0 && tecnicaDelActor(c.tecnica).sorteable)
+    .flatMap((c) => {
+      const v = vigenciaSorteo({ comp: c, corrida: corridas[c.id] ?? null, marco: marcos[c.id] ?? null });
+      if (v.estado === "vigente") return [];
+      return [`${nombreActor(c)} (${v.estado === "desactualizado" ? "sorteo viejo" : "sin sortear"})`];
+    });
+  const leyendo = !cargado && sorteos.sorteables > 0;
+  const sorteoTexto = sorteos.sorteables === 0
+    ? "ninguna técnica sortea"
+    : leyendo
+      ? "leyendo los sorteos…"
+      : `${fmtInt(sorteos.vigentes)} de ${fmtInt(sorteos.sorteables)} sorteados`;
+  const detalle = `${fmtInt(calculados.length)} de ${fmtInt(total)} calculados · ${sorteoTexto}`;
+
+  if (sinCalcular.length > 0) {
+    return {
+      tono: "alerta",
+      titulo: `${sinCalcular.length === 1 ? "Falta" : "Faltan"} ${fmtInt(sinCalcular.length)} de ${plural(total, "actor", "actores")} por calcular`,
+      detalle,
+      falta: `Falta: ${listaConNombre(sinCalcular)}.`,
+    };
+  }
+  if (leyendo) return { tono: "neutral", titulo: "Todos los actores calculados", detalle, falta: null };
+  if (sinSortear.length > 0) {
+    return {
+      tono: "alerta",
+      titulo: `Falta sortear ${fmtInt(sinSortear.length)} de ${plural(sorteos.sorteables, "actor", "actores")} con π`,
+      detalle,
+      falta: `Falta: ${listaConNombre(sinSortear)}.`,
+    };
+  }
+  return {
+    tono: "ok",
+    titulo: sorteos.sorteables > 0 ? "Todos los actores calculados y sorteados" : "Todos los actores calculados",
+    detalle,
+    falta: null,
+  };
+}
+
+/**
+ * Resultados abre con su conclusión: en Muestra general, el n y el margen
+ * alcanzado frente al pedido; en Acreditación, cuántos actores están
+ * calculados y sorteados y cuál falta. `null` sin ningún cálculo: ese vacío lo
+ * dice el panel (C3).
+ */
+export function veredictoResultados(args: {
+  modo: ModoMesa;
+  componentes: readonly CalcMuestraComponente[];
+  corridas?: CorridasPorId;
+  marcos?: MarcosPorId;
+  cargado?: boolean;
+}): VeredictoResultados | null {
+  if (args.modo === "acreditacion") {
+    return veredictoAcreditacion({
+      componentes: args.componentes,
+      corridas: args.corridas ?? {},
+      marcos: args.marcos ?? {},
+      cargado: args.cargado ?? true,
+    });
+  }
+  return veredictoGeneral(args.componentes);
 }
