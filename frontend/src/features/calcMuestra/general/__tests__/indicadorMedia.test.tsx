@@ -16,7 +16,7 @@ import {
   type CalcMuestraParametroDeTecnica,
 } from "../../../../api/calcMuestraGeneral";
 import { defaultComponente } from "../../sharedCore";
-import { tecnicaCalculadaLabel } from "../catalogos";
+import { asignacionEstratificada, tecnicaCalculadaLabel } from "../catalogos";
 import {
   AYUDA_MARGEN_MEDIA,
   lineaDeAsignacion,
@@ -162,5 +162,24 @@ describe("asignación de potencia", () => {
     expect(nombreDeCorrida(corrida, c).titulo).toBe("Estratificado (potencia) · MAS dentro de cada estrato · semilla 7");
     // Sin resultado, manda la declarada.
     expect(tecnicaCalculadaLabel(comp("prob_estratificado", { asignacion: "potencia" }))).toBe("Estratificado · potencia");
+  });
+});
+
+describe("con una media la asignación no se ofrece ni se anuncia", () => {
+  it("parametrosVisibles oculta la asignación con media y la muestra con proporción", () => {
+    const params = [
+      { clave: "tipo_indicador", rotulo: "Qué se estima", ayuda: "", tipo: "opciones", opciones: ["proporcion", "media"] },
+      { clave: "p", rotulo: "p", ayuda: "", tipo: "numero" },
+      { clave: "cv", rotulo: "CV", ayuda: "", tipo: "numero" },
+      { clave: "asignacion", rotulo: "Asignación", ayuda: "", tipo: "opciones", opciones: ["proporcional", "neyman", "potencia"] },
+    ] as Parameters<typeof parametrosVisibles>[0];
+    const conMedia = parametrosVisibles(params, { tipo_indicador: "media" } as never).map((p) => p.clave);
+    expect(conMedia).toEqual(["tipo_indicador", "cv"]);
+    const conProp = parametrosVisibles(params, { tipo_indicador: "proporcion" } as never).map((p) => p.clave);
+    expect(conProp).toEqual(["tipo_indicador", "p", "asignacion"]);
+  });
+  it("asignacionEstratificada dice proporcional para una media aunque se pida Neyman", () => {
+    expect(asignacionEstratificada({ parametros: { tipo_indicador: "media", asignacion: "neyman" }, resultado: null } as never)).toBe("proporcional");
+    expect(asignacionEstratificada({ parametros: {}, resultado: { formula_n: "media_global" } } as never)).toBe("proporcional");
   });
 });

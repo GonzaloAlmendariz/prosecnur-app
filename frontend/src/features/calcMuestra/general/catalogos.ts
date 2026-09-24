@@ -71,12 +71,18 @@ const ASIGNACION_DE_FORMULA: Record<NonNullable<NonNullable<CalcMuestraComponent
   proporcional_por_estrato: "proporcional",
   neyman: "neyman",
   potencia: "potencia",
+  // Con una media el motor reparte proporcional (Neyman y potencia necesitan
+  // la variabilidad de cada estrato).
+  media_global: "proporcional",
 };
 
 /** Asignación entre estratos: la del resultado manda; si no, la declarada; por defecto, proporcional. */
 export function asignacionEstratificada(comp: Pick<CalcMuestraComponente, "parametros" | "resultado">): CalcMuestraAsignacion {
   const r = comp.resultado;
-  const candidata = r?.asignacion ?? (r?.formula_n ? ASIGNACION_DE_FORMULA[r.formula_n] : undefined) ?? comp.parametros?.asignacion;
+  // Una media se reparte proporcional aunque se haya pedido otra asignación:
+  // la declarada no manda (el verificador vio «Neyman» con un reparto proporcional).
+  const declarada = comp.parametros?.tipo_indicador === "media" ? "proporcional" : comp.parametros?.asignacion;
+  const candidata = r?.asignacion ?? (r?.formula_n ? ASIGNACION_DE_FORMULA[r.formula_n] : undefined) ?? declarada;
   return candidata && candidata in ETIQUETA_ASIGNACION ? candidata : "proporcional";
 }
 
