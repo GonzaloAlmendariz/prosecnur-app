@@ -1,4 +1,5 @@
 import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calcMuestra";
+import { CambiarTipoEstudio } from "./CambiarTipoEstudio";
 import "./general.css";
 
 type CampoContexto = "cliente" | "tipo_cliente" | "descripcion_libre";
@@ -16,6 +17,7 @@ export function FichaEstudio({
   onTitulo,
   onContexto,
   onWorkspace,
+  onCambiarTipo,
 }: {
   variante: "general" | "acreditacion";
   estudio: CalcMuestraEstudio;
@@ -23,6 +25,8 @@ export function FichaEstudio({
   onTitulo: (titulo: string) => void;
   onContexto: (campo: CampoContexto, valor: string) => void;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
+  /** Volver a elegir el tipo de estudio (antes era un atajo en la barra del módulo). */
+  onCambiarTipo?: () => void;
 }) {
   const acreditacion = variante === "acreditacion";
   return (
@@ -94,6 +98,7 @@ export function FichaEstudio({
         )}
       </div>
       {acreditacion && <p className="cmg-nota">El marco y la unidad de cada actor se declaran en Actores y Selección.</p>}
+      {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
     </section>
   );
 }

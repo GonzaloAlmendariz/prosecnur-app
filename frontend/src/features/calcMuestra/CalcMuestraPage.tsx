@@ -28,10 +28,9 @@ import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIn
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
-import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { ContextTabRail } from "../../components/ContextTabRail";
 import { GlidingTabList } from "../../components/GlidingTabList";
-import { useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
+import { IndicadorGuardadoCalcMuestra, useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
 import { useCalcMuestraStore, useMotorStore } from "./store";
 import { useMotorPersistencia } from "./motor/useMotorPersistencia";
 import { useAvisoCaducidadResuelta } from "./avisoCaducidadResuelta";
@@ -166,7 +165,7 @@ import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySec
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { estrato, matrizGizEjemplo } from "./ComponenteTablas";
-import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, motivoReporteDeshabilitado, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
+import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
 type GuidancePoint = {
@@ -834,7 +833,6 @@ export default function CalcMuestraPage() {
   const {
     estudio,
     hydrated,
-    dirty,
     calculando,
     reporteJobId,
     reporteDisponible,
@@ -2472,51 +2470,11 @@ export default function CalcMuestraPage() {
                 detail: chromeStatus.detail,
               },
             ]}
-            herramientas={
-              desk === "opinion_universitaria" ? (
-                <SaveStatusIndicator state={dirty ? "saving" : "saved"} variant="badge" />
-              ) : reporteJobId ? (
-                <a
-                  className="cmv2-link-button"
-                  href={calcMuestraReporteDescargarUrl({ inline: true })}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Ver
-                </a>
-              ) : undefined
-            }
+            herramientas={desk === "sin_definir" ? undefined : <IndicadorGuardadoCalcMuestra />}
             acciones={
-              desk === "sin_definir" || desk === "opinion_universitaria"
-                ? []
-                : desk === "territorial_handoff" // sólo deriva: no hay nada que calcular ni reportar
-                  ? [{ id: "cambiar-tipo", label: "Cambiar tipo", rank: 1, onSelect: openStudyChooser }]
-                  : [
-                      {
-                        id: "calcular",
-                        label: "Calcular",
-                        rank: 1,
-                        kind: "primary",
-                        onSelect: () => void calcular(),
-                        disabled: calculando || estudio.componentes.length === 0,
-                        busy: calculando,
-                      },
-                      {
-                        id: "reporte",
-                        label: "Reporte",
-                        rank: 2,
-                        onSelect: () => void generarReporte(),
-                        disabled: reporteEnCurso || resultados === 0,
-                        title: motivoReporteDeshabilitado(resultados) ?? undefined,
-                        busy: reporteEnCurso,
-                      },
-                      {
-                        id: "cambiar-tipo",
-                        label: "Cambiar tipo",
-                        rank: 3,
-                        onSelect: openStudyChooser,
-                      },
-                    ]
+              // Sin atajos: cada sección tiene su acción, como en aulas (B1). Sólo
+              // el traspaso territorial, que no tiene secciones, cambia el tipo aquí.
+              desk === "territorial_handoff" ? [{ id: "cambiar-tipo", label: "Cambiar tipo", rank: 1, onSelect: openStudyChooser }] : []
             }
           />
           {desk === "opinion_universitaria" && (
@@ -2616,6 +2574,8 @@ export default function CalcMuestraPage() {
               onComponente={updateComponente}
               onCalcular={calcular}
               calculando={calculando}
+              reporte={{ resultados, enCurso: reporteEnCurso, disponible: reporteDisponible, verUrl: reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null, onGenerar: () => void generarReporte() }}
+              onCambiarTipo={openStudyChooser}
             />
           )}
 
@@ -2681,6 +2641,8 @@ export default function CalcMuestraPage() {
               onMonitoreo={enviarMonitoreo}
               calculando={calculando}
               reporteListo={!!reporteJobId}
+              reporte={{ resultados, enCurso: reporteEnCurso, disponible: reporteDisponible, verUrl: reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null, onGenerar: () => void generarReporte() }}
+              onCambiarTipo={openStudyChooser}
             />
           )}
         </main>

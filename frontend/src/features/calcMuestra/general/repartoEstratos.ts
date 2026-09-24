@@ -176,3 +176,54 @@ export function dispersionPi(filas: readonly FilaReparto[]): number | null {
   const max = Math.max(...pis);
   return (max - min) / max;
 }
+
+/** Lo mínimo de `window` que usa {@link sostenerTooltipEnFoco}. */
+export type ObjetivoScroll = {
+  addEventListener: (tipo: "scroll", fn: () => void, captura: boolean) => void;
+  removeEventListener: (tipo: "scroll", fn: () => void, captura: boolean) => void;
+};
+
+/** `requestAnimationFrame` / `cancelAnimationFrame`, inyectables para el test. */
+export type ProgramadorFrame = {
+  pedir: (fn: () => void) => number;
+  cancelar: (id: number) => void;
+};
+
+/**
+ * Mantiene abierto el tooltip de la barra enfocada cuando algo hace scroll.
+ *
+ * El tooltip compartido se cierra en cualquier scroll porque se ancla al
+ * cursor. Con teclado no hay cursor: el foco mismo desplaza el dueño de scroll
+ * para mostrar la barra, y el tooltip que el foco acababa de abrir moría ahí.
+ * Tras el scroll —en el frame siguiente, cuando todos los listeners de scroll
+ * ya corrieron, incluido el que lo cierra— se reabre sobre la geometría nueva
+ * de la barra si sigue enfocada.
+ */
+export function sostenerTooltipEnFoco<T>({
+  objetivo,
+  enfocada,
+  reabrir,
+  frame,
+}: {
+  objetivo: ObjetivoScroll;
+  /** La barra con el foco, o `null` si el foco no está en una del gráfico. */
+  enfocada: () => T | null;
+  reabrir: (barra: T) => void;
+  frame: ProgramadorFrame;
+}): () => void {
+  let pendiente: number | null = null;
+  const alScroll = () => {
+    if (enfocada() == null) return;
+    if (pendiente != null) frame.cancelar(pendiente);
+    pendiente = frame.pedir(() => {
+      pendiente = null;
+      const barra = enfocada();
+      if (barra != null) reabrir(barra);
+    });
+  };
+  objetivo.addEventListener("scroll", alScroll, true);
+  return () => {
+    objetivo.removeEventListener("scroll", alScroll, true);
+    if (pendiente != null) frame.cancelar(pendiente);
+  };
+}

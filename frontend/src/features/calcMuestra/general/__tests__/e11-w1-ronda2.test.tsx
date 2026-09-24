@@ -197,7 +197,7 @@ describe("Ajuste de Resultados en Acreditación", () => {
       <MemoryRouter initialEntries={[`/calc-muestra?modo=acreditacion&seccion=${seccion}`]}>
         <MesaAcreditacion
           estudio={{ ...estudio, componentes }} workspace={workspace} activeSection={seccion}
-          onTitulo={noop} onContexto={noop} onWorkspace={noop} onComponente={noop} onCalcular={noop} calculando={false}
+          onTitulo={noop} onContexto={noop} onWorkspace={noop} onComponente={noop} onCalcular={noop} calculando={false} reporte={{ resultados: 0, enCurso: false, disponible: false, verUrl: null, onGenerar: noop }} onCambiarTipo={noop}
         />
       </MemoryRouter>,
     );
@@ -225,7 +225,7 @@ describe("Ajuste de Resultados en Acreditación", () => {
           estudio={estudio} workspace={workspace} activeSection="resultados"
           onTitulo={noop} onContexto={noop} onPatchEstudio={noop} onWorkspace={noop} onComponente={noop}
           onReplaceComponente={noop} onEnsureKind={noop} onCalcular={noop} onMonitoreo={noop}
-          calculando={false} reporteListo={false}
+          calculando={false} reporteListo={false} reporte={{ resultados: 0, enCurso: false, disponible: false, verUrl: null, onGenerar: noop }} onCambiarTipo={noop}
         />
       </MemoryRouter>,
     );

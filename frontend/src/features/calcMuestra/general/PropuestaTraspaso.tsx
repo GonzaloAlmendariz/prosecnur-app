@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { CheckCircle2, Route } from "lucide-react";
 
 import "./mesa.css";
@@ -14,6 +15,7 @@ export function PropuestaTraspaso({
   onNotas,
   onCerrar,
   onMonitoreo,
+  children,
 }: {
   notas: string;
   cerrada: boolean;
@@ -21,6 +23,8 @@ export function PropuestaTraspaso({
   onNotas: (notas: string) => void;
   onCerrar: () => void;
   onMonitoreo: () => void;
+  /** El reporte del diseño (SalidaReporte), que también es salida. */
+  children?: ReactNode;
 }) {
   return (
     <section className="cmv2-panel cmg-propuesta" aria-labelledby="cmg-propuesta-titulo" data-qa-geometry-member>
@@ -60,6 +64,7 @@ export function PropuestaTraspaso({
         </button>
         {!monitoreoListo && <small id="cmg-monitoreo-motivo" className="cmg-motivo">Se habilita con un n calculado.</small>}
       </div>
+      {children}
     </section>
   );
 }

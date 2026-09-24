@@ -1,4 +1,4 @@
-import { useId, useState, type FocusEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { fmtDec, fmtInt, fmtPct } from "../sharedCore";
 import { tip, tipAria, useTooltipGrafico } from "../universidad/shared/graficos/TooltipGrafico";
@@ -6,6 +6,7 @@ import { formatearPi } from "./modelo";
 import {
   dibujarReparto,
   resumenReparto,
+  sostenerTooltipEnFoco,
   tooltipDeFila,
   type EscalaReparto,
   type FilaReparto,
@@ -25,7 +26,8 @@ const ESCALAS: ReadonlyArray<{ id: EscalaReparto; etiqueta: string }> = [
  *
  * Accesible por tres caminos: el gráfico es un grupo con un resumen en
  * `aria-label`; cada barra se alcanza con Tab, lleva sus cifras como nombre y
- * abre el mismo tooltip que el mouse (Escape o salir del foco lo cierra); y los
+ * abre el mismo tooltip que el mouse (Escape o salir del foco lo cierra; el
+ * scroll que provoca el foco no); y los
  * datos exactos están en una tabla —visible en la ficha de la corrida, o en el
  * desplegable «Ver como tabla» aquí—. El tooltip nunca es el único lugar de
  * una cifra.
@@ -45,20 +47,49 @@ export function RepartoEstratosGrafico({
   const id = useId();
   const [escala, setEscala] = useState<EscalaReparto>("tamano");
   const { manejadores, tooltip } = useTooltipGrafico();
+  const { onMouseMove, onMouseLeave } = manejadores;
+  const filasRef = useRef<HTMLDivElement | null>(null);
+  // Escape cierra el tooltip sin mover el foco: un scroll posterior no debe
+  // reabrirlo hasta que el foco vuelva a entrar a una barra.
+  const cerradoConEscape = useRef(false);
   // El foco abre el tooltip por el mismo camino que el mouse: se le pasa la
   // barra enfocada y un punto bajo ella, así no hay un segundo tooltip.
-  const abrirEnFoco = (evento: FocusEvent<HTMLDivElement>) => {
-    const barra = evento.currentTarget;
-    const caja = barra.getBoundingClientRect();
-    const puntero: Pick<MouseEvent<HTMLElement>, "target" | "clientX" | "clientY"> = {
-      target: barra,
-      clientX: caja.left + Math.min(caja.width / 2, 240),
-      clientY: caja.bottom,
-    };
-    manejadores.onMouseMove(puntero as MouseEvent<HTMLElement>);
-  };
+  const abrirSobre = useCallback(
+    (barra: HTMLElement) => {
+      const caja = barra.getBoundingClientRect();
+      const puntero: Pick<MouseEvent<HTMLElement>, "target" | "clientX" | "clientY"> = {
+        target: barra,
+        clientX: caja.left + Math.min(caja.width / 2, 240),
+        clientY: caja.bottom,
+      };
+      onMouseMove(puntero as MouseEvent<HTMLElement>);
+    },
+    [onMouseMove],
+  );
+  // El foco desplaza el dueño de scroll para mostrar la barra y el tooltip
+  // compartido se cierra en todo scroll: mientras la barra tenga el foco, se
+  // reabre sobre su geometría nueva (D1).
+  useEffect(
+    () =>
+      sostenerTooltipEnFoco<HTMLElement>({
+        objetivo: window,
+        enfocada: () => {
+          const activo = document.activeElement;
+          if (cerradoConEscape.current || !(activo instanceof HTMLElement)) return null;
+          return activo.classList.contains("cmg-reparto-fila") && filasRef.current?.contains(activo) ? activo : null;
+        },
+        reabrir: abrirSobre,
+        frame: {
+          pedir: (fn) => window.requestAnimationFrame(fn),
+          cancelar: (idFrame) => window.cancelAnimationFrame(idFrame),
+        },
+      }),
+    [abrirSobre],
+  );
   const cerrarConEscape = (evento: KeyboardEvent<HTMLDivElement>) => {
-    if (evento.key === "Escape") manejadores.onMouseLeave();
+    if (evento.key !== "Escape") return;
+    cerradoConEscape.current = true;
+    onMouseLeave();
   };
   const dibujo = dibujarReparto(filas, escala);
   const conCompletas = filas.some((f) => f.n != null);
@@ -100,6 +131,7 @@ export function RepartoEstratosGrafico({
         {...manejadores}
       >
         <div
+          ref={filasRef}
           className="cmg-reparto-filas"
           data-qa-geometry-group="calc-muestra/general-reparto"
           data-qa-geometry-contract="equal"
@@ -114,8 +146,11 @@ export function RepartoEstratosGrafico({
                 role="img"
                 aria-label={tipAria(datos)}
                 tabIndex={0}
-                onFocus={abrirEnFoco}
-                onBlur={manejadores.onMouseLeave}
+                onFocus={(evento) => {
+                  cerradoConEscape.current = false;
+                  abrirSobre(evento.currentTarget);
+                }}
+                onBlur={onMouseLeave}
                 onKeyDown={cerrarConEscape}
                 {...tip(datos)}
               >
