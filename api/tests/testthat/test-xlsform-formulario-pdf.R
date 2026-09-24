@@ -1073,3 +1073,158 @@ test_that("OPS sample renders in one and two columns with matrices", {
     expect_gt(result$summary$n_matrices, 0)
   }
 })
+
+# =============================================================================
+# Cambios de comportamiento deliberados de 4ab248a4 (checklist
+# `docs/qa/checklist-motor-formulario-papel-2026-09-24.md`). Cada uno se fija
+# con la entrada LITERAL que lo motivo.
+# =============================================================================
+
+test_that("item 11 (gate): las categorias de respuesta sobreviven literales y toda diferencia se declara", {
+  # REGLA QUE NO SE NEGOCIA del checklist: "las categorias de respuesta
+  # existentes no se tocan". `.form_pdf_clean_text()` aplicaba `gsub("[`*]", "")`
+  # a TODO texto, y las etiquetas de categoria pasaban por ahi: `De 5* a 10*` se
+  # imprimia `De 5 a 10`, sin warning y sin rastro en el artefacto. Un cambio de
+  # etiqueta no consultado rompe la comparabilidad del cuestionario y nadie lo
+  # detecta hasta el analisis; por eso esto es un gate, no un detalle.
+  choices <- data.frame(
+    list_name = rep("frec", 3),
+    name = c("1", "2", "3"),
+    label = c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"),
+    stringsAsFactors = FALSE
+  )
+  survey <- data.frame(type = "select_one frec", name = "q1",
+                       label = "Frecuencia semanal", stringsAsFactors = FALSE)
+
+  model <- formulario_pdf_build_model(survey, choices, settings = list(form_title = "T"))
+  bloque <- Filter(function(b) identical(b$name, "q1"), model$blocks)[[1]]
+  etiquetas <- vapply(bloque$options, function(o) o$label, character(1))
+
+  expect_identical(etiquetas, c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"))
+
+  # Y la diferencia se DECLARA: silencio y normalizacion son la misma falta.
+  for (cat_lbl in etiquetas) {
+    expect_true(
+      any(grepl(cat_lbl, model$warnings, fixed = TRUE)),
+      info = sprintf("sin warning declarado para la categoria conservada: %s", cat_lbl)
+    )
+  }
+  expect_true(any(grepl("De 5 a 10", model$warnings, fixed = TRUE)))
+})
+
+test_that("item 6: el despojador de prefijos no se come texto legitimo del enunciado", {
+  # Tabla literal del checklist. A la izquierda lo que el XLSForm trae, a la
+  # derecha lo que debe quedar tras quitar la numeracion que el motor va a
+  # imponer el mismo. Las tres primeras filas son PERDIDA DE CONTENIDO: el
+  # despojador anterior se comia el "3", el "1990" y rompia el ordinal.
+  conserva <- list(
+    list(label = "3 de cada 5 jóvenes trabajan", number = "3",
+         esperado = "3 de cada 5 jóvenes trabajan",
+         porque = "sin separador, el digito es parte del enunciado"),
+    list(label = "1990. Año de nacimiento", number = "12",
+         esperado = "1990. Año de nacimiento",
+         porque = "mas de tres digitos no es numero de pregunta"),
+    list(label = "2. ° piso del edificio", number = "2",
+         esperado = "2. ° piso del edificio",
+         porque = "tras el separador viene un ordinal, no un enunciado")
+  )
+  for (caso in conserva) {
+    expect_identical(
+      .form_pdf_strip_leading_number(caso$label, caso$number), caso$esperado,
+      info = sprintf("%s (%s)", caso$label, caso$porque)
+    )
+  }
+
+  # Y los prefijos que SI son numeracion y deben irse (el motor pone el suyo).
+  destino <- "¿Cuántos hermanos tienes?"
+  quita <- list(
+    list(label = paste0("6.- ", destino), number = "6"),
+    list(label = paste0("6.", destino), number = "6"),
+    list(label = paste0("(6) ", destino), number = "6"),
+    list(label = paste0("P6. ", destino), number = "6"),
+    list(label = paste0("P.6 ", destino), number = "6"),
+    list(label = paste0("Pregunta 6. ", destino), number = "6"),
+    list(label = "C. SOLEDAD", number = "C", esperado = "SOLEDAD"),
+    list(label = "A) Datos del hogar", number = "A", esperado = "Datos del hogar"),
+    list(label = "IV. Ciudadanía", number = "IV", esperado = "Ciudadanía")
+  )
+  for (caso in quita) {
+    expect_identical(
+      .form_pdf_strip_leading_number(caso$label, caso$number),
+      caso$esperado %||% destino,
+      info = caso$label
+    )
+  }
+})
+
+test_that("item 7: la pregunta es la matriz, no la instruccion que la precede", {
+  # Criterio textual del usuario: "estas considerando los enunciados como
+  # preguntas tipo P, cuando solo la matriz deberia ser pregunta". La nota trae
+  # `paper_number = "6"` a proposito: antes se lo quedaba y la matriz se
+  # numeraba 7, que es el numero que el cliente ve impreso en el papel.
+  survey <- data.frame(
+    type = c("select_one sino", "note",
+             "select_one esc4", "select_one esc4", "select_one esc4"),
+    name = c("q5", "instr", "b1", "b2", "b3"),
+    label = c(
+      "¿Trabajas?",
+      "Por favor señala cuán de acuerdo estás con cada frase.",
+      "Me siento seguro", "Confío en la policía", "Participo en la comunidad"
+    ),
+    paper_number = c("5", "6", "", "", ""),
+    paper_group = c("", "bat", "bat", "bat", "bat"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("sino", "sino", rep("esc4", 4)),
+    name = c("1", "2", as.character(1:4)),
+    label = c("Sí", "No", "Nada", "Poco", "Bastante", "Mucho"),
+    stringsAsFactors = FALSE
+  )
+
+  model <- formulario_pdf_build_model(survey, choices, settings = list(form_title = "T"))
+  nota <- Filter(function(b) identical(b$name, "instr"), model$blocks)[[1]]
+  matriz <- Filter(function(b) identical(b$kind, "matrix"), model$blocks)[[1]]
+
+  # 1) La nota sale SIN numero aunque lo pidiera explicitamente.
+  expect_identical(nota$number %||% "", "")
+  # 2) La matriz se queda con el numero que la nota intentaba llevarse.
+  expect_identical(matriz$number, "6")
+  # 3) La instruccion NO es fila de la matriz (si lo fuera, se dibujaria con
+  #    celdas de escala, como si se pudiera responder).
+  expect_identical(
+    vapply(matriz$items, function(it) it$name, character(1)),
+    c("b1", "b2", "b3")
+  )
+  # 4) Y la exclusion se declara.
+  expect_true(any(grepl("instr", model$warnings, fixed = TRUE)))
+  expect_true(any(grepl("no son preguntas", model$warnings, fixed = TRUE)))
+})
+
+test_that("item 11: las categorias con asteriscos llegan literales al PDF", {
+  # Nacio en rojo, por el mismo defecto que en Word: el modelo conservaba la
+  # etiqueta y el renderer PDF la volvia a limpiar al dibujarla. Rojo literal:
+  #   Failure: categoria que no llego literal al PDF: De 5* a 10*
+  #   Failure: categoria que no llego literal al PDF: Nota al pie (*)
+  #   Failure: categoria que no llego literal al PDF: 3 * a la semana
+  # Reparado en `f28f84f02`. Se mide sobre el ARTEFACTO: es el unico sitio donde
+  # la regla innegociable («las categorias existentes no se tocan») se cumple o
+  # no, y el gate anterior nunca llegaba hasta ahi.
+  survey <- data.frame(type = "select_one frec", name = "q1",
+                       label = "Frecuencia semanal", stringsAsFactors = FALSE)
+  choices <- data.frame(
+    list_name = rep("frec", 3), name = c("1", "2", "3"),
+    label = c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"),
+    stringsAsFactors = FALSE
+  )
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "Categorias"),
+                         output_file = tmp, options = list(columns = 1))
+  pdftotext <- Sys.which("pdftotext")
+  skip_if_not(nzchar(pdftotext))
+  txt <- paste(system2(pdftotext, c(tmp, "-"), stdout = TRUE), collapse = "\n")
+  for (lbl in choices$label) {
+    expect_true(grepl(lbl, txt, fixed = TRUE),
+                info = sprintf("categoria que no llego literal al PDF: %s", lbl))
+  }
+})
