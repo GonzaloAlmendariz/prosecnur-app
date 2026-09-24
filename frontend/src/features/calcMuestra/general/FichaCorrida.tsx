@@ -151,7 +151,7 @@ export function FichaCorrida({
                 <tr>
                   <th scope="col">Estrato</th>
                   <th scope="col" className="cmg-num cmg-simbolo">N<sub>h</sub></th>
-                  <th scope="col" className="cmg-num cmg-simbolo">n<sub>h</sub></th>
+                  <th scope="col" className="cmg-num cmg-simbolo">n<sub>h</sub> a campo</th>
                   <th scope="col" className="cmg-num">Reservas</th>
                   <th scope="col" className="cmg-num cmg-simbolo">π</th>
                 </tr>

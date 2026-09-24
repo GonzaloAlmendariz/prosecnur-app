@@ -193,3 +193,21 @@ test_that("HTTP: una π diminuta viaja sin redondear a cero", {
   expect_equal(pis, esperado, tolerance = 1e-12)
   expect_true(any(pis < 0.01))
 })
+
+test_that("G7: la distribución por estrato del cálculo trae el n a campo que después sortea el motor", {
+  x <- .gm_xlsx(N = 900L, semilla = 12L)
+  withr::defer(unlink(x$path, force = TRUE))
+  est <- .gm_estudio()
+  dec <- calc_muestra_general_declarar_marco(est, NULL, "cmp-general", x$df, "f1",
+                                             columnas = list(id = "dni", estrato = "distrito"))
+  res <- calc_muestra_calcular_componente(dec$componente)
+  dist <- res$distribucion_estratos
+  campo <- setNames(vapply(dist, `[[`, integer(1), "n_campo"), vapply(dist, `[[`, "", "estrato"))
+  completas <- vapply(dist, `[[`, integer(1), "n")
+  expect_identical(sum(campo), as.integer(res$n_operativo))
+  expect_identical(sum(completas), as.integer(res$n_objetivo))
+  dec$estudio$componentes[[1]]$resultado <- res
+  sel <- calc_muestra_general_seleccionar(dec$estudio, dec$estado, "cmp-general", x$df, semilla = 1L)
+  sorteo <- setNames(sel$corrida$estratos$n_h, sel$corrida$estratos$clave)
+  expect_identical(campo[names(sorteo)], sorteo)
+})

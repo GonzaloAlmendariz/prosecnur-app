@@ -453,6 +453,8 @@ export type CalcMuestraDistribucionEstrato = {
   estrato: string;
   N: number;
   n: number;
+  /** n a campo del estrato (reparto de n_operativo, el mismo que sortea el motor). */
+  n_campo?: number;
   p_e?: number;
   z_e?: number;
   confianza_e?: number;
