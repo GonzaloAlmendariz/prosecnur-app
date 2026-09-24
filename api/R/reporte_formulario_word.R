@@ -111,10 +111,13 @@
   items <- block$items %||% list()
   if (!n_scale || !length(items)) return(NULL)
 
-  scale_codes  <- vapply(scale, function(o) .form_pdf_clean_text(o$code), character(1))
-  scale_labels <- vapply(scale, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1))
-  sp_code  <- if (has_special) .form_pdf_clean_text(special$code) else ""
-  sp_label <- if (has_special) .form_pdf_clean_text(special$label %||% special$code) else ""
+  # Categorias de respuesta: limpieza INOCUA. La completa borra `*` y backticks
+  # y aqui eso seria cambiar el texto de una categoria en el papel (regla que no
+  # se negocia del checklist del motor de formulario).
+  scale_codes  <- vapply(scale, function(o) .form_pdf_clean_text_safe(o$code), character(1))
+  scale_labels <- vapply(scale, function(o) .form_pdf_clean_text_safe(o$label %||% o$code), character(1))
+  sp_code  <- if (has_special) .form_pdf_clean_text_safe(special$code) else ""
+  sp_label <- if (has_special) .form_pdf_clean_text_safe(special$label %||% special$code) else ""
   header_mode <- .form_pdf_matrix_header_mode(scale, block$header_mode %||% "auto")
 
   # Rol por fila: enunciado madre ("parent", sin codigos, fila fusionada),
@@ -236,8 +239,9 @@
 # Lista de opciones (pregunta suelta) -> flextable de 2 columnas: codigo | etiqueta.
 .form_word_options_flextable <- function(opts, usable = .FORM_WORD_USABLE_IN) {
   if (!length(opts)) return(NULL)
-  codes  <- vapply(opts, function(o) .form_pdf_clean_text(o$code %||% ""), character(1))
-  labels <- vapply(opts, function(o) .form_pdf_clean_text(o$label %||% o$code %||% ""), character(1))
+  # Categorias de respuesta: limpieza INOCUA (ver .form_word_matrix_flextable).
+  codes  <- vapply(opts, function(o) .form_pdf_clean_text_safe(o$code %||% ""), character(1))
+  labels <- vapply(opts, function(o) .form_pdf_clean_text_safe(o$label %||% o$code %||% ""), character(1))
   # Salto por-opcion (lenguaje "saltos"): "Salto a la 5" / "Termina la encuesta"
   # sobre la opcion que lo dispara. Si ninguna lo trae, tabla de 2 columnas.
   skips  <- vapply(opts, function(o) .form_pdf_clean_text(o$paper_skip %||% ""), character(1))
@@ -479,11 +483,25 @@ formulario_word_render <- function(model, output_file) {
 #     exactamente una vez.
 # Defensa: si el plan falta, esta vacio o no cubre los bloques, se degrada a UN
 # tramo de una columna (el comportamiento de hoy), nunca a un render parcial.
+#
+# El degradado AVISA su causa, y el motivo es concreto: un plan que no llega
+# produce un .docx a una columna que es indistinguible, a ojo, de un plan que
+# decidio una columna. Sin el aviso hay que abrir el XML para saber cual de las
+# dos cosas paso, y esa ambiguedad ya costo un diagnostico cruzado (se atribuyo
+# al renderer un plan que el planificador nunca emitio).
 .form_word_column_plan <- function(model) {
   n <- length(model$blocks %||% list())
-  fallback <- if (n) list(list(columns = 1L, from = 1L, to = n, reason = "fallback")) else list()
+  fallback <- function(motivo) {
+    # Con `columns` 1 o 2 el plan es irrelevante por contrato: no se avisa.
+    if (identical(tolower(as.character(model$columns %||% "1")[1]), "auto")) {
+      message("[formulario_word] plan de columnas ignorado (", motivo,
+              "); el documento sale a UNA columna.")
+    }
+    if (n) list(list(columns = 1L, from = 1L, to = n, reason = "fallback")) else list()
+  }
   plan <- model$column_plan
-  if (!is.list(plan) || !length(plan) || !n) return(fallback)
+  if (!n) return(list())
+  if (!is.list(plan) || !length(plan)) return(fallback("model$column_plan ausente o vacio"))
   cursor <- 1L
   out <- vector("list", length(plan))
   for (i in seq_along(plan)) {
@@ -491,13 +509,19 @@ formulario_word_render <- function(model, output_file) {
     from <- suppressWarnings(as.integer(tr$from %||% NA_integer_))
     to   <- suppressWarnings(as.integer(tr$to %||% NA_integer_))
     cols <- suppressWarnings(as.integer(tr$columns %||% 1L))
-    if (is.na(from) || is.na(to) || from != cursor || to < from || to > n) return(fallback)
+    if (is.na(from) || is.na(to) || from != cursor || to < from || to > n) {
+      return(fallback(sprintf(
+        "tramo %d = [%s..%s] rompe la contiguidad; se esperaba empezar en %d y no pasar de %d",
+        i, format(from), format(to), cursor, n)))
+    }
     if (is.na(cols) || !cols %in% c(1L, 2L)) cols <- 1L
     out[[i]] <- list(columns = cols, from = from, to = to,
                      reason = .form_pdf_clean_text(tr$reason %||% ""))
     cursor <- to + 1L
   }
-  if (cursor != n + 1L) return(fallback)  # el plan no cubre todos los bloques
+  if (cursor != n + 1L) {
+    return(fallback(sprintf("el plan cubre hasta el bloque %d de %d", cursor - 1L, n)))
+  }
   out
 }
 
