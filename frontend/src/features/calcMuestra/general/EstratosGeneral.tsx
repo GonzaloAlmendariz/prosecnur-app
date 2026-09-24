@@ -48,7 +48,7 @@ export function EstratosGeneralVista({
   onComponente: (id: string, patch: ComponentePatch) => void;
 }) {
   const { ref, desborda } = useDesbordaHorizontal<HTMLDivElement>();
-  const conP = usaProporcionPorEstrato(comp.tecnica);
+  const conP = usaProporcionPorEstrato(comp.tecnica, comp.parametros?.tipo_indicador);
   const filas = filasDeEstratos(comp);
   const formulaN = comp.resultado?.formula_n;
   const pGlobal = comp.parametros.p;
