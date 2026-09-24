@@ -2338,19 +2338,36 @@ calc_muestra_calcular_componente <- function(comp) {
 
   registros_a_contactar <- as.integer(ceiling(meta_efectiva / (tau_cont * tau_eleg * tau_resp)))
   n_objetivo <- as.integer(meta_efectiva)
+  # Un listado tiene los registros que tiene: si con estas tasas la meta pide
+  # más, se contacta el listado entero y se dice cuántas completas cabe
+  # esperar (el barrido de propiedad encontró 6.523 registros pedidos a un
+  # listado de 1.509).
+  N_listado <- as.integer(if ((comp$marco$marco_contactable %||% 0L) > 0L) comp$marco$marco_contactable
+                          else comp$marco$marco_validado %||% 0L)
+  aviso_listado <- NULL
+  meta_alcanzable <- NA_integer_
+  if (N_listado > 0L && registros_a_contactar > N_listado) {
+    meta_alcanzable <- as.integer(floor(N_listado * tau_cont * tau_eleg * tau_resp))
+    aviso_listado <- sprintf(
+      "La meta (%d) no se alcanza con este listado: con estas tasas harían falta %d registros y hay %d; contactándolo entero se esperan unas %d completas.",
+      n_objetivo, registros_a_contactar, N_listado, meta_alcanzable)
+    registros_a_contactar <- N_listado
+  }
 
   list(
     n_teorico              = NA_integer_,
     n_objetivo             = n_objetivo,
     n_operativo            = registros_a_contactar,
-    sobremuestra           = as.integer(registros_a_contactar - n_objetivo),
+    sobremuestra           = as.integer(max(0L, registros_a_contactar - n_objetivo)),
     tasa_contacto          = tau_cont,
     tasa_elegibilidad      = tau_eleg,
     tasa_respuesta         = tau_resp,
     registros_a_contactar  = registros_a_contactar,
+    meta_alcanzable        = meta_alcanzable,
     precision_alcanzada    = NA_real_,
     origen_tamano          = comp$origen_tamano,
-    advertencia            = paste("Listado externo: meta contractual.",
+    advertencia            = paste(c(aviso_listado, "Listado externo: meta contractual."),
+                                   collapse = " ") |> paste(
                                    "El diseño original del listado puede ser desconocido;",
                                    "no se reporta margen de error.")
   )
