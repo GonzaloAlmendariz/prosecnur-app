@@ -40,6 +40,9 @@ patrón y no cambia sus cifras.
 | E9 | Regresión de aulas | ☑ | [hsvg2026 idéntico](regresion-aulas-hsvg2026-2026-09-24.md) |
 | E10 | Traspaso territorial | ☑ | la mesa Territorial deriva a Hojas de ruta |
 | E11 | Paridad estética y de accesibilidad con aulas | ☑ | [checklist](checklist-calc-muestra-paridad-visual-2026-09-24.md) V1–V17 (V5, V10 ◐); QA visual 3 rondas, ronda 3 `ok=true` geometría 0 |
+| E12 | Egresados con la regla por precisión | ☑ | 27d2d2607; censo hasta 385, MAS ±5 % desde 386; ADR 0091 ampliado |
+| E13 | Defectos propios de aulas (baseline visual) | ☑ | 9d97a94cd; A1–A7 del [checklist de cierre](checklist-calc-muestra-cierre-2026-09-24.md) |
+| E14 | Deuda de E11 y barra sin atajos | ☑ | c12e02a90; D1, D3, B1 (Reporte en Resultados, Cambiar tipo en la ficha), indicador de guardado honesto |
 
 ## Qué cambió para el usuario
 
