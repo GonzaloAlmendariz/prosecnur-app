@@ -14,6 +14,23 @@
   tolower(trimws(.form_pdf_chr(x))) %in% c("1", "yes", "true", "si", "s\u00ed", "x")
 }
 
+# Limpieza INOCUA y reversible: homogeneiza espacios y puntuacion tipografica
+# sin borrar ningun caracter con significado. Es la unica que puede tocar una
+# ETIQUETA DE CATEGORIA (checklist item 11 y "regla que no se negocia": las
+# categorias de respuesta existentes no se tocan).
+.form_pdf_clean_text_safe <- function(x) {
+  x <- .form_pdf_chr(x)
+  x <- gsub("\u00a0", " ", x, fixed = TRUE)
+  x <- gsub("\u2013|\u2014|\u2212", "-", x, perl = TRUE)
+  x <- gsub("\u2018|\u2019", "'", x, perl = TRUE)
+  x <- gsub("\u201c|\u201d", "\"", x, perl = TRUE)
+  x <- gsub("\\s+", " ", x, perl = TRUE)
+  trimws(x)
+}
+
+# Limpieza COMPLETA: la inocua mas el desmarcado de markdown (`**`, `__`) y el
+# borrado de backticks y asteriscos sueltos. Con PERDIDA: `De 5* a 10*` sale
+# `De 5 a 10`. Se aplica a enunciados y titulos, NUNCA a categorias.
 .form_pdf_clean_text <- function(x) {
   x <- .form_pdf_chr(x)
   x <- gsub("\u00a0", " ", x, fixed = TRUE)
@@ -96,19 +113,93 @@
   ""
 }
 
+# Quita del enunciado el prefijo de numeracion que trae el XLSForm, para que no
+# se imprima dos veces junto al numero que impone el motor (item 6 del
+# checklist: salieron "C. C. SOLEDAD" y "3. P6.").
+#
+# CUBIERTO (se quita):
+#   "6. ", "6) ", "6: ", "6- ", "6.- " (separador de dos caracteres),
+#   "6.¿"  (sin espacio tras el separador), "(6) " (entre parentesis),
+#   "P6. ", "P.6 ", "Pregunta 6. " (prefijo con letra),
+#   "C. ", "A) " (letra suelta) y "IV. " (romano) SOLO si coinciden con el
+#   identificador que el motor va a imponer.
+#
+# NO CUBIERTO A PROPOSITO (se conserva):
+#   "3 de cada 5 jovenes..."  -> sin separador el digito es parte del enunciado;
+#                                solo se quita sin separador si lo que sigue abre
+#                                pregunta o exclamacion (¿ ¡ « ").
+#   "2. ° piso"               -> tras el separador viene un ordinal: no es
+#                                numeracion, y quitarlo rompe el texto.
+#   "1990. Ano de nacimiento" -> mas de tres digitos no es numero de pregunta.
+#   "12.3 Item de bateria"    -> sin separador; y el "12." de en medio no se
+#                                quita solo, que dejaria el enunciado en "3 Item".
+#   "A. DATOS GENERALES"      -> letra suelta que el motor NO impone (las bandas
+#                                de seccion no reciben numero): es la unica
+#                                fuente de esa letra, no se toca.
+#   Cualquier prefijo cuyo retiro deje la etiqueta vacia.
 .form_pdf_strip_leading_number <- function(label, number) {
   label <- .form_pdf_clean_text(label)
   number <- .form_pdf_clean_text(number)
   if (!nzchar(label)) return(label)
-  if (nzchar(number)) {
-    escaped <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", number, perl = TRUE)
-    label <- gsub(paste0("^", escaped, "\\s*[).:-]?\\s+"), "", label, perl = TRUE)
+
+  # Aplica `rx` solo si el resultado sigue siendo una etiqueta legible.
+  try_strip <- function(lbl, rx) {
+    out <- sub(rx, "", lbl, perl = TRUE)
+    if (identical(out, lbl)) return(lbl)
+    out <- trimws(out)
+    if (!nzchar(out)) return(lbl)                                   # no vaciar
+    if (grepl("^[\u00b0\u00ba\u00aa]", out, perl = TRUE)) return(lbl)  # "2. ° piso"
+    out
   }
-  trimws(gsub("^\\s*[0-9]+\\s*[).:-]\\s+", "", label, perl = TRUE))
+
+  if (nzchar(number)) {
+    esc <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", number, perl = TRUE)
+    # Con separador: "(6)", "P.6.-", "Pregunta 6:", "6.¿", "IV.", "C)".
+    before <- paste0(
+      "^\\s*\\(?\\s*(?:[Pp](?:regunta|REGUNTA)?\\s*\\.?\\s*)?", esc, "\\s*\\)?"
+    )
+    label <- try_strip(label, paste0(before, "\\s*[).:\u2013-]{1,2}\\s*"))
+    # Sin separador: solo cuando lo que sigue abre pregunta/exclamacion/cita.
+    label <- try_strip(label, paste0(before, "\\s+(?=[\u00bf\u00a1\u00ab\"])"))
+    # Sin separador pero CON letra de pregunta ("P.6 ", "P6 ", "Pregunta 6 "):
+    # la letra ya hace inequivoco que es numeracion.
+    label <- try_strip(label, paste0(
+      "^\\s*[Pp](?:regunta|REGUNTA)?\\s*\\.?\\s*", esc, "\\s*[).:\u2013-]{0,2}\\s+"))
+    # Sin separador pero con SUBNUMERO impuesto ("12.3 Afirmacion"): un numero
+    # compuesto al inicio ya es inequivocamente numeracion, no enunciado.
+    if (grepl(".", number, fixed = TRUE)) {
+      label <- try_strip(label, paste0("^\\s*", esc, "\\s+"))
+    }
+    # Entre parentesis cerrados sin separador extra: "(6) Edad".
+    label <- try_strip(label, paste0("^\\s*\\(\\s*", esc, "\\s*\\)\\s*"))
+  }
+
+  # Prefijo INEQUIVOCO de numeracion (digito de 1 a 3 cifras con separador
+  # explicito), aunque no coincida con el numero impuesto: "P6.-", "6.1)", "6.\u00bf".
+  # La unica letra admitida sin coincidencia es la P de "P6"/"Pregunta 6": otra
+  # letra suelta seria texto del enunciado ("De 5. ..." no se toca).
+  # El `(?![0-9])` tras el separador evita comerse la mitad de un numero
+  # compuesto: en "12.3 Item" el "12." NO es prefijo, el numero es "12.3".
+  num_rx <- "(?:[Pp](?:regunta|REGUNTA)?\\s*\\.?\\s*)?[0-9]{1,3}(?:\\.[0-9]{1,2})?"
+  label <- try_strip(label, paste0("^\\s*", num_rx, "\\s*[).:\u2013-]{1,2}\\s*(?![0-9])"))
+  # Con letra de pregunta no hace falta separador: "P.6 ", "Pregunta 6 ".
+  label <- try_strip(
+    label,
+    "^\\s*[Pp](?:regunta|REGUNTA)\\s*\\.?\\s*[0-9]{1,3}(?:\\.[0-9]{1,2})?\\s*[).:\u2013-]{0,2}\\s+(?![0-9])")
+  # Entre parentesis: "(12) Edad" (el parentesis ya hace de separador).
+  label <- try_strip(label, paste0("^\\s*\\(\\s*", num_rx, "\\s*\\)\\s*[.:\u2013-]?\\s*"))
+  trimws(label)
 }
 
 .form_pdf_paper_text <- function(text, blank = "__________") {
   text <- .form_pdf_clean_text(text)
+  if (!nzchar(text)) return(text)
+  gsub("\\$\\{[^}]+\\}", blank, text, perl = TRUE)
+}
+
+# Variante sin perdida para etiquetas de categoria (ver `.form_pdf_clean_text_safe`).
+.form_pdf_paper_text_safe <- function(text, blank = "__________") {
+  text <- .form_pdf_clean_text_safe(text)
   if (!nzchar(text)) return(text)
   gsub("\\$\\{[^}]+\\}", blank, text, perl = TRUE)
 }
@@ -119,20 +210,36 @@
   if (length(m) >= 2L) m[2] else ""
 }
 
+# Las ETIQUETAS DE CATEGORIA pasan por la limpieza SEGURA (item 11): la
+# completa borraba `*` y backticks en silencio (`De 5* a 10*` -> `De 5 a 10`).
+# Cuando ambas limpiezas difieren se declara el caso en un warning del modelo
+# (atributo "warnings" del resultado): declarado y reversible, nunca en silencio.
 .form_pdf_options_by_list <- function(choices) {
   choices <- .form_pdf_ensure_cols(choices, c("list_name", "name", "label", "paper_skip"))
-  if (!nrow(choices)) return(list())
+  if (!nrow(choices)) return(structure(list(), warnings = character(0)))
   rows <- split(choices, choices$list_name)
   rows <- rows[nzchar(names(rows))]
-  lapply(rows, function(df) {
+  warnings <- character(0)
+  out <- lapply(names(rows), function(list_name) {
+    df <- rows[[list_name]]
     lapply(seq_len(nrow(df)), function(i) {
+      label_safe <- .form_pdf_paper_text_safe(df$label[i])
+      label_full <- .form_pdf_paper_text(df$label[i])
+      if (!identical(label_safe, label_full)) {
+        warnings <<- c(warnings, sprintf(
+          "Categoria conservada tal cual en la lista `%s`, codigo `%s`: «%s» (la limpieza de enunciados la habria dejado como «%s»).",
+          list_name, .form_pdf_chr(df$name[i]), label_safe, label_full
+        ))
+      }
       list(
         code = .form_pdf_chr(df$name[i]),
-        label = .form_pdf_paper_text(df$label[i]),
+        label = label_safe,
         paper_skip = .form_pdf_clean_text(df$paper_skip[i])
       )
     })
   })
+  names(out) <- names(rows)
+  structure(out, warnings = unique(warnings))
 }
 
 .form_pdf_parse_simple_relevant <- function(expr) {
@@ -167,6 +274,13 @@
   out <- rep("", n)
   last_num <- 0L
   assign_top <- function(row) {
+    # Item 7: una instruccion (`note`) NUNCA es pregunta. No recibe numero ni
+    # mueve el contador, aunque traiga `paper_number` explicito: si lo hiciera,
+    # le robaria su numero a la matriz que viene detras.
+    if (identical(.form_pdf_type_base(survey$type[row]), "note")) {
+      out[row] <<- ""
+      return(invisible(NULL))
+    }
     explicit <- .form_pdf_clean_text(survey$paper_number[row])
     # Sentinel "-": pregunta SIN numero (datos generales), no avanza el contador.
     if (identical(explicit, "-")) { out[row] <<- ""; return(invisible(NULL)) }
@@ -195,6 +309,10 @@
       next
     }
     base <- .form_pdf_type_base(survey$type[i])
+    # Item 7: la instruccion previa a una bateria no es una pregunta. Se evalua
+    # ANTES del `paper_number` explicito; si no, un `note` numerado adelantaba
+    # `last_num` y la matriz siguiente perdia su numero.
+    if (identical(base, "note")) { out[i] <- ""; i <- i + 1L; next }
     explicit <- .form_pdf_clean_text(survey$paper_number[i])
     if (identical(explicit, "-")) { out[i] <- ""; i <- i + 1L; next }
     if (nzchar(explicit)) {
@@ -352,8 +470,23 @@
 .form_pdf_matrix_keys <- function(survey) {
   n <- nrow(survey)
   keys <- rep("", n)
+  warnings <- character(0)
   explicit <- survey$paper_group
-  keys[nzchar(explicit)] <- paste0("manual:", explicit[nzchar(explicit)])
+  # Item 7: una fila que no es pregunta (tipicamente la instruccion `note` que
+  # encabeza la bateria) NO entra a la matriz aunque comparta `paper_group`;
+  # si entrara, se dibujaria como fila 1 con celdas de escala.
+  bases <- vapply(seq_len(n), function(i) .form_pdf_type_base(survey$type[i]), character(1))
+  eligible <- bases %in% .form_pdf_question_bases()
+  dropped <- nzchar(explicit) & !eligible
+  if (any(dropped)) {
+    warnings <- c(warnings, sprintf(
+      "Excluidas de la matriz `%s` filas que no son preguntas: %s.",
+      paste(unique(explicit[dropped]), collapse = ", "),
+      paste(survey$name[dropped], collapse = ", ")
+    ))
+  }
+  keep <- nzchar(explicit) & eligible
+  keys[keep] <- paste0("manual:", explicit[keep])
 
   i <- 1L
   while (i <= n) {
@@ -381,7 +514,7 @@
     if ((j - i) >= 3L) keys[i:(j - 1L)] <- paste0("auto:", prefix, ":", list_name)
     i <- max(j, i + 1L)
   }
-  keys
+  structure(keys, warnings = unique(warnings))
 }
 
 # Construye `matrix_keys` a partir de una agrupacion EXPLICITA enviada por el
@@ -429,6 +562,18 @@
       next
     }
     rows <- sort(unique(rows))
+    # Item 7: las filas que no son preguntas (la instruccion `note` que encabeza
+    # la bateria) salen del grupo antes de comprobar contiguidad. Si al quitarlas
+    # el resto deja de ser contiguo, el grupo se ignora por la via de siempre.
+    not_q <- vapply(rows, function(r) {
+      !(.form_pdf_type_base(survey$type[r]) %in% .form_pdf_question_bases())
+    }, logical(1))
+    if (any(not_q)) {
+      warnings <- c(warnings, sprintf(
+        "Excluidas del grupo de matriz filas que no son preguntas: %s.",
+        paste(survey$name[rows[not_q]], collapse = ", ")))
+      rows <- rows[!not_q]
+    }
     if (length(rows) < 1L) {
       warnings <- c(warnings, sprintf(
         "Grupo de matriz ignorado: sin preguntas válidas (%s).",
@@ -584,9 +729,24 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   footer_title <- .form_pdf_clean_text(options$footer_title %||% title)
   max_options_per_question <- suppressWarnings(as.integer(options$max_options_per_question %||% 18L))
   if (is.na(max_options_per_question) || max_options_per_question < 4L) max_options_per_question <- 18L
-  # Toggle 1 o 2 columnas al exportar (default 2 = comportamiento historico).
-  columns <- suppressWarnings(as.integer(options$columns %||% 2L))
-  if (is.na(columns) || !columns %in% c(1L, 2L)) columns <- 2L
+  # Toggle de columnas al exportar: 1 | 2 (default = comportamiento historico) |
+  # "auto" (tramos por seccion decididos por ancho medido, items 1 y 2 del
+  # checklist; ver `reporte_formulario_tramos.R`). Cualquier otro valor cae a 2
+  # como antes, pero ahora lo DECLARA en `warnings` en vez de tragarselo.
+  option_warnings <- character(0)
+  columns_raw <- options$columns %||% 2L
+  columns_is_auto <- identical(tolower(trimws(.form_pdf_chr(columns_raw))), "auto")
+  if (columns_is_auto) {
+    columns <- "auto"
+  } else {
+    columns <- suppressWarnings(as.integer(columns_raw))
+    if (is.na(columns) || !columns %in% c(1L, 2L)) {
+      option_warnings <- c(option_warnings, sprintf(
+        "Opcion `columns` no reconocida: se recibio «%s» y se usa 2 (valores validos: 1, 2, \"auto\").",
+        .form_pdf_chr(columns_raw)))
+      columns <- 2L
+    }
+  }
   # Ancho de las matrices: "full" (default, ancho completo) | "column" (fluyen
   # dentro de UNA columna en render de 2 columnas, como la referencia Polarizacion).
   matrix_layout <- tolower(trimws(.form_pdf_chr(options$matrix_layout %||% "full")))
@@ -612,6 +772,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     else !(tolower(trimws(as.character(sht)[[1]])) %in% c("false", "0", "no", "f", "n"))
 
   choices_by_list <- .form_pdf_options_by_list(choices)
+  option_warnings <- c(option_warnings, attr(choices_by_list, "warnings") %||% character(0))
   # Agrupacion de matrices: si el frontend manda `matrix_groups` (aunque sea []),
   # se respeta EXACTAMENTE y se ignora la autodeteccion; si esta AUSENTE, autodetecta.
   group_warnings <- character(0)
@@ -627,6 +788,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     group_warnings <- mg$warnings
   } else {
     matrix_keys <- .form_pdf_matrix_keys(survey)
+    group_warnings <- c(group_warnings, attr(matrix_keys, "warnings") %||% character(0))
   }
   # Las matrices con tenor no vacio consumen un solo numero (subnumeracion X.j);
   # el resto (autodeteccion, grupos sin tenor) numera secuencialmente.
@@ -636,11 +798,11 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     inferred <- list(skips = list(), warnings = character(0))
     opened <- .form_pdf_compute_openings(survey, choices_by_list, numbers, consent_var)
     openings <- opened$openings
-    warnings <- c(group_warnings, opened$warnings)
+    warnings <- c(option_warnings, group_warnings, opened$warnings)
   } else {
     inferred <- .form_pdf_infer_choice_skips(survey, choices_by_list, numbers, consent_var)
     openings <- rep("", nrow(survey))
-    warnings <- c(group_warnings, inferred$warnings)
+    warnings <- c(option_warnings, group_warnings, inferred$warnings)
   }
 
   blocks <- list()
@@ -710,7 +872,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       # de escala+especial (> 6) se queda full_width para no romper la legibilidad.
       mat_opts <- choices_by_list[[list_name]] %||% list()
       mat_full <- TRUE
-      if (identical(matrix_layout, "column") && columns == 2L) {
+      if (identical(matrix_layout, "column") && identical(columns, 2L)) {
         mat_part <- suppressWarnings(.form_pdf_matrix_partition_options(mat_opts, special_override))
         mat_total_cols <- length(mat_part$scale) + (if (!is.null(mat_part$special)) 1L else 0L)
         mat_full <- mat_total_cols > 6L  # umbral de legibilidad en una columna
@@ -888,16 +1050,47 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     }
   }
 
+  # Ancho minimo medido de cada bloque (item 2): es la cota que decide si un
+  # tramo cabe en dos columnas. Se publica en el modelo para que el gate y los
+  # dos renderers puedan auditar la decision sin recalcularla.
+  usable_twips <- .FORM_TRAMOS_USABLE_TWIPS
+  gutter_twips <- .FORM_TRAMOS_GUTTER_TWIPS
+  for (bi in seq_along(blocks)) {
+    blocks[[bi]]$min_width_twips <- .form_tramos_min_width(blocks[[bi]], usable_twips)
+  }
+
   # Columna unica: tratar TODOS los bloques como full_width y reutilizar la
   # maquinaria de ancho completo del render (sin divisor central ni 2a columna).
-  if (columns == 1L) {
+  if (identical(columns, 1L)) {
     blocks <- lapply(blocks, function(b) { b$full_width <- TRUE; b })
+  }
+
+  # Plan de columnas por tramos. Con 1 o 2 el plan es UN tramo que cubre todo,
+  # para que el consumidor sea uniforme y no tenga rama especial. Con "auto"
+  # sale de `formulario_tramos_plan()` y los tramos de 1 columna se marcan
+  # full_width: asi el ITEM 1 lo implementa la maquinaria de ancho completo que
+  # el renderer PDF ya tiene, sin tocar el render.
+  column_plan <- if (!length(blocks)) {
+    list()
+  } else if (columns_is_auto) {
+    formulario_tramos_plan(blocks, usable_twips, gutter_twips)
+  } else {
+    list(list(columns = as.integer(columns), from = 1L, to = length(blocks),
+              reason = "opcion-explicita"))
+  }
+  if (columns_is_auto) {
+    for (tr in column_plan) {
+      if (identical(tr$columns, 1L)) {
+        for (bi in seq.int(tr$from, tr$to)) blocks[[bi]]$full_width <- TRUE
+      }
+    }
   }
 
   list(
     title = title,
     footer_title = footer_title,
     columns = columns,
+    column_plan = column_plan,
     matrix_layout = matrix_layout,
     logic_language = logic_language,
     show_questionnaire_number = show_qnum,
@@ -1369,7 +1562,11 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
                                 chars_factor = if (isTRUE(block$full_width)) 112 else 108)
     y <- y - 0.002
   }
-  prefix <- if (nzchar(block$number %||% "")) paste0(block$number, ".  ") else ""
+  # Item 7: una nota informativa no se numera NUNCA (el modelo ya le deja el
+  # numero vacio; esto lo hace explicito para no depender de eso, y para que el
+  # PDF no diverja del Word, que nunca la numero).
+  is_note <- identical(block$type %||% "", "note")
+  prefix <- if (!is_note && nzchar(block$number %||% "")) paste0(block$number, ".  ") else ""
   # Notas informativas: texto justificado (como el modelo). Preguntas: izquierda.
   lbl_align <- if (identical(block$type %||% "", "note")) "justify" else "left"
   y <- .form_pdf_text(paste0(prefix, block$label), x + 0.006, y, w - 0.012,

@@ -9,8 +9,10 @@ solo.
 **Referencia visual:** `~/Documents/Pulso/SerAdolecente/Instrumento/Instrumento_SerAdolescente_EDICIONMAGDA_corregido_240926.docx`
 (y su PDF). Es el objetivo estético. No se versiona en el repo: es material de cliente.
 
-**Motor actual:** `api/R/reporte_formulario_pdf.R` (1 957 líneas, congelado a crecimiento —
-revisar `agentic/manifest.json`) construye el modelo con `formulario_pdf_build_model()`, que
+**Motor actual:** `api/R/reporte_formulario_pdf.R` (1 913 líneas; **no** figura hoy en
+`policy.frozen_growth_files` de `agentic/manifest.json` — la afirmación original de este
+documento era incorrecta, verificado con `node agentic/sync-agentic-os.mjs --audit`. La regla
+de la casa se respeta igual: capacidad nueva en archivo nuevo) construye el modelo con `formulario_pdf_build_model()`, que
 es agnóstico del renderer; `api/R/reporte_formulario_word.R` (379 líneas) lo pinta con
 officer + flextable. Toda capacidad nueva se declara **en el modelo** y la implementan los
 dos renderers, o se declara explícitamente como exclusiva de uno.
@@ -21,16 +23,19 @@ dos renderers, o se declara explícitamente como exclusiva de uno.
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | **Dos columnas por secciones**, el salto de calidad más grande | modelo + ambos renderers | pendiente |
-| 2 | **Decidir el corte por ancho medido**, no por ojo | modelo | pendiente |
-| 3 | **Una matriz no se parte entre páginas** (`cantSplit` + `keepNext`) | renderer Word | pendiente |
-| 4 | **Gate por holgura al pie**, no por conteo de páginas | test / QA | pendiente |
-| 5 | **Consentimiento como tabla 1×1 con bordes** | renderer Word | pendiente |
-| 6 | **Una sola numeración**: el número lo pone quien numera | modelo | pendiente |
-| 7 | **El número va en la matriz, no en el enunciado previo** | modelo | pendiente |
-| 8 | **Segunda persona consistente** en los enunciados generados | modelo | pendiente |
-| 9 | **El pie sobrevive en la última página** (`titlePg`) | renderer Word | pendiente |
+| 1 | **Dos columnas por secciones**, el salto de calidad más grande | modelo + ambos renderers | en curso |
+| 2 | **Decidir el corte por ancho medido**, no por ojo | modelo | en curso |
+| 3 | **Una matriz no se parte entre páginas** (`cantSplit` + `keepNext`) | renderer Word | en curso |
+| 4 | **Gate por holgura al pie**, no por conteo de páginas | test / QA | **replanteado** — ver §4 |
+| 5 | **Consentimiento como tabla 1×1 con bordes** | renderer Word | en curso |
+| 6 | **Una sola numeración**: el número lo pone quien numera | modelo | en curso |
+| 7 | **El número va en la matriz, no en el enunciado previo** | modelo | en curso |
+| 8 | **Segunda persona consistente** en los enunciados generados | — | **descartado** — ver §8 |
+| 9 | **El pie sobrevive en la última página** (`titlePg`) | renderer Word | en curso |
 | 10 | **Verificador OOXML del artefacto** | test | pendiente |
+| 11 | **`clean_text` borra `*` y backticks de las categorías** | modelo | en curso — ver §11 |
+| 12 | **El renderer Word ignora `columns` desde siempre** | renderer Word | **bloqueado** — decide Gonzalo |
+
 
 ---
 
@@ -77,21 +82,44 @@ agrupar bloques contiguos del mismo tipo en un tramo y darle a cada tramo su sec
 batería de 15 ítems queda cortada con la cabecera en una página y la mitad de los ítems en la
 siguiente, que en papel es inservible porque el encuestador pierde los rótulos de la escala.
 
-## 4. Gate por holgura, no por conteo de páginas
+## 4. Gate por holgura, no por conteo de páginas — **replanteado con medición**
 
-**LibreOffice y Word no paginan igual.** El instrumento dio 14 páginas en LibreOffice y 15 en
-Word, con el bloque de firma arrastrado. `pdfinfo | grep Pages` sobre un render de LibreOffice
-no prueba nada sobre lo que verá el cliente.
+Se midió el instrumento de referencia y **tres de las premisas de este ítem no se
+sostienen**:
 
-Lo que sí se mide: `pdftotext -bbox` y, por página, el `yMax` mayor entre las palabras que no
-son del pie (y < 800 pt en A4). La distancia hasta el pie es la **holgura real**. Con menos de
-~40 pt Word puede desbordar; ~85 pt aguanta. El instrumento de referencia cierra dos páginas a
-14 pt: es poco margen y conviene que el motor avise.
+- **No da 14 páginas en LibreOffice y 15 en Word.** El `.docx` corregido da **11 páginas**
+  en LibreOffice, y el PDF que está junto a él da 11. El delta 14/15 no se reproduce.
+- **El PDF "de referencia" es un export de LibreOffice**, no de Word
+  (`pdfinfo` → `Producer: LibreOffice 26.2.3.2`; `Creator: Writer`). El único export real de
+  Word de la carpeta es el del borrador anterior (`Acrobat PDFMaker 15 para Word`), que
+  también da 11 páginas pero es otro documento. **No tenemos un render de Word del
+  instrumento final**, así que la comparación Word↔LibreOffice sigue sin evidencia.
+- **El umbral de 40 pt reprobaría al documento objetivo.** Holgura al pie medida con
+  `pdftotext -bbox` (corte y < 800 pt), página a página: 16.3 · 3.7 · 1.6 · 9.5 · 27.3 · 2.1 ·
+  26.9 · 14.0 · 13.5 · 169.9 · 72.5 pt. **Nueve de once páginas por debajo de 40 pt, mínima
+  1.6 pt.** En un documento de dos columnas el texto fluye hasta llenar la página: holgura
+  cercana a cero es el estado *normal*, no una señal de peligro.
 
-Cuando hay que recortar, lo que rinde en orden: alto mínimo de filas, alto de las cajas de
-escritura, y por último el `spacing` de párrafo, que es el que más se nota al leer.
+Lo que sí queda en pie: **el conteo de páginas no es un contrato** y `pdfinfo | grep Pages`
+sobre un render de LibreOffice no prueba nada sobre lo que verá el cliente.
 
-Ver `docs/qa/` y la memoria `contar-paginas-en-libreoffice-no-es-medir-en-word`.
+**Gate que sí discrimina** (reemplaza al de holgura): lo que rompe un instrumento en papel no
+es que el texto llegue al pie, es que se parta lo que debe ir junto. Se mide, con
+`pdftotext -bbox` sobre el render:
+
+1. Ninguna matriz tiene su cabecera en una página y sus ítems en la siguiente (ítem 3).
+2. El pie aparece en **todas** las páginas, incluida la última (ítem 9).
+3. Ninguna palabra cae fuera de la caja de texto (`yMax` > margen inferior real).
+
+**Disponibilidad**: `poppler-utils` **sí está en el CI** desde `918aded84` (2026-07-23,
+`.github/workflows/quality.yml:175`) — la memoria `ci-sin-poppler-pdftotext` quedó
+desactualizada. Así que (1) y (3) pueden ser test de CI sobre el PDF, que el motor produce
+directo. **LibreOffice no está en el CI**, de modo que todo lo que exija convertir el `.docx`
+es herramienta local de QA, no gate. En local, `soffice` vive en
+`/Applications/LibreOffice.app/Contents/MacOS/soffice` (el del `PATH` está roto, exit 127).
+
+Cuidado con el verde por ausencia: si el gate se salta cuando falta `pdftotext`, quitar
+`poppler-utils` del workflow lo apagaría en silencio.
 
 ## 5. Consentimiento como tabla 1×1 con bordes
 
@@ -118,15 +146,20 @@ favor señala cuán de acuerdo estás…") es **una** pregunta: el número va en
 cabecera de la matriz, no en la instrucción. Los ítems llevan subnumeración X.1 / X.2, que el
 motor ya sabe hacer.
 
-## 8. Segunda persona consistente
+## 8. Segunda persona consistente — **descartado**
 
-Los enunciados van en segunda persona del singular, sin "usted". Dos trampas:
+Decisión de Gonzalo (2026-09-24), textual: *"Esto no, aquí depende enteramente del XLSForm y
+no avisa porque no corrige redacción."*
 
-- No arrancar con "Actualmente" cuando el adverbio no aporta ("Actualmente te encuentras…" →
-  "Te encuentras…"). Sí se conserva donde significa algo ("¿A qué te dedicas actualmente?").
-- El bloque de vivienda es **redacción estándar INEI** y viene en tercera persona por diseño.
-  Tutearlo lo aleja del enunciado oficial. El motor debe poder respetar la literalidad de un
-  bloque marcado como estándar externo.
+El motor **no reescribe la redacción de los enunciados y tampoco avisa sobre ella**. La
+persona gramatical es responsabilidad del XLSForm. Esto deja sin objeto el caso del bloque de
+vivienda INEI: al no existir reescritura, no hace falta marcar bloques como redacción externa
+para protegerlos.
+
+Se confirmó que hoy el motor no reescribe: las únicas transformaciones semánticas son sobre
+texto de **salto** que el propio motor fabrica (`.form_pdf_rephrase_skip`), no sobre
+enunciados del usuario. Queda como observación sin acción: esas frases del motor están en
+tercera persona del pasado ("Si respondió «No», …").
 
 ## 9. El pie sobrevive en la última página
 
@@ -143,6 +176,39 @@ Un chequeo barato que ya evitó dos accidentes, y que debería correr como test 
 - Comentarios y anclas balanceados: `commentRangeStart` = `commentRangeEnd` =
   `commentReference`.
 - Cero em dashes.
+
+## 11. `clean_text` borra `*` y backticks de las categorías
+
+**La regla innegociable de este documento está rota hoy, en el motor.**
+`.form_pdf_clean_text()` (`api/R/reporte_formulario_pdf.R:25`) aplica
+`gsub("[`*]", "", x)` a **todo** texto, y las etiquetas de categoría pasan por ahí
+(`.form_pdf_options_by_list`, línea 131). Medido literalmente:
+
+| Categoría escrita | Categoría impresa |
+|---|---|
+| `De 5* a 10*` | `De 5 a 10` |
+| `Nota al pie (*)` | `Nota al pie ()` |
+| `3 * a la semana` | `3 a la semana` |
+
+No hay warning, no hay registro, no hay forma de saberlo desde el artefacto: es exactamente
+la normalización silenciosa que la regla prohíbe. El desmarcado de markdown (`**`, `__`) y el
+borrado de `` ` `` y `*` se separan de la limpieza inocua (NBSP, comillas curvas, guiones
+largos, colapso de espacios); las categorías pasan **sólo** por la inocua, y cualquier
+diferencia se declara en `model$warnings`.
+
+## 12. El renderer Word ignora `columns` desde siempre — **bloqueado**
+
+`api/R/reporte_formulario_word.R` no menciona `columns` ni `full_width` en ninguna de sus 379
+líneas. El toggle "Una columna / Dos columnas" del diálogo de exportación
+(`ConfigurarPdfDialog.tsx:196-219`) **no tiene efecto sobre el .docx**: sale siempre a una
+columna, sin avisar. Es un campo publicado por el modelo (`reporte_formulario_pdf.R:900`) que
+nadie consume.
+
+Está **bloqueado**, no pendiente, porque arreglarlo es una decisión, no una reparación:
+honrar `columns = 2` en Word **cambia la forma de todo export .docx existente** que se haya
+pedido a dos columnas. Las salidas son (a) honrarlo y aceptar el cambio, (b) dejar `2` como
+está y que sólo `auto` produzca columnas, o (c) quitar el toggle del diálogo para Word.
+Mientras se decide, el trabajo en curso toma (b): `1` y `2` conservan la salida de hoy.
 
 ---
 
