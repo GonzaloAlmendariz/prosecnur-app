@@ -206,6 +206,43 @@
   # al final y se llevaria por delante el 8 pt de la cabecera de la matriz.
   ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
 
+  # --- Anchos. Se calculan ANTES de componer la cabecera porque el envoltorio
+  # de las etiquetas de escala depende del ancho REAL de su columna. ---
+  total_cols <- n_scale + (if (has_special) 1L else 0L)
+  frac <- .form_pdf_matrix_label_frac(total_cols)
+  # La columna del numero sale del ancho total ANTES de repartir: si se le restara
+  # solo a la etiqueta, la escala se ensancharia sola al anadirla.
+  # 0.26 in y no 0.2: con el padding de 3 pt por lado, 0.2 deja 8.4 pt utiles y
+  # "11" en Arial Narrow 10 pt necesita ~9 -- los items de dos cifras envolvian a
+  # dos lineas y su fila salia mas alta que las demas.
+  num_w <- 0.26
+  resto <- usable - num_w
+  lbl_w <- resto * frac
+  col_w <- (resto - lbl_w) / max(1L, total_cols)
+
+  # COTA INFERIOR POR LA PALABRA MAS LARGA (L11). El reparto por fraccion no sabe
+  # que hay dentro: con 6 columnas dejaba 0.41 in por columna y "desacuerdo" ocupa
+  # 35 pt (0.49 in), asi que Word partia la palabra. Aqui la columna se ensancha
+  # hasta que la palabra mas larga quepa, y lo que crece la escala se lo cede la
+  # etiqueta -- que es lo que hace la referencia: su frac es ~0.45, no 0.60.
+  # 4 pt de padding (2 por lado, ver mas abajo) + 3 de holgura: el ancho se
+  # estima escalando la sans por 0.84 y no es exacto; ajustar al pixel con una
+  # medida aproximada es como no ajustar.
+  pad_pt <- 7
+  min_col <- (.form_word_palabra_mas_ancha_pt(
+    c(scale_labels, if (has_special) sp_label else character(0)),
+    .FORM_WORD_SZ_MIN) + pad_pt) / 72
+  if (identical(header_mode, "categorias") && min_col > col_w) {
+    # La etiqueta no baja de este minimo: una matriz con la escala comoda y el
+    # enunciado ilegible no es mejor que al reves.
+    lbl_min <- 1.2
+    col_w <- min(min_col, (resto - lbl_min) / max(1L, total_cols))
+    lbl_w <- resto - col_w * total_cols
+  }
+  ft <- flextable::width(ft, j = "num", width = num_w)
+  ft <- flextable::width(ft, j = "lbl", width = lbl_w)
+  for (cid in scale_ids) ft <- flextable::width(ft, j = cid, width = col_w)
+
   # --- Etiquetas de cabecera ---
   # "categorias": cada opcion rotulada en su columna (Sí/No, escalas cortas).
   # "extremos": el ancla IZQUIERDA abarca la primera mitad de columnas (alineada
@@ -217,19 +254,14 @@
   right_ids <- if (n_scale > left_n) paste0("s", seq(left_n + 1L, n_scale)) else character(0)
   hdr <- stats::setNames(rep("", length(col_ids)), col_ids)
   if (identical(header_mode, "categorias")) {
-    # Pre-envuelve por PALABRA (como el PDF) para que Word no parta a mitad
-    # ("satisfech/o"); flextable respeta los "\n". Los 11 caracteres estan
-    # calibrados para el ancho nominal (una columna); en un tramo angosto se
-    # escalan con el ancho real, para no re-envolver lo que ya sale bien hoy.
-    wrap_chars <- if (isTRUE(all.equal(usable, .FORM_WORD_USABLE_IN))) {
-      11L
-    } else {
-      max(5L, as.integer(round(11 * usable / .FORM_WORD_USABLE_IN)))
-    }
+    # Pre-envuelve por ANCHO REAL de la columna, no por numero de caracteres.
+    # Antes eran 11 caracteres fijos mientras la celda se mide en pulgadas: nada
+    # comprobaba que la palabra mas larga cupiera, y no cabia.
+    ancho_pt <- col_w * 72 - pad_pt
     for (k in seq_len(n_scale)) {
-      hdr[[paste0("s", k)]] <- paste(.form_pdf_wrap(scale_labels[k], wrap_chars), collapse = "\n")
+      hdr[[paste0("s", k)]] <- .form_word_wrap_pt(scale_labels[k], ancho_pt, .FORM_WORD_SZ_MIN)
     }
-    if (has_special) hdr[["sp"]] <- paste(.form_pdf_wrap(sp_label, wrap_chars), collapse = "\n")
+    if (has_special) hdr[["sp"]] <- .form_word_wrap_pt(sp_label, ancho_pt, .FORM_WORD_SZ_MIN)
   } else if (merge_extremos) {
     hdr[["s1"]] <- scale_labels[1]                                       # ancla izquierda
     if (length(right_ids)) hdr[[right_ids[1]]] <- scale_labels[n_scale]  # ancla derecha
@@ -246,24 +278,6 @@
     if (length(right_ids) >= 2L) ft <- flextable::merge_at(ft, i = 1, j = right_ids, part = "header")
   }
 
-  # --- Anchos: la columna de etiqueta se lleva la mayor parte (mismo criterio
-  # que el PDF, .form_pdf_matrix_label_frac), la escala se reparte el resto. ---
-  total_cols <- n_scale + (if (has_special) 1L else 0L)
-  frac <- .form_pdf_matrix_label_frac(total_cols)
-  # La columna del numero sale del ancho total ANTES de repartir: si se le restara
-  # solo a la etiqueta, la escala se ensancharia sola al anadirla.
-  # 0.26 in y no 0.2: con el padding de 3 pt por lado, 0.2 deja 8.4 pt utiles y
-  # "11" en Arial Narrow 10 pt necesita ~9 -- los items de dos cifras envolvian a
-  # dos lineas y su fila salia mas alta que las demas. El XML no lo delataba (la
-  # celda "solo tiene digitos" igual); se vio en el render.
-  num_w <- 0.26
-  resto <- usable - num_w
-  lbl_w <- resto * frac
-  col_w <- (resto - lbl_w) / max(1L, total_cols)
-  ft <- flextable::width(ft, j = "num", width = num_w)
-  ft <- flextable::width(ft, j = "lbl", width = lbl_w)
-  for (cid in scale_ids) ft <- flextable::width(ft, j = cid, width = col_w)
-
   # --- Estilo: cabecera con relleno gris, todo el texto negro; la jerarquia la
   # llevan negrita y cuerpo, no el color. Escala centrada, zebra por fila. ---
   ft <- flextable::bg(ft, bg = .FORM_WORD_BAND, part = "header")
@@ -276,7 +290,6 @@
   ft <- flextable::align(ft, j = scale_ids, align = "center", part = "all")
   ft <- flextable::align(ft, j = "lbl", align = "left", part = "all")
   ft <- flextable::align(ft, j = "num", align = "center", part = "all")
-  ft <- flextable::padding(ft, j = "num", padding.left = 2, padding.right = 2, part = "all")
   # En extremos, las anclas van pegadas a su extremo (izq/der), no centradas.
   if (merge_extremos) {
     ft <- flextable::align(ft, i = 1, j = left_ids, align = "center", part = "header")
@@ -304,10 +317,71 @@
   # La rejilla completa la pone .form_word_table_base; no hace falta el interior
   # vertical suelto que habia aqui.
   ft <- .form_word_table_base(ft, col_ids, no_split = .form_word_tramo_is_full(usable))
+  # DESPUES de table_base a proposito: ese helper hace `padding(part = "all")` y
+  # se lleva por delante cualquier padding por columna puesto antes. El ancho
+  # util de la columna de escala es el que entra en el calculo del envoltorio,
+  # asi que si aqui quedaran los 3 pt por lado del helper, la palabra mas larga
+  # volveria a no caber -- que es exactamente lo que pasaba.
+  ft <- flextable::padding(ft, j = "num", padding.left = 2, padding.right = 2, part = "all")
+  ft <- flextable::padding(ft, j = scale_ids, padding.left = 2, padding.right = 2, part = "all")
   ft
 }
 
 # Lista de opciones (pregunta suelta) -> flextable de 2 columnas: codigo | etiqueta.
+# Ancho de un texto en PUNTOS para la tipografia del formulario. R no trae la
+# metrica de Arial Narrow de forma fiable, asi que se mide en la sans del
+# dispositivo y se escala: Arial Narrow es ~84% del ancho de Arial. Medido en
+# sans a 8 pt, "desacuerdo" da 42.0 pt; a 0.84 quedan 35.3, que es lo que ocupa
+# de verdad. Es una aproximacion declarada, no una metrica exacta: por eso los
+# consumidores dejan holgura en vez de ajustar al pixel.
+.FORM_WORD_NARROW_RATIO <- 0.84
+.form_word_ancho_pt <- function(txt, size) {
+  txt <- .form_pdf_clean_text_safe(txt %||% "")
+  if (!nzchar(txt)) return(0)
+  w <- tryCatch(
+    grid::convertWidth(
+      grid::grobWidth(grid::textGrob(txt, gp = grid::gpar(fontsize = size))),
+      "points", valueOnly = TRUE),
+    error = function(e) NA_real_)
+  # Sin dispositivo grafico abierto la medicion falla; se cae a una estimacion
+  # por caracter (0.5 em) para no romper el render.
+  if (!is.finite(w)) w <- nchar(txt) * size * 0.5
+  w * .FORM_WORD_NARROW_RATIO
+}
+
+# Envuelve por ANCHO REAL, no por numero de caracteres. El motor envolvia a 11
+# caracteres fijos mientras la celda se mide en pulgadas, asi que nada comprobaba
+# que la palabra mas larga cupiera: "Totalmente en desacuerdo" salia como
+# "Totalm/ente ... desacu/erdo". Nunca parte una palabra: si una no cabe, la
+# devuelve entera y que el llamador decida (ensanchar la columna es su trabajo).
+.form_word_wrap_pt <- function(txt, ancho_pt, size) {
+  txt <- .form_pdf_clean_text_safe(txt %||% "")
+  if (!nzchar(txt)) return("")
+  palabras <- strsplit(txt, "\\s+")[[1]]
+  palabras <- palabras[nzchar(palabras)]
+  if (!length(palabras)) return("")
+  lineas <- character(0); cur <- ""
+  for (w in palabras) {
+    cand <- if (nzchar(cur)) paste(cur, w) else w
+    if (!nzchar(cur) || .form_word_ancho_pt(cand, size) <= ancho_pt) {
+      cur <- cand
+    } else {
+      lineas <- c(lineas, cur); cur <- w
+    }
+  }
+  paste(c(lineas, cur), collapse = "\n")
+}
+
+# Palabra mas larga de un juego de etiquetas, en puntos. Es la cota inferior del
+# ancho de columna: por debajo de eso Word parte la palabra, haga lo que haga el
+# envoltorio.
+.form_word_palabra_mas_ancha_pt <- function(labels, size) {
+  ws <- unlist(strsplit(paste(labels, collapse = " "), "\\s+"), use.names = FALSE)
+  ws <- ws[nzchar(ws)]
+  if (!length(ws)) return(0)
+  max(vapply(ws, .form_word_ancho_pt, numeric(1), size = size))
+}
+
 # Enunciado como PRIMERA FILA de la tabla de la pregunta (L4 del GOAL). En la
 # referencia cada pregunta es UNA tabla y su primera fila es el enunciado
 # sombreado; aqui el enunciado era un parrafo suelto encima de la tabla, sin
