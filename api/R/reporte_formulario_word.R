@@ -424,6 +424,59 @@
   # sobre la opcion que lo dispara. Si ninguna lo trae, tabla de 2 columnas.
   skips  <- vapply(opts, function(o) .form_pdf_clean_text(o$paper_skip %||% ""), character(1))
   has_skip <- any(nzchar(skips))
+  # FILA HORIZONTAL (L8 del GOAL). En la referencia una pregunta de pocas opciones
+  # con etiquetas breves no gasta una fila por opcion: van todas en UNA, alternando
+  # etiqueta y codigo (`Femenino | 1 | Masculino | 2 | Otro | 3`). Es la mitad de
+  # la densidad que le faltaba al motor.
+  #
+  # El corte es por ANCHO MEDIDO, no por numero de opciones: un umbral tipo
+  # `length(opts) <= 3` es la clase de criterio a ojo que el §2 del checklist ya
+  # se comio una vez. Consecuencia buscada: el mismo juego de opciones puede ir
+  # horizontal en un tramo de una columna y vertical en uno de dos, porque el
+  # ancho util es la mitad.
+  #
+  # Con saltos por opcion se queda vertical: cada salto necesita su propia celda.
+  cod_w <- 0.28
+  pad_pt <- 6
+  anchos <- vapply(seq_along(labels), function(i) {
+    .form_word_ancho_pt(labels[i], .FORM_WORD_SZ) + cod_w * 72 + pad_pt * 2
+  }, numeric(1))
+  horizontal <- !has_skip && length(opts) >= 2L && sum(anchos) <= usable * 72
+
+  if (horizontal) {
+    vals <- character(0); ids <- character(0)
+    for (i in seq_along(labels)) {
+      vals <- c(vals, labels[i], codes[i])
+      ids <- c(ids, paste0("l", i), paste0("c", i))
+    }
+    df <- as.data.frame(as.list(stats::setNames(vals, ids)), stringsAsFactors = FALSE)
+    ft <- flextable::flextable(df)
+    # Solo se borra la cabecera si no hay enunciado que poner en ella (L4).
+    if (!nzchar(.form_pdf_clean_text(enunciado %||% ""))) {
+      ft <- flextable::delete_part(ft, part = "header")
+    }
+    ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+    # Las etiquetas se reparten TODO el ancho sobrante en proporcion a lo que
+    # miden, para que la tabla llene su columna: si no, queda mas corta que sus
+    # vecinas y en la pagina se nota el desnivel. El denominador es la suma de
+    # los anchos de ETIQUETA, no la de `anchos` (que ya incluye codigo y padding);
+    # con esa de mas, la tabla se quedaba corta.
+    sobra <- usable - cod_w * length(labels)
+    w_lbl <- vapply(labels, .form_word_ancho_pt, numeric(1), size = .FORM_WORD_SZ) / 72
+    suma_lbl <- max(sum(w_lbl), 1e-6)
+    for (i in seq_along(labels)) {
+      ft <- flextable::width(ft, j = paste0("l", i),
+                             width = max(0.25, sobra * w_lbl[i] / suma_lbl))
+      ft <- flextable::width(ft, j = paste0("c", i), width = cod_w)
+      ft <- flextable::align(ft, j = paste0("c", i), align = "center", part = "body")
+      ft <- flextable::bold(ft, j = paste0("c", i), part = "body")
+      ft <- flextable::align(ft, j = paste0("l", i), align = "left", part = "body")
+    }
+    ft <- .form_word_cabecera_enunciado(ft, names(df), enunciado, hint)
+    ft <- .form_word_table_base(ft, names(df), no_split = .form_word_tramo_is_full(usable))
+    return(ft)
+  }
+
   df <- if (has_skip) {
     data.frame(code = codes, label = labels,
                skip = skips,
