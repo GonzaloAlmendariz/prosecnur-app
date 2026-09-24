@@ -1287,6 +1287,12 @@ calc_muestra_calcular_componente <- function(comp) {
       resultado$advertencia
     ), collapse = " ")
   }
+  # La memoria sustituida viaja con el resultado para que Método y Resultados
+  # la muestren: el n se defiende en la pantalla, no sólo en el XLSX.
+  if (comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS && !is.na(resultado$n_teorico %||% NA)) {
+    resultado$memoria_calculo <- tryCatch(calc_muestra_general_memoria(comp, resultado),
+                                          error = function(e) NULL)
+  }
   resultado$computado_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   resultado$tecnica <- comp$tecnica
   resultado
