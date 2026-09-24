@@ -304,6 +304,63 @@ for (c in estudio$componentes) {
 }
 ```
 
+## Memoria de cálculo
+
+```{r memoria_calculo, results='asis'}
+memorias <- bundle$memorias %||% list()
+if (!length(memorias)) {
+  cat("_Ningún componente de este estudio se calcula con la fórmula de elementos (MAS, estratificado o sistemático); su tamaño se documenta en el detalle por componente._\n")
+} else {
+  for (actor in names(memorias)) {
+    m <- memorias[[actor]]
+    names(m) <- c("Paso", "Fórmula", "Sustitución", "Resultado")
+    cat("\n**", actor, "**\n\n", sep = "")
+    print(tabla_pulso(m, caption = paste("Memoria de cálculo —", actor)))
+    cat("\n")
+  }
+}
+```
+
+## Selección de las unidades
+
+```{r seleccion_unidades, results='asis'}
+general <- bundle$general %||% list()
+corridas <- general$corridas %||% list()
+marcos <- general$marcos %||% list()
+if (!length(corridas)) {
+  cat("_Todavía no se sorteó ninguna unidad desde un marco declarado._\n")
+} else {
+  ids <- vapply(estudio$componentes %||% list(), function(c) c$id %||% "", character(1))
+  actores <- vapply(estudio$componentes %||% list(), function(c) c$actor %||% "", character(1))
+  metodos <- c(mas = "Aleatorio simple sin reemplazo", sistematico = "Sistemático con intervalo fraccional",
+               pps = "Probabilidad proporcional al tamaño")
+  for (cid in names(corridas)) {
+    cr <- corridas[[cid]]$corrida
+    mc <- marcos[[cid]] %||% list()
+    actor <- actores[match(cid, ids)]
+    if (is.na(actor) || !nzchar(actor)) actor <- cid
+    modo <- if (identical(cr$modalidad, "censo")) "Cobertura censal: el marco entero en orden aleatorio de contacto (π = 1)"
+            else metodos[[cr$metodo]] %||% cr$metodo
+    ficha <- tibble(
+      Campo = c("Método", "Universo del marco (N)", "Titulares", "Reservas", "Semilla",
+                "Generador aleatorio", "Identificador de corrida", "Huella del marco (SHA-256)"),
+      Valor = c(modo, fmt_int(cr$N), fmt_int(cr$n_titulares), fmt_int(cr$n_reservas),
+                as.character(cr$semilla), cr$rng_kind %||% "—", cr$run_id %||% "—", cr$marco_hash %||% "—")
+    )
+    cat("\n**", actor, "**\n\n", sep = "")
+    print(tabla_pulso(ficha, caption = paste("Sorteo —", actor)))
+    est <- as.data.frame(corridas[[cid]]$estratos %||% list())
+    if (nrow(est) > 1L) {
+      tabla <- tibble(Estrato = est$clave, N_h = est$N_h, n_h = est$n_h,
+                      `π` = ifelse(is.na(est$pi), "por unidad", sprintf("%.4f", est$pi)))
+      print(tabla_pulso(tabla, caption = paste("Sorteo por estrato —", actor)))
+    }
+    cat("\n")
+  }
+  cat("\nCada unidad sorteada tiene una probabilidad de inclusión conocida y su peso base es 1/π. El mismo archivo de marco (misma huella), la misma semilla y el mismo método reproducen el listado en cualquier máquina. Las reservas son réplicas del mismo estrato que se liberan por lotes completos; al liberarlas, la π del estrato se recalcula.\n")
+}
+```
+
 ## Sustento metodológico
 
 ```{r sustento_metodologico}
