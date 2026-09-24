@@ -1288,10 +1288,12 @@ calc_muestra_calcular_componente <- function(comp) {
   if (comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS &&
       !is.na(resultado$n_teorico %||% NA) && !is.na(resultado$n_objetivo %||% NA) &&
       resultado$n_objetivo < resultado$n_teorico) {
+    ea <- resultado$precision_alcanzada %||% NA
+    alcance <- if (is.na(ea)) "el error total no se puede estimar (hay estratos sin casos)"
+               else sprintf("el error alcanzado es ±%.1f puntos, no ±%.1f", 100 * ea, 100 * comp$parametros$e)
     resultado$advertencia <- paste(c(sprintf(
-      "La meta declarada (%d) es menor que el n que exige el margen (%d): el error alcanzado es ±%.1f puntos, no ±%.1f.",
-      as.integer(resultado$n_objetivo), as.integer(resultado$n_teorico),
-      100 * (resultado$precision_alcanzada %||% NA), 100 * comp$parametros$e), resultado$advertencia), collapse = " ")
+      "La meta declarada (%d) es menor que el n que exige el margen (%d): %s.",
+      as.integer(resultado$n_objetivo), as.integer(resultado$n_teorico), alcance), resultado$advertencia), collapse = " ")
   }
   if (length(comp$avisos_parametros)) {
     resultado$avisos_parametros <- comp$avisos_parametros
@@ -1778,9 +1780,16 @@ calc_muestra_calcular_componente <- function(comp) {
     # piso 40 con e = .035 dejaba ±.0364).
     ea <- base_result$precision_alcanzada
     if (!is.na(ea) && ea > as.numeric(par$e) + 1e-9) {
+      # Dos decimales cuando el exceso es chico: «±5.0 supera ±5.0» se
+      # contradecía. La causa se nombra por lo que la produjo: el piso que
+      # declaró el usuario o el mínimo de 2 que impone el motor.
+      dec <- if (100 * (ea - as.numeric(par$e)) < 0.05) 2L else 1L
+      causa <- if (piso > 2L) sprintf("el piso de %d por estrato", piso)
+               else "el mínimo de 2 casos por estrato (para estimar su varianza)"
       aviso_error <- sprintf(
-        "Con el piso por estrato, el error alcanzado (±%.1f puntos) supera el declarado (±%.1f): sube n o baja el piso.",
-        100 * ea, 100 * as.numeric(par$e))
+        "Con %s, el error alcanzado (±%.*f puntos) supera el declarado (±%.*f): sube n%s.",
+        causa, dec, 100 * ea, dec, 100 * as.numeric(par$e),
+        if (piso > 2L) " o baja el piso" else "")
     }
   }
   distribucion_estratos <- lapply(seq_along(estratos), function(i) {
@@ -1806,6 +1815,13 @@ calc_muestra_calcular_componente <- function(comp) {
     "El piso de %d por estrato no cabe en n = %d: se aseguraron 2 casos por estrato, el mínimo para estimar su varianza.",
     piso, as.integer(n_objetivo)
   ) else NULL
+  sin_casos <- sum(as.integer(cuotas) == 0L & pesos > 0L)
+  aviso_vacios <- if (sin_casos > 0L) sprintf(
+    "%d de %d estratos quedan sin casos: su población no entra al sorteo ni a la estimación. Sube n (o la meta) para cubrirlos.",
+    sin_casos, length(pesos)) else NULL
+  if (isTRUE(attr(cuotas, "piso_incumplible")) && identical(base_result$asignacion, "neyman")) {
+    aviso_piso <- sub("proporcional sin piso", "sin piso (asignación de Neyman)", aviso_piso, fixed = TRUE)
+  }
   cierre <- if (identical(base_result$asignacion, "neyman")) {
     "Muestreo estratificado con asignación de Neyman: el margen de error formal corresponde al diseño probabilístico documentado."
   } else {
@@ -1814,7 +1830,7 @@ calc_muestra_calcular_componente <- function(comp) {
 
   c(base_result, list(
     distribucion_estratos = distribucion_estratos,
-    advertencia = paste(c(campo$advertencia, aviso_piso, aviso_error, cierre), collapse = " ")
+    advertencia = paste(c(campo$advertencia, aviso_piso, aviso_vacios, aviso_error, cierre), collapse = " ")
   ))
 }
 

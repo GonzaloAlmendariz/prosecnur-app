@@ -68,3 +68,22 @@ test_that("redeclarar el marco no duplica ids de estrato", {
   expect_identical(anyDuplicated(ids), 0L)
   expect_identical(d2$componente$marco$estratos[[2]]$p_facultad, .4)
 })
+
+test_that("con una meta que no alcanza para todos los estratos se dice cuáles quedan fuera, sin «NA»", {
+  x <- .bn_caso(c(8000L, rep(40L, 19)), c(.5, rep(.02, 19)), "neyman")
+  comp <- x$d$estudio$componentes[[1]]
+  comp$meta <- list(valor = 30L)
+  r <- calc_muestra_calcular_componente(comp)
+  expect_false(grepl("NA", r$advertencia, fixed = TRUE))
+  expect_match(r$advertencia, "estratos quedan sin casos")
+  expect_match(r$advertencia, "no se puede estimar")
+  expect_match(r$advertencia, "asignación de Neyman")
+})
+
+test_that("el aviso de error no se contradice por redondeo y nombra su causa real", {
+  x <- .bn_caso(c(10000L, 30L), c(.5, .01), "neyman", list(n_minimo_estrato = 0L))
+  if (x$r$precision_alcanzada > .05) {
+    expect_match(x$r$advertencia, "mínimo de 2 casos por estrato")
+    expect_false(grepl("±5.0 puntos) supera el declarado (±5.0)", x$r$advertencia, fixed = TRUE))
+  }
+})
