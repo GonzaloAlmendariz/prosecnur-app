@@ -14,7 +14,13 @@
 .FORM_WORD_SOFT    <- "#5A6B85"
 .FORM_WORD_INK     <- "#1A1A1A"
 .FORM_WORD_ZEBRA   <- "#F1F4F9"
-.FORM_WORD_LINE    <- "#C7D0E0"
+# Rejilla: gris medio, no azul palido. El instrumento se IMPRIME Y SE FOTOCOPIA
+# (insumo de campo), y la estructura de las filas cuelga de los bordes, no del
+# relleno: el relleno de la referencia (F2F2F2, 5% de tinta) y nuestra zebra
+# (F1F4F9, 4%) desaparecen igual en una fotocopia. Valor tomado de la referencia
+# medida: A6A6A6 en 2 666 de sus bordes (~35% de tinta) frente al 19% del azul
+# que habia aqui. Ver docs/qa/goal-formulario-replica-ser-adolescente-2026-09-24.md
+.FORM_WORD_LINE    <- "#A6A6A6"
 # Cabecera de matriz: gris azulado pálido (paridad con tbl_header del PDF), no
 # navy sólido — la paleta minimalista reserva el navy para la banda de sección.
 .FORM_WORD_TBLHEAD <- "#E9EEF6"
@@ -89,6 +95,11 @@
   bd <- officer::fp_border(color = .FORM_WORD_LINE, width = 0.5)
   ft <- flextable::border_remove(ft)
   ft <- flextable::border_outer(ft, border = bd, part = "all")
+  # REJILLA COMPLETA (L3 del GOAL). Antes solo habia borde exterior y cada tabla
+  # anadia por su cuenta el interior que le parecia; las filas se separaban por
+  # el relleno de zebra, que en papel fotocopiado NO EXISTE. La referencia lleva
+  # insideH/insideV en 46 de sus 50 tablas.
+  ft <- flextable::border_inner(ft, border = bd, part = "all")
   ft <- flextable::padding(ft, padding = 3, part = "all")
   ft <- flextable::font(ft, fontname = "Calibri", part = "all")
   ft <- flextable::valign(ft, valign = "center", part = "all")
@@ -230,9 +241,9 @@
           props = officer::fp_text(italic = TRUE, color = .FORM_WORD_NAVY,
                                    font.size = 8, font.family = "Calibri"))))
   }
+  # La rejilla completa la pone .form_word_table_base; no hace falta el interior
+  # vertical suelto que habia aqui.
   ft <- .form_word_table_base(ft, col_ids, no_split = .form_word_tramo_is_full(usable))
-  bd <- officer::fp_border(color = .FORM_WORD_LINE, width = 0.5)
-  ft <- flextable::border_inner_v(ft, border = bd, part = "all")
   ft
 }
 
@@ -276,7 +287,6 @@
   even <- which(seq_len(nrow(df)) %% 2L == 0L)
   if (length(even)) ft <- flextable::bg(ft, i = even, bg = .FORM_WORD_ZEBRA, part = "body")
   ft <- .form_word_table_base(ft, names(df), no_split = .form_word_tramo_is_full(usable))
-  ft <- flextable::border_inner_h(ft, border = officer::fp_border(color = "#EEEEEE", width = 0.3), part = "body")
   ft
 }
 
