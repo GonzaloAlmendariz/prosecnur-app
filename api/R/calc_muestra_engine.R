@@ -875,6 +875,10 @@ calc_muestra_componentes_sin <- function(componentes, id) {
 # Cuadro maestro de inferencia para acreditaciones PUCP (compendio §4.1)
 # ---------------------------------------------------------------------------
 
+# Muestra de estudiantes con N ≥ 3001 en aulas: documento PULSO «Selección de
+# muestras de actores», marzo 2026.
+.CM_ACREDITACION_ESTUDIANTES_N_FIJO <- 1800L
+
 #' Infiere técnica y mínimo a cumplir según actor × canal × N.
 #'
 #' Aplica el cuadro maestro canónico de PULSO PUCP Marzo 2026. Devuelve
@@ -909,16 +913,24 @@ calc_muestra_componentes_sin <- function(componentes, id) {
   }
   if (actor == "estudiantes") {
     if (canal == "aula_qr" && N >= 3001L) {
-      # Parámetros canónicos PUCP para estudiantes en aulas:
-      # z=1.96, p=0.5, e=2.5%, deff=2.0, sobremuestra 50%
+      # El documento de PULSO «Selección de muestras de actores» (marzo 2026)
+      # fija para N ≥ 3001 una muestra estadística de 1 800 estudiantes (72
+      # aulas de 25): el corte 3000–3001 existe para que esos 1 800 sean el
+      # 60 % de la base, y el margen de error varía con N. El motor
+      # recalculaba el n con ±2,5 % y deff 2 (1 519 con N = 3001): al cruzar
+      # el corte la población crecía y la muestra BAJABA de 1 800 a 1 519.
+      # Con los 1 800 del acuerdo la curva es continua (decisión de Gonzalo,
+      # 2026-09-24, P3 del loop de Cálculo de muestra). El e declarado queda
+      # como referencia; el margen publicado sale de los 1 800 con el deff.
       return(list(
         tecnica = "prob_conglomerado_multietapico",
         params_canonicos = list(z = 1.96, p = 0.5, e = 0.025, deff = 2.0,
                                 oversample_pct = 0.50, tasa_respuesta = 0.70,
                                 promedio_conglomerado = 25, tau = 0.50),
+        minimo_n = .CM_ACREDITACION_ESTUDIANTES_N_FIJO,
         aulas_referencia = 72L,
-        regla = "conglomerados_z195_p050_e25_deff20_si_aula_y_N_>=_3001",
-        justificacion = "Estudiantes con N ≥ 3001 y marco de cursos-horario: conglomerados multietápico con parámetros canónicos PUCP (95% confianza, ±2.5%, deff=2, p=0.5, sobremuestra 50%). Referencia operativa: 72 cursos-horario × 25 estudiantes ≈ 1800 encuestas base."
+        regla = "conglomerados_n1800_si_aula_y_N_>=_3001",
+        justificacion = "Estudiantes con N ≥ 3001 y marco de cursos-horario: conglomerados por cursos-horario estratificados por ciclo, con la muestra estadística de 1 800 estudiantes del documento PULSO de marzo 2026 (72 aulas × 25; 95% de confianza, p = 0.5). El margen de error se deriva de los 1 800 y del efecto de diseño; sobremuestra 50%."
       ))
     }
     return(list(

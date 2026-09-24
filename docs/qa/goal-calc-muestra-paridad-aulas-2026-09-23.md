@@ -32,7 +32,7 @@ patrón y no cambia sus cifras.
 | E1 | Research metodológico | ☑ | [research](research-calc-muestra-robustez-2026-09-23.md), 28 hallazgos |
 | E2 | Fórmulas del motor general | ☑ | no respuesta, tope N, reparto por mayor resto, deff, avisos; verificador aprobado |
 | E3 | Estratificado por estrato y Neyman | ☑ | Cochran 5.25/5.26; verificador aprobado; [Monte Carlo](montecarlo-muestra-general-2026-09-24.md) |
-| E4 | Sorteo en Muestra general | ☑ | [ADR 0090](../adrs/0090-muestra-general-sortea-de-un-marco-real.md) (propuesto) |
+| E4 | Sorteo en Muestra general | ☑ | [ADR 0090](../adrs/0090-muestra-general-sortea-de-un-marco-real.md) (aceptado) |
 | E5 | Sorteo por actor en Acreditación | ☑ | modalidad por técnica (probabilística / censo / sin π) |
 | E6 | Entrega | ☑ | XLSX con memoria sustituida; reporte con memoria y sorteo |
 | E7 | Intuitividad | ☑ | recorrido real de usuario nuevo de punta a punta; fricciones F-a…F-g cerradas |
@@ -68,40 +68,39 @@ numéricos en notación científica · π redondeada a 4 decimales en el wire ·
 subir un CSV desde la app daba 400 (y dos respaldos de multipart nunca
 funcionaron) · Neyman dejaba estratos vacíos.
 
-## Decisiones pendientes de Gonzalo
+## Decisiones de Gonzalo (2026-09-24)
 
-1. **Reparto en aulas** (research H01): llevar el mayor resto también a aulas
-   o dejarlo sólo en el motor general. Mientras tanto: sólo general.
-   **Delta medido (2026-09-24) sobre hsvg2026:** sustituyendo el reparto de
-   aulas por el mayor resto, los dos componentes, sus 15 estratos, las aulas
-   por estrato y la distribución por facultad y sexo salen **idénticos** (la
-   única diferencia es el sello `computed_at`); el reparto se llama 31 veces
-   en ese cálculo. Adoptarlo no movería este estudio: sólo evitaría los casos
-   patológicos (suma que no cierra, estrato mayor en cero) en marcos futuros.
-   Script: `scratchpad/p1_delta_aulas.R` y `p1_delta_dist.R` del loop.
-2. **Ratificar el ADR 0090**, sobre todo las reservas como réplicas liberadas
-   por lote en vez de reemplazos por puntaje.
-3. **Reglas del cuadro maestro de acreditación** (research H16–H18): el salto
-   de n entre N=3000 y 3001 en estudiantes, docentes con N ≥ 251 a cuotas aun
-   con nómina completa, y que la inferencia sobrescriba la técnica elegida.
-   **Curva medida (2026-09-24):**
+Respuesta textual: «1. Si 2. Si 3. Definir dos, acueros previos que se hayan
+hecho o la muestra continua que porpones».
 
-   | Estudiantes (aula/QR) | técnica | completas | a campo |
-   |---|---|---|---|
-   | N = 2.800 | cobertura censal 60 % | 1.680 | 2.800 |
-   | N = 3.000 | cobertura censal 60 % | 1.800 | 3.000 |
-   | N = 3.001 | conglomerado (±2,5 %, deff 2) | 1.519 | 2.279 |
-   | N = 5.000 | conglomerado | 1.904 | 2.856 |
+1. **Reparto en aulas → mayor resto.** `distribuir_proporcional_pesos`
+   reparte por mayor resto en sus dos modos (`cuadratura` y
+   `round_residuo_controlado`), igual que el motor general. Antes de
+   adoptarlo se midió sobre hsvg2026: sus dos componentes, 15 estratos, aulas
+   por estrato y la distribución por facultad y sexo salían idénticos (31
+   llamadas al reparto).
+2. **ADR 0090 ratificado**, reservas por lote incluidas.
+3. **Cuadro maestro de acreditación → acuerdo previo.** El documento de PULSO
+   «Selección de muestras de actores» (marzo 2026) fija:
+   - estudiantes con N ≥ 3001 en aulas: muestra estadística de **1 800** (72
+     aulas × 25). El motor recalculaba con ±2,5 % y deff 2 (1 519 con
+     N = 3001), y de ahí salía el salto. Ahora aplica los 1 800 y la curva es
+     continua:
 
-   Al cruzar 3.000 la población crece y la muestra **baja** (−281 completas,
-   −721 contactos), y el censo al 60 % pide más casos que el diseño que sí da
-   margen de error. Una regla continua cambiaría de técnica cerca de
-   N ≈ 2.530, donde el 60 % de N iguala al n del conglomerado. En docentes,
-   N = 250 es censo de 250 y N = 251 son cuotas de 150 (no probabilístico)
-   aun con la nómina completa, que permitiría un MAS con margen. (El n a campo
-   de esas cuotas superaba al marco —275 con N = 251—; eso era un defecto y
-   ya está corregido.)
-4. (Informativa) un conglomerado de aulas con p = 0 o 1 ya no da n = 0.
+     | Estudiantes (aula/QR) | técnica | completas | a campo | margen (deff 2) |
+     |---|---|---|---|---|
+     | N = 3.000 | cobertura censal 60 % | 1.800 | 3.000 | — |
+     | N = 3.001 | conglomerado | 1.800 | 2.700 | ±2,1 % |
+     | N = 5.000 | conglomerado | 1.800 | 2.700 | ±2,6 % |
+     | N = 20.000 | conglomerado | 1.800 | 2.700 | ±3,1 % |
+
+     (El documento cita ±1,5 % y ±1,8 % para N = 3.000 y 5.000: son sin
+     efecto de diseño. El motor publica el margen con el deff 2 del
+     conglomerado.)
+   - docentes con N ≥ 251: cuotas de 150 (el 60 % de 250 y 50 por
+     dedicación). Se conserva; 250 → 251 da 150 y 150, sin salto.
+   - Que la inferencia sobrescriba la técnica elegida (H16) **no tiene
+     acuerdo previo** documentado: queda como está.
 
 ## Abierto
 
