@@ -108,7 +108,8 @@ hecho o la muestra continua que porpones».
 
    Muestra monótona, salto ≤ 1 entre N y N + 1, un único cambio de técnica.
    H16 (la inferencia fija la técnica) queda: la mesa no ofrece selector y
-   rotula el origen. Egresados sigue con la regla del documento.
+   rotula el origen. Egresados entró después con la misma regla (E12:
+   censo hasta N = 385, MAS a ±5 % desde 386).
 
 ## Abierto
 
