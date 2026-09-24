@@ -59,3 +59,13 @@ test_that("fuera de los diseños de elementos la memoria no inventa la fórmula"
   m <- calc_muestra_general_memoria(comp, list())
   expect_identical(m$paso, "Memoria no disponible")
 })
+
+test_that("el resultado de un diseño de elementos trae su memoria de cálculo; el censal no", {
+  r <- calc_muestra_calcular_componente(.ge_comp())
+  expect_s3_class(r$memoria_calculo, "data.frame")
+  expect_identical(nrow(r$memoria_calculo), 6L)
+  expect_identical(r$memoria_calculo$resultado[[5]], as.character(as.integer(r$n_operativo)))
+  censal <- calc_muestra_calcular_componente(calc_muestra_normalize_componente(list(
+    tecnica = "intencion_censal", marco = list(marco_validado = 300L, marco_contactable = 300L, estado = "validado"))))
+  expect_null(censal$memoria_calculo)
+})
