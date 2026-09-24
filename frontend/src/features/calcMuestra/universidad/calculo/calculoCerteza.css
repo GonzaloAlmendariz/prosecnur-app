@@ -1,29 +1,5 @@
-/* La medida de lectura es la de la casa: 760 px, la misma que `.cmv2-subhead
-   small`. En `ch` sobre 11,5 px daba ~420 px —bastante más estrecha que el
-   resto del escritorio— y dejaba la tarjeta medio vacía a la derecha. */
-/* La pestaña «¿Alcanza?»: explicación primero, tabla después. El texto lleva
-   medida de lectura para que no se estire con el ancho de la pantalla. */
+/* La pestaña «¿Alcanza?»: el resultado primero y la explicación después,
+   plegada (AD7-E15, patrón «veredicto primero» de aulas). La prosa vive en
+   `ExplicacionPlegable` (ui/), que la reparte en columnas al abrirse. */
 .cmv2-calc-certeza-tab { display: grid; gap: var(--pulso-space-3); }
-/* Las dos secciones de intro son PANELES, como todo lo demás del escritorio.
-   Antes eran texto desnudo —transparente, sin padding ni radio— junto a la
-   tarjeta de la tabla, y eso bastaba para que la pestaña se leyera como de otra
-   aplicación. La medida de lectura se aplica al texto, no al panel: un panel a
-   78ch dejaría media pantalla vacía a su derecha. */
-.cmv2-calc-certeza-intro > p,
-.cmv2-calc-certeza-intro > .cmv2-subhead { max-width: 760px; }
-/* Los encabezados usan `cmv2-subhead`, el componente de la casa, para que el
-   ramp tipográfico sea el mismo que en el resto del escritorio: título 13/700 y
-   subtítulo 11/700. Antes esta pestaña traía un `<header>` propio con peso
-   semibold, y a simple vista se leía como de otra app. */
-.cmv2-calc-certeza-intro .cmv2-subhead strong { display: inline-flex; align-items: center; gap: 5px; }
-/* Misma escala que el resto de la prosa explicativa del módulo: 11,5/1,5.
-   Heredaban 16 px del navegador. */
-.cmv2-calc-certeza-intro p {
-  margin: 0 0 var(--pulso-space-1); color: var(--pulso-text-muted);
-  font-size: 11.5px; line-height: 1.5;
-}
 .cmv2-calc-certeza-nota { max-width: 760px; color: var(--pulso-text-muted); font-size: 12px; }
-
-/* Mismo motivo que en la pestaña de rerandomización: el margen del último
-   párrafo deja aire muerto al pie de la sección. */
-.cmv2-calc-certeza-intro > :last-child { margin-bottom: 0; }

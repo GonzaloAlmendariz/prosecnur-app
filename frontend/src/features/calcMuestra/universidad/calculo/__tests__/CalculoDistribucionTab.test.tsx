@@ -176,14 +176,14 @@ describe("CalculoDistribucionTab", () => {
 
   it.each([
     ["empty", null, FRAME_HASH, "Aún no hay una distribución calculada"],
-    ["legacy", { n_teorico: 10 } as CalcMuestraResultado, FRAME_HASH, "Esta corrida usa el contrato anterior"],
+    ["legacy", { n_teorico: 10 } as CalcMuestraResultado, FRAME_HASH, "Esta corrida es de una versión anterior de la app"],
     ["stale", result("p1_universidad"), "otro-frame", "La distribución pertenece a otro marco"],
     ["invalid", {
       distribucion_universitaria: {
         status: "incompatible",
         reasons: [{ code: "design_mismatch", message: "El diseño no reconcilia.", details: {} }],
       },
-    } as unknown as CalcMuestraResultado, FRAME_HASH, "R no pudo acreditar esta distribución"],
+    } as unknown as CalcMuestraResultado, FRAME_HASH, "No se pudo verificar esta distribución"],
   ])("muestra estado %s sin tabla de datos ni fallback", (kind, p1Result, currentFrameHash, title) => {
     const html = render({ p1Result, currentFrameHash });
     expect(html).toContain(`data-state="${kind}"`);

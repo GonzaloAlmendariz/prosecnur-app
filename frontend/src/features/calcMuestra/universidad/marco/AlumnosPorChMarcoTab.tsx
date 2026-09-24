@@ -89,7 +89,7 @@ export function AlumnosPorChMarcoTab({
         </header>
         <AvisoModulo tone={rawSnapshot ? "warn" : "info"} role="status">
           {rawSnapshot
-            ? "La distribución no acredita todas las unidades o pertenece a otro marco. Reconstruye el marco; React no rellenará ningún valor por su cuenta."
+            ? "La distribución no acredita todas las unidades o pertenece a otro marco. Reconstruye el marco; mientras tanto no se rellena ningún valor."
             : "Reconstruye el marco para obtener media, P25 y mediana por facultad antes de elegir el valor de alumnos por CH."}
         </AvisoModulo>
       </section>

@@ -183,7 +183,7 @@ export function CriteriosEmbudoVivo({
                   <tbody>
                     {!facultyKey ? (
                       <tr data-row-kind="total">
-                        <th scope="row">Total recalculado por R</th>
+                        <th scope="row">Total del marco</th>
                         <td>{fmt(step.total.before_ch)} → {fmt(step.total.after_ch)}</td>
                         <td>{step.total.excluded_ch ? `−${fmt(step.total.excluded_ch)}` : "ninguno"}</td>
                       </tr>

@@ -357,7 +357,7 @@ describe("CriteriosRadiografiaConsola", () => {
 
     const html = renderToStaticMarkup(<CriteriosRadiografiaCardDetalle card={card} radiografia={radiografia} />);
     expect(html).toContain("El engine publicó una fila o metadato inválido.");
-    expect(html).toContain("Impacto retenido");
+    expect(html).toContain("Impacto no disponible");
     expect(html).toContain("Acción bloqueada");
     expect(html).not.toContain("NO_DEBE_PUBLICARSE_987");
     expect(html).not.toContain("Contrafactual reconstruido");

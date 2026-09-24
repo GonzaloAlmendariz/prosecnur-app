@@ -10,9 +10,9 @@
  * Va la última porque es lo último que se decide: con su resultado se ajusta el
  * reparto por facultad, y recién entonces se sortea.
  */
-import { ShieldCheck } from "lucide-react";
 import type { CalcMuestraAulasCerteza, CalcMuestraComponente } from "../../../../api/client";
 import { CertezaCoberturaPanel } from "./CertezaCoberturaPanel";
+import { ExplicacionBloque, ExplicacionPlegable } from "../ui";
 import { certezaVistaDesdeEstado } from "./certezaCoberturaModel";
 import { cursosHorarioDesdeResultado } from "./cursosHorarioResultadoModel";
 import type { UniversityAulasScenario } from "../shared/study";
@@ -60,65 +60,13 @@ export function CalculoCertezaTab({
     <div
       className="cmv2-calc-certeza-tab"
       data-qa-geometry-group="calc-muestra/calculo-certeza"
-      /* Prosa y tabla no se igualan: dos secciones de texto y un panel de datos
-         tienen alturas y anchos propios por diseño. Sin declararlo, el grupo
+      /* Resultado primero y explicación plegada después (AD7-E15): panel y
+         disclosure tienen alturas propias por diseño. Sin declararlo, el grupo
          cae en el contrato `equal` por defecto y el gate reportaba una deriva
          de 1.149 px que no es un defecto — y un gate que grita donde no hay
          nada deja de leerse. */
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-calc-certeza-intro" data-qa-geometry-member>
-        <div className="cmv2-subhead">
-          <strong>
-            <ShieldCheck size={13} aria-hidden="true" /> Por qué la división no basta
-          </strong>
-          <small>la cuenta directa pide menos aulas de las necesarias</small>
-        </div>
-        <p>
-          La pestaña anterior divide: la cuota de una facultad entre lo que rinde un
-          curso-horario. Esa cuenta supone que los estudiantes de las aulas sorteadas son
-          personas distintas, y no lo son: uno puede estar matriculado en tres de los cursos
-          elegidos, y ahí cuenta una vez, no tres. Al ignorar ese solape, la división pide
-          menos aulas de las necesarias.
-        </p>
-        <p>
-          Hay un segundo problema. La división produce un número <em>esperado</em>, y el
-          sorteo real puede caer por debajo: un diseño que alcanza la cuota en promedio falla
-          la mitad de las veces.
-        </p>
-      </section>
-
-      <section className="cmv2-panel cmv2-calc-certeza-intro" data-qa-geometry-member>
-        <div className="cmv2-subhead">
-          <strong>Qué hace esta pantalla</strong>
-          <small>simula el sorteo y cuenta, en vez de estimar</small>
-        </div>
-        <p>
-          Para cada número candidato de aulas ejecuta <b>sorteos completos</b>, con el mismo
-          motor que hará la selección definitiva. En cada uno cuenta los{" "}
-          <b>estudiantes únicos</b> obtenidos, descontando a quienes aparecen en más de un
-          aula, y los multiplica por la tasa de efectividad de la facultad. El número
-          certificado es el mínimo de aulas con el que la cuota se alcanza en al menos el
-          nivel exigido. No estima la probabilidad: la cuenta.
-        </p>
-        <p>
-          La columna <b>Curva</b> es esa evidencia: cómo crece el rendimiento a medida que se
-          suman aulas. Si sale marcada como plana, la corrida no está evaluando el número que
-          declara, porque el rendimiento no puede quedarse quieto cuando se agregan aulas.
-        </p>
-        <p>
-          Bajo cada mínimo se dice <b>con cuántos sorteos se decidió</b>, y no son los mismos
-          en todas: en las facultades de marco grande cada sorteo cuesta más y el motor los
-          reduce, así que las de mayor cuota reciben menos evidencia. Cuando el margen sobre
-          el nivel exigido es menor que el error de muestreo, la fila lo declara: con esa
-          evidencia no se distingue si cumple.
-        </p>
-        <p className="cmv2-calc-certeza-nota">
-          «Llevar a N» fija esa facultad en el mínimo certificado. Invalida la selección
-          vigente: hay que volver a sortear, y Selección lo dirá.
-        </p>
-      </section>
-
       {model ? (
         <CertezaCoberturaPanel
           filasResultado={model.filas}
@@ -135,6 +83,51 @@ export function CalculoCertezaTab({
           Propuestas y vuelve.
         </p>
       )}
+      <ExplicacionPlegable
+        titulo="Cómo se decide si alcanza"
+        resumen="por qué la división no basta y qué simula esta pantalla"
+      >
+        <ExplicacionBloque titulo="Por qué la división no basta" subtitulo="la cuenta directa pide menos aulas de las necesarias">
+          <p>
+            La pestaña anterior divide: la cuota de una facultad entre lo que rinde un
+            curso-horario. Esa cuenta supone que los estudiantes de las aulas sorteadas son
+            personas distintas, y no lo son: uno puede estar matriculado en tres de los cursos
+            elegidos, y ahí cuenta una vez, no tres. Al ignorar ese solape, la división pide
+            menos aulas de las necesarias.
+          </p>
+          <p>
+            Hay un segundo problema. La división produce un número <em>esperado</em>, y el
+            sorteo real puede caer por debajo: un diseño que alcanza la cuota en promedio falla
+            la mitad de las veces.
+          </p>
+        </ExplicacionBloque>
+        <ExplicacionBloque titulo="Qué hace esta pantalla" subtitulo="simula el sorteo y cuenta, en vez de estimar">
+          <p>
+            Para cada número candidato de aulas ejecuta <b>sorteos completos</b>, con el mismo
+            motor que hará la selección definitiva. En cada uno cuenta los{" "}
+            <b>estudiantes únicos</b> obtenidos, descontando a quienes aparecen en más de un
+            aula, y los multiplica por la tasa de efectividad de la facultad. El número
+            certificado es el mínimo de aulas con el que la cuota se alcanza en al menos el
+            nivel exigido. No estima la probabilidad: la cuenta.
+          </p>
+          <p>
+            La columna <b>Curva</b> es esa evidencia: cómo crece el rendimiento a medida que se
+            suman aulas. Si sale marcada como plana, la corrida no está evaluando el número que
+            declara, porque el rendimiento no puede quedarse quieto cuando se agregan aulas.
+          </p>
+          <p>
+            Bajo cada mínimo se dice <b>con cuántos sorteos se decidió</b>, y no son los mismos
+            en todas: en las facultades de marco grande cada sorteo cuesta más y el motor los
+            reduce, así que las de mayor cuota reciben menos evidencia. Cuando el margen sobre
+            el nivel exigido es menor que el error de muestreo, la fila lo declara: con esa
+            evidencia no se distingue si cumple.
+          </p>
+          <p>
+            «Llevar a N» fija esa facultad en el mínimo certificado. Invalida la selección
+            vigente: hay que volver a sortear, y Selección lo dirá.
+          </p>
+        </ExplicacionBloque>
+      </ExplicacionPlegable>
     </div>
   );
 }

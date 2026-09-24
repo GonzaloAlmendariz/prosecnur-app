@@ -132,7 +132,7 @@ export function AulasObjetivoTab({
             <CifraMotor
               label="Cursos-horario titulares"
               value={model.currentAulasTarget > 0 ? fmtInt(model.currentAulasTarget) : "pendiente"}
-              detalle="target CH publicado por el engine R"
+              detalle="cursos-horario que pide el cálculo"
               origen={model.currentAulasTarget > 0 ? "motor" : undefined}
               hero
             />

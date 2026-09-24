@@ -26,6 +26,7 @@ import "../../didactica/didactica.css";
 import "./salidas.css";
 import { profundidadReserva } from "../aulas/profundidadReservaModel";
 import { rendimientoNeto } from "./rendimientoNetoModel";
+import { ROTULO_RESERVAS_TOTALES, detalleReservasTotales } from "../aulas/rotulosReservas";
 
 export function SalidasCierreTab({
   model,
@@ -168,11 +169,9 @@ export function SalidasCierreTab({
     },
     {
       id: "reservas",
-      label: "Reservas",
+      label: ROTULO_RESERVAS_TOTALES,
       valor: reservasTotal ? fmtInt(reservasTotal) : undefined,
-      detalle: extraReserveRows.length
-        ? `cadenas Rn + ${fmtInt(extraReserveRows.length)} en bolsa extra`
-        : "cadenas de reemplazo equivalente",
+      detalle: detalleReservasTotales(reservasTotal - extraReserveRows.length, extraReserveRows.length),
       estado: replacementReady ? "ready" : selectionReady ? "working" : "pending",
     },
     {
