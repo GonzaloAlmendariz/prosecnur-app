@@ -60,8 +60,22 @@ calc_muestra_general_declarar_marco <- function(estudio, estado, componente_id, 
   comp$marco$marco_validado <- N
   comp$marco$marco_contactable <- N
   comp$marco$estado <- "validado"
+  # Los N_h salen del marco; lo que el usuario ya dijo de cada estrato (su p
+  # esperada, su margen) se conserva por rótulo: redeclarar el archivo no debe
+  # borrar la proporción por estrato que alimenta el n y la asignación.
+  previos <- comp$marco$estratos %||% list()
+  previo_de <- function(clave) {
+    for (e in previos) if (is.list(e) && identical(as.character(e$label %||% ""), clave)) return(e)
+    NULL
+  }
   comp$marco$estratos <- if (nzchar(columnas$estrato)) {
-    lapply(seq_along(claves), function(h) list(id = paste0("est-", h), label = claves[[h]], N = N_h[[h]]))
+    lapply(seq_along(claves), function(h) {
+      e <- previo_de(claves[[h]]) %||% list(id = paste0("est-", h))
+      e$label <- claves[[h]]
+      e$N <- N_h[[h]]
+      e$N_a <- NULL; e$N_b <- NULL
+      e
+    })
   } else list()
   comp$resultado <- NULL
   estudio$componentes[[idx]] <- calc_muestra_normalize_componente(comp)

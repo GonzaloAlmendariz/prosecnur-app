@@ -1164,6 +1164,9 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     # Default "media" = comportamiento histórico bit a bit (back-compat);
     # "mediana"/"min_media_mediana" usan la mediana_conglomerado del estrato
     # cuando el marco/perfil la aportó (declarativo si no hay mediana).
+    # Asignación entre estratos del estratificado del motor general (E3):
+    # proporcional a N_h (histórica) o de Neyman, ∝ N_h·S_h.
+    asignacion        = calc_enum(par$asignacion, .CM_ASIGNACIONES, "proporcional"),
     estadistico_conglomerado = calc_enum(par$estadistico_conglomerado,
                                          c("media", "mediana", "min_media_mediana"), "media"),
     n_minimo_estrato  = calc_int(par$n_minimo_estrato, .CM_DEFAULTS_PARAMS$n_minimo_estrato,
@@ -1694,7 +1697,10 @@ calc_muestra_calcular_componente <- function(comp) {
     ))
   }
 
-  n_teorico <- calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
+  por_estrato <- .cm_general_estratificado_por_estrato(estratos, par)
+  diseno <- if (por_estrato) .cm_general_n_estratificado(estratos, par) else NULL
+  n_teorico <- if (por_estrato) diseno$n else
+    calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
   # Los dominios independientes de aulas caen aquí cuando no traen estratos;
   # su n a campo lo gobierna el motor de aulas, no esta inflación.
@@ -1726,11 +1732,19 @@ calc_muestra_calcular_componente <- function(comp) {
 
   pesos <- vapply(estratos, function(e) e$N, integer(1))
   piso <- if (par$n_minimo_estrato > 0L) par$n_minimo_estrato else 0L
-  cuotas <- .cm_distribuir_con_piso(n_total = n_objetivo, pesos = pesos, piso = piso)
+  pesos_reparto <- if (por_estrato) diseno$pesos else NULL
+  cuotas <- .cm_general_reparto(n_objetivo, pesos, piso, pesos = pesos_reparto)
   # El n a campo por estrato, con el MISMO reparto que usa el sorteo: sin él la
   # pantalla mostraba las completas (537 en total) junto a un sorteo de 716 y
   # los dos se llamaban «n».
-  cuotas_campo <- .cm_distribuir_con_piso(n_total = campo$n_operativo, pesos = pesos, piso = piso)
+  cuotas_campo <- .cm_general_reparto(campo$n_operativo, pesos, piso, pesos = pesos_reparto)
+  if (por_estrato) {
+    # El error alcanzado sale de la asignación efectiva, no de la fórmula
+    # global: es el que el diseño de verdad logra con esos n_h.
+    base_result$precision_alcanzada <- .cm_general_error_estratificado(as.integer(cuotas), estratos, par)
+    base_result$asignacion <- par$asignacion
+    base_result$formula_n <- if (identical(par$asignacion, "neyman")) "neyman" else "proporcional_por_estrato"
+  }
   distribucion_estratos <- lapply(seq_along(estratos), function(i) {
     e <- estratos[[i]]
     n_i <- as.integer(cuotas[[i]])
