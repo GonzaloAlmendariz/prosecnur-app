@@ -24,6 +24,15 @@
 mount_calc_muestra_general <- function(pr) {
   pr |>
     # -----------------------------------------------------------------------
+    # GET /api/calc-muestra/tecnicas/parametros — qué parámetros consume cada
+    # técnica, con rótulo y ayuda: Método pinta sólo esos (hallazgo G2).
+    # -----------------------------------------------------------------------
+    plumber::pr_get("/api/calc-muestra/tecnicas/parametros",
+                    wrap_endpoint(function(req, res, ...) {
+      list(ok = TRUE, tecnicas = lapply(names(.CM_PARAMETROS_POR_TECNICA), calc_muestra_parametros_tecnica))
+    })) |>
+
+    # -----------------------------------------------------------------------
     # POST /api/calc-muestra/general/marco
     # Body: { componente_id, file_id, hoja?, columnas: { id, estrato?, tamano? } }
     # Declara el archivo de marco del componente y escribe N y N_h en él.
