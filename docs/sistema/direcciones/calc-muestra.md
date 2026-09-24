@@ -6,11 +6,11 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `calc-muestra` · ruta `/calc-muestra` · 51 direcciones.
+Módulo `calc-muestra` · ruta `/calc-muestra` · 53 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 2476f9fb | sí | — |
+| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | c4796529 | sí | — |
 | `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | e4f6ff99 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | e87026e8 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-estudio` | pestana | Estudio | sí | fe3098c2 | sí | — |
@@ -49,13 +49,15 @@ Módulo `calc-muestra` · ruta `/calc-muestra` · 51 direcciones.
 | `calc-muestra/opinion-universitaria/salidas/salidas-resultados` | pestana | Tablas | sí | c7a193de | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-entregables` | pestana | Entregables | sí | c1249bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-monitoreo` | pestana | Pase a Monitoreo | sí | a28cb348 | sí | — |
-| `calc-muestra/marco-disponible` | modo | Muestra general | sí | 25f366e7 | sí | — |
+| `calc-muestra/marco-disponible` | modo | Muestra general | sí | 6e56b696 | sí | — |
 | `calc-muestra/marco-disponible/marco` | seccion | Marco | sí | 404a402f | sí | — |
 | `calc-muestra/marco-disponible/metodo` | seccion | Método | sí | 76fa6750 | sí | — |
+| `calc-muestra/marco-disponible/seleccion` | seccion | Selección | sí | 1b02f894 | sí | — |
 | `calc-muestra/marco-disponible/resultados` | seccion | Resultados | sí | 04327303 | sí | — |
-| `calc-muestra/acreditacion` | modo | Acreditación | sí | 212ee3e9 | sí | — |
+| `calc-muestra/acreditacion` | modo | Acreditación | sí | 94b63400 | sí | — |
 | `calc-muestra/acreditacion/actores` | seccion | Actores | sí | c5c3a05a | sí | — |
 | `calc-muestra/acreditacion/contexto` | seccion | Contexto | sí | ce43b9b4 | sí | — |
+| `calc-muestra/acreditacion/seleccion` | seccion | Selección | sí | 967dd433 | sí | — |
 | `calc-muestra/acreditacion/resultados` | seccion | Resultados | sí | 0e8f0ee6 | sí | — |
 | `calc-muestra/territorial-handoff` | modo | Territorial | sí | 9f96447d | sí | — |
 | `calc-muestra/territorial-handoff/hojas-ruta` | seccion | Diseño de rutas | sí | 2fc52a47 | sí | — |

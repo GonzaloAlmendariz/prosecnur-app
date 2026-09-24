@@ -333,6 +333,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         sections: [
           { id: "actores", label: "Actores", icon: ClipboardList, to: "/calc-muestra?modo=acreditacion&seccion=actores", layoutPolicy: "viewport" },
           { id: "contexto", label: "Contexto", icon: IconStudyDesign, to: "/calc-muestra?modo=acreditacion&seccion=contexto", layoutPolicy: "viewport" },
+          { id: "seleccion", label: "Selección", icon: Shuffle, to: "/calc-muestra?modo=acreditacion&seccion=seleccion", layoutPolicy: "viewport" },
           { id: "resultados", label: "Resultados", icon: BarChart3, to: "/calc-muestra?modo=acreditacion&seccion=resultados", layoutPolicy: "viewport" },
         ],
       },
