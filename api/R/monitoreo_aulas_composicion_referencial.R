@@ -61,10 +61,13 @@ MONITOREO_AULAS_COMPOSICION_SCHEMA <- "monitoreo_aulas_composicion_referencial_v
 #'   de [monitoreo_aulas_eje_atribucion()]). Se describe a quien ENTRÓ a una
 #'   celda, no a quien respondió: son dos poblaciones y la segunda incluye
 #'   duplicados y gente sin eje.
+#' @param cruce_configurado `TRUE` cuando el estudio SÍ cruza contra el padrón
+#'   (eje por persona, padrón cargado y código declarado): sin `resueltas` es
+#'   entonces que aún no hay respuestas, no que falte el padrón.
 #' @return lista con `schema`, `fuente` y una entrada por dimensión.
 #' @export
 monitoreo_aulas_composicion_referencial <- function(cfg = list(), resueltas = NULL,
-                                                    cuenta = NULL) {
+                                                    cuenta = NULL, cruce_configurado = FALSE) {
   hay_cruce <- is.data.frame(resueltas) && nrow(resueltas)
   mask <- if (hay_cruce && is.logical(cuenta) && length(cuenta) == nrow(resueltas)) {
     cuenta %in% TRUE
@@ -125,7 +128,12 @@ monitoreo_aulas_composicion_referencial <- function(cfg = list(), resueltas = NU
     # código—, que no es lo mismo que «todavía no cruza nada» y se arregla
     # distinto (cargando el padrón, no esperando respuestas). HSVG26ULT2,
     # 2026-09-24: el panel pedía paciencia a un estudio sin padrón.
-    fuente = if (hay_cruce && any(mask)) "padron" else if (is.null(resueltas)) "sin_padron" else "sin_cruce",
+    # Verificador, mismo día: `resueltas = NULL` también sale con eje por persona,
+    # padrón cargado y CERO respuestas —justo antes de campo—; ahí la causa es
+    # «todavía no hay respuestas», y decir «no hay padrón» sería falso.
+    fuente = if (hay_cruce && any(mask)) "padron"
+             else if (is.null(resueltas) && !isTRUE(cruce_configurado)) "sin_padron"
+             else "sin_cruce",
     personas = as.integer(sum(mask)),
     dimensiones = dims
   )

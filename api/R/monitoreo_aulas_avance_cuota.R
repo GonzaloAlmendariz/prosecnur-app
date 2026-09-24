@@ -611,7 +611,9 @@
     # `quotas$category_profiles` y un panel que la lea desde React vería
     # `undefined` en un estudio real.
     composicion = monitoreo_aulas_composicion_referencial(
-      cfg, resueltas = attr(eje_atr, "resueltas"), cuenta = eje_atr$cuenta),
+      cfg, resueltas = attr(eje_atr, "resueltas"), cuenta = eje_atr$cuenta,
+      cruce_configurado = identical(.monitoreo_scalar(eje$atribucion, "aula"), "persona") &&
+        !nzchar(.maea_aviso_de_config(padron, cfg))),
     # **El cruce por código, repartido por carrera.** Se calcula aquí porque
     # aquí está resuelta la persona de cada respuesta; el tablero lo iza al
     # primer nivel para Validación. Cruzar otra vez en el consumidor daría dos

@@ -112,3 +112,18 @@ test_that("una config sin perfiles del marco no revienta ni inventa", {
 test_that("sin cruce intentado dice sin_padron, no «todavía» (HSVG26ULT2, 2026-09-24)", {
   expect_identical(monitoreo_aulas_composicion_referencial(list(), resueltas = NULL)$fuente, "sin_padron")
 })
+
+test_that("con el cruce configurado y cero respuestas NO dice sin_padron (verificador, 2026-09-24)", {
+  # Eje por persona, padrón cargado, código declarado y todavía sin respuestas:
+  # la atribución devuelve `resueltas = NULL` y la causa es «aún no hay
+  # respuestas», no «falta el padrón».
+  r <- monitoreo_aulas_composicion_referencial(.mcr_cfg(), resueltas = NULL, cruce_configurado = TRUE)
+  expect_identical(r$fuente, "sin_cruce")
+})
+
+test_that("el tablero pasa el cruce configurado: eje persona con padrón y código", {
+  cfg <- list(source_mapping = list(student_code_var = "codigo"))
+  padron <- list(filas = list(list(codigo = "20201", nivel = "6")))
+  expect_false(nzchar(.maea_aviso_de_config(padron, cfg)))
+  expect_true(nzchar(.maea_aviso_de_config(list(), cfg)))
+})
