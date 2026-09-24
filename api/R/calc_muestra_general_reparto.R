@@ -22,7 +22,9 @@
 #
 # El conglomerado y `calc_muestra_distribucion.R` alimentan aulas y siguen con
 # el reparto legacy hasta que se decida llevarlo también allí.
-.cm_general_reparto <- function(n_total, N_h, piso = 0L) {
+# `pesos`: a qué es proporcional la cuota (por defecto N_h; Neyman usa
+# N_h·S_h). El tope sigue siendo N_h.
+.cm_general_reparto <- function(n_total, N_h, piso = 0L, pesos = NULL) {
   H <- length(N_h)
   if (H == 0L) return(integer())
   N_h <- as.integer(pmax(0L, N_h))
@@ -30,6 +32,9 @@
   # Las cuotas crudas se calculan en double: n·N_h pasa de 2^31 con marcos de
   # millones y el producto de dos enteros de R desborda a NA.
   N_dbl <- as.numeric(N_h)
+  w <- if (is.null(pesos)) N_dbl else pmax(0, as.numeric(pesos))
+  w[!is.finite(w)] <- 0
+  w[N_dbl == 0] <- 0
   piso <- as.integer(max(0L, piso %||% 0L))
   if (n_total == 0L || sum(N_dbl) == 0) return(rep(0L, H))
   if (n_total >= sum(N_dbl)) return(N_h)
@@ -43,7 +48,7 @@
     libres <- which(!fijo)
     resto <- n_total - sum(n_h[fijo])
     if (!length(libres) || resto <= 0L) break
-    crudo <- as.numeric(resto) * N_dbl[libres] / sum(N_dbl[libres])
+    crudo <- .cm_general_cuota_cruda(resto, w[libres], N_dbl[libres])
     censo <- crudo >= N_h[libres]
     bajo_piso <- !censo & piso > 0L & crudo < piso
     if (!any(censo | bajo_piso)) break
@@ -55,7 +60,7 @@
   libres <- which(!fijo)
   resto <- n_total - sum(n_h[fijo])
   if (length(libres) && resto > 0L) {
-    crudo <- as.numeric(resto) * N_dbl[libres] / sum(N_dbl[libres])
+    crudo <- .cm_general_cuota_cruda(resto, w[libres], N_dbl[libres])
     base <- floor(crudo)
     faltan <- as.integer(resto - sum(base))
     if (faltan > 0L) {
@@ -67,4 +72,11 @@
   n_h <- as.integer(n_h)
   if (piso_incumplible) attr(n_h, "piso_incumplible") <- TRUE
   n_h
+}
+
+# Cuota cruda proporcional a `w`; si ningún estrato libre tiene peso (S_h = 0
+# en todos), se reparte por tamaño para no dividir por cero.
+.cm_general_cuota_cruda <- function(resto, w, N) {
+  if (!(sum(w) > 0)) w <- N
+  as.numeric(resto) * w / sum(w)
 }

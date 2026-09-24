@@ -119,10 +119,21 @@ calc_muestra_general_seleccionar <- function(estudio, estado, componente_id, dat
   }
   columnas <- .cm_general_columnas(marco$columnas)
   piso <- if (nzchar(columnas$estrato)) as.integer(comp$parametros$n_minimo_estrato %||% 0L) else 0L
+  # Con estratos, se sortea el n a campo por estrato que publicó el cálculo
+  # (`n_campo`), no un reparto recalculado aquí.
+  asignacion <- NULL
+  if (identical(modalidad, "probabilistica") && nzchar(columnas$estrato)) {
+    dist <- resultado$distribucion_estratos %||% list()
+    if (length(dist)) {
+      campo <- vapply(dist, function(d) as.integer(d$n_campo %||% NA_integer_), integer(1))
+      if (!anyNA(campo)) asignacion <- setNames(campo, vapply(dist, function(d) as.character(d$estrato), ""))
+    }
+  }
   sorteo <- calc_muestra_general_sortear(
     datos, columnas, metodo = metodo, n = n,
     semilla = semilla %||% .CM_GENERAL_SEMILLA_DEFAULT,
-    reservas_por_estrato = reservas_por_estrato, piso = piso, orden_por = orden_por
+    reservas_por_estrato = reservas_por_estrato, piso = piso, orden_por = orden_por,
+    asignacion = asignacion
   )
   if (!identical(sorteo$corrida$marco_hash, marco$marco_hash)) {
     stop_api(409, "E_CALC_MUESTRA_GENERAL_MARCO_CAMBIO",

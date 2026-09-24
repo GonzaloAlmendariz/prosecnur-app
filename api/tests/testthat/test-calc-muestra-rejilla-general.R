@@ -256,3 +256,14 @@ test_that("V4: el estratificado independiente de aulas sin estratos no cambia su
                      parametros = list(tasa_respuesta = 0.6))
   expect_identical(as.integer(r$n_operativo), as.integer(r$n_objetivo))
 })
+
+test_that("E3: el reparto acepta pesos distintos de N_h (Neyman: N_h·S_h) con tope en N_h", {
+  # Dos estratos iguales en tamaño; S = 0.5 y 0.1 → 300 · (0.5, 0.1) / 0.6 = 250, 50.
+  expect_identical(as.integer(.cm_general_reparto(300L, c(2000L, 2000L), pesos = c(2000 * .5, 2000 * .1))),
+                   c(250L, 50L))
+  # Si el peso manda más que el tamaño, censo y redistribución.
+  x <- as.integer(.cm_general_reparto(300L, c(100L, 2000L), pesos = c(100 * 5, 2000 * .1)))
+  expect_identical(x, c(100L, 200L))
+  # Todos los pesos en cero: cae al tamaño, no divide por cero.
+  expect_identical(sum(as.integer(.cm_general_reparto(50L, c(100L, 300L), pesos = c(0, 0)))), 50L)
+})
