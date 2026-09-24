@@ -83,13 +83,17 @@
     e[is.na(e) | !nzchar(e)] <- "(sin estrato)"
     e
   } else rep(.CM_GENERAL_SIN_ESTRATO, length(ids))
-  tamano <- rep(1, length(ids))
+  # El tamaño declarado se lee siempre (entra al hash del marco, que no debe
+  # depender del método), pero sólo el PPS lo exige válido.
+  col_tamano <- columnas$tamano %||% ""
+  if (nzchar(col_tamano) && !col_tamano %in% names(marco)) {
+    .cm_general_error_marco(sprintf("Falta la columna de tamaño declarada («%s»).", col_tamano))
+  }
+  tamano <- if (nzchar(col_tamano)) suppressWarnings(as.numeric(marco[[col_tamano]])) else rep(1, length(ids))
   if (identical(metodo, "pps")) {
-    col_tamano <- columnas$tamano %||% ""
-    if (!nzchar(col_tamano) || !col_tamano %in% names(marco)) {
+    if (!nzchar(col_tamano)) {
       .cm_general_error_marco("El sorteo PPS necesita una columna de tamaño declarada.")
     }
-    tamano <- suppressWarnings(as.numeric(marco[[col_tamano]]))
     malos <- !is.finite(tamano) | tamano <= 0
     if (any(malos)) {
       .cm_general_error_marco(sprintf("%d unidades tienen tamaño vacío, no numérico o ≤ 0.", sum(malos)),
@@ -105,6 +109,13 @@
   df <- data.frame(id = ids, estrato = estrato, tamano = tamano, orden = orden,
                    stringsAsFactors = FALSE)
   df[order(df$id, method = "radix"), , drop = FALSE]
+}
+
+# Hash del marco: ids, estratos y tamaños en orden de id. No incluye el
+# método ni el orden del sistemático (van en config_hash): declarar y sortear
+# deben reconocer el mismo marco sea cual sea el método.
+.cm_general_hash_marco <- function(df) {
+  .cm_aulas_hash(list(df$id, df$estrato, df$tamano))
 }
 
 # Sorteo dentro de un estrato. `filas` ya viene ordenado por id.
@@ -169,7 +180,7 @@ calc_muestra_general_sortear <- function(marco, columnas, metodo = "mas", n,
   N_h <- vapply(claves, function(k) sum(df$estrato == k), integer(1))
   n_h <- .cm_general_reparto(min(n, nrow(df)), N_h, piso)
 
-  marco_hash <- .cm_aulas_hash(list(df$id, df$estrato, df$tamano, df$orden))
+  marco_hash <- .cm_general_hash_marco(df)
   config <- list(metodo = metodo, n = n, piso = as.integer(piso),
                  reservas_por_estrato = as.integer(reservas_por_estrato),
                  orden_por = orden_por %||% "", columnas = columnas[c("id", "estrato", "tamano")])
