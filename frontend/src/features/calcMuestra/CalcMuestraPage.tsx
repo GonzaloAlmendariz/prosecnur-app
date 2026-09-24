@@ -166,7 +166,7 @@ import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySec
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { estrato, matrizGizEjemplo } from "./ComponenteTablas";
-import { MesaAcreditacion, MesaGeneral, labelMarcoOcasional, motivoReporteDeshabilitado, productoLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
+import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, motivoReporteDeshabilitado, productoLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
 type GuidancePoint = {
@@ -564,6 +564,7 @@ function chromeStatusForDesk({
   if (busy) return { label: busy, detail: "operación activa", tone: "working", icon: Loader2 };
   if (reporteEnCurso) return { label: "Reporte", detail: "generando evidencia", tone: "working", icon: FileText };
   if (desk === "sin_definir") return { label: "Tipo por elegir", detail: "abre una mesa de muestra", tone: "idle", icon: Database };
+  if (desk === "territorial_handoff") return { label: "Deriva a Hojas de Ruta", detail: "esta mesa no calcula", tone: "idle", icon: MapPinned };
   if (resultados > 0) return { label: "Cálculo listo", detail: `${resultados}/${componentes} componentes`, tone: "ready", icon: CheckCircle2 };
   if (componentes > 0) return { label: "Mesa preparada", detail: "pendiente de cálculo", tone: "working", icon: Target };
   return { label: "Sin componentes", detail: "declara el marco", tone: "idle", icon: ClipboardList };
@@ -2488,32 +2489,34 @@ export default function CalcMuestraPage() {
             acciones={
               desk === "sin_definir" || desk === "opinion_universitaria"
                 ? []
-                : [
-                    {
-                      id: "calcular",
-                      label: "Calcular",
-                      rank: 1,
-                      kind: "primary",
-                      onSelect: () => void calcular(),
-                      disabled: calculando || estudio.componentes.length === 0,
-                      busy: calculando,
-                    },
-                    {
-                      id: "reporte",
-                      label: "Reporte",
-                      rank: 2,
-                      onSelect: () => void generarReporte(),
-                      disabled: reporteEnCurso || resultados === 0,
-                      title: motivoReporteDeshabilitado(resultados) ?? undefined,
-                      busy: reporteEnCurso,
-                    },
-                    {
-                      id: "cambiar-tipo",
-                      label: "Cambiar tipo",
-                      rank: 3,
-                      onSelect: openStudyChooser,
-                    },
-                  ]
+                : desk === "territorial_handoff" // sólo deriva: no hay nada que calcular ni reportar
+                  ? [{ id: "cambiar-tipo", label: "Cambiar tipo", rank: 1, onSelect: openStudyChooser }]
+                  : [
+                      {
+                        id: "calcular",
+                        label: "Calcular",
+                        rank: 1,
+                        kind: "primary",
+                        onSelect: () => void calcular(),
+                        disabled: calculando || estudio.componentes.length === 0,
+                        busy: calculando,
+                      },
+                      {
+                        id: "reporte",
+                        label: "Reporte",
+                        rank: 2,
+                        onSelect: () => void generarReporte(),
+                        disabled: reporteEnCurso || resultados === 0,
+                        title: motivoReporteDeshabilitado(resultados) ?? undefined,
+                        busy: reporteEnCurso,
+                      },
+                      {
+                        id: "cambiar-tipo",
+                        label: "Cambiar tipo",
+                        rank: 3,
+                        onSelect: openStudyChooser,
+                      },
+                    ]
             }
           />
           {desk === "opinion_universitaria" && (
@@ -3016,27 +3019,6 @@ function chooseSourceSheet(binding: CalcMuestraWorkspaceSourceBinding, inspectio
   if (inspection.suggested_sheet && sheets.some((sheet) => sheet.name === inspection.suggested_sheet)) return inspection.suggested_sheet;
   if (current && sheets.some((sheet) => sheet.name === current)) return current;
   return sheets[0]?.name ?? "";
-}
-
-function TerritorialHandoff({ onOpen, onBack }: { onOpen: () => void; onBack: () => void }) {
-  return (
-    <section className="cmv2-handoff">
-      <div className="cmv2-handoff-icon"><MapPinned size={26} /></div>
-      <span className="cmv2-eyebrow">Territorial / hogares</span>
-      <h2>Este marco se diseña mejor en Hojas de Ruta</h2>
-      <p>
-        Si el estudio depende de territorio, zonas, manzanas, viviendas o rutas de campo, el cálculo necesita cartografía, selección de zonas, reemplazos y salida operativa. Esa mesa ya existe en Hojas de Ruta.
-      </p>
-      <div className="cmv2-inline-actions">
-        <button type="button" className="cmv2-primary" onClick={onOpen}>
-          <Home size={14} /> Abrir Hojas de Ruta
-        </button>
-        <button type="button" className="cmv2-ghost" onClick={onBack}>
-          Volver a marcos
-        </button>
-      </div>
-    </section>
-  );
 }
 
 function LegacyDesk({ onNew, onClear }: { onNew: () => void; onClear: () => void }) {

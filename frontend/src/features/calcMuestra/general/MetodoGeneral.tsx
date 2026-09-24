@@ -1,9 +1,11 @@
 import { Settings2 } from "lucide-react";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
-import { EstratosTable, MatrizServiciosTable } from "../ComponenteTablas";
+import { MatrizServiciosTable } from "../ComponenteTablas";
 import { setTecnica, type ComponentePatch } from "../sharedCore";
 import { METODOS_CLASICOS, productoLabel } from "./catalogos";
+import { EstratosGeneral } from "./EstratosGeneral";
+import { usaProporcionPorEstrato } from "./modeloEstratos";
 import { MemoriaCalculoGeneral } from "./MemoriaCalculoGeneral";
 import { ParametrosTecnica } from "./ParametrosTecnica";
 
@@ -25,7 +27,8 @@ export function MetodoGeneral({
   onReplaceComponente: (comp: CalcMuestraComponente) => void;
 }) {
   const matrizMode = (comp.marco.matriz_operativa?.length ?? 0) > 0;
-  const estratosMode = (comp.marco.estratos?.length ?? 0) > 0 && !matrizMode;
+  // El estratificado lleva su tabla aunque aún no tenga estratos: es donde se agregan.
+  const estratosMode = !matrizMode && ((comp.marco.estratos?.length ?? 0) > 0 || usaProporcionPorEstrato(comp.tecnica));
   return (
     <div id="cmv2-section-general-metodo" className="cmv2-tab-panel" role="tabpanel" aria-label="Método" data-qa-geometry-group="calc-muestra/general-metodo" data-qa-geometry-contract="intrinsic">
       <section className="cmv2-panel" aria-labelledby="cmg-tecnica-titulo">
@@ -52,7 +55,7 @@ export function MetodoGeneral({
       </section>
       <MemoriaCalculoGeneral comp={comp} calculando={calculando} onCalcular={onCalcular} />
       {matrizMode && <MatrizServiciosTable comp={comp} onComponente={onComponente} />}
-      {estratosMode && <EstratosTable comp={comp} onComponente={onComponente} />}
+      {estratosMode && <EstratosGeneral comp={comp} onComponente={onComponente} />}
     </div>
   );
 }

@@ -751,3 +751,55 @@
     transition: none;
   }
 }
+
+/* --- Método › Estratos de Muestra general (G8) ------------------------------ */
+
+/* Seis o siete columnas cortas: sin el piso de 780 px de la tabla de aulas,
+   que en compacto inventaba un desborde sin nada escondido. */
+.cmv2-table.cmg-tabla-estratos {
+  min-width: 520px;
+}
+
+.cmg-tabla-estratos .cmg-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmg-tabla-estratos td {
+  vertical-align: middle;
+}
+
+.cmg-tabla-estratos .cmv2-number-cell {
+  max-width: 128px;
+  margin-left: auto;
+}
+
+.cmg-celda-p {
+  display: grid;
+  gap: 2px;
+  max-width: 120px;
+}
+
+.cmg-celda-p input {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-celda-p input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+.cmg-error-p {
+  color: var(--pulso-danger-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-estratos-vacio {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-estratos-general .cmg-nota {
+  margin-bottom: var(--cmv2-space-2);
+}
