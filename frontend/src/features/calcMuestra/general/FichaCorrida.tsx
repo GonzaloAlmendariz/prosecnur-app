@@ -12,7 +12,6 @@ import {
   MOTIVO_SIN_CORRIDA_EXPORT,
   TEXTO_COBERTURA_CENSAL,
   errorGeneralDesde,
-  etiquetaMetodo,
   exportReducer,
   formatearEntero,
   formatearFechaUtc,
@@ -20,6 +19,7 @@ import {
   hashCorto,
   nDesfasado,
 } from "./modelo";
+import { nombreDeCorrida } from "./tituloCorrida";
 import { guardarEstudioPendiente } from "./useMuestraGeneral";
 
 /**
@@ -40,6 +40,7 @@ export function FichaCorrida({
   const esCenso = c?.modalidad === "censo";
   // En un censo no hay n a campo que comparar: se listó el marco entero.
   const desfase = esCenso ? null : nDesfasado(corrida, componente);
+  const nombre = corrida && c ? nombreDeCorrida(corrida, componente) : null;
 
   async function exportar() {
     if (!componenteId || !corrida) return;
@@ -60,7 +61,7 @@ export function FichaCorrida({
         <div>
           <span className="cmv2-eyebrow">Corrida vigente</span>
           <strong id="cmg-ficha-titulo">
-            {!c ? "Sin sorteo" : `${esCenso ? "Cobertura censal" : etiquetaMetodo(c.metodo)} · semilla ${c.semilla}`}
+            {nombre ? nombre.titulo : "Sin sorteo"}
           </strong>
         </div>
         <div className="cmv2-panel-head-actions cmg-exportar">
@@ -134,7 +135,7 @@ export function FichaCorrida({
           </dl>
 
           <dl className="cmg-traza">
-            <div><dt>Modalidad</dt><dd>{esCenso ? "Censo" : `Probabilística · ${etiquetaMetodo(c.metodo)}`}</dd></div>
+            <div><dt>Modalidad</dt><dd>{nombre?.modalidad}</dd></div>
             <div><dt>Semilla</dt><dd><code>{c.semilla}</code></dd></div>
             <div><dt>RNG</dt><dd><code>{partirEnBarras(c.rng_kind)}</code></dd></div>
             <div><dt>R</dt><dd>{c.r_version || "—"}</dd></div>

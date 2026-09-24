@@ -72,12 +72,13 @@ describe("archivo del marco", () => {
     ],
   };
 
-  it("elige la primera hoja con columnas y sugiere sólo el id", () => {
+  it("elige la primera hoja con columnas y propone id, estrato y tamaño por su nombre", () => {
     const { archivo, hoja } = archivoDesdeInspeccion("f1", "padron.xlsx", inspeccion);
     expect(hoja).toBe("padron");
     expect(archivo.esLibro).toBe(true);
     const e = archivoMarcoReducer(ARCHIVO_MARCO_INICIAL, { tipo: "subido", archivo, hoja });
-    expect(e.columnas).toEqual({ id: "DNI", estrato: "", tamano: "" });
+    expect(e.columnas).toEqual({ id: "DNI", estrato: "distrito", tamano: "hogares" });
+    expect(e.propuestas).toEqual(e.columnas);
     expect(puedeDeclarar(e)).toBe(true);
   });
 

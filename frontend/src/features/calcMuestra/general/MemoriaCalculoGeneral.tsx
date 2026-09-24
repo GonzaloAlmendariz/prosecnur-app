@@ -44,9 +44,9 @@ export function MemoriaCalculoGeneral({
         <EmptyState
           variant="inline"
           icon={<Calculator size={18} aria-hidden="true" />}
-          title={calculado ? "Este resultado no trae memoria" : "Aún no hay cálculo"}
+          title={calculado ? "Sin memoria de cálculo" : "Aún no hay cálculo"}
           hint={calculado
-            ? "Se calculó antes de que el motor publicara la memoria. Recalcula para verla."
+            ? "Calcula para ver la fórmula con estos parámetros."
             : "Calcula para ver la fórmula con estos parámetros sustituidos."}
           cta={(
             <button type="button" className="cmv2-primary" onClick={onCalcular} disabled={calculando}>

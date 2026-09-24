@@ -7,6 +7,6 @@ export { MesaGeneral } from "./MesaGeneral";
 export { TerritorialHandoff } from "./TerritorialHandoff";
 export { SeleccionActores } from "./SeleccionActores";
 export { SeleccionGeneral } from "./SeleccionGeneral";
-export { productoLabel, tecnicaLabel, tecnicaProducto, variableControl } from "./catalogos";
+export { productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl } from "./catalogos";
 export { labelMarcoOcasional, type MarcoOcasional } from "./marcoOcasional";
 export { motivoReporteDeshabilitado } from "./secciones";

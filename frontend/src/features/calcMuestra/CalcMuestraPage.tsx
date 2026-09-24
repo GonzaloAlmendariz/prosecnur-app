@@ -166,7 +166,7 @@ import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySec
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { estrato, matrizGizEjemplo } from "./ComponenteTablas";
-import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, motivoReporteDeshabilitado, productoLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
+import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, motivoReporteDeshabilitado, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
 type GuidancePoint = {
@@ -763,7 +763,7 @@ function contextChecksForDesk({
   return [
     { label: "Marco", value: marcoReady ? "declarado" : "pendiente", ready: marcoReady, icon: Database },
     { label: "Variables", value: hasVariables ? "configuradas" : "pendientes", ready: hasVariables, icon: Layers3 },
-    { label: "Método", value: componentes[0] ? tecnicaLabel(componentes[0].tecnica) : "sin método", ready: componentes.length > 0, icon: Settings2 },
+    { label: "Método", value: componentes[0] ? tecnicaCalculadaLabel(componentes[0]) : "sin método", ready: componentes.length > 0, icon: Settings2 },
     { label: "Resultados", value: hasResult ? "calculados" : "por calcular", ready: hasResult, icon: BarChart3 },
   ];
 }
@@ -2875,11 +2875,11 @@ function CalcMuestraContextSidebar({
 
 function PathwayPrimer() {
   return (
-    <div className="cmv2-pathway-primer" aria-label="Preguntas para escoger el tipo de muestra">
+    <div className="cmv2-pathway-primer" aria-label="Preguntas para escoger el tipo de muestra" data-qa-geometry-group="calc-muestra/caminos-preguntas" data-qa-geometry-contract="equal">
       {PATHWAY_PRIMER.map((item) => {
         const Icon = item.icon ?? CircleHelp;
         return (
-          <article key={item.prompt}>
+          <article key={item.prompt} data-qa-geometry-member>
             <span><Icon size={14} /></span>
             <div>
               <small>{item.prompt}</small>
@@ -2957,7 +2957,7 @@ function FrameSelector({
         </div>
       )}
 
-      <div className="cmv2-frame-grid cmv2-frame-grid--routes">
+      <div className="cmv2-frame-grid cmv2-frame-grid--routes" data-qa-geometry-group="calc-muestra/caminos" data-qa-geometry-contract="equal">
         {FRAME_CARDS.map((card) => {
           const Icon = card.icon;
           const isCurrent = hasExistingStudy && card.id === currentDesk;
@@ -2972,7 +2972,7 @@ function FrameSelector({
               type="button"
               className={`cmv2-frame-card cmv2-frame-card--${card.id} ${card.id === "territorial_handoff" ? "is-handoff" : ""} ${isCurrent ? "is-current" : ""}`}
               onClick={() => onSelect(card.id)}
-              aria-pressed={isCurrent}
+              aria-pressed={isCurrent} data-qa-geometry-member
             >
               <span className="cmv2-card-icon"><Icon size={20} /></span>
               <small>{isCurrent ? "Camino actual" : card.eyebrow}</small>
@@ -2981,11 +2981,11 @@ function FrameSelector({
               <div className="cmv2-path-tags" aria-label={`Alcance ${card.title}`}>
                 {card.details.map((detail) => <span key={detail}>{detail}</span>)}
               </div>
-              <div className="cmv2-card-answers" aria-label={`Orientación para ${card.title}`}>
+              <div className="cmv2-card-answers" aria-label={`Orientación para ${card.title}`} data-qa-geometry-group="calc-muestra/caminos-orientacion" data-qa-geometry-contract="intrinsic">
                 {card.guidance.map((item) => {
                   const HelpIcon = item.icon ?? CircleHelp;
                   return (
-                  <em key={item.prompt}>
+                  <em key={item.prompt} data-qa-geometry-member>
                     <i><HelpIcon size={12} /></i>
                     <b>{item.prompt}</b>
                     <span>{item.answer}</span>
