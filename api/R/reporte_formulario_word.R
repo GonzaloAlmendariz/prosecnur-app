@@ -125,6 +125,11 @@
 # con cantSplit 0 apariciones, sin cantSplit 1. Perder contenido es peor que una
 # tabla partida, y ademas el item 3 habla de MATRICES, que siempre caen en un
 # tramo de una columna (el plan las manda ahi por `min_width_twips`).
+# Numero de filas por debajo del cual una tabla se considera "corta" y no debe
+# repartirse entre dos columnas. Por encima, partirse es lo correcto: una bateria
+# de 15 items TIENE que partirse, y para eso repite su cabecera (`tblHeader`).
+.FORM_WORD_FILAS_CORTA <- 12L
+
 .form_word_table_base <- function(ft, col_ids, no_split = TRUE) {
   bd <- officer::fp_border(color = .FORM_WORD_LINE, width = 0.5)
   ft <- flextable::border_remove(ft)
@@ -137,10 +142,21 @@
   ft <- flextable::padding(ft, padding = 3, part = "all")
   ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
   ft <- flextable::valign(ft, valign = "center", part = "all")
-  flextable::set_table_properties(
+  ft <- flextable::set_table_properties(
     ft, layout = "fixed",
     opts_word = list(split = !isTRUE(no_split))
   )
+  # UNA TABLA CORTA NO SE PARTE ENTRE COLUMNAS (L14 / item 22 del checklist).
+  # En un tramo de dos columnas `no_split` va en FALSE a proposito: `cantSplit`
+  # ahi hace que LibreOffice DESCARTE las filas en vez de pasarlas a la columna
+  # siguiente (medido; las filas estan en document.xml y no llegan al PDF). La
+  # via que si funciona es `keepNext` por fila, que es lo que pone `paginate()`.
+  # Solo en tablas cortas: una matriz larga debe partirse.
+  n_filas <- tryCatch(nrow(ft$body$dataset), error = function(e) NA_integer_)
+  if (!isTRUE(no_split) && is.finite(n_filas) && n_filas <= .FORM_WORD_FILAS_CORTA) {
+    ft <- flextable::paginate(ft, init = TRUE, hdr_ftr = TRUE)
+  }
+  ft
 }
 
 # Matriz -> flextable: 1a columna ancha (etiqueta del item) + N columnas de
