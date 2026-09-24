@@ -456,6 +456,8 @@ export type CalcMuestraMeta = {
   valor: number;
   variable_control: string;
   sub_cuotas: Record<string, number>;
+  /** «cuadro»: la puso la inferencia de acreditación y se recalcula; «usuario»: manda. */
+  origen?: "" | "usuario" | "cuadro";
 };
 
 export type CalcMuestraDistribucionEstrato = {

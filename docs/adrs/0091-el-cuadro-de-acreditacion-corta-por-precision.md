@@ -40,8 +40,8 @@ punto se sortea con el n de esa precisión:
 
 | Actor | Precisión canónica | Punto de cambio | Del lado probabilístico |
 |---|---|---|---|
-| Estudiantes (aulas) | ±2,5 %, 95 %, p = 0,5, deff 2 | N ≈ 2 052 | conglomerados, sobremuestra 50 % |
-| Docentes | ±5 %, 95 %, p = 0,5, deff 1 | N ≈ 259 | MAS (estratificado por dedicación si el marco la trae), respuesta inflada al 60 % |
+| Estudiantes (aulas) | ±2,5 %, 95 %, p = 0,5, deff 2 | N = 2 050 | conglomerados, sobremuestra 50 % |
+| Docentes | ±5 %, 95 %, p = 0,5, deff 1 | N = 258 | MAS (estratificado por dedicación si el marco la trae), respuesta inflada al 60 % |
 
 La comparación usa la fracción sin redondear, n/N = n0/(N − 1 + n0), que
 decrece estrictamente con N: hay un único punto de cambio, y en él censo y
@@ -74,8 +74,19 @@ Una meta que el usuario declare sigue mandando sobre la del cuadro.
 - Egresados sigue con la regla del documento (clamp(50 % N, 30, 150),
   conveniencia): la misma lógica le aplicaría, pero no entró en esta decisión.
 
+## La meta del cuadro no es la del usuario
+
+El cuadro rellena `meta.valor` y ese valor se guarda; al recalcular, un valor
+mayor que cero cuenta como meta declarada y manda. Un `.pulso` guardado con la
+regla anterior seguía pidiendo 150 docentes aunque hoy toque una muestra a
+±5 % (un MAS rotulado ±5 % con ±6,3 % real). Por eso `meta.origen`:
+`cuadro` se recalcula siempre, `usuario` manda. Un componente sin origen cuya
+meta coincide con lo que escribía la regla anterior (150 docentes con
+N ≥ 251; 1 800 estudiantes en aulas con N ≥ 3 001) se trata como del cuadro.
+
 ## Cumplimiento
 
 `api/tests/testthat/test-calc-muestra-acreditacion-cuadro-continuo.R`:
 monotonía, salto ≤ 1, un único cambio de técnica, margen declarado del lado
-probabilístico, meta del usuario, tope en el marco y variable de control.
+probabilístico, meta del usuario, tope en el marco, variable de control y
+metas heredadas del cuadro anterior.

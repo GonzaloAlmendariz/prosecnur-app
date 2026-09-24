@@ -73,3 +73,30 @@ test_that("el punto de cambio es único porque la fracción sin redondear decrec
   censo <- vapply(1000:5000, function(N) .cm_cuadro_conviene_censo(N, p), TRUE)
   expect_identical(sum(censo[-1] != censo[-length(censo)]), 1L)
 })
+
+test_that("un .pulso con la meta que escribió el cuadro viejo se recalcula con la regla vigente", {
+  # Docentes N = 400 guardado antes del ADR 0091: meta 150 cuota sin origen.
+  viejo <- .cuadro_n("docentes", "online_email", 400, meta = list(valor = 150, tipo = "cuota"))
+  expect_identical(viejo$tecnica, "prob_aleatorio_simple")
+  expect_identical(as.integer(viejo$n_objetivo), calc_n_muestra(N = 400, p = .5, z = 1.96, e = .05, deff = 1))
+  expect_lte(viejo$precision_alcanzada, 0.05 + 1e-9)
+  # Estudiantes guardados con los 1 800 de 7664c5f71.
+  est <- .cuadro_n("estudiantes", "aula_qr", 5000, meta = list(valor = 1800))
+  expect_identical(as.integer(est$n_objetivo), calc_n_muestra(N = 5000, p = .5, z = 1.96, e = .025, deff = 2))
+})
+
+test_that("la meta que tecleó el usuario manda aunque coincida con el valor viejo del cuadro", {
+  r <- .cuadro_n("docentes", "online_email", 400, meta = list(valor = 150, tipo = "cuota", origen = "usuario"))
+  expect_identical(as.integer(r$n_objetivo), 150L)
+})
+
+test_that("la meta que rellena el cuadro se marca y se recalcula en la ida y vuelta", {
+  comp <- .cuadro_comp("egresados", "telefonico", 800)
+  expect_identical(comp$meta$origen, "cuadro")
+  expect_identical(as.integer(comp$meta$valor), 150L)
+  # Cambia N: la meta del cuadro sigue a la regla, no se congela.
+  comp$marco$marco_validado <- 100L; comp$marco$universo_bruto <- 100L; comp$marco$marco_contactable <- 100L
+  otra <- calc_muestra_normalize_componente(comp)
+  expect_identical(otra$tecnica, "intencion_censal")
+  expect_identical(as.integer(otra$meta$valor), 0L)
+})

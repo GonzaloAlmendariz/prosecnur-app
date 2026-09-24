@@ -209,10 +209,10 @@ Para el recorrido "Muestra de aulas" (universo típicamente > 3,000 estudiantes 
 
 **Archivo:** `api/R/calc_muestra_engine.R:537-611`. Explica **por qué el sistema eligió automáticamente una técnica** según el actor (estudiantes, docentes, administrativos, egresados) y el tamaño del universo. Directamente relevante para "Muestra de aulas" es la regla de estudiantes:
 
-- **C-C25** (estudiantes con canal `aula_qr`, lado probabilístico): "Estudiantes con marco de cursos-horario: conglomerados por aulas a ±2.5% (95% de confianza, p = 0.5, deff 2), sobremuestra 50%. Se sortea porque intentar el censo con cobertura mínima de 60% pediría más encuestas que la muestra." — desde 2026-09-24 el corte es por precisión (N ≈ 2 052), no N ≥ 3 001 (ADR 0091).
+- **C-C25** (estudiantes con canal `aula_qr`, lado probabilístico): "Estudiantes con marco de cursos-horario: conglomerados por aulas a ±2.5% (95% de confianza, p = 0.5, deff 2), sobremuestra 50%. Se sortea porque intentar el censo con cobertura mínima de 60% pediría más encuestas que la muestra." — desde 2026-09-24 el corte es por precisión (desde N = 2 050), no N ≥ 3 001 (ADR 0091).
 - **C-C26** (estudiantes, lado censal): "Estudiantes: intención censal con cobertura mínima 60%, porque la muestra por aulas a ±2.5% pediría al menos ese 60% (o no hay marco de cursos-horario que sortear)."
 - **C-C27** (`:543`, administrativos): "Administrativos: intención censal con cobertura mínima 80% (alta disponibilidad y respuesta)."
-- **C-C28** (docentes, lado censal, N ≲ 259): "Docentes: intención censal con cobertura mínima 60%, porque una muestra aleatoria a ±5% pediría al menos ese 60% de la nómina."
+- **C-C28** (docentes, lado censal, N < 258): "Docentes: intención censal con cobertura mínima 60%, porque una muestra aleatoria a ±5% pediría al menos ese 60% de la nómina."
 - **C-C29** (docentes, lado probabilístico): "Docentes: muestra aleatoria de la nómina a ±5% (95% de confianza, p = 0.5), estratificada por dedicación si el marco la trae, con la respuesta inflada al 60% de cobertura observada. Da margen de error, cosa que 150 cuotas no daban." (antes: cuotas de 150 desde N ≥ 251; ADR 0091).
 - **C-C30** (`:590`, egresados N ≤ 300): "Egresados con N ≤ 300: intención censal con cobertura mínima 50%."
 - **C-C31** (`:605`, egresados N ≥ 301): "Egresados con N ≥ 301: conveniencia con regla canónica clamp(N×50%, 30, 150). Si hay estratos por carrera, aplica por carrera y suma. Si no hay estratos, aplica al N total."
