@@ -109,7 +109,7 @@ funcionaron) · Neyman dejaba estratos vacíos.
   (potencia) y H28 (varianza) implementados; H25 y H26 no aplican (el sorteo
   aísla su RNG; la inflación de cuotas ya sigue la regla común); H27 no
   aplica (el recomendador no tiene consumidor en la UI).
-- Menor: en una media la tabla de estratos todavía ofrece la columna de p
-  (el motor la ignora en ese caso).
+- Cerrado (947e1c7e4): con una media la tabla de estratos ya no pide la p
+  de cada estrato (`usaProporcionPorEstrato` mira `tipo_indicador`).
 - Tareas aparte: π a 4 decimales en rutas de aulas; test del respaldo
   multipart de monitoreo.
