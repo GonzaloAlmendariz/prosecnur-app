@@ -53,3 +53,20 @@ el motor general ¿cumple lo que declara? Script reproducible:
   responde entera).
 - El marco ordenado por id no tiene periodicidad: el riesgo del sistemático
   con marcos periódicos no se ejercita aquí.
+
+## E3 — estratificado con proporción por estrato y Neyman
+
+Script: `E8_R=2000 Rscript scripts/calc-muestra-montecarlo-neyman.R`.
+Población de N = 10.000 en 3 estratos (6.000 / 3.000 / 1.000) con prevalencias
+0,08 / 0,30 / 0,55 (P real 0,1953); e declarado 0,03; el sorteo recibe el
+reparto que publica el cálculo; estimador de Hájek con 1/π; 2.000 réplicas.
+
+| Asignación | n | Reparto A/B/C | e publicado | 1,96 · EE empírico | \|p̂ − P\| ≤ e | Sesgo |
+|---|---|---|---|---|---|---|
+| Proporcional (Cochran 5.25) | 534 | 320 / 160 / 54 | 0,0300 | 0,0295 | 95,2 % | 0,0004 |
+| Neyman (Cochran 5.26) | 496 | 231 / 195 / 70 | 0,0300 | 0,0300 | 95,0 % | 0,0003 |
+
+Con la p global conservadora (0,5) el mismo margen habría pedido **965**. La
+fórmula por estrato cumple el margen justo al 95 % con 534, y Neyman lo cumple
+con 496 porque lleva casos al estrato de mayor varianza (C: 54 → 70). El error
+que publica el motor (con la asignación efectiva) coincide con el empírico.
