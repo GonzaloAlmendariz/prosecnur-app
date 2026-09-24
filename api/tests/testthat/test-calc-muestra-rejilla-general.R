@@ -101,3 +101,65 @@ test_that("B3-25/26: n operativo nunca supera N (censo)", {
   expect_match(r25$advertencia, "censo del marco")
   expect_identical(as.integer(r25$n_operativo), 30L)
 })
+
+# --- B4 · reparto entre estratos (H01, H02) ---------------------------------
+
+test_that("B4-27: proporcional por mayor resto (Hamilton), empates por orden", {
+  expect_identical(as.integer(.cm_distribuir_con_piso(370L, c(4000L, 3500L, 2500L))),
+                   c(148L, 130L, 92L))
+})
+
+test_that("B4-28: 10 sobre tres estratos iguales reparte 4,3,3 (el legacy daba 2,4,4)", {
+  expect_identical(as.integer(.cm_distribuir_con_piso(10L, c(100L, 100L, 100L))), c(4L, 3L, 3L))
+  # Con N_h = (1,1,1) el tope manda: 10 no caben en 3 personas, es un censo.
+  expect_identical(as.integer(.cm_distribuir_con_piso(10L, c(1L, 1L, 1L))), c(1L, 1L, 1L))
+})
+
+test_that("B4: si los pisos no caben en n, no se aplican y se declara", {
+  x <- .cm_distribuir_con_piso(50L, c(1000L, 1000L, 1000L), piso = 30L)
+  expect_identical(sum(as.integer(x)), 50L)
+  expect_true(isTRUE(attr(x, "piso_incumplible")))
+})
+
+test_that("B4-29: 5 sobre (100,1×6) suma 5 y no vacía al estrato del 94 %", {
+  x <- as.integer(.cm_distribuir_con_piso(5L, c(100L, rep(1L, 6))))
+  expect_identical(sum(x), 5L)
+  expect_identical(x, c(5L, rep(0L, 6)))
+})
+
+test_that("B4-30/31: el piso nunca excede N_h; el excedente se redistribuye", {
+  expect_identical(as.integer(.cm_distribuir_con_piso(300L, c(20L, 1000L, 1000L), piso = 30L)),
+                   c(20L, 140L, 140L))
+  expect_identical(as.integer(.cm_distribuir_con_piso(100L, c(20L, 1000L, 1000L), piso = 30L)),
+                   c(20L, 40L, 40L))
+})
+
+test_that("B4: invariantes del reparto en 200 marcos aleatorios (suma exacta, 0 ≤ n_h ≤ N_h)", {
+  set.seed(20260924)
+  for (k in seq_len(200)) {
+    H <- sample(2:8, 1)
+    N_h <- as.integer(sample(c(1:5, 10:50, 100:3000), H, replace = TRUE))
+    n <- as.integer(sample(1:sum(N_h), 1))
+    piso <- sample(c(0L, 2L, 30L), 1)
+    x <- as.integer(.cm_distribuir_con_piso(n, N_h, piso = piso))
+    info <- sprintf("k=%d n=%d piso=%d N_h=%s -> %s", k, n, piso,
+                    paste(N_h, collapse = ","), paste(x, collapse = ","))
+    expect_identical(sum(x), n, info = info)
+    expect_true(all(x >= 0L & x <= N_h), info = info)
+  }
+})
+
+test_that("B4: el estratificado rotula censo y piso por estrato y avisa el piso que no cabe", {
+  r <- .rejilla_calc(tecnica = "prob_estratificado", N = 2020L,
+                     parametros = list(n_minimo_estrato = 30L),
+                     estratos = .rejilla_estratos(c(20L, 1000L, 1000L)))
+  reglas <- vapply(r$distribucion_estratos, `[[`, character(1), "regla")
+  ns <- vapply(r$distribucion_estratos, `[[`, integer(1), "n")
+  expect_identical(sum(ns), as.integer(r$n_objetivo))
+  expect_identical(ns[[1]], 20L)
+  expect_identical(reglas[[1]], "censo_estrato")
+  chico <- .rejilla_calc(tecnica = "prob_estratificado", N = 3000L,
+                         parametros = list(n_minimo_estrato = 200L, e = 0.10),
+                         estratos = .rejilla_estratos(c(1000L, 1000L, 1000L)))
+  expect_match(chico$advertencia, "no cabe")
+})

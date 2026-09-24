@@ -1699,13 +1699,19 @@ calc_muestra_calcular_componente <- function(comp) {
       precision_e = if (n_i > 0L) calc_e_desde_n_muestra(
         n = n_i, N = e$N, p = par$p, z = par$z, deff = par$deff
       ) else NA_real_,
-      regla       = if (piso > 0L && n_i <= piso) sprintf("piso_%d", piso) else "proporcional"
+      regla       = if (n_i >= e$N) "censo_estrato"
+                    else if (piso > 0L && n_i <= piso && !isTRUE(attr(cuotas, "piso_incumplible"))) sprintf("piso_%d", piso)
+                    else "proporcional"
     )
   })
+  aviso_piso <- if (isTRUE(attr(cuotas, "piso_incumplible"))) sprintf(
+    "El piso de %d por estrato no cabe en n = %d: se repartió proporcional sin piso.",
+    piso, as.integer(n_objetivo)
+  ) else NULL
 
   c(base_result, list(
     distribucion_estratos = distribucion_estratos,
-    advertencia = paste(c(campo$advertencia,
+    advertencia = paste(c(campo$advertencia, aviso_piso,
                           "Muestreo estratificado proporcional: el margen de error formal corresponde al diseño probabilístico documentado."),
                         collapse = " ")
   ))
@@ -1996,17 +2002,11 @@ calc_muestra_calcular_componente <- function(comp) {
   max(calc_n_muestra(N = N, p = p, z = z, e = e, deff = deff), 1L)
 }
 
+# Estratificado y matriz de servicios del motor general. El reparto vive en
+# calc_muestra_general_reparto.R (mayor resto, piso = max(piso, cuota), tope
+# N_h); `pesos` son los N_h de cada estrato.
 .cm_distribuir_con_piso <- function(n_total, pesos, piso = 0L) {
-  if (length(pesos) == 0L) return(integer())
-  if (n_total <= 0L || sum(pesos, na.rm = TRUE) <= 0) return(rep(0L, length(pesos)))
-  piso <- as.integer(max(piso, 0L))
-  if (piso == 0L || n_total < piso * length(pesos)) {
-    return(distribuir_proporcional_pesos(n_total, pesos, redondeo = "cuadratura"))
-  }
-  base <- rep(piso, length(pesos))
-  remanente <- as.integer(n_total - sum(base))
-  if (remanente <= 0L) return(as.integer(base))
-  as.integer(base + distribuir_proporcional_pesos(remanente, pesos, redondeo = "cuadratura"))
+  .cm_general_reparto(n_total, pesos, piso)
 }
 
 #' Calcula resultado para barrido operativo de cobertura.
