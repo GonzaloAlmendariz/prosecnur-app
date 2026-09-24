@@ -23,9 +23,14 @@ const reporte = (p: Partial<ReporteEstudio> = {}): ReporteEstudio => ({
 describe("la barra del módulo no hace bypass de las secciones", () => {
   const pagina = readFileSync(new URL("../../CalcMuestraPage.tsx", import.meta.url), "utf8");
   it("sin Calcular ni Reporte en `acciones`; Cambiar tipo sólo para el traspaso territorial", () => {
-    const acciones = pagina.slice(pagina.indexOf("acciones={"), pagina.indexOf("acciones={") + 400);
+    // El bloque entero de la prop, hasta el cierre del componente de la barra.
+    const inicio = pagina.indexOf("acciones={");
+    const acciones = pagina.slice(inicio, pagina.indexOf("\n          />", inicio));
+    expect(acciones.length).toBeGreaterThan(20);
     expect(acciones).not.toMatch(/id: "calcular"/);
     expect(acciones).not.toMatch(/id: "reporte"/);
+    // Tampoco por la puerta de atrás: ninguna acción de la barra definida aparte.
+    expect(pagina).not.toMatch(/id: "calcular",\s*label: "Calcular"/);
     expect(acciones).toMatch(/territorial_handoff.*cambiar-tipo/s);
   });
   it("la barra muestra el indicador de guardado en toda mesa, como aulas", () => {
