@@ -188,3 +188,43 @@ formulario_tramos_plan <- function(blocks,
   }
   merged
 }
+
+# --- Reparto equilibrado de un tramo de dos columnas (renderer PDF) -----------
+#
+# Word EQUILIBRA el contenido de una seccion `continuous` entre sus columnas al
+# cerrarla; la maquinaria del PDF llenaba la columna izquierda de arriba abajo y
+# solo desbordaba a la derecha al acabarse la pagina. Con el MISMO modelo y el
+# mismo plan, el .docx cerraba el instrumento de ejemplo en 1 pagina y el PDF
+# necesitaba 2, con media pagina en blanco a la derecha.
+#
+# Devuelve los INDICES de bloque que deben ABRIR la segunda columna. Se calcula
+# por corrida de bloques contiguos que no son de ancho completo:
+#
+#   - Si la corrida no cabe en dos columnas de una pagina, NO se equilibra: se
+#     deja el llenado de siempre, que es lo correcto cuando el contenido continua
+#     en la pagina siguiente.
+#   - Si cabe, se corta en el primer bloque cuyo acumulado pase la mitad del alto
+#     total. El corte cae siempre ENTRE bloques: un bloque no se parte.
+.form_pdf_corte_equilibrado <- function(blocks, alturas, alto_col) {
+  n <- length(blocks)
+  if (!n || length(alturas) != n) return(integer(0))
+  anchos <- vapply(blocks, function(b) isTRUE(b$full_width), logical(1))
+  cortes <- integer(0)
+  i <- 1L
+  while (i <= n) {
+    if (anchos[i]) { i <- i + 1L; next }
+    j <- i
+    while (j < n && !anchos[j + 1L]) j <- j + 1L
+    idx <- seq.int(i, j)
+    h <- alturas[idx]
+    total <- sum(h)
+    if (total <= alto_col * 2 && length(idx) > 1L) {
+      acum <- cumsum(h)
+      k <- which(acum >= total / 2)[1]
+      # `k` es el ultimo bloque de la izquierda; la derecha abre en el siguiente.
+      if (!is.na(k) && k < length(idx)) cortes <- c(cortes, idx[k + 1L])
+    }
+    i <- j + 1L
+  }
+  cortes
+}

@@ -2144,6 +2144,14 @@ formulario_pdf_render <- function(model, output_file) {
   new_page()
 
   blocks <- model$blocks
+  # Reparto equilibrado de los tramos de dos columnas (L12): sin esto la columna
+  # izquierda se llena hasta el fondo y la derecha queda vacia. Las alturas se
+  # miden una vez, con el ancho de columna.
+  alturas <- vapply(blocks, function(b) {
+    .form_pdf_block_height(b, if (isTRUE(b$full_width)) full_w else col_w)
+  }, numeric(1))
+  cortes <- .form_pdf_corte_equilibrado(blocks, alturas, y_top - y_bottom)
+
   for (bi in seq_along(blocks)) {
     block <- blocks[[bi]]
     nxt <- if (bi < length(blocks)) blocks[[bi + 1L]] else NULL
@@ -2168,6 +2176,11 @@ formulario_pdf_render <- function(model, output_file) {
       next
     }
 
+    # Corte equilibrado: este bloque abre la segunda columna aunque en la primera
+    # todavia quepa.
+    if (current_col == 1L && bi %in% cortes && y[1] < (y_top - 0.001)) {
+      current_col <- 2L
+    }
     if (y[current_col] - h < y_bottom) {
       if (current_col == 1L) {
         current_col <- 2L
