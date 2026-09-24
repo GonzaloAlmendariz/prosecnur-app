@@ -59,8 +59,10 @@ export function EstratosGeneralVista({
   return (
     <section className="cmv2-panel cmg-estratos-general" aria-labelledby="cmg-estratos-titulo">
       <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">{marcoDeclarado ? "Del archivo del marco" : "Tabla editable"}</span>
-        <strong id="cmg-estratos-titulo">Estratos del marco</strong>
+        <div>
+          <span className="cmv2-eyebrow">{marcoDeclarado ? "Del archivo del marco" : "Tabla editable"}</span>
+          <h3 className="cmg-panel-titulo" id="cmg-estratos-titulo">Estratos del marco</h3>
+        </div>
       </div>
       {conP && (
         <p className="cmg-nota" id="cmg-estratos-ayuda">
@@ -76,12 +78,15 @@ export function EstratosGeneralVista({
         aria-label={desborda ? "Tabla de estratos, desplazable" : undefined}
         data-qa-geometry-capacity="owned"
       >
-        <table className="cmv2-table cmg-tabla-estratos" data-columnas={conP ? "con-p" : "sin-p"}>
+        <table className="cmv2-table cmg-tabla-estratos" data-columnas={conP ? "con-p" : "sin-p"} lang="es-PE">
+          <caption className="cmg-sr-only">
+            {marcoDeclarado ? "Estratos del marco declarado y su reparto" : "Estratos editables y su reparto"}
+          </caption>
           <thead>
             <tr>
               <th scope="col">Estrato</th>
               <th scope="col" className="cmg-num">N<sub>h</sub></th>
-              {conP && <th scope="col">p esperada</th>}
+              {conP && <th scope="col" className="cmg-num">p esperada</th>}
               <th scope="col" className="cmg-num">n completas</th>
               <th scope="col" className="cmg-num">n a campo</th>
               <th scope="col">Reparto</th>
@@ -100,27 +105,29 @@ export function EstratosGeneralVista({
             )}
             {filas.map(({ estrato: e, reparto }, i) => (
               <tr key={e.id}>
-                <td>
+                <th scope="row">
                   {marcoDeclarado ? (
                     <strong>{e.label}</strong>
                   ) : (
                     <input
                       className="cmv2-table-input"
                       aria-label={`Nombre del estrato ${i + 1}`}
+                      // Un nombre largo se recorta en el input: el título lo da entero (C4).
+                      title={e.label || undefined}
                       value={e.label}
                       onChange={(ev) => editar(patchRotulo(comp, i, ev.currentTarget.value))}
                     />
                   )}
-                </td>
+                </th>
                 <td className="cmg-num">
                   {marcoDeclarado ? (
                     <span title="Sale del archivo del marco">{fmtInt(e.N)}</span>
                   ) : (
-                    <NumberCell value={e.N} title={`N_h de ${e.label}`} onChange={(v) => editar(patchTamano(comp, i, v))} />
+                    <NumberCell value={e.N} ariaLabel={`N_h de ${e.label || `estrato ${i + 1}`}`} onChange={(v) => editar(patchTamano(comp, i, v))} />
                   )}
                 </td>
                 {conP && (
-                  <td>
+                  <td className="cmg-num">
                     <CeldaProporcion
                       estrato={e}
                       pGlobal={pGlobal}

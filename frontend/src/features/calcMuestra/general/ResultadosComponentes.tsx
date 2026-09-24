@@ -1,16 +1,20 @@
-import { AlertTriangle, BarChart3, Calculator, Loader2 } from "lucide-react";
+import { BarChart3, Calculator, Loader2 } from "lucide-react";
 
 import type { CalcMuestraComponente, CalcMuestraWorkspaceProducto } from "../../../api/calcMuestra";
 import { EmptyState } from "../../../components/States";
-import { criterioSalida } from "../criterioSalida";
 import { presentResultadoPrecision } from "../resultadoPrecision";
 import { fmtInt } from "../sharedCore";
+import { AvisoModulo } from "../universidad/shared/AvisoModulo";
+import { ajusteDeResultado } from "./bandaDisenoModelo";
 import { productoLabel, tecnicaCalculadaLabel, tecnicaProducto } from "./catalogos";
 import { avisosDelResultado, precisionEnPalabras } from "./modeloParametros";
+import { filasDesdeActores, filasDesdeResultado } from "./repartoEstratos";
+import { RepartoEstratosGrafico } from "./RepartoEstratosGrafico";
 import { hayResultado, vacioDeResultados, type ModoMesa } from "./secciones";
 import { useDesbordaHorizontal } from "./useDesbordaHorizontal";
 import { useIrASeccionGeneral } from "./useMuestraGeneral";
 import "./general.css";
+import "./mesa.css";
 
 export function ProductBadge({ producto }: { producto: CalcMuestraWorkspaceProducto }) {
   return <span className={`cmv2-product cmv2-product--${producto}`}>{productoLabel(producto)}</span>;
@@ -18,8 +22,9 @@ export function ProductBadge({ producto }: { producto: CalcMuestraWorkspaceProdu
 
 /**
  * Resultados de Muestra general y Acreditación: el n de cada componente, su
- * precisión y su criterio de salida. Sin cálculo, el panel conserva su caja y
- * dice qué falta y por qué el reporte aún no se puede generar (C3, G6).
+ * precisión, su ajuste y el reparto dibujado. Sin cálculo, el panel conserva
+ * su caja, mide lo que su contenido y dice qué falta y por qué el reporte aún
+ * no se puede generar (C3, G6).
  */
 export function ResultadosComponentes({
   modo,
@@ -40,12 +45,28 @@ export function ResultadosComponentes({
   const avisos = componentes.flatMap((comp) => avisosDelResultado(comp).map((aviso) => ({ comp, aviso })));
 
   return (
-    <section className="cmv2-panel cmv2-output" aria-labelledby="cmg-resultados-titulo">
+    <section className="cmv2-panel cmv2-output cmg-resultados" aria-labelledby="cmg-resultados-titulo" data-vacio={vacio ? "true" : undefined} data-qa-geometry-member>
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Tabla de salida</span>
-          <strong id="cmg-resultados-titulo">{titulo}</strong>
+          <h3 id="cmg-resultados-titulo" className="cmg-panel-titulo">{titulo}</h3>
         </div>
+      </div>
+      {/* Región viva persistente: los avisos que llegan con un cálculo nuevo
+          se anuncian sin robar el foco. */}
+      <div className="cmg-avisos-vivos" aria-live="polite">
+        {!vacio && avisos.length > 0 && (
+          <AvisoModulo tone="warn" role="note" title="Parámetros corregidos por el motor">
+            <ul className="cmg-avisos-lista">
+              {avisos.map(({ comp, aviso }) => (
+                <li key={`${comp.id}-${aviso.param}`}>
+                  {componentes.length > 1 ? <strong>{comp.actor}: </strong> : null}
+                  {aviso.texto}
+                </li>
+              ))}
+            </ul>
+          </AvisoModulo>
+        )}
       </div>
       {vacio ? (
         <EmptyState
@@ -57,7 +78,7 @@ export function ResultadosComponentes({
               {vacio.accion.etiqueta}
             </button>
           ) : (
-            <button type="button" className="cmv2-primary" onClick={onCalcular} disabled={calculando}>
+            <button type="button" className="cmv2-primary" onClick={() => onCalcular()} disabled={calculando}>
               {calculando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Calculator size={14} aria-hidden="true" />}
               {vacio.accion.etiqueta}
             </button>
@@ -65,16 +86,6 @@ export function ResultadosComponentes({
         />
       ) : (
         <>
-          {avisos.length > 0 && (
-            <ul className="cmg-avisos-resultado" aria-label="Parámetros corregidos por el motor">
-              {avisos.map(({ comp, aviso }) => (
-                <li key={`${comp.id}-${aviso.param}`}>
-                  <AlertTriangle size={13} aria-hidden="true" />
-                  <span>{componentes.length > 1 ? `${comp.actor}: ` : ""}{aviso.texto}</span>
-                </li>
-              ))}
-            </ul>
-          )}
           <div
             ref={ref}
             className="cmv2-table-wrap cmg-tabla-desplazable"
@@ -83,16 +94,17 @@ export function ResultadosComponentes({
             aria-label={desborda ? "Tabla de resultados, desplazable" : undefined}
             role={desborda ? "region" : undefined}
           >
-            <table className="cmv2-table">
+            <table className="cmv2-table cmg-resultados-tabla">
+              <caption className="pulso-sr-only">n calculado por componente</caption>
               <thead>
                 <tr>
-                  <th>Componente</th>
-                  <th>Producto</th>
-                  <th>Marco</th>
-                  <th>n objetivo</th>
-                  <th>Operativo</th>
-                  <th>Precisión</th>
-                  <th>Ajuste</th>
+                  <th scope="col">Componente</th>
+                  <th scope="col">Producto</th>
+                  <th scope="col" className="cmg-col-num">Marco</th>
+                  <th scope="col" className="cmg-col-num">n objetivo</th>
+                  <th scope="col" className="cmg-col-num">Operativo</th>
+                  <th scope="col" className="cmg-col-num">Precisión</th>
+                  <th scope="col">Ajuste</th>
                 </tr>
               </thead>
               <tbody>
@@ -103,61 +115,70 @@ export function ResultadosComponentes({
                     precisionAlcanzada: r?.precision_alcanzada,
                     coberturaObjetivo: r?.cobertura_objetivo,
                   });
+                  const ajuste = ajusteDeResultado(comp, modo);
                   return (
                     <tr key={comp.id}>
-                      <td>
+                      <th scope="row">
                         <strong>{comp.actor}</strong>
                         <small>{tecnicaCalculadaLabel(comp)}</small>
-                      </td>
+                      </th>
                       <td><ProductBadge producto={tecnicaProducto(comp)} /></td>
-                      <td>{fmtInt(comp.marco.marco_validado)}</td>
-                      <td>{fmtInt(r?.n_objetivo)}</td>
-                      <td>{fmtInt(r?.n_operativo)}</td>
-                      <td>
+                      <td className="cmg-col-num">{fmtInt(comp.marco.marco_validado)}</td>
+                      <td className="cmg-col-num">{fmtInt(r?.n_objetivo)}</td>
+                      <td className="cmg-col-num">{fmtInt(r?.n_operativo)}</td>
+                      <td className="cmg-col-num">
                         {precisionEnPalabras(comp, precision.value)}
                         {precision.note && <small>{precision.note}</small>}
                       </td>
-                      <td className="cmv2-note-cell">{criterioSalida(comp)}</td>
+                      <td className="cmv2-note-cell">
+                        {ajuste.texto}
+                        {ajuste.nota && <small>{ajuste.nota}</small>}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-          <SalidasAnidadas componentes={componentes} />
+          <SalidasAnidadas modo={modo} componentes={componentes} />
         </>
       )}
     </section>
   );
 }
 
-function SalidasAnidadas({ componentes }: { componentes: CalcMuestraComponente[] }) {
-  const rows = componentes.flatMap((comp) => (comp.resultado?.cuotas_matriz ?? []).map((row) => ({ comp, row })));
-  const estratos = componentes.flatMap((comp) => (comp.resultado?.distribucion_estratos ?? []).map((row) => ({ comp, row })));
-  if (rows.length === 0 && estratos.length === 0) return null;
-  const estratosTitle = estratos.some(({ comp }) => comp.actor_categoria === "estudiantes" && comp.canal_recojo === "aula_qr")
-    ? "Distribución por facultad"
-    : "Distribución por estrato";
+function SalidasAnidadas({ modo, componentes }: { modo: ModoMesa; componentes: CalcMuestraComponente[] }) {
+  const cuotas = componentes.flatMap((comp) => (comp.resultado?.cuotas_matriz ?? []).map((row) => ({ comp, row })));
+  const conEstratos = componentes.filter((comp) => (comp.resultado?.distribucion_estratos?.length ?? 0) > 0);
+  const actores = modo === "acreditacion" ? filasDesdeActores(componentes) : [];
+  if (cuotas.length === 0 && conEstratos.length === 0 && actores.length === 0) return null;
+
   return (
-    <div className="cmv2-nested-output">
-      {estratos.length > 0 && (
-        <div>
-          <h4>{estratosTitle}</h4>
-          <div className="cmv2-mini-table" data-qa-geometry-group="calc-muestra/general-reparto" data-qa-geometry-contract="equal">
-            {estratos.map(({ comp, row }, i) => (
-              <span key={`${comp.id}-estrato-${i}`}>
-                <strong>{row.estrato}</strong>
-                <em>N {fmtInt(row.N)} · {fmtInt(row.n)} completas{row.n_campo != null ? ` · ${fmtInt(row.n_campo)} a campo` : ""}</em>
-              </span>
-            ))}
-          </div>
-        </div>
+    <div
+      className="cmv2-nested-output cmg-salidas"
+      data-qa-geometry-group="calc-muestra/general-salidas"
+      data-qa-geometry-contract="intrinsic"
+    >
+      {actores.length > 0 && (
+        <RepartoEstratosGrafico titulo="Meta y marco por actor" filas={actores} origen="actores" />
       )}
-      {rows.length > 0 && (
+      {conEstratos.map((comp) => {
+        const porFacultad = comp.actor_categoria === "estudiantes" && comp.canal_recojo === "aula_qr";
+        const base = porFacultad ? "Distribución por facultad" : "Distribución por estrato";
+        return (
+          <RepartoEstratosGrafico
+            key={comp.id}
+            titulo={componentes.length > 1 ? `${base} · ${comp.actor}` : base}
+            filas={filasDesdeResultado(comp.resultado?.distribucion_estratos ?? [])}
+            origen="resultado"
+          />
+        );
+      })}
+      {cuotas.length > 0 && (
         <div>
-          <h4>Matriz de cuotas</h4>
+          <h4 className="cmg-subtitulo">Matriz de cuotas</h4>
           <div className="cmv2-mini-table">
-            {rows.map(({ comp, row }, i) => (
+            {cuotas.map(({ comp, row }, i) => (
               <span key={`${comp.id}-cuota-${i}`}>
                 <strong>{row.territorio} · {row.servicio}</strong>
                 <em>N {fmtInt(row.N)} · n {fmtInt(row.n)}</em>

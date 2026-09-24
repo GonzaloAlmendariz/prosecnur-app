@@ -14,6 +14,7 @@ import {
   archivoMarcoReducer,
   columnasDeHoja,
   errorGeneralDesde,
+  motivoNoDeclarar,
   puedeDeclarar,
   reconciliarEstudio,
   type ColumnasElegidas,
@@ -27,6 +28,9 @@ const ROLES: Array<{ rol: keyof ColumnasElegidas; label: string; ayuda: string; 
   { rol: "estrato", label: "Estrato", ayuda: "Reparte la muestra entre grupos y sortea dentro de cada uno.", vacio: "Sin estrato" },
   { rol: "tamano", label: "Tamaño", ayuda: "Medida de tamaño para sortear con probabilidad proporcional (PPS).", vacio: "Sin tamaño" },
 ];
+
+/** Id del botón de subida: el vacío de la Selección de un actor lleva el foco aquí. */
+export const ID_SUBIR_ARCHIVO_MARCO = "cmg-archivo-subir";
 
 /**
  * Muestra general › Marco › «Archivo del marco» (ADR 0090). Sube el padrón,
@@ -43,6 +47,7 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
   const formularioAbierto = !marco || estado.editando;
   const columnas = columnasDeHoja(estado.archivo, estado.hoja);
   const ocupado = estado.fase === "subiendo" || estado.fase === "declarando";
+  const motivoDeclarar = motivoNoDeclarar(estado);
 
   async function subir(file: File) {
     dispatch({ tipo: "subiendo" });
@@ -94,7 +99,7 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Archivo del marco</span>
-          <strong id="cmg-archivo-titulo">{marco ? "Marco declarado" : "Declara el listado de unidades"}</strong>
+          <h3 className="cmg-panel-titulo" id="cmg-archivo-titulo">{marco ? "Marco declarado" : "Declara el listado de unidades"}</h3>
         </div>
         {marco && !estado.editando && (
           <div className="cmv2-panel-head-actions">
@@ -132,7 +137,13 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
                     if (file) void subir(file);
                   }}
                 />
-                <button type="button" className="cmv2-ghost" onClick={() => inputRef.current?.click()} disabled={ocupado}>
+                <button
+                  id={ID_SUBIR_ARCHIVO_MARCO}
+                  type="button"
+                  className="cmv2-ghost"
+                  onClick={() => inputRef.current?.click()}
+                  disabled={ocupado}
+                >
                   {estado.fase === "subiendo"
                     ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
                     : <Upload size={14} aria-hidden="true" />}
@@ -203,6 +214,7 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
                   className="cmv2-primary"
                   onClick={() => void declarar()}
                   disabled={!puedeDeclarar(estado) || ocupado}
+                  aria-describedby={motivoDeclarar ? "cmg-declarar-porque" : undefined}
                 >
                   {estado.fase === "declarando" && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
                   Declarar marco
@@ -212,6 +224,7 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
                     Cancelar
                   </button>
                 )}
+                {motivoDeclarar && <small id="cmg-declarar-porque" className="cmg-motivo">{motivoDeclarar}</small>}
               </div>
             </div>
           )}

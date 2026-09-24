@@ -1,9 +1,11 @@
 import { CircleSlash2, Users } from "lucide-react";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
+import type { CalcMuestraGeneralCorrida, CalcMuestraGeneralMarco } from "../../../api/calcMuestraGeneral";
 import { EmptyState } from "../../../components/States";
 import { ArchivoMarcoGeneral } from "./ArchivoMarcoGeneral";
 import { estadoDelActor, tecnicaDelActor, type TecnicaDelActor } from "./actores";
+import { vigenciaSorteo } from "./bandaDisenoModelo";
 import { SeleccionGeneral } from "./SeleccionGeneral";
 import { ID_TRABAJO_DEL_ACTOR, SelectorActor, type ActorDelSelector } from "./SelectorActor";
 import { useMuestraGeneralStore } from "./store";
@@ -13,6 +15,41 @@ import "./general.css";
 
 export function nombreDelActor(componente: Pick<CalcMuestraComponente, "actor" | "actor_id" | "id">): string {
   return componente.actor?.trim() || componente.actor_id?.trim() || componente.id;
+}
+
+/**
+ * Los actores del selector con su técnica y el estado de su marco y su sorteo.
+ * La vigencia del sorteo sale de `vigenciaSorteo`, la misma definición que la
+ * banda, las fichas y la tarjeta: un sorteo de un marco o un cálculo que ya
+ * cambiaron es «Sorteo viejo», nunca «Sorteado» (QA E11 ronda 2).
+ */
+export function actoresDelSelector(
+  componentes: readonly CalcMuestraComponente[],
+  estado: {
+    cargado: boolean;
+    marcos: Readonly<Record<string, CalcMuestraGeneralMarco | undefined>>;
+    corridas: Readonly<Record<string, CalcMuestraGeneralCorrida | undefined>>;
+  },
+): ActorDelSelector[] {
+  const { cargado, marcos, corridas } = estado;
+  return componentes.map((c) => {
+    const tecnica = tecnicaDelActor(c.tecnica);
+    const marco = marcos[c.id] ?? null;
+    const corrida = corridas[c.id] ?? null;
+    return {
+      id: c.id,
+      nombre: nombreDelActor(c),
+      tecnica,
+      estado: estadoDelActor({
+        tecnica,
+        cargado,
+        marco,
+        corrida,
+        vigente: vigenciaSorteo({ comp: c, corrida, marco }).estado === "vigente",
+      }),
+      conMarco: Boolean(marco),
+    };
+  });
 }
 
 /**
@@ -33,16 +70,7 @@ export function SeleccionActores({ componentes }: { componentes: readonly CalcMu
   const marcos = useMuestraGeneralStore((s) => s.marcos);
   const corridas = useMuestraGeneralStore((s) => s.corridas);
 
-  const actores: ActorDelSelector[] = componentes.map((c) => {
-    const tecnica = tecnicaDelActor(c.tecnica);
-    return {
-      id: c.id,
-      nombre: nombreDelActor(c),
-      tecnica,
-      estado: estadoDelActor({ tecnica, cargado, marco: marcos[c.id] ?? null, corrida: corridas[c.id] ?? null }),
-      conMarco: Boolean(marcos[c.id]),
-    };
-  });
+  const actores = actoresDelSelector(componentes, { cargado, marcos, corridas });
 
   return (
     <SeleccionActoresVista
@@ -70,21 +98,28 @@ export function SeleccionActoresVista({
   const actor = activo ? actores.find((a) => a.id === activo.id) ?? null : null;
 
   return (
-    <div
+    // Sin pestaña que la controle no es un tabpanel: es la región de la
+    // sección, nombrada por el encabezado de la mesa (h2).
+    <section
       id="cmv2-section-acreditacion-seleccion"
       className="cmv2-tab-panel cmg-acred-seleccion"
-      role="tabpanel"
-      aria-label="Selección"
+      aria-labelledby="cmg-seccion-titulo"
       data-audit-ready={cargado ? "true" : "false"}
       data-qa-geometry-group="calc-muestra/acreditacion-seleccion"
       data-qa-geometry-contract="intrinsic"
     >
       {!activo || !actor ? (
-        <section className="cmv2-panel" data-qa-geometry-member>
+        <section className="cmv2-panel" aria-labelledby="cmg-actores-titulo" data-qa-geometry-member>
+          <div className="cmv2-panel-head">
+            <div>
+              <span className="cmv2-eyebrow">Actores</span>
+              <h3 className="cmg-panel-titulo" id="cmg-actores-titulo">Marco y sorteo por actor</h3>
+            </div>
+          </div>
           <EmptyState
             icon={<Users size={20} aria-hidden="true" />}
             title="Aún no hay actores"
-            hint="Cada actor del estudio se sortea por separado. Créalos en Actores."
+            hint="Siguiente: crea en Actores a quiénes vas a encuestar; cada uno se sortea por separado."
             cta={(
               <button type="button" className="cmv2-primary" onClick={() => irASeccion("actores")}>
                 Ir a Actores
@@ -118,7 +153,7 @@ export function SeleccionActoresVista({
           </div>
         </>
       )}
-    </div>
+    </section>
   );
 }
 

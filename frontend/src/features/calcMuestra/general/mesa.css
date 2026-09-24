@@ -1,0 +1,950 @@
+/* =============================================================================
+   Mesa de Muestra general y Acreditación (E11 · paridad con aulas).
+   Cabecera única (sección + estado + siguiente condición + banda «Diseño
+   vigente»), gráfico de reparto, memoria con fórmulas y secciones que usan el
+   alto disponible. Color sólo con --pulso-* y la paleta del módulo (--cmv2-*).
+   ============================================================================= */
+
+.cmg-mesa {
+  /* Texto secundario con contraste AA sobre las superficies del módulo. */
+  --cmg-texto-2: color-mix(in srgb, var(--pulso-text-soft) 78%, var(--pulso-text));
+  --cmg-serie-N: color-mix(in srgb, var(--cmv2-accent) 14%, var(--pulso-surface));
+  --cmg-serie-campo: color-mix(in srgb, var(--cmv2-accent) 46%, var(--pulso-surface));
+  --cmg-serie-n: var(--cmv2-accent-fg);
+}
+
+/* --- Cabecera: sección + estado + banda ------------------------------------ */
+
+.cmg-cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  padding: var(--cmv2-space-3) var(--cmv2-space-4);
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface-raised);
+  box-shadow: var(--cmv2-shadow-card);
+}
+
+.cmg-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-2) var(--cmv2-space-4);
+  min-width: 0;
+}
+
+.cmg-encabezado-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.cmg-encabezado-icono {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+
+.cmg-encabezado-texto {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+}
+
+.cmg-encabezado h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.cmg-encabezado-linea {
+  min-width: 0;
+  margin: 0;
+  padding-left: 10px;
+  border-left: 1px solid var(--cmv2-border);
+  color: var(--cmg-texto-2);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+}
+
+.cmg-siguiente {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--cmv2-space-2);
+  min-width: 0;
+}
+
+.cmg-siguiente-estado {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0;
+  min-width: 0;
+}
+
+.cmg-estado-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 3px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.cmg-estado-chip[data-tono="ok"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmg-estado-chip[data-tono="alerta"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.cmg-estado-chip[data-tono="pendiente"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmg-siguiente-texto {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  color: var(--cmg-texto-2);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+}
+
+.cmg-siguiente-rotulo {
+  flex: 0 0 auto;
+  color: var(--cmv2-accent-fg);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cmg-siguiente-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* --- Banda «Diseño vigente» ------------------------------------------------ */
+
+.cmg-banda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-2);
+  min-width: 0;
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 70%, transparent);
+}
+
+.cmg-banda-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.cmg-banda-titulo {
+  margin: 0;
+  color: var(--cmv2-accent-fg);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cmg-banda-cadena {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-banda-flecha {
+  color: var(--cmg-texto-2);
+}
+
+/* Una sola fila siempre: partida en dos, la fila con la técnica en dos líneas
+ * medía 18 px más que la otra (equal-frame-drift). En una fila, la pista
+ * iguala el alto de todas las cifras. */
+.cmg-banda-cifras .cmv2-uni-cifra-fila {
+  grid-template-columns: none;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+}
+
+.cmg-banda-cifras .cmv2-uni-cifra-valor {
+  font-size: 18px;
+}
+
+.cmg-banda-cifras .cmv2-uni-cifra-detalle {
+  color: var(--cmg-texto-2);
+}
+
+.cmg-banda-actores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--cmv2-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmg-banda-actor {
+  min-width: 0;
+}
+
+.cmg-banda-actor-enlace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  height: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-left-width: 3px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+  color: var(--pulso-text);
+  text-decoration: none;
+  transition: border-color 160ms var(--cmv2-ease-out, ease), background-color 160ms var(--cmv2-ease-out, ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmg-banda-actor-enlace:hover {
+    border-color: var(--cmv2-accent-border);
+    background: var(--cmv2-accent-soft);
+  }
+}
+
+.cmg-banda-actor[data-fase="sin-n"] .cmg-banda-actor-enlace { border-left-color: var(--pulso-border-strong); }
+.cmg-banda-actor[data-fase="sin-calculo"] .cmg-banda-actor-enlace { border-left-color: var(--pulso-warn-border); }
+.cmg-banda-actor[data-fase="calculado"] .cmg-banda-actor-enlace { border-left-color: var(--cmv2-accent); }
+.cmg-banda-actor[data-fase="sorteado"] .cmg-banda-actor-enlace { border-left-color: var(--pulso-success-fg); }
+
+.cmg-banda-actor-nombre {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmg-banda-actor-fase {
+  color: var(--cmv2-accent-fg);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cmg-banda-actor-resumen,
+.cmg-banda-actor-tecnica {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--cmg-texto-2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Títulos de panel como encabezados reales (H3/H4) ----------------------- */
+
+.cmg-panel-titulo {
+  display: block;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.cmg-subtitulo {
+  margin: 0 0 6px;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+/* --- Avisos en región viva -------------------------------------------------- */
+
+.cmg-avisos-vivos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cmg-avisos-vivos:not(:empty) {
+  margin-bottom: var(--cmv2-space-3);
+}
+
+.cmg-avisos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+/* --- Alto intrínseco y un solo dueño de scroll (V8, C3, C4) ------------------- */
+
+/* Cada panel mide lo que su contenido: estirarlo al alto de la sección dejaba
+ * 144–228 px de interior muerto (capacity-drift). El sobrante bajo el último
+ * panel es del lienzo, no de una tarjeta. La sección no es contenedor de
+ * scroll: el único dueño es `.cmv2-main`, y un segundo scroll anidado de 4 px
+ * sobraba. */
+.cmg-mesa .cmv2-tab-panel {
+  overflow: visible;
+}
+
+.cmg-resultados {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Sin cálculo, el vacío ocupa el panel entero: el hueco es suyo (C3). */
+.cmg-resultados[data-vacio="true"] > .pulso-empty-state {
+  flex: 1 1 auto;
+}
+
+.cmg-resultados-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: var(--cmv2-space-3);
+  align-items: start;
+  min-width: 0;
+}
+
+.cmg-propuesta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+.cmg-propuesta-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cmg-propuesta-campo label {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-propuesta-campo textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.cmg-propuesta-acciones {
+  flex-wrap: wrap;
+}
+
+.cmg-contexto-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: var(--cmv2-space-3);
+  align-items: start;
+  min-width: 0;
+}
+
+.cmg-contexto-ficha {
+  display: flex;
+  min-width: 0;
+}
+
+.cmg-contexto-ficha > .cmv2-panel {
+  flex: 1 1 auto;
+}
+
+.cmg-contexto-reporte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+.cmg-contexto-reporte .cmv2-graf-tasa {
+  grid-template-columns: 90px minmax(0, 1fr) 40px;
+}
+
+.cmg-requisitos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmg-requisito {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+  font-size: 12px;
+}
+
+.cmg-requisito:last-child {
+  border-bottom: 0;
+}
+
+.cmg-requisito > svg {
+  color: var(--cmv2-accent-fg);
+}
+
+.cmg-requisito[data-listo="true"] > svg {
+  color: var(--pulso-success-fg);
+}
+
+.cmg-requisito-etiqueta {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmg-requisito-estado {
+  color: var(--cmg-texto-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmg-requisito[data-listo="false"] .cmg-requisito-estado {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-requisito-ir {
+  color: var(--cmv2-accent-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+/* --- Tabla de resultados ------------------------------------------------------ */
+
+.cmg-resultados-tabla .cmg-col-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmg-resultados-tabla tbody th[scope="row"] {
+  position: static;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: none;
+}
+
+.cmg-resultados-tabla tbody th[scope="row"] small,
+.cmg-resultados-tabla td.cmg-col-num small,
+.cmg-resultados-tabla td.cmv2-note-cell small {
+  display: block;
+  margin-top: 2px;
+  color: var(--cmg-texto-2);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: normal;
+}
+
+.cmg-salidas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-4);
+  margin-top: var(--cmv2-space-4);
+}
+
+/* La fila de la ficha de corrida es un rótulo, no una cabecera. */
+.cmg-ficha .cmg-tabla tbody th[scope="row"] {
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  text-transform: none;
+  white-space: normal;
+}
+
+.cmg-ficha .cmg-reparto {
+  margin: var(--cmv2-space-3) 0;
+}
+
+/* --- Gráfico de reparto --------------------------------------------------------- */
+
+.cmg-reparto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+.cmg-reparto-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px var(--cmv2-space-4);
+}
+
+.cmg-reparto-titulo {
+  margin: 0;
+  margin-right: auto;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmg-reparto-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmg-reparto-leyenda > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cmg-texto-2);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmg-reparto-leyenda > li::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--cmg-serie-N);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
+}
+
+.cmg-reparto-leyenda > li[data-serie="campo"]::before { background: var(--cmg-serie-campo); }
+.cmg-reparto-leyenda > li[data-serie="n"]::before { height: 5px; background: var(--cmg-serie-n); }
+
+.cmg-reparto-escala {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+}
+
+.cmg-reparto-escala-opcion {
+  position: relative;
+  display: inline-flex;
+}
+
+.cmg-reparto-escala-opcion input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.cmg-reparto-escala-opcion span {
+  padding: 3px 10px;
+  border-radius: var(--pulso-radius-chip);
+  color: var(--cmg-texto-2);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  transition: background-color 160ms var(--cmv2-ease-out, ease), color 160ms var(--cmv2-ease-out, ease);
+}
+
+.cmg-reparto-escala-opcion input:checked + span {
+  background: var(--pulso-surface);
+  color: var(--cmv2-accent-fg);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.cmg-reparto-escala-opcion input:focus-visible + span {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 1px;
+}
+
+.cmg-reparto-filas {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cmg-reparto-fila {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) minmax(0, 1fr) minmax(96px, auto) 76px;
+  align-items: center;
+  gap: var(--cmv2-space-3);
+  min-height: 28px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmg-reparto-fila:hover {
+    background: color-mix(in srgb, var(--cmv2-accent) 5%, transparent);
+  }
+}
+
+.cmg-reparto-nombre {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmg-reparto-nombre em {
+  overflow: hidden;
+  color: var(--cmg-texto-2);
+  font-size: 10.5px;
+  font-style: normal;
+  text-overflow: ellipsis;
+}
+
+.cmg-reparto-barra {
+  display: block;
+  overflow: visible;
+}
+
+.cmg-reparto-rect[data-serie="N"] {
+  fill: var(--cmg-serie-N);
+  stroke: color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
+  stroke-width: 1;
+}
+
+.cmg-reparto-rect[data-serie="campo"] { fill: var(--cmg-serie-campo); }
+.cmg-reparto-rect[data-serie="n"] { fill: var(--cmg-serie-n); }
+
+.cmg-reparto-cifra,
+.cmg-reparto-pi {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cmg-reparto-cifra em {
+  color: var(--cmg-texto-2);
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmg-reparto-pi {
+  color: var(--cmg-texto-2);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmg-reparto-tabla summary,
+.cmg-mas summary {
+  width: fit-content;
+  color: var(--cmv2-accent-fg);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.cmg-reparto-tabla[open] summary {
+  margin-bottom: var(--cmv2-space-2);
+}
+
+/* El punto del tooltip vive en un portal fuera de .cmv2-frame: sólo tokens globales. */
+.cmv2-graf-tip-punto[data-tono="acento"] {
+  background: var(--pulso-module-sample);
+}
+
+/* --- Memoria de cálculo ----------------------------------------------------------- */
+
+.cmg-memoria-cuerpo-general {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+}
+
+.cmg-memoria-principal code {
+  font-size: 11.5px;
+}
+
+.cmg-memoria-pasos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.cmg-memoria-paso {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1.4fr) minmax(0, 1fr) minmax(90px, auto);
+  align-items: center;
+  gap: var(--cmv2-space-3);
+  padding: 10px 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+}
+
+.cmg-memoria-paso:last-child {
+  border-bottom: 0;
+}
+
+.cmg-memoria-num {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-memoria-que {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cmg-memoria-paso-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-memoria-formula {
+  overflow-x: auto;
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.cmg-memoria-formula-texto,
+.cmg-memoria-sustitucion {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.cmg-memoria-con,
+.cmg-memoria-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmg-memoria-resultado {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.cmg-memoria-rotulo {
+  color: var(--cmg-texto-2);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cmg-memoria-resultado strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- Foco visible ------------------------------------------------------------------ */
+
+.cmg-siguiente-accion:focus-visible,
+.cmg-banda-actor-enlace:focus-visible,
+.cmg-reparto-fila:focus-visible,
+.cmg-requisito-ir:focus-visible,
+.cmg-reparto-tabla summary:focus-visible,
+.cmg-propuesta-campo textarea:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* --- Compacto (1280 px y menos) ------------------------------------------------------ */
+
+@media (max-width: 1279px) {
+  .cmg-resultados-grid,
+  .cmg-contexto-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmg-memoria-paso {
+    grid-template-columns: 24px minmax(0, 1fr) minmax(80px, auto);
+  }
+
+  .cmg-memoria-con {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 1100px) {
+  .cmg-reparto-fila {
+    grid-template-columns: minmax(96px, 150px) minmax(0, 1fr) auto 64px;
+    gap: var(--cmv2-space-2);
+  }
+}
+
+/* --- Compacto de alto o de ancho (1024 × 600, 1280 × 720, 1366 × 768) --------------
+ * Cabecera + banda caben en ~130 px: la banda va en una fila de cifras sin
+ * detalle, la cadena queda para lectores de pantalla (repite las cifras) y las
+ * fichas por actor se recogen (cada actor sigue a un clic en Selección). Con
+ * 700 px de tope de alto, 1280 × 720 y 1366 × 768 quedaban con la cabecera de
+ * 249 px y ~300 px útiles (QA E11 ronda 2). */
+
+@media (max-width: 1100px), (max-height: 800px) {
+  .cmg-cabecera {
+    gap: 6px;
+    padding: 8px var(--cmv2-space-3);
+  }
+
+  .cmg-encabezado {
+    gap: 6px var(--cmv2-space-3);
+  }
+
+  .cmg-encabezado-icono {
+    width: 24px;
+    height: 24px;
+  }
+
+  .cmg-encabezado-linea {
+    display: none;
+  }
+
+  .cmg-banda {
+    gap: 0;
+    padding-top: 6px;
+  }
+
+  .cmg-banda-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .cmg-banda-cifras .cmv2-uni-cifra-fila {
+    gap: 6px;
+  }
+
+  .cmg-banda-cifras .cmv2-uni-cifra {
+    grid-template-rows: auto auto;
+    gap: 1px;
+    padding: 5px 8px;
+  }
+
+  .cmg-banda-cifras .cmv2-uni-cifra-label {
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+  }
+
+  .cmg-banda-cifras .cmv2-uni-cifra-valor {
+    font-size: 14px;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  .cmg-banda-cifras .cmv2-uni-cifra-detalle,
+  .cmg-banda-actores {
+    display: none;
+  }
+}
+
+/* El chip de estado del chrome («Mesa preparada», «Cálculo listo») pisaba el
+ * rail a 1024 px y, más ancho, CONTRADECÍA a la cabecera de estas mesas
+ * («Mesa preparada» frente a «Falta calcular»; QA E11 ronda 2): su estado es
+ * más grueso que el de la cabecera, que además dice la siguiente condición.
+ * En estas dos mesas cede él, a todo ancho. Acotado a la página que monta
+ * `.cmg-mesa`: aulas y el resto del chrome no cambian. */
+body:has(.cmg-mesa) .pulso-module-command-bar[data-modulo="calc-muestra"] .pulso-chrome-status-chip {
+  display: none;
+}
+
+/* --- Movimiento reducido --------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .cmg-reparto-rect {
+    transform-box: fill-box;
+    transform-origin: left center;
+    animation: cmg-reparto-crecer 320ms var(--cmv2-ease-out, ease-out) both;
+  }
+}
+
+@keyframes cmg-reparto-crecer {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmg-banda-actor-enlace,
+  .cmg-reparto-escala-opcion span {
+    transition: none;
+  }
+
+  .cmg-reparto-rect {
+    animation: none;
+  }
+}

@@ -1,4 +1,4 @@
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 import type {
   CalcMuestraAvisoParametro,
@@ -8,6 +8,7 @@ import type {
 import type { CalcMuestraParametroDeTecnica } from "../../../api/calcMuestraGeneral";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import type { ComponentePatch } from "../sharedCore";
+import { AvisoModulo } from "../universidad/shared/AvisoModulo";
 import {
   avisosVigentes,
   ayudaDeParametro,
@@ -127,7 +128,8 @@ export function CampoParametro({
   const id = `cmg-param-${compId}-${param.clave}`;
   const ayudaId = `${id}-ayuda`;
   const avisoId = `${id}-aviso`;
-  const describedBy = aviso ? `${ayudaId} ${avisoId}` : ayudaId;
+  const notaId = `${id}-nota`;
+  const describedBy = [ayudaId, nota ? notaId : "", aviso ? avisoId : ""].filter(Boolean).join(" ");
   const tipo = tipoDeCampo(param.clave, param.tipo);
   const valor = valorNumerico(parametros, param.clave);
 
@@ -156,6 +158,9 @@ export function CampoParametro({
       <input
         id={id}
         type="number"
+        // El navegador pinta el decimal según el idioma heredado; `es` (raíz)
+        // daría «0,05» junto a cifras es-PE «0.05» (V10).
+        lang="es-PE"
         min={limites.min}
         max={limites.max}
         step={pasoDe(param.clave)}
@@ -176,12 +181,18 @@ export function CampoParametro({
     <div className="cmg-campo" data-param={param.clave}>
       <label htmlFor={id}>{tipo === "confianza" ? "Nivel de confianza" : param.rotulo}</label>
       {control}
-      <small id={ayudaId}>{ayuda}{nota && <strong className="cmg-nota-param"> {nota}</strong>}</small>
+      <small id={ayudaId}>{ayuda}</small>
+      {/* La condición del valor elegido y la corrección del motor hablan con
+          el aviso único del módulo (E11 · V4); `status` las anuncia al cambiar. */}
+      {nota && (
+        <div id={notaId}>
+          <AvisoModulo tone="info" compact role="status" className="cmg-aviso-param">{nota}</AvisoModulo>
+        </div>
+      )}
       {aviso && (
-        <small id={avisoId} className="cmg-aviso-param" role="status">
-          <AlertTriangle size={12} aria-hidden="true" />
-          {aviso.texto}
-        </small>
+        <div id={avisoId}>
+          <AvisoModulo tone="warn" compact role="status" className="cmg-aviso-param">{aviso.texto}</AvisoModulo>
+        </div>
       )}
     </div>
   );

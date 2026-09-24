@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CheckCircle2, Circle, CircleSlash2, FileSpreadsheet, Loader2 } from "lucide-react";
+import { CheckCircle2, Circle, CircleSlash2, FileSpreadsheet, History, Loader2 } from "lucide-react";
 
 import type { EstadoDelActor, FaseDelActor, TecnicaDelActor } from "./actores";
 import "./general.css";
@@ -19,6 +19,7 @@ const ICONO_FASE: Record<FaseDelActor, ReactNode> = {
   sin_marco: <Circle size={13} aria-hidden="true" />,
   marco: <FileSpreadsheet size={13} aria-hidden="true" />,
   sorteado: <CheckCircle2 size={13} aria-hidden="true" />,
+  sorteo_viejo: <History size={13} aria-hidden="true" />,
 };
 
 /** Id del bloque de trabajo que el selector controla. */
@@ -43,7 +44,7 @@ export function SelectorActor({
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Actores</span>
-          <strong id="cmg-actores-titulo">Marco y sorteo por actor</strong>
+          <h3 className="cmg-panel-titulo" id="cmg-actores-titulo">Marco y sorteo por actor</h3>
         </div>
       </div>
       <ul

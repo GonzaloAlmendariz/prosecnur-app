@@ -9,7 +9,9 @@ import {
 } from "../../../api/calcMuestraGeneral";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { fmtInt } from "../sharedCore";
 import { ErrorDelMotor } from "./ErrorDelMotor";
+import { ID_SUBIR_ARCHIVO_MARCO } from "./ArchivoMarcoGeneral";
 import { FichaCorrida } from "./FichaCorrida";
 import { TablaUnidades } from "./TablaUnidades";
 import {
@@ -17,8 +19,8 @@ import {
   SELECCION_INICIAL,
   TEXTO_COBERTURA_CENSAL,
   errorGeneralDesde,
-  formatearEntero,
   modalidadDeTecnica,
+  motivoNoSortear,
   motivoSinSorteo,
   nuevaSemilla,
   opcionesMetodo,
@@ -51,6 +53,14 @@ export function SeleccionGeneral({
 }) {
   const general = useMuestraGeneral(componente?.id ?? null);
   return <SeleccionGeneralVista componente={componente} enActor={enActor} {...general} />;
+}
+
+/**
+ * Lleva el foco al botón de subida del «Archivo del marco» del actor, que vive
+ * arriba en la misma región: enfocar ya lo trae a la vista.
+ */
+function irAlArchivoDelMarco() {
+  document.getElementById(ID_SUBIR_ARCHIVO_MARCO)?.focus();
 }
 
 /** La sección con el estado ya rehidratado (separada para probarla sin efectos). */
@@ -95,6 +105,13 @@ export function SeleccionGeneralVista({
     : prevista === "sin_sorteo" ? motivoSinSorteo(tecnica) : null;
   const puedeSortear = Boolean(componenteId && marco) && !motivoBloqueo && semilla != null
     && (esPps || esCenso || reservas != null) && !estado.sorteando;
+  // Un botón deshabilitado dice por qué, en texto visible (E11 · V7).
+  const motivoNoSe = motivoBloqueo ? null : motivoNoSortear({
+    semillaValida: semilla != null,
+    usaReservas: !esPps && !esCenso,
+    reservasValidas: reservas != null,
+  });
+  const describeSortear = motivoBloqueo ? "cmg-sortear-motivo" : motivoNoSe ? "cmg-sortear-porque" : undefined;
 
   async function sortear() {
     if (!componenteId || !marco || semilla == null) return;
@@ -115,11 +132,14 @@ export function SeleccionGeneralVista({
     }
   }
 
+  // Sin pestaña que la controle no es un tabpanel: es la región de la sección,
+  // nombrada por el encabezado de la mesa. Dentro de un actor, un bloque más.
+  const Contenedor = enActor ? "div" : "section";
   return (
-    <div
+    <Contenedor
       {...(enActor
         ? { className: "cmg-seleccion cmg-seleccion--actor" }
-        : { id: "cmv2-section-general-seleccion", className: "cmv2-tab-panel cmg-seleccion", role: "tabpanel", "aria-label": "Selección" })}
+        : { id: "cmv2-section-general-seleccion", className: "cmv2-tab-panel cmg-seleccion", "aria-labelledby": "cmg-seccion-titulo" })}
       data-audit-ready={cargado ? "true" : "false"}
       data-qa-geometry-group="calc-muestra/general-seleccion"
       data-qa-geometry-contract="intrinsic"
@@ -129,19 +149,30 @@ export function SeleccionGeneralVista({
       ) : errorCarga && !marco ? (
         <ErrorBlock label="No se pudo leer el estado del sorteo" detail={errorCarga} />
       ) : !componente || !marco ? (
-        <section className="cmv2-panel" data-qa-geometry-member>
+        <section className="cmv2-panel cmg-sorteo-vacio" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
+          <div className="cmv2-panel-head">
+            <div>
+              <span className="cmv2-eyebrow">Sorteo</span>
+              <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">Método, semilla y reservas</h3>
+            </div>
+          </div>
           {enActor ? (
             <EmptyState
               variant="inline"
               icon={<Database size={18} aria-hidden="true" />}
               title="Todavía no hay sorteo"
-              hint="Declara arriba el archivo del marco de este actor para sortear."
+              hint="Siguiente: declara arriba el archivo del marco de este actor."
+              cta={(
+                <button type="button" className="cmv2-ghost" onClick={irAlArchivoDelMarco}>
+                  Ir al archivo del marco
+                </button>
+              )}
             />
           ) : (
             <EmptyState
               icon={<Database size={20} aria-hidden="true" />}
               title="Falta declarar el marco"
-              hint="El sorteo sale del archivo de unidades. Declara su archivo y sus columnas en Marco."
+              hint="Siguiente: declara en Marco el archivo de unidades y sus columnas."
               cta={(
                 <button type="button" className="cmv2-primary" onClick={() => irASeccion("marco")}>
                   Ir a Marco
@@ -156,7 +187,7 @@ export function SeleccionGeneralVista({
             <div className="cmv2-panel-head">
               <div>
                 <span className="cmv2-eyebrow">Sorteo</span>
-                <strong id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reservas"}</strong>
+                <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reservas"}</h3>
               </div>
             </div>
 
@@ -229,6 +260,7 @@ export function SeleccionGeneralVista({
                 <input
                   id="cmg-reservas"
                   type="number"
+                  lang="es-PE"
                   min={0}
                   max={10000}
                   step={1}
@@ -277,18 +309,22 @@ export function SeleccionGeneralVista({
                 className="cmv2-primary"
                 onClick={() => void sortear()}
                 disabled={!puedeSortear}
-                aria-describedby={motivoBloqueo ? "cmg-sortear-motivo" : undefined}
+                aria-describedby={describeSortear}
               >
                 {estado.sorteando
                   ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
                   : <Shuffle size={14} aria-hidden="true" />}
                 {corrida ? "Sortear de nuevo" : "Sortear"}
               </button>
-              <span className="cmg-nota">
-                {esCenso
-                  ? `Ordena al azar las ${formatearEntero(marco.N)} unidades del marco.`
-                  : `Sortea el n a campo del componente sobre ${formatearEntero(marco.N)} unidades.`}
-              </span>
+              {motivoNoSe ? (
+                <span id="cmg-sortear-porque" className="cmg-motivo">{motivoNoSe}</span>
+              ) : (
+                <span className="cmg-nota">
+                  {esCenso
+                    ? `Ordena al azar las ${fmtInt(marco.N)} unidades del marco.`
+                    : `Sortea el n a campo del componente sobre ${fmtInt(marco.N)} unidades.`}
+                </span>
+              )}
             </div>
           </section>
 
@@ -308,6 +344,6 @@ export function SeleccionGeneralVista({
           ))}
         </>
       )}
-    </div>
+    </Contenedor>
   );
 }

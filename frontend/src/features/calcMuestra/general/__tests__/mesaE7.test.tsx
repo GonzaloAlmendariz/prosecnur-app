@@ -207,7 +207,8 @@ describe("memoria de cálculo visible en Método", () => {
   it("fórmula, sustitución y resultado de los 6 pasos", () => {
     const c = comp({ resultado: { n_objetivo: 357, memoria_calculo: MEMORIA_RAW } as unknown as CalcMuestraComponente["resultado"] });
     const html = conRouter(<MemoriaCalculoGeneral comp={c} calculando={false} onCalcular={() => {}} />);
-    expect(html.match(/<th scope="row">/g)).toHaveLength(6);
+    // E11: la memoria es una lista de pasos con su fórmula, no una tabla.
+    expect(html.match(/data-paso="/g)).toHaveLength(6);
     expect(html).toContain("1.96² · 0.5 · 0.5 · 1 / 0.05²");
     expect(html).toContain("561");
   });
