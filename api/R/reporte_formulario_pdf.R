@@ -772,6 +772,19 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     else !(tolower(trimws(as.character(sht)[[1]])) %in% c("false", "0", "no", "f", "n"))
 
   choices_by_list <- .form_pdf_options_by_list(choices)
+  # Categoria sin rotulo: la celda de etiqueta sale VACIA en el papel y el
+  # encuestado marca un codigo cuyo significado el instrumento nunca define.
+  # Es un defecto del instrumento, no de formato, asi que se declara. (Ademas
+  # una etiqueta vacia cambia en silencio el modo de cabecera de la matriz:
+  # `.form_pdf_matrix_header_mode` cae a "extremos" si CUALQUIERA falta.)
+  categorias_mudas <- character(0)
+  for (ln in names(choices_by_list)) {
+    for (o in choices_by_list[[ln]]) {
+      if (!nzchar(.form_pdf_clean_text_safe(o$label %||% ""))) {
+        categorias_mudas <- c(categorias_mudas, sprintf("`%s` / codigo `%s`", ln, .form_pdf_chr(o$code)))
+      }
+    }
+  }
   option_warnings <- c(option_warnings, attr(choices_by_list, "warnings") %||% character(0))
   # Agrupacion de matrices: si el frontend manda `matrix_groups` (aunque sea []),
   # se respeta EXACTAMENTE y se ignora la autodeteccion; si esta AUSENTE, autodetecta.
@@ -799,10 +812,52 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     opened <- .form_pdf_compute_openings(survey, choices_by_list, numbers, consent_var)
     openings <- opened$openings
     warnings <- c(option_warnings, group_warnings, opened$warnings)
+    if (length(categorias_mudas)) warnings <- c(warnings, sprintf(
+      "Categorias sin rotulo (saldran como celda vacia en el papel): %s.",
+      paste(unique(categorias_mudas), collapse = "; ")))
+    # `header_mode = "auto"` manda a "extremos" toda escala de mas de 6 puntos, y
+    # en ese modo solo se imprimen los dos polos: una escala de 7 rotulada pierde
+    # CINCO rotulos en el papel. Es perdida silenciosa de texto de categoria, la
+    # misma familia que la limpieza con perdida, asi que se declara. Se corrige
+    # poniendo `header_mode = "categorias"` en el grupo de la matriz.
+    escalas_podadas <- character(0)
+    for (ln in names(choices_by_list)) {
+      sc <- .form_pdf_matrix_partition_options(choices_by_list[[ln]], "auto")$scale
+      if (length(sc) > 6L) {
+        labs <- vapply(sc, function(o) .form_pdf_clean_text_safe(o$label %||% ""), character(1))
+        if (all(nzchar(labs)) && !all(grepl("^[0-9]+$", labs))) {
+          escalas_podadas <- c(escalas_podadas, sprintf("`%s` (%d puntos)", ln, length(sc)))
+        }
+      }
+    }
+    if (length(escalas_podadas)) warnings <- c(warnings, sprintf(
+      "Escala de mas de 6 puntos: en modo automatico se rotulan solo los extremos y se pierden los rotulos intermedios en el papel: %s. Use `header_mode = \"categorias\"` para conservarlos.",
+      paste(unique(escalas_podadas), collapse = "; ")))
   } else {
     inferred <- .form_pdf_infer_choice_skips(survey, choices_by_list, numbers, consent_var)
     openings <- rep("", nrow(survey))
     warnings <- c(option_warnings, group_warnings, inferred$warnings)
+    if (length(categorias_mudas)) warnings <- c(warnings, sprintf(
+      "Categorias sin rotulo (saldran como celda vacia en el papel): %s.",
+      paste(unique(categorias_mudas), collapse = "; ")))
+    # `header_mode = "auto"` manda a "extremos" toda escala de mas de 6 puntos, y
+    # en ese modo solo se imprimen los dos polos: una escala de 7 rotulada pierde
+    # CINCO rotulos en el papel. Es perdida silenciosa de texto de categoria, la
+    # misma familia que la limpieza con perdida, asi que se declara. Se corrige
+    # poniendo `header_mode = "categorias"` en el grupo de la matriz.
+    escalas_podadas <- character(0)
+    for (ln in names(choices_by_list)) {
+      sc <- .form_pdf_matrix_partition_options(choices_by_list[[ln]], "auto")$scale
+      if (length(sc) > 6L) {
+        labs <- vapply(sc, function(o) .form_pdf_clean_text_safe(o$label %||% ""), character(1))
+        if (all(nzchar(labs)) && !all(grepl("^[0-9]+$", labs))) {
+          escalas_podadas <- c(escalas_podadas, sprintf("`%s` (%d puntos)", ln, length(sc)))
+        }
+      }
+    }
+    if (length(escalas_podadas)) warnings <- c(warnings, sprintf(
+      "Escala de mas de 6 puntos: en modo automatico se rotulan solo los extremos y se pierden los rotulos intermedios en el papel: %s. Use `header_mode = \"categorias\"` para conservarlos.",
+      paste(unique(escalas_podadas), collapse = "; ")))
   }
 
   blocks <- list()

@@ -148,25 +148,40 @@ formulario_tramos_plan <- function(blocks,
       next
     }
     content <- idx[!is.na(mins[idx])]
-    fits <- !length(content) || all(mins[content] <= half)
-    enough <- length(content) >= 3L
-    if (fits && enough) {
-      tramos[[k]] <- list(columns = 2L, from = from, to = to, reason = "ancho-medido")
+    # Sin bloques de contenido (un tramo que es solo su banda de seccion) no hay
+    # nada que medir: se deja a 1 columna y la fusion lo absorbe en el vecino.
+    if (!length(content)) {
+      tramos[[k]] <- list(columns = 1L, from = from, to = to, reason = "sin-contenido")
+      next
+    }
+    fits <- all(mins[content] <= half)
+    # NO hay minimo de bloques. Lo hubo (>= 3) y contradecia a la referencia: su
+    # tramo de dos columnas mas corto tiene 1 bloque si se cuentan secciones y 2
+    # si se cuentan corridas entre bandas. El minimo mandaba a una columna
+    # justamente los bloques finales cortos -- el de vivienda salia a ancho
+    # completo -- y ademas se fusionaba hacia atras, escondiendo el motivo.
+    tramos[[k]] <- if (fits) {
+      list(columns = 2L, from = from, to = to, reason = "ancho-medido")
     } else {
-      tramos[[k]] <- list(
-        columns = 1L, from = from, to = to,
-        reason = if (!fits) "ancho" else "pocos-bloques"
-      )
+      list(columns = 1L, from = from, to = to, reason = "ancho")
     }
   }
 
   # 3) Fusion de tramos adyacentes con el mismo numero de columnas: dos
-  #    secciones continuas a 1 columna no necesitan dos `sectPr`. El `reason`
-  #    conservado es el del PRIMER tramo de la fusion.
+  #    secciones continuas a 1 columna no necesitan dos `sectPr`.
+  #    El `reason` de un tramo fusionado es la UNION de los motivos, no el del
+  #    primero: `reason` existe para auditar la decision, y conservar solo el
+  #    primero publicaba el motivo equivocado para el resto del tramo (un tramo
+  #    que empezaba en "prologo" y absorbia una matriz ancha se declaraba
+  #    entero "prologo").
   merged <- list()
   for (tr in tramos) {
-    if (length(merged) && identical(merged[[length(merged)]]$columns, tr$columns)) {
+    prev <- if (length(merged)) merged[[length(merged)]] else NULL
+    if (!is.null(prev) && identical(prev$columns, tr$columns)) {
       merged[[length(merged)]]$to <- tr$to
+      merged[[length(merged)]]$reason <- paste(
+        unique(c(strsplit(prev$reason, "+", fixed = TRUE)[[1]], tr$reason)),
+        collapse = "+")
       next
     }
     merged[[length(merged) + 1L]] <- tr
