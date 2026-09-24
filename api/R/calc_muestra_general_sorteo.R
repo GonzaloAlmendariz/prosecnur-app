@@ -48,6 +48,21 @@
   strtoi(substr(h, 1L, 7L), base = 16L)
 }
 
+# Texto de una columna del marco. Un id numérico leído como double se escribe
+# entero y sin notación científica: as.character(100000) da «1e+05», un id que
+# no existe en el padrón de quien va a campo (lo encontró el verificador de E4).
+.cm_general_texto <- function(x) {
+  if (is.numeric(x)) {
+    out <- vapply(x, function(v) {
+      if (is.na(v)) return(NA_character_)
+      if (is.finite(v) && v == round(v) && abs(v) < 1e15) return(formatC(v, format = "f", digits = 0))
+      format(v, digits = 15, scientific = FALSE, trim = TRUE)
+    }, character(1))
+    return(out)
+  }
+  trimws(as.character(x))
+}
+
 .cm_general_error_marco <- function(mensaje, detalle = NULL) {
   stop_api(400, "E_CALC_MUESTRA_GENERAL_MARCO", mensaje, details = detalle)
 }
@@ -62,7 +77,7 @@
   if (!nzchar(col_id) || !col_id %in% names(marco)) {
     .cm_general_error_marco(sprintf("Falta la columna de id declarada («%s») en el marco.", col_id))
   }
-  ids <- trimws(as.character(marco[[col_id]]))
+  ids <- .cm_general_texto(marco[[col_id]])
   vacios <- is.na(ids) | !nzchar(ids)
   if (any(vacios)) {
     .cm_general_error_marco(sprintf("%d filas del marco no tienen id.", sum(vacios)),
@@ -79,8 +94,14 @@
     if (!col_estrato %in% names(marco)) {
       .cm_general_error_marco(sprintf("Falta la columna de estrato declarada («%s»).", col_estrato))
     }
-    e <- trimws(as.character(marco[[col_estrato]]))
-    e[is.na(e) | !nzchar(e)] <- "(sin estrato)"
+    e <- .cm_general_texto(marco[[col_estrato]])
+    sin_estrato <- is.na(e) | !nzchar(e)
+    if (any(sin_estrato)) {
+      .cm_general_error_marco(
+        sprintf("%d unidades no tienen estrato: complétalo en el archivo o quita la columna de estrato.",
+                sum(sin_estrato)),
+        list(ids = utils::head(ids[sin_estrato], 20L)))
+    }
     e
   } else rep(.CM_GENERAL_SIN_ESTRATO, length(ids))
   # El tamaño declarado se lee siempre (entra al hash del marco, que no debe
@@ -104,7 +125,7 @@
     if (!orden_por %in% names(marco)) {
       .cm_general_error_marco(sprintf("Falta la columna de orden declarada («%s»).", orden_por))
     }
-    as.character(marco[[orden_por]])
+    .cm_general_texto(marco[[orden_por]])
   } else ids
   df <- data.frame(id = ids, estrato = estrato, tamano = tamano, orden = orden,
                    stringsAsFactors = FALSE)

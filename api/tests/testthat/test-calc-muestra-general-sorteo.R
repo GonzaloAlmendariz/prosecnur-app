@@ -154,3 +154,18 @@ test_that("el sorteo usa la asignación que recibe (la del cálculo) en vez de r
   big <- calc_muestra_general_sortear(m, .cols, "mas", n = 75L, semilla = 3L, asignacion = c(A = 1e6L, B = 1L, C = 1L))
   expect_identical(big$estratos$n_h[big$estratos$clave == "A"], big$estratos$N_h[big$estratos$clave == "A"])
 })
+
+test_that("un id numérico redondo sale entero, no en notación científica", {
+  m <- data.frame(folio = c(100000, 100001, 200000, 3e6, 12345678))
+  r <- calc_muestra_general_sortear(m, list(id = "folio"), "mas", n = 5L, semilla = 1L)
+  expect_setequal(r$unidades$id, c("100000", "100001", "200000", "3000000", "12345678"))
+  expect_false(any(grepl("e\\+", r$unidades$id)))
+})
+
+test_that("un estrato vacío no se junta en silencio: es un error del marco", {
+  m <- data.frame(id = sprintf("U%02d", 1:6), zona = c("A", "A", "", NA, " ", "B"))
+  err <- tryCatch(calc_muestra_general_sortear(m, list(id = "id", estrato = "zona"), "mas", n = 3L),
+                  api_error = function(e) e)
+  expect_identical(err$code, "E_CALC_MUESTRA_GENERAL_MARCO")
+  expect_match(err$message, "3 unidades no tienen estrato")
+})
