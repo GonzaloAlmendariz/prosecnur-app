@@ -1290,7 +1290,9 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
              .form_pdf_lines_height(.form_pdf_wrap(block$hint, 118), 0.011) +
              .form_pdf_opening_height(block$opening_condition, 112L))
   }
-  label_h <- .form_pdf_lines_height(.form_pdf_wrap(block$label, chars), 0.014, 0.02)
+  # La cabecera de enunciado (L4) es un recuadro con su propio padding; sin
+  # contarlo aqui, el reparto en columnas y el salto de pagina se descuadran.
+  label_h <- .form_pdf_lines_height(.form_pdf_wrap(block$label, chars), 0.0142, 0.02) + 0.009
   hint_h <- .form_pdf_lines_height(.form_pdf_wrap(block$hint, chars), 0.011)
   opt_count <- length(block$options %||% list())
   options_h <- if (opt_count) {
@@ -1662,15 +1664,45 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   prefix <- if (!is_note && nzchar(block$number %||% "")) paste0(block$number, ".  ") else ""
   # Notas informativas: texto justificado (como el modelo). Preguntas: izquierda.
   lbl_align <- if (identical(block$type %||% "", "note")) "justify" else "left"
-  y <- .form_pdf_text(paste0(prefix, block$label), x + 0.006, y, w - 0.012,
-                      chars = chars_lbl, align = lbl_align,
-                      fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
-  if (nzchar(block$hint %||% "")) {
-    y <- .form_pdf_text(block$hint, x + 0.006, y - 0.002, w - 0.012,
-                        chars = chars_lbl,
-                        fontsize = 7.3, fontface = "italic", col = tk$soft, line_h = 0.011)
+  # ENUNCIADO DENTRO DE LA TABLA (L4). En la referencia una pregunta no es «un
+  # parrafo y debajo una tabla»: es UNA tabla cuya primera fila, sombreada, lleva
+  # el enunciado. La diferencia no es estetica — suelto, el enunciado no tiene
+  # relacion estructural con sus opciones, y si la columna corta justo ahi se
+  # queda arriba y las opciones abajo: media pregunta sin texto.
+  # Solo cuando la pregunta TIENE cuerpo tabular donde alojarse; una nota
+  # informativa sigue siendo texto corrido.
+  tiene_cuerpo <- !is_note &&
+    (isTRUE(block$coded_list) ||
+       (block$type %||% "") %in% c("select_one", "select_multiple",
+                                   "text", "integer", "decimal", "date", "time", "datetime"))
+  bx <- x + 0.006
+  bw <- w - 0.012
+  if (tiene_cuerpo) {
+    lbl_lines <- .form_pdf_wrap(paste0(prefix, block$label), chars_lbl)
+    hint_lines <- if (nzchar(block$hint %||% "")) .form_pdf_wrap(block$hint, chars_lbl) else character(0)
+    head_h <- length(lbl_lines) * 0.0142 + length(hint_lines) * 0.011 + 0.009
+    .form_pdf_rect(bx, y, bw, head_h, fill = tk$tbl_zebra, col = tk$tbl_frame, lwd = 0.5)
+    yt <- .form_pdf_text(paste0(prefix, block$label), bx + 0.005, y - 0.002, bw - 0.010,
+                         lines = lbl_lines, align = lbl_align,
+                         fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
+    if (length(hint_lines)) {
+      .form_pdf_text(block$hint, bx + 0.005, yt - 0.001, bw - 0.010,
+                     lines = hint_lines,
+                     fontsize = 7.3, fontface = "italic", col = tk$ink, line_h = 0.011)
+    }
+    # Sin hueco: la cabecera y el cuerpo son la MISMA tabla.
+    y <- y - head_h
+  } else {
+    y <- .form_pdf_text(paste0(prefix, block$label), bx, y, bw,
+                        chars = chars_lbl, align = lbl_align,
+                        fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
+    if (nzchar(block$hint %||% "")) {
+      y <- .form_pdf_text(block$hint, bx, y - 0.002, bw,
+                          chars = chars_lbl,
+                          fontsize = 7.3, fontface = "italic", col = tk$ink, line_h = 0.011)
+    }
+    y <- y - 0.007
   }
-  y <- y - 0.007
   if (isTRUE(block$coded_list)) {
     grid::grid.rect(x = grid::unit(x + 0.006 + (w - 0.012) / 2, "npc"), y = grid::unit(y - 0.017, "npc"),
                     width = grid::unit(w - 0.012, "npc"), height = grid::unit(0.034, "npc"),
