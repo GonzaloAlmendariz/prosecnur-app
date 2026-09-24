@@ -1616,6 +1616,16 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       }
     }
     y <- y - h
+    # REJILLA (L3): linea entre filas. Antes las filas se separaban SOLO por la
+    # zebra (F2F2F2, 5% de tinta), y en fotocopia ese relleno desaparece: la
+    # lista quedaba como texto suelto sin rejilla. El instrumento se imprime y se
+    # fotocopia, asi que la estructura tiene que colgar de las lineas, no del
+    # relleno. La referencia lleva insideH en 46 de sus 50 tablas.
+    if (idx < length(options)) {
+      grid::grid.lines(x = grid::unit(c(x, x + w), "npc"),
+                       y = grid::unit(c(y, y), "npc"),
+                       gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
+    }
   }
   # Marco exterior fino + divisor bajo el codigo.
   grid::grid.rect(x = grid::unit(x + w / 2, "npc"), y = grid::unit((y_start + y) / 2, "npc"),
@@ -1625,7 +1635,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     div_x <- x + mark_w + code_w
     grid::grid.lines(x = grid::unit(c(div_x, div_x), "npc"),
                      y = grid::unit(c(y, y_start), "npc"),
-                     gp = grid::gpar(col = tk$tbl_div, lwd = 0.4))
+                     gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
   }
   y
 }
@@ -2032,6 +2042,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       }
     }
     y <- y - h
+    # REJILLA (L3): linea entre filas de la matriz. Igual que en la lista de
+    # opciones, las filas se separaban SOLO por zebra y ese relleno no sobrevive
+    # a una fotocopia: una bateria de 15 items quedaba como texto flotando sobre
+    # columnas de digitos, que en papel es donde mas se necesita la guia.
+    if (row_idx < length(block$items %||% list())) {
+      grid::grid.lines(x = grid::unit(c(x0, x0 + inner), "npc"),
+                       y = grid::unit(c(y, y), "npc"),
+                       gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
+    }
   }
 
   # Marco exterior + reglas (marco fino; divisores de escala punteados suaves;
