@@ -84,6 +84,23 @@ funcionaron) · Neyman dejaba estratos vacíos.
 3. **Reglas del cuadro maestro de acreditación** (research H16–H18): el salto
    de n entre N=3000 y 3001 en estudiantes, docentes con N ≥ 251 a cuotas aun
    con nómina completa, y que la inferencia sobrescriba la técnica elegida.
+   **Curva medida (2026-09-24):**
+
+   | Estudiantes (aula/QR) | técnica | completas | a campo |
+   |---|---|---|---|
+   | N = 2.800 | cobertura censal 60 % | 1.680 | 2.800 |
+   | N = 3.000 | cobertura censal 60 % | 1.800 | 3.000 |
+   | N = 3.001 | conglomerado (±2,5 %, deff 2) | 1.519 | 2.279 |
+   | N = 5.000 | conglomerado | 1.904 | 2.856 |
+
+   Al cruzar 3.000 la población crece y la muestra **baja** (−281 completas,
+   −721 contactos), y el censo al 60 % pide más casos que el diseño que sí da
+   margen de error. Una regla continua cambiaría de técnica cerca de
+   N ≈ 2.530, donde el 60 % de N iguala al n del conglomerado. En docentes,
+   N = 250 es censo de 250 y N = 251 son cuotas de 150 (no probabilístico)
+   aun con la nómina completa, que permitiría un MAS con margen. (El n a campo
+   de esas cuotas superaba al marco —275 con N = 251—; eso era un defecto y
+   ya está corregido.)
 4. (Informativa) un conglomerado de aulas con p = 0 o 1 ya no da n = 0.
 
 ## Abierto
