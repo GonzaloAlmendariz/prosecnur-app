@@ -4,6 +4,7 @@ import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { AulasStaleJobAviso } from "./AulasStaleJobAviso";
 import type { ClassroomLabModel } from "./classroomLabModel";
 import { classroomMethodLabel } from "./classroomLabels";
+import { MetodoRecomendadoLinea } from "./MetodoRecomendadoLinea";
 import { ProbarReemplazosBoton } from "./ProbarReemplazosBoton";
 
 export function ClassroomLabCommandBar({
@@ -104,11 +105,7 @@ export function ClassroomLabCommandBar({
           El comparador prefiere <strong>{classroomMethodLabel(model.recommendedMethodId)}</strong>
         </span>
       )}
-      {mostrarRecomendado && model.comparison?.recommendation && (
-        <span className="cmv2-classroom-recommendation">
-          Recomendado: <strong>{classroomMethodLabel(model.recommendedMethodId) || model.comparison.recommendation.method_label}</strong>
-        </span>
-      )}
+      {mostrarRecomendado && <MetodoRecomendadoLinea model={model} />}
     </div>
     {/* F4: la barra vive en todas las pestañas con acciones de la mesa; el
         aviso de "resultado no aplicado por marco viejo" se ancla aquí para

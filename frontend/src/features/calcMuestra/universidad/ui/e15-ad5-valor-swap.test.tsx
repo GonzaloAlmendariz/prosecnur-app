@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CifraMotor } from "./CifraMotor";
-import { debeAnimarSwap, esMarcadorDeValor, useValorSwap } from "./useValorSwap";
+import { debeAnimarSwap, efectoValorSwap, esMarcadorDeValor, useValorSwap } from "./useValorSwap";
 
 function Sonda({ value }: { value: string }) {
   const cambiando = useValorSwap(value);
@@ -34,3 +34,40 @@ describe("AD5 · useValorSwap no difumina al montar", () => {
     expect(esMarcadorDeValor("0")).toBe(false);
   });
 });
+
+describe("efectoValorSwap: el efecto real del hook (sin DOM)", () => {
+  function correr(anterior: string | null, value: string | null, reducedMotion = false) {
+    const llamadas: boolean[] = [];
+    const paso = efectoValorSwap({
+      anterior,
+      value,
+      reducedMotion,
+      setCambiando: (v) => llamadas.push(v),
+      setTimeout: () => 1,
+      clearTimeout: () => {},
+    });
+    return { paso, llamadas };
+  }
+
+  it("marcador → valor no enciende el cruce (la cifra aparece nítida)", () => {
+    for (const marcador of ["pendiente", "—", null]) {
+      const { llamadas } = correr(marcador, "186");
+      expect(llamadas).not.toContain(true);
+    }
+  });
+
+  it("valor → valor sí lo enciende y programa su apagado", () => {
+    const { llamadas, paso } = correr("186", "190");
+    expect(llamadas).toEqual([true]);
+    expect(typeof paso?.cleanup).toBe("function");
+  });
+
+  it("con movimiento reducido nunca se enciende", () => {
+    expect(correr("186", "190", true).llamadas).not.toContain(true);
+  });
+
+  it("sin cambio no hace nada", () => {
+    expect(correr("186", "186").paso).toBeNull();
+  });
+});
+

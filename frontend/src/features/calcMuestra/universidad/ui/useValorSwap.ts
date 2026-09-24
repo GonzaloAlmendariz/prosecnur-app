@@ -35,20 +35,46 @@ function prefiereMenosMovimiento(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/**
+ * El cuerpo del efecto, con sus dependencias inyectadas: es TODA la lógica del
+ * hook, así un test sin DOM la ejercita tal cual (verificador de E15: el test
+ * que sólo renderizaba en estático nunca corría el efecto, y un mutante que
+ * volvía a animar marcador→valor pasaba en verde).
+ */
+export function efectoValorSwap(args: {
+  anterior: ValorSwap;
+  value: ValorSwap;
+  reducedMotion: boolean;
+  setCambiando: (v: boolean) => void;
+  setTimeout: (fn: () => void, ms: number) => number;
+  clearTimeout: (id: number) => void;
+}): { siguiente: ValorSwap; cleanup?: () => void } | null {
+  const { anterior, value } = args;
+  if (Object.is(anterior, value)) return null;
+  if (!debeAnimarSwap(anterior, value) || args.reducedMotion) {
+    args.setCambiando(false);
+    return { siguiente: value };
+  }
+  args.setCambiando(true);
+  const timer = args.setTimeout(() => args.setCambiando(false), DURACION_MS);
+  return { siguiente: value, cleanup: () => args.clearTimeout(timer) };
+}
+
 export function useValorSwap(value: ValorSwap): boolean {
   const [cambiando, setCambiando] = useState(false);
   const prev = useRef(value);
   useEffect(() => {
-    const anterior = prev.current;
-    if (Object.is(anterior, value)) return;
-    prev.current = value;
-    if (!debeAnimarSwap(anterior, value) || prefiereMenosMovimiento()) {
-      setCambiando(false);
-      return;
-    }
-    setCambiando(true);
-    const timer = window.setTimeout(() => setCambiando(false), DURACION_MS);
-    return () => window.clearTimeout(timer);
+    const paso = efectoValorSwap({
+      anterior: prev.current,
+      value,
+      reducedMotion: prefiereMenosMovimiento(),
+      setCambiando,
+      setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+      clearTimeout: (id) => window.clearTimeout(id),
+    });
+    if (!paso) return;
+    prev.current = paso.siguiente;
+    return paso.cleanup;
   }, [value]);
   return cambiando;
 }

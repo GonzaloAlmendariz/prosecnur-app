@@ -24,7 +24,9 @@ function tsxFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return name === "__tests__" ? [] : tsxFiles(path);
-    return name.endsWith(".tsx") && !name.includes(".test.") ? [path] : [];
+    // .tsx y .ts: los textos visibles también se arman en modelos .ts
+    // (rótulos, avisos, motivos); el verificador de E15 vio el hueco.
+    return (name.endsWith(".tsx") || name.endsWith(".ts")) && !name.includes(".test.") && !name.endsWith(".d.ts") ? [path] : [];
   });
 }
 
@@ -46,7 +48,7 @@ const JERGA = [
 ];
 
 describe("AD4 · sin jerga interna en texto visible de universidad/**", () => {
-  it("ningún .tsx de producción la trae fuera de comentarios", () => {
+  it("ningún .tsx ni .ts de producción la trae fuera de comentarios", () => {
     const hallazgos: string[] = [];
     const archivos = tsxFiles(UNIVERSIDAD);
     // Centinela: si el barrido deja de encontrar archivos, el guard no guarda.

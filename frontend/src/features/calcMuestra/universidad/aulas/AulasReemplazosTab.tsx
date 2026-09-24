@@ -34,6 +34,7 @@ import {
   type AulasNavigate,
 } from "./aulasSurfaceState";
 import { AulasStaleJobAviso } from "./AulasStaleJobAviso";
+import { MetodoRecomendadoLinea } from "./MetodoRecomendadoLinea";
 import { ProbarReemplazosBoton } from "./ProbarReemplazosBoton";
 import "../../didactica/didactica.css";
 import "./aulas.css";
@@ -231,6 +232,7 @@ export function AulasReemplazosTab({
             <div className="cmv2-classroom-lab-main">
               <div className="cmv2-subhead">
                 <strong>Efecto esperado de los reemplazos</strong>
+                {replacementReady && <MetodoRecomendadoLinea model={model} />}
                 {replacementReady && (
                   <ProbarReemplazosBoton
                     config={config}
