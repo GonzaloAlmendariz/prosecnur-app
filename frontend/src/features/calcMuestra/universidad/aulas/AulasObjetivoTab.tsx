@@ -20,7 +20,8 @@ import { UNIVERSITY_AULAS_MODALIDAD_OPTIONS } from "../shared/constants";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { CifraFila, CifraMotor, PanelAvanzado } from "../ui";
 import { CadenaAulas } from "./CadenaAulas";
-import { NumberCell, ObjectiveWeightsPanel, type ClassroomLabModel } from "./aulasParts";
+import { ObjectiveWeightsPanel, type ClassroomLabModel } from "./aulasParts";
+import { CampoNumeroAulas } from "./CampoNumeroAulas";
 import {
   AulasStageNotice,
   resolveAulasStageNotice,
@@ -231,46 +232,58 @@ export function AulasObjetivoTab({
             </select>
             <em>{modalidad.detail}</em>
           </label>
-          <div className="cmv2-compact-field">
-            <span>Mínimo por curso-horario</span>
-            <NumberCell value={config.min_elegibles_aula} min={1} step={1} onChange={(v) => updateConfig({ min_elegibles_aula: Math.round(v) })} />
-            {/* VARA 3: once facultades declaran mínimo propio (10–20 en
-                HSVG2026) y este campo solo mueve el GENERAL. Sin la nota, el
-                «15» a secas presenta como uniforme lo que es heterogéneo por
-                diseño — y editar aquí parecería pisar los propios. */}
-            {(() => {
+          <CampoNumeroAulas
+            rotulo="Mínimo por curso-horario"
+            value={config.min_elegibles_aula}
+            min={1}
+            step={1}
+            onChange={(v) => updateConfig({ min_elegibles_aula: Math.round(v) })}
+            ayuda={(() => {
+              /* VARA 3: once facultades declaran mínimo propio (10–20 en
+                 HSVG2026) y este campo solo mueve el GENERAL. Sin la nota, el
+                 «15» a secas presenta como uniforme lo que es heterogéneo por
+                 diseño — y editar aquí parecería pisar los propios. */
               const propios = Object.values(config.criterios_seleccion?.minEligible?.byFaculty ?? {})
                 .map(Number)
                 .filter((v) => Number.isFinite(v) && v > 0);
               if (!propios.length) {
-                return <em>Descarta cursos demasiado pequeños para sostener una aplicación presencial.</em>;
+                return "Descarta cursos demasiado pequeños para sostener una aplicación presencial.";
               }
               const rango = propios.length > 1 && Math.min(...propios) !== Math.max(...propios)
                 ? `${fmtInt(Math.min(...propios))}–${fmtInt(Math.max(...propios))}`
                 : fmtInt(propios[0]);
               return (
-                <em>
+                <>
                   Es el mínimo general; {fmtInt(propios.length)} facultades declaran uno propio ({rango}),
                   decidido en Marco › Criterios — este campo no los toca.
-                </em>
+                </>
               );
             })()}
-          </div>
-          <div className="cmv2-compact-field">
-            <span>Reemplazos por curso-horario</span>
-            <NumberCell value={config.bolsas_reemplazo} min={0} step={1} onChange={(v) => updateConfig({ bolsas_reemplazo: Math.round(v) })} />
-            <em>Crea Rn.1, Rn.2... como alternativas equivalentes para cada curso-horario titular.</em>
-          </div>
-          <div className="cmv2-compact-field">
-            <span>Techo de visitas del estudio</span>
-            <NumberCell value={config.techo_aulas_visitadas ?? 0} min={0} step={5} onChange={(v) => updateConfig({ techo_aulas_visitadas: Math.max(0, Math.round(v)) })} />
-            <em>«No pasarnos de N aulas»: titulares + reemplazos activados no deberían superarlo. 0 = sin techo declarado.</em>
-          </div>
-          <div className="cmv2-compact-field">
-            <span>Extra operativo por estrato</span>
-            <NumberCell value={config.aulas_extra_operativas_default} min={0} step={1} onChange={(v) => updateConfig({ aulas_extra_operativas_default: Math.round(v) })} />
-            <em>Refuerzo de agenda; no cambia el N estadístico ni la muestra titular.</em>
-          </div>
+          />
+          <CampoNumeroAulas
+            rotulo="Reemplazos por curso-horario"
+            value={config.bolsas_reemplazo}
+            min={0}
+            step={1}
+            onChange={(v) => updateConfig({ bolsas_reemplazo: Math.round(v) })}
+            ayuda="Crea Rn.1, Rn.2... como alternativas equivalentes para cada curso-horario titular."
+          />
+          <CampoNumeroAulas
+            rotulo="Techo de visitas del estudio"
+            value={config.techo_aulas_visitadas ?? 0}
+            min={0}
+            step={5}
+            onChange={(v) => updateConfig({ techo_aulas_visitadas: Math.max(0, Math.round(v)) })}
+            ayuda="«No pasarnos de N aulas»: titulares + reemplazos activados no deberían superarlo. 0 = sin techo declarado."
+          />
+          <CampoNumeroAulas
+            rotulo="Extra operativo por estrato"
+            value={config.aulas_extra_operativas_default}
+            min={0}
+            step={1}
+            onChange={(v) => updateConfig({ aulas_extra_operativas_default: Math.round(v) })}
+            ayuda="Refuerzo de agenda; no cambia el N estadístico ni la muestra titular."
+          />
         </div>
         <label className="cmv2-classroom-toggle">
           <input
@@ -324,26 +337,38 @@ export function AulasObjetivoTab({
           defaultOpen
         >
           <div className="cmv2-classroom-control-grid">
-            <div className="cmv2-compact-field">
-              <span>Semilla</span>
-              <NumberCell value={config.semilla} min={1} step={1} onChange={(v) => updateConfig({ semilla: Math.round(v) })} />
-              <em>Permite reproducir la misma selección en auditoría.</em>
-            </div>
-            <div className="cmv2-compact-field">
-              <span>Corridas de auditoría</span>
-              <NumberCell value={config.simulation_runs ?? config.monte_carlo_n} min={0} step={50} onChange={(v) => updateConfig({ simulation_runs: Math.round(v), monte_carlo_n: Math.round(v) })} />
-              <em>Estima estabilidad, pesos y probabilidades cuando hay optimización.</em>
-            </div>
-            <div className="cmv2-compact-field">
-              <span>Candidatas a comparar</span>
-              <NumberCell value={config.candidate_pool_size ?? 500} min={1} step={25} onChange={(v) => updateConfig({ candidate_pool_size: Math.round(v) })} />
-              <em>Solo afecta el pool controlado; obliga a auditar probabilidades por simulación.</em>
-            </div>
-            <div className="cmv2-compact-field">
-              <span>Evitar repetidos</span>
-              <NumberCell value={config.penalizacion_repetidos} min={0} step={0.05} onChange={(v) => updateConfig({ penalizacion_repetidos: v })} />
-              <em>Más alto prioriza estudiantes únicos cuando aparecen en varios cursos.</em>
-            </div>
+            <CampoNumeroAulas
+              rotulo="Semilla"
+              value={config.semilla}
+              min={1}
+              step={1}
+              onChange={(v) => updateConfig({ semilla: Math.round(v) })}
+              ayuda="Permite reproducir la misma selección en auditoría."
+            />
+            <CampoNumeroAulas
+              rotulo="Corridas de auditoría"
+              value={config.simulation_runs ?? config.monte_carlo_n}
+              min={0}
+              step={50}
+              onChange={(v) => updateConfig({ simulation_runs: Math.round(v), monte_carlo_n: Math.round(v) })}
+              ayuda="Estima estabilidad, pesos y probabilidades cuando hay optimización."
+            />
+            <CampoNumeroAulas
+              rotulo="Candidatas a comparar"
+              value={config.candidate_pool_size ?? 500}
+              min={1}
+              step={25}
+              onChange={(v) => updateConfig({ candidate_pool_size: Math.round(v) })}
+              ayuda="Solo afecta el pool controlado; obliga a auditar probabilidades por simulación."
+            />
+            <CampoNumeroAulas
+              rotulo="Evitar repetidos"
+              value={config.penalizacion_repetidos}
+              min={0}
+              step={0.05}
+              onChange={(v) => updateConfig({ penalizacion_repetidos: v })}
+              ayuda="Más alto prioriza estudiantes únicos cuando aparecen en varios cursos."
+            />
           </div>
           <div className="cmv2-classroom-groups" aria-label="Criterios activos del selector">
             <strong>Criterios activos</strong>

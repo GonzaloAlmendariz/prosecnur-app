@@ -124,9 +124,10 @@
     animation: cmv2-did-badge-pop 240ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 
+  /* Sólo escala: arrancar en opacity 0.4 dejaba el texto a 1.94:1 durante el
+     pop (E12 · A6, medido así en Marco). En reposo el chip da ≈6.8:1. */
   @keyframes cmv2-did-badge-pop {
     from {
-      opacity: 0.4;
       transform: scale(0.94);
     }
   }

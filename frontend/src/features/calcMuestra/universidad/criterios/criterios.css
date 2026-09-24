@@ -454,7 +454,10 @@
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
-.cmv2-crit-item-count em { font-style: normal; opacity: 0.75; }
+/* El rótulo («estudiantes en la base») se distingue por peso, no por opacidad:
+ * con opacity 0.75 sobre --pulso-text-muted quedaba en 4.2:1 a 11 px (QA de
+ * aulas, 2026-09-24). */
+.cmv2-crit-item-count em { font-style: normal; font-weight: var(--pulso-weight-regular, 400); }
 
 .cmv2-crit-item-variants {
   grid-column: 1 / -1;

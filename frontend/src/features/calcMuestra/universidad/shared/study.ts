@@ -272,6 +272,11 @@ export function materializeUniversityAulasTarget({
  * del engine. También elimina el target si falta cualquiera de los resultados
  * necesarios para acreditar el handoff; así guardar/reabrir no revive cifras
  * de un cálculo anterior.
+ *
+ * Si el target ya está donde debe, devuelve el MISMO workspace: normalizar el
+ * resto de `aulas_config` aquí convertía cada apertura en una escritura (R
+ * sirve `{}` vacío como `[]` y omite defaults), y el proyecto quedaba «sin
+ * guardar» sin que nadie tocara nada.
  */
 export function reconcileUniversityAulasTarget(
   workspace: CalcMuestraWorkspace,
@@ -281,6 +286,8 @@ export function reconcileUniversityAulasTarget(
   const target = selected && hasUsefulResult(selected)
     ? normalizePositiveInteger(selected.resultado?.aulas_base_total)
     : undefined;
+  const actual = (workspace.aulas_config as { n_aulas?: unknown } | undefined)?.n_aulas;
+  if (actual === target || (actual == null && target == null)) return workspace;
   const { n_aulas: _staleTarget, ...configWithoutTarget } = normalizeUniversityAulasConfig(workspace.aulas_config);
   return {
     ...workspace,

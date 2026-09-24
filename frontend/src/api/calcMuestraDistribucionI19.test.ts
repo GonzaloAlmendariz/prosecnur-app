@@ -146,6 +146,8 @@ describe("normalizeCalcMuestraDistribucionI19", () => {
 
   it("distingue cálculo ausente de corrida legacy", () => {
     expect(normalizeCalcMuestraDistribucionI19(null, expected("p1_universidad")).kind).toBe("empty");
+    // `resultado = NULL` en R viaja como `{}`: sigue siendo «sin cálculo», no legacy.
+    expect(normalizeCalcMuestraDistribucionI19({}, expected("p1_universidad")).kind).toBe("empty");
     expect(normalizeCalcMuestraDistribucionI19({ n_teorico: 20 }, expected("p1_universidad")).kind).toBe("legacy");
   });
 
