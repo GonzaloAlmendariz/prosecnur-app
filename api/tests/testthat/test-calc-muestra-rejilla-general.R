@@ -343,3 +343,12 @@ test_that("H12: una meta menor que el n requerido se declara con el error que s√
   mayor <- .rejilla_calc(N = 5000L, meta = list(valor = 500L))
   expect_false(grepl("es menor que el n", mayor$advertencia %||% ""))
 })
+
+test_that("H19: la cobertura censal habla de sesgo de no respuesta, no de TCL", {
+  r <- calc_muestra_calcular_componente(calc_muestra_normalize_componente(list(
+    tecnica = "intencion_censal", marco = list(marco_validado = 300L, marco_contactable = 300L, estado = "validado"),
+    parametros = list(cobertura_objetivo = .5))))
+  expect_false(grepl("TCL", r$advertencia, fixed = TRUE))
+  expect_match(r$advertencia, "sesgo de no respuesta")
+  expect_match(r$advertencia, "50 %", fixed = TRUE)
+})
