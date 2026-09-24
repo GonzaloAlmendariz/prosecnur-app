@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from "react";
-import { Database, Loader2, Shuffle } from "lucide-react";
+import { Database, ListOrdered, Loader2, Shuffle } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
 import {
@@ -10,8 +11,8 @@ import {
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
 import { fmtInt } from "../sharedCore";
+import { searchConNivel } from "../../../lib/navegacion/useDireccion";
 import { ErrorDelMotor } from "./ErrorDelMotor";
-import { ID_SUBIR_ARCHIVO_MARCO } from "./ArchivoMarcoGeneral";
 import { FichaCorrida } from "./FichaCorrida";
 import { TablaUnidades } from "./TablaUnidades";
 import {
@@ -34,16 +35,22 @@ import { useColumnasDelMarco } from "./useColumnasDelMarco";
 import { guardarEstudioPendiente, useIrASeccionGeneral, useMuestraGeneral } from "./useMuestraGeneral";
 import "./general.css";
 
+/** Pestañas de Selección (E15 · P1): una pregunta cada una. */
+export type PestanaSeleccion = "seleccion-sorteo" | "seleccion-corrida" | "seleccion-unidades";
+
 /**
  * Muestra general › Selección (ADR 0090): sortea unidades del marco declarado
- * con semilla reproducible y publica π y peso base por unidad. Es la sección
- * entera: trae su propio panel porque la página no crece.
+ * con semilla reproducible y publica π y peso base por unidad. Partida en
+ * pestañas como aulas (E15 · P1): Sorteo (método, semilla, reservas y el
+ * botón), Corrida (reproducibilidad, reparto y descarga) y Unidades (listado).
  */
 export function SeleccionGeneral({
   componente,
   enActor = false,
+  pestana = "seleccion-sorteo",
 }: {
   componente: CalcMuestraComponente | null;
+  pestana?: string;
   /**
    * Montada dentro de Acreditación › Selección, bajo el «Archivo del marco»
    * del actor: la sección (id, rol y scroll) es de quien la monta, y el vacío
@@ -52,15 +59,13 @@ export function SeleccionGeneral({
   enActor?: boolean;
 }) {
   const general = useMuestraGeneral(componente?.id ?? null);
-  return <SeleccionGeneralVista componente={componente} enActor={enActor} {...general} />;
+  return <SeleccionGeneralVista componente={componente} enActor={enActor} pestana={pestana} {...general} />;
 }
 
-/**
- * Lleva el foco al botón de subida del «Archivo del marco» del actor, que vive
- * arriba en la misma región: enfocar ya lo trae a la vista.
- */
-function irAlArchivoDelMarco() {
-  document.getElementById(ID_SUBIR_ARCHIVO_MARCO)?.focus();
+/** El `href` de otra pestaña de la misma sección (conserva modo, sección y foco). */
+function useHrefPestana() {
+  const location = useLocation();
+  return (pestana: string) => `${location.pathname}${searchConNivel(location.search, "pestana", pestana)}`;
 }
 
 /** La sección con el estado ya rehidratado (separada para probarla sin efectos). */
@@ -71,9 +76,11 @@ export function SeleccionGeneralVista({
   marco,
   corrida,
   enActor = false,
+  pestana = "seleccion-sorteo",
 }: {
   componente: CalcMuestraComponente | null;
   enActor?: boolean;
+  pestana?: string;
   cargado: boolean;
   error: string | null;
   marco: CalcMuestraGeneralMarco | null;
@@ -81,6 +88,7 @@ export function SeleccionGeneralVista({
 }) {
   const componenteId = componente?.id ?? null;
   const irASeccion = useIrASeccionGeneral();
+  const hrefPestana = useHrefPestana();
   const [estado, dispatch] = useReducer(seleccionReducer, SELECCION_INICIAL);
 
   // Al reabrir, el formulario muestra el método y la semilla de la corrida
@@ -132,7 +140,7 @@ export function SeleccionGeneralVista({
     }
   }
 
-  // Sin pestaña que la controle no es un tabpanel: es la región de la sección,
+  // El tabpanel es el de `PestanasMesa`; esto es la región de la sección,
   // nombrada por el encabezado de la mesa. Dentro de un actor, un bloque más.
   const Contenedor = enActor ? "div" : "section";
   return (
@@ -161,11 +169,11 @@ export function SeleccionGeneralVista({
               variant="inline"
               icon={<Database size={18} aria-hidden="true" />}
               title="Todavía no hay sorteo"
-              hint="Siguiente: declara arriba el archivo del marco de este actor."
+              hint="Siguiente: declara el archivo del marco de este actor."
               cta={(
-                <button type="button" className="cmv2-ghost" onClick={irAlArchivoDelMarco}>
+                <Link className="cmv2-ghost" to={hrefPestana("seleccion-marco")}>
                   Ir al archivo del marco
-                </button>
+                </Link>
               )}
             />
           ) : (
@@ -181,7 +189,7 @@ export function SeleccionGeneralVista({
             />
           )}
         </section>
-      ) : (
+      ) : pestana === "seleccion-sorteo" ? (
         <>
           <section className="cmv2-panel cmg-sorteo" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
             <div className="cmv2-panel-head">
@@ -316,6 +324,11 @@ export function SeleccionGeneralVista({
                   : <Shuffle size={14} aria-hidden="true" />}
                 {corrida ? "Sortear de nuevo" : "Sortear"}
               </button>
+              {corrida && (
+                <Link className="cmv2-ghost" to={hrefPestana("seleccion-corrida")}>
+                  Ver la corrida
+                </Link>
+              )}
               {motivoNoSe ? (
                 <span id="cmg-sortear-porque" className="cmg-motivo">{motivoNoSe}</span>
               ) : (
@@ -328,21 +341,41 @@ export function SeleccionGeneralVista({
             </div>
           </section>
 
-          <FichaCorrida corrida={corrida} componente={componente} />
-          {corrida && (corrida.unidades === null ? (
-            <section className="cmv2-panel" data-qa-geometry-member>
-              <LoadingBlock variant="inline" label="Cargando el listado de unidades…" />
-            </section>
-          ) : (
-            <TablaUnidades
-              unidades={corrida.unidades}
-              filtro={estado.filtro}
-              pagina={estado.pagina}
-              onFiltro={(filtro) => dispatch({ tipo: "filtro", filtro })}
-              onPagina={(pagina) => dispatch({ tipo: "pagina", pagina })}
-            />
-          ))}
         </>
+      ) : pestana === "seleccion-corrida" ? (
+        <FichaCorrida corrida={corrida} componente={componente} />
+      ) : !corrida ? (
+        <section className="cmv2-panel" aria-labelledby="cmg-unidades-vacio-titulo" data-qa-geometry-member>
+          <div className="cmv2-panel-head">
+            <div>
+              <span className="cmv2-eyebrow">Unidades</span>
+              <h3 className="cmg-panel-titulo" id="cmg-unidades-vacio-titulo">Listado del sorteo</h3>
+            </div>
+          </div>
+          <EmptyState
+            variant="inline"
+            icon={<ListOrdered size={18} aria-hidden="true" />}
+            title="Todavía no hay sorteo"
+            hint="Siguiente: sortea en la pestaña Sorteo; aquí aparecerán las unidades con π y peso."
+            cta={(
+              <Link className="cmv2-ghost" to={hrefPestana("seleccion-sorteo")}>
+                Ir a Sorteo
+              </Link>
+            )}
+          />
+        </section>
+      ) : corrida.unidades === null ? (
+        <section className="cmv2-panel" data-qa-geometry-member>
+          <LoadingBlock variant="inline" label="Cargando el listado de unidades…" />
+        </section>
+      ) : (
+        <TablaUnidades
+          unidades={corrida.unidades}
+          filtro={estado.filtro}
+          pagina={estado.pagina}
+          onFiltro={(filtro) => dispatch({ tipo: "filtro", filtro })}
+          onPagina={(pagina) => dispatch({ tipo: "pagina", pagina })}
+        />
       )}
     </Contenedor>
   );

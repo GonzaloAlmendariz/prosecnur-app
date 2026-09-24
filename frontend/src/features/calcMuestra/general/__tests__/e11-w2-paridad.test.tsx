@@ -264,8 +264,9 @@ describe("Selección general y de actores", () => {
     expect(general).toContain("Ir a Marco");
     expect(niveles(general)).toEqual([3, 4]);
     const actor = seleccion(null, true);
-    expect(actor).toContain("Siguiente: declara arriba el archivo del marco");
-    expect(actor).toContain("Ir al archivo del marco");
+    expect(actor).toContain("Siguiente: declara el archivo del marco de este actor.");
+    // Lleva a la pestaña donde se declara (E15 · P1), no a un foco invisible.
+    expect(actor).toMatch(/<a [^>]*href="[^"]*pestana=seleccion-marco"[^>]*>Ir al archivo del marco/);
   });
 
   it("con marco, los encabezados propios no saltan de nivel", () => {

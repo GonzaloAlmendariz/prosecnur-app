@@ -8,12 +8,15 @@ import { FichaEstudio } from "./FichaEstudio";
 import { MarcoShapeSelector } from "./MarcoShapeSelector";
 import type { MarcoOcasional } from "./marcoOcasional";
 import { MetodoGeneral } from "./MetodoGeneral";
+import { pestanaPorDefectoMarco } from "./modeloPestanas";
+import { PestanasMesa } from "./PestanasMesa";
 import { PropuestaTraspaso } from "./PropuestaTraspaso";
 import { SalidaReporte, type ReporteEstudio } from "./SalidaReporte";
 import { ResultadosComponentes } from "./ResultadosComponentes";
-import { hayResultado } from "./secciones";
+import { encabezadoDeSeccion, hayResultado } from "./secciones";
 import { SeleccionGeneral } from "./SeleccionGeneral";
 import { useDisenoVigente } from "./useDisenoVigente";
+import { usePestanaMesa } from "./usePestanaMesa";
 import { VariablesControl } from "./VariablesControl";
 import "./mesa.css";
 
@@ -68,49 +71,69 @@ export function MesaGeneral({
   const marco = primero ? marcos[primero.id] ?? null : null;
   const corrida = primero ? corridas[primero.id] ?? null : null;
   const estado = estadoMesaGeneral({ comp: primero, marco, corrida, cargado });
+  // La pestaña vive en la dirección; con el marco declarado, Marco abre en su
+  // archivo (P3). Selección y Método abren en su primera pestaña.
+  const pestanaMesa = usePestanaMesa(
+    "marco_disponible",
+    selectedSection,
+    selectedSection === "marco" ? pestanaPorDefectoMarco(Boolean(marco)) : null,
+  );
+  const pestana = pestanaMesa.activa;
   // Ningún botón hijo le pasa su evento a `calcular`: la página lo leería
   // como el estudio a calcular y fallaría antes de pedir nada.
   const calcular = () => onCalcular();
 
   return (
-    <div className="cmv2-desk cmg-mesa">
+    <div className="cmv2-desk cmg-mesa" data-seccion={selectedSection}>
       <div className="cmg-cabecera" data-qa-geometry-group="calc-muestra/general-cabecera" data-qa-geometry-contract="intrinsic">
         <EncabezadoSeccion
           modo="marco_disponible"
           seccion={selectedSection}
+          pestana={pestana || null}
           estado={estado}
-          onCalcular={calcular}
-          calculando={calculando}
         />
         <BandaDisenoGeneral comp={primero} marco={marco} corrida={corrida} seccion={selectedSection} />
       </div>
       <div className="cmv2-university-workbench" data-active-section={selectedSection}>
-        {selectedSection === "marco" && (
-          <section id="cmv2-section-general-marco" className="cmv2-tab-panel" aria-labelledby="cmg-seccion-titulo">
-            <div className="cmv2-desk-grid">
-              <div className="cmv2-stack" data-qa-geometry-group="calc-muestra/general-marco" data-qa-geometry-contract="intrinsic">
-                <MarcoShapeSelector selected={workspace.marco_disponible} onSelect={onEnsureKind} />
-                <ArchivoMarcoGeneral componente={primero} />
-                <VariablesControl workspace={workspace} onWorkspace={onWorkspace} />
-              </div>
-              <aside className="cmv2-side" aria-label="Ficha del estudio">
-                <FichaEstudio variante="general" estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} onCambiarTipo={onCambiarTipo} />
-              </aside>
-            </div>
-          </section>
-        )}
+        {selectedSection !== "resultados" && (
+          <PestanasMesa
+            grupo="general"
+            seccion={selectedSection}
+            tituloSeccion={encabezadoDeSeccion("marco_disponible", selectedSection).titulo}
+            pestanas={pestanaMesa.pestanas}
+            activa={pestana}
+            onElegir={pestanaMesa.elegir}
+            listo={cargado}
+          >
+            {selectedSection === "marco" && (
+              <section id="cmv2-section-general-marco" className="cmv2-tab-panel" aria-labelledby="cmg-seccion-titulo">
+                <div className="cmv2-stack" data-qa-geometry-group="calc-muestra/general-marco" data-qa-geometry-contract="intrinsic">
+                  {pestana === "marco-forma" && <MarcoShapeSelector selected={workspace.marco_disponible} onSelect={onEnsureKind} />}
+                  {pestana === "marco-archivo" && <ArchivoMarcoGeneral componente={primero} />}
+                  {pestana === "marco-ficha" && (
+                    <div className="cmg-ficha-estudio" data-qa-geometry-group="calc-muestra/general-ficha-estudio" data-qa-geometry-contract="intrinsic">
+                      <FichaEstudio variante="general" estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} onCambiarTipo={onCambiarTipo} />
+                      <VariablesControl workspace={workspace} onWorkspace={onWorkspace} />
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
-        {selectedSection === "metodo" && (
-          <MetodoGeneral
-            comp={comp}
-            calculando={calculando}
-            onCalcular={calcular}
-            onComponente={onComponente}
-            onReplaceComponente={onReplaceComponente}
-          />
-        )}
+            {selectedSection === "metodo" && (
+              <MetodoGeneral
+                comp={comp}
+                pestana={pestana}
+                calculando={calculando}
+                onCalcular={calcular}
+                onComponente={onComponente}
+                onReplaceComponente={onReplaceComponente}
+              />
+            )}
 
-        {selectedSection === "seleccion" && <SeleccionGeneral componente={estudio.componentes[0] ?? null} />}
+            {selectedSection === "seleccion" && <SeleccionGeneral componente={estudio.componentes[0] ?? null} pestana={pestana} />}
+          </PestanasMesa>
+        )}
         {selectedSection === "resultados" && (
           <section
             id="cmv2-section-general-resultados"

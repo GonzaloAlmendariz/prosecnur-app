@@ -244,10 +244,13 @@ describe("V3/V12/V13 · secciones, encabezados y readiness", () => {
     expect(niveles(html)[0]).toBe(2);
   });
 
-  it("Marco tampoco usa un tabpanel sin pestaña", () => {
+  it("Marco usa un tabpanel sólo con la pestaña que lo controla (E15 · P3)", () => {
     const html = general("marco");
     expect(html).toMatch(/<section id="cmv2-section-general-marco"[^>]*aria-labelledby="cmg-seccion-titulo"/);
-    expect(html).not.toContain('role="tabpanel"');
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(1);
+    expect(html).toMatch(/role="tabpanel" aria-labelledby="(cmg-tab-marco-marco-[a-z]+)"/);
+    const labelledby = html.match(/role="tabpanel" aria-labelledby="(cmg-tab-marco-marco-[a-z]+)"/)?.[1];
+    expect(html).toMatch(new RegExp(`id="${labelledby}"[^>]*role="tab"[^>]*aria-selected="true"`));
   });
 
   it("Acreditación: Contexto con readiness y lo que falta para el reporte; Resultados con actores dibujados", () => {

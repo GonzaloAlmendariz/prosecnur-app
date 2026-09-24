@@ -1,16 +1,20 @@
 import { CircleSlash2, Users } from "lucide-react";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
+import { CALC_MUESTRA_ACREDITACION_PESTANAS } from "../../../lib/navegacion/catalogos/calcMuestra";
 import type { CalcMuestraGeneralCorrida, CalcMuestraGeneralMarco } from "../../../api/calcMuestraGeneral";
 import { EmptyState } from "../../../components/States";
 import { ArchivoMarcoGeneral } from "./ArchivoMarcoGeneral";
 import { estadoDelActor, tecnicaDelActor, type TecnicaDelActor } from "./actores";
 import { vigenciaSorteo } from "./bandaDisenoModelo";
+import { pestanaPorDefectoActor } from "./modeloPestanas";
+import { PestanasMesa } from "./PestanasMesa";
 import { SeleccionGeneral } from "./SeleccionGeneral";
 import { ID_TRABAJO_DEL_ACTOR, SelectorActor, type ActorDelSelector } from "./SelectorActor";
 import { useMuestraGeneralStore } from "./store";
 import { useActorEnFoco } from "./useActorEnFoco";
 import { useIrASeccionGeneral, useMuestraGeneral } from "./useMuestraGeneral";
+import { usePestanaMesa } from "./usePestanaMesa";
 import "./general.css";
 
 export function nombreDelActor(componente: Pick<CalcMuestraComponente, "actor" | "actor_id" | "id">): string {
@@ -59,6 +63,11 @@ export function actoresDelSelector(
  * Selección general tal cual. Un actor cuya técnica no da π lo dice de entrada
  * y no ofrece Sortear.
  *
+ * Partida en pestañas como aulas (E15 · P1): el selector de actor queda
+ * arriba y debajo, para el actor en foco, Archivo del marco · Sorteo · Corrida
+ * · Unidades. Este modo no tiene sección Marco: el archivo de cada actor vive
+ * aquí, en su propia pestaña.
+ *
  * La técnica de un actor de Acreditación la infiere el motor desde actor,
  * canal y N (cuadro maestro): declarar el marco puede cambiarla. Por eso se lee
  * siempre del componente vigente, nunca se fija al montar.
@@ -71,6 +80,11 @@ export function SeleccionActores({ componentes }: { componentes: readonly CalcMu
   const corridas = useMuestraGeneralStore((s) => s.corridas);
 
   const actores = actoresDelSelector(componentes, { cargado, marcos, corridas });
+  const pestanas = usePestanaMesa(
+    "acreditacion",
+    "seleccion",
+    pestanaPorDefectoActor(Boolean(activo && marcos[activo.id])),
+  );
 
   return (
     <SeleccionActoresVista
@@ -78,6 +92,8 @@ export function SeleccionActores({ componentes }: { componentes: readonly CalcMu
       activo={activo}
       cargado={cargado}
       onElegir={elegir}
+      pestana={pestanas.activa}
+      onPestana={pestanas.elegir}
     />
   );
 }
@@ -88,18 +104,22 @@ export function SeleccionActoresVista({
   activo,
   cargado,
   onElegir,
+  pestana = "seleccion-sorteo",
+  onPestana = () => {},
 }: {
   actores: readonly ActorDelSelector[];
   activo: CalcMuestraComponente | null;
   cargado: boolean;
   onElegir: (id: string) => void;
+  pestana?: string;
+  onPestana?: (id: string) => void;
 }) {
   const irASeccion = useIrASeccionGeneral();
   const actor = activo ? actores.find((a) => a.id === activo.id) ?? null : null;
 
   return (
-    // Sin pestaña que la controle no es un tabpanel: es la región de la
-    // sección, nombrada por el encabezado de la mesa (h2).
+    // La región de la sección, nombrada por el encabezado de la mesa (h2); el
+    // tabpanel es el de `PestanasMesa`, debajo del selector de actor.
     <section
       id="cmv2-section-acreditacion-seleccion"
       className="cmv2-tab-panel cmg-acred-seleccion"
@@ -137,19 +157,26 @@ export function SeleccionActoresVista({
             aria-label={`Marco y sorteo de ${actor.nombre}`}
             data-qa-geometry-member
           >
-            {actor.tecnica.sorteable ? (
-              <>
+            <PestanasMesa
+              grupo="acreditacion"
+              seccion="seleccion"
+              tituloSeccion={`Selección de ${actor.nombre}`}
+              pestanas={CALC_MUESTRA_ACREDITACION_PESTANAS.seleccion}
+              activa={pestana}
+              onElegir={onPestana}
+              listo={cargado}
+            >
+              {pestana === "seleccion-marco" ? (
                 <ArchivoMarcoGeneral key={`marco-${activo.id}`} componente={activo} />
-                <SeleccionGeneral key={`sorteo-${activo.id}`} componente={activo} enActor />
-              </>
-            ) : (
-              <>
+              ) : actor.tecnica.sorteable ? (
+                <SeleccionGeneral key={`sorteo-${activo.id}`} componente={activo} enActor pestana={pestana} />
+              ) : (
+                // En Acreditación la técnica sale del N del marco: cambiar el
+                // archivo (pestaña Archivo del marco) puede devolver al actor a
+                // una técnica sorteable.
                 <ActorSinSorteo nombre={actor.nombre} tecnica={actor.tecnica} onActores={() => irASeccion("actores")} />
-                {/* En Acreditación la técnica sale del N del marco: cambiar el
-                    archivo puede devolver al actor a una técnica sorteable. */}
-                {actor.conMarco && <ArchivoMarcoGeneral key={`marco-${activo.id}`} componente={activo} />}
-              </>
-            )}
+              )}
+            </PestanasMesa>
           </div>
         </>
       )}

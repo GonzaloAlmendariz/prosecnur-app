@@ -1,15 +1,20 @@
 import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calcMuestra";
-import type { ComponentePatch } from "../sharedCore";
+import { safeNumber, type ComponentePatch } from "../sharedCore";
+import { AccionCalcular } from "./AccionCalcular";
 import { ActoresAcreditacion } from "./ActoresAcreditacion";
 import { BandaDisenoAcreditacion } from "./BandaDisenoAcreditacion";
 import { estadoMesaAcreditacion } from "./bandaDisenoModelo";
 import { ContextoReporte } from "./ContextoReporte";
 import { EncabezadoSeccion } from "./EncabezadoSeccion";
 import { FichaEstudio } from "./FichaEstudio";
+import { pestanaPorDefectoActor } from "./modeloPestanas";
 import { ResultadosComponentes } from "./ResultadosComponentes";
+import { hayResultado } from "./secciones";
 import { SalidaReporte, type ReporteEstudio } from "./SalidaReporte";
 import { SeleccionActores } from "./SeleccionActores";
+import { useActorEnFoco } from "./useActorEnFoco";
 import { useDisenoVigente } from "./useDisenoVigente";
+import { usePestanaMesa } from "./usePestanaMesa";
 import "./mesa.css";
 
 const SECCIONES = ["actores", "contexto", "seleccion", "resultados"];
@@ -47,18 +52,25 @@ export function MesaAcreditacion({
   const selectedSection = SECCIONES.includes(activeSection) ? activeSection : "actores";
   const { cargado, marcos, corridas } = useDisenoVigente();
   const estado = estadoMesaAcreditacion({ componentes: estudio.componentes, corridas, marcos, cargado });
+  // La pestaña de Selección es la misma que resuelve `SeleccionActores` (la
+  // dirección manda); la cabecera la necesita para no enlazar consigo misma.
+  const { activo } = useActorEnFoco(estudio.componentes);
+  const { activa: pestana } = usePestanaMesa(
+    "acreditacion",
+    selectedSection,
+    pestanaPorDefectoActor(Boolean(activo && marcos[activo.id])),
+  );
   // Ningún botón hijo le pasa su evento a `calcular`: la página lo leería
   // como el estudio a calcular y fallaría antes de pedir nada.
   const calcular = () => onCalcular();
   return (
-    <div className="cmv2-desk cmg-mesa">
+    <div className="cmv2-desk cmg-mesa" data-seccion={selectedSection}>
       <div className="cmg-cabecera" data-qa-geometry-group="calc-muestra/acreditacion-cabecera" data-qa-geometry-contract="intrinsic">
         <EncabezadoSeccion
           modo="acreditacion"
           seccion={selectedSection}
+          pestana={pestana || null}
           estado={estado}
-          onCalcular={calcular}
-          calculando={calculando}
         />
         <BandaDisenoAcreditacion componentes={estudio.componentes} corridas={corridas} marcos={marcos} seccion={selectedSection} />
       </div>
@@ -72,6 +84,14 @@ export function MesaAcreditacion({
             data-qa-geometry-contract="intrinsic"
           >
             <ActoresAcreditacion componentes={estudio.componentes} onComponente={onComponente} />
+            {/* Calcular vive donde se declaran N, canal y meta (E15 · P4). */}
+            <AccionCalcular
+              calculado={hayResultado(estudio.componentes)}
+              calculando={calculando}
+              onCalcular={calcular}
+              nota="Calcula el n de cada actor con su N, su canal y su meta."
+              motivo={estudio.componentes.some((c) => safeNumber(c.marco?.marco_validado, 0) > 0) ? null : "Declara el N de al menos un actor."}
+            />
           </section>
         )}
         {selectedSection === "contexto" && (
