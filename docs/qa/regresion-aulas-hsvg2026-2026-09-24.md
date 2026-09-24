@@ -1,5 +1,10 @@
 # Regresión de aulas sobre hsvg2026 — 2026-09-24
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-09-24
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
 E9 del loop de Cálculo de muestra. El loop cambió el motor general (no
 respuesta, reparto, deff por defecto, avisos de parámetros, sorteo nuevo) y
 aulas es el patrón que no debía moverse. Se midió end-to-end, no por suites.

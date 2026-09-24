@@ -1,5 +1,10 @@
 # Monte Carlo del sorteo de Muestra general — 2026-09-24
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-09-24
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
 E8 del loop de Cálculo de muestra. Pregunta: el diseño que calcula y sortea
 el motor general ¿cumple lo que declara? Script reproducible:
 `E8_R=1000 Rscript scripts/calc-muestra-montecarlo-general.R`.

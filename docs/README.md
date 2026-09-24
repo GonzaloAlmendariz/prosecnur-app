@@ -121,6 +121,10 @@ arquitectura canónica.
 
 ### Planes de dominio y mejora
 
+- [Research metodológico del motor general de Cálculo de muestra](qa/research-calc-muestra-robustez-2026-09-23.md):
+  28 reglas contra Cochran, Kish, Lohr y Tillé con lo que hacía el motor
+  (loop de septiembre 2026); con su [Monte Carlo del sorteo](qa/montecarlo-muestra-general-2026-09-24.md)
+  y la [regresión de aulas sobre hsvg2026](qa/regresion-aulas-hsvg2026-2026-09-24.md).
 - [GOAL de Cálculo de muestra desde el segundo sorteo](qa/goal-calc-muestra-ult2-2026-08-28.md):
   el módulo mirado sobre HSVG26ULT2 — la cadena del marco (1.632 → 1.573 →
   1.392), el criterio «Aula asignada» y el barrido estético de las 21 pestañas.

@@ -1,5 +1,10 @@
 # E1 — Reglas de muestreo vs. motor de Cálculo de muestra (Muestra general y Acreditación)
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-09-24
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
 > Verificado el 2026-09-24 contra el motor en ejecución: H01 (5 sobre (100,1×6) → 0,1,1,1,1,1,1, suma 6; 10 sobre (1,1,1) → 2,4,4), H02 (piso 30 con N_h=20 → 31) y H03 (MAS N=5000, RR 0.6 → operativo 357 en vez de 595). Documento vivo del loop de Cálculo de muestra.
 
 Fecha: 2026-09-24. Alcance: `api/R/calc_muestra_engine.R` (motor general), `api/R/helpers_calc_comunes.R` (fórmula y reparto compartidos), `api/R/calc_muestra_distribucion.R`, y como patrón de referencia `api/R/calc_muestra_aulas*.R`. Solo lectura; no se tocó el repo.
