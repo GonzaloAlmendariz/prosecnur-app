@@ -63,3 +63,14 @@ test_that("6: sin inferencia permitida, una media se calcula como media", {
   r <- calc_muestra_calcular_componente(comp)
   expect_identical(as.integer(r$n_teorico), .cm_general_n_media(5000L, 2, 1.96, .05, 1))
 })
+
+test_that("pendientes de la re-verificación: supuesto del CV por estrato declarado y sin aviso de cv en proporción", {
+  r <- calc_muestra_calcular_componente(.mb_comp())
+  expect_match(r$advertencia, "mismo coeficiente de variación")
+  prop <- calc_muestra_normalize_componente(list(tecnica = "prob_aleatorio_simple",
+    parametros = list(tipo_indicador = "proporcion", cv = 0)))
+  expect_false("cv" %in% vapply(prop$avisos_parametros, `[[`, "", "param"))
+  media <- calc_muestra_normalize_componente(list(tecnica = "prob_aleatorio_simple",
+    parametros = list(tipo_indicador = "media", cv = 0)))
+  expect_true("cv" %in% vapply(media$avisos_parametros, `[[`, "", "param"))
+})

@@ -36,7 +36,11 @@
 .cm_general_avisos_parametros <- function(crudo, norm, previos = list()) {
   if (!is.list(crudo)) crudo <- list()
   nuevos <- list()
-  for (param in intersect(names(.CM_PARAMETROS_ROTULO), names(norm))) {
+  # El CV sólo cuenta cuando se estima una media: un cv inválido que quedó
+  # guardado al volver a proporción no merece aviso (no se usa).
+  params <- intersect(names(.CM_PARAMETROS_ROTULO), names(norm))
+  if (!identical(norm$tipo_indicador %||% "proporcion", "media")) params <- setdiff(params, "cv")
+  for (param in params) {
     r <- crudo[[param]]
     if (is.null(r) || length(r) != 1L) next
     r_num <- suppressWarnings(as.numeric(r))
@@ -49,6 +53,7 @@
   }
   for (a in previos %||% list()) {
     if (!is.list(a) || is.null(a$param) || !is.null(nuevos[[a$param]])) next
+    if (!a$param %in% params) next
     actual <- norm[[a$param]]
     if (!is.null(actual) && isTRUE(all.equal(as.numeric(actual), as.numeric(a$usado)))) {
       nuevos[[a$param]] <- a
