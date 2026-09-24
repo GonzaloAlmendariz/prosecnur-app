@@ -1748,17 +1748,40 @@ calc_muestra_calcular_componente <- function(comp) {
   pesos <- vapply(estratos, function(e) e$N, integer(1))
   piso <- if (par$n_minimo_estrato > 0L) par$n_minimo_estrato else 0L
   pesos_reparto <- if (por_estrato) diseno$pesos else NULL
-  cuotas <- .cm_general_reparto(n_objetivo, pesos, piso, pesos = pesos_reparto)
+  # Con la fórmula por estrato cada estrato necesita al menos 2 casos: con
+  # menos no se estima su varianza y el error total no existe. Neyman, con
+  # estratos chicos de p chica, les asignaba 0 y el sorteo reventaba (lo vio
+  # el verificador de E3/E7). Si el piso declarado no cabe, se prueba con 2.
+  repartir <- function(n) {
+    if (!por_estrato) return(.cm_general_reparto(n, pesos, piso, pesos = pesos_reparto))
+    x <- .cm_general_reparto(n, pesos, max(piso, 2L), pesos = pesos_reparto)
+    if (isTRUE(attr(x, "piso_incumplible")) && piso > 2L) {
+      x <- .cm_general_reparto(n, pesos, 2L, pesos = pesos_reparto)
+      if (!isTRUE(attr(x, "piso_incumplible"))) attr(x, "piso_reducido") <- TRUE
+    }
+    x
+  }
+  cuotas <- repartir(n_objetivo)
   # El n a campo por estrato, con el MISMO reparto que usa el sorteo: sin él la
   # pantalla mostraba las completas (537 en total) junto a un sorteo de 716 y
   # los dos se llamaban «n».
-  cuotas_campo <- .cm_general_reparto(campo$n_operativo, pesos, piso, pesos = pesos_reparto)
+  cuotas_campo <- repartir(campo$n_operativo)
+  aviso_error <- NULL
   if (por_estrato) {
     # El error alcanzado sale de la asignación efectiva, no de la fórmula
     # global: es el que el diseño de verdad logra con esos n_h.
     base_result$precision_alcanzada <- .cm_general_error_estratificado(as.integer(cuotas), estratos, par)
     base_result$asignacion <- par$asignacion
     base_result$formula_n <- if (identical(par$asignacion, "neyman")) "neyman" else "proporcional_por_estrato"
+    # Un piso aleja el reparto del óptimo: el n de la fórmula ya no garantiza
+    # el margen, y eso se dice con la cifra (Monte Carlo del verificador:
+    # piso 40 con e = .035 dejaba ±.0364).
+    ea <- base_result$precision_alcanzada
+    if (!is.na(ea) && ea > as.numeric(par$e) + 1e-9) {
+      aviso_error <- sprintf(
+        "Con el piso por estrato, el error alcanzado (±%.1f puntos) supera el declarado (±%.1f): sube n o baja el piso.",
+        100 * ea, 100 * as.numeric(par$e))
+    }
   }
   distribucion_estratos <- lapply(seq_along(estratos), function(i) {
     e <- estratos[[i]]
@@ -1779,13 +1802,19 @@ calc_muestra_calcular_componente <- function(comp) {
   aviso_piso <- if (isTRUE(attr(cuotas, "piso_incumplible"))) sprintf(
     "El piso de %d por estrato no cabe en n = %d: se repartió proporcional sin piso.",
     piso, as.integer(n_objetivo)
+  ) else if (isTRUE(attr(cuotas, "piso_reducido"))) sprintf(
+    "El piso de %d por estrato no cabe en n = %d: se aseguraron 2 casos por estrato, el mínimo para estimar su varianza.",
+    piso, as.integer(n_objetivo)
   ) else NULL
+  cierre <- if (identical(base_result$asignacion, "neyman")) {
+    "Muestreo estratificado con asignación de Neyman: el margen de error formal corresponde al diseño probabilístico documentado."
+  } else {
+    "Muestreo estratificado proporcional: el margen de error formal corresponde al diseño probabilístico documentado."
+  }
 
   c(base_result, list(
     distribucion_estratos = distribucion_estratos,
-    advertencia = paste(c(campo$advertencia, aviso_piso,
-                          "Muestreo estratificado proporcional: el margen de error formal corresponde al diseño probabilístico documentado."),
-                        collapse = " ")
+    advertencia = paste(c(campo$advertencia, aviso_piso, aviso_error, cierre), collapse = " ")
   ))
 }
 

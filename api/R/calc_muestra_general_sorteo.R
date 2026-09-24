@@ -231,10 +231,11 @@ calc_muestra_general_sortear <- function(marco, columnas, metodo = "mas", n,
   unidades <- do.call(rbind, lapply(seq_along(claves), function(h) {
     s <- por_estrato[[h]]
     f <- s$filas
+    k <- length(s$seleccion)
     tit <- data.frame(
-      id = f$id[s$seleccion], estrato = claves[[h]], N_h = N_h[[h]], n_h = s$n_h,
+      id = f$id[s$seleccion], estrato = rep(claves[[h]], k), N_h = rep(N_h[[h]], k), n_h = rep(s$n_h, k),
       pi = s$pik[s$seleccion], orden = seq_along(s$seleccion),
-      estado = rep("titular", length(s$seleccion)), lote_reserva = NA_integer_,
+      estado = rep("titular", k), lote_reserva = rep(NA_integer_, k),
       stringsAsFactors = FALSE
     )
     res <- data.frame(
