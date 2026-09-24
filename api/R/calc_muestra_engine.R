@@ -1610,20 +1610,21 @@ calc_muestra_calcular_componente <- function(comp) {
 
   n_teorico <- calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
-  n_operativo_base <- as.integer(n_objetivo)
-  sobremuestra <- as.integer(ceiling(n_operativo_base * par$oversample_pct))
+  campo <- .cm_general_inflar_operativo(n_objetivo, par, N)
   precision_alcanzada <- calc_e_desde_n_muestra(
     n = n_objetivo, N = N, p = par$p, z = par$z, deff = 1
   )
 
-  list(
+  out <- list(
     n_teorico            = as.integer(n_teorico),
     n_objetivo           = as.integer(n_objetivo),
-    n_operativo          = as.integer(n_operativo_base + sobremuestra),
+    n_operativo          = campo$n_operativo,
     precision_alcanzada  = precision_alcanzada,
-    sobremuestra         = sobremuestra,
+    sobremuestra         = campo$sobremuestra,
     origen_tamano        = comp$origen_tamano
   )
+  if (!is.null(campo$advertencia)) out$advertencia <- campo$advertencia
+  out
 }
 
 .cm_aplicar_ajuste_objetivo <- function(n_teorico, comp) {
@@ -1663,8 +1664,7 @@ calc_muestra_calcular_componente <- function(comp) {
 
   n_teorico <- calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
-  n_operativo_base <- as.integer(n_objetivo)
-  sobremuestra <- as.integer(ceiling(n_operativo_base * par$oversample_pct))
+  campo <- .cm_general_inflar_operativo(n_objetivo, par, N)
   precision_alcanzada <- calc_e_desde_n_muestra(
     n = n_objetivo, N = N, p = par$p, z = par$z, deff = par$deff
   )
@@ -1672,15 +1672,17 @@ calc_muestra_calcular_componente <- function(comp) {
   base_result <- list(
     n_teorico            = as.integer(n_teorico),
     n_objetivo           = as.integer(n_objetivo),
-    n_operativo          = as.integer(n_operativo_base + sobremuestra),
+    n_operativo          = campo$n_operativo,
     precision_alcanzada  = precision_alcanzada,
-    sobremuestra         = sobremuestra,
+    sobremuestra         = campo$sobremuestra,
     origen_tamano        = comp$origen_tamano
   )
 
   if (length(estratos) == 0L) {
     return(c(base_result, list(
-      advertencia = "Muestreo estratificado sin tabla de estratos: se calculó n total, pero falta la distribución por capas."
+      advertencia = paste(c(campo$advertencia,
+                            "Muestreo estratificado sin tabla de estratos: se calculó n total, pero falta la distribución por capas."),
+                          collapse = " ")
     )))
   }
 
@@ -1703,7 +1705,9 @@ calc_muestra_calcular_componente <- function(comp) {
 
   c(base_result, list(
     distribucion_estratos = distribucion_estratos,
-    advertencia = "Muestreo estratificado proporcional: el margen de error formal corresponde al diseño probabilístico documentado."
+    advertencia = paste(c(campo$advertencia,
+                          "Muestreo estratificado proporcional: el margen de error formal corresponde al diseño probabilístico documentado."),
+                        collapse = " ")
   ))
 }
 
