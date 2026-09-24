@@ -222,7 +222,9 @@ calc_muestra_general_sortear <- function(marco, columnas, metodo = "mas", n,
     arranque = vapply(por_estrato, `[[`, numeric(1), "arranque"),
     stringsAsFactors = FALSE
   )
-  estratos$pi <- ifelse(metodo == "pps", NA_real_, estratos$n_h / estratos$N_h)
+  # En PPS la π es de cada unidad, no del estrato. (`ifelse` con condición
+  # escalar reciclaba la π del primer estrato en todos.)
+  estratos$pi <- if (identical(metodo, "pps")) NA_real_ else estratos$n_h / estratos$N_h
 
   corrida <- list(
     run_id = substr(.cm_aulas_hash(list(marco_hash, config_hash, semilla)), 1L, 12L),

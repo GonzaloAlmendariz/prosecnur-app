@@ -135,3 +135,11 @@ test_that("Monte Carlo: la frecuencia de inclusión converge a la π declarada (
     expect_true(max(z[pi_decl > 0]) < 4.5, info = sprintf("%s max z = %.2f", metodo, max(z)))
   }
 })
+
+test_that("la tabla por estrato publica la π de CADA estrato (no la del primero reciclada)", {
+  r <- calc_muestra_general_sortear(.marco_sorteo(N = 999L), .cols, "mas", n = 143L, semilla = 1L)
+  expect_equal(r$estratos$pi, r$estratos$n_h / r$estratos$N_h)
+  expect_gt(length(unique(round(r$estratos$pi, 12))), 1L)
+  p <- calc_muestra_general_sortear(.marco_sorteo(N = 999L), .cols, "pps", n = 60L, semilla = 1L)
+  expect_true(all(is.na(p$estratos$pi)))
+})
