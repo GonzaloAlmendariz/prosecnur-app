@@ -1790,6 +1790,12 @@ calc_muestra_calcular_componente <- function(comp) {
     if (!identical(par$asignacion %||% "proporcional", "proporcional")) {
       aviso_media <- "Con una media se reparte proporcional al tamaño del estrato: Neyman y potencia necesitan la variabilidad de cada estrato."
     }
+    # El error total es el de la fórmula; el de cada estrato supone que todos
+    # tienen el CV del total, y un estrato mucho más disperso lo subestima
+    # (verificador: ±6,5 % publicado donde el real era ±15 %). Se dice.
+    if (length(estratos) > 1L) {
+      aviso_media <- c(aviso_media, "La precisión de cada estrato supone el mismo coeficiente de variación en todos; si un estrato es más disperso, su error propio es mayor.")
+    }
   }
   if (por_estrato) {
     # El error alcanzado sale de la asignación efectiva, no de la fórmula
