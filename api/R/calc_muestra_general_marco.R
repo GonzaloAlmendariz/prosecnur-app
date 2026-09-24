@@ -114,3 +114,18 @@ calc_muestra_general_seleccionar <- function(estudio, estado, componente_id, dat
   estado$corridas[[componente_id]] <- corrida
   list(estado = estado, corrida = corrida)
 }
+
+#' Resumen del estado de Muestra general para /api/calc-muestra/state: los
+#' marcos declarados y cada corrida SIN su listado de unidades (el listado va
+#' por GET /general/corrida con serialización sin redondeo).
+calc_muestra_general_resumen <- function(estado) {
+  estado <- .cm_general_estado(estado)
+  list(
+    marcos = estado$marcos,
+    corridas = lapply(estado$corridas, function(c) {
+      if (!is.list(c)) return(NULL)
+      c$unidades <- NULL
+      c
+    })
+  )
+}

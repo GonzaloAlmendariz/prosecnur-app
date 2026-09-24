@@ -138,6 +138,17 @@ test_that("HTTP: /general/marco y /general/seleccionar por el wire real", {
   expect_true(all(pis > 0 & pis <= 1))
   expect_equal(sum(1 / pis), 120)
 
+  # Rehidratar: /state trae el resumen sin unidades; /general/corrida, el listado.
+  st <- http_get(srv, "/api/calc-muestra/state", sid = sid)
+  expect_identical(st$json$general$corridas[["cmp-general"]]$corrida$run_id, a$json$corrida$run_id)
+  expect_null(st$json$general$corridas[["cmp-general"]]$unidades)
+  expect_identical(as.integer(st$json$general$marcos[["cmp-general"]]$N), 120L)
+  full <- http_get(srv, "/api/calc-muestra/general/corrida?componente_id=cmp-general", sid = sid)
+  expect_identical(full$status, 200L)
+  expect_identical(length(full$json$unidades), length(a$json$unidades))
+  nada <- http_get(srv, "/api/calc-muestra/general/corrida?componente_id=otro", sid = sid)
+  expect_identical(nada$status, 404L)
+
   mal <- http_post_json(srv, "/api/calc-muestra/general/marco", sid = sid, body = list(
     componente_id = "cmp-general", file_id = subida$json$file_id, hoja = "padron",
     columnas = list(id = "distrito")

@@ -79,5 +79,23 @@ mount_calc_muestra_general <- function(pr) {
       )
       session_set(sid, "calc_muestra_general", out$estado)
       c(list(ok = TRUE), out$corrida)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # GET /api/calc-muestra/general/corrida?componente_id=...
+    # La corrida vigente completa (con unidades), para rehidratar la vista al
+    # reabrir el proyecto. Sin redondeo, por lo mismo que /seleccionar.
+    # -----------------------------------------------------------------------
+    plumber::pr_get("/api/calc-muestra/general/corrida",
+                    serializer = plumber::serializer_unboxed_json(na = "null", digits = NA),
+                    wrap_endpoint(function(req, res, componente_id = "", ...) {
+      sid <- session_header(req)
+      estado <- .cm_general_estado(session_get(sid)$calc_muestra_general)
+      corrida <- estado$corridas[[calc_str(componente_id, "")]]
+      if (is.null(corrida)) {
+        stop_api(404, "E_CALC_MUESTRA_GENERAL_SIN_CORRIDA",
+                 "Este componente todavía no tiene un sorteo.")
+      }
+      c(list(ok = TRUE), corrida)
     }))
 }

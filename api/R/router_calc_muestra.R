@@ -317,6 +317,9 @@
   list(
     estudio = estudio,
     referencia_asistencia = s$calc_muestra_referencia_asistencia %||% NULL,
+    # Muestra general (ADR 0090): marcos declarados y resumen de corridas. El
+    # listado con π viaja por GET /general/corrida, que no redondea.
+    general = calc_muestra_general_resumen(s$calc_muestra_general),
     aulas = list(
       config = s$calc_muestra_aulas_config %||% calc_muestra_aulas_default_config(),
       frame = s$calc_muestra_aulas_frame %||% NULL,
