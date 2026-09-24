@@ -264,7 +264,7 @@ export const MONITOREO_PESTANAS = {
       // con las respuestas efectivas, que es «el primer alcance que yo tengo
       // cuando entro a avance».
       pestana("aulas", "avance", "resumen", "Resumen", "Avance general del operativo", BarChart3),
-      pestana("aulas", "avance", "cuotas", "Metas", "Avance hacia la muestra y la sobremuestra, por facultad y sexo", Target),
+      pestana("aulas", "avance", "cuotas", "Metas", "Avance hacia la muestra y la sobremuestra, por cada grupo de la cuota", Target),
       // El eje que sustituye a «aula válida / no válida», retirado por Gonzalo
       // el 2026-08-18: la unidad es la encuesta conseguida, no un porcentaje
       // contra un umbral. Va en pestaña propia y no apilada en Resumen, que ya

@@ -257,3 +257,6 @@
 .aulas-metas-gauge .es-aplicado[data-sexo="total"] { background: var(--pulso-success-fg); }
 .aulas-metas-barra-logro[data-sexo="total"] { fill: var(--pulso-success-fg); }
 .aulas-metas-swatch[data-sexo="total"] { background: var(--pulso-success-fg); }
+
+/* La aclaración de las filas por nivel: al final de la leyenda, sin color. */
+.aulas-metas-leyenda .aulas-metas-nota { margin-left: auto; color: var(--pulso-text-faint); }

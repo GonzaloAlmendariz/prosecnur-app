@@ -9,7 +9,7 @@
   font: inherit;
   text-decoration: underline dotted;
   text-underline-offset: 3px;
-  cursor: help;
+  cursor: pointer;
 }
 
 .aulas-agendadas-disparo:hover,
@@ -19,9 +19,15 @@
   --ag-h: color-mix(in srgb, var(--pulso-accent-steel) 88%, var(--pulso-text));
   --ag-m: color-mix(in srgb, var(--pulso-accent-violet) 62%, var(--pulso-text));
   padding: 0;
-  overflow: hidden;
   min-width: 25rem;
+  /* Con diez o más aulas la lista pasaba del borde de la ventana: la
+     cabecera se queda y lo demás se desplaza. */
+  max-height: min(56vh, 540px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
+
+.aulas-agendadas-cabeza { position: sticky; top: 0; z-index: 1; }
 
 .aulas-agendadas-cabeza {
   display: flex;
@@ -156,3 +162,17 @@
   color: var(--pulso-text-faint);
   font-size: 10.5px;
 }
+
+/* Modo nivel curricular: el nivel de la fila resaltado, los demás en gris. */
+.aulas-agendadas-totales [data-foco] dd { color: var(--pulso-text); }
+.aulas-agendadas-totales > div:not([data-foco]) dd { color: var(--pulso-text-soft); }
+.aulas-agendadas-tabla th[data-foco] { color: var(--pulso-text); }
+.aulas-agendadas-tabla td.es-num { color: var(--pulso-text-soft); font-weight: 500; }
+.aulas-agendadas-tabla td.es-num[data-foco] {
+  color: var(--pulso-text);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, transparent);
+}
+.aulas-agendadas-tabla td[data-sexo="hombres"] { color: var(--ag-h); font-weight: 650; }
+.aulas-agendadas-tabla td[data-sexo="mujeres"] { color: var(--ag-m); font-weight: 650; }
+.aulas-agendadas-tabla .es-cero { color: var(--pulso-text-faint); }
