@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { esMuestraAgendada } from "./muestraAgendada";
 
 /**
  * **Qué fue de los refuerzos que la app marcó.**
@@ -105,7 +106,7 @@ export function pasoDelRefuerzo(fila: MonitoreoAulasPlanRow): PasoDelRefuerzo {
   const sm = texto(fila.sample_status).toLowerCase().replace(/\s+/g, "_");
   if (sm === "refuerzo_por_contactar") return "por_contactar";
   if (sm === "en_contacto") return "en_gestion";
-  if (sm === "agendada" || sm === "reagendada") return "con_fecha";
+  if (esMuestraAgendada(sm)) return "con_fecha";
   if (sm === "rechazo") return "rechazado";
   return "otro";
 }

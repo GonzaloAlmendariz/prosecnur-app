@@ -13,7 +13,11 @@
 # el operativo (`agendada`/`contactada`) lo llena el registro de campo y llega
 # tarde. Mirar solo el operativo dejo 22 aulas con fecha rotuladas «Sin
 # agendar» sobre el estudio de 196.
-MONITOREO_AULAS_MUESTRA_AGENDADA <- c("agendada", "reagendada")
+# «refuerzo agendado» (2026-09-24) es AGENDADA con procedencia: cuenta igual.
+# Las dos formas —la canónica y la del libro en minúsculas— porque este vector
+# se compara contra el crudo normalizado a minúsculas, no contra la clave.
+MONITOREO_AULAS_MUESTRA_AGENDADA <- c("agendada", "reagendada", "refuerzo_agendado",
+                                      "refuerzo agendado", "refuerzo agendada")
 MONITOREO_AULAS_OPERATIVO_AGENDADA <- c("agendada", "contactada")
 
 #' Si cada fila esta agendada, mirando sus dos ejes de estado.

@@ -5,6 +5,7 @@ import { facultadCorta } from "./facultadEnPalabras";
 import { historiaDeCadena, type EslabonDeCadena, type HistoriaDeCadena } from "./historiaDeCadena";
 import { fmt } from "./kpisDeAulas";
 import "./aulasHistoriaCadena.css";
+import { esMuestraAgendada, esRefuerzoAgendado } from "./muestraAgendada";
 
 /**
  * **Cadena de reemplazos — una fila por cadena, con la tira a la derecha.**
@@ -68,7 +69,9 @@ function puntoDelEslabon(eslabon: EslabonDeCadena): { texto: string; vivo: boole
   // docente» y su propio eslabón decía «Sin teléfono».
   if (s.startsWith("rechazo")) return { texto: "Rechazó", vivo: false, caido: true };
   if (s.startsWith("reemplazada")) return { texto: "Reemplazado", vivo: false, caido: true };
-  if (s.startsWith("agendada") || s.startsWith("reagendada")) return { texto: "Agendado", vivo: true, caido: false };
+  if (esMuestraAgendada(s)) {
+    return { texto: esRefuerzoAgendado(s) ? "Refuerzo agendado" : "Agendado", vivo: true, caido: false };
+  }
   // **Sin teléfono manda sobre «En contacto» y sobre «Sin contactar».** Los dos
   // se leen como gestión que puede avanzar, y con el número muerto no avanza:
   // lo que toca es saltar al siguiente eslabón. Medido en la cadena de CH 85.

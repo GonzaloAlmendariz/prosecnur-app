@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { esMuestraAgendada } from "./muestraAgendada";
 
 /**
  * Qué medio de contacto agenda mejor, y a qué coste en intentos.
@@ -92,8 +93,7 @@ export function medioDeContacto(
     m.aulas += 1;
     // «Agendada» y «reagendada» cuentan las dos: el medio consiguió la cita, que
     // luego se moviera es otra historia.
-    const estado = texto(fila.sample_status).toLowerCase();
-    if (estado.startsWith("agendada") || estado.startsWith("reagendada")) m.agendadas += 1;
+    if (esMuestraAgendada(fila.sample_status)) m.agendadas += 1;
     const n = Number(fila.contact_attempts);
     if (Number.isFinite(n) && n > 0) {
       if (n <= INTENTOS_MAXIMO_CREIBLE) m.intentos.push(n);

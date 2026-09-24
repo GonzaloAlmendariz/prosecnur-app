@@ -117,6 +117,10 @@
   # ninguno de los otros cinco: no es una gestion en curso ni una reserva
   # dormida, es una llamada que hay que hacer hoy.
   list(texto = "REFUERZO POR CONTACTAR", fondo = "#F0E9F7", tinta = "#5B2E86"),
+  # El refuerzo ya con fecha: el mismo morado, más lleno. Se sigue leyendo como
+  # refuerzo y se distingue del que aún hay que llamar (2026-09-24). Va antes de
+  # «AGENDADA»: «REFUERZO AGENDADO» no la contiene, pero el orden protege.
+  list(texto = "REFUERZO AGENDADO", fondo = "#DCC8EE", tinta = "#46206B"),
   list(texto = "AGENDADA", fondo = "#E3F3E8", tinta = "#155E2E"),
   list(texto = "EN CONTACTO", fondo = "#FDF3D8", tinta = "#7A5B12"),
   list(texto = "RECHAZO", fondo = "#FDE7E7", tinta = "#8A1C1C"),
