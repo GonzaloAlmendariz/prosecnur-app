@@ -252,3 +252,14 @@ test_that("el rotulo se lee con la MISMA regla que el lector del libro", {
     expect_length(out$escribibles, 1L)
   }
 })
+
+test_that("el ensayo ensaya: `aplicar: false` del JSON no escribe (CCSS, 2026-09-24)", {
+  # jsonlite entrega el lógico FALSE; antes se pasaba a texto y nunca era idéntico.
+  expect_false(.mapm_aplicar_del_cuerpo(jsonlite::fromJSON('{"aplicar": false}')))
+  expect_false(.mapm_aplicar_del_cuerpo(list(aplicar = "false")))
+  expect_false(.mapm_aplicar_del_cuerpo(list(aplicar = "0")))
+  expect_true(.mapm_aplicar_del_cuerpo(list(aplicar = TRUE)))
+  # Sin el campo se escribe: es lo que manda el botón de la app.
+  expect_true(.mapm_aplicar_del_cuerpo(list()))
+  expect_true(.mapm_aplicar_del_cuerpo(NULL))
+})

@@ -194,6 +194,21 @@ MONITOREO_AULAS_FORMATO_ESTADOS <- c(
   reqs
 }
 
+#' Si el cuerpo pide escribir de verdad o sólo el ensayo.
+#'
+#' **El ensayo no ensayaba.** Se leía con `!identical(.monitoreo_scalar(x),
+#' FALSE)`, y `.monitoreo_scalar()` devuelve TEXTO: el `false` del JSON llegaba
+#' como «FALSE», nunca idéntico al lógico, y la llamada escribía en la hoja del
+#' equipo. Medido el 2026-09-24 en CCSS: un `{"aplicar": false}` pintó las cinco
+#' celdas. Sin el campo se escribe (el botón de la app no lo manda); con
+#' cualquier valor que no sea verdadero, se ensaya.
+#' @param body cuerpo parseado de la petición.
+#' @return `TRUE` para escribir, `FALSE` para el ensayo.
+#' @keywords internal
+.mapm_aplicar_del_cuerpo <- function(body = list()) {
+  .monitoreo_bool((body %||% list())$aplicar, TRUE)
+}
+
 #' Publica «REFUERZO POR CONTACTAR» en las celdas libres de la hoja de agenda.
 #'
 #' @param spreadsheet_id id del libro del operativo.
