@@ -5,13 +5,14 @@ import { EmptyState } from "../../../components/States";
 import { presentResultadoPrecision } from "../resultadoPrecision";
 import { fmtInt } from "../sharedCore";
 import { AvisoModulo } from "../universidad/shared/AvisoModulo";
-import { ajusteDeResultado } from "./bandaDisenoModelo";
+import { ajusteDeResultado, veredictoResultados, type VeredictoResultados } from "./bandaDisenoModelo";
 import { productoLabel, tecnicaCalculadaLabel, tecnicaProducto } from "./catalogos";
 import { avisosDelResultado, precisionEnPalabras } from "./modeloParametros";
 import { filasDesdeActores, filasDesdeResultado } from "./repartoEstratos";
 import { RepartoEstratosGrafico } from "./RepartoEstratosGrafico";
 import { hayResultado, vacioDeResultados, type ModoMesa } from "./secciones";
 import { useDesbordaHorizontal } from "./useDesbordaHorizontal";
+import { useMuestraGeneralStore } from "./store";
 import { useIrASeccionGeneral } from "./useMuestraGeneral";
 import "./general.css";
 import "./mesa.css";
@@ -43,6 +44,12 @@ export function ResultadosComponentes({
   const titulo = productos.length > 1 ? "Componentes mixtos calculables" : productoLabel(productos[0] ?? "muestra_probabilistica");
   const vacio = hayResultado(componentes) ? null : vacioDeResultados(modo, componentes);
   const avisos = componentes.flatMap((comp) => avisosDelResultado(comp).map((aviso) => ({ comp, aviso })));
+  // Las corridas y marcos que la mesa ya hidrató (useDisenoVigente): el mismo
+  // conteo de sorteos que la banda.
+  const corridas = useMuestraGeneralStore((s) => s.corridas);
+  const marcos = useMuestraGeneralStore((s) => s.marcos);
+  const cargado = useMuestraGeneralStore((s) => s.cargado);
+  const veredicto = vacio ? null : veredictoResultados({ modo, componentes, corridas, marcos, cargado });
 
   return (
     <section className="cmv2-panel cmv2-output cmg-resultados" aria-labelledby="cmg-resultados-titulo" data-vacio={vacio ? "true" : undefined} data-qa-geometry-member>
@@ -52,6 +59,7 @@ export function ResultadosComponentes({
           <h3 id="cmg-resultados-titulo" className="cmg-panel-titulo">{titulo}</h3>
         </div>
       </div>
+      {veredicto && <VeredictoFranja veredicto={veredicto} />}
       {/* Región viva persistente: los avisos que llegan con un cálculo nuevo
           se anuncian sin robar el foco. */}
       <div className="cmg-avisos-vivos" aria-live="polite">
@@ -144,6 +152,26 @@ export function ResultadosComponentes({
         </>
       )}
     </section>
+  );
+}
+
+const TONO_VEREDICTO = { ok: "success", alerta: "warn", neutral: "neutral" } as const;
+
+/**
+ * La conclusión de Resultados antes que la tabla (patrón de aulas,
+ * `CoberturaObjetivoStrip`). El tono lo dicen también el título y el ícono,
+ * no sólo el color; `status` porque informa, no interrumpe.
+ */
+function VeredictoFranja({ veredicto }: { veredicto: VeredictoResultados }) {
+  return (
+    // Reusa la pila de avisos de la mesa (`cmg-avisos-vivos`: columna y
+    // margen inferior) sin su aria-live: el `status` ya anuncia.
+    <div className="cmg-avisos-vivos cmg-veredicto" data-tono={veredicto.tono}>
+      <AvisoModulo tone={TONO_VEREDICTO[veredicto.tono]} role="status" title={veredicto.titulo}>
+        <span>{veredicto.detalle}</span>
+        {veredicto.falta && <> <strong>{veredicto.falta}</strong></>}
+      </AvisoModulo>
+    </div>
   );
 }
 
