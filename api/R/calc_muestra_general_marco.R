@@ -92,8 +92,27 @@ calc_muestra_general_seleccionar <- function(estudio, estado, componente_id, dat
              "Declara primero el archivo de marco de este componente (Marco).")
   }
   comp <- estudio$componentes[[idx]]
-  resultado <- comp$resultado %||% calc_muestra_calcular_componente(comp)
-  n <- suppressWarnings(as.integer(resultado$n_operativo %||% NA))
+  # Qué significa «sortear» depende de la técnica (E5, acreditación):
+  #   - diseños de elementos: sorteo probabilístico sobre el n a campo;
+  #   - cobertura censal y barrido: la intención es abordar a TODOS, así que
+  #     el listado es el marco entero en orden aleatorio de contacto (π = 1);
+  #   - cuotas, conveniencia y el resto: no hay probabilidad de inclusión que
+  #     publicar, y sortear con π inventaría una.
+  modalidad <- if (comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) "probabilistica"
+               else if (comp$tecnica %in% c("intencion_censal", "barrido")) "censo"
+               else NA_character_
+  if (is.na(modalidad)) {
+    stop_api(409, "E_CALC_MUESTRA_GENERAL_TECNICA",
+             sprintf("La técnica «%s» no selecciona unidades con probabilidad conocida: no hay sorteo ni π que publicar.",
+                     comp$tecnica))
+  }
+  if (identical(modalidad, "censo")) {
+    n <- as.integer(marco$N)
+    metodo <- "mas"
+  } else {
+    resultado <- comp$resultado %||% calc_muestra_calcular_componente(comp)
+    n <- suppressWarnings(as.integer(resultado$n_operativo %||% NA))
+  }
   if (is.na(n) || n <= 0L) {
     stop_api(409, "E_CALC_MUESTRA_GENERAL_N",
              "El componente no tiene un n a campo calculado; revisa Método.")
@@ -109,6 +128,7 @@ calc_muestra_general_seleccionar <- function(estudio, estado, componente_id, dat
     stop_api(409, "E_CALC_MUESTRA_GENERAL_MARCO_CAMBIO",
              "El archivo del marco cambió desde que se declaró: vuelve a declararlo antes de sortear.")
   }
+  sorteo$corrida$modalidad <- modalidad
   corrida <- c(sorteo, list(n_fuente = n, componente_id = componente_id,
                             sorteado_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")))
   estado$corridas[[componente_id]] <- corrida
