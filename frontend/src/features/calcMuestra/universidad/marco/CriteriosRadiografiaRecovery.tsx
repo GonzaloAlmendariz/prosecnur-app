@@ -29,7 +29,7 @@ export function CriteriosRadiografiaRecovery({
     <section
       className="cmv2-crc-recovery"
       data-recovery="criterios-radiografia"
-      data-audit-ready="false"
+      data-audit-ready="vacio:radiografia-por-reconstruir"
       data-qa-geometry-group="calc-muestra/criterios-radiografia-recuperacion"
       data-qa-geometry-contract="intrinsic"
       aria-labelledby={`cmv2-crc-recovery-title-${scope}`}

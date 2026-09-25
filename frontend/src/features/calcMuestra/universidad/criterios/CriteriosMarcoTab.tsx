@@ -43,7 +43,7 @@ import { seleccionActiva } from "../../dominio/criteriosMarco";
 import { AvisoPrecedenciaSuite, debeAvisarPrecedenciaSuite } from "./avisoPrecedenciaSuite";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { MordidasEstudianteCard } from "./MordidasEstudianteCard";
-import { frameIntegrity, marcoFueConstruido } from "../shared/frameIntegrity";
+import { frameIntegrity, marcaDeCriterios, marcoFueConstruido } from "../shared/frameIntegrity";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { CifraFila, CifraMotor } from "../ui";
 import { useMotorStore } from "../../store";
@@ -410,7 +410,7 @@ export function CriteriosMarcoTab({
               : "El marco está al día con los criterios confirmados.";
 
   return (
-    <div className="cmv2-crit" data-audit-ready={ready && marcoPublicable ? "true" : "false"}>
+    <div className="cmv2-crit" data-audit-ready={marcaDeCriterios(ready, integridadFrame.status)}>
       {avisaPrecedencia ? <AvisoPrecedenciaSuite /> : null}
       {onReconstruir && (
         <div

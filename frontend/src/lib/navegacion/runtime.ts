@@ -34,11 +34,95 @@ export type EstadoListo = {
   /** Motivo del "todavía no", para que el runner reporte en vez de adivinar. */
   motivo?: "warm-start" | "sin-proyecto-abierto" | "sin-marca-de-readiness" | "marca-en-false";
   marca?: string;
+  /** Con `marca-en-false`: QUÉ superficie sigue sin cumplir, para no buscarla a ojo. */
+  pendiente?: string;
 };
 
 const SELECTOR_WARMUP = ".pulso-module-warmup";
 const SELECTOR_READY = "[data-audit-ready]";
 const SELECTOR_BOOT_GATE = "[data-boot-gate]";
+
+/**
+ * Lo que `evaluarMarcas` necesita de cada `[data-audit-ready]`, ya leído del DOM.
+ * Separado de la lectura para poder probar el contrato sin un navegador.
+ */
+export type MarcaLeida = {
+  valor: string;
+  /** Vive bajo un ancestro oculto: una pestaña montada que no se ve. */
+  inactiva: boolean;
+  descripcion: string;
+};
+
+/**
+ * Contrato de readiness sobre TODAS las marcas del documento.
+ *
+ * Leía sólo la primera (`querySelector`), así que una marca exterior en `true`
+ * tapaba a cualquier superficie anidada que todavía cargaba. Medido en Cálculo
+ * de muestra (cursos-horario, E15/AD6): la primera marca es la de
+ * `motor/ResumenDiseno`, fija, y el Explorador se capturaba en «Leyendo la
+ * base…» con su propia marca en `false`.
+ *
+ * Ahora `false` en cualquier superficie visible bloquea. Por eso `false`
+ * significa sólo «todavía no»: un estado TERMINAL sin contenido (vacío, error,
+ * marco no publicable, resultado desactualizado) publica `vacio:<motivo>`, que
+ * cuenta como listo y deja el vacío clasificado en el informe del runner.
+ */
+export function evaluarMarcas(marcas: readonly MarcaLeida[]): EstadoListo {
+  if (marcas.length === 0) return { listo: false, motivo: "sin-marca-de-readiness" };
+  const pendiente = marcas.find((m) => m.valor === "false" && !m.inactiva);
+  if (pendiente) {
+    return {
+      listo: false,
+      motivo: "marca-en-false",
+      marca: pendiente.valor,
+      pendiente: pendiente.descripcion,
+    };
+  }
+  return { listo: true, marca: marcas[0].valor };
+}
+
+type NodoConAncestros<N> = {
+  parentElement: N | null;
+  hasAttribute: (nombre: string) => boolean;
+};
+
+/**
+ * ¿La marca vive bajo un ANCESTRO oculto?
+ *
+ * Sólo ancestros, nunca el propio nodo: Monitoreo publica su marca en un
+ * `<span hidden>` que está en `false` mientras carga. Si el `hidden` del
+ * propio nodo contara, ese perfil se daría por listo en plena carga.
+ */
+export function viveBajoAncestroOculto<N extends NodoConAncestros<N>>(
+  marca: N,
+  oculto: (nodo: N) => boolean,
+): boolean {
+  for (let nodo = marca.parentElement; nodo; nodo = nodo.parentElement) {
+    if (nodo.hasAttribute("hidden") || nodo.hasAttribute("inert") || oculto(nodo)) return true;
+  }
+  return false;
+}
+
+function describirMarca(marca: Element): string {
+  // `||` y no `??`: un atributo vacío no nombra nada. Mismo orden que el
+  // fallback de ui-quick-check, para que las dos pistas digan lo mismo.
+  const nombre = marca.getAttribute("data-surface-contract") ||
+    marca.getAttribute("data-audit-desk") ||
+    marca.getAttribute("data-qa-geometry-group") ||
+    marca.getAttribute("aria-label");
+  if (nombre) return nombre;
+  const clase = marca.classList.item(0);
+  return `${marca.tagName.toLowerCase()}${marca.id ? `#${marca.id}` : ""}${clase ? `.${clase}` : ""}`;
+}
+
+function leerMarcas(): MarcaLeida[] {
+  const ocultoPorEstilo = (nodo: Element) => window.getComputedStyle(nodo).display === "none";
+  return Array.from(document.querySelectorAll(SELECTOR_READY)).map((marca) => ({
+    valor: marca.getAttribute("data-audit-ready") ?? "",
+    inactiva: viveBajoAncestroOculto(marca, ocultoPorEstilo),
+    descripcion: describirMarca(marca),
+  }));
+}
 
 /**
  * Readiness real de la vista actual.
@@ -63,13 +147,7 @@ export function estadoListo(): EstadoListo {
   if (document.querySelector(SELECTOR_BOOT_GATE)) {
     return { listo: false, motivo: "sin-proyecto-abierto" };
   }
-  const marca = document.querySelector(SELECTOR_READY);
-  if (!marca) return { listo: false, motivo: "sin-marca-de-readiness" };
-  const valor = marca.getAttribute("data-audit-ready") ?? "";
-  if (valor === "false") {
-    return { listo: false, motivo: "marca-en-false", marca: valor };
-  }
-  return { listo: true, marca: valor };
+  return evaluarMarcas(leerMarcas());
 }
 
 // ---------------------------------------------------------------------------

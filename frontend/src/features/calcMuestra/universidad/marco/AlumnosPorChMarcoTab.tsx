@@ -79,7 +79,9 @@ export function AlumnosPorChMarcoTab({
       <section
         className="cmv2-panel cmv2-alumnos-ch"
         aria-labelledby="cmv2-alumnos-ch-title"
-        data-audit-ready="false"
+        // Terminal: sin distribución acreditada no hay nada que esperar. En
+        // `false` colgaba el QA ahora que toda marca anidada cuenta.
+        data-audit-ready="vacio:alumnos-por-ch-sin-distribucion"
         data-qa-geometry-group="calc-muestra/alumnos-por-ch"
         data-qa-geometry-contract="intrinsic"
       >
@@ -126,7 +128,7 @@ export function AlumnosPorChMarcoTab({
   return (
     <div
       className="cmv2-alumnos-ch-stack"
-      data-audit-ready={current ? "true" : "false"}
+      data-audit-ready={current ? "true" : "vacio:alumnos-por-ch-sin-confirmar"}
       data-surface-group="calc-muestra-marco"
       data-surface-contract="decision-alumnos-por-ch"
       data-qa-geometry-group="calc-muestra/alumnos-por-ch"

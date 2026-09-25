@@ -84,7 +84,9 @@ describe("contrato Cálculo I18", () => {
 
   it("falla cerrado si cambia el frame aunque los criterios sigan iguales", () => {
     const stale = renderCourses("frame-nuevo-mismos-criterios");
-    expect(stale).toContain('data-audit-ready="false"');
+    // Lo que falla cerrado es el botón y `data-frame-stale`; la readiness
+    // clasifica el estado terminal en vez de colgar el QA visual.
+    expect(stale).toContain('data-audit-ready="vacio:resultado-desactualizado"');
     expect(stale).toContain('data-frame-stale="true"');
     expect(confirmButton(stale)).toContain('disabled=""');
 

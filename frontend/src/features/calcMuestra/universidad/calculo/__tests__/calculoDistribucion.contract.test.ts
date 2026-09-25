@@ -36,10 +36,15 @@ describe("contrato I19 de Distribución", () => {
   it("CH y Distribución declaran geometría y readiness en markup", () => {
     expect(chSource).toContain('data-qa-geometry-group="calc-muestra/calculo-cursos-horario"');
     expect(chSource).toContain('data-qa-geometry-group="calc-muestra/cursos-horario-totales"');
-    expect(chSource).toContain('data-audit-ready="false"');
-    expect(chSource).toContain('data-audit-ready={resultadoDesactualizado ? "false" : "true"}');
+    // Sin resultado y desactualizado son TERMINALES: se clasifican, no se
+    // dejan en `false` (el contrato de readiness lee todas las marcas, E15/AD6).
+    expect(chSource).toContain(
+      'data-audit-ready={fijadasTotal > 0 ? "vacio:titulares-fijados-sin-recalcular" : "vacio:sin-resultado"}',
+    );
+    expect(chSource).toContain('data-audit-ready={resultadoDesactualizado ? "vacio:resultado-desactualizado" : "true"}');
+    expect(chSource).not.toMatch(/data-audit-ready=\{?"false"/);
     expect(componentSource).toContain('data-qa-geometry-group="calc-muestra/calculo-distribucion"');
-    expect(componentSource).toContain("data-audit-ready={ready ? \"true\" : \"false\"}");
+    expect(componentSource).toContain("data-audit-ready={ready ? \"true\" : `vacio:distribucion-${model.state.kind}`}");
   });
 
   it("CH no recupera el scroll vertical manual", () => {
