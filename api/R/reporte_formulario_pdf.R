@@ -1335,17 +1335,31 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 .form_pdf_block_height <- function(block, width) {
   chars <- if (isTRUE(block$full_width)) 118L else 56L
   if (identical(block$kind, "cover")) {
-    return(0.030 + .form_pdf_lines_height(.form_pdf_wrap(block$title, 46), 0.026) + 0.026)
+    # L19: la cuenta EXACTA de `.form_pdf_draw_cover()` —mismo envoltorio a 46
+    # caracteres, mismo 0.023 por linea, mismos 0.011 + 0.005 + 0.011 de
+    # margenes—. Antes eran 0.056 + lineas * 0.026: 90.9 pt reservados para
+    # dibujar 61.5.
+    return(0.027 + length(.form_pdf_wrap(block$title, 46)) * 0.023)
   }
   if (identical(block$kind, "section")) {
-    return(0.058 + .form_pdf_lines_height(.form_pdf_wrap(block$title, chars), 0.014) +
-             .form_pdf_opening_height(block$opening_condition, chars))
+    # L19 — LA RESERVA SIGUE AL DIBUJO. Aqui habia un `0.058` fijo (48.8 pt) mas
+    # las lineas del titulo a 0.014: 60.6 pt reservados para dibujar 27.6. El
+    # exceso no deja hueco DENTRO de la pagina —la `y` la fija el dibujo— pero
+    # adelanta el salto, y medido sobre un instrumento de 6 secciones dejaba
+    # 144.8 pt de holgura al pie de la pagina 1: un 17% de pagina en blanco.
+    # Ahora sale de `.form_pdf_band_height()`, que es lo que dibuja la banda, mas
+    # el sufijo de repetible (que el dibujo anade al titulo) y el `- 0.008` final.
+    etiqueta <- paste0(block$title,
+                       .repeat_pdf_section_suffix(isTRUE(block$repeatable), block$repeat_count))
+    return(.form_pdf_band_height(etiqueta, 112) + 0.008 +
+             .form_pdf_opening_height(block$opening_condition, chars) +
+             .form_pdf_lines_height(.form_pdf_wrap(block$hint, 112), 0.012))
   }
   if (identical(block$kind, "subsection")) {
     # Misma cuenta que la banda de seccion menos lo que esta no lleva (pista y
     # condicion de apertura). La banda mide `lineas * 0.0138 + 0.011` y el dibujo
     # descuenta 0.006 mas.
-    return(0.017 + .form_pdf_lines_height(.form_pdf_wrap(toupper(block$title), 112), 0.0138))
+    return(.form_pdf_band_height(block$title, 112) + 0.006)
   }
   if (identical(block$kind, "paper")) {
     return(0.042 + .form_pdf_lines_height(.form_pdf_wrap(block$title, 118), 0.014) +
@@ -1405,7 +1419,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   # La cabecera de enunciado (L4) es un recuadro con su propio padding; sin
   # contarlo aqui, el reparto en columnas y el salto de pagina se descuadran.
-  label_h <- .form_pdf_lines_height(.form_pdf_wrap(block$label, chars), 0.0142, 0.02) + 0.009
+  # L19: el piso era 0.02 (16.8 pt) para un enunciado de UNA linea que dibuja
+  # 0.0142 (12 pt). Un piso por encima de lo que ocupa una linea es reserva
+  # fantasma en TODA pregunta corta, que son la mayoria.
+  label_h <- .form_pdf_lines_height(.form_pdf_wrap(block$label, chars), 0.0142, 0.0142) + 0.009
   hint_h <- .form_pdf_lines_height(.form_pdf_wrap(block$hint, chars), 0.011)
   opt_count <- length(block$options %||% list())
   options_h <- if (opt_count) {
@@ -1426,11 +1443,20 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     0.044
   } else if ((block$type %||% "") %in% c("text", "integer", "decimal", "date", "time", "datetime")) {
     0.04
+  } else if (identical(block$type %||% "", "note")) {
+    # L19: una nota es texto corrido — no dibuja caja ni fila de opciones. Este
+    # 0.02 era reserva de un cuerpo que no existe (61.5 pt reservados para 28.8).
+    0
   } else {
     0.02
   }
   skip_h <- .form_pdf_lines_height(.form_pdf_wrap(block$skip, chars), 0.012)
-  0.024 + label_h + hint_h + options_h + skip_h +
+  # L19: el cierre era 0.024 (20 pt) y el dibujo acaba con `y - 0.013` (11 pt).
+  # Se deja 0.016: los 11 del dibujo y 4 pt de holgura, porque el envoltorio de
+  # la reserva se estima por caracteres y el del dibujo por ancho medido, y ahi
+  # puede haber una linea de diferencia. Quedarse corto seria peor que sobrar:
+  # sacaria contenido del marco, que es lo que vigila el gate del §4.
+  0.016 + label_h + hint_h + options_h + skip_h +
     .form_pdf_opening_height(block$opening_condition, chars)
 }
 
@@ -1569,6 +1595,14 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   pt / (8.27 * 72)
 }
 
+# Alto de una banda. UNA cuenta para el dibujo y para el paginado (L19): tenerlas
+# separadas es como `section` acabo reservando 60.6 pt para dibujar 27.6.
+.form_pdf_band_height <- function(title, chars) {
+  lines <- .form_pdf_wrap(toupper(title %||% ""), chars)
+  if (!length(lines)) return(0)
+  length(lines) * 0.0138 + 0.011
+}
+
 .form_pdf_band <- function(title, x, y, w, chars, kicker = "", fill = NULL, align = "center") {
   # Banda de seccion: caja GRIS con borde y titulo NEGRO centrado.
   # Antes era navy solido con el titulo en blanco. En monocromo ese relleno cae a
@@ -1579,7 +1613,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   tk <- .form_pdf_tokens()
   lines <- .form_pdf_wrap(toupper(title), chars)
   if (!length(lines)) return(y)
-  band_h <- length(lines) * 0.0138 + 0.011
+  band_h <- .form_pdf_band_height(title, chars)
   .form_pdf_rect(x, y, w, band_h, fill = fill %||% tk$tbl_header, col = tk$ink, lwd = 0.6)
   .form_pdf_text(paste(lines, collapse = "\n"), x, y - 0.0088, w,
                  chars = chars, fontsize = 8.5, fontface = "bold", col = tk$ink,
