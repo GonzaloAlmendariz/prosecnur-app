@@ -1421,11 +1421,16 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   invisible(page_no)
 }
 
-.form_pdf_footer <- function(model, page_no) {
+.form_pdf_footer <- function(model, page_no, total_pages = NA_integer_) {
   tk <- .form_pdf_tokens()
   grid::grid.lines(x = grid::unit(c(0.052, 0.930), "npc"), y = grid::unit(0.056, "npc"),
                    gp = grid::gpar(col = tk$line, lwd = 0.7))
-  grid::grid.text(as.character(page_no), x = grid::unit(0.052, "npc"), y = grid::unit(0.034, "npc"),
+  # «Pagina N de M»: el total llega de la primera pasada de
+  # `formulario_pdf_render`. En la pasada de conteo aun no se sabe y se omite,
+  # que es lo correcto — NUNCA se inventa un total.
+  folio <- if (is.na(total_pages)) as.character(page_no)
+    else sprintf("%d de %d", page_no, total_pages)
+  grid::grid.text(folio, x = grid::unit(0.052, "npc"), y = grid::unit(0.034, "npc"),
                   just = c("left", "center"), gp = grid::gpar(fontsize = 8, col = tk$soft))
   .form_pdf_text(toupper(model$footer_title), 0.16, 0.039, 0.58, chars = 105,
                  fontsize = 6.2, align = "center", col = tk$soft, line_h = 0.008)
@@ -2165,6 +2170,18 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 formulario_pdf_render <- function(model, output_file) {
+  # DOS PASADAS para el «Pagina N de M» del pie (L10). En un PDF dibujado con
+  # `grid` el total NO es un campo que el lector resuelva —como el NUMPAGES del
+  # .docx—: el motor pinta pagina a pagina y no sabe cuantas habra hasta
+  # terminar. Se recorre una vez sobre un dispositivo nulo SOLO para contarlas y
+  # otra para dibujar de verdad.
+  #
+  # Se recorre DOS VECES EL MISMO codigo, no una simulacion aparte: el reparto en
+  # columnas depende de lo que devuelve `.form_pdf_draw_block()`, no solo de
+  # `.form_pdf_block_height()`, asi que una copia «solo para medir» divergiria del
+  # dibujo en cuanto alguien tocara uno de los dos. Es el mismo motivo por el que
+  # el ancho de la columna del numero es una constante compartida.
+  .recorrer <- function(total_pages) {
   # TIPOGRAFIA ESTRECHA (L2). La referencia usa Arial Narrow, y es estrecha a
   # proposito: es lo que permite meter una matriz de nueve columnas en un A4 sin
   # partir los rotulos de la escala.
@@ -2177,10 +2194,6 @@ formulario_pdf_render <- function(model, output_file) {
   # que uno con otra tipografia: el defecto no avisa y no es reproducible.
   # Helvetica-Narrow viene con el dispositivo `pdf()` de R (`pdfFonts()`), es
   # metricamente muy cercana y sale igual en todas partes.
-  grDevices::pdf(output_file, paper = "a4", width = 8.27, height = 11.69,
-                 onefile = TRUE, family = "Helvetica-Narrow")
-  on.exit(grDevices::dev.off(), add = TRUE)
-
   page_no <- 0L
   # Caja de texto (L6). La regla de cabecera esta en 0.922 y el contenido
   # arrancaba en 0.885: 31 pt de aire entre una y otro. El pie deja el suyo en
@@ -2214,7 +2227,7 @@ formulario_pdf_render <- function(model, output_file) {
     page_no <<- page_no + 1L
     grid::grid.newpage()
     .form_pdf_header(model, page_no)
-    .form_pdf_footer(model, page_no)
+    .form_pdf_footer(model, page_no, total_pages)
     current_col <<- 1L
     y <<- c(y_top, y_top)
     divider_top <<- NA_real_
@@ -2275,6 +2288,18 @@ formulario_pdf_render <- function(model, output_file) {
   }
 
   flush_divider(y_bottom)
+    page_no
+  }
+
+  # Pasada 1: contar. `pdf(NULL)` no escribe nada.
+  grDevices::pdf(NULL)
+  total <- tryCatch(.recorrer(NA_integer_), finally = grDevices::dev.off())
+
+  # Pasada 2: dibujar con el total ya conocido.
+  grDevices::pdf(output_file, paper = "a4", width = 8.27, height = 11.69,
+                 onefile = TRUE, family = "Helvetica-Narrow")
+  on.exit(grDevices::dev.off(), add = TRUE)
+  .recorrer(total)
   invisible(output_file)
 }
 
