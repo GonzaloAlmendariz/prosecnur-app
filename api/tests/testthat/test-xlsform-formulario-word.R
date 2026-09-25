@@ -566,3 +566,33 @@ test_that("Word: el pie lleva el campo del TOTAL de paginas", {
   expect_true(grepl("NUMPAGES", txt, fixed = TRUE))
   expect_true(grepl("PAGE", txt, fixed = TRUE))
 })
+
+test_that("B4: la rejilla va en NEGRO, y los rellenos NO", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  # El criterio de Gonzalo (2026-09-25), textual: «que vaya en negro lo mas
+  # adecuado como bordes de tablas, pero cosas con fondo usar negro por
+  # completo gastaria mucha tinta». Son las DOS mitades y el test mide las dos:
+  # una linea de 0,5 pt cubre un area despreciable y es lo unico que sostiene la
+  # estructura en fotocopia; un relleno cubre area de verdad. Este test existe
+  # porque el color de la rejilla no lo fijaba NADA: un pase de «fidelidad a la
+  # referencia» podia devolverla al A6A6A6 (luma 166, se borra por debajo del
+  # umbral 166 de la copiadora) sin poner un solo test en rojo.
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+
+  bordes <- xml2::xml_find_all(doc, "//w:tcBorders/*", ns)
+  expect_gt(length(bordes), 100L)
+  colores <- unique(xml2::xml_attr(bordes, "color"))
+  colores <- toupper(colores[!is.na(colores) & colores != "auto"])
+  expect_identical(colores, "000000")
+
+  # La otra mitad: ningun relleno se fue a negro ni a un gris que gaste tinta.
+  # F2F2F2 (cebra y enunciado) y D9D9D9 (banda de seccion) son los de la
+  # referencia; cualquier otro relleno solido es gasto nuevo que hay que mirar.
+  rellenos <- xml2::xml_find_all(doc, "//w:shd", ns)
+  fills <- toupper(xml2::xml_attr(rellenos, "fill"))
+  fills <- unique(fills[!is.na(fills) & !fills %in% c("AUTO", "FFFFFF")])
+  expect_setequal(fills, c("F2F2F2", "D9D9D9"))
+})

@@ -37,13 +37,28 @@
 .FORM_WORD_INK     <- "#000000"   # TODO el texto
 .FORM_WORD_BAND    <- "#D9D9D9"   # banda de seccion y cabecera de matriz
 .FORM_WORD_ZEBRA   <- "#F2F2F2"   # relleno suave de fila alterna
-# Rejilla: gris medio, no azul palido. El instrumento se IMPRIME Y SE FOTOCOPIA
+# Rejilla: NEGRA. Decision de Gonzalo (2026-09-25): «que vaya en negro lo mas
+# adecuado como bordes de tablas, pero cosas con fondo usar negro por completo
+# gastaria mucha tinta». El criterio es exacto y vale la pena dejarlo escrito:
+# una LINEA de 0,5 pt cubre una franja despreciable de la pagina, asi que
+# oscurecerla no cuesta practicamente nada; un RELLENO cubre area, y ahi el
+# gasto es real. Por eso los bordes van a negro puro y los fondos se quedan en
+# F2F2F2 y D9D9D9.
+#
+# Lo que se gana, medido binarizando el render a 1 bit (que es lo que hace una
+# fotocopiadora): con el gris A6A6A6 de la referencia (luma 166) la rejilla
+# sobrevivia por encima de umbral 170 y DESAPARECIA por debajo de 166 — en una
+# copia dura la tabla se quedaba en texto flotando. En negro sobrevive a
+# cualquier umbral. Nos apartamos de la referencia a proposito: ella no tenia
+# que sobrevivir a la fotocopiadora de nadie.
+#
+# El instrumento se IMPRIME Y SE FOTOCOPIA
 # (insumo de campo), y la estructura de las filas cuelga de los bordes, no del
 # relleno: el relleno de la referencia (F2F2F2, 5% de tinta) y nuestra zebra
 # (F1F4F9, 4%) desaparecen igual en una fotocopia. Valor tomado de la referencia
 # medida: A6A6A6 en 2 666 de sus bordes (~35% de tinta) frente al 19% del azul
 # que habia aqui. Ver docs/qa/goal-formulario-replica-ser-adolescente-2026-09-24.md
-.FORM_WORD_LINE    <- "#A6A6A6"
+.FORM_WORD_LINE    <- "#000000"   # rejilla: NEGRA, ver el bloque de arriba
 
 # Ancho util aproximado de una carta con margenes por defecto de officer (pulg).
 # officer emite A4 (11906 x 16838 twips) con margenes de 1417: 9072 twips utiles.

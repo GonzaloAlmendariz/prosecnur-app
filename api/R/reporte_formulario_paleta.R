@@ -12,11 +12,19 @@
 # (125) y D9D9D9 (19), bordes A6A6A6 (2 666). Los mismos que usa el renderer
 # Word (`reporte_formulario_word.R`), para que los dos formatos salgan iguales.
 #
+# BORDES EN NEGRO, FONDOS EN GRIS. Decision de Gonzalo (2026-09-25): «que vaya en
+# negro lo mas adecuado como bordes de tablas, pero cosas con fondo usar negro
+# por completo gastaria mucha tinta». Una linea de 0,5 pt cubre una franja
+# despreciable, asi que oscurecerla no cuesta nada; un relleno cubre area y ahi
+# el gasto es real. Medido a 1 bit: con el A6A6A6 de la referencia (luma 166) la
+# rejilla desaparecia por debajo de umbral 166 — en una copia dura la tabla se
+# quedaba en texto flotando. En negro sobrevive a cualquier umbral.
+#
 # Ver docs/qa/goal-formulario-replica-ser-adolescente-2026-09-24.md
 
 .FORM_PDF_GRIS <- list(
   tinta  = "#000000",   # TODO el texto
-  linea  = "#A6A6A6",   # rejilla y reglas
+  linea  = "#000000",   # rejilla y reglas: NEGRAS (ver nota de abajo)
   banda  = "#D9D9D9",   # banda de seccion y cabecera de matriz
   zebra  = "#F2F2F2",   # relleno suave de fila alterna
   papel  = "#FFFFFF"
