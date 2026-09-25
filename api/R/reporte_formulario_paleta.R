@@ -26,6 +26,13 @@
   tinta  = "#000000",   # TODO el texto
   linea  = "#000000",   # rejilla y reglas: NEGRAS (ver nota de abajo)
   banda  = "#D9D9D9",   # banda de seccion y cabecera de matriz
+  # SUBSECCION (L17): la referencia separa los dos niveles por TONO, no por
+  # forma — misma caja, misma negrita, mismo cuerpo, relleno mas claro. Usa
+  # D9D9D9 (luma 217) para la seccion y DBE5F1 (luma 227) para la subseccion. En
+  # monocromo el equivalente de ese azul palido es E8E8E8 (luma 232), que ademas
+  # YA esta en el inventario de grises de la referencia (125 usos): no se inventa
+  # un gris nuevo para esto.
+  banda_sub = "#E8E8E8",
   zebra  = "#F2F2F2",   # relleno suave de fila alterna
   papel  = "#FFFFFF"
 )
@@ -50,6 +57,7 @@
     if (!is.null(tk[[k]])) tk[[k]] <- g$linea
   }
   tk$tbl_header <- g$banda
+  tk$tbl_header_sub <- g$banda_sub
   tk$tbl_zebra <- g$zebra
   tk$canvas <- g$papel
   tk$surface <- g$papel

@@ -1779,3 +1779,49 @@ test_that("L16: el paginado no reserva DOS VECES el enunciado de la matriz", {
   expect_gt(alto, pintado)
   expect_lt(alto / pintado, 1.45)
 })
+
+test_that("L17: la subseccion sale de la matriz y pasa a banda propia encima", {
+  survey <- data.frame(
+    type = c("begin_group", rep("select_one ac", 3L), "end_group"),
+    name = c("g", "a1", "a2", "a3", "ge"),
+    label = c("B. BIENESTAR", "Me siento satisfecho conmigo mismo.",
+              "Creo que tengo buenas cualidades.", "A veces pienso que no sirvo para nada.", ""),
+    paper_subgroup = c("", rep("Como te sientes", 3L), ""),
+    stringsAsFactors = FALSE)
+  choices <- data.frame(
+    list_name = "ac", name = as.character(1:4),
+    label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+    stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "L17"),
+                         output_file = tmp, options = list(columns = 1))
+  pal <- .form_gate_palabras(tmp)
+  sub <- pal[toupper(pal$texto) == "SIENTES", , drop = FALSE]
+  esc <- pal[pal$texto == "Totalmente", , drop = FALSE]
+  expect_identical(nrow(sub), 1L)
+  expect_gte(nrow(esc), 1L)
+
+  # La prueba de que SALIO de la matriz: hasta aqui el sub-grupo se pintaba en la
+  # esquina de la cabecera, o sea COMPARTIENDO banda vertical con las etiquetas
+  # de escala. Como banda propia las dos franjas son disjuntas y la subseccion
+  # queda ENCIMA. Es el mismo criterio que L16 pero al reves, y por eso no se
+  # puede comprobar con "aparece el texto": aparecia antes tambien.
+  # `.form_gate_palabras()` mide DESDE ABAJO: y mayor = mas arriba.
+  expect_gt(sub$y0, max(esc$y1))
+
+  # Y esta dentro de una caja mas clara que la de seccion, no sobre papel blanco.
+  img <- .form_pdf_raster(tmp)
+  gris <- (img[, , 1] + img[, , 2] + img[, , 3]) / 3
+  h <- nrow(gris); w <- ncol(gris)
+  fondo <- function(fila) {
+    y <- round((1 - fila) * h)
+    franja <- gris[max(1L, y - 1L):min(h, y + 1L), round(w * 0.72):round(w * 0.92), drop = FALSE]
+    stats::median(franja)   # lejos del texto: mide el RELLENO, no las letras
+  }
+  bienestar <- pal[pal$texto == "BIENESTAR", , drop = FALSE]
+  expect_identical(nrow(bienestar), 1L)
+  g_sub <- fondo((sub$y0 + sub$y1) / 2)
+  g_sec <- fondo((bienestar$y0 + bienestar$y1) / 2)
+  expect_lt(g_sub, 0.99)          # tiene relleno: no es papel blanco
+  expect_gt(g_sub, g_sec + 0.01)  # y es MAS CLARO que el de seccion
+})

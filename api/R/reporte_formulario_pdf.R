@@ -969,11 +969,36 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
 
   i <- 1L
+  # L17 — SUBSECCION COMO SEGUNDO NIVEL DE BANDA. La referencia tiene dos niveles
+  # («D. FAMILIA» y debajo «D.4. SOBRE EL APOYO DE TU MAMA Y PAPA») y los separa
+  # por TONO, no por forma: misma caja, misma negrita, mismo cuerpo, relleno mas
+  # claro (D9D9D9 la seccion, DBE5F1 la subseccion — luma 217 vs 227). En
+  # monocromo el equivalente es E8E8E8, que ademas ya esta en el inventario de
+  # grises de la referencia: no se inventa un gris nuevo.
+  #
+  # Hasta aqui `paper_subgroup` solo llegaba a las matrices, metido en la esquina
+  # de su cabecera; una pregunta suelta con subgrupo no lo mostraba en ninguna
+  # parte. Ahora emite banda, y por eso los renderers DEJAN de pintarlo en la
+  # esquina: enunciarlo en los dos sitios es duplicarlo.
+  cur_subgroup <- ""
   while (i <= nrow(survey)) {
     base <- .form_pdf_type_base(survey$type[i])
     if (base %in% .form_pdf_skip_bases()) {
       i <- i + 1L
       next
+    }
+    if (base %in% c("begin_group", "begin_repeat")) {
+      # Una seccion nueva reabre la subseccion: si la siguiente repite etiqueta,
+      # la banda se vuelve a emitir, que es lo que hace la referencia (D.1 y E.1
+      # comparten forma y las dos se anuncian).
+      cur_subgroup <- ""
+    } else {
+      sub_i <- .form_pdf_paper_text(.form_pdf_clean_text(
+        (survey$paper_subgroup %||% rep("", nrow(survey)))[i]))
+      if (!identical(sub_i, cur_subgroup)) {
+        cur_subgroup <- sub_i
+        if (nzchar(sub_i)) add_block(list(kind = "subsection", title = sub_i, full_width = TRUE))
+      }
     }
 
     key <- matrix_keys[i]
@@ -1316,6 +1341,12 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     return(0.058 + .form_pdf_lines_height(.form_pdf_wrap(block$title, chars), 0.014) +
              .form_pdf_opening_height(block$opening_condition, chars))
   }
+  if (identical(block$kind, "subsection")) {
+    # Misma cuenta que la banda de seccion menos lo que esta no lleva (pista y
+    # condicion de apertura). La banda mide `lineas * 0.0138 + 0.011` y el dibujo
+    # descuenta 0.006 mas.
+    return(0.017 + .form_pdf_lines_height(.form_pdf_wrap(toupper(block$title), 112), 0.0138))
+  }
   if (identical(block$kind, "paper")) {
     return(0.042 + .form_pdf_lines_height(.form_pdf_wrap(block$title, 118), 0.014) +
              .form_pdf_lines_height(.form_pdf_wrap(block$body, 126), 0.012))
@@ -1538,7 +1569,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   pt / (8.27 * 72)
 }
 
-.form_pdf_band <- function(title, x, y, w, chars, kicker = "") {
+.form_pdf_band <- function(title, x, y, w, chars, kicker = "", fill = NULL, align = "center") {
   # Banda de seccion: caja GRIS con borde y titulo NEGRO centrado.
   # Antes era navy solido con el titulo en blanco. En monocromo ese relleno cae a
   # negro puro: 100% de tinta a todo el ancho por ejemplar, peor que el navy
@@ -1549,11 +1580,23 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   lines <- .form_pdf_wrap(toupper(title), chars)
   if (!length(lines)) return(y)
   band_h <- length(lines) * 0.0138 + 0.011
-  .form_pdf_rect(x, y, w, band_h, fill = tk$tbl_header, col = tk$ink, lwd = 0.6)
+  .form_pdf_rect(x, y, w, band_h, fill = fill %||% tk$tbl_header, col = tk$ink, lwd = 0.6)
   .form_pdf_text(paste(lines, collapse = "\n"), x, y - 0.0088, w,
                  chars = chars, fontsize = 8.5, fontface = "bold", col = tk$ink,
-                 align = "center", line_h = 0.0138)
+                 align = align, line_h = 0.0138)
   y - band_h
+}
+
+# Banda de SUBSECCION (L17). Misma caja y mismo cuerpo que la de seccion: lo
+# unico que cambia es el tono del relleno y que va alineada a la izquierda, como
+# en la referencia («D. FAMILIA» centrada arriba, «D.4. SOBRE EL APOYO...»
+# pegada al margen). Distinguirlas por forma —caja contra linea, o cuerpo mayor—
+# habria roto la lectura de que las dos son el mismo tipo de rotulo.
+.form_pdf_draw_subsection <- function(block, x, y, w) {
+  tk <- .form_pdf_tokens()
+  y <- .form_pdf_band(block$title, x, y, w, chars = 112,
+                      fill = tk$tbl_header_sub, align = "left")
+  y - 0.006
 }
 
 # Glifo vectorial de "rama" (una L navy con punta a la derecha), dibujado con
@@ -2099,18 +2142,14 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # haria que el enunciado se saliera de su celda solo en ese tramo.
 .form_pdf_matrix_esquina <- function(block, label_w, inner) {
   tenor <- .form_pdf_clean_text(block$tenor %||% "")
-  glbl <- .form_pdf_clean_text(block$group_label %||% "")
   hint <- .form_pdf_clean_text(block$hint %||% "")
   chars <- max(10L, floor(118 * (label_w - 0.012) / max(1e-6, inner)))
-  if (!nzchar(tenor)) {
-    if (!nzchar(glbl)) return(list(lineas = character(0), height = 0))
-    lineas <- .form_pdf_wrap(glbl, chars)
-    return(list(lineas = lineas, height = length(lineas) * 0.0110 + 0.008))
-  }
+  # El sub-grupo YA NO entra aqui: desde L17 tiene banda propia encima de la
+  # matriz, y decirlo en los dos sitios es duplicarlo.
+  if (!nzchar(tenor)) return(list(lineas = character(0), height = 0))
   num <- .form_pdf_clean_text(block$number %||% "")
   texto <- if (nzchar(num)) paste0(num, ".  ", tenor) else tenor
   lineas <- .form_pdf_wrap(texto, chars)
-  if (nzchar(glbl)) lineas <- c(lineas, .form_pdf_wrap(glbl, chars))
   if (nzchar(hint)) lineas <- c(lineas, .form_pdf_wrap(hint, chars))
   list(lineas = lineas, height = length(lineas) * 0.0134 + 0.012)
 }
@@ -2248,19 +2287,11 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   # lineas y centrarlo lo descuadraria respecto a la escala—; solo con
   # sub-grupo se mantiene el centrado que habia.
   if (length(esq$lineas) && header_h > 0) {
-    if (has_tenor) {
-      grid::grid.text(paste(esq$lineas, collapse = "\n"),
-                      x = grid::unit(x0 + 0.006, "npc"),
-                      y = grid::unit(y_top_tbl - 0.006, "npc"),
-                      just = c("left", "top"),
-                      gp = grid::gpar(fontsize = 8.0, fontface = "bold", col = tk$ink, lineheight = 0.95))
-    } else {
-      grid::grid.text(paste(esq$lineas, collapse = "\n"),
-                      x = grid::unit(x0 + 0.006, "npc"),
-                      y = grid::unit(y_top_tbl - header_h / 2, "npc"),
-                      just = c("left", "center"),
-                      gp = grid::gpar(fontsize = 6.8, fontface = "bold", col = tk$navy, lineheight = 0.95))
-    }
+    grid::grid.text(paste(esq$lineas, collapse = "\n"),
+                    x = grid::unit(x0 + 0.006, "npc"),
+                    y = grid::unit(y_top_tbl - 0.006, "npc"),
+                    just = c("left", "top"),
+                    gp = grid::gpar(fontsize = 8.0, fontface = "bold", col = tk$ink, lineheight = 0.95))
   }
   y_body_top <- y
 
@@ -2386,6 +2417,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     cover = .form_pdf_draw_cover(block, x, y, w),
     paper = .form_pdf_draw_paper(block, x, y, w),
     section = .form_pdf_draw_section(block, x, y, w),
+    subsection = .form_pdf_draw_subsection(block, x, y, w),
     matrix = .form_pdf_draw_matrix(block, x, y, w),
     question = .form_pdf_draw_question(block, x, y, w),
     y
