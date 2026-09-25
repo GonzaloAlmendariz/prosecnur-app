@@ -191,6 +191,52 @@ test_that("cada fila del Sheets se vuelve una fijación del reparto", {
   expect_identical(out$fijadas[["CH 2"]], "Puchuri Chamorro, Sara")
 })
 
+test_that("dos personas que comparten apellido NO se confunden entre sí", {
+  # **Aviso de la sesión de HSVG2026, 2026-09-25**: «en HSVG hay DOS personas
+  # con Chamorro y no son la misma — Chamorro Rodriguez, Rosa Alejandrina es la
+  # de CCSS; Puchuri Chamorro, Sara Daniela es la nuestra, Chamorro es su
+  # segundo apellido. Si aparece "Chamorro" a secas puede leerse como si Rosa
+  # estuviera en los dos operativos».
+  #
+  # El emparejamiento es EXACTO sobre el nombre normalizado, así que ninguna de
+  # las dos captura a la otra y un apellido suelto no se pega a nadie. Esto lo
+  # congela: tolerar erratas con una comparación difusa haría que «Chamorro»
+  # fijara a Rosa, y una persona acabaría con citas que nunca aceptó.
+  filas <- .mdc_hoja(
+    .mdc_fila("CH 1", "2026-09-08", "Chamorro Rodriguez, Rosa Alejandrina"),
+    .mdc_fila("CH 2", "2026-09-08", "Puchuri Chamorro, Sara Daniela"),
+    .mdc_fila("CH 3", "2026-09-08", "Chamorro")
+  )
+  out <- monitoreo_aulas_fijaciones_desde_distribucion(
+    filas, .mdc_plan("CH 1", "CH 2", "CH 3"),
+    roster = c("Chamorro Rodriguez, Rosa Alejandrina"))
+  expect_equal(out$adoptadas, 1L)
+  expect_identical(out$fijadas[["CH 1"]], "Chamorro Rodriguez, Rosa Alejandrina")
+  # Ni la homónima parcial ni el apellido suelto se fijan: se DECLARAN.
+  expect_null(out$fijadas[["CH 2"]])
+  expect_null(out$fijadas[["CH 3"]])
+  expect_setequal(out$aplicadores_desconocidos,
+                  c("Puchuri Chamorro, Sara Daniela", "Chamorro"))
+})
+
+test_that("la misma persona escrita en mayúsculas o con tildes es UNA sola", {
+  # La otra cara: el roster la guarda crudo y el Sheets la devuelve ya escrita
+  # para mostrar. Si eso no casara, cada aplicador se partiría en dos dentro
+  # del reparto —medido en CCSS el 2026-09-23: diez aplicadores para cinco
+  # personas—. Exacto no puede querer decir «sensible a mayúsculas».
+  filas <- .mdc_hoja(
+    .mdc_fila("CH 1", "2026-09-08", "CHAMORRO RODRIGUEZ, ROSA ALEJANDRINA"),
+    .mdc_fila("CH 2", "2026-09-08", "chamorro rodriguez, rosa alejandrina")
+  )
+  out <- monitoreo_aulas_fijaciones_desde_distribucion(
+    filas, .mdc_plan("CH 1", "CH 2"),
+    roster = c("Chamorro Rodriguez, Rosa Alejandrina"))
+  expect_equal(out$adoptadas, 2L)
+  expect_length(out$aplicadores_desconocidos, 0L)
+  expect_identical(unname(unlist(out$fijadas)),
+                   rep("Chamorro Rodriguez, Rosa Alejandrina", 2L))
+})
+
 test_that("un aplicador que no es del equipo se declara y NO se fija", {
   # Un nombre tecleado a mano no es una decisión: fijarlo metería en el reparto
   # a alguien que no existe, y el motor repartiría contra un fantasma.

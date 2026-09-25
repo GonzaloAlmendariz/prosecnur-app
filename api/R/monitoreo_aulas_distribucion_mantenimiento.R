@@ -828,7 +828,14 @@ monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "",
 #'
 #' Existe porque la expresión que había —`hojas[-1L]`— saltaba la **primera**
 #' pestaña y no la de destino, y las dos coincidían sólo mientras la ventana
-#' caía en la primera semana. En cuanto el reparto avanzó a «Semana 2», la
+#' caía en la primera semana. Es la MISMA avería que `7df233cc8` (2026-09-12)
+#' arregló en `adoptar-distribucion` —«adoptar congelaba sólo la semana 1»—,
+#' que allí se resolvió con `monitoreo_aulas_distribucion_valores(id, hojas)`.
+#' Aquí no se reusa esa función porque `remoto` ya trae la pestaña de destino y
+#' hace falta aparte para escribir (su `sheet_id`, su ancho y sus reglas):
+#' releerla costaría un request y devolvería su cabecera otra vez. Si aparece
+#' un tercer consumidor del plural, que mire estos dos antes de escribir un
+#' bucle nuevo. En cuanto el reparto avanzó a «Semana 2», la
 #' «Semana 1» dejó de leerse: sus filas no contaban como publicadas, así que
 #' sus aulas se volvían a proponer, y sus aplicadores salían como fijaciones
 #' `retiradas`. Medido en CCSS Perfil 2026-II el 25/09/2026: 31 fijaciones
