@@ -104,6 +104,10 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 | **L12** | El PDF equilibra las columnas de un tramo | **PDF ☑** `3877c1b64` — tinta der/izq 0,44 → 0,85 |
 | **L13** | Consentimiento: párrafo justificado + caja de acuerdo | **Word ☑** `649bb12e1` · **PDF ☑** `579a0fc33` — etiquetas de `consent_options`, no inventadas |
 | **L14** | Tabla corta partida entre columnas | **Word ☑** `e115a4107` — `keepNext` por fila, NO `cantSplit` · **PDF ☑ por construcción** — no se reproduce: su bucle mide cada bloque y lo pasa ENTERO a la otra columna. Verificado con el fixture que sí lo destapó en Word (0 tablas partidas) y con el caso límite de un bloque más alto que la columna (se va entero a la página siguiente, 0 palabras fuera del marco) |
+| **L15** | **El énfasis del autor se pierde**: `**palabra**` se borra en vez de pintarse en negrita | ambos renderers | ☐ — la referencia enfatiza el sujeto de cada ítem (`Mi **mamá/cuidadora** se da cuenta…`) y el motor lo deja en texto plano. Medido: `<w:b w:val="false"/>` y los `**` desaparecidos |
+| **L16** | **El enunciado de la batería va DENTRO de la matriz**, en la celda superior izquierda | ambos renderers | ☐ — hoy el `tenor` se pinta como párrafo encima; en la referencia («P20. Por favor señala qué tan de acuerdo…») vive en la esquina de la tabla, junto a la cabecera de escala. Misma razón que L4: separado, se corta de su tabla |
+| **L17** | **Subsecciones como segundo nivel de banda** (`F.1.`, `D.4.`, `D.5.`) | modelo + renderers | ☐ — el modelo ya trae `paper_subgroup` pero lo pinta en la esquina de la matriz, no como banda propia |
+| **L18** | **Leyenda de la escala en el enunciado** cuando la cabecera no puede rotular todo | ambos renderers | ☐ — es el paso 3 de la escalera del §13 del checklist, y la referencia lo hace: «considerando que 1 es fuertemente en desacuerdo, 2 en desacuerdo, … (MARCAR SOLO UNA RESPUESTA POR PREGUNTA)» |
 
 ## Espera a Gonzalo
 
