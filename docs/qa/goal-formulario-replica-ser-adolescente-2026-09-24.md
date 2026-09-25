@@ -98,8 +98,8 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 | **L6** | Densidad y márgenes | **Word ☑** `9a2fb7f02` (10 546 vs 10 549) · **PDF ☑** `4186e3647` — 61,4 → 54 pt por pregunta; el instrumento pasa de 2 páginas a 1 |
 | **L7** | Banda de sección: caja con borde y relleno gris | **Word ◐** relleno gris y texto negro hechos en `07ea38d40`; **falta el borde** (`.form_word_par()` no expone parámetros de borde) · PDF ☐ |
 | **L8** | Opciones cortas en fila horizontal | **Word ☑** `7f64804a1` — corte por ancho medido · PDF ☐ |
-| **L9** | Campos de escritura = celda vacía | **Word ☑** `fa6b7b9e2` · PDF ☐ |
-| **L10** | Pie «Página N de M» + casillas del folio | **Word ☑** `39cca7bba` — el folio va en la portada, no en la cabecera · PDF ☐ |
+| **L9** | Campos de escritura = celda vacía | **Word ☑** `fa6b7b9e2` · **PDF ☑** — ya lo hacía; auditado |
+| **L10** | Pie «Página N de M» + casillas del folio | **Word ☑** `39cca7bba` · **PDF ☑** `c767f0d1a` — dos pasadas, porque en `grid` el total no es un campo |
 | **L11** | Cabeceras sin partir palabras | **Word ☑** `72425151f` — envoltorio por ancho medido · PDF ☐ |
 | **L12** | El PDF equilibra las columnas de un tramo | **PDF ☑** `3877c1b64` — tinta der/izq 0,44 → 0,85 |
 | **L13** | Bloque de consentimiento: párrafo justificado + caja de acuerdo | modelo + renderers | ☐ |
