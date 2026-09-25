@@ -55,10 +55,15 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
 # viene el 1.96 del tamaño de muestra: no es un número nuevo que aprender.
 .CM_CERTEZA_NIVEL_DEFAULT <- 0.95
 
-# Corridas por candidato. 300 deja el error estándar de una probabilidad
-# cercana a 0.95 en ~1.3 puntos, suficiente para decidir entre n y n+1 sin
-# volver interactivamente inviable el barrido.
-.CM_CERTEZA_CORRIDAS_DEFAULT <- 300L
+# Corridas por candidato: 40 (decisión de Gonzalo, 2026-09-25: «Deja las 40
+# corridas en ¿Alcanza?»). Con p cercana a 0.95 el error estándar es ~3.4
+# puntos (300 lo bajaba a ~1.3), a cambio de que la medición no tarde decenas
+# de minutos: medido sobre hsvg2026 (2.561 CH), un sorteo cubo cuesta
+# ~0.3 s tenga el estrato 93 o 577 filas, así que el antiguo reparto por
+# filas (60/n) no abarataba nada y los estratos chicos pagaban 120–300
+# corridas a costo completo (~25–44 min en total). Una petición puede pedir
+# más corridas explícitamente; no se baja de 40.
+.CM_CERTEZA_CORRIDAS_DEFAULT <- 40L
 .CM_CERTEZA_CORRIDAS_MIN <- 40L
 
 # Tope de candidatos evaluados por estrato. La probabilidad crece con el
@@ -79,7 +84,8 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
 
 # Presupuesto de corridas por escala. Un estrato con 400 cursos-horario cuesta
 # por corrida bastante más que uno con 8; sin esto, una facultad masiva se come
-# el tiempo de todas las demás.
+# el tiempo de todas las demás. Con el default en 40 (= el mínimo) el reparto
+# sólo actúa si una petición pide más.
 .cm_certeza_corridas <- function(solicitadas, n_aulas) {
   pedidas <- .cm_aulas_int(solicitadas, .CM_CERTEZA_CORRIDAS_DEFAULT)
   if (pedidas <= 0L) pedidas <- .CM_CERTEZA_CORRIDAS_DEFAULT

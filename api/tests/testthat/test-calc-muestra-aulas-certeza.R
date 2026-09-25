@@ -277,3 +277,13 @@ test_that("los faculty_targets del diseno no fijan el candidato de la certificac
   aulas <- vapply(fila$curva, function(p) p$aulas, integer(1))
   expect_equal(rend, 20 * as.numeric(aulas))
 })
+
+test_that("¿Alcanza? usa 40 corridas por candidato si nadie pide otra cifra (Gonzalo, 2026-09-25)", {
+  expect_identical(.CM_CERTEZA_CORRIDAS_DEFAULT, 40L)
+  # Sin petición explícita, 40 en estratos chicos y grandes.
+  expect_identical(as.integer(.cm_certeza_corridas(NULL, 93L)), 40L)
+  expect_identical(as.integer(.cm_certeza_corridas(NULL, 577L)), 40L)
+  # Una petición explícita mayor se respeta (y se escala en estratos grandes, sin bajar de 40).
+  expect_identical(as.integer(.cm_certeza_corridas(300L, 30L)), 300L)
+  expect_identical(as.integer(.cm_certeza_corridas(300L, 600L)), 40L)
+})
