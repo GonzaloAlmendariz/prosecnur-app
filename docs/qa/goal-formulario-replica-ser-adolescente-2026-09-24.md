@@ -97,13 +97,13 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 | **L5** | Columna propia para el número | **Word ☑** `20a8a2b6f` · **PDF ☑** `e92df7684` — constante compartida por dibujo y `block_height` |
 | **L6** | Densidad y márgenes | **Word ☑** `9a2fb7f02` (10 546 vs 10 549) · **PDF ☑** `4186e3647` — 61,4 → 54 pt por pregunta; el instrumento pasa de 2 páginas a 1 |
 | **L7** | Banda de sección: caja con borde y relleno gris | **Word ☑** `07ea38d40`+`fa6b7b9e2` — relleno gris, texto negro y borde de 0,5 pt con `space = 0` · **PDF ☑** — ya lo hacía; auditado, sin tocar código |
-| **L8** | Opciones cortas en fila horizontal | **Word ☑** `7f64804a1` — corte por ancho medido · PDF ☐ |
+| **L8** | Opciones cortas en fila horizontal | **Word ☑** `7f64804a1` · **PDF ☑** `1ccee9f95` — corte por ancho medido en un helper compartido por dibujo y altura |
 | **L9** | Campos de escritura = celda vacía | **Word ☑** `fa6b7b9e2` · **PDF ☑** — ya lo hacía; auditado |
 | **L10** | Pie «Página N de M» + casillas del folio | **Word ☑** `39cca7bba` · **PDF ☑** `c767f0d1a` — dos pasadas, porque en `grid` el total no es un campo |
 | **L11** | Cabeceras sin partir palabras | **Word ☑** `72425151f` · **PDF ☑** — ya cumplía; auditado midiendo, `wrap_fit` siempre midió ancho real |
 | **L12** | El PDF equilibra las columnas de un tramo | **PDF ☑** `3877c1b64` — tinta der/izq 0,44 → 0,85 |
 | **L13** | Consentimiento: párrafo justificado + caja de acuerdo | **Word ☑** `649bb12e1` · **PDF ☑** `579a0fc33` — etiquetas de `consent_options`, no inventadas |
-| **L14** | Tabla corta partida entre columnas | **Word ☑** `e115a4107` — `keepNext` por fila, NO `cantSplit` · PDF ☐ (el equilibrado de L12 puede haberlo mitigado: reproducir antes de tocar) |
+| **L14** | Tabla corta partida entre columnas | **Word ☑** `e115a4107` — `keepNext` por fila, NO `cantSplit` · **PDF ☑ por construcción** — no se reproduce: su bucle mide cada bloque y lo pasa ENTERO a la otra columna. Verificado con el fixture que sí lo destapó en Word (0 tablas partidas) y con el caso límite de un bloque más alto que la columna (se va entero a la página siguiente, 0 palabras fuera del marco) |
 
 ## Espera a Gonzalo
 
