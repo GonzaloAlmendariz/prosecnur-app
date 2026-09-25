@@ -164,3 +164,31 @@ Lo que ya costó una conclusión falsa. Se lee **antes** de medir.
   escala.
 - **L7**: la banda de sección de la referencia **no** cruza el medianil en páginas a dos
   columnas: va dentro de su columna, a media página. Confirmado en la página 10.
+
+## La UI del editor, que es la otra mitad del encargo
+
+Instrucción de Gonzalo, 2026-09-25, textual: **«Y no solo es mejorar el motor
+del pdf y word, sino la UI que permite establecerlos en el editor de
+xlsforms»**.
+
+Tiene razón y señala una deuda que este loop venía agrandando: cada capacidad
+nueva del motor sólo se alcanzaba escribiendo columnas a mano en el XLSForm.
+Medido sobre `ConfigurarPdfDialog.tsx` (483 líneas) contra las 18 opciones que
+lee el motor.
+
+**Lo que el diálogo YA ofrece** y no hay que rehacer: columnas 1/2, número de
+cuestionario, ancho de matrices (`matrix_layout`), lenguaje de lógica
+(saltos/condiciones), variable de consentimiento y, por matriz candidata,
+tenor + columna especial + modo de cabecera.
+
+| # | Hueco | Dónde | Estado |
+|---|---|---|---|
+| **U1** | **`columns = "auto"` no se puede elegir.** Es el valor que este loop introdujo (reparto por tramos, L12) y `PdfColumns` está declarado `1 \| 2` en `pdfExportPreference.ts:13`: no es ni representable. El diálogo ofrece dos tarjetas. **El backend ya lo aceptaría**: `router_xlsform_editor.R:1569` pasa `options` tal cual al motor, así que es trabajo sólo de frontend | `pdfExportPreference.ts`, `ConfigurarPdfDialog.tsx` | ☐ **SIGUIENTE** |
+| **U2** | **`paper_subgroup` no existe en el frontend** — cero apariciones en `frontend/src`. Es la subsección de **L17**, el segundo nivel de banda que se acaba de construir: hoy sólo se consigue tecleando la columna en el XLSForm | editor + diálogo | ☐ |
+| **U3** | **`paper_subletter` tampoco existe** — cero apariciones. Son las sub-preguntas a/b/c que el motor sabe numerar | editor | ☐ |
+| **U4** | **`max_options_per_question` y `no_default_intro`** no tienen UI | diálogo | ☐ |
+
+Regla que sale de aquí y que aplica al resto del loop: **una capacidad del motor
+no está terminada mientras sólo se alcance tecleando una columna del XLSForm.**
+Cada ítem nuevo de la cola declara su superficie en el editor o dice por qué no
+la necesita.
