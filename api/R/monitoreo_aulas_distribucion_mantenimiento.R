@@ -139,14 +139,22 @@
 #' agendadas a las que no va nadie?** El 08/09 había seis y se descubrieron
 #' cruzando a mano la agenda con la distribución.
 #'
-#' Una aula entra si —y sólo si— se cumplen las cuatro:
+#' Una aula entra si —y sólo si— se cumplen las cinco:
 #'
 #' 1. su curso-horario **no está ya en la hoja** (una fila que existe no se
 #'    vuelve a proponer, aunque el reparto de la app la haya movido de persona);
-#' 2. la agenda la declara `agendada` o `reagendada` (ver `.madm_AGENDADOS`);
-#' 3. su fecha cae en la ventana pedida, cuando se pide una;
-#' 4. su hora se puede leer, porque sin hora no hay recojo ni salida que
+#' 2. **no consta ya aplicada**, porque proponerla manda a alguien al campus por
+#'    un aula que ya se encuestó;
+#' 3. la agenda la declara `agendada` o `reagendada` (ver `.madm_AGENDADOS`);
+#' 4. su fecha cae en la ventana pedida, cuando se pide una;
+#' 5. su hora se puede leer, porque sin hora no hay recojo ni salida que
 #'    escribir y la fila saldría a medias.
+#'
+#' La segunda es la que faltaba, y no se notaba porque la fila de un aula
+#' aplicada suele quedarse en la pestaña de SU semana: al sincronizar la
+#' siguiente ya no está ahí, la agenda sigue diciendo «agendada» y su fecha
+#' original cae dentro del rango. CH 25 de CCSS Perfil 2026-II se aplicó el
+#' 23/09 con diez efectivas y la app seguía proponiéndola para el 30/09.
 #'
 #' **Lo que no entra se devuelve dicho, no se calla.** Un descarte silencioso es
 #' indistinguible de un cero real, y es justo el caso en que alguien se queda
@@ -159,10 +167,13 @@
 #'
 #' @param plan filas del plan.
 #' @param filas_remotas los valores de la hoja (cabecera incluida).
+#' @param aplicadas códigos operativos que constan aplicados
+#'   (`monitoreo_aulas_codigos_aplicados()`). Vacío se comporta como antes.
 #' @param desde,hasta ventana de fechas ISO; `""` no acota.
 #' @return lista `{faltantes, descartadas, en_hoja, ventana}`.
 #' @export
 monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
+                                               aplicadas = character(0),
                                                desde = "", hasta = "") {
   cab <- .madm_cabecera(filas_remotas)
   .madm_exigir_legible(cab)
@@ -176,6 +187,7 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
     en_hoja <- unique(en_hoja[nzchar(en_hoja)])
   }
 
+  aplicadas <- unique(trimws(as.character(aplicadas %||% character(0))))
   d0 <- .mav_fecha(desde); d1 <- .mav_fecha(hasta)
 
   faltantes <- list(); descartadas <- list()
@@ -192,6 +204,13 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
     if (!nzchar(cod) || cod %in% vistos) next
     vistos <- c(vistos, cod)
     if (cod %in% en_hoja) next
+    # **Antes que la fecha, a propósito.** Una aplicada fuera del rango no es
+    # una agendada que el rango esté tapando: contarla en `fuera_de_ventana`
+    # infla el aviso que sirve para detectar un rango viejo.
+    if (cod %in% aplicadas) {
+      descartar(cod, "ya_aplicada", .alpa_txt(u[["scheduled_date"]]))
+      next
+    }
 
     escrita <- .alpa_txt(u[["scheduled_date"]])
     fecha <- .mav_fecha(escrita)
@@ -804,6 +823,32 @@ monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "",
 #' haría; `aplicar = TRUE` es el acto. Es la misma disciplina que adoptar, y por
 #' la misma razón: son veintidós personas leyendo la hoja.
 #'
+#' Las OTRAS pestañas de la distribución: todas menos aquella sobre la que se
+#' va a escribir.
+#'
+#' Existe porque la expresión que había —`hojas[-1L]`— saltaba la **primera**
+#' pestaña y no la de destino, y las dos coincidían sólo mientras la ventana
+#' caía en la primera semana. En cuanto el reparto avanzó a «Semana 2», la
+#' «Semana 1» dejó de leerse: sus filas no contaban como publicadas, así que
+#' sus aulas se volvían a proponer, y sus aplicadores salían como fijaciones
+#' `retiradas`. Medido en CCSS Perfil 2026-II el 25/09/2026: 31 fijaciones
+#' declaradas retiradas de golpe y CH 25 —aplicada el 23/09 con diez
+#' efectivas— propuesta otra vez para el 30/09.
+#'
+#' @param hojas títulos de las pestañas con forma de distribución.
+#' @param destino el título de la pestaña sobre la que se escribe.
+#' @return los títulos restantes, en su orden.
+#' @keywords internal
+.madm_otras_pestanas <- function(hojas, destino) {
+  hojas <- as.character(hojas %||% character(0))
+  hojas <- hojas[nzchar(hojas)]
+  destino <- .alpa_txt(destino)
+  # Sin destino legible no se descarta ninguna: es preferible leer una de más
+  # —el `unique()` de `en_hoja` la absorbe— que dejar una semana fuera.
+  if (!nzchar(destino)) return(hojas)
+  hojas[hojas != destino]
+}
+
 #' Lo que NO hace, a propósito: no reasigna a nadie, no mueve una fila existente
 #' y no borra ninguna. Añade filas, actualiza el ESTADO y pone el AULA al día
 #' con el libro; el resto es del coordinador. El aula entra en la lista porque
@@ -878,7 +923,7 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
   # decisiones de las demás sin fijar, y el reparto se las reordena en la
   # siguiente corrida: es el mismo daño que la adopción existe para evitar.
   remoto_todas <- remoto
-  for (h in hojas_dist[-1L]) {
+  for (h in .madm_otras_pestanas(hojas_dist, hoja)) {
     v <- tryCatch(.cads_valores_de_pestana(id, h), error = function(e) list())
     if (length(v) > 1L) remoto_todas <- c(remoto_todas, v[-1L])
   }
@@ -896,7 +941,8 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
   # Contra TODAS las pestañas: una cita que ya está publicada en otra semana no
   # es una que falte. Compararla sólo contra la hoja de destino la volvería a
   # proponer y acabaría duplicada en dos pestañas.
-  faltan <- monitoreo_aulas_agendadas_sin_cita(plan, remoto_todas, desde = desde, hasta = hasta)
+  faltan <- monitoreo_aulas_agendadas_sin_cita(plan, remoto_todas, aplicadas = aplicadas,
+                                              desde = desde, hasta = hasta)
   inserciones <- monitoreo_aulas_posiciones_de_las_nuevas(remoto, faltan$faltantes)
   # 3 · el ESTADO que la plataforma demuestra, sin pisar lo tecleado.
   est <- monitoreo_aulas_estados_distribucion(

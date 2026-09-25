@@ -163,7 +163,17 @@
   # que no falta ninguna deja de leerse a la semana.
   sin_cita <- tryCatch({
     v <- .madm_ventana_del_reparto(dashboard[["reparto"]])
-    monitoreo_aulas_agendadas_sin_cita(plan, filas, desde = v$desde, hasta = v$hasta)
+    # **Sin las ya aplicadas.** El aviso dice «a estas aulas agendadas no va
+    # nadie»; una que ya se encuestó no necesita que vaya nadie, y contarla
+    # manda a buscar un hueco que no existe. La marca sale del plan
+    # (`application_status`), que es lo que hay en este punto: aquí no llegan
+    # ni los partes ni las efectivas de plataforma.
+    monitoreo_aulas_agendadas_sin_cita(
+      plan, filas,
+      aplicadas = tryCatch(monitoreo_aulas_codigos_aplicados(plan),
+                           error = function(e) character(0)),
+      desde = v$desde, hasta = v$hasta
+    )
   }, error = function(e) NULL)
   dashboard[["reparto"]][["distribucion"]] <- list(
     huella = monitoreo_aulas_distribucion_huella(filas),
