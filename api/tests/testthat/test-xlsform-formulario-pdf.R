@@ -1662,3 +1662,44 @@ test_that("PDF: el numero del item vive en su columna, no pegado a la etiqueta",
                 label = sprintf("lo que precede a la etiqueta en la fila %d", i))
   }
 })
+
+test_that("B4: la rejilla del PDF sobrevive al umbral DURO de la copiadora", {
+  # Hermano del test de Word. El test de rejilla de mas arriba binariza a 200 y
+  # por eso NO discrimina: el gris A6A6A6 de la referencia (luma 166) tambien lo
+  # pasa. Una copiadora tipica corta mas abajo, y medido sobre el instrumento de
+  # ejemplo la rejilla gris desaparecia entera por debajo de 166. Aqui el umbral
+  # es 128: solo pasa una linea realmente negra.
+  survey <- data.frame(
+    type = "select_one largo", name = "q", label = "Pregunta de lista larga",
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = "largo", name = as.character(1:4),
+    label = c("Primera alternativa de la lista con texto largo",
+              "Segunda alternativa de la lista con texto largo",
+              "Tercera alternativa de la lista con texto largo",
+              "Cuarta alternativa de la lista con texto largo"),
+    stringsAsFactors = FALSE
+  )
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "Rejilla dura"),
+                         output_file = tmp, options = list(columns = 1))
+  pal <- .form_gate_palabras(tmp)
+  a <- pal[pal$texto == "Segunda", , drop = FALSE]
+  b <- pal[pal$texto == "Tercera", , drop = FALSE]
+  expect_identical(nrow(a), 1L); expect_identical(nrow(b), 1L)
+
+  img <- .form_pdf_raster(tmp)
+  gris <- (img[, , 1] + img[, , 2] + img[, , 3]) / 3
+  h <- nrow(gris); w <- ncol(gris)
+  # `.form_gate_palabras()` mide DESDE ABAJO y `pdftoppm` indexa DESDE ARRIBA.
+  y0 <- round((1 - a$y0) * h) + 2L
+  y1 <- round((1 - b$y1) * h) - 2L
+  expect_gt(y1, y0)
+  franja <- gris[seq(y0, y1), seq(round(w * 0.10), round(w * 0.50)), drop = FALSE]
+  oscuro <- franja < (128 / 255)
+  corrida <- apply(oscuro, 1, function(fila) {
+    r <- rle(fila); if (!any(r$values)) 0L else max(r$lengths[r$values])
+  })
+  expect_gt(max(corrida), ncol(oscuro) * 0.9)
+})
