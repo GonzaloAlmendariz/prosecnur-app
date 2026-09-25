@@ -203,7 +203,10 @@
     }, character(1)),
     lbl = vapply(items, function(it) {
       num <- .form_pdf_clean_text(it$number %||% "")
-      base <- .form_pdf_clean_text(it$label %||% "")
+      # Limpieza que CONSERVA el enfasis: la completa borra `**` y dejaria la
+      # etiqueta plana, deshaciendo aqui lo que el modelo decidio. Es el mismo
+      # patron que ya mordio con las categorias — el renderer re-limpiaba.
+      base <- .form_pdf_clean_text_enfasis(it$label %||% "")
       # La madre conserva su numero EN LA ETIQUETA: su fila va fusionada, no
       # tiene celda de numero donde ponerlo.
       if (isTRUE(it$is_parent) && nzchar(num)) paste0(num, ".  ", base) else base
@@ -323,14 +326,23 @@
   if (length(child_rows)) ft <- flextable::padding(ft, i = child_rows, j = "lbl", padding.left = 16, part = "body")
   # Salto por-FILA (filtro): "Si responde «No», salto a la N" bajo la etiqueta,
   # en cursiva, como la referencia. Se compone la celda (etiqueta + salto).
+  # Etiqueta de cada item: se compone SIEMPRE por tramos para pintar el enfasis
+  # del autor (`**sujeto**`), que antes se borraba. El salto por-fila, si lo hay,
+  # se anade como un chunk mas en cursiva.
   item_skips <- vapply(items, function(it) .form_pdf_clean_text(it$skip %||% ""), character(1))
-  for (ri in which(nzchar(item_skips))) {
+  for (ri in seq_len(nrow(df))) {
+    trozos <- .form_word_chunks_enfasis(df$lbl[ri])
+    if (!length(trozos)) next
+    if (nzchar(item_skips[ri])) {
+      trozos <- c(trozos, list(flextable::as_chunk(
+        paste0("\n", item_skips[ri]),
+        props = officer::fp_text(italic = TRUE, color = .FORM_WORD_INK,
+                                 font.size = .FORM_WORD_SZ_MIN, font.family = .FORM_WORD_FONT))))
+    } else if (!grepl("**", df$lbl[ri], fixed = TRUE)) {
+      next   # sin enfasis ni salto no hay nada que componer
+    }
     ft <- flextable::compose(ft, i = ri, j = "lbl", part = "body",
-      value = flextable::as_paragraph(
-        flextable::as_chunk(df$lbl[ri]),
-        flextable::as_chunk(paste0("\n", item_skips[ri]),
-          props = officer::fp_text(italic = TRUE, color = .FORM_WORD_INK,
-                                   font.size = .FORM_WORD_SZ_MIN, font.family = .FORM_WORD_FONT))))
+                             value = do.call(flextable::as_paragraph, trozos))
   }
   # La rejilla completa la pone .form_word_table_base; no hace falta el interior
   # vertical suelto que habia aqui.
@@ -400,6 +412,22 @@
   max(vapply(ws, .form_word_ancho_pt, numeric(1), size = size))
 }
 
+# Trocea un texto en `as_chunk()` respetando el enfasis del autor (`**...**`).
+# El motor borraba esos marcadores y dejaba texto plano; la referencia los usa
+# para el sujeto de cada item, asi que perderlos es perder intencion del
+# instrumento. `negrita_base` es el peso del texto normal: en una cabecera todo
+# va en negrita y el enfasis no se distingue, asi que ahi no se aplica.
+.form_word_chunks_enfasis <- function(txt, size = .FORM_WORD_SZ, negrita_base = FALSE,
+                                      italic = FALSE, color = .FORM_WORD_INK) {
+  tramos <- .form_pdf_tramos_enfasis(txt)
+  if (!length(tramos)) return(list())
+  lapply(tramos, function(tr) {
+    flextable::as_chunk(tr$texto, props = officer::fp_text(
+      font.size = size, bold = isTRUE(negrita_base) || isTRUE(tr$negrita),
+      italic = italic, color = color, font.family = .FORM_WORD_FONT))
+  })
+}
+
 # Enunciado como PRIMERA FILA de la tabla de la pregunta (L4 del GOAL). En la
 # referencia cada pregunta es UNA tabla y su primera fila es el enunciado
 # sombreado; aqui el enunciado era un parrafo suelto encima de la tabla, sin
@@ -414,10 +442,9 @@
   vals[[col_ids[1]]] <- enunciado
   ft <- do.call(flextable::set_header_labels, c(list(ft), vals))
   ft <- flextable::merge_at(ft, i = 1, j = col_ids, part = "header")
-  chunks <- list(flextable::as_chunk(
-    enunciado,
-    props = officer::fp_text(font.size = .FORM_WORD_SZ, bold = TRUE,
-                             color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT)))
+  # El enunciado va entero en negrita, asi que el enfasis del autor no se
+  # distinguiria; se trocea igualmente para no dejar los `**` a la vista.
+  chunks <- .form_word_chunks_enfasis(enunciado, negrita_base = TRUE)
   if (nzchar(hint)) {
     chunks <- c(chunks, list(flextable::as_chunk(
       paste0("\n", hint),
