@@ -1895,3 +1895,53 @@ test_that("L19: la reserva de paginado sigue al dibujo en TODO bloque", {
     expect_lt(exceso[[k]], 1.02)
   }
 })
+
+test_that("L20: una banda de seccion nunca amanece sola al pie de la pagina", {
+  # El control de viudas tenia un tope, `min(nxt_h, 0.085)` (71.6 pt), y era JUSTO
+  # lo que dejaba pasar la viuda que la regla existe para impedir: con un bloque
+  # siguiente mas alto que el tope —cualquier matriz— la banda se quedaba, el
+  # bloque no cabia, y la banda amanecia sola al pie. El tope tendria sentido si
+  # el bloque siguiente pudiera EMPEZAR ahi y continuar en la otra pagina, pero
+  # ningun bloque de ancho completo se parte.
+  #
+  # El relleno de 10 no es arbitrario: es la cantidad que deja la banda a esa
+  # distancia exacta del pie. Con 9 la matriz todavia cabe y con 11 la banda ya
+  # salta entera, asi que un fixture "razonable" no toca el defecto. Se encontro
+  # barriendo de 6 a 13.
+  relleno <- data.frame(
+    type = c("begin_group", rep("select_one sn", 10L), "end_group"),
+    name = c("g0", paste0("r", 1:10), "ge0"),
+    label = c("A. RELLENO", sprintf("Pregunta de relleno numero %d", 1:10), ""),
+    stringsAsFactors = FALSE)
+  bateria <- data.frame(
+    type = c("begin_group", rep("select_one ac", 6L), "end_group"),
+    name = c("g1", paste0("b", 1:6), "ge1"),
+    label = c("B. BATERIA", sprintf("Afirmacion numero %d de la bateria", 1:6), ""),
+    stringsAsFactors = FALSE)
+  choices <- rbind(
+    data.frame(list_name = "sn", name = c("1", "2"), label = c("Si", "No"),
+               stringsAsFactors = FALSE),
+    data.frame(list_name = "ac", name = as.character(1:5),
+               label = c("Totalmente en desacuerdo", "En desacuerdo", "Ni si ni no",
+                         "De acuerdo", "Totalmente de acuerdo"), stringsAsFactors = FALSE))
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(rbind(relleno, bateria), choices,
+                         settings = list(form_title = "Viuda"), output_file = tmp,
+                         options = list(columns = 1, matrix_groups = list(list(
+                           members = paste0("b", 1:6),
+                           tenor = "Senala tu grado de acuerdo con cada afirmacion"))))
+  pal <- .form_gate_palabras(tmp)
+  expect_true(any(pal$page == 2L))   # si cupiera en una pagina, el caso no se da
+  # El CUERPO, no el pie: el pie tambien son palabras y vive por debajo de
+  # `y_bottom` (0.058). Sin este filtro la ultima linea siempre seria «PULSO PUCP
+  # · Pagina 1 de 2» y el test no podria fallar nunca.
+  p1 <- pal[pal$page == 1L & pal$y0 > 0.058, , drop = FALSE]
+  expect_gt(nrow(p1), 10L)
+
+  # La ultima LINEA del cuerpo de la pagina 1 no puede ser la banda y nada mas.
+  # `.form_gate_palabras()` mide DESDE ABAJO: y menor = mas abajo.
+  y_ultima <- min(p1$y0)
+  ultima <- p1[abs(p1$y0 - y_ultima) < 0.004, , drop = FALSE]
+  texto <- trimws(paste(ultima$texto, collapse = " "))
+  expect_false(grepl("^B\\.?\\s*BATERIA$", texto))
+})

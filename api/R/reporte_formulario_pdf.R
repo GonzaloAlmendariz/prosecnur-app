@@ -2539,12 +2539,24 @@ formulario_pdf_render <- function(model, output_file) {
     if (isTRUE(block$full_width)) {
       flush_divider(min(y))
       yy <- min(y)
-      # Control de viudas/huerfanas: una banda de seccion no debe quedar sola al
-      # pie; debe caber con el inicio de su primer bloque siguiente.
+      # Control de viudas/huerfanas: una banda no debe quedar sola al pie.
+      #
+      # L20 — AQUI HABIA UN TOPE, `min(nxt_h, 0.085)`, y era justo lo que dejaba
+      # pasar la viuda que la regla existe para impedir. El tope tenia sentido si
+      # el bloque siguiente pudiera EMPEZAR al pie y continuar en la pagina
+      # siguiente, pero ningun bloque de ancho completo se parte: o cabe entero o
+      # se va entero (el gate del §4 lo exige para las matrices). Asi que con un
+      # siguiente mas alto que 71.6 pt —cualquier matriz— la banda se quedaba, el
+      # bloque no cabia y la banda amanecia sola al pie. Medido: con 9 y con 10
+      # preguntas de relleno antes de una seccion seguida de matriz, la banda
+      # quedaba huerfana; con el tope fuera, no pasa en ningun relleno de 6 a 13.
+      #
+      # La excepcion es real y hay que dejarla: si el bloque siguiente no cabe ni
+      # en una pagina entera, saltar no arregla nada y encima gastaria una pagina.
       keep <- h
-      if (identical(block$kind, "section") && !is.null(nxt)) {
+      if (block$kind %in% c("section", "subsection") && !is.null(nxt)) {
         nxt_h <- .form_pdf_block_height(nxt, full_w)
-        keep <- h + min(nxt_h, 0.085)
+        if (nxt_h <= (y_top - y_bottom)) keep <- h + nxt_h
       }
       if (yy - h < y_bottom || (yy - keep < y_bottom && yy < (y_top - 0.001))) {
         new_page()
