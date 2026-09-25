@@ -220,7 +220,7 @@ export function ConfigurarPdfDialog({
                   type="button"
                   role="radio"
                   aria-checked={columns === "auto"}
-                  className={`pulso-xf-pdf-card${columns === "auto" ? " is-active" : ""}`}
+                  className={`pulso-xf-pdf-card pulso-xf-pdf-card--ancha${columns === "auto" ? " is-active" : ""}`}
                   onClick={() => setColumns("auto")}
                 >
                   <span className="pulso-xf-pdf-card-icon"><LayoutTemplate size={18} /></span>
