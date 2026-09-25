@@ -104,10 +104,15 @@
   as.character(fallback)
 }
 
+# Elige el primer valor no vacio. Limpia con la variante que CONSERVA el enfasis:
+# su trabajo es elegir, no decidir el formato — de eso se encarga el llamador, y
+# si aqui se borran los `**` ya no llegan. Esta era la CUARTA capa que re-limpiaba
+# el mismo texto (las otras: clean_text, paper_text y strip_leading_number), y
+# basto una para perder el enfasis del instrumento entero.
 .form_pdf_first_nonempty <- function(...) {
   vals <- list(...)
   for (val in vals) {
-    txt <- .form_pdf_clean_text(val)
+    txt <- .form_pdf_clean_text_enfasis(val)
     if (nzchar(txt)) return(txt)
   }
   ""
@@ -138,7 +143,10 @@
 #                                fuente de esa letra, no se toca.
 #   Cualquier prefijo cuyo retiro deje la etiqueta vacia.
 .form_pdf_strip_leading_number <- function(label, number) {
-  label <- .form_pdf_clean_text(label)
+  # Limpieza que CONSERVA el enfasis: esta funcion corre ANTES de
+  # `paper_text_enfasis`, asi que si aqui se borran los `**` el enfasis ya no
+  # llega. Van tres capas re-limpiando el mismo texto; esta es la primera.
+  label <- .form_pdf_clean_text_enfasis(label)
   number <- .form_pdf_clean_text(number)
   if (!nzchar(label)) return(label)
 
@@ -189,6 +197,53 @@
   # Entre parentesis: "(12) Edad" (el parentesis ya hace de separador).
   label <- try_strip(label, paste0("^\\s*\\(\\s*", num_rx, "\\s*\\)\\s*[.:\u2013-]?\\s*"))
   trimws(label)
+}
+
+# Limpieza que CONSERVA el enfasis del autor. La completa borra `**palabra**` y
+# deja texto plano; la referencia usa esa negrita para el sujeto de cada item
+# («Mi **mama/cuidadora** se da cuenta de lo que necesito»), asi que borrarla
+# pierde intencion del instrumento, igual que borrar un `*` de una categoria
+# perdia contenido. Los renderers la pintan; el resto de la limpieza es la misma.
+.form_pdf_clean_text_enfasis <- function(x) {
+  x <- .form_pdf_chr(x)
+  x <- gsub("\u00a0", " ", x, fixed = TRUE)
+  x <- gsub("\u2013|\u2014|\u2212", "-", x, perl = TRUE)
+  x <- gsub("\u2018|\u2019", "'", x, perl = TRUE)
+  x <- gsub("\u201c|\u201d", "\"", x, perl = TRUE)
+  x <- gsub("__([^_]+)__", "\\1", x, perl = TRUE)
+  # Se van los backticks y los asteriscos SUELTOS; los pares `**` sobreviven.
+  x <- gsub("`", "", x, perl = TRUE)
+  x <- gsub("(?<!\\*)\\*(?!\\*)", "", x, perl = TRUE)
+  x <- gsub("\\s+", " ", x, perl = TRUE)
+  trimws(x)
+}
+
+.form_pdf_paper_text_enfasis <- function(text, blank = "__________") {
+  text <- .form_pdf_clean_text_enfasis(text)
+  if (!nzchar(text)) return(text)
+  gsub("\\$\\{[^}]+\\}", blank, text, perl = TRUE)
+}
+
+# Parte un texto en tramos `list(texto, negrita)` segun los pares `**`. Es lo que
+# consumen los renderers para pintar el enfasis en vez de tirarlo.
+.form_pdf_tramos_enfasis <- function(txt) {
+  txt <- .form_pdf_chr(txt)
+  if (!nzchar(txt)) return(list())
+  piezas <- strsplit(txt, "\\*\\*", fixed = FALSE)[[1]]
+  if (length(piezas) < 2L) return(list(list(texto = txt, negrita = FALSE)))
+  # Los pares alternan: fuera, dentro, fuera, dentro...
+  # Con un numero IMPAR de marcadores el ultimo no cierra nada, asi que su tramo
+  # va en redonda. Si no, un `**` suelto pondria en negrita todo el resto de la
+  # etiqueta, que es peor que ignorarlo.
+  n_marcas <- lengths(regmatches(txt, gregexpr("\\*\\*", txt)))
+  cierra <- (n_marcas %% 2L) == 0L
+  out <- list()
+  for (i in seq_along(piezas)) {
+    if (!nzchar(piezas[i])) next
+    dentro <- (i %% 2L == 0L) && (cierra || i < length(piezas))
+    out[[length(out) + 1L]] <- list(texto = piezas[i], negrita = dentro)
+  }
+  out
 }
 
 .form_pdf_paper_text <- function(text, blank = "__________") {
@@ -980,14 +1035,14 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
           list(
             number = item_num,
             name = .form_pdf_chr(survey$name[r]),
-            label = .form_pdf_paper_text(.form_pdf_strip_leading_number(
+            label = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
               .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num)),
             skip = mk_item_skip(r)
           )
         })
       } else {
         # Sin tenor: numeracion secuencial, cada fila su propio entero.
-        mat_title <- .form_pdf_paper_text(.form_pdf_strip_leading_number(
+        mat_title <- .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
           .form_pdf_first_nonempty(survey$paper_label[i], survey$label[i]), mat_number))
         subletters <- (survey$paper_subletter %||% rep("", nrow(survey)))
         mat_items <- lapply(idx, function(r) {
@@ -999,7 +1054,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
             subletter = if (is_parent) "" else subl,
             is_parent = is_parent,
             name = .form_pdf_chr(survey$name[r]),
-            label = .form_pdf_paper_text(.form_pdf_strip_leading_number(
+            label = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
               .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), numbers[r])),
             skip = mk_item_skip(r)
           )
@@ -1037,7 +1092,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         kind = "section",
         number = numbers[i],
         name = .form_pdf_chr(survey$name[i]),
-        title = .form_pdf_paper_text(.form_pdf_strip_leading_number(
+        title = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
           .form_pdf_first_nonempty(survey$paper_label[i], survey$label[i]),
           numbers[i]
         )),
@@ -1192,8 +1247,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # limpio con el criterio que le tocaba (enunciados con la completa, categorias
 # con la segura). Re-limpiar aqui con perdida borraba `*` y backticks de las
 # categorias justo antes de pintarlas, despues de que el modelo las conservara.
+# Quita los marcadores de enfasis sin tocar nada mas. El PDF dibuja cada cadena
+# con un solo `gpar`, asi que todavia NO sabe pintar negrita dentro de una
+# etiqueta (eso es L15 y esta hecho solo en Word): aqui se retiran para que no
+# salgan `**` impresos en el papel. Cuando el PDF aprenda a trocear, esto se
+# sustituye por el dibujo tramo a tramo, NO se borra.
+.form_pdf_sin_marcas <- function(x) gsub("\\*\\*", "", .form_pdf_chr(x), perl = TRUE)
+
 .form_pdf_wrap <- function(text, chars) {
-  text <- .form_pdf_clean_text_safe(text)
+  text <- .form_pdf_sin_marcas(.form_pdf_clean_text_safe(text))
   if (!nzchar(text)) return(character(0))
   unlist(strwrap(text, width = max(12L, as.integer(chars)), simplify = FALSE), use.names = FALSE)
 }
@@ -1205,7 +1267,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # grafico abierto (lo hay durante `formulario_pdf_render`, y block_height corre
 # despues de abrir el pdf); si la medicion falla, cae al wrap por caracteres.
 .form_pdf_wrap_fit <- function(text, w, fontsize = 7.3, fontface = "plain") {
-  text <- .form_pdf_clean_text_safe(text)
+  text <- .form_pdf_sin_marcas(.form_pdf_clean_text_safe(text))
   if (!nzchar(text)) return(character(0))
   if (!is.finite(w) || w <= 0) return(.form_pdf_wrap(text, 40L))
   gp0 <- grid::gpar(fontsize = fontsize, fontface = fontface, lineheight = 1.05)
