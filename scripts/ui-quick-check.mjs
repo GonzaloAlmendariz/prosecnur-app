@@ -1060,7 +1060,11 @@ async function irADireccion(page, destino, timeoutMs) {
 function pistaDeReadiness(readiness, timeoutMs) {
   const segundos = Math.round(timeoutMs / 1000);
   if (readiness?.motivo === "marca-en-false") {
-    return ` La vista declara su contrato y aún no lo cumple tras ${segundos} s.`
+    // Con varias marcas, «la vista» ya no dice cuál: se nombra la superficie
+    // que sigue en `false`. Si es un estado terminal, esa superficie debe
+    // publicar `vacio:<motivo>`, y esperar más no la arregla.
+    const cual = readiness.pendiente ? ` Sigue en false: «${readiness.pendiente}».` : "";
+    return ` La vista declara su contrato y aún no lo cumple tras ${segundos} s.${cual}`
       + " Si es Monitoreo con proyecto real, súbelo: --timeout-ms 420000.";
   }
   if (readiness?.motivo === "sin-proyecto-abierto") {
@@ -1085,13 +1089,35 @@ async function esperarListo(page, timeoutMs) {
       // Los fixtures aislados del inspector no montan la aplicación ni su
       // puente, pero sí declaran el mismo marcador verificable. Una shell real
       // sin puente todavía está arrancando y debe seguir esperando.
+      //
+      // Mismo contrato que `estadoListo()` (lib/navegacion/runtime.ts): se
+      // leen TODAS las marcas, no la primera. Una marca exterior en `true` ya
+      // no tapa a una superficie anidada en `false` (E15/AD6: el Explorador de
+      // Cálculo de muestra se capturaba en «Leyendo la base…»). Un `false`
+      // bajo un ANCESTRO oculto no cuenta —pestaña montada que no se ve—; el
+      // `hidden` del propio nodo sí, porque Monitoreo publica ahí su marca.
       const appShell = document.querySelector(".pulso-shell");
-      const marker = document.querySelector("[data-audit-ready]");
-      if (!appShell && marker) {
-        const value = marker.getAttribute("data-audit-ready") ?? "";
-        return value === "false"
-          ? { listo: false, motivo: "marca-en-false", marca: value }
-          : { listo: true, marca: value };
+      const markers = Array.from(document.querySelectorAll("[data-audit-ready]"));
+      if (!appShell && markers.length > 0) {
+        const underHiddenAncestor = (el) => {
+          for (let node = el.parentElement; node; node = node.parentElement) {
+            if (node.hasAttribute("hidden") || node.hasAttribute("inert")) return true;
+            if (window.getComputedStyle(node).display === "none") return true;
+          }
+          return false;
+        };
+        const pending = markers.find(
+          (el) => el.getAttribute("data-audit-ready") === "false" && !underHiddenAncestor(el),
+        );
+        if (pending) {
+          const name = pending.getAttribute("data-surface-contract")
+            || pending.getAttribute("data-audit-desk")
+            || pending.getAttribute("data-qa-geometry-group")
+            || pending.getAttribute("aria-label")
+            || `${pending.tagName.toLowerCase()}${pending.id ? `#${pending.id}` : ""}${pending.classList.item(0) ? `.${pending.classList.item(0)}` : ""}`;
+          return { listo: false, motivo: "marca-en-false", marca: "false", pendiente: name };
+        }
+        return { listo: true, marca: markers[0].getAttribute("data-audit-ready") ?? "" };
       }
       return null;
     });

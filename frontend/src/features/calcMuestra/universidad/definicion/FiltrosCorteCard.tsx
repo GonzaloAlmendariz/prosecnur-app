@@ -110,7 +110,7 @@ export function FiltrosCorteCard({
       className="cmv2-defi-filtros"
       data-qa-geometry-group="calc-muestra/definicion-filtros-corte"
       data-qa-geometry-contract="intrinsic"
-      data-audit-ready={filtros.length === 0 || confirmados === filtros.length ? "true" : "false"}
+      data-audit-ready={filtros.length === 0 || confirmados === filtros.length ? "true" : "vacio:filtros-sin-confirmar"}
       aria-labelledby={titleId}
     >
       <header className="cmv2-defi-filtros-head">

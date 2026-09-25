@@ -189,7 +189,9 @@ describe("CalculoDistribucionTab", () => {
     expect(html).toContain(`data-state="${kind}"`);
     expect(html).toContain(title);
     expect(html).not.toContain("<table");
-    expect(html).toContain('data-audit-ready="false"');
+    // Terminal: clasificado, no en `false` (colgaría el QA visual).
+    expect(html).toContain(`data-audit-ready="vacio:distribucion-${kind}"`);
+    expect(html).not.toContain('data-audit-ready="false"');
   });
 
   it("declara geometría para la superficie completa, totales y sensibilidad", () => {

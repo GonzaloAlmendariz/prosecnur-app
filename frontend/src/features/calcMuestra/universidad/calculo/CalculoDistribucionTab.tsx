@@ -321,7 +321,9 @@ export function CalculoDistribucionTab({
   return (
     <div
       className="cmv2-dist"
-      data-audit-ready={ready ? "true" : "false"}
+      // Los estados sin `ready` son terminales (ver `DistribucionEstado`): el
+      // contenedor los clasifica en vez de dejar colgado el QA.
+      data-audit-ready={ready ? "true" : `vacio:distribucion-${model.state.kind}`}
       data-surface-group="calc-muestra-calculo"
       data-surface-contract="distribucion-universitaria-r"
     >
