@@ -65,3 +65,14 @@ Pendiente anotado (fuera del glob de E16): la entrada de pestaña usa 160 ms
   `!important`) lo anula. Queda como pendiente fuera del glob de E16.
 - Los swaps de `FichaCorrida` y Resultados heredan `.cmv2-uni-swap` de aulas
   (180 ms literal en `universidad/ui/ui.css:70-71`), sin token.
+
+## E16b (2026-09-25) — pendientes fuera del glob, resueltos
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| M10 | Con movimiento reducido el color y la opacidad siguen cruzando: la red global ya no aplana TODA transición a 1 ms, la acota a `color, background-color, border-color, outline-color, opacity, box-shadow, fill, stroke` (transform/width/filter quedan fuera) | `calcMuestra.css:~4881` | ☑ test E16b; mutante (volver a 1 ms) muerto |
+| M11 | `.cmv2-uni-swap` con tokens (`--motion-dur-fast`, `--motion-ease-out`) en vez de 180/150 ms literales | `universidad/ui/ui.css:~70,~80` | ☑ |
+
+Gate: `make gate-front AREA=calcMuestra` 269 archivos / 2495 tests, `tsc` 0,
+`--audit` OK. Sin verificación en vivo con `reduce` (el navegador integrado no
+emula la preferencia); cubierto por contrato de CSS.
