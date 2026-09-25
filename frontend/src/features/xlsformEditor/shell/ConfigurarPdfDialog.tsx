@@ -24,7 +24,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Columns2, FileText, GitBranch, Grid3x3, Route, ShieldCheck, Square, Table2, X } from "../../../vendor/lucide-react";
+import { ChevronDown, Columns2, FileText, GitBranch, Grid3x3, LayoutTemplate, Route, ShieldCheck, Square, Table2, X } from "../../../vendor/lucide-react";
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { ConsentQuestion } from "../parsing/detectConsentQuestions";
 import {
@@ -214,6 +214,19 @@ export function ConfigurarPdfDialog({
                   <span className="pulso-xf-pdf-card-text">
                     <strong>Dos columnas</strong>
                     <em>Compacto, más preguntas por hoja.</em>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={columns === "auto"}
+                  className={`pulso-xf-pdf-card${columns === "auto" ? " is-active" : ""}`}
+                  onClick={() => setColumns("auto")}
+                >
+                  <span className="pulso-xf-pdf-card-icon"><LayoutTemplate size={18} /></span>
+                  <span className="pulso-xf-pdf-card-text">
+                    <strong>Automáticas</strong>
+                    <em>Una o dos según el tramo: las baterías anchas a toda la página.</em>
                   </span>
                 </button>
               </div>
