@@ -35,21 +35,32 @@ dos renderers, o se declara explícitamente como exclusiva de uno.
 | 10 | **Verificador OOXML del artefacto** | test | **cerrado** |
 | 11 | **`clean_text` borra `*` y backticks de las categorías** | modelo + ambos renderers | **cerrado** — ver §11 |
 | 12 | **El renderer Word ignora `columns` desde siempre** | renderer Word | **bloqueado** — decide Gonzalo |
-| 13 | **Las cabeceras de matriz parten palabras** | ambos renderers | pendiente — ver §13 |
+| 13 | **Las cabeceras de matriz parten palabras** | ambos renderers | **cerrado** — Word `72425151f` (envoltorio por ancho medido); el PDF ya cumplía: `wrap_fit` siempre midió ancho real |
 | 14 | **`n_questions` no tiene grano declarado** | modelo + API | **bloqueado** — decide Gonzalo |
-| 15 | **La geometría del motor no alcanza a la de la referencia** | modelo | **bloqueado** — decide Gonzalo |
+| 15 | **La geometría del motor no alcanza a la de la referencia** | modelo | **resuelto en la práctica** — se adoptaron sus márgenes de 680 twips: útil 10 546 vs 10 549 de la referencia (`9a2fb7f02`, `4186e3647`) |
 | 16 | Sección de 1 columna con su propio `<w:col w:w>` | renderer Word | **no nos pasa** — ver §16 |
-| 17 | El ancho útil se toma por sección, no de una constante | renderer Word | **riesgo latente** |
+| 17 | El ancho útil se toma por sección, no de una constante | renderer Word | **riesgo latente** — hoy todas las secciones comparten `pgMar`, así que no muerde |
 | 18 | Sangría negativa que saca texto del margen | renderer Word | **no nos pasa** (0 medidas) |
-| 19 | Tabla más ancha que su columna | renderer Word | **1 twip de más** — ver §19 |
+| 19 | Tabla más ancha que su columna | renderer Word | **1 twip de redondeo**, sin efecto medible — ver §19 |
 | 20 | Banda sin `keepNext`, y la cadena rota por huecos | renderer Word | **no nos pasa** (4/4 con cadena intacta) |
 | 21 | Cabecera de matriz repetida con `tblHeader` | renderer Word | **ya lo hacemos** |
-| 22 | Tabla corta partida entre columnas | renderer Word | **nos pasa** — ver §22 |
+| 22 | Tabla corta partida entre columnas | ambos renderers | **cerrado** — Word `e115a4107` (`keepNext` por fila, NO `cantSplit`); el PDF no lo reproduce: pasa el bloque entero de columna |
 | 23 | Párrafos de relleno y marcos vacíos | renderer Word | **no nos pasa** (0 medidos) |
 | 24 | El borde de párrafo se dibuja `space` pt por fuera | renderer Word | **no nos pasa** (`space=0`) |
-| 25 | **El PDF no equilibra las dos columnas de un tramo** | renderer PDF | pendiente — ver §25 |
+| 25 | **El PDF no equilibra las dos columnas de un tramo** | renderer PDF | **cerrado** `3877c1b64` — corte por mitad del alto acumulado; tinta der/izq 0,44 → 0,85 |
 
 
+
+**Estado al 2026-09-25.** De los diez ítems originales quedan **cerrados nueve**; el 8 lo
+descartó Gonzalo. De los que aparecieron midiendo —11, 13, 22, 25— están **los cuatro
+cerrados**. Siguen **bloqueados esperando decisión suya el 12 y el 14**, y el 17 queda
+como riesgo latente que hoy no muerde.
+
+El trabajo se continuó como GOAL —`docs/qa/goal-formulario-replica-ser-adolescente-2026-09-24.md`—
+tras la instrucción de tomar el instrumento de Ser Adolescente como referencia y replicarlo
+**también en escala de grises**, porque «los instrumentos son insumos que se imprimen en
+blanco y negro». Ese doc lleva la cola L1–L14 (completa en los dos renderers) y la vara
+V1–V10 con sus mediciones; ahí vive lo que falta.
 
 ---
 
