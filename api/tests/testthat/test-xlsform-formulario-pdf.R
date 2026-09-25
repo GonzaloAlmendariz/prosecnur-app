@@ -1497,3 +1497,168 @@ test_that("gate §4 (auto-verificacion): el detector ve una matriz repartida en 
   expect_length(.form_gate_paginas_comunes(partida, textos), 0L)
   expect_identical(.form_gate_paginas_comunes(entera, textos), 2L)
 })
+
+# --- Regresion del renderer PDF (GOAL replica Ser Adolescente) ----------------
+#
+# Todo el trabajo visual del PDF —monocromo, rejilla, pie «N de M», columna del
+# numero, fila horizontal— no tenia NI UN test propio: la suite cubria el modelo
+# y el gate del §4, y un motor sin regresion vuelve atras solo.
+#
+# Se mide el ARTEFACTO, nunca el modelo. Esa leccion costo un falso verde de 216
+# aserciones: el modelo conservaba `De 5* a 10*` y el papel imprimia `De 5 a 10`.
+
+# Rasteriza una pagina del PDF y devuelve la matriz RGB. `pdftoppm` viene con
+# poppler, que el CI instala desde 918aded84.
+.form_pdf_raster <- function(path, pagina = 1L, dpi = 110) {
+  bin <- Sys.which("pdftoppm")
+  if (!nzchar(bin)) {
+    if (nzchar(Sys.getenv("CI"))) testthat::fail("pdftoppm no esta disponible en el CI")
+    testthat::skip("pdftoppm no esta disponible (entorno local sin poppler-utils)")
+  }
+  pre <- tempfile()
+  system2(bin, c("-r", dpi, "-png", "-f", pagina, "-l", pagina, shQuote(path), shQuote(pre)))
+  f <- list.files(dirname(pre), pattern = paste0("^", basename(pre)), full.names = TRUE)
+  if (!length(f)) testthat::fail("pdftoppm no genero ninguna imagen")
+  png::readPNG(f[[1]])
+}
+
+.form_pdf_fixture_demo <- function() {
+  survey <- data.frame(
+    type = c("begin_group", "integer", "select_one sexo", "select_one nivel", "end_group"),
+    name = c("g", "edad", "sexo", "nivel", "ge"),
+    label = c("A. DATOS", "¿Cuántos años cumplidos tienes?", "Sexo",
+              "¿Cuál es el último nivel educativo que aprobaste?", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- rbind(
+    data.frame(list_name = "sexo", name = c("1", "2"), label = c("Mujer", "Hombre"),
+               stringsAsFactors = FALSE),
+    data.frame(list_name = "nivel", name = as.character(1:5),
+               label = c("Sin nivel", "Primaria", "Secundaria", "Superior técnica",
+                         "Superior universitaria"), stringsAsFactors = FALSE)
+  )
+  list(survey = survey, choices = choices)
+}
+
+test_that("PDF: el instrumento es monocromo salvo el logo", {
+  fx <- .form_pdf_fixture_demo()
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, settings = list(form_title = "Monocromo"),
+                         output_file = tmp, options = list(columns = "auto"))
+  img <- .form_pdf_raster(tmp)
+  h <- dim(img)[1]; w <- dim(img)[2]
+  sat <- abs(img[, , 1] - img[, , 2]) + abs(img[, , 2] - img[, , 3])
+  coloreados <- which(sat > 0.05, arr.ind = TRUE)
+  # El logo SI lleva color, y es correcto: la referencia tambien. Vive en la
+  # esquina superior izquierda; fuera de ahi no puede haber un solo pixel de color.
+  fuera_del_logo <- coloreados[
+    coloreados[, 1] > h * 0.11 | coloreados[, 2] > w * 0.22, , drop = FALSE]
+  expect_identical(nrow(fuera_del_logo), 0L,
+                   label = "pixeles con color fuera del area del logo")
+})
+
+test_that("PDF: las filas de opciones se separan por LINEA, no por relleno", {
+  # Etiquetas LARGAS a proposito: con opciones cortas el motor las pone en una
+  # sola fila horizontal (L8) y entonces no hay filas que separar. El fixture
+  # tiene que forzar la lista vertical, que es donde vive la rejilla.
+  survey <- data.frame(
+    type = "select_one largo", name = "q", label = "Pregunta de lista larga",
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = "largo", name = as.character(1:4),
+    label = c("Primera alternativa de la lista con texto largo",
+              "Segunda alternativa de la lista con texto largo",
+              "Tercera alternativa de la lista con texto largo",
+              "Cuarta alternativa de la lista con texto largo"),
+    stringsAsFactors = FALSE
+  )
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "Rejilla"),
+                         output_file = tmp, options = list(columns = 1))
+  pal <- .form_gate_palabras(tmp)
+  a <- pal[pal$texto == "Segunda", , drop = FALSE]
+  b <- pal[pal$texto == "Tercera", , drop = FALSE]
+  expect_identical(nrow(a), 1L); expect_identical(nrow(b), 1L)
+
+  # OJO AL EJE. `.form_gate_palabras()` normaliza con `1 - yMax/H`, es decir mide
+  # DESDE ABAJO: una palabra mas baja en la pagina tiene `y` MENOR. La imagen de
+  # `pdftoppm`, en cambio, se indexa desde arriba. Confundirlos deja la banda
+  # invertida y el test rojo sobre un motor que dibuja la linea perfectamente.
+  expect_lt(b$y1, a$y0)   # "Tercera" va DEBAJO: son dos filas, no una horizontal
+
+  img <- .form_pdf_raster(tmp)
+  gris <- (img[, , 1] + img[, , 2] + img[, , 3]) / 3
+  h <- nrow(gris); w <- ncol(gris)
+  # Banda estrictamente ENTRE las dos etiquetas, ya en filas de pixel (desde
+  # arriba): del pie de la de arriba a la cabeza de la de abajo.
+  y0 <- round((1 - a$y0) * h) + 2L
+  y1 <- round((1 - b$y1) * h) - 2L
+  expect_gt(y1, y0)
+  franja <- gris[seq(y0, y1), seq(round(w * 0.10), round(w * 0.50)), drop = FALSE]
+  # Binarizado a 1 BIT con umbral 200: es lo que sobrevive a una fotocopia, que
+  # es el motivo entero de la rejilla — el relleno F2F2F2 desaparece ahi.
+  oscuro <- franja < (200 / 255)
+  corrida <- apply(oscuro, 1, function(fila) {
+    r <- rle(fila); if (!any(r$values)) 0L else max(r$lengths[r$values])
+  })
+  expect_gt(max(corrida), ncol(oscuro) * 0.9)
+})
+
+test_that("PDF: el pie dice «N de M» y M es el total real de paginas", {
+  fx <- .form_gate_fixture()
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, settings = list(form_title = "Folio"),
+                         output_file = tmp,
+                         options = list(columns = 1, matrix_groups = fx$matrix_groups))
+  pal <- .form_gate_palabras(tmp)
+  total <- max(pal$page)
+  # En un PDF de `grid` el total NO es un campo que resuelva el lector: lo cuenta
+  # el motor en una primera pasada. Si esa pasada se rompe, aqui se ve.
+  for (p in seq_len(total)) {
+    txt <- paste(pal$texto[pal$page == p], collapse = " ")
+    expect_true(grepl(sprintf("%d de %d", p, total), txt, fixed = TRUE),
+                label = sprintf("pie de la pagina %d", p))
+  }
+})
+
+test_that("PDF: el numero del item vive en su columna, no pegado a la etiqueta", {
+  # Fixture SIN tenor: los items se numeran 6..15, con una y dos cifras. Con
+  # tenor se subnumeran 1.1/1.2 y todos los numeros miden lo mismo, con lo que
+  # el defecto no se puede ver.
+  n <- 10L
+  survey <- data.frame(
+    type = rep("select_one sino", n),
+    name = paste0("m", seq_len(n)),
+    label = sprintf("Afirmacion numero %d del bloque", seq_len(n)),
+    paper_group = rep("bat", n),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = "sino", name = c("1", "2"),
+                        label = c("S\u00ed", "No"), stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "Numeros"),
+                         output_file = tmp,
+                         options = list(columns = 1,
+                                        matrix_groups = list(list(members = paste0("m", seq_len(n)),
+                                                                  tenor = "", special = "auto"))))
+  pal <- .form_gate_palabras(tmp)
+
+  # La discriminacion: con columna propia, la etiqueta arranca SIEMPRE en la
+  # misma x, tenga el numero una cifra o dos. Pegado a la etiqueta, la x se
+  # desplazaba con el ancho del numero — por eso los enunciados no alineaban.
+  etiq <- pal[pal$texto == "Afirmacion", , drop = FALSE]
+  expect_gte(nrow(etiq), 9L)
+  expect_lt(max(etiq$x0) - min(etiq$x0), 0.002,
+            label = "desviacion de la x donde arranca la etiqueta entre filas")
+
+  # Y el numero va a su izquierda, no dentro.
+  for (i in seq_len(nrow(etiq))) {
+    izq <- pal[pal$page == etiq$page[i] &
+                 abs(pal$y0 - etiq$y0[i]) < 0.004 &
+                 pal$x1 <= etiq$x0[i], , drop = FALSE]
+    expect_gt(nrow(izq), 0L)
+    expect_true(grepl("^[0-9]{1,2}$", izq$texto[which.max(izq$x1)]),
+                label = sprintf("lo que precede a la etiqueta en la fila %d", i))
+  }
+})
