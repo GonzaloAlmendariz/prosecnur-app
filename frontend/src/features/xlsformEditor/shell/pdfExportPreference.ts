@@ -10,7 +10,18 @@
 
 import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 
-export type PdfColumns = 1 | 2;
+/**
+ * Columnas del PDF de papel.
+ *   - 1 / 2: reparto fijo, el de siempre;
+ *   - "auto": el motor corta el instrumento en TRAMOS y decide por tramo — una
+ *     batería ancha se queda a página completa y el bloque de preguntas cortas
+ *     que la rodea va a dos columnas.
+ *
+ * "auto" existía en el motor desde el reparto equilibrado pero no aquí, así que
+ * no había forma de elegirlo sin teclear la opción a mano: una capacidad del
+ * motor no está terminada mientras sólo se alcance por fuera del editor.
+ */
+export type PdfColumns = 1 | 2 | "auto";
 export type PdfLogicLanguage = "saltos" | "condiciones";
 
 /**
@@ -91,6 +102,7 @@ export const DEFAULT_PDF_EXPORT_PREFERENCE: PdfExportPreference = {
 };
 
 export function columnsLabel(columns: PdfColumns): string {
+  if (columns === "auto") return "columnas automáticas";
   return columns === 1 ? "una columna" : "dos columnas";
 }
 

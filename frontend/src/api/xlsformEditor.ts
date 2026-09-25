@@ -825,7 +825,7 @@ export async function apiXlsformEditorExportPdf(
   options: {
     title?: string;
     footer_title?: string;
-    columns?: 1 | 2;
+    columns?: 1 | 2 | "auto";
     logic_language?: "saltos" | "condiciones";
     show_questionnaire_number?: boolean;
     matrix_layout?: "full" | "column";
@@ -865,7 +865,7 @@ export async function apiXlsformEditorExportWord(
   options: {
     title?: string;
     footer_title?: string;
-    columns?: 1 | 2;
+    columns?: 1 | 2 | "auto";
     logic_language?: "saltos" | "condiciones";
     show_questionnaire_number?: boolean;
     show_header_title?: boolean;
