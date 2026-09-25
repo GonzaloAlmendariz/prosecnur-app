@@ -1825,3 +1825,73 @@ test_that("L17: la subseccion sale de la matriz y pasa a banda propia encima", {
   expect_lt(g_sub, 0.99)          # tiene relleno: no es papel blanco
   expect_gt(g_sub, g_sec + 0.01)  # y es MAS CLARO que el de seccion
 })
+
+test_that("L19: la reserva de paginado sigue al dibujo en TODO bloque", {
+  # Este contrato no lo tenia nadie, y por eso `section` llego a reservar 60.6 pt
+  # para dibujar 27.6 y una nota 61.5 para dibujar 28.8. El exceso no abre hueco
+  # DENTRO de la pagina —la `y` la fija el dibujo— pero adelanta el salto:
+  # medido sobre un instrumento de 6 secciones x 6 preguntas dejaba 144.8 pt de
+  # holgura al pie de la pagina 1, un 17 % de pagina en blanco.
+  #
+  # Las DOS cotas importan y por motivos opuestos. Reservar de MENOS saca
+  # contenido del marco (lo que vigila el gate del §4). Reservar de MAS deja la
+  # pagina a medias. Un test que solo comprobara `reserva >= dibujo` habria
+  # pasado durante todo el tiempo que el defecto estuvo vivo.
+  # Fixture PROPIO, y no `.form_pdf_fixture_demo()`: ese no trae matriz ni
+  # sub-grupo, asi que dos de los tipos que este contrato tiene que cubrir no
+  # llegarian a medirse y el test daria verde sin haberlos visto. (Fijar los
+  # umbrales con un fixture y aplicarlos a otro es como se fabrican defectos
+  # imaginarios; aqui se midio sobre ESTE.)
+  fx <- list(
+    survey = data.frame(
+      type = c("begin_group", "integer", "select_one sn",
+               rep("select_one ac", 3L), "end_group"),
+      name = c("g", "edad", "sexo", "a1", "a2", "a3", "ge"),
+      label = c("A. DATOS", "Cuantos anos cumplidos tienes?", "Sexo",
+                "Me siento satisfecho conmigo mismo.",
+                "Creo que tengo buenas cualidades.",
+                "A veces pienso que no sirvo para nada.", ""),
+      paper_subgroup = c("", "", "", rep("Como te sientes", 3L), ""),
+      stringsAsFactors = FALSE),
+    choices = rbind(
+      data.frame(list_name = "sn", name = c("1", "2"),
+                 label = c("Hombre", "Mujer"), stringsAsFactors = FALSE),
+      data.frame(list_name = "ac", name = as.character(1:4),
+                 label = c("Totalmente en desacuerdo", "En desacuerdo",
+                           "De acuerdo", "Totalmente de acuerdo"),
+                 stringsAsFactors = FALSE)),
+    settings = list(form_title = "Contrato de reserva del paginado"))
+  medidas <- list()
+  original <- .form_pdf_draw_block
+  testthat::local_mocked_bindings(
+    .form_pdf_draw_block = function(block, x, y, w) {
+      y2 <- original(block, x, y, w)
+      clave <- if (identical(block$kind, "question"))
+        paste0("question/", block$type %||% "?") else block$kind
+      medidas[[clave]] <<- c(dibuja = (y - y2), reserva = .form_pdf_block_height(block, w))
+      y2
+    },
+    .package = "prosecnurapp")
+
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp,
+                         options = list(columns = 1))
+  expect_gt(length(medidas), 4L)   # si el mock no entro, esto lo delata
+
+  cortos <- names(Filter(function(v) v[["reserva"]] < v[["dibuja"]] - 0.0006, medidas))
+  expect_identical(cortos, character(0))
+
+  # Techo. Los dos que siguen por encima del 15 % —`question/integer` (+29 %) y
+  # `paper` (+20 %)— estan declarados como hallazgo ABIERTO en el GOAL con su
+  # cifra, no disimulados aqui. El techo va justo encima del peor para que
+  # cualquier EMPEORAMIENTO caiga.
+  exceso <- vapply(medidas, function(v) v[["reserva"]] / v[["dibuja"]], numeric(1))
+  expect_lt(max(exceso), 1.35)
+  # Y los que ya comparten UNA cuenta entre dibujo y paginado tienen que seguir
+  # clavados: son la vara de que el patron funciona, y lo unico que distingue
+  # "lo arregle" de "le subi el techo".
+  for (k in c("cover", "section", "subsection")) {
+    expect_true(k %in% names(exceso))
+    expect_lt(exceso[[k]], 1.02)
+  }
+})
