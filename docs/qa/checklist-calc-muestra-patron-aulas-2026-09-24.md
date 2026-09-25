@@ -47,7 +47,7 @@ cálculo a 1440 y 1024 (C1–C4 conformes; brechas de estructura).
 | AD6 | Aulas: el Explorador se da por listo con su `data-audit-ready` interna en false | `definicion/**` explorador | frontend | ◐ c7b82946f: el Explorador publica bien su readiness; el contrato transversal (runtime.ts lee sólo el primer data-audit-ready) va como tarea aparte |
 | AD7 | Aulas: ¿Alcanza? y ¿Este sorteo o otro? ponen dos tarjetas de prosa antes del resultado (veredicto primero) | `calculo/**`, `aulas/**` | frontend | ☑ c7b82946f: ¿Alcanza? con explicación plegada; rerandomización con veredicto primero (abierto por ADR 0057) |
 | AD8 | Aulas: C3 en Solidez (14 px); rótulos «Reemplazos 1.894» vs «Reservas 2.375» para cifras que parecen la misma; tarjeta con sólo «Probar reemplazos» | `aulas/**`, `salidas/**` | frontend | ☑ c7b82946f: Solidez sin hueco; «Reemplazos en cadena» vs «Reservas totales»; botón integrado |
-| AD9 | Aulas: la certeza tardó ~44 min sobre 2.561 CH y la ETA mostró «~190:17» | por diagnosticar (rendimiento) | diagnóstico | ◐ a3263e9cd: ETA corregida. Corridas de la certeza sin cambio (40 → ±3,4 pp; 300 → ±1,3 pp) hasta que Gonzalo decida |
+| AD9 | Aulas: la certeza tardó ~44 min sobre 2.561 CH y la ETA mostró «~190:17» | por diagnosticar (rendimiento) | diagnóstico | ☑ a3263e9cd (ETA) + 2e302dc7f: 40 corridas por candidato por defecto (Gonzalo, 2026-09-25: «Deja las 40 corridas en ¿Alcanza?»); ±3,4 pp |
 
 QA visual de P1–P7 (`scratchpad/e15b/`): Muestra general 11 vistas y
 Acreditación 7, a 1440×1000 y 1024×600, sobre copias calculadas: 36 capturas
