@@ -456,3 +456,113 @@ test_that("item 11: las categorias con asteriscos llegan literales al .docx", {
   expect_false(grepl("`", enunciado, fixed = TRUE),
                label = "el enunciado conserva los backticks")
 })
+
+# --- Regresion del renderer Word (GOAL replica Ser Adolescente) ---------------
+#
+# La suite tenia 85 aserciones y ninguna cubria lo que este GOAL cambio. Aqui ya
+# hubo una fuga real que NINGUN test vio: tres tablas escritas despues de
+# centralizar la tipografia no aplicaban `font()`, y el .docx salia con 14 runs
+# en Helvetica. La cazo medir el documento ENTERO, no el sitio recien tocado.
+#
+# Todo se mide sobre el ARTEFACTO (`word/document.xml`), nunca sobre el modelo.
+
+.form_word_es_gris <- function(hex) {
+  h <- toupper(hex)
+  substr(h, 1, 2) == substr(h, 3, 4) & substr(h, 3, 4) == substr(h, 5, 6)
+}
+
+test_that("Word: el instrumento es monocromo — texto negro y rellenos en gris", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx("auto"))
+  ns <- xml2::xml_ns(doc)
+  cols <- xml2::xml_attr(xml2::xml_find_all(doc, "//w:color", ns), "val")
+  fills <- xml2::xml_attr(xml2::xml_find_all(doc, "//*[@w:fill]", ns), "fill")
+  cols <- cols[!is.na(cols) & cols != "auto"]
+  fills <- fills[!is.na(fills) & fills != "auto"]
+  expect_gt(length(cols), 50L)
+  expect_setequal(unique(cols), "000000")
+  expect_true(all(.form_word_es_gris(fills)),
+              label = paste("rellenos no grises:", paste(unique(fills[!.form_word_es_gris(fills)]), collapse = ", ")))
+})
+
+test_that("Word: TODO el cuerpo va en Arial Narrow", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx("auto"))
+  ns <- xml2::xml_ns(doc)
+  fuentes <- xml2::xml_attr(xml2::xml_find_all(doc, "//w:rFonts", ns), "ascii")
+  fuentes <- fuentes[!is.na(fuentes)]
+  expect_gt(length(fuentes), 50L)
+  # Centralizar la fuente en una constante NO basta: cada tabla nueva tiene que
+  # acordarse de aplicarla, y tres no lo hicieron. Este test es el que lo caza.
+  expect_setequal(unique(fuentes), "Arial Narrow")
+})
+
+test_that("Word: todas las celdas llevan sus cuatro bordes", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx("auto"))
+  ns <- xml2::xml_ns(doc)
+  celdas <- xml2::xml_find_all(doc, "//w:tc", ns)
+  expect_gt(length(celdas), 20L)
+  # La estructura de las filas cuelga de los BORDES, no del relleno: el relleno
+  # (F2F2F2, 5 % de tinta) desaparece en una fotocopia y el instrumento es un
+  # insumo que se fotocopia.
+  con_cuatro <- vapply(celdas, function(tc) {
+    b <- xml2::xml_find_all(tc, "./w:tcPr/w:tcBorders/*", ns)
+    sum(xml2::xml_attr(b, "val") == "single", na.rm = TRUE) >= 4L
+  }, logical(1))
+  expect_identical(sum(!con_cuatro), 0L,
+                   label = "celdas sin sus cuatro caras")
+})
+
+test_that("Word: el enunciado vive DENTRO de la tabla, en celda sombreada", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx(1))
+  ns <- xml2::xml_ns(doc)
+  tablas <- xml2::xml_find_all(doc, "//w:tbl", ns)
+  expect_gt(length(tablas), 1L)
+  # Al menos una tabla de pregunta arranca con su enunciado en `F2F2F2`. Suelto
+  # encima, el enunciado se separaba de sus opciones al cortar la columna.
+  con_enunciado <- vapply(tablas, function(t) {
+    fila <- xml2::xml_find_first(t, "./w:tr", ns)
+    shd <- xml2::xml_attr(xml2::xml_find_first(fila, ".//w:shd", ns), "fill")
+    txt <- paste(xml2::xml_text(xml2::xml_find_all(fila, ".//w:t", ns)), collapse = "")
+    !is.na(shd) && identical(shd, "F2F2F2") && nzchar(trimws(txt))
+  }, logical(1))
+  expect_gt(sum(con_enunciado), 0L)
+})
+
+test_that("Word: margenes de la referencia y ancho util por encima de 10 500 twips", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx("auto"))
+  ns <- xml2::xml_ns(doc)
+  sect <- xml2::xml_find_first(doc, "//w:sectPr", ns)
+  pg <- xml2::xml_find_first(sect, "./w:pgSz", ns)
+  pm <- xml2::xml_find_first(sect, "./w:pgMar", ns)
+  izq <- as.integer(xml2::xml_attr(pm, "left"))
+  der <- as.integer(xml2::xml_attr(pm, "right"))
+  util <- as.integer(xml2::xml_attr(pg, "w")) - izq - der
+  # Un formulario en papel no es un documento de oficina: la densidad ES la
+  # funcion. La referencia deja 10 549 twips utiles.
+  expect_identical(c(izq, der), c(680L, 680L))
+  expect_gte(util, 10500L)
+})
+
+test_that("Word: el pie lleva el campo del TOTAL de paginas", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  out <- .form_word_fixture_docx("auto")
+  d <- tempfile("docx_ftr_")
+  pies <- grep("^word/footer[0-9]+\\.xml$", utils::unzip(out, list = TRUE)$Name, value = TRUE)
+  expect_gt(length(pies), 0L)
+  utils::unzip(out, files = pies, exdir = d)
+  txt <- paste(vapply(file.path(d, pies), function(f) paste(readLines(f, warn = FALSE), collapse = ""),
+                      character(1)), collapse = "")
+  # «Pagina N de M»: el total es otro campo de Word. Un campo no se calcula hasta
+  # que el documento se abre, asi que aqui se comprueba que ESTA, no su valor.
+  expect_true(grepl("NUMPAGES", txt, fixed = TRUE))
+  expect_true(grepl("PAGE", txt, fixed = TRUE))
+})
