@@ -772,6 +772,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     else !(tolower(trimws(as.character(sht)[[1]])) %in% c("false", "0", "no", "f", "n"))
 
   choices_by_list <- .form_pdf_options_by_list(choices)
+  # Categorias de la pregunta de consentimiento (vacio si no se declaro
+  # `consent_var`). El renderer las usa para rotular las casillas de acuerdo SIN
+  # inventarlas: salen del instrumento.
+  consent_opts <- local({
+    if (!nzchar(consent_var)) return(list())
+    cr <- which(as.character(survey$name) == consent_var)
+    if (!length(cr)) return(list())
+    choices_by_list[[.form_pdf_type_list(survey$type[cr[1]])]] %||% list()
+  })
   # Categoria sin rotulo: la celda de etiqueta sale VACIA en el papel y el
   # encuestado marca un codigo cuyo significado el instrumento nunca define.
   # Es un defecto del instrumento, no de formato, asi que se declara. (Ademas
@@ -875,9 +884,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     paper <- paper[order(pos), , drop = FALSE]
     for (i in seq_len(nrow(paper))) {
       kind <- .form_pdf_clean_text(paper$kind[i])
+      # Las categorias de la pregunta de consentimiento viajan CON el bloque que
+      # las va a pintar, no por un argumento que cruce medio renderer. Solo en
+      # el bloque de consentimiento: son suyas, no del documento.
+      es_consent <- grepl("consent|consentimiento|asentimiento",
+                          tolower(paste(kind, .form_pdf_clean_text(paper$layout[i]))))
       add_block(list(
         kind = "paper",
         paper_kind = if (nzchar(kind)) kind else "note",
+        consent_options = if (es_consent) consent_opts else list(),
         title = .form_pdf_paper_text(paper$title[i]),
         body = .form_pdf_paper_text(paper$body[i]),
         layout = .form_pdf_clean_text(paper$layout[i]),
@@ -1439,6 +1454,18 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
                   gp = grid::gpar(fontsize = 6.6, fontface = "bold", col = tk$navy))
 }
 
+# Ancho de un texto en npc para la pagina A4 del motor (8.27 in de ancho).
+.form_pdf_ancho_npc <- function(txt, fontsize) {
+  txt <- .form_pdf_clean_text_safe(txt %||% "")
+  if (!nzchar(txt)) return(0)
+  pt <- tryCatch(
+    grid::convertWidth(grid::grobWidth(grid::textGrob(txt, gp = grid::gpar(fontsize = fontsize))),
+                       "points", valueOnly = TRUE),
+    error = function(e) nchar(txt) * fontsize * 0.45)
+  if (!is.finite(pt)) pt <- nchar(txt) * fontsize * 0.45
+  pt / (8.27 * 72)
+}
+
 .form_pdf_band <- function(title, x, y, w, chars, kicker = "") {
   # Banda de seccion: caja GRIS con borde y titulo NEGRO centrado.
   # Antes era navy solido con el titulo en blanco. En monocromo ese relleno cae a
@@ -1502,13 +1529,43 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 .form_pdf_draw_paper <- function(block, x, y, w) {
+  tk <- .form_pdf_tokens()
+  opts <- block$consent_options %||% list()
+  y0 <- y
   if (nzchar(block$title %||% "")) {
     y <- .form_pdf_band(block$title, x, y, w, chars = 118)
     y <- y - 0.008
   }
   if (nzchar(block$body %||% "")) {
     y <- .form_pdf_text(block$body, x + 0.008, y, w - 0.016, chars = 122,
-                        fontsize = 8.1, align = "justify", col = .form_pdf_tokens()$ink, line_h = 0.012)
+                        fontsize = 8.1, align = "justify", col = tk$ink, line_h = 0.012)
+  }
+  if (length(opts)) {
+    # CASILLA DE ACUERDO (L13). Una celda marcable por categoria, rotulada con SU
+    # PROPIA etiqueta: salen de `consent_options`, que el modelo arma desde la
+    # pregunta declarada en `consent_var`. Escribir "Si"/"No" aqui seria inventar
+    # las categorias de respuesta de un instrumento acordado con el cliente.
+    y <- y - 0.010
+    caja <- 0.016
+    xx <- x + w - 0.008
+    for (k in rev(seq_along(opts))) {
+      lbl <- .form_pdf_clean_text_safe(opts[[k]]$label %||% opts[[k]]$code %||% "")
+      .form_pdf_rect(xx - caja, y, caja, caja, fill = "white", col = tk$ink, lwd = 0.7)
+      grid::grid.text(lbl, x = grid::unit(xx - caja - 0.006, "npc"),
+                      y = grid::unit(y - caja / 2, "npc"), just = c("right", "center"),
+                      gp = grid::gpar(fontsize = 8.1, fontface = "bold", col = tk$ink))
+      # El rotulo se dibuja a 0.006 a la IZQUIERDA de su casilla, asi que el
+      # avance tiene que descontar ese hueco ademas del ancho del texto; sin eso
+      # el rotulo siguiente se monta sobre la casilla anterior.
+      xx <- xx - caja - 0.006 - .form_pdf_ancho_npc(lbl, 8.1) - 0.016
+    }
+    y <- y - caja
+    # MARCO en TABLA, nunca caja dibujada flotante: el consentimiento del
+    # instrumento a mano desaparecio en Word por ser una caja de texto sin
+    # `mc:Fallback`. Aqui el marco es un rectangulo del propio flujo, que es el
+    # equivalente en este motor.
+    .form_pdf_rect(x, y0, w, y0 - y + 0.006, fill = NA, col = tk$ink, lwd = 0.7)
+    y <- y - 0.006
   }
   y - 0.012
 }
