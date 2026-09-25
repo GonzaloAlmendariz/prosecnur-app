@@ -540,6 +540,16 @@
   gap: 10px;
 }
 
+/* Tarjeta que ocupa la fila entera. El grupo «Columnas» tiene TRES opciones en
+   una rejilla de dos, asi que la tercera caia sola en una segunda fila ocupando
+   media anchura: se leia como un descuadre y no como una opcion del mismo
+   rango. A tres columnas no cabria —su descripcion es la mas larga de las
+   tres—, asi que ocupa el ancho completo. En el breakpoint estrecho la rejilla
+   ya es de una columna y esto no cambia nada. */
+.pulso-xf-pdf-card--ancha {
+  grid-column: 1 / -1;
+}
+
 .pulso-xf-pdf-card {
   display: flex;
   align-items: flex-start;
