@@ -1316,9 +1316,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # desincronizar el paginado: el area de opciones es `width - 0.012`.
     cm <- .form_pdf_options_code_mark(block$options, identical(block$type %||% "", "select_multiple"))
     w_opt <- width - 0.012
-    sum(vapply(block$options, function(opt) {
-      .form_pdf_option_row_geom(opt, w_opt, cm$code_w, cm$mark_w)$h
-    }, numeric(1)))
+    if (.form_pdf_options_horizontal(block$options, w_opt, cm$code_w)) {
+      # Una sola fila (L8). MISMO helper que el dibujo: decidirlo dos veces por
+      # separado es como se descuadra el paginado.
+      0.0178
+    } else {
+      sum(vapply(block$options, function(opt) {
+        .form_pdf_option_row_geom(opt, w_opt, cm$code_w, cm$mark_w)$h
+      }, numeric(1)))
+    }
   } else if (isTRUE(block$coded_list)) {
     0.044
   } else if ((block$type %||% "") %in% c("text", "integer", "decimal", "date", "time", "datetime")) {
@@ -1615,6 +1621,30 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # Geometria por-fila de una opcion: decide si el chip de salto cabe a la DERECHA
 # de la fila o baja bajo el label, y calcula lineas del label y alto de la fila.
 # Idéntica en dibujo y en `.form_pdf_block_height` (sincroniza el paginado).
+# FILA HORIZONTAL para opciones cortas (L8 del GOAL). En la referencia una
+# pregunta de pocas opciones con etiquetas breves no gasta una fila por opcion:
+# van todas en UNA, alternando etiqueta y codigo.
+#
+# El corte es por ANCHO MEDIDO, nunca por `length(options)`: un umbral tipo «tres
+# o menos» es la clase de criterio a ojo que el §2 del checklist ya se comio una
+# vez. Consecuencia buscada: el mismo juego de opciones puede ir horizontal en un
+# tramo de una columna y vertical en uno de dos, porque el ancho util es la mitad.
+#
+# Helper COMPARTIDO por el dibujo (.form_pdf_draw_options) y por la medida del
+# alto (.form_pdf_block_height). Si cada uno decidiera por su cuenta, el reparto
+# en columnas y el salto de pagina se descuadrarian en cuanto alguien tocara uno.
+.form_pdf_options_horizontal <- function(options, w, code_w) {
+  if (length(options) < 2L) return(FALSE)
+  # Con saltos por opcion se queda vertical: cada salto necesita su propio sitio.
+  if (any(vapply(options, function(o) nzchar(.form_pdf_clean_text(o$paper_skip %||% "")),
+                 logical(1)))) return(FALSE)
+  total <- sum(vapply(options, function(o) {
+    .form_pdf_ancho_npc(.form_pdf_clean_text_safe(o$label %||% o$code %||% ""), 7.9) +
+      code_w + 0.010
+  }, numeric(1)))
+  total <= w
+}
+
 .form_pdf_option_row_geom <- function(opt, w, code_w, mark_w) {
   skip <- .form_pdf_clean_text(opt$paper_skip %||% "")
   has_skip <- nzchar(skip)
@@ -1652,6 +1682,36 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   show_code <- cm$show_code
   code_w <- cm$code_w
   mark_w <- cm$mark_w
+
+  if (.form_pdf_options_horizontal(options, w, code_w)) {
+    h <- 0.0178
+    .form_pdf_rect(x, y, w, h, fill = NA, col = tk$tbl_frame, lwd = 0.5)
+    xx <- x
+    for (idx in seq_along(options)) {
+      opt <- options[[idx]]
+      lbl <- .form_pdf_clean_text_safe(opt$label %||% "")
+      lw <- .form_pdf_ancho_npc(lbl, 7.9) + 0.008
+      grid::grid.text(lbl, x = grid::unit(xx + 0.004, "npc"),
+                      y = grid::unit(y - h / 2, "npc"), just = c("left", "center"),
+                      gp = grid::gpar(fontsize = 7.9, col = tk$ink))
+      xx <- xx + lw
+      grid::grid.lines(x = grid::unit(c(xx, xx), "npc"),
+                       y = grid::unit(c(y, y - h), "npc"),
+                       gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
+      grid::grid.text(.form_pdf_clean_text_safe(opt$code %||% ""),
+                      x = grid::unit(xx + code_w / 2, "npc"),
+                      y = grid::unit(y - h / 2, "npc"), just = c("center", "center"),
+                      gp = grid::gpar(fontsize = 7.7, fontface = "bold", col = tk$ink))
+      xx <- xx + code_w
+      if (idx < length(options)) {
+        grid::grid.lines(x = grid::unit(c(xx, xx), "npc"),
+                         y = grid::unit(c(y, y - h), "npc"),
+                         gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
+      }
+    }
+    return(y - h)
+  }
+
   y_start <- y
   for (idx in seq_along(options)) {
     opt <- options[[idx]]
