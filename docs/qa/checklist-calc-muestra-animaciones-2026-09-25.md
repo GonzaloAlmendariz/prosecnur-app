@@ -35,11 +35,11 @@ re-renderiza y mide en cada `mousemove`; cascadas en tablas largas.
 | M2 | Cambiar de pestaña anima la entrada del cuerpo (Marco no animaba: su wrapper persistía) | `general/PestanasMesa.tsx`, `MesaGeneral.tsx` | ☑ `useEntradaPorCambio` alterna `data-entrada` a/b: la sonda ve `cmg-entra-a/b` en cada cambio de pestaña, sin remontar |
 | M3 | Barras del reparto crecen escalonadas por fila y serie (N, a campo, n), con transform; el cambio Tamaño/Fracción transiciona en vez de saltar | `general/RepartoEstratosGrafico.tsx`, `mesa.css` | ☑ `cmg-reparto-crecer` (scaleX) escalonado: 8–12 barras al entrar en Corrida y Resultados |
 | M4 | La cadena «cómo sale el n» entra escalonada | `general/MetodoGeneral.tsx`, `mesa.css` | ☑ cadena en cascada (`cmg-funde` en `cmv2-uni-flujo-etapa/arista`) |
-| M5 | Pasos de la memoria en cascada; las cifras de la tabla de Resultados cruzan con swap al recalcular | `MemoriaCalculoGeneral.tsx`, `ResultadosComponentes.tsx` | ☑ `cmg-memoria-paso` en cascada de 33–50 ms; `SwapValor` en el n de Resultados |
+| M5 | Pasos de la memoria en cascada; las cifras de la tabla de Resultados cruzan con swap al recalcular | `MemoriaCalculoGeneral.tsx`, `ResultadosComponentes.tsx` | ☑ `cmg-memoria-paso` en cascada de 40 ms; `SwapValor` en el n de Resultados |
 | M6 | Tarjetas de actor: press (scale 0.97), hover con `(hover:hover)`, entrada en cascada | `general.css`, `SelectorActor.tsx` | ☑ press 0.97 + hover bajo `(hover:hover)`; test e16-movimiento |
 | M7 | Chips de estado cruzan (color/opacity) al cambiar | `general.css`, `FichaCorrida.tsx` | ☑ transición de color/opacity en chips de `FichaCorrida` |
 | M8 | Hover de fila del reparto con transición 120 ms | `mesa.css` | ☑ hover de fila con `--motion-dur-press` |
-| M9 | Todo con tokens `--motion-*`, sólo transform/opacity/filter, ≤ 300 ms, reduced-motion respetado, sin animación en cada render | general/** | ☑ sonda en vivo: todas las animaciones arrancan dentro de ~1,2 s y luego 9 s sin ninguna; con `reduce`, 0 animaciones de entrada |
+| M9 | Todo con tokens `--motion-*`, sólo transform/opacity/filter, ≤ 300 ms, reduced-motion respetado, sin animación en cada render | general/** | ☑ sonda en vivo: todas las animaciones arrancan dentro de ~1,2 s y luego 9 s sin ninguna; con `reduce`, 0 animaciones de entrada. Cascadas a 30 ms mínimo (aulas usa 20/28; se sube a la vara 30–80) |
 
 ## Evidencia (2026-09-25)
 
@@ -53,3 +53,15 @@ re-renderiza y mide en cada `mousemove`; cascadas en tablas largas.
 Pendiente anotado (fuera del glob de E16): la entrada de pestaña usa 160 ms
 (no hay token de 180); la red global de reduced-motion en
 `calcMuestra.css:~4881-4888` y `~5392` también aplana transiciones de color.
+
+## Verificador (2026-09-25) — APROBADO CON PENDIENTES, pendientes resueltos
+
+- Stagger fuera de vara (cadena 28 ms, barras 20 ms por fila) → 30 ms;
+  test «cada paso de cascada separa al menos 30 ms».
+- El hook `useEntradaPorCambio` sobrevivía a un mutante (no aplicar
+  `setEstado`) → test de contrato del hook; mutante muerto.
+- Aclaración: con movimiento reducido, `movimiento.css` deja el cruce de
+  color, pero la red global de `calcMuestra.css:~4881-4888` (1 ms
+  `!important`) lo anula. Queda como pendiente fuera del glob de E16.
+- Los swaps de `FichaCorrida` y Resultados heredan `.cmv2-uni-swap` de aulas
+  (180 ms literal en `universidad/ui/ui.css:70-71`), sin token.
