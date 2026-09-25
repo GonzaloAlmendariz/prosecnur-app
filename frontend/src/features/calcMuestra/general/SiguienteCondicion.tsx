@@ -1,10 +1,13 @@
 import { ArrowRight, CheckCircle2, CircleDot, TriangleAlert, type LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
+import { useValorSwap } from "../universidad/ui/useValorSwap";
 import type { EstadoMesa, TonoEstadoMesa } from "./bandaDisenoModelo";
 import { enlaceSiguiente, searchConSeccionYPestana } from "./modeloPestanas";
 import type { ModoMesa } from "./secciones";
+import "../universidad/ui/ui.css";
 import "./mesa.css";
+import "./movimiento.css";
 
 const ICONO: Record<TonoEstadoMesa, LucideIcon> = {
   ok: CheckCircle2,
@@ -36,11 +39,14 @@ export function SiguienteCondicion({
   const location = useLocation();
   const enlace = enlaceSiguiente(modo, estado.accion, { seccion, pestana });
   const Icono = ICONO[estado.tono];
+  // El chip cruza texto y tono cuando la mesa cambia de estado (E16 · M7);
+  // mientras lee, no hay estado del que cruzar (AD5-E15).
+  const cambiando = useValorSwap(estado.clave === "leyendo" ? null : estado.etiqueta);
 
   return (
     <div className="cmg-siguiente" data-tono={estado.tono}>
       <p className="cmg-siguiente-estado" role="status">
-        <span className="cmg-estado-chip" data-tono={estado.tono}>
+        <span className="cmg-estado-chip cmv2-uni-swap" data-tono={estado.tono} data-cambiando={cambiando || undefined}>
           <Icono size={13} aria-hidden="true" />
           {estado.etiqueta}
         </span>

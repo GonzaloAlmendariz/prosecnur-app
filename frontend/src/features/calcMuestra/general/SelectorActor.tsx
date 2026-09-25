@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, Circle, CircleSlash2, FileSpreadsheet, History, Loader2 } from "lucide-react";
 
+import { useValorSwap } from "../universidad/ui/useValorSwap";
 import type { EstadoDelActor, FaseDelActor, TecnicaDelActor } from "./actores";
+import "../universidad/ui/ui.css";
 import "./general.css";
+import "./movimiento.css";
 
 export type ActorDelSelector = {
   id: string;
@@ -70,10 +73,7 @@ export function SelectorActor({
                   {actor.tecnica.etiqueta}
                 </span>
                 <span className="cmg-actor-pie">
-                  <span className={`cmg-actor-estado cmg-actor-estado--${actor.estado.fase}`}>
-                    {ICONO_FASE[actor.estado.fase]}
-                    {actor.estado.etiqueta}
-                  </span>
+                  <EstadoActorChip estado={actor.estado} />
                   {actor.estado.detalle && <span className="cmg-actor-cifra">{actor.estado.detalle}</span>}
                 </span>
               </button>
@@ -82,5 +82,23 @@ export function SelectorActor({
         })}
       </ul>
     </section>
+  );
+}
+
+/**
+ * Chip del estado del actor: el texto cruza con blur (`.cmv2-uni-swap`) y el
+ * tono con una transición cuando el estado cambia de verdad (E16 · M7).
+ * «Leyendo…» no es un estado: pasar de él al real no cruza (AD5-E15).
+ */
+function EstadoActorChip({ estado }: { estado: EstadoDelActor }) {
+  const cambiando = useValorSwap(estado.fase === "leyendo" ? null : estado.etiqueta);
+  return (
+    <span
+      className={`cmg-actor-estado cmg-actor-estado--${estado.fase} cmv2-uni-swap`}
+      data-cambiando={cambiando || undefined}
+    >
+      {ICONO_FASE[estado.fase]}
+      {estado.etiqueta}
+    </span>
   );
 }

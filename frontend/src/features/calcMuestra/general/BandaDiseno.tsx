@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { CifraFila, CifraMotor } from "../universidad/ui";
 import type { CifraBanda } from "./bandaDisenoModelo";
 import "./mesa.css";
+import "./movimiento.css";
 
 /**
  * Banda «Diseño vigente»: la cadena del diseño en una línea y sus cifras con
@@ -41,7 +42,9 @@ export function BandaDiseno({
           ))}
         </p>
       </div>
-      <div className="cmg-banda-cifras cmv2-uni-stagger" data-qa-geometry-member>
+      {/* La cascada va a las cifras (movimiento.css), no a este contenedor:
+          su único hijo es la fila, y así entraba todo de golpe (E16 · M1). */}
+      <div className="cmg-banda-cifras" data-qa-geometry-member>
         <CifraFila>
           {cifras.map((c) => (
             <CifraMotor

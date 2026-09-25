@@ -522,15 +522,18 @@
   /* El botón global no parte línea: aquí el nombre y el estado sí. */
   white-space: normal;
   cursor: pointer;
+  /* El press (scale 0.97, movimiento.css) usa la duración del press. */
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .cmg-actor:hover:not(.is-active) {
     border-color: color-mix(in srgb, var(--cmv2-accent) 22%, var(--pulso-border));
+    background: color-mix(in srgb, var(--cmv2-accent) 3%, var(--cmv2-surface));
   }
 }
 
@@ -759,9 +762,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cmg-metodo,
-  .cmg-actor {
+  .cmg-metodo {
     transition: none;
+  }
+
+  /* Sin press: el tono sí cruza. */
+  .cmg-actor {
+    transition-property: background-color, border-color, box-shadow;
   }
 }
 
