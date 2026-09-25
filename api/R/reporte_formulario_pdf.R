@@ -1266,7 +1266,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       } else if (nzchar(subl)) {
         lbl <- paste0(subl, ")  ", it$label %||% ""); txt_w <- lbl_w_txt - 0.012
       } else {
-        lbl <- if (nzchar(num)) paste0(num, ".  ", it$label) else (it$label %||% ""); txt_w <- lbl_w_txt
+        # El numero ya no viaja en la etiqueta: tiene columna propia (L5).
+        lbl <- it$label %||% ""; txt_w <- lbl_w_txt - .FORM_PDF_MATRIX_NUM_W
       }
       sk <- .form_pdf_clean_text(it$skip %||% "")
       lbl_n <- length(.form_pdf_wrap_fit(lbl, txt_w, fontsize = 7.3))
@@ -1834,6 +1835,16 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # Fraccion de ancho para la columna de etiqueta segun nº de columnas de escala:
 # con pocas columnas la etiqueta puede ser mas ancha; con muchas se acota para que
 # la escala respire.
+# Ancho de la columna del numero de item en la matriz (L5 del GOAL). En la
+# referencia el numero vive en su propia columna estrecha a la izquierda de la
+# etiqueta (~276 twips de sus 10 549 utiles = 0.026 del ancho); pegado al texto,
+# las etiquetas arrancan a alturas distintas segun el numero tenga una o dos
+# cifras. Constante UNICA porque la consumen dos sitios que deben coincidir: el
+# dibujo (.form_pdf_draw_matrix) y la medida del alto (.form_pdf_block_height).
+# Holgada a proposito: en el renderer Word una columna ajustada al milimetro
+# partia "10" y "11" en dos lineas, y eso solo se ve en el render.
+.FORM_PDF_MATRIX_NUM_W <- 0.021
+
 .form_pdf_matrix_label_frac <- function(total_cols) {
   # El label del item se lleva la mayor parte del ancho: las columnas de escala
   # solo imprimen el codigo (1-2 digitos), asi que con pocas columnas la
@@ -2042,8 +2053,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       lbl <- paste0(subl, ")  ", item$label)
       txt_w <- lbl_w_txt - 0.012; indent <- 0.012
     } else {
-      lbl <- if (nzchar(num)) paste0(num, ".  ", item$label) else item$label
-      txt_w <- lbl_w_txt; indent <- 0
+      # Numero en columna propia: la etiqueta empieza despues de ella.
+      lbl <- item$label
+      txt_w <- lbl_w_txt - .FORM_PDF_MATRIX_NUM_W
+      indent <- .FORM_PDF_MATRIX_NUM_W
     }
     # Wrap por ancho real: corta exacto al borde. Debe igualar a .form_pdf_block_height.
     lines <- .form_pdf_wrap_fit(lbl, txt_w, fontsize = 7.3)
@@ -2054,6 +2067,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       grid::grid.rect(x = grid::unit(x0 + inner / 2, "npc"), y = grid::unit(y - h / 2, "npc"),
                       width = grid::unit(inner, "npc"), height = grid::unit(h, "npc"),
                       gp = grid::gpar(fill = tk$tbl_zebra, col = NA))
+    }
+    if (!is_parent && nzchar(num)) {
+      # Alineado por ARRIBA con la etiqueta, no centrado en la caja de linea:
+      # centrar deja el numero un par de puntos por debajo de su texto, porque el
+      # centro visual de una cifra no es el centro de su caja.
+      grid::grid.text(num, x = grid::unit(x0 + 0.006 + .FORM_PDF_MATRIX_NUM_W / 2, "npc"),
+                      y = grid::unit(y - 0.004, "npc"),
+                      just = c("center", "top"),
+                      gp = grid::gpar(fontsize = 7.3, col = tk$ink))
     }
     .form_pdf_text(lbl, x0 + 0.006 + indent, y - 0.004, txt_w,
                    lines = lines, fontsize = 7.3, col = tk$ink, line_h = 0.012)
