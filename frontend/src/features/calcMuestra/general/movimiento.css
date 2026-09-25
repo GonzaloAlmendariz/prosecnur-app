@@ -1,0 +1,183 @@
+/* =============================================================================
+   Movimiento de Muestra general y Acreditación (E16)
+
+   Aprendido de aulas (universidad/ui/ui.css, aulas.css) y con sus reglas:
+   - sólo transform, opacity y filter; nunca width/height/left;
+   - tiempos y curvas de los tokens `--motion-*` (app/tokens.css), UI < 300 ms;
+   - entradas con keyframes que declaran sólo `from` y rellenan hacia atrás
+     (`backwards`): la base es SIEMPRE el estado final, y una captura a mitad
+     no congela un valor falso (F55, confirmadorCriterio.css);
+   - cambios de estado con transiciones (interrumpibles), nunca keyframes;
+   - nada corre por render: las entradas van al montar o cuando cambia la
+     pestaña o la escala; las cifras cruzan sólo entre dos valores reales;
+   - cascadas de 40 ms con tope; las tablas largas no entran en cascada;
+   - con `prefers-reduced-motion: reduce` no hay desplazamiento ni escala;
+     quedan los cruces de color y opacidad.
+   ============================================================================= */
+
+/* --- M2 · Una sola entrada por pestaña ------------------------------------------
+ * La da el cuerpo de la pestaña (`PestanasMesa`, `data-entrada`). Las secciones
+ * `.cmv2-tab-panel` que viven dentro ya no animan a sus hijos: dos entradas
+ * apiladas funden dos veces (y Marco no entraba nunca: su hijo persistía). */
+.cmg-mesa .cmg-pestana-cuerpo .cmv2-tab-panel > * {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cmg-mesa .cmg-pestana-cuerpo[data-entrada="montaje"],
+  .cmg-mesa .cmg-pestana-cuerpo[data-entrada="a"] {
+    animation: cmg-entra-a var(--motion-dur-fast) var(--motion-ease-out) backwards;
+  }
+
+  /* Mismo movimiento con otro nombre: cambiar el nombre reinicia la
+     animación sin re-montar el cuerpo (useEntradaPorCambio). */
+  .cmg-mesa .cmg-pestana-cuerpo[data-entrada="b"] {
+    animation: cmg-entra-b var(--motion-dur-fast) var(--motion-ease-out) backwards;
+  }
+
+  /* En Acreditación › Selección el panel de la sección ya entra al montar;
+     el cuerpo sólo anima los cambios de pestaña. */
+  .cmg-mesa .cmv2-tab-panel .cmg-pestana-cuerpo[data-entrada="montaje"] {
+    animation: none;
+  }
+
+  /* --- M1, M5, M6 · Cascadas cortas -------------------------------------------
+   * Cifras de la banda «Diseño vigente», pasos de la memoria y tarjetas de
+   * actor. Sólo funden: el contenedor ya desliza (movimiento en capas). */
+  :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > * {
+    animation: cmg-funde var(--motion-dur-base) var(--motion-ease-out) backwards;
+  }
+
+  :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > :nth-child(2) { animation-delay: 40ms; }
+  :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > :nth-child(3) { animation-delay: 80ms; }
+  :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > :nth-child(4) { animation-delay: 120ms; }
+  :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > :nth-child(5) { animation-delay: 160ms; }
+  :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > :nth-child(n + 6) { animation-delay: 200ms; }
+
+  /* --- M4 · La cadena «del marco al n a campo» --------------------------------
+   * Mismo escalonado que el flujo adaptativo de aulas; `--cmv2-flujo-index` lo
+   * pone FlujoVertical. La arista k (hijo 2k) llega con la etapa k. */
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-etapa {
+    animation: cmg-funde var(--motion-dur-base) var(--motion-ease-out) backwards;
+    animation-delay: min(calc(var(--cmv2-flujo-index, 0) * 28ms), 168ms);
+  }
+
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista {
+    animation: cmg-funde var(--motion-dur-base) var(--motion-ease-out) backwards;
+  }
+
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(2) { animation-delay: 28ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(4) { animation-delay: 56ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(6) { animation-delay: 84ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(8) { animation-delay: 112ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(10) { animation-delay: 140ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(n + 12) { animation-delay: 168ms; }
+
+  /* --- M3 · Barras del reparto ------------------------------------------------
+   * Crecen con `scaleX` desde el borde izquierdo; el retraso escalona por fila
+   * (`--cmg-fila`, lo pone el gráfico) con tope, y cada serie se desfasa un
+   * poco sobre la anterior: N, luego a campo, luego completas. */
+  .cmg-reparto-rect {
+    transform-box: fill-box;
+    transform-origin: left center;
+    animation: cmg-reparto-crecer var(--motion-dur-panel) var(--motion-ease-out) backwards;
+    animation-delay: calc(min(calc(120ms + var(--cmg-fila, 0) * 20ms), 280ms) + var(--cmg-serie-desfase, 0ms));
+  }
+
+  .cmg-reparto-rect[data-serie="campo"] { --cmg-serie-desfase: 40ms; }
+  .cmg-reparto-rect[data-serie="n"] { --cmg-serie-desfase: 80ms; }
+
+  /* Tamaño ↔ Fracción: cada barra cruza desde su ancho anterior
+     (`--cmg-desde`, fracción del nuevo). Dos nombres para reiniciar. */
+  .cmg-reparto-grafico[data-reescala="a"] .cmg-reparto-rect {
+    animation: cmg-reparto-reescala-a var(--motion-dur-base) var(--motion-ease-out) backwards;
+  }
+
+  .cmg-reparto-grafico[data-reescala="b"] .cmg-reparto-rect {
+    animation: cmg-reparto-reescala-b var(--motion-dur-base) var(--motion-ease-out) backwards;
+  }
+
+  /* --- M6 · Press de la tarjeta de actor -------------------------------------- */
+  .cmg-actor:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+@keyframes cmg-entra-a {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes cmg-entra-b {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes cmg-funde {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes cmg-reparto-crecer {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes cmg-reparto-reescala-a {
+  from {
+    transform: scaleX(var(--cmg-desde, 1));
+  }
+}
+
+@keyframes cmg-reparto-reescala-b {
+  from {
+    transform: scaleX(var(--cmg-desde, 1));
+  }
+}
+
+/* --- M8 · Hover de fila del reparto ---------------------------------------------- */
+.cmg-reparto-fila {
+  transition: background-color var(--motion-dur-press) var(--motion-ease-out);
+}
+
+/* --- M7 · Chips de estado que cruzan -------------------------------------------
+ * El texto funde con blur (`.cmv2-uni-swap`, sólo entre dos estados reales) y
+ * el tono cruza a la vez. Una sola declaración de `transition`: la del swap
+ * sola pisaría la del color. */
+.cmg-estado-chip.cmv2-uni-swap,
+.cmg-actor-estado.cmv2-uni-swap {
+  transition:
+    filter var(--motion-dur-fast) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmg-mesa .cmg-pestana-cuerpo,
+  :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > *,
+  .cmg-cadena-n .cmv2-uni-flujo > *,
+  .cmg-reparto-rect {
+    animation: none;
+  }
+
+  .cmg-actor:active {
+    transform: none;
+  }
+
+  .cmg-estado-chip.cmv2-uni-swap,
+  .cmg-actor-estado.cmv2-uni-swap {
+    transition:
+      opacity var(--motion-dur-fast) var(--motion-ease-out),
+      background-color var(--motion-dur-fast) var(--motion-ease-out),
+      border-color var(--motion-dur-fast) var(--motion-ease-out),
+      color var(--motion-dur-fast) var(--motion-ease-out);
+  }
+}

@@ -3,7 +3,9 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { ContextTabRail } from "../../../components/ContextTabRail";
 import { UniversityTabHeader } from "../universidad/ui/UniversityTabHeader";
 import { idPanelMesa, idTabMesa, type PestanaMesa } from "./modeloPestanas";
+import { useEntradaPorCambio } from "./useEntradaPorCambio";
 import "./mesa.css";
+import "./movimiento.css";
 
 /**
  * Rail de pestañas de una sección de Muestra general o Acreditación: el mismo
@@ -43,6 +45,9 @@ export function PestanasMesa({
     const main = panelRef.current?.closest(".cmv2-main");
     if (main && main.scrollTop > 0) main.scrollTop = 0;
   }, [activa]);
+  // El cuerpo entra al montar y en cada cambio de pestaña (o de sección), sin
+  // re-montarse: sus hijos conservan su estado (E16 · M2).
+  const entrada = useEntradaPorCambio(`${seccion}/${meta?.id ?? activa}`);
   if (!meta) return <>{children}</>;
   return (
     <div className="cmg-pestanas" data-seccion={seccion}>
@@ -72,6 +77,7 @@ export function PestanasMesa({
           className="cmg-pestana-cuerpo"
           data-qa-geometry-group={`calc-muestra/${grupo}-pestana-${meta.id}`}
           data-qa-geometry-contract="intrinsic"
+          data-entrada={entrada}
         >
           {children}
         </div>

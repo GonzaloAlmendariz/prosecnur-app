@@ -4,6 +4,7 @@ import type { CalcMuestraComponente, CalcMuestraWorkspaceProducto } from "../../
 import { EmptyState } from "../../../components/States";
 import { presentResultadoPrecision } from "../resultadoPrecision";
 import { fmtInt } from "../sharedCore";
+import { SwapValor } from "../universidad/calculo/calculoUi";
 import { AvisoModulo } from "../universidad/shared/AvisoModulo";
 import { ajusteDeResultado, veredictoResultados, type VeredictoResultados } from "./bandaDisenoModelo";
 import { productoLabel, tecnicaCalculadaLabel, tecnicaProducto } from "./catalogos";
@@ -14,6 +15,7 @@ import { hayResultado, vacioDeResultados, type ModoMesa } from "./secciones";
 import { useDesbordaHorizontal } from "./useDesbordaHorizontal";
 import { useMuestraGeneralStore } from "./store";
 import { useIrASeccionGeneral } from "./useMuestraGeneral";
+import "../universidad/ui/ui.css";
 import "./general.css";
 import "./mesa.css";
 
@@ -132,8 +134,10 @@ export function ResultadosComponentes({
                       </th>
                       <td><ProductBadge producto={tecnicaProducto(comp)} /></td>
                       <td className="cmg-col-num">{fmtInt(comp.marco.marco_validado)}</td>
-                      <td className="cmg-col-num">{fmtInt(r?.n_objetivo)}</td>
-                      <td className="cmg-col-num">{fmtInt(r?.n_operativo)}</td>
+                      {/* Recalcular cruza los n con el swap de aulas (E16 · M5):
+                          sólo entre dos cifras reales, nunca «—» → cifra. */}
+                      <td className="cmg-col-num"><SwapValor firma={fmtInt(r?.n_objetivo)}>{fmtInt(r?.n_objetivo)}</SwapValor></td>
+                      <td className="cmg-col-num"><SwapValor firma={fmtInt(r?.n_operativo)}>{fmtInt(r?.n_operativo)}</SwapValor></td>
                       <td className="cmg-col-num">
                         {precisionEnPalabras(comp, precision.value)}
                         {precision.note && <small>{precision.note}</small>}

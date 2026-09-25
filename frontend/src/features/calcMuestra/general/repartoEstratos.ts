@@ -130,6 +130,28 @@ export function dibujarReparto(filas: readonly FilaReparto[], escala: EscalaRepa
   });
 }
 
+/**
+ * Desde qué fracción de su ancho NUEVO arranca una barra al cambiar de escala
+ * (E16 · M3). El ancho de verdad sigue siendo el atributo `width`: la
+ * transición sólo declara el `from` en `scaleX`, así una captura a mitad no
+ * congela un valor falso (F55). Como el ancho anterior nunca pasa del 100 %
+ * del carril, el cociente tampoco hace que la barra se salga de él. Sin ancho
+ * nuevo (o sin anterior) no hay nada que cruzar: 1.
+ */
+export function desdeReescala(anterior: number | null, actual: number | null): number {
+  if (anterior == null || actual == null || !(actual > 0) || !(anterior >= 0)) return 1;
+  return Math.round((anterior / actual) * 1000) / 1000;
+}
+
+/** Los anchos de la otra escala por fila: lo que había antes del cambio. */
+export function anchosPrevios(
+  filas: readonly FilaReparto[],
+  escala: EscalaReparto,
+): Map<string, Pick<FilaDibujo, "anchoN" | "anchoCampo" | "anchoCompletas">> {
+  const otra: EscalaReparto = escala === "tamano" ? "fraccion" : "tamano";
+  return new Map(dibujarReparto(filas, otra).map((f) => [f.clave, { anchoN: f.anchoN, anchoCampo: f.anchoCampo, anchoCompletas: f.anchoCompletas }]));
+}
+
 /** Lo que el tooltip de una fila publica; sin datos, la fila no miente. */
 export function tooltipDeFila(fila: FilaDibujo, origen: OrigenReparto): TooltipDatos {
   const filas: { label: string; valor: string }[] = [

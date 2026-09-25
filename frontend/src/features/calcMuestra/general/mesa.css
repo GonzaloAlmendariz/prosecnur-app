@@ -1048,29 +1048,12 @@ body:has(.cmg-mesa) .pulso-module-command-bar[data-modulo="calc-muestra"] .pulso
 }
 
 /* --- Movimiento reducido --------------------------------------------------------------- */
-
-@media (prefers-reduced-motion: no-preference) {
-  .cmg-reparto-rect {
-    transform-box: fill-box;
-    transform-origin: left center;
-    animation: cmg-reparto-crecer 320ms var(--cmv2-ease-out, ease-out) both;
-  }
-}
-
-@keyframes cmg-reparto-crecer {
-  from {
-    transform: scaleX(0);
-  }
-}
+/* Las entradas y cruces de estas mesas viven en `movimiento.css` (E16). */
 
 @media (prefers-reduced-motion: reduce) {
   .cmg-banda-actor-enlace,
   .cmg-reparto-escala-opcion span {
     transition: none;
-  }
-
-  .cmg-reparto-rect {
-    animation: none;
   }
 }
 

@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 
 import { fmtDec, fmtInt, fmtPct } from "../sharedCore";
 import { tip, tipAria, useTooltipGrafico } from "../universidad/shared/graficos/TooltipGrafico";
 import { formatearPi } from "./modelo";
 import {
+  anchosPrevios,
+  desdeReescala,
   dibujarReparto,
   resumenReparto,
   sostenerTooltipEnFoco,
@@ -12,8 +14,10 @@ import {
   type FilaReparto,
   type OrigenReparto,
 } from "./repartoEstratos";
+import { useEntradaPorCambio } from "./useEntradaPorCambio";
 import "../universidad/shared/tablas.css";
 import "./mesa.css";
+import "./movimiento.css";
 
 const ESCALAS: ReadonlyArray<{ id: EscalaReparto; etiqueta: string }> = [
   { id: "tamano", etiqueta: "Tamaño" },
@@ -92,6 +96,11 @@ export function RepartoEstratosGrafico({
     onMouseLeave();
   };
   const dibujo = dibujarReparto(filas, escala);
+  // Al montar, las barras crecen escalonadas; al cambiar Tamaño↔Fracción,
+  // cada una cruza desde su ancho anterior (E16 · M3). El `width` es siempre
+  // el dato: la animación sólo declara de dónde viene.
+  const fase = useEntradaPorCambio(escala);
+  const previos = fase === "montaje" ? null : anchosPrevios(filas, escala);
   const conCompletas = filas.some((f) => f.n != null);
   const conCampo = filas.some((f) => f.nCampo != null);
   const esActores = origen === "actores";
@@ -128,6 +137,7 @@ export function RepartoEstratosGrafico({
         role="group"
         aria-label={resumenReparto(filas, origen)}
         data-escala={escala}
+        data-reescala={fase === "montaje" ? undefined : fase}
         {...manejadores}
       >
         <div
@@ -136,12 +146,16 @@ export function RepartoEstratosGrafico({
           data-qa-geometry-group="calc-muestra/general-reparto"
           data-qa-geometry-contract="equal"
         >
-          {dibujo.map((f) => {
+          {dibujo.map((f, fila) => {
             const datos = tooltipDeFila(f, origen);
+            const antes = previos?.get(f.clave);
+            const desde = (anterior: number | null | undefined, actual: number | null): CSSProperties | undefined =>
+              antes ? ({ "--cmg-desde": desdeReescala(anterior ?? null, actual) } as CSSProperties) : undefined;
             return (
               <div
                 key={f.clave}
                 className="cmg-reparto-fila"
+                style={{ "--cmg-fila": fila } as CSSProperties}
                 data-qa-geometry-member
                 role="img"
                 aria-label={tipAria(datos)}
@@ -159,12 +173,12 @@ export function RepartoEstratosGrafico({
                   {f.nota ? <em>{f.nota}</em> : null}
                 </span>
                 <svg className="cmg-reparto-barra" width="100%" height="18" aria-hidden="true" focusable="false">
-                  <rect className="cmg-reparto-rect" data-serie="N" x="0" y="2" width={`${f.anchoN}%`} height="14" rx="3" />
+                  <rect className="cmg-reparto-rect" data-serie="N" x="0" y="2" width={`${f.anchoN}%`} height="14" rx="3" style={desde(antes?.anchoN, f.anchoN)} />
                   {f.anchoCampo != null && (
-                    <rect className="cmg-reparto-rect" data-serie="campo" x="0" y="2" width={`${f.anchoCampo}%`} height="14" rx="3" />
+                    <rect className="cmg-reparto-rect" data-serie="campo" x="0" y="2" width={`${f.anchoCampo}%`} height="14" rx="3" style={desde(antes?.anchoCampo, f.anchoCampo)} />
                   )}
                   {f.anchoCompletas != null && (
-                    <rect className="cmg-reparto-rect" data-serie="n" x="0" y="6" width={`${f.anchoCompletas}%`} height="6" rx="2" />
+                    <rect className="cmg-reparto-rect" data-serie="n" x="0" y="6" width={`${f.anchoCompletas}%`} height="6" rx="2" style={desde(antes?.anchoCompletas, f.anchoCompletas)} />
                   )}
                 </svg>
                 <span className="cmg-reparto-cifra">

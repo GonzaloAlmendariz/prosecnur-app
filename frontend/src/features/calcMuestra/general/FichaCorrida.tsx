@@ -8,6 +8,7 @@ import { EmptyState } from "../../../components/States";
 import { fmtDec, fmtInt } from "../sharedCore";
 import { AvisoModulo } from "../universidad/shared/AvisoModulo";
 import { CifraFila, CifraMotor } from "../universidad/ui";
+import { useValorSwap } from "../universidad/ui/useValorSwap";
 import { ErrorDelMotor } from "./ErrorDelMotor";
 import {
   EXPORT_INICIAL,
@@ -48,6 +49,9 @@ export function FichaCorrida({
   const vigencia = vigenciaSorteo({ comp: componente, corrida, marco });
   const desactualizado = vigencia.estado === "desactualizado" ? vigencia : null;
   const nombre = corrida && c ? nombreDeCorrida(corrida, componente) : null;
+  // Re-sortear cambia la corrida vigente: su nombre cruza (E16 · M7). «Sin
+  // sorteo» no es un nombre: el primer sorteo no cruza, aparece.
+  const tituloCambiando = useValorSwap(nombre?.titulo ?? null);
   const estratificada = Boolean(corrida && c && !esCenso && corridaEstratificada(corrida) && corrida.estratos.length > 1);
 
   async function exportar() {
@@ -68,7 +72,7 @@ export function FichaCorrida({
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Corrida vigente</span>
-          <h3 id="cmg-ficha-titulo" className="cmg-panel-titulo">
+          <h3 id="cmg-ficha-titulo" className="cmg-panel-titulo cmv2-uni-swap" data-cambiando={tituloCambiando || undefined}>
             {nombre ? nombre.titulo : "Sin sorteo"}
           </h3>
         </div>
