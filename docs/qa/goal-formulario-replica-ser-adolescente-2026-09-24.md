@@ -70,7 +70,7 @@ versiona**. Dos archivos y no son intercambiables:
 | **V7** | Ninguna cabecera de escala **parte una palabra** | `pdftotext -bbox`: ninguna palabra de cabecera se corta (§13 del checklist) |
 | **V8** | Márgenes ~**680 twips** (1,2 cm), ancho útil ≥ 10 500 | `pgMar` del `sectPr` |
 | **V9** | El pie dice **«Página N de M»** | `pdftotext` de la última página contiene `de <total>` |
-| **V10** | **El instrumento se lee fotocopiado**: la estructura no depende de ningún relleno | ninguna tabla separa filas sólo por `shd`; toda fila tiene borde. Control: renderizar en 1 bit y comprobar que la rejilla sigue |
+| **V10** | **El instrumento se lee fotocopiado**: la estructura no depende de ningún relleno | Medido binarizando el render a 1 bit. **Word**: 45 líneas de rejilla a umbral ≥170, 4 por debajo de 166. **PDF**: 37 y 7. La estructura NO depende del relleno (eso se cumple: los bordes la sostienen), pero la rejilla misma se pierde en una copia dura. Ver **B4** |
 
 Medición de partida (2026-09-24), motor actual contra referencia:
 
@@ -112,6 +112,7 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 | **B1** | Honrar `columns` en Word (ítem 12) | cambia la forma de todo export `.docx` existente |
 | **B2** | Grano de `n_questions` (ítem 14) | elegir el grano y renombrar rompe consumidores de la API |
 | **B3** | ~~¿ADR que declare la salida de la identidad Pulso?~~ **Resuelto**: no hay salida que declarar. El instrumento se imprime en B/N, así que la escala de grises es la identidad aplicada a su medio. | — |
+| **B4** | **¿Rejilla fiel o rejilla robusta?** La rejilla es `A6A6A6` (luma 166), que es lo que usa la referencia en 2 666 de sus bordes. Binarizando el render a 1 bit: por encima de umbral 170 sobreviven 37 líneas (PDF) y 45 (Word) — la rejilla entera; por debajo de 166 sobreviven **7 y 4**, sólo lo negro. Una fotocopia normal trabaja en 180–200 y aguanta; una copia dura, no. Oscurecerla a `808080` la haría sobrevivir por debajo de 128, a costa de apartarse de la referencia y algo más de tóner. | Es fidelidad contra robustez, y el requisito («se imprimen en blanco y negro») apunta a robustez mientras la vara apunta a fidelidad. No lo decide el motor |
 
 ---
 
