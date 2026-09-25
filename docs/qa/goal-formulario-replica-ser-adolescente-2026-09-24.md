@@ -96,7 +96,7 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 | **L4** | Enunciado dentro de la tabla | **Word ☑** `3d6d57e38` · PDF ☐ |
 | **L5** | Columna propia para el número | **Word ☑** `20a8a2b6f` · PDF ☐ |
 | **L6** | Densidad y márgenes | **Word ☑** `9a2fb7f02` (10 546 vs 10 549) · **PDF ☑** `4186e3647` — 61,4 → 54 pt por pregunta; el instrumento pasa de 2 páginas a 1 |
-| **L7** | Banda de sección: caja con borde y relleno gris | **Word ◐** relleno gris y texto negro hechos en `07ea38d40`; **falta el borde** (`.form_word_par()` no expone parámetros de borde) · PDF ☐ |
+| **L7** | Banda de sección: caja con borde y relleno gris | **Word ☑** `07ea38d40`+`fa6b7b9e2` — relleno gris, texto negro y borde de 0,5 pt con `space = 0` · **PDF ☑** — ya lo hacía; auditado, sin tocar código |
 | **L8** | Opciones cortas en fila horizontal | **Word ☑** `7f64804a1` — corte por ancho medido · PDF ☐ |
 | **L9** | Campos de escritura = celda vacía | **Word ☑** `fa6b7b9e2` · **PDF ☑** — ya lo hacía; auditado |
 | **L10** | Pie «Página N de M» + casillas del folio | **Word ☑** `39cca7bba` · **PDF ☑** `c767f0d1a` — dos pasadas, porque en `grid` el total no es un campo |
