@@ -55,23 +55,23 @@
   :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > :nth-child(n + 6) { animation-delay: 200ms; }
 
   /* --- M4 · La cadena «del marco al n a campo» --------------------------------
-   * Mismo escalonado que el flujo adaptativo de aulas; `--cmv2-flujo-index` lo
+   * Escalonado de 30 ms (aulas usa 28; la vara de cascada es 30–80 ms); `--cmv2-flujo-index` lo
    * pone FlujoVertical. La arista k (hijo 2k) llega con la etapa k. */
   .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-etapa {
     animation: cmg-funde var(--motion-dur-base) var(--motion-ease-out) backwards;
-    animation-delay: min(calc(var(--cmv2-flujo-index, 0) * 28ms), 168ms);
+    animation-delay: min(calc(var(--cmv2-flujo-index, 0) * 30ms), 180ms);
   }
 
   .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista {
     animation: cmg-funde var(--motion-dur-base) var(--motion-ease-out) backwards;
   }
 
-  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(2) { animation-delay: 28ms; }
-  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(4) { animation-delay: 56ms; }
-  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(6) { animation-delay: 84ms; }
-  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(8) { animation-delay: 112ms; }
-  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(10) { animation-delay: 140ms; }
-  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(n + 12) { animation-delay: 168ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(2) { animation-delay: 30ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(4) { animation-delay: 60ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(6) { animation-delay: 90ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(8) { animation-delay: 120ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(10) { animation-delay: 150ms; }
+  .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(n + 12) { animation-delay: 180ms; }
 
   /* --- M3 · Barras del reparto ------------------------------------------------
    * Crecen con `scaleX` desde el borde izquierdo; el retraso escalona por fila
@@ -81,7 +81,7 @@
     transform-box: fill-box;
     transform-origin: left center;
     animation: cmg-reparto-crecer var(--motion-dur-panel) var(--motion-ease-out) backwards;
-    animation-delay: calc(min(calc(120ms + var(--cmg-fila, 0) * 20ms), 280ms) + var(--cmg-serie-desfase, 0ms));
+    animation-delay: calc(min(calc(120ms + var(--cmg-fila, 0) * 30ms), 280ms) + var(--cmg-serie-desfase, 0ms));
   }
 
   .cmg-reparto-rect[data-serie="campo"] { --cmg-serie-desfase: 40ms; }

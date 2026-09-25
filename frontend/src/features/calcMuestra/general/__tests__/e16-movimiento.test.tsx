@@ -45,6 +45,16 @@ describe("M2 · la entrada del cuerpo de la pestaña", () => {
     expect(siguienteEntrada(dos, "seleccion/sorteo").fase).toBe("b");
   });
 
+  it("el hook aplica la transición y devuelve la fase nueva en el mismo render", () => {
+    // Sin DOM en vitest: el hook se lee como contrato. Si deja de llamar a
+    // setEstado o devuelve la fase vieja, la pestaña no anima y la
+    // transición pura de arriba sigue verde (mutante del verificador de E16).
+    const hook = leer("useEntradaPorCambio.ts");
+    expect(hook).toMatch(/const siguiente = siguienteEntrada\(estado, clave\);/);
+    expect(hook).toMatch(/if \(siguiente !== estado\) setEstado\(siguiente\);/);
+    expect(hook).toMatch(/return siguiente\.fase;/);
+  });
+
   it("el cuerpo declara su fase sin re-montarse (sin `key` por pestaña)", () => {
     const pestanas = pestanasDeSeccion("marco_disponible", "metodo");
     const html = renderToStaticMarkup(
@@ -188,7 +198,25 @@ describe("M9 · contrato de movimiento de movimiento.css", () => {
     const retrasos = [...css.matchAll(/animation-delay: (\d+)ms;/g)].map((m) => Number(m[1]));
     expect(retrasos.length).toBeGreaterThan(0);
     expect(Math.max(...retrasos)).toBeLessThanOrEqual(200);
-    expect(css).toContain("min(calc(120ms + var(--cmg-fila, 0) * 20ms), 280ms)");
+    expect(css).toContain("min(calc(120ms + var(--cmg-fila, 0) * 30ms), 280ms)");
+  });
+
+  it("cada paso de cascada separa al menos 30 ms (vara 30–80 ms)", () => {
+    const pasos = [...css.matchAll(/\* (\d+)ms\)/g)].map((m) => Number(m[1]));
+    expect(pasos.length).toBeGreaterThanOrEqual(2);
+    for (const paso of pasos) {
+      expect(paso).toBeGreaterThanOrEqual(30);
+      expect(paso).toBeLessThanOrEqual(80);
+    }
+    // Las cascadas escritas a mano: dentro de cada grupo, hijo a hijo.
+    const grupos = new Map<string, number[]>();
+    for (const m of css.matchAll(/^\s*(.+?):nth-child\([^)]*\) \{ animation-delay: (\d+)ms; \}/gm)) {
+      grupos.set(m[1], [...(grupos.get(m[1]) ?? []), Number(m[2])]);
+    }
+    expect(grupos.size).toBeGreaterThanOrEqual(2);
+    for (const retrasos of grupos.values()) {
+      retrasos.slice(1).forEach((r, i) => expect(r - retrasos[i]).toBeGreaterThanOrEqual(30));
+    }
   });
 
   it("con movimiento reducido se apaga todo lo que se mueve; el color sigue cruzando", () => {
