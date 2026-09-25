@@ -183,7 +183,7 @@ tenor + columna especial + modo de cabecera.
 
 | # | Hueco | Dónde | Estado |
 |---|---|---|---|
-| **U1** | **`columns = "auto"` no se puede elegir** | `pdfExportPreference.ts`, `ConfigurarPdfDialog.tsx` | ☑ **código** commit `178a57dee`, NO LA REHAGAS. Tipo ampliado en los cuatro sitios de la cadena (preferencia, diálogo, firma de `onExportForm`, payload de las dos rutas), tercera tarjeta «Automáticas» y etiqueta propia — sin ella «auto» caía en el `else` de `columnsLabel` y el botón diría «dos columnas» mientras genera otra cosa. El backend no necesitó nada. Verificado por el camino real (serializando a JSON como el router): `1` → md5 `f32771cece5f`, `2` → `6603c874b803`, `auto` → `dc0453b62e7e`, tres artefactos distintos. Typecheck limpio, 581 tests. **PENDIENTE: mirarlo renderizado** — un cambio de superficie no se cierra sin verlo, y aquí no hay Vite levantado |
+| **U1** | **`columns = "auto"` no se puede elegir** | `pdfExportPreference.ts`, `ConfigurarPdfDialog.tsx` | ☑ **código** commit `178a57dee`, NO LA REHAGAS. Tipo ampliado en los cuatro sitios de la cadena (preferencia, diálogo, firma de `onExportForm`, payload de las dos rutas), tercera tarjeta «Automáticas» y etiqueta propia — sin ella «auto» caía en el `else` de `columnsLabel` y el botón diría «dos columnas» mientras genera otra cosa. El backend no necesitó nada. Verificado por el camino real (serializando a JSON como el router): `1` → md5 `f32771cece5f`, `2` → `6603c874b803`, `auto` → `dc0453b62e7e`, tres artefactos distintos. Typecheck limpio, 581 tests. Mirado montado (commit `eb491fbf3`): el grupo tenía TRES opciones en rejilla de dos y la tercera caía sola a media anchura; ahora ocupa la fila entera (334+334 px arriba, 678 abajo) |
 | **U2** | **`paper_subgroup` no existe en el frontend** — cero apariciones en `frontend/src`. Es la subsección de **L17**, el segundo nivel de banda que se acaba de construir: hoy sólo se consigue tecleando la columna en el XLSForm | editor + diálogo | ☐ |
 | **U3** | **`paper_subletter` tampoco existe** — cero apariciones. Son las sub-preguntas a/b/c que el motor sabe numerar | editor | ☐ |
 | **U4** | **`max_options_per_question` y `no_default_intro`** no tienen UI | diálogo | ☐ |
@@ -192,3 +192,38 @@ Regla que sale de aquí y que aplica al resto del loop: **una capacidad del moto
 no está terminada mientras sólo se alcance tecleando una columna del XLSForm.**
 Cada ítem nuevo de la cola declara su superficie en el editor o dice por qué no
 la necesita.
+
+
+## Lo que queda cuando se apaga el reloj — 2026-09-25
+
+El loop se detuvo a petición de Gonzalo. Esto es el registro de lo pendiente,
+para que nada dependa de que el reloj siga vivo.
+
+### Bloqueado, decide Gonzalo — nada de esto se toca sin respuesta
+
+| | Qué hay que decidir | Por qué no lo decide el motor |
+|---|---|---|
+| **B1** | Honrar `columns` en el renderer **Word** (ítem 12 del checklist) | Cambia **todo** `.docx` ya exportado |
+| **B2** | El grano de `n_questions` (ítem 14) | Se publica en la API; renombrar rompe consumidores |
+| **B5** | El **muñón** de la esquina cuando hay leyenda de escala (bloquea **L18**) | Exige un campo nuevo en `matrix_groups`, que es contrato público. Opciones: (a) campo `rotulo` que escribe el autor; (b) sin leyenda y la esquina con el enunciado entero, que es lo de hoy; (c) leyenda arriba y sólo el número en la esquina |
+
+### Abierto y medido — se puede retomar sin reinvestigar
+
+| | Qué falta | Cifra que ya está medida |
+|---|---|---|
+| **L21** | `question/integer` y `paper` reservan de más en el paginado | +29 % y +20 %. Acotados por el techo 1.35 del contrato de L19: si empeoran, cae un test |
+| **U2** | `paper_subgroup` no tiene superficie en el editor | **Cero** apariciones en `frontend/src`. Es la subsección de L17: la capacidad más nueva y la más invisible |
+| **U3** | `paper_subletter` (sub-preguntas a/b/c) | Cero apariciones |
+| **U4** | `max_options_per_question` y `no_default_intro` | Sin UI |
+
+### Cerrado en esta tanda
+
+`L16` enunciado dentro de la matriz · `L17` subsección como banda propia ·
+`L19` la reserva del paginado sigue al dibujo · `L20` la viuda que el tope
+dejaba pasar · `B4` rejilla negra y rellenos en gris · `U1` columnas
+automáticas elegibles en el editor.
+
+**Regla que queda viva para quien retome**: una capacidad del motor no está
+terminada mientras sólo se alcance tecleando una columna del XLSForm, y una
+superficie no se cierra sin mirarla montada — U1 pasó typecheck, 581 tests y
+la verificación de payload, y aun así estaba coja.
