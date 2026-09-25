@@ -597,6 +597,7 @@
   ft <- flextable::flextable(df)
   ft <- flextable::delete_part(ft, part = "header")
   ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+  ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
   # El rotulo mide lo que mide su texto, no media pagina: repartir el ancho a
   # partes iguales dejaba dos bloques enormes con una rendija entre medias, que
   # no se parece a una casilla marcable.
@@ -646,6 +647,12 @@
   names(df) <- paste0("c", seq_len(n))
   ft <- flextable::flextable(df)
   ft <- flextable::delete_part(ft, part = "header")
+  # Tipografia y cuerpo TAMBIEN aqui. Esta tabla se escribio despues que el resto
+  # y se quedo con los de flextable (Helvetica 11 pt): 14 runs con otra fuente y
+  # 8 cuerpos a 11 pt en un documento que se declara todo Arial Narrow a 10/8.
+  # Ningun test lo vio; lo destapo medir la vara del GOAL.
+  ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
+  ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
   for (cid in names(df)) ft <- flextable::width(ft, j = cid, width = ancho_celda)
   ft <- flextable::height(ft, height = 0.24, part = "body")
   ft <- flextable::hrule(ft, rule = "exact", part = "body")
@@ -668,6 +675,7 @@
     ft <- flextable::delete_part(ft, part = "header")
   }
   ft <- flextable::fontsize(ft, size = .FORM_WORD_SZ, part = "all")
+  ft <- flextable::font(ft, fontname = .FORM_WORD_FONT, part = "all")
   ft <- flextable::width(ft, j = "cell", width = usable)
   ft <- flextable::height(ft, height = alto, part = "body")
   ft <- flextable::hrule(ft, rule = "exact", part = "body")
