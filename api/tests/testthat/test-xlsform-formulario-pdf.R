@@ -1703,3 +1703,79 @@ test_that("B4: la rejilla del PDF sobrevive al umbral DURO de la copiadora", {
   })
   expect_gt(max(corrida), ncol(oscuro) * 0.9)
 })
+
+.form_pdf_fixture_tenor <- function(tenor) {
+  list(
+    survey = data.frame(
+      type = rep("select_one ac", 4L), name = paste0("a", 1:4),
+      label = c("Me siento satisfecho conmigo mismo.",
+                "Creo que tengo buenas cualidades.",
+                "Soy capaz de hacer las cosas tan bien como los demas.",
+                "A veces pienso que no sirvo para nada."),
+      stringsAsFactors = FALSE),
+    choices = data.frame(
+      list_name = "ac", name = as.character(1:4),
+      label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+      stringsAsFactors = FALSE),
+    settings = list(form_title = "L16"),
+    options = list(columns = 1, matrix_groups = list(list(
+      members = paste0("a", 1:4), tenor = tenor)))
+  )
+}
+
+test_that("L16: el enunciado comparte banda con la escala, no vive encima de ella", {
+  tenor <- "Por favor senala que tan de acuerdo estas con las siguientes afirmaciones:"
+  fx <- .form_pdf_fixture_tenor(tenor)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp,
+                         options = fx$options)
+  pal <- .form_gate_palabras(tmp)
+  favor <- pal[pal$texto == "favor", , drop = FALSE]
+  tot <- pal[pal$texto == "Totalmente", , drop = FALSE]
+  expect_identical(nrow(favor), 1L)
+  expect_gte(nrow(tot), 1L)
+
+  # La prueba de que esta DENTRO de la cabecera y no encima: su banda vertical se
+  # solapa con la de las etiquetas de escala. Antes el enunciado iba en un
+  # parrafo por encima y las dos bandas eran disjuntas. `.form_gate_palabras()`
+  # mide DESDE ABAJO (y mayor = mas arriba).
+  esc_top <- max(tot$y1); esc_bot <- min(tot$y0)
+  expect_lt(favor$y0, esc_top)
+  expect_gt(favor$y1, esc_bot)
+
+  # Y la otra mitad, que es la que un test perezoso se salta: CABER NO ES NO
+  # PISARSE. El enunciado se queda a la izquierda de la primera columna de
+  # escala; si invadiera, se leeria montado sobre las etiquetas.
+  expect_lt(favor$x1, min(tot$x0))
+})
+
+test_that("L16: el paginado no reserva DOS VECES el enunciado de la matriz", {
+  # GUARD, no regresion de L16: el motor anterior tampoco reservaba de mas —
+  # reservaba `title_h` porque DIBUJABA el titulo encima. Verificado contra un
+  # mutante deliberado (title_h restaurado SOBRE la cabecera ya crecida), que es
+  # el error real al que se expone este cambio: dejar la reserva vieja abriria un
+  # hueco del alto del enunciado al pie de cada matriz. Contra el motor anterior
+  # este test pasa, y decirlo aqui evita que alguien lo lea como cobertura de L16.
+  tenor <- paste("Por favor senala que tan de acuerdo estas con cada una de las",
+                 "siguientes afirmaciones sobre tu vida cotidiana, marcando un numero",
+                 "en la escala segun tu experiencia personal")
+  fx <- .form_pdf_fixture_tenor(tenor)
+  m <- formulario_pdf_build_model(fx$survey, fx$choices, fx$settings, options = fx$options)
+  blk <- Filter(function(b) identical(b$kind, "matrix"), m$blocks)[[1]]
+  alto <- .form_pdf_block_height(blk, width = 0.90)
+
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp,
+                         options = fx$options)
+  pal <- .form_gate_palabras(tmp)
+  arriba <- pal[pal$texto == "favor", , drop = FALSE]
+  abajo <- pal[pal$texto == "sirvo", , drop = FALSE]   # ultimo item
+  expect_identical(nrow(arriba), 1L); expect_identical(nrow(abajo), 1L)
+  pintado <- arriba$y1 - abajo$y0
+
+  # La reserva incluye padding y el chip de condicion, asi que no es igual al
+  # dibujo; lo que NO puede es doblarlo. Con la reserva duplicada el cociente se
+  # iba por encima de 1.6.
+  expect_gt(alto, pintado)
+  expect_lt(alto / pintado, 1.45)
+})

@@ -1361,11 +1361,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     } else {
       header_h <- 0.050  # cabecera de anclas (hasta ~3 lineas) + margenes
     }
-    # Sin tenor no se dibuja el encabezado/titulo: no reservar su altura.
-    title_h <- if (nzchar(block$tenor %||% ""))
-      .form_pdf_lines_height(.form_pdf_wrap(block$title, 118), 0.014) else 0
-    return(header_h + rows_h + 0.022 + title_h +
-             .form_pdf_lines_height(.form_pdf_wrap(block$hint, 118), 0.011) +
+    # L16: el enunciado ya NO reserva altura PROPIA encima de la tabla — vive en
+    # la esquina, asi que lo que hace es EMPUJAR la cabecera. Con `title_h`
+    # suelto aqui el paginado reservaba el enunciado dos veces y dejaba un hueco
+    # del alto del enunciado al pie de cada matriz.
+    esq_h <- .form_pdf_matrix_esquina(block, label_w, inner)$height
+    header_h <- max(header_h, esq_h)
+    hint_h <- if (nzchar(block$tenor %||% "")) 0 else
+      .form_pdf_lines_height(.form_pdf_wrap(block$hint, 118), 0.011)
+    return(header_h + rows_h + 0.022 + hint_h +
              .form_pdf_opening_height(block$opening_condition, 112L))
   }
   # La cabecera de enunciado (L4) es un recuadro con su propio padding; sin
@@ -2084,22 +2088,46 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   "categorias"  # etiquetas presentes (aunque largas): categorias con wrap
 }
 
+# ESQUINA DE LA MATRIZ (L16) — el enunciado de la bateria y lo que lo acompana,
+# en la celda superior izquierda de la cabecera. UNA sola cuenta para el dibujo
+# y para el paginado: tenerlas separadas es lo que descuadro L4 y L5, y aqui el
+# riesgo es el mismo porque la cabecera tiene que CRECER hasta que la esquina
+# quepa. Devuelve las lineas ya envueltas y la altura que reservan.
+#
+# El ancho de caracteres se deriva de la fraccion de etiqueta, no de una
+# constante: en un tramo de dos columnas `label_w` es la mitad y una cifra fija
+# haria que el enunciado se saliera de su celda solo en ese tramo.
+.form_pdf_matrix_esquina <- function(block, label_w, inner) {
+  tenor <- .form_pdf_clean_text(block$tenor %||% "")
+  glbl <- .form_pdf_clean_text(block$group_label %||% "")
+  hint <- .form_pdf_clean_text(block$hint %||% "")
+  chars <- max(10L, floor(118 * (label_w - 0.012) / max(1e-6, inner)))
+  if (!nzchar(tenor)) {
+    if (!nzchar(glbl)) return(list(lineas = character(0), height = 0))
+    lineas <- .form_pdf_wrap(glbl, chars)
+    return(list(lineas = lineas, height = length(lineas) * 0.0110 + 0.008))
+  }
+  num <- .form_pdf_clean_text(block$number %||% "")
+  texto <- if (nzchar(num)) paste0(num, ".  ", tenor) else tenor
+  lineas <- .form_pdf_wrap(texto, chars)
+  if (nzchar(glbl)) lineas <- c(lineas, .form_pdf_wrap(glbl, chars))
+  if (nzchar(hint)) lineas <- c(lineas, .form_pdf_wrap(hint, chars))
+  list(lineas = lineas, height = length(lineas) * 0.0134 + 0.012)
+}
+
 .form_pdf_draw_matrix <- function(block, x, y, w) {
   tk <- .form_pdf_tokens()
   if (nzchar(block$opening_condition %||% "")) {
     y <- .form_pdf_draw_opening(block$opening_condition, x, y, w)
     y <- y - 0.002
   }
-  # Encabezado solo CON tenor: "X. {tenor}" sobre la tabla. Sin tenor, el titulo
-  # es la etiqueta del 1er item y ademas ese item ya aparece como fila 1 -> se
-  # omite el encabezado para no duplicarlo (la tabla numerada se basta sola).
+  # L16: CON tenor el enunciado ya NO va encima de la tabla — vive en la celda
+  # superior izquierda de la cabecera, junto a la escala (patron P20..P22 de la
+  # referencia). Se dibuja mas abajo, cuando `label_w` y `header_h` existen.
+  # Sin tenor el titulo es la etiqueta del 1er item, que ademas ya aparece como
+  # fila 1: no se dibuja nada para no duplicarlo.
   has_tenor <- nzchar(block$tenor %||% "")
-  if (has_tenor) {
-    prefix <- if (nzchar(block$number %||% "")) paste0(block$number, ".  ") else ""
-    y <- .form_pdf_text(paste0(prefix, block$title), x + 0.006, y, w - 0.012,
-                        chars = 118, fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
-  }
-  if (nzchar(block$hint %||% "")) {
+  if (!has_tenor && nzchar(block$hint %||% "")) {
     y <- .form_pdf_text(block$hint, x + 0.006, y - 0.002, w - 0.012,
                         chars = 118, fontsize = 7.2, fontface = "italic", col = tk$soft, line_h = 0.011)
   }
@@ -2129,6 +2157,12 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   code_fs <- if (total_cols >= 10L) 6.0 else if (total_cols >= 8L) 6.6 else 7.4
   header_mode <- .form_pdf_matrix_header_mode(scale, block$header_mode %||% "auto")
 
+  # ESQUINA (L16): el enunciado numerado, y debajo la pista y el sub-grupo si los
+  # hay. Se mide ANTES de las ramas porque la cabecera tiene que crecer hasta
+  # caber: si no, el enunciado se sale por debajo de su banda y pisa la 1a fila.
+  esq <- .form_pdf_matrix_esquina(block, label_w, inner)
+  esq_h <- esq$height
+
   if (total_cols > 0L && identical(header_mode, "categorias")) {
     # --- Cabecera CATEGORIAS: cada label de escala rotulada SOBRE su columna. Si
     # la etiqueta cabe en el ancho de columna se dibuja HORIZONTAL (Si/No,
@@ -2136,7 +2170,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     cat_labels <- vapply(scale, function(o) .form_pdf_clean_text_safe(o$label %||% o$code), character(1))
     sp_label <- if (has_special) .form_pdf_clean_text_safe(special$label %||% special$code) else ""
     geom <- .form_pdf_matrix_cat_header_geom(cat_labels, sp_label, has_special, col_w, total_cols)
-    header_h <- geom$height
+    header_h <- max(geom$height, esq_h)
     cat_fs <- geom$cat_fs
 
     grid::grid.rect(x = grid::unit(x0 + inner / 2, "npc"), y = grid::unit(y - header_h / 2, "npc"),
@@ -2181,7 +2215,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     right_lines <- if (n_scale >= 2L) .form_pdf_wrap(scale[[n_scale]]$label %||% scale[[n_scale]]$code, anchor_cw) else character(0)
     special_lines <- if (has_special) .form_pdf_wrap(.form_pdf_clean_text_safe(special$label %||% special$code), special_cw) else character(0)
     hdr_lines <- max(1L, length(left_lines), length(right_lines), length(special_lines))
-    header_h <- hdr_lines * 0.0110 + 0.010
+    header_h <- max(hdr_lines * 0.0110 + 0.010, esq_h)
     hy <- y - header_h / 2
 
     grid::grid.rect(x = grid::unit(x0 + inner / 2, "npc"), y = grid::unit(hy, "npc"),
@@ -2209,14 +2243,24 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   } else {
     header_h <- 0
   }
-  # Etiqueta de sub-grupo (subcriterio) en la celda superior-izquierda del header,
-  # como los bloques grises de la referencia. Navy bold, alineada a la izquierda.
-  if (nzchar(block$group_label %||% "") && header_h > 0) {
-    glbl_chars <- max(8L, floor((label_w - 0.012) * 118))
-    grid::grid.text(paste(.form_pdf_wrap(block$group_label, glbl_chars), collapse = "\n"),
-                    x = grid::unit(x0 + 0.006, "npc"), y = grid::unit(y_top_tbl - header_h / 2, "npc"),
-                    just = c("left", "center"),
-                    gp = grid::gpar(fontsize = 6.8, fontface = "bold", col = tk$navy, lineheight = 0.95))
+  # Celda superior-izquierda del header: enunciado de la bateria (L16) y/o
+  # etiqueta de sub-grupo. Con enunciado se ancla ARRIBA —puede ocupar varias
+  # lineas y centrarlo lo descuadraria respecto a la escala—; solo con
+  # sub-grupo se mantiene el centrado que habia.
+  if (length(esq$lineas) && header_h > 0) {
+    if (has_tenor) {
+      grid::grid.text(paste(esq$lineas, collapse = "\n"),
+                      x = grid::unit(x0 + 0.006, "npc"),
+                      y = grid::unit(y_top_tbl - 0.006, "npc"),
+                      just = c("left", "top"),
+                      gp = grid::gpar(fontsize = 8.0, fontface = "bold", col = tk$ink, lineheight = 0.95))
+    } else {
+      grid::grid.text(paste(esq$lineas, collapse = "\n"),
+                      x = grid::unit(x0 + 0.006, "npc"),
+                      y = grid::unit(y_top_tbl - header_h / 2, "npc"),
+                      just = c("left", "center"),
+                      gp = grid::gpar(fontsize = 6.8, fontface = "bold", col = tk$navy, lineheight = 0.95))
+    }
   }
   y_body_top <- y
 
