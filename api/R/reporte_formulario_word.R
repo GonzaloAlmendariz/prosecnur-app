@@ -37,6 +37,11 @@
 .FORM_WORD_INK     <- "#000000"   # TODO el texto
 .FORM_WORD_BAND    <- "#D9D9D9"   # banda de seccion y cabecera de matriz
 .FORM_WORD_ZEBRA   <- "#F2F2F2"   # relleno suave de fila alterna
+# SUBSECCION (L17): la referencia separa seccion y subseccion por TONO, no por
+# forma — misma caja, misma negrita, mismo cuerpo, relleno mas claro (D9D9D9
+# luma 217 contra DBE5F1 luma 227). E8E8E8 (232) es su equivalente monocromo y
+# ya esta en el inventario de grises de la referencia: no se inventa uno nuevo.
+.FORM_WORD_BAND_SUB <- "#E8E8E8"
 # Rejilla: NEGRA. Decision de Gonzalo (2026-09-25): «que vaya en negro lo mas
 # adecuado como bordes de tablas, pero cosas con fondo usar negro por completo
 # gastaria mucha tinta». El criterio es exacto y vale la pena dejarlo escrito:
@@ -306,8 +311,10 @@
     hdr[["s1"]] <- scale_labels[1]
     if (has_special) hdr[["sp"]] <- sp_label
   }
-  # Etiqueta de sub-grupo (subcriterio) en la celda superior-izquierda del header.
-  hdr[["lbl"]] <- .form_pdf_clean_text(block$group_label %||% "")
+  # La celda superior izquierda arranca VACIA: desde L17 el sub-grupo tiene banda
+  # propia encima de la matriz, y desde L16 esta celda es del enunciado, que la
+  # compone `.form_word_esquina_matriz()` al final.
+  hdr[["lbl"]] <- ""
   ft <- do.call(flextable::set_header_labels, c(list(ft), as.list(hdr)))
   if (merge_extremos) {
     if (length(left_ids) >= 2L) ft <- flextable::merge_at(ft, i = 1, j = left_ids, part = "header")
@@ -373,8 +380,7 @@
   # todo lo de arriba —`align(j="num", "center")`, el 8 pt de la cabecera,
   # `table_base`— la pisaria si fuera antes.
   ft <- .form_word_esquina_matriz(ft, block$tenor %||% "", numero = block$number %||% "",
-                                  hint = block$hint %||% "",
-                                  subgrupo = block$group_label %||% "")
+                                  hint = block$hint %||% "")
   ft
 }
 
@@ -497,23 +503,15 @@
 # Es la misma razon de L4: separado de su tabla, el enunciado se corta de ella.
 # La esquina fusiona `num` + `lbl` porque en la referencia el "P20." arranca en
 # la columna del numero de item, no en la de la etiqueta.
-.form_word_esquina_matriz <- function(ft, enunciado, numero = "", hint = "",
-                                      subgrupo = "") {
+.form_word_esquina_matriz <- function(ft, enunciado, numero = "", hint = "") {
   enunciado <- .form_pdf_clean_text_enfasis(enunciado %||% "")
   if (!nzchar(enunciado)) return(ft)
   numero <- .form_pdf_clean_text(numero %||% "")
   hint <- .form_pdf_clean_text(hint %||% "")
-  subgrupo <- .form_pdf_clean_text(subgrupo %||% "")
   texto <- if (nzchar(numero)) paste0(numero, ".  ", enunciado) else enunciado
 
   ft <- flextable::merge_at(ft, i = 1, j = c("num", "lbl"), part = "header")
   chunks <- .form_word_chunks_enfasis(texto, negrita_base = TRUE)
-  if (nzchar(subgrupo)) {
-    chunks <- c(chunks, list(flextable::as_chunk(
-      paste0("\n", subgrupo),
-      props = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, bold = TRUE,
-                               color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT))))
-  }
   if (nzchar(hint)) {
     chunks <- c(chunks, list(flextable::as_chunk(
       paste0("\n", hint),
@@ -1085,6 +1083,16 @@ formulario_word_render <- function(model, output_file) {
           doc <- .form_word_par(doc, block$body, size = .FORM_WORD_SZ, space_after = 6)
         }
       }
+
+    } else if (identical(kind, "subsection")) {
+      # Misma caja que la banda de seccion: sombreada, con sus cuatro bordes y
+      # arrastrando lo que sigue. Cambian el tono y la alineacion (la seccion va
+      # centrada, la subseccion pegada al margen, como en la referencia).
+      doc <- .form_word_par(doc, toupper(block$title %||% ""), size = .FORM_WORD_SZ, bold = TRUE,
+                            color = .FORM_WORD_INK, shade = .FORM_WORD_BAND_SUB,
+                            align = "left", space_before = 4, space_after = 3,
+                            borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
+                            keep_with_next = TRUE)
 
     } else if (identical(kind, "section")) {
       # Banda de seccion CENTRADA, sin kicker "SECCIÓN N" (la banda se basta sola).

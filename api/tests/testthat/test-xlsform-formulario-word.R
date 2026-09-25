@@ -652,3 +652,78 @@ test_that("L16: el enunciado de la bateria vive DENTRO de la matriz, no encima",
   expect_false(is.na(xml2::xml_attr(span, "val")))
   expect_identical(xml2::xml_attr(span, "val"), "2")
 })
+
+.form_word_fixture_subgrupo <- function() {
+  list(
+    survey = data.frame(
+      type = c("begin_group", rep("select_one ac", 3L), "end_group"),
+      name = c("g", "a1", "a2", "a3", "ge"),
+      label = c("B. BIENESTAR", "Me siento satisfecho conmigo mismo.",
+                "Creo que tengo buenas cualidades.", "A veces pienso que no sirvo para nada.", ""),
+      paper_subgroup = c("", rep("Como te sientes", 3L), ""),
+      stringsAsFactors = FALSE),
+    choices = data.frame(
+      list_name = "ac", name = as.character(1:4),
+      label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+      stringsAsFactors = FALSE),
+    settings = list(form_title = "L17")
+  )
+}
+
+test_that("L17: la subseccion es una banda propia, y se distingue de la seccion por TONO", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  fx <- .form_word_fixture_subgrupo()
+  out <- tempfile(fileext = ".docx")
+  reporte_formulario_word(fx$survey, fx$choices, fx$settings, output_file = out,
+                          options = list(columns = 1))
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  bandas <- list()
+  for (p in xml2::xml_find_all(doc, "//w:body/w:p", ns)) {
+    shd <- xml2::xml_find_first(p, "./w:pPr/w:shd", ns)
+    if (is.na(xml2::xml_attr(shd, "fill"))) next
+    bandas[[length(bandas) + 1L]] <- list(
+      fill = toupper(xml2::xml_attr(shd, "fill")),
+      texto = paste(xml2::xml_text(xml2::xml_find_all(p, ".//w:t", ns)), collapse = ""))
+  }
+  sub <- Filter(function(b) grepl("COMO TE SIENTES", b$texto, fixed = TRUE), bandas)
+  sec <- Filter(function(b) grepl("BIENESTAR", b$texto, fixed = TRUE), bandas)
+  expect_length(sub, 1L)
+  expect_length(sec, 1L)
+  # MISMA FORMA, distinto tono: es como los separa la referencia (D9D9D9 contra
+  # DBE5F1, luma 217 y 227). Que sean DISTINTOS es la mitad que importa; un test
+  # que solo comprobara "la subseccion tiene relleno" pasaria con los dos iguales.
+  expect_identical(sub[[1]]$fill, "E8E8E8")
+  expect_identical(sec[[1]]$fill, "D9D9D9")
+  expect_false(identical(sub[[1]]$fill, sec[[1]]$fill))
+  # Y la subseccion conserva la caja: sin bordes seria un parrafo sombreado, no
+  # una banda, y en fotocopia dura no se leeria como rotulo.
+  p_sub <- Filter(function(p) grepl("COMO TE SIENTES",
+                    paste(xml2::xml_text(xml2::xml_find_all(p, ".//w:t", ns)), collapse = ""), fixed = TRUE),
+                  xml2::xml_find_all(doc, "//w:body/w:p", ns))
+  expect_length(xml2::xml_find_all(p_sub[[1]], "./w:pPr/w:pBdr/*", ns) , 4L)
+})
+
+test_that("L17: el sub-grupo se enuncia UNA vez — la esquina de la matriz ya no lo repite", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  fx <- .form_word_fixture_subgrupo()
+  out <- tempfile(fileext = ".docx")
+  reporte_formulario_word(fx$survey, fx$choices, fx$settings, output_file = out,
+                          options = list(columns = 1))
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  # Hasta L17 el sub-grupo vivia en la celda superior izquierda de la matriz.
+  # Ahora tiene banda; dejarlo tambien en la esquina seria decirlo dos veces, que
+  # es el modo tipico de "cerrar" este tipo de item mal.
+  tablas <- xml2::xml_find_all(doc, "//w:body/w:tbl", ns)
+  esquinas <- vapply(tablas, function(t) {
+    tc <- xml2::xml_find_first(t, "./w:tr[1]/w:tc[1]", ns)
+    if (inherits(tc, "xml_missing")) return("")
+    paste(xml2::xml_text(xml2::xml_find_all(tc, ".//w:t", ns)), collapse = "")
+  }, character(1))
+  expect_false(any(grepl("Como te sientes", esquinas, ignore.case = TRUE)))
+  cuerpo <- xml2::xml_text(xml2::xml_find_first(doc, "//w:body", ns))
+  expect_identical(lengths(regmatches(cuerpo, gregexpr("(?i)como te sientes", cuerpo, perl = TRUE))), 1L)
+})
