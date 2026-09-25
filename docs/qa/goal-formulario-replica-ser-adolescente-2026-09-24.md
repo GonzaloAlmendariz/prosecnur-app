@@ -93,8 +93,8 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 | **L3** | Rejilla: bordes completos | **Word ☑** `a6059a042` · **PDF ☑** `4c5d524d3` — línea entre filas en listas y matrices |
 | **L1** | Paleta → escala de grises | **Word ☑** `07ea38d40` · **PDF ☑** `57363712b` — paleta local en `reporte_formulario_paleta.R`, sin tocar el theme compartido |
 | **L2** | Tipografía estrecha | **Word ☑** `73f55c4d5` (Arial Narrow) · **PDF ☑ con reserva** `04ccec36f` (Helvetica-Narrow, ver V1) |
-| **L4** | Enunciado dentro de la tabla | **Word ☑** `3d6d57e38` · PDF ☐ |
-| **L5** | Columna propia para el número | **Word ☑** `20a8a2b6f` · PDF ☐ |
+| **L4** | Enunciado dentro de la tabla | **Word ☑** `3d6d57e38` · **PDF ☑** `3d42ff3a1` |
+| **L5** | Columna propia para el número | **Word ☑** `20a8a2b6f` · **PDF ☑** `e92df7684` — constante compartida por dibujo y `block_height` |
 | **L6** | Densidad y márgenes | **Word ☑** `9a2fb7f02` (10 546 vs 10 549) · **PDF ☑** `4186e3647` — 61,4 → 54 pt por pregunta; el instrumento pasa de 2 páginas a 1 |
 | **L7** | Banda de sección: caja con borde y relleno gris | **Word ☑** `07ea38d40`+`fa6b7b9e2` — relleno gris, texto negro y borde de 0,5 pt con `space = 0` · **PDF ☑** — ya lo hacía; auditado, sin tocar código |
 | **L8** | Opciones cortas en fila horizontal | **Word ☑** `7f64804a1` — corte por ancho medido · PDF ☐ |
@@ -102,8 +102,8 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 | **L10** | Pie «Página N de M» + casillas del folio | **Word ☑** `39cca7bba` · **PDF ☑** `c767f0d1a` — dos pasadas, porque en `grid` el total no es un campo |
 | **L11** | Cabeceras sin partir palabras | **Word ☑** `72425151f` — envoltorio por ancho medido · PDF ☐ |
 | **L12** | El PDF equilibra las columnas de un tramo | **PDF ☑** `3877c1b64` — tinta der/izq 0,44 → 0,85 |
-| **L13** | Bloque de consentimiento: párrafo justificado + caja de acuerdo | modelo + renderers | ☐ |
-| **L14** | Tabla corta partida entre columnas (`keepNext` en filas) | renderer Word | ☐ (ítem 22 del checklist) |
+| **L13** | Consentimiento: párrafo justificado + caja de acuerdo | **Word ☑** `649bb12e1` — etiquetas de `consent_options`, no inventadas · PDF ☐ |
+| **L14** | Tabla corta partida entre columnas | **Word ☑** `e115a4107` — `keepNext` por fila, NO `cantSplit` · PDF ☐ (el equilibrado de L12 puede haberlo mitigado: reproducir antes de tocar) |
 
 ## Espera a Gonzalo
 
