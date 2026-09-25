@@ -100,9 +100,9 @@ Medición de partida (2026-09-24), motor actual contra referencia:
 | **L8** | Opciones cortas en fila horizontal | **Word ☑** `7f64804a1` — corte por ancho medido · PDF ☐ |
 | **L9** | Campos de escritura = celda vacía | **Word ☑** `fa6b7b9e2` · **PDF ☑** — ya lo hacía; auditado |
 | **L10** | Pie «Página N de M» + casillas del folio | **Word ☑** `39cca7bba` · **PDF ☑** `c767f0d1a` — dos pasadas, porque en `grid` el total no es un campo |
-| **L11** | Cabeceras sin partir palabras | **Word ☑** `72425151f` — envoltorio por ancho medido · PDF ☐ |
+| **L11** | Cabeceras sin partir palabras | **Word ☑** `72425151f` · **PDF ☑** — ya cumplía; auditado midiendo, `wrap_fit` siempre midió ancho real |
 | **L12** | El PDF equilibra las columnas de un tramo | **PDF ☑** `3877c1b64` — tinta der/izq 0,44 → 0,85 |
-| **L13** | Consentimiento: párrafo justificado + caja de acuerdo | **Word ☑** `649bb12e1` — etiquetas de `consent_options`, no inventadas · PDF ☐ |
+| **L13** | Consentimiento: párrafo justificado + caja de acuerdo | **Word ☑** `649bb12e1` · **PDF ☑** `579a0fc33` — etiquetas de `consent_options`, no inventadas |
 | **L14** | Tabla corta partida entre columnas | **Word ☑** `e115a4107` — `keepNext` por fila, NO `cantSplit` · PDF ☐ (el equilibrado de L12 puede haberlo mitigado: reproducir antes de tocar) |
 
 ## Espera a Gonzalo
