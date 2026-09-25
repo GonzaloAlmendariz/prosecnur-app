@@ -596,3 +596,59 @@ test_that("B4: la rejilla va en NEGRO, y los rellenos NO", {
   fills <- unique(fills[!is.na(fills) & !fills %in% c("AUTO", "FFFFFF")])
   expect_setequal(fills, c("F2F2F2", "D9D9D9"))
 })
+
+# Fixture con TENOR: la matriz autodetectada por `paper_group` NO trae tenor
+# (su titulo es la etiqueta del primer item), asi que no ejercita L16. El tenor
+# entra por la opcion `matrix_groups`, que es de donde sale en un estudio real.
+.form_word_fixture_tenor <- function(tenor = "Por favor senala que tan de acuerdo estas con las siguientes afirmaciones:") {
+  list(
+    survey = data.frame(
+      type = rep("select_one ac", 4L), name = paste0("a", 1:4),
+      label = c("Me siento satisfecho conmigo mismo.",
+                "Creo que tengo buenas cualidades.",
+                "Soy capaz de hacer las cosas tan bien como los demas.",
+                "A veces pienso que no sirvo para nada."),
+      stringsAsFactors = FALSE),
+    choices = data.frame(
+      list_name = "ac", name = as.character(1:4),
+      label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+      stringsAsFactors = FALSE),
+    settings = list(form_title = "L16"),
+    options = list(columns = 1, matrix_groups = list(list(
+      members = paste0("a", 1:4), tenor = tenor)))
+  )
+}
+
+test_that("L16: el enunciado de la bateria vive DENTRO de la matriz, no encima", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  fx <- .form_word_fixture_tenor()
+  out <- tempfile(fileext = ".docx")
+  reporte_formulario_word(fx$survey, fx$choices, fx$settings, output_file = out,
+                          options = fx$options)
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  body <- xml2::xml_find_first(doc, "//w:body", ns)
+  hijos <- xml2::xml_children(body)
+  texto <- function(n) paste(xml2::xml_text(xml2::xml_find_all(n, ".//w:t", ns)), collapse = "")
+
+  # 1. NINGUN parrafo suelto del cuerpo repite el enunciado. Es la mitad que
+  #    importa: dejarlo arriba Y ponerlo dentro seria duplicarlo, y un test que
+  #    solo mire la esquina daria verde igual.
+  sueltos <- Filter(function(n) identical(xml2::xml_name(n), "p") &&
+                      grepl("Por favor senala", texto(n), fixed = TRUE), hijos)
+  expect_length(sueltos, 0L)
+
+  # 2. El enunciado esta en la PRIMERA celda de la PRIMERA fila de la matriz,
+  #    y esa celda abarca la columna del numero y la de la etiqueta (gridSpan),
+  #    que es donde la referencia arranca su "P20." .
+  tablas <- Filter(function(n) identical(xml2::xml_name(n), "tbl"), hijos)
+  mat <- Filter(function(t) grepl("Por favor senala", texto(t), fixed = TRUE), tablas)
+  expect_length(mat, 1L)
+  esquina <- xml2::xml_find_first(mat[[1]], ".//w:tr[1]/w:tc[1]", ns)
+  expect_true(grepl("Por favor senala", texto(esquina), fixed = TRUE))
+  expect_true(grepl("^1\\.", trimws(texto(esquina))))   # se lleva su numero consigo
+  span <- xml2::xml_find_first(esquina, "./w:tcPr/w:gridSpan", ns)
+  expect_false(is.na(xml2::xml_attr(span, "val")))
+  expect_identical(xml2::xml_attr(span, "val"), "2")
+})

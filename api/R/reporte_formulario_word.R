@@ -369,6 +369,12 @@
   # volveria a no caber -- que es exactamente lo que pasaba.
   ft <- flextable::padding(ft, j = "num", padding.left = 2, padding.right = 2, part = "all")
   ft <- flextable::padding(ft, j = scale_ids, padding.left = 2, padding.right = 2, part = "all")
+  # LO ULTIMO, y a proposito (L16): la esquina fusiona y re-estila `num`+`lbl`, y
+  # todo lo de arriba —`align(j="num", "center")`, el 8 pt de la cabecera,
+  # `table_base`— la pisaria si fuera antes.
+  ft <- .form_word_esquina_matriz(ft, block$tenor %||% "", numero = block$number %||% "",
+                                  hint = block$hint %||% "",
+                                  subgrupo = block$group_label %||% "")
   ft
 }
 
@@ -471,6 +477,56 @@
   ft <- flextable::bg(ft, bg = .FORM_WORD_ZEBRA, part = "header")
   ft <- flextable::align(ft, align = "left", part = "header")
   ft <- flextable::valign(ft, valign = "top", part = "header")
+  ft
+}
+
+# L16 — EL ENUNCIADO DE LA BATERIA VIVE EN LA ESQUINA DE SU MATRIZ.
+#
+# Hasta aqui el tenor se pintaba como parrafo suelto ENCIMA de la tabla. La
+# referencia tiene DOS patrones y hay que distinguirlos, porque parecen el mismo:
+#   - P10..P18: parrafo de leyenda a todo el ancho ("...considerando que 1 es
+#     fuertemente en desacuerdo, 2 en desacuerdo...") y en la esquina un MUNON
+#     corto con puntos suspensivos ("P10. Cuan de acuerdo estas con...").
+#   - P20..P22: sin leyenda, y el enunciado ENTERO en la esquina, envuelto a dos
+#     lineas junto a la cabecera de escala ("P20. Por favor senala que tan de
+#     acuerdo estas con las siguientes afirmaciones:").
+# El motor no inventa munones —eso seria reescribir al autor—, asi que implementa
+# el patron P20: el enunciado completo, numerado, en la esquina. El munon y la
+# leyenda son L18 y necesitan un campo que hoy no existe.
+#
+# Es la misma razon de L4: separado de su tabla, el enunciado se corta de ella.
+# La esquina fusiona `num` + `lbl` porque en la referencia el "P20." arranca en
+# la columna del numero de item, no en la de la etiqueta.
+.form_word_esquina_matriz <- function(ft, enunciado, numero = "", hint = "",
+                                      subgrupo = "") {
+  enunciado <- .form_pdf_clean_text_enfasis(enunciado %||% "")
+  if (!nzchar(enunciado)) return(ft)
+  numero <- .form_pdf_clean_text(numero %||% "")
+  hint <- .form_pdf_clean_text(hint %||% "")
+  subgrupo <- .form_pdf_clean_text(subgrupo %||% "")
+  texto <- if (nzchar(numero)) paste0(numero, ".  ", enunciado) else enunciado
+
+  ft <- flextable::merge_at(ft, i = 1, j = c("num", "lbl"), part = "header")
+  chunks <- .form_word_chunks_enfasis(texto, negrita_base = TRUE)
+  if (nzchar(subgrupo)) {
+    chunks <- c(chunks, list(flextable::as_chunk(
+      paste0("\n", subgrupo),
+      props = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, bold = TRUE,
+                               color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT))))
+  }
+  if (nzchar(hint)) {
+    chunks <- c(chunks, list(flextable::as_chunk(
+      paste0("\n", hint),
+      props = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, italic = TRUE,
+                               color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT))))
+  }
+  ft <- flextable::compose(ft, i = 1, j = "num", part = "header",
+                           value = do.call(flextable::as_paragraph, chunks))
+  # La esquina va al cuerpo (10 pt) y alineada a la izquierda: el resto de la
+  # cabecera es escala a 8 pt centrada, y heredarlo dejaba el enunciado diminuto.
+  ft <- flextable::fontsize(ft, j = "num", size = .FORM_WORD_SZ, part = "header")
+  ft <- flextable::align(ft, j = "num", align = "left", part = "header")
+  ft <- flextable::valign(ft, j = "num", valign = "top", part = "header")
   ft
 }
 
@@ -1045,14 +1101,12 @@ formulario_word_render <- function(model, output_file) {
       }
 
     } else if (identical(kind, "matrix")) {
-      # ITEM 3: el enunciado y la pista NUNCA se separan de su matriz.
-      if (nzchar(block$tenor %||% "")) {
-        num <- .form_pdf_clean_text(block$number %||% "")
-        pre <- if (nzchar(num)) paste0(num, ".  ") else ""
-        doc <- .form_word_par(doc, paste0(pre, block$title), size = .FORM_WORD_SZ, bold = TRUE,
-                              space_before = 4, space_after = 2, keep_with_next = TRUE)
-      }
-      if (nzchar(block$hint %||% "")) {
+      # ITEM 3 / L16: el enunciado y la pista NUNCA se separan de su matriz, y
+      # la forma mas fuerte de no separarlos es que vivan DENTRO. Con tenor, el
+      # enunciado y la pista los pinta `.form_word_esquina_matriz()` en la celda
+      # superior izquierda; no se emite parrafo alguno encima de la tabla. Sin
+      # tenor no hay enunciado que mover y la pista sigue como parrafo pegado.
+      if (!nzchar(block$tenor %||% "") && nzchar(block$hint %||% "")) {
         doc <- .form_word_par(doc, block$hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, color = .FORM_WORD_INK,
                               keep_with_next = TRUE)
       }
