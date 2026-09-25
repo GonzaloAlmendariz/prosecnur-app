@@ -232,14 +232,30 @@ export function classroomRunMatchesAlumnosPorChDecision(
     JSON.stringify(stableComparisonValue(run));
 }
 
+/**
+ * Campos del selector que NO deciden si la comparación sigue vigente: el
+ * presupuesto de simulación. «Comparar» corre una pasada por método
+ * (`CM_CORRIDAS_COMPARACION = 0`, c45fba61b) y R guarda 0; «Medir
+ * estabilidad» corre 500. Con esos campos en la firma, sólo la estabilidad
+ * dejaba una comparación vigente y el botón «Comparar» nunca bastaba para
+ * sortear: la UI exigía la evidencia de estabilidad por accidente (E15 AD1,
+ * medido sobre hsvg2026: workspace sim/mc 500 vs corrida 0). La estabilidad
+ * sigue siendo evidencia propia en Simulación; no condiciona la vigencia.
+ */
+const CAMPOS_FUERA_DE_VIGENCIA = new Set(["simulation_runs", "monte_carlo_n"]);
+
+function sinCamposFueraDeVigencia(selector: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(selector).filter(([clave]) => !CAMPOS_FUERA_DE_VIGENCIA.has(clave)));
+}
+
 export function classroomComparisonMatchesConfig(
   comparison: CalcMuestraAulasMethodComparison | null | undefined,
   config: CalcMuestraWorkspaceAulasConfig,
 ): boolean {
   const selector = comparison?.selector;
   if (!selector || selector.schema !== CLASSROOM_COMPARISON_SELECTOR_SCHEMA) return false;
-  return JSON.stringify(stableComparisonValue(selector)) ===
-    JSON.stringify(stableComparisonValue(classroomComparisonSelectorSnapshot(config)));
+  return JSON.stringify(stableComparisonValue(sinCamposFueraDeVigencia(selector as unknown as Record<string, unknown>))) ===
+    JSON.stringify(stableComparisonValue(sinCamposFueraDeVigencia(classroomComparisonSelectorSnapshot(config))));
 }
 
 /**
@@ -258,8 +274,8 @@ export function classroomComparisonConfigDiff(
   if (selector.schema !== CLASSROOM_COMPARISON_SELECTOR_SCHEMA) {
     return [`schema (corrida ${String(selector.schema ?? "—")} · vigente ${CLASSROOM_COMPARISON_SELECTOR_SCHEMA})`];
   }
-  const esperado = classroomComparisonSelectorSnapshot(config);
-  const corrida = selector as unknown as Record<string, unknown>;
+  const esperado = sinCamposFueraDeVigencia(classroomComparisonSelectorSnapshot(config));
+  const corrida = sinCamposFueraDeVigencia(selector as unknown as Record<string, unknown>);
   const compacto = (value: unknown): string => {
     const stable = stableComparisonValue(value);
     if (stable === undefined || stable === null || stable === "") return "sin declarar";
