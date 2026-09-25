@@ -229,6 +229,18 @@ describe("M9 · contrato de movimiento de movimiento.css", () => {
     expect(reducido).toContain("background-color var(--motion-dur-fast) var(--motion-ease-out)");
   });
 
+  it("la red global de movimiento reducido quita el movimiento pero deja cruzar color y opacidad (E16b)", () => {
+    const global = leer("../calcMuestra.css");
+    const red = global.slice(global.indexOf("@media (prefers-reduced-motion: reduce)"));
+    const bloque = red.slice(0, red.indexOf("}"));
+    expect(bloque).not.toMatch(/transition-duration: 1ms/);
+    const props = bloque.match(/transition-property: ([^;!]+)/)?.[1].split(",").map((p) => p.trim()) ?? [];
+    expect(props).toEqual(expect.arrayContaining(["color", "background-color", "opacity"]));
+    for (const movimiento of ["transform", "width", "height", "left", "top", "all", "filter"]) expect(props).not.toContain(movimiento);
+    const ui = leer("../universidad/ui/ui.css");
+    expect(ui).not.toMatch(/\.cmv2-uni-swap \{\s*transition:[^;]*\d+ms/);
+  });
+
   it("la animación de las barras ya no vive duplicada en mesa.css", () => {
     const mesa = leer("mesa.css");
     expect(mesa).not.toContain("cmg-reparto-crecer");

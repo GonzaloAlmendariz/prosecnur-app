@@ -68,7 +68,7 @@
 /* Crossfade con blur para cifras que cambian de valor: el blur funde ambos
    estados en una sola transformación en vez de dos objetos superpuestos. */
 .cmv2-uni-swap {
-  transition: filter 180ms ease, opacity 180ms ease;
+  transition: filter var(--motion-dur-fast) var(--motion-ease-out), opacity var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .cmv2-uni-swap[data-cambiando="true"] {
@@ -78,7 +78,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cmv2-uni-swap {
-    transition: opacity 150ms ease;
+    transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
   }
 
   .cmv2-uni-swap[data-cambiando="true"] {
