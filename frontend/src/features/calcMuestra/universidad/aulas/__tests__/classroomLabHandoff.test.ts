@@ -8,7 +8,7 @@ import type {
 import { defaultComponente } from "../../../sharedCore";
 import { universityDefaultWorkspace } from "../../shared/study";
 import { buildClassroomLabModel } from "../aulasParts";
-import { classroomComparisonConfigDiff, classroomComparisonSelectorSnapshot } from "../classroomHandoff";
+import { classroomComparisonConfigDiff, classroomComparisonMatchesConfig, classroomComparisonSelectorSnapshot } from "../classroomHandoff";
 import { classroomRiskRows } from "../ClassroomRiskList";
 import {
   UNIVERSITY_FACULTY_COMPONENT_ID,
@@ -767,7 +767,9 @@ describe("classroomComparisonConfigDiff", () => {
     const corrida = { ...classroomComparisonSelectorSnapshot(config), n_aulas: 202, simulation_runs: 500, monte_carlo_n: 500 };
     const diff = classroomComparisonConfigDiff({ selector: corrida } as never, config);
     expect(diff.some((linea) => linea.includes("n_aulas") && linea.includes("202") && linea.includes("203"))).toBe(true);
-    expect(diff.some((linea) => linea.includes("simulation_runs") && linea.includes("500") && linea.includes("0"))).toBe(true);
+    // E15 AD1: el presupuesto de simulación no decide la vigencia ni se nombra
+    // como diferencia («Comparar» corre 0 a propósito; la estabilidad, 500).
+    expect(diff.some((linea) => linea.includes("simulation_runs") || linea.includes("monte_carlo_n"))).toBe(false);
     // Solo los campos que difieren: declarar donde no muerde ensucia el aviso.
     expect(diff.some((linea) => linea.startsWith("seed"))).toBe(false);
   });
@@ -782,3 +784,18 @@ describe("classroomComparisonConfigDiff", () => {
     expect(classroomComparisonConfigDiff(null, configVigente(203))).toEqual([]);
   });
 });
+
+describe("E15 AD1: «Comparar» basta para que la comparación quede vigente", () => {
+  it("una comparación con 0 corridas (la de «Comparar») vale contra un workspace con 500", () => {
+    const config = { ...universityDefaultWorkspace().aulas_config, n_aulas: 186, simulation_runs: 500 } as AulasConfigConObjetivo;
+    const corrida = { ...classroomComparisonSelectorSnapshot(config), simulation_runs: 0, monte_carlo_n: 0 };
+    expect(classroomComparisonMatchesConfig({ selector: corrida } as never, config)).toBe(true);
+  });
+
+  it("cualquier otro campo sigue invalidándola", () => {
+    const config = { ...universityDefaultWorkspace().aulas_config, n_aulas: 186, simulation_runs: 500 } as AulasConfigConObjetivo;
+    const corrida = { ...classroomComparisonSelectorSnapshot(config), simulation_runs: 0, monte_carlo_n: 0, n_aulas: 185 };
+    expect(classroomComparisonMatchesConfig({ selector: corrida } as never, config)).toBe(false);
+  });
+});
+
