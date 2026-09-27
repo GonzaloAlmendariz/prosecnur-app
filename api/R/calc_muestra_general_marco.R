@@ -194,6 +194,8 @@ calc_muestra_general_resumen <- function(estado) {
       # Viaja al reporte ya redactada: la plantilla Quarto no debe llamar
       # funciones internas del paquete (el render puede cargar el instalado).
       c$nota_varianza <- .cm_general_nota_varianza(c$corrida$metodo, c$corrida$modalidad)
+      # El rótulo del método dice si se sorteó dentro de cada estrato (L26).
+      c$metodo_rotulo <- .cm_general_metodo_rotulo(c$corrida$metodo, c$estratos)
       c
     })
   )
