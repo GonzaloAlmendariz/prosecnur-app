@@ -259,9 +259,15 @@ export default function ProjectLifecycleDialog({
 }
 
 async function writeClipboardText(text: string) {
+  // En Electron el handler de permisos niega el portapapeles asíncrono y
+  // writeText rechaza: se cae al execCommand, que no pide permiso.
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // sigue al fallback
+    }
   }
 
   const textarea = document.createElement("textarea");
@@ -273,7 +279,7 @@ async function writeClipboardText(text: string) {
   document.body.appendChild(textarea);
   textarea.select();
   try {
-    document.execCommand("copy");
+    if (!document.execCommand("copy")) throw new Error("copy rechazado");
   } finally {
     document.body.removeChild(textarea);
   }
