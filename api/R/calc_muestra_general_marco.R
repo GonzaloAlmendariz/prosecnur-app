@@ -131,6 +131,14 @@ calc_muestra_general_seleccionar <- function(estudio, estado, componente_id, dat
   modalidad <- if (comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) "probabilistica"
                else if (comp$tecnica %in% c("intencion_censal", "barrido")) "censo"
                else NA_character_
+  # Conglomerados y dominios independientes son probabilísticos, pero su sorteo
+  # (aulas por facultad, reemplazos) vive en el modo de aulas; aquí sólo se
+  # dimensiona el n. Decía «no hay probabilidad conocida», falso (L20).
+  if (is.na(modalidad) && comp$tecnica %in% c("prob_conglomerado_multietapico", "prob_estratificado_independiente")) {
+    rotulo <- .cm_reporte_rotulos()$tecnica[[comp$tecnica]]
+    stop_api(409, "E_CALC_MUESTRA_GENERAL_TECNICA",
+             sprintf("«%s» se sortea desde el modo de aulas de Cálculo de muestra: en Muestra general sólo se dimensiona el n.", rotulo))
+  }
   if (is.na(modalidad)) {
     stop_api(409, "E_CALC_MUESTRA_GENERAL_TECNICA",
              sprintf("La técnica «%s» no selecciona unidades con probabilidad conocida: no hay sorteo ni π que publicar.",
