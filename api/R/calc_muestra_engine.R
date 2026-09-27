@@ -1691,8 +1691,14 @@ calc_muestra_calcular_componente <- function(comp) {
     calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
   campo <- .cm_general_inflar_operativo(n_objetivo, par, N)
-  precision_alcanzada <- if (media) .cm_general_error_media(n_objetivo, N, par$cv, par$z, 1) else
-    calc_e_desde_n_muestra(n = n_objetivo, N = N, p = par$p, z = par$z, deff = 1)
+  # Con tope, el margen se mide con las completas que el marco puede dar (L3).
+  n_error <- .cm_general_completas_esperadas(n_objetivo, campo$n_operativo, par)
+  precision_alcanzada <- if (media) .cm_general_error_media(n_error, N, par$cv, par$z, 1) else
+    calc_e_desde_n_muestra(n = n_error, N = N, p = par$p, z = par$z, deff = 1)
+  if (n_error < n_objetivo - 1e-9) {
+    campo$advertencia <- paste(c(campo$advertencia, .cm_general_aviso_margen_topado(
+      n_objetivo, n_error, precision_alcanzada, par$e, relativo = media)), collapse = " ")
+  }
 
   out <- list(
     n_teorico            = as.integer(n_teorico),
@@ -1702,6 +1708,7 @@ calc_muestra_calcular_componente <- function(comp) {
     sobremuestra         = campo$sobremuestra,
     origen_tamano        = comp$origen_tamano
   )
+  if (n_error < n_objetivo - 1e-9) out$n_completas_esperadas <- n_error
   if (!is.null(campo$advertencia)) out$advertencia <- campo$advertencia
   out
 }
@@ -1813,6 +1820,18 @@ calc_muestra_calcular_componente <- function(comp) {
     exceso <- exceso - 1L
   }
   base_result$n_operativo <- sum(cuotas_campo)
+  # Completas esperadas por estrato: un estrato censado entrega N_h · tasa, que
+  # puede quedar bajo su n_h (L3). El error se mide con ellas.
+  esperadas_h <- .cm_general_completas_esperadas(cuotas, cuotas_campo, par_campo)
+  topado_error <- sum(esperadas_h) < sum(as.numeric(cuotas)) - 1e-9
+  if (topado_error) {
+    base_result$n_completas_esperadas <- sum(esperadas_h)
+    if (!por_estrato) {
+      base_result$precision_alcanzada <- if (media)
+        .cm_general_error_media(sum(esperadas_h), N, par$cv, par$z, par$deff) else
+        calc_e_desde_n_muestra(n = sum(esperadas_h), N = N, p = par$p, z = par$z, deff = par$deff)
+    }
+  }
   base_result$sobremuestra <- as.integer(sum(cuotas_campo) - sum(pmin(por_h$base, pesos)))
   if (sum(cuotas_campo) >= N) {
     campo$advertencia <- sprintf(
@@ -1845,14 +1864,15 @@ calc_muestra_calcular_componente <- function(comp) {
   if (por_estrato) {
     # El error alcanzado sale de la asignación efectiva, no de la fórmula
     # global: es el que el diseño de verdad logra con esos n_h.
-    base_result$precision_alcanzada <- .cm_general_error_estratificado(as.integer(cuotas), estratos, par)
+    base_result$precision_alcanzada <- .cm_general_error_estratificado(
+      if (topado_error) esperadas_h else as.integer(cuotas), estratos, par)
     base_result$asignacion <- par$asignacion
     base_result$formula_n <- switch(par$asignacion, neyman = "neyman", potencia = "potencia", "proporcional_por_estrato")
     # Un piso aleja el reparto del óptimo: el n de la fórmula ya no garantiza
     # el margen, y eso se dice con la cifra (Monte Carlo del verificador:
     # piso 40 con e = .035 dejaba ±.0364).
     ea <- base_result$precision_alcanzada
-    if (!is.na(ea) && ea > as.numeric(par$e) + 1e-9) {
+    if (!is.na(ea) && ea > as.numeric(par$e) + 1e-9 && !topado_error) {
       # Dos decimales cuando el exceso es chico: «±5.0 supera ±5.0» se
       # contradecía. La causa se nombra por lo que la produjo: el piso que
       # declaró el usuario o el mínimo de 2 que impone el motor.
@@ -1864,6 +1884,10 @@ calc_muestra_calcular_componente <- function(comp) {
         causa, dec, 100 * ea, dec, 100 * as.numeric(par$e),
         if (piso > 2L) " o baja el piso" else "")
     }
+  }
+  if (topado_error && !is.na(base_result$precision_alcanzada %||% NA)) {
+    aviso_error <- .cm_general_aviso_margen_topado(n_objetivo, sum(esperadas_h),
+                                                   base_result$precision_alcanzada, par$e, relativo = media)
   }
   distribucion_estratos <- lapply(seq_along(estratos), function(i) {
     e <- estratos[[i]]
@@ -1877,9 +1901,10 @@ calc_muestra_calcular_componente <- function(comp) {
       precision_e = if (n_i <= 0L) NA_real_
         # Con una media, el error del estrato es RELATIVO y sale del CV (lo
         # publicaba con la fórmula de proporción: ±3,2 % donde era ±6,5 %).
-        else if (media) .cm_general_error_media(n_i, e$N, par$cv, par$z, par$deff)
+        # Un estrato censado se mide con sus completas esperadas (L3).
+        else if (media) .cm_general_error_media(esperadas_h[[i]], e$N, par$cv, par$z, par$deff)
         else calc_e_desde_n_muestra(
-          n = n_i, N = e$N, z = par$z, deff = par$deff,
+          n = esperadas_h[[i]], N = e$N, z = par$z, deff = par$deff,
           p = if (por_estrato && !is.null(e$p_facultad) && !is.na(e$p_facultad)) e$p_facultad else par$p
         ),
       regla       = if (n_i >= e$N) "censo_estrato"
