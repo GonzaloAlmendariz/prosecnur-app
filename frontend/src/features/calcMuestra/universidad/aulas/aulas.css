@@ -2059,15 +2059,6 @@
   gap: 4px;
 }
 
-/* C3 de «Solidez de la selección»: el vacío se explica a sí mismo. */
-.cmv2-aulas-vacio-nota {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--pulso-text-soft);
-  max-width: 62ch;
-}
-
 /* Sexo por facultad: barras pareadas a escala comun (VARA 4, 2026-08-20).
    Mismo lenguaje de micro-tracks de la casa; solo tokens. */
 .cmv2-sexo-celda-barras { min-width: 140px; vertical-align: middle; }

@@ -20,6 +20,8 @@ import {
   UNIVERSITY_FACULTY_COMPONENT_ID,
   UNIVERSITY_TOTAL_COMPONENT_ID,
 } from "../shared/constants";
+import { ShieldCheck } from "../../../../vendor/lucide-react";
+import { EmptyState } from "../../../../components/States";
 import "./certezaCobertura.css";
 import "./calculoCerteza.css";
 
@@ -33,6 +35,7 @@ export function CalculoCertezaTab({
   onFijarAulas,
   onFijarTodas,
   marcoDesactualizado = false,
+  onNavigate,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   currentFrameHash: string | null | undefined;
@@ -43,6 +46,8 @@ export function CalculoCertezaTab({
   onFijarAulas?: (facultad: string, aulas: number) => void;
   onFijarTodas?: () => void;
   marcoDesactualizado?: boolean;
+  /** Lleva al paso previo cuando la pestaña todavía no tiene datos. */
+  onNavigate?: (section: string, tab?: string) => void;
 }) {
   // Mismo criterio que «Cursos-horario requeridos»: la certeza se mide sobre el
   // componente del escenario vigente, no sobre uno fijo.
@@ -78,10 +83,18 @@ export function CalculoCertezaTab({
           onFijarTodas={onFijarTodas}
         />
       ) : (
-        <p className="cmv2-calc-certeza-nota">
-          Todavía no hay un cálculo por facultad sobre el que medir. Completa Cálculo →
-          Propuestas y vuelve.
-        </p>
+        // Vacío con su camino (2026-09-27): era una línea suelta arriba de un
+        // panel de 700 px; ahora dice qué falta y lleva ahí, como Perfil.
+        <EmptyState
+          icon={<ShieldCheck size={22} aria-hidden="true" />}
+          title="Todavía no hay un cálculo por facultad sobre el que medir"
+          hint="Calcula la muestra en Propuestas: con las cuotas por facultad, esta pestaña simula el sorteo y dice si los cursos-horario alcanzan."
+          cta={onNavigate ? (
+            <button type="button" className="pulso-empty-cta" onClick={() => onNavigate("calculo", "calculo-propuestas")}>
+              Ir a Propuestas
+            </button>
+          ) : undefined}
+        />
       )}
       <ExplicacionPlegable
         titulo="Cómo se decide si alcanza"
