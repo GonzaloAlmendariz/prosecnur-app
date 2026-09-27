@@ -421,16 +421,41 @@ export function margenComparado(comp: CalcMuestraComponente): {
 
 function cifraMargen(comp: CalcMuestraComponente): CifraBanda {
   const m = margenComparado(comp);
+  const noAlcanza = m.cumple === false;
   return {
     clave: "margen",
     label: "Margen alcanzado",
     value: m.alcanzado,
     detalle: comp.naturaleza === "no_prob"
       ? "no aplica sin π"
-      : m.pedido ? `pedido ${m.pedido}` : undefined,
-    origen: comp.resultado ? "motor" : undefined,
+      : m.pedido ? `pedido ${m.pedido}${noAlcanza ? " · no se alcanza" : ""}` : undefined,
+    // El sello «cifra validada» se lee como «cumple»: con un margen que no
+    // alcanza el pedido se omite y la tarjeta queda en alerta (L4).
+    origen: comp.resultado && !noAlcanza ? "motor" : undefined,
     tono: m.cumple == null ? undefined : m.cumple ? "ok" : "alerta",
   };
+}
+
+// Las causas que el motor redacta cuando el margen no alcanza el pedido: el
+// marco topado (`.cm_general_aviso_margen_topado`) y el piso o el mínimo de 2
+// por estrato (`.cm_calc_estratificado`). Se citan tal cual, sin el cierre
+// genérico que las acompaña en `advertencia`.
+const CAUSAS_MARGEN = [
+  /Abordando el marco completo.*?acepta ese margen\./,
+  /Con (?:el piso|el mínimo).*?supera el declarado.*?: sube n(?: o baja el piso)?\./,
+];
+
+/** Por qué el margen no alcanza el pedido, para decirlo donde se decide (Método). */
+export function avisoMargenGeneral(comp: CalcMuestraComponente | null): string | null {
+  if (!comp) return null;
+  const m = margenComparado(comp);
+  if (m.cumple !== false) return null;
+  const advertencia = comp.resultado?.advertencia ?? "";
+  for (const causa of CAUSAS_MARGEN) {
+    const hallada = advertencia.match(causa);
+    if (hallada) return hallada[0];
+  }
+  return `El n no alcanza el margen pedido: ${m.alcanzado} frente a ${m.pedido ?? "—"}.`;
 }
 
 /** Las cifras de Muestra general; en Selección suma la corrida. */

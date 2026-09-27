@@ -81,6 +81,6 @@
 .cm_general_aviso_margen_topado <- function(n, esperadas, ea, e, relativo = FALSE) {
   unidad <- if (relativo) " % de la media" else " puntos"
   sprintf(
-    "Abordando el marco completo se esperan %s completas esperadas de las %d que pide el margen: el error alcanzable es ±%.1f%s, no ±%.1f. Sube la tasa de respuesta o acepta ese margen.",
+    "Abordando el marco completo se esperan %s completas de las %d que pide el margen: el error alcanzable es ±%.1f%s, no ±%.1f. Sube la tasa de respuesta o acepta ese margen.",
     .cm_general_fmt_completas(esperadas), as.integer(n), 100 * ea, unidad, 100 * as.numeric(e))
 }
