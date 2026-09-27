@@ -4433,21 +4433,6 @@
   gap: 6px;
 }
 
-.cmv2-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-  white-space: nowrap;
-}
-
-.cmv2-check input {
-  width: 14px;
-  height: 14px;
-}
-
 .cmv2-handoff {
   max-width: 760px;
   margin: 56px auto;
