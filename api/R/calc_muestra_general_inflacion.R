@@ -61,3 +61,26 @@
   list(base = base, pedido = pedido, n_campo = n_campo,
        topados = which(pedido > N_h & N_h > 0L))
 }
+
+# Completas esperadas cuando el n a campo se topa en el marco (L3 del loop de
+# mejoras, 2026-09-27). Si se aborda todo el marco (o todo un estrato), lo que
+# vuelve son n_campo · tasa completas, que puede ser menos que el n de la
+# fórmula: con N = 2000, respuesta .3 y n = 697 se esperan 600, y el margen
+# real es el de 600. Sin tope devuelve n tal cual.
+.cm_general_completas_esperadas <- function(n, n_campo, par) {
+  tasa <- par$tasa_respuesta %||% 1
+  if (!is.numeric(tasa) || is.na(tasa) || tasa <= 0) tasa <- 1
+  pmin(as.numeric(n), as.numeric(n_campo) * min(tasa, 1))
+}
+
+.cm_general_fmt_completas <- function(x) {
+  x <- round(as.numeric(x), 1)
+  if (abs(x - round(x)) < 1e-9) format(as.integer(round(x))) else formatC(x, format = "f", digits = 1)
+}
+
+.cm_general_aviso_margen_topado <- function(n, esperadas, ea, e, relativo = FALSE) {
+  unidad <- if (relativo) " % de la media" else " puntos"
+  sprintf(
+    "Abordando el marco completo se esperan %s completas esperadas de las %d que pide el margen: el error alcanzable es ±%.1f%s, no ±%.1f. Sube la tasa de respuesta o acepta ese margen.",
+    .cm_general_fmt_completas(esperadas), as.integer(n), 100 * ea, unidad, 100 * as.numeric(e))
+}

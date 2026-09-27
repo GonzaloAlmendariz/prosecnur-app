@@ -77,7 +77,7 @@ calc_muestra_general_memoria <- function(comp, resultado) {
          as.character(as.integer(resultado$n_operativo))),
     list("Margen de error alcanzado",
          "e = z · √(p(1 − p) · deff · (N − n) / (n (N − 1)))",
-         sprintf("con n = %s y N = %s", as.integer(resultado$n_objetivo), .cm_general_num(N, 10L)),
+         .cm_general_sustitucion_margen(resultado, sprintf("y N = %s", .cm_general_num(N, 10L))),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
   if (por_estrato && !media) filas <- c(filas, .cm_general_memoria_campo(resultado, base, os, rr, N))
@@ -242,6 +242,16 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
   )
 }
 
+# El margen se mide con las completas esperadas cuando el n a campo se topa
+# (L3): la memoria lo dice en vez de sustituir el n de la fórmula.
+.cm_general_sustitucion_margen <- function(resultado, resto) {
+  esp <- resultado$n_completas_esperadas
+  if (!is.null(esp) && !is.na(esp)) {
+    sprintf("con n = %s completas esperadas (de %s pedidas; el marco se topa) %s",
+            .cm_general_fmt_completas(esp), as.integer(resultado$n_objetivo), resto)
+  } else sprintf("con n = %s %s", as.integer(resultado$n_objetivo), resto)
+}
+
 .cm_general_sustitucion_campo <- function(base, os, N) {
   sin_tope <- as.integer(base) + as.integer(ceiling(base * os))
   if (is.finite(N) && N > 0 && sin_tope > N) {
@@ -262,8 +272,8 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
          as.character(as.integer(resultado$n_operativo))),
     list("Margen de error alcanzado",
          "e = z · √(Σ W_h² S_h² (1 − n_h / N_h) / n_h), con el reparto efectivo",
-         sprintf("con n = %s repartidos entre %s estratos", as.integer(resultado$n_objetivo),
-                 length(resultado$distribucion_estratos %||% list())),
+         .cm_general_sustitucion_margen(resultado, sprintf("repartidos entre %s estratos",
+                 length(resultado$distribucion_estratos %||% list()))),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
 }
@@ -325,7 +335,7 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
          as.character(as.integer(resultado$n_operativo))),
     list("Error relativo alcanzado",
          "r = z · CV · √(deff · (N − n) / (n (N − 1)))",
-         sprintf("con n = %s y N = %s", as.integer(resultado$n_objetivo), .cm_general_num(N, 10L)),
+         .cm_general_sustitucion_margen(resultado, sprintf("y N = %s", .cm_general_num(N, 10L))),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
 }
