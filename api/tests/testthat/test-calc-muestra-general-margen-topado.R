@@ -28,7 +28,7 @@ test_that("L3: MAS topado en el marco publica el margen de las 600 completas esp
   expect_equal(r$n_completas_esperadas, 600)
   a_mano <- 1.96 * sqrt(.25 * (2000 - 600) / (600 * 1999))
   expect_equal(r$precision_alcanzada, a_mano, tolerance = 1e-9)
-  expect_match(r$advertencia, "600 completas esperadas", fixed = TRUE)
+  expect_match(r$advertencia, "se esperan 600 completas de las 697", fixed = TRUE)
   expect_match(r$advertencia, "±3.3", fixed = TRUE)
 })
 
@@ -51,7 +51,7 @@ test_that("L3: el estratificado topado mide el error con las completas esperadas
   expect_equal(r$n_completas_esperadas, sum(esperadas))
   expect_lt(r$n_completas_esperadas, as.integer(r$n_objetivo))
   expect_gt(r$precision_alcanzada, .05)
-  expect_match(r$advertencia, "completas esperadas", fixed = TRUE)
+  expect_match(r$advertencia, "Abordando el marco completo se esperan", fixed = TRUE)
 })
 
 test_that("L3: la memoria dice con cuántas completas se mide el margen", {

@@ -176,6 +176,19 @@
   border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 70%, transparent);
 }
 
+/* Por qué el margen no alcanza el pedido (L4): bajo las cifras, en el tono de
+ * la tarjeta en alerta. */
+.cmg-banda-aviso {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 /* Leyenda sobre el filete: nombra la banda sin gastar una fila. La cadena
  * repite las cifras y queda para lectores de pantalla (como en compacto). */
 .cmg-banda-head {
