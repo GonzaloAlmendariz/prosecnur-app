@@ -1613,9 +1613,14 @@ calc_muestra_calcular_componente <- function(comp) {
   n_objetivo <- as.integer(ceiling(N * cobertura_obj))
   n_operativo <- N  # se intenta contactar a todos
   sobremuestra <- 0L  # no aplica
-  tasa_respuesta_esperada <- if (par$tasa_respuesta > 0) par$tasa_respuesta else cobertura_obj
+  tasa_respuesta_esperada <- min(if (par$tasa_respuesta > 0) par$tasa_respuesta else cobertura_obj, 1)
+  # Lo que vuelve abordando a todos es N · tasa (L18, 2026-09-27): con N = 2000,
+  # cobertura .8 y respuesta .7 la meta pide 1600 y se esperan 1400. La tasa
+  # no movía nada y el aviso llamaba «esperada» a la cobertura pedida.
+  esperadas <- N * tasa_respuesta_esperada
+  no_alcanza <- esperadas < n_objetivo - 1e-9
 
-  list(
+  out <- list(
     n_teorico                = NA_integer_,
     n_objetivo               = as.integer(n_objetivo),
     n_operativo              = as.integer(n_operativo),
@@ -1628,11 +1633,16 @@ calc_muestra_calcular_componente <- function(comp) {
     # Un censo no tiene error de muestreo, pero sí sesgo de no respuesta: con
     # cobertura parcial, quienes responden pueden no parecerse a quienes no
     # (research H19; AAPOR). «n ≥ 30 da estabilidad» no aplica a eso.
-    advertencia              = paste(
+    advertencia              = paste(c(
       "Intención censal: se reporta cobertura, no margen de error.",
+      if (no_alcanza) sprintf(
+        "Abordando a todo el marco se esperan %s de las %d que pide la cobertura del %.0f %%: sube la respuesta esperada o baja la cobertura.",
+        .cm_general_fmt_completas(esperadas), as.integer(n_objetivo), 100 * cobertura_obj),
       sprintf("Con una cobertura esperada del %.0f %%, el riesgo es el sesgo de no respuesta: conviene comparar quién respondió con el marco (sexo, programa, etc.).",
-              100 * cobertura_obj))
+              100 * min(tasa_respuesta_esperada, cobertura_obj))), collapse = " ")
   )
+  if (no_alcanza) out$n_completas_esperadas <- esperadas
+  out
 }
 
 #' Calcula resultado para cuotas no probabilísticas.
