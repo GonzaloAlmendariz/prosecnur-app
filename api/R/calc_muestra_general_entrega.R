@@ -81,6 +81,7 @@ calc_muestra_general_memoria <- function(comp, resultado) {
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
   if (por_estrato && !media) filas <- c(filas, .cm_general_memoria_campo(resultado, base, os, rr, N))
+  filas <- .cm_general_memoria_campo_por_estrato(filas, comp, resultado, rr, os)
   data.frame(
     paso = vapply(filas, `[[`, "", 1L),
     formula = vapply(filas, `[[`, "", 2L),
@@ -265,6 +266,38 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
                  length(resultado$distribucion_estratos %||% list())),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
+}
+
+# Con estratos, el n a campo se infla estrato por estrato (L2): los pasos
+# «casos a abordar» y «n a campo» se sustituyen con la suma de los estratos,
+# no con la fórmula del total, que da otro número.
+.cm_general_memoria_campo_por_estrato <- function(filas, comp, resultado, rr, os) {
+  dist <- resultado$distribucion_estratos %||% list()
+  if (!identical(comp$tecnica, "prob_estratificado") || !length(dist)) return(filas)
+  n_h <- vapply(dist, function(d) as.integer(d$n %||% 0L), integer(1))
+  N_h <- vapply(dist, function(d) as.integer(d$N %||% 0L), integer(1))
+  campo <- vapply(dist, function(d) as.integer(d$n_campo %||% 0L), integer(1))
+  por_h <- .cm_general_campo_por_estrato(n_h, N_h, list(tasa_respuesta = rr, oversample_pct = os))
+  lista <- function(x) {
+    x <- as.character(x)
+    if (length(x) > 5L) paste(c(x[1:5], sprintf("… (%d estratos)", length(x))), collapse = " + ")
+    else paste(x, collapse = " + ")
+  }
+  for (i in seq_along(filas)) {
+    paso <- filas[[i]][[1]]
+    if (identical(paso, "Casos a abordar por no respuesta")) {
+      filas[[i]] <- list(paso, "Σ ⌈n_h / tasa de respuesta⌉, estrato por estrato",
+                         lista(sprintf("⌈%d / %s⌉", n_h, .cm_general_num(rr))),
+                         as.character(sum(por_h$base)))
+    } else if (identical(paso, "n a campo")) {
+      topados <- if (length(por_h$topados)) sprintf(" (%d estrato%s censado%s)", length(por_h$topados),
+        if (length(por_h$topados) > 1L) "s" else "", if (length(por_h$topados) > 1L) "s" else "") else ""
+      filas[[i]] <- list(paso, "Σ mín(casos_h + ⌈casos_h · sobremuestra⌉, N_h)",
+                         paste0(lista(campo), topados),
+                         as.character(as.integer(resultado$n_operativo)))
+    }
+  }
+  filas
 }
 
 # Memoria de una media con error relativo (H21).

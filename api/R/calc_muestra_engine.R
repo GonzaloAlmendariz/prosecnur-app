@@ -1796,10 +1796,34 @@ calc_muestra_calcular_componente <- function(comp) {
     x
   }
   cuotas <- repartir(n_objetivo)
-  # El n a campo por estrato, con el MISMO reparto que usa el sorteo: sin él la
-  # pantalla mostraba las completas (537 en total) junto a un sorteo de 716 y
-  # los dos se llamaban «n».
-  cuotas_campo <- repartir(campo$n_operativo)
+  # El n a campo por estrato infla las completas DE ESE estrato (L2,
+  # 2026-09-27; ver `.cm_general_campo_por_estrato`) y el n a campo del
+  # componente es su suma: es el mismo número que sortea el sorteo.
+  par_campo <- if (identical(comp$tecnica, "prob_estratificado_independiente"))
+    list(tasa_respuesta = 1, oversample_pct = par$oversample_pct) else par
+  por_h <- .cm_general_campo_por_estrato(cuotas, pesos, par_campo)
+  cuotas_campo <- por_h$n_campo
+  # Estratos tecleados cuyos N_h suman más que el marco (redondeo de la tabla):
+  # el n a campo nunca pasa de N; el exceso se descuenta de los estratos
+  # mayores, uno por uno.
+  exceso <- as.integer(sum(cuotas_campo) - N)
+  while (is.finite(exceso) && exceso > 0L) {
+    i <- which.max(cuotas_campo)
+    cuotas_campo[[i]] <- cuotas_campo[[i]] - 1L
+    exceso <- exceso - 1L
+  }
+  base_result$n_operativo <- sum(cuotas_campo)
+  base_result$sobremuestra <- as.integer(sum(cuotas_campo) - sum(pmin(por_h$base, pesos)))
+  if (sum(cuotas_campo) >= N) {
+    campo$advertencia <- sprintf(
+      "El n a campo (%d con respuesta %.0f%%) alcanza el marco: se aborda el marco completo (%d), es un censo del marco.",
+      as.integer(sum(por_h$pedido)), 100 * min(par_campo$tasa_respuesta %||% 1, 1), as.integer(N))
+  } else if (length(por_h$topados)) {
+    etiquetas <- vapply(estratos[por_h$topados], function(e) as.character(e$label %||% ""), "")
+    campo$advertencia <- sprintf(
+      "%s: el n a campo alcanza el estrato completo y se censa%s.",
+      paste(etiquetas, collapse = ", "), if (length(etiquetas) > 1L) "n" else "")
+  } else campo$advertencia <- NULL
   aviso_error <- NULL
   aviso_media <- NULL
   if (media) {

@@ -51,7 +51,10 @@ test_that("la memoria por estrato escribe el mín(·, N) y el deff", {
   x <- .bn_caso(c(200L, 150L), c(.2, .5), "neyman", list(tasa_respuesta = .4, oversample_pct = .2, n_minimo_estrato = 0L))
   m <- x$r$memoria_calculo
   fila <- m[m$paso == "n a campo", ]
-  expect_match(fila$sustitucion, "mín(", fixed = TRUE)
+  # Desde L2 el n a campo se infla por estrato: la fórmula es la suma de los
+  # mín(·, N_h) y la sustitución lista cada estrato (aquí los dos se censan).
+  expect_match(fila$formula, "Σ mín(", fixed = TRUE)
+  expect_match(fila$sustitucion, "2 estratos censados", fixed = TRUE)
   expect_identical(fila$resultado, as.character(as.integer(x$r$n_operativo)))
   y <- .bn_caso(c(3000L, 2000L, 1000L), NULL, "neyman", list(deff = 1.3, n_minimo_estrato = 0L))
   expect_match(y$r$memoria_calculo$sustitucion[[1]], "1.3", fixed = TRUE)

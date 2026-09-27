@@ -89,7 +89,9 @@ test_that("B3: el estratificado también infla por no respuesta", {
                      parametros = list(tasa_respuesta = 0.6),
                      estratos = .rejilla_estratos(c(3000L, 2000L)))
   expect_identical(as.integer(r$n_objetivo), 357L)
-  expect_identical(as.integer(r$n_operativo), 595L)
+  # Desde L2 (2026-09-27) cada estrato infla sus completas: 214 y 143 →
+  # ⌈214/.6⌉ + ⌈143/.6⌉ = 357 + 239 = 596 (antes ⌈357/.6⌉ = 595 del total).
+  expect_identical(as.integer(r$n_operativo), 596L)
 })
 
 test_that("B3-25/26: n operativo nunca supera N (censo)", {

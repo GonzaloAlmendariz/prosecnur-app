@@ -20,10 +20,12 @@ test_that("la memoria de cálculo sustituye la fórmula y termina en los n del m
   expect_identical(m$resultado[[1]], "600.25")
   expect_match(m$resultado[[2]], "→ 537$")
   expect_identical(as.integer(res$n_teorico), 537L)
-  # ⌈537 / .75⌉ = 716; + ⌈716 · .05⌉ = 36 → 752.
-  expect_identical(m$resultado[[4]], "716")
+  # Desde L2 (2026-09-27) el n a campo se infla por estrato: 537 → 322 y 215;
+  # ⌈322/.75⌉ + ⌈215/.75⌉ = 430 + 287 = 717; + ⌈430·.05⌉ + ⌈287·.05⌉ = 22 + 15
+  # → 754 (antes 716 y 752, inflando el total).
+  expect_identical(m$resultado[[4]], "717")
   expect_identical(m$resultado[[5]], as.character(as.integer(res$n_operativo)))
-  expect_identical(as.integer(res$n_operativo), 752L)
+  expect_identical(as.integer(res$n_operativo), 754L)
   expect_match(m$sustitucion[[1]], "1.96² · 0.5 · 0.5 · 1 / 0.04²", fixed = TRUE)
 })
 
@@ -93,7 +95,7 @@ test_that("la memoria del estratificado por estrato cuenta su propia fórmula (n
   ney <- calc_muestra_calcular_componente(mk("neyman"))$memoria_calculo
   expect_identical(ney$resultado[[2]], "211.864 → 212")
   expect_match(ney$sustitucion[[1]], "√(", fixed = TRUE)
-  expect_identical(ney$sustitucion[[4]], "⌈212 / 0.8⌉")
+  expect_identical(ney$sustitucion[[4]], "⌈100 / 0.8⌉ + ⌈112 / 0.8⌉")
   expect_false(any(grepl("356", ney$resultado)))
 })
 
