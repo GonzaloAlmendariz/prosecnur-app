@@ -78,3 +78,11 @@ test_that("HTTP: /api/calc-muestra/tecnicas/parametros publica el catálogo", {
   expect_identical(asig$tipo, "opciones")
   expect_identical(unlist(asig$opciones), c("proporcional", "neyman", "potencia"))
 })
+
+test_that("L7: las ayudas escriben el decimal con punto, como la pantalla (es-PE)", {
+  for (tec in names(.CM_PARAMETROS_POR_TECNICA)) {
+    for (p in calc_muestra_parametros_tecnica(tec)$parametros) {
+      expect_false(grepl("[0-9],[0-9]", p$ayuda), info = sprintf("%s · %s: %s", tec, p$clave, p$ayuda))
+    }
+  }
+})

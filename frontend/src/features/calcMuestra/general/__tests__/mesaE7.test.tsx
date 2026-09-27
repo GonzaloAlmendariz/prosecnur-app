@@ -37,9 +37,9 @@ const CATALOGO_RAW = {
     {
       tecnica: "prob_aleatorio_simple",
       parametros: [
-        { clave: "z", rotulo: "Nivel de confianza", ayuda: "Se ingresa como z: 1,645 = 90 %, 1,96 = 95 %, 2,576 = 99 %." },
-        { clave: "p", rotulo: "Proporción esperada", ayuda: "Sin estimación previa, 0,5 es lo conservador." },
-        { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0,05 = ±5 puntos." },
+        { clave: "z", rotulo: "Nivel de confianza", ayuda: "Se ingresa como z: 1.645 = 90 %, 1.96 = 95 %, 2.576 = 99 %." },
+        { clave: "p", rotulo: "Proporción esperada", ayuda: "Sin estimación previa, 0.5 es lo conservador." },
+        { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0.05 = ±5 puntos." },
         { clave: "tasa_respuesta", rotulo: "Tasa de respuesta", ayuda: "El n a campo es el n de completas dividido por esta tasa." },
         { clave: "oversample_pct", rotulo: "Sobremuestra", ayuda: "Reserva adicional sobre los casos a abordar." },
         { clave: "tipo_indicador", rotulo: "Qué se estima", ayuda: "Una proporción usa p; una media, el coeficiente de variación.", tipo: "opciones", opciones: ["proporcion", "media"] },
@@ -49,7 +49,7 @@ const CATALOGO_RAW = {
     {
       tecnica: "prob_estratificado",
       parametros: [
-        { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0,05 = ±5 puntos.", tipo: "numero" },
+        { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0.05 = ±5 puntos.", tipo: "numero" },
         { clave: "asignacion", rotulo: "Asignación entre estratos", ayuda: "Proporcional, Neyman o potencia.", tipo: "opciones", opciones: ["proporcional", "neyman", "potencia"] },
       ],
     },

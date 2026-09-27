@@ -112,7 +112,7 @@ export function parametrosVisibles(
   return indicador ? [indicador, ...resto] : resto;
 }
 
-export const AYUDA_MARGEN_MEDIA = "Relativo a la media: 0,05 = ±5 % de la media.";
+export const AYUDA_MARGEN_MEDIA = "Relativo a la media: 0.05 = ±5 % de la media.";
 
 /** La ayuda del motor, salvo el margen de una media, que es relativo. */
 export function ayudaDeParametro(param: CalcMuestraParametroDeTecnica, valores: CalcMuestraParametros): string {
