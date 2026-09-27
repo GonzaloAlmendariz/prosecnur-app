@@ -22,16 +22,20 @@ import type {
   CalcMuestraAulasState,
   CalcMuestraReferenciaAsistencia,
 } from "../../../../api/client";
-import { AvisoModulo } from "../shared/AvisoModulo";
+import { History } from "../../../../vendor/lucide-react";
+import { EmptyState } from "../../../../components/States";
 import { HistoricoEstudioPanel } from "./HistoricoEstudioPanel";
 import { RankingDesempenoCard } from "./RankingDesempenoCard";
 
 export function DefHistoricoTab({
   aulasState,
   referencia,
+  onNavigate,
 }: {
   aulasState: CalcMuestraAulasState | null;
   referencia: CalcMuestraReferenciaAsistencia | null;
+  /** Lleva al paso previo cuando la pestaña todavía no tiene datos. */
+  onNavigate?: (section: string, tab?: string) => void;
 }) {
   const marcoConstruido = Boolean(aulasState?.frame);
 
@@ -56,11 +60,20 @@ export function DefHistoricoTab({
       {!referencia ? (
         // C3: sin base cargada la pestaña dice dónde se carga, en vez de
         // ofrecer un segundo uploader que compita con Fuentes.
-        <AvisoModulo tone="info" role="status" compact>
-          {marcoConstruido
-            ? "Sube la base del estudio anterior en Fuentes y su lectura aparecerá aquí."
+        // Un chip de una línea sobre la pestaña vacía se leía como un aviso
+        // perdido (2026-09-27): el vacío dice qué falta y lleva a Fuentes.
+        <EmptyState
+          icon={<History size={22} aria-hidden="true" />}
+          title="Todavía no hay un estudio anterior cargado"
+          hint={marcoConstruido
+            ? "Sube la base del estudio anterior en Fuentes y aquí verás cuánto rindió cada facultad y cada curso-horario."
             : "Puedes declararla ahora o más tarde: se sube en Fuentes, el marco se construye sin ella y al cargarla se calibra sobre el marco vigente."}
-        </AvisoModulo>
+          cta={onNavigate ? (
+            <button type="button" className="pulso-empty-cta" onClick={() => onNavigate("definicion", "def-bases")}>
+              Ir a Fuentes
+            </button>
+          ) : undefined}
+        />
       ) : null}
     </section>
   );

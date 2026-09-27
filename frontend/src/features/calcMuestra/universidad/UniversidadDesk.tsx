@@ -782,6 +782,7 @@ export function UniversidadDesk({
               <DefHistoricoTab
                 aulasState={aulasState}
                 referencia={referenciaAsistencia}
+                onNavigate={onNavigate}
               />
             </div>}
             {showLocalTab("def-variables") && <div id="cmv2-local-def-variables" className="cmv2-definition-stack">
@@ -818,6 +819,7 @@ export function UniversidadDesk({
                 aulasState={aulasState}
                 onConfirmDecision={confirmarAlumnosPorCh}
                 motorPideRefirmar={motorPideRefirmarAlumnosCh}
+                onNavigate={onNavigate}
               />
             </div>}
             {showLocalTab("marco-ch-radiografia") && <div id="cmv2-local-marco-ch-radiografia">
@@ -914,6 +916,7 @@ export function UniversidadDesk({
                 fichas={fichasFacultad}
                 periodoAnterior={referenciaCriterios?.periodo ?? ""}
                 referencia={referenciaAsistencia}
+                onNavigate={onNavigate}
               />
             )}
             {activeLabTab === "perfil" && (
@@ -1046,6 +1049,7 @@ export function UniversidadDesk({
                 onFijarAulas={onFijarAulasFacultad}
                 onFijarTodas={onFijarTodasLasCortas}
                 marcoDesactualizado={marcoDesactualizado}
+                onNavigate={onNavigate}
               />
             </div>}
           </div>
