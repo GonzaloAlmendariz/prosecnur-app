@@ -153,6 +153,12 @@
   .cmg-mesa .cmg-parametros {
     gap: var(--pulso-space-5) var(--pulso-space-5);
   }
+
+  /* El relleno lateral de las celdas cede antes que la tabla: a 1024 la de
+   * actores pasaba 79 px del ancho y pedía scroll horizontal. */
+  .cmg-mesa .cmv2-table :is(th, td) {
+    padding-inline: var(--pulso-space-2);
+  }
 }
 
 /* Pantallas bajas (MacBook Air 13", ~956 px útiles): el aire vertical cede
