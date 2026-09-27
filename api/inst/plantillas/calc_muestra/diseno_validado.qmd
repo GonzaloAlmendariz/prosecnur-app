@@ -43,6 +43,13 @@ tabla_pulso <- function(df, caption = NULL) {
 
 `%||%` <- function(x, y) if (is.null(x) || length(x) == 0L) y else x
 
+# Rótulo humano de una clave de dominio (L28): el reporte va al cliente.
+rot <- function(tipo, x) {
+  clave <- as.character(x %||% "")
+  v <- unname((bundle$rotulos[[tipo]] %||% character(0))[clave])
+  if (length(v) != 1L || is.na(v)) (if (nzchar(clave)) clave else "—") else v
+}
+
 fmt_int <- function(x) if (is.null(x) || is.na(x)) "—" else format(x, big.mark = ",", scientific = FALSE)
 fmt_pct <- function(x, dec = 2) if (is.null(x) || is.na(x)) "—" else sprintf(paste0("%.", dec, "f%%"), x * 100)
 ```
@@ -50,7 +57,7 @@ fmt_pct <- function(x, dec = 2) if (is.null(x) || is.na(x)) "—" else sprintf(p
 ## Diseño metodológico
 
 - **Estudio:** `r estudio$titulo`
-- **Macro-familia:** `r estudio$macro_familia`
+- **Tipo de estudio:** `r rot("macro_familia", estudio$macro_familia)`
 - **Cliente:** `r estudio$contexto$cliente %||% "—"`
 - **Modo de trabajo:** Diseño validado (listo para campo)
 
@@ -67,13 +74,13 @@ filas <- lapply(estudio$componentes, function(c) {
   res <- c$resultado
   tibble(
     Actor              = c$actor,
-    Tecnica            = c$tecnica,
-    Nivel_respaldo     = c$nivel_respaldo,
-    Marco_contactable  = fmt_int(c$marco$marco_contactable),
-    n_objetivo         = fmt_int(res$n_objetivo %||% NA),
-    n_operativo        = fmt_int(res$n_operativo %||% NA),
+    `Técnica`          = rot("tecnica", c$tecnica),
+    `Nivel de respaldo` = rot("nivel_respaldo", c$nivel_respaldo),
+    `Marco contactable` = fmt_int(c$marco$marco_contactable),
+    `n completas`      = fmt_int(res$n_objetivo %||% NA),
+    `n a campo`        = fmt_int(res$n_operativo %||% NA),
     Sobremuestra       = fmt_int(res$sobremuestra %||% NA),
-    Precision          = if (!is.null(res$precision_alcanzada) && !is.na(res$precision_alcanzada))
+    Margen             = if (!is.null(res$precision_alcanzada) && !is.na(res$precision_alcanzada))
                            fmt_pct(res$precision_alcanzada) else "no aplica"
   )
 })
@@ -86,9 +93,9 @@ tabla_pulso(do.call(rbind, filas), caption = "Resumen de componentes validados")
 if (!is.null(estudio$decision_log)) {
   for (cd in estudio$decision_log$componentes) {
     cat(sprintf("### %s\n\n", cd$actor))
-    cat(sprintf("- **Técnica:** %s (naturaleza: %s)\n", cd$tecnica, cd$naturaleza))
-    cat(sprintf("- **Origen del tamaño:** %s\n", cd$origen_tamano))
-    cat(sprintf("- **Nivel de respaldo:** %s\n\n", cd$nivel_respaldo))
+    cat(sprintf("- **Técnica:** %s (naturaleza: %s)\n", rot("tecnica", cd$tecnica), tolower(rot("naturaleza", cd$naturaleza))))
+    cat(sprintf("- **Origen del tamaño:** %s\n", rot("origen_tamano", cd$origen_tamano)))
+    cat(sprintf("- **Nivel de respaldo:** %s\n\n", rot("nivel_respaldo", cd$nivel_respaldo)))
     if (length(cd$decisiones) > 0L) {
       cat("**Decisiones detalladas:**\n\n")
       for (d in cd$decisiones) {
@@ -108,7 +115,7 @@ for (c in estudio$componentes) {
   cat(sprintf("- **Universo bruto:** %s\n", fmt_int(c$marco$universo_bruto)))
   cat(sprintf("- **Marco validado:** %s\n", fmt_int(c$marco$marco_validado)))
   cat(sprintf("- **Marco contactable:** %s\n", fmt_int(c$marco$marco_contactable)))
-  cat(sprintf("- **Estado del marco:** %s\n\n", c$marco$estado))
+  cat(sprintf("- **Estado del marco:** %s\n\n", rot("estado_marco", c$marco$estado)))
 
   if (c$tecnica == "prob_conglomerado_multietapico") {
     p <- c$parametros
@@ -168,9 +175,9 @@ for (c in estudio$componentes) {
   df <- do.call(rbind, lapply(res$distribucion_estratos, function(d) {
     data.frame(
       Estrato = d$estrato, N = d$N, n = d$n,
-      Asignacion = sprintf("%.1f%%", (d$n / max(d$N, 1)) * 100),
+      `Asignación` = sprintf("%.1f%%", (d$n / max(d$N, 1)) * 100),
       p = if (!is.null(d$p_e) && !is.na(d$p_e)) sprintf("%.0f%%", d$p_e * 100) else "-",
-      Precision = if (!is.null(d$precision_e)) sprintf("+/- %.2f%%", d$precision_e * 100) else "-",
+      Margen = if (!is.null(d$precision_e)) sprintf("+/- %.2f%%", d$precision_e * 100) else "-",
       stringsAsFactors = FALSE, check.names = FALSE
     )
   }))

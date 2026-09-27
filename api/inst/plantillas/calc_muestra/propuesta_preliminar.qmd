@@ -43,6 +43,13 @@ tabla_pulso <- function(df, caption = NULL) {
 
 `%||%` <- function(x, y) if (is.null(x) || length(x) == 0L) y else x
 
+# Rótulo humano de una clave de dominio (L28): el reporte va al cliente.
+rot <- function(tipo, x) {
+  clave <- as.character(x %||% "")
+  v <- unname((bundle$rotulos[[tipo]] %||% character(0))[clave])
+  if (length(v) != 1L || is.na(v)) (if (nzchar(clave)) clave else "—") else v
+}
+
 fmt_int <- function(x) if (is.null(x) || is.na(x)) "—" else format(x, big.mark = ",", scientific = FALSE)
 fmt_pct <- function(x, dec = 1) if (is.null(x) || is.na(x)) "—" else sprintf(paste0("%.", dec, "f%%"), x * 100)
 ```
@@ -50,7 +57,7 @@ fmt_pct <- function(x, dec = 1) if (is.null(x) || is.na(x)) "—" else sprintf(p
 ## Resumen del estudio
 
 - **Título:** `r estudio$titulo`
-- **Macro-familia:** `r estudio$macro_familia`
+- **Tipo de estudio:** `r rot("macro_familia", estudio$macro_familia)`
 - **Fase:** estimación preliminar (propuesta inicial)
 - **Cliente:** `r estudio$contexto$cliente %||% "—"`
 `r if (isTRUE(estudio$modo_sensible)) "- **Consideraciones éticas:** estudio requiere protocolos de investigación con población especial." else ""`
@@ -58,7 +65,7 @@ fmt_pct <- function(x, dec = 1) if (is.null(x) || is.na(x)) "—" else sprintf(p
 ::: {.callout-note}
 Este reporte corresponde a una **estimación preliminar**: los universos pueden no estar
 todavía validados y las metas son indicativas. El diseño debe refinarse en la fase
-`diseno_validado` con bases recibidas y limpiadas.
+de diseño validado, con bases recibidas y limpiadas.
 :::
 
 ## Componentes propuestos
@@ -68,12 +75,12 @@ filas <- lapply(estudio$componentes, function(c) {
   res <- c$resultado
   tibble(
     Actor             = c$actor,
-    Tecnica           = c$tecnica,
-    Origen            = c$origen_tamano,
-    Marco_validado    = fmt_int(c$marco$marco_validado),
-    n_objetivo        = fmt_int(res$n_objetivo %||% NA),
-    n_operativo       = fmt_int(res$n_operativo %||% NA),
-    Precision         = if (!is.null(res$precision_alcanzada) && !is.na(res$precision_alcanzada))
+    `Técnica`         = rot("tecnica", c$tecnica),
+    `Origen del tamaño` = rot("origen_tamano", c$origen_tamano),
+    `Marco validado`  = fmt_int(c$marco$marco_validado),
+    `n completas`     = fmt_int(res$n_objetivo %||% NA),
+    `n a campo`       = fmt_int(res$n_operativo %||% NA),
+    `Margen`          = if (!is.null(res$precision_alcanzada) && !is.na(res$precision_alcanzada))
                           fmt_pct(res$precision_alcanzada) else "-"
   )
 })
@@ -84,15 +91,15 @@ tabla_pulso(do.call(rbind, filas), caption = "Componentes del estudio")
 
 ```{r detalle_componentes, results="asis"}
 for (c in estudio$componentes) {
-  cat(sprintf("### %s — %s\n\n", c$actor, c$tecnica))
-  cat(sprintf("- **Naturaleza inferencial:** %s\n", c$naturaleza))
-  cat(sprintf("- **Origen del tamaño:** %s\n", c$origen_tamano))
-  cat(sprintf("- **Nivel de respaldo:** %s\n", c$nivel_respaldo))
+  cat(sprintf("### %s — %s\n\n", c$actor, rot("tecnica", c$tecnica)))
+  cat(sprintf("- **Naturaleza inferencial:** %s\n", rot("naturaleza", c$naturaleza)))
+  cat(sprintf("- **Origen del tamaño:** %s\n", rot("origen_tamano", c$origen_tamano)))
+  cat(sprintf("- **Nivel de respaldo:** %s\n", rot("nivel_respaldo", c$nivel_respaldo)))
   cat(sprintf("- **Marco:** bruto=%s · validado=%s · contactable=%s · estado=%s\n",
               fmt_int(c$marco$universo_bruto),
               fmt_int(c$marco$marco_validado),
               fmt_int(c$marco$marco_contactable),
-              c$marco$estado))
+              rot("estado_marco", c$marco$estado)))
   if (!is.null(c$resultado)) {
     r <- c$resultado
     cat(sprintf("- **n objetivo:** %s\n", fmt_int(r$n_objetivo)))
@@ -131,7 +138,7 @@ for (c in estudio$componentes) {
 ## Lineamientos metodológicos
 
 1. Cada actor puede tener un diseño distinto: el estudio es contenedor de componentes.
-2. Marco y unidad se separan: `unidad_seleccion` ≠ `unidad_analisis`.
+2. Marco y unidad se separan: la unidad que se selecciona no siempre es la que se analiza.
 3. Solo diseños probabilísticos con marco completo y probabilidad conocida producen margen de error formal.
 4. Los demás diseños se reportan como cobertura operacional, representatividad teórica o validez interna.
 
