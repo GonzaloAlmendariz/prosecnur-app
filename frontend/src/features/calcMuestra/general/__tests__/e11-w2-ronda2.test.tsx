@@ -159,7 +159,9 @@ describe("V10 · los inputs numéricos declaran es-PE sin tocar su valor", () =>
         <ParametrosTecnicaVista comp={docentes()} estado={{ fase: "listo", catalogo }} onReintentar={() => {}} onParametro={() => {}} />
       </MemoryRouter>,
     );
-    expect(html).toMatch(/<input id="cmg-param-cmp-doc-e" type="number" lang="es-PE"[^>]*value="0.05"/);
+    // Desde L14 (2026-09-27) es texto con teclado decimal: Chromium formatea los
+    // type=number con el locale del sistema e ignora `lang` (pintaba «0,05»).
+    expect(html).toMatch(/<input id="cmg-param-cmp-doc-e" type="text" inputMode="decimal"[^>]*value="0.05"/);
   });
 
   it("Estratos: la tabla hereda es-PE y un nombre largo lleva su título completo (C4)", () => {

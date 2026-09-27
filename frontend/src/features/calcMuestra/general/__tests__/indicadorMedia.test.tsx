@@ -104,7 +104,8 @@ describe("Qué se estima: proporción o media", () => {
       expect(html).toContain(AYUDA_MARGEN_MEDIA);
       expect(html).not.toContain("±5 puntos");
       // Sin cv guardado se ve el default del motor como placeholder, no como valor.
-      expect(html).toMatch(/<input[^>]*id="cmg-param-c1-cv"[^>]*min="0.01"[^>]*max="10"[^>]*placeholder="1"[^>]*value=""/);
+      // Desde L14 el campo es texto: el rango (0.01–10) lo valida el motor y lo avisa.
+      expect(html).toMatch(/<input[^>]*id="cmg-param-c1-cv"[^>]*placeholder="1"[^>]*value=""/);
     });
   }
 

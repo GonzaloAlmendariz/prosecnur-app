@@ -13,20 +13,19 @@ import {
   avisosVigentes,
   ayudaDeParametro,
   formatearZ,
-  limitesDe,
   neymanSinPPorEstrato,
   nivelDeZ,
   NIVELES_CONFIANZA,
   opcionesDe,
   parametrosDeTecnica,
   parametrosVisibles,
-  pasoDe,
   patchDeParametro,
   placeholderDe,
   tipoDeCampo,
   valorDeOpcion,
   valorNumerico,
 } from "./modeloParametros";
+import { EntradaDecimal } from "./EntradaDecimal";
 import { useCatalogoParametros, type EstadoCatalogo } from "./useCatalogoParametros";
 import "./general.css";
 
@@ -135,7 +134,6 @@ export function CampoParametro({
 
   let control: JSX.Element;
   let ayuda = ayudaDeParametro(param, parametros);
-  const limites = limitesDe(param.clave);
   if (tipo === "confianza") {
     const nivel = nivelDeZ(valor);
     // Un z fuera de los tres niveles (fijado por un preset) se conserva como opción.
@@ -155,24 +153,14 @@ export function CampoParametro({
     );
   } else {
     control = (
-      <input
+      <EntradaDecimal
         id={id}
-        type="number"
-        // El navegador pinta el decimal según el idioma heredado; `es` (raíz)
-        // daría «0,05» junto a cifras es-PE «0.05» (V10).
-        lang="es-PE"
-        min={limites.min}
-        max={limites.max}
-        step={pasoDe(param.clave)}
+        valor={valor}
+        entero={tipo === "entero"}
         placeholder={placeholderDe(param.clave)}
-        value={valor == null ? "" : String(valor)}
-        aria-describedby={describedBy}
-        aria-invalid={aviso ? true : undefined}
-        onChange={(e) => {
-          const n = Number(e.currentTarget.value);
-          if (!Number.isFinite(n)) return;
-          onParametro(param.clave, tipo === "entero" ? Math.round(n) : n);
-        }}
+        describedBy={describedBy}
+        invalido={Boolean(aviso)}
+        onNumero={(n) => onParametro(param.clave, n)}
       />
     );
   }
