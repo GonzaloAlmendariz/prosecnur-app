@@ -57,7 +57,10 @@ export function ActoresAcreditacion({
         role={desborda ? "region" : undefined}
         aria-label={desborda ? "Tabla de actores, desplazable" : undefined}
       >
-        {/* es-PE escribe «0.5»: `lang` alcanza también a los `NumberCell` (V10). */}
+        {/* `lang` sirve a lectores de pantalla y a Intl; los <input type=number>
+            los formatea Chromium con el locale del sistema e ignoran `lang`
+            (medido en L14, 2026-09-27). Aquí sólo hay enteros (N, %), que no
+            llevan separador decimal; un campo decimal usa EntradaDecimal. */}
         <table className="cmv2-table cmg-tabla-actores" aria-describedby="cmg-actores-nota" lang="es-PE">
           <caption className="cmg-sr-only">Marco, canal, meta y técnica de cada actor</caption>
           <thead>
