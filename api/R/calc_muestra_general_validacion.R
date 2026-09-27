@@ -17,7 +17,10 @@
   tasa_respuesta = "tasa de respuesta", oversample_pct = "sobremuestra",
   tasa_contacto = "tasa de contacto", tasa_elegibilidad = "tasa de elegibilidad",
   cobertura_objetivo = "cobertura objetivo",
-  cv = "coeficiente de variación (CV)"
+  cv = "coeficiente de variación (CV)",
+  # L22 (2026-09-27): se corregían en silencio; un piso de -5 pasaba a 30.
+  n_minimo_estrato = "piso por estrato", tope_operativo = "tope por estrato",
+  tau = "tasa de asistencia", promedio_conglomerado = "tamaño medio del conglomerado"
 )
 
 .cm_aviso_parametro_texto <- function(param, recibido, usado) {

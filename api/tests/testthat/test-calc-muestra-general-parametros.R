@@ -86,3 +86,13 @@ test_that("L7: las ayudas escriben el decimal con punto, como la pantalla (es-PE
     }
   }
 })
+
+test_that("L22: un piso, tope, tau o tamaño medio fuera de rango se corrige con aviso, no en silencio", {
+  # -5 en el piso se volvía 30 sin decirlo: el reparto cambiaba a escondidas.
+  for (k in c("n_minimo_estrato", "tope_operativo", "tau", "promedio_conglomerado")) {
+    comp <- calc_muestra_normalize_componente(list(tecnica = "prob_estratificado",
+                                                   parametros = setNames(list(-5), k)))
+    avisos <- vapply(comp$avisos_parametros %||% list(), function(a) a$param, "")
+    expect_true(k %in% avisos, info = sprintf("%s = -5 → %s sin aviso", k, format(comp$parametros[[k]])))
+  }
+})
