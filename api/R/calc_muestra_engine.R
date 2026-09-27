@@ -2262,18 +2262,19 @@ calc_muestra_calcular_componente <- function(comp) {
 
   # Personas objetivo = % del universo
   personas_objetivo <- as.integer(ceiling(N * cobertura))
-  # Unidades operativas necesarias = personas_objetivo / (promedio * tau)
+  # Se barren TODAS las unidades del marco: ⌈N / tamaño medio⌉ (L30,
+  # 2026-09-27, decisión de Gonzalo: el barrido aborda el marco entero). Antes
+  # salían de N·cobertura / (promedio·tau), en otra base que el n a campo (N).
+  # La asistencia no cambia cuántas se visitan, sólo cuántas completas vuelven;
+  # y no hay unidades de reserva fuera del marco, así que no hay refuerzo.
   promedio_aula <- max(par$promedio_conglomerado, .CM_CONGLOMERADO_DIVISOR_MIN)
   tau_efec <- max(par$tau, 0.01)
-  unidades_operativas <- as.integer(ceiling(
-    personas_objetivo / (promedio_aula * tau_efec)
-  ))
-  # Sobremuestra operativa (refuerzo)
-  unidades_refuerzo <- as.integer(ceiling(unidades_operativas * par$oversample_pct))
+  unidades_operativas <- as.integer(ceiling(N / promedio_aula - 1e-9))
+  unidades_refuerzo <- 0L
 
   # Se aborda todo el marco, que es lo que sortea Selección (el marco entero,
   # π = 1); la cobertura es la meta y la asistencia dice cuántas vuelven (L19,
-  # 2026-09-27; decisión provisional del loop, reversible). Publicaba n a campo
+  # 2026-09-27; confirmado por Gonzalo, opción a). Publicaba n a campo
   # = N·cobertura mientras el sorteo listaba N.
   esperadas <- N * min(tau_efec, 1)
   no_alcanza <- esperadas < personas_objetivo - 1e-9
