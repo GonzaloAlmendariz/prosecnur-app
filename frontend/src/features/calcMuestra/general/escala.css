@@ -1,0 +1,100 @@
+/* Escala de las mesas de Muestra general y Acreditación (revamp 2026-09-27).
+ *
+ * «No está aprovechando el alto»: a 1710x1107 la ficha dejaba ~22 % de la
+ * pantalla vacía con campos de 32 px, rótulos de 10 px y texto de 12 px. Se
+ * diseña en grande dentro de la mesa (`.cmg-mesa`) sin tocar los estilos
+ * compartidos con aulas ni estirar tarjetas (C3: cada panel conserva su alto
+ * intrínseco); el alto se gana con controles, texto y aire más generosos.
+ * Todo sale de tokens: el campo mide `control-height-lg` + un paso de 4 px. */
+
+.cmg-mesa {
+  --cmg-campo-h: calc(var(--pulso-control-height-lg) + var(--pulso-space-1));
+}
+
+.cmg-mesa .cmv2-panel {
+  padding: var(--pulso-space-5) var(--pulso-space-6);
+}
+
+.cmg-mesa .cmv2-panel-head {
+  margin-bottom: var(--pulso-space-4);
+}
+
+.cmg-mesa .cmg-panel-titulo,
+.cmg-mesa .cmv2-panel-head .cmg-panel-titulo {
+  font-size: 17px;
+}
+
+/* Ficha del estudio */
+.cmg-mesa .cmv2-form-grid {
+  gap: var(--pulso-space-5) var(--pulso-space-6);
+}
+
+.cmg-mesa .cmv2-form-grid label {
+  gap: var(--pulso-space-2);
+}
+
+.cmg-mesa .cmv2-form-grid label span {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.cmg-mesa :is(.cmv2-form-grid input, .cmv2-variable input, .cmv2-variable select, .cmg-campo input, .cmg-campo select) {
+  min-height: var(--cmg-campo-h);
+  padding: 0 var(--pulso-space-3);
+  font-size: 14px;
+}
+
+.cmg-mesa .cmv2-panel textarea {
+  padding: var(--pulso-space-3);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Parámetros */
+.cmg-mesa .cmg-parametros {
+  gap: var(--pulso-space-6) var(--pulso-space-7);
+}
+
+.cmg-mesa .cmg-campo {
+  gap: var(--pulso-space-2);
+}
+
+.cmg-mesa .cmg-campo > label {
+  font-size: 13px;
+}
+
+.cmg-mesa .cmg-campo small {
+  font-size: 12px;
+}
+
+/* Variables de control: nombre, uso e interruptor en una fila con aire. */
+.cmg-mesa .cmv2-variable-list {
+  gap: var(--pulso-space-3);
+  margin-bottom: var(--pulso-space-4);
+}
+
+.cmg-mesa .cmv2-variable {
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 180px) auto;
+  gap: var(--pulso-space-4);
+}
+
+.cmg-variable-disponible {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 96px;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .cmg-mesa .cmv2-panel {
+    padding: var(--pulso-space-4) var(--pulso-space-5);
+  }
+
+  .cmg-mesa .cmg-parametros {
+    gap: var(--pulso-space-5) var(--pulso-space-5);
+  }
+}

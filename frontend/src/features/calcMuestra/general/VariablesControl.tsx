@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 
 import type { CalcMuestraWorkspace, CalcMuestraWorkspaceVariableControl } from "../../../api/calcMuestra";
+import { Switch } from "../../../components/Switch";
 import { uid } from "../sharedCore";
 import { variableControl } from "./catalogos";
 import "./general.css";
@@ -21,16 +22,20 @@ export function VariablesControl({
     });
   }
   return (
-    <section className="cmv2-panel" aria-labelledby="cmg-variables-titulo">
+<section className="cmv2-panel" aria-labelledby="cmg-variables-titulo">
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Control</span>
           <h3 className="cmg-panel-titulo" id="cmg-variables-titulo">Variables disponibles</h3>
         </div>
       </div>
-      <div className="cmv2-variable-list">
+      <div
+        className="cmv2-variable-list"
+        data-qa-geometry-group="calc-muestra/general-variables"
+        data-qa-geometry-contract="equal"
+      >
         {variables.map((v, i) => (
-          <div className="cmv2-variable" key={v.id}>
+          <div className="cmv2-variable" key={v.id} data-qa-geometry-member>
             <input aria-label={`Nombre de la variable ${i + 1}`} value={v.label} onChange={(e) => update(i, { label: e.currentTarget.value })} />
             <select
               aria-label={`Uso de ${v.label}`}
@@ -43,10 +48,17 @@ export function VariablesControl({
               <option value="segmento">Segmento</option>
               <option value="otro">Otro</option>
             </select>
-            <label className="cmv2-check">
-              <input type="checkbox" aria-label={`${v.label || `Variable ${i + 1}`} disponible en el marco`} checked={v.disponible} onChange={(e) => update(i, { disponible: e.currentTarget.checked })} />
-              Disponible
-            </label>
+            {/* Interruptor y no casilla: dice si la variable ESTÁ en el marco
+                ahora, no algo que se marca para enviar. La casilla heredaba el
+                estilo de los campos de texto y salía como píldora (2026-09-27). */}
+            <span className="cmg-variable-disponible">
+              <Switch
+                checked={v.disponible}
+                ariaLabel={`${v.label || `Variable ${i + 1}`} disponible en el marco`}
+                onToggle={() => update(i, { disponible: !v.disponible })}
+              />
+              <span aria-hidden="true">En el marco</span>
+            </span>
           </div>
         ))}
       </div>
