@@ -454,6 +454,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { id: "cmp-xxxxxxxx" }
     # -----------------------------------------------------------------------
     plumber::pr_delete("/api/calc-muestra/componente",
+                       serializer = .cm_serializer_sin_redondeo(),
                        wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -569,6 +570,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { modo: "estimacion_preliminar"|"diseno_validado" }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/modo-trabajo",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)

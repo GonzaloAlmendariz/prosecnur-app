@@ -22,3 +22,33 @@ test_that("L12: /calcular y /state publican el margen con todos sus decimales", 
   st <- http_get(srv, "/api/calc-muestra/state", sid = sid)
   expect_equal(st$json$estudio$componentes[[1]]$resultado$precision_alcanzada, a_mano, tolerance = 1e-9)
 })
+
+test_that("L21: declarar el marco de un componente no redondea el resultado de los otros", {
+  srv <- http_contract_server()
+  sid <- http_post_json(srv, "/api/session", body = list(fresh = TRUE))$json$session_id
+  tope <- list(id = "cmp-tope", actor = "Hogares", actor_id = "hogares",
+               tecnica = "prob_aleatorio_simple", origen_tamano = "formula",
+               marco = list(universo_bruto = 2000L, marco_validado = 2000L,
+                            marco_contactable = 2000L, estado = "validado"),
+               parametros = list(z = 1.96, p = .5, e = .03, tasa_respuesta = .3, oversample_pct = .1))
+  otro <- list(id = "cmp-otro", actor = "Docentes", actor_id = "docentes",
+               tecnica = "prob_aleatorio_simple", origen_tamano = "formula",
+               parametros = list(e = .05, tasa_respuesta = .8))
+  for (comp in list(tope, otro)) {
+    expect_identical(http_post_json(srv, "/api/calc-muestra/componente",
+                                    body = list(op = "add", componente = comp), sid = sid)$status, 200L)
+  }
+  expect_identical(http_post_json(srv, "/api/calc-muestra/calcular", body = list(), sid = sid)$status, 200L)
+  path <- tempfile(fileext = ".csv")
+  withr::defer(unlink(path))
+  utils::write.csv(data.frame(codigo = sprintf("D%04d", 1:300)), path, row.names = FALSE)
+  subida <- http_post_multipart(srv, "/api/files/upload?kind=data",
+                                fields = list(file = curl::form_file(path, type = "text/csv")), sid = sid)
+  dec <- http_post_json(srv, "/api/calc-muestra/general/marco", sid = sid, body = list(
+    componente_id = "cmp-otro", file_id = subida$json$file_id, columnas = list(id = "codigo")))
+  expect_identical(dec$status, 200L)
+  ids <- vapply(dec$json$estudio$componentes, function(c) c$id, "")
+  a_mano <- 1.96 * sqrt(.25 * (2000 - 600) / (600 * 1999))
+  expect_equal(dec$json$estudio$componentes[[match("cmp-tope", ids)]]$resultado$precision_alcanzada,
+               a_mano, tolerance = 1e-9)
+})
