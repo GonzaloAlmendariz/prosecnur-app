@@ -105,6 +105,9 @@
 
 .cmg-estado-chip {
   display: inline-flex;
+  /* No cede ancho: se recorta el texto de la condición, que tiene elipsis. A
+   * 1024 el chip encogido derramaba su texto sobre «Siguiente» (L24). */
+  flex-shrink: 0;
   align-items: center;
   gap: 5px;
   min-height: 24px;
