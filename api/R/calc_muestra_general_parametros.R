@@ -29,9 +29,9 @@
 )
 
 .CM_PARAMETROS_DESCRIPCION <- list(
-  z = list(rotulo = "Nivel de confianza", ayuda = "Se ingresa como z: 1,645 = 90 %, 1,96 = 95 %, 2,576 = 99 %."),
-  p = list(rotulo = "Proporción esperada", ayuda = "Sin estimación previa, 0,5 es lo conservador."),
-  e = list(rotulo = "Margen de error", ayuda = "Como proporción: 0,05 = ±5 puntos."),
+  z = list(rotulo = "Nivel de confianza", ayuda = "Se ingresa como z: 1.645 = 90 %, 1.96 = 95 %, 2.576 = 99 %."),
+  p = list(rotulo = "Proporción esperada", ayuda = "Sin estimación previa, 0.5 es lo conservador."),
+  e = list(rotulo = "Margen de error", ayuda = "Como proporción: 0.05 = ±5 puntos."),
   deff = list(rotulo = "Efecto de diseño", ayuda = "1 si no hay conglomerados; mayor que 1 si el diseño pierde precisión."),
   tasa_respuesta = list(rotulo = "Tasa de respuesta", ayuda = "El n a campo es el n de completas dividido por esta tasa."),
   oversample_pct = list(rotulo = "Sobremuestra", ayuda = "Reserva adicional sobre los casos a abordar."),

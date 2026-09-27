@@ -30,8 +30,8 @@ import { nombreDeCorrida } from "../tituloCorrida";
 // Forma real de las tres técnicas en `GET /tecnicas/parametros` tras c2fa7c472.
 const COMUNES = [
   { clave: "z", rotulo: "Nivel de confianza", ayuda: "Se ingresa como z." },
-  { clave: "p", rotulo: "Proporción esperada", ayuda: "Sin estimación previa, 0,5 es lo conservador." },
-  { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0,05 = ±5 puntos." },
+  { clave: "p", rotulo: "Proporción esperada", ayuda: "Sin estimación previa, 0.5 es lo conservador." },
+  { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0.05 = ±5 puntos." },
   { clave: "tasa_respuesta", rotulo: "Tasa de respuesta", ayuda: "" },
   { clave: "oversample_pct", rotulo: "Sobremuestra", ayuda: "" },
 ];
@@ -109,7 +109,7 @@ describe("Qué se estima: proporción o media", () => {
   }
 
   it("con proporción el margen conserva la ayuda del motor", () => {
-    expect(vista(comp("prob_aleatorio_simple"))).toContain("Como proporción: 0,05 = ±5 puntos.");
+    expect(vista(comp("prob_aleatorio_simple"))).toContain("Como proporción: 0.05 = ±5 puntos.");
   });
 
   it("el selector escribe parametros.tipo_indicador", () => {
