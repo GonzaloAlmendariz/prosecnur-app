@@ -3,7 +3,7 @@ import type { ErrorGeneral } from "./modelo";
 
 /**
  * El error del motor con su mensaje y, si vino, la muestra de filas que lo
- * causan (ids repetidos, filas sin id, tamaños inválidos). El motor manda
+ * causan (ids repetidos, filas sin id, tamaños inválidos, unidades sin estrato). El motor manda
  * hasta 20: se muestran tal cual para que se puedan buscar en el archivo.
  */
 export function ErrorDelMotor({ error, label }: { error: ErrorGeneral; label: string }) {
@@ -13,6 +13,7 @@ export function ErrorDelMotor({ error, label }: { error: ErrorGeneral; label: st
         { titulo: "Ids repetidos", valores: d.ids_duplicados },
         { titulo: "Filas sin id", valores: d.filas_sin_id.map(String) },
         { titulo: "Ids con tamaño inválido", valores: d.ids },
+        { titulo: "Ids sin estrato", valores: d.ids_sin_estrato },
       ].filter((l) => l.valores.length > 0)
     : [];
   return (

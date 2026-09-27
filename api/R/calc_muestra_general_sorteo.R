@@ -100,7 +100,8 @@
       .cm_general_error_marco(
         sprintf("%d unidades no tienen estrato: complétalo en el archivo o quita la columna de estrato.",
                 sum(sin_estrato)),
-        list(ids = utils::head(ids[sin_estrato], 20L)))
+        # Clave propia: `ids` es de los tamaños inválidos y la mesa la rotula así (L5).
+        list(ids_sin_estrato = utils::head(ids[sin_estrato], 20L)))
     }
     e
   } else rep(.CM_GENERAL_SIN_ESTRATO, length(ids))

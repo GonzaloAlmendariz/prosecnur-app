@@ -163,8 +163,15 @@ describe("normalizeCalcMuestraGeneralErrorDetalle", () => {
       ids_duplicados: ["A", "B"],
       filas_sin_id: [3, 7],
       ids: [],
+      ids_sin_estrato: [],
     });
     expect(normalizeCalcMuestraGeneralErrorDetalle({ ids_duplicados: "A" }).ids_duplicados).toEqual(["A"]);
-    expect(normalizeCalcMuestraGeneralErrorDetalle(null)).toEqual({ ids_duplicados: [], filas_sin_id: [], ids: [] });
+    expect(normalizeCalcMuestraGeneralErrorDetalle(null)).toEqual({ ids_duplicados: [], filas_sin_id: [], ids: [], ids_sin_estrato: [] });
+  });
+
+  it("L5: las unidades sin estrato tienen su propia lista", () => {
+    const d = normalizeCalcMuestraGeneralErrorDetalle({ ids_sin_estrato: "U9999" });
+    expect(d.ids_sin_estrato).toEqual(["U9999"]);
+    expect(d.ids).toEqual([]);
   });
 });
