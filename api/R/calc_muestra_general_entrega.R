@@ -97,6 +97,16 @@ calc_muestra_general_memoria <- function(comp, resultado) {
   pps = "Probabilidad proporcional al tamaño (sistemático, con certezas)"
 )
 
+# Con estratos, el método se aplica dentro de cada uno: «Muestreo aleatorio
+# simple» a secas describía como MAS un diseño estratificado (L10, 2026-09-27).
+.cm_general_metodo_rotulo <- function(metodo, estratos) {
+  base <- .CM_GENERAL_METODO_ROTULO[[metodo]] %||% metodo
+  claves <- if (is.data.frame(estratos)) as.character(estratos$clave)
+            else vapply(estratos %||% list(), function(e) as.character(e$clave %||% ""), "")
+  claves <- setdiff(claves, c(.CM_GENERAL_SIN_ESTRATO, ""))
+  if (length(claves) > 1L) sprintf("%s dentro de cada estrato (%d estratos)", base, length(claves)) else base
+}
+
 #' Escribe el libro de entrega de una corrida.
 #'
 #' Hojas: «Corrida» (qué se hizo y cómo repetirlo), «Memoria de cálculo»,
@@ -131,7 +141,7 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
               "Hash del marco (SHA-256)", "Hash de la configuración",
               "Archivo del marco", "Hoja", "Columna id", "Columna estrato",
               "Columna tamaño", "Fecha del sorteo (UTC)"),
-    valor = c(comp$actor %||% "", .CM_GENERAL_METODO_ROTULO[[cr$metodo]] %||% cr$metodo,
+    valor = c(comp$actor %||% "", .cm_general_metodo_rotulo(cr$metodo, corrida$estratos),
               as.character(cr$N), as.character(corrida$n_fuente), as.character(cr$n_titulares),
               as.character(cr$n_reservas), as.character(cr$semilla), cr$rng_kind, cr$r_version,
               cr$run_id, cr$marco_hash, cr$config_hash, marco$file_id %||% "", marco$hoja %||% "",
