@@ -1,3 +1,4 @@
+@import "./selectorTipo.css";
 /* Cálculo de muestra es un workbench de datos: el cap documental de `.pulso-main`
    deja de aplicar únicamente cuando esta mesa está montada. El padding exterior
    del shell se conserva como gutter; todo el ancho restante pertenece al canvas. */
