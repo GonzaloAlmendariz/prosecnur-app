@@ -105,9 +105,12 @@ for (c in estudio$componentes) {
 }
 ```
 
-## Cuotas operativas calculadas
-
 ```{r cuotas_matriz, results="asis"}
+# El título sale sólo si algún componente tiene cuotas_matriz: vacío era un
+# encabezado sin contenido (L26).
+if (any(vapply(estudio$componentes, function(c) length(c$resultado$cuotas_matriz %||% list()) > 0L, logical(1)))) {
+  cat("## Cuotas operativas calculadas\n\n")
+}
 for (c in estudio$componentes) {
   res <- c$resultado
   if (is.null(res$cuotas_matriz) || length(res$cuotas_matriz) == 0L) next
@@ -132,9 +135,10 @@ for (c in estudio$componentes) {
 3. Solo diseños probabilísticos con marco completo y probabilidad conocida producen margen de error formal.
 4. Los demás diseños se reportan como cobertura operacional, representatividad teórica o validez interna.
 
-## Cómo se estima la efectividad esperada de cada facultad
-
-```{r efectividad_metodo, results="asis"}
+```{r efectividad_metodo, results="asis", eval=isTRUE(bundle$tiene_aulas)}
+# Sólo en estudios de aulas (L26, 2026-09-27): en un estudio por regiones o
+# servicios esta sección hablaba de facultades y cursos-horario que no existen.
+cat("## Cómo se estima la efectividad esperada de cada facultad\n\n")
 tf <- bundle$tasas_facultad
 cat("El número de aulas de cada facultad sale de una sola fórmula:\n\n")
 cat("$$\\text{aulas} = \\left\\lceil \\frac{\\text{cuota}}{\\text{alumnos por curso-horario} \\times \\tau} \\right\\rceil$$\n\n")
@@ -187,7 +191,7 @@ cat(paste0(
   "todas las facultades, y el documento lo declara como tal.\n\n"))
 ```
 
-```{r efectividad_tabla, results="asis"}
+```{r efectividad_tabla, results="asis", eval=isTRUE(bundle$tiene_aulas)}
 tf <- bundle$tasas_facultad
 if (!is.null(tf) && length(tf)) {
   df <- do.call(rbind, lapply(tf, function(t) {
@@ -248,7 +252,7 @@ if (!length(corridas)) {
     actor <- actores[match(cid, ids)]
     if (is.na(actor) || !nzchar(actor)) actor <- cid
     modo <- if (identical(cr$modalidad, "censo")) "Cobertura censal: el marco entero en orden aleatorio de contacto (π = 1)"
-            else metodos[[cr$metodo]] %||% cr$metodo
+            else corridas[[cid]]$metodo_rotulo %||% metodos[[cr$metodo]] %||% cr$metodo
     ficha <- tibble(
       Campo = c("Método", "Universo del marco (N)", "Titulares", "Reservas", "Semilla",
                 "Generador aleatorio", "Identificador de corrida", "Huella del marco (SHA-256)"),
@@ -276,7 +280,8 @@ if (!length(corridas)) {
 ```{r sustento_metodologico}
 fuentes <- bundle$metodologia
 if (is.null(fuentes) || !nrow(as.data.frame(fuentes))) {
-  cat("_El motor no publicó el bloque de fuentes metodológicas para esta corrida._\n")
+  # Sin aulas no se publica la tabla de aulas (L26): se sustenta con lo que se usó.
+  knitr::asis_output("El tamaño sigue la memoria de cálculo de este documento (Cochran 1977; Lohr 2019) y la selección, el método declarado en «Selección de las unidades». Ambos se reproducen con la huella del marco y la semilla.\n")
 } else {
   fuentes <- as.data.frame(fuentes, stringsAsFactors = FALSE)
   limpio <- function(x) { x <- as.character(x); x[is.na(x) | !nzchar(trimws(x))] <- "—"; x }
@@ -306,12 +311,16 @@ if (!is.null(fuentes) && nrow(as.data.frame(fuentes))) {
 }
 ```
 
-::: {.callout-note}
-La selección es probabilística: toda unidad del marco tiene una probabilidad de
-inclusión conocida y mayor que cero, y esa probabilidad es la que pondera los
-resultados. Cada decisión de diseño está anclada en estándares de operativos
-internacionales de evaluación educativa y en la literatura de muestreo balanceado.
-:::
+```{r sustento_nota, results="asis"}
+# «Anclada en evaluación educativa y muestreo balanceado» describe el diseño de
+# aulas; en otro estudio afirmaba un método que no se usó (L26).
+cat("::: {.callout-note}\n")
+if (isTRUE(bundle$tiene_aulas)) {
+  cat("Cada decisión de diseño está anclada en estándares de operativos internacionales de evaluación educativa y en la literatura de muestreo balanceado. ")
+}
+cat("La selección es probabilística: toda unidad del marco tiene una probabilidad de inclusión conocida y mayor que cero, y esa probabilidad es la que pondera los resultados.\n")
+cat(":::\n")
+```
 
 ## Próximos pasos
 
