@@ -16,7 +16,7 @@ import {
   TEXTO_COBERTURA_CENSAL,
   errorGeneralDesde,
   exportReducer,
-  formatearFechaUtc,
+  formatearFechaLocal,
   formatearPi,
   hashCorto,
 } from "./modelo";
@@ -150,7 +150,7 @@ export function FichaCorrida({
             <div><dt>Corrida</dt><dd><code title={c.run_id}>{hashCorto(c.run_id, 12)}</code></dd></div>
             <div><dt>Marco</dt><dd><code title={c.marco_hash}>{hashCorto(c.marco_hash)}</code></dd></div>
             <div><dt>Configuración</dt><dd><code title={c.config_hash}>{hashCorto(c.config_hash)}</code></dd></div>
-            <div><dt>Fecha</dt><dd>{formatearFechaUtc(corrida.sorteado_at)}</dd></div>
+            <div><dt>Fecha</dt><dd title={corrida.sorteado_at}>{formatearFechaLocal(corrida.sorteado_at)}</dd></div>
           </dl>
 
           {estratificada && (

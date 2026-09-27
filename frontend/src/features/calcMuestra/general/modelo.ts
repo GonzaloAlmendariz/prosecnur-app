@@ -435,10 +435,17 @@ export function hashCorto(hash: string, largo = 10): string {
   return hash ? hash.slice(0, largo) : "—";
 }
 
-/** «2026-09-24 06:19 UTC» a partir del ISO que publica el motor. */
-export function formatearFechaUtc(iso: string): string {
-  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(iso);
-  return m ? `${m[1]} ${m[2]} UTC` : iso || "—";
+/**
+ * «2026-09-27 08:25» en la hora local del equipo, a partir del ISO UTC que
+ * publica el motor. Pintaba «13:25 UTC» a las 08:25 de Lima (L8, 2026-09-27);
+ * el ISO sigue entero en el `title` y en el libro de entrega, que son registro.
+ */
+export function formatearFechaLocal(iso: string): string {
+  if (!iso) return "—";
+  const d = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(iso) ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return iso;
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())} ${dos(d.getHours())}:${dos(d.getMinutes())}`;
 }
 
 /**
