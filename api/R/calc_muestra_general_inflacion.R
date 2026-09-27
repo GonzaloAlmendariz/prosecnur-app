@@ -84,3 +84,11 @@
     "Abordando el marco completo se esperan %s completas de las %d que pide el margen: el error alcanzable es ±%.1f%s, no ±%.1f. Sube la tasa de respuesta o acepta ese margen.",
     .cm_general_fmt_completas(esperadas), as.integer(n), 100 * ea, unidad, 100 * as.numeric(e))
 }
+
+# Serializador sin redondeo para las rutas que publican el resultado del
+# cálculo (L12, 2026-09-27). El global deja 4 decimales: un margen de 0.03348
+# (±3.3, así lo redacta el aviso del motor) llegaba 0.0335 y la tarjeta
+# pintaba ±3.4 a su lado. Mismo criterio que /general/seleccionar con las π.
+.cm_serializer_sin_redondeo <- function() {
+  plumber::serializer_unboxed_json(na = "null", digits = NA)
+}

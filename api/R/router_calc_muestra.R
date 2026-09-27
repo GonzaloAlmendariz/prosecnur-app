@@ -390,6 +390,7 @@ mount_calc_muestra <- function(pr) {
     # GET /api/calc-muestra/state — snapshot completo del módulo
     # -----------------------------------------------------------------------
     plumber::pr_get("/api/calc-muestra/state",
+                    serializer = .cm_serializer_sin_redondeo(),
                     wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       .cm_state_payload(sid)
@@ -400,6 +401,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { estudio: {...} }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/estudio",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -428,6 +430,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { componente: {...}, op: "add"|"update" }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/componente",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -472,6 +475,7 @@ mount_calc_muestra <- function(pr) {
     # POST /api/calc-muestra/calcular — ejecuta cálculo para todos los componentes
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/calcular",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       s <- session_get(sid)
@@ -527,6 +531,7 @@ mount_calc_muestra <- function(pr) {
     # de facultades como punto de partida, sin acoplar el motor a una institución.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/iniciar-estudio",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -582,6 +587,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { config: {...} }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/marco/config",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -701,6 +707,7 @@ mount_calc_muestra <- function(pr) {
     #         referencia_asistencia_sheet?, estudio?: {...}, workspace?: {...} }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/asistencia/referencia",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -843,6 +850,7 @@ mount_calc_muestra <- function(pr) {
     #         config }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/marco/construir",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -968,6 +976,7 @@ mount_calc_muestra <- function(pr) {
     #     el frontend refresca via GET /api/calc-muestra/state.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/comparar-metodos",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -1041,6 +1050,7 @@ mount_calc_muestra <- function(pr) {
     # aulas. Respuesta sync o job, con el mismo gate que el resto de aulas.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/certeza",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -1101,6 +1111,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { config?: {...}, frame?: {...}, method_id?: "cube_balanceado" }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/seleccionar",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -1180,6 +1191,7 @@ mount_calc_muestra <- function(pr) {
     #     GET /api/jobs/<id> y refrescar via GET /api/calc-muestra/state.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/simular-reemplazos",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -1231,6 +1243,7 @@ mount_calc_muestra <- function(pr) {
     # POST /api/calc-muestra/aulas/exportar — workbook de seleccion
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/exportar",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       s <- session_get(sid)
