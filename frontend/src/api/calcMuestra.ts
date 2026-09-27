@@ -561,6 +561,8 @@ export type CalcMuestraResultado = {
   sobremuestra?: number;
   cobertura_objetivo?: number;
   tasa_respuesta_esperada?: number;
+  /** Completas que vuelven cuando se aborda todo el marco y no alcanzan la meta (L3/L18). */
+  n_completas_esperadas?: number;
   universo_a_contactar?: number;
   variable_control?: string;
   sub_cuotas?: Record<string, number>;

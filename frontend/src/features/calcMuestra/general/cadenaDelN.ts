@@ -16,10 +16,20 @@ export function cadenaDelN(
   const campo = safeNumber(r?.n_operativo, 0);
   const tasa = safeNumber(r?.tasa_respuesta_esperada ?? comp.parametros?.tasa_respuesta, NaN);
   const sobre = safeNumber(comp.parametros?.oversample_pct, 0);
-  const detalleCampo = [
-    Number.isFinite(tasa) && tasa > 0 ? `÷ respuesta ${fmtPct(tasa)}` : null,
-    sobre > 0 ? `+${fmtPct(sobre)} sobremuestra` : null,
-  ].filter(Boolean).join(" · ");
+  const esperadas = safeNumber(r?.n_completas_esperadas, NaN);
+  // Si se aborda el marco entero (censo, o el tope del marco), el n a campo no
+  // sale de dividir por la respuesta: «÷ respuesta 70 %» junto a 2,000 describía
+  // una cuenta que no ocurrió (L18). Se dice qué es y cuántas vuelven.
+  const todoElMarco = N > 0 && campo >= N;
+  const detalleCampo = todoElMarco
+    ? [
+        "todo el marco",
+        Number.isFinite(esperadas) ? `se esperan ${fmtInt(Math.round(esperadas))} completas` : null,
+      ].filter(Boolean).join(" · ")
+    : [
+        Number.isFinite(tasa) && tasa > 0 ? `÷ respuesta ${fmtPct(tasa)}` : null,
+        sobre > 0 ? `+${fmtPct(sobre)} sobremuestra` : null,
+      ].filter(Boolean).join(" · ");
   return [
     {
       id: "N",
