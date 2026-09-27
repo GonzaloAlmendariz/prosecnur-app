@@ -1,0 +1,59 @@
+/* Selector «Elige el tipo de muestra» en pantallas altas (revamp 2026-09-27).
+ *
+ * A 1710x1107 (MacBook Air 15") las cuatro rutas medían 386 px de alto fijo y
+ * dejaban ~30 % de la pantalla vacía bajo ellas, con las respuestas de cada
+ * camino a 10–10.8 px. Con alto de sobra, la fila crece con el viewport (sin
+ * estirarse más allá de lo que se lee cómodo) y el texto sube a un cuerpo
+ * legible. Umbral 1050 px: a 1470x956 (MacBook Air 13") la fila mínima de
+ * 56vh más el texto grande recortaba el botón «Empezar este camino» contra el
+ * borde del hub; ahí el selector queda como estaba, que ya cabía. */
+
+@media (min-height: 1050px) {
+  /* Especificidad de dos clases: este archivo entra por @import ANTES que
+   * calcMuestra.css, y una regla de una clase ahí pisaría a esta. */
+  .cmv2-route-hub .cmv2-frame-grid--routes {
+    grid-auto-rows: minmax(clamp(386px, 56vh, 600px), 1fr);
+    gap: var(--pulso-space-4);
+  }
+
+  .cmv2-route-hub .cmv2-frame-grid--routes .cmv2-path-tags span {
+    min-height: 24px;
+    padding: 0 var(--pulso-space-2);
+    font-size: 11px;
+  }
+
+  .cmv2-route-hub .cmv2-card-answers {
+    gap: var(--pulso-space-2);
+  }
+
+  .cmv2-route-hub .cmv2-card-answers em {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 3px var(--pulso-space-2);
+    min-height: 68px;
+    padding: var(--pulso-space-3);
+  }
+
+  .cmv2-route-hub .cmv2-card-answers i {
+    width: 28px;
+    height: 28px;
+  }
+
+  .cmv2-route-hub .cmv2-card-answers b {
+    font-size: 11px;
+  }
+
+  .cmv2-route-hub .cmv2-card-answers span {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .cmv2-route-hub .cmv2-card-answers small {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .cmv2-route-hub .cmv2-card-action {
+    min-height: var(--pulso-control-height-lg);
+    font-size: 14px;
+  }
+}
