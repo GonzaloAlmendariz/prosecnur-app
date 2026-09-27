@@ -420,6 +420,19 @@ export function margenComparado(comp: CalcMuestraComponente): {
 }
 
 function cifraMargen(comp: CalcMuestraComponente): CifraBanda {
+  // Una técnica operativa (cobertura censal, barrido) no tiene margen: lo que
+  // publica es la cobertura objetivo. Se rotulaba «Margen alcanzado ±50.0% ·
+  // pedido ±5.0%» (2026-09-27).
+  if (comp.naturaleza === "operativo") {
+    const cobertura = safeNumber(comp.resultado?.cobertura_objetivo ?? comp.parametros?.cobertura_objetivo, NaN);
+    return {
+      clave: "margen",
+      label: "Cobertura objetivo",
+      value: Number.isFinite(cobertura) ? fmtPct(cobertura) : "—",
+      detalle: "sin margen de error",
+      origen: comp.resultado ? "motor" : undefined,
+    };
+  }
   const m = margenComparado(comp);
   const noAlcanza = m.cumple === false;
   return {
