@@ -1,5 +1,6 @@
 import { Copy, Download, ExternalLink } from "../../vendor/lucide-react";
 import type { CollectionFichaPrueba } from "../../api/recopiladores";
+import { copiarTexto } from "../../lib/portapapeles";
 
 type Props = {
   fichas: CollectionFichaPrueba[];
@@ -42,7 +43,7 @@ export function FichasPruebaHistorico({ fichas, onPdf, ocupado }: Props) {
               </a>
               <button
                 type="button"
-                onClick={() => { void navigator.clipboard?.writeText(ficha.enlace); }}
+                onClick={() => { void copiarTexto(ficha.enlace).catch(() => undefined); }}
                 title="Copiar el enlace"
               >
                 <Copy size={14} aria-hidden /> Copiar

@@ -33,6 +33,7 @@ import { agendaDelAplicador, mapaDeFijaciones, textoDelDespliegue, veredictoDeEq
 import { AulasClasesSinCita } from "./AulasClasesSinCita";
 import type { ClaseSinCita } from "./clasesSinCita";
 import { fmt } from "./kpisDeAulas";
+import { copiarTexto } from "../../../../lib/portapapeles";
 
 /**
  * El cuarto cuadro de Carga de campo: la pestaña de Asignación (dictado
@@ -670,8 +671,7 @@ export function AulasAsignacionDeAplicadores({
                         // el fallback de textarea copia igual y el botón
                         // nunca se queda mudo tras un click.
                         const aMano = () => setTextoRevelado(texto);
-                        if (!navigator.clipboard?.writeText) { aMano(); return; }
-                        navigator.clipboard.writeText(texto).then(() => {
+                        void copiarTexto(texto).then(() => {
                           setTextoRevelado("");
                           marca();
                         }).catch(aMano);
