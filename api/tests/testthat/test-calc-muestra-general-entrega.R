@@ -112,3 +112,24 @@ test_that("H28: la entrega dice cómo estimar la varianza según el método", {
     expect_false(grepl("prosecnurapp:::", qmd, fixed = TRUE), info = nombre)
   }
 })
+
+test_that("L10: con estratos, el método de selección dice que se sortea dentro de cada estrato", {
+  testthat::skip_if_not_installed("openxlsx")
+  set.seed(4)
+  marco <- data.frame(codigo = sprintf("H%05d", 1:800), zona = sample(c("A", "B"), 800, TRUE),
+                      stringsAsFactors = FALSE)
+  comp <- .ge_comp(N = 800L, e = 0.07)
+  res <- calc_muestra_calcular_componente(comp)
+  metodo_de <- function(estrato) {
+    s <- calc_muestra_general_sortear(marco, list(id = "codigo", estrato = estrato), "mas",
+                                      n = res$n_operativo, semilla = 11L)
+    path <- tempfile(fileext = ".xlsx")
+    withr::defer(unlink(path), envir = parent.frame())
+    calc_muestra_general_exportar_workbook(c(s, list(n_fuente = res$n_operativo)),
+      list(columnas = list(id = "codigo", estrato = estrato, tamano = "")), comp, res, path)
+    ficha <- openxlsx::read.xlsx(path, sheet = "Corrida", colNames = FALSE, skipEmptyRows = TRUE)
+    ficha[[2]][ficha[[1]] == "Método de selección"]
+  }
+  expect_identical(metodo_de("zona"), "Muestreo aleatorio simple sin reemplazo dentro de cada estrato (2 estratos)")
+  expect_identical(metodo_de(""), "Muestreo aleatorio simple sin reemplazo")
+})
