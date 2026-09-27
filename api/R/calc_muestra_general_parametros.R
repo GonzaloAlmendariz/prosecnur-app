@@ -17,7 +17,8 @@
   prob_estratificado = c("z", "p", "e", "deff", "tasa_respuesta", "oversample_pct", "n_minimo_estrato",
                          "asignacion", "tipo_indicador", "cv"),
   intencion_censal = c("cobertura_objetivo", "tasa_respuesta"),
-  barrido = c("cobertura_objetivo", "tau", "oversample_pct", "promedio_conglomerado"),
+  # Sin sobremuestra: se barre el marco entero y no hay reserva fuera de él (L30).
+  barrido = c("cobertura_objetivo", "tau", "promedio_conglomerado"),
   no_prob_cuotas = c("tasa_respuesta", "oversample_pct"),
   no_prob_conveniencia = c("cobertura_objetivo", "n_minimo_estrato", "tope_operativo",
                            "tasa_respuesta", "oversample_pct"),
