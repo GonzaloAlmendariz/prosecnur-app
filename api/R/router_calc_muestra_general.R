@@ -37,7 +37,9 @@ mount_calc_muestra_general <- function(pr) {
     # Body: { componente_id, file_id, hoja?, columnas: { id, estrato?, tamano? } }
     # Declara el archivo de marco del componente y escribe N y N_h en él.
     # -----------------------------------------------------------------------
+    # Devuelve `estudio`: sin redondeo, como /state (L21).
     plumber::pr_post("/api/calc-muestra/general/marco",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
