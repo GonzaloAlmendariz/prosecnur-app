@@ -65,3 +65,21 @@ test_that("L26: un estudio de aulas conserva su sustento y su sección de efecti
   expect_true(grepl("samplecube", texto, fixed = TRUE))
   expect_true(grepl("evaluación educativa", texto, fixed = TRUE))
 })
+
+test_that("L28: el reporte habla en palabras, no en claves internas (Quarto real)", {
+  skip_if_not(nzchar(Sys.which("quarto")) && requireNamespace("quarto", quietly = TRUE), "sin quarto")
+  skip_on_cran()
+  x <- .rg_estudio()
+  out <- tempfile(fileext = ".html")
+  withr::defer(unlink(out))
+  reporte_calc_muestra(x$estudio, out, formato = "html", quiet = TRUE, general = x$general)
+  html <- paste(readLines(out, warn = FALSE), collapse = "\n")
+  texto <- gsub("<[^>]+>", " ", html)
+  for (clave in c("prob_estratificado", "estudio_propio", "representatividad_estadistica",
+                  "Marco_validado", "n_objetivo", "n_operativo", "unidad_seleccion",
+                  "diseno_validado", "Tecnica")) {
+    expect_false(grepl(clave, texto, fixed = TRUE), info = clave)
+  }
+  expect_true(grepl("Estratificado", texto, fixed = TRUE))
+  expect_true(grepl("Representatividad estadística", texto, fixed = TRUE))
+})

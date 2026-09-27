@@ -79,6 +79,7 @@ reporte_calc_muestra <- function(estudio, output_file,
     # sólo viaja si el estudio es de aulas. En un estratificado por regiones
     # afirmaba métodos que no se usaron (L26, 2026-09-27).
     tiene_aulas = tiene_aulas,
+    rotulos = .cm_reporte_rotulos(),
     metodologia = if (tiene_aulas) tryCatch(.cm_aulas_methodological_sources(), error = function(e) NULL) else NULL,
     # Memoria de cálculo sustituida y sorteo de Muestra general (ADR 0090):
     # el reporte defiende el n con la fórmula y los valores puestos en ella, y
