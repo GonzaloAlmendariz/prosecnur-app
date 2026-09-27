@@ -19,6 +19,7 @@ import { useDisenoVigente } from "./useDisenoVigente";
 import { usePestanaMesa } from "./usePestanaMesa";
 import { VariablesControl } from "./VariablesControl";
 import "./mesa.css";
+import "./escala.css";
 
 const SECCIONES = ["marco", "metodo", "seleccion", "resultados"];
 

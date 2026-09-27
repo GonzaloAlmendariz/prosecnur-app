@@ -16,6 +16,7 @@ import { useActorEnFoco } from "./useActorEnFoco";
 import { useDisenoVigente } from "./useDisenoVigente";
 import { usePestanaMesa } from "./usePestanaMesa";
 import "./mesa.css";
+import "./escala.css";
 
 const SECCIONES = ["actores", "contexto", "seleccion", "resultados"];
 
