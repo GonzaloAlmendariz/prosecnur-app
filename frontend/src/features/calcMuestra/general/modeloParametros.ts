@@ -120,12 +120,6 @@ export function ayudaDeParametro(param: CalcMuestraParametroDeTecnica, valores: 
   return param.ayuda;
 }
 
-/** Rango aceptado por el motor, cuando lo tiene. */
-export function limitesDe(clave: string): { min: number; max?: number } {
-  if (clave === "cv") return { min: 0.01, max: 10 };
-  return { min: 0 };
-}
-
 /** Default del motor que se muestra como placeholder mientras no haya valor guardado. */
 export function placeholderDe(clave: string): string | undefined {
   return clave === "cv" ? "1" : undefined;
@@ -153,15 +147,6 @@ const TECNICAS_CON_INDICADOR: ReadonlySet<string> = new Set(["prob_aleatorio_sim
 export function precisionEnPalabras(comp: Pick<CalcMuestraComponente, "tecnica" | "parametros">, valor: string): string {
   if (valor === "—" || tipoIndicadorDe(comp.parametros) !== "media") return valor;
   return TECNICAS_CON_INDICADOR.has(comp.tecnica) ? `±${valor} de la media` : valor;
-}
-
-/** Paso del campo numérico: fino donde el valor es chico, entero donde cuenta casos. */
-export function pasoDe(clave: string): number {
-  if (clave === "e") return 0.005;
-  if (clave === "p") return 0.01;
-  if (clave === "deff" || clave === "cv") return 0.1;
-  if (ENTEROS.has(clave)) return 1;
-  return 0.05;
 }
 
 /** Los parámetros que la técnica consume; `null` si el catálogo no la conoce. */
@@ -215,4 +200,16 @@ export function lineaDeAsignacion(comp: Pick<CalcMuestraComponente, "resultado">
 /** Correcciones con que se calculó el resultado (van junto al n en Resultados). */
 export function avisosDelResultado(comp: Pick<CalcMuestraComponente, "resultado">): CalcMuestraAvisoParametro[] {
   return normalizeCalcMuestraAvisosParametros(comp.resultado?.avisos_parametros);
+}
+
+/**
+ * Número tecleado en un parámetro, con punto o coma decimal (L14). Devuelve
+ * null mientras la entrada está incompleta («0.», «0,») o no es un número, para
+ * no mandar al motor un paso intermedio.
+ */
+export function leerDecimal(texto: string): number | null {
+  const t = texto.trim().replace(",", ".");
+  if (!/^-?\d+(\.\d+)?$/.test(t)) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
 }
