@@ -125,6 +125,8 @@ export type CalcMuestraGeneralErrorDetalle = {
   filas_sin_id: number[];
   /** Ids con tamaño inválido (PPS). */
   ids: string[];
+  /** Ids sin estrato cuando el marco declara columna de estrato. */
+  ids_sin_estrato: string[];
 };
 
 /** Error del motor con el `error.details` que `ApiError` no conserva. */
@@ -340,6 +342,7 @@ export function normalizeCalcMuestraGeneralErrorDetalle(raw: unknown): CalcMuest
       .filter((n): n is number => n != null)
       .map((n) => Math.round(n)),
     ids: asList(r.ids).map(asText).filter(Boolean),
+    ids_sin_estrato: asList(r.ids_sin_estrato).map(asText).filter(Boolean),
   };
 }
 
