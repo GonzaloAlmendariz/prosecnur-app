@@ -1696,7 +1696,7 @@ monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
   }
   cumplimiento$benchmark_comparado <- benchmark_comparado
 
-  cuotas <- resultado$sub_cuotas %||% meta_raw$sub_cuotas %||% NULL
+  cuotas <- resultado$sub_cuotas %||% meta_raw$sub_cuotas %||% .monitoreo_subcuotas_desde_distribucion(resultado$distribucion_estratos)
   subcuotas <- .monitoreo_acreditacion_subcuotas(
     seguimiento_raw$sub_cuotas_progreso %||% comp$sub_cuotas_progreso,
     cuotas
