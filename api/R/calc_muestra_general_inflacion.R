@@ -17,8 +17,10 @@
   n_objetivo <- as.integer(n_objetivo)
   tasa <- par$tasa_respuesta %||% 1
   if (!is.numeric(tasa) || is.na(tasa) || tasa <= 0) tasa <- 1
-  base <- as.integer(ceiling(n_objetivo / min(tasa, 1)))
-  sobremuestra <- as.integer(ceiling(base * (par$oversample_pct %||% 0)))
+  # El épsilon absorbe la coma flotante: 21 / 0.7 da 30.000000000000004 y
+  # ceiling lo subía a 31 (26 de cada 1000 n con respuesta 0.7).
+  base <- as.integer(ceiling(n_objetivo / min(tasa, 1) - 1e-9))
+  sobremuestra <- as.integer(ceiling(base * (par$oversample_pct %||% 0) - 1e-9))
   operativo <- base + sobremuestra
   pedido <- operativo
   topado <- !is.na(N) && N > 0L && operativo > N
@@ -37,4 +39,25 @@
       as.integer(pedido), 100 * min(tasa, 1), as.integer(N)
     ) else NULL
   )
+}
+
+# El n a campo del estratificado se infla ESTRATO POR ESTRATO (L2 del loop de
+# mejoras, 2026-09-27). Antes se inflaba el total una vez y se volvía a
+# repartir con el piso: un estrato que quedaba en el piso de completas recibía
+# el piso también a campo, sin inflar (Puno: 30 a campo para 30 completas con
+# respuesta 0.7), y esa inflación se la llevaban los estratos grandes. Cada
+# estrato aborda lo que sus completas exigen, con tope en su N_h:
+#   n_campo_h = mín(N_h, ⌈n_h / tasa⌉ + ⌈⌈n_h / tasa⌉ · sobremuestra⌉)
+# y el n a campo del componente es la suma.
+.cm_general_campo_por_estrato <- function(n_h, N_h, par) {
+  n_h <- as.integer(n_h); N_h <- as.integer(N_h)
+  tasa <- par$tasa_respuesta %||% 1
+  if (!is.numeric(tasa) || is.na(tasa) || tasa <= 0) tasa <- 1
+  os <- par$oversample_pct %||% 0
+  if (!is.numeric(os) || is.na(os) || os < 0) os <- 0
+  base <- as.integer(ceiling(n_h / min(tasa, 1) - 1e-9))
+  pedido <- base + as.integer(ceiling(base * os - 1e-9))
+  n_campo <- as.integer(pmin(pedido, N_h))
+  list(base = base, pedido = pedido, n_campo = n_campo,
+       topados = which(pedido > N_h & N_h > 0L))
 }
