@@ -89,6 +89,62 @@
   white-space: nowrap;
 }
 
+/* Tarjetas de elección: forma del marco, técnica y método de sorteo. Con 11 px
+ * de descripción y 92 px de alto, seis tarjetas dejaban 305–404 px vacíos
+ * bajo ellas a 1710x1107 (MacBook Air 15"). */
+.cmg-mesa :is(.cmv2-shape-grid, .cmv2-method-grid, .cmg-metodos) {
+  gap: var(--pulso-space-4);
+}
+
+.cmg-mesa :is(.cmv2-shape, .cmv2-method) {
+  gap: var(--pulso-space-2);
+  min-height: 128px;
+  padding: var(--pulso-space-5);
+}
+
+.cmg-mesa .cmg-metodo {
+  min-height: 104px;
+}
+
+.cmg-mesa :is(.cmv2-shape, .cmv2-method) strong {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.cmg-mesa :is(.cmv2-shape span, .cmv2-method small) {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cmg-mesa .cmv2-method span {
+  font-size: 11px;
+}
+
+/* Acciones dentro de los paneles: del alto de los campos que acompañan. El
+ * encabezado de la mesa conserva su escala compacta. */
+.cmg-mesa .cmv2-panel :is(.cmv2-primary, .cmv2-ghost) {
+  min-height: var(--cmg-campo-h);
+  padding-inline: var(--pulso-space-4);
+  font-size: 14px;
+}
+
+/* Tablas de la mesa (estratos, unidades, actores): filas con aire y cifras
+ * legibles; el ancho mínimo y el dueño del scroll horizontal no cambian. */
+.cmg-mesa .cmv2-table :is(th, td) {
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.cmg-mesa .cmv2-table th {
+  font-size: 11px;
+}
+
+.cmg-mesa .cmv2-table-input {
+  min-height: var(--pulso-control-height-lg);
+  font-size: 14px;
+}
+
 @media (max-width: 1100px) {
   .cmg-mesa .cmv2-panel {
     padding: var(--pulso-space-4) var(--pulso-space-5);
@@ -96,5 +152,26 @@
 
   .cmg-mesa .cmg-parametros {
     gap: var(--pulso-space-5) var(--pulso-space-5);
+  }
+}
+
+/* Pantallas bajas (MacBook Air 13", ~956 px útiles): el aire vertical cede
+ * antes que la acción principal. En Parámetros «Recalcular» quedaba 50 px
+ * bajo el pliegue a 1470x956. */
+@media (max-height: 1000px) {
+  .cmg-mesa .cmv2-panel {
+    padding-block: var(--pulso-space-4);
+  }
+
+  .cmg-mesa .cmv2-panel-head {
+    margin-bottom: var(--pulso-space-3);
+  }
+
+  .cmg-mesa .cmg-parametros {
+    row-gap: var(--pulso-space-4);
+  }
+
+  .cmg-mesa .cmv2-form-grid {
+    row-gap: var(--pulso-space-4);
   }
 }
