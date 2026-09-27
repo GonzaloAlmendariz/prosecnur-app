@@ -2271,10 +2271,16 @@ calc_muestra_calcular_componente <- function(comp) {
   # Sobremuestra operativa (refuerzo)
   unidades_refuerzo <- as.integer(ceiling(unidades_operativas * par$oversample_pct))
 
-  list(
+  # Se aborda todo el marco, que es lo que sortea Selección (el marco entero,
+  # π = 1); la cobertura es la meta y la asistencia dice cuántas vuelven (L19,
+  # 2026-09-27; decisión provisional del loop, reversible). Publicaba n a campo
+  # = N·cobertura mientras el sorteo listaba N.
+  esperadas <- N * min(tau_efec, 1)
+  no_alcanza <- esperadas < personas_objetivo - 1e-9
+  out <- list(
     n_teorico               = NA_integer_,
     n_objetivo              = personas_objetivo,
-    n_operativo             = personas_objetivo,
+    n_operativo             = as.integer(N),
     unidades_operativas     = as.integer(unidades_operativas + unidades_refuerzo),
     unidades_base           = unidades_operativas,
     unidades_refuerzo       = unidades_refuerzo,
@@ -2283,11 +2289,16 @@ calc_muestra_calcular_componente <- function(comp) {
     sobremuestra            = 0L,
     precision_alcanzada     = NA_real_,
     origen_tamano           = comp$origen_tamano,
-    advertencia             = paste(
+    advertencia             = paste(c(
       "Barrido operativo: la meta se reporta como cobertura del universo,",
-      "no como muestra inferencial. No produce margen de error formal."
-    )
+      "no como muestra inferencial. No produce margen de error formal.",
+      if (no_alcanza) sprintf(
+        "Con una asistencia del %.0f %% se esperan %s de las %d que pide la cobertura del %.0f %%.",
+        100 * min(tau_efec, 1), .cm_general_fmt_completas(esperadas), as.integer(personas_objetivo),
+        100 * cobertura)), collapse = " ")
   )
+  if (no_alcanza) out$n_completas_esperadas <- esperadas
+  out
 }
 
 #' Calcula resultado para conveniencia no probabilística.
