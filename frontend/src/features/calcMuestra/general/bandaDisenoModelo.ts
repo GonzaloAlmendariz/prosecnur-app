@@ -21,7 +21,7 @@ import {
   campoMetaDelActor,
   esTecnicaDeElementos,
   etiquetaMetodo,
-  formatearFechaUtc,
+  formatearFechaLocal,
   hashCorto,
   modalidadDeTecnica,
   nDesfasado,
@@ -541,7 +541,7 @@ export function cifrasDisenoGeneral(args: {
         detalle: c && corrida
           ? [
               c?.modalidad === "censo" ? null : "titulares + reservas",
-              vigencia.estado === "desactualizado" ? "desactualizado" : formatearFechaUtc(corrida.sorteado_at),
+              vigencia.estado === "desactualizado" ? "desactualizado" : formatearFechaLocal(corrida.sorteado_at),
             ].filter(Boolean).join(" · ")
           : "sin sorteo",
         tono: vigencia.estado === "desactualizado" ? "alerta" : undefined,

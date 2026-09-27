@@ -1,7 +1,7 @@
 import type { CalcMuestraGeneralMarco } from "../../../api/calcMuestraGeneral";
 import { fmtInt } from "../sharedCore";
 import { CifraFila, CifraMotor } from "../universidad/ui";
-import { formatearFechaUtc, hashCorto } from "./modelo";
+import { formatearFechaLocal, hashCorto } from "./modelo";
 import "./mesa.css";
 
 const ESTRATOS_VISIBLES = 12;
@@ -24,7 +24,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
         <CifraMotor label="Columnas" value={columnas} detalle="id · estrato · tamaño" monospace />
         <CifraMotor
           label="Declarado"
-          value={formatearFechaUtc(marco.declarado_at)}
+          value={formatearFechaLocal(marco.declarado_at)}
           detalle={marco.hoja ? `hoja ${marco.hoja}` : undefined}
         />
       </CifraFila>
