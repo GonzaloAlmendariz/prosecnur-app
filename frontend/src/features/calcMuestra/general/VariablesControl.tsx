@@ -22,7 +22,7 @@ export function VariablesControl({
     });
   }
   return (
-<section className="cmv2-panel" aria-labelledby="cmg-variables-titulo">
+    <section className="cmv2-panel" aria-labelledby="cmg-variables-titulo">
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Control</span>
