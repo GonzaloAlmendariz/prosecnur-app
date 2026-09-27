@@ -12,6 +12,7 @@ import {
   Save,
   X,
 } from "lucide-react";
+import { copiarTexto } from "../../lib/portapapeles";
 
 export type ProjectLifecycleIntent = "manage" | "selector" | "appExit";
 
@@ -92,7 +93,7 @@ export default function ProjectLifecycleDialog({
   async function copyProjectPath() {
     if (!projectPath) return;
     try {
-      await writeClipboardText(projectPath);
+      await copiarTexto(projectPath);
       setCopiedPath(true);
     } catch {
       setCopiedPath(false);
@@ -256,31 +257,4 @@ export default function ProjectLifecycleDialog({
       </section>
     </div>
   );
-}
-
-async function writeClipboardText(text: string) {
-  // En Electron el handler de permisos niega el portapapeles asíncrono y
-  // writeText rechaza: se cae al execCommand, que no pide permiso.
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch {
-      // sigue al fallback
-    }
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "true");
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  textarea.style.pointerEvents = "none";
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-    if (!document.execCommand("copy")) throw new Error("copy rechazado");
-  } finally {
-    document.body.removeChild(textarea);
-  }
 }

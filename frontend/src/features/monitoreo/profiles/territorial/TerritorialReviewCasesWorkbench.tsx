@@ -27,6 +27,7 @@ import {
   territorialDurationOperationalStatusFromValues,
 } from "../../territorialDuration";
 import { TerritorialOperationalAdjustmentsWorkspace } from "./TerritorialOperationalAdjustmentsWorkspace";
+import { copiarTexto } from "../../../../lib/portapapeles";
 
 type TerritorialValidationTab = "geolocalizacion" | "duracion";
 type TerritorialReviewTypeFilter = "all" | "record" | "gps" | "duration" | "ump" | "subsanacion";
@@ -146,8 +147,8 @@ function TerritorialReviewCasesWorkbenchImpl({
 
   const copyUuid = (id: string, responseIdValue: string) => {
     const responseId = responseIdValue.trim();
-    if (!responseId || !navigator.clipboard) return;
-    void navigator.clipboard.writeText(responseId).then(() => {
+    if (!responseId) return;
+    void copiarTexto(responseId).then(() => {
       setCopiedCaseId(id);
       window.setTimeout(() => setCopiedCaseId((current) => (current === id ? "" : current)), 1200);
     }).catch(() => undefined);

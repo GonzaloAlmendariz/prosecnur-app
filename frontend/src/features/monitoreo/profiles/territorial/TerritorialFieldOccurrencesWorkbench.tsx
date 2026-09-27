@@ -52,6 +52,7 @@ import {
   type OccurrenceUmpAttentionReason,
   type OccurrenceUmpAttentionStatus,
 } from "../../fieldOccurrences";
+import { copiarTexto } from "../../../../lib/portapapeles";
 
 type OccurrenceTab = "states" | "distritos" | "registro" | "ump" | "alerts" | "rhythm";
 type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "sync" | "ump-export";
@@ -762,7 +763,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
   const copyOccurrenceLink = useCallback(async () => {
     if (!surveyLink) return;
     try {
-      await navigator.clipboard?.writeText(surveyLink);
+      await copiarTexto(surveyLink);
       setCopiedLink(true);
       window.setTimeout(() => setCopiedLink(false), 1600);
     } catch {
