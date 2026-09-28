@@ -46,10 +46,16 @@ pulso_pdf_portada_normalizar <- function(defectos = list(), usuario = list()) {
 #' @param portada salida de `pulso_pdf_portada_normalizar()`.
 #' @param destacados lista de `list(rotulo=, valor=)` para la franja inferior
 #'   (opcional): las tres cifras que el cliente busca antes de pasar de página.
+#' @param reparto `"parejo"` (cada destacado ocupa la misma fracción del ancho)
+#'   o `"contenido"` (cada columna mide lo que su rótulo o su cifra, más el aire
+#'   del filete). Con rótulos de largo muy distinto, el reparto parejo pega el
+#'   largo contra el filete y deja vacía la columna del corto.
 #' @export
 pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
                               ty = pulso_pdf_type(), geo = pulso_pdf_geo("landscape"),
-                              destacados = list(), antetitulo = "") {
+                              destacados = list(), antetitulo = "",
+                              reparto = c("parejo", "contenido")) {
+  reparto <- match.arg(reparto)
   pesos <- pulso_pdf_pesos()
   m <- geo$margin
   banda <- 0.365
@@ -127,11 +133,29 @@ pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
   if (length(destacados)) {
     pulso_pdf_hairline(izq, izq + ancho, 0.250, tokens = tokens, lwd = pesos$bloque)
     ancho_k <- ancho / length(destacados)
+    xs <- izq + (seq_along(destacados) - 1L) * ancho_k
+    if (identical(reparto, "contenido")) {
+      # Ancho natural MEDIDO en el dispositivo, no estimado por caracteres: el
+      # mayor entre el rótulo en versalitas y la cifra.
+      medir <- function(txt, gp) {
+        grid::convertWidth(grid::grobWidth(grid::textGrob(txt, gp = gp)), "npc", valueOnly = TRUE)
+      }
+      natural <- vapply(destacados, function(d) {
+        max(medir(pulso_pdf_versalitas(d$rotulo),
+                  grid::gpar(fontsize = ty$eyebrow, fontface = "bold")),
+            medir(as.character(d$valor), grid::gpar(fontsize = 21, fontface = "bold")))
+      }, numeric(1))
+      aire <- 0.070
+      if (sum(natural) + aire * (length(natural) - 1L) <= ancho) {
+        xs <- izq + c(0, cumsum(natural + aire))[seq_along(destacados)]
+      }
+    }
     for (k in seq_along(destacados)) {
       d <- destacados[[k]]
-      x0 <- izq + (k - 1L) * ancho_k
+      x0 <- xs[[k]]
       if (k > 1L) {
-        grid::grid.lines(x = grid::unit(c(x0 - 0.018, x0 - 0.018), "npc"),
+        x_filete <- if (identical(reparto, "contenido")) x0 - aire / 2 else x0 - 0.018
+        grid::grid.lines(x = grid::unit(c(x_filete, x_filete), "npc"),
                          y = grid::unit(c(0.115, 0.225), "npc"),
                          gp = grid::gpar(col = tokens$rule, lwd = pesos$columna))
       }
