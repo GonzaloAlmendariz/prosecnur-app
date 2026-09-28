@@ -78,12 +78,12 @@ test_that("lo que no entra en ninguna meta se lee del invariante, con cada celda
 test_that("la nota al pie dice las 106 con su desglose, y cada nivel con SU cifra", {
   nota <- .marp_eje_nota_fuera_de_meta(.marp_fuera_de_meta(.mare_bloque()),
                                        .marp_rotulos_eje(.mare_bloque()$eje))
-  expect_match(nota, "De las 430 encuestas efectivas, 324 cuentan para la meta.", fixed = TRUE)
-  expect_match(nota, "Las 106 restantes no entran en ninguna", fixed = TRUE)
+  expect_match(nota, "De las 430 encuestas efectivas, 324 se contabilizan para la meta muestral.", fixed = TRUE)
+  expect_match(nota, "Las 106 restantes no se asignan a ninguna cuota", fixed = TRUE)
   # Regresión: `.marp_personas()` es escalar y repetía «56» en el nivel 10.
   expect_match(nota, "(nivel 5: 56; nivel 10: 32)", fixed = TRUE)
-  expect_match(nota, "17 no tienen nivel identificado", fixed = TRUE)
-  expect_match(nota, "1 es de una persona que respondió dos veces", fixed = TRUE)
+  expect_match(nota, "17 a estudiantes cuyo nivel no pudo identificarse en el padrón", fixed = TRUE)
+  expect_match(nota, "1 a una respuesta duplicada de un mismo estudiante", fixed = TRUE)
 })
 
 test_that("sin nada fuera de meta no hay nota: el cero no se narra", {
@@ -97,7 +97,7 @@ test_that("sin nada fuera de meta no hay nota: el cero no se narra", {
 
 test_that("el plan del documento por nivel: avance, ritmo y composicion; sin paginas de facultad", {
   plan <- monitoreo_aulas_plan_del_documento(.mare_modelo())
-  expect_identical(plan$seccion, c("Avance por nivel", "Ritmo del campo", "Composición de lo recogido"))
+  expect_identical(plan$seccion, c("Avance por nivel", "Ritmo del campo", "Composición de lo obtenido"))
   expect_false(any(grepl("facultad", plan$seccion, ignore.case = TRUE)))
   sin_comp <- .mare_modelo(); sin_comp$composicion$fuente <- "sin_padron"
   expect_identical(monitoreo_aulas_plan_del_documento(sin_comp)$seccion,
