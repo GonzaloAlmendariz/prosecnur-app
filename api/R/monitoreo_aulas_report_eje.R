@@ -174,7 +174,9 @@
     pulso_pdf_portada(port, tokens = tok, ty = ty, geo = geo,
                       antetitulo = ante_portada, destacados = list(
       list(rotulo = "Avance de la muestra", valor = .marp_pct(t$avance)),
-      list(rotulo = "Encuestas efectivas", valor = .marp_personas(t$conseguidas)),
+      # «Efectivas» son las que aceptaron (430); éstas además forman parte del
+      # estudio (Gonzalo, 2026-09-28). Dos cosas, dos nombres.
+      list(rotulo = "Encuestas del estudio", valor = .marp_personas(t$conseguidas)),
       list(rotulo = "Faltan", valor = .marp_personas(t$faltan, faltante = TRUE))
     ))
     if (!nzchar(periodo) && nzchar(port$periodo)) periodo <- port$periodo
@@ -192,7 +194,7 @@
     # Las barras suman las que CUENTAN (324), no las efectivas (430) que el
     # resumen nombra: con el rótulo de HSVG, la misma palabra decía dos cifras.
     .marp_pagina_ritmo(ritmo, tok, ty, geo, x0, ancho_util,
-                       rotulo_diario = "Encuestas que cuentan para la meta, por jornada")
+                       rotulo_diario = "Encuestas del estudio por jornada")
     pie()
   }
 
@@ -257,7 +259,7 @@
 
   # «Avance general», traspuesta: una fila por concepto, una columna por celda.
   tabla <- data.frame(
-    Indicadores = c("Efectivas", "Muestra", "Avance muestra", "Faltantes para la muestra"),
+    Indicadores = c("Encuestas del estudio", "Muestra", "Avance muestra", "Faltantes para la muestra"),
     Total = c(.marp_num(t$conseguidas), .marp_num(t$muestra), .marp_num(t$avance), .marp_num(t$faltan)),
     stringsAsFactors = FALSE, check.names = FALSE
   )
@@ -317,7 +319,12 @@
 # documento, porque es la única que dice algo que no está dibujado (decisión de
 # Gonzalo, 2026-09-28).
 .marp_eje_lineas_nota <- function(nota, ancho) {
-  if (!nzchar(nota)) character(0) else strwrap(nota, width = pulso_pdf_chars(ancho, factor = 215))
+  if (!nzchar(nota)) return(character(0))
+  # «nivel 5: 56» no se parte entre renglones: quedaba «(nivel» colgando al
+  # final de uno y «5: 56» abriendo el siguiente.
+  pegada <- gsub("(\\(?[[:alpha:]]+) ([0-9]+: [0-9]+)", "\\1\u00a7\\2", nota)
+  pegada <- gsub("([0-9]+:) ([0-9]+)", "\\1\u00a7\\2", pegada)
+  gsub("\u00a7", " ", strwrap(pegada, width = pulso_pdf_chars(ancho, factor = 215)), fixed = TRUE)
 }
 .marp_eje_alto_nota <- function(lineas) if (length(lineas)) 0.020 + length(lineas) * 0.022 else 0
 .marp_eje_dibujar_nota <- function(lineas, tok, ty, x0, ancho) {
@@ -373,7 +380,7 @@
   }
   lista <- if (length(partes) <= 1L) partes else
     paste0(paste(partes[-length(partes)], collapse = ", "), " y ", partes[[length(partes)]])
-  sprintf("De las %s encuestas efectivas, %s se contabilizan para la meta muestral. %s no se %s a ninguna cuota: %s.",
+  sprintf("De las %s encuestas efectivas, %s forman parte del estudio. %s no se %s a ninguna cuota: %s.",
           .marp_personas(fm$efectivas), .marp_personas(fm$en_meta),
           if (fuera == 1L) "La restante" else sprintf("Las %s restantes", .marp_personas(fuera)),
           if (fuera == 1L) "asigna" else "asignan",

@@ -78,7 +78,7 @@ test_that("lo que no entra en ninguna meta se lee del invariante, con cada celda
 test_that("la nota al pie dice las 106 con su desglose, y cada nivel con SU cifra", {
   nota <- .marp_eje_nota_fuera_de_meta(.marp_fuera_de_meta(.mare_bloque()),
                                        .marp_rotulos_eje(.mare_bloque()$eje))
-  expect_match(nota, "De las 430 encuestas efectivas, 324 se contabilizan para la meta muestral.", fixed = TRUE)
+  expect_match(nota, "De las 430 encuestas efectivas, 324 forman parte del estudio.", fixed = TRUE)
   expect_match(nota, "Las 106 restantes no se asignan a ninguna cuota", fixed = TRUE)
   # Regresión: `.marp_personas()` es escalar y repetía «56» en el nivel 10.
   expect_match(nota, "(nivel 5: 56; nivel 10: 32)", fixed = TRUE)
