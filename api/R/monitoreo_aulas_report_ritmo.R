@@ -210,6 +210,7 @@ monitoreo_aulas_ritmo_de_avance <- function(diario, facultades = NULL) {
 #' @keywords internal
 monitoreo_aulas_plan_del_documento <- function(model, hojas_detalle = 1L,
                                                paginas_detalle = 1L) {
+  if (.marp_eje_no_es_facultad(model)) return(.marp_plan_por_eje(model))
   ritmo <- model$ritmo
   hay_ritmo <- is.list(ritmo) && is.data.frame(ritmo$total) && nrow(ritmo$total) > 0L
   n_paneles <- if (hay_ritmo) length(ritmo$facultades %||% list()) else 0L

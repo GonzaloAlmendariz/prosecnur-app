@@ -122,6 +122,15 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
     corte = .marp_corte_legible(snapshot$synced_at %||% ""),
     nota = ""
   )
+  # Con la cuota por un eje que no es la facultad (ADR 0086), la facultad es el
+  # ÁMBITO del estudio: sin nombre declarado, la portada dice cuál es en vez de
+  # «Monitoreo de cursos-horario». Ver `monitoreo_aulas_report_eje.R`.
+  ambito <- .marp_ambito_del_plan(plan)
+  eje_no_es_facultad <- .marp_eje_no_es_facultad(list(eje = bloque_cuota$eje))
+  if (eje_no_es_facultad && nzchar(ambito) &&
+      identical(portada_defecto$subtitulo, .marp_nombre_del_estudio(list()))) {
+    portada_defecto$subtitulo <- ambito
+  }
 
   list(
     report_kind = "aulas_advance_pdf",
@@ -133,6 +142,13 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
     ritmo = ritmo,
     aulas_planificadas = aulas_plan,
     portada_defecto = portada_defecto,
+    # De qué son las celdas, en qué facultad vive el estudio, lo que no entra en
+    # ninguna meta y cómo se compone lo recogido. Todo LEÍDO del bloque de
+    # cuota; el renderizador despacha por `eje` (HSVG no los consume).
+    eje = bloque_cuota$eje %||% NULL,
+    ambito = ambito,
+    fuera_de_meta = .marp_fuera_de_meta(bloque_cuota),
+    composicion = bloque_cuota$composicion %||% NULL,
     # La tabla traspuesta de «Avance general», la primera de las dos que Gonzalo
     # aprobó del libro. Se pide a la MISMA función que la escribe allí; el PDF
     # decide qué filas muestra, no cómo se calculan.
@@ -227,6 +243,12 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   df <- model$facultades
   if (is.null(df) || !nrow(df)) {
     stop_api(409, "E_AULAS_SIN_CUOTAS", "El modelo no trae facultades que informar.")
+  }
+  # La cuota por un eje que no es la facultad tiene su propio documento; el de
+  # abajo —el de HSVG— queda intacto. Ver `monitoreo_aulas_report_eje.R`.
+  if (.marp_eje_no_es_facultad(model)) {
+    return(.marp_documento_por_eje(model, output_file, periodo = periodo,
+                                   portada = portada, con_portada = con_portada))
   }
 
   pulso_pdf_abrir(output_file, geo = geo)

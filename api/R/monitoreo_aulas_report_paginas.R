@@ -123,6 +123,9 @@
   if (!is.data.frame(general) || !nrow(general)) return(invisible(NULL))
   ind <- names(general)[[1L]]
   fila <- function(rotulo, col) {
+    # Sin la columna —el estudio no declara sexo, y la tabla ya no la reserva—
+    # no hay cifra: NA, no `numeric(0)`, que tumbaba el documento entero.
+    if (!(col %in% names(general))) return(NA_real_)
     i <- which(as.character(general[[ind]]) == rotulo)
     if (!length(i)) return(NA_real_)
     suppressWarnings(as.numeric(general[[col]][[i[[1L]]]]))
@@ -218,7 +221,8 @@
 
 # --- Página del ritmo global -------------------------------------------------
 
-.marp_pagina_ritmo <- function(ritmo, tok, ty, geo, x0, ancho) {
+.marp_pagina_ritmo <- function(ritmo, tok, ty, geo, x0, ancho,
+                               rotulo_diario = "Encuestas efectivas por jornada") {
   serie <- ritmo$total
   # **La sobremuestra NO entra en los gráficos** (Gonzalo, 2026-09-11: «que la
   # sobremuestra que considere para los KPIs y tablas como ahora, pero ya no
@@ -241,7 +245,7 @@
                           acumulado = serie$acumulado, metas = metas,
                           tokens = tok, ty = ty, geo = geo,
                           rotulo_acumulado = "Acumulado",
-                          rotulo_diario = "Encuestas efectivas por jornada")
+                          rotulo_diario = rotulo_diario)
 
 
 
