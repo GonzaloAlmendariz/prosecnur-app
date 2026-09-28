@@ -197,16 +197,20 @@
   }
 
   if (.marp_hay_composicion(model$composicion)) {
-    nueva("Composición de lo recogido", "Referencial: sexo y carrera no son metas del estudio")
+    nueva("Composición de lo recogido")
     .marp_eje_pagina_composicion(model$composicion, df, r, tok, ty, x0, ancho_util)
     pie()
   }
   invisible(output_file)
 }
 
-# La página que responde «¿se llega a la meta?»: la cifra global arriba y, por
-# cada celda, su meta, lo conseguido y lo que falta. Debajo, la regla del
-# ADR 0079 dicha en palabras, y al pie lo que no entra en ninguna meta.
+# La página que responde «¿se llega a la meta?», con la gramática del resumen
+# de HSVG (`.marp_pagina_resumen`): la franja de tarjetas, una barra por celda
+# con su rótulo a la izquierda y su cifra a la derecha, y la tabla traspuesta
+# «Avance general». Sin leyendas grises que narren lo que ya está dibujado
+# (Gonzalo, 2026-09-28: «quita las notas grises que no sirven»). La regla del
+# ADR 0079 no se narra: la columna TOTAL de «Faltantes» es la suma de las de
+# cada celda, y se lee.
 .marp_eje_pagina_avance <- function(model, df, r, tok, ty, x0, ancho) {
   t <- model$total
   fm <- model$fuera_de_meta %||% list()
@@ -221,12 +225,8 @@
                   tokens = tok, ty = ty, tono = tok$navy)
   }
   efectivas <- .marp_num(fm$efectivas, NA_real_)
-  if (is.finite(efectivas) && efectivas > 0) {
-    kpi(3L, "Encuestas efectivas", .marp_personas(efectivas),
-        sprintf("%s cuentan para la meta", .marp_personas(t$conseguidas)))
-  } else {
-    kpi(3L, "Encuestas efectivas", .marp_personas(t$conseguidas), "")
-  }
+  kpi(3L, "Encuestas efectivas",
+      .marp_personas(if (is.finite(efectivas) && efectivas > 0) efectivas else t$conseguidas), "")
   n_celdas <- nrow(df)
   abiertas <- as.integer(.marp_num(t$facultades_abiertas, 0))
   kpi(4L, sprintf("%s que llegaron a la meta", r$Plural),
@@ -234,78 +234,98 @@
   kpi(5L, "Faltan", .marp_personas(t$faltan, faltante = TRUE),
       if (abiertas == 1L) sprintf("en 1 %s", r$singular) else sprintf("en %d %s", abiertas, r$plural))
 
-  # --- Meta por celda: una barra por celda, todas con la misma vara ---------
-  y_sec <- 0.598
-  pulso_pdf_rotulo_seccion(x0, y_sec, sprintf("Meta por %s", r$singular), tokens = tok, ty = ty,
-                           ancho = 0.052)
-  nota_fuera <- .marp_eje_nota_fuera_de_meta(fm, r)
-  lineas_nota <- if (nzchar(nota_fuera)) strwrap(nota_fuera, width = pulso_pdf_chars(ancho, factor = 215)) else character(0)
-  suelo_filas <- .MARP_MARCO$suelo + 0.060 + length(lineas_nota) * 0.024
-  techo_filas <- y_sec - 0.022
-  alto <- min(0.085, (techo_filas - suelo_filas) / max(1L, n_celdas))
-
   num <- function(k) suppressWarnings(as.numeric(df[[k]]))
   meta <- num("Muestra"); ef <- num("Efectivas"); falta <- num("Faltantes muestra")
-  escala <- max(c(meta, ef, 1), na.rm = TRUE)
-  x_bar <- x0 + 0.130
-  w_bar <- 0.480
-  x_num <- x0 + ancho
   rot <- .marp_rotulo_celda(df[["Facultad"]], model$eje)
 
-  y <- techo_filas
+  # Una barra por celda, como Hombres/Mujeres en el resumen de HSVG.
+  y_bar <- 0.586
+  hueco_bar <- 0.040
+  w_bar <- (ancho - hueco_bar * (n_celdas - 1L)) / max(1L, n_celdas)
   for (i in seq_len(n_celdas)) {
-    yc <- y - alto / 2
-    grid::grid.text(rot[[i]], x = x0, y = yc, just = c("left", "centre"),
+    x <- x0 + (i - 1L) * (w_bar + hueco_bar)
+    avance <- if (is.finite(meta[[i]]) && meta[[i]] > 0) ef[[i]] / meta[[i]] else NA_real_
+    grid::grid.text(rot[[i]], x = x, y = y_bar + 0.020, just = c("left", "bottom"),
                     gp = grid::gpar(col = tok$ink, fontsize = ty$body, fontface = "bold"))
-    h_bar <- min(0.026, alto * 0.42)
-    m <- if (is.finite(meta[[i]])) meta[[i]] else 0
-    e <- if (is.finite(ef[[i]])) ef[[i]] else 0
-    # El contorno es la meta; el relleno, lo conseguido hasta la meta; lo que
-    # pasa de la meta se pinta aparte y más claro: existe, pero no cubre a
-    # nadie más (ADR 0079).
-    grid::grid.rect(x = x_bar, y = yc, width = w_bar * m / escala, height = h_bar,
-                    just = c("left", "centre"),
-                    gp = grid::gpar(fill = tok$tbl_header, col = tok$line, lwd = 0.6))
-    grid::grid.rect(x = x_bar, y = yc, width = w_bar * min(e, m) / escala, height = h_bar,
-                    just = c("left", "centre"), gp = grid::gpar(fill = tok$navy, col = NA))
-    if (e > m && m > 0) {
-      grid::grid.rect(x = x_bar + w_bar * m / escala, y = yc, width = w_bar * (e - m) / escala,
-                      height = h_bar, just = c("left", "centre"),
-                      gp = grid::gpar(fill = tok$success, col = NA))
-    }
-    avance <- if (m > 0) e / m else NA_real_
-    grid::grid.text(sprintf("%s de %s", .marp_personas(e), .marp_personas(m)),
-                    x = x_num - 0.215, y = yc, just = c("right", "centre"),
-                    gp = grid::gpar(col = tok$ink, fontsize = ty$body))
-    grid::grid.text(.marp_pct(avance), x = x_num - 0.120, y = yc, just = c("right", "centre"),
-                    gp = grid::gpar(col = tok$navy, fontsize = ty$body, fontface = "bold"))
-    f <- if (is.finite(falta[[i]])) falta[[i]] else max(0, m - e)
-    grid::grid.text(if (f > 0) sprintf("faltan %s", .marp_personas(f, faltante = TRUE)) else "meta cumplida",
-                    x = x_num, y = yc, just = c("right", "centre"),
-                    gp = grid::gpar(col = if (f > 0) tok$soft else tok$success, fontsize = ty$body))
-    y <- y - alto
-    if (i < n_celdas) pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = pulso_pdf_pesos()$fila)
+    grid::grid.text(sprintf("%s  ·  %s de %s", .marp_pct(avance), .marp_personas(ef[[i]]),
+                            .marp_personas(meta[[i]])),
+                    x = x + w_bar, y = y_bar + 0.020, just = c("right", "bottom"),
+                    gp = grid::gpar(col = tok$soft, fontsize = ty$body))
+    pulso_pdf_medidor(x, y_bar, w_bar, 0.014, .marp_num(avance, 0), tokens = tok,
+                      tono = tok$navy, fondo = tok$tbl_header)
   }
 
-  # La regla del ADR 0079, dicha: el total de lo que falta es una SUMA de
-  # faltantes, no la meta menos lo conseguido.
-  grid::grid.text(
-    sprintf("Faltan %s en total: es la suma de lo que falta en cada %s. Lo que sobra en un %s no cubre lo que falta en otro.",
-            .marp_personas(t$faltan, faltante = TRUE), r$singular, r$singular),
-    x = x0, y = y - 0.030, just = c("left", "centre"),
-    gp = grid::gpar(col = tok$soft, fontsize = ty$caption))
+  # «Avance general», traspuesta: una fila por concepto, una columna por celda.
+  tabla <- data.frame(
+    Indicadores = c("Efectivas", "Muestra", "Avance muestra", "Faltantes para la muestra"),
+    Total = c(.marp_num(t$conseguidas), .marp_num(t$muestra), .marp_num(t$avance), .marp_num(t$faltan)),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  for (i in seq_len(n_celdas)) {
+    tabla[[rot[[i]]]] <- c(ef[[i]], meta[[i]],
+                           if (is.finite(meta[[i]]) && meta[[i]] > 0) ef[[i]] / meta[[i]] else NA_real_,
+                           falta[[i]])
+  }
+  lineas_nota <- .marp_eje_lineas_nota(.marp_eje_nota_fuera_de_meta(fm, r), ancho)
+  .marp_eje_tabla_general(tabla, tok, ty, x0, ancho, y_top = 0.500,
+                          suelo = .MARP_MARCO$suelo + .marp_eje_alto_nota(lineas_nota))
+  .marp_eje_dibujar_nota(lineas_nota, tok, ty, x0, ancho)
+  invisible(NULL)
+}
 
-  # Nota al pie: lo que no entra en ninguna meta (decisión de Gonzalo,
-  # 2026-09-28). Dicho con su desglose, no escondido y no en cero.
-  if (length(lineas_nota)) {
-    pulso_pdf_hairline(x0, x0 + ancho, .MARP_MARCO$suelo + 0.012 + length(lineas_nota) * 0.024,
-                       tokens = tok, lwd = pulso_pdf_pesos()$fila)
-    for (k in seq_along(lineas_nota)) {
-      grid::grid.text(lineas_nota[[k]], x = x0,
-                      y = .MARP_MARCO$suelo + 0.004 + (length(lineas_nota) - k) * 0.024,
-                      just = c("left", "bottom"),
-                      gp = grid::gpar(col = tok$faint, fontsize = ty$caption))
+# La tabla traspuesta con N columnas. Misma factura que `.marp_tabla_general`
+# —filetes sin relleno, cabeceras en versalitas, la fila de proporción en
+# negrita—, que tiene sus tres columnas fijas (Total, Hombres, Mujeres).
+.marp_eje_tabla_general <- function(tabla, tok, ty, x0, ancho, y_top, suelo) {
+  pesos <- pulso_pdf_pesos()
+  pulso_pdf_rotulo_seccion(x0, y_top + 0.044, "Avance general", tokens = tok, ty = ty,
+                           ancho = 0.052)
+  n_val <- ncol(tabla) - 1L
+  w_rot <- 0.330
+  w_col <- (ancho - w_rot) / n_val
+  x_der <- x0 + w_rot + seq_len(n_val) * w_col
+  alto <- .marp_reparto_de_filas(nrow(tabla), arriba = y_top - 0.030, abajo = suelo,
+                                 alto_max = 0.040, alto_min = 0.028)$alto
+  pulso_pdf_hairline(x0, x0 + ancho, y_top, tokens = tok, lwd = pesos$bloque)
+  for (k in seq_len(n_val)) {
+    grid::grid.text(pulso_pdf_versalitas(names(tabla)[[k + 1L]]), x = x_der[[k]],
+                    y = y_top - 0.022, just = c("right", "bottom"),
+                    gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
+  }
+  pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.030, tokens = tok, lwd = pesos$columna)
+  y <- y_top - 0.030 - alto
+  for (i in seq_len(nrow(tabla))) {
+    rotulo <- tabla[[1L]][[i]]
+    destacada <- grepl("^Avance", rotulo)
+    grid::grid.text(rotulo, x = x0, y = y + alto / 2, just = c("left", "centre"),
+                    gp = grid::gpar(col = tok$ink, fontsize = ty$body,
+                                    fontface = if (destacada) "bold" else "plain"))
+    for (k in seq_len(n_val)) {
+      v <- tabla[[k + 1L]][[i]]
+      txt <- if (destacada) .marp_pct(v) else .marp_personas(v, faltante = grepl("^Faltantes", rotulo))
+      grid::grid.text(txt, x = x_der[[k]], y = y + alto / 2, just = c("right", "centre"),
+                      gp = grid::gpar(col = tok$ink, fontsize = ty$body,
+                                      fontface = if (destacada) "bold" else "plain"))
     }
+    pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = pesos$fila)
+    y <- y - alto
+  }
+  invisible(NULL)
+}
+
+# La nota al pie de lo que no entra en ninguna meta: la ÚNICA nota del
+# documento, porque es la única que dice algo que no está dibujado (decisión de
+# Gonzalo, 2026-09-28).
+.marp_eje_lineas_nota <- function(nota, ancho) {
+  if (!nzchar(nota)) character(0) else strwrap(nota, width = pulso_pdf_chars(ancho, factor = 215))
+}
+.marp_eje_alto_nota <- function(lineas) if (length(lineas)) 0.020 + length(lineas) * 0.022 else 0
+.marp_eje_dibujar_nota <- function(lineas, tok, ty, x0, ancho) {
+  for (k in seq_along(lineas)) {
+    grid::grid.text(lineas[[k]], x = x0,
+                    y = .MARP_MARCO$suelo + 0.002 + (length(lineas) - k) * 0.022,
+                    just = c("left", "bottom"),
+                    gp = grid::gpar(col = tok$soft, fontsize = ty$caption))
   }
   invisible(NULL)
 }
@@ -364,9 +384,9 @@
   if (!length(dims)) return(invisible(NULL))
   n_filas <- sum(vapply(dims, function(d) length(d$filas), integer(1)))
   techo <- .MARP_MARCO$techo - 0.006
-  suelo <- .MARP_MARCO$suelo + .MARP_MARCO$leyenda + 0.050
+  suelo <- .MARP_MARCO$suelo
   alto_sec <- 0.050
-  alto <- min(0.062, (techo - suelo - alto_sec * length(dims) - 0.020 * (length(dims) - 1L)) / max(1L, n_filas))
+  alto <- min(0.070, (techo - suelo - alto_sec * length(dims) - 0.020 * (length(dims) - 1L)) / max(1L, n_filas))
   x_bar <- x0 + 0.290
   w_bar <- 0.370
   x_num <- x0 + ancho
@@ -417,19 +437,5 @@
     }
   }
 
-  celdas <- trimws(as.character(df[["Facultad"]]))
-  alcance <- if (length(celdas) > 1L && all(grepl("^[0-9]+$", celdas))) {
-    sprintf("de los %s %s a %s", r$plural, celdas[[1L]], celdas[[length(celdas)]])
-  } else ""
-  base <- sprintf("Base: %s encuestas que cuentan para la meta, frente a %s estudiantes%s.",
-                  .marp_personas(comp$personas),
-                  .marp_personas(dims[[1L]]$poblacion_total),
-                  if (nzchar(alcance)) paste0(" ", alcance) else "")
-  grid::grid.text(base, x = x0, y = .MARP_MARCO$suelo + .MARP_MARCO$leyenda + 0.018,
-                  just = c("left", "bottom"), gp = grid::gpar(col = tok$soft, fontsize = ty$caption))
-  pulso_pdf_leyenda(x0, .MARP_MARCO$suelo + 0.004, list(
-    list(texto = "Población del estudio", color = tok$line, forma = "barra"),
-    list(texto = "Encuestas que cuentan para la meta", color = tok$navy, forma = "barra")
-  ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho, fontsize = ty$body)
   invisible(NULL)
 }
