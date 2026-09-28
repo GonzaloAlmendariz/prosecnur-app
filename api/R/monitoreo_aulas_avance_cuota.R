@@ -610,8 +610,14 @@
     # calculan aquí —en el MOTOR— porque el payload del estado recorta
     # `quotas$category_profiles` y un panel que la lea desde React vería
     # `undefined` en un estudio real.
+    # **A quien entró en una CELDA del diseño, no a quien tiene eje.** `cuenta`
+    # incluye a los de un valor que el diseño no mide —niveles 5 y 10 en CCSS
+    # Perfil 2026-II, la bolsa `sin_celda`—, y el denominador es la población de
+    # las celdas: describía 412 personas contra 800 que no las contienen.
+    # Gonzalo, 2026-09-28: la composición es la de las 324 que cuentan.
     composicion = monitoreo_aulas_composicion_referencial(
-      cfg, resueltas = attr(eje_atr, "resueltas"), cuenta = eje_atr$cuenta,
+      cfg, resueltas = attr(eje_atr, "resueltas"),
+      cuenta = eje_atr$cuenta & (eje_atr$clave %in% claves_con_celda),
       cruce_configurado = identical(.monitoreo_scalar(eje$atribucion, "aula"), "persona") &&
         !nzchar(.maea_aviso_de_config(padron, cfg))),
     # **El cruce por código, repartido por carrera.** Se calcula aquí porque

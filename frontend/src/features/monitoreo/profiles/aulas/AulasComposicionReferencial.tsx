@@ -97,7 +97,7 @@ export function AulasComposicionReferencial({ avanceCuota }: {
           Queda lo único que la pantalla no dice en otro sitio: sobre cuánta
           gente está medido todo esto. */}
       <p className="aulas-comp-leyenda">
-        {fmt(vista.personas)} {vista.personas === 1 ? "persona" : "personas"} resueltas contra el padrón
+        {fmt(vista.personas)} {vista.personas === 1 ? "persona que cuenta" : "personas que cuentan"} para la meta
       </p>
       <div className="aulas-comp-dimensiones">
         {vista.dimensiones.map((d) => (
