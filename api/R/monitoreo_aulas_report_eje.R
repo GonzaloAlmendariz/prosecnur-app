@@ -115,7 +115,7 @@
   secciones <- list(
     list(paste("Avance por", r$singular), 1L),
     list("Ritmo del campo", if (hay_ritmo) 1L else 0L),
-    list("Composición de lo recogido", if (.marp_hay_composicion(model$composicion)) 1L else 0L)
+    list("Composición de lo obtenido", if (.marp_hay_composicion(model$composicion)) 1L else 0L)
   )
   secciones <- Filter(function(s) s[[2L]] > 0L, secciones)
   data.frame(
@@ -197,7 +197,7 @@
   }
 
   if (.marp_hay_composicion(model$composicion)) {
-    nueva("Composición de lo recogido")
+    nueva("Composición de lo obtenido")
     .marp_eje_pagina_composicion(model$composicion, df, r, tok, ty, x0, ancho_util)
     pie()
   }
@@ -333,6 +333,8 @@
 # «De las 430 encuestas efectivas, 324 cuentan para la meta. Las 106 restantes
 # no entran en ninguna: …». Cada bolsa sólo aparece si tiene algo.
 .marp_eje_nota_fuera_de_meta <- function(fm, r) {
+  # Registro formal: es un entregable de investigación que lee el cliente
+  # (Gonzalo, 2026-09-28: «más formal y académica»).
   fuera <- as.integer(.marp_num(fm$fuera, 0))
   if (fuera <= 0L) return("")
   n <- function(x) as.integer(.marp_num(x, 0))
@@ -346,38 +348,39 @@
       sprintf(" (%s)", paste(sprintf("%s: %s", tolower(.marp_rotulo_celda(cf$valor, list(etiqueta = r$Singular))),
                                      n_txt), collapse = "; "))
     } else ""
-    partes <- c(partes, sprintf("%s %s de %s que el diseño no mide%s", .marp_personas(n(fm$sin_celda)),
-                                if (n(fm$sin_celda) == 1L) "es" else "son", r$plural, detalle))
+    partes <- c(partes, sprintf("%s %s a estudiantes de %s no contemplados en el diseño muestral%s",
+                                .marp_personas(n(fm$sin_celda)),
+                                if (n(fm$sin_celda) == 1L) "corresponde" else "corresponden",
+                                r$plural, detalle))
   }
   if (n(fm$sin_eje) > 0L) {
-    partes <- c(partes, sprintf("%s %s %s identificado", .marp_personas(n(fm$sin_eje)),
-                                if (n(fm$sin_eje) == 1L) "no tiene" else "no tienen", r$singular))
+    partes <- c(partes, sprintf("%s a estudiantes cuyo %s no pudo identificarse en el padrón",
+                                .marp_personas(n(fm$sin_eje)), r$singular))
   }
   if (n(fm$fuera_universo) > 0L) {
-    partes <- c(partes, sprintf("%s %s de fuera de la población del estudio",
-                                .marp_personas(n(fm$fuera_universo)),
-                                if (n(fm$fuera_universo) == 1L) "es" else "son"))
+    partes <- c(partes, sprintf("%s a personas ajenas a la población objetivo",
+                                .marp_personas(n(fm$fuera_universo))))
   }
   if (n(fm$huerfanas) > 0L) {
-    partes <- c(partes, sprintf("%s no se %s asociar a un aula del estudio",
+    partes <- c(partes, sprintf("%s a %s que no pudieron asociarse a un aula del estudio",
                                 .marp_personas(n(fm$huerfanas)),
-                                if (n(fm$huerfanas) == 1L) "pudo" else "pudieron"))
+                                if (n(fm$huerfanas) == 1L) "una respuesta" else "respuestas"))
   }
   if (n(fm$duplicadas) > 0L) {
-    partes <- c(partes, if (n(fm$duplicadas) == 1L) "1 es de una persona que respondió dos veces"
-                else sprintf("%s son respuestas repetidas de personas que ya habían respondido",
+    partes <- c(partes, if (n(fm$duplicadas) == 1L) "1 a una respuesta duplicada de un mismo estudiante"
+                else sprintf("%s a respuestas duplicadas de estudiantes que ya habían respondido",
                              .marp_personas(n(fm$duplicadas))))
   }
   lista <- if (length(partes) <= 1L) partes else
     paste0(paste(partes[-length(partes)], collapse = ", "), " y ", partes[[length(partes)]])
-  sprintf("De las %s encuestas efectivas, %s cuentan para la meta. %s no %s en ninguna: %s.",
+  sprintf("De las %s encuestas efectivas, %s se contabilizan para la meta muestral. %s no se %s a ninguna cuota: %s.",
           .marp_personas(fm$efectivas), .marp_personas(fm$en_meta),
           if (fuera == 1L) "La restante" else sprintf("Las %s restantes", .marp_personas(fuera)),
-          if (fuera == 1L) "entra" else "entran",
+          if (fuera == 1L) "asigna" else "asignan",
           lista)
 }
 
-# Composición de lo recogido contra la población, por sexo y por carrera. Sin
+# Composición de lo obtenido contra la población, por sexo y por carrera. Sin
 # umbrales ni avisos de desvío: no son cuota (decisión 2 del eje declarable).
 .marp_eje_pagina_composicion <- function(comp, df, r, tok, ty, x0, ancho) {
   dims <- Filter(function(d) length(d$filas %||% list()) > 0L, comp$dimensiones %||% list())
@@ -410,7 +413,7 @@
                              ancho = 0.052)
     grid::grid.text("POBLACIÓN", x = x_num - 0.110, y = y - 0.024, just = c("right", "bottom"),
                     gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
-    grid::grid.text("RECOGIDO", x = x_num, y = y - 0.024, just = c("right", "bottom"),
+    grid::grid.text("OBTENIDO", x = x_num, y = y - 0.024, just = c("right", "bottom"),
                     gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
     y <- y - alto_sec
     pcts <- unlist(lapply(d$filas, function(f) c(.marp_num(f$poblacion_pct, 0), .marp_num(f$obtenidas_pct, 0))))
