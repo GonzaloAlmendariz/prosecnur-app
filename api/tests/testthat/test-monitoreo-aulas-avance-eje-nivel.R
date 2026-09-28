@@ -416,6 +416,15 @@ test_that("esa respuesta no entra al % global pero SI al invariante, por su bols
   expect_identical(t$invariante$partes$sin_celda, 1L)
 })
 
+test_that("la composicion describe a quien entro en una celda, no a quien tiene eje", {
+  # CCSS Perfil 2026-II, 2026-09-28: la composición describía 412 personas
+  # —incluidas las 88 de niveles 5 y 10— contra una población de 800 de los
+  # niveles 6 a 9 que no las contiene. Gonzalo: se describe a las que cuentan.
+  av <- .aen_nivel_fuera()
+  expect_identical(av$composicion$personas, av$total$invariante$partes$en_celdas)
+  expect_identical(av$composicion$personas, 3L)
+})
+
 test_that("sin niveles fuera del diseno la bolsa es un cero declarado", {
   # El cero se publica: su ausencia obligaría a adivinar si la bolsa no existe
   # o está vacía. Y es lo que protege a HSVG, cuyo eje es la facultad.
