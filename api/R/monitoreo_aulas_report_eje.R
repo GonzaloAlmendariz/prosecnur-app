@@ -247,8 +247,8 @@
     avance <- if (is.finite(meta[[i]]) && meta[[i]] > 0) ef[[i]] / meta[[i]] else NA_real_
     grid::grid.text(rot[[i]], x = x, y = y_bar + 0.020, just = c("left", "bottom"),
                     gp = grid::gpar(col = tok$ink, fontsize = ty$body, fontface = "bold"))
-    grid::grid.text(sprintf("%s  ·  %s de %s", .marp_pct(avance), .marp_personas(ef[[i]]),
-                            .marp_personas(meta[[i]])),
+    grid::grid.text(sprintf("%s de %s (%s)", .marp_personas(ef[[i]]), .marp_personas(meta[[i]]),
+                            .marp_pct(avance)),
                     x = x + w_bar, y = y_bar + 0.020, just = c("right", "bottom"),
                     gp = grid::gpar(col = tok$soft, fontsize = ty$body))
     pulso_pdf_medidor(x, y_bar, w_bar, 0.014, .marp_num(avance, 0), tokens = tok,
@@ -429,10 +429,10 @@
       grid::grid.rect(x = x_bar, y = yc - h_bar * 0.6, width = w_bar * po / escala, height = h_bar,
                       just = c("left", "centre"), gp = grid::gpar(fill = tok$navy, col = NA))
       pct_txt <- function(p) sprintf("%.1f %%", p)
-      grid::grid.text(sprintf("%s  ·  %s", pct_txt(pp), .marp_personas(f$poblacion)),
+      grid::grid.text(sprintf("%s (%s)", .marp_personas(f$poblacion), pct_txt(pp)),
                       x = x_num - 0.110, y = yc, just = c("right", "centre"),
                       gp = grid::gpar(col = tok$soft, fontsize = ty$body))
-      grid::grid.text(sprintf("%s  ·  %s", pct_txt(po), .marp_personas(f$obtenidas)),
+      grid::grid.text(sprintf("%s (%s)", .marp_personas(f$obtenidas), pct_txt(po)),
                       x = x_num, y = yc, just = c("right", "centre"),
                       gp = grid::gpar(col = tok$navy, fontsize = ty$body, fontface = "bold"))
       y <- y - alto
