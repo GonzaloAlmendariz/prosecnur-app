@@ -171,7 +171,7 @@
     grid::grid.newpage()
     # La facultad ya es el subtítulo por defecto: repetirla encima es un eco.
     ante_portada <- if (identical(port$subtitulo, antetitulo)) "" else antetitulo
-    pulso_pdf_portada(port, tokens = tok, ty = ty, geo = geo,
+    pulso_pdf_portada(port, tokens = tok, ty = ty, geo = geo, reparto = "contenido",
                       antetitulo = ante_portada, destacados = list(
       list(rotulo = "Avance de la muestra", valor = .marp_pct(t$avance)),
       # «Efectivas» son las que aceptaron (430); éstas además forman parte del
@@ -226,9 +226,9 @@
     pulso_pdf_kpi(x_slot(i), y_kpi, w_slot, h_kpi, rotulo, valor, nota,
                   tokens = tok, ty = ty, tono = tok$navy)
   }
-  efectivas <- .marp_num(fm$efectivas, NA_real_)
-  kpi(3L, "Encuestas efectivas",
-      .marp_personas(if (is.finite(efectivas) && efectivas > 0) efectivas else t$conseguidas), "")
+  # Las OBTENIDAS —las efectivas que forman parte del estudio—, no las 430
+  # efectivas: ésas sólo se nombran en la nota al pie (Gonzalo, 2026-09-28).
+  kpi(3L, "Encuestas obtenidas", .marp_personas(t$conseguidas), "")
   n_celdas <- nrow(df)
   abiertas <- as.integer(.marp_num(t$facultades_abiertas, 0))
   kpi(4L, sprintf("%s que llegaron a la meta", r$Plural),
