@@ -174,7 +174,7 @@
     pulso_pdf_portada(port, tokens = tok, ty = ty, geo = geo,
                       antetitulo = ante_portada, destacados = list(
       list(rotulo = "Avance de la muestra", valor = .marp_pct(t$avance)),
-      list(rotulo = "Cuentan para la meta", valor = .marp_personas(t$conseguidas)),
+      list(rotulo = "Encuestas efectivas", valor = .marp_personas(t$conseguidas)),
       list(rotulo = "Faltan", valor = .marp_personas(t$faltan, faltante = TRUE))
     ))
     if (!nzchar(periodo) && nzchar(port$periodo)) periodo <- port$periodo
