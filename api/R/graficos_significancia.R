@@ -210,7 +210,7 @@
   diseno <- as.character(diseno %||% "independiente")[1]
   if (identical(diseno, "cluster")) {
     return(paste0(
-      "No se asignan letras: el diseno tiene grupos repeat y una misma persona ",
+      "No se asignan letras: el diseño tiene grupos repeat y una misma persona ",
       "aporta varias filas, de modo que las observaciones no son independientes."
     ))
   }
@@ -319,8 +319,8 @@
   if (!is.null(motivo)) return(envolver(motivo))
   if (!isTRUE(hay_letras)) {
     return(envolver(paste0(
-      "Ninguna diferencia entre grupos resulto significativa ",
-      "(prueba z, correccion de Bonferroni, alpha = ", alpha, ")."
+      "Ninguna diferencia entre grupos resultó significativa ",
+      "(prueba z, corrección de Bonferroni, α = ", alpha, ")."
     )))
   }
   mapa <- vapply(
@@ -330,7 +330,7 @@
   )
   envolver(paste0(
     "Las letras marcan al grupo superado con diferencia significativa ",
-    "(prueba z, correccion de Bonferroni, alpha = ", alpha, ").\n",
+    "(prueba z, corrección de Bonferroni, α = ", alpha, ").\n",
     paste(mapa, collapse = "  |  ")
   ))
 }
