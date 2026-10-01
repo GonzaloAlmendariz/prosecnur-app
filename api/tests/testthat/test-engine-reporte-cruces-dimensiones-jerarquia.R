@@ -292,3 +292,66 @@ test_that("reporte_cruces clasico renombra Media total a Promedio general", {
   expect_true(grepl("Promedio general", txt, fixed = TRUE))
   expect_false(grepl("Media total", txt, fixed = TRUE))
 })
+
+test_that("las notas de significancia de medias salen con tildes y sin punto medio", {
+  fx <- make_dimensiones_jerarquia_fixture()
+  notas_de <- function(path) {
+    out <- character(0)
+    for (sh in openxlsx::getSheetNames(path)) {
+      d <- openxlsx::read.xlsx(path, sheet = sh, colNames = FALSE, skipEmptyRows = FALSE)
+      v <- as.character(unlist(d, use.names = FALSE))
+      out <- c(out, v[!is.na(v) & grepl("Las letras indican", v, fixed = TRUE)])
+    }
+    out
+  }
+
+  # Las dos ramas que escriben la nota de medias: indicadores en filas
+  # (jerárquica) y dimensión en filas (clásica).
+  path_ind <- tempfile(fileext = ".xlsx")
+  path_dim <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(c(path_ind, path_dim)), add = TRUE)
+
+  tablas_ind <- prosecnurapp::tablas_dimensiones_jerarquicas(
+    data = fx$data,
+    indices = c("idx_indice_general", "idx_indice_pertinencia", "idx_indice_eficiencia"),
+    hoja_indicadores = "Indicadores",
+    hoja_detalle = "Conductores",
+    incluir_detalle = TRUE,
+    fila = "servicio",
+    cruzar_dim = c("p2_recod", "p1_recod", "distrito", "p11"),
+    incluir_total = TRUE,
+    brecha_cols = TRUE,
+    orientacion = "filas_indicadores"
+  )
+  prosecnurapp::reporte_cruces(
+    data = fx$data, instrumento = fx$instrumento, SECCIONES = NULL,
+    cruces = "servicio", modo = "dimensiones", tablas = tablas_ind,
+    filas_dimensiones = "servicio",
+    cruzar_dim = c("p2_recod", "p1_recod", "distrito", "p11"),
+    incluir_total = TRUE, digits = 0, show_sig = TRUE, brecha_cols = TRUE,
+    path_xlsx = path_ind
+  )
+
+  tablas_dim <- list(list(
+    titulo = "Resumen clasico", indicadores = c("sub_trato", "sub_recomendacion"),
+    fila = "servicio", cruzar_dim = c("p2_recod"), hoja = "Clasico",
+    orientacion = "filas_dimension", incluir_total = TRUE, brecha_cols = TRUE
+  ))
+  prosecnurapp::reporte_cruces(
+    data = fx$data, instrumento = fx$instrumento, SECCIONES = NULL,
+    cruces = "servicio", modo = "dimensiones", tablas = tablas_dim,
+    filas_dimensiones = "servicio", cruzar_dim = c("p2_recod"),
+    incluir_total = TRUE, digits = 0, show_sig = TRUE, brecha_cols = TRUE,
+    path_xlsx = path_dim
+  )
+
+  notas_ind <- notas_de(path_ind)
+  notas_dim <- notas_de(path_dim)
+  expect_gt(length(notas_ind), 0L)
+  expect_gt(length(notas_dim), 0L)
+
+  notas <- c(notas_ind, notas_dim)
+  expect_true(all(grepl("según pruebas t de Welch con corrección de Bonferroni (α = ", notas, fixed = TRUE)))
+  expect_false(any(grepl("·", notas, fixed = TRUE)))
+  expect_false(any(grepl("\\b(segun|correccion|multiples|categoria|proporcion)\\b|alpha =", notas, perl = TRUE)))
+})
