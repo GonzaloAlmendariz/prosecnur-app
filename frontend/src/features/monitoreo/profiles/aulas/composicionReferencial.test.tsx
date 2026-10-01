@@ -210,3 +210,70 @@ describe("el panel llega a la pestaña que lo pinta", () => {
     expect(html).toContain("63.8 %");
   });
 });
+
+/**
+ * **La otra mitad del panel: cuando falta la POBLACIÓN.**
+ *
+ * El módulo cuidaba la ausencia de lo obtenido con dos causas distintas
+ * (`sin_padron`, `sin_cruce`) y daba por segura la de la población. No lo es:
+ * el motor la devuelve vacía cuando no la puede leer de la config, y entonces
+ * el panel escribía «58 de 0 de la población» con un carril rotulado «todavía
+ * nada». Visto en el PDF a cliente de CCSS Perfil 2026-II el 2026-10-01, donde
+ * las ocho categorías salieron a «0 (0,0 %)».
+ */
+const SIN_POBLACION = {
+  ...COMPOSICION,
+  dimensiones: {
+    sexo: {
+      dimension: "sexo", etiqueta: "Sexo", poblacion_total: 0, obtenidas_total: 58,
+      filas: [
+        { categoria: "F", poblacion: 0, poblacion_pct: null, obtenidas: 37, obtenidas_pct: 63.8 },
+        { categoria: "M", poblacion: 0, poblacion_pct: null, obtenidas: 21, obtenidas_pct: 36.2 },
+      ],
+    },
+  },
+};
+
+describe("sin población declarada: se dice, no se escribe un cero", () => {
+  it("el view-model marca la dimensión y no inventa un total", () => {
+    const v = composicionReferencial(bloque(SIN_POBLACION));
+    // El panel NO se vacía: lo recogido sigue siendo informativo aunque falte
+    // el marco con el que compararlo.
+    expect(v.vacio).toBeNull();
+    expect(v.dimensiones[0]?.poblacionDeclarada).toBe(false);
+    expect(v.dimensiones[0]?.obtenidasTotal).toBe(58);
+  });
+
+  it("con población declarada la marca sigue en pie", () => {
+    const v = composicionReferencial(bloque(COMPOSICION));
+    expect(v.dimensiones.every((d) => d.poblacionDeclarada)).toBe(true);
+  });
+
+  it("el encabezado no dice «de 0» y manda a mirar el proyecto", () => {
+    const html = renderToStaticMarkup(
+      <AulasComposicionReferencial avanceCuota={bloque(SIN_POBLACION)} />,
+    );
+    expect(html).not.toContain("de 0 de la población");
+    expect(html).toContain("Sin población declarada en el proyecto");
+  });
+
+  it("el carril de la población no pide esperar algo que no va a llegar", () => {
+    const html = renderToStaticMarkup(
+      <AulasComposicionReferencial avanceCuota={bloque(SIN_POBLACION)} />,
+    );
+    expect(html).toContain("sin población declarada");
+    // «todavía nada» es del carril de lo recogido, que aquí SÍ tiene cifras.
+    expect(html).not.toContain("todavía nada");
+    // Y quien no ve la barra oye la causa, no seis «sin porcentaje».
+    expect(html).toContain("el proyecto no la declara");
+    expect(html).not.toContain("sin porcentaje");
+  });
+
+  it("con población, el encabezado conserva sus dos cifras", () => {
+    const html = renderToStaticMarkup(
+      <AulasComposicionReferencial avanceCuota={bloque(COMPOSICION)} />,
+    );
+    expect(html).toContain("58 de 800 de la población");
+    expect(html).not.toContain("Sin población declarada");
+  });
+});

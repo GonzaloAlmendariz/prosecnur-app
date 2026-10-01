@@ -104,8 +104,13 @@ export function AulasComposicionReferencial({ avanceCuota }: {
           <section className="aulas-comp-dimension" key={d.clave}>
             <div className="aulas-comp-titulo">
               <h4>{d.etiqueta}</h4>
+              {/* **Sin población declarada NO se escribe «de 0».** Un cero ahí
+                  se lee como una población medida que resultó vacía, y lo que
+                  pasa es que el proyecto no la trae. Se dice dónde mirar. */}
               <span>
-                {fmt(d.obtenidasTotal)} de {fmt(d.poblacionTotal)} de la población
+                {d.poblacionDeclarada
+                  ? `${fmt(d.obtenidasTotal)} de ${fmt(d.poblacionTotal)} de la población`
+                  : "Sin población declarada en el proyecto"}
               </span>
             </div>
             {(() => {
@@ -132,15 +137,28 @@ export function AulasComposicionReferencial({ avanceCuota }: {
                 return (
                   <div className="aulas-comp-pila" role="img"
                     aria-label={`${cual === "obtenidas" ? "Recogido hasta hoy" : "Población del estudio"}: ` +
-                      d.filas.map((f) => {
-                        const pct = cual === "obtenidas" ? f.obtenidasPct : f.poblacionPct;
-                        return `${f.etiqueta} ${pct == null ? "sin porcentaje" : pctPerfil(pct)}`;
-                      }).join(", ")}>
+                      (cual === "poblacion" && !d.poblacionDeclarada
+                        // Quien no ve la barra sólo tiene esta frase: si enumera
+                        // las categorías «sin porcentaje» una por una, suena a
+                        // seis medidas fallidas en vez de a un dato que falta.
+                        ? "el proyecto no la declara"
+                        : d.filas.map((f) => {
+                          const pct = cual === "obtenidas" ? f.obtenidasPct : f.poblacionPct;
+                          return `${f.etiqueta} ${pct == null ? "sin porcentaje" : pctPerfil(pct)}`;
+                        }).join(", "))}>
                     {/* Sin nada recogido la barra no se dibuja vacía con un
                         borde: se dice. Un carril gris al lado de otro lleno se
                         lee como «van iguales» de reojo. */}
+                    {/* **«todavía nada» es del carril de lo RECOGIDO.** En el de
+                        la población decía que está por llegar algo que no va a
+                        llegar: no se midió poco, no se declaró. Dos ausencias
+                        distintas se arreglan distinto. */}
                     {suma <= 0 ? (
-                      <span className="aulas-comp-pila-vacia">todavía nada</span>
+                      <span className="aulas-comp-pila-vacia">
+                        {cual === "poblacion" && !d.poblacionDeclarada
+                          ? "sin población declarada"
+                          : "todavía nada"}
+                      </span>
                     ) : (
                       <>
                         {d.filas.map((f) => {

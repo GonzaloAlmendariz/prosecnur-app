@@ -37,6 +37,18 @@ export type DimensionDeComposicion = {
   etiqueta: string;
   poblacionTotal: number;
   obtenidasTotal: number;
+  /**
+   * **Si el proyecto declara la población de ESTA dimensión.**
+   *
+   * El módulo cuida la ausencia de lo OBTENIDO —`sin_padron` y `sin_cruce` se
+   * dicen con su causa— y daba por supuesto que la población siempre se conoce.
+   * No siempre: el motor la devuelve vacía cuando no la puede leer de la
+   * config, y entonces el panel publicaba «451 de 0 de la población» y un
+   * carril rotulado «todavía nada», que se lee como que está por llegar. Las
+   * dos son el cero mudo que este módulo existe para no escribir. Visto en el
+   * PDF a cliente de CCSS Perfil 2026-II el 2026-10-01.
+   */
+  poblacionDeclarada: boolean;
   filas: FilaDeComposicion[];
   /**
    * El tope del carril, en puntos porcentuales, común a las filas de ESTA
@@ -116,6 +128,7 @@ export function composicionReferencial(
       etiqueta: typeof d?.etiqueta === "string" && d.etiqueta ? d.etiqueta : clave,
       poblacionTotal: numero(d?.poblacion_total),
       obtenidasTotal: numero(d?.obtenidas_total),
+      poblacionDeclarada: numero(d?.poblacion_total) > 0,
       filas, tope,
     });
   }
@@ -130,8 +143,12 @@ export function composicionReferencial(
    *
    * El motor lo declara cuando ninguna respuesta resolvió contra el padrón —sin
    * respuestas, o con el padrón purgado—. Pintar seis carreras al 0 % haría
-   * creer que se midió y salió cero. La población SÍ se conoce, así que se dice
-   * qué falta, no que no haya nada.
+   * creer que se midió y salió cero. Aquí la población se conoce, así que se
+   * dice qué falta, no que no haya nada.
+   *
+   * **Su espejo es `poblacionDeclarada`**, y conviene leerlos juntos: son las
+   * dos mitades del mismo panel, y la de la población llegó un mes tarde porque
+   * este bloque la daba por segura.
    */
   if (String(comp.fuente ?? "") === "sin_padron") {
     return {
