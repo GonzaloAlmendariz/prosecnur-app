@@ -130,3 +130,73 @@ test_that("una tabla general sin columnas de sexo no tumba el resumen de HSVG", 
   expect_silent(.marp_bloque_sexo(general, pulso_pdf_tokens(), pulso_pdf_type("cliente"),
                                   0.04, 0.92, y = 0.586))
 })
+
+# =============================================================================
+# La columna POBLACION: una raya no es un cero
+# =============================================================================
+#
+# Sin poblacion declarada la pagina escribia «0 (0,0 %)» en todas sus filas,
+# identico a una medicion que diera cero, en un documento que va al cliente.
+# Es la otra mitad del principio que el bloque ya aplica a lo obtenido.
+#
+# **Se leen los GROBS, no el PDF**: el CI no instala poppler, asi que un test
+# con `pdftotext` pasaria aqui y se saltaria alla.
+
+.mare_textos_dibujados <- function(comp) {
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  grid::grid.newpage()
+  .marp_eje_pagina_composicion(comp, NULL, NULL, pulso_pdf_tokens(),
+                               pulso_pdf_type("cliente"), 0.06, 0.88)
+  g <- grid::grid.grab()
+  unlist(lapply(grid::childNames(g), function(n) {
+    ch <- grid::getGrob(g, n)
+    if (inherits(ch, "text")) as.character(ch$label) else NULL
+  }))
+}
+
+.mare_comp <- function(poblacion = TRUE) {
+  pob <- function(n, pct) if (poblacion) list(poblacion = n, poblacion_pct = pct)
+                          else list(poblacion = 0L, poblacion_pct = NA_real_)
+  fila <- function(cat, n, pct, obt, obt_pct) c(list(categoria = cat),
+    pob(n, pct), list(obtenidas = obt, obtenidas_pct = obt_pct))
+  list(fuente = "padron", personas = 4L, dimensiones = list(
+    list(dimension = "sexo", etiqueta = "Sexo",
+         poblacion_total = if (poblacion) 800L else 0L, obtenidas_total = 4L,
+         filas = list(fila("F", 421L, 52.6, 3L, 75), fila("M", 379L, 47.4, 1L, 25)))))
+}
+
+test_that("sin poblacion declarada la columna va a raya y la pagina dice por que", {
+  txt <- .mare_textos_dibujados(.mare_comp(poblacion = FALSE))
+  # Lo que NO puede aparecer: el cero que se lee como medicion.
+  expect_false(any(grepl("0 (0.0 %)", txt, fixed = TRUE)))
+  # La raya, una por fila.
+  expect_identical(sum(txt == "-"), 2L)
+  # Y la causa, que es lo que manda a mirar la config y no el documento.
+  expect_true(any(grepl("no declara la composici\u00f3n de la poblaci\u00f3n", txt)))
+  expect_true(any(grepl("Sexo", txt, fixed = TRUE)))
+})
+
+test_that("con poblacion declarada la columna lleva su cifra y NO hay nota", {
+  txt <- .mare_textos_dibujados(.mare_comp(poblacion = TRUE))
+  expect_true(any(grepl("421 (52.6 %)", txt, fixed = TRUE)))
+  expect_true(any(grepl("379 (47.4 %)", txt, fixed = TRUE)))
+  expect_identical(sum(txt == "-"), 0L)
+  # La nota es del caso degradado: en el normal no roba sitio a la tabla.
+  expect_false(any(grepl("no declara la composici\u00f3n", txt)))
+})
+
+test_that("la nota nombra TODAS las dimensiones sin poblacion, y ninguna mas", {
+  # Con dos dimensiones y solo una sin poblacion, la nota no puede acusar a la
+  # que si la trae: manda a revisar una config que esta bien.
+  comp <- .mare_comp(poblacion = TRUE)
+  comp$dimensiones[[2L]] <- list(dimension = "carrera", etiqueta = "Carrera",
+    poblacion_total = 0L, obtenidas_total = 4L, filas = list(
+      list(categoria = "ECONOM\u00cdA", poblacion = 0L, poblacion_pct = NA_real_,
+           obtenidas = 4L, obtenidas_pct = 100)))
+  nota <- .marp_eje_nota_sin_poblacion(comp$dimensiones[2L])
+  expect_true(grepl("Carrera", nota, fixed = TRUE))
+  expect_false(grepl("Sexo", nota, fixed = TRUE))
+  # Sin ninguna dimension degradada no hay nota que dibujar.
+  expect_identical(.marp_eje_nota_sin_poblacion(list()), "")
+})

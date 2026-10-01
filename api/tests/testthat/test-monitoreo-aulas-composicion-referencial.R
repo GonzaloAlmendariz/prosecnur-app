@@ -141,3 +141,49 @@ test_that("el tablero cablea el cruce configurado de punta a punta", {
   expect_identical(fuente("nivel", "codigo", NULL), "sin_padron")
   expect_identical(fuente("facultad", "codigo", padron), "sin_padron")
 })
+
+# =============================================================================
+# La tabla de la poblacion llega en dos formas, y las dos son legitimas
+# =============================================================================
+#
+# Del marco sale como `data.frame`; una config que viaja por JSON sin
+# simplificar vuelve como LISTA DE FILAS. El lector exigia `is.data.frame()` y
+# con la lista devolvia la poblacion vacia SIN DECIR NADA: lo obtenido seguia
+# bien —viene del padron, por otro camino— y el PDF a cliente publicaba
+# «0 (0,0 %)» en las ocho categorias, que se lee como una medicion. Visto en
+# CCSS Perfil 2026-II el 2026-10-01, sobre un documento que iba al Decanato.
+
+test_that("la poblacion se lee igual venga como tabla o como lista de filas", {
+  cfg <- .mcr_cfg()
+  cp <- cfg$quotas$category_profiles
+  cfg_lista <- cfg
+  cfg_lista$quotas$category_profiles <- lapply(
+    seq_len(nrow(cp)), function(i) as.list(cp[i, , drop = FALSE]))
+
+  tabla <- monitoreo_aulas_composicion_referencial(cfg, .mcr_resueltas())
+  lista <- monitoreo_aulas_composicion_referencial(cfg_lista, .mcr_resueltas())
+
+  # La cifra que importa no es «igual a si misma»: es MAYOR QUE CERO en las dos.
+  # Comparar sin esto pasaria con ambas vacias, que es justo el defecto.
+  expect_gt(tabla$dimensiones$sexo$poblacion_total, 0L)
+  expect_identical(lista$dimensiones$sexo$poblacion_total,
+                   tabla$dimensiones$sexo$poblacion_total)
+  expect_identical(lista$dimensiones$carrera$poblacion_total,
+                   tabla$dimensiones$carrera$poblacion_total)
+  # Y categoria por categoria, no solo el total: un total que casa puede
+  # esconder dos repartos distintos.
+  por_cat <- function(r) vapply(r$dimensiones$carrera$filas,
+                                function(f) f$poblacion, integer(1))
+  expect_identical(por_cat(lista), por_cat(tabla))
+})
+
+test_that("una tabla de poblacion ilegible deja la poblacion vacia y no tumba el bloque", {
+  # `.monitoreo_aulas_df()` hace `stop()` con un insumo que no es ni tabla ni
+  # lista. Este bloque es descriptivo: jamas debe tumbar el PDF de avance por
+  # una config malformada.
+  cfg <- list(quotas = list(category_profiles = 42))
+  expect_silent(r <- monitoreo_aulas_composicion_referencial(cfg, .mcr_resueltas()))
+  expect_identical(r$dimensiones$sexo$poblacion_total, 0L)
+  # Lo obtenido NO depende de la poblacion y tiene que seguir saliendo.
+  expect_identical(r$dimensiones$sexo$obtenidas_total, 4L)
+})

@@ -393,8 +393,18 @@
   dims <- Filter(function(d) length(d$filas %||% list()) > 0L, comp$dimensiones %||% list())
   if (!length(dims)) return(invisible(NULL))
   n_filas <- sum(vapply(dims, function(d) length(d$filas), integer(1)))
+  # **Una dimensión sin población declarada se DICE, no se pinta en cero.**
+  # El motor devuelve la población vacía cuando no la puede leer de la config, y
+  # esta página la escribía como «0 (0,0 %)» en todas sus filas: idéntico a una
+  # medición que diera cero, en un documento que va al cliente. Es la otra mitad
+  # del principio que el bloque ya aplica a lo obtenido («sin padrón no hay
+  # composición y eso se declara en vez de publicar ceros»).
+  sin_pob <- vapply(dims, function(d) .marp_num(d$poblacion_total, 0) <= 0, logical(1))
+  lineas_nota <- .marp_eje_lineas_nota(.marp_eje_nota_sin_poblacion(dims[sin_pob]), ancho)
   techo <- .MARP_MARCO$techo - 0.006
-  suelo <- .MARP_MARCO$suelo
+  # El suelo sube sólo cuando hay nota: sin ella la página conserva su reparto
+  # de siempre y ningún documento ya emitido cambia de factura.
+  suelo <- .MARP_MARCO$suelo + .marp_eje_alto_nota(lineas_nota)
   alto_sec <- 0.050
   alto <- min(0.070, (techo - suelo - alto_sec * length(dims) - 0.020 * (length(dims) - 1L)) / max(1L, n_filas))
   x_bar <- x0 + 0.290
@@ -413,6 +423,7 @@
   y <- techo
   for (j in seq_along(dims)) {
     d <- dims[[j]]
+    hay_pob <- !sin_pob[[j]]
     # Aire entre bloques: sin él, el rótulo de «Carrera» se pegaba a la última
     # regla de «Sexo».
     if (j > 1L) y <- y - 0.020
@@ -436,7 +447,8 @@
       grid::grid.rect(x = x_bar, y = yc - h_bar * 0.6, width = w_bar * po / escala, height = h_bar,
                       just = c("left", "centre"), gp = grid::gpar(fill = tok$navy, col = NA))
       pct_txt <- function(p) sprintf("%.1f %%", p)
-      grid::grid.text(sprintf("%s (%s)", .marp_personas(f$poblacion), pct_txt(pp)),
+      grid::grid.text(if (hay_pob) sprintf("%s (%s)", .marp_personas(f$poblacion), pct_txt(pp))
+                      else .marp_personas(NA_real_),
                       x = x_num - 0.110, y = yc, just = c("right", "centre"),
                       gp = grid::gpar(col = tok$soft, fontsize = ty$body))
       grid::grid.text(sprintf("%s (%s)", .marp_personas(f$obtenidas), pct_txt(po)),
@@ -446,6 +458,21 @@
       pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = pulso_pdf_pesos()$fila)
     }
   }
+  .marp_eje_dibujar_nota(lineas_nota, tok, ty, x0, ancho)
 
   invisible(NULL)
+}
+
+# El texto de la nota, cuando alguna dimensión no trae población. Dice QUÉ falta
+# y DÓNDE se declara, porque «sin cifra» a secas manda a buscar el defecto al
+# documento en vez de a la configuración del proyecto.
+.marp_eje_nota_sin_poblacion <- function(dims) {
+  if (!length(dims)) return("")
+  nombres <- vapply(dims, function(d) .monitoreo_scalar(d$etiqueta %||% d$dimension, ""), character(1))
+  nombres <- nombres[nzchar(nombres)]
+  if (!length(nombres)) return("")
+  lista <- if (length(nombres) == 1L) nombres else
+    paste0(paste(nombres[-length(nombres)], collapse = ", "), " y ", nombres[[length(nombres)]])
+  sprintf(paste0("El proyecto no declara la composición de la población para %s, ",
+                 "de modo que esa columna queda sin cifra."), lista)
 }

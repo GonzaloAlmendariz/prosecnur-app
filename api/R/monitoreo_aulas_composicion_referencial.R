@@ -37,6 +37,22 @@ MONITOREO_AULAS_COMPOSICION_SCHEMA <- "monitoreo_aulas_composicion_referencial_v
 # La población por categoría para un rol, leída de `category_profiles`.
 .mac_ref_poblacion <- function(cfg, rol) {
   q <- ((cfg %||% list())[["quotas"]] %||% list())[["category_profiles"]]
+  # **La tabla llega en sus DOS formas, y una de ellas no es un `data.frame`.**
+  # Del marco sale como tabla; una config que viaja por JSON sin simplificar
+  # vuelve como LISTA DE FILAS, y entonces `is.data.frame()` da `FALSE` y el
+  # guard de abajo devolvía la población entera vacía. Sin decir nada: lo
+  # obtenido seguía saliendo bien —viene del padrón, por otro camino— y el
+  # denominador del PDF a cliente publicaba «0 (0,0 %)» en las ocho categorías,
+  # que se lee como una medición y no como un dato que no se pudo leer. Visto
+  # en CCSS Perfil 2026-II el 2026-10-01, sobre un documento que iba al
+  # Decanato. Se convierte con el MISMO helper que el resto del perfil usa para
+  # el plan, que ya sabe leer las dos formas.
+  #
+  # `tryCatch` y no a pelo porque `.monitoreo_aulas_df()` hace `stop()` con un
+  # insumo que no es ni tabla ni lista: este bloque es descriptivo y jamás debe
+  # tumbar el PDF de avance por una config malformada. Degradar aquí deja la
+  # población vacía, que es lo que ya pasaba, y el renderizador la declara.
+  q <- tryCatch(.monitoreo_aulas_df(q, "category_profiles"), error = function(e) NULL)
   if (!is.data.frame(q) || !nrow(q)) return(stats::setNames(integer(0), character(0)))
   if (!all(c("role", "raw", "count") %in% names(q))) {
     return(stats::setNames(integer(0), character(0)))
