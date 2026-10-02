@@ -111,9 +111,9 @@ export function RepartoEstratosGrafico({
       <figcaption className="cmg-reparto-head">
         <h4 id={tituloId} className="cmg-reparto-titulo">{titulo}</h4>
         <ul className="cmg-reparto-leyenda" aria-label="Leyenda">
-          <li data-serie="N">{esActores ? "N del marco" : "N del estrato"}</li>
-          {conCampo && <li data-serie="campo">{origen === "corrida" ? "n sorteado" : "n a campo"}</li>}
-          {conCompletas && <li data-serie="n">n completas</li>}
+          <li data-serie="N">{esActores ? "Tamaño del marco (N)" : "N del estrato"}</li>
+          {conCampo && <li data-serie="campo">{origen === "corrida" ? "n seleccionado" : "Muestra a contactar"}</li>}
+          {conCompletas && <li data-serie="n">Casos completos</li>}
         </ul>
         <fieldset className="cmg-reparto-escala">
           <legend className="pulso-sr-only">Escala de las barras</legend>
@@ -206,8 +206,8 @@ export function RepartoEstratosGrafico({
               <tr>
                 <th scope="col">{esActores ? "Actor" : "Estrato"}</th>
                 <th scope="col" className="cmv2-num">N</th>
-                {conCompletas && <th scope="col" className="cmv2-num">n completas</th>}
-                {conCampo && <th scope="col" className="cmv2-num">n a campo</th>}
+                {conCompletas && <th scope="col" className="cmv2-num">Casos completos</th>}
+                {conCampo && <th scope="col" className="cmv2-num">Muestra a contactar</th>}
                 <th scope="col" className="cmv2-num">{esActores ? "Fracción" : "π"}</th>
                 {!esActores && <th scope="col" className="cmv2-num">Peso base</th>}
               </tr>

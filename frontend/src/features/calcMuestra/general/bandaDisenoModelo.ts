@@ -130,7 +130,7 @@ export function vigenciaSorteo(args: {
   if (comp && !tecnicaDelActor(comp.tecnica).sorteable) {
     return {
       estado: "sin-sorteo",
-      huerfana: `La técnica actual no se sortea: la corrida guardada (${MODALIDAD_EN_PALABRAS[c.modalidad]}) es de un diseño anterior y no cuenta.`,
+      huerfana: `La técnica actual no admite selección aleatoria: la selección guardada (${MODALIDAD_EN_PALABRAS[c.modalidad]}) es de un diseño anterior y no cuenta.`,
     };
   }
   if (marco?.marco_hash && c.marco_hash && marco.marco_hash !== c.marco_hash) {
@@ -145,7 +145,7 @@ export function vigenciaSorteo(args: {
     return {
       estado: "desactualizado",
       motivo: "calculo",
-      texto: "El sorteo quedó de un cálculo que ya no existe: calcula de nuevo.",
+      texto: "La selección quedó de un cálculo que ya no existe: calcula de nuevo.",
       nCampo: null,
     };
   }
@@ -154,7 +154,7 @@ export function vigenciaSorteo(args: {
     return {
       estado: "desactualizado",
       motivo: "tecnica",
-      texto: `El sorteo se hizo como ${MODALIDAD_EN_PALABRAS[c.modalidad]}; la técnica actual pide ${MODALIDAD_EN_PALABRAS[modalidadActual]}.`,
+      texto: `La selección se hizo como ${MODALIDAD_EN_PALABRAS[c.modalidad]}; la técnica actual pide ${MODALIDAD_EN_PALABRAS[modalidadActual]}.`,
       nCampo: null,
     };
   }
@@ -164,7 +164,7 @@ export function vigenciaSorteo(args: {
       return {
         estado: "desactualizado",
         motivo: "marco",
-        texto: `El marco tiene ${fmtInt(N)} unidades; el sorteo ordenó ${fmtInt(c.N)}.`,
+        texto: `El marco tiene ${fmtInt(N)} unidades; la selección ordenó ${fmtInt(c.N)}.`,
         nCampo: null,
       };
     }
@@ -175,7 +175,7 @@ export function vigenciaSorteo(args: {
     return {
       estado: "desactualizado",
       motivo: "n",
-      texto: `El n a campo es ${fmtInt(desfase)}; el sorteo usó ${fmtInt(corrida.n_fuente)}.`,
+      texto: `La muestra a contactar es ${fmtInt(desfase)}; la selección usó ${fmtInt(corrida.n_fuente)}.`,
       nCampo: desfase,
     };
   }
@@ -200,7 +200,7 @@ export function estadoMesaGeneral(args: {
     return {
       clave: "sin-marco",
       tono: "pendiente",
-      etiqueta: "Falta el marco",
+      etiqueta: "Falta el marco muestral",
       siguiente: "Declara el archivo de unidades y sus columnas.",
       accion: irA("marco", "Ir a Marco"),
     };
@@ -229,19 +229,19 @@ export function estadoMesaGeneral(args: {
       clave: "listo",
       tono: "ok",
       etiqueta: "n calculado",
-      siguiente: "Esta técnica no sortea unidades: el n es la entrega.",
+      siguiente: "Esta técnica no selecciona unidades: el n es la entrega.",
       accion: irA("resultados", "Ver Resultados"),
     };
   }
   if (!cargado) {
-    return { clave: "leyendo", tono: "pendiente", etiqueta: "n calculado", siguiente: "Leyendo el último sorteo…", accion: null };
+    return { clave: "leyendo", tono: "pendiente", etiqueta: "n calculado", siguiente: "Leyendo la última selección…", accion: null };
   }
   if (!marco) {
     return {
       clave: "sin-sorteo",
       tono: "pendiente",
       etiqueta: "Falta el archivo",
-      siguiente: "El sorteo sale del archivo de unidades: decláralo en Marco.",
+      siguiente: "La selección sale del archivo de unidades: decláralo en Marco.",
       accion: irA("marco", "Ir a Marco"),
     };
   }
@@ -249,10 +249,10 @@ export function estadoMesaGeneral(args: {
     return {
       clave: "sin-sorteo",
       tono: "pendiente",
-      etiqueta: "Falta sortear",
+      etiqueta: "Falta seleccionar",
       siguiente: modalidad === "censo"
         ? "Ordena el marco al azar para el contacto."
-        : "Sortea el n a campo con una semilla reproducible.",
+        : "Selecciona la muestra a contactar con una semilla reproducible.",
       accion: irA("seleccion", "Ir a Selección"),
     };
   }
@@ -261,9 +261,9 @@ export function estadoMesaGeneral(args: {
     return {
       clave: "desactualizado",
       tono: "alerta",
-      etiqueta: "Sorteo desactualizado",
+      etiqueta: "Selección desactualizada",
       siguiente: vigencia.texto,
-      accion: irA("seleccion", "Sortear de nuevo"),
+      accion: irA("seleccion", "Seleccionar de nuevo"),
     };
   }
   return {
@@ -315,7 +315,7 @@ export function estadoMesaAcreditacion(args: {
   }
   const sorteables = conN.filter((c) => tecnicaDelActor(c.tecnica).sorteable);
   if (sorteables.length > 0 && !cargado) {
-    return { clave: "leyendo", tono: "pendiente", etiqueta: "n calculado", siguiente: "Leyendo los sorteos…", accion: null };
+    return { clave: "leyendo", tono: "pendiente", etiqueta: "n calculado", siguiente: "Leyendo las selecciones…", accion: null };
   }
   const desactualizados = sorteables.filter((c) => (
     vigenciaSorteo({ comp: c, corrida: corridas[c.id] ?? null, marco: marcos[c.id] ?? null }).estado === "desactualizado"
@@ -324,8 +324,8 @@ export function estadoMesaAcreditacion(args: {
     return {
       clave: "desactualizado",
       tono: "alerta",
-      etiqueta: "Sorteo desactualizado",
-      siguiente: `${plural(desactualizados.length, "actor tiene", "actores tienen")} un sorteo que ya no responde a su marco, su n o su técnica.`,
+      etiqueta: "Selección desactualizada",
+      siguiente: `${plural(desactualizados.length, "actor tiene", "actores tienen")} una selección que ya no responde a su marco, su n o su técnica.`,
       accion: irA("seleccion", "Ir a Selección"),
     };
   }
@@ -334,8 +334,8 @@ export function estadoMesaAcreditacion(args: {
     return {
       clave: "sin-sorteo",
       tono: "pendiente",
-      etiqueta: "Falta sortear",
-      siguiente: `Falta sortear ${fmtInt(sinSorteo.length)} de ${plural(sorteables.length, "actor con π", "actores con π")}.`,
+      etiqueta: "Falta seleccionar",
+      siguiente: `Falta seleccionar ${fmtInt(sinSorteo.length)} de ${plural(sorteables.length, "actor con π", "actores con π")}.`,
       accion: irA("seleccion", "Ir a Selección"),
     };
   }
@@ -489,7 +489,7 @@ export function cifrasDisenoGeneral(args: {
   const cifras: CifraBanda[] = [
     {
       clave: "N",
-      label: "N del marco",
+      label: "Tamaño del marco (N)",
       value: N > 0 ? fmtInt(N) : "—",
       detalle: marco
         ? `${marco.hoja ? `${marco.hoja} · ` : ""}huella ${hashCorto(marco.marco_hash, 8)}`
@@ -503,15 +503,15 @@ export function cifrasDisenoGeneral(args: {
     },
     {
       clave: "n",
-      label: "n completas",
+      label: "Casos completos",
       value: calculado ? fmtInt(r?.n_objetivo) : "—",
-      detalle: calculado ? "encuestas logradas" : "sin calcular",
+      detalle: calculado ? "encuestas completas" : "sin calcular",
       origen: calculado ? "motor" : undefined,
       hero: true,
     },
     {
       clave: "campo",
-      label: "n a campo",
+      label: "Muestra a contactar",
       value: calculado ? fmtInt(r?.n_operativo) : "—",
       detalle: calculado && Number.isFinite(tasa)
         ? `respuesta ${fmtPct(tasa)}${sobre > 0 ? ` · +${fmtPct(sobre)}` : ""}`
@@ -540,23 +540,23 @@ export function cifrasDisenoGeneral(args: {
         clave: "semilla",
         label: "Semilla",
         value: c ? String(c.semilla) : "—",
-        detalle: c ? (c.modalidad === "censo" ? "orden de contacto" : etiquetaMetodo(c.metodo)) : "sin sorteo",
+        detalle: c ? (c.modalidad === "censo" ? "orden de contacto" : etiquetaMetodo(c.metodo)) : "sin selección",
         monospace: true,
       },
       {
         clave: "sorteo",
         // Rótulo de una palabra, como el resto de la fila: «Titulares +
         // reservas» se partía en dos líneas y descuadraba las alturas (C2).
-        label: c?.modalidad === "censo" ? "A contactar" : "Sorteo",
+        label: c?.modalidad === "censo" ? "A contactar" : "Selección",
         value: c
           ? c.modalidad === "censo" ? fmtInt(c.n_titulares) : `${fmtInt(c.n_titulares)} + ${fmtInt(c.n_reservas)}`
           : "—",
         detalle: c && corrida
           ? [
-              c?.modalidad === "censo" ? null : "titulares + reservas",
+              c?.modalidad === "censo" ? null : "principales + reemplazos",
               vigencia.estado === "desactualizado" ? "desactualizado" : formatearFechaLocal(corrida.sorteado_at),
             ].filter(Boolean).join(" · ")
-          : "sin sorteo",
+          : "sin selección",
         tono: vigencia.estado === "desactualizado" ? "alerta" : undefined,
       },
     );
@@ -574,7 +574,7 @@ export function cadenaDisenoGeneral(args: {
   const N = nDelMarco(comp, marco);
   const pasos = [N > 0 ? `Marco ${fmtInt(N)}` : "Marco sin declarar"];
   if (comp && hayResultado([comp])) {
-    pasos.push(`${fmtInt(comp.resultado?.n_objetivo)} completas`, `${fmtInt(comp.resultado?.n_operativo)} a campo`);
+    pasos.push(`${fmtInt(comp.resultado?.n_objetivo)} completas`, `${fmtInt(comp.resultado?.n_operativo)} a contactar`);
   } else {
     pasos.push("n por calcular");
   }
@@ -606,9 +606,9 @@ export const FASE_ACTOR_ETIQUETA: Record<FaseActor, string> = {
   "sin-n": "Sin N",
   "sin-calculo": "Por calcular",
   calculado: "Calculado",
-  "sin-sorteo": "Sin sorteo",
-  sorteado: "Sorteado",
-  desactualizado: "Sorteo viejo",
+  "sin-sorteo": "Sin selección",
+  sorteado: "Seleccionado",
+  desactualizado: "Selección desactualizada",
 };
 
 function nombreActor(c: Pick<CalcMuestraComponente, "actor" | "actor_id" | "id">): string {
@@ -674,13 +674,13 @@ export function cifrasDisenoAcreditacion(args: {
     },
     {
       clave: "N",
-      label: "N declarado",
+      label: "Tamaño declarado (N)",
       value: conN.length > 0 ? fmtInt(suma(conN, (c) => c.marco?.marco_validado)) : "—",
       detalle: conN.length > 0 ? "suma de los marcos" : "sin marcos",
     },
     {
       clave: "n",
-      label: "n completas",
+      label: "Casos completos",
       value: calculados.length > 0 ? fmtInt(suma(calculados, (c) => c.resultado?.n_objetivo)) : "—",
       detalle: calculados.length > 0 ? "suma de los actores" : "sin calcular",
       origen: calculados.length > 0 ? "motor" : undefined,
@@ -688,19 +688,19 @@ export function cifrasDisenoAcreditacion(args: {
     },
     {
       clave: "campo",
-      label: "n a campo",
+      label: "Muestra a contactar",
       value: calculados.length > 0 ? fmtInt(suma(calculados, (c) => c.resultado?.n_operativo)) : "—",
       detalle: calculados.length > 0 ? "casos a abordar" : "sin calcular",
       origen: calculados.length > 0 ? "motor" : undefined,
     },
     {
       clave: "sorteo",
-      label: "Sorteados",
+      label: "Seleccionados",
       value: sorteos.sorteables > 0 ? `${fmtInt(sorteos.vigentes)} de ${fmtInt(sorteos.sorteables)}` : "—",
       detalle: sorteos.sorteables === 0
-        ? "ninguna técnica sortea"
+        ? "ninguna técnica selecciona unidades"
         : sorteos.desactualizados > 0
-          ? `${plural(sorteos.desactualizados, "sorteo viejo", "sorteos viejos")}`
+          ? `${plural(sorteos.desactualizados, "selección desactualizada", "selecciones desactualizadas")}`
           : "vigentes, de los actores con π",
       tono: sorteos.desactualizados > 0 ? "alerta" : undefined,
     },
@@ -722,8 +722,8 @@ export function cifrasDisenoAcreditacion(args: {
     `${fmtInt(conN.length)} con N`,
     `${fmtInt(calculados.length)} calculados`,
     sorteos.sorteables > 0
-      ? `${fmtInt(sorteos.vigentes)} de ${fmtInt(sorteos.sorteables)} sorteados`
-      : "sin sorteo",
+      ? `${fmtInt(sorteos.vigentes)} de ${fmtInt(sorteos.sorteables)} seleccionados`
+      : "sin selección",
   ];
 
   return { totales, actores, cadena };
@@ -839,7 +839,7 @@ function veredictoGeneral(componentes: readonly CalcMuestraComponente[]): Veredi
   if (calculados.length === 0) return null;
   const suma = (campo: "n_objetivo" | "n_operativo") =>
     calculados.reduce((acc, c) => acc + safeNumber(c.resultado?.[campo], 0), 0);
-  const nTexto = `${fmtInt(suma("n_objetivo"))} completas · ${fmtInt(suma("n_operativo"))} a campo`;
+  const nTexto = `${fmtInt(suma("n_objetivo"))} completas · ${fmtInt(suma("n_operativo"))} a contactar`;
   const sinCalcular = componentes.filter((c) => !hayResultado([c]));
 
   if (componentes.length === 1) {
@@ -900,14 +900,14 @@ function veredictoAcreditacion(args: {
     .flatMap((c) => {
       const v = vigenciaSorteo({ comp: c, corrida: corridas[c.id] ?? null, marco: marcos[c.id] ?? null });
       if (v.estado === "vigente") return [];
-      return [`${nombreActor(c)} (${v.estado === "desactualizado" ? "sorteo viejo" : "sin sortear"})`];
+      return [`${nombreActor(c)} (${v.estado === "desactualizado" ? "selección desactualizada" : "sin seleccionar"})`];
     });
   const leyendo = !cargado && sorteos.sorteables > 0;
   const sorteoTexto = sorteos.sorteables === 0
-    ? "ninguna técnica sortea"
+    ? "ninguna técnica selecciona unidades"
     : leyendo
       ? "leyendo los sorteos…"
-      : `${fmtInt(sorteos.vigentes)} de ${fmtInt(sorteos.sorteables)} sorteados`;
+      : `${fmtInt(sorteos.vigentes)} de ${fmtInt(sorteos.sorteables)} seleccionados`;
   const detalle = `${fmtInt(calculados.length)} de ${fmtInt(total)} calculados · ${sorteoTexto}`;
 
   if (sinCalcular.length > 0) {
@@ -922,14 +922,14 @@ function veredictoAcreditacion(args: {
   if (sinSortear.length > 0) {
     return {
       tono: "alerta",
-      titulo: `Falta sortear ${fmtInt(sinSortear.length)} de ${plural(sorteos.sorteables, "actor", "actores")} con π`,
+      titulo: `Falta seleccionar ${fmtInt(sinSortear.length)} de ${plural(sorteos.sorteables, "actor", "actores")} con π`,
       detalle,
       falta: `Falta: ${listaConNombre(sinSortear)}.`,
     };
   }
   return {
     tono: "ok",
-    titulo: sorteos.sorteables > 0 ? "Todos los actores calculados y sorteados" : "Todos los actores calculados",
+    titulo: sorteos.sorteables > 0 ? "Todos los actores calculados y seleccionados" : "Todos los actores calculados",
     detalle,
     falta: null,
   };

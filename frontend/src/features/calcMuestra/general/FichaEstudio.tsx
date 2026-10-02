@@ -82,7 +82,7 @@ export function FichaEstudio({
               <span>Unidad de observación</span>
               <input
                 value={workspace.unidad_observacion}
-                placeholder="Persona, hogar, curso-horario, actor..."
+                placeholder="Persona, hogar, institución, actor..."
                 onChange={(e) => onWorkspace({ ...workspace, unidad_observacion: e.currentTarget.value })}
               />
             </label>

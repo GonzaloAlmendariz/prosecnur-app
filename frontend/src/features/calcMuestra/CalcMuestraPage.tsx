@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  ArrowRight,
   BarChart3,
   Calculator,
   CheckCircle2,
-  CircleHelp,
   ClipboardList,
   Database,
   FileText,
@@ -164,16 +162,11 @@ import { JobProgressBanner } from "./JobProgressBanner";
 import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
-import { estrato, matrizGizEjemplo } from "./ComponenteTablas";
+import { estrato, matrizEjemplo } from "./ComponenteTablas";
+import { SelectorTipo } from "./SelectorTipo";
 import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
-type GuidancePoint = {
-  prompt: string;
-  answer: string;
-  detail: string;
-  icon?: typeof Database;
-};
 type CalcMuestraSectionNavItem = {
   id: string;
   label: string;
@@ -223,119 +216,6 @@ function guidedStatusLabel(status: GuideStatus) {
   return "Aún no disponible";
 }
 
-const FRAME_CARDS: Array<{
-  id: ActiveDesk;
-  title: string;
-  eyebrow: string;
-  copy: string;
-  action: string;
-  details: string[];
-  sourceRoles: Array<{ label: string; detail: string }>;
-  guidance: GuidancePoint[];
-  icon: typeof Database;
-}> = [
-  {
-    id: "opinion_universitaria",
-    title: "Muestra de cursos-horario",
-    eyebrow: "Base institucional",
-    copy: "Para intervenciones universitarias cuya muestra se aplica por cursos-horario y parte de matrícula, facultades, sexo y unidades disponibles.",
-    action: "Empezar este camino",
-    details: ["Matrícula", "Cuotas", "Cursos-horario", "Seguimiento"],
-    sourceRoles: [
-      { label: "Base", detail: "estudiantes por facultad y sexo" },
-      { label: "Muestra", detail: "tamaño final y cuotas" },
-      { label: "Cursos-horario", detail: "titulares y reemplazos" },
-      { label: "Campo", detail: "queda listo para seguimiento" },
-    ],
-    guidance: [
-      { prompt: "¿A quién representa?", answer: "Estudiantes matriculados", detail: "La base se ordena por facultad, sexo y cursos-horario disponibles.", icon: Users },
-      { prompt: "¿Qué se calcula?", answer: "Entrevistas y cuotas", detail: "Define metas por universidad y por facultad antes de seleccionar cursos-horario.", icon: SlidersHorizontal },
-      { prompt: "¿Qué queda listo?", answer: "Cursos-horario titulares y reemplazos", detail: "El plan queda trazable para seguimiento de campo.", icon: FileText },
-    ],
-    icon: Grid3X3,
-  },
-  {
-    id: "marco_disponible",
-    title: "Cálculo de muestra general",
-    eyebrow: "Marco propio",
-    copy: "Para estudios con una población conocida, registros por estrato, servicios, sedes o cuotas operativas.",
-    action: "Empezar este camino",
-    details: ["Marco total", "Estratos", "Grupos", "Cuotas"],
-    sourceRoles: [
-      { label: "Población", detail: "persona, atención o institución" },
-      { label: "Base", detail: "total, estratos o grupos operativos" },
-      { label: "Decisión", detail: "muestra, cobertura o cuotas" },
-      { label: "Resultado", detail: "tamaño, distribución y reporte" },
-    ],
-    guidance: [
-      { prompt: "¿A quién cubre?", answer: "Población o registros propios", detail: "Sirve para personas, atenciones, sedes, servicios o instituciones.", icon: Users },
-      { prompt: "¿Cómo se organiza?", answer: "Marco, estratos o cuotas", detail: "Parte de lo que realmente existe en el proyecto.", icon: SlidersHorizontal },
-      { prompt: "¿Qué se entrega?", answer: "Tamaño y distribución", detail: "Deja resultados revisables para reporte o seguimiento.", icon: FileText },
-    ],
-    icon: SlidersHorizontal,
-  },
-  {
-    id: "acreditacion",
-    title: "Acreditación institucional",
-    eyebrow: "Actores y cuotas",
-    copy: "Para procesos donde se necesitan metas por actor, programa, canal o componente institucional.",
-    action: "Empezar este camino",
-    details: ["Actores", "Programas", "Canales", "Brechas"],
-    sourceRoles: [
-      { label: "Universo", detail: "actores y segmentos" },
-      { label: "Regla", detail: "meta, cobertura o cuota" },
-      { label: "Cálculo", detail: "mínimos por componente" },
-      { label: "Reporte", detail: "metas y brechas" },
-    ],
-    guidance: [
-      { prompt: "¿Quiénes deben aparecer?", answer: "Actores institucionales", detail: "Ordena grupos para no dejar voces importantes fuera.", icon: Users },
-      { prompt: "¿Cómo se levanta?", answer: "Metas por canal", detail: "Define actor, programa, canal y mínimo esperado.", icon: SlidersHorizontal },
-      { prompt: "¿Qué sustenta?", answer: "Cobertura por componente", detail: "Muestra brechas y criterios de suficiencia.", icon: FileText },
-    ],
-    icon: ClipboardList,
-  },
-  {
-    id: "territorial_handoff",
-    title: "Rutas territoriales y hogares",
-    eyebrow: "Hojas de ruta",
-    copy: "Para estudios donde el diseño depende de zonas, manzanas, viviendas, reemplazos y recorrido de campo.",
-    action: "Ir a Hojas de Ruta",
-    details: ["Zonas", "Manzanas", "Viviendas", "Reemplazos"],
-    sourceRoles: [
-      { label: "Territorio", detail: "distritos, zonas y cartografía" },
-      { label: "Recorrido", detail: "manzanas y viviendas titulares" },
-      { label: "Campo", detail: "reemplazos y ocurrencias" },
-      { label: "Cierre", detail: "avance territorial" },
-    ],
-    guidance: [
-      { prompt: "¿Dónde se trabaja?", answer: "Zonas y viviendas", detail: "Convierte territorio en visitas concretas para campo.", icon: Home },
-      { prompt: "¿Cómo se recorre?", answer: "Rutas y reemplazos", detail: "Controla manzanas, titulares, reservas y ocurrencias.", icon: Route },
-      { prompt: "¿Qué se verifica?", answer: "Cobertura espacial", detail: "Deja evidencia cartográfica y dispersión territorial.", icon: FileText },
-    ],
-    icon: MapPinned,
-  },
-];
-
-const PATHWAY_PRIMER: GuidancePoint[] = [
-  {
-    prompt: "¿De dónde sale la muestra?",
-    answer: "Base, actores, marco o territorio",
-    detail: "Cada camino abre una mesa distinta.",
-    icon: Users,
-  },
-  {
-    prompt: "¿Qué avance se guarda?",
-    answer: "Un tipo de cálculo por proyecto",
-    detail: "Cambiar de camino reinicia la mesa para no mezclar avances.",
-    icon: SlidersHorizontal,
-  },
-  {
-    prompt: "¿Qué debe quedar listo?",
-    answer: "Resultado y salida operativa",
-    detail: "Tamaño, distribución, selección o plan de campo.",
-    icon: FileText,
-  },
-];
 
 function workspaceFor(mode: ActiveDesk): CalcMuestraWorkspace {
   if (mode === "acreditacion") {
@@ -452,10 +332,10 @@ function defaultRailSectionForDesk(desk: ActiveDesk) {
 }
 
 function railTitleForDesk(desk: ActiveDesk) {
-  if (desk === "opinion_universitaria") return "Muestra de cursos-horario";
+  if (desk === "opinion_universitaria") return "Conglomerados en aulas";
   if (desk === "marco_disponible") return "Muestra general";
-  if (desk === "acreditacion") return "Acreditación";
-  if (desk === "territorial_handoff") return "Territorial";
+  if (desk === "acreditacion") return "Metas por grupo";
+  if (desk === "territorial_handoff") return "Áreas y viviendas";
   if (desk === "legacy") return "Sesión anterior";
   return "Tipo de estudio";
 }
@@ -463,10 +343,10 @@ function railTitleForDesk(desk: ActiveDesk) {
 function deskSubtitleForDesk(desk: ActiveDesk) {
   if (desk === "opinion_universitaria") return "Base institucional, cuotas, cursos-horario y seguimiento de aplicación.";
   if (desk === "marco_disponible") return "Marco, método, selección y resultados.";
-  if (desk === "acreditacion") return "Actores, canales, mínimos y reporte metodológico.";
-  if (desk === "territorial_handoff") return "Territorio, rutas y viviendas se resuelven en Hojas de Ruta.";
+  if (desk === "acreditacion") return "Grupos de informantes, canales, mínimos y reporte metodológico.";
+  if (desk === "territorial_handoff") return "Zonas, rutas y viviendas se resuelven en Hojas de ruta.";
   if (desk === "legacy") return "Sesión antigua conservada para compatibilidad.";
-  return "Elige el tipo de muestra para abrir la mesa de trabajo.";
+  return "Elige el tipo de muestra para abrir el cálculo.";
 }
 
 function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
@@ -562,10 +442,10 @@ function chromeStatusForDesk({
   if (calculando) return { label: "Calculando", detail: "componentes en proceso", tone: "working", icon: Loader2 };
   if (busy) return { label: busy, detail: "operación activa", tone: "working", icon: Loader2 };
   if (reporteEnCurso) return { label: "Reporte", detail: "generando evidencia", tone: "working", icon: FileText };
-  if (desk === "sin_definir") return { label: "Tipo por elegir", detail: "abre una mesa de muestra", tone: "idle", icon: Database };
-  if (desk === "territorial_handoff") return { label: "Deriva a Hojas de Ruta", detail: "esta mesa no calcula", tone: "idle", icon: MapPinned };
+  if (desk === "sin_definir") return { label: "Tipo por elegir", detail: "abre el cálculo de muestra", tone: "idle", icon: Database };
+  if (desk === "territorial_handoff") return { label: "Deriva a Hojas de Ruta", detail: "este tipo no calcula aquí", tone: "idle", icon: MapPinned };
   if (resultados > 0) return { label: "Cálculo listo", detail: `${resultados}/${componentes} componentes`, tone: "ready", icon: CheckCircle2 };
-  if (componentes > 0) return { label: "Mesa preparada", detail: "pendiente de cálculo", tone: "working", icon: Target };
+  if (componentes > 0) return { label: "Cálculo preparado", detail: "pendiente de cálculo", tone: "working", icon: Target };
   return { label: "Sin componentes", detail: "declara el marco", tone: "idle", icon: ClipboardList };
 }
 
@@ -603,7 +483,7 @@ export function chromeTokensForDesk({
     const target = safeNumber(status?.selectedComp.resultado?.n_objetivo, 0);
     const selectedResultReady = status?.selectedResultReady ?? false;
     return [
-      { label: "Mesa", value: "Muestra de cursos-horario", tone: "path" },
+      { label: "Tipo", value: "Conglomerados en aulas", tone: "path" },
       { label: "Base", value: marcoTotal ? `${fmtInt(marcoTotal)} est.` : estratos.length ? `${fmtInt(estratos.length)} dominios` : "por validar", tone: marcoTotal ? "ready" : "working" },
       { label: "Cálculo", value: target ? `${fmtInt(target)} objetivo` : selectedResultReady ? "calculado" : "pendiente", tone: target || selectedResultReady ? "ready" : "working" },
       { label: "Cursos-horario", value: selectionReady ? "titulares + reemplazos" : comparisonReady ? "métodos listos" : "por seleccionar", tone: selectionReady ? "ready" : comparisonReady ? "working" : "neutral" },
@@ -613,7 +493,7 @@ export function chromeTokensForDesk({
   if (desk === "acreditacion") {
     const withChannel = componentes.filter((comp) => comp.canal_recojo !== "sin_definir").length;
     return [
-      { label: "Tipo", value: "Acreditación", tone: "path" },
+      { label: "Tipo", value: "Metas por grupo", tone: "path" },
       { label: "Actores", value: componentes.length ? `${componentes.length} componentes` : "sin actores", tone: componentes.length ? "ready" : "working" },
       { label: "Canales", value: `${withChannel}/${componentes.length || 0} definidos`, tone: componentes.length > 0 && withChannel === componentes.length ? "ready" : "working" },
       { label: "Salida", value: hasResult ? "metas listas" : productText, tone: hasResult ? "ready" : "neutral" },
@@ -622,9 +502,9 @@ export function chromeTokensForDesk({
 
   if (desk === "territorial_handoff") {
     return [
-      { label: "Tipo", value: "Territorial", tone: "path" },
+      { label: "Tipo", value: "Áreas y viviendas", tone: "path" },
       { label: "Base", value: "zonas/manzanas", tone: "ready" },
-      { label: "Mesa", value: "Hojas de Ruta", tone: "ready" },
+      { label: "Tipo", value: "Hojas de Ruta", tone: "ready" },
       { label: "Salida", value: "rutas y viviendas", tone: "neutral" },
     ];
   }
@@ -639,7 +519,7 @@ export function chromeTokensForDesk({
   }
 
   return [
-    { label: "Tipo", value: "General", tone: "path" },
+    { label: "Tipo", value: "Muestra general", tone: "path" },
     { label: "Base", value: sourceReady ? "marco propio" : "por definir", tone: sourceReady ? "ready" : "working" },
     { label: "Método", value: firstComp ? compactTechniqueLabel(firstComp.tecnica) : "por elegir", tone: firstComp ? "ready" : "working" },
     { label: "Salida", value: hasResult ? "resultado listo" : productText, tone: hasResult ? "ready" : "neutral" },
@@ -1178,7 +1058,7 @@ export default function CalcMuestraPage() {
         : mode === "opinion_universitaria"
           ? "encuesta_estudiantes"
           : "estudio_propio";
-    setBusy("Preparando mesa");
+    setBusy("Preparando el cálculo");
     try {
       // La UI siempre inicia estudios genéricos vacíos; el preset legacy con
       // estratos pre-poblados quedó solo como fixture de tests del backend.
@@ -1211,7 +1091,7 @@ export default function CalcMuestraPage() {
         workspace: finalWorkspace,
       });
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo iniciar la mesa." });
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo iniciar el cálculo." });
     } finally {
       setBusy(null);
     }
@@ -1337,10 +1217,7 @@ export default function CalcMuestraPage() {
     const next = setTecnica(
       {
         ...base,
-        actor:
-          kind === "servicios"
-            ? "Usuarios / atenciones de servicios"
-            : base.actor || "Población objetivo",
+        actor: base.actor || "Población objetivo",
         marco: {
           ...base.marco,
           estado: base.marco.estado === "no_definido" ? "bruto" : base.marco.estado,
@@ -1348,7 +1225,7 @@ export default function CalcMuestraPage() {
             kind === "servicios"
               ? base.marco.matriz_operativa?.length
                 ? base.marco.matriz_operativa
-                : matrizGizEjemplo()
+                : matrizEjemplo()
               : [],
           estratos:
             kind === "estratos" || kind === "conglomerados"
@@ -2395,7 +2272,7 @@ export default function CalcMuestraPage() {
   if (!hydrated) {
     return (
       <div data-audit-ready="false" data-audit-desk="calc-muestra-hidratando">
-        <LoadingBlock label="Cargando mesa de muestra..." />
+        <LoadingBlock label="Cargando el cálculo de muestra..." />
       </div>
     );
   }
@@ -2544,7 +2421,7 @@ export default function CalcMuestraPage() {
           )}
 
           {desk === "sin_definir" && (
-            <FrameSelector
+            <SelectorTipo
               currentDesk={currentDesk}
               hasExistingStudy={hasExistingDesk}
               pendingReset={pendingDeskReset}
@@ -2832,139 +2709,6 @@ function CalcMuestraContextSidebar({
         </GlidingTabList>
       </div>
     </aside>
-  );
-}
-
-function PathwayPrimer() {
-  return (
-    <div className="cmv2-pathway-primer" aria-label="Preguntas para escoger el tipo de muestra" data-qa-geometry-group="calc-muestra/caminos-preguntas" data-qa-geometry-contract="equal">
-      {PATHWAY_PRIMER.map((item) => {
-        const Icon = item.icon ?? CircleHelp;
-        return (
-          <article key={item.prompt} data-qa-geometry-member>
-            <span><Icon size={14} /></span>
-            <div>
-              <small>{item.prompt}</small>
-              <strong>{item.answer}</strong>
-              <p>{item.detail}</p>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
-}
-
-function FrameSelector({
-  currentDesk,
-  hasExistingStudy,
-  pendingReset,
-  onSelect,
-  onCancelReset,
-  onConfirmReset,
-}: {
-  currentDesk: ActiveDesk;
-  hasExistingStudy: boolean;
-  pendingReset: ActiveDesk | null;
-  onSelect: (mode: ActiveDesk) => void;
-  onCancelReset: () => void;
-  onConfirmReset: () => void;
-}) {
-  const currentCard = FRAME_CARDS.find((card) => card.id === currentDesk);
-  const pendingCard = FRAME_CARDS.find((card) => card.id === pendingReset);
-  const currentTitle = currentCard?.title ?? (currentDesk === "legacy" ? "sesión anterior" : "mesa actual");
-
-  return (
-    <section className="cmv2-selector cmv2-route-hub" aria-label="Caminos de cálculo muestral">
-      <div className="cmv2-selector-head cmv2-route-hub-head">
-        <div>
-          <span className="cmv2-eyebrow">Caminos de cálculo</span>
-          <h2>Elige el tipo de muestra</h2>
-          <p>Primero escoge el camino de trabajo. Esa decisión define la mesa del proyecto y evita mezclar avances de cálculos distintos.</p>
-        </div>
-        <div className="cmv2-route-hub-status" aria-label="Estado de rutas">
-          <span><CheckCircle2 size={13} /> 4 caminos disponibles</span>
-          <span><Route size={13} /> 1 mesa por proyecto</span>
-        </div>
-      </div>
-
-      <PathwayPrimer />
-
-      {hasExistingStudy && (
-        <div className="cmv2-route-warning" role="note">
-          <CheckCircle2 size={15} />
-          <span>
-            <strong>Esta mesa ya está usando: {currentTitle}.</strong>
-            Puedes volver a ella o reiniciarla con otro camino si el proyecto cambió de tipo de muestra.
-          </span>
-        </div>
-      )}
-
-      {pendingCard && (
-        <div className="cmv2-reset-confirm" role="alert">
-          <span className="cmv2-reset-confirm-icon"><RefreshCw size={16} /></span>
-          <div>
-            <strong>Reiniciar mesa de muestra</strong>
-            <p>
-              Vas a pasar de {currentTitle} a {pendingCard.title}. La mesa actual se reiniciará y el proyecto quedará preparado para este nuevo tipo de muestra.
-            </p>
-          </div>
-          <div className="cmv2-reset-confirm-actions">
-            <button type="button" className="cmv2-ghost" onClick={onCancelReset}>Cancelar</button>
-            <button type="button" className="cmv2-primary" onClick={onConfirmReset}>
-              Reiniciar mesa
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="cmv2-frame-grid cmv2-frame-grid--routes" data-qa-geometry-group="calc-muestra/caminos" data-qa-geometry-contract="equal">
-        {FRAME_CARDS.map((card) => {
-          const Icon = card.icon;
-          const isCurrent = hasExistingStudy && card.id === currentDesk;
-          const actionLabel = isCurrent
-            ? "Seguir trabajando"
-            : hasExistingStudy
-              ? "Reiniciar con este camino"
-              : card.action;
-          return (
-            <button
-              key={card.id}
-              type="button"
-              className={`cmv2-frame-card cmv2-frame-card--${card.id} ${card.id === "territorial_handoff" ? "is-handoff" : ""} ${isCurrent ? "is-current" : ""}`}
-              onClick={() => onSelect(card.id)}
-              aria-pressed={isCurrent} data-qa-geometry-member
-            >
-              <span className="cmv2-card-icon"><Icon size={20} /></span>
-              <small>{isCurrent ? "Camino actual" : card.eyebrow}</small>
-              <strong>{card.title}</strong>
-              <p>{card.copy}</p>
-              <div className="cmv2-path-tags" aria-label={`Alcance ${card.title}`}>
-                {card.details.map((detail) => <span key={detail}>{detail}</span>)}
-              </div>
-              <div className="cmv2-card-answers" aria-label={`Orientación para ${card.title}`} data-qa-geometry-group="calc-muestra/caminos-orientacion" data-qa-geometry-contract="intrinsic">
-                {card.guidance.map((item) => {
-                  const HelpIcon = item.icon ?? CircleHelp;
-                  return (
-                  <em key={item.prompt} data-qa-geometry-member>
-                    <i><HelpIcon size={12} /></i>
-                    <b>{item.prompt}</b>
-                    <span>{item.answer}</span>
-                    <small>{item.detail}</small>
-                  </em>
-                  );
-                })}
-              </div>
-              <span className="cmv2-card-action">
-                {actionLabel}
-                <ArrowRight size={14} />
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
   );
 }
 

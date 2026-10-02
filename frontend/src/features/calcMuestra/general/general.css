@@ -721,7 +721,7 @@
   white-space: nowrap;
 }
 
-/* «Cursos-horario / QR» entero: el canal es dato operativo, no se recorta. */
+/* «Grupo presencial / QR» entero: el canal es dato operativo, no se recorta. */
 .cmg-tabla-desplazable select.cmv2-channel-select {
   min-width: 156px;
 }
@@ -1018,7 +1018,7 @@
     min-width: 148px;
   }
 
-  /* El canal conserva sus 156 px («Cursos-horario / QR» entero): cede el N. */
+  /* El canal conserva sus 156 px («Grupo presencial / QR» entero): cede el N. */
   .cmg-tabla-actores .cmv2-number-cell {
     max-width: 96px;
   }

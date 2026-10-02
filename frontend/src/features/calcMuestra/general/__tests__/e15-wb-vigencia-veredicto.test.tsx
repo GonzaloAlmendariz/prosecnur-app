@@ -68,10 +68,10 @@ describe("P6 · técnica sin π con una corrida vieja", () => {
   const docentes = calculado("doc", "Docentes");
   const corridas = { est: corrida("est"), doc: corrida("doc") };
 
-  it("no es un sorteo vigente ni un «sorteo viejo»: es «Sin sorteo», con la corrida señalada", () => {
+  it("no es un sorteo vigente ni un «selección desactualizada»: es «Sin selección», con la corrida señalada", () => {
     const v = vigenciaSorteo({ comp: pregrado, corrida: corridas.est });
     expect(v.estado).toBe("sin-sorteo");
-    expect(v.estado === "sin-sorteo" ? v.huerfana : null).toMatch(/no se sortea.*no cuenta/);
+    expect(v.estado === "sin-sorteo" ? v.huerfana : null).toMatch(/no admite selección aleatoria.*no cuenta/);
     expect(vigenciaSorteo({ comp: pregrado, corrida: null })).toEqual({ estado: "sin-sorteo", huerfana: null });
   });
 
@@ -79,20 +79,20 @@ describe("P6 · técnica sin π con una corrida vieja", () => {
     const { totales, actores, cadena } = cifrasDisenoAcreditacion({ componentes: [pregrado, docentes], corridas });
     expect(actores.map((a) => a.fase)).toEqual(["sin-sorteo", "sorteado"]);
     expect(totales.find((c) => c.clave === "sorteo")).toMatchObject({ value: "1 de 1" });
-    expect(cadena.at(-1)).toBe("1 de 1 sorteados");
+    expect(cadena.at(-1)).toBe("1 de 1 seleccionados");
     expect(estadoMesaAcreditacion({ componentes: [pregrado, docentes], corridas, cargado: true }).clave).toBe("listo");
     const selector = actoresDelSelector([pregrado, docentes], { cargado: true, marcos: { est: MARCO, doc: MARCO }, corridas });
-    expect(selector.map((a) => a.estado.etiqueta)).toEqual(["Sin sorteo", "Sorteado"]);
+    expect(selector.map((a) => a.estado.etiqueta)).toEqual(["Sin selección", "Seleccionado"]);
   });
 
-  it("otra modalidad (censo ↔ probabilística) sí es un sorteo viejo, y la ficha lo dice", () => {
+  it("otra modalidad (censo ↔ probabilística) sí es un selección desactualizada, y la ficha lo dice", () => {
     const censal = calculado("adm", "Administrativos", { tecnica: "intencion_censal" });
     const v = vigenciaSorteo({ comp: censal, corrida: corrida("adm") });
     expect(v).toMatchObject({ estado: "desactualizado", motivo: "tecnica" });
     const { actores } = cifrasDisenoAcreditacion({ componentes: [censal], corridas: { adm: corrida("adm") } });
     expect(actores[0].fase).toBe("desactualizado");
     const html = renderToStaticMarkup(<FichaCorrida corrida={corrida("adm")} componente={censal} />);
-    expect(html).toContain("El sorteo quedó desactualizado");
+    expect(html).toContain("La selección quedó desactualizada");
     expect(html).toContain("cobertura censal");
   });
 });
@@ -101,7 +101,7 @@ describe("P7 · Resultados abre con su veredicto", () => {
   it("Muestra general: margen alcanzado frente al pedido, con tono y título", () => {
     const ok = veredictoResultados({ modo: "marco_disponible", componentes: [calculado("g", "General")] });
     expect(ok).toMatchObject({ tono: "ok", titulo: "El n cumple el margen pedido" });
-    expect(ok?.detalle).toBe("234 completas · 390 a campo · margen ±5.0% frente a ±5.0% pedido");
+    expect(ok?.detalle).toBe("234 completas · 390 a contactar · margen ±5.0% frente a ±5.0% pedido");
     const corto = veredictoResultados({
       modo: "marco_disponible",
       componentes: [calculado("g", "General", {}, { precision_alcanzada: 0.07 })],
@@ -110,14 +110,14 @@ describe("P7 · Resultados abre con su veredicto", () => {
     expect(veredictoResultados({ modo: "marco_disponible", componentes: [{ ...calculado("g", "G"), resultado: null }] })).toBeNull();
   });
 
-  it("Acreditación: calculados y sorteados frente al total, nombrando al que falta", () => {
+  it("Acreditación: calculados y seleccionados frente al total, nombrando al que falta", () => {
     const base = defaultComponente();
     const sinN = { ...calculado("egr", "Egresados"), resultado: null, marco: { ...base.marco, marco_validado: 0 } };
     const docentes = calculado("doc", "Docentes");
     const admin = calculado("adm", "Administrativos");
     const v1 = veredictoResultados({ modo: "acreditacion", componentes: [docentes, sinN], corridas: {}, cargado: true });
     expect(v1).toMatchObject({ tono: "alerta", titulo: "Falta 1 de 2 actores por calcular", falta: "Falta: Egresados (sin N)." });
-    expect(v1?.detalle).toBe("1 de 2 calculados · 0 de 1 sorteados");
+    expect(v1?.detalle).toBe("1 de 2 calculados · 0 de 1 seleccionados");
     const v2 = veredictoResultados({
       modo: "acreditacion",
       componentes: [docentes, admin],
@@ -125,9 +125,9 @@ describe("P7 · Resultados abre con su veredicto", () => {
       marcos: {},
       cargado: true,
     });
-    expect(v2).toMatchObject({ tono: "ok", titulo: "Todos los actores calculados y sorteados", falta: null });
+    expect(v2).toMatchObject({ tono: "ok", titulo: "Todos los actores calculados y seleccionados", falta: null });
     const v3 = veredictoResultados({ modo: "acreditacion", componentes: [docentes, admin], corridas: { doc: corrida("doc") }, cargado: true });
-    expect(v3).toMatchObject({ tono: "alerta", titulo: "Falta sortear 1 de 2 actores con π", falta: "Falta: Administrativos (sin sortear)." });
+    expect(v3).toMatchObject({ tono: "alerta", titulo: "Falta seleccionar 1 de 2 actores con π", falta: "Falta: Administrativos (sin seleccionar)." });
   });
 
   it("la franja se pinta antes de la tabla, como status y con texto (no sólo color)", () => {

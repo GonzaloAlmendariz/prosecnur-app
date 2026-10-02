@@ -94,9 +94,9 @@ describe("C5 · una sola definición de sorteo vigente", () => {
     const componentes = [docentes, egresados];
     const corridas = { doc: corrida("doc", 350), egr: corrida("egr", 200) };
     const { totales, actores, cadena } = cifrasDisenoAcreditacion({ componentes, corridas });
-    expect(totales.find((c) => c.clave === "sorteo")).toMatchObject({ value: "1 de 2", detalle: "1 sorteo viejo", tono: "alerta" });
+    expect(totales.find((c) => c.clave === "sorteo")).toMatchObject({ value: "1 de 2", detalle: "1 selección desactualizada", tono: "alerta" });
     expect(actores.map((a) => a.fase)).toEqual(["desactualizado", "sorteado"]);
-    expect(cadena.at(-1)).toBe("1 de 2 sorteados");
+    expect(cadena.at(-1)).toBe("1 de 2 seleccionados");
     expect(estadoMesaAcreditacion({ componentes, corridas, cargado: true })).toMatchObject({ clave: "desactualizado", tono: "alerta" });
   });
 
@@ -111,12 +111,12 @@ describe("C5 · una sola definición de sorteo vigente", () => {
     const { totales, actores, cadena } = cifrasDisenoAcreditacion({ componentes: [adm, est], corridas });
     expect(totales.find((c) => c.clave === "sorteo")?.value).toBe("0 de 2");
     expect(actores.every((a) => a.fase === "sin-calculo")).toBe(true);
-    expect(cadena).toEqual(["2 actores", "2 con N", "0 calculados", "0 de 2 sorteados"]);
+    expect(cadena).toEqual(["2 actores", "2 con N", "0 calculados", "0 de 2 seleccionados"]);
   });
 
   it("Selección (la ficha de la corrida) dice lo mismo que la banda", () => {
     const html = renderToStaticMarkup(<FichaCorrida corrida={corrida("doc", 390)} componente={{ ...docentes, resultado: null } as unknown as CalcMuestraComponente} />);
-    expect(html).toContain("El sorteo quedó desactualizado");
+    expect(html).toContain("La selección quedó desactualizada");
     expect(html).toContain("cálculo que ya no existe");
   });
 });
@@ -234,12 +234,12 @@ describe("Ajuste de Resultados en Acreditación", () => {
 });
 
 describe("Selección · la fila de cifras no se descuadra", () => {
-  it("el rótulo del sorteo es de una palabra y el detalle explica titulares + reservas", () => {
+  it("el rótulo del sorteo es de una palabra y el detalle explica principales + reemplazos", () => {
     const docentes = calculado("doc", "Docentes", 390);
     const cifras = cifrasDisenoGeneral({ comp: docentes, marco: null, corrida: corrida("doc", 390), seccion: "seleccion" });
     const sorteo = cifras.find((c) => c.clave === "sorteo");
-    expect(sorteo?.label).toBe("Sorteo");
-    expect(sorteo?.detalle).toContain("titulares + reservas");
+    expect(sorteo?.label).toBe("Selección");
+    expect(sorteo?.detalle).toContain("principales + reemplazos");
   });
 });
 

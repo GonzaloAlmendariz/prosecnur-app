@@ -1,6 +1,6 @@
 /**
  * Las dos tablas de un componente de muestra: sus estratos y su matriz de
- * servicios.
+ * celdas (volumen por cruce de dos dimensiones).
  *
  * Viven aquí y no en `CalcMuestraPage.tsx` porque ese archivo está congelado a
  * crecimiento y se había pasado de su línea base. Son presentacionales puras
@@ -144,14 +144,14 @@ export function MatrizServiciosTable({
     <section className="cmv2-panel">
       <div className="cmv2-panel-head">
         <span className="cmv2-eyebrow">Tabla editable</span>
-        <strong>Atenciones por servicio y municipalidad</strong>
+        <strong>Volumen por celda</strong>
       </div>
       <div className="cmv2-table-wrap">
         <table className="cmv2-table">
           <thead>
             <tr>
-              <th>Municipalidad / territorio</th>
-              <th>Servicio</th>
+              <th>Territorio o grupo</th>
+              <th>Servicio o categoría</th>
               <th>Volumen del marco</th>
               <th>Notas</th>
               <th />
@@ -195,19 +195,19 @@ export function MatrizServiciosTable({
           type="button"
           className="cmv2-ghost"
           onClick={() => {
-            const next = matrizGizEjemplo();
+            const next = matrizEjemplo();
             const total = next.reduce((sum, item) => sum + item.N, 0);
             onComponente(comp.id, { marco: { matriz_operativa: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
           }}
         >
-          <Wand2 size={14} /> Cargar ejemplo GIZ
+          <Wand2 size={14} /> Cargar ejemplo
         </button>
       </div>
     </section>
   );
 }
 
-/* Semillas de ejemplo del componente. `estrato` y `matrizGizEjemplo` los usa
+/* Semillas de ejemplo del componente. `estrato` y `matrizEjemplo` los usa
    además la mesa para sembrar un componente nuevo, por eso salen exportados. */
 export function estrato(
   label: string,
@@ -239,27 +239,25 @@ export function estrato(
 function matrizCell(): CalcMuestraMatrizOperativaCelda {
   return {
     id: uid("cell"),
-    territorio: "Territorio",
-    servicio: "Servicio",
+    territorio: "Territorio o grupo",
+    servicio: "Servicio o categoría",
     N: 0,
     notas: "",
   };
 }
 
-export function matrizGizEjemplo(): CalcMuestraMatrizOperativaCelda[] {
+/** Ejemplo ilustrativo con nombres genéricos: muestra la forma de la tabla, no datos de un estudio. */
+export function matrizEjemplo(): CalcMuestraMatrizOperativaCelda[] {
   return [
-    ["Villa El Salvador", "ULE", 280],
-    ["Villa El Salvador", "CIAM", 210],
-    ["Villa El Salvador", "OMAPED", 110],
-    ["Villa El Salvador", "DEMUNA", 213],
-    ["San Juan de Lurigancho", "ULE", 90],
-    ["San Juan de Lurigancho", "CIAM", 460],
-    ["San Juan de Lurigancho", "OMAPED", 230],
-    ["San Juan de Lurigancho", "DEMUNA", 131],
-    ["Ate", "ULE", 165],
-    ["Ate", "CIAM", 135],
-    ["Ate", "OMAPED", 145],
-    ["Ate", "DEMUNA", 271],
+    ["Territorio A", "Servicio 1", 280],
+    ["Territorio A", "Servicio 2", 210],
+    ["Territorio A", "Servicio 3", 110],
+    ["Territorio B", "Servicio 1", 90],
+    ["Territorio B", "Servicio 2", 460],
+    ["Territorio B", "Servicio 3", 230],
+    ["Territorio C", "Servicio 1", 165],
+    ["Territorio C", "Servicio 2", 135],
+    ["Territorio C", "Servicio 3", 145],
   ].map(([territorio, servicio, N]) => ({
     id: uid("cell"),
     territorio: String(territorio),

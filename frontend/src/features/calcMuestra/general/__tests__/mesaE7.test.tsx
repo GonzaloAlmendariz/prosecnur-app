@@ -40,7 +40,7 @@ const CATALOGO_RAW = {
         { clave: "z", rotulo: "Nivel de confianza", ayuda: "Se ingresa como z: 1.645 = 90 %, 1.96 = 95 %, 2.576 = 99 %." },
         { clave: "p", rotulo: "Proporción esperada", ayuda: "Sin estimación previa, 0.5 es lo conservador." },
         { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0.05 = ±5 puntos." },
-        { clave: "tasa_respuesta", rotulo: "Tasa de respuesta", ayuda: "El n a campo es el n de completas dividido por esta tasa." },
+        { clave: "tasa_respuesta", rotulo: "Tasa de respuesta", ayuda: "La muestra a contactar es el n de completas dividido por esta tasa." },
         { clave: "oversample_pct", rotulo: "Sobremuestra", ayuda: "Reserva adicional sobre los casos a abordar." },
         { clave: "tipo_indicador", rotulo: "Qué se estima", ayuda: "Una proporción usa p; una media, el coeficiente de variación.", tipo: "opciones", opciones: ["proporcion", "media"] },
         { clave: "cv", rotulo: "Coeficiente de variación esperado", ayuda: "Sólo para medias: desviación estándar / media.", tipo: "numero" },
@@ -57,7 +57,7 @@ const CATALOGO_RAW = {
       tecnica: "intencion_censal",
       parametros: [
         { clave: "cobertura_objetivo", rotulo: "Cobertura objetivo", ayuda: "Fracción del marco que se busca cubrir." },
-        { clave: "tasa_respuesta", rotulo: "Tasa de respuesta", ayuda: "El n a campo es el n de completas dividido por esta tasa." },
+        { clave: "tasa_respuesta", rotulo: "Tasa de respuesta", ayuda: "La muestra a contactar es el n de completas dividido por esta tasa." },
       ],
     },
   ],
@@ -69,7 +69,7 @@ const MEMORIA_RAW = [
   { paso: "Corrección por población finita", formula: "n = n0 / (1 + (n0 − 1) / N)", sustitucion: "384.16 / (1 + (384.16 − 1) / 5000)", resultado: "356.8 → 357" },
   { paso: "Encuestas completas objetivo", formula: "n objetivo = n (o la meta declarada, si la hay)", sustitucion: "357", resultado: "357" },
   { paso: "Casos a abordar por no respuesta", formula: "⌈n objetivo / tasa de respuesta⌉", sustitucion: "⌈357 / 0.7⌉", resultado: "510" },
-  { paso: "n a campo", formula: "casos a abordar + ⌈casos · sobremuestra⌉, con tope en N", sustitucion: "510 + ⌈510 · 0.1⌉", resultado: "561" },
+  { paso: "Muestra a contactar", formula: "casos a abordar + ⌈casos · sobremuestra⌉, con tope en N", sustitucion: "510 + ⌈510 · 0.1⌉", resultado: "561" },
   { paso: "Margen de error alcanzado", formula: "e = z · √(p(1 − p) · deff · (N − n) / (n (N − 1)))", sustitucion: "con n = 357 y N = 5000", resultado: "0.04999" },
 ];
 
@@ -301,7 +301,7 @@ describe("A1/A2 · Acreditación", () => {
       marco: { ...comp().marco, marco_validado: 300 },
       inferencia_acreditacion: { tecnica: "no_prob_cuotas", regla: "cuotas_min_150_si_N_>=_251", justificacion: "Docentes con N ≥ 251: cuotas." },
     });
-    expect(origenDeTecnica(inferido)).toEqual({ etiqueta: "Cuadro maestro", detalle: "Docentes con N ≥ 251: cuotas." });
+    expect(origenDeTecnica(inferido)).toEqual({ etiqueta: "Reglas de la plantilla", detalle: "Docentes con N ≥ 251: cuotas." });
     const sinCalcular = actor({ marco: { ...comp().marco, marco_validado: 300 }, inferencia_acreditacion: { tecnica: null, regla: "manual", justificacion: "" } });
     expect(origenDeTecnica(sinCalcular).etiqueta).toBe("Se infiere al calcular");
   });

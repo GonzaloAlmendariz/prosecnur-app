@@ -87,8 +87,8 @@ export function EstratosGeneralVista({
               <th scope="col">Estrato</th>
               <th scope="col" className="cmg-num">N<sub>h</sub></th>
               {conP && <th scope="col" className="cmg-num">p esperada</th>}
-              <th scope="col" className="cmg-num">n completas</th>
-              <th scope="col" className="cmg-num">n a campo</th>
+              <th scope="col" className="cmg-num">Casos completos</th>
+              <th scope="col" className="cmg-num">Muestra a contactar</th>
               <th scope="col">Reparto</th>
               {!marcoDeclarado && <th scope="col"><span className="cmg-sr-only">Quitar</span></th>}
             </tr>

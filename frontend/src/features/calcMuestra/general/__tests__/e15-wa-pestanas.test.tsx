@@ -47,18 +47,18 @@ describe("navegación v3 · la dimensión «pestaña» en Muestra general y Acre
     expect(firma(CALC_MUESTRA_GENERAL_PESTANAS.metodo)).toEqual([
       "metodo-tecnica:Técnica",
       "metodo-parametros:Parámetros",
-      "metodo-memoria:Cómo sale el n",
+      "metodo-memoria:Cálculo del n",
       "metodo-estratos:Estratos",
     ]);
     expect(firma(CALC_MUESTRA_GENERAL_PESTANAS.seleccion)).toEqual([
-      "seleccion-sorteo:Sorteo",
-      "seleccion-corrida:Corrida",
+      "seleccion-sorteo:Selección aleatoria",
+      "seleccion-corrida:Resumen",
       "seleccion-unidades:Unidades",
     ]);
     expect(firma(CALC_MUESTRA_ACREDITACION_PESTANAS.seleccion)).toEqual([
       "seleccion-marco:Archivo del marco",
-      "seleccion-sorteo:Sorteo",
-      "seleccion-corrida:Corrida",
+      "seleccion-sorteo:Selección aleatoria",
+      "seleccion-corrida:Resumen",
       "seleccion-unidades:Unidades",
     ]);
   });
@@ -143,9 +143,9 @@ describe("P4 · la siguiente condición enlaza con la pestaña donde se resuelve
     expect(enlaceSiguiente("marco_disponible", sortear, { seccion: "seleccion", pestana: "seleccion-sorteo" })).toBeNull();
   });
 
-  it("ya en la sección, nombra la pestaña: «Ir a Sorteo», no «Ir a Selección»", () => {
+  it("ya en la sección, nombra la pestaña: «Ir a Selección aleatoria», no «Ir a Selección»", () => {
     expect(enlaceSiguiente("marco_disponible", sortear, { seccion: "seleccion", pestana: "seleccion-corrida" }))
-      .toEqual({ etiqueta: "Ir a Sorteo", seccion: "seleccion", pestana: "seleccion-sorteo" });
+      .toEqual({ etiqueta: "Ir a Selección aleatoria", seccion: "seleccion", pestana: "seleccion-sorteo" });
   });
 
   it("el href escribe sección y pestaña y conserva el foco", () => {
@@ -212,10 +212,10 @@ describe("P1–P3 · la mesa pinta el rail de aulas y un tabpanel por pestaña",
     // El grupo medido envuelve sólo el cuerpo: la cabecera de la pestaña queda fuera (como en aulas).
     expect(html).toMatch(/class="cmg-pestana-cuerpo" data-qa-geometry-group="calc-muestra\/general-pestana-metodo-memoria" data-qa-geometry-contract="intrinsic"/);
     // La pestaña formula su pregunta, con la cabecera de aulas.
-    expect(html).toContain('<h2 id="cmv2-active-local-title">Cómo sale el n</h2>');
-    expect(html).toContain("¿qué fórmula y qué cadena llevan del N al n a campo?");
+    expect(html).toContain('<h2 id="cmv2-active-local-title">Cálculo del n</h2>');
+    expect(html).toContain("¿qué fórmula lleva del N de la población al n y a la muestra a contactar?");
     // P2 · cadena del marco al n a campo (patrón 5) y memoria (patrón 6).
-    expect(html).toContain("Del marco al n a campo");
+    expect(html).toContain("Del marco a la muestra a contactar");
     expect(html).toContain('class="cmv2-uni-flujo"');
     // Lo de otras pestañas no se pinta.
     expect(html).not.toContain('id="cmg-tecnica-titulo"');
@@ -240,7 +240,7 @@ describe("P1–P3 · la mesa pinta el rail de aulas y un tabpanel por pestaña",
     expect(ficha).toContain('data-qa-geometry-group="calc-muestra/general-ficha-estudio"');
   });
 
-  it("P1 · Selección parte en Sorteo · Corrida · Unidades", () => {
+  it("P1 · Selección parte en Selección aleatoria · Resumen · Unidades", () => {
     const html = mesa("&pestana=seleccion-unidades", "seleccion");
     expect(html).toMatch(/aria-labelledby="cmg-tab-seleccion-seleccion-unidades"/);
     for (const id of ["seleccion-sorteo", "seleccion-corrida", "seleccion-unidades"]) {
@@ -266,9 +266,9 @@ describe("cadena del n", () => {
   it("sólo publica lo que el motor devolvió", () => {
     const comp = { resultado: { n_objetivo: 357, n_operativo: 476, tasa_respuesta_esperada: 0.75 }, parametros: {} } as unknown as CalcMuestraComponente;
     expect(cadenaDelN(comp, 5000).map((e) => [e.label, e.valor, e.estado])).toEqual([
-      ["N del marco", "5,000", "ready"],
-      ["n completas", "357", "ready"],
-      ["n a campo", "476", "ready"],
+      ["Tamaño del marco (N)", "5,000", "ready"],
+      ["Casos completos", "357", "ready"],
+      ["Muestra a contactar", "476", "ready"],
     ]);
     const sinCalculo = cadenaDelN({ resultado: null, parametros: {} } as unknown as CalcMuestraComponente, 0);
     expect(sinCalculo.every((e) => e.valor === "—" && e.estado === "pending")).toBe(true);

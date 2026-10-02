@@ -36,7 +36,7 @@ const ETIQUETA_SIN_SORTEO: Partial<Record<CalcMuestraTecnica, string>> = {
 export function tecnicaDelActor(tecnica: CalcMuestraTecnica | undefined): TecnicaDelActor {
   const modalidad = modalidadDeTecnica(tecnica);
   if (modalidad === "censo") {
-    return { clase: "censal", etiqueta: "Cobertura censal", sorteable: true, motivo: null };
+    return { clase: "censal", etiqueta: "Censo", sorteable: true, motivo: null };
   }
   if (modalidad === "probabilistica") {
     return { clase: "probabilistica", etiqueta: "Muestra probabilística", sorteable: true, motivo: null };
@@ -47,7 +47,7 @@ export function tecnicaDelActor(tecnica: CalcMuestraTecnica | undefined): Tecnic
   }
   return {
     clase: "sin_sorteo",
-    etiqueta: (tecnica && ETIQUETA_SIN_SORTEO[tecnica]) ?? "Sin sorteo",
+    etiqueta: (tecnica && ETIQUETA_SIN_SORTEO[tecnica]) ?? "Sin selección",
     sorteable: false,
     motivo: motivoSinSorteo(codigo),
   };
@@ -80,15 +80,15 @@ export function estadoDelActor(args: {
   vigente?: boolean;
 }): EstadoDelActor {
   const { tecnica, cargado, marco, corrida, vigente = true } = args;
-  if (!tecnica.sorteable) return { fase: "sin_sorteo", etiqueta: "Sin sorteo", detalle: "no da π" };
+  if (!tecnica.sorteable) return { fase: "sin_sorteo", etiqueta: "Sin selección", detalle: "no da π" };
   if (!cargado) return { fase: "leyendo", etiqueta: "Leyendo…", detalle: "" };
   if (!marco) return { fase: "sin_marco", etiqueta: "Sin marco", detalle: "" };
   if (!corrida) return { fase: "marco", etiqueta: "Marco declarado", detalle: `N=${formatearEntero(marco.N)}` };
   const meta = corrida.corrida;
-  if (!vigente) return { fase: "sorteo_viejo", etiqueta: "Sorteo viejo", detalle: "vuelve a sortear" };
+  if (!vigente) return { fase: "sorteo_viejo", etiqueta: "Selección desactualizada", detalle: "vuelve a seleccionar" };
   return {
     fase: "sorteado",
-    etiqueta: "Sorteado",
+    etiqueta: "Seleccionado",
     detalle: meta.modalidad === "censo"
       ? `${formatearEntero(meta.n_titulares)} a contactar`
       : `${formatearEntero(meta.n_titulares)} de N=${formatearEntero(meta.N)}`,

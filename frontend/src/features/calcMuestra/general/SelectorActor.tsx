@@ -47,7 +47,7 @@ export function SelectorActor({
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Actores</span>
-          <h3 className="cmg-panel-titulo" id="cmg-actores-titulo">Marco y sorteo por actor</h3>
+          <h3 className="cmg-panel-titulo" id="cmg-actores-titulo">Marco y selección por actor</h3>
         </div>
       </div>
       <ul

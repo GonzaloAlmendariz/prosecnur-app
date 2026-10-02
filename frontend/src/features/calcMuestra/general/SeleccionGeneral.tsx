@@ -153,22 +153,22 @@ export function SeleccionGeneralVista({
       data-qa-geometry-contract="intrinsic"
     >
       {!cargado ? (
-        <LoadingBlock variant="inline" label="Leyendo el marco y el último sorteo…" />
+        <LoadingBlock variant="inline" label="Leyendo el marco y la última selección…" />
       ) : errorCarga && !marco ? (
-        <ErrorBlock label="No se pudo leer el estado del sorteo" detail={errorCarga} />
+        <ErrorBlock label="No se pudo leer el estado de la selección" detail={errorCarga} />
       ) : !componente || !marco ? (
         <section className="cmv2-panel cmg-sorteo-vacio" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
           <div className="cmv2-panel-head">
             <div>
-              <span className="cmv2-eyebrow">Sorteo</span>
-              <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">Método, semilla y reservas</h3>
+              <span className="cmv2-eyebrow">Selección aleatoria</span>
+              <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">Método, semilla y reemplazos</h3>
             </div>
           </div>
           {enActor ? (
             <EmptyState
               variant="inline"
               icon={<Database size={18} aria-hidden="true" />}
-              title="Todavía no hay sorteo"
+              title="Todavía no hay selección"
               hint="Siguiente: declara el archivo del marco de este actor."
               cta={(
                 <Link className="cmv2-ghost" to={hrefPestana("seleccion-marco")}>
@@ -194,8 +194,8 @@ export function SeleccionGeneralVista({
           <section className="cmv2-panel cmg-sorteo" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
             <div className="cmv2-panel-head">
               <div>
-                <span className="cmv2-eyebrow">Sorteo</span>
-                <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reservas"}</h3>
+                <span className="cmv2-eyebrow">Selección aleatoria</span>
+                <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reemplazos"}</h3>
               </div>
             </div>
 
@@ -264,7 +264,7 @@ export function SeleccionGeneralVista({
 
               {!esCenso && (
               <div className="cmg-campo" data-qa-geometry-member>
-                <label htmlFor="cmg-reservas">Reservas por estrato</label>
+                <label htmlFor="cmg-reservas">Reemplazos por estrato</label>
                 <input
                   id="cmg-reservas"
                   type="number"
@@ -304,10 +304,10 @@ export function SeleccionGeneralVista({
               )}
             </div>
 
-            {estado.error && <ErrorDelMotor error={estado.error} label="No se pudo sortear" />}
+            {estado.error && <ErrorDelMotor error={estado.error} label="No se pudo seleccionar la muestra" />}
             {motivoBloqueo && (
               <div id="cmg-sortear-motivo">
-                <ErrorBlock label="Esta técnica no se sortea" detail={motivoBloqueo} />
+                <ErrorBlock label="Esta técnica no admite selección aleatoria" detail={motivoBloqueo} />
               </div>
             )}
 
@@ -322,7 +322,7 @@ export function SeleccionGeneralVista({
                 {estado.sorteando
                   ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
                   : <Shuffle size={14} aria-hidden="true" />}
-                {corrida ? "Sortear de nuevo" : "Sortear"}
+                {corrida ? "Seleccionar de nuevo" : "Seleccionar muestra"}
               </button>
               {corrida && (
                 <Link className="cmv2-ghost" to={hrefPestana("seleccion-corrida")}>
@@ -335,7 +335,7 @@ export function SeleccionGeneralVista({
                 <span className="cmg-nota">
                   {esCenso
                     ? `Ordena al azar las ${fmtInt(marco.N)} unidades del marco.`
-                    : `Sortea el n a campo del componente sobre ${fmtInt(marco.N)} unidades.`}
+                    : `Selecciona la muestra a contactar del componente sobre ${fmtInt(marco.N)} unidades.`}
                 </span>
               )}
             </div>
@@ -349,17 +349,17 @@ export function SeleccionGeneralVista({
           <div className="cmv2-panel-head">
             <div>
               <span className="cmv2-eyebrow">Unidades</span>
-              <h3 className="cmg-panel-titulo" id="cmg-unidades-vacio-titulo">Listado del sorteo</h3>
+              <h3 className="cmg-panel-titulo" id="cmg-unidades-vacio-titulo">Listado de la selección</h3>
             </div>
           </div>
           <EmptyState
             variant="inline"
             icon={<ListOrdered size={18} aria-hidden="true" />}
-            title="Todavía no hay sorteo"
-            hint="Siguiente: sortea en la pestaña Sorteo; aquí aparecerán las unidades con π y peso."
+            title="Todavía no hay selección"
+            hint="Siguiente: selecciona en la pestaña Selección aleatoria; aquí aparecerán las unidades con π y peso."
             cta={(
               <Link className="cmv2-ghost" to={hrefPestana("seleccion-sorteo")}>
-                Ir a Sorteo
+                Ir a Selección aleatoria
               </Link>
             )}
           />

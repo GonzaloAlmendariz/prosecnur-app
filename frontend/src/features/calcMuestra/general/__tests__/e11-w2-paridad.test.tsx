@@ -231,7 +231,7 @@ describe("V4 · los avisos del parámetro hablan con AvisoModulo", () => {
 describe("V7 · un botón deshabilitado dice por qué", () => {
   it("motivos puros de Sortear y Declarar", () => {
     expect(motivoNoSortear({ semillaValida: false, usaReservas: true, reservasValidas: true })).toContain("semilla");
-    expect(motivoNoSortear({ semillaValida: true, usaReservas: true, reservasValidas: false })).toContain("reservas");
+    expect(motivoNoSortear({ semillaValida: true, usaReservas: true, reservasValidas: false })).toContain("reemplazos");
     expect(motivoNoSortear({ semillaValida: true, usaReservas: false, reservasValidas: false })).toBeNull();
     expect(motivoNoSortear({ semillaValida: true, usaReservas: true, reservasValidas: true })).toBeNull();
     expect(motivoNoDeclarar(ARCHIVO_MARCO_INICIAL)).toContain("Sube");

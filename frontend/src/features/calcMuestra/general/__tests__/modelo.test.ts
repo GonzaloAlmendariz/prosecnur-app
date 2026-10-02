@@ -141,7 +141,7 @@ describe("selección", () => {
     expect(opcionesMetodo(marco("hogares")).find((o) => o.id === "pps")?.motivoDeshabilitado).toBeNull();
   });
 
-  it("la semilla por defecto es la del motor y se valida al sortear", () => {
+  it("la semilla por defecto es la del motor y se valida al seleccionar", () => {
     expect(SELECCION_INICIAL.semilla).toBe("20260924");
     expect(semillaValida("20260924")).toBe(20260924);
     expect(semillaValida("0")).toBeNull();
@@ -150,7 +150,7 @@ describe("selección", () => {
     expect(reservasValidas("-1")).toBeNull();
   });
 
-  it("precarga método y semilla de la corrida vigente una sola vez", () => {
+  it("precarga método y semilla de la selección vigente una sola vez", () => {
     let e = seleccionReducer(SELECCION_INICIAL, { tipo: "precargar", corrida: corrida() });
     expect(e).toMatchObject({ metodo: "sistematico", semilla: "42", precargadoDe: "r1" });
     e = seleccionReducer(e, { tipo: "semilla", valor: "7" });

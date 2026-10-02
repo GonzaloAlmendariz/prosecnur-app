@@ -134,7 +134,7 @@ describe("M6/M7 · actores y chips de estado", () => {
       id: "a1",
       nombre: "Docentes",
       tecnica: { clase: "probabilistica", etiqueta: "Muestra probabilística", sorteable: true, motivo: null },
-      estado: { fase: "sorteado", etiqueta: "Sorteado", detalle: "n 120" },
+      estado: { fase: "sorteado", etiqueta: "Seleccionado", detalle: "n 120" },
       conMarco: true,
     } as unknown as Parameters<typeof SelectorActor>[0]["actores"][number];
     const actores = renderToStaticMarkup(<SelectorActor actores={[actor]} activoId="a1" onElegir={() => {}} />);

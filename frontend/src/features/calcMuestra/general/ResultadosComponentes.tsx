@@ -43,7 +43,7 @@ export function ResultadosComponentes({
   const irASeccion = useIrASeccionGeneral();
   const { ref, desborda } = useDesbordaHorizontal<HTMLDivElement>();
   const productos = Array.from(new Set(componentes.map(tecnicaProducto)));
-  const titulo = productos.length > 1 ? "Componentes mixtos calculables" : productoLabel(productos[0] ?? "muestra_probabilistica");
+  const titulo = productos.length > 1 ? "Componentes mixtos" : productoLabel(productos[0] ?? "muestra_probabilistica");
   const vacio = hayResultado(componentes) ? null : vacioDeResultados(modo, componentes);
   const avisos = componentes.flatMap((comp) => avisosDelResultado(comp).map((aviso) => ({ comp, aviso })));
   // Las corridas y marcos que la mesa ya hidrató (useDisenoVigente): el mismo
