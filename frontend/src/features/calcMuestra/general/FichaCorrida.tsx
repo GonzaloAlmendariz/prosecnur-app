@@ -71,9 +71,9 @@ export function FichaCorrida({
     <section className="cmv2-panel cmg-ficha" aria-labelledby="cmg-ficha-titulo" data-qa-geometry-member>
       <div className="cmv2-panel-head">
         <div>
-          <span className="cmv2-eyebrow">Corrida vigente</span>
+          <span className="cmv2-eyebrow">Selección vigente</span>
           <h3 id="cmg-ficha-titulo" className="cmg-panel-titulo cmv2-uni-swap" data-cambiando={tituloCambiando || undefined}>
-            {nombre ? nombre.titulo : "Sin sorteo"}
+            {nombre ? nombre.titulo : "Sin selección"}
           </h3>
         </div>
         <div className="cmv2-panel-head-actions cmg-exportar">
@@ -94,7 +94,7 @@ export function FichaCorrida({
               ? MOTIVO_SIN_CORRIDA_EXPORT
               : exp.ultimo
                 ? `Descargado: ${exp.ultimo}`
-                : "Corrida, memoria de cálculo, estratos y listado."}
+                : "Selección, memoria de cálculo, estratos y listado."}
           </small>
         </div>
       </div>
@@ -105,8 +105,8 @@ export function FichaCorrida({
         <EmptyState
           variant="inline"
           icon={<Shuffle size={18} aria-hidden="true" />}
-          title="Todavía no hay sorteo"
-          hint="Elige el método y sortea: aquí aparecerán la ficha, el reparto por estrato y el listado con π y peso."
+          title="Todavía no hay selección"
+          hint="Elige el método y selecciona la muestra: aquí aparecerán la ficha, el reparto por estrato y el listado con π y peso."
         />
       ) : (
         <>
@@ -115,7 +115,7 @@ export function FichaCorrida({
               (el n a campo cambió en Método) se anuncia sin robar el foco. */}
           <div className="cmg-avisos-vivos" aria-live="polite">
             {desactualizado && (
-              <AvisoModulo tone="warn" role="note" title="El sorteo quedó desactualizado">
+              <AvisoModulo tone="warn" role="note" title="La selección quedó desactualizada">
                 {desactualizado.texto} Vuelve a sortear.
               </AvisoModulo>
             )}
@@ -125,21 +125,21 @@ export function FichaCorrida({
               </AvisoModulo>
             )}
             {c.reservas_omitidas_pps && (
-              <AvisoModulo tone="info" role="note">En PPS no se sortean reservas; se pidieron y se omitieron.</AvisoModulo>
+              <AvisoModulo tone="info" role="note">Con PPS no se seleccionan reemplazos; se pidieron y se omitieron.</AvisoModulo>
             )}
           </div>
 
           <CifraFila>
             <CifraMotor
-              label={esCenso ? "Unidades a contactar" : "n a campo usado"}
+              label={esCenso ? "Unidades a contactar" : "Muestra a contactar usada"}
               value={fmtInt(esCenso ? c.n_titulares : corrida.n_fuente)}
-              detalle={esCenso ? "el marco entero" : "del cálculo vigente al sortear"}
+              detalle={esCenso ? "el marco entero" : "del cálculo vigente al seleccionar"}
               tono={desactualizado?.motivo === "n" ? "alerta" : undefined}
               hero
             />
-            <CifraMotor label={esCenso ? "π" : "Titulares"} value={esCenso ? "1" : fmtInt(c.n_titulares)} detalle={esCenso ? "cada unidad" : "a contactar primero"} />
-            <CifraMotor label="Reservas" value={fmtInt(c.n_reservas)} detalle={c.n_reservas > 0 ? "se liberan por lotes" : "sin reservas"} />
-            <CifraMotor label="N del marco" value={fmtInt(c.N)} detalle={`huella ${hashCorto(c.marco_hash, 8)}`} />
+            <CifraMotor label={esCenso ? "π" : "Principales"} value={esCenso ? "1" : fmtInt(c.n_titulares)} detalle={esCenso ? "cada unidad" : "a contactar primero"} />
+            <CifraMotor label="Reemplazos" value={fmtInt(c.n_reservas)} detalle={c.n_reservas > 0 ? "se liberan por lotes" : "sin reemplazos"} />
+            <CifraMotor label="Tamaño del marco (N)" value={fmtInt(c.N)} detalle={`huella ${hashCorto(c.marco_hash, 8)}`} />
           </CifraFila>
 
           <dl className="cmg-traza">
@@ -147,7 +147,7 @@ export function FichaCorrida({
             <div><dt>Semilla</dt><dd><code>{c.semilla}</code></dd></div>
             <div><dt>RNG</dt><dd><code>{partirEnBarras(c.rng_kind)}</code></dd></div>
             <div><dt>R</dt><dd>{c.r_version || "—"}</dd></div>
-            <div><dt>Corrida</dt><dd><code title={c.run_id}>{hashCorto(c.run_id, 12)}</code></dd></div>
+            <div><dt>Identificador</dt><dd><code title={c.run_id}>{hashCorto(c.run_id, 12)}</code></dd></div>
             <div><dt>Marco</dt><dd><code title={c.marco_hash}>{hashCorto(c.marco_hash)}</code></dd></div>
             <div><dt>Configuración</dt><dd><code title={c.config_hash}>{hashCorto(c.config_hash)}</code></dd></div>
             <div><dt>Fecha</dt><dd title={corrida.sorteado_at}>{formatearFechaLocal(corrida.sorteado_at)}</dd></div>
@@ -155,7 +155,7 @@ export function FichaCorrida({
 
           {estratificada && (
             <RepartoEstratosGrafico
-              titulo="Reparto del sorteo por estrato"
+              titulo="Reparto de la selección por estrato"
               filas={filasDesdeCorrida(corrida)}
               origen="corrida"
               tablaAlternativa={false}
@@ -164,13 +164,13 @@ export function FichaCorrida({
 
           <div className="cmg-tabla-wrap">
             <table className="cmg-tabla">
-              <caption className="cmg-sr-only">Reparto por estrato de la corrida</caption>
+              <caption className="cmg-sr-only">Reparto por estrato de la selección</caption>
               <thead>
                 <tr>
                   <th scope="col">Estrato</th>
                   <th scope="col" className="cmg-num cmg-simbolo">N<sub>h</sub></th>
-                  <th scope="col" className="cmg-num cmg-simbolo">n<sub>h</sub> a campo</th>
-                  <th scope="col" className="cmg-num">Reservas</th>
+                  <th scope="col" className="cmg-num cmg-simbolo">n<sub>h</sub> a contactar</th>
+                  <th scope="col" className="cmg-num">Reemplazos</th>
                   <th scope="col" className="cmg-num cmg-simbolo">π</th>
                   <th scope="col" className="cmg-num">Peso base</th>
                 </tr>

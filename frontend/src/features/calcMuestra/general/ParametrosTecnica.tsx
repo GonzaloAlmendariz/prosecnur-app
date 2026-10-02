@@ -81,7 +81,7 @@ export function ParametrosTecnicaVista({
   const declarados = parametrosDeTecnica(estado.catalogo, comp.tecnica);
   const parametros = declarados ? parametrosVisibles(declarados, comp.parametros) : null;
   if (!parametros || parametros.length === 0) {
-    return <p className="cmg-nota">Esta técnica no usa parámetros de cálculo en esta mesa.</p>;
+    return <p className="cmg-nota">Esta técnica no usa parámetros de cálculo en este cálculo.</p>;
   }
   const avisos = avisosVigentes(comp);
   return (

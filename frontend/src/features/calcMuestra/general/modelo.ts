@@ -77,9 +77,9 @@ const PROBABILISTICAS_FUERA_DEL_SORTEO: ReadonlySet<string> = new Set([
 
 export function motivoSinSorteo(tecnica: string): string {
   if (PROBABILISTICAS_FUERA_DEL_SORTEO.has(tecnica)) {
-    return `La técnica «${tecnica}» no sortea elementos de un marco único: este sorteo no la cubre.`;
+    return `La técnica «${tecnica}» no selecciona elementos de un marco único: esta selección no la cubre.`;
   }
-  return `La técnica «${tecnica}» no selecciona unidades con probabilidad conocida: no hay sorteo ni π que publicar.`;
+  return `La técnica «${tecnica}» no selecciona unidades con probabilidad conocida: no hay selección ni probabilidad de selección (π) que publicar.`;
 }
 
 export const TEXTO_COBERTURA_CENSAL = "Cobertura censal: el marco entero en orden aleatorio de contacto (π = 1).";
@@ -373,7 +373,7 @@ export function opcionesMetodo(marco: CalcMuestraGeneralMarco | null): OpcionMet
   ];
 }
 
-export const MOTIVO_SIN_RESERVAS_PPS = "En PPS no se sortean reservas: su π al liberarlas no sería exacta.";
+export const MOTIVO_SIN_RESERVAS_PPS = "Con PPS no se seleccionan reemplazos: su probabilidad de selección (π) al liberarlos no sería exacta.";
 
 export function etiquetaMetodo(metodo: CalcMuestraGeneralMetodo): string {
   return metodo === "sistematico" ? "Sistemático" : metodo === "pps" ? "PPS" : "MAS";
@@ -485,7 +485,7 @@ export function exportReducer(estado: ExportEstado, accion: ExportAccion): Expor
   }
 }
 
-export const MOTIVO_SIN_CORRIDA_EXPORT = "Sortea primero: el libro sale de la corrida vigente.";
+export const MOTIVO_SIN_CORRIDA_EXPORT = "Selecciona primero: el libro sale de la selección vigente.";
 
 // ---------------------------------------------------------------------------
 // Por qué un botón no se puede usar (E11 · V7)
@@ -502,8 +502,8 @@ export function motivoNoSortear(args: {
   usaReservas: boolean;
   reservasValidas: boolean;
 }): string | null {
-  if (!args.semillaValida) return "Falta una semilla válida para sortear.";
-  if (args.usaReservas && !args.reservasValidas) return "Las reservas deben ser un entero de 0 a 10,000.";
+  if (!args.semillaValida) return "Falta una semilla válida para seleccionar.";
+  if (args.usaReservas && !args.reservasValidas) return "Los reemplazos deben ser un entero de 0 a 10,000.";
   return null;
 }
 

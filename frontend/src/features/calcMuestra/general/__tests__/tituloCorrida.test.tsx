@@ -78,6 +78,6 @@ describe("rótulo de la técnica", () => {
   it("una técnica calculada lleva su asignación", () => {
     expect(tecnicaCalculadaLabel(comp("prob_estratificado", { resultado: "neyman" }))).toBe("Estratificado · Neyman");
     expect(tecnicaCalculadaLabel(comp("prob_estratificado"))).toBe("Estratificado · proporcional");
-    expect(tecnicaCalculadaLabel(comp("prob_aleatorio_simple"))).toBe("Probabilístico clásico");
+    expect(tecnicaCalculadaLabel(comp("prob_aleatorio_simple"))).toBe("Aleatorio simple");
   });
 });

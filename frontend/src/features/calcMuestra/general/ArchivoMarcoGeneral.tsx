@@ -24,9 +24,9 @@ import { guardarEstudioPendiente, useMuestraGeneral } from "./useMuestraGeneral"
 import "./general.css";
 
 const ROLES: Array<{ rol: keyof ColumnasElegidas; label: string; ayuda: string; vacio: string | null }> = [
-  { rol: "id", label: "Id de la unidad", ayuda: "Clave única de cada fila. Ordena el marco antes de sortear.", vacio: null },
-  { rol: "estrato", label: "Estrato", ayuda: "Reparte la muestra entre grupos y sortea dentro de cada uno.", vacio: "Sin estrato" },
-  { rol: "tamano", label: "Tamaño", ayuda: "Medida de tamaño para sortear con probabilidad proporcional (PPS).", vacio: "Sin tamaño" },
+  { rol: "id", label: "Id de la unidad", ayuda: "Clave única de cada fila. Ordena el marco antes de seleccionar.", vacio: null },
+  { rol: "estrato", label: "Estrato", ayuda: "Reparte la muestra entre grupos y selecciona dentro de cada uno.", vacio: "Sin estrato" },
+  { rol: "tamano", label: "Tamaño", ayuda: "Medida de tamaño para seleccionar con probabilidad proporcional (PPS).", vacio: "Sin tamaño" },
 ];
 
 /** Id del botón de subida: el vacío de la Selección de un actor lleva el foco aquí. */

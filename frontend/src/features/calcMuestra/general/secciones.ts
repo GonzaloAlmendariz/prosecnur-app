@@ -12,20 +12,20 @@ export type EncabezadoDeSeccion = { titulo: string; linea: string };
 
 export const MODO_ETIQUETA: Record<ModoMesa, string> = {
   marco_disponible: "Muestra general",
-  acreditacion: "Acreditación",
+  acreditacion: "Metas por grupo",
 };
 
 const ENCABEZADOS: Record<ModoMesa, Record<string, EncabezadoDeSeccion>> = {
   marco_disponible: {
-    marco: { titulo: "Marco", linea: "Qué unidades hay, en qué archivo y con qué variables de control." },
-    metodo: { titulo: "Método", linea: "La técnica, los parámetros que usa y cómo sale el n." },
-    seleccion: { titulo: "Selección", linea: "Sorteo reproducible del marco, con π y peso por unidad." },
-    resultados: { titulo: "Resultados", linea: "El n calculado, su reparto y la propuesta." },
+    marco: { titulo: "Marco", linea: "Qué unidades tiene el marco muestral, en qué archivo y con qué variables para estratificar o fijar cuotas." },
+    metodo: { titulo: "Método", linea: "La técnica de muestreo, sus parámetros y cómo se calcula el tamaño de muestra (n)." },
+    seleccion: { titulo: "Selección", linea: "Selección aleatoria reproducible del marco, con probabilidad de selección (π) y peso por unidad." },
+    resultados: { titulo: "Resultados", linea: "El tamaño de muestra (n) calculado, su reparto por estrato y la propuesta." },
   },
   acreditacion: {
     actores: { titulo: "Actores", linea: "Marco, canal y meta mínima de cada actor." },
     contexto: { titulo: "Contexto", linea: "Datos del estudio que van al reporte." },
-    seleccion: { titulo: "Selección", linea: "Marco y sorteo de cada actor, con π y peso." },
+    seleccion: { titulo: "Selección", linea: "Marco y selección aleatoria de cada actor, con probabilidad de selección (π) y peso." },
     resultados: { titulo: "Resultados", linea: "Meta y n de cada actor." },
   },
 };
@@ -81,19 +81,19 @@ export function origenDeTecnica(comp: CalcMuestraComponente): OrigenDeTecnica {
   const inferencia = comp.inferencia_acreditacion;
   const regla = inferencia?.regla ?? "";
   if (!REGLAS_SIN_INFERENCIA.has(regla)) {
-    return { etiqueta: "Cuadro maestro", detalle: inferencia?.justificacion ?? "" };
+    return { etiqueta: "Reglas de la plantilla", detalle: inferencia?.justificacion ?? "" };
   }
   if (regla === "sin_inferencia") {
-    return { etiqueta: "Sin regla del cuadro", detalle: inferencia?.justificacion ?? "" };
+    return { etiqueta: "Sin regla de la plantilla", detalle: inferencia?.justificacion ?? "" };
   }
   if (!(safeNumber(comp.marco?.marco_validado, 0) > 0)) {
-    return { etiqueta: "Sin N: técnica inicial", detalle: "Ingresa el marco para que el cuadro maestro infiera la técnica." };
+    return { etiqueta: "Sin N: técnica inicial", detalle: "Ingresa el marco para que las reglas de la plantilla infieran la técnica." };
   }
   if (comp.canal_recojo === "sin_definir") {
-    return { etiqueta: "Sin canal: técnica inicial", detalle: "Define el canal para que el cuadro maestro infiera la técnica." };
+    return { etiqueta: "Sin canal: técnica inicial", detalle: "Define el canal para que las reglas de la plantilla infieran la técnica." };
   }
   if (comp.actor_categoria === "otros") {
-    return { etiqueta: "Técnica manual", detalle: "El cuadro maestro no tiene regla para este actor." };
+    return { etiqueta: "Técnica manual", detalle: "Las reglas de la plantilla no cubren este actor." };
   }
-  return { etiqueta: "Se infiere al calcular", detalle: "El cuadro maestro fija la técnica al calcular con este N y canal." };
+  return { etiqueta: "Se infiere al calcular", detalle: "Las reglas de la plantilla fijan la técnica al calcular con este N y canal." };
 }

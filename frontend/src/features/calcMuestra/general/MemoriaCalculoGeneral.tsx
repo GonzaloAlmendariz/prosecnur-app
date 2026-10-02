@@ -47,7 +47,7 @@ export function MemoriaCalculoGeneral({
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Memoria de cálculo</span>
-          <h3 id="cmg-memoria-titulo" className="cmg-panel-titulo">Cómo sale el n</h3>
+          <h3 id="cmg-memoria-titulo" className="cmg-panel-titulo">Cómo se calcula el n</h3>
         </div>
         {pasos.length > 0 && <span className="cmv2-pill-soft">{pasos.length} pasos</span>}
       </div>

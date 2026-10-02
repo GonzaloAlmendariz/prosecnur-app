@@ -57,3 +57,57 @@
     font-size: 14px;
   }
 }
+
+/* Dos niveles (2026-10-02): «Muestra general» a todo el ancho y, aparte, las
+ * plantillas especializadas en tres columnas. Tres clases de especificidad para
+ * pisar la fila mínima de 386 px de `.cmv2-frame-grid--routes`, que sólo tiene
+ * sentido para la fila de cuatro tarjetas iguales. */
+.cmv2-route-hub .cmv2-frame-grid--routes.cmv2-frame-grid--principal {
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: auto;
+}
+
+.cmv2-route-hub .cmv2-frame-grid--principal .cmv2-frame-card {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto auto auto;
+  justify-content: stretch;
+}
+
+.cmv2-route-hub .cmv2-frame-grid--principal .cmv2-frame-card > p {
+  max-width: 78ch;
+}
+
+.cmv2-route-hub .cmv2-frame-grid--principal .cmv2-card-answers {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cmv2-route-hub .cmv2-frame-grid--routes.cmv2-frame-grid--plantillas {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cmv2-plantillas-head {
+  display: grid;
+  gap: 2px;
+  padding-top: var(--pulso-space-2);
+}
+
+.cmv2-plantillas-head h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmv2-plantillas-head p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .cmv2-route-hub .cmv2-frame-grid--principal .cmv2-card-answers,
+  .cmv2-route-hub .cmv2-frame-grid--routes.cmv2-frame-grid--plantillas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

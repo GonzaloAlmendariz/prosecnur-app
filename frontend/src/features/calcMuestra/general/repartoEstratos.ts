@@ -155,12 +155,12 @@ export function anchosPrevios(
 /** Lo que el tooltip de una fila publica; sin datos, la fila no miente. */
 export function tooltipDeFila(fila: FilaDibujo, origen: OrigenReparto): TooltipDatos {
   const filas: { label: string; valor: string }[] = [
-    { label: origen === "actores" ? "N del marco" : "N del estrato", valor: fmtInt(fila.N) },
+    { label: origen === "actores" ? "Tamaño del marco (N)" : "N del estrato", valor: fmtInt(fila.N) },
   ];
-  if (fila.n != null) filas.push({ label: "n completas", valor: fmtInt(fila.n) });
-  if (fila.nCampo != null) filas.push({ label: origen === "corrida" ? "n sorteado" : "n a campo", valor: fmtInt(fila.nCampo) });
+  if (fila.n != null) filas.push({ label: "Casos completos", valor: fmtInt(fila.n) });
+  if (fila.nCampo != null) filas.push({ label: origen === "corrida" ? "n seleccionado" : "Muestra a contactar", valor: fmtInt(fila.nCampo) });
   if (origen === "actores") {
-    filas.push({ label: "Fracción a campo", valor: fmtPct(fila.pi) });
+    filas.push({ label: "Fracción a contactar", valor: fmtPct(fila.pi) });
   } else {
     filas.push({ label: "π", valor: fila.pi != null ? formatearPi(fila.pi) : "por unidad" });
     filas.push({ label: "Peso base (1/π)", valor: fila.peso != null ? fmtDec(fila.peso, 2) : "—" });
@@ -177,7 +177,7 @@ export function resumenReparto(filas: readonly FilaReparto[], origen: OrigenRepa
   const campo = filas.reduce((acc, f) => acc + (f.nCampo ?? f.n ?? 0), 0);
   const conPi = filas.filter((f) => f.pi != null);
   const partes = [
-    `Reparto de ${fmtInt(campo)} ${origen === "corrida" ? "sorteados" : "a campo"} entre ${fmtInt(filas.length)} ${unidad} de un marco de ${fmtInt(N)}.`,
+    `Reparto de ${fmtInt(campo)} ${origen === "corrida" ? "seleccionados" : "a contactar"} entre ${fmtInt(filas.length)} ${unidad} de un marco de ${fmtInt(N)}.`,
   ];
   if (conPi.length >= 2) {
     const orden = [...conPi].sort((a, b) => (a.pi ?? 0) - (b.pi ?? 0));

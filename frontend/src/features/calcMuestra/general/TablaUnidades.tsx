@@ -16,8 +16,8 @@ import "./general.css";
 
 const FILTROS: Array<{ id: FiltroUnidades; label: string }> = [
   { id: "todas", label: "Todas" },
-  { id: "titular", label: "Titulares" },
-  { id: "reserva", label: "Reservas" },
+  { id: "titular", label: "Principales" },
+  { id: "reserva", label: "Reemplazos" },
 ];
 
 /**
@@ -52,7 +52,7 @@ export function TablaUnidades({
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Listado</span>
-          <h3 className="cmg-panel-titulo" id="cmg-unidades-titulo">Unidades sorteadas</h3>
+          <h3 className="cmg-panel-titulo" id="cmg-unidades-titulo">Unidades seleccionadas</h3>
         </div>
         <GlidingRadioGroup<(typeof FILTROS)[number], FiltroUnidades>
           value={filtro}
@@ -69,7 +69,7 @@ export function TablaUnidades({
 
       {filtradas.length === 0 ? (
         <p className="cmg-vacio-tabla">
-          {filtro === "reserva" ? "Esta corrida no sorteó reservas." : "El listado está vacío."}
+          {filtro === "reserva" ? "Esta selección no incluyó reemplazos." : "El listado está vacío."}
         </p>
       ) : (
         <>
@@ -82,7 +82,7 @@ export function TablaUnidades({
             aria-label={desborda ? "Listado de unidades, desplazable" : undefined}
           >
             <table className="cmv2-tabla cmg-tabla-unidades">
-              <caption className="cmg-sr-only">Unidades sorteadas con π y peso base</caption>
+              <caption className="cmg-sr-only">Unidades seleccionadas con π y peso base</caption>
               <thead>
                 <tr>
                   <th scope="col">Id</th>
@@ -106,7 +106,7 @@ export function TablaUnidades({
                     </td>
                     <td>
                       <span className={`cmg-estado cmg-estado--${u.estado}`}>
-                        {u.estado === "titular" ? "Titular" : "Reserva"}
+                        {u.estado === "titular" ? "Principal" : "Reemplazo"}
                       </span>
                     </td>
                     <td className="cmv2-num">{u.lote_reserva == null ? "—" : fmtInt(u.lote_reserva)}</td>

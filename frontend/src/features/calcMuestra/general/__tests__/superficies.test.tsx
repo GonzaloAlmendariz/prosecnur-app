@@ -77,12 +77,12 @@ describe("Selección", () => {
     // E15 · P1: la descarga es de la corrida y vive en su pestaña.
     const corrida = seleccion({ marco: MARCO, pestana: "seleccion-corrida" });
     expect(corrida).toMatch(/<button[^>]*disabled=""[^>]*aria-describedby="cmg-exportar-estado"[^>]*>.*Descargar listado \(XLSX\)/);
-    expect(corrida).toContain("Sortea primero: el libro sale de la corrida vigente.");
-    expect(corrida).toContain("Todavía no hay sorteo");
+    expect(corrida).toContain("Selecciona primero: el libro sale de la selección vigente.");
+    expect(corrida).toContain("Todavía no hay selección");
     // Unidades sin sorteo contiene su vacío y lleva a Sorteo (C3).
     const unidades = seleccion({ marco: MARCO, pestana: "seleccion-unidades" });
-    expect(unidades).toContain("Todavía no hay sorteo");
-    expect(unidades).toMatch(/href="\/calc-muestra\?modo=marco-disponible&amp;seccion=seleccion&amp;pestana=seleccion-sorteo"[^>]*>Ir a Sorteo/);
+    expect(unidades).toContain("Todavía no hay selección");
+    expect(unidades).toMatch(/href="\/calc-muestra\?modo=marco-disponible&amp;seccion=seleccion&amp;pestana=seleccion-sorteo"[^>]*>Ir a Selección aleatoria/);
   });
 });
 
@@ -99,7 +99,7 @@ describe("técnica y modalidad", () => {
     const html = seleccion({ marco: MARCO, componente: censal });
     expect(html).toContain("Cobertura censal: el marco entero en orden aleatorio de contacto (π = 1).");
     expect(html).not.toContain("Método de selección");
-    expect(html).not.toContain("Reservas por estrato");
+    expect(html).not.toContain("Reemplazos por estrato");
   });
 
   it("la ficha de una corrida censal no habla de muestra", () => {
@@ -107,7 +107,7 @@ describe("técnica y modalidad", () => {
     const html = renderToStaticMarkup(<FichaCorrida corrida={censo} componente={COMP} />);
     expect(html).toContain("Cobertura censal: el marco entero en orden aleatorio de contacto (π = 1).");
     expect(html).toContain("Unidades a contactar");
-    expect(html).not.toContain("n a campo usado");
+    expect(html).not.toContain("Muestra a contactar usada");
   });
 });
 
@@ -131,12 +131,12 @@ describe("Ficha y listado", () => {
     expect(html).toContain("Se recalcula al liberar el lote");
   });
 
-  it("filtrar reservas en una corrida sin reservas dice por qué está vacío", () => {
+  it("filtrar reservas en una corrida sin reemplazos dice por qué está vacío", () => {
     const soloTitulares = CORRIDA.unidades!.filter((u) => u.estado === "titular");
     const html = renderToStaticMarkup(
       <TablaUnidades unidades={soloTitulares} filtro="reserva" pagina={0} onFiltro={() => {}} onPagina={() => {}} />,
     );
-    expect(html).toContain("Esta corrida no sorteó reservas.");
+    expect(html).toContain("Esta selección no incluyó reemplazos.");
   });
 });
 

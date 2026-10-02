@@ -133,13 +133,13 @@ export function SeleccionActoresVista({
           <div className="cmv2-panel-head">
             <div>
               <span className="cmv2-eyebrow">Actores</span>
-              <h3 className="cmg-panel-titulo" id="cmg-actores-titulo">Marco y sorteo por actor</h3>
+              <h3 className="cmg-panel-titulo" id="cmg-actores-titulo">Marco y selección por actor</h3>
             </div>
           </div>
           <EmptyState
             icon={<Users size={20} aria-hidden="true" />}
             title="Aún no hay actores"
-            hint="Siguiente: crea en Actores a quiénes vas a encuestar; cada uno se sortea por separado."
+            hint="Siguiente: crea en Actores a quiénes vas a encuestar; cada uno se selecciona por separado."
             cta={(
               <button type="button" className="cmv2-primary" onClick={() => irASeccion("actores")}>
                 Ir a Actores
@@ -154,7 +154,7 @@ export function SeleccionActoresVista({
             id={ID_TRABAJO_DEL_ACTOR}
             className="cmg-actor-trabajo"
             role="region"
-            aria-label={`Marco y sorteo de ${actor.nombre}`}
+            aria-label={`Marco y selección de ${actor.nombre}`}
             data-qa-geometry-member
           >
             <PestanasMesa
@@ -194,10 +194,10 @@ function ActorSinSorteo({
   onActores: () => void;
 }) {
   return (
-    <section className="cmv2-panel cmg-sin-sorteo" aria-label={`${nombre}: sin sorteo`}>
+    <section className="cmv2-panel cmg-sin-sorteo" aria-label={`${nombre}: sin selección`}>
       <EmptyState
         icon={<CircleSlash2 size={20} aria-hidden="true" />}
-        title={tecnica.clase === "cuotas" ? `${nombre} va por cuotas` : `${nombre} no se sortea aquí`}
+        title={tecnica.clase === "cuotas" ? `${nombre} va por cuotas` : `${nombre} no se selecciona aquí`}
         hint={tecnica.motivo ?? undefined}
         cta={(
           <button type="button" className="cmv2-ghost" onClick={onActores}>

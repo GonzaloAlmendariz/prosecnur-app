@@ -15,7 +15,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
   return (
     <div className="cmg-resumen-marco">
       <CifraFila>
-        <CifraMotor label="N del marco" value={fmtInt(marco.N)} detalle="unidades en el archivo" hero />
+        <CifraMotor label="Tamaño del marco (N)" value={fmtInt(marco.N)} detalle="unidades en el archivo" hero />
         <CifraMotor
           label="Estratos"
           value={conEstrato ? fmtInt(marco.estratos.length) : "Sin estrato"}

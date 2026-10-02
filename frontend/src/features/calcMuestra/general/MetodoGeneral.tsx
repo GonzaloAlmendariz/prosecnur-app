@@ -146,10 +146,10 @@ export function MetodoGeneralVista({
             <div className="cmv2-panel-head">
               <div>
                 <span className="cmv2-eyebrow">Cadena</span>
-                <h3 className="cmg-panel-titulo" id="cmg-cadena-titulo">Del marco al n a campo</h3>
+                <h3 className="cmg-panel-titulo" id="cmg-cadena-titulo">Del marco a la muestra a contactar</h3>
               </div>
             </div>
-            <FlujoVertical etapas={cadenaDelN(comp, marcoN ?? 0)} orientacion="horizontal" ariaLabel="Del marco al n a campo" geometryGroup="calc-muestra/general-cadena-del-n" />
+            <FlujoVertical etapas={cadenaDelN(comp, marcoN ?? 0)} orientacion="horizontal" ariaLabel="Del marco a la muestra a contactar" geometryGroup="calc-muestra/general-cadena-del-n" />
           </section>
           {esTecnicaDeElementos(comp.tecnica) ? (
             <MemoriaCalculoGeneral comp={comp} calculando={calculando} onCalcular={onCalcular} />
@@ -182,14 +182,14 @@ function EstratosNoAplican() {
       <div className="cmv2-panel-head">
         <div>
           <span className="cmv2-eyebrow">Estratos</span>
-          <h3 className="cmg-panel-titulo" id="cmg-estratos-vacio-titulo">Reparto entre capas</h3>
+          <h3 className="cmg-panel-titulo" id="cmg-estratos-vacio-titulo">Reparto entre estratos</h3>
         </div>
       </div>
       <EmptyState
         variant="inline"
         icon={<Layers3 size={18} aria-hidden="true" />}
         title="Esta técnica no reparte por estratos"
-        hint="El n sale de una sola población. Para repartirlo entre capas, elige una técnica estratificada."
+        hint="El n sale de una sola población. Para repartirlo entre estratos, elige una técnica estratificada."
         cta={(
           <Link className="cmv2-ghost" to={`${location.pathname}${searchConNivel(location.search, "pestana", "metodo-tecnica")}`}>
             Ir a Técnica

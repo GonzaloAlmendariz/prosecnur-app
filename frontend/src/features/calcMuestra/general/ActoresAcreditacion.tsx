@@ -118,7 +118,7 @@ export function ActoresAcreditacion({
                     <Link
                       className="cmv2-ghost cmg-ir-seleccion"
                       to={hrefSeleccionDeActor(location.pathname, location.search, comp.id)}
-                      aria-label={`Marco y sorteo de ${meta.label}`}
+                      aria-label={`Marco y selección de ${meta.label}`}
                     >
                       Selección <ArrowRight size={13} aria-hidden="true" />
                     </Link>

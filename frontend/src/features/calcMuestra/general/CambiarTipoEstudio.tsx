@@ -14,7 +14,7 @@ export function CambiarTipoEstudio({ onCambiarTipo }: { onCambiarTipo: () => voi
       <button type="button" className="cmv2-ghost" onClick={() => onCambiarTipo()} aria-describedby="cmg-cambiar-tipo-nota">
         <Repeat size={14} aria-hidden="true" /> Cambiar el tipo de estudio
       </button>
-      <small id="cmg-cambiar-tipo-nota" className="cmg-motivo">Vuelve a elegir entre Muestra general, Acreditación, aulas o territorial.</small>
+      <small id="cmg-cambiar-tipo-nota" className="cmg-motivo">Vuelve a elegir el tipo de estudio.</small>
     </div>
   );
 }

@@ -175,9 +175,9 @@ describe("V5 · reparto por estrato", () => {
 
   it("resumen accesible y tooltip con π y peso", () => {
     const filas = filasDesdeCorrida(corrida());
-    expect(resumenReparto(filas, "corrida")).toContain("533 sorteados entre 3 estratos");
+    expect(resumenReparto(filas, "corrida")).toContain("533 seleccionados entre 3 estratos");
     const tipCayma = tooltipDeFila(dibujarReparto(filas, "tamano")[0], "corrida");
-    expect(tipCayma.filas?.map((f) => f.label)).toEqual(["N del estrato", "n sorteado", "π", "Peso base (1/π)", "Del marco"]);
+    expect(tipCayma.filas?.map((f) => f.label)).toEqual(["N del estrato", "n seleccionado", "π", "Peso base (1/π)", "Del marco"]);
   });
 });
 
@@ -236,7 +236,7 @@ describe("V3/V12/V13 · secciones, encabezados y readiness", () => {
     expect(html).toMatch(/<section id="cmv2-section-general-resultados"[^>]*aria-labelledby="cmg-seccion-titulo"[^>]*data-audit-ready="true"/);
     expect(html).toContain('data-qa-geometry-group="calc-muestra/general-diseno-vigente"');
     expect(html).toContain('data-status="');
-    expect(html).toMatch(/role="group" aria-label="Reparto de 533 a campo entre 3 estratos/);
+    expect(html).toMatch(/role="group" aria-label="Reparto de 533 a contactar entre 3 estratos/);
     expect(html).toMatch(/class="cmg-reparto-fila"[^>]*role="img" aria-label="Cayma\. N del estrato: 1,225[^"]*" tabindex="0"/);
     expect(html).toContain("Ver como tabla");
     expect(html).toContain('<label for="cmg-propuesta-notas">Notas de la propuesta</label>');
@@ -281,8 +281,8 @@ describe("V4 · avisos en región viva", () => {
   it("la ficha anuncia el sorteo desactualizado sin robar el foco y dibuja el reparto", () => {
     const html = renderToStaticMarkup(<FichaCorrida corrida={corrida(500)} componente={CALCULADO} />);
     expect(html).toMatch(/aria-live="polite"><div class="cmv2-aviso"[^>]*role="note"/);
-    expect(html).toContain("El sorteo quedó desactualizado");
-    expect(html).toContain("Reparto del sorteo por estrato");
+    expect(html).toContain("La selección quedó desactualizada");
+    expect(html).toContain("Reparto de la selección por estrato");
     expect(html).toContain("Peso base");
   });
 });

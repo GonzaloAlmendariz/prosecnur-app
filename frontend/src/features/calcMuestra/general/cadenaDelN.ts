@@ -33,21 +33,21 @@ export function cadenaDelN(
   return [
     {
       id: "N",
-      label: "N del marco",
+      label: "Tamaño del marco (N)",
       valor: N > 0 ? fmtInt(N) : "—",
       detalle: N > 0 ? "unidades del marco" : "sin declarar",
       estado: N > 0 ? "ready" : "pending",
     },
     {
       id: "n",
-      label: "n completas",
+      label: "Casos completos",
       valor: n > 0 ? fmtInt(n) : "—",
       detalle: n > 0 ? "lo que pide la fórmula" : "sin calcular",
       estado: n > 0 ? "ready" : "pending",
     },
     {
       id: "campo",
-      label: "n a campo",
+      label: "Muestra a contactar",
       valor: campo > 0 ? fmtInt(campo) : "—",
       detalle: campo > 0 ? detalleCampo || "casos a abordar" : "sin calcular",
       estado: campo > 0 ? "ready" : "pending",

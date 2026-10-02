@@ -14,7 +14,7 @@ import type {
 import { fmtInt, safeNumber } from "../sharedCore";
 
 export const CANAL_OPTIONS: Array<{ id: CalcMuestraCanalRecojo; label: string }> = [
-  { id: "aula_qr", label: "Cursos-horario / QR" },
+  { id: "aula_qr", label: "Grupo presencial / QR" },
   { id: "online_email", label: "Correo / online" },
   { id: "telefonico", label: "Telefónico" },
   { id: "presencial", label: "Presencial" },
@@ -28,22 +28,22 @@ export const METODOS_CLASICOS: Array<{
   marco: string;
   producto: CalcMuestraWorkspaceProducto;
 }> = [
-  { id: "prob_aleatorio_simple", label: "Probabilístico clásico", marco: "Marco enumerable con unidades individuales", producto: "muestra_probabilistica" },
-  { id: "prob_estratificado", label: "Estratificado", marco: "Marco por capas o variables de control", producto: "muestra_probabilistica" },
-  { id: "prob_estratificado_independiente", label: "Dominios independientes", marco: "Cada dominio calcula su propio n con margen y p propios", producto: "muestra_probabilistica" },
+  { id: "prob_aleatorio_simple", label: "Aleatorio simple", marco: "Marco con lista de unidades individuales", producto: "muestra_probabilistica" },
+  { id: "prob_estratificado", label: "Estratificado", marco: "Marco por estratos o variables de control", producto: "muestra_probabilistica" },
+  { id: "prob_estratificado_independiente", label: "Estratificado por dominios", marco: "Cada dominio calcula su propio n con margen de error y proporción esperada propios", producto: "muestra_probabilistica" },
   { id: "sistematico", label: "Sistemático", marco: "Marco ordenado con arranque aleatorio", producto: "muestra_probabilistica" },
-  { id: "prob_conglomerado_multietapico", label: "Por conglomerados", marco: "Unidades agrupadas: cursos-horario, sedes, servicios, manzanas", producto: "muestra_probabilistica" },
-  { id: "intencion_censal", label: "Cobertura censal", marco: "Universo pequeño o actor que conviene cubrir", producto: "cobertura_marco" },
-  { id: "barrido", label: "Barrido operativo", marco: "Marco operativo a cubrir por rutas, cursos-horario o servicios", producto: "cobertura_marco" },
-  { id: "no_prob_cuotas", label: "Cuotas controladas", marco: "Control sin selección probabilística final", producto: "matriz_cuotas" },
-  { id: "no_prob_conveniencia", label: "Conveniencia con pisos", marco: "Acceso parcial con cuotas mínimas por capa", producto: "matriz_cuotas" },
+  { id: "prob_conglomerado_multietapico", label: "Por conglomerados", marco: "Unidades agrupadas: sedes, instituciones, centros, manzanas", producto: "muestra_probabilistica" },
+  { id: "intencion_censal", label: "Censo", marco: "Población pequeña o grupo que conviene cubrir por completo", producto: "cobertura_marco" },
+  { id: "barrido", label: "Cobertura total por rutas", marco: "Marco a cubrir completo por rutas, sedes o servicios", producto: "cobertura_marco" },
+  { id: "no_prob_cuotas", label: "Muestreo por cuotas", marco: "Cuotas por variables de control, sin selección aleatoria", producto: "matriz_cuotas" },
+  { id: "no_prob_conveniencia", label: "Por conveniencia con mínimos", marco: "Acceso parcial con cuotas mínimas por estrato", producto: "matriz_cuotas" },
 ];
 
 export function tecnicaLabel(tecnica: CalcMuestraTecnica) {
   return METODOS_CLASICOS.find((m) => m.id === tecnica)?.label ??
     ({
       medicion_recurrente: "Medición recurrente",
-      listado_externo_meta_fija: "Flujo legacy",
+      listado_externo_meta_fija: "Flujo anterior",
     } as Partial<Record<CalcMuestraTecnica, string>>)[tecnica] ??
     tecnica;
 }
@@ -89,9 +89,9 @@ export function asignacionEstratificada(comp: Pick<CalcMuestraComponente, "param
 export function productoLabel(producto: CalcMuestraWorkspaceProducto) {
   const labels: Record<CalcMuestraWorkspaceProducto, string> = {
     muestra_probabilistica: "Muestra probabilística",
-    cobertura_marco: "Cobertura / marco a cubrir",
+    cobertura_marco: "Censo o cobertura",
     matriz_cuotas: "Matriz de cuotas",
-    componentes_mixtos: "Componentes mixtos calculables",
+    componentes_mixtos: "Componentes mixtos",
   };
   return labels[producto];
 }

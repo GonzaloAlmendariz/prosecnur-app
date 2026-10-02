@@ -188,20 +188,20 @@ const ACREDITACION = { modo: "acreditacion" } as const;
  */
 export const CALC_MUESTRA_GENERAL_PESTANAS = {
   marco: [
-    pestana("marco", "marco-forma", "Forma del marco", "¿qué elementos contiene el marco?", Layers3, GENERAL),
+    pestana("marco", "marco-forma", "Forma del marco", "¿qué elementos contiene el marco muestral?", Layers3, GENERAL),
     pestana("marco", "marco-archivo", "Archivo del marco", "¿de qué archivo salen las unidades y el N?", FileSpreadsheet, GENERAL),
     pestana("marco", "marco-ficha", "Ficha del estudio", "¿qué estudio es y qué variables controla?", ClipboardList, GENERAL),
   ],
   metodo: [
-    pestana("metodo", "metodo-tecnica", "Técnica", "¿con qué técnica se calcula el n?", Settings2, GENERAL),
+    pestana("metodo", "metodo-tecnica", "Técnica", "¿con qué técnica de muestreo se calcula el tamaño de muestra (n)?", Settings2, GENERAL),
     pestana("metodo", "metodo-parametros", "Parámetros", "¿con qué confianza, margen y respuesta?", SlidersHorizontal, GENERAL),
-    pestana("metodo", "metodo-memoria", "Cómo sale el n", "¿qué fórmula y qué cadena llevan del N al n a campo?", Sigma, GENERAL),
-    pestana("metodo", "metodo-estratos", "Estratos", "¿cómo se reparte el n entre las capas del marco?", Layers3, GENERAL),
+    pestana("metodo", "metodo-memoria", "Cálculo del n", "¿qué fórmula lleva del N de la población al n y a la muestra a contactar?", Sigma, GENERAL),
+    pestana("metodo", "metodo-estratos", "Estratos", "¿cómo se reparte el n entre los estratos del marco?", Layers3, GENERAL),
   ],
   seleccion: [
-    pestana("seleccion", "seleccion-sorteo", "Sorteo", "¿con qué método, semilla y reservas se sortea?", Shuffle, GENERAL),
-    pestana("seleccion", "seleccion-corrida", "Corrida", "¿es reproducible y cómo se repartió?", History, GENERAL),
-    pestana("seleccion", "seleccion-unidades", "Unidades", "¿qué unidades salieron, con qué π y peso?", ListOrdered, GENERAL),
+    pestana("seleccion", "seleccion-sorteo", "Selección aleatoria", "¿con qué método, semilla y reemplazos se seleccionan las unidades?", Shuffle, GENERAL),
+    pestana("seleccion", "seleccion-corrida", "Resumen", "¿es reproducible y cómo se repartió?", History, GENERAL),
+    pestana("seleccion", "seleccion-unidades", "Unidades", "¿qué unidades salieron, con qué probabilidad de selección (π) y peso?", ListOrdered, GENERAL),
   ],
 } as const satisfies Record<CalcMuestraMesaSeccionId, readonly PestanaCalcMuestraUniversidad[]>;
 
@@ -213,8 +213,8 @@ export const CALC_MUESTRA_GENERAL_PESTANAS = {
 export const CALC_MUESTRA_ACREDITACION_PESTANAS = {
   seleccion: [
     pestana("seleccion", "seleccion-marco", "Archivo del marco", "¿de qué archivo salen las unidades de este actor?", FileSpreadsheet, ACREDITACION),
-    pestana("seleccion", "seleccion-sorteo", "Sorteo", "¿con qué método, semilla y reservas se sortea este actor?", Shuffle, ACREDITACION),
-    pestana("seleccion", "seleccion-corrida", "Corrida", "¿es reproducible y cómo se repartió?", History, ACREDITACION),
-    pestana("seleccion", "seleccion-unidades", "Unidades", "¿qué unidades salieron, con qué π y peso?", ListOrdered, ACREDITACION),
+    pestana("seleccion", "seleccion-sorteo", "Selección aleatoria", "¿con qué método, semilla y reemplazos se seleccionan las unidades de este actor?", Shuffle, ACREDITACION),
+    pestana("seleccion", "seleccion-corrida", "Resumen", "¿es reproducible y cómo se repartió?", History, ACREDITACION),
+    pestana("seleccion", "seleccion-unidades", "Unidades", "¿qué unidades salieron, con qué probabilidad de selección (π) y peso?", ListOrdered, ACREDITACION),
   ],
 } as const satisfies Partial<Record<CalcMuestraMesaSeccionId, readonly PestanaCalcMuestraUniversidad[]>>;
