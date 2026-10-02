@@ -100,6 +100,13 @@ export function Popover({
     const panel = panelRef.current;
     if (!anchor || !panel) return;
     const a = anchor.getBoundingClientRect();
+    // La primera medición llegaba antes que el estilo: sin `position: fixed` ni
+    // `maxWidth`, el panel es un bloque del frame y mide su ancho entero (~1400
+    // px). Centrado sobre el trigger con ese ancho, el clamp lo tiraba al borde
+    // izquierdo y nada volvía a medirlo: el glosario de aulas salía al otro lado
+    // de la pantalla (Gonzalo, 2026-10-02). Se fija el marco antes de medir.
+    panel.style.position = "fixed";
+    panel.style.maxWidth = `${maxWidth}px`;
     // El tamaño SIN transformar: la entrada anima desde scale(0.97) y el rect
     // medido en ese instante sale un 3 % corto, así que un panel alto se
     // clampeaba mal y se salía del borde inferior (aulas, 2026-09-24).
