@@ -36,6 +36,7 @@ export function FichaEstudio({
           <span className="cmv2-eyebrow">Ficha del estudio</span>
           <h3 className="cmg-panel-titulo" id="cmg-ficha-estudio-titulo">{acreditacion ? "Proceso de acreditación" : "Contexto y marco"}</h3>
         </div>
+        {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
       </div>
       <div className="cmv2-form-grid">
         <label>
@@ -98,7 +99,6 @@ export function FichaEstudio({
         )}
       </div>
       {acreditacion && <p className="cmg-nota">El marco y la unidad de cada actor se declaran en Actores y Selección.</p>}
-      {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
     </section>
   );
 }

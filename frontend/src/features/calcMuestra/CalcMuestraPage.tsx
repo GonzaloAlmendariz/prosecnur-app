@@ -446,7 +446,7 @@ function chromeStatusForDesk({
   if (desk === "sin_definir") return { label: "Tipo por elegir", detail: "abre el cálculo de muestra", tone: "idle", icon: Database };
   if (desk === "territorial_handoff") return { label: "Deriva a Hojas de Ruta", detail: "este tipo no calcula aquí", tone: "idle", icon: MapPinned };
   if (resultados > 0) return { label: "Cálculo listo", detail: `${resultados}/${componentes} componentes`, tone: "ready", icon: CheckCircle2 };
-  if (componentes > 0) return { label: "Cálculo preparado", detail: "pendiente de cálculo", tone: "working", icon: Target };
+  if (componentes > 0) return { label: "Cálculo preparado", detail: "pendiente de cálculo", tone: "idle", icon: Target };
   return { label: "Sin componentes", detail: "declara el marco", tone: "idle", icon: ClipboardList };
 }
 
@@ -2310,6 +2310,9 @@ export default function CalcMuestraPage() {
                       label={primaryChromeToken.label}
                       value={primaryChromeToken.value}
                       prioridad="alta"
+                      // El tipo abre el selector: mirar los otros tipos no borra nada.
+                      onClick={openStudyChooser}
+                      detalle="Ver los otros tipos de estudio"
                     />
                   )}
                   {desk === "opinion_universitaria" && (
@@ -2333,26 +2336,21 @@ export default function CalcMuestraPage() {
                 />
               ) : undefined
             }
-            estado={[
+            // Sólo lo que está pasando ahora: «preparado», «listo» o «sin
+            // componentes» repetían el rail y el resumen, y parecían un botón.
+            estado={chromeStatus.tone !== "working" ? [] : [
               {
                 id: "estado",
                 label: chromeStatus.label,
-                // Los tonos de este módulo son ready | working | idle, no la escala
-                // de cinco del chip; se mapean, no se inventan.
-                tone:
-                  chromeStatus.tone === "ready"
-                    ? "success"
-                    : chromeStatus.tone === "working"
-                      ? "info"
-                      : "neutral",
+                tone: "info",
                 detail: chromeStatus.detail,
               },
             ]}
             herramientas={desk === "sin_definir" ? undefined : <IndicadorGuardadoCalcMuestra />}
             acciones={
-              // Sin atajos: cada sección tiene su acción, como en aulas (B1). Sólo
-              // el traspaso territorial, que no tiene secciones, cambia el tipo aquí.
-              desk === "territorial_handoff" ? [{ id: "cambiar-tipo", label: "Cambiar tipo", rank: 1, onSelect: openStudyChooser }] : []
+              // Sin atajos: cada sección tiene su acción, como en aulas (B1). El
+              // cambio de tipo lo abre el propio indicador «Tipo», en todo modo.
+              []
             }
           />
           {desk === "opinion_universitaria" && (

@@ -1090,11 +1090,9 @@ body:has(.cmg-mesa) .pulso-module-command-bar[data-modulo="calc-muestra"] .pulso
 }
 
 .cmg-cambiar-tipo {
-  display: grid;
-  gap: 4px;
-  justify-items: start;
-  padding-top: var(--cmv2-space-3);
-  border-top: 1px solid var(--cmv2-border);
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
 }
 
 .cmg-salida-acreditacion .cmg-reporte {

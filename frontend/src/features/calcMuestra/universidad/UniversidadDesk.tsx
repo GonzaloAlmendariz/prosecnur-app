@@ -745,6 +745,7 @@ export function UniversidadDesk({
         {selectedSection === "definicion" && (
           <div ref={activePanelRef} id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("def-estudio") && <div id="cmv2-local-def-estudio">
+              {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
               <DefEstudioTab
                 estudio={estudio}
                 workspace={syncedWorkspace}
@@ -755,7 +756,6 @@ export function UniversidadDesk({
                 onWorkspace={onWorkspace}
                 onNavigate={onNavigate}
               />
-              {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
             </div>}
             {/* D10: Fuentes declara y construye; Consistencia califica el
                 insumo en su propia pestaña, inmediatamente después. */}

@@ -423,9 +423,14 @@ export function ResumenDiseno({
         </span>
         <span className="rec-resumen-meta">
           {perfil.esEjemplo && <span className="rec-badge-ejemplo">EJEMPLO</span>}
-          <span className="rec-cabecera-perfil" data-fuente={motor.usaProyecto ? "proyecto" : "manual"}>
-            {motor.marcaFuente} · {perfil.nombre}
-          </span>
+          {/* De dónde salen las cifras, en una frase llana. Antes era una píldora
+              con jerga interna («Manual · Proyecto nuevo — universidad») que se
+              leía como botón (Gonzalo, 2026-10-02). El ejemplo ya lo dice su sello. */}
+          {!perfil.esEjemplo && (
+            <span className="rec-cabecera-perfil" data-fuente={motor.usaProyecto ? "proyecto" : "manual"}>
+              {motor.usaProyecto ? "Cifras del proyecto" : "Cifras escritas a mano"}
+            </span>
+          )}
           {motor.tocado && (
             <button type="button" className="rec-link" onClick={resetCanon}>
               <RotateCcw size={12} aria-hidden="true" /> Restaurar parámetros
