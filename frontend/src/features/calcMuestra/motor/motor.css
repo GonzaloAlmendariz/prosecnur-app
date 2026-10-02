@@ -54,24 +54,14 @@
 }
 
 .rec-cabecera-perfil {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-module-sample);
-  background: var(--pulso-module-sample-soft);
-  border: 1px solid var(--pulso-module-sample-border);
-  border-radius: 999px;
-  padding: 4px 10px;
-  max-width: 380px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 
 .rec-cabecera-perfil[data-fuente="proyecto"] {
-  /* El verde de acento daba ≈3:1 sobre su tinte; el de éxito pasa AA. */
   color: var(--pulso-success-fg);
-  background: color-mix(in srgb, var(--pulso-accent-green) 8%, transparent);
-  border-color: color-mix(in srgb, var(--pulso-accent-green) 35%, transparent);
 }
 
 .rec-badge-ejemplo {
