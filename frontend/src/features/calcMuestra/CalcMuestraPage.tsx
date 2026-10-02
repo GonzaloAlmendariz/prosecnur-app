@@ -164,6 +164,7 @@ import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { estrato, matrizEjemplo } from "./ComponenteTablas";
 import { SelectorTipo } from "./SelectorTipo";
+import { loQueSePierde } from "./modeloVistaPreviaTipo";
 import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
@@ -2428,6 +2429,7 @@ export default function CalcMuestraPage() {
               onSelect={elegirEstudio}
               onCancelReset={() => setPendingDeskReset(null)}
               onConfirmReset={confirmarCambioEstudio}
+              perdidas={loQueSePierde({ titulo: estudio.titulo, componentes: estudio.componentes, tieneEstadoAulas: hasAulasDeskState })}
             />
           )}
 
@@ -2499,6 +2501,7 @@ export default function CalcMuestraPage() {
               paqueteEnCurso={paqueteEnCurso}
               paquetePasos={paquetePasos}
               onNavigate={navegarDesdeRecorrido}
+              onCambiarTipo={openStudyChooser}
             />
           )}
 

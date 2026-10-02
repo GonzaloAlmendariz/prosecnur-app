@@ -88,6 +88,7 @@ import { useMotorStore } from "../store";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
 import { UniversityTabHeader } from "./ui/UniversityTabHeader";
 import { universityFrameSourceBindings } from "./shared/categorias";
+import { CambiarTipoEstudio } from "../general/CambiarTipoEstudio";
 
 export function universityContextTabId(section: string, key: string) {
   return `cmv2-context-tab-${section}-${key}`;
@@ -135,6 +136,7 @@ export function UniversidadDesk({
   paquetePasos,
   onNavigate,
   onPatchEstudio,
+  onCambiarTipo,
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
@@ -187,6 +189,9 @@ export function UniversidadDesk({
    *  sacar al estudio de «propuesta preliminar» y su reporte se titula así
    *  para siempre. */
   onPatchEstudio?: (patch: Partial<CalcMuestraEstudio>) => void;
+  /** Vuelve al selector de tipo. Como en Muestra general y Acreditación, vive
+   *  en la ficha del estudio: aulas no tenía salida a otro tipo. */
+  onCambiarTipo?: () => void;
 }) {
   const baseWorkspace = useMemo(
     () => workspace.frame_mode === "opinion_universitaria"
@@ -750,6 +755,7 @@ export function UniversidadDesk({
                 onWorkspace={onWorkspace}
                 onNavigate={onNavigate}
               />
+              {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
             </div>}
             {/* D10: Fuentes declara y construye; Consistencia califica el
                 insumo en su propia pestaña, inmediatamente después. */}

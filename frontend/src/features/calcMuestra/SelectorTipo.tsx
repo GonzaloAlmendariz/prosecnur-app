@@ -16,13 +16,13 @@ import {
   Grid3X3,
   Home,
   MapPinned,
-  RefreshCw,
   Route,
   SlidersHorizontal,
   Users,
 } from "lucide-react";
 
 import type { ActiveDesk } from "./sharedCore";
+import { VistaPreviaTipo } from "./VistaPreviaTipo";
 
 type Orientacion = {
   prompt: string;
@@ -155,6 +155,7 @@ export function SelectorTipo({
   onSelect,
   onCancelReset,
   onConfirmReset,
+  perdidas = [],
 }: {
   currentDesk: ActiveDesk;
   hasExistingStudy: boolean;
@@ -162,6 +163,8 @@ export function SelectorTipo({
   onSelect: (mode: ActiveDesk) => void;
   onCancelReset: () => void;
   onConfirmReset: () => void;
+  /** Lo que el estudio actual perdería al cambiar de tipo (modeloVistaPreviaTipo). */
+  perdidas?: readonly string[];
 }) {
   const currentCard = TIPOS_DE_ESTUDIO.find((card) => card.id === currentDesk);
   const pendingCard = TIPOS_DE_ESTUDIO.find((card) => card.id === pendingReset);
@@ -173,13 +176,13 @@ export function SelectorTipo({
     const actionLabel = isCurrent
       ? "Seguir trabajando"
       : hasExistingStudy
-        ? "Reiniciar con este tipo"
+        ? "Ver qué trae este tipo"
         : card.action;
     return (
       <button
         key={card.id}
         type="button"
-        className={`cmv2-frame-card cmv2-frame-card--${card.id} ${card.id === "territorial_handoff" ? "is-handoff" : ""} ${principal ? "is-principal" : ""} ${isCurrent ? "is-current" : ""}`}
+        className={`cmv2-frame-card cmv2-frame-card--${card.id} ${card.id === "territorial_handoff" ? "is-handoff" : ""} ${principal ? "is-principal" : ""} ${isCurrent ? "is-current" : ""} ${card.id === pendingReset ? "is-previewing" : ""}`}
         onClick={() => onSelect(card.id)}
         aria-pressed={isCurrent} data-qa-geometry-member
       >
@@ -231,28 +234,21 @@ export function SelectorTipo({
           <CheckCircle2 size={15} />
           <span>
             <strong>Este proyecto ya usa: {currentTitle}.</strong>
-            Puedes volver a él o reiniciar el cálculo con otro tipo si el estudio cambió de diseño muestral.
+            Puedes mirar qué trae cada tipo sin perder nada. Cambiar a otro sí reinicia el cálculo y te pedirá confirmarlo.
           </span>
         </div>
       )}
 
       {pendingCard && (
-        <div className="cmv2-reset-confirm" role="alert">
-          <span className="cmv2-reset-confirm-icon"><RefreshCw size={16} /></span>
-          <div>
-            <strong>Reiniciar el cálculo de muestra</strong>
-            <p>
-              Vas a pasar de {currentTitle} a {pendingCard.title}. El cálculo actual se reiniciará y el proyecto quedará preparado para este nuevo tipo de muestra.
-            </p>
-          </div>
-          <div className="cmv2-reset-confirm-actions">
-            <button type="button" className="cmv2-ghost" onClick={onCancelReset}>Cancelar</button>
-            <button type="button" className="cmv2-primary" onClick={onConfirmReset}>
-              Reiniciar cálculo
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
+        <VistaPreviaTipo
+          destino={pendingCard.id}
+          destinoTitulo={pendingCard.title}
+          destinoCopy={pendingCard.copy}
+          actualTitulo={currentTitle}
+          perdidas={perdidas}
+          onVolver={() => onSelect(currentDesk)}
+          onConfirmar={onConfirmReset}
+        />
       )}
 
       <div className="cmv2-frame-grid cmv2-frame-grid--routes cmv2-frame-grid--principal" data-qa-geometry-group="calc-muestra/tipo-general" data-qa-geometry-contract="equal">
