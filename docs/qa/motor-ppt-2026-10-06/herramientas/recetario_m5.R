@@ -113,11 +113,11 @@ sm <- D$ing_p35
 doc <- nueva(doc); titulo(doc, "Qué podría mejorar la carrera", ante = "Opción múltiple de un actor")
 o <- order(-sm$pct); lab <- sm$labels[o]; pc <- sm$pct[o]; ot <- grepl("^Otros$|^No sabe", lab)
 lab <- c(lab[!ot], lab[ot]); pc <- c(pc[!ot], pc[ot]); lab <- lab[pc > 0]; pc <- pc[pc > 0]
-txt(doc, sm$pregunta, ML + 0.25, Y_DATOS - 0.15, 12.2, alto_txt(sm$pregunta, 12.2, 13), 13, TK$navy, bold = ESTILO == "fiel")
-if (ESTILO == "moderna") txt(doc, "% de encuestados que marcó cada opción", ML + 0.25 + 6.72, Y_DATOS + 0.3, 5, 0.26, 10, TK$soft, bold = TRUE)
+txt(doc, sm$pregunta, ML, Y_DATOS - 0.15, 12.2, alto_txt(sm$pregunta, 12.2, 13), 13, TK$navy, bold = ESTILO == "fiel")
+if (ESTILO == "moderna") txt(doc, "% de encuestados que marcó cada opción", ML + 6.72, Y_DATOS + 0.3, 5, 0.26, 10, TK$soft, bold = TRUE)
 yy0 <- Y_DATOS + 0.6; resid <- grepl("^Otros$|^No sabe", lab)
-barras_h(doc, ML + 0.25, yy0, W - ML - MR - 0.25, lab[!resid], pc[!resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08)
-if (any(resid)) barras_h(doc, ML + 0.25, yy0 + sum(!resid) * 0.46, W - ML - MR - 0.25, lab[resid], pc[resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08,
+barras_h(doc, ML, yy0, W - ML - MR, lab[!resid], pc[!resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08)
+if (any(resid)) barras_h(doc, ML, yy0 + sum(!resid) * 0.46, W - ML - MR, lab[resid], pc[resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08,
                          color = if (ESTILO == "moderna") TK$faint else TK$navy)
 pie(doc, "Base: 131 egresados")
 
@@ -146,8 +146,8 @@ if (ESTILO == "moderna") {
   gc <- ggplot(dfc[dfc$v > 0, ], aes(ano, v, fill = ent)) + geom_col(width = 0.6) + geom_text(aes(label = v), position = position_stack(vjust = 0.5), size = 11 / .pt, colour = "#FFFFFF", fontface = "bold", family = "Arial") +
     scale_fill_manual(values = setNames(rev(pal), levels(dfc$ent))) + labs(x = NULL, y = NULL, fill = NULL) + theme_minimal(base_family = "Arial") +
     theme(plot.background = element_blank(), panel.background = element_blank(), legend.position = "right", legend.text = element_text(size = 11, colour = TK$navy), axis.text = element_text(size = 12, colour = TK$navy, face = "bold"), panel.grid = element_blank(), axis.text.y = element_blank())
-  invisible(ph_with(doc, dml(ggobj = gc, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML + 0.3, top = YT, width = ANCHO - 0.6, height = YF - YT)))
-  zona("columnas apiladas con conteos", ML + 0.3, YT, ANCHO - 0.6, YF - YT) }
+  invisible(ph_with(doc, dml(ggobj = gc, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML, top = YT, width = ANCHO - 0.6, height = YF - YT)))
+  zona("columnas apiladas con conteos", ML, YT, ANCHO - 0.6, YF - YT) }
 pie(doc, "Conteo de reconocimientos declarados por 26 docentes que respondieron «Sí». Un docente puede declarar varios")
 
 # --- C21 largo de la etiqueta: ítems muy largos y muy cortos (pedido de Gonzalo)
@@ -175,7 +175,7 @@ bloque_mixto <- function(doc, bloques) {
   esp <- (ytot - sum(hs)) / max(1, length(bloques) - 1)
   for (i in seq_along(bloques)) { b <- bloques[[i]]
     panel_titulo(doc, ML, y, ANCHO, b$pregunta, b$sub)
-    likert_panel(doc, ML + 0.2, y + 0.45, ANCHO - 0.2, b$filas, g = b$g, fila = b$fila, wlab = 2.2, ttb_col = b$ttb, cols = b$cols, size_lab = 12)
+    likert_panel(doc, ML, y + 0.45, ANCHO, b$filas, g = b$g, fila = b$fila, wlab = 2.2, ttb_col = b$ttb, cols = b$cols, size_lab = 12)
     yl <- y + 0.45 + 0.3 + length(b$filas) * b$fila + 0.08
     leyenda(doc, 0, yl, b$rot, b$cols[seq_along(b$rot)], size = 10.5, centrar_en = ML + 2.4 + (ANCHO - 2.4 - (if (b$ttb) 0.75 else 0)) / 2)
     y <- y + hs[i] + esp

@@ -9,7 +9,7 @@ MOTOR_ACT <- "p_slide_1_grafico: p_barras_agrupadas (conteos de participación p
 doc <- nueva(doc); titulo(doc, "Número de respuestas por actor", ante = "Cómo leer este informe")
 part <- data.frame(a = ACT6, n = c(1234, 314, 148, 12, 43, 15), N = c(1506, 1210, 175, 14, 52, 40))
 part$t <- round(100 * part$n / part$N)
-x0 <- ML + 0.3; wl <- 1.9; xb <- x0 + wl + 0.2; wbar <- 6.2; y <- YT + 0.55
+x0 <- ML; wl <- 1.9; xb <- x0 + wl + 0.2; wbar <- 6.2; y <- YT + 0.55
 if (ESTILO == "moderna") { txt(doc, "Respuestas", xb, YT + 0.1, 2, 0.26, 10, TK$soft, bold = TRUE); txt(doc, "Tasa de respuesta", 9.7, YT + 0.1, 3.3, 0.26, 10, TK$soft, bold = TRUE, align = "center") }
 for (k in seq_len(nrow(part))) { yc <- y + (k - 1) * 0.72
   txt(doc, part$a[k], x0, yc, wl, 0.34, 14, TK$navy, bold = TRUE, align = "right")

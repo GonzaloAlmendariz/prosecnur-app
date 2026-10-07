@@ -22,13 +22,13 @@ g10 <- ggplot(v10, aes(k, p)) + geom_col(aes(fill = col), width = 0.68) + scale_
   scale_y_continuous(expand = expansion(mult = c(0, 0.15))) + labs(x = NULL, y = NULL) + theme_minimal(base_family = "Arial") +
   theme(panel.grid = element_blank(), axis.text.y = element_blank(), axis.text.x = element_text(size = 13, colour = TK$navy, face = "bold"),
         plot.background = element_blank(), panel.background = element_blank())
-invisible(ph_with(doc, dml(ggobj = g10, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML + 0.2, top = YT + 0.55, width = 9.0, height = 4.3)))
-panel_titulo(doc, ML + 0.2, YT, 9, "En una escala de 1 a 10, ¿cuánto confía en el Congreso?", "1,200 entrevistados")
+invisible(ph_with(doc, dml(ggobj = g10, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML, top = YT + 0.55, width = 9.0, height = 4.3)))
+panel_titulo(doc, ML, YT, 9, "En una escala de 1 a 10, ¿cuánto confía en el Congreso?", "1,200 entrevistados")
 txt(doc, "Promedio", 9.9, YT + 1.0, 3, 0.3, 13, TK$navy, bold = TRUE)
 txt(doc, sprintf("%.1f", med), 9.9, YT + 1.35, 3, 0.9, 48, TK$navy, bold = TRUE)
 txt(doc, "sobre 10, sin contar NS/NR", 9.9, YT + 2.3, 3, 0.3, 12, TK$soft)
 txt(doc, "Confía poco (1 a 5)", 9.9, YT + 2.95, 3, 0.3, 13, TK$navy, bold = TRUE); txt(doc, paste0(sum(v10$p[1:5]), "%"), 9.9, YT + 3.25, 3, 0.5, 26, if (ESTILO == "moderna") TK$tenue else TK$navy, bold = TRUE)
-zona("columnas 1 a 10 y NS/NR", ML + 0.2, YT + 0.55, 9.0, 4.3)
+zona("columnas 1 a 10 y NS/NR", ML, YT + 0.55, 9.0, 4.3)
 pie(doc, "Base: 1,200 entrevistados")
 
 # --- V2 opinión pública: la misma pregunta por grupo de edad (banner de edad2: 18 a 29, 30 a 59, 60 a más)
