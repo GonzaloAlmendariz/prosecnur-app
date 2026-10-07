@@ -48,10 +48,14 @@
   if (is.null(m)) m <- preset_args$metrica
   if (is.null(m)) m <- "mean"
 
-  if (!is.character(m) || length(m) != 1L || !(m %in% .NUMERICO_METRICAS)) {
-    m <- "mean"
+  # H41: los alias en espanol se respetan («mediana» no cae a la media); lo que no se reconoce cae a la media con aviso.
+  if (!is.character(m) || length(m) != 1L) return("mean")
+  r <- tryCatch(.plan_metrica_numerica(m), error = function(e) NULL)
+  if (is.null(r) || !(r %in% .NUMERICO_METRICAS)) {
+    warning(sprintf("Métrica «%s» no reconocida en p_numerico: se usa la media.", m), call. = FALSE)
+    r <- "mean"
   }
-  m
+  r
 }
 
 #' Etiqueta de leyenda que corresponde a cada metrica
@@ -211,4 +215,23 @@
   attr(p, "pulso_numerico_etiquetas_valor") <- attr(p, "pulso_barras_numericas_labels")
 
   p
+}
+
+#' Variable numerica cruda para metricas (H38)
+#'
+#' El resolvedor de referencias redirige `x` a `x_recod` cuando existe (para graficos de categorias es lo correcto).
+#' Para metricas numericas (p_numerico, p_boxplot, p_media_rango) se vuelve a la columna pedida si existe y es
+#' numerica: si no, se promediaban los codigos de los rangos.
+#' @keywords internal
+.ctx_var_numerica_cruda <- function(ctx) {
+  pedida <- ctx$var_requested
+  if (is.null(pedida) || identical(pedida, ctx$var) || !(pedida %in% names(ctx$data))) return(ctx)
+  x <- ctx$data[[pedida]]
+  if (is.factor(x)) x <- as.character(x)
+  num <- suppressWarnings(as.numeric(x))
+  presentes <- !is.na(x) & nzchar(trimws(as.character(x)))
+  if (!any(presentes) || mean(is.finite(num[presentes])) < 0.9) return(ctx)
+  ctx$var <- pedida
+  ctx$recod_redirected <- FALSE
+  ctx
 }
