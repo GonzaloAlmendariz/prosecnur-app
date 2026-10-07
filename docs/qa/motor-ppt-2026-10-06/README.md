@@ -13,8 +13,37 @@ Trabajo para que los mazos de Prosecnur salgan bien sin retoques. El estado vivo
 | [`3-catalogo/catalogo-laminas-y-graficos.docx`](3-catalogo/catalogo-laminas-y-graficos.docx) | **Word editable**: los 32 tipos de lámina, los 24 tipos de gráfico, 25 situaciones y la matriz de qué gráfico entra en qué lámina | Decidir, en las columnas amarillas, qué entra al recetario |
 | [`3-catalogo/catalogo-motor.pptx`](3-catalogo/catalogo-motor.pptx) | **PPT generado por el motor real**: cada tipo de lámina y cada tipo de gráfico, con datos de `acrconta_mazo` | Ver qué produce la app hoy, sin retoques ni paleta del proyecto |
 | [`3-catalogo/compatibilidad.csv`](3-catalogo/compatibilidad.csv) | Prueba renderizada: 24 gráficos en 6 disposiciones | Evidencia de la matriz del Word |
-| [`4-recetario/`](4-recetario/) | Recetario remasterizado de 68 láminas en dos versiones, con y sin guías de márgenes, cotas y constructor | La propuesta: cubre **los 32 tipos de lámina y los 24 gráficos** del motor; **fiel** respeta el estilo entregado; **moderna** propone cambios con evidencia |
+| [`4-recetario/`](4-recetario/) | **Recetario v2, identidad visual de acreditación**: unas 100 láminas en dos versiones, con y sin guías de márgenes, cotas y constructor | La propuesta generalista: cubre **los 32 tipos de lámina y los 24 gráficos** del motor y los escenarios que aparecen en los informes de acreditación 2024 a 2026; **fiel** afina el estilo entregado; **moderna** propone cambios con evidencia |
+| [`4-recetario/recetario-word-fiel.docx`](4-recetario/recetario-word-fiel.docx) y [`recetario-word-moderna.docx`](4-recetario/recetario-word-moderna.docx) | **Recetario en Word**: los mismos escenarios con el formato de gráfico de los informes Word (título arriba como texto, gráfico sin fondo, públicos y fuente al pie) | Ver cómo se ve cada gráfico en el informe en Word |
 | [`herramientas/`](herramientas/) | Scripts que generan todo lo anterior, íconos y datos | Regenerar o extender sin rehacer el trabajo |
+
+## Cómo está armado el recetario v2
+
+| Parte | Qué muestra | Script |
+|---|---|---|
+| Portada y mapa | Portada del recetario y cómo recorrerlo | `recetario.R` |
+| I Reglas de la identidad | Tamaño, peso y color de cada elemento (medidos en 6 informes finales con `medir_estilo.py`), retícula, paleta, texto junto a los gráficos, escalas que llegan y reglas de rotulado | `recetario_m0.R`, `recetario_m0b.R` |
+| II El informe tipo | Un informe de acreditación completo en el orden de entrega: portada, objetivo, ficha técnica, índice, número de respuestas, Top Two Box, redondeo, perfil, resultados y recomendaciones | `recetario.R`, `recetario_m1b.R` |
+| III Catálogo de láminas y gráficos | III.1 disposiciones, III.2 población, III.3 galería de los 24 gráficos, III.4 dimensiones | `recetario_m2*.R` a `recetario_m3e.R` |
+| IV Escenarios de acreditación | IV.1 actores y bases; IV.2 escalas, etiquetas y formatos | `recetario_m4.R`, `recetario_m5.R` |
+| V Otros estudios de PULSO | Opinión pública, cuasi-experimental, monitoreo posdistribución, encuesta en aulas, estudio por olas | `recetario_m6.R` |
+
+Los escenarios salen de reconstruir con el motor los informes reales de Psicología,
+Geografía, Derecho e Ingeniería, y de revisar los de Educación, Comunicaciones,
+Escultura, AMDT y Contabilidad (hallazgos H45 a H71 del checklist). La sección 07 usa
+la **forma real** de cada proyecto (escalas, actores, n y bases) con **porcentajes
+ficticios**: ningún resultado de cliente queda en el repo. Lo cualitativo queda fuera:
+el motor sólo ve lo cuantitativo.
+
+### Reglas de rotulado que el recetario aplica (y que el motor debería adoptar)
+
+- Una cifra que no cabe en su segmento va encima de la barra, con una guía fina; nunca se omite, ni siquiera un 1 %.
+- Encima de la barra hacen falta 0,36 in libres: si la fila no los tiene, la barra adelgaza (mínimo 0,24 in). La letra no encoge.
+- Cifras chicas seguidas se separan 0,46 in; si el grupo pasaría el final de la barra, se corre entero a la izquierda.
+- SIN INF y «No he usado» van siempre al final y en gris, aunque la base los traiga primero.
+- En los radares, las cifras de los anillos van entre los dos primeros ejes, con fondo, por encima de las series.
+
+Gate de cada publicación: `sanear_ph.py`, `xml_audit.py` (Arial, sin formas fuera de la lámina, sin XML fuera de orden), `detector_encimado.py` (choques por tinta estimada) y `medir_espacio.py` (franjas vacías).
 
 ## Diferencia entre el catálogo y el recetario
 
@@ -36,11 +65,15 @@ Todo se corre desde la raíz del repo.
 | Catálogo PPT | `MODE=deck Rscript docs/qa/motor-ppt-2026-10-06/herramientas/catalogo_motor.R` (también `single` y `compat`) |
 | Catálogo Word | `Rscript docs/qa/motor-ppt-2026-10-06/herramientas/catalogo_word.R` |
 | Datos del recetario | los tres scripts de `herramientas/preparar-datos/` dejan `datos_muestra.rds` y `src_conta.rds` en `SP` |
-| Recetario | `SP=<datos> ESTILO=fiel\|moderna GUIAS=0\|1 SALIDA=<pptx> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/recetario.R` (carga `recetario_piezas.R` y las secciones `recetario_m2*.R` a `recetario_m3e.R`) |
+| Recetario | `SP=<datos> ESTILO=fiel\|moderna GUIAS=0\|1 SALIDA=<pptx> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/recetario.R` (carga `recetario_piezas.R` y las partes `recetario_m0*.R` a `recetario_m7.R`; la Parte VI, banco de recursos, es `recetario_m7.R`) |
 | Datos de nube y mapa | `SP=<datos> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/preparar-datos/prep_m3e.R` |
+| Recetario en Word | `SP=<datos> ESTILO=fiel\|moderna LOGOS=<media de la plantilla PPT> SALIDA=<docx> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/recetario_word.R` |
 | Medir espacio vacío por lámina | `python3 docs/qa/motor-ppt-2026-10-06/herramientas/medir_espacio.py recetario.pdf` |
 | Sanear el PPT antes de abrirlo en PowerPoint | `python3 docs/qa/motor-ppt-2026-10-06/herramientas/sanear_ph.py entrada.pptx salida.pptx` |
 | Revisar el XML de un mazo | `xml_audit.py` y `detector_encimado.py` en `herramientas/` |
+| Prueba con un `.pulso` real | `PULSO=<copia> OUT=<carpeta> [BASES=a,b] [OTROS=1] Rscript docs/qa/motor-ppt-2026-10-06/herramientas/probar_pulso.R` |
+| Bases limpias por la ruta de la app | `W=<carpeta> BASES="actor=ruta.sav;..." Rscript docs/qa/motor-ppt-2026-10-06/herramientas/canon_bases.R`, luego `planes/<proyecto>.R` |
+| Radiografía y tipografía de un informe entregado | `analizar_ppt_entregado.py <pptx> --detalle` y `medir_estilo.py <pptx>...` |
 
 Los íconos son de Lucide, la librería que ya usa la app (licencia ISC);
 `iconos.py` los exporta en los colores de la marca.
@@ -49,5 +82,6 @@ Los íconos son de Lucide, la librería que ya usa la app (licencia ISC);
 
 - La lámina de selección múltiple del recetario usa cifras agregadas de ACRD
   Ingeniería, que no es un proyecto anonimizado (sólo porcentajes).
+- `recetario.R` llama a `sanear_ph.py` al escribir (no es un paso aparte). El cuadro nombrado «Titulo lamina» queda como título nativo de la lámina.
 - Todo PPT hecho con officer debe pasar por `sanear_ph.py`; sin eso, PowerPoint
   muestra «Click to add text» en cada caja (H19).

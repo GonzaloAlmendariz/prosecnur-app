@@ -26,6 +26,14 @@ TK <- list(
 PT <- list(titulo = 24, premisa = 13, cifra = 14, cifra_fuera = 12, leyenda = 12, actor = 12, base = 10, n = 10, cuerpo = 14)
 W <- 13.333; H <- 7.5; ML <- 0.315; MR <- 0.315; Y_TIT <- 0.355; Y_DATOS <- 1.65; Y_LEY <- 6.42; Y_BASE <- 6.88
 LIKERT_ROT <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF")
+# Retícula (pedido de Gonzalo, 2026-10-07: «los campos de texto milimétricamente bien medidos»): el contenido empieza donde
+# empieza el texto del título. XC = borde de formas y tablas; XT = x de un cuadro de texto para que su letra caiga en XC
+# (officer deja 0.1 in de inserción); AC = ancho del contenido hasta el margen derecho.
+# Un solo margen para todo cuadro (de texto o de forma): el del cuadro del título. En la moderna la barra navy queda en el
+# borde de la hoja (ML0) y el contenido empieza tras ella (ML = ML0 + 0.18), igual que el título.
+ML0 <- ML; if (ESTILO == "moderna") ML <- ML0 + 0.18
+XC <- ML; XT <- ML; AC <- W - MR - ML
+ancho_ft <- function(ft, ancho = AC) { w <- dim(ft)$widths; width(ft, j = seq_along(w), width = w * ancho / sum(w)) }
 
 grosor_apilada <- function(n) if (n <= 2) 0.50 else if (n == 3) 0.48 else if (n <= 6) 0.44 else if (n <= 9) 0.38 else 0.32
 grosor_cat <- function(n) if (n <= 3) 0.26 else if (n <= 6) 0.28 else if (n == 7) 0.30 else 0.32
@@ -38,10 +46,11 @@ lineas <- function(s, w, size, bold = FALSE) max(1, ceiling(ancho_txt(s, size, b
 alto_txt <- function(s, w, size, bold = FALSE) lineas(s, w, size, bold) * size * 1.2 / 72 + 0.1
 
 # ================================================================ primitivas
-txt <- function(doc, s, l, t, w, h, size = 12, color = TK$ink, bold = FALSE, align = "left", italic = FALSE) {
+txt <- function(doc, s, l, t, w, h, size = 12, color = TK$ink, bold = FALSE, align = "left", italic = FALSE, nombre = NULL) {
   p <- fpar(ftext(s, fp_text(font.size = size, color = color, bold = bold, italic = italic, font.family = TK$font)),
             fp_p = fp_par(text.align = align))
-  invisible(ph_with(doc, block_list(p), location = ph_location(left = l, top = t, width = w, height = h)))
+  loc <- if (is.null(nombre)) ph_location(left = l, top = t, width = w, height = h) else ph_location(left = l, top = t, width = w, height = h, newlabel = nombre)
+  invisible(ph_with(doc, block_list(p), location = loc))
 }
 txt_runs <- function(doc, runs, l, t, w, h, size = 14, align = "left") {   # runs: list(list(t=, b=TRUE/FALSE))
   ch <- lapply(runs, function(r) ftext(r$t, fp_text(font.size = size, color = TK$ink, bold = isTRUE(r$b), font.family = TK$font)))
@@ -94,21 +103,22 @@ ICONO_MODO <- if (ESTILO == "fiel") "centro" else Sys.getenv("ICONO_MODO", "cabe
 ICONO_TIT <- NULL
 titulo <- function(doc, t, ante = NULL, sub = NULL) {
   if (ESTILO == "fiel") {
-    txt(doc, toupper(t), ML, Y_TIT, 10.6, 0.5, 20, TK$coral, bold = TRUE)
+    txt(doc, toupper(t), ML, Y_TIT, 10.6, 0.5, 20, TK$coral, bold = TRUE, nombre = "Titulo lamina")
     if (!is.null(sub)) txt(doc, sub, ML, Y_TIT + 0.42, 10.6, 0.35, 14, TK$coral, bold = TRUE)
   } else {
-    caja(doc, ML, Y_TIT - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, TK$navy)
-    xa <- ML + 0.18
+    caja(doc, ML0, Y_TIT - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, TK$navy)
+    xa <- ML
     if (!is.null(ICONO_TIT) && ICONO_MODO == "cabecera") { icono_en_circulo(doc, ICONO_TIT, xa, Y_TIT - 0.19, 0.3, pad = 0.2); xa <- xa + 0.4 }
     ICONO_TIT <<- NULL
     if (!is.null(ante)) txt(doc, toupper(ante), xa, Y_TIT - 0.17, 9, 0.26, 10, TK$soft, bold = TRUE)
-    txt(doc, t, ML + 0.18, Y_TIT + 0.06, 10.4, 0.5, PT$titulo, TK$coral, bold = TRUE)
-    if (!is.null(sub)) txt(doc, sub, ML + 0.18, Y_TIT + 0.55, 10.4, 0.32, 12.5, TK$soft)
+    txt(doc, t, ML, Y_TIT + 0.06, 10.4, 0.5, PT$titulo, TK$coral, bold = TRUE, nombre = "Titulo lamina")
+    if (!is.null(sub)) txt(doc, sub, ML, Y_TIT + 0.55, 10.4, 0.32, 12.5, TK$soft)
   }
   zona("título", ML, Y_TIT, 10.6, 0.5)
 }
 pie <- function(doc, base) {
-  if (nzchar(base)) txt(doc, base, ML, Y_BASE, 10.5, 0.4, PT$base, TK$navy, bold = TRUE)
+  xb <- ML   # la base empieza donde empieza el título
+  if (nzchar(base)) txt(doc, base, xb, Y_BASE, 10.5, 0.4, PT$base, TK$navy, bold = TRUE)
   txt(doc, as.character(FOLIO), W - MR - 0.6, Y_BASE, 0.6, 0.3, PT$base, TK$soft, align = "right")
   zona("base", ML, Y_BASE, 10.5, 0.4)
   dibujar_guias(doc)
@@ -122,6 +132,7 @@ leyenda <- function(doc, x, y, labels, cols, size = PT$leyenda, centrar_en = NUL
 }
 # Barra apilada al 100 %. Cifra dentro si el segmento la contiene a 14 pt; si no,
 # encima del segmento con una guía, y separadas entre sí para no taparse.
+tiene_peq <- function(pct, w) { ws <- w * pct / sum(pct); any(pct > 0 & ws < ancho_txt(paste0(pct, "%"), PT$cifra, TRUE) + 0.12) }
 barra_apilada <- function(doc, x, y, w, pct, cols, h) {
   apartar <- FALSE   # sin huecos entre segmentos ni antes de SIN INF (indicación de Gonzalo, 2026-10-07)
   wu <- w - (if (apartar) 0.08 else 0); tot <- sum(pct); xx <- x; peq <- list()
@@ -137,6 +148,8 @@ barra_apilada <- function(doc, x, y, w, pct, cols, h) {
   if (length(peq)) {
     cs <- vapply(peq, `[[`, 0, "c"); pos <- cs
     for (k in seq_along(pos)[-1]) pos[k] <- max(pos[k], pos[k - 1] + 0.46)
+    n_ <- length(pos); lim <- x + w - 0.12                      # chicas al final: el grupo se corre a la izquierda, no sale de la barra
+    if (pos[n_] > lim) { pos[n_] <- lim; if (n_ > 1) for (k in (n_ - 1):1) pos[k] <- min(pos[k], pos[k + 1] - 0.46) }
     for (k in seq_along(peq)) {
       caja(doc, cs[k] - 0.006, y - 0.07, 0.012, 0.07, TK$faint)
       if (abs(pos[k] - cs[k]) > 0.01) caja(doc, min(cs[k], pos[k]), y - 0.08, abs(pos[k] - cs[k]), 0.012, TK$faint)
@@ -216,16 +229,16 @@ etiqueta_ttb <- function(doc, x, yb, g, f, ttb21, comp21) {
   else txt(doc, sprintf("%+d pts", d), x, yb + g / 2 + 0.08, 1.5, 0.24, 11, cd, bold = TRUE, align = "center")
 }
 
-bloque_likert <- function(doc, premisas, cols = TK$likert, rotulos = LIKERT_ROT, ttb_col = TRUE, comp21 = FALSE) {
+bloque_likert <- function(doc, premisas, cols = TK$likert, rotulos = LIKERT_ROT, ttb_col = TRUE, comp21 = FALSE, solo = TRUE) {
   y0 <- Y_DATOS + 0.1; y1 <- Y_LEY - 0.15
   # una afirmación y un público: la afirmación encabeza y la barra ocupa el ancho
-  if (length(premisas) == 1 && length(premisas[[1]]$filas) == 1) {
+  if (solo && length(premisas) == 1 && length(premisas[[1]]$filas) == 1) {   # una «(cont.)» de un ítem sigue la forma de su serie
     p <- premisas[[1]]; fl <- p$filas[[1]]; g <- 0.72
     wt <- W - ML - MR - 0.4; ht <- alto_txt(p$texto, wt, 20, TRUE)
     alto_grupo <- ht + 1.15 + g + 1.0; yt <- Y_DATOS + max(0.3, (Y_BASE - 0.2 - Y_DATOS - alto_grupo) / 2); txt(doc, p$texto, X_PREM, yt, wt, ht, 20, TK$navy, bold = TRUE, align = if (ESTILO == "fiel") "center" else "left")
     yb <- yt + ht + 1.15; xb <- X_PREM + 1.75; wb <- X_TTB - xb - 0.25
     txt(doc, fl$actor, X_PREM, yb + g / 2 - 0.18, 1.6, 0.3, PT$actor, TK$navy, bold = TRUE)
-    if (ESTILO == "moderna") txt(doc, paste(fl$f$valid, "respuestas"), X_PREM, yb + g / 2 + 0.08, 1.7, 0.26, PT$n, TK$faint)
+    if (ESTILO == "moderna") txt(doc, paste(format(fl$f$valid, big.mark = ","), "respuestas"), X_PREM, yb + g / 2 + 0.08, 1.7, 0.26, PT$n, TK$faint)
     barra_apilada(doc, xb, yb, wb, fl$f$pct, cols, g)
     if (ttb_col) { txt(doc, if (ESTILO == "fiel") "TOP TWO BOX" else "Top Two Box", X_TTB - 0.1, yb - 0.45, 1.6, 0.26, 10, TK$verde_txt, bold = TRUE, align = "center")
       txt(doc, paste0(ttb(fl$f), "%"), X_TTB - 0.1, yb + g / 2 - 0.3, 1.6, 0.6, 28, TK$verde_txt, bold = TRUE, align = "center") }
@@ -247,6 +260,9 @@ bloque_likert <- function(doc, premisas, cols = TK$likert, rotulos = LIKERT_ROT,
     fila <- fila + extra
     altos <- vapply(premisas, function(p) max(alto_txt(p$texto, wp, PT$premisa, TRUE), length(p$filas) * fila), 0)
     tot <- sum(altos) + gap * (length(premisas) - 1) }
+  # Cifras chicas encima de la barra: necesitan 0,36 in libres sobre ella. Si la fila no los
+  # tiene, la barra adelgaza (la letra no encoge, el 1 % no se omite, la lámina no se parte más).
+  if (any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) tiene_peq(fl$f$pct, WB), TRUE)), TRUE)) && fila - g < 0.36) g <- max(0.24, fila - 0.36)
   y <- y0 + max(0, (y1 - y0 - tot - 0.5) / 2)
   if (ttb_col) {
     txt(doc, if (ESTILO == "fiel") "TOP TWO BOX" else "Top Two Box", X_TTB, y - 0.45, 1.5, 0.26, 10, TK$verde_txt, bold = TRUE, align = "center")
@@ -263,7 +279,7 @@ bloque_likert <- function(doc, premisas, cols = TK$likert, rotulos = LIKERT_ROT,
       yb <- yf + (fila - g) / 2 + 0.06
       if (nzchar(fl$actor)) {
         txt(doc, fl$actor, X_ACT, yb + g / 2 - (if (ESTILO == "moderna") 0.25 else 0.15), W_ACT, 0.3, PT$actor, TK$navy, bold = TRUE, align = "right")
-        if (ESTILO == "moderna") txt(doc, paste(fl$f$valid, "respuestas"), X_ACT - 0.4, yb + g / 2, W_ACT + 0.4, 0.26, PT$n, TK$faint, align = "right") }
+        if (ESTILO == "moderna") txt(doc, paste(format(fl$f$valid, big.mark = ","), "respuestas"), X_ACT - 0.4, yb + g / 2, W_ACT + 0.4, 0.26, PT$n, TK$faint, align = "right") }
       barra_apilada(doc, X_BAR, yb, WB, fl$f$pct, cols, g)
       if (ttb_col) etiqueta_ttb(doc, X_TTB, yb, g, fl$f, fl$ttb21, comp21)
       yf <- yf + fila
@@ -295,7 +311,7 @@ laminas_likert <- function(doc, t, ante, premisas, base, ...) {
   if (ESTILO == "moderna" && sin_actor(premisas)) premisas <- premisas[order(-vapply(premisas, function(p) ttb(p$filas[[1]]$f), 0))]
   partes <- partir(premisas)
   for (k in seq_along(partes)) { doc <- nueva(doc); titulo(doc, paste0(t, if (k > 1) " (cont.)" else ""), ante = ante)
-    bloque_likert(doc, partes[[k]], ...); pie(doc, base) }
+    bloque_likert(doc, partes[[k]], solo = length(partes) == 1, ...); pie(doc, base) }
   doc
 }
 
@@ -329,6 +345,59 @@ pfila <- function(b, v, actor, ttb21 = NULL) list(actor = actor, f = fr(b, v), t
 prem <- function(...) { fl <- list(...); list(texto = fl[[1]]$f$pregunta, filas = fl) }
 
 doc <- read_pptx("api/inst/plantillas/plantilla_16_9.pptx")
+
+# ===================================================================== 5 portadilla
+portadilla <- function(doc, n, t, sub = NULL, icono = NULL) {
+  doc <- nueva(doc, "Section Header")
+  if (ESTILO == "fiel") { txt(doc, toupper(t), 2.6, 4.45, 9.8, 1.2, 28, TK$navy, bold = TRUE); zona("título", 2.6, 4.45, 9.8, 1.2) }
+  else { rot <- if (is.character(n)) n else sprintf("%02d", n)   # partes del recetario: «I», «III.2»; secciones del informe: 01, 02
+    icono_en_circulo(doc, icono %||% ICONO_SECCION[n], 2.6, 3.95, 0.62, fondo = TK$coral); txt(doc, rot, 3.35, 4.02, 2.4, 0.6, 26, TK$coral, bold = TRUE)
+    txt(doc, t, 2.6, 4.65, 9.8, 0.7, 32, TK$navy, bold = TRUE); if (!is.null(sub)) txt(doc, sub, 2.6, 5.35, 9.8, 0.4, 15, TK$soft)
+    zona("título", 2.6, 4.55, 9.8, 0.7) }
+  dibujar_guias(doc); doc
+}
+
+
+# ===================================================================== 0 portada y mapa del recetario
+MOTOR_ACT <- "Portada del recetario (no es una lámina del motor)"
+doc <- nueva(doc, "Title Slide")
+if (ESTILO == "fiel") {
+  txt(doc, "RECETARIO DE IDENTIDAD VISUAL", 1.6, 2.65, 10.1, 0.6, 26, TK$navy, bold = TRUE, align = "center")
+  txt(doc, "INFORMES CUANTITATIVOS DE PULSO PUCP", 1.6, 3.35, 10.1, 0.45, 18, TK$navy, align = "center")
+  txt(doc, "Versión fiel: el estilo entregado, afinado", 1.6, 4.32, 10.1, 0.36, 14, TK$navy, align = "center")
+  txt(doc, "Octubre, 2026", 9.2, 5.85, 3.2, 0.34, 13, TK$navy, align = "right")
+} else {
+  txt(doc, "RECETARIO", 1.6, 2.12, 10.1, 0.32, 13, TK$coral, bold = TRUE, align = "center")
+  txt(doc, "Identidad visual de los informes cuantitativos", 1.3, 2.5, 10.7, 1.0, 34, TK$navy, bold = TRUE, align = "center")
+  txt(doc, "Reglas, informe tipo, catálogo de láminas y escenarios, con el motor PPT de Prosecnur", 1.6, 3.75, 10.1, 0.4, 18, TK$navy, align = "center")
+  txt(doc, "Versión moderna, octubre de 2026", 1.6, 4.25, 10.1, 0.4, 16, TK$soft, align = "center")
+}
+zona("título del recetario", 1.6, 2.35, 10.1, 1.35); dibujar_guias(doc)
+
+MOTOR_ACT <- "Mapa del recetario (no es una lámina del motor)"
+doc <- nueva(doc); titulo(doc, "Cómo recorrer este recetario", ante = "Recetario")
+partes <- list(
+  list("I", "Reglas de la identidad", "Tamaño, peso y color de cada elemento, retícula, paleta, texto junto a los gráficos, escalas que llegan y reglas de rotulado"),
+  list("II", "El informe tipo", "Un informe de acreditación completo, en el orden en que se entrega: de la portada a las recomendaciones"),
+  list("III", "Catálogo de láminas y gráficos", "Disposiciones de dos a seis gráficos, láminas de población, la galería de los 24 gráficos y las dimensiones"),
+  list("IV", "Escenarios de acreditación", "Lo que cambia entre carreras. IV.1 Actores y bases: seis actores, filtros, cohortes, bases chicas. IV.2 Escalas, etiquetas y formatos"),
+  if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) list("V", "Otros estudios de PULSO", "La misma identidad en estudios de opinión, monitoreo de campo y seguimiento de indicadores"),
+  list("VI", "Banco de recursos", "Íconos por temática, cajas, figuras y conectores, con su medida y su uso"))
+partes <- Filter(Negate(is.null), partes)
+hp <- (YF - YT + 0.1) / length(partes)
+for (k in seq_along(partes)) { yk <- YT - 0.1 + (k - 1) * hp; p_ <- partes[[k]]
+  if (ESTILO == "fiel") { caja(doc, ML + 0.3, yk + 0.12, 0.62, 0.44, TK$coral); txt(doc, p_[[1]], ML + 0.3, yk + 0.14, 0.62, 0.4, 16, "#FFFFFF", bold = TRUE, align = "center") }
+  else txt(doc, p_[[1]], ML + 0.25, yk + 0.05, 0.9, 0.55, 28, TK$coral, bold = TRUE)
+  txt(doc, p_[[2]], ML + 1.3, yk + 0.06, 5, 0.4, 17, TK$navy, bold = TRUE)
+  txt(doc, p_[[3]], ML + 1.3, yk + 0.46, W - MR - ML - 1.5, 0.34, 12.5, TK$soft)
+  if (ESTILO == "moderna" && k < length(partes)) separador_h(doc, ML + 1.3, W - MR, yk + hp - 0.08) }
+zona("partes", ML + 0.25, YT - 0.1, W - MR - ML, YF - YT); pie(doc, "")
+
+MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "I", "Reglas de la identidad", "Tamaños, márgenes, colores, texto y rotulado, medidos en los informes entregados", icono = "info")
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m0.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m0b.R", local = TRUE)
+
+MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "II", "El informe tipo", "Un informe de acreditación completo, en el orden en que se entrega", icono = "scroll-text")
 
 # ===================================================================== 1 portada
 MOTOR_ACT <- "p_slide_portada"
@@ -366,7 +435,7 @@ zona("objetivo", 4.05, 1.95, 8.6, 2.5); dibujar_guias(doc)
 MOTOR_ACT <- "p_slide_tabla_tecnica"
 doc <- nueva(doc); titulo(doc, "Ficha técnica cuantitativa", ante = "Metodología")
 ft_d <- data.frame(c = c("Tipo y técnica", "Universo", "Muestreo", "Muestra", "Trabajo de campo"),
-  v = c("Metodología cuantitativa mediante encuestas telefónicas y por correo electrónico; encuesta vía correo a docentes y administrativos, y aplicación presencial en aulas a estudiantes. Plataforma: Survey Monkey.",
+  v = c("Metodología cuantitativa mediante encuestas telefónicas y por correo electrónico. Encuesta vía correo a docentes y administrativos, y aplicación presencial en aulas a estudiantes. Plataforma: Survey Monkey.",
         "Estudiantes, docentes, egresados(as) y personal administrativo de la carrera de Contabilidad de la PUCP.",
         "No probabilístico por conveniencia, con intención censal.",
         "172 estudiantes (96 %), 52 docentes (92 %), 178 egresados(as) (66 %) y 15 administrativos (94 %).",
@@ -378,8 +447,28 @@ ft <- flextable(ft_d) |> delete_part("header") |> font(fontname = TK$font, part 
   hline_top(border = fp_border(color = if (ESTILO == "fiel") "#757070" else TK$navy, width = if (ESTILO == "fiel") 0.75 else 1.25)) |>
   padding(padding.top = 21, padding.bottom = 21, padding.left = 10, padding.right = 10)
 if (ESTILO == "fiel") ft <- ft |> vline(border = fp_border(color = "#757070", width = 0.75)) |> vline_left(border = fp_border(color = "#757070", width = 0.75)) |> vline_right(border = fp_border(color = "#757070", width = 0.75))
-invisible(ph_with(doc, ft, location = ph_location(left = ML + 0.25, top = Y_DATOS + 0.1, width = 12.2, height = 4)))
-zona("tabla", ML + 0.25, Y_DATOS + 0.1, 12.2, 4.2); pie(doc, "")
+if (ESTILO == "fiel") {
+  invisible(ph_with(doc, ft, location = ph_location(left = ML + 0.25, top = Y_DATOS + 0.1, width = 12.2, height = 4)))
+  zona("tabla", ML + 0.25, Y_DATOS + 0.1, 12.2, 4.2)
+} else {
+  # Moderna: filas dibujadas con ícono, y la muestra por actor como cifras (número y tasa de respuesta)
+  fil <- list(list("clipboard-list", "Tipo y técnica", ft_d$v[1], 0.95), list("users", "Universo", ft_d$v[2], 0.75), list("shuffle", "Muestreo", ft_d$v[3], 0.6),
+              list("hash", "Muestra", NULL, 1.1), list("calendar-days", "Trabajo de campo", ft_d$v[5], 0.6))
+  mu <- data.frame(n = c(172, 52, 178, 15), a = c("estudiantes", "docentes", "egresados(as)", "administrativos"), t = c(96, 92, 66, 94))
+  y <- Y_DATOS - 0.15; xv <- ML + 3.3; wv <- W - MR - xv
+  for (i in seq_along(fil)) { f_ <- fil[[i]]; h_ <- f_[[4]]
+    icono_en_circulo(doc, f_[[1]], ML + 0.25, y + (h_ - 0.48) / 2, 0.48, pad = 0.25)
+    txt(doc, f_[[2]], ML + 0.9, y + (h_ - 0.32) / 2, 2.3, 0.32, 14, TK$navy, bold = TRUE)
+    if (is.null(f_[[3]])) { for (j in seq_len(nrow(mu))) { xx <- xv + (j - 1) * wv / 4
+        txt(doc, mu$n[j], xx, y + 0.02, 1.0, 0.5, 26, TK$navy, bold = TRUE)
+        txt(doc, mu$a[j], xx + 0.95, y + 0.21, wv / 4 - 1.0, 0.3, 12, TK$navy)
+        txt(doc, sprintf("%d%% de respuesta", mu$t[j]), xx, y + 0.6, wv / 4, 0.28, 11, TK$verde_txt, bold = TRUE) } }
+    else txt(doc, f_[[3]], xv, y + (h_ - alto_txt(f_[[3]], wv, 13)) / 2, wv, alto_txt(f_[[3]], wv, 13), 13, TK$navy)
+    y <- y + h_ + 0.12
+    if (i < length(fil)) separador_h(doc, ML + 0.25, W - MR, y - 0.06) }
+  zona("ficha en filas con ícono", ML + 0.25, Y_DATOS - 0.15, W - MR - ML - 0.25, y - Y_DATOS + 0.15)
+}
+pie(doc, "")
 
 # ===================================================================== 4 índice
 MOTOR_ACT <- "p_slide_indice"
@@ -407,40 +496,30 @@ if (TRUE) {
   zona("entradas", ML + 0.25, Y_DATOS, 12.25, 7 * 0.66); pie(doc, "")
 }
 
-# ===================================================================== 5 portadilla
-portadilla <- function(doc, n, t, sub = NULL) {
-  doc <- nueva(doc, "Section Header")
-  if (ESTILO == "fiel") { txt(doc, toupper(t), 2.6, 4.45, 9.8, 1.2, 28, TK$navy, bold = TRUE); zona("título", 2.6, 4.45, 9.8, 1.2) }
-  else { icono_en_circulo(doc, ICONO_SECCION[n], 2.6, 3.95, 0.62, fondo = TK$coral); txt(doc, sprintf("%02d", n), 3.35, 4.02, 2, 0.6, 26, TK$coral, bold = TRUE)
-    txt(doc, t, 2.6, 4.65, 9.8, 0.7, 32, TK$navy, bold = TRUE); if (!is.null(sub)) txt(doc, sub, 2.6, 5.35, 9.8, 0.4, 15, TK$soft)
-    zona("título", 2.6, 4.55, 9.8, 0.7) }
-  dibujar_guias(doc); doc
-}
-MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, 1, "Perfil del encuestado", "Docentes, estudiantes, egresados y administrativos")
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m1b.R", local = TRUE)   # número de respuestas por actor
 
 # ===================================================================== 6 Top Two Box
 MOTOR_ACT <- "p_slide_top_two_box"
 if (ESTILO == "moderna") {
   doc <- nueva(doc); titulo(doc, "Top Two Box", ante = "Cómo leer este informe")
-  icono_en_circulo(doc, "info", ML + 0.2, Y_DATOS + 0.55, 0.55, fondo = TK$coral)
-  txt(doc, "Qué es", ML + 0.9, Y_DATOS + 0.6, 3.5, 0.4, 16, TK$coral, bold = TRUE)
-  txt(doc, paste("Es la suma de los dos valores superiores de la escala. Permite comparar de manera más rápida y eficiente",
-                 "los datos entre categorías o con mediciones de otros años."), ML + 0.2, Y_DATOS + 1.25, 3.9, 2.4, 16, TK$navy)
-  # escala de 1 a 4 con sus extremos, a la izquierda bajo la explicación
-  ys <- 5.05; for (k in 1:4) { caja(doc, ML + 0.25 + (k - 1) * 0.85, ys, 0.55, 0.32, TK$likert[k]); txt(doc, k, ML + 0.25 + (k - 1) * 0.85, ys + 0.01, 0.55, 0.3, 13, TK$navy, bold = TRUE, align = "center") }
-  txt(doc, "Totalmente en desacuerdo", ML + 0.2, ys + 0.42, 1.9, 0.3, 11, TK$soft); txt(doc, "Totalmente de acuerdo", ML + 1.75, ys + 0.42, 1.9, 0.3, 11, TK$soft, align = "right")
-  xb <- 5.0; wb <- 7.6; yb <- 3.05; ej <- c(5, 5, 35, 55)
-  barra_apilada(doc, xb, yb, wb, ej, TK$likert[1:4], 0.7)
+  txt(doc, paste("Es la suma de los dos valores superiores de la escala. Resume en una cifra el acuerdo de cada grupo",
+                 "y permite compararlo entre actores y con mediciones de otros años."), ML + 0.25, Y_DATOS + 0.05, ANCHO - 0.5, 0.9, 17, TK$navy)
+  xb <- ML + 0.4; wb <- 8.9; yb <- 4.0; ej <- c(5, 5, 35, 55); g_ <- 0.8
+  barra_apilada(doc, xb, yb, wb, ej, TK$likert[1:4], g_)
   x3 <- xb + wb * 0.10; x4 <- xb + wb
-  caja(doc, x3, yb + 0.9, x4 - x3, 0.025, TK$verde_txt); caja(doc, x3, yb + 0.78, 0.025, 0.14, TK$verde_txt); caja(doc, x4 - 0.025, yb + 0.78, 0.025, 0.14, TK$verde_txt)
-  caja(doc, (x3 + x4) / 2 - 0.0125, yb + 0.92, 0.025, 0.16, TK$verde_txt)
-  txt(doc, "Top Two Box", (x3 + x4) / 2 - 1.5, yb + 1.15, 3, 0.32, 14, TK$verde_txt, bold = TRUE, align = "center")
-  txt(doc, "35% + 55% = 90%", (x3 + x4) / 2 - 2, yb + 1.48, 4, 0.6, 30, TK$verde_txt, bold = TRUE, align = "center")
-  zona("ejemplo", xb, yb, wb, 2.7); pie(doc, "")
+  caja(doc, x3, yb - 0.32, x4 - x3, 0.025, TK$verde_txt); caja(doc, x3, yb - 0.32, 0.025, 0.2, TK$verde_txt); caja(doc, x4 - 0.025, yb - 0.32, 0.025, 0.2, TK$verde_txt)
+  caja(doc, (x3 + x4) / 2 - 0.0125, yb - 0.5, 0.025, 0.2, TK$verde_txt)
+  txt(doc, "Los dos valores superiores", (x3 + x4) / 2 - 2, yb - 0.85, 4, 0.3, 12, TK$verde_txt, bold = TRUE, align = "center")
+  xt <- xb + wb + 0.35; wt <- W - MR - xt
+  txt(doc, "Top Two Box", xt, yb - 0.5, wt, 0.3, 13, TK$verde_txt, bold = TRUE, align = "center")
+  txt(doc, "90%", xt, yb - 0.12, wt, 0.75, 44, TK$verde_txt, bold = TRUE, align = "center")
+  txt(doc, "35% + 55%", xt, yb + 0.7, wt, 0.32, 14, TK$verde_txt, align = "center")
+  leyenda(doc, 0, yb + g_ + 0.45, c("1  Totalmente en desacuerdo", "2  En desacuerdo", "3  De acuerdo", "4  Totalmente de acuerdo"), TK$likert[1:4], centrar_en = xb + wb / 2)
+  zona("ejemplo: barra, llave y columna Top Two Box", xb, yb - 0.85, W - MR - xb, 2.2); pie(doc, "")
 } else {
 doc <- nueva(doc); titulo(doc, "Top Two Box", ante = "Cómo leer este informe")
-txt(doc, paste("Con el fin de hacer la lectura de datos de forma más amigable, se plantea la suma de los dos valores superiores de la escala,",
-               "comúnmente llamada top two box. Esta suma permite comparar de manera más rápida y eficiente los datos entre categorías o con mediciones de otros años."),
+txt(doc, paste("Para facilitar la lectura se suman los dos valores superiores de la escala, suma conocida como Top Two Box.",
+               "Con ella se comparan los actores entre sí y con las mediciones de otros años."),
     ML + 0.25, Y_DATOS, 12.2, 0.95, PT$cuerpo, TK$navy)
 xb <- 3.0; wb <- 7.3; yb <- 3.35; ej <- c(5, 5, 35, 55)
 barra_apilada(doc, xb, yb, wb, ej, TK$likert[1:4], 0.5)
@@ -461,17 +540,42 @@ zona("ejemplo", xb, yb - 0.35, wb, 2.2); pie(doc, "")
 # ===================================================================== 6b redondeo (p_slide_redondeo)
 MOTOR_ACT <- "p_slide_redondeo"
 doc <- nueva(doc); titulo(doc, if (ESTILO == "fiel") "Cómo se redondean las cifras" else "Cómo se redondean las cifras", ante = "Cómo leer este informe")
-txt(doc, paste0("Una cifra con decimales hay que redondearla para escribirla, y no existe forma de hacerlo que conserve a la vez ",
-                "el valor exacto de cada categoría y una suma de 100 %. El informe declara cuál de las dos conserva."), ML + 0.25, Y_DATOS, 12.2, 0.95, PT$cuerpo, TK$navy)
+txt(doc, paste0("Al redondear no es posible conservar a la vez el valor exacto de cada categoría y una suma de 100 %. ",
+                "El informe declara cuál de las dos conserva."), ML + 0.25, Y_DATOS, 12.2, 0.95, PT$cuerpo, TK$navy)
 filas_r <- list(list(t = "Redondeo estándar", v = c(1, 6, 40, 53, 1)), list(t = "Reparto a 100 %", v = c(1, 6, 40, 53, 0)))
-yr <- 3.15
-for (fr_ in filas_r) {
-  txt(doc, fr_$t, ML + 0.25, yr + 0.12, 2.4, 0.32, 13, TK$navy, bold = TRUE)
-  barra_apilada(doc, 2.95, yr, 8.2, pmax(fr_$v, 0.0001) * (fr_$v > 0) + 0, TK$likert, 0.64)
-  sm <- sum(fr_$v); txt(doc, paste0("Suma: ", sm, " %"), 11.35, yr + 0.1, 1.65, 0.34, 14, if (sm != 100) TK$coral else TK$navy, bold = TRUE)
-  yr <- yr + 1.55 }
-leyenda(doc, 0, yr + 0.05, LIKERT_ROT, TK$likert, centrar_en = 2.95 + 4.1)
-zona("ejemplo: 1, 10, 72, 94 y 1 casos de 178", 2.95, 3.55, 8.2, 1.8); pie(doc, "")
+if (ESTILO == "fiel") {
+  yr <- 3.15
+  for (fr_ in filas_r) {
+    txt(doc, fr_$t, ML + 0.25, yr + 0.12, 2.4, 0.32, 13, TK$navy, bold = TRUE)
+    barra_apilada(doc, 2.95, yr, 8.2, pmax(fr_$v, 0.0001) * (fr_$v > 0) + 0, TK$likert, 0.64)
+    sm <- sum(fr_$v); txt(doc, paste0("Suma: ", sm, "%"), 11.35, yr + 0.1, 1.65, 0.34, 14, if (sm != 100) TK$coral else TK$navy, bold = TRUE)
+    yr <- yr + 1.55 }
+  leyenda(doc, 0, yr + 0.05, LIKERT_ROT, TK$likert, centrar_en = 2.95 + 4.1)
+  zona("ejemplo: 1, 10, 72, 94 y 1 casos de 178", 2.95, 3.55, 8.2, 1.8)
+} else {
+  # Moderna: matriz exacta. Columnas = categorías; filas = valor exacto y los dos redondeos; sólo la celda que cambia va en coral.
+  n_ <- c(1, 10, 72, 94, 1); ex <- 100 * n_ / sum(n_)
+  x0 <- ML + 2.9; wc <- 1.62; y0 <- Y_DATOS + 1.25; hr <- 0.72
+  for (j in 1:5) { xx <- x0 + (j - 1) * wc
+    caja(doc, xx + 0.05, y0, wc - 0.1, 0.1, TK$likert[j]); txt(doc, LIKERT_ROT[j], xx, y0 + 0.14, wc, 0.5, 11, TK$navy, bold = TRUE, align = "center") }
+  txt(doc, "Suma", x0 + 5 * wc, y0 + 0.14, 1.3, 0.3, 11, TK$soft, bold = TRUE, align = "center")
+  filas_m <- list(list(t = "Valor exacto", d = sprintf("%.2f%%", ex), s = "100%", sub = sprintf("%d de %d casos", n_, sum(n_))),
+                  list(t = "Redondeo estándar", d = paste0(filas_r[[1]]$v, "%"), s = paste0(sum(filas_r[[1]]$v), "%"), sub = NULL),
+                  list(t = "Reparto a 100 %", d = paste0(filas_r[[2]]$v, "%"), s = paste0(sum(filas_r[[2]]$v), "%"), sub = NULL))
+  for (i in seq_along(filas_m)) { f_ <- filas_m[[i]]; yy <- y0 + 0.75 + (i - 1) * hr
+    if (i > 1) separador_h(doc, ML + 0.25, x0 + 5 * wc + 1.3, yy - 0.1)
+    txt(doc, f_$t, ML + 0.25, yy + 0.08, 2.6, 0.34, 14, TK$navy, bold = TRUE)
+    for (j in 1:5) { cambia <- i == 3 && filas_r[[1]]$v[j] != filas_r[[2]]$v[j]
+      if (cambia) contorno(doc, x0 + (j - 1) * wc + 0.25, yy - 0.02, wc - 0.5, 0.5, TK$coral, lwd = 1.25, lty = "solid")
+      txt(doc, f_$d[j], x0 + (j - 1) * wc, yy + 0.06, wc, 0.36, if (i == 1) 14 else 16, if (cambia) TK$coral else TK$navy, bold = i > 1, align = "center")
+      if (!is.null(f_$sub)) txt(doc, f_$sub[j], x0 + (j - 1) * wc, yy + 0.36, wc, 0.26, 10, TK$faint, align = "center") }
+    txt(doc, f_$s, x0 + 5 * wc, yy + 0.06, 1.3, 0.36, 16, if (f_$s != "100%") TK$coral else TK$navy, bold = TRUE, align = "center") }
+  txt(doc, "Para cerrar en 100, el reparto da los puntos que faltan a los restos más grandes. Aquí, un 0.56% queda en 0%.", x0, y0 + 0.75 + 3 * hr + 0.05, 5 * wc + 1.3, 0.3, 12, TK$coral, bold = TRUE)
+  zona("matriz: exacto y dos redondeos de 1, 10, 72, 94 y 1 casos de 178", x0, y0, 5 * wc + 1.3, 0.75 + 3 * hr)
+}
+pie(doc, "")
+
+MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, 1, "Perfil del encuestado", "Docentes, estudiantes, egresados y administrativos")
 
 # ===================================================================== 7 perfil estudiante (4 paneles)
 MOTOR_ACT <- "p_slide_4_graficos_poblacion: p_barras_agrupadas x3 + p_histograma"
@@ -516,7 +620,7 @@ panel_titulo(doc, xs3[2], Y_DATOS, pw3, "¿En qué año obtuvo su título univer
 barras_h(doc, xs3[2], Y_DATOS + 0.85, pw3, a$labels, a$pct, wlab = 0.9, g = grosor_cat(6), fila = 0.75)
 panel_titulo(doc, xs3[3], Y_DATOS, pw3, "Sueldo mensual bruto", "167 respuestas")
 barras_h(doc, xs3[3], Y_DATOS + 0.85, pw3, s$labels, s$pct, wlab = 1.85, g = grosor_cat(6), fila = 0.66, size = 11)
-pie(doc, "Base: 178 egresados")
+pie(doc, sprintf("Base: %d egresados. Año de titulación, %d que tienen título. Sueldo, %d que respondieron", t1$valid, a$valid, s$valid))
 
 # ===================================================================== 9 perfil comparativo 2021 / 2026
 MOTOR_ACT <- "p_slide_3_graficos_fila: p_barras_agrupadas con overrides$comparativo"
@@ -536,12 +640,12 @@ pie(doc, "Base: 172 estudiantes en 2026")
 MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, 2, "Características institucionales")
 
 # ===================================================================== 11 Sí / No por actor
-MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas (var_cruce, dicotómica); partición «(cont.)»"
+MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas (var_cruce, dicotómica). Partición «(cont.)»"
 act <- c("Docentes", "Estudiantes", "Egresados", "Administrativos")
 p1 <- list(texto = D$mision1[[1]]$pregunta, filas = lapply(1:4, function(i) list(actor = act[i], f = D$mision1[[i]])))
 p2 <- list(texto = D$mision2[[1]]$pregunta, filas = lapply(1:4, function(i) list(actor = act[i], f = D$mision2[[i]])))
 doc <- laminas_likert(doc, "Misión y propósitos institucionales", "Características institucionales", list(p1, p2),
-                      "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos", cols = TK$dico, rotulos = c("Sí", "No"), ttb_col = FALSE)
+                      "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos. Dónde consultarla: sólo quienes conocen la misión", cols = TK$dico, rotulos = c("Sí", "No"), ttb_col = FALSE)
 
 # ===================================================================== 12 Likert, una afirmación
 MOTOR_ACT <- "p_slide_1_grafico: p_barras_apiladas"
@@ -560,13 +664,13 @@ doc <- laminas_likert(doc, "Orientación y acompañamiento académico", "Estudia
                       "Base: 52 docentes y 172 estudiantes. 2021: informe consolidado anterior", comp21 = TRUE)
 
 # ===================================================================== 15 batería de un público
-MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas (modo var); partición «(cont.)»"
+MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas (modo var). Partición «(cont.)»"
 bat <- lapply(sprintf("p14_%d", 2:7), function(v) prem(pfila("administrativos", v, "Administrativos")))
 for (i in seq_along(bat)) bat[[i]]$filas[[1]]$actor <- ""
 doc <- laminas_likert(doc, "Gestores universitarios y personal de apoyo", "Estructura organizacional, administrativa y financiera", bat, "Base: 15 administrativos")
 
 # ===================================================================== 16-17 partición «(cont.)»
-MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas (modo var); partición «(cont.)»"
+MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas (modo var). Partición «(cont.)»"
 comp_items <- lapply(sprintf("p30_%d", 1:11), function(v) prem(pfila("docentes", v, "")))
 doc <- laminas_likert(doc, "Competencias del perfil de egreso", "Características del perfil de egreso", comp_items, "Base: 51 docentes")
 
@@ -596,9 +700,11 @@ if (ESTILO == "fiel") {
   ser$a <- factor(ser$a, levels = names(TK$actores))
   lab <- data.frame(t = comp, x = 1.2 * cos(ang), y = 1.12 * sin(ang), h = ifelse(abs(cos(ang)) < 0.1, 0.5, ifelse(cos(ang) > 0, 0, 1)))
   gr <- ggplot() + geom_path(data = ring, aes(x, y, group = r), colour = "#C9CED8", linewidth = 0.4) +
-    geom_text(data = data.frame(v = c(85, 90, 95, 100)), aes(x = 0.03, y = rr(v), label = paste0(v, "%")), hjust = 0, vjust = -0.2, size = 10 / .pt, colour = TK$soft, family = "Arial") +
     geom_polygon(data = ser, aes(x, y, group = a, colour = a), fill = NA, linewidth = 1.1) + geom_point(data = ser, aes(x, y, colour = a), size = 2.4) +
     geom_text(data = lab, aes(x, y, label = t, hjust = h), size = 12 / .pt, colour = TK$navy, family = "Arial", fontface = "bold") +
+    geom_label(data = data.frame(v = c(85, 90, 95, 100)), aes(x = rr(v) * cos((ang[1] + ang[2]) / 2) * cos((ang[1] - ang[2]) / 2) + 0.02,
+      y = rr(v) * sin((ang[1] + ang[2]) / 2) * cos((ang[1] - ang[2]) / 2), label = paste0(v, "%")), hjust = 0, vjust = 0.5,   # entre los dos primeros ejes, con fondo y sobre las series
+      size = 10 / .pt, colour = TK$soft, family = "Arial", fill = TK$fondo, label.size = 0, label.padding = unit(0.06, "lines")) +
     scale_colour_manual(values = TK$actores) + coord_equal(xlim = c(-1.75, 1.75), ylim = c(-1.25, 1.25), clip = "off") + theme_void() + theme(legend.position = "none")
   invisible(ph_with(doc, dml(ggobj = gr, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML + 0.2, top = Y_DATOS + 0.35, width = 6.4, height = 4.4)))
   zona("radar", ML + 0.2, Y_DATOS + 0.35, 6.4, 4.4)
@@ -631,20 +737,6 @@ if (ESTILO == "moderna") {
   zona("tira de puntos, eje 80 a 100", xs, y0 + hdrh, wsx, nrow(tb) * rowh)
 }
 pie(doc, sprintf("Base: %d docentes, %d estudiantes y %d egresados", nsr[1], nsr[2], nsr[3]))
-
-# ===================================================================== 19 selección múltiple (ING)
-MOTOR_ACT <- "p_slide_1_grafico_narrativo: p_barras_agrupadas (select_multiple)"
-sm <- D$ing_p35
-doc <- nueva(doc); titulo(doc, "Qué podría mejorar la carrera", ante = "Ingeniería Mecánica, egresados")
-o <- order(-sm$pct); lab <- sm$labels[o]; pc <- sm$pct[o]; ot <- grepl("^Otros$|^No sabe", lab)
-lab <- c(lab[!ot], lab[ot]); pc <- c(pc[!ot], pc[ot]); lab <- lab[pc > 0]; pc <- pc[pc > 0]
-txt(doc, sm$pregunta, ML + 0.25, Y_DATOS - 0.15, 12.2, alto_txt(sm$pregunta, 12.2, 13), 13, TK$navy, bold = ESTILO == "fiel")
-if (ESTILO == "moderna") txt(doc, "% de encuestados que marcó cada opción", ML + 0.25 + 6.72, Y_DATOS + 0.3, 5, 0.26, 10, TK$soft, bold = TRUE)
-yy0 <- Y_DATOS + 0.6; resid <- grepl("^Otros$|^No sabe", lab)
-barras_h(doc, ML + 0.25, yy0, W - ML - MR - 0.25, lab[!resid], pc[!resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08)
-if (any(resid)) barras_h(doc, ML + 0.25, yy0 + sum(!resid) * 0.46, W - ML - MR - 0.25, lab[resid], pc[resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08,
-                         color = if (ESTILO == "moderna") TK$faint else TK$navy)
-pie(doc, "Base: 131 egresados")
 
 # ===================================================================== 20 dos gráficos lado a lado (dos círculos en el fiel)
 MOTOR_ACT <- if (ESTILO == "fiel") "p_slide_2_graficos: p_pie x2" else "p_slide_1_grafico: p_barras_multiapiladas (dicotómica)"
@@ -681,15 +773,6 @@ txt_runs(doc, narr, 9.95, Y_DATOS + 0.15, 3.0, 3.6, size = 14)
 zona("texto narrativo", 9.95, Y_DATOS + 0.15, 3.0, 3.6)
 pie(doc, "Base: 52 docentes y 172 estudiantes")
 
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2b.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2c.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3a.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3b.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3c.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3d.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3e.R", local = TRUE)
-
 # ===================================================================== 24 lámina de texto con viñetas (p_slide_texto)
 MOTOR_ACT <- "p_slide_texto (bullets)"
 doc <- nueva(doc); titulo(doc, "Recomendaciones", ante = "Cierre")
@@ -706,5 +789,30 @@ for (k in seq_along(recs)) {
   y <- y + paso_r }
 zona("viñetas", ML + 0.3, Y_DATOS, 12.1, 4.4); pie(doc, "")
 
-print(doc, target = Sys.getenv("SALIDA"))
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2b.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2c.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3a.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3b.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3c.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3d.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3e.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m4.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m5.R", local = TRUE)
+
+if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R", local = TRUE)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m7.R", local = TRUE)   # VI Banco de recursos (I55)
+
+# ===================================================================== contraportada (layout de la plantilla)
+MOTOR_ACT <- "layout «Contraportada» de la plantilla (cierre de todos los informes entregados)"
+doc <- nueva(doc, "Contraportada")
+# Contacto con la posición y el tamaño medidos en la contraportada de los informes entregados (12 pt, navy)
+txt(doc, "pulsopucp@pucp.edu.pe", 1.08, 6.7, 2.4, 0.4, 12, TK$navy); txt(doc, "Av. Universitaria 1801, San Miguel, Lima 32, Perú", 5.2, 6.69, 4.9, 0.4, 12, TK$navy)
+txt(doc, "pulso.pucp.edu.pe", 11.17, 6.71, 1.8, 0.4, 12, TK$navy); dibujar_guias(doc)
+
+# Saneo obligatorio: sin él PowerPoint muestra «Click to add text» en cada forma (H19). LibreOffice y el PDF no lo muestran,
+# así que el render no lo delata; por eso va aquí y no como paso aparte que se puede olvidar (pasó el 2026-10-07).
+crudo <- tempfile(fileext = ".pptx"); print(doc, target = crudo)
+st <- system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/sanear_ph.py"), shQuote(crudo), shQuote(Sys.getenv("SALIDA"))), stdout = FALSE)
+if (st != 0) stop("sanear_ph.py falló: el PPT quedaría con marcadores vacíos")
 cat("OK", FOLIO, "láminas", ESTILO, if (GUIAS) "con guías" else "", "\n")

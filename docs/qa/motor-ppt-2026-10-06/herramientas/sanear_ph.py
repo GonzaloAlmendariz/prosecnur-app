@@ -18,7 +18,7 @@ P = '{http://schemas.openxmlformats.org/presentationml/2006/main}'
 src, dst = sys.argv[1], sys.argv[2]
 zin = zipfile.ZipFile(src)
 zout = zipfile.ZipFile(dst, 'w', zipfile.ZIP_DEFLATED)
-libres = borrados = 0
+libres = borrados = titulos = 0
 for item in zin.infolist():
     data = zin.read(item.filename)
     if re.match(r'ppt/slides/slide\d+\.xml$', item.filename):
@@ -29,6 +29,18 @@ for item in zin.infolist():
                 continue
             tiene_geo = sp.find('.//' + A + 'xfrm') is not None
             texto = ''.join(t.text or '' for t in sp.iter(A + 't')).strip()
+            nv = sp.find('.//' + P + 'cNvPr')
+            if tiene_geo and nv is not None and nv.get('name') == 'Titulo lamina':
+                # Título de la lámina: queda como marcador de título nativo (PowerPoint lo muestra en el esquema y la
+                # navegación), con su geometría y formato propios. Ancla arriba y sin autoajuste para no heredar los del layout.
+                for k in list(ph.attrib): del ph.attrib[k]
+                ph.set('type', 'title'); nv.set('name', 'Título')
+                bp = sp.find('.//' + A + 'bodyPr')
+                if bp is not None:
+                    bp.set('anchor', 't')
+                    if not any(c.tag in (A + 'noAutofit', A + 'normAutofit', A + 'spAutoFit') for c in bp): etree.SubElement(bp, A + 'noAutofit')
+                titulos += 1
+                continue
             if tiene_geo:
                 ph.getparent().remove(ph); libres += 1
                 sppr = sp.find(P + 'spPr')
@@ -47,4 +59,4 @@ for item in zin.infolist():
         data = etree.tostring(root, xml_declaration=True, encoding='UTF-8', standalone=True)
     zout.writestr(item, data)
 zout.close()
-print(f'{dst}: {libres} formas liberadas, {borrados} placeholders vacíos borrados')
+print(f'{dst}: {libres} formas liberadas, {titulos} títulos nativos, {borrados} placeholders vacíos borrados')

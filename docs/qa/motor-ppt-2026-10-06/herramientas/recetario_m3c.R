@@ -21,8 +21,8 @@ for (i in 1:4) { yc <- yb + (i - 0.5) * fila; a1 <- D$mision1[[i]]$pct[1]; a2 <-
   txt(doc, sprintf("%d respuestas", D$mision1[[i]]$valid), ML, yc + 0.02, 2.2, 0.26, 10, TK$faint, align = "right")
   caja(doc, px(min(a1, a2)), yc - 0.012, px(max(a1, a2)) - px(min(a1, a2)), 0.024, TK$faint)
   caja(doc, px(a2) - 0.12, yc - 0.12, 0.24, 0.24, "#4F7FAF", geom = "ellipse"); caja(doc, px(a1) - 0.12, yc - 0.12, 0.24, 0.24, TK$navy, geom = "ellipse")
-  ar <- a1 >= a2; txt(doc, paste0(a1, "%"), if (ar) px(a1) + 0.16 else px(a1) - 0.76, yc - 0.42, 0.6, 0.28, 11, TK$navy, bold = TRUE, align = if (ar) "left" else "right")
-  txt(doc, paste0(a2, "%"), if (ar) px(a2) - 0.76 else px(a2) + 0.16, yc + 0.12, 0.6, 0.28, 11, "#4F7FAF", bold = TRUE, align = if (ar) "right" else "left") }
+  ar <- a1 >= a2; txt(doc, paste0(a1, "%"), if (ar) min(px(a1) + 0.16, W - MR - 0.6) else px(a1) - 0.76, yc - 0.42, 0.6, 0.28, 11, TK$navy, bold = TRUE, align = if (ar) "left" else "right")
+  txt(doc, paste0(a2, "%"), if (ar) px(a2) - 0.76 else min(px(a2) + 0.16, W - MR - 0.6), yc + 0.12, 0.6, 0.28, 11, "#4F7FAF", bold = TRUE, align = if (ar) "right" else "left") }
 zona("puntos, eje 50 a 100 rotulado", xl, yb, wl, 4 * fila)
 leyenda(doc, 0, YF - 0.3, c("Conoce la misión y los propósitos", "Sabe dónde consultarlos"), c(TK$navy, "#4F7FAF"), size = 11, centrar_en = xl + wl / 2)
 pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos")
@@ -72,9 +72,10 @@ serie <- do.call(rbind, lapply(names(TK$actores), function(a) data.frame(a = a, 
 serie$a <- factor(serie$a, levels = names(TK$actores))
 labr <- data.frame(t = comp6, x = 1.2 * cos(ang), y = 1.12 * sin(ang), h = ifelse(abs(cos(ang)) < 0.1, 0.5, ifelse(cos(ang) > 0, 0, 1)))
 gr <- ggplot() + geom_path(data = ring, aes(x, y, group = r), colour = "#C9CED8", linewidth = 0.4) +
-  geom_text(data = data.frame(v = c(85, 90, 95, 100)), aes(x = 0.03, y = rr(v), label = paste0(v, "%")), hjust = 0, vjust = -0.2, size = 10 / .pt, colour = TK$soft, family = "Arial") +
   geom_polygon(data = serie, aes(x, y, group = a, colour = a), fill = NA, linewidth = 1.1) + geom_point(data = serie, aes(x, y, colour = a), size = 2.4) +
   geom_text(data = labr, aes(x, y, label = t, hjust = h), size = 12 / .pt, colour = TK$navy, family = "Arial", fontface = "bold") +
+  geom_label(data = data.frame(v = c(85, 90, 95, 100)), aes(x = rr(v) * cos(pi / 3) * 0.87 + 0.02, y = rr(v) * sin(pi / 3) * 0.87, label = paste0(v, "%")), hjust = 0, vjust = 0.5,   # entre dos ejes: no pisa el rótulo del eje superior
+    size = 10 / .pt, colour = TK$soft, family = "Arial", fill = TK$fondo, label.size = 0, label.padding = unit(0.06, "lines")) +
   scale_colour_manual(values = TK$actores) + coord_equal(xlim = c(-1.75, 1.75), ylim = c(-1.25, 1.25), clip = "off") + theme_void() + theme(legend.position = "none")
 invisible(ph_with(doc, dml(ggobj = gr, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML, top = YT + 0.2, width = 6.6, height = 4.5)))
 leyenda(doc, 0, YF - 0.3, names(TK$actores), TK$actores, size = 11, centrar_en = ML + 3.3)
