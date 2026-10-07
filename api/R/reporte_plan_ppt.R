@@ -6199,7 +6199,7 @@ reporte_ppt_plan <- function(
     preset_args <- preset_args %||% list()
     overrides   <- el$overrides %||% list()
 
-    ctx_var <- .resolve_ref(var, arg_name = "var")
+    ctx_var <- .ctx_var_numerica_cruda(.resolve_ref(var, arg_name = "var"))   # H38
 
     cruce_ref <- overrides$cruce %||% el$cruce %||% preset_args$cruce %||% NULL
     preset_args$cruce <- NULL
@@ -6373,7 +6373,7 @@ reporte_ppt_plan <- function(
     preset_args <- preset_args %||% list()
     overrides   <- el$overrides %||% list()
 
-    ctx_var <- .resolve_ref(var, arg_name = "var")
+    ctx_var <- .ctx_var_numerica_cruda(.resolve_ref(var, arg_name = "var"))   # H38
 
     cruce_ref <- overrides$cruce %||% el$cruce %||% preset_args$cruce %||% NULL
     preset_args$cruce <- NULL
@@ -6547,7 +6547,7 @@ reporte_ppt_plan <- function(
     preset_args <- preset_args %||% list()
     overrides   <- el$overrides %||% list()
 
-    ctx_var <- .resolve_ref(var, arg_name = "var")
+    ctx_var <- .ctx_var_numerica_cruda(.resolve_ref(var, arg_name = "var"))   # H38
 
     cruce_ref <- overrides$cruce %||% el$cruce %||% preset_args$cruce %||% NULL
     preset_args$cruce <- NULL
