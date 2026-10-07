@@ -35,8 +35,8 @@ piso_grob <- function(x, piso = 10, a = 10.5) {
   x }
 gm <- readRDS(file.path(SP, "mapa_cobertura.rds"))
 for (i in seq_along(gm$layers)) if (!is.null(gm$layers[[i]]$geom_params$grob)) gm$layers[[i]]$geom_params$grob <- piso_grob(gm$layers[[i]]$geom_params$grob)
-invisible(ph_with(doc, dml(ggobj = gm, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML + 0.3, top = YT, width = 8.6, height = 4.95)))
-zona("mapa", ML + 0.3, YT, 8.6, 4.95)
+invisible(ph_with(doc, dml(ggobj = gm, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML, top = YT, width = 8.6, height = 4.95)))
+zona("mapa", ML, YT, 8.6, 4.95)
 narrativa(doc, 9.4, YT + 0.9, 3.6, 2.6, list(N_("El motor dibuja este mapa con los distritos, zonas y manzanas que registran "), B("Hojas de ruta"), N_(" y "), B("Monitoreo territorial"),
   N_(". El ejemplo usa datos de prueba.")), size = 14)
 pie(doc, "Ejemplo con datos de prueba del motor (Lima)")

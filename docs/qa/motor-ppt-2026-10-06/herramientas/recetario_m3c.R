@@ -76,7 +76,7 @@ gr <- ggplot() + geom_path(data = ring, aes(x, y, group = r), colour = "#C9CED8"
   geom_text(data = labr, aes(x, y, label = t, hjust = h), size = 12 / .pt, colour = TK$navy, family = "Arial", fontface = "bold") +
   geom_label(data = data.frame(v = c(85, 90, 95, 100)), aes(x = rr(v) * cos(pi / 3) * 0.87 + 0.02, y = rr(v) * sin(pi / 3) * 0.87, label = paste0(v, "%")), hjust = 0, vjust = 0.5,   # entre dos ejes: no pisa el rótulo del eje superior
     size = 10 / .pt, colour = TK$soft, family = "Arial", fill = TK$fondo, label.size = 0, label.padding = unit(0.06, "lines")) +
-  scale_colour_manual(values = TK$actores) + coord_equal(xlim = c(-1.75, 1.75), ylim = c(-1.25, 1.25), clip = "off") + theme_void() + theme(legend.position = "none")
+  scale_colour_manual(values = TK$actores) + coord_equal(xlim = c(-2.15, 2.15), ylim = c(-1.25, 1.25), clip = "off") + theme_void() + theme(legend.position = "none")   # xlim amplio: los rótulos de los ejes caben sin tocar la tabla
 invisible(ph_with(doc, dml(ggobj = gr, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML, top = YT + 0.2, width = 6.6, height = 4.5)))
 leyenda(doc, 0, YF - 0.3, names(TK$actores), TK$actores, size = 11, centrar_en = ML + 3.3)
 names(dd6)[1] <- "Competencia"; tabla_ttb(dd6, 7.25, YT + 0.6, c(2.2, 1.15, 1.25, 1.15), 0.5); names(dd6)[1] <- "Competencia"
