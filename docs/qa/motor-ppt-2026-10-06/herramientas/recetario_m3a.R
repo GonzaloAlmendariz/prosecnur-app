@@ -1,7 +1,7 @@
 # Recetario: galería de gráficos de distribución (loop M3a).
 # Se carga desde recetario.R después de recetario_m2c.R.
 
-doc <- portadilla(doc, 5, "Galería de gráficos", "Cada constructor del motor, con su mejor uso")
+MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "III.3", "Galería de gráficos", "Cada constructor del motor, con su mejor uso", icono = ICONO_SECCION[5])
 
 # --- p_barras_categoricas: columnas verticales de un solo color
 MOTOR_ACT <- "p_slide_1_grafico: p_barras_categoricas"
@@ -73,12 +73,12 @@ for (i in seq_along(it)) { f <- it[[i]]; yb <- y0_ + (i - 1) * fila_ + (fila_ - 
 caja(doc, xc - 0.006, y0_ - 0.1, 0.012, length(it) * fila_ + 0.15, TK$navy)
 zona("divergente, centro entre desacuerdo y acuerdo", xa_, y0_, wa_, length(it) * fila_)
 leyenda(doc, 0, y0_ + length(it) * fila_ + 0.25, LIKERT_ROT, TK$likert, size = 10.5, centrar_en = W / 2)
-pie(doc, "Base: 15 administrativos")
+pie(doc, "Uso excepcional: con Top Two Box se prefieren barras apiladas alineadas. Base: 15 administrativos")
 
 # --- p_lollipop: ranking de muchas opciones (selección múltiple)
 MOTOR_ACT <- "p_slide_1_grafico: p_lollipop (selección múltiple)"
 sm <- D$ing_p35
-doc <- nueva(doc); titulo(doc, "Qué podría mejorar la carrera", ante = "Ranking (lollipop)")
+doc <- nueva(doc); titulo(doc, "Qué podría mejorar la carrera", ante = "Ranking con puntos")
 o <- order(-sm$pct); lab <- sm$labels[o]; pc <- sm$pct[o]; res <- grepl("^Otros$|^No sabe", lab)
 lab <- c(lab[!res], lab[res]); pc <- c(pc[!res], pc[res]); lab <- lab[pc > 0]; pc <- pc[pc > 0]
 wl_ <- 6.3; xs_ <- ML + wl_ + 0.25; ws_ <- W - MR - xs_ - 0.7; fl_ <- (YF - YT - 0.45) / length(lab); esc_ <- ceiling(max(pc) / 10) * 10

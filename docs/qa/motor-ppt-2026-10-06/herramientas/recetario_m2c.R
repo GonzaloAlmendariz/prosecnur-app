@@ -7,7 +7,7 @@ do_sexo <- fr("docentes", "p5"); do_gr <- fr("docentes", "p6"); do_ed <- fr("doc
 es_sexo <- D$genero; es_rango <- D$rango; es_ciclo <- D$ciclo; edad <- D$edad$x[!is.na(D$edad$x)]
 t1 <- D$titulo
 
-doc <- portadilla(doc, 4, "Láminas de población y de cifras", "El perfil de cada público en una sola mirada")
+MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "III.2", "Láminas de población y de cifras", "El perfil de cada público en una sola mirada", icono = ICONO_SECCION[4])
 
 # --- p_slide_2_graficos_poblacion: dos gráficos con ícono al centro
 MOTOR_ACT <- "p_slide_2_graficos_poblacion: p_barras_agrupadas x2 + ícono"

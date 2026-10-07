@@ -14,7 +14,7 @@ separador_v(doc, ML + col2 + GAP / 2, YT, YF)
 xr <- ML + col2 + GAP
 panel_titulo(doc, xr, YT, col2, "Sueldo mensual bruto", paste(s$valid, "respuestas"))
 barras_h(doc, xr, YT + 0.75, col2, s$labels, s$pct, wlab = 2.5, g = grosor_cat(6), fila = 0.68, size = 12)
-pie(doc, "Base: 178 egresados")
+pie(doc, sprintf("Base: %d egresados. Año de titulación, %d que tienen título. Sueldo, %d que respondieron", t1$valid, a$valid, s$valid))
 
 # --- p_slide_3_graficos_1mas2: uno alto a la izquierda y dos apilados a la derecha
 MOTOR_ACT <- "p_slide_3_graficos_1mas2: p_barras_agrupadas x3"

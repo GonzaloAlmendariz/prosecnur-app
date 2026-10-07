@@ -26,7 +26,7 @@ pie(doc, "Base: 172 estudiantes")
 
 # --- p_boxplot: distribución de la edad por grupo
 MOTOR_ACT <- "p_slide_1_grafico: p_boxplot"
-doc <- nueva(doc); titulo(doc, "Distribución de la edad por ciclo", ante = "Box plot")
+doc <- nueva(doc); titulo(doc, "Distribución de la edad por ciclo", ante = "Diagrama de caja")
 todas <- unlist(por_ciclo); lo <- floor(min(todas)); hi <- ceiling(max(todas))
 xl <- ML + 1.9; wl <- W - MR - xl - 1.7; px <- function(v) xl + wl * (v - lo) / (hi - lo); fila <- (YF - YT - 0.9) / k_
 for (v in seq(lo, hi, by = 2)) { caja(doc, px(v), YT + 0.35, 0.006, k_ * fila, TK$rule); txt(doc, v, px(v) - 0.3, YT + 0.05, 0.6, 0.24, 10, TK$faint, align = "center") }

@@ -21,11 +21,11 @@ celda <- function(doc, x, y, w, h, v) { col <- azul(v); caja(doc, x + 0.02, y + 
 escala_azul <- function(doc, x, y, w, lo = 80, hi = 100) { n <- 20; for (i in 0:(n - 1)) caja(doc, x + i * w / n, y, w / n + 0.005, 0.16, azul(lo + (hi - lo) * i / (n - 1), lo, hi))
   txt(doc, paste0(lo, "%"), x - 0.55, y - 0.06, 0.5, 0.26, 10, TK$soft, align = "right"); txt(doc, paste0(hi, "%"), x + w + 0.05, y - 0.06, 0.6, 0.26, 10, TK$soft) }
 
-doc <- portadilla(doc, 6, "Dimensiones e índices", "Requieren las dimensiones calculadas en Analítica")
+MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "III.4", "Dimensiones e índices", "Requieren las dimensiones calculadas en Analítica", icono = ICONO_SECCION[6])
 
 # --- p_dim_heatmap: dimensiones por grupo
 MOTOR_ACT <- "p_slide_1_grafico: p_dim_heatmap"
-doc <- nueva(doc); titulo(doc, "Competencias del perfil de egreso por grupo", ante = "Heatmap de dimensiones")
+doc <- nueva(doc); titulo(doc, "Competencias del perfil de egreso por grupo", ante = "Mapa de calor por dimensión")
 cols <- c("Total", "Masculino", "Femenino", names(cic_cod)); xl <- ML + 2.9; wc <- (W - MR - xl) / length(cols); hc <- 1.0; y0 <- YT + 0.85
 for (j in seq_along(cols)) { txt(doc, sub(" ciclo", "", cols[j]), xl + (j - 1) * wc, y0 - 0.62, wc, 0.26, 11, TK$navy, bold = TRUE, align = "center")
   txt(doc, sprintf("%d", n_g[[cols[j]]]), xl + (j - 1) * wc, y0 - 0.36, wc, 0.24, 10, TK$faint, align = "center") }
@@ -41,7 +41,7 @@ pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competenc
 
 # --- p_dim_heatmap_criterios: cada criterio dentro de su dimensión
 MOTOR_ACT <- "p_slide_1_grafico: p_dim_heatmap_criterios"
-doc <- nueva(doc); titulo(doc, "Cada competencia dentro de su dimensión", ante = "Heatmap por criterios")
+doc <- nueva(doc); titulo(doc, "Cada competencia dentro de su dimensión", ante = "Mapa de calor por criterio")
 cols2 <- c("Total", "Masculino", "Femenino"); xl <- ML + 5.4; wc <- (W - MR - xl - 0.1) / 3; hc <- (YF - YT - 1.15) / 11; y0 <- YT + 0.4
 for (j in seq_along(cols2)) txt(doc, sprintf("%s (%d)", cols2[j], n_g[[cols2[j]]]), xl + (j - 1) * wc, y0 - 0.35, wc, 0.26, 11, TK$navy, bold = TRUE, align = "center")
 fila_i <- 0
@@ -78,15 +78,17 @@ ser <- do.call(rbind, lapply(c("Masculino", "Femenino"), function(g) data.frame(
 ser$a <- factor(ser$a, levels = c("Masculino", "Femenino"))
 lb <- data.frame(t = nom_it, x = 1.18 * cos(angs), y = 1.12 * sin(angs), h = ifelse(abs(cos(angs)) < 0.15, 0.5, ifelse(cos(angs) > 0, 0, 1)))
 gr <- ggplot() + geom_path(data = ring, aes(x, y, group = r), colour = "#C9CED8", linewidth = 0.4) +
-  geom_text(data = data.frame(v = c(85, 90, 95, 100)), aes(x = 0.03, y = rr(v), label = paste0(v, "%")), hjust = 0, vjust = -0.2, size = 10 / .pt, colour = TK$soft, family = "Arial") +
   geom_polygon(data = ser, aes(x, y, group = a, colour = a), fill = NA, linewidth = 1.1) + geom_point(data = ser, aes(x, y, colour = a), size = 2.2) +
   geom_text(data = lb, aes(x, y, label = t, hjust = h), size = 11 / .pt, colour = TK$navy, family = "Arial", fontface = "bold") +
+  geom_label(data = data.frame(v = c(85, 90, 95, 100)), aes(x = rr(v) * cos((angs[1] + angs[2]) / 2) * cos((angs[1] - angs[2]) / 2) + 0.02,
+    y = rr(v) * sin((angs[1] + angs[2]) / 2) * cos((angs[1] - angs[2]) / 2), label = paste0(v, "%")), hjust = 0, vjust = 0.5,   # entre los dos primeros ejes, con fondo y sobre las series
+    size = 10 / .pt, colour = TK$soft, family = "Arial", fill = TK$fondo, label.size = 0, label.padding = unit(0.06, "lines")) +
   scale_colour_manual(values = c(Masculino = TK$navy, Femenino = "#4F7FAF")) + coord_equal(xlim = c(-1.9, 1.9), ylim = c(-1.25, 1.25), clip = "off") + theme_void() + theme(legend.position = "none")
 invisible(ph_with(doc, dml(ggobj = gr, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML + 0.4, top = YT + 0.05, width = 7.6, height = 4.9)))
 leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", c("Masculino", "Femenino"), n_g[c("Masculino", "Femenino")]), c(TK$navy, "#4F7FAF"), size = 11, centrar_en = ML + 4.2)
 d_mf <- M_it[, "Masculino"] - M_it[, "Femenino"]; o <- order(-abs(d_mf))[1:3]
-narrativa(doc, 8.95, YT + 0.9, 4.05, 3.2, list(N_("Las dos formas casi se superponen: ningún eje difiere más de "), B(paste0(max(abs(d_mf)), " puntos")),
-  N_(". Las mayores distancias están en "), B(paste(tolower(nom_it[o[1:2]]), collapse = " y ")), N_(".")), size = 15)
+narrativa(doc, 8.95, YT + 0.9, 4.05, 3.2, list(N_("Ningún eje difiere más de "), B(paste0(max(abs(d_mf)), " puntos")), N_(" entre los dos grupos."),
+  N_(" Las mayores distancias están en "), B(paste(tolower(nom_it[o[1:2]]), collapse = " y ")), N_(".")), size = 15)
 zona("radar, anillos de 80 a 100 rotulados", ML + 0.4, YT + 0.05, 7.6, 4.9)
 pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))
 

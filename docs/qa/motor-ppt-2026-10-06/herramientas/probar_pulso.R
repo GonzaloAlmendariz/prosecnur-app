@@ -37,6 +37,13 @@ for (base in bases) {
   out_path <- file.path(OUT, paste0(if (nzchar(base)) base else "mazo", ".pptx"))
   t0 <- Sys.time(); avisos <- character()
   ok <- withCallingHandlers(tryCatch({
+    if (!nzchar(base)) {   # multibase no independiente: el camino de POST /api/graficos/ppt califica refs con la base activa
+      dp <- file.path(OUT, "data.rds"); ip <- file.path(OUT, "inst.rds"); saveRDS(data_sources, dp); saveRDS(inst_sources, ip)
+      graficos_job_worker_ppt(rp_data_path = dp, rp_inst_path = ip, plan = plan, presets = .enriquecer_presets(cfg$presets, FALSE),
+        paletas = cfg$paletas %||% list(), slide_registry = slide_reg, graficador_registry = .graf_names(), icon_registry = icon_reg,
+        active_base = .graficos_active_base_name(sid), template_pptx = tpl, template_id = delivery$template_id,
+        auto_otros_slides = isTRUE(delivery$auto_otros_slides), result_path = out_path)
+    } else
     reporte_ppt_plan(data = dat, instrumento = ins, path_ppt = out_path, presets = .build_presets(.enriquecer_presets(cfg$presets, FALSE)),
       plan = p_plan(slides = slides_r), env_diapos = .graficos_palette_env(cfg$paletas %||% list(), parent = environment()),
       template_pptx = tpl, template_id = delivery$template_id, auto_otros_slides = isTRUE(delivery$auto_otros_slides), mensajes_progreso = FALSE); TRUE },

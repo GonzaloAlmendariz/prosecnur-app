@@ -3,7 +3,7 @@
 
 mitad <- (W - ML - MR - 0.5) / 2; xI <- ML; xD <- ML + mitad + 0.5
 
-doc <- portadilla(doc, 3, "Disposiciones con dos gráficos y con texto", "Una misma lámina, dos lecturas")
+MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "III.1", "Disposiciones con dos gráficos y con texto", "Una misma lámina, dos lecturas", icono = ICONO_SECCION[3])
 
 # --- p_slide_2_graficos: dos gráficos lado a lado
 MOTOR_ACT <- "p_slide_2_graficos: p_barras_multiapiladas x2 (dicotómica)"
@@ -25,7 +25,7 @@ panel_titulo(doc, xI, Y_DATOS + 1.0, mitad, "¿En qué año obtuvo su título un
 barras_h(doc, xI, Y_DATOS + 1.65, mitad, a$labels, a$pct, wlab = 0.9, g = grosor_cat(5), fila = 0.6)
 panel_titulo(doc, xD, Y_DATOS + 1.0, mitad, "Sueldo mensual bruto", paste(s$valid, "respuestas"))
 barras_h(doc, xD, Y_DATOS + 1.65, mitad, s$labels, s$pct, wlab = 2.4, g = grosor_cat(6), fila = 0.5, size = 11)
-pie(doc, "Base: 178 egresados")
+pie(doc, sprintf("Base: %d egresados que tienen título (año de titulación) y %d que respondieron el sueldo", a$valid, s$valid))
 
 # --- p_slide_grafico_texto_derecha: gráfico grande, lectura a la derecha
 MOTOR_ACT <- "p_slide_grafico_texto_derecha: p_barras_multiapiladas (modo var)"
@@ -36,7 +36,7 @@ likert_panel(doc, ML, Y_DATOS + 0.1, 8.6, lapply(1:4, function(i) list(lab = etq
 leyenda(doc, 0, Y_DATOS + 4.75, LIKERT_ROT, TK$likert, size = 10.5, centrar_en = ML + 2.1 + 3.3)
 mx <- which.max(sapply(comp4, ttb)); mn <- which.min(sapply(comp4, ttb))
 narrativa(doc, 9.55, Y_DATOS + 0.8, 3.45, 3.4, list(N_("Los docentes valoran todas las competencias por encima de "), B(paste0(min(sapply(comp4, ttb)), "%")),
-  N_(". La más alta es "), B(etq4[mx]), N_(paste0(" (", ttb(comp4[[mx]]), "%)")), N_("; la más baja, "), B(etq4[mn]), N_(paste0(" (", ttb(comp4[[mn]]), "%)."))))
+  N_(". La más alta es "), B(etq4[mx]), N_(paste0(" (", ttb(comp4[[mx]]), "%)")), N_(". La más baja, "), B(etq4[mn]), N_(paste0(" (", ttb(comp4[[mn]]), "%)."))))
 pie(doc, "Base: 51 docentes")
 
 # --- p_slide_grafico_texto_izquierda: lectura a la izquierda, gráfico a la derecha
