@@ -619,6 +619,24 @@
       style$subtopic_number_size <- reduce(style$subtopic_number_size, 10)
     }
   }
+  # H73: la letra tambien se ajusta al ancho. Con los 13 estandares de acreditacion quedaba en 16 pt sobre 5.22 in;
+  # los titulos largos se partian en dos lineas, la fila (alto exacto) crecia igual en el render y la ultima
+  # entrada llegaba al borde de la lamina. Se baja la letra hasta que el titulo mas largo quepa en una linea
+  # (0.52 em por caracter en Arial negrita), con piso de 11 pt; el numero nunca queda mas grande que el texto.
+  if (n > 0L) {
+    disponible_txt <- table_width - suppressWarnings(as.numeric(style$number_width)[1]) - 0.22
+    largo <- base::max(nchar(as.character(secciones)))
+    cabe <- floor(disponible_txt * 72 / (largo * 0.52))
+    actual <- suppressWarnings(as.numeric(style$section_size)[1])
+    # Solo se baja si los titulos partidos harian que la tabla no quepa: cada fila mide su alto o el de sus lineas
+    # (1.2 em por linea mas el relleno y el hueco entre filas, 0.19 in). Con 5 u 8 secciones partir en dos cabe.
+    lineas <- ceiling(nchar(as.character(secciones)) * 0.52 * actual / 72 / disponible_txt)
+    alto_real <- sum(pmax(row_height, lineas * actual * 1.2 / 72 + 0.19))
+    if (is.finite(cabe) && is.finite(actual) && cabe < actual && table_top + alto_real > bottom) {
+      style$section_size <- base::max(11, cabe)
+      style$number_size <- base::min(suppressWarnings(as.numeric(style$number_size)[1]), style$section_size)
+    }
+  }
   style$table_width <- table_width
   style$row_height <- row_height
 
