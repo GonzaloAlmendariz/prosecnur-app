@@ -190,11 +190,14 @@ test_that(".ppt_section_title_size respeta el valor explicito y deriva del titul
 test_that("router y motor derivan el mismo cuerpo para el titulo de seccion", {
   # Si estas dos capas divergen, el mismo proyecto exporta tamanos distintos
   # segun entre por el router (/api/graficos/ppt) o directo (preview, Word).
+  # El cuerpo del titulo lo fija el estandar (ADR 0092): un proyecto guardado
+  # con otro tamano migra al del recetario y la seccion se deriva de ese.
   for (size_slide in c(18, 22.5, 24, 30)) {
-    enriched <- .enriquecer_presets(list(base = list(size_titulo_slide = size_slide)))
+    enriched <- suppressMessages(.enriquecer_presets(list(base = list(size_titulo_slide = size_slide))))
+    expect_equal(enriched$base$size_titulo_slide, .std_pt("titulo"))
     expect_equal(
       enriched$base$size_titulo_seccion,
-      .ppt_section_title_size(NULL, size_slide)
+      .ppt_section_title_size(NULL, .std_pt("titulo"))
     )
   }
 

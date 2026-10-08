@@ -3585,7 +3585,9 @@
     size_cuerpo_slide = 16,
     size_leyenda      = 12,
     size_ejes         = 12,
-    size_nota_pie     = 14,
+    # La base de la lámina va a 10 pt, como en el recetario (ADR 0092, `.std_pt("base")`);
+    # test-estandar-tokens.R falla si este literal se aparta del estándar.
+    size_nota_pie     = 10,
     size_texto_barras = 4.92,
     slide_1_plot_height_cm = 14.00,
     slide_1_narrativo_plot_top_cm = 3.10,

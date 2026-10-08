@@ -1459,7 +1459,8 @@
       presets[[mig$tipo]] <- entry
     }
   }
-  presets
+  # ADR 0092: las claves que fija el estándar se imponen sobre lo guardado.
+  .std_imponer_base(presets)
 }
 
 .graficos_normalize_config <- function(input, sid = NULL, include_legacy_aliases = FALSE) {
@@ -1755,7 +1756,8 @@
   # G-16: los presets del body llegan directo de la UI (sin pasar por el
   # normalizador de config), asi que la migracion de defaults fosiles
   # tambien tiene que correr aqui — es la costura comun de ppt/word/ppt-all.
-  presets_json <- .graficos_migrar_defaults_fosiles(presets_json)
+  # El aviso sale aquí, en la costura del render, y no en el GET de la config.
+  presets_json <- .graficos_migrar_defaults_fosiles(.std_imponer_base(presets_json, avisar = TRUE))
 
   # 0) Suelo editorial: cada tipo hereda `.PRESETS_DEFAULT_PULSO` y el proyecto
   # escribe encima.
