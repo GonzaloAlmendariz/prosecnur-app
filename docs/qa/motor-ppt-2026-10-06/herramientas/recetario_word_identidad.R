@@ -24,6 +24,8 @@ estilos_doc <- function(doc) {
   doc <- docx_set_character_style(doc, style_id = "NumeroRotulo", style_name = "Número de rótulo", base_on = "Default Paragraph Font", fp_t = fp_text(font.family = FONT, font.size = 10, color = NAVY, bold = TRUE))
   doc <- docx_set_paragraph_style(doc, style_id = "BaseFuente", style_name = "Base y fuente", fp_p = fp_par(text.align = "center", padding.top = 2, padding.bottom = 10, line_spacing = 1.1),
     fp_t = fp_text(font.family = FONT, font.size = 8.5, color = SOFT))
+  doc <- docx_set_paragraph_style(doc, style_id = "BaseFuenteLectura", style_name = "Base y fuente con lectura", fp_p = fp_par(text.align = "center", padding.top = 2, padding.bottom = 10, line_spacing = 1.1, keep_with_next = TRUE),
+    fp_t = fp_text(font.family = FONT, font.size = 8.5, color = SOFT))
   doc <- docx_set_paragraph_style(doc, style_id = "Lectura", style_name = "Lectura", fp_p = fp_par(text.align = "justify", line_spacing = 1.3, padding.top = 2, padding.bottom = 14),
     fp_t = fp_text(font.family = FONT, font.size = 10.5, color = TXT))
   doc <- docx_set_paragraph_style(doc, style_id = "NumeroCapitulo", style_name = "Número de capítulo", fp_p = fp_par(text.align = "left", padding.bottom = 0, keep_with_next = TRUE),
