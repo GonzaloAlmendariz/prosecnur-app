@@ -13,12 +13,12 @@ WTK <- list(navy = "#081F5C", navy_w = "#002060", azul_si = if (ESTILO == "fiel"
             tenue = "#8E9DBD", gris = "#8A93A8", rule = "#D5D9DF")
 ANCHO_W <- 6.27                                           # ancho de la imagen en la página (in)
 FS <- if (ESTILO == "fiel") 0.86 else 0.95                 # escala de letra: la fiel imita los entregados (7,5 a 8,5 pt)
-PT <- function(x) max(7.5, x * FS) / .pt                   # tamaños de texto de geom en puntos; nada bajo 7,5 pt en Word
+PT <- function(x) max(8, x * FS) / .pt                     # tamaños de texto de geom en puntos; nada bajo 8 pt en Word (propuesta Word, 2026-10-08)
 fuente_pie <- function(n_txt) stringr::str_wrap(if (nzchar(n_txt)) paste0(n_txt, ". Fuente: PULSO PUCP 2026.") else "Fuente: PULSO PUCP 2026.", 120)
 tema_w <- function() theme_void(base_family = "Arial") + theme(plot.background = element_blank(), panel.background = element_blank(),
   plot.caption = element_text(size = 7.5, face = "italic", colour = WTK$navy_w, hjust = 0.5, margin = margin(t = 6)),
   plot.margin = margin(6, 6, 4, 6), legend.position = "bottom", legend.title = element_blank(),
-  legend.text = element_text(size = 7.5, colour = WTK$navy_w), legend.key.size = unit(8, "pt"))
+  legend.text = element_text(size = 8, colour = WTK$navy_w), legend.key.size = unit(8, "pt"))
 
 
 # Margen izquierdo según la etiqueta más larga ya partida: ninguna etiqueta se corta.
@@ -36,7 +36,7 @@ posiciones <- function(lbls_envueltos, minimo = 1) {
 
 # Barra apilada por actor (Likert o Sí/No) con columna Top Two Box y cifras chicas encima con guía.
 # filas: list(list(actor, pct)); rot: rótulos de categorías; cols: colores.
-g_apilada <- function(filas, rot, cols, ttb = TRUE, n_txt = "", ancho_lab = 1.3, envolver = 22, ttb21 = NULL) {
+g_apilada <- function(filas, rot, cols, ttb = TRUE, n_txt = "", ancho_lab = 1.3, envolver = 22, ttb21 = NULL, b2b = FALSE) {
   k <- length(rot); nf <- length(filas)
   lbw <- stringr::str_wrap(vapply(filas, `[[`, "", "actor"), envolver); hay_chicas <- any(vapply(filas, function(f) any(f$pct > 0 & f$pct < 7), TRUE))
   ps <- posiciones(lbw, minimo = if (hay_chicas) 1.3 else 1); ys <- ps$y   # aire sobre la barra para las cifras que suben
@@ -60,23 +60,29 @@ g_apilada <- function(filas, rot, cols, ttb = TRUE, n_txt = "", ancho_lab = 1.3,
     geom_segment(data = chicas, aes(x = xm, xend = xl, y = y + h / 2 + 0.07, yend = y + h / 2 + 0.07), colour = WTK$gris, linewidth = 0.3) +
     geom_text(data = chicas, aes(x = xl, y = y + h / 2 + 0.2, label = paste0(p, "%")), size = PT(8), fontface = "bold", colour = WTK$navy_w, family = "Arial")
   gg <- gg
-  if (ttb) { sus <- tail(which(!grepl("^SIN INF|^No he usado|^No sabe", rot)), 2); tt <- vapply(filas, function(f) sum(f$pct[sus]), 0)
+  if (ttb) { sus <- tail(which(!grepl("^SIN INF|^Sin informaci|^No he usado|^No sabe|^NS/NR", rot, ignore.case = TRUE)), 2); tt <- vapply(filas, function(f) sum(f$pct[sus]), 0)
     gg <- gg + annotate("text", x = 110, y = ys, label = paste0(tt, "%"), size = PT(10), fontface = "bold", colour = WTK$verde, family = "Arial") +
       annotate("text", x = 110, y = max(ys) + h / 2 + (if (hay_chicas) 0.62 else 0.3), label = if (ESTILO == "fiel") "TOP TWO BOX" else "Top Two Box", size = PT(7.5), fontface = "bold", colour = WTK$verde, family = "Arial")
+    if (b2b) { bb <- vapply(filas, function(f) sum(f$pct[1:2]), 0)   # Bottom Two Box: las dos respuestas de desacuerdo, en naranja oscuro
+      gg <- gg + annotate("text", x = 124, y = ys, label = paste0(bb, "%"), size = PT(10), fontface = "bold", colour = "#B4541F", family = "Arial") +
+        annotate("text", x = 124, y = max(ys) + h / 2 + (if (hay_chicas) 0.62 else 0.3), label = "Bottom Two Box", size = PT(7.5), fontface = "bold", colour = "#B4541F", family = "Arial") }
+    if (identical(filas[[1]]$actor, "Total") && nf > 1) gg <- gg + annotate("segment", x = -30, xend = if (b2b) 130 else 116, y = (ys[1] + ys[2]) / 2, yend = (ys[1] + ys[2]) / 2, colour = WTK$rule, linewidth = 0.5)
     if (!is.null(ttb21)) gg <- gg + annotate("text", x = 118, y = ys, label = ifelse(is.na(ttb21), "", paste0(ttb21, "%")), size = PT(9), fontface = "bold", colour = WTK$gris, family = "Arial") +
       annotate("text", x = c(110, 118), y = max(ys) + 0.38, label = c("2026", "2021"), size = PT(7.5), fontface = "bold", colour = c(WTK$navy_w, WTK$gris), family = "Arial") }
-  gg <- gg + scale_x_continuous(limits = c(xmin_para(stringr::str_wrap(vapply(filas, `[[`, "", "actor"), envolver), 9.5, if (!is.null(ttb21)) 124 else if (ttb) 121 else 101, -4), if (!is.null(ttb21)) 124 else if (ttb) 121 else 101), expand = c(0, 0)) + scale_y_continuous(limits = c(0.45, ps$tot + 0.75), expand = c(0, 0)) +
-    labs(caption = fuente_pie(n_txt)) + tema_w() + guides(fill = guide_legend(nrow = 1)) + coord_cartesian(clip = "off")
+  xmax_ <- if (b2b) 132 else if (!is.null(ttb21)) 124 else if (ttb) 121 else 101
+  gg <- gg + scale_x_continuous(limits = c(xmin_para(stringr::str_wrap(vapply(filas, `[[`, "", "actor"), envolver), 9.5, xmax_, -4), xmax_), expand = c(0, 0)) + scale_y_continuous(limits = c(0.45, ps$tot + 0.75), expand = c(0, 0)) +
+    labs(caption = fuente_pie(n_txt)) + tema_w() + guides(fill = guide_legend(nrow = if (sum(nchar(rot)) > 90) 2 else 1, byrow = TRUE)) + coord_cartesian(clip = "off")   # la leyenda larga pasa a dos filas: no se corta en el margen
   attr(gg, "alto") <- alto_apilada(ps$tot); gg
 }
 alto_apilada <- function(nf) if (ESTILO == "fiel") 0.62 + 0.3 * nf + 0.42 else 0.7 + 0.36 * nf + 0.5   # fiel: 3 actores en ~1,95 in como los entregados
 
 # Barras horizontales de una variable (perfil, opción múltiple, ordinales). Residuales al final.
-g_barras <- function(labels, pct, n_txt = "", destacar = ESTILO == "moderna", con_n = NULL, resid = grepl("^Otro|^No sabe|^Ninguna|^Prefiero", labels)) {
+g_barras <- function(labels, pct, n_txt = "", destacar = ESTILO == "moderna", con_n = NULL, resid = grepl("^Otro|^No sabe|^Ninguna|^Prefiero", labels), extra = NULL) {
   o <- seq_along(labels); d <- data.frame(l = stringr::str_wrap(labels, 40), p = pct, r = resid)[o, ]; d <- rbind(d[!d$r, ], d[d$r, ])
   psb <- posiciones(d$l, minimo = 1); d$y <- psb$y; mx <- which.max(ifelse(d$r, -1, d$p))
   d$col <- if (destacar) ifelse(d$r, WTK$gris, ifelse(seq_len(nrow(d)) == mx, WTK$navy, WTK$tenue)) else ifelse(d$r, WTK$gris, WTK$azul_si)
   d$et <- if (is.null(con_n)) paste0(d$p, "%") else paste0(d$p, "% (", con_n[o][c(which(!resid), which(resid))], ")")
+  if (!is.null(extra)) d$et <- paste0(d$et, ifelse(nzchar(extra[c(which(!resid), which(resid))]), paste0("   ", extra[c(which(!resid), which(resid))]), ""))
   # Fiel como los Word entregados (AMDT, Educación): eje de 0% a 100%, cifra blanca centrada dentro de la barra y afuera sólo si no cabe.
   eje <- ESTILO == "fiel" && is.null(con_n)
   esc <- if (eje) 100 else max(d$p) * (if (is.null(con_n)) 1.18 else 1.34)
@@ -290,4 +296,44 @@ g_rango <- function(grupos, n_txt = "", unidad = " años") {
     annotate("text", x = lo - (hi - lo) * 0.08, y = d$y, label = d$g, hjust = 1, size = PT(9), fontface = "bold", colour = WTK$navy_w, family = "Arial") +
     scale_x_continuous(limits = c(lo - (hi - lo) * 0.38, hi + (hi - lo) * 0.05), expand = c(0, 0)) + scale_y_continuous(limits = c(0.5, nrow(d) + 0.7)) +
     labs(caption = fuente_pie(paste0(n_txt, ". El punto es la media. La línea va de la edad mínima a la máxima"))) + tema_w() + coord_cartesian(clip = "off")
+}
+
+# ---- Propuesta Word (2026-10-08): gráficos que el recetario en Word todavía no tenía, con la misma estética del PPT.
+# Histograma: una columna por valor, su frecuencia encima, el valor debajo y la mediana como triángulo coral bajo su valor.
+g_hist <- function(x, n_txt = "", unidad = " años") {
+  t_ <- table(factor(x, levels = min(x):max(x))); d <- data.frame(k = as.integer(names(t_)), v = as.integer(t_)); mx <- max(d$v); md <- median(x)
+  ggplot(d) + geom_rect(aes(xmin = k - 0.46, xmax = k + 0.46, ymin = 0, ymax = v), fill = WTK$navy) +
+    geom_text(data = d[d$v > 0, ], aes(x = k, y = v + mx * 0.04, label = v), vjust = 0, size = PT(8.5), fontface = "bold", colour = WTK$navy_w, family = "Arial") +
+    geom_text(aes(x = k, y = -mx * 0.07, label = k), size = PT(8.5), colour = WTK$navy_w, family = "Arial") +
+    annotate("point", x = md, y = -mx * 0.17, shape = 17, size = 2.6, colour = "#CA5651") +
+    annotate("text", x = max(d$k) + 0.5, y = mx * 1.12, label = sprintf("Mediana: %s%s", format(md), unidad), hjust = 1, size = PT(9), fontface = "bold", colour = "#CA5651", family = "Arial") +
+    scale_y_continuous(limits = c(-mx * 0.22, mx * 1.16), expand = c(0, 0)) + scale_x_continuous(expand = c(0.01, 0)) + labs(caption = fuente_pie(n_txt)) + tema_w()
+}
+# Peso de cada aspecto en la satisfacción: un punto sobre una línea, como el ranking con puntos; «sin efecto» cuando no es significativo.
+g_peso <- function(items, peso, n_txt = "") {
+  n <- length(items); d <- data.frame(t = items, p = peso, y = rev(seq_len(n)))
+  ggplot(d) + geom_segment(data = d[!is.na(d$p), ], aes(x = 0, xend = p, y = y, yend = y), colour = WTK$tenue, linewidth = 0.9) +
+    geom_point(data = d[!is.na(d$p), ], aes(x = p, y = y), size = 3.2, colour = WTK$navy) +
+    geom_text(data = d[!is.na(d$p), ], aes(x = p + 2, y = y, label = paste0(p, "%")), hjust = 0, size = PT(9), fontface = "bold", colour = WTK$navy_w, family = "Arial") +
+    geom_text(data = d[is.na(d$p), ], aes(x = 0, y = y, label = "sin efecto significativo"), hjust = 0, size = PT(8.5), fontface = "italic", colour = WTK$gris, family = "Arial") +
+    annotate("text", x = -2, y = d$y, label = d$t, hjust = 1, size = PT(9), fontface = "bold", colour = WTK$navy_w, family = "Arial") +
+    scale_x_continuous(limits = c(xmin_para(d$t, 9, 60, -2), 60), expand = c(0, 0)) + scale_y_continuous(limits = c(0.4, n + 0.6)) + labs(caption = fuente_pie(n_txt)) + tema_w()
+}
+# Nube de palabras: el tamaño crece con las menciones y el tono va de azul claro a azul oscuro.
+g_nube <- function(freq, n_txt = "", k = 40) {
+  f <- head(freq, k); d <- data.frame(w = names(f), n = as.integer(f))
+  d$col <- grDevices::colorRampPalette(c("#8EA3C6", WTK$navy))(5)[cut(d$n, breaks = unique(quantile(d$n, seq(0, 1, .25))), include.lowest = TRUE, labels = FALSE)]
+  set.seed(7)
+  ggplot(d, aes(label = w, size = n, colour = col)) + ggwordcloud::geom_text_wordcloud(family = "Arial", fontface = "bold", rm_outside = TRUE, eccentricity = 0.6, grid_margin = 0.8) +
+    scale_size(range = c(8, 30) / .pt) + scale_colour_identity() + labs(caption = fuente_pie(n_txt)) + tema_w()
+}
+# Mapa: capa sf con su color por categoría y la leyenda vertical a la derecha, con título, como en el PPT.
+g_mapa <- function(capa, cat, pal, titulo_ley, n_txt = "", contorno = NULL, borde = "#FFFFFF", lw = 0.3) {
+  capa$k <- factor(cat, levels = names(pal))
+  g <- ggplot() + geom_sf(data = capa, aes(fill = k), colour = borde, linewidth = lw) +
+    scale_fill_manual(values = pal, name = titulo_ley, drop = FALSE) + coord_sf(expand = FALSE, datum = NA) + labs(caption = fuente_pie(n_txt)) + tema_w() +
+    theme(legend.position = "right", legend.title = element_text(size = 8, face = "bold", colour = WTK$gris), legend.text = element_text(size = 8.5, colour = WTK$navy_w),
+          legend.key.size = unit(10, "pt"), legend.key = element_rect(colour = "#B8C2D3", linewidth = 0.3), legend.justification = c(0, 0))
+  if (!is.null(contorno)) g <- g + geom_sf(data = contorno, fill = NA, colour = WTK$navy, linewidth = 0.6) + coord_sf(expand = FALSE, datum = NA)
+  g
 }
