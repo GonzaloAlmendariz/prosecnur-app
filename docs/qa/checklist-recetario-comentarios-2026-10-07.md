@@ -246,4 +246,6 @@ Pedido: «ajustar el orden y la estructura del recetario para que se vea profesi
 | Y17 | 243 | «Estos gráficos se ven delgados, la separación no es muy buena, en general el slide no se ve bien» | Encuesta organizacional, `recetario_estudios.R` | ☑ bloque Likert estándar del motor con dos premisas |
 | Y18 | 269 | «No le veo utilidad a esta, se va» | Embudo de la muestra, banco | ☑ retirada de la propuesta (sigue en la fiel) |
 
+| Y19 | Mapas | «La posición de las leyendas en los mapas puede verse un poco más profesional», en la línea de un gráfico principal y uno más pequeño al lado | `poner_mapa()` calcula el rectángulo real del mapa y `leyenda_mapa()` pone una leyenda vertical con título que cierra el panel lateral, alineada al borde inferior del mapa. En Lima por distrito el mapa va a la derecha y la escala queda en el mar | ☑ |
+
 Regla transversal de la ronda Y: las cifras chicas encima de su segmento ya no adelgazan la barra. La fila gana el aire (`AIRE_CHICA` en `recetario_piezas.R`, usado por `likert_panel`, `filas_pulso` y `bloque_mixto`) y las leyendas siguen a sus barras en vez de ir a una altura fija.
