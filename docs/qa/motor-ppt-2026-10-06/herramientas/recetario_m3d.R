@@ -20,21 +20,23 @@ n_g <- sapply(grupos, function(g) sum(g & resp_bat))   # base real: quienes resp
 # los datos (del múltiplo de 5 bajo el mínimo al de encima del máximo), para que sirvan con cualquier actor y cualquier batería; debajo de
 # cada cifra va su diferencia con el total, en puntos. Sin notas de lectura atadas al ejemplo: el uso va en el subtítulo.
 rango_calor <- function(M) c(max(0, floor(min(M, na.rm = TRUE) / 5) * 5), min(100, ceiling(max(M, na.rm = TRUE) / 5) * 5))
-calor <- function(v, lo, hi) grDevices::colorRampPalette(c("#EEF2F8", "#9FB1D1", "#2F4B7C"))(41)[pmin(41, pmax(1, round((v - lo) / (hi - lo) * 40) + 1))]
+# Cinco tramos en vez de un degradado: los azules intermedios de un degradado quedan en ~4:1 con letra blanca y con letra
+# oscura a la vez (Gonzalo, 2026-10-07: «a veces las letras negras no se ven bien con el color»). Todos estos pasan 4.5:1.
+TRAMOS_CALOR <- c("#EEF2F8", "#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C")
+calor <- function(v, lo, hi) TRAMOS_CALOR[pmin(5, pmax(1, floor((v - lo) / (hi - lo) * 5) + 1))]
 celda_calor <- function(doc, x, y, w, h, v, lo, hi, ref = NULL) {
   col <- calor(v, lo, hi); caja(doc, x + 0.02, y + 0.02, w - 0.04, h - 0.04, col); tc <- texto_sobre(col)
   if (is.null(ref) || h < 0.6) txt(doc, paste0(round(v), "%"), x, y + (h - 0.3) / 2, w, 0.3, 12, tc, bold = TRUE, align = "center")
   else { dd <- round(v) - round(ref)
     txt(doc, paste0(round(v), "%"), x, y + h / 2 - 0.3, w, 0.3, 13, tc, bold = TRUE, align = "center")
     txt(doc, if (dd == 0) "=" else sprintf("%+d", dd), x, y + h / 2, w, 0.26, 10, tc, align = "center") } }
-escala_calor <- function(doc, centro, y, lo, hi, w = 3.2, rotulo = "Top Two Box") {   # barra de degradado centrada, con sus extremos
-  wr <- ancho_tinta(rotulo, 11, TRUE) + 0.25; wlo <- ancho_tinta(paste0(lo, "%"), 10) + 0.1; whi <- ancho_tinta(paste0(hi, "%"), 10) + 0.1
-  tot <- wr + wlo + w + whi; x <- centro - tot / 2
-  txt(doc, rotulo, x - 0.1, y - 0.07, wr + 0.2, 0.3, 11, TK$soft, bold = TRUE); x <- x + wr
-  txt(doc, paste0(lo, "%"), x - 0.1, y - 0.06, wlo + 0.2, 0.26, 10, TK$soft); x <- x + wlo
-  n <- 24; for (i in 0:(n - 1)) caja(doc, x + i * w / n, y, w / n + 0.005, 0.16, calor(lo + (hi - lo) * i / (n - 1), lo, hi))
-  txt(doc, paste0(hi, "%"), x + w + 0.0, y - 0.06, whi + 0.2, 0.26, 10, TK$soft)
-  zona("escala", centro - tot / 2, y, tot, 0.16) }
+escala_calor <- function(doc, centro, y, lo, hi, w = 3.6, rotulo = "Top Two Box") {   # cinco tramos con sus cortes debajo, centrada
+  wr <- ancho_tinta(rotulo, 11, TRUE) + 0.3; tot <- wr + w; x <- centro - tot / 2
+  txt(doc, rotulo, x - 0.1, y - 0.04, wr + 0.2, 0.3, 11, TK$soft, bold = TRUE); x <- x + wr
+  cortes <- round(seq(lo, hi, length.out = 6))
+  for (i in 1:5) caja(doc, x + (i - 1) * w / 5, y, w / 5 - 0.03, 0.2, TRAMOS_CALOR[i])
+  for (i in 1:6) txt(doc, paste0(cortes[i], "%"), x + (i - 1) * w / 5 - 0.35, y + 0.22, 0.7, 0.26, 10, TK$soft, align = "center")
+  zona("escala", centro - tot / 2, y, tot, 0.45) }
 
 MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "III.4", "Dimensiones e índices", "Requieren las dimensiones calculadas en Analítica", icono = ICONO_SECCION[6])
 

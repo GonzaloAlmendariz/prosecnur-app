@@ -276,9 +276,10 @@ for (k in seq_along(pasos)) { cx <- XC + (k - 0.5) * wp
   txt(doc, pasos[[k]][3], cx - wp / 2 + 0.1, yc + dc + 0.45, wp - 0.2, 0.5, 11, TK$soft, align = "center") }
 txt(doc, "Variante en una línea, para la ficha técnica", XT, YT + 2.55, 6, 0.3, 12, TK$soft, bold = TRUE)
 for (k in seq_along(pasos)) { xk <- XC + (k - 1) * (AC / 5)
-  caja(doc, xk, YT + 2.95, AC / 5 + 0.12, 0.62, if (k == 3) TK$navy else TK$tenue, geom = if (k == 1) "homePlate" else "chevron")
-  txt(doc, pasos[[k]][2], xk + 0.25, YT + 3.08, AC / 5 - 0.4, 0.36, 13, "#FFFFFF", bold = TRUE, align = "center") }
-txt(doc, "La etapa en curso va en azul oscuro y las demás en gris azulado.", XT, YT + 3.8, AC, 0.32, 12, TK$navy)
+  fk <- if (k == 3) TK$navy else "#C9D3E6"   # blanco sobre el gris azulado quedaba en 2.7:1
+  caja(doc, xk, YT + 2.95, AC / 5 + 0.12, 0.62, fk, geom = if (k == 1) "homePlate" else "chevron")
+  txt(doc, pasos[[k]][2], xk + 0.25, YT + 3.08, AC / 5 - 0.4, 0.36, 13, texto_sobre(fk), bold = TRUE, align = "center") }
+txt(doc, "La etapa en curso va en azul oscuro y las demás en azul claro, con letra oscura.", XT, YT + 3.8, AC, 0.32, 12, TK$navy)
 zona("cinco etapas con ícono y su variante en chevrones", XC, YT, AC, 4.0)
 pie(doc, "Para metodología, cronograma y avance del estudio. Hasta seis etapas en una lámina")
 

@@ -40,7 +40,9 @@ grosor_cat <- function(n) if (n <= 3) 0.26 else if (n <= 6) 0.28 else if (n == 7
 
 lum <- function(hex) { v <- grDevices::col2rgb(hex)[, 1] / 255
   v <- ifelse(v <= 0.03928, v / 12.92, ((v + 0.055) / 1.055)^2.4); sum(c(.2126, .7152, .0722) * v) }
-texto_sobre <- function(hex) if (1.05 / (lum(hex) + .05) >= 4.5) "#FFFFFF" else TK$navy
+# Texto sobre un color: el que más contrasta de los dos, blanco o azul oscuro. La regla anterior (blanco sólo si llegaba a 4.5)
+# dejaba texto oscuro sobre azules medios, donde se lee peor (Gonzalo, 2026-10-07: «a veces las letras negras no se ven bien con el color»).
+texto_sobre <- function(hex) { l <- lum(hex); if (1.05 / (l + .05) >= (l + .05) / (lum(TK$navy) + .05)) "#FFFFFF" else TK$navy }
 ancho_txt <- function(s, size, bold = FALSE) nchar(s) * size * (if (bold) 0.56 else 0.52) / 72
 lineas <- function(s, w, size, bold = FALSE) max(1, ceiling(ancho_txt(s, size, bold) / (w - 0.2)))
 alto_txt <- function(s, w, size, bold = FALSE) lineas(s, w, size, bold) * size * 1.2 / 72 + 0.1
