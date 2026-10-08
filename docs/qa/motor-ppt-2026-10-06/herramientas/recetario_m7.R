@@ -232,11 +232,11 @@ xb_ <- xs[2]; wb_ <- c3; barra_apilada(doc, xb_, y1 + 0.75, wb_, c(12, 13, 35, 4
 x3_ <- xb_ + wb_ * 0.25; x4_ <- xb_ + wb_
 caja(doc, x3_, y1 + 0.5, x4_ - x3_, 0.025, TK$verde_txt); caja(doc, x3_, y1 + 0.5, 0.025, 0.18, TK$verde_txt); caja(doc, x4_ - 0.025, y1 + 0.5, 0.025, 0.18, TK$verde_txt)
 caja(doc, (x3_ + x4_) / 2 - 0.0125, y1 + 0.32, 0.025, 0.18, TK$verde_txt)
-rot(xs[2], y1 + 1.55, c3, "Llave", "Trazo verde de 0.025 in. Agrupa los dos valores que suman el Top Two Box")
+rot(xs[2], y1 + 1.55, c3, "Llave de suma", "Trazo verde de 0.025 in. Agrupa los dos valores que suman el Top Two Box")
 caja(doc, xs[3], y1 + 0.3, c3 * 0.35, 0.3, TK$navy); caja(doc, xs[3] + c3 * 0.35, y1 + 0.3, c3 * 0.65, 0.3, TK$dico[2])
-caja(doc, xs[3], y1 + 1.05, c3, 0.25, TK$likert[3])
-zoom_conector(doc, c(xs[3], y1 + 0.6, xs[3] + c3 * 0.35, y1 + 0.6), c(xs[3], y1 + 1.05, xs[3] + c3, y1 + 1.05))
-rot(xs[3], y1 + 1.55, c3, "Conector de desglose", "Cuña al 5% de opacidad. Une el «Sí» de una pregunta filtro con su subpregunta")
+xcl_ <- llave_h(doc, xs[3], xs[3] + c3 * 0.35, y1 + 0.64, y1 + 1.1); caja(doc, xcl_, y1 + 1.1 - 0.011, 0.2, 0.022, TK$navy)   # la llave reemplaza a la cuña (C36)
+caja(doc, xcl_ + 0.26, y1 + 1.04, c3 * 0.45, 0.07, TK$navy); caja(doc, xcl_ + 0.26, y1 + 1.17, c3 * 0.3, 0.045, TK$faint)
+rot(xs[3], y1 + 1.55, c3, "Llave de dependencia", "Trazo azul oscuro de 0.022 in. Une la respuesta que habilita una subpregunta con esa subpregunta")
 barra_apilada(doc, xs[1], y2 + 0.6, c3, c(2, 1, 50, 47), TK$likert[1:4], 0.4)
 rot(xs[1], y2 + 1.55, c3, "Guía de cifra chica", "Línea gris de 0.3 pt. Sube la cifra que no cabe en su tramo")
 separador_h(doc, xs[2], xs[2] + c3, y2 + 0.4); separador_v(doc, xs[2] + c3 / 2, y2 + 0.6, y2 + 1.2)
@@ -246,6 +246,51 @@ rot(xs[3], y2 + 1.55, c3, "Marca de meta", "Línea coral de 0.03 in sobre la bar
 zona("seis figuras, tres columnas con separación de 0.5 in", XC, YT, AC, YF - YT)
 pie(doc, "Todas las figuras son formas de PowerPoint: se editan y se copian entre láminas")
 
+# --- llaves de dependencia (Gonzalo, 2026-10-07: «faltan más ejemplos de llaves de dependencia, y en el banco de recursos usarlo»)
+MOTOR_ACT <- "Banco de recursos: llaves de dependencia (llave_h, llave_v)"
+doc <- nueva(doc); titulo(doc, "Llaves de dependencia", ante = "Banco de recursos")
+gl <- 0.35; wl4 <- (AC - 3 * gl) / 4; hl4 <- 2.25; yl4 <- YT - 0.05
+tarjeta_ll <- function(x) caja(doc, x, yl4, wl4, hl4, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75))
+lin_t <- function(x, y, w) { caja(doc, x, y, w, 0.07, TK$navy); caja(doc, x, y + 0.13, w * 0.7, 0.045, TK$faint) }   # título y base de la subpregunta
+# 1. bajo una categoría
+x1_ <- XC; tarjeta_ll(x1_); p_ <- 0.2; wi_ <- wl4 - 2 * p_
+caja(doc, x1_ + p_, yl4 + 0.3, wi_ * 0.35, 0.22, TK$navy); caja(doc, x1_ + p_ + wi_ * 0.35, yl4 + 0.3, wi_ * 0.65, 0.22, TK$dico[2])
+xc_ <- llave_h(doc, x1_ + p_, x1_ + p_ + wi_ * 0.35, yl4 + 0.56, yl4 + 1.0); caja(doc, xc_, yl4 + 1.0 - 0.011, 0.18, 0.022, TK$navy)
+lin_t(xc_ + 0.24, yl4 + 0.94, wi_ * 0.5); seg_ <- function(x, y, w, pc, cols, h) { xx <- x; for (j in seq_along(pc)) { caja(doc, xx, y, w * pc[j] / sum(pc), h, cols[j]); xx <- xx + w * pc[j] / sum(pc) } }
+seg_(x1_ + p_, yl4 + 1.45, wi_, c(10, 25, 40, 25), TK$likert[1:4], 0.26)
+# 2. al costado
+x2c <- XC + (wl4 + gl); tarjeta_ll(x2c)
+caja(doc, x2c + p_, yl4 + 0.85, wi_ * 0.42 * 0.3, 0.3, TK$dico[2]); caja(doc, x2c + p_ + wi_ * 0.42 * 0.3, yl4 + 0.85, wi_ * 0.42 * 0.7, 0.3, TK$navy)
+yc2 <- llave_v(doc, x2c + p_ + wi_ * 0.42 + 0.06, yl4 + 0.85, yl4 + 1.15, x2c + p_ + wi_ * 0.55)
+xs2 <- x2c + p_ + wi_ * 0.58; lin_t(xs2, yl4 + 0.35, wi_ * 0.4)
+for (j in 0:3) caja(doc, xs2, yl4 + 0.75 + j * 0.3, (wi_ * 0.42) * c(0.9, 0.6, 0.75, 0.4)[j + 1], 0.16, if (j == 0) TK$navy else TK$tenue)
+# 3. sobre varias categorías
+x3c <- XC + 2 * (wl4 + gl); tarjeta_ll(x3c)
+for (j in 0:4) caja(doc, x3c + p_, yl4 + 0.3 + j * 0.3, wi_ * 0.5 * c(0.95, 0.5, 0.3, 0.4, 0.2)[j + 1], 0.16, if (j < 3) TK$navy else TK$tenue)
+yc3 <- llave_v(doc, x3c + p_ + wi_ * 0.52, yl4 + 0.3, yl4 + 0.3 + 2 * 0.3 + 0.16, x3c + p_ + wi_ * 0.62)
+lin_t(x3c + p_ + wi_ * 0.66, yc3 - 0.25, wi_ * 0.32); caja(doc, x3c + p_ + wi_ * 0.66, yc3 + 0.1, wi_ * 0.34 * 0.8, 0.2, TK$navy); caja(doc, x3c + p_ + wi_ * 0.66 + wi_ * 0.34 * 0.8, yc3 + 0.1, wi_ * 0.34 * 0.2, 0.2, TK$dico[2])
+# 4. en cadena
+x4c <- XC + 3 * (wl4 + gl); tarjeta_ll(x4c)
+caja(doc, x4c + p_, yl4 + 0.25, wi_ * 0.75, 0.18, TK$navy); caja(doc, x4c + p_ + wi_ * 0.75, yl4 + 0.25, wi_ * 0.25, 0.18, TK$dico[2])
+xa_ <- llave_h(doc, x4c + p_, x4c + p_ + wi_ * 0.75, yl4 + 0.47, yl4 + 0.78); caja(doc, xa_, yl4 + 0.78 - 0.011, 0.12, 0.022, TK$navy)
+xb2_ <- xa_ + 0.16; wb2_ <- x4c + wl4 - p_ - xb2_
+caja(doc, xb2_, yl4 + 0.95, wb2_ * 0.7, 0.18, TK$navy); caja(doc, xb2_ + wb2_ * 0.7, yl4 + 0.95, wb2_ * 0.3, 0.18, TK$dico[2])
+xb_ <- llave_h(doc, xb2_, xb2_ + wb2_ * 0.7, yl4 + 1.17, yl4 + 1.48); caja(doc, xb_, yl4 + 1.48 - 0.011, 0.12, 0.022, TK$navy)
+seg_(xb_ + 0.16, yl4 + 1.65, x4c + wl4 - p_ - xb_ - 0.16, c(18, 34, 30, 18), c("#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C"), 0.22)
+casos_ll <- list(c("Bajo una categoría", "El «Sí» de una pregunta filtro abre su subpregunta, que va debajo a todo el ancho"),
+                 c("Al costado", "Cuando la subpregunta tiene varias categorías y necesita el alto de la lámina"),
+                 c("Sobre varias categorías", "Cuando la subpregunta la habilitan dos o más respuestas, como las modalidades de trabajo"),
+                 c("En cadena", "Un filtro dentro de otro. Cada nivel abre el siguiente y declara su propia base"))
+for (k in 1:4) { x <- XC + (k - 1) * (wl4 + gl)
+  txt(doc, casos_ll[[k]][1], x - 0.1, yl4 + hl4 + 0.12, wl4 + 0.2, 0.3, 14, TK$navy, bold = TRUE)
+  txt(doc, casos_ll[[k]][2], x - 0.1, yl4 + hl4 + 0.44, wl4 + 0.2, 0.8, 12, TK$soft) }
+separador_h(doc, XC, W - MR, yl4 + hl4 + 1.3)
+reglas_ll <- c("Trazo azul oscuro de 0.022 in, alas de 0.1 in. Igual en todo el informe.", "El tallo termina en el título de la subpregunta, nunca dentro del gráfico.",
+               "La subpregunta dice su base: «Sólo los 139 que trabajan».")
+for (k in 1:3) txt(doc, reglas_ll[k], XC + (k - 1) * (AC / 3) - 0.1, yl4 + hl4 + 1.45, AC / 3 - 0.1, 0.6, 12, TK$navy, bold = TRUE)
+zona("cuatro usos de la llave de dependencia", XC, yl4, AC, hl4)
+pie(doc, "Los ejemplos completos están en IV.1: pregunta filtro, filtro al costado, llave sobre varias categorías y filtros en cadena")
+
 # --- formas básicas
 MOTOR_ACT <- "Banco de recursos: formas básicas y su uso"
 doc <- nueva(doc); titulo(doc, "Formas básicas", ante = "Banco de recursos")
@@ -253,7 +298,7 @@ c4 <- (AC - 3 * 0.4) / 4; x4s <- XC + (0:3) * (c4 + 0.4)
 formas <- list(list("ellipse", "Círculo", "Fondo de ícono, marca numerada y punto de un gráfico"), list("rect", "Rectángulo", "Barra, caja y franja. Siempre con esquinas rectas"),
                list("linea", "Línea", "Separador, guía y eje. Gris claro, nunca negra"), list("rightArrow", "Flecha", "Sólo para indicar un paso o un cambio entre dos momentos"),
                list("chevron", "Chevrón", "Etapas consecutivas de un proceso"), list("homePlate", "Pentágono", "Primera etapa o etiqueta de un proceso"),
-               list("triangle", "Triángulo", "Hito puntual de un cronograma"), list("llave", "Llave", "Agrupa elementos que se suman o se leen juntos"))
+               list("triangle", "Triángulo", "Hito puntual de un cronograma"), list("llave", "Llave", "Agrupa elementos que se suman, o une una respuesta con su subpregunta"))
 for (k in seq_along(formas)) { f_ <- formas[[k]]; col <- (k - 1) %% 4; fil <- (k - 1) %/% 4
   x <- x4s[col + 1]; y <- YT + 0.1 + fil * 2.5
   if (f_[[1]] == "linea") caja(doc, x, y + 0.5, c4 * 0.8, 0.02, TK$rule)
