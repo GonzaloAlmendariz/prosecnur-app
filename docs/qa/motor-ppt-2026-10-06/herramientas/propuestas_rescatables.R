@@ -22,10 +22,10 @@ txt(doc, "Octubre de 2026", 1.6, 3.75, 10.1, 0.4, 16, TK$soft, align = "center")
 doc <- nueva(doc); titulo(doc, "Qué se propone, de dónde sale y dónde viviría", ante = "Para evaluar")
 ev <- data.frame(`#` = 1:6,
   Propuesta = c("Separadores sin cero y con más alternativas", "Cifras destacadas de 1 a 5", "Bottom Two Box junto al Top Two Box", "Peso de cada aspecto en la satisfacción",
-                "Letras de significancia en la tabla resumen", "Fila Total separada"),
+                "Tabla de significancia con su gráfico", "Fila Total separada"),
   `La idea` = c("Jerarquía de capítulos sin texto extra", "La cifra destacada de III.2, en cualquier cantidad y posición", "Cuántos están insatisfechos, sin sumar a ojo", "Qué importa, además de qué se evalúa bien",
-                "Diferencias entre públicos en la misma tabla", "La referencia se distingue de los grupos"),
-  `Lo calcula el motor` = c("Número y título del plan", "Cifras y detalle", "Toda la columna", "Todo, con un análisis nuevo", "Las letras (ya existen en barras)", "Toda la fila"),
+                "La diferencia y su intervalo, o la matriz de pares", "La referencia se distingue de los grupos"),
+  `Lo calcula el motor` = c("Número y título del plan", "Cifras y detalle", "Toda la columna", "Todo, con un análisis nuevo", "Prueba y letras (ya existen)", "Toda la fila"),
   `Se escribe en la app` = c("Nada", "Un rótulo corto por cifra", "Nada", "Nada", "Nada", "Nada"),
   Estado = c("En evaluación", "En evaluación", "Aceptada", "En evaluación", "En evaluación", "Aceptada"), check.names = FALSE)
 ft <- flextable(ev) |> font(fontname = TK$font, part = "all") |> fontsize(size = 11.5, part = "all") |> fontsize(size = 10.5, part = "header") |>
@@ -166,64 +166,88 @@ txt(doc, "El trato del personal es el aspecto de mayor peso. La infraestructura,
 leyenda(doc, 0, Y_LEY - 0.05, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 pie(doc, "Cifras ficticias. Peso estimado con una regresión lineal de la satisfacción general sobre los aspectos evaluados")
 
-# ---------------------------------------------------------------- 5. letras de significancia (S6: más legibles que el superíndice; T9: la prueba y su versión gráfica)
+# ---------------------------------------------------------------- 5. significancia: tabla y gráfico al lado, con la prueba calculada (S6, T9 y comentario del 2026-10-08:
+# «una tabla de significancia se lee mejor con un gráfico al lado que muestre esa significancia… hay que encontrar una forma creativa y estadísticamente válida»).
+# Antes las letras eran ilustrativas y no salían de ninguna prueba; ahora todo se calcula con conteos reales del recetario.
+# Prueba: la del motor (comparar_columnas_sig en api/R/reporte_cruces.R): z con proporción combinada para cada par, Bonferroni dentro de cada fila, α = 0.05.
+# Intervalo de la diferencia: Newcombe (1998), híbrido de Wilson, al nivel ajustado por Bonferroni. Lectura (Gardner y Altman 1986; Wright, Klein y
+# Wieczorek 2019, método II): si el intervalo de la diferencia no cruza el cero, la diferencia es significativa. No se juzga por el solapamiento de
+# intervalos de cada grupo (Schenker y Gentleman 2001; Cumming y Finch 2005).
 AZUL_LETRA <- "#4F7FAF"
-doc <- nueva(doc); titulo(doc, "Formulación del perfil de egreso por público", ante = "Propuesta 5: letras de significancia")
-tb <- data.frame(Competencia = c("Estados financieros", "Tributación", "Auditoría", "Finanzas", "Visión empresarial", "Costos y presupuestos"),
-                 a = c(98, 94, 96, 96, 92, 92), b = c(96, 96, 91, 95, 94, 94), c = c(98, 98, 98, 93, 95, 94))
-letras <- matrix("", 6, 3); letras[3, 1] <- "b"; letras[3, 3] <- "b"; letras[2, 3] <- "a"; letras[4, 1] <- "c"
-ft <- flextable(tb) |> set_header_labels(Competencia = "Competencia", a = "Docentes", b = "Estudiantes", c = "Egresados") |>
-  add_header_row(values = c("", "a", "b", "c"), top = FALSE)
-for (i in 1:6) for (j in 1:3) { col <- c("a", "b", "c")[j]; l <- letras[i, j]
-  ft <- compose(ft, i = i, j = col, value = as_paragraph(as_chunk(paste0(tb[[col]][i], "%"), props = fp_text(font.size = 14, bold = nzchar(l), color = TK$navy, font.family = TK$font)),
-    as_chunk(if (nzchar(l)) paste0("  ", l) else "", props = fp_text(font.size = 12, bold = TRUE, color = AZUL_LETRA, font.family = TK$font)))) }
-ft <- ft |> font(fontname = TK$font, part = "header") |> fontsize(size = 12, part = "header") |> color(color = TK$navy, part = "header") |> bold(part = "header") |>
-  color(i = 2, color = AZUL_LETRA, part = "header") |> fontsize(i = 2, size = 11, part = "header") |>
-  font(fontname = TK$font, j = 1, part = "body") |> fontsize(j = 1, size = 14, part = "body") |> color(j = 1, color = TK$navy, part = "body") |> bold(j = 1, part = "body") |>
-  align(j = 2:4, align = "center", part = "all") |> border_remove() |> border_inner_h(border = fp_border(color = TK$rule, width = 0.5), part = "body") |>
-  hline_bottom(border = fp_border(color = TK$navy, width = 1), part = "header") |>
-  width(j = 1, width = 3.3) |> width(j = 2:4, width = 1.75) |> padding(padding.top = 7, padding.bottom = 7, part = "body") |> padding(padding.top = 2, padding.bottom = 4, part = "header")
-invisible(ph_with(doc, ft, location = ph_location(left = XC, top = YT, width = 8.6, height = 4.0)))
-txt(doc, "Cada público tiene una letra. La letra junto a una cifra indica de qué público es significativamente mayor: «98 %  b» supera a los estudiantes.", XT, YT + 4.0, 8.6, 0.55, 12, TK$navy)
-narrativa(doc, 9.5, YT + 0.4, W - MR - 9.5, 3.0, list(N_("Prueba: "), B("z de diferencia de proporciones"), N_(" entre cada par de públicos, con "), B("corrección de Bonferroni"),
-  N_(" por comparaciones múltiples y α = 0.05. Es la misma prueba que el motor ya aplica en las tablas de cruces y en las barras.")), size = 14)
-pie(doc, "Top Two Box. Letras ilustrativas. Base: 51 docentes, 109 estudiantes y 161 egresados")
+wilson <- function(x, n, z) { p <- x / n; c_ <- (p + z^2 / (2 * n)) / (1 + z^2 / n); h <- z * sqrt(p * (1 - p) / n + z^2 / (4 * n^2)) / (1 + z^2 / n); c(c_ - h, c_ + h) }
+newcombe <- function(x1, n1, x2, n2, conf) { z <- qnorm(1 - (1 - conf) / 2); p1 <- x1 / n1; p2 <- x2 / n2; w1 <- wilson(x1, n1, z); w2 <- wilson(x2, n2, z); d <- p1 - p2
+  c(d - sqrt((p1 - w1[1])^2 + (w2[2] - p2)^2), d + sqrt((w1[2] - p1)^2 + (p2 - w2[1])^2)) }
+z_pool <- function(x1, n1, x2, n2) { p1 <- x1 / n1; p2 <- x2 / n2; pp <- (x1 + x2) / (n1 + n2); se <- sqrt(pp * (1 - pp) * (1 / n1 + 1 / n2)); 2 * pnorm(-abs((p1 - p2) / se)) }
 
-# Significancia en gráfico (T9): barras agrupadas con letras, como ya las dibuja el motor, y puntos por público con la diferencia marcada
-pub <- c("Docentes", "Estudiantes", "Egresados"); colp <- unname(TK$actores[pub])
-dl <- do.call(rbind, lapply(1:3, function(i) data.frame(comp = tb$Competencia[i], pub = pub, v = c(tb$a[i], tb$b[i], tb$c[i]), l = letras[i, ])))
-dl$comp <- factor(dl$comp, levels = tb$Competencia[1:3]); dl$pub <- factor(dl$pub, levels = pub)
-dl$et <- ifelse(nzchar(dl$l), paste0(dl$v, "%\n", dl$l), paste0(dl$v, "%"))
-doc <- nueva(doc); titulo(doc, "Tres competencias por público", ante = "Propuesta 5: significancia en un gráfico")
-gb <- ggplot(dl, aes(comp, v, fill = pub)) + geom_col(position = position_dodge(0.78), width = 0.7) +
-  geom_text(aes(y = v - 3, label = paste0(v, "%"), colour = pub), position = position_dodge(0.78), vjust = 1, size = 12 / .pt, fontface = "bold", family = "Arial") +   # cifra dentro de la barra
-  geom_text(aes(y = v + 1.5, label = l), position = position_dodge(0.78), vjust = 0, size = 14 / .pt, fontface = "bold", family = "Arial", colour = AZUL_LETRA) +   # letra encima
-  scale_fill_manual(values = setNames(colp, pub)) + scale_colour_manual(values = setNames(vapply(colp, texto_sobre, ""), pub), guide = "none") +
-  scale_y_continuous(limits = c(0, 118), expand = c(0, 0)) + labs(x = NULL, y = NULL) + theme_minimal(base_family = "Arial") +
-  theme(legend.position = "none", plot.background = element_blank(), panel.background = element_blank(), panel.grid = element_blank(), axis.text.y = element_blank(), axis.text.x = element_text(size = 13, colour = TK$navy, face = "bold"))
-invisible(ph_with(doc, dml(ggobj = gb, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = XC, top = YT, width = 8.4, height = 4.3)))
-leyenda(doc, 0, YT + 4.4, sprintf("%s (%s)", pub, c("a", "b", "c")), colp, centrar_en = XC + 4.2)
-narrativa(doc, 9.3, YT + 0.4, W - MR - 9.3, 2.6, list(N_("Las barras agrupadas ya llevan letras en el motor. La letra azul sobre una barra indica de qué público es mayor esa cifra.")), size = 14)
-pie(doc, "Top Two Box. Prueba z de diferencia de proporciones con corrección de Bonferroni, α = 0.05. Letras ilustrativas")
+doc <- nueva(doc); titulo(doc, "Cómo mostrar una diferencia significativa", ante = "Propuesta 5: significancia")
+reglas <- list(c("No juzgar por el solapamiento", "Que dos intervalos de 95 % se toquen no prueba que la diferencia no sea significativa: puede serlo aunque se solapen.", "Schenker y Gentleman (2001), The American Statistician. Cumming y Finch (2005), American Psychologist"),
+               c("Graficar la diferencia, no sólo los grupos", "Se dibuja la diferencia entre dos públicos con su intervalo. Si el intervalo no cruza el cero, la diferencia es significativa.", "Gardner y Altman (1986), BMJ. Wright, Klein y Wieczorek (2019), The American Statistician. Newcombe (1998), Statistics in Medicine"),
+               c("Con tres o más grupos, comparar por pares", "Cada par se prueba y se corrige por comparaciones múltiples. El resultado se lee en letras o en una matriz de pares sombreada.", "Piepho (2004), Journal of Computational and Graphical Statistics. Wright, Klein y Wieczorek (2019), método I"))
+for (k in seq_along(reglas)) { yk <- YT + (k - 1) * 1.45; if (k > 1) separador_h(doc, XC, W - MR, yk - 0.2)
+  caja(doc, XC, yk + 0.02, 0.36, 0.36, TK$navy, geom = "ellipse"); txt(doc, k, XC, yk + 0.05, 0.36, 0.3, 12, "#FFFFFF", bold = TRUE, align = "center")
+  txt(doc, reglas[[k]][1], XC + 0.55, yk, AC - 0.55, 0.32, 15, TK$navy, bold = TRUE)
+  txt(doc, reglas[[k]][2], XC + 0.55, yk + 0.34, AC - 0.55, 0.4, 13, TK$navy)
+  txt(doc, reglas[[k]][3], XC + 0.55, yk + 0.74, AC - 0.55, 0.3, 10, TK$soft, italic = TRUE) }
+pie(doc, "La prueba del motor ya es la correcta: z de diferencia de proporciones entre cada par, con corrección de Bonferroni y α = 0.05")
 
-doc <- nueva(doc); titulo(doc, "Dónde se separan los públicos", ante = "Propuesta 5: significancia en un gráfico")
-dp <- do.call(rbind, lapply(1:6, function(i) data.frame(comp = tb$Competencia[i], pub = pub, v = c(tb$a[i], tb$b[i], tb$c[i]))))
-dp$comp <- factor(dp$comp, levels = rev(tb$Competencia)); dp$pub <- factor(dp$pub, levels = pub)
-rng <- do.call(rbind, lapply(split(dp, dp$comp), function(d) data.frame(comp = d$comp[1], x0 = min(d$v), x1 = max(d$v))))
-pares <- data.frame(comp = c("Auditoría", "Auditoría", "Tributación", "Finanzas"), a = c("Docentes", "Egresados", "Egresados", "Docentes"), b = c("Estudiantes", "Estudiantes", "Docentes", "Egresados"))
-pares$x0 <- mapply(function(cc, p_) dp$v[dp$comp == cc & dp$pub == p_], pares$comp, pares$b); pares$x1 <- mapply(function(cc, p_) dp$v[dp$comp == cc & dp$pub == p_], pares$comp, pares$a)
-pares$comp <- factor(pares$comp, levels = levels(dp$comp)); pares$dy <- 0   # pares que comparten un público se funden en una sola línea
-gp <- ggplot() + geom_segment(data = rng, aes(x = x0, xend = x1, y = comp, yend = comp), colour = "#C9CED8", linewidth = 2.2, lineend = "round") +
-  geom_segment(data = pares, aes(x = x0, xend = x1, y = as.numeric(comp) + dy, yend = as.numeric(comp) + dy), colour = TK$navy, linewidth = 1.1) +
-  geom_point(data = dp, aes(v, comp, fill = pub), shape = 21, size = 5, colour = "#FFFFFF", stroke = 0.8) +
-  scale_fill_manual(values = setNames(colp, pub)) + scale_x_continuous(limits = c(88, 100), breaks = seq(88, 100, 4), labels = function(x) paste0(x, "%")) +
-  labs(x = NULL, y = NULL) + theme_minimal(base_family = "Arial") +
-  theme(legend.position = "none", plot.background = element_blank(), panel.background = element_blank(), panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(), panel.grid.major.x = element_line(colour = "#E2E5EA"),
-        axis.text.y = element_text(size = 13, colour = TK$navy, face = "bold"), axis.text.x = element_text(size = 10, colour = TK$soft))
-invisible(ph_with(doc, dml(ggobj = gp, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = XC, top = YT, width = 8.6, height = 4.3)))
-leyenda(doc, 0, YT + 4.4, pub, colp, centrar_en = XC + 4.3)
-narrativa(doc, 9.5, YT + 0.4, W - MR - 9.5, 2.9, list(N_("La franja gris va de la cifra menor a la mayor. Una "), B("línea azul"), N_(" une a dos públicos solo cuando su diferencia es significativa. Sin línea, la distancia puede ser azar.")), size = 14)
-pie(doc, "Top Two Box. Prueba z de diferencia de proporciones con corrección de Bonferroni, α = 0.05. Marcas ilustrativas")
+# Dos públicos: tabla a la izquierda y la diferencia con su intervalo a la derecha
+it2 <- data.frame(item = c("Conoce la misión", "Sabe dónde consultarla", "Tutoría académica", "Tutoría socioemocional", "Auditoría", "Tributación"),
+                  x1 = c(51, 47, 43, 39, 49, 48), n1 = c(52, 51, 52, 52, 51, 51), x2 = c(133, 106, 91, 132, 99, 105), n2 = c(172, 133, 172, 172, 109, 109))
+it2$p1 <- round(100 * it2$x1 / it2$n1); it2$p2 <- round(100 * it2$x2 / it2$n2); it2$d <- 100 * (it2$x1 / it2$n1 - it2$x2 / it2$n2)
+it2$pv <- mapply(z_pool, it2$x1, it2$n1, it2$x2, it2$n2); it2$sig <- it2$pv < 0.05
+ci <- t(mapply(newcombe, it2$x1, it2$n1, it2$x2, it2$n2, MoreArgs = list(conf = 0.95))) * 100; it2$lo <- ci[, 1]; it2$hi <- ci[, 2]
+stopifnot(all(it2$sig == (it2$lo > 0 | it2$hi < 0)))   # la prueba y el intervalo dicen lo mismo en estos datos
+doc <- nueva(doc); titulo(doc, "Docentes y estudiantes en seis preguntas", ante = "Propuesta 5: tabla y diferencia")
+t2 <- data.frame(Pregunta = it2$item, Docentes = paste0(it2$p1, "%"), Estudiantes = paste0(it2$p2, "%"), Diferencia = sprintf("%+d", round(it2$d)))
+ft <- flextable(t2) |> font(fontname = TK$font, part = "all") |> fontsize(size = 13, part = "all") |> fontsize(size = 11.5, part = "header") |> color(color = TK$navy, part = "all") |>
+  bold(part = "header") |> bold(j = 1) |> align(j = 2:4, align = "center", part = "all") |> border_remove() |> border_inner_h(border = fp_border(color = TK$rule, width = 0.5)) |>
+  hline_bottom(border = fp_border(color = TK$navy, width = 1), part = "header") |> width(j = 1, width = 2.5) |> width(j = 2:4, width = 1.15) |> height_all(height = 0.52) |> hrule(rule = "exact") |>
+  padding(padding.top = 4, padding.bottom = 4, part = "all") |> valign(valign = "center", part = "all")
+for (i in which(it2$sig)) ft <- ft |> bold(i = i, j = 4) |> color(i = i, j = 4, color = TK$navy)
+for (i in which(!it2$sig)) ft <- ft |> color(i = i, j = 4, color = TK$soft)
+invisible(ph_with(doc, ft, location = ph_location(left = XC, top = YT + 0.3, width = 5.95, height = 3.7)))
+d2 <- it2; d2$item <- factor(d2$item, levels = rev(d2$item))
+gd <- ggplot(d2, aes(y = item)) + geom_vline(xintercept = 0, colour = TK$soft, linewidth = 0.6) +
+  geom_segment(aes(x = lo, xend = hi, yend = item, colour = sig), linewidth = 2.2, lineend = "round") +
+  geom_point(aes(x = d, fill = sig), shape = 21, size = 4.2, colour = "#FFFFFF", stroke = 0.8) +
+  scale_colour_manual(values = c(`TRUE` = TK$navy, `FALSE` = "#C9CED8"), guide = "none") + scale_fill_manual(values = c(`TRUE` = TK$navy, `FALSE` = "#9AA5B8"), guide = "none") +
+  scale_x_continuous(limits = c(-25, 45), breaks = seq(-20, 40, 20), labels = function(x) ifelse(x == 0, "0", sprintf("%+d", x))) + labs(x = NULL, y = NULL) + theme_minimal(base_family = "Arial") +
+  theme(plot.background = element_blank(), panel.background = element_blank(), panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_line(colour = "#E2E5EA"), axis.text.y = element_blank(), axis.text.x = element_text(size = 10, colour = TK$soft))
+xg <- XC + 6.3; wg <- W - MR - xg
+txt(doc, "Diferencia en puntos (docentes menos estudiantes)", xg - 0.1, YT - 0.1, wg + 0.1, 0.3, 11, TK$soft, bold = TRUE)
+invisible(ph_with(doc, dml(ggobj = gd, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = xg, top = YT + 0.3 + 0.52 - 0.12, width = wg, height = 6 * 0.52 + 0.55)))
+leyenda(doc, 0, YT + 4.3, c("Diferencia significativa", "No significativa"), c(TK$navy, "#C9CED8"), centrar_en = xg + wg / 2)
+pie(doc, "Top Two Box o «Sí». Barra: intervalo de 95 % de la diferencia (Newcombe). Si no cruza el cero, la diferencia es significativa (prueba z, α = 0.05)")
+
+# Cuatro públicos: tabla con letras calculadas y matriz de pares sombreada
+pub4 <- c("Docentes", "Estudiantes", "Egresados", "Administrativos"); x4 <- c(51, 133, 138, 14); n4 <- c(52, 172, 178, 15); p4 <- x4 / n4
+pares <- combn(4, 2); pv <- apply(pares, 2, function(ab) z_pool(x4[ab[1]], n4[ab[1]], x4[ab[2]], n4[ab[2]])); padj <- p.adjust(pv, "bonferroni")
+let4 <- rep("", 4); for (k in seq_len(ncol(pares))) if (padj[k] < 0.05) { a <- pares[1, k]; b <- pares[2, k]; if (p4[a] > p4[b]) let4[a] <- paste0(let4[a], LETTERS[b]) else let4[b] <- paste0(let4[b], LETTERS[a]) }
+doc <- nueva(doc); titulo(doc, "Conocimiento de la misión en los cuatro públicos", ante = "Propuesta 5: tabla y matriz de pares")
+t4 <- data.frame(Público = sprintf("%s (%s)", pub4, LETTERS[1:4]), Conoce = paste0(round(100 * p4), "%"), n = n4)
+ft <- flextable(t4) |> set_header_labels(Público = "Público", Conoce = "Conoce la misión", n = "Base")
+for (i in 1:4) ft <- compose(ft, i = i, j = "Conoce", value = as_paragraph(as_chunk(paste0(round(100 * p4[i]), "%"), props = fp_text(font.size = 14, bold = nzchar(let4[i]), color = TK$navy, font.family = TK$font)),
+  as_chunk(if (nzchar(let4[i])) paste0("  ", let4[i]) else "", props = fp_text(font.size = 12, bold = TRUE, color = AZUL_LETRA, font.family = TK$font))))
+ft <- ft |> font(fontname = TK$font, part = "header") |> font(fontname = TK$font, j = c(1, 3), part = "body") |> fontsize(size = 14, j = c(1, 3), part = "body") |> fontsize(size = 11.5, part = "header") |>
+  color(color = TK$navy, part = "all") |> bold(part = "header") |> bold(j = 1) |> align(j = 2:3, align = "center", part = "all") |> border_remove() |>
+  border_inner_h(border = fp_border(color = TK$rule, width = 0.5)) |> hline_bottom(border = fp_border(color = TK$navy, width = 1), part = "header") |>
+  width(j = 1, width = 2.9) |> width(j = 2, width = 1.8) |> width(j = 3, width = 0.9) |> padding(padding.top = 8, padding.bottom = 8, part = "all")
+invisible(ph_with(doc, ft, location = ph_location(left = XC, top = YT + 0.2, width = 5.6, height = 3)))
+txt(doc, "La letra junto a una cifra indica de qué público es significativamente mayor.", XT, YT + 2.85, 5.6, 0.5, 12, TK$navy)
+# matriz: fila menos columna, sólo bajo la diagonal
+xm <- XC + 6.5; cw <- 1.35; ch <- 0.72; ym <- YT + 0.55
+txt(doc, "Diferencia en puntos, fila menos columna", xm - 0.1, YT - 0.1, 6, 0.3, 11, TK$soft, bold = TRUE)
+for (j in 1:3) txt(doc, LETTERS[j], xm + 1.6 + (j - 1) * cw, ym - 0.38, cw, 0.3, 13, TK$navy, bold = TRUE, align = "center")
+for (i in 2:4) { yi <- ym + (i - 2) * ch; txt(doc, sprintf("%s  %s", LETTERS[i], pub4[i]), xm - 0.1, yi + (ch - 0.3) / 2, 1.7, 0.3, 12, TK$navy, bold = TRUE)
+  for (j in 1:(i - 1)) { k <- which(pares[1, ] == j & pares[2, ] == i); s_ <- padj[k] < 0.05; dd <- round(100 * (p4[i] - p4[j]))
+    fc <- if (s_) TK$navy else "#E3E7EF"; caja(doc, xm + 1.6 + (j - 1) * cw + 0.03, yi + 0.03, cw - 0.06, ch - 0.06, fc)
+    txt(doc, if (dd == 0) "0" else sprintf("%+d", dd), xm + 1.6 + (j - 1) * cw, yi + (ch - 0.32) / 2, cw, 0.32, 14, texto_sobre(fc), bold = s_, align = "center") } }
+leyenda(doc, 0, ym + 3 * ch + 0.25, c("Diferencia significativa", "No significativa"), c(TK$navy, "#E3E7EF"), centrar_en = xm + 1.6 + 1.5 * cw)
+txt(doc, "Los administrativos superan en 16 puntos a estudiantes y egresados, pero con 15 casos esa distancia no es significativa.", xm - 0.1, ym + 3 * ch + 0.7, W - MR - xm + 0.1, 0.55, 12, TK$navy)
+pie(doc, "Prueba z de diferencia de proporciones entre los seis pares, con corrección de Bonferroni y α = 0.05 (la misma del motor)")
+caveat_txt <- "Estas pruebas suponen muestreo aleatorio. En estudios censales o por conveniencia, como los de acreditación, se leen como indicativas."
+txt(doc, caveat_txt, XT, Y_BASE - 0.32, 10.5, 0.3, PT$base, TK$soft, italic = TRUE)
 
 # ---------------------------------------------------------------- lo que se dejó fuera
 doc <- nueva(doc); titulo(doc, "Lo que no se trae", ante = "Para evaluar")
