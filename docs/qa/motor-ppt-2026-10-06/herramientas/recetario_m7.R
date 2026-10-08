@@ -287,7 +287,7 @@ reglas_ll <- c("Trazo azul oscuro de 0.022 in, alas de 0.1 in. Igual en todo el 
                "La subpregunta dice su base: «Sólo los 139 que trabajan».")
 for (k in 1:3) txt(doc, reglas_ll[k], XC + (k - 1) * (AC / 3) - 0.1, yl4 + hl4 + 1.45, AC / 3 - 0.1, 0.6, 12, TK$navy, bold = TRUE)
 zona("tres usos de la llave de dependencia", XC, yl4, AC, hl4)
-pie(doc, "Los ejemplos completos están en 3.8, Actores, filtros y bases: pregunta filtro, filtro al costado y llave sobre varias categorías. Una llave abre un solo nivel")
+pie(doc, "Los ejemplos completos están en 3.7, Actores, filtros y bases: pregunta filtro, filtro al costado y llave sobre varias categorías. Una llave abre un solo nivel")
 
 # --- formas básicas
 MOTOR_ACT <- "Banco de recursos: formas básicas y su uso"

@@ -198,3 +198,24 @@ Pedido: «ajustar el orden y la estructura del recetario para que se vea profesi
 | W3 | «En las portadas el informe consolidado no se ve bien, la línea gris choca con la naranja; hay una portada que no es en la que quedamos» | Portada alineada a la izquierda respeta la línea coral de la plantilla (título arriba, encargo debajo); portada con el público retirada | ☑ |
 | W4 | «Ojo crítico» | Revisión de las 274 láminas: ficha técnica («administrativos» cortado), cifra del caso multiprograma encimada, referencias a la numeración antigua (IV.1), «la moderna» y «uso excepcional» en pies; antetítulos de 1.1 unificados | ☑ |
 | W5 | «Cuida que los números dentro del círculo morado estén centrados» | El número de cada marca va anclado al centro del círculo y sin márgenes internos (`sanear_ph.py`, cuadros «Centro…») | ☑ |
+
+### Comentarios al mazo de 274 láminas (2026-10-08, tercera tanda)
+
+| # | Lám. | Comentario (textual) | Qué se hace | Estado |
+|---|---|---|---|---|
+| X1 | 6 | «El logo se ve estirado horizontalmente» | Logo de la miniatura con su proporción real | ☑ el logo reproduce el recorte de la plantilla (arriba 29.471 %, abajo 26.643 %) |
+| X2 | 6 | «La leyenda no debería estar abreviada» | Leyenda completa en la miniatura | ☑ leyenda completa, centrada en el gráfico |
+| X3 | 7 | «No explica cómo el grosor de la barra cambia en función del número de categorías» | Tabla del grosor según categorías en la lámina de medidas | ☑ tabla de grosor según filas: escalas 0.50 a 0.32 in y barras de categorías 0.26 a 0.32 in |
+| X4 | 7 | «Indicas leyenda pero el gráfico que muestras no usa una porque es barras agrupadas» | Medidas sobre un gráfico que sí lleva leyenda (escala con Top Two Box) | ☑ la lámina de medidas usa una escala con leyenda y Top Two Box |
+| X5 | 115 | «Los elementos salen de sus cuadrículas… estamos proponiendo nuevos estilos con borde gris suave para gráficos y nuevas estructuras: más fiel al nuevo modelo» | Esquemas del catálogo y de las fichas rehechos: retícula medida y paneles con borde gris suave | ☑ esquemas fieles al nuevo modelo: fondo de la plantilla, logo real, cada gráfico en un panel blanco con borde gris suave y barras de muestra, textos con su filete, todo dentro de su caja |
+| X6 | 131 | «Las líneas grises están chocando con los gráficos» | Separadores con aire en Dos gráficos con texto a la izquierda | ☑ la línea gris baja bajo la dicotómica |
+| X7 | 146 | «No muestras ejemplos» (tres gráficos en fila) | Ejemplo para cada ficha que no lo tiene | ☑ ejemplos nuevos para texto y tres en fila; cada ficha va seguida de su ejemplo |
+| X8 | 151 | «Los de población ya no son tan necesarios porque ahora hay motores para hasta 6 gráficos; el ícono es una customización, no un estilo exclusivo» | Población se integra como variante (con ícono) de las láminas de 2 a 6 gráficos | ☑ población deja de ser familia: dos gráficos con ícono, cinco y seis gráficos son tipos generales (el ícono es una opción de cualquier lámina) |
+| X9 | 156 | «Son estilos geniales, pero ya no son exclusivos para población» | Tira y corona pasan a tipos generales de tres gráficos | ☑ tira y corona son tipos generales de tres gráficos |
+| X10 | 158 | «Según tu guía las cifras pueden ir en varias formas y aquí sólo muestras una» | Cifras en sus cuatro ubicaciones con ejemplos | ☑ sección 3.5 con las cuatro ubicaciones: columna lateral, banda superior, en lugar de un gráfico (ejemplo nuevo) y mitad y mitad, más tres y cinco cifras |
+| X11 | 175 | «Estas láminas ya no son necesarias, lo haces al inicio en el capítulo anterior» | Fichas de portada, objetivo, ficha técnica, Top Two Box, redondeo, índice y separador fuera del capítulo 3 | ☑ fichas de portada, objetivo, ficha técnica, Top Two Box, redondeo, índice y separador retiradas del capítulo 3; quedan 22 tipos |
+| X12 | 178 | «Mencionas que funcionan pero no brindas ejemplos que lo demuestren» | Cada combinación con su ejemplo real | ☑ resumen de seis combinaciones y cinco láminas con datos (dicotómica y subpregunta, escala y ranking, cifras y perfil, serie y cifra del cambio, mapa y tabla); la sexta remite a 2.8 |
+| X13 | 184 | «Por qué aquí en las dos primeras opciones no sale la cuenta x de y» | «x de y» en toda fila con base chica | ☑ si una fila del bloque tiene menos de 30 casos, todas sus filas dicen «x de y» |
+| X14 | 202 | «Este tipo de gráfico no lo mencionas en la librería de gráficos» | Conteos por año (matriz) al capítulo 2 | ☑ conteos por año pasa a 2.3, Números y distribuciones |
+
+| X15 | — | «No estoy de acuerdo con que el gráfico dependiente (el que sigue a la llave) sea más pequeño que el original, debería ser del mismo tamaño» | Pregunta filtro, combinación, filtro al costado y llave sobre varias categorías: la subpregunta tiene el mismo largo y grosor de barra que la pregunta que la habilita | ☑ |

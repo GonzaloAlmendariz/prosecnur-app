@@ -60,9 +60,9 @@ narrativa(doc, ML, Y_DATOS + 0.4, 3.45, 3.6, list(N_("El estudiantado se reparte
 xr <- 4.55; wr <- W - MR - xr
 panel_titulo(doc, xr, Y_DATOS + 0.05, wr, "Sexo", "172 respuestas")
 barras_h(doc, xr, Y_DATOS + 0.65, wr, g2$labels, g2$pct, wlab = 1.8, g = grosor_cat(2), fila = 0.5)
-panel_titulo(doc, xr, Y_DATOS + 1.88, wr, "Rango de edades", "172 respuestas")
-barras_h(doc, xr, Y_DATOS + 2.45, wr, r$labels, r$pct, wlab = 1.8, g = grosor_cat(4), fila = 0.48)
-separador_h(doc, xr, W - MR, Y_DATOS + 1.62)   # C15
+panel_titulo(doc, xr, Y_DATOS + 2.05, wr, "Rango de edades", "172 respuestas")
+barras_h(doc, xr, Y_DATOS + 2.6, wr, r$labels, r$pct, wlab = 1.8, g = grosor_cat(4), fila = 0.46)
+separador_h(doc, xr, W - MR, Y_DATOS + 1.85)   # C15; X6: debajo de la dicotómica, que termina en 1.65
 pie(doc, "Base: 172 estudiantes")
 
 # --- p_slide_2_graficos_texto_derecha: dos gráficos a la izquierda, lectura a la derecha

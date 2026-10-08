@@ -91,10 +91,11 @@
     {
      "n": "2.3",
      "titulo": "Números y distribuciones",
-     "sub": "Histogramas, promedios, cajas y rangos",
+     "sub": "Histogramas, promedios, cajas, rangos y conteos",
      "laminas": [
       "graf2:1",
-      "m3b:1-3"
+      "m3b:1-3",
+      "m5:10"
      ]
     },
     {
@@ -150,9 +151,9 @@
     {
      "n": "3.1",
      "titulo": "Catálogo de láminas",
-     "sub": "Los 32 tipos de lámina del motor",
+     "sub": "Los 22 tipos de lámina del motor",
      "laminas": [
-      "fich:1-3"
+      "fich:1-2"
      ]
     },
     {
@@ -160,14 +161,16 @@
      "titulo": "Un gráfico",
      "sub": "Con o sin texto al lado",
      "laminas": [
+      "fich:3",
+      "m5:7",
       "fich:4",
-      "fich:5",
       "m5:9",
-      "fich:6",
+      "fich:5",
       "m2:3",
-      "fich:7",
+      "fich:6",
       "m2:4",
-      "fich:8"
+      "fich:7",
+      "ej:1"
      ]
     },
     {
@@ -175,79 +178,70 @@
      "titulo": "Dos gráficos",
      "sub": "En columnas, apilados, con texto o con uno principal",
      "laminas": [
-      "fich:9",
+      "fich:8",
       "m2:1",
-      "fich:10",
+      "m2c:1",
+      "fich:9",
       "m2:2",
-      "fich:11",
+      "fich:10",
       "m2:5",
-      "fich:12",
+      "fich:11",
       "m2:6",
-      "fich:13",
+      "fich:12",
       "m2:7",
-      "fich:14",
+      "fich:13",
       "m2:8"
      ]
     },
     {
      "n": "3.4",
-     "titulo": "Tres y cuatro gráficos",
-     "sub": "Filas, columnas y combinaciones",
+     "titulo": "Tres a seis gráficos",
+     "sub": "Filas, columnas, tiras, coronas y grillas",
      "laminas": [
-      "fich:15",
+      "fich:14",
       "m2b:1",
-      "fich:16",
+      "fich:15",
       "m2b:2",
       "m5:6",
-      "fich:17",
+      "fich:16",
       "m2b:3",
+      "fich:17",
+      "ej:2",
       "fich:18",
+      "m2c:2",
       "fich:19",
-      "m2b:4"
+      "m2c:3",
+      "fich:20",
+      "m2b:4",
+      "fich:21",
+      "m2c:10",
+      "fich:22",
+      "m2c:11"
      ]
     },
     {
      "n": "3.5",
-     "titulo": "Población y cifras",
-     "sub": "El perfil de cada público en una sola mirada",
+     "titulo": "Cifras y gráficos",
+     "sub": "La cifra destacada en sus cuatro ubicaciones",
      "laminas": [
-      "fich:20",
-      "m2c:1",
-      "fich:21",
-      "fich:22",
-      "m2c:2",
       "fich:23",
-      "m2c:3",
-      "fich:24",
       "m2c:9",
-      "fich:25",
-      "fich:26",
-      "m2c:10",
-      "fich:27",
-      "m2c:11",
-      "fich:28",
+      "fich:24",
       "m2c:12",
+      "ej:3",
       "m2c:6-8"
      ]
     },
     {
      "n": "3.6",
-     "titulo": "Láminas de apertura",
-     "sub": "Portada, objetivo, ficha técnica, lectura, índice y separador",
+     "titulo": "Combinaciones que funcionan",
+     "sub": "Gráficos que se leen bien juntos, con su ejemplo",
      "laminas": [
-      "fich:29-35"
+      "comb:1-6"
      ]
     },
     {
      "n": "3.7",
-     "titulo": "Combinaciones que funcionan",
-     "sub": "Gráficos que se leen bien juntos",
-     "laminas": [
-      "comb:1-2"
-     ]
-    },
-    {
-     "n": "3.8",
      "titulo": "Actores, filtros y bases",
      "sub": "Varios públicos, subpreguntas, cohortes y bases chicas",
      "laminas": [
@@ -255,13 +249,13 @@
      ]
     },
     {
-     "n": "3.9",
+     "n": "3.8",
      "titulo": "Escalas, etiquetas y formatos",
      "sub": "Otras redacciones, «Otros», ítems largos y láminas mixtas",
      "laminas": [
       "m5:2-5",
-      "m5:7-8",
-      "m5:10-15"
+      "m5:8",
+      "m5:11-15"
      ]
     }
    ]

@@ -91,11 +91,12 @@ if (ESTILO == "fiel") {
   likert_panel(doc, xr, YT + 1.3, col2, list(list(lab = "Participaron", f = sf(c(10, 0, 55, 35, 0), 20))), g = 0.7, fila = 1.1, wlab = 1.3)
 } else {
   panel_titulo(doc, ML, YT, ANCHO, "¿Ha participado en programas de intercambio?", "201 estudiantes")
-  yb_fin <- dicotomia(doc, ML, YT + 0.5, ANCHO, c("Sí", "No"), c(10, 90), n = c(20, 181), size = 26, g = 0.42)
-  y2 <- yb_fin + 0.85; wl2 <- 1.6; g2 <- 0.62; fila2 <- 0.95; ylp <- y2 + 0.45
-  ybar <- ylp + 0.3 + (fila2 - g2) / 2 + 0.05; xb2 <- ML + wl2 + 0.12; wb2 <- ANCHO - wl2 - 0.12 - 0.75
+  wl2 <- 1.6; g2 <- 0.42; fila2 <- 0.8; xb2 <- ML + wl2 + 0.12; wb2 <- ANCHO - wl2 - 0.12 - 1.1   # mismo inicio, ancho y grosor que la subpregunta (Gonzalo, 2026-10-08)
+  yb_fin <- dicotomia(doc, xb2, YT + 0.5, wb2, c("Sí", "No"), c(10, 90), n = c(20, 181), size = 26, g = g2)
+  y2 <- yb_fin + 0.85; ylp <- y2 + 0.45
+  ybar <- ylp + 0.3 + (fila2 - g2) / 2 + 0.05
   # C36: una llave bajo el segmento «Sí» y su tallo baja hasta la subpregunta (antes, cuña semitransparente)
-  xc <- llave_h(doc, ML, ML + ANCHO * 0.10, yb_fin + 0.06, y2 + 0.15)
+  xc <- llave_h(doc, xb2, xb2 + wb2 * 0.10, yb_fin + 0.06, y2 + 0.15)
   caja(doc, xc, y2 + 0.15 - 0.011, 0.25, 0.022, TK$navy)
   txt(doc, "Los programas de intercambio fortalecen mis competencias", xc + 0.32, y2, 8, 0.3, 13, TK$navy, bold = TRUE)
   txt(doc, "Sólo los 20 estudiantes que respondieron «Sí»", xc + 0.32, y2 + 0.27, 8, 0.26, 10.5, TK$faint)
@@ -115,12 +116,13 @@ if (ESTILO == "fiel") {
   separador_v(doc, ML + col2 + GAP / 2, YT, YF)
   panel_titulo(doc, xr, YT, col2, "¿Cuál es su ingreso mensual aproximado? (en soles)", "Base propia: 179 egresados dependientes")
 } else {
-  wd <- 4.9; yb_fin <- dicotomia(doc, ML, YT + 1.75, wd, c("No", "Sí"), c(13, 87), n = c(26, 179), size = 30, g = 0.5, cols = rev(TK$dico))   # «Sí» pegado al desglose
+  wd <- col2 - 2.4 - 0.12 - 0.8; xd <- ML + col2 - wd - 0.45   # mismo largo y grosor que las barras del desglose (Gonzalo, 2026-10-08)
+  yb_fin <- dicotomia(doc, xd, YT + 1.75, wd, c("No", "Sí"), c(13, 87), n = c(26, 179), size = 26, g = 0.42, cols = rev(TK$dico))   # «Sí» pegado al desglose
   # C37: una llave a la derecha del segmento «Sí» y un tallo hasta el panel del ingreso
-  llave_v(doc, ML + wd + 0.08, yb_fin - 0.5, yb_fin, xr - 0.2)
+  llave_v(doc, xd + wd + 0.08, yb_fin - 0.42, yb_fin, xr - 0.2)
   panel_titulo(doc, xr, YT, col2, "¿Cuál es su ingreso mensual aproximado? (en soles)", "Sólo los 179 que trabajan de manera dependiente")
 }
-barras_h(doc, xr, YT + 0.85, col2, ing, c(8, 16, 22, 20, 31, 3), wlab = 2.4, g = grosor_cat(6), fila = 0.7, size = 13)
+barras_h(doc, xr, YT + 0.85, col2, ing, c(8, 16, 22, 20, 31, 3), wlab = 2.4, g = if (ESTILO == "moderna") 0.42 else grosor_cat(6), fila = 0.7, size = 13)
 pie(doc, "Base: 205 egresados. El ingreso, 179 que trabajan de manera dependiente. Los rangos van en su orden, no por frecuencia")
 
 # --- Más casos de llave de dependencia (Gonzalo, 2026-10-07: «faltan más ejemplos de llaves de dependencia»; la cadena de
@@ -138,7 +140,7 @@ barras_h(doc, ML, y0_, col2, sl_lab, sl_pc, wlab = wl_, g = g_, fila = fila_, si
 xll <- ML + wl_ + 0.12 + wbar_ * max(sl_pc[1:3]) / esc_ + 0.75
 yc_ <- llave_v(doc, xll, y0_ + (fila_ - g_) / 2, y0_ + 2 * fila_ + (fila_ + g_) / 2, xr - 0.15)
 panel_titulo(doc, xr, yc_ - 0.15, col2, "¿Su trabajo se relaciona con la carrera?", "Sólo los 139 que trabajan, en cualquiera de las tres modalidades")
-dicotomia(doc, xr, yc_ + 0.6, col2, c("Sí", "No"), c(81, 19), n = c(113, 26), size = 26, g = 0.42)
+dicotomia(doc, xr, yc_ + 0.6, wbar_, c("Sí", "No"), c(81, 19), n = c(113, 26), size = 22, g = g_)   # mismo largo y grosor que las barras que la habilitan
 zona("la llave abraza las tres categorías que habilitan la subpregunta", ML, YT, ANCHO, 4.2)
 pie(doc, "Base: 178 egresados. La subpregunta, 139 que trabajan. La llave agrupa las tres respuestas que la habilitan")
 
