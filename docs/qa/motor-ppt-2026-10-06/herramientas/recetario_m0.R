@@ -19,7 +19,8 @@ lista_marcada <- function(doc, items, x, y, w, paso = 0.68, size = 12) {
 # Lámina estándar en miniatura, fiel a la plantilla (logo real del layout «Graficos» en 11.03, 0.18 in). La usan la anatomía y «Qué es cada
 # elemento en PowerPoint» (Gonzalo, 2026-10-08: «primero tienes que presentarla… dónde va el título, el antetítulo, la pregunta»).
 dir_logo <- file.path(tempdir(), "logo_lamina"); utils::unzip("api/inst/plantillas/plantilla_16_9.pptx", files = "ppt/media/image6.png", exdir = dir_logo, overwrite = TRUE)
-LOGO_LAM <- file.path(dir_logo, "ppt/media/image6.png")
+LOGO_LAM <- file.path(dir_logo, "logo_recortado.png")   # X1: el layout recorta la imagen (arriba 29.471 %, abajo 26.643 %); se reproduce ese recorte para no estirarla
+local({ im <- png::readPNG(file.path(dir_logo, "ppt/media/image6.png")); h <- dim(im)[1]; r <- seq(floor(h * 0.29471) + 1, h - floor(h * 0.26643)); png::writePNG(im[r, , , drop = FALSE], LOGO_LAM) })
 mini_lamina <- function(doc, ox, oy, k) {   # dibuja la lámina estándar a escala k; devuelve el ancla de cada elemento en coordenadas de la lámina real
   caja(doc, ox, oy, W * k, H * k, TK$fondo, line = sp_line(color = TK$rule, lwd = 0.75))
   invisible(ph_with(doc, external_img(LOGO_LAM, width = 2.11 * k, height = 0.93 * k), location = ph_location(left = ox + 11.03 * k, top = oy + 0.18 * k, width = 2.11 * k, height = 0.93 * k)))
@@ -37,12 +38,13 @@ mini_lamina <- function(doc, ox, oy, k) {   # dibuja la lámina estándar a esca
       xx <- xx + w_ }
     txt(doc, paste0(sum(sg[3:4]), "%"), ox + 11.25 * k, oy + (yb + 0.08) * k, 1.4 * k, 0.24, 8, TK$verde_txt, bold = TRUE, align = "center") }
   txt(doc, "Top Two Box", ox + 11.0 * k, oy + 2.2 * k, 1.9 * k, 0.2, 6.5, TK$verde_txt, bold = TRUE, align = "center")
-  rot <- c("Total. en desacuerdo", "En desacuerdo", "De acuerdo", "Total. de acuerdo", "Sin inf.")
-  for (j in 1:5) { xj <- 2.4 + (j - 1) * 1.75; caja(doc, ox + xj * k, oy + 4.72 * k, 0.12, 0.12, cl[j]); txt(doc, rot[j], ox + xj * k + 0.08, oy + 4.66 * k, 1.75 * k + 0.15, 0.2, 6, TK$navy) }
+  rot <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")   # X2: sin abreviar
+  wr <- vapply(rot, function(t_) ancho_tinta(t_, 6) + 0.2, 0); x_ <- ox + 6.7 * k - sum(wr) / 2; ley_x <- (x_ - ox) / k
+  for (j in 1:5) { caja(doc, x_, oy + 4.72 * k, 0.1, 0.1, cl[j]); txt(doc, rot[j], x_ + 0.06, oy + 4.66 * k, wr[j] + 0.1, 0.2, 6, TK$navy); x_ <- x_ + wr[j] }
   tx("Base: 52 docentes y 172 estudiantes", ML, Y_BASE, 4, 7, TK$navy)
   txt(doc, "12", ox + (W - MR - 0.6) * k, oy + Y_BASE * k, 0.6 * k, 0.2, 7, TK$soft, align = "right")
   list(ante = c(ML, Y_TIT - 0.1, 0), titulo = c(ML, Y_TIT + 0.3, 0), logo = c(13.14, 0.65, 1), pregunta = c(ML, 1.8, 0), grafico = c(2.4, 3.33, 0),
-       ttb = c(12.6, 3.1, 1), leyenda = c(2.4, 4.78, 0), base = c(ML, Y_BASE + 0.12, 0)) }
+       ttb = c(12.6, 3.1, 1), leyenda = c(ley_x, 4.78, 0), base = c(ML, Y_BASE + 0.12, 0)) }
 anotar <- function(doc, ox, oy, k, pos, items, xl, d = 0.26) {   # marcas fuera de la miniatura, con línea guía hasta su elemento, y la lista a la derecha
   ult <- -1
   for (m in seq_along(items)) { a <- pos[[items[[m]][[1]]]]; ye <- oy + a[2] * k

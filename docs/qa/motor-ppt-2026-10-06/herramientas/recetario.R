@@ -111,7 +111,11 @@ ICONO_MODO <- if (ESTILO == "fiel") "centro" else Sys.getenv("ICONO_MODO", "cabe
 ICONO_TIT <- NULL
 titulo <- function(doc, t, ante = NULL, sub = NULL) {
   if (NUEVA && !is.null(ante)) ante <- switch(ante, "Reglas de la identidad" = , "Población y cifras" = "Reglas de la lámina",
-                                              "La lámina estándar" = "Medidas de la lámina estándar", ante)   # un solo antetítulo en 1.1
+                                              "La lámina estándar" = "Medidas de la lámina estándar",
+                                              "Población: dos gráficos" = "Dos gráficos, con ícono del público", "Población: tira" = "Tres gráficos en tira",
+                                              "Población: corona" = "Tres gráficos en corona", "Población: gráficos y cifras" = "Cifras en columna lateral",
+                                              "Población: cinco gráficos" = "Cinco gráficos", "Población: seis gráficos" = "Seis gráficos",
+                                              "Banda de cifras y dos gráficos" = "Cifras en banda superior", ante)   # X8 y X9: los estilos de población son generales
   if (ESTILO == "fiel") {
     txt(doc, toupper(t), ML, Y_TIT, 10.6, 0.5, 20, TK$coral, bold = TRUE, nombre = "Titulo lamina")
     if (!is.null(sub)) txt(doc, sub, ML, Y_TIT + 0.42, 10.6, 0.35, 14, TK$coral, bold = TRUE)
@@ -230,11 +234,11 @@ alto_bloque <- function(premisas) { geo <- geo_likert(premisas); wp <- ancho_pre
   sum(vapply(premisas, function(p) max(alto_txt(p$texto, wp, PT$premisa, TRUE), length(p$filas) * geo$fila), 0)) + geo$gap * (length(premisas) - 1) }
 ALTO_UTIL <- (Y_LEY - 0.15) - (Y_DATOS + 0.1)
 
-etiqueta_ttb <- function(doc, x, yb, g, f, ttb21, comp21) {
+etiqueta_ttb <- function(doc, x, yb, g, f, ttb21, comp21, con_n = f$valid < 30) {   # X13: con una base chica en el bloque, todas sus filas dicen «x de y»
   v <- ttb(f); col <- TK$verde_txt
   if (!comp21) {
-    txt(doc, paste0(v, "%"), x, yb + (g - 0.32) / 2 - (if (ESTILO == "moderna" && f$valid < 30) 0.1 else 0), 1.5, 0.32, PT$cifra, col, bold = TRUE, align = "center")
-    if (ESTILO == "moderna" && f$valid < 30) txt(doc, sprintf("%d de %d", f$n[3] + f$n[4], f$valid), x, yb + g / 2 + 0.06, 1.5, 0.24, PT$n, TK$faint, align = "center")
+    txt(doc, paste0(v, "%"), x, yb + (g - 0.32) / 2 - (if (ESTILO == "moderna" && con_n) 0.1 else 0), 1.5, 0.32, PT$cifra, col, bold = TRUE, align = "center")
+    if (ESTILO == "moderna" && con_n) txt(doc, sprintf("%d de %d", f$n[3] + f$n[4], f$valid), x, yb + g / 2 + 0.06, 1.5, 0.24, PT$n, TK$faint, align = "center")
     return(invisible())
   }
   txt(doc, paste0(v, "%"), x, yb + (g - 0.32) / 2, 0.75, 0.32, PT$cifra, col, bold = TRUE, align = "center")
@@ -247,6 +251,7 @@ etiqueta_ttb <- function(doc, x, yb, g, f, ttb21, comp21) {
 }
 
 bloque_likert <- function(doc, premisas, cols = TK$likert, rotulos = LIKERT_ROT, ttb_col = TRUE, comp21 = FALSE, solo = TRUE) {
+  hay_chica <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) fl$f$valid < 30, TRUE)), TRUE))
   y0 <- Y_DATOS + 0.1; y1 <- Y_LEY - 0.15
   # una afirmación y un público: la afirmación encabeza y la barra ocupa el ancho
   if (solo && length(premisas) == 1 && length(premisas[[1]]$filas) == 1) {   # una «(cont.)» de un ítem sigue la forma de su serie
@@ -298,7 +303,7 @@ bloque_likert <- function(doc, premisas, cols = TK$likert, rotulos = LIKERT_ROT,
         txt(doc, fl$actor, X_ACT, yb + g / 2 - (if (ESTILO == "moderna") 0.25 else 0.15), W_ACT, 0.3, PT$actor, TK$navy, bold = TRUE, align = "right")
         if (ESTILO == "moderna") txt(doc, paste(format(fl$f$valid, big.mark = ","), "respuestas"), X_ACT - 0.4, yb + g / 2, W_ACT + 0.4, 0.26, PT$n, TK$faint, align = "right") }
       barra_apilada(doc, X_BAR, yb, WB, fl$f$pct, cols, g)
-      if (ttb_col) etiqueta_ttb(doc, X_TTB, yb, g, fl$f, fl$ttb21, comp21)
+      if (ttb_col) etiqueta_ttb(doc, X_TTB, yb, g, fl$f, fl$ttb21, comp21, con_n = hay_chica)
       yf <- yf + fila
     }
     y <- y + a + gap

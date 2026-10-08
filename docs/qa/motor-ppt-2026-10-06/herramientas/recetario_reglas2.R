@@ -2,20 +2,32 @@
 # alternativas y las dos alternativas de objetivo. Claves «reg2:n»; el orden lo da recetario_estructura.json.
 SEC <- "reg2"
 
-# 1. La lámina estándar de un gráfico, con sus medidas al lado
+# 1. La lámina estándar medida (X3 y X4, 2026-10-08): sobre una escala que sí lleva leyenda y Top Two Box, y con el grosor de barra según el número de filas
 MOTOR_ACT <- "Reglas: la lámina estándar de un gráfico (p_slide_1_grafico, layout Graficos)"
-doc <- nueva(doc); titulo(doc, "Nivel curricular del estudiante", ante = "La lámina estándar")
-wch <- 8.0
-panel_titulo(doc, XC, YT, wch, "¿Qué ciclo de la carrera está cursando actualmente?", "172 respuestas")
-barras_h(doc, XC, YT + 0.65, wch, es_ciclo$labels, es_ciclo$pct, wlab = 1.7, g = grosor_cat(6), fila = 0.66, size = 12)
-xm_ <- XC + wch + 0.6; wm_ <- W - MR - xm_; separador_v(doc, xm_ - 0.3, YT, YF - 0.1)
-txt(doc, "Medidas de la lámina estándar", xm_ - 0.1, YT, wm_ + 0.1, 0.3, 13, TK$navy, bold = TRUE)
-med <- list(c("Título", "24 pt, a 0.36 in del borde"), c("Antetítulo", "10 pt, sobre el título"), c("Pregunta", "13 pt, inicio de la zona de datos"),
-            c("Zona de datos", "de 1.65 a 6.42 in de alto"), c("Cifra en la barra", "14 pt, 12 pt si va fuera"), c("Barra", "0.42 in con hasta 6 categorías"),
-            c("Leyenda", "12 pt, centrada en el gráfico"), c("Base", "10 pt, a 6.88 in"), c("Márgenes", "0.5 in a cada lado"))
-for (k in seq_along(med)) { yk <- YT + 0.45 + (k - 1) * 0.47
-  txt(doc, med[[k]][1], xm_ - 0.1, yk, 1.6, 0.28, 11, TK$navy, bold = TRUE); txt(doc, med[[k]][2], xm_ + 1.45, yk, wm_ - 1.45, 0.28, 11, TK$soft) }
-pie(doc, "Base: 172 estudiantes. Todos los gráficos del capítulo 2 usan esta lámina y estas medidas")
+doc <- nueva(doc); titulo(doc, "Servicios de tutoría", ante = "Medidas de la lámina estándar")
+sf_m <- function(pct, valid) list(pct = pct, n = round(pct * valid / 100), valid = valid)
+txt(doc, "La Unidad cuenta con servicios de tutoría académica", XT, YT - 0.05, AC, 0.3, 13, TK$navy, bold = TRUE)
+likert_panel(doc, XC, YT + 0.25, AC, list(list(lab = "Docentes", f = sf_m(c(0, 2, 29, 54, 15), 52)), list(lab = "Estudiantes", f = sf_m(c(6, 18, 34, 19, 23), 172)),
+  list(lab = "Egresados", f = sf_m(c(3, 12, 50, 30, 5), 178))), g = 0.4, fila = 0.62, wlab = 1.5, size_lab = 12)
+leyenda(doc, 0, YT + 2.5, LIKERT_ROT, TK$likert, centrar_en = XC + AC / 2)
+separador_h(doc, XC, W - MR, YT + 2.9)
+med <- list(c("Título", "24 pt, coral, a 0.36 in del borde"), c("Antetítulo", "10 pt, gris, sobre el título"), c("Pregunta", "13 pt, al inicio de la zona de datos"),
+            c("Zona de datos", "de 1.65 a 6.42 in de alto"), c("Cifra en la barra", "14 pt, o 12 pt encima si no cabe"), c("Top Two Box", "14 pt, verde, columna de 1 in"),
+            c("Leyenda", "12 pt, centrada bajo el gráfico"), c("Base", "10 pt, negrita, a 6.88 in"))
+wcol <- (AC - 0.8) / 3; xcol <- XC + (0:2) * (wcol + 0.4)
+txt(doc, "Medidas", xcol[1] - 0.1, YT + 2.88, wcol, 0.28, 11, TK$soft, bold = TRUE)
+for (k in seq_along(med)) { cc <- if (k <= 4) 1 else 2; yk <- YT + 3.2 + ((k - 1) %% 4) * 0.34
+  txt(doc, med[[k]][1], xcol[cc] - 0.1, yk, 1.5, 0.28, 11, TK$navy, bold = TRUE); txt(doc, med[[k]][2], xcol[cc] + 1.35, yk, wcol - 1.35, 0.28, 11, TK$soft) }
+separador_v(doc, xcol[3] - 0.2, YT + 2.95, YF - 0.15)
+txt(doc, "Grosor de barra según el número de filas", xcol[3] - 0.1, YT + 2.88, wcol + 0.1, 0.28, 11, TK$soft, bold = TRUE)
+gr_ <- list(c("1 o 2", 0.50, 0.26), c("3", 0.48, 0.26), c("4 a 6", 0.44, 0.28), c("7 a 9", 0.38, 0.32), c("10 o más", 0.32, 0.32))
+txt(doc, "Filas", xcol[3] - 0.1, YT + 3.16, 1.0, 0.24, 9.5, TK$soft, bold = TRUE); txt(doc, "Escalas", xcol[3] + 0.85, YT + 3.16, 1.2, 0.24, 9.5, TK$soft, bold = TRUE)
+txt(doc, "Barras de categorías", xcol[3] + 2.1, YT + 3.16, 1.8, 0.24, 9.5, TK$soft, bold = TRUE)
+for (k in seq_along(gr_)) { yk <- YT + 3.42 + (k - 1) * 0.27
+  txt(doc, gr_[[k]][1], xcol[3] - 0.1, yk, 1.0, 0.24, 10.5, TK$navy, bold = TRUE)
+  caja(doc, xcol[3] + 0.9, yk + 0.12 - as.numeric(gr_[[k]][2]) * 0.18, 0.45, as.numeric(gr_[[k]][2]) * 0.36, TK$likert[4]); txt(doc, paste(gr_[[k]][2], "in"), xcol[3] + 1.4, yk, 0.7, 0.24, 10, TK$navy)
+  caja(doc, xcol[3] + 2.15, yk + 0.12 - as.numeric(gr_[[k]][3]) * 0.18, 0.45, as.numeric(gr_[[k]][3]) * 0.36, TK$tenue); txt(doc, paste(gr_[[k]][3], "in"), xcol[3] + 2.65, yk, 0.7, 0.24, 10, TK$navy) }
+pie(doc, "Base: 52 docentes, 172 estudiantes y 178 egresados. Con más filas la barra adelgaza y la letra no cambia")
 
 # 2. Escala tipográfica
 MOTOR_ACT <- "Reglas: escala tipográfica estándar"
