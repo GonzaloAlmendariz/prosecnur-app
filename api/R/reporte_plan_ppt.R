@@ -1126,7 +1126,7 @@ reporte_ppt_plan <- function(
     # contra los 1.71 del aprobado, y el indice se leia apretado.
     row_height <- .style_num(style, "row_height", 0.543, min = 0.24)
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
-    number_fill <- as.character(.style_value(style, "number_fill", "#D8504F"))[1]
+    number_fill <- as.character(.style_value(style, "number_fill", .std_color("coral")))[1]
     section_fill <- as.character(.style_value(style, "section_fill", "#E7E7E7"))[1]
     text_color <- as.character(.style_value(style, "text_color", "#081F5C"))[1]
     number_size <- .style_num(style, "number_size", 14, min = 7)
@@ -1299,9 +1299,9 @@ reporte_ppt_plan <- function(
     out
   }
 
-  .indice_subtopic_badge_asset <- function(label, fill = "#D8504F", text_color = "#FFFFFF",
+  .indice_subtopic_badge_asset <- function(label, fill = .std_color("coral"), text_color = "#FFFFFF",
                                            font_family = "Arial") {
-    fill <- .indice_sanitize_fill(fill, "#D8504F")
+    fill <- .indice_sanitize_fill(fill, .std_color("coral"))
     text_color <- .indice_sanitize_fill(text_color, "#FFFFFF")
     label <- gsub("&", "&amp;", as.character(label %||% "")[1], fixed = TRUE)
     label <- gsub("<", "&lt;", label, fixed = TRUE)
@@ -1375,7 +1375,7 @@ reporte_ppt_plan <- function(
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
     text_color <- as.character(.style_value(style, "subtopic_color", "#081F5C"))[1]
     bullet_color <- as.character(.style_value(style, "subtopic_bullet_color", text_color))[1]
-    badge_fill <- as.character(.style_value(style, "subtopic_badge_fill", .style_value(style, "accent_color", "#D8504F")))[1]
+    badge_fill <- as.character(.style_value(style, "subtopic_badge_fill", .style_value(style, "accent_color", .std_color("coral"))))[1]
     badge_text_color <- as.character(.style_value(style, "subtopic_badge_text_color", "#FFFFFF"))[1]
     font_size <- .style_num(style, "subtopic_size", 10.1, min = 6)
     marker_style <- as.character(.style_value(style, "subtopic_marker", "number_text"))[1]
@@ -1818,7 +1818,7 @@ reporte_ppt_plan <- function(
 
   # Extremo negativo NARANJA, no rojo (regla R4). Ver `reporte_ppt_numero_respuestas.R`.
   .top_two_parse_colors <- function(style, n) {
-    default <- c("#F4B183", "#FFD966", "#B7D7A8", "#70AD47")
+    default <- .std_paleta("likert")[1:4]
     raw <- style[["colores"]] %||% style[["colores_escala"]] %||% default
     if (is.list(raw) && !is.data.frame(raw)) {
       raw <- unlist(raw, recursive = TRUE, use.names = FALSE)
@@ -1856,7 +1856,7 @@ reporte_ppt_plan <- function(
 
     colors <- .top_two_parse_colors(style, length(valores))
     blue <- .indice_sanitize_fill(.style_value(style, "text_color", "#081F5C"), "#081F5C")
-    accent <- .indice_sanitize_fill(.style_value(style, "accent_color", .style_value(style, "title_color", "#D8504F")), "#D8504F")
+    accent <- .indice_sanitize_fill(.style_value(style, "accent_color", .style_value(style, "title_color", .std_color("coral"))), .std_color("coral"))
     brace_color <- .indice_sanitize_fill(.style_value(style, "brace_color", accent), accent)
     top_label_color <- .indice_sanitize_fill(.style_value(style, "top_label_color", accent), accent)
     label_color <- .indice_sanitize_fill(
@@ -7814,7 +7814,7 @@ reporte_ppt_plan <- function(
           officer::ftext(
             title_text,
             prop = officer::fp_text(
-              color = as.character(.style_value(style, "title_color", .style_value(style, "accent_color", "#D8504F")))[1],
+              color = as.character(.style_value(style, "title_color", .style_value(style, "accent_color", .std_color("coral"))))[1],
               font.size = .style_num(style, "title_size", 24, min = 8),
               bold = TRUE,
               font.family = as.character(style$font_family)[1]

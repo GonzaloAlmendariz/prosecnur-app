@@ -141,7 +141,7 @@ graficar_barras_divergentes <- function(
     leyenda_posicion = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
 
     grosor_barras = 0.68,
-    color_ejes = "#081F5C",
+    color_ejes = .std_color("azul"),
     size_ejes = 9,
     size_valores = 3.0,
     color_texto_barras = "#FFFFFF",

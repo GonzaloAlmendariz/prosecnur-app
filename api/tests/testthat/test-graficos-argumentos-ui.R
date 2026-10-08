@@ -329,7 +329,7 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_top_two$accent_color$grupo, "valores")
   expect_equal(by_name_top_two$colores$label, "Paleta de la escala")
   expect_equal(by_name_top_two$colores$grupo, "valores")
-  expect_equal(by_name_top_two$colores$default, "#D8504F, #FFD966, #B7D7A8, #70AD47")
+  expect_equal(by_name_top_two$colores$default, paste(.std_paleta("likert")[1:4], collapse = ", "))
   expect_equal(by_name_top_two$grosor_barra$label, "Grosor de la barra")
   expect_equal(by_name_top_two$grosor_barra$tipo_input, "number")
   expect_equal(by_name_top_two$grosor_barra$grupo, "espacio")

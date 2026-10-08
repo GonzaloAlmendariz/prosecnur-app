@@ -10,10 +10,12 @@ test_that("el extremo negativo de la escala NO va en rojo", {
     testthat::test_path("..", "..", "R", "reporte_plan_ppt.R"),
     warn = FALSE
   )
-  i <- grep('default <- c\\("#F4B183"', f)
+  i <- grep('default <- .std_paleta("likert")', f, fixed = TRUE)
   expect_length(i, 1L)
   # Y el rojo no vuelve por la puerta de atras en esa misma paleta.
-  expect_false(grepl("D8504F", f[i], fixed = TRUE))
+  expect_false(grepl("coral", f[i], fixed = TRUE))
+  # y la paleta del estándar arranca en naranja, no en rojo (ADR 0092)
+  expect_equal(.std_paleta("likert")[1], "#F4B183")
 })
 
 
@@ -25,5 +27,5 @@ test_that("el acento del titulo SI sigue siendo rojo", {
     warn = FALSE
   ), collapse = " ")
   expect_true(grepl('"accent_color"', f, fixed = TRUE))
-  expect_true(grepl("D8504F", f, fixed = TRUE))
+  expect_true(grepl('.style_value(style, "accent_color", .std_color("coral"))', f, fixed = TRUE))
 })

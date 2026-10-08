@@ -95,3 +95,20 @@ test_that("el JSON versionado es exactamente lo que exporta el recetario", {
   versionado <- jsonlite::fromJSON(file.path(raiz, "api", "inst", "estandar", "estandar_pulso.json"), simplifyVector = FALSE)
   expect_identical(jsonlite::fromJSON(tmp, simplifyVector = FALSE), versionado)
 })
+
+test_that("ningún graficador escribe a mano un color que el estándar nombra", {
+  # ADR 0092: el azul y el coral de la casa salen de `.std_color()`. Un literal
+  # en la firma es la deriva que el estándar cierra: el día que el recetario
+  # cambie, ese graficador seguiría con el color viejo.
+  dir_r <- testthat::test_path("..", "..", "R")
+  archivos <- c(list.files(dir_r, pattern = "^graficador_.*\\.R$", full.names = TRUE),
+                file.path(dir_r, c("reporte_plan_ppt.R", "reporte_ppt_numero_respuestas.R")))
+  sueltos <- character(0)
+  for (f in archivos) {
+    l <- readLines(f, warn = FALSE)
+    hit <- grep('^\\s+color_\\w+\\s*=\\s*"#(081F5C|CA5651)"', l, ignore.case = TRUE, perl = TRUE)
+    hit <- c(hit, grep('"#D8504F"', l, fixed = TRUE))
+    if (length(hit)) sueltos <- c(sueltos, paste0(basename(f), ":", hit))
+  }
+  expect_identical(sueltos, character(0))
+})

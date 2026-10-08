@@ -140,16 +140,16 @@ graficar_serie_temporal <- function(
     colores_series   = NULL,
 
     mostrar_grid_y = TRUE,
-    color_ejes  = "#081F5C",
+    color_ejes  = .std_color("azul"),
     size_ejes   = 9,
     limite_y    = NULL,
     expand_y    = 0.12,
 
-    color_titulo    = "#081F5C",
+    color_titulo    = .std_color("azul"),
     size_titulo     = 11,
-    color_subtitulo = "#081F5C",
+    color_subtitulo = .std_color("azul"),
     size_subtitulo  = 9,
-    color_nota_pie  = "#081F5C",
+    color_nota_pie  = .std_color("azul"),
     size_nota_pie   = 8,
     textos_negrita  = NULL,
     font_family     = "Arial"

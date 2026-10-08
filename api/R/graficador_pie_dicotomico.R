@@ -167,17 +167,17 @@ graficar_pie <- function(
     textos_negrita = NULL,
 
     # Estilo texto
-    color_titulo    = "#081F5C",
+    color_titulo    = .std_color("azul"),
     size_titulo     = 11,
-    color_subtitulo = "#081F5C",
+    color_subtitulo = .std_color("azul"),
     size_subtitulo  = 9,
-    color_nota_pie  = "#081F5C",
+    color_nota_pie  = .std_color("azul"),
     size_nota_pie   = 8,
 
     # ==========================
     # LEYENDA (PARCHE MINIMAL)
     # ==========================
-    color_leyenda         = "#081F5C",
+    color_leyenda         = .std_color("azul"),
     size_leyenda          = 8,
     tamano_key_cm         = 0.40,
     espaciado_vertical_cm = 0.16,

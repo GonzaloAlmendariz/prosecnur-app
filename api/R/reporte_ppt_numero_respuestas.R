@@ -139,7 +139,7 @@
 #' pagina.
 #'
 #' @keywords internal
-.nresp_ancla <- function(x, y, texto, indice, color = "#D8504F",
+.nresp_ancla <- function(x, y, texto, indice, color = .std_color("coral"),
                          size = 14, cursiva = FALSE) {
   ancho <- max(46, nchar(texto) * size * 0.58 + 16)
   alto <- size * 1.9
@@ -184,7 +184,7 @@
   blue <- .nresp_color(.nresp_estilo(style, "text_color", "#081F5C"), "#081F5C")
   accent <- .nresp_color(
     .nresp_estilo(style, "accent_color",
-                  .nresp_estilo(style, "title_color", "#D8504F")), "#D8504F")
+                  .nresp_estilo(style, "title_color", .std_color("coral"))), .std_color("coral"))
   verde <- .nresp_color(.nresp_estilo(style, "top_two_color", "#548135"), "#548135")
   fondo <- .nresp_color(.nresp_estilo(style, "background_fill", "#F2F2F2"), "#F2F2F2")
   base_texto <- as.character(base_texto %||% "Base: 12 egresados")[1]

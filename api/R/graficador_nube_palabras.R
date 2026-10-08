@@ -29,9 +29,9 @@ graficar_nube_palabras <- function(
     size_titulo = 16,
     size_subtitulo = 12,
     size_nota_pie = 10,
-    color_titulo = "#CA5651",
-    color_subtitulo = "#081F5C",
-    color_nota_pie = "#081F5C",
+    color_titulo = .std_color("coral"),
+    color_subtitulo = .std_color("azul"),
+    color_nota_pie = .std_color("azul"),
     ...
 ) {
   if (!is.data.frame(data)) stop("`data` debe ser data.frame.", call. = FALSE)
