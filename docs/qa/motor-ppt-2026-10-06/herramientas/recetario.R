@@ -126,6 +126,7 @@ pie <- function(doc, base) {
 leyenda <- function(doc, x, y, labels, cols, size = PT$leyenda, centrar_en = NULL) {
   ws <- vapply(labels, function(s) ancho_txt(s, size) + 0.32, 0); tot <- sum(ws) + 0.25 * (length(ws) - 1)
   if (!is.null(centrar_en)) x <- centrar_en - tot / 2
+  x <- min(max(x, ML), W - MR - tot)   # nunca fuera del margen
   x0 <- x
   for (k in seq_along(labels)) { caja(doc, x, y + 0.07, 0.15, 0.15, cols[k]); txt(doc, labels[k], x + 0.2, y, ws[k], 0.3, size, TK$navy); x <- x + ws[k] + 0.25 }
   zona("leyenda", x0, y, tot, 0.3)

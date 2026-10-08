@@ -164,7 +164,8 @@ for (j in 0:3) { yb <- oy + 1.0 + j * 0.4; caja(doc, ox + 2.45, yb, 3.7 * c(0.9,
   txt(doc, paste0(c(62, 48, 37, 53)[j + 1], "%"), ox + 2.45 + 3.7 * c(0.9, 0.7, 0.55, 0.8)[j + 1] + 0.02, yb - 0.02, 0.5, 0.26, 9, TK$navy, bold = TRUE) }
 for (j in 0:3) { yt <- oy + 2.78 + j * 0.15; caja(doc, ox + 0.25, yt, fw - 0.5, 0.13, if (j == 0) TK$navy else if (j %% 2) TK$zebra else "#FFFFFF") }
 txt(doc, "Base: 148 docentes", ox + ML * k - 0.06, oy + Y_BASE * k - 0.02, 2.5, 0.22, 8, TK$navy, bold = TRUE)
-mk <- list(c(1, ox - 0.33, oy + 0.12), c(2, ox - 0.33, oy + 0.98), c(3, ox + 2.45 + 3.7 * 0.9 + 0.45, oy + 0.98), c(4, ox - 0.33, oy + 2.76), c(5, ox + fw - 1.15, oy + 0.13))   # fuera de cada elemento, sin taparlo
+xmk <- max(0.04, ox - 0.33)
+mk <- list(c(1, xmk, oy + 0.12), c(2, xmk, oy + 0.98), c(3, ox + 2.45 + 3.7 * 0.9 + 0.45, oy + 0.98), c(4, xmk, oy + 2.76), c(5, ox + fw - 1.15, oy + 0.13))   # fuera de cada elemento, sin taparlo
 for (m in mk) marca(doc, m[1], m[2], m[3], d = 0.26)
 tarjetas <- list(c("Título", "Es el título de la lámina: aparece en el esquema y en la navegación. Se escribe en el cuadro."),
                  c("Texto y base", "Son cuadros de texto con su tamaño y color fijados. Se escribe en ellos."),
