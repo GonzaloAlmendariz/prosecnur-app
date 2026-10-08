@@ -405,3 +405,21 @@ g_mapas2 <- function(capas, titulos, cats, pal, titulo_ley, n_txt = "", alto = 3
   g <- cowplot::ggdraw(g) + labs(caption = fuente_pie(n_txt)) + tema_w()
   g
 }
+# Cómo se lee el Top Two Box (o el Bottom Two Box): una barra de ejemplo, la llave sobre las dos respuestas que se suman y la cifra
+# que resulta, como en la lámina «Cómo leer este informe» del PPT.
+g_box_explica <- function(pct = c(5, 5, 35, 55), arriba = TRUE, n_txt = "Ejemplo ilustrativo") {
+  rot <- c("1  Totalmente en desacuerdo", "2  En desacuerdo", "3  De acuerdo", "4  Totalmente de acuerdo")
+  x1 <- cumsum(pct); x0 <- x1 - pct; d <- data.frame(x0 = x0, x1 = x1, k = factor(rot, levels = rot), p = pct)
+  idx <- if (arriba) 3:4 else 1:2; col <- if (arriba) WTK$verde else "#B4541F"; nom <- if (arriba) "Top Two Box" else "Bottom Two Box"
+  a <- x0[idx[1]]; b <- x1[idx[2]]; s <- sum(pct[idx])
+  ggplot(d) + geom_rect(aes(xmin = x0, xmax = x1 + 0.05, ymin = 0, ymax = 1, fill = k)) + scale_fill_manual(values = setNames(WTK$likert[1:4], rot)) +
+    geom_text(aes(x = (x0 + x1) / 2, y = 0.5, label = paste0(p, "%")), size = PT(9.5), fontface = "bold", colour = WTK$navy_w, family = "Arial") +
+    annotate("segment", x = c(a, a, b, (a + b) / 2), xend = c(b, a, b, (a + b) / 2), y = c(1.35, 1.35, 1.35, 1.35), yend = c(1.35, 1.2, 1.2, 1.5), colour = col, linewidth = 0.7) +
+    annotate("text", x = if (arriba) (a + b) / 2 else a, y = 1.72, label = if (arriba) "Las dos respuestas de acuerdo" else "Las dos respuestas de desacuerdo", hjust = if (arriba) 0.5 else 0,
+             size = PT(9), fontface = "bold", colour = col, family = "Arial") +   # pegada al borde, la llave de la izquierda lleva su rótulo alineado a su inicio
+    annotate("text", x = 121, y = 1.25, label = nom, size = PT(9), fontface = "bold", colour = col, family = "Arial") +
+    annotate("text", x = 121, y = 0.55, label = paste0(s, "%"), size = PT(24), fontface = "bold", colour = col, family = "Arial") +
+    annotate("text", x = 121, y = -0.05, label = paste0(pct[idx[1]], "% + ", pct[idx[2]], "%"), size = PT(9), colour = col, family = "Arial") +
+    scale_x_continuous(limits = c(-2, 134), expand = c(0, 0)) + scale_y_continuous(limits = c(-0.35, 2.0)) +
+    labs(caption = fuente_pie(n_txt)) + tema_w() + guides(fill = guide_legend(nrow = 1))
+}
