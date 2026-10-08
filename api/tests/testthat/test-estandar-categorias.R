@@ -1,0 +1,64 @@
+# ADR 0092 (F2.2) — las preguntas categóricas salen como las barras horizontales
+# del recetario (`barras_h`): residuales al final, la mayor en azul y en negrita,
+# el resto en el tono de apoyo, y el grosor de la tabla `categorias`.
+
+.cat_h <- function(categoria, n, ...) {
+  d <- data.frame(categoria = categoria, n = n, stringsAsFactors = FALSE)
+  d$pct <- d$n / sum(d$n)
+  suppressWarnings(graficar_barras_categoricas(
+    data = d, var_categoria = "categoria", var_valor = "pct", var_n = "n", var_pct = "pct",
+    modo_valor = "valor", formato_valor = "porcentaje", ancho = 12.5, alto = 4.6, ...
+  ))
+}
+
+test_that("por defecto la pregunta categórica es horizontal y sin eje", {
+  p <- .cat_h(c("A", "B", "C"), c(5, 3, 2))
+  expect_false(is.null(attr(p, "pulso_barras_horizontales_layout")))
+  b <- ggplot2::ggplot_build(p)$data[[1]]
+  # horizontales: todas las barras arrancan en x = 0 y crecen a lo largo de x
+  expect_true(all(b$xmin == 0))
+  expect_equal(sort(round(b$xmax, 2)), c(0.2, 0.3, 0.5))
+})
+
+test_that("las residuales van al final aunque el instrumento las ponga antes", {
+  p <- .cat_h(c("Alimentos", "Otros", "Salud", "No sabe", "Educación"), c(40, 6, 20, 3, 10))
+  orden <- attr(p, "pulso_barras_horizontales_layout")$orden
+  expect_identical(tail(orden, 2), c("Otros", "No sabe"))
+})
+
+test_that("con más de dos categorías y un máximo único, la mayor va en azul y el resto en tenue", {
+  p <- .cat_h(c("A", "B", "C", "D"), c(10, 40, 20, 5))
+  b <- ggplot2::ggplot_build(p)$data[[1]]
+  cats <- .std_paleta("categorias")
+  expect_equal(sum(b$fill == cats$mayor), 1L)
+  expect_equal(sum(b$fill == cats$resto), 3L)
+  expect_true(attr(p, "pulso_barras_horizontales_layout")$realce)
+  # el rótulo de la mayor, en negrita
+  rot <- ggplot2::ggplot_build(p)$data[[2]]
+  expect_equal(rot$fontface[rot$label == "B"], "bold")
+})
+
+test_that("con un empate en el máximo no hay realce", {
+  p <- .cat_h(c("A", "B", "C"), c(40, 40, 20))
+  expect_false(attr(p, "pulso_barras_horizontales_layout")$realce)
+})
+
+test_that("una paleta que nombra las categorías del proyecto se respeta", {
+  p <- .cat_h(c("A", "B", "C"), c(10, 40, 20), colores_categorias = list(A = "#111111", B = "#222222", C = "#333333"))
+  b <- ggplot2::ggplot_build(p)$data[[1]]
+  expect_setequal(b$fill, c("#111111", "#222222", "#333333"))
+  expect_false(attr(p, "pulso_barras_horizontales_layout")$realce)
+})
+
+test_that("el grosor sale de la tabla de categorías por número de filas", {
+  for (n in c(2, 3, 5, 7, 9)) {
+    p <- .cat_h(paste("Categoría", seq_len(n)), seq_len(n) * 3)
+    expect_lte(abs(attr(p, "pulso_barras_horizontales_layout")$grosor_in - .std_grosor(n, "categorias")), 0.01,
+               label = paste(n, "filas"))
+  }
+})
+
+test_that("orientacion = 'vertical' conserva las columnas previas", {
+  p <- .cat_h(c("A", "B", "C"), c(5, 3, 2), orientacion = "vertical")
+  expect_null(attr(p, "pulso_barras_horizontales_layout"))
+})

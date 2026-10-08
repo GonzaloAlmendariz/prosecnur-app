@@ -391,6 +391,7 @@ test_that("barras categoricas grafican pocas categorias con color propio y prome
   )
 
   p <- graficar_barras_categoricas(
+    orientacion = "vertical",  # el test revisa el tema de las columnas (ADR 0092)
     data = df,
     var_categoria = "categoria",
     var_valor = "valor",

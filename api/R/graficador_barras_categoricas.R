@@ -214,6 +214,9 @@ graficar_barras_categoricas <- function(
     font_family               = "Arial",
     textos_negrita            = c("titulo", "valores", "ejes"),
     grosor_barras             = 0.76,
+    # ADR 0092 (F2.2): el recetario dibuja las categorías en barras horizontales
+    # (`graficador_barras_horizontales.R`). "vertical" conserva las columnas previas.
+    orientacion               = c("horizontal", "vertical"),
     limite_y                  = NULL,
     expand_y                  = 0.14,
     mostrar_eje_y             = FALSE,
@@ -243,6 +246,7 @@ graficar_barras_categoricas <- function(
   normalizar_etiquetas <- match.arg(normalizar_etiquetas)
   formato_valor <- match.arg(formato_valor)
   exportar <- match.arg(exportar)
+  orientacion <- match.arg(orientacion)
 
   max_categorias <- suppressWarnings(as.integer(max_categorias)[1])
   if (!is.finite(max_categorias) || max_categorias <= 0) max_categorias <- 10L
@@ -345,6 +349,7 @@ graficar_barras_categoricas <- function(
   # pueden llegar cortos, sin nombres o como el deparse de un vector; se sanean
   # y rellenan con el helper compartido a un palette limpio keyed por categoria,
   # para que scale_fill_manual nunca reciba basura ("Unknown colour name").
+  paleta_propia <- .barras_h_paleta_propia(colores_categorias, paleta_colores, df$categoria)
   if (!is.null(colores_categorias) && length(colores_categorias)) {
     colores_categorias <- .graficos_mk_palette(unique(df$categoria), pal_user = colores_categorias)
   } else if (!is.null(paleta_colores) && length(paleta_colores)) {
@@ -394,6 +399,24 @@ graficar_barras_categoricas <- function(
     ggplot2::scale_y_continuous(
       labels = function(z) .barras_categoricas_format_num(z, decimales)
     )
+  }
+
+  if (identical(orientacion, "horizontal")) {
+    p <- .graficar_categoricas_horizontal(df, paleta_propia = paleta_propia, ancho = ancho, alto = alto,
+                                          font_family = font_family, nota = label_note, color_fondo = color_fondo,
+                                          titulo = titulo, subtitulo = subtitulo, textos_negrita = textos_negrita,
+                                          color_titulo = color_titulo, color_subtitulo = color_subtitulo,
+                                          size_titulo = size_titulo, size_subtitulo = size_subtitulo)
+    attr(p, "pulso_barras_categoricas_data") <- df
+    attr(p, "pulso_barras_categoricas_promedio") <- promedio
+    attr(p, "pulso_barras_categoricas_max_categorias") <- max_categorias
+    if (identical(exportar, "png")) {
+      if (is.null(path_salida) || !nzchar(path_salida)) {
+        stop("`path_salida` es obligatorio cuando `exportar = 'png'`.", call. = FALSE)
+      }
+      ggplot2::ggsave(path_salida, p, width = ancho, height = alto, dpi = dpi, bg = color_fondo)
+    }
+    return(p)
   }
 
   p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$x, y = .data$valor, fill = .data$categoria)) +
