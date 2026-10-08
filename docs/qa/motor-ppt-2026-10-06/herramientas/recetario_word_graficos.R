@@ -138,15 +138,14 @@ g_dos_grupos <- function(items, a, b, grupos, n_txt = "", lim = 100, cols = c(WT
   anios <- all(grepl("^[0-9]{4}$", grupos))    # entre años la diferencia se colorea (sube o baja); entre grupos de personas, no
   
   xd <- lim + (lim - lo) * 0.2
-  sep <- (lim - lo) * 0.03; d$cerca <- abs(d$a - d$b) < (lim - lo) * 0.12
+  sep <- (lim - lo) * 0.025; d$cerca <- abs(d$a - d$b) < (lim - lo) * 0.12
   dd <- rbind(data.frame(y = d$y, v = b, g = grupos[2], cerca = d$cerca), data.frame(y = d$y, v = a, g = grupos[1], cerca = d$cerca)); dd$g <- factor(dd$g, levels = grupos)
   ggplot(d) + geom_segment(aes(x = pmin(a, b), xend = pmax(a, b), y = y, yend = y), colour = WTK$gris, linewidth = 0.8) +
     geom_point(data = dd, aes(x = v, y = y, colour = g, size = factor(cerca))) + scale_size_manual(values = c(`FALSE` = 3.2, `TRUE` = 2.5), guide = "none") + scale_colour_manual(values = setNames(cols, grupos), breaks = grupos, name = NULL) +
-    # Puntos lejanos: cifra arriba (primer grupo) y abajo (segundo). Puntos cercanos: a los costados, en la misma línea, para que no se peguen.
-    geom_text(data = d[!d$cerca, ], aes(x = a, y = y + 0.28, label = paste0(a, "%")), size = PT(8), fontface = "bold", colour = cols[1], family = "Arial") +
-    geom_text(data = d[!d$cerca, ], aes(x = b, y = y - 0.28, label = paste0(b, "%")), size = PT(8), fontface = "bold", colour = "#4F7FAF", family = "Arial") +
-    geom_text(data = d[d$cerca, ], aes(x = ifelse(a >= b, a + sep, a - sep), y = y, label = paste0(a, "%"), hjust = ifelse(a >= b, 0, 1)), size = PT(8), fontface = "bold", colour = cols[1], family = "Arial") +
-    geom_text(data = d[d$cerca, ], aes(x = ifelse(a >= b, b - sep, b + sep), y = y, label = paste0(b, "%"), hjust = ifelse(a >= b, 1, 0)), size = PT(8), fontface = "bold", colour = "#4F7FAF", family = "Arial") +
+    # Cada cifra al costado exterior de su punto, en la misma línea: la mayor a la derecha y la menor a la izquierda (como cifras_par
+    # en el PPT). Así ninguna cifra cae sobre el tramo ni sobre la fila vecina (Gonzalo, 2026-10-08: «números de porcentajes que chocan»).
+    geom_text(aes(x = ifelse(a >= b, a + sep, a - sep), y = y, label = paste0(a, "%"), hjust = ifelse(a >= b, 0, 1)), size = PT(8.5), fontface = "bold", colour = cols[1], family = "Arial") +
+    geom_text(aes(x = ifelse(a >= b, b - sep, b + sep), y = y, label = paste0(b, "%"), hjust = ifelse(a >= b, 1, 0)), size = PT(8.5), fontface = "bold", colour = "#4F7FAF", family = "Arial") +
     geom_text(aes(x = xd, y = y, label = sprintf("%+d pts", a - b)), size = PT(9), fontface = "bold", family = "Arial",
               colour = if (anios) ifelse(d$a - d$b < 0, "#CA5651", WTK$verde) else WTK$navy_w) +
     annotate("text", x = xd, y = n + 0.62, label = "Diferencia", size = PT(7.5), fontface = "bold", colour = WTK$gris, family = "Arial") +
@@ -158,8 +157,20 @@ g_dos_grupos <- function(items, a, b, grupos, n_txt = "", lim = 100, cols = c(WT
 g_serie <- function(olas, series, n_txt = "") {
   d <- do.call(rbind, lapply(names(series), function(g) data.frame(x = seq_along(olas), v = series[[g]], g = g)))
   cg <- setNames(c(WTK$navy, WTK$tenue)[seq_along(series)], names(series)); lo <- min(d$v) - 8; hi <- max(d$v) + 8
+  # La serie de arriba lleva sus cifras encima y la de abajo, debajo. Si un tramo sale del punto hacia ese lado, la cifra se corre al
+  # costado contrario del tramo; en un pico pasa al otro lado, salvo que la otra serie esté cerca. Misma regla que grafico_serie del PPT.
+  np_ <- length(olas); rng <- hi - lo; arriba <- names(series)[which.max(vapply(series, mean, 0))]
+  d$vj <- NA_real_; d$hj <- 0.5; d$dx <- 0
+  for (i in seq_len(nrow(d))) { gi <- d$g[i]; xi <- d$x[i]; vi <- d$v[i]; sv <- series[[gi]]; sgn <- if (gi == arriba) 1 else -1
+    hacia <- function(j) j >= 1 && j <= np_ && sgn * (sv[j] - vi) > 0
+    pr <- hacia(xi - 1); nx <- hacia(xi + 1)
+    otra <- d$v[d$x == xi & d$g != gi]; cerca <- length(otra) && any(-sgn * (otra - vi) > 0 & abs(otra - vi) < 0.14 * rng)
+    if (pr && nx && !cerca) { sgn <- -sgn; pr <- hacia(xi - 1); nx <- hacia(xi + 1) }
+    if (xi == np_ && pr && !nx && !cerca) { sgn <- -sgn; pr <- hacia(xi - 1) }
+    d$vj[i] <- if (sgn > 0) -0.9 else 1.9
+    if (nx && !pr) { d$hj[i] <- 1; d$dx[i] <- -0.08 } else if (pr && !nx) { d$hj[i] <- 0; d$dx[i] <- 0.08 } else if (pr && nx) d$vj[i] <- 0.5 }
   ggplot(d, aes(x, v, colour = g)) + geom_line(linewidth = 1.1) + geom_point(size = 2.4) +
-    geom_text(aes(label = paste0(v, "%")), vjust = -1, size = PT(8.5), fontface = "bold", family = "Arial", show.legend = FALSE) +
+    geom_text(aes(x = x + dx, label = paste0(v, "%"), vjust = vj, hjust = hj), size = PT(8.5), fontface = "bold", family = "Arial", show.legend = FALSE) +
     geom_text(data = d[d$x == length(olas), ], aes(x = length(olas) + 0.12, label = g), hjust = 0, size = PT(9), fontface = "bold", family = "Arial", show.legend = FALSE) +
     scale_colour_manual(values = cg) + scale_x_continuous(breaks = seq_along(olas), labels = olas, limits = c(0.8, length(olas) + 0.95)) +
     scale_y_continuous(limits = c(lo, hi)) + labs(caption = fuente_pie(n_txt)) + tema_w() +
@@ -328,12 +339,18 @@ g_nube <- function(freq, n_txt = "", k = 40) {
     scale_size(range = c(8, 30) / .pt) + scale_colour_identity() + labs(caption = fuente_pie(n_txt)) + tema_w()
 }
 # Mapa: capa sf con su color por categoría y la leyenda vertical a la derecha, con título, como en el PPT.
-g_mapa <- function(capa, cat, pal, titulo_ley, n_txt = "", contorno = NULL, borde = "#FFFFFF", lw = 0.3) {
+g_mapa <- function(capa, cat, pal, titulo_ley, n_txt = "", contorno = NULL, borde = "#FFFFFF", lw = 0.3, alto = 4) {
   capa$k <- factor(cat, levels = names(pal))
+  # El mapa conserva su proporción: la figura mide lo que mide el dibujo más la leyenda, para que la leyenda quede junto al mapa y
+  # alineada a su borde inferior, no al fondo de un lienzo más ancho (Gonzalo, 2026-10-08: «leyendas mal posicionadas en los mapas»).
+  bb <- as.numeric(sf::st_bbox(capa)); asp <- (bb[4] - bb[2]) / ((bb[3] - bb[1]) * cos(mean(bb[c(2, 4)]) * pi / 180))
+  ley_w <- 0.35 + max(nchar(c(titulo_ley, names(pal)))) * 8.5 * 0.5 / 72
   g <- ggplot() + geom_sf(data = capa, aes(fill = k), colour = borde, linewidth = lw) +
     scale_fill_manual(values = pal, name = titulo_ley, drop = FALSE) + coord_sf(expand = FALSE, datum = NA) + labs(caption = fuente_pie(n_txt)) + tema_w() +
     theme(legend.position = "right", legend.title = element_text(size = 8, face = "bold", colour = WTK$gris), legend.text = element_text(size = 8.5, colour = WTK$navy_w),
-          legend.key.size = unit(10, "pt"), legend.key = element_rect(colour = "#B8C2D3", linewidth = 0.3), legend.justification = c(0, 0))
+          legend.key.size = unit(10, "pt"), legend.key = element_rect(colour = "#B8C2D3", linewidth = 0.3), legend.justification = c(0, 0),
+          legend.box.spacing = unit(0.15, "in"), plot.margin = margin(4, 4, 4, 4))
   if (!is.null(contorno)) g <- g + geom_sf(data = contorno, fill = NA, colour = WTK$navy, linewidth = 0.6) + coord_sf(expand = FALSE, datum = NA)
+  attr(g, "ancho") <- min(ANCHO_W, (alto - 0.35) / asp + ley_w + 0.25)
   g
 }

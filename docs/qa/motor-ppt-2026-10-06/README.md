@@ -67,7 +67,7 @@ Todo se corre desde la raíz del repo.
 | Datos del recetario | los tres scripts de `herramientas/preparar-datos/` dejan `datos_muestra.rds` y `src_conta.rds` en `SP` |
 | Recetario | `SP=<datos> ESTILO=fiel\|moderna GUIAS=0\|1 SALIDA=<pptx> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/recetario.R` (carga `recetario_piezas.R` y las partes `recetario_m0*.R` a `recetario_m7.R`; la Parte VI, banco de recursos, es `recetario_m7.R`) |
 | Datos de nube y mapa | `SP=<datos> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/preparar-datos/prep_m3e.R` |
-| Recetario en Word | `SP=<datos> ESTILO=fiel\|moderna LOGOS=<media de la plantilla PPT> SALIDA=<docx> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/recetario_word.R` |
+| Propuesta de diseño en Word | `SP=<datos> LOGOS=<media de la plantilla PPT> SALIDA=<docx> [MAZO=<recetario-moderna.pptx>] Rscript docs/qa/motor-ppt-2026-10-06/herramientas/recetario_word.R` (carga `recetario_word_graficos.R` y `recetario_word_identidad.R`, y pasa `word_nativo.py`) |
 | Medir espacio vacío por lámina | `python3 docs/qa/motor-ppt-2026-10-06/herramientas/medir_espacio.py recetario.pdf` |
 | Sanear el PPT antes de abrirlo en PowerPoint | `python3 docs/qa/motor-ppt-2026-10-06/herramientas/sanear_ph.py entrada.pptx salida.pptx` |
 | Revisar el XML de un mazo | `xml_audit.py` y `detector_encimado.py` en `herramientas/` |

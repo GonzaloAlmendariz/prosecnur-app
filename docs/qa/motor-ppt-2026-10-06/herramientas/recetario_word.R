@@ -18,10 +18,12 @@ fr <- function(b, v) {
   list(pregunta = row[[lc(sv)]], labels = cc[[lc(ch)]], n = n, valid = length(d), pct = round(100 * n / length(d)))
 }
 ROT <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")
-FONT <- "Arial"; NAVY <- "#002060"; CORAL <- "#CA5651"; SOFT <- "#5A6480"
+FONT <- "Arial"; NAVY <- "#002060"; CORAL <- "#CA5651"; SOFT <- "#5A6480"; TXT <- "#26303F"
+# Línea sobria para un informe formal (Gonzalo, 2026-10-08: «una línea visual demasiado ecléctica para un Word de informe formal»):
+# azul oscuro sobre blanco, texto corrido en gris muy oscuro, y el coral sólo como un filete corto en la portada.
 TMP <- tempfile("recw_"); dir.create(TMP)
 
-tx <- function(s, size = 10.5, color = NAVY, bold = FALSE, italic = FALSE) ftext(s, fp_text(font.family = FONT, font.size = size, color = color, bold = bold, italic = italic))
+tx <- function(s, size = 10.5, color = TXT, bold = FALSE, italic = FALSE) ftext(s, fp_text(font.family = FONT, font.size = size, color = color, bold = bold, italic = italic))
 parr <- function(doc, ..., align = "left", after = 8, before = 0, keep = FALSE) body_add_fpar(doc, fpar(..., fp_p = fp_par(text.align = align, padding.bottom = after, padding.top = before, line_spacing = 1.3, keep_with_next = keep)))
 cuerpo <- function(doc, t, keep = FALSE) parr(doc, tx(t), keep = keep)
 # ---- Elementos nativos de Word: todo lo que pone el motor es un estilo o un campo de Word (la posedición se hace desde
@@ -42,9 +44,9 @@ lectura_runs <- function(texto) {   # «Lectura»: las cifras en negrita, el res
   if (k <= nchar(texto)) ch[[length(ch) + 1]] <- ftext(substr(texto, k, nchar(texto)))
   ch
 }
-# Rótulo arriba: «GRÁFICO 5» en coral (campo SEQ) y la pregunta debajo, un solo párrafo con el estilo «Rótulo de gráfico».
+# Rótulo arriba, en una línea: «Gráfico 5.» (campo SEQ) y la pregunta, con el estilo «Rótulo de gráfico».
 # Con la etiqueta SEQ, Word arma solo el índice de gráficos y el de tablas (Referencias > Insertar tabla de ilustraciones).
-rotulo <- function(doc, etiqueta, id, n, titulo) body_add_fpar(doc, fpar(run_est(paste0(toupper(etiqueta), " "), "NumeroRotulo"), seq_run(id, n, "NumeroRotulo"), run_linebreak(), ftext(titulo)), style = "Rótulo de gráfico")
+rotulo <- function(doc, etiqueta, id, n, titulo) body_add_fpar(doc, fpar(run_est(paste0(etiqueta, " "), "NumeroRotulo"), seq_run(id, n, "NumeroRotulo"), run_est(". ", "NumeroRotulo"), ftext(titulo)), style = "Rótulo de gráfico")
 base_fuente <- function(doc, t, keep = FALSE) body_add_fpar(doc, fpar(ftext(t), fp_p = fp_par(keep_with_next = keep)), style = "Base y fuente")
 GN <- 0; TN <- 0
 # Figura: rótulo, imagen del ancho del texto, base y fuente como párrafo propio (editable) y, si hay, el párrafo de lectura.
@@ -54,66 +56,40 @@ grafico <- function(doc, titulo, g, alto, texto = NULL, base = NULL) {
   base <- base %||% sub("^N = ", "Base: ", gsub("\n", " ", cap))
   doc <- rotulo(doc, "Gráfico", "Gráfico", GN, titulo)
   alto <- max(alto, attr(g, "alto") %||% 0) - 0.22   # el pie ya no va dentro de la imagen
-  f <- file.path(TMP, sprintf("g%03d.png", GN)); ggsave(f, g, width = ANCHO_W, height = alto, dpi = 300, bg = "transparent")
-  doc <- body_add_fpar(doc, fpar(external_img(f, width = ANCHO_W, height = alto), fp_p = fp_par(text.align = "center", keep_with_next = TRUE)))
+  ancho <- attr(g, "ancho") %||% ANCHO_W   # un mapa mide lo que mide su dibujo con la leyenda
+  f <- file.path(TMP, sprintf("g%03d.png", GN)); ggsave(f, g, width = ancho, height = alto, dpi = 300, bg = "transparent")
+  doc <- body_add_fpar(doc, fpar(external_img(f, width = ancho, height = alto), fp_p = fp_par(text.align = "left", keep_with_next = TRUE)))
   doc <- base_fuente(doc, base, keep = !is.null(texto))
   if (!is.null(texto)) doc <- body_add_fpar(doc, do.call(fpar, lectura_runs(texto)), style = "Lectura")
   doc
 }
 imagen <- function(doc, f, alto, ancho = ANCHO_W) body_add_fpar(doc, fpar(external_img(f, width = ancho, height = alto), fp_p = fp_par(text.align = "center", keep_with_next = TRUE)))
 CAPN <- 0; SUBN <- 0
-capitulo <- function(doc, t) { CAPN <<- CAPN + 1; SUBN <<- 0
-  if (CAPN > 1) doc <- body_add_break(doc)
-  doc <- body_add_par(doc, as.character(CAPN), style = "Número de capítulo")   # sin cero a la izquierda, como en el PPT
-  body_add_par(doc, t, style = "heading 1") }
+capitulo <- function(doc, t, intro = "") { CAPN <<- CAPN + 1; SUBN <<- 0   # cada capítulo abre en página nueva, con su número grande y claro (apertura B)
+  doc <- body_add_break(doc)
+  apertura_B(doc, CAPN, t, intro) }
 seccion <- function(doc, t) { SUBN <<- SUBN + 1; body_add_par(doc, sprintf("%d.%d. %s", CAPN, SUBN, t), style = "heading 2") }
-poner_tabla <- function(doc, ft, zebra = TRUE) {
+poner_tabla <- function(doc, ft, zebra = FALSE) {   # sin cebra: filetes horizontales finos, como un informe formal
   w <- dim(ft)$widths; ft <- width(ft, j = seq_along(w), width = w * ANCHO_W / sum(w))   # toda tabla mide el ancho útil exacto
-  ft <- ft |> bg(bg = "transparent", part = "header") |> color(color = SOFT, part = "header") |> fontsize(size = 8.5, part = "header") |>
+  ft <- ft |> bg(bg = "transparent", part = "header") |> color(color = NAVY, part = "header") |> fontsize(size = 8.5, part = "header") |>
     border_remove() |> hline_top(border = fp_border(color = NAVY, width = 1.25), part = "header") |> hline_bottom(border = fp_border(color = NAVY, width = 0.75), part = "header") |>
     hline(border = fp_border(color = "#D5D9DF", width = 0.5), part = "body") |> hline_bottom(border = fp_border(color = NAVY, width = 0.75), part = "body") |>
     padding(j = 1, padding.left = 0, part = "all")
   if (zebra && nrow_part(ft, "body") > 2) ft <- bg(ft, i = seq(2, nrow_part(ft, "body"), 2), bg = "#F3F5F8", part = "body")
   body_add_flextable(doc, paginate(ft, init = TRUE, hdr_ftr = TRUE), align = "left")
 }
-ft_base <- function(df, anchos, size = 9.5) { ft <- flextable(df) |> font(fontname = FONT, part = "all") |> fontsize(size = size, part = "all") |> color(color = NAVY, part = "all") |>
+ft_base <- function(df, anchos, size = 9.5) { ft <- flextable(df) |> font(fontname = FONT, part = "all") |> fontsize(size = size, part = "all") |> color(color = TXT, part = "all") |>
   bold(part = "header") |> bold(j = 1) |> padding(padding.top = 4, padding.bottom = 4, part = "all") |> valign(valign = "top", part = "body")
   for (j in seq_along(anchos)) ft <- width(ft, j = j, width = anchos[j]); ft }
-tabla <- function(doc, titulo, ft, base = NULL, zebra = TRUE) { TN <<- TN + 1
+tabla <- function(doc, titulo, ft, base = NULL, zebra = FALSE) { TN <<- TN + 1
   doc <- rotulo(doc, "Tabla", "Tabla", TN, titulo); doc <- poner_tabla(doc, ft, zebra)
   if (!is.null(base)) base_fuente(doc, base) else body_add_par(doc, "") }
 tabla_guia <- function(doc, df, anchos) { doc <- poner_tabla(doc, ft_base(df, anchos)); body_add_par(doc, "") }   # tablas de la guía, sin numerar
-lista <- function(doc, items) { for (r in items) doc <- body_add_fpar(doc, fpar(tx(r)), style = "Lista de la guía"); doc }
+lista <- function(doc, items) { for (r in items) doc <- body_add_fpar(doc, fpar(tx(paste0("•  ", r))), style = "Lista de la guía"); doc }
 
-# ---------------- documento, estilos y página
-doc <- read_docx()
-doc <- docx_set_paragraph_style(doc, style_id = "Titre1", style_name = "heading 1", fp_p = fp_par(padding.top = 0, padding.bottom = 10, keep_with_next = TRUE, border.bottom = fp_border(color = NAVY, width = 1)),
-  fp_t = fp_text(font.family = FONT, font.size = 22, color = NAVY, bold = TRUE))
-doc <- docx_set_paragraph_style(doc, style_id = "Titre2", style_name = "heading 2", fp_p = fp_par(padding.top = 18, padding.bottom = 6, keep_with_next = TRUE),
-  fp_t = fp_text(font.family = FONT, font.size = 13, color = NAVY, bold = TRUE))
-doc <- docx_set_paragraph_style(doc, style_id = "RotuloGrafico", style_name = "Rótulo de gráfico", fp_p = fp_par(text.align = "left", padding.top = 10, padding.bottom = 6, keep_with_next = TRUE, line_spacing = 1.15),
-  fp_t = fp_text(font.family = FONT, font.size = 11, color = NAVY, bold = TRUE))
-doc <- docx_set_character_style(doc, style_id = "NumeroRotulo", style_name = "Número de rótulo", base_on = "Default Paragraph Font", fp_t = fp_text(font.family = FONT, font.size = 8, color = CORAL, bold = TRUE))
-doc <- docx_set_paragraph_style(doc, style_id = "BaseFuente", style_name = "Base y fuente", fp_p = fp_par(text.align = "left", padding.top = 2, padding.bottom = 10, line_spacing = 1.1),
-  fp_t = fp_text(font.family = FONT, font.size = 8.5, color = SOFT, italic = TRUE))
-doc <- docx_set_paragraph_style(doc, style_id = "Lectura", style_name = "Lectura", fp_p = fp_par(text.align = "left", line_spacing = 1.3, padding.left = 12, padding.top = 2, padding.bottom = 14, border.left = fp_border(color = CORAL, width = 2.25)),
-  fp_t = fp_text(font.family = FONT, font.size = 10.5, color = NAVY))
-doc <- docx_set_paragraph_style(doc, style_id = "NumeroCapitulo", style_name = "Número de capítulo", fp_p = fp_par(text.align = "left", padding.bottom = 0, keep_with_next = TRUE),
-  fp_t = fp_text(font.family = FONT, font.size = 44, color = CORAL, bold = TRUE))
-doc <- docx_set_paragraph_style(doc, style_id = "ListaGuia", style_name = "Lista de la guía", fp_p = fp_par(text.align = "left", line_spacing = 1.3, padding.left = 14, padding.bottom = 5, border.left = fp_border(color = "#C9D3E6", width = 1.5)),
-  fp_t = fp_text(font.family = FONT, font.size = 10.5, color = NAVY))
-# Logos recortados a su tinta y a la misma altura de marca (0.5 in)
-logo_tinta <- function(f) { im <- magick::image_trim(magick::image_read(file.path(LOGOS, f)), fuzz = 8); o <- file.path(TMP, paste0("t_", f)); magick::image_write(im, o)
-  i <- magick::image_info(im); list(f = o, asp = i$width / i$height) }
-L1 <- logo_tinta("image1.png"); L8 <- logo_tinta("image8.png"); HL <- 0.5
-cab_ft <- flextable(data.frame(a = "", b = "")) |> delete_part("header") |> border_remove() |> width(j = 1, width = ANCHO_W / 2) |> width(j = 2, width = ANCHO_W / 2) |>
-  compose(j = 1, value = as_paragraph(as_image(src = L1$f, width = HL * L1$asp, height = HL))) |>
-  compose(j = 2, value = as_paragraph(as_image(src = L8$f, width = HL * L8$asp, height = HL))) |>
-  align(j = 1, align = "left") |> align(j = 2, align = "right") |> valign(valign = "center") |> padding(padding = 0)
-pie_pag <- block_list(fpar(ftext("Propuesta de diseño de los informes en Word", fp_text(font.family = FONT, font.size = 8, color = SOFT)), run_tab(),
-  run_word_field("PAGE", prop = fp_text(font.family = FONT, font.size = 8, color = NAVY, bold = TRUE)), fp_p = fp_par(tabs = fp_tabs(fp_tab(pos = ANCHO_W, style = "right")), padding.top = 4)))
-doc <- body_set_default_section(doc, prop_section(page_size = page_size(width = 8.27, height = 11.69), page_margins = page_mar(top = 1.1, bottom = 0.9, left = 1.0, right = 1.0, header = 0.4, footer = 0.4),
-  header_default = block_list(cab_ft), footer_default = pie_pag))
+# ---------------- documento, estilos y página (recetario_word_identidad.R)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_word_identidad.R", local = TRUE)
+doc <- nuevo_doc()
 cm <- function(x) format(round(x * 2.54, 2), nsmall = 2)
 
 # Láminas del PPT como imagen, para mostrar cómo pasa una lámina al Word (capítulo 2). Se buscan por su título.
@@ -131,27 +107,19 @@ if (file.exists(MAZO)) {
 lamina_ppt <- function(doc, clave, pie) {   # la lámina del PPT, con un marco fino, y lo que es
   if (!exists("ppt_img") || !clave %in% names(PPT_IDX)) return(doc)
   f <- ppt_img(clave); im <- magick::image_border(magick::image_read(f), "#D5D9DF", "3x3"); magick::image_write(im, f)
-  doc <- body_add_fpar(doc, fpar(tx("En el PPT", 8, CORAL, TRUE)), style = "Rótulo de gráfico")
+  doc <- body_add_fpar(doc, fpar(tx("EN EL PPT", 8, SOFT, TRUE)), style = "Rótulo de gráfico")
   doc <- imagen(doc, f, ANCHO_W * 9 / 16); base_fuente(doc, pie)
 }
-en_word <- function(doc) body_add_fpar(doc, fpar(tx("En el Word", 8, CORAL, TRUE), fp_p = fp_par(padding.top = 8, keep_with_next = TRUE)))
+en_word <- function(doc) body_add_fpar(doc, fpar(tx("EN EL WORD", 8, SOFT, TRUE), fp_p = fp_par(padding.top = 8, keep_with_next = TRUE)))
 
-# ---------------- portada, contenido e índices
-doc <- body_add_par(doc, "")
-cub <- flextable(data.frame(a = "")) |> delete_part("header") |> border_remove() |> width(j = 1, width = ANCHO_W) |> bg(bg = NAVY) |>
-  compose(j = 1, value = as_paragraph(
-    as_chunk("PROPUESTA DE DISEÑO", props = fp_text(font.family = FONT, font.size = 9.5, color = "#9DC3E6", bold = TRUE)), "\n\n",
-    as_chunk("Los informes cuantitativos", props = fp_text(font.family = FONT, font.size = 28, color = "#FFFFFF", bold = TRUE)), "\n",
-    as_chunk("de PULSO PUCP en Word", props = fp_text(font.family = FONT, font.size = 28, color = "#FFFFFF", bold = TRUE)), "\n\n",
-    as_chunk("La página, los estilos, cada gráfico y cada tabla en su formato de Word", props = fp_text(font.family = FONT, font.size = 12.5, color = "#C9D3E6")), "\n\n\n\n\n\n",
-    as_chunk("Octubre de 2026", props = fp_text(font.family = FONT, font.size = 10.5, color = "#FFFFFF", bold = TRUE)))) |>
-  padding(padding.left = 34, padding.right = 34, padding.top = 60, padding.bottom = 44) |> line_spacing(space = 1.05)
-doc <- body_add_flextable(doc, cub, align = "left")
-doc <- parr(doc, tx(paste("Esta propuesta acompaña a la propuesta de diseño en PPT. Muestra cómo se arma el informe en Word: la página, los estilos, cómo pasa un gráfico",
-  "del PPT al Word, todos los gráficos del motor con su rótulo, su base y su lectura, las situaciones de datos más frecuentes, las tablas y un ejemplo por tipo de estudio.",
-  "El capítulo de acreditación usa los datos del proyecto de referencia. Los demás usan cifras ficticias."), 10, SOFT), before = 14)
+# ---------------- portada, contenido e índices: la portada sola en su página (antes el índice la compartía)
+doc <- portada_A(doc, list(ante = "PROPUESTA DE DISEÑO", titulo = "Los informes cuantitativos de PULSO PUCP en Word", sub = "La página, los estilos, cada gráfico y cada tabla en su formato de Word",
+                           por = "PULSO PUCP", fecha = "Octubre de 2026"))
 doc <- body_add_break(doc)
-doc <- parr(doc, tx("Contenido", 22, NAVY, TRUE), after = 10)
+doc <- parr(doc, tx(paste("Esta propuesta acompaña a la propuesta de diseño en PPT. Muestra cómo se arma el informe en Word: el documento y sus partes, la página, los estilos,",
+  "cómo pasa un gráfico del PPT al Word, todos los gráficos del motor con su rótulo, su base y su lectura, las situaciones de datos más frecuentes, las tablas y un ejemplo por tipo de estudio.",
+  "El capítulo de acreditación usa los datos del proyecto de referencia. Los demás usan cifras ficticias."), 10, SOFT), after = 14)
+doc <- parr(doc, tx("Contenido", 18, NAVY, TRUE), after = 10)
 doc <- body_add(doc, block_toc(level = 2))
 doc <- parr(doc, tx("Índice de gráficos", 13, NAVY, TRUE), before = 16, after = 6)
 doc <- body_add(doc, block_toc(seq_id = "Gráfico"))
@@ -159,27 +127,69 @@ doc <- parr(doc, tx("Índice de tablas", 13, NAVY, TRUE), before = 16, after = 6
 doc <- body_add(doc, block_toc(seq_id = "Tabla"))
 doc <- parr(doc, tx("Los índices son campos de Word: se actualizan con clic derecho > Actualizar campos, o seleccionando todo y presionando F9.", 8.5, SOFT, FALSE, TRUE), before = 8)
 
-# ================= 1. Reglas del informe Word
-doc <- capitulo(doc, "Reglas del informe Word")
+# ================= 1. El documento (W5 a W7): estructura, portada, índices, aperturas, encabezado y cierre
+doc <- capitulo(doc, "El documento", paste("Cómo se ordena un informe de PULSO en Word y cómo se ve cada una de sus partes. La propuesta parte de los informes entregados entre 2022 y 2026:",
+  "conserva su orden y resuelve lo que se repetía en ellos, como la numeración de gráficos hecha a mano, la falta de índices de gráficos y de tablas y los capítulos que empezaban a mitad de página."))
+doc <- seccion(doc, "Estructura del informe")
+doc <- cuerpo(doc, "Todo informe cuantitativo sigue el mismo orden. Lo que cambia según el tipo de estudio es cómo se agrupan los resultados.", keep = TRUE)
+doc <- tabla_guia(doc, data.frame(Parte = c("Portada", "Índices", "Introducción", "Diseño metodológico", "Perfil de los participantes", "Resultados", "Conclusiones y recomendaciones", "Anexos", "Contraportada"),
+  `Qué lleva` = c("Tipo de informe, título, subtítulo, quién lo elabora y la fecha. Sola en su página", "Contenido, índice de gráficos e índice de tablas, en página propia",
+                  "Qué se pidió, el objetivo y cómo se organiza el documento", "Ficha técnica, población, muestra, trabajo de campo, procesamiento y el recuadro «Cómo leer este informe»",
+                  "Quiénes respondieron, por público", "Un capítulo por dimensión o por tema, cada uno abierto con su número y su mapa de secciones",
+                  "Hallazgos por dimensión y recomendaciones que se desprenden de ellos", "Instrumentos, tablas técnicas y cruces, con numeración propia (A, B, C)", "Logo y contacto de PULSO PUCP"),
+  `Según el estudio` = c("Con encargo externo, la versión C, con «Elaborado para»", "Siempre los tres", "", "En acreditación, la matriz del modelo de acreditación",
+                         "", "Acreditación: dimensión, factor y criterio del modelo. Otros estudios: por tema, índice o grupo de comparación", "En acreditación, agrupadas por dimensión", "", ""), check.names = FALSE), c(1.55, 2.95, 1.77))
+mn_ <- c(mini("portada_A", function(d) portada_A(d)), mini("portada_B", function(d) portada_B(d)), mini("portada_C", function(d) portada_C(d)),
+         mini("indice_A", function(d) indice_A(d)), mini("indice_B", function(d) indice_B(d)),
+         mini("apertura_A", function(d) { d <- apertura_A(d, 4, "Dimensión 1: Propósitos de la carrera", "Este capítulo presenta cómo conocen y valoran los públicos la misión y los propósitos de la carrera.")
+           d <- seccion_ej(d) }),
+         mini("apertura_B", function(d) { d <- apertura_B(d, 4, "Dimensión 1: Propósitos de la carrera", "Este capítulo presenta cómo conocen y valoran los públicos la misión y los propósitos de la carrera.",
+           c("4.1. Misión y propósitos", "4.2. Gestión y planificación", "4.3. Normativa interna")); seccion_ej(d) }),
+         mini("interior", function(d) { d <- body_add_break(d); d <- apertura_A(d, 2, "Diseño metodológico", "El estudio se hizo con una encuesta en línea a cuatro públicos."); recuadro(d, "Cómo leer este informe", LEER_EJ) }),
+         mini("contraportada", function(d) { d <- body_add_par(d, ""); contraportada(d) }))
+png_ <- mini_png(mn_[1:6]); png2_ <- mini_png(mn_[7]); png_int <- mini_png(mn_[8], pagina = 2); png_ctr <- mini_png(mn_[9], pagina = 2)
+doc <- seccion(doc, "Portada")
+doc <- cuerpo(doc, "La portada va sola en su página, alineada a la izquierda y sin bloques de color de fondo. Los logos van en su encabezado y no se repiten en el interior. El filete coral es el único acento de color del documento.", keep = TRUE)
+doc <- galeria(doc, png_[1:3], c("A. Tipográfica (recomendada)", "B. Con banda lateral", "C. Con ficha del encargo"))
+doc <- lista(doc, c("A es la portada por defecto: título grande, filete corto, subtítulo y, al pie, quién elabora y la fecha.",
+  "B sirve para series de informes de un mismo estudio: la banda azul los identifica en el escritorio y en la impresión.",
+  "C se usa cuando hay un encargo externo: «Elaborado para», «Elaborado por», fecha y versión en una tabla de filetes finos."))
+doc <- seccion(doc, "Índices")
+doc <- cuerpo(doc, "El índice va en página propia y lo arma Word con los títulos del documento. Le siguen el índice de gráficos y el de tablas, que también arma Word a partir de los rótulos numerados.", keep = TRUE)
+doc <- galeria(doc, png_[4:5], c("A. Clásico, con la página a la derecha (recomendado)", "B. Con el número del capítulo en columna"), por_fila = 2)
+doc <- lista(doc, c("A es el índice que Word genera con los estilos «toc 1» y «toc 2»: se actualiza solo y no hay que mantenerlo a mano.",
+  "B es una tabla de Word para informes cortos o de difusión, donde el índice también presenta el contenido. Se mantiene a mano."))
+doc <- seccion(doc, "Apertura de capítulo")
+doc <- cuerpo(doc, "Cada capítulo empieza en página nueva. La apertura dice qué número es, cómo se llama, de qué trata y qué secciones tiene, y deja el resto de la página para el contenido.", keep = TRUE)
+doc <- galeria(doc, c(png_[6], png2_), c("A. Sobria: antetítulo y título", "B. Número grande y mapa del capítulo (recomendada)"), por_fila = 2)
+doc <- lista(doc, c("B es la apertura de este documento: el número en un azul muy claro, el título, una frase de entrada y la lista de secciones.",
+  "A sirve para informes breves o para anexos, donde una apertura amplia ocuparía demasiado."))
+doc <- seccion(doc, "Encabezado, pie y recuadros")
+doc <- cuerpo(doc, "En el interior, el encabezado lleva el nombre del informe a la izquierda y el capítulo en curso a la derecha, que Word escribe solo con un campo. El pie lleva sólo el número de página, a la derecha.", keep = TRUE)
+doc <- galeria(doc, c(png_int, png_ctr), c("Página interior con el recuadro «Cómo leer este informe»", "Contraportada"), por_fila = 2)
+doc <- lista(doc, c("El recuadro «Cómo leer este informe» va en el diseño metodológico: fondo gris muy claro, un filete azul arriba y tres o cuatro líneas.",
+  "La contraportada cierra con el logo de PULSO PUCP al centro y el contacto en una línea."))
+
+# ================= 2. Reglas del informe Word
+doc <- capitulo(doc, "Reglas del informe Word", "La página, los estilos de Word, la escala tipográfica y los colores que comparten todos los informes.")
 doc <- seccion(doc, "La página")
 doc <- cuerpo(doc, "El informe se arma en una página A4 vertical. El texto, los gráficos y las tablas ocupan el mismo ancho útil, de modo que todo queda alineado con los márgenes.", keep = TRUE)
 # Esquema de la página medido: márgenes, encabezado, rótulo, gráfico, base y lectura
 g_pagina <- function() { W_ <- 21; H_ <- 29.7; ml <- 2.54; mt <- 2.79; mb <- 2.29; xr <- W_ - ml; Lx <- W_ + 1.2
   bl <- data.frame(x0 = c(ml, ml, ml, ml, ml + 0.3, ml, ml), x1 = c(xr, xr, xr - 6, xr, xr, xr - 7, xr), y0 = H_ - c(1.0, 3.6, 6.6, 7.4, 13.9, 14.3, 15.2),
     y1 = H_ - c(2.3, 4.6, 7.2, 13.6, 14.15, 14.6, 17.0), f = c("#E9EDF4", "#C9D3E6", "#C9D3E6", "#E9EDF4", "#C9D3E6", "#C9D3E6", "#F3F5F8"))
-  et <- data.frame(y = H_ - c(1.65, 4.1, 6.9, 10.5, 14.45, 16.1, 28.2), t = c("Encabezado con los dos logos", "Título del capítulo", "Rótulo: «GRÁFICO 5» y la pregunta",
-    "Gráfico: 15.93 cm de ancho, sin fondo", "Base y fuente", "Lectura con filete coral", "Pie: nombre del informe y página"))
+  et <- data.frame(y = H_ - c(1.65, 4.1, 6.9, 10.5, 14.45, 16.1, 28.2), t = c("Encabezado: informe y capítulo en curso", "Título del capítulo", "Rótulo: «Gráfico 5.» y la pregunta",
+    "Gráfico: 15.93 cm de ancho, sin fondo", "Base y fuente", "Lectura, en texto corrido", "Pie: nombre del informe y página"))
   ggplot() + annotate("rect", xmin = 0, xmax = W_, ymin = 0, ymax = H_, fill = "#FFFFFF", colour = "#B8C2D3", linewidth = 0.4) +
-    annotate("rect", xmin = ml, xmax = xr, ymin = mb, ymax = H_ - mt, fill = NA, colour = CORAL, linewidth = 0.3, linetype = "dashed") +
+    annotate("rect", xmin = ml, xmax = xr, ymin = mb, ymax = H_ - mt, fill = NA, colour = "#8E9DBD", linewidth = 0.3, linetype = "dashed") +
     geom_rect(data = bl, aes(xmin = x0, xmax = x1, ymin = y0, ymax = y1, fill = f)) + scale_fill_identity() +
-    annotate("rect", xmin = ml, xmax = ml + 0.12, ymin = H_ - 17.0, ymax = H_ - 15.2, fill = CORAL) +
     annotate("segment", x = xr + 0.15, xend = Lx - 0.2, y = et$y, yend = et$y, colour = "#B8C2D3", linewidth = 0.3) +
     annotate("text", x = Lx, y = et$y, label = et$t, hjust = 0, size = 8.5 / .pt, colour = NAVY, family = "Arial") +
     annotate("text", x = W_ / 2, y = -1.1, label = "21 cm. Márgenes de 2.54 cm a los lados, 2.79 cm arriba y 2.29 cm abajo", size = 8 / .pt, colour = SOFT, family = "Arial") +
     coord_fixed(xlim = c(-0.5, 44), ylim = c(-2, H_ + 0.5), expand = FALSE) + theme_void() + labs(caption = "Base: esquema medido de una página del informe. Fuente: PULSO PUCP 2026.") }
 doc <- grafico(doc, "La página del informe y sus partes", g_pagina(), 4.4)
 doc <- tabla_guia(doc, data.frame(Medida = c("Página", "Márgenes", "Ancho útil", "Encabezado y pie", "Gráfico", "Tabla"),
-  Valor = c("A4 vertical, 21 × 29.7 cm", "2.54 cm a los lados, 2.79 cm arriba y 2.29 cm abajo", "15.93 cm", "Logos de 1.27 cm de alto, a 1.02 cm del borde",
+  Valor = c("A4 vertical, 21 × 29.7 cm", "2.54 cm a los lados, 2.79 cm arriba y 2.29 cm abajo", "15.93 cm", "Logos sólo en la portada. En el interior, el informe y el capítulo en curso arriba y el folio abajo, a 1.02 cm del borde",
             "Del ancho útil, sin fondo. El alto depende del número de filas (capítulo 2)", "Del ancho útil, con filetes azules arriba y abajo"), check.names = FALSE), c(1.6, 4.67))
 doc <- seccion(doc, "Anatomía de una figura")
 doc <- cuerpo(doc, "Cada gráfico del informe es una figura de cuatro partes que siempre van juntas: el rótulo arriba, el gráfico, la base y la fuente, y el párrafo de lectura.", keep = TRUE)
@@ -187,26 +197,26 @@ doc <- grafico(doc, "La Unidad cuenta con servicios de tutoría académica", g_a
   list(actor = "Egresados", pct = c(3, 12, 50, 30, 5))), ROT, WTK$likert, n_txt = "N = 148 docentes, 1,234 estudiantes y 314 egresados"), alto_apilada(3),
   texto = "El 75% de los docentes y el 53% de los estudiantes está de acuerdo o totalmente de acuerdo con que la Unidad cuenta con servicios de tutoría. Uno de cada cuatro estudiantes no tiene información sobre el servicio.")
 doc <- tabla_guia(doc, data.frame(Parte = c("Rótulo", "Gráfico", "Base y fuente", "Lectura"),
-  `Qué es` = c("«GRÁFICO 5» en coral y la pregunta tal como se hizo, en negrita. El número es un campo de Word", "Imagen sin fondo del ancho útil, sin título dentro",
-               "Cuántas personas respondieron y quién hizo el estudio, en cursiva gris", "Lo que muestra el gráfico, con sus mismas cifras en negrita y un filete coral a la izquierda"),
+  `Qué es` = c("«Gráfico 5.» y la pregunta tal como se hizo, en una línea y en negrita. El número es un campo de Word", "Imagen sin fondo del ancho útil, sin título dentro",
+               "Cuántas personas respondieron y quién hizo el estudio, en cursiva gris", "Lo que muestra el gráfico, en texto corrido y con sus mismas cifras en negrita"),
   `Por qué` = c("Con el número, el gráfico entra al índice de gráficos y se puede citar en el texto", "Ocupa el mismo ancho que el texto y no repite el rótulo",
                 "Es un párrafo editable: si cambia la base, se corrige sin rehacer la imagen", "Separa lo que el analista concluye de lo que muestra el dato"), check.names = FALSE), c(1.2, 2.7, 2.37))
 doc <- seccion(doc, "Estilos de Word")
 doc <- cuerpo(doc, "Cada elemento es un estilo o un campo de Word. Para ajustar uno en todo el informe se modifica su estilo en Inicio > Estilos, y para renumerar gráficos, tablas e índices se selecciona todo y se presiona F9.", keep = TRUE)
-doc <- tabla_guia(doc, data.frame(Elemento = c("Número de capítulo", "Título de capítulo", "Título de sección", "Rótulo de gráfico o tabla", "Número del rótulo", "Base y fuente", "Lectura", "Índices"),
-  `Estilo o campo` = c("«Número de capítulo»", "«Título 1»", "«Título 2»", "«Rótulo de gráfico»", "Campo SEQ con el estilo «Número de rótulo»", "«Base y fuente»", "«Lectura»", "Campos de tabla de contenido y de ilustraciones"),
-  Formato = c("44 pt, coral, negrita", "22 pt, azul oscuro, negrita, filete inferior", "13 pt, azul oscuro, negrita", "11 pt, azul oscuro, negrita, pegado a la figura", "8 pt, coral, negrita, mayúsculas",
-              "8.5 pt, gris, cursiva", "10.5 pt, azul oscuro, filete coral a la izquierda", "Se actualizan con F9"), check.names = FALSE), c(1.75, 2.45, 2.07))
+doc <- tabla_guia(doc, data.frame(Elemento = c("Número de capítulo", "Título de capítulo", "Título de sección", "Rótulo de gráfico o tabla", "Número del rótulo", "Base y fuente", "Lectura", "Índices y encabezado"),
+  `Estilo o campo` = c("«Número de capítulo»", "«Título 1»", "«Título 2»", "«Rótulo de gráfico»", "Campo SEQ con el estilo «Número de rótulo»", "«Base y fuente»", "«Lectura»", "Campos de tabla de contenido y de ilustraciones. El encabezado usa un campo STYLEREF con el título del capítulo"),
+  Formato = c("«CAPÍTULO 1», 9 pt, gris, negrita", "18 pt, azul oscuro, negrita, filete inferior", "12.5 pt, azul oscuro, negrita", "10 pt, azul oscuro, negrita, pegado a la figura", "10 pt, azul oscuro, negrita",
+              "8.5 pt, gris, cursiva", "10.5 pt, gris muy oscuro, texto corrido", "Se actualizan con F9"), check.names = FALSE), c(1.75, 2.45, 2.07))
 doc <- seccion(doc, "Escala tipográfica")
 doc <- cuerpo(doc, "El Word se lee impreso o en pantalla, página por página. Por eso la letra es más chica que en el PPT, pero ninguna baja de 8 pt, ni siquiera dentro del gráfico.", keep = TRUE)
 esc_ <- data.frame(Uso = c("Número de capítulo", "Título de capítulo", "Título de sección", "Rótulo del gráfico", "Texto y lectura", "Cifras dentro del gráfico", "Rótulos dentro del gráfico", "Leyenda del gráfico", "Base y fuente"),
-  Tamaño = c("44 pt", "22 pt", "13 pt", "11 pt", "10.5 pt", "9 a 10 pt, negrita", "8.5 a 9 pt", "8 pt", "8.5 pt, cursiva"), `En el PPT` = c("Portadilla", "24 pt", "Antetítulo de 10 pt", "13 pt", "14 a 15 pt", "14 pt", "12 pt", "12 pt", "10 pt"), check.names = FALSE)
+  Tamaño = c("9 pt", "18 pt", "12.5 pt", "10 pt", "10.5 pt", "9 a 10 pt, negrita", "8.5 a 9 pt", "8 pt", "8.5 pt, cursiva"), `En el PPT` = c("Portadilla", "24 pt", "Antetítulo de 10 pt", "13 pt", "14 a 15 pt", "14 pt", "12 pt", "12 pt", "10 pt"), check.names = FALSE)
 doc <- tabla_guia(doc, esc_, c(2.4, 2.0, 1.87))
 doc <- seccion(doc, "Colores")
 doc <- cuerpo(doc, "Las paletas son las mismas del PPT y significan lo mismo. En Word se imprimen, así que cada color se distingue también en escala de grises.", keep = TRUE)
 g_paletas <- function() { pal <- list(`Escala Likert` = list(WTK$likert, c("Totalmente en\ndesacuerdo", "En\ndesacuerdo", "De acuerdo", "Totalmente\nde acuerdo", "Sin\ninformación")),
     `Dicotómica` = list(c(WTK$navy, WTK$celeste), c("Sí", "No")), Actores = list(c("#0B4F8C", "#2A9D8F", "#E9C46A", "#8E9DBD", "#081F5C", "#9DC3E6"), c("Docentes", "Estudiantes", "Egresados", "Autoridades", "Administ.", "Empleadores")),
-    `Texto, títulos y realce` = list(c(WTK$navy, CORAL, WTK$verde, WTK$tenue), c("Texto", "Títulos", "Top Two Box", "Apoyo")))
+    `Texto, títulos y realce` = list(c(WTK$navy, CORAL, WTK$verde, WTK$tenue), c("Texto", "Acento", "Top Two Box", "Apoyo")))
   d <- do.call(rbind, lapply(seq_along(pal), function(i) data.frame(f = i, k = seq_along(pal[[i]][[1]]), c = pal[[i]][[1]], l = pal[[i]][[2]])))
   ggplot(d) + geom_rect(aes(xmin = k - 0.45, xmax = k + 0.45, ymin = -f * 1.4 - 0.22, ymax = -f * 1.4 + 0.22, fill = c)) + scale_fill_identity() +
     geom_text(aes(x = k, y = -f * 1.4 - 0.5, label = l), size = 8 / .pt, colour = WTK$navy_w, family = "Arial", vjust = 1, lineheight = 0.85) +
@@ -222,11 +232,10 @@ doc <- lista(doc, c("Las barras apiladas empiezan todas en el mismo punto, a la 
   "Si la pregunta sólo se hizo a una parte de las personas, la base lo dice: por ejemplo, «Base: 20 estudiantes que respondieron Sí en la pregunta anterior»."))
 
 # ================= 2. De PPT a Word
-doc <- capitulo(doc, "De PPT a Word")
-doc <- cuerpo(doc, "Un gráfico que se ve bien proyectado no se ve bien impreso por sí solo. Este capítulo da las reglas para pasar cada lámina del PPT al Word sin perder lo que dice.")
+doc <- capitulo(doc, "De PPT a Word", "Un gráfico que se ve bien proyectado no se ve bien impreso por sí solo. Este capítulo da las reglas para pasar cada lámina del PPT al Word sin perder lo que dice.")
 doc <- seccion(doc, "Lo que cambia")
 doc <- tabla_guia(doc, data.frame(Aspecto = c("Título", "Tamaño de letra", "Ancho", "Base", "Texto de análisis", "Numeración", "Si no cabe"),
-  `En Word` = c("Rótulo sobre el gráfico: «GRÁFICO 5» y la pregunta", "8 a 11 pt", "Fijo: 15.93 cm, el del texto", "Párrafo debajo del gráfico, con la fuente", "Párrafo de lectura debajo, con filete coral",
+  `En Word` = c("Rótulo sobre el gráfico, en una línea: «Gráfico 5.» y la pregunta", "8 a 11 pt", "Fijo: 15.93 cm, el del texto", "Párrafo debajo del gráfico, con la fuente", "Párrafo de lectura debajo del gráfico, en texto corrido",
                 "Gráficos y tablas numerados, con índices", "Rótulo, gráfico y base pasan juntos a la página siguiente"),
   `En PPT` = c("El título de la lámina, arriba y en coral", "12 a 14 pt", "Depende del tipo de lámina", "Al pie de la lámina", "Al costado o encima del gráfico", "Sin número", "Pasa a otra lámina marcada «(cont.)»"), check.names = FALSE), c(1.4, 2.5, 2.37))
 doc <- seccion(doc, "Ancho y alto del gráfico")
@@ -255,7 +264,7 @@ nact <- vapply(c("docentes", "estudiantes", "egresados", "administrativos"), fun
 franja <- function(doc, valores, rotulos) { cc <- as.data.frame(t(valores)); names(cc) <- paste0("v", seq_along(valores))
   ftk <- flextable(cc) |> delete_part("header") |> border_remove() |> width(width = ANCHO_W / length(valores)) |> font(fontname = FONT, part = "all") |>
     compose(j = seq_along(valores), value = as_paragraph(as_chunk(valores), "\n", as_chunk(rotulos, props = fp_text(font.family = FONT, font.size = 9, color = SOFT)))) |>
-    fontsize(size = 24) |> bold() |> color(color = NAVY) |> color(j = 1, color = CORAL) |> align(align = "left") |> line_spacing(space = 1) |>
+    fontsize(size = 24) |> bold() |> color(color = NAVY) |> align(align = "left") |> line_spacing(space = 1) |>
     border(j = seq_along(valores)[-1], border.left = fp_border(color = "#D5D9DF", width = 0.75)) |> padding(padding.left = 10, padding.top = 4, padding.bottom = 4) |> padding(j = 1, padding.left = 0)
   doc <- body_add_flextable(doc, ftk, align = "left"); body_add_par(doc, "") }
 doc <- franja(doc, c(format(sum(nact), big.mark = ","), paste(round(median(D$edad$x, na.rm = TRUE)), "años"), paste0(t1$pct[1], "%")), c("personas encuestadas", "edad mediana del estudiante", "de egresados titulados"))
@@ -264,8 +273,7 @@ doc <- lista(doc, c("Los íconos de público y las formas decorativas: en Word e
   "Las portadillas de capítulo: el Word usa el número y el título del capítulo.", "La narrativa al costado del gráfico: pasa a ser el párrafo de lectura."))
 
 # ================= 3. Galería de gráficos
-doc <- capitulo(doc, "Galería de gráficos")
-doc <- cuerpo(doc, "Cada tipo de gráfico del motor en su formato de Word, con una línea sobre cuándo se usa. Los datos del proyecto de referencia se usan donde existen. El resto son cifras ficticias con la forma real de cada caso.")
+doc <- capitulo(doc, "Galería de gráficos", "Cada tipo de gráfico del motor en su formato de Word, con una línea sobre cuándo se usa. Los datos del proyecto de referencia se usan donde existen. El resto son cifras ficticias con la forma real de cada caso.")
 gal <- function(doc, nombre, cuando) { doc <- seccion(doc, nombre); parr(doc, tx(cuando, 10.5, SOFT), keep = TRUE) }
 sm <- D$ing_p35
 doc <- gal(doc, "Barras de categorías", "Preguntas de categorías sin orden propio. Van de la más elegida a la menos elegida y la mayor se destaca en azul oscuro.")
@@ -347,17 +355,16 @@ res8 <- c(`SAN JUAN DE LURIGANCHO` = 58, ATE = 64, `EL AGUSTINO` = 51, `SANTA AN
 cl8 <- c("Menos de 55%", "55% a 64%", "65% a 74%", "75% a más", "Sin encuestas"); pal8 <- setNames(c("#C9D5EA", "#8EA3C6", "#4F6B9E", WTK$navy, "#E2E6EC"), cl8)
 k8 <- ifelse(LIMA$distrito %in% names(res8), cl8[cut(res8[LIMA$distrito], c(0, 55, 65, 75, 101), right = FALSE, labels = FALSE)], "Sin encuestas")
 doc <- gal(doc, "Mapa de resultado por distrito", "Un resultado del estudio por distrito, en clases. La leyenda va a la derecha, con su título, como en el PPT.")
-doc <- grafico(doc, "Satisfechos o muy satisfechos con el servicio, por distrito", g_mapa(LIMA, k8, pal8, "Satisfechos o muy satisfechos", n_txt = "N = 1,184 personas en doce distritos. Cifras ficticias sobre la cartografía de Lima Metropolitana y Callao (IMP PlanMet 2040)"), 4.4)
+doc <- grafico(doc, "Satisfechos o muy satisfechos con el servicio, por distrito", g_mapa(LIMA, k8, pal8, "Satisfechos o muy satisfechos", alto = 4.4, n_txt = "N = 1,184 personas en doce distritos. Cifras ficticias sobre la cartografía de Lima Metropolitana y Callao (IMP PlanMet 2040)"), 4.4)
 zonas_c <- leer_capa("zonas_inei2017_lima_callao", "150110"); zonas_c <- zonas_c[!sf::st_is_empty(zonas_c), ]
 set.seed(103); n9 <- nrow(zonas_c); v9 <- rep(0, n9); vt <- sf::st_touches(zonas_c); for (s_ in sample(seq_len(n9), 4)) { r_ <- unique(c(s_, head(vt[[s_]], 5))); v9[r_] <- sample(2:12, length(r_), replace = TRUE) }
 cl9 <- c("Sin encuestas", "1 a 4", "5 a 8", "9 a 12"); k9 <- cl9[1 + (v9 > 0) + (v9 >= 5) + (v9 >= 9)]
 doc <- gal(doc, "Mapa de un distrito por zonas", "Las zonas de un distrito según un resultado del operativo, como las encuestas logradas.")
-doc <- grafico(doc, "Encuestas logradas por zona en Comas", g_mapa(zonas_c, k9, setNames(c("#FFFFFF", "#C9D5EA", "#6F88B5", WTK$navy), cl9), "Encuestas por zona", borde = "#B8C2D3", lw = 0.15,
+doc <- grafico(doc, "Encuestas logradas por zona en Comas", g_mapa(zonas_c, k9, setNames(c("#FFFFFF", "#C9D5EA", "#6F88B5", WTK$navy), cl9), "Encuestas por zona", borde = "#B8C2D3", lw = 0.15, alto = 4.2,
   n_txt = sprintf("N = %d encuestas en %d de %d zonas. Cifras ficticias sobre las zonas censales INEI 2017", sum(v9), sum(v9 > 0), n9)), 4.2)
 
 # ================= 4. Situaciones de datos
-doc <- capitulo(doc, "Situaciones de datos")
-doc <- cuerpo(doc, "Las situaciones que aparecen una y otra vez en los estudios, y cómo se resuelven en Word.")
+doc <- capitulo(doc, "Situaciones de datos", "Las situaciones que aparecen una y otra vez en los estudios, y cómo se resuelven en Word.")
 sit <- function(doc, nombre, regla) { doc <- seccion(doc, nombre); parr(doc, tx(regla, 10.5, SOFT), keep = TRUE) }
 doc <- sit(doc, "Varios actores en un mismo gráfico", "Si todos los actores responden la misma afirmación, van en un solo gráfico con las barras alineadas, para comparar el Top Two Box de cada uno.")
 seis <- list(list(actor = "Estudiantes", pct = c(3, 23, 46, 28, 0)), list(actor = "Egresados", pct = c(0, 22, 61, 15, 2)), list(actor = "Docentes", pct = c(0, 33, 56, 11, 0)),
@@ -422,8 +429,7 @@ doc <- tabla(doc, "Ejemplo de reparto del redondeo", ft_base(red, c(2.3, 1.3, 1.
   base = "Base: ejemplo ficticio con 250 casos. El punto repartido va a «En desacuerdo», la categoría con mayor resto (0.4).", zebra = FALSE)
 
 # ================= 5. Tablas
-doc <- capitulo(doc, "Tablas")
-doc <- cuerpo(doc, "Las tablas son tablas de Word del ancho del texto: filete azul arriba y abajo, encabezado gris, filas alternas en gris muy claro y la primera columna alineada con el texto. Llevan rótulo numerado arriba y base debajo, igual que los gráficos.")
+doc <- capitulo(doc, "Tablas", "Las tablas son tablas de Word del ancho del texto: filete azul arriba y abajo, filetes finos entre filas, encabezado en azul y la primera columna alineada con el texto. Llevan rótulo numerado arriba y base debajo, igual que los gráficos.")
 doc <- seccion(doc, "Ficha técnica")
 fic <- data.frame(Aspecto = c("Técnica", "Instrumento", "Actores consultados", "Respuestas válidas", "Tratamiento"),
   Detalle = c("Encuesta en línea autoadministrada", "Un cuestionario por actor, con preguntas comunes para comparar entre actores", paste(act, collapse = ", "),
@@ -450,8 +456,7 @@ aut <- data.frame(Característica = c("Cargo", "", "", "Años en el cargo", "", 
 doc <- tabla(doc, "Perfil de las autoridades consultadas", ft_base(aut, c(1.9, 2.6, 0.8, 0.8)) |> align(j = 3:4, align = "center", part = "all"), base = "Base: 12 autoridades. Fuente: PULSO PUCP 2026.", zebra = FALSE)
 
 # ================= 6. Estudios en PULSO
-doc <- capitulo(doc, "Estudios en PULSO")
-doc <- cuerpo(doc, "Un ejemplo corto por tipo de estudio, en el orden de lo que más se hace. Acreditación usa los datos del proyecto de referencia. Los demás usan cifras ficticias y no nombran instituciones.")
+doc <- capitulo(doc, "Estudios en PULSO", "Un ejemplo corto por tipo de estudio, en el orden de lo que más se hace. Acreditación usa los datos del proyecto de referencia. Los demás usan cifras ficticias y no nombran instituciones.")
 doc <- seccion(doc, "Acreditación universitaria")
 doc <- cuerpo(doc, "El informe abre con la ficha técnica y el número de respuestas por actor, y sigue por capítulos del modelo de acreditación. Cada pregunta común se compara entre los actores que la respondieron.", keep = TRUE)
 doc <- franja(doc, c(format(sum(nact), big.mark = ","), format(nact, big.mark = ",")), c("respuestas", tolower(act)))
@@ -476,7 +481,7 @@ kg <- ifelse(LIMA$distrito %in% names(grupo), grupo[LIMA$distrito], "Fuera del e
 bb_ <- sf::st_bbox(LIMA[LIMA$distrito %in% names(grupo), ]); bb_ <- bb_ + c(-0.04, -0.03, 0.04, 0.03)
 LIMA_c <- suppressWarnings(suppressMessages(sf::st_crop(sf::st_make_valid(LIMA), bb_)))
 doc <- grafico(doc, "Distritos del estudio por grupo", g_mapa(LIMA_c, ifelse(LIMA_c$distrito %in% names(grupo), grupo[LIMA_c$distrito], "Fuera del estudio"),
-  c(`Intervención` = "#2F4B7C", `Comparación` = "#9FB1D1", `Fuera del estudio` = "#E2E6EC"), "Distritos", n_txt = "N = 189 entrevistados. Selección ficticia sobre la cartografía de Lima Metropolitana y Callao (IMP PlanMet 2040)"), 3.6)
+  c(`Intervención` = "#2F4B7C", `Comparación` = "#9FB1D1", `Fuera del estudio` = "#E2E6EC"), "Distritos", alto = 3.6, n_txt = "N = 189 entrevistados. Selección ficticia sobre la cartografía de Lima Metropolitana y Callao (IMP PlanMet 2040)"), 3.6)
 doc <- grafico(doc, "Percepción de la comunidad de acogida, por grupo", g_dos_grupos(c("Considera que la población refugiada aporta a su barrio", "Tiene un vecino de otra nacionalidad con quien conversa", "Participó en una actividad comunitaria en el último año", "Se siente seguro caminando de noche en su barrio"),
   c(58, 64, 31, 47), c(46, 59, 22, 45), c("Intervención", "Comparación"), n_txt = "N = 99 entrevistados en distritos de intervención y 90 en distritos de comparación. Cifras ficticias", lim = 80), 2.6)
 doc <- seccion(doc, "Monitoreo posdistribución")
@@ -501,5 +506,6 @@ doc <- grafico(doc, "Indicadores del programa en la línea de base y en la medic
   c("Final", "Línea de base"), n_txt = "N = 312 participantes medidos en las dos ocasiones. Cifras ficticias", lim = 80), 2.4,
   texto = "Los cuatro indicadores suben entre la línea de base y la medición final. El registro de gastos es el que más avanza, 19 puntos.")
 
+doc <- contraportada(doc)
 print(doc, target = Sys.getenv("SALIDA"))
 system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/word_nativo.py"), shQuote(Sys.getenv("SALIDA")))); cat("OK", GN, "gráficos y", TN, "tablas\n")

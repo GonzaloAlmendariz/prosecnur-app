@@ -255,15 +255,15 @@ Regla transversal de la ronda Y: las cifras chicas encima de su segmento ya no a
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
 | W1 | «No tiene sentido hacer un banco de iconos, un banco de formas, ni hablar de los tipos de láminas» | `recetario_word.R` | ☑ no entran |
-| W2 | «Mostrar todas las gráficas que se puedan insertar, con la propia lógica del Word: sus márgenes, sus tamaños» | `recetario_word.R` cap. 3, `recetario_word_graficos.R` | ◐ primera versión: 54 gráficos y 7 tablas en A4, ancho útil de 15.93 cm, letra de 8 pt o más |
+| W2 | «Mostrar todas las gráficas que se puedan insertar, con la propia lógica del Word: sus márgenes, sus tamaños» | `recetario_word.R` cap. 3, `recetario_word_graficos.R` | ☑ 54 gráficos y 7 tablas en A4, ancho útil de 15.93 cm, letra de 8 pt o más |
 | W3 | «Un título por encima del gráfico para que pueda indexarse» | `rotulo()` con campo SEQ, índices de gráficos y tablas | ☑ |
-| W4 | «Cómo es la traducción de que en PPT se vea bien a que en Word se vea bien» | cap. 2 «De PPT a Word», con láminas del PPT al lado | ◐ primera versión |
-| W5 | «En un Word hay capítulos, subcapítulos, una propuesta de índice» | cap. 1 nuevo, identidad del documento | ☐ |
-| W6 | «Qué informes ya existen y cómo se estructuran» | análisis de los informes entregados (acreditación 2022 a 2025, GIZ, HSTVG, Sello Mujer); sólo patrones, nada de su contenido entra al repo | ◐ en curso |
-| W7 | «Una forma más sofisticada, avanzada, minimalista, pero creativa de una nueva identidad visual en el Word» | portada, índice, aperturas de capítulo y subcapítulo, cierre | ☐ |
+| W4 | «Cómo es la traducción de que en PPT se vea bien a que en Word se vea bien» | cap. 3 «De PPT a Word», con láminas del PPT al lado | ☑ |
+| W5 | «En un Word hay capítulos, subcapítulos, una propuesta de índice» | cap. 1 «El documento»: estructura del informe en una tabla, con lo que cambia según el estudio | ☑ |
+| W6 | «Qué informes ya existen y cómo se estructuran» | análisis de los informes entregados (acreditación 2022 a 2025, GIZ, HSTVG, Sello Mujer); sólo patrones, nada de su contenido entra al repo | ☑ esqueleto común y debilidades medidas: numeración de gráficos de cuatro maneras, ningún índice de gráficos, capítulos a mitad de página, índice en la página de la portada, logos en todas las páginas |
+| W7 | «Una forma más sofisticada, avanzada, minimalista, pero creativa de una nueva identidad visual en el Word» | `recetario_word_identidad.R`: portadas A, B y C; índices A y B; aperturas A y B; encabezado corrido con STYLEREF; recuadro «Cómo leer»; contraportada. Cada alternativa es un docx real mostrado en miniatura; la guía usa A, A y B | ☑ |
 | W8 | Los Word de officer y flextable no pasan el esquema (texto suelto en filas, orden de propiedades) | `word_nativo.py` | ☑ en la guía, el docx valida. En la app queda como tarea aparte |
 | W9 | Retirar `recetario-word-fiel.docx` y `recetario-word-moderna.docx`, reemplazados por `propuesta-word.docx` | `4-recetario/` | bloqueado: borrado con confirmación de Gonzalo |
-| W10 | «Veo leyendas mal posicionadas en gráficos de mapas» | `g_mapa()` en `recetario_word_graficos.R` | ☐ |
-| W11 | «Algunos números de porcentajes chocan con cosas» | `g_dos_grupos()`, `g_serie()` | ☐ |
-| W12 | «Una línea visual demasiado ecléctica para un Word de informe formal» | estilos de `recetario_word.R` | ☐ |
+| W10 | «Veo leyendas mal posicionadas en gráficos de mapas» | `g_mapa()` en `recetario_word_graficos.R` | ☑ la figura mide lo que el dibujo más la leyenda; la leyenda queda junto al mapa y alineada abajo |
+| W11 | «Algunos números de porcentajes chocan con cosas» | `g_dos_grupos()`, `g_serie()` | ☑ puntos: cada cifra al costado exterior de su punto. Series: la regla robusta del PPT |
+| W12 | «Una línea visual demasiado ecléctica para un Word de informe formal» | estilos en `recetario_word_identidad.R` | ☑ azul sobre blanco, texto gris muy oscuro, rótulo en una línea, lectura en texto corrido, tablas sin cebra, coral sólo en el filete de la portada |
 | W13 | Los cuatro Word de la app no pasaban el esquema de Word | `api/R/docx_conformar.R`, llamado desde el informe, el cuestionario, la ficha técnica y las decisiones de la base integrada. Test `test-docx-conformar.R` | ☑ verificador APROBADO: 416 expectativas del área en verde y los cinco docx de la app pasan el validador. Pendiente: reinstalar el paquete para que los jobs lo usen, y abrir los docx en Word real |
