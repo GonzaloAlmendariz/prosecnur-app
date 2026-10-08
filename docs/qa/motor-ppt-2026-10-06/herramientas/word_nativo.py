@@ -46,11 +46,40 @@ def ordenar(nodo, orden):
     for e in hijos: nodo.remove(e)
     for e in hijos: nodo.append(e)
 
-def conformar(xml, es_settings=False):
+def revista(raiz):
+    """Diagramado de revista en styles.xml: idioma español para la separación silábica, control de viudas y huérfanas,
+    y sangría francesa en el estilo «Referencia»."""
+    dd = raiz.find(W + "docDefaults")
+    if dd is not None:
+        rpr = dd.find(W + "rPrDefault/" + W + "rPr")
+        if rpr is not None:
+            lang = rpr.find(W + "lang")
+            if lang is None: lang = etree.SubElement(rpr, W + "lang")
+            lang.set(W + "val", "es-PE")
+        ppr = dd.find(W + "pPrDefault/" + W + "pPr")
+        if ppr is None:
+            pd = dd.find(W + "pPrDefault")
+            if pd is None: pd = etree.SubElement(dd, W + "pPrDefault")
+            ppr = etree.SubElement(pd, W + "pPr")
+        if ppr.find(W + "widowControl") is None: etree.SubElement(ppr, W + "widowControl")
+    for st in raiz.findall(W + "style"):
+        if st.get(W + "styleId") == "Referencia":
+            ppr = st.find(W + "pPr")
+            if ppr is None: ppr = etree.SubElement(st, W + "pPr")
+            ind = ppr.find(W + "ind")
+            if ind is None: ind = etree.SubElement(ppr, W + "ind")
+            for k in ("firstLine", "start", "end"):   # officer deja firstLine="0", que anula la sangría colgante
+                if W + k in ind.attrib: del ind.attrib[W + k]
+            ind.set(W + "left", "567"); ind.set(W + "hanging", "567")
+
+def conformar(xml, es_settings=False, es_estilos=False):
     raiz = etree.fromstring(xml)
+    if es_estilos: revista(raiz)
     if es_settings:
         if raiz.find(W + "updateFields") is None:
             u = etree.SubElement(raiz, W + "updateFields"); u.set(W + "val", "true")
+        if raiz.find(W + "autoHyphenation") is None:   # separación silábica automática en el texto justificado
+            h = etree.SubElement(raiz, W + "autoHyphenation"); h.set(W + "val", "true")
         ordenar(raiz, ORDEN["settings"])
     for tag in ("pPr", "pBdr", "tblPr", "tcBorders", "tblBorders", "tblCellMar", "tcMar", "sectPr"):
         for n in raiz.iter(W + tag): ordenar(n, ORDEN[tag])
@@ -80,6 +109,6 @@ for it in zin.infolist():
         def fix(m): return re.sub(r'(<w:left w:val="single"[^>]*w:space=")0(")', r'\g<1>9\2', m.group(0))
         d = re.sub(r'<w:style [^>]*w:styleId="Lectura".*?</w:style>', fix, x, flags=re.S).encode()
     if re.match(r"word/(document|styles|settings|header\d*|footer\d*)\.xml$", it.filename):
-        d = conformar(d, es_settings=it.filename == "word/settings.xml")
+        d = conformar(d, es_settings=it.filename == "word/settings.xml", es_estilos=it.filename == "word/styles.xml")
     zout.writestr(it, d)
 zout.close(); zin.close(); shutil.move(tmp, src)

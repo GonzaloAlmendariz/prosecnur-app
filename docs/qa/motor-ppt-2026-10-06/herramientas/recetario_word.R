@@ -25,7 +25,7 @@ TMP <- tempfile("recw_"); dir.create(TMP)
 
 tx <- function(s, size = 10.5, color = TXT, bold = FALSE, italic = FALSE) ftext(s, fp_text(font.family = FONT, font.size = size, color = color, bold = bold, italic = italic))
 parr <- function(doc, ..., align = "left", after = 8, before = 0, keep = FALSE) body_add_fpar(doc, fpar(..., fp_p = fp_par(text.align = align, padding.bottom = after, padding.top = before, line_spacing = 1.3, keep_with_next = keep)))
-cuerpo <- function(doc, t, keep = FALSE) parr(doc, tx(t), keep = keep)
+cuerpo <- function(doc, t, keep = FALSE) parr(doc, tx(t), keep = keep, align = "justify")   # texto corrido justificado, con separación silábica (word_nativo.py)
 # ---- Elementos nativos de Word: todo lo que pone el motor es un estilo o un campo de Word (la posedición se hace desde
 # Inicio > Estilos y la numeración se recalcula con F9).
 xml_esc <- function(x) gsub(">", "&gt;", gsub("<", "&lt;", gsub("&", "&amp;", x, fixed = TRUE), fixed = TRUE), fixed = TRUE)
@@ -46,8 +46,9 @@ lectura_runs <- function(texto) {   # «Lectura»: las cifras en negrita, el res
 }
 # Rótulo arriba, en una línea: «Gráfico 5.» (campo SEQ) y la pregunta, con el estilo «Rótulo de gráfico».
 # Con la etiqueta SEQ, Word arma solo el índice de gráficos y el de tablas (Referencias > Insertar tabla de ilustraciones).
-rotulo <- function(doc, etiqueta, id, n, titulo) body_add_fpar(doc, fpar(run_est(paste0(etiqueta, " "), "NumeroRotulo"), seq_run(id, n, "NumeroRotulo"), run_est(". ", "NumeroRotulo"), ftext(titulo)), style = "Rótulo de gráfico")
-base_fuente <- function(doc, t, keep = FALSE) body_add_fpar(doc, fpar(ftext(t), fp_p = fp_par(keep_with_next = keep)), style = "Base y fuente")
+# Convención de revista (APA, 7.ª ed.): «Gráfico 5» en negrita y, en la línea siguiente, el título en cursiva. Word arma con el campo SEQ el índice.
+rotulo <- function(doc, etiqueta, id, n, titulo) body_add_fpar(doc, fpar(run_est(paste0(etiqueta, " "), "NumeroRotulo"), seq_run(id, n, "NumeroRotulo"), run_linebreak(), ftext(titulo, fp_text_lite(italic = TRUE))), style = "Rótulo de gráfico")
+base_fuente <- function(doc, t, keep = FALSE) body_add_fpar(doc, fpar(ftext("Nota. ", fp_text_lite(italic = TRUE)), ftext(t)), style = "Base y fuente")   # «Nota.» como en una revista
 GN <- 0; TN <- 0
 # Figura: rótulo, imagen del ancho del texto, base y fuente como párrafo propio (editable) y, si hay, el párrafo de lectura.
 grafico <- function(doc, titulo, g, alto, texto = NULL, base = NULL) {
@@ -58,7 +59,7 @@ grafico <- function(doc, titulo, g, alto, texto = NULL, base = NULL) {
   alto <- max(alto, attr(g, "alto") %||% 0) - 0.22   # el pie ya no va dentro de la imagen
   ancho <- attr(g, "ancho") %||% ANCHO_W   # un mapa mide lo que mide su dibujo con la leyenda
   f <- file.path(TMP, sprintf("g%03d.png", GN)); ggsave(f, g, width = ancho, height = alto, dpi = 300, bg = "transparent")
-  doc <- body_add_fpar(doc, fpar(external_img(f, width = ancho, height = alto), fp_p = fp_par(text.align = "left", keep_with_next = TRUE)))
+  doc <- body_add_fpar(doc, fpar(external_img(f, width = ancho, height = alto), fp_p = fp_par(text.align = "center", keep_with_next = TRUE)))   # centrado: la nota queda centrada bajo el gráfico
   doc <- base_fuente(doc, base, keep = !is.null(texto))
   if (!is.null(texto)) doc <- body_add_fpar(doc, do.call(fpar, lectura_runs(texto)), style = "Lectura")
   doc
@@ -86,6 +87,7 @@ tabla <- function(doc, titulo, ft, base = NULL, zebra = FALSE) { TN <<- TN + 1
   if (!is.null(base)) base_fuente(doc, base) else body_add_par(doc, "") }
 tabla_guia <- function(doc, df, anchos) { doc <- poner_tabla(doc, ft_base(df, anchos)); body_add_par(doc, "") }   # tablas de la guía, sin numerar
 lista <- function(doc, items) { for (r in items) doc <- body_add_fpar(doc, fpar(tx(paste0("•  ", r))), style = "Lista de la guía"); doc }
+cita <- function(doc, ref) body_add_fpar(doc, do.call(fpar, ref), style = "Referencia")
 
 # ---------------- documento, estilos y página (recetario_word_identidad.R)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_word_identidad.R", local = TRUE)
@@ -116,9 +118,15 @@ en_word <- function(doc) body_add_fpar(doc, fpar(tx("EN EL WORD", 8, SOFT, TRUE)
 doc <- portada_A(doc, list(ante = "PROPUESTA DE DISEÑO", titulo = "Los informes cuantitativos de PULSO PUCP en Word", sub = "La página, los estilos, cada gráfico y cada tabla en su formato de Word",
                            por = "PULSO PUCP", fecha = "Octubre de 2026"))
 doc <- body_add_break(doc)
-doc <- parr(doc, tx(paste("Esta propuesta acompaña a la propuesta de diseño en PPT. Muestra cómo se arma el informe en Word: el documento y sus partes, la página, los estilos,",
-  "cómo pasa un gráfico del PPT al Word, todos los gráficos del motor con su rótulo, su base y su lectura, las situaciones de datos más frecuentes, las tablas y un ejemplo por tipo de estudio.",
-  "El capítulo de acreditación usa los datos del proyecto de referencia. Los demás usan cifras ficticias."), 10, SOFT), after = 14)
+# Resumen y palabras clave, como en un artículo de revista; el contenido empieza en la página siguiente
+doc <- parr(doc, tx("Resumen", 12.5, NAVY, TRUE), after = 6)
+doc <- cuerpo(doc, paste("Esta propuesta define cómo se diagraman los informes cuantitativos de PULSO PUCP en Word y acompaña a la propuesta de diseño en PPT.",
+  "Presenta la estructura del documento y sus partes, las reglas de página y de estilo, la traducción de las láminas del PPT a figuras de Word,",
+  "los gráficos del motor con su rótulo, su nota y su lectura, las situaciones de datos más frecuentes, las tablas y un ejemplo por tipo de estudio.",
+  "Los rótulos, las notas y las referencias siguen las convenciones editoriales de la American Psychological Association (2020).",
+  "El capítulo de acreditación usa los datos del proyecto de referencia. Los demás usan cifras ficticias."))
+doc <- parr(doc, tx("Palabras clave: ", 10.5, NAVY, TRUE), tx("diseño de informes, visualización de datos, encuestas, identidad visual, Word"), after = 14)
+doc <- body_add_break(doc)
 doc <- parr(doc, tx("Contenido", 18, NAVY, TRUE), after = 10)
 doc <- body_add(doc, block_toc(level = 2))
 doc <- parr(doc, tx("Índice de gráficos", 13, NAVY, TRUE), before = 16, after = 6)
@@ -171,7 +179,7 @@ doc <- lista(doc, c("El recuadro «Cómo leer este informe» va en el diseño me
   "La contraportada cierra con el logo de PULSO PUCP al centro y el contacto en una línea."))
 
 # ================= 2. Reglas del informe Word
-doc <- capitulo(doc, "Reglas del informe Word", "La página, los estilos de Word, la escala tipográfica y los colores que comparten todos los informes.")
+doc <- capitulo(doc, "Reglas del informe Word", "La página, los estilos de Word, la escala tipográfica y los colores que comparten todos los informes. Siguen los principios de claridad y economía visual que proponen Few (2012) y Tufte (2001).")
 doc <- seccion(doc, "La página")
 doc <- cuerpo(doc, "El informe se arma en una página A4 vertical. El texto, los gráficos y las tablas ocupan el mismo ancho útil, de modo que todo queda alineado con los márgenes.", keep = TRUE)
 # Esquema de la página medido: márgenes, encabezado, rótulo, gráfico, base y lectura
@@ -411,7 +419,7 @@ doc <- grafico(doc, "Top Two Box de los estudiantes en indicadores repetidos, 20
   n_txt = "N = 1,234 estudiantes en 2026 y 1,102 en 2021. 2021: informe consolidado anterior", lim = 100), 2.6,
   texto = "La infraestructura sube 12 puntos y la orientación académica baja 8. Los demás indicadores se mueven 7 puntos o menos.")
 # Diferencias significativas: la prueba del motor (z con proporción combinada para cada par, Bonferroni dentro de la fila, alfa 0.05)
-doc <- sit(doc, "Diferencias significativas", "La tabla da la cifra de cada público y, al lado, las letras de los públicos frente a los que es significativamente mayor. El gráfico muestra las mismas letras junto a la barra.")
+doc <- sit(doc, "Diferencias significativas", "La tabla da la cifra de cada público y, al lado, las letras de los públicos frente a los que es significativamente mayor. El gráfico muestra las mismas letras junto a la barra. La diferencia se juzga con la prueba y no a simple vista, porque comparar barras o intervalos por separado lleva a conclusiones erradas (Cumming y Finch, 2005).")
 z_p <- function(x1, n1, x2, n2) { pp <- (x1 + x2) / (n1 + n2); se <- sqrt(pp * (1 - pp) * (1 / n1 + 1 / n2)); if (se == 0) 1 else 2 * pnorm(-abs((x1 / n1 - x2 / n2) / se)) }
 mi_ <- D$mision1; xs <- vapply(mi_, function(m) m$n[1], 0); ns <- vapply(mi_, `[[`, 0L, "valid"); pc <- vapply(mi_, function(m) m$pct[1], 0)
 pares <- combn(4, 2); alfa <- 0.05 / ncol(pares); letras <- rep("", 4)
@@ -419,7 +427,7 @@ for (k in seq_len(ncol(pares))) { i <- pares[1, k]; j <- pares[2, k]
   if (z_p(xs[i], ns[i], xs[j], ns[j]) < alfa) { may <- if (xs[i] / ns[i] > xs[j] / ns[j]) i else j; men <- setdiff(c(i, j), may); letras[may] <- trimws(paste(letras[may], LETTERS[men])) } }
 sig_df <- data.frame(Público = paste0(LETTERS[1:4], ". ", act), `Conoce la misión` = paste0(pc, "%"), Base = ns, `Mayor que` = ifelse(nzchar(letras), letras, "Sin diferencias"), check.names = FALSE)
 doc <- tabla(doc, "Conoce la misión, por público, con diferencias significativas", ft_base(sig_df, c(2.2, 1.8, 0.9, 1.4)) |> align(j = 2:4, align = "center", part = "all") |> color(j = 4, color = "#4F7FAF", part = "body") |> bold(j = 4, part = "body"),
-  base = sprintf("Base: %s. Prueba z para proporciones con corrección de Bonferroni dentro de la fila (α = 0.05). Fuente: PULSO PUCP 2026.", paste(sprintf("%d %s", ns, tolower(act)), collapse = ", ")))
+  base = sprintf("Base: %s. Prueba z para proporciones (Agresti, 2013) con corrección de Bonferroni dentro de la fila (Dunn, 1961), α = 0.05. Fuente: PULSO PUCP 2026.", paste(sprintf("%d %s", ns, tolower(act)), collapse = ", ")))
 doc <- grafico(doc, "¿Conoce la misión y los propósitos de la PUCP?, por público", g_barras(paste0(act, " (", LETTERS[1:4], ")"), pc, extra = letras, resid = rep(FALSE, 4),
   n_txt = sprintf("N = %s. Las letras indican frente a qué públicos la cifra es significativamente mayor", paste(sprintf("%d %s", ns, tolower(act)), collapse = ", "))), alto_barras(4),
   texto = "Los docentes conocen la misión en una proporción significativamente mayor que los estudiantes y los egresados. Los administrativos llegan a 93%, pero con 15 casos la diferencia no alcanza a ser significativa.")
@@ -506,6 +514,18 @@ doc <- grafico(doc, "Indicadores del programa en la línea de base y en la medic
   c("Final", "Línea de base"), n_txt = "N = 312 participantes medidos en las dos ocasiones. Cifras ficticias", lim = 80), 2.4,
   texto = "Los cuatro indicadores suben entre la línea de base y la medición final. El registro de gastos es el que más avanza, 19 puntos.")
 
+# Referencias en formato APA, con sangría francesa (estilo «Referencia», word_nativo.py)
+doc <- body_add_break(doc)
+doc <- body_add_par(doc, "Referencias", style = "heading 1")
+it <- function(t) ftext(t, fp_text_lite(italic = TRUE)); nt <- function(t) ftext(t)
+refs <- list(
+  list(nt("Agresti, A. (2013). "), it("Categorical data analysis"), nt(" (3.ª ed.). Wiley.")),
+  list(nt("American Psychological Association. (2020). "), it("Publication manual of the American Psychological Association"), nt(" (7.ª ed.). https://doi.org/10.1037/0000165-000")),
+  list(nt("Cumming, G., y Finch, S. (2005). Inference by eye: Confidence intervals and how to read pictures of data. "), it("American Psychologist, 60"), nt("(2), 170-180. https://doi.org/10.1037/0003-066X.60.2.170")),
+  list(nt("Dunn, O. J. (1961). Multiple comparisons among means. "), it("Journal of the American Statistical Association, 56"), nt("(293), 52-64. https://doi.org/10.1080/01621459.1961.10482090")),
+  list(nt("Few, S. (2012). "), it("Show me the numbers: Designing tables and graphs to enlighten"), nt(" (2.ª ed.). Analytics Press.")),
+  list(nt("Tufte, E. R. (2001). "), it("The visual display of quantitative information"), nt(" (2.ª ed.). Graphics Press.")))
+for (r in refs) doc <- cita(doc, r)
 doc <- contraportada(doc)
 print(doc, target = Sys.getenv("SALIDA"))
 system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/word_nativo.py"), shQuote(Sys.getenv("SALIDA")))); cat("OK", GN, "gráficos y", TN, "tablas\n")
