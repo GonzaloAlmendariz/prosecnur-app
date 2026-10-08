@@ -82,3 +82,34 @@ llave_v <- function(doc, x, y0, y1, x_tallo, color = TK$navy, t = 0.022) {
   yc <- (y0 + y1) / 2; caja(doc, x + 0.1 - t, yc - t / 2, x_tallo - x - 0.1 + t, t, color)
   invisible(yc)
 }
+
+# Serie temporal (C29, C40): guías suaves con su escala, puntos con borde y centro claro, cifras de la serie de arriba
+# sobre sus puntos y las de abajo debajo (no se cruzan), y el nombre de cada serie al final de su línea.
+grafico_serie <- function(periodos, series, cols, lim = NULL, paso = 10) {
+  d <- do.call(rbind, lapply(names(series), function(g) data.frame(x = seq_along(periodos), v = series[[g]], g = g)))
+  d$g <- factor(d$g, levels = names(series))
+  arriba <- names(series)[which.max(vapply(series, mean, 0))]
+  d$vj <- ifelse(d$g == arriba, -1.15, 2.0)
+  lim <- lim %||% c(floor((min(d$v) - 8) / paso) * paso, ceiling((max(d$v) + 8) / paso) * paso)
+  guias <- seq(lim[1], lim[2], paso)
+  ultimo <- d[d$x == length(periodos), ]
+  ggplot(d, aes(x, v, colour = g)) +
+    geom_hline(yintercept = guias, colour = "#DCE1E8", linewidth = 0.35) +
+    annotate("text", x = 0.62, y = guias, label = paste0(guias, "%"), hjust = 1, size = 10 / .pt, colour = TK$faint, family = "Arial") +
+    geom_line(linewidth = 1.5) + geom_point(size = 3.6, shape = 21, fill = TK$fondo, stroke = 1.5) +
+    geom_text(aes(label = paste0(v, "%"), vjust = vj), size = 12 / .pt, fontface = "bold", family = "Arial", show.legend = FALSE) +
+    geom_text(data = ultimo, aes(x = length(periodos) + 0.16, label = g), hjust = 0, size = 13 / .pt, fontface = "bold", family = "Arial", show.legend = FALSE) +
+    scale_colour_manual(values = cols) + scale_x_continuous(breaks = seq_along(periodos), labels = periodos, limits = c(0.45, length(periodos) + 0.95), expand = c(0, 0)) +
+    scale_y_continuous(limits = lim, expand = c(0, 0)) + coord_cartesian(clip = "off") + labs(x = NULL, y = NULL) + theme_minimal(base_family = "Arial") +
+    theme(legend.position = "none", panel.grid = element_blank(), axis.text.y = element_blank(), axis.text.x = element_text(size = 13, colour = TK$navy, face = "bold"),
+          plot.background = element_blank(), panel.background = element_blank())
+}
+
+# Cifras de un par de puntos en la misma línea: la mayor a la derecha de su punto y la menor a la izquierda del suyo (C27, C28).
+cifras_par <- function(doc, px, a, b, yc, col_a, col_b, size = 12) {
+  mayor_a <- a >= b
+  xa <- if (mayor_a) px(a) + 0.18 else px(a) - 0.18 - 0.7; xb <- if (mayor_a) px(b) - 0.18 - 0.7 else px(b) + 0.18
+  txt(doc, paste0(a, "%"), xa, yc - 0.16, 0.7, 0.3, size, col_a, bold = TRUE, align = if (mayor_a) "left" else "right")
+  txt(doc, paste0(b, "%"), xb, yc - 0.16, 0.7, 0.3, size, col_b, bold = TRUE, align = if (mayor_a) "right" else "left")
+}
+

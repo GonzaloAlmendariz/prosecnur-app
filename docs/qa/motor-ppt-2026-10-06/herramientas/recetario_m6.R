@@ -101,15 +101,8 @@ pie(doc, "Base: 1,855 estudiantes encuestados en aula")
 # En líneas el eje no necesita partir de cero (en barras sí): se acota a 25-68 para que la serie use el alto.
 MOTOR_ACT <- "p_slide_1_grafico: p_serie_temporal (cuatro olas, rótulo directo al final de cada línea)"
 doc <- nueva(doc); titulo(doc, "Aprobación de la gestión en cuatro mediciones", ante = "Estudio por olas")
-olas <- data.frame(o = rep(c("Marzo", "Junio", "Setiembre", "Diciembre"), 2), x = rep(1:4, 2), g = rep(c("Aprueba", "Desaprueba"), each = 4), v = c(41, 37, 33, 35, 52, 56, 60, 58))
 cg <- c(Aprueba = TK$navy, Desaprueba = if (ESTILO == "moderna") "#8E9DBD" else "#9DC3E6")
-go <- ggplot(olas, aes(x, v, colour = g)) + geom_line(linewidth = 1.4) + geom_point(size = 3) +
-  geom_text(aes(label = paste0(v, "%")), vjust = -1.0, size = 12 / .pt, fontface = "bold", family = "Arial", show.legend = FALSE) +
-  geom_text(data = olas[olas$x == 4, ], aes(x = 4.12, label = g), hjust = 0, size = 13 / .pt, fontface = "bold", family = "Arial", show.legend = FALSE) +
-  scale_colour_manual(values = cg) + scale_x_continuous(breaks = 1:4, labels = c("Marzo", "Junio", "Setiembre", "Diciembre"), limits = c(0.85, 4.9)) +
-  scale_y_continuous(limits = c(25, 68)) + labs(x = NULL, y = NULL) + theme_minimal(base_family = "Arial") +
-  theme(legend.position = "none", panel.grid = element_blank(), axis.text.y = element_blank(), axis.text.x = element_text(size = 13, colour = TK$navy, face = "bold"),
-        plot.background = element_blank(), panel.background = element_blank())
+go <- grafico_serie(c("Marzo", "Junio", "Setiembre", "Diciembre"), list(Desaprueba = c(52, 56, 60, 58), Aprueba = c(41, 37, 33, 35)), cg, lim = c(20, 70))   # C40
 invisible(ph_with(doc, dml(ggobj = go, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML + 0.4, top = YT + 0.1, width = 11.6, height = 4.7)))
 zona("serie de cuatro olas", ML + 0.4, YT + 0.1, 11.6, 4.7)
 pie(doc, "Base: 1,200 entrevistados en cada ola")
