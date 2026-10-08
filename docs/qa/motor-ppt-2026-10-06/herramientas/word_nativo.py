@@ -47,7 +47,7 @@ def ordenar(nodo, orden):
     for e in hijos: nodo.append(e)
 
 def revista(raiz):
-    """Diagramado de revista en styles.xml: idioma español para la separación silábica, control de viudas y huérfanas,
+    """Diagramado de revista en styles.xml: idioma español (ortografía), control de viudas y huérfanas,
     y sangría francesa en el estilo «Referencia»."""
     dd = raiz.find(W + "docDefaults")
     if dd is not None:
@@ -78,8 +78,9 @@ def conformar(xml, es_settings=False, es_estilos=False):
     if es_settings:
         if raiz.find(W + "updateFields") is None:
             u = etree.SubElement(raiz, W + "updateFields"); u.set(W + "val", "true")
-        if raiz.find(W + "autoHyphenation") is None:   # separación silábica automática en el texto justificado
-            h = etree.SubElement(raiz, W + "autoHyphenation"); h.set(W + "val", "true")
+        # Sin separación silábica automática: en un Word sin el componente de español, abrir el archivo mostraba
+        # «Word hyphenation feature is not available» (Gonzalo, 2026-10-08). El texto sigue justificado.
+        for h in raiz.findall(W + "autoHyphenation"): raiz.remove(h)
         ordenar(raiz, ORDEN["settings"])
     for tag in ("pPr", "pBdr", "tblPr", "tcBorders", "tblBorders", "tblCellMar", "tcMar", "sectPr"):
         for n in raiz.iter(W + tag): ordenar(n, ORDEN[tag])

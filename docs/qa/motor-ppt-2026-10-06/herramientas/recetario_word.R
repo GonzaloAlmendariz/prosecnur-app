@@ -25,7 +25,7 @@ TMP <- tempfile("recw_"); dir.create(TMP)
 
 tx <- function(s, size = 10.5, color = TXT, bold = FALSE, italic = FALSE) ftext(s, fp_text(font.family = FONT, font.size = size, color = color, bold = bold, italic = italic))
 parr <- function(doc, ..., align = "left", after = 8, before = 0, keep = FALSE) body_add_fpar(doc, fpar(..., fp_p = fp_par(text.align = align, padding.bottom = after, padding.top = before, line_spacing = 1.3, keep_with_next = keep)))
-cuerpo <- function(doc, t, keep = FALSE) parr(doc, tx(t), keep = keep, align = "justify")   # texto corrido justificado, con separación silábica (word_nativo.py)
+cuerpo <- function(doc, t, keep = FALSE) parr(doc, tx(t), keep = keep, align = "justify")   # texto corrido justificado
 # ---- Elementos nativos de Word: todo lo que pone el motor es un estilo o un campo de Word (la posedición se hace desde
 # Inicio > Estilos y la numeración se recalcula con F9).
 xml_esc <- function(x) gsub(">", "&gt;", gsub("<", "&lt;", gsub("&", "&amp;", x, fixed = TRUE), fixed = TRUE), fixed = TRUE)
