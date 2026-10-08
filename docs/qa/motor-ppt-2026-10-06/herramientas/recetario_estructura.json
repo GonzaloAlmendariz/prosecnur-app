@@ -15,8 +15,11 @@
      "titulo": "Reglas de la lámina",
      "sub": "Tamaño, peso y color de cada elemento, retícula y tipografía",
      "laminas": [
+      "m0:3",
       "reg2:1-2",
-      "m0:1-6",
+      "m0:2",
+      "m0:1",
+      "m0:4-6",
       "m0b:1-2",
       "m2c:4-5",
       "inf:4-6"
@@ -28,9 +31,9 @@
      "sub": "La portada y sus alternativas, el objetivo y la ficha técnica",
      "laminas": [
       "inf:1",
-      "reg2:3-5",
+      "reg2:3-4",
       "inf:2",
-      "reg2:6-7",
+      "reg2:5-6",
       "inf:3"
      ]
     },

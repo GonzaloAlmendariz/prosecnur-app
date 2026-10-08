@@ -29,7 +29,7 @@ for (k in 1:2) { yk <- YT + 1.0 + (k - 1) * 1.9
   txt(doc, paste0(t1$pct[k], "%"), 7.15, yk - 0.05, 2.2, 0.62, 34, if (k == 1) TK$navy else "#4F7FAF", bold = TRUE)
   txt(doc, sprintf("%s cuenta con título universitario", if (k == 1) "Sí" else "No"), 7.15, yk + 0.58, 5.5, 0.3, 13, TK$navy, bold = TRUE)
   txt(doc, sprintf("%d de %d egresados", t1$n[k], t1$valid), 7.15, yk + 0.86, 5.5, 0.26, 11, TK$faint) }
-pie(doc, "Base: 178 egresados. La leyenda con cifra, rótulo y conteo es una propuesta: el motor hoy dibuja la leyenda estándar")
+pie(doc, if (NUEVA) "Base: 178 egresados. Cada parte lleva su cifra, su rótulo y su conteo junto al gráfico" else "Base: 178 egresados. La leyenda con cifra, rótulo y conteo es una propuesta: el motor hoy dibuja la leyenda estándar")
 
 # --- p_donut: dicotomía con la cifra clave al centro
 MOTOR_ACT <- "p_slide_1_grafico: p_donut"
@@ -75,7 +75,7 @@ for (i in seq_along(it)) { f <- it[[i]]; yb <- y0_ + (i - 1) * fila_ + (fila_ - 
 caja(doc, xc - 0.006, y0_ - 0.1, 0.012, length(it) * fila_ + 0.15, TK$navy)
 zona("divergente, centro entre desacuerdo y acuerdo", xa_, y0_, wa_, length(it) * fila_)
 leyenda(doc, 0, y0_ + length(it) * fila_ + 0.25, LIKERT_ROT, TK$likert, centrar_en = W / 2)
-pie(doc, "Uso excepcional: con Top Two Box se prefieren barras apiladas alineadas. Base: 15 administrativos")
+pie(doc, if (NUEVA) "Para escalas con un punto medio claro. Base: 15 administrativos" else "Uso excepcional: con Top Two Box se prefieren barras apiladas alineadas. Base: 15 administrativos")
 
 # --- p_lollipop: ranking de muchas opciones (selección múltiple)
 MOTOR_ACT <- "p_slide_1_grafico: p_lollipop (selección múltiple)"

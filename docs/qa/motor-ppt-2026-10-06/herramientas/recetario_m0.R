@@ -9,12 +9,52 @@
 
 marca <- function(doc, k, x, y, d = 0.32) {               # número de anotación
   caja(doc, x, y, d, d, TK$guia, geom = "ellipse")
-  txt(doc, as.character(k), x, y + 0.02, d, d - 0.04, 11, "#FFFFFF", bold = TRUE, align = "center")
+  txt(doc, as.character(k), x, y, d, d, if (d < 0.3) 10 else 11, "#FFFFFF", bold = TRUE, align = "center", nombre = "Centro marca")   # sanear_ph.py lo ancla al centro sin márgenes
 }
 lista_marcada <- function(doc, items, x, y, w, paso = 0.68, size = 12) {
   for (i in seq_along(items)) { yy <- y + (i - 1) * paso
     marca(doc, i, x, yy + 0.02); txt(doc, items[i], x + 0.45, yy, w - 0.45, paso, size, TK$navy) }
 }
+
+# Lámina estándar en miniatura, fiel a la plantilla (logo real del layout «Graficos» en 11.03, 0.18 in). La usan la anatomía y «Qué es cada
+# elemento en PowerPoint» (Gonzalo, 2026-10-08: «primero tienes que presentarla… dónde va el título, el antetítulo, la pregunta»).
+dir_logo <- file.path(tempdir(), "logo_lamina"); utils::unzip("api/inst/plantillas/plantilla_16_9.pptx", files = "ppt/media/image6.png", exdir = dir_logo, overwrite = TRUE)
+LOGO_LAM <- file.path(dir_logo, "ppt/media/image6.png")
+mini_lamina <- function(doc, ox, oy, k) {   # dibuja la lámina estándar a escala k; devuelve el ancla de cada elemento en coordenadas de la lámina real
+  caja(doc, ox, oy, W * k, H * k, TK$fondo, line = sp_line(color = TK$rule, lwd = 0.75))
+  invisible(ph_with(doc, external_img(LOGO_LAM, width = 2.11 * k, height = 0.93 * k), location = ph_location(left = ox + 11.03 * k, top = oy + 0.18 * k, width = 2.11 * k, height = 0.93 * k)))
+  caja(doc, ox + ML0 * k, oy + (Y_TIT - 0.12) * k, 0.03, 0.72 * k, TK$navy)
+  tx <- function(t, x, y, w, size, col, bold = TRUE, align = "left") txt(doc, t, ox + x * k - 0.06, oy + y * k, w, size * 1.25 / 72 + 0.06, size, col, bold = bold, align = align)
+  tx("CARACTERÍSTICAS INSTITUCIONALES", ML, Y_TIT - 0.2, 4, 7, TK$soft)
+  tx("Servicios de tutoría", ML, Y_TIT + 0.04, 6, 15, TK$coral)
+  tx("La Unidad cuenta con servicios de tutoría académica", ML, 1.6, 6, 8.5, TK$navy)
+  tx("224 respuestas", ML, 1.92, 3, 7, TK$faint, bold = FALSE)
+  cl <- TK$likert; xb <- 2.4; wb <- 8.6
+  for (r in 0:1) { yb <- 2.6 + r * 0.95; xx <- xb; sg <- if (r == 0) c(0, 2, 29, 54, 15) else c(6, 18, 34, 19, 23)
+    txt(doc, c("Docentes", "Estudiantes")[r + 1], ox + 0.4 * k, oy + (yb + 0.08) * k, 1.9 * k, 0.24, 7.5, TK$navy, bold = TRUE, align = "right")
+    for (j in 1:5) { w_ <- wb * sg[j] / 100
+      if (w_ > 0) { caja(doc, ox + xx * k, oy + yb * k, w_ * k, 0.48 * k, cl[j]); if (sg[j] >= 10) txt(doc, paste0(sg[j], "%"), ox + xx * k, oy + (yb + 0.1) * k, w_ * k, 0.22, 7, texto_sobre(cl[j]), bold = TRUE, align = "center") }
+      xx <- xx + w_ }
+    txt(doc, paste0(sum(sg[3:4]), "%"), ox + 11.25 * k, oy + (yb + 0.08) * k, 1.4 * k, 0.24, 8, TK$verde_txt, bold = TRUE, align = "center") }
+  txt(doc, "Top Two Box", ox + 11.0 * k, oy + 2.2 * k, 1.9 * k, 0.2, 6.5, TK$verde_txt, bold = TRUE, align = "center")
+  rot <- c("Total. en desacuerdo", "En desacuerdo", "De acuerdo", "Total. de acuerdo", "Sin inf.")
+  for (j in 1:5) { xj <- 2.4 + (j - 1) * 1.75; caja(doc, ox + xj * k, oy + 4.72 * k, 0.12, 0.12, cl[j]); txt(doc, rot[j], ox + xj * k + 0.08, oy + 4.66 * k, 1.75 * k + 0.15, 0.2, 6, TK$navy) }
+  tx("Base: 52 docentes y 172 estudiantes", ML, Y_BASE, 4, 7, TK$navy)
+  txt(doc, "12", ox + (W - MR - 0.6) * k, oy + Y_BASE * k, 0.6 * k, 0.2, 7, TK$soft, align = "right")
+  list(ante = c(ML, Y_TIT - 0.1, 0), titulo = c(ML, Y_TIT + 0.3, 0), logo = c(13.14, 0.65, 1), pregunta = c(ML, 1.8, 0), grafico = c(2.4, 3.33, 0),
+       ttb = c(12.6, 3.1, 1), leyenda = c(2.4, 4.78, 0), base = c(ML, Y_BASE + 0.12, 0)) }
+anotar <- function(doc, ox, oy, k, pos, items, xl, d = 0.26) {   # marcas fuera de la miniatura, con línea guía hasta su elemento, y la lista a la derecha
+  ult <- -1
+  for (m in seq_along(items)) { a <- pos[[items[[m]][[1]]]]; ye <- oy + a[2] * k
+    if (a[3] == 0) { xm <- if (ye - ult < 0.3) ox - 0.68 else ox - 0.36; ult <- ye
+      caja(doc, xm + d, ye - 0.006, ox + a[1] * k - 0.05 - xm - d, 0.012, TK$guia) } else {
+      xm <- ox + W * k + 0.12; caja(doc, ox + a[1] * k + 0.04, ye - 0.006, xm - ox - a[1] * k - 0.04, 0.012, TK$guia) }
+    marca(doc, m, xm, ye - d / 2, d = d) }
+  wl <- W - MR - xl; hl <- (H * k + 0.1) / length(items)
+  for (m in seq_along(items)) { yl <- oy + (m - 1) * hl
+    marca(doc, m, xl, yl + 0.02, d = d)
+    txt(doc, items[[m]][[2]], xl + d + 0.1, yl - 0.04, wl - d - 0.1, 0.3, 12.5, TK$navy, bold = TRUE)
+    txt(doc, items[[m]][[3]], xl + d + 0.1, yl + 0.24, wl - d - 0.1, 0.5, 10.5, TK$soft) } }
 
 # --- R0 cómo se lee un gráfico: ejemplo anotado
 MOTOR_ACT <- "Reglas: anatomía de una lámina con gráfico (ejemplo anotado)"
@@ -71,6 +111,18 @@ ft <- ancho_ft(ft); invisible(ph_with(doc, ft, location = ph_location(left = XC,
 zona("tabla de tamaños", XC, Y_DATOS - 0.15, AC, 4.9)
 pie(doc, "Todo en Arial y nada bajo 10 pt. Tamaños medidos en 2,725 cuadros de texto de 6 informes entregados (2025 y 2026)")
 
+# --- R2 en la propuesta nueva: la lámina estándar, presentada antes de medirla (Gonzalo, 2026-10-08)
+if (NUEVA) {
+MOTOR_ACT <- "Reglas: estructura de la lámina estándar (p_slide_1_grafico, layout Graficos)"
+doc <- nueva(doc); titulo(doc, "La lámina estándar", ante = "Reglas de la lámina")
+k <- 0.58; ox <- XC + 0.75; oy <- YT - 0.05; pos <- mini_lamina(doc, ox, oy, k)
+anotar(doc, ox, oy, k, pos, list(list("ante", "Antetítulo", "El capítulo o tema, sobre el título"), list("titulo", "Título", "Qué muestra la lámina, en coral"),
+  list("logo", "Logo", "Fijo en la plantilla"), list("pregunta", "Pregunta y respuestas", "Tal como se hizo, y cuántos respondieron"),
+  list("grafico", "Gráfico", "Ocupa la franja central"), list("ttb", "Top Two Box", "Columna verde, si la escala la lleva"),
+  list("leyenda", "Leyenda", "Debajo del gráfico, centrada"), list("base", "Base y folio", "Cierran la lámina")), xl = ox + W * k + 0.6)
+zona("la lámina estándar con sus ocho elementos", ox, oy, W * k, H * k)
+pie(doc, "Todas las láminas del informe parten de esta estructura. La lámina siguiente da sus medidas")
+} else {
 # --- R2 dónde va cada cosa: la lámina dibujada a escala (C1 y C2: franjas limpias, marcas numeradas en el dibujo y una
 # línea guía que une cada marca con su explicación)
 MOTOR_ACT <- "Reglas: retícula de la lámina 16:9 (13.33 x 7.5 in) con márgenes y bandas"
@@ -100,6 +152,7 @@ for (i in seq_along(textos)) { if (i >= 5) marca(doc, i, xl, yl[i] - 0.04, d = 0
 zona("lámina a escala 0.56", ox, oy, fw, fh)
 pie(doc, "Lámina de 16:9 dibujada a poco más de la mitad de su tamaño. Todas las láminas del informe usan este esqueleto")
 
+}
 # --- R3 colores y lo que significan
 MOTOR_ACT <- "Reglas: paleta validada y regla de uso de cada color"
 doc <- nueva(doc); titulo(doc, "Los colores y lo que significan", ante = "Reglas de la identidad")
@@ -150,6 +203,17 @@ lista_marcada(doc, c("Se recomiendan entre 40 y 70 palabras.", "Las cifras que m
 zona("cuatro posiciones del texto", XC, y4, AC, h4 + 0.95)
 pie(doc, "")
 
+# --- R6 en la propuesta nueva: la misma lámina estándar y qué es cada elemento en PowerPoint (logo real, no un óvalo)
+if (NUEVA) {
+MOTOR_ACT <- "Reglas: naturaleza nativa de cada elemento de la lámina (título en marcador de título, gráficos vectoriales rvg::dml, tablas flextable)"
+doc <- nueva(doc); titulo(doc, "Qué es cada elemento en PowerPoint", ante = "Reglas de la lámina")
+k <- 0.58; ox <- XC + 0.75; oy <- YT - 0.05; pos <- mini_lamina(doc, ox, oy, k)
+anotar(doc, ox, oy, k, pos, list(list("titulo", "Título", "Marcador de título: va al esquema y a la navegación"),
+  list("logo", "Logo", "Diseño de la plantilla: se cambia en el patrón"), list("pregunta", "Textos", "Cuadros de texto con tamaño y color fijados"),
+  list("grafico", "Gráfico", "Vectorial: cada barra y cifra es una forma editable"), list("leyenda", "Leyenda", "Formas agrupadas que se mueven con el gráfico")), xl = ox + W * k + 0.6)
+zona("lámina estándar con cinco tipos de elemento", ox, oy, W * k, H * k)
+pie(doc, "Nada se pega como imagen: todo se puede editar en PowerPoint")
+} else {
 # --- R6 qué es cada elemento en PowerPoint (C6: la tabla «no es dinámica ni intuitiva»; ahora una lámina de ejemplo con
 # cada elemento marcado y una tarjeta breve por elemento: qué es y cómo se cambia)
 MOTOR_ACT <- "Reglas: naturaleza nativa de cada elemento de la lámina (título en marcador de título, gráficos vectoriales rvg::dml, tablas flextable)"
@@ -180,3 +244,4 @@ for (i in seq_along(tarjetas)) { y <- oy + (i - 1) * ht
   }
 zona("lámina de ejemplo con cinco elementos marcados", ox, oy, fw, fh)
 pie(doc, "")
+}

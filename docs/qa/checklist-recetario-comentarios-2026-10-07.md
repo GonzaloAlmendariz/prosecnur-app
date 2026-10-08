@@ -188,3 +188,13 @@ Pedido: «ajustar el orden y la estructura del recetario para que se vea profesi
 | V3 | Láminas nuevas | Lámina estándar medida y escala tipográfica; 3 portadas y 2 objetivos alternativos; histograma, dicotómica y nube solos; catálogo de 32 tipos (3 láminas) y una ficha medida por tipo seguida de sus ejemplos; 2 láminas de combinaciones; 13 láminas de estudios con cifras ficticias sin instituciones (varios programas, línea base, PDM, aulas, organizacional, antes y después) | ☑ |
 | V4 | Banco en positivo | «Cómo combinar los íconos» y «Cómo combinar las cajas» (ejemplo y por qué funciona); «nunca» reescritos; «uso excepcional» y «propuesta en lugar del radar» como alternativas. La fiel conserva su versión | ☑ |
 | V5 | ≥ 250 láminas y revisión visual completa | 275 láminas; hojas de contacto revisadas; auditoría: 0 vetados, 0 marcadores vacíos, 0 «evitar» o «nunca», 0 formas fuera, 0 contraste bajo. Nota: `xml_audit.py` numera por el archivo slideN.xml, no por el orden tras reordenar | ☑ |
+
+### Revisión crítica de la propuesta (2026-10-08)
+
+| # | Comentario | Qué se hizo | Estado |
+|---|---|---|---|
+| W1 | «Primero tienes que presentarla: qué es la lámina estándar, dónde va el título, el antetítulo, la pregunta» | Lámina nueva «La lámina estándar» antes de las medidas: miniatura fiel a la plantilla con ocho elementos marcados y su guía. La lámina de medidas pasa a la siguiente y luego «Cómo se lee un gráfico» | ☑ |
+| W2 | «Qué es cada elemento en PowerPoint… círculos ovalados que podrías reemplazar con el logo de PULSO» | Rehecha sobre la misma miniatura, con el logo real de la plantilla y marcas con líneas guía | ☑ |
+| W3 | «En las portadas el informe consolidado no se ve bien, la línea gris choca con la naranja; hay una portada que no es en la que quedamos» | Portada alineada a la izquierda respeta la línea coral de la plantilla (título arriba, encargo debajo); portada con el público retirada | ☑ |
+| W4 | «Ojo crítico» | Revisión de las 274 láminas: ficha técnica («administrativos» cortado), cifra del caso multiprograma encimada, referencias a la numeración antigua (IV.1), «la moderna» y «uso excepcional» en pies; antetítulos de 1.1 unificados | ☑ |
+| W5 | «Cuida que los números dentro del círculo morado estén centrados» | El número de cada marca va anclado al centro del círculo y sin márgenes internos (`sanear_ph.py`, cuadros «Centro…») | ☑ |
