@@ -36,9 +36,9 @@ Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendien
 | C27 | 69 | «Estas etiquetas pueden ser mejores y estar mejor posicionadas» | `recetario_m3c.R` puntos comparativos | ☑ cifras en la misma línea que sus puntos: la mayor a la derecha y la menor a la izquierda (`cifras_par`) |
 | C28 | 70 | «Mismo comentario: mejores y mejor posicionadas» | `recetario_m3c.R` brecha | ☑ misma corrección y la diferencia entre públicos en azul neutro (antes en rojo) |
 | C29 | 71 | «No has puesto el caso de varios años para que se vea algo mejor» | `recetario_m3c.R` serie temporal | ☑ lámina nueva con cuatro procesos (2012, 2016, 2021 y 2026) con la pieza `grafico_serie` |
-| C30 | 75 | «El mapa de calor puede estar mejor, más claro y más didáctico; además no queda claro su caso de uso» | `recetario_m3d.R` | ☐ |
-| C31 | 76 | «No queda claro su caso de uso» | `recetario_m3d.R` | ☐ |
-| C32 | 77 | «Se puede ver mejor y más profesional» | `recetario_m3d.R` comparativo de dimensiones | ☐ |
+| C30 | 75 | «El mapa de calor puede estar mejor, más claro y más didáctico; además no queda claro su caso de uso» | `recetario_m3d.R` | ☑ una sola escala de azul ajustada al rango de los datos, la diferencia con el total bajo cada cifra, asterisco en bases de menos de 15 y el uso en el subtítulo. Sin notas de lectura atadas al ejemplo (Gonzalo: «deben ser robustos a distintos tipos de actores y datos») |
+| C31 | 76 | «No queda claro su caso de uso» | `recetario_m3d.R` | ☑ subtítulo con el uso (ver qué ítem sube o baja el índice de su dimensión) y la misma escala neutra ajustada al rango |
+| C32 | 77 | «Se puede ver mejor y más profesional» | `recetario_m3d.R` comparativo de dimensiones | ☑ barras finas sobre un riel al 100 %, cifra al final, leyenda arriba y columna «Diferencia» con los puntos y el grupo a favor (rótulo tomado de los datos) |
 | C33 | 79 | «Este slide no le compete al equipo cuanti» (FODA) | `recetario_m3d.R` | ☑ lámina retirada |
 | C34 | 80 | «Podría servir para otro escenario: palabras, pares o tríos más comunes (quitando filler words) y al lado la categorización de esas respuestas de texto abierto en una pregunta de selección única o múltiple, de forma profesional» | `recetario_m3e.R` nube | ☐ |
 | C35 | 81 | «No pintas nada ni muestras cómo se aplica para un solo grupo, dos grupos comparativos, etc.; la posición de la leyenda con el texto hace que el mapa se vea muy pequeño. Faltan más casos con más distritos y más ocasiones diferentes» | `recetario_m3e.R` mapa | ☐ |
@@ -48,3 +48,6 @@ Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendien
 | C39 | 110 | «No se entiende el caso de uso de este» (conteos por año) | `recetario_m5.R` | ☑ panel a la derecha de la matriz con cuándo se usa (hechos con fecha y respuesta múltiple), por qué una matriz y la lectura |
 | C40 | 122 | «Aún no termina de verse profesional; las etiquetas se ven algo sueltas» | `recetario_m6.R` estudio por olas | ☑ rehecha con `grafico_serie`: guías con escala, puntos con borde, cifras arriba o debajo según la serie y su nombre al final |
 | C41 | 138 | «Integrar esto como un tipo de gráfico, está muy interesante» (línea de tiempo) | `recetario_m7.R` → catálogo III.3 | ☑ descartado por Gonzalo: «Mejor no agregamos la línea de tiempo, no la vamos a usar». Retirada también del banco de recursos |
+
+
+Transversal (Gonzalo, 2026-10-07: «La leyenda no están centradas»): `leyenda()` mide la tinta real con systemfonts en vez de estimar por caracteres y junta los ítems cuando no cabe centrada. Medición sobre el PDF de la moderna (`medir_leyendas.py` del scratchpad, con `LEY_LOG`): 59 leyendas, 0 descentradas más de 0.06 in. Antes: 6, entre 0.14 y 0.8 in.

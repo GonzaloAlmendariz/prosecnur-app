@@ -123,12 +123,18 @@ pie <- function(doc, base) {
   zona("base", ML, Y_BASE, 10.5, 0.4)
   dibujar_guias(doc)
 }
+# Ancho real de la tinta (systemfonts, Arial), no la estimación por caracteres: con ella las leyendas se veían corridas
+# (pedido de Gonzalo, 2026-10-07: «La leyenda no están centradas»). Un cuadro de texto de officer deja 0.1 in de margen interno.
+ancho_tinta <- function(s, size, bold = FALSE) systemfonts::string_width(s, family = TK$font, size = size, res = 72, bold = bold) / 72
 leyenda <- function(doc, x, y, labels, cols, size = PT$leyenda, centrar_en = NULL) {
-  ws <- vapply(labels, function(s) ancho_txt(s, size) + 0.32, 0); tot <- sum(ws) + 0.25 * (length(ws) - 1)
-  if (!is.null(centrar_en)) x <- centrar_en - tot / 2
+  wk <- ancho_tinta(labels, size); ws <- 0.22 + wk; gap <- 0.3; tot <- sum(ws) + gap * (length(ws) - 1)   # cuadro, 0.07 de aire, texto
+  if (!is.null(centrar_en)) { disp <- 2 * min(centrar_en - ML, W - MR - centrar_en)   # si no cabe centrada, se juntan los ítems antes de correrla
+    if (tot > disp && length(ws) > 1) { gap <- max(0.15, (disp - sum(ws)) / (length(ws) - 1)); tot <- sum(ws) + gap * (length(ws) - 1) }
+    x <- centrar_en - tot / 2 }
   x <- min(max(x, ML), W - MR - tot)   # nunca fuera del margen
   x0 <- x
-  for (k in seq_along(labels)) { caja(doc, x, y + 0.07, 0.15, 0.15, cols[k]); txt(doc, labels[k], x + 0.2, y, ws[k], 0.3, size, TK$navy); x <- x + ws[k] + 0.25 }
+  if (nzchar(Sys.getenv("LEY_LOG"))) cat(sprintf("%d\t%.3f\t%.3f\t%.3f\t%s\n", FOLIO, y, centrar_en %||% NA, x0, labels[length(labels)]), file = Sys.getenv("LEY_LOG"), append = TRUE)
+  for (k in seq_along(labels)) { caja(doc, x, y + 0.07, 0.15, 0.15, cols[k]); txt(doc, labels[k], x + 0.12, y, wk[k] + 0.3, 0.3, size, TK$navy); x <- x + ws[k] + gap }
   zona("leyenda", x0, y, tot, 0.3)
 }
 # Barra apilada al 100 %. Cifra dentro si el segmento la contiene a 14 pt; si no,
