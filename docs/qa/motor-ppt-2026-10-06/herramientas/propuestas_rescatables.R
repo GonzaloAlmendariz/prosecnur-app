@@ -285,8 +285,8 @@ pie(doc, "Prueba z de diferencia de proporciones en los seis pares, p ajustada p
 
 # Versiones para público general (2026-10-08: «debe haber una versión avanzada como la que muestras, pero también una versión entendible para un
 # público general»). Mismos datos y misma prueba que las técnicas; sin p ni intervalos, y la significancia dicha en palabras.
-# G2. Dos públicos: cada pregunta con sus dos puntos y la distancia entre ellos marcada sólo cuando es una diferencia clara
-doc <- nueva(doc); titulo(doc, "Dónde docentes y estudiantes se diferencian de verdad", ante = "Propuesta 5: versión para público general")
+# G2. Dos públicos: cada pregunta con sus dos puntos y la distancia marcada sólo cuando es significativa (no «clara»: significativa no quiere decir grande)
+doc <- nueva(doc); titulo(doc, "Dónde la diferencia entre docentes y estudiantes es significativa", ante = "Propuesta 5: versión para público general")
 xq <- XC; xg0 <- XC + 3.4; wg <- 5.5; xr <- xg0 + wg + 0.95; lo_ <- 50; hi_ <- 100; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
 leyenda(doc, 0, YT - 0.05, c("Docentes", "Estudiantes"), c(COL_D, COL_E), centrar_en = xg0 + wg / 2)
 y_ <- YT + 0.5; rh <- 0.62
@@ -298,8 +298,8 @@ for (i in 1:6) { yc <- y_ + (i - 1) * rh + rh / 2; s_ <- it2$sig[i]; a <- it2$p1
   for (k in 1:2) { v <- c(a, b)[k]; caja(doc, px(v) - 0.12, yc - 0.12, 0.24, 0.24, c(COL_D, COL_E)[k], geom = "ellipse", line = sp_line(color = "#FFFFFF", lwd = 1))
     der <- (k == 1 && a >= b) || (k == 2 && b > a)   # la cifra mayor a la derecha de su punto, la menor a la izquierda
     txt(doc, paste0(v, "%"), if (der) px(v) + 0.12 else px(v) - 0.82, yc - 0.15, 0.7, 0.3, 12, TK$navy, bold = TRUE, align = if (der) "left" else "right") }
-  txt(doc, if (s_) "Diferencia clara" else "Sin diferencia clara", xr - 0.1, yc - 0.15, W - MR - xr + 0.1, 0.3, 13, if (s_) TK$navy else TK$soft, bold = s_) }
-txt(doc, "«Diferencia clara»: es muy poco probable que la distancia entre los dos públicos se deba al azar de quiénes respondieron.", XT, YT + 4.55, AC, 0.35, 12.5, TK$navy)
+  txt(doc, if (s_) "Significativa" else "No significativa", xr - 0.1, yc - 0.15, W - MR - xr + 0.1, 0.3, 13, if (s_) TK$navy else TK$soft, bold = s_) }
+txt(doc, "«Significativa»: la prueba estadística indica que es poco probable que la distancia se deba al azar de quiénes respondieron. No dice si la diferencia es grande o importante.", XT, YT + 4.55, AC, 0.35, 12.5, TK$navy)
 pie(doc, "Top Two Box o «Sí». Base: 52 docentes y 172 estudiantes (Auditoría y Tributación: 51 y 109). La versión técnica muestra el intervalo y la prueba")
 
 # G3. Cuatro públicos: barras ordenadas, el público que se distingue en azul oscuro y los que no se distinguen agrupados con una llave
@@ -311,11 +311,11 @@ for (r in seq_along(ord)) { i <- ord[r]; yb <- y0 + (r - 1) * fr; destaca <- nzc
   txt(doc, paste0(round(100 * p4[i]), "%"), xb + wb * p4[i] + 0.1, yb + (gbar - 0.34) / 2, 0.9, 0.34, 15, TK$navy, bold = TRUE) }
 r_est <- match(2, ord); r_egr <- match(3, ord); yl0 <- y0 + (min(r_est, r_egr) - 1) * fr; yl1 <- y0 + (max(r_est, r_egr) - 1) * fr + gbar
 yc_ <- llave_v(doc, xb + wb * 0.8 + 0.85, yl0, yl1, xb + wb * 0.8 + 1.15)
-txt(doc, "Sin diferencia clara entre ellos", xb + wb * 0.8 + 1.2, yc_ - 0.3, 1.9, 0.6, 12, TK$navy, bold = TRUE)
+txt(doc, "Sin diferencia significativa entre ellos", xb + wb * 0.8 + 1.2, yc_ - 0.3, 1.9, 0.6, 12, TK$navy, bold = TRUE)
 separador_v(doc, XC + 9.25, YT, YT + 3.7)
-narrativa(doc, XC + 9.5, YT + 0.2, W - MR - XC - 9.5, 2.3, list(N_("Los "), B("docentes"), N_(" conocen la misión más que estudiantes y egresados, y la diferencia es clara. Los "),
-  B("administrativos"), N_(" también marcan alto, pero con 15 casos no se puede afirmar que se distingan.")), size = 13)
-leyenda(doc, 0, y0 + 4 * fr + 0.05, c("Se distingue de los demás", "Sin diferencia clara"), c(TK$navy, TK$tenue), centrar_en = xb + wb / 2)
+narrativa(doc, XC + 9.5, YT + 0.2, W - MR - XC - 9.5, 2.3, list(N_("Los "), B("docentes"), N_(" conocen la misión más que estudiantes y egresados, y la diferencia es significativa. Los "),
+  B("administrativos"), N_(" también marcan alto, pero con 15 casos su diferencia no resulta significativa.")), size = 13)
+leyenda(doc, 0, y0 + 4 * fr + 0.05, c("Diferencia significativa con los demás", "Sin diferencia significativa"), c(TK$navy, TK$tenue), centrar_en = xb + wb / 2)
 txt(doc, "Barra punteada: base de menos de 30 casos.", xb - 0.1, y0 + 4 * fr + 0.42, wb, 0.28, 11, TK$soft, italic = TRUE)
 pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos. La versión técnica muestra la matriz de pares con la prueba")
 
