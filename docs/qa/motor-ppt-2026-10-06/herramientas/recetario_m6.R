@@ -83,7 +83,7 @@ pie(doc, "Base: 2,296 hogares entrevistados por teléfono")
 
 # --- V5 encuesta en aulas: prevalencia por facultad con su base (HST)
 MOTOR_ACT <- "p_slide_1_grafico: p_barras_agrupadas (orden mayor a menor) con n por categoría. Bases menores de 30 se aclaran (PROPUESTA de regla)"
-doc <- nueva(doc); titulo(doc, "Estudiantes que vivieron al menos una situación de hostigamiento", ante = "Encuesta en aulas")
+doc <- nueva(doc); titulo(doc, "Hostigamiento en el último año, por facultad", ante = "Encuesta en aulas")
 fac <- data.frame(f = c("Ciencias Sociales", "Arquitectura", "Derecho", "Ingeniería", "Educación", "Ciencias Contables", "Artes"), p = c(31, 27, 24, 19, 18, 15, 22), n = c(412, 188, 305, 690, 96, 140, 24))
 fac <- fac[order(-fac$p), ]
 wl <- 2.8; xb <- ML + wl + 0.3; wb <- 7.0; y0 <- YT + 0.5
