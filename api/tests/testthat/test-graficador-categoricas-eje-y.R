@@ -17,6 +17,7 @@ test_that("el eje Y se lee en porcentajes cuando lo graficado es una proporcion"
   skip_if_not_installed("ggplot2")
 
   p <- graficar_barras_categoricas(
+    orientacion = "vertical",  # el eje Y es de las columnas; la horizontal del recetario no tiene eje (ADR 0092)
     data = data.frame(
       categoria = c("Alto", "Medio", "Bajo"),
       n         = c(9, 6, 5),
@@ -38,6 +39,7 @@ test_that("un eje de conteos sigue mostrando conteos", {
   skip_if_not_installed("ggplot2")
 
   p <- graficar_barras_categoricas(
+    orientacion = "vertical",  # el eje Y es de las columnas; la horizontal del recetario no tiene eje (ADR 0092)
     data = data.frame(
       categoria = c("Alto", "Medio", "Bajo"),
       n         = c(90, 60, 50),
@@ -63,6 +65,7 @@ test_that("el analista puede forzar la lectura del eje en ambos sentidos", {
   )
 
   forzado_pct <- graficar_barras_categoricas(
+    orientacion = "vertical",  # el eje Y es de las columnas; la horizontal del recetario no tiene eje (ADR 0092)
     data = datos, var_categoria = "categoria", var_n = "n",
     modo_valor = "conteo", mostrar_eje_y = TRUE,
     eje_y_porcentaje = TRUE
@@ -70,6 +73,7 @@ test_that("el analista puede forzar la lectura del eje en ambos sentidos", {
   expect_true(all(grepl("%$", etiquetas_eje_y(forzado_pct))))
 
   forzado_num <- graficar_barras_categoricas(
+    orientacion = "vertical",  # el eje Y es de las columnas; la horizontal del recetario no tiene eje (ADR 0092)
     data = datos, var_categoria = "categoria", var_valor = "pct",
     var_n = "n", var_pct = "pct", modo_valor = "valor",
     mostrar_eje_y = TRUE,
@@ -98,7 +102,8 @@ test_that("el eje del plan PPT queda en la misma escala que sus etiquetas", {
     data = dat, instrumento = inst,
     plan = list(diapo_001 = p_slide_1_grafico(
       grafico = p_barras_categoricas("p1", overrides = list(
-        mostrar_eje_y = TRUE, usar_canvas = FALSE
+        mostrar_eje_y = TRUE, usar_canvas = FALSE,
+        orientacion = "vertical"  # el eje es de las columnas (ADR 0092)
       ))
     )),
     presets = p_presets(barras_categoricas = .PRESETS_DEFAULT_PULSO$barras_categoricas),
