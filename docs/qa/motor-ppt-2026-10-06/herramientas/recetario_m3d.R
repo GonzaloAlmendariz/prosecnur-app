@@ -15,58 +15,84 @@ M_it <- sapply(grupos, ttb_it)                                   # ítems x grup
 M_dim <- t(sapply(dims, function(ix) colMeans(M_it[ix, , drop = FALSE])))  # dimensiones x grupos
 resp_bat <- apply(sapply(items, function(v) as.character(de[[v]]) %in% c("1", "2", "3", "4")), 1, any)   # respondió la batería
 n_g <- sapply(grupos, function(g) sum(g & resp_bat))   # base real: quienes respondieron, no el total del grupo
-azul <- function(v, lo = 80, hi = 100) grDevices::colorRampPalette(c("#EEF2F8", "#2F4B7C"))(41)[pmin(41, pmax(1, round((v - lo) / (hi - lo) * 40) + 1))]
-celda <- function(doc, x, y, w, h, v) { col <- azul(v); caja(doc, x + 0.02, y + 0.02, w - 0.04, h - 0.04, col)
-  txt(doc, paste0(round(v), "%"), x, y + (h - 0.3) / 2, w, 0.3, 12, if (1.05 / (lum(col) + .05) >= 4.5) "#FFFFFF" else TK$navy, bold = TRUE, align = "center") }
-escala_azul <- function(doc, x, y, w, lo = 80, hi = 100) { n <- 20; for (i in 0:(n - 1)) caja(doc, x + i * w / n, y, w / n + 0.005, 0.16, azul(lo + (hi - lo) * i / (n - 1), lo, hi))
-  txt(doc, paste0(lo, "%"), x - 0.55, y - 0.06, 0.5, 0.26, 10, TK$soft, align = "right"); txt(doc, paste0(hi, "%"), x + w + 0.05, y - 0.06, 0.6, 0.26, 10, TK$soft) }
+
+# C30 a C32 (comentarios de Gonzalo, 2026-10-07). Los mapas de calor usan una sola escala de azul que se ajusta al rango de
+# los datos (del múltiplo de 5 bajo el mínimo al de encima del máximo), para que sirvan con cualquier actor y cualquier batería; debajo de
+# cada cifra va su diferencia con el total, en puntos. Sin notas de lectura atadas al ejemplo: el uso va en el subtítulo.
+rango_calor <- function(M) c(max(0, floor(min(M, na.rm = TRUE) / 5) * 5), min(100, ceiling(max(M, na.rm = TRUE) / 5) * 5))
+calor <- function(v, lo, hi) grDevices::colorRampPalette(c("#EEF2F8", "#9FB1D1", "#2F4B7C"))(41)[pmin(41, pmax(1, round((v - lo) / (hi - lo) * 40) + 1))]
+celda_calor <- function(doc, x, y, w, h, v, lo, hi, ref = NULL) {
+  col <- calor(v, lo, hi); caja(doc, x + 0.02, y + 0.02, w - 0.04, h - 0.04, col); tc <- texto_sobre(col)
+  if (is.null(ref) || h < 0.6) txt(doc, paste0(round(v), "%"), x, y + (h - 0.3) / 2, w, 0.3, 12, tc, bold = TRUE, align = "center")
+  else { dd <- round(v) - round(ref)
+    txt(doc, paste0(round(v), "%"), x, y + h / 2 - 0.3, w, 0.3, 13, tc, bold = TRUE, align = "center")
+    txt(doc, if (dd == 0) "=" else sprintf("%+d", dd), x, y + h / 2, w, 0.26, 10, tc, align = "center") } }
+escala_calor <- function(doc, centro, y, lo, hi, w = 3.2, rotulo = "Top Two Box") {   # barra de degradado centrada, con sus extremos
+  wr <- ancho_tinta(rotulo, 11, TRUE) + 0.25; wlo <- ancho_tinta(paste0(lo, "%"), 10) + 0.1; whi <- ancho_tinta(paste0(hi, "%"), 10) + 0.1
+  tot <- wr + wlo + w + whi; x <- centro - tot / 2
+  txt(doc, rotulo, x - 0.1, y - 0.07, wr + 0.2, 0.3, 11, TK$soft, bold = TRUE); x <- x + wr
+  txt(doc, paste0(lo, "%"), x - 0.1, y - 0.06, wlo + 0.2, 0.26, 10, TK$soft); x <- x + wlo
+  n <- 24; for (i in 0:(n - 1)) caja(doc, x + i * w / n, y, w / n + 0.005, 0.16, calor(lo + (hi - lo) * i / (n - 1), lo, hi))
+  txt(doc, paste0(hi, "%"), x + w + 0.0, y - 0.06, whi + 0.2, 0.26, 10, TK$soft)
+  zona("escala", centro - tot / 2, y, tot, 0.16) }
 
 MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "III.4", "Dimensiones e índices", "Requieren las dimensiones calculadas en Analítica", icono = ICONO_SECCION[6])
 
 # --- p_dim_heatmap: dimensiones por grupo
 MOTOR_ACT <- "p_slide_1_grafico: p_dim_heatmap"
-doc <- nueva(doc); titulo(doc, "Competencias del perfil de egreso por grupo", ante = "Mapa de calor por dimensión")
-cols <- c("Total", "Masculino", "Femenino", names(cic_cod)); xl <- ML + 2.9; wc <- (W - MR - xl) / length(cols); hc <- 1.0; y0 <- YT + 0.85
-for (j in seq_along(cols)) { txt(doc, sub(" ciclo", "", cols[j]), xl + (j - 1) * wc, y0 - 0.62, wc, 0.26, 11, TK$navy, bold = TRUE, align = "center")
-  txt(doc, sprintf("%d", n_g[[cols[j]]]), xl + (j - 1) * wc, y0 - 0.36, wc, 0.24, 10, TK$faint, align = "center") }
-txt(doc, "Sexo", xl + wc, y0 - 0.92, 2 * wc, 0.26, 10, TK$soft, bold = TRUE, align = "center"); txt(doc, "Ciclo", xl + 3 * wc, y0 - 0.92, 6 * wc, 0.26, 10, TK$soft, bold = TRUE, align = "center")
+doc <- nueva(doc); titulo(doc, "Competencias del perfil de egreso por grupo", ante = "Mapa de calor por dimensión",
+                          sub = "Varios grupos en pocas dimensiones, con la diferencia de cada grupo frente al total")
+cols <- c("Total", "Masculino", "Femenino", names(cic_cod)); xl <- ML + 2.9; wc <- (W - MR - xl) / length(cols); hc <- 0.95; y0 <- YT + 0.85
+lh <- rango_calor(M_dim); chica <- n_g < 15
+for (j in seq_along(cols)) { txt(doc, sub(" ciclo", "", cols[j]), xl + (j - 1) * wc, y0 - 0.58, wc, 0.26, 11, TK$navy, bold = TRUE, align = "center")
+  txt(doc, sprintf("%d%s", n_g[[cols[j]]], if (chica[[cols[j]]]) "*" else ""), xl + (j - 1) * wc, y0 - 0.33, wc, 0.24, 10, TK$faint, align = "center") }
+txt(doc, "Sexo", xl + wc, y0 - 0.86, 2 * wc, 0.26, 10, TK$soft, bold = TRUE, align = "center"); txt(doc, "Ciclo", xl + 3 * wc, y0 - 0.86, 6 * wc, 0.26, 10, TK$soft, bold = TRUE, align = "center")
 for (i in seq_len(nrow(M_dim))) { yi <- y0 + (i - 1) * hc
   txt(doc, rownames(M_dim)[i], ML, yi + (hc - 0.3) / 2, 2.75, 0.3, 13, TK$navy, bold = TRUE, align = "right")
-  for (j in seq_along(cols)) celda(doc, xl + (j - 1) * wc, yi, wc, hc, M_dim[i, cols[j]]) }
+  for (j in seq_along(cols)) celda_calor(doc, xl + (j - 1) * wc, yi, wc, hc, M_dim[i, cols[j]], lh[1], lh[2], if (j == 1) NULL else M_dim[i, "Total"]) }
 caja(doc, xl + wc - 0.01, y0 - 0.1, 0.02, nrow(M_dim) * hc + 0.1, TK$navy); caja(doc, xl + 3 * wc - 0.01, y0 - 0.1, 0.02, nrow(M_dim) * hc + 0.1, TK$navy)
-escala_azul(doc, xl + 1.5, y0 + nrow(M_dim) * hc + 0.55, 4)
-txt(doc, "Top Two Box promedio", xl + 1.5, y0 + nrow(M_dim) * hc + 0.22, 4, 0.26, 10, TK$soft, bold = TRUE)
-zona("heatmap, escala fija 80 a 100", xl, y0, length(cols) * wc, nrow(M_dim) * hc)
-pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))
+escala_calor(doc, xl + length(cols) * wc / 2, y0 + nrow(M_dim) * hc + 0.45, lh[1], lh[2])
+zona("mapa de calor, escala ajustada al rango", xl, y0, length(cols) * wc, nrow(M_dim) * hc)
+pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias.%s Debajo de cada cifra, la diferencia con el total en puntos",
+                 n_g[["Total"]], if (any(chica)) " * Menos de 15 casos." else ""))
 
 # --- p_dim_heatmap_criterios: cada criterio dentro de su dimensión
 MOTOR_ACT <- "p_slide_1_grafico: p_dim_heatmap_criterios"
-doc <- nueva(doc); titulo(doc, "Cada competencia dentro de su dimensión", ante = "Mapa de calor por criterio")
-cols2 <- c("Total", "Masculino", "Femenino"); xl <- ML + 5.4; wc <- (W - MR - xl - 0.1) / 3; hc <- (YF - YT - 1.15) / 11; y0 <- YT + 0.4
+doc <- nueva(doc); titulo(doc, "Cada competencia dentro de su dimensión", ante = "Mapa de calor por criterio",
+                          sub = "Los ítems de cada dimensión por separado, para ver cuál sube o baja su índice")
+cols2 <- c("Total", "Masculino", "Femenino"); xl <- ML + 5.4; wc <- (W - MR - xl - 0.1) / 3; hc <- (YF - YT - 1.3) / 11; y0 <- YT + 0.75
+lh2 <- rango_calor(M_it[, cols2])
 for (j in seq_along(cols2)) txt(doc, sprintf("%s (%d)", cols2[j], n_g[[cols2[j]]]), xl + (j - 1) * wc, y0 - 0.35, wc, 0.26, 11, TK$navy, bold = TRUE, align = "center")
 fila_i <- 0
 for (dn in names(dims)) { ix <- dims[[dn]]; ytop <- y0 + fila_i * hc
   caja(doc, ML, ytop + 0.04, 0.05, length(ix) * hc - 0.08, TK$navy)
   txt(doc, dn, ML + 0.15, ytop + (length(ix) * hc - 0.3) / 2, 2.3, 0.3 * (1 + (nchar(dn) > 20)), 11, TK$soft, bold = TRUE)
-  for (k in ix) { yi <- y0 + fila_i * hc; txt(doc, nom_it[k], ML + 2.5, yi + (hc - 0.28) / 2, 2.55, 0.28, 11.5, TK$navy, bold = TRUE, align = "right")
-    for (j in seq_along(cols2)) celda(doc, xl + (j - 1) * wc, yi, wc, hc, M_it[k, cols2[j]]); fila_i <- fila_i + 1 }
-  fila_i <- fila_i; separador_h(doc, ML, xl + 3 * wc, y0 + fila_i * hc) }
-escala_azul(doc, ML + 2.7, YF - 0.22, 2.2); txt(doc, "Top Two Box", ML + 0.6, YF - 0.28, 1.5, 0.26, 10, TK$soft, bold = TRUE)
-zona("heatmap por criterio", xl, y0, 3 * wc, 11 * hc)
+  for (k in ix) { yi <- y0 + fila_i * hc; txt(doc, nom_it[k], ML + 2.5, yi + (hc - 0.28) / 2, 2.75, 0.28, 11.5, TK$navy, bold = TRUE, align = "right")
+    for (j in seq_along(cols2)) celda_calor(doc, xl + (j - 1) * wc, yi, wc, hc, M_it[k, cols2[j]], lh2[1], lh2[2]); fila_i <- fila_i + 1 }
+  separador_h(doc, ML, xl + 3 * wc, y0 + fila_i * hc) }
+escala_calor(doc, xl + 1.5 * wc, y0 + 11 * hc + 0.2, lh2[1], lh2[2])
+zona("mapa de calor por criterio", xl, y0, 3 * wc, 11 * hc)
 pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))
 
-# --- p_dim_comparativo_radarbar: subíndices comparados entre grupos (barras)
+# --- p_dim_comparativo_radarbar: subíndices comparados entre grupos (barras sobre riel con la diferencia al lado)
 MOTOR_ACT <- "p_slide_1_grafico: p_dim_comparativo_radarbar (componente de barras)"
 doc <- nueva(doc); titulo(doc, "Índices por sexo", ante = "Comparativo de dimensiones")
-xl <- ML + 3.1; wl <- W - MR - xl - 0.9; y0 <- YT + 0.6; bloque <- (YF - y0 - 0.6) / nrow(M_dim); gb <- 0.36
-px <- function(v) xl + wl * v / 100
-for (v in seq(0, 100, 20)) { caja(doc, px(v), y0, 0.006, nrow(M_dim) * bloque, TK$rule); txt(doc, paste0(v, "%"), px(v) - 0.35, y0 - 0.3, 0.7, 0.24, 10, TK$faint, align = "center") }
-for (i in seq_len(nrow(M_dim))) { yi <- y0 + (i - 1) * bloque
-  txt(doc, rownames(M_dim)[i], ML, yi + bloque / 2 - 0.15, 2.95, 0.3, 13, TK$navy, bold = TRUE, align = "right")
-  for (k in 1:2) { g_ <- c("Masculino", "Femenino")[k]; yb <- yi + bloque / 2 - gb - 0.03 + (k - 1) * (gb + 0.06); v <- M_dim[i, g_]
-    caja(doc, xl, yb, px(v) - xl, gb, c(TK$navy, "#4F7FAF")[k]); txt(doc, paste0(round(v), "%"), px(v) + 0.08, yb + (gb - 0.28) / 2, 0.8, 0.28, 12, TK$navy, bold = TRUE) } }
-zona("barras desde 0", xl, y0, wl, nrow(M_dim) * bloque)
-leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", c("Masculino", "Femenino"), n_g[c("Masculino", "Femenino")]), c(TK$navy, "#4F7FAF"), centrar_en = xl + wl / 2)
+xl <- ML + 3.1; xd <- W - MR - 2.3; wl <- xd - xl - 1.2; y0 <- YT + 0.75; bloque <- (YF - y0 - 0.35) / nrow(M_dim); gb <- 0.3
+px <- function(v) xl + wl * v / 100; cg2 <- c(TK$navy, "#4F7FAF"); gr2 <- c("Masculino", "Femenino")
+leyenda(doc, 0, YT + 0.05, sprintf("%s (%d)", gr2, n_g[gr2]), cg2, centrar_en = xl + wl / 2)
+txt(doc, "Diferencia", xd, YT + 0.05, W - MR - xd, 0.3, 12, TK$soft, bold = TRUE, align = "center")
+for (i in seq_len(nrow(M_dim))) { yi <- y0 + (i - 1) * bloque; yc <- yi + bloque / 2
+  if (i > 1) separador_h(doc, ML, W - MR, yi)
+  txt(doc, rownames(M_dim)[i], ML, yc - 0.17, 2.95, 0.34, 14, TK$navy, bold = TRUE, align = "right")
+  for (k in 1:2) { yb <- yc - gb - 0.05 + (k - 1) * (gb + 0.1); v <- M_dim[i, gr2[k]]
+    caja(doc, xl, yb, wl, gb, "#FFFFFF"); caja(doc, xl, yb, px(v) - xl, gb, cg2[k])
+    txt(doc, paste0(round(v), "%"), xl + wl + 0.1, yb + (gb - 0.3) / 2, 0.9, 0.3, 14, TK$navy, bold = TRUE) }
+  d <- round(M_dim[i, "Femenino"]) - round(M_dim[i, "Masculino"])
+  txt(doc, if (d == 0) "0" else sprintf("%d pts", abs(d)), xd, yc - 0.32, W - MR - xd, 0.4, 20, TK$navy, bold = TRUE, align = "center")
+  txt(doc, if (d == 0) "sin diferencia" else paste("a favor de", gr2[1 + (d > 0)]), xd, yc + 0.08, W - MR - xd, 0.3, 11, TK$soft, align = "center") }
+separador_v(doc, xd - 0.15, YT, YF - 0.3)
+txt(doc, "0%", xl - 0.3, YF - 0.3, 0.6, 0.24, 10, TK$faint, align = "center"); txt(doc, "100%", px(100) - 0.35, YF - 0.3, 0.7, 0.24, 10, TK$faint, align = "center")
+zona("barras desde 0 sobre riel al 100%", xl, y0, wl, nrow(M_dim) * bloque)
 pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))
 
 # --- p_dim_radar: once competencias como ejes (5 o más ejes), por sexo
