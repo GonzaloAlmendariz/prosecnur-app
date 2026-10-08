@@ -241,9 +241,9 @@ g_boxplot <- function(lista, n_txt = "") {
       axis.text.y = element_text(size = 8 * FS, colour = WTK$gris, family = "Arial"), panel.grid.major.y = element_line(colour = "#E3E6EC", linewidth = 0.3))
 }
 # Torta de varias categorías (fiel) o dona con la cifra principal al centro (moderna).
-g_torta <- function(labels, pct, n_txt = "", alto = 2.4) {
+g_torta <- function(labels, pct, n_txt = "", alto = 2.4, dona = TRUE) {
   d <- data.frame(k = factor(labels, levels = labels), v = pct); pal <- c(WTK$azul_si, WTK$celeste, "#2A9D8F", "#E9C46A", "#BFBFBF")[seq_along(labels)]
-  mod <- ESTILO == "moderna"; tl <- if (mod) 9.5 else 8.5
+  mod <- dona; tl <- 9.5
   # Dona y leyenda se centran JUNTAS en el ancho de la página: el panel es cuadrado (coord_polar), así que el margen
   # lateral se calcula con el ancho real del círculo y de la leyenda (pedido de Gonzalo: «la leyenda no usa todo el espacio y no está centrada»).
   panel <- alto - 0.5; leg <- max(nchar(labels)) * tl * 0.55 / 72 + 0.4; m <- max(0.1, (ANCHO_W - panel - leg - 0.35) / 2)
@@ -352,5 +352,56 @@ g_mapa <- function(capa, cat, pal, titulo_ley, n_txt = "", contorno = NULL, bord
           legend.box.spacing = unit(0.15, "in"), plot.margin = margin(4, 4, 4, 4))
   if (!is.null(contorno)) g <- g + geom_sf(data = contorno, fill = NA, colour = WTK$navy, linewidth = 0.6) + coord_sf(expand = FALSE, datum = NA)
   attr(g, "ancho") <- min(ANCHO_W, (alto - 0.35) / asp + ley_w + 0.25)
+  g
+}
+
+# Radar: varios ejes (competencias) y una línea por grupo, con el eje que empieza en `lo` y anillos cada 5 puntos.
+g_radar <- function(ejes, m, grupos, n_txt = "", lo = 80, cols = c("#0B4F8C", "#2A9D8F", "#E9C46A")) {
+  k <- length(ejes); ang <- pi / 2 - 2 * pi * (0:(k - 1)) / k; rr <- function(v) (pmax(v, lo) - lo) / (100 - lo)
+  ring <- do.call(rbind, lapply(seq(lo + 5, 100, 5), function(v) data.frame(r = v, x = rr(v) * cos(c(ang, ang[1])), y = rr(v) * sin(c(ang, ang[1])))))
+  ser <- do.call(rbind, lapply(seq_along(grupos), function(a) data.frame(a = grupos[a], x = rr(m[, a]) * cos(c(ang, ang[1])), y = rr(m[, a]) * sin(c(ang, ang[1])))))
+  ser$a <- factor(ser$a, levels = grupos)
+  lab <- data.frame(t = stringr::str_wrap(ejes, 16), x = 1.2 * cos(ang), y = 1.13 * sin(ang), h = ifelse(abs(cos(ang)) < 0.15, 0.5, ifelse(cos(ang) > 0, 0, 1)))
+  # los rótulos de los anillos van en la diagonal entre los dos primeros ejes, donde no hay eje
+  ggplot() + geom_path(data = ring, aes(x, y, group = r), colour = "#D5D9DF", linewidth = 0.3) +
+    annotate("text", x = rr(seq(lo + 5, 100, 5)) * cos(pi / 2 - pi / k), y = rr(seq(lo + 5, 100, 5)) * sin(pi / 2 - pi / k), label = paste0(seq(lo + 5, 100, 5), "%"), hjust = 0.5, vjust = 0.5, size = PT(7.5), colour = WTK$gris, family = "Arial") +
+    geom_path(data = ser, aes(x, y, group = a, colour = a), linewidth = 0.9) + geom_point(data = ser, aes(x, y, colour = a), size = 1.6) +
+    geom_text(data = lab, aes(x, y, label = t, hjust = h), size = PT(8), colour = WTK$navy_w, family = "Arial", fontface = "bold", lineheight = 0.9) +
+    scale_colour_manual(values = setNames(cols[seq_along(grupos)], grupos), name = NULL) + coord_equal(xlim = c(-1.9, 1.9), ylim = c(-1.3, 1.3), clip = "off") +
+    labs(caption = fuente_pie(paste0(n_txt, ". El eje empieza en ", lo, "%"))) + tema_w()
+}
+# Forest de la diferencia entre dos grupos: punto en la diferencia y barra en su intervalo; lleno si el intervalo no cruza el cero.
+g_forest <- function(items, d, lo_ic, hi_ic, n_txt = "", etq = c("Mayor en el segundo grupo", "Mayor en el primer grupo")) {
+  n <- length(items); x <- data.frame(t = items, d = d, lo = lo_ic, hi = hi_ic, y = rev(seq_len(n))); x$sig <- x$lo > 0 | x$hi < 0
+  lim <- max(abs(c(x$lo, x$hi))) * 1.15
+  ggplot(x) + annotate("rect", xmin = -lim, xmax = lim, ymin = 0.4, ymax = n + 0.6, fill = "#F3F5F8") + geom_vline(xintercept = 0, colour = WTK$navy_w, linewidth = 0.5) +
+    geom_segment(aes(x = lo, xend = hi, y = y, yend = y, colour = sig), linewidth = 1.6, lineend = "round") +
+    geom_point(aes(x = d, y = y, fill = sig, colour = sig), shape = 21, size = 3.2, stroke = 1.2) +
+    scale_colour_manual(values = c(`TRUE` = WTK$navy, `FALSE` = "#B8C2D3"), guide = "none") + scale_fill_manual(values = c(`TRUE` = WTK$navy, `FALSE` = "#FFFFFF"), guide = "none") +
+    geom_text(aes(x = lim * 1.05, y = y, label = sprintf("%+d pts [%+d a %+d]", round(d), round(lo), round(hi)), fontface = ifelse(sig, "bold", "plain")), hjust = 0, size = PT(8.5), colour = WTK$navy_w, family = "Arial") +
+    annotate("text", x = -lim - lim * 0.05, y = x$y, label = stringr::str_wrap(x$t, 30), hjust = 1, size = PT(8.5), fontface = "bold", colour = WTK$navy_w, family = "Arial", lineheight = 0.9) +
+    annotate("text", x = c(-lim / 2, lim / 2), y = 0.15, label = etq, size = PT(8), fontface = "italic", colour = WTK$gris, family = "Arial") +
+    scale_x_continuous(limits = c(-lim * 3.2, lim * 2.1), expand = c(0, 0)) + scale_y_continuous(limits = c(-0.1, n + 0.7)) + labs(caption = fuente_pie(n_txt)) + tema_w() + coord_cartesian(clip = "off")
+}
+# Cuánto cambió cada indicador: barra desde el cero, verde si sube y coral si baja, con su cifra.
+g_cambio <- function(items, d, n_txt = "") {
+  n <- length(items); x <- data.frame(t = items, d = d, y = rev(seq_len(n))); lim <- max(abs(d)) * 1.25
+  ggplot(x) + geom_rect(aes(xmin = 0, xmax = d, ymin = y - 0.3, ymax = y + 0.3, fill = d > 0)) + scale_fill_manual(values = c(`TRUE` = WTK$verde, `FALSE` = "#CA5651"), guide = "none") +
+    geom_vline(xintercept = 0, colour = WTK$navy_w, linewidth = 0.4) +
+    geom_text(aes(x = d + ifelse(d > 0, lim * 0.03, -lim * 0.03), y = y, label = sprintf("%+d pts", d), hjust = ifelse(d > 0, 0, 1)), size = PT(9), fontface = "bold", colour = WTK$navy_w, family = "Arial") +
+    annotate("text", x = -lim - lim * 0.05, y = x$y, label = stringr::str_wrap(x$t, 34), hjust = 1, size = PT(9), fontface = "bold", colour = WTK$navy_w, family = "Arial", lineheight = 0.9) +
+    scale_x_continuous(limits = c(-lim * 2.6, lim * 1.2), expand = c(0, 0)) + scale_y_continuous(limits = c(0.4, n + 0.6)) + labs(caption = fuente_pie(n_txt)) + tema_w() + coord_cartesian(clip = "off")
+}
+# Dos mapas lado a lado (dos grupos), con la leyenda común al lado y centrada.
+g_mapas2 <- function(capas, titulos, cats, pal, titulo_ley, n_txt = "", alto = 3.6) {
+  uno <- function(i, ley = FALSE) { c_ <- sf::st_sf(geometry = sf::st_geometry(capas[[i]])); c_$k <- factor(cats[[i]], levels = names(pal))
+    ggplot(c_) + geom_sf(aes(fill = k), colour = "#B8C2D3", linewidth = 0.12) + scale_fill_manual(values = pal, name = titulo_ley, drop = FALSE) +
+      coord_sf(expand = FALSE, datum = NA) + labs(title = titulos[i]) + theme_void(base_family = "Arial") +
+      theme(plot.title = element_text(size = 9, face = "bold", colour = WTK$navy_w, hjust = 0), legend.position = if (ley) "right" else "none",
+            legend.title = element_text(size = 8, face = "bold", colour = WTK$gris), legend.text = element_text(size = 8.5, colour = WTK$navy_w),
+            legend.key = element_rect(colour = "#B8C2D3", linewidth = 0.3), plot.background = element_blank(), panel.background = element_blank()) }
+  ley <- cowplot::get_legend(uno(1, TRUE))
+  g <- cowplot::plot_grid(uno(1), uno(2), ley, nrow = 1, rel_widths = c(1, 1, 0.7))
+  g <- cowplot::ggdraw(g) + labs(caption = fuente_pie(n_txt)) + tema_w()
   g
 }

@@ -167,10 +167,10 @@ contraportada <- function(doc) {   # en la guía, la sección anterior ya cerró
 }
 # ---- miniaturas: cada alternativa se arma como un docx de verdad, con estos mismos estilos, y se muestra su primera página
 mini <- function(nombre, construir, derecha = "Diseño metodológico") { d <- construir(nuevo_doc(derecha)); f <- file.path(TMP, paste0("mini_", nombre, ".docx")); print(d, target = f); f }
-mini_png <- function(docs, pagina = 1) {
+mini_png <- function(docs, pagina = 1, res = 90, paginas = rep(pagina, length(docs))) {
   system2("soffice", c("--headless", "--convert-to", "pdf", "--outdir", shQuote(TMP), shQuote(docs)), stdout = FALSE, stderr = FALSE)
-  vapply(docs, function(f) { pdf <- sub("\\.docx$", ".pdf", f); o <- sub("\\.docx$", "", f)
-    system2("pdftoppm", c("-png", "-r", "90", "-f", pagina, "-l", pagina, "-singlefile", shQuote(pdf), shQuote(o)))
+  vapply(seq_along(docs), function(i) { f <- docs[i]; pdf <- sub("\\.docx$", ".pdf", f); o <- paste0(sub("\\.docx$", "", f), "_", res, "_", paginas[i])
+    system2("pdftoppm", c("-png", "-r", res, "-f", paginas[i], "-l", paginas[i], "-singlefile", shQuote(pdf), shQuote(o)))
     im <- magick::image_border(magick::image_read(paste0(o, ".png")), "#C9CED8", "2x2"); magick::image_write(im, paste0(o, ".png")); paste0(o, ".png") }, "")
 }
 galeria <- function(doc, pngs, rotulos, por_fila = 3) {   # miniaturas de página A4 en fila, con su rótulo debajo

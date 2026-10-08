@@ -159,7 +159,7 @@ mn_ <- c(mini("portada_A", function(d) portada_A(d)), mini("portada_B", function
          mini("contraportada", function(d) contraportada(d), derecha = NULL))
 png_ <- mini_png(mn_[1:6]); png2_ <- mini_png(mn_[7]); png_int <- mini_png(mn_[8], pagina = 2); png_ctr <- mini_png(mn_[9], pagina = 1)
 doc <- seccion(doc, "Portada")
-doc <- cuerpo(doc, "La portada va sola en su página, alineada a la izquierda y sin bloques de color de fondo. Los logos van en su encabezado y no se repiten en el interior. El filete coral es el único acento de color del documento.", keep = TRUE)
+doc <- cuerpo(doc, "Cada alternativa se ve a página completa en el anexo. La portada va sola en su página, alineada a la izquierda y sin bloques de color de fondo. Los logos van en su encabezado y no se repiten en el interior. El filete coral es el único acento de color del documento.", keep = TRUE)
 doc <- galeria(doc, png_[1:3], c("A. Tipográfica (recomendada)", "B. Con banda lateral", "C. Con ficha del encargo"))
 doc <- lista(doc, c("A es la portada por defecto: título grande, filete corto, subtítulo y, al pie, quién elabora y la fecha.",
   "B sirve para series de informes de un mismo estudio: la banda azul los identifica en el escritorio y en la impresión.",
@@ -286,6 +286,8 @@ doc <- lista(doc, c("Los íconos de público y las formas decorativas: en Word e
 doc <- capitulo(doc, "Galería de gráficos", "Cada tipo de gráfico del motor en su formato de Word, con una línea sobre cuándo se usa. Los datos del proyecto de referencia se usan donde existen. El resto son cifras ficticias con la forma real de cada caso.")
 gal <- function(doc, nombre, cuando) { doc <- seccion(doc, nombre); parr(doc, tx(cuando, 10.5, SOFT), keep = TRUE) }
 sm <- D$ing_p35
+cn <- c("Estados Financieros", "Auditoría", "Costos y presupuestos", "Finanzas", "Tributación", "Visión empresarial")
+mm <- sapply(list(c("docentes", "p30_"), c("estudiantes", "p22_"), c("egresados", "p28_")), function(a) vapply(1:6, function(i) { f <- fr(a[1], paste0(a[2], i)); f$pct[3] + f$pct[4] }, 0))
 doc <- gal(doc, "Barras de categorías", "Preguntas de categorías sin orden propio. Van de la más elegida a la menos elegida y la mayor se destaca en azul oscuro.")
 doc <- grafico(doc, "¿Qué herramientas de inteligencia artificial usa en sus funciones laborales?", g_barras(c("IA generativa (ChatGPT, Copilot, etc.)", "Automatización inteligente", "Analítica avanzada", "Machine Learning", "Visión computacional", "No precisa"),
   c(99, 13, 11, 7, 1, 1), con_n = c(172, 23, 19, 12, 2, 2), n_txt = "N = 174 egresados que usan IA. Opción múltiple: los porcentajes pueden sumar más de 100"), alto_barras(6))
@@ -301,6 +303,8 @@ doc <- gal(doc, "Dicotómica", "Preguntas de Sí y No. La cifra grande es la del
 doc <- grafico(doc, "¿Cuenta con título universitario?, egresados", g_sino(t1$labels[1:2], t1$pct[1:2], t1$n[1:2], n_txt = sprintf("N = %d egresados", t1$valid)), 1.5)
 doc <- gal(doc, "Dona", "Pocas categorías que suman 100%. Con más de cinco se usan barras.")
 doc <- grafico(doc, "Situación laboral actual", g_torta(c("Trabaja de manera dependiente", "Trabaja de manera independiente", "No trabaja", "Estudia"), c(62, 21, 11, 6), n_txt = "N = 178 egresados", alto = 2.9), 2.9)
+doc <- gal(doc, "Torta con leyenda de cifras", "Dos a cuatro categorías que suman 100%. La leyenda lleva el nombre de cada parte y la torta, sus cifras.")
+doc <- grafico(doc, "¿Cuenta con título universitario?, egresados", g_torta(t1$labels[1:2], t1$pct[1:2], n_txt = sprintf("N = %d egresados", t1$valid), alto = 2.6, dona = FALSE), 2.6)
 doc <- gal(doc, "Histograma", "Variables numéricas como la edad. Cada columna es un valor y el triángulo marca la mediana.")
 ed <- D$edad$x[!is.na(D$edad$x) & D$edad$x <= 32]
 doc <- grafico(doc, "Edad de los estudiantes", g_hist(ed, n_txt = sprintf("N = %d estudiantes que declararon su edad", length(ed))), 2.5)
@@ -321,9 +325,14 @@ doc <- grafico(doc, "Valoración de la gestión de la carrera, docentes", g_dive
   list(c(4, 12, 54, 30), c(6, 18, 50, 26), c(12, 27, 44, 17), c(5, 15, 52, 28)), n_txt = "N = 148 docentes"), 2.4)
 doc <- gal(doc, "Ranking con puntos", "Una lista larga de opciones, de mayor a menor.")
 doc <- grafico(doc, "Qué podría mejorar la carrera (cinco opciones más mencionadas)", g_lollipop(head(sm$labels[order(-sm$pct)], 5), head(sort(sm$pct, decreasing = TRUE), 5), n_txt = "N = 131 egresados"), 2.8)
+doc <- gal(doc, "Ranking en barras", "La misma lista larga que el ranking con puntos, en barras. Conviene cuando las cifras son parecidas y hay que leer cada una.")
+rk_ <- order(-sm$pct)[1:7]
+doc <- grafico(doc, "Qué podría mejorar la carrera (siete opciones más mencionadas)", g_barras(stringr::str_trunc(sm$labels[rk_], 70), sm$pct[rk_], n_txt = "N = 131 egresados. Opción múltiple"), alto_barras(7) + 0.6)
 doc <- gal(doc, "Puntos comparativos y brecha", "Dos grupos o dos preguntas emparentadas en cada fila. La distancia entre los puntos es la brecha.")
 doc <- grafico(doc, "Conocer la misión frente a saber dónde consultarla, por público", g_dos_grupos(act, vapply(D$mision1, function(m) m$pct[1], 0), vapply(D$mision2, function(m) m$pct[1], 0),
   c("Conoce la misión", "Sabe dónde consultarla"), n_txt = sprintf("N = %s", paste(sprintf("%d %s", vapply(D$mision1, `[[`, 0L, "valid"), tolower(act)), collapse = ", ")), lim = 100), 2.4)
+doc <- gal(doc, "Brecha entre dos públicos", "Las mismas preguntas a dos públicos. Cada fila muestra a los dos y, a la derecha, cuántos puntos los separan.")
+doc <- grafico(doc, "Top Two Box de las competencias: docentes frente a estudiantes", g_dos_grupos(cn, mm[, 1], mm[, 2], c("Docentes", "Estudiantes"), n_txt = "N = 51 docentes y 109 estudiantes", lim = 100), 2.6)
 doc <- gal(doc, "Serie temporal", "Tres o más mediciones en el tiempo. Cada línea lleva su nombre al final, sin leyenda aparte.")
 doc <- grafico(doc, "Top Two Box de la tutoría académica en cuatro procesos de acreditación", g_serie(c("2012", "2016", "2021", "2026"), list(Docentes = c(88, 93, 98, 83), Estudiantes = c(71, 79, 84, 53)),
   n_txt = "N = 46, 49, 51 y 52 docentes. 702, 845, 1,102 y 1,234 estudiantes"), 2.4)
@@ -337,6 +346,10 @@ Mh_ <- Md_; colnames(Mh_) <- c("Total", "Hombres", "Mujeres", sub(" ciclo$", "",
 n_comp <- sum(apply(sapply(it_, function(v) as.character(de_[[v]]) %in% c("1", "2", "3", "4")), 1, any))
 doc <- gal(doc, "Mapa de calor por dimensión", "Varias dimensiones entre varios grupos. El tono va siempre de 80% a 100%, para que un color diga lo mismo en todo el informe.")
 doc <- grafico(doc, "Top Two Box de las competencias por dimensión y grupo, estudiantes", g_heat(Mh_, n_txt = sprintf("N = %d estudiantes. Las columnas de Quinto a Décimo son los ciclos", n_comp)), 2.4)
+lab11 <- vapply(it_, function(v) { t_ <- fr("estudiantes", v)$pregunta; paste(head(strsplit(t_, " ")[[1]], 5), collapse = " ") }, "")
+M11 <- Mi_[, c("Total", "Masculino", "Femenino")]; rownames(M11) <- lab11; colnames(M11) <- c("Total", "Hombres", "Mujeres")
+doc <- gal(doc, "Mapa de calor por criterio", "Cada competencia dentro de su dimensión, por grupo. Sirve para ubicar en qué criterio está la diferencia que el mapa por dimensión resume.")
+doc <- grafico(doc, "Top Two Box de cada competencia, por sexo, estudiantes", g_heat(M11, n_txt = sprintf("N = %d estudiantes", n_comp)), 3.9)
 doc <- gal(doc, "Comparativo de dimensiones entre dos grupos", "Dos grupos en cada dimensión, con la diferencia en puntos a la derecha.")
 doc <- grafico(doc, "Índice de cada dimensión por sexo, estudiantes", g_dos_grupos(rownames(Md_), round(Md_[, "Masculino"]), round(Md_[, "Femenino"]), c("Masculino", "Femenino"),
   n_txt = sprintf("N = %d estudiantes hombres y %d mujeres", sum(gr_$Masculino), sum(gr_$Femenino)), lim = 100), 2.0)
@@ -344,6 +357,12 @@ cn <- c("Estados Financieros", "Auditoría", "Costos y presupuestos", "Finanzas"
 mm <- sapply(list(c("docentes", "p30_"), c("estudiantes", "p22_"), c("egresados", "p28_")), function(a) vapply(1:6, function(i) { f <- fr(a[1], paste0(a[2], i)); f$pct[3] + f$pct[4] }, 0))
 doc <- gal(doc, "Puntos por competencia, en lugar del radar", "Varias competencias y varios públicos. Con valores altos y parecidos, los puntos en una misma línea se leen mejor que un radar.")
 doc <- grafico(doc, "Top Two Box de las competencias del perfil de egreso, por actor", g_competencias(cn, mm, c("Docentes", "Estudiantes", "Egresados"), n_txt = "N = 51 docentes, 109 estudiantes y 161 egresados"), 2.6)
+doc <- gal(doc, "Radar con tabla", "Varias competencias y varios públicos, cuando el informe anterior usaba radar. La tabla de al lado da las cifras exactas que el radar no deja leer.")
+doc <- grafico(doc, "Formulación del perfil de egreso: Top Two Box por competencia y actor", g_radar(cn, mm, c("Docentes", "Estudiantes", "Egresados"), n_txt = "N = 51 docentes, 109 estudiantes y 161 egresados"), 3.4)
+doc <- tabla(doc, "Top Two Box por competencia y actor, cifras del radar", ft_base(data.frame(Competencia = cn, Docentes = paste0(mm[, 1], "%"), Estudiantes = paste0(mm[, 2], "%"), Egresados = paste0(mm[, 3], "%")), c(2.4, 1.2, 1.2, 1.2)) |> align(j = 2:4, align = "center", part = "all"),
+  base = "Base: 51 docentes, 109 estudiantes y 161 egresados. Fuente: PULSO PUCP 2026.")
+doc <- gal(doc, "Radar por dimensiones", "Muchos ejes (cinco o más) y dos grupos. El eje empieza en 80%: con valores altos y parecidos, así se ven las diferencias.")
+doc <- grafico(doc, "Las once competencias por sexo, estudiantes", g_radar(lab11, Mi_[, c("Masculino", "Femenino")], c("Hombres", "Mujeres"), n_txt = sprintf("N = %d estudiantes hombres y %d mujeres", sum(gr_$Masculino), sum(gr_$Femenino))), 3.6)
 doc <- gal(doc, "Peso en la satisfacción", "Qué aspecto explica más la satisfacción general. El peso sale de una regresión y suma 100% entre los aspectos con efecto.")
 doc <- grafico(doc, "Peso de cada aspecto en la satisfacción con la atención", g_peso(c("Trato del personal", "Tiempo de atención", "Claridad de la información", "Infraestructura"), c(41, 33, 26, NA),
   n_txt = "N = 224 usuarios. Cifras ficticias. Peso estimado con una regresión lineal"), 1.9)
@@ -355,6 +374,16 @@ doc <- grafico(doc, "Indicadores de la asistencia en efectivo frente a su meta",
   c(86, 78, 92, 41, 95), c(80, 85, 90, 60, 90), n_txt = "N = 2,296 hogares. Cifras ficticias"), 2.9)
 doc <- gal(doc, "Nube de palabras", "Preguntas abiertas. El tamaño crece con las menciones y acompaña a la tabla de temas, no la reemplaza.")
 doc <- grafico(doc, "Palabras más mencionadas por los egresados sobre lo que cambiarían en la carrera", g_nube(NB$freq, n_txt = sprintf("N = %d egresados que respondieron la pregunta abierta", NB$n_resp)), 2.8)
+doc <- gal(doc, "Nube de frases", "Las frases de dos o tres palabras que más se repiten. Dice más que las palabras sueltas, porque conserva el sentido.")
+fr2 <- c(`plan de estudios` = 31, `prácticas preprofesionales` = 27, `herramientas digitales` = 24, `inteligencia artificial` = 21, `mercado laboral` = 19, `software especializado` = 17,
+         `habilidades blandas` = 15, `malla curricular` = 14, `docentes con experiencia` = 12, `casos reales` = 11, `trabajo en equipo` = 9, `ética profesional` = 8, `cursos electivos` = 7, `convenios con empresas` = 6)
+doc <- grafico(doc, "Frases que más se repiten en lo que cambiarían los egresados", g_nube(fr2, n_txt = "N = 131 egresados. Cifras ficticias", k = 14), 2.6)
+doc <- gal(doc, "Pregunta abierta: temas", "Las respuestas abiertas se codifican en temas. La tabla da los temas con su frecuencia y el gráfico los ordena de mayor a menor.")
+tem_ <- data.frame(Tema = c("Actualizar el plan de estudios", "Más prácticas y vínculo con empresas", "Herramientas digitales e inteligencia artificial", "Docentes con experiencia profesional", "Habilidades blandas", "Otros"),
+                   n = c(48, 37, 33, 21, 14, 9)); tem_$pct <- round(100 * tem_$n / 131)
+doc <- tabla(doc, "Temas de lo que cambiarían los egresados", ft_base(data.frame(Tema = tem_$Tema, Menciones = tem_$n, `%` = paste0(tem_$pct, "%"), check.names = FALSE), c(4.0, 1.1, 1.1)) |> align(j = 2:3, align = "center", part = "all"),
+  base = "Base: 131 egresados. Una respuesta puede tocar varios temas. Cifras ficticias. Fuente: PULSO PUCP 2026.")
+doc <- grafico(doc, "Temas de lo que cambiarían los egresados", g_barras(tem_$Tema, tem_$pct, n_txt = "N = 131 egresados. Una respuesta puede tocar varios temas. Cifras ficticias"), alto_barras(6))
 # Mapas: cartografía real del motor y selección ficticia (la misma del PPT)
 suppressMessages(library(sf)); sf::sf_use_s2(FALSE)
 CART <- "api/inst/hojas_ruta/cartografia"
@@ -374,6 +403,22 @@ doc <- grafico(doc, "Encuestas logradas por zona en Comas", g_mapa(zonas_c, k9, 
   n_txt = sprintf("N = %d encuestas en %d de %d zonas. Cifras ficticias sobre las zonas censales INEI 2017", sum(v9), sum(v9 > 0), n9)), 4.2)
 
 # ================= 4. Situaciones de datos
+grupo <- c(`SAN JUAN DE LURIGANCHO` = "Intervención", ATE = "Intervención", `EL AGUSTINO` = "Intervención", `SANTA ANITA` = "Intervención",
+           `VILLA EL SALVADOR` = "Comparación", `VILLA MARIA DEL TRIUNFO` = "Comparación", `SAN JUAN DE MIRAFLORES` = "Comparación", CHORRILLOS = "Comparación")
+bb_ <- sf::st_bbox(LIMA[LIMA$distrito %in% names(grupo), ]) + c(-0.04, -0.03, 0.04, 0.03)
+LIMA_c <- suppressWarnings(suppressMessages(sf::st_crop(sf::st_make_valid(LIMA), bb_)))
+doc <- gal(doc, "Mapa de distritos por grupo", "Los distritos del estudio por grupo, con Lima de contexto en gris.")
+doc <- grafico(doc, "Distritos del estudio por grupo", g_mapa(LIMA_c, ifelse(LIMA_c$distrito %in% names(grupo), grupo[LIMA_c$distrito], "Fuera del estudio"),
+  c(`Intervención` = "#2F4B7C", `Comparación` = "#9FB1D1", `Fuera del estudio` = "#E2E6EC"), "Distritos", alto = 3.6, n_txt = "N = 189 entrevistados. Selección ficticia sobre la cartografía de Lima Metropolitana y Callao (IMP PlanMet 2040)"), 3.6)
+racimos <- function(z, n, semilla) { set.seed(semilla); vz <- sf::st_touches(z); ap <- integer(); while (length(ap) < n) { s_ <- sample(setdiff(seq_len(nrow(z)), ap), 1); ap <- unique(c(ap, s_, head(vz[[s_]], 3))) }; seq_len(nrow(z)) %in% ap }
+zves <- leer_capa("zonas_inei2017_lima_callao", "150142"); zves <- zves[!sf::st_is_empty(zves), ]; zves$apl <- racimos(zves, 18, 111)
+mzv <- leer_capa("manzanas_inei2017_lima_callao", "150142"); mzv$zona_id <- paste0("150142", mzv$CODZONA, mzv$SUFZONA)
+en_v <- mzv$zona_id %in% zves$IDZONA[zves$apl]; set.seed(12); mzv$apl <- en_v & stats::runif(nrow(mzv)) < 0.3
+doc <- gal(doc, "Mapa de zonas y manzanas", "Un distrito con sus zonas aplicadas (borde oscuro) y, dentro de ellas, las manzanas visitadas.")
+doc <- grafico(doc, "Zonas y manzanas aplicadas en Villa El Salvador", g_mapa(mzv, ifelse(mzv$apl, "Manzana aplicada", ifelse(en_v, "Otra manzana de una zona aplicada", "Fuera de la muestra")),
+  c(`Manzana aplicada` = WTK$navy, `Otra manzana de una zona aplicada` = "#9FB1D1", `Fuera de la muestra` = "#FFFFFF"), "Manzanas", borde = "#D5D9DF", lw = 0.06, alto = 4.2, contorno = zves[zves$apl, ],
+  n_txt = sprintf("N = %d manzanas aplicadas en %d zonas. Selección ficticia sobre las zonas y manzanas censales INEI 2017", sum(mzv$apl), sum(zves$apl))), 4.2)
+
 doc <- capitulo(doc, "Situaciones de datos", "Las situaciones que aparecen una y otra vez en los estudios, y cómo se resuelven en Word.")
 sit <- function(doc, nombre, regla) { doc <- seccion(doc, nombre); parr(doc, tx(regla, 10.5, SOFT), keep = TRUE) }
 doc <- sit(doc, "Varios actores en un mismo gráfico", "Si todos los actores responden la misma afirmación, van en un solo gráfico con las barras alineadas, para comparar el Top Two Box de cada uno.")
@@ -433,6 +478,22 @@ doc <- tabla(doc, "Conoce la misión, por público, con diferencias significativ
 doc <- grafico(doc, "¿Conoce la misión y los propósitos de la PUCP?, por público", g_barras(paste0(act, " (", LETTERS[1:4], ")"), pc, extra = letras, resid = rep(FALSE, 4),
   n_txt = sprintf("N = %s. Las letras indican frente a qué públicos la cifra es significativamente mayor", paste(sprintf("%d %s", ns, tolower(act)), collapse = ", "))), alto_barras(4),
   texto = "Los docentes conocen la misión en una proporción significativamente mayor que los estudiantes y los egresados. Los administrativos llegan a 93%, pero con 15 casos la diferencia no alcanza a ser significativa.")
+newc <- function(x1, n1, x2, n2, z = 1.96) { w <- function(x, n) { p <- x / n; c_ <- (p + z^2 / (2 * n)) / (1 + z^2 / n); h <- z * sqrt(p * (1 - p) / n + z^2 / (4 * n^2)) / (1 + z^2 / n); c(c_ - h, c_ + h) }
+  p1 <- x1 / n1; p2 <- x2 / n2; a <- w(x1, n1); b <- w(x2, n2); d <- p1 - p2; 100 * c(d, d - sqrt((p1 - a[1])^2 + (b[2] - p2)^2), d + sqrt((a[2] - p1)^2 + (p2 - b[1])^2)) }
+it_s <- list(list("Conoce la misión", D$mision1[[1]]$n[1], D$mision1[[1]]$valid, D$mision1[[2]]$n[1], D$mision1[[2]]$valid),
+             list("Sabe dónde consultarla", D$mision2[[1]]$n[1], D$mision2[[1]]$valid, D$mision2[[2]]$n[1], D$mision2[[2]]$valid),
+             list("Tutoría académica (Top Two Box)", sum(o1$n[3:4]), o1$valid, sum(o2$n[3:4]), o2$valid),
+             list("Tutoría socioemocional (Top Two Box)", { f_ <- fr("docentes", "p24_7"); sum(f_$n[3:4]) }, fr("docentes", "p24_7")$valid, { f_ <- fr("estudiantes", "p17_6"); sum(f_$n[3:4]) }, fr("estudiantes", "p17_6")$valid))
+nc_ <- t(vapply(it_s, function(r) newc(r[[2]], r[[3]], r[[4]], r[[5]]), numeric(3)))
+doc <- sit(doc, "Diferencias significativas, versión técnica", "Para un lector técnico, cada fila muestra la diferencia entre dos públicos con su intervalo de confianza de 95%. Si el intervalo no cruza el cero, la diferencia es significativa y el punto va lleno.")
+doc <- grafico(doc, "Diferencia entre docentes y estudiantes, en puntos", g_forest(vapply(it_s, `[[`, "", 1), nc_[, 1], nc_[, 2], nc_[, 3], n_txt = "N = 52 docentes y 172 estudiantes. Intervalo de Newcombe al 95%",
+  etq = c("Mayor en estudiantes", "Mayor en docentes")), 2.4)
+sig_ <- nc_[, 2] > 0 | nc_[, 3] < 0
+doc <- sit(doc, "Diferencias significativas, versión para público general", "Para un público general, los mismos datos sin intervalos: cada fila muestra a los dos públicos y la lectura dice en palabras cuáles diferencias son significativas.")
+doc <- grafico(doc, "Docentes y estudiantes en cuatro preguntas", g_dos_grupos(vapply(it_s, `[[`, "", 1), round(100 * vapply(it_s, function(r) r[[2]] / r[[3]], 0)), round(100 * vapply(it_s, function(r) r[[4]] / r[[5]], 0)),
+  c("Docentes", "Estudiantes"), n_txt = "N = 52 docentes y 172 estudiantes", lim = 100), 2.4,
+  texto = { ini <- function(x) paste0(tolower(substr(x, 1, 1)), substring(x, 2)); nm <- ini(vapply(it_s, `[[`, "", 1))
+    sprintf("La diferencia entre docentes y estudiantes es significativa en %s. En %s no lo es.", paste(nm[sig_], collapse = " y en "), if (any(!sig_)) paste(nm[!sig_], collapse = " y en ") else "ninguna") })
 doc <- sit(doc, "Redondeo de cifras", "Los porcentajes se redondean al entero. Si el redondeo no suma 100, el punto que falta va a la categoría con mayor resto decimal, para que cada barra cierre en 100.")
 red <- data.frame(Categoría = c(ROT[1:4], "Suma"), Exacto = c("12.2%", "20.4%", "33.3%", "34.1%", "100.0%"), `Redondeo estándar` = c("12%", "20%", "33%", "34%", "99%"), `Redondeo repartido` = c("12%", "21%", "33%", "34%", "100%"), check.names = FALSE)
 doc <- tabla(doc, "Ejemplo de reparto del redondeo", ft_base(red, c(2.3, 1.3, 1.3, 1.3)) |> bold(i = 5) |> bg(i = 2, j = 4, bg = "#FBE3E2") |> color(i = 5, j = 3, color = CORAL) |> align(j = 2:4, align = "center", part = "all"),
@@ -485,6 +546,14 @@ doc <- grafico(doc, "Valoración del personal administrativo sobre su gestión y
   n_txt = sprintf("N = %d administrativos", bat_[[1]]$valid)), alto_apilada(6) + 1.4)
 doc <- grafico(doc, "Nivel curricular, estudiantes", g_columnas(ci$labels, ci$pct, n_txt = sprintf("N = %d estudiantes", ci$valid)), 2.2,
   texto = sprintf("La mayor parte de los estudiantes encuestados cursa %s (%d%%).", tolower(ci$labels[which.max(ci$pct)]), max(ci$pct)))
+ed_e <- fr("estudiantes", "p3_recod")
+doc <- grafico(doc, "Rango de edades de los estudiantes, 2026 frente a 2021", g_dos_grupos(ed_e$labels, ed_e$pct, pmax(1, ed_e$pct + rep_len(c(4, -2, -1, -1, 0), length(ed_e$pct))), c("2026", "2021"),
+  n_txt = sprintf("N = %d estudiantes en 2026. 2021: informe consolidado anterior, cifras ilustrativas", ed_e$valid), lim = max(ed_e$pct) + 15), 2.4)
+doc <- grafico(doc, "Satisfacción con la formación recibida, por programa", g_apilada(list(list(actor = "Contabilidad", pct = c(2, 9, 55, 33, 1)), list(actor = "Economía", pct = c(3, 12, 52, 31, 2)),
+  list(actor = "Gestión", pct = c(4, 15, 50, 28, 3)), list(actor = "Finanzas", pct = c(2, 8, 49, 39, 2))), c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho", "Sin información"), WTK$likert,
+  n_txt = "N = 1,644 estudiantes de cuatro programas. Acreditación con varios programas. Cifras ficticias"), alto_apilada(4))
+mp_ <- matrix(c(88, 84, 79, 91, 83, 81, 86, 80, 76, 90, 85, 82), nrow = 3, dimnames = list(c("Plan de estudios", "Cuerpo académico", "Servicios de apoyo"), c("Contabilidad", "Economía", "Gestión", "Finanzas")))
+doc <- grafico(doc, "Tres dimensiones de la formación, por programa (Top Two Box)", g_heat(mp_, n_txt = "N = 1,644 estudiantes de cuatro programas. Cifras ficticias", lo = 70, hi = 100), 2.0)
 doc <- seccion(doc, "Opinión pública")
 doc <- cuerpo(doc, "Encuesta a la población en una o varias olas. Las preguntas se cruzan por edad, sexo o zona, y la fila Total va al final.", keep = TRUE)
 doc <- grafico(doc, "La democracia es preferible a cualquier otra forma de gobierno, por grupo de edad", g_apilada(list(list(actor = "18 a 29 años", pct = c(9, 21, 44, 22, 4)), list(actor = "30 a 59 años", pct = c(6, 17, 46, 27, 4)), list(actor = "60 años a más", pct = c(4, 12, 43, 37, 4)), list(actor = "Total", pct = c(6, 17, 45, 28, 4))),
@@ -495,6 +564,8 @@ doc <- grafico(doc, "Opinión sobre la gestión, Lima Metropolitana frente al re
   c(31, 12, 38, 42), c(39, 15, 45, 51), c("Lima Metropolitana", "Resto del país"), n_txt = "N = 1,200 entrevistados: 480 en Lima Metropolitana y 720 en el resto del país. Cifras ficticias", lim = 70), 2.4)
 doc <- grafico(doc, "¿Cuál es el principal problema del país?", g_barras(c("Corrupción", "Delincuencia e inseguridad", "Economía y empleo", "Salud", "Educación", "Otro", "No sabe"), c(34, 29, 18, 7, 5, 4, 3),
   n_txt = "N = 1,200 entrevistados. Cifras ficticias"), alto_barras(7))
+doc <- grafico(doc, "Indicadores de la línea base", g_barras(c("Confía en la municipalidad", "Participa en organizaciones vecinales", "Se siente seguro en su barrio", "Conoce los servicios del distrito", "Recicla en casa"), c(28, 17, 39, 46, 22),
+  n_txt = "N = 800 entrevistados en la línea base. Cifras ficticias", destacar = FALSE), alto_barras(5))
 doc <- seccion(doc, "Estudio territorial con grupo de comparación")
 doc <- cuerpo(doc, "Encuesta en zonas de intervención y de comparación. El mapa ubica los distritos y cada indicador muestra los dos grupos lado a lado.", keep = TRUE)
 grupo <- c(`SAN JUAN DE LURIGANCHO` = "Intervención", ATE = "Intervención", `EL AGUSTINO` = "Intervención", `SANTA ANITA` = "Intervención",
@@ -513,6 +584,11 @@ doc <- grafico(doc, "Me siento seguro caminando de noche en mi barrio, por grupo
   n_txt = "N = 99 entrevistados en distritos de intervención y 90 en distritos de comparación. Cifras ficticias"), alto_apilada(2))
 doc <- grafico(doc, "Servicios del barrio que usó en el último año", g_barras(c("Centro de salud", "Comedor o olla común", "Parque o losa deportiva", "Comisaría", "Biblioteca o centro cultural", "Ninguno"), c(58, 31, 27, 12, 6, 9),
   n_txt = "N = 189 entrevistados. Opción múltiple: los porcentajes pueden sumar más de 100. Cifras ficticias"), alto_barras(6))
+zsjl <- leer_capa("zonas_inei2017_lima_callao", "150132"); zsjl <- zsjl[!sf::st_is_empty(zsjl), ]; zsjl$apl <- racimos(zsjl, 26, 2026)
+doc <- grafico(doc, "Zonas aplicadas en intervención y comparación", g_mapas2(list(zsjl, zves), c("Intervención: San Juan de Lurigancho", "Comparación: Villa El Salvador"),
+  list(ifelse(zsjl$apl, "Intervención", "Fuera de la muestra"), ifelse(zves$apl, "Comparación", "Fuera de la muestra")),
+  c(`Intervención` = "#2F4B7C", `Comparación` = "#9FB1D1", `Fuera de la muestra` = "#FFFFFF"), "Zonas aplicadas",
+  n_txt = sprintf("N = %d zonas en intervención y %d en comparación. Selección ficticia sobre las zonas censales INEI 2017", sum(zsjl$apl), sum(zves$apl))), 3.6)
 doc <- seccion(doc, "Monitoreo posdistribución")
 doc <- cuerpo(doc, "Encuesta telefónica a los hogares que recibieron una asistencia. Cada indicador se lee frente a su meta.", keep = TRUE)
 doc <- grafico(doc, "Indicadores de la asistencia frente a su meta", g_metas(c("Recibió la asistencia en la fecha prevista", "Retiró el dinero sin problemas de acceso", "Usó el efectivo en necesidades básicas", "Conoce cómo presentar una queja", "Se sintió tratado con respeto"),
@@ -524,6 +600,8 @@ doc <- grafico(doc, "¿En qué usó principalmente el dinero recibido?", g_barra
 doc <- grafico(doc, "Indicadores clave en tres rondas de monitoreo", g_serie(c("Ronda 1", "Ronda 2", "Ronda 3"), list(`Recibió a tiempo` = c(74, 81, 86), `Conoce cómo quejarse` = c(28, 35, 41)),
   n_txt = "N = 2,140, 2,205 y 2,296 hogares en cada ronda. Cifras ficticias"), 2.4,
   texto = "Los dos indicadores mejoran ronda a ronda. El conocimiento del mecanismo de quejas sube 13 puntos, pero sigue lejos de su meta de 60%.")
+doc <- grafico(doc, "Satisfacción con la entrega, por modalidad", g_apilada(list(list(actor = "Transferencia", pct = c(3, 7, 48, 40, 2)), list(actor = "Retiro en agencia", pct = c(8, 15, 51, 24, 2))),
+  c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho", "Sin información"), WTK$likert, n_txt = "N = 310 hogares con transferencia y 190 con retiro en agencia. Cifras ficticias"), alto_apilada(2))
 doc <- seccion(doc, "Encuesta en aulas")
 doc <- cuerpo(doc, "Encuesta aplicada en aulas, con una muestra por facultad. Junto al porcentaje va el número de casos, porque las facultades tienen tamaños muy distintos.", keep = TRUE)
 doc <- grafico(doc, "Estudiantes que vivieron al menos una situación de hostigamiento, por facultad", g_barras(c("Ciencias Sociales", "Arquitectura", "Derecho", "Artes", "Ingeniería", "Educación", "Ciencias Contables"), c(31, 27, 24, 22, 19, 18, 15), con_n = c(412, 188, 305, 24, 690, 96, 140),
@@ -534,6 +612,8 @@ hf_ <- matrix(c(18, 14, 9, 6, 15, 11, 8, 4, 13, 10, 6, 3, 11, 8, 5, 3), nrow = 4
 doc <- grafico(doc, "Situaciones de hostigamiento por tipo y facultad", g_heat(hf_, n_txt = "N = 1,547 estudiantes de cuatro facultades. Cifras ficticias", lo = 0, hi = 20), 2.2)
 doc <- grafico(doc, "¿Sabe a dónde acudir para presentar una denuncia?", g_sino(c("Sí", "No"), c(38, 62), c(705, 1150), n_txt = "N = 1,855 estudiantes. Cifras ficticias"), 1.5,
   texto = "Seis de cada diez estudiantes no sabe a dónde acudir para presentar una denuncia.")
+doc <- grafico(doc, "Aulas aplicadas frente a las previstas, por facultad", g_metas(c("Ciencias Sociales", "Arquitectura", "Derecho", "Artes", "Ingeniería", "Educación", "Ciencias Contables"), c(96, 88, 92, 70, 98, 85, 91), rep(90, 7),
+  n_txt = "Porcentaje de aulas aplicadas sobre las previstas. Meta: 90%. Cifras ficticias"), 2.9)
 doc <- seccion(doc, "Encuesta organizacional")
 doc <- cuerpo(doc, "Encuesta a dos actores de una organización, trabajadores y directivos. Las mismas afirmaciones se comparan entre ambos.", keep = TRUE)
 doc <- grafico(doc, "Hombres y mujeres tienen las mismas oportunidades de ascenso", g_apilada(list(list(actor = "Trabajadores", pct = c(6, 22, 47, 22, 3)), list(actor = "Directivos", pct = c(1, 6, 45, 47, 1))), ROT, WTK$likert,
@@ -545,6 +625,8 @@ ho_ <- matrix(c(64, 71, 58, 92, 59, 66, 52, 88, 72, 80, 69, 95, 61, 70, 55, 90),
 doc <- grafico(doc, "Igualdad de oportunidades por área (Top Two Box)", g_heat(ho_, n_txt = "N = 458 personas: 196 de operaciones, 104 de administración, 120 del área comercial y 38 directivos. Cifras ficticias", lo = 50, hi = 100), 2.2)
 doc <- grafico(doc, "Qué debería mejorar primero la organización", g_lollipop(c("Transparencia en los ascensos", "Horarios flexibles", "Canal de denuncias confidencial", "Capacitación en igualdad", "Licencias por cuidado"), c(41, 33, 28, 19, 14),
   n_txt = "N = 420 trabajadores. Cifras ficticias"), 2.6)
+doc <- grafico(doc, "Políticas de la organización que conocen los trabajadores", g_barras(c("Código de ética", "Política contra el hostigamiento", "Licencias por cuidado", "Teletrabajo", "Política de igualdad salarial", "Ninguna"), c(78, 61, 44, 39, 22, 6),
+  n_txt = "N = 420 trabajadores. Opción múltiple. Cifras ficticias"), alto_barras(6))
 doc <- seccion(doc, "Evaluación antes y después")
 doc <- cuerpo(doc, "La misma población se mide al inicio y al final de una intervención. Cada indicador muestra las dos mediciones y la diferencia en puntos.", keep = TRUE)
 doc <- grafico(doc, "Indicadores del programa en la línea de base y en la medición final", g_dos_grupos(c("Ahorra una parte de su ingreso", "Lleva un registro de sus gastos", "Conoce cómo acceder a un crédito formal", "Tiene una cuenta en una entidad financiera"), c(48, 41, 57, 63), c(31, 22, 39, 52),
@@ -555,6 +637,10 @@ doc <- grafico(doc, "Me siento capaz de administrar el dinero de mi hogar, en la
   n_txt = "N = 312 participantes medidos en las dos ocasiones. Cifras ficticias"), alto_apilada(2))
 doc <- grafico(doc, "Puntaje promedio en la prueba de conocimientos financieros (de 0 a 20)", g_promedios(c("Línea de base", "Medición final"), c(9.8, 13.4), n_txt = "N = 312 participantes. Cifras ficticias", unidad = " puntos"), 2.0,
   texto = "El puntaje promedio sube 3.6 puntos entre la línea de base y la medición final.")
+
+doc <- grafico(doc, "Cuánto cambió cada indicador entre la línea de base y la medición final", g_cambio(c("Ahorra una parte de su ingreso", "Lleva un registro de sus gastos", "Conoce cómo acceder a un crédito formal", "Tiene una cuenta en una entidad financiera", "Tiene deudas atrasadas"), c(17, 19, 18, 11, -6),
+  n_txt = "N = 312 participantes medidos en las dos ocasiones. Cifras ficticias"), 2.4,
+  texto = "Cuatro indicadores suben entre 11 y 19 puntos. Las deudas atrasadas bajan 6 puntos, que en este indicador es una mejora.")
 
 # Referencias en formato APA, con sangría francesa (estilo «Referencia», word_nativo.py)
 doc <- cerrar_seccion(doc, CAP_PREV)
@@ -568,7 +654,17 @@ refs <- list(
   list(nt("Few, S. (2012). "), it("Show me the numbers: Designing tables and graphs to enlighten"), nt(" (2.ª ed.). Analytics Press.")),
   list(nt("Tufte, E. R. (2001). "), it("The visual display of quantitative information"), nt(" (2.ª ed.). Graphics Press.")))
 for (r in refs) doc <- cita(doc, r)
+# Anexo: cada alternativa de diseño a página completa (Gonzalo, 2026-10-08: «pones distintas portadas, índices y otras cosas pero no las muestras»)
 doc <- cerrar_seccion(doc, "Referencias")
+doc <- body_add_par(doc, "Anexo. Alternativas de diseño", style = "heading 1")
+doc <- cuerpo(doc, "Cada alternativa del capítulo 1, a página completa. Son documentos de Word reales, armados con los mismos estilos de esta propuesta.")
+an_ <- mini_png(mn_, res = 160, paginas = c(1, 1, 1, 1, 1, 1, 1, 2, 1))
+an_t <- c("A.1. Portada A, tipográfica (recomendada)", "A.2. Portada B, con banda lateral", "A.3. Portada C, con ficha del encargo", "A.4. Índice A, clásico (recomendado)", "A.5. Índice B, con el número del capítulo en columna",
+          "A.6. Apertura de capítulo A, sobria", "A.7. Apertura de capítulo B, con número grande y mapa del capítulo (recomendada)", "A.8. Página interior con el recuadro «Cómo leer este informe»", "A.9. Contraportada")
+for (k in seq_along(an_)) { if (k > 1) doc <- body_add_break(doc)
+  doc <- body_add_par(doc, an_t[k], style = "heading 2")
+  doc <- body_add_fpar(doc, fpar(external_img(an_[k], width = 5.6, height = 5.6 * 11.69 / 8.27), fp_p = fp_par(text.align = "center"))) }
+doc <- cerrar_seccion(doc, "Anexo")
 doc <- contraportada(doc)
 print(doc, target = Sys.getenv("SALIDA"))
 system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/word_nativo.py"), shQuote(Sys.getenv("SALIDA")))); cat("OK", GN, "gráficos y", TN, "tablas\n")
