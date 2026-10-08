@@ -98,7 +98,13 @@ dibujar_guias <- function(doc) {
 
 # ================================================================ piezas =====
 FOLIO <- 0
-nueva <- function(doc, layout = "Graficos") { FOLIO <<- FOLIO + 1; add_slide(doc, layout = layout, master = "Office Theme") }
+# Estructura nueva (2026-10-08, propuesta de diseño en cinco capítulos, sólo moderna): cada lámina se registra con su sección de origen y su posición
+# dentro de ella («m3a:2»). Al final, reordenar.py ubica cada clave según recetario_estructura.json, falla si sobra o falta una y renumera los folios.
+NUEVA <- ESTILO == "moderna" && !nzchar(Sys.getenv("SOLO"))
+SEC <- "apertura"; SEC_PREV <- ""; SEC_N <- 0; LAM_REG <- character()
+nueva <- function(doc, layout = "Graficos") { FOLIO <<- FOLIO + 1
+  if (!identical(SEC, SEC_PREV)) { SEC_PREV <<- SEC; SEC_N <<- 0 }; SEC_N <<- SEC_N + 1; LAM_REG <<- c(LAM_REG, paste0(SEC, ":", SEC_N))
+  add_slide(doc, layout = layout, master = "Office Theme") }
 # Ícono del público en láminas de población: «cabecera» (junto al antetítulo, posición fija),
 # «ninguno», o «centro» (entre paneles, como el informe entregado). La fiel siempre «centro».
 ICONO_MODO <- if (ESTILO == "fiel") "centro" else Sys.getenv("ICONO_MODO", "cabecera")
@@ -121,7 +127,7 @@ titulo <- function(doc, t, ante = NULL, sub = NULL) {
 pie <- function(doc, base) {
   xb <- ML   # la base empieza donde empieza el título
   if (nzchar(base)) txt(doc, base, xb, Y_BASE, 10.5, 0.4, PT$base, TK$navy, bold = TRUE)
-  txt(doc, as.character(FOLIO), W - MR - 0.6, Y_BASE, 0.6, 0.3, PT$base, TK$soft, align = "right")
+  txt(doc, as.character(FOLIO), W - MR - 0.6, Y_BASE, 0.6, 0.3, PT$base, TK$soft, align = "right", nombre = "Folio lamina")   # reordenar.py lo renumera
   zona("base", ML, Y_BASE, 10.5, 0.4)
   dibujar_guias(doc)
 }
@@ -367,6 +373,7 @@ if (Sys.getenv("SOLO") %in% c("indices", "objetivo", "rescatables")) {   # sólo
 
 # ===================================================================== 5 portadilla
 portadilla <- function(doc, n, t, sub = NULL, icono = NULL) {
+  if (NUEVA && is.character(n) && grepl("^(I|II|III|IV|V|VI|VII)(\\.|$)", n)) return(doc)   # las partes antiguas no van en la estructura nueva
   doc <- nueva(doc, "Section Header")
   if (ESTILO == "fiel") { txt(doc, toupper(t), 2.6, 4.45, 9.8, 1.2, 28, TK$navy, bold = TRUE); zona("título", 2.6, 4.45, 9.8, 1.2) }
   else { rot <- if (is.character(n)) n else sprintf("%02d", n)   # partes del recetario: «I», «III.2»; secciones del informe: 01, 02
@@ -379,6 +386,7 @@ portadilla <- function(doc, n, t, sub = NULL, icono = NULL) {
 source("docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_rescatables.R", local = TRUE)
 
 
+if (!NUEVA) {   # en la estructura nueva la apertura la arma recetario_apertura.R
 # ===================================================================== 0 portada y mapa del recetario
 MOTOR_ACT <- "Portada del recetario (no es una lámina del motor)"
 doc <- nueva(doc, "Title Slide")
@@ -414,14 +422,17 @@ for (k in seq_along(partes)) { yk <- YT - 0.1 + (k - 1) * hp; p_ <- partes[[k]]
   txt(doc, p_[[3]], ML + 1.3, yk + 0.36, W - MR - ML - 1.5, 0.3, 12, TK$soft)
   if (ESTILO == "moderna" && k < length(partes)) separador_h(doc, ML + 1.3, W - MR, yk + hp - 0.04) }
 zona("partes", ML, YT - 0.1, W - MR - ML, YF - YT); pie(doc, "")
+}
+if (NUEVA) { SEC <- "aper"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_apertura.R", local = TRUE) }
 
 MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "I", "Reglas de la identidad", "Tamaños, márgenes, colores, texto y rotulado, medidos en los informes entregados", icono = "info")
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m0.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m0b.R", local = TRUE)
+SEC <- "m0"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m0.R", local = TRUE)
+SEC <- "m0b"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m0b.R", local = TRUE)
 
 MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "II", "El informe tipo", "A continuación, un ejemplo de un informe de acreditación", icono = "scroll-text")
 
 # ===================================================================== 1 portada
+SEC <- "inf"
 MOTOR_ACT <- "p_slide_portada"
 doc <- nueva(doc, "Title Slide")
 tit_portada <- "Estudio de opinión sobre el servicio educativo ofrecido por la carrera de Contabilidad, en el marco de la reacreditación"
@@ -792,27 +803,31 @@ txt_runs(doc, narr, xn + 0.22, ypan + 0.7, wn - 0.22, 2.8, size = 15)
 zona("texto narrativo", xn + 0.22, ypan + 0.7, wn - 0.22, 2.8)
 pie(doc, "Base: 52 docentes y 172 estudiantes")
 
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2b.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2c.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3a.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3b.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3c.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3d.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3e.R", local = TRUE)
+SEC <- "m2"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2.R", local = TRUE)
+SEC <- "m2b"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2b.R", local = TRUE)
+SEC <- "m2c"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2c.R", local = TRUE)
+SEC <- "m3a"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3a.R", local = TRUE)
+SEC <- "m3b"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3b.R", local = TRUE)
+SEC <- "m3c"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3c.R", local = TRUE)
+SEC <- "m3d"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3d.R", local = TRUE)
+SEC <- "m3e"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3e.R", local = TRUE)
+SEC <- "sig"
 if (ESTILO == "moderna") {   # III.5 diferencias significativas, integrada desde las propuestas
   MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "III.5", "Diferencias significativas", "Cuándo dos públicos difieren de forma significativa, en versión técnica, estándar y para público general", icono = "scale")
   MOTOR_ACT <- "PROPUESTA: significancia con tabla y gráfico (prueba de comparar_columnas_sig, intervalo de Newcombe)"; doc <- rr_significancia(doc) }
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m4.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m5.R", local = TRUE)
+SEC <- "m4"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m4.R", local = TRUE)
+SEC <- "m5"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m5.R", local = TRUE)
 
-if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R", local = TRUE)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m7.R", local = TRUE)   # VI Banco de recursos (I55)
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m8.R", local = TRUE)   # VII Alternativas de índice (I56)
-if (ESTILO == "moderna") { MOTOR_ACT <- "Propuesta de separador de capítulo y subcapítulo (p_slide_seccion)"; doc <- rr_separadores(doc) }   # VII separadores, integrados desde las propuestas
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m9.R", local = TRUE)   # VII Alternativas de cierre (E8)
+SEC <- "m6"; if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R", local = TRUE)
+SEC <- "m7"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m7.R", local = TRUE)   # VI Banco de recursos (I55)
+SEC <- "m8"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m8.R", local = TRUE)   # VII Alternativas de índice (I56)
+SEC <- "sep"; if (ESTILO == "moderna") { MOTOR_ACT <- "Propuesta de separador de capítulo y subcapítulo (p_slide_seccion)"; doc <- rr_separadores(doc) }   # VII separadores, integrados desde las propuestas
+SEC <- "m9"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m9.R", local = TRUE)   # VII Alternativas de cierre (E8)
+
+if (NUEVA) source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_capitulos.R", local = TRUE)   # portadillas de capítulo y subcapítulo del registro
 
 # ===================================================================== contraportada (layout de la plantilla)
+SEC <- "contra"
 MOTOR_ACT <- "layout «Contraportada» de la plantilla (cierre de todos los informes entregados)"
 doc <- nueva(doc, "Contraportada")
 # Contacto con la posición y el tamaño medidos en la contraportada de los informes entregados (12 pt, navy)
@@ -824,4 +839,10 @@ txt(doc, "pulso.pucp.edu.pe", 11.17, 6.71, 1.8, 0.4, 12, TK$navy); dibujar_guias
 crudo <- tempfile(fileext = ".pptx"); print(doc, target = crudo)
 st <- system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/sanear_ph.py"), shQuote(crudo), shQuote(Sys.getenv("SALIDA"))), stdout = FALSE)
 if (st != 0) stop("sanear_ph.py falló: el PPT quedaría con marcadores vacíos")
+if (NUEVA) {   # orden de la propuesta de diseño: cada clave a su lugar, folios renumerados
+  reg <- tempfile(fileext = ".tsv"); writeLines(LAM_REG, reg)
+  st <- system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/reordenar.py"), shQuote(Sys.getenv("SALIDA")), shQuote(reg),
+                             shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_estructura.json")))
+  if (st != 0) stop("reordenar.py falló: hay láminas sin ubicar o claves que no existen")
+}
 cat("OK", FOLIO, "láminas", ESTILO, if (GUIAS) "con guías" else "", "\n")
