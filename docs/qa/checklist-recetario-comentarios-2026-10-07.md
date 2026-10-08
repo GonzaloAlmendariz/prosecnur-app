@@ -59,14 +59,14 @@ Diagnóstico sobre la lista completa de láminas:
 
 | # | Hallazgo | Láminas hoy | Propuesta |
 |---|---|---|---|
-| E1 | Texto abierto y mapas cuelgan de «III.4 Dimensiones e índices», con lo que no tienen relación | 80 a 86 | Dos portadillas nuevas: III.5 «Pregunta abierta» (80 a 82) y III.6 «Mapas territoriales» (83 a 86) |
-| E2 | «Qué podría mejorar la carrera» aparece tres veces con los mismos datos | 64, 65, 110 | Retirar 110 (opción múltiple de un actor): es el ranking en barras de la 65 |
-| E3 | Tres radares sobre la misma batería de competencias | 73, 74, 79 | Retirar 79 (radar por dimensiones). Quedan el radar y su alternativa en puntos |
-| E4 | La partición con seis actores ocupa cuatro láminas casi iguales | 89 a 92 | Dejar dos (89 y 90). La segunda ya muestra cómo sigue la partición |
-| E5 | La cifra destacada está dos veces: en III.2 y en el banco de recursos | 53, 54 frente a 133, 134 | Retirar 133 y 134 del banco. La definición queda en III.2 |
-| E6 | El embudo de la muestra es un gráfico, pero está en el banco de recursos | 139 | Pasarlo a la galería III.3, después del ranking en barras |
-| E7 | Los perfiles de estudiante, egresado y docente se repiten en III.1, además de en II y III.2 | 41, 46, 48 | Cambiar el tema de esas tres disposiciones (por ejemplo bienestar, infraestructura y vínculo con egresados) y dejar los perfiles sólo en II y III.2 |
-| E8 | «Cómo se lee un gráfico» y «Qué es cada elemento en PowerPoint» usan la misma lámina de ejemplo | 4, 9 | Cambiar el ejemplo de la 9 |
+| E1 | Texto abierto y mapas cuelgan de «III.4 Dimensiones e índices», con lo que no tienen relación | 80 a 86 | ☑ el rótulo «Top Two Box» y las cifras comparten el mismo centro (`likert_panel`) |
+| E2 | «Qué podría mejorar la carrera» aparece tres veces con los mismos datos | 64, 65, 110 | ☑ la columna pasa de 0.75 a 1 in, con 0.1 in de aire tras la barra y el rótulo centrado sobre ella |
+| E3 | Tres radares sobre la misma batería de competencias | 73, 74, 79 | ☑ respuesta: el motor no la tiene. `graficar_pie` sólo dibuja la leyenda estándar de ggplot, a la derecha o abajo. La lámina queda marcada como propuesta (rótulo «Gráfico de torta con leyenda de cifras» y nota en la base) |
+| E4 | La partición con seis actores ocupa cuatro láminas casi iguales | 89 a 92 | ☑ sin riel blanco: guías finas cada 25 % detrás de las barras y la escala debajo |
+| E5 | La cifra destacada está dos veces: en III.2 y en el banco de recursos | 53, 54 frente a 133, 134 | ☑ el motor ya lo permite: `p_dim_radar(inicio_eje_pct = 80)`. La lámina lo dice en el subtítulo |
+| E6 | El embudo de la muestra es un gráfico, pero está en el banco de recursos | 139 | ☑ fuera el rótulo «Trabaja: 139» que pisaba el tallo; el tallo llega al centro del título de la subpregunta |
+| E7 | Los perfiles de estudiante, egresado y docente se repiten en III.1, además de en II y III.2 | 41, 46, 48 | ☑ `barras_h(realzar = FALSE)`: las cinco barras en el mismo azul, sin destacar la mayor |
+| E8 | «Cómo se lee un gráfico» y «Qué es cada elemento en PowerPoint» usan la misma lámina de ejemplo | 4, 9 | ☑ cuatro cierres al final de VII, uno por composición (arcos, facetas, círculos, bloques), con «Gracias», PULSO PUCP y el contacto de la contraportada |
 | E9 | Las alternativas de índice ocupan 20 láminas: 4 composiciones por 5 situaciones | 141 a 160 | Dejar 8: cada composición con 5 capítulos y con 13 capítulos. Los subcapítulos se muestran una sola vez, en la composición que se elija |
 
 Resultado: de 161 a unas 145 láminas, con la misma cobertura de constructores y sin repetir datos.
@@ -78,3 +78,18 @@ Resultado: de 161 a unas 145 láminas, con la misma cobertura de constructores y
 | D1 | «faltan más ejemplos de llaves de dependencia» | `recetario_m4.R` (IV.1) | ☑ lámina nueva en la moderna: «Llave sobre varias categorías» (tres modalidades de trabajo habilitan la subpregunta). La de «Filtros en cadena» se retiró: «las subdependencias no se ven bien, mejor dejarlo sólo en dos» |
 | D2 | «y en el banco de recursos usarlo» | `recetario_m7.R` (VI) | ☑ en «Figuras y conectores» la cuña pasa a «Llave de dependencia» y la llave verde a «Llave de suma». Lámina nueva «Llaves de dependencia» con tres usos (bajo una categoría, al costado y sobre varias categorías) y sus reglas |
 | D3 | «además sigue perfeccionando» | todo el mazo | ☑ revisión visual de las 163 láminas de la moderna en hojas de contacto: sin defectos de maquetación. Retoques: fuera las dos menciones a Ingeniería Mecánica (pie del ranking y pregunta de la opción múltiple) y el título de la encuesta en aulas cabe en una línea |
+
+## Segunda tanda de comentarios (Repaired del 2026-10-08, mazo de 163 láminas)
+
+Respaldo del archivo comentado en el scratchpad de la sesión (`comentarios/repaired_2026-10-08.pptx`). Texto citado tal como lo escribió Gonzalo.
+
+| # | Lám. | Comentario (textual) | Dónde vive | Estado |
+|---|---|---|---|---|
+| E1 | 35 | «El top 2 box no está centrado en la columna adicional» | `recetario.R` `bloque_likert` | ☑ el rótulo «Top Two Box» y las cifras comparten el mismo centro (`likert_panel`) |
+| E2 | 43 | «La columna adicional necesita un poco más de espacio y que el título pueda ir centrado» | `recetario.R` `bloque_likert` | ☑ la columna pasa de 0.75 a 1 in, con 0.1 in de aire tras la barra y el rótulo centrado sobre ella |
+| E3 | 61 | «¿Qué tipo de gráfico es este? Sé que es gráfico de pie pero la leyenda es particular, creo que el motor no tiene esta configuración, ¿o sí?» | `recetario_m3a.R` torta + motor `p_pie` | ☑ respuesta: el motor no la tiene. `graficar_pie` sólo dibuja la leyenda estándar de ggplot, a la derecha o abajo. La lámina queda marcada como propuesta (rótulo «Gráfico de torta con leyenda de cifras» y nota en la base) |
+| E4 | 78 | «Las barras en una barra blanca atrás siguen sin convencerme del todo, que se vea bien definido» | `recetario_m3d.R` comparativo | ☑ sin riel blanco: guías finas cada 25 % detrás de las barras y la escala debajo |
+| E5 | 79 | «Este está súper bien, me encanta que pueda ponerse un límite mínimo al eje que no sea cero sino 80 % por ejemplo y las diferencias se vean bien» | `recetario_m3d.R` radar + motor `p_dim_radar` | ☑ el motor ya lo permite: `p_dim_radar(inicio_eje_pct = 80)`. La lámina lo dice en el subtítulo |
+| E6 | 97 | «Estos elementos se superponen con la flecha, hay que tener cuidado sobre cómo y dónde ponerlos» | `recetario_m4.R` llave sobre varias categorías | ☑ fuera el rótulo «Trabaja: 139» que pisaba el tallo; el tallo llega al centro del título de la subpregunta |
+| E7 | 97 | «Ojo, la columna más grande no tiene que ir subrayada o más oscura que las demás» | `recetario_m4.R` + `barras_h` | ☑ `barras_h(realzar = FALSE)`: las cinco barras en el mismo azul, sin destacar la mayor |
+| E8 | 163 | «También podemos tener alternativas editoriales para esta portada de cierre» | `recetario.R` cierre + `recetario_m8.R` | ☑ cuatro cierres al final de VII, uno por composición (arcos, facetas, círculos, bloques), con «Gracias», PULSO PUCP y el contacto de la contraportada |

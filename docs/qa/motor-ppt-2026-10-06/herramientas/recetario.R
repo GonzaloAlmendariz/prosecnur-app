@@ -167,7 +167,7 @@ barra_apilada <- function(doc, x, y, w, pct, cols, h) {
   }
 }
 # Barras de una serie (perfil, selección múltiple): etiqueta, barra y cifra.
-barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala = NULL, color = TK$navy, comp = NULL, sin_ceros = TRUE) {
+barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala = NULL, color = TK$navy, comp = NULL, sin_ceros = TRUE, realzar = TRUE) {
   if (sin_ceros) { k0 <- pct > 0 | (!is.null(comp) && FALSE); if (!is.null(comp)) k0 <- pct > 0 | comp > 0
     labels <- labels[k0]; pct <- pct[k0]; if (!is.null(comp)) comp <- comp[k0] }
   resid <- grepl("^(Otro|Otros|No sabe|Ninguna|Prefiero no)", labels, ignore.case = TRUE)   # residuales al final
@@ -179,7 +179,7 @@ barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala
   wbar <- w - wlab - 0.8; yy <- y
   # Moderna: la categoría mayor en navy y las demás en un tono claro de la marca; su rótulo
   # en negrita. Sólo con una serie (sin comparativo) y si hay un máximo único.
-  realce <- ESTILO == "moderna" && is.null(comp) && identical(color, TK$navy) && length(pct) > 2 && sum(pct == max(pct)) == 1
+  realce <- realzar && ESTILO == "moderna" && is.null(comp) && identical(color, TK$navy) && length(pct) > 2 && sum(pct == max(pct)) == 1
   for (k in seq_along(labels)) {
     es_max <- realce && pct[k] == max(pct)
     txt(doc, labels[k], x, yy + (fila - alto_txt(labels[k], wlab, size)) / 2, wlab, alto_txt(labels[k], wlab, size), size, TK$navy, bold = es_max, align = "right")
@@ -401,7 +401,7 @@ partes <- list(
   list("IV", "Escenarios de acreditación", "Lo que cambia entre carreras. IV.1 Actores y bases: seis actores, filtros, cohortes, bases chicas. IV.2 Escalas, etiquetas y formatos"),
   if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) list("V", "Otros estudios de PULSO", "La misma identidad en estudios de opinión, monitoreo de campo y seguimiento de indicadores"),
   list("VI", "Banco de recursos", "120 íconos en 12 temáticas, cajas y tarjetas con sus medidas, formas y diagramas, con qué hacer y qué evitar"),
-  list("VII", "Alternativas de índice", "Cuatro composiciones geométricas para el índice, de 5 a 13 capítulos, con y sin subcapítulos"))
+  list("VII", "Alternativas de índice y de cierre", "Cuatro composiciones geométricas para el índice, de 5 a 13 capítulos, con y sin subcapítulos, y su cierre"))
 partes <- Filter(Negate(is.null), partes)
 hp <- (YF - YT + 0.1) / length(partes)
 for (k in seq_along(partes)) { yk <- YT - 0.1 + (k - 1) * hp; p_ <- partes[[k]]
@@ -803,6 +803,7 @@ source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m5.R", local = TRUE)
 if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R", local = TRUE)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m7.R", local = TRUE)   # VI Banco de recursos (I55)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m8.R", local = TRUE)   # VII Alternativas de índice (I56)
+source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m9.R", local = TRUE)   # VII Alternativas de cierre (E8)
 
 # ===================================================================== contraportada (layout de la plantilla)
 MOTOR_ACT <- "layout «Contraportada» de la plantilla (cierre de todos los informes entregados)"
