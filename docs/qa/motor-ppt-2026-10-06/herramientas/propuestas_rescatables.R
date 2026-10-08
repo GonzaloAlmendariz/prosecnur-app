@@ -191,6 +191,14 @@ let4 <- rep("", 4); for (k in seq_len(ncol(pares))) if (padj[k] < 0.05) { a <- p
 fmt_p <- function(p) if (p < 0.001) "p < 0.001" else sprintf("p = %s", sub("^0", "0", formatC(p, format = "f", digits = 3)))
 fmt_d <- function(d) if (round(d) == 0) "0" else sprintf("%+d", round(d))
 COL_D <- unname(TK$actores["Docentes"]); COL_E <- unname(TK$actores["Estudiantes"])
+# Lenguaje común de los gráficos de significancia (2026-10-08, «afinarlos y que sea más armónico y orgánico»): panel gris claro con guías blancas y el cero
+# más marcado, intervalos como barras de extremos redondeados, un solo tamaño de punto (lleno: significativa; hueco gris: no) y ejes en 9.5 pt.
+PANEL <- "#EAEDF2"; GRIS_NS <- "#AEB6C6"; D_PUNTO <- 0.18; H_IC <- 0.06
+panel_fondo <- function(doc, x, y, w, h) caja(doc, x, y, w, h, PANEL)
+guia_v <- function(doc, x, y0, y1, cero = FALSE) caja(doc, x - (if (cero) 0.009 else 0.004), y0, if (cero) 0.018 else 0.008, y1 - y0, if (cero) TK$soft else "#FFFFFF")
+eje_txt <- function(doc, x, y, t) txt(doc, t, x - 0.35, y, 0.7, 0.24, 9.5, TK$soft, align = "center")
+intervalo <- function(doc, x0, x1, yc, col, h = H_IC) caja(doc, x0, yc - h / 2, max(x1 - x0, h), h, col, geom = "roundRect")
+punto <- function(doc, x, yc, sig, col = TK$navy, d = D_PUNTO) caja(doc, x - d / 2, yc - d / 2, d, d, if (sig) col else "#FFFFFF", geom = "ellipse", line = sp_line(color = if (sig) col else GRIS_NS, lwd = 1.5))
 
 # U1. Por qué graficar la diferencia: un caso real en que los intervalos se solapan y la diferencia sí es significativa
 doc <- nueva(doc); titulo(doc, "Por qué se grafica la diferencia", ante = "Propuesta 5: significancia")
@@ -200,19 +208,21 @@ pan <- function(x0, w, lo, hi, ticks) list(px = function(v) x0 + (v - lo) / (hi 
 # panel izquierdo: cada grupo con su intervalo
 x1 <- XC + 1.9; w1 <- 3.9; P1 <- pan(x1, w1, 65, 100, seq(70, 100, 10)); yA <- YT + 1.0
 panel_titulo(doc, XC, YT, 5.8, "1. Cada grupo con su intervalo de 95 %", "¿Sabe dónde consultar la misión?")
-for (v in P1$ticks) { caja(doc, P1$px(v), yA - 0.15, 0.006, 1.45, TK$rule); txt(doc, paste0(v, "%"), P1$px(v) - 0.4, yA + 1.35, 0.8, 0.26, 10, TK$soft, align = "center") }
+panel_fondo(doc, P1$px(65), yA - 0.15, P1$px(100) - P1$px(65), 1.45)
 caja(doc, P1$px(wD[1]), yA - 0.15, P1$px(wE[2]) - P1$px(wD[1]), 1.45, "#FBE3D3")   # zona de solapamiento
+for (v in P1$ticks) { guia_v(doc, P1$px(v), yA - 0.15, yA + 1.3); eje_txt(doc, P1$px(v), yA + 1.35, paste0(v, "%")) }
 for (k in 1:2) { yk <- yA + 0.15 + (k - 1) * 0.65; iv <- list(wD, wE)[[k]]; pk <- c(pD, pE)[k]; ck <- c(COL_D, COL_E)[k]
   txt(doc, c("Docentes", "Estudiantes")[k], XC - 0.1, yk - 0.12, 1.85, 0.3, 13, TK$navy, bold = TRUE, align = "right")
-  caja(doc, P1$px(iv[1]), yk - 0.025, P1$px(iv[2]) - P1$px(iv[1]), 0.05, ck); caja(doc, P1$px(pk) - 0.1, yk - 0.1, 0.2, 0.2, ck, geom = "ellipse")
+  intervalo(doc, P1$px(iv[1]), P1$px(iv[2]), yk, ck); punto(doc, P1$px(pk), yk, TRUE, ck)
   txt(doc, sprintf("%d%%", round(pk)), P1$px(iv[2]) + 0.08, yk - 0.14, 0.7, 0.28, 12, TK$navy, bold = TRUE) }
 txt(doc, "Los intervalos se solapan (zona naranja). A simple vista parece que no hay diferencia.", XC - 0.1, yA + 1.75, 5.9, 0.55, 13, TK$navy)
 separador_v(doc, XC + 6.2, YT, YT + 3.6)
 # panel derecho: la diferencia con su intervalo
 x2 <- XC + 6.6; w2 <- W - MR - x2 - 0.3; P2 <- pan(x2, w2, -10, 30, seq(-10, 30, 10)); yB <- yA + 0.48
 panel_titulo(doc, x2, YT, W - MR - x2, "2. La diferencia con su intervalo de 95 %", "Docentes menos estudiantes, en puntos")
-for (v in P2$ticks) { caja(doc, P2$px(v), yA - 0.15, if (v == 0) 0.02 else 0.006, 1.45, if (v == 0) TK$soft else TK$rule); txt(doc, fmt_d(v), P2$px(v) - 0.4, yA + 1.35, 0.8, 0.26, 10, TK$soft, align = "center") }
-caja(doc, P2$px(dif[1]), yB - 0.035, P2$px(dif[2]) - P2$px(dif[1]), 0.07, TK$navy); caja(doc, P2$px(pD - pE) - 0.12, yB - 0.12, 0.24, 0.24, TK$navy, geom = "ellipse")
+panel_fondo(doc, P2$px(-10), yA - 0.15, P2$px(30) - P2$px(-10), 1.45)
+for (v in P2$ticks) { guia_v(doc, P2$px(v), yA - 0.15, yA + 1.3, cero = v == 0); eje_txt(doc, P2$px(v), yA + 1.35, fmt_d(v)) }
+intervalo(doc, P2$px(dif[1]), P2$px(dif[2]), yB, TK$navy); punto(doc, P2$px(pD - pE), yB, TRUE)
 txt(doc, sprintf("%s puntos  [%.1f a %.1f]", fmt_d(pD - pE), dif[1], dif[2]), P2$px(pD - pE) - 2, yB - 0.55, 4, 0.3, 12, TK$navy, bold = TRUE, align = "center")
 txt(doc, sprintf("El intervalo de la diferencia no cruza el cero: es significativa (%s).", fmt_p(pz)), x2 - 0.1, yA + 1.75, W - MR - x2 + 0.1, 0.55, 13, TK$navy, bold = TRUE)
 separador_h(doc, XC, W - MR, YT + 3.85)
@@ -236,20 +246,18 @@ y_ <- yh + 0.45; rh <- 0.5; sh <- 0.36; y_top <- y_
 filas_y <- numeric(6)
 for (g in grupos) { txt(doc, toupper(g[[1]]), xq - 0.1, y_ + 0.05, 5, 0.26, 10, TK$soft, bold = TRUE); y_ <- y_ + sh
   for (i in g[[2]]) { filas_y[i] <- y_ + rh / 2; s_ <- it2$sig[i]; ct <- if (s_) TK$navy else TK$soft
-    if (i %% 2 == 1) caja(doc, XC - 0.05, y_, W - MR - XC + 0.05, rh, "#EAEDF2")
     txt(doc, it2$item[i], xq - 0.1, y_ + 0.1, 3.0, 0.3, 13, ct, bold = s_)
     txt(doc, paste0(it2$p1[i], "%"), xdo, y_ + 0.1, 0.9, 0.3, 13, TK$navy, align = "center"); txt(doc, paste0(it2$p2[i], "%"), xes, y_ + 0.1, 0.9, 0.3, 13, TK$navy, align = "center")
     if (tecnica) { txt(doc, sprintf("%s  [%.1f a %.1f]", fmt_d(it2$d[i]), it2$lo[i], it2$hi[i]), xdi - 0.1, y_ + 0.1, 1.85, 0.3, 11.5, ct, bold = s_)
       txt(doc, fmt_p(it2$pv[i]), xpv - 0.1, y_ + 0.1, wpv + 0.1, 0.3, 11, ct) } else {
       txt(doc, sprintf("%s puntos", fmt_d(it2$d[i])), xdi - 0.1, y_ + 0.1, 1.5, 0.3, 13, ct, bold = s_)
       txt(doc, if (s_) "Significativa" else "No significativa", xpv - 0.35, y_ + 0.1, wpv + 0.35, 0.3, 11.5, ct, bold = s_) }
+    separador_h(doc, XC, xg0 - 0.15, y_ + rh); separador_h(doc, xdi - 0.1, W - MR, y_ + rh)
     y_ <- y_ + rh } }
 y_bot <- y_
-for (v in seq(-20, 40, 20)) { caja(doc, px(v) - (if (v == 0) 0.01 else 0.003), y_top, if (v == 0) 0.02 else 0.006, y_bot - y_top, if (v == 0) TK$soft else TK$rule)
-  txt(doc, fmt_d(v), px(v) - 0.35, y_bot + 0.04, 0.7, 0.24, 10, TK$soft, align = "center") }
-for (i in 1:6) { s_ <- it2$sig[i]; cc <- if (s_) TK$navy else "#AEB6C6"; yc <- filas_y[i]
-  caja(doc, px(it2$lo[i]), yc - 0.03, px(it2$hi[i]) - px(it2$lo[i]), 0.06, cc)
-  caja(doc, px(it2$d[i]) - 0.1, yc - 0.1, 0.2, 0.2, if (s_) TK$navy else "#FFFFFF", geom = "ellipse", line = sp_line(color = cc, lwd = 1.5)) }
+panel_fondo(doc, xg0, y_top, wg, y_bot - y_top)
+for (v in seq(-20, 40, 20)) { guia_v(doc, px(v), y_top, y_bot, cero = v == 0); eje_txt(doc, px(v), y_bot + 0.04, fmt_d(v)) }
+for (i in 1:6) { s_ <- it2$sig[i]; yc <- filas_y[i]; intervalo(doc, px(it2$lo[i]), px(it2$hi[i]), yc, if (s_) TK$navy else GRIS_NS); punto(doc, px(it2$d[i]), yc, s_) }
 txt(doc, "Mayor en estudiantes", px(0) - 2.0, y_bot + 0.28, 1.9, 0.26, 10, TK$soft, italic = TRUE, align = "right")
 txt(doc, "Mayor en docentes", px(0) + 0.1, y_bot + 0.28, 1.9, 0.26, 10, TK$soft, italic = TRUE)
 pie(doc, if (tecnica) "Top Two Box o «Sí». Base: 52 docentes y 172 estudiantes (Auditoría y Tributación: 51 y 109). Intervalo de Newcombe. Punto lleno: el intervalo no cruza el cero (prueba z, α = 0.05)" else
@@ -277,14 +285,14 @@ azules <- grDevices::colorRampPalette(c("#4F6A9A", TK$navy))(5)
 for (j in 1:4) txt(doc, LETTERS[j], xm + 0.45 + (j - 1) * cw, ym - 0.32, cw, 0.3, 13, TK$navy, bold = TRUE, align = "center")
 for (i in 1:4) { yi <- ym + (i - 1) * ch; txt(doc, LETTERS[i], xm - 0.1, yi + (ch - 0.3) / 2, 0.5, 0.3, 13, TK$navy, bold = TRUE)
   for (j in 1:i) { xj <- xm + 0.45 + (j - 1) * cw
-    if (i == j) { caja(doc, xj + 0.03, yi + 0.03, cw - 0.06, ch - 0.06, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75))
+    if (i == j) { caja(doc, xj + 0.04, yi + 0.04, cw - 0.08, ch - 0.08, "#FFFFFF", geom = "roundRect", line = sp_line(color = TK$rule, lwd = 0.75))
       txt(doc, paste0(round(100 * p4[i]), "%"), xj, yi + 0.12, cw, 0.32, 14, TK$navy, bold = TRUE, align = "center"); txt(doc, sprintf("n = %d", n4[i]), xj, yi + 0.44, cw, 0.26, 10, TK$soft, align = "center"); next }
     k <- which(pares[1, ] == j & pares[2, ] == i); s_ <- padj[k] < 0.05; dd <- 100 * (p4[i] - p4[j])
-    fc <- if (s_) azules[min(5, max(1, ceiling(abs(dd) / 6)))] else "#E3E7EF"; tc <- texto_sobre(fc)
-    caja(doc, xj + 0.03, yi + 0.03, cw - 0.06, ch - 0.06, fc)
+    fc <- if (s_) azules[min(5, max(1, ceiling(abs(dd) / 6)))] else PANEL; tc <- texto_sobre(fc)
+    caja(doc, xj + 0.04, yi + 0.04, cw - 0.08, ch - 0.08, fc, geom = "roundRect")
     txt(doc, fmt_d(dd), xj, yi + (if (tecnica) 0.1 else (ch - 0.36) / 2), cw, 0.34, 15, tc, bold = s_, align = "center")
     if (tecnica) txt(doc, if (padj[k] >= 1) "p = 1" else fmt_p(padj[k]), xj, yi + 0.46, cw, 0.26, 10, tc, align = "center") } }
-leyenda(doc, 0, ym + 4 * ch + 0.15, c("Significativa (más intensa, mayor)", "No significativa"), c(TK$navy, "#E3E7EF"), centrar_en = xm + 0.45 + 2 * cw)
+leyenda(doc, 0, ym + 4 * ch + 0.15, c("Significativa (más intensa, mayor)", "No significativa"), c(TK$navy, PANEL), centrar_en = xm + 0.45 + 2 * cw)
 txt(doc, "Administrativos supera en 16 puntos a estudiantes y egresados, pero con 15 casos esa distancia no es significativa.", xm - 0.1, ym + 4 * ch + 0.55, W - MR - xm + 0.1, 0.5, 11.5, TK$navy)
 txt(doc, "Estas pruebas suponen muestreo aleatorio. En estudios censales o por conveniencia, como los de acreditación, se leen como indicativas.", XT, Y_BASE - 0.32, 10.5, 0.3, PT$base, TK$soft, italic = TRUE)
 pie(doc, if (tecnica) "Prueba z de diferencia de proporciones en los seis pares, p ajustada por Bonferroni, α = 0.05 (la misma prueba del motor)" else "Diferencias significativas según la prueba z entre cada par de públicos, con corrección por comparaciones múltiples (α = 0.05)")
@@ -320,13 +328,10 @@ for (g in tl) { txt(doc, toupper(g[[1]]), xi - 0.1, y_ + 0.05, 6, 0.26, 10, TK$s
       } else txt(doc, cad, xv[k], y_ + 0.07, wv, 0.3, 13, TK$navy, align = "center") }
     filas[[length(filas) + 1]] <- list(y = y_ + rh / 2, r = r); separador_h(doc, XC, xv[3] + wv, y_ + rh); y_ <- y_ + rh } }
 ybot <- y_
-for (k in 1:3) { caja(doc, xpan(k), ytop, wpan, ybot - ytop, "#EAEDF2")   # fondo de cada panel
-  for (v in c(-20, 0, 20)) { caja(doc, pxk(k, v) - (if (v == 0) 0.01 else 0.003), ytop, if (v == 0) 0.02 else 0.006, ybot - ytop, if (v == 0) TK$soft else "#FFFFFF")
-    txt(doc, fmt_d(v), pxk(k, v) - 0.3, ybot + 0.04, 0.6, 0.24, 9.5, TK$soft, align = "center") } }
+for (k in 1:3) { panel_fondo(doc, xpan(k), ytop, wpan, ybot - ytop)
+  for (v in c(-20, 0, 20)) { guia_v(doc, pxk(k, v), ytop, ybot, cero = v == 0); eje_txt(doc, pxk(k, v), ybot + 0.04, fmt_d(v)) } }
 for (f in filas) { yc <- f$y; r <- f$r
-  for (k in 1:3) { s_ <- r$sig[k]; cc <- if (s_) TK$navy else "#AEB6C6"
-    caja(doc, pxk(k, r$lo[k]), yc - 0.025, pxk(k, r$hi[k]) - pxk(k, r$lo[k]), 0.05, cc)
-    caja(doc, pxk(k, r$d[k]) - 0.08, yc - 0.08, 0.16, 0.16, if (s_) TK$navy else "#FFFFFF", geom = "ellipse", line = sp_line(color = cc, lwd = 1.25)) } }
+  for (k in 1:3) { s_ <- r$sig[k]; intervalo(doc, pxk(k, r$lo[k]), pxk(k, r$hi[k]), yc, if (s_) TK$navy else GRIS_NS); punto(doc, pxk(k, r$d[k]), yc, s_) } }
 txt(doc, "La letra indica de qué público es mayor. Cada panel muestra la diferencia de un par con su intervalo. Punto lleno: diferencia significativa.", XT, ybot + 0.3, AC, 0.3, 12, TK$navy)
 pie(doc, "Top Two Box o «Sí». Prueba z entre cada par de públicos, con corrección de Bonferroni (α = 0.05). Base: 51 docentes, 109 estudiantes y 161 egresados (misión: 52, 172 y 178)")
 
@@ -340,12 +345,13 @@ doc <- nueva(doc); titulo(doc, "Diferencias significativas entre docentes y estu
 xq <- XC; xg0 <- XC + 3.4; wg <- 5.5; xr <- xg0 + wg + 0.95; lo_ <- 50; hi_ <- 100; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
 leyenda(doc, 0, YT - 0.05, c("Docentes", "Estudiantes"), c(COL_D, COL_E), centrar_en = xg0 + wg / 2)
 y_ <- YT + 0.5; rh <- 0.62
-for (v in seq(50, 100, 10)) { caja(doc, px(v) - 0.003, y_, 0.006, 6 * rh, TK$rule); txt(doc, paste0(v, "%"), px(v) - 0.35, y_ + 6 * rh + 0.04, 0.7, 0.24, 10, TK$soft, align = "center") }
+panel_fondo(doc, px(50), y_, px(100) - px(50), 6 * rh)
+for (v in seq(50, 100, 10)) { guia_v(doc, px(v), y_, y_ + 6 * rh); eje_txt(doc, px(v), y_ + 6 * rh + 0.04, paste0(v, "%")) }
 for (i in 1:6) { yc <- y_ + (i - 1) * rh + rh / 2; s_ <- it2$sig[i]; a <- it2$p1[i]; b <- it2$p2[i]
-  if (i > 1) separador_h(doc, XC, W - MR, yc - rh / 2)
+  if (i > 1) { separador_h(doc, XC, xg0 - 0.15, yc - rh / 2); separador_h(doc, xr - 0.1, W - MR, yc - rh / 2) }
   txt(doc, it2$item[i], xq - 0.1, yc - 0.16, 3.3, 0.32, 14, TK$navy, bold = s_)
-  caja(doc, px(min(a, b)), yc - (if (s_) 0.04 else 0.012), px(max(a, b)) - px(min(a, b)), if (s_) 0.08 else 0.024, if (s_) TK$navy else "#C9CED8")
-  for (k in 1:2) { v <- c(a, b)[k]; caja(doc, px(v) - 0.12, yc - 0.12, 0.24, 0.24, c(COL_D, COL_E)[k], geom = "ellipse", line = sp_line(color = "#FFFFFF", lwd = 1))
+  intervalo(doc, px(min(a, b)), px(max(a, b)), yc, if (s_) TK$navy else GRIS_NS, h = if (s_) 0.08 else 0.03)
+  for (k in 1:2) { v <- c(a, b)[k]; caja(doc, px(v) - 0.11, yc - 0.11, 0.22, 0.22, c(COL_D, COL_E)[k], geom = "ellipse", line = sp_line(color = "#FFFFFF", lwd = 1.25))
     der <- (k == 1 && a >= b) || (k == 2 && b > a)   # la cifra mayor a la derecha de su punto, la menor a la izquierda
     txt(doc, paste0(v, "%"), if (der) px(v) + 0.12 else px(v) - 0.82, yc - 0.15, 0.7, 0.3, 12, TK$navy, bold = TRUE, align = if (der) "left" else "right") }
   txt(doc, if (s_) "Significativa" else "No significativa", xr - 0.1, yc - 0.15, W - MR - xr + 0.1, 0.3, 13, if (s_) TK$navy else TK$soft, bold = s_) }
