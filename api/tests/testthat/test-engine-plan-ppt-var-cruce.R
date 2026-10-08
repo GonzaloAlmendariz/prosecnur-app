@@ -2480,9 +2480,20 @@ test_that("graficar_barras_apiladas modera layout canvas con una sola barra", {
   layout <- attr(p, "pulso_barras_apiladas_layout")
   expect_equal(layout$n_categorias, 1)
   expect_equal(layout$y_axis_max, 2)
-  # B36/G-2: una fila real bajo filas virtuales recibe el piso editorial
-  # (0.95) — el 0.70 manual por defecto dejaba una cinta enclenque.
-  expect_equal(layout$grosor_eff, 0.95)
+  # ADR 0092 (F2.1): la barra sola mide lo que pide el estándar para una fila
+  # (0.50 in), medido en la lámina; ya no es una fracción fija de la fila.
+  expect_lte(abs(layout$grosor_in - .std_grosor(1, "escala_apilada")), 0.03)
+
+  # B36/G-2 sigue vigente con la regla del estándar apagada: una fila real bajo
+  # filas virtuales recibe el piso editorial (0.95) y no la cinta del 0.70 manual.
+  p_previo <- prosecnurapp::graficar_barras_apiladas(
+    data = data.frame(categoria = "Item", N = 100, pct_1 = 0.04, pct_2 = 0.57, pct_3 = 0.39,
+                      stringsAsFactors = FALSE),
+    var_categoria = "categoria", var_n = "N", cols_porcentaje = c("pct_1", "pct_2", "pct_3"),
+    etiquetas_grupos = c(pct_1 = "1", pct_2 = "2", pct_3 = "3"), usar_canvas = TRUE,
+    grosor_modo = "manual", grosor_barras = 0.70, mostrar_leyenda = FALSE, grosor_estandar = FALSE
+  )
+  expect_equal(attr(p_previo, "pulso_barras_apiladas_layout")$grosor_eff, 0.95)
 })
 
 test_that("multiapiladas multiactor reservan la mayor parte del canvas para las barras", {
