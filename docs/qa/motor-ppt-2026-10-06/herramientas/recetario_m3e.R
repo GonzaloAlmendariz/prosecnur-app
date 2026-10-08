@@ -68,20 +68,109 @@ barras_h(doc, xd_, YT + 0.65 + sum(!res_) * 0.48, wd_, lab_[-seq_len(sum(!res_))
 zona("frases frecuentes y temas", XC, YT, AC, YF - YT)
 pie(doc, sprintf("Base: %d egresados que respondieron la pregunta abierta. Cada persona cuenta una vez por frase y una respuesta puede caer en varios temas", tx$n_resp))
 
-# --- p_mapa_cobertura_territorial: dibujado por el motor real (contexto sintético de los tests)
-MOTOR_ACT <- "p_slide_1_grafico: p_mapa_cobertura_territorial (dibujo del motor, contexto de prueba)"
-doc <- nueva(doc); titulo(doc, "Cobertura territorial del operativo", ante = "Mapa de cobertura")
-# El motor dibuja la leyenda del mapa a 9,5 pt (H44), bajo el piso de 10: se sube en el
-# árbol de grobs del objeto (no se toca el motor).
-piso_grob <- function(x, piso = 10, a = 10.5) {
-  if (!is.null(x$gp) && !is.null(x$gp$fontsize) && any(x$gp$fontsize < piso)) x$gp$fontsize <- pmax(x$gp$fontsize, a)
-  if (!is.null(x$children)) for (k in seq_along(x$children)) x$children[[k]] <- piso_grob(x$children[[k]], piso, a)
-  if (!is.null(x$grobs)) for (k in seq_along(x$grobs)) x$grobs[[k]] <- piso_grob(x$grobs[[k]], piso, a)
-  x }
-gm <- readRDS(file.path(SP, "mapa_cobertura.rds"))
-for (i in seq_along(gm$layers)) if (!is.null(gm$layers[[i]]$geom_params$grob)) gm$layers[[i]]$geom_params$grob <- piso_grob(gm$layers[[i]]$geom_params$grob)
-invisible(ph_with(doc, dml(ggobj = gm, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML, top = YT, width = 8.6, height = 4.95)))
-zona("mapa", ML, YT, 8.6, 4.95)
-narrativa(doc, 9.4, YT + 0.9, 3.6, 2.6, list(N_("El motor dibuja este mapa con los distritos, zonas y manzanas que registran "), B("Hojas de ruta"), N_(" y "), B("Monitoreo territorial"),
-  N_(". El ejemplo usa datos de prueba.")), size = 14)
-pie(doc, "Ejemplo con datos de prueba del motor (Lima)")
+# --- C35 (Gonzalo, 2026-10-07). Los mapas muestran resultados del operativo, no avance: qué distritos entran al estudio, qué
+# zonas (UMP) se intervinieron y qué manzanas se aplicaron. La zona es un conjunto de manzanas; por simplicidad el mapa de
+# distrito pinta la zona y el detalle por manzana va en su propia lámina. Cartografía real del motor (IMP PlanMet 2040 para
+# distritos, INEI 2017 para zonas y manzanas, api/inst/hojas_ruta/cartografia) y una selección ficticia, con semilla fija.
+suppressMessages(library(sf)); sf::sf_use_s2(FALSE)
+CART <- "api/inst/hojas_ruta/cartografia"
+LIMA <- suppressMessages(sf::st_read(file.path(CART, "lima_district_coverage.json"), quiet = TRUE))
+leer_capa <- function(capa, ubigeo) suppressMessages(sf::st_make_valid(sf::st_read(paste0("/vsigzip/", normalizePath(file.path(CART, capa, paste0(ubigeo, ".geojson.gz")))), quiet = TRUE)))
+nombre_mapa <- function(d) { s <- gsub("\\b(De|Del|La|El|Los|Las)\\b", "\\L\\1", tools::toTitleCase(tolower(d)), perl = TRUE)
+  s <- paste0(toupper(substr(s, 1, 1)), substring(s, 2))
+  tildes <- c(Peru = "Perú", Rimac = "Rímac", Lurin = "Lurín", Maria = "María", Martin = "Martín", Jesus = "Jesús", Ancon = "Ancón")
+  for (k in names(tildes)) s <- gsub(paste0("\\b", k, "\\b"), tildes[[k]], s); sub("Villa el Salvador", "Villa El Salvador", s, fixed = TRUE) }
+LIMA$nom <- nombre_mapa(LIMA$distrito)
+partir_nombre <- function(s) ifelse(nchar(s) > 13 & grepl(" de ", s), sub(" de ", " de\n", s), s)
+GRIS_FUERA <- "#E2E6EC"; AZUL_SI <- "#2F4B7C"; AZUL_MEDIO <- "#9FB1D1"
+caja_de <- function(x, m = 0.04) { bb <- sf::st_bbox(x); dx <- unname(bb[3] - bb[1]) * m; dy <- unname(bb[4] - bb[2]) * m
+  sf::st_bbox(c(xmin = unname(bb[1]) - dx, ymin = unname(bb[2]) - dy, xmax = unname(bb[3]) + dx, ymax = unname(bb[4]) + dy), crs = sf::st_crs(x)) }
+recortar <- function(x, bb) suppressWarnings(suppressMessages(sf::st_crop(sf::st_make_valid(x), bb)))
+tema_mapa <- function(g) g + coord_sf(expand = FALSE, datum = NA) + theme_void() + theme(plot.background = element_blank(), panel.background = element_blank())
+poner_mapa <- function(g, x, y, w, h) invisible(ph_with(doc, dml(ggobj = g, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = x, top = y, width = w, height = h)))
+rotulos <- function(g, d, min_km2 = 20) { d <- d[d$area_km2 >= min_km2, ]; d$tc <- vapply(d$fill, texto_sobre, "")
+  g + geom_text(data = d, aes(label_lon, label_lat, label = partir_nombre(nom), colour = tc), size = 10 / .pt, fontface = "bold", family = "Arial", lineheight = 0.85) + scale_colour_identity() }
+
+# Selección ficticia, siempre la misma
+grupo <- c(`SAN JUAN DE LURIGANCHO` = "Intervención", ATE = "Intervención", `EL AGUSTINO` = "Intervención", `SANTA ANITA` = "Intervención",
+           `VILLA EL SALVADOR` = "Comparación", `VILLA MARIA DEL TRIUNFO` = "Comparación", `SAN JUAN DE MIRAFLORES` = "Comparación", CHORRILLOS = "Comparación")
+pal_grupo <- c(`Intervención` = AZUL_SI, `Comparación` = AZUL_MEDIO)
+zonas_sjl <- leer_capa("zonas_inei2017_lima_callao", "150132"); zonas_sjl <- zonas_sjl[!sf::st_is_empty(zonas_sjl), ]
+set.seed(2026); semilla <- sample(seq_len(nrow(zonas_sjl)), 1)
+vec <- sf::st_touches(zonas_sjl)                                          # zonas aplicadas: racimos de vecinas, como sale un sorteo por conglomerados
+aplic <- unique(c(semilla, vec[[semilla]])); while (length(aplic) < 26) { s_ <- sample(setdiff(seq_len(nrow(zonas_sjl)), aplic), 1); aplic <- unique(c(aplic, s_, head(vec[[s_]], 2))) }
+zonas_sjl$aplicada <- seq_len(nrow(zonas_sjl)) %in% aplic
+
+# 1. Distritos del estudio: dos grupos en un solo mapa de Lima y Callao
+MOTOR_ACT <- "PROPUESTA (p_mapa_cobertura_territorial, scope = overview): distritos del estudio por grupo"
+doc <- nueva(doc); titulo(doc, "Distritos del estudio", ante = "Mapa territorial: distritos")
+LIMA$fill <- ifelse(LIMA$distrito %in% names(grupo), pal_grupo[grupo[LIMA$distrito]], GRIS_FUERA)
+g1 <- ggplot() + geom_sf(data = LIMA, aes(fill = fill), colour = "#FFFFFF", linewidth = 0.35) + scale_fill_identity()
+hm1 <- YF - YT - 0.45; wm1 <- 5.0
+poner_mapa(tema_mapa(g1), XC + 0.3, YT, wm1, hm1)
+leyenda(doc, 0, YT + hm1 + 0.08, c(names(pal_grupo), "Fuera del estudio"), c(unname(pal_grupo), GRIS_FUERA), centrar_en = XC + 0.3 + wm1 / 2)
+zona("Lima y Callao completos", XC + 0.3, YT, wm1, hm1)
+xr1 <- XC + wm1 + 1.0; wr1 <- W - MR - xr1; separador_v(doc, xr1 - 0.4, YT, YF - 0.1)
+for (gk in names(pal_grupo)) { k <- match(gk, names(pal_grupo)); yk <- YT + (k - 1) * 2.45; ds <- names(grupo)[grupo == gk]
+  caja(doc, xr1, yk + 0.08, 0.2, 0.2, pal_grupo[[gk]]); txt(doc, paste("Distritos de", tolower(gk)), xr1 + 0.3, yk, wr1 - 0.3, 0.34, 14, TK$navy, bold = TRUE)
+  lista_ <- nombre_mapa(ds); for (j in seq_along(lista_)) txt(doc, lista_[j], xr1 + 0.3, yk + 0.45 + (j - 1) * 0.38, wr1 - 0.3, 0.3, 12.5, TK$navy) }
+pie(doc, "Selección ficticia sobre la cartografía de Lima Metropolitana y Callao (IMP PlanMet 2040)")
+
+# 2. Zonas aplicadas en un distrito (la zona representa a sus manzanas)
+MOTOR_ACT <- "PROPUESTA (p_mapa_cobertura_territorial, scope = district): zonas aplicadas en el distrito"
+doc <- nueva(doc); titulo(doc, "Zonas aplicadas en San Juan de Lurigancho", ante = "Mapa territorial: zonas")
+zonas_sjl$fill <- ifelse(zonas_sjl$aplicada, AZUL_SI, "#FFFFFF")
+g2 <- ggplot() + geom_sf(data = zonas_sjl, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity() +
+  geom_sf(data = LIMA[LIMA$ubigeo == "150132", ], fill = NA, colour = TK$navy, linewidth = 0.6)
+hm2 <- YF - YT - 0.45; wm2 <- 6.4
+poner_mapa(tema_mapa(g2), XC, YT, wm2, hm2)
+leyenda(doc, 0, YT + hm2 + 0.08, c("Zona aplicada", "Zona fuera de la muestra"), c(AZUL_SI, "#FFFFFF"), centrar_en = XC + wm2 / 2)
+zona("distrito con sus zonas", XC, YT, wm2, hm2)
+xr2 <- XC + wm2 + 0.8; wr2 <- W - MR - xr2; separador_v(doc, xr2 - 0.4, YT, YF - 0.1)
+cifra(doc, xr2, YT, wr2, sprintf("%d", sum(zonas_sjl$aplicada)), "zonas aplicadas", sprintf("de %d zonas censales del distrito", nrow(zonas_sjl)))
+separador_h(doc, xr2, W - MR, YT + 1.35)
+notas2 <- c("Cada zona es un conjunto de manzanas. El mapa pinta la zona completa aunque se haya aplicado sólo en algunas de sus manzanas.",
+            "Las zonas salen en racimos porque la muestra se sortea por conglomerados.", "El detalle por manzana va en una lámina propia o en el anexo.")
+yn <- YT + 1.6; for (t_ in notas2) { h_ <- alto_txt(t_, wr2, 13); txt(doc, t_, xr2 - 0.1, yn, wr2 + 0.1, h_, 13, TK$navy); yn <- yn + h_ + 0.2 }
+pie(doc, "Selección ficticia sobre las zonas censales INEI 2017 de San Juan de Lurigancho")
+
+# 3. Manzanas aplicadas dentro de sus zonas (acercamiento a un racimo)
+MOTOR_ACT <- "PROPUESTA (p_mapa_cobertura_territorial, study_blocks): manzanas aplicadas dentro de sus zonas"
+doc <- nueva(doc); titulo(doc, "Manzanas aplicadas en un racimo de zonas", ante = "Mapa territorial: manzanas")
+racimo <- zonas_sjl[unique(c(semilla, vec[[semilla]])), ]; bb3 <- caja_de(racimo, 0.12)
+mz <- leer_capa("manzanas_inei2017_lima_callao", "150132"); mz <- recortar(mz, bb3)
+mz$zona_id <- paste0("150132", mz$CODZONA, mz$SUFZONA)
+en_racimo <- mz$zona_id %in% racimo$IDZONA
+set.seed(7); mz$aplicada <- en_racimo & stats::runif(nrow(mz)) < 0.32
+mz$fill <- ifelse(mz$aplicada, AZUL_SI, ifelse(en_racimo, AZUL_MEDIO, GRIS_FUERA))
+g3 <- ggplot() + geom_sf(data = mz, aes(fill = fill), colour = "#FFFFFF", linewidth = 0.15) + scale_fill_identity() +
+  geom_sf(data = recortar(zonas_sjl, bb3), fill = NA, colour = "#8E9DBD", linewidth = 0.25) +
+  geom_sf(data = racimo, fill = NA, colour = TK$navy, linewidth = 0.7)
+hm3 <- YF - YT - 0.45; wm3 <- 7.4
+poner_mapa(tema_mapa(g3), XC, YT, wm3, hm3)
+leyenda(doc, 0, YT + hm3 + 0.08, c("Manzana aplicada", "Otra manzana de la zona", "Fuera de la muestra"), c(AZUL_SI, AZUL_MEDIO, GRIS_FUERA), centrar_en = XC + wm3 / 2)
+zona("manzanas del racimo", XC, YT, wm3, hm3)
+xr3 <- XC + wm3 + 0.8; wr3 <- W - MR - xr3; separador_v(doc, xr3 - 0.4, YT, YF - 0.1)
+cifra(doc, xr3, YT, wr3, sprintf("%d", sum(mz$aplicada)), "manzanas aplicadas", sprintf("en %d zonas, de %d manzanas", nrow(racimo), sum(en_racimo)))
+separador_h(doc, xr3, W - MR, YT + 1.35)
+txt(doc, "El borde oscuro marca las zonas aplicadas y el claro, las vecinas. Dentro de cada zona sólo se pintan las manzanas que se visitaron.",
+    xr3 - 0.1, YT + 1.55, wr3 + 0.1, 1.6, 13, TK$navy)
+pie(doc, "Selección ficticia sobre las manzanas INEI 2017. La lámina se usa para el informe metodológico o el anexo de campo")
+
+# 4. Dos grupos comparados: zonas aplicadas en un distrito de intervención y uno de comparación
+MOTOR_ACT <- "PROPUESTA (p_mapa_cobertura_territorial, comparison_mode = paired_district): zonas aplicadas por grupo"
+doc <- nueva(doc); titulo(doc, "Zonas aplicadas en intervención y comparación", ante = "Mapa territorial: dos grupos")
+zonas_ves <- leer_capa("zonas_inei2017_lima_callao", "150142"); zonas_ves <- zonas_ves[!sf::st_is_empty(zonas_ves), ]
+set.seed(42); vv <- sf::st_touches(zonas_ves); s0 <- sample(seq_len(nrow(zonas_ves)), 1); ap2 <- unique(c(s0, vv[[s0]]))
+while (length(ap2) < 18) { s_ <- sample(setdiff(seq_len(nrow(zonas_ves)), ap2), 1); ap2 <- unique(c(ap2, s_, head(vv[[s_]], 2))) }
+zonas_ves$fill <- ifelse(seq_len(nrow(zonas_ves)) %in% ap2, AZUL_MEDIO, "#FFFFFF")
+wm4 <- (AC - 0.6) / 2; hm4 <- YF - YT - 1.1
+panel_titulo(doc, XC, YT, wm4, "Intervención: San Juan de Lurigancho", sprintf("%d de %d zonas", sum(zonas_sjl$aplicada), nrow(zonas_sjl)))
+poner_mapa(tema_mapa(ggplot() + geom_sf(data = zonas_sjl, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity()), XC, YT + 0.6, wm4, hm4)
+separador_v(doc, XC + wm4 + 0.3, YT, YT + hm4 + 0.6)
+panel_titulo(doc, XC + wm4 + 0.6, YT, wm4, "Comparación: Villa El Salvador", sprintf("%d de %d zonas", length(ap2), nrow(zonas_ves)))
+poner_mapa(tema_mapa(ggplot() + geom_sf(data = zonas_ves, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity()), XC + wm4 + 0.6, YT + 0.6, wm4, hm4)
+leyenda(doc, 0, YT + hm4 + 0.7, c("Zona aplicada, intervención", "Zona aplicada, comparación", "Fuera de la muestra"), c(AZUL_SI, AZUL_MEDIO, "#FFFFFF"), centrar_en = XC + AC / 2)
+zona("dos distritos, un color por grupo", XC, YT + 0.6, AC, hm4)
+pie(doc, "Selección ficticia sobre las zonas censales INEI 2017. Cada grupo conserva su color en todas las láminas")
+
