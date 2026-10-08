@@ -252,8 +252,8 @@ doc <- nueva(doc); titulo(doc, "Formas básicas", ante = "Banco de recursos")
 c4 <- (AC - 3 * 0.4) / 4; x4s <- XC + (0:3) * (c4 + 0.4)
 formas <- list(list("ellipse", "Círculo", "Fondo de ícono, marca numerada y punto de un gráfico"), list("rect", "Rectángulo", "Barra, caja y franja. Siempre con esquinas rectas"),
                list("linea", "Línea", "Separador, guía y eje. Gris claro, nunca negra"), list("rightArrow", "Flecha", "Sólo para indicar un paso o un cambio entre dos momentos"),
-               list("chevron", "Chevrón", "Etapas consecutivas de un proceso"), list("homePlate", "Pentágono", "Primera etapa o etiqueta de una línea de tiempo"),
-               list("triangle", "Triángulo", "Hito puntual en una línea de tiempo"), list("llave", "Llave", "Agrupa elementos que se suman o se leen juntos"))
+               list("chevron", "Chevrón", "Etapas consecutivas de un proceso"), list("homePlate", "Pentágono", "Primera etapa o etiqueta de un proceso"),
+               list("triangle", "Triángulo", "Hito puntual de un cronograma"), list("llave", "Llave", "Agrupa elementos que se suman o se leen juntos"))
 for (k in seq_along(formas)) { f_ <- formas[[k]]; col <- (k - 1) %% 4; fil <- (k - 1) %/% 4
   x <- x4s[col + 1]; y <- YT + 0.1 + fil * 2.5
   if (f_[[1]] == "linea") caja(doc, x, y + 0.5, c4 * 0.8, 0.02, TK$rule)
@@ -281,21 +281,6 @@ for (k in seq_along(pasos)) { xk <- XC + (k - 1) * (AC / 5)
 txt(doc, "La etapa en curso va en azul oscuro y las demás en gris azulado.", XT, YT + 3.8, AC, 0.32, 12, TK$navy)
 zona("cinco etapas con ícono y su variante en chevrones", XC, YT, AC, 4.0)
 pie(doc, "Para metodología, cronograma y avance del estudio. Hasta seis etapas en una lámina")
-
-# --- línea de tiempo
-MOTOR_ACT <- "Banco de recursos: línea de tiempo del estudio"
-doc <- nueva(doc); titulo(doc, "Línea de tiempo", ante = "Banco de recursos")
-meses <- c("Marzo", "Abril", "Mayo", "Junio", "Julio"); wlab <- 2.2; xg0 <- XC + wlab; wm <- (W - MR - xg0) / length(meses)
-for (k in seq_along(meses)) { txt(doc, meses[k], xg0 + (k - 1) * wm, YT, wm, 0.3, 12, TK$soft, bold = TRUE, align = "center"); if (k > 1) caja(doc, xg0 + (k - 1) * wm, YT + 0.35, 0.008, 3.55, TK$rule) }
-fases <- list(c("Diseño del instrumento", 0, 1), c("Prueba piloto", 1, 0.5), c("Trabajo de campo", 1.5, 1.5), c("Validación y procesamiento", 2.8, 1), c("Informe final", 3.6, 1.2))
-for (k in seq_along(fases)) { y <- YT + 0.5 + (k - 1) * 0.62; f_ <- fases[[k]]
-  txt(doc, f_[1], XT, y, wlab - 0.1, 0.36, 12, TK$navy, bold = TRUE)
-  caja(doc, xg0 + as.numeric(f_[2]) * wm, y + 0.05, as.numeric(f_[3]) * wm, 0.3, if (k == 3) TK$navy else TK$tenue) }
-hitos <- list(c(1.5, "Inicio de campo"), c(3.0, "Base cerrada"), c(4.8, "Entrega"))
-for (h in hitos) { xh <- xg0 + as.numeric(h[1]) * wm
-  caja(doc, xh - 0.12, YT + 3.75, 0.24, 0.24, TK$navy, geom = "triangle"); xl <- min(xh - 1, W - MR - 2); txt(doc, h[2], xl, YT + 4.02, 2, 0.28, 11, TK$navy, bold = TRUE, align = if (xl < xh - 1) "right" else "center") }
-zona("cronograma: meses arriba, fases a la izquierda, hitos abajo", XC, YT, AC, 4.4)
-pie(doc, "Las barras empiezan y terminan en la fecha real. La fase en curso va en azul oscuro")
 
 # --- embudo de la muestra
 MOTOR_ACT <- "Banco de recursos: de la muestra prevista a las encuestas efectivas"
