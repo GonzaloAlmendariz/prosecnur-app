@@ -98,6 +98,8 @@ for (v in seq(0, 100, 25)) txt(doc, paste0(v, "%"), px(v) - 0.35, YF - 0.3, 0.7,
 zona("barras desde 0 con guías cada 25 %", xl, y0, wl, nrow(M_dim) * bloque)
 pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))
 
+if (ESTILO == "moderna") { MOTOR_ACT <- "PROPUESTA: peso de cada aspecto en la satisfacción general (regresión, análisis nuevo en Analítica)"; doc <- rr_peso(doc) }
+
 # --- p_dim_radar: once competencias como ejes (5 o más ejes), por sexo
 # E5 (Gonzalo, 2026-10-08: «me encanta que pueda ponerse un límite mínimo al eje»): el motor ya lo tiene, p_dim_radar(inicio_eje_pct = 80)
 MOTOR_ACT <- "p_slide_1_grafico: p_dim_radar(inicio_eje_pct = 80)"

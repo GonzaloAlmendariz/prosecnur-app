@@ -161,3 +161,18 @@ Tres niveles con los mismos gráficos (2026-10-08, «el público general tambié
 Paneles por par (2026-10-08, «este gráfico para mostrar dos significancias simultáneas no me convence»): el gráfico de puntos con una línea entre públicos se reemplaza por tres paneles de diferencias (A menos B, A menos C, B menos C), alineados con las filas de la tabla de letras. Cada par muestra su diferencia con el intervalo de Newcombe ajustado por Bonferroni (3 pares) y el punto lleno cuando no cruza el cero; en los 24 pares el intervalo y la prueba del motor coinciden. Dos significancias simultáneas (conoce la misión: A > B y A > C) se ven como dos marcas en dos paneles; Auditoría (C > B) aparece sólo en B menos C.
 
 Armonía (2026-10-08, «perfeccionar todos los gráficos, afinarlos y que sean más armónicos y orgánicos»): un lenguaje común para las ocho láminas de significancia, con piezas compartidas (`panel_fondo`, `guia_v`, `eje_txt`, `intervalo`, `punto`). Panel gris claro con guías blancas y el cero marcado; intervalos con extremos redondeados; un solo tamaño de punto (lleno azul: significativa; hueco gris: no); tablas sólo con filetes, sin filas alternadas; celdas de la matriz con esquinas redondeadas; ejes en 9.5 pt.
+
+### Integración al recetario (2026-10-08, «ya está listo para que todo sea integrado al recetario»)
+
+Las secciones de `propuestas_rescatables.R` pasan a ser funciones (`rr_cifras`, `rr_peso`, `rr_significancia`, `rr_b2b`, `rr_separadores`) que llaman el mazo de propuestas y el recetario moderno; el antetítulo cambia «Propuesta N» por el tema. Sólo en la moderna: la fiel conserva su convención. La moderna pasa de 167 a 189 láminas.
+
+| Pieza | Dónde quedó en el recetario moderno | Estado |
+|---|---|---|
+| Cifras destacadas de 1 a 5 (una, tres y cinco) | III.2, tras «Dónde va la cifra destacada» (láminas 55 a 57) | ☑ |
+| Peso en la satisfacción | III.4, tras el comparativo de dimensiones (82) | ☑ |
+| Diferencias significativas (método, tabla de letras con paneles, forest técnico y estándar, matriz técnica y estándar, dos para público general) | Sección nueva III.5 con portadilla (91 a 99) | ☑ |
+| Bottom Two Box y fila Total | IV.2, al final de escalas (131) | ☑ |
+| Separadores de capítulo (A, B, C) y subcapítulo (1 a 4) | VII, entre las alternativas de índice y los cierres | ☑ |
+| «Qué se propone» y «Lo que no se trae» | Sólo en el mazo de propuestas | ☑ |
+
+Auditoría: moderna 189 láminas, fiel 168, propuestas 24; sin formas fuera de la lámina, marcadores vacíos, caracteres vetados ni contraste bajo; ningún «Propuesta N» en el recetario.
