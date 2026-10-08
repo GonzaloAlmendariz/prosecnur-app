@@ -2532,6 +2532,7 @@ if (!exists("%||%", mode = "function")) {
   } else {
     .ficha_tecnica_write_docx_fallback(rows, path_docx)
   }
+  .docx_conformar(path_docx)   # XML conforme al esquema de Word (docx_conformar.R)
   invisible(path_docx)
 }
 

@@ -249,3 +249,21 @@ Pedido: «ajustar el orden y la estructura del recetario para que se vea profesi
 | Y19 | Mapas | «La posición de las leyendas en los mapas puede verse un poco más profesional», en la línea de un gráfico principal y uno más pequeño al lado | `poner_mapa()` calcula el rectángulo real del mapa y `leyenda_mapa()` pone una leyenda vertical con título que cierra el panel lateral, alineada al borde inferior del mapa. En Lima por distrito el mapa va a la derecha y la escala queda en el mar | ☑ |
 
 Regla transversal de la ronda Y: las cifras chicas encima de su segmento ya no adelgazan la barra. La fila gana el aire (`AIRE_CHICA` en `recetario_piezas.R`, usado por `likert_panel`, `filas_pulso` y `bloque_mixto`) y las leyendas siguen a sus barras en vez de ir a una altura fija.
+
+## Ronda W, guía en Word (2026-10-08)
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| W1 | «No tiene sentido hacer un banco de iconos, un banco de formas, ni hablar de los tipos de láminas» | `recetario_word.R` | ☑ no entran |
+| W2 | «Mostrar todas las gráficas que se puedan insertar, con la propia lógica del Word: sus márgenes, sus tamaños» | `recetario_word.R` cap. 3, `recetario_word_graficos.R` | ◐ primera versión: 54 gráficos y 7 tablas en A4, ancho útil de 15.93 cm, letra de 8 pt o más |
+| W3 | «Un título por encima del gráfico para que pueda indexarse» | `rotulo()` con campo SEQ, índices de gráficos y tablas | ☑ |
+| W4 | «Cómo es la traducción de que en PPT se vea bien a que en Word se vea bien» | cap. 2 «De PPT a Word», con láminas del PPT al lado | ◐ primera versión |
+| W5 | «En un Word hay capítulos, subcapítulos, una propuesta de índice» | cap. 1 nuevo, identidad del documento | ☐ |
+| W6 | «Qué informes ya existen y cómo se estructuran» | análisis de los informes entregados (acreditación 2022 a 2025, GIZ, HSTVG, Sello Mujer); sólo patrones, nada de su contenido entra al repo | ◐ en curso |
+| W7 | «Una forma más sofisticada, avanzada, minimalista, pero creativa de una nueva identidad visual en el Word» | portada, índice, aperturas de capítulo y subcapítulo, cierre | ☐ |
+| W8 | Los Word de officer y flextable no pasan el esquema (texto suelto en filas, orden de propiedades) | `word_nativo.py` | ☑ en la guía, el docx valida. En la app queda como tarea aparte |
+| W9 | Retirar `recetario-word-fiel.docx` y `recetario-word-moderna.docx`, reemplazados por `propuesta-word.docx` | `4-recetario/` | bloqueado: borrado con confirmación de Gonzalo |
+| W10 | «Veo leyendas mal posicionadas en gráficos de mapas» | `g_mapa()` en `recetario_word_graficos.R` | ☐ |
+| W11 | «Algunos números de porcentajes chocan con cosas» | `g_dos_grupos()`, `g_serie()` | ☐ |
+| W12 | «Una línea visual demasiado ecléctica para un Word de informe formal» | estilos de `recetario_word.R` | ☐ |
+| W13 | Los cuatro Word de la app no pasaban el esquema de Word | `api/R/docx_conformar.R`, llamado desde el informe, el cuestionario, la ficha técnica y las decisiones de la base integrada. Test `test-docx-conformar.R` | ☑ verificador APROBADO: 416 expectativas del área en verde y los cinco docx de la app pasan el validador. Pendiente: reinstalar el paquete para que los jobs lo usen, y abrir los docx en Word real |

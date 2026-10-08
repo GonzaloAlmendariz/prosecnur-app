@@ -533,6 +533,7 @@ reporte_word_plan <- function(
 
   if (!isTRUE(solo_lista)) {
     print(doc, target = path_docx)
+    .docx_conformar(path_docx)   # XML conforme al esquema de Word (docx_conformar.R)
     # Con el docx ya escrito, los PNG intermedios sobran (el on.exit cubre
     # además los caminos de error previos al print).
     unlink(img_paths[file.exists(img_paths)])
