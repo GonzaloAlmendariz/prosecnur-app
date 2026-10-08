@@ -106,11 +106,15 @@ pie(doc, "Lámina de texto: título y hasta tres bloques breves")
 MOTOR_ACT <- "p_slide_3_graficos_fila"
 doc <- nueva(doc); titulo(doc, "Perfil del docente", ante = "Tres gráficos en fila")
 w3_ <- (AC - 2 * 0.45) / 3; xs_ <- XC + (0:2) * (w3_ + 0.45)
-panel_titulo(doc, xs_[1], YT, w3_, "Sexo", "52 respuestas"); dicotomia(doc, xs_[1], YT + 0.7, w3_, do_sexo$labels[1:2], do_sexo$pct[1:2], do_sexo$n[1:2], size = 20, g = 0.3)
-panel_titulo(doc, xs_[2], YT, w3_, "Máximo grado alcanzado", "52 respuestas"); barras_h(doc, xs_[2], YT + 0.6, w3_, do_gr$labels, do_gr$pct, wlab = 1.2, g = 0.26, fila = 0.5, size = 11)
-panel_titulo(doc, xs_[3], YT, w3_, "Departamento académico", "52 respuestas"); barras_h(doc, xs_[3], YT + 0.6, w3_, sub("Departamento de ", "", do_dep$labels), do_dep$pct, wlab = 1.5, g = 0.26, fila = 0.5, size = 11)
-for (k in 2:3) separador_v(doc, xs_[k] - 0.225, YT, YT + 3.6)
-pie(doc, "Base: 52 docentes")
+# Tres preguntas de cinco categorías que ocupan todo el alto de la lámina (Gonzalo, 2026-10-08: «se ve muy vacío en la mitad inferior»)
+tres_ <- list(list("Rango de edad", c("Menos de 35 años", "35 a 44 años", "45 a 54 años", "55 a 64 años", "65 años a más"), c(8, 23, 31, 27, 11)),
+              list("Categoría docente", c("Principal", "Asociado", "Auxiliar", "Contratado a tiempo completo", "Contratado por horas"), c(21, 29, 17, 13, 20)),
+              list("Años de docencia en la carrera", c("Menos de 5", "5 a 9", "10 a 14", "15 a 19", "20 a más"), c(15, 21, 25, 17, 22)))
+fila3_ <- min(0.8, (YF - 0.15 - (YT + 0.7)) / 5)
+for (k in 1:3) { panel_titulo(doc, xs_[k], YT, w3_, tres_[[k]][[1]], "52 respuestas")
+  barras_h(doc, xs_[k], YT + 0.7, w3_, tres_[[k]][[2]], tres_[[k]][[3]], wlab = 1.55, g = grosor_cat(5), fila = fila3_, size = 12) }
+for (k in 2:3) separador_v(doc, xs_[k] - 0.225, YT, YF - 0.15)
+pie(doc, "Cifras ficticias. Base: 52 docentes")
 MOTOR_ACT <- "p_slide_4_graficos con una cifra destacada en lugar de un gráfico"
 doc <- nueva(doc); titulo(doc, "Perfil del egresado", ante = "Cifra en lugar de un gráfico")
 w2_ <- (AC - 0.5) / 2; xg_ <- c(XC, XC + w2_ + 0.5); yg_ <- c(YT, YT + 2.45)

@@ -91,8 +91,7 @@ for (i in seq_len(nrow(M_dim))) { yi <- y0 + (i - 1) * bloque; yc <- yi + bloque
     caja(doc, xl, yb, px(v) - xl, gb, cg2[k])
     txt(doc, paste0(round(v), "%"), xl + wl + 0.1, yb + (gb - 0.3) / 2, 0.9, 0.3, 14, TK$navy, bold = TRUE) }
   d <- round(M_dim[i, "Femenino"]) - round(M_dim[i, "Masculino"])
-  txt(doc, if (d == 0) "0" else sprintf("%d pts", abs(d)), xd, yc - 0.32, W - MR - xd, 0.4, 20, TK$navy, bold = TRUE, align = "center")
-  txt(doc, if (d == 0) "sin diferencia" else paste("a favor de", gr2[1 + (d > 0)]), xd, yc + 0.08, W - MR - xd, 0.3, 11, TK$soft, align = "center") }
+  txt(doc, if (d == 0) "0" else sprintf("%d pts", abs(d)), xd, yc - 0.2, W - MR - xd, 0.4, 20, TK$navy, bold = TRUE, align = "center") }   # sin subtítulo (Gonzalo, 2026-10-08)
 separador_v(doc, xd - 0.15, YT, YF - 0.3)
 for (v in seq(0, 100, 25)) txt(doc, paste0(v, "%"), px(v) - 0.35, YF - 0.3, 0.7, 0.24, 10, TK$soft, align = "center")   # E4: escala debajo, sin riel
 zona("barras desde 0 con guías cada 25 %", xl, y0, wl, nrow(M_dim) * bloque)

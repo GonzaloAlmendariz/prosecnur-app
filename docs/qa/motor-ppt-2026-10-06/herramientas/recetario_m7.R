@@ -326,7 +326,8 @@ txt(doc, "La etapa en curso va en azul oscuro y las demás en azul claro, con le
 zona("cinco etapas con ícono y su variante en chevrones", XC, YT, AC, 4.0)
 pie(doc, "Para metodología, cronograma y avance del estudio. Hasta seis etapas en una lámina")
 
-# --- embudo de la muestra
+# --- embudo de la muestra. Fuera de la propuesta de diseño (Gonzalo, 2026-10-08: «no le veo utilidad a esta, se va»)
+if (!NUEVA) {
 MOTOR_ACT <- "Banco de recursos: de la muestra prevista a las encuestas efectivas"
 doc <- nueva(doc); titulo(doc, "De la muestra prevista a las efectivas", ante = "Banco de recursos")
 emb <- list(c("Marco muestral", 1850), c("Elegibles", 1512), c("Contactados", 980), c("Efectivas", 417))
@@ -339,3 +340,4 @@ for (k in seq_along(emb)) { y <- YT + 0.3 + (k - 1) * 1.0; v <- as.numeric(emb[[
 txt(doc, "Las barras empiezan en el mismo punto: se compara el largo, igual que en las barras apiladas.", XT, YT + 4.4, AC, 0.32, 13, TK$navy, bold = TRUE)
 zona("embudo con barras alineadas", XC, YT, AC, 4.2)
 pie(doc, "Para la ficha técnica y los informes de avance de Monitoreo. Cifras ficticias")
+}

@@ -19,7 +19,9 @@
       "reg2:1-2",
       "m0:2",
       "m0:1",
-      "m0:4-6",
+      "m0:4",
+      "reg2:7",
+      "m0:5-6",
       "m0b:1-2",
       "m2c:4-5",
       "inf:4-6"
@@ -129,7 +131,8 @@
      "titulo": "Mapas",
      "sub": "La cartografía del estudio",
      "laminas": [
-      "m3e:4"
+      "m3e:4",
+      "m3e:8-10"
      ]
     },
     {
@@ -357,7 +360,7 @@
      "titulo": "Figuras y diagramas",
      "sub": "Conectores, llaves, formas y procesos",
      "laminas": [
-      "m7:12-16"
+      "m7:12-15"
      ]
     }
    ]

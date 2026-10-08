@@ -7,27 +7,31 @@ MOTOR_ACT <- "Reglas: la lámina estándar de un gráfico (p_slide_1_grafico, la
 doc <- nueva(doc); titulo(doc, "Servicios de tutoría", ante = "Medidas de la lámina estándar")
 sf_m <- function(pct, valid) list(pct = pct, n = round(pct * valid / 100), valid = valid)
 txt(doc, "La Unidad cuenta con servicios de tutoría académica", XT, YT - 0.05, AC, 0.3, 13, TK$navy, bold = TRUE)
-likert_panel(doc, XC, YT + 0.25, AC, list(list(lab = "Docentes", f = sf_m(c(0, 2, 29, 54, 15), 52)), list(lab = "Estudiantes", f = sf_m(c(6, 18, 34, 19, 23), 172)),
-  list(lab = "Egresados", f = sf_m(c(3, 12, 50, 30, 5), 178))), g = 0.4, fila = 0.62, wlab = 1.5, size_lab = 12)
-leyenda(doc, 0, YT + 2.5, LIKERT_ROT, TK$likert, centrar_en = XC + AC / 2)
-separador_h(doc, XC, W - MR, YT + 2.9)
-med <- list(c("Título", "24 pt, coral, a 0.36 in del borde"), c("Antetítulo", "10 pt, gris, sobre el título"), c("Pregunta", "13 pt, al inicio de la zona de datos"),
-            c("Zona de datos", "de 1.65 a 6.42 in de alto"), c("Cifra en la barra", "14 pt, o 12 pt encima si no cabe"), c("Top Two Box", "14 pt, verde, columna de 1 in"),
-            c("Leyenda", "12 pt, centrada bajo el gráfico"), c("Base", "10 pt, negrita, a 6.88 in"))
+# Las barras siguen su propia tabla: tres filas de escala, 1.22 cm (Gonzalo, 2026-10-08: medidas en cm y qué es «escala» y qué «categorías»)
+yfin_ <- likert_panel(doc, XC, YT + 0.25, AC, list(list(lab = "Docentes", f = sf_m(c(6, 8, 29, 42, 15), 52)), list(lab = "Estudiantes", f = sf_m(c(6, 18, 34, 19, 23), 172)),
+  list(lab = "Egresados", f = sf_m(c(6, 12, 47, 30, 5), 178))), g = grosor_apilada(3), fila = grosor_apilada(3) + 0.2, wlab = 1.5, size_lab = 12)
+leyenda(doc, 0, yfin_ + 0.02, LIKERT_ROT, TK$likert, centrar_en = XC + AC / 2)
+y_t <- yfin_ + 0.42; separador_h(doc, XC, W - MR, y_t)
+med <- list(c("Título", "24 pt, coral, a 0.91 cm del borde"), c("Antetítulo", "10 pt, gris, sobre el título"), c("Pregunta", "13 pt, al inicio de la zona de datos"),
+            c("Zona de datos", "de 4.19 a 16.31 cm de alto"), c("Cifra en la barra", "14 pt, o 12 pt encima si no cabe"), c("Top Two Box", "14 pt, verde, columna de 2.54 cm"),
+            c("Leyenda", "12 pt, centrada bajo el gráfico"), c("Base", "10 pt, negrita, a 17.48 cm"))
 wcol <- (AC - 0.8) / 3; xcol <- XC + (0:2) * (wcol + 0.4)
-txt(doc, "Medidas", xcol[1] - 0.1, YT + 2.88, wcol, 0.28, 11, TK$soft, bold = TRUE)
-for (k in seq_along(med)) { cc <- if (k <= 4) 1 else 2; yk <- YT + 3.2 + ((k - 1) %% 4) * 0.34
+txt(doc, "Medidas", xcol[1] - 0.1, y_t + 0.06, wcol, 0.28, 11, TK$soft, bold = TRUE)
+for (k in seq_along(med)) { cc <- if (k <= 4) 1 else 2; yk <- y_t + 0.38 + ((k - 1) %% 4) * 0.32
   txt(doc, med[[k]][1], xcol[cc] - 0.1, yk, 1.5, 0.28, 11, TK$navy, bold = TRUE); txt(doc, med[[k]][2], xcol[cc] + 1.35, yk, wcol - 1.35, 0.28, 11, TK$soft) }
-separador_v(doc, xcol[3] - 0.2, YT + 2.95, YF - 0.15)
-txt(doc, "Grosor de barra según el número de filas", xcol[3] - 0.1, YT + 2.88, wcol + 0.1, 0.28, 11, TK$soft, bold = TRUE)
+separador_v(doc, xcol[3] - 0.2, y_t + 0.12, YF - 0.05)
+txt(doc, "Grosor de barra según el número de filas", xcol[3] - 0.1, y_t + 0.06, wcol + 0.1, 0.28, 11, TK$soft, bold = TRUE)
+# Dos columnas con su muestra: la escala es una barra apilada al 100 % (Likert o Sí y No) y la categoría, una barra simple por opción
 gr_ <- list(c("1 o 2", 0.50, 0.26), c("3", 0.48, 0.26), c("4 a 6", 0.44, 0.28), c("7 a 9", 0.38, 0.32), c("10 o más", 0.32, 0.32))
-txt(doc, "Filas", xcol[3] - 0.1, YT + 3.16, 1.0, 0.24, 9.5, TK$soft, bold = TRUE); txt(doc, "Escalas", xcol[3] + 0.85, YT + 3.16, 1.2, 0.24, 9.5, TK$soft, bold = TRUE)
-txt(doc, "Barras de categorías", xcol[3] + 2.1, YT + 3.16, 1.8, 0.24, 9.5, TK$soft, bold = TRUE)
-for (k in seq_along(gr_)) { yk <- YT + 3.42 + (k - 1) * 0.27
-  txt(doc, gr_[[k]][1], xcol[3] - 0.1, yk, 1.0, 0.24, 10.5, TK$navy, bold = TRUE)
-  caja(doc, xcol[3] + 0.9, yk + 0.12 - as.numeric(gr_[[k]][2]) * 0.18, 0.45, as.numeric(gr_[[k]][2]) * 0.36, TK$likert[4]); txt(doc, paste(gr_[[k]][2], "in"), xcol[3] + 1.4, yk, 0.7, 0.24, 10, TK$navy)
-  caja(doc, xcol[3] + 2.15, yk + 0.12 - as.numeric(gr_[[k]][3]) * 0.18, 0.45, as.numeric(gr_[[k]][3]) * 0.36, TK$tenue); txt(doc, paste(gr_[[k]][3], "in"), xcol[3] + 2.65, yk, 0.7, 0.24, 10, TK$navy) }
-pie(doc, "Base: 52 docentes, 172 estudiantes y 178 egresados. Con más filas la barra adelgaza y la letra no cambia")
+xe_ <- xcol[3] + 0.75; xk_ <- xcol[3] + 2.2
+txt(doc, "Filas", xcol[3] - 0.1, y_t + 0.34, 0.8, 0.24, 9.5, TK$soft, bold = TRUE)
+txt(doc, "Escala apilada", xe_ - 0.05, y_t + 0.34, 1.45, 0.24, 9.5, TK$soft, bold = TRUE); txt(doc, "Categorías", xk_ - 0.05, y_t + 0.34, 1.4, 0.24, 9.5, TK$soft, bold = TRUE)
+for (k in seq_along(gr_)) { yk <- y_t + 0.62 + (k - 1) * 0.27; ge <- as.numeric(gr_[[k]][2]); gc <- as.numeric(gr_[[k]][3])
+  txt(doc, gr_[[k]][1], xcol[3] - 0.1, yk, 0.85, 0.24, 10.5, TK$navy, bold = TRUE)
+  xx_ <- xe_; for (j in 1:4) { caja(doc, xx_, yk + 0.12 - ge * 0.18, 0.13, ge * 0.36, TK$likert[j]); xx_ <- xx_ + 0.13 }
+  txt(doc, paste(cm(ge), "cm"), xe_ + 0.56, yk, 0.85, 0.24, 10, TK$navy)
+  caja(doc, xk_, yk + 0.12 - gc * 0.18, 0.4, gc * 0.36, TK$navy); txt(doc, paste(cm(gc), "cm"), xk_ + 0.46, yk, 0.85, 0.24, 10, TK$navy) }
+pie(doc, "Base: 52 docentes, 172 estudiantes y 178 egresados. Escala apilada: una barra al 100 % por público. Categorías: una barra por opción")
 
 # 2. Escala tipográfica
 MOTOR_ACT <- "Reglas: escala tipográfica estándar"
@@ -94,3 +98,30 @@ txt(doc, "a partir de la opinión de", XT, 3.85, AC, 0.45, 18, TK$navy, bold = T
 wa <- AC / 6; for (k in seq_along(actores6)) { xa <- XC + (k - 1) * wa
   icono_en_circulo(doc, actores6[[k]][1], xa + (wa - 0.72) / 2, 4.45, 0.72); txt(doc, actores6[[k]][2], xa, 5.25, wa, 0.5, 13, TK$navy, bold = TRUE, align = "center") }
 pie(doc, "Carrera de Contabilidad. Proceso de acreditación 2026")
+
+# 7. Las paletas en uso (Gonzalo, 2026-10-08: «le falta una diapositiva que ejemplifique cada paleta»). Va después de «Los colores y lo que significan»
+MOTOR_ACT <- "Reglas: cada paleta aplicada a su tipo de gráfico"
+doc <- nueva(doc); titulo(doc, "Las paletas en uso", ante = "Reglas de la lámina")
+wq <- (AC - 0.6) / 2; xq <- c(XC, XC + wq + 0.6); yq <- c(YT - 0.1, YT + 2.62)
+separador_v(doc, xq[2] - 0.3, YT - 0.1, YF - 0.1); separador_h(doc, XC, W - MR, yq[2] - 0.12)
+# Escala Likert
+panel_titulo(doc, xq[1], yq[1], wq, "Escala Likert de cinco puntos", "Del desacuerdo al acuerdo, con Sin información al final")
+yl_ <- likert_panel(doc, xq[1], yq[1] + 0.5, wq, list(list(lab = "Docentes", f = sf_m(c(7, 10, 50, 21, 12), 52)), list(lab = "Estudiantes", f = sf_m(c(6, 18, 34, 19, 23), 172))),
+  g = 0.4, fila = 0.6, wlab = 1.2, size_lab = 12)
+leyenda(doc, 0, yl_ + 0.0, c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información"), TK$likert, centrar_en = xq[1] + wq / 2, size = 9)
+# Dicotómica
+panel_titulo(doc, xq[2], yq[1], wq, "Dicotómica", "Sí en azul oscuro y No en celeste")
+dicotomia(doc, xq[2], yq[1] + 0.75, wq - 0.3, c("Sí", "No"), c(64, 36), n = c(114, 64), size = 26, g = 0.5)
+# Actores
+panel_titulo(doc, xq[1], yq[2], wq, "Actores", "Cada público con su color en todo el informe")
+act_ <- c(Docentes = "#0B4F8C", Estudiantes = "#2A9D8F", Egresados = "#E9C46A", Autoridades = "#8E9DBD", Administrativos = "#081F5C", Empleadores = "#9DC3E6"); va_ <- c(98, 77, 81, 100, 88, 62)
+for (k in seq_along(act_)) { yk <- yq[2] + 0.52 + (k - 1) * 0.32; wbk <- (wq - 1.9 - 0.7) * va_[k] / 100
+  txt(doc, names(act_)[k], xq[1], yk, 1.75, 0.28, 11, TK$navy, bold = TRUE, align = "right")
+  caja(doc, xq[1] + 1.87, yk + 0.03, wbk, 0.24, act_[k]); txt(doc, paste0(va_[k], "%"), xq[1] + 1.92 + wbk, yk - 0.01, 0.7, 0.3, 12, TK$navy, bold = TRUE) }
+# Texto y realce
+panel_titulo(doc, xq[2], yq[2], wq, "Texto, títulos y realce", "Coral sólo en títulos, verde sólo en Top Two Box")
+txt(doc, "Servicios de tutoría", xq[2], yq[2] + 0.55, wq, 0.4, 20, TK$coral, bold = TRUE)
+txt(doc, "83%", xq[2], yq[2] + 0.98, 1.3, 0.5, 26, TK$verde_txt, bold = TRUE); txt(doc, "Top Two Box de los docentes", xq[2] + 1.3, yq[2] + 1.1, wq - 1.3, 0.3, 12, TK$navy)
+barras_h(doc, xq[2], yq[2] + 1.55, wq, c("Tutoría académica", "Tutoría socioemocional", "Orientación vocacional"), c(46, 31, 23), wlab = 1.9, g = 0.24, fila = 0.36, size = 11)
+zona("cuatro paletas, cada una en su gráfico", XC, YT - 0.1, AC, YF - YT)
+pie(doc, "La barra mayor en azul oscuro y las demás en el tono de apoyo. Cifras ilustrativas")

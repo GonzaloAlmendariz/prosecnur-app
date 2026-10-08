@@ -4,15 +4,17 @@ SEC <- "graf2"
 MOTOR_ACT <- "p_slide_1_grafico: p_histograma"
 doc <- nueva(doc); titulo(doc, "Edad de los estudiantes", ante = "Histograma")
 dh <- data.frame(e = edad[edad >= 16 & edad <= 32]); md <- median(edad)
-gh <- ggplot(dh, aes(e)) + geom_histogram(binwidth = 1, fill = TK$navy, colour = "#FFFFFF", boundary = 0.5) +
-  geom_vline(xintercept = md, colour = TK$soft, linetype = "dashed", linewidth = 0.6) +
-  annotate("text", x = md + 0.3, y = Inf, label = sprintf("Mediana: %d años", as.integer(md)), hjust = 0, vjust = 1.6, size = 12 / .pt, colour = TK$navy, fontface = "bold", family = "Arial") +
-  stat_bin(aes(label = after_stat(ifelse(count > 0, count, ""))), binwidth = 1, boundary = 0.5, geom = "text", vjust = -0.4, size = 11 / .pt, colour = TK$navy, family = "Arial") +
-  scale_x_continuous(breaks = 16:32) + scale_y_continuous(expand = expansion(mult = c(0, 0.15))) + labs(x = "Edad, en años", y = NULL) + theme_minimal(base_family = "Arial") +
-  theme(plot.background = element_blank(), panel.background = element_blank(), panel.grid = element_blank(), axis.text.y = element_blank(),
-        axis.text.x = element_text(size = 12, colour = TK$navy), axis.title.x = element_text(size = 11, colour = TK$soft))
-invisible(ph_with(doc, dml(ggobj = gh, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = XC, top = YT, width = AC, height = YF - YT - 0.1)))
-zona("histograma", XC, YT, AC, YF - YT - 0.1)
+# Histograma con formas nativas, como el del perfil: cada edad bajo su barra, la mediana como triángulo coral bajo su edad y su cifra
+# arriba a la derecha; sin línea punteada ni título del eje (Gonzalo, 2026-10-08)
+cnt <- table(factor(dh$e, levels = min(dh$e):max(dh$e))); hb <- YF - YT - 1.25; nb_ <- length(cnt); wcol <- AC / nb_; yh <- YT + 0.55
+for (k in seq_len(nb_)) { hk <- hb * cnt[[k]] / max(cnt); xk <- XC + (k - 1) * wcol
+  if (hk > 0) { caja(doc, xk + 0.02, yh + hb - hk, wcol - 0.04, hk, TK$navy)
+    txt(doc, cnt[[k]], xk, yh + hb - hk - 0.3, wcol, 0.28, 12, TK$navy, bold = TRUE, align = "center") }
+  txt(doc, names(cnt)[k], xk, yh + hb + 0.06, wcol, 0.28, 12, TK$navy, align = "center") }
+xm <- XC + (md - min(dh$e) + 0.5) * wcol
+caja(doc, xm - 0.08, yh + hb + 0.4, 0.16, 0.13, TK$coral, geom = "triangle")
+txt(doc, sprintf("Mediana: %d años", as.integer(md)), W - MR - 3.2, YT, 3.2, 0.3, 12, TK$coral, bold = TRUE, align = "right")
+zona("histograma", XC, yh, AC, hb)
 pie(doc, sprintf("Base: %d estudiantes que declararon su edad", length(edad)))
 
 MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas (dicotómica)"

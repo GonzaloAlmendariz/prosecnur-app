@@ -37,7 +37,7 @@ lamina <- function(doc, dibujo, caps, icos, subs = NULL, nombre, situacion, cols
     if (iconos_lista) {   # número, ícono y título: los íconos van antes del título, no en la ilustración (pedido de Gonzalo)
       di <- if (n <= 5) 0.44 else if (n <= 8) 0.34 else 0.26; xi <- xl + (if (n <= 5) 0.75 else 0.6); xt <- xi + di + 0.25
       for (k in seq_len(n)) { y <- ya + (k - 1) * rh
-        txt(doc, sprintf("%02d", k), xl - 0.1, y + (rh - fs / 46) / 2 - 0.02, 0.8, fs / 46 + 0.08, fs, TK$coral, bold = TRUE)
+        txt(doc, sprintf("%d", k), xl - 0.1, y + (rh - fs / 46) / 2 - 0.02, 0.8, fs / 46 + 0.08, fs, TK$coral, bold = TRUE)
         icono(doc, icos[k], "navy", xi, y + (rh - di) / 2, di)
         txt(doc, caps[k], xt - 0.1, y + (rh - fs / 48) / 2 - 0.02, W - MR - xt + 0.1, fs / 48 + 0.08, fs, TK$navy, bold = n <= 5)
         if (k < n) caja(doc, xl, y + rh - 0.003, W - MR - xl, 0.005, TK$rule) }
@@ -51,7 +51,7 @@ lamina <- function(doc, dibujo, caps, icos, subs = NULL, nombre, situacion, cols
     if (iconos_lista) {   # número, ícono y título; los subcapítulos debajo, alineados con el título
       di <- 0.36; xi <- xl + 0.65; xt <- xi + di + 0.25
       for (k in seq_len(n)) {
-        txt(doc, sprintf("%02d", k), xl - 0.1, y + (hm - 0.34) / 2, 0.8, 0.34, 15, TK$coral, bold = TRUE)
+        txt(doc, sprintf("%d", k), xl - 0.1, y + (hm - 0.34) / 2, 0.8, 0.34, 15, TK$coral, bold = TRUE)
         icono(doc, icos[k], "navy", xi, y + (hm - di) / 2, di)
         txt(doc, caps[k], xt - 0.1, y + (hm - 0.34) / 2, W - MR - xt + 0.1, 0.34, 15, TK$navy, bold = TRUE); y <- y + hm
         for (j in seq_along(subs[[k]])) {

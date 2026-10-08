@@ -20,9 +20,12 @@ ante_rr <- function(t) if (MODO_RR == "propuestas") t else { t <- sub("^Propuest
   m <- c(`Diferencias significativas: significancia` = "Diferencias significativas", `Separadores: separadores` = "Separadores",
          `Cifras destacadas: cifras, de 1 a 5` = "Cifras destacadas, de 1 a 5")
   if (t %in% names(m)) m[[t]] else t }
-filas_pulso <- function(doc, x, y, w, premisa, filas, peso = NULL, fila = 0.42, wlab = 1.6) {
+filas_pulso <- function(doc, x, y, w, premisa, filas, peso = NULL, fila = NULL, wlab = 1.6, g = NULL) {
   wpeso <- if (is.null(peso)) 0 else 1.5; wcol <- 1.25; xb <- x + wpeso + wlab + 0.12; wb <- w - wpeso - wlab - 0.12 - 2 * wcol - 0.15
-  xt2 <- xb + wb + 0.1; xb2 <- xt2 + wcol; g <- 0.28
+  xt2 <- xb + wb + 0.1; xb2 <- xt2 + wcol
+  # Grosor de la tabla estándar y aire para las cifras chicas (Gonzalo, 2026-10-08: «se superpone con la barra de arriba»)
+  g <- g %||% grosor_apilada(length(filas)); chica <- any(vapply(filas, function(fl) tiene_peq(fl$f$pct, wb), TRUE))
+  fila <- max(fila %||% 0, g + (if (chica) AIRE_CHICA else 0.2))
   txt(doc, premisa, x - 0.1, y, w, 0.34, 13, TK$navy, bold = TRUE)
   yh <- y + 0.42
   txt(doc, "Top Two Box", xt2 - 0.05, yh, wcol + 0.1, 0.26, 10, TK$verde_txt, bold = TRUE, align = "center")
@@ -37,8 +40,8 @@ filas_pulso <- function(doc, x, y, w, premisa, filas, peso = NULL, fila = 0.42, 
     hl <- alto_txt(fl$actor, wlab, 12, TRUE)
     txt(doc, fl$actor, x + wpeso, yb + (g - hl) / 2, wlab, hl, 12, TK$navy, bold = TRUE, align = "right")
     barra_apilada(doc, xb, yb, wb, fl$f$pct, TK$likert, g)
-    txt(doc, paste0(ttb(fl$f), "%"), xt2, yb + (g - 0.3) / 2, wcol, 0.3, 13, TK$verde_txt, bold = TRUE, align = "center")
-    txt(doc, paste0(b2b(fl$f), "%"), xb2, yb + (g - 0.3) / 2, wcol, 0.3, 13, NARANJA_TXT, bold = TRUE, align = "center")
+    txt(doc, paste0(ttb(fl$f), "%"), xt2, yb + (g - 0.3) / 2, wcol, 0.3, PT$cifra, TK$verde_txt, bold = TRUE, align = "center")
+    txt(doc, paste0(b2b(fl$f), "%"), xb2, yb + (g - 0.3) / 2, wcol, 0.3, PT$cifra, NARANJA_TXT, bold = TRUE, align = "center")
     if (es_tot) separador_h(doc, x + wpeso, x + w, yb + g + 0.08)   # filete bajo la barra del Total (T6: antes chocaba con las cifras chicas de la fila siguiente)
     yy <- yy + fila + (if (es_tot) 0.22 else 0) }
   invisible(yy) }
@@ -162,11 +165,9 @@ pie(doc, "Base: 417 personas encuestadas en cuatro públicos")
 rr_b2b <- function(doc) {
 doc <- nueva(doc); titulo(doc, "Servicios de tutoría", ante = ante_rr("Propuestas 3 y 6: Bottom Two Box y fila Total"))
 d1 <- c(0, 2, 29, 54, 15); e1 <- c(6, 18, 34, 19, 23); d2 <- c(0, 2, 31, 44, 23); e2 <- c(3, 6, 45, 32, 13)
-y_ <- filas_pulso(doc, XC, YT - 0.1, AC, "La Unidad cuenta con servicios de tutoría académica",
-                  list(fila_s("Total", tot_pond(d1, 52, e1, 172), 224), fila_s("Docentes", d1, 52), fila_s("Estudiantes", e1, 172)))
-separador_h(doc, XC, W - MR, y_ + 0.08)
-filas_pulso(doc, XC, y_ + 0.2, AC, "La Unidad cuenta con servicios de tutoría socioemocional",
-            list(fila_s("Total", tot_pond(d2, 52, e2, 172), 224), fila_s("Docentes", d2, 52), fila_s("Estudiantes", e2, 172)))
+# Una sola premisa, con el grosor de la lámina estándar (Gonzalo, 2026-10-08: con dos premisas las barras adelgazaban y las cifras chicas chocaban)
+filas_pulso(doc, XC, YT + 0.1, AC, "La Unidad cuenta con servicios de tutoría académica",
+            list(fila_s("Total", tot_pond(d1, 52, e1, 172), 224), fila_s("Docentes", d1, 52), fila_s("Estudiantes", e1, 172)), wlab = 1.8)
 leyenda(doc, 0, Y_LEY - 0.05, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 pie(doc, "Top Two Box: «De acuerdo» más «Totalmente de acuerdo». Bottom Two Box: las dos respuestas en desacuerdo. Base: 52 docentes y 172 estudiantes")
   doc }
@@ -176,7 +177,7 @@ rr_peso <- function(doc) {
 doc <- nueva(doc); titulo(doc, "Satisfacción con la atención en la Unidad", ante = ante_rr("Propuesta 4: peso en la satisfacción"))
 atr <- list(fila_s("Trato del personal", c(3, 8, 47, 38, 4), 224), fila_s("Tiempo de atención", c(9, 19, 45, 22, 5), 224),
             fila_s("Claridad de la información", c(4, 12, 51, 29, 4), 224), fila_s("Infraestructura", c(2, 9, 52, 33, 4), 224))   # S5: ordenadas por peso
-filas_pulso(doc, XC, YT - 0.1, AC, "¿Qué tan satisfecho está con cada aspecto de la atención?", atr, peso = c(41, 33, 26, NA), fila = 0.66, wlab = 2.4)
+filas_pulso(doc, XC, YT - 0.1, AC, "¿Qué tan satisfecho está con cada aspecto de la atención?", atr, peso = c(41, 33, 26, NA), fila = 0.66, wlab = 2.4, g = 0.3)
 separador_h(doc, XC, W - MR, YT + 3.3)
 txt(doc, "Cómo se lee el peso", XT, YT + 3.42, 4, 0.3, 12, TK$soft, bold = TRUE)
 txt(doc, "El peso indica qué parte de la satisfacción general explica cada aspecto, según una regresión lineal. Se reparte entre los aspectos con efecto significativo y suma 100 %.", XT, YT + 3.72, AC, 0.55, 13, TK$navy)
@@ -257,8 +258,8 @@ xq <- XC; xdo <- XC + 3.05; xes <- xdo + 0.95; xg0 <- xes + 1.15; wg <- 4.2; xdi
 lo_ <- -25; hi_ <- 45; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
 yh <- YT - 0.05
 txt(doc, "Pregunta", xq - 0.1, yh, 3, 0.3, 11, TK$soft, bold = TRUE)
-caja(doc, xdo + 0.05, yh + 0.1, 0.12, 0.12, COL_D); txt(doc, "Docentes", xdo + 0.12, yh, 0.95, 0.3, 11, TK$navy, bold = TRUE)
-caja(doc, xes + 0.05, yh + 0.1, 0.12, 0.12, COL_E); txt(doc, "Estudiantes", xes + 0.12, yh, 1.1, 0.3, 11, TK$navy, bold = TRUE)
+# Encabezados sin cuadros de color: en la tabla las cifras no llevan color (Gonzalo, 2026-10-08: «pone una leyenda con colores pero no hay colores»)
+txt(doc, "Docentes", xdo - 0.1, yh, 1.1, 0.3, 11, TK$soft, bold = TRUE, align = "center"); txt(doc, "Estudiantes", xes - 0.1, yh, 1.1, 0.3, 11, TK$soft, bold = TRUE, align = "center")
 txt(doc, "Diferencia, docentes menos estudiantes", xg0 - 0.1, yh, wg + 0.2, 0.3, 11, TK$soft, bold = TRUE, align = "center")
 txt(doc, if (tecnica) "Puntos [IC 95 %]" else "Diferencia", xdi - 0.1, yh, 1.7, 0.3, 11, TK$soft, bold = TRUE); if (tecnica) txt(doc, "Prueba", xpv - 0.1, yh, wpv + 0.1, 0.3, 11, TK$soft, bold = TRUE)
 separador_h(doc, XC, W - MR, yh + 0.36)
