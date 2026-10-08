@@ -32,10 +32,10 @@ Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendien
 | C23 | 44 | «Pareciera que los gráficos no compartieran el mismo ancho. Se ve poco regular» | `recetario_m2.R` | ☑ la dicotomía ocupa el mismo ancho que las barras vecinas |
 | C24 | 56 | «Los KPIs me parecen súper bien, pero hay que definirlos, explicarlos: dónde pueden ir, si ocupan un gráfico, medio gráfico o un solo recuadro, qué proporción 50/50 o 30/70. No está claro, ni como elemento ni como feature» | `recetario_m2c.R` | ☐ |
 | C25 | 63 | «La leyenda está muy pequeña y mal posicionada… aquí la leyenda es más pequeña que en otros gráficos, lo que me hace pensar que no se revisa bien» | `recetario_m3a.R` dona + revisión de tamaños de leyenda en todo el mazo | ☑ leyenda de la dona bajo el gráfico; todas las leyendas a 12 pt (16 llamadas tenían 10 a 11) |
-| C26 | 65 | «Complementarlo con su alternativa en barras agrupadas elegantes» | `recetario_m3a.R` ranking | ☐ |
-| C27 | 69 | «Estas etiquetas pueden ser mejores y estar mejor posicionadas» | `recetario_m3c.R` puntos comparativos | ☐ |
-| C28 | 70 | «Mismo comentario: mejores y mejor posicionadas» | `recetario_m3c.R` brecha | ☐ |
-| C29 | 71 | «No has puesto el caso de varios años para que se vea algo mejor» | `recetario_m3c.R` serie temporal | ☐ |
+| C26 | 65 | «Complementarlo con su alternativa en barras agrupadas elegantes» | `recetario_m3a.R` ranking | ☑ lámina nueva «Ranking en barras» con los mismos datos, la opción mayor en azul oscuro y los residuales al final |
+| C27 | 69 | «Estas etiquetas pueden ser mejores y estar mejor posicionadas» | `recetario_m3c.R` puntos comparativos | ☑ cifras en la misma línea que sus puntos: la mayor a la derecha y la menor a la izquierda (`cifras_par`) |
+| C28 | 70 | «Mismo comentario: mejores y mejor posicionadas» | `recetario_m3c.R` brecha | ☑ misma corrección y la diferencia entre públicos en azul neutro (antes en rojo) |
+| C29 | 71 | «No has puesto el caso de varios años para que se vea algo mejor» | `recetario_m3c.R` serie temporal | ☑ lámina nueva con cuatro procesos (2012, 2016, 2021 y 2026) con la pieza `grafico_serie` |
 | C30 | 75 | «El mapa de calor puede estar mejor, más claro y más didáctico; además no queda claro su caso de uso» | `recetario_m3d.R` | ☐ |
 | C31 | 76 | «No queda claro su caso de uso» | `recetario_m3d.R` | ☐ |
 | C32 | 77 | «Se puede ver mejor y más profesional» | `recetario_m3d.R` comparativo de dimensiones | ☐ |
@@ -46,5 +46,5 @@ Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendien
 | C37 | 91 | «De la misma forma, una llave u otros elementos podría verse más elegante» | `recetario_m4.R` filtro al costado | ☑ llave a la derecha del «Sí» con tallo hasta el panel del ingreso |
 | C38 | 97 | «No entiendo por qué siguen los índices aquí cuando ya hay otra propuesta al final. Revisa bien nuevamente el orden y la estructura de todo el PPT para que tampoco sea completamente repetitiva» | `recetario_m5.R` variantes de índice + orden global | ◐ variantes de índice retiradas de IV.2; falta revisar el orden y la estructura de todo el mazo |
 | C39 | 110 | «No se entiende el caso de uso de este» (conteos por año) | `recetario_m5.R` | ☐ |
-| C40 | 122 | «Aún no termina de verse profesional; las etiquetas se ven algo sueltas» | `recetario_m6.R` estudio por olas | ☐ |
+| C40 | 122 | «Aún no termina de verse profesional; las etiquetas se ven algo sueltas» | `recetario_m6.R` estudio por olas | ☑ rehecha con `grafico_serie`: guías con escala, puntos con borde, cifras arriba o debajo según la serie y su nombre al final |
 | C41 | 138 | «Integrar esto como un tipo de gráfico, está muy interesante» (línea de tiempo) | `recetario_m7.R` → catálogo III.3 | ☐ |

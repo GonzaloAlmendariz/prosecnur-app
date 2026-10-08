@@ -91,3 +91,10 @@ for (k in seq_along(lab)) { yc <- YT + 0.35 + (k - 0.5) * fl_; xv <- xs_ + ws_ *
 zona("lollipop, eje desde 0", xs_, YT + 0.35, ws_, length(lab) * fl_)
 txt(doc, "% de encuestados que marcó cada opción", xs_, YT - 0.25, ws_, 0.26, 10, TK$soft, bold = TRUE)
 pie(doc, sprintf("Base: %d egresados de Ingeniería Mecánica", sm$valid))
+
+# --- C26: la alternativa del ranking en barras ordenadas, con los mismos datos
+MOTOR_ACT <- "p_slide_1_grafico: p_barras_agrupadas (orden_barras = «mayor_menor», residuales al final)"
+doc <- nueva(doc); titulo(doc, "Qué podría mejorar la carrera", ante = "Ranking en barras")
+txt(doc, "% de encuestados que marcó cada opción", ML + 6.55, YT - 0.25, 4, 0.26, 10, TK$soft, bold = TRUE)
+barras_h(doc, ML, YT + 0.2, ANCHO, lab, pc, wlab = 6.3, g = min(0.42, fl_ * 0.62), fila = fl_, size = 11)
+pie(doc, sprintf("Base: %d egresados. La opción más marcada en azul oscuro; «Otros» y «No sabe» al final", sm$valid))

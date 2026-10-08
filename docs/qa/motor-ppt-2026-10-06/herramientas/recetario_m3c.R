@@ -14,15 +14,14 @@ eje_pct <- function(doc, xl, wl, y, h, lo, hi, paso, titulo_eje) {
 MOTOR_ACT <- "p_slide_1_grafico: p_puntos_comparativos"
 doc <- nueva(doc); titulo(doc, "Conocer la misión frente a saber dónde consultarla", ante = "Puntos comparativos")
 act4 <- c("Docentes", "Estudiantes", "Egresados", "Administrativos")
-xl <- ML + 2.4; wl <- W - MR - xl - 0.4; yb <- YT + 0.75; fila <- (YF - yb - 0.6) / 4
+xl <- ML + 2.4; wl <- W - MR - xl - 1.0; yb <- YT + 0.75; fila <- (YF - yb - 0.6) / 4   # aire para la cifra a la derecha del punto
 px <- eje_pct(doc, xl, wl, yb, 4 * fila, 50, 100, 10, "% que responde Sí")
 for (i in 1:4) { yc <- yb + (i - 0.5) * fila; a1 <- D$mision1[[i]]$pct[1]; a2 <- D$mision2[[i]]$pct[1]
   txt(doc, act4[i], ML, yc - 0.27, 2.2, 0.3, 13, TK$navy, bold = TRUE, align = "right")
   txt(doc, sprintf("%d respuestas", D$mision1[[i]]$valid), ML, yc + 0.02, 2.2, 0.26, 10, TK$faint, align = "right")
   caja(doc, px(min(a1, a2)), yc - 0.012, px(max(a1, a2)) - px(min(a1, a2)), 0.024, TK$faint)
   caja(doc, px(a2) - 0.12, yc - 0.12, 0.24, 0.24, "#4F7FAF", geom = "ellipse"); caja(doc, px(a1) - 0.12, yc - 0.12, 0.24, 0.24, TK$navy, geom = "ellipse")
-  ar <- a1 >= a2; txt(doc, paste0(a1, "%"), if (ar) min(px(a1) + 0.16, W - MR - 0.6) else px(a1) - 0.76, yc - 0.42, 0.6, 0.28, 11, TK$navy, bold = TRUE, align = if (ar) "left" else "right")
-  txt(doc, paste0(a2, "%"), if (ar) px(a2) - 0.76 else min(px(a2) + 0.16, W - MR - 0.6), yc + 0.12, 0.6, 0.28, 11, "#4F7FAF", bold = TRUE, align = if (ar) "right" else "left") }
+  cifras_par(doc, px, a1, a2, yc, TK$navy, "#4F7FAF") }
 zona("puntos, eje 50 a 100 rotulado", xl, yb, wl, 4 * fila)
 leyenda(doc, 0, YF - 0.3, c("Conoce la misión y los propósitos", "Sabe dónde consultarlos"), c(TK$navy, "#4F7FAF"), centrar_en = xl + wl / 2)
 pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos")
@@ -31,14 +30,15 @@ pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos
 MOTOR_ACT <- "p_slide_1_grafico: p_dumbbell (dos bases)"
 doc <- nueva(doc); titulo(doc, "Competencias: docentes frente a estudiantes", ante = "Brecha entre dos públicos")
 o <- order(-(dd6$Docentes - dd6$Estudiantes)); d2 <- dd6[o, ]
-xl <- ML + 3.0; wl <- W - MR - xl - 1.5; yb <- YT + 0.75; fila <- (YF - yb - 0.6) / nrow(d2)
+xl <- ML + 3.0; wl <- W - MR - xl - 2.4; yb <- YT + 0.75; fila <- (YF - yb - 0.6) / nrow(d2)   # aire para la cifra y la columna «Diferencia»
 px <- eje_pct(doc, xl, wl, yb, nrow(d2) * fila, 80, 100, 5, "Top Two Box (De acuerdo + Totalmente de acuerdo)")
 txt(doc, "Diferencia", W - MR - 1.3, yb - 0.3, 1.3, 0.26, 10, TK$soft, bold = TRUE, align = "center")
 for (i in seq_len(nrow(d2))) { yc <- yb + (i - 0.5) * fila; a <- d2$Docentes[i]; b <- d2$Estudiantes[i]
   txt(doc, d2$Competencia[i], ML, yc - 0.15, 2.8, 0.3, 13, TK$navy, bold = TRUE, align = "right")
   caja(doc, px(min(a, b)), yc - 0.02, max(0.01, px(max(a, b)) - px(min(a, b))), 0.04, TK$faint)
   caja(doc, px(b) - 0.13, yc - 0.13, 0.26, 0.26, TK$actores[["Estudiantes"]], geom = "ellipse"); caja(doc, px(a) - 0.13, yc - 0.13, 0.26, 0.26, TK$actores[["Docentes"]], geom = "ellipse")
-  txt(doc, sprintf("%+d pts", a - b), W - MR - 1.3, yc - 0.15, 1.3, 0.3, 13, if (a - b < 0) TK$coral else TK$navy, bold = TRUE, align = "center") }
+  cifras_par(doc, px, a, b, yc, TK$actores[["Docentes"]], TK$actores[["Estudiantes"]])
+  txt(doc, sprintf("%+d pts", a - b), W - MR - 1.3, yc - 0.15, 1.3, 0.3, 13, TK$navy, bold = TRUE, align = "center") }   # entre públicos la diferencia no es mejor ni peor: azul neutro
 zona("pesas, eje 80 a 100 rotulado", xl, yb, wl, nrow(d2) * fila)
 leyenda(doc, 0, YF - 0.3, c(sprintf("Docentes (%d)", ns6[1]), sprintf("Estudiantes (%d)", ns6[2])), TK$actores[1:2], centrar_en = xl + wl / 2)
 pie(doc, sprintf("Base: %d docentes y %d estudiantes", ns6[1], ns6[2]))
@@ -63,6 +63,15 @@ for (nm in names(ser)) { v <- ser[[nm]]; col <- TK$actores[[nm]]
 zona("pendiente entre dos mediciones", x1, yt_, x2 - x1, hy)
 pie(doc, "Base 2026: 52 docentes y 172 estudiantes. 2021: informe consolidado anterior")
 
+
+# --- C29: la misma serie con varios procesos de acreditación, que es donde una línea se lee bien
+MOTOR_ACT <- "p_slide_1_grafico: p_serie_temporal (cuatro mediciones)"
+doc <- nueva(doc); titulo(doc, "Tutoría académica en cuatro procesos de acreditación", ante = "Serie temporal con varias mediciones")
+gs <- grafico_serie(c("2012", "2016", "2021", "2026"), list(Docentes = c(88, 93, 98, 83), Estudiantes = c(71, 79, 84, 53)), unname(TK$actores[c("Docentes", "Estudiantes")]) |> setNames(c("Docentes", "Estudiantes")), lim = c(40, 100))
+invisible(ph_with(doc, dml(ggobj = gs, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML + 0.4, top = YT + 0.1, width = AC - 0.4, height = 4.7)))
+txt(doc, "Top Two Box", ML, YT - 0.25, 3, 0.26, 10, TK$soft, bold = TRUE)
+zona("serie de cuatro mediciones", ML + 0.4, YT + 0.1, AC - 0.4, 4.7)
+pie(doc, "Base: docentes y estudiantes de cada proceso (46 a 52 docentes y 702 a 1,234 estudiantes)")
 # --- p_radar: el radar real, sólo en la lámina de un gráfico y con su tabla
 MOTOR_ACT <- "p_slide_1_grafico: p_radar con tabla nativa (sólo en lámina de un gráfico)"
 doc <- nueva(doc); titulo(doc, "Formulación del perfil de egreso", ante = "Radar con tabla")
