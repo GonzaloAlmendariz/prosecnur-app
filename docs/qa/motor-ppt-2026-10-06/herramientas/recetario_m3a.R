@@ -90,7 +90,7 @@ for (k in seq_along(lab)) { yc <- YT + 0.35 + (k - 0.5) * fl_; xv <- xs_ + ws_ *
   txt(doc, paste0(pc[k], "%"), xv + 0.14, yc - 0.15, 0.7, 0.3, 12, TK$navy, bold = TRUE) }
 zona("lollipop, eje desde 0", xs_, YT + 0.35, ws_, length(lab) * fl_)
 txt(doc, "% de encuestados que marcó cada opción", xs_, YT - 0.25, ws_, 0.26, 10, TK$soft, bold = TRUE)
-pie(doc, sprintf("Base: %d egresados de Ingeniería Mecánica", sm$valid))
+pie(doc, sprintf("Base: %d egresados", sm$valid))
 
 # --- C26: la alternativa del ranking en barras ordenadas, con los mismos datos
 MOTOR_ACT <- "p_slide_1_grafico: p_barras_agrupadas (orden_barras = «mayor_menor», residuales al final)"

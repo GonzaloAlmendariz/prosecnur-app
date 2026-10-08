@@ -105,7 +105,8 @@ sm <- D$ing_p35
 doc <- nueva(doc); titulo(doc, "Qué podría mejorar la carrera", ante = "Opción múltiple de un actor")
 o <- order(-sm$pct); lab <- sm$labels[o]; pc <- sm$pct[o]; ot <- grepl("^Otros$|^No sabe", lab)
 lab <- c(lab[!ot], lab[ot]); pc <- c(pc[!ot], pc[ot]); lab <- lab[pc > 0]; pc <- pc[pc > 0]
-txt(doc, sm$pregunta, ML, Y_DATOS - 0.15, 12.2, alto_txt(sm$pregunta, 12.2, 13), 13, TK$navy, bold = ESTILO == "fiel")
+preg_ <- sub(" de Ingeniería Mecánica", "", sm$pregunta, fixed = TRUE)   # sin la carrera del estudio de origen (C7)
+txt(doc, preg_, ML, Y_DATOS - 0.15, 12.2, alto_txt(preg_, 12.2, 13), 13, TK$navy, bold = ESTILO == "fiel")
 if (ESTILO == "moderna") txt(doc, "% de encuestados que marcó cada opción", ML + 6.72, Y_DATOS + 0.3, 5, 0.26, 10, TK$soft, bold = TRUE)
 yy0 <- Y_DATOS + 0.6; resid <- grepl("^Otros$|^No sabe", lab)
 barras_h(doc, ML, yy0, W - ML - MR, lab[!resid], pc[!resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08)
