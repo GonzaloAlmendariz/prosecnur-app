@@ -401,7 +401,7 @@ partes <- list(
   list("IV", "Escenarios de acreditación", "Lo que cambia entre carreras. IV.1 Actores y bases: seis actores, filtros, cohortes, bases chicas. IV.2 Escalas, etiquetas y formatos"),
   if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) list("V", "Otros estudios de PULSO", "La misma identidad en estudios de opinión, monitoreo de campo y seguimiento de indicadores"),
   list("VI", "Banco de recursos", "120 íconos en 12 temáticas, cajas y tarjetas con sus medidas, formas y diagramas, con qué hacer y qué evitar"),
-  list("VII", "Alternativas de índice y de cierre", "Cuatro composiciones geométricas para el índice, de 5 a 13 capítulos, con y sin subcapítulos, y su cierre"))
+  list("VII", "Alternativas de índice y de cierre", "Cuatro composiciones geométricas para el índice, de 5 a 13 capítulos, con y sin subcapítulos, y cuatro alternativas de cierre"))
 partes <- Filter(Negate(is.null), partes)
 hp <- (YF - YT + 0.1) / length(partes)
 for (k in seq_along(partes)) { yk <- YT - 0.1 + (k - 1) * hp; p_ <- partes[[k]]
