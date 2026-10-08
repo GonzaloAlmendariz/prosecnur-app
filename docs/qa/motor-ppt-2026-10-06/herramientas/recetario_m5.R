@@ -119,7 +119,7 @@ doc <- nueva(doc); titulo(doc, "Entidades que reconocieron la labor docente por 
 ent <- c("Dirección Académica del Profesorado", "Facultad", "Departamento académico", "Universidad", "Escuela de Posgrado", "Vicerrectorado Académico", "Otras entidades")
 cnt <- rbind(c(0, 2, 3, 3, 5), c(3, 3, 3, 4, 2), c(1, 1, 1, 1, 2), c(1, 3, 2, 4, 2), c(0, 0, 1, 3, 1), c(1, 1, 2, 2, 0), c(0, 0, 1, 1, 2)); anos <- 2020:2024
 if (ESTILO == "moderna") {
-  wl <- 3.6; xc <- ML + wl + 0.3; wcol <- 1.15; y0 <- YT + 0.5; hr <- 0.5
+  wl <- 3.3; xc <- ML + wl + 0.25; wcol <- 0.9; y0 <- YT + 0.5; hr <- 0.5
   for (j in seq_along(anos)) txt(doc, anos[j], xc + (j - 1) * wcol, y0 - 0.4, wcol, 0.3, 12, TK$soft, bold = TRUE, align = "center")
   txt(doc, "Total", xc + 5 * wcol + 0.2, y0 - 0.4, 1, 0.3, 12, TK$soft, bold = TRUE, align = "center")
   for (i in seq_along(ent)) { yc <- y0 + (i - 1) * hr
@@ -131,7 +131,16 @@ if (ESTILO == "moderna") {
   separador_h(doc, xc, xc + 5 * wcol + 1.2, y0 + length(ent) * hr + 0.05)
   txt(doc, "Total", ML, y0 + length(ent) * hr + 0.12, wl, 0.34, 12, TK$soft, bold = TRUE, align = "right")
   for (j in seq_along(anos)) txt(doc, sum(cnt[, j]), xc + (j - 1) * wcol, y0 + length(ent) * hr + 0.12, wcol, 0.34, 13, TK$navy, bold = TRUE, align = "center")
-  zona("matriz de conteos, celda 1,15 x 0,5 in", xc, y0, 5 * wcol, length(ent) * hr)
+  zona("matriz de conteos, celda 0,9 x 0,5 in", xc, y0, 5 * wcol, length(ent) * hr)
+  # C39 («No se entiende el caso de uso de este»): la lámina dice cuándo se usa y qué pregunta la produce.
+  xp <- xc + 5 * wcol + 1.55; wp <- W - MR - xp; separador_v(doc, xp - 0.35, YT, YT + 4.6)
+  bloques <- list(c("Cuándo se usa", "Cuando la pregunta registra hechos con fecha y cada persona puede marcar varios, como qué entidad reconoció su labor y en qué año."),
+                  c("Por qué una matriz", "Son pocos casos y se cuentan, no se porcentúan. La matriz muestra dónde y cuándo se concentran."))
+  yp <- YT
+  for (b in bloques) { txt(doc, b[1], xp, yp, wp, 0.3, 12, TK$soft, bold = TRUE); h_ <- alto_txt(b[2], wp, 13)
+    txt(doc, b[2], xp, yp + 0.32, wp, h_, 13, TK$navy); yp <- yp + 0.32 + h_ + 0.15 }
+  txt(doc, "Lectura", xp, yp, wp, 0.3, 12, TK$soft, bold = TRUE)
+  txt(doc, "Los reconocimientos pasan de 6 en 2020 a 18 en 2023. La Facultad es la que más reconoce, con 15.", xp, yp + 0.32, wp, alto_txt("Los reconocimientos pasan de 6 en 2020 a 18 en 2023. La Facultad es la que más reconoce, con 15.", wp, 13, TRUE), 13, TK$navy, bold = TRUE)
 } else {
   dfc <- data.frame(ano = factor(rep(anos, each = length(ent))), ent = factor(rep(ent, times = 5), levels = rev(ent)), v = as.vector(cnt))
   pal <- c("#081F5C", "#0B4F8C", "#2A9D8F", "#9DC3E6", "#E9C46A", "#F4B183", "#BFBFBF")
