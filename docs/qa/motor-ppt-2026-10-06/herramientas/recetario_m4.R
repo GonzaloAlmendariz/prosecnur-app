@@ -138,7 +138,7 @@ sl_lab <- c("Dependiente", "Independiente", "Dependiente e independiente", "Busc
 panel_titulo(doc, ML, YT, col2, "¿Cuál es su situación laboral actual?", "178 egresados")
 wl_ <- 2.5; fila_ <- 0.66; g_ <- 0.36; y0_ <- YT + 0.7; esc_ <- 80;   # escala holgada: deja aire entre las barras y la llave
  wbar_ <- col2 - wl_ - 0.8
-barras_h(doc, ML, y0_, col2, sl_lab, sl_pc, wlab = wl_, g = g_, fila = fila_, size = 13, escala = esc_, realzar = FALSE)   # E7: sin destacar la mayor, lo que importa es el grupo de la llave
+barras_h(doc, ML, y0_, col2, sl_lab, sl_pc, wlab = wl_, g = g_, fila = fila_, size = 13, escala = esc_, destacar = sl_lab[1:3])   # se resaltan las tres que habilitan el otro gráfico (Gonzalo, 2026-10-08). E7: sin destacar la mayor, lo que importa es el grupo de la llave
 xll <- ML + wl_ + 0.12 + wbar_ * max(sl_pc[1:3]) / esc_ + 0.75
 llave_a_titulo(doc, xll, y0_ + (fila_ - g_) / 2, y0_ + 2 * fila_ + (fila_ + g_) / 2, xr, YT)   # la llave conecta con el título del segundo gráfico
 panel_titulo(doc, xr, YT, col2, "¿Qué tan relacionado está su trabajo con la carrera?", "Sólo los 139 que trabajan, en cualquiera de las tres modalidades")

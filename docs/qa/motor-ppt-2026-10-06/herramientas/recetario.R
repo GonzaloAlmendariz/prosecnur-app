@@ -179,7 +179,7 @@ barra_apilada <- function(doc, x, y, w, pct, cols, h) {
   }
 }
 # Barras de una serie (perfil, selección múltiple): etiqueta, barra y cifra.
-barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala = NULL, color = TK$navy, comp = NULL, sin_ceros = TRUE, realzar = TRUE) {
+barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala = NULL, color = TK$navy, comp = NULL, sin_ceros = TRUE, realzar = TRUE, destacar = NULL) {
   if (sin_ceros) { k0 <- pct > 0 | (!is.null(comp) && FALSE); if (!is.null(comp)) k0 <- pct > 0 | comp > 0
     labels <- labels[k0]; pct <- pct[k0]; if (!is.null(comp)) comp <- comp[k0] }
   resid <- grepl("^(Otro|Otros|No sabe|Ninguna|Prefiero no)", labels, ignore.case = TRUE)   # residuales al final
@@ -194,13 +194,14 @@ barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala
   realce <- realzar && ESTILO == "moderna" && is.null(comp) && identical(color, TK$navy) && length(pct) > 2 && sum(pct == max(pct)) == 1
   for (k in seq_along(labels)) {
     es_max <- realce && pct[k] == max(pct)
+    if (!is.null(destacar)) es_max <- labels[k] %in% destacar   # destacar: las categorías que habilitan otro gráfico (llave)
     txt(doc, labels[k], x, yy + (fila - alto_txt(labels[k], wlab, size)) / 2, wlab, alto_txt(labels[k], wlab, size), size, TK$navy, bold = es_max, align = "right")
     yb <- yy + (fila - g) / 2
     if (!is.null(comp)) { gb <- g * 0.55; yb <- yy + fila / 2 - g / 2 - 0.02
       cw <- wbar * comp[k] / escala; caja(doc, x + wlab + 0.12, yb + g + 0.04, max(cw, 0.01), gb * 0.7, TK$dico[2])
       txt(doc, paste0(comp[k], "%"), x + wlab + 0.16 + cw, yb + g - 0.02, 0.8, 0.24, 10, TK$soft) }
     bw <- wbar * pct[k] / escala
-    if (bw > 0.004) caja(doc, x + wlab + 0.12, yb, bw, g, if (realce && !es_max) TK$tenue else color)
+    if (bw > 0.004) caja(doc, x + wlab + 0.12, yb, bw, g, if ((realce || !is.null(destacar)) && !es_max) TK$tenue else color)
     txt(doc, paste0(pct[k], "%"), x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, 0.8, 0.3, size, TK$navy, bold = TRUE)
     yy <- yy + fila
   }
