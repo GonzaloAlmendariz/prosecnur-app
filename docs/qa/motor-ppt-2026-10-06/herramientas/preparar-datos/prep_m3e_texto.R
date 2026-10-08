@@ -7,7 +7,9 @@ x <- readRDS(file.path(SP, "ing_tmp.rds"))$src$data_sources[[1]]$p35
 x <- x[!is.na(x) & nzchar(trimws(x))]
 sin_tilde <- function(s) chartr("áéíóúüñ", "aeiouun", s)
 norm <- function(s) sin_tilde(tolower(s))
-tokens <- lapply(x, function(s) { t <- unlist(strsplit(gsub("[^[:alpha:]áéíóúñüÁÉÍÓÚÑÜ ]", " ", tolower(s)), "\\s+")); t[nzchar(t)] })
+tok1 <- function(s) { t <- unlist(strsplit(gsub("[^[:alpha:]áéíóúñüÁÉÍÓÚÑÜ ]", " ", tolower(s)), "\\s+")); t[nzchar(t)] }
+segmentos <- lapply(x, function(s) lapply(unlist(strsplit(s, "[.,;:!?()\n/]+")), tok1))   # una frase no cruza un punto ni una coma
+tokens <- lapply(segmentos, unlist)
 # vacías (artículos, preposiciones, conectores) y de relleno (verbos y adjetivos que no dicen qué cambiar)
 vacias <- c("a","al","ante","con","de","del","desde","el","en","entre","es","esta","este","estos","estas","ha","hay","la","las","le","les","lo","los",
             "mas","más","me","mi","muy","no","nos","o","para","pero","por","que","se","si","sí","sin","sobre","su","sus","un","una","uno","y","ya","como",
@@ -15,15 +17,15 @@ vacias <- c("a","al","ante","con","de","del","desde","el","en","entre","es","est
 relleno <- c("considera","considero","creo","podría","podrian","podrían","debería","deberia","deberían","deberian","debe","deben","tener","tiene","hacer",
              "mejorar","implementar","falta","parte","importante","mayor","mejor","bueno","buena","nuevos","nuevas","nuevo","nueva","egresado","egresados",
              "carrera","alumnos","estudiantes","estudiante","universidad","ingeniería","ingenieria","mecánica","mecanica","temas","tema","forma","manera",
-             "actualmente","sería","seria","ideal","donde","pueda","puedan","algunos","algunas","mucho","mucha","muchos","muchas","poco","ninguna","ninguno","nada","incluir","brindar","darle","dar")
+             "actualmente","tengan","esa","ese","ing","ingenieros","ingeniero","mecánico","mecánicos","ejemplo","actual","actuales","además","sales","tenemos","necesita","respecto","acuerdo","abran","sería","seria","ideal","donde","pueda","puedan","algunos","algunas","mucho","mucha","muchos","muchas","poco","ninguna","ninguno","nada","incluir","brindar","darle","dar")
 fuera <- norm(c(vacias, relleno))
 # variante con tilde más frecuente de cada forma normalizada, para mostrar «gestión» y no «gestion»
 todas <- unlist(tokens); vista <- tapply(todas, norm(todas), function(v) { t <- table(v); con <- grepl("[áéíóúñ]", names(t)); names(sort(t[if (any(con)) con else TRUE], decreasing = TRUE))[1] })
 ngramas <- function(n) {   # en el orden original; los extremos no pueden ser vacías ni de relleno, el medio sí (gestión de proyectos)
-  g <- unlist(lapply(tokens, function(t) { k <- norm(t); if (length(k) < n) return(character())
+  g <- unlist(lapply(segmentos, function(segs) unique(unlist(lapply(segs, function(t) { k <- norm(t); if (length(k) < n) return(character())
     out <- vapply(seq_len(length(k) - n + 1), function(i) { s <- k[i:(i + n - 1)]
       if (s[1] %in% fuera || s[n] %in% fuera || any(nchar(s[c(1, n)]) < 3)) NA_character_ else paste(vista[s], collapse = " ") }, "")
-    unique(out[!is.na(out)]) }))   # una vez por respuesta: cuenta personas, no repeticiones
+    out[!is.na(out)] })))))   # una vez por respuesta: cuenta personas, no repeticiones
   sort(table(g), decreasing = TRUE) }
 palabras <- ngramas(1); pares <- ngramas(2); trios <- ngramas(3)
 temas <- list(
@@ -40,5 +42,5 @@ m <- sapply(temas, function(rx) grepl(rx, xn, perl = TRUE))
 sin <- m[, "Sin sugerencia"]; m[sin, setdiff(colnames(m), "Sin sugerencia")] <- FALSE
 otros <- rowSums(m) == 0
 cats <- c(colSums(m[, colnames(m) != "Sin sugerencia"]), Otros = sum(otros), `Sin sugerencia` = sum(sin))
-saveRDS(list(n_resp = length(x), palabras = head(palabras, 12), pares = head(pares, 12), trios = head(trios, 12), cats = cats), file.path(SP, "texto_ing.rds"))
+saveRDS(list(n_resp = length(x), palabras = head(palabras, 12), pares = head(pares, 30), trios = head(trios, 30), cats = cats), file.path(SP, "texto_ing.rds"))
 cat("respuestas", length(x), "\n"); print(head(palabras, 8)); print(head(pares, 8)); print(head(trios, 8)); print(round(100 * cats / length(x)))

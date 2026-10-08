@@ -23,6 +23,26 @@ for (k in seq_len(nrow(top))) { yc <- YT + 0.75 + (k - 1) * 0.42; xv <- xr_ + 1.
 txt(doc, "menciones", xr_ + 1.7, YT + 0.42, 2, 0.24, 10, TK$soft, bold = TRUE)
 pie(doc, sprintf("Base: %d egresados que respondieron la pregunta abierta", nb$n_resp))
 
+# --- C34, segunda parte (Gonzalo, 2026-10-07: «no has agregado casos de mapa de palabras por pares o tríos»): la misma nube
+# con frases de dos y de tres palabras. Sólo frases que repiten al menos dos personas: con una sola, la nube es ruido.
+tx <- readRDS(file.path(SP, "texto_ing.rds"))
+MOTOR_ACT <- "p_slide_2_graficos: p_nube_palabras con frases de dos y de tres palabras (ilustrativa)"
+doc <- nueva(doc); titulo(doc, "Las frases que más se repiten", ante = "Nube de frases")
+nube_frases <- function(f, x, w, titulo_, rango) {
+  f <- f[f >= 2]; d <- data.frame(w = names(f), n = as.integer(f))
+  d$col <- grDevices::colorRampPalette(c("#8EA3C6", TK$navy))(4)[pmin(4, as.integer(cut(d$n, breaks = unique(c(1, 2, 3, 5, Inf)), labels = FALSE)))]
+  panel_titulo(doc, x, YT, w, titulo_, sprintf("%d frases repetidas por dos personas o más", nrow(d)))
+  set.seed(11)
+  g <- ggplot(d, aes(label = w, size = n, colour = col)) + geom_text_wordcloud(family = "Arial", fontface = "bold", rm_outside = TRUE, eccentricity = 0.8, grid_margin = 0.8) +
+    scale_size(range = rango / .pt) + scale_colour_identity() + theme_void()
+  invisible(ph_with(doc, dml(ggobj = g, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = x, top = YT + 0.7, width = w, height = YF - YT - 0.8)))
+  zona("nube de frases", x, YT + 0.7, w, YF - YT - 0.8) }
+wn <- (AC - 0.6) / 2
+nube_frases(tx$pares, XC, wn, "Frases de dos palabras", c(12, 38))
+separador_v(doc, XC + wn + 0.3, YT, YF - 0.1)
+nube_frases(tx$trios, XC + wn + 0.6, wn, "Frases de tres palabras", c(14, 40))
+pie(doc, sprintf("Base: %d egresados que respondieron la pregunta abierta. El tamaño crece con el número de personas que usan la frase", tx$n_resp))
+
 # --- C34 (Gonzalo, 2026-10-07: palabras, pares o tríos más comunes sin palabras de relleno, y al lado la categorización de
 # las respuestas abiertas como una pregunta de opción múltiple). Datos: preparar-datos/prep_m3e_texto.R
 tx <- readRDS(file.path(SP, "texto_ing.rds"))
