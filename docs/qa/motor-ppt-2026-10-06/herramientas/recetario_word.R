@@ -48,7 +48,7 @@ lectura_runs <- function(texto) {   # «Lectura»: las cifras en negrita, el res
 # Con la etiqueta SEQ, Word arma solo el índice de gráficos y el de tablas (Referencias > Insertar tabla de ilustraciones).
 # Convención de revista (APA, 7.ª ed.): «Gráfico 5» en negrita y, en la línea siguiente, el título en cursiva. Word arma con el campo SEQ el índice.
 rotulo <- function(doc, etiqueta, id, n, titulo) body_add_fpar(doc, fpar(run_est(paste0(etiqueta, " "), "NumeroRotulo"), seq_run(id, n, "NumeroRotulo"), run_linebreak(), ftext(titulo, fp_text_lite(italic = TRUE))), style = "Rótulo de gráfico")
-base_fuente <- function(doc, t, keep = FALSE) body_add_fpar(doc, fpar(ftext(t)), style = "Base y fuente")   # base y fuente, centradas bajo el gráfico y sin la palabra «Nota» (Gonzalo, 2026-10-08)
+base_fuente <- function(doc, t, keep = FALSE) body_add_fpar(doc, fpar(ftext(t)), style = if (keep) "Base y fuente con lectura" else "Base y fuente")   # con lectura, la nota no se separa de ella   # base y fuente, centradas bajo el gráfico y sin la palabra «Nota» (Gonzalo, 2026-10-08)
 GN <- 0; TN <- 0
 # Figura: rótulo, imagen del ancho del texto, base y fuente como párrafo propio (editable) y, si hay, el párrafo de lectura.
 grafico <- function(doc, titulo, g, alto, texto = NULL, base = NULL) {
@@ -475,12 +475,24 @@ f1 <- fr("docentes", "p16_4"); f2 <- fr("egresados", "p21_3")
 doc <- grafico(doc, f1$pregunta, g_apilada(list(list(actor = "Docentes", pct = f1$pct), list(actor = "Egresados", pct = f2$pct)), ROT, WTK$likert, n_txt = sprintf("N = %d docentes y %d egresados", f1$valid, f2$valid)), alto_apilada(2),
   texto = sprintf("El %d%% de los docentes y el %d%% de los egresados está de acuerdo o totalmente de acuerdo.", f1$pct[3] + f1$pct[4], f2$pct[3] + f2$pct[4]))
 for (v in c("p11", "p12")) { f <- fr("egresados", v); doc <- grafico(doc, f$pregunta, g_sino(f$labels[1:2], f$pct[1:2], f$n[1:2], n_txt = sprintf("N = %d egresados", f$valid)), 1.5) }
+# Más gráficos de acreditación (Gonzalo, 2026-10-08: «mostrar más ejemplos de gráficos por estudio»)
+doc <- grafico(doc, "Top Two Box de las competencias del perfil de egreso, por actor", g_competencias(cn, mm, c("Docentes", "Estudiantes", "Egresados"), n_txt = "N = 51 docentes, 109 estudiantes y 161 egresados"), 2.6,
+  texto = "Las seis competencias superan el 90% de acuerdo en los tres públicos. Las diferencias entre públicos son de pocos puntos.")
+bat_ <- lapply(sprintf("p14_%d", 2:7), function(v) fr("administrativos", v))
+doc <- grafico(doc, "Valoración del personal administrativo sobre su gestión y desarrollo", g_apilada(lapply(bat_, function(f) list(actor = f$pregunta, pct = f$pct)), ROT, WTK$likert, envolver = 34,
+  n_txt = sprintf("N = %d administrativos", bat_[[1]]$valid)), alto_apilada(6) + 1.4)
+doc <- grafico(doc, "Nivel curricular, estudiantes", g_columnas(ci$labels, ci$pct, n_txt = sprintf("N = %d estudiantes", ci$valid)), 2.2,
+  texto = sprintf("La mayor parte de los estudiantes encuestados cursa %s (%d%%).", tolower(ci$labels[which.max(ci$pct)]), max(ci$pct)))
 doc <- seccion(doc, "Opinión pública")
 doc <- cuerpo(doc, "Encuesta a la población en una o varias olas. Las preguntas se cruzan por edad, sexo o zona, y la fila Total va al final.", keep = TRUE)
 doc <- grafico(doc, "La democracia es preferible a cualquier otra forma de gobierno, por grupo de edad", g_apilada(list(list(actor = "18 a 29 años", pct = c(9, 21, 44, 22, 4)), list(actor = "30 a 59 años", pct = c(6, 17, 46, 27, 4)), list(actor = "60 años a más", pct = c(4, 12, 43, 37, 4)), list(actor = "Total", pct = c(6, 17, 45, 28, 4))),
   c("Muy en desacuerdo", "En desacuerdo", "De acuerdo", "Muy de acuerdo", "NS/NR"), WTK$likert, n_txt = "N = 1,200 entrevistados: 312 de 18 a 29 años, 641 de 30 a 59 y 247 de 60 a más. Cifras ficticias"), alto_apilada(4))
 doc <- grafico(doc, "Aprobación de la gestión en cuatro mediciones", g_serie(c("Marzo", "Junio", "Setiembre", "Diciembre"), list(Aprueba = c(41, 37, 33, 35), Desaprueba = c(52, 56, 60, 58)), n_txt = "N = 1,200 entrevistados en cada ola. Cifras ficticias"), 2.4,
   texto = "La aprobación baja de 41% en marzo a 33% en setiembre y se recupera 2 puntos en diciembre.")
+doc <- grafico(doc, "Opinión sobre la gestión, Lima Metropolitana frente al resto del país", g_dos_grupos(c("Aprueba la gestión del gobierno", "Confía en el Congreso", "Cree que la economía mejorará", "Se siente seguro en su barrio"),
+  c(31, 12, 38, 42), c(39, 15, 45, 51), c("Lima Metropolitana", "Resto del país"), n_txt = "N = 1,200 entrevistados: 480 en Lima Metropolitana y 720 en el resto del país. Cifras ficticias", lim = 70), 2.4)
+doc <- grafico(doc, "¿Cuál es el principal problema del país?", g_barras(c("Corrupción", "Delincuencia e inseguridad", "Economía y empleo", "Salud", "Educación", "Otro", "No sabe"), c(34, 29, 18, 7, 5, 4, 3),
+  n_txt = "N = 1,200 entrevistados. Cifras ficticias"), alto_barras(7))
 doc <- seccion(doc, "Estudio territorial con grupo de comparación")
 doc <- cuerpo(doc, "Encuesta en zonas de intervención y de comparación. El mapa ubica los distritos y cada indicador muestra los dos grupos lado a lado.", keep = TRUE)
 grupo <- c(`SAN JUAN DE LURIGANCHO` = "Intervención", ATE = "Intervención", `EL AGUSTINO` = "Intervención", `SANTA ANITA` = "Intervención",
@@ -492,15 +504,34 @@ doc <- grafico(doc, "Distritos del estudio por grupo", g_mapa(LIMA_c, ifelse(LIM
   c(`Intervención` = "#2F4B7C", `Comparación` = "#9FB1D1", `Fuera del estudio` = "#E2E6EC"), "Distritos", alto = 3.6, n_txt = "N = 189 entrevistados. Selección ficticia sobre la cartografía de Lima Metropolitana y Callao (IMP PlanMet 2040)"), 3.6)
 doc <- grafico(doc, "Percepción de la comunidad de acogida, por grupo", g_dos_grupos(c("Considera que la población refugiada aporta a su barrio", "Tiene un vecino de otra nacionalidad con quien conversa", "Participó en una actividad comunitaria en el último año", "Se siente seguro caminando de noche en su barrio"),
   c(58, 64, 31, 47), c(46, 59, 22, 45), c("Intervención", "Comparación"), n_txt = "N = 99 entrevistados en distritos de intervención y 90 en distritos de comparación. Cifras ficticias", lim = 80), 2.6)
+zonas_c$apl <- ifelse(v9 > 0, "Zona aplicada", "Fuera de la muestra")
+doc <- grafico(doc, "Zonas aplicadas en un distrito de intervención", g_mapa(zonas_c, zonas_c$apl, c(`Zona aplicada` = "#2F4B7C", `Fuera de la muestra` = "#FFFFFF"), "Zonas", borde = "#B8C2D3", lw = 0.15, alto = 3.8,
+  n_txt = sprintf("N = %d zonas aplicadas de %d. Selección ficticia sobre las zonas censales INEI 2017", sum(v9 > 0), n9)), 3.8)
+doc <- grafico(doc, "Me siento seguro caminando de noche en mi barrio, por grupo", g_apilada(list(list(actor = "Intervención", pct = c(14, 25, 41, 16, 4)), list(actor = "Comparación", pct = c(16, 27, 39, 14, 4))), ROT, WTK$likert,
+  n_txt = "N = 99 entrevistados en distritos de intervención y 90 en distritos de comparación. Cifras ficticias"), alto_apilada(2))
+doc <- grafico(doc, "Servicios del barrio que usó en el último año", g_barras(c("Centro de salud", "Comedor o olla común", "Parque o losa deportiva", "Comisaría", "Biblioteca o centro cultural", "Ninguno"), c(58, 31, 27, 12, 6, 9),
+  n_txt = "N = 189 entrevistados. Opción múltiple: los porcentajes pueden sumar más de 100. Cifras ficticias"), alto_barras(6))
 doc <- seccion(doc, "Monitoreo posdistribución")
 doc <- cuerpo(doc, "Encuesta telefónica a los hogares que recibieron una asistencia. Cada indicador se lee frente a su meta.", keep = TRUE)
 doc <- grafico(doc, "Indicadores de la asistencia frente a su meta", g_metas(c("Recibió la asistencia en la fecha prevista", "Retiró el dinero sin problemas de acceso", "Usó el efectivo en necesidades básicas", "Conoce cómo presentar una queja", "Se sintió tratado con respeto"),
   c(86, 78, 92, 41, 95), c(80, 85, 90, 60, 90), n_txt = "N = 2,296 hogares entrevistados por teléfono. Cifras ficticias"), 2.9,
   texto = "Tres de los cinco indicadores alcanzan su meta. El conocimiento del mecanismo de quejas queda 19 puntos por debajo de la suya.")
+doc <- grafico(doc, "¿Recibió la asistencia completa?", g_sino(c("Sí", "No"), c(91, 9), c(2089, 207), n_txt = "N = 2,296 hogares. Cifras ficticias"), 1.5)
+doc <- grafico(doc, "¿En qué usó principalmente el dinero recibido?", g_barras(c("Alimentos", "Alquiler de vivienda", "Salud y medicinas", "Pago de deudas", "Educación", "Otro"), c(82, 46, 23, 15, 11, 4),
+  n_txt = "N = 2,296 hogares. Opción múltiple: los porcentajes pueden sumar más de 100. Cifras ficticias"), alto_barras(6))
+doc <- grafico(doc, "Indicadores clave en tres rondas de monitoreo", g_serie(c("Ronda 1", "Ronda 2", "Ronda 3"), list(`Recibió a tiempo` = c(74, 81, 86), `Conoce cómo quejarse` = c(28, 35, 41)),
+  n_txt = "N = 2,140, 2,205 y 2,296 hogares en cada ronda. Cifras ficticias"), 2.4,
+  texto = "Los dos indicadores mejoran ronda a ronda. El conocimiento del mecanismo de quejas sube 13 puntos, pero sigue lejos de su meta de 60%.")
 doc <- seccion(doc, "Encuesta en aulas")
 doc <- cuerpo(doc, "Encuesta aplicada en aulas, con una muestra por facultad. Junto al porcentaje va el número de casos, porque las facultades tienen tamaños muy distintos.", keep = TRUE)
 doc <- grafico(doc, "Estudiantes que vivieron al menos una situación de hostigamiento, por facultad", g_barras(c("Ciencias Sociales", "Arquitectura", "Derecho", "Artes", "Ingeniería", "Educación", "Ciencias Contables"), c(31, 27, 24, 22, 19, 18, 15), con_n = c(412, 188, 305, 24, 690, 96, 140),
   n_txt = "N = 1,855 estudiantes encuestados en aula. Entre paréntesis, los casos de cada facultad. Cifras ficticias"), alto_barras(7))
+doc <- grafico(doc, "Estudiantes que vivieron al menos una situación de hostigamiento, por sexo", g_dos_grupos(c("Comentarios sobre su apariencia", "Miradas o gestos incómodos", "Mensajes no deseados en redes", "Contacto físico no deseado"),
+  c(27, 22, 15, 9), c(12, 9, 7, 3), c("Mujeres", "Hombres"), n_txt = "N = 1,855 estudiantes: 1,011 mujeres y 844 hombres. Cifras ficticias", lim = 40), 2.4)
+hf_ <- matrix(c(18, 14, 9, 6, 15, 11, 8, 4, 13, 10, 6, 3, 11, 8, 5, 3), nrow = 4, dimnames = list(c("Comentarios sobre su apariencia", "Miradas o gestos incómodos", "Mensajes no deseados", "Contacto físico no deseado"), c("Sociales", "Derecho", "Ingeniería", "Contables")))
+doc <- grafico(doc, "Situaciones de hostigamiento por tipo y facultad", g_heat(hf_, n_txt = "N = 1,547 estudiantes de cuatro facultades. Cifras ficticias", lo = 0, hi = 20), 2.2)
+doc <- grafico(doc, "¿Sabe a dónde acudir para presentar una denuncia?", g_sino(c("Sí", "No"), c(38, 62), c(705, 1150), n_txt = "N = 1,855 estudiantes. Cifras ficticias"), 1.5,
+  texto = "Seis de cada diez estudiantes no sabe a dónde acudir para presentar una denuncia.")
 doc <- seccion(doc, "Encuesta organizacional")
 doc <- cuerpo(doc, "Encuesta a dos actores de una organización, trabajadores y directivos. Las mismas afirmaciones se comparan entre ambos.", keep = TRUE)
 doc <- grafico(doc, "Hombres y mujeres tienen las mismas oportunidades de ascenso", g_apilada(list(list(actor = "Trabajadores", pct = c(6, 22, 47, 22, 3)), list(actor = "Directivos", pct = c(1, 6, 45, 47, 1))), ROT, WTK$likert,
@@ -508,11 +539,20 @@ doc <- grafico(doc, "Hombres y mujeres tienen las mismas oportunidades de ascens
 doc <- grafico(doc, "Brecha entre trabajadores y directivos (Top Two Box)", g_dos_grupos(c("Oportunidades de ascenso", "Selección transparente", "Conciliación familiar", "Trato respetuoso", "Canal de denuncias conocido"), c(92, 88, 87, 90, 79), c(69, 62, 75, 81, 44),
   c("Directivos", "Trabajadores"), n_txt = "N = 38 directivos y 420 trabajadores. Cifras ficticias", lim = 100), 2.6,
   texto = "La mayor brecha está en el canal de denuncias: el 79% de los directivos lo conoce, frente al 44% de los trabajadores.")
+ho_ <- matrix(c(64, 71, 58, 92, 59, 66, 52, 88, 72, 80, 69, 95, 61, 70, 55, 90), nrow = 4, dimnames = list(c("Oportunidades de ascenso", "Selección transparente", "Conciliación familiar", "Trato respetuoso"), c("Operaciones", "Administración", "Comercial", "Directivos")))
+doc <- grafico(doc, "Igualdad de oportunidades por área (Top Two Box)", g_heat(ho_, n_txt = "N = 458 personas: 196 de operaciones, 104 de administración, 120 del área comercial y 38 directivos. Cifras ficticias", lo = 50, hi = 100), 2.2)
+doc <- grafico(doc, "Qué debería mejorar primero la organización", g_lollipop(c("Transparencia en los ascensos", "Horarios flexibles", "Canal de denuncias confidencial", "Capacitación en igualdad", "Licencias por cuidado"), c(41, 33, 28, 19, 14),
+  n_txt = "N = 420 trabajadores. Cifras ficticias"), 2.6)
 doc <- seccion(doc, "Evaluación antes y después")
 doc <- cuerpo(doc, "La misma población se mide al inicio y al final de una intervención. Cada indicador muestra las dos mediciones y la diferencia en puntos.", keep = TRUE)
 doc <- grafico(doc, "Indicadores del programa en la línea de base y en la medición final", g_dos_grupos(c("Ahorra una parte de su ingreso", "Lleva un registro de sus gastos", "Conoce cómo acceder a un crédito formal", "Tiene una cuenta en una entidad financiera"), c(48, 41, 57, 63), c(31, 22, 39, 52),
   c("Final", "Línea de base"), n_txt = "N = 312 participantes medidos en las dos ocasiones. Cifras ficticias", lim = 80), 2.4,
   texto = "Los cuatro indicadores suben entre la línea de base y la medición final. El registro de gastos es el que más avanza, 19 puntos.")
+
+doc <- grafico(doc, "Me siento capaz de administrar el dinero de mi hogar, en la línea de base y en la medición final", g_apilada(list(list(actor = "Línea de base", pct = c(12, 31, 43, 11, 3)), list(actor = "Medición final", pct = c(5, 17, 52, 24, 2))), ROT, WTK$likert,
+  n_txt = "N = 312 participantes medidos en las dos ocasiones. Cifras ficticias"), alto_apilada(2))
+doc <- grafico(doc, "Puntaje promedio en la prueba de conocimientos financieros (de 0 a 20)", g_promedios(c("Línea de base", "Medición final"), c(9.8, 13.4), n_txt = "N = 312 participantes. Cifras ficticias", unidad = " puntos"), 2.0,
+  texto = "El puntaje promedio sube 3.6 puntos entre la línea de base y la medición final.")
 
 # Referencias en formato APA, con sangría francesa (estilo «Referencia», word_nativo.py)
 doc <- body_add_break(doc)
