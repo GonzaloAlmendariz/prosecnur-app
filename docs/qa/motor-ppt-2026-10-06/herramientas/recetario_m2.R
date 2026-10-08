@@ -85,10 +85,10 @@ ta <- list(list(lab = "Docentes", f = fr("docentes", "p24_6")), list(lab = "Estu
 ts <- list(list(lab = "Docentes", f = fr("docentes", "p24_7")), list(lab = "Estudiantes", f = fr("estudiantes", "p17_6")))
 wv <- W - ML - MR
 panel_titulo(doc, ML, Y_DATOS - 0.05, wv, "La Unidad cuenta con servicios de tutoría académica.")
-likert_panel(doc, ML, Y_DATOS + 0.35, wv, ta, wlab = 1.6, g = 0.4, fila = 0.72)
-panel_titulo(doc, ML, Y_DATOS + 2.2, wv, "La Unidad cuenta con servicios de tutoría socioemocional (bienestar estudiantil).")
-likert_panel(doc, ML, Y_DATOS + 2.6, wv, ts, wlab = 1.6, g = 0.4, fila = 0.72)
-leyenda(doc, 0, Y_DATOS + 4.5, LIKERT_ROT, TK$likert, centrar_en = W / 2)
+y2_ <- likert_panel(doc, ML, Y_DATOS + 0.35, wv, ta, wlab = 1.6, g = 0.4, fila = 0.72)   # cada bloque sigue al anterior
+panel_titulo(doc, ML, y2_ + 0.2, wv, "La Unidad cuenta con servicios de tutoría socioemocional (bienestar estudiantil).")
+y3_ <- likert_panel(doc, ML, y2_ + 0.6, wv, ts, wlab = 1.6, g = 0.4, fila = 0.72)
+leyenda(doc, 0, y3_ + 0.02, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 pie(doc, "Base: 52 docentes y 172 estudiantes")
 
 # --- p_slide_2_graficos_asimetrico: gráfico principal y gráfico de apoyo

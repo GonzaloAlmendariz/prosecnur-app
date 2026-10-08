@@ -222,3 +222,28 @@ Pedido: «ajustar el orden y la estructura del recetario para que se vea profesi
 | X17 | 172 | «El primer ejemplo de la imagen no conecta con el título» | El tallo caía más allá de la última letra del título. Si el tallo queda fuera del texto, dobla a la altura del título y llega hasta su última letra; si cae sobre el texto, baja hasta tocarlo | ☑ |
 | X18 | 186–187 | «Los dos ejemplos de abajo, los últimos, no son los más ideales porque los gráficos se ven muy desbalanceados» | Filtro al costado: la dicotómica pasa a una columna 100 % del mismo alto que las seis barras del ingreso. Llave sobre varias categorías: el dependiente es un gráfico de barras de cinco niveles («¿Qué tan relacionado está su trabajo con la carrera?») con la misma escala, fila y grosor que el primero | ☑ |
 | X19 | 187 | «En el último se puede resaltar aquellos que cumplen con el otro gráfico para diferenciarlos» | Las tres categorías que habilitan la subpregunta van en azul oscuro con rótulo en negrita y las demás en tono claro. Parámetro nuevo `destacar` en `barras_h` | ☑ |
+
+## Ronda Y, comentarios en `recetario-moderna.pptx` (2026-10-08, 11:58)
+
+| # | Lámina | Comentario | Dónde vive | Estado |
+|---|---|---|---|---|
+| Y1 | 6 | «La separación entre categorías sigue sin ser muy robusta, se superponen» | `mini_lamina()` en `recetario_m0.R` | ☑ tres públicos y leyenda medida con su tinta, cuadro y aire fijo |
+| Y2 | 7 | «Es mejor reportar en cm y entender mejor a qué se refiere con escalas y a qué con barras de categorías» | `recetario_reglas2.R`, lámina 1 | ☑ medidas en cm; la tabla muestra «Escala apilada» con su barra de colores y «Categorías» con una barra simple |
+| Y3 | 11 | «Los nombres de las paletas pueden ser más técnicos, como escala Likert o dicotómico, y le falta una diapositiva que ejemplifique cada paleta» | `recetario_m0.R`, colores | ☑ Escala Likert, Dicotómica, Actores, y Texto, títulos y realce; lámina nueva «Las paletas en uso» (reg2:7) |
+| Y4 | 13 | «¿Por qué este slide de ejemplo se ve tan vacío?» | `recetario_m0.R`, R6 | ☑ la miniatura lleva tres públicos que llenan la zona de datos |
+| Y5 | 46 | «Los índices no llevan ceros» | `propuestas_indice.R` | ☑ números de capítulo sin cero en los 20 índices |
+| Y6 | 76 | «Se superpone con la barra de arriba, sigo pensando que esto no está lo suficientemente robusto» | Bottom Two Box y fila Total | ☑ una premisa con el grosor estándar; la fila gana aire para las cifras chicas |
+| Y7 | 78 | «La mediana puede estar como un triángulo como en otros ejemplos, la línea no se ve bien y tampoco es común que tengan etiquetada el eje x» | Histograma, `recetario_graficos2.R` | ☑ histograma con formas nativas, triángulo coral bajo la mediana y sin título del eje |
+| Y8 | 80 | «Es mejor que la mediana sea el título de la barra extra y abajo sólo diga el número y la unidad» | Diagrama de caja | ☑ «Mediana» como título de la columna y «20 años» en cada fila |
+| Y9 | 93 | «No me gusta el subtítulo, creo que no hace falta» | Comparativo de dimensiones | ☑ sin «a favor de», sólo los puntos |
+| Y10 | 102 | «Faltan más ejemplos de mapas: uno de Lima, otro distrital con leyenda, otro con un solo distrito, otro con distrito con zonas y manzanas» | Mapas, capítulo 2 | ☑ el mapa distrital encuadra los distritos y lista sus encuestas; nuevos: Lima completa por distrito, un distrito (Comas) con su ubicación, y zonas y manzanas (Villa El Salvador) |
+| Y11 | 107 | «Pone una leyenda con colores pero no hay colores» | Significancia, versión estándar | ☑ encabezados sin cuadros de color |
+| Y12 | 132 | «Este narrativo tiene la línea naranja, pero el de un gráfico con narrativa no lo tiene» | `narrativa()` | ☑ el ejemplo de «Un gráfico con narrativa» no tenía narrativa; ahora lleva su frase con filete coral |
+| Y13 | 150 | «Este ejemplo no es el ideal porque se ve muy vacío en la mitad inferior» | Tres gráficos en fila, `recetario_fichas.R` | ☑ tres preguntas de cinco categorías que ocupan todo el alto |
+| Y14 | 175 | «Este porcentaje se cubre con la línea, debemos ser más robustos ante estas situaciones» | `grafico_serie()` | ☑ cada cifra se ubica lejos de los tramos de su línea (en `grafico_serie`, sirve para todas las series) |
+| Y15 | 201 | «Se ven algo estirados y les falta grosor, asegúrate que se respete con los demás y las cifras estandarizadas» | Lámina mixta, otra pregunta | ☑ `bloque_mixto` usa el grosor de la tabla según las filas de la lámina y la cifra estándar de 14 pt |
+| Y16 | 202 | Mismo comentario que Y15 | Lámina mixta, otra escala | ☑ igual que Y15 |
+| Y17 | 243 | «Estos gráficos se ven delgados, la separación no es muy buena, en general el slide no se ve bien» | Encuesta organizacional, `recetario_estudios.R` | ☑ bloque Likert estándar del motor con dos premisas |
+| Y18 | 269 | «No le veo utilidad a esta, se va» | Embudo de la muestra, banco | ☑ retirada de la propuesta (sigue en la fiel) |
+
+Regla transversal de la ronda Y: las cifras chicas encima de su segmento ya no adelgazan la barra. La fila gana el aire (`AIRE_CHICA` en `recetario_piezas.R`, usado por `likert_panel`, `filas_pulso` y `bloque_mixto`) y las leyendas siguen a sus barras en vez de ir a una altura fija.

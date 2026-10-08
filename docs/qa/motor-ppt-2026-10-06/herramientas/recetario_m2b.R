@@ -35,8 +35,8 @@ MOTOR_ACT <- "p_slide_3_graficos_1arriba: p_barras_multiapiladas (var_cruce) + p
 doc <- nueva(doc); titulo(doc, "Tutoría y misión institucional", ante = "Tres gráficos: uno ancho arriba")
 ta <- list(list(lab = "Docentes", f = fr("docentes", "p24_6")), list(lab = "Estudiantes", f = fr("estudiantes", "p17_5")))
 panel_titulo(doc, ML, YT - 0.05, ANCHO, "La Unidad cuenta con servicios de tutoría académica.")
-likert_panel(doc, ML, YT + 0.3, ANCHO, ta, wlab = 1.6, g = 0.38, fila = 0.66)
-leyenda(doc, 0, YT + 1.95, LIKERT_ROT, TK$likert, centrar_en = W / 2)
+yft_ <- likert_panel(doc, ML, YT + 0.3, ANCHO, ta, wlab = 1.6, g = 0.38, fila = 0.66)   # la leyenda sigue a las barras: la fila gana aire si hay cifras chicas
+leyenda(doc, 0, yft_ - 0.02, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 separador_h(doc, ML, W - MR, YT + 2.4)
 act3 <- c("Docentes", "Estudiantes", "Egresados")
 for (k in 1:2) { bq <- if (k == 1) D$mision1 else D$mision2; x <- if (k == 1) ML else xr

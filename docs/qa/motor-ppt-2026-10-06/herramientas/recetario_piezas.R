@@ -6,18 +6,21 @@ col2 <- (ANCHO - GAP) / 2
 separador_v <- function(doc, x, y0, y1) caja(doc, x, y0, 0.008, y1 - y0, TK$rule)
 separador_h <- function(doc, x0, x1, y) caja(doc, x0, y, x1 - x0, 0.008, TK$rule)
 
+AIRE_CHICA <- 0.36   # alto libre sobre la barra para una cifra chica con su guía
 # Likert compacto dentro de un panel: rótulo a la izquierda, barra y Top Two Box.
 likert_panel <- function(doc, x, y, w, filas, g = 0.34, fila = 0.66, wlab = 1.45, ttb_col = TRUE, cols = TK$likert, size_lab = 11) {
   # E1 y E2 (Gonzalo, 2026-10-08): la columna Top Two Box tiene 1 in y su rótulo se centra sobre las mismas cifras
   wttb <- if (ttb_col) 1.0 else 0; xb <- x + wlab + 0.12; wb <- w - wlab - 0.12 - wttb - (if (ttb_col) 0.1 else 0)
   if (ttb_col) txt(doc, if (ESTILO == "fiel") "TOP TWO BOX" else "Top Two Box", x + w - wttb - 0.1, y - 0.05, wttb + 0.2, 0.24, 10, TK$verde_txt, bold = TRUE, align = "center")
   yy <- y + 0.3
-  if (any(vapply(filas, function(fl) tiene_peq(fl$f$pct, wb), TRUE)) && fila - g < 0.36) g <- max(0.22, fila - 0.36)   # aire para las cifras chicas
+  # Cifras chicas encima de su segmento: la fila gana el aire que necesitan y la barra conserva su grosor (Gonzalo, 2026-10-08:
+  # «se superpone con la barra de arriba», «se ven delgados»). Antes la barra adelgazaba hasta 0.22 in.
+  if (any(vapply(filas, function(fl) tiene_peq(fl$f$pct, wb), TRUE)) && fila - g < AIRE_CHICA) fila <- g + AIRE_CHICA
   for (fl in filas) {
     yb <- yy + (fila - g) / 2 + 0.05
     txt(doc, fl$lab, x, yb + g / 2 - alto_txt(fl$lab, wlab, size_lab, TRUE) / 2, wlab, alto_txt(fl$lab, wlab, size_lab, TRUE), size_lab, TK$navy, bold = TRUE, align = "right")
     barra_apilada(doc, xb, yb, wb, fl$f$pct, cols, g)
-    if (ttb_col) txt(doc, paste0(ttb(fl$f), "%"), x + w - wttb, yb + (g - 0.3) / 2, wttb, 0.3, 13, TK$verde_txt, bold = TRUE, align = "center")
+    if (ttb_col) txt(doc, paste0(ttb(fl$f), "%"), x + w - wttb, yb + (g - 0.3) / 2, wttb, 0.3, PT$cifra, TK$verde_txt, bold = TRUE, align = "center")
     yy <- yy + fila
   }
   zona(sprintf("likert compacto, g = %s cm", cm(g)), xb, y + 0.3, wb, length(filas) * fila)
@@ -103,15 +106,27 @@ grafico_serie <- function(periodos, series, cols, lim = NULL, paso = 10) {
   d <- do.call(rbind, lapply(names(series), function(g) data.frame(x = seq_along(periodos), v = series[[g]], g = g)))
   d$g <- factor(d$g, levels = names(series))
   arriba <- names(series)[which.max(vapply(series, mean, 0))]
-  d$vj <- ifelse(d$g == arriba, -1.15, 2.0)
   lim <- lim %||% c(floor((min(d$v) - 8) / paso) * paso, ceiling((max(d$v) + 8) / paso) * paso)
+  # Cifra de cada punto lejos de los tramos de su propia línea (Gonzalo, 2026-10-08: «este porcentaje se cubre con la línea, debemos
+  # ser más robustos»). La serie de arriba va encima y la de abajo debajo; si un tramo sale del punto hacia ese lado, la cifra se corre
+  # al lado contrario del tramo. Si los dos tramos van hacia ese lado (un pico), pasa al otro lado salvo que la otra serie esté cerca.
+  d$vj <- NA_real_; d$hj <- 0.5; d$dx <- 0; np_ <- length(periodos); rng <- diff(lim)
+  for (i in seq_len(nrow(d))) { gi <- d$g[i]; xi <- d$x[i]; vi <- d$v[i]; sv <- series[[as.character(gi)]]
+    arriba_i <- gi == arriba; sgn <- if (arriba_i) 1 else -1   # 1: encima
+    hacia <- function(j) j >= 1 && j <= np_ && sgn * (sv[j] - vi) > 0   # el tramo hacia j va al lado de la cifra
+    pr <- hacia(xi - 1); nx <- hacia(xi + 1)
+    otra <- d$v[d$x == xi & d$g != gi]; cerca <- length(otra) && any(-sgn * (otra - vi) > 0 & abs(otra - vi) < 0.14 * rng)
+    if (pr && nx && !cerca) { sgn <- -sgn; pr <- hacia(xi - 1); nx <- hacia(xi + 1) }
+    if (xi == np_ && pr && !nx && !cerca) { sgn <- -sgn; pr <- hacia(xi - 1) }   # en el último punto la derecha es del nombre de la serie
+    d$vj[i] <- if (sgn > 0) -1.15 else 2.0
+    if (nx && !pr) { d$hj[i] <- 1; d$dx[i] <- -0.1 } else if (pr && !nx) { d$hj[i] <- 0; d$dx[i] <- 0.1 } else if (pr && nx) d$vj[i] <- 0.5 }
   guias <- seq(lim[1], lim[2], paso)
   ultimo <- d[d$x == length(periodos), ]
   ggplot(d, aes(x, v, colour = g)) +
     geom_hline(yintercept = guias, colour = "#DCE1E8", linewidth = 0.35) +
     annotate("text", x = 0.62, y = guias, label = paste0(guias, "%"), hjust = 1, size = 10 / .pt, colour = TK$faint, family = "Arial") +
     geom_line(linewidth = 1.5) + geom_point(size = 3.6, shape = 21, fill = TK$fondo, stroke = 1.5) +
-    geom_text(aes(label = paste0(v, "%"), vjust = vj), size = 12 / .pt, fontface = "bold", family = "Arial", show.legend = FALSE) +
+    geom_text(aes(x = x + dx, label = paste0(v, "%"), vjust = vj, hjust = hj), size = 12 / .pt, fontface = "bold", family = "Arial", show.legend = FALSE) +
     geom_text(data = ultimo, aes(x = length(periodos) + 0.16, label = g), hjust = 0, size = 13 / .pt, fontface = "bold", family = "Arial", show.legend = FALSE) +
     scale_colour_manual(values = cols) + scale_x_continuous(breaks = seq_along(periodos), labels = periodos, limits = c(0.45, length(periodos) + 0.95), expand = c(0, 0)) +
     scale_y_continuous(limits = lim, expand = c(0, 0)) + coord_cartesian(clip = "off") + labs(x = NULL, y = NULL) + theme_minimal(base_family = "Arial") +

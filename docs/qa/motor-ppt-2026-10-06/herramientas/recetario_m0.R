@@ -29,22 +29,26 @@ mini_lamina <- function(doc, ox, oy, k) {   # dibuja la lámina estándar a esca
   tx("CARACTERÍSTICAS INSTITUCIONALES", ML, Y_TIT - 0.2, 4, 7, TK$soft)
   tx("Servicios de tutoría", ML, Y_TIT + 0.04, 6, 15, TK$coral)
   tx("La Unidad cuenta con servicios de tutoría académica", ML, 1.6, 6, 8.5, TK$navy)
-  tx("224 respuestas", ML, 1.92, 3, 7, TK$faint, bold = FALSE)
-  cl <- TK$likert; xb <- 2.4; wb <- 8.6
-  for (r in 0:1) { yb <- 2.6 + r * 0.95; xx <- xb; sg <- if (r == 0) c(0, 2, 29, 54, 15) else c(6, 18, 34, 19, 23)
-    txt(doc, c("Docentes", "Estudiantes")[r + 1], ox + 0.4 * k, oy + (yb + 0.08) * k, 1.9 * k, 0.24, 7.5, TK$navy, bold = TRUE, align = "right")
+  tx("402 respuestas", ML, 1.92, 3, 7, TK$faint, bold = FALSE)
+  # Tres públicos que llenan la zona de datos (Gonzalo, 2026-10-08: «¿por qué este slide de ejemplo se ve tan vacío?») y una leyenda
+  # medida con la tinta de cada rótulo más su cuadro y un aire fijo, para que las categorías no se toquen («se superponen»).
+  cl <- TK$likert; xb <- 2.4; wb <- 8.6; g_m <- 0.62
+  sgs <- list(c(0, 2, 29, 54, 15), c(6, 18, 34, 19, 23), c(3, 12, 50, 30, 5)); ybs <- 2.55 + (0:2) * 1.05
+  for (r in 1:3) { yb <- ybs[r]; xx <- xb; sg <- sgs[[r]]
+    txt(doc, c("Docentes", "Estudiantes", "Egresados")[r], ox + 0.4 * k, oy + (yb + g_m / 2) * k - 0.12, 1.9 * k, 0.24, 7.5, TK$navy, bold = TRUE, align = "right")
     for (j in 1:5) { w_ <- wb * sg[j] / 100
-      if (w_ > 0) { caja(doc, ox + xx * k, oy + yb * k, w_ * k, 0.48 * k, cl[j]); if (sg[j] >= 10) txt(doc, paste0(sg[j], "%"), ox + xx * k, oy + (yb + 0.1) * k, w_ * k, 0.22, 7, texto_sobre(cl[j]), bold = TRUE, align = "center") }
+      if (w_ > 0) { caja(doc, ox + xx * k, oy + yb * k, w_ * k, g_m * k, cl[j]); if (sg[j] >= 10) txt(doc, paste0(sg[j], "%"), ox + xx * k, oy + (yb + g_m / 2) * k - 0.11, w_ * k, 0.22, 7, texto_sobre(cl[j]), bold = TRUE, align = "center") }
       xx <- xx + w_ }
-    txt(doc, paste0(sum(sg[3:4]), "%"), ox + 11.25 * k, oy + (yb + 0.08) * k, 1.4 * k, 0.24, 8, TK$verde_txt, bold = TRUE, align = "center") }
-  txt(doc, "Top Two Box", ox + 11.0 * k, oy + 2.2 * k, 1.9 * k, 0.2, 6.5, TK$verde_txt, bold = TRUE, align = "center")
+    txt(doc, paste0(sum(sg[3:4]), "%"), ox + 11.25 * k, oy + (yb + g_m / 2) * k - 0.12, 1.4 * k, 0.24, 8, TK$verde_txt, bold = TRUE, align = "center") }
+  txt(doc, "Top Two Box", ox + 11.0 * k, oy + 2.1 * k, 1.9 * k, 0.2, 6.5, TK$verde_txt, bold = TRUE, align = "center")
   rot <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")   # X2: sin abreviar
-  wr <- vapply(rot, function(t_) ancho_tinta(t_, 6) + 0.2, 0); x_ <- ox + 6.7 * k - sum(wr) / 2; ley_x <- (x_ - ox) / k
-  for (j in 1:5) { caja(doc, x_, oy + 4.72 * k, 0.1, 0.1, cl[j]); txt(doc, rot[j], x_ + 0.06, oy + 4.66 * k, wr[j] + 0.1, 0.2, 6, TK$navy); x_ <- x_ + wr[j] }
-  tx("Base: 52 docentes y 172 estudiantes", ML, Y_BASE, 4, 7, TK$navy)
+  y_ley <- 5.75; cuad <- 0.09; wr <- vapply(rot, function(t_) cuad + 0.06 + ancho_tinta(t_, 6), 0); gap_l <- 0.16
+  x_ <- ox + 6.7 * k - (sum(wr) + gap_l * 4) / 2; ley_x <- (x_ - ox) / k
+  for (j in 1:5) { caja(doc, x_, oy + y_ley * k + 0.015, cuad, cuad, cl[j]); txt(doc, rot[j], x_ + cuad + 0.06 - 0.05, oy + y_ley * k - 0.045, wr[j] + 0.1, 0.2, 6, TK$navy); x_ <- x_ + wr[j] + gap_l }
+  tx("Base: 52 docentes, 172 estudiantes y 178 egresados", ML, Y_BASE, 5, 7, TK$navy)
   txt(doc, "12", ox + (W - MR - 0.6) * k, oy + Y_BASE * k, 0.6 * k, 0.2, 7, TK$soft, align = "right")
-  list(ante = c(ML, Y_TIT - 0.1, 0), titulo = c(ML, Y_TIT + 0.3, 0), logo = c(13.14, 0.65, 1), pregunta = c(ML, 1.8, 0), grafico = c(2.4, 3.33, 0),
-       ttb = c(12.6, 3.1, 1), leyenda = c(ley_x, 4.78, 0), base = c(ML, Y_BASE + 0.12, 0)) }
+  list(ante = c(ML, Y_TIT - 0.1, 0), titulo = c(ML, Y_TIT + 0.3, 0), logo = c(13.14, 0.65, 1), pregunta = c(ML, 1.8, 0), grafico = c(2.4, 3.385, 0),
+       ttb = c(12.6, 3.91, 1), leyenda = c(ley_x, 5.8, 0), base = c(ML, Y_BASE + 0.12, 0)) }
 anotar <- function(doc, ox, oy, k, pos, items, xl, d = 0.26) {   # marcas fuera de la miniatura, con línea guía hasta su elemento, y la lista a la derecha
   ult <- -1
   for (m in seq_along(items)) { a <- pos[[items[[m]][[1]]]]; ye <- oy + a[2] * k
@@ -161,18 +165,18 @@ doc <- nueva(doc); titulo(doc, "Los colores y lo que significan", ante = "Reglas
 sw <- function(x, y, cols, labs, w = 1.45) for (i in seq_along(cols)) { caja(doc, x + (i - 1) * (w + 0.1), y, w, 0.45, cols[i])
   txt(doc, labs[i], x + (i - 1) * (w + 0.1) - 0.05, y + 0.5, w + 0.1, 0.42, 10, TK$navy, align = "center") }
 grupos <- list(
-  list("Respuestas de una escala", TK$likert, c("Muy en contra", "En contra", "A favor", "Muy a favor", "Sin información"),
+  list("Escala Likert", TK$likert, c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información"),
        "De lo negativo a lo positivo, siempre en este orden. Lo negativo va en naranja. Sin información va al final y en gris."),
-  list("Sí y No", TK$dico, c("Sí", "No"), "Sí en azul oscuro y No en celeste, en todas las láminas."),
-  list("Grupos de personas", c(unname(TK$actores), "#8E9DBD", "#081F5C", "#9DC3E6"), c(names(TK$actores), "Autoridades", "Administrativos", "Empleadores"),
+  list("Dicotómica", TK$dico, c("Sí", "No"), "Sí en azul oscuro y No en celeste, en todas las láminas."),
+  list("Actores", c(unname(TK$actores), "#8E9DBD", "#081F5C", "#9DC3E6"), c(names(TK$actores), "Autoridades", "Administrativos", "Empleadores"),
        "Cada grupo conserva su color en todo el informe. Si el nombre ya está escrito junto a la barra, no necesita color."),
-  list("Texto y énfasis", c("#081F5C", "#CA5651", "#4E9438", "#8E9DBD"), c("Texto", "Títulos", "Top Two Box", "Barras de apoyo"),
+  list("Texto, títulos y realce", c("#081F5C", "#CA5651", "#4E9438", "#8E9DBD"), c("Texto", "Títulos", "Top Two Box", "Barras de apoyo"),
        "El coral sólo se usa en los títulos. El verde sólo marca el Top Two Box."))
 y <- Y_DATOS - 0.15
 for (g_ in grupos) { txt(doc, g_[[1]], XT, y, 5, 0.3, 13, TK$navy, bold = TRUE)
   sw(XC, y + 0.32, g_[[2]], g_[[3]], w = if (length(g_[[2]]) > 5) 1.12 else 1.25)
   txt(doc, g_[[4]], 8.3, y + 0.3, W - MR - 8.3, 0.8, 12, TK$navy)
-  y <- y + 1.22 }
+  y <- y + 1.32 }
 pie(doc, "Para quien diseña: azul oscuro 081F5C, coral CA5651, verde 4E9438. Escala F4B183, FFD965, ADD493, 70AD47 y BFBFBF")
 
 # --- R4 el texto que acompaña al gráfico (C3 y C4 de la tanda de comentarios: rangos en vez de «nunca más de», y las

@@ -83,13 +83,11 @@ pie(doc, paste(FIC, "Base: 1,855 estudiantes encuestados en aula"))
 # 4.6 Encuesta organizacional, dos actores
 MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas con dos actores"
 doc <- nueva(doc); titulo(doc, "Igualdad de oportunidades en la organización", ante = "Encuesta organizacional")
+# El bloque Likert estándar del motor, con dos premisas para que las barras conserven el grosor de la tabla (Gonzalo, 2026-10-08:
+# «estos gráficos se ven delgados, la separación no es muy buena»; con tres premisas las barras bajaban a 0.3 in y las cifras chicas chocaban)
 prem3 <- list(list("Hombres y mujeres tienen las mismas oportunidades de ascenso", c(6, 22, 47, 22, 3), c(1, 6, 45, 47, 1)),
-              list("Los procesos de selección son transparentes", c(8, 25, 44, 18, 5), c(2, 9, 50, 38, 1)),
               list("Se puede conciliar el trabajo con la vida familiar", c(5, 18, 52, 23, 2), c(2, 10, 53, 34, 1)))
-for (k in 1:3) { yk <- YT - 0.05 + (k - 1) * 1.45
-  txt(doc, prem3[[k]][[1]], XT, yk, AC, 0.3, 13, TK$navy, bold = TRUE)
-  likert_panel(doc, XC, yk + 0.25, AC, list(list(lab = "Trabajadores", f = sf_(prem3[[k]][[2]], 420)), list(lab = "Directivos", f = sf_(prem3[[k]][[3]], 38))), g = 0.3, fila = 0.48, wlab = 1.6, size_lab = 12) }
-leyenda(doc, 0, Y_LEY - 0.02, LIKERT_ROT, TK$likert, centrar_en = W / 2)
+bloque_likert(doc, lapply(prem3, function(p_) list(texto = p_[[1]], filas = list(list(actor = "Trabajadores", f = sf_(p_[[2]], 420)), list(actor = "Directivos", f = sf_(p_[[3]], 38))))))
 pie(doc, paste(FIC, "Base: 420 trabajadores y 38 directivos"))
 MOTOR_ACT <- "p_slide_1_grafico: p_dumbbell entre dos actores"
 doc <- nueva(doc); titulo(doc, "Brecha entre trabajadores y directivos", ante = "Encuesta organizacional")

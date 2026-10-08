@@ -106,11 +106,16 @@ doc <- nueva(doc); titulo(doc, "Qué podría mejorar la carrera", ante = "Opció
 o <- order(-sm$pct); lab <- sm$labels[o]; pc <- sm$pct[o]; ot <- grepl("^Otros$|^No sabe", lab)
 lab <- c(lab[!ot], lab[ot]); pc <- c(pc[!ot], pc[ot]); lab <- lab[pc > 0]; pc <- pc[pc > 0]
 preg_ <- sub(" de Ingeniería Mecánica", "", sm$pregunta, fixed = TRUE)   # sin la carrera del estudio de origen (C7)
-txt(doc, preg_, ML, Y_DATOS - 0.15, 12.2, alto_txt(preg_, 12.2, 13), 13, TK$navy, bold = ESTILO == "fiel")
-if (ESTILO == "moderna") txt(doc, "% de encuestados que marcó cada opción", ML + 6.72, Y_DATOS + 0.3, 5, 0.26, 10, TK$soft, bold = TRUE)
-yy0 <- Y_DATOS + 0.6; resid <- grepl("^Otros$|^No sabe", lab)
-barras_h(doc, ML, yy0, W - ML - MR, lab[!resid], pc[!resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08)
-if (any(resid)) barras_h(doc, ML, yy0 + sum(!resid) * 0.46, W - ML - MR, lab[resid], pc[resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = 0.46, size = 12, escala = max(pc) * 1.08,
+# Moderna: es el ejemplo de «Un gráfico con narrativa», así que lleva su frase arriba con el filete coral (Gonzalo, 2026-10-08)
+dy_ <- 0; fila_sm <- 0.46
+if (ESTILO == "moderna") { narrativa(doc, ML, Y_DATOS - 0.2, W - ML - MR, 0.45, list(N_("Lo que más piden los egresados es "), B(paste0("integrar herramientas digitales (", pc[1], "%)")),
+    N_(" y "), B(paste0("actualizar el plan de estudios (", pc[2], "%)")), N_(".")), size = 15)
+  dy_ <- 0.55; fila_sm <- min(0.46, (YF - (Y_DATOS + 0.6 + dy_)) / length(pc)) }
+txt(doc, preg_, ML, Y_DATOS - 0.15 + dy_, 12.2, alto_txt(preg_, 12.2, 13), 13, TK$navy, bold = ESTILO == "fiel")
+if (ESTILO == "moderna") txt(doc, "% de encuestados que marcó cada opción", ML + 6.72, Y_DATOS + 0.3 + dy_, 5, 0.26, 10, TK$soft, bold = TRUE)
+yy0 <- Y_DATOS + 0.6 + dy_; resid <- grepl("^Otros$|^No sabe", lab)
+barras_h(doc, ML, yy0, W - ML - MR, lab[!resid], pc[!resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = fila_sm, size = if (dy_ > 0) 11 else 12, escala = max(pc) * 1.08)
+if (any(resid)) barras_h(doc, ML, yy0 + sum(!resid) * fila_sm, W - ML - MR, lab[resid], pc[resid], wlab = 6.6, g = grosor_cat(length(pc)), fila = fila_sm, size = if (dy_ > 0) 11 else 12, escala = max(pc) * 1.08,
                          color = if (ESTILO == "moderna") TK$faint else TK$navy)
 pie(doc, "Base: 131 egresados")
 
@@ -166,19 +171,18 @@ doc <- laminas_likert(doc, "Satisfacción con la infraestructura", "Etiquetas co
 # --- C22 lámina mixta: dos preguntas apiladas con escalas o actores distintos (pedido de Gonzalo)
 # Cada bloque lleva su pregunta, sus actores, su leyenda y su Top Two Box sólo si su escala lo tiene.
 bloque_mixto <- function(doc, bloques) {
-  ytot <- YF - YT; y <- YT
-  fijo <- 1.2; nfil <- sum(vapply(bloques, function(b) length(b$filas), 0)); sep <- 0.3 * (length(bloques) - 1)
-  pedido <- sum(vapply(bloques, function(b) length(b$filas) * b$fila, 0))
-  disp <- ytot - fijo * length(bloques) - sep
-  if (pedido > disp) { k_ <- disp / pedido                      # no cabe: las filas ceden aire, la letra no
-    for (i in seq_along(bloques)) { bloques[[i]]$fila <- bloques[[i]]$fila * k_; bloques[[i]]$g <- min(bloques[[i]]$g, bloques[[i]]$fila - 0.16) } }
-  hs <- vapply(bloques, function(b) 0.45 + 0.3 + length(b$filas) * b$fila + 0.45, 0)
-  esp <- (ytot - sum(hs)) / max(1, length(bloques) - 1)
+  # Grosor de la tabla estándar según las filas de toda la lámina (Gonzalo, 2026-10-08: «se ven estirados y les falta grosor,
+  # que se respete con los demás»). La barra no adelgaza: si hay cifras chicas, la fila gana su aire. Lo que cede es el espacio entre bloques.
+  nfil <- sum(vapply(bloques, function(b) length(b$filas), 0)); g <- grosor_apilada(nfil)
+  for (i in seq_along(bloques)) { b <- bloques[[i]]; wb <- ANCHO - 2.2 - 0.12 - (if (b$ttb) 1.1 else 0)
+    chica <- any(vapply(b$filas, function(fl) tiene_peq(fl$f$pct, wb), TRUE))
+    bloques[[i]]$g <- g; bloques[[i]]$fila <- g + (if (chica) AIRE_CHICA else 0.2) }
+  hs <- vapply(bloques, function(b) 0.45 + length(b$filas) * b$fila + 0.42, 0)   # título y base, filas, leyenda
+  esp <- max(0.12, (YF - YT - sum(hs)) / max(1, length(bloques) - 1)); y <- YT
   for (i in seq_along(bloques)) { b <- bloques[[i]]
     panel_titulo(doc, ML, y, ANCHO, b$pregunta, b$sub)
-    likert_panel(doc, ML, y + 0.45, ANCHO, b$filas, g = b$g, fila = b$fila, wlab = 2.2, ttb_col = b$ttb, cols = b$cols, size_lab = 12)
-    yl <- y + 0.45 + 0.3 + length(b$filas) * b$fila + 0.08
-    leyenda(doc, 0, yl, b$rot, b$cols[seq_along(b$rot)], centrar_en = ML + 2.4 + (ANCHO - 2.4 - (if (b$ttb) 0.75 else 0)) / 2)
+    yfin <- likert_panel(doc, ML, y + 0.15, ANCHO, b$filas, g = b$g, fila = b$fila, wlab = 2.2, ttb_col = b$ttb, cols = b$cols, size_lab = PT$actor)   # «Top Two Box» en la línea del título
+    leyenda(doc, 0, yfin + 0.06, b$rot, b$cols[seq_along(b$rot)], centrar_en = ML + 2.4 + (ANCHO - 2.4 - (if (b$ttb) 0.75 else 0)) / 2)
     y <- y + hs[i] + esp
     if (i < length(bloques)) separador_h(doc, ML, W - MR, y - esp / 2) }
 }
@@ -189,8 +193,8 @@ bloque_mixto(doc, list(
   list(pregunta = "La Unidad cuenta con servicios de tutoría académica", sub = "Escala de acuerdo", ttb = TRUE, cols = TK$likert, rot = LIKERT_ROT, g = 0.42, fila = 0.78,
        filas = list(lf("Docentes", c(2, 8, 54, 21, 15), 148), lf("Estudiantes", c(6, 18, 34, 19, 23), 1234))),
   list(pregunta = "¿Conoce el reglamento de prácticas preprofesionales?", sub = "Sí o No", ttb = FALSE, cols = TK$dico, rot = c("Sí", "No"), g = 0.36, fila = 0.52,
-       filas = list(lf("Estudiantes", c(64, 36), 1234), lf("Egresados", c(71, 29), 314), lf("Administrativos", c(88, 12), 43)))))
-pie(doc, "Base: 148 docentes y 1,234 estudiantes (tutoría). 1,234 estudiantes, 314 egresados y 43 administrativos (reglamento)")
+       filas = list(lf("Estudiantes", c(64, 36), 1234), lf("Egresados", c(71, 29), 314)))))
+pie(doc, "Base: 148 docentes y 1,234 estudiantes (tutoría). 1,234 estudiantes y 314 egresados (reglamento)")
 
 MOTOR_ACT <- "p_slide_1_grafico: p_barras_multiapiladas (modo multilista: mismos actores, bloque de acuerdo y bloque de satisfacción, cada uno con su leyenda)"
 doc <- nueva(doc); titulo(doc, "Orientación académica: valoración y satisfacción", ante = "Lámina mixta: mismos actores, otra escala")

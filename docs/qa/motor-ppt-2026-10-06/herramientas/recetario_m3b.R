@@ -40,7 +40,8 @@ for (i in seq_len(k_)) { x <- por_ciclo[[i]]; q <- quantile(x, c(.25, .5, .75));
   caja(doc, px(q[1]), yc - hb / 2, px(q[3]) - px(q[1]), hb, "#B9C5DC", line = sp_line(color = TK$navy, lwd = 0.75))
   caja(doc, px(q[2]) - 0.015, yc - hb / 2, 0.03, hb, TK$navy)
   for (o in unique(out)) caja(doc, px(o) - 0.045, yc - 0.045, 0.09, 0.09, TK$soft, geom = "ellipse")
-  txt(doc, sprintf("Mediana %d", as.integer(q[2])), W - MR - 1.25, yc - 0.15, 1.25, 0.3, 11, TK$navy, bold = TRUE) }
+  txt(doc, sprintf("%d años", as.integer(q[2])), W - MR - 1.25, yc - 0.16, 1.25, 0.32, PT$cifra, TK$navy, bold = TRUE, align = "center") }
+txt(doc, "Mediana", W - MR - 1.25, YT + 0.03, 1.25, 0.26, 10, TK$navy, bold = TRUE, align = "center")   # la columna lleva su título y cada fila sólo la cifra y la unidad (Gonzalo, 2026-10-08)
 zona("cajas: cuartiles, mediana y bigotes a 1,5 RIC", xl, YT + 0.35, wl, k_ * fila)
 leyenda(doc, 0, YF - 0.25, c("50 % central de las edades", "Mediana"), c("#B9C5DC", TK$navy), centrar_en = xl + wl / 2)
 pie(doc, "Base: 172 estudiantes")
