@@ -109,3 +109,15 @@ Pedidos: «haz la propuesta de todo lo rescatable en un ppt aparte para hacer co
 | R7 | Pregunta exacta en el pie | sale del instrumento | pie de lámina del motor | ☐ en evaluación |
 
 Fuera, por ser firma del informe de referencia o texto que no sale de los datos: fondo oscuro con cuña diagonal, láminas de bloques de texto, diagrama de flecha de factores y colores por factor.
+
+### Comentarios de Gonzalo al mazo de propuestas (2026-10-08)
+
+| # | Lám. | Comentario (textual) | Qué se hace | Estado |
+|---|---|---|---|---|
+| S1 | 3 | «Me gusta, no soy muy fan del cero delante, pero creo que podemos plantear esta y otras alternativas más elegantes también» | R1: número sin cero y cuatro variantes de separador de capítulo | ☑ número sin cero y cuatro variantes de capítulo: A número con filete, B número en anillo coral, C rótulo «Capítulo 2» sobre filete, D número grande de fondo en azul muy claro |
+| S2 | 4 | «Quizás el subtítulo puede tener una identidad diferente para poder diferenciarlo» | R1: el subcapítulo con otra composición, distinta a la del capítulo | ☑ subcapítulo con otra composición: sin personas ni público, con la ruta del capítulo arriba, «2.1» en azul oscuro, filete coral y título |
+| S3 | 7 | «Pensé que esto ya estaba. Hay que pensar muy bien esto porque como ya estaba en el recetario puede ser de 1 hasta 5, pero puede tener largo diferente y posiciones diferentes» | R2: no es un constructor nuevo, es la cifra destacada (C24) generalizada a 1–5 cifras, rótulos de largo distinto y posiciones distintas | ☑ rehecho como la cifra destacada de III.2 generalizada: una cifra frente a su gráfico, tres con rótulos de largo distinto y cinco (el máximo). Los detalles se alinean con el rótulo más largo |
+| S4 | 8 | «Me gusta» | R3 y R6 aceptadas para integrar | ☑ |
+| S5 | 9 | «Me gusta aunque entenderlo es algo complejo» | R4: hacer la lectura más simple | ☑ filas ordenadas por peso, columna «Cuánto pesa» y una explicación llana debajo («si sube la satisfacción con un aspecto, cuánto sube la general») |
+| S6 | 10 | «Va, pero ver cómo perfeccionar» | R5: letras de significancia más legibles | ☑ la letra va a tamaño legible, en azul y separada de la cifra, con las letras de cada público bajo su encabezado y una línea que explica cómo se lee |
+| S7 | 11 | «No va» | R7 retirada | ☑ |
