@@ -123,7 +123,8 @@ if (ESTILO == "fiel") {
 barras_h(doc, xr, YT + 0.85, col2, ing, c(8, 16, 22, 20, 31, 3), wlab = 2.4, g = grosor_cat(6), fila = 0.7, size = 13)
 pie(doc, "Base: 205 egresados. El ingreso, 179 que trabajan de manera dependiente. Los rangos van en su orden, no por frecuencia")
 
-# --- Más casos de llave de dependencia (Gonzalo, 2026-10-07: «faltan más ejemplos de llaves de dependencia»). Sólo en la
+# --- Más casos de llave de dependencia (Gonzalo, 2026-10-07: «faltan más ejemplos de llaves de dependencia»; la cadena de
+# tres niveles se retiró: «las subdependencias no se ven bien, mejor dejarlo sólo en dos»). Sólo en la
 # moderna: la fiel conserva la convención entregada (torta y gráfico de la subpregunta lado a lado).
 if (ESTILO == "moderna") {
 # Llave sobre varias categorías: la subpregunta la habilitan tres respuestas, no una
@@ -142,26 +143,6 @@ dicotomia(doc, xr, yc_ + 0.4, col2, c("Sí", "No"), c(81, 19), n = c(113, 26), s
 zona("la llave abraza las tres categorías que habilitan la subpregunta", ML, YT, ANCHO, 4.2)
 pie(doc, "Base: 178 egresados. La subpregunta, 139 que trabajan. La llave agrupa las tres respuestas que la habilitan")
 
-# Filtros en cadena: cada nivel abre el siguiente y declara su propia base
-MOTOR_ACT <- "PROPUESTA (desglose conectado en cadena): dicotómica > dicotómica > p_barras_multiapiladas, con una llave por nivel"
-doc <- nueva(doc); titulo(doc, "Trabajo, modalidad e ingreso del egresado", ante = "Filtros en cadena")
-panel_titulo(doc, ML, YT, ANCHO, "¿Trabaja actualmente?", "178 egresados")
-yb1 <- dicotomia(doc, ML, YT + 0.5, ANCHO, c("Sí", "No"), c(78, 22), n = c(139, 39), size = 22, g = 0.3)
-xc1 <- llave_h(doc, ML, ML + ANCHO * 0.78, yb1 + 0.06, yb1 + 0.55)
-caja(doc, xc1, yb1 + 0.55 - 0.011, 0.25, 0.022, TK$navy)
-txt(doc, "¿Trabaja de manera dependiente?", xc1 + 0.32, yb1 + 0.4, 6, 0.3, 13, TK$navy, bold = TRUE)
-txt(doc, "Sólo los 139 que trabajan", xc1 + 0.32, yb1 + 0.67, 6, 0.26, 10.5, TK$soft)
-x2_ <- xc1 + 0.32; w2_ <- W - MR - x2_
-yb2 <- dicotomia(doc, x2_, yb1 + 1.0, w2_, c("Sí", "No"), c(72, 28), n = c(100, 39), size = 20, g = 0.28)
-xc2 <- llave_h(doc, x2_, x2_ + w2_ * 0.72, yb2 + 0.06, yb2 + 0.55)
-caja(doc, xc2, yb2 + 0.55 - 0.011, 0.25, 0.022, TK$navy)
-txt(doc, "¿Cuál es su ingreso mensual? (en soles)", xc2 + 0.32, yb2 + 0.4, 6, 0.3, 13, TK$navy, bold = TRUE)
-txt(doc, "Sólo los 100 que trabajan de manera dependiente", xc2 + 0.32, yb2 + 0.67, 6, 0.26, 10.5, TK$soft)
-x3_ <- xc2 + 0.32; w3_ <- W - MR - x3_; ing3 <- c(18, 34, 30, 18); cols3 <- c("#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C")
-barra_apilada(doc, x3_, yb2 + 1.02, w3_, ing3, cols3, 0.32)
-leyenda(doc, 0, yb2 + 1.42, c("Hasta 2,500", "2,501 a 3,500", "3,501 a 5,000", "Más de 5,000"), cols3, centrar_en = x3_ + w3_ / 2)
-zona("tres niveles: cada llave abre el siguiente", ML, YT, ANCHO, yb2 + 1.7 - YT)
-pie(doc, "Base: 178 egresados, 139 que trabajan y 100 dependientes. Cada subpregunta empieza donde termina la llave de su filtro")
 }
 
 # --- C14 bases por cohorte (Geografía: egresados 2019 a 2023 frente a antes de 2019)
