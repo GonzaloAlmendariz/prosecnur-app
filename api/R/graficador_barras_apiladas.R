@@ -1363,6 +1363,9 @@ graficar_barras_apiladas <- function(
     alto                  = 6,
     alto_por_categoria    = NULL,
     grosor_min_in         = 0.32,
+    # ADR 0092: el grosor sale de la tabla del estándar por número de filas.
+    # FALSE vuelve a la fracción de fila con piso y techo (comportamiento previo).
+    grosor_estandar       = TRUE,
     dpi                   = 300,
 
     ppt_append            = TRUE,
@@ -3286,6 +3289,21 @@ graficar_barras_apiladas <- function(
   y_padtop0 <- y_bars_area0 + h_bars_area
   h_padtop  <- pad_npc
 
+  # ADR 0092 (F2.1): la barra mide lo que pide la tabla del estándar según las
+  # filas de la lámina. Se decide aquí y no al armar el geom porque recién aquí se
+  # conoce el alto físico de la fila: el área de barras, el rango del eje y el alto
+  # con que se coloca el lienzo (la misma cuenta que la guía de `debug_ph_bordes`).
+  if (isTRUE(grosor_estandar) && h_bars_area > 0) {
+    y_rng_std <- ggplot2::ggplot_build(p_bars_panel)$layout$panel_params[[1]]$y.range
+    den_std <- if (is.numeric(y_rng_std) && length(y_rng_std) == 2L) diff(y_rng_std) else NA_real_
+    fila_in <- h_bars_area * suppressWarnings(as.numeric(alto)[1]) / den_std
+    g_std <- .grosor_fraccion_estandar(n_categorias, fila_in, "escala_apilada")
+    if (is.finite(g_std)) {
+      grosor_eff <- g_std
+      p_bars_panel <- .grosor_reemplazar_ancho_col(p_bars_panel, grosor_eff)
+    }
+  }
+
   # dibujar barras SOLO en el área útil
   if (h_bars_area > 0) {
     canvas <- canvas +
@@ -3873,13 +3891,22 @@ graficar_barras_apiladas <- function(
       grosor_eff = grosor_eff,
       h_panel_in = h_panel_in,
       pad_in = pad_in,
-      h_bars_area_in = h_bars_area * h_total_in
+      h_bars_area_in = h_bars_area * h_total_in,
+      # Lo que se dibuja, en pulgadas de la lámina (fila física ya colocada): es
+      # lo que se compara con `.std_grosor()` en el banco de F2 (ADR 0092).
+      alto_fila_in = h_bars_area * as.numeric(alto) / den,
+      grosor_in = grosor_eff * h_bars_area * as.numeric(alto) / den,
+      h_total_in = h_total_in
     )
     if (!is.null(legend_manual_layout)) {
       layout_attr <- attr(canvas, "pulso_barras_apiladas_layout")
       layout_attr$legend_manual <- legend_manual_layout
       attr(canvas, "pulso_barras_apiladas_layout") <- layout_attr
     }
+    # Traza del banco de grosor (scripts/qa_estandar_grosor.R): apagada salvo que
+    # la opción nombre un archivo. Va por archivo porque el renderer se traga los
+    # mensajes y el objeto no siempre vuelve a quien mide.
+    .traza_grosor_apiladas(n_categorias, y_axis_max, grosor_eff, h_bars_area * as.numeric(alto) / den, h_total_in, alto)
     return(canvas)
   }
 

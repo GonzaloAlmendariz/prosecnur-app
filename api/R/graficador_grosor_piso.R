@@ -859,3 +859,60 @@
 # instrumento que la produjo tampoco se hereda: aqui el filtro daba al aprobado
 # una dispersion de 1.6974 —peor que el motor— hasta que se le exigio que una
 # barra tuviera color.
+
+
+#' Anota en el archivo de `getOption("pulso.traza_grosor")` el grosor dibujado
+#'
+#' Una línea CSV por gráfico: filas reales, filas del eje, fracción, alto físico
+#' de la fila y grosor en pulgadas de la lámina, alto intrínseco y alto pedido. Sin la opción
+#' no hace nada. Instrumento del banco de grosor de F2 (ADR 0092).
+#' @keywords internal
+.traza_grosor_apiladas <- function(n_filas, filas_eje, grosor_eff, alto_fila_in, h_total_in, alto_in) {
+  destino <- getOption("pulso.traza_grosor")
+  if (!is.character(destino) || !nzchar(destino[1])) return(invisible(FALSE))
+  num <- function(x) suppressWarnings(as.numeric(x)[1])
+  fila <- c(num(n_filas), num(filas_eje), num(grosor_eff), num(alto_fila_in),
+            num(grosor_eff) * num(alto_fila_in), num(h_total_in), num(alto_in))
+  cat(paste(round(fila, 4), collapse = ","), "\n", sep = "", file = destino[1], append = TRUE)
+  invisible(TRUE)
+}
+
+
+#' Fracción de fila que hace medir a la barra lo que pide el estándar
+#'
+#' ADR 0092 (F2.1): el grosor sale de la tabla del recetario por número de filas
+#' (`.std_grosor()`), no de una fracción fija. Medido el 2026-10-08 en la ranura
+#' estándar: con la fracción 0.82 y la fila que crece hasta 1.12 in (ADR 0065),
+#' una lámina de una a cuatro filas dibujaba barras de 0.88 a 1.06 in donde el
+#' recetario pide 0.44 a 0.50; sólo 3 de 12 alturas cumplían.
+#'
+#' @param n_filas Filas reales de la lámina.
+#' @param alto_fila_in Alto físico de la fila ya colocada en la lámina, en pulgadas.
+#' @param tipo `escala_apilada` o `categorias`.
+#' @param tope Fracción máxima: si la fila es tan corta que ni así cabe, se llega
+#'   al tope y no más (las barras no se tocan).
+#' @return Fracción para `geom_col(width = )`, o `NA` si falta un dato.
+#' @keywords internal
+.grosor_fraccion_estandar <- function(n_filas, alto_fila_in, tipo = "escala_apilada",
+                                      tope = .GROSOR_TOPE_FRACCION) {
+  a <- suppressWarnings(as.numeric(alto_fila_in)[1])
+  if (!is.finite(a) || is.na(a) || a <= 0) return(NA_real_)
+  min(tope, .std_grosor(n_filas, tipo) / a)
+}
+
+
+#' Cambia el ancho de las capas `geom_col` de un ggplot ya armado
+#'
+#' Cambia el ancho en la capa misma. Clonarla con `ggproto(NULL, capa)` se probó
+#' y rompe en silencio dentro del lienzo: la capa clonada calculaba los datos de la
+#' capa de texto vecina y la lámina salía sin barras. El panel y la leyenda
+#' comparten la capa, y a la leyenda el ancho no le importa.
+#' @keywords internal
+.grosor_reemplazar_ancho_col <- function(p, ancho) {
+  for (capa in p$layers) {
+    if (!inherits(capa$geom, "GeomCol") || is.null(capa$aes_params$width)) next
+    capa$aes_params$width <- ancho
+  }
+  p
+}
+
