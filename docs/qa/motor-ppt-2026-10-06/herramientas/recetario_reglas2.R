@@ -36,34 +36,26 @@ for (e_ in esc) { h_ <- max(0.42, e_[[3]] * 1.3 / 72 + 0.1)
   yk <- yk + h_ + 0.06; separador_h(doc, XC, W - MR, yk - 0.03) }
 pie(doc, "Arial en todo el informe. Ningún texto baja de 10 pt")
 
-# 3 a 5. Portadas alternativas, en la misma línea de la portada (logos arriba, título como protagonista)
+# 3 y 4. Portadas alternativas, en la misma línea de la portada (logos arriba, título como protagonista)
 tp <- "Estudio de opinión sobre el servicio educativo de la carrera de Contabilidad"
+# La plantilla de portada trae una línea coral fija en y = 4.21 in (x de 1.18 a 12.15): el título va arriba de ella y el encargo debajo.
 MOTOR_ACT <- "PROPUESTA: portada alineada a la izquierda (p_slide_portada)"
 doc <- nueva(doc, "Title Slide")
-caja(doc, 0.85, 2.35, 0.06, 2.1, TK$coral)
-txt(doc, "INFORME CONSOLIDADO", 1.1, 2.3, 8, 0.32, 13, TK$coral, bold = TRUE)
-txt(doc, tp, 1.1, 2.7, 8.6, 1.3, 30, TK$navy, bold = TRUE)
-txt(doc, "Por encargo de la Facultad de Ciencias Contables. Setiembre de 2026", 1.1, 4.1, 8.6, 0.36, 15, TK$soft)
-zona("portada alineada a la izquierda", 0.85, 2.3, 8.9, 2.2); dibujar_guias(doc)
+txt(doc, "INFORME CONSOLIDADO", 1.08, 2.25, 8, 0.32, 13, TK$coral, bold = TRUE)
+txt(doc, tp, 1.08, 2.62, 9.6, 1.3, 30, TK$navy, bold = TRUE)
+txt(doc, "Por encargo de la Facultad de Ciencias Contables", 1.08, 4.45, 9.6, 0.36, 16, TK$navy)
+txt(doc, "Setiembre de 2026", 1.08, 4.85, 9.6, 0.34, 14, TK$soft)
+zona("portada alineada a la izquierda, la línea de la plantilla separa título y encargo", 1.18, 2.25, 9.6, 2.95); dibujar_guias(doc)
 MOTOR_ACT <- "PROPUESTA: portada con banda inferior (p_slide_portada)"
 doc <- nueva(doc, "Title Slide")
-txt(doc, "INFORME CONSOLIDADO", 1.6, 2.15, 10.1, 0.32, 13, TK$coral, bold = TRUE, align = "center")
-txt(doc, tp, 1.4, 2.55, 10.5, 1.3, 30, TK$navy, bold = TRUE, align = "center")
+txt(doc, "INFORME CONSOLIDADO", 1.6, 2.25, 10.1, 0.32, 13, TK$coral, bold = TRUE, align = "center")
+txt(doc, tp, 1.4, 2.62, 10.5, 1.3, 30, TK$navy, bold = TRUE, align = "center")
 caja(doc, 0, H - 1.25, W, 1.25, TK$navy)
 txt(doc, "Por encargo de la Facultad de Ciencias Contables", 1.6, H - 0.95, 10.1, 0.34, 15, "#FFFFFF", bold = TRUE, align = "center")
 txt(doc, "Setiembre de 2026", 1.6, H - 0.58, 10.1, 0.3, 13, "#FFFFFF", align = "center")
 zona("portada con banda", 0, H - 1.25, W, 1.25); dibujar_guias(doc)
-MOTOR_ACT <- "PROPUESTA: portada con el público de las portadillas (p_slide_portada)"
-doc <- nueva(doc, "Title Slide")
-dir_m <- file.path(tempdir(), "media_portada"); utils::unzip("api/inst/plantillas/plantilla_16_9.pptx", files = "ppt/media/image4.png", exdir = dir_m, overwrite = TRUE)
-wpub <- 3.0; invisible(ph_with(doc, external_img(file.path(dir_m, "ppt/media/image4.png"), width = wpub, height = wpub * 1068 / 936), location = ph_location(left = 0, top = H - wpub * 1068 / 936, width = wpub, height = wpub * 1068 / 936)))
-txt(doc, "INFORME CONSOLIDADO", 3.6, 2.4, 8, 0.32, 13, TK$coral, bold = TRUE)
-txt(doc, tp, 3.6, 2.8, 9.0, 1.3, 30, TK$navy, bold = TRUE)
-caja(doc, 3.7, 4.25, 1.1, 0.05, TK$coral)
-txt(doc, "Por encargo de la Facultad de Ciencias Contables. Setiembre de 2026", 3.6, 4.45, 9.0, 0.36, 15, TK$soft)
-zona("portada con público", 3.6, 2.4, 9.0, 2.4); dibujar_guias(doc)
 
-# 6 y 7. Objetivo, alternativas B (panel azul) y C (desglosado); la A es la del informe tipo
+# 5 y 6. Objetivo, alternativas B (panel azul) y C (desglosado); la A es la del informe tipo
 obj <- "Conocer la percepción sobre los propósitos de la carrera de Contabilidad, su perfil de egreso, su plan de estudios y otras dimensiones relevantes para la acreditación, a partir de la opinión de estudiantes, docentes, egresados(as), personal administrativo, Comité Consultivo y empleadores(as)."
 actores6 <- list(c("graduation-cap", "Estudiantes"), c("presentation", "Docentes"), c("briefcase", "Egresados"),
                  c("building-2", "Personal administrativo"), c("users", "Comité Consultivo"), c("briefcase-business", "Empleadores"))

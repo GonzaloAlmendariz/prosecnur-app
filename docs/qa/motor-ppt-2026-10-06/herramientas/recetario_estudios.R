@@ -16,7 +16,9 @@ doc <- nueva(doc); titulo(doc, "Satisfacción con la formación recibida, por pr
 panel_titulo(doc, XC, YT, 8.6, "Me siento satisfecho con la formación recibida en la carrera", "Top Two Box por programa")
 barras_h(doc, XC, YT + 0.6, 8.6, prog, ttbp, wlab = 3.0, g = 0.3, fila = 0.46, size = 12, escala = 100)
 separador_v(doc, XC + 9.0, YT, YF - 0.2)
-cifra(doc, XC + 9.35, YT + 0.3, W - MR - XC - 9.35, "82 %", "de satisfacción en los nueve programas", "promedio ponderado por base")
+xc9 <- XC + 9.35; wc9 <- W - MR - xc9
+txt(doc, "82 %", xc9 - 0.1, YT + 0.3, wc9 + 0.1, 0.65, 34, TK$navy, bold = TRUE); txt(doc, "de satisfacción en los nueve programas", xc9 - 0.1, YT + 0.95, wc9 + 0.1, 0.5, 12, TK$navy, bold = TRUE)
+txt(doc, "promedio ponderado por base", xc9 - 0.1, YT + 1.45, wc9 + 0.1, 0.28, 10, TK$soft)
 narrativa(doc, XC + 9.35, YT + 1.8, W - MR - XC - 9.35, 2.0, list(N_("La distancia entre el programa más alto y el más bajo es de "), B("19 puntos"), N_(". Cada programa es una base del estudio.")), size = 13)
 pie(doc, paste(FIC, "Base: entre 48 y 140 egresados por programa"))
 

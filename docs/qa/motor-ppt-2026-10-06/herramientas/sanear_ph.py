@@ -41,6 +41,11 @@ for item in zin.infolist():
                     if not any(c.tag in (A + 'noAutofit', A + 'normAutofit', A + 'spAutoFit') for c in bp): etree.SubElement(bp, A + 'noAutofit')
                 titulos += 1
                 continue
+            if tiene_geo and nv is not None and nv.get('name', '').startswith('Centro'):
+                # Número dentro de un círculo: anclado al centro y sin márgenes internos, para que quede centrado en ambos ejes
+                bp = sp.find('.//' + A + 'bodyPr')
+                if bp is not None:
+                    for k_, v_ in (('anchor', 'ctr'), ('lIns', '0'), ('tIns', '0'), ('rIns', '0'), ('bIns', '0'), ('wrap', 'none')): bp.set(k_, v_)
             if tiene_geo:
                 ph.getparent().remove(ph); libres += 1
                 sppr = sp.find(P + 'spPr')

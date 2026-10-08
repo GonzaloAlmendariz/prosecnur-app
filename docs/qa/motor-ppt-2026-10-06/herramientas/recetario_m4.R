@@ -168,7 +168,7 @@ for (k in 1:4) { c_ <- cel[[k]]; p_ <- pan[[k]]
       txt(doc, p_[[2]][j], c_$x, yc, wl, 0.3, 12, TK$navy, align = "right")
       caja(doc, xb, yc + 0.04, wb * v / max(p_[[3]]), 0.24, if (ESTILO == "moderna" && v == max(p_[[3]])) TK$navy else if (ESTILO == "moderna") TK$tenue else TK$navy)
       txt(doc, if (ESTILO == "moderna") sprintf("%d de 12", v) else sprintf("%d%% (%d)", round(100 * v / 12), v), xb + wb * v / max(p_[[3]]) + 0.08, yc, 1.1, 0.3, 12, TK$navy, bold = TRUE) } } }
-pie(doc, "Base: 12 autoridades. Con menos de 30 casos, la moderna rotula frecuencias («5 de 12») y no porcentajes")
+pie(doc, if (NUEVA) "Base: 12 autoridades. Con menos de 30 casos se rotulan frecuencias («5 de 12») y no porcentajes" else "Base: 12 autoridades. Con menos de 30 casos, la moderna rotula frecuencias («5 de 12») y no porcentajes")
 
 # --- B5 perfil de los empleadores con base chica (AMDT, Contabilidad, Derecho): cuatro paneles
 MOTOR_ACT <- "p_slide_4_graficos_poblacion: p_pie (sector) + p_barras_agrupadas x3, con formato_valor = «n» cuando la base es menor de 30 (PROPUESTA de regla)"

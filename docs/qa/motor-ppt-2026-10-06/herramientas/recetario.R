@@ -110,6 +110,8 @@ nueva <- function(doc, layout = "Graficos") { FOLIO <<- FOLIO + 1
 ICONO_MODO <- if (ESTILO == "fiel") "centro" else Sys.getenv("ICONO_MODO", "cabecera")
 ICONO_TIT <- NULL
 titulo <- function(doc, t, ante = NULL, sub = NULL) {
+  if (NUEVA && !is.null(ante)) ante <- switch(ante, "Reglas de la identidad" = , "Población y cifras" = "Reglas de la lámina",
+                                              "La lámina estándar" = "Medidas de la lámina estándar", ante)   # un solo antetítulo en 1.1
   if (ESTILO == "fiel") {
     txt(doc, toupper(t), ML, Y_TIT, 10.6, 0.5, 20, TK$coral, bold = TRUE, nombre = "Titulo lamina")
     if (!is.null(sub)) txt(doc, sub, ML, Y_TIT + 0.42, 10.6, 0.35, 14, TK$coral, bold = TRUE)
@@ -499,7 +501,7 @@ if (ESTILO == "fiel") {
 } else {
   # Moderna: filas dibujadas con ícono, y la muestra por actor como cifras (número y tasa de respuesta)
   fil <- list(list("clipboard-list", "Tipo y técnica", ft_d$v[1], 0.95), list("users", "Universo", ft_d$v[2], 0.75), list("shuffle", "Muestreo", ft_d$v[3], 0.6),
-              list("hash", "Muestra", NULL, 1.1), list("calendar-days", "Trabajo de campo", ft_d$v[5], 0.6))
+              list("hash", "Muestra", NULL, 1.25), list("calendar-days", "Trabajo de campo", ft_d$v[5], 0.6))
   mu <- data.frame(n = c(172, 52, 178, 15), a = c("estudiantes", "docentes", "egresados(as)", "administrativos"), t = c(96, 92, 66, 94))
   y <- Y_DATOS - 0.15; xv <- ML + 3.3; wv <- W - MR - xv
   for (i in seq_along(fil)) { f_ <- fil[[i]]; h_ <- f_[[4]]
@@ -507,8 +509,8 @@ if (ESTILO == "fiel") {
     txt(doc, f_[[2]], ML + 0.9, y + (h_ - 0.32) / 2, 2.3, 0.32, 14, TK$navy, bold = TRUE)
     if (is.null(f_[[3]])) { for (j in seq_len(nrow(mu))) { xx <- xv + (j - 1) * wv / 4
         txt(doc, mu$n[j], xx, y + 0.02, 1.0, 0.5, 26, TK$navy, bold = TRUE)
-        txt(doc, mu$a[j], xx + 0.95, y + 0.21, wv / 4 - 1.0, 0.3, 12, TK$navy)
-        txt(doc, sprintf("%d%% de respuesta", mu$t[j]), xx, y + 0.6, wv / 4, 0.28, 11, TK$verde_txt, bold = TRUE) } }
+        txt(doc, mu$a[j], xx, y + 0.5, wv / 4 - 0.1, 0.3, 12, TK$navy)   # el actor bajo su número: «administrativos» ya no se corta
+        txt(doc, sprintf("%d%% de respuesta", mu$t[j]), xx, y + 0.78, wv / 4, 0.28, 11, TK$verde_txt, bold = TRUE) } }
     else txt(doc, f_[[3]], xv, y + (h_ - alto_txt(f_[[3]], wv, 13)) / 2, wv, alto_txt(f_[[3]], wv, 13), 13, TK$navy)
     y <- y + h_ + 0.12
     if (i < length(fil)) separador_h(doc, ML, W - MR, y - 0.06) }
