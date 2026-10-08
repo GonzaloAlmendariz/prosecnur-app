@@ -141,11 +141,11 @@ sfc <- function(pct, valid) list(pct = pct, n = round(pct * valid / 100), valid 
 MOTOR_ACT <- "Combinación: dicotómica y su subpregunta con llave"
 doc <- nueva(doc); titulo(doc, "Prácticas preprofesionales y su utilidad", ante = "Combinación: dicotómica y su subpregunta")
 panel_titulo(doc, XC, YT, AC, "¿Realizó prácticas preprofesionales durante la carrera?", "178 egresados")
-wlc <- 1.6; xbc <- XC + wlc + 0.12; wbc <- AC - wlc - 0.12 - 1.1   # la subpregunta mide lo mismo que la pregunta filtro
-ybf <- dicotomia(doc, xbc, YT + 0.5, wbc, c("Sí", "No"), c(64, 36), n = c(114, 64), size = 26, g = 0.42)
-xcl <- llave_h(doc, xbc, xbc + wbc * 0.64, ybf + 0.06, ybf + 0.85); caja(doc, xcl, ybf + 0.85 - 0.011, 0.25, 0.022, TK$navy)
-txt(doc, "Las prácticas me prepararon para el trabajo", xcl + 0.32, ybf + 0.7, W - MR - xcl - 0.32, 0.3, 13, TK$navy, bold = TRUE); txt(doc, "Sólo los 114 que hicieron prácticas", xcl + 0.32, ybf + 0.97, W - MR - xcl - 0.32, 0.26, 10.5, TK$soft)
-likert_panel(doc, XC, ybf + 1.3, AC, list(list(lab = "Hicieron prácticas", f = sfc(c(4, 9, 49, 36, 2), 114))), g = 0.42, fila = 0.8, wlab = wlc, size_lab = 12)
+wlc <- 1.6; xbc <- XC + wlc + 0.12; wbc <- AC - wlc - 0.12 - 1.1   # dos gráficos apilados normales, del mismo tamaño
+ybf <- dicotomia(doc, xbc, YT + 0.55, wbc, c("Sí", "No"), c(64, 36), n = c(114, 64), size = 26, g = 0.42)
+y2c <- ybf + 0.75; llave_baja_a_titulo(doc, xbc, xbc + wbc * 0.64, ybf + 0.06, XC, y2c, "Las prácticas me prepararon para el trabajo")
+panel_titulo(doc, XC, y2c, AC, "Las prácticas me prepararon para el trabajo", "Sólo los 114 que hicieron prácticas")
+likert_panel(doc, XC, y2c + 0.45, AC, list(list(lab = "Hicieron prácticas", f = sfc(c(4, 9, 49, 36, 2), 114))), g = 0.42, fila = 0.8, wlab = wlc, size_lab = 12)
 leyenda(doc, 0, Y_LEY - 0.05, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 pie(doc, "Base: 178 egresados. La subpregunta, 114 que hicieron prácticas")
 # 2. escala y ranking

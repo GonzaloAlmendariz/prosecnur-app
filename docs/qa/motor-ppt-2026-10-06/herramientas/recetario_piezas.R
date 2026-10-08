@@ -84,6 +84,19 @@ llave_v <- function(doc, x, y0, y1, x_tallo, color = TK$navy, t = 0.022) {
   invisible(yc)
 }
 
+# Llave al costado que conecta con el título del gráfico dependiente (Gonzalo, 2026-10-08: «pueden verse simplemente como dos gráficos
+# normales, pero la llave conecta con el título»): abraza [y0, y1], sale en horizontal y sube o baja hasta la línea del título.
+llave_a_titulo <- function(doc, x, y0, y1, x_titulo, y_titulo, color = TK$navy, t = 0.022) {
+  xt <- x_titulo - 0.22; yc <- llave_v(doc, x, y0, y1, xt, color, t)
+  yt <- y_titulo + 0.16; caja(doc, xt, min(yc, yt), t, abs(yc - yt) + t, color); caja(doc, xt, yt - t / 2, x_titulo - 0.06 - xt, t, color)
+  invisible(yt) }
+# Llave bajo un segmento que baja hasta el título del gráfico de abajo: si el tallo cae más allá de donde termina el texto del
+# título, dobla a la altura del título y llega hasta su última letra (Gonzalo, 2026-10-08: «no conecta con el título»).
+llave_baja_a_titulo <- function(doc, x0, x1, y, x_titulo, y_titulo, t_titulo, color = TK$navy, t = 0.022) {
+  ym <- y_titulo + 0.16; x_fin <- x_titulo + 0.05 + ancho_tinta(t_titulo, 13, bold = TRUE)
+  if ((x0 + x1) / 2 > x_fin + 0.15) { xc <- llave_h(doc, x0, x1, y, ym, color, t); caja(doc, x_fin + 0.1, ym - t / 2, xc - x_fin - 0.1 + t / 2, t, color) }
+  else xc <- llave_h(doc, x0, x1, y, y_titulo + 0.06, color, t)
+  invisible(xc) }
 # Serie temporal (C29, C40): guías suaves con su escala, puntos con borde y centro claro, cifras de la serie de arriba
 # sobre sus puntos y las de abajo debajo (no se cruzan), y el nombre de cada serie al final de su línea.
 grafico_serie <- function(periodos, series, cols, lim = NULL, paso = 10) {

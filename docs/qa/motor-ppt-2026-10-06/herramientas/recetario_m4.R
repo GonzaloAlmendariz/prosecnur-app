@@ -90,18 +90,15 @@ if (ESTILO == "fiel") {
   panel_titulo(doc, xr, YT, col2, "Los programas de intercambio fortalecen mis competencias", "Base propia: 20 estudiantes que participaron")
   likert_panel(doc, xr, YT + 1.3, col2, list(list(lab = "Participaron", f = sf(c(10, 0, 55, 35, 0), 20))), g = 0.7, fila = 1.1, wlab = 1.3)
 } else {
+  # Dos gráficos apilados normales; la llave baja desde el «Sí» hasta el título del segundo (Gonzalo, 2026-10-08)
+  wl2 <- 1.6; g2 <- 0.42; fila2 <- 0.8; xb2 <- ML + wl2 + 0.12; wb2 <- ANCHO - wl2 - 0.12 - 1.1; ybar <- 0
   panel_titulo(doc, ML, YT, ANCHO, "¿Ha participado en programas de intercambio?", "201 estudiantes")
-  wl2 <- 1.6; g2 <- 0.42; fila2 <- 0.8; xb2 <- ML + wl2 + 0.12; wb2 <- ANCHO - wl2 - 0.12 - 1.1   # mismo inicio, ancho y grosor que la subpregunta (Gonzalo, 2026-10-08)
-  yb_fin <- dicotomia(doc, xb2, YT + 0.5, wb2, c("Sí", "No"), c(10, 90), n = c(20, 181), size = 26, g = g2)
-  y2 <- yb_fin + 0.85; ylp <- y2 + 0.45
-  ybar <- ylp + 0.3 + (fila2 - g2) / 2 + 0.05
-  # C36: una llave bajo el segmento «Sí» y su tallo baja hasta la subpregunta (antes, cuña semitransparente)
-  xc <- llave_h(doc, xb2, xb2 + wb2 * 0.10, yb_fin + 0.06, y2 + 0.15)
-  caja(doc, xc, y2 + 0.15 - 0.011, 0.25, 0.022, TK$navy)
-  txt(doc, "Los programas de intercambio fortalecen mis competencias", xc + 0.32, y2, 8, 0.3, 13, TK$navy, bold = TRUE)
-  txt(doc, "Sólo los 20 estudiantes que respondieron «Sí»", xc + 0.32, y2 + 0.27, 8, 0.26, 10.5, TK$faint)
-  likert_panel(doc, ML, ylp, ANCHO, list(list(lab = "Participaron (20)", f = sf(c(10, 0, 55, 35, 0), 20))), g = g2, fila = fila2, wlab = wl2)
-  zona("desglose conectado: el segmento «Sí» se abre en su subpregunta", ML, YT + 0.5, ANCHO, ybar + g2 - YT - 0.5)
+  yb_fin <- dicotomia(doc, xb2, YT + 0.55, wb2, c("Sí", "No"), c(10, 90), n = c(20, 181), size = 26, g = g2)
+  y2 <- yb_fin + 0.75
+  xc <- llave_baja_a_titulo(doc, xb2, xb2 + wb2 * 0.10, yb_fin + 0.06, ML, y2, "Los programas de intercambio fortalecen mis competencias")
+  panel_titulo(doc, ML, y2, ANCHO, "Los programas de intercambio fortalecen mis competencias", "Sólo los 20 estudiantes que respondieron «Sí»")
+  likert_panel(doc, ML, y2 + 0.45, ANCHO, list(list(lab = "Participaron", f = sf(c(10, 0, 55, 35, 0), 20))), g = g2, fila = fila2, wlab = wl2)
+  zona("dos gráficos apilados unidos por la llave", ML, YT, ANCHO, y2 + 1.3 - YT)
 }
 leyenda(doc, 0, Y_LEY - 0.1, LIKERT_ROT[1:4], TK$likert[1:4], centrar_en = W / 2)
 pie(doc, "Base: 201 estudiantes. La subpregunta, 20 estudiantes que participaron")
@@ -116,10 +113,9 @@ if (ESTILO == "fiel") {
   separador_v(doc, ML + col2 + GAP / 2, YT, YF)
   panel_titulo(doc, xr, YT, col2, "¿Cuál es su ingreso mensual aproximado? (en soles)", "Base propia: 179 egresados dependientes")
 } else {
-  wd <- col2 - 2.4 - 0.12 - 0.8; xd <- ML + col2 - wd - 0.45   # mismo largo y grosor que las barras del desglose (Gonzalo, 2026-10-08)
-  yb_fin <- dicotomia(doc, xd, YT + 1.75, wd, c("No", "Sí"), c(13, 87), n = c(26, 179), size = 26, g = 0.42, cols = rev(TK$dico))   # «Sí» pegado al desglose
-  # C37: una llave a la derecha del segmento «Sí» y un tallo hasta el panel del ingreso
-  llave_v(doc, xd + wd + 0.08, yb_fin - 0.42, yb_fin, xr - 0.2)
+  wd <- col2 - 1.0; xd <- ML   # dos gráficos normales lado a lado; la llave va del «Sí» al título del ingreso (Gonzalo, 2026-10-08)
+  yb_fin <- dicotomia(doc, xd, YT + 0.6, wd, c("No", "Sí"), c(13, 87), n = c(26, 179), size = 26, g = 0.42, cols = rev(TK$dico))   # «Sí» pegado al desglose
+  llave_a_titulo(doc, xd + wd + 0.08, yb_fin - 0.42, yb_fin, xr, YT)
   panel_titulo(doc, xr, YT, col2, "¿Cuál es su ingreso mensual aproximado? (en soles)", "Sólo los 179 que trabajan de manera dependiente")
 }
 barras_h(doc, xr, YT + 0.85, col2, ing, c(8, 16, 22, 20, 31, 3), wlab = 2.4, g = if (ESTILO == "moderna") 0.42 else grosor_cat(6), fila = 0.7, size = 13)
@@ -138,9 +134,9 @@ wl_ <- 2.5; fila_ <- 0.66; g_ <- 0.36; y0_ <- YT + 0.7; esc_ <- 80;   # escala h
  wbar_ <- col2 - wl_ - 0.8
 barras_h(doc, ML, y0_, col2, sl_lab, sl_pc, wlab = wl_, g = g_, fila = fila_, size = 13, escala = esc_, realzar = FALSE)   # E7: sin destacar la mayor, lo que importa es el grupo de la llave
 xll <- ML + wl_ + 0.12 + wbar_ * max(sl_pc[1:3]) / esc_ + 0.75
-yc_ <- llave_v(doc, xll, y0_ + (fila_ - g_) / 2, y0_ + 2 * fila_ + (fila_ + g_) / 2, xr - 0.15)
-panel_titulo(doc, xr, yc_ - 0.15, col2, "¿Su trabajo se relaciona con la carrera?", "Sólo los 139 que trabajan, en cualquiera de las tres modalidades")
-dicotomia(doc, xr, yc_ + 0.6, wbar_, c("Sí", "No"), c(81, 19), n = c(113, 26), size = 22, g = g_)   # mismo largo y grosor que las barras que la habilitan
+llave_a_titulo(doc, xll, y0_ + (fila_ - g_) / 2, y0_ + 2 * fila_ + (fila_ + g_) / 2, xr, YT)   # la llave conecta con el título del segundo gráfico
+panel_titulo(doc, xr, YT, col2, "¿Su trabajo se relaciona con la carrera?", "Sólo los 139 que trabajan, en cualquiera de las tres modalidades")
+dicotomia(doc, xr, y0_ - 0.1, wbar_, c("Sí", "No"), c(81, 19), n = c(113, 26), size = 22, g = g_)
 zona("la llave abraza las tres categorías que habilitan la subpregunta", ML, YT, ANCHO, 4.2)
 pie(doc, "Base: 178 egresados. La subpregunta, 139 que trabajan. La llave agrupa las tres respuestas que la habilitan")
 
