@@ -68,3 +68,17 @@ zoom_conector <- function(doc, a, b, fill = "#081F5C", alpha = 0.05, borde = "#8
     theme_void() + theme(plot.margin = margin(0, 0, 0, 0))
   invisible(ph_with(doc, dml(ggobj = gz, bg = "transparent"), location = ph_location(left = l, top = t, width = max(w, 0.01), height = max(h, 0.01))))
 }
+
+# Llaves (C36 y C37: «una llave se ve más elegante» que la cuña semitransparente). Trazo azul oscuro de 0.022 in.
+# llave_h: abraza un tramo horizontal [x0, x1] por debajo de y y baja un tallo desde el centro hasta y_tallo.
+llave_h <- function(doc, x0, x1, y, y_tallo, color = TK$navy, t = 0.022) {
+  caja(doc, x0, y, t, 0.1, color); caja(doc, x1 - t, y, t, 0.1, color); caja(doc, x0, y + 0.1 - t, x1 - x0, t, color)
+  xc <- (x0 + x1) / 2; caja(doc, xc - t / 2, y + 0.1 - t, t, y_tallo - y - 0.1 + t, color)
+  invisible(xc)
+}
+# llave_v: abraza un tramo vertical [y0, y1] a la derecha de x y sale un tallo horizontal hasta x_tallo.
+llave_v <- function(doc, x, y0, y1, x_tallo, color = TK$navy, t = 0.022) {
+  caja(doc, x, y0, 0.1, t, color); caja(doc, x, y1 - t, 0.1, t, color); caja(doc, x + 0.1 - t, y0, t, y1 - y0, color)
+  yc <- (y0 + y1) / 2; caja(doc, x + 0.1 - t, yc - t / 2, x_tallo - x - 0.1 + t, t, color)
+  invisible(yc)
+}

@@ -428,18 +428,34 @@ zona("título de portada", 1.6, 2.35, 10.1, 1.35); dibujar_guias(doc)
 
 # ===================================================================== 2 objetivo (uno solo, con diana y flecha)
 MOTOR_ACT <- "p_slide_objetivo_icono"
-doc <- nueva(doc, "General Objective")
+doc <- if (ESTILO == "fiel") nueva(doc, "General Objective") else nueva(doc)   # la moderna usa la plantilla general: sin la línea punteada y con logo
 obj <- "Conocer la percepción sobre los propósitos de la carrera de Contabilidad, su perfil de egreso, su plan de estudios y otras dimensiones relevantes para la acreditación, a partir de la opinión de estudiantes, docentes, egresados(as), personal administrativo, Comité Consultivo y empleadores(as)."
 if (ESTILO == "fiel") {
   icono(doc, "diana-flecha", "navy", 2.1, 2.55, 1.5)
   txt(doc, "OBJETIVO", 4.05, 2.0, 6, 0.4, 18, TK$coral, bold = TRUE)
   txt(doc, obj, 4.05, 2.45, 8.6, 2.0, 16, TK$navy)
 } else {
-  icono_en_circulo(doc, "diana-flecha", 2.05, 2.35, 1.75)
-  txt(doc, "Objetivo del estudio", 4.2, 1.95, 6, 0.4, 16, TK$coral, bold = TRUE)
-  txt(doc, obj, 4.2, 2.4, 8.4, 2.1, 20, TK$navy, bold = TRUE)
+  # C10: la misma simpleza con el lenguaje de las alternativas de índice: franja de arcos a la izquierda y los actores abajo.
+  wf <- 4.2
+  arcos <- do.call(rbind, lapply(seq_along(c(6.6, 5.6, 4.6, 3.6, 2.6, 1.6)), function(i) { r <- c(6.6, 5.6, 4.6, 3.6, 2.6, 1.6)[i]; t <- seq(0, pi / 2, length.out = 90)
+    data.frame(g = i, x = c(0, r * cos(t)), y = c(0, r * sin(t))) }))
+  pal_arcos <- c("#081F5C", "#9DC3E6", "#2F4B7C", "#C9D3E6", "#4F6A9A", "#CA5651")
+  ga <- ggplot(arcos, aes(x, y, group = g, fill = factor(g))) + geom_polygon(colour = NA) + scale_fill_manual(values = pal_arcos) +
+    coord_fixed(xlim = c(0, wf), ylim = c(0, H), expand = FALSE) + theme_void() + theme(legend.position = "none", plot.background = element_rect(fill = "#F2F2F2", colour = NA))
+  invisible(ph_with(doc, dml(ggobj = ga, bg = "#F2F2F2"), location = ph_location(left = 0, top = 0, width = wf, height = H)))
+  icono_en_circulo(doc, "diana-flecha", wf - 1.25, 0.75, 1.0, fondo = TK$coral)
+  xo <- wf + 0.75; wo <- W - MR - xo
+  txt(doc, "OBJETIVO DEL ESTUDIO", xo, 1.55, wo, 0.3, 11, TK$soft, bold = TRUE)
+  txt(doc, obj, xo, 1.95, wo, 2.3, 20, TK$navy, bold = TRUE)
+  separador_h(doc, xo, W - MR, 4.55)
+  txt(doc, "Actores consultados", xo, 4.75, wo, 0.3, 12, TK$soft, bold = TRUE)
+  actores_obj <- list(c("graduation-cap", "Estudiantes"), c("presentation", "Docentes"), c("briefcase", "Egresados"), c("building-2", "Administrativos"))
+  wa <- wo / 4
+  for (k in seq_along(actores_obj)) { xa <- xo + (k - 1) * wa
+    icono_en_circulo(doc, actores_obj[[k]][1], xa, 5.2, 0.62)
+    txt(doc, actores_obj[[k]][2], xa + 0.66, 5.34, wa - 0.6, 0.42, 11.5, TK$navy, bold = TRUE) }
 }
-zona("objetivo", 4.05, 1.95, 8.6, 2.5); dibujar_guias(doc)
+zona("objetivo", wf + 0.75, 1.55, W - MR - wf - 0.75, 4.3); dibujar_guias(doc)
 
 # ===================================================================== 3 ficha técnica
 MOTOR_ACT <- "p_slide_tabla_tecnica"
@@ -526,42 +542,43 @@ zona("ejemplo", xb, yb - 0.35, wb, 2.2); pie(doc, "")
 
 }
 # ===================================================================== 6b redondeo (p_slide_redondeo)
-MOTOR_ACT <- "p_slide_redondeo"
-doc <- nueva(doc); titulo(doc, if (ESTILO == "fiel") "Cómo se redondean las cifras" else "Cómo se redondean las cifras", ante = "Cómo leer este informe")
-txt(doc, paste0("Al redondear no es posible conservar a la vez el valor exacto de cada categoría y una suma de 100 %. ",
-                "El informe declara cuál de las dos conserva."), ML, Y_DATOS, 12.2, 0.95, PT$cuerpo, TK$navy)
-filas_r <- list(list(t = "Redondeo estándar", v = c(1, 6, 40, 53, 1)), list(t = "Reparto a 100 %", v = c(1, 6, 40, 53, 0)))
-if (ESTILO == "fiel") {
-  yr <- 3.15
-  for (fr_ in filas_r) {
-    txt(doc, fr_$t, ML, yr + 0.12, 2.4, 0.32, 13, TK$navy, bold = TRUE)
-    barra_apilada(doc, 2.95, yr, 8.2, pmax(fr_$v, 0.0001) * (fr_$v > 0) + 0, TK$likert, 0.64)
-    sm <- sum(fr_$v); txt(doc, paste0("Suma: ", sm, "%"), 11.35, yr + 0.1, 1.65, 0.34, 14, if (sm != 100) TK$coral else TK$navy, bold = TRUE)
-    yr <- yr + 1.55 }
-  leyenda(doc, 0, yr + 0.05, LIKERT_ROT, TK$likert, centrar_en = 2.95 + 4.1)
-  zona("ejemplo: 1, 10, 72, 94 y 1 casos de 178", 2.95, 3.55, 8.2, 1.8)
-} else {
-  # Moderna: matriz exacta. Columnas = categorías; filas = valor exacto y los dos redondeos; sólo la celda que cambia va en coral.
-  n_ <- c(1, 10, 72, 94, 1); ex <- 100 * n_ / sum(n_)
-  x0 <- ML + 2.9; wc <- 1.62; y0 <- Y_DATOS + 1.25; hr <- 0.72
+# C13 de la tanda de comentarios: una lámina por método, las dos con el mismo ejemplo (1, 7, 60, 110 y 0 casos de 178).
+n_r <- c(1, 7, 60, 110, 0); ex_r <- 100 * n_r / sum(n_r); std_r <- floor(ex_r + 0.5); ent_r <- floor(ex_r); rest_r <- ex_r - ent_r
+faltan_r <- 100 - sum(ent_r); suben_r <- order(-rest_r)[seq_len(faltan_r)]; res_r <- ent_r; res_r[suben_r] <- res_r[suben_r] + 1
+matriz_redondeo <- function(doc, filas, y0 = Y_DATOS + 1.35) {
+  x0 <- ML + 3.1; wc <- 1.6; hr <- 0.66
   for (j in 1:5) { xx <- x0 + (j - 1) * wc
     caja(doc, xx + 0.05, y0, wc - 0.1, 0.1, TK$likert[j]); txt(doc, LIKERT_ROT[j], xx, y0 + 0.14, wc, 0.5, 11, TK$navy, bold = TRUE, align = "center") }
   txt(doc, "Suma", x0 + 5 * wc, y0 + 0.14, 1.3, 0.3, 11, TK$soft, bold = TRUE, align = "center")
-  filas_m <- list(list(t = "Valor exacto", d = sprintf("%.2f%%", ex), s = "100%", sub = sprintf("%d de %d casos", n_, sum(n_))),
-                  list(t = "Redondeo estándar", d = paste0(filas_r[[1]]$v, "%"), s = paste0(sum(filas_r[[1]]$v), "%"), sub = NULL),
-                  list(t = "Reparto a 100 %", d = paste0(filas_r[[2]]$v, "%"), s = paste0(sum(filas_r[[2]]$v), "%"), sub = NULL))
-  for (i in seq_along(filas_m)) { f_ <- filas_m[[i]]; yy <- y0 + 0.75 + (i - 1) * hr
+  for (i in seq_along(filas)) { f_ <- filas[[i]]; yy <- y0 + 0.75 + (i - 1) * hr
     if (i > 1) separador_h(doc, ML, x0 + 5 * wc + 1.3, yy - 0.1)
-    txt(doc, f_$t, ML, yy + 0.08, 2.6, 0.34, 14, TK$navy, bold = TRUE)
-    for (j in 1:5) { cambia <- i == 3 && filas_r[[1]]$v[j] != filas_r[[2]]$v[j]
-      if (cambia) contorno(doc, x0 + (j - 1) * wc + 0.25, yy - 0.02, wc - 0.5, 0.5, TK$coral, lwd = 1.25, lty = "solid")
-      txt(doc, f_$d[j], x0 + (j - 1) * wc, yy + 0.06, wc, 0.36, if (i == 1) 14 else 16, if (cambia) TK$coral else TK$navy, bold = i > 1, align = "center")
-      if (!is.null(f_$sub)) txt(doc, f_$sub[j], x0 + (j - 1) * wc, yy + 0.36, wc, 0.26, 10, TK$faint, align = "center") }
-    txt(doc, f_$s, x0 + 5 * wc, yy + 0.06, 1.3, 0.36, 16, if (f_$s != "100%") TK$coral else TK$navy, bold = TRUE, align = "center") }
-  txt(doc, "Para cerrar en 100, el reparto da los puntos que faltan a los restos más grandes. Aquí, un 0.56% queda en 0%.", x0, y0 + 0.75 + 3 * hr + 0.05, 5 * wc + 1.3, 0.3, 12, TK$coral, bold = TRUE)
-  zona("matriz: exacto y dos redondeos de 1, 10, 72, 94 y 1 casos de 178", x0, y0, 5 * wc + 1.3, 0.75 + 3 * hr)
+    txt(doc, f_$t, ML, yy + 0.06, 3.0, 0.34, 14, TK$navy, bold = TRUE)
+    for (j in 1:5) { marca_j <- !is.null(f_$marcar) && j %in% f_$marcar
+      if (marca_j) contorno(doc, x0 + (j - 1) * wc + 0.25, yy - 0.03, wc - 0.5, 0.48, TK$coral, lwd = 1.25, lty = "solid")
+      txt(doc, f_$d[j], x0 + (j - 1) * wc, yy + 0.05, wc, 0.36, 15, if (marca_j) TK$coral else TK$navy, bold = isTRUE(f_$negrita), align = "center") }
+    if (!is.null(f_$s)) txt(doc, f_$s, x0 + 5 * wc, yy + 0.05, 1.3, 0.36, 15, if (f_$s != "100%") TK$coral else TK$navy, bold = TRUE, align = "center") }
+  zona("matriz de redondeo", x0, y0, 5 * wc + 1.3, 0.75 + length(filas) * hr)
+  y0 + 0.75 + length(filas) * hr
 }
-pie(doc, "")
+MOTOR_ACT <- "p_slide_redondeo (método estándar)"
+doc <- nueva(doc); titulo(doc, "Redondeo estándar", ante = "Cómo leer este informe")
+txt(doc, "Cada porcentaje se redondea por separado: desde 0.5 sube y por debajo baja. Cada cifra queda lo más cerca posible de su valor exacto, pero la suma puede dar 99% o 101%.",
+    ML, Y_DATOS, AC, 0.75, PT$cuerpo, TK$navy)
+yf <- matriz_redondeo(doc, list(list(t = "Valor exacto", d = sprintf("%.2f%%", ex_r), s = "100%"),
+                                list(t = "Redondeo estándar", d = paste0(std_r, "%"), s = paste0(sum(std_r), "%"), negrita = TRUE)))
+txt(doc, sprintf("En este ejemplo la suma queda en %d%%: cada cifra se redondeó por su cuenta.", sum(std_r)), ML, yf + 0.15, AC, 0.32, 13, TK$coral, bold = TRUE)
+pie(doc, sprintf("Ejemplo con %s y %d casos de %d", paste(head(n_r, -1), collapse = ", "), tail(n_r, 1), sum(n_r)))
+
+MOTOR_ACT <- "p_slide_redondeo (método del resto mayor)"
+doc <- nueva(doc); titulo(doc, "Redondeo del resto mayor", ante = "Cómo leer este informe")
+txt(doc, "Primero se toma la parte entera de cada porcentaje. Los puntos que faltan para llegar a 100 se dan, uno por uno, a las categorías con el resto decimal más grande. La suma siempre da 100%.",
+    ML, Y_DATOS, AC, 0.75, PT$cuerpo, TK$navy)
+yf <- matriz_redondeo(doc, list(list(t = "Valor exacto", d = sprintf("%.2f%%", ex_r), s = "100%"),
+                                list(t = "Parte entera", d = paste0(ent_r, "%"), s = paste0(sum(ent_r), "%")),
+                                list(t = "Resto decimal", d = sprintf("%.2f", rest_r), marcar = suben_r),
+                                list(t = "Resultado", d = paste0(res_r, "%"), s = paste0(sum(res_r), "%"), negrita = TRUE, marcar = suben_r)), y0 = Y_DATOS + 1.05)
+txt(doc, sprintf("Faltan %d puntos: van a los tres restos más grandes. El %.2f%% queda en %d%%.", faltan_r, ex_r[1], res_r[1]), ML, yf + 0.1, AC, 0.32, 13, TK$coral, bold = TRUE)
+pie(doc, sprintf("Ejemplo con %s y %d casos de %d", paste(head(n_r, -1), collapse = ", "), tail(n_r, 1), sum(n_r)))
 
 MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, 1, "Perfil del encuestado", "Docentes, estudiantes, egresados y administrativos")
 
@@ -751,17 +768,19 @@ if (ESTILO == "fiel") pie(doc, "Base: 178 egresados")
 # ===================================================================== 21 gráfico con texto narrativo
 MOTOR_ACT <- "p_slide_1_grafico_narrativo: p_barras_multiapiladas"
 doc <- nueva(doc); titulo(doc, "Tutoría socioemocional", ante = "Estudiantes y graduados")
-X_BAR_o <- X_BAR; W_BAR_o <- W_BAR; X_TTB_o <- X_TTB
-X_PREM <<- ML; W_PREM <<- 2.3; X_ACT <<- 2.55; X_BAR <<- 4.4; W_BAR <<- 4.0; X_TTB <<- 8.2
+# C20: una sola pregunta de dos filas aprovecha la altura: pregunta como título del panel, barras gruesas centradas, leyenda debajo.
 f1 <- fr("docentes", "p24_7"); f2 <- fr("estudiantes", "p17_6")
-bloque_likert(doc, list(list(texto = f1$pregunta, filas = list(list(actor = "Docentes", f = f1), list(actor = "Estudiantes", f = f2)))))
-X_BAR <<- X_BAR_o; W_BAR <<- W_BAR_o; X_TTB <<- X_TTB_o; X_PREM <<- ML; W_PREM <<- 2.95; X_ACT <<- 3.2
+wpan <- 8.4; ypan <- Y_DATOS + 0.55
+panel_titulo(doc, ML, ypan, wpan, f1$pregunta)
+yfin <- likert_panel(doc, ML, ypan + 0.75, wpan, list(list(lab = "Docentes", f = f1), list(lab = "Estudiantes", f = f2)), wlab = 1.6, g = 0.62, fila = 1.25, size_lab = 13)
+leyenda(doc, 0, yfin + 0.2, LIKERT_ROT, TK$likert, centrar_en = ML + wpan / 2)
 narr <- list(list(t = "El "), list(t = paste0(ttb(f1), "% de los docentes"), b = TRUE), list(t = " y el "), list(t = paste0(ttb(f2), "% de los estudiantes"), b = TRUE),
              list(t = " está de acuerdo o totalmente de acuerdo con que la Unidad cuenta con servicios de tutoría socioemocional. "),
              list(t = paste0("Uno de cada ", round(100 / max(1, f2$pct[5])), " estudiantes no tiene información"), b = TRUE), list(t = " sobre el servicio."))
-caja(doc, 9.75, Y_DATOS + 0.2, 0.04, 2.6, TK$coral)
-txt_runs(doc, narr, 9.95, Y_DATOS + 0.15, 3.0, 3.6, size = 14)
-zona("texto narrativo", 9.95, Y_DATOS + 0.15, 3.0, 3.6)
+xn <- ML + wpan + 0.6; wn <- W - MR - xn
+caja(doc, xn, ypan + 0.75, 0.05, 2.6, TK$coral)
+txt_runs(doc, narr, xn + 0.22, ypan + 0.7, wn - 0.22, 2.8, size = 15)
+zona("texto narrativo", xn + 0.22, ypan + 0.7, wn - 0.22, 2.8)
 pie(doc, "Base: 52 docentes y 172 estudiantes")
 
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2.R", local = TRUE)

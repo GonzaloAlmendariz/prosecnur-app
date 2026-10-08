@@ -16,17 +16,17 @@ Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendien
 | C7 | 11 | «Estos comentarios haciendo referencia a otros informes no son necesarios» | `recetario_m0b.R` | ☑ sin «(Ingeniería)» ni carreras en el pie |
 | C8 | 12 | «La leyenda no está centrada… debería estar centrada a todo: no sólo al bloque del gráfico sino también a la leyenda y la barra extra» | `recetario_m0b.R` (`laminas_likert`) | ☑ leyenda centrada en todo el bloque, con la columna Top Two Box (bloque_likert) |
 | C9 | 13 | «AI slop, mejor: "A continuación, un ejemplo de un informe de acreditación"» | `recetario.R` portadilla II | ☑ «A continuación, un ejemplo de un informe de acreditación» |
-| C10 | 15 | «Me gusta porque es simple y cumple lo prometido, pero de la misma forma que con el índice, veamos forma de remasterizarlo» | `recetario.R` objetivo | ☐ |
+| C10 | 15 | «Me gusta porque es simple y cumple lo prometido, pero de la misma forma que con el índice, veamos forma de remasterizarlo» | `recetario.R` objetivo | ☑ franja de arcos geométricos con la diana, objetivo y fila de cuatro actores con ícono; plantilla general (sin la línea punteada, con logo) |
 | C11 | 17 | «Este índice ya no va» | `recetario.R` índice del informe tipo | ☑ índice retirado del informe tipo |
 | C12 | 18 | «Este tipo de slide ya no va» (número de respuestas por actor) | `recetario_m1b.R` | ☑ lámina retirada |
-| C13 | 20 | «Cada tipo de redondeo tiene su propio slide: el estándar uno y el del resto mayor otro, ambos igual de profesionales y didácticos» | `recetario.R` redondeo | ☐ |
+| C13 | 20 | «Cada tipo de redondeo tiene su propio slide: el estándar uno y el del resto mayor otro, ambos igual de profesionales y didácticos» | `recetario.R` redondeo | ☑ dos láminas, «Redondeo estándar» (suma 101%) y «Redondeo del resto mayor» (parte entera, resto, resultado), con el mismo ejemplo de 1, 7, 60, 110 y 0 casos |
 | C14 | 22 | «Dicotómico de una sola fila: está súper bien pero los porcentajes pueden ser ligeramente menores» (aplica a todos) | `recetario_piezas.R` `dicotomia()` | ☑ cifras de toda dicotomía al 85 % |
 | C15 | 22 | «Donde haya más de un gráfico en un slide se agrega la línea suave gris para diferenciarlos» | láminas de varios paneles | ☑ línea gris entre paneles en perfiles (22, 23, 24) y en dos gráficos (recetario_m2.R) |
 | C16 | 23 | «Esto se tapa con lo de arriba, es un bug» | `recetario.R` perfil del egresado | ☑ barra más abajo y la base del panel baja cuando la pregunta ocupa dos líneas |
 | C17 | 24 | «No sé si el mejor lugar para la leyenda sea aquí, en el caso de tres gráficos que comparten la misma leyenda. Este slide no termina de verse bien» | `recetario.R` perfil 2026 frente a 2021 | ☑ una sola leyenda abajo, centrada en los tres gráficos |
 | C18 | 29 | «Leyenda no centrada» | `recetario.R` gestión y planificación | ☑ misma corrección que C8 |
 | C19 | 36 | «Números algo menos grandes» | `recetario.R` situación laboral | ☑ de 32 a 27 pt (C14) |
-| C20 | 37 | «Hay algo más de espacio que se pueda aprovechar mejor» | `recetario.R` tutoría socioemocional | ☐ |
+| C20 | 37 | «Hay algo más de espacio que se pueda aprovechar mejor» | `recetario.R` tutoría socioemocional | ☑ pregunta como título del panel, barras gruesas centradas en la altura, leyenda debajo y lectura de 15 pt |
 | C21 | 38 | «Esto no pinta en el motor cuanti» (recomendaciones) | `recetario.R` cierre | ☑ lámina retirada |
 | C22 | 42 | «Leyenda no centrada» | `recetario_m2.R` | ☑ centrada en todo el panel |
 | C23 | 44 | «Pareciera que los gráficos no compartieran el mismo ancho. Se ve poco regular» | `recetario_m2.R` | ☑ la dicotomía ocupa el mismo ancho que las barras vecinas |
@@ -42,8 +42,8 @@ Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendien
 | C33 | 79 | «Este slide no le compete al equipo cuanti» (FODA) | `recetario_m3d.R` | ☑ lámina retirada |
 | C34 | 80 | «Podría servir para otro escenario: palabras, pares o tríos más comunes (quitando filler words) y al lado la categorización de esas respuestas de texto abierto en una pregunta de selección única o múltiple, de forma profesional» | `recetario_m3e.R` nube | ☐ |
 | C35 | 81 | «No pintas nada ni muestras cómo se aplica para un solo grupo, dos grupos comparativos, etc.; la posición de la leyenda con el texto hace que el mapa se vea muy pequeño. Faltan más casos con más distritos y más ocasiones diferentes» | `recetario_m3e.R` mapa | ☐ |
-| C36 | 90 | «Este foco semitransparente no está funcionando, repensémoslo; creo que una llave se ve más elegante» | `recetario_m4.R` filtro y subpregunta | ☐ |
-| C37 | 91 | «De la misma forma, una llave u otros elementos podría verse más elegante» | `recetario_m4.R` filtro al costado | ☐ |
+| C36 | 90 | «Este foco semitransparente no está funcionando, repensémoslo; creo que una llave se ve más elegante» | `recetario_m4.R` filtro y subpregunta | ☑ llave bajo el segmento «Sí» con tallo hasta la subpregunta |
+| C37 | 91 | «De la misma forma, una llave u otros elementos podría verse más elegante» | `recetario_m4.R` filtro al costado | ☑ llave a la derecha del «Sí» con tallo hasta el panel del ingreso |
 | C38 | 97 | «No entiendo por qué siguen los índices aquí cuando ya hay otra propuesta al final. Revisa bien nuevamente el orden y la estructura de todo el PPT para que tampoco sea completamente repetitiva» | `recetario_m5.R` variantes de índice + orden global | ◐ variantes de índice retiradas de IV.2; falta revisar el orden y la estructura de todo el mazo |
 | C39 | 110 | «No se entiende el caso de uso de este» (conteos por año) | `recetario_m5.R` | ☐ |
 | C40 | 122 | «Aún no termina de verse profesional; las etiquetas se ven algo sueltas» | `recetario_m6.R` estudio por olas | ☐ |
