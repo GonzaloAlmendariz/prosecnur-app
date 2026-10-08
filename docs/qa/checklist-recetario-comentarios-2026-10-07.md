@@ -44,7 +44,7 @@ Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendien
 | C35 | 81 | «No pintas nada ni muestras cómo se aplica para un solo grupo, dos grupos comparativos, etc.; la posición de la leyenda con el texto hace que el mapa se vea muy pequeño. Faltan más casos con más distritos y más ocasiones diferentes» | `recetario_m3e.R` mapa | ☑ cuatro mapas de resultados, no de avance (Gonzalo: «el propósito de estos mapas no es mostrar avances, es mostrar resultados»): distritos del estudio por grupo, zonas (UMP) aplicadas en un distrito, manzanas aplicadas dentro de un racimo de zonas, y zonas aplicadas en intervención y comparación. Cartografía real del motor (IMP PlanMet 2040 y zonas y manzanas INEI 2017) con una selección ficticia de semilla fija. Mapa a todo el alto y leyenda debajo |
 | C36 | 90 | «Este foco semitransparente no está funcionando, repensémoslo; creo que una llave se ve más elegante» | `recetario_m4.R` filtro y subpregunta | ☑ llave bajo el segmento «Sí» con tallo hasta la subpregunta |
 | C37 | 91 | «De la misma forma, una llave u otros elementos podría verse más elegante» | `recetario_m4.R` filtro al costado | ☑ llave a la derecha del «Sí» con tallo hasta el panel del ingreso |
-| C38 | 97 | «No entiendo por qué siguen los índices aquí cuando ya hay otra propuesta al final. Revisa bien nuevamente el orden y la estructura de todo el PPT para que tampoco sea completamente repetitiva» | `recetario_m5.R` variantes de índice + orden global | ◐ variantes de índice retiradas de IV.2; falta revisar el orden y la estructura de todo el mazo |
+| C38 | 97 | «No entiendo por qué siguen los índices aquí cuando ya hay otra propuesta al final. Revisa bien nuevamente el orden y la estructura de todo el PPT para que tampoco sea completamente repetitiva» | `recetario_m5.R` variantes de índice + orden global | ☑ variantes de índice retiradas de IV.2. La propuesta de reordenamiento (E1 a E9, abajo) se revisó y Gonzalo decidió dejar el orden como está (2026-10-07) |
 | C39 | 110 | «No se entiende el caso de uso de este» (conteos por año) | `recetario_m5.R` | ☑ panel a la derecha con cuándo se usa y por qué una matriz, en términos generales y sin lectura atada al ejemplo |
 | C40 | 122 | «Aún no termina de verse profesional; las etiquetas se ven algo sueltas» | `recetario_m6.R` estudio por olas | ☑ rehecha con `grafico_serie`: guías con escala, puntos con borde, cifras arriba o debajo según la serie y su nombre al final |
 | C41 | 138 | «Integrar esto como un tipo de gráfico, está muy interesante» (línea de tiempo) | `recetario_m7.R` → catálogo III.3 | ☑ descartado por Gonzalo: «Mejor no agregamos la línea de tiempo, no la vamos a usar». Retirada también del banco de recursos |
@@ -52,3 +52,21 @@ Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendien
 
 Transversal (Gonzalo, 2026-10-07: «La leyenda no están centradas»): `leyenda()` mide la tinta real con systemfonts en vez de estimar por caracteres y junta los ítems cuando no cabe centrada. Medición sobre el PDF de la moderna (`medir_leyendas.py` del scratchpad, con `LEY_LOG`): 59 leyendas, 0 descentradas más de 0.06 in. Antes: 6, entre 0.14 y 0.8 in.
 Transversal (Gonzalo, 2026-10-07: «a veces las letras negras no se ven bien con el color»): `texto_sobre()` elige el color de letra, blanco o azul oscuro, con mayor contraste. Los mapas de calor pasan a cinco tramos de azul que superan 4.5:1, el chevrón del banco de recursos pasa a azul claro con letra oscura y la versión fiel de los conteos por año colorea cada cifra según su segmento. `herramientas/auditar_contraste.py` revisa cada texto contra el relleno de debajo: sin casos bajo 4.5:1, salvo el coral de títulos y portadillas (4.2:1, texto grande) y las marcas magenta de las guías.
+
+## Propuesta para C38: orden y estructura del mazo (moderna, 161 láminas). No aplicada: Gonzalo pidió «dejarlo como está»
+
+Diagnóstico sobre la lista completa de láminas:
+
+| # | Hallazgo | Láminas hoy | Propuesta |
+|---|---|---|---|
+| E1 | Texto abierto y mapas cuelgan de «III.4 Dimensiones e índices», con lo que no tienen relación | 80 a 86 | Dos portadillas nuevas: III.5 «Pregunta abierta» (80 a 82) y III.6 «Mapas territoriales» (83 a 86) |
+| E2 | «Qué podría mejorar la carrera» aparece tres veces con los mismos datos | 64, 65, 110 | Retirar 110 (opción múltiple de un actor): es el ranking en barras de la 65 |
+| E3 | Tres radares sobre la misma batería de competencias | 73, 74, 79 | Retirar 79 (radar por dimensiones). Quedan el radar y su alternativa en puntos |
+| E4 | La partición con seis actores ocupa cuatro láminas casi iguales | 89 a 92 | Dejar dos (89 y 90). La segunda ya muestra cómo sigue la partición |
+| E5 | La cifra destacada está dos veces: en III.2 y en el banco de recursos | 53, 54 frente a 133, 134 | Retirar 133 y 134 del banco. La definición queda en III.2 |
+| E6 | El embudo de la muestra es un gráfico, pero está en el banco de recursos | 139 | Pasarlo a la galería III.3, después del ranking en barras |
+| E7 | Los perfiles de estudiante, egresado y docente se repiten en III.1, además de en II y III.2 | 41, 46, 48 | Cambiar el tema de esas tres disposiciones (por ejemplo bienestar, infraestructura y vínculo con egresados) y dejar los perfiles sólo en II y III.2 |
+| E8 | «Cómo se lee un gráfico» y «Qué es cada elemento en PowerPoint» usan la misma lámina de ejemplo | 4, 9 | Cambiar el ejemplo de la 9 |
+| E9 | Las alternativas de índice ocupan 20 láminas: 4 composiciones por 5 situaciones | 141 a 160 | Dejar 8: cada composición con 5 capítulos y con 13 capítulos. Los subcapítulos se muestran una sola vez, en la composición que se elija |
+
+Resultado: de 161 a unas 145 láminas, con la misma cobertura de constructores y sin repetir datos.
