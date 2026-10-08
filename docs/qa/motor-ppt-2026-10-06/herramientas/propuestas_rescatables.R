@@ -217,7 +217,7 @@ txt(doc, sprintf("%s puntos  [%.1f a %.1f]", fmt_d(pD - pE), dif[1], dif[2]), P2
 txt(doc, sprintf("El intervalo de la diferencia no cruza el cero: es significativa (%s).", fmt_p(pz)), x2 - 0.1, yA + 1.75, W - MR - x2 + 0.1, 0.55, 13, TK$navy, bold = TRUE)
 separador_h(doc, XC, W - MR, YT + 3.85)
 txt(doc, "Por eso el gráfico de significancia muestra la diferencia y su intervalo, no sólo los grupos. Con tres o más grupos, se comparan los pares y se corrige por comparaciones múltiples.", XT, YT + 3.98, AC, 0.55, 12.5, TK$navy)
-pie(doc, "Schenker y Gentleman (2001); Cumming y Finch (2005); Gardner y Altman (1986); Newcombe (1998); Wright, Klein y Wieczorek (2019). Intervalos de Wilson y Newcombe")
+pie(doc, "Fuentes: Schenker y Gentleman (2001), Cumming y Finch (2005), Gardner y Altman (1986), Newcombe (1998) y Wright, Klein y Wieczorek (2019). Intervalos de Wilson y Newcombe")
 
 # U2. Dos públicos: forest plot integrado a la tabla (pregunta, cifras, diferencia con intervalo, intervalo en números y p)
 grupos <- list(list("Misión institucional", 1:2), list("Tutoría", 3:4), list("Competencias del perfil de egreso", 5:6))
