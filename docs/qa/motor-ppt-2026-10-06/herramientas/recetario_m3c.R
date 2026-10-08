@@ -45,7 +45,7 @@ pie(doc, sprintf("Base: %d docentes y %d estudiantes", ns6[1], ns6[2]))
 
 # --- p_serie_temporal: uso excepcional, dos mediciones
 MOTOR_ACT <- "p_slide_1_grafico: p_serie_temporal (uso excepcional)"
-doc <- nueva(doc); titulo(doc, "Tutoría académica, 2021 y 2026", ante = "Serie temporal (uso excepcional)")
+doc <- nueva(doc); titulo(doc, "Tutoría académica, 2021 y 2026", ante = if (NUEVA) "Serie temporal de dos mediciones" else "Serie temporal (uso excepcional)")
 ser <- list(Docentes = c(98, 83), Estudiantes = c(84, 53))
 x1 <- ML + 3.2; x2 <- W - MR - 3.6; yt_ <- YT + 0.6; hy <- YF - yt_ - 0.5; lo <- 40; hi <- 100
 py <- function(v) yt_ + hy * (hi - v) / (hi - lo)
@@ -94,7 +94,7 @@ pie(doc, sprintf("Base: %d docentes, %d estudiantes y %d egresados", ns6[1], ns6
 
 # --- propuesta en lugar del radar: puntos por competencia, eje rotulado
 MOTOR_ACT <- "propuesta: p_puntos_comparativos por competencia en lugar de p_radar"
-doc <- nueva(doc); titulo(doc, "Formulación del perfil de egreso", ante = "Propuesta en lugar del radar: puntos por competencia")
+doc <- nueva(doc); titulo(doc, "Formulación del perfil de egreso", ante = if (NUEVA) "Puntos por competencia, alternativa al radar" else "Propuesta en lugar del radar: puntos por competencia")
 o <- order(-rowMeans(dd6[, 2:4])); d3 <- dd6[o, ]
 xl <- ML + 3.0; wl <- W - MR - xl - 1.4; yb <- YT + 0.75; fila <- (YF - yb - 0.6) / nrow(d3)
 px <- eje_pct(doc, xl, wl, yb, nrow(d3) * fila, 80, 100, 5, "Top Two Box por actor")

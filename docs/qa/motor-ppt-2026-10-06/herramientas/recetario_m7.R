@@ -89,7 +89,7 @@ for (k in seq_along(casos)) { c_ <- casos[[k]]; cx <- XC + (k - 0.5) * wc4; cy <
   if (is.null(c_[[4]])) icono(doc, "users", c_[[3]], cx - c_[[2]] / 2, cy - c_[[2]] / 2, c_[[2]]) else icono_en_circulo(doc, "users", cx - c_[[2]] / 2, cy - c_[[2]] / 2, c_[[2]], fondo = c_[[4]])
   txt(doc, c_[[1]], cx - wc4 / 2, cy + 0.75, wc4, 0.32, 13, TK$navy, bold = TRUE, align = "center")
   txt(doc, c_[[5]], cx - wc4 / 2, cy + 1.08, wc4, 0.3, 11, TK$soft, align = "center") }
-lista_marcada(doc, c("Un ícono acompaña una idea. No se usa como adorno.", "Siempre de trazo, nunca relleno, y del mismo grosor en todo el informe.",
+lista_marcada(doc, c("Un ícono acompaña una idea y la anuncia.", "De trazo y del mismo grosor en todo el informe.",
                      "Azul oscuro sobre fondo claro y blanco sobre círculo azul oscuro. El círculo coral queda para la portadilla de sección.",
                      "Al lado de un texto, el ícono mide lo mismo que la altura de dos líneas."), XC, YT + 2.75, AC, paso = 0.5, size = 12)
 zona("cuatro usos del ícono", XC, YT + 0.4, AC, 1.9)
@@ -120,7 +120,7 @@ pie(doc, "Cifras del proyecto de referencia de Contabilidad")
 
 # --- hazlo y evita (íconos)
 MOTOR_ACT <- "Banco de recursos: uso correcto e incorrecto de los íconos"
-doc <- nueva(doc); titulo(doc, "Íconos: qué hacer y qué evitar", ante = "Banco de recursos")
+doc <- nueva(doc); titulo(doc, if (NUEVA) "Cómo combinar los íconos" else "Íconos: qué hacer y qué evitar", ante = "Banco de recursos")
 xo <- XC; xm <- XC + AC / 2 + 0.2; hr <- (YF - YT) / 3
 filas <- list(
   list("Todos del mismo tamaño", "Tamaños distintos en una fila",
@@ -132,12 +132,15 @@ filas <- list(
   list("Un ícono junto a su dato", "Íconos de adorno, sin dato",
        function(x, y) { icono(doc, "users", "navy", x, y + 0.45, 0.42); txt(doc, "417 respuestas válidas", x + 0.55, y + 0.47, 3, 0.35, 14, TK$navy, bold = TRUE) },
        function(x, y) for (k in 0:4) icono(doc, c("lightbulb", "star", "trophy", "award", "medal")[k + 1], "navy", x + k * 0.6, y + 0.45, 0.42)))
+razones_ico <- c("La fila se lee como un conjunto: el ojo compara los datos, no los dibujos.", "El círculo azul oscuro da el contraste que el trazo blanco necesita.",
+                 "El ícono anuncia el dato y el número lo completa. Juntos se leen de un vistazo.")
 for (k in seq_along(filas)) { y <- YT + (k - 1) * hr; f_ <- filas[[k]]
+  if (NUEVA) { txt(doc, f_[[1]], xo - 0.1, y - 0.02, 5.4, 0.36, 14, TK$navy, bold = TRUE); f_[[3]](xo, y); txt(doc, razones_ico[k], xm - 0.1, y + 0.4, AC / 2 - 0.2, 0.8, 13, TK$navy) } else {
   ok_mal(doc, xo, y + 0.02, TRUE, f_[[1]]); ok_mal(doc, xm, y + 0.02, FALSE, f_[[2]])
-  f_[[3]](xo + 0.38, y); f_[[4]](xm + 0.38, y)
+  f_[[3]](xo + 0.38, y); f_[[4]](xm + 0.38, y) }
   if (k < 3) separador_h(doc, XC, W - MR, y + hr - 0.06) }
 separador_v(doc, xm - 0.25, YT, YF - 0.1)
-zona("tres pares: correcto a la izquierda, incorrecto a la derecha", XC, YT, AC, YF - YT)
+zona(if (NUEVA) "tres usos: el ejemplo y por qué funciona" else "tres pares: correcto a la izquierda, incorrecto a la derecha", XC, YT, AC, YF - YT)
 pie(doc, "")
 
 # ================================================================== VI.2 cajas
@@ -202,7 +205,7 @@ pie(doc, "Cifras del proyecto de referencia de Contabilidad")
 
 # --- hazlo y evita (cajas)
 MOTOR_ACT <- "Banco de recursos: uso correcto e incorrecto de las cajas"
-doc <- nueva(doc); titulo(doc, "Cajas: qué hacer y qué evitar", ante = "Banco de recursos")
+doc <- nueva(doc); titulo(doc, if (NUEVA) "Cómo combinar las cajas" else "Cajas: qué hacer y qué evitar", ante = "Banco de recursos")
 wbx <- AC / 2 - 1.1
 filas2 <- list(
   list("Borde fino o sin borde", "Sombra y borde grueso",
@@ -215,12 +218,15 @@ filas2 <- list(
        function(x, y) { caja(doc, x, y + 0.42, wbx, 0.8, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75)); txt(doc, "El 75 % de los docentes valora la tutoría.", x + 0.15, y + 0.55, wbx - 0.3, 0.5, 12, TK$navy) },
        function(x, y) { caja(doc, x, y + 0.42, wbx, 0.8, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75)); txt(doc, "El 75 % de los docentes valora la tutoría.", x - 0.08, y + 0.44, wbx + 0.16, 0.5, 12, TK$navy, align = "center") }))
 hr <- (YF - YT) / 3
+razones_caj <- c("Un borde fino separa la caja del fondo sin competir con el dato que contiene.", "Un solo fondo deja el color para los datos, donde sí significa algo.",
+                 "Alineado a la izquierda y con aire, el texto se lee igual que el resto de la lámina.")
 for (k in seq_along(filas2)) { y <- YT + (k - 1) * hr; f_ <- filas2[[k]]
+  if (NUEVA) { txt(doc, f_[[1]], xo - 0.1, y - 0.02, 5.4, 0.36, 14, TK$navy, bold = TRUE); f_[[3]](xo, y); txt(doc, razones_caj[k], xm - 0.1, y + 0.4, AC / 2 - 0.2, 0.8, 13, TK$navy) } else {
   ok_mal(doc, xo, y + 0.02, TRUE, f_[[1]]); ok_mal(doc, xm, y + 0.02, FALSE, f_[[2]])
-  f_[[3]](xo + 0.38, y); f_[[4]](xm + 0.38, y)
+  f_[[3]](xo + 0.38, y); f_[[4]](xm + 0.38, y) }
   if (k < 3) separador_h(doc, XC, W - MR, y + hr - 0.06) }
 separador_v(doc, xm - 0.25, YT, YF - 0.1)
-zona("tres pares: correcto a la izquierda, incorrecto a la derecha", XC, YT, AC, YF - YT)
+zona(if (NUEVA) "tres usos: el ejemplo y por qué funciona" else "tres pares: correcto a la izquierda, incorrecto a la derecha", XC, YT, AC, YF - YT)
 pie(doc, "")
 
 # ================================================================== VI.3 figuras y diagramas
@@ -277,7 +283,7 @@ for (k in 1:3) { x <- XC + (k - 1) * (wl4 + gl)
   txt(doc, casos_ll[[k]][1], x - 0.1, yl4 + hl4 + 0.12, wl4 + 0.2, 0.3, 14, TK$navy, bold = TRUE)
   txt(doc, casos_ll[[k]][2], x - 0.1, yl4 + hl4 + 0.44, wl4 + 0.2, 0.8, 12, TK$soft) }
 separador_h(doc, XC, W - MR, yl4 + hl4 + 1.3)
-reglas_ll <- c("Trazo azul oscuro de 0.022 in, alas de 0.1 in. Igual en todo el informe.", "El tallo termina en el título de la subpregunta, nunca dentro del gráfico.",
+reglas_ll <- c("Trazo azul oscuro de 0.022 in, alas de 0.1 in. Igual en todo el informe.", "El tallo termina en el título de la subpregunta, fuera del gráfico.",
                "La subpregunta dice su base: «Sólo los 139 que trabajan».")
 for (k in 1:3) txt(doc, reglas_ll[k], XC + (k - 1) * (AC / 3) - 0.1, yl4 + hl4 + 1.45, AC / 3 - 0.1, 0.6, 12, TK$navy, bold = TRUE)
 zona("tres usos de la llave de dependencia", XC, yl4, AC, hl4)
@@ -288,7 +294,7 @@ MOTOR_ACT <- "Banco de recursos: formas básicas y su uso"
 doc <- nueva(doc); titulo(doc, "Formas básicas", ante = "Banco de recursos")
 c4 <- (AC - 3 * 0.4) / 4; x4s <- XC + (0:3) * (c4 + 0.4)
 formas <- list(list("ellipse", "Círculo", "Fondo de ícono, marca numerada y punto de un gráfico"), list("rect", "Rectángulo", "Barra, caja y franja. Siempre con esquinas rectas"),
-               list("linea", "Línea", "Separador, guía y eje. Gris claro, nunca negra"), list("rightArrow", "Flecha", "Sólo para indicar un paso o un cambio entre dos momentos"),
+               list("linea", "Línea", "Separador, guía y eje, en gris claro"), list("rightArrow", "Flecha", "Sólo para indicar un paso o un cambio entre dos momentos"),
                list("chevron", "Chevrón", "Etapas consecutivas de un proceso"), list("homePlate", "Pentágono", "Primera etapa o etiqueta de un proceso"),
                list("triangle", "Triángulo", "Hito puntual de un cronograma"), list("llave", "Llave", "Agrupa elementos que se suman, o une una respuesta con su subpregunta"))
 for (k in seq_along(formas)) { f_ <- formas[[k]]; col <- (k - 1) %% 4; fil <- (k - 1) %/% 4

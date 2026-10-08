@@ -824,6 +824,8 @@ SEC <- "m8"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m8.R", 
 SEC <- "sep"; if (ESTILO == "moderna") { MOTOR_ACT <- "Propuesta de separador de capítulo y subcapítulo (p_slide_seccion)"; doc <- rr_separadores(doc) }   # VII separadores, integrados desde las propuestas
 SEC <- "m9"; source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m9.R", local = TRUE)   # VII Alternativas de cierre (E8)
 
+if (NUEVA) for (m_ in c("recetario_reglas2.R", "recetario_graficos2.R", "recetario_fichas.R", "recetario_estudios.R"))   # láminas nuevas de la propuesta
+  source(file.path("docs/qa/motor-ppt-2026-10-06/herramientas", m_), local = TRUE)
 if (NUEVA) source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_capitulos.R", local = TRUE)   # portadillas de capítulo y subcapítulo del registro
 
 # ===================================================================== contraportada (layout de la plantilla)
