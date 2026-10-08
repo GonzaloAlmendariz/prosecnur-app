@@ -96,15 +96,16 @@ Respaldo del archivo comentado en el scratchpad de la sesión (`comentarios/repa
 
 ## Propuestas rescatables de un informe de referencia (2026-10-08)
 
-Pedido: «haz la propuesta de todo lo rescatable en un ppt aparte para hacer comentarios y evaluar su integración». El informe de referencia es confidencial y no entra al repo: `4-recetario/propuestas-rescatables.pptx` (15 láminas, `SOLO=rescatables`, `herramientas/propuestas_rescatables.R`) sólo reproduce los patrones, con la identidad de PULSO y datos del recetario o cifras ficticias. Pendiente: comentarios de Gonzalo sobre cada propuesta.
+Pedidos: «haz la propuesta de todo lo rescatable en un ppt aparte para hacer comentarios y evaluar su integración»; sobre la primera versión, «parece un calco; lo que busco es inspiración en base a la línea gráfica de PULSO» y «nuestro motor genera gráficos y elementos cuantitativos, no barras de texto; me preocupa que el motor también tenga que hacerlo desde la app». El informe de referencia es confidencial y no entra al repo. `4-recetario/propuestas-rescatables.pptx` (12 láminas, `SOLO=rescatables`, `herramientas/propuestas_rescatables.R`), segunda versión: cada idea con recursos de PULSO y contenido calculado por el motor. Texto escrito en la app: sólo rótulos cortos, con los campos que Gráficos ya tiene (`texto` de las láminas narrativas). Pendiente: comentarios de Gonzalo.
 
-| # | Propuesta | Dónde viviría | Estado |
-|---|---|---|---|
-| R1 | Separadores con número grande y palabra clave resaltada | layout de plantilla + `p_slide_seccion` | ☐ en evaluación |
-| R2 | Resumen ejecutivo en columnas numeradas | constructor nuevo `p_slide_resumen` | ☐ en evaluación |
-| R3 | Bottom Two Box junto al Top Two Box | `bloque_likert`, `likert_panel` | ☐ en evaluación |
-| R4 | Columna de impacto y lámina de pesos | Analítica (regresión) + graficador | ☐ en evaluación |
-| R5 | Tabla resumen con significancia resaltada | tabla de cruces del motor | ☐ en evaluación |
-| R6 | Línea punteada bajo el Total | `bloque_likert`, barras apiladas | ☐ en evaluación |
-| R7 | Bloques numerados: limitaciones y réplica | constructor nuevo `p_slide_bloques` | ☐ en evaluación |
-| R8 | Pregunta exacta en el pie | pie de lámina del motor | ☐ en evaluación |
+| # | Propuesta | Lo calcula el motor | Dónde viviría | Estado |
+|---|---|---|---|---|
+| R1 | Número del capítulo como protagonista, sobre la portadilla actual | número y título del plan | `p_slide_seccion` + layout «Section Header» | ☐ en evaluación |
+| R2 | Hallazgos clave en cifras (cifra destacada con ícono) | las cifras; el rótulo corto se escribe en la app | constructor nuevo `p_slide_cifras_clave` | ☐ en evaluación |
+| R3 | Bottom Two Box junto al Top Two Box | toda la columna | `bloque_likert`, `likert_panel` | ☐ en evaluación |
+| R4 | Peso de cada aspecto en la satisfacción, con puntos | todo, con regresión nueva | Analítica + graficador | ☐ en evaluación |
+| R5 | Letras de significancia en la tabla resumen | las letras (ya existen en barras) | tabla de cruces del motor | ☐ en evaluación |
+| R6 | Fila Total separada con filete gris | toda la fila | `bloque_likert`, barras apiladas | ☐ en evaluación |
+| R7 | Pregunta exacta en el pie | sale del instrumento | pie de lámina del motor | ☐ en evaluación |
+
+Fuera, por ser firma del informe de referencia o texto que no sale de los datos: fondo oscuro con cuña diagonal, láminas de bloques de texto, diagrama de flecha de factores y colores por factor.
