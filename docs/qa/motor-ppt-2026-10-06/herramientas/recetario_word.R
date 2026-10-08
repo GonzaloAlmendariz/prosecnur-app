@@ -66,8 +66,10 @@ grafico <- function(doc, titulo, g, alto, texto = NULL, base = NULL) {
 }
 imagen <- function(doc, f, alto, ancho = ANCHO_W) body_add_fpar(doc, fpar(external_img(f, width = ancho, height = alto), fp_p = fp_par(text.align = "center", keep_with_next = TRUE)))
 CAPN <- 0; SUBN <- 0
+CAP_PREV <- NULL
 capitulo <- function(doc, t, intro = "") { CAPN <<- CAPN + 1; SUBN <<- 0   # cada capítulo abre en página nueva, con su número grande y claro (apertura B)
-  doc <- body_add_break(doc)
+  doc <- if (is.null(CAP_PREV)) cerrar_seccion(doc, "", con_portada = TRUE) else cerrar_seccion(doc, CAP_PREV)   # la sección anterior queda con su encabezado
+  CAP_PREV <<- t
   apertura_B(doc, CAPN, t, intro) }
 seccion <- function(doc, t) { SUBN <<- SUBN + 1; body_add_par(doc, sprintf("%d.%d. %s", CAPN, SUBN, t), style = "heading 2") }
 poner_tabla <- function(doc, ft, zebra = FALSE) {   # sin cebra: filetes horizontales finos, como un informe formal
@@ -91,7 +93,7 @@ cita <- function(doc, ref) body_add_fpar(doc, do.call(fpar, ref), style = "Refer
 
 # ---------------- documento, estilos y página (recetario_word_identidad.R)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_word_identidad.R", local = TRUE)
-doc <- nuevo_doc()
+doc <- nuevo_doc()   # la última sección (contraportada) va sin encabezado
 cm <- function(x) format(round(x * 2.54, 2), nsmall = 2)
 
 # Láminas del PPT como imagen, para mostrar cómo pasa una lámina al Word (capítulo 2). Se buscan por su título.
@@ -154,8 +156,8 @@ mn_ <- c(mini("portada_A", function(d) portada_A(d)), mini("portada_B", function
          mini("apertura_B", function(d) { d <- apertura_B(d, 4, "Dimensión 1: Propósitos de la carrera", "Este capítulo presenta cómo conocen y valoran los públicos la misión y los propósitos de la carrera.",
            c("4.1. Misión y propósitos", "4.2. Gestión y planificación", "4.3. Normativa interna")); seccion_ej(d) }),
          mini("interior", function(d) { d <- body_add_break(d); d <- apertura_A(d, 2, "Diseño metodológico", "El estudio se hizo con una encuesta en línea a cuatro públicos."); recuadro(d, "Cómo leer este informe", LEER_EJ) }),
-         mini("contraportada", function(d) { d <- body_add_par(d, ""); contraportada(d) }))
-png_ <- mini_png(mn_[1:6]); png2_ <- mini_png(mn_[7]); png_int <- mini_png(mn_[8], pagina = 2); png_ctr <- mini_png(mn_[9], pagina = 2)
+         mini("contraportada", function(d) contraportada(d), derecha = NULL))
+png_ <- mini_png(mn_[1:6]); png2_ <- mini_png(mn_[7]); png_int <- mini_png(mn_[8], pagina = 2); png_ctr <- mini_png(mn_[9], pagina = 1)
 doc <- seccion(doc, "Portada")
 doc <- cuerpo(doc, "La portada va sola en su página, alineada a la izquierda y sin bloques de color de fondo. Los logos van en su encabezado y no se repiten en el interior. El filete coral es el único acento de color del documento.", keep = TRUE)
 doc <- galeria(doc, png_[1:3], c("A. Tipográfica (recomendada)", "B. Con banda lateral", "C. Con ficha del encargo"))
@@ -173,7 +175,7 @@ doc <- galeria(doc, c(png_[6], png2_), c("A. Sobria: antetítulo y título", "B.
 doc <- lista(doc, c("B es la apertura de este documento: el número en un azul muy claro, el título, una frase de entrada y la lista de secciones.",
   "A sirve para informes breves o para anexos, donde una apertura amplia ocuparía demasiado."))
 doc <- seccion(doc, "Encabezado, pie y recuadros")
-doc <- cuerpo(doc, "En el interior, el encabezado lleva el nombre del informe a la izquierda y el capítulo en curso a la derecha, que Word escribe solo con un campo. El pie lleva sólo el número de página, a la derecha.", keep = TRUE)
+doc <- cuerpo(doc, "En el interior, el encabezado lleva el nombre del informe a la izquierda y el capítulo en curso a la derecha: cada capítulo es una sección de Word con su propio encabezado. El pie lleva sólo el número de página, a la derecha.", keep = TRUE)
 doc <- galeria(doc, c(png_int, png_ctr), c("Página interior con el recuadro «Cómo leer este informe»", "Contraportada"), por_fila = 2)
 doc <- lista(doc, c("El recuadro «Cómo leer este informe» va en el diseño metodológico: fondo gris muy claro, un filete azul arriba y tres o cuatro líneas.",
   "La contraportada cierra con el logo de PULSO PUCP al centro y el contacto en una línea."))
@@ -212,7 +214,7 @@ doc <- tabla_guia(doc, data.frame(Parte = c("Rótulo", "Gráfico", "Base y fuent
 doc <- seccion(doc, "Estilos de Word")
 doc <- cuerpo(doc, "Cada elemento es un estilo o un campo de Word. Para ajustar uno en todo el informe se modifica su estilo en Inicio > Estilos, y para renumerar gráficos, tablas e índices se selecciona todo y se presiona F9.", keep = TRUE)
 doc <- tabla_guia(doc, data.frame(Elemento = c("Número de capítulo", "Título de capítulo", "Título de sección", "Rótulo de gráfico o tabla", "Número del rótulo", "Base y fuente", "Lectura", "Índices y encabezado"),
-  `Estilo o campo` = c("«Número de capítulo»", "«Título 1»", "«Título 2»", "«Rótulo de gráfico»", "Campo SEQ con el estilo «Número de rótulo»", "«Base y fuente»", "«Lectura»", "Campos de tabla de contenido y de ilustraciones. El encabezado usa un campo STYLEREF con el título del capítulo"),
+  `Estilo o campo` = c("«Número de capítulo»", "«Título 1»", "«Título 2»", "«Rótulo de gráfico»", "Campo SEQ con el estilo «Número de rótulo»", "«Base y fuente»", "«Lectura»", "Campos de tabla de contenido y de ilustraciones. El encabezado es propio de cada sección"),
   Formato = c("«CAPÍTULO 1», 9 pt, gris, negrita", "18 pt, azul oscuro, negrita, filete inferior", "12.5 pt, azul oscuro, negrita", "10 pt, azul oscuro, negrita, pegado a la figura", "10 pt, azul oscuro, negrita",
               "8.5 pt, gris, cursiva", "10.5 pt, gris muy oscuro, texto corrido", "Se actualizan con F9"), check.names = FALSE), c(1.75, 2.45, 2.07))
 doc <- seccion(doc, "Escala tipográfica")
@@ -555,7 +557,7 @@ doc <- grafico(doc, "Puntaje promedio en la prueba de conocimientos financieros 
   texto = "El puntaje promedio sube 3.6 puntos entre la línea de base y la medición final.")
 
 # Referencias en formato APA, con sangría francesa (estilo «Referencia», word_nativo.py)
-doc <- body_add_break(doc)
+doc <- cerrar_seccion(doc, CAP_PREV)
 doc <- body_add_par(doc, "Referencias", style = "heading 1")
 it <- function(t) ftext(t, fp_text_lite(italic = TRUE)); nt <- function(t) ftext(t)
 refs <- list(
@@ -566,6 +568,7 @@ refs <- list(
   list(nt("Few, S. (2012). "), it("Show me the numbers: Designing tables and graphs to enlighten"), nt(" (2.ª ed.). Analytics Press.")),
   list(nt("Tufte, E. R. (2001). "), it("The visual display of quantitative information"), nt(" (2.ª ed.). Graphics Press.")))
 for (r in refs) doc <- cita(doc, r)
+doc <- cerrar_seccion(doc, "Referencias")
 doc <- contraportada(doc)
 print(doc, target = Sys.getenv("SALIDA"))
 system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/word_nativo.py"), shQuote(Sys.getenv("SALIDA")))); cat("OK", GN, "gráficos y", TN, "tablas\n")

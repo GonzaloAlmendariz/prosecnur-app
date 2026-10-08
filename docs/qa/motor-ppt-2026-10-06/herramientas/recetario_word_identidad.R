@@ -41,17 +41,27 @@ estilos_doc <- function(doc) {
     fp_t = fp_text(font.family = FONT, font.size = 10, color = TXT))
   doc
 }
-# ---- página: logos sólo en la portada; en el interior, el nombre del informe y el capítulo en curso arriba (campo STYLEREF), y el folio abajo
-seccion_doc <- function(doc, titulo_corto) {
-  cab_int <- block_list(fpar(ftext(titulo_corto, fp_text(font.family = FONT, font.size = 8, color = SOFT)), run_tab(),
-    run_word_field('STYLEREF "heading 1"', prop = fp_text(font.family = FONT, font.size = 8, color = NAVY, bold = TRUE)),
-    fp_p = fp_par(tabs = fp_tabs(fp_tab(pos = ANCHO_W, style = "right")), padding.bottom = 4, border.bottom = fp_border(color = "#D5D9DF", width = 0.5))))
-  pie_int <- block_list(fpar(run_word_field("PAGE", prop = fp_text(font.family = FONT, font.size = 8.5, color = NAVY, bold = TRUE)), fp_p = fp_par(text.align = "right")))
-  body_set_default_section(doc, prop_section(page_size = page_size(width = 8.27, height = 11.69),
-    page_margins = page_mar(top = 1.1, bottom = 0.9, left = 1.0, right = 1.0, header = 0.4, footer = 0.4),
-    header_first = block_list(logos_ft()), header_default = cab_int, footer_first = block_list(fpar(ftext(""))), footer_default = pie_int))
+# ---- página: logos sólo en la portada; en el interior, el nombre del informe y el capítulo en curso arriba, y el folio abajo.
+# Cada capítulo es una sección de Word con su encabezado escrito (Gonzalo, 2026-10-08: Word mostraba «Error! Use the Home tab to apply
+# heading 1» con el campo STYLEREF, que LibreOffice sí resolvía). El texto fijo no depende de cómo cada Word resuelva el estilo.
+TITULO_CORTO <- "Propuesta de diseño de los informes en Word"
+cab_int <- function(derecha, titulo_corto = TITULO_CORTO) block_list(fpar(ftext(titulo_corto, fp_text(font.family = FONT, font.size = 8, color = SOFT)), run_tab(),
+  ftext(derecha, fp_text(font.family = FONT, font.size = 8, color = NAVY, bold = TRUE)),
+  fp_p = fp_par(tabs = fp_tabs(fp_tab(pos = ANCHO_W, style = "right")), padding.bottom = 4, border.bottom = fp_border(color = "#D5D9DF", width = 0.5))))
+pie_int <- function() block_list(fpar(run_word_field("PAGE", prop = fp_text(font.family = FONT, font.size = 8.5, color = NAVY, bold = TRUE)), fp_p = fp_par(text.align = "right")))
+vacio <- function() block_list(fpar(ftext("")))
+props_pagina <- function(header_default, footer_default, header_first = NULL, footer_first = NULL, type = "nextPage")
+  prop_section(page_size = page_size(width = 8.27, height = 11.69), page_margins = page_mar(top = 1.1, bottom = 0.9, left = 1.0, right = 1.0, header = 0.4, footer = 0.4),
+               type = type, header_default = header_default, footer_default = footer_default, header_first = header_first, footer_first = footer_first)
+# Cierra la sección en curso con su encabezado: la portada (logos en la primera página), un capítulo o las referencias.
+cerrar_seccion <- function(doc, derecha, con_portada = FALSE)
+  body_end_block_section(doc, block_section(props_pagina(cab_int(derecha), pie_int(), header_first = if (con_portada) block_list(logos_ft()), footer_first = if (con_portada) vacio())))
+# Documento nuevo: la última sección (la contraportada en la guía) va sin encabezado ni pie. Las miniaturas usan una sola sección con encabezado.
+nuevo_doc <- function(derecha = NULL) {
+  doc <- estilos_doc(read_docx())
+  if (is.null(derecha)) body_set_default_section(doc, props_pagina(vacio(), vacio(), type = "nextPage"))
+  else body_set_default_section(doc, props_pagina(cab_int(derecha, "Informe de ejemplo"), pie_int(), header_first = block_list(logos_ft()), footer_first = vacio(), type = "continuous"))
 }
-nuevo_doc <- function(titulo_corto = "Propuesta de diseño de los informes en Word") seccion_doc(estilos_doc(read_docx()), titulo_corto)
 filete_coral <- function(doc, w = 0.9) body_add_flextable(doc, flextable(data.frame(a = "")) |> delete_part("header") |> border_remove() |> width(j = 1, width = w) |>
   height(height = 0.02) |> hline_top(border = fp_border(color = CORAL, width = 2.5)) |> padding(padding = 0), align = "left")
 
@@ -149,15 +159,14 @@ LEER_EJ <- c("Los porcentajes se calculan sobre quienes respondieron cada pregun
              "Top Two Box es la suma de las dos respuestas de acuerdo de la escala.",
              "Con menos de 30 casos, junto al porcentaje va el número de personas entre paréntesis.")
 # ---- contraportada: el logo al centro y el contacto debajo, en una línea
-contraportada <- function(doc) {
-  doc <- body_add_break(doc)
+contraportada <- function(doc) {   # en la guía, la sección anterior ya cerró con salto de página
   for (k in 1:14) doc <- body_add_par(doc, "")
   doc <- body_add_fpar(doc, fpar(external_img(L8$f, width = 1.0 * L8$asp, height = 1.0), fp_p = fp_par(text.align = "center")))
   doc <- parr(doc, tx("pulsopucp@pucp.edu.pe     Av. Universitaria 1801, San Miguel, Lima 32, Perú     pulso.pucp.edu.pe", 8.5, SOFT), align = "center", before = 24)
   doc
 }
 # ---- miniaturas: cada alternativa se arma como un docx de verdad, con estos mismos estilos, y se muestra su primera página
-mini <- function(nombre, construir) { d <- construir(nuevo_doc("Informe de ejemplo")); f <- file.path(TMP, paste0("mini_", nombre, ".docx")); print(d, target = f); f }
+mini <- function(nombre, construir, derecha = "Diseño metodológico") { d <- construir(nuevo_doc(derecha)); f <- file.path(TMP, paste0("mini_", nombre, ".docx")); print(d, target = f); f }
 mini_png <- function(docs, pagina = 1) {
   system2("soffice", c("--headless", "--convert-to", "pdf", "--outdir", shQuote(TMP), shQuote(docs)), stdout = FALSE, stderr = FALSE)
   vapply(docs, function(f) { pdf <- sub("\\.docx$", ".pdf", f); o <- sub("\\.docx$", "", f)
