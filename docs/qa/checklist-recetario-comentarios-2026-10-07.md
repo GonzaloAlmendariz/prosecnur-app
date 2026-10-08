@@ -1,0 +1,50 @@
+# Checklist: comentarios de Gonzalo al recetario PPT moderno (2026-10-07)
+
+Fuente: comentarios de PowerPoint en `4-recetario/recetario-moderna  -  Repaired.pptx` (41 comentarios en 38 láminas;
+respaldo en el scratchpad de la sesión). Números de lámina del mazo de 161. Texto citado tal como lo escribió Gonzalo.
+Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendiente · ◐ en curso · ☑ hecho · ⊘ bloqueado.
+
+| # | Lám. | Comentario (textual) | Dónde vive | Estado |
+|---|---|---|---|---|
+| C0 | todo | PowerPoint pidió reparar el archivo al abrirlo | `sanear_ph.py` / officer (H33, H71) | ☐ |
+| C1 | 6 | «Estos elementos están desalineados con respecto al cuadro» | `recetario_m0.R` R2 | ☑ franjas sin rótulos dentro, alineadas al cuadro |
+| C2 | 6 | «Debería haber quizás líneas como segmentos que muestren cada cosa que menciones con una leyenda y números» | `recetario_m0.R` R2 | ☑ marcas numeradas en el dibujo y guías en carriles que no se cruzan; margen como cota punteada |
+| C3 | 8 | «"Nunca más de 74" suena a AI slop. "Se recomiendan entre tal y tal" suena mucho mejor» | `recetario_m0.R` R4 | ☑ «Se recomiendan entre 40 y 70 palabras» |
+| C4 | 8 | «Todos los puntos del 1 al 4 tienen enunciados poco naturales que no responden a la diversidad de cosas que pueden suceder, como que el texto esté a la derecha o a la izquierda del gráfico» | `recetario_m0.R` R4 | ☑ cuatro miniaturas: texto a la derecha, a la izquierda, arriba y debajo, cada una con cuándo se usa |
+| C5 | 9 | «Se ve mal por la redacción "lo que cambia"… Diferencia entre PPT y Word. Pero de todas formas este slide no es necesario aquí» | `recetario_m0.R` R5 | ☑ lámina retirada |
+| C6 | 10 | «Esta tabla no es dinámica ni intuitiva. No se entiende» | `recetario_m0.R` R6 | ☑ lámina de ejemplo con cinco elementos marcados y una tarjeta breve por elemento |
+| C7 | 11 | «Estos comentarios haciendo referencia a otros informes no son necesarios» | `recetario_m0b.R` | ☑ sin «(Ingeniería)» ni carreras en el pie |
+| C8 | 12 | «La leyenda no está centrada… debería estar centrada a todo: no sólo al bloque del gráfico sino también a la leyenda y la barra extra» | `recetario_m0b.R` (`laminas_likert`) | ☑ leyenda centrada en todo el bloque, con la columna Top Two Box (bloque_likert) |
+| C9 | 13 | «AI slop, mejor: "A continuación, un ejemplo de un informe de acreditación"» | `recetario.R` portadilla II | ☑ «A continuación, un ejemplo de un informe de acreditación» |
+| C10 | 15 | «Me gusta porque es simple y cumple lo prometido, pero de la misma forma que con el índice, veamos forma de remasterizarlo» | `recetario.R` objetivo | ☐ |
+| C11 | 17 | «Este índice ya no va» | `recetario.R` índice del informe tipo | ☑ índice retirado del informe tipo |
+| C12 | 18 | «Este tipo de slide ya no va» (número de respuestas por actor) | `recetario_m1b.R` | ☑ lámina retirada |
+| C13 | 20 | «Cada tipo de redondeo tiene su propio slide: el estándar uno y el del resto mayor otro, ambos igual de profesionales y didácticos» | `recetario.R` redondeo | ☐ |
+| C14 | 22 | «Dicotómico de una sola fila: está súper bien pero los porcentajes pueden ser ligeramente menores» (aplica a todos) | `recetario_piezas.R` `dicotomia()` | ☑ cifras de toda dicotomía al 85 % |
+| C15 | 22 | «Donde haya más de un gráfico en un slide se agrega la línea suave gris para diferenciarlos» | láminas de varios paneles | ☑ línea gris entre paneles en perfiles (22, 23, 24) y en dos gráficos (recetario_m2.R) |
+| C16 | 23 | «Esto se tapa con lo de arriba, es un bug» | `recetario.R` perfil del egresado | ☑ barra más abajo y la base del panel baja cuando la pregunta ocupa dos líneas |
+| C17 | 24 | «No sé si el mejor lugar para la leyenda sea aquí, en el caso de tres gráficos que comparten la misma leyenda. Este slide no termina de verse bien» | `recetario.R` perfil 2026 frente a 2021 | ☑ una sola leyenda abajo, centrada en los tres gráficos |
+| C18 | 29 | «Leyenda no centrada» | `recetario.R` gestión y planificación | ☑ misma corrección que C8 |
+| C19 | 36 | «Números algo menos grandes» | `recetario.R` situación laboral | ☑ de 32 a 27 pt (C14) |
+| C20 | 37 | «Hay algo más de espacio que se pueda aprovechar mejor» | `recetario.R` tutoría socioemocional | ☐ |
+| C21 | 38 | «Esto no pinta en el motor cuanti» (recomendaciones) | `recetario.R` cierre | ☑ lámina retirada |
+| C22 | 42 | «Leyenda no centrada» | `recetario_m2.R` | ☑ centrada en todo el panel |
+| C23 | 44 | «Pareciera que los gráficos no compartieran el mismo ancho. Se ve poco regular» | `recetario_m2.R` | ☑ la dicotomía ocupa el mismo ancho que las barras vecinas |
+| C24 | 56 | «Los KPIs me parecen súper bien, pero hay que definirlos, explicarlos: dónde pueden ir, si ocupan un gráfico, medio gráfico o un solo recuadro, qué proporción 50/50 o 30/70. No está claro, ni como elemento ni como feature» | `recetario_m2c.R` | ☐ |
+| C25 | 63 | «La leyenda está muy pequeña y mal posicionada… aquí la leyenda es más pequeña que en otros gráficos, lo que me hace pensar que no se revisa bien» | `recetario_m3a.R` dona + revisión de tamaños de leyenda en todo el mazo | ☑ leyenda de la dona bajo el gráfico; todas las leyendas a 12 pt (16 llamadas tenían 10 a 11) |
+| C26 | 65 | «Complementarlo con su alternativa en barras agrupadas elegantes» | `recetario_m3a.R` ranking | ☐ |
+| C27 | 69 | «Estas etiquetas pueden ser mejores y estar mejor posicionadas» | `recetario_m3c.R` puntos comparativos | ☐ |
+| C28 | 70 | «Mismo comentario: mejores y mejor posicionadas» | `recetario_m3c.R` brecha | ☐ |
+| C29 | 71 | «No has puesto el caso de varios años para que se vea algo mejor» | `recetario_m3c.R` serie temporal | ☐ |
+| C30 | 75 | «El mapa de calor puede estar mejor, más claro y más didáctico; además no queda claro su caso de uso» | `recetario_m3d.R` | ☐ |
+| C31 | 76 | «No queda claro su caso de uso» | `recetario_m3d.R` | ☐ |
+| C32 | 77 | «Se puede ver mejor y más profesional» | `recetario_m3d.R` comparativo de dimensiones | ☐ |
+| C33 | 79 | «Este slide no le compete al equipo cuanti» (FODA) | `recetario_m3d.R` | ☑ lámina retirada |
+| C34 | 80 | «Podría servir para otro escenario: palabras, pares o tríos más comunes (quitando filler words) y al lado la categorización de esas respuestas de texto abierto en una pregunta de selección única o múltiple, de forma profesional» | `recetario_m3e.R` nube | ☐ |
+| C35 | 81 | «No pintas nada ni muestras cómo se aplica para un solo grupo, dos grupos comparativos, etc.; la posición de la leyenda con el texto hace que el mapa se vea muy pequeño. Faltan más casos con más distritos y más ocasiones diferentes» | `recetario_m3e.R` mapa | ☐ |
+| C36 | 90 | «Este foco semitransparente no está funcionando, repensémoslo; creo que una llave se ve más elegante» | `recetario_m4.R` filtro y subpregunta | ☐ |
+| C37 | 91 | «De la misma forma, una llave u otros elementos podría verse más elegante» | `recetario_m4.R` filtro al costado | ☐ |
+| C38 | 97 | «No entiendo por qué siguen los índices aquí cuando ya hay otra propuesta al final. Revisa bien nuevamente el orden y la estructura de todo el PPT para que tampoco sea completamente repetitiva» | `recetario_m5.R` variantes de índice + orden global | ◐ variantes de índice retiradas de IV.2; falta revisar el orden y la estructura de todo el mazo |
+| C39 | 110 | «No se entiende el caso de uso de este» (conteos por año) | `recetario_m5.R` | ☐ |
+| C40 | 122 | «Aún no termina de verse profesional; las etiquetas se ven algo sueltas» | `recetario_m6.R` estudio por olas | ☐ |
+| C41 | 138 | «Integrar esto como un tipo de gráfico, está muy interesante» (línea de tiempo) | `recetario_m7.R` → catálogo III.3 | ☐ |

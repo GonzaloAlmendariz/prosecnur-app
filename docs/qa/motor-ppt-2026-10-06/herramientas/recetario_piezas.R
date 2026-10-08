@@ -32,6 +32,7 @@ B <- function(t) list(t = t, b = TRUE); N_ <- function(t) list(t = t)
 
 # Dicotomía en una barra partida: cifra grande en cada extremo y la barra debajo.
 dicotomia <- function(doc, x, y, w, labels, pct, n = NULL, size = 22, g = 0.34, cols = TK$dico) {
+  size <- round(size * 0.85)   # C14 y C19: las cifras de la dicotomía, un poco más chicas en todo el mazo
   et <- function(k) if (is.null(n)) labels[k] else sprintf("%s (%d)", labels[k], n[k])
   txt(doc, paste0(pct[1], "%"), x, y, 1.6, size * 1.3 / 72, size, if (identical(cols, TK$dico)) TK$navy else "#4F7FAF", bold = TRUE)
   txt(doc, paste0(pct[2], "%"), x + w - 1.6, y, 1.6, size * 1.3 / 72, size, if (identical(cols, TK$dico)) "#4F7FAF" else TK$navy, bold = TRUE, align = "right")

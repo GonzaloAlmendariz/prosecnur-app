@@ -165,7 +165,7 @@ barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala
   if (any(resid) && !all(resid)) { o <- c(which(!resid), which(resid)); labels <- labels[o]; pct <- pct[o]; if (!is.null(comp)) comp <- comp[o] }
   # Moderna: dos categorías sin comparativo se leen como dicotomía (cifras grandes y barra partida).
   if (ESTILO == "moderna" && is.null(comp) && length(pct) == 2 && identical(color, TK$navy) && exists("dicotomia")) {
-    return(invisible(dicotomia(doc, x, y, min(w, 5.2), labels, pct, size = 22, g = 0.34))) }
+    return(invisible(dicotomia(doc, x, y, w - 0.8, labels, pct, size = 22, g = 0.34))) }   # C23: el mismo ancho que las barras del panel vecino
   escala <- escala %||% (max(c(pct, comp)) * 1.12)
   wbar <- w - wlab - 0.8; yy <- y
   # Moderna: la categoría mayor en navy y las demás en un tono claro de la marca; su rótulo
@@ -287,7 +287,8 @@ bloque_likert <- function(doc, premisas, cols = TK$likert, rotulos = LIKERT_ROT,
     y <- y + a + gap
   }
   zona(sprintf("bloque, g = %s cm", cm(g)), X_BAR, ytop, WB, tot)
-  leyenda(doc, 0, min(Y_LEY, ytop + tot + 0.3), rotulos, cols, centrar_en = X_BAR + WB / 2)   # la leyenda acompaña al bloque
+  fin_bloque <- if (ttb_col) X_TTB + (if (comp21) 1.5 else 0.75) else X_BAR + WB
+  leyenda(doc, 0, min(Y_LEY, ytop + tot + 0.3), rotulos, cols, centrar_en = (X_PREM + fin_bloque) / 2)   # centrada en todo el bloque, con la columna Top Two Box (C8, C18)
 }
 # Partición (receta 2): si no cabe al grosor declarado, la lámina se parte; la
 # letra no encoge. Primero el mínimo de láminas; luego, el corte que equilibra
@@ -334,7 +335,8 @@ torta <- function(doc, x, y, d, labels, pct, n = NULL) {
 }
 panel_titulo <- function(doc, x, y, w, t, base = NULL) {
   if (ESTILO == "fiel") { txt(doc, t, x, y, w, 0.3, 13, TK$coral, bold = TRUE, align = "center") }
-  else { txt(doc, t, x, y, w, 0.3, 13, TK$navy, bold = TRUE); if (!is.null(base)) txt(doc, base, x, y + 0.26, w, 0.26, PT$n, TK$faint) }
+  else { nl <- lineas(t, w, 13, TRUE); txt(doc, t, x, y, w, 0.3 + 0.22 * (nl - 1), 13, TK$navy, bold = TRUE)   # la base baja si la pregunta ocupa dos líneas
+    if (!is.null(base)) txt(doc, base, x, y + 0.26 + 0.22 * (nl - 1), w, 0.26, PT$n, TK$faint) }
 }
 
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_piezas.R", local = TRUE)
@@ -384,7 +386,7 @@ MOTOR_ACT <- "Mapa del recetario (no es una lámina del motor)"
 doc <- nueva(doc); titulo(doc, "Cómo recorrer este recetario", ante = "Recetario")
 partes <- list(
   list("I", "Reglas de la identidad", "Tamaño, peso y color de cada elemento, retícula, paleta, texto junto a los gráficos, escalas que llegan y reglas de rotulado"),
-  list("II", "El informe tipo", "Un informe de acreditación completo, en el orden en que se entrega: de la portada a las recomendaciones"),
+  list("II", "El informe tipo", "A continuación, un ejemplo de un informe de acreditación"),
   list("III", "Catálogo de láminas y gráficos", "Disposiciones de dos a seis gráficos, láminas de población, la galería de los 24 gráficos y las dimensiones"),
   list("IV", "Escenarios de acreditación", "Lo que cambia entre carreras. IV.1 Actores y bases: seis actores, filtros, cohortes, bases chicas. IV.2 Escalas, etiquetas y formatos"),
   if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) list("V", "Otros estudios de PULSO", "La misma identidad en estudios de opinión, monitoreo de campo y seguimiento de indicadores"),
@@ -404,7 +406,7 @@ MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "I", "Reglas de la identi
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m0.R", local = TRUE)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m0b.R", local = TRUE)
 
-MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "II", "El informe tipo", "Un informe de acreditación completo, en el orden en que se entrega", icono = "scroll-text")
+MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "II", "El informe tipo", "A continuación, un ejemplo de un informe de acreditación", icono = "scroll-text")
 
 # ===================================================================== 1 portada
 MOTOR_ACT <- "p_slide_portada"
@@ -477,92 +479,11 @@ if (ESTILO == "fiel") {
 }
 pie(doc, "")
 
-# ===================================================================== 4 índice
-MOTOR_ACT <- "p_slide_indice"
+# ===================================================================== 4 índice: retirado del informe tipo (C11; alternativas en la Parte VII)
 secciones <- c("Perfil del encuestado", "Características institucionales", "Desarrollo de políticas institucionales",
   "Estructura organizacional, administrativa y financiera", "Cuerpo académico", "Estudiantes y graduados",
   "Infraestructura, instalaciones y recursos de apoyo", "Características del perfil de egreso", "Estructura curricular",
   "Vinculación con el medio y desarrollo sostenible", "Internacionalización integral", "Investigación, desarrollo e innovación (I+D+i)", "Integridad y transparencia")
-# Índice (p_slide_indice). El motor admite subíndices por sección: los muestra bajo «Principales resultados» en dos columnas
-# con marcas numeradas (reporte_plan_ppt.R, .add_indice_subtopics). El recetario muestra los dos casos.
-subs_ej <- list(c("Perfil del encuestado", "Estudiantes", "Docentes", "Egresados"), c("Características institucionales", "Misión y propósitos", "Gestión y planificación"),
-                c("Cuerpo académico", "Gestión del cuerpo académico", "Orientación y acompañamiento"), c("Características del perfil de egreso", "Competencias", "Formulación del perfil"),
-                c("Estudiantes y graduados", "Situación laboral", "Tutoría socioemocional"), c("Recomendaciones"))
-ico_subs <- c("users", "building-2", "user-check", "graduation-cap", "briefcase", "lightbulb")
-# Moderna (pedido de Gonzalo, 2026-10-07: «el slide de índice con focos no está mal, es creativo, pero podemos hacer algo
-# mucho más elegante y creativo»): franja azul con el título y un mosaico de íconos como índice visual; a la derecha, la
-# lista numerada, con o sin subíndices. PROPUESTA: el motor hoy usa el layout «Indice» con la ilustración de focos.
-indice_moderno <- function(doc, secs, iconos, lead, subs = NULL, ante_guia = NULL) {
-  MOTOR_ACT <<- paste0("PROPUESTA de índice editorial", if (!is.null(ante_guia)) paste0(": ", ante_guia), " (el motor usa p_slide_indice sobre el layout «Indice» con focos)")
-  doc <- nueva(doc); wbanda <- 4.6; n <- length(secs)
-  caja(doc, 0, 0, wbanda, H, TK$navy)
-  txt(doc, "CONTENIDO", 0.6, 0.85, 3.5, 0.28, 10, "#9DC3E6", bold = TRUE)
-  txt(doc, "Índice", 0.6, 1.08, 3.6, 0.75, 36, "#FFFFFF", bold = TRUE, nombre = "Titulo lamina")
-  txt(doc, lead, 0.6, 1.9, 3.5, 0.65, 12, "#C9D3E6")
-  nc <- if (n <= 6) 3 else 5; dmo <- if (n > 15) 0.32 else 0.36; pasox <- 0.68; pasoy <- if (n > 15) 0.82 else 0.95
-  for (k in seq_len(n)) { col <- (k - 1) %% nc; fil <- (k - 1) %/% nc; xk <- 0.7 + col * pasox; yk <- 3.15 + fil * pasoy
-    icono(doc, iconos[(k - 1) %% length(iconos) + 1], "blanco", xk, yk, dmo)
-    txt(doc, sprintf("%02d", k), xk - 0.17, yk + dmo + 0.04, dmo + 0.34, 0.26, 10, "#9DC3E6", bold = TRUE, align = "center") }
-  xl0 <- wbanda + 0.7; y0 <- 1.3; alto <- H - 0.55 - y0
-  ns <- if (is.null(subs)) 0 else sum(lengths(subs) - 1)
-  if (ns == 0) {
-    # Sin subíndices: una columna hasta 14 capítulos (con letra más grande si son 6 o menos) y dos columnas si son más.
-    ncol <- if (n > 14) 2 else 1; porc <- ceiling(n / ncol); wcol <- (W - MR - xl0 - (ncol - 1) * 0.5) / ncol
-    fn <- if (n <= 6) 22 else if (n > 14) 13 else 15; ft_ <- if (n <= 6) 18 else if (n > 14) 12 else 14; anum <- if (n <= 6) 0.95 else 0.75
-    hm <- min(if (n <= 6) 0.8 else 0.6, alto / porc)
-    y00 <- if (n <= 6) y0 + (alto - porc * hm) / 2 else y0
-    for (k in seq_len(n)) { cl <- (k - 1) %/% porc; fl <- (k - 1) %% porc; x <- xl0 + cl * (wcol + 0.5); y <- y00 + fl * hm; xt <- x + anum
-      txt(doc, sprintf("%02d", k), x - 0.1, y + (hm - fn / 50) / 2, anum, fn / 50, fn, TK$coral, bold = TRUE)
-      txt(doc, secs[k], xt - 0.1, y + (hm - ft_ / 48) / 2, wcol - anum + 0.1, ft_ / 48, ft_, TK$navy)
-      if (fl < porc - 1 && k < n) caja(doc, xt, y + hm - 0.004, wcol - anum, 0.006, TK$rule) }
-  } else {
-    xt0 <- xl0 + 0.75; hm <- 0.42; hs <- min(0.32, (alto - hm * n - 0.1 * (n - 1)) / ns); y <- y0
-    for (k in seq_len(n)) { tiene <- length(subs[[k]]) > 1
-      txt(doc, sprintf("%02d", k), xl0 - 0.1, y + (hm - 0.36) / 2, 0.8, 0.36, 15, TK$coral, bold = TRUE)
-      txt(doc, secs[k], xt0 - 0.1, y + (hm - 0.34) / 2, W - MR - xt0 + 0.1, 0.34, 14, TK$navy, bold = tiene)
-      y <- y + hm
-      if (tiene) for (j in seq_along(subs[[k]])[-1]) {
-        txt(doc, sprintf("%d.%d", k, j - 1), xt0 - 0.1, y + (hs - 0.28) / 2, 0.6, 0.28, 11, TK$coral, bold = TRUE)
-        txt(doc, subs[[k]][j], xt0 + 0.45, y + (hs - 0.28) / 2, W - MR - xt0 - 0.45, 0.28, 12, TK$soft); y <- y + hs }
-      if (k < n) { caja(doc, xt0, y + 0.04, W - MR - xt0, 0.006, TK$rule); y <- y + 0.1 } }
-  }
-  zona("franja azul con título y mosaico de íconos", 0, 0, wbanda, H); zona(if (ns) "capítulos con subíndices" else "lista de capítulos", xl0, y0, W - MR - xl0, alto)
-  dibujar_guias(doc); doc
-}
-# Fiel: layout «Indice» de la plantilla (focos), como los informes entregados y el motor. Fila de 0.543 in (la del
-# entregado aprobado) mientras quepa; con muchos capítulos la fila se reduce para que el índice no salga de la lámina.
-indice_fiel <- function(doc, secs, subs = NULL) {
-  MOTOR_ACT <<- if (is.null(subs)) "p_slide_indice" else "p_slide_indice(subindices = ...): subíndices bajo «Principales resultados»"
-  doc <- nueva(doc, "Indice"); n <- length(secs)
-  caja(doc, 6.2, 1.55, 6.9, 5.3, TK$fondo)                       # tapa las entradas de muestra del layout (H6)
-  txt(doc, "ÍNDICE", 6.45, 1.0, 4, 0.5, 22, TK$navy, bold = TRUE, nombre = "Titulo lamina")
-  nsub <- if (is.null(subs)) 0 else sum(lengths(subs) - 1); filas_sub <- ceiling(nsub / 2)
-  disp <- 6.85 - 1.62 - (if (nsub) 0.6 + filas_sub * 0.27 else 0)
-  rh <- min(0.543, disp / n); grande <- rh >= 0.45; hb <- rh * 0.82
-  for (k in seq_len(n)) { y <- 1.62 + (k - 1) * rh
-    caja(doc, 6.45, y, 0.48, hb, TK$coral); txt(doc, k, 6.41, y + (hb - 0.3) / 2, 0.56, 0.3, if (grande) 14 else 11, "#FFFFFF", bold = TRUE, align = "center")
-    caja(doc, 6.99, y, 5.74, hb, "#E7E7E7"); txt(doc, secs[k], 7.05, y + (hb - 0.3) / 2, 5.7, 0.3, if (grande) 13 else 11, TK$navy) }
-  if (nsub) { ys <- 1.62 + n * rh + 0.15
-    txt(doc, "Principales resultados", 6.4, ys, 4, 0.3, 11, TK$navy, bold = TRUE); ys <- ys + 0.36
-    it <- unlist(lapply(seq_along(subs), function(k) if (length(subs[[k]]) > 1) sprintf("%d.%d|%s", k, seq_len(length(subs[[k]]) - 1), subs[[k]][-1])))
-    half <- ceiling(length(it) / 2)
-    for (i in seq_along(it)) { col <- (i - 1) %/% half; fil <- (i - 1) %% half; x <- 6.45 + col * 3.2; y <- ys + fil * 0.27; pz <- strsplit(it[i], "|", fixed = TRUE)[[1]]
-      caja(doc, x, y + 0.02, 0.36, 0.2, TK$coral); txt(doc, pz[1], x - 0.06, y - 0.03, 0.48, 0.26, 10, "#FFFFFF", bold = TRUE, align = "center")
-      txt(doc, pz[2], x + 0.42, y - 0.03, 2.75, 0.26, 10, TK$navy) } }
-  zona("entradas", 6.45, 1.62, 6.28, 5.2); dibujar_guias(doc); doc
-}
-# Variantes de índice (pedido de Gonzalo: «índices largos, índices cortos, índices con sólo 5 o 6, índices con subíndices
-# en uno o dos»). Se muestran en IV.2, recetario_m5.R; aquí sólo los datos.
-sec_largo <- c(secciones[1:12], "Gestión de la calidad", "Recursos financieros", "Bienestar universitario", "Responsabilidad social", "Seguimiento a egresados", secciones[13])
-ico_largo <- c(ICONO_SECCION[1:12], "clipboard-check", "wallet", "heart-pulse", "hand-heart", "briefcase", ICONO_SECCION[13])
-sec_corto <- c("Objetivos del estudio", "Metodología", "Perfil de los encuestados", "Resultados", "Conclusiones y recomendaciones")
-ico_corto <- c("target", "clipboard-list", "users", "chart-column", "lightbulb")
-subs_pocos <- list(c("Objetivos del estudio"), c("Metodología", "Diseño muestral", "Trabajo de campo"), c("Perfil de los encuestados"),
-                   c("Resultados", "Satisfacción con la formación", "Servicios de bienestar", "Inserción laboral"), c("Conclusiones"), c("Recomendaciones"))
-ico_pocos <- c("target", "clipboard-list", "users", "chart-column", "list-checks", "lightbulb")
-if (ESTILO == "moderna") doc <- indice_moderno(doc, secciones, ICONO_SECCION, "Trece capítulos del informe consolidado, de los actores a la integridad institucional") else doc <- indice_fiel(doc, secciones)
-
-source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m1b.R", local = TRUE)   # número de respuestas por actor
 
 # ===================================================================== 6 Top Two Box
 MOTOR_ACT <- "p_slide_top_two_box"
@@ -663,6 +584,7 @@ med <- median(e); xm <- xR + 0.15 + (min(med, 30) - min(e) + 0.5) * wcol
 caja(doc, xm - 0.07, yh + hb + 0.28, 0.14, 0.11, TK$coral, geom = "triangle")
 txt(doc, sprintf("Mediana: %d años. Media: %.1f años", as.integer(med), mean(e)), xR + pw - 3.2, yB + 0.5, 3.2, 0.26, 11, TK$coral, bold = TRUE, align = "right")
 zona("histograma", xR + 0.15, yh, pw - 0.3, hb)
+separador_v(doc, xL + pw + 0.3, yT, YF); separador_h(doc, xL, W - MR, yB - 0.2)   # C15: línea suave entre paneles
 pie(doc, "Base: 172 estudiantes")
 
 # ===================================================================== 8 perfil egresado (torta en el fiel)
@@ -674,10 +596,10 @@ if (ESTILO == "fiel") {
   torta(doc, xs3[1] + (pw3 - 2.05) / 2, Y_DATOS + 0.8, 2.05, t1$labels, t1$pct, t1$n)
   leyenda(doc, 0, Y_DATOS + 3.25, t1$labels, TK$dico, centrar_en = xs3[1] + pw3 / 2)
 } else {
-  yb <- Y_DATOS + 2.2; wb <- pw3 - 0.2; xb <- xs3[1] + 0.1; w1 <- wb * t1$pct[1] / 100
-  txt(doc, paste0(t1$pct[1], "%"), xb, yb - 0.85, 1.8, 0.6, 30, TK$navy, bold = TRUE)
+  yb <- Y_DATOS + 2.55; wb <- pw3 - 0.2; xb <- xs3[1] + 0.1; w1 <- wb * t1$pct[1] / 100   # C16: más abajo, no se monta sobre la pregunta de dos líneas
+  txt(doc, paste0(t1$pct[1], "%"), xb, yb - 0.8, 1.8, 0.5, 26, TK$navy, bold = TRUE)
   txt(doc, sprintf("%s (%d)", t1$labels[1], t1$n[1]), xb, yb - 0.32, 2, 0.28, 12, TK$navy)
-  txt(doc, paste0(t1$pct[2], "%"), xb + wb - 1.8, yb - 0.85, 1.8, 0.6, 30, "#4F7FAF", bold = TRUE, align = "right")
+  txt(doc, paste0(t1$pct[2], "%"), xb + wb - 1.8, yb - 0.8, 1.8, 0.5, 26, "#4F7FAF", bold = TRUE, align = "right")
   txt(doc, sprintf("%s (%d)", t1$labels[2], t1$n[2]), xb + wb - 2, yb - 0.32, 2, 0.28, 12, TK$navy, align = "right")
   caja(doc, xb + w1, yb, wb - w1, 0.7, TK$dico[2]); caja(doc, xb, yb, w1 + 0.004, 0.7, TK$dico[1])
   zona("barra partida", xb, yb, wb, 0.5)
@@ -686,6 +608,7 @@ panel_titulo(doc, xs3[2], Y_DATOS, pw3, "¿En qué año obtuvo su título univer
 barras_h(doc, xs3[2], Y_DATOS + 0.85, pw3, a$labels, a$pct, wlab = 0.9, g = grosor_cat(6), fila = 0.75)
 panel_titulo(doc, xs3[3], Y_DATOS, pw3, "Sueldo mensual bruto", "167 respuestas")
 barras_h(doc, xs3[3], Y_DATOS + 0.85, pw3, s$labels, s$pct, wlab = 1.85, g = grosor_cat(6), fila = 0.66, size = 11)
+for (k in 1:2) separador_v(doc, xs3[k] + pw3 + 0.2, Y_DATOS, YF)   # C15
 pie(doc, sprintf("Base: %d egresados. Año de titulación, %d que tienen título. Sueldo, %d que respondieron", t1$valid, a$valid, s$valid))
 
 # ===================================================================== 9 perfil comparativo 2021 / 2026
@@ -693,13 +616,14 @@ MOTOR_ACT <- "p_slide_3_graficos_fila: p_barras_agrupadas con overrides$comparat
 doc <- nueva(doc); titulo(doc, "Perfil del estudiante, 2026 frente a 2021", ante = "Perfil del encuestado")
 c21 <- list(sexo = c(41, 59, 0), rango = c(47, 41, 7, 5), ciclo = c(17, 22, 13, 14, 13, 21))
 pw3b <- (W - ML - MR - 0.8) / 3; xq <- ML + (0:2) * (pw3b + 0.4)
-leyenda(doc, ML, Y_DATOS - 0.05, c("2026", "2021"), TK$dico)
 panel_titulo(doc, xq[1], Y_DATOS + 0.45, pw3b, "Sexo")
 barras_h(doc, xq[1], Y_DATOS + 1.0, pw3b, g2$labels, g2$pct, wlab = 1.2, g = 0.26, fila = 0.75, comp = c21$sexo)
 panel_titulo(doc, xq[2], Y_DATOS + 0.45, pw3b, "Rango de edades")
 barras_h(doc, xq[2], Y_DATOS + 1.0, pw3b, r$labels, r$pct, wlab = 1.55, g = 0.26, fila = 0.75, comp = c21$rango)
 panel_titulo(doc, xq[3], Y_DATOS + 0.45, pw3b, "Nivel curricular")
 barras_h(doc, xq[3], Y_DATOS + 1.0, pw3b, cl$labels, cl$pct, wlab = 1.4, g = 0.26, fila = 0.72, comp = c21$ciclo)
+for (k in 1:2) separador_v(doc, xq[k] + pw3b + 0.2, Y_DATOS + 0.45, YF - 0.45)   # C15
+leyenda(doc, 0, YF - 0.25, c("2026", "2021"), TK$dico, centrar_en = XC + AC / 2)   # C17: una sola leyenda para los tres, centrada debajo
 pie(doc, "Base: 172 estudiantes en 2026")
 
 # ===================================================================== 10 portadilla 2
@@ -838,22 +762,6 @@ caja(doc, 9.75, Y_DATOS + 0.2, 0.04, 2.6, TK$coral)
 txt_runs(doc, narr, 9.95, Y_DATOS + 0.15, 3.0, 3.6, size = 14)
 zona("texto narrativo", 9.95, Y_DATOS + 0.15, 3.0, 3.6)
 pie(doc, "Base: 52 docentes y 172 estudiantes")
-
-# ===================================================================== 24 lámina de texto con viñetas (p_slide_texto)
-MOTOR_ACT <- "p_slide_texto (bullets)"
-doc <- nueva(doc); titulo(doc, "Recomendaciones", ante = "Cierre")
-recs <- c("Fortalecer la difusión de la misión y los propósitos institucionales, especialmente entre estudiantes y egresados, cuyo conocimiento alcanza 77 % y 78 %.",
-          "Revisar los servicios de tutoría académica: su valoración entre estudiantes bajó de 84 % en 2021 a 53 % en 2026.",
-          "Analizar la suficiencia de los recursos presupuestales asignados a la Unidad, que el personal administrativo valora en 80 %.")
-y <- Y_DATOS + 0.2
-for (k in seq_along(recs)) {
-  if (ESTILO == "fiel") caja(doc, ML, y + 0.14, 0.13, 0.13, TK$coral, geom = "ellipse")
-  else { caja(doc, ML, y, 0.55, 0.55, TK$navy, geom = "ellipse"); txt(doc, k, ML, y + 0.06, 0.55, 0.42, 18, "#FFFFFF", bold = TRUE, align = "center") }
-  txt(doc, recs[k], ML + 1.0, y - 0.02, 11.4, 1.1, 16, TK$navy)
-  paso_r <- (YF - Y_DATOS + 0.25) / length(recs)
-  if (ESTILO == "moderna" && k < length(recs)) caja(doc, ML + 1.0, y + paso_r - 0.22, 11.4, 0.006, TK$rule)
-  y <- y + paso_r }
-zona("viñetas", ML, Y_DATOS, 12.1, 4.4); pie(doc, "")
 
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2.R", local = TRUE)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m2b.R", local = TRUE)

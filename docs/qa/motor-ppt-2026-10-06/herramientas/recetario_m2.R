@@ -12,6 +12,7 @@ act <- c("Docentes", "Estudiantes", "Egresados", "Administrativos")
 for (k in 1:2) { bq <- if (k == 1) D$mision1 else D$mision2; x <- if (k == 1) xI else xD
   panel_titulo(doc, x, Y_DATOS, mitad, bq[[1]]$pregunta)
   likert_panel(doc, x, Y_DATOS + 0.5, mitad, lapply(1:4, function(i) list(lab = act[i], f = bq[[i]])), cols = TK$dico, ttb_col = FALSE, g = 0.46, fila = 0.9) }
+separador_v(doc, xI + mitad + 0.25, Y_DATOS, YF - 0.3)   # C15
 leyenda(doc, 0, 6.38, c("Sí", "No"), TK$dico, centrar_en = W / 2)
 pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos")
 
@@ -25,6 +26,7 @@ panel_titulo(doc, xI, Y_DATOS + 1.0, mitad, "¿En qué año obtuvo su título un
 barras_h(doc, xI, Y_DATOS + 1.65, mitad, a$labels, a$pct, wlab = 0.9, g = grosor_cat(5), fila = 0.6)
 panel_titulo(doc, xD, Y_DATOS + 1.0, mitad, "Sueldo mensual bruto", paste(s$valid, "respuestas"))
 barras_h(doc, xD, Y_DATOS + 1.65, mitad, s$labels, s$pct, wlab = 2.4, g = grosor_cat(6), fila = 0.5, size = 11)
+separador_v(doc, xI + mitad + 0.25, Y_DATOS + 1.0, YF)   # C15
 pie(doc, sprintf("Base: %d egresados que tienen título (año de titulación) y %d que respondieron el sueldo", a$valid, s$valid))
 
 # --- p_slide_grafico_texto_derecha: gráfico grande, lectura a la derecha
@@ -33,7 +35,7 @@ doc <- nueva(doc); titulo(doc, "Competencias del perfil de egreso", ante = "Grá
 comp4 <- lapply(c("p30_1", "p30_2", "p30_3", "p30_9"), function(v) fr("docentes", v))
 etq4 <- c("Estados financieros", "Auditoría", "Costos y presupuestos", "Trabajo en equipo")
 likert_panel(doc, ML, Y_DATOS + 0.1, 8.6, lapply(1:4, function(i) list(lab = etq4[i], f = comp4[[i]])), wlab = 2.0, g = 0.48, fila = 1.05, size_lab = 12)
-leyenda(doc, 0, Y_DATOS + 4.75, LIKERT_ROT, TK$likert, size = 10.5, centrar_en = ML + 2.1 + 3.3)
+leyenda(doc, 0, Y_DATOS + 4.75, LIKERT_ROT, TK$likert, centrar_en = ML + 8.6 / 2)   # centrada en todo el panel, con la columna Top Two Box (C22)
 mx <- which.max(sapply(comp4, ttb)); mn <- which.min(sapply(comp4, ttb))
 narrativa(doc, 9.55, Y_DATOS + 0.8, 3.45, 3.4, list(N_("Los docentes valoran todas las competencias por encima de "), B(paste0(min(sapply(comp4, ttb)), "%")),
   N_(". La más alta es "), B(etq4[mx]), N_(paste0(" (", ttb(comp4[[mx]]), "%)")), N_(". La más baja, "), B(etq4[mn]), N_(paste0(" (", ttb(comp4[[mn]]), "%)."))))
@@ -58,8 +60,9 @@ narrativa(doc, ML, Y_DATOS + 0.4, 3.45, 3.6, list(N_("El estudiantado se reparte
 xr <- 4.55; wr <- W - MR - xr
 panel_titulo(doc, xr, Y_DATOS + 0.05, wr, "Sexo", "172 respuestas")
 barras_h(doc, xr, Y_DATOS + 0.65, wr, g2$labels, g2$pct, wlab = 1.8, g = grosor_cat(2), fila = 0.5)
-panel_titulo(doc, xr, Y_DATOS + 1.85, wr, "Rango de edades", "172 respuestas")
+panel_titulo(doc, xr, Y_DATOS + 1.88, wr, "Rango de edades", "172 respuestas")
 barras_h(doc, xr, Y_DATOS + 2.45, wr, r$labels, r$pct, wlab = 1.8, g = grosor_cat(4), fila = 0.48)
+separador_h(doc, xr, W - MR, Y_DATOS + 1.62)   # C15
 pie(doc, "Base: 172 estudiantes")
 
 # --- p_slide_2_graficos_texto_derecha: dos gráficos a la izquierda, lectura a la derecha
@@ -98,7 +101,7 @@ wp_ <- 8.4
 panel_titulo(doc, ML, Y_DATOS - 0.05, wp_, "Valoración del cuerpo académico, estudiantes")
 FILA_A <- 1.02; G_A <- 0.4; Y0_A <- Y_DATOS + 0.3
 likert_panel(doc, ML, Y0_A, wp_, lapply(seq_along(cc), function(i) list(lab = lab_c[i], f = cc[[i]])), wlab = 3.4, g = G_A, fila = FILA_A, size_lab = 10.5)
-leyenda(doc, 0, Y0_A + 0.45 + length(cc) * FILA_A, LIKERT_ROT, TK$likert, size = 10, centrar_en = ML + wp_ / 2)
+leyenda(doc, 0, Y0_A + 0.45 + length(cc) * FILA_A, LIKERT_ROT, TK$likert, centrar_en = ML + wp_ / 2)
 # apoyo: ranking de Top Two Box (lollipop horizontal, eje desde cero)
 xa <- 9.35; wa <- W - MR - xa
 panel_titulo(doc, xa, Y_DATOS - 0.05, wa, "Top Two Box, de mayor a menor")

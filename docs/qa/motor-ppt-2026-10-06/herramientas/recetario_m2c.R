@@ -110,7 +110,7 @@ for (k in 1:3) { x <- ML + (k - 1) * (w3 + 0.4); cifra(doc, x, YT - 0.05, w3, cf
 separador_h(doc, ML, W - MR, YT + 1.4)
 panel_titulo(doc, ML, YT + 1.6, col2, "¿Conoce la misión y los propósitos de la PUCP?")
 likert_panel(doc, ML, YT + 1.85, col2, lapply(1:4, function(i) list(lab = c("Docentes", "Estudiantes", "Egresados", "Administrativos")[i], f = D$mision1[[i]])), cols = TK$dico, ttb_col = FALSE, g = 0.3, fila = 0.55, wlab = 1.55, size_lab = 10.5)
-leyenda(doc, 0, YT + 4.35, c("Sí", "No"), TK$dico, size = 10.5, centrar_en = ML + 1.67 + (col2 - 1.67) / 2)
+leyenda(doc, 0, YT + 4.35, c("Sí", "No"), TK$dico, centrar_en = ML + 1.67 + (col2 - 1.67) / 2)
 panel_titulo(doc, xr, YT + 1.6, col2, "Sueldo mensual bruto del egresado", paste(D$sueldo$valid, "respuestas"))
 barras_h(doc, xr, YT + 2.15, col2, D$sueldo$labels, D$sueldo$pct, wlab = 2.4, g = 0.24, fila = 0.42, size = 10.5)
 pie(doc, "")
