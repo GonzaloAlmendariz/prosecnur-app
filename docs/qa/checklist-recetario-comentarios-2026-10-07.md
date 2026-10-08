@@ -121,3 +121,17 @@ Fuera, por ser firma del informe de referencia o texto que no sale de los datos:
 | S5 | 9 | «Me gusta aunque entenderlo es algo complejo» | R4: hacer la lectura más simple | ☑ filas ordenadas por peso, columna «Cuánto pesa» y una explicación llana debajo («si sube la satisfacción con un aspecto, cuánto sube la general») |
 | S6 | 10 | «Va, pero ver cómo perfeccionar» | R5: letras de significancia más legibles | ☑ la letra va a tamaño legible, en azul y separada de la cifra, con las letras de cada público bajo su encabezado y una línea que explica cómo se lee |
 | S7 | 11 | «No va» | R7 retirada | ☑ |
+
+### Segunda ronda de comentarios al mazo de propuestas (2026-10-08)
+
+| # | Lám. | Comentario (textual) | Qué se hace | Estado |
+|---|---|---|---|---|
+| T1 | 3 | «Está bien pero creo que puede respirar un poquito con respecto a la línea punteada naranja de arriba» | Variante A más abajo | ☑ la variante A baja 0.35 in y respira bajo la línea punteada |
+| T2 | 4 | «No va, el dos choca y no me gusta el diseño» | Variante B (anillo) retirada | ☑ retirada |
+| T3 | 5 | «Bueno» | Variante C se mantiene | ☑ |
+| T4 | 6 | «Bueno, pero el dos puede ser algo menos grande y respirar mejor» | Variante D con el número más chico y con margen | ☑ el número de fondo baja a 180 pt, a la derecha y con margen |
+| T5 | 7 | «No está mal pero deben haber por lo menos 4 alternativas; además se tiene que sentir como un subtítulo y no como una portada que separa tan drásticamente» | Cuatro alternativas de subcapítulo, más ligeras que una portadilla | ☑ cuatro alternativas de subcapítulo sobre la lámina general: sobria (número y título en una línea), barra lateral coral, banda clara a lo ancho y sin lámina propia (el antetítulo de la primera lámina lleva «2.1») |
+| T6 | 12 | «El dos está chocando con la línea, pero creo que esto es un error del motor del recetario en sí» | El filete de la fila Total deja aire para las cifras chicas de la fila siguiente | ☑ el filete va justo bajo la barra del Total y la fila siguiente baja 0.22 in: las cifras chicas ya no lo tocan |
+| T7 | 12 | «Las notas de pie deben estar entendibles» | Pies en lenguaje llano, sin nombres de funciones | ☑ pies en lenguaje llano: qué es cada indicador y la base, sin nombres de funciones |
+| T8 | 13 | «Expresión muy coloquial» | Explicación del peso en registro formal | ☑ «El peso indica qué parte de la satisfacción general explica cada aspecto, según una regresión lineal…» |
+| T9 | 14 | «Está bien pero indicar el procedimiento estadístico o la prueba utilizada; además, ¿no hay una forma elegante y gráfica de mostrar la significancia también? Quizás otros slides con gráficos y tabla» | Nota con la prueba del motor (z de diferencia de proporciones, Bonferroni, α = 0.05) y dos láminas gráficas: barras agrupadas con letras y puntos por público | ☑ nota con la prueba del motor (z de diferencia de proporciones, Bonferroni, α = 0.05) y dos láminas: barras agrupadas con la cifra dentro y la letra encima, y puntos por público con una línea azul sólo entre públicos con diferencia significativa |
