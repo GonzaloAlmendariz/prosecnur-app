@@ -1,0 +1,947 @@
+{
+  "version": "2026.10",
+  "fuente": ["docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx", "docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx"],
+  "ppt": {
+    "geometria": {
+      "unidad": "in",
+      "ancho": 13.333,
+      "alto": 7.5,
+      "margen_izq_borde": 0.315,
+      "margen_izq": 0.495,
+      "margen_der": 0.315,
+      "titulo_y": 0.355,
+      "zona_datos_y0": 1.65,
+      "zona_datos_y1": 6.42,
+      "contenido_y1": 6.72,
+      "leyenda_y": 6.42,
+      "base_y": 6.88,
+      "ancho_contenido": 12.523,
+      "separacion_paneles": 0.5,
+      "columna_top_two_box": 1,
+      "aire_cifra_chica": 0.36,
+      "likert": {
+        "x_premisa": 0.495,
+        "ancho_premisa": 3.3,
+        "x_actor": 3.6,
+        "ancho_actor": 1.5,
+        "x_barra": 5.2,
+        "ancho_barra": 6,
+        "x_top_two_box": 11.4
+      }
+    },
+    "tipografia": {
+      "unidad": "pt",
+      "titulo": 24,
+      "antetitulo": 10,
+      "pregunta": 13,
+      "cifra": 14,
+      "cifra_fuera": 12,
+      "leyenda": 12,
+      "actor": 12,
+      "base": 10,
+      "n": 10,
+      "cuerpo": 14,
+      "narrativa": 15,
+      "cifra_destacada": 34,
+      "fuente": "Arial"
+    },
+    "colores": {
+      "coral": "#CA5651",
+      "azul": "#081F5C",
+      "tenue": "#8E9DBD",
+      "texto_suave": "#5A6480",
+      "texto_tenue": "#8A93A8",
+      "filete": "#D5D9DF",
+      "cebra": "#E9ECF1",
+      "fondo": "#F2F2F2",
+      "verde_top_two_box": "#4E9438",
+      "naranja_bottom_two_box": "#B4541F"
+    },
+    "paletas": {
+      "likert": {
+        "colores": ["#F4B183", "#FFD965", "#ADD493", "#70AD47", "#BFBFBF"],
+        "rotulos": ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información"]
+      },
+      "likert_neutro": {
+        "colores": ["#F4B183", "#FFD965", "#D9D9D9", "#ADD493", "#70AD47"]
+      },
+      "dicotomica": {
+        "colores": ["#081F5C", "#9DC3E6"],
+        "rotulos": ["Sí", "No"]
+      },
+      "actores": {
+        "colores": ["#0B4F8C", "#2A9D8F", "#E9C46A", "#8E9DBD", "#081F5C", "#9DC3E6"]
+      },
+      "categorias": {
+        "mayor": "#081F5C",
+        "resto": "#8E9DBD",
+        "residual": "#8A93A8"
+      },
+      "calor": {
+        "desde": "#EEF2F8",
+        "hasta": "#2F4B7C",
+        "rango": [80, 100]
+      },
+      "mapa": {
+        "clases": ["#C9D5EA", "#8EA3C6", "#4F6B9E", "#081F5C"],
+        "fuera": "#E2E6EC"
+      }
+    },
+    "grosor": {
+      "unidad": "in",
+      "nota": "por número de filas de la lámina; la barra no adelgaza por cifras chicas, la fila gana aire",
+      "escala_apilada": [
+        {
+          "filas_hasta": 2,
+          "grosor": 0.5
+        },
+        {
+          "filas_hasta": 3,
+          "grosor": 0.48
+        },
+        {
+          "filas_hasta": 6,
+          "grosor": 0.44
+        },
+        {
+          "filas_hasta": 9,
+          "grosor": 0.38
+        },
+        {
+          "filas_hasta": 999,
+          "grosor": 0.32
+        }
+      ],
+      "categorias": [
+        {
+          "filas_hasta": 3,
+          "grosor": 0.26
+        },
+        {
+          "filas_hasta": 6,
+          "grosor": 0.28
+        },
+        {
+          "filas_hasta": 7,
+          "grosor": 0.3
+        },
+        {
+          "filas_hasta": 999,
+          "grosor": 0.32
+        }
+      ]
+    },
+    "reglas": {
+      "leyenda": "centrada en todo el bloque, incluida la columna Top Two Box; en mapas, al lado y centrada en vertical",
+      "cifras_chicas": "si no caben en su segmento suben con una guía, separadas 0.46 in entre sí; la fila gana aire_cifra_chica",
+      "orden_escala": "de lo negativo a lo positivo; Sin información y No he usado el servicio al final y en gris",
+      "orden_categorias": "de la más elegida a la menos elegida; Otros, Ninguna, No sabe y Prefiero no responder al final",
+      "categoria_mayor": "la mayor en azul y en negrita; las demás en el tono de apoyo",
+      "texto_sobre_color": "blanco o azul, el que más contraste",
+      "base_chica": "con menos de 30 casos, todas las filas del bloque dicen «x de y»",
+      "redondeo": "resto mayor: cada barra suma 100",
+      "coral": "sólo en títulos y en el filete de la narrativa"
+    },
+    "tipos_lamina": [
+      {
+        "id": "p_slide_1_grafico",
+        "nombre": "Un gráfico",
+        "layout": "Graficos",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 12.523,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 1,
+          "cifra_pt": 14,
+          "rotulo_pt": 12,
+          "barra_in": 0.42
+        },
+        "uso": "La lámina estándar: una pregunta, un gráfico"
+      },
+      {
+        "id": "p_slide_1_grafico_narrativo",
+        "nombre": "Un gráfico con narrativa",
+        "layout": "1_Grafico_narrativo",
+        "ranuras": [
+          {
+            "tipo": "texto",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 12.523,
+            "h": 0.8
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 2.6,
+            "w": 12.523,
+            "h": 3.7
+          }
+        ],
+        "familia": {
+          "escala": 1,
+          "cifra_pt": 14,
+          "rotulo_pt": 12,
+          "barra_in": 0.42
+        },
+        "uso": "Una frase arriba dice lo que hay que retener"
+      },
+      {
+        "id": "p_slide_grafico_texto_derecha",
+        "nombre": "Gráfico con texto a la derecha",
+        "layout": "right_grafico_texto",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 7.6,
+            "h": 4.6
+          },
+          {
+            "tipo": "texto",
+            "x": 8.6,
+            "y": 1.9,
+            "w": 4.418,
+            "h": 3
+          }
+        ],
+        "familia": {
+          "escala": 0.6,
+          "cifra_pt": 14,
+          "rotulo_pt": 12,
+          "barra_in": 0.36
+        },
+        "uso": "El gráfico y su lectura al costado"
+      },
+      {
+        "id": "p_slide_grafico_texto_izquierda",
+        "nombre": "Gráfico con texto a la izquierda",
+        "layout": "left_grafico_texto",
+        "ranuras": [
+          {
+            "tipo": "texto",
+            "x": 0.495,
+            "y": 1.9,
+            "w": 4.2,
+            "h": 3
+          },
+          {
+            "tipo": "grafico",
+            "x": 5.2,
+            "y": 1.65,
+            "w": 7.818,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 0.6,
+          "cifra_pt": 14,
+          "rotulo_pt": 12,
+          "barra_in": 0.36
+        },
+        "uso": "Para alternar con la lámina vecina"
+      },
+      {
+        "id": "p_slide_texto",
+        "nombre": "Texto",
+        "layout": "Title and Content",
+        "ranuras": [
+          {
+            "tipo": "texto",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 12.523,
+            "h": 4.6
+          }
+        ],
+        "familia": null,
+        "uso": "Conclusiones o notas metodológicas breves"
+      },
+      {
+        "id": "p_slide_2_graficos",
+        "nombre": "Dos gráficos",
+        "layout": "Graficos_2columnas",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 4.6
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 0.48,
+          "cifra_pt": 13,
+          "rotulo_pt": 11.5,
+          "barra_in": 0.34
+        },
+        "uso": "Dos preguntas que se leen juntas"
+      },
+      {
+        "id": "p_slide_2_graficos_narrativo",
+        "nombre": "Dos gráficos con narrativa",
+        "layout": "1_Graficos_2columnas_narrativo",
+        "ranuras": [
+          {
+            "tipo": "texto",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 12.523,
+            "h": 0.8
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 2.6,
+            "w": 6.012,
+            "h": 3.7
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 2.6,
+            "w": 6.012,
+            "h": 3.7
+          }
+        ],
+        "familia": {
+          "escala": 0.48,
+          "cifra_pt": 13,
+          "rotulo_pt": 11.5,
+          "barra_in": 0.34
+        },
+        "uso": "Dos gráficos con una idea común arriba"
+      },
+      {
+        "id": "p_slide_2_graficos_texto_izquierda",
+        "nombre": "Dos gráficos con texto a la izquierda",
+        "layout": "left_2graficos_texto",
+        "ranuras": [
+          {
+            "tipo": "texto",
+            "x": 0.495,
+            "y": 1.9,
+            "w": 3.5,
+            "h": 3
+          },
+          {
+            "tipo": "grafico",
+            "x": 4.4,
+            "y": 1.65,
+            "w": 4.2,
+            "h": 4.6
+          },
+          {
+            "tipo": "grafico",
+            "x": 8.85,
+            "y": 1.65,
+            "w": 4.168,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 0.4,
+          "cifra_pt": 12,
+          "rotulo_pt": 11,
+          "barra_in": 0.26
+        },
+        "uso": "Perfiles breves con su lectura"
+      },
+      {
+        "id": "p_slide_2_graficos_texto_derecha",
+        "nombre": "Dos gráficos con texto a la derecha",
+        "layout": "right_2graficos_texto",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 4.1,
+            "h": 4.6
+          },
+          {
+            "tipo": "grafico",
+            "x": 4.85,
+            "y": 1.65,
+            "w": 4.1,
+            "h": 4.6
+          },
+          {
+            "tipo": "texto",
+            "x": 9.25,
+            "y": 1.9,
+            "w": 3.768,
+            "h": 3
+          }
+        ],
+        "familia": {
+          "escala": 0.4,
+          "cifra_pt": 12,
+          "rotulo_pt": 11,
+          "barra_in": 0.26
+        },
+        "uso": "Igual que la anterior, para alternar"
+      },
+      {
+        "id": "p_slide_2_graficos_vertical",
+        "nombre": "Dos gráficos apilados",
+        "layout": "graficos_2_vertical",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 12.523,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 4.05,
+            "w": 12.523,
+            "h": 2.2
+          }
+        ],
+        "familia": {
+          "escala": 1,
+          "cifra_pt": 14,
+          "rotulo_pt": 12,
+          "barra_in": 0.3
+        },
+        "uso": "Dos preguntas de escala que comparten leyenda"
+      },
+      {
+        "id": "p_slide_2_graficos_asimetrico",
+        "nombre": "Gráfico principal y de apoyo",
+        "layout": "graficos_2_asimetrico",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 7.9,
+            "h": 4.6
+          },
+          {
+            "tipo": "grafico",
+            "x": 8.85,
+            "y": 1.65,
+            "w": 4.168,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 0.65,
+          "cifra_pt": 14,
+          "rotulo_pt": 12,
+          "barra_in": 0.36
+        },
+        "uso": "Un gráfico manda y el otro lo resume"
+      },
+      {
+        "id": "p_slide_3_graficos_2mas1",
+        "nombre": "Tres gráficos, dos apilados y uno alto",
+        "layout": "graficos_3_2mas1",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 0.4,
+          "cifra_pt": 12,
+          "rotulo_pt": 11,
+          "barra_in": 0.26
+        },
+        "uso": "Dos preguntas breves y una más larga"
+      },
+      {
+        "id": "p_slide_3_graficos_1mas2",
+        "nombre": "Tres gráficos, uno alto y dos apilados",
+        "layout": "graficos_3_1mas2",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 4.6
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          }
+        ],
+        "familia": {
+          "escala": 0.4,
+          "cifra_pt": 12,
+          "rotulo_pt": 11,
+          "barra_in": 0.26
+        },
+        "uso": "La pregunta larga primero"
+      },
+      {
+        "id": "p_slide_3_graficos_1arriba",
+        "nombre": "Tres gráficos, uno ancho arriba",
+        "layout": "graficos_3_1arriba",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 12.523,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          }
+        ],
+        "familia": {
+          "escala": 0.4,
+          "cifra_pt": 12,
+          "rotulo_pt": 11,
+          "barra_in": 0.26
+        },
+        "uso": "Una pregunta general y dos de detalle"
+      },
+      {
+        "id": "p_slide_3_graficos_fila",
+        "nombre": "Tres gráficos en fila",
+        "layout": "graficos_3_fila",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 4.6
+          },
+          {
+            "tipo": "grafico",
+            "x": 4.836,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 4.6
+          },
+          {
+            "tipo": "grafico",
+            "x": 9.177,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 0.4,
+          "cifra_pt": 12,
+          "rotulo_pt": 11,
+          "barra_in": 0.26
+        },
+        "uso": "Tres variables de perfil"
+      },
+      {
+        "id": "p_slide_3_graficos_poblacion_tira",
+        "nombre": "Tres gráficos en tira",
+        "layout": "poblacion_3_tira",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 12.523,
+            "h": 1.4
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 3.25,
+            "w": 12.523,
+            "h": 1.4
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 4.85,
+            "w": 12.523,
+            "h": 1.4
+          }
+        ],
+        "familia": {
+          "escala": 1,
+          "cifra_pt": 14,
+          "rotulo_pt": 12,
+          "barra_in": 0.3
+        },
+        "uso": "Tres preguntas de sí o no del mismo público"
+      },
+      {
+        "id": "p_slide_3_graficos_poblacion_corona",
+        "nombre": "Tres gráficos en corona",
+        "layout": "poblacion_3_corona",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 0.4,
+          "cifra_pt": 12,
+          "rotulo_pt": 11,
+          "barra_in": 0.26
+        },
+        "uso": "Perfil con una variable más larga"
+      },
+      {
+        "id": "p_slide_4_graficos",
+        "nombre": "Cuatro gráficos",
+        "layout": "4_paneles",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 1.65,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          }
+        ],
+        "familia": {
+          "escala": 0.4,
+          "cifra_pt": 12,
+          "rotulo_pt": 11,
+          "barra_in": 0.26
+        },
+        "uso": "Cuatro variables de perfil del mismo público"
+      },
+      {
+        "id": "p_slide_5_graficos_poblacion",
+        "nombre": "Cinco gráficos",
+        "layout": "poblacion_5",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 4.836,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 9.177,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 4.05,
+            "w": 6.012,
+            "h": 2.2
+          }
+        ],
+        "familia": {
+          "escala": 0.3,
+          "cifra_pt": 12,
+          "rotulo_pt": 10.5,
+          "barra_in": 0.22
+        },
+        "uso": "Perfil del egresado o del docente"
+      },
+      {
+        "id": "p_slide_6_graficos_poblacion",
+        "nombre": "Seis gráficos",
+        "layout": "poblacion_6",
+        "ranuras": [
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 4.836,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 9.177,
+            "y": 1.65,
+            "w": 3.841,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 4.05,
+            "w": 3.841,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 4.836,
+            "y": 4.05,
+            "w": 3.841,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 9.177,
+            "y": 4.05,
+            "w": 3.841,
+            "h": 2.2
+          }
+        ],
+        "familia": {
+          "escala": 0.3,
+          "cifra_pt": 12,
+          "rotulo_pt": 10.5,
+          "barra_in": 0.22
+        },
+        "uso": "El máximo de gráficos en una lámina"
+      },
+      {
+        "id": "p_slide_3_graficos_poblacion_cifras",
+        "nombre": "Cifras en columna lateral",
+        "layout": "poblacion_3_cifras",
+        "ranuras": [
+          {
+            "tipo": "cifras",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 3,
+            "h": 4.6
+          },
+          {
+            "tipo": "grafico",
+            "x": 3.9,
+            "y": 1.65,
+            "w": 4.4,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 3.9,
+            "y": 4.05,
+            "w": 4.4,
+            "h": 2.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 8.75,
+            "y": 1.65,
+            "w": 4.268,
+            "h": 4.6
+          }
+        ],
+        "familia": {
+          "escala": 0.3,
+          "cifra_pt": 12,
+          "rotulo_pt": 10.5,
+          "barra_in": 0.22
+        },
+        "uso": "Tamaño de la muestra y edad en cifras"
+      },
+      {
+        "id": "p_slide_cifras_y_graficos",
+        "nombre": "Cifras en banda superior",
+        "layout": "cifras_y_graficos",
+        "ranuras": [
+          {
+            "tipo": "cifras",
+            "x": 0.495,
+            "y": 1.65,
+            "w": 12.523,
+            "h": 1.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 0.495,
+            "y": 3.05,
+            "w": 6.012,
+            "h": 3.2
+          },
+          {
+            "tipo": "grafico",
+            "x": 7.007,
+            "y": 3.05,
+            "w": 6.012,
+            "h": 3.2
+          }
+        ],
+        "familia": {
+          "escala": 0.48,
+          "cifra_pt": 13,
+          "rotulo_pt": 11.5,
+          "barra_in": 0.34
+        },
+        "uso": "Abrir un capítulo o resumir el estudio"
+      }
+    ]
+  },
+  "word": {
+    "pagina": {
+      "unidad": "in",
+      "ancho": 8.27,
+      "alto": 11.69,
+      "margen_izq": 1,
+      "margen_der": 1,
+      "margen_sup": 1.1,
+      "margen_inf": 0.9,
+      "encabezado": 0.4,
+      "pie": 0.4,
+      "ancho_util": 6.27
+    },
+    "tipografia": {
+      "unidad": "pt",
+      "fuente": "Arial",
+      "titulo_1": 18,
+      "titulo_2": 12.5,
+      "numero_capitulo": 9,
+      "rotulo": 10,
+      "base": 8.5,
+      "lectura": 10.5,
+      "cuerpo": 10.5,
+      "toc_1": 10.5,
+      "toc_2": 10,
+      "grafico_minimo": 8,
+      "grafico_cifra": 9.5,
+      "grafico_rotulo": 9,
+      "grafico_leyenda": 8
+    },
+    "colores": {
+      "titulos": "#002060",
+      "texto": "#26303F",
+      "suave": "#5A6480",
+      "acento": "#CA5651",
+      "filete": "#D5D9DF",
+      "recuadro": "#F3F5F8"
+    },
+    "figura": {
+      "dpi": 300,
+      "fondo": "transparente",
+      "alto_apilada": {
+        "base": 1.2,
+        "por_fila": 0.36,
+        "grosor_fraccion": 0.58
+      },
+      "alto_barras": {
+        "base": 0.75,
+        "por_fila": 0.27,
+        "grosor_fraccion": 0.64
+      }
+    },
+    "rotulo": "«Gráfico N» en negrita con campo SEQ y, en la línea siguiente, el título en cursiva; la base y la fuente centradas debajo, sin la palabra Nota",
+    "documento": ["portada tipográfica sola en su página", "resumen", "índice, índice de gráficos e índice de tablas en página propia", "una sección de Word por capítulo con su encabezado escrito", "apertura de capítulo con número grande, título, entrada y secciones", "Cómo leer este informe", "referencias con sangría francesa", "contraportada sin encabezado"]
+  }
+}
