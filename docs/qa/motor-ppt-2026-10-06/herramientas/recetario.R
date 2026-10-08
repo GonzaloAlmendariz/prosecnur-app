@@ -348,11 +348,12 @@ pfila <- function(b, v, actor, ttb21 = NULL) list(actor = actor, f = fr(b, v), t
 prem <- function(...) { fl <- list(...); list(texto = fl[[1]]$f$pregunta, filas = fl) }
 
 doc <- read_pptx("api/inst/plantillas/plantilla_16_9.pptx")
-if (Sys.getenv("SOLO") == "indices") {   # sólo las propuestas de índice, para elegir (propuestas_indice.R)
-  source("docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_indice.R", local = TRUE)
+if (Sys.getenv("SOLO") %in% c("indices", "objetivo")) {   # sólo las propuestas, para elegir (propuestas_indice.R, propuestas_objetivo.R)
+  source(c(indices = "docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_indice.R",
+           objetivo = "docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_objetivo.R")[[Sys.getenv("SOLO")]], local = TRUE)
   crudo <- tempfile(fileext = ".pptx"); print(doc, target = crudo)
   if (system2("python3", c(shQuote("docs/qa/motor-ppt-2026-10-06/herramientas/sanear_ph.py"), shQuote(crudo), shQuote(Sys.getenv("SALIDA"))), stdout = FALSE) != 0) stop("sanear_ph.py falló")
-  cat("OK propuestas de índice", ESTILO, "\n"); quit(save = "no")
+  cat("OK propuestas", Sys.getenv("SOLO"), ESTILO, "\n"); quit(save = "no")
 }
 
 # ===================================================================== 5 portadilla
@@ -435,27 +436,24 @@ if (ESTILO == "fiel") {
   txt(doc, "OBJETIVO", 4.05, 2.0, 6, 0.4, 18, TK$coral, bold = TRUE)
   txt(doc, obj, 4.05, 2.45, 8.6, 2.0, 16, TK$navy)
 } else {
-  # C10: la misma simpleza con el lenguaje de las alternativas de índice: franja de arcos a la izquierda y los actores abajo.
-  wf <- 4.2
-  arcos <- do.call(rbind, lapply(seq_along(c(6.6, 5.6, 4.6, 3.6, 2.6, 1.6)), function(i) { r <- c(6.6, 5.6, 4.6, 3.6, 2.6, 1.6)[i]; t <- seq(0, pi / 2, length.out = 90)
-    data.frame(g = i, x = c(0, r * cos(t)), y = c(0, r * sin(t))) }))
-  pal_arcos <- c("#081F5C", "#9DC3E6", "#2F4B7C", "#C9D3E6", "#4F6A9A", "#CA5651")
-  ga <- ggplot(arcos, aes(x, y, group = g, fill = factor(g))) + geom_polygon(colour = NA) + scale_fill_manual(values = pal_arcos) +
-    coord_fixed(xlim = c(0, wf), ylim = c(0, H), expand = FALSE) + theme_void() + theme(legend.position = "none", plot.background = element_rect(fill = "#F2F2F2", colour = NA))
-  invisible(ph_with(doc, dml(ggobj = ga, bg = "#F2F2F2"), location = ph_location(left = 0, top = 0, width = wf, height = H)))
-  icono_en_circulo(doc, "diana-flecha", wf - 1.25, 0.75, 1.0, fondo = TK$coral)
-  xo <- wf + 0.75; wo <- W - MR - xo
-  txt(doc, "OBJETIVO DEL ESTUDIO", xo, 1.55, wo, 0.3, 11, TK$soft, bold = TRUE)
-  txt(doc, obj, xo, 1.95, wo, 2.3, 20, TK$navy, bold = TRUE)
-  separador_h(doc, xo, W - MR, 4.55)
-  txt(doc, "Actores consultados", xo, 4.75, wo, 0.3, 12, TK$soft, bold = TRUE)
-  actores_obj <- list(c("graduation-cap", "Estudiantes"), c("presentation", "Docentes"), c("briefcase", "Egresados"), c("building-2", "Administrativos"))
-  wa <- wo / 4
-  for (k in seq_along(actores_obj)) { xa <- xo + (k - 1) * wa
-    icono_en_circulo(doc, actores_obj[[k]][1], xa, 5.2, 0.62)
-    txt(doc, actores_obj[[k]][2], xa + 0.66, 5.34, wa - 0.6, 0.42, 11.5, TK$navy, bold = TRUE) }
+  # C10 (elegida por Gonzalo entre tres, 2026-10-07: «A. Sobria»): el objetivo en una frase grande con sus temas en negrita y los seis actores debajo.
+  icono_en_circulo(doc, "diana-flecha", XC, 1.25, 0.62, fondo = TK$coral)
+  txt(doc, "Objetivo del estudio", XC + 0.8, 1.33, 6, 0.45, 20, TK$coral, bold = TRUE)
+  txt_runs(doc, list(list(t = "Conocer la percepción sobre "), list(t = "los propósitos de la carrera", b = TRUE), list(t = " de Contabilidad, su "),
+                     list(t = "perfil de egreso", b = TRUE), list(t = ", su "), list(t = "plan de estudios", b = TRUE), list(t = " y "),
+                     list(t = "otras dimensiones relevantes para la acreditación", b = TRUE),
+                     list(t = ", a partir de la opinión de seis actores de la comunidad universitaria y su entorno.")),
+           XT, 2.3, AC, 2.0, size = 22)
+  separador_h(doc, XC, W - MR, 4.7)
+  txt(doc, "Actores consultados", XT, 4.85, AC, 0.32, 12, TK$soft, bold = TRUE)
+  actores_obj <- list(c("graduation-cap", "Estudiantes"), c("presentation", "Docentes"), c("briefcase", "Egresados"),
+                      c("building-2", "Personal administrativo"), c("users", "Comité Consultivo"), c("briefcase-business", "Empleadores"))
+  wa <- AC / length(actores_obj)
+  for (k in seq_along(actores_obj)) { xa <- XC + (k - 1) * wa
+    icono_en_circulo(doc, actores_obj[[k]][1], xa + (wa - 0.62) / 2, 5.35, 0.62)
+    txt(doc, actores_obj[[k]][2], xa, 6.05, wa, 0.5, 12, TK$navy, bold = TRUE, align = "center") }
 }
-zona("objetivo", wf + 0.75, 1.55, W - MR - wf - 0.75, 4.3); dibujar_guias(doc)
+zona("objetivo", XC, 1.25, AC, 5.3); dibujar_guias(doc)
 
 # ===================================================================== 3 ficha técnica
 MOTOR_ACT <- "p_slide_tabla_tecnica"

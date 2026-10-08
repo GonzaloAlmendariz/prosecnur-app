@@ -97,4 +97,4 @@ MOTOR_ACT <- "p_slide_1_grafico: p_barras_agrupadas (orden_barras = «mayor_meno
 doc <- nueva(doc); titulo(doc, "Qué podría mejorar la carrera", ante = "Ranking en barras")
 txt(doc, "% de encuestados que marcó cada opción", ML + 6.55, YT - 0.25, 4, 0.26, 10, TK$soft, bold = TRUE)
 barras_h(doc, ML, YT + 0.2, ANCHO, lab, pc, wlab = 6.3, g = min(0.42, fl_ * 0.62), fila = fl_, size = 11)
-pie(doc, sprintf("Base: %d egresados. La opción más marcada en azul oscuro; «Otros» y «No sabe» al final", sm$valid))
+pie(doc, sprintf("Base: %d egresados. La opción más marcada va en azul oscuro. «Otros» y «No sabe» van al final", sm$valid))
