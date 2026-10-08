@@ -1357,6 +1357,7 @@ multi_integrated_import <- function(sid,
   if (!length(groups)) {
     doc <- officer::body_add_par(doc, "No hay diferencias de fraseo para documentar.", style = "Normal")
     print(doc, target = path)
+    .docx_conformar(path)
     return(path)
   }
 
@@ -1402,6 +1403,7 @@ multi_integrated_import <- function(sid,
     }
   }
   print(doc, target = path)
+  .docx_conformar(path)   # XML conforme al esquema de Word (docx_conformar.R)
   path
 }
 
