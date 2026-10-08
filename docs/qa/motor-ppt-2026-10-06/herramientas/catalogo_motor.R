@@ -297,6 +297,9 @@ if (MODE == "single") {
 if (MODE == "deck") {
   rr <- try_render(deck, file.path(SP, "catalogo-motor-raw.pptx"))
   cat("DECK:", rr$status, " slides:", length(deck), "\n")
+  # tipo de cada lámina, para el banco de conformidad (scripts/qa_estandar_conformidad.R)
+  utils::write.csv(data.frame(lamina = seq_along(deck), tipo = vapply(deck, function(x) x$tipo, ""), titulo = vapply(deck, function(x) as.character(x$payload$titulo %||% ""), "")),
+                   file.path(SP, "catalogo-motor-tipos.csv"), row.names = FALSE)
   if (length(rr$warnings)) cat("W:", paste(rr$warnings, collapse = "\n"), "\n")
 }
 

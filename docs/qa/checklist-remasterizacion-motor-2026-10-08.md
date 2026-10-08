@@ -21,7 +21,7 @@ Vara y plan en [goal-remasterizacion-motor-2026-10-08.md](goal-remasterizacion-m
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| F0 | Contrato: `estandar_pulso.json` (☑), ADR 0092 (☑), banco de comparación y reglas de conformidad en `verificar_mazo` (☐) | ◐ |
+| F0 | Contrato: `estandar_pulso.json` (☑), ADR 0092 (☑), banco `scripts/qa_estandar_conformidad.R` (☑, línea base 39 % de 530 medidas) | ☑ |
 | F1 | Tokens en el motor: `estandar_tokens.R`, presets derivados, defaults de graficadores a tokens, paletas al núcleo | ☐ |
 | F2 | Graficadores conformes (grosor por filas, cifras chicas, Top/Bottom Two Box, leyendas, dicotómica, dumbbell, serie, histograma, radar, calor, mapas) y gráficos nuevos (metas, matriz, forest, cambio, peso, competencias) | ☐ |
 | F3 | Lámina PPT: plantilla `plantilla_pulso_2026.pptx`, antetítulo, pregunta fuera de la imagen, 22 tipos, láminas de identidad | ☐ |

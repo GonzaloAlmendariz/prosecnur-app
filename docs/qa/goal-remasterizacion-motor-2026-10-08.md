@@ -171,3 +171,24 @@ Se conserva lo bueno: la línea de tiempo, el inspector por pestañas, el autogu
 - **Instalación:** antes de probar los jobs, reinstalación con las precauciones de CLAUDE.md.
 - **Integral:** el mazo y el Word regenerados desde `acrconta` y `acnur_acg` se comparan con los recetarios; los docx pasan el validador OOXML; los `.pulso` existentes abren y regeneran sin pérdidas silenciosas; y el QA visual del editor pasa en la matriz de viewports.
 - **Lo que sólo Gonzalo puede confirmar:** abrir el PPT y el Word en Office real.
+
+## Línea base de conformidad (F0.3, 2026-10-08)
+
+Mazo `catalogo-motor-raw.pptx` del motor actual (58 láminas, `catalogo_motor.R` en modo deck, proyecto `acrconta_mazo`), medido con
+`Rscript scripts/qa_estandar_conformidad.R <mazo.pptx> <tipos.csv>`: **530 medidas, 209 conformes (39 %)**.
+
+| Medida | Conformes | Desvío medio |
+|---|---|---|
+| Tamaño de la base | 0 % | 4 pt (sale en 14, el estándar es 10) |
+| Altura de la base | 72 % | 0.08 in |
+| Gráfico: x | 18 % | 1.31 in |
+| Gráfico: y | 13 % | 0.63 in (en un gráfico, empieza en 1.21 y no en 1.65: la pregunta va dentro de la imagen) |
+| Gráfico: ancho | 51 % | 0.88 in |
+| Gráfico: alto | 4 % | 0.88 in |
+| Número de gráficos | 85 % | 0.24 |
+| Título: tamaño | 94 % | 0.41 pt |
+| Título: x | 62 % | 0.19 in |
+
+Tipos del motor que el estándar aún no cubre (10 láminas): portada, índice, sección (3), objetivo con ícono, Top Two Box, redondeo,
+tabla técnica y las variantes «población» de 2, 3 y 4 gráficos. Las láminas de identidad entran al estándar en F3 (capítulo 1 del
+recetario); las variantes «población» se mapean a «Dos gráficos», «Tres gráficos en corona» y «Cuatro gráficos» en F5.
