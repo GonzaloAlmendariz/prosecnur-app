@@ -48,6 +48,67 @@ panel_titulo(doc, ML, YT + 2.55, ANCHO, "Rango de edades", "52 respuestas")
 barras_h(doc, ML + 2.5, YT + 3.1, ANCHO - 5, do_ed$labels, do_ed$pct, wlab = 1.9, g = grosor_cat(4), fila = 0.42)
 pie(doc, "Base: 52 docentes")
 
+# --- C24 (Gonzalo, 2026-10-07: «hay que definirlos, explicarlos: dónde pueden ir, si ocupan un gráfico, medio gráfico o un
+# solo recuadro, qué proporción»): la cifra destacada como elemento (anatomía) y sus cuatro ubicaciones con su proporción.
+MOTOR_ACT <- "Reglas: la cifra destacada (cifra) como elemento de lámina"
+doc <- nueva(doc); titulo(doc, "La cifra destacada", ante = "Población y cifras")
+xa <- XC; ya <- YT + 0.35; wa <- 4.4
+caja(doc, xa, ya, wa, 2.3, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75))
+cifra(doc, xa + 0.45, ya + 0.45, wa - 0.9, "172", "estudiantes encuestados", "96 % de los matriculados")
+xm_ <- xa + 0.45 + 0.22 + c(ancho_tinta("172", 34, TRUE), ancho_tinta("estudiantes encuestados", 12, TRUE), ancho_tinta("96 % de los matriculados", 10))
+partes_c <- list(c(ya + 0.45 + 0.31, "1", "Valor", "34 pt en negrita. Lleva su unidad cuando no es un conteo: «22 años», «69 %»"),
+                 c(ya + 0.45 + 0.77, "2", "Rótulo", "12 pt en negrita. Dice qué se contó, en dos a cinco palabras"),
+                 c(ya + 0.45 + 1.03, "3", "Detalle", "10 pt en gris. El denominador o la referencia que vuelve legible el valor"))
+xt_ <- xa + wa + 0.8
+for (k in seq_along(partes_c)) { p_ <- partes_c[[k]]; yk <- as.numeric(p_[1]); yt_ <- YT + 0.35 + (k - 1) * 0.78
+  marca(doc, p_[2], xm_[k], yk - 0.15, d = 0.28)
+  marca(doc, p_[2], xt_ - 0.2, yt_ - 0.01)
+  txt(doc, p_[3], xt_ + 0.25, yt_, 3, 0.3, 14, TK$navy, bold = TRUE)
+  txt(doc, p_[4], xt_ + 0.25, yt_ + 0.3, W - MR - xt_ - 0.25, 0.32, 12, TK$soft) }
+separador_h(doc, XC, W - MR, YT + 2.95)
+txt(doc, "Cuándo se usa", XT, YT + 3.15, AC, 0.3, 12, TK$soft, bold = TRUE)
+lista_marcada(doc, c("Para un dato que el lector debe retener: cuántos respondieron, una tasa, una mediana.",
+                     "Se calcula desde la base, como cualquier gráfico, y nunca se escribe a mano.",
+                     "Hasta cuatro por lámina. Si hacen falta más, van a una tabla."),
+  XC, YT + 3.55, AC, paso = 0.42, size = 13)
+zona("anatomía de la cifra", xa, ya, wa, 2.3)
+pie(doc, "")
+
+MOTOR_ACT <- "Reglas: dónde va la cifra destacada (p_slide_3_graficos_poblacion_cifras, p_slide_cifras_y_graficos)"
+doc <- nueva(doc); titulo(doc, "Dónde va la cifra destacada", ante = "Población y cifras")
+gapk <- 0.35; wk4 <- (AC - 3 * gapk) / 4; hk4 <- 1.9; yk4 <- YT - 0.05
+mini_cifra <- function(x, y, w) { caja(doc, x, y, min(w, 0.55), 0.16, TK$navy); caja(doc, x, y + 0.23, min(w, 0.8), 0.05, TK$faint) }
+cota <- function(x0, x1, y, t) { caja(doc, x0, y, x1 - x0, 0.008, TK$soft); caja(doc, x0, y - 0.04, 0.008, 0.088, TK$soft); caja(doc, x1 - 0.008, y - 0.04, 0.008, 0.088, TK$soft)
+  wt_ <- max(x1 - x0, 1.4); txt(doc, t, (x0 + x1) / 2 - wt_ / 2, y + 0.03, wt_, 0.24, 10, TK$soft, align = "center") }
+minik <- function(x, y, tipo) { caja(doc, x, y, wk4, hk4, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75)); pd <- 0.14; wi <- wk4 - 2 * pd; hi <- hk4 - 2 * pd
+  if (tipo == "lateral") { wc_ <- wi * 0.3; for (j in 0:2) mini_cifra(x + pd, y + pd + 0.08 + j * hi / 3, wc_ - 0.1)
+    caja(doc, x + pd + wc_ + 0.08, y + pd, 0.008, hi, TK$rule); caja(doc, x + pd + wc_ + 0.18, y + pd, wi - wc_ - 0.18, hi, TK$tenue)
+    cota(x + pd, x + pd + wc_, y + hk4 + 0.1, "30 %"); cota(x + pd + wc_ + 0.18, x + wk4 - pd, y + hk4 + 0.1, "70 %") }
+  if (tipo == "banda") { for (j in 0:2) mini_cifra(x + pd + j * wi / 3, y + pd + 0.04, wi / 3 - 0.1)
+    caja(doc, x + pd, y + pd + 0.42, wi, 0.008, TK$rule)
+    caja(doc, x + pd, y + pd + 0.52, wi / 2 - 0.06, hi - 0.52, TK$tenue); caja(doc, x + pd + wi / 2 + 0.06, y + pd + 0.52, wi / 2 - 0.06, hi - 0.52, TK$tenue)
+    cota(x + pd, x + wk4 - pd, y + hk4 + 0.1, "todo el ancho, un cuarto del alto") }
+  if (tipo == "recuadro") { wq <- (wi - 0.16) / 3; hq <- (hi - 0.1) / 2
+    for (r in 0:1) for (cc in 0:2) { xq <- x + pd + cc * (wq + 0.08); yq <- y + pd + r * (hq + 0.1)
+      if (r == 0 && cc == 2) { caja(doc, xq, yq, wq, hq, TK$fondo); mini_cifra(xq + 0.08, yq + hq / 2 - 0.14, wq - 0.16) } else caja(doc, xq, yq, wq, hq, TK$tenue) }
+    cota(x + pd + 2 * (wq + 0.08), x + pd + 3 * wq + 0.16, y + hk4 + 0.1, "un recuadro") }
+  if (tipo == "mitad") { caja(doc, x + pd, y + pd + hi / 2 - 0.3, 0.9, 0.32, TK$navy); caja(doc, x + pd, y + pd + hi / 2 + 0.1, 1.0, 0.06, TK$faint)
+    caja(doc, x + pd + wi / 2 + 0.04, y + pd, 0.008, hi, TK$rule); caja(doc, x + pd + wi / 2 + 0.14, y + pd, wi / 2 - 0.14, hi, TK$tenue)
+    cota(x + pd, x + pd + wi / 2, y + hk4 + 0.1, "50 %"); cota(x + pd + wi / 2 + 0.14, x + wk4 - pd, y + hk4 + 0.1, "50 %") } }
+casosk <- list(c("lateral", "Columna lateral", "De una a tres cifras apiladas junto a los gráficos. Es la disposición del perfil de cada público"),
+               c("banda", "Banda superior", "Tres o cuatro cifras a lo ancho, sobre dos gráficos. Abre un capítulo o resume el estudio"),
+               c("recuadro", "En lugar de un gráfico", "Ocupa un recuadro de la grilla cuando un panel se resume en un solo número"),
+               c("mitad", "Mitad y mitad", "Una cifra grande frente a un gráfico, cuando el número es el hallazgo de la lámina"))
+for (k in seq_along(casosk)) { x <- XC + (k - 1) * (wk4 + gapk)
+  minik(x, yk4, casosk[[k]][1])
+  txt(doc, casosk[[k]][2], x - 0.1, yk4 + hk4 + 0.45, wk4 + 0.2, 0.3, 14, TK$navy, bold = TRUE)
+  txt(doc, casosk[[k]][3], x - 0.1, yk4 + hk4 + 0.77, wk4 + 0.2, 0.8, 12, TK$soft) }
+separador_h(doc, XC, W - MR, yk4 + hk4 + 1.75)
+txt(doc, "La cifra no cambia de tamaño según el espacio: siempre 34 pt. Lo que cambia es cuántas caben, y si no caben, la lámina se parte.",
+    XT, yk4 + hk4 + 1.9, AC, 0.6, 13, TK$navy, bold = TRUE)
+zona("cuatro ubicaciones de la cifra", XC, yk4, AC, hk4 + 1.6)
+pie(doc, "")
+
 # --- p_slide_3_graficos_poblacion_cifras: tres gráficos, dos cifras e ícono
 MOTOR_ACT <- "p_slide_3_graficos_poblacion_cifras: p_barras_agrupadas x3 + cifras + ícono"
 doc <- nueva(doc); ICONO_TIT <- "graduation-cap"; titulo(doc, "Perfil del estudiante en cifras", ante = "Población: gráficos y cifras")
