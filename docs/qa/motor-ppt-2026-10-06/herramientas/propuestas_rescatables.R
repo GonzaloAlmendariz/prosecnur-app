@@ -220,8 +220,9 @@ txt(doc, "Por eso el gráfico de significancia muestra la diferencia y su interv
 pie(doc, "Fuentes: Schenker y Gentleman (2001), Cumming y Finch (2005), Gardner y Altman (1986), Newcombe (1998) y Wright, Klein y Wieczorek (2019). Intervalos de Wilson y Newcombe")
 
 # U2. Dos públicos: forest plot integrado a la tabla (pregunta, cifras, diferencia con intervalo, intervalo en números y p)
+forest_doc <- function(doc, tecnica = TRUE) {
 grupos <- list(list("Misión institucional", 1:2), list("Tutoría", 3:4), list("Competencias del perfil de egreso", 5:6))
-doc <- nueva(doc); titulo(doc, "Docentes y estudiantes en seis preguntas", ante = "Propuesta 5: versión técnica")
+doc <- nueva(doc); titulo(doc, "Docentes y estudiantes en seis preguntas", ante = if (tecnica) "Propuesta 5: versión técnica" else "Propuesta 5: versión estándar")
 xq <- XC; xdo <- XC + 3.05; xes <- xdo + 0.95; xg0 <- xes + 1.15; wg <- 4.2; xdi <- xg0 + wg + 0.2; xpv <- xdi + 1.8; wpv <- W - MR - xpv
 lo_ <- -25; hi_ <- 45; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
 yh <- YT - 0.05
@@ -229,7 +230,7 @@ txt(doc, "Pregunta", xq - 0.1, yh, 3, 0.3, 11, TK$soft, bold = TRUE)
 caja(doc, xdo + 0.05, yh + 0.1, 0.12, 0.12, COL_D); txt(doc, "Docentes", xdo + 0.12, yh, 0.95, 0.3, 11, TK$navy, bold = TRUE)
 caja(doc, xes + 0.05, yh + 0.1, 0.12, 0.12, COL_E); txt(doc, "Estudiantes", xes + 0.12, yh, 1.1, 0.3, 11, TK$navy, bold = TRUE)
 txt(doc, "Diferencia, docentes menos estudiantes", xg0 - 0.1, yh, wg + 0.2, 0.3, 11, TK$soft, bold = TRUE, align = "center")
-txt(doc, "Puntos [IC 95 %]", xdi - 0.1, yh, 1.7, 0.3, 11, TK$soft, bold = TRUE); txt(doc, "Prueba", xpv - 0.1, yh, wpv + 0.1, 0.3, 11, TK$soft, bold = TRUE)
+txt(doc, if (tecnica) "Puntos [IC 95 %]" else "Diferencia", xdi - 0.1, yh, 1.7, 0.3, 11, TK$soft, bold = TRUE); if (tecnica) txt(doc, "Prueba", xpv - 0.1, yh, wpv + 0.1, 0.3, 11, TK$soft, bold = TRUE)
 separador_h(doc, XC, W - MR, yh + 0.36)
 y_ <- yh + 0.45; rh <- 0.5; sh <- 0.36; y_top <- y_
 filas_y <- numeric(6)
@@ -238,8 +239,10 @@ for (g in grupos) { txt(doc, toupper(g[[1]]), xq - 0.1, y_ + 0.05, 5, 0.26, 10, 
     if (i %% 2 == 1) caja(doc, XC - 0.05, y_, W - MR - XC + 0.05, rh, "#EAEDF2")
     txt(doc, it2$item[i], xq - 0.1, y_ + 0.1, 3.0, 0.3, 13, ct, bold = s_)
     txt(doc, paste0(it2$p1[i], "%"), xdo, y_ + 0.1, 0.9, 0.3, 13, TK$navy, align = "center"); txt(doc, paste0(it2$p2[i], "%"), xes, y_ + 0.1, 0.9, 0.3, 13, TK$navy, align = "center")
-    txt(doc, sprintf("%s  [%.1f a %.1f]", fmt_d(it2$d[i]), it2$lo[i], it2$hi[i]), xdi - 0.1, y_ + 0.1, 1.85, 0.3, 11.5, ct, bold = s_)
-    txt(doc, fmt_p(it2$pv[i]), xpv - 0.1, y_ + 0.1, wpv + 0.1, 0.3, 11, ct)
+    if (tecnica) { txt(doc, sprintf("%s  [%.1f a %.1f]", fmt_d(it2$d[i]), it2$lo[i], it2$hi[i]), xdi - 0.1, y_ + 0.1, 1.85, 0.3, 11.5, ct, bold = s_)
+      txt(doc, fmt_p(it2$pv[i]), xpv - 0.1, y_ + 0.1, wpv + 0.1, 0.3, 11, ct) } else {
+      txt(doc, sprintf("%s puntos", fmt_d(it2$d[i])), xdi - 0.1, y_ + 0.1, 1.5, 0.3, 13, ct, bold = s_)
+      txt(doc, if (s_) "Significativa" else "No significativa", xpv - 0.35, y_ + 0.1, wpv + 0.35, 0.3, 11.5, ct, bold = s_) }
     y_ <- y_ + rh } }
 y_bot <- y_
 for (v in seq(-20, 40, 20)) { caja(doc, px(v) - (if (v == 0) 0.01 else 0.003), y_top, if (v == 0) 0.02 else 0.006, y_bot - y_top, if (v == 0) TK$soft else TK$rule)
@@ -249,10 +252,13 @@ for (i in 1:6) { s_ <- it2$sig[i]; cc <- if (s_) TK$navy else "#AEB6C6"; yc <- f
   caja(doc, px(it2$d[i]) - 0.1, yc - 0.1, 0.2, 0.2, if (s_) TK$navy else "#FFFFFF", geom = "ellipse", line = sp_line(color = cc, lwd = 1.5)) }
 txt(doc, "Mayor en estudiantes", px(0) - 2.0, y_bot + 0.28, 1.9, 0.26, 10, TK$soft, italic = TRUE, align = "right")
 txt(doc, "Mayor en docentes", px(0) + 0.1, y_bot + 0.28, 1.9, 0.26, 10, TK$soft, italic = TRUE)
-pie(doc, "Top Two Box o «Sí». Base: 52 docentes y 172 estudiantes (Auditoría y Tributación: 51 y 109). Intervalo de Newcombe. Punto lleno: el intervalo no cruza el cero (prueba z, α = 0.05)")
+pie(doc, if (tecnica) "Top Two Box o «Sí». Base: 52 docentes y 172 estudiantes (Auditoría y Tributación: 51 y 109). Intervalo de Newcombe. Punto lleno: el intervalo no cruza el cero (prueba z, α = 0.05)" else
+    "Top Two Box o «Sí». Base: 52 docentes y 172 estudiantes (Auditoría y Tributación: 51 y 109). La barra es el intervalo de 95 %: si no cruza el cero, la diferencia es significativa (α = 0.05)")
+  doc }
 
 # U3. Cuatro públicos: tabla con barras y letras, y matriz de pares con los porcentajes en la diagonal
-doc <- nueva(doc); titulo(doc, "Conocimiento de la misión en los cuatro públicos", ante = "Propuesta 5: versión técnica")
+matriz_doc <- function(doc, tecnica = TRUE) {
+doc <- nueva(doc); titulo(doc, "Conocimiento de la misión en los cuatro públicos", ante = if (tecnica) "Propuesta 5: versión técnica" else "Propuesta 5: versión estándar")
 yt <- YT + 0.05
 txt(doc, "Público", XT, yt, 2, 0.3, 11, TK$soft, bold = TRUE); txt(doc, "Conoce la misión", XC + 2.2, yt, 2.4, 0.3, 11, TK$soft, bold = TRUE)
 txt(doc, "Base", XC + 4.7, yt, 0.6, 0.3, 11, TK$soft, bold = TRUE, align = "center"); separador_h(doc, XC, XC + 5.6, yt + 0.36)
@@ -276,17 +282,55 @@ for (i in 1:4) { yi <- ym + (i - 1) * ch; txt(doc, LETTERS[i], xm - 0.1, yi + (c
     k <- which(pares[1, ] == j & pares[2, ] == i); s_ <- padj[k] < 0.05; dd <- 100 * (p4[i] - p4[j])
     fc <- if (s_) azules[min(5, max(1, ceiling(abs(dd) / 6)))] else "#E3E7EF"; tc <- texto_sobre(fc)
     caja(doc, xj + 0.03, yi + 0.03, cw - 0.06, ch - 0.06, fc)
-    txt(doc, fmt_d(dd), xj, yi + 0.1, cw, 0.34, 15, tc, bold = s_, align = "center")
-    txt(doc, if (padj[k] >= 1) "p = 1" else fmt_p(padj[k]), xj, yi + 0.46, cw, 0.26, 10, tc, align = "center") } }
+    txt(doc, fmt_d(dd), xj, yi + (if (tecnica) 0.1 else (ch - 0.36) / 2), cw, 0.34, 15, tc, bold = s_, align = "center")
+    if (tecnica) txt(doc, if (padj[k] >= 1) "p = 1" else fmt_p(padj[k]), xj, yi + 0.46, cw, 0.26, 10, tc, align = "center") } }
 leyenda(doc, 0, ym + 4 * ch + 0.15, c("Significativa (más intensa, mayor)", "No significativa"), c(TK$navy, "#E3E7EF"), centrar_en = xm + 0.45 + 2 * cw)
 txt(doc, "Administrativos supera en 16 puntos a estudiantes y egresados, pero con 15 casos esa distancia no es significativa.", xm - 0.1, ym + 4 * ch + 0.55, W - MR - xm + 0.1, 0.5, 11.5, TK$navy)
 txt(doc, "Estas pruebas suponen muestreo aleatorio. En estudios censales o por conveniencia, como los de acreditación, se leen como indicativas.", XT, Y_BASE - 0.32, 10.5, 0.3, PT$base, TK$soft, italic = TRUE)
-pie(doc, "Prueba z de diferencia de proporciones en los seis pares, p ajustada por Bonferroni, α = 0.05 (la misma prueba del motor)")
+pie(doc, if (tecnica) "Prueba z de diferencia de proporciones en los seis pares, p ajustada por Bonferroni, α = 0.05 (la misma prueba del motor)" else "Diferencias significativas según la prueba z entre cada par de públicos, con corrección por comparaciones múltiples (α = 0.05)")
+  doc }
+
+# L. Tabla de letras, sobria, con un gráfico al lado que dibuja lo mismo (2026-10-08: «me gustaba la tabla sencilla, elegante y minimalista con las A y las B;
+# sería interesante combinarla con un gráfico al lado»). Letras calculadas con la prueba del motor: z combinada por par, Bonferroni en la fila, α = 0.05.
+tl <- list(list("Misión institucional", list(c("Conoce la misión", 51, 133, 138, 52, 172, 178), c("Sabe dónde consultarla", 47, 106, 112, 51, 133, 138))),
+           list("Competencias del perfil de egreso", list(c("Estados financieros", 50, 105, 158, 51, 109, 161), c("Tributación", 48, 105, 158, 51, 109, 161), c("Auditoría", 49, 99, 158, 51, 109, 161),
+                                                      c("Finanzas", 49, 104, 150, 51, 109, 161), c("Visión empresarial", 47, 102, 153, 51, 109, 161), c("Costos y presupuestos", 47, 102, 151, 51, 109, 161))))
+pub3 <- c("Docentes", "Estudiantes", "Egresados"); col3 <- unname(TK$actores[pub3])
+letras_fila <- function(x, n) { p <- x / n; pr <- combn(3, 2); pa <- p.adjust(apply(pr, 2, function(ab) z_pool(x[ab[1]], n[ab[1]], x[ab[2]], n[ab[2]])), "bonferroni")
+  l <- rep("", 3); sigp <- list(); for (k in seq_len(ncol(pr))) if (pa[k] < 0.05) { a <- pr[1, k]; b <- pr[2, k]; sigp[[length(sigp) + 1]] <- c(a, b)
+    if (p[a] > p[b]) l[a] <- paste0(l[a], LETTERS[b]) else l[b] <- paste0(l[b], LETTERS[a]) }
+  list(p = 100 * p, l = l, pares = sigp) }
+doc <- nueva(doc); titulo(doc, "Misión y perfil de egreso en tres públicos", ante = "Propuesta 5: tabla de letras y gráfico")
+xi <- XC; wi <- 2.9; xv <- c(XC + 3.0, XC + 4.1, XC + 5.2); wv <- 1.05; xg0 <- XC + 6.75; wg <- W - MR - xg0 - 0.25; lo_ <- 75; hi_ <- 100; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
+yh <- YT - 0.1
+for (k in 1:3) { txt(doc, pub3[k], xv[k] - 0.1, yh, wv + 0.2, 0.28, 11.5, TK$navy, bold = TRUE, align = "center"); txt(doc, LETTERS[k], xv[k], yh + 0.26, wv, 0.26, 11, AZUL_LETRA, bold = TRUE, align = "center") }
+leyenda(doc, 0, yh + 0.08, pub3, col3, centrar_en = xg0 + wg / 2)
+separador_h(doc, XC, xv[3] + wv, yh + 0.58)
+y_ <- yh + 0.66; rh <- 0.42; sh <- 0.34; ytop <- y_; filas <- list()
+for (g in tl) { txt(doc, toupper(g[[1]]), xi - 0.1, y_ + 0.05, 6, 0.26, 10, TK$soft, bold = TRUE); y_ <- y_ + sh
+  for (it in g[[2]]) { x <- as.numeric(it[2:4]); n <- as.numeric(it[5:7]); r <- letras_fila(x, n); hay <- length(r$pares) > 0
+    txt(doc, it[1], xi - 0.1, y_ + 0.07, wi, 0.3, 13, TK$navy, bold = hay)
+    for (k in 1:3) { l <- r$l[k]; cad <- paste0(round(r$p[k]), "%")
+      if (nzchar(l)) { wnum <- ancho_tinta(cad, 13, TRUE); wl <- ancho_tinta(l, 11, TRUE); x0 <- xv[k] + (wv - wnum - wl - 0.08) / 2
+        txt(doc, cad, x0 - 0.1, y_ + 0.07, wnum + 0.25, 0.3, 13, TK$navy, bold = TRUE); txt(doc, l, x0 + wnum + 0.08 - 0.1, y_ + 0.09, wl + 0.25, 0.28, 11, AZUL_LETRA, bold = TRUE)
+      } else txt(doc, cad, xv[k], y_ + 0.07, wv, 0.3, 13, TK$navy, align = "center") }
+    filas[[length(filas) + 1]] <- list(y = y_ + rh / 2, r = r); separador_h(doc, XC, xv[3] + wv, y_ + rh); y_ <- y_ + rh } }
+ybot <- y_
+for (v in seq(75, 100, 5)) { caja(doc, px(v) - 0.003, ytop, 0.006, ybot - ytop, TK$rule); txt(doc, paste0(v, "%"), px(v) - 0.35, ybot + 0.04, 0.7, 0.24, 10, TK$soft, align = "center") }
+for (f in filas) { yc <- f$y; pv <- f$r$p
+  caja(doc, px(min(pv)), yc - 0.012, px(max(pv)) - px(min(pv)), 0.024, "#C9CED8")
+  for (pr in f$r$pares) { a <- min(pv[pr]); b <- max(pv[pr]); caja(doc, px(a), yc - 0.035, px(b) - px(a), 0.07, TK$navy) }
+  for (k in order(-pv)) caja(doc, px(pv[k]) - 0.1, yc - 0.1, 0.2, 0.2, col3[k], geom = "ellipse", line = sp_line(color = "#FFFFFF", lwd = 1)) }
+txt(doc, "La letra junto a una cifra indica de qué público es significativamente mayor. En el gráfico, la línea azul une a los públicos que difieren de forma significativa.", XT, ybot + 0.32, AC, 0.5, 12, TK$navy)
+pie(doc, "Top Two Box o «Sí». Prueba z entre cada par de públicos, con corrección de Bonferroni (α = 0.05). Base: 51 docentes, 109 estudiantes y 161 egresados (misión: 52, 172 y 178)")
+
+doc <- forest_doc(doc, TRUE); doc <- forest_doc(doc, FALSE)
+doc <- matriz_doc(doc, TRUE); doc <- matriz_doc(doc, FALSE)
 
 # Versiones para público general (2026-10-08: «debe haber una versión avanzada como la que muestras, pero también una versión entendible para un
 # público general»). Mismos datos y misma prueba que las técnicas; sin p ni intervalos, y la significancia dicha en palabras.
 # G2. Dos públicos: cada pregunta con sus dos puntos y la distancia marcada sólo cuando es significativa (no «clara»: significativa no quiere decir grande)
-doc <- nueva(doc); titulo(doc, "Dónde la diferencia entre docentes y estudiantes es significativa", ante = "Propuesta 5: versión para público general")
+doc <- nueva(doc); titulo(doc, "Diferencias significativas entre docentes y estudiantes", ante = "Propuesta 5: versión para público general")
 xq <- XC; xg0 <- XC + 3.4; wg <- 5.5; xr <- xg0 + wg + 0.95; lo_ <- 50; hi_ <- 100; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
 leyenda(doc, 0, YT - 0.05, c("Docentes", "Estudiantes"), c(COL_D, COL_E), centrar_en = xg0 + wg / 2)
 y_ <- YT + 0.5; rh <- 0.62
