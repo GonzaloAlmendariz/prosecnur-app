@@ -102,7 +102,7 @@ doc <- nueva(doc); titulo(doc, "Cinco cifras, el máximo", ante = "Propuesta 2: 
 banda_cifras(doc, c5, XC, YT + 0.2, AC, size = 34)
 separador_h(doc, XC, W - MR, YT + 3.3)
 txt(doc, "Con cinco, la cifra baja a 34 pt. Si un rótulo pide una línea más, todos los detalles bajan con él. Con seis o más, la información va a una tabla.", XT, YT + 3.5, AC, 0.6, 13, TK$navy, bold = TRUE)
-pie(doc, "La cifra y el detalle los calcula el motor; el rótulo corto se escribe en la app, como el texto de una lámina narrativa")
+pie(doc, "La cifra y el detalle los calcula el motor. El rótulo corto se escribe en la app, como el texto de una lámina narrativa")
 
 # ---------------------------------------------------------------- 3 y 6. Bottom Two Box y fila Total separada (en el bloque Likert de PULSO)
 filas_pulso <- function(doc, x, y, w, premisa, filas, peso = NULL, fila = 0.46, wlab = 1.6) {
