@@ -39,9 +39,11 @@
 #' - `1`: suelo previo a 2026-08-06.
 #' - `2`: P29 — el porcentaje va solo; el conteo junto a la cifra pasa a ser
 #'   opcion apagada de fabrica (`formato_valor`, `mostrar_frecuencia`).
+#' - `3`: ADR 0092 — el suelo sigue al estandar de los recetarios; la base de
+#'   la lamina baja de 14 a 10 pt (`size_nota_pie`).
 #'
 #' @keywords internal
-.PRESETS_FLOOR_VERSION <- 2L
+.PRESETS_FLOOR_VERSION <- 3L
 
 #' Sello del suelo editorial vigente
 #'

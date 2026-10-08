@@ -12,8 +12,8 @@ Vara y plan en [goal-remasterizacion-motor-2026-10-08.md](goal-remasterizacion-m
 | R4 | «un repensamiento completo, pero manteniendo todo lo bueno que ya tiene ProSecNur a nivel de interfaz usuaria» | F6 | ☐ |
 | R5 | «de PPT y de Word, las paletas, los diseños» | F1 a F4 | ☐ |
 | R6 | «que sea muy fino, muy cuidadoso, que respete las proporciones, que respete los estándares que ya están establecidos en los recetarios» | banco de conformidad F0, todas las fases | ☐ |
-| R7 | Estilos: «El recetario es el estándar»; perfiles de cliente sólo cambian logo y paleta | F1 | ☐ |
-| R8 | Proyectos: «Migran solos», con aviso de lo que no tenga equivalente | F5 | ☐ |
+| R7 | Estilos: «El recetario es el estándar»; perfiles de cliente sólo cambian logo y paleta | F1, `estandar_presets.R` impone tamaños y fuente; colores quedan al perfil | ◐ |
+| R8 | Proyectos: «Migran solos», con aviso de lo que no tenga equivalente | F5; adelantado en F1 para el estilo base (`[PULSO-AVISO]` con cada clave cambiada) | ◐ |
 | R9 | Word: «El documento completo» | F4 | ☐ |
 | R10 | Ritmo: «Loop con hitos y commits», tick de 300 s | loop | ☑ abierto |
 
@@ -22,7 +22,7 @@ Vara y plan en [goal-remasterizacion-motor-2026-10-08.md](goal-remasterizacion-m
 | Fase | Contenido | Estado |
 |---|---|---|
 | F0 | Contrato: `estandar_pulso.json` (☑), ADR 0092 (☑), banco `scripts/qa_estandar_conformidad.R` (☑, línea base 39 % de 530 medidas) | ☑ |
-| F1 | Tokens en el motor: `estandar_tokens.R`, presets derivados, defaults de graficadores a tokens, paletas al núcleo | ☐ |
+| F1 | Tokens en el motor: `estandar_tokens.R` (☑), presets conformes y migración de lo guardado `estandar_presets.R` (☑, base_pt 0 % → 100 %, conformidad 39 % → 45 %), defaults de graficadores a tokens (☐), paletas al núcleo (☐) | ◐ |
 | F2 | Graficadores conformes (grosor por filas, cifras chicas, Top/Bottom Two Box, leyendas, dicotómica, dumbbell, serie, histograma, radar, calor, mapas) y gráficos nuevos (metas, matriz, forest, cambio, peso, competencias) | ☐ |
 | F3 | Lámina PPT: plantilla `plantilla_pulso_2026.pptx`, antetítulo, pregunta fuera de la imagen, 22 tipos, láminas de identidad | ☐ |
 | F4 | Word completo: `reporte_word_documento.R` e identidad, estilos, SEQ, índices, secciones, «Cómo leer» | ☐ |

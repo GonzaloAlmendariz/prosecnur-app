@@ -933,7 +933,8 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
   # Mismo calibre del entregable aprobado: la leyenda y los ejes van a 12 pt.
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_leyenda, 12)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 12)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 14)
+  # La base de la lámina sigue al estándar de los recetarios (ADR 0092): 10 pt.
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 10)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_titulo, .PULSO_PPT_COLORS$rojo)
 	  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$azul)
 	  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_leyenda, .PULSO_PPT_COLORS$azul)

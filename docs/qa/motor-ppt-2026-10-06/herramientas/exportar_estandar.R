@@ -1,7 +1,8 @@
 # Exporta la norma de los dos recetarios (PPT moderno y propuesta en Word) a api/inst/estandar/estandar_pulso.json, la fuente única de
 # verdad del estilo del motor (ADR 0092). Los valores salen de recetario.R, recetario_piezas.R, recetario_fichas.R, recetario_word_graficos.R
 # y recetario_word_identidad.R; si cambian ahí, se cambian aquí y se vuelve a exportar. Uso (desde la raíz del repo):
-#   Rscript docs/qa/motor-ppt-2026-10-06/herramientas/exportar_estandar.R
+#   Rscript docs/qa/motor-ppt-2026-10-06/herramientas/exportar_estandar.R [salida.json]
+# Sin argumento escribe la fuente de verdad; con uno, una copia (test-estandar-tokens.R la compara con la versionada).
 suppressMessages(library(jsonlite))
 r3 <- function(x) round(x, 3)
 
@@ -83,5 +84,7 @@ word <- list(
 est <- list(version = "2026.10", fuente = c("docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx", "docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx"),
             ppt = list(geometria = geom, tipografia = tipografia_ppt, colores = colores, paletas = paletas, grosor = grosor, reglas = reglas, tipos_lamina = tipos), word = word)
 dir.create("api/inst/estandar", showWarnings = FALSE, recursive = TRUE)
-write_json(est, "api/inst/estandar/estandar_pulso.json", auto_unbox = TRUE, pretty = TRUE, null = "null", digits = NA)
+salida <- commandArgs(trailingOnly = TRUE)[1]
+if (is.na(salida)) salida <- "api/inst/estandar/estandar_pulso.json"
+write_json(est, salida, auto_unbox = TRUE, pretty = TRUE, null = "null", digits = NA)
 cat("estandar_pulso.json:", length(tipos), "tipos de lámina\n")
