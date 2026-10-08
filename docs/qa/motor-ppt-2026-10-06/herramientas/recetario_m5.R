@@ -144,7 +144,8 @@ if (ESTILO == "moderna") {
 } else {
   dfc <- data.frame(ano = factor(rep(anos, each = length(ent))), ent = factor(rep(ent, times = 5), levels = rev(ent)), v = as.vector(cnt))
   pal <- c("#081F5C", "#0B4F8C", "#2A9D8F", "#9DC3E6", "#E9C46A", "#F4B183", "#BFBFBF")
-  gc <- ggplot(dfc[dfc$v > 0, ], aes(ano, v, fill = ent)) + geom_col(width = 0.6) + geom_text(aes(label = v), position = position_stack(vjust = 0.5), size = 11 / .pt, colour = "#FFFFFF", fontface = "bold", family = "Arial") +
+  gc <- ggplot(dfc[dfc$v > 0, ], aes(ano, v, fill = ent)) + geom_col(width = 0.6) + geom_text(aes(label = v, colour = ent), position = position_stack(vjust = 0.5), size = 11 / .pt, fontface = "bold", family = "Arial", show.legend = FALSE) +
+    scale_colour_manual(values = setNames(vapply(rev(pal), texto_sobre, ""), levels(dfc$ent)), guide = "none") +
     scale_fill_manual(values = setNames(rev(pal), levels(dfc$ent))) + labs(x = NULL, y = NULL, fill = NULL) + theme_minimal(base_family = "Arial") +
     theme(plot.background = element_blank(), panel.background = element_blank(), legend.position = "right", legend.text = element_text(size = 11, colour = TK$navy), axis.text = element_text(size = 12, colour = TK$navy, face = "bold"), panel.grid = element_blank(), axis.text.y = element_blank())
   invisible(ph_with(doc, dml(ggobj = gc, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML, top = YT, width = ANCHO - 0.6, height = YF - YT)))
