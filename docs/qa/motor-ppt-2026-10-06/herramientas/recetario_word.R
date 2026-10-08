@@ -48,7 +48,7 @@ lectura_runs <- function(texto) {   # «Lectura»: las cifras en negrita, el res
 # Con la etiqueta SEQ, Word arma solo el índice de gráficos y el de tablas (Referencias > Insertar tabla de ilustraciones).
 # Convención de revista (APA, 7.ª ed.): «Gráfico 5» en negrita y, en la línea siguiente, el título en cursiva. Word arma con el campo SEQ el índice.
 rotulo <- function(doc, etiqueta, id, n, titulo) body_add_fpar(doc, fpar(run_est(paste0(etiqueta, " "), "NumeroRotulo"), seq_run(id, n, "NumeroRotulo"), run_linebreak(), ftext(titulo, fp_text_lite(italic = TRUE))), style = "Rótulo de gráfico")
-base_fuente <- function(doc, t, keep = FALSE) body_add_fpar(doc, fpar(ftext("Nota. ", fp_text_lite(italic = TRUE)), ftext(t)), style = "Base y fuente")   # «Nota.» como en una revista
+base_fuente <- function(doc, t, keep = FALSE) body_add_fpar(doc, fpar(ftext(t)), style = "Base y fuente")   # base y fuente, centradas bajo el gráfico y sin la palabra «Nota» (Gonzalo, 2026-10-08)
 GN <- 0; TN <- 0
 # Figura: rótulo, imagen del ancho del texto, base y fuente como párrafo propio (editable) y, si hay, el párrafo de lectura.
 grafico <- function(doc, titulo, g, alto, texto = NULL, base = NULL) {
