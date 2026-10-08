@@ -12,7 +12,40 @@ fila_s <- function(actor, pct, valid) list(actor = actor, f = sf(pct, valid))
 b2b <- function(f) f$pct[1] + f$pct[2]
 NARANJA_TXT <- "#A44A1F"   # cifra del Bottom Two Box: el naranja de la escala oscurecido para leerse sobre el fondo
 
+# Integración al recetario (2026-10-08, «ya está listo para que todo sea integrado al recetario»): cada sección es una función que llaman el mazo
+# de propuestas (SOLO=rescatables) y el recetario moderno en su lugar. En el recetario el antetítulo cambia «Propuesta N» por el nombre del tema.
+MODO_RR <- if (Sys.getenv("SOLO") == "rescatables") "propuestas" else "recetario"
+ante_rr <- function(t) if (MODO_RR == "propuestas") t else { t <- sub("^Propuestas 3 y 6: ", "Escalas: ", t); t <- sub("^Propuesta 1: ", "Separadores: ", t)
+  t <- sub("^Propuesta 2: ", "Cifras destacadas: ", t); t <- sub("^Propuesta 4: ", "", t); t <- sub("^Propuesta 5: ", "Diferencias significativas: ", t)
+  m <- c(`Diferencias significativas: significancia` = "Diferencias significativas", `Separadores: separadores` = "Separadores",
+         `Cifras destacadas: cifras, de 1 a 5` = "Cifras destacadas, de 1 a 5")
+  if (t %in% names(m)) m[[t]] else t }
+filas_pulso <- function(doc, x, y, w, premisa, filas, peso = NULL, fila = 0.42, wlab = 1.6) {
+  wpeso <- if (is.null(peso)) 0 else 1.5; wcol <- 1.25; xb <- x + wpeso + wlab + 0.12; wb <- w - wpeso - wlab - 0.12 - 2 * wcol - 0.15
+  xt2 <- xb + wb + 0.1; xb2 <- xt2 + wcol; g <- 0.28
+  txt(doc, premisa, x - 0.1, y, w, 0.34, 13, TK$navy, bold = TRUE)
+  yh <- y + 0.42
+  txt(doc, "Top Two Box", xt2 - 0.05, yh, wcol + 0.1, 0.26, 10, TK$verde_txt, bold = TRUE, align = "center")
+  txt(doc, "Bottom Two Box", xb2 - 0.1, yh, wcol + 0.2, 0.26, 10, NARANJA_TXT, bold = TRUE, align = "center")
+  if (!is.null(peso)) txt(doc, "Cuánto pesa", x - 0.1, yh, wpeso + 0.3, 0.26, 10, TK$soft, bold = TRUE)
+  yy <- yh + 0.3
+  for (k in seq_along(filas)) { fl <- filas[[k]]; es_tot <- identical(fl$actor, "Total"); yb <- yy + (fila - g) / 2
+    if (!is.null(peso)) { pk <- peso[k]
+      if (is.na(pk)) txt(doc, "sin efecto", x - 0.1, yb + (g - 0.28) / 2, wpeso, 0.28, 10, TK$soft) else {   # punto sobre una línea, como el ranking con puntos
+        lw <- (wpeso - 0.6) * pk / 50; caja(doc, x, yb + g / 2 - 0.006, lw, 0.012, TK$faint); caja(doc, x + lw - 0.07, yb + g / 2 - 0.07, 0.14, 0.14, TK$navy, geom = "ellipse")
+        txt(doc, paste0(pk, "%"), x + lw + 0.05, yb + (g - 0.3) / 2, 0.6, 0.3, 12, TK$navy, bold = TRUE) } }
+    hl <- alto_txt(fl$actor, wlab, 12, TRUE)
+    txt(doc, fl$actor, x + wpeso, yb + (g - hl) / 2, wlab, hl, 12, TK$navy, bold = TRUE, align = "right")
+    barra_apilada(doc, xb, yb, wb, fl$f$pct, TK$likert, g)
+    txt(doc, paste0(ttb(fl$f), "%"), xt2, yb + (g - 0.3) / 2, wcol, 0.3, 13, TK$verde_txt, bold = TRUE, align = "center")
+    txt(doc, paste0(b2b(fl$f), "%"), xb2, yb + (g - 0.3) / 2, wcol, 0.3, 13, NARANJA_TXT, bold = TRUE, align = "center")
+    if (es_tot) separador_h(doc, x + wpeso, x + w, yb + g + 0.08)   # filete bajo la barra del Total (T6: antes chocaba con las cifras chicas de la fila siguiente)
+    yy <- yy + fila + (if (es_tot) 0.22 else 0) }
+  invisible(yy) }
+tot_pond <- function(a, na, b, nb) round((a * na + b * nb) / (na + nb))
+
 # ---------------------------------------------------------------- portada y tabla de evaluación
+rr_portada <- function(doc) {
 doc <- nueva(doc, "Title Slide")
 txt(doc, "PROPUESTAS PARA EL RECETARIO", 1.6, 2.12, 10.1, 0.32, 13, TK$coral, bold = TRUE, align = "center")
 txt(doc, "Ideas de referencia, en la línea de PULSO", 0.8, 2.5, 11.7, 0.7, 32, TK$navy, bold = TRUE, align = "center")
@@ -36,8 +69,10 @@ ft <- flextable(ev) |> font(fontname = TK$font, part = "all") |> fontsize(size =
   valign(valign = "center", part = "all")
 invisible(ph_with(doc, ft, location = ph_location(left = XC, top = YT - 0.1, width = 12.35, height = 4.5)))
 pie(doc, "Estado según los comentarios del 2026-10-08. La pregunta exacta en el pie se retiró")
+  doc }
 
 # ---------------------------------------------------------------- 1. separadores (S1, T1 a T4: sin cero, con aire bajo la línea punteada; S2 y T5: el subcapítulo como un subtítulo)
+rr_separadores <- function(doc) {
 sep_base <- function(doc) nueva(doc, "Section Header")
 sep_titulo <- function(doc, xt, y, t, sub) { ht <- alto_txt(t, W - MR - xt, 30, TRUE)
   txt(doc, t, xt, y, W - MR - xt, ht, 30, TK$navy, bold = TRUE); txt(doc, sub, xt, y + ht, W - MR - xt, 0.4, 15, TK$soft) }
@@ -77,7 +112,7 @@ likert_panel(doc, XC, YT + 0.2, 8.4, filas_m, cols = TK$dico, ttb_col = FALSE, g
 leyenda(doc, 0, YT + 3.55, c("Sí", "No"), TK$dico, centrar_en = XC + 4.2)
 narrativa(doc, 9.3, YT + 0.4, W - MR - 9.3, 2.0, list(N_("Sin lámina separadora: el antetítulo en coral, con el número del subcapítulo, marca dónde empieza.")), size = 14)
 pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos")
-doc <- nueva(doc); titulo(doc, "Tres separadores de capítulo y cuatro de subcapítulo", ante = "Propuesta 1: separadores")
+doc <- nueva(doc); titulo(doc, "Tres separadores de capítulo y cuatro de subcapítulo", ante = ante_rr("Propuesta 1: separadores"))
 pts1 <- list(c("Capítulo A", "El número sin cero, grande y en coral, con un filete que lo separa del título."),
              c("Capítulo B", "«Capítulo 2» pequeño en coral sobre un filete corto. El título manda."),
              c("Capítulo C", "Un número grande en azul muy claro, detrás y a la derecha, como marca de agua."),
@@ -87,8 +122,10 @@ pts1 <- list(c("Capítulo A", "El número sin cero, grande y en coral, con un fi
 for (k in seq_along(pts1)) { yk <- YT + (k - 1) * 0.68; if (k > 1) separador_h(doc, XC, W - MR, yk - 0.12)
   txt(doc, pts1[[k]][1], XT, yk, 2.8, 0.32, 14, TK$navy, bold = TRUE); txt(doc, pts1[[k]][2], XC + 2.9, yk, AC - 2.9, 0.55, 13, TK$navy) }
 pie(doc, "El número y el título salen del plan del informe: ninguna variante pide escribir texto nuevo")
+  doc }
 
 # ---------------------------------------------------------------- 2. hallazgos en cifras (S3: es la cifra destacada de III.2, de 1 a 5 cifras, con rótulos de largo distinto)
+rr_cifras <- function(doc) {
 banda_cifras <- function(doc, items, x, y, w, size = 40, con_icono = TRUE) {   # cifra arriba, rótulo de hasta dos líneas y detalle siempre a la misma altura
   n <- length(items); gap <- if (n >= 5) 0.3 else 0.45; wc <- (w - gap * (n - 1)) / n; hn <- size * 1.25 / 72
   hr <- max(vapply(items, function(it) alto_txt(it[3], wc, 12, TRUE), 0))   # todos los detalles a la altura del rótulo más largo
@@ -103,59 +140,40 @@ c5 <- list(c("landmark", "98 %", "de los docentes conoce la misión", "Estudiant
            c("award", "95 %", "valora las competencias técnicas", "Top Two Box de los estudiantes"),
            c("graduation-cap", "31 %", "de los egresados tiene el título", "Aunque el 98 % trabaja"),
            c("users", "417", "personas encuestadas", "En cuatro públicos"))
-doc <- nueva(doc); titulo(doc, "Una cifra frente a su gráfico", ante = "Propuesta 2: cifras, de 1 a 5")
+doc <- nueva(doc); titulo(doc, "Una cifra frente a su gráfico", ante = ante_rr("Propuesta 2: cifras, de 1 a 5"))
 banda_cifras(doc, c5[4], XC, YT + 0.6, 4.6, size = 54)
 separador_v(doc, XC + 5.0, YT, YF - 0.2)
 panel_titulo(doc, XC + 5.4, YT, W - MR - XC - 5.4, "¿Cuenta con título universitario?", "178 egresados")
 dicotomia(doc, XC + 5.4, YT + 0.8, W - MR - XC - 5.4, c("Sí", "No"), c(31, 69), n = c(56, 122), size = 26, g = 0.42)
 pie(doc, "Una cifra junto a su gráfico, en mitades. Base: 178 egresados")
-doc <- nueva(doc); titulo(doc, "Tres cifras con rótulos de largo distinto", ante = "Propuesta 2: cifras, de 1 a 5")
+doc <- nueva(doc); titulo(doc, "Tres cifras con rótulos de largo distinto", ante = ante_rr("Propuesta 2: cifras, de 1 a 5"))
 banda_cifras(doc, c5[1:3], XC, YT + 0.2, AC, size = 44)
 separador_h(doc, XC, W - MR, YT + 3.6)
 txt(doc, "La cifra queda arriba, el rótulo ocupa hasta dos líneas y el detalle siempre cae a la misma altura, aunque un rótulo sea más largo.", XT, YT + 3.8, AC, 0.6, 13, TK$navy, bold = TRUE)
 pie(doc, "Base: 52 docentes, 172 estudiantes y 178 egresados")
-doc <- nueva(doc); titulo(doc, "Cinco cifras, el máximo", ante = "Propuesta 2: cifras, de 1 a 5")
+doc <- nueva(doc); titulo(doc, "Cinco cifras, el máximo", ante = ante_rr("Propuesta 2: cifras, de 1 a 5"))
 banda_cifras(doc, c5, XC, YT + 0.2, AC, size = 34)
 separador_h(doc, XC, W - MR, YT + 3.3)
 txt(doc, "Con cinco, la cifra baja a 34 pt. Si un rótulo pide una línea más, todos los detalles bajan con él. Con seis o más, la información va a una tabla.", XT, YT + 3.5, AC, 0.6, 13, TK$navy, bold = TRUE)
 pie(doc, "Base: 417 personas encuestadas en cuatro públicos")
+  doc }
 
 # ---------------------------------------------------------------- 3 y 6. Bottom Two Box y fila Total separada (en el bloque Likert de PULSO)
-filas_pulso <- function(doc, x, y, w, premisa, filas, peso = NULL, fila = 0.42, wlab = 1.6) {
-  wpeso <- if (is.null(peso)) 0 else 1.5; wcol <- 1.25; xb <- x + wpeso + wlab + 0.12; wb <- w - wpeso - wlab - 0.12 - 2 * wcol - 0.15
-  xt2 <- xb + wb + 0.1; xb2 <- xt2 + wcol; g <- 0.28
-  txt(doc, premisa, x - 0.1, y, w, 0.34, 13, TK$navy, bold = TRUE)
-  yh <- y + 0.42
-  txt(doc, "Top Two Box", xt2 - 0.05, yh, wcol + 0.1, 0.26, 10, TK$verde_txt, bold = TRUE, align = "center")
-  txt(doc, "Bottom Two Box", xb2 - 0.1, yh, wcol + 0.2, 0.26, 10, NARANJA_TXT, bold = TRUE, align = "center")
-  if (!is.null(peso)) txt(doc, "Cuánto pesa", x - 0.1, yh, wpeso + 0.3, 0.26, 10, TK$soft, bold = TRUE)
-  yy <- yh + 0.3
-  for (k in seq_along(filas)) { fl <- filas[[k]]; es_tot <- identical(fl$actor, "Total"); yb <- yy + (fila - g) / 2
-    if (!is.null(peso)) { pk <- peso[k]
-      if (is.na(pk)) txt(doc, "sin efecto", x - 0.1, yb + (g - 0.28) / 2, wpeso, 0.28, 10, TK$soft) else {   # punto sobre una línea, como el ranking con puntos
-        lw <- (wpeso - 0.6) * pk / 50; caja(doc, x, yb + g / 2 - 0.006, lw, 0.012, TK$faint); caja(doc, x + lw - 0.07, yb + g / 2 - 0.07, 0.14, 0.14, TK$navy, geom = "ellipse")
-        txt(doc, paste0(pk, "%"), x + lw + 0.05, yb + (g - 0.3) / 2, 0.6, 0.3, 12, TK$navy, bold = TRUE) } }
-    hl <- alto_txt(fl$actor, wlab, 12, TRUE)
-    txt(doc, fl$actor, x + wpeso, yb + (g - hl) / 2, wlab, hl, 12, TK$navy, bold = TRUE, align = "right")
-    barra_apilada(doc, xb, yb, wb, fl$f$pct, TK$likert, g)
-    txt(doc, paste0(ttb(fl$f), "%"), xt2, yb + (g - 0.3) / 2, wcol, 0.3, 13, TK$verde_txt, bold = TRUE, align = "center")
-    txt(doc, paste0(b2b(fl$f), "%"), xb2, yb + (g - 0.3) / 2, wcol, 0.3, 13, NARANJA_TXT, bold = TRUE, align = "center")
-    if (es_tot) separador_h(doc, x + wpeso, x + w, yb + g + 0.08)   # filete bajo la barra del Total (T6: antes chocaba con las cifras chicas de la fila siguiente)
-    yy <- yy + fila + (if (es_tot) 0.22 else 0) }
-  invisible(yy) }
-tot <- function(a, na, b, nb) round((a * na + b * nb) / (na + nb))
-doc <- nueva(doc); titulo(doc, "Servicios de tutoría", ante = "Propuestas 3 y 6: Bottom Two Box y fila Total")
+rr_b2b <- function(doc) {
+doc <- nueva(doc); titulo(doc, "Servicios de tutoría", ante = ante_rr("Propuestas 3 y 6: Bottom Two Box y fila Total"))
 d1 <- c(0, 2, 29, 54, 15); e1 <- c(6, 18, 34, 19, 23); d2 <- c(0, 2, 31, 44, 23); e2 <- c(3, 6, 45, 32, 13)
 y_ <- filas_pulso(doc, XC, YT - 0.1, AC, "La Unidad cuenta con servicios de tutoría académica",
-                  list(fila_s("Total", tot(d1, 52, e1, 172), 224), fila_s("Docentes", d1, 52), fila_s("Estudiantes", e1, 172)))
+                  list(fila_s("Total", tot_pond(d1, 52, e1, 172), 224), fila_s("Docentes", d1, 52), fila_s("Estudiantes", e1, 172)))
 separador_h(doc, XC, W - MR, y_ + 0.08)
 filas_pulso(doc, XC, y_ + 0.2, AC, "La Unidad cuenta con servicios de tutoría socioemocional",
-            list(fila_s("Total", tot(d2, 52, e2, 172), 224), fila_s("Docentes", d2, 52), fila_s("Estudiantes", e2, 172)))
+            list(fila_s("Total", tot_pond(d2, 52, e2, 172), 224), fila_s("Docentes", d2, 52), fila_s("Estudiantes", e2, 172)))
 leyenda(doc, 0, Y_LEY - 0.05, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 pie(doc, "Top Two Box: «De acuerdo» más «Totalmente de acuerdo». Bottom Two Box: las dos respuestas en desacuerdo. Base: 52 docentes y 172 estudiantes")
+  doc }
 
 # ---------------------------------------------------------------- 4. peso de cada aspecto (puntos, como el ranking de PULSO)
-doc <- nueva(doc); titulo(doc, "Satisfacción con la atención en la Unidad", ante = "Propuesta 4: peso en la satisfacción")
+rr_peso <- function(doc) {
+doc <- nueva(doc); titulo(doc, "Satisfacción con la atención en la Unidad", ante = ante_rr("Propuesta 4: peso en la satisfacción"))
 atr <- list(fila_s("Trato del personal", c(3, 8, 47, 38, 4), 224), fila_s("Tiempo de atención", c(9, 19, 45, 22, 5), 224),
             fila_s("Claridad de la información", c(4, 12, 51, 29, 4), 224), fila_s("Infraestructura", c(2, 9, 52, 33, 4), 224))   # S5: ordenadas por peso
 filas_pulso(doc, XC, YT - 0.1, AC, "¿Qué tan satisfecho está con cada aspecto de la atención?", atr, peso = c(41, 33, 26, NA), fila = 0.66, wlab = 2.4)
@@ -165,8 +183,10 @@ txt(doc, "El peso indica qué parte de la satisfacción general explica cada asp
 txt(doc, "El trato del personal es el aspecto de mayor peso. La infraestructura, aunque bien evaluada, no tiene efecto significativo.", XT, YT + 4.25, AC, 0.35, 13, TK$navy, bold = TRUE)
 leyenda(doc, 0, Y_LEY - 0.05, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 pie(doc, "Cifras ficticias. Peso estimado con una regresión lineal de la satisfacción general sobre los aspectos evaluados")
+  doc }
 
 # ---------------------------------------------------------------- 5. significancia: tabla y gráfico al lado, con la prueba calculada (S6, T9 y comentario del 2026-10-08:
+rr_significancia <- function(doc) {
 # «una tabla de significancia se lee mejor con un gráfico al lado que muestre esa significancia… hay que encontrar una forma creativa y estadísticamente válida»).
 # Antes las letras eran ilustrativas y no salían de ninguna prueba; ahora todo se calcula con conteos reales del recetario.
 # Prueba: la del motor (comparar_columnas_sig en api/R/reporte_cruces.R): z con proporción combinada para cada par, Bonferroni dentro de cada fila, α = 0.05.
@@ -201,7 +221,7 @@ intervalo <- function(doc, x0, x1, yc, col, h = H_IC) caja(doc, x0, yc - h / 2, 
 punto <- function(doc, x, yc, sig, col = TK$navy, d = D_PUNTO) caja(doc, x - d / 2, yc - d / 2, d, d, if (sig) col else "#FFFFFF", geom = "ellipse", line = sp_line(color = if (sig) col else GRIS_NS, lwd = 1.5))
 
 # U1. Por qué graficar la diferencia: un caso real en que los intervalos se solapan y la diferencia sí es significativa
-doc <- nueva(doc); titulo(doc, "Por qué se grafica la diferencia", ante = "Propuesta 5: significancia")
+doc <- nueva(doc); titulo(doc, "Por qué se grafica la diferencia", ante = ante_rr("Propuesta 5: significancia"))
 xa <- c(47, 106); na <- c(51, 133); wD <- wilson(xa[1], na[1], 1.96) * 100; wE <- wilson(xa[2], na[2], 1.96) * 100
 dif <- newcombe(xa[1], na[1], xa[2], na[2], 0.95) * 100; pD <- 100 * xa[1] / na[1]; pE <- 100 * xa[2] / na[2]; pz <- z_pool(xa[1], na[1], xa[2], na[2])
 pan <- function(x0, w, lo, hi, ticks) list(px = function(v) x0 + (v - lo) / (hi - lo) * w, ticks = ticks)
@@ -232,7 +252,7 @@ pie(doc, "Fuentes: Schenker y Gentleman (2001), Cumming y Finch (2005), Gardner 
 # U2. Dos públicos: forest plot integrado a la tabla (pregunta, cifras, diferencia con intervalo, intervalo en números y p)
 forest_doc <- function(doc, tecnica = TRUE) {
 grupos <- list(list("Misión institucional", 1:2), list("Tutoría", 3:4), list("Competencias del perfil de egreso", 5:6))
-doc <- nueva(doc); titulo(doc, "Docentes y estudiantes en seis preguntas", ante = if (tecnica) "Propuesta 5: versión técnica" else "Propuesta 5: versión estándar")
+doc <- nueva(doc); titulo(doc, "Docentes y estudiantes en seis preguntas", ante = ante_rr(if (tecnica) "Propuesta 5: versión técnica" else "Propuesta 5: versión estándar"))
 xq <- XC; xdo <- XC + 3.05; xes <- xdo + 0.95; xg0 <- xes + 1.15; wg <- 4.2; xdi <- xg0 + wg + 0.2; xpv <- xdi + 1.8; wpv <- W - MR - xpv
 lo_ <- -25; hi_ <- 45; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
 yh <- YT - 0.05
@@ -266,7 +286,7 @@ pie(doc, if (tecnica) "Top Two Box o «Sí». Base: 52 docentes y 172 estudiante
 
 # U3. Cuatro públicos: tabla con barras y letras, y matriz de pares con los porcentajes en la diagonal
 matriz_doc <- function(doc, tecnica = TRUE) {
-doc <- nueva(doc); titulo(doc, "Conocimiento de la misión en los cuatro públicos", ante = if (tecnica) "Propuesta 5: versión técnica" else "Propuesta 5: versión estándar")
+doc <- nueva(doc); titulo(doc, "Conocimiento de la misión en los cuatro públicos", ante = ante_rr(if (tecnica) "Propuesta 5: versión técnica" else "Propuesta 5: versión estándar"))
 yt <- YT + 0.05
 txt(doc, "Público", XT, yt, 2, 0.3, 11, TK$soft, bold = TRUE); txt(doc, "Conoce la misión", XC + 2.2, yt, 2.4, 0.3, 11, TK$soft, bold = TRUE)
 txt(doc, "Base", XC + 4.7, yt, 0.6, 0.3, 11, TK$soft, bold = TRUE, align = "center"); separador_h(doc, XC, XC + 5.6, yt + 0.36)
@@ -309,7 +329,7 @@ letras_fila <- function(x, n) { p <- x / n; pr <- combn(3, 2); pa <- p.adjust(ap
     if (p[a] > p[b]) l[a] <- paste0(l[a], LETTERS[b]) else l[b] <- paste0(l[b], LETTERS[a]) }
   ci <- t(apply(pr, 2, function(ab) 100 * newcombe(x[ab[1]], n[ab[1]], x[ab[2]], n[ab[2]], 1 - 0.05 / 3)))   # intervalo ajustado por Bonferroni (3 pares)
   list(p = 100 * p, l = l, pares = sigp, d = 100 * (p[pr[1, ]] - p[pr[2, ]]), lo = ci[, 1], hi = ci[, 2], sig = pa < 0.05) }
-doc <- nueva(doc); titulo(doc, "Misión y perfil de egreso en tres públicos", ante = "Propuesta 5: tabla de letras y gráfico")
+doc <- nueva(doc); titulo(doc, "Misión y perfil de egreso en tres públicos", ante = ante_rr("Propuesta 5: tabla de letras y gráfico"))
 xi <- XC; wi <- 2.9; xv <- c(XC + 3.0, XC + 4.1, XC + 5.2); wv <- 1.05; xg0 <- XC + 6.6; wg <- W - MR - xg0
 yh <- YT - 0.1
 for (k in 1:3) { txt(doc, pub3[k], xv[k] - 0.1, yh, wv + 0.2, 0.28, 11.5, TK$navy, bold = TRUE, align = "center"); txt(doc, LETTERS[k], xv[k], yh + 0.26, wv, 0.26, 11, AZUL_LETRA, bold = TRUE, align = "center") }
@@ -341,7 +361,7 @@ doc <- matriz_doc(doc, TRUE); doc <- matriz_doc(doc, FALSE)
 # Versiones para público general (2026-10-08: «debe haber una versión avanzada como la que muestras, pero también una versión entendible para un
 # público general»). Mismos datos y misma prueba que las técnicas; sin p ni intervalos, y la significancia dicha en palabras.
 # G2. Dos públicos: cada pregunta con sus dos puntos y la distancia marcada sólo cuando es significativa (no «clara»: significativa no quiere decir grande)
-doc <- nueva(doc); titulo(doc, "Diferencias significativas entre docentes y estudiantes", ante = "Propuesta 5: versión para público general")
+doc <- nueva(doc); titulo(doc, "Diferencias significativas entre docentes y estudiantes", ante = ante_rr("Propuesta 5: versión para público general"))
 xq <- XC; xg0 <- XC + 3.4; wg <- 5.5; xr <- xg0 + wg + 0.95; lo_ <- 50; hi_ <- 100; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
 leyenda(doc, 0, YT - 0.05, c("Docentes", "Estudiantes"), c(COL_D, COL_E), centrar_en = xg0 + wg / 2)
 y_ <- YT + 0.5; rh <- 0.62
@@ -359,7 +379,7 @@ txt(doc, "«Significativa»: la prueba estadística indica que es poco probable 
 pie(doc, "Top Two Box o «Sí». Base: 52 docentes y 172 estudiantes (Auditoría y Tributación: 51 y 109). La versión técnica muestra el intervalo y la prueba")
 
 # G3. Cuatro públicos: barras ordenadas, el público que se distingue en azul oscuro y los que no se distinguen agrupados con una llave
-doc <- nueva(doc); titulo(doc, "Los docentes son quienes más conocen la misión", ante = "Propuesta 5: versión para público general")
+doc <- nueva(doc); titulo(doc, "Los docentes son quienes más conocen la misión", ante = ante_rr("Propuesta 5: versión para público general"))
 ord <- order(-p4); xb <- XC + 2.6; wb <- 4.4; y0 <- YT + 0.35; fr <- 0.85; gbar <- 0.46
 for (r in seq_along(ord)) { i <- ord[r]; yb <- y0 + (r - 1) * fr; destaca <- nzchar(let4[i]); chica <- n4[i] < 30
   txt(doc, pub4[i], XC - 0.1, yb + (gbar - 0.32) / 2, 2.55, 0.32, 14, TK$navy, bold = destaca, align = "right")
@@ -374,8 +394,10 @@ narrativa(doc, XC + 9.5, YT + 0.2, W - MR - XC - 9.5, 2.3, list(N_("Los "), B("d
 leyenda(doc, 0, y0 + 4 * fr + 0.05, c("Diferencia significativa con los demás", "Sin diferencia significativa"), c(TK$navy, TK$tenue), centrar_en = xb + wb / 2)
 txt(doc, "Barra punteada: base de menos de 30 casos.", xb - 0.1, y0 + 4 * fr + 0.42, wb, 0.28, 11, TK$soft, italic = TRUE)
 pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos. La versión técnica muestra la matriz de pares con la prueba")
+  doc }
 
 # ---------------------------------------------------------------- lo que se dejó fuera
+rr_fuera <- function(doc) {
 doc <- nueva(doc); titulo(doc, "Lo que no se trae", ante = "Para evaluar")
 fuera <- list(c("layers", "Fondo oscuro a sangre y cuña diagonal", "Son la firma visual del informe de referencia. PULSO ya tiene la suya: fondo claro, personas y público."),
               c("file-text", "Láminas de bloques de texto", "Limitaciones o recomendaciones en párrafos no salen de los datos. Si hacen falta, van en la ficha técnica o en el Word."),
@@ -386,3 +408,6 @@ for (k in seq_along(fuera)) { yk <- YT + (k - 1) * 1.05; if (k > 1) separador_h(
   txt(doc, fuera[[k]][2], XC + 0.75, yk - 0.02, AC - 0.75, 0.32, 14, TK$navy, bold = TRUE)
   txt(doc, fuera[[k]][3], XC + 0.75, yk + 0.3, AC - 0.75, 0.5, 12.5, TK$soft) }
 pie(doc, "")
+  doc }
+
+if (MODO_RR == "propuestas") { doc <- rr_portada(doc); doc <- rr_separadores(doc); doc <- rr_cifras(doc); doc <- rr_b2b(doc); doc <- rr_peso(doc); doc <- rr_significancia(doc); doc <- rr_fuera(doc) }

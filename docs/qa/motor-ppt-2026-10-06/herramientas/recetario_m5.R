@@ -202,3 +202,4 @@ bloque_mixto(doc, list(
        filas = list(lf("Estudiantes", c(5, 15, 44, 21, 15), 1234), lf("Egresados", c(3, 12, 49, 24, 12), 314)))))
 pie(doc, "Base: 1,234 estudiantes y 314 egresados. «No he usado el servicio» cuenta en la base")
 
+if (ESTILO == "moderna") { MOTOR_ACT <- "PROPUESTA: columna Bottom Two Box y fila Total separada (bloque_likert)"; doc <- rr_b2b(doc) }   # integrado desde las propuestas

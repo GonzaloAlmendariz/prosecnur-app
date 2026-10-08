@@ -108,6 +108,7 @@ txt(doc, "La cifra no cambia de tamaño según el espacio: siempre 34 pt. Lo que
     XT, yk4 + hk4 + 1.9, AC, 0.6, 13, TK$navy, bold = TRUE)
 zona("cuatro ubicaciones de la cifra", XC, yk4, AC, hk4 + 1.6)
 pie(doc, "")
+if (ESTILO == "moderna") { MOTOR_ACT <- "Reglas: la cifra destacada de una a cinco (p_slide_cifras_y_graficos)"; doc <- rr_cifras(doc) }   # integrado desde las propuestas
 
 # --- p_slide_3_graficos_poblacion_cifras: tres gráficos, dos cifras e ícono
 MOTOR_ACT <- "p_slide_3_graficos_poblacion_cifras: p_barras_agrupadas x3 + cifras + ícono"

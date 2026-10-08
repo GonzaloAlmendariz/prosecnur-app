@@ -375,6 +375,8 @@ portadilla <- function(doc, n, t, sub = NULL, icono = NULL) {
     zona("título", 2.6, 4.55, 9.8, 0.7) }
   dibujar_guias(doc); doc
 }
+# Piezas integradas desde el mazo de propuestas (2026-10-08): sólo se definen aquí; cada una se llama en su sección, en la versión moderna
+source("docs/qa/motor-ppt-2026-10-06/herramientas/propuestas_rescatables.R", local = TRUE)
 
 
 # ===================================================================== 0 portada y mapa del recetario
@@ -398,11 +400,11 @@ doc <- nueva(doc); titulo(doc, "Cómo recorrer este recetario", ante = "Recetari
 partes <- list(
   list("I", "Reglas de la identidad", "Tamaño, peso y color de cada elemento, retícula, paleta, texto junto a los gráficos, escalas que llegan y reglas de rotulado"),
   list("II", "El informe tipo", "A continuación, un ejemplo de un informe de acreditación"),
-  list("III", "Catálogo de láminas y gráficos", "Disposiciones de dos a seis gráficos, láminas de población, la galería de los 24 gráficos y las dimensiones"),
+  list("III", "Catálogo de láminas y gráficos", "Disposiciones de dos a seis gráficos, láminas de población, la galería de gráficos, las dimensiones y las diferencias significativas"),
   list("IV", "Escenarios de acreditación", "Lo que cambia entre carreras. IV.1 Actores y bases: seis actores, filtros, cohortes, bases chicas. IV.2 Escalas, etiquetas y formatos"),
   if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) list("V", "Otros estudios de PULSO", "La misma identidad en estudios de opinión, monitoreo de campo y seguimiento de indicadores"),
   list("VI", "Banco de recursos", "120 íconos en 12 temáticas, cajas y tarjetas con sus medidas, formas y diagramas, con qué hacer y qué evitar"),
-  list("VII", "Alternativas de índice y de cierre", "Cuatro composiciones geométricas para el índice, de 5 a 13 capítulos, con y sin subcapítulos, y cuatro alternativas de cierre"))
+  list("VII", "Alternativas de índice, separadores y cierre", "Cuatro composiciones para el índice, de 5 a 13 capítulos, separadores de capítulo y subcapítulo, y cuatro cierres"))
 partes <- Filter(Negate(is.null), partes)
 hp <- (YF - YT + 0.1) / length(partes)
 for (k in seq_along(partes)) { yk <- YT - 0.1 + (k - 1) * hp; p_ <- partes[[k]]
@@ -798,12 +800,16 @@ source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3b.R", local = TRUE
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3c.R", local = TRUE)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3d.R", local = TRUE)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m3e.R", local = TRUE)
+if (ESTILO == "moderna") {   # III.5 diferencias significativas, integrada desde las propuestas
+  MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "III.5", "Diferencias significativas", "Cuándo dos públicos difieren de forma significativa, en versión técnica, estándar y para público general", icono = "scale")
+  MOTOR_ACT <- "PROPUESTA: significancia con tabla y gráfico (prueba de comparar_columnas_sig, intervalo de Newcombe)"; doc <- rr_significancia(doc) }
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m4.R", local = TRUE)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m5.R", local = TRUE)
 
 if (file.exists("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R")) source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m6.R", local = TRUE)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m7.R", local = TRUE)   # VI Banco de recursos (I55)
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m8.R", local = TRUE)   # VII Alternativas de índice (I56)
+if (ESTILO == "moderna") { MOTOR_ACT <- "Propuesta de separador de capítulo y subcapítulo (p_slide_seccion)"; doc <- rr_separadores(doc) }   # VII separadores, integrados desde las propuestas
 source("docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m9.R", local = TRUE)   # VII Alternativas de cierre (E8)
 
 # ===================================================================== contraportada (layout de la plantilla)
