@@ -249,7 +249,8 @@ pie(doc, "Todas las figuras son formas de PowerPoint: se editan y se copian entr
 # --- llaves de dependencia (Gonzalo, 2026-10-07: «faltan más ejemplos de llaves de dependencia, y en el banco de recursos usarlo»)
 MOTOR_ACT <- "Banco de recursos: llaves de dependencia (llave_h, llave_v)"
 doc <- nueva(doc); titulo(doc, "Llaves de dependencia", ante = "Banco de recursos")
-gl <- 0.35; wl4 <- (AC - 3 * gl) / 4; hl4 <- 2.25; yl4 <- YT - 0.05
+gl <- 0.45; wl4 <- (AC - 2 * gl) / 3;   # tres usos: la cadena de tres niveles no se lee bien (Gonzalo)
+ hl4 <- 2.25; yl4 <- YT - 0.05
 tarjeta_ll <- function(x) caja(doc, x, yl4, wl4, hl4, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75))
 lin_t <- function(x, y, w) { caja(doc, x, y, w, 0.07, TK$navy); caja(doc, x, y + 0.13, w * 0.7, 0.045, TK$faint) }   # título y base de la subpregunta
 # 1. bajo una categoría
@@ -269,27 +270,18 @@ x3c <- XC + 2 * (wl4 + gl); tarjeta_ll(x3c)
 for (j in 0:4) caja(doc, x3c + p_, yl4 + 0.3 + j * 0.3, wi_ * 0.5 * c(0.95, 0.5, 0.3, 0.4, 0.2)[j + 1], 0.16, if (j < 3) TK$navy else TK$tenue)
 yc3 <- llave_v(doc, x3c + p_ + wi_ * 0.52, yl4 + 0.3, yl4 + 0.3 + 2 * 0.3 + 0.16, x3c + p_ + wi_ * 0.62)
 lin_t(x3c + p_ + wi_ * 0.66, yc3 - 0.25, wi_ * 0.32); caja(doc, x3c + p_ + wi_ * 0.66, yc3 + 0.1, wi_ * 0.34 * 0.8, 0.2, TK$navy); caja(doc, x3c + p_ + wi_ * 0.66 + wi_ * 0.34 * 0.8, yc3 + 0.1, wi_ * 0.34 * 0.2, 0.2, TK$dico[2])
-# 4. en cadena
-x4c <- XC + 3 * (wl4 + gl); tarjeta_ll(x4c)
-caja(doc, x4c + p_, yl4 + 0.25, wi_ * 0.75, 0.18, TK$navy); caja(doc, x4c + p_ + wi_ * 0.75, yl4 + 0.25, wi_ * 0.25, 0.18, TK$dico[2])
-xa_ <- llave_h(doc, x4c + p_, x4c + p_ + wi_ * 0.75, yl4 + 0.47, yl4 + 0.78); caja(doc, xa_, yl4 + 0.78 - 0.011, 0.12, 0.022, TK$navy)
-xb2_ <- xa_ + 0.16; wb2_ <- x4c + wl4 - p_ - xb2_
-caja(doc, xb2_, yl4 + 0.95, wb2_ * 0.7, 0.18, TK$navy); caja(doc, xb2_ + wb2_ * 0.7, yl4 + 0.95, wb2_ * 0.3, 0.18, TK$dico[2])
-xb_ <- llave_h(doc, xb2_, xb2_ + wb2_ * 0.7, yl4 + 1.17, yl4 + 1.48); caja(doc, xb_, yl4 + 1.48 - 0.011, 0.12, 0.022, TK$navy)
-seg_(xb_ + 0.16, yl4 + 1.65, x4c + wl4 - p_ - xb_ - 0.16, c(18, 34, 30, 18), c("#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C"), 0.22)
 casos_ll <- list(c("Bajo una categoría", "El «Sí» de una pregunta filtro abre su subpregunta, que va debajo a todo el ancho"),
                  c("Al costado", "Cuando la subpregunta tiene varias categorías y necesita el alto de la lámina"),
-                 c("Sobre varias categorías", "Cuando la subpregunta la habilitan dos o más respuestas, como las modalidades de trabajo"),
-                 c("En cadena", "Un filtro dentro de otro. Cada nivel abre el siguiente y declara su propia base"))
-for (k in 1:4) { x <- XC + (k - 1) * (wl4 + gl)
+                 c("Sobre varias categorías", "Cuando la subpregunta la habilitan dos o más respuestas, como las modalidades de trabajo"))
+for (k in 1:3) { x <- XC + (k - 1) * (wl4 + gl)
   txt(doc, casos_ll[[k]][1], x - 0.1, yl4 + hl4 + 0.12, wl4 + 0.2, 0.3, 14, TK$navy, bold = TRUE)
   txt(doc, casos_ll[[k]][2], x - 0.1, yl4 + hl4 + 0.44, wl4 + 0.2, 0.8, 12, TK$soft) }
 separador_h(doc, XC, W - MR, yl4 + hl4 + 1.3)
 reglas_ll <- c("Trazo azul oscuro de 0.022 in, alas de 0.1 in. Igual en todo el informe.", "El tallo termina en el título de la subpregunta, nunca dentro del gráfico.",
                "La subpregunta dice su base: «Sólo los 139 que trabajan».")
 for (k in 1:3) txt(doc, reglas_ll[k], XC + (k - 1) * (AC / 3) - 0.1, yl4 + hl4 + 1.45, AC / 3 - 0.1, 0.6, 12, TK$navy, bold = TRUE)
-zona("cuatro usos de la llave de dependencia", XC, yl4, AC, hl4)
-pie(doc, "Los ejemplos completos están en IV.1: pregunta filtro, filtro al costado, llave sobre varias categorías y filtros en cadena")
+zona("tres usos de la llave de dependencia", XC, yl4, AC, hl4)
+pie(doc, "Los ejemplos completos están en IV.1: pregunta filtro, filtro al costado y llave sobre varias categorías. Una llave abre un solo nivel")
 
 # --- formas básicas
 MOTOR_ACT <- "Banco de recursos: formas básicas y su uso"

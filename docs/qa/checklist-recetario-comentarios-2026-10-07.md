@@ -75,6 +75,6 @@ Resultado: de 161 a unas 145 láminas, con la misma cobertura de constructores y
 
 | # | Pedido (textual) | Dónde vive | Estado |
 |---|---|---|---|
-| D1 | «faltan más ejemplos de llaves de dependencia» | `recetario_m4.R` (IV.1) | ☑ dos láminas nuevas en la moderna: «Llave sobre varias categorías» (tres modalidades de trabajo habilitan la subpregunta) y «Filtros en cadena» (trabaja, dependiente, ingreso: una llave por nivel) |
-| D2 | «y en el banco de recursos usarlo» | `recetario_m7.R` (VI) | ☑ en «Figuras y conectores» la cuña pasa a «Llave de dependencia» y la llave verde a «Llave de suma». Lámina nueva «Llaves de dependencia» con los cuatro usos y sus reglas |
+| D1 | «faltan más ejemplos de llaves de dependencia» | `recetario_m4.R` (IV.1) | ☑ lámina nueva en la moderna: «Llave sobre varias categorías» (tres modalidades de trabajo habilitan la subpregunta). La de «Filtros en cadena» se retiró: «las subdependencias no se ven bien, mejor dejarlo sólo en dos» |
+| D2 | «y en el banco de recursos usarlo» | `recetario_m7.R` (VI) | ☑ en «Figuras y conectores» la cuña pasa a «Llave de dependencia» y la llave verde a «Llave de suma». Lámina nueva «Llaves de dependencia» con tres usos (bajo una categoría, al costado y sobre varias categorías) y sus reglas |
 | D3 | «además sigue perfeccionando» | todo el mazo | ◐ revisión visual de todas las láminas, en curso |
