@@ -30,7 +30,7 @@ MOTOR_ACT <- "PROPUESTA: frases frecuentes (palabras, pares y tríos) + p_barras
 doc <- nueva(doc); titulo(doc, "Qué cambiarían los egresados en la carrera", ante = "Pregunta abierta: frases y temas")
 wizq <- 7.3; gapc <- 0.35; wcol_ <- (wizq - 2 * gapc) / 3
 panel_titulo(doc, XC, YT, wizq, "Lo que más se repite", "personas que lo mencionan")
-bloques_f <- list(list("Palabras", head(tx$palabras, 7)), list("Pares", head(tx$pares, 7)), list("Tríos", head(tx$trios[tx$trios >= 2], 7)))
+bloques_f <- list(list("Palabras sueltas", head(tx$palabras, 7)), list("Frases de dos palabras", head(tx$pares, 7)), list("Frases de tres palabras", head(tx$trios[tx$trios >= 2], 7)))
 for (b in seq_along(bloques_f)) { xb <- XC + (b - 1) * (wcol_ + gapc); f_ <- bloques_f[[b]][[2]]
   txt(doc, bloques_f[[b]][[1]], xb - 0.1, YT + 0.62, wcol_, 0.3, 12, TK$soft, bold = TRUE)
   if (b > 1) separador_v(doc, xb - gapc / 2, YT + 0.65, YT + 0.95 + 7 * 0.56)
