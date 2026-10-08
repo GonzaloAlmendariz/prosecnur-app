@@ -70,3 +70,11 @@ Diagnóstico sobre la lista completa de láminas:
 | E9 | Las alternativas de índice ocupan 20 láminas: 4 composiciones por 5 situaciones | 141 a 160 | Dejar 8: cada composición con 5 capítulos y con 13 capítulos. Los subcapítulos se muestran una sola vez, en la composición que se elija |
 
 Resultado: de 161 a unas 145 láminas, con la misma cobertura de constructores y sin repetir datos.
+
+## Tanda posterior (2026-10-07)
+
+| # | Pedido (textual) | Dónde vive | Estado |
+|---|---|---|---|
+| D1 | «faltan más ejemplos de llaves de dependencia» | `recetario_m4.R` (IV.1) | ☑ dos láminas nuevas en la moderna: «Llave sobre varias categorías» (tres modalidades de trabajo habilitan la subpregunta) y «Filtros en cadena» (trabaja, dependiente, ingreso: una llave por nivel) |
+| D2 | «y en el banco de recursos usarlo» | `recetario_m7.R` (VI) | ☑ en «Figuras y conectores» la cuña pasa a «Llave de dependencia» y la llave verde a «Llave de suma». Lámina nueva «Llaves de dependencia» con los cuatro usos y sus reglas |
+| D3 | «además sigue perfeccionando» | todo el mazo | ◐ revisión visual de todas las láminas, en curso |
