@@ -87,7 +87,20 @@ caja_de <- function(x, m = 0.04) { bb <- sf::st_bbox(x); dx <- unname(bb[3] - bb
   sf::st_bbox(c(xmin = unname(bb[1]) - dx, ymin = unname(bb[2]) - dy, xmax = unname(bb[3]) + dx, ymax = unname(bb[4]) + dy), crs = sf::st_crs(x)) }
 recortar <- function(x, bb) suppressWarnings(suppressMessages(sf::st_crop(sf::st_make_valid(x), bb)))
 tema_mapa <- function(g) g + coord_sf(expand = FALSE, datum = NA) + theme_void() + theme(plot.background = element_blank(), panel.background = element_blank())
-poner_mapa <- function(g, x, y, w, h) invisible(ph_with(doc, dml(ggobj = g, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = x, top = y, width = w, height = h)))
+# El mapa conserva su proporción: se calcula el rectángulo que de verdad ocupa dentro de la caja (alineado arriba y centrado en
+# el ancho) y se devuelve, para que la leyenda y el panel lateral se alineen con el dibujo y no con la caja (Gonzalo, 2026-10-08).
+rect_mapa <- function(bb, x, y, w, h, alinear = "centro") { bb <- unname(as.numeric(bb)); lat <- mean(bb[c(2, 4)]) * pi / 180
+  asp <- (bb[4] - bb[2]) / ((bb[3] - bb[1]) * cos(lat)); wd <- min(w, h / asp); hd <- wd * asp
+  list(x = x + (w - wd) * (if (alinear == "derecha") 1 else 0.5), y = y, w = wd, h = hd) }
+poner_mapa <- function(g, x, y, w, h, bb = NULL, alinear = "centro") { r <- if (is.null(bb)) list(x = x, y = y, w = w, h = h) else rect_mapa(bb, x, y, w, h, alinear)
+  ph_with(doc, dml(ggobj = g, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = r$x, top = r$y, width = r$w, height = r$h)); invisible(r) }
+# Leyenda vertical con título, para el panel lateral: termina en y_fin (el borde inferior del mapa dibujado)
+leyenda_mapa <- function(doc, x, y_fin, titulo, labels, cols, w = 3) {
+  y0 <- y_fin - (0.32 + length(labels) * 0.3); txt(doc, titulo, x - 0.06, y0, w, 0.26, 10, TK$soft, bold = TRUE)
+  for (k in seq_along(labels)) { yk <- y0 + 0.32 + (k - 1) * 0.3
+    caja(doc, x, yk + 0.06, 0.16, 0.16, cols[k], line = sp_line(color = if (toupper(cols[k]) %in% c("#FFFFFF", toupper(GRIS_FUERA))) "#B8C2D3" else cols[k], lwd = 0.5))
+    txt(doc, labels[k], x + 0.2, yk, w - 0.24, 0.28, 11, TK$navy) }
+  invisible(y0) }
 rotulos <- function(g, d, min_km2 = 20) { d <- d[d$area_km2 >= min_km2, ]; d$tc <- vapply(d$fill, texto_sobre, "")
   g + geom_text(data = d, aes(label_lon, label_lat, label = partir_nombre(nom), colour = tc), size = 10 / .pt, fontface = "bold", family = "Arial", lineheight = 0.85) + scale_colour_identity() }
 
@@ -108,20 +121,20 @@ LIMA$fill <- ifelse(LIMA$distrito %in% names(grupo), pal_grupo[grupo[LIMA$distri
 # Encuadre en los distritos del estudio con Lima de contexto, y la lista con las encuestas de cada distrito (Gonzalo, 2026-10-08: «se ve bien vacío»)
 bb1 <- caja_de(LIMA[LIMA$distrito %in% names(grupo), ], 0.1)
 g1 <- ggplot() + geom_sf(data = recortar(LIMA, bb1), aes(fill = fill), colour = "#FFFFFF", linewidth = 0.4) + scale_fill_identity()
-hm1 <- YF - YT - 0.45; wm1 <- 6.2
-poner_mapa(tema_mapa(g1), XC, YT, wm1, hm1)
-leyenda(doc, 0, YT + hm1 + 0.08, c(names(pal_grupo), "Fuera del estudio"), c(unname(pal_grupo), GRIS_FUERA), centrar_en = XC + wm1 / 2)
-zona("los distritos del estudio con su contexto", XC, YT, wm1, hm1)
+hm1 <- YF - YT - 0.1; wm1 <- 6.2
+r1 <- poner_mapa(tema_mapa(g1), XC, YT, wm1, hm1, bb = bb1)
+zona("los distritos del estudio con su contexto", r1$x, r1$y, r1$w, r1$h)
 xr1 <- XC + wm1 + 0.8; wr1 <- W - MR - xr1; separador_v(doc, xr1 - 0.4, YT, YF - 0.1)
 enc1 <- c(`SAN JUAN DE LURIGANCHO` = 124, ATE = 96, `EL AGUSTINO` = 58, `SANTA ANITA` = 52, `VILLA EL SALVADOR` = 101, `VILLA MARIA DEL TRIUNFO` = 88, `SAN JUAN DE MIRAFLORES` = 79, CHORRILLOS = 62)
-for (gk in names(pal_grupo)) { k <- match(gk, names(pal_grupo)); yk <- YT + (k - 1) * 2.45; ds <- names(grupo)[grupo == gk]
+for (gk in names(pal_grupo)) { k <- match(gk, names(pal_grupo)); yk <- YT + (k - 1) * 2.2; ds <- names(grupo)[grupo == gk]
   caja(doc, xr1, yk + 0.08, 0.2, 0.2, pal_grupo[[gk]]); txt(doc, paste("Distritos de", tolower(gk)), xr1 + 0.3, yk, wr1 - 1.3, 0.34, 14, TK$navy, bold = TRUE)
   txt(doc, "Encuestas", W - MR - 1.1, yk + 0.04, 1.1, 0.28, 10, TK$soft, bold = TRUE, align = "right")
-  lista_ <- nombre_mapa(ds); for (j in seq_along(lista_)) { yj <- yk + 0.45 + (j - 1) * 0.38
+  lista_ <- nombre_mapa(ds); for (j in seq_along(lista_)) { yj <- yk + 0.42 + (j - 1) * 0.34
     txt(doc, lista_[j], xr1 + 0.3, yj, wr1 - 1.4, 0.3, 12.5, TK$navy); txt(doc, enc1[[ds[j]]], W - MR - 1.1, yj, 1.1, 0.3, PT$cifra, TK$navy, bold = TRUE, align = "right") }
-  separador_h(doc, xr1 + 0.3, W - MR, yk + 0.45 + length(ds) * 0.38 + 0.02)
-  txt(doc, "Total", xr1 + 0.3, yk + 0.5 + length(ds) * 0.38, 1.5, 0.3, 12.5, TK$navy, bold = TRUE)
-  txt(doc, sum(enc1[ds]), W - MR - 1.1, yk + 0.5 + length(ds) * 0.38, 1.1, 0.3, PT$cifra, TK$navy, bold = TRUE, align = "right") }
+  separador_h(doc, xr1 + 0.3, W - MR, yk + 0.42 + length(ds) * 0.34 + 0.02)
+  txt(doc, "Total", xr1 + 0.3, yk + 0.47 + length(ds) * 0.34, 1.5, 0.3, 12.5, TK$navy, bold = TRUE)
+  txt(doc, sum(enc1[ds]), W - MR - 1.1, yk + 0.47 + length(ds) * 0.34, 1.1, 0.3, PT$cifra, TK$navy, bold = TRUE, align = "right") }
+leyenda_mapa(doc, xr1, r1$y + r1$h, "En el mapa", "Fuera del estudio", GRIS_FUERA, w = wr1)
 pie(doc, "Selección y cifras ficticias sobre la cartografía de Lima Metropolitana y Callao (IMP PlanMet 2040)")
 
 # 2. Zonas aplicadas en un distrito (la zona representa a sus manzanas)
@@ -130,16 +143,16 @@ doc <- nueva(doc); titulo(doc, "Zonas aplicadas en San Juan de Lurigancho", ante
 zonas_sjl$fill <- ifelse(zonas_sjl$aplicada, AZUL_SI, "#FFFFFF")
 g2 <- ggplot() + geom_sf(data = zonas_sjl, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity() +
   geom_sf(data = LIMA[LIMA$ubigeo == "150132", ], fill = NA, colour = TK$navy, linewidth = 0.6)
-hm2 <- YF - YT - 0.45; wm2 <- 6.4
-poner_mapa(tema_mapa(g2), XC, YT, wm2, hm2)
-leyenda(doc, 0, YT + hm2 + 0.08, c("Zona aplicada", "Zona fuera de la muestra"), c(AZUL_SI, "#FFFFFF"), centrar_en = XC + wm2 / 2)
-zona("distrito con sus zonas", XC, YT, wm2, hm2)
+hm2 <- YF - YT - 0.1; wm2 <- 6.4
+r2 <- poner_mapa(tema_mapa(g2), XC, YT, wm2, hm2, bb = sf::st_bbox(zonas_sjl))
+zona("distrito con sus zonas", r2$x, r2$y, r2$w, r2$h)
 xr2 <- XC + wm2 + 0.8; wr2 <- W - MR - xr2; separador_v(doc, xr2 - 0.4, YT, YF - 0.1)
 cifra(doc, xr2, YT, wr2, sprintf("%d", sum(zonas_sjl$aplicada)), "zonas aplicadas", sprintf("de %d zonas censales del distrito", nrow(zonas_sjl)))
 separador_h(doc, xr2, W - MR, YT + 1.35)
 notas2 <- c("Cada zona es un conjunto de manzanas. El mapa pinta la zona completa aunque se haya aplicado sólo en algunas de sus manzanas.",
             "Las zonas salen en racimos porque la muestra se sortea por conglomerados.", "El detalle por manzana va en una lámina propia o en el anexo.")
 yn <- YT + 1.6; for (t_ in notas2) { h_ <- alto_txt(t_, wr2, 13); txt(doc, t_, xr2 - 0.1, yn, wr2 + 0.1, h_, 13, TK$navy); yn <- yn + h_ + 0.2 }
+leyenda_mapa(doc, xr2, r2$y + r2$h, "Zonas", c("Zona aplicada", "Zona fuera de la muestra"), c(AZUL_SI, "#FFFFFF"), w = wr2)
 pie(doc, "Selección ficticia sobre las zonas censales INEI 2017 de San Juan de Lurigancho")
 
 # 3. Manzanas aplicadas dentro de sus zonas (acercamiento a un racimo)
@@ -154,15 +167,15 @@ mz$fill <- ifelse(mz$aplicada, AZUL_SI, ifelse(en_racimo, AZUL_MEDIO, GRIS_FUERA
 g3 <- ggplot() + geom_sf(data = mz, aes(fill = fill), colour = "#FFFFFF", linewidth = 0.15) + scale_fill_identity() +
   geom_sf(data = recortar(zonas_sjl, bb3), fill = NA, colour = "#8E9DBD", linewidth = 0.25) +
   geom_sf(data = racimo, fill = NA, colour = TK$navy, linewidth = 0.7)
-hm3 <- YF - YT - 0.45; wm3 <- 7.4
-poner_mapa(tema_mapa(g3), XC, YT, wm3, hm3)
-leyenda(doc, 0, YT + hm3 + 0.08, c("Manzana aplicada", "Otra manzana de la zona", "Fuera de la muestra"), c(AZUL_SI, AZUL_MEDIO, GRIS_FUERA), centrar_en = XC + wm3 / 2)
-zona("manzanas del racimo", XC, YT, wm3, hm3)
+hm3 <- YF - YT - 0.1; wm3 <- 7.4
+r3 <- poner_mapa(tema_mapa(g3), XC, YT, wm3, hm3, bb = bb3)
+zona("manzanas del racimo", r3$x, r3$y, r3$w, r3$h)
 xr3 <- XC + wm3 + 0.8; wr3 <- W - MR - xr3; separador_v(doc, xr3 - 0.4, YT, YF - 0.1)
 cifra(doc, xr3, YT, wr3, sprintf("%d", sum(mz$aplicada)), "manzanas aplicadas", sprintf("en %d zonas, de %d manzanas", nrow(racimo), sum(en_racimo)))
 separador_h(doc, xr3, W - MR, YT + 1.35)
 txt(doc, "El borde oscuro marca las zonas aplicadas y el claro, las vecinas. Dentro de cada zona sólo se pintan las manzanas que se visitaron.",
     xr3 - 0.1, YT + 1.55, wr3 + 0.1, 1.6, 13, TK$navy)
+leyenda_mapa(doc, xr3, r3$y + r3$h, "Manzanas", c("Manzana aplicada", "Otra manzana de la zona", "Fuera de la muestra"), c(AZUL_SI, AZUL_MEDIO, GRIS_FUERA), w = wr3)
 pie(doc, "Selección ficticia sobre las manzanas INEI 2017. La lámina se usa para el informe metodológico o el anexo de campo")
 
 # 4. Dos grupos comparados: zonas aplicadas en un distrito de intervención y uno de comparación
@@ -174,11 +187,11 @@ while (length(ap2) < 18) { s_ <- sample(setdiff(seq_len(nrow(zonas_ves)), ap2), 
 zonas_ves$fill <- ifelse(seq_len(nrow(zonas_ves)) %in% ap2, AZUL_MEDIO, "#FFFFFF")
 wm4 <- (AC - 0.6) / 2; hm4 <- YF - YT - 1.1
 panel_titulo(doc, XC, YT, wm4, "Intervención: San Juan de Lurigancho", sprintf("%d de %d zonas", sum(zonas_sjl$aplicada), nrow(zonas_sjl)))
-poner_mapa(tema_mapa(ggplot() + geom_sf(data = zonas_sjl, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity()), XC, YT + 0.6, wm4, hm4)
+r4a <- poner_mapa(tema_mapa(ggplot() + geom_sf(data = zonas_sjl, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity()), XC, YT + 0.6, wm4, hm4, bb = sf::st_bbox(zonas_sjl))
 separador_v(doc, XC + wm4 + 0.3, YT, YT + hm4 + 0.6)
 panel_titulo(doc, XC + wm4 + 0.6, YT, wm4, "Comparación: Villa El Salvador", sprintf("%d de %d zonas", length(ap2), nrow(zonas_ves)))
-poner_mapa(tema_mapa(ggplot() + geom_sf(data = zonas_ves, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity()), XC + wm4 + 0.6, YT + 0.6, wm4, hm4)
-leyenda(doc, 0, YT + hm4 + 0.7, c("Zona aplicada, intervención", "Zona aplicada, comparación", "Fuera de la muestra"), c(AZUL_SI, AZUL_MEDIO, "#FFFFFF"), centrar_en = XC + AC / 2)
+r4b <- poner_mapa(tema_mapa(ggplot() + geom_sf(data = zonas_ves, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity()), XC + wm4 + 0.6, YT + 0.6, wm4, hm4, bb = sf::st_bbox(zonas_ves))
+leyenda(doc, 0, max(r4a$y + r4a$h, r4b$y + r4b$h) + 0.15, c("Zona aplicada, intervención", "Zona aplicada, comparación", "Fuera de la muestra"), c(AZUL_SI, AZUL_MEDIO, "#FFFFFF"), centrar_en = XC + AC / 2)
 zona("dos distritos, un color por grupo", XC, YT + 0.6, AC, hm4)
 pie(doc, "Selección ficticia sobre las zonas censales INEI 2017. Cada grupo conserva su color en todas las láminas")
 
@@ -192,11 +205,11 @@ res8 <- c(`SAN JUAN DE LURIGANCHO` = 58, ATE = 64, `EL AGUSTINO` = 51, `SANTA AN
           `SAN JUAN DE MIRAFLORES` = 66, CHORRILLOS = 77, COMAS = 55, `LOS OLIVOS` = 71, `SAN MARTIN DE PORRES` = 68, CALLAO = 49)
 cortes8 <- c(0, 55, 65, 75, 100); clases8 <- c("Menos de 55 %", "55 a 64 %", "65 a 74 %", "75 % a más"); pal8 <- c("#C9D5EA", "#8EA3C6", "#4F6B9E", TK$navy)
 LIMA$fill8 <- ifelse(LIMA$distrito %in% names(res8), pal8[cut(res8[LIMA$distrito], cortes8, right = FALSE, labels = FALSE)], GRIS_FUERA)
-hm8 <- YF - YT - 0.45; wm8 <- 4.6
-poner_mapa(tema_mapa(ggplot() + geom_sf(data = LIMA, aes(fill = fill8), colour = "#FFFFFF", linewidth = 0.3) + scale_fill_identity()), XC, YT, wm8, hm8)
-leyenda(doc, 0, YT + hm8 + 0.08, c(clases8, "Sin encuestas"), c(pal8, GRIS_FUERA), centrar_en = XC + AC / 2)
-zona("Lima Metropolitana y Callao completos", XC, YT, wm8, hm8)
-xr8 <- XC + wm8 + 0.7; separador_v(doc, xr8 - 0.35, YT, YF - 0.45)
+hm8 <- YF - YT - 0.1; wm8 <- 4.6
+r8 <- poner_mapa(tema_mapa(ggplot() + geom_sf(data = LIMA, aes(fill = fill8), colour = "#FFFFFF", linewidth = 0.3) + scale_fill_identity()), XC, YT, wm8, hm8, bb = sf::st_bbox(LIMA), alinear = "derecha")
+leyenda_mapa(doc, XC, r8$y + r8$h, "Por distrito", c(clases8, "Sin encuestas"), c(pal8, GRIS_FUERA), w = max(1.75, r8$x - XC))   # el mapa va a la derecha y la escala queda en el mar, abajo a la izquierda
+zona("Lima Metropolitana y Callao completos", r8$x, r8$y, r8$w, r8$h)
+xr8 <- XC + wm8 + 0.7; separador_v(doc, xr8 - 0.35, YT, YF - 0.1)
 o8 <- order(-res8); panel_titulo(doc, xr8, YT, W - MR - xr8, "Satisfechos o muy satisfechos", "Por distrito, de mayor a menor")
 for (k in seq_along(o8)) { d_ <- names(res8)[o8[k]]; v_ <- res8[[d_]]; yk <- YT + 0.62 + (k - 1) * 0.33; wb8 <- (W - MR - xr8 - 2.9) * v_ / 100
   txt(doc, nombre_mapa(d_), xr8, yk, 2.35, 0.28, 11, TK$navy, align = "right")
@@ -216,14 +229,14 @@ wl9 <- 2.6; hl9 <- 3.0
 poner_mapa(tema_mapa(ggplot() + geom_sf(data = LIMA, fill = GRIS_FUERA, colour = "#FFFFFF", linewidth = 0.2) +
   geom_sf(data = LIMA[LIMA$ubigeo == "150110", ], fill = TK$navy, colour = TK$navy, linewidth = 0.3)), XC, YT + 0.4, wl9, hl9)
 txt(doc, "Ubicación en Lima", XC, YT, wl9, 0.3, 11, TK$soft, bold = TRUE, align = "center")
-xm9 <- XC + wl9 + 0.3; wm9 <- 6.3; hm9 <- YF - YT - 0.45
-poner_mapa(tema_mapa(ggplot() + geom_sf(data = zonas_ate, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity()), xm9, YT, wm9, hm9)
-leyenda(doc, 0, YT + hm9 + 0.08, cl9, pal9, centrar_en = xm9 + wm9 / 2)
-zona("el distrito con sus zonas", xm9, YT, wm9, hm9)
+xm9 <- XC + wl9 + 0.3; wm9 <- 6.3; hm9 <- YF - YT - 0.1
+r9 <- poner_mapa(tema_mapa(ggplot() + geom_sf(data = zonas_ate, aes(fill = fill), colour = "#B8C2D3", linewidth = 0.15) + scale_fill_identity()), xm9, YT, wm9, hm9, bb = sf::st_bbox(zonas_ate))
+zona("el distrito con sus zonas", r9$x, r9$y, r9$w, r9$h)
 xr9 <- xm9 + wm9 + 0.6; wr9 <- W - MR - xr9; separador_v(doc, xr9 - 0.3, YT, YF - 0.1)
 cifra(doc, xr9, YT, wr9, format(sum(v9), big.mark = ","), "encuestas logradas", sprintf("en %d de %d zonas", sum(v9 > 0), n9), size = 36)
 separador_h(doc, xr9, W - MR, YT + 1.45)
 txt(doc, "El recuadro ubica el distrito en Lima. El mapa grande pinta cada zona según cuántas encuestas se lograron en ella.", xr9 - 0.1, YT + 1.65, wr9 + 0.1, 1.6, 12.5, TK$navy)
+leyenda_mapa(doc, xr9, r9$y + r9$h, "Encuestas por zona", cl9, pal9, w = wr9)
 pie(doc, "Cifras ficticias sobre las zonas censales INEI 2017 de Comas")
 
 # 10. Un distrito con sus zonas y manzanas en el mismo mapa
@@ -236,16 +249,14 @@ zonas_ag$aplicada <- seq_len(nrow(zonas_ag)) %in% ap10
 mz10 <- leer_capa("manzanas_inei2017_lima_callao", "150142"); mz10$zona_id <- paste0("150142", mz10$CODZONA, mz10$SUFZONA)
 en10 <- mz10$zona_id %in% zonas_ag$IDZONA[zonas_ag$aplicada]; set.seed(12); mz10$aplicada <- en10 & stats::runif(nrow(mz10)) < 0.3
 mz10$fill <- ifelse(mz10$aplicada, TK$navy, ifelse(en10, AZUL_MEDIO, "#FFFFFF"))
-hm10 <- YF - YT - 0.45; wm10 <- 7.6
-poner_mapa(tema_mapa(ggplot() + geom_sf(data = mz10, aes(fill = fill), colour = "#D5DBE5", linewidth = 0.08) + scale_fill_identity() +
-  geom_sf(data = zonas_ag, fill = NA, colour = "#8E9DBD", linewidth = 0.2) + geom_sf(data = zonas_ag[zonas_ag$aplicada, ], fill = NA, colour = TK$navy, linewidth = 0.55)), XC, YT, wm10, hm10)
-leyenda(doc, 0, YT + hm10 + 0.08, c("Manzana aplicada", "Otra manzana de una zona aplicada", "Fuera de la muestra"), c(TK$navy, AZUL_MEDIO, "#FFFFFF"), centrar_en = XC + wm10 / 2)
-zona("todo el distrito, con zonas y manzanas", XC, YT, wm10, hm10)
+hm10 <- YF - YT - 0.1; wm10 <- 7.6
+r10 <- poner_mapa(tema_mapa(ggplot() + geom_sf(data = mz10, aes(fill = fill), colour = "#D5DBE5", linewidth = 0.08) + scale_fill_identity() +
+  geom_sf(data = zonas_ag, fill = NA, colour = "#8E9DBD", linewidth = 0.2) + geom_sf(data = zonas_ag[zonas_ag$aplicada, ], fill = NA, colour = TK$navy, linewidth = 0.55)), XC, YT, wm10, hm10, bb = sf::st_bbox(mz10))
+zona("todo el distrito, con zonas y manzanas", r10$x, r10$y, r10$w, r10$h)
 xr10 <- XC + wm10 + 0.7; wr10 <- W - MR - xr10; separador_v(doc, xr10 - 0.35, YT, YF - 0.1)
 cifra(doc, xr10, YT, wr10, sprintf("%d", sum(zonas_ag$aplicada)), "zonas aplicadas", sprintf("de %d zonas del distrito", nrow(zonas_ag)), size = 36)
 separador_h(doc, xr10, W - MR, YT + 1.45)
 cifra(doc, xr10, YT + 1.65, wr10, sprintf("%d", sum(mz10$aplicada)), "manzanas aplicadas", sprintf("de %d manzanas en esas zonas", sum(en10)), size = 36)
-separador_h(doc, xr10, W - MR, YT + 3.1)
-txt(doc, "El borde oscuro marca cada zona aplicada. Dentro de ella, la manzana visitada va en azul oscuro.", xr10 - 0.1, YT + 3.3, wr10 + 0.1, 1.2, 12.5, TK$navy)
+leyenda_mapa(doc, xr10, r10$y + r10$h, "Manzanas", c("Manzana aplicada", "Otra manzana de una zona aplicada", "Fuera de la muestra"), c(TK$navy, AZUL_MEDIO, "#FFFFFF"), w = wr10)
 pie(doc, "Selección ficticia sobre las zonas y manzanas censales INEI 2017 de Villa El Salvador")
 }
