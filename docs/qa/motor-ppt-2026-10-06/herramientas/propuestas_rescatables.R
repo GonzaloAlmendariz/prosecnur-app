@@ -221,7 +221,7 @@ pie(doc, "Fuentes: Schenker y Gentleman (2001), Cumming y Finch (2005), Gardner 
 
 # U2. Dos públicos: forest plot integrado a la tabla (pregunta, cifras, diferencia con intervalo, intervalo en números y p)
 grupos <- list(list("Misión institucional", 1:2), list("Tutoría", 3:4), list("Competencias del perfil de egreso", 5:6))
-doc <- nueva(doc); titulo(doc, "Docentes y estudiantes en seis preguntas", ante = "Propuesta 5: tabla y diferencia")
+doc <- nueva(doc); titulo(doc, "Docentes y estudiantes en seis preguntas", ante = "Propuesta 5: versión técnica")
 xq <- XC; xdo <- XC + 3.05; xes <- xdo + 0.95; xg0 <- xes + 1.15; wg <- 4.2; xdi <- xg0 + wg + 0.2; xpv <- xdi + 1.8; wpv <- W - MR - xpv
 lo_ <- -25; hi_ <- 45; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
 yh <- YT - 0.05
@@ -252,7 +252,7 @@ txt(doc, "Mayor en docentes", px(0) + 0.1, y_bot + 0.28, 1.9, 0.26, 10, TK$soft,
 pie(doc, "Top Two Box o «Sí». Base: 52 docentes y 172 estudiantes (Auditoría y Tributación: 51 y 109). Intervalo de Newcombe. Punto lleno: el intervalo no cruza el cero (prueba z, α = 0.05)")
 
 # U3. Cuatro públicos: tabla con barras y letras, y matriz de pares con los porcentajes en la diagonal
-doc <- nueva(doc); titulo(doc, "Conocimiento de la misión en los cuatro públicos", ante = "Propuesta 5: tabla y matriz de pares")
+doc <- nueva(doc); titulo(doc, "Conocimiento de la misión en los cuatro públicos", ante = "Propuesta 5: versión técnica")
 yt <- YT + 0.05
 txt(doc, "Público", XT, yt, 2, 0.3, 11, TK$soft, bold = TRUE); txt(doc, "Conoce la misión", XC + 2.2, yt, 2.4, 0.3, 11, TK$soft, bold = TRUE)
 txt(doc, "Base", XC + 4.7, yt, 0.6, 0.3, 11, TK$soft, bold = TRUE, align = "center"); separador_h(doc, XC, XC + 5.6, yt + 0.36)
@@ -282,6 +282,42 @@ leyenda(doc, 0, ym + 4 * ch + 0.15, c("Significativa (más intensa, mayor)", "No
 txt(doc, "Administrativos supera en 16 puntos a estudiantes y egresados, pero con 15 casos esa distancia no es significativa.", xm - 0.1, ym + 4 * ch + 0.55, W - MR - xm + 0.1, 0.5, 11.5, TK$navy)
 txt(doc, "Estas pruebas suponen muestreo aleatorio. En estudios censales o por conveniencia, como los de acreditación, se leen como indicativas.", XT, Y_BASE - 0.32, 10.5, 0.3, PT$base, TK$soft, italic = TRUE)
 pie(doc, "Prueba z de diferencia de proporciones en los seis pares, p ajustada por Bonferroni, α = 0.05 (la misma prueba del motor)")
+
+# Versiones para público general (2026-10-08: «debe haber una versión avanzada como la que muestras, pero también una versión entendible para un
+# público general»). Mismos datos y misma prueba que las técnicas; sin p ni intervalos, y la significancia dicha en palabras.
+# G2. Dos públicos: cada pregunta con sus dos puntos y la distancia entre ellos marcada sólo cuando es una diferencia clara
+doc <- nueva(doc); titulo(doc, "Dónde docentes y estudiantes se diferencian de verdad", ante = "Propuesta 5: versión para público general")
+xq <- XC; xg0 <- XC + 3.4; wg <- 5.5; xr <- xg0 + wg + 0.95; lo_ <- 50; hi_ <- 100; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
+leyenda(doc, 0, YT - 0.05, c("Docentes", "Estudiantes"), c(COL_D, COL_E), centrar_en = xg0 + wg / 2)
+y_ <- YT + 0.5; rh <- 0.62
+for (v in seq(50, 100, 10)) { caja(doc, px(v) - 0.003, y_, 0.006, 6 * rh, TK$rule); txt(doc, paste0(v, "%"), px(v) - 0.35, y_ + 6 * rh + 0.04, 0.7, 0.24, 10, TK$soft, align = "center") }
+for (i in 1:6) { yc <- y_ + (i - 1) * rh + rh / 2; s_ <- it2$sig[i]; a <- it2$p1[i]; b <- it2$p2[i]
+  if (i > 1) separador_h(doc, XC, W - MR, yc - rh / 2)
+  txt(doc, it2$item[i], xq - 0.1, yc - 0.16, 3.3, 0.32, 14, TK$navy, bold = s_)
+  caja(doc, px(min(a, b)), yc - (if (s_) 0.04 else 0.012), px(max(a, b)) - px(min(a, b)), if (s_) 0.08 else 0.024, if (s_) TK$navy else "#C9CED8")
+  for (k in 1:2) { v <- c(a, b)[k]; caja(doc, px(v) - 0.12, yc - 0.12, 0.24, 0.24, c(COL_D, COL_E)[k], geom = "ellipse", line = sp_line(color = "#FFFFFF", lwd = 1))
+    der <- (k == 1 && a >= b) || (k == 2 && b > a)   # la cifra mayor a la derecha de su punto, la menor a la izquierda
+    txt(doc, paste0(v, "%"), if (der) px(v) + 0.12 else px(v) - 0.82, yc - 0.15, 0.7, 0.3, 12, TK$navy, bold = TRUE, align = if (der) "left" else "right") }
+  txt(doc, if (s_) "Diferencia clara" else "Sin diferencia clara", xr - 0.1, yc - 0.15, W - MR - xr + 0.1, 0.3, 13, if (s_) TK$navy else TK$soft, bold = s_) }
+txt(doc, "«Diferencia clara»: es muy poco probable que la distancia entre los dos públicos se deba al azar de quiénes respondieron.", XT, YT + 4.55, AC, 0.35, 12.5, TK$navy)
+pie(doc, "Top Two Box o «Sí». Base: 52 docentes y 172 estudiantes (Auditoría y Tributación: 51 y 109). La versión técnica muestra el intervalo y la prueba")
+
+# G3. Cuatro públicos: barras ordenadas, el público que se distingue en azul oscuro y los que no se distinguen agrupados con una llave
+doc <- nueva(doc); titulo(doc, "Los docentes son quienes más conocen la misión", ante = "Propuesta 5: versión para público general")
+ord <- order(-p4); xb <- XC + 2.6; wb <- 4.4; y0 <- YT + 0.35; fr <- 0.85; gbar <- 0.46
+for (r in seq_along(ord)) { i <- ord[r]; yb <- y0 + (r - 1) * fr; destaca <- nzchar(let4[i]); chica <- n4[i] < 30
+  txt(doc, pub4[i], XC - 0.1, yb + (gbar - 0.32) / 2, 2.55, 0.32, 14, TK$navy, bold = destaca, align = "right")
+  if (chica) contorno(doc, xb, yb, wb * p4[i], gbar, TK$tenue, lwd = 1.25, lty = "dash") else caja(doc, xb, yb, wb * p4[i], gbar, if (destaca) TK$navy else TK$tenue)
+  txt(doc, paste0(round(100 * p4[i]), "%"), xb + wb * p4[i] + 0.1, yb + (gbar - 0.34) / 2, 0.9, 0.34, 15, TK$navy, bold = TRUE) }
+r_est <- match(2, ord); r_egr <- match(3, ord); yl0 <- y0 + (min(r_est, r_egr) - 1) * fr; yl1 <- y0 + (max(r_est, r_egr) - 1) * fr + gbar
+yc_ <- llave_v(doc, xb + wb * 0.8 + 0.85, yl0, yl1, xb + wb * 0.8 + 1.15)
+txt(doc, "Sin diferencia clara entre ellos", xb + wb * 0.8 + 1.2, yc_ - 0.3, 1.9, 0.6, 12, TK$navy, bold = TRUE)
+separador_v(doc, XC + 9.25, YT, YT + 3.7)
+narrativa(doc, XC + 9.5, YT + 0.2, W - MR - XC - 9.5, 2.3, list(N_("Los "), B("docentes"), N_(" conocen la misión más que estudiantes y egresados, y la diferencia es clara. Los "),
+  B("administrativos"), N_(" también marcan alto, pero con 15 casos no se puede afirmar que se distingan.")), size = 13)
+leyenda(doc, 0, y0 + 4 * fr + 0.05, c("Se distingue de los demás", "Sin diferencia clara"), c(TK$navy, TK$tenue), centrar_en = xb + wb / 2)
+txt(doc, "Barra punteada: base de menos de 30 casos.", xb - 0.1, y0 + 4 * fr + 0.42, wb, 0.28, 11, TK$soft, italic = TRUE)
+pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos. La versión técnica muestra la matriz de pares con la prueba")
 
 # ---------------------------------------------------------------- lo que se dejó fuera
 doc <- nueva(doc); titulo(doc, "Lo que no se trae", ante = "Para evaluar")
