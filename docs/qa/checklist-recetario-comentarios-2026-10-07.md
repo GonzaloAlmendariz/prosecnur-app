@@ -185,6 +185,6 @@ Pedido: «ajustar el orden y la estructura del recetario para que se vea profesi
 |---|---|---|---|
 | V1 | Infraestructura | Cada lámina se registra con su sección («m3a:2»); `reordenar.py` la ubica según `recetario_estructura.json`, falla si sobra o falta una y renumera los folios. Portadillas antiguas (I a VII) omitidas en la moderna | ☑ |
 | V2 | Orden con lo existente | Apertura (portada de la propuesta, cómo está organizada, principios) y cinco capítulos con portadilla de capítulo (separador con rótulo) y de subcapítulo (sobria): 209 láminas | ☑ |
-| V3 | Láminas nuevas | Lámina estándar medida, escala tipográfica, portadas y objetivos alternativos, gráficos solos, 32 fichas de tipos de lámina, combinaciones, estudios nuevos | ◐ |
-| V4 | Banco en positivo | Sin «qué evitar» ni «nunca» | ☐ |
-| V5 | ≥ 250 láminas y revisión visual completa | | ☐ |
+| V3 | Láminas nuevas | Lámina estándar medida y escala tipográfica; 3 portadas y 2 objetivos alternativos; histograma, dicotómica y nube solos; catálogo de 32 tipos (3 láminas) y una ficha medida por tipo seguida de sus ejemplos; 2 láminas de combinaciones; 13 láminas de estudios con cifras ficticias sin instituciones (varios programas, línea base, PDM, aulas, organizacional, antes y después) | ☑ |
+| V4 | Banco en positivo | «Cómo combinar los íconos» y «Cómo combinar las cajas» (ejemplo y por qué funciona); «nunca» reescritos; «uso excepcional» y «propuesta en lugar del radar» como alternativas. La fiel conserva su versión | ☑ |
+| V5 | ≥ 250 láminas y revisión visual completa | 275 láminas; hojas de contacto revisadas; auditoría: 0 vetados, 0 marcadores vacíos, 0 «evitar» o «nunca», 0 formas fuera, 0 contraste bajo. Nota: `xml_audit.py` numera por el archivo slideN.xml, no por el orden tras reordenar | ☑ |

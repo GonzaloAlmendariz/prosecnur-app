@@ -107,7 +107,7 @@ sw <- function(x, y, cols, labs, w = 1.45) for (i in seq_along(cols)) { caja(doc
   txt(doc, labs[i], x + (i - 1) * (w + 0.1) - 0.05, y + 0.5, w + 0.1, 0.42, 10, TK$navy, align = "center") }
 grupos <- list(
   list("Respuestas de una escala", TK$likert, c("Muy en contra", "En contra", "A favor", "Muy a favor", "Sin información"),
-       "De lo negativo a lo positivo, siempre en este orden. Lo negativo es naranja, nunca rojo. Sin información va al final y en gris."),
+       "De lo negativo a lo positivo, siempre en este orden. Lo negativo va en naranja. Sin información va al final y en gris."),
   list("Sí y No", TK$dico, c("Sí", "No"), "Sí en azul oscuro y No en celeste, en todas las láminas."),
   list("Grupos de personas", c(unname(TK$actores), "#8E9DBD", "#081F5C", "#9DC3E6"), c(names(TK$actores), "Autoridades", "Administrativos", "Empleadores"),
        "Cada grupo conserva su color en todo el informe. Si el nombre ya está escrito junto a la barra, no necesita color."),

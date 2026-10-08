@@ -68,7 +68,7 @@ for (k in seq_along(partes_c)) { p_ <- partes_c[[k]]; yk <- as.numeric(p_[1]); y
 separador_h(doc, XC, W - MR, YT + 2.95)
 txt(doc, "Cuándo se usa", XT, YT + 3.15, AC, 0.3, 12, TK$soft, bold = TRUE)
 lista_marcada(doc, c("Para un dato que el lector debe retener: cuántos respondieron, una tasa, una mediana.",
-                     "Se calcula desde la base, como cualquier gráfico, y nunca se escribe a mano.",
+                     "Se calcula desde la base, como cualquier gráfico.",
                      "Hasta cuatro por lámina. Si hacen falta más, van a una tabla."),
   XC, YT + 3.55, AC, paso = 0.42, size = 13)
 zona("anatomía de la cifra", xa, ya, wa, 2.3)
