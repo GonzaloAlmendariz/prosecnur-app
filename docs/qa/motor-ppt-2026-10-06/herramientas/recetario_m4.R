@@ -94,9 +94,11 @@ if (ESTILO == "fiel") {
   yb_fin <- dicotomia(doc, ML, YT + 0.5, ANCHO, c("Sí", "No"), c(10, 90), n = c(20, 181), size = 26, g = 0.42)
   y2 <- yb_fin + 0.85; wl2 <- 1.6; g2 <- 0.62; fila2 <- 0.95; ylp <- y2 + 0.45
   ybar <- ylp + 0.3 + (fila2 - g2) / 2 + 0.05; xb2 <- ML + wl2 + 0.12; wb2 <- ANCHO - wl2 - 0.12 - 0.75
-  zoom_conector(doc, c(ML, yb_fin, ML + ANCHO * 0.10, yb_fin), c(xb2, ybar, xb2 + wb2, ybar))
-  txt(doc, "Los programas de intercambio fortalecen mis competencias", ML + ANCHO * 0.10 + 0.6, y2, 8, 0.3, 13, TK$navy, bold = TRUE)
-  txt(doc, "Sólo los 20 estudiantes que respondieron «Sí»", ML + ANCHO * 0.10 + 0.6, y2 + 0.27, 8, 0.26, 10.5, TK$faint)
+  # C36: una llave bajo el segmento «Sí» y su tallo baja hasta la subpregunta (antes, cuña semitransparente)
+  xc <- llave_h(doc, ML, ML + ANCHO * 0.10, yb_fin + 0.06, y2 + 0.15)
+  caja(doc, xc, y2 + 0.15 - 0.011, 0.25, 0.022, TK$navy)
+  txt(doc, "Los programas de intercambio fortalecen mis competencias", xc + 0.32, y2, 8, 0.3, 13, TK$navy, bold = TRUE)
+  txt(doc, "Sólo los 20 estudiantes que respondieron «Sí»", xc + 0.32, y2 + 0.27, 8, 0.26, 10.5, TK$faint)
   likert_panel(doc, ML, ylp, ANCHO, list(list(lab = "Participaron (20)", f = sf(c(10, 0, 55, 35, 0), 20))), g = g2, fila = fila2, wlab = wl2)
   zona("desglose conectado: el segmento «Sí» se abre en su subpregunta", ML, YT + 0.5, ANCHO, ybar + g2 - YT - 0.5)
 }
@@ -114,7 +116,8 @@ if (ESTILO == "fiel") {
   panel_titulo(doc, xr, YT, col2, "¿Cuál es su ingreso mensual aproximado? (en soles)", "Base propia: 179 egresados dependientes")
 } else {
   wd <- 4.9; yb_fin <- dicotomia(doc, ML, YT + 1.75, wd, c("No", "Sí"), c(13, 87), n = c(26, 179), size = 30, g = 0.5, cols = rev(TK$dico))   # «Sí» pegado al desglose
-  zoom_conector(doc, c(ML + wd, yb_fin - 0.5, ML + wd, yb_fin), c(xr - 0.25, YT + 0.75, xr - 0.25, YT + 0.75 + 6 * 0.7))
+  # C37: una llave a la derecha del segmento «Sí» y un tallo hasta el panel del ingreso
+  llave_v(doc, ML + wd + 0.08, yb_fin - 0.5, yb_fin, xr - 0.2)
   panel_titulo(doc, xr, YT, col2, "¿Cuál es su ingreso mensual aproximado? (en soles)", "Sólo los 179 que trabajan de manera dependiente")
 }
 barras_h(doc, xr, YT + 0.85, col2, ing, c(8, 16, 22, 20, 31, 3), wlab = 2.4, g = grosor_cat(6), fila = 0.7, size = 13)
