@@ -113,9 +113,15 @@ if (ESTILO == "fiel") {
   separador_v(doc, ML + col2 + GAP / 2, YT, YF)
   panel_titulo(doc, xr, YT, col2, "¿Cuál es su ingreso mensual aproximado? (en soles)", "Base propia: 179 egresados dependientes")
 } else {
-  wd <- col2 - 1.0; xd <- ML   # dos gráficos normales lado a lado; la llave va del «Sí» al título del ingreso (Gonzalo, 2026-10-08)
-  yb_fin <- dicotomia(doc, xd, YT + 0.6, wd, c("No", "Sí"), c(13, 87), n = c(26, 179), size = 26, g = 0.42, cols = rev(TK$dico))   # «Sí» pegado al desglose
-  llave_a_titulo(doc, xd + wd + 0.08, yb_fin - 0.42, yb_fin, xr, YT)
+  # Dos gráficos normales lado a lado y del mismo alto (Gonzalo, 2026-10-08: «se ven muy desbalanceados»): la dicotómica
+  # va en una columna 100 % que ocupa el alto de las seis barras del ingreso, y la llave sale del «Sí» al título del ingreso.
+  yc0 <- YT + 0.85 + (0.7 - 0.42) / 2; hcol <- 5 * 0.7 + 0.42; wcol <- 1.0; xcol <- ML + col2 - wcol - 1.3
+  hs <- hcol * 0.87; caja(doc, xcol, yc0, wcol, hs + 0.004, TK$dico[1]); caja(doc, xcol, yc0 + hs, wcol, hcol - hs, TK$dico[2])
+  for (k in 1:2) { y_ <- if (k == 1) yc0 + hs / 2 else yc0 + hs + (hcol - hs) / 2
+    txt(doc, c("87%", "13%")[k], xcol - 1.75, y_ - 0.36, 1.6, 0.42, 22, c(TK$navy, "#4F7FAF")[k], bold = TRUE, align = "right")
+    txt(doc, c("Sí (179)", "No (26)")[k], xcol - 1.75, y_ + 0.04, 1.6, 0.26, 10.5, TK$navy, align = "right") }
+  zona("dicotómica en columna, del alto del gráfico vecino", xcol, yc0, wcol, hcol)
+  llave_a_titulo(doc, xcol + wcol + 0.08, yc0, yc0 + hs, xr, YT)
   panel_titulo(doc, xr, YT, col2, "¿Cuál es su ingreso mensual aproximado? (en soles)", "Sólo los 179 que trabajan de manera dependiente")
 }
 barras_h(doc, xr, YT + 0.85, col2, ing, c(8, 16, 22, 20, 31, 3), wlab = 2.4, g = if (ESTILO == "moderna") 0.42 else grosor_cat(6), fila = 0.7, size = 13)
@@ -135,8 +141,9 @@ wl_ <- 2.5; fila_ <- 0.66; g_ <- 0.36; y0_ <- YT + 0.7; esc_ <- 80;   # escala h
 barras_h(doc, ML, y0_, col2, sl_lab, sl_pc, wlab = wl_, g = g_, fila = fila_, size = 13, escala = esc_, realzar = FALSE)   # E7: sin destacar la mayor, lo que importa es el grupo de la llave
 xll <- ML + wl_ + 0.12 + wbar_ * max(sl_pc[1:3]) / esc_ + 0.75
 llave_a_titulo(doc, xll, y0_ + (fila_ - g_) / 2, y0_ + 2 * fila_ + (fila_ + g_) / 2, xr, YT)   # la llave conecta con el título del segundo gráfico
-panel_titulo(doc, xr, YT, col2, "¿Su trabajo se relaciona con la carrera?", "Sólo los 139 que trabajan, en cualquiera de las tres modalidades")
-dicotomia(doc, xr, y0_ - 0.1, wbar_, c("Sí", "No"), c(81, 19), n = c(113, 26), size = 22, g = g_)
+panel_titulo(doc, xr, YT, col2, "¿Qué tan relacionado está su trabajo con la carrera?", "Sólo los 139 que trabajan, en cualquiera de las tres modalidades")
+# El dependiente, un gráfico de barras como el primero: misma escala, rótulo, fila y grosor (Gonzalo: «muy desbalanceados»)
+barras_h(doc, xr, y0_, col2, c("Muy relacionado", "Relacionado", "Algo relacionado", "Poco relacionado", "Nada relacionado"), c(31, 35, 17, 11, 6), wlab = wl_, g = g_, fila = fila_, size = 13, escala = esc_, realzar = FALSE)
 zona("la llave abraza las tres categorías que habilitan la subpregunta", ML, YT, ANCHO, 4.2)
 pie(doc, "Base: 178 egresados. La subpregunta, 139 que trabajan. La llave agrupa las tres respuestas que la habilitan")
 
