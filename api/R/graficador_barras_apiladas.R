@@ -1186,18 +1186,18 @@ graficar_barras_apiladas <- function(
     centro_cowplot        = NA_real_,
 
     # Estilo de texto y layout
-    color_titulo          = "#081F5C",
+    color_titulo          = .std_color("azul"),
     size_titulo           = 11,
-    color_subtitulo       = "#081F5C",
+    color_subtitulo       = .std_color("azul"),
     size_subtitulo        = 9,
     # Italica, como en barras agrupadas: el subtitulo es una acotacion sobre la
     # pregunta —«Pregunta de opcion multiple»—, no un segundo titulo. El formal
     # NO existia, asi que el `face` que le mandaba el motor se descartaba en
     # silencio y el aviso salia en redonda.
     face_subtitulo        = "italic",
-    color_nota_pie        = "#081F5C",
+    color_nota_pie        = .std_color("azul"),
     size_nota_pie         = 8,
-    color_leyenda         = "#081F5C",
+    color_leyenda         = .std_color("azul"),
     size_leyenda          = 8,
     color_texto_barras    = "white",
     color_texto_barras_fuera = NULL,
@@ -1228,7 +1228,7 @@ graficar_barras_apiladas <- function(
     color_conectores_etiquetas = c("segmento", "azul_pulso"),
     posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
     linewidth_conectores_etiquetas = 0.32,
-    color_barra_extra     = "#081F5C",
+    color_barra_extra     = .std_color("azul"),
     # 3 pt no es un tamano, es un borron. La columna extra lleva la cifra que
     # resume la lamina —el top-two-box— y salia mas pequena que cualquier otro
     # texto del grafico; dos rutas del motor ya la subian a 11 a mano, senal de
@@ -1259,7 +1259,7 @@ graficar_barras_apiladas <- function(
     barra_extra_umbral_medio = NULL,
     barra_extra_tendencia   = TRUE,
     barra_extra_tolerancia_pp = 0,
-    color_ejes            = "#081F5C",
+    color_ejes            = .std_color("azul"),
     size_ejes             = 9,
     preservar_tamanos_texto = FALSE,
     color_titulos_grupo   = NULL,

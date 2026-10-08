@@ -409,19 +409,19 @@ graficar_barras_agrupadas <- function(
     pos_nota_pie              = c("derecha", "izquierda", "centro"),
 
     # Estilo
-    color_titulo              = "#081F5C",
+    color_titulo              = .std_color("azul"),
     size_titulo               = 11,
-    color_subtitulo           = "#081F5C",
+    color_subtitulo           = .std_color("azul"),
     size_subtitulo            = 9,
     face_subtitulo            = "italic",
-    color_nota_pie            = "#081F5C",
+    color_nota_pie            = .std_color("azul"),
     size_nota_pie             = 8,
-    color_leyenda             = "#081F5C",
+    color_leyenda             = .std_color("azul"),
     size_leyenda              = 8,
     color_texto_barras        = "white",
-    color_texto_barras_fuera  = "#081F5C",
+    color_texto_barras_fuera  = .std_color("azul"),
     size_texto_barras         = 3,
-    color_barra_extra         = "#081F5C",
+    color_barra_extra         = .std_color("azul"),
     # Mismo criterio que ya se aplico en apiladas: 3 no es un tamano, es un
     # borron. La columna extra lleva la cifra que resume la fila —la base, o el
     # top-two-box— y salia a un tercio del tamano de cualquier otro texto del
@@ -436,7 +436,7 @@ graficar_barras_agrupadas <- function(
     # barra en las laminas de perfil, catorce veces en una sola— y el residuo de
     # tipografia que quedaba abierto tras subir el de apiladas.
     size_barra_extra          = 12,
-    color_ejes                = "#081F5C",
+    color_ejes                = .std_color("azul"),
     size_ejes                 = 9,
     lineheight_eje_y          = NULL,
     usar_eje_libre            = FALSE,
