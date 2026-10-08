@@ -47,7 +47,7 @@ dicotomia <- function(doc, x, y, w, labels, pct, n = NULL, size = 22, g = 0.34, 
 cifra <- function(doc, x, y, w, valor, rotulo, detalle = NULL, size = 34, align = "left") {
   txt(doc, valor, x, y, w, 0.62, size, TK$navy, bold = TRUE, align = align)
   txt(doc, rotulo, x, y + 0.62, w, 0.3, 12, TK$navy, bold = TRUE, align = align)
-  if (!is.null(detalle)) txt(doc, detalle, x, y + 0.9, w, 0.26, 10, TK$faint, align = align)
+  if (!is.null(detalle)) txt(doc, detalle, x, y + 0.9, w, 0.26, 10, TK$soft, align = align)   # gris oscuro: el gris claro quedaba en 3:1
   zona("cifra", x, y, w, 1.15)
 }
 icono_poblacion <- function(doc, nombre, cx, cy, d = 1.1) if (ICONO_MODO == "centro") icono_en_circulo(doc, nombre, cx - d / 2, cy - d / 2, d, pad = 0.26)
