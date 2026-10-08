@@ -135,3 +135,17 @@ Fuera, por ser firma del informe de referencia o texto que no sale de los datos:
 | T7 | 12 | «Las notas de pie deben estar entendibles» | Pies en lenguaje llano, sin nombres de funciones | ☑ pies en lenguaje llano: qué es cada indicador y la base, sin nombres de funciones |
 | T8 | 13 | «Expresión muy coloquial» | Explicación del peso en registro formal | ☑ «El peso indica qué parte de la satisfacción general explica cada aspecto, según una regresión lineal…» |
 | T9 | 14 | «Está bien pero indicar el procedimiento estadístico o la prueba utilizada; además, ¿no hay una forma elegante y gráfica de mostrar la significancia también? Quizás otros slides con gráficos y tabla» | Nota con la prueba del motor (z de diferencia de proporciones, Bonferroni, α = 0.05) y dos láminas gráficas: barras agrupadas con letras y puntos por público | ☑ nota con la prueba del motor (z de diferencia de proporciones, Bonferroni, α = 0.05) y dos láminas: barras agrupadas con la cifra dentro y la letra encima, y puntos por público con una línea azul sólo entre públicos con diferencia significativa |
+
+### Significancia: tabla y gráfico, con la prueba calculada (2026-10-08)
+
+Pedido: «una tabla de significancia se lee mejor cuando es una tabla y un gráfico al lado que muestre esa significancia… hay que encontrar una forma no sólo creativa, sino también estadísticamente válida… antes, revisa artículos estadísticos de fuentes confiables».
+
+Corrección honesta: las letras de la versión anterior eran ilustrativas y no salían de ninguna prueba; con los conteos reales, Auditoría 96 % (n = 51) frente a 91 % (n = 109) no es significativa (p = 0.24). Ahora todo se calcula.
+
+| # | Lámina | Qué muestra | Fuente | Estado |
+|---|---|---|---|---|
+| U1 | Cómo mostrar una diferencia significativa | Tres reglas: no juzgar por solapamiento; graficar la diferencia con su intervalo; con tres o más grupos, comparar por pares con corrección | Schenker y Gentleman 2001; Cumming y Finch 2005; Gardner y Altman 1986; Wright, Klein y Wieczorek 2019; Newcombe 1998; Piepho 2004 | ☐ en evaluación |
+| U2 | Docentes y estudiantes en seis preguntas | Tabla a la izquierda y, al lado, la diferencia en puntos con su intervalo de 95 % (Newcombe). Significativa si no cruza el cero; coincide con la prueba z del motor en las seis filas | Wright et al. 2019, método II | ☐ en evaluación |
+| U3 | Conocimiento de la misión en los cuatro públicos | Tabla con letras calculadas (prueba del motor: z combinada, Bonferroni en la fila, α = 0.05) y matriz de pares sombreada | Wright et al. 2019, método I; Piepho 2004 | ☐ en evaluación |
+
+Resultados reales: docentes frente a estudiantes es significativa en conoce la misión (+21, p < 0.001), sabe dónde consultarla (+12, p = 0.043) y tutoría académica (+30, p < 0.001); no en tutoría socioemocional, Auditoría ni Tributación. Entre los cuatro públicos sólo docentes supera a estudiantes y a egresados; administrativos (+16, n = 15) no alcanza. Nota en la lámina: con muestras censales o por conveniencia las pruebas son indicativas.
