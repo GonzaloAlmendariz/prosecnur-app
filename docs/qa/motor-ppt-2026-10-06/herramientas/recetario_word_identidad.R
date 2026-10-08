@@ -20,16 +20,18 @@ estilos_doc <- function(doc) {
   doc <- docx_set_paragraph_style(doc, style_id = "Titre2", style_name = "heading 2", fp_p = fp_par(padding.top = 16, padding.bottom = 6, keep_with_next = TRUE),
     fp_t = fp_text(font.family = FONT, font.size = 12.5, color = NAVY, bold = TRUE))
   doc <- docx_set_paragraph_style(doc, style_id = "RotuloGrafico", style_name = "Rótulo de gráfico", fp_p = fp_par(text.align = "left", padding.top = 10, padding.bottom = 4, keep_with_next = TRUE, line_spacing = 1.15),
-    fp_t = fp_text(font.family = FONT, font.size = 10, color = NAVY, bold = TRUE))
+    fp_t = fp_text(font.family = FONT, font.size = 10, color = TXT))
   doc <- docx_set_character_style(doc, style_id = "NumeroRotulo", style_name = "Número de rótulo", base_on = "Default Paragraph Font", fp_t = fp_text(font.family = FONT, font.size = 10, color = NAVY, bold = TRUE))
-  doc <- docx_set_paragraph_style(doc, style_id = "BaseFuente", style_name = "Base y fuente", fp_p = fp_par(text.align = "left", padding.top = 2, padding.bottom = 10, line_spacing = 1.1),
-    fp_t = fp_text(font.family = FONT, font.size = 8.5, color = SOFT, italic = TRUE))
-  doc <- docx_set_paragraph_style(doc, style_id = "Lectura", style_name = "Lectura", fp_p = fp_par(text.align = "left", line_spacing = 1.3, padding.top = 2, padding.bottom = 14),
+  doc <- docx_set_paragraph_style(doc, style_id = "BaseFuente", style_name = "Base y fuente", fp_p = fp_par(text.align = "center", padding.top = 2, padding.bottom = 10, line_spacing = 1.1),
+    fp_t = fp_text(font.family = FONT, font.size = 8.5, color = SOFT))
+  doc <- docx_set_paragraph_style(doc, style_id = "Lectura", style_name = "Lectura", fp_p = fp_par(text.align = "justify", line_spacing = 1.3, padding.top = 2, padding.bottom = 14),
     fp_t = fp_text(font.family = FONT, font.size = 10.5, color = TXT))
   doc <- docx_set_paragraph_style(doc, style_id = "NumeroCapitulo", style_name = "Número de capítulo", fp_p = fp_par(text.align = "left", padding.bottom = 0, keep_with_next = TRUE),
     fp_t = fp_text(font.family = FONT, font.size = 9, color = SOFT, bold = TRUE))
-  doc <- docx_set_paragraph_style(doc, style_id = "ListaGuia", style_name = "Lista de la guía", fp_p = fp_par(text.align = "left", line_spacing = 1.3, padding.left = 10, padding.bottom = 5),
+  doc <- docx_set_paragraph_style(doc, style_id = "ListaGuia", style_name = "Lista de la guía", fp_p = fp_par(text.align = "justify", line_spacing = 1.3, padding.left = 10, padding.bottom = 5),
     fp_t = fp_text(font.family = FONT, font.size = 10.5, color = TXT))
+  doc <- docx_set_paragraph_style(doc, style_id = "Referencia", style_name = "Referencia", fp_p = fp_par(text.align = "left", line_spacing = 1.3, padding.bottom = 8),
+    fp_t = fp_text(font.family = FONT, font.size = 10, color = TXT))   # la sangría francesa la pone word_nativo.py
   # El índice que arma Word usa «toc 1» y «toc 2»: capítulo en negrita azul y sección sangrada en gris oscuro
   doc <- docx_set_paragraph_style(doc, style_id = "TM1", style_name = "toc 1", fp_p = fp_par(padding.top = 9, padding.bottom = 2, tabs = fp_tabs(fp_tab(pos = ANCHO_W, style = "right"))),
     fp_t = fp_text(font.family = FONT, font.size = 10.5, color = NAVY, bold = TRUE))
