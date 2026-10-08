@@ -176,3 +176,15 @@ Las secciones de `propuestas_rescatables.R` pasan a ser funciones (`rr_cifras`, 
 | «Qué se propone» y «Lo que no se trae» | Sólo en el mazo de propuestas | ☑ |
 
 Auditoría: moderna 189 láminas, fiel 168, propuestas 24; sin formas fuera de la lámina, marcadores vacíos, caracteres vetados ni contraste bajo; ningún «Propuesta N» en el recetario.
+
+## Reestructuración como propuesta de diseño (2026-10-08)
+
+Pedido: «ajustar el orden y la estructura del recetario para que se vea profesional… empezar por una presentación de una propuesta de diseño del PPT en PULSO PUCP… 1. reglas de identidad y todas las portadas y cierres con sus alternativas… 2. tipos de gráficos… 3. tipos de láminas… 4. estudios en PULSO… 5. banco de recursos… unas 250 diapositivas por lo menos». Plan: `~/.claude/plans/lucky-meandering-hellman.md`. Decisiones: sólo la moderna; cifras ficticias sin nombrar instituciones; parte 3 con ficha y ejemplos.
+
+| # | Fase | Qué | Estado |
+|---|---|---|---|
+| V1 | Infraestructura | Cada lámina se registra con su sección («m3a:2»); `reordenar.py` la ubica según `recetario_estructura.json`, falla si sobra o falta una y renumera los folios. Portadillas antiguas (I a VII) omitidas en la moderna | ☑ |
+| V2 | Orden con lo existente | Apertura (portada de la propuesta, cómo está organizada, principios) y cinco capítulos con portadilla de capítulo (separador con rótulo) y de subcapítulo (sobria): 209 láminas | ☑ |
+| V3 | Láminas nuevas | Lámina estándar medida, escala tipográfica, portadas y objetivos alternativos, gráficos solos, 32 fichas de tipos de lámina, combinaciones, estudios nuevos | ◐ |
+| V4 | Banco en positivo | Sin «qué evitar» ni «nunca» | ☐ |
+| V5 | ≥ 250 láminas y revisión visual completa | | ☐ |
