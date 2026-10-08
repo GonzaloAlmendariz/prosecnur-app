@@ -26,7 +26,7 @@ zona("logo y banda clara", 0, 6.42, W, 1.0); dibujar_guias(doc)
 
 # 3. Contacto bajo el logo: una fila centrada, separada del logo por un filete corto; el pie queda limpio
 doc <- cierre(doc, "contacto bajo el logo")
-caja(doc, W / 2 - 0.45, LOGO_Y1 + 0.4, 0.9, 0.02, TK$rule); fila_cto(doc, LOGO_Y1 + 0.65)
+caja(doc, W / 2 - 0.45, LOGO_Y1 + 0.7, 0.9, 0.02, TK$rule); fila_cto(doc, LOGO_Y1 + 1.05)   # más aire bajo el logo (Gonzalo)
 zona("logo y contacto en una fila", 1.0, 2.16, W - 2.0, LOGO_Y1 + 1.0 - 2.16); dibujar_guias(doc)
 
 # 4. Contacto en tres columnas: ícono en círculo, rótulo y dato, bajo el logo
