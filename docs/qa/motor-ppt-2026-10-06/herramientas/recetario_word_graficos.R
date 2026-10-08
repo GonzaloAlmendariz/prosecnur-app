@@ -342,13 +342,13 @@ g_nube <- function(freq, n_txt = "", k = 40) {
 g_mapa <- function(capa, cat, pal, titulo_ley, n_txt = "", contorno = NULL, borde = "#FFFFFF", lw = 0.3, alto = 4) {
   capa$k <- factor(cat, levels = names(pal))
   # El mapa conserva su proporción: la figura mide lo que mide el dibujo más la leyenda, para que la leyenda quede junto al mapa y
-  # alineada a su borde inferior, no al fondo de un lienzo más ancho (Gonzalo, 2026-10-08: «leyendas mal posicionadas en los mapas»).
+  # centrada en su alto, no al fondo de un lienzo más ancho (Gonzalo, 2026-10-08: «leyendas mal posicionadas en los mapas»).
   bb <- as.numeric(sf::st_bbox(capa)); asp <- (bb[4] - bb[2]) / ((bb[3] - bb[1]) * cos(mean(bb[c(2, 4)]) * pi / 180))
   ley_w <- 0.35 + max(nchar(c(titulo_ley, names(pal)))) * 8.5 * 0.5 / 72
   g <- ggplot() + geom_sf(data = capa, aes(fill = k), colour = borde, linewidth = lw) +
     scale_fill_manual(values = pal, name = titulo_ley, drop = FALSE) + coord_sf(expand = FALSE, datum = NA) + labs(caption = fuente_pie(n_txt)) + tema_w() +
     theme(legend.position = "right", legend.title = element_text(size = 8, face = "bold", colour = WTK$gris), legend.text = element_text(size = 8.5, colour = WTK$navy_w),
-          legend.key.size = unit(10, "pt"), legend.key = element_rect(colour = "#B8C2D3", linewidth = 0.3), legend.justification = c(0, 0),
+          legend.key.size = unit(10, "pt"), legend.key = element_rect(colour = "#B8C2D3", linewidth = 0.3), legend.justification = c(0, 0.5),   # al lado del mapa y centrada en vertical (Gonzalo, 2026-10-08)
           legend.box.spacing = unit(0.15, "in"), plot.margin = margin(4, 4, 4, 4))
   if (!is.null(contorno)) g <- g + geom_sf(data = contorno, fill = NA, colour = WTK$navy, linewidth = 0.6) + coord_sf(expand = FALSE, datum = NA)
   attr(g, "ancho") <- min(ANCHO_W, (alto - 0.35) / asp + ley_w + 0.25)
