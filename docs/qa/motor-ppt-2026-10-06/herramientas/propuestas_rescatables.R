@@ -299,12 +299,16 @@ pub3 <- c("Docentes", "Estudiantes", "Egresados"); col3 <- unname(TK$actores[pub
 letras_fila <- function(x, n) { p <- x / n; pr <- combn(3, 2); pa <- p.adjust(apply(pr, 2, function(ab) z_pool(x[ab[1]], n[ab[1]], x[ab[2]], n[ab[2]])), "bonferroni")
   l <- rep("", 3); sigp <- list(); for (k in seq_len(ncol(pr))) if (pa[k] < 0.05) { a <- pr[1, k]; b <- pr[2, k]; sigp[[length(sigp) + 1]] <- c(a, b)
     if (p[a] > p[b]) l[a] <- paste0(l[a], LETTERS[b]) else l[b] <- paste0(l[b], LETTERS[a]) }
-  list(p = 100 * p, l = l, pares = sigp) }
+  ci <- t(apply(pr, 2, function(ab) 100 * newcombe(x[ab[1]], n[ab[1]], x[ab[2]], n[ab[2]], 1 - 0.05 / 3)))   # intervalo ajustado por Bonferroni (3 pares)
+  list(p = 100 * p, l = l, pares = sigp, d = 100 * (p[pr[1, ]] - p[pr[2, ]]), lo = ci[, 1], hi = ci[, 2], sig = pa < 0.05) }
 doc <- nueva(doc); titulo(doc, "Misión y perfil de egreso en tres públicos", ante = "Propuesta 5: tabla de letras y gráfico")
-xi <- XC; wi <- 2.9; xv <- c(XC + 3.0, XC + 4.1, XC + 5.2); wv <- 1.05; xg0 <- XC + 6.75; wg <- W - MR - xg0 - 0.25; lo_ <- 75; hi_ <- 100; px <- function(v) xg0 + (v - lo_) / (hi_ - lo_) * wg
+xi <- XC; wi <- 2.9; xv <- c(XC + 3.0, XC + 4.1, XC + 5.2); wv <- 1.05; xg0 <- XC + 6.6; wg <- W - MR - xg0
 yh <- YT - 0.1
 for (k in 1:3) { txt(doc, pub3[k], xv[k] - 0.1, yh, wv + 0.2, 0.28, 11.5, TK$navy, bold = TRUE, align = "center"); txt(doc, LETTERS[k], xv[k], yh + 0.26, wv, 0.26, 11, AZUL_LETRA, bold = TRUE, align = "center") }
-leyenda(doc, 0, yh + 0.08, pub3, col3, centrar_en = xg0 + wg / 2)
+npan <- 3; gp <- 0.25; wpan <- (wg - gp * (npan - 1)) / npan; lo_ <- -26; hi_ <- 31
+xpan <- function(k) xg0 + (k - 1) * (wpan + gp); pxk <- function(k, v) xpan(k) + (min(max(v, lo_), hi_) - lo_) / (hi_ - lo_) * wpan
+cab <- c("A menos B", "A menos C", "B menos C"); sub_ <- c("Docentes y estudiantes", "Docentes y egresados", "Estudiantes y egresados")
+for (k in 1:3) { txt(doc, cab[k], xpan(k) - 0.1, yh, wpan + 0.2, 0.28, 11.5, TK$navy, bold = TRUE, align = "center"); txt(doc, sub_[k], xpan(k) - 0.1, yh + 0.26, wpan + 0.2, 0.26, 9.5, TK$soft, align = "center") }
 separador_h(doc, XC, xv[3] + wv, yh + 0.58)
 y_ <- yh + 0.66; rh <- 0.42; sh <- 0.34; ytop <- y_; filas <- list()
 for (g in tl) { txt(doc, toupper(g[[1]]), xi - 0.1, y_ + 0.05, 6, 0.26, 10, TK$soft, bold = TRUE); y_ <- y_ + sh
@@ -316,12 +320,14 @@ for (g in tl) { txt(doc, toupper(g[[1]]), xi - 0.1, y_ + 0.05, 6, 0.26, 10, TK$s
       } else txt(doc, cad, xv[k], y_ + 0.07, wv, 0.3, 13, TK$navy, align = "center") }
     filas[[length(filas) + 1]] <- list(y = y_ + rh / 2, r = r); separador_h(doc, XC, xv[3] + wv, y_ + rh); y_ <- y_ + rh } }
 ybot <- y_
-for (v in seq(75, 100, 5)) { caja(doc, px(v) - 0.003, ytop, 0.006, ybot - ytop, TK$rule); txt(doc, paste0(v, "%"), px(v) - 0.35, ybot + 0.04, 0.7, 0.24, 10, TK$soft, align = "center") }
-for (f in filas) { yc <- f$y; pv <- f$r$p
-  caja(doc, px(min(pv)), yc - 0.012, px(max(pv)) - px(min(pv)), 0.024, "#C9CED8")
-  for (pr in f$r$pares) { a <- min(pv[pr]); b <- max(pv[pr]); caja(doc, px(a), yc - 0.035, px(b) - px(a), 0.07, TK$navy) }
-  for (k in order(-pv)) caja(doc, px(pv[k]) - 0.1, yc - 0.1, 0.2, 0.2, col3[k], geom = "ellipse", line = sp_line(color = "#FFFFFF", lwd = 1)) }
-txt(doc, "La letra junto a una cifra indica de qué público es significativamente mayor. En el gráfico, la línea azul une a los públicos que difieren de forma significativa.", XT, ybot + 0.32, AC, 0.5, 12, TK$navy)
+for (k in 1:3) { caja(doc, xpan(k), ytop, wpan, ybot - ytop, "#EAEDF2")   # fondo de cada panel
+  for (v in c(-20, 0, 20)) { caja(doc, pxk(k, v) - (if (v == 0) 0.01 else 0.003), ytop, if (v == 0) 0.02 else 0.006, ybot - ytop, if (v == 0) TK$soft else "#FFFFFF")
+    txt(doc, fmt_d(v), pxk(k, v) - 0.3, ybot + 0.04, 0.6, 0.24, 9.5, TK$soft, align = "center") } }
+for (f in filas) { yc <- f$y; r <- f$r
+  for (k in 1:3) { s_ <- r$sig[k]; cc <- if (s_) TK$navy else "#AEB6C6"
+    caja(doc, pxk(k, r$lo[k]), yc - 0.025, pxk(k, r$hi[k]) - pxk(k, r$lo[k]), 0.05, cc)
+    caja(doc, pxk(k, r$d[k]) - 0.08, yc - 0.08, 0.16, 0.16, if (s_) TK$navy else "#FFFFFF", geom = "ellipse", line = sp_line(color = cc, lwd = 1.25)) } }
+txt(doc, "La letra indica de qué público es mayor. Cada panel muestra la diferencia de un par con su intervalo. Punto lleno: diferencia significativa.", XT, ybot + 0.3, AC, 0.3, 12, TK$navy)
 pie(doc, "Top Two Box o «Sí». Prueba z entre cada par de públicos, con corrección de Bonferroni (α = 0.05). Base: 51 docentes, 109 estudiantes y 161 egresados (misión: 52, 172 y 178)")
 
 doc <- forest_doc(doc, TRUE); doc <- forest_doc(doc, FALSE)
