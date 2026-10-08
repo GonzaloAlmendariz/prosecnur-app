@@ -180,7 +180,54 @@ doc <- galeria(doc, c(png_int, png_ctr), c("Página interior con el recuadro «C
 doc <- lista(doc, c("El recuadro «Cómo leer este informe» va en el diseño metodológico: fondo gris muy claro, un filete azul arriba y tres o cuatro líneas.",
   "La contraportada cierra con el logo de PULSO PUCP al centro y el contacto en una línea."))
 
-# ================= 2. Reglas del informe Word
+# ================= 2. Cómo leer este informe (Gonzalo, 2026-10-08: «falta todo lo que tenga que ver con cómo leer el informe en la parte de adelante del
+# Word… el gráfico de cómo leer el Top Two Box, el gráfico del redondeo, que ya los tienen los PPT»). En un informe real, estas páginas van en el diseño metodológico.
+doc <- capitulo(doc, "Cómo leer este informe", paste("Las páginas que explican al lector cómo leer las cifras del informe. En un informe real van al final del diseño metodológico, antes de los resultados,",
+  "y se repiten iguales en todos los estudios: el Top Two Box y el Bottom Two Box, el redondeo, las escalas, las cifras pequeñas, las bases chicas y la información faltante."))
+doc <- seccion(doc, "Top Two Box")
+doc <- cuerpo(doc, "Es la suma de los dos valores superiores de la escala. Resume en una cifra el acuerdo de cada grupo y permite compararlo entre públicos y con mediciones de otros años.", keep = TRUE)
+doc <- grafico(doc, "Cómo se calcula el Top Two Box", g_box_explica(c(5, 5, 35, 55), TRUE), 1.9)
+doc <- seccion(doc, "Bottom Two Box")
+doc <- cuerpo(doc, "Es la suma de los dos valores inferiores de la escala. Se usa cuando interesa el desacuerdo, por ejemplo para ubicar los aspectos que más críticas reciben. Va en naranja oscuro, al lado del Top Two Box.", keep = TRUE)
+doc <- grafico(doc, "Cómo se calcula el Bottom Two Box", g_box_explica(c(12, 20, 41, 27), FALSE), 1.9)
+doc <- seccion(doc, "Redondeo de las cifras")
+doc <- cuerpo(doc, "Las cifras se muestran en enteros. Hay dos maneras de redondear y el informe dice cuál usa. Las dos tablas usan el mismo ejemplo: 1, 7, 60, 110 y 0 casos de 178.", keep = TRUE)
+n_r <- c(1, 7, 60, 110, 0); ex_r <- 100 * n_r / sum(n_r); std_r <- floor(ex_r + 0.5); ent_r <- floor(ex_r); rest_r <- ex_r - ent_r
+faltan_r <- 100 - sum(ent_r); suben_r <- order(-rest_r)[seq_len(faltan_r)]; res_r <- ent_r; res_r[suben_r] <- res_r[suben_r] + 1
+cab_r <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")
+t_std <- as.data.frame(rbind(c("Valor exacto", sprintf("%.2f%%", ex_r), "100%"), c("Redondeo estándar", paste0(std_r, "%"), paste0(sum(std_r), "%"))))
+names(t_std) <- c(" ", cab_r, "Suma")
+doc <- cuerpo(doc, "Redondeo estándar. Cada porcentaje se redondea por separado: desde 0.5 sube y por debajo baja. Cada cifra queda lo más cerca posible de su valor exacto, pero la suma puede dar 99% o 101%.", keep = TRUE)
+doc <- tabla(doc, "Redondeo estándar", ft_base(t_std, c(1.5, rep(0.85, 5), 0.6), size = 9) |> align(j = 2:7, align = "center", part = "all") |> bold(i = 2) |>
+  color(i = 2, j = 7, color = CORAL) |> fontsize(size = 8.5, part = "header"),
+  base = sprintf("Base: ejemplo de 178 casos. La suma queda en %d%% porque cada cifra se redondeó por su cuenta.", sum(std_r)))
+t_rm <- as.data.frame(rbind(c("Valor exacto", sprintf("%.2f%%", ex_r), "100%"), c("Parte entera", paste0(ent_r, "%"), paste0(sum(ent_r), "%")),
+  c("Resto decimal", sprintf("%.2f", rest_r), ""), c("Resultado", paste0(res_r, "%"), paste0(sum(res_r), "%"))))
+names(t_rm) <- c(" ", cab_r, "Suma")
+ft_rm <- ft_base(t_rm, c(1.5, rep(0.85, 5), 0.6), size = 9) |> align(j = 2:7, align = "center", part = "all") |> bold(i = 4) |> fontsize(size = 8.5, part = "header") |> color(i = 2, j = 7, color = CORAL)
+for (j_ in suben_r) ft_rm <- ft_rm |> bg(i = 3:4, j = j_ + 1, bg = "#FBE3E2") |> color(i = 3:4, j = j_ + 1, color = CORAL)
+doc <- cuerpo(doc, "Redondeo del resto mayor. Primero se toma la parte entera de cada porcentaje. Los puntos que faltan para llegar a 100 se dan, uno por uno, a las categorías con el resto decimal más grande. La suma siempre da 100%.", keep = TRUE)
+doc <- tabla(doc, "Redondeo del resto mayor", ft_rm, base = sprintf("Base: ejemplo de 178 casos. Faltan %d puntos y van a los %d restos más grandes, marcados. El %.2f%% queda en %d%%.", faltan_r, faltan_r, ex_r[1], res_r[1]))
+doc <- seccion(doc, "Una misma escala, muchas redacciones")
+doc <- cuerpo(doc, "La redacción de la escala cambia según el estudio y el público, pero el color y el orden se mantienen: de lo negativo a lo positivo y, al final, en gris, la falta de información. El Top Two Box es siempre la suma de las dos respuestas más altas.", keep = TRUE)
+esc_r <- data.frame(Escala = c("Acuerdo", "Satisfacción", "Importancia", "Utilidad", "Competencia"),
+  `1` = c("Totalmente en desacuerdo", "Muy insatisfecho", "Nada importante", "Nada útil", "Nada competente"), `2` = c("En desacuerdo", "Insatisfecho", "Poco importante", "Poco útil", "Poco competente"),
+  `3` = c("De acuerdo", "Satisfecho", "Importante", "Útil", "Competente"), `4` = c("Totalmente de acuerdo", "Muy satisfecho", "Muy importante", "Totalmente útil", "Totalmente competente"),
+  `Al final, en gris` = c("Sin información", "No he usado el servicio", "Sin información", "Sin información", "Sin información"), check.names = FALSE)
+ft_e <- ft_base(esc_r, c(1.1, 1.15, 1.0, 0.95, 1.15, 1.0), size = 8.5) |> align(j = 2:6, align = "center", part = "all")
+for (j_ in 1:5) ft_e <- ft_e |> bg(j = j_ + 1, bg = c("#FBE3D3", "#FFF4CC", "#E6F1D8", "#D5E8C7", "#ECECEC")[j_], part = "header")
+doc <- tabla(doc, "Redacciones de la escala y su color", ft_e, base = "Base: escalas usadas en los estudios de PULSO PUCP. El color de cada columna es el de su respuesta en los gráficos.")
+doc <- seccion(doc, "Cifras muy pequeñas")
+doc <- cuerpo(doc, "Si una cifra no cabe dentro de su color, sube sobre la barra con una línea guía. Si hay varias seguidas, se separan para no taparse, y la fila gana el aire que necesitan. Ninguna cifra se omite.", keep = TRUE)
+doc <- grafico(doc, "Cifras pequeñas en distintas posiciones de la barra", g_apilada(list(list(actor = "Todas chicas salvo una", pct = c(2, 1, 93, 3, 1)), list(actor = "Chicas en los dos extremos", pct = c(1, 3, 47, 47, 2)),
+  list(actor = "Tres chicas al inicio", pct = c(1, 2, 3, 40, 54)), list(actor = "Tres chicas al final", pct = c(30, 62, 2, 1, 5))), ROT, WTK$likert, envolver = 16, n_txt = "N = 120 casos de ejemplo. Cifras ficticias"), alto_apilada(4) + 0.4)
+doc <- seccion(doc, "Bases chicas e información faltante")
+doc <- lista(doc, c("Cuando un grupo tiene menos de 30 personas, junto al porcentaje va el número de casos, por ejemplo «12 de 15». Con tan pocos casos, una persona mueve varios puntos y no se comparan los grupos con pruebas de significancia.",
+  "«Sin información» reúne a quienes no respondieron o respondieron «No sabe». Va al final de la barra, en gris, y cuenta en la base: así se ve cuántos no pudieron opinar.",
+  "Cada gráfico dice su base debajo. Si una pregunta sólo se hizo a una parte, la base lo indica, por ejemplo «Base: 20 estudiantes que respondieron Sí en la pregunta anterior»."))
+doc <- recuadro(doc, "Cómo leer este informe", c(LEER_EJ, "Las cifras se redondean al entero con el método del resto mayor, de modo que cada barra suma 100%."))
+
+# ================= 3. Reglas del informe Word
 doc <- capitulo(doc, "Reglas del informe Word", "La página, los estilos de Word, la escala tipográfica y los colores que comparten todos los informes. Siguen los principios de claridad y economía visual que proponen Few (2012) y Tufte (2001).")
 doc <- seccion(doc, "La página")
 doc <- cuerpo(doc, "El informe se arma en una página A4 vertical. El texto, los gráficos y las tablas ocupan el mismo ancho útil, de modo que todo queda alineado con los márgenes.", keep = TRUE)
@@ -200,7 +247,7 @@ g_pagina <- function() { W_ <- 21; H_ <- 29.7; ml <- 2.54; mt <- 2.79; mb <- 2.2
 doc <- grafico(doc, "La página del informe y sus partes", g_pagina(), 4.4)
 doc <- tabla_guia(doc, data.frame(Medida = c("Página", "Márgenes", "Ancho útil", "Encabezado y pie", "Gráfico", "Tabla"),
   Valor = c("A4 vertical, 21 × 29.7 cm", "2.54 cm a los lados, 2.79 cm arriba y 2.29 cm abajo", "15.93 cm", "Logos sólo en la portada. En el interior, el informe y el capítulo en curso arriba y el folio abajo, a 1.02 cm del borde",
-            "Del ancho útil, sin fondo. El alto depende del número de filas (capítulo 2)", "Del ancho útil, con filetes azules arriba y abajo"), check.names = FALSE), c(1.6, 4.67))
+            "Del ancho útil, sin fondo. El alto depende del número de filas (capítulo «De PPT a Word»)", "Del ancho útil, con filetes azules arriba y abajo"), check.names = FALSE), c(1.6, 4.67))
 doc <- seccion(doc, "Anatomía de una figura")
 doc <- cuerpo(doc, "Cada gráfico del informe es una figura de cuatro partes que siempre van juntas: el rótulo arriba, el gráfico, la base y la fuente, y el párrafo de lectura.", keep = TRUE)
 doc <- grafico(doc, "La Unidad cuenta con servicios de tutoría académica", g_apilada(list(list(actor = "Docentes", pct = c(2, 8, 54, 21, 15)), list(actor = "Estudiantes", pct = c(6, 18, 34, 19, 23)),
@@ -494,11 +541,6 @@ doc <- grafico(doc, "Docentes y estudiantes en cuatro preguntas", g_dos_grupos(v
   c("Docentes", "Estudiantes"), n_txt = "N = 52 docentes y 172 estudiantes", lim = 100), 2.4,
   texto = { ini <- function(x) paste0(tolower(substr(x, 1, 1)), substring(x, 2)); nm <- ini(vapply(it_s, `[[`, "", 1))
     sprintf("La diferencia entre docentes y estudiantes es significativa en %s. En %s no lo es.", paste(nm[sig_], collapse = " y en "), if (any(!sig_)) paste(nm[!sig_], collapse = " y en ") else "ninguna") })
-doc <- sit(doc, "Redondeo de cifras", "Los porcentajes se redondean al entero. Si el redondeo no suma 100, el punto que falta va a la categoría con mayor resto decimal, para que cada barra cierre en 100.")
-red <- data.frame(Categoría = c(ROT[1:4], "Suma"), Exacto = c("12.2%", "20.4%", "33.3%", "34.1%", "100.0%"), `Redondeo estándar` = c("12%", "20%", "33%", "34%", "99%"), `Redondeo repartido` = c("12%", "21%", "33%", "34%", "100%"), check.names = FALSE)
-doc <- tabla(doc, "Ejemplo de reparto del redondeo", ft_base(red, c(2.3, 1.3, 1.3, 1.3)) |> bold(i = 5) |> bg(i = 2, j = 4, bg = "#FBE3E2") |> color(i = 5, j = 3, color = CORAL) |> align(j = 2:4, align = "center", part = "all"),
-  base = "Base: ejemplo ficticio con 250 casos. El punto repartido va a «En desacuerdo», la categoría con mayor resto (0.4).", zebra = FALSE)
-
 # ================= 5. Tablas
 doc <- capitulo(doc, "Tablas", "Las tablas son tablas de Word del ancho del texto: filete azul arriba y abajo, filetes finos entre filas, encabezado en azul y la primera columna alineada con el texto. Llevan rótulo numerado arriba y base debajo, igual que los gráficos.")
 doc <- seccion(doc, "Ficha técnica")
