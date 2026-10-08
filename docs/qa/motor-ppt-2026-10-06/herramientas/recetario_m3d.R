@@ -66,7 +66,7 @@ for (i in seq_len(nrow(M_dim))) { yi <- y0 + (i - 1) * bloque
   for (k in 1:2) { g_ <- c("Masculino", "Femenino")[k]; yb <- yi + bloque / 2 - gb - 0.03 + (k - 1) * (gb + 0.06); v <- M_dim[i, g_]
     caja(doc, xl, yb, px(v) - xl, gb, c(TK$navy, "#4F7FAF")[k]); txt(doc, paste0(round(v), "%"), px(v) + 0.08, yb + (gb - 0.28) / 2, 0.8, 0.28, 12, TK$navy, bold = TRUE) } }
 zona("barras desde 0", xl, y0, wl, nrow(M_dim) * bloque)
-leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", c("Masculino", "Femenino"), n_g[c("Masculino", "Femenino")]), c(TK$navy, "#4F7FAF"), size = 11, centrar_en = xl + wl / 2)
+leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", c("Masculino", "Femenino"), n_g[c("Masculino", "Femenino")]), c(TK$navy, "#4F7FAF"), centrar_en = xl + wl / 2)
 pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))
 
 # --- p_dim_radar: once competencias como ejes (5 o más ejes), por sexo
@@ -85,24 +85,9 @@ gr <- ggplot() + geom_path(data = ring, aes(x, y, group = r), colour = "#C9CED8"
     size = 10 / .pt, colour = TK$soft, family = "Arial", fill = TK$fondo, label.size = 0, label.padding = unit(0.06, "lines")) +
   scale_colour_manual(values = c(Masculino = TK$navy, Femenino = "#4F7FAF")) + coord_equal(xlim = c(-1.9, 1.9), ylim = c(-1.25, 1.25), clip = "off") + theme_void() + theme(legend.position = "none")
 invisible(ph_with(doc, dml(ggobj = gr, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML + 0.4, top = YT + 0.05, width = 7.6, height = 4.9)))
-leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", c("Masculino", "Femenino"), n_g[c("Masculino", "Femenino")]), c(TK$navy, "#4F7FAF"), size = 11, centrar_en = ML + 4.2)
+leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", c("Masculino", "Femenino"), n_g[c("Masculino", "Femenino")]), c(TK$navy, "#4F7FAF"), centrar_en = ML + 4.2)
 d_mf <- M_it[, "Masculino"] - M_it[, "Femenino"]; o <- order(-abs(d_mf))[1:3]
 narrativa(doc, 8.95, YT + 0.9, 4.05, 3.2, list(N_("Ningún eje difiere más de "), B(paste0(max(abs(d_mf)), " puntos")), N_(" entre los dos grupos."),
   N_(" Las mayores distancias están en "), B(paste(tolower(nom_it[o[1:2]]), collapse = " y ")), N_(".")), size = 15)
 zona("radar, anillos de 80 a 100 rotulados", ML + 0.4, YT + 0.05, 7.6, 4.9)
-pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))
-
-# --- p_dim_foda: competencias ubicadas por su nivel, con umbrales declarados
-MOTOR_ACT <- "p_slide_1_grafico: p_dim_foda"
-doc <- nueva(doc); titulo(doc, "Fortalezas y aspectos por reforzar", ante = "Matriz FODA dimensional")
-tot <- M_it[, "Total"]; cortes <- list(c("Fortalezas", "98 % o más", 98, 101), c("Oportunidades", "96 a 97 %", 96, 98), c("Aspectos por vigilar", "94 a 95 %", 94, 96), c("Debilidades relativas", "menos de 94 %", 0, 94))
-wq <- (ANCHO - 0.3) / 2; hq <- (YF - YT - 0.2) / 2; fondos <- c("#E4EEDA", "#EEF2F8", "#FFF4D6", "#F9E0D2"); acentos <- c(TK$verde_txt, TK$navy, "#B8860B", TK$coral)
-for (q in 1:4) { x <- ML + ((q - 1) %% 2) * (wq + 0.3); y <- YT + ((q - 1) %/% 2) * (hq + 0.2)
-  caja(doc, x, y, wq, hq, fondos[q]); caja(doc, x, y, 0.07, hq, acentos[q])
-  txt(doc, cortes[[q]][1], x + 0.25, y + 0.12, wq - 0.4, 0.32, 14, acentos[q], bold = TRUE); txt(doc, cortes[[q]][2], x + 0.25, y + 0.44, wq - 0.4, 0.26, 10.5, TK$soft)
-  en <- which(tot >= as.numeric(cortes[[q]][3]) & tot < as.numeric(cortes[[q]][4])); en <- en[order(-tot[en])]
-  for (k in seq_along(en)) { yk <- y + 0.82 + (k - 1) * 0.36; txt(doc, nom_it[en[k]], x + 0.25, yk, wq - 1.4, 0.3, 12, TK$navy, bold = TRUE)
-    txt(doc, paste0(tot[en[k]], "%"), x + wq - 1.1, yk, 0.9, 0.3, 12, acentos[q], bold = TRUE, align = "right") }
-  if (!length(en)) txt(doc, "Ninguna competencia en este tramo", x + 0.25, y + 0.82, wq - 0.4, 0.3, 11, TK$faint) }
-zona("cuatro cuadrantes por umbral de Top Two Box", ML, YT, ANCHO, YF - YT)
 pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))

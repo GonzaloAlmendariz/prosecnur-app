@@ -8,10 +8,10 @@ MOTOR_ACT <- "Regla de robustez: la escala se reconoce por significado y orden. 
 doc <- nueva(doc); titulo(doc, "Una misma escala, muchas redacciones", ante = "Reglas de la identidad")
 fam <- list(
   list("Acuerdo", c("Totalmente en desacuerdo … Totalmente de acuerdo", "Completamente en desacuerdo … Completamente de acuerdo", "Totalmente en Desacuerdo … Totalmente de Acuerdo",
-                    "SIN INF primero, «Totalmente en desacuerdo 1 … Totalmente de acuerdo 4»"), LIKERT_ROT),
+                    "Totalmente en desacuerdo 1 … Totalmente de acuerdo 4, con SIN INF primero"), LIKERT_ROT),
   list("Satisfacción", c("Muy insatisfecho … Muy satisfecho", "Nada Satisfecho / Poco Satisfecho / Satisfecho / Muy Satisfecho", "Muy Insatisfecho / Poco Satisfecho / Satisfecho / Muy Satisfecho",
                          "con «No he usado el servicio» primero"), c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho", "SIN INF o no usado")),
-  list("Importancia, utilidad y competencia", c("Nada importante … Muy importante", "Nada útil … Totalmente útil (Ingeniería)", "Nada competente … Totalmente competente (Ingeniería)"),
+  list("Importancia, utilidad y competencia", c("Nada importante … Muy importante", "Nada útil … Totalmente útil", "Nada competente … Totalmente competente"),
        c("Extremo bajo", "Bajo", "Alto", "Extremo alto", "SIN INF")))
 y <- Y_DATOS - 0.1; wv <- 5.9
 if (ESTILO == "moderna") { txt(doc, "Cómo aparece en las encuestas", XT, y - 0.05, wv, 0.26, 10, TK$soft, bold = TRUE); txt(doc, "Cómo se dibuja en el informe", 7.0, y - 0.05, 6, 0.26, 10, TK$soft, bold = TRUE); y <- y + 0.3 }
@@ -22,7 +22,7 @@ for (f_ in fam) {
   y <- y + 0.42 + max(length(f_[[2]]) * 0.26, 0.85) + 0.15
   if (ESTILO == "moderna") separador_h(doc, XC, W - MR, y - 0.12) }
 txt(doc, "Top Two Box: suma de las dos respuestas más altas", 7.0, y + 0.02, 5.9, 0.3, 11, TK$verde_txt, bold = TRUE)
-pie(doc, "Redacciones encontradas en las encuestas de Psicología, Geografía, Derecho e Ingeniería. La redacción cambia según la carrera y el actor, pero el color y el orden se mantienen")
+pie(doc, "La redacción cambia según la carrera y el actor, pero el color y el orden se mantienen")
 
 
 # --- C23 cifras chicas seguidas (pregunta de Gonzalo: «¿qué pasa si hay un 1 %, 2 % y 3 % uno al lado del otro?»)

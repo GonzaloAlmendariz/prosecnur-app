@@ -24,7 +24,7 @@ for (i in 1:4) { yc <- yb + (i - 0.5) * fila; a1 <- D$mision1[[i]]$pct[1]; a2 <-
   ar <- a1 >= a2; txt(doc, paste0(a1, "%"), if (ar) min(px(a1) + 0.16, W - MR - 0.6) else px(a1) - 0.76, yc - 0.42, 0.6, 0.28, 11, TK$navy, bold = TRUE, align = if (ar) "left" else "right")
   txt(doc, paste0(a2, "%"), if (ar) px(a2) - 0.76 else min(px(a2) + 0.16, W - MR - 0.6), yc + 0.12, 0.6, 0.28, 11, "#4F7FAF", bold = TRUE, align = if (ar) "right" else "left") }
 zona("puntos, eje 50 a 100 rotulado", xl, yb, wl, 4 * fila)
-leyenda(doc, 0, YF - 0.3, c("Conoce la misión y los propósitos", "Sabe dónde consultarlos"), c(TK$navy, "#4F7FAF"), size = 11, centrar_en = xl + wl / 2)
+leyenda(doc, 0, YF - 0.3, c("Conoce la misión y los propósitos", "Sabe dónde consultarlos"), c(TK$navy, "#4F7FAF"), centrar_en = xl + wl / 2)
 pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos")
 
 # --- p_dumbbell: brecha entre dos públicos
@@ -40,7 +40,7 @@ for (i in seq_len(nrow(d2))) { yc <- yb + (i - 0.5) * fila; a <- d2$Docentes[i];
   caja(doc, px(b) - 0.13, yc - 0.13, 0.26, 0.26, TK$actores[["Estudiantes"]], geom = "ellipse"); caja(doc, px(a) - 0.13, yc - 0.13, 0.26, 0.26, TK$actores[["Docentes"]], geom = "ellipse")
   txt(doc, sprintf("%+d pts", a - b), W - MR - 1.3, yc - 0.15, 1.3, 0.3, 13, if (a - b < 0) TK$coral else TK$navy, bold = TRUE, align = "center") }
 zona("pesas, eje 80 a 100 rotulado", xl, yb, wl, nrow(d2) * fila)
-leyenda(doc, 0, YF - 0.3, c(sprintf("Docentes (%d)", ns6[1]), sprintf("Estudiantes (%d)", ns6[2])), TK$actores[1:2], size = 11, centrar_en = xl + wl / 2)
+leyenda(doc, 0, YF - 0.3, c(sprintf("Docentes (%d)", ns6[1]), sprintf("Estudiantes (%d)", ns6[2])), TK$actores[1:2], centrar_en = xl + wl / 2)
 pie(doc, sprintf("Base: %d docentes y %d estudiantes", ns6[1], ns6[2]))
 
 # --- p_serie_temporal: uso excepcional, dos mediciones
@@ -78,7 +78,7 @@ gr <- ggplot() + geom_path(data = ring, aes(x, y, group = r), colour = "#C9CED8"
     size = 10 / .pt, colour = TK$soft, family = "Arial", fill = TK$fondo, label.size = 0, label.padding = unit(0.06, "lines")) +
   scale_colour_manual(values = TK$actores) + coord_equal(xlim = c(-2.15, 2.15), ylim = c(-1.25, 1.25), clip = "off") + theme_void() + theme(legend.position = "none")   # xlim amplio: los rótulos de los ejes caben sin tocar la tabla
 invisible(ph_with(doc, dml(ggobj = gr, bg = "transparent", fonts = list(sans = "Arial")), location = ph_location(left = ML, top = YT + 0.2, width = 6.6, height = 4.5)))
-leyenda(doc, 0, YF - 0.3, names(TK$actores), TK$actores, size = 11, centrar_en = ML + 3.3)
+leyenda(doc, 0, YF - 0.3, names(TK$actores), TK$actores, centrar_en = ML + 3.3)
 names(dd6)[1] <- "Competencia"; tabla_ttb(dd6, 7.25, YT + 0.6, c(2.2, 1.15, 1.25, 1.15), 0.5); names(dd6)[1] <- "Competencia"
 zona("radar", ML, YT + 0.2, 6.6, 4.5)
 pie(doc, sprintf("Base: %d docentes, %d estudiantes y %d egresados", ns6[1], ns6[2], ns6[3]))
@@ -96,5 +96,5 @@ for (i in seq_len(nrow(d3))) { yc <- yb + (i - 0.5) * fila; v <- unlist(d3[i, 2:
   for (k in 1:3) { yk <- yc + dy[k] - 0.085 * (max(dy) > 0); caja(doc, px(v[k]) - 0.12, yk - 0.12, 0.24, 0.24, TK$actores[k], geom = "ellipse", line = sp_line(color = TK$fondo, lwd = 1.25)) }
   txt(doc, sprintf("%d a %d%%", min(v), max(v)), px(max(v)) + 0.2, yc - 0.14, 1.2, 0.28, 11, TK$navy, bold = TRUE) }
 zona("puntos, eje 80 a 100 rotulado", xl, yb, wl, nrow(d3) * fila)
-leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", names(TK$actores), ns6), TK$actores, size = 11, centrar_en = xl + wl / 2)
+leyenda(doc, 0, YF - 0.3, sprintf("%s (%d)", names(TK$actores), ns6), TK$actores, centrar_en = xl + wl / 2)
 pie(doc, sprintf("Base: %d docentes, %d estudiantes y %d egresados", ns6[1], ns6[2], ns6[3]))

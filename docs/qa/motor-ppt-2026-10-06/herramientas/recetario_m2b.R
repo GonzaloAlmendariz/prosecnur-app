@@ -36,13 +36,13 @@ doc <- nueva(doc); titulo(doc, "Tutoría y misión institucional", ante = "Tres 
 ta <- list(list(lab = "Docentes", f = fr("docentes", "p24_6")), list(lab = "Estudiantes", f = fr("estudiantes", "p17_5")))
 panel_titulo(doc, ML, YT - 0.05, ANCHO, "La Unidad cuenta con servicios de tutoría académica.")
 likert_panel(doc, ML, YT + 0.3, ANCHO, ta, wlab = 1.6, g = 0.38, fila = 0.66)
-leyenda(doc, 0, YT + 1.95, LIKERT_ROT, TK$likert, size = 10.5, centrar_en = W / 2)
+leyenda(doc, 0, YT + 1.95, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 separador_h(doc, ML, W - MR, YT + 2.4)
 act3 <- c("Docentes", "Estudiantes", "Egresados")
 for (k in 1:2) { bq <- if (k == 1) D$mision1 else D$mision2; x <- if (k == 1) ML else xr
   panel_titulo(doc, x, YT + 2.55, col2, bq[[1]]$pregunta)
   likert_panel(doc, x, YT + 2.75, col2, lapply(1:3, function(i) list(lab = act3[i], f = bq[[i]])), cols = TK$dico, ttb_col = FALSE, g = 0.3, fila = 0.5, wlab = 1.3, size_lab = 10.5) }
-leyenda(doc, 0, YF - 0.05, c("Sí", "No"), TK$dico, size = 10.5, centrar_en = W / 2)
+leyenda(doc, 0, YF - 0.05, c("Sí", "No"), TK$dico, centrar_en = W / 2)
 pie(doc, "Base: 52 docentes, 172 estudiantes y 178 egresados")
 
 # --- p_slide_4_graficos: cuadrícula de 2 x 2
@@ -59,6 +59,6 @@ pintar <- list(
     m1 <- D$mision1[[1]]
     if (ESTILO == "moderna") dicotomia(doc, c$x, c$y + 0.65, min(col2, 5.2), c("Sí", "No"), m1$pct[1:2], size = 22, g = 0.34) else {
     likert_panel(doc, c$x, c$y + 0.25, col2, list(list(lab = "Docentes", f = m1)), cols = TK$dico, ttb_col = FALSE, g = 0.42, fila = 0.75, wlab = 1.2)
-    leyenda(doc, 0, c$y + 1.35, c("Sí", "No"), TK$dico, size = 10.5, centrar_en = c$x + 1.3 + (col2 - 1.3) / 2) } })
+    leyenda(doc, 0, c$y + 1.35, c("Sí", "No"), TK$dico, centrar_en = c$x + 1.3 + (col2 - 1.3) / 2) } })
 for (k in 1:4) pintar[[k]](celdas[[k]])
 pie(doc, "Base: 52 docentes")

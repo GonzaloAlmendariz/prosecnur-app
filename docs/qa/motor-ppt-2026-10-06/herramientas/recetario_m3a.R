@@ -43,7 +43,7 @@ txt(doc, "conoce la misión", xd, yd + dd_ / 2 + 0.2, dd_, 0.3, 12, TK$navy, ali
 zona("dona", xd, yd, dd_, dd_)
 narrativa(doc, 6.9, YT + 1.0, 5.9, 2.6, list(N_("De "), B(sprintf("%d estudiantes", m$valid)), N_(", "), B(sprintf("%d", m$n[1])), N_(" conocen la misión y los propósitos de la PUCP y "),
   B(sprintf("%d (%d%%)", m$n[2], m$pct[2])), N_(" no la conocen.")), size = 17)
-leyenda(doc, 0, YT + 3.9, m$labels, TK$dico, centrar_en = 6.9 + 1.2)
+leyenda(doc, 0, yd + dd_ + 0.1, m$labels, TK$dico, centrar_en = xd + dd_ / 2)   # bajo la dona y centrada en ella (C25)
 pie(doc, "Base: 172 estudiantes")
 
 # --- p_barras_divergentes: Likert centrada en el paso de desacuerdo a acuerdo
@@ -72,7 +72,7 @@ for (i in seq_along(it)) { f <- it[[i]]; yb <- y0_ + (i - 1) * fila_ + (fila_ - 
   txt(doc, paste0(f$pct[5], "%"), W - MR - 0.5, yb + (g_ - 0.26) / 2, 0.5, 0.26, 10.5, TK$soft, bold = TRUE, align = "right") }
 caja(doc, xc - 0.006, y0_ - 0.1, 0.012, length(it) * fila_ + 0.15, TK$navy)
 zona("divergente, centro entre desacuerdo y acuerdo", xa_, y0_, wa_, length(it) * fila_)
-leyenda(doc, 0, y0_ + length(it) * fila_ + 0.25, LIKERT_ROT, TK$likert, size = 10.5, centrar_en = W / 2)
+leyenda(doc, 0, y0_ + length(it) * fila_ + 0.25, LIKERT_ROT, TK$likert, centrar_en = W / 2)
 pie(doc, "Uso excepcional: con Top Two Box se prefieren barras apiladas alineadas. Base: 15 administrativos")
 
 # --- p_lollipop: ranking de muchas opciones (selección múltiple)

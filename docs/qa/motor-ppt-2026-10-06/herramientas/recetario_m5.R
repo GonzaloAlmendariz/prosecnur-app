@@ -4,14 +4,6 @@
 
 MOTOR_ACT <- "p_slide_seccion"; doc <- portadilla(doc, "IV.2", "Escalas, etiquetas y formatos", "Escalas con otra redacción, «Otros», todos los números, ítems largos y cortos, láminas mixtas", icono = "lightbulb")
 
-# --- Variantes de índice (pedido de Gonzalo: «toma en cuenta varias situaciones: índices largos, índices cortos, índices
-# con sólo 5 o 6, índices con subíndices en uno o dos»). El índice se adapta a la cantidad de capítulos y de apartados.
-var_ind <- list(list(sec_largo, ico_largo, "Dieciocho capítulos en dos columnas", NULL, "índice largo, 18 capítulos"),
-                list(sec_corto, ico_corto, "Cinco capítulos con letra más grande y más aire", NULL, "índice corto, 5 capítulos"),
-                list(vapply(subs_pocos, `[`, "", 1), ico_pocos, "Seis capítulos, dos de ellos con apartados", subs_pocos, "subíndices en dos capítulos"),
-                list(vapply(subs_ej, `[`, "", 1), ico_subs, "Seis capítulos con sus apartados numerados", subs_ej, "subíndices en todos los capítulos"))
-for (v in var_ind) doc <- if (ESTILO == "moderna") indice_moderno(doc, v[[1]], v[[2]], v[[3]], subs = v[[4]], ante_guia = v[[5]]) else indice_fiel(doc, v[[1]], subs = v[[4]])
-
 
 xr <- ML + col2 + GAP
 
@@ -177,7 +169,7 @@ bloque_mixto <- function(doc, bloques) {
     panel_titulo(doc, ML, y, ANCHO, b$pregunta, b$sub)
     likert_panel(doc, ML, y + 0.45, ANCHO, b$filas, g = b$g, fila = b$fila, wlab = 2.2, ttb_col = b$ttb, cols = b$cols, size_lab = 12)
     yl <- y + 0.45 + 0.3 + length(b$filas) * b$fila + 0.08
-    leyenda(doc, 0, yl, b$rot, b$cols[seq_along(b$rot)], size = 10.5, centrar_en = ML + 2.4 + (ANCHO - 2.4 - (if (b$ttb) 0.75 else 0)) / 2)
+    leyenda(doc, 0, yl, b$rot, b$cols[seq_along(b$rot)], centrar_en = ML + 2.4 + (ANCHO - 2.4 - (if (b$ttb) 0.75 else 0)) / 2)
     y <- y + hs[i] + esp
     if (i < length(bloques)) separador_h(doc, ML, W - MR, y - esp / 2) }
 }

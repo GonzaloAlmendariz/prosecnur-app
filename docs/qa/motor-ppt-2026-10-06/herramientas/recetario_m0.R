@@ -71,29 +71,34 @@ ft <- ancho_ft(ft); invisible(ph_with(doc, ft, location = ph_location(left = XC,
 zona("tabla de tamaños", XC, Y_DATOS - 0.15, AC, 4.9)
 pie(doc, "Todo en Arial y nada bajo 10 pt. Tamaños medidos en 2,725 cuadros de texto de 6 informes entregados (2025 y 2026)")
 
-# --- R2 dónde va cada cosa: la lámina dibujada a escala
+# --- R2 dónde va cada cosa: la lámina dibujada a escala (C1 y C2: franjas limpias, marcas numeradas en el dibujo y una
+# línea guía que une cada marca con su explicación)
 MOTOR_ACT <- "Reglas: retícula de la lámina 16:9 (13.33 x 7.5 in) con márgenes y bandas"
 doc <- nueva(doc); titulo(doc, "Dónde va cada cosa en la lámina", ante = "Reglas de la identidad")
-k <- 0.56; ox <- XC; oy <- Y_DATOS - 0.05
-caja(doc, ox, oy, W * k, H * k, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75))
-banda <- function(y0, y1, col, et, x0 = ML, x1 = W - MR) { caja(doc, ox + x0 * k, oy + y0 * k, (x1 - x0) * k, (y1 - y0) * k, col)
-  txt(doc, et, ox + x0 * k + 0.08, oy + y0 * k + 0.02, (x1 - x0) * k, 0.24, 10, TK$navy, bold = TRUE) }
-banda(Y_TIT, Y_TIT + 0.75, "#F6D9D7", "1  Título")
-banda(Y_DATOS, Y_LEY - 0.1, "#E2EFD9", "2  Gráfico, pregunta y texto")
-banda(Y_LEY - 0.05, Y_LEY + 0.3, "#FFF2CC", "3  Leyenda")
-banda(Y_BASE - 0.05, Y_BASE + 0.25, "#E3E7EF", "4  Base")
-xr_ <- ox + W * k + 0.4; wr_ <- W - MR - xr_
-cm1 <- function(x) sprintf("%.1f cm", x * 2.54)
-lista_marcada(doc, c(
-  sprintf("El título va arriba a la izquierda, a %s del borde.", cm1(Y_TIT)),
-  sprintf("El gráfico ocupa la franja central y empieza a %s de arriba.", cm1(Y_DATOS)),
-  "La leyenda va siempre debajo del gráfico, centrada en él.",
-  "La base cierra la lámina, en la última línea.",
-  sprintf("Se deja %s de margen a cada lado y %s entre dos gráficos.", cm1(ML), cm1(GAP)),
-  "Si algo no cabe, el contenido pasa a otra lámina marcada «(cont.)». La letra no se achica."),
-  xr_, oy, wr_, paso = 0.7, size = 12)
-zona("lámina a escala 0.56", ox, oy, W * k, H * k)
-pie(doc, "Lámina de 16:9 dibujada a la mitad de su tamaño. Todas las láminas del informe usan este mismo esqueleto")
+k <- 0.56; ox <- XC; oy <- Y_DATOS - 0.05; fw <- W * k; fh <- H * k
+caja(doc, ox, oy, fw, fh, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75))
+banda <- function(y0, y1, col, x0 = ML, x1 = W - MR) caja(doc, ox + x0 * k, oy + y0 * k, (x1 - x0) * k, (y1 - y0) * k, col)
+bandas <- list(c(Y_TIT, Y_TIT + 0.75, "#F6D9D7"), c(Y_DATOS, Y_LEY - 0.12, "#E2EFD9"), c(Y_LEY - 0.05, Y_LEY + 0.3, "#FFF2CC"), c(Y_BASE - 0.02, Y_BASE + 0.28, "#E3E7EF"))
+for (b_ in bandas) banda(as.numeric(b_[1]), as.numeric(b_[2]), b_[3], x1 = if (identical(b_[3], "#F6D9D7")) W - MR - 1.7 else W - MR)
+# cota del margen lateral
+for (xm in c(ML, W - MR)) for (j in 0:13) caja(doc, ox + xm * k - 0.004, oy + 0.06 + j * (fh - 0.12) / 14, 0.008, (fh - 0.12) / 28, TK$guia)
+textos <- c(sprintf("El título va arriba a la izquierda, a %.1f cm del borde superior.", Y_TIT * 2.54),
+            sprintf("El gráfico ocupa la franja central y empieza a %.1f cm de arriba.", Y_DATOS * 2.54),
+            "La leyenda va debajo del gráfico, centrada en todo el bloque.",
+            "La base cierra la lámina, en la última línea.",
+            sprintf("Las líneas punteadas son el margen: %.1f cm a cada lado, igual en todas las láminas.", ML * 2.54),
+            "Si algo no cabe, el contenido pasa a otra lámina marcada «(cont.)». La letra no se achica.")
+xl <- ox + fw + 0.85; wl <- W - MR - xl; yl <- oy + seq(0, 5) * ((fh - 0.3) / 5)
+# Cada guía va por su propio carril vertical (más a la derecha cuanto más abajo está su franja): así ninguna cruza a otra.
+for (i in 1:4) { yb <- oy + mean(as.numeric(bandas[[i]][1:2])) * k
+  xm <- ox + fw - (if (i == 4) 0.75 else 0.38); marca(doc, i, xm, yb - 0.14, d = 0.28)
+  xa <- xm + 0.28; xe <- ox + fw + 0.12 + 0.15 * i; yt <- yl[i] + 0.12
+  caja(doc, xa, yb - 0.004, xe - xa, 0.008, TK$guia); caja(doc, xe - 0.004, min(yb, yt), 0.008, abs(yt - yb) + 0.008, TK$guia); caja(doc, xe, yt - 0.004, xl - xe - 0.05, 0.008, TK$guia) }
+marca(doc, 5, ox + ML * k - 0.16, oy + fh - 0.42, d = 0.32)
+for (i in seq_along(textos)) { if (i >= 5) marca(doc, i, xl, yl[i] - 0.04, d = 0.32)
+  txt(doc, textos[i], xl + (if (i >= 5) 0.42 else 0), yl[i] - 0.06, wl - (if (i >= 5) 0.42 else 0), 0.62, 12, TK$navy) }
+zona("lámina a escala 0.56", ox, oy, fw, fh)
+pie(doc, "Lámina de 16:9 dibujada a poco más de la mitad de su tamaño. Todas las láminas del informe usan este esqueleto")
 
 # --- R3 colores y lo que significan
 MOTOR_ACT <- "Reglas: paleta validada y regla de uso de cada color"
@@ -115,61 +120,62 @@ for (g_ in grupos) { txt(doc, g_[[1]], XT, y, 5, 0.3, 13, TK$navy, bold = TRUE)
   y <- y + 1.22 }
 pie(doc, "Para quien diseña: azul oscuro 081F5C, coral CA5651, verde 4E9438. Escala F4B183, FFD965, ADD493, 70AD47 y BFBFBF")
 
-# --- R4 el texto que acompaña al gráfico
+# --- R4 el texto que acompaña al gráfico (C3 y C4 de la tanda de comentarios: rangos en vez de «nunca más de», y las
+# cuatro posiciones posibles del texto, no sólo a la derecha)
 MOTOR_ACT <- "Reglas: texto narrativo en láminas con gráfico (p_slide_*_narrativo, p_slide_grafico_texto_*)"
 doc <- nueva(doc); titulo(doc, "El texto que acompaña al gráfico", ante = "Reglas de la identidad")
-wg <- 7.6; xg <- XC; xt <- xg + wg + 0.45; wt <- W - MR - xt
-contorno(doc, xg, Y_DATOS + 0.1, wg, 4.3, TK$faint, lty = "dash")
-txt(doc, "Gráfico", xg, Y_DATOS + 2.0, wg, 0.4, 16, TK$faint, bold = TRUE, align = "center")
-txt(doc, "ocupa cerca de 60 % del ancho", xg, Y_DATOS + 2.4, wg, 0.3, 11, TK$faint, align = "center")
-narrativa(doc, xt, Y_DATOS + 0.3, wt, 2.2, list(N_("El "), B("75 % de los docentes"), N_(" y el "), B("53 % de los estudiantes"),
-  N_(" está de acuerdo o totalmente de acuerdo con que la Unidad cuenta con servicios de tutoría. Uno de cada cuatro estudiantes no tiene información sobre el servicio.")), size = 14)
-lista_marcada(doc, c("Es breve: unas 50 palabras y nunca más de 74.", "Va a la derecha del gráfico. Arriba, sólo si el gráfico usa todo el ancho.",
-                     "Las cifras que cita van en negrita y son las del gráfico.", "No repite la pregunta: cuenta lo que se ve."),
-  xt, Y_DATOS + 2.75, wt, paso = 0.48, size = 11)
-zona("texto: 4.5 in de ancho, 14 pt", xt, Y_DATOS + 0.3, wt, 2.2)
-pie(doc, "Medido en 247 párrafos que acompañan gráficos en 6 informes entregados")
+gap4 <- 0.35; w4 <- (AC - 3 * gap4) / 4; h4 <- 1.75; y4 <- Y_DATOS - 0.1
+miniatura <- function(x, y, pos) {
+  caja(doc, x, y, w4, h4, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75)); pd <- 0.14
+  lineas_txt <- function(tx, ty, tw, th) { caja(doc, tx, ty, 0.035, th, TK$coral)
+    for (j in 0:3) caja(doc, tx + 0.1, ty + 0.06 + j * (th - 0.12) / 3.4, (tw - 0.14) * c(1, 0.92, 0.97, 0.6)[j + 1], 0.045, TK$faint) }
+  if (pos == "derecha") { caja(doc, x + pd, y + pd, w4 * 0.58, h4 - 2 * pd, TK$tenue); lineas_txt(x + w4 * 0.58 + 2 * pd, y + 0.35, w4 * 0.42 - 3 * pd, 0.8) }
+  if (pos == "izquierda") { lineas_txt(x + pd, y + 0.35, w4 * 0.42 - 3 * pd, 0.8); caja(doc, x + w4 * 0.42, y + pd, w4 * 0.58 - pd, h4 - 2 * pd, TK$tenue) }
+  if (pos == "arriba") { lineas_txt(x + pd, y + pd, w4 - 2 * pd, 0.42); caja(doc, x + pd, y + 0.7, w4 - 2 * pd, h4 - 0.7 - pd, TK$tenue) }
+  if (pos == "debajo") { caja(doc, x + pd, y + pd, w4 - 2 * pd, h4 - 0.7 - pd, TK$tenue); lineas_txt(x + pd, y + h4 - 0.56, w4 - 2 * pd, 0.42) }
+}
+casos4 <- list(c("derecha", "Texto a la derecha", "Lo más común. El gráfico ocupa cerca de 60 % del ancho"),
+               c("izquierda", "Texto a la izquierda", "Cuando la lámina vecina lleva el texto a la derecha y conviene alternar"),
+               c("arriba", "Texto arriba", "Cuando el gráfico necesita todo el ancho, como una tabla o muchas filas"),
+               c("debajo", "Texto debajo", "Cuando la conclusión cierra la lámina después de mostrar el gráfico"))
+for (k in seq_along(casos4)) { x <- XC + (k - 1) * (w4 + gap4)
+  miniatura(x, y4, casos4[[k]][1])
+  txt(doc, casos4[[k]][2], x - 0.1, y4 + h4 + 0.08, w4 + 0.2, 0.3, 13, TK$navy, bold = TRUE)
+  txt(doc, casos4[[k]][3], x - 0.1, y4 + h4 + 0.38, w4 + 0.2, 0.55, 10.5, TK$soft) }
+narrativa(doc, XC, y4 + h4 + 1.15, 6.1, 1.45, list(N_("El "), B("75 % de los docentes"), N_(" y el "), B("53 % de los estudiantes"),
+  N_(" está de acuerdo o totalmente de acuerdo con que la Unidad cuenta con servicios de tutoría.")), size = 14)
+lista_marcada(doc, c("Se recomiendan entre 40 y 70 palabras.", "Las cifras que menciona van en negrita y coinciden con las del gráfico.",
+                     "Cuenta lo que muestra el gráfico, sin repetir la pregunta."),
+  XC + 6.6, y4 + h4 + 1.2, AC - 6.6, paso = 0.47, size = 11.5)
+zona("cuatro posiciones del texto", XC, y4, AC, h4 + 0.95)
+pie(doc, "")
 
-# --- R5 lo que cambia entre PPT y Word
-MOTOR_ACT <- "Reglas: diferencias entre el gráfico en PPT y en Word (reporte_ppt_plan frente a reporte_word_plan)"
-doc <- nueva(doc); titulo(doc, "En PPT y en Word: lo que cambia", ante = "Reglas de la identidad")
-DIF <- data.frame(
-  Aspecto = c("Título", "Tamaño de letra", "Fondo", "Base", "Texto de análisis", "Numeración", "Si no cabe"),
-  `En PPT` = c("Es el título de la lámina, arriba y en coral", "12 a 14 pt: se lee proyectado", "La lámina blanca. El gráfico se puede editar",
-               "Al pie de la lámina", "Al costado del gráfico, hasta 74 palabras", "Los gráficos no se numeran", "Pasa a otra lámina con «(cont.)»"),
-  `En Word` = c(if (ESTILO == "fiel") "Una línea sobre la imagen: «Gráfico N°5: pregunta»" else "Dos líneas sobre la imagen: «GRÁFICO 5» y la pregunta", "8 a 10 pt: se lee impreso", "Imagen sin fondo sobre la página",
-                "Debajo del gráfico, junto con la fuente", "Un párrafo debajo del gráfico, justificado", "Gráficos y tablas llevan número correlativo",
-                "Título, gráfico y base pasan juntos a la página siguiente"),
-  check.names = FALSE)
-ft <- flextable(DIF) |> font(fontname = TK$font, part = "all") |> fontsize(size = 13, part = "all") |> fontsize(size = 11.5, part = "header") |>
-  color(color = TK$navy, part = "all") |> bold(j = 1) |> bold(part = "header") |> width(j = 1, width = 2.3) |> width(j = 2:3, width = 4.9) |>
-  border_remove() |> padding(padding.top = 7, padding.bottom = 7, part = "all") |> valign(valign = "center", part = "all")
-ft <- if (fiel) ft |> bg(part = "header", bg = TK$coral) |> color(part = "header", color = "#FFFFFF") |> border_inner_h(border = fp_border(color = "#757070", width = 0.5)) |> border_outer(border = fp_border(color = "#757070", width = 0.75)) else
-  ft |> hline_top(border = fp_border(color = TK$navy, width = 1.25), part = "header") |> hline_bottom(border = fp_border(color = TK$navy, width = 0.75), part = "header") |>
-    hline(border = fp_border(color = TK$rule, width = 0.5)) |> color(part = "header", color = TK$soft)
-ft <- ancho_ft(ft); invisible(ph_with(doc, ft, location = ph_location(left = XC, top = Y_DATOS - 0.15, width = AC, height = 4.2)))
-zona("tabla PPT y Word", XC, Y_DATOS - 0.15, AC, 4.2)
-txt(doc, "Los colores, el orden de las respuestas, el Top Two Box y la ubicación de las cifras pequeñas son iguales en los dos formatos.", XT, Y_LEY - 0.05, AC + 0.1, 0.35, 13, TK$navy, bold = TRUE)
-pie(doc, "El recetario en Word muestra cada gráfico de este mazo con su formato de página")
-
-# --- R6 qué es cada elemento en PowerPoint (pedido de Gonzalo: los elementos se presentan y se pueden editar)
+# --- R6 qué es cada elemento en PowerPoint (C6: la tabla «no es dinámica ni intuitiva»; ahora una lámina de ejemplo con
+# cada elemento marcado y una tarjeta breve por elemento: qué es y cómo se cambia)
 MOTOR_ACT <- "Reglas: naturaleza nativa de cada elemento de la lámina (título en marcador de título, gráficos vectoriales rvg::dml, tablas flextable)"
 doc <- nueva(doc); titulo(doc, "Qué es cada elemento en PowerPoint", ante = "Reglas de la identidad")
-EL <- data.frame(
-  Elemento = c("Título", "Antetítulo, texto y base", "Gráfico", "Tabla", "Logo"),
-  `Qué es en PowerPoint` = c("El marcador de título de la lámina. Aparece en el esquema y en el panel de navegación",
-                             "Cuadros de texto con su tamaño y color fijados", "Un gráfico vectorial: cada barra y cada cifra es una forma de PowerPoint",
-                             "Una tabla de PowerPoint", "Una imagen del diseño de la lámina, igual en todas"),
-  `Cómo se ajusta` = c("Se escribe en el cuadro. Su formato base está en el patrón de diapositivas", "Se escribe en el cuadro",
-                       "Clic derecho > Agrupar > Desagrupar para cambiar una forma. Los datos se cambian volviendo a generar con el motor",
-                       "Pestaña Diseño de tabla", "Vista > Patrón de diapositivas"),
-  check.names = FALSE)
-ft <- flextable(EL) |> font(fontname = TK$font, part = "all") |> fontsize(size = 13, part = "all") |> fontsize(size = 11.5, part = "header") |>
-  color(color = TK$navy, part = "all") |> bold(j = 1) |> bold(part = "header") |> width(j = 1, width = 2.6) |> width(j = 2:3, width = 4.75) |>
-  border_remove() |> padding(padding.top = 8, padding.bottom = 8, part = "all") |> valign(valign = "center", part = "all")
-ft <- if (fiel) ft |> bg(part = "header", bg = TK$coral) |> color(part = "header", color = "#FFFFFF") |> border_inner_h(border = fp_border(color = "#757070", width = 0.5)) |> border_outer(border = fp_border(color = "#757070", width = 0.75)) else
-  ft |> hline_top(border = fp_border(color = TK$navy, width = 1.25), part = "header") |> hline_bottom(border = fp_border(color = TK$navy, width = 0.75), part = "header") |>
-    hline(border = fp_border(color = TK$rule, width = 0.5)) |> color(part = "header", color = TK$soft)
-ft <- ancho_ft(ft); invisible(ph_with(doc, ft, location = ph_location(left = XC, top = Y_DATOS - 0.15, width = AC, height = 4.2)))
-zona("tabla de elementos", XC, Y_DATOS - 0.15, AC, 4.2)
-pie(doc, "En este recetario las barras se dibujan con formas para mostrar cada medida. En un informe real las genera el motor")
+k <- 0.5; ox <- XC; oy <- Y_DATOS - 0.05; fw <- W * k; fh <- H * k
+caja(doc, ox, oy, fw, fh, "#FFFFFF", line = sp_line(color = TK$rule, lwd = 0.75))
+caja(doc, ox + ML0 * k, oy + (Y_TIT - 0.12) * k, 0.03, 0.36, TK$navy)
+txt(doc, "Servicios de apoyo al estudiante", ox + ML * k - 0.06, oy + Y_TIT * k - 0.02, 3.6, 0.3, 11, TK$coral, bold = TRUE)
+caja(doc, ox + fw - 0.8, oy + 0.13, 0.62, 0.26, TK$navy, geom = "ellipse")
+txt(doc, "Texto de análisis con sus cifras en negrita.", ox + 0.25, oy + 0.95, 1.9, 0.6, 9.5, TK$navy)
+for (j in 0:3) { yb <- oy + 1.0 + j * 0.4; caja(doc, ox + 2.45, yb, 3.7 * c(0.9, 0.7, 0.55, 0.8)[j + 1], 0.26, c(TK$navy, TK$tenue, TK$tenue, TK$tenue)[j + 1])
+  txt(doc, paste0(c(62, 48, 37, 53)[j + 1], "%"), ox + 2.45 + 3.7 * c(0.9, 0.7, 0.55, 0.8)[j + 1] + 0.02, yb - 0.02, 0.5, 0.26, 9, TK$navy, bold = TRUE) }
+for (j in 0:3) { yt <- oy + 2.78 + j * 0.15; caja(doc, ox + 0.25, yt, fw - 0.5, 0.13, if (j == 0) TK$navy else if (j %% 2) TK$zebra else "#FFFFFF") }
+txt(doc, "Base: 148 docentes", ox + ML * k - 0.06, oy + Y_BASE * k - 0.02, 2.5, 0.22, 8, TK$navy, bold = TRUE)
+mk <- list(c(1, ox - 0.33, oy + 0.12), c(2, ox - 0.33, oy + 0.98), c(3, ox + 2.45 + 3.7 * 0.9 + 0.45, oy + 0.98), c(4, ox - 0.33, oy + 2.76), c(5, ox + fw - 1.15, oy + 0.13))   # fuera de cada elemento, sin taparlo
+for (m in mk) marca(doc, m[1], m[2], m[3], d = 0.26)
+tarjetas <- list(c("Título", "Es el título de la lámina: aparece en el esquema y en la navegación. Se escribe en el cuadro."),
+                 c("Texto y base", "Son cuadros de texto con su tamaño y color fijados. Se escribe en ellos."),
+                 c("Gráfico", "Es un gráfico vectorial: cada barra y cada cifra es una forma. Los datos se cambian generándolo de nuevo."),
+                 c("Tabla", "Es una tabla de PowerPoint. Se ajusta desde Diseño de tabla."),
+                 c("Logo", "Es parte del diseño de la lámina, igual en todas. Se cambia en el patrón de diapositivas."))
+xt <- ox + fw + 0.5; wt <- W - MR - xt; ht <- (fh + 0.1) / length(tarjetas)
+for (i in seq_along(tarjetas)) { y <- oy + (i - 1) * ht
+  marca(doc, i, xt, y + 0.05, d = 0.3)
+  txt(doc, tarjetas[[i]][1], xt + 0.42, y + 0.0, wt - 0.42, 0.3, 13, TK$navy, bold = TRUE)
+  txt(doc, tarjetas[[i]][2], xt + 0.42, y + 0.3, wt - 0.42, 0.42, 10.5, TK$soft)
+  }
+zona("lámina de ejemplo con cinco elementos marcados", ox, oy, fw, fh)
+pie(doc, "")

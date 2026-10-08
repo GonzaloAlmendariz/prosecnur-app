@@ -42,7 +42,7 @@ for (i in seq_len(k_)) { x <- por_ciclo[[i]]; q <- quantile(x, c(.25, .5, .75));
   for (o in unique(out)) caja(doc, px(o) - 0.045, yc - 0.045, 0.09, 0.09, TK$soft, geom = "ellipse")
   txt(doc, sprintf("Mediana %d", as.integer(q[2])), W - MR - 1.25, yc - 0.15, 1.25, 0.3, 11, TK$navy, bold = TRUE) }
 zona("cajas: cuartiles, mediana y bigotes a 1,5 RIC", xl, YT + 0.35, wl, k_ * fila)
-leyenda(doc, 0, YF - 0.25, c("50 % central de las edades", "Mediana"), c("#B9C5DC", TK$navy), size = 10.5, centrar_en = xl + wl / 2)
+leyenda(doc, 0, YF - 0.25, c("50 % central de las edades", "Mediana"), c("#B9C5DC", TK$navy), centrar_en = xl + wl / 2)
 pie(doc, "Base: 172 estudiantes")
 
 # --- p_media_rango: media con su rango por público
@@ -62,5 +62,5 @@ for (i in seq_along(ed)) { x <- ed[[i]]; yc <- YT + 0.35 + (i - 0.5) * fila; m <
   caja(doc, px(m) - 0.13, yc - 0.13, 0.26, 0.26, TK$navy, geom = "ellipse")
   txt(doc, sprintf("Media %s", fmt1(m)), W - MR - 1.6, yc - 0.15, 1.6, 0.3, 12, TK$navy, bold = TRUE) }
 zona("media (punto) y rango (barra)", xl, YT + 0.35, wl, length(ed) * fila)
-leyenda(doc, 0, YF - 0.25, c("Media", "Rango de edades (mínimo a máximo)"), c(TK$navy, "#B9C5DC"), size = 10.5, centrar_en = xl + wl / 2)
+leyenda(doc, 0, YF - 0.25, c("Media", "Rango de edades (mínimo a máximo)"), c(TK$navy, "#B9C5DC"), centrar_en = xl + wl / 2)
 pie(doc, "Base: 52 docentes, 172 estudiantes, 178 egresados y 15 administrativos")
