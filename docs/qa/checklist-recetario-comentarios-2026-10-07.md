@@ -93,3 +93,18 @@ Respaldo del archivo comentado en el scratchpad de la sesión (`comentarios/repa
 | E6 | 97 | «Estos elementos se superponen con la flecha, hay que tener cuidado sobre cómo y dónde ponerlos» | `recetario_m4.R` llave sobre varias categorías | ☑ fuera el rótulo «Trabaja: 139» que pisaba el tallo; el tallo llega al centro del título de la subpregunta |
 | E7 | 97 | «Ojo, la columna más grande no tiene que ir subrayada o más oscura que las demás» | `recetario_m4.R` + `barras_h` | ☑ `barras_h(realzar = FALSE)`: las cinco barras en el mismo azul, sin destacar la mayor |
 | E8 | 163 | «También podemos tener alternativas editoriales para esta portada de cierre» | `recetario.R` cierre + `recetario_m8.R` | ☑ tercera versión, tras «sólo me gusta el dos y el último, pero el reemplazo de los logos me parece razonable; debe haber 4 propuestas sobrias en esa línea, sin comentarios de agradecimiento o cosas cliché»: cuatro cierres sobre la contraportada, con el logo centrado y el contacto con íconos de Lucide: banda azul al pie, banda clara al pie, contacto en una fila bajo el logo y contacto en tres columnas. La contraportada original sigue como última lámina |
+
+## Propuestas rescatables de un informe de referencia (2026-10-08)
+
+Pedido: «haz la propuesta de todo lo rescatable en un ppt aparte para hacer comentarios y evaluar su integración». El informe de referencia es confidencial y no entra al repo: `4-recetario/propuestas-rescatables.pptx` (15 láminas, `SOLO=rescatables`, `herramientas/propuestas_rescatables.R`) sólo reproduce los patrones, con la identidad de PULSO y datos del recetario o cifras ficticias. Pendiente: comentarios de Gonzalo sobre cada propuesta.
+
+| # | Propuesta | Dónde viviría | Estado |
+|---|---|---|---|
+| R1 | Separadores con número grande y palabra clave resaltada | layout de plantilla + `p_slide_seccion` | ☐ en evaluación |
+| R2 | Resumen ejecutivo en columnas numeradas | constructor nuevo `p_slide_resumen` | ☐ en evaluación |
+| R3 | Bottom Two Box junto al Top Two Box | `bloque_likert`, `likert_panel` | ☐ en evaluación |
+| R4 | Columna de impacto y lámina de pesos | Analítica (regresión) + graficador | ☐ en evaluación |
+| R5 | Tabla resumen con significancia resaltada | tabla de cruces del motor | ☐ en evaluación |
+| R6 | Línea punteada bajo el Total | `bloque_likert`, barras apiladas | ☐ en evaluación |
+| R7 | Bloques numerados: limitaciones y réplica | constructor nuevo `p_slide_bloques` | ☐ en evaluación |
+| R8 | Pregunta exacta en el pie | pie de lámina del motor | ☐ en evaluación |
