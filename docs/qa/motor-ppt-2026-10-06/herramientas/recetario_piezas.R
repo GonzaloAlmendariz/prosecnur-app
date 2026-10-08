@@ -8,8 +8,9 @@ separador_h <- function(doc, x0, x1, y) caja(doc, x0, y, x1 - x0, 0.008, TK$rule
 
 # Likert compacto dentro de un panel: rótulo a la izquierda, barra y Top Two Box.
 likert_panel <- function(doc, x, y, w, filas, g = 0.34, fila = 0.66, wlab = 1.45, ttb_col = TRUE, cols = TK$likert, size_lab = 11) {
-  wttb <- if (ttb_col) 0.75 else 0; xb <- x + wlab + 0.12; wb <- w - wlab - 0.12 - wttb
-  if (ttb_col) txt(doc, if (ESTILO == "fiel") "TOP TWO BOX" else "Top Two Box", x + w - 1.3, y - 0.05, 1.3, 0.24, 10, TK$verde_txt, bold = TRUE, align = "center")
+  # E1 y E2 (Gonzalo, 2026-10-08): la columna Top Two Box tiene 1 in y su rótulo se centra sobre las mismas cifras
+  wttb <- if (ttb_col) 1.0 else 0; xb <- x + wlab + 0.12; wb <- w - wlab - 0.12 - wttb - (if (ttb_col) 0.1 else 0)
+  if (ttb_col) txt(doc, if (ESTILO == "fiel") "TOP TWO BOX" else "Top Two Box", x + w - wttb - 0.3, y - 0.05, wttb + 0.6, 0.24, 10, TK$verde_txt, bold = TRUE, align = "center")
   yy <- y + 0.3
   if (any(vapply(filas, function(fl) tiene_peq(fl$f$pct, wb), TRUE)) && fila - g < 0.36) g <- max(0.22, fila - 0.36)   # aire para las cifras chicas
   for (fl in filas) {

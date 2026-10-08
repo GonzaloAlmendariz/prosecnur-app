@@ -83,23 +83,25 @@ xl <- ML + 3.1; xd <- W - MR - 2.3; wl <- xd - xl - 1.2; y0 <- YT + 0.75; bloque
 px <- function(v) xl + wl * v / 100; cg2 <- c(TK$navy, "#4F7FAF"); gr2 <- c("Masculino", "Femenino")
 leyenda(doc, 0, YT + 0.05, sprintf("%s (%d)", gr2, n_g[gr2]), cg2, centrar_en = xl + wl / 2)
 txt(doc, "Diferencia", xd, YT + 0.05, W - MR - xd, 0.3, 12, TK$soft, bold = TRUE, align = "center")
+for (v in seq(0, 100, 25)) caja(doc, px(v) - 0.004, y0, 0.008, nrow(M_dim) * bloque, if (v == 0) TK$soft else TK$rule)   # E4 (Gonzalo, 2026-10-08): guías finas en vez del riel blanco
 for (i in seq_len(nrow(M_dim))) { yi <- y0 + (i - 1) * bloque; yc <- yi + bloque / 2
-  if (i > 1) separador_h(doc, ML, W - MR, yi)
+  if (i > 1) separador_h(doc, ML, xl - 0.1, yi)
   txt(doc, rownames(M_dim)[i], ML, yc - 0.17, 2.95, 0.34, 14, TK$navy, bold = TRUE, align = "right")
   for (k in 1:2) { yb <- yc - gb - 0.05 + (k - 1) * (gb + 0.1); v <- M_dim[i, gr2[k]]
-    caja(doc, xl, yb, wl, gb, "#FFFFFF"); caja(doc, xl, yb, px(v) - xl, gb, cg2[k])
+    caja(doc, xl, yb, px(v) - xl, gb, cg2[k])
     txt(doc, paste0(round(v), "%"), xl + wl + 0.1, yb + (gb - 0.3) / 2, 0.9, 0.3, 14, TK$navy, bold = TRUE) }
   d <- round(M_dim[i, "Femenino"]) - round(M_dim[i, "Masculino"])
   txt(doc, if (d == 0) "0" else sprintf("%d pts", abs(d)), xd, yc - 0.32, W - MR - xd, 0.4, 20, TK$navy, bold = TRUE, align = "center")
   txt(doc, if (d == 0) "sin diferencia" else paste("a favor de", gr2[1 + (d > 0)]), xd, yc + 0.08, W - MR - xd, 0.3, 11, TK$soft, align = "center") }
 separador_v(doc, xd - 0.15, YT, YF - 0.3)
-txt(doc, "0%", xl - 0.3, YF - 0.3, 0.6, 0.24, 10, TK$faint, align = "center"); txt(doc, "100%", px(100) - 0.35, YF - 0.3, 0.7, 0.24, 10, TK$faint, align = "center")
-zona("barras desde 0 sobre riel al 100%", xl, y0, wl, nrow(M_dim) * bloque)
+for (v in seq(0, 100, 25)) txt(doc, paste0(v, "%"), px(v) - 0.35, YF - 0.3, 0.7, 0.24, 10, TK$soft, align = "center")   # E4: escala debajo, sin riel
+zona("barras desde 0 con guías cada 25 %", xl, y0, wl, nrow(M_dim) * bloque)
 pie(doc, sprintf("Base: %d estudiantes que respondieron la batería de competencias", n_g[["Total"]]))
 
 # --- p_dim_radar: once competencias como ejes (5 o más ejes), por sexo
-MOTOR_ACT <- "p_slide_1_grafico: p_dim_radar"
-doc <- nueva(doc); titulo(doc, "Las once competencias por sexo", ante = "Radar por dimensiones")
+# E5 (Gonzalo, 2026-10-08: «me encanta que pueda ponerse un límite mínimo al eje»): el motor ya lo tiene, p_dim_radar(inicio_eje_pct = 80)
+MOTOR_ACT <- "p_slide_1_grafico: p_dim_radar(inicio_eje_pct = 80)"
+doc <- nueva(doc); titulo(doc, "Las once competencias por sexo", ante = "Radar por dimensiones", sub = "El eje empieza en 80 %: con valores altos y parecidos, así se ven las diferencias")
 angs <- pi / 2 - 2 * pi * (0:10) / 11; lo <- 80; rr <- function(v) (v - lo) / (100 - lo)
 ring <- do.call(rbind, lapply(c(85, 90, 95, 100), function(v) data.frame(r = v, x = rr(v) * cos(c(angs, angs[1])), y = rr(v) * sin(c(angs, angs[1])))))
 ser <- do.call(rbind, lapply(c("Masculino", "Femenino"), function(g) data.frame(a = g, x = rr(M_it[, g]) * cos(angs), y = rr(M_it[, g]) * sin(angs))))

@@ -18,8 +18,10 @@ zona("columnas", x0, ybase - hmax, wv, hmax)
 pie(doc, "Base: 172 estudiantes")
 
 # --- p_pie: dicotomía de un solo público
-MOTOR_ACT <- "p_slide_1_grafico: p_pie (dicotomía de un público)"
-doc <- nueva(doc); titulo(doc, "Titulación del egresado", ante = "Gráfico de torta")
+# E3 (Gonzalo, 2026-10-08: «la leyenda es particular, creo que el motor no tiene esta configuración»): no la tiene. graficar_pie
+# (api/R/graficador_pie_dicotomico.R) sólo dibuja la leyenda estándar de ggplot, a la derecha o abajo. Queda como propuesta.
+MOTOR_ACT <- "PROPUESTA: p_pie con leyenda de cifras (el motor hoy dibuja la leyenda estándar a la derecha o abajo)"
+doc <- nueva(doc); titulo(doc, "Titulación del egresado", ante = "Gráfico de torta con leyenda de cifras")
 t1 <- D$titulo; d_ <- 4.4; xp <- ML + 1.0; yp <- YT + 0.25
 torta(doc, xp, yp, d_, t1$labels, t1$pct)
 for (k in 1:2) { yk <- YT + 1.0 + (k - 1) * 1.9
@@ -27,7 +29,7 @@ for (k in 1:2) { yk <- YT + 1.0 + (k - 1) * 1.9
   txt(doc, paste0(t1$pct[k], "%"), 7.15, yk - 0.05, 2.2, 0.62, 34, if (k == 1) TK$navy else "#4F7FAF", bold = TRUE)
   txt(doc, sprintf("%s cuenta con título universitario", if (k == 1) "Sí" else "No"), 7.15, yk + 0.58, 5.5, 0.3, 13, TK$navy, bold = TRUE)
   txt(doc, sprintf("%d de %d egresados", t1$n[k], t1$valid), 7.15, yk + 0.86, 5.5, 0.26, 11, TK$faint) }
-pie(doc, "Base: 178 egresados")
+pie(doc, "Base: 178 egresados. La leyenda con cifra, rótulo y conteo es una propuesta: el motor hoy dibuja la leyenda estándar")
 
 # --- p_donut: dicotomía con la cifra clave al centro
 MOTOR_ACT <- "p_slide_1_grafico: p_donut"
