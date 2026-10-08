@@ -101,7 +101,7 @@ test_that("ningún graficador escribe a mano un color que el estándar nombra", 
   # en la firma es la deriva que el estándar cierra: el día que el recetario
   # cambie, ese graficador seguiría con el color viejo.
   dir_r <- testthat::test_path("..", "..", "R")
-  archivos <- c(list.files(dir_r, pattern = "^graficador_.*\\.R$", full.names = TRUE),
+  archivos <- c(list.files(dir_r, pattern = "^(graficador_|reporte_slide_).*\\.R$", full.names = TRUE),
                 file.path(dir_r, c("reporte_plan_ppt.R", "reporte_ppt_numero_respuestas.R")))
   sueltos <- character(0)
   for (f in archivos) {

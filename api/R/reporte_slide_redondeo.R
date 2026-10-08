@@ -77,12 +77,13 @@
   suma_rep <- sum(u_rep) / (10^decimales)
 
   navy <- fill(style$text_color %||% "#081F5C", "#081F5C")
-  acento <- fill(style$accent_color %||% "#D8504F", "#D8504F")
+  acento <- fill(style$accent_color %||% .std_color("coral"), .std_color("coral"))
   fondo <- fill(style$background_fill %||% "#FFFFFF", "#FFFFFF")
   suave <- fill(style$muted_color %||% "#5B6B8C", "#5B6B8C")
 
   if (is.null(colores) || !length(colores)) {
-    colores <- c("#D8504F", "#E8A33D", "#8FB8DE", "#2E5FA3", "#C7D2E0")
+    # La paleta de la casa es la Likert del estándar (ADR 0092): el coral es sólo de títulos.
+    colores <- .std_paleta("likert")
   }
   colores <- rep(as.character(colores), length.out = length(casos))
   colores <- vapply(colores, function(c) fill(c, "#2E5FA3"), character(1))
@@ -222,7 +223,7 @@
     value = officer::fpar(
       officer::ftext(titulo, prop = officer::fp_text(
         color = as.character(helpers$style_value(style, "title_color",
-                                                 helpers$style_value(style, "accent_color", "#D8504F")))[1],
+                                                 helpers$style_value(style, "accent_color", .std_color("coral"))))[1],
         font.size = helpers$style_num(style, "title_size", 24, min = 8),
         bold = TRUE,
         font.family = as.character(style$font_family)[1]
