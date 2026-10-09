@@ -143,3 +143,14 @@ test_that("las barras agrupadas van de 0 a 100 % por defecto y con eje libre esc
   expect_true(isTRUE(e1$escala_completa))
   expect_false(isTRUE(esp(usar_eje_libre = TRUE)$escala_completa))
 })
+
+test_that("la lámina nativa escribe las marcas 0-100 % sólo si se piden y con escala completa (Gonzalo, 2026-10-09)", {
+  marcas <- function(e) { lz <- .lam_lienzo(); .lam_barras_h(lz, e, 0.5, 2, 12, wlab = 2, g = 0.3, fila = 0.5)
+    sum(vapply(lz$formas, function(f) grepl('name="eje:marca"', f, fixed = TRUE), TRUE)) }
+  e <- preparar_categorica(c("A", "B"), c(0.5, 0.25), c("50%", "25%")); e$escala_completa <- TRUE
+  expect_equal(marcas(e), 0L)
+  e$marcas_eje <- TRUE
+  expect_equal(marcas(e), 5L)
+  e$escala_completa <- FALSE
+  expect_equal(marcas(e), 0L)
+})
