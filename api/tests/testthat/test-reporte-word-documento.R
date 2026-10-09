@@ -51,3 +51,23 @@ test_that("tipo oración y título corto", {
   expect_identical(.word_titulo_corto("Corto"), "Corto"); expect_identical(.word_titulo_corto("Largo", "Dado"), "Dado")
   expect_lte(nchar(.word_titulo_corto(strrep("palabra ", 20))), 61L)
 })
+
+test_that("lo previo a la primera sección va en «Introducción» y «Cómo leer» justo antes de los resultados, como el recetario", {
+  skip_if_not_installed("officer")
+  d <- data.frame(categoria = c("A", "B"), N = c(45, 30), pct = c(.45, .30), stringsAsFactors = FALSE)
+  p <- suppressWarnings(graficar_barras_agrupadas(data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct", etiquetas_series = c(pct = "Total")))
+  rm <- list(list(kind = "title_doc", title = "Estudio de prueba"),
+             list(kind = "text", title = "OBJETIVO", text = "Conocer la opinión de los públicos."),
+             list(kind = "section", title = "PERFIL DEL ENCUESTADO", meta = list(word_heading_level = 1L)),
+             list(kind = "chart", title = "Sexo", plot_word = p))
+  f <- tempfile(fileext = ".docx")
+  res <- .word_documento(rm, f, opciones = list(como_leer = TRUE))
+  x <- paste(officer::docx_summary(officer::read_docx(f))$text, collapse = "\n")
+  pos <- function(t) regexpr(t, x, fixed = TRUE)[1]
+  expect_true(all(c(pos("Introducción"), pos("Conocer la opinión"), pos("Cómo leer este informe"), pos("Perfil del encuestado")) > 0))
+  expect_lt(pos("Introducción"), pos("Conocer la opinión"))
+  expect_lt(pos("Conocer la opinión"), pos("Cómo leer este informe"))
+  expect_lt(pos("Cómo leer este informe"), pos("Perfil del encuestado"))
+  expect_match(x, "1.1. Objetivo", fixed = TRUE)
+  expect_equal(res$figuras, 3L)                                  # 2 de «Cómo leer» + 1 del plan
+})
