@@ -76,6 +76,9 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
 
   # ---- filas en su orden de origen -------------------------------------------
   rot_fila <- as.character(df[[var_etiqueta_categoria]]); rot_fila[is.na(rot_fila)] <- ""
+  # Los rótulos pueden llegar envueltos con saltos de línea para ggplot (`stringr::str_wrap` en la
+  # multiapilada): la caja nativa envuelve sola, así que el salto se vuelve espacio.
+  rot_fila <- trimws(gsub("\\s*\n\\s*", " ", rot_fila))
   filas <- data.frame(
     id = as.character(df[[var_categoria]]), rotulo = rot_fila,
     grupo_id = if (!is.null(var_grupo_id)) as.character(df[[var_grupo_id]]) else NA_character_,
@@ -146,15 +149,12 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   }
 
   # ---- orden (lámina 221): batería de un público por Top Two Box ---------------
-  un_publico <- all(is.na(filas$grupo_id)) || length(unique(stats::na.omit(filas$grupo_id))) <= 1L
+  # «Un público» = ninguna premisa con varias barras. Con actores (un grupo con varias filas) el recetario
+  # conserva su orden declarado, aunque sea una sola afirmación.
+  grupos <- filas$grupo_id[!is.na(filas$grupo_id)]
+  un_publico <- !length(grupos) || all(table(grupos) <= 1L)
   por_box <- !is.null(box$unidades) && (identical(orden, "top_two_box") || (identical(orden, "auto") && un_publico))
-  aplicado <- origen
-  if (por_box) {
-    resto <- origen[!filas$es_total[origen]]
-    clave <- -box$unidades[resto]
-    resto <- resto[order(clave, match(resto, origen))]
-    aplicado <- c(origen[filas$es_total[origen]], resto)
-  }
+  aplicado <- if (por_box) .espec_orden_por_box(origen, filas$es_total, box$unidades) else origen
 
   list(
     version = .ESPEC_ESCALA_VERSION, tipo = "escala",
@@ -165,3 +165,27 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
     redondeo = list(metodo = metodo, decimales = dec)
   )
 }
+
+#' Orden por Top Two Box de mayor a menor (lámina 221 del recetario)
+#'
+#' La fila Total va primera; los empates conservan el orden de origen.
+#' @keywords internal
+.espec_orden_por_box <- function(origen, es_total, unidades) {
+  resto <- origen[!es_total[origen]]
+  resto <- resto[order(-unidades[resto], match(resto, origen))]
+  c(origen[es_total[origen]], resto)
+}
+
+#' Reordena una especificación de escala por su Top Two Box
+#'
+#' La usa el compositor cuando el elemento es una batería de afirmaciones
+#' (`p_barras_multiapiladas`, `modo = "var"`): ahí el recetario ordena. Los
+#' niveles de un cruce (ciclo, sexo) conservan su orden.
+#' @keywords internal
+.espec_ordenar_por_box <- function(espec) {
+  if (is.null(espec$box$unidades)) return(espec)
+  espec$orden$aplicado <- .espec_orden_por_box(espec$orden$origen, espec$filas$es_total, espec$box$unidades)
+  espec$orden$criterio <- "top_two_box"
+  espec
+}
+

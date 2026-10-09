@@ -80,8 +80,16 @@
 #' @keywords internal
 .lam_compositor_aplica <- function(p, slide = NULL) {
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
-  !is.null(espec) && identical(espec$tipo, "escala") && NROW(espec$filas) >= 1L &&
-    !identical((slide$meta %||% list())$motor_nativo, FALSE)
+  if (is.null(espec) || !identical(espec$tipo, "escala") || NROW(espec$filas) < 1L) return(FALSE)
+  if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
+  # Alcance de N1: lo que el recetario resuelve con piezas que N2 todavía no porta queda en la ruta
+  # anterior en vez de perderse (verificador de N1): la columna Bottom Two Box, la fila Total con su
+  # filete y los bloques con actores (una afirmación con varias barras).
+  if (!is.null(espec$box2$unidades)) return(FALSE)
+  if (any(espec$filas$es_total)) return(FALSE)
+  grupos <- espec$filas$grupo_id[!is.na(espec$filas$grupo_id)]
+  if (length(grupos) && any(table(grupos) > 1L)) return(FALSE)
+  TRUE
 }
 
 #' Compone una lámina de un gráfico de escala (p_slide_1_grafico) con el recetario
@@ -97,8 +105,11 @@
   texto <- function(x) if (is.null(x) || (is.character(x) && !nzchar(trimws(x[1])))) NULL else trimws(as.character(x)[1])
   base_txt <- paste(c(texto(base), texto(pie)), collapse = ". ")
   ante <- texto(antetitulo); if (!is.null(ante) && is.na(ante)) ante <- NULL
+  # El folio se fija ANTES de agregar láminas: el documento officer se modifica en sitio y un argumento
+  # perezoso `length(doc) + 1L` se evaluaba después del primer add_slide (folio corrido +1, verificador de N1).
+  folio <- length(doc) + 1L
   .lam_laminas_escala(doc, espec, titulo = texto(titulo) %||% "", ante = ante, base = base_txt,
-                      folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,
+                      folio = folio, sub = texto(subtitulo), layout = layout, master = master,
                       por_lamina = por_lamina)
 }
 
@@ -121,17 +132,21 @@
   if (!isTRUE(sin_pie) && (is.null(pie) || !nzchar(trimws(as.character(pie)[1])))) {
     pie <- nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL)
   }
+  espec <- attr(p, "pulso_espec")
+  # Una batería de afirmaciones se ordena por Top Two Box (lámina 221); los niveles de un cruce no.
+  if (identical(el_plot$.element_type, "barras_multiapiladas") && identical(el_plot$modo %||% "var", "var")) {
+    espec <- .espec_ordenar_por_box(espec)
+  }
   # Una afirmación de un solo público: el recetario la encabeza con la pregunta y nombra al público junto a
   # la barra («Estudiantes · 172 respuestas», lámina 216). El público es la base de la variable
   # («estudiantes$p16_6»).
-  espec <- attr(p, "pulso_espec")
   base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])
   if (NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) {
     espec$filas$grupo_id <- base_var
     espec$filas$grupo_titulo <- espec$filas$rotulo
     espec$filas$rotulo <- paste0(toupper(substr(base_var, 1, 1)), substr(base_var, 2, nchar(base_var)))
-    attr(p, "pulso_espec") <- espec
   }
+  attr(p, "pulso_espec") <- espec
   .lam_compositor_slide_1(doc, p, titulo, subtitulo, base, pie, antetitulo, layout = layout, master = master,
                           por_lamina = por_lamina)$doc
 }

@@ -92,3 +92,29 @@ test_that("(10) las letras de significancia sólo van donde hay cifra", {
   expect_identical(unname(s$cifras["A", "t3"]), "40% C")
   expect_false(grepl("B", s$cifras["A", "t1"]))
 })
+
+test_that("una afirmación con varios actores conserva el orden de los actores; varias premisas de una fila se ordenan", {
+  d <- .esc_df(A = c(10, 20, 40, 30, 0), B = c(1, 4, 40, 55, 0), C = c(5, 5, 50, 40, 0))
+  d$premisa <- "P1"
+  un_bloque <- .ttb(d, var_grupo_id = "premisa")
+  expect_identical(un_bloque$orden$criterio, "declarado")
+  expect_identical(un_bloque$orden$aplicado, 1:3)
+  d$premisa <- c("P1", "P2", "P3")
+  tres <- .ttb(d, var_grupo_id = "premisa")
+  expect_identical(tres$orden$criterio, "top_two_box")
+  expect_identical(tres$filas$id[tres$orden$aplicado], c("B", "C", "A"))
+})
+
+test_that("los rótulos envueltos para ggplot llegan sin saltos de línea", {
+  d <- .esc_df(A = c(10, 20, 40, 30, 0)); d$rotulo <- "Aprendizaje autónomo\ne investigación"
+  s <- .esc(d, var_etiqueta_categoria = "rotulo")
+  expect_identical(s$filas$rotulo, "Aprendizaje autónomo e investigación")
+})
+
+test_that("(8) sin N válido no hay fila Total", {
+  d <- .esc_df(A = c(10, 20, 40, 30, 0), B = c(1, 4, 40, 55, 0))
+  d$N <- c(0, NA)
+  s <- .ttb(d, fila_total = TRUE)
+  expect_false(any(s$filas$es_total))
+  expect_identical(nrow(s$filas), 2L)
+})

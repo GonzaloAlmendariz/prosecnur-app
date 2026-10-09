@@ -1380,9 +1380,9 @@ graficar_barras_apiladas <- function(
     # ADR 0092 (F2.5): fila «Total» ponderada por la base de cada actor, primera
     # y separada por un filete (graficador_fila_total.R).
     fila_total            = FALSE,
-    # ADR 0093: orden de la especificación nativa. «auto» = como el recetario (una batería de un
-    # público por Top Two Box); «declarado» respeta el orden de origen.
-    orden_escala          = c("auto", "declarado", "top_two_box"),
+    # ADR 0093: orden de la especificación nativa. Por defecto el declarado: los niveles de un cruce
+    # (ciclo, sexo) no se reordenan. La batería de afirmaciones la ordena el compositor (lámina 221).
+    orden_escala          = c("declarado", "auto", "top_two_box"),
     dpi                   = 300,
 
     ppt_append            = TRUE,

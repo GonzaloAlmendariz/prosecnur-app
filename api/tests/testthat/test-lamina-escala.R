@@ -82,3 +82,58 @@ test_that("título, antetítulo, base y folio salen del estándar", {
   sz <- xml2::xml_attr(xml2::xml_find_first(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='Titulo lamina']]//a:rPr"), "sz")
   expect_identical(sz, as.character(.std_pt("titulo") * 100))
 })
+
+# ---- verificador de N1 ------------------------------------------------------
+
+.plan_ruta_real <- function(meta = list(), con_texto = TRUE) {
+  dat <- data.frame(p1 = c(rep("Totalmente en desacuerdo", 4), rep("En desacuerdo", 10), rep("De acuerdo", 40),
+                           rep("Totalmente de acuerdo", 46)), stringsAsFactors = FALSE)
+  niveles <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo")
+  inst <- list(survey = data.frame(name = "p1", type = "select_one esc", list_name = "esc", label = "Pregunta", stringsAsFactors = FALSE),
+               choices = data.frame(list_name = "esc", name = niveles, label = niveles, stringsAsFactors = FALSE), orders_list = NULL)
+  plan <- list(diapo_002 = p_slide_1_grafico(grafico = p_barras_apiladas("p1"), titulo = "Lámina", meta = meta))
+  if (con_texto) plan <- c(list(diapo_001 = p_slide_texto(titulo = "Antes", texto = "Una lámina previa")), plan)
+  list(dat = dat, inst = inst, plan = plan)
+}
+
+test_that("en la ruta real el folio es la posición de la lámina en el mazo", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg")
+  x <- .plan_ruta_real()
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = x$dat, instrumento = x$inst, plan = x$plan,
+    presets = p_presets(barras_apiladas = .PRESETS_DEFAULT_PULSO$barras_apiladas), path_ppt = out, mensajes_progreso = FALSE)))
+  doc <- officer::read_pptx(out)
+  xml <- xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", length(doc))))
+  folio <- xml2::xml_text(xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='Folio lamina']]"))
+  expect_identical(folio, as.character(length(doc)))
+})
+
+test_that("Bottom Two Box, fila Total y bloques con actores quedan en la ruta anterior (alcance de N1)", {
+  e <- .espec_bateria(3)
+  p <- ggplot2::ggplot()
+  attr(p, "pulso_espec") <- e
+  expect_true(.lam_compositor_aplica(p))
+  e2 <- e; e2$box2 <- list(unidades = c(1, 2, 3)); attr(p, "pulso_espec") <- e2
+  expect_false(.lam_compositor_aplica(p))
+  e3 <- e; e3$filas$es_total[1] <- TRUE; attr(p, "pulso_espec") <- e3
+  expect_false(.lam_compositor_aplica(p))
+  e4 <- e; e4$filas$grupo_id <- c("P1", "P1", "P2"); attr(p, "pulso_espec") <- e4
+  expect_false(.lam_compositor_aplica(p))
+  attr(p, "pulso_espec") <- e
+  expect_false(.lam_compositor_aplica(p, list(meta = list(motor_nativo = FALSE))))
+})
+
+test_that("el graficador deja el orden declarado (un cruce no se reordena) y la batería se ordena aparte", {
+  skip_if_not_installed("cowplot")
+  d <- data.frame(categoria = c("Quinto", "Sexto", "Séptimo"), N = 100L,
+                  t1 = c(.3, .1, .2), t2 = c(.2, .1, .2), t3 = c(.3, .4, .3), t4 = c(.2, .4, .3))
+  g <- suppressMessages(suppressWarnings(graficar_barras_apiladas(
+    data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = paste0("t", 1:4),
+    etiquetas_grupos = c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA"), exportar = "rplot", usar_canvas = TRUE,
+    ancho = 12.5, alto = 4.6, mostrar_barra_extra = TRUE, barra_extra_preset = "top2box", top2box_labels = c("A", "TA"))))
+  e <- attr(g, "pulso_espec")
+  expect_identical(e$orden$criterio, "declarado")
+  expect_identical(e$filas$id[e$orden$aplicado], c("Quinto", "Sexto", "Séptimo"))
+  o <- .espec_ordenar_por_box(e)
+  expect_identical(o$filas$id[o$orden$aplicado], c("Sexto", "Séptimo", "Quinto"))   # 80, 60, 50
+})
