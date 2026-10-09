@@ -7161,7 +7161,7 @@ reporte_ppt_plan <- function(
     args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
     args <- .force_canvas_args(graficar_heatmap_dimensiones, args)
     args <- .keep_formals(graficar_heatmap_dimensiones, args)
-    suppressWarnings(do.call(graficar_heatmap_dimensiones, args))
+    .espec_dim_adjuntar(suppressWarnings(do.call(graficar_heatmap_dimensiones, args)), args, "heatmap")
   }
 
   .render_dim_heatmap_criterios <- function(el, preset_args) {
@@ -7267,7 +7267,7 @@ reporte_ppt_plan <- function(
     args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
     args <- .force_canvas_args(graficar_comparativo_radarbar_dimensiones, args)
     args <- .keep_formals(graficar_comparativo_radarbar_dimensiones, args)
-    suppressWarnings(do.call(graficar_comparativo_radarbar_dimensiones, args))
+    .espec_dim_adjuntar(suppressWarnings(do.call(graficar_comparativo_radarbar_dimensiones, args)), args, "comparativo")
   }
 
   .render_dim_foda <- function(el, preset_args) {

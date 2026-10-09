@@ -84,7 +84,8 @@
       "calor": {
         "desde": "#EEF2F8",
         "hasta": "#2F4B7C",
-        "rango": [80, 100]
+        "rango": [80, 100],
+        "tramos": ["#EEF2F8", "#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C"]
       },
       "mapa": {
         "clases": ["#C9D5EA", "#8EA3C6", "#4F6B9E", "#081F5C"],

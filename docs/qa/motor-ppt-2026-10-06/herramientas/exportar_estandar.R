@@ -24,7 +24,9 @@ paletas <- list(
   dicotomica = list(colores = c("#081F5C", "#9DC3E6"), rotulos = c("Sí", "No")),
   actores = list(colores = c(Docentes = "#0B4F8C", Estudiantes = "#2A9D8F", Egresados = "#E9C46A", Autoridades = "#8E9DBD", Administrativos = "#081F5C", Empleadores = "#9DC3E6")),
   categorias = list(mayor = "#081F5C", resto = "#8E9DBD", residual = "#8A93A8"),
-  calor = list(desde = "#EEF2F8", hasta = "#2F4B7C", rango = c(80, 100)),
+  calor = list(desde = "#EEF2F8", hasta = "#2F4B7C", rango = c(80, 100),
+               # Cinco tramos en vez de degradado (recetario_m3d.R:21-23, C30): todos pasan 4.5:1 con su texto.
+               tramos = c("#EEF2F8", "#C9D3E6", "#9FB1D1", "#4F6A9A", "#2F4B7C")),
   mapa = list(clases = c("#C9D5EA", "#8EA3C6", "#4F6B9E", "#081F5C"), fuera = "#E2E6EC"))
 grosor <- list(unidad = "in", nota = "por número de filas de la lámina; la barra no adelgaza por cifras chicas, la fila gana aire",
   escala_apilada = list(list(filas_hasta = 2, grosor = 0.50), list(filas_hasta = 3, grosor = 0.48), list(filas_hasta = 6, grosor = 0.44), list(filas_hasta = 9, grosor = 0.38), list(filas_hasta = 999, grosor = 0.32)),
