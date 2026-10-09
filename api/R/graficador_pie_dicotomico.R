@@ -337,6 +337,14 @@ graficar_pie <- function(
                                  ordenar_categorias, df$pct), , drop = FALSE]
 
   df$categoria <- factor(df$categoria, levels = df$categoria)
+  # ADR 0093 (N6): lo que afirma la torta o la dona para la lámina nativa (láminas 69 y 70): las porciones en su
+  # orden, la cifra con el redondeo del gráfico y la frecuencia de cada una.
+  espec_pie <- tryCatch({
+    u <- .pulso_pct_unidades(df$pct, decimales_pct, metodo_redondeo)
+    list(version = "pie/1", tipo = "pie", forma = tipo_pie[1], rotulos = as.character(df$categoria), valores = df$pct,
+         cifras = .pulso_fmt_pct_unidades(u, decimales_pct), unidades = u, n = df$n,
+         total_n = if (all(is.finite(df$n))) sum(df$n) else NA_real_)
+  }, error = function(e) NULL)
 
   # Una torta ES una distribución que cierra a 100 %, así que aquí el método
   # tiene algo que decidir y se aplica al vector entero de porciones, no
@@ -699,6 +707,7 @@ graficar_pie <- function(
   # ---------------------------------------------------------------------------
   attr(p_final, "pulso_title_lines") <- as.integer(title_lines)
   attr(p_final, "pulso_canvas_title_height") <- as.numeric(canvas_title_height_eff)
+  attr(p_final, "pulso_espec") <- espec_pie
   if (exportar == "rplot") return(p_final)
 
   if (is.null(path_salida) || !nzchar(path_salida)) {
