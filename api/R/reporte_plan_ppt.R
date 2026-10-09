@@ -7439,8 +7439,8 @@ reporte_ppt_plan <- function(
   rendered   <- list()
   render_meta <- list()
 
+  ANTETITULOS <- .lam_antetitulos(plan)   # ADR 0093: capítulo vigente de cada lámina
   for (i in seq_along(plan)) {
-
     slide <- plan[[i]]
     if (!inherits(slide, "ppt_slide")) {
       .plan_input_abort("Cada slide debe tener clase `ppt_slide`.")
@@ -8408,8 +8408,8 @@ reporte_ppt_plan <- function(
         }
       }
 
-      if (!isTRUE(solo_lista)) {
-
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica(p, slide)) doc <- .lam_slide_1_nativa(doc, p, slide, title_slide, subtitle_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, suppress_base_placeholder, suppress_footer_placeholder, .add_partner_footer_logo)
+      if (!isTRUE(solo_lista) && !.lam_compositor_aplica(p, slide)) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         if (!is.null(title_slide) && nzchar(title_slide)) {

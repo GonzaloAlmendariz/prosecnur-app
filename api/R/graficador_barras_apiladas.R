@@ -1380,6 +1380,9 @@ graficar_barras_apiladas <- function(
     # ADR 0092 (F2.5): fila «Total» ponderada por la base de cada actor, primera
     # y separada por un filete (graficador_fila_total.R).
     fila_total            = FALSE,
+    # ADR 0093: orden de la especificación nativa. «auto» = como el recetario (una batería de un
+    # público por Top Two Box); «declarado» respeta el orden de origen.
+    orden_escala          = c("auto", "declarado", "top_two_box"),
     dpi                   = 300,
 
     ppt_append            = TRUE,
@@ -2854,6 +2857,41 @@ graficar_barras_apiladas <- function(
   }
 
   # ---------------------------------------------------------------------------
+  # 6.9) ESPECIFICACIÓN (ADR 0093): lo que afirma el gráfico, con las reglas del
+  # recetario. La lámina nativa la dibuja; aquí la columna del box la lee para
+  # que la cifra sea la misma en las dos rutas: la suma de las cifras rotuladas
+  # (lámina 19 del recetario, «90% = 35% + 55%»), no el redondeo de la suma.
+  # ---------------------------------------------------------------------------
+  espec_escala <- tryCatch(preparar_escala(
+    data, var_categoria = var_categoria, var_n = var_n, cols_porcentaje = cols_porcentaje,
+    etiquetas_grupos = etiquetas_grupos, var_etiqueta_categoria = var_etiqueta_categoria,
+    var_grupo_id = var_grupo_id, var_grupo_titulo = var_grupo_titulo, escala_valor = escala_valor,
+    colores_grupos = colores_grupos, etiquetas_leyenda = etiquetas_leyenda, decimales = decimales,
+    metodo_redondeo = metodo_redondeo, mostrar_categorias_en_cero = mostrar_categorias_en_cero,
+    piso_categoria_cero = piso_categoria_cero, mostrar_barra_extra = mostrar_barra_extra,
+    barra_extra_preset = barra_extra_preset, top2box_labels = top2box_labels, top3box_labels = top3box_labels,
+    bottom2box_labels = bottom2box_labels, columna_bottom2box = columna_bottom2box,
+    sufijos_etiqueta = sufijos_etiqueta, fila_total = fila_total_activa, orden = match.arg(orden_escala),
+    invertir_barras = invertir_barras, invertir_segmentos = invertir_segmentos, invertir_leyenda = invertir_leyenda
+  ), error = function(e) {
+    # Si la especificación falla, el gráfico ggplot conserva su cálculo previo y la lámina
+    # nativa cae a la imagen; el mensaje deja el defecto a la vista en vez de tragarlo.
+    message("[espec escala] ", conditionMessage(e))
+    NULL
+  })
+  if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% c("top2box", "top3box", "bottom2box") &&
+      !is.null(espec_escala$box$unidades)) {
+    i_esp <- match(cat_lvls, espec_escala$filas$id)
+    extra_vals <- unname(espec_escala$box$unidades[i_esp]) / 10^espec_escala$redondeo$decimales
+    extra_labels <- paste0(prefijo_extra_int, unname(espec_escala$box$cifras[i_esp]))
+    extra_labels[is.na(i_esp)] <- ""
+  }
+  if (isTRUE(btb_activa) && !is.null(espec_escala$box2$unidades)) {
+    i_esp <- match(cat_lvls, espec_escala$filas$id)
+    btb_labels <- unname(espec_escala$box2$cifras[i_esp]); btb_labels[is.na(i_esp)] <- ""
+  }
+
+  # ---------------------------------------------------------------------------
   # 7) Caption (texto)
   # ---------------------------------------------------------------------------
   caption_text <- NULL
@@ -2873,6 +2911,7 @@ graficar_barras_apiladas <- function(
       ggplot2::theme(legend.position = if (mostrar_leyenda) legend_pos_gg else "none") +
       ggplot2::labs(title = titulo, subtitle = subtitulo, caption = caption_text)
 
+    attr(out, "pulso_espec") <- espec_escala
     if (exportar == "rplot") return(out)
 
     # EXPORT PNG / PPT / WORD (sin canvas): se exporta el ggplot directamente
@@ -4046,6 +4085,7 @@ graficar_barras_apiladas <- function(
     # la opción nombre un archivo. Va por archivo porque el renderer se traga los
     # mensajes y el objeto no siempre vuelve a quien mide.
     .traza_grosor_apiladas(n_categorias, y_axis_max, grosor_eff, h_bars_area * as.numeric(alto) / den, h_total_in, alto)
+    attr(canvas, "pulso_espec") <- espec_escala
     return(canvas)
   }
 

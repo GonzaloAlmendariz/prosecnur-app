@@ -1381,7 +1381,8 @@
     if (is.null(pal) || !length(pal)) next
     out[[ln]] <- pal
   }
-  out
+  # ADR 0093: el coral de fábrica del extremo negativo migra al salmón del recetario.
+  .std_migrar_paletas(out)$paletas
 }
 
 .graficos_unknown_fields <- function(x) {

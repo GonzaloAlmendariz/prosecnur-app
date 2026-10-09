@@ -1,7 +1,7 @@
 # ADR 0092 (F3) — la leyenda de las apiladas la dibuja la lámina con formas
 # nativas a 12 pt, en el mismo lugar donde el gráfico tenía la suya.
 
-.plan_apilada <- function() {
+.plan_apilada <- function(meta = list()) {
   dat <- data.frame(p1 = c(rep("Totalmente en desacuerdo", 4), rep("En desacuerdo", 10), rep("De acuerdo", 40), rep("Totalmente de acuerdo", 46)),
                     stringsAsFactors = FALSE)
   niveles <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo")
@@ -10,7 +10,7 @@
     choices = data.frame(list_name = "esc", name = niveles, label = niveles, stringsAsFactors = FALSE),
     orders_list = NULL
   )
-  list(dat = dat, inst = inst, plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_apiladas("p1"))))
+  list(dat = dat, inst = inst, plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_apiladas("p1"), meta = meta)))
 }
 
 test_that("la apilada declara su leyenda: etiquetas, colores y las capas que la dibujan", {
@@ -32,16 +32,22 @@ test_that("la apilada declara su leyenda: etiquetas, colores y las capas que la 
 test_that("en el PPT la leyenda sale como formas nativas a 12 pt", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
-  x <- .plan_apilada()
-  out <- tempfile(fileext = ".pptx")
-  suppressMessages(suppressWarnings(reporte_ppt_plan(
-    data = x$dat, instrumento = x$inst, plan = x$plan,
-    presets = p_presets(barras_apiladas = .PRESETS_DEFAULT_PULSO$barras_apiladas),
-    path_ppt = out, mensajes_progreso = FALSE)))
-  xml <- paste(readLines(unz(out, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-  expect_match(xml, "prosecnur:leyenda:texto:", fixed = TRUE)
-  expect_match(xml, ">Totalmente de acuerdo<", fixed = TRUE)
-  expect_match(xml, 'sz="1200"', fixed = TRUE)
+  # Desde el ADR 0093 la lámina de un gráfico de escala la compone el motor nativo: la leyenda es parte
+  # del grupo del gráfico. La ruta anterior (imagen con leyenda nativa) sigue viva en los paneles y se
+  # pide explícitamente con meta$motor_nativo = FALSE.
+  for (meta in list(list(), list(motor_nativo = FALSE))) {
+    x <- .plan_apilada(meta)
+    out <- tempfile(fileext = ".pptx")
+    suppressMessages(suppressWarnings(reporte_ppt_plan(
+      data = x$dat, instrumento = x$inst, plan = x$plan,
+      presets = p_presets(barras_apiladas = .PRESETS_DEFAULT_PULSO$barras_apiladas),
+      path_ppt = out, mensajes_progreso = FALSE)))
+    xml <- paste(readLines(unz(out, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+    marca <- if (length(meta)) "prosecnur:leyenda:texto:" else 'name="leyenda:texto"'
+    expect_match(xml, marca, fixed = TRUE)
+    expect_match(xml, ">Totalmente de acuerdo<", fixed = TRUE)
+    expect_match(xml, 'sz="1200"', fixed = TRUE)
+  }
 })
 
 .info_leyenda <- function(alto_npc, libre_npc = 0) {
@@ -86,7 +92,7 @@ test_that("si la leyenda no cabe en su banda ni en el aire de abajo, se queda la
 test_that("la caja del texto va sin márgenes, centrada y sin ajuste de línea", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
-  x <- .plan_apilada()
+  x <- .plan_apilada(list(motor_nativo = FALSE))
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(
     data = x$dat, instrumento = x$inst, plan = x$plan,

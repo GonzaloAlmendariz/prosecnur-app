@@ -68,3 +68,18 @@ test_that("los valores de fábrica viejos del histograma y del radar migran, los
   expect_equal(out2$histograma$bins, 5L)
   expect_equal(out2$radar_tabla$limites, c(0.5, 1))
 })
+
+test_that("el coral de fábrica del extremo negativo de una paleta Likert migra al salmón del recetario (ADR 0093)", {
+  p <- list(
+    lst_a = list("Totalmente en Desacuerdo" = "#CA5651", "En desacuerdo" = "#FFD965", "De acuerdo" = "#ADD493",
+                 "Totalmente de acuerdo" = "#70AD47", "SIN INF" = "#BFBFBF"),
+    lst_cliente = list("Muy malo" = "#CA5651", "Malo" = "#123456", "Bueno" = "#654321"),
+    lst_si_no = list("Sí" = "#081F5C", "No" = "#9DC3E6"))
+  m <- .std_migrar_paletas(p)
+  expect_identical(m$cambios, "lst_a")
+  expect_identical(m$paletas$lst_a[["Totalmente en Desacuerdo"]], .std_paleta("likert")[1])
+  expect_identical(m$paletas$lst_cliente, p$lst_cliente)   # paleta propia: se respeta
+  expect_identical(m$paletas$lst_si_no, p$lst_si_no)
+  # el normalizador de la configuración la aplica
+  expect_identical(unname(unlist(.graficos_normalize_paletas(p)$lst_a))[1], toupper(.std_paleta("likert")[1]))
+})
