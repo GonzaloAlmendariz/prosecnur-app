@@ -135,3 +135,21 @@ test_that("dentro de los paneles la batería de afirmaciones se ordena por Top T
   cruce <- list(.element_type = "barras_apiladas", var = NULL)
   expect_identical(orden_de(list(cruce, cruce)), c("Uno", "Dos", "Tres"))
 })
+
+test_that("en la lámina apilada la batería de afirmaciones también se ordena por Top Two Box", {
+  niv <- c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA")
+  bat <- function() {
+    d <- data.frame(item = c("x", "y", "z"), rotulo = c("Uno", "Dos", "Tres"), N = 100,
+                    t1 = c(.3, .1, .2), t2 = c(.2, .1, .2), t3 = c(.3, .4, .3), t4 = c(.2, .4, .3))
+    preparar_escala(d, "item", "N", paste0("t", 1:4), niv, var_etiqueta_categoria = "rotulo",
+                    barra_extra_preset = "top2box", top2box_labels = c("A", "TA"))
+  }
+  rendered <- lapply(1:2, function(k) { p <- ggplot2::ggplot(); attr(p, "pulso_espec") <- bat(); p })
+  els <- rep(list(list(.element_type = "barras_multiapiladas", modo = "var", var = NULL, overrides = list(titulo = "P"))), 2)
+  doc <- .lam_composicion_nativa(.doc_pan(), "graficos_2_vertical", rendered, els, list(slots = list(base = "Base"), title = "V", meta = list()))
+  x <- doc$slide$get_slide(doc$cursor)$get()
+  sp <- xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:rotulo']]")
+  ys <- as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, "p:spPr/a:xfrm/a:off"), "y"))
+  t <- xml2::xml_text(sp)[order(ys)]
+  expect_identical(t[1:3], c("Dos", "Tres", "Uno"))   # primer bloque: 80, 60, 50
+})

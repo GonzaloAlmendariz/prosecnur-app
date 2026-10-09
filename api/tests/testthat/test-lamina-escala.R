@@ -190,6 +190,9 @@ test_that("una fila Total con diez grupos y Bottom Two Box se parte, repite la T
   }
   expect_setequal(vistos, sprintf("Grupo %02d", 1:10))   # ningún grupo se pierde ni se repite
   expect_false(any(duplicated(vistos)))
+  # partes parejas, como el corte del recetario
+  por_parte <- vapply(seq_len(o$partes), function(k) length(.textos(o$doc, n0 + k, "actor")) - 1L, 0L)
+  expect_lte(max(por_parte) - min(por_parte), 1L)
 })
 
 test_that("con actores y Bottom Two Box cada premisa conserva su título", {

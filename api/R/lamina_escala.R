@@ -325,7 +325,8 @@
     b <- parte[[1]]; tot <- b$filas[espec$filas$es_total[b$filas]]; resto <- setdiff(b$filas, tot)
     hecho <- FALSE
     for (k in 2:max(2L, length(resto))) {
-      trozos <- split(resto, ceiling(seq_along(resto) / ceiling(length(resto) / k)))
+      # Trozos parejos (10 grupos en tres partes: 4/3/3, no 4/4/2), como el corte parejo del recetario.
+      trozos <- split(resto, .barras_leyenda_reparto(length(resto), k))
       cand <- lapply(trozos, function(tr) list(list(pregunta = b$pregunta, filas = c(tot, tr))))
       if (all(vapply(cand, alto, 0) <= disponible)) { out <- c(out, unname(cand)); hecho <- TRUE; break }
     }
