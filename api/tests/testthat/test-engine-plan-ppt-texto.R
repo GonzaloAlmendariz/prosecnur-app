@@ -355,7 +355,10 @@ test_that("p_slide_top_two_box renderiza lamina explicativa en PPT", {
     size_texto_porcentajes_peq = 14,
     color_texto_porcentajes = "#FFFFFF",
     margen_llave = 6,
-    grosor_flecha = 3.8
+    grosor_flecha = 3.8,
+    # La ruta de la plantilla (SVG con estilo propio). La lámina 19 nativa del recetario (ADR 0093, N7), que fija su
+    # estilo con el estándar, se prueba en test-lamina-identidad.R.
+    meta = list(motor_nativo = FALSE)
   )
   expect_equal(top_two_slide$style$colores, c("#CA5651", "#FFD965", "#ADD493", "#70AD47"))
   expect_equal(top_two_slide$style$grosor_barra, 84)
@@ -423,7 +426,8 @@ test_that("p_slide_top_two_box renderiza lamina explicativa en PPT", {
         margen_llave = 5,
         grosor_flecha = 4
       ),
-      style = list()
+      style = list(),
+      meta = list(motor_nativo = FALSE)   # la ruta de la plantilla (SVG); la nativa, en test-lamina-identidad.R
     ),
     class = "ppt_slide"
   )
