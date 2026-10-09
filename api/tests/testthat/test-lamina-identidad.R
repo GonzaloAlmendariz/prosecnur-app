@@ -190,3 +190,8 @@ test_that("los íconos casan con criterios y actores acentuados en cualquier pla
   expect_identical(.lam_icono_actor("Comité Consultivo"), "users")
   expect_identical(.lam_ficha_muestra("1,234 estudiantes (96 %) y 52 docentes (92 %).")$n, c("1,234", "52"))
 })
+
+test_that("el objetivo cuenta sus párrafos: siete líneas en párrafos van a la ruta anterior (verificador de N7)", {
+  expect_false(.lam_objetivo_cabe(paste(c("Primero.", "Segundo.", "Tercero.", "Cuarto.", "Quinto.", "Sexto.", "Séptimo."), collapse = "\n")))
+  expect_true(.lam_objetivo_cabe("Primero.\nSegundo.\nTercero."))
+})
