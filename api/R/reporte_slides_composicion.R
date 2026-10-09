@@ -87,6 +87,10 @@
   }
 
   # ADR 0093: las disposiciones que el recetario ya compone con piezas nativas no pasan por la plantilla.
+  if (!is.null(.lam_mixta_geo(stype)) && .lam_compositor_aplica_mixta(unname(rendered), slide, stype)) {
+    nativo <- .lam_composicion_mixta(doc, stype, unname(rendered), unname(els), slide, titulo_de_var = helpers$title_of_var)
+    if (!is.null(nativo)) return(list(doc = nativo, rendered = unname(rendered), elementos = els))
+  }
   tipo_std <- if (identical(stype, "graficos_2_vertical")) "p_slide_2_graficos_vertical" else stype
   if (.lam_compositor_aplica_paneles(unname(rendered), slide, tipo = tipo_std)) {
     nativo <- .lam_composicion_nativa(doc, stype, unname(rendered), unname(els), slide, titulo_de_var = helpers$title_of_var)
