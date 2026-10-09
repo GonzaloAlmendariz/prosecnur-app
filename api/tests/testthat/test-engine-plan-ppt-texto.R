@@ -603,8 +603,9 @@ test_that("reporte_word_plan usa etiqueta de variable como titulo por defecto", 
   )
 
   doc_text <- officer::docx_summary(officer::read_docx(out_docx))$text
-  expect_true(any(grepl(paste0("Gráfico Nº 1. ", label_p2), doc_text, fixed = TRUE)))
-  expect_false(any(trimws(doc_text) == "Gráfico Nº 1."))
+  # Word del recetario (N8.15): rótulo «Gráfico N» con SEQ y, en la línea de abajo, la etiqueta como título.
+  expect_true(any(grepl(label_p2, doc_text, fixed = TRUE)))
+  expect_false(any(trimws(doc_text) %in% c("Gráfico Nº 1.", "Gráfico 1")))
 })
 
 test_that("render_meta Word limpia titulo inferido desde variables recodificadas", {
