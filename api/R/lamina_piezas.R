@@ -213,3 +213,14 @@
   .lam_txt_tramos(lz, .lam_narrativa_tramos(texto), x + 0.22, y, w - 0.22, h, size = size, nombre = "narrativa:texto")
   invisible(lz)
 }
+
+#' Contorno sin relleno (el `contorno()` del recetario, que marca una celda)
+#' @keywords internal
+.lam_contorno <- function(lz, l, t, w, h, color, pt = 1.25, nombre = "contorno") {
+  xml <- paste0(
+    '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>',
+    '<p:spPr>', .lam_xfrm(l, t, w, h), '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/>',
+    '<a:ln w="', as.integer(round(pt * 12700)), '"><a:solidFill><a:srgbClr val="', .lam_hex(color), '"/></a:solidFill></a:ln></p:spPr>',
+    '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr/></a:p></p:txBody></p:sp>')
+  .lam_registrar(lz, xml, l, t, w, h)
+}

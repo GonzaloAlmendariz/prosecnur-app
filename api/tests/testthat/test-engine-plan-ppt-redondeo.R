@@ -58,7 +58,8 @@ test_that("la lamina se renderiza en el PPT", {
     reporte_ppt_plan(
       data = data.frame(x = 1),
       instrumento = .redondeo_inst(),
-      plan = list(diapo_001 = p_slide_redondeo()),
+      # La ruta de la plantilla (SVG); las láminas 20 y 21 nativas del recetario, en test-lamina-identidad.R.
+      plan = list(diapo_001 = p_slide_redondeo(meta = list(motor_nativo = FALSE))),
       presets = p_presets(),
       path_ppt = out_ppt,
       mensajes_progreso = FALSE

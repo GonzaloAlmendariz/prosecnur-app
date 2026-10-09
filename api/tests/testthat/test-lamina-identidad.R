@@ -65,3 +65,46 @@ test_that("«Cómo leer este informe: Top Two Box» sale como la lámina 19, con
   expect_false("prosecnur:top_two_box" %in% xml2::xml_attr(xml2::xml_find_all(lam[[3]], "//p:cNvPr"), "name"))
   expect_false(.lam_top_two_box_cabe(list(valores = c(10, 20, 30, 40), top_two_indices = c(2, 4))))  # no contiguos: ruta anterior
 })
+
+test_that("el redondeo sale en dos láminas como la 20 y la 21, con las mismas cifras del ejemplo y la suma que da cada método", {
+  C <- .lam_redondeo_cifras(c(1, 7, 60, 110, 0))
+  expect_identical(C$estandar, c(1, 4, 34, 62, 0)); expect_equal(sum(C$estandar), 101)
+  expect_identical(C$resultado, c(0, 4, 34, 62, 0)); expect_identical(sort(C$suben), 2:4)
+  lam <- .id_mazo(list(a = p_slide_redondeo(casos = c(1, 7, 60, 110, 0), meta = list(metodo = "ambos")), b = p_slide_redondeo(meta = list(metodo = "resto_mayor")),
+                       c = p_slide_redondeo(texto = "Mi nota propia.")))
+  expect_length(lam, 4L)                                                                      # 2 (pedidas a mano) + 1 + 1 (la del informe)
+  expect_identical(.id_txt(lam[[1]], "Titulo lamina"), "Redondeo estándar")
+  expect_identical(.id_txt(lam[[2]], "Titulo lamina"), "Redondeo del resto mayor")
+  expect_identical(.id_txt(lam[[1]], "Antetitulo lamina"), "CÓMO LEER ESTE INFORME")
+  expect_true("101%" %in% .id_txt(lam[[1]], "redondeo:suma"))
+  expect_length(xml2::xml_find_all(lam[[2]], "//p:sp[p:nvSpPr/p:cNvPr[@name='redondeo:marca']]"), 6L)   # tres restos × dos filas
+  expect_identical(.id_txt(lam[[2]], "Folio lamina"), "2"); expect_identical(.id_txt(lam[[4]], "redondeo:texto"), "Mi nota propia.")
+  expect_identical(.id_txt(lam[[2]], "redondeo:nota"), "Faltan tres puntos: van a los tres restos más grandes. El 0.56% queda en 0%.")
+  expect_match(.id_txt(lam[[1]], "Base lamina"), "^Ejemplo con 1, 7, 60, 110 y 0 casos de 178$")
+  expect_false(.lam_redondeo_cabe(list(casos = c(2, 3), etiquetas = c("Sí", "No"))))        # dos categorías: ruta anterior
+})
+
+test_that("el Top Two Box nativo sólo admite 3 a 5 puntos y nombra bien la llave (verificador de N7)", {
+  expect_false(.lam_top_two_box_cabe(list(valores = c(5, 10, 15, 20, 25, 25), etiquetas = as.character(1:6), top_two_indices = c(5, 6))))
+  lam <- .id_mazo(list(a = p_slide_top_two_box(valores = c(20, 30, 50), etiquetas = as.character(1:3), top_two_indices = c(2, 3)),
+                       b = p_slide_top_two_box(valores = c(10, 20, 30, 40), top_two_indices = c(1, 2), texto = "Lectura con **negrita**."),
+                       c = p_slide_top_two_box(meta = list(antetitulo = "Guía de lectura"))))
+  cols <- xml2::xml_attr(xml2::xml_find_all(lam[[1]], "//p:sp[p:nvSpPr/p:cNvPr[@name='segmento']]//a:srgbClr"), "val")
+  expect_true(all(grepl("^[0-9A-F]{6}$", cols)))
+  expect_true(.lam_hex(.std_paleta("likert")[4]) %in% cols)                                   # el positivo, en verde fuerte
+  expect_identical(.id_txt(lam[[2]], "ttb:llave_rotulo"), "Los dos valores inferiores")
+  b <- xml2::xml_attr(xml2::xml_find_all(lam[[2]], "//p:sp[p:nvSpPr/p:cNvPr[@name='ttb:texto']]//a:rPr"), "b")
+  expect_identical(b, c("0", "1", "0"))
+  expect_identical(.id_txt(lam[[3]], "Antetitulo lamina"), "GUÍA DE LECTURA")
+})
+
+test_that("la lámina de redondeo es la del método que decidió el informe; las dos sólo si usa los dos o se piden", {
+  expect_identical(.lam_redondeo_metodo(list(), list()), "estandar")
+  pre <- function(m) { p <- list(); for (k in names(.PRESETS_CALCULOS)) p[[k]] <- list(args = list(metodo_redondeo = m)); p }
+  expect_identical(.lam_redondeo_metodo(list(), pre("estandar")), "estandar")
+  expect_identical(.lam_redondeo_metodo(list(), pre("reparto")), "resto_mayor")
+  mixto <- pre("estandar"); mixto[[names(.PRESETS_CALCULOS)[1]]]$args$metodo_redondeo <- "reparto"
+  expect_identical(.lam_redondeo_metodo(list(), mixto), "ambos")
+  expect_identical(.lam_redondeo_metodo(list(metodo = "resto_mayor"), pre("estandar")), "resto_mayor")
+  expect_identical(.lam_redondeo_metodo(list(metodo = "ambos")), "ambos")
+})
