@@ -952,6 +952,13 @@ graficar_radar <- function(
     if (!length(pal)) pal <- NULL
   }
 
+  # ADR 0093 (N6): lo que afirma el radar, para la lámina 90 del recetario. El «Top 2 Box» de fábrica no nombra la
+  # columna de los ejes de la tabla; ahí va «Indicador». Sin radar (`p_tabla` lo esconde con `radar_scale = 0`) no hay
+  # espec: la lámina 90 dibujaría un radar que el analista quitó.
+  espec_radar <- if (isTRUE(ocultar_radar)) NULL else tryCatch(.espec_radar(df_plot, r_lim, pal, digits = tabla_digits,
+                                       encabezado = if (identical(titulo_tabla, "Top 2 Box")) NULL else titulo_tabla,
+                                       con_tabla = mostrar_tabla_derecha, nota = nota_pie), error = function(e) NULL)
+
   # ---------------------------------------------------------------------------
   # 5) Plot (base)
   # ---------------------------------------------------------------------------
@@ -1827,6 +1834,7 @@ graficar_radar <- function(
       if (exists("tabla_nativa_datos", inherits = FALSE)) {
         canvas <- .tabla_nativa_adjuntar(canvas, tabla_nativa_datos, tabla_nativa_estilo)
       }
+      attr(canvas, "pulso_espec") <- espec_radar
       return(canvas)
     }
 
@@ -1957,7 +1965,7 @@ graficar_radar <- function(
   # ---------------------------------------------------------------------------
   # NO CANVAS
   # ---------------------------------------------------------------------------
-  if (exportar == "rplot") return(p)
+  if (exportar == "rplot") { attr(p, "pulso_espec") <- espec_radar; return(p) }
 
   if (is.null(path_salida) || !nzchar(path_salida)) stop("`path_salida` es requerido para exportar.", call. = FALSE)
 

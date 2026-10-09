@@ -853,6 +853,13 @@ p_radar_publicos <- function(
                                ancho_tema = NA_real_, proporcion = NA_real_,
                                texto_pt = .RADAR_MB_TEXTO_PT,
                                tabla_nativa = FALSE) {
+  # ADR 0093 (N6): la lámina 90 dibuja esta misma tabla al lado del radar, con el encabezado que ve el analista.
+  espec <- attr(grafico, "pulso_espec")
+  if (identical(espec$tipo, "radar")) {
+    espec$con_tabla <- TRUE
+    espec$encabezado <- .radar_mb_nombres_tabla(tabla, titulo_tema, encabezados)[1]
+    attr(grafico, "pulso_espec") <- espec
+  }
   if (!requireNamespace("gridExtra", quietly = TRUE) ||
       !requireNamespace("cowplot", quietly = TRUE)) {
     return(grafico)
@@ -950,8 +957,10 @@ p_radar_publicos <- function(
     ))
   }
 
-  cowplot::plot_grid(grafico, cowplot::ggdraw(grob),
-                     ncol = 2, rel_widths = c(1.35, rel))
+  out <- cowplot::plot_grid(grafico, cowplot::ggdraw(grob),
+                            ncol = 2, rel_widths = c(1.35, rel))
+  attr(out, "pulso_espec") <- attr(grafico, "pulso_espec")
+  out
 }
 
 
