@@ -260,8 +260,10 @@ Gonzalo, 2026-10-09: «Todo eso guiate dle recetario porfavor, es la fuente de v
 - **Mediana**: el texto se TRUNCA hacia cero (`as.integer` del recetario PPT, `recetario.R:631`, `recetario_m3b.R:41`)
   cuando todos los datos son enteros; con datos decimales va con un decimal. La posición del triángulo y de la barra
   sigue en el valor real. Un solo helper, `.cifra_mediana()`, para el histograma, la reescritura con unidad del
-  compositor y la columna del diagrama de caja. El recetario Word no trunca (`format(md)`), pero su único ejemplo es
-  una mediana entera: se aplica la regla del PPT a los dos formatos.
+  compositor y la columna del diagrama de caja. **Sólo en el PPT**: el recetario Word no trunca (`format(md)`, y la caja
+  de su página 27 escribe «20.5» y «21.5»), así que el Word rehace la cifra sin truncar desde el valor real
+  (`.word_texto_mediana`, `.word_g_boxplot`). Gonzalo, 2026-10-09: «El recetairo es la fuente de verdad» — cada formato
+  sigue al suyo. (Esta enmienda decía antes que la regla del PPT se aplicaba a los dos formatos: se corrigió.)
 - No cambian: la serie de dos mediciones (posterior menos anterior), el comparativo de dimensiones (valor absoluto)
   ni el indicador numérico con métrica mediana (va por sus decimales).
 - Riesgos declarados, no resueltos aquí: los códigos especiales numéricos (99, −1) entran a la mediana si la limpieza
