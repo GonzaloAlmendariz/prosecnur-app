@@ -81,11 +81,22 @@
 
   figura <- 1L; tabla <- 1L; cap <- 0L; sec <- 0L; cap_titulo <- NULL
   cerrar <- function(doc) if (is.null(cap_titulo)) doc else .word_cerrar_capitulo(doc, cap_titulo, titulo_corto)
-  if (isTRUE(op$como_leer %||% hay_escalas)) {
-    cap <- cap + 1L
+  # Lo que el plan pone antes de su primera sección (objetivo, presentación) va en un capítulo «Introducción»; «Cómo leer
+  # este informe» va justo antes de la primera sección de resultados, como en el recetario (diseño metodológico).
+  falta_como_leer <- isTRUE(op$como_leer %||% hay_escalas)
+  abrir_intro <- function(doc) {
+    if (!is.null(cap_titulo)) return(doc)
+    cap <<- cap + 1L; sec <<- 0L; cap_titulo <<- "Introducción"
+    .word_apertura(doc, cap, "Introducción", variante = op$apertura)
+  }
+  poner_como_leer <- function(doc) {
+    if (!falta_como_leer) return(doc)
+    falta_como_leer <<- FALSE
+    doc <- cerrar(doc); cap <<- cap + 1L
     doc <- .word_como_leer(doc, numero = cap, redondeo = op$redondeo, con_bottom = hay_bottom, figura = figura, tabla = tabla, variante_apertura = op$apertura)
-    sig <- attr(doc, "siguientes"); figura <- sig[["figura"]]; tabla <- sig[["tabla"]]
-    cap_titulo <- "Cómo leer este informe"
+    sig <- attr(doc, "siguientes"); figura <<- sig[["figura"]]; tabla <<- sig[["tabla"]]
+    cap_titulo <<- "Cómo leer este informe"
+    doc
   }
   for (i in seq_along(render_meta)) {
     e <- render_meta[[i]]; kind <- e$kind %||% "chart"
@@ -95,6 +106,7 @@
       nivel <- suppressWarnings(as.integer(e$meta$word_heading_level %||% 1L)[1]); if (!is.finite(nivel)) nivel <- 1L
       titulo <- .word_oracion(sub("^\\s*\\d+(?:\\.\\d+)*\\.?\\s+", "", .word_txt1(e$title), perl = TRUE))
       if (nivel <= 1L) {
+        doc <- poner_como_leer(doc)
         doc <- cerrar(doc); cap <- cap + 1L; sec <- 0L; cap_titulo <- titulo
         doc <- .word_apertura(doc, cap, titulo, intro = .word_txt1(e$word_intro %||% e$subtitle), variante = op$apertura)
       } else {
@@ -104,12 +116,20 @@
       }
       next
     }
+    if (identical(kind, "text")) {
+      doc <- abrir_intro(doc); sec <- sec + 1L
+      doc <- .word_seccion(doc, .word_oracion(e$title), paste0(cap, ".", sec))
+      doc <- .word_cuerpo(doc, paste(e$text, collapse = " "))
+      next
+    }
     if (identical(kind, "technical_table")) {
+      doc <- abrir_intro(doc)
       if (is.data.frame(e$table) && nrow(e$table)) { doc <- .word_tabla_tecnica(doc, tabla, e); tabla <- tabla + 1L }
       else avisar("La tabla técnica «", e$title %||% "", "» no trae filas y no entra al Word.")
       next
     }
     if (!identical(kind, "chart")) next
+    doc <- abrir_intro(doc)
     p <- e$plot_word
     # Un dibujo sin título ni espec (la lámina de objetivo con íconos del PPT) no es una figura del informe Word.
     if (identical(e$etype, "ggplot_raw") && !nzchar(.word_txt1(e$title)) && is.null(attr(p, "pulso_espec"))) {
@@ -122,6 +142,7 @@
     doc <- .word_figura(doc, figura, .word_oracion(e$title), png, alto = attr(g, "alto"), ancho = ancho, base = base_de(e))
     figura <- figura + 1L
   }
+  doc <- poner_como_leer(doc)      # un plan sin secciones igual lleva «Cómo leer» si tiene escalas
   doc <- cerrar(doc)
   doc <- .word_contraportada(doc, op$contacto)
   print(doc, target = path_docx)
