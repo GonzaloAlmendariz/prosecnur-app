@@ -93,3 +93,28 @@
   doc <- .lam_pie(doc, base, folio)
   por_lamina(doc)
 }
+
+#' Lámina de dos gráficos apilados a lo ancho (recetario_m2.R:81-91, lámina 142)
+#'
+#' Cada bloque sigue al anterior: la pregunta a lo ancho, su Likert compacto (rótulo de 1.6 in, barra de 0.4 in,
+#' fila de 0.72 in) y el segundo bloque 0.2 in más abajo; la leyenda sigue a las barras, centrada en la lámina.
+#' @keywords internal
+.lam_laminas_vertical <- function(doc, especs, preguntas, titulo, ante = NULL, base = NULL, folio = NULL,
+                                  layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
+  force(folio)
+  g_ <- .std_geom; ml <- g_("margen_izq"); w <- g_("ancho") - ml - g_("margen_der")
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  doc <- .lam_titulo(doc, titulo, ante = ante)
+  lz <- .lam_lienzo()
+  y <- g_("zona_datos_y0") - 0.05
+  for (k in seq_along(especs)) {
+    if (k > 1) y <- y + 0.2
+    .lam_panel_titulo(lz, ml, y, w, preguntas[[k]])
+    y <- .lam_likert_panel(lz, especs[[k]], ml, y + 0.4, w, especs[[k]]$orden$aplicado, g = 0.4, fila = 0.72, wlab = 1.6)
+  }
+  e1 <- especs[[1]]; ley <- e1$leyenda
+  .lam_leyenda(lz, y + 0.02, e1$categorias$rotulo[ley], e1$categorias$color[ley], centrar_en = g_("ancho") / 2)
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:paneles")
+  doc <- .lam_pie(doc, base, folio)
+  por_lamina(doc)
+}

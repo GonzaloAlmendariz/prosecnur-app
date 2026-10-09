@@ -8966,7 +8966,7 @@ reporte_ppt_plan <- function(
     # está en la plantilla. Una rama para las seis, no seis ramas.
     if (stype %in% names(.SLIDES_COMPOSICION)) {
       res <- .composicion_render(
-        doc = doc, slide = slide, contract = PPT_CONTRACT[[stype]],
+        doc = doc, slide = .lam_con_antetitulo(slide, ANTETITULOS[[i]]), contract = PPT_CONTRACT[[stype]],
         helpers = .plan_ppt_helpers_slide(), presets = presets,
         solo_lista = isTRUE(solo_lista)
       )

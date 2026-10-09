@@ -201,3 +201,37 @@
   .lam_laminas_paneles(doc, especs, preguntas, tipo = tipo, titulo = texto(titulo) %||% "", ante = ante, base = base_txt,
                        folio = length(doc) + 1L, layout = layout, master = master, por_lamina = por_lamina)
 }
+
+#' La lámina lleva su antetítulo para los renderers que viven fuera de `reporte_ppt_plan`
+#' @keywords internal
+.lam_con_antetitulo <- function(slide, antetitulo) {
+  if (!is.null(antetitulo) && length(antetitulo) && !is.na(antetitulo[1]) && is.null((slide$meta %||% list())$antetitulo)) {
+    slide$meta <- utils::modifyList(slide$meta %||% list(), list(antetitulo = as.character(antetitulo)[1]))
+  }
+  slide
+}
+
+#' Láminas de composición del recetario compuestas en nativo (`.composicion_render`)
+#'
+#' Hoy `graficos_2_vertical` (lámina 142). Devuelve el documento o `NULL` si el tipo aún no es nativo.
+#' @keywords internal
+.lam_composicion_nativa <- function(doc, stype, rendered, els, slide) {
+  if (!identical(stype, "graficos_2_vertical")) return(NULL)
+  texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  slots <- slide$slots %||% list()
+  base <- if (is.character(slots$base)) texto(slots$base) else if (inherits(slots$base, "ppt_element_text")) texto(slots$base$text) else NULL
+  if (is.null(base)) {
+    # `.base_por_grafico` deja la base de cada gráfico en su nota al pie (reporte_plan_base_por_grafico.R).
+    bases <- unique(unlist(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL))))
+    base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
+  }
+  preguntas <- lapply(els, function(el) texto(el$overrides$titulo) %||% texto(el$title_slide) %||% "")
+  especs <- lapply(seq_along(rendered), function(k) {
+    e <- attr(rendered[[k]], "pulso_espec")
+    if (identical(els[[k]]$.element_type, "barras_multiapiladas") && identical(els[[k]]$modo %||% "var", "var")) e <- .espec_ordenar_por_box(e)
+    e
+  })
+  .lam_laminas_vertical(doc, especs, preguntas, titulo = texto(slots$title %||% slide$title) %||% "",
+                        ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)
+}
+

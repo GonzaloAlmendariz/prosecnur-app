@@ -29,8 +29,10 @@
 #' @param data Tabla ancha.
 #' @param var_categoria,var_n,cols_porcentaje,etiquetas_grupos Como en
 #'   `graficar_barras_apiladas()`.
-#' @param orden `"auto"` (por Top Two Box si es una batería de un público y hay
-#'   box; si no, el declarado), `"declarado"` o `"top_two_box"`.
+#' @param orden `"declarado"` (por defecto: filas que son públicos o niveles de un
+#'   cruce no se reordenan), `"auto"` (por Top Two Box si ninguna premisa tiene
+#'   varias barras y hay box) o `"top_two_box"`. La batería de afirmaciones la pide
+#'   el compositor (`.espec_ordenar_por_box`).
 #' @return Lista con `version`, `categorias`, `filas`, `unidades`, `cifras`,
 #'   `anchos`, `dibujar`, `box`, `box2`, `orden`, `redondeo`.
 #' @keywords internal
@@ -42,7 +44,7 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
                             mostrar_barra_extra = TRUE, barra_extra_preset = "ninguno",
                             top2box_labels = NULL, top3box_labels = NULL, bottom2box_labels = NULL,
                             columna_bottom2box = FALSE, sufijos_etiqueta = NULL, fila_total = FALSE,
-                            orden = c("auto", "declarado", "top_two_box"),
+                            orden = c("declarado", "auto", "top_two_box"),
                             invertir_barras = FALSE, invertir_segmentos = FALSE, invertir_leyenda = FALSE) {
   escala_valor <- match.arg(escala_valor)
   orden <- match.arg(orden)

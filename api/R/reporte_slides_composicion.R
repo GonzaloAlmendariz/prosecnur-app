@@ -86,6 +86,12 @@
     return(list(doc = doc, rendered = unname(rendered), elementos = els))
   }
 
+  # ADR 0093: las disposiciones que el recetario ya compone con piezas nativas no pasan por la plantilla.
+  if (.lam_compositor_aplica_paneles(unname(rendered), slide)) {
+    nativo <- .lam_composicion_nativa(doc, stype, unname(rendered), unname(els), slide)
+    if (!is.null(nativo)) return(list(doc = nativo, rendered = unname(rendered), elementos = els))
+  }
+
   doc <- helpers$add_slide_strict(doc, contract$layout)
 
   title_slide <- slots$title %||% slide$title %||% NULL

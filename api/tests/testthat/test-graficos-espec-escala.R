@@ -62,18 +62,19 @@ test_that("(5) SIN INF es el último segmento y entra en la base", {
 
 test_that("(6) una batería de un público sale por Top Two Box; con actores o pedido, el orden declarado", {
   d <- .esc_df(A = c(10, 20, 40, 30, 0), B = c(1, 4, 40, 55, 0), C = c(5, 5, 50, 40, 0), D = c(2, 8, 40, 50, 0))
-  s <- .ttb(d)
+  # Por defecto, el orden declarado (filas que son públicos o niveles no se reordenan); la batería lo pide.
+  expect_identical(.ttb(d)$orden$aplicado, 1:4)
+  s <- .ttb(d, orden = "auto")
   expect_identical(s$orden$criterio, "top_two_box")
   expect_identical(s$filas$id[s$orden$aplicado], c("B", "C", "D", "A"))   # C y D empatan en 90: queda el declarado
-  expect_identical(.ttb(d, orden = "declarado")$orden$aplicado, 1:4)
   d$actor <- c("Docentes", "Estudiantes", "Docentes", "Estudiantes")
-  con_actores <- .ttb(d, var_grupo_id = "actor")
+  con_actores <- .ttb(d, var_grupo_id = "actor", orden = "auto")
   expect_identical(con_actores$orden$criterio, "declarado")
 })
 
 test_that("(8) la fila Total pondera por N y va primera aunque se ordene por Top Two Box", {
   d <- .esc_df(A = c(10, 20, 40, 30, 0), B = c(1, 4, 40, 55, 0))
-  s <- .ttb(d, fila_total = TRUE)
+  s <- .ttb(d, fila_total = TRUE, orden = "auto")
   expect_true(s$filas$es_total[1]); expect_identical(s$orden$aplicado[1], 1L)
   esperado <- (d$t4[1] * d$N[1] + d$t4[2] * d$N[2]) / sum(d$N)
   expect_equal(unname(s$unidades[1, "t4"]), floor(100 * esperado + 0.5))   # 42.5 sube (lámina 20), no al par
@@ -96,11 +97,11 @@ test_that("(10) las letras de significancia sólo van donde hay cifra", {
 test_that("una afirmación con varios actores conserva el orden de los actores; varias premisas de una fila se ordenan", {
   d <- .esc_df(A = c(10, 20, 40, 30, 0), B = c(1, 4, 40, 55, 0), C = c(5, 5, 50, 40, 0))
   d$premisa <- "P1"
-  un_bloque <- .ttb(d, var_grupo_id = "premisa")
+  un_bloque <- .ttb(d, var_grupo_id = "premisa", orden = "auto")
   expect_identical(un_bloque$orden$criterio, "declarado")
   expect_identical(un_bloque$orden$aplicado, 1:3)
   d$premisa <- c("P1", "P2", "P3")
-  tres <- .ttb(d, var_grupo_id = "premisa")
+  tres <- .ttb(d, var_grupo_id = "premisa", orden = "auto")
   expect_identical(tres$orden$criterio, "top_two_box")
   expect_identical(tres$filas$id[tres$orden$aplicado], c("B", "C", "A"))
 })
