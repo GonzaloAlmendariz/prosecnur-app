@@ -41,7 +41,9 @@
     etiquetas_arriba_si_no_caben = list(valor = TRUE, token = "reglas.cifras_chicas"),
     size_barra_extra  = list(valor = .std_pt("cifra"), token = "tipografia.cifra"),
     size_titulo_extra = list(valor = .std_pt("rotulo_top_two_box"), token = "tipografia.rotulo_top_two_box"),
-    color_barra_extra = list(valor = .std_color("verde_top_two_box"), token = "colores.verde_top_two_box")
+    color_barra_extra = list(valor = .std_color("verde_top_two_box"), token = "colores.verde_top_two_box"),
+    # La guía de la cifra chica es gris tenue en el recetario (barra_apilada(), recetario.R:157-180).
+    color_conectores_etiquetas = list(valor = "tenue", token = "colores.texto_tenue")
   )
   list(barras_apiladas = claves, multi_apiladas = claves)
 }

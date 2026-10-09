@@ -473,7 +473,7 @@
                                                            etiquetas_peq_padding = 0.012,
                                                            color_texto_barras_fuera,
                                                            colores_grupos = NULL,
-                                                           color_conectores_etiquetas = c("segmento", "azul_pulso"),
+                                                           color_conectores_etiquetas = c("tenue", "segmento", "azul_pulso"),
                                                            posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
                                                            offset_y = 0.17,
                                                            connector_gap_y = 0.060,
@@ -597,11 +597,11 @@
     df_lab$.label_fuera[mover] <- TRUE
     df_lab$.label_arriba[mover] <- TRUE
     df_lab$.col_label[mover] <- color_texto_barras_fuera
-    df_lab$.col_conector[mover] <- if (identical(color_conectores_etiquetas, "azul_pulso")) {
-      color_texto_barras_fuera
-    } else {
-      color_segmento[mover]
-    }
+    # «tenue» es la guía del recetario (gris tenue, barra_apilada() de recetario.R); las otras dos son de antes.
+    df_lab$.col_conector[mover] <- switch(color_conectores_etiquetas,
+      azul_pulso = color_texto_barras_fuera,
+      segmento = color_segmento[mover],
+      .std_color("texto_tenue"))
     df_lab$y_label[mover] <- top_y[mover] + offset_y
     df_lab$x_conector_label[mover] <- x_conector_label
     df_lab$x_conector_barra[mover] <- df_lab$x_center[mover]
@@ -1229,7 +1229,7 @@ graficar_barras_apiladas <- function(
     # calcula recorriendo todos los bloques. Ver `graficador_n_por_barra.R`.
     bases_publico         = NULL,
     etiquetas_arriba_offset = 0.13,
-    color_conectores_etiquetas = c("segmento", "azul_pulso"),
+    color_conectores_etiquetas = c("tenue", "segmento", "azul_pulso"),
     posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
     linewidth_conectores_etiquetas = 0.32,
     color_barra_extra     = .std_color("azul"),
@@ -2272,7 +2272,7 @@ graficar_barras_apiladas <- function(
         if (nrow(df_lab_arriba_plot) > 0) {
           labels_arriba_activas <- TRUE
           # Guía en codo, como el recetario: vertical desde el segmento y horizontal hasta la cifra.
-          p_bars <- p_bars + .apiladas_guia_codo(df_lab_arriba_plot, linewidth_conectores_etiquetas)
+          p_bars <- p_bars + .apiladas_guia_codo(df_lab_arriba_plot, linewidth = linewidth_conectores_etiquetas)
         }
         labels_rendered <- as.character(df_lab$lab)
         p_bars <- p_bars +
@@ -2487,7 +2487,7 @@ graficar_barras_apiladas <- function(
         if (nrow(df_lab_arriba_plot) > 0) {
           labels_arriba_activas <- TRUE
           # Guía en codo, como el recetario: vertical desde el segmento y horizontal hasta la cifra.
-          p_bars <- p_bars + .apiladas_guia_codo(df_lab_arriba_plot, linewidth_conectores_etiquetas)
+          p_bars <- p_bars + .apiladas_guia_codo(df_lab_arriba_plot, linewidth = linewidth_conectores_etiquetas)
         }
         labels_rendered <- as.character(df_lab$lab)
         p_bars <- p_bars +

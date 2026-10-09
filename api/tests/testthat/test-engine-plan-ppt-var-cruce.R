@@ -1934,7 +1934,13 @@ test_that("apiladas sube solo etiquetas que no caben y mantiene dentro las que e
   expect_gt(out$y_label[1], out$.y_plot[1])
   expect_equal(out$y_label[-1], out$.y_plot[-1])
   expect_equal(out$.col_label, c("#081F5C", "white", "white", "white"))
-  expect_equal(out$.col_conector[1], unname(colores[out$.grupo[1]]))
+  # ADR 0093: por defecto la guía es el gris tenue del recetario; «segmento» sigue disponible.
+  expect_equal(out$.col_conector[1], .std_color("texto_tenue"))
+  out_seg <- prosecnurapp:::.posicionar_labels_arriba_si_no_caben_apiladas(
+    df_lab, var_categoria = "categoria", usar_y_numerico = TRUE, grosor_eff = 0.70, fit_padding = 0.003,
+    etiquetas_peq_padding = 0.012, color_texto_barras_fuera = "#081F5C", colores_grupos = colores,
+    offset_y = 0.13, color_conectores_etiquetas = "segmento")
+  expect_equal(out_seg$.col_conector[1], unname(colores[out_seg$.grupo[1]]))
   expect_equal(out$x_conector_label[1], out$x_label[1])
   expect_true(all(is.finite(out$x_conector_label[1])))
   expect_true(all(is.finite(out$x_conector_barra[1])))
@@ -1977,7 +1983,8 @@ test_that("apiladas sube solo etiquetas que no caben y mantiene dentro las que e
 
 test_that("apiladas expone color y grosor de conectores como argumentos publicos", {
   fml <- formals(prosecnurapp::graficar_barras_apiladas)
-  expect_equal(eval(fml$color_conectores_etiquetas), c("segmento", "azul_pulso"))
+  # ADR 0093: «tenue» (la guía gris del recetario) pasa a ser la primera opción y el defecto.
+  expect_equal(eval(fml$color_conectores_etiquetas), c("tenue", "segmento", "azul_pulso"))
   expect_equal(eval(fml$posicion_conector_etiquetas), c("centro", "izquierda", "derecha"))
   expect_equal(eval(fml$linewidth_conectores_etiquetas), 0.32)
 
