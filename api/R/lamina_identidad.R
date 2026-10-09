@@ -276,3 +276,40 @@
   length(n) %in% 4:5 && length(et) == length(n) && all(is.finite(n)) && all(n >= 0) && sum(n) > 0 &&
     identical(as.integer(slots$decimales %||% 0L), 0L) && all(.lam_ancho_tinta(et, 11, TRUE) <= 2 * 1.5)
 }
+
+# ---- Portada (lámina 23, recetario.R:444-459) -----------------------------------------------------------------------
+
+#' ¿El mazo usa la plantilla estándar de PULSO? Las portadas de cliente (ACNUR) tienen su propia composición y la
+#' respetan; sobre ellas no se dibuja la portada del recetario.
+#' @keywords internal
+.lam_plantilla_estandar <- function(ruta) {
+  r <- as.character(ruta %||% "")[1]
+  !is.na(r) && nzchar(r) && identical(basename(r), "plantilla_16_9.pptx")
+}
+
+#' Portada del recetario: sobre el layout «Title Slide» (logos y filete de la plantilla), el rótulo en coral, el título a
+#' 30 pt centrado, el encargo a 18 pt y la fecha en gris
+#'
+#' El subtítulo del motor es el rótulo («INFORME CONSOLIDADO»), el subtexto es el encargo («Por encargo de…») y la
+#' fecha, la fecha.
+#' @keywords internal
+.lam_laminas_portada <- function(doc, titulo, subtitulo = NULL, fecha = NULL, subtexto = NULL, layout = "Title Slide",
+                                 master = "Office Theme", por_lamina = function(doc) doc) {
+  limpio <- function(x) if (is.null(x) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  azul <- .std_color("azul")
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  lz <- .lam_lienzo()
+  if (!is.null(limpio(subtitulo))) .lam_txt(lz, toupper(limpio(subtitulo)), 1.6, 2.12, 10.1, 0.32, 13, .std_color("coral"), bold = TRUE, align = "center", nombre = "portada:rotulo")
+  .lam_txt(lz, limpio(titulo) %||% "", 1.3, 2.48, 10.7, 1.5, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
+  if (!is.null(limpio(subtexto))) .lam_txt(lz, limpio(subtexto), 1.6, 4.65, 10.1, 0.4, 18, azul, align = "center", nombre = "portada:encargo")
+  if (!is.null(limpio(fecha))) .lam_txt(lz, limpio(fecha), 1.6, 5.12, 10.1, 0.4, 18, .std_color("texto_suave"), align = "center", nombre = "portada:fecha")
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:portada")
+  list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' ¿La portada cabe? El título en tres líneas a 30 pt en 10.7 in (lo que mide su caja de 1.5 in)
+#' @keywords internal
+.lam_portada_cabe <- function(titulo) {
+  t <- as.character(titulo %||% "")[1]
+  !is.na(t) && nzchar(trimws(t)) && .lam_alto_tinta(t, 10.7, 30, TRUE) <= 1.6
+}

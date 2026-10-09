@@ -7458,7 +7458,6 @@ reporte_ppt_plan <- function(
 
     # ---- TITLE SLIDE ---------------------------------------------------------
     if (identical(stype, "title_slide")) {
-
       contract <- PPT_CONTRACT$title_slide
       slots <- slide$slots %||% list()
 
@@ -7467,7 +7466,8 @@ reporte_ppt_plan <- function(
       dt   <- slots$date       %||% NULL
       stx  <- slots$subtexto   %||% NULL
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && .lam_portada_cabe(ttl)) doc <- .lam_laminas_portada(doc, ttl, sub, dt, stx, contract$layout, master)$doc
+      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_plantilla_estandar(opened_template_path) || !.lam_portada_cabe(ttl))) {
 
         doc <- .add_slide_strict(doc, contract$layout)
         doc <- .ppt_add_partner_cover_logo(doc, presets$base$args %||% list())

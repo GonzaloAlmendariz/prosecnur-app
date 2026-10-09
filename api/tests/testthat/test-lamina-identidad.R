@@ -108,3 +108,17 @@ test_that("la lámina de redondeo es la del método que decidió el informe; las
   expect_identical(.lam_redondeo_metodo(list(metodo = "resto_mayor"), pre("estandar")), "resto_mayor")
   expect_identical(.lam_redondeo_metodo(list(metodo = "ambos")), "ambos")
 })
+
+test_that("la portada sale como la 23 con la plantilla de PULSO; las de cliente conservan la suya", {
+  tit <- "Estudio de opinión sobre el servicio educativo ofrecido por la carrera de Contabilidad"
+  lam <- .id_mazo(list(a = p_slide_portada(tit, "Informe consolidado", fecha = "Setiembre de 2026", subtexto = "Por encargo de la Facultad"),
+                       b = p_slide_portada(paste(rep(tit, 3), collapse = " "))))
+  x <- lam[[1]]
+  expect_identical(.id_txt(x, "portada:rotulo"), "INFORME CONSOLIDADO")
+  expect_identical(.id_txt(x, "portada:titulo"), tit)
+  expect_identical(.id_txt(x, "portada:encargo"), "Por encargo de la Facultad")
+  expect_identical(.id_txt(x, "portada:fecha"), "Setiembre de 2026")
+  expect_false("prosecnur:portada" %in% xml2::xml_attr(xml2::xml_find_all(lam[[2]], "//p:cNvPr"), "name"))   # no cabe: ruta anterior
+  expect_true(.lam_plantilla_estandar("/x/plantilla_16_9.pptx"))
+  expect_false(.lam_plantilla_estandar("/x/plantilla_acnur_16_9.pptx"))
+})
