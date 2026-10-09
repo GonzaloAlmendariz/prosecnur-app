@@ -31,6 +31,32 @@
 .PULSO_COLOR_EJES  <- "#081F5C"
 .PULSO_COLOR_GRID  <- "#E3E8EF"
 
+# Vocabulario de las escalas ordinales del recetario: cada paso no especial tiene que nombrar uno de estos ejes, y una
+# punta tiene que ser el polo negativo («Totalmente en desacuerdo», «Muy insatisfecho», «Nada útil»...).
+.PALETA_ESCALA_PASO <- "acuerdo|satisf|util|importante|bueno|malo|buena|mala|probable|frecuente|nunca|siempre|confia|confianza"
+.PALETA_ESCALA_NEGATIVO <- "desacuerdo|insatisf|nada|malo|mala|nunca|improbable|ningun"
+
+#' Paleta Likert del estándar para una escala ordinal sin paleta propia, o `NULL` si las categorías no son una escala
+#'
+#' Conservadora a propósito: sólo si TODAS las categorías no especiales nombran un eje de escala, son de 3 a 7 y una
+#' punta es el polo negativo. Respeta el sentido (negativo primero o último) y lo especial («SIN INF», «NS/NR») va gris.
+#' @keywords internal
+.graficos_paleta_likert <- function(levels_cat) {
+  norm <- function(x) tolower(trimws(.box_norm_etiqueta(x)))
+  especial <- grepl(.DIVERGENTES_ESPECIAL, levels_cat, ignore.case = TRUE)
+  pasos <- levels_cat[!especial]; k <- length(pasos)
+  if (k < 3L || k > 7L) return(NULL)
+  n <- norm(pasos)
+  if (!all(grepl(.PALETA_ESCALA_PASO, n))) return(NULL)
+  neg_primero <- grepl(.PALETA_ESCALA_NEGATIVO, n[1]); neg_ultimo <- grepl(.PALETA_ESCALA_NEGATIVO, n[k])
+  if (neg_primero == neg_ultimo) return(NULL)
+  lk <- unname(.std_paleta("likert"))
+  rampa <- if (k == 4L) lk[1:4] else if (k == 5L) unname(.std_paleta("likert_neutro"))[1:5] else grDevices::colorRampPalette(lk[1:4])(k)
+  if (neg_ultimo) rampa <- rev(rampa)
+  vals <- character(length(levels_cat)); vals[!especial] <- rampa; vals[especial] <- lk[5]
+  stats::setNames(vals, levels_cat)
+}
+
 .graficos_mk_palette <- function(levels_cat, pal_user = NULL) {
   `%||%` <- function(x, y) if (!is.null(x)) x else y
 
@@ -67,6 +93,10 @@
   )
 
   if (is.null(pal_user) || !length(pal_user)) {
+    # Una escala de acuerdo o satisfacción sin paleta guardada toma la Likert del recetario; el usuario puede elegir otra
+    # (Gonzalo, 2026-10-09: «Por defecto, pero el usuairo aun tiene la posibilidad e selecionar su paleta»).
+    lk <- .graficos_paleta_likert(levels_cat)
+    if (!is.null(lk)) return(lk)
     if (length(levels_cat) <= length(base_pal)) {
       vals <- base_pal[seq_along(levels_cat)]
     } else {
