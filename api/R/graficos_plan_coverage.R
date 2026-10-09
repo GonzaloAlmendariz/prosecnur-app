@@ -655,6 +655,7 @@
       boundary_by_ubigeo[vapply(selected, function(district) district$ubigeo, character(1))]
     )),
     study_blocks = study_blocks,
+    manzanas = if (identical(scope, "district")) .graficos_manzanas_contexto(reports, selected[[1]]$ubigeo) else NULL,
     district_labels = unname(lapply(selected, function(district) {
       feature <- boundary_by_ubigeo[[district$ubigeo]] %||% list()
       list(

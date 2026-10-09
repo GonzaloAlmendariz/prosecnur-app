@@ -118,6 +118,16 @@
       ubicacion <- list(capas = list(list(datos = lim, borde = "#FFFFFF", grosor = 0.2)), caja = caja_de(lim, 0))
     }
   }
+  # La 106: con `mostrar_manzanas` y avance por manzana, el distrito entero con sus manzanas y dos cifras, sin recuadro.
+  mzn <- if (isTRUE(contexto$mostrar_manzanas)) .espec_mapa_manzanas(contexto) else NULL
+  if (!is.null(mzn)) {
+    n_zap <- sum(zonas$estado == "efectiva")
+    return(list(version = "mapa/1", tipo = "mapa", forma = "distrito", ubicacion = NULL, manzanas = TRUE,
+                capas = mzn$capas, caja = mzn$caja,
+                cifra = list(valor = format(n_zap, big.mark = ","), rotulo = if (n_zap == 1) "zona aplicada" else "zonas aplicadas",
+                             detalle = sprintf("de %d zonas del distrito", nrow(zonas))),
+                cifra2 = mzn$cifra, leyenda = mzn$leyenda))
+  }
   list(version = "mapa/1", tipo = "mapa", forma = "distrito", ubicacion = ubicacion,
        capas = list(list(datos = .mapa_recortar(poly, caja_de(poly, 0)), borde = .std_color("mapa_borde"), grosor = 0.15)),
        caja = caja_de(poly, 0),

@@ -323,6 +323,7 @@ p_mapa_cobertura_territorial <- function(scope = c("district", "overview_koica")
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
   if (!is.list(contexto)) contexto <- list()
   if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
+  if (isTRUE(mostrar_manzanas)) contexto$mostrar_manzanas <- TRUE   # la espec la lee del contexto (lámina 106)
   el <- list(
     .element_type = "mapa_cobertura_territorial",
     scope = scope,
