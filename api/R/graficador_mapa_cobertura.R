@@ -363,7 +363,8 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
       summary$zonas_efectivas <- suppressWarnings(as.numeric(summary$zonas_efectivas))
       summary$zonas_efectivas[!is.finite(summary$zonas_efectivas)] <- 0
       summary$distrito <- factor(summary$distrito, levels = rev(summary$distrito))
-      return(
+      # La vista general del recetario (103) sólo necesita los límites y el resumen: si hay límites, su espec va igual.
+      p_res <- (
         ggplot2::ggplot(summary, ggplot2::aes(x = .data$zonas_efectivas, y = .data$distrito)) +
           ggplot2::geom_col(fill = "#00B398", width = 0.62) +
           ggplot2::geom_text(ggplot2::aes(label = .data$zonas_efectivas), hjust = -0.18, size = 3.3, color = "#18375F") +
@@ -380,6 +381,8 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
             plot.margin = ggplot2::margin(8, 8, 8, 8)
           )
       )
+      attr(p_res, "pulso_espec") <- if (identical(scope, "overview_koica")) tryCatch(.espec_mapa(contexto), error = function(e) NULL) else NULL
+      return(p_res)
     }
     return(.mapa_blank_plot(titulo, .mapa_chr1(contexto$message, "Sin geometria territorial disponible")))
   }
@@ -392,7 +395,9 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
     ]
   }
   if (identical(scope, "overview_koica") && nrow(district_boundaries) && nrow(district_labels)) {
-    return(.mapa_overview_koica_plot(poly, study_blocks, district_boundaries, district_labels))
+    p_ov <- .mapa_overview_koica_plot(poly, study_blocks, district_boundaries, district_labels)
+    attr(p_ov, "pulso_espec") <- tryCatch(.espec_mapa(contexto), error = function(e) NULL)   # ADR 0093 (N6): lámina 103
+    return(p_ov)
   }
 
   plot <- ggplot2::ggplot()
@@ -437,7 +442,7 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
       check_overlap = TRUE
     )
   }
-  plot +
+  p_mapa <- plot +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
     ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
     ggplot2::coord_equal(expand = FALSE, clip = "off") +
@@ -459,4 +464,7 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
       plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
       panel.background = ggplot2::element_rect(fill = "transparent", colour = NA)
     )
+  # ADR 0093 (N6): lo que afirma el mapa, para las láminas 105 y 106 del recetario.
+  attr(p_mapa, "pulso_espec") <- tryCatch(.espec_mapa(contexto), error = function(e) NULL)
+  p_mapa
 }

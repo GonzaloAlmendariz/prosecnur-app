@@ -99,6 +99,8 @@
   }
   # N6: los gráficos que siguen en ggplot van en la lámina del recetario.
   if (identical(espec$tipo, "ggplot_marco")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && inherits(p, "ggplot"))
+  # N6: mapas de cobertura (láminas 103, 105 y 106), si caben.
+  if (identical(espec$tipo, "mapa")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_mapa_cabe(espec)))
   # N6: radar con tabla (lámina 90), si cabe.
   if (identical(espec$tipo, "radar")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_radar_cabe(espec)))
   # N6: torta y dona (láminas 69 y 70), si caben.
@@ -213,6 +215,11 @@
     return(.lam_laminas_ggplot(doc, p, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                base = .lam_unir_base(texto(base), texto(pie), espec$lectura), folio = length(doc) + 1L, sub = texto(subtitulo),
                                layout = layout, master = master, por_lamina = por_lamina)$doc)
+  }
+  if (identical(espec$tipo, "mapa")) {
+    return(.lam_laminas_mapa(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                             base = .lam_unir_base(texto(base), texto(pie)), folio = length(doc) + 1L, sub = texto(subtitulo),
+                             layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "radar")) {
     return(.lam_laminas_radar(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
@@ -372,3 +379,40 @@
                         ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)
 }
 
+
+#' El texto de una lámina narrativa: la etiqueta y el texto en un bloque, como la ruta anterior
+#' @keywords internal
+.lam_narrativo_texto <- function(slots) {
+  limpio <- function(x) if (is.null(x) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  partes <- c(limpio(slots$tag), limpio(slots$text))
+  if (length(partes)) paste(partes, collapse = "\n") else NULL
+}
+
+#' ¿La lámina narrativa va en nativo? Por ahora, sólo los mapas del recetario (103, 105 y 106), cuya narrativa va en
+#' el panel bajo la cifra o la lista; el resto de las narrativas sigue por la ruta anterior hasta su lámina (N7).
+#' @keywords internal
+.lam_narrativo_aplica <- function(p, slide) {
+  espec <- attr(p, "pulso_espec")
+  if (is.null(espec) || identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
+  identical(espec$tipo, "mapa") && isTRUE(.lam_mapa_cabe(espec, .lam_narrativo_texto(slide$slots %||% list())))
+}
+
+#' La rama `slide_1_narrativo` del motor, en nativo (enganche de `reporte_ppt_plan`)
+#'
+#' Base y nota como la rama anterior: la base manual o la automática (salvo `suppress_base_placeholder`) y la nota
+#' del pie o la del gráfico.
+#' @keywords internal
+.lam_slide_narrativo_nativa <- function(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
+                                        por_lamina = function(doc) doc) {
+  slots <- slide$slots %||% list()
+  como_texto <- function(x) if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
+  sin_base <- isTRUE((slide$meta %||% list())$suppress_base_placeholder)
+  base <- if (sin_base) NULL else como_texto(slots$base) %||%
+    base_auto(el = el_plot, sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s")
+  pie <- como_texto(slots$footer)
+  if (is.null(pie) || !nzchar(trimws(as.character(pie)[1]))) pie <- nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL)
+  texto1 <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  .lam_laminas_mapa(doc, attr(p, "pulso_espec"), titulo = texto1(titulo) %||% "", ante = texto1(antetitulo),
+                    base = .lam_unir_base(texto1(base), texto1(pie)), folio = length(doc) + 1L, texto = .lam_narrativo_texto(slots),
+                    layout = layout, master = master, por_lamina = por_lamina)$doc
+}
