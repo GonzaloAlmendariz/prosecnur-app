@@ -60,7 +60,11 @@
       "naranja_bottom_two_box_texto": "#A44A1F",
       "azul_medio": "#4F7FAF",
       "azul_rango": "#B9C5DC",
-      "anillo_radar": "#C9CED8"
+      "anillo_radar": "#C9CED8",
+      "mapa_aplicada": "#2F4B7C",
+      "mapa_medio": "#9FB1D1",
+      "mapa_fuera": "#E2E6EC",
+      "mapa_borde": "#B8C2D3"
     },
     "paletas": {
       "likert": {

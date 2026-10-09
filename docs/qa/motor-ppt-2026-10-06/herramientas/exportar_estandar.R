@@ -18,7 +18,8 @@ tipografia_ppt <- list(unidad = "pt", titulo = 24, antetitulo = 10, pregunta = 1
 colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_suave = "#5A6480", texto_tenue = "#8A93A8", filete = "#D5D9DF",
                 cebra = "#E9ECF1", fondo = "#F2F2F2", verde_top_two_box = "#4E9438", naranja_bottom_two_box = "#B4541F", naranja_bottom_two_box_texto = "#A44A1F", azul_medio = "#4F7FAF",
                 azul_rango = "#B9C5DC",   # caja del 50 % central (boxplot) y barra del rango (media y rango), recetario_m3b.R
-                anillo_radar = "#C9CED8")   # anillos del radar, recetario_m3c.R:82
+                anillo_radar = "#C9CED8",   # anillos del radar, recetario_m3c.R:82
+                mapa_aplicada = "#2F4B7C", mapa_medio = "#9FB1D1", mapa_fuera = "#E2E6EC", mapa_borde = "#B8C2D3")   # mapas, recetario_m3e.R:85
 paletas <- list(
   likert = list(colores = c("#F4B183", "#FFD965", "#ADD493", "#70AD47", "#BFBFBF"), rotulos = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")),
   likert_neutro = list(colores = c("#F4B183", "#FFD965", "#D9D9D9", "#ADD493", "#70AD47")),

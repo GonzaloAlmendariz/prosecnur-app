@@ -8602,7 +8602,6 @@ reporte_ppt_plan <- function(
 
     # ---- SLIDE_1_NARRATIVO --------------------------------------------------
     if (identical(stype, "slide_1_narrativo")) {
-
       contract <- PPT_CONTRACT$slide_1_narrativo
       slots    <- slide$slots %||% list()
 
@@ -8638,7 +8637,8 @@ reporte_ppt_plan <- function(
         }
       }
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && .lam_narrativo_aplica(p, slide)) doc <- .lam_slide_narrativo_nativa(doc, p, slide, title_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, .add_partner_footer_logo)
+      if (!isTRUE(solo_lista) && !.lam_narrativo_aplica(p, slide)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
 
