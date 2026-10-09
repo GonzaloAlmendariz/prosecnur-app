@@ -122,10 +122,11 @@ test_that("con el grosor del estándar, la guía de la cifra que sube toca el te
     trace(".grosor_reemplazar_ancho_col", exit = quote(assign("p_mut", returnValue(), envir = globalenv())),
           print = FALSE, where = asNamespace("prosecnurapp"))
     on.exit(untrace(".grosor_reemplazar_ancho_col", where = asNamespace("prosecnurapp")), add = TRUE)
-    suppressMessages(suppressWarnings(graficar_barras_apiladas(
+    res <- suppressMessages(suppressWarnings(graficar_barras_apiladas(
       data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = paste0("t", 1:4),
       etiquetas_grupos = c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA"), exportar = "rplot",
       usar_canvas = TRUE, ancho = 12.5, alto = 4.6)))
+    fila_in <- attr(res, "pulso_barras_apiladas_layout")$alto_fila_in
     p <- get("p_mut", envir = globalenv())
     col <- Filter(function(l) inherits(l$geom, "GeomCol"), p$layers)[[1]]
     seg <- Filter(function(l) inherits(l$geom, "GeomSegment"), p$layers)
@@ -133,6 +134,12 @@ test_that("con el grosor del estándar, la guía de la cifra que sube toca el te
     sd <- seg[[1]]$data
     techo <- sd$.y_plot + col$aes_params$width / 2
     expect_true(all(abs(pmin(sd$y_conector_label, sd$y_conector_barra) - techo) < 0.03), info = paste(n, "filas"))
+    # y la cifra no la cruza: su borde inferior queda sobre el extremo de la guía
+    txt <- Filter(function(l) inherits(l$geom, "GeomText") && ".label_arriba" %in% names(l$data), p$layers)[[1]]$data
+    arr <- txt[txt$.label_arriba %in% TRUE, ]
+    media_letra_in <- 4.92 * ggplot2::.pt * 0.72 / 72 / 2   # media altura de la cifra a 14 pt
+    separacion_in <- (arr$y_label - arr$y_conector_label) * fila_in
+    expect_true(all(separacion_in >= media_letra_in), info = paste(n, "filas"))
     untrace(".grosor_reemplazar_ancho_col", where = asNamespace("prosecnurapp"))
   }
 })

@@ -934,9 +934,15 @@
 #' techo se mueve `delta` y las cifras deben moverse lo mismo.
 #' @param delta Desplazamiento en unidades del eje Y (nuevo − viejo grosor) / 2.
 #' @keywords internal
-.grosor_reubicar_cifras_arriba <- function(p, delta) {
+.grosor_reubicar_cifras_arriba <- function(p, delta, fila_in = NA_real_, size_pt = NA_real_) {
   d <- suppressWarnings(as.numeric(delta)[1])
-  if (!is.finite(d) || abs(d) < 1e-12) return(p)
+  if (!is.finite(d)) d <- 0
+  # La cifra queda por encima del extremo de su guía con media altura de letra
+  # más 0.03 in, medidos en pulgadas: la distancia fija en unidades del eje se
+  # achicaba con filas cortas y la guía tachaba la cifra (verificador de F2,
+  # 5 y 8 filas).
+  f <- suppressWarnings(as.numeric(fila_in)[1]); s <- suppressWarnings(as.numeric(size_pt)[1])
+  holgura <- if (is.finite(f) && f > 0 && is.finite(s) && s > 0) (s * 0.72 / 72 / 2 + 0.03) / f else NA_real_
   for (capa in p$layers) {
     datos <- capa$data
     if (!is.data.frame(datos) || !".label_arriba" %in% names(datos)) next
@@ -945,7 +951,19 @@
     for (col in intersect(c("y_label", "y_conector_label", "y_conector_barra"), names(datos))) {
       datos[[col]][filas] <- datos[[col]][filas] + d
     }
+    if (is.finite(holgura) && all(c("y_label", "y_conector_label") %in% names(datos))) {
+      minimo <- datos$y_conector_label[filas] + holgura
+      datos$y_label[filas] <- pmax(datos$y_label[filas], minimo)
+    }
     capa$data <- datos
+  }
+  # Una cifra que sube por encima del rango del eje no se descarta (ggplot la
+  # borraba en la primera fila y quedaba la guía sin su número): se conserva y
+  # el panel no la recorta, porque arriba está el margen del lienzo.
+  if (is.finite(holgura) || abs(d) > 0) {
+    esc <- p$scales$get_scales("y")
+    if (!is.null(esc)) esc$oob <- scales::oob_keep
+    if (!is.null(p$coordinates)) p$coordinates$clip <- "off"
   }
   p
 }

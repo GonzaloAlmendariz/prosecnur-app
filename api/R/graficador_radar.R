@@ -894,7 +894,7 @@ graficar_radar <- function(
     sin_centro <- if (r_lim[1] > 0) rings > r_lim[1] + 1e-9 else rings > 1e-9
     level_lab <- tibble::tibble(
       .nivel = rings[sin_centro],
-      x = rings_plot[sin_centro] * radar_scale * lados * cos(ang_n) + 0.02,
+      x = rings_plot[sin_centro] * radar_scale * lados * cos(ang_n) - 0.02,
       y = rings_plot[sin_centro] * radar_scale * lados * sin(ang_n)
     )
   }
@@ -1152,7 +1152,9 @@ graficar_radar <- function(
       colour = .std_color("texto_suave"), fill = "white", label.size = 0,
       label.padding = grid::unit(0.06, "lines"), family = font_family,
       fontface = if ("niveles" %in% textos_negrita) "bold" else "plain",
-      hjust = 0, vjust = 0.5
+      # hacia adentro del lado (hjust 1): hacia afuera chocaba con el rótulo del
+      # segundo eje («100%» sobre «Visión empresarial», verificador de F2).
+      hjust = 1, vjust = 0.5
     )
   }
 
@@ -2096,7 +2098,7 @@ graficar_radar <- function(
           colour = .std_color("texto_suave"),
           family = font_family,
           fontface = if ("niveles" %in% textos_negrita) "bold" else "plain",
-          hjust = 0, vjust = 0.5
+          hjust = 1, vjust = 0.5
         )
       }
 

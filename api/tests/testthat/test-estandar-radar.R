@@ -28,3 +28,15 @@ test_that("unos limites declarados mandan sobre el piso automatico", {
   p <- suppressWarnings(graficar_radar(d, escala_valor = "proporcion_100", limites = c(0, 1)))
   expect_true("25%" %in% .radar_labels(p))
 })
+
+test_that("el radar de públicos (p_radar multibase) también arranca en el mínimo", {
+  # Verificador de F2: este camino fijaba limites = c(0, 100) y el mazo seguía
+  # mostrando el eje desde 0.
+  datos <- data.frame(eje = factor(rep(c("A", "B", "C", "D", "E", "F"), 3)),
+                      grupo = factor(rep(c("docentes", "estudiantes", "egresados"), each = 6)),
+                      valor = c(98, 96, 92, 96, 94, 92, 96, 91, 94, 95, 96, 94, 98, 98, 94, 93, 98, 95))
+  p <- suppressWarnings(.radar_mb_grafico(datos, overrides = list(mostrar_niveles = TRUE)))
+  etiquetas <- unique(.radar_labels(p))
+  expect_false("25%" %in% etiquetas)
+  expect_true(any(c("90%", "95%") %in% etiquetas))
+})
