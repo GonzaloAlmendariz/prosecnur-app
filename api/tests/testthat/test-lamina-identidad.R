@@ -50,3 +50,17 @@ test_that("un título que no cabe o motor_nativo = FALSE vuelven al separador de
   expect_identical(nativo, c(FALSE, FALSE, TRUE))
   expect_identical(.id_txt(lam[[3]], "seccion:rotulo"), "CAPÍTULO 3")                        # cuenta aunque los anteriores no salgan nativos
 })
+
+test_that("«Cómo leer este informe: Top Two Box» sale como la lámina 19, con la cifra que suma los dos valores superiores", {
+  lam <- .id_mazo(list(a = p_slide_top_two_box(), b = p_slide_top_two_box(valores = c(10, 20, 30, 40), texto = "Mi lectura propia."),
+                       c = p_slide_top_two_box(meta = list(motor_nativo = FALSE))))
+  x <- lam[[1]]
+  expect_identical(.id_txt(x, "Titulo lamina"), "Top Two Box")
+  expect_identical(.id_txt(x, "Antetitulo lamina"), "CÓMO LEER ESTE INFORME")
+  expect_match(.id_txt(x, "ttb:texto"), "^Es la suma de los dos valores superiores")         # el texto del recetario, no el viejo
+  expect_identical(.id_txt(x, "ttb:cifra"), "90%"); expect_identical(.id_txt(x, "ttb:suma"), "35% + 55%")
+  expect_identical(.id_txt(x, "leyenda:texto"), paste0(1:4, "  ", .std_valor("ppt", "paletas", "likert", "rotulos")[1:4]))
+  expect_identical(.id_txt(lam[[2]], "ttb:cifra"), "70%"); expect_identical(.id_txt(lam[[2]], "ttb:texto"), "Mi lectura propia.")
+  expect_false("prosecnur:top_two_box" %in% xml2::xml_attr(xml2::xml_find_all(lam[[3]], "//p:cNvPr"), "name"))
+  expect_false(.lam_top_two_box_cabe(list(valores = c(10, 20, 30, 40), top_two_indices = c(2, 4))))  # no contiguos: ruta anterior
+})
