@@ -97,6 +97,8 @@
   if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_dimensiones_cabe(espec)))
   }
+  # N6: los gráficos que siguen en ggplot van en la lámina del recetario.
+  if (identical(espec$tipo, "ggplot_marco")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && inherits(p, "ggplot"))
   # N6: torta y dona (láminas 69 y 70), si caben.
   if (identical(espec$tipo, "pie")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_circular_cabe(espec)))
   # N3: barras divergentes (lámina 71) y ranking con puntos (lámina 72), si caben.
@@ -204,6 +206,11 @@
       pesas = do.call(.lam_laminas_pesas, c(comunes, list(unidad_n = unidad))),
       serie2 = do.call(.lam_laminas_serie2, comunes))
     return(o$doc)
+  }
+  if (identical(espec$tipo, "ggplot_marco")) {
+    return(.lam_laminas_ggplot(doc, p, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                               base = paste(c(texto(base), texto(pie), espec$lectura), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
+                               layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "pie")) {
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"

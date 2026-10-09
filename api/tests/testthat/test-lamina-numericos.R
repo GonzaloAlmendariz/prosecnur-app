@@ -139,7 +139,7 @@ test_that("la serie de dos mediciones es nativa sólo con dos períodos y escrib
   e <- attr(graficar_serie_temporal(d), "pulso_espec")
   expect_identical(e$textos_diferencia, c("-15 pts", "-31 pts")); expect_equal(unname(e$eje), c(40, 100, 20))
   d3 <- rbind(d, data.frame(eje = c("Docentes", "Estudiantes"), grupo = "2016", valor = c(90, 80)))
-  expect_null(attr(graficar_serie_temporal(d3), "pulso_espec"))                 # tres períodos: sigue en ggplot (N6)
+  expect_identical(attr(graficar_serie_temporal(d3), "pulso_espec")$tipo, "ggplot_marco")   # tres períodos: ggplot en su lámina (88)
   o <- .lam_laminas_serie2(.nm_doc(), e, "Tutoría", folio = 87)
   xml <- .nm_xml(.nm_print(o$doc), length(o$doc))
   expect_identical(.nm_txt(xml, "serie2:cifra_final"), c("Docentes 83%", "Estudiantes 53%"))
