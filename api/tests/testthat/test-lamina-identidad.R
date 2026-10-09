@@ -164,3 +164,29 @@ test_that("la portada nativa lleva el logo de socio sólo si se declaró uno pro
   expect_equal(pics(list(partner_logo_cover = TRUE)), 0L)
   expect_equal(pics(list(partner_logo_cover = TRUE, partner_logo_cover_path = socio)), 1L)
 })
+
+test_that("el objetivo sale como la 26: la diana, el texto con sus temas en negrita y los actores con su ícono", {
+  ic <- p_ggplot_raw(ggplot2::ggplot() + ggplot2::theme_void())
+  act <- c("Estudiantes", "Docentes", "Egresados", "Personal administrativo", "Comité Consultivo", "Empleadores")
+  lam <- .id_mazo(list(a = p_slide_objetivo_icono(ic, "Conocer **la percepción** de la comunidad.", meta = list(actores = act)),
+                       b = p_slide_objetivo_icono(ic, "Sin actores.", titulo = "Propósito"),
+                       c = p_slide_objetivo_icono(ic, paste(rep("Un objetivo larguísimo que no cabe en cuatro líneas de la lámina.", 8), collapse = " "))))
+  x <- lam[[1]]
+  expect_identical(.id_txt(x, "objetivo:titulo"), "Objetivo del estudio")
+  expect_identical(xml2::xml_attr(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='objetivo:texto']]//a:rPr"), "b"), c("0", "1", "0"))
+  expect_identical(.id_txt(x, "objetivo:actor"), act)
+  expect_length(xml2::xml_find_all(x, "//p:pic"), 7L)                                         # la diana y seis actores
+  expect_identical(vapply(act, .lam_icono_actor, ""), c("graduation-cap", "presentation", "briefcase", "building-2", "users", "briefcase-business"), ignore_attr = TRUE)
+  expect_identical(.id_txt(lam[[2]], "objetivo:titulo"), "Propósito")
+  expect_length(xml2::xml_find_all(lam[[2]], "//p:sp[p:nvSpPr/p:cNvPr[@name='objetivo:actor']]"), 0L)
+  expect_false("prosecnur:objetivo" %in% xml2::xml_attr(xml2::xml_find_all(lam[[3]], "//p:cNvPr"), "name"))
+})
+
+test_that("los íconos casan con criterios y actores acentuados en cualquier plataforma (sin iconv)", {
+  expect_identical(.lam_clave(c("Técnica", "Población", "Diseño muestral", "Selección", "Comité")),
+                   c("tecnica", "poblacion", "diseno muestral", "seleccion", "comite"))
+  expect_identical(vapply(c("Técnica", "Población", "Diseño muestral", "Selección", "Ámbito"), .lam_icono_ficha, ""),
+                   c("clipboard-list", "users", "shuffle", "shuffle", "map-pin"), ignore_attr = TRUE)
+  expect_identical(.lam_icono_actor("Comité Consultivo"), "users")
+  expect_identical(.lam_ficha_muestra("1,234 estudiantes (96 %) y 52 docentes (92 %).")$n, c("1,234", "52"))
+})

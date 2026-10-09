@@ -332,10 +332,17 @@
   if (nzchar(r)) r else NULL
 }
 
+#' Clave para casar palabras sin tildes ni eñe, igual en todas las plataformas
+#'
+#' `iconv(…, "ASCII//TRANSLIT")` en macOS da «t'ecnica» y «dise~no» y las palabras clave dejaban de casar (verificador
+#' de N7); el reemplazo explícito del helper compartido no depende del sistema.
+#' @keywords internal
+.lam_clave <- function(x) tolower(chartr("Ñ", "N", .ade_sin_tildes(x)))
+
 #' Ícono de cada fila de la ficha, por lo que dice su criterio
 #' @keywords internal
 .lam_icono_ficha <- function(criterio) {
-  c0 <- tolower(iconv(as.character(criterio), to = "ASCII//TRANSLIT"))
+  c0 <- .lam_clave(criterio)
   reglas <- list(c("tipo|tecnica|metodolog|instrumento", "clipboard-list"), c("universo|poblacion|publico", "users"),
                  c("muestreo|seleccion|diseno", "shuffle"), c("muestra|tamano|casos|respuestas", "hash"),
                  c("campo|fecha|periodo|aplicacion", "calendar-days"), c("margen|error|confianza|precision", "gauge"),
@@ -350,7 +357,7 @@
 .lam_ficha_muestra <- function(detalle) {
   d <- sub("\\.\\s*$", "", trimws(as.character(detalle)[1]))
   # Una pieza por público: separadas por coma o por la «y» final; el público puede llevar paréntesis («egresados(as)»).
-  piezas <- trimws(strsplit(d, ",\\s*|\\s+y\\s+(?=[0-9])", perl = TRUE)[[1]])
+  piezas <- trimws(strsplit(d, ",\\s+|\\s+y\\s+(?=[0-9])", perl = TRUE)[[1]])   # «1,234 estudiantes» no se parte en la coma de miles
   patron <- "^([0-9][0-9.,]*)\\s+(.+?)\\s*\\(\\s*([0-9]+)\\s*%\\s*\\)$"
   if (length(piezas) < 2L || length(piezas) > 4L || !all(grepl(patron, piezas, perl = TRUE))) return(NULL)
   m <- regmatches(piezas, regexec(patron, piezas, perl = TRUE))
@@ -421,4 +428,64 @@
 .lam_ficha_filas <- function(tabla) {
   if (!is.data.frame(tabla) || ncol(tabla) < 2L) return(data.frame(criterio = character(0), detalle = character(0)))
   data.frame(criterio = trimws(as.character(tabla[[1]])), detalle = trimws(as.character(tabla[[2]])), stringsAsFactors = FALSE)
+}
+
+# ---- Objetivo (lámina 26, recetario.R:461-487; variante «A. Sobria» elegida por Gonzalo) --------------------------
+
+#' Ícono de cada actor del objetivo, por su nombre
+#' @keywords internal
+.lam_icono_actor <- function(actor) {
+  a <- .lam_clave(actor)
+  reglas <- list(c("estudiant|alumn", "graduation-cap"), c("docent|profesor", "presentation"), c("egresad|graduad", "briefcase"),
+                 c("administrativ|personal|autoridad", "building-2"), c("comite|consultiv", "users"), c("empleador|empresa", "briefcase-business"))
+  for (r in reglas) if (grepl(r[1], a)) return(r[2])
+  "users"
+}
+
+#' Va sobre el layout general, como la moderna del recetario (el «Objetivos_Secciones» trae una línea punteada que cruza
+#' el texto) y sólo con la plantilla de PULSO: la de un cliente conserva su objetivo.
+#'
+#' Objetivo del recetario: la diana en un círculo coral con «Objetivo del estudio», el objetivo a 22 pt con sus temas en
+#' negrita (`**…**`) y, si se declaran (`meta$actores`), los actores consultados con su ícono
+#' @keywords internal
+.lam_laminas_objetivo <- function(doc, texto, titulo = NULL, actores = NULL, layout = "Graficos", master = "Office Theme",
+                                  por_lamina = function(doc) doc) {
+  ml <- .std_geom("margen_izq"); W <- .std_geom("ancho"); ac <- W - ml - .std_geom("margen_der")
+  azul <- .std_color("azul"); coral <- .std_color("coral")
+  titulo <- as.character(titulo %||% "")[1]; if (is.na(titulo) || !nzchar(trimws(titulo))) titulo <- "Objetivo del estudio"
+  actores <- as.character(actores %||% character(0)); actores <- actores[nzchar(trimws(actores))]
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  lz <- .lam_lienzo(); iconos <- list(list(n = "diana-flecha", x = ml + 0.62 * 0.24, y = 1.25 + 0.62 * 0.24))
+  .lam_caja(lz, ml, 1.25, 0.62, 0.62, coral, geom = "ellipse", nombre = "objetivo:icono_fondo")
+  .lam_txt(lz, titulo, ml + 0.8, 1.33, 6, 0.45, 20, coral, bold = TRUE, nombre = "objetivo:titulo")
+  .lam_txt_tramos(lz, .lam_narrativa_tramos(texto), ml, 2.3, ac, 2.0, size = 22, nombre = "objetivo:texto")
+  if (length(actores)) {
+    .lam_separador_h(lz, ml, W - .std_geom("margen_der"), 4.7)
+    .lam_txt(lz, "Actores consultados", ml, 4.85, ac, 0.32, 12, .std_color("texto_suave"), bold = TRUE, nombre = "objetivo:actores_rotulo")
+    wa <- ac / length(actores)
+    for (k in seq_along(actores)) {
+      xa <- ml + (k - 1) * wa
+      .lam_caja(lz, xa + (wa - 0.62) / 2, 5.35, 0.62, 0.62, azul, geom = "ellipse", nombre = "objetivo:actor_fondo")
+      iconos[[length(iconos) + 1L]] <- list(n = .lam_icono_actor(actores[k]), x = xa + (wa - 0.62) / 2 + 0.62 * 0.24, y = 5.35 + 0.62 * 0.24)
+      .lam_txt(lz, actores[k], xa - 0.1, 6.05, wa + 0.2, 0.5, 12, azul, bold = TRUE, align = "center", nombre = "objetivo:actor")
+    }
+  }
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:objetivo")
+  for (ic in iconos) {
+    ruta <- .lam_icono_ruta(ic$n); d <- 0.62 * 0.52
+    if (!is.null(ruta)) doc <- officer::ph_with(doc, officer::external_img(ruta, width = d, height = d),
+                                                location = officer::ph_location(left = ic$x, top = ic$y, width = d, height = d, newlabel = "objetivo:icono"))
+  }
+  list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' ¿El objetivo cabe? El texto en cuatro líneas a 22 pt (su caja de 2 in) y hasta seis actores con nombre de dos líneas
+#' @keywords internal
+.lam_objetivo_cabe <- function(texto, actores = NULL) {
+  t <- gsub("**", "", as.character(texto %||% "")[1], fixed = TRUE)
+  if (is.na(t) || !nzchar(trimws(t))) return(FALSE)
+  ac <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
+  actores <- as.character(actores %||% character(0))
+  .lam_alto_tinta(t, ac, 22) <= 2.0 && length(actores) <= 6L &&
+    (!length(actores) || all(.lam_alto_tinta(actores, ac / length(actores), 12, TRUE) <= 0.55))
 }
