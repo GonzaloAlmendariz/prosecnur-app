@@ -56,7 +56,8 @@
       "cebra": "#E9ECF1",
       "fondo": "#F2F2F2",
       "verde_top_two_box": "#4E9438",
-      "naranja_bottom_two_box": "#B4541F"
+      "naranja_bottom_two_box": "#B4541F",
+      "naranja_bottom_two_box_texto": "#A44A1F"
     },
     "paletas": {
       "likert": {
