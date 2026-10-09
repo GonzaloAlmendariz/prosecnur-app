@@ -438,7 +438,13 @@
   espec <- attr(p, "pulso_espec")
   if (is.null(espec) || identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
   texto <- .lam_narrativo_texto(slide$slots %||% list())
-  if (identical(espec$tipo, "mapa")) return(isTRUE(.lam_mapa_cabe(espec, texto)))
+  if (identical(espec$tipo, "mapa")) {
+    # La narrativa va en el panel (103, 105); si ahí no cabe —la vista general con su lista larga—, en franja arriba.
+    if (isTRUE(.lam_mapa_cabe(espec, texto))) return(TRUE)
+    if (is.null(texto)) return(FALSE)
+    G <- .lam_narrativa_geo(texto)
+    return(G$h <= 1.1 && isTRUE(.lam_con_desplazo(G$desplazo, .lam_mapa_cabe(espec, NULL))))
+  }
   if (is.null(texto)) return(isTRUE(.lam_compositor_aplica(p, slide)))
   # La narrativa no puede comerse la lámina: a lo más tres líneas.
   G <- .lam_narrativa_geo(texto)
@@ -477,7 +483,17 @@
     return(.lam_con_desplazo(G$desplazo, .lam_slide_1_nativa(doc, p, slide_g, titulo, NULL, el_plot, presets, layout, master, antetitulo,
                                                             base_auto, nota_de, sin_base = sin_base, por_lamina = con_narrativa)))
   }
-  .lam_laminas_mapa(doc, attr(p, "pulso_espec"), titulo = texto1(titulo) %||% "", ante = texto1(antetitulo),
-                    base = .lam_unir_base(texto1(base), texto1(pie)), folio = length(doc) + 1L, texto = .lam_narrativo_texto(slots),
+  if (!is.null(texto) && !isTRUE(.lam_mapa_cabe(espec, texto))) {
+    G <- .lam_narrativa_geo(texto)
+    con_narrativa <- function(d) {
+      lz <- .lam_lienzo(); .lam_narrativa(lz, texto, G$x, G$y, G$w, G$h)
+      por_lamina(.lam_agrupar(d, lz, nombre = "prosecnur:narrativa"))
+    }
+    return(.lam_con_desplazo(G$desplazo, .lam_laminas_mapa(doc, espec, titulo = texto1(titulo) %||% "", ante = texto1(antetitulo),
+                                                           base = .lam_unir_base(texto1(base), texto1(pie)), folio = length(doc) + 1L,
+                                                           layout = layout, master = master, por_lamina = con_narrativa)$doc))
+  }
+  .lam_laminas_mapa(doc, espec, titulo = texto1(titulo) %||% "", ante = texto1(antetitulo),
+                    base = .lam_unir_base(texto1(base), texto1(pie)), folio = length(doc) + 1L, texto = texto,
                     layout = layout, master = master, por_lamina = por_lamina)$doc
 }

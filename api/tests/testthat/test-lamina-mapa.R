@@ -76,3 +76,43 @@ test_that("por la ruta real el mapa sale nativo en la lámina narrativa y en la 
   expect_identical(nativo, c(TRUE, TRUE, FALSE))
   expect_identical(.mp_txt(lam[[1]], "mapa:narrativa"), "Lectura del mapa.")
 })
+
+test_that("la vista general pinta Lima y el Callao enteros de fondo, sin warnings de sf (verificador de N6)", {
+  expect_silent(pg <- suppressMessages(graficar_mapa_cobertura_territorial(.ctx_general())))
+  d <- attr(pg, "pulso_espec")$capas[[1]]$datos
+  expect_true(any(startsWith(d$ubigeo, "0701")))                                          # Callao, Bellavista, Ventanilla…
+})
+
+test_that("la lámina del distrito lleva el recuadro «Ubicación en Lima» y la geometría de la 105", {
+  e <- attr(suppressWarnings(graficar_mapa_cobertura_territorial(.ctx_distrito())), "pulso_espec")
+  expect_false(is.null(e$ubicacion))
+  expect_true(.std_color("azul") %in% e$ubicacion$capas[[1]]$datos$fill)                  # el distrito, en azul
+  xml <- .mp_xml(.lam_laminas_mapa(.mp_doc(), e, "Cobertura", folio = 105)$doc)
+  nm <- xml2::xml_attr(xml2::xml_find_all(xml, "//p:cNvPr"), "name")
+  expect_true("prosecnur:grafico:mapa:ubicacion" %in% nm); expect_identical(.mp_txt(xml, "mapa:ubicacion_rotulo"), "Ubicación en Lima")
+  ml <- .std_geom("margen_izq"); xr <- ml + 2.6 + 0.3 + 6.3 + 0.6
+  off <- xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='mapa:cifra']]/p:spPr/a:xfrm/a:off")
+  expect_equal(as.numeric(xml2::xml_attr(off, "x")) / 914400, xr, tolerance = 0.01)      # el panel donde lo pone el recetario
+  sep <- xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='separador']]/p:spPr/a:xfrm/a:off")
+  expect_equal(as.numeric(xml2::xml_attr(sep, "x")) / 914400, xr - 0.3, tolerance = 0.01)
+})
+
+test_that("la vista general con narrativa no cae a barras: la narrativa va en franja arriba y el mapa se acorta", {
+  e <- attr(suppressWarnings(graficar_mapa_cobertura_territorial(.ctx_general())), "pulso_espec")
+  tx <- "Los seis distritos del estudio quedan en tres pares de **intervención y comparación**."
+  expect_false(.lam_mapa_cabe(e, tx))                                                      # en el panel no cabe
+  df <- data.frame(x = 1:3)
+  inst <- list(survey = data.frame(name = "x", type = "integer", label = "X"), choices = data.frame(list_name = character(0), name = character(0), label = character(0)))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = df, instrumento = inst, path_ppt = out, mensajes_progreso = FALSE, plan = list(
+    a = p_slide_1_grafico_narrativo(p_mapa_cobertura_territorial(scope = "overview_koica", contexto = .ctx_general()), titulo = "Distritos", texto = tx, base = "", pie = "")))))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml")); nm <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name")
+  expect_true("prosecnur:grafico:mapa" %in% nm); expect_true("prosecnur:narrativa" %in% nm)
+})
+
+test_that("la ruta anterior del mapa usa los mismos azules que la nativa", {
+  p <- suppressWarnings(graficar_mapa_cobertura_territorial(.ctx_distrito()))
+  usados <- toupper(unique(unlist(lapply(ggplot2::ggplot_build(p)$data, function(l) l$fill))))
+  expect_true(toupper(.std_color("mapa_aplicada")) %in% usados)
+  expect_false(any(c("#2E7D32", "#00A98F", "#0072BC") %in% usados))                        # ni verde, ni teal, ni el azul de ACNUR
+})
