@@ -216,7 +216,9 @@ graficar_barras_categoricas <- function(
     grosor_barras             = 0.76,
     # ADR 0092 (F2.2): el recetario dibuja las categorías en barras horizontales
     # (`graficador_barras_horizontales.R`). "vertical" conserva las columnas previas.
-    orientacion               = c("horizontal", "vertical"),
+    # ADR 0093: en el recetario la pregunta categórica va en columnas (lámina 68); F2.2 la había puesto
+    # horizontal por defecto. Las barras horizontales son de las agrupadas (lámina 73).
+    orientacion               = c("vertical", "horizontal"),
     # Tamaño (pt) de rótulos y cifras de la horizontal; NULL = 12 pt de la
     # lámina. El Word lo baja al rótulo de su recetario (.word_ajustar_el).
     size_rotulos_h            = NULL,
@@ -404,6 +406,13 @@ graficar_barras_categoricas <- function(
     )
   }
 
+  # ADR 0093: lo que afirma la categórica, para la lámina nativa. La cifra es siempre el porcentaje del
+  # motor (sin la frecuencia: el recetario la escribe aparte, «N estudiantes»).
+  espec_categorica <- tryCatch(preparar_categorica(
+    df$categoria, df$pct %||% df$valor,
+    .barras_categoricas_etiquetas_pct(df$pct %||% df$valor, decimales, metodo_redondeo), df$n
+  ), error = function(e) { message("[espec categorica] ", conditionMessage(e)); NULL })
+
   if (identical(orientacion, "horizontal")) {
     p <- .graficar_categoricas_horizontal(df, paleta_propia = paleta_propia, ancho = ancho, alto = alto,
                                           font_family = font_family, nota = label_note, color_fondo = color_fondo,
@@ -414,6 +423,7 @@ graficar_barras_categoricas <- function(
     attr(p, "pulso_barras_categoricas_data") <- df
     attr(p, "pulso_barras_categoricas_promedio") <- promedio
     attr(p, "pulso_barras_categoricas_max_categorias") <- max_categorias
+    attr(p, "pulso_espec") <- espec_categorica
     if (identical(exportar, "png")) {
       if (is.null(path_salida) || !nzchar(path_salida)) {
         stop("`path_salida` es obligatorio cuando `exportar = 'png'`.", call. = FALSE)
@@ -475,6 +485,7 @@ graficar_barras_categoricas <- function(
   attr(p, "pulso_barras_categoricas_data") <- df
   attr(p, "pulso_barras_categoricas_promedio") <- promedio
   attr(p, "pulso_barras_categoricas_max_categorias") <- max_categorias
+  attr(p, "pulso_espec") <- espec_categorica
 
   if (identical(exportar, "png")) {
     if (is.null(path_salida) || !nzchar(path_salida)) {
