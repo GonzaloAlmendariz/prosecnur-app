@@ -179,7 +179,7 @@ graficar_nube_palabras <- function(
   capa <- if (requireNamespace("ggwordcloud", quietly = TRUE)) {
     plot_df$n <- words$n
     list(ggwordcloud::geom_text_wordcloud(ggplot2::aes(label = .data$palabra, size = .data$n, color = .data$color), family = font_family,
-                                          fontface = "bold", rm_outside = TRUE, eccentricity = 0.55, grid_margin = 1.6, seed = 7),   # 1.6, no 0.7: se pegaban palabras
+                                          fontface = "bold", rm_outside = TRUE, eccentricity = 0.55, grid_margin = 2.4, seed = 7),   # 2.4 y no 0.7: con 0.7 y 1.6 se pegaban o chocaban palabras; con 2.4, 2.1 pt o más en seis semillas y 40 de 40
          ggplot2::scale_size(range = c(11, 46) / ggplot2::.pt, guide = "none"))
   } else {
     list(ggplot2::geom_text(ggplot2::aes(x = .data$x, y = .data$y, label = .data$palabra, size = .data$size, color = .data$color),

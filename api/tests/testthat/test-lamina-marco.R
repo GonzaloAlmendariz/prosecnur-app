@@ -44,3 +44,21 @@ test_that("por la ruta real la nube sale en la lámina del recetario y el títul
   expect_true(any(grepl("tutorías|académica", todo)))                                    # las palabras conservan sus tildes
   expect_match(paste(.mc_txt(xml, "Base lamina"), collapse = " "), "El tamaño crece con las menciones")   # la lectura de la 98
 })
+
+test_that("el título y la nota del ggplot no se repiten en el dibujo y el subtítulo pasa a rótulo nativo, como en la 88", {
+  d <- data.frame(eje = rep(c("Docentes", "Estudiantes"), each = 4), grupo = rep(c("2012", "2016", "2021", "2026"), 2),
+                  valor = c(88, 93, 98, 83, 71, 79, 84, 53))
+  p <- graficar_serie_temporal(d, titulo = "Título del gráfico", subtitulo = "Top Two Box", nota_pie = "Nota del gráfico")
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  o <- .lam_laminas_ggplot(doc, p, attr(p, "pulso_espec"), "Tutoría en cuatro procesos", folio = 88,
+                           base = .lam_unir_base("Base: docentes y estudiantes.", "Nota del gráfico.", NULL, ""))
+  out <- tempfile(fileext = ".pptx"); print(o$doc, target = out)
+  xml <- .mc_xml(out, length(o$doc))
+  todo <- xml2::xml_text(xml2::xml_find_all(xml, "//a:t"))
+  expect_false(any(todo == "Título del gráfico"))                                       # mata al mutante que no quita el título
+  expect_equal(sum(grepl("Nota del gráfico", todo)), 1L)                                 # sólo en la base, no dentro del dibujo
+  expect_identical(.mc_txt(xml, "marco:rotulo"), "Top Two Box")
+  off <- xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='marco:rotulo']]/p:spPr/a:xfrm/a:off")
+  expect_equal(as.numeric(xml2::xml_attr(off, "y")) / 914400, .std_geom("zona_datos_y0") - 0.25, tolerance = 0.01)
+  expect_identical(.mc_txt(xml, "Base lamina"), "Base: docentes y estudiantes. Nota del gráfico")   # sin dobles puntos
+})
