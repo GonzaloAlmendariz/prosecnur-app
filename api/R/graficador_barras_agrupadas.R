@@ -924,6 +924,9 @@ graficar_barras_agrupadas <- function(
     preparar_categorica(as.character(d1[[var_categoria]]), v1, .pulso_fmt_pct_half_up(v1, 0),
                         if (".n_label_val" %in% names(d1)) d1$.n_label_val else NULL)
   }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
+  # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
+  # nativa escala a 100 % salvo que se pida el eje libre, como ya hacía el eje de este ggplot.
+  if (!is.null(espec_agrupada)) espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre)
   n_categorias <- length(cat_lvls)
   canvas_min_filas_eff <- suppressWarnings(as.numeric(canvas_min_filas)[1])
   if (!is.finite(canvas_min_filas_eff) || is.na(canvas_min_filas_eff) || canvas_min_filas_eff < 1) {
@@ -1243,6 +1246,7 @@ graficar_barras_agrupadas <- function(
         preparar_categorica(as.character(df_lab[[var_categoria]])[o_lab], df_lab$.valor_plot[o_lab], cifra_lab[o_lab],
                             if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL),
         error = function(e) espec_agrupada)
+      if (!is.null(espec_agrupada)) espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre)
     }
 
     umbral_posicion_eff <- umbral_posicion

@@ -34,7 +34,8 @@
 #' @keywords internal
 .lam_barras_h <- function(lz, espec, x, y, w, wlab, g, fila, size = 12, escala = NULL) {
   v <- espec$largos; et <- espec$rotulos
-  escala <- escala %||% (max(v) * 1.12)
+  # Las agrupadas van de 0 a 100 % por defecto (`escala_completa`); el resto, al máximo con aire, como el recetario.
+  escala <- escala %||% (if (isTRUE(espec$escala_completa)) max(1, v) else max(v) * 1.12)
   # La cifra lleva su propia columna: 0.8 in, o lo que mida si trae «(n)» o letras (no se parte en dos líneas).
   wcif <- max(0.8, max(.lam_ancho_txt(espec$cifras, size, TRUE)) + 0.12)
   wbar <- w - wlab - wcif; yy <- y

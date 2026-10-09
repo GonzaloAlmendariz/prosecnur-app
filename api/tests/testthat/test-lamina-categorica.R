@@ -128,3 +128,18 @@ test_that("en la ruta real una categórica de dos opciones que suman 100 sale co
   expect_identical(txt("dicotomia:cifra"), c("98%", "2%"))
   expect_identical(txt("panel:pregunta"), "¿Está trabajando actualmente?")
 })
+
+test_that("las barras agrupadas van de 0 a 100 % por defecto y con eje libre escalan al máximo (Gonzalo, 2026-10-09)", {
+  largo <- function(e) { lz <- .lam_lienzo(); .lam_barras_h(lz, e, 0.5, 2, 12, wlab = 2, g = 0.3, fila = 0.5)
+    bb <- do.call(rbind, lz$cajas); (bb[, 3] - bb[, 1])[c(2, 5)] }
+  e <- preparar_categorica(c("A", "B"), c(0.5, 0.25), c("50%", "25%"))
+  expect_equal(largo(e)[1] / 9.2, 0.5 / 0.56, tolerance = 1e-6)          # sin marca: al máximo con aire (recetario)
+  e$escala_completa <- TRUE
+  expect_equal(largo(e), c(4.6, 2.3), tolerance = 1e-6)                 # 50 % es la mitad del ancho de la barra
+  d <- data.frame(categoria = c("Sí", "No"), N = c(30, 10), pct = c(0.75, 0.25), stringsAsFactors = FALSE)
+  esp <- function(...) attr(suppressWarnings(graficar_barras_agrupadas(data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct", etiquetas_series = c(pct = "Total"), ...)), "pulso_espec")
+  e1 <- esp()
+  expect_identical(e1$tipo, "categorica")
+  expect_true(isTRUE(e1$escala_completa))
+  expect_false(isTRUE(esp(usar_eje_libre = TRUE)$escala_completa))
+})
