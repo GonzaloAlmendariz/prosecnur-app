@@ -156,7 +156,7 @@
     ifnotfound = function(var, instrumento, data = NULL) {
       surv <- instrumento$survey
       if (!is.null(surv) && all(c("name","label") %in% names(surv)) && var %in% surv$name) {
-        lab <- surv$label[surv$name == var][1]
+        lab <- surv$label[which(!is.na(surv$name) & surv$name == var)[1]]
         if (!is.na(lab) && nzchar(as.character(lab))) return(as.character(lab))
       }
       if (!is.null(data) && var %in% names(data)) {
