@@ -64,7 +64,7 @@ Todo se corre desde la raíz del repo.
 | Mazo real de `acrconta_mazo` | `SP=<carpeta con una copia del .pulso> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/generar_mazo.R` |
 | Catálogo PPT | `MODE=deck Rscript docs/qa/motor-ppt-2026-10-06/herramientas/catalogo_motor.R` (también `single` y `compat`) |
 | Catálogo Word | `Rscript docs/qa/motor-ppt-2026-10-06/herramientas/catalogo_word.R` |
-| Datos del recetario | los tres scripts de `herramientas/preparar-datos/` dejan `datos_muestra.rds` y `src_conta.rds` en `SP` |
+| Datos del recetario | `src_conta.rds` y `src_acg.rds` son `.graficos_processing_sources()` de `api/inst/reference_projects/acrconta_mazo` y `acnur_acg` (cargados con `load_pulso`); `ing.pulso` es una copia del proyecto de Ingeniería Mecánica (base `ingenieria_mecanica`, 131 egresados), fuera del repo. Con eso, `prep.R`, `prep_ing.R`, `prep_ing3.R`, `prep_m3e.R` y `prep_m3e_texto.R` de `herramientas/preparar-datos/` dejan el resto en `SP`. Reconstruido así el 2026-10-09: las páginas 1-22 del Word salieron idénticas |
 | Recetario | `SP=<datos> ESTILO=fiel\|moderna GUIAS=0\|1 SALIDA=<pptx> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/recetario.R` (carga `recetario_piezas.R` y las partes `recetario_m0*.R` a `recetario_m7.R`; la Parte VI, banco de recursos, es `recetario_m7.R`) |
 | Datos de nube y mapa | `SP=<datos> Rscript docs/qa/motor-ppt-2026-10-06/herramientas/preparar-datos/prep_m3e.R` |
 | Propuesta de diseño en Word | `SP=<datos> LOGOS=<media de la plantilla PPT> SALIDA=<docx> [MAZO=<recetario-moderna.pptx>] Rscript docs/qa/motor-ppt-2026-10-06/herramientas/recetario_word.R` (carga `recetario_word_graficos.R` y `recetario_word_identidad.R`, y pasa `word_nativo.py`) |
