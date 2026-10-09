@@ -564,6 +564,13 @@ test_that("la brecha se resta entre las cifras que se leen, el cero lleva signo 
   labs <- unlist(lapply(.capas(p, "GeomText"), function(l) as.character(l$data$.lab)))
   expect_true("+1 pts" %in% labs)                    # se leen 20 y 19: +1, no +2
   expect_true("+0 pts" %in% labs)                    # «%+d» del recetario
+  pes <- attr(p, "pulso_espec")
+  expect_setequal(pes$textos_diferencia, c("+1 pts", "+0 pts"))   # las pesas dicen lo mismo
+  df2 <- data.frame(eje = c("T", "T"), grupo = factor(c("a", "b"), levels = c("a", "b")), valor = c(20.44, 18.51))
+  p2 <- graficar_dumbbell(df2, mostrar_brecha = TRUE, valores_decimales = 1)
+  l2 <- unlist(lapply(.capas(p2, "GeomText"), function(l) as.character(l$data$.lab)))
+  expect_true("+1.9 pts" %in% l2)
+  expect_identical(attr(p2, "pulso_espec")$textos_diferencia, "+1.9 pts")
 })
 
 test_that("con orden por brecha la mayor con su signo va arriba, igual en ggplot y en pesas", {
@@ -573,4 +580,11 @@ test_that("con orden por brecha la mayor con su signo va arriba, igual en ggplot
   p <- graficar_dumbbell(df)
   niv <- levels(p$layers[[1]]$data$.eje)
   expect_identical(niv[[length(niv)]], "Sube")      # arriba la +5, aunque |−8| sea mayor
+  # Con empates y un cero, ggplot (de arriba abajo) y pesas dan el mismo orden: la declarada antes, arriba.
+  d5 <- data.frame(eje = rep(paste0("t", 1:5), 2), grupo = factor(rep(c("a", "b"), each = 5), levels = c("a", "b")),
+                   valor = c(60, 40, 50, 58, 70, 50, 45, 50, 50, 60))   # t1 +10, t2 -5, t3 0, t4 +8, t5 +10
+  p5 <- graficar_dumbbell(d5, mostrar_brecha = TRUE)
+  arriba_abajo <- rev(levels(p5$layers[[1]]$data$.eje))
+  expect_identical(arriba_abajo, c("t1", "t5", "t4", "t3", "t2"))
+  expect_identical(as.character(attr(p5, "pulso_espec")$rotulos), arriba_abajo)
 })
