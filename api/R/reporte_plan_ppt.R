@@ -8245,7 +8245,6 @@ reporte_ppt_plan <- function(
 
     # ---- OBJETIVO_ICONO ------------------------------------------------------
     if (identical(stype, "objetivo_icono")) {
-
       contract <- PPT_CONTRACT$objetivo_icono
       slots <- slide$slots %||% list()
 
@@ -8267,7 +8266,8 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_icon, p_icon)
       }
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && .lam_objetivo_cabe(txt, (slide$meta %||% list())$actores)) doc <- .lam_laminas_objetivo(doc, txt, title_slide, (slide$meta %||% list())$actores, PPT_CONTRACT$slide_1$layout, master, .add_partner_footer_logo)$doc
+      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_plantilla_estandar(opened_template_path) || !.lam_objetivo_cabe(txt, (slide$meta %||% list())$actores))) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         if (!is.null(title_slide) && nzchar(trimws(as.character(title_slide)[1]))) {
