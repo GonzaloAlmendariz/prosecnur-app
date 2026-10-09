@@ -11,22 +11,30 @@
 # Un texto de una entrada: NULL, NA o vacío dan "" (as.character(NULL)[1] es NA).
 .word_txt1 <- function(x) { x <- as.character(x %||% ""); if (!length(x) || is.na(x[1])) "" else trimws(x[1]) }
 
-# Siglas que se conservan al pasar un título en mayúsculas a tipo oración.
-.WORD_SIGLAS <- c("PUCP", "PULSO", "ACNUR", "UNSA", "SPSS", "ONG", "IA", "TI", "PDM", "CBI", "KOICA", "MEF", "INEI", "SUNEDU", "SINEACE", "ACRD")
+# Siglas que se conservan al pasar un título en mayúsculas a tipo oración. Lo que lleva «+» o va entre paréntesis
+# («(I+D+i)») también se conserva. Los nombres propios (Lima, Contabilidad) no se pueden distinguir desde las mayúsculas:
+# bajan a minúscula, y el plan puede escribirlos ya en tipo oración.
+.WORD_SIGLAS <- c("PUCP", "PULSO", "ACNUR", "UNSA", "SPSS", "ONG", "IA", "TI", "PDM", "CBI", "KOICA", "MEF", "INEI", "SUNEDU", "SINEACE", "ACRD",
+                  "OCDE", "BID", "MINEDU", "MINSA", "ONU", "OEA", "UNESCO", "UNICEF", "CONCYTEC", "OIT", "OMS", "TIC", "PBI", "ODS")
 
-#' Un título escrito todo en mayúsculas (convención del PPT fiel) pasa a tipo oración como en el recetario Word,
-#' conservando las siglas; uno con minúsculas queda como está
+#' Un título escrito en mayúsculas (convención del PPT fiel) pasa a tipo oración como en el recetario Word, conservando
+#' siglas; la primera letra va en mayúscula aunque el título empiece con «¿», «¡», comillas o un número. Un título que ya
+#' trae minúsculas (más de un décimo de sus letras) queda como está.
 #' @keywords internal
 .word_oracion <- function(x) {
   x <- .word_txt1(x)
   letras <- gsub("[^[:alpha:]]", "", x)
-  if (nchar(letras) < 4L || letras != toupper(letras)) return(x)
-  p <- strsplit(tolower(x), " ", fixed = TRUE)[[1]]
+  if (nchar(letras) < 4L) return(x)
+  minus <- nchar(gsub("[^[:lower:]]", "", letras))
+  if (minus > nchar(letras) / 10) return(x)                      # ya está en tipo oración o mixto: no se toca
   orig <- strsplit(x, " ", fixed = TRUE)[[1]]
-  sig <- gsub("[^[:alpha:]]", "", orig) %in% .WORD_SIGLAS
-  p[sig] <- orig[sig]
+  p <- tolower(orig)
+  conservar <- gsub("[^[:alpha:]]", "", orig) %in% .WORD_SIGLAS | grepl("+", orig, fixed = TRUE) | grepl("^\\(.*\\)[[:punct:]]*$", orig)
+  p[conservar] <- orig[conservar]
   out <- paste(p, collapse = " ")
-  paste0(toupper(substr(out, 1, 1)), substr(out, 2, nchar(out)))
+  k <- regexpr("[[:alpha:]]", out)                               # la primera LETRA, no el «¿» ni el «1.»
+  if (k > 0) substr(out, k, k) <- toupper(substr(out, k, k))
+  out
 }
 
 #' Título corto del encabezado: el que se dé o el título del informe cortado en la última palabra antes de 60 caracteres

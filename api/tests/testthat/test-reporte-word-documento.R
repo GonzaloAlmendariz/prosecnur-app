@@ -71,3 +71,12 @@ test_that("lo previo a la primera sección va en «Introducción» y «Cómo lee
   expect_match(x, "1.1. Objetivo", fixed = TRUE)
   expect_equal(res$figuras, 3L)                                  # 2 de «Cómo leer» + 1 del plan
 })
+
+test_that("tipo oración en los casos del verificador: I+D+i, preguntas, numeración y siglas", {
+  expect_identical(.word_oracion("INVESTIGACIÓN, DESARROLLO E INNOVACIÓN (I+D+i)"), "Investigación, desarrollo e innovación (I+D+i)")
+  expect_identical(.word_oracion("¿CONOCE EL SERVICIO?"), "¿Conoce el servicio?")
+  expect_identical(.word_oracion("1. PERFIL DEL ENCUESTADO"), "1. Perfil del encuestado")
+  expect_identical(.word_oracion("APOYO DEL BID Y LA OCDE"), "Apoyo del BID y la OCDE")
+  expect_identical(.word_oracion("¿Cuál es su género ?"), "¿Cuál es su género ?")        # ya en tipo oración
+  expect_identical(.word_oracion("AÑO"), "AÑO")                                           # menos de 4 letras
+})
