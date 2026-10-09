@@ -228,16 +228,42 @@ graficar_dumbbell <- function(
   }
 
   # Leyenda con la base de cada grupo, «Docentes (52)», si viene la columna.
+  n_g <- rep(NA_real_, length(niveles_grupo))
+  # Sólo si la base del grupo es la misma en todas las filas (dos públicos comparados tema por tema, lámina 86);
+  # si cambia de fila en fila, las filas son públicos y su base va en cada fila (lámina 85), no en la leyenda.
   etiquetas_leyenda <- niveles_grupo
   if (!is.null(var_n) && var_n %in% names(data)) {
     n_g <- vapply(niveles_grupo, function(g) {
       v <- suppressWarnings(as.numeric(data[[var_n]][as.character(data[[var_grupo]]) == g]))
-      if (any(is.finite(v))) max(v, na.rm = TRUE) else NA_real_
+      v <- unique(v[is.finite(v)])
+      if (length(v) == 1L) v else NA_real_
     }, numeric(1))
     etiquetas_leyenda <- ifelse(is.finite(n_g), sprintf("%s (%s)", niveles_grupo, format(n_g, big.mark = ",", trim = TRUE)), niveles_grupo)
   }
 
-  p +
+  # ADR 0093 (N4): lo que afirman las pesas para la lámina nativa (láminas 85 y 86, recetario_m3c.R). Como el
+  # recetario, la diferencia es el primer grupo menos el segundo («+5 pts» si el primero está más arriba) y, con
+  # orden por brecha, las filas van de la diferencia mayor a la menor con su signo.
+  espec_pesas <- tryCatch({
+    dec_p <- suppressWarnings(as.integer(valores_decimales)[1]); if (!is.finite(dec_p) || dec_p < 0) dec_p <- 0L
+    r2 <- res; r2$.eje <- as.character(r2$.eje); r2$.dif <- r2$.a - r2$.b
+    r2 <- switch(orden, brecha = r2[order(-r2$.dif), , drop = FALSE], valor = r2[order(-r2$.a), , drop = FALSE],
+                 r2[match(ejes, r2$.eje), , drop = FALSE])
+    # Los casos van en la fila cuando son los mismos para los dos grupos de esa fila (la fila es un público) y no
+    # están ya en la leyenda.
+    n_fila <- if (!is.null(var_n) && var_n %in% names(data) && !any(is.finite(n_g))) vapply(r2$.eje, function(e) {
+      v <- suppressWarnings(as.numeric(data[[var_n]][as.character(data[[var_eje]]) == e])); v <- unique(v[is.finite(v)])
+      if (length(v) == 1L) v else NA_real_
+    }, numeric(1)) else rep(NA_real_, nrow(r2))
+    list(version = "pesas/1", tipo = "pesas", rotulos = r2$.eje, a = r2$.a, b = r2$.b,
+         cifras_a = .pulso_fmt_pct_half_up(r2$.a, dec_p, escala = 1), cifras_b = .pulso_fmt_pct_half_up(r2$.b, dec_p, escala = 1),
+         diferencia = r2$.dif, textos_diferencia = paste0(ifelse(r2$.dif > 0, "+", ""), .pulso_fmt_half_up(r2$.dif, 0), " ", etiqueta_brecha),
+         mostrar_diferencia = isTRUE(mostrar_brecha), encabezado_diferencia = encabezado_brecha,
+         grupos = niveles_grupo, colores = unname(colores[niveles_grupo]), leyenda = unname(etiquetas_leyenda),
+         n_fila = unname(n_fila), eje = c(lo = lo, hi = hi, paso = paso), titulo_eje = titulo_eje)
+  }, error = function(e) NULL)
+
+  p <- p +
     ggplot2::scale_colour_manual(values = colores, breaks = niveles_grupo, labels = etiquetas_leyenda) +
     ggplot2::scale_x_continuous(
       limits = c(lo, tope), breaks = seq(lo, hi, by = paso), expand = c(0, 0),
@@ -275,4 +301,6 @@ graficar_dumbbell <- function(
       panel.grid.major.x = ggplot2::element_line(colour = .PULSO_COLOR_GRID, linewidth = 0.3),
       plot.margin = ggplot2::margin(10, 16, 8, 12)
     )
+  attr(p, "pulso_espec") <- espec_pesas
+  p
 }

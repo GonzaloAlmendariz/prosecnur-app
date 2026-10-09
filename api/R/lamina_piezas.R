@@ -41,6 +41,24 @@
 
 #' Rectángulo de relleno sólido (`caja()` del recetario)
 #' @keywords internal
+#' Línea recta de un punto a otro (la pendiente de la serie de dos mediciones, recetario_m3c.R:61)
+#'
+#' Una forma `line` con su caja de (x1, y1) a (x2, y2): si sube hacia la derecha se voltea en vertical.
+#' @keywords internal
+.lam_linea <- function(lz, x1, y1, x2, y2, col, pt = 3, nombre = "linea") {
+  l <- min(x1, x2); t <- min(y1, y2); w <- abs(x2 - x1); h <- abs(y2 - y1)
+  flip <- (x2 - x1) * (y2 - y1) < 0
+  xfrm <- sprintf('<a:xfrm%s><a:off x="%.0f" y="%.0f"/><a:ext cx="%.0f" cy="%.0f"/></a:xfrm>', if (flip) ' flipV="1"' else '',
+                  l * .EMU, t * .EMU, w * .EMU, h * .EMU)
+  xml <- paste0(
+    '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>',
+    '<p:spPr>', xfrm, '<a:prstGeom prst="line"><a:avLst/></a:prstGeom>',
+    '<a:ln w="', as.integer(round(pt * 12700)), '" cap="rnd"><a:solidFill><a:srgbClr val="', .lam_hex(col), '"/></a:solidFill></a:ln></p:spPr>',
+    '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr/></a:p></p:txBody></p:sp>'
+  )
+  .lam_registrar(lz, xml, l, t, w, h)
+}
+
 .lam_caja <- function(lz, l, t, w, h, fill, nombre = "caja", geom = c("rect", "triangle", "ellipse"), borde = NULL, borde_pt = 0.75) {
   geom <- match.arg(geom)
   hex <- .lam_hex(fill); hex_borde <- .lam_hex(borde %||% fill); w_borde <- if (is.null(borde)) 3175L else as.integer(round(borde_pt * 12700))
