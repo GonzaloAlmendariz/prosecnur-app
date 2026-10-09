@@ -68,7 +68,8 @@
       .lam_txt(lz, sprintf("%s %s", format(round(espec$n[i]), big.mark = ",", trim = TRUE), unidad_n), xk - 0.4, ybase - hk - 0.68,
                wcol + 0.8, 0.26, 10, tenue, align = "center", nombre = "numerico:casos")
     }
-    .lam_txt(lz, espec$rotulos[i], xk - 0.4, ybase + 0.1, wcol + 0.8, .lam_alto_txt(espec$rotulos[i], wcol + 0.8, 12, TRUE), 12, azul,
+    wr <- min(wcol + 0.8, paso - 0.05)   # el rótulo no pisa al del grupo vecino (verificador de N4)
+    .lam_txt(lz, espec$rotulos[i], xk + wcol / 2 - wr / 2, ybase + 0.1, wr, .lam_alto_txt(espec$rotulos[i], wr, 12, TRUE), 12, azul,
              bold = TRUE, align = "center", nombre = "numerico:rotulo")
   }
   invisible(lz)
@@ -111,21 +112,25 @@
   yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue"); claro <- .std_color("azul_rango")
   G <- espec$grupos; k <- NROW(G)
+  # Como el recetario, el eje va del mínimo al máximo enteros con guías cada paso; con pasos de 5 o más arranca
+  # y termina en múltiplos del paso (con rangos grandes salían guías en 59, 1059, 2059…).
   lo <- floor(espec$rango[1]); hi <- ceiling(espec$rango[2]); if (hi <= lo) hi <- lo + 1
+  paso <- .lam_paso_guias(lo, hi)
+  if (paso >= 5) { lo <- floor(lo / paso) * paso; hi <- ceiling(hi / paso) * paso; paso <- .lam_paso_guias(lo, hi) }
   xl <- ml + 1.9; wl <- W - mr - xl - 1.7; px <- function(v) xl + wl * (v - lo) / (hi - lo); fila <- (yf - yt - 0.9) / k
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  paso <- .lam_paso_guias(lo, hi)
   for (v in seq(lo, hi, by = paso)) {
     .lam_caja(lz, px(v), yt + 0.35, 0.006, k * fila, .std_color("filete"), nombre = "boxplot:guia")
-    .lam_txt(lz, format(v, trim = TRUE), px(v) - 0.3, yt + 0.05, 0.6, 0.24, 10, tenue, align = "center", nombre = "boxplot:eje")
+    .lam_txt(lz, .lam_num(v), px(v) - 0.45, yt + 0.05, 0.9, 0.24, 10, tenue, align = "center", nombre = "boxplot:eje")
   }
   if (!is.null(encabezado) && nzchar(encabezado)) .lam_txt(lz, encabezado, xl, yt - 0.25, 3, 0.26, 10, suave, bold = TRUE, nombre = "boxplot:encabezado")
-  fmt <- function(v) paste0(format(round(v, 1), trim = TRUE, nsmall = 0), if (nzchar(unidad)) paste0(" ", unidad) else "")
+  fmt <- function(v) paste0(.lam_num(v), if (nzchar(unidad)) paste0(" ", unidad) else "")
   for (i in seq_len(k)) {
     yc <- yt + 0.35 + (i - 0.5) * fila; hb <- min(0.42, fila * 0.55)
-    .lam_txt(lz, G$rotulo[i], ml, yc - 0.15, 1.75, 0.3, 12, azul, bold = TRUE, align = "right", nombre = "boxplot:rotulo")
+    hr <- .lam_alto_txt(G$rotulo[i], 1.75, 12, TRUE)
+    .lam_txt(lz, G$rotulo[i], ml, yc - 0.15 - max(0, hr - 0.3) / 2, 1.75, hr, 12, azul, bold = TRUE, align = "right", nombre = "boxplot:rotulo")
     bi <- G$bigote_inf[i]; bs <- G$bigote_sup[i]
     .lam_caja(lz, px(bi), yc - 0.008, max(px(bs) - px(bi), 0.002), 0.016, suave, nombre = "boxplot:bigote")
     .lam_caja(lz, px(bi) - 0.006, yc - hb / 4, 0.012, hb / 2, suave, nombre = "boxplot:tope")
@@ -161,23 +166,39 @@
   lo <- floor(min(espec$inf) / paso) * paso; hi <- ceiling(max(espec$sup) / paso) * paso; if (hi <= lo) hi <- lo + paso
   paso <- .lam_paso_guias(lo, hi)
   xl <- ml + 2.2; wl <- W - mr - xl - 1.8; px <- function(v) xl + wl * (v - lo) / (hi - lo); fila <- (yf - yt - 1.0) / k
-  num <- function(v) format(round(v, 1), trim = TRUE)
+  num <- .lam_num
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   for (v in seq(lo, hi, by = paso)) {
     .lam_caja(lz, px(v), yt + 0.35, 0.006, k * fila, .std_color("filete"), nombre = "media_rango:guia")
-    .lam_txt(lz, format(v, trim = TRUE), px(v) - 0.3, yt + 0.05, 0.6, 0.24, 10, tenue, align = "center", nombre = "media_rango:eje")
+    .lam_txt(lz, .lam_num(v), px(v) - 0.45, yt + 0.05, 0.9, 0.24, 10, tenue, align = "center", nombre = "media_rango:eje")
   }
   if (!is.null(encabezado) && nzchar(encabezado)) .lam_txt(lz, encabezado, xl, yt - 0.25, 3, 0.26, 10, suave, bold = TRUE, nombre = "media_rango:encabezado")
   for (i in seq_len(k)) {
     yc <- yt + 0.35 + (i - 0.5) * fila
-    .lam_txt(lz, espec$rotulos[i], ml, yc - 0.27, 2.05, 0.3, 13, azul, bold = TRUE, align = "right", nombre = "media_rango:rotulo")
+    hr <- .lam_alto_txt(espec$rotulos[i], 2.05, 13, TRUE)
+    .lam_txt(lz, espec$rotulos[i], ml, yc - 0.27 - max(0, hr - 0.317), 2.05, hr, 13, azul, bold = TRUE, align = "right", nombre = "media_rango:rotulo")
     if (is.finite(espec$n[i])) .lam_txt(lz, sprintf("%s %s", format(round(espec$n[i]), big.mark = ",", trim = TRUE), unidad_n), ml, yc + 0.02, 2.05,
                                         0.26, 10, tenue, align = "right", nombre = "media_rango:casos")
     .lam_caja(lz, px(espec$inf[i]), yc - 0.03, max(px(espec$sup[i]) - px(espec$inf[i]), 0.002), 0.06, claro, nombre = "media_rango:rango")
-    .lam_txt(lz, num(espec$inf[i]), px(espec$inf[i]) - 0.55, yc - 0.15, 0.5, 0.28, 10.5, suave, align = "right", nombre = "media_rango:minimo")
-    .lam_txt(lz, num(espec$sup[i]), px(espec$sup[i]) + 0.06, yc - 0.15, 0.5, 0.28, 10.5, suave, nombre = "media_rango:maximo")
+    # Cada extremo en una caja de su propio ancho; si mínimo y máximo coinciden, no hay rango que rotular.
+    if (espec$sup[i] > espec$inf[i]) {
+      # Ancho medido de la tinta más los márgenes internos de la caja (0.1 in por lado).
+      t1 <- num(espec$inf[i]); t2 <- num(espec$sup[i]); w1 <- .lam_ancho_tinta(t1, 10.5) + 0.3; w2 <- .lam_ancho_tinta(t2, 10.5) + 0.3
+      # Si un extremo no cabe a su costado (choca con los rótulos o con la columna «Media»), va encima del final
+      # de la barra.
+      if (px(espec$inf[i]) - 0.05 - w1 >= ml + 2.1) {
+        .lam_txt(lz, t1, px(espec$inf[i]) - 0.05 - w1, yc - 0.15, w1, 0.28, 10.5, suave, align = "right", nombre = "media_rango:minimo")
+      } else {
+        .lam_txt(lz, t1, max(ml + 2.1, px(espec$inf[i]) - w1 / 2), yc - 0.4, w1, 0.28, 10.5, suave, align = "center", nombre = "media_rango:minimo")
+      }
+      if (px(espec$sup[i]) + 0.06 + w2 <= W - mr - 1.65) {
+        .lam_txt(lz, t2, px(espec$sup[i]) + 0.06, yc - 0.15, w2, 0.28, 10.5, suave, nombre = "media_rango:maximo")
+      } else {
+        .lam_txt(lz, t2, min(W - mr - 1.65 - w2, px(espec$sup[i]) - w2 / 2), yc - 0.4, w2, 0.28, 10.5, suave, align = "center", nombre = "media_rango:maximo")
+      }
+    }
     .lam_caja(lz, px(espec$media[i]) - 0.13, yc - 0.13, 0.26, 0.26, azul, nombre = "media_rango:media", geom = "ellipse")
     .lam_txt(lz, paste("Media", espec$cifras[i]), W - mr - 1.6, yc - 0.15, 1.6, 0.3, 12, azul, bold = TRUE, nombre = "media_rango:cifra")
   }
@@ -223,11 +244,13 @@
   for (i in seq_len(k)) {
     yc <- yb + (i - 0.5) * fila; a <- espec$a[i]; b <- espec$b[i]; wrot <- if (con_dif) 2.8 else 2.2
     if (con_n && is.finite(espec$n_fila[i])) {
-      .lam_txt(lz, espec$rotulos[i], ml, yc - 0.27, wrot, 0.3, 13, azul, bold = TRUE, align = "right", nombre = "pesas:rotulo")
+      hr <- .lam_alto_txt(espec$rotulos[i], wrot, 13, TRUE)
+      .lam_txt(lz, espec$rotulos[i], ml, yc - 0.27 - max(0, hr - 0.317), wrot, hr, 13, azul, bold = TRUE, align = "right", nombre = "pesas:rotulo")
       .lam_txt(lz, sprintf("%s %s", format(round(espec$n_fila[i]), big.mark = ",", trim = TRUE), unidad_n), ml, yc + 0.02, wrot, 0.26, 10, tenue,
                align = "right", nombre = "pesas:casos")
     } else {
-      .lam_txt(lz, espec$rotulos[i], ml, yc - 0.15, wrot, 0.3, 13, azul, bold = TRUE, align = "right", nombre = "pesas:rotulo")
+      hr <- .lam_alto_txt(espec$rotulos[i], wrot, 13, TRUE)
+      .lam_txt(lz, espec$rotulos[i], ml, yc - 0.15 - max(0, hr - 0.317) / 2, wrot, hr, 13, azul, bold = TRUE, align = "right", nombre = "pesas:rotulo")
     }
     .lam_caja(lz, px(min(a, b)), yc - hs / 2, max(0.01, px(max(a, b)) - px(min(a, b))), hs, tenue, nombre = "pesas:segmento")
     .lam_caja(lz, px(b) - dp, yc - dp, 2 * dp, 2 * dp, cb, nombre = "pesas:punto_b", geom = "ellipse")
@@ -235,6 +258,8 @@
     # cifras_par (recetario_piezas.R:138-143): cada cifra al costado exterior de su punto.
     mayor_a <- a >= b
     xa <- if (mayor_a) px(a) + 0.18 else px(a) - 0.18 - 0.7; xb <- if (mayor_a) px(b) - 0.18 - 0.7 else px(b) + 0.18
+    piso <- ml + wrot + 0.05   # la cifra de la izquierda no entra en la columna de rótulos (valor en 0)
+    xa <- max(xa, piso); xb <- max(xb, piso)
     .lam_txt(lz, espec$cifras_a[i], xa, yc - 0.16, 0.7, 0.3, 12, ca, bold = TRUE, align = if (mayor_a) "left" else "right", nombre = "pesas:cifra_a")
     .lam_txt(lz, espec$cifras_b[i], xb, yc - 0.16, 0.7, 0.3, 12, cb, bold = TRUE, align = if (mayor_a) "right" else "left", nombre = "pesas:cifra_b")
     if (con_dif) .lam_txt(lz, espec$textos_diferencia[i], W - mr - 1.3, yc - 0.15, 1.3, 0.3, 13, azul, bold = TRUE, align = "center", nombre = "pesas:diferencia")
@@ -286,4 +311,61 @@
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:serie2")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' Cifra para ejes y rótulos de números: sin notación científica, coma de millares y un decimal si no es entera
+#' @keywords internal
+.lam_num <- function(v) {
+  vapply(v, function(x) {
+    if (!is.finite(x)) return("")
+    x <- .pulso_round_half_up(x, 1)
+    formatC(x, format = "f", digits = if (abs(x - round(x)) < 1e-9) 0L else 1L, big.mark = ",")
+  }, "")
+}
+
+#' ¿El gráfico de números cabe en su lámina nativa? Lo que no cabe sigue por la ruta anterior
+#'
+#' Mide lo que el renderer va a dibujar: rótulos que deben caber en su fila o columna (dos líneas como mucho),
+#' cifras en su caja y, en la serie de dos mediciones, que las cifras de las series no se encimen (verificador
+#' de N4: las compuertas sólo contaban grupos).
+#' @keywords internal
+.lam_numericos_cabe <- function(espec) {
+  g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); mr <- g_("margen_der")
+  yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1"); ancho <- W - ml - g_("margen_der")
+  dos_lineas <- function(t, w, size) all(vapply(t, function(x) .lam_lineas(x, w, size, TRUE) <= 2L, TRUE))
+  switch(espec$tipo,
+    histograma = {
+      n <- length(espec$valores); wcol <- ancho / n
+      n >= 2L && n <= 30L && all(.lam_ancho_txt(c(espec$cifras, espec$rotulos), 12, TRUE) <= wcol - 0.02)
+    },
+    numerico = {
+      k <- length(espec$valores); paso <- (ancho - 1.2) / k; wr <- min(paso * 0.56 + 0.8, paso - 0.05)
+      k >= 1L && k <= 12L && dos_lineas(espec$rotulos, wr, 12) && all(.lam_ancho_txt(espec$cifras, 16, TRUE) <= paso - 0.05)
+    },
+    boxplot = {
+      k <- NROW(espec$grupos); fila <- (yf - yt - 0.9) / max(1L, k)
+      k >= 1L && k <= 12L && dos_lineas(espec$grupos$rotulo, 1.75, 12) &&
+        all(vapply(espec$grupos$rotulo, function(x) .lam_alto_txt(x, 1.75, 12, TRUE), 0) <= fila * 0.95) &&
+        is.null(espec$cortes_chip)
+    },
+    media_rango = {
+      k <- length(espec$media); fila <- (yf - yt - 1.0) / max(1L, k)
+      k >= 1L && k <= 12L && dos_lineas(espec$rotulos, 2.05, 13) &&
+        all(vapply(espec$rotulos, function(x) .lam_alto_txt(x, 2.05, 13, TRUE), 0) + 0.3 <= fila) &&
+        all(.lam_ancho_txt(paste("Media", espec$cifras), 12, TRUE) <= 1.55)
+    },
+    pesas = {
+      k <- length(espec$rotulos); fila <- (yf - yt - 0.75 - 0.6) / max(1L, k)
+      wrot <- if (isTRUE(espec$mostrar_diferencia)) 2.8 else 2.2; extra <- if (any(is.finite(espec$n_fila))) 0.3 else 0
+      k >= 1L && k <= 12L && dos_lineas(espec$rotulos, wrot, 13) &&
+        all(vapply(espec$rotulos, function(x) .lam_alto_txt(x, wrot, 13, TRUE), 0) + extra <= fila)
+    },
+    serie2 = {
+      x1h <- yt + 0.6; hy <- yf - x1h - 0.5; lo <- espec$eje[["lo"]]; hi <- espec$eje[["hi"]]
+      py <- function(v) hy * (hi - v) / (hi - lo)
+      sep <- function(y, m) length(y) < 2L || min(diff(sort(y))) >= m
+      length(espec$series) %in% 1:4 && sep(py(espec$v1), 0.34) && sep(py(espec$v2), 0.5) &&
+        all(.lam_ancho_txt(paste(espec$series, espec$cifras2), 13, TRUE) <= 2.5) && all(.lam_ancho_txt(espec$periodos, 14, TRUE) <= 0.95)
+    },
+    FALSE)
 }

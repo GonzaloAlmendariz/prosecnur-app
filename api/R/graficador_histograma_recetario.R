@@ -28,7 +28,7 @@
                                   color_titulo = .std_color("coral"), size_titulo = 12,
                                   color_subtitulo = .std_color("azul"), size_subtitulo = 10,
                                   color_nota_pie = .std_color("azul"), size_nota_pie = 8,
-                                  unidad = "años") {
+                                  unidad = "") {
   cara <- function(token) if (token %in% textos_negrita) "bold" else "plain"
   mediana <- stats::median(x)
   tope <- suppressWarnings(as.numeric(limite_superior)[1])
@@ -43,7 +43,7 @@
   d <- data.frame(.x = seq_along(niveles), .valor = valor, .lab = lab, .rot = rot)
   ymax <- max(d$.valor) * 1.18
   x_med <- min(mediana, if (is.finite(tope)) tope else Inf) - min(xv) + 1
-  texto_med <- sprintf("Mediana: %s %s", format(round(mediana, 1), trim = TRUE), unidad)
+  texto_med <- trimws(sprintf("Mediana: %s %s", format(round(mediana, 1), trim = TRUE), unidad))
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$.x, y = .data$.valor)) +
     ggplot2::geom_col(width = 0.88, fill = .std_color("azul")) +
     ggplot2::geom_text(ggplot2::aes(label = .data$.lab), vjust = -0.5, size = 12 / ggplot2::.pt,

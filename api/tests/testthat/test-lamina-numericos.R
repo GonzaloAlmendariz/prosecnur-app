@@ -28,7 +28,7 @@ test_that("preparar_boxplot calcula cuartiles, bigotes a 1.5 RIC acotados y atí
 
 test_that("el histograma nativo pone una barra por valor y el triángulo de la mediana bajo su valor (lámina 79)", {
   x <- c(rep(19, 9), rep(20, 30), rep(21, 35), rep(22, 32), rep(23, 25))
-  e <- attr(.histograma_recetario(x, modo = "conteo"), "pulso_espec")
+  e <- attr(.histograma_recetario(x, modo = "conteo", unidad = "años"), "pulso_espec")
   expect_identical(e$cifras, c("9", "30", "35", "32", "25")); expect_equal(e$x_mediana, 2)   # mediana 21: tercera columna
   o <- .lam_laminas_histograma(.nm_doc(), e, "Edad", folio = 79)
   xml <- .nm_xml(.nm_print(o$doc), length(o$doc))
@@ -157,4 +157,63 @@ test_that("el compositor despacha pesas y serie de dos a su lámina nativa", {
                              "Graficos2", "Office Theme", NULL, function(...) NULL, function(...) NULL)
   xml <- .nm_xml(.nm_print(doc), length(doc))
   expect_true("prosecnur:grafico:pesas" %in% xml2::xml_attr(xml2::xml_find_all(xml, "//p:grpSp/p:nvGrpSpPr/p:cNvPr"), "name"))
+})
+
+# ---- Hallazgos del verificador de N4 (ruta real con datos de borde) ----------
+
+test_that("el numérico escribe pct en 0-100 con los decimales y el formato del gráfico", {
+  dw <- tibble::tibble(categoria = factor(c("a", "b"), levels = c("a", "b")), N = c(63, 58), v = c(34.24, 31.52))
+  e <- attr(.numerico_sellar(ggplot2::ggplot(), "pct", "Porcentaje", dw, "v", list(decimales = 1, formato_etiqueta = "%s%%")), "pulso_espec")
+  expect_identical(e$cifras, c("34.2%", "31.5%"))                                     # hallazgo 1: antes «3424%»
+  e2 <- attr(.numerico_sellar(ggplot2::ggplot(), "mean", "Media", dw, "v", list(decimales = 1, formato_etiqueta = "S/ %s")), "pulso_espec")
+  expect_identical(e2$cifras, c("S/ 34.2", "S/ 31.5"))                                # hallazgo 5: el formato declarado
+  dw3 <- tibble::tibble(categoria = "a", N = 1, v = 4305.8)
+  expect_identical(attr(.numerico_sellar(ggplot2::ggplot(), "mean", "Media", dw3, "v", list(decimales = 1, formato_etiqueta = "S/ %s")), "pulso_espec")$cifras,
+                   "S/ 4,305.8")
+  dwn <- tibble::tibble(categoria = "a", N = 20, v = 20)
+  expect_identical(attr(.numerico_sellar(ggplot2::ggplot(), "N", "Casos", dwn, "v", list(decimales = 0)), "pulso_espec")$cifras, "20")
+})
+
+test_that("las compuertas miden lo que se dibuja: lo que no cabe sigue por la ruta anterior", {
+  largo <- function(i) sprintf("Grupo %02d con un nombre deliberadamente largo para probar la compuerta de la lámina", i)
+  num <- list(tipo = "numerico", rotulos = largo(1:12), valores = 1:12, cifras = as.character(1:12), n = rep(10, 12))
+  expect_false(.lam_numericos_cabe(num))                                              # hallazgo 2: rótulos que se pisan
+  expect_true(.lam_numericos_cabe(modifyList(num, list(rotulos = paste("G", 1:12)))))
+  bx <- preparar_boxplot(factor(rep(largo(1:6), each = 3)), rnorm(18))
+  expect_false(.lam_numericos_cabe(bx))
+  bx2 <- preparar_boxplot(factor(rep(c("A", "B"), each = 3)), c(1, 2, 3, 2, 3, 4)); expect_true(.lam_numericos_cabe(bx2))
+  bx2$cortes_chip <- c(2, 3); expect_false(.lam_numericos_cabe(bx2))                  # chips declarados: ruta anterior
+  s4 <- list(tipo = "serie2", series = c("A", "B", "C", "D"), periodos = c("2021", "2026"), v1 = 40:43, v2 = 50:53,
+             cifras2 = paste0(50:53, "%"), eje = c(lo = 30, hi = 60, paso = 10))
+  expect_false(.lam_numericos_cabe(s4))                                               # series encimadas
+  expect_false(.lam_numericos_cabe(list(tipo = "histograma", valores = 5, cifras = "5", rotulos = "3")))   # un solo valor
+})
+
+test_that("ejes y extremos de números grandes se escriben sin notación científica y alineados al paso", {
+  expect_identical(.lam_num(c(1e5, 2e5, 58465.83, -0.94, 7)), c("100,000", "200,000", "58,465.8", "-0.9", "7"))
+  bx <- preparar_boxplot(factor(rep(c("A", "B"), each = 4)), c(59, 1e5, 2e5, 249000, 1113, 5e4, 1.5e5, 2.4e5))
+  o <- .lam_laminas_boxplot(.nm_doc(), bx, "Ingreso", folio = 1)
+  ej <- .nm_txt(.nm_xml(.nm_print(o$doc), length(o$doc)), "boxplot:eje")
+  expect_false(any(grepl("e\\+", ej)))
+  v <- as.numeric(gsub(",", "", ej)); expect_true(all(v %% (v[2] - v[1]) == 0))       # hallazgo 3: guías en múltiplos del paso
+})
+
+test_that("las pesas restan las cifras que se leen y la cifra junto a un 0 no entra en los rótulos", {
+  d <- data.frame(eje = rep(c("A", "Cero"), 2), grupo = factor(rep(c("X", "Y"), each = 2), levels = c("X", "Y")),
+                  valor = c(20.4, 0, 17.6, 12))
+  e <- attr(graficar_dumbbell(d, orden = "declarado", limite_x = c(0, 30)), "pulso_espec")
+  expect_identical(e$cifras_a[1], "20%"); expect_identical(e$cifras_b[1], "18%")
+  expect_identical(e$textos_diferencia[1], "+2 pts")                                  # hallazgo 4: antes «+3 pts»
+  o <- .lam_laminas_pesas(.nm_doc(), e, "Pesas", folio = 1)
+  ca <- .nm_ext(.nm_xml(.nm_print(o$doc), length(o$doc)), "pesas:cifra_a")
+  expect_true(all(ca$x >= .std_geom("margen_izq") + 2.8 + 0.05 - 1e-6))               # hallazgo 8
+})
+
+test_that("la unidad sale de la etiqueta de la variable: «años» sólo si habla de edad", {
+  expect_identical(.unidad_de_etiqueta("¿Cuántos años tiene en la actualidad?"), "años")
+  expect_identical(.unidad_de_etiqueta("Edad"), "años")
+  expect_identical(.unidad_de_etiqueta("Ingreso mensual"), "")
+  d <- data.frame(x = c(-2, -1, 0, 1, 2)); attr(d$x, "label") <- "Puntaje"
+  p <- graficar_histograma(d, var = "x", exportar = "rplot")
+  expect_identical(attr(p, "pulso_espec")$texto_mediana, "Mediana: 0")                # hallazgo 7: antes «Mediana: 0 años»
 })

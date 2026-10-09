@@ -88,13 +88,11 @@
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (is.null(espec)) return(FALSE)
   # N4: los gráficos de números son nativos cuando traen su especificación con grupos que dibujar.
-  if (espec$tipo %in% c("histograma", "numerico", "media_rango")) {
-    n <- length(espec$valores %||% espec$media)
-    return(n >= 1L && n <= 12L && !identical((slide$meta %||% list())$motor_nativo, FALSE))
+  # N4: los gráficos de números son nativos cuando caben (rótulos, cifras, series que no se encimen); lo que no
+  # cabe sigue por la ruta anterior (verificador de N4).
+  if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {
+    return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_numericos_cabe(espec)))
   }
-  if (identical(espec$tipo, "boxplot")) return(NROW(espec$grupos) %in% 1:12 && !identical((slide$meta %||% list())$motor_nativo, FALSE))
-  if (identical(espec$tipo, "pesas")) return(length(espec$rotulos) %in% 1:12 && !identical((slide$meta %||% list())$motor_nativo, FALSE))
-  if (identical(espec$tipo, "serie2")) return(length(espec$series) %in% 1:6 && !identical((slide$meta %||% list())$motor_nativo, FALSE))
   if (identical(espec$tipo, "categorica")) {
     # N3: la categórica de una serie (columnas, lámina 68) es nativa cuando tiene categorías que dibujar.
     # Va nativa si cabe en columnas o en barras; si no cabe en ninguna, sigue la ruta anterior (verificador de N3).
@@ -157,13 +155,16 @@
   if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {
     # Los gráficos de números (láminas 79-87): el público de la base nombra los casos («22 estudiantes»).
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    # La unidad del valor («años») sale de la etiqueta de la variable, no de una constante.
+    etiqueta_var <- if (is.function(titulo_de_var) && !is.null(el_plot$var)) tryCatch(titulo_de_var(el_plot$var), error = function(e) NULL)
+    unidad_valor <- .unidad_de_etiqueta(etiqueta_var %||% "")
     comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                     base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
                     layout = layout, master = master, por_lamina = por_lamina)
     o <- switch(espec$tipo,
       histograma = do.call(.lam_laminas_histograma, comunes),
       numerico = do.call(.lam_laminas_numerico, c(comunes, list(unidad_n = unidad, encabezado = espec$etiqueta))),
-      boxplot = do.call(.lam_laminas_boxplot, comunes),
+      boxplot = do.call(.lam_laminas_boxplot, c(comunes, list(unidad = unidad_valor))),
       media_rango = do.call(.lam_laminas_media_rango, c(comunes, list(unidad_n = unidad))),
       pesas = do.call(.lam_laminas_pesas, c(comunes, list(unidad_n = unidad))),
       serie2 = do.call(.lam_laminas_serie2, comunes))

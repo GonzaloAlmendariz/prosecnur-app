@@ -290,6 +290,9 @@ graficar_boxplot <- function(
   df$categoria <- factor(df$categoria, levels = lvls)
   # ADR 0093 (N4): lo que afirma el diagrama de caja para la lámina nativa, en el orden de los grupos.
   espec_boxplot <- tryCatch(preparar_boxplot(df$categoria, df$valor), error = function(e) NULL)
+  # Los chips de semáforo declarados por el analista no tienen par en la lámina del recetario: con ellos la lámina
+  # sigue por la ruta anterior en vez de descartarlos en silencio.
+  if (!is.null(espec_boxplot)) espec_boxplot$cortes_chip <- cortes_chip
 
   if (!is.null(ancho_max_eje_cat) &&
       is.finite(ancho_max_eje_cat) &&
