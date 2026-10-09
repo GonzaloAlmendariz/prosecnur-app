@@ -916,6 +916,14 @@ graficar_barras_agrupadas <- function(
   }
 	  if (invertir_barras) cat_lvls <- rev(cat_lvls)
   df_long[[var_categoria]] <- factor(cat_chr, levels = cat_lvls)
+  # ADR 0093: con una sola serie, lo que afirma el gráfico para la lámina nativa (barras_h del recetario,
+  # lámina 73), en el orden que el graficador ya decidió. Las cifras se reemplazan por las rotuladas en «3) Etiquetas %».
+  espec_agrupada <- if (length(cols_porcentaje) == 1L) tryCatch({
+    d1 <- df_long[order(match(cat_chr, cat_lvls)), , drop = FALSE]
+    v1 <- suppressWarnings(as.numeric(d1$.valor_plot)); v1[!is.finite(v1)] <- 0
+    preparar_categorica(as.character(d1[[var_categoria]]), v1, .pulso_fmt_pct_half_up(v1, 0),
+                        if (".n_label_val" %in% names(d1)) d1$.n_label_val else NULL)
+  }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
   n_categorias <- length(cat_lvls)
   canvas_min_filas_eff <- suppressWarnings(as.numeric(canvas_min_filas)[1])
   if (!is.finite(canvas_min_filas_eff) || is.na(canvas_min_filas_eff) || canvas_min_filas_eff < 1) {
@@ -1223,6 +1231,18 @@ graficar_barras_agrupadas <- function(
       n_txt[ok_n] <- format(round(n_val[ok_n]), big.mark = ",", scientific = FALSE, trim = TRUE)
       has_n <- nzchar(n_txt) & nzchar(df_lab$lab)
       df_lab$lab[has_n] <- paste0(df_lab$lab[has_n], " (", n_txt[has_n], ")")
+    }
+    # La lámina nativa rotula lo mismo que el gráfico: su redondeo, su «(n)» y sus letras. Donde el gráfico
+    # calla por umbral, el recetario igual escribe la cifra (barras_h rotula todas).
+    if (!is.null(espec_agrupada)) {
+      cifra_lab <- paste0(.pulso_fmt_half_up(pct_round, dec), "%")
+      cifra_lab[es_entero] <- paste0(.pulso_fmt_half_up(pct_round[es_entero], 0), "%")
+      cifra_lab[nzchar(df_lab$lab)] <- df_lab$lab[nzchar(df_lab$lab)]
+      o_lab <- order(as.integer(df_lab[[var_categoria]]))
+      espec_agrupada <- tryCatch(
+        preparar_categorica(as.character(df_lab[[var_categoria]])[o_lab], df_lab$.valor_plot[o_lab], cifra_lab[o_lab],
+                            if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL),
+        error = function(e) espec_agrupada)
     }
 
     umbral_posicion_eff <- umbral_posicion
@@ -1589,6 +1609,7 @@ graficar_barras_agrupadas <- function(
         size_texto_barras_eff = size_texto_barras_eff,
         ancho_max_eje_y_eff = ancho_max_eje_y_eff
       )
+      attr(p, "pulso_espec") <- espec_agrupada
       return(p)
     }
 
@@ -2125,6 +2146,7 @@ graficar_barras_agrupadas <- function(
       canvas_w_bars_eff = w_bars,
       alinear_etiquetas = alinear_etiquetas
     )
+    attr(canvas, "pulso_espec") <- espec_agrupada
     return(canvas)
   }
 

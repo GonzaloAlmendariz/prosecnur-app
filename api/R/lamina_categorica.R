@@ -49,22 +49,32 @@
 }
 
 #' Lámina de una categórica, en columnas (pregunta categórica) o en barras (una serie)
+#'
+#' Barras: la geometría de la lámina 73 del recetario (recetario_m3a.R:98-101): fila = (6.72 − 1.65 − 0.45) / n
+#' con un tope de 0.62 in, barra = mín(0.42, fila × 0.62), rótulo de hasta 6.3 in (11 pt si los rótulos son largos)
+#' y, en selección múltiple, el encabezado «% de encuestados que marcó cada opción».
 #' @keywords internal
 .lam_laminas_categorica <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
-                                    forma = c("columnas", "barras"), unidad_n = "respuestas",
+                                    forma = c("columnas", "barras"), unidad_n = "respuestas", encabezado = NULL,
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio); forma <- match.arg(forma)
   g_ <- .std_geom; ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der")
+  yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   if (identical(forma, "columnas")) {
     .lam_columnas(lz, espec, x0 = ml + 0.6, ybase = 6.05, wv = ancho - 1.2, unidad_n = unidad_n)
   } else {
-    n <- length(espec$largos); g <- .std_grosor(n, "categorias")
-    fila <- min(0.62, ((g_("leyenda_y") - 0.1) - (g_("zona_datos_y0") + 0.3)) / max(1L, n))
-    wlab <- min(3.2, max(1.4, max(.lam_ancho_tinta(espec$rotulos, 12)) + 0.3))
-    .lam_barras_h(lz, espec, ml, g_("zona_datos_y0") + 0.3, ancho, wlab = wlab, g = g, fila = max(fila, g + 0.2))
+    n <- max(1L, length(espec$largos))
+    largos <- any(nchar(espec$rotulos) > 45)
+    size <- if (largos) 11 else 12
+    fila <- min(0.62, (yf - yt - 0.45) / n); g <- min(0.42, fila * 0.62)
+    wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
+    if (!is.null(encabezado) && nzchar(encabezado)) {
+      .lam_txt(lz, encabezado, ml + wlab + 0.25, yt - 0.25, 4, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "encabezado")
+    }
+    .lam_barras_h(lz, espec, ml, yt + 0.2, ancho, wlab = wlab, g = g, fila = fila, size = size)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:categorica")
   doc <- .lam_pie(doc, base, folio)

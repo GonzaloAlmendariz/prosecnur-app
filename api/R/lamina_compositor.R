@@ -144,10 +144,15 @@
     # La pregunta categórica va en columnas (lámina 68); «N estudiantes» nombra al público de la base.
     texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    # La agrupada de una serie va en barras horizontales (lámina 73); en selección múltiple (los porcentajes
+    # suman más de 100) lleva el encabezado del recetario.
+    forma <- if (identical(el_plot$.element_type, "barras_agrupadas")) "barras" else "columnas"
+    multiple <- sum(espec$valores) > 1.02
     return(.lam_laminas_categorica(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
-                                   sub = texto(subtitulo), forma = "columnas", unidad_n = unidad, layout = layout,
-                                   master = master, por_lamina = por_lamina)$doc)
+                                   sub = texto(subtitulo), forma = forma, unidad_n = unidad,
+                                   encabezado = if (identical(forma, "barras") && multiple) "% de encuestados que marcó cada opción" else NULL,
+                                   layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   # Una batería de afirmaciones se ordena por Top Two Box (lámina 221); los niveles de un cruce no.
   if (identical(el_plot$.element_type, "barras_multiapiladas") && identical(el_plot$modo %||% "var", "var")) {

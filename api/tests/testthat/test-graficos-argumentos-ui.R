@@ -1566,7 +1566,10 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   # cambio de forma.
   expect_true(grepl(.PPT_ROTULO_TOP_TWO_BOX, xml, fixed = TRUE))
   expect_false(grepl("N =", xml, fixed = TRUE))
-  expect_true(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
+  # La selección múltiple se anuncia como en la lámina 73 del recetario (ADR 0093): el encabezado sobre las
+  # barras, no el aviso «Pregunta de opción múltiple» que el gráfico ggplot ponía de subtítulo.
+  expect_true(grepl("% de encuestados que marcó cada opción", xml, fixed = TRUE))
+  expect_false(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })
 
 test_that("el tipo de un bloque recod se resuelve tambien con codigos no numericos", {
