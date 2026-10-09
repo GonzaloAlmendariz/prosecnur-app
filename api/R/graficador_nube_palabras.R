@@ -60,10 +60,12 @@ graficar_nube_palabras <- function(
     x <- gsub("https?://\\S+|www\\.\\S+", " ", x, perl = TRUE, ignore.case = TRUE)
     x <- gsub("\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", " ", x, perl = TRUE, ignore.case = TRUE)
     x <- gsub("\\+?\\d[\\d\\s().-]{6,}\\d", " ", x, perl = TRUE)
-    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
-    x[is.na(x)] <- ""
+    # Se conservan las tildes, como la nube del recetario («formación», «gestión»). Transliterar a ASCII fuera de un
+    # locale UTF-8 dejaba la tilde como un carácter que el filtro siguiente tomaba por separador: «gestión» salía
+    # «gesti» y «académico», «acad» y «emico».
+    x <- enc2utf8(x); x[is.na(x)] <- ""
     x <- tolower(x)
-    x <- gsub("[^[:alpha:] ]+", " ", x, perl = TRUE)
+    x <- gsub("[^\\p{L}\\s]+", " ", x, perl = TRUE)
     trimws(gsub("\\s+", " ", x, perl = TRUE))
   }
 
@@ -112,7 +114,7 @@ graficar_nube_palabras <- function(
     tok <- tokens[[i]]
     tok <- tok[nzchar(tok)]
     tok <- tok[nchar(tok, type = "chars") >= min_chars]
-    tok <- tok[!tok %in% stopwords_es]
+    tok <- tok[!chartr("áéíóúüñ", "aeiouun", tok) %in% stopwords_es]   # las palabras vacías se escriben sin tilde
     if (!length(tok)) return(NULL)
     data.frame(palabra = tok, n = rep(weights[i], length(tok)), stringsAsFactors = FALSE)
   }))
