@@ -158,6 +158,15 @@
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
+  # Con fila Total o Bottom Two Box el recetario compone filas bajo una pregunta (lámina 77).
+  if (.lam_escala_en_filas(espec)) {
+    filas <- unlist(lapply(premisas, function(p) vapply(p$filas, function(f) f$i, 0L)))
+    .lam_filas_box(lz, espec, filas, x = g_("margen_izq"), y = g_("zona_datos_y0") + 0.1,
+                   w = g_("ancho") - g_("margen_izq") - g_("margen_der"), pregunta = espec$pregunta)
+    ley <- espec$leyenda
+    .lam_leyenda(lz, g_("leyenda_y") - 0.05, espec$categorias$rotulo[ley], espec$categorias$color[ley], centrar_en = g_("ancho") / 2)
+    return(invisible(lz))
+  }
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
   ttb_col <- !is.null(espec$box$unidades)
@@ -226,3 +235,53 @@
   .lam_leyenda(lz, min(Y_LEY, ytop + tot + 0.3), labels, cols, centrar_en = (L$x_premisa + fin_bloque) / 2)
   invisible(lz)
 }
+
+# ---- filas con Total y Bottom Two Box (recetario: propuestas_rescatables.R:23-47, lámina 77) ----------
+
+#' Bloque de filas con la fila Total separada y las columnas Top Two Box y Bottom Two Box
+#'
+#' Una pregunta (opcional) encabeza; las cabeceras de las columnas van encima de las cifras; cada fila lleva
+#' su rótulo a la derecha, la barra y las cifras de los box. La fila Total va primera, con un filete bajo su
+#' barra y 0.22 in de aire. Grosor de la tabla estándar y aire para las cifras chicas.
+#' @keywords internal
+.lam_filas_box <- function(lz, espec, filas, x, y, w, pregunta = NULL, wlab = 1.8, g = NULL, fila = NULL) {
+  azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
+  naranja <- .std_color("naranja_bottom_two_box_texto")
+  cols <- Filter(Negate(is.null), list(
+    if (!is.null(espec$box$unidades)) list(b = espec$box, color = verde),
+    if (!is.null(espec$box2$unidades)) list(b = espec$box2, color = naranja)))
+  wcol <- 1.25; ncol <- length(cols)
+  xb <- x + wlab + 0.12; wb <- w - wlab - 0.12 - ncol * wcol - (if (ncol) 0.15 else 0)
+  g <- g %||% .std_grosor(length(filas), "escala_apilada")
+  chica <- any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE))
+  fila <- max(fila %||% 0, g + (if (chica) .std_geom("aire_cifra_chica") else 0.2))
+  yh <- y
+  if (!is.null(pregunta) && nzchar(pregunta)) {
+    .lam_txt(lz, pregunta, x - 0.1, y, w, 0.34, .std_pt("pregunta"), azul, bold = TRUE, nombre = "pregunta")
+    yh <- y + 0.42
+  }
+  for (k in seq_along(cols)) {
+    xc <- xb + wb + 0.1 + (k - 1) * wcol
+    .lam_txt(lz, cols[[k]]$b$rotulo, xc - 0.1, yh, wcol + 0.2, 0.26, .std_pt("rotulo_top_two_box"), cols[[k]]$color,
+             bold = TRUE, align = "center", nombre = if (k == 1) "box:rotulo" else "box2:rotulo")
+  }
+  yy <- yh + 0.3
+  for (i in filas) {
+    es_tot <- isTRUE(espec$filas$es_total[i]); yb <- yy + (fila - g) / 2
+    lab <- espec$filas$rotulo[i]; hl <- .lam_alto_txt(lab, wlab, .std_pt("actor"), TRUE)
+    .lam_txt(lz, lab, x, yb + (g - hl) / 2, wlab, hl, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
+    .lam_barra_apilada(lz, xb, yb, wb, .lam_escala_seg(espec, i), g)
+    for (k in seq_along(cols)) {
+      xc <- xb + wb + 0.1 + (k - 1) * wcol
+      .lam_txt(lz, cols[[k]]$b$cifras[i], xc, yb + (g - 0.3) / 2, wcol, 0.3, .std_pt("cifra"), cols[[k]]$color,
+               bold = TRUE, align = "center", nombre = if (k == 1) "box:cifra" else "box2:cifra")
+    }
+    if (es_tot) .lam_caja(lz, x, yb + g + 0.08, w, 0.008, .std_color("filete"), nombre = "filete:total")
+    yy <- yy + fila + (if (es_tot) 0.22 else 0)
+  }
+  invisible(yy)
+}
+
+#' ¿El bloque va en filas con Total o Bottom Two Box en vez del bloque de premisas?
+#' @keywords internal
+.lam_escala_en_filas <- function(espec) any(espec$filas$es_total) || !is.null(espec$box2$unidades)

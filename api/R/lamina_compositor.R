@@ -41,7 +41,9 @@
 .lam_laminas_escala <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                 layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   premisas <- .lam_escala_premisas(espec)
-  partes <- .lam_escala_partir(premisas)
+  # Con fila Total o Bottom Two Box el bloque es una pregunta con sus filas: no se parte (la Total no se
+  # separa de los grupos que resume).
+  partes <- if (.lam_escala_en_filas(espec)) list(premisas) else .lam_escala_partir(premisas)
   for (k in seq_along(partes)) {
     doc <- officer::add_slide(doc, layout = layout, master = master)
     # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122).
@@ -82,11 +84,7 @@
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (is.null(espec) || !identical(espec$tipo, "escala") || NROW(espec$filas) < 1L) return(FALSE)
   if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
-  # Lo que el recetario resuelve con piezas aún no portadas queda en la ruta anterior en vez de perderse
-  # (verificador de N1): la columna Bottom Two Box y la fila Total con su filete. Los bloques con actores
-  # ya son nativos (N2, par de la lámina 217).
-  if (!is.null(espec$box2$unidades)) return(FALSE)
-  if (any(espec$filas$es_total)) return(FALSE)
+  # Actores (lámina 217), fila Total y Bottom Two Box (lámina 77) ya son nativos (N2).
   TRUE
 }
 
@@ -118,7 +116,8 @@
 #' closures del motor llegan como argumentos.
 #' @keywords internal
 .lam_slide_1_nativa <- function(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo,
-                                base_auto, nota_de, sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc) {
+                                base_auto, nota_de, sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc,
+                                titulo_de_var = NULL) {
   slots <- slide$slots %||% list()
   como_texto <- function(x) if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
   base <- if (isTRUE(sin_base)) NULL else como_texto(slots$base)
@@ -135,11 +134,16 @@
   if (identical(el_plot$.element_type, "barras_multiapiladas") && identical(el_plot$modo %||% "var", "var")) {
     espec <- .espec_ordenar_por_box(espec)
   }
+  # Con fila Total o Bottom Two Box la pregunta encabeza el bloque (lámina 77) cuando la lámina tiene su
+  # propio título; si no lo tiene, su título ya es la pregunta y no se repite.
+  if (.lam_escala_en_filas(espec) && !is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
+    espec$pregunta <- tryCatch(as.character(titulo_de_var(el_plot$var))[1], error = function(e) NULL)
+  }
   # Una afirmación de un solo público: el recetario la encabeza con la pregunta y nombra al público junto a
   # la barra («Estudiantes · 172 respuestas», lámina 216). El público es la base de la variable
   # («estudiantes$p16_6»).
   base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])
-  if (NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) {
+  if (!.lam_escala_en_filas(espec) && NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) {
     espec$filas$grupo_id <- base_var
     espec$filas$grupo_titulo <- espec$filas$rotulo
     espec$filas$rotulo <- paste0(toupper(substr(base_var, 1, 1)), substr(base_var, 2, nchar(base_var)))
