@@ -343,7 +343,8 @@ graficar_pie <- function(
     u <- .pulso_pct_unidades(df$pct, decimales_pct, metodo_redondeo)
     list(version = "pie/1", tipo = "pie", forma = tipo_pie[1], rotulos = as.character(df$categoria), valores = df$pct,
          cifras = .pulso_fmt_pct_unidades(u, decimales_pct), unidades = u, n = df$n,
-         total_n = if (all(is.finite(df$n))) sum(df$n) else NA_real_)
+         total_n = if (all(is.finite(df$n))) sum(df$n) else NA_real_,
+         nota = nota_pie)   # la base viaja en el caption del gráfico (ruta anterior): la lámina nativa la necesita
   }, error = function(e) NULL)
 
   # Una torta ES una distribución que cierra a 100 %, así que aquí el método

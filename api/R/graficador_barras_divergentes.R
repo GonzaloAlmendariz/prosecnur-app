@@ -193,7 +193,8 @@ graficar_barras_divergentes <- function(
   }
 
   espec_div <- tryCatch(.espec_divergentes(data, var_categoria, cols_porcentaje, etiquetas, particion, escala_valor,
-                                           valores_decimales, colores_grupos), error = function(e) NULL)
+                                           valores_decimales, colores_grupos, incluir_neutro = incluir_neutro,
+                                           reparto_explicito = !is.null(reparto)), error = function(e) NULL)
   items <- as.character(data[[var_categoria]])
   filas <- list()
   for (i in seq_along(items)) {

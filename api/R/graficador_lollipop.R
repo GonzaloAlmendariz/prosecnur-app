@@ -126,7 +126,10 @@ graficar_lollipop <- function(
   espec_lollipop <- tryCatch({
     e <- preparar_categorica(df$.cat, df$.valor / 100, .pulso_fmt_pct_half_up(df$.valor, dec_l, escala = 1),
                              if (!is.null(var_n) && var_n %in% names(data)) data[[var_n]][match(df$.cat, as.character(data[[var_categoria]]))] else NULL)
-    e$nota <- nota_pie; e
+    e$nota <- nota_pie
+    e$nota_recorte <- if (recortadas > 0L) sprintf("Se muestran %s de %s categorías.", nrow(df), total_categorias) else NULL
+    e$resaltar <- as.character(resaltar %||% character(0))
+    e
   }, error = function(e) NULL)
   df$.cat <- factor(df$.cat, levels = rev(df$.cat))
   df$.destacada <- df$.cat %in% as.character(resaltar %||% character(0))

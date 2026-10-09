@@ -234,7 +234,9 @@
   }
   for (i in seq_len(k)) {
     yc <- yt + 0.35 + (i - 0.5) * fl; xv <- xs + ws * pc[i] / esc
-    col <- if (grepl(.CATEGORIAS_RESIDUALES, lab[i], ignore.case = TRUE)) tenue else azul
+    # Las que el analista resalta van en coral (como la ruta anterior); las residuales, en gris.
+    col <- if (lab[i] %in% (espec$resaltar %||% character(0))) .std_color("coral") else
+      if (grepl(.CATEGORIAS_RESIDUALES, lab[i], ignore.case = TRUE)) tenue else azul
     hl <- .lam_alto_txt(lab[i], wl, 11)
     .lam_txt(lz, lab[i], ml, yc - hl / 2, wl, hl, 11, azul, align = "right", nombre = "lollipop:rotulo")
     .lam_caja(lz, xs, yc - 0.012, max(0.002, xv - xs), 0.024, col, nombre = "lollipop:tallo")
