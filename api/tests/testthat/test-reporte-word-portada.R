@@ -1,0 +1,27 @@
+source("setup-load-all.R")
+
+.wp_xml <- function(doc) { f <- tempfile(fileext = ".docx"); print(doc, target = f); d <- tempfile(); utils::unzip(f, exdir = d)
+  paste(readLines(file.path(d, "word", "document.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "") }
+.wp_meta <- list(ante = "INFORME FINAL", titulo = "Estudio de opinión", sub = "Docentes y estudiantes", para = "Facultad", por = "PULSO PUCP",
+                 fecha = "Octubre de 2026", version = "Versión final")
+
+test_that("las tres portadas del recetario escriben su título, su filete coral y, la C, la ficha del encargo", {
+  a <- .wp_xml(.word_portada(.word_documento_nuevo(), .wp_meta, "A"))
+  expect_match(a, "Estudio de opinión", fixed = TRUE); expect_match(a, 'w:sz w:val="56"', fixed = TRUE)          # título de 28 pt
+  expect_match(a, 'w:color="CA5651"', fixed = TRUE)                                                             # filete coral
+  expect_false(grepl("Elaborado para", a, fixed = TRUE))
+  b <- .wp_xml(.word_portada(.word_documento_nuevo(), .wp_meta, "B"))
+  expect_match(b, 'w:fill="002060"', fixed = TRUE)                                                              # banda navy
+  c <- .wp_xml(.word_portada(.word_documento_nuevo(), .wp_meta, "C"))
+  expect_true(all(vapply(c("Elaborado para", "Facultad", "Versión final"), function(t) grepl(t, c, fixed = TRUE), TRUE)))
+  sin_para <- .wp_xml(.word_portada(.word_documento_nuevo(), modifyList(.wp_meta, list(para = "")), "C"))
+  expect_false(grepl("Elaborado para", sin_para, fixed = TRUE))                                               # lo que falta se omite
+})
+
+test_that("los índices son campos TOC de Word: contenido de títulos 1-2, gráficos y tablas por su SEQ", {
+  x <- .wp_xml(.word_indices(.word_documento_nuevo()))
+  expect_match(x, 'TOC \\o "1-2"', fixed = TRUE)
+  expect_match(x, 'TOC \\h \\z \\c "Gráfico"', fixed = TRUE)
+  expect_match(x, '\\c "Tabla"', fixed = TRUE)
+  expect_false(grepl('\\c "Tabla"', .wp_xml(.word_indices(.word_documento_nuevo(), con_tablas = FALSE)), fixed = TRUE))
+})
