@@ -653,7 +653,7 @@ reporte_ppt_plan <- function(
 
     out <- tryCatch(
       if (inherits(value, "dml")) {
-        .ppt_leyenda_nativa(.ph_with_dml_safe(doc, value = .ppt_quitar_leyenda(value), location = loc), value, loc)
+        .ppt_colocar_dml(doc, value, loc, .ph_with_dml_safe)
       } else {
         officer::ph_with(
           doc,

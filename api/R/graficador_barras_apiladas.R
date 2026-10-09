@@ -3917,6 +3917,11 @@ graficar_barras_apiladas <- function(
         etiquetas = labels_manual, colores = fills_manual, filas = row_ids,
         y_filas_npc = vapply(seq_len(n_rows), function(r) y_legend0 + legend_h - ((r - 0.5) * row_h) + dy_leg, numeric(1)),
         x_centro_npc = (x_bars0 + x_fin_bloque) / 2,
+        banda_npc = c(y0 = y_legend0 + dy_leg, alto = legend_h),
+        # Aire libre bajo la banda (sin pie dibujado, hasta el borde inferior):
+        # la leyenda a su tamaño real puede bajar ahí, nunca subir a las barras.
+        libre_abajo_npc = if (has_legend && legend_is_top && !legend_is_side) 0 else
+          if (has_caption) max(0, dy_leg) else max(0, y_legend0 + dy_leg),
         capas = seq.int(n_capas_antes_leyenda + 1L, length(canvas$layers))
       )
       if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_legend0, 1, legend_h)
