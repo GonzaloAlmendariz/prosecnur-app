@@ -479,13 +479,16 @@
   list(doc = por_lamina(doc), partes = 1L)
 }
 
-#' ¿El objetivo cabe? El texto en cuatro líneas a 22 pt (su caja de 2 in) y hasta seis actores con nombre de dos líneas
+#' ¿El objetivo cabe? El texto en cinco líneas a 22 pt (su caja de 2 in), contadas por párrafo —un objetivo con
+#' objetivos específicos en párrafos pisaba el filete (verificador de N7)— y hasta seis actores con nombre de dos líneas
 #' @keywords internal
 .lam_objetivo_cabe <- function(texto, actores = NULL) {
   t <- gsub("**", "", as.character(texto %||% "")[1], fixed = TRUE)
   if (is.na(t) || !nzchar(trimws(t))) return(FALSE)
   ac <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
+  parrafos <- strsplit(t, "\n")[[1]]; parrafos <- if (length(parrafos)) parrafos else t
+  lineas <- sum(vapply(parrafos, function(p) max(1, ceiling(.lam_ancho_tinta(p, 22, TRUE) / (ac - 0.1))), 0))
   actores <- as.character(actores %||% character(0))
-  .lam_alto_tinta(t, ac, 22) <= 2.0 && length(actores) <= 6L &&
+  lineas <= 5 && length(actores) <= 6L &&
     (!length(actores) || all(.lam_alto_tinta(actores, ac / length(actores), 12, TRUE) <= 0.55))
 }
