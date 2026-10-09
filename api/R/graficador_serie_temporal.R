@@ -227,7 +227,10 @@ graficar_serie_temporal <- function(
     attr(p, "pulso_serie_periodos") <- niveles_periodo
     attr(p, "pulso_serie_series") <- niveles_serie
     attr(p, "pulso_serie_cifras_omitidas") <- isTRUE(mostrar_valores) && !cifras_r
-    attr(p, "pulso_espec") <- tryCatch(.espec_serie_dos(df, colores, valores_decimales, limite_y), error = function(e) NULL)
+    # Dos mediciones: la lámina nativa (87). Tres o más: el ggplot del recetario dentro de su lámina (88), con la
+    # ubicación de recetario_m3c.R:68 (0.4 in a la derecha, 4.7 in de alto).
+    attr(p, "pulso_espec") <- tryCatch(.espec_serie_dos(df, colores, valores_decimales, limite_y), error = function(e) NULL) %||%
+      .espec_ggplot_marco("serie", nota = nota_pie, zona = c(dx = 0.4, dy = 0.1, dw = 0.4, dh = 0.27))
     return(p)
   }
 

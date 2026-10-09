@@ -179,14 +179,14 @@ graficar_nube_palabras <- function(
   capa <- if (requireNamespace("ggwordcloud", quietly = TRUE)) {
     plot_df$n <- words$n
     list(ggwordcloud::geom_text_wordcloud(ggplot2::aes(label = .data$palabra, size = .data$n, color = .data$color), family = font_family,
-                                          fontface = "bold", rm_outside = TRUE, eccentricity = 0.55, grid_margin = 0.7, seed = 7),
+                                          fontface = "bold", rm_outside = TRUE, eccentricity = 0.55, grid_margin = 1.6, seed = 7),   # 1.6, no 0.7: se pegaban palabras
          ggplot2::scale_size(range = c(11, 46) / ggplot2::.pt, guide = "none"))
   } else {
     list(ggplot2::geom_text(ggplot2::aes(x = .data$x, y = .data$y, label = .data$palabra, size = .data$size, color = .data$color),
                             family = font_family, fontface = "bold", show.legend = FALSE),
          ggplot2::scale_size_identity(), ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE))
   }
-  ggplot2::ggplot(plot_df) + capa +
+  p_out <- ggplot2::ggplot(plot_df) + capa +
     ggplot2::scale_color_identity() +
     ggplot2::labs(title = titulo, subtitle = subtitulo, caption = nota_pie) +
     ggplot2::theme_void(base_family = font_family) +
@@ -196,4 +196,7 @@ graficar_nube_palabras <- function(
       plot.caption = ggplot2::element_text(color = color_nota_pie, size = size_nota_pie, hjust = 0),
       plot.margin = ggplot2::margin(4, 4, 4, 4)
     )
+  # ADR 0093 (N6): la nube va en la lámina del recetario (antetítulo, título y pie nativos), a todo el ancho.
+  attr(p_out, "pulso_espec") <- .espec_ggplot_marco("nube", nota = nota_pie, lectura = "El tamaño crece con las menciones")
+  p_out
 }
