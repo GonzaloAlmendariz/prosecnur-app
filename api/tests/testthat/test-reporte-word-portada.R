@@ -36,3 +36,11 @@ test_that("la primera página lleva los dos logos del estándar en su encabezado
   con_imagen <- vapply(cab, function(x) sum(gregexpr("<pic:pic", paste(readLines(x, warn = FALSE), collapse = ""), fixed = TRUE)[[1]] > 0), 0)
   expect_true(any(con_imagen == 2))                                                        # un encabezado con los dos logos
 })
+
+test_that("la contraportada lleva el logo y el contacto del cierre del PPT, con los datos que el plan reemplace", {
+  x <- .wp_xml(.word_contraportada(.word_documento_nuevo()))
+  expect_match(x, "pulsopucp@pucp.edu.pe", fixed = TRUE); expect_match(x, "pulso.pucp.edu.pe", fixed = TRUE)
+  expect_match(x, "<w:drawing>", fixed = TRUE)
+  y <- .wp_xml(.word_contraportada(.word_documento_nuevo(), list(correo = "otro@pucp.edu.pe", direccion = "")))
+  expect_match(y, "otro@pucp.edu.pe", fixed = TRUE); expect_false(grepl("Universitaria", y, fixed = TRUE))
+})
