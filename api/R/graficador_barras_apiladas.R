@@ -3396,7 +3396,9 @@ graficar_barras_apiladas <- function(
       # Las cifras que suben y sus guías se ubicaron contra el techo de la barra
       # con el grosor anterior: se corren lo que se movió el techo (verificador
       # de F2: con 5 filas la cifra montaba la barra, con 3 la guía no la tocaba).
-      p_bars_panel <- .grosor_reubicar_cifras_arriba(p_bars_panel, (g_std - grosor_eff) / 2)
+      p_bars_panel <- .grosor_reubicar_cifras_arriba(p_bars_panel, (g_std - grosor_eff) / 2,
+                                                     fila_in = fila_in,
+                                                     size_pt = suppressWarnings(as.numeric(size_texto_barras)[1]) * ggplot2::.pt)
       grosor_eff <- g_std
       p_bars_panel <- .grosor_reemplazar_ancho_col(p_bars_panel, grosor_eff)
     }

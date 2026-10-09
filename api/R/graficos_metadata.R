@@ -1670,7 +1670,7 @@
            default = 0,
            min = 0, max = 99,
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Piso del eje radial. Con 0 se ve el eje completo. Súbelo cuando todos los valores caen en una banda estrecha —seis temas entre 90 % y 98 % se ven idénticos de 0 a 100 y se separan de 50 a 100. Si el piso deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
+           descripcion = "Piso del eje radial. Con 0 es automático, como en el recetario: si los valores son altos, el eje arranca en el múltiplo de 5 bajo el más bajo y los anillos se rotulan, para que el acercamiento se vea. Un valor mayor fija el piso; si deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
       list(name = "mostrar_tabla", label = "Tabla al costado", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            depende = list(arg = "modo", valores = list("publicos")),

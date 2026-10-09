@@ -550,7 +550,10 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
       data = datos_graf,
       var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
       escala_valor = "proporcion_100",
-      limites = c(0, 100),
+      # Sin límites fijos: el radar arranca en el múltiplo de 5 bajo el mínimo
+      # (ADR 0092, F2.7d). Con c(0, 100) aquí el mazo seguía mostrando el eje
+      # desde 0 (lo halló el verificador en la lámina de públicos).
+      limites = NULL,
       titulo = titulo,
       # El indicador va aqui y no en el encabezado de la tabla: «De acuerdo +
       # Totalmente de Acuerdo» dentro de una celda se comia media tabla, y
