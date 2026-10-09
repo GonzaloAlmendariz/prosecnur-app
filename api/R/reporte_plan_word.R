@@ -246,7 +246,8 @@ w_presets <- function(
 #' @param opciones_documento Opciones del documento del recetario (ver \code{.word_documento}): portada, apertura,
 #'   como_leer, redondeo, contacto, meta_portada.
 #'
-#' @return Invisiblemente una lista con \code{doc}, \code{plan}, \code{log}.
+#' @return Invisiblemente una lista con \code{doc}, \code{plan}, \code{log}. Con \code{estilo_documento = "recetario"},
+#'   \code{doc} y \code{log} son \code{NULL} y se suman \code{figuras}, \code{tablas} y \code{avisos}.
 #' @family reporte
 #' @export
 reporte_word_plan <- function(
