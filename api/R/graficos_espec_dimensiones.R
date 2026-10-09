@@ -93,13 +93,18 @@ preparar_comparativo_dim <- function(payload, n_respondieron = NULL) {
     payload <- .dim_build_payload(ctx, modo = args$modo %||% "general", objetivo = args$objetivo, cruce = args$cruce,
                                   incluir_total = if (identical(tipo, "heatmap")) args$incluir_total else TRUE,
                                   filtros = args$filtros %||% list(), iter_var = args$iter_var, iter_level = args$iter_level)
-    n_resp <- if (!length(args$filtros %||% list()) && is.null(args$iter_var)) .dim_n_respondieron(args, payload) else NULL
+    # Con iteración el payload elige el nivel por su cuenta: ahí los casos quedan en la base del grupo.
+    n_resp <- if (is.null(args$iter_var)) .dim_n_respondieron(args, payload) else NULL
     titulo_cruce <- if (!is.null(args$cruce)) {
       lbl <- attr(args$data[[args$cruce]], "label", exact = TRUE); if (is.null(lbl) || !nzchar(lbl)) NULL else as.character(lbl)[1]
     }
     if (identical(tipo, "heatmap")) preparar_heatmap_dim(payload, titulo_cruce = titulo_cruce, n_respondieron = n_resp) else
       preparar_comparativo_dim(payload, n_respondieron = n_resp)
   }, error = function(e) NULL)
+  # La lámina dice una sola base: si los casos son los que respondieron, el pie también (verificador de N5).
+  if (!is.null(espec) && exists("n_resp", inherits = FALSE) && !is.null(n_resp) && is.finite(n_resp[["Total"]] %||% NA_real_)) {
+    espec$n_respondieron_total <- unname(n_resp[["Total"]])
+  }
   if (!is.null(espec)) attr(p, "pulso_espec") <- espec
   p
 }
@@ -110,7 +115,8 @@ preparar_comparativo_dim <- function(payload, n_respondieron = NULL) {
 #' como en el payload. Sin cruce o sin poder emparejar las etiquetas devuelve `NULL` (se usa la base del grupo).
 #' @keywords internal
 .dim_n_respondieron <- function(args, payload) {
-  d <- args$data; sc <- as.data.frame(payload$score_heat, stringsAsFactors = FALSE)
+  d <- .dim_apply_filters(args$data, filters = args$filtros %||% list())   # los mismos filtros que el payload
+  sc <- as.data.frame(payload$score_heat, stringsAsFactors = FALSE)
   ejes <- unique(sc$axis_var[!(sc$tipo %in% "total_cruce")]); ejes <- ejes[ejes %in% names(d)]
   if (!length(ejes)) return(NULL)
   resp <- rowSums(!is.na(as.data.frame(d)[, ejes, drop = FALSE])) > 0

@@ -162,6 +162,15 @@
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
   if (!isTRUE(sin_base) && is.null(texto(base)) && is.null(texto(pie))) base <- texto(espec$nota)
   if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
+    # Si los casos de las columnas son los que respondieron la batería, el pie dice esa misma base (no la del
+    # universo), salvo que la lámina declare la suya: una lámina, una base.
+    n_tot <- espec$n_respondieron_total %||% NA_real_
+    if (is.finite(n_tot) && is.null(como_texto(slots$base))) {
+      b0 <- texto(base) %||% "Base:"
+      cola <- sub("^Base:\\s*[0-9][0-9.,]*\\s*", "", b0)
+      base <- paste0("Base: ", format(round(n_tot), big.mark = ",", trim = TRUE), if (nzchar(cola)) paste0(" ", cola) else "",
+                     " que respondieron la batería")
+    }
     comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                     base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
                     layout = layout, master = master, por_lamina = por_lamina)
