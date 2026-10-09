@@ -106,3 +106,55 @@ test_that("en la ruta real p_histograma, p_numerico, p_boxplot y p_media_rango s
   expect_identical(.nm_txt(.nm_xml(out, 3), "boxplot:rotulo"), c("Quinto ciclo", "Sexto ciclo", "Séptimo ciclo"))
   for (k in 1:4) expect_identical(.nm_txt(.nm_xml(out, k), "Folio lamina"), as.character(k))
 })
+
+test_that("las pesas siguen la regla del recetario: diferencia primero menos segundo y orden por la diferencia con signo (86)", {
+  comp <- c("A", "B", "C")
+  d <- data.frame(eje = rep(comp, 2), grupo = factor(rep(c("Docentes", "Estudiantes"), each = 3), levels = c("Docentes", "Estudiantes")),
+                  valor = c(92, 96, 98, 94, 91, 96), n = rep(c(51, 109), each = 3))
+  e <- attr(graficar_dumbbell(d), "pulso_espec")
+  expect_identical(e$rotulos, c("B", "C", "A"))                                  # +5, +2, -2
+  expect_identical(e$textos_diferencia, c("+5 pts", "+2 pts", "-2 pts"))
+  expect_identical(e$leyenda, c("Docentes (51)", "Estudiantes (109)"))          # base constante por grupo: en la leyenda
+  expect_true(all(is.na(e$n_fila)))
+  o <- .lam_laminas_pesas(.nm_doc(), e, "Brecha", folio = 86)
+  xml <- .nm_xml(.nm_print(o$doc), length(o$doc))
+  expect_identical(.nm_txt(xml, "pesas:diferencia"), e$textos_diferencia)
+  ca <- .nm_ext(xml, "pesas:cifra_a"); pa <- .nm_ext(xml, "pesas:punto_a"); pb <- .nm_ext(xml, "pesas:punto_b")
+  expect_true(all(ifelse(e$a >= e$b, ca$x > pa$x, ca$x + ca$w < pa$x + pa$w)))   # la cifra al costado exterior de su punto
+})
+
+test_that("en las pesas de públicos (85) los casos van por fila y la leyenda nombra los indicadores sin base", {
+  d <- data.frame(eje = rep(c("Docentes", "Estudiantes"), each = 2), grupo = factor(rep(c("Conoce", "Sabe"), 2), levels = c("Conoce", "Sabe")),
+                  valor = c(98, 92, 77, 80), n = rep(c(52, 172), each = 2))
+  e <- attr(graficar_dumbbell(d, orden = "declarado", mostrar_brecha = FALSE), "pulso_espec")
+  expect_identical(e$leyenda, c("Conoce", "Sabe")); expect_equal(e$n_fila, c(52, 172))
+  o <- .lam_laminas_pesas(.nm_doc(), e, "Misión", folio = 85)
+  xml <- .nm_xml(.nm_print(o$doc), length(o$doc))
+  expect_identical(.nm_txt(xml, "pesas:casos"), c("52 respuestas", "172 respuestas"))
+  expect_length(.nm_txt(xml, "pesas:diferencia"), 0L)
+})
+
+test_that("la serie de dos mediciones es nativa sólo con dos períodos y escribe la diferencia en puntos (87)", {
+  d <- data.frame(eje = rep(c("Docentes", "Estudiantes"), each = 2), grupo = rep(c("2021", "2026"), 2), valor = c(98, 83, 84, 53))
+  e <- attr(graficar_serie_temporal(d), "pulso_espec")
+  expect_identical(e$textos_diferencia, c("-15 pts", "-31 pts")); expect_equal(unname(e$eje), c(40, 100, 20))
+  d3 <- rbind(d, data.frame(eje = c("Docentes", "Estudiantes"), grupo = "2016", valor = c(90, 80)))
+  expect_null(attr(graficar_serie_temporal(d3), "pulso_espec"))                 # tres períodos: sigue en ggplot (N6)
+  o <- .lam_laminas_serie2(.nm_doc(), e, "Tutoría", folio = 87)
+  xml <- .nm_xml(.nm_print(o$doc), length(o$doc))
+  expect_identical(.nm_txt(xml, "serie2:cifra_final"), c("Docentes 83%", "Estudiantes 53%"))
+  ln <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='serie2:pendiente']]")
+  expect_length(ln, 2L)
+  expect_true(all(is.na(xml2::xml_attr(xml2::xml_find_first(ln, "./p:spPr/a:xfrm"), "flipV"))))   # bajan: sin volteo
+})
+
+test_that("el compositor despacha pesas y serie de dos a su lámina nativa", {
+  d <- data.frame(eje = rep(c("A", "B"), 2), grupo = factor(rep(c("X", "Y"), each = 2), levels = c("X", "Y")), valor = c(90, 80, 85, 82))
+  p <- graficar_dumbbell(d)
+  expect_true(.lam_compositor_aplica(p, list()))
+  expect_false(.lam_compositor_aplica(p, list(meta = list(motor_nativo = FALSE))))
+  doc <- .lam_slide_1_nativa(.nm_doc(), p, list(), "Brecha", NULL, list(var = NULL, .element_type = "dumbbell"), list(),
+                             "Graficos2", "Office Theme", NULL, function(...) NULL, function(...) NULL)
+  xml <- .nm_xml(.nm_print(doc), length(doc))
+  expect_true("prosecnur:grafico:pesas" %in% xml2::xml_attr(xml2::xml_find_all(xml, "//p:grpSp/p:nvGrpSpPr/p:cNvPr"), "name"))
+})

@@ -227,6 +227,7 @@ graficar_serie_temporal <- function(
     attr(p, "pulso_serie_periodos") <- niveles_periodo
     attr(p, "pulso_serie_series") <- niveles_serie
     attr(p, "pulso_serie_cifras_omitidas") <- isTRUE(mostrar_valores) && !cifras_r
+    attr(p, "pulso_espec") <- tryCatch(.espec_serie_dos(df, colores, valores_decimales, limite_y), error = function(e) NULL)
     return(p)
   }
 
