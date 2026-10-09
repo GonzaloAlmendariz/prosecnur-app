@@ -3159,6 +3159,7 @@ test_that("reporte_ppt_plan usa frecuencias solo en barras agrupadas", {
   # mostrar_n_en_etiquetas va en el rótulo («Nada util (2)») y la cifra queda limpia.
   expect_true(grepl("40%", slide3_xml, fixed = TRUE))
   expect_true(grepl("60%", slide3_xml, fixed = TRUE))
-  expect_true(grepl("(2)", slide3_xml, fixed = TRUE))
-  expect_true(grepl("(3)", slide3_xml, fixed = TRUE))
+  rot3 <- xml2::xml_text(xml2::xml_find_all(xml2::read_xml(file.path(slide_dir, "ppt/slides/slide3.xml")),
+                                              "//p:sp[p:nvSpPr/p:cNvPr[@name='dicotomia:rotulo']]"))
+  expect_setequal(sub("^.*\\s", "", rot3), c("(2)", "(3)"))
 })

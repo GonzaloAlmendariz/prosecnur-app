@@ -77,7 +77,9 @@
 #' @keywords internal
 .lam_panel_geo <- function(espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE) {
   alto <- h >= 3.5; fin <- y + h
-  dy <- if (!is.null(pregunta) && nzchar(pregunta)) 0.22 * (.lam_lineas(pregunta, w, 13, TRUE) - 1) else 0
+  # Líneas de la pregunta con el ancho real del texto (systemfonts): la estimación por carácter partía en dos
+  # una pregunta que cabe en una (verificador de N3, lámina 152).
+  dy <- if (!is.null(pregunta) && nzchar(pregunta)) 0.22 * (max(1, ceiling(.lam_ancho_tinta(pregunta, 13, TRUE) / (w - 0.1))) - 1) else 0
   con_pub <- !is.null(publico) && nzchar(publico)
   if (identical(espec$tipo, "categorica") && .lam_dicotomia_cabe(espec, w - 0.8, con_n = FALSE)) {
     # barras_h del recetario: dos categorías se leen como dicotomía, al ancho de las barras del panel vecino (C23),
@@ -244,13 +246,28 @@
   if (is.null(base)) {
     # Las notas de los gráficos: la de la ruta de composición (nota_pie) o la que trae la espec (caption del ggplot).
     bases <- unique(unlist(c(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL)), lapply(especs, function(e) texto(e$nota)))))
-    # «Base: 200» y «Base: 200 respuestas» nombran la misma base: se escribe una vez, la más explícita.
-    if (length(bases) > 1L) {
-      bases <- bases[order(-nchar(bases))]; bases <- bases[!duplicated(gsub("[^0-9]", "", bases))]
-    }
+    bases <- .lam_bases_sin_repetir(bases)
     base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
   }
   enc <- .lam_mixta_encabezados(especs, els, titulo_de_var)
   .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, titulo = texto(slots$title %||% slide$title) %||% "",
                      ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)$doc
+}
+
+#' Bases de los gráficos de una lámina, sin repetir la misma
+#'
+#' «Base: 200» se descarta si otra dice «Base: 200 respuestas» (la contiene como prefijo de palabras enteras);
+#' bases de públicos distintos con el mismo n («Base: 200 docentes», «Base: 200 estudiantes») y notas sin cifras
+#' se conservan todas. Antes se comparaban sólo los dígitos y se perdían en silencio (verificador de N3).
+#' @keywords internal
+.lam_bases_sin_repetir <- function(bases) {
+  bases <- unique(bases[!is.na(bases) & nzchar(bases)])
+  if (length(bases) < 2L) return(bases)
+  contenida <- vapply(seq_along(bases), function(i) {
+    any(vapply(seq_along(bases)[-i], function(j) {
+      b <- bases[i]; c <- bases[j]
+      nchar(c) > nchar(b) && startsWith(c, b) && grepl("^[[:space:][:punct:]]", substr(c, nchar(b) + 1L, nchar(c)))
+    }, TRUE))
+  }, TRUE)
+  bases[!contenida]
 }
