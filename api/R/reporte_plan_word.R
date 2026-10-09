@@ -240,6 +240,11 @@ w_presets <- function(
 #' @param strict_diapos Si \code{TRUE}, error en saltos de numeración.
 #' @param mensajes_progreso Si \code{TRUE}, imprime mensajes de avance.
 #' @param solo_lista Si \code{TRUE}, no escribe el archivo; solo devuelve la lista.
+#' @param estilo_documento \code{"recetario"} (por defecto) arma el documento completo del recetario Word: portada con
+#'   logos, índices, «Cómo leer este informe», capítulos con apertura, figuras del recetario, tablas y contraportada
+#'   (ADR 0093, N8.15; Gonzalo, R9: «El documento completo»). \code{"clasico"} conserva el Word anterior.
+#' @param opciones_documento Opciones del documento del recetario (ver \code{.word_documento}): portada, apertura,
+#'   como_leer, redondeo, contacto, meta_portada.
 #'
 #' @return Invisiblemente una lista con \code{doc}, \code{plan}, \code{log}.
 #' @family reporte
@@ -255,8 +260,11 @@ reporte_word_plan <- function(
     env_diapos         = parent.frame(),
     strict_diapos      = FALSE,
     mensajes_progreso  = TRUE,
-    solo_lista         = FALSE
+    solo_lista         = FALSE,
+    estilo_documento   = c("recetario", "clasico"),
+    opciones_documento = list()
 ) {
+  estilo_documento <- match.arg(estilo_documento)
 
   `%||%` <- function(x, y) if (!is.null(x)) x else y
 
@@ -294,6 +302,13 @@ reporte_word_plan <- function(
 
   render_meta <- ppt_result$render_meta %||% list()
   if (!length(render_meta)) stop("El plan no produjo ningún elemento para Word.", call. = FALSE)
+
+  # ADR 0093 (N8.15): el documento del recetario, desde la misma render_meta. El clásico sigue debajo.
+  if (identical(estilo_documento, "recetario") && !isTRUE(solo_lista)) {
+    res <- .word_documento(render_meta, path_docx, fuente = fuente, opciones = opciones_documento, mensajes = mensajes_progreso)
+    if (isTRUE(mensajes_progreso)) message("DOCX generado en: ", normalizePath(path_docx, winslash = "/"))
+    return(invisible(list(doc = NULL, plan = ppt_result$plan, log = NULL, figuras = res$figuras, tablas = res$tablas, avisos = res$avisos)))
+  }
 
   img_w   <- presets_word$image$width_in
   img_h   <- presets_word$image$height_in

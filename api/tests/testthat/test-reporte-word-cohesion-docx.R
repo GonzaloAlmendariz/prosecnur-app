@@ -49,7 +49,8 @@ test_that("el docx lleva keepNext en titulo e imagen del bloque grafico", {
     path_docx = path_docx,
     presets_ppt = do.call(p_presets, .PRESETS_DEFAULT_PULSO),
     plan = plan,
-    mensajes_progreso = FALSE
+    mensajes_progreso = FALSE,
+    estilo_documento = "clasico"   # este test fija la cohesión del Word clásico; la del recetario está en test-reporte-word-identidad.R
   ))
   expect_true(file.exists(path_docx))
 
