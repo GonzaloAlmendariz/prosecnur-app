@@ -392,7 +392,7 @@
     for (k in neu) segs[[length(segs) + 1L]] <- list(k = k, x = xc - mitad * px, w = 2 * mitad * px)
     off <- mitad; for (k in neg) { segs[[length(segs) + 1L]] <- list(k = k, x = xc - (off + U[i, k]) * px, w = U[i, k] * px); off <- off + U[i, k] }
     off <- mitad; for (k in pos) { segs[[length(segs) + 1L]] <- list(k = k, x = xc + off * px, w = U[i, k] * px); off <- off + U[i, k] }
-    fin_chica <- -Inf; nivel <- 0L   # cifras chicas vecinas: la siguiente sube un escalón si se encimaría
+    fin_chica <- -Inf   # fin de la última cifra chica dibujada en la fila
     segs <- segs[order(vapply(segs, `[[`, 0, "x"))]
     for (sg in segs) {
       if (U[i, sg$k] <= 0) next
@@ -400,12 +400,14 @@
       if (sg$w >= 0.45) {
         .lam_txt(lz, X[i, sg$k], sg$x - 0.1, yb + (g - 0.28) / 2, sg$w + 0.2, 0.28, 11, azul, bold = TRUE, align = "center", nombre = "divergentes:cifra")
       } else {   # cifra chica encima con su guía, como en las apiladas
-        wt <- .lam_ancho_tinta(X[i, sg$k], 10.5, TRUE); x0 <- sg$x + sg$w / 2 - wt / 2
-        nivel <- if (x0 < fin_chica + 0.04) nivel + 1L else 0L
-        dy <- 0.22 * nivel
-        .lam_caja(lz, sg$x + sg$w / 2 - 0.006, yb - 0.06 - dy, 0.012, 0.06 + dy, tenue, nombre = "divergentes:guia")
-        .lam_txt(lz, X[i, sg$k], sg$x + sg$w / 2 - 0.3, yb - 0.3 - dy, 0.6, 0.24, 10.5, azul, bold = TRUE, align = "center", nombre = "divergentes:cifra")
-        fin_chica <- x0 + wt
+        # Si se encimaría con la cifra chica vecina, se corre hacia la derecha a la misma altura y la guía hace un
+        # codo hasta ella: entre filas no hay alto para dos niveles (verificador de N6, ronda 2).
+        wt <- .lam_ancho_tinta(X[i, sg$k], 10.5, TRUE); cs <- sg$x + sg$w / 2
+        cl <- max(cs, fin_chica + 0.06 + wt / 2)
+        .lam_caja(lz, cs - 0.006, yb - 0.06, 0.012, 0.06, tenue, nombre = "divergentes:guia")
+        if (cl > cs + 0.01) .lam_caja(lz, cs, yb - 0.066, cl - cs, 0.012, tenue, nombre = "divergentes:guia")
+        .lam_txt(lz, X[i, sg$k], cl - 0.3, yb - 0.3, 0.6, 0.24, 10.5, azul, bold = TRUE, align = "center", nombre = "divergentes:cifra")
+        fin_chica <- cl + wt / 2
       }
     }
     .lam_txt(lz, espec$cifras_pos[i], xc + (espec$total_pos[i] + mitad) * px + 0.08, yb + (g - 0.28) / 2, 0.7, 0.28, 11,

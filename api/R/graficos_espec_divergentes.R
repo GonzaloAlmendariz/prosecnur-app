@@ -20,10 +20,12 @@
 #'   `total_neg`/`total_pos` (sumas rotuladas).
 #' @keywords internal
 .espec_divergentes <- function(data, var_categoria, cols_porcentaje, etiquetas, particion, escala_valor = "proporcion_100",
-                               decimales = 0L, colores = NULL, incluir_neutro = TRUE, reparto_explicito = FALSE) {
+                               decimales = 0L, colores = NULL, incluir_neutro = TRUE, reparto_explicito = FALSE, codigos = NULL) {
   rot <- unname(etiquetas[cols_porcentaje]); rot[is.na(rot)] <- cols_porcentaje[is.na(rot)]
   # Especial por etiqueta o por código (90-99, punto 2 del ADR 0093): nunca entra en un lado ni en el Top Two Box.
-  especial <- grepl(.DIVERGENTES_ESPECIAL, trimws(rot), ignore.case = TRUE) | grepl("^9[0-9]$", cols_porcentaje)
+  cod <- if (!is.null(codigos)) unname(as.character(codigos[cols_porcentaje])) else cols_porcentaje
+  cod[is.na(cod)] <- cols_porcentaje[is.na(cod)]
+  especial <- grepl(.DIVERGENTES_ESPECIAL, trimws(rot), ignore.case = TRUE) | grepl("^9[0-9]$", cod)
   normales <- cols_porcentaje[!especial]
   # El reparto posicional cuenta la especial como un nivel más: si cayó en un lado, se rehace sin ella.
   # Si el reparto lo declaró la escala, sólo se saca la especial de su lado.
