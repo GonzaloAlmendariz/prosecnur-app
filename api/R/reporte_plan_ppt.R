@@ -7466,7 +7466,7 @@ reporte_ppt_plan <- function(
       dt   <- slots$date       %||% NULL
       stx  <- slots$subtexto   %||% NULL
 
-      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && .lam_portada_cabe(ttl)) doc <- .lam_laminas_portada(doc, ttl, sub, dt, stx, contract$layout, master)$doc
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && .lam_portada_cabe(ttl)) doc <- .lam_laminas_portada(doc, ttl, sub, dt, stx, contract$layout, master, function(d) if (nzchar(as.character((presets$base$args %||% list())$partner_logo_cover_path %||% "")[1])) .ppt_add_partner_cover_logo(d, presets$base$args) else d)$doc
       if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_plantilla_estandar(opened_template_path) || !.lam_portada_cabe(ttl))) {
 
         doc <- .add_slide_strict(doc, contract$layout)
@@ -8120,7 +8120,6 @@ reporte_ppt_plan <- function(
 
     # ---- TECHNICAL_TABLE ----------------------------------------------------
     if (identical(stype, "technical_table")) {
-
       contract <- PPT_CONTRACT$technical_table
       slots <- slide$slots %||% list()
       style <- slide$style %||% list()
@@ -8139,7 +8138,8 @@ reporte_ppt_plan <- function(
         .plan_input_abort("technical_table requiere `slots$table` como data.frame con al menos dos columnas y una fila.")
       }
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_ficha_cabe(.lam_ficha_filas(table_data))) doc <- .lam_laminas_ficha(doc, title_slide, .lam_ficha_filas(table_data), base = if (is.character(base_txt)) base_txt else NULL, ante = (slide$meta %||% list())$antetitulo %||% "Metodología", folio = length(doc) + 1L, layout = contract$layout, master = master, por_lamina = .add_partner_footer_logo)$doc
+      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_ficha_cabe(.lam_ficha_filas(table_data)))) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         font_family_default <- presets$base$args$font_family_ppt %||%
