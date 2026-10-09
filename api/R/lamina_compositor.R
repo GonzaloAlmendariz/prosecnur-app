@@ -86,7 +86,12 @@
 #' @keywords internal
 .lam_compositor_aplica <- function(p, slide = NULL) {
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
-  if (is.null(espec) || !identical(espec$tipo, "escala") || NROW(espec$filas) < 1L) return(FALSE)
+  if (is.null(espec)) return(FALSE)
+  if (identical(espec$tipo, "categorica")) {
+    # N3: la categórica de una serie (columnas, lámina 68) es nativa cuando tiene categorías que dibujar.
+    return(length(espec$largos) >= 1L && !identical((slide$meta %||% list())$motor_nativo, FALSE))
+  }
+  if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 1L) return(FALSE)
   if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
   # Actores (lámina 217), fila Total y Bottom Two Box (lámina 77) ya son nativos (N2).
   TRUE
@@ -134,6 +139,16 @@
     pie <- nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL)
   }
   espec <- attr(p, "pulso_espec")
+  base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])
+  if (identical(espec$tipo, "categorica")) {
+    # La pregunta categórica va en columnas (lámina 68); «N estudiantes» nombra al público de la base.
+    texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+    unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    return(.lam_laminas_categorica(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                                   base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
+                                   sub = texto(subtitulo), forma = "columnas", unidad_n = unidad, layout = layout,
+                                   master = master, por_lamina = por_lamina)$doc)
+  }
   # Una batería de afirmaciones se ordena por Top Two Box (lámina 221); los niveles de un cruce no.
   if (identical(el_plot$.element_type, "barras_multiapiladas") && identical(el_plot$modo %||% "var", "var")) {
     espec <- .espec_ordenar_por_box(espec)
@@ -146,7 +161,6 @@
   # Una afirmación de un solo público: el recetario la encabeza con la pregunta y nombra al público junto a
   # la barra («Estudiantes · 172 respuestas», lámina 216). El público es la base de la variable
   # («estudiantes$p16_6»).
-  base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])
   if (!.lam_escala_en_filas(espec) && NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) {
     espec$filas$grupo_id <- base_var
     espec$filas$grupo_titulo <- espec$filas$rotulo

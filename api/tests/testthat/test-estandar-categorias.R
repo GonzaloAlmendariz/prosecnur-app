@@ -2,16 +2,18 @@
 # del recetario (`barras_h`): residuales al final, la mayor en azul y en negrita,
 # el resto en el tono de apoyo, y el grosor de la tabla `categorias`.
 
-.cat_h <- function(categoria, n, ...) {
+# ADR 0093: el defecto volvió a columnas (recetario, lámina 68); estos tests prueban las barras horizontales
+# de F2.2, que siguen disponibles, y las piden explícitamente.
+.cat_h <- function(categoria, n, orientacion = "horizontal", ...) {
   d <- data.frame(categoria = categoria, n = n, stringsAsFactors = FALSE)
   d$pct <- d$n / sum(d$n)
   suppressWarnings(graficar_barras_categoricas(
     data = d, var_categoria = "categoria", var_valor = "pct", var_n = "n", var_pct = "pct",
-    modo_valor = "valor", formato_valor = "porcentaje", ancho = 12.5, alto = 4.6, ...
+    modo_valor = "valor", formato_valor = "porcentaje", ancho = 12.5, alto = 4.6, orientacion = orientacion, ...
   ))
 }
 
-test_that("por defecto la pregunta categórica es horizontal y sin eje", {
+test_that("en horizontal la pregunta categórica va sin eje (y por defecto, en columnas como el recetario)", {
   p <- .cat_h(c("A", "B", "C"), c(5, 3, 2))
   expect_false(is.null(attr(p, "pulso_barras_horizontales_layout")))
   b <- ggplot2::ggplot_build(p)$data[[1]]
