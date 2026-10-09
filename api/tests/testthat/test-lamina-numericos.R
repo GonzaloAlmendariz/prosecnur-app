@@ -206,7 +206,11 @@ test_that("las pesas restan las cifras que se leen y la cifra junto a un 0 no en
   expect_identical(e$textos_diferencia[1], "+2 pts")                                  # hallazgo 4: antes «+3 pts»
   o <- .lam_laminas_pesas(.nm_doc(), e, "Pesas", folio = 1)
   ca <- .nm_ext(.nm_xml(.nm_print(o$doc), length(o$doc)), "pesas:cifra_a")
-  expect_true(all(ca$x >= .std_geom("margen_izq") + 2.8 + 0.05 - 1e-6))               # hallazgo 8
+  cb <- .nm_ext(.nm_xml(.nm_print(o$doc), length(o$doc)), "pesas:cifra_b")
+  # Hallazgo 8 y pendiente de la ronda 2: la cifra del 0 no entra en los rótulos ni tapa el punto del otro grupo:
+  # queda fuera de la columna de rótulos o sube sobre su fila.
+  fuera <- ca$x >= .std_geom("margen_izq") + 2.8 + 0.05 - 1e-6; sube <- ca$y < cb$y - 0.2
+  expect_true(all(fuera | sube)); expect_true(sube[2])
 })
 
 test_that("la unidad sale de la etiqueta de la variable: «años» sólo si habla de edad", {
@@ -216,4 +220,20 @@ test_that("la unidad sale de la etiqueta de la variable: «años» sólo si habl
   d <- data.frame(x = c(-2, -1, 0, 1, 2)); attr(d$x, "label") <- "Puntaje"
   p <- graficar_histograma(d, var = "x", exportar = "rplot")
   expect_identical(attr(p, "pulso_espec")$texto_mediana, "Mediana: 0")                # hallazgo 7: antes «Mediana: 0 años»
+})
+
+test_that("la unidad y el encabezado del eje salen de la etiqueta del instrumento por la ruta real", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg")
+  set.seed(9); dat <- data.frame(p3 = sample(19:30, 90, TRUE), ciclo = sample(c("1", "2"), 90, TRUE), stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = c("p3", "ciclo"), type = c("integer", "select_one cic"), list_name = c(NA, "cic"),
+                                   label = c("¿Cuál es tu edad?", "Ciclo"), stringsAsFactors = FALSE),
+               choices = data.frame(list_name = "cic", name = c("1", "2"), label = c("Quinto", "Sexto"), stringsAsFactors = FALSE), orders_list = NULL)
+  plan <- list(a = p_slide_1_grafico(grafico = p_histograma("p3"), titulo = "Edad"),
+               b = p_slide_1_grafico(grafico = p_boxplot("p3", cruce = "ciclo"), titulo = "Caja"))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
+  expect_match(.nm_txt(.nm_xml(out, 1), "histograma:texto_mediana"), "años$")      # misma fuente que la caja (pendiente 1)
+  x2 <- .nm_xml(out, 2)
+  expect_true(all(grepl("años$", .nm_txt(x2, "boxplot:cifra"))))
+  expect_identical(.nm_txt(x2, "boxplot:encabezado"), "Edad, en años")              # pendiente 2
 })

@@ -258,10 +258,14 @@
     # cifras_par (recetario_piezas.R:138-143): cada cifra al costado exterior de su punto.
     mayor_a <- a >= b
     xa <- if (mayor_a) px(a) + 0.18 else px(a) - 0.18 - 0.7; xb <- if (mayor_a) px(b) - 0.18 - 0.7 else px(b) + 0.18
-    piso <- ml + wrot + 0.05   # la cifra de la izquierda no entra en la columna de rótulos (valor en 0)
-    xa <- max(xa, piso); xb <- max(xb, piso)
-    .lam_txt(lz, espec$cifras_a[i], xa, yc - 0.16, 0.7, 0.3, 12, ca, bold = TRUE, align = if (mayor_a) "left" else "right", nombre = "pesas:cifra_a")
-    .lam_txt(lz, espec$cifras_b[i], xb, yc - 0.16, 0.7, 0.3, 12, cb, bold = TRUE, align = if (mayor_a) "right" else "left", nombre = "pesas:cifra_b")
+    # La cifra de la izquierda que no cabe antes de su punto (valor en 0 o junto al eje) sube sobre su punto: así no
+    # entra en la columna de rótulos ni tapa el punto del otro grupo.
+    piso <- ml + wrot + 0.05
+    sube_a <- xa < piso; sube_b <- xb < piso
+    .lam_txt(lz, espec$cifras_a[i], if (sube_a) px(a) - 0.35 else xa, if (sube_a) yc - 0.46 else yc - 0.16, 0.7, 0.3, 12, ca, bold = TRUE,
+             align = if (sube_a) "center" else if (mayor_a) "left" else "right", nombre = "pesas:cifra_a")
+    .lam_txt(lz, espec$cifras_b[i], if (sube_b) px(b) - 0.35 else xb, if (sube_b) yc - 0.46 else yc - 0.16, 0.7, 0.3, 12, cb, bold = TRUE,
+             align = if (sube_b) "center" else if (mayor_a) "right" else "left", nombre = "pesas:cifra_b")
     if (con_dif) .lam_txt(lz, espec$textos_diferencia[i], W - mr - 1.3, yc - 0.15, 1.3, 0.3, 13, azul, bold = TRUE, align = "center", nombre = "pesas:diferencia")
   }
   .lam_leyenda(lz, yf - 0.3, espec$leyenda, espec$colores, centrar_en = xl + wl / 2)

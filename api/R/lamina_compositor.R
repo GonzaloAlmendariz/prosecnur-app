@@ -158,14 +158,20 @@
     # La unidad del valor («años») sale de la etiqueta de la variable, no de una constante.
     etiqueta_var <- if (is.function(titulo_de_var) && !is.null(el_plot$var)) tryCatch(titulo_de_var(el_plot$var), error = function(e) NULL)
     unidad_valor <- .unidad_de_etiqueta(etiqueta_var %||% "")
+    # Una sola fuente para la unidad (la etiqueta del instrumento): el histograma reescribe su mediana con ella, y
+    # sobre la edad la caja y media y rango llevan el encabezado del eje del recetario («Edad, en años»).
+    if (identical(espec$tipo, "histograma") && nzchar(unidad_valor) && is.finite(espec$mediana %||% NA_real_)) {
+      espec$texto_mediana <- sprintf("Mediana: %s %s", format(round(espec$mediana, 1), trim = TRUE), unidad_valor)
+    }
+    encabezado_eje <- if (identical(unidad_valor, "años")) "Edad, en años" else NULL
     comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                     base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
                     layout = layout, master = master, por_lamina = por_lamina)
     o <- switch(espec$tipo,
       histograma = do.call(.lam_laminas_histograma, comunes),
       numerico = do.call(.lam_laminas_numerico, c(comunes, list(unidad_n = unidad, encabezado = espec$etiqueta))),
-      boxplot = do.call(.lam_laminas_boxplot, c(comunes, list(unidad = unidad_valor))),
-      media_rango = do.call(.lam_laminas_media_rango, c(comunes, list(unidad_n = unidad))),
+      boxplot = do.call(.lam_laminas_boxplot, c(comunes, list(unidad = unidad_valor, encabezado = encabezado_eje))),
+      media_rango = do.call(.lam_laminas_media_rango, c(comunes, list(unidad_n = unidad, encabezado = encabezado_eje))),
       pesas = do.call(.lam_laminas_pesas, c(comunes, list(unidad_n = unidad))),
       serie2 = do.call(.lam_laminas_serie2, comunes))
     return(o$doc)
