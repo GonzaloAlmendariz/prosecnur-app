@@ -35,6 +35,21 @@ Word reusa el `ggplot` del PPT (`reporte_plan_ppt.R:4069-4084`), así que quedar
 
 ## Decisión
 
+0. **El recetario es el motor y el orquestador; el motor anterior queda obsoleto.** Gonzalo, 2026-10-08:
+   «ya esta comprobado en el recetario hace las cosas mejor que mi motor, por eso el recetario es que
+   encargado ahora y el orquetador y el motor esta obsoleto, Ahora el recetario debe dar vida al nuevo motor
+   mejoroado por completo… van a haber varias cosas de la UI que van a cambiar tmabien y no esta mal».
+   - El código del recetario, portado al paquete, es el motor nuevo: recorre el plan, compone cada lámina
+     con sus piezas y decide la geometría. No es un desvío dentro del motor anterior.
+   - `reporte_plan_ppt.R` y los `graficador_*.R` en su rol de dibujo pasan a ser **respaldo temporal** para
+     lo que todavía no se porta. Se vacían tipo por tipo y se retiran al terminar N9 (borrado respaldado por
+     este ADR, con la doble confirmación del gate 3).
+   - La capa de datos del motor anterior (frecuencias, exclusiones, bases, cruces, significancia) no queda
+     obsoleta: se extrae a funciones puras que alimentan la especificación. Lo obsoleto es cómo dibujaba y
+     cómo orquestaba.
+   - La interfaz se rehace sobre el modelo del recetario (sus 22 tipos de lámina, sus piezas y las decisiones
+     que el analista sí toma); las perillas del motor anterior desaparecen. Que la UI cambie es esperado.
+
 1. **Tres capas, no una.** Cada gráfico se separa en:
    - **Especificación** (pura, sin dibujo): lo que el gráfico afirma, ya resuelto por la metodología del
      motor. Filas en su orden, etiquetas, cifras en sus unidades de redondeo, segmentos que se dibujan y los
@@ -81,8 +96,10 @@ Word reusa el `ggplot` del PPT (`reporte_plan_ppt.R:4069-4084`), así que quedar
    la base (`graficador_n_por_barra.R`); las letras de significancia sólo donde hay cifra
    (`sufijos_etiqueta`); las notas en su orden (`graficos_calculos_gobernados.R:161-171`); los códigos 90-99
    sólo si están presentes. Donde el recetario no declara regla, rige la del motor.
-3. **Migración por tipo de gráfico, con respaldo.** Mientras un tipo no tenga pieza nativa, sigue saliendo como
-   imagen y la lámina lo avisa. Un tipo pasa a nativo sólo cuando su par recetario|motor coincide.
+3. **Migración por tipo de gráfico, con respaldo temporal.** Mientras un tipo no tenga pieza nativa, el motor
+   nuevo delega esa lámina en el anterior y la lámina lo avisa. Un tipo pasa a nativo sólo cuando su par
+   recetario|motor coincide. El orquestador nuevo toma el plan entero cuando los tipos de uso real estén
+   portados (N2-N7); antes, el enganche vive dentro del bucle anterior sólo como andamio.
 4. **El gate es visual.** Cada tipo se cierra con el par recetario|motor (misma pregunta, mismos datos),
    mirado y enviado a Gonzalo, además de las medidas. «Verde por conformidad, no por ausencia» se mide sobre el
    par, no sólo sobre números.
@@ -190,9 +207,9 @@ La cifra acompaña; el veredicto sale de mirar los pares.
 | N4 | Números: numérico, histograma, boxplot, media y rango, dumbbell, puntos comparativos, serie de dos mediciones | pares 79-82, 85-87 |
 | N5 | Dimensiones: mapas de calor y comparativo | pares 92-94 |
 | N6 | Los que el propio recetario dibuja con ggplot (torta, dona, radar, serie de 3 o más, nube, mapa): siguen en ggplot con el estilo del recetario | pares 69, 70, 88, 90, 98-106 |
-| N7 | Los 22 tipos de lámina y las de identidad compuestos por el compositor | pares 121-169 y 19-65 |
+| N7 | Los 22 tipos de lámina y las de identidad compuestos por el compositor; **el orquestador del recetario toma el plan entero** (el bucle de `reporte_ppt_plan` deja de ser el anfitrión) | pares 121-169 y 19-65; mazo completo de un proyecto de referencia |
 | N8 | Word: renderer ggplot propio con la geometría del recetario Word, alimentado por la especificación | pares contra `propuesta-word.docx` |
-| N9 | Editor: ranuras en lugar del selector de lienzo, opciones nativas, migración de proyectos con aviso | QA visual de `/graficos` en la matriz de viewports |
+| N9 | Editor sobre el modelo del recetario (22 tipos, ranuras, decisiones del analista; Top Two Box con selector de dos categorías), migración de proyectos con aviso; **retiro de `reporte_plan_ppt.R` y del dibujo ggplot del PPT** | QA visual de `/graficos` en la matriz de viewports; borrado con doble confirmación |
 
 **Invariantes de la especificación (gate de N1, sin renderizar):** (1) en cada fila los anchos son cifra/Σcifras,
 suman 1, y un segmento que se rotula 0 % tiene ancho 0 y no se dibuja; (2) con `estandar` cada cifra es el
