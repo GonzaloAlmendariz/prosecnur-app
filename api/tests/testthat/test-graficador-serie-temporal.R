@@ -101,13 +101,17 @@ test_that("la escala 0-1 se convierte a porcentaje y no se dibuja como 0,45", {
 test_that("apagar las cifras deja el grafico sin capa de texto", {
   skip_if_not_installed("ggplot2")
   p <- graficar_serie_temporal(.df_serie(), mostrar_valores = FALSE)
-  expect_length(.capas_de(p, "GeomText"), 0L)
+  # Sin cifras: ninguna capa escribe porcentajes (el nombre de la serie al final
+  # de su línea, del estilo del recetario, no es una cifra).
+  cifras <- unlist(lapply(.capas_de(p, "GeomText"), function(l) as.character(l$data$.lab)))
+  expect_length(cifras, 0L)
 })
 
 test_that("destacar el ultimo punto agrega un marcador y no una serie nueva", {
   skip_if_not_installed("ggplot2")
-  con <- graficar_serie_temporal(.df_serie(), destacar_ultimo = TRUE)
-  sin <- graficar_serie_temporal(.df_serie(), destacar_ultimo = FALSE)
+  # Es del estilo clásico: el del recetario marca todos los puntos igual.
+  con <- graficar_serie_temporal(.df_serie(), destacar_ultimo = TRUE, estilo = "clasico")
+  sin <- graficar_serie_temporal(.df_serie(), destacar_ultimo = FALSE, estilo = "clasico")
   expect_gt(length(.capas_de(con, "GeomPoint")), length(.capas_de(sin, "GeomPoint")))
   # El realce no debe aparecer en la leyenda: no es un tema mas.
   extra <- .capas_de(con, "GeomPoint")
@@ -178,7 +182,8 @@ test_that("con mas series que el limite las cifras se apagan y se declara", {
   )))
   p <- graficar_serie_temporal(df, mostrar_valores = TRUE)
 
-  expect_length(.capas_de(p, "GeomText"), 0L)
+  cifras <- unlist(lapply(.capas_de(p, "GeomText"), function(l) as.character(l$data$.lab)))
+  expect_length(cifras, 0L)
   expect_true(attr(p, "pulso_serie_cifras_omitidas"))
 })
 
