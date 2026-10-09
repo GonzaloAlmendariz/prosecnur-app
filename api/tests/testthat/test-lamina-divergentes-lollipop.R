@@ -135,3 +135,26 @@ test_that("una opción especial reconocida sólo por su código (99) queda fuera
                                         codigos_grupos = c(niv_1 = "1", niv_2 = "2", niv_3 = "3", niv_4 = "4", niv_5 = "99")), "pulso_espec")
   expect_identical(e$categorias$lado[5], "sin_inf"); expect_identical(e$cifras_pos, "60%")     # antes 71 % con «Desconoce»
 })
+
+test_that("ninguna cifra chica queda cruzada por la línea del centro y la cabecera especial no parte la palabra (ronda 3)", {
+  d <- data.frame(it = c("chico", "otra"), a = c(.02, .01), b = c(.03, .01), c = c(.49, .48), d = c(.43, .47), e = c(.03, .03))
+  et <- c(a = "TD", b = "D", c = "A", d = "TA", e = "Desconoce")
+  e <- attr(graficar_barras_divergentes(d, "it", names(et), et, escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = FALSE,
+                                        codigos_grupos = c(a = "1", b = "2", c = "3", d = "4", e = "99")), "pulso_espec")
+  expect_true(.lam_divergentes_cabe(e))
+  xml <- .dl_xml(.lam_laminas_divergentes(.dl_doc(), e, "Chicas", folio = 1)$doc)
+  cen <- .dl_ext(xml, "divergentes:centro"); xc <- cen$x + cen$w / 2
+  cif <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='divergentes:cifra']]")
+  txt <- xml2::xml_text(cif); ext <- .dl_ext(xml, "divergentes:cifra")
+  ch <- which(ext$w < 0.61)                                                                    # las corridas (caja de 0.6 in)
+  expect_gt(length(ch), 0L)
+  for (i in ch) {
+    m <- ext$x[i] + ext$w[i] / 2; wt <- .lam_ancho_tinta(txt[i], 10.5, TRUE)
+    expect_true(xc < m - wt / 2 || xc > m + wt / 2, info = txt[i])                           # la tinta no toca la línea
+  }
+  enc <- .dl_ext(xml, "divergentes:encabezado")[3, ]                                           # la cabecera de la especial
+  expect_identical(.dl_txt(xml, "divergentes:encabezado")[3], "Desconoce")
+  expect_gte(enc$w, .lam_ancho_tinta("Desconoce", 10.5, TRUE) + 0.1)
+  e2 <- e; e2$categorias$rotulo[5] <- "Desconoce por completo la existencia del programa"
+  expect_false(.lam_divergentes_cabe(e2))                                                      # no cabe: ruta anterior
+})

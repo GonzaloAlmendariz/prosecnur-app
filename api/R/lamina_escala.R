@@ -367,7 +367,8 @@
   yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")
   C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
-  hay_si <- any(C$lado == "sin_inf"); wsi <- if (hay_si) 0.9 else 0
+  # La columna especial se ensancha a lo que mide su cabecera, para no partir «Desconoce» (verificador de N6, ronda 3).
+  hay_si <- any(C$lado == "sin_inf"); wsi <- if (hay_si) .lam_divergentes_wsi(C$rotulo[C$lado == "sin_inf"][1]) else 0
   xq <- ml + 0.1; wq <- 4.5; xa <- xq + wq + 0.25; wa <- W - mr - xa - wsi - 0.2
   neu <- which(C$lado == "neu"); izq <- espec$total_neg + (if (length(neu)) rowSums(U[, neu, drop = FALSE]) / 2 else 0)
   lo <- ceiling((max(izq) + 5) / 10) * 10; px <- wa / (lo + 100); xc <- xa + lo * px
@@ -402,10 +403,16 @@
       } else {   # cifra chica encima con su guía, como en las apiladas
         # Si se encimaría con la cifra chica vecina, se corre hacia la derecha a la misma altura y la guía hace un
         # codo hasta ella: entre filas no hay alto para dos niveles (verificador de N6, ronda 2).
+        # Y nunca sobre la línea del centro, que atraviesa el aire entre filas: la cifra se queda entera de su lado y,
+        # si de ese lado no cabe junto a la vecina, pasa al otro (verificador de N6, ronda 3).
         wt <- .lam_ancho_tinta(X[i, sg$k], 10.5, TRUE); cs <- sg$x + sg$w / 2
         cl <- max(cs, fin_chica + 0.06 + wt / 2)
+        if (abs(cl - xc) < wt / 2 + 0.05) {
+          cl <- if (cs < xc) xc - 0.05 - wt / 2 else xc + 0.05 + wt / 2
+          if (cl - wt / 2 < fin_chica + 0.06) cl <- xc + 0.05 + wt / 2
+        }
         .lam_caja(lz, cs - 0.006, yb - 0.06, 0.012, 0.06, tenue, nombre = "divergentes:guia")
-        if (cl > cs + 0.01) .lam_caja(lz, cs, yb - 0.066, cl - cs, 0.012, tenue, nombre = "divergentes:guia")
+        if (abs(cl - cs) > 0.01) .lam_caja(lz, min(cs, cl), yb - 0.066, abs(cl - cs), 0.012, tenue, nombre = "divergentes:guia")
         .lam_txt(lz, X[i, sg$k], cl - 0.3, yb - 0.3, 0.6, 0.24, 10.5, azul, bold = TRUE, align = "center", nombre = "divergentes:cifra")
         fin_chica <- cl + wt / 2
       }
@@ -427,6 +434,10 @@
   list(doc = por_lamina(doc), partes = 1L)
 }
 
+#' Ancho de la columna especial: 0.9 in del recetario, o lo que pida su cabecera (hasta 1.6 in)
+#' @keywords internal
+.lam_divergentes_wsi <- function(rotulo) max(0.9, .lam_ancho_tinta(rotulo, 10.5, TRUE) + 0.2)
+
 #' ¿Las divergentes caben? Hasta 8 afirmaciones con su texto en la fila (10.5 pt en 4.5 in)
 #' @keywords internal
 .lam_divergentes_cabe <- function(espec) {
@@ -435,6 +446,7 @@
   # La afirmación puede pasar un poco del alto de su fila (el recetario lleva una de cuatro líneas en 0.74 in).
   # Una sola categoría especial (la columna del recetario es una) y la afirmación puede pasar apenas su fila (el
   # recetario lleva una de cuatro líneas en 0.74 in).
-  n >= 1L && n <= 8L && sum(espec$categorias$lado == "sin_inf") <= 1L &&
+  si <- espec$categorias$rotulo[espec$categorias$lado == "sin_inf"]
+  n >= 1L && n <= 8L && length(si) <= 1L && (!length(si) || .lam_divergentes_wsi(si) <= 1.6) &&
     all(vapply(espec$filas, function(t) .lam_alto_txt(t, 4.5, 10.5, TRUE) <= fila + 0.06, TRUE))
 }
