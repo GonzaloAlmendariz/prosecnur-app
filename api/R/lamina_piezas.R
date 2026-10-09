@@ -105,6 +105,15 @@
     '<a:solidFill><a:srgbClr val="', .lam_hex(color), '"/></a:solidFill>',
     '<a:latin typeface="', fuente, '"/><a:ea typeface="', fuente, '"/><a:cs typeface="', fuente, '"/></a:rPr>',
     '<a:t>', .lam_xml_esc(tr[[1]]), '</a:t></a:r>'), "")
+  # Un salto de línea dentro de un tramo es un salto de verdad (<a:br/>), con el formato de su tramo.
+  runs <- vapply(seq_along(tramos), function(k) {
+    t <- tramos[[k]][[1]]
+    if (!grepl("\n", t, fixed = TRUE)) return(runs[k])
+    partes <- strsplit(t, "\n", fixed = TRUE)[[1]]; if (endsWith(t, "\n")) partes <- c(partes, "")   # «Uno.\n» guarda su salto
+    rpr <- sub("^<a:r>(<a:rPr.*?</a:rPr>).*$", "\\1", runs[k], perl = TRUE)
+    pedazos <- vapply(partes, function(t) paste0("<a:r>", rpr, "<a:t>", .lam_xml_esc(t), "</a:t></a:r>"), "")
+    paste(pedazos, collapse = paste0("<a:br>", sub("^<a:rPr", "<a:rPr", rpr), "</a:br>"))
+  }, "")
   xml <- paste0(
     '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>',
     '<p:spPr>', .lam_xfrm(l, t, w, h), '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr>',
@@ -176,6 +185,9 @@
 #' @keywords internal
 .lam_narrativa_tramos <- function(texto) {
   partes <- strsplit(as.character(texto)[1], "**", fixed = TRUE)[[1]]
+  # Un `**` sin pareja queda literal: si no, la negrita se invertía desde ahí hasta el final (verificador de N7).
+  n_sep <- lengths(regmatches(as.character(texto)[1], gregexpr("**", as.character(texto)[1], fixed = TRUE)))
+  if (n_sep %% 2 == 1 && length(partes) >= 2) partes <- c(partes[seq_len(length(partes) - 2)], paste0(partes[length(partes) - 1], "**", partes[length(partes)]))
   tramos <- lapply(seq_along(partes), function(k) list(partes[k], k %% 2 == 0))
   Filter(function(tr) nzchar(tr[[1]]), tramos)
 }
@@ -183,7 +195,15 @@
 #' Alto de una narrativa a 15 pt en su ancho (mínimo 0.45 in, una línea del recetario)
 #' @keywords internal
 .lam_narrativa_alto <- function(texto, w, size = 15) {
-  max(0.45, .lam_alto_tinta(gsub("**", "", as.character(texto)[1], fixed = TRUE), w - 0.22, size, TRUE))
+  max(0.45, .lam_narrativa_lineas(texto, w, size) * size * 1.2 / 72 + 0.1)
+}
+
+#' Líneas de una narrativa: cada párrafo (salto de línea) se mide aparte con la tinta (verificador de N7)
+#' @keywords internal
+.lam_narrativa_lineas <- function(texto, w, size = 15) {
+  parrafos <- strsplit(gsub("**", "", as.character(texto)[1], fixed = TRUE), "\n")[[1]]
+  if (!length(parrafos)) return(1L)
+  sum(vapply(parrafos, function(p) max(1, ceiling(.lam_ancho_tinta(p, size, TRUE) / (w - 0.22 - 0.1))), 0))
 }
 
 #' Narrativa del recetario: filete coral y párrafo con tramos en negrita (`narrativa()`, recetario_piezas.R:30)

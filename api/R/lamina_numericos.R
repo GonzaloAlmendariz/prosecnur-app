@@ -84,7 +84,11 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  .lam_columnas_metrica(lz, espec, x0 = ml + 0.6, ybase = 6.05, wv = ancho - 1.2, unidad_n = unidad_n, encabezado = encabezado)
+  # El encabezado («Media») va 0.35 bajo la zona de datos: en la lámina de siempre manda el alto del recetario (3.3);
+  # con una narrativa arriba (N7) la zona baja y las columnas se acortan, sin subir a la franja (verificador de N7).
+  yt_ <- .std_geom("zona_datos_y0")
+  .lam_columnas_metrica(lz, espec, x0 = ml + 0.6, ybase = 6.05, wv = ancho - 1.2, hmax = min(3.3, 6.05 - 0.75 - (yt_ + 0.35)),
+                        unidad_n = unidad_n, encabezado = encabezado)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:numerico")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)

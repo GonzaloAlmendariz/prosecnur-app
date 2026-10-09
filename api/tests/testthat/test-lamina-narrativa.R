@@ -84,3 +84,56 @@ test_that("dos gráficos con narrativa (136) salen lado a lado bajo la franja, c
   ys <- as.numeric(xml2::xml_attr(sep, "y")) / 914400
   expect_gt(min(ys), .std_geom("zona_datos_y0") + 0.5)                                       # los paneles bajan bajo la narrativa
 })
+
+test_that("los saltos de línea se miden por párrafo y se dibujan como saltos; cuatro líneas van a la ruta anterior (verificador de N7)", {
+  w <- 12.523
+  expect_equal(.lam_narrativa_lineas("Uno.\nDos.\nTres.", w), 3)
+  expect_gt(.lam_narrativa_alto("Uno.\nDos.\nTres.", w), .lam_narrativa_alto("Uno. Dos. Tres.", w))
+  lam <- .nr_mazo(list(a = p_slide_1_grafico_narrativo(p_barras_categoricas("anio"), titulo = "Tres", texto = "Uno.\n**Dos.**\nTres."),
+                       b = p_slide_1_grafico_narrativo(p_barras_categoricas("anio"), titulo = "Cuatro", texto = "Uno.\nDos.\nTres.\nCuatro.")))
+  expect_true("prosecnur:narrativa" %in% .nr_nombres(lam[[1]]))
+  expect_length(xml2::xml_find_all(lam[[1]], "//p:sp[p:nvSpPr/p:cNvPr[@name='narrativa:texto']]//a:br"), 2L)
+  expect_false("prosecnur:narrativa" %in% .nr_nombres(lam[[2]]))
+})
+
+test_that("un ** sin pareja queda literal y no invierte la negrita", {
+  tr <- .lam_narrativa_tramos("El **27%** obtuvo su título en **2025.")
+  expect_identical(vapply(tr, `[[`, "", 1), c("El ", "27%", " obtuvo su título en **2025."))
+  expect_identical(vapply(tr, `[[`, TRUE, 2), c(FALSE, TRUE, FALSE))
+})
+
+test_that("el encabezado de selección múltiple y el del numérico quedan bajo la franja, con una a tres líneas", {
+  set.seed(4)
+  ops <- c("dig", "plan", "pract", "ingles")
+  df <- data.frame(sm = vapply(1:80, function(i) paste(sample(ops, sample(1:3, 1)), collapse = " "), ""), edad = sample(18:30, 80, TRUE),
+                   ciclo = sample(c("I", "II", "III"), 80, TRUE), stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = c("sm", "edad", "ciclo"), type = c("select_multiple lsm", "integer", "select_one lc"), list_name = c("lsm", NA, "lc"),
+                                   label = c("¿Qué mejorarías?", "Edad", "Ciclo"), stringsAsFactors = FALSE),
+               choices = data.frame(list_name = c(rep("lsm", 4), rep("lc", 3)), name = c(ops, "I", "II", "III"), label = c(ops, "I", "II", "III")), orders_list = NULL)
+  for (tx in c("Una línea de **lectura**.", paste(rep("Una lectura extensa del resultado principal de la pregunta.", 5), collapse = " "))) {
+    out <- tempfile(fileext = ".pptx")
+    suppressMessages(suppressWarnings(reporte_ppt_plan(data = df, instrumento = inst, path_ppt = out, mensajes_progreso = FALSE, plan = list(
+      a = p_slide_1_grafico_narrativo(p_barras_agrupadas(var = "sm"), titulo = "SM", texto = tx),
+      b = p_slide_1_grafico_narrativo(p_numerico("edad", metrica = "mean", cruce = "ciclo"), titulo = "Num", texto = tx)))))
+    G <- .lam_narrativa_geo(tx); fondo <- G$y + G$h
+    for (k in 1:2) {
+      x <- xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k)))
+      expect_true("prosecnur:narrativa" %in% .nr_nombres(x), info = paste(k, tx))
+      ys <- c(.nr_y(x, "encabezado"), .nr_y(x, "numerico:encabezado"), .nr_y(x, "barra"), .nr_y(x, "numerico:columna"))
+      expect_gt(length(ys), 0L); expect_gte(min(ys), fondo, label = paste("lámina", k, nchar(tx)))
+    }
+  }
+})
+
+test_that("sin texto, la lámina narrativa es la de un gráfico también en la pregunta de la dicotomía (titulo_de_var)", {
+  inst <- .nr_inst(); inst$survey <- rbind(inst$survey, data.frame(name = "trab", type = "select_one lt", list_name = "lt", label = "¿Está trabajando actualmente?"))
+  inst$choices <- rbind(inst$choices, data.frame(list_name = "lt", name = c("si", "no"), label = c("Sí", "No")))
+  df <- .nr_datos(); df$trab <- rep(c("si", "no"), length.out = nrow(df))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = df, instrumento = inst, path_ppt = out, mensajes_progreso = FALSE, plan = list(
+    a = p_slide_1_grafico(p_barras_categoricas("trab"), titulo = "Trabajo"),
+    b = p_slide_1_grafico_narrativo(p_barras_categoricas("trab"), titulo = "Trabajo", texto = "")))))
+  txt <- lapply(1:2, function(k) xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))),
+                                                                     "//p:sp[not(p:nvSpPr/p:cNvPr[@name='Folio lamina'])]//a:t")))   # el folio es la posición
+  expect_identical(txt[[2]], txt[[1]])
+})

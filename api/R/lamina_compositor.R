@@ -391,10 +391,12 @@
 #' Geometría de la narrativa sobre un gráfico (lámina 124): franja a todo el ancho desde la zona de datos − 0.2, a 15 pt,
 #' y la zona de datos baja su alto + 0.1
 #' @keywords internal
-.lam_narrativa_geo <- function(texto, sobre = -0.2, aire = 0.1) {
+.lam_narrativa_geo <- function(texto, sobre = -0.2, aire = 0.35) {
+  # 0.35 de aire y no 0.1: lo que las láminas cuelgan sobre su zona de datos —el encabezado «% de encuestados que
+  # marcó cada opción», el rótulo del indicador— va en zona − 0.25 y caía dentro de la franja (verificador de N7).
   g_ <- .std_geom; ml <- g_("margen_izq"); w <- g_("ancho") - ml - g_("margen_der")
   yt <- .std_valor("ppt", "geometria", "zona_datos_y0"); y <- yt + sobre; h <- .lam_narrativa_alto(texto, w)
-  list(x = ml, y = y, w = w, h = h, desplazo = y + h + aire - yt)
+  list(x = ml, y = y, w = w, h = h, lineas = .lam_narrativa_lineas(texto, w), desplazo = y + h + aire - yt)
 }
 
 #' Geometría de la narrativa sobre dos gráficos (lámina 136): franja desde la zona de datos − 0.05 y los paneles a 0.3
@@ -408,7 +410,7 @@
   if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
   texto <- .lam_narrativo_texto(slide$slots %||% list())
   dy <- if (is.null(texto)) 0 else .lam_narrativa2_geo(texto)$desplazo
-  if (!is.null(texto) && .lam_narrativa2_geo(texto)$h > 1.1) return(FALSE)
+  if (!is.null(texto) && .lam_narrativa2_geo(texto)$lineas > 3) return(FALSE)   # a lo más tres líneas
   isTRUE(.lam_con_desplazo(dy, .lam_compositor_aplica_mixta(list(pL, pR), slide, "graficos_2", list(elL, elR), titulo_de_var)))
 }
 
@@ -443,12 +445,12 @@
     if (isTRUE(.lam_mapa_cabe(espec, texto))) return(TRUE)
     if (is.null(texto)) return(FALSE)
     G <- .lam_narrativa_geo(texto)
-    return(G$h <= 1.1 && isTRUE(.lam_con_desplazo(G$desplazo, .lam_mapa_cabe(espec, NULL))))
+    return(G$lineas <= 3 && isTRUE(.lam_con_desplazo(G$desplazo, .lam_mapa_cabe(espec, NULL))))
   }
   if (is.null(texto)) return(isTRUE(.lam_compositor_aplica(p, slide)))
-  # La narrativa no puede comerse la lámina: a lo más tres líneas.
+  # La narrativa no puede comerse la lámina: a lo más tres líneas (contadas por párrafo).
   G <- .lam_narrativa_geo(texto)
-  G$h <= 1.1 && isTRUE(.lam_con_desplazo(G$desplazo, .lam_compositor_aplica(p, slide)))
+  G$lineas <= 3 && isTRUE(.lam_con_desplazo(G$desplazo, .lam_compositor_aplica(p, slide)))
 }
 
 #' La rama `slide_1_narrativo` del motor, en nativo (enganche de `reporte_ppt_plan`)
@@ -457,7 +459,7 @@
 #' del pie o la del gráfico.
 #' @keywords internal
 .lam_slide_narrativo_nativa <- function(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
-                                        por_lamina = function(doc) doc) {
+                                        por_lamina = function(doc) doc, titulo_de_var = NULL) {
   slots <- slide$slots %||% list()
   como_texto <- function(x) if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
   sin_base <- isTRUE((slide$meta %||% list())$suppress_base_placeholder)
@@ -473,7 +475,7 @@
     slide_g <- slide
     if (is.null(texto)) {
       return(.lam_slide_1_nativa(doc, p, slide_g, titulo, NULL, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
-                                 sin_base = sin_base, por_lamina = por_lamina))
+                                 sin_base = sin_base, por_lamina = por_lamina, titulo_de_var = titulo_de_var))
     }
     G <- .lam_narrativa_geo(texto)
     con_narrativa <- function(d) {
@@ -481,7 +483,8 @@
       por_lamina(.lam_agrupar(d, lz, nombre = "prosecnur:narrativa"))
     }
     return(.lam_con_desplazo(G$desplazo, .lam_slide_1_nativa(doc, p, slide_g, titulo, NULL, el_plot, presets, layout, master, antetitulo,
-                                                            base_auto, nota_de, sin_base = sin_base, por_lamina = con_narrativa)))
+                                                            base_auto, nota_de, sin_base = sin_base, por_lamina = con_narrativa,
+                                                            titulo_de_var = titulo_de_var)))
   }
   if (!is.null(texto) && !isTRUE(.lam_mapa_cabe(espec, texto))) {
     G <- .lam_narrativa_geo(texto)
