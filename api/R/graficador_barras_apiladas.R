@@ -1377,6 +1377,9 @@ graficar_barras_apiladas <- function(
     # recetario (filas_pulso, propuestas_rescatables.R:23-47): dos columnas de
     # 1.25 in con su rótulo y sus cifras en naranja.
     columna_bottom2box    = FALSE,
+    # ADR 0092 (F2.5): fila «Total» ponderada por la base de cada actor, primera
+    # y separada por un filete (graficador_fila_total.R).
+    fila_total            = FALSE,
     dpi                   = 300,
 
     ppt_append            = TRUE,
@@ -1583,7 +1586,12 @@ graficar_barras_apiladas <- function(
   color_titulos_grupo <- color_titulos_grupo %||% color_ejes
   size_titulos_grupo  <- size_titulos_grupo  %||% size_ejes
 
-  df <- data
+  fila_total_activa <- isTRUE(fila_total) && !is.null(var_n) && nrow(data) >= 2L && is.null(var_grupo_id)
+  df <- if (fila_total_activa) {
+    .apiladas_fila_total(data, var_categoria, var_etiqueta_categoria, var_n, cols_porcentaje, cols_n)
+  } else {
+    data
+  }
   row_id_col <- ".pulso_tmp_row_id"
   while (row_id_col %in% names(df)) row_id_col <- paste0(row_id_col, "_")
   df[[row_id_col]] <- seq_len(nrow(df))
@@ -1866,6 +1874,8 @@ graficar_barras_apiladas <- function(
     for (i in seq_len(n_categorias)) {
       y_from_top[i] <- offset_top
       offset_top <- offset_top + row_step_eff
+      # Aire bajo el Total para su filete (filas_pulso: 0.22 in con filas de ~0.6).
+      if (i == 1L && fila_total_activa) offset_top <- offset_top + 0.35 * row_step_eff
       if (i < n_categorias) {
         grp_i <- cat_layout$.group_id[i] %||% ""
         grp_n <- cat_layout$.group_id[i + 1] %||% ""
@@ -3632,6 +3642,15 @@ graficar_barras_apiladas <- function(
         lineheight = lineheight_eje_y_eff
       )
     }
+  }
+
+  # Filete bajo la barra del Total, a 0.08 in, de los rótulos al borde derecho.
+  if (fila_total_activa && length(y_abs)) {
+    y_filete <- y_abs[1] - (grosor_eff / den) * h_bars_area / 2 - 0.08 / as.numeric(alto)
+    canvas <- canvas + cowplot::draw_line(
+      x = c(x_etq0, x_extra0 + w_extra), y = c(y_filete, y_filete),
+      colour = .std_color("filete"), linewidth = 0.6
+    )
   }
 
   # Extra (columna derecha). Con Bottom Two Box, la primera ocupa la mitad izquierda.
