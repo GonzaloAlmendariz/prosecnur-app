@@ -192,6 +192,8 @@ graficar_barras_divergentes <- function(
     )
   }
 
+  espec_div <- tryCatch(.espec_divergentes(data, var_categoria, cols_porcentaje, etiquetas, particion, escala_valor,
+                                           valores_decimales, colores_grupos), error = function(e) NULL)
   items <- as.character(data[[var_categoria]])
   filas <- list()
   for (i in seq_along(items)) {
@@ -309,7 +311,7 @@ graficar_barras_divergentes <- function(
     tope <- tope * 1.18
   }
 
-  p +
+  out <- p +
     ggplot2::scale_fill_manual(
       values = colores, breaks = cols_porcentaje,
       labels = function(x) unname(etiquetas[x])
@@ -345,4 +347,6 @@ graficar_barras_divergentes <- function(
       panel.grid.major.x = ggplot2::element_line(colour = "#E3E8EF", linewidth = 0.3),
       plot.margin = ggplot2::margin(10, 16, 8, 12)
     )
+  attr(out, "pulso_espec") <- espec_div
+  out
 }
