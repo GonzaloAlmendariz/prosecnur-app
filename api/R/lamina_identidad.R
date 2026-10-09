@@ -526,8 +526,8 @@
 #' @keywords internal
 .lam_icono_capitulo <- function(titulo) {
   t <- .lam_clave(titulo)
-  reglas <- list(c("egreso", "award"), c("perfil|encuestad|actores|muestra", "users"), c("institucion", "building-2"),
-                 c("politica", "scroll-text"), c("organizac|administrativ|financ", "network"), c("docente|academico|cuerpo", "presentation"),
+  reglas <- list(c("egreso", "award"), c("perfil|encuestad|actores|muestra", "users"), c("politica", "scroll-text"),
+                 c("institucion", "building-2"), c("organizac|administrativ|financ", "network"), c("docente|academico|cuerpo", "presentation"),
                  c("estudiante|graduad|laboral|insercion", "briefcase"), c("infraestructura|recurso|instalacion", "library"),
                  c("curricul|plan de estudio|formacion", "book-open"), c("vinculacion|medio|sostenib", "handshake"),
                  c("internacional", "globe"), c("investigacion|innovacion", "flask-conical"), c("integridad|transparencia|etica", "scale"),
@@ -542,6 +542,12 @@
 #' @keywords internal
 .lam_indice_subs <- function(secciones, subindices) {
   n <- length(secciones)
+  # La tabla que el motor ya normaliza (`.indice_subindices_df`: lista, data.frame, líneas «Sección: subtema» y
+  # `subtemas`), con columnas `seccion` e `item`: se reparte por capítulo (verificador de N7: sin ella se perdían).
+  if (is.data.frame(subindices) && all(c("seccion", "item") %in% names(subindices))) {
+    sec <- .lam_clave(trimws(as.character(subindices$seccion))); it <- trimws(as.character(subindices$item))
+    return(lapply(.lam_clave(trimws(as.character(secciones))), function(k) { x <- it[sec == k]; x[nzchar(x)] }))
+  }
   if (is.null(subindices) || !is.list(subindices) || is.data.frame(subindices)) return(vector("list", n))
   nm <- names(subindices)
   lapply(seq_len(n), function(k) {
@@ -554,10 +560,12 @@
 #' explícita de ese estilo, que conserva su ruta
 #' @keywords internal
 .lam_indice_focos <- function(slots, meta = list()) {
+  # Con contenido: la app manda `iconos_focos = ""` cuando no se eligieron íconos, y eso no es pedir focos.
+  lleno <- function(x) !is.null(x) && length(x) && any(nzchar(trimws(as.character(unlist(x)))) & !is.na(unlist(x)))
   identical(tolower(as.character(meta$composicion %||% "")[1]), "focos") ||
     any(vapply(c("iconos_focos", "iconos_focos_fill", "iconos_focos_objeto_unico", "iconos_focos_diametro_cm", "iconos_focos_icon_scale",
-                 "iconos_focos_left_cm", "iconos_focos_top_cm"), function(k) !is.null(slots[[k]]), TRUE)) || isTRUE(slots$redibujar_focos) ||
-    isTRUE((slots$estilo %||% list())$redibujar_focos) || !is.null((slots$estilo %||% list())$iconos_focos)
+                 "iconos_focos_left_cm", "iconos_focos_top_cm"), function(k) lleno(slots[[k]]), TRUE)) || isTRUE(slots$redibujar_focos) ||
+    isTRUE((slots$estilo %||% list())$redibujar_focos) || lleno((slots$estilo %||% list())$iconos_focos)
 }
 
 #' Geometría de la lista del índice (la del recetario por número de capítulos, con o sin subcapítulos)

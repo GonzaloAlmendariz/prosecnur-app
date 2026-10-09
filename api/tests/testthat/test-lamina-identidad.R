@@ -199,7 +199,7 @@ test_that("el objetivo cuenta sus párrafos: siete líneas en párrafos van a la
 test_that("el índice ofrece las cuatro composiciones del recetario y lleva número, ícono y título por capítulo (31-50)", {
   c5 <- c("Perfil del encuestado", "Características institucionales", "Cuerpo académico", "Características del perfil de egreso", "Estudiantes y graduados")
   plan <- lapply(c("arcos", "facetas", "circulos", "bloques"), function(g) p_slide_indice("Índice", secciones = c5, meta = list(composicion = g)))
-  plan$e <- p_slide_indice("Índice", secciones = c5, subindices = list(c("Estudiantes", "Docentes"), "Misión", "Gestión", "Competencias", "Situación laboral"))
+  plan$e <- p_slide_indice("Índice", secciones = c5, subindices = stats::setNames(list(c("Estudiantes", "Docentes"), "Misión", "Gestión", "Competencias", "Situación laboral"), c5))
   plan$f <- p_slide_indice("Índice", secciones = paste("Capítulo", 1:14))
   lam <- .id_mazo(plan)
   md5 <- vapply(lam[1:4], function(x) {
@@ -233,4 +233,19 @@ test_that("la portada ofrece sus tres variantes del recetario: centrada (23), iz
   expect_identical(vapply(lam, algn, ""), c("ctr", "l", "ctr"))
   expect_true("portada:banda" %in% xml2::xml_attr(xml2::xml_find_all(lam[[3]], "//p:cNvPr"), "name"))
   expect_identical(.lam_portada_variante("25"), "banda"); expect_identical(.lam_portada_variante(NULL), "centrada")
+})
+
+test_that("el índice nativo toma los subíndices en el formato de la app y no confunde un iconos_focos vacío con focos", {
+  c3 <- c("Perfil", "Metodología", "Resultados")
+  lam <- .id_mazo(list(
+    a = p_slide_indice("Índice", secciones = c3, subindices = "Metodología: Diseño muestral\nMetodología: Trabajo de campo\nPerfil: Docentes"),
+    b = p_slide_indice("Índice", secciones = c3, subindices = data.frame(seccion = c("Resultados", "Perfil"), subtema = c("Satisfacción", "Egresados"))),
+    c = p_slide_indice("Índice", secciones = c3, subtemas = c("Tutoría", "Becas")),
+    d = p_slide_indice("Índice", secciones = c3, iconos_focos = "")))
+  nativo <- vapply(lam, function(x) "prosecnur:indice" %in% xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name"), TRUE)
+  expect_true(all(nativo))
+  expect_identical(.id_txt(lam[[1]], "indice:subcapitulo"), c("Docentes", "Diseño muestral", "Trabajo de campo"))
+  expect_identical(.id_txt(lam[[2]], "indice:subcapitulo"), c("Egresados", "Satisfacción"))
+  expect_true(all(c("Tutoría", "Becas") %in% .id_txt(lam[[3]], "indice:subcapitulo")))      # los subtemas van, como en la ruta anterior
+  expect_identical(.lam_icono_capitulo("Desarrollo de políticas institucionales"), "scroll-text")
 })
