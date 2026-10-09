@@ -16,7 +16,10 @@
   v <- if (!is.null(espec$unidades)) as.numeric(espec$unidades) else as.numeric(espec$valores) * 100
   dona <- dona %||% (!identical(espec$forma, "pie") && n > 2L)
   alto <- if (n > 2L) 2.9 else 2.6                                       # recetario_word.R:352-354, con el pie
-  pal <- rep_len(.WORD_PALETA_TORTA, n)
+  # Más de cinco porciones: el recetario pide barras («Con más de cinco se usan barras»), pero si llega una torta no se
+  # repite color; se siguen los colores de actores del estándar que no estén ya y, si aún faltan, una rampa.
+  pal <- unique(c(.WORD_PALETA_TORTA, toupper(.std_paleta("actores"))))
+  pal <- if (n <= length(pal)) pal[seq_len(n)] else grDevices::colorRampPalette(pal)(n)
   # Dona y leyenda se centran JUNTAS en el ancho de la página («la leyenda no usa todo el espacio y no está centrada»).
   tl <- 9.5; panel <- alto - 0.5; leg <- max(nchar(rot)) * tl * 0.55 / 72 + 0.4
   m <- max(0.1, (.std_word("pagina", "ancho_util") - panel - leg - 0.35) / 2)
@@ -107,7 +110,10 @@
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   M <- .word_radar_pct(espec$valores); ejes <- as.character(espec$ejes); gr <- as.character(espec$grupos)
   lo <- espec$lo %||% 80; k <- length(ejes); ang <- pi / 2 - 2 * pi * (0:(k - 1)) / k
-  rr <- function(v) (pmax(v, lo) - lo) / (100 - lo); anillos <- seq(lo + 5, 100, 5)
+  rr <- function(v) (pmax(v, lo) - lo) / (100 - lo)
+  # Los anillos los decide la espec (cada 5, 10 o 20 según el rango, .espec_radar): con piso 0 y anillos cada 5 eran 20
+  # rótulos apilados (verificador de N8.9). Sin espec, cada 5 como el recetario con su piso de 80.
+  anillos <- as.numeric(espec$anillos %||% seq(lo + 5, 100, 5)); anillos <- anillos[anillos > lo & anillos <= 100]
   cols <- if (!is.null(espec$colores)) unname(espec$colores[gr]) else rep_len(c("#0B4F8C", "#2A9D8F", "#E9C46A"), length(gr))
   ring <- do.call(rbind, lapply(anillos, function(v) data.frame(r = v, x = rr(v) * cos(c(ang, ang[1])), y = rr(v) * sin(c(ang, ang[1])))))
   ser <- do.call(rbind, lapply(seq_along(gr), function(j) data.frame(a = gr[j], x = rr(M[c(seq_len(k), 1), j]) * cos(c(ang, ang[1])),
