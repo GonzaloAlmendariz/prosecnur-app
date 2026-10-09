@@ -422,30 +422,36 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
     )
   }
   if (nrow(district_labels)) {
-    plot <- plot + ggplot2::geom_label(
+    # ADR 0092 (F2.7f): rótulos del recetario (recetario_m3e.R:106-107), 10 pt en
+    # negrita sin recuadro; los que se pisarían con otro se descartan en vez de
+    # encimarse (antes, en un mapa de ocho distritos, cinco nombres se cubrían).
+    plot <- plot + ggplot2::geom_text(
       data = district_labels,
       ggplot2::aes(.data$x, .data$y, label = .data$label),
       inherit.aes = FALSE,
       family = "Arial",
       fontface = "bold",
-      size = 3.4,
-      color = "#18375F",
-      fill = scales::alpha("#FFFFFF", 0.88),
-      label.size = 0,
-      label.padding = grid::unit(0.10, "lines")
+      size = 10 / ggplot2::.pt,
+      lineheight = 0.85,
+      color = .std_color("azul"),
+      check_overlap = TRUE
     )
   }
   plot +
-    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.08, 0.05))) +
-    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0.04, 0.04))) +
-    ggplot2::coord_equal(expand = TRUE, clip = "off") +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
+    ggplot2::coord_equal(expand = FALSE, clip = "off") +
     ggplot2::scale_fill_manual(values = setNames(.mapa_status_colors, unname(.mapa_status_labels[.mapa_status_levels])), drop = TRUE) +
     ggplot2::labs(title = titulo, subtitle = subtitle, caption = caption, fill = NULL) +
     ggplot2::theme_void(base_family = "Arial") +
     ggplot2::theme(
-      legend.position = "bottom",
-      legend.direction = "horizontal",
-      legend.text = ggplot2::element_text(color = "#1A1A1A", size = 9.5),
+      # ADR 0092 (F2.7f): la leyenda va al lado, en vertical, alineada al pie del
+      # mapa (leyenda_mapa del recetario), con cuadros de 0.16 in y texto a 11 pt.
+      legend.position = "right",
+      legend.direction = "vertical",
+      legend.justification = c(0, 0),
+      legend.key.size = grid::unit(0.16, "in"),
+      legend.text = ggplot2::element_text(color = .std_color("azul"), size = 11),
       plot.title = ggplot2::element_text(color = "#18375F", face = "bold", size = 13, hjust = 0),
       plot.subtitle = ggplot2::element_text(color = "#666666", size = 10.5, hjust = 0),
       plot.caption = ggplot2::element_text(color = "#666666", size = 7, hjust = 0),
