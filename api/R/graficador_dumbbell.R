@@ -19,6 +19,12 @@
 # EXIGE EXACTAMENTE DOS GRUPOS. Con tres, el "segmento" ya no es una brecha sino
 # un rango, y esa es otra afirmacion; el motor lo dice en vez de dibujar algo
 # ambiguo.
+#
+# RECETARIO (ADR 0092, F2.7a; recetario_m3c.R:29-41). El eje se acerca al rango
+# de los datos (antes 0 a 120 %, con los puntos aplastados contra la derecha),
+# los puntos miden ~0.26 in y la cifra de cada uno va a su costado exterior en
+# el color de su base. La diferencia vive en su propia columna, con encabezado
+# «Diferencia», en puntos y en azul neutro: «+12 pts».
 
 #' Gráfico de brecha (dumbbell) entre dos bases
 #'
@@ -50,19 +56,22 @@ graficar_dumbbell <- function(
     mostrar_valores = TRUE,
     valores_decimales = 0L,
     mostrar_brecha = TRUE,
-    etiqueta_brecha = "pp",
+    etiqueta_brecha = "pts",
+    encabezado_brecha = "Diferencia",
     umbral_brecha_pct = 0,
+    var_n = "n",
+    titulo_eje = NULL,
 
     colores_grupos = NULL,
     color_segmento = "#C7D2E0",
-    size_segmento = 1.6,
-    size_punto = 3.6,
+    size_segmento = 1.4,
+    size_punto = 6.2,
     mostrar_leyenda = TRUE,
     leyenda_posicion = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
 
     color_ejes = .PULSO_COLOR_EJES,
-    size_ejes = 9,
-    size_valores = 3.0,
+    size_ejes = .std_pt("leyenda"),
+    size_valores = .std_pt("cifra_fuera") / ggplot2::.pt,
     limite_x = NULL,
 
     color_titulo = .PULSO_COLOR_TEXTO,
@@ -125,6 +134,10 @@ graficar_dumbbell <- function(
     .b = unname(vb[ejes]),
     stringsAsFactors = FALSE
   )
+  # Segunda base menos primera: la primera es la referencia (regla del motor,
+  # test-graficos-ola4-metodologia.R), y en antes/después da el cambio. Entre
+  # dos públicos el signo es convención —el recetario la escribe en azul neutro,
+  # «no es mejor ni peor»— y el orden de las bases lo decide el analista.
   res$.brecha <- res$.b - res$.a
 
   orden_ejes <- switch(
@@ -143,11 +156,23 @@ graficar_dumbbell <- function(
     stringsAsFactors = FALSE
   )
 
-  colores <- .graficos_mk_palette(niveles_grupo, pal_user = colores_grupos)
+  colores <- .graficos_mk_palette(niveles_grupo, pal_user = colores_grupos %||% unname(.std_paleta("actores"))[1:2])
 
-  tope <- suppressWarnings(as.numeric(limite_x)[1])
-  if (!is.finite(tope)) tope <- max(largo$.valor, na.rm = TRUE) * 1.18
-  if (!is.finite(tope) || tope <= 0) tope <- 100
+  # Eje acercado al rango de los datos, en múltiplos de 5, sin pasar de 0 ni 100.
+  lim <- suppressWarnings(as.numeric(limite_x))
+  if (length(lim) == 2L && all(is.finite(lim))) {
+    lo <- lim[1]; hi <- lim[2]
+  } else {
+    vmin <- min(largo$.valor, na.rm = TRUE); vmax <- max(largo$.valor, na.rm = TRUE)
+    lo <- max(0, floor((vmin - 3) / 5) * 5)
+    hi <- min(100, ceiling((vmax + 3) / 5) * 5)
+    if (length(lim) == 1L && is.finite(lim)) hi <- lim
+    if (!is.finite(lo) || !is.finite(hi) || hi <= lo) { lo <- 0; hi <- 100 }
+  }
+  paso <- if (hi - lo <= 30) 5 else if (hi - lo <= 60) 10 else 20
+  # La columna «Diferencia» va a la derecha del eje, fuera de sus marcas.
+  x_dif <- hi + (hi - lo) * 0.16
+  tope <- hi + (hi - lo) * 0.24
 
   p <- ggplot2::ggplot() +
     ggplot2::geom_segment(
@@ -174,8 +199,8 @@ graficar_dumbbell <- function(
     p <- p + ggplot2::geom_text(
       data = ancla,
       ggplot2::aes(x = .data$.valor, y = .data$.eje, label = .data$.lab,
-                   hjust = ifelse(.data$.izq, 1.35, -0.35)),
-      size = size_valores, colour = color_ejes,
+                   hjust = ifelse(.data$.izq, 1.45, -0.45), colour = .data$.grupo),
+      size = size_valores,
       family = font_family, fontface = face("valores"), show.legend = FALSE
     )
   }
@@ -189,22 +214,40 @@ graficar_dumbbell <- function(
       )
       p <- p + ggplot2::geom_text(
         data = br,
-        ggplot2::aes(x = tope * 0.99, y = .data$.eje, label = .data$.lab),
-        hjust = 1, size = size_valores, colour = color_ejes,
+        ggplot2::aes(x = x_dif, y = .data$.eje, label = .data$.lab),
+        hjust = 0.5, size = 13 / ggplot2::.pt, colour = .std_color("azul"),
         family = font_family, fontface = "bold", show.legend = FALSE
+      )
+    }
+    if (!is.null(encabezado_brecha) && nzchar(encabezado_brecha)) {
+      p <- p + ggplot2::annotate(
+        "text", x = x_dif, y = nrow(res) + 0.75, label = encabezado_brecha, hjust = 0.5,
+        size = 10 / ggplot2::.pt, colour = .std_color("texto_suave"), fontface = "bold", family = font_family
       )
     }
   }
 
+  # Leyenda con la base de cada grupo, «Docentes (52)», si viene la columna.
+  etiquetas_leyenda <- niveles_grupo
+  if (!is.null(var_n) && var_n %in% names(data)) {
+    n_g <- vapply(niveles_grupo, function(g) {
+      v <- suppressWarnings(as.numeric(data[[var_n]][as.character(data[[var_grupo]]) == g]))
+      if (any(is.finite(v))) max(v, na.rm = TRUE) else NA_real_
+    }, numeric(1))
+    etiquetas_leyenda <- ifelse(is.finite(n_g), sprintf("%s (%s)", niveles_grupo, format(n_g, big.mark = ",", trim = TRUE)), niveles_grupo)
+  }
+
   p +
-    ggplot2::scale_colour_manual(values = colores, breaks = niveles_grupo) +
+    ggplot2::scale_colour_manual(values = colores, breaks = niveles_grupo, labels = etiquetas_leyenda) +
     ggplot2::scale_x_continuous(
-      limits = c(0, tope),
+      limits = c(lo, tope), breaks = seq(lo, hi, by = paso), expand = c(0, 0),
       labels = function(x) paste0(.pulso_fmt_half_up(x, 0), "%")
     ) +
+    ggplot2::scale_y_discrete(expand = ggplot2::expansion(add = c(0.6, 1.0))) +
+    ggplot2::coord_cartesian(clip = "off") +
     ggplot2::labs(
       title = titulo, subtitle = subtitulo, caption = nota_pie,
-      x = NULL, y = NULL, colour = NULL
+      x = titulo_eje, y = NULL, colour = NULL
     ) +
     ggplot2::theme_minimal(base_family = font_family) +
     ggplot2::theme(
@@ -224,6 +267,9 @@ graficar_dumbbell <- function(
                                            family = font_family, face = face("nota_pie"), hjust = 1),
       axis.text = ggplot2::element_text(colour = color_ejes, size = size_ejes,
                                         family = font_family, face = face("ejes")),
+      axis.text.x = ggplot2::element_text(colour = .std_color("texto_tenue"), size = 10, family = font_family),
+      axis.title.x = ggplot2::element_text(colour = .std_color("texto_suave"), size = 10, face = "bold",
+                                           family = font_family, margin = ggplot2::margin(t = 6)),
       panel.grid.minor = ggplot2::element_blank(),
       panel.grid.major.y = ggplot2::element_blank(),
       panel.grid.major.x = ggplot2::element_line(colour = .PULSO_COLOR_GRID, linewidth = 0.3),
