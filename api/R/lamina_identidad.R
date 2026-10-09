@@ -130,8 +130,9 @@
   .lam_caja(lz, x3, yb - 0.32, x4 - x3, 0.025, verde, nombre = "ttb:llave")
   .lam_caja(lz, x3, yb - 0.32, 0.025, 0.2, verde, nombre = "ttb:llave"); .lam_caja(lz, x4 - 0.025, yb - 0.32, 0.025, 0.2, verde, nombre = "ttb:llave")
   .lam_caja(lz, (x3 + x4) / 2 - 0.0125, yb - 0.5, 0.025, 0.2, verde, nombre = "ttb:llave")
-  llave <- if (max(idx) == k) "Los dos valores superiores" else if (min(idx) == 1L) "Los dos valores inferiores" else "Los valores que se suman"
-  if (length(idx) != 2L) llave <- sub("dos ", "", llave, fixed = TRUE)
+  llave <- if (length(idx) == 1L) (if (idx == k) "El valor superior" else if (idx == 1L) "El valor inferior" else "El valor que se toma")
+           else if (max(idx) == k) "Los dos valores superiores" else if (min(idx) == 1L) "Los dos valores inferiores" else "Los valores que se suman"
+  if (length(idx) > 2L) llave <- sub("dos ", "", llave, fixed = TRUE)
   .lam_txt(lz, llave, (x3 + x4) / 2 - 2, yb - 0.85, 4, 0.3, 12, verde, bold = TRUE, align = "center", nombre = "ttb:llave_rotulo")
   xt <- xb + wb + 0.35; wt <- W - mr - xt
   .lam_txt(lz, "Top Two Box", xt, yb - 0.5, wt, 0.3, 13, verde, bold = TRUE, align = "center", nombre = "ttb:rotulo")
@@ -230,8 +231,8 @@
   if (metodo %in% c("ambos", "resto_mayor")) {
     palabra <- c("un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve")
     cuantos <- if (C$faltan <= length(palabra)) palabra[C$faltan] else as.character(C$faltan)
-    nota <- if (C$faltan > 0) sprintf("Faltan %s %s: van a %s más grande%s.", cuantos, if (C$faltan == 1) "punto" else "puntos",
-                                      if (C$faltan == 1) "el resto" else sprintf("los %s restos", cuantos), if (C$faltan == 1) "" else "s")
+    nota <- if (C$faltan == 1) "Falta un punto: va al resto más grande."
+            else if (C$faltan > 1) sprintf("Faltan %s puntos: van a los %s restos más grandes.", cuantos, cuantos)
             else "La parte entera ya suma 100%: no hace falta repartir puntos."
     # Como la 21: la categoría con casos que el reparto deja en 0 % se nombra («El 0.56% queda en 0%»).
     cero <- which(C$n > 0 & C$resultado == 0)
@@ -260,10 +261,18 @@
   if (!is.na(m) && nzchar(m)) {
     m <- tolower(trimws(m))
     if (m %in% c("ambos", "los_dos")) return("ambos")
+    if (!m %in% c("estandar", "estándar", "resto_mayor", "resto-mayor", "reparto", "hare")) {
+      .pulso_aviso(sprintf("La lámina de redondeo no reconoce el método «%s»; se usa el estándar. Usa «estandar», «resto_mayor» o «ambos».", m))
+    }
     return(if (identical(.pulso_pct_metodo(m), "reparto")) "resto_mayor" else "estandar")
   }
-  familias <- intersect(names(.PRESETS_CALCULOS), names(presets %||% list()))
-  usados <- unique(vapply(familias, function(k) .pulso_pct_metodo(presets[[k]]$args$metodo_redondeo %||% "estandar"), ""))
+  # Sólo cuentan las familias que cierran en 100 (las que admiten método) y que lo DECLARAN: la que no lo declara no
+  # eligió nada, y las agrupadas o las divergentes no tienen método (verificador de N7: con eso salían las dos).
+  cierran <- names(Filter(function(f) isTRUE(f$cierra_100), .PRESETS_CALCULOS))
+  familias <- intersect(cierran, names(presets %||% list()))
+  declarados <- Filter(function(x) !is.null(x) && length(x) && !is.na(x[1]) && nzchar(trimws(as.character(x[1]))),
+                       lapply(familias, function(k) presets[[k]]$args$metodo_redondeo))
+  usados <- unique(vapply(declarados, function(x) .pulso_pct_metodo(x), ""))
   if (!length(usados)) return("estandar")
   if (length(usados) > 1L) return("ambos")
   if (identical(usados, "reparto")) "resto_mayor" else "estandar"
