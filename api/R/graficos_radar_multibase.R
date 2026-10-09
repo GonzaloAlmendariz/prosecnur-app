@@ -862,9 +862,9 @@ p_radar_publicos <- function(
     dec_t <- suppressWarnings(as.integer(attr(tabla, "decimales") %||% 0L)[1]); if (!is.finite(dec_t)) dec_t <- 0L
     for (k in seq_along(espec$grupos)) {
       g <- espec$grupos[k]
-      # La tabla nombra sus columnas por la fuente cruda («docentes») y el radar, capitalizada («Docentes»).
-      j <- match(tolower(g), tolower(names(tabla))); if (is.na(j)) j <- k + 1L
-      if (j > ncol(tabla)) next
+      # La tabla nombra sus columnas por la fuente cruda («docentes») y el radar, capitalizada («Docentes»). Sin
+      # coincidencia no se adivina por posición: con columnas reordenadas daría las cifras de otra fuente.
+      j <- match(tolower(g), tolower(names(tabla))); if (is.na(j) || j < 2L) next
       v <- tabla[[j]][match(espec$ejes, as.character(tabla[[1]]))]
       espec$cifras[, g] <- ifelse(is.na(v), "\u2014", .pulso_fmt_pct_half_up(espec$valores[, g], dec_t))
     }
