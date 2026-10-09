@@ -297,23 +297,48 @@
 }
 
 #' Portada del recetario: sobre el layout «Title Slide» (logos y filete de la plantilla), el rótulo en coral, el título a
-#' 30 pt centrado, el encargo a 18 pt y la fecha en gris
+#' 30 pt, el encargo y la fecha; tres variantes (Gonzalo, 2026-10-09: quedan todas como opciones)
 #'
 #' El subtítulo del motor es el rótulo («INFORME CONSOLIDADO»), el subtexto es el encargo («Por encargo de…») y la
 #' fecha, la fecha.
 #' @keywords internal
 .lam_laminas_portada <- function(doc, titulo, subtitulo = NULL, fecha = NULL, subtexto = NULL, layout = "Title Slide",
-                                 master = "Office Theme", por_lamina = function(doc) doc) {
+                                 master = "Office Theme", por_lamina = function(doc) doc, variante = "centrada") {
   limpio <- function(x) if (is.null(x) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
-  azul <- .std_color("azul")
+  azul <- .std_color("azul"); coral <- .std_color("coral"); suave <- .std_color("texto_suave")
+  variante <- .lam_portada_variante(variante)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   lz <- .lam_lienzo()
-  if (!is.null(limpio(subtitulo))) .lam_txt(lz, toupper(limpio(subtitulo)), 1.6, 2.12, 10.1, 0.32, 13, .std_color("coral"), bold = TRUE, align = "center", nombre = "portada:rotulo")
-  .lam_txt(lz, limpio(titulo) %||% "", 1.3, 2.48, 10.7, 1.5, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
-  if (!is.null(limpio(subtexto))) .lam_txt(lz, limpio(subtexto), 1.6, 4.65, 10.1, 0.4, 18, azul, align = "center", nombre = "portada:encargo")
-  if (!is.null(limpio(fecha))) .lam_txt(lz, limpio(fecha), 1.6, 5.12, 10.1, 0.4, 18, .std_color("texto_suave"), align = "center", nombre = "portada:fecha")
+  rot <- limpio(subtitulo); tit <- limpio(titulo) %||% ""; enc <- limpio(subtexto); fec <- limpio(fecha)
+  if (identical(variante, "izquierda")) {
+    # 24: alineada a la izquierda; la línea coral de la plantilla (y = 4.21) separa título y encargo.
+    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.08, 2.25, 8, 0.32, 13, coral, bold = TRUE, nombre = "portada:rotulo")
+    .lam_txt(lz, tit, 1.08, 2.62, 9.6, 1.3, 30, azul, bold = TRUE, nombre = "portada:titulo")
+    if (!is.null(enc)) .lam_txt(lz, enc, 1.08, 4.45, 9.6, 0.36, 16, azul, nombre = "portada:encargo")
+    if (!is.null(fec)) .lam_txt(lz, fec, 1.08, 4.85, 9.6, 0.34, 14, suave, nombre = "portada:fecha")
+  } else if (identical(variante, "banda")) {
+    # 25: centrada, con el encargo y la fecha en una banda azul al pie.
+    H <- 7.5; W <- .std_geom("ancho")
+    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.25, 10.1, 0.32, 13, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
+    .lam_txt(lz, tit, 1.4, 2.62, 10.5, 1.3, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
+    .lam_caja(lz, 0, H - 1.25, W, 1.25, azul, nombre = "portada:banda")
+    if (!is.null(enc)) .lam_txt(lz, enc, 1.6, H - 0.95, 10.1, 0.34, 15, "#FFFFFF", bold = TRUE, align = "center", nombre = "portada:encargo")
+    if (!is.null(fec)) .lam_txt(lz, fec, 1.6, H - 0.58, 10.1, 0.3, 13, "#FFFFFF", align = "center", nombre = "portada:fecha")
+  } else {
+    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.12, 10.1, 0.32, 13, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
+    .lam_txt(lz, tit, 1.3, 2.48, 10.7, 1.5, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
+    if (!is.null(enc)) .lam_txt(lz, enc, 1.6, 4.65, 10.1, 0.4, 18, azul, align = "center", nombre = "portada:encargo")
+    if (!is.null(fec)) .lam_txt(lz, fec, 1.6, 5.12, 10.1, 0.4, 18, suave, align = "center", nombre = "portada:fecha")
+  }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:portada")
   list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' Variante de portada del recetario: «centrada» (23, por defecto), «izquierda» (24) o «banda» (25)
+#' @keywords internal
+.lam_portada_variante <- function(variante) {
+  v <- .lam_clave(as.character(variante %||% "centrada")[1])
+  if (v %in% c("izquierda", "24", "alineada")) "izquierda" else if (v %in% c("banda", "25", "banda inferior")) "banda" else "centrada"
 }
 
 #' ¿La portada cabe? El título en tres líneas a 30 pt en 10.7 in (lo que mide su caja de 1.5 in)
