@@ -64,3 +64,35 @@
   attr(g, "nota_rango") <- sprintf("El tono va de %s%% (claro) a %s%% (oscuro)", lo, hi)
   g
 }
+
+#' Comparativo de dimensiones entre dos grupos en el Word: los puntos de `g_dos_grupos()` con la diferencia CON signo
+#' (primera menos segunda, página 32: «-3 pts», «+2 pts»). La espec `comparativo_dim/1` es la del PPT (diferencia sin
+#' signo, recetario_m3d); aquí sólo se leen sus valores, no se cambia.
+#' @keywords internal
+.word_g_comparativo_dim <- function(espec) {
+  V <- espec$valores; a <- as.numeric(V[, 1]); b <- as.numeric(V[, 2]); d <- a - b
+  .word_g_pesas(list(rotulos = espec$filas, a = a, b = b, cifras_a = paste0(a, "%"), cifras_b = paste0(b, "%"), diferencia = d,
+                     textos_diferencia = sprintf("%+d pts", as.integer(d)), mostrar_diferencia = TRUE,
+                     grupos = as.character(espec$grupos), leyenda = as.character(espec$grupos)))
+}
+
+#' Puntos por competencia, en lugar del radar (`g_competencias()` moderna): por eje, un punto por grupo sobre la línea que
+#' va del menor al mayor; ejes ordenados por su promedio, el mayor arriba; colores de actores del estándar
+#' @keywords internal
+.word_g_competencias <- function(espec) {
+  navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
+  M <- espec$valores; ejes <- as.character(espec$ejes); gr <- as.character(espec$grupos)
+  cols <- if (!is.null(espec$colores)) unname(espec$colores[gr]) else rep_len(c("#0B4F8C", "#2A9D8F", "#E9C46A"), length(gr))
+  o <- order(rowMeans(M)); lv <- ejes[o]
+  d <- do.call(rbind, lapply(seq_along(gr), function(j) data.frame(c = factor(ejes, levels = lv), a = factor(gr[j], levels = gr), v = M[, j])))
+  r <- data.frame(c = factor(ejes, levels = lv), mn = apply(M, 1, min), mx = apply(M, 1, max))
+  lo <- max(0, min(80, floor(min(M) / 5) * 5))
+  g <- ggplot2::ggplot() + ggplot2::geom_segment(data = r, ggplot2::aes(x = .data$mn, xend = .data$mx, y = .data$c, yend = .data$c), colour = T$gris, linewidth = 0.6) +
+    ggplot2::geom_point(data = d, ggplot2::aes(.data$v, .data$c, colour = .data$a), size = 2.6) +
+    ggplot2::scale_colour_manual(values = stats::setNames(cols, gr), name = NULL) +
+    ggplot2::scale_x_continuous(limits = c(lo, 100.5), labels = function(x) paste0(x, "%")) + .word_tema() +
+    ggplot2::theme(axis.text.y = ggplot2::element_text(size = 8.5, colour = navy, face = "bold", family = "Arial", hjust = 1),
+                   axis.text.x = ggplot2::element_text(size = 8, colour = T$gris, family = "Arial"),
+                   panel.grid.major.x = ggplot2::element_line(colour = "#E3E6EC", linewidth = 0.3))
+  attr(g, "alto") <- 0.58 + 0.3 * length(ejes); g         # recetario_word.R:406: 6 competencias en 2.6 in con el pie
+}
