@@ -203,6 +203,7 @@ source("setup-load-all.R")
   p_media_rango = c(categoria = "numeric", blueprint = "mean-range"),
   p_barras_divergentes = c(categoria = "distribution", blueprint = "bars-diverging"),
   p_puntos_comparativos = c(categoria = "comparison", blueprint = "comparison-dots"),
+  p_mapa_resultado_distrital = c(categoria = "territory", blueprint = "territory-map"),
   p_dumbbell = c(categoria = "comparison", blueprint = "dumbbell"),
   p_lollipop = c(categoria = "distribution", blueprint = "lollipop"),
   p_serie_temporal = c(categoria = "comparison", blueprint = "line-series"),
@@ -230,6 +231,7 @@ source("setup-load-all.R")
   p_media_rango = "media_rango",
   p_barras_divergentes = "barras_divergentes",
   p_puntos_comparativos = "puntos_comparativos",
+  p_mapa_resultado_distrital = "",
   p_dumbbell = "dumbbell",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
@@ -267,7 +269,7 @@ test_that("registry: cada slide y graficador expone el shape completo con nombre
   reg <- .graficos_registry_payload()
   expect_setequal(names(reg), c("slides", "graficadores"))
   expect_length(reg$slides, 33L)
-  expect_length(reg$graficadores, 24L)
+  expect_length(reg$graficadores, 25L)
 
   slide_names <- vapply(reg$slides, function(s) s$name, character(1))
   graf_names <- vapply(reg$graficadores, function(g) g$name, character(1))
@@ -298,7 +300,7 @@ test_that("registry: cada slide y graficador expone el shape completo con nombre
   }
 })
 
-test_that("registry G2-L1: los 24 graficadores publican contrato operativo cerrado", {
+test_that("registry G2-L1: los 25 graficadores publican contrato operativo cerrado", {
   reg <- .graficos_registry_payload()
   by_name <- stats::setNames(
     reg$graficadores,
@@ -371,7 +373,7 @@ test_that("registry G2-L1: los 24 graficadores publican contrato operativo cerra
   expect_identical(points_args[seq_len(4L)], c("var", "cruces", "corte", "excluir_opciones"))
 
   exceptional <- c(
-    names(dims), "p_mapa_cobertura_territorial", "p_puntos_comparativos",
+    names(dims), "p_mapa_cobertura_territorial", "p_puntos_comparativos", "p_mapa_resultado_distrital",
     "p_dumbbell", "p_serie_temporal"
   )
   direct <- by_name[setdiff(names(by_name), exceptional)]
@@ -379,12 +381,12 @@ test_that("registry G2-L1: los 24 graficadores publican contrato operativo cerra
   expect_true(all(vapply(direct, `[[`, character(1), "data_requirement") == "var_or_vars"))
 })
 
-test_that("registry G2-L1: getExportedValue acredita los 24 constructores públicos", {
+test_that("registry G2-L1: getExportedValue acredita los 25 constructores públicos", {
   exported <- lapply(.graf_names(), function(name) {
     tryCatch(getExportedValue("prosecnurapp", name), error = identity)
   })
   names(exported) <- .graf_names()
-  expect_length(exported, 24L)
+  expect_length(exported, 25L)
   for (name in names(exported)) {
     expect_true(is.function(exported[[name]]), label = name)
   }
@@ -539,7 +541,7 @@ test_that("registry L4: slot_specs es la única autoría y el wire conserva nomb
   expect_setequal(unique(roles), c("chart", "icon"))
 })
 
-test_that("registry L4: los 24 graficadores publican categoría y blueprint exactos", {
+test_that("registry L4: los 25 graficadores publican categoría y blueprint exactos", {
   reg <- .graficos_registry_payload()
   expect_identical(.graf_names(), names(.gm_graficadores))
   wire_by_name <- stats::setNames(

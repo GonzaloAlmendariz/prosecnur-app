@@ -1555,6 +1555,30 @@
     ), .args_graf_comunes())
   ),
 
+  # ADR 0093: lámina 104 del recetario, un indicador por distrito en el mapa de Lima.
+  p_mapa_resultado_distrital = list(
+    titulo_humano = "Mapa de resultado por distrito",
+    descripcion   = "Pinta cada distrito de Lima y Callao según un porcentaje en clases y lista los distritos de mayor a menor. Necesita una pregunta con el distrito del encuestado.",
+    icono_ui      = "Map",
+    categoria     = "territory",
+    blueprint     = "territory-map",
+    args = c(list(
+      list(name = "var", label = "Indicador", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta select_one sobre la que se calcula el porcentaje de cada distrito."),
+      list(name = "cruces", label = "Distrito", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta select_one con el distrito del encuestado: códigos UBIGEO o nombres de distrito."),
+      list(name = "corte", label = "Códigos objetivo", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Códigos que forman el numerador (por ejemplo, satisfecho y muy satisfecho)."),
+      list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro"),
+      list(name = "min_n", label = "Casos mínimos por distrito", tipo_input = "number", grupo = "filtro", default = 1, min = 1, step = 1,
+           descripcion = "Con menos casos válidos el distrito va como «Sin encuestas» y se avisa."),
+      list(name = "cortes", label = "Cortes de las clases (%)", tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Tres cortes dan cuatro clases. Por defecto 55, 65 y 75."),
+      list(name = "rotulo", label = "Rótulo del indicador", tipo_input = "string", grupo = "textos",
+           descripcion = "Vacío lo arma con las etiquetas de los códigos objetivo.")
+    ), .args_graf_comunes())
+  ),
+
   # =========================================================================
   # DUMBBELL (brecha entre dos bases)
   # =========================================================================
@@ -1942,6 +1966,7 @@
   p_media_rango = "media_rango",
   p_barras_divergentes = "barras_divergentes",
   p_puntos_comparativos = "puntos_comparativos",
+  p_mapa_resultado_distrital = "",
   p_dumbbell = "dumbbell",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
@@ -1965,7 +1990,7 @@
     capability_key <- "territorial_coverage"
   }
 
-  data_requirement <- if (identical(name, "p_puntos_comparativos")) {
+  data_requirement <- if (name %in% c("p_puntos_comparativos", "p_mapa_resultado_distrital")) {
     "var_cruces_corte"
   } else if (name %in% names(generated)) {
     "named_vars"
@@ -1976,6 +2001,8 @@
   }
   requirement_label <- if (identical(name, "p_puntos_comparativos")) {
     "Selecciona indicador, agrupación y uno o más códigos objetivo de la base activa."
+  } else if (identical(name, "p_mapa_resultado_distrital")) {
+    "Selecciona indicador, la pregunta con el distrito y uno o más códigos objetivo de la base activa."
   } else {
     switch(
       capability_key,
