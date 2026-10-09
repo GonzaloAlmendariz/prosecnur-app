@@ -195,3 +195,33 @@ test_that("el objetivo cuenta sus párrafos: siete líneas en párrafos van a la
   expect_false(.lam_objetivo_cabe(paste(c("Primero.", "Segundo.", "Tercero.", "Cuarto.", "Quinto.", "Sexto.", "Séptimo."), collapse = "\n")))
   expect_true(.lam_objetivo_cabe("Primero.\nSegundo.\nTercero."))
 })
+
+test_that("el índice ofrece las cuatro composiciones del recetario y lleva número, ícono y título por capítulo (31-50)", {
+  c5 <- c("Perfil del encuestado", "Características institucionales", "Cuerpo académico", "Características del perfil de egreso", "Estudiantes y graduados")
+  plan <- lapply(c("arcos", "facetas", "circulos", "bloques"), function(g) p_slide_indice("Índice", secciones = c5, meta = list(composicion = g)))
+  plan$e <- p_slide_indice("Índice", secciones = c5, subindices = list(c("Estudiantes", "Docentes"), "Misión", "Gestión", "Competencias", "Situación laboral"))
+  plan$f <- p_slide_indice("Índice", secciones = paste("Capítulo", 1:14))
+  lam <- .id_mazo(plan)
+  md5 <- vapply(lam[1:4], function(x) {
+    n <- xml2::xml_find_first(x, "//p:pic[p:nvPicPr/p:cNvPr[@name='indice:ilustracion']]//a:blip")
+    xml2::xml_attr(n, "embed")
+  }, "")
+  expect_true(all(!is.na(md5)))
+  expect_identical(.id_txt(lam[[1]], "indice:capitulo"), c5)
+  expect_identical(.id_txt(lam[[1]], "indice:numero"), as.character(1:5))
+  expect_length(xml2::xml_find_all(lam[[1]], "//p:pic[p:nvPicPr/p:cNvPr[@name='indice:icono']]"), 5L)
+  expect_identical(vapply(c5, .lam_icono_capitulo, ""), c("users", "building-2", "presentation", "award", "briefcase"), ignore_attr = TRUE)
+  expect_identical(.id_txt(lam[[5]], "indice:subnumero"), c("1.1", "1.2", "2.1", "3.1", "4.1", "5.1"))
+  expect_false("prosecnur:indice" %in% xml2::xml_attr(xml2::xml_find_all(lam[[6]], "//p:cNvPr"), "name"))   # 14 capítulos: ruta anterior
+  ilus <- vapply(c("arcos", "facetas", "circulos", "bloques"), function(g) nzchar(system.file("ppt_assets", "indice_geometria", paste0(g, ".png"), package = "prosecnurapp")), TRUE)
+  expect_true(all(ilus))
+})
+
+test_that("el índice alinea los subcapítulos por nombre y respeta el estilo de focos cuando se pide", {
+  subs <- .lam_indice_subs(c("Objetivo", "Metodología"), list("Metodología" = c("Perfil", "Satisfacción")))
+  expect_identical(subs, list(character(0), c("Perfil", "Satisfacción")))
+  expect_identical(.lam_indice_subs(c("A", "B", "C"), list("x")), list("x", character(0), character(0)))
+  expect_true(.lam_indice_focos(list(iconos_focos = "target")))
+  expect_true(.lam_indice_focos(list(), list(composicion = "focos")))
+  expect_false(.lam_indice_focos(list(), list(composicion = "arcos")))
+})

@@ -7560,7 +7560,7 @@ reporte_ppt_plan <- function(
         (!is.null(title_raw) && nzchar(trimws(as.character(title_raw)[1])))
 
       two_column_index <- isTRUE(.style_value(style, "acnur_two_column_index", FALSE))
-      if (!isTRUE(solo_lista) && isTRUE(has_custom_index) && isTRUE(two_column_index)) {
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && !isTRUE(two_column_index) && !.lam_indice_focos(slots, slide$meta %||% list()) && .lam_indice_cabe(secciones, if (is.list(slots$subindices) && !is.data.frame(slots$subindices)) slots$subindices else NULL)) doc <- .lam_laminas_indice(doc, secciones, if (is.list(slots$subindices) && !is.data.frame(slots$subindices)) slots$subindices else NULL, title_raw, (slide$meta %||% list())$composicion %||% "arcos", (slide$meta %||% list())$iconos, PPT_CONTRACT$slide_1$layout, master)$doc else if (!isTRUE(solo_lista) && isTRUE(has_custom_index) && isTRUE(two_column_index)) {
         custom_layout <- PPT_CONTRACT$text_slide$layout %||% contract$layout
         doc <- .add_slide_strict(doc, custom_layout)
         font_family_default <- presets$base$args$font_family_ppt %||%

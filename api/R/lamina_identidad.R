@@ -327,8 +327,8 @@
 
 #' Ícono del recetario en el paquete (PNG blanco de Lucide, `inst/ppt_assets/iconos_recetario`)
 #' @keywords internal
-.lam_icono_ruta <- function(nombre) {
-  r <- system.file("ppt_assets", "iconos_recetario", "blanco", paste0(nombre, ".png"), package = "prosecnurapp")
+.lam_icono_ruta <- function(nombre, color = "blanco") {
+  r <- system.file("ppt_assets", "iconos_recetario", color, paste0(nombre, ".png"), package = "prosecnurapp")
   if (nzchar(r)) r else NULL
 }
 
@@ -491,4 +491,123 @@
   actores <- as.character(actores %||% character(0))
   lineas <= 5 && length(actores) <= 6L &&
     (!length(actores) || all(.lam_alto_tinta(actores, ac / length(actores), 12, TRUE) <= 0.55))
+}
+
+# ---- Índice (láminas 31, 36, 41 y 46; propuestas_indice.R:22-70, dirección «geometría abstracta») ------------------
+
+.LAM_INDICE_COMPOSICIONES <- c("arcos", "facetas", "circulos", "bloques")
+
+#' Ícono navy de cada capítulo del índice, por su título (o el que se declare en `meta$iconos`)
+#' @keywords internal
+.lam_icono_capitulo <- function(titulo) {
+  t <- .lam_clave(titulo)
+  reglas <- list(c("egreso", "award"), c("perfil|encuestad|actores|muestra", "users"), c("institucion", "building-2"),
+                 c("politica", "scroll-text"), c("organizac|administrativ|financ", "network"), c("docente|academico|cuerpo", "presentation"),
+                 c("estudiante|graduad|laboral|insercion", "briefcase"), c("infraestructura|recurso|instalacion", "library"),
+                 c("curricul|plan de estudio|formacion", "book-open"), c("vinculacion|medio|sostenib", "handshake"),
+                 c("internacional", "globe"), c("investigacion|innovacion", "flask-conical"), c("integridad|transparencia|etica", "scale"),
+                 c("objetivo", "target"), c("metodolog|ficha", "clipboard-list"), c("resultado|hallazgo", "chart-column"),
+                 c("conclusi", "list-checks"), c("recomendaci", "lightbulb"))
+  for (r in reglas) if (grepl(r[1], t)) return(r[2])
+  "list-checks"
+}
+
+#' Subcapítulos alineados con los capítulos: por nombre si la lista viene nombrada (como la arma el plan), si no por
+#' posición; un capítulo sin subcapítulos queda vacío
+#' @keywords internal
+.lam_indice_subs <- function(secciones, subindices) {
+  n <- length(secciones)
+  if (is.null(subindices) || !is.list(subindices) || is.data.frame(subindices)) return(vector("list", n))
+  nm <- names(subindices)
+  lapply(seq_len(n), function(k) {
+    x <- if (!is.null(nm) && any(nzchar(nm))) subindices[[secciones[k]]] else if (k <= length(subindices)) subindices[[k]] else NULL
+    x <- as.character(unlist(x %||% character(0))); x[nzchar(trimws(x))]
+  })
+}
+
+#' ¿El plan pide el índice de focos? Sus ajustes (`iconos_focos…`) o `meta$composicion = "focos"` son una elección
+#' explícita de ese estilo, que conserva su ruta
+#' @keywords internal
+.lam_indice_focos <- function(slots, meta = list()) {
+  identical(tolower(as.character(meta$composicion %||% "")[1]), "focos") ||
+    any(vapply(c("iconos_focos", "iconos_focos_fill", "iconos_focos_objeto_unico", "iconos_focos_diametro_cm", "iconos_focos_icon_scale",
+                 "iconos_focos_left_cm", "iconos_focos_top_cm"), function(k) !is.null(slots[[k]]), TRUE)) || isTRUE(slots$redibujar_focos) ||
+    isTRUE((slots$estilo %||% list())$redibujar_focos) || !is.null((slots$estilo %||% list())$iconos_focos)
+}
+
+#' Geometría de la lista del índice (la del recetario por número de capítulos, con o sin subcapítulos)
+#' @keywords internal
+.lam_indice_geo <- function(n, ns) {
+  y0 <- 1.75; y1 <- 6.95; alto <- y1 - y0
+  if (ns == 0) {
+    rh <- min(if (n <= 5) 0.95 else 0.62, alto / n)
+    list(sub = FALSE, rh = rh, fs = if (n <= 5) 18 else if (n <= 8) 15 else 12.5, di = if (n <= 5) 0.44 else if (n <= 8) 0.34 else 0.26,
+         dx = if (n <= 5) 0.75 else 0.6, ya = y0 + (alto - n * rh) / 2, negrita = n <= 5)
+  } else {
+    hs <- min(0.31, (alto - 0.5 * n - 0.12 * (n - 1)) / ns)
+    list(sub = TRUE, hm = 0.5, hs = hs, di = 0.36, dx = 0.65, y0 = y0)
+  }
+}
+
+#' Índice del recetario: la ilustración de su composición a la izquierda y la lista con número coral, ícono y título
+#'
+#' @param composicion «arcos» (por defecto, la 31), «facetas», «circulos» o «bloques» (`meta$composicion`).
+#' @keywords internal
+.lam_laminas_indice <- function(doc, secciones, subindices = NULL, titulo = NULL, composicion = "arcos", iconos = NULL,
+                                layout = "Graficos", master = "Office Theme", por_lamina = function(doc) doc) {
+  W <- .std_geom("ancho"); mr <- .std_geom("margen_der"); azul <- .std_color("azul"); coral <- .std_color("coral"); suave <- .std_color("texto_suave")
+  composicion <- tolower(as.character(composicion %||% "arcos")[1]); if (!composicion %in% .LAM_INDICE_COMPOSICIONES) composicion <- "arcos"
+  caps <- as.character(secciones); n <- length(caps)
+  subs <- .lam_indice_subs(caps, subindices)
+  ns <- sum(lengths(subs)); G <- .lam_indice_geo(n, ns)
+  icos <- if (length(iconos) == n) as.character(iconos) else vapply(caps, .lam_icono_capitulo, "", USE.NAMES = FALSE)
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  ilu <- system.file("ppt_assets", "indice_geometria", paste0(composicion, ".png"), package = "prosecnurapp")
+  if (nzchar(ilu)) doc <- officer::ph_with(doc, officer::external_img(ilu, width = 6.2, height = 7.5),
+                                           location = officer::ph_location(left = 0, top = 0, width = 6.2, height = 7.5, newlabel = "indice:ilustracion"))
+  lz <- .lam_lienzo(); xl <- 6.75; iconos_xy <- list()
+  .lam_txt(lz, as.character(titulo %||% "Índice")[1], xl - 0.1, 0.86, 4, 0.62, 30, coral, bold = TRUE, nombre = "Titulo lamina")
+  if (!G$sub) {
+    xi <- xl + G$dx; xt <- xi + G$di + 0.25
+    for (k in seq_len(n)) {
+      y <- G$ya + (k - 1) * G$rh
+      .lam_txt(lz, sprintf("%d", k), xl - 0.1, y + (G$rh - G$fs / 46) / 2 - 0.02, 0.8, G$fs / 46 + 0.08, G$fs, coral, bold = TRUE, nombre = "indice:numero")
+      iconos_xy[[k]] <- list(n = icos[k], x = xi, y = y + (G$rh - G$di) / 2, d = G$di)
+      .lam_txt(lz, caps[k], xt - 0.1, y + (G$rh - G$fs / 48) / 2 - 0.02, W - mr - xt + 0.1, G$fs / 48 + 0.08, G$fs, azul, bold = G$negrita, nombre = "indice:capitulo")
+      if (k < n) .lam_caja(lz, xl, y + G$rh - 0.003, W - mr - xl, 0.005, .std_color("filete"), nombre = "indice:filete")
+    }
+  } else {
+    xi <- xl + G$dx; xt <- xi + G$di + 0.25; y <- G$y0
+    for (k in seq_len(n)) {
+      .lam_txt(lz, sprintf("%d", k), xl - 0.1, y + (G$hm - 0.34) / 2, 0.8, 0.34, 15, coral, bold = TRUE, nombre = "indice:numero")
+      iconos_xy[[k]] <- list(n = icos[k], x = xi, y = y + (G$hm - G$di) / 2, d = G$di)
+      .lam_txt(lz, caps[k], xt - 0.1, y + (G$hm - 0.34) / 2, W - mr - xt + 0.1, 0.34, 15, azul, bold = TRUE, nombre = "indice:capitulo"); y <- y + G$hm
+      for (j in seq_along(subs[[k]])) {
+        .lam_txt(lz, sprintf("%d.%d", k, j), xt - 0.1, y + (G$hs - 0.28) / 2, 0.55, 0.28, 11, suave, bold = TRUE, nombre = "indice:subnumero")
+        .lam_txt(lz, subs[[k]][j], xt + 0.42, y + (G$hs - 0.28) / 2, W - mr - xt - 0.42, 0.28, 12, suave, nombre = "indice:subcapitulo"); y <- y + G$hs
+      }
+      if (k < n) { .lam_caja(lz, xl, y + 0.04, W - mr - xl, 0.005, .std_color("filete"), nombre = "indice:filete"); y <- y + 0.12 }
+    }
+  }
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:indice")
+  for (ic in iconos_xy) {
+    ruta <- .lam_icono_ruta(ic$n, "navy")
+    if (!is.null(ruta)) doc <- officer::ph_with(doc, officer::external_img(ruta, width = ic$d, height = ic$d),
+                                                location = officer::ph_location(left = ic$x, top = ic$y, width = ic$d, height = ic$d, newlabel = "indice:icono"))
+  }
+  list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' ¿El índice cabe? De 1 a 13 capítulos de una línea en su columna y, con subcapítulos, filas de al menos 0.18 in (la 32
+#' del recetario los dibuja a 0.20: cinco capítulos con once subcapítulos)
+#' @keywords internal
+.lam_indice_cabe <- function(secciones, subindices = NULL) {
+  caps <- as.character(secciones %||% character(0)); n <- length(caps)
+  if (!n || n > 13L || any(!nzchar(trimws(caps)))) return(FALSE)
+  subs <- .lam_indice_subs(caps, subindices)
+  ns <- sum(lengths(subs)); G <- .lam_indice_geo(n, ns)
+  W <- .std_geom("ancho"); mr <- .std_geom("margen_der"); xl <- 6.75
+  if (!G$sub) return(all(.lam_ancho_tinta(caps, G$fs, G$negrita) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.1))
+  G$hs >= 0.18 && all(.lam_ancho_tinta(caps, 15, TRUE) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.1) &&
+    all(.lam_ancho_tinta(unlist(subs), 12) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.5)
 }

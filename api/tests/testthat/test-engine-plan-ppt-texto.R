@@ -94,7 +94,9 @@ test_that("p_slide_indice renderiza contenido editable en PPT", {
           secciones = c("Objetivo del estudio", "Metodología y ficha técnica"),
           subindices = list(
             "Metodología y ficha técnica" = c("Perfil del egresado", "Satisfacción con la carrera")
-          )
+          ),
+          # El índice de la plantilla (focos editables); el nativo del recetario, en test-lamina-identidad.R.
+          meta = list(motor_nativo = FALSE)
         )
       ),
       presets = p_presets(),
@@ -207,7 +209,8 @@ test_that("reporte_ppt_plan aplica controles de focos desde slots del editor", {
         diapo_001 = slide,
         diapo_002 = p_slide_indice(
           titulo = "Índice",
-          secciones = c("Objetivo", "Metodología")
+          secciones = c("Objetivo", "Metodología"),
+          meta = list(motor_nativo = FALSE)   # los focos por defecto de la plantilla
         )
       ),
       presets = p_presets(),
@@ -283,7 +286,8 @@ test_that("p_slide_indice soporta variantes de 3 a 6 apartados con subindices", 
         subindices_inline = TRUE,
         redibujar_focos = TRUE,
         mostrar_iconos_focos = TRUE
-      )
+      ),
+      meta = list(motor_nativo = FALSE)   # variantes del índice de la plantilla; el nativo, en test-lamina-identidad.R
     )
   }
 
