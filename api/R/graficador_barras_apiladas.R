@@ -3757,6 +3757,7 @@ graficar_barras_apiladas <- function(
       )
       if (debug_ph_bordes) canvas <- canvas + .ph_border(x_legend_side0, y_main0, w_legend_side, main_h)
     } else if (usar_leyenda_manual) {
+      n_capas_antes_leyenda <- length(canvas$layers)
       labels_manual <- unname(labels_leyenda)
       fills_manual <- unname(colores_leyenda_manual)
       n_items <- length(labels_manual)
@@ -3906,6 +3907,16 @@ graficar_barras_apiladas <- function(
           )
         }
       }
+      # ADR 0092 (F3): la lámina puede dibujar esta leyenda con formas nativas a
+      # 12 pt (reporte_lamina_leyenda.R) en el mismo lugar; aquí se declara qué
+      # capas son y dónde va. Centro: el bloque entero, columna extra incluida.
+      x_fin_bloque <- if (isTRUE(mostrar_barra_extra) && w_extra > 0) x_extra0 + w_extra else x_bars0 + w_bars
+      attr(canvas, "pulso_leyenda_nativa") <- list(
+        etiquetas = labels_manual, colores = fills_manual, filas = row_ids,
+        y_filas_npc = vapply(seq_len(n_rows), function(r) y_legend0 + legend_h - ((r - 0.5) * row_h) + dy_leg, numeric(1)),
+        x_centro_npc = (x_bars0 + x_fin_bloque) / 2,
+        capas = seq.int(n_capas_antes_leyenda + 1L, length(canvas$layers))
+      )
       if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_legend0, 1, legend_h)
     } else {
       # P40, MEDIDO Y SIN REPARAR TODAVIA: este 0.5 centra la leyenda sobre TODO
