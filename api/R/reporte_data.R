@@ -266,7 +266,7 @@ reporte_data <- function(data,
           "name" %in% names(measure_rules) &&
           "measure_sugerida" %in% names(measure_rules)) {
 
-        mm <- measure_rules$measure_sugerida[measure_rules$name == v]
+        mm <- measure_rules$measure_sugerida[which(measure_rules$name == v)]
         if (length(mm) > 0 && !is.na(mm[1])) {
           mother_measure <- as.character(mm[1])
         }
@@ -441,7 +441,7 @@ reporte_data <- function(data,
     vars_comunes_m <- intersect(names(data), measure_rules$name)
 
     for (v in vars_comunes_m) {
-      m <- measure_rules$measure_sugerida[measure_rules$name == v][1]
+      m <- measure_rules$measure_sugerida[which(measure_rules$name == v)[1]]
       if (!is.na(m) && !is.null(m) && nzchar(m)) {
         attr(data[[v]], "measure") <- as.character(m)
       }

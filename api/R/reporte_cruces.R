@@ -96,7 +96,7 @@ get_pesos <- function(data, weight_col = "peso") {
 tipo_pregunta <- function(var, survey = NULL, sm_vars_force = NULL, data = NULL) {
   if (!is.null(sm_vars_force) && var %in% sm_vars_force) return("sm")
 
-  if (!is.null(survey) && any(survey$name == var)) {
+  if (!is.null(survey) && any(survey$name == var, na.rm = TRUE)) {
     tipos <- unique(na.omit(survey$type[survey$name == var]))
     if (any(grepl("^select_multiple(\\s|$)", tipos))) return("sm")
     if (any(grepl("^select_one(\\s|$)", tipos)))      return("so")

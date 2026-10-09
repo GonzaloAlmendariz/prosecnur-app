@@ -526,7 +526,7 @@ relacion_tab_server <- function(
 
     tipo_pregunta <- function(var, survey = NULL, sm_vars_force = NULL, df = NULL) {
       if (!is.null(sm_vars_force) && var %in% sm_vars_force) return("sm")
-      if (!is.null(survey) && any(survey$name == var)) {
+      if (!is.null(survey) && any(survey$name == var, na.rm = TRUE)) {
         tipos <- unique(na.omit(survey$type[survey$name == var]))
         tipos <- tolower(as.character(tipos))
         if (any(grepl("^select_multiple(\\s|$)", tipos))) return("sm")
@@ -1216,7 +1216,7 @@ relacion_tab_server <- function(
           if (!is.null(vlab) && nzchar(as.character(vlab))) return(as.character(vlab))
         }
         if (!is.null(dic_vars) && all(c("name","label") %in% names(dic_vars))) {
-          lab <- dic_vars$label[dic_vars$name == var]
+          lab <- dic_vars$label[which(dic_vars$name == var)]
           if (length(lab) && !all(is.na(lab))) return(as.character(lab[1]))
         }
         as.character(var)
