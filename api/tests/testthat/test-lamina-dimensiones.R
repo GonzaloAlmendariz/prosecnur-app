@@ -129,3 +129,19 @@ test_that("el pie del mapa explica el asterisco y la diferencia bajo cada cifra 
   pie <- .dm_txt(.dm_xml(.dm_print(o$doc), length(o$doc)), "Base lamina")
   expect_identical(pie, "Base: 109 estudiantes. * Menos de 15 casos. Debajo de cada cifra, la diferencia con el total en puntos")   # hallazgo 7
 })
+
+test_that("una lámina, una base: si las columnas cuentan respondientes, el pie dice el mismo total", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg")
+  f <- .dm_fixture()
+  for (v in grep("^sub_|^r100_", names(f$data), value = TRUE)) f$data[[v]][1:10] <- NA
+  plan <- list(a = p_slide_1_grafico(grafico = p_dim_heatmap(objetivo = "idx_idx", cruce = "sexo", modo = "general", incluir_total = TRUE), titulo = "Por sexo"))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = f$data, instrumento = f$instrumento, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
+  xml <- .dm_xml(out, 1)
+  expect_identical(.dm_txt(xml, "calor:casos")[1], "50")
+  expect_match(.dm_txt(xml, "Base lamina"), "^Base: 50 .*que respondieron la batería")        # antes «Base: 60» con Total 50
+  args <- list(data = f$data, instrumento = f$instrumento, modo = "general", objetivo = "idx_idx", cruce = "sexo", incluir_total = TRUE,
+               filtros = list(sexo = "1"))
+  e <- attr(.espec_dim_adjuntar(ggplot2::ggplot(), args, "heatmap"), "pulso_espec")
+  expect_equal(e$n_respondieron_total, sum(f$data$sexo[11:60] == "1"))                        # con filtro también cuenta respondientes
+})
