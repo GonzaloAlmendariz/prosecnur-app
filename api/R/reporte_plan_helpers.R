@@ -3056,8 +3056,14 @@ p_reset <- function(
 .word_ajustar_el <- function(el_for_word, etype, word_image = NULL) {
   `%||%` <- .rp_null_default
   ov <- el_for_word$overrides %||% list()
-  if (etype %in% c("barras_apiladas", "barras_multiapiladas", "barras_agrupadas")) {
+  if (etype %in% c("barras_apiladas", "barras_multiapiladas", "barras_agrupadas", "barras_categoricas")) {
     ov <- .word_calibrar_canvas_overrides(ov, word_image)
+  }
+  # ADR 0092 (verificador de F2): la categórica horizontal se calcula en
+  # pulgadas; sin el lienzo real del Word salía con los rótulos cortados. Sus
+  # rótulos y cifras van al tamaño del Word del recetario.
+  if (identical(etype, "barras_categoricas") && is.null(ov$size_rotulos_h)) {
+    ov$size_rotulos_h <- .std_word("tipografia", "grafico_rotulo")
   }
   if (etype %in% c("barras_apiladas", "barras_multiapiladas")) {
     # W-5 (B54): el pedido de columna extra de la lamina sobrevive al default

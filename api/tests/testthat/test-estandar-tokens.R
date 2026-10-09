@@ -80,6 +80,10 @@ test_that("los presets literales del motor no se apartan del estándar", {
   expect_equal(base$color_nota_pie, .std_color("azul"))
   expect_equal(.PULSO_PPT_COLORS$azul, .std_color("azul"))
   expect_equal(.PULSO_PPT_COLORS$rojo, .std_color("coral"))
+  # Literales del suelo (código de primer nivel, no puede leer el JSON al
+  # instalar): atados al estándar aquí.
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_barra_extra, .std_color("verde_top_two_box"))
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_barra_extra, .std_color("verde_top_two_box"))
 })
 
 test_that("el JSON versionado es exactamente lo que exporta el recetario", {

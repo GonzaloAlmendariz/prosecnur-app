@@ -217,6 +217,9 @@ graficar_barras_categoricas <- function(
     # ADR 0092 (F2.2): el recetario dibuja las categorías en barras horizontales
     # (`graficador_barras_horizontales.R`). "vertical" conserva las columnas previas.
     orientacion               = c("horizontal", "vertical"),
+    # Tamaño (pt) de rótulos y cifras de la horizontal; NULL = 12 pt de la
+    # lámina. El Word lo baja al rótulo de su recetario (.word_ajustar_el).
+    size_rotulos_h            = NULL,
     limite_y                  = NULL,
     expand_y                  = 0.14,
     mostrar_eje_y             = FALSE,
@@ -406,7 +409,8 @@ graficar_barras_categoricas <- function(
                                           font_family = font_family, nota = label_note, color_fondo = color_fondo,
                                           titulo = titulo, subtitulo = subtitulo, textos_negrita = textos_negrita,
                                           color_titulo = color_titulo, color_subtitulo = color_subtitulo,
-                                          size_titulo = size_titulo, size_subtitulo = size_subtitulo)
+                                          size_titulo = size_titulo, size_subtitulo = size_subtitulo,
+                                          size_pt = size_rotulos_h %||% .BARRAS_H_PT)
     attr(p, "pulso_barras_categoricas_data") <- df
     attr(p, "pulso_barras_categoricas_promedio") <- promedio
     attr(p, "pulso_barras_categoricas_max_categorias") <- max_categorias

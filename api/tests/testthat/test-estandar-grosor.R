@@ -110,3 +110,29 @@ test_that("sin categorías declaradas la Bottom Two Box no se inventa", {
     top2box_labels = c("A", "TA"), columna_bottom2box = TRUE)), "Bottom Two Box")
   expect_null(attr(p, "pulso_barras_apiladas_layout")$bottom2box)
 })
+
+test_that("con el grosor del estándar, la guía de la cifra que sube toca el techo de su barra", {
+  skip_if_not_installed("cowplot")
+  # Verificador de F2: las guías se ubicaban con el grosor anterior al ajuste.
+  for (n in c(3, 5, 8)) {
+    p_lay <- NULL
+    traza <- function(p, ancho) { p_lay <<- p; p }
+    d <- data.frame(categoria = sprintf("Fila %d", seq_len(n)), N = 200L,
+                    t1 = 0.02, t2 = 0.18, t3 = 0.40, t4 = 0.40)
+    trace(".grosor_reemplazar_ancho_col", exit = quote(assign("p_mut", returnValue(), envir = globalenv())),
+          print = FALSE, where = asNamespace("prosecnurapp"))
+    on.exit(untrace(".grosor_reemplazar_ancho_col", where = asNamespace("prosecnurapp")), add = TRUE)
+    suppressMessages(suppressWarnings(graficar_barras_apiladas(
+      data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = paste0("t", 1:4),
+      etiquetas_grupos = c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA"), exportar = "rplot",
+      usar_canvas = TRUE, ancho = 12.5, alto = 4.6)))
+    p <- get("p_mut", envir = globalenv())
+    col <- Filter(function(l) inherits(l$geom, "GeomCol"), p$layers)[[1]]
+    seg <- Filter(function(l) inherits(l$geom, "GeomSegment"), p$layers)
+    expect_true(length(seg) >= 1L, info = paste(n, "filas"))
+    sd <- seg[[1]]$data
+    techo <- sd$.y_plot + col$aes_params$width / 2
+    expect_true(all(abs(pmin(sd$y_conector_label, sd$y_conector_barra) - techo) < 0.03), info = paste(n, "filas"))
+    untrace(".grosor_reemplazar_ancho_col", where = asNamespace("prosecnurapp"))
+  }
+})

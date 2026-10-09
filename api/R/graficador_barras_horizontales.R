@@ -59,20 +59,28 @@
                                              textos_negrita = c("titulo", "valores"),
                                              color_titulo = .std_color("coral"),
                                              color_subtitulo = .std_color("azul"),
-                                             size_titulo = 16, size_subtitulo = 12) {
+                                             size_titulo = 16, size_subtitulo = 12,
+                                             size_pt = .BARRAS_H_PT) {
+  size_pt <- suppressWarnings(as.numeric(size_pt)[1]); if (!is.finite(size_pt) || size_pt <= 0) size_pt <- .BARRAS_H_PT
   ancho <- suppressWarnings(as.numeric(ancho)[1]); if (!is.finite(ancho) || ancho <= 0) ancho <- 10
   alto <- suppressWarnings(as.numeric(alto)[1]); if (!is.finite(alto) || alto <= 0) alto <- 6
-  df <- df[is.finite(df$valor) & df$valor > 0, , drop = FALSE]
+  # Las categorías en 0 % se dibujan si llegan: mostrarlas o no lo decide quien
+  # arma la tabla (mostrar_ceros), no el graficador.
+  df <- df[is.finite(df$valor), , drop = FALSE]
   if (!nrow(df)) stop("No hay categorias con valor para graficar.", call. = FALSE)
 
   # Dos categorías sin paleta propia: dicotomía partida del recetario (barras_h
   # deriva a `dicotomia()` en el estilo moderno, recetario.R:187-189).
-  if (nrow(df) == 2L && !isTRUE(paleta_propia)) {
+  # Sólo si las dos cifras suman 100 %: con opción múltiple o filtros la barra
+  # partida contradiría a sus cifras.
+  suma_pct <- suppressWarnings(sum(as.numeric(df$pct %||% NA_real_)))
+  if (nrow(df) == 2L && !isTRUE(paleta_propia) && is.finite(suma_pct) && abs(suma_pct - 1) < 0.02) {
     return(.graficar_dicotomia_partida(df, ancho = ancho, alto = alto, font_family = font_family,
                                        nota = nota, color_fondo = color_fondo, titulo = titulo,
                                        subtitulo = subtitulo, textos_negrita = textos_negrita,
                                        color_titulo = color_titulo, color_subtitulo = color_subtitulo,
-                                       size_titulo = size_titulo, size_subtitulo = size_subtitulo))
+                                       size_titulo = size_titulo, size_subtitulo = size_subtitulo,
+                                       escala_texto = size_pt / .BARRAS_H_PT))
   }
 
   resid <- grepl(.BARRAS_H_RESIDUAL, tolower(trimws(df$categoria)))
@@ -97,16 +105,16 @@
   g_in <- .std_grosor(n, "categorias")
   fraccion <- min(.GROSOR_TOPE_FRACCION, g_in / paso)
 
-  wlab <- min(max(.barras_h_ancho_txt(df$categoria, bold = TRUE)), 0.32 * ancho)
+  wlab <- min(max(.barras_h_ancho_txt(df$categoria, size = size_pt, bold = TRUE)), 0.32 * ancho)
   wlab <- max(wlab, 0.6)
-  car_linea <- max(8L, floor(wlab / (.BARRAS_H_PT * 0.52 / 72)))
+  car_linea <- max(8L, floor(wlab / (size_pt * 0.52 / 72)))
   df$rotulo <- vapply(df$categoria, function(s) paste(strwrap(s, car_linea), collapse = "\n"), "")
   wbar <- max(1, ancho - wlab - 0.12 - 0.8)
   escala <- max(df$valor) * 1.12
   k <- escala / wbar  # unidades de datos por pulgada
 
   df$y <- filas_virtuales - seq_len(n) + 1  # la primera categoría arriba
-  mm <- .BARRAS_H_PT / ggplot2::.pt
+  mm <- size_pt / ggplot2::.pt
 
   p <- ggplot2::ggplot(df, ggplot2::aes(y = .data$y)) +
     ggplot2::geom_col(ggplot2::aes(x = .data$valor, fill = .data$categoria),
@@ -150,13 +158,13 @@
                                         nota = NULL, color_fondo = NA, titulo = NULL, subtitulo = NULL,
                                         textos_negrita = c("titulo", "valores"),
                                         color_titulo = .std_color("coral"), color_subtitulo = .std_color("azul"),
-                                        size_titulo = 16, size_subtitulo = 12) {
+                                        size_titulo = 16, size_subtitulo = 12, escala_texto = 1) {
   hay <- function(x) !is.null(x) && length(x) && !is.na(x[1]) && nzchar(paste(x, collapse = ""))
   cara <- function(parte) if (parte %in% textos_negrita) "bold" else "plain"
   pt <- function(x) x / ggplot2::.pt
   cols <- .std_paleta("dicotomica")
-  azul_medio <- "#4F7FAF"
-  size_cifra <- round(22 * 0.85)
+  azul_medio <- .std_color("azul_medio")
+  size_cifra <- round(22 * 0.85 * escala_texto)
   g <- 0.34
   w <- max(2, ancho - 0.8)
   p1 <- df$valor[1] / sum(df$valor)
@@ -177,9 +185,9 @@
                       fontface = "bold", colour = .std_color("azul"), family = font_family) +
     ggplot2::annotate("text", x = w, y = y_cifra, label = df$label[2], hjust = 1, size = pt(size_cifra),
                       fontface = "bold", colour = azul_medio, family = font_family) +
-    ggplot2::annotate("text", x = 0, y = y_rot, label = df$categoria[1], hjust = 0, size = pt(10.5),
+    ggplot2::annotate("text", x = 0, y = y_rot, label = df$categoria[1], hjust = 0, size = pt(10.5 * escala_texto),
                       colour = .std_color("azul"), family = font_family) +
-    ggplot2::annotate("text", x = w, y = y_rot, label = df$categoria[2], hjust = 1, size = pt(10.5),
+    ggplot2::annotate("text", x = w, y = y_rot, label = df$categoria[2], hjust = 1, size = pt(10.5 * escala_texto),
                       colour = .std_color("azul"), family = font_family) +
     ggplot2::scale_x_continuous(limits = c(0, ancho), expand = c(0, 0)) +
     ggplot2::scale_y_continuous(limits = c(0, alto), expand = c(0, 0)) +

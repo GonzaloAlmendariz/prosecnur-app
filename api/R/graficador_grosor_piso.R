@@ -926,3 +926,27 @@
   p
 }
 
+
+#' Corre las cifras que suben y sus guías cuando cambia el grosor de la barra
+#'
+#' Las posiciones (`y_label`, `y_conector_label`, `y_conector_barra`) se calculan
+#' desde el techo de la barra, `y + grosor / 2`; si el grosor cambia después, el
+#' techo se mueve `delta` y las cifras deben moverse lo mismo.
+#' @param delta Desplazamiento en unidades del eje Y (nuevo − viejo grosor) / 2.
+#' @keywords internal
+.grosor_reubicar_cifras_arriba <- function(p, delta) {
+  d <- suppressWarnings(as.numeric(delta)[1])
+  if (!is.finite(d) || abs(d) < 1e-12) return(p)
+  for (capa in p$layers) {
+    datos <- capa$data
+    if (!is.data.frame(datos) || !".label_arriba" %in% names(datos)) next
+    filas <- datos$.label_arriba %in% TRUE
+    if (!any(filas)) next
+    for (col in intersect(c("y_label", "y_conector_label", "y_conector_barra"), names(datos))) {
+      datos[[col]][filas] <- datos[[col]][filas] + d
+    }
+    capa$data <- datos
+  }
+  p
+}
+

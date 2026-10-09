@@ -3393,6 +3393,10 @@ graficar_barras_apiladas <- function(
     paso_in <- if (arriba_layout) fila_in * row_step_eff else NA_real_
     g_std <- .grosor_fraccion_estandar(n_categorias, fila_in, "escala_apilada", paso_in = paso_in)
     if (is.finite(g_std)) {
+      # Las cifras que suben y sus guías se ubicaron contra el techo de la barra
+      # con el grosor anterior: se corren lo que se movió el techo (verificador
+      # de F2: con 5 filas la cifra montaba la barra, con 3 la guía no la tocaba).
+      p_bars_panel <- .grosor_reubicar_cifras_arriba(p_bars_panel, (g_std - grosor_eff) / 2)
       grosor_eff <- g_std
       p_bars_panel <- .grosor_reemplazar_ancho_col(p_bars_panel, grosor_eff)
     }

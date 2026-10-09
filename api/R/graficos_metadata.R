@@ -2193,7 +2193,7 @@
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro",
            default = TRUE,
-           descripcion = "Si un porcentaje no entra en su segmento, sube encima de la barra con una línea guía y la fila gana aire, como en el recetario (ADR 0092). Apagado, la cifra queda dentro y puede caer sobre el segmento vecino."),
+           descripcion = "Lo fija el estándar de los recetarios (ADR 0092): si un porcentaje no entra en su segmento, sube encima de la barra con una línea guía. En el estilo común se impone; sólo se puede apagar lámina por lámina."),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
            descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
