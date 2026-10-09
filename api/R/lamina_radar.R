@@ -27,6 +27,11 @@
     data.frame(a = a, x = rr(v) * cos(ang), y = rr(v) * sin(ang))
   }))
   serie$a <- factor(serie$a, levels = espec$grupos)
+  # La línea de cada serie es un trazo cerrado, no un polígono: una serie entera en el piso colapsa en el centro y
+  # `rvg` revienta en C_polygon con un polígono degenerado (segfault medido por el verificador de N6). La serie que no
+  # tiene extensión se queda sólo con sus puntos.
+  con_area <- vapply(split(serie, serie$a), function(s0) diff(range(s0$x)) > 1e-6 || diff(range(s0$y)) > 1e-6, TRUE)
+  trazo <- do.call(rbind, lapply(split(serie, serie$a)[con_area], function(s0) rbind(s0, s0[1, ])))
   labr <- data.frame(t = espec$ejes, x = 1.2 * cos(ang), y = 1.12 * sin(ang), h = ifelse(abs(cos(ang)) < 0.1, 0.5, ifelse(cos(ang) > 0, 0, 1)))
   # Las cifras de los anillos, entre los dos primeros ejes y con fondo: no pisan el rótulo del eje de arriba.
   mid <- (ang[1] + ang[2]) / 2; half <- (ang[1] - ang[2]) / 2
@@ -34,7 +39,8 @@
   niv$x <- rr(niv$v) * cos(mid) * cos(half) + 0.02; niv$y <- rr(niv$v) * sin(mid) * cos(half); niv$t <- paste0(niv$v, "%")
   ggplot2::ggplot() +
     ggplot2::geom_path(data = ring, ggplot2::aes(.data$x, .data$y, group = .data$r), colour = .std_color("anillo_radar"), linewidth = 0.4) +
-    ggplot2::geom_polygon(data = serie, ggplot2::aes(.data$x, .data$y, group = .data$a, colour = .data$a), fill = NA, linewidth = 1.1) +
+    (if (!is.null(trazo) && nrow(trazo)) ggplot2::geom_path(data = trazo, ggplot2::aes(.data$x, .data$y, group = .data$a, colour = .data$a),
+                                                             linewidth = 1.1, linejoin = "round")) +
     ggplot2::geom_point(data = serie, ggplot2::aes(.data$x, .data$y, colour = .data$a), size = 2.4) +
     ggplot2::geom_text(data = labr, ggplot2::aes(.data$x, .data$y, label = .data$t, hjust = .data$h), size = 12 / ggplot2::.pt,
                        colour = .std_color("azul"), family = fuente, fontface = "bold") +
@@ -90,12 +96,13 @@
   # Sin tabla, el radar y su leyenda se centran en la lámina.
   x_radar <- if (isTRUE(espec$con_tabla)) ml else W / 2 - R$ancho / 2
   doc <- officer::ph_with(doc, rvg::dml(ggobj = .lam_radar_gg(espec), bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
-                          location = officer::ph_location(left = x_radar, top = yt + R$dy, width = R$ancho, height = R$alto))
+                          location = officer::ph_location(left = x_radar, top = yt + R$dy, width = R$ancho, height = R$alto,
+                                                          newlabel = "prosecnur:grafico:radar"))
   lz <- .lam_lienzo()
   # Una serie única sintética («Total») no lleva leyenda, como en `graficar_radar()`.
   sintetica <- length(espec$grupos) == 1L && trimws(tolower(espec$grupos[1])) %in% c("total", "")
   if (!sintetica) .lam_leyenda(lz, yf - 0.3, espec$grupos, unname(espec$colores), centrar_en = x_radar + R$ancho / 2)
-  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:radar")
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:radar:leyenda")
   if (isTRUE(espec$con_tabla)) {
     d <- data.frame(espec$ejes, espec$cifras, check.names = FALSE, stringsAsFactors = FALSE)
     names(d) <- c(espec$encabezado, espec$grupos)

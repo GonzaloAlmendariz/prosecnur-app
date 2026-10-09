@@ -796,11 +796,13 @@ graficar_radar <- function(
   # Límites radiales (escala real 0-1). Se definen antes de la geometría para
   # poder mapear el polígono al rango visual completo cuando hay piso > 0.
   if (is.null(limites)) {
-    # ADR 0092 (F2.7d): con valores altos el eje arranca en el múltiplo de 5
-    # bajo el mínimo, como el radar del recetario (lo = 80 con datos de 84 a
-    # 98); desde 0 las series quedaban amontonadas contra el borde.
+    # ADR 0092 (F2.7d): con valores altos el eje arranca en la decena bajo el
+    # mínimo menos 3 puntos, como el radar del recetario: lo = 80 tanto con
+    # datos de 84 a 98 como con los de la lámina 90 (91 a 98; con el múltiplo
+    # de 5 salía 85 y faltaba el anillo de 85, verificador de N6). Desde 0 las
+    # series quedaban amontonadas contra el borde.
     v_min <- suppressWarnings(min(df0$.valor, na.rm = TRUE))
-    piso <- if (is.finite(v_min) && v_min >= 0.5) max(0, floor((v_min - 0.03) / 0.05) * 0.05) else 0
+    piso <- if (is.finite(v_min) && v_min >= 0.5) max(0, floor(round((v_min - 0.03) * 10, 6)) / 10) else 0
     r_lim <- c(piso, 1)
   } else {
     r_lim <- suppressWarnings(as.numeric(limites))
