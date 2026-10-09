@@ -268,3 +268,23 @@ Gonzalo, 2026-10-09: «Todo eso guiate dle recetario porfavor, es la fuente de v
   ni el indicador numérico con métrica mediana (va por sus decimales).
 - Riesgos declarados, no resueltos aquí: los códigos especiales numéricos (99, −1) entran a la mediana si la limpieza
   no los quitó; la mediana del histograma es muestral (sin pesos) aunque el dumbbell pondere.
+
+## Cumplimiento
+
+- **Pares visuales**: cada pieza se compara con su página o lámina del recetario. PPT: `scripts/qa_pares_recetario.R`;
+  Word: `scripts/qa_pares_word.R` (página del recetario frente a la figura o la página del motor, a la misma escala).
+- **Especificaciones reales**: `test-reporte-word-especs-reales.R` dibuja cada renderer Word con la espec que entrega su
+  graficador real; todo renderer nuevo suma ahí su caso. Las especs armadas a mano escondieron dos defectos (escala del radar,
+  anillos con piso bajo).
+- **Paridad PPT/Word**: la brecha del dumbbell (`test-graficador-ola4.R`) se comprueba en las dos rutas sobre `pulso_espec`.
+- **Documento completo**: `test-reporte-word-documento.R` va del plan al docx por `reporte_word_plan` (el camino del job).
+- **Gates de área**: `scripts/gate-area.R word --patron "reporte-word|docx-conformar"` y el de gráficos, con los contratos
+  transversales; el `verificador` cierra cada fase.
+
+## Notas
+
+- Checklist vivo: `docs/qa/checklist-remasterizacion-motor-2026-10-08.md`; plan del Word: `docs/qa/inventario-n8-word-2026-10-09.md`.
+- Recetarios: `docs/qa/motor-ppt-2026-10-06/4-recetario/` (`propuesta-word.docx`, `recetario-moderna*.pptx`); se regeneran
+  con `docs/qa/motor-ppt-2026-10-06/herramientas/` y los datos de `preparar-datos/` (receta de los datos en el README de esa carpeta).
+- Decisiones del 2026-10-09: cada formato sigue a su recetario (mediana, rango del mapa de calor, signo del comparativo);
+  marcas 0-100 % opcionales en los dos formatos y recetarios; paleta Likert por defecto, con la del usuario siempre primero.
