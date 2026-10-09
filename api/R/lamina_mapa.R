@@ -8,7 +8,7 @@
 # panel —la cifra de zonas con su detalle, o la lista de distritos por grupo—, la
 # narrativa de la lámina y la leyenda, cuyo pie coincide con el del mapa dibujado.
 
-.LAM_MAPA <- list(ancho_distrito = 7.4, ancho_general = 6.2, aire = 0.8, cifra_pt = 36, texto_pt = 12.5,
+.LAM_MAPA <- list(ancho_distrito = 7.4, ancho_manzanas = 7.6, ancho_general = 6.2, aire = 0.8, cifra_pt = 36, texto_pt = 12.5,
                   # La 105 con su recuadro (recetario_m3e.R:222-242): recuadro de 2.6 × 3.0 bajo su rótulo, 0.3 de aire,
                   # el mapa de 6.3 y 0.6 hasta el panel, con el filete a 0.3 del panel.
                   recuadro_w = 2.6, recuadro_h = 3.0, recuadro_aire = 0.3, ancho_con_recuadro = 6.3, aire_con_recuadro = 0.6)
@@ -19,8 +19,12 @@
   cj <- espec$caja
   g <- ggplot2::ggplot()
   for (capa in espec$capas) {
-    g <- g + ggplot2::geom_polygon(data = capa$datos, ggplot2::aes(.data$x, .data$y, group = .data$group, fill = .data$fill),
-                                   colour = capa$borde, linewidth = capa$grosor)
+    g <- g + if (isTRUE(capa$sin_relleno)) {   # contornos de zona de la 106
+      ggplot2::geom_polygon(data = capa$datos, ggplot2::aes(.data$x, .data$y, group = .data$group), fill = NA, colour = capa$borde, linewidth = capa$grosor)
+    } else {
+      ggplot2::geom_polygon(data = capa$datos, ggplot2::aes(.data$x, .data$y, group = .data$group, fill = .data$fill),
+                            colour = capa$borde, linewidth = capa$grosor)
+    }
   }
   g + ggplot2::scale_fill_identity() +
     ggplot2::coord_quickmap(xlim = cj[c("xmin", "xmax")], ylim = cj[c("ymin", "ymax")], expand = FALSE) +
@@ -63,9 +67,10 @@
     r <- .lam_mapa_rect(espec, xm, yt, wm, yf - yt - 0.1)
     xr <- xm + wm + R$aire_con_recuadro; x_filete <- xr - 0.3
   } else {
-    rec <- NULL; wm <- if (identical(espec$forma, "general")) R$ancho_general else R$ancho_distrito
+    rec <- NULL; wm <- if (identical(espec$forma, "general")) R$ancho_general else if (isTRUE(espec$manzanas)) R$ancho_manzanas else R$ancho_distrito
     r <- .lam_mapa_rect(espec, ml, yt, wm, yf - yt - 0.1)
-    xr <- ml + wm + R$aire; x_filete <- xr - 0.4
+    # La 106 (recetario_m3e.R:256-258): 0.7 hasta el panel y el filete a 0.35.
+    xr <- ml + wm + (if (isTRUE(espec$manzanas)) 0.7 else R$aire); x_filete <- xr - (if (isTRUE(espec$manzanas)) 0.35 else 0.4)
   }
   wr <- W - g_("margen_der") - xr
   y_ley <- r$y + r$h - (0.32 + length(espec$leyenda$rotulos) * 0.3)
@@ -74,7 +79,7 @@
   lista <- function(enc, fila, aire) yt + sum(vapply(espec$grupos, function(gk) enc + nrow(gk$filas) * fila + 0.35, 0)) + aire * (length(espec$grupos) - 1L)
   paso <- list(enc = 0.42, fila = 0.34, aire = 0.35)
   if (identical(espec$forma, "general") && lista(0.42, 0.34, 0.35) > y_ley - 0.15) paso <- list(enc = 0.38, fila = 0.28, aire = 0.25)
-  fin_panel <- if (identical(espec$forma, "general")) lista(paso$enc, paso$fila, paso$aire) else yt + 1.45
+  fin_panel <- if (identical(espec$forma, "general")) lista(paso$enc, paso$fila, paso$aire) else if (!is.null(espec$cifra2)) yt + 1.65 + 1.2 else yt + 1.45
   h_texto <- if (!is.null(texto) && nzchar(texto)) .lam_alto_tinta(texto, wr + 0.1, R$texto_pt) else 0
   list(ml = ml, yt = yt, yf = yf, wm = wm, r = r, rec = rec, xr = xr, x_filete = x_filete, wr = wr, y_ley = y_ley,
        fin_panel = fin_panel, h_texto = h_texto, y_texto = fin_panel + 0.2, paso = paso)
@@ -124,6 +129,12 @@
     .lam_txt(lz, c0$rotulo, G$xr, G$yt + 0.62, G$wr, 0.3, 12, azul, bold = TRUE, nombre = "mapa:cifra_rotulo")
     .lam_txt(lz, c0$detalle, G$xr, G$yt + 0.9, G$wr, 0.26, 10, suave, nombre = "mapa:cifra_detalle")
     .lam_separador_h(lz, G$xr, fin, G$yt + 1.45)
+    if (!is.null(espec$cifra2)) {   # la 106: las manzanas aplicadas bajo las zonas
+      c2 <- espec$cifra2; y2 <- G$yt + 1.65
+      .lam_txt(lz, c2$valor, G$xr, y2, G$wr, 0.62, R$cifra_pt, azul, bold = TRUE, nombre = "mapa:cifra2")
+      .lam_txt(lz, c2$rotulo, G$xr, y2 + 0.62, G$wr, 0.3, 12, azul, bold = TRUE, nombre = "mapa:cifra2_rotulo")
+      .lam_txt(lz, c2$detalle, G$xr, y2 + 0.9, G$wr, 0.26, 10, suave, nombre = "mapa:cifra2_detalle")
+    }
   }
   if (G$h_texto > 0) .lam_txt(lz, texto, G$xr - 0.1, G$y_texto, G$wr + 0.1, G$h_texto, R$texto_pt, azul, nombre = "mapa:narrativa")
   .lam_mapa_leyenda(lz, G$xr, G$r$y + G$r$h, espec$leyenda, G$wr)
