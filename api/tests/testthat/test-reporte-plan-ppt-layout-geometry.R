@@ -231,7 +231,9 @@ test_that("el titulo de seccion no depende de cuantas laminas lo preceden", {
     orders_list = NULL
   )
   presets <- p_presets(base = list(size_titulo_slide = 22.5))
-  seccion <- p_slide_seccion("Acceso al Espacio de Proteccion")
+  # La ruta de la plantilla (la nativa del recetario, ADR 0093 N7, se prueba en test-lamina-identidad.R): sigue
+  # siendo la reserva de un separador que no cabe, y su geometría se cuida aquí.
+  seccion <- p_slide_seccion("Acceso al Espacio de Proteccion", meta = list(motor_nativo = FALSE))
   ficha <- p_slide_tabla_tecnica(
     titulo = "Ficha tecnica",
     filas = data.frame(Campo = "Universo", Valor = "Adultos", stringsAsFactors = FALSE)
