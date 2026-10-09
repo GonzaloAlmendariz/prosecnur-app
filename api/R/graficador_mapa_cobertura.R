@@ -22,7 +22,8 @@
 #' @keywords internal
 .mapa_paleta <- function(scope = "district") {
   general <- identical(scope, "overview_koica")
-  cols <- c(no_intervenido = .std_color("mapa_fuera"), comparacion = .std_color("mapa_medio"),
+  # Fuera de la ruta: blanco en el distrito (como la 105 y la lámina nativa) y gris de contexto en la vista general.
+  cols <- c(no_intervenido = if (general) .std_color("mapa_fuera") else "#FFFFFF", comparacion = .std_color("mapa_medio"),
             intervencion = if (general) .std_color("mapa_aplicada") else .std_color("mapa_medio"),
             efectiva = .std_color("mapa_aplicada"), alerta = .std_color("coral"))
   cols[.mapa_status_levels]
@@ -369,7 +370,7 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
       # La vista general del recetario (103) sólo necesita los límites y el resumen: si hay límites, su espec va igual.
       p_res <- (
         ggplot2::ggplot(summary, ggplot2::aes(x = .data$zonas_efectivas, y = .data$distrito)) +
-          ggplot2::geom_col(fill = "#00B398", width = 0.62) +
+          ggplot2::geom_col(fill = .std_color("mapa_aplicada"), width = 0.62) +
           ggplot2::geom_text(ggplot2::aes(label = .data$zonas_efectivas), hjust = -0.18, size = 3.3, color = "#18375F") +
           ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.12))) +
           ggplot2::labs(title = titulo, subtitle = subtitle, caption = caption, x = NULL, y = NULL) +
