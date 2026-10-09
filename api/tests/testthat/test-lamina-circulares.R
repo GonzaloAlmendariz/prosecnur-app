@@ -57,3 +57,26 @@ test_that("en la ruta real p_pie y p_donut salen nativos; con muchas porciones l
   expect_true("prosecnur:grafico:dona" %in% g(2))
   expect_false(any(grepl("prosecnur:grafico", g(3))))
 })
+
+# ---- Hallazgos del verificador de N6 (ruta real con datos de borde) ----------
+
+test_that("torta y dona nativas llevan la base; la dona de más de dos porciones, sin n o de rótulo largo va por la ruta anterior", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg")
+  dat <- data.frame(s = rep(c("Sí", "No"), c(133, 39)), q4 = rep(c("A", "B", "C", "D"), 43),
+                    l = rep(c("Sí, conoce la misión y los propósitos", "No los conoce"), c(100, 72)), stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = c("s", "q4", "l"), type = c("select_one sn", "select_one l4", "select_one ll"), list_name = c("sn", "l4", "ll"),
+                                   label = c("¿Conoce?", "Cuatro", "Largo"), stringsAsFactors = FALSE),
+               choices = data.frame(list_name = c("sn", "sn", rep("l4", 4), "ll", "ll"), name = c("Sí", "No", "A", "B", "C", "D", "Sí, conoce la misión y los propósitos", "No los conoce"),
+                                    label = c("Sí", "No", "A", "B", "C", "D", "Sí, conoce la misión y los propósitos", "No los conoce"), stringsAsFactors = FALSE), orders_list = NULL)
+  plan <- list(a = p_slide_1_grafico(grafico = p_pie("s"), titulo = "Torta"), b = p_slide_1_grafico(grafico = p_donut("s"), titulo = "Dona"),
+               c = p_slide_1_grafico(grafico = p_donut("q4"), titulo = "Dona de cuatro"), d = p_slide_1_grafico(grafico = p_donut("l"), titulo = "Dona larga"))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
+  x <- function(k) xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k)))
+  g <- function(k) xml2::xml_attr(xml2::xml_find_all(x(k), "//p:grpSp/p:nvGrpSpPr/p:cNvPr"), "name")
+  expect_match(paste(.ci_txt(x(1), "Base lamina"), collapse = ""), "Base")                   # hallazgo 1
+  expect_match(paste(.ci_txt(x(2), "Base lamina"), collapse = ""), "Base")
+  expect_identical(.ci_txt(x(1), "torta:cifra_leyenda"), c("77%", "23%"))
+  expect_false(any(grepl("prosecnur:grafico", g(3))))                                         # hallazgo 2: cuatro porciones
+  expect_false(any(grepl("prosecnur:grafico", g(4))))                                         # hallazgo 3: rótulo largo en el centro
+})

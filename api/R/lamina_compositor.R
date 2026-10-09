@@ -218,8 +218,9 @@
   }
   if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
     # Ranking con puntos (lámina 72); en selección múltiple lleva el encabezado del recetario.
+    # La nota del recorte («Se muestran 5 de 12 categorías.») va siempre en el pie, junto a la base.
     return(.lam_laminas_lollipop(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
-                                 base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
+                                 base = paste(c(texto(base), texto(pie), texto(espec$nota_recorte)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
                                  encabezado = if (sum(espec$valores) > 1.02) "% de encuestados que marcó cada opción" else NULL,
                                  layout = layout, master = master, por_lamina = por_lamina)$doc)
   }

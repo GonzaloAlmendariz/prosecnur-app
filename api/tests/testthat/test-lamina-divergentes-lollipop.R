@@ -66,3 +66,59 @@ test_that("en la ruta real p_barras_divergentes y p_lollipop salen nativos", {
   expect_true("prosecnur:grafico:divergentes" %in% g(1))
   expect_true("prosecnur:grafico:lollipop" %in% g(2))
 })
+
+# ---- Hallazgos del verificador de N6 (ruta real con datos de borde) ----------
+
+test_that("las especiales salen por etiqueta o código 90-99 y nunca entran en el Top Two Box", {
+  d <- data.frame(it = "x", a = .1, b = .14, c = .37, d = .27, e = .12)
+  et <- c(a = "Totalmente en desacuerdo", b = "En desacuerdo", c = "De acuerdo", d = "Totalmente de acuerdo", e = "No sé / No opina")
+  e <- attr(graficar_barras_divergentes(d, "it", names(et), et, escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = FALSE), "pulso_espec")
+  expect_identical(e$categorias$lado[5], "sin_inf"); expect_identical(e$cifras_pos, "64%")      # hallazgo 5: antes 76 %
+  d99 <- setNames(d, c("it", "1", "2", "3", "4", "99")); et99 <- setNames(unname(et), c("1", "2", "3", "4", "99")); et99[5] <- "Otra cosa"
+  e99 <- attr(graficar_barras_divergentes(d99, "it", names(et99), et99, escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = FALSE), "pulso_espec")
+  expect_identical(e99$categorias$lado[5], "sin_inf")
+})
+
+test_that("el reparto posicional se rehace sin la especial y el Top Two Box suma lo que es (hallazgo 8)", {
+  d <- data.frame(it = "x", a = .1, b = .12, c = .33, d = .30, e = .15)
+  et <- c(a = "TD", b = "D", c = "A", d = "TA", e = "SIN INF")
+  e <- attr(graficar_barras_divergentes(d, "it", names(et), et, escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = TRUE), "pulso_espec")
+  expect_identical(e$categorias$lado, c("neg", "neg", "pos", "pos", "sin_inf")); expect_identical(e$cifras_pos, "63%")
+})
+
+test_that("los colores siguen el significado y el centro es el nivel más suave, en las dos direcciones (hallazgos 6 y 7)", {
+  lk <- unname(.std_paleta("likert"))
+  d <- data.frame(it = "x", a = .1, b = .2, c = .1, d = .3, e = .3)
+  et <- c(a = "TD", b = "D", c = "N", d = "A", e = "TA")
+  e <- attr(graficar_barras_divergentes(d, "it", names(et), et, escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = TRUE), "pulso_espec")
+  expect_identical(e$categorias$color[c(1, 2, 4, 5)], lk[c(1, 2, 3, 4)])                    # TA en verde oscuro, no en el gris
+  expect_identical(e$categorias$col[e$orden_neg[1]], "b"); expect_identical(e$categorias$col[e$orden_pos[1]], "d")
+  inv <- setNames(rev(unname(as.numeric(d[1, -1]))), c("e", "d", "c", "b", "a"))
+  di <- data.frame(it = "x", t(inv)); eti <- c(e = "TA", d = "A", c = "N", b = "D", a = "TD")
+  ei <- attr(graficar_barras_divergentes(di, "it", names(eti), eti, escala_valor = "proporcion_1",
+                                         reparto = list(negativas = c("b", "a"), neutro = "c", positivas = c("e", "d"))), "pulso_espec")
+  expect_identical(ei$categorias$col[ei$orden_neg[1]], "b"); expect_identical(ei$categorias$col[ei$orden_pos[1]], "d")
+  expect_identical(ei$categorias$color[ei$categorias$col == "e"], lk[4])
+})
+
+test_that("con dos especiales la divergente va por la ruta anterior y las cifras chicas no se encima (hallazgos 4 y 9)", {
+  d <- data.frame(it = "x", a = .01, b = .01, c = .4, d = .38, e = .1, f = .1)
+  et <- c(a = "TD", b = "D", c = "A", d = "TA", e = "No sabe", f = "No responde")
+  e <- attr(graficar_barras_divergentes(d, "it", names(et), et, escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = FALSE), "pulso_espec")
+  expect_false(.lam_divergentes_cabe(e))
+  e1 <- attr(graficar_barras_divergentes(d[, 1:6], "it", names(et)[1:5], et[1:5], escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = FALSE), "pulso_espec")
+  o <- .lam_laminas_divergentes(.dl_doc(), e1, "Chicas", folio = 1)
+  xml <- .dl_xml(o$doc)
+  cif <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='divergentes:cifra']]/p:spPr/a:xfrm/a:off")
+  ys <- as.numeric(xml2::xml_attr(cif, "y")) / 914400
+  expect_true(length(unique(round(ys, 3))) >= 2L)                                              # la segunda chica sube un escalón
+})
+
+test_that("el ranking conserva la nota de recorte y el resaltado del analista (hallazgo 10)", {
+  d <- data.frame(cat = c(letters[1:6], "Becas"), v = c(30, 25, 20, 15, 5, 3, 12))
+  e <- attr(graficar_lollipop(d, "cat", "v", top_n = 5, resaltar = "Becas"), "pulso_espec")
+  expect_identical(e$nota_recorte, "Se muestran 5 de 7 categorías.")
+  o <- .lam_laminas_lollipop(.dl_doc(), e, "Ranking", folio = 1)
+  col <- xml2::xml_attr(xml2::xml_find_all(.dl_xml(o$doc), "//p:sp[p:nvSpPr/p:cNvPr[@name='lollipop:punto']]//a:solidFill/a:srgbClr"), "val")
+  expect_true(.lam_hex(.std_color("coral")) %in% col)
+})

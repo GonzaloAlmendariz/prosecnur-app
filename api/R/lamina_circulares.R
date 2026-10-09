@@ -117,5 +117,10 @@
 .lam_circular_cabe <- function(espec) {
   k <- length(espec$valores)
   if (identical(espec$forma, "pie")) return(k >= 2L && k <= 3L && all(.lam_ancho_tinta(espec$rotulos, 13, TRUE) <= 5.4))
-  k >= 2L && k <= 4L && sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0
+  # La dona del recetario es una dicotomía: la cifra clave al centro y la otra en la lectura, que necesita las
+  # frecuencias. Con más porciones o sin n se perderían cifras (verificador de N6): ruta anterior. El rótulo del
+  # centro debe caber en el hueco (≈ 1.8 in).
+  k == 2L && all(is.finite(espec$n)) && is.finite(espec$total_n) &&
+    .lam_ancho_tinta(espec$rotulos[1], 12) <= 1.6 &&
+    sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0
 }
