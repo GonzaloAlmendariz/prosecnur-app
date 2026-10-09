@@ -211,12 +211,12 @@
   }
   if (identical(espec$tipo, "ggplot_marco")) {
     return(.lam_laminas_ggplot(doc, p, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
-                               base = paste(c(texto(base), texto(pie), espec$lectura), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
+                               base = .lam_unir_base(texto(base), texto(pie), espec$lectura), folio = length(doc) + 1L, sub = texto(subtitulo),
                                layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "radar")) {
     return(.lam_laminas_radar(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
-                              base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
+                              base = .lam_unir_base(texto(base), texto(pie)), folio = length(doc) + 1L, sub = texto(subtitulo),
                               layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "pie")) {
