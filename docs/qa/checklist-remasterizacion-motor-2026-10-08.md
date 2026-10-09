@@ -19,6 +19,8 @@ Vara y plan en [goal-remasterizacion-motor-2026-10-08.md](goal-remasterizacion-m
 | R11 | «estas comaprandolo con el recetario?» · «deja de comparar solo de forma numérica, tienes que también comparar de forma visual» | `scripts/qa_pares_recetario.R`; gate visual por pares (ADR 0093, decisión 4) | ☑ banco; se aplica en cada fase |
 | R12 | «estamos cambiando fundamentalmente absolutamente toda la estructura de todos los graficadores que pasan de usar ggplot a … elementos nativos de PowerPoint… tómalo con la importancia que merece» | ADR 0093 (aceptado: «Lo apruebo»), fases N0-N9 | ◐ N0 ☑, N1 en curso |
 | R13 | «Debe ser 100% fiel al recetario, el motor ahora debe replicar le recetario» | ADR 0093 punto 2: redondeo láms. 20-21, Top Two Box = suma de lo rotulado (lám. 19), SIN INF en la barra, orden por Top Two Box | ◐ escalas en N1 |
+| R15 | «en algunos porcetajes pequenos se hacia una linea recta en diagonal en vez de la linea progeiosnal del recetarios» | `graficador_guia_codo.R` (ruta anterior) y `lamina_escala.R` (nativa): codo vertical + horizontal, gris tenue | ☑ f7d4dad15, 836632434 |
+| R16 | «el recetario es que encargado ahora y el orquetador y el motor esta obsoleto… varias cosas de la UI que van a cambiar tmabien y no esta mal» | ADR 0093 decisión 0; retiro de `reporte_plan_ppt.R` en N9 | ◐ en curso |
 | R14 | Top Two Box: «Mantener, que el analista las declare, pero para armarlo debe pedirle dos y la UI debe ser intutiva» | motor: `.box_decidir` sin deducción (sigue); UI: selector de exactamente dos categorías de la escala al encender el Top Two Box (N9, editor) | ☐ |
 
 ## Fases
@@ -29,7 +31,7 @@ Vara y plan en [goal-remasterizacion-motor-2026-10-08.md](goal-remasterizacion-m
 | Fase ADR 0093 | Contenido | Estado |
 |---|---|---|
 | N0 | ADR 0093 (revisado por guardian-contratos y revisor-metodologico, aceptado), banco de pares `scripts/qa_pares_recetario.R` (línea base del motor ggplot: 16 a 29 % de píxeles distintos) | ☑ |
-| N1 | `preparar_escala` (30 tests de invariantes), primitivas agrupadas `lamina_piezas.R`, bloque de escala `lamina_escala.R`, compositor `lamina_compositor.R` (pares 216 1.0 %, 221 0.9 %, 222 1.0 %), enganche en el graficador y en la rama `slide_1`, migración del coral de fábrica | ◐ falta gate amplio, commit y verificador. Deuda declarada: `n_slides` y vista previa no cuentan las partes de «(cont.)» |
+| N1 | `preparar_escala` (36 tests de invariantes), primitivas agrupadas `lamina_piezas.R`, bloque de escala `lamina_escala.R`, compositor `lamina_compositor.R` enganchado en la rama `slide_1` (9817 líneas), migración del coral de fábrica, `n_slides` de jobs = láminas entregadas, guía en codo también en la ruta anterior. Pares 216/221/222: 1.0/0.9/1.0 %, iguales a la vista; mazo real: folio = posición, partición 5+6. Verificador: rechazó dos veces (folio, orden de cruces, Bottom Two Box perdido; color del codo) y aprobó el 2026-10-08 23:5x | ☑ commits 8c50e668b, 912c27790, 43aba90ed, 0a218c814, f7d4dad15, 836632434. Pendientes trasladados: compartir/preflight/vista previa con partes «(cont.)»; Bottom Two Box, fila Total y actores (N2); retirar del editor las opciones que el estándar impone (N9) |
 | N2-N9 | Escalas en paneles, proporciones, números, dimensiones, ggplot con estilo del recetario, 22 tipos e identidad, Word, editor | ☐ |
 
 Plan anterior (F0-F7):
