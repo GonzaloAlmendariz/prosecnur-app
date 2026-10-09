@@ -7198,7 +7198,7 @@ reporte_ppt_plan <- function(
     args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
     args <- .force_canvas_args(graficar_heatmap_criterios_dimensiones, args)
     args <- .keep_formals(graficar_heatmap_criterios_dimensiones, args)
-    suppressWarnings(do.call(graficar_heatmap_criterios_dimensiones, args))
+    .espec_criterios_adjuntar(suppressWarnings(do.call(graficar_heatmap_criterios_dimensiones, args)), args, el)
   }
 
   .render_dim_radar <- function(el, preset_args) {

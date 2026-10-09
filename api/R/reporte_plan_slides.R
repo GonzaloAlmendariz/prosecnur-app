@@ -3155,8 +3155,13 @@ p_dim_heatmap_criterios <- function(
     titulo = NULL,
     overrides = list(),
     base = list(),
-    source = NULL
+    source = NULL,
+    cruce = NULL,
+    metrica = c("top_two_box", "lineal")
 ) {
+  # ADR 0093 (lámina 93): `cruce` abre una columna por público y `metrica` elige Top Two Box (por defecto) o el
+  # promedio lineal 0-100 del criterio; los dos los aprobó Gonzalo (2026-10-09).
+  metrica <- match.arg(metrica)
   if (!is.list(config_criterios) || !length(config_criterios)) {
     .plan_spec_abort("`config_criterios` debe ser una lista no vacia.")
   }
@@ -3175,6 +3180,8 @@ p_dim_heatmap_criterios <- function(
     config_criterios = config_criterios,
     vars = vars_flat,
     source = source,
+    cruce = .ppt_norm_text1(cruce, blank = NULL),
+    metrica = metrica,
     title_slide = .ppt_norm_text1(titulo, blank = NULL),
     overrides = overrides,
     base = base
