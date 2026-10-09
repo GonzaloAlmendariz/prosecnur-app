@@ -4,7 +4,7 @@
 #
 # Uso (desde la raíz del repo):
 #   OUT=/ruta/escala.pptx Rscript docs/qa/motor-ppt-2026-10-06/herramientas/pares_escala.R
-#   printf "recetario,motor,nombre\n216,1,e216\n221,2,e221\n222,3,e222\n" > mapa.csv
+#   printf "recetario,motor,nombre\n216,1,e216\n221,2,e221\n222,3,e222\n217,4,e217\n" > mapa.csv
 #   Rscript scripts/qa_pares_recetario.R /ruta/escala.pptx mapa.csv /ruta/pares
 Sys.setlocale("LC_ALL", "en_US.UTF-8")
 suppressMessages(pkgload::load_all("api", quiet = TRUE))
@@ -31,5 +31,17 @@ e216$filas$grupo_id <- "Estudiantes"; e216$filas$grupo_titulo <- e216$filas$rotu
 o <- .lam_laminas_escala(doc, e216, "Gestión y desarrollo del cuerpo académico", ante = "Cuerpo académico", base = "Base: 172 estudiantes", folio = 216)
 e221 <- espec(do.call(rbind, lapply(sprintf("p30_%d", 1:11), function(v) fila("docentes", v))))
 o <- .lam_laminas_escala(o$doc, e221, "Competencias del perfil de egreso", ante = "Características del perfil de egreso", base = "Base: 51 docentes", folio = 221)
-print(o$doc, target = OUT); cat("OK partes 221:", o$partes, " láminas:", length(o$doc), "\n")
+partes_221 <- o$partes
+# 217: tres premisas, dos con docentes y egresados (actores) y una de administrativos (base chica: «x de y»).
+fila_actor <- function(base, v, actor, grupo) { f <- fila(base, v); f$item <- paste0(base, "_", v); f$actor <- actor; f$grupo <- grupo; f }
+d217 <- rbind(fila_actor("docentes", "p16_4", "Docentes", "g1"), fila_actor("egresados", "p21_3", "Egresados", "g1"),
+              fila_actor("docentes", "p16_5", "Docentes", "g2"), fila_actor("egresados", "p21_4", "Egresados", "g2"),
+              fila_actor("administrativos", "p13_5", "Administrativos", "g3"))
+d217$titulo <- ave(d217$rotulo, d217$grupo, FUN = function(x) x[1])
+e217 <- preparar_escala(d217, "item", "N", paste0("t", 1:5), niv, var_etiqueta_categoria = "actor", var_grupo_id = "grupo",
+                        var_grupo_titulo = "titulo", colores_grupos = as.list(setNames(.std_paleta("likert"), niv)),
+                        barra_extra_preset = "top2box", top2box_labels = niv[3:4])
+o <- .lam_laminas_escala(o$doc, e217, "Gestión y planificación", ante = "Estructura organizacional de gobierno",
+                         base = "Base: 52 docentes, 178 egresados y 15 administrativos", folio = 217)
+print(o$doc, target = OUT); cat("OK partes 221:", partes_221, " láminas:", length(o$doc), "\n")
 cat("TTB 221:", paste(e221$filas$rotulo[e221$orden$aplicado], e221$box$cifras[e221$orden$aplicado], collapse = " | "), "\n")

@@ -108,7 +108,7 @@ test_that("en la ruta real el folio es la posición de la lámina en el mazo", {
   expect_identical(folio, as.character(length(doc)))
 })
 
-test_that("Bottom Two Box, fila Total y bloques con actores quedan en la ruta anterior (alcance de N1)", {
+test_that("Bottom Two Box y fila Total quedan en la ruta anterior; los actores ya son nativos", {
   e <- .espec_bateria(3)
   p <- ggplot2::ggplot()
   attr(p, "pulso_espec") <- e
@@ -117,8 +117,9 @@ test_that("Bottom Two Box, fila Total y bloques con actores quedan en la ruta an
   expect_false(.lam_compositor_aplica(p))
   e3 <- e; e3$filas$es_total[1] <- TRUE; attr(p, "pulso_espec") <- e3
   expect_false(.lam_compositor_aplica(p))
+  # N2: los bloques con actores ya son nativos (lámina 217)
   e4 <- e; e4$filas$grupo_id <- c("P1", "P1", "P2"); attr(p, "pulso_espec") <- e4
-  expect_false(.lam_compositor_aplica(p))
+  expect_true(.lam_compositor_aplica(p))
   attr(p, "pulso_espec") <- e
   expect_false(.lam_compositor_aplica(p, list(meta = list(motor_nativo = FALSE))))
 })
