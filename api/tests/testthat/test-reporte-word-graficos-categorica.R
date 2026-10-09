@@ -40,3 +40,13 @@ test_that("las divergentes ponen el desacuerdo a la izquierda, el acuerdo a la d
   expect_true(all(r$xmax[r$fill %in% esp$categorias$color[esp$categorias$lado == "neg"]] <= 0))
   expect_true(all(r$xmin[r$fill %in% esp$categorias$color[esp$categorias$lado == "pos"]] >= 0))
 })
+
+test_that("las barras cortan el rótulo largo a 70 caracteres con «...», como el ranking en barras del recetario (p. 29)", {
+  largo <- "Integración de herramientas digitales para diseño, simulación, software especializado, análisis de datos e inteligencia artificial"
+  e <- preparar_categorica(c(largo, "Corta"), c(.29, .15), c("29%", "15%"))
+  tx <- .wc_textos(.word_g_barras(e))
+  esperado <- .word_envolver(paste0(substr(largo, 1, 67), "..."), 40)
+  expect_true(esperado %in% tx)
+  expect_true("Corta" %in% tx)
+  expect_identical(.word_recortar(c(strrep("a", 70), strrep("a", 71)), 70), c(strrep("a", 70), paste0(strrep("a", 67), "...")))
+})
