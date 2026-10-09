@@ -51,7 +51,7 @@ test_that("una paleta que nombra las categorías del proyecto se respeta", {
 })
 
 test_that("el grosor sale de la tabla de categorías por número de filas", {
-  for (n in c(2, 3, 5, 7, 9)) {
+  for (n in c(3, 5, 7, 9)) {  # con 2 va la dicotomía partida
     p <- .cat_h(paste("Categoría", seq_len(n)), seq_len(n) * 3)
     expect_lte(abs(attr(p, "pulso_barras_horizontales_layout")$grosor_in - .std_grosor(n, "categorias")), 0.01,
                label = paste(n, "filas"))
@@ -61,4 +61,18 @@ test_that("el grosor sale de la tabla de categorías por número de filas", {
 test_that("orientacion = 'vertical' conserva las columnas previas", {
   p <- .cat_h(c("A", "B", "C"), c(5, 3, 2), orientacion = "vertical")
   expect_null(attr(p, "pulso_barras_horizontales_layout"))
+})
+
+test_that("dos categorías sin paleta propia salen como la dicotomía partida del recetario", {
+  p <- .cat_h(c("Sí", "No"), c(126, 46))
+  lay <- attr(p, "pulso_barras_horizontales_layout")
+  expect_true(isTRUE(lay$dicotomia))
+  expect_equal(lay$grosor_in, 0.34)
+  textos <- unlist(lapply(ggplot2::ggplot_build(p)$data, function(d) d$label))
+  expect_true(all(c("73%", "27%", "Sí", "No") %in% textos))
+})
+
+test_that("dos categorías con paleta propia siguen en barras", {
+  p <- .cat_h(c("Sí", "No"), c(126, 46), colores_categorias = list("Sí" = "#111111", No = "#222222"))
+  expect_false(isTRUE(attr(p, "pulso_barras_horizontales_layout")$dicotomia))
 })

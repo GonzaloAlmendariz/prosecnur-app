@@ -65,6 +65,16 @@
   df <- df[is.finite(df$valor) & df$valor > 0, , drop = FALSE]
   if (!nrow(df)) stop("No hay categorias con valor para graficar.", call. = FALSE)
 
+  # Dos categorías sin paleta propia: dicotomía partida del recetario (barras_h
+  # deriva a `dicotomia()` en el estilo moderno, recetario.R:187-189).
+  if (nrow(df) == 2L && !isTRUE(paleta_propia)) {
+    return(.graficar_dicotomia_partida(df, ancho = ancho, alto = alto, font_family = font_family,
+                                       nota = nota, color_fondo = color_fondo, titulo = titulo,
+                                       subtitulo = subtitulo, textos_negrita = textos_negrita,
+                                       color_titulo = color_titulo, color_subtitulo = color_subtitulo,
+                                       size_titulo = size_titulo, size_subtitulo = size_subtitulo))
+  }
+
   resid <- grepl(.BARRAS_H_RESIDUAL, tolower(trimws(df$categoria)))
   if (any(resid) && !all(resid)) df <- df[c(which(!resid), which(resid)), , drop = FALSE]
   n <- nrow(df)
@@ -127,3 +137,64 @@
   )
   p
 }
+
+
+#' Dicotomía partida del recetario: cifra grande en cada extremo y la barra debajo
+#'
+#' Sigue a `dicotomia()` (recetario_piezas.R:38-49): cifras a 19 pt en negrita
+#' (22 × 0.85, C14 y C19), la primera en azul a la izquierda y la segunda en el
+#' azul medio a la derecha; rótulos a 10.5 pt debajo de cada cifra; una barra de
+#' 0.34 in partida en el azul y el celeste de la paleta dicotómica.
+#' @keywords internal
+.graficar_dicotomia_partida <- function(df, ancho = 10, alto = 6, font_family = .std_pt("fuente"),
+                                        nota = NULL, color_fondo = NA, titulo = NULL, subtitulo = NULL,
+                                        textos_negrita = c("titulo", "valores"),
+                                        color_titulo = .std_color("coral"), color_subtitulo = .std_color("azul"),
+                                        size_titulo = 16, size_subtitulo = 12) {
+  hay <- function(x) !is.null(x) && length(x) && !is.na(x[1]) && nzchar(paste(x, collapse = ""))
+  cara <- function(parte) if (parte %in% textos_negrita) "bold" else "plain"
+  pt <- function(x) x / ggplot2::.pt
+  cols <- .std_paleta("dicotomica")
+  azul_medio <- "#4F7FAF"
+  size_cifra <- round(22 * 0.85)
+  g <- 0.34
+  w <- max(2, ancho - 0.8)
+  p1 <- df$valor[1] / sum(df$valor)
+  alto_tit <- (if (hay(titulo)) size_titulo * 1.5 / 72 else 0) + (if (hay(subtitulo)) size_subtitulo * 1.5 / 72 else 0)
+  alto_nota <- if (hay(nota)) 0.32 else 0
+  alto <- alto - alto_tit - alto_nota      # el panel es lo que queda bajo el título
+  y0 <- alto - 0.1                       # el bloque va arriba, como en la lámina
+  y_cifra <- y0 - size_cifra * 0.65 / 72
+  y_rot <- y0 - size_cifra * 1.25 / 72 - 0.13
+  yb1 <- y0 - size_cifra * 1.25 / 72 - 0.32
+  yb0 <- yb1 - g
+  # El ggplot conserva la tabla aunque dibuje con `annotate()`: quien lea la
+  # lámina (tests, verificador) encuentra sus categorías en `p$data`.
+  p <- ggplot2::ggplot(df) +
+    ggplot2::annotate("rect", xmin = 0, xmax = w * p1, ymin = yb0, ymax = yb1, fill = cols[1], colour = NA) +
+    ggplot2::annotate("rect", xmin = w * p1, xmax = w, ymin = yb0, ymax = yb1, fill = cols[2], colour = NA) +
+    ggplot2::annotate("text", x = 0, y = y_cifra, label = df$label[1], hjust = 0, size = pt(size_cifra),
+                      fontface = "bold", colour = .std_color("azul"), family = font_family) +
+    ggplot2::annotate("text", x = w, y = y_cifra, label = df$label[2], hjust = 1, size = pt(size_cifra),
+                      fontface = "bold", colour = azul_medio, family = font_family) +
+    ggplot2::annotate("text", x = 0, y = y_rot, label = df$categoria[1], hjust = 0, size = pt(10.5),
+                      colour = .std_color("azul"), family = font_family) +
+    ggplot2::annotate("text", x = w, y = y_rot, label = df$categoria[2], hjust = 1, size = pt(10.5),
+                      colour = .std_color("azul"), family = font_family) +
+    ggplot2::scale_x_continuous(limits = c(0, ancho), expand = c(0, 0)) +
+    ggplot2::scale_y_continuous(limits = c(0, alto), expand = c(0, 0)) +
+    ggplot2::labs(title = if (hay(titulo)) titulo else NULL, subtitle = if (hay(subtitulo)) subtitulo else NULL,
+                  caption = if (hay(nota)) nota else NULL) +
+    ggplot2::theme_void(base_family = font_family) +
+    ggplot2::theme(plot.background = ggplot2::element_rect(fill = color_fondo, color = NA),
+                   plot.title = ggplot2::element_text(colour = color_titulo, size = size_titulo, face = cara("titulo"), hjust = 0.5),
+                   plot.subtitle = ggplot2::element_text(colour = color_subtitulo, size = size_subtitulo, face = cara("subtitulo"), hjust = 0.5),
+                   plot.caption = ggplot2::element_text(colour = .std_color("azul"), size = .std_pt("base"), face = cara("nota_pie"), hjust = 1),
+                   plot.margin = ggplot2::margin(0, 0, 0, 0))
+  attr(p, "pulso_barras_horizontales_layout") <- list(
+    n_categorias = 2L, dicotomia = TRUE, grosor_in = g, size_cifra = size_cifra, orden = df$categoria,
+    realce = FALSE
+  )
+  p
+}
+
