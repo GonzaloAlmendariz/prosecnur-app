@@ -314,7 +314,7 @@
     # 24: alineada a la izquierda; la línea coral de la plantilla (y = 4.21) separa título y encargo.
     # Un título de tres líneas sube con su rótulo: la última línea no puede bajar de 3.72 o sus descendentes cruzan la
     # línea coral (verificador de N7, ronda 10).
-    sube <- max(0, .lam_alto_tinta(tit, 9.6, 30, TRUE) - 1.1)
+    sube <- max(0L, .lam_lineas_tinta(tit, 9.6, 30, TRUE) - 2L) * 30 * 1.2 / 72
     if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.08, 2.25 - sube, 8, 0.32, 13, coral, bold = TRUE, nombre = "portada:rotulo")
     .lam_txt(lz, tit, 1.08, 2.62 - sube, 9.6, 1.3 + sube, 30, azul, bold = TRUE, nombre = "portada:titulo")
     if (!is.null(enc)) .lam_txt(lz, enc, 1.08, 4.45, 9.6, 0.36, 16, azul, nombre = "portada:encargo")
@@ -322,7 +322,7 @@
   } else if (identical(variante, "banda")) {
     # 25: centrada, con el encargo y la fecha en una banda azul al pie.
     H <- 7.5; W <- .std_geom("ancho")
-    sube <- max(0, .lam_alto_tinta(tit, 10.5, 30, TRUE) - 1.1)
+    sube <- max(0L, .lam_lineas_tinta(tit, 10.5, 30, TRUE) - 2L) * 30 * 1.2 / 72
     if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.25 - sube, 10.1, 0.32, 13, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
     .lam_txt(lz, tit, 1.4, 2.62 - sube, 10.5, 1.3 + sube, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
     .lam_caja(lz, 0, H - 1.25, W, 1.25, azul, nombre = "portada:banda")
@@ -345,12 +345,13 @@
   if (v %in% c("izquierda", "24", "alineada")) "izquierda" else if (v %in% c("banda", "25", "banda inferior")) "banda" else "centrada"
 }
 
-#' ¿La portada cabe? El título en tres líneas a 30 pt en el ancho de la caja de su variante (10.7, 9.6 o 10.5 in)
+#' ¿La portada cabe? El título en tres líneas a 30 pt, cortadas por palabras en el ancho de la caja de su variante
+#' (10.7, 9.6 o 10.5 in)
 #' @keywords internal
 .lam_portada_cabe <- function(titulo, variante = "centrada") {
   t <- as.character(titulo %||% "")[1]
   ancho <- c(centrada = 10.7, izquierda = 9.6, banda = 10.5)[[.lam_portada_variante(variante)]]
-  !is.na(t) && nzchar(trimws(t)) && .lam_alto_tinta(t, ancho, 30, TRUE) <= 1.6
+  !is.na(t) && nzchar(trimws(t)) && .lam_lineas_tinta(t, ancho, 30, TRUE) <= 3L
 }
 
 # ---- Ficha técnica (lámina 29, recetario.R:489-533) -------------------------------------------------------------
@@ -648,4 +649,108 @@
   if (!G$sub) return(all(.lam_ancho_tinta(caps, G$fs, G$negrita) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.1))
   G$hs >= 0.18 && all(.lam_ancho_tinta(caps, 15, TRUE) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.1) &&
     all(.lam_ancho_tinta(unlist(subs), 12) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.5)
+}
+
+# ---- Cierre (láminas 61 a 65, recetario_m9.R y recetario.R:840-845) ----------------------------------------------
+
+.LAM_CIERRE_CONTACTO <- c(correo = "pulsopucp@pucp.edu.pe", direccion = "Av. Universitaria 1801, San Miguel, Lima 32, Perú", web = "pulso.pucp.edu.pe")
+.LAM_CIERRE_ICONOS <- c(correo = "mail", direccion = "map-pin", web = "globe")
+.LAM_CIERRE_ROTULOS <- c(correo = "Correo", direccion = "Dirección", web = "Web")
+# Contraportada de los informes entregados (65): cada dato junto a su ícono de la plantilla, a 12 pt.
+.LAM_CIERRE_PIE <- list(correo = c(1.08, 6.70, 2.4), direccion = c(5.20, 6.69, 4.9), web = c(11.17, 6.71, 1.8))
+
+#' Variante de cierre: «contraportada» (65, por defecto), «banda_azul» (61), «banda_clara» (62), «contacto» (63) o
+#' «tres_columnas» (64)
+#' @keywords internal
+.lam_cierre_variante <- function(variante) {
+  v <- gsub("[ -]+", "_", .lam_clave(as.character(variante %||% "contraportada")[1]))
+  if (is.na(v)) return("contraportada")
+  if (v %in% c("banda_azul", "61")) "banda_azul" else if (v %in% c("banda_clara", "62")) "banda_clara"
+  else if (v %in% c("contacto", "contacto_bajo_el_logo", "63")) "contacto" else if (v %in% c("tres_columnas", "64")) "tres_columnas"
+  else "contraportada"
+}
+
+#' Contacto del cierre: los datos de PULSO PUCP salvo los que el plan reemplace; un dato vacío se omite
+#' @keywords internal
+.lam_cierre_contacto <- function(slots) {
+  datos <- vapply(names(.LAM_CIERRE_CONTACTO), function(k) {
+    v <- slots[[k]]
+    if (is.null(v)) .LAM_CIERRE_CONTACTO[[k]] else trimws(as.character(v)[1] %||% "")
+  }, "")
+  datos[is.na(datos)] <- ""
+  k <- names(datos)[nzchar(datos)]
+  data.frame(clave = k, icono = unname(.LAM_CIERRE_ICONOS[k]), rotulo = unname(.LAM_CIERRE_ROTULOS[k]), dato = unname(datos[k]),
+             stringsAsFactors = FALSE)
+}
+
+#' ¿El contacto cabe en la variante? Al pie, cada dato en la caja de su ícono; en fila, los tres en el ancho de la
+#' lámina con una pulgada de margen; en columnas, cada uno en dos líneas de 4 in como mucho
+#' @keywords internal
+.lam_cierre_cabe <- function(contacto, variante) {
+  if (!nrow(contacto)) return(identical(variante, "contraportada"))
+  a <- .lam_ancho_tinta(contacto$dato, 12)
+  switch(variante,
+    contraportada = all(a <= vapply(contacto$clave, function(k) .LAM_CIERRE_PIE[[k]][3] - 0.2, 0)),
+    tres_columnas = all(.lam_lineas_tinta(contacto$dato, 4.0, 12) <= 2L),
+    sum(0.36 + a) + 0.7 * (nrow(contacto) - 1) <= .std_geom("ancho") - 1.0)
+}
+
+#' Cierre del recetario sobre el layout «Contraportada»: el logo de la plantilla centrado y el contacto según la variante
+#'
+#' Donde el contacto no va al pie, una forma del color del fondo tapa los íconos del layout sin tocar la línea coral.
+#' @keywords internal
+.lam_laminas_cierre <- function(doc, variante = "contraportada", contacto = .lam_cierre_contacto(list()), layout = "Contraportada",
+                                master = "Office Theme", por_lamina = function(doc) doc) {
+  variante <- .lam_cierre_variante(variante)
+  W <- .std_geom("ancho"); H <- 7.5; logo_y1 <- 2.16 + 2.67
+  azul <- .std_color("azul"); n <- nrow(contacto)
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  lz <- .lam_lienzo(); iconos <- list()
+  ico <- function(clave, color, x, y, d = 0.24) iconos[[length(iconos) + 1L]] <<- list(n = .LAM_CIERRE_ICONOS[[clave]], color = color, x = x, y = y, d = d)
+  fila <- function(y, color = azul, ico_color = "navy", gap = 0.7) {
+    ws <- 0.36 + .lam_ancho_tinta(contacto$dato, 12); x <- (W - sum(ws) - gap * (n - 1)) / 2
+    for (k in seq_len(n)) {
+      ico(contacto$clave[k], ico_color, x, y + 0.05)
+      .lam_txt(lz, contacto$dato[k], x + 0.22, y, ws[k], 0.32, 12, color, nombre = paste0("cierre:", contacto$clave[k]))
+      x <- x + ws[k] + gap
+    }
+  }
+  if (identical(variante, "contraportada")) {
+    for (k in seq_len(n)) {
+      p <- .LAM_CIERRE_PIE[[contacto$clave[k]]]
+      .lam_txt(lz, contacto$dato[k], p[1], p[2], p[3], 0.4, 12, azul, nombre = paste0("cierre:", contacto$clave[k]))
+    }
+    # El ícono de la plantilla de un dato omitido queda tapado: un ícono sin dato no dice nada.
+    for (k in setdiff(names(.LAM_CIERRE_PIE), contacto$clave)) .lam_caja(lz, .LAM_CIERRE_PIE[[k]][1] - 0.55, 6.5, 0.5, 0.75, .std_color("fondo"), nombre = "cierre:tapa")
+  } else {
+    .lam_caja(lz, 0, 6.45, W, 0.95, .std_color("fondo"), nombre = "cierre:tapa")
+    if (identical(variante, "banda_azul")) {
+      .lam_caja(lz, 0, H - 1.05, W, 1.05, azul, nombre = "cierre:banda")
+      if (n) fila(H - 0.69, color = "#FFFFFF", ico_color = "blanco")
+    } else if (identical(variante, "banda_clara")) {
+      .lam_caja(lz, 0, 6.42, W, 1.0, "#FFFFFF", nombre = "cierre:banda")
+      .lam_caja(lz, 0, 6.42, W, 0.02, azul, nombre = "cierre:filete")
+      if (n) fila(6.78)
+    } else if (identical(variante, "contacto")) {
+      if (n) { .lam_caja(lz, W / 2 - 0.45, logo_y1 + 0.7, 0.9, 0.02, .std_color("filete"), nombre = "cierre:filete"); fila(logo_y1 + 1.05) }
+    } else {
+      wc <- 4.2; x0 <- (W - n * wc) / 2; y <- logo_y1 + 0.5
+      for (k in seq_len(n)) {
+        xk <- x0 + (k - 1) * wc
+        if (k > 1) .lam_separador_v(lz, xk, y + 0.05, y + 1.15)
+        .lam_caja(lz, xk + wc / 2 - 0.21, y, 0.42, 0.42, azul, geom = "ellipse", nombre = "cierre:icono_fondo")
+        ico(contacto$clave[k], "blanco", xk + wc / 2 - 0.21 + 0.42 * 0.24, y + 0.42 * 0.24, 0.42 * 0.52)
+        .lam_txt(lz, toupper(contacto$rotulo[k]), xk, y + 0.5, wc, 0.26, 10, .std_color("texto_suave"), bold = TRUE, align = "center", nombre = "cierre:rotulo")
+        .lam_txt(lz, contacto$dato[k], xk + 0.1, y + 0.76, wc - 0.2, max(0.32, .lam_lineas_tinta(contacto$dato[k], wc - 0.2, 12) * 12 * 1.2 / 72 + 0.12), 12, azul, align = "center",
+                 nombre = paste0("cierre:", contacto$clave[k]))
+      }
+    }
+  }
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:cierre")
+  for (ic in iconos) {
+    ruta <- .lam_icono_ruta(ic$n, ic$color)
+    if (!is.null(ruta)) doc <- officer::ph_with(doc, officer::external_img(ruta, width = ic$d, height = ic$d),
+                                                location = officer::ph_location(left = ic$x, top = ic$y, width = ic$d, height = ic$d, newlabel = "cierre:icono"))
+  }
+  list(doc = por_lamina(doc), partes = 1L)
 }

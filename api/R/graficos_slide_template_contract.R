@@ -1,4 +1,4 @@
-# Contrato geométrico efectivo de las 32 láminas PPT.
+# Contrato geométrico efectivo de las 33 láminas PPT.
 #
 # Esta es la única autoridad que combina metadata pública, plantilla abierta,
 # presets efectivos y `.PPT_CONTRACT`. El renderer conserva el contrato interno
@@ -14,6 +14,7 @@
   top_two_box = c(title = "titulo", text = "texto", diagram = "diagrama"),
   section = c(title = "titulo"),
   objetivo_icono = c(title = "titulo", text = "texto", icon = "icono"),
+  cierre = character(),
   text_slide = c(title = "titulo", text = "texto"),
   technical_table = c(title = "titulo", table = "filas", footer = "pie"),
   slide_1 = c(title = "titulo", plot = "grafico", base = "base", right = "pie"),
@@ -468,10 +469,10 @@
 
   render_keys <- vapply(metadata, function(meta) as.character(meta$render_key %||% "")[1], character(1))
   # El número es una cuenta declarada, no un tope: sube cuando se añade una
-  # lámina (las últimas, las cuatro de población y cifras, en 2026-08-14). Lo que protege de verdad
+  # lámina (las últimas, el cierre del recetario, en 2026-10-09). Lo que protege de verdad
   # es el `anyDuplicated`, que caza dos láminas compartiendo renderer.
-  if (length(render_keys) != 32L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
-    stop("El metadata de slides debe declarar 32 `render_key` únicos.", call. = FALSE)
+  if (length(render_keys) != 33L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
+    stop("El metadata de slides debe declarar 33 `render_key` únicos.", call. = FALSE)
   }
 
   contract <- .ppt_slide_template_manual_contracts(.PPT_CONTRACT)

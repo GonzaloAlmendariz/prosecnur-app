@@ -163,6 +163,27 @@
 .lam_ancho_txt <- function(s, size, bold = FALSE) nchar(s) * size * (if (bold) 0.56 else 0.52) / 72
 .lam_lineas <- function(s, w, size, bold = FALSE) max(1, ceiling(.lam_ancho_txt(s, size, bold) / (w - 0.2)))
 .lam_alto_txt <- function(s, w, size, bold = FALSE) .lam_lineas(s, w, size, bold) * size * 1.2 / 72 + 0.1
+#' Líneas que compone un cuadro de texto: corte por palabras (greedy, como PowerPoint) sobre el ancho útil `w - 0.2`
+#'
+#' `.lam_alto_tinta` divide el ancho total de la tinta por el de la caja y no ve lo que se pierde al final de cada
+#' línea: en la frontera daba tres líneas donde se componían cuatro (verificador de N7, ronda 11).
+#' @keywords internal
+.lam_lineas_tinta <- function(s, w, size, bold = FALSE) {
+  util <- w - 0.2 - 0.02
+  vapply(s, function(x) {
+    total <- 0L
+    for (parrafo in strsplit(as.character(x), "\n", fixed = FALSE)[[1]]) {
+      pal <- strsplit(trimws(parrafo), "\\s+")[[1]]; pal <- pal[nzchar(pal)]
+      if (!length(pal)) { total <- total + 1L; next }
+      a <- .lam_ancho_tinta(pal, size, bold); esp <- .lam_ancho_tinta(" ", size, bold)
+      n <- 1L; cur <- a[1]
+      for (k in seq_along(pal)[-1]) if (cur + esp + a[k] <= util) cur <- cur + esp + a[k] else { n <- n + 1L; cur <- a[k] }
+      total <- total + n
+    }
+    max(1L, total)
+  }, 0L, USE.NAMES = FALSE)
+}
+
 #' Alto de un texto con las líneas contadas sobre el ancho real de su tinta (systemfonts), no por carácter
 #' @keywords internal
 .lam_alto_tinta <- function(s, w, size, bold = FALSE) {

@@ -717,6 +717,31 @@ p_slide_objetivo_icono <- function(icono, texto, titulo = NULL, meta = list()) {
   ))
 }
 
+#' @title Slide de cierre (contraportada)
+#'
+#' @description Última lámina del informe sobre el layout «Contraportada» de la plantilla: el logo institucional
+#'   centrado y el contacto. Las cinco variantes del recetario (ADR 0093, láminas 61 a 65) cambian solo cómo va el
+#'   contacto.
+#'
+#' @param variante «contraportada» (65, por defecto: el contacto al pie con los íconos de la plantilla),
+#'   «banda_azul» (61), «banda_clara» (62), «contacto» (63, una fila bajo el logo) o «tres_columnas» (64).
+#' @param correo,direccion,web Datos de contacto. `NULL` toma los de PULSO PUCP; `""` omite el dato.
+#' @param meta Lista libre para notas internas.
+#'
+#' @return Objeto con clase `"ppt_slide"`.
+#' @family reporte
+#' @export
+p_slide_cierre <- function(variante = "contraportada", correo = NULL, direccion = NULL, web = NULL, meta = list()) {
+  .ppt_chk_meta(meta)
+  norm <- function(x) if (is.null(x)) NULL else trimws(as.character(x)[1] %||% "")
+  .ppt_as_slide(list(
+    .slide_type = "cierre",
+    title       = NULL,
+    slots       = list(variante = .lam_cierre_variante(variante), correo = norm(correo), direccion = norm(direccion), web = norm(web)),
+    meta        = meta
+  ))
+}
+
 # =============================================================================
 # SLIDES  -  BASICAS (1 grafico / 2 graficos)
 # =============================================================================

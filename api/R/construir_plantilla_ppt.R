@@ -681,6 +681,7 @@
       subtexto = list(type = "body", type_idx = 1L)
     )),
     "Indice" = make_entry("indice"),
+    "Contraportada" = make_entry("cierre"),
     "Objetivos_Secciones" = make_entry("objetivo_icono", list(
       title = list(type = "title", type_idx = 1L),
       icon = list(type = "body", type_idx = 1L),

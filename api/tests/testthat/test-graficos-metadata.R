@@ -54,7 +54,8 @@ source("setup-load-all.R")
   p_slide_3_graficos_poblacion = c(kind = "population3", ppt_layout = "poblacion_3", structure_label = "Dos apilados + uno alto + ícono"),
   p_slide_4_graficos_poblacion = c(kind = "population4", ppt_layout = "poblacion_4", structure_label = "Matriz 2 × 2 + ícono"),
   p_slide_5_graficos_poblacion = c(kind = "population5", ppt_layout = "poblacion_5", structure_label = "Matriz 3 + 2 + ícono"),
-  p_slide_6_graficos_poblacion = c(kind = "population6", ppt_layout = "poblacion_6", structure_label = "Matriz 3 × 2 + ícono")
+  p_slide_6_graficos_poblacion = c(kind = "population6", ppt_layout = "poblacion_6", structure_label = "Matriz 3 × 2 + ícono"),
+  p_slide_cierre = c(kind = "closing", ppt_layout = "Contraportada", structure_label = "Contraportada")
 )
 
 .gm_slot <- function(role, label) list(role = role, label = label)
@@ -183,7 +184,8 @@ source("setup-load-all.R")
     grafico_inferior_2 = .gm_slot("chart", "Inferior centro"),
     grafico_inferior_3 = .gm_slot("chart", "Inferior derecha"),
     icono = .gm_slot("icon", "Ícono central")
-  )
+  ),
+  p_slide_cierre = list()
 )
 
 .gm_graficadores <- list(
@@ -246,7 +248,7 @@ source("setup-load-all.R")
   "twoNarrative", "twoTextLeft", "twoTextRight", "grid4", "population2",
   "population3_row", "population3_crown", "population3_kpi", "kpi_band",
   "grid3_2p1", "grid3_1p2", "grid3_row", "grid3_1up", "grid2_col", "grid2_asym",
-  "population3", "population4", "population5", "population6"
+  "population3", "population4", "population5", "population6", "closing"
 )
 
 .gm_graf_categorias <- c(
@@ -264,7 +266,7 @@ source("setup-load-all.R")
 test_that("registry: cada slide y graficador expone el shape completo con nombres únicos y reales", {
   reg <- .graficos_registry_payload()
   expect_setequal(names(reg), c("slides", "graficadores"))
-  expect_length(reg$slides, 32L)
+  expect_length(reg$slides, 33L)
   expect_length(reg$graficadores, 24L)
 
   slide_names <- vapply(reg$slides, function(s) s$name, character(1))
@@ -471,7 +473,7 @@ test_that("metadata G2-L0.1 declara direccion de escala y exclusion del denomina
   }
 })
 
-test_that("registry L4: los 32 blueprints de slides siguen la tabla PPT acreditada", {
+test_that("registry L4: los 33 blueprints de slides siguen la tabla PPT acreditada", {
   reg <- .graficos_registry_payload()
   expect_identical(.slide_names(), names(.gm_slide_blueprints))
 
