@@ -81,7 +81,7 @@
 #' @keywords internal
 .word_g_competencias <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
-  M <- espec$valores; ejes <- as.character(espec$ejes); gr <- as.character(espec$grupos)
+  M <- .word_radar_pct(espec$valores); ejes <- as.character(espec$ejes); gr <- as.character(espec$grupos)
   cols <- if (!is.null(espec$colores)) unname(espec$colores[gr]) else rep_len(c("#0B4F8C", "#2A9D8F", "#E9C46A"), length(gr))
   o <- order(rowMeans(M)); lv <- ejes[o]
   d <- do.call(rbind, lapply(seq_along(gr), function(j) data.frame(c = factor(ejes, levels = lv), a = factor(gr[j], levels = gr), v = M[, j])))
@@ -95,4 +95,36 @@
                    axis.text.x = ggplot2::element_text(size = 8, colour = T$gris, family = "Arial"),
                    panel.grid.major.x = ggplot2::element_line(colour = "#E3E6EC", linewidth = 0.3))
   attr(g, "alto") <- 0.58 + 0.3 * length(ejes); g         # recetario_word.R:406: 6 competencias en 2.6 in con el pie
+}
+
+# `radar/1` guarda los valores de 0 a 1 (graficos_espec_radar.R); el recetario dibuja en por ciento.
+.word_radar_pct <- function(V) { V <- as.matrix(V); if (max(V, na.rm = TRUE) <= 1.0001) V * 100 else V }
+
+#' Radar (`g_radar()`): anillos cada 5 puntos desde el piso de la espec, rótulos de los anillos en la diagonal entre los dos
+#' primeros ejes (donde no hay eje), una línea por grupo con los colores de la espec y la leyenda abajo
+#' @keywords internal
+.word_g_radar <- function(espec) {
+  navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
+  M <- .word_radar_pct(espec$valores); ejes <- as.character(espec$ejes); gr <- as.character(espec$grupos)
+  lo <- espec$lo %||% 80; k <- length(ejes); ang <- pi / 2 - 2 * pi * (0:(k - 1)) / k
+  rr <- function(v) (pmax(v, lo) - lo) / (100 - lo); anillos <- seq(lo + 5, 100, 5)
+  cols <- if (!is.null(espec$colores)) unname(espec$colores[gr]) else rep_len(c("#0B4F8C", "#2A9D8F", "#E9C46A"), length(gr))
+  ring <- do.call(rbind, lapply(anillos, function(v) data.frame(r = v, x = rr(v) * cos(c(ang, ang[1])), y = rr(v) * sin(c(ang, ang[1])))))
+  ser <- do.call(rbind, lapply(seq_along(gr), function(j) data.frame(a = gr[j], x = rr(M[c(seq_len(k), 1), j]) * cos(c(ang, ang[1])),
+                                                                  y = rr(M[c(seq_len(k), 1), j]) * sin(c(ang, ang[1])))))
+  ser$a <- factor(ser$a, levels = gr)
+  lab <- data.frame(t = .word_envolver(ejes, 16), x = 1.2 * cos(ang), y = 1.13 * sin(ang), h = ifelse(abs(cos(ang)) < 0.15, 0.5, ifelse(cos(ang) > 0, 0, 1)))
+  g <- ggplot2::ggplot() + ggplot2::geom_path(data = ring, ggplot2::aes(.data$x, .data$y, group = .data$r), colour = "#D5D9DF", linewidth = 0.3) +
+    ggplot2::annotate("text", x = rr(anillos) * cos(pi / 2 - pi / k), y = rr(anillos) * sin(pi / 2 - pi / k), label = paste0(anillos, "%"),
+                      size = .word_pt(7.5), colour = T$gris, family = "Arial") +
+    ggplot2::geom_path(data = ser, ggplot2::aes(.data$x, .data$y, group = .data$a, colour = .data$a), linewidth = 0.9) +
+    ggplot2::geom_point(data = ser, ggplot2::aes(.data$x, .data$y, colour = .data$a), size = 1.6) +
+    ggplot2::geom_text(data = lab, ggplot2::aes(.data$x, .data$y, label = .data$t, hjust = .data$h), size = .word_pt(8), colour = navy, family = "Arial",
+                       fontface = "bold", lineheight = 0.9) +
+    ggplot2::scale_colour_manual(values = stats::setNames(cols, gr), name = NULL) +
+    ggplot2::coord_equal(xlim = c(-1.9, 1.9), ylim = c(-1.3, 1.3), clip = "off") + .word_tema()
+  # Recetario: 3.4 in con 6 ejes y 3.6 con 11, con el pie (recetario_word.R:408, 412).
+  attr(g, "alto") <- (if (k > 8) 3.6 else 3.4) - 0.22
+  attr(g, "nota_eje") <- sprintf("El eje empieza en %s%%", lo)
+  g
 }

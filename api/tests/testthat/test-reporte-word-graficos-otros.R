@@ -48,3 +48,15 @@ test_that("los puntos por competencia ordenan los ejes por su promedio con el ma
   expect_identical(levels(g$layers[[2]]$data$c), c("Baja", "Media", "Alta"))      # ggplot: el último nivel va arriba
   expect_equal(attr(g, "alto"), 0.58 + 0.3 * 3)
 })
+
+test_that("radar y puntos por competencia leen radar/1 en su escala de 0 a 1 y la dibujan en por ciento", {
+  M <- cbind(D = c(.99, .92, .95), E = c(.96, .93, .96)); rownames(M) <- c("A", "B", "C")
+  e <- list(ejes = c("A", "B", "C"), grupos = c("D", "E"), valores = M, lo = 80)
+  g <- .word_g_radar(e)
+  expect_true(all(c("85%", "90%", "95%", "100%", "A") %in% .wo_textos(g)))
+  ser <- g$layers[[3]]$data
+  expect_equal(ser$y[ser$a == "D"][1], (99 - 80) / 20)                       # 0.99 → 99 % → radio (99-80)/20 sobre el primer eje
+  expect_equal(attr(g, "alto"), 3.4 - 0.22)
+  gc <- .word_g_competencias(e)
+  expect_true(all(gc$layers[[2]]$data$v > 1))                               # en por ciento, no 0.99
+})
