@@ -3,7 +3,7 @@
 #
 # Uso (desde la raíz del repo):
 #   OUT=/ruta/categoricas.pptx Rscript docs/qa/motor-ppt-2026-10-06/herramientas/pares_categoricas.R
-#   printf "recetario,motor,nombre\n68,1,c068\n" > mapa.csv
+#   printf "recetario,motor,nombre\n68,1,c068\n73,2,c073\n" > mapa.csv
 #   Rscript scripts/qa_pares_recetario.R /ruta/categoricas.pptx mapa.csv /ruta/pares
 Sys.setlocale("LC_ALL", "en_US.UTF-8")
 suppressMessages(pkgload::load_all("api", quiet = TRUE))
@@ -24,4 +24,21 @@ e <- preparar_categorica(f$labels, f$pct, .pulso_fmt_pct_unidades(.pulso_pct_uni
 doc <- officer::read_pptx("api/inst/plantillas/plantilla_16_9.pptx")
 o <- .lam_laminas_categorica(doc, e, "Nivel curricular del estudiante", ante = "Barras categóricas", base = "Base: 172 estudiantes",
                              folio = 68, forma = "columnas", unidad_n = "estudiantes")
+# 73: ranking en barras de una selección múltiple de OTRO estudio (ingeniería mecánica); los números son los
+# impresos en el recetario (recetario_m3a.R:98-101).
+lab73 <- c("Integración de herramientas digitales para diseño, simulación, software especializado, análisis de datos e inteligencia artificial",
+           "Actualización del plan de estudios, modernización de cursos y ampliación de electivos según demandas profesionales",
+           "Mayor práctica industrial en campo, talleres, laboratorios, fabricación y resolución de casos reales",
+           "Profundización en rubros mecánicos de alta demanda: minería, energía, mantenimiento, plantas, maquinaria, diseño e hidráulica",
+           "Mayor vinculación docente con la industria, actualización profesional y mejora de metodologías de enseñanza",
+           "Orientación sobre perfiles profesionales, campos laborales, rubros de especialización y condiciones del mercado peruano",
+           "Desarrollo de comunicación, liderazgo, trabajo interdisciplinario y habilidades blandas para contextos profesionales",
+           "Fortalecimiento de gestión de proyectos, negocio, costos, finanzas y perfil gerencial del ingeniero mecánico",
+           "Apoyo a la inserción laboral mediante prácticas, horarios compatibles, pasantías, convenios y asesoría profesional",
+           "No sabe / Ninguna sugerencia")
+pc73 <- c(29, 27, 26, 21, 15, 15, 15, 13, 9, 4)
+e73 <- preparar_categorica(lab73, pc73 / 100, paste0(pc73, "%"))
+o <- .lam_laminas_categorica(o$doc, e73, "Qué podría mejorar la carrera", ante = "Ranking en barras",
+                             base = "Base: 131 egresados. La opción más marcada va en azul oscuro. «Otros» y «No sabe» van al final",
+                             folio = 73, forma = "barras", encabezado = "% de encuestados que marcó cada opción")
 print(o$doc, target = OUT); cat("OK\n")
