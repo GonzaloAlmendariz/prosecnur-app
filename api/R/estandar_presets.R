@@ -93,6 +93,13 @@
     }
     presets[[tipo]] <- entrada
   }
+  # Valores de fábrica viejos que el proyecto guardó tal cual (la UI copiaba el
+  # suelo entero) y que impiden que lleguen el histograma y el radar del
+  # recetario. Sólo se migran si coinciden EXACTO con el viejo valor de fábrica:
+  # un valor distinto es decisión del analista y se respeta.
+  fosil <- .std_migrar_fosiles_graficos(presets)
+  presets <- fosil$presets
+  cambios <- c(cambios, fosil$cambios)
   cambios <- unique(cambios)
   if (isTRUE(avisar) && length(cambios)) {
     .pulso_aviso(
@@ -102,3 +109,35 @@
   }
   presets
 }
+
+
+#' Migra los valores de fábrica viejos del histograma y del radar (ADR 0092, F2.7)
+#'
+#' `bins = 8` en el histograma y `limites = c(0, 1)` con `mostrar_niveles =
+#' FALSE` en el radar eran el suelo de fábrica: guardados tal cual en el
+#' proyecto, el histograma no llegaba a una barra por valor ni el radar a su eje
+#' acercado. Medido el 2026-10-08 en el mazo de referencia.
+#' @return Lista con `presets` y `cambios` (para el aviso).
+#' @keywords internal
+.std_migrar_fosiles_graficos <- function(presets) {
+  cambios <- character(0)
+  holder_de <- function(e) if (is.list(e$args)) "args" else "tipo"
+  quitar <- function(tipo, clave, es_fosil, nuevo = NULL, texto) {
+    e <- presets[[tipo]]
+    if (!is.list(e)) return(invisible())
+    h <- if (identical(holder_de(e), "args")) e$args else e
+    if (is.null(h[[clave]]) || !isTRUE(es_fosil(h[[clave]]))) return(invisible())
+    h[clave] <- list(nuevo)
+    if (is.null(nuevo)) h[[clave]] <- NULL
+    if (identical(holder_de(e), "args")) e$args <- h else e <- h
+    presets[[tipo]] <<- e
+    cambios <<- c(cambios, texto)
+  }
+  num <- function(v) suppressWarnings(as.numeric(unlist(v, use.names = FALSE)))
+  quitar("histograma", "bins", function(v) identical(num(v), 8), NULL, "bins de histograma 8 → una barra por valor")
+  quitar("radar_tabla", "limites", function(v) identical(num(v), c(0, 1)), NULL, "limites de radar_tabla 0–1 → eje desde el mínimo")
+  quitar("radar_tabla", "mostrar_niveles", function(v) identical(as.logical(unlist(v))[1], FALSE), TRUE,
+         "mostrar_niveles de radar_tabla FALSE → TRUE")
+  list(presets = presets, cambios = cambios)
+}
+

@@ -3899,7 +3899,7 @@
 
   histograma = list(
     modo                     = "porcentaje_total",
-    bins                     = 8,
+    bins                     = NULL,  # ADR 0092: una barra por valor (histograma del recetario)
     ancho_bin                = NULL,
     mostrar_bins_vacios      = TRUE,
     mostrar_valores          = TRUE,
@@ -4003,10 +4003,10 @@
   radar_tabla = list(
     escala_valor             = "proporcion_1",
     cortes_grilla            = 6,
-    limites                  = c(0, 1),
+    limites                  = NULL,  # ADR 0092: el eje arranca en el mínimo (radar del recetario)
     rellenar_poligono        = FALSE,
     mostrar_radios           = FALSE,
-    mostrar_niveles          = FALSE,
+    mostrar_niveles          = TRUE,  # ADR 0092: cifras de los anillos en la diagonal
     eje_label_mult           = 1.2,
     radar_scale              = 0.85,
     wrap_ejes                = 20,

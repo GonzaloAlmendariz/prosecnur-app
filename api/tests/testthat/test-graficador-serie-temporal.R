@@ -309,3 +309,9 @@ test_that("el dispatcher del motor encuentra el renderer por convencion", {
   # congelado a crecimiento.
   expect_true(exists(".render_serie_temporal", mode = "function"))
 })
+
+test_that("los nombres de serie que terminan cerca no se pisan (ADR 0092)", {
+  y <- .serie_separar_nombres(c(98, 97.6, 93, 92.8), lim = c(80, 100))
+  expect_true(all(diff(sort(y)) >= 0.07 * 20 - 1e-9))
+  expect_true(all(y <= 100))
+})
