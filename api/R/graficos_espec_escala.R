@@ -123,12 +123,16 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
     dec_box <- .box_decidir(labels = labels, etiquetas_grupos = etiquetas_grupos,
                             cols_porcentaje = cols_porcentaje, minimo = minimo)
     if (!isTRUE(dec_box$dibujar)) return(list(preset = preset, rotulo = rotulo, cols = character(0),
-                                              unidades = NULL, cifras = NULL, motivo = dec_box$motivo))
+                                              unidades = NULL, cifras = NULL, casos = NULL, motivo = dec_box$motivo))
     # Nunca SIN INF ni los códigos 90-99, aunque se declaren: no son «valores superiores» de la escala.
     cols <- setdiff(intersect(dec_box$cols, cols_seg), categorias$col[categorias$especial])
     u <- rowSums(unidades[, cols, drop = FALSE])
+    # Casos del box sobre la base de la fila: el recetario escribe «x de y» bajo la cifra cuando la base es
+    # chica (recetario.R:238-244).
+    sumas <- rowSums(prop); pn <- prop / ifelse(sumas > 0, sumas, 1)
+    casos <- floor(rowSums(pn[, cols, drop = FALSE]) * filas$n + 0.5)
     list(preset = preset, rotulo = rotulo, cols = cols, unidades = u,
-         cifras = .pulso_fmt_pct_unidades(u, dec), motivo = NULL)
+         cifras = .pulso_fmt_pct_unidades(u, dec), casos = unname(casos), motivo = NULL)
   }
   box <- NULL; box2 <- NULL
   if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% c("top2box", "top3box", "bottom2box")) {

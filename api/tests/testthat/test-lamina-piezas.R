@@ -2,10 +2,9 @@
 # transformación identidad, ids únicos en la lámina y la letra que no encoge.
 
 .lam_doc <- function() {
-  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp") %|% "api/inst/plantillas/plantilla_16_9.pptx")
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
   officer::add_slide(doc, layout = "Graficos2", master = "Office Theme")
 }
-`%|%` <- function(a, b) if (nzchar(a)) a else b
 
 test_that("el lienzo entra como un p:grpSp con transformación identidad y el tamaño de su contenido", {
   doc <- .lam_doc()
