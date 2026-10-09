@@ -63,10 +63,10 @@ Imports:
     qrcode,
     scales,
     sf,
-    rsvg
+    rsvg,
+    systemfonts
 Suggests:
     testthat (>= 3.0.0),
-    systemfonts,
     DBI,
     duckdb,
     pkgload,
