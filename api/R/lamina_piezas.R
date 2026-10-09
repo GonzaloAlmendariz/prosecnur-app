@@ -94,6 +94,28 @@
   .lam_registrar(lz, xml, l, t, w, h)
 }
 
+#' Cuadro de texto de un párrafo con tramos en negrita (`txt_runs()` del recetario)
+#'
+#' @param tramos Lista de pares `list(texto, negrita)`.
+#' @keywords internal
+.lam_txt_tramos <- function(lz, tramos, l, t, w, h, size = 12, color = .std_color("azul"), nombre = "texto") {
+  fuente <- .std_pt("fuente")
+  runs <- vapply(tramos, function(tr) paste0(
+    '<a:r><a:rPr lang="es-PE" sz="', round(size * 100), '" b="', if (isTRUE(tr[[2]])) 1 else 0, '" i="0" dirty="0">',
+    '<a:solidFill><a:srgbClr val="', .lam_hex(color), '"/></a:solidFill>',
+    '<a:latin typeface="', fuente, '"/><a:ea typeface="', fuente, '"/><a:cs typeface="', fuente, '"/></a:rPr>',
+    '<a:t>', .lam_xml_esc(tr[[1]]), '</a:t></a:r>'), "")
+  xml <- paste0(
+    '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>',
+    '<p:spPr>', .lam_xfrm(l, t, w, h), '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr>',
+    '<p:txBody><a:bodyPr wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" anchor="t" anchorCtr="0">',
+    '<a:noAutofit/></a:bodyPr><a:lstStyle/>',
+    '<a:p><a:pPr algn="l" marL="0" marR="0" indent="0"><a:lnSpc><a:spcPct val="100000"/></a:lnSpc>',
+    '<a:spcBef><a:spcPts val="0"/></a:spcBef><a:spcAft><a:spcPts val="0"/></a:spcAft><a:buNone/></a:pPr>',
+    paste(runs, collapse = ""), '</a:p></p:txBody></p:sp>')
+  .lam_registrar(lz, xml, l, t, w, h)
+}
+
 #' Inserta el lienzo en la lámina como un grupo
 #'
 #' El grupo mide lo que su contenido (transformación identidad: `chOff`/`chExt`

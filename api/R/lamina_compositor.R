@@ -97,6 +97,8 @@
   if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_dimensiones_cabe(espec)))
   }
+  # N6: torta y dona (láminas 69 y 70), si caben.
+  if (identical(espec$tipo, "pie")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_circular_cabe(espec)))
   # N3: barras divergentes (lámina 71) y ranking con puntos (lámina 72), si caben.
   if (identical(espec$tipo, "divergentes")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_divergentes_cabe(espec)))
   if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
@@ -202,6 +204,12 @@
       pesas = do.call(.lam_laminas_pesas, c(comunes, list(unidad_n = unidad))),
       serie2 = do.call(.lam_laminas_serie2, comunes))
     return(o$doc)
+  }
+  if (identical(espec$tipo, "pie")) {
+    unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    f <- if (identical(espec$forma, "pie")) .lam_laminas_torta else .lam_laminas_dona
+    return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = paste(c(texto(base), texto(pie)), collapse = ". "),
+             folio = length(doc) + 1L, sub = texto(subtitulo), unidad_n = unidad, layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "divergentes")) {
     return(.lam_laminas_divergentes(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
