@@ -55,3 +55,16 @@ test_that("la regla de cifras chicas se impone por tipo y se avisa", {
   # sin base, la imposición por tipo no inventa una base
   expect_null(p$base)
 })
+
+test_that("los valores de fábrica viejos del histograma y del radar migran, los propios se respetan", {
+  p <- list(histograma = list(bins = 8L, ancho_bin = list()),
+            radar_tabla = list(limites = list(0L, 1L), mostrar_niveles = FALSE))
+  expect_message(out <- .std_imponer_base(p, avisar = TRUE), "bins de histograma 8")
+  expect_null(out$histograma$bins)
+  expect_null(out$radar_tabla$limites)
+  expect_true(out$radar_tabla$mostrar_niveles)
+  propios <- list(histograma = list(bins = 5L), radar_tabla = list(limites = c(0.5, 1)))
+  out2 <- .std_imponer_base(propios)
+  expect_equal(out2$histograma$bins, 5L)
+  expect_equal(out2$radar_tabla$limites, c(0.5, 1))
+})

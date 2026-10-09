@@ -80,6 +80,10 @@
   # Margen derecho para el nombre de la serie más largo, que va tras el último punto.
   # El nombre de la serie no es una cifra: su capa no lleva `.lab`.
   if (!is.null(ultimo)) ultimo$.lab <- NULL
+  # Nombres que terminan cerca se separan en vertical para no pisarse (en el
+  # mazo de referencia, «Estados Financieros» caía sobre «Tributación»).
+  if (!is.null(ultimo) && nrow(ultimo) > 1L) ultimo$y_nombre <- .serie_separar_nombres(ultimo$v, lim)
+  else if (!is.null(ultimo)) ultimo$y_nombre <- ultimo$v
   # El eje se alarga lo que mide el nombre más largo, para que quepa dentro del
   # lienzo (el auditor de composición mide contra el rango del eje).
   largo_nombre <- max(nchar(as.character(ultimo$g %||% "")), 0)
@@ -97,7 +101,7 @@
   }
   if (!is.null(ultimo) && nrow(ultimo)) {
     p <- p + ggplot2::geom_text(
-      data = ultimo, ggplot2::aes(x = np_ + 0.16, label = .data$g), hjust = 0,
+      data = ultimo, ggplot2::aes(x = np_ + 0.16, y = .data$y_nombre, label = .data$g), hjust = 0,
       size = 13 / ggplot2::.pt, fontface = "bold", family = font_family, show.legend = FALSE
     )
   }
@@ -121,3 +125,24 @@
       plot.margin = ggplot2::margin(14, margen_der, 8, 8)
     )
 }
+
+
+#' Separa en vertical los nombres de serie al final de sus líneas
+#'
+#' Mantiene cada nombre lo más cerca posible de su punto y garantiza una
+#' distancia mínima (7 % del eje) entre vecinos, sin salir del eje.
+#' @keywords internal
+.serie_separar_nombres <- function(v, lim, gap_frac = 0.07) {
+  gap <- diff(lim) * gap_frac
+  o <- order(v)
+  y <- v[o]
+  for (k in seq_along(y)[-1]) if (y[k] - y[k - 1] < gap) y[k] <- y[k - 1] + gap
+  exceso <- max(0, y[length(y)] - lim[2])
+  if (exceso > 0) {
+    y[length(y)] <- y[length(y)] - exceso
+    for (k in rev(seq_along(y))[-1]) if (y[k + 1] - y[k] < gap) y[k] <- y[k + 1] - gap
+  }
+  out <- numeric(length(v)); out[o] <- y
+  out
+}
+

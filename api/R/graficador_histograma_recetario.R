@@ -12,7 +12,11 @@
 #' ¿El histograma se puede dibujar con una barra por valor?
 #' @keywords internal
 .histograma_recetario_aplica <- function(x, grupo, bins, ancho_bin) {
-  is.null(grupo) && is.null(bins) && is.null(ancho_bin) && length(x) > 0L &&
+  # Una lista vacía o NA cuenta como «no declarado»: el round-trip de la UI
+  # guarda `ancho_bin = list()` y eso no es una decisión del analista.
+  vacio <- function(v) is.null(v) || !length(v) || all(is.na(suppressWarnings(as.numeric(unlist(v)))))
+  sin_grupo <- is.null(grupo) || !length(grupo) || !nzchar(trimws(as.character(grupo)[1]))
+  sin_grupo && vacio(bins) && vacio(ancho_bin) && length(x) > 0L &&
     all(abs(x - round(x)) < 1e-9) && diff(range(x)) <= 40
 }
 

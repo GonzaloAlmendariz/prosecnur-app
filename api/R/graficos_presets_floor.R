@@ -45,9 +45,11 @@
 #'   (`etiquetas_arriba_si_no_caben = TRUE`), como en el recetario.
 #' - `5`: ADR 0092 (F2.4) — columna Top Two Box del recetario: cifras 14 pt,
 #'   rotulo 10 pt, verde #4E9438.
+#' - `6`: ADR 0092 (F2.7) — histograma sin `bins` fijos (una barra por valor) y
+#'   radar sin `limites` fijos y con las cifras de los anillos.
 #'
 #' @keywords internal
-.PRESETS_FLOOR_VERSION <- 5L
+.PRESETS_FLOOR_VERSION <- 6L
 
 #' Sello del suelo editorial vigente
 #'
