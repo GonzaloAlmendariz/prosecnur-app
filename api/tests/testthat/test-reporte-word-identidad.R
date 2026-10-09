@@ -87,3 +87,20 @@ test_that("cada capítulo cierra su sección con su propio encabezado escrito y 
   expect_match(cabs[1], "1. Perfil del encuestado", fixed = TRUE); expect_match(cabs[2], "2. Satisfacción", fixed = TRUE)
   expect_false(grepl("Perfil|Satisfacci", cabs[3]))   # la última sección (la contraportada) no lleva capítulo
 })
+
+test_that("la figura lleva el rótulo con SEQ, la imagen pegada a la base y la lectura con las cifras en negrita", {
+  png <- tempfile(fileext = ".png"); grDevices::png(png, 600, 300); graphics::par(mar = c(0, 0, 0, 0)); graphics::plot.new(); grDevices::dev.off()
+  doc <- .word_figura(.word_documento_nuevo(), 3, "¿Qué tan satisfecho está?", png, alto = 1.34, base = "Base: 120 estudiantes. Fuente: PULSO PUCP 2026.",
+                      lectura = "El 72 % está satisfecho, 8 pts más que en 2025.")
+  out <- tempfile(fileext = ".docx"); print(doc, target = out); .docx_conformar(out, revista = TRUE)
+  x <- xml2::read_xml(unz(out, "word/document.xml")); ns <- c(w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+  st <- xml2::read_xml(unz(out, "word/styles.xml"))
+  nombre_de <- function(id) xml2::xml_attr(xml2::xml_find_first(st, sprintf("//w:style[@w:styleId='%s']/w:name", id), ns), "w:val", ns = ns)
+  estilos <- vapply(xml2::xml_attr(xml2::xml_find_all(x, "//w:body/w:p/w:pPr/w:pStyle", ns), "w:val", ns = ns), nombre_de, "")
+  expect_identical(unname(estilos), c("Rótulo de gráfico", "Normal", "Base y fuente con lectura", "Lectura"))   # la imagen va en un párrafo «Normal», como en el recetario
+  expect_match(paste(xml2::xml_text(xml2::xml_find_all(x, "//w:instrText", ns)), collapse = ""), "SEQ Gráfico \\* ARABIC", fixed = TRUE)
+  expect_identical(nombre_de(xml2::xml_attr(xml2::xml_find_first(x, "//w:r/w:rPr/w:rStyle", ns), "w:val", ns = ns)), "Número de rótulo")
+  expect_false(inherits(xml2::xml_find_first(x, "//w:p[.//w:drawing]/w:pPr/w:keepNext", ns), "xml_missing"))
+  negritas <- xml2::xml_text(xml2::xml_find_all(x, "//w:p[last()]/w:r[w:rPr/w:b]", ns))
+  expect_identical(negritas, c("72 %", "8 pts", "2025"))
+})
