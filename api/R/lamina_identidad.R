@@ -312,15 +312,19 @@
   rot <- limpio(subtitulo); tit <- limpio(titulo) %||% ""; enc <- limpio(subtexto); fec <- limpio(fecha)
   if (identical(variante, "izquierda")) {
     # 24: alineada a la izquierda; la línea coral de la plantilla (y = 4.21) separa título y encargo.
-    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.08, 2.25, 8, 0.32, 13, coral, bold = TRUE, nombre = "portada:rotulo")
-    .lam_txt(lz, tit, 1.08, 2.62, 9.6, 1.3, 30, azul, bold = TRUE, nombre = "portada:titulo")
+    # Un título de tres líneas sube con su rótulo: la última línea no puede bajar de 3.72 o sus descendentes cruzan la
+    # línea coral (verificador de N7, ronda 10).
+    sube <- max(0, .lam_alto_tinta(tit, 9.6, 30, TRUE) - 1.1)
+    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.08, 2.25 - sube, 8, 0.32, 13, coral, bold = TRUE, nombre = "portada:rotulo")
+    .lam_txt(lz, tit, 1.08, 2.62 - sube, 9.6, 1.3 + sube, 30, azul, bold = TRUE, nombre = "portada:titulo")
     if (!is.null(enc)) .lam_txt(lz, enc, 1.08, 4.45, 9.6, 0.36, 16, azul, nombre = "portada:encargo")
     if (!is.null(fec)) .lam_txt(lz, fec, 1.08, 4.85, 9.6, 0.34, 14, suave, nombre = "portada:fecha")
   } else if (identical(variante, "banda")) {
     # 25: centrada, con el encargo y la fecha en una banda azul al pie.
     H <- 7.5; W <- .std_geom("ancho")
-    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.25, 10.1, 0.32, 13, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
-    .lam_txt(lz, tit, 1.4, 2.62, 10.5, 1.3, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
+    sube <- max(0, .lam_alto_tinta(tit, 10.5, 30, TRUE) - 1.1)
+    if (!is.null(rot)) .lam_txt(lz, toupper(rot), 1.6, 2.25 - sube, 10.1, 0.32, 13, coral, bold = TRUE, align = "center", nombre = "portada:rotulo")
+    .lam_txt(lz, tit, 1.4, 2.62 - sube, 10.5, 1.3 + sube, 30, azul, bold = TRUE, align = "center", nombre = "portada:titulo")
     .lam_caja(lz, 0, H - 1.25, W, 1.25, azul, nombre = "portada:banda")
     if (!is.null(enc)) .lam_txt(lz, enc, 1.6, H - 0.95, 10.1, 0.34, 15, "#FFFFFF", bold = TRUE, align = "center", nombre = "portada:encargo")
     if (!is.null(fec)) .lam_txt(lz, fec, 1.6, H - 0.58, 10.1, 0.3, 13, "#FFFFFF", align = "center", nombre = "portada:fecha")
@@ -341,11 +345,12 @@
   if (v %in% c("izquierda", "24", "alineada")) "izquierda" else if (v %in% c("banda", "25", "banda inferior")) "banda" else "centrada"
 }
 
-#' ¿La portada cabe? El título en tres líneas a 30 pt en 10.7 in (lo que mide su caja de 1.5 in)
+#' ¿La portada cabe? El título en tres líneas a 30 pt en el ancho de la caja de su variante (10.7, 9.6 o 10.5 in)
 #' @keywords internal
-.lam_portada_cabe <- function(titulo) {
+.lam_portada_cabe <- function(titulo, variante = "centrada") {
   t <- as.character(titulo %||% "")[1]
-  !is.na(t) && nzchar(trimws(t)) && .lam_alto_tinta(t, 10.7, 30, TRUE) <= 1.6
+  ancho <- c(centrada = 10.7, izquierda = 9.6, banda = 10.5)[[.lam_portada_variante(variante)]]
+  !is.na(t) && nzchar(trimws(t)) && .lam_alto_tinta(t, ancho, 30, TRUE) <= 1.6
 }
 
 # ---- Ficha técnica (lámina 29, recetario.R:489-533) -------------------------------------------------------------
