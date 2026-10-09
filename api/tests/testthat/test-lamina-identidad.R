@@ -122,3 +122,12 @@ test_that("la portada sale como la 23 con la plantilla de PULSO; las de cliente 
   expect_true(.lam_plantilla_estandar("/x/plantilla_16_9.pptx"))
   expect_false(.lam_plantilla_estandar("/x/plantilla_acnur_16_9.pptx"))
 })
+
+test_that("la lámina de redondeo sólo atiende a las familias que cierran en 100 y declaran método; la nota concuerda (verificador de N7)", {
+  expect_identical(.lam_redondeo_metodo(list(), list(multi_apiladas = list(args = list(metodo_redondeo = "reparto")),
+                                                      barras_apiladas = list(args = list()), barras_agrupadas = list(args = list()))), "resto_mayor")
+  expect_identical(.lam_redondeo_metodo(list(), list(barras_agrupadas = list(args = list(metodo_redondeo = "reparto")))), "estandar")
+  expect_message(m <- .lam_redondeo_metodo(list(metodo = "xyz")), "no reconoce"); expect_identical(m, "estandar")
+  lam <- .id_mazo(list(a = p_slide_redondeo(casos = c(1, 1, 1, 0), etiquetas = c("A", "B", "C", "D"), meta = list(metodo = "resto_mayor"))))
+  expect_identical(.id_txt(lam[[1]], "redondeo:nota"), "Falta un punto: va al resto más grande.")
+})
