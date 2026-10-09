@@ -50,3 +50,14 @@ test_that("las barras cortan el rótulo largo a 70 caracteres con «...», como 
   expect_true("Corta" %in% tx)
   expect_identical(.word_recortar(c(strrep("a", 70), strrep("a", 71)), 70), c(strrep("a", 70), paste0(strrep("a", 67), "...")))
 })
+
+test_that("en la ruta real las barras agrupadas llegan al Word de 0 a 100 % y con eje libre al máximo (Gonzalo, 2026-10-09)", {
+  d <- data.frame(categoria = c("Redes sociales", "Un amigo", "Otro"), N = c(45, 30, 25), pct = c(.45, .30, .25), stringsAsFactors = FALSE)
+  rango <- function(...) {
+    e <- attr(suppressWarnings(graficar_barras_agrupadas(data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct",
+                                                         etiquetas_series = c(pct = "Total"), ...)), "pulso_espec")
+    suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))$layout$panel_params[[1]]$x.range[2]
+  }
+  expect_equal(rango(), 112)                                  # 100 % con aire para la cifra
+  expect_lt(rango(usar_eje_libre = TRUE), 100)                # eje libre: al máximo (45 %) con aire
+})
