@@ -16,7 +16,7 @@
 
 #' Celda del mapa de calor: tramo, cifra y, si hay referencia y alto, la diferencia debajo (recetario_m3d.R:25-30)
 #' @keywords internal
-.lam_celda_calor <- function(lz, x, y, w, h, v, lo, hi, ref = NULL, v_color = v) {
+.lam_celda_calor <- function(lz, x, y, w, h, v, lo, hi, ref = NULL, v_color = v, sufijo = "%") {
   if (!is.finite(v)) {
     .lam_caja(lz, x + 0.02, y + 0.02, w - 0.04, h - 0.04, .std_color("cebra"), nombre = "calor:celda")
     .lam_txt(lz, "—", x, y + (h - 0.3) / 2, w, 0.3, 12, .std_color("texto_tenue"), align = "center", nombre = "calor:cifra")
@@ -25,10 +25,10 @@
   col <- .lam_calor(v_color, lo, hi); tc <- .lam_texto_sobre(col)
   .lam_caja(lz, x + 0.02, y + 0.02, w - 0.04, h - 0.04, col, nombre = "calor:celda")
   if (is.null(ref) || !is.finite(ref) || h < 0.6) {
-    .lam_txt(lz, paste0(v, "%"), x, y + (h - 0.3) / 2, w, 0.3, 12, tc, bold = TRUE, align = "center", nombre = "calor:cifra")
+    .lam_txt(lz, paste0(v, sufijo), x, y + (h - 0.3) / 2, w, 0.3, 12, tc, bold = TRUE, align = "center", nombre = "calor:cifra")
   } else {
     dd <- v - ref
-    .lam_txt(lz, paste0(v, "%"), x, y + h / 2 - 0.3, w, 0.3, 13, tc, bold = TRUE, align = "center", nombre = "calor:cifra")
+    .lam_txt(lz, paste0(v, sufijo), x, y + h / 2 - 0.3, w, 0.3, 13, tc, bold = TRUE, align = "center", nombre = "calor:cifra")
     .lam_txt(lz, if (dd == 0) "=" else sprintf("%+d", as.integer(dd)), x, y + h / 2, w, 0.26, 10, tc, align = "center", nombre = "calor:diferencia")
   }
   invisible(lz)
@@ -36,13 +36,13 @@
 
 #' Escala de cinco tramos con sus cortes debajo, centrada (recetario_m3d.R:31-37)
 #' @keywords internal
-.lam_escala_calor <- function(lz, centro, y, lo, hi, w = 3.6, rotulo = "Top Two Box") {
+.lam_escala_calor <- function(lz, centro, y, lo, hi, w = 3.6, rotulo = "Top Two Box", sufijo = "%") {
   tramos <- unlist(.std_paleta("calor")$tramos); suave <- .std_color("texto_suave")
   wr <- .lam_ancho_tinta(rotulo, 11, TRUE) + 0.3; tot <- wr + w; x <- centro - tot / 2
   .lam_txt(lz, rotulo, x - 0.1, y - 0.04, wr + 0.2, 0.3, 11, suave, bold = TRUE, nombre = "calor:escala_rotulo"); x <- x + wr
   cortes <- round(seq(lo, hi, length.out = 6))
   for (i in 1:5) .lam_caja(lz, x + (i - 1) * w / 5, y, w / 5 - 0.03, 0.2, tramos[i], nombre = "calor:escala_tramo")
-  for (i in 1:6) .lam_txt(lz, paste0(cortes[i], "%"), x + (i - 1) * w / 5 - 0.35, y + 0.22, 0.7, 0.26, 10, suave, align = "center", nombre = "calor:escala_corte")
+  for (i in 1:6) .lam_txt(lz, paste0(cortes[i], sufijo), x + (i - 1) * w / 5 - 0.35, y + 0.22, 0.7, 0.26, 10, suave, align = "center", nombre = "calor:escala_corte")
   invisible(lz)
 }
 
@@ -144,6 +144,7 @@
 .lam_dimensiones_cabe <- function(espec) {
   g_ <- .std_geom; W <- g_("ancho"); ml <- g_("margen_izq"); mr <- g_("margen_der")
   dos <- function(t, w, size) all(vapply(t, function(x) .lam_lineas(x, w, size, TRUE) <= 2L, TRUE))
+  if (identical(espec$tipo, "heatmap_criterios")) return(.lam_heatmap_criterios_cabe(espec))
   if (identical(espec$tipo, "heatmap_dim")) {
     nc <- ncol(espec$valores); nf <- nrow(espec$valores); wc <- (W - mr - ml - 2.9) / max(1L, nc)
     hc <- min(0.95, (g_("contenido_y1") - g_("zona_datos_y0") - 0.85 - 1.0) / max(1L, nf))

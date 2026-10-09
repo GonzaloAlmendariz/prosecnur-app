@@ -94,7 +94,7 @@
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_numericos_cabe(espec)))
   }
   # N5: mapas de calor y comparativo de dimensiones, si caben.
-  if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
+  if (espec$tipo %in% c("heatmap_dim", "comparativo_dim", "heatmap_criterios")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_dimensiones_cabe(espec)))
   }
   # N6: los gráficos que siguen en ggplot van en la lámina del recetario.
@@ -169,7 +169,7 @@
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
   if (!isTRUE(sin_base) && is.null(texto(base)) && is.null(texto(pie))) base <- texto(espec$nota)
-  if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
+  if (espec$tipo %in% c("heatmap_dim", "comparativo_dim", "heatmap_criterios")) {
     # Si los casos de las columnas son los que respondieron la batería, el pie dice esa misma base (no la del
     # universo), salvo que la lámina declare la suya: una lámina, una base.
     # Si la lámina oculta la base (sin_base) no se escribe ninguna; si la base no tiene la forma «Base: N …» (otro
@@ -184,7 +184,7 @@
     comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                     base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
                     layout = layout, master = master, por_lamina = por_lamina)
-    o <- if (identical(espec$tipo, "heatmap_dim")) do.call(.lam_laminas_heatmap_dim, comunes) else do.call(.lam_laminas_comparativo_dim, comunes)
+    o <- if (identical(espec$tipo, "heatmap_dim")) do.call(.lam_laminas_heatmap_dim, comunes) else if (identical(espec$tipo, "heatmap_criterios")) do.call(.lam_laminas_heatmap_criterios, comunes) else do.call(.lam_laminas_comparativo_dim, comunes)
     return(o$doc)
   }
   if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {

@@ -1943,7 +1943,15 @@
     requisito     = "dimensiones",
     args = c(list(
       list(name = "config_criterios", label = "Criterios", tipo_input = "criteria_config", grupo = "datos",
-           descripcion = "Agrupa variables en criterios para construir el heatmap.")
+           descripcion = "Agrupa variables en criterios para construir el heatmap."),
+      list(name = "cruce", label = "Comparar por", tipo_input = "variable_opt", grupo = "datos",
+           descripcion = "Opcional. Una columna por público (Total y cada grupo), como en la lámina 93 del recetario."),
+      list(name = "metrica", label = "Métrica", tipo_input = "choice", grupo = "datos", default = "top_two_box",
+           choices = list(
+             list(value = "top_two_box", label = "Top Two Box", hint = "Porcentaje en las dos categorías más altas de la escala."),
+             list(value = "lineal", label = "Índice lineal 0-100", hint = "Promedio del criterio tal como viene.")
+           ),
+           descripcion = "Si un criterio no es una pregunta de escala, se usa el índice lineal en todos.")
     ), .args_graf_comunes())
   )
 )
