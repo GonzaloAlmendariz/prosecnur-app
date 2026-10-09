@@ -40,6 +40,9 @@
 #' @keywords internal
 .lam_laminas_escala <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                 layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
+  # El documento officer se modifica en sitio: un folio perezoso (`length(doc) + 1L`) se evaluaría después del
+  # primer add_slide y saldría corrido. Se fuerza antes de tocar el documento (verificador de N1).
+  force(folio)
   premisas <- .lam_escala_premisas(espec)
   # Con fila Total o Bottom Two Box el bloque es una pregunta con sus filas: no se parte (la Total no se
   # separa de los grupos que resume).
@@ -151,4 +154,50 @@
   attr(p, "pulso_espec") <- espec
   .lam_compositor_slide_1(doc, p, titulo, subtitulo, base, pie, antetitulo, layout = layout, master = master,
                           por_lamina = por_lamina)$doc
+}
+
+#' ¿La lámina de varios gráficos se compone con piezas nativas?
+#'
+#' Sí cuando cada gráfico trae una especificación de escala, ninguno pide filas con Total o Bottom Two Box
+#' (piezas de la lámina de un gráfico), todos comparten la escala (una sola leyenda) y cada panel cabe sobre
+#' la leyenda con la barra mínima.
+#' @keywords internal
+.lam_compositor_aplica_paneles <- function(ps, slide = NULL) {
+  if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
+  especs <- lapply(ps, function(p) if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL)
+  if (any(vapply(especs, is.null, TRUE))) return(FALSE)
+  if (!all(vapply(especs, function(e) identical(e$tipo, "escala") && NROW(e$filas) >= 1L && !.lam_escala_en_filas(e), TRUE))) return(FALSE)
+  if (!.lam_paneles_misma_escala(especs)) return(FALSE)
+  disp <- (.std_geom("leyenda_y") - 0.1) - (.std_geom("zona_datos_y0") + 0.8)
+  all(vapply(especs, function(e) disp / NROW(e$filas) >= 0.24 + 0.36, TRUE))
+}
+
+#' La rama `slide_2` del motor, en nativo (enganche de `reporte_ppt_plan`)
+#' @keywords internal
+.lam_slide_paneles_nativa <- function(doc, ps, els, slide, titulo, presets, layout, master, antetitulo, base_auto, nota_de,
+                                      por_lamina = function(doc) doc, titulo_de_var = NULL, tipo = "p_slide_2_graficos") {
+  slots <- slide$slots %||% list()
+  como_texto <- function(x) if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
+  base <- como_texto(slots$base)
+  if (is.null(base)) base <- base_auto(els = els, sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
+                                        formato = presets$base$args$formato %||% "Base: %s")
+  nota <- como_texto(slots$right_text)
+  if (is.null(nota) || !nzchar(trimws(nota[1]))) {
+    nota <- nota_de(ps[[1]], els[[1]]$overrides$nota_pie %||% els[[1]]$nota_pie %||%
+                      nota_de(ps[[2]], els[[2]]$overrides$nota_pie %||% els[[2]]$nota_pie %||% NULL))
+  }
+  texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  base_txt <- paste(c(texto(base), texto(nota)), collapse = ". ")
+  preguntas <- lapply(els, function(el) {
+    texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
+      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(titulo_de_var(el$var), error = function(e) NULL))) %||% ""
+  })
+  especs <- lapply(seq_along(ps), function(k) {
+    e <- attr(ps[[k]], "pulso_espec")
+    if (identical(els[[k]]$.element_type, "barras_multiapiladas") && identical(els[[k]]$modo %||% "var", "var")) e <- .espec_ordenar_por_box(e)
+    e
+  })
+  ante <- texto(antetitulo)
+  .lam_laminas_paneles(doc, especs, preguntas, tipo = tipo, titulo = texto(titulo) %||% "", ante = ante, base = base_txt,
+                       folio = length(doc) + 1L, layout = layout, master = master, por_lamina = por_lamina)
 }
