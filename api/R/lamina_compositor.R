@@ -93,6 +93,10 @@
   if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_numericos_cabe(espec)))
   }
+  # N5: mapas de calor y comparativo de dimensiones, si caben.
+  if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
+    return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_dimensiones_cabe(espec)))
+  }
   if (identical(espec$tipo, "categorica")) {
     # N3: la categórica de una serie (columnas, lámina 68) es nativa cuando tiene categorías que dibujar.
     # Va nativa si cabe en columnas o en barras; si no cabe en ninguna, sigue la ruta anterior (verificador de N3).
@@ -152,6 +156,13 @@
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
   if (!isTRUE(sin_base) && is.null(texto(base)) && is.null(texto(pie))) base <- texto(espec$nota)
+  if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
+    comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
+                    layout = layout, master = master, por_lamina = por_lamina)
+    o <- if (identical(espec$tipo, "heatmap_dim")) do.call(.lam_laminas_heatmap_dim, comunes) else do.call(.lam_laminas_comparativo_dim, comunes)
+    return(o$doc)
+  }
   if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {
     # Los gráficos de números (láminas 79-87): el público de la base nombra los casos («22 estudiantes»).
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
