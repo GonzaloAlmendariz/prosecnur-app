@@ -7798,7 +7798,7 @@ reporte_ppt_plan <- function(
         .plan_input_abort("La plantilla NO tiene layout requerido para `top_two_box`: 'Title and Content' o 'General Objective'.")
       }
 
-      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_top_two_box_cabe(slots)) doc <- .lam_laminas_top_two_box(doc, slots, folio = length(doc) + 1L, layout = contract$layout, master = master, por_lamina = .add_partner_footer_logo)$doc
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_top_two_box_cabe(slots)) doc <- .lam_laminas_top_two_box(doc, slots, folio = length(doc) + 1L, ante = (slide$meta %||% list())$antetitulo %||% "Cómo leer este informe", layout = contract$layout, master = master, por_lamina = .add_partner_footer_logo)$doc
       if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_top_two_box_cabe(slots))) {
         doc <- .add_slide_strict(doc, contract$layout)
 
@@ -7912,7 +7912,7 @@ reporte_ppt_plan <- function(
 
     # ---- REDONDEO (lámina metodológica; renderer en reporte_slide_redondeo.R) -
     if (identical(stype, "redondeo")) {
-      if (!isTRUE(solo_lista)) doc <- .reporte_slide_redondeo(
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_redondeo_cabe(slide$slots %||% list())) doc <- .lam_laminas_redondeo(doc, slide$slots %||% list(), .lam_redondeo_metodo(slide$meta %||% list(), presets), length(doc) + 1L, ante = (slide$meta %||% list())$antetitulo %||% "Cómo leer este informe", layout = PPT_CONTRACT$top_two_box$layout, master = master, por_lamina = .add_partner_footer_logo)$doc else if (!isTRUE(solo_lista)) doc <- .reporte_slide_redondeo(
         doc, slide, presets, PPT_CONTRACT$top_two_box,
         list(add_slide = .add_slide_strict, style_value = .style_value,
              style_num = .style_num, escape = .svg_text_escape, fill = .indice_sanitize_fill))
