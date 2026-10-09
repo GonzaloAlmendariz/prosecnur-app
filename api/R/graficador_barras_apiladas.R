@@ -2271,21 +2271,8 @@ graficar_barras_apiladas <- function(
         df_lab_arriba_plot <- df_lab[arriba_plot_idx, , drop = FALSE]
         if (nrow(df_lab_arriba_plot) > 0) {
           labels_arriba_activas <- TRUE
-          p_bars <- p_bars +
-            ggplot2::geom_segment(
-              data = df_lab_arriba_plot,
-              mapping = ggplot2::aes(
-                x = x_conector_label,
-                xend = x_conector_barra,
-                y = y_conector_label,
-                yend = y_conector_barra,
-                colour = .data$.col_conector
-              ),
-              linewidth = linewidth_conectores_etiquetas,
-              lineend = "round",
-              inherit.aes = FALSE,
-              show.legend = FALSE
-            )
+          # Guía en codo, como el recetario: vertical desde el segmento y horizontal hasta la cifra.
+          p_bars <- p_bars + .apiladas_guia_codo(df_lab_arriba_plot, linewidth_conectores_etiquetas)
         }
         labels_rendered <- as.character(df_lab$lab)
         p_bars <- p_bars +
@@ -2499,21 +2486,8 @@ graficar_barras_apiladas <- function(
         df_lab_arriba_plot <- df_lab[arriba_plot_idx, , drop = FALSE]
         if (nrow(df_lab_arriba_plot) > 0) {
           labels_arriba_activas <- TRUE
-          p_bars <- p_bars +
-            ggplot2::geom_segment(
-              data = df_lab_arriba_plot,
-              mapping = ggplot2::aes(
-                x = x_conector_label,
-                xend = x_conector_barra,
-                y = y_conector_label,
-                yend = y_conector_barra,
-                colour = .data$.col_conector
-              ),
-              linewidth = linewidth_conectores_etiquetas,
-              lineend = "round",
-              inherit.aes = FALSE,
-              show.legend = FALSE
-            )
+          # Guía en codo, como el recetario: vertical desde el segmento y horizontal hasta la cifra.
+          p_bars <- p_bars + .apiladas_guia_codo(df_lab_arriba_plot, linewidth_conectores_etiquetas)
         }
         labels_rendered <- as.character(df_lab$lab)
         p_bars <- p_bars +
