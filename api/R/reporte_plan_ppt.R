@@ -8545,8 +8545,8 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_right, pR)
       }
 
-      if (!isTRUE(solo_lista)) {
-
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica_paneles(list(pL, pR), slide)) doc <- .lam_slide_paneles_nativa(doc, list(pL, pR), list(el_left, el_right), slide, title_slide, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_de_elementos, .ppt_note_from, .add_partner_footer_logo, .title_of_var)
+      if (!isTRUE(solo_lista) && !.lam_compositor_aplica_paneles(list(pL, pR), slide)) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         if (!is.null(title_slide) && nzchar(title_slide)) {
