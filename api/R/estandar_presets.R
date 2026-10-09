@@ -141,3 +141,35 @@
   list(presets = presets, cambios = cambios)
 }
 
+
+#' Migra el coral de fábrica del extremo negativo de las paletas Likert
+#'
+#' Las paletas por lista guardadas por versiones anteriores pintaban «Totalmente
+#' en desacuerdo» (y sus equivalentes) con el rojo institucional `#CA5651`. El
+#' recetario y el mazo aprobado usan el salmón de la escala Likert (`#F4B183`,
+#' `.std_paleta("likert")[1]`; ver la rampa canónica en
+#' `graficos_verificar_mazo.R`). Sólo se toca una paleta que YA trae la rampa del
+#' recetario en el resto de la escala: una paleta propia del cliente, con otros
+#' colores, se respeta.
+#' @return Lista con `paletas` y `cambios` (nombres de lista migrados).
+#' @keywords internal
+.std_migrar_paletas <- function(paletas) {
+  cambios <- character(0)
+  if (!is.list(paletas) || !length(paletas)) return(list(paletas = paletas, cambios = cambios))
+  likert <- toupper(.std_paleta("likert"))
+  negativo <- c("totalmente en desacuerdo", "muy en desacuerdo", "muy insatisfecho", "nada satisfecho",
+                "muy malo", "nada de acuerdo", "nada util", "nada importante")
+  norm <- function(x) tolower(trimws(.box_norm_etiqueta(x)))
+  for (ln in names(paletas)) {
+    pal <- paletas[[ln]]
+    cols <- toupper(as.character(unlist(pal, use.names = FALSE)))
+    nms <- names(pal); if (is.null(nms)) next
+    es_neg <- norm(nms) %in% norm(negativo) & cols == "#CA5651"
+    if (!any(es_neg)) next
+    if (!all(likert[2:4] %in% cols)) next   # no es la rampa del recetario: paleta del cliente
+    for (k in which(es_neg)) pal[[k]] <- .std_paleta("likert")[1]
+    paletas[[ln]] <- pal
+    cambios <- c(cambios, ln)
+  }
+  list(paletas = paletas, cambios = cambios)
+}

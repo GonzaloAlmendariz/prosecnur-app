@@ -15,9 +15,24 @@ Vara y plan en [goal-remasterizacion-motor-2026-10-08.md](goal-remasterizacion-m
 | R7 | Estilos: «El recetario es el estándar»; perfiles de cliente sólo cambian logo y paleta | F1, `estandar_presets.R` impone tamaños y fuente; colores quedan al perfil | ◐ |
 | R8 | Proyectos: «Migran solos», con aviso de lo que no tenga equivalente | F5; adelantado en F1 para el estilo base (`[PULSO-AVISO]` con cada clave cambiada) | ◐ |
 | R9 | Word: «El documento completo» | F4 | ☐ |
-| R10 | Ritmo: «Loop con hitos y commits», tick de 300 s | loop | ☑ abierto |
+| R10 | Ritmo: «Loop con hitos y commits»; tick de 60 s («deja el loop a un minuto no 5») | loop | ☑ abierto |
+| R11 | «estas comaprandolo con el recetario?» · «deja de comparar solo de forma numérica, tienes que también comparar de forma visual» | `scripts/qa_pares_recetario.R`; gate visual por pares (ADR 0093, decisión 4) | ☑ banco; se aplica en cada fase |
+| R12 | «estamos cambiando fundamentalmente absolutamente toda la estructura de todos los graficadores que pasan de usar ggplot a … elementos nativos de PowerPoint… tómalo con la importancia que merece» | ADR 0093 (aceptado: «Lo apruebo»), fases N0-N9 | ◐ N0 ☑, N1 en curso |
+| R13 | «Debe ser 100% fiel al recetario, el motor ahora debe replicar le recetario» | ADR 0093 punto 2: redondeo láms. 20-21, Top Two Box = suma de lo rotulado (lám. 19), SIN INF en la barra, orden por Top Two Box | ◐ escalas en N1 |
+| R14 | Top Two Box: «Mantener, que el analista las declare, pero para armarlo debe pedirle dos y la UI debe ser intutiva» | motor: `.box_decidir` sin deducción (sigue); UI: selector de exactamente dos categorías de la escala al encender el Top Two Box (N9, editor) | ☐ |
 
 ## Fases
+
+> Desde el 2026-10-08 22:3x las fases F2 a F6 se rehacen con el plan del ADR 0093 (motor nativo, N0 a N9). F0 y F1 siguen valiendo:
+> son la fuente de verdad (`estandar_pulso.json`) que las piezas nativas leen.
+
+| Fase ADR 0093 | Contenido | Estado |
+|---|---|---|
+| N0 | ADR 0093 (revisado por guardian-contratos y revisor-metodologico, aceptado), banco de pares `scripts/qa_pares_recetario.R` (línea base del motor ggplot: 16 a 29 % de píxeles distintos) | ☑ |
+| N1 | `preparar_escala` (30 tests de invariantes), primitivas agrupadas `lamina_piezas.R`, bloque de escala `lamina_escala.R`, compositor `lamina_compositor.R` (pares 216 1.0 %, 221 0.9 %, 222 1.0 %), enganche en el graficador y en la rama `slide_1`, migración del coral de fábrica | ◐ falta gate amplio, commit y verificador. Deuda declarada: `n_slides` y vista previa no cuentan las partes de «(cont.)» |
+| N2-N9 | Escalas en paneles, proporciones, números, dimensiones, ggplot con estilo del recetario, 22 tipos e identidad, Word, editor | ☐ |
+
+Plan anterior (F0-F7):
 
 | Fase | Contenido | Estado |
 |---|---|---|
