@@ -49,6 +49,13 @@
     .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = TRUE, nombre = "cifra")
     yy <- yy + fila
   }
+  # Marcas 0-25-50-75-100 % bajo las barras, opcionales con la escala de 0 a 100 % (Gonzalo, 2026-10-09: «A,bas y en
+  # ambos recetarios»): gris claro, centradas en su posición del eje, como la variante fiel del recetario.
+  if (isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje) && escala > 0) {
+    for (t in seq(0, 100, 25)) .lam_txt(lz, paste0(t, "%"), x + wlab + 0.12 + wbar * (t / 100) / escala - 0.3, yy + 0.02, 0.6, 0.26, 9,
+                                       "#A6A6A6", align = "center", nombre = "eje:marca")
+    yy <- yy + 0.28
+  }
   invisible(yy)
 }
 
