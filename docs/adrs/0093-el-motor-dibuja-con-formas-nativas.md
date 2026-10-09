@@ -1,8 +1,9 @@
 # ADR 0093 — El motor PPT dibuja con formas nativas, como el recetario
 
-- **Estado**: Propuesto — revisado por `guardian-contratos` y `revisor-metodologico` (2026-10-08), pendiente de la aprobación de Gonzalo
+- **Estado**: Aceptado — revisado por `guardian-contratos` y `revisor-metodologico` (2026-10-08)
 - **Ámbito**: Procesamiento › Gráficos — graficadores, motor PPT, motor Word, vista previa y editor
-- **Fecha**: 2026-10-08
+- **Fecha**: 2026-10-08 · **Ratificado**: 2026-10-08 (Gonzalo: «Lo apruebo»)
+- **Implementación**: En curso — fases N0 a N9 (abajo); N0 cerrada con este ADR y `scripts/qa_pares_recetario.R`
 - **Relación**: implementa [ADR 0092](0092-el-recetario-es-el-estandar-del-motor.md) (los recetarios son el
   estándar); reemplaza la técnica de dibujo de los `graficador_*.R` en el PPT.
 
