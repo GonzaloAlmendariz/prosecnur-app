@@ -24,7 +24,7 @@ graficar_nube_palabras <- function(
     max_palabras = 40,
     min_chars = 3,
     seed = 123,
-    colores_palabras = c("#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#7594CC", "#9688D3"),
+    colores_palabras = NULL,
     font_family = "Arial",
     size_titulo = 16,
     size_subtitulo = 12,
@@ -151,29 +151,43 @@ graficar_nube_palabras <- function(
     size <- 4.8 + (words$n - rng[1]) / diff(rng) * 8.2
   }
 
-  colores_palabras <- as.character(colores_palabras)
+  # Color: el que declare el analista; si no, el degradado del recetario (recetario_graficos2.R:29): cinco azules
+  # del claro al marino por cuartil de menciones, así la palabra más dicha es también la más oscura.
+  colores_palabras <- as.character(colores_palabras %||% character(0))
   colores_palabras <- colores_palabras[!is.na(colores_palabras) & nzchar(trimws(colores_palabras))]
-  if (!length(colores_palabras)) colores_palabras <- "#081F5C"
+  # La paleta cíclica de fábrica (azul, rojo, verde, amarillo, azul secundario, morado) viaja en los proyectos
+  # guardados: si llega tal cual, no es una decisión del analista y rige el degradado.
+  fabrica <- toupper(unname(unlist(.PULSO_PPT_COLORS[c("azul", "rojo", "verde", "amarillo", "azul_secundario", "morado")])))
+  if (length(colores_palabras) == 6L && identical(toupper(colores_palabras), fabrica)) colores_palabras <- character(0)
+  color_palabra <- if (length(colores_palabras)) rep_len(colores_palabras, n_words) else {
+    cortes <- unique(stats::quantile(words$n, seq(0, 1, 0.25), names = FALSE))
+    tramo <- if (length(cortes) > 1L) cut(words$n, breaks = cortes, include.lowest = TRUE, labels = FALSE) else rep(5L, n_words)
+    grDevices::colorRampPalette(c("#8EA3C6", .std_color("azul")))(5)[pmin(5L, pmax(1L, tramo))]
+  }
 
   plot_df <- data.frame(
     x = x,
     y = y,
     palabra = words$palabra,
     size = size,
-    color = rep_len(colores_palabras, n_words),
+    color = color_palabra,
     stringsAsFactors = FALSE
   )
 
-  ggplot2::ggplot(plot_df, ggplot2::aes(.data$x, .data$y)) +
-    ggplot2::geom_text(
-      ggplot2::aes(label = .data$palabra, size = .data$size, color = .data$color),
-      family = font_family,
-      fontface = "bold",
-      show.legend = FALSE
-    ) +
-    ggplot2::scale_size_identity() +
+  # Con ggwordcloud, la nube del recetario: cada palabra donde cabe sin pisar a otra, de 11 a 46 pt según sus
+  # menciones (recetario_graficos2.R:27-33). Sin el paquete, la espiral de siempre.
+  capa <- if (requireNamespace("ggwordcloud", quietly = TRUE)) {
+    plot_df$n <- words$n
+    list(ggwordcloud::geom_text_wordcloud(ggplot2::aes(label = .data$palabra, size = .data$n, color = .data$color), family = font_family,
+                                          fontface = "bold", rm_outside = TRUE, eccentricity = 0.55, grid_margin = 0.7, seed = 7),
+         ggplot2::scale_size(range = c(11, 46) / ggplot2::.pt, guide = "none"))
+  } else {
+    list(ggplot2::geom_text(ggplot2::aes(x = .data$x, y = .data$y, label = .data$palabra, size = .data$size, color = .data$color),
+                            family = font_family, fontface = "bold", show.legend = FALSE),
+         ggplot2::scale_size_identity(), ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE))
+  }
+  ggplot2::ggplot(plot_df) + capa +
     ggplot2::scale_color_identity() +
-    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
     ggplot2::labs(title = titulo, subtitle = subtitulo, caption = nota_pie) +
     ggplot2::theme_void(base_family = font_family) +
     ggplot2::theme(
