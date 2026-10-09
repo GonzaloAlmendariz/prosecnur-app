@@ -171,3 +171,25 @@
   l <- .lam_lum(hex); azul <- .std_color("azul")
   if (1.05 / (l + .05) >= (l + .05) / (.lam_lum(azul) + .05)) "#FFFFFF" else azul
 }
+
+#' Tramos de una narrativa: lo escrito entre `**` va en negrita, como los tramos del recetario
+#' @keywords internal
+.lam_narrativa_tramos <- function(texto) {
+  partes <- strsplit(as.character(texto)[1], "**", fixed = TRUE)[[1]]
+  tramos <- lapply(seq_along(partes), function(k) list(partes[k], k %% 2 == 0))
+  Filter(function(tr) nzchar(tr[[1]]), tramos)
+}
+
+#' Alto de una narrativa a 15 pt en su ancho (mínimo 0.45 in, una línea del recetario)
+#' @keywords internal
+.lam_narrativa_alto <- function(texto, w, size = 15) {
+  max(0.45, .lam_alto_tinta(gsub("**", "", as.character(texto)[1], fixed = TRUE), w - 0.22, size, TRUE))
+}
+
+#' Narrativa del recetario: filete coral y párrafo con tramos en negrita (`narrativa()`, recetario_piezas.R:30)
+#' @keywords internal
+.lam_narrativa <- function(lz, texto, x, y, w, h, size = 15) {
+  .lam_caja(lz, x, y + 0.05, 0.05, h - 0.1, .std_color("coral"), nombre = "narrativa:filete")
+  .lam_txt_tramos(lz, .lam_narrativa_tramos(texto), x + 0.22, y, w - 0.22, h, size = size, nombre = "narrativa:texto")
+  invisible(lz)
+}

@@ -388,13 +388,61 @@
   if (length(partes)) paste(partes, collapse = "\n") else NULL
 }
 
-#' ¿La lámina narrativa va en nativo? Por ahora, sólo los mapas del recetario (103, 105 y 106), cuya narrativa va en
-#' el panel bajo la cifra o la lista; el resto de las narrativas sigue por la ruta anterior hasta su lámina (N7).
+#' Geometría de la narrativa sobre un gráfico (lámina 124): franja a todo el ancho desde la zona de datos − 0.2, a 15 pt,
+#' y la zona de datos baja su alto + 0.1
+#' @keywords internal
+.lam_narrativa_geo <- function(texto, sobre = -0.2, aire = 0.1) {
+  g_ <- .std_geom; ml <- g_("margen_izq"); w <- g_("ancho") - ml - g_("margen_der")
+  yt <- .std_valor("ppt", "geometria", "zona_datos_y0"); y <- yt + sobre; h <- .lam_narrativa_alto(texto, w)
+  list(x = ml, y = y, w = w, h = h, desplazo = y + h + aire - yt)
+}
+
+#' Geometría de la narrativa sobre dos gráficos (lámina 136): franja desde la zona de datos − 0.05 y los paneles a 0.3
+#' @keywords internal
+.lam_narrativa2_geo <- function(texto) .lam_narrativa_geo(texto, sobre = -0.05, aire = 0.3)
+
+#' ¿La lámina de dos gráficos con narrativa va en nativo? Los dos paneles van lado a lado (diseño `graficos_2` de las
+#' mixtas) en el alto que deja la narrativa.
+#' @keywords internal
+.lam_narrativo2_aplica <- function(pL, pR, elL, elR, slide, titulo_de_var = NULL) {
+  if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
+  texto <- .lam_narrativo_texto(slide$slots %||% list())
+  dy <- if (is.null(texto)) 0 else .lam_narrativa2_geo(texto)$desplazo
+  if (!is.null(texto) && .lam_narrativa2_geo(texto)$h > 1.1) return(FALSE)
+  isTRUE(.lam_con_desplazo(dy, .lam_compositor_aplica_mixta(list(pL, pR), slide, "graficos_2", list(elL, elR), titulo_de_var)))
+}
+
+#' La rama `slide_2_narrativo` del motor, en nativo: la narrativa arriba y los dos paneles debajo
+#' @keywords internal
+.lam_slide_narrativo2_nativa <- function(doc, pL, pR, elL, elR, slide, titulo, antetitulo, base, titulo_de_var = NULL) {
+  texto <- .lam_narrativo_texto(slide$slots %||% list())
+  s2 <- .lam_con_antetitulo(slide, antetitulo); s2$slots$title <- titulo %||% s2$slots$title
+  if (is.null(texto)) return(.lam_composicion_mixta(doc, "graficos_2", list(pL, pR), list(elL, elR), s2, titulo_de_var, base = base))
+  G <- .lam_narrativa2_geo(texto)
+  doc <- .lam_con_desplazo(G$desplazo, .lam_composicion_mixta(doc, "graficos_2", list(pL, pR), list(elL, elR), s2, titulo_de_var, base = base))
+  lz <- .lam_lienzo(); .lam_narrativa(lz, texto, G$x, G$y, G$w, G$h)
+  .lam_agrupar(doc, lz, nombre = "prosecnur:narrativa")
+}
+
+#' Evalúa `expr` con la zona de datos bajada `dy` pulgadas (ver `.std_geom`)
+#' @keywords internal
+.lam_con_desplazo <- function(dy, expr) {
+  viejo <- options(prosecnur.lam_desplazo = dy); on.exit(options(viejo), add = TRUE)
+  force(expr)
+}
+
+#' ¿La lámina narrativa va en nativo? Los mapas llevan su narrativa en el panel (103, 105); cualquier otro gráfico
+#' nativo la lleva arriba, con filete coral (124), si su lámina cabe en el alto que queda.
 #' @keywords internal
 .lam_narrativo_aplica <- function(p, slide) {
   espec <- attr(p, "pulso_espec")
   if (is.null(espec) || identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
-  identical(espec$tipo, "mapa") && isTRUE(.lam_mapa_cabe(espec, .lam_narrativo_texto(slide$slots %||% list())))
+  texto <- .lam_narrativo_texto(slide$slots %||% list())
+  if (identical(espec$tipo, "mapa")) return(isTRUE(.lam_mapa_cabe(espec, texto)))
+  if (is.null(texto)) return(isTRUE(.lam_compositor_aplica(p, slide)))
+  # La narrativa no puede comerse la lámina: a lo más tres líneas.
+  G <- .lam_narrativa_geo(texto)
+  G$h <= 1.1 && isTRUE(.lam_con_desplazo(G$desplazo, .lam_compositor_aplica(p, slide)))
 }
 
 #' La rama `slide_1_narrativo` del motor, en nativo (enganche de `reporte_ppt_plan`)
@@ -412,6 +460,23 @@
   pie <- como_texto(slots$footer)
   if (is.null(pie) || !nzchar(trimws(as.character(pie)[1]))) pie <- nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL)
   texto1 <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  espec <- attr(p, "pulso_espec"); texto <- .lam_narrativo_texto(slots)
+  if (!identical(espec$tipo, "mapa")) {
+    # La lámina del gráfico, con la zona de datos bajada; la narrativa se dibuja en cada parte, a su altura de siempre.
+    # La base y la nota las resuelve la rama de un gráfico igual que aquí.
+    slide_g <- slide
+    if (is.null(texto)) {
+      return(.lam_slide_1_nativa(doc, p, slide_g, titulo, NULL, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
+                                 sin_base = sin_base, por_lamina = por_lamina))
+    }
+    G <- .lam_narrativa_geo(texto)
+    con_narrativa <- function(d) {
+      lz <- .lam_lienzo(); .lam_narrativa(lz, texto, G$x, G$y, G$w, G$h)
+      por_lamina(.lam_agrupar(d, lz, nombre = "prosecnur:narrativa"))
+    }
+    return(.lam_con_desplazo(G$desplazo, .lam_slide_1_nativa(doc, p, slide_g, titulo, NULL, el_plot, presets, layout, master, antetitulo,
+                                                            base_auto, nota_de, sin_base = sin_base, por_lamina = con_narrativa)))
+  }
   .lam_laminas_mapa(doc, attr(p, "pulso_espec"), titulo = texto1(titulo) %||% "", ante = texto1(antetitulo),
                     base = .lam_unir_base(texto1(base), texto1(pie)), folio = length(doc) + 1L, texto = .lam_narrativo_texto(slots),
                     layout = layout, master = master, por_lamina = por_lamina)$doc

@@ -98,7 +98,9 @@
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   if (identical(forma, "columnas")) {
-    .lam_columnas(lz, espec, x0 = ml + 0.6, ybase = 6.05, wv = ancho - 1.2, unidad_n = unidad_n)
+    # La columna más alta, con su cifra y su n encima, no sube de la zona de datos: en la lámina de siempre manda el
+    # alto del recetario (3.4); con una narrativa arriba (N7), la zona baja y las columnas se acortan.
+    .lam_columnas(lz, espec, x0 = ml + 0.6, ybase = 6.05, wv = ancho - 1.2, hmax = min(3.4, (6.05 - 0.68 - yt) * 1.1), unidad_n = unidad_n)
   } else {
     geo <- .lam_barras_geo(espec); size <- geo$size; fila <- geo$fila; g <- geo$g; wlab <- geo$wlab
     if (!is.null(encabezado) && nzchar(encabezado)) {

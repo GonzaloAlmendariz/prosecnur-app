@@ -8714,7 +8714,6 @@ reporte_ppt_plan <- function(
 
     # ---- SLIDE_2_NARRATIVO --------------------------------------------------
     if (identical(stype, "slide_2_narrativo")) {
-
       contract <- PPT_CONTRACT$slide_2_narrativo
       slots    <- slide$slots %||% list()
 
@@ -8760,7 +8759,8 @@ reporte_ppt_plan <- function(
         }
       }
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && .lam_narrativo2_aplica(pL, pR, el_left, el_right, slide, .title_of_var)) doc <- .lam_slide_narrativo2_nativa(doc, pL, pR, el_left, el_right, slide, title_slide, ANTETITULOS[[i]], if (isTRUE((slide$meta %||% list())$suppress_base_placeholder)) NULL else slots$base %||% .base_auto_de_elementos(els = list(el_left, el_right), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"), .title_of_var)
+      if (!isTRUE(solo_lista) && !.lam_narrativo2_aplica(pL, pR, el_left, el_right, slide, .title_of_var)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
 
