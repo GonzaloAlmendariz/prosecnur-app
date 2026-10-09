@@ -25,6 +25,10 @@
   col2 <- (ancho - gap) / 2; xr <- ml + col2 + gap; xm <- ml + col2 + gap / 2
   P <- function(x, y, w, h) list(x = x, y = y, w = w, h = h)
   switch(tipo,
+    # Dos gráficos lado a lado (133 y, con narrativa, 136): media columna cada uno y el filete vertical al medio.
+    graficos_2 = list(
+      paneles = list(P(ml, yt, col2, yf - yt), P(xr, yt, col2, yf - yt)),
+      filetes = list(list(tipo = "v", x = xm, y0 = yt, y1 = yf))),
     graficos_3_2mas1 = list(
       paneles = list(P(ml, yt, col2, 2.15), P(ml, yt + 2.35, col2, yf - yt - 2.35), P(xr, yt, col2, yf - yt)),
       filetes = list(list(tipo = "h", x0 = ml, x1 = ml + col2, y = yt + 2.15), list(tipo = "v", x = xm, y0 = yt, y1 = yf))),

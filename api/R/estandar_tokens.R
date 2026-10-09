@@ -74,7 +74,13 @@
 
 #' Medida de la geometría de la lámina PPT, en pulgadas
 #' @keywords internal
-.std_geom <- function(nombre) .std_valor("ppt", "geometria", nombre)
+.std_geom <- function(nombre) {
+  v <- .std_valor("ppt", "geometria", nombre)
+  # Una lámina con narrativa arriba (ADR 0093, N7) baja la zona de datos lo que mide su texto: cada lámina nativa y su
+  # compuerta se acomodan al alto que queda, sin conocer la narrativa. La opción la fija sólo el compositor narrativo.
+  if (identical(nombre, "zona_datos_y0")) v <- v + getOption("prosecnur.lam_desplazo", 0)
+  v
+}
 
 #' Grosor de barra en pulgadas según el número de filas de la lámina
 #'
