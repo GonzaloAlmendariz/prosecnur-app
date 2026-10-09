@@ -203,3 +203,12 @@ test_that("en la dicotomía de un panel los rótulos van sin frecuencia, como la
   o <- .lam_laminas_mixta(doc, e, "paneles_4", preguntas = list("A", "B", "C", "D"), titulo = "Perfil", folio = 1)
   expect_identical(.vn_txt(.mx_xml(o$doc), "dicotomia:rotulo"), c("Sí", "No"))
 })
+
+test_that("las bases de una lámina mixta no se pierden: sólo se omite la que otra contiene", {
+  expect_identical(.lam_bases_sin_repetir(c("Base: 200", "Base: 200 respuestas")), "Base: 200 respuestas")
+  expect_setequal(.lam_bases_sin_repetir(c("Base: 200 estudiantes", "Base: 200 docentes", "Nota: pregunta filtrada por condición laboral")),
+                  c("Base: 200 estudiantes", "Base: 200 docentes", "Nota: pregunta filtrada por condición laboral"))
+  expect_setequal(.lam_bases_sin_repetir(c("Nota: pregunta de opción múltiple", "Nota: excluye a quienes no aplican", "Base: 200 egresados")),
+                  c("Nota: pregunta de opción múltiple", "Nota: excluye a quienes no aplican", "Base: 200 egresados"))
+  expect_identical(.lam_bases_sin_repetir(c("Base: 200", "Base: 2000 respuestas")), c("Base: 200", "Base: 2000 respuestas"))
+})
