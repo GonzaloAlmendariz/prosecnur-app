@@ -720,8 +720,9 @@
       p <- .LAM_CIERRE_PIE[[contacto$clave[k]]]
       .lam_txt(lz, contacto$dato[k], p[1], p[2], p[3], 0.4, 12, azul, nombre = paste0("cierre:", contacto$clave[k]))
     }
-    # El ícono de la plantilla de un dato omitido queda tapado: un ícono sin dato no dice nada.
-    for (k in setdiff(names(.LAM_CIERRE_PIE), contacto$clave)) .lam_caja(lz, .LAM_CIERRE_PIE[[k]][1] - 0.55, 6.5, 0.5, 0.75, .std_color("fondo"), nombre = "cierre:tapa")
+    # El ícono de la plantilla de un dato omitido queda tapado: un ícono sin dato no dice nada. El sobre del layout va de
+    # 0.478 a 1.062 in y el globo hasta 11.128 (verificador de N7, ronda 12): la tapa cubre de x - 0.68 a x - 0.005.
+    for (k in setdiff(names(.LAM_CIERRE_PIE), contacto$clave)) .lam_caja(lz, .LAM_CIERRE_PIE[[k]][1] - 0.68, 6.5, 0.675, 0.75, .std_color("fondo"), nombre = "cierre:tapa")
   } else {
     .lam_caja(lz, 0, 6.45, W, 0.95, .std_color("fondo"), nombre = "cierre:tapa")
     if (identical(variante, "banda_azul")) {

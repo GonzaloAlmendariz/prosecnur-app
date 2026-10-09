@@ -305,4 +305,12 @@ test_that("un contacto que no cabe en su composición pasa a tres columnas y un 
   nm <- xml2::xml_attr(xml2::xml_find_all(lam[[2]], "//p:cNvPr"), "name")
   expect_identical(sum(nm == "cierre:tapa"), 1L)
   expect_length(.id_txt(lam[[2]], "cierre:web"), 0L)
+  # Ronda 12: la tapa cubre el sobre entero del layout (0.478 a 1.062 in) y el globo (hasta 11.128 in)
+  tapa <- function(x) { off <- xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='cierre:tapa']]//a:off"); ext <- xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='cierre:tapa']]//a:ext")
+    cbind(as.numeric(xml2::xml_attr(off, "x")), as.numeric(xml2::xml_attr(off, "x")) + as.numeric(xml2::xml_attr(ext, "cx"))) / 914400 }
+  sin_correo <- .id_mazo(list(p_slide_cierre(correo = ""), p_slide_cierre("banda_azul", correo = "", direccion = "", web = "")))
+  t1 <- tapa(sin_correo[[1]]); expect_lte(t1[1, 1], 0.478); expect_gte(t1[1, 2], 1.062)
+  t2 <- tapa(lam[[2]]); expect_gte(t2[1, 2], 11.128)
+  # Sin ningún dato, cualquier composición cae a la contraportada con los tres íconos tapados (nunca íconos sin dato)
+  expect_identical(sum(xml2::xml_attr(xml2::xml_find_all(sin_correo[[2]], "//p:cNvPr"), "name") == "cierre:tapa"), 3L)
 })
