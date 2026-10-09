@@ -7466,8 +7466,8 @@ reporte_ppt_plan <- function(
       dt   <- slots$date       %||% NULL
       stx  <- slots$subtexto   %||% NULL
 
-      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && .lam_portada_cabe(ttl)) doc <- .lam_laminas_portada(doc, ttl, sub, dt, stx, contract$layout, master, function(d) if (nzchar(as.character((presets$base$args %||% list())$partner_logo_cover_path %||% "")[1])) .ppt_add_partner_cover_logo(d, presets$base$args) else d, variante = (slide$meta %||% list())$variante %||% "centrada")$doc
-      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_plantilla_estandar(opened_template_path) || !.lam_portada_cabe(ttl))) {
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_plantilla_estandar(opened_template_path) && .lam_portada_cabe(ttl, (slide$meta %||% list())$variante)) doc <- .lam_laminas_portada(doc, ttl, sub, dt, stx, contract$layout, master, function(d) if (nzchar(as.character((presets$base$args %||% list())$partner_logo_cover_path %||% "")[1])) .ppt_add_partner_cover_logo(d, presets$base$args) else d, variante = (slide$meta %||% list())$variante %||% "centrada")$doc
+      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_plantilla_estandar(opened_template_path) || !.lam_portada_cabe(ttl, (slide$meta %||% list())$variante))) {
 
         doc <- .add_slide_strict(doc, contract$layout)
         doc <- .ppt_add_partner_cover_logo(doc, presets$base$args %||% list())

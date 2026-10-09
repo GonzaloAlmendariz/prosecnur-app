@@ -235,6 +235,21 @@ test_that("la portada ofrece sus tres variantes del recetario: centrada (23), iz
   expect_identical(.lam_portada_variante("25"), "banda"); expect_identical(.lam_portada_variante(NULL), "centrada")
 })
 
+test_that("en la 24 y la 25 un título de tres líneas sube con su rótulo y no cruza la línea coral (y = 4.21)", {
+  t3 <- "Evaluación de la gestión y política pública aplicada en los gobiernos regionales del sur del Perú, junio 2026"
+  pp <- function(t, v) p_slide_portada(t, "Informe consolidado", fecha = "Setiembre de 2026", subtexto = "Por encargo", meta = list(variante = v))
+  lam <- .id_mazo(list(a = pp(t3, "izquierda"), b = pp(t3, "banda"), c = pp("Estudio de opinión", "izquierda")))
+  y_de <- function(x, nm) as.numeric(xml2::xml_attr(xml2::xml_find_first(x, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]//a:off", nm)), "y")) / 914400
+  for (k in 1:2) {
+    ancho <- if (k == 1) 9.6 else 10.5
+    expect_lte(y_de(lam[[k]], "portada:titulo") + .lam_alto_tinta(t3, ancho, 30, TRUE), 3.73)
+    expect_equal(y_de(lam[[k]], "portada:titulo") - y_de(lam[[k]], "portada:rotulo"), 0.37, tolerance = 0.01)
+  }
+  expect_equal(y_de(lam[[3]], "portada:titulo"), 2.62, tolerance = 0.01)          # el de dos líneas no se mueve
+  expect_true(.lam_portada_cabe(t3, "izquierda"))
+  expect_false(.lam_portada_cabe(paste(t3, t3), "banda"))
+})
+
 test_that("el índice nativo toma los subíndices en el formato de la app y no confunde un iconos_focos vacío con focos", {
   c3 <- c("Perfil", "Metodología", "Resultados")
   lam <- .id_mazo(list(
