@@ -76,7 +76,8 @@
   }
   for (i in seq_len(nf)) {
     yi <- y0 + (i - 1) * hc
-    .lam_txt(lz, espec$filas[i], ml, yi + (hc - 0.3) / 2, 2.75, 0.3, 13, azul, bold = TRUE, align = "right", nombre = "calor:fila")
+    hf <- .lam_alto_tinta(espec$filas[i], 2.75, 13, TRUE)
+    .lam_txt(lz, espec$filas[i], ml, yi + (hc - hf) / 2, 2.75, hf, 13, azul, bold = TRUE, align = "right", nombre = "calor:fila")
     for (j in seq_len(nc)) {
       ref <- if (!is.na(espec$col_total) && j != espec$col_total) V[i, espec$col_total] else NULL
       .lam_celda_calor(lz, xl + (j - 1) * wc, yi, wc, hc, V[i, j], lo, hi, ref, v_color = (espec$valores_crudos %||% V)[i, j])
@@ -87,6 +88,11 @@
   for (k in setdiff(unique(cortes), nc)) .lam_caja(lz, xl + k * wc - 0.01, y0 - 0.1, 0.02, nf * hc + 0.1, azul, nombre = "calor:filete")
   .lam_escala_calor(lz, xl + nc * wc / 2, y0 + nf * hc + 0.45, lo, hi, rotulo = rotulo_escala)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:heatmap_dim")
+  # El pie del recetario explica el asterisco y la cifra de abajo (recetario_m3d.R, pie de la lámina 92).
+  notas <- c(if (any(chica)) "* Menos de 15 casos.",
+             if (!is.na(espec$col_total) && nc > 1L && hc >= 0.6) "Debajo de cada cifra, la diferencia con el total en puntos")
+  partes <- c(if (!is.null(base) && nzchar(trimws(base))) (if (length(notas)) sub("\\.?\\s*$", ".", trimws(base)) else trimws(base)), notas)
+  base <- if (length(partes)) paste(partes, collapse = " ") else base
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
@@ -139,10 +145,18 @@
   g_ <- .std_geom; W <- g_("ancho"); ml <- g_("margen_izq"); mr <- g_("margen_der")
   dos <- function(t, w, size) all(vapply(t, function(x) .lam_lineas(x, w, size, TRUE) <= 2L, TRUE))
   if (identical(espec$tipo, "heatmap_dim")) {
-    nc <- ncol(espec$valores); wc <- (W - mr - ml - 2.9) / max(1L, nc)
-    return(nc >= 1L && nc <= 9L && nrow(espec$valores) %in% 1:8 && dos(espec$filas, 2.75, 13) &&
+    nc <- ncol(espec$valores); nf <- nrow(espec$valores); wc <- (W - mr - ml - 2.9) / max(1L, nc)
+    hc <- min(0.95, (g_("contenido_y1") - g_("zona_datos_y0") - 0.85 - 1.0) / max(1L, nf))
+    return(nc >= 1L && nc <= 9L && nf %in% 1:8 && all(is.finite(espec$rango)) && espec$rango[2] > espec$rango[1] &&
+             dos(espec$filas, 2.75, 13) && all(.lam_alto_tinta(espec$filas, 2.75, 13, TRUE) <= hc) &&
              all(.lam_ancho_txt(sub(" ciclo$", "", espec$columnas$rotulo), 11, TRUE) <= wc - 0.05))
   }
-  if (identical(espec$tipo, "comparativo_dim")) return(nrow(espec$valores) %in% 1:6 && dos(espec$filas, 2.95, 14))
+  if (identical(espec$tipo, "comparativo_dim")) {
+    # La leyenda (con la base de cada grupo) debe caber sobre las barras, sin entrar en la columna «Diferencia».
+    ley <- ifelse(is.finite(espec$n), sprintf("%s (%s)", espec$grupos, format(round(espec$n), big.mark = ",", trim = TRUE)), espec$grupos)
+    wl <- (W - mr - 2.3) - (ml + 3.1) - 1.2
+    return(nrow(espec$valores) %in% 1:6 && dos(espec$filas, 2.95, 14) && all(is.finite(espec$valores)) &&
+             sum(0.22 + .lam_ancho_tinta(ley, .std_pt("leyenda"))) + 0.3 * (length(ley) - 1) <= wl)
+  }
   FALSE
 }

@@ -132,6 +132,11 @@
 .lam_ancho_txt <- function(s, size, bold = FALSE) nchar(s) * size * (if (bold) 0.56 else 0.52) / 72
 .lam_lineas <- function(s, w, size, bold = FALSE) max(1, ceiling(.lam_ancho_txt(s, size, bold) / (w - 0.2)))
 .lam_alto_txt <- function(s, w, size, bold = FALSE) .lam_lineas(s, w, size, bold) * size * 1.2 / 72 + 0.1
+#' Alto de un texto con las líneas contadas sobre el ancho real de su tinta (systemfonts), no por carácter
+#' @keywords internal
+.lam_alto_tinta <- function(s, w, size, bold = FALSE) {
+  vapply(s, function(x) max(1, ceiling(.lam_ancho_tinta(x, size, bold) / (w - 0.1))), 0) * size * 1.2 / 72 + 0.1
+}
 
 .lam_lum <- function(hex) {
   v <- grDevices::col2rgb(hex)[, 1] / 255

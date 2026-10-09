@@ -82,3 +82,50 @@ test_that("en la ruta real p_dim_heatmap y p_dim_comparativo_radarbar salen nati
   expect_identical(.dm_txt(.dm_xml(out, 1), "calor:bloque"), "Sexo")
   expect_identical(.dm_txt(.dm_xml(out, 2), "Folio lamina"), "2")
 })
+
+# ---- Hallazgos del verificador de N5 (ruta real con datos de borde) ----------
+
+test_that("sin una sola cifra no hay mapa ni comparativo: la lámina sigue por la ruta anterior y el mazo no se cae", {
+  p <- .dm_payload(); p$score_heat$score_raw <- NA_real_
+  expect_null(preparar_heatmap_dim(p))                                              # hallazgo 1: antes rango Inf/-Inf
+  p2 <- .dm_payload(); p2$score_heat$score_raw[p2$score_heat$grupo == "Femenino"] <- NA_real_
+  expect_null(preparar_comparativo_dim(p2))                                         # hallazgo 3: antes «NA» en Diferencia
+  e <- preparar_heatmap_dim(p2); expect_true(is.na(e$columnas$n[3]))                # columna sin cifras: sin n
+})
+
+test_that("el adjuntador respeta el default del config, las brechas declaradas y el Total del comparativo", {
+  f <- .dm_fixture()
+  cfg <- reporte_dimensiones_config(f$data); cfg$visual$incluir_total_default <- FALSE; attr(f$data, "dimensiones_config") <- cfg
+  args <- list(data = f$data, instrumento = f$instrumento, modo = "general", objetivo = "idx_idx", cruce = "sexo")
+  e <- attr(.espec_dim_adjuntar(ggplot2::ggplot(), args, "heatmap"), "pulso_espec")
+  expect_false("Total" %in% e$columnas$rotulo)                                       # hallazgo 2
+  expect_null(attr(.espec_dim_adjuntar(ggplot2::ggplot(), c(args, brecha_cols = TRUE), "heatmap"), "pulso_espec"))       # hallazgo 6
+  expect_null(attr(.espec_dim_adjuntar(ggplot2::ggplot(), c(args, incluir_total = TRUE), "comparativo"), "pulso_espec"))
+})
+
+test_that("los casos de cada columna son los que respondieron la batería, no el total del grupo", {
+  f <- .dm_fixture()
+  for (v in grep("^sub_|^r100_", names(f$data), value = TRUE)) f$data[[v]][1:10] <- NA   # 10 casos sin ninguna respuesta
+  args <- list(data = f$data, instrumento = f$instrumento, modo = "general", objetivo = "idx_idx", cruce = "sexo", incluir_total = TRUE)
+  e <- attr(.espec_dim_adjuntar(ggplot2::ggplot(), args, "heatmap"), "pulso_espec")
+  expect_equal(e$columnas$n[e$columnas$rotulo == "Total"], 50)                       # hallazgo 8: 60 casos, 10 sin respuestas
+})
+
+test_that("la compuerta mide los rótulos de fila y la leyenda del comparativo", {
+  e <- preparar_heatmap_dim(.dm_payload())
+  largo <- "Pensamiento crítico y resolución de problemas en contextos profesionales"
+  e8 <- e; e8$filas <- rep(largo, 8); e8$valores <- e$valores[rep(1, 8), ]; e8$valores_crudos <- e8$valores
+  expect_false(.lam_dimensiones_cabe(e8))                                            # hallazgo 4: 8 filas de dos líneas
+  c2 <- preparar_comparativo_dim(.dm_payload())
+  expect_true(.lam_dimensiones_cabe(c2))
+  c2$grupos <- c("Facultad de Ciencias e Ingeniería con un nombre muy largo", "Facultad de Ciencias Sociales con otro nombre largo")
+  expect_false(.lam_dimensiones_cabe(c2))                                            # hallazgo 5: la leyenda no cabe
+})
+
+test_that("el pie del mapa explica el asterisco y la diferencia bajo cada cifra (recetario 92)", {
+  p <- .dm_payload(); p$score_heat$base[p$score_heat$grupo == "Femenino"] <- 9
+  e <- preparar_heatmap_dim(p)
+  o <- .lam_laminas_heatmap_dim(.dm_doc(), e, "Competencias", base = "Base: 109 estudiantes", folio = 92)
+  pie <- .dm_txt(.dm_xml(.dm_print(o$doc), length(o$doc)), "Base lamina")
+  expect_identical(pie, "Base: 109 estudiantes. * Menos de 15 casos. Debajo de cada cifra, la diferencia con el total en puntos")   # hallazgo 7
+})
