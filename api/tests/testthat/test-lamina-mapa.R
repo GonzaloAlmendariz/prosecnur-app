@@ -116,3 +116,14 @@ test_that("la ruta anterior del mapa usa los mismos azules que la nativa", {
   expect_true(toupper(.std_color("mapa_aplicada")) %in% usados)
   expect_false(any(c("#2E7D32", "#00A98F", "#0072BC") %in% usados))                        # ni verde, ni teal, ni el azul de ACNUR
 })
+
+test_that("la caja del distrito no lleva margen (st_bbox del recetario) y la barra de reserva es azul", {
+  e <- attr(suppressWarnings(graficar_mapa_cobertura_territorial(.ctx_distrito())), "pulso_espec")
+  d <- e$capas[[1]]$datos
+  expect_equal(unname(e$caja), c(min(d$x), max(d$x), min(d$y), max(d$y)), tolerance = 1e-9)   # la leyenda termina donde el mapa
+  expect_identical(.mapa_paleta("district")[["no_intervenido"]], "#FFFFFF")
+  sin_geo <- list(scope = "district", summary = list(list(distrito = "A", zonas_efectivas = 3)))
+  p <- suppressWarnings(graficar_mapa_cobertura_territorial(sin_geo))
+  usados <- toupper(unique(unlist(lapply(ggplot2::ggplot_build(p)$data, function(l) l$fill))))
+  expect_false("#00B398" %in% usados)
+})
