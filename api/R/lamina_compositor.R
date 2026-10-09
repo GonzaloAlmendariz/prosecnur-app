@@ -164,9 +164,11 @@
   if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
     # Si los casos de las columnas son los que respondieron la batería, el pie dice esa misma base (no la del
     # universo), salvo que la lámina declare la suya: una lámina, una base.
+    # Si la lámina oculta la base (sin_base) no se escribe ninguna; si la base no tiene la forma «Base: N …» (otro
+    # formato del preset) se deja como viene (verificador de N5, ronda 3).
     n_tot <- espec$n_respondieron_total %||% NA_real_
-    if (is.finite(n_tot) && is.null(como_texto(slots$base))) {
-      b0 <- texto(base) %||% "Base:"
+    b0 <- texto(base)
+    if (!isTRUE(sin_base) && is.finite(n_tot) && is.null(como_texto(slots$base)) && !is.null(b0) && grepl("^Base:\\s*[0-9]", b0)) {
       cola <- sub("^Base:\\s*[0-9][0-9.,]*\\s*", "", b0)
       base <- paste0("Base: ", format(round(n_tot), big.mark = ",", trim = TRUE), if (nzchar(cola)) paste0(" ", cola) else "",
                      " que respondieron la batería")

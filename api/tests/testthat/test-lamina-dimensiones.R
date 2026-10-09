@@ -145,3 +145,14 @@ test_that("una lámina, una base: si las columnas cuentan respondientes, el pie 
   e <- attr(.espec_dim_adjuntar(ggplot2::ggplot(), args, "heatmap"), "pulso_espec")
   expect_equal(e$n_respondieron_total, sum(f$data$sexo[11:60] == "1"))                        # con filtro también cuenta respondientes
 })
+
+test_that("si la lámina oculta la base, el pie del mapa no la escribe (sólo las notas del recetario)", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg")
+  f <- .dm_fixture()
+  plan <- list(a = p_slide_1_grafico(grafico = p_dim_heatmap(objetivo = "idx_idx", cruce = "sexo", modo = "general", incluir_total = TRUE),
+                                     titulo = "Por sexo", meta = list(suppress_base_placeholder = TRUE)))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = f$data, instrumento = f$instrumento, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
+  pie <- paste(.dm_txt(.dm_xml(out, 1), "Base lamina"), collapse = " ")
+  expect_false(grepl("Base:", pie, fixed = TRUE))                                     # ronda 3: antes «Base: 386 Base: que…»
+})
