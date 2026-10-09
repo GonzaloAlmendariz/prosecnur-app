@@ -322,3 +322,103 @@
   t <- as.character(titulo %||% "")[1]
   !is.na(t) && nzchar(trimws(t)) && .lam_alto_tinta(t, 10.7, 30, TRUE) <= 1.6
 }
+
+# ---- Ficha técnica (lámina 29, recetario.R:489-533) -------------------------------------------------------------
+
+#' Ícono del recetario en el paquete (PNG blanco de Lucide, `inst/ppt_assets/iconos_recetario`)
+#' @keywords internal
+.lam_icono_ruta <- function(nombre) {
+  r <- system.file("ppt_assets", "iconos_recetario", "blanco", paste0(nombre, ".png"), package = "prosecnurapp")
+  if (nzchar(r)) r else NULL
+}
+
+#' Ícono de cada fila de la ficha, por lo que dice su criterio
+#' @keywords internal
+.lam_icono_ficha <- function(criterio) {
+  c0 <- tolower(iconv(as.character(criterio), to = "ASCII//TRANSLIT"))
+  reglas <- list(c("tipo|tecnica|metodolog|instrumento", "clipboard-list"), c("universo|poblacion|publico", "users"),
+                 c("muestreo|seleccion|diseno", "shuffle"), c("muestra|tamano|casos|respuestas", "hash"),
+                 c("campo|fecha|periodo|aplicacion", "calendar-days"), c("margen|error|confianza|precision", "gauge"),
+                 c("ambito|cobertura|territor|lugar|sede", "map-pin"))
+  for (r in reglas) if (grepl(r[1], c0)) return(r[2])
+  "info"
+}
+
+#' La fila «Muestra» del recetario: el número de cada público en grande con su tasa de respuesta, si el detalle se deja
+#' leer así («172 estudiantes (96 %), 52 docentes (92 %)»); si no, `NULL` y la fila va como texto
+#' @keywords internal
+.lam_ficha_muestra <- function(detalle) {
+  d <- sub("\\.\\s*$", "", trimws(as.character(detalle)[1]))
+  # Una pieza por público: separadas por coma o por la «y» final; el público puede llevar paréntesis («egresados(as)»).
+  piezas <- trimws(strsplit(d, ",\\s*|\\s+y\\s+(?=[0-9])", perl = TRUE)[[1]])
+  patron <- "^([0-9][0-9.,]*)\\s+(.+?)\\s*\\(\\s*([0-9]+)\\s*%\\s*\\)$"
+  if (length(piezas) < 2L || length(piezas) > 4L || !all(grepl(patron, piezas, perl = TRUE))) return(NULL)
+  m <- regmatches(piezas, regexec(patron, piezas, perl = TRUE))
+  data.frame(n = vapply(m, `[`, "", 2), publico = vapply(m, `[`, "", 3), tasa = vapply(m, `[`, "", 4), stringsAsFactors = FALSE)
+}
+
+#' Geometría de la ficha: alto de cada fila (texto a 13 pt en su ancho; la de la muestra en cifras mide 1.25 in)
+#' @keywords internal
+.lam_ficha_geo <- function(filas) {
+  ml <- .std_geom("margen_izq"); W <- .std_geom("ancho"); xv <- ml + 3.3; wv <- W - .std_geom("margen_der") - xv
+  muestra <- lapply(filas$detalle, .lam_ficha_muestra)
+  # Aire del recetario: 0.95 in para dos líneas y 0.6 a 0.75 para una (recetario.R:513).
+  h <- vapply(seq_len(nrow(filas)), function(i) if (!is.null(muestra[[i]])) 1.25 else max(0.6, .lam_alto_tinta(filas$detalle[i], wv, 13) + 0.4), 0)
+  list(xv = xv, wv = wv, h = h, muestra = muestra, alto = sum(h) + 0.12 * nrow(filas))
+}
+
+#' Ficha técnica del recetario: una fila por criterio con su ícono en círculo, el criterio en negrita y el detalle; la
+#' muestra por público va en cifras con su tasa de respuesta en verde
+#' @keywords internal
+.lam_laminas_ficha <- function(doc, titulo, filas, base = NULL, ante = "Metodología", folio = NULL, layout = "Graficos",
+                               master = "Office Theme", por_lamina = function(doc) doc) {
+  force(folio)
+  ml <- .std_geom("margen_izq"); W <- .std_geom("ancho"); mr <- .std_geom("margen_der"); yt <- .std_geom("zona_datos_y0")
+  azul <- .std_color("azul"); G <- .lam_ficha_geo(filas)
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  doc <- .lam_titulo(doc, titulo, ante = ante)
+  lz <- .lam_lienzo(); y <- yt - 0.15; iconos <- list()
+  for (i in seq_len(nrow(filas))) {
+    h <- G$h[i]
+    .lam_caja(lz, ml, y + (h - 0.48) / 2, 0.48, 0.48, azul, geom = "ellipse", nombre = "ficha:icono_fondo")
+    iconos[[length(iconos) + 1L]] <- list(n = .lam_icono_ficha(filas$criterio[i]), x = ml + 0.12, y = y + (h - 0.48) / 2 + 0.12)
+    .lam_txt(lz, filas$criterio[i], ml + 0.9, y + (h - 0.32) / 2, 2.3, 0.32, 14, azul, bold = TRUE, nombre = "ficha:criterio")
+    mu <- G$muestra[[i]]
+    if (!is.null(mu)) {
+      for (j in seq_len(nrow(mu))) {
+        xx <- G$xv + (j - 1) * G$wv / 4
+        .lam_txt(lz, mu$n[j], xx, y + 0.02, 1.4, 0.5, 26, azul, bold = TRUE, nombre = "ficha:muestra_n")
+        .lam_txt(lz, mu$publico[j], xx, y + 0.5, G$wv / 4 - 0.1, 0.3, 12, azul, nombre = "ficha:muestra_publico")
+        .lam_txt(lz, sprintf("%s%% de respuesta", mu$tasa[j]), xx, y + 0.78, G$wv / 4, 0.28, 11, .std_color("verde_top_two_box"), bold = TRUE, nombre = "ficha:muestra_tasa")
+      }
+    } else {
+      ht <- .lam_alto_tinta(filas$detalle[i], G$wv, 13)
+      .lam_txt(lz, filas$detalle[i], G$xv, y + (h - ht) / 2, G$wv, ht, 13, azul, nombre = "ficha:detalle")
+    }
+    y <- y + h + 0.12
+    if (i < nrow(filas)) .lam_separador_h(lz, ml, W - mr, y - 0.06)
+  }
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:ficha")
+  for (ic in iconos) {
+    ruta <- .lam_icono_ruta(ic$n)
+    if (!is.null(ruta)) doc <- officer::ph_with(doc, officer::external_img(ruta, width = 0.24, height = 0.24),
+                                                location = officer::ph_location(left = ic$x, top = ic$y, width = 0.24, height = 0.24, newlabel = "ficha:icono"))
+  }
+  doc <- .lam_pie(doc, base, folio)
+  list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' ¿La ficha cabe? De una a siete filas que entran en la lámina, con criterios de una línea en 2.3 in
+#' @keywords internal
+.lam_ficha_cabe <- function(filas) {
+  if (!is.data.frame(filas) || !nrow(filas) || nrow(filas) > 7L || !all(c("criterio", "detalle") %in% names(filas))) return(FALSE)
+  G <- .lam_ficha_geo(filas)
+  G$alto <= .std_geom("contenido_y1") - .std_geom("zona_datos_y0") + 0.15 && all(.lam_ancho_tinta(filas$criterio, 14, TRUE) <= 2.3)
+}
+
+#' Las dos primeras columnas de la tabla técnica como criterio y detalle
+#' @keywords internal
+.lam_ficha_filas <- function(tabla) {
+  if (!is.data.frame(tabla) || ncol(tabla) < 2L) return(data.frame(criterio = character(0), detalle = character(0)))
+  data.frame(criterio = trimws(as.character(tabla[[1]])), detalle = trimws(as.character(tabla[[2]])), stringsAsFactors = FALSE)
+}

@@ -131,3 +131,36 @@ test_that("la lámina de redondeo sólo atiende a las familias que cierran en 10
   lam <- .id_mazo(list(a = p_slide_redondeo(casos = c(1, 1, 1, 0), etiquetas = c("A", "B", "C", "D"), meta = list(metodo = "resto_mayor"))))
   expect_identical(.id_txt(lam[[1]], "redondeo:nota"), "Falta un punto: va al resto más grande.")
 })
+
+test_that("la ficha técnica sale como la 29: filas con ícono y la muestra por público en cifras con su tasa", {
+  ft <- data.frame(criterio = c("Tipo y técnica", "Universo", "Muestra", "Trabajo de campo"),
+                   detalle = c("Encuesta por correo.", "Estudiantes y docentes.", "172 estudiantes (96 %), 178 egresados(as) (66 %) y 15 administrativos (94 %).", "Mayo de 2026."))
+  lam <- .id_mazo(list(a = p_slide_tabla_tecnica("Ficha técnica cuantitativa", ft),
+                       b = p_slide_tabla_tecnica("Larga", data.frame(criterio = paste("Criterio", 1:9), detalle = "x"))))
+  x <- lam[[1]]
+  expect_identical(.id_txt(x, "ficha:criterio"), ft$criterio)
+  expect_identical(.id_txt(x, "ficha:muestra_n"), c("172", "178", "15"))
+  expect_identical(.id_txt(x, "ficha:muestra_publico"), c("estudiantes", "egresados(as)", "administrativos"))
+  expect_identical(.id_txt(x, "ficha:muestra_tasa"), c("96% de respuesta", "66% de respuesta", "94% de respuesta"))
+  expect_length(xml2::xml_find_all(x, "//p:pic"), 4L)                                         # un ícono por fila
+  expect_identical(.id_txt(x, "Antetitulo lamina"), "METODOLOGÍA")
+  expect_identical(vapply(ft$criterio, .lam_icono_ficha, ""), c("clipboard-list", "users", "hash", "calendar-days"), ignore_attr = TRUE)
+  expect_null(.lam_ficha_muestra("Censo de estudiantes."))                                    # sin cifras: va como texto
+  expect_false("prosecnur:ficha" %in% xml2::xml_attr(xml2::xml_find_all(lam[[2]], "//p:cNvPr"), "name"))   # nueve filas: ruta anterior
+})
+
+test_that("la portada nativa lleva el logo de socio sólo si se declaró uno propio (el de PULSO ya está en la plantilla)", {
+  df <- data.frame(p = rep(c("a", "b"), 10))
+  inst <- list(survey = data.frame(name = "p", type = "select_one l", list_name = "l", label = "P"),
+               choices = data.frame(list_name = "l", name = c("a", "b"), label = c("Sí", "No")), orders_list = NULL)
+  pics <- function(args) {
+    pre <- p_presets(); pre$base$args <- utils::modifyList(pre$base$args %||% list(), args)
+    out <- tempfile(fileext = ".pptx")
+    suppressMessages(suppressWarnings(reporte_ppt_plan(data = df, instrumento = inst, presets = pre, path_ppt = out, mensajes_progreso = FALSE,
+                                                       plan = list(a = p_slide_portada("Portada")))))
+    length(xml2::xml_find_all(xml2::read_xml(unz(out, "ppt/slides/slide1.xml")), "//p:pic"))
+  }
+  socio <- system.file("ppt_assets", "iconos_recetario", "blanco", "globe.png", package = "prosecnurapp")
+  expect_equal(pics(list(partner_logo_cover = TRUE)), 0L)
+  expect_equal(pics(list(partner_logo_cover = TRUE, partner_logo_cover_path = socio)), 1L)
+})
