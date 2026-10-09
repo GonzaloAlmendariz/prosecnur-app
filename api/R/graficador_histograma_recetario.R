@@ -66,5 +66,8 @@
       plot.margin = ggplot2::margin(8, 12, 8, 12)
     )
   attr(p, "pulso_histograma_recetario") <- list(mediana = mediana, niveles = niveles, conteos = cnt)
+  # ADR 0093 (N4): lo que afirma el histograma para la lámina nativa; las cifras son las mismas que rotula el gráfico.
+  attr(p, "pulso_espec") <- list(version = "histograma/1", tipo = "histograma", rotulos = rot, valores = valor, cifras = lab,
+                                 conteos = cnt, mediana = mediana, x_mediana = x_med - 1, texto_mediana = texto_med)
   p
 }

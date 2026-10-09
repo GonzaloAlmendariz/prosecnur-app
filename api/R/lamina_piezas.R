@@ -41,13 +41,14 @@
 
 #' Rectángulo de relleno sólido (`caja()` del recetario)
 #' @keywords internal
-.lam_caja <- function(lz, l, t, w, h, fill, nombre = "caja") {
-  hex <- .lam_hex(fill)
+.lam_caja <- function(lz, l, t, w, h, fill, nombre = "caja", geom = c("rect", "triangle", "ellipse"), borde = NULL, borde_pt = 0.75) {
+  geom <- match.arg(geom)
+  hex <- .lam_hex(fill); hex_borde <- .lam_hex(borde %||% fill); w_borde <- if (is.null(borde)) 3175L else as.integer(round(borde_pt * 12700))
   xml <- paste0(
     '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>',
-    '<p:spPr>', .lam_xfrm(l, t, w, h), '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>',
+    '<p:spPr>', .lam_xfrm(l, t, w, h), '<a:prstGeom prst="', geom, '"><a:avLst/></a:prstGeom>',
     '<a:solidFill><a:srgbClr val="', hex, '"/></a:solidFill>',
-    '<a:ln w="3175"><a:solidFill><a:srgbClr val="', hex, '"/></a:solidFill></a:ln></p:spPr>',
+    '<a:ln w="', w_borde, '"><a:solidFill><a:srgbClr val="', hex_borde, '"/></a:solidFill></a:ln></p:spPr>',
     '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr/></a:p></p:txBody></p:sp>'
   )
   .lam_registrar(lz, xml, l, t, w, h)

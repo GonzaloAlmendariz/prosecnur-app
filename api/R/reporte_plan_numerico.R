@@ -213,6 +213,18 @@
   attr(p, "pulso_numerico_colores")        <- args$colores_series
   attr(p, "pulso_numerico_n_sobre_barras") <- isTRUE(args$mostrar_n_sobre_barras)
   attr(p, "pulso_numerico_etiquetas_valor") <- attr(p, "pulso_barras_numericas_labels")
+  # ADR 0093 (N4): lo que afirma la lámina «Indicador numérico» (lámina 80): una columna por grupo, en el orden
+  # del instrumento, con su cifra y su número de casos. La cifra va con punto decimal como en el recetario
+  # («20.5») y con el redondeo de la casa; no se toma de las etiquetas del gráfico, que usan
+  # `separador_decimales` (coma por defecto) y no garantizan el orden de los grupos.
+  valor <- suppressWarnings(as.numeric(df_wide[[nombre_serie]]))
+  dec <- suppressWarnings(as.integer(args$decimales %||% if (metrica %in% c("mean", "median")) 1L else 0L)[1])
+  if (!is.finite(dec) || dec < 0L) dec <- 1L
+  cifras <- paste0(.pulso_fmt_half_up(if (identical(metrica, "pct")) valor * 100 else valor, dec), if (identical(metrica, "pct")) "%" else "")
+  o <- if (is.factor(df_wide$categoria)) order(as.integer(df_wide$categoria)) else seq_along(valor)
+  attr(p, "pulso_espec") <- list(version = "numerico/1", tipo = "numerico", metrica = metrica, etiqueta = etiqueta,
+                                 rotulos = as.character(df_wide$categoria)[o], valores = valor[o], cifras = cifras[o],
+                                 n = suppressWarnings(as.numeric(df_wide$N))[o])
 
   p
 }

@@ -58,7 +58,8 @@
       "verde_top_two_box": "#4E9438",
       "naranja_bottom_two_box": "#B4541F",
       "naranja_bottom_two_box_texto": "#A44A1F",
-      "azul_medio": "#4F7FAF"
+      "azul_medio": "#4F7FAF",
+      "azul_rango": "#B9C5DC"
     },
     "paletas": {
       "likert": {
