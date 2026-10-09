@@ -43,6 +43,13 @@ tabla_pulso <- function(df, caption = NULL) {
 
 `%||%` <- function(x, y) if (is.null(x) || length(x) == 0L) y else x
 
+# Rótulo humano de una clave de dominio (L28): el reporte va al cliente.
+rot <- function(tipo, x) {
+  clave <- as.character(x %||% "")
+  v <- unname((bundle$rotulos[[tipo]] %||% character(0))[clave])
+  if (length(v) != 1L || is.na(v)) (if (nzchar(clave)) clave else "—") else v
+}
+
 fmt_int <- function(x) if (is.null(x) || is.na(x)) "—" else format(x, big.mark = ",", scientific = FALSE)
 fmt_pct <- function(x, dec = 1) if (is.null(x) || is.na(x)) "—" else sprintf(paste0("%.", dec, "f%%"), x * 100)
 ```
@@ -50,7 +57,7 @@ fmt_pct <- function(x, dec = 1) if (is.null(x) || is.na(x)) "—" else sprintf(p
 ## Resumen del estudio
 
 - **Título:** `r estudio$titulo`
-- **Macro-familia:** `r estudio$macro_familia`
+- **Tipo de estudio:** `r rot("macro_familia", estudio$macro_familia)`
 - **Fase:** estimación preliminar (propuesta inicial)
 - **Cliente:** `r estudio$contexto$cliente %||% "—"`
 `r if (isTRUE(estudio$modo_sensible)) "- **Consideraciones éticas:** estudio requiere protocolos de investigación con población especial." else ""`
@@ -58,7 +65,7 @@ fmt_pct <- function(x, dec = 1) if (is.null(x) || is.na(x)) "—" else sprintf(p
 ::: {.callout-note}
 Este reporte corresponde a una **estimación preliminar**: los universos pueden no estar
 todavía validados y las metas son indicativas. El diseño debe refinarse en la fase
-`diseno_validado` con bases recibidas y limpiadas.
+de diseño validado, con bases recibidas y limpiadas.
 :::
 
 ## Componentes propuestos
@@ -68,12 +75,12 @@ filas <- lapply(estudio$componentes, function(c) {
   res <- c$resultado
   tibble(
     Actor             = c$actor,
-    Tecnica           = c$tecnica,
-    Origen            = c$origen_tamano,
-    Marco_validado    = fmt_int(c$marco$marco_validado),
-    n_objetivo        = fmt_int(res$n_objetivo %||% NA),
-    n_operativo       = fmt_int(res$n_operativo %||% NA),
-    Precision         = if (!is.null(res$precision_alcanzada) && !is.na(res$precision_alcanzada))
+    `Técnica`         = rot("tecnica", c$tecnica),
+    `Origen del tamaño` = rot("origen_tamano", c$origen_tamano),
+    `Marco validado`  = fmt_int(c$marco$marco_validado),
+    `n completas`     = fmt_int(res$n_objetivo %||% NA),
+    `n a campo`       = fmt_int(res$n_operativo %||% NA),
+    `Margen`          = if (!is.null(res$precision_alcanzada) && !is.na(res$precision_alcanzada))
                           fmt_pct(res$precision_alcanzada) else "-"
   )
 })
@@ -84,15 +91,15 @@ tabla_pulso(do.call(rbind, filas), caption = "Componentes del estudio")
 
 ```{r detalle_componentes, results="asis"}
 for (c in estudio$componentes) {
-  cat(sprintf("### %s — %s\n\n", c$actor, c$tecnica))
-  cat(sprintf("- **Naturaleza inferencial:** %s\n", c$naturaleza))
-  cat(sprintf("- **Origen del tamaño:** %s\n", c$origen_tamano))
-  cat(sprintf("- **Nivel de respaldo:** %s\n", c$nivel_respaldo))
+  cat(sprintf("### %s — %s\n\n", c$actor, rot("tecnica", c$tecnica)))
+  cat(sprintf("- **Naturaleza inferencial:** %s\n", rot("naturaleza", c$naturaleza)))
+  cat(sprintf("- **Origen del tamaño:** %s\n", rot("origen_tamano", c$origen_tamano)))
+  cat(sprintf("- **Nivel de respaldo:** %s\n", rot("nivel_respaldo", c$nivel_respaldo)))
   cat(sprintf("- **Marco:** bruto=%s · validado=%s · contactable=%s · estado=%s\n",
               fmt_int(c$marco$universo_bruto),
               fmt_int(c$marco$marco_validado),
               fmt_int(c$marco$marco_contactable),
-              c$marco$estado))
+              rot("estado_marco", c$marco$estado)))
   if (!is.null(c$resultado)) {
     r <- c$resultado
     cat(sprintf("- **n objetivo:** %s\n", fmt_int(r$n_objetivo)))
@@ -105,9 +112,12 @@ for (c in estudio$componentes) {
 }
 ```
 
-## Cuotas operativas calculadas
-
 ```{r cuotas_matriz, results="asis"}
+# El título sale sólo si algún componente tiene cuotas_matriz: vacío era un
+# encabezado sin contenido (L26).
+if (any(vapply(estudio$componentes, function(c) length(c$resultado$cuotas_matriz %||% list()) > 0L, logical(1)))) {
+  cat("## Cuotas operativas calculadas\n\n")
+}
 for (c in estudio$componentes) {
   res <- c$resultado
   if (is.null(res$cuotas_matriz) || length(res$cuotas_matriz) == 0L) next
@@ -128,13 +138,14 @@ for (c in estudio$componentes) {
 ## Lineamientos metodológicos
 
 1. Cada actor puede tener un diseño distinto: el estudio es contenedor de componentes.
-2. Marco y unidad se separan: `unidad_seleccion` ≠ `unidad_analisis`.
+2. Marco y unidad se separan: la unidad que se selecciona no siempre es la que se analiza.
 3. Solo diseños probabilísticos con marco completo y probabilidad conocida producen margen de error formal.
 4. Los demás diseños se reportan como cobertura operacional, representatividad teórica o validez interna.
 
-## Cómo se estima la efectividad esperada de cada facultad
-
-```{r efectividad_metodo, results="asis"}
+```{r efectividad_metodo, results="asis", eval=isTRUE(bundle$tiene_aulas)}
+# Sólo en estudios de aulas (L26, 2026-09-27): en un estudio por regiones o
+# servicios esta sección hablaba de facultades y cursos-horario que no existen.
+cat("## Cómo se estima la efectividad esperada de cada facultad\n\n")
 tf <- bundle$tasas_facultad
 cat("El número de aulas de cada facultad sale de una sola fórmula:\n\n")
 cat("$$\\text{aulas} = \\left\\lceil \\frac{\\text{cuota}}{\\text{alumnos por curso-horario} \\times \\tau} \\right\\rceil$$\n\n")
@@ -187,7 +198,7 @@ cat(paste0(
   "todas las facultades, y el documento lo declara como tal.\n\n"))
 ```
 
-```{r efectividad_tabla, results="asis"}
+```{r efectividad_tabla, results="asis", eval=isTRUE(bundle$tiene_aulas)}
 tf <- bundle$tasas_facultad
 if (!is.null(tf) && length(tf)) {
   df <- do.call(rbind, lapply(tf, function(t) {
@@ -212,12 +223,72 @@ if (!is.null(tf) && length(tf)) {
 }
 ```
 
+## Memoria de cálculo
+
+```{r memoria_calculo, results='asis'}
+memorias <- bundle$memorias %||% list()
+if (!length(memorias)) {
+  cat("_Ningún componente de este estudio se calcula con la fórmula de elementos (MAS, estratificado o sistemático); su tamaño se documenta en el detalle por componente._\n")
+} else {
+  for (actor in names(memorias)) {
+    m <- memorias[[actor]]
+    names(m) <- c("Paso", "Fórmula", "Sustitución", "Resultado")
+    cat("\n**", actor, "**\n\n", sep = "")
+    print(tabla_pulso(m, caption = paste("Memoria de cálculo —", actor)))
+    cat("\n")
+  }
+}
+```
+
+## Selección de las unidades
+
+```{r seleccion_unidades, results='asis'}
+general <- bundle$general %||% list()
+corridas <- general$corridas %||% list()
+marcos <- general$marcos %||% list()
+if (!length(corridas)) {
+  cat("_Todavía no se sorteó ninguna unidad desde un marco declarado._\n")
+} else {
+  ids <- vapply(estudio$componentes %||% list(), function(c) c$id %||% "", character(1))
+  actores <- vapply(estudio$componentes %||% list(), function(c) c$actor %||% "", character(1))
+  metodos <- c(mas = "Aleatorio simple sin reemplazo", sistematico = "Sistemático con intervalo fraccional",
+               pps = "Probabilidad proporcional al tamaño")
+  for (cid in names(corridas)) {
+    cr <- corridas[[cid]]$corrida
+    mc <- marcos[[cid]] %||% list()
+    actor <- actores[match(cid, ids)]
+    if (is.na(actor) || !nzchar(actor)) actor <- cid
+    modo <- if (identical(cr$modalidad, "censo")) "Cobertura censal: el marco entero en orden aleatorio de contacto (π = 1)"
+            else corridas[[cid]]$metodo_rotulo %||% metodos[[cr$metodo]] %||% cr$metodo
+    ficha <- tibble(
+      Campo = c("Método", "Universo del marco (N)", "Titulares", "Reservas", "Semilla",
+                "Generador aleatorio", "Identificador de corrida", "Huella del marco (SHA-256)"),
+      Valor = c(modo, fmt_int(cr$N), fmt_int(cr$n_titulares), fmt_int(cr$n_reservas),
+                as.character(cr$semilla), cr$rng_kind %||% "—", cr$run_id %||% "—", cr$marco_hash %||% "—")
+    )
+    nota <- corridas[[cid]]$nota_varianza %||% ""
+    if (nzchar(nota)) ficha <- rbind(ficha, tibble(Campo = "Estimación de varianza", Valor = nota))
+    cat("\n**", actor, "**\n\n", sep = "")
+    print(tabla_pulso(ficha, caption = paste("Sorteo —", actor)))
+    est <- as.data.frame(corridas[[cid]]$estratos %||% list())
+    if (nrow(est) > 1L) {
+      tabla <- tibble(Estrato = est$clave, N_h = est$N_h, n_h = est$n_h,
+                      `π` = ifelse(is.na(est$pi), "por unidad", sprintf("%.4f", est$pi)))
+      print(tabla_pulso(tabla, caption = paste("Sorteo por estrato —", actor)))
+    }
+    cat("\n")
+  }
+  cat("\nCada unidad sorteada tiene una probabilidad de inclusión conocida y su peso base es 1/π. El mismo archivo de marco (misma huella), la misma semilla y el mismo método reproducen el listado en cualquier máquina. Las reservas son réplicas del mismo estrato que se liberan por lotes completos; al liberarlas, la π del estrato se recalcula.\n")
+}
+```
+
 ## Sustento metodológico
 
 ```{r sustento_metodologico}
 fuentes <- bundle$metodologia
 if (is.null(fuentes) || !nrow(as.data.frame(fuentes))) {
-  cat("_El motor no publicó el bloque de fuentes metodológicas para esta corrida._\n")
+  # Sin aulas no se publica la tabla de aulas (L26): se sustenta con lo que se usó.
+  knitr::asis_output("El tamaño sigue la memoria de cálculo de este documento (Cochran 1977; Lohr 2019) y la selección, el método declarado en «Selección de las unidades». Ambos se reproducen con la huella del marco y la semilla.\n")
 } else {
   fuentes <- as.data.frame(fuentes, stringsAsFactors = FALSE)
   limpio <- function(x) { x <- as.character(x); x[is.na(x) | !nzchar(trimws(x))] <- "—"; x }
@@ -247,12 +318,16 @@ if (!is.null(fuentes) && nrow(as.data.frame(fuentes))) {
 }
 ```
 
-::: {.callout-note}
-La selección es probabilística: toda unidad del marco tiene una probabilidad de
-inclusión conocida y mayor que cero, y esa probabilidad es la que pondera los
-resultados. Cada decisión de diseño está anclada en estándares de operativos
-internacionales de evaluación educativa y en la literatura de muestreo balanceado.
-:::
+```{r sustento_nota, results="asis"}
+# «Anclada en evaluación educativa y muestreo balanceado» describe el diseño de
+# aulas; en otro estudio afirmaba un método que no se usó (L26).
+cat("::: {.callout-note}\n")
+if (isTRUE(bundle$tiene_aulas)) {
+  cat("Cada decisión de diseño está anclada en estándares de operativos internacionales de evaluación educativa y en la literatura de muestreo balanceado. ")
+}
+cat("La selección es probabilística: toda unidad del marco tiene una probabilidad de inclusión conocida y mayor que cero, y esa probabilidad es la que pondera los resultados.\n")
+cat(":::\n")
+```
 
 ## Próximos pasos
 

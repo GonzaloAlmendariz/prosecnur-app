@@ -272,6 +272,11 @@ export function materializeUniversityAulasTarget({
  * del engine. También elimina el target si falta cualquiera de los resultados
  * necesarios para acreditar el handoff; así guardar/reabrir no revive cifras
  * de un cálculo anterior.
+ *
+ * Si el target ya está donde debe, devuelve el MISMO workspace: normalizar el
+ * resto de `aulas_config` aquí convertía cada apertura en una escritura (R
+ * sirve `{}` vacío como `[]` y omite defaults), y el proyecto quedaba «sin
+ * guardar» sin que nadie tocara nada.
  */
 export function reconcileUniversityAulasTarget(
   workspace: CalcMuestraWorkspace,
@@ -281,6 +286,8 @@ export function reconcileUniversityAulasTarget(
   const target = selected && hasUsefulResult(selected)
     ? normalizePositiveInteger(selected.resultado?.aulas_base_total)
     : undefined;
+  const actual = (workspace.aulas_config as { n_aulas?: unknown } | undefined)?.n_aulas;
+  if (actual === target || (actual == null && target == null)) return workspace;
   const { n_aulas: _staleTarget, ...configWithoutTarget } = normalizeUniversityAulasConfig(workspace.aulas_config);
   return {
     ...workspace,
@@ -515,6 +522,60 @@ export function makeUniversityComponent(
   };
 }
 
+/**
+ * Los campos del estrato que son DECISIÓN del analista sobre UN componente, no
+ * dato del marco. Viajan dentro del mismo objeto que se comparte, así que hay
+ * que devolvérselos a su dueño después de repartir el marco.
+ */
+const DECISIONES_POR_COMPONENTE = [
+  "cuota_fija",
+  "sobremuestra_fija",
+  "aulas_base_fijas",
+  "aulas_base_origen",
+  "aulas_base_nota",
+  "aulas_extra_operativas",
+] as const;
+
+/**
+ * El marco compartido, pero con las decisiones propias del componente puestas
+ * de vuelta estrato por estrato.
+ *
+ * `universityComponents` reparte UN solo marco a los dos componentes porque N,
+ * divisores y tau son dato compartido. El problema es que `aulas_base_fijas` y
+ * sus hermanas viajan dentro de ese mismo objeto siendo decisiones de UN dueño:
+ * repartir el marco entero se las lleva puestas.
+ *
+ * Medido en la app el 2026-08-27 con HSVG26ULT: el componente de facultad tenía
+ * quince fijaciones que sumaban 175 y el de universidad ninguna. «Recalcular
+ * muestra» —que pasa por `prepareUniversityStudyForCalculation` y persiste lo
+ * que sale— dejaba el de facultad con CERO y el objetivo saltaba de 175 a 294.
+ *
+ * Emparejar por `label` y no por posición: los dos componentes comparten el
+ * marco, así que traen las mismas facultades, pero un emparejamiento posicional
+ * ataría la corrección a un orden que nadie garantiza.
+ */
+function conDecisionesPropias(
+  marco: CalcMuestraComponente["marco"],
+  propio: CalcMuestraComponente | undefined,
+): CalcMuestraComponente["marco"] {
+  const estratosPropios = propio?.marco?.estratos;
+  if (!estratosPropios?.length || !marco.estratos?.length) return marco;
+  const porLabel = new Map(estratosPropios.map((e) => [String(e.label ?? ""), e]));
+  return {
+    ...marco,
+    estratos: marco.estratos.map((e) => {
+      const mio = porLabel.get(String(e.label ?? ""));
+      if (!mio) return e;
+      const devueltas: Record<string, unknown> = {};
+      for (const campo of DECISIONES_POR_COMPONENTE) {
+        const valor = (mio as Record<string, unknown>)[campo];
+        if (valor !== undefined) devueltas[campo] = valor;
+      }
+      return { ...e, ...devueltas };
+    }),
+  };
+}
+
 export function universityComponents(componentes: CalcMuestraComponente[]) {
   const totalExisting = componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
   const facultyExisting = componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
@@ -530,8 +591,14 @@ export function universityComponents(componentes: CalcMuestraComponente[]) {
     (totalExisting?.marco.estratos?.length ? totalExisting.marco : null) ??
     (facultyExisting?.marco.estratos?.length ? facultyExisting.marco : null) ??
     base.marco;
-  const total = makeUniversityComponent({ ...(totalExisting ?? base), marco: sharedMarco }, "universidad");
-  const faculty = makeUniversityComponent({ ...(facultyExisting ?? base), marco: sharedMarco }, "facultad");
+  const total = makeUniversityComponent(
+    { ...(totalExisting ?? base), marco: conDecisionesPropias(sharedMarco, totalExisting) },
+    "universidad",
+  );
+  const faculty = makeUniversityComponent(
+    { ...(facultyExisting ?? base), marco: conDecisionesPropias(sharedMarco, facultyExisting) },
+    "facultad",
+  );
   return [total, faculty] as const;
 }
 

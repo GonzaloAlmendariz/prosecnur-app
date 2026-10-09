@@ -406,9 +406,11 @@ test('el launcher compara versiones R canónicas y acepta guiones del lock', () 
     .map((record) => record.Version)
     .filter((version) => version.includes('-'))
   // 17 desde que `RcppArmadillo` (15.4.2-1) entra al lock como `LinkingTo` de
-  // `BalancedSampling`. El literal existe para que sumar un paquete con version
-  // guionada sea deliberado: `canonical_package_version` las trata aparte.
-  assert.equal(hyphenVersions.length, 17)
+  // `BalancedSampling`; 18 desde que `colorspace` (2.1-4) entra como `Imports` de
+  // `ggwordcloud` (la nube del recetario, ADR 0093). El literal existe para que
+  // sumar un paquete con version guionada sea deliberado:
+  // `canonical_package_version` las trata aparte.
+  assert.equal(hyphenVersions.length, 18)
 
   const probe = spawnSync(
     'Rscript',
@@ -428,6 +430,6 @@ test('el launcher compara versiones R canónicas y acepta guiones del lock', () 
     { encoding: 'utf8' }
   )
   assert.equal(probe.status, 0, `${probe.stdout}\n${probe.stderr}`)
-  assert.match(probe.stdout, /RAW_MISMATCHES 17/)
+  assert.match(probe.stdout, /RAW_MISMATCHES 18/)
   assert.match(probe.stdout, /CANONICAL_MISMATCHES 0/)
 })

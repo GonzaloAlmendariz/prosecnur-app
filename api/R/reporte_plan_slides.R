@@ -2507,6 +2507,21 @@ p_nube_palabras <- function(
 #' p_numerico("p118_tbc_a", cruce = "region", filtros = list(sexo = "Mujer"))
 #'
 #' @return Objeto `"ppt_element"`.
+# Resuelve la metrica de p_numerico por nombre exacto o alias en espanol (H41).
+#' @keywords internal
+.plan_metrica_numerica <- function(metrica) {
+  canonicas <- c("mean", "median", "N", "pct")
+  if (length(metrica) > 1L) return(canonicas[[1L]])   # sin eleccion: el default del constructor
+  m <- trimws(as.character(metrica)[1])
+  alias <- c(mean = "mean", media = "mean", promedio = "mean", median = "median", mediana = "median",
+             n = "N", frecuencia = "N", conteo = "N", pct = "pct", porcentaje = "pct")
+  clave <- if (m %in% canonicas) m else alias[tolower(m)]
+  if (is.na(clave) || !nzchar(m)) {
+    .plan_spec_abort(sprintf("`metrica` debe ser una de %s (o media, mediana, porcentaje); se recibio «%s».", paste(canonicas, collapse = ", "), m))
+  }
+  unname(clave)
+}
+
 #' @family reporte
 #' @export
 p_numerico <- function(
@@ -2520,7 +2535,8 @@ p_numerico <- function(
     overrides = list(),
     filtros = list()
 ) {
-  metrica <- match.arg(metrica)
+  # H41: nombre exacto o alias en espanol. `match.arg` aceptaba prefijos y «media» terminaba en «median».
+  metrica <- .plan_metrica_numerica(metrica)
 
   if (!is.null(var)) {
     if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {

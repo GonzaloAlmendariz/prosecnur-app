@@ -1,0 +1,193 @@
+/* «Cómo va la agendación». Hoja propia: `aulasMonitoreo.css` está congelada. */
+.mon-profile-page.is-aulas-flow .aulas-agd { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-agd-lectura {
+  margin: 0 0 12px;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  line-height: 1.45;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-lectura strong { font-variant-numeric: tabular-nums; }
+
+/* **La geometría del gráfico: tres filas de alto fijo por columna.**
+ *
+ * Gonzalo, 2026-09-10, con la captura delante: «este debe estar alineado y más
+ * estético y robusto».
+ *
+ * Lo que lo desalineaba era el MES: iba como un hijo más de la columna flex, y
+ * la columna que lo llevaba —la primera y los cambios de mes— empujaba su día
+ * un renglón arriba mientras las demás se quedaban abajo. Con `grid-template-
+ * rows` las tres filas —carril, día, mes— existen SIEMPRE y miden lo mismo en
+ * las veinticinco columnas, lleven texto o no.
+ *
+ * Y el carril es alto de verdad (96 px): con 56 la diferencia entre agendar
+ * cuatro y agendar catorce eran seis píxeles.
+ */
+.mon-profile-page.is-aulas-flow .aulas-agd-dias {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-dias li {
+  display: grid;
+  grid-template-rows: 96px 15px 12px;
+  justify-items: center;
+  min-width: 0;
+}
+
+/* El carril, con la barra anclada abajo: todas las columnas comparten la misma
+   línea base, que es lo que permite comparar dos días de un vistazo. */
+.mon-profile-page.is-aulas-flow .aulas-agd-barra {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  background: color-mix(in srgb, var(--pulso-bg) 55%, var(--pulso-surface));
+  border-radius: 4px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-barra > i {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  border-radius: 4px;
+  background: var(--module-accent, var(--pulso-primary));
+  min-height: 2px;
+}
+
+/* La reserva activada, encima del titular y con su propio tono. */
+.mon-profile-page.is-aulas-flow .aulas-agd-barra b {
+  display: block;
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--pulso-warn-accent);
+}
+
+/* **La cifra, pegada al alto de SU barra.** Iba en una fila fija arriba del
+   todo, así que en un día flojo el número quedaba a media pantalla de la barra
+   que cuenta y había que emparejarlos a ojo. */
+.mon-profile-page.is-aulas-flow .aulas-agd-n {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-bottom: 3px;
+  text-align: center;
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--module-accent, var(--pulso-primary));
+  pointer-events: none;
+}
+
+/* Con la barra casi llena no cabe encima: entra dentro, en blanco. */
+.mon-profile-page.is-aulas-flow .aulas-agd-n.es-dentro {
+  margin-bottom: 0;
+  transform: translateY(15px);
+  color: var(--pulso-surface);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-dia {
+  align-self: center;
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+/* El día sin agendación se dibuja igual, apagado: un eje que salta el domingo
+   dibuja un ritmo que no existió. */
+.mon-profile-page.is-aulas-flow .aulas-agd-dias li.es-sin-agendar .aulas-agd-dia {
+  color: var(--pulso-text-faint);
+  opacity: 0.6;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-mes {
+  font-size: var(--aulas-min);
+  line-height: 1;
+  color: var(--pulso-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* **Robusto a un rango largo.** Con más de tres semanas las columnas bajan de
+   veinte píxeles: la cifra encima de cada barra deja de caber y el día se
+   escribe uno de cada dos. El gráfico sigue siendo el mismo, sólo deja de
+   escribir lo que ya no se puede leer. */
+.mon-profile-page.is-aulas-flow .aulas-agd-dias.es-apretado { gap: 3px; }
+.mon-profile-page.is-aulas-flow .aulas-agd-dias.es-apretado .aulas-agd-n { display: none; }
+.mon-profile-page.is-aulas-flow .aulas-agd-dias.es-apretado li:nth-child(even) .aulas-agd-dia {
+  visibility: hidden;
+}
+
+/* La clave de color del pie, del tamaño de la letra que acompaña. */
+.mon-profile-page.is-aulas-flow .aulas-agd-clave {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 3px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-clave.es-reemplazo { background: var(--pulso-warn-accent); }
+
+.mon-profile-page.is-aulas-flow .aulas-agd-pie,
+.mon-profile-page.is-aulas-flow .aulas-agd-faltan {
+  margin: 8px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.45;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-faltan strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El día sin agendación se dibuja igual, apagado: un eje que salta el domingo
+   dibuja un ritmo que no existió. */
+.mon-profile-page.is-aulas-flow .aulas-agd-dias li.es-sin-agendar .aulas-agd-dia {
+  color: var(--pulso-text-faint);
+  opacity: 0.55;
+}
+
+/* La barra es apilada: el titular abajo, la reserva activada encima. */
+.mon-profile-page.is-aulas-flow .aulas-agd-barra i {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-barra b {
+  display: block;
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--pulso-warn-accent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-mes {
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* La clave de color del pie, del tamaño de la letra que acompaña. */
+.mon-profile-page.is-aulas-flow .aulas-agd-clave {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 3px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-clave.es-reemplazo { background: var(--pulso-warn-accent); }

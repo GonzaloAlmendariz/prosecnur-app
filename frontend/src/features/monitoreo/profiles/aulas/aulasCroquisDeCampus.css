@@ -1,0 +1,109 @@
+/* B32 — croquis del campus en pantalla (hermano del verso de la ficha QR).
+   El mapeo tono→token es el MISMO de sistemaPabellon.css (el canon del
+   Sistema Pabellón); se repite aquí porque estas clases visten nodos SVG,
+   no chips, y el custom property es quien cruza la frontera. */
+
+.aulas-croquis {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.aulas-croquis svg {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+}
+
+.aulas-croquis-terreno {
+  fill: color-mix(in srgb, var(--pulso-surface-muted, #f4f6f9) 88%, var(--pulso-surface));
+  stroke: var(--pulso-border);
+  stroke-width: 2;
+}
+
+.aulas-croquis-puerta rect {
+  fill: var(--pulso-primary, #002457);
+  stroke: var(--pulso-surface);
+  stroke-width: 2;
+}
+
+.aulas-croquis-puerta text {
+  font-size: 24px;
+  font-weight: 700;
+  fill: var(--pulso-primary, #002457);
+}
+
+.aulas-croquis-hito {
+  font-size: 22px;
+  fill: var(--pulso-text-soft);
+}
+
+.aulas-croquis-pabellon {
+  --croquis-tono: var(--pulso-text-soft);
+}
+
+.aulas-croquis-pabellon.es-tono-0 { --croquis-tono: var(--pulso-accent-steel); }
+.aulas-croquis-pabellon.es-tono-1 { --croquis-tono: var(--pulso-accent-green); }
+.aulas-croquis-pabellon.es-tono-2 { --croquis-tono: var(--pulso-accent-rose); }
+.aulas-croquis-pabellon.es-tono-3 { --croquis-tono: var(--pulso-accent-amber); }
+.aulas-croquis-pabellon.es-tono-4 { --croquis-tono: var(--pulso-accent-violet); }
+.aulas-croquis-pabellon.es-tono-5 { --croquis-tono: var(--pulso-accent-cyan); }
+.aulas-croquis-pabellon.es-tono-6 { --croquis-tono: var(--pulso-module-monitoring); }
+.aulas-croquis-pabellon.es-tono-7 { --croquis-tono: var(--pulso-module-processing); }
+
+.aulas-croquis-caja {
+  fill: var(--pulso-surface);
+  stroke: color-mix(in srgb, var(--croquis-tono) 75%, transparent);
+  stroke-width: 2.5;
+}
+
+.aulas-croquis-letra {
+  font-size: 26px;
+  font-weight: 700;
+  fill: var(--croquis-tono);
+}
+
+/* El seleccionado: relleno pleno, letra clara y anillo — la gramática del
+   verso impreso, en pantalla. */
+.aulas-croquis-pabellon.es-resaltado .aulas-croquis-caja {
+  fill: var(--croquis-tono);
+  stroke: var(--croquis-tono);
+}
+
+.aulas-croquis-pabellon.es-resaltado .aulas-croquis-letra {
+  fill: var(--pulso-surface);
+  font-size: 30px;
+}
+
+.aulas-croquis-anillo {
+  fill: color-mix(in srgb, var(--croquis-tono) 14%, transparent);
+  stroke: var(--croquis-tono);
+  stroke-width: 4;
+}
+
+.aulas-croquis-nota {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+/* La base del equipo: pin navy siempre visible, con halo blanco para
+   despegarse de las huellas. */
+.aulas-croquis-base-halo {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-primary, #002457);
+  stroke-width: 1.5;
+}
+
+.aulas-croquis-base-pin {
+  fill: var(--pulso-primary, #002457);
+}
+
+.aulas-croquis-base-rotulo {
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--pulso-primary, #002457);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 5px;
+}

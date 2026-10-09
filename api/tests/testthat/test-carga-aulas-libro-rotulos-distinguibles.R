@@ -83,8 +83,16 @@ test_that("«Aulas Agendadas» conserva su fecha con el nombre de siempre", {
   ruta <- .crd_libro()
   on.exit(unlink(ruta), add = TRUE)
   cab <- .crd_cabeceras(ruta, "Aulas Agendadas")
-  expect_true(any(grepl("^FECHA DE APLICACION", cab)))
-  expect_false(any(cab == "FECHA AGENDADA"))
+  # Con tilde desde el 2026-08-31: cuatro cabeceras iban sin ella mientras
+  # «MATRICULADOS POBLACIÓN» sí la llevaba, que era inconsistente y no una
+  # decisión. Lo que este control defiende no es la ortografía sino que la hoja
+  # de agenda NO adopte el rótulo de la de campo.
+  # Contrato v4 (B15/B17): la agenda dice «FECHA AGENDADA» — el nombre que
+  # dice lo que la celda ES; «FECHA DE APLICACION» queda como alias de lectura
+  # y como rotulo de la parte de CAMPO. Lo que el control defiende sigue vivo:
+  # las dos hojas no comparten rotulo para fechas distintas.
+  expect_true(any(cab == "FECHA AGENDADA"))
+  expect_false(any(grepl("^FECHA DE APLICACI[OÓ]N", cab)))
 })
 
 test_that("el lector sigue aceptando la escritura vieja", {
@@ -94,6 +102,7 @@ test_that("el lector sigue aceptando la escritura vieja", {
   spec <- AULAS_AGENDADAS_BLOQUE[[which(claves == "eligible_n")]]
   expect_true("MATRICULADOS POBLACION" %in% spec$titulos)
   expect_true("MATRICULADOS POBLACIÓN" %in% spec$titulos)
-  # El canonico —el que se ESCRIBE— es el que lleva tilde.
-  expect_identical(spec$titulos[[1]], "MATRICULADOS POBLACIÓN")
+  # El canonico —el que se ESCRIBE— es el del lenguaje de la app (B17):
+  # matriculados ELEGIBLES, los que cumplen los criterios.
+  expect_identical(spec$titulos[[1]], "MATRICULADOS ELEGIBLES")
 })

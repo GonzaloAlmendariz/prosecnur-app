@@ -65,6 +65,7 @@ import {
   CriteriosRadiografiaConsola,
   useCriteriosRadiografiaInline,
 } from "../marco/CriteriosRadiografiaConsola";
+import { avisoEvidenciaCriterios } from "./evidenciaCriteriosTexto";
 import "./criterios.css";
 
 /** Slug estable para claves de facultad (sin tildes, minúsculas, guiones). */
@@ -87,6 +88,10 @@ export function CriteriosMarcoTab({
   reconstruyendo,
   onNavigate,
   scope,
+  borradorExterno,
+  onBorrador,
+  pendientesExternas,
+  onPendientes,
 }: {
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
@@ -103,6 +108,21 @@ export function CriteriosMarcoTab({
    *  (con la salida N elegibles); "aula" solo el bloque de curso-horario;
    *  sin scope, ambos (compatibilidad). La barra de aplicar se ve en los dos. */
   scope?: "alumno" | "aula";
+  /**
+   * Borrador COMPARTIDO entre los dos alcances. Sin él cada instancia guarda el
+   * suyo en estado local, y entonces el preset cargado en Criterios del
+   * estudiante NO llega a la Radiografía: medido el 2026-08-25, obligaba a
+   * pulsar el mismo botón dos veces y a tener el botón duplicado en las dos
+   * pestañas. Con él, `UniversidadDesk` sostiene uno solo y las dos superficies
+   * ven las nueve variables del preset.
+   *
+   * Opcional a propósito: sin las props el componente sigue siendo autónomo,
+   * que es como lo usan sus tests.
+   */
+  borradorExterno?: CriteriosSeleccionMarco;
+  onBorrador?: (seleccion: CriteriosSeleccionMarco) => void;
+  pendientesExternas?: Set<string>;
+  onPendientes?: (pendientes: Set<string>) => void;
 }) {
   const catalogo = useMemo(
     () => normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null),
@@ -156,8 +176,22 @@ export function CriteriosMarcoTab({
     () => config.criterios_seleccion ?? { byVariable: {} },
     [config.criterios_seleccion],
   );
-  const [borrador, setBorrador] = useState<CriteriosSeleccionMarco>(() => seleccion);
-  const [pendientes, setPendientes] = useState<Set<string>>(() => new Set());
+  const [borradorLocal, setBorradorLocal] = useState<CriteriosSeleccionMarco>(() => seleccion);
+  const borrador = borradorExterno ?? borradorLocal;
+  const setBorrador: typeof setBorradorLocal = (accion) => {
+    if (!onBorrador) { setBorradorLocal(accion); return; }
+    onBorrador(typeof accion === "function"
+      ? (accion as (prev: CriteriosSeleccionMarco) => CriteriosSeleccionMarco)(borrador)
+      : accion);
+  };
+  const [pendientesLocal, setPendientesLocal] = useState<Set<string>>(() => new Set());
+  const pendientes = pendientesExternas ?? pendientesLocal;
+  const setPendientes: typeof setPendientesLocal = (accion) => {
+    if (!onPendientes) { setPendientesLocal(accion); return; }
+    onPendientes(typeof accion === "function"
+      ? (accion as (prev: Set<string>) => Set<string>)(pendientes)
+      : accion);
+  };
   const pendientesRef = useRef(pendientes);
   const tiposBorrador = useMemo(() => {
     const tipos = new Map<string, TipoBorradorCriterio>();
@@ -473,7 +507,7 @@ export function CriteriosMarcoTab({
           ) : null}
           {showAlumno && alumno.length > 0 && radiografiaInline.invalid.length ? (
             <div className="cmv2-crc-contract-alert" role="alert">
-              Evidencia I18b inválida u obsoleta: {radiografiaInline.invalid.join(", ")}. React no sustituye esos datos con cálculos locales.
+              {avisoEvidenciaCriterios(radiografiaInline.invalid)}
             </div>
           ) : null}
           {showAlumno && alumno.length > 0 && (

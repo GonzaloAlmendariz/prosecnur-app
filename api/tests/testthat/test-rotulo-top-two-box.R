@@ -4,8 +4,11 @@
 # láminas. Además de coherencia, la forma importa para medir: buscando
 # «Top 2 Box» el conteo sobre el aprobado devolvía 0 columnas cuando tiene 40.
 
-test_that("el rotulo es el del entregable aprobado", {
-  expect_identical(.PPT_ROTULO_TOP_TWO_BOX, "TOP TWO BOX")
+test_that("el rotulo es el del recetario moderno", {
+  # ADR 0092 (F2.5): el estándar es el recetario moderno, que escribe «Top Two
+  # Box» (recetario_piezas.R:14); el «TOP TWO BOX» del aprobado de 2021 era el
+  # estilo fiel. Quien mida contra el aprobado busca sin distinguir mayúsculas.
+  expect_identical(.PPT_ROTULO_TOP_TWO_BOX, "Top Two Box")
 })
 
 test_that("no queda el literal viejo en el motor", {

@@ -174,6 +174,25 @@ vaults-check:
 vaults-index:
 	@node scripts/vaults-check.mjs --generar
 
+# El gate de un área del backend: sus suites MÁS los contratos transversales.
+# Existe porque «las suites que toqué» deja fuera justo a los contratos, que se
+# rompen desde otro archivo: test-errors-registry llevó tres commits en rojo.
+#   make gate-area AREA=aulas
+# El gate de un área del FRONTEND: sus suites más los contratos transversales.
+# Mismo motivo que gate-area, del otro lado: los contratos que escanean todo el
+# árbol se rompen desde otro archivo y no los corre nadie hasta el CI.
+#   make gate-front AREA=monitoreo/profiles/aulas
+# ¿La app sirve el código de ahora, o un build anterior?
+# Mirar la pantalla sin saber de cuándo es lo que enseña es mirar el pasado.
+build-al-dia:
+	@node scripts/build-al-dia.mjs
+
+gate-front:
+	@node scripts/gate-front.mjs $(AREA)
+
+gate-area:
+	@Rscript scripts/gate-area.R $(or $(AREA),aulas) $(GATE_ARGS)
+
 monitoreo-qa:
 	@test -n "$(PULSO)" || (echo "uso: make monitoreo-qa PULSO=/ruta/al/proyecto.pulso [QA_API=auto]"; exit 1)
 	@$(MAKE) visual-qa \

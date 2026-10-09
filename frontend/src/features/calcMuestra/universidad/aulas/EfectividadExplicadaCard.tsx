@@ -120,11 +120,11 @@ export function EfectividadExplicadaCard({
       {fuente.tipo !== "tau_global" && (
       <div className={`cmv2-efexp-ref${ajusteActivo ? "" : " cmv2-efexp-ref--solo"}`}>
         <table className="cmv2-efexp-tabla-ref">
-          <caption>Tasa de efectividad según el tamaño del aula — {refTexto}</caption>
+          <caption>Rendimiento por tamaño del aula — {refTexto}</caption>
           <thead>
             <tr>
               <th scope="col">Elegibles</th>
-              <th scope="col">Tasa de efectividad</th>
+              <th scope="col">Rendimiento por tamaño</th>
               <th scope="col" title="Cursos-horario del plan en este tramo">Aulas</th>
             </tr>
           </thead>
@@ -153,7 +153,7 @@ export function EfectividadExplicadaCard({
             <thead>
               <tr>
                 <th scope="col">Facultad</th>
-                <th scope="col">Ajuste del esperado</th>
+                <th scope="col">Ajuste de la facultad</th>
                 <th scope="col" title="Aulas aplicadas de la facultad en el histórico">k</th>
               </tr>
             </thead>

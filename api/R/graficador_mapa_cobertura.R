@@ -14,16 +14,19 @@
   alerta = "Alerta"
 )
 
-.mapa_status_colors <- c(
-  no_intervenido = "#E8EBEF",
-  # comparacion conserva el teal institucional ACNUR (paridad con las series
-  # de barras, P9); era EFECTIVA la que chocaba con ese teal (#00B398 vs
-  # #00A98F, indistinguibles — B-H30) y pasa al verde de exito de la casa.
-  comparacion = "#00A98F",
-  intervencion = "#0072BC",
-  efectiva = "#2E7D32",
-  alerta = "#EF4A60"
-)
+#' Colores de estado del recetario para la ruta anterior, los mismos que la lámina nativa (ADR 0093, N6)
+#'
+#' «Intervención» no significa lo mismo en los dos alcances: en la vista general es el grupo (azul fuerte, como la
+#' 103) y en el distrito, la zona que estuvo en la ruta sin cobertura efectiva (azul medio, como la 105). Antes la
+#' ruta anterior pintaba verde, azul y teal y el mismo mazo decía «efectiva» en dos colores.
+#' @keywords internal
+.mapa_paleta <- function(scope = "district") {
+  general <- identical(scope, "overview_koica")
+  cols <- c(no_intervenido = .std_color("mapa_fuera"), comparacion = .std_color("mapa_medio"),
+            intervencion = if (general) .std_color("mapa_aplicada") else .std_color("mapa_medio"),
+            efectiva = .std_color("mapa_aplicada"), alerta = .std_color("coral"))
+  cols[.mapa_status_levels]
+}
 
 .mapa_ring_df <- function(ring, group, zona, status, ubigeo, distrito) {
   if (is.null(ring) || !length(ring)) return(data.frame())
@@ -158,7 +161,7 @@
     plot <- plot + ggplot2::geom_polygon(
       data = neutral_zones,
       ggplot2::aes(.data$x, .data$y, group = .data$group),
-      fill = .mapa_status_colors[["no_intervenido"]],
+      fill = .std_color("mapa_fuera"),
       color = "#FFFFFF",
       linewidth = 0.08,
       alpha = 0.46
@@ -180,7 +183,7 @@
       plot <- plot + ggplot2::geom_polygon(
         data = neutral_blocks,
         ggplot2::aes(.data$x, .data$y, group = .data$group),
-        fill = .mapa_status_colors[["no_intervenido"]],
+        fill = .std_color("mapa_fuera"),
         color = "#FFFFFF",
         linewidth = 0.04,
         alpha = 0.32
@@ -208,7 +211,7 @@
   }
   plot +
     ggplot2::scale_fill_manual(
-      values = setNames(.mapa_status_colors, unname(.mapa_status_labels[.mapa_status_levels])),
+      values = setNames(unname(.mapa_paleta("overview_koica")), unname(.mapa_status_labels[.mapa_status_levels])),
       drop = TRUE,
       guide = "none"
     ) +
@@ -240,7 +243,7 @@
   key$label <- gsub("\\n", " ", key$label, fixed = FALSE)
   pair_centers <- seq(0.78, 0.26, length.out = length(pair_levels))
   key$y <- pair_centers[key$.pair] - (key$.status - 1) * 0.08
-  key$color <- unname(.mapa_status_colors[key$status])
+  key$color <- unname(.mapa_paleta("overview_koica")[key$status])
   headers <- data.frame(
     pair_label = pair_levels,
     y = pair_centers + 0.10,
@@ -363,7 +366,8 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
       summary$zonas_efectivas <- suppressWarnings(as.numeric(summary$zonas_efectivas))
       summary$zonas_efectivas[!is.finite(summary$zonas_efectivas)] <- 0
       summary$distrito <- factor(summary$distrito, levels = rev(summary$distrito))
-      return(
+      # La vista general del recetario (103) sólo necesita los límites y el resumen: si hay límites, su espec va igual.
+      p_res <- (
         ggplot2::ggplot(summary, ggplot2::aes(x = .data$zonas_efectivas, y = .data$distrito)) +
           ggplot2::geom_col(fill = "#00B398", width = 0.62) +
           ggplot2::geom_text(ggplot2::aes(label = .data$zonas_efectivas), hjust = -0.18, size = 3.3, color = "#18375F") +
@@ -380,6 +384,8 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
             plot.margin = ggplot2::margin(8, 8, 8, 8)
           )
       )
+      attr(p_res, "pulso_espec") <- if (identical(scope, "overview_koica")) tryCatch(.espec_mapa(contexto), error = function(e) NULL) else NULL
+      return(p_res)
     }
     return(.mapa_blank_plot(titulo, .mapa_chr1(contexto$message, "Sin geometria territorial disponible")))
   }
@@ -392,7 +398,9 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
     ]
   }
   if (identical(scope, "overview_koica") && nrow(district_boundaries) && nrow(district_labels)) {
-    return(.mapa_overview_koica_plot(poly, study_blocks, district_boundaries, district_labels))
+    p_ov <- .mapa_overview_koica_plot(poly, study_blocks, district_boundaries, district_labels)
+    attr(p_ov, "pulso_espec") <- tryCatch(.espec_mapa(contexto), error = function(e) NULL)   # ADR 0093 (N6): lámina 103
+    return(p_ov)
   }
 
   plot <- ggplot2::ggplot()
@@ -422,30 +430,36 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
     )
   }
   if (nrow(district_labels)) {
-    plot <- plot + ggplot2::geom_label(
+    # ADR 0092 (F2.7f): rótulos del recetario (recetario_m3e.R:106-107), 10 pt en
+    # negrita sin recuadro; los que se pisarían con otro se descartan en vez de
+    # encimarse (antes, en un mapa de ocho distritos, cinco nombres se cubrían).
+    plot <- plot + ggplot2::geom_text(
       data = district_labels,
       ggplot2::aes(.data$x, .data$y, label = .data$label),
       inherit.aes = FALSE,
       family = "Arial",
       fontface = "bold",
-      size = 3.4,
-      color = "#18375F",
-      fill = scales::alpha("#FFFFFF", 0.88),
-      label.size = 0,
-      label.padding = grid::unit(0.10, "lines")
+      size = 10 / ggplot2::.pt,
+      lineheight = 0.85,
+      color = .std_color("azul"),
+      check_overlap = TRUE
     )
   }
-  plot +
-    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.08, 0.05))) +
-    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0.04, 0.04))) +
-    ggplot2::coord_equal(expand = TRUE, clip = "off") +
-    ggplot2::scale_fill_manual(values = setNames(.mapa_status_colors, unname(.mapa_status_labels[.mapa_status_levels])), drop = TRUE) +
+  p_mapa <- plot +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
+    ggplot2::coord_equal(expand = FALSE, clip = "off") +
+    ggplot2::scale_fill_manual(values = setNames(unname(.mapa_paleta(scope)), unname(.mapa_status_labels[.mapa_status_levels])), drop = TRUE) +
     ggplot2::labs(title = titulo, subtitle = subtitle, caption = caption, fill = NULL) +
     ggplot2::theme_void(base_family = "Arial") +
     ggplot2::theme(
-      legend.position = "bottom",
-      legend.direction = "horizontal",
-      legend.text = ggplot2::element_text(color = "#1A1A1A", size = 9.5),
+      # ADR 0092 (F2.7f): la leyenda va al lado, en vertical, alineada al pie del
+      # mapa (leyenda_mapa del recetario), con cuadros de 0.16 in y texto a 11 pt.
+      legend.position = "right",
+      legend.direction = "vertical",
+      legend.justification = c(0, 0),
+      legend.key.size = grid::unit(0.16, "in"),
+      legend.text = ggplot2::element_text(color = .std_color("azul"), size = 11),
       plot.title = ggplot2::element_text(color = "#18375F", face = "bold", size = 13, hjust = 0),
       plot.subtitle = ggplot2::element_text(color = "#666666", size = 10.5, hjust = 0),
       plot.caption = ggplot2::element_text(color = "#666666", size = 7, hjust = 0),
@@ -453,4 +467,7 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
       plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
       panel.background = ggplot2::element_rect(fill = "transparent", colour = NA)
     )
+  # ADR 0093 (N6): lo que afirma el mapa, para las láminas 105 y 106 del recetario.
+  attr(p_mapa, "pulso_espec") <- tryCatch(.espec_mapa(contexto), error = function(e) NULL)
+  p_mapa
 }

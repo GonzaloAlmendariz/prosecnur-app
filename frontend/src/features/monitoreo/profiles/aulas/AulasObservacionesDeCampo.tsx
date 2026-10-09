@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 
 import { MessageSquareText } from "../../../../vendor/lucide-react";
+import { ChipDato } from "./AulasSistemaPabellon";
 import { observacionesDeCampo } from "./observacionesDeCampo";
 import { fmt } from "./kpisDeAulas";
+import "./aulasObservacionesDeCampo.css";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 
 /**
  * Lo que el campo reportó.
@@ -46,8 +49,8 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
           // Con la norma puesta —siempre se anota algo al gestionar—, cero
           // observaciones sobre aulas ya gestionadas deja de ser un vacío
           // neutro: dice que lo anotado se está quedando fuera de la app.
-          ? `Ninguna de las ${fmt(r.partes)} aulas gestionadas trae observación, y anotarlas es lo normal: se escriben al agendar o registrar un aula aquí, o en la columna «Observaciones» del libro. Si el equipo las está apuntando en otro sitio, aquí no llegan.`
-          : "Todavía no hay aulas gestionadas. Las observaciones se escriben al agendar o registrar un aula aquí, o en la columna «Observaciones» del libro, y son lo que el equipo vio y no cabe en un número."}
+          ? `Ninguno de los ${fmt(r.partes)} cursos-horario gestionados trae observación, y anotarlas es lo normal: se escriben al agendar o registrar un curso-horario aquí, o en la columna «Observaciones» del libro. Si el equipo las está apuntando en otro sitio, aquí no llegan.`
+          : "Todavía no hay cursos-horario gestionados. Las observaciones se escriben al agendar o registrar un curso-horario aquí, o en la columna «Observaciones» del libro, y son lo que el equipo vio y no cabe en un número."}
       </p>
     );
   }
@@ -62,30 +65,59 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
           hueco —las gestionadas que NO traen nota—, porque ésas son las que
           faltan por anotar. Y el denominador se llama por lo que es: aulas
           gestionadas, no partes. */}
+      {/* **`conNota` cuenta NOTAS y `partes` cuenta AULAS**, y aquí se
+          comparaban: la línea decía «283 de 200 cursos-horario gestionados
+          traen observación», que es imposible —un aula puede traer dos notas,
+          la de agendarla y la de aplicarla—. Peor: el HUECO, que es lo que se
+          quería mirar, salía con `partes > conNota` y por eso no aparecía
+          nunca. Ahora el «de N» usa las AULAS con nota, y las notas totales se
+          dicen aparte, que es lo que de verdad son. */}
       <p className="aulas-cadenas-lectura">
-        <strong>{fmt(r.conNota)}</strong> de {fmt(r.partes)}{" "}
-        {r.partes === 1 ? "aula gestionada trae" : "aulas gestionadas traen"} observación
+        <strong>{fmt(r.aulasConNota)}</strong> de {fmt(r.partes)}{" "}
+        {r.partes === 1 ? "curso-horario gestionado trae" : "cursos-horario gestionados traen"} observación
+        {r.conNota > r.aulasConNota ? (
+          <>
+            {" "}· <strong>{fmt(r.conNota)}</strong>{" "}
+            {r.conNota === 1 ? "nota" : "notas"} en total
+          </>
+        ) : null}
         {r.observaciones.length < r.conNota ? (
           <>
             {" "}· <strong>{fmt(r.observaciones.length)}</strong>{" "}
             {r.observaciones.length === 1 ? "cosa distinta" : "cosas distintas"}
           </>
         ) : null}
-        {r.partes > r.conNota ? (
+        {r.partes > r.aulasConNota ? (
           <>
             {" "}·{" "}
             <span className="aulas-observaciones-hueco">
-              {fmt(r.partes - r.conNota)} sin anotar
+              {fmt(r.partes - r.aulasConNota)} sin anotar
             </span>
           </>
         ) : null}
       </p>
+      {/* La lista ENTERA: el techo de doce quedó revocado con el resto (B33).
+          Lo repetido sigue yendo primero, y lo que no quepa lo recorre el
+          scroll de la sección, que es suyo. */}
       <ul className="aulas-observaciones-lista">
-        {r.observaciones.slice(0, 12).map((o) => (
+        {r.observaciones.map((o) => {
+          /* Loop mejora-ui E11: la fecha tecleada susurra. El equipo antepone
+             «2/09 » a casi toda observación y ese prefijo pesaba igual que las
+             palabras — en una pared de 49 tarjetas, lo que se escanea es QUÉ
+             pasó, no el sello de cuándo. Presentación pura: el texto queda
+             intacto (es contenido tecleado, no se parsea para datos) y sin
+             prefijo reconocible se pinta tal cual. */
+          const conFecha = /^(\d{1,2}\/\d{1,2})\s+([\s\S]*)$/.exec(o.texto);
+          return (
           <li key={o.texto}>
             <p className="aulas-observaciones-texto">
               <MessageSquareText size={13} aria-hidden="true" />
-              {o.texto}
+              {conFecha ? (
+                <>
+                  <span className="aulas-observaciones-fecha">{conFecha[1]}</span>
+                  {" "}{conFecha[2]}
+                </>
+              ) : o.texto}
             </p>
             <p className="aulas-observaciones-quien">
               {/* **De qué columna salió.** El libro tiene dos: «OBSERVACIONES»
@@ -103,25 +135,29 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
               ))}
               {/* Las aulas primero: una observación repetida en ocho aulas es
                   otra cosa que la misma frase en una. */}
-              <strong>{o.aulas === 1 ? "1 aula" : `${fmt(o.aulas)} aulas`}</strong>
-              {o.aplicadores.length ? <> · {o.aplicadores.join(", ")}</> : null}
+              <strong>{o.aulas === 1 ? "1 curso-horario" : `${fmt(o.aulas)} cursos-horario`}</strong>
+              {/* Nombres normalizados y unidos con punto medio: un nombre YA
+                  lleva su coma y juntarlos con otra los duplicaba a la vista. */}
+              {o.aplicadores.length
+                ? <> · {o.aplicadores.map(nombreDeAplicador).join(" · ")}</> : null}
               {o.facultades.length === 1 ? <> · {o.facultades[0]}</> : null}
               {o.facultades.length > 1 ? <> · {fmt(o.facultades.length)} facultades</> : null}
+              {/* TODOS los códigos, como badges que envuelven (B33: jamás
+                  «y N más» — la lista se organiza, no se esconde). Una
+                  observación repetida en cuarenta cursos-horario es un patrón
+                  del operativo, y esconder 34 le quitaba justo el tamaño. */}
               {o.codigos.length ? (
                 <span className="aulas-observaciones-codigos">
-                  {o.codigos.slice(0, 6).join(" · ")}
-                  {o.codigos.length > 6 ? ` y ${fmt(o.codigos.length - 6)} más` : ""}
+                  <span className="aulas-chips-fila">
+                    {o.codigos.map((c) => <ChipDato key={c}>{c}</ChipDato>)}
+                  </span>
                 </span>
               ) : null}
             </p>
           </li>
-        ))}
+          );
+        })}
       </ul>
-      {r.observaciones.length > 12 ? (
-        <p className="mon-profile-muted">
-          Las doce más repetidas, de {fmt(r.observaciones.length)}.
-        </p>
-      ) : null}
     </div>
   );
 }

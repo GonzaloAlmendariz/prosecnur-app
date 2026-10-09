@@ -67,25 +67,50 @@
 # embudo. Cada paso restringe al anterior, así que la diferencia nunca es
 # negativa; se calcula tal cual para que conteo[k-1] == conteo[k] +
 # excluidos[k] sea auditable a mano.
+# Aviso del paso que VACÍA el marco. El criterio que deja el embudo en cero no
+# se nombraba a sí mismo: el cero afloraba en los pasos POSTERIORES —que ya
+# heredan un marco vacío y no recortan a nadie— y el analista leía «session_type
+# 0», «teacher_type 0» nueve pasos por debajo de la causa. Medido en HSVG26DEF:
+# `course_level` pasaba de 3.630 a 0 en el paso 11 y el usuario lo veía en los
+# pasos 12-18. Un paso que pasa de N>0 a 0 es un evento distinto de un paso que
+# recorta, y sólo el PRIMERO acusa: los que heredan el cero no lo causaron.
+.cm_perfil_embudo_aviso <- function(id, label, antes) {
+  sprintf(
+    paste("«%s» dejó el marco en 0: entraron %s aulas a este paso y no pasó",
+          "NINGUNA. Los pasos siguientes ya no deciden nada — la causa del",
+          "marco vacío es este criterio, no ellos."),
+    label, format(antes, big.mark = " ")
+  )
+}
+
 .cm_perfil_embudo_df <- function(pasos) {
   if (!length(pasos)) {
     return(data.frame(
       id = character(0), label = character(0),
       conteo = integer(0), excluidos = integer(0),
+      vacia_marco = logical(0), aviso = character(0),
       stringsAsFactors = FALSE, check.names = FALSE
     ))
   }
   conteo <- vapply(pasos, function(p) as.integer(p$conteo), integer(1))
+  antes <- c(NA_integer_, conteo[-length(conteo)])
   excluidos <- if (length(conteo) > 1L) {
     c(0L, conteo[-length(conteo)] - conteo[-1L])
   } else {
     0L
   }
+  id <- vapply(pasos, function(p) p$id, character(1))
+  label <- vapply(pasos, function(p) p$label, character(1))
+  vacia <- !is.na(antes) & antes > 0L & conteo == 0L
   out <- data.frame(
-    id = vapply(pasos, function(p) p$id, character(1)),
-    label = vapply(pasos, function(p) p$label, character(1)),
+    id = id,
+    label = label,
     conteo = conteo,
     excluidos = as.integer(excluidos),
+    vacia_marco = vacia,
+    aviso = ifelse(vacia, vapply(seq_along(id), function(i) {
+      if (isTRUE(vacia[[i]])) .cm_perfil_embudo_aviso(id[[i]], label[[i]], antes[[i]]) else ""
+    }, character(1)), ""),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )

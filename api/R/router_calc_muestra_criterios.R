@@ -58,6 +58,12 @@
   prepared$frame$config <- .cm_alumnos_por_ch_resellar_config(
     prepared$frame$config, prepared$frame$frame_hash
   )
+  # De que semestre son los datos de este marco. Un `.pulso` llamado HSVG2026
+  # con la base de 2025 dentro calcula sin protestar y sólo se nota en cifras
+  # fuera de rango; el porqué y las cifras, en `calc_muestra_aulas_periodo.R`.
+  prepared$frame <- calc_muestra_aulas_declarar_periodo(
+    prepared$frame, session_get(sid, required = FALSE)[["files"]] %||% list()
+  )
   session_set(sid, "calc_muestra_aulas_config", prepared$frame$config)
   session_set(sid, "calc_muestra_aulas_frame", prepared$frame)
   session_set(sid, "calc_muestra_aulas_criterios_contexto", prepared$context)
@@ -75,6 +81,48 @@
 }
 
 mount_calc_muestra_criterios <- function(pr) {
+  # Recuperar el recuento de ESTUDIANTES releyendo la base.
+  #
+  # El recorrido de curso-horario ya vive desde el marco guardado
+  # (`.cm_criterios_contexto_desde_marco`), pero el efecto de un criterio de
+  # alumno exige la tabla atómica, que no viaja en el `.pulso`. Se relee con las
+  # fuentes que el marco firma. Medido sobre HSVG26DEF: 60 s parando en el paso 4
+  # frente a 186 del build entero, y el resultado se verifica contra el marco
+  # antes de adoptarse.
+  #
+  # Va como job porque plumber es monohilo: un minuto síncrono congela la app.
+  pr <- plumber::pr_post(
+    pr,
+    "/api/calc-muestra/marco/criterios/rehidratar",
+    wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      state <- session_get(sid)
+      frame <- state$calc_muestra_aulas_frame
+      if (!is.list(frame) || !is.data.frame(frame$aula_frame)) {
+        stop_api(409, "E_CALC_MUESTRA_CRITERIOS_REHIDRATAR_SIN_MARCO",
+                 "No hay marco construido que rehidratar.")
+      }
+      contexto <- state$calc_muestra_aulas_criterios_contexto
+      atomica <- ((contexto %||% list())$criterios %||% list())$radiografia_contexto
+      if (length((atomica %||% list())$filas %||% list())) {
+        return(list(ok = TRUE, mode = "ya_vivo"))
+      }
+      tablas <- .cm_criterios_fuentes_del_marco(sid, frame)
+      if (!length(tablas)) {
+        stop_api(409, "E_CALC_MUESTRA_CRITERIOS_REHIDRATAR_SIN_FUENTES",
+                 paste("El marco no declara con qué archivos se construyó, o ya no están",
+                       "en el proyecto. Reconstruye el marco desde tus fuentes."))
+      }
+      job_id <- job_submit(
+        sid = sid,
+        kind = "calc_muestra_aulas_criterios_rehidratar",
+        func = calc_muestra_aulas_criterios_rehidratar_job,
+        args = list(tablas = tablas, frame = frame),
+        on_complete = .cm_criterios_rehidratar_on_complete(sid)
+      )
+      list(ok = TRUE, mode = "job", job_id = job_id)
+    })
+  )
   plumber::pr_post(
     pr,
     "/api/calc-muestra/marco/criterios/preview",
@@ -91,6 +139,25 @@ mount_calc_muestra_criterios <- function(pr) {
       context_criteria_hash <- .cm_aulas_scalar(
         (context %||% list())$current_criteria_hash, ""
       )
+      # Contexto ausente o de otro marco: se reconstruye del marco GUARDADO.
+      #
+      # El contexto completo es `cache_stripped` —lleva la tabla atomica
+      # estudiante x CH— asi que al abrir un `.pulso` NUNCA existe, y hasta aqui
+      # eso dejaba el preview muerto para el resto de la sesion: el embudo caia
+      # a la cascada ejecutada sin decirlo. La version reducida devuelve el
+      # recorrido vivo para los pasos de curso-horario y declara los de alumno
+      # como `sin_recuento`.
+      if (is.list(frame) && nzchar(source_frame_hash) &&
+          identical(source_frame_hash, frame_hash) &&
+          (!is.list(context) || !identical(source_frame_hash, context_hash))) {
+        rehidratado <- .cm_criterios_contexto_desde_marco(frame)
+        if (is.list(rehidratado)) {
+          context <- rehidratado
+          context_hash <- .cm_aulas_scalar(context$source_frame_hash, "")
+          context_criteria_hash <- .cm_aulas_scalar(context$current_criteria_hash, "")
+          session_set(sid, "calc_muestra_aulas_criterios_contexto", context)
+        }
+      }
       if (!is.list(frame) || !is.list(context) ||
           !nzchar(source_frame_hash) || !nzchar(criteria_hash) ||
           !identical(source_frame_hash, frame_hash) ||

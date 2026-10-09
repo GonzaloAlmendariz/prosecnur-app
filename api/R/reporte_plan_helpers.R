@@ -619,6 +619,24 @@
       style$subtopic_number_size <- reduce(style$subtopic_number_size, 10)
     }
   }
+  # H73: la letra tambien se ajusta al ancho. Con los 13 estandares de acreditacion quedaba en 16 pt sobre 5.22 in;
+  # los titulos largos se partian en dos lineas, la fila (alto exacto) crecia igual en el render y la ultima
+  # entrada llegaba al borde de la lamina. Se baja la letra hasta que el titulo mas largo quepa en una linea
+  # (0.52 em por caracter en Arial negrita), con piso de 11 pt; el numero nunca queda mas grande que el texto.
+  if (n > 0L) {
+    disponible_txt <- table_width - suppressWarnings(as.numeric(style$number_width)[1]) - 0.22
+    largo <- base::max(nchar(as.character(secciones)))
+    cabe <- floor(disponible_txt * 72 / (largo * 0.52))
+    actual <- suppressWarnings(as.numeric(style$section_size)[1])
+    # Solo se baja si los titulos partidos harian que la tabla no quepa: cada fila mide su alto o el de sus lineas
+    # (1.2 em por linea mas el relleno y el hueco entre filas, 0.19 in). Con 5 u 8 secciones partir en dos cabe.
+    lineas <- ceiling(nchar(as.character(secciones)) * 0.52 * actual / 72 / disponible_txt)
+    alto_real <- sum(pmax(row_height, lineas * actual * 1.2 / 72 + 0.19))
+    if (is.finite(cabe) && is.finite(actual) && cabe < actual && table_top + alto_real > bottom) {
+      style$section_size <- base::max(11, cabe)
+      style$number_size <- base::min(suppressWarnings(as.numeric(style$number_size)[1]), style$section_size)
+    }
+  }
   style$table_width <- table_width
   style$row_height <- row_height
 
@@ -1031,10 +1049,30 @@
     slots  = list(
       title        = list(type = "title", type_idx = 1),
 
-      up_left      = list(type = "pic",   type_idx = 1),
-      up_right     = list(type = "pic",   type_idx = 2),
-      bottom_left  = list(type = "pic",   type_idx = 3),
-      bottom_right = list(type = "pic",   type_idx = 4),
+      # Los cuatro huecos se declaran por coordenadas, no por el placeholder de
+      # la plantilla, para recuperar el alto que la lámina tenía sin usar.
+      #
+      # Medido: el título termina en 1.10 y la banda de la base empieza en 6.91,
+      # así que hay 5,81 in para dos filas. La plantilla las declara de 2,565
+      # con 0,68 in de aire repartido en tres huecos (arriba 0,23, medio 0,22,
+      # abajo 0,24) que no dibujan nada. Subidas a 2,82 queda un gap de 0,11
+      # entre filas y 0,04 de margen sobre la base.
+      #
+      # Por qué importa: el panel de cada cuadrante es `alto − cabecera −
+      # leyenda`, y de él salen TODAS las barras. Con dos series —perfil contra
+      # la ola anterior— un cuadrante de cuatro categorías son ocho barras, y
+      # esas 0,26 in de más son la diferencia entre la cifra a 10 pt y a 11,7.
+      # Va en la misma dirección que ya señalaba `graficador_grosor_piso.R`: el
+      # entregable aprobado saca las barras más gruesas porque su panel es más
+      # alto.
+      #
+      # Los cuatro llevan imágenes, así que el `<p:ph/>` vacío que emite un
+      # `ph_location()` por coordenadas no arrastra propiedades de párrafo — la
+      # trampa que sí afecta a los slots de texto.
+      up_left      = list(type = "pic", type_idx = 1, loc = list(left = 0.51, top = 1.12, width = 5.17, height = 2.82)),
+      up_right     = list(type = "pic", type_idx = 2, loc = list(left = 7.78, top = 1.12, width = 5.17, height = 2.82)),
+      bottom_left  = list(type = "pic", type_idx = 3, loc = list(left = 0.50, top = 4.05, width = 5.17, height = 2.82)),
+      bottom_right = list(type = "pic", type_idx = 4, loc = list(left = 7.78, top = 4.05, width = 5.17, height = 2.82)),
 
       base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       icon         = list(type = "body",  type_idx = 2)
@@ -1172,17 +1210,29 @@
   # Hasta que existió, tres gráficos se armaban con `poblacion_4` dejando un
   # slot vacío — y entonces los tres se repartían el alto de cuatro.
   #
-  # El orden de los `pic` sigue el del layout: 1 = izquierda arriba,
-  # 2 = izquierda abajo, 3 = derecha alto.
+  # EL ORDEN DE LOS `pic` NO ES EL DE LA LECTURA. Aquí decía «1 = izquierda
+  # arriba, 2 = izquierda abajo, 3 = derecha alto», por analogía con
+  # `poblacion_4` —donde sí es así—, y nadie lo midió contra la plantilla.
+  # Medido con `officer::layout_properties()` sobre `poblacion_3`:
+  #
+  #   pic 1 -> offx 7.78, cy 5.34  = DERECHA (el panel alto)
+  #   pic 2 -> offx 0.51, offy 1.33 = izquierda arriba
+  #   pic 3 -> offx 0.50, offy 4.11 = izquierda abajo
+  #
+  # Con el mapeo anterior los tres paneles salían rotados una posición: el
+  # gráfico declarado «superior_izquierda» aterrizaba en el panel alto de la
+  # derecha. Se vio al migrar las láminas de perfil de ACRD CONTA, que es el
+  # primer mazo real que usa este layout — el defecto llevaba aquí desde que se
+  # escribió el contrato, sin ejercitar.
   # ------------------------------------------------------------
   poblacion_3 = list(
     layout = "poblacion_3",
     slots  = list(
       title        = list(type = "title", type_idx = 1),
 
-      up_left      = list(type = "pic",   type_idx = 1),
-      bottom_left  = list(type = "pic",   type_idx = 2),
-      right        = list(type = "pic",   type_idx = 3),
+      up_left      = list(type = "pic",   type_idx = 2),
+      bottom_left  = list(type = "pic",   type_idx = 3),
+      right        = list(type = "pic",   type_idx = 1),
 
       base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       icon         = list(type = "body",  type_idx = 2)
@@ -2792,23 +2842,27 @@ p_reset <- function(
     # the title/legend even on a full-width slide.
     if (is.null(el$overrides$size_leyenda)) el$overrides$size_leyenda <- 11
     if (is.null(el$overrides$size_ejes)) el$overrides$size_ejes <- 11
-    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
-    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
+    # La columna Top Two Box sigue al estándar (ADR 0092, F2.4): mide 1 in y sus
+    # cifras van a 14 pt, también en las baterías largas.
+    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- .std_pt("cifra")
+    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- .std_pt("rotulo_top_two_box")
     if (is.null(el$overrides$size_nota_pie)) el$overrides$size_nota_pie <- 10
     if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.55
     if (is.null(el$overrides$canvas_h_caption_in)) el$overrides$canvas_h_caption_in <- 0.34
     # El umbral automático de 0.15 se retira: ocultaba los porcentajes del 1 %
     # al 15 % en las baterías largas sin que nadie lo pidiera ni lo dijera.
     # Ahora es el interruptor `ocultar_etiquetas_pequenas`, apagado por defecto.
+    # ADR 0092 (F2.3): en el recetario la cifra que no cabe sube con guía y la
+    # fila gana el aire; antes aquí se apagaba y la cifra caía sobre el vecino.
     if (is.null(el$overrides$etiquetas_arriba_si_no_caben)) {
-      el$overrides$etiquetas_arriba_si_no_caben <- FALSE
+      el$overrides$etiquetas_arriba_si_no_caben <- TRUE
     }
   }
   if (width < 7.25 && etype %in% c("barras_apiladas", "barras_multiapiladas")) {
     if (is.null(el$overrides$size_leyenda)) el$overrides$size_leyenda <- 10
     if (is.null(el$overrides$size_ejes)) el$overrides$size_ejes <- 11
-    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
-    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
+    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- .std_pt("cifra")
+    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- .std_pt("rotulo_top_two_box")
     if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.68
     # Ídem en gráficos estrechos: apretar el canvas no autoriza a esconder el dato.
   }
@@ -3002,8 +3056,14 @@ p_reset <- function(
 .word_ajustar_el <- function(el_for_word, etype, word_image = NULL) {
   `%||%` <- .rp_null_default
   ov <- el_for_word$overrides %||% list()
-  if (etype %in% c("barras_apiladas", "barras_multiapiladas", "barras_agrupadas")) {
+  if (etype %in% c("barras_apiladas", "barras_multiapiladas", "barras_agrupadas", "barras_categoricas")) {
     ov <- .word_calibrar_canvas_overrides(ov, word_image)
+  }
+  # ADR 0092 (verificador de F2): la categórica horizontal se calcula en
+  # pulgadas; sin el lienzo real del Word salía con los rótulos cortados. Sus
+  # rótulos y cifras van al tamaño del Word del recetario.
+  if (identical(etype, "barras_categoricas") && is.null(ov$size_rotulos_h)) {
+    ov$size_rotulos_h <- .std_word("tipografia", "grafico_rotulo")
   }
   if (etype %in% c("barras_apiladas", "barras_multiapiladas")) {
     # W-5 (B54): el pedido de columna extra de la lamina sobrevive al default

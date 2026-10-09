@@ -1,0 +1,131 @@
+/* «Avance por facultad y sexo» en barras CSS — dictado 2026-09-03: la
+ * facultad y el sexo van en boxes con color propio (los tonos deterministas
+ * de la paleta compartida del Sistema Pabellón) y el hover se diseña en casa.
+ * Hoja propia; la importa `AulasSexoPorFacultadChart.tsx`.
+ *
+ * Anatomía de la fila: [chip facultad][chip sexo] | pista con tres tramos y
+ * el tick de cuota | saldo (déficit a la vista, ✓ si cerró). El hover o el
+ * foco de la pista revelan las cifras exactas EN la pista — el idioma
+ * accesible de la malla, no el tooltip de librería.
+ *
+ * Los colores de los TRAMOS son los mismos hex de coloresDeResultado que
+ * usaba el Plotly (efectiva/parcial/pendiente): la semántica del segmento no
+ * cambia de tinta por cambiar de motor. */
+
+.mon-profile-page.is-aulas-flow .aulas-sexfac { display: flex; flex-direction: column; gap: 10px; }
+
+/* La pregunta del panel (dictado: «¿qué busca hacer o representar?»): una
+   línea sobria arriba de la leyenda, no un párrafo. */
+.mon-profile-page.is-aulas-flow .aulas-sexfac-pregunta {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  max-width: 72ch;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-sexfac-leyenda {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px;
+  font-size: 11.5px; color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-sexfac-leyenda li { display: inline-flex; align-items: center; gap: 6px; }
+.mon-profile-page.is-aulas-flow .aulas-sexfac-leyenda i { width: 12px; height: 12px; border-radius: 3px; }
+.mon-profile-page.is-aulas-flow .aulas-sexfac-leyenda i.es-cuota {
+  width: 2px; height: 14px; border-radius: 1px; background: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-sexfac i.es-recogidas { background: #168a55; }
+.mon-profile-page.is-aulas-flow .aulas-sexfac i.es-pendiente { background: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-sexfac i.es-deficit { background: #7a8796; }
+
+.mon-profile-page.is-aulas-flow .aulas-sexfac-filas {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.mon-profile-page.is-aulas-flow .aulas-sexfac-fila {
+  display: grid;
+  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr) 34px;
+  align-items: center; gap: 10px;
+  padding: 2px 6px;
+  border-radius: 7px;
+}
+/* El hover de fila entera: un lavado apenas presente que sigue al puntero —
+   la mitad del «más profesional» es que la fila responda como pieza. */
+.mon-profile-page.is-aulas-flow .aulas-sexfac-fila:hover,
+.mon-profile-page.is-aulas-flow .aulas-sexfac-fila:focus-within {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 5%, var(--pulso-surface));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-sexfac-quien {
+  display: flex; align-items: center; gap: 4px; min-width: 0;
+  justify-content: flex-end;
+}
+.mon-profile-page.is-aulas-flow .aulas-sexfac-quien .aulas-chip {
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 10.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-sexfac-sexo { flex: none; }
+
+.mon-profile-page.is-aulas-flow .aulas-sexfac-pista {
+  position: relative;
+  display: block;
+  height: 18px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--pulso-bg) 65%, var(--pulso-surface));
+  outline-offset: 1px;
+  /* Dictado: «me permite hacer click cuando no debería poder interactuar».
+     El Plotly anterior ofrecía crosshair y drag de zoom muerto; esta pista
+     NO anuncia click — cursor normal, el hover/foco solo REVELA cifras. */
+  cursor: default;
+}
+.mon-profile-page.is-aulas-flow .aulas-sexfac-pista:focus-visible { outline: 2px solid var(--pulso-module-monitoring); }
+.mon-profile-page.is-aulas-flow .aulas-sexfac-tramos {
+  position: absolute; inset: 0;
+  display: flex; border-radius: 5px; overflow: hidden;
+}
+.mon-profile-page.is-aulas-flow .aulas-sexfac-tramos i { height: 100%; }
+
+.mon-profile-page.is-aulas-flow .aulas-sexfac-cuota {
+  position: absolute; top: -3px; bottom: -3px; width: 2px;
+  background: var(--pulso-text);
+  border-radius: 1px;
+  /* El tick marca una POSICIÓN: su left es el valor; se centra sobre él. */
+  transform: translateX(-1px);
+}
+
+/* Las cifras del hover: viven EN la pista, alineadas al final, y aparecen con
+   el puntero o el foco. Fondo de superficie para flotar legibles sobre los
+   tramos; los énfasis hablan con el color de su tramo. */
+.mon-profile-page.is-aulas-flow .aulas-sexfac-cifras {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  font-style: normal; font-size: 10.5px; white-space: nowrap;
+  color: var(--pulso-text);
+  background: color-mix(in srgb, var(--pulso-surface) 88%, transparent);
+  border-radius: 4px; padding: 1px 6px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 120ms ease;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-sexfac-fila:hover .aulas-sexfac-cifras,
+.mon-profile-page.is-aulas-flow .aulas-sexfac-fila:focus-within .aulas-sexfac-cifras { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .mon-profile-page.is-aulas-flow .aulas-sexfac-cifras { transition: none; }
+}
+.mon-profile-page.is-aulas-flow .aulas-sexfac-cifras strong.es-pendiente { color: #b97611; background: none; }
+.mon-profile-page.is-aulas-flow .aulas-sexfac-cifras strong.es-deficit { color: #5b6472; background: none; }
+
+/* El saldo de la derecha: el déficit sin hover (era el «outside» del Plotly);
+   el ✓ dice cerró sin escribir un cero que compita. */
+.mon-profile-page.is-aulas-flow .aulas-sexfac-saldo {
+  font-size: 11px; font-weight: 600; text-align: right;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* En angosto, los chips pasan arriba de su pista y la fila respira en dos
+   líneas — nada se esconde. */
+@media (max-width: 900px) {
+  .mon-profile-page.is-aulas-flow .aulas-sexfac-fila { grid-template-columns: minmax(0, 1fr) 34px; }
+  .mon-profile-page.is-aulas-flow .aulas-sexfac-quien { grid-column: 1 / -1; justify-content: flex-start; }
+  .mon-profile-page.is-aulas-flow .aulas-sexfac-quien .aulas-chip { max-width: none; }
+}

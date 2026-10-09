@@ -175,8 +175,19 @@ function embudoDesde(crudo: unknown, clase: ClaseEmbudo): EmbudoPaso[] | null {
       if (label == null || conteo == null) return null;
       const id = texto(fila.id) ?? slug(label);
       const excluidos = numero(fila.excluidos) ?? 0;
+      // El paso que VACÍA el marco lo declara el motor, que es quien ve el
+      // conteo de entrada. El front no lo recalcula: un `conteo === 0` aquí no
+      // distingue al criterio que mató el marco de los que heredaron su cero.
+      const vaciaMarco = fila.vacia_marco === true;
+      const aviso = texto(fila.aviso) ?? undefined;
       // Sin sello: los sellos de confiabilidad son del canon, no del proyecto.
-      return { id, label, conteo, porQue: porQuePaso(clase, id, indice, excluidos) };
+      return {
+        id,
+        label,
+        conteo,
+        porQue: porQuePaso(clase, id, indice, excluidos),
+        ...(vaciaMarco ? { vaciaMarco, ...(aviso ? { aviso } : {}) } : {}),
+      };
     })
     .filter((paso): paso is EmbudoPaso => paso != null);
   return pasos.length > 0 ? pasos : null;

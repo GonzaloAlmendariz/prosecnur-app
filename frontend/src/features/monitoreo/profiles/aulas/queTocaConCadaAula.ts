@@ -1,3 +1,4 @@
+import { esMuestraAgendada } from "./muestraAgendada";
 // queTocaConCadaAula.ts — la columna que dice qué hacer.
 //
 // Patrón 7 del catálogo: la tabla «Detalle por facultad» de Cálculo termina en
@@ -9,7 +10,8 @@
 // a traducirlo a una acción en su cabeza, fila por fila, 193 veces.
 //
 // Los estados son los canónicos del motor —`monitoreo_aulas_estados_muestra()`:
-// agendada, reagendada, en_reserva, reemplazada, sin_contactar— más los dos ejes
+// sin_contactar, en_contacto, agendada, reagendada, rechazo, en_reserva,
+// reemplazada, refuerzo_por_contactar— más los dos ejes
 // que el motor mantiene separados a propósito: cómo se consiguió el aula y cómo
 // fue la aplicación.
 
@@ -37,9 +39,9 @@ export type FilaDeAgenda = {
 export function queTocaConCadaAula(fila: FilaDeAgenda, corte: string): string {
   const aplicacion = clave(fila.operational_status);
   const tieneParte = Boolean(texto(fila.applied_at) || texto(fila.applied_date));
-  // Aplicada o cerrada: el agendador ya no tiene nada que hacer aquí.
+  // Aplicado o cerrado: el agendador ya no tiene nada que hacer aquí.
   //
-  // **«Aplicada», no «—».** El guion decía bien que no toca nada y no decía por
+  // **«Aplicado», no «—».** El guion decía bien que no toca nada y no decía por
   // qué, y en esa misma fila la columna de al lado marca «Sin contactar»
   // —`sample_status` llega vacío del libro y el motor lo normaliza así—. Las dos
   // juntas se leen como un aula olvidada. Medido el 2026-08-24 con la
@@ -49,18 +51,29 @@ export function queTocaConCadaAula(fila: FilaDeAgenda, corte: string): string {
   // Sigue sin ser una acción, que es lo que esta columna promete para el resto
   // de filas; es el motivo de que no haya ninguna, y eso es justo lo que
   // faltaba para poder leer la fila entera.
-  if (tieneParte || aplicacion === "aplicada" || aplicacion === "cerrada") return "Aplicada";
+  if (tieneParte || aplicacion === "aplicada" || aplicacion === "cerrada") return "Aplicado";
 
   const estado = clave(fila.sample_status);
-  // Una reemplazada salió del plan por su reserva: ya no se llama a este docente.
-  if (estado === "reemplazada") return "Reemplazada";
+  // Un reemplazado salió del plan por su reserva: ya no se llama a este docente.
+  // **La cola del agendador.** La app acaba de poner esta aula por delante como
+  // complemento (B) o refuerzo (C) y nadie la ha llamado: lo que toca es
+  // justamente eso, y es lo primero de su lista. Sin esta rama caía al genérico
+  // y se perdía entre las que nunca se tocaron.
+  if (estado === "refuerzo_por_contactar") return "Contactar: refuerzo";
+  if (estado === "reemplazada") return "Reemplazado";
   if (estado === "en_reserva") return "En reserva";
+  // El docente dijo que no: no se le vuelve a llamar; la cadena releva (B13b).
+  if (estado === "rechazo") return "Rechazado";
 
   const fecha = texto(fila.scheduled_date);
   if (!fecha) {
     // Contactada pero sin fecha cerrada: es el caso que más se atasca, y decir
     // «llamar» otra vez sería empezar de cero un trabajo que ya avanzó.
-    return estado === "agendada" || estado === "reagendada" ? "Cerrar fecha" : "Llamar al docente";
+    if (esMuestraAgendada(estado)) return "Cerrar fecha";
+    // En contacto ya avanzo (llamadas hechas, sin acuerdo): insistir, no
+    // empezar de cero (B13b).
+    if (estado === "en_contacto") return "Volver a llamar";
+    return "Llamar al docente";
   }
 
   // Con fecha: sólo queda esperar… salvo que el día ya pasara sin parte.

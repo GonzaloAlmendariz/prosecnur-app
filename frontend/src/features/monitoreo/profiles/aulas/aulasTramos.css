@@ -1,0 +1,152 @@
+/* Los tramos del operativo — hoja propia porque `aulasMonitoreo.css` está
+ * congelada a crecimiento (misma doctrina que aulasBancoExtras.css). La
+ * importa `AulasTramosDelOperativo.tsx`.
+ *
+ * La tabla mezcla dos naturalezas y el diseño tiene que distinguirlas sin un
+ * rótulo: las tres primeras columnas se TECLEAN —son la decisión— y las tres
+ * siguientes se LEEN, porque las deriva el backend del plan. Los campos llevan
+ * borde y fondo de entrada; las cifras van alineadas a la derecha, en la
+ * tipografía tabular del resto del perfil y sin caja. */
+
+.mon-profile-page.is-aulas-flow .aulas-tramos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tramos-cabecera {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-cabecera h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+/* La explicación ocupa la fila entera, bajo el ícono y el título. */
+.mon-profile-page.is-aulas-flow .aulas-tramos-cabecera p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+/* Una tabla de siete columnas no cabe en 1024 px: el ancho vive en su propio
+ * contenedor con scroll horizontal y el marco de la tarjeta no se rompe
+ * (No Scroll Jail: el que desplaza es este bloque, no la página). */
+.mon-profile-page.is-aulas-flow .aulas-tramos-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-tabla th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+  padding: 4px 8px 6px 0;
+  border-bottom: 1px solid var(--pulso-border);
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-tabla td {
+  padding: 4px 8px 4px 0;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-tabla input[type="text"] {
+  width: 100%;
+  min-width: 120px;
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-tabla input[type="text"],
+.mon-profile-page.is-aulas-flow .aulas-tramos-tabla input[type="date"] {
+  padding: 3px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface-raised);
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+/* El tramo en curso se señala con un filete al costado, no con un relleno: el
+ * fondo saturado tapa las cifras, que es el dato. */
+.mon-profile-page.is-aulas-flow .aulas-tramos-tabla tr.es-vigente td:first-child {
+  box-shadow: inset 2px 0 0 var(--pulso-accent-steel);
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-marca {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-accent-steel);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tramos-vacio {
+  padding: 14px 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tramos-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-acciones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface-raised);
+  color: var(--pulso-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-acciones button:disabled {
+  cursor: default;
+  color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-quitar {
+  border: none;
+  background: none;
+  padding: 2px;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-quitar:hover {
+  color: var(--pulso-danger-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-tramos-nota {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+/* Sólo para lectores de pantalla: la columna de quitar no lleva rótulo visible
+ * porque su celda es un ícono, pero la cabecera no puede ir muda. */
+.mon-profile-page.is-aulas-flow .aulas-tramos-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

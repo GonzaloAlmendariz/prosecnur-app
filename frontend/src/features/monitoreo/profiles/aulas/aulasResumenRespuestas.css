@@ -1,0 +1,58 @@
+/* «Respuestas» de la pestaña Resumen. Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento.
+
+   Los tres tonos salen de los tokens semánticos que el perfil ya usa: verde lo
+   que cuenta, ámbar lo que no es del operativo —no es un fallo, es ruido ajeno—
+   y rojo lo que sí es del operativo y no pasa. El orden de gravedad se lee sin
+   leyenda. */
+.aulas-resp { display: flex; flex-direction: column; gap: 8px; }
+.aulas-resp-titular { margin: 0; font-size: 14px; color: var(--pulso-text-soft); }
+.aulas-resp-titular strong {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  margin-right: 6px;
+}
+.aulas-resp-pct { margin-left: 10px; color: var(--pulso-text-faint); font-variant-numeric: tabular-nums; }
+.aulas-resp-pila {
+  display: flex;
+  height: 18px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--pulso-surface-2);
+}
+.aulas-resp-pila-sub { height: 12px; flex: 1; min-width: 140px; }
+.aulas-resp-tramo { display: block; height: 100%; }
+.aulas-resp-tramo[data-tramo="efectivas"] { background: var(--pulso-success-fg); }
+.aulas-resp-tramo[data-tramo="no-cuentan"] { background: var(--pulso-surface-2); }
+.aulas-resp-tramo[data-tramo="fuera"] { background: var(--pulso-warn-fg); }
+.aulas-resp-tramo[data-tramo="criterio"] { background: var(--pulso-danger-fg); }
+.aulas-resp-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+.aulas-resp-sub strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.aulas-resp-leyenda {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+.aulas-resp-leyenda strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.aulas-resp-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+.aulas-resp-swatch[data-tramo="fuera"] { background: var(--pulso-warn-fg); }
+.aulas-resp-swatch[data-tramo="criterio"] { background: var(--pulso-danger-fg); }
+.aulas-resp-nota { margin: 0; font-size: 12px; color: var(--pulso-text-faint); }

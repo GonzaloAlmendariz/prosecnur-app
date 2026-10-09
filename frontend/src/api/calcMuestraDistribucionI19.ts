@@ -540,7 +540,11 @@ export function normalizeCalcMuestraDistribucionI19(
   result: unknown,
   expected: CalcMuestraDistribucionI19Expected,
 ): CalcMuestraDistribucionI19State {
-  if (result == null) {
+  // R guarda `resultado = NULL` y jsonlite lo serializa como `{}`: un objeto
+  // vacío es «aún no hay cálculo», no una corrida anterior al contrato (la UI
+  // de aulas decía «calculado con una versión anterior» al abrir un proyecto
+  // sin calcular; QA de aulas, 2026-09-24).
+  if (result == null || (typeof result === "object" && !Array.isArray(result) && Object.keys(result).length === 0)) {
     return { kind: "empty", reasons: ["Aún no existe un cálculo para esta propuesta."] };
   }
   const resultRecord = record(result);

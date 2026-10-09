@@ -115,3 +115,60 @@
   cfg$alumnos_por_ch_decision <- decision
   cfg
 }
+
+# =============================================================================
+# Re-sellar la config de Aulas cuando CAMBIA la decisión (AD2, 2026-09-24)
+# =============================================================================
+#
+# El caso hermano del de arriba: aquí no cambia el marco, cambia la decisión.
+# `POST /estudio` detecta el cambio e invalida los derivados de Aulas
+# (`.cm_aulas_invalidar_derivados_decision`), pero la config de sesión y la del
+# marco seguían firmadas con la decisión ANTERIOR. La certeza de «¿Alcanza?» se
+# pide desde Cálculo, que no edita la config: la toma de la sesión, y el guard
+# la rebotaba con 409 contra el estudio recién guardado. Sólo comparar y
+# seleccionar reescribían la config, así que el 409 no tenía salida desde ahí.
+#
+# Es seguro re-sellar porque la decisión no cambia el marco (ver el default de
+# `alumnos_por_ch_decision` en calc_muestra_aulas.R): es la firma del objetivo
+# de la corrida. Los artefactos firmados con la decisión vieja ya se borraron
+# en la misma invalidación, y un job en vuelo conserva SU config (la vieja) en
+# el closure de `on_complete`, así que sigue llegando stale como debe.
+#
+# Se sellan las dos copias que `.cm_aulas_config_vigente` fusiona: la de sesión
+# manda sobre la del marco, pero si la sesión no trae la clave (o la decisión
+# nueva es NULL y la clave se borra) la del marco sobrevive a la fusión.
+
+#' Copia la decisión vigente del estudio a la config de Aulas de sesión y marco.
+#'
+#' @param sid sesión
+#' @return TRUE si alguna copia cambió, FALSE si no había nada que sellar
+.cm_alumnos_por_ch_sellar_decision_en_config <- function(sid) {
+  estado <- session_get(sid, required = FALSE)
+  if (!is.list(estado)) return(FALSE)
+  decision <- .cm_alumnos_por_ch_estudio_decision(estado$calc_muestra_estudio)
+
+  sellar <- function(cfg) {
+    if (!is.list(cfg)) return(NULL)
+    actual <- .cm_alumnos_por_ch_decision_signature(cfg$alumnos_por_ch_decision)
+    if (identical(actual, decision)) return(NULL)
+    cfg["alumnos_por_ch_decision"] <- list(decision)
+    cfg
+  }
+
+  hubo <- FALSE
+  sesion <- sellar(estado$calc_muestra_aulas_config)
+  if (!is.null(sesion)) {
+    session_set(sid, "calc_muestra_aulas_config", sesion)
+    hubo <- TRUE
+  }
+  frame <- estado$calc_muestra_aulas_frame
+  if (is.list(frame)) {
+    marco <- sellar(frame$config)
+    if (!is.null(marco)) {
+      frame$config <- marco
+      session_set(sid, "calc_muestra_aulas_frame", frame)
+      hubo <- TRUE
+    }
+  }
+  hubo
+}

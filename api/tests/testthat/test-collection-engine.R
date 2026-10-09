@@ -440,16 +440,23 @@ test_that("la costura adapter -> resolvedor no duplica el parametro", {
   expect_equal(lengths(regmatches(url, gregexpr("collectorID", url, fixed = TRUE)))[[1]], 1L)
 })
 
-test_that("sin prefill_field, la costura produce el enlace real que Gonzalo confirmo en produccion", {
-  # Reproduce byte a byte el enlace que Gonzalo dio por bueno:
+test_that("con prefill_field, la ruta XPath sigue produciendo el otro enlace confirmado", {
+  # Reproduce byte a byte el SEGUNDO enlace que Gonzalo dio por bueno:
   # https://ee-eu.kobotoolbox.org/single/ccIcHAqm?d%5B/aNNuP72AedZ886EoAUeV5o/collectorID%5D=EEGGLL
-  # La ruta XPath completa (`/<asset_uid>/collectorID`) tiene que salir del
-  # motor por defecto -sin que nadie configure `prefill_field`- y la barra NO
-  # se escapa a `%2F`, que es justo lo que rompia el enlace real.
+  #
+  # Hasta el 2026-08-27 esta forma era el default. Dejó de serlo porque el
+  # operativo de 2025 usó el campo pelado y Gonzalo pidió seguir ese; pero los
+  # DOS enlaces son reales, del mismo servidor y del mismo tipo `/single/`, así
+  # que la ruta XPath no se borra: se pide por `prefill_field` y este test la
+  # sella. Si el formulario tiene `collectorID` dentro de un grupo, la pelada no
+  # sirve y esta es la salida.
+  #
+  # La barra NO se escapa a `%2F`, que es justo lo que rompía el enlace real.
   adapter <- collection_adapter_get("kobo_existing_v1")
   target <- list(
     asset_uid = "aNNuP72AedZ886EoAUeV5o", asset_type = "survey", deployment_active = TRUE,
-    base_access_url = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm"
+    base_access_url = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm",
+    prefill_field = "/aNNuP72AedZ886EoAUeV5o/collectorID"
   )
   plan <- list(
     schema = "collection_plan/v1", plan_id = "plan-costura-xpath",
@@ -557,4 +564,124 @@ test_that("un valor de personalizacion vacio o NA no produce enlace", {
     url(binding, "public", "kobo"),
     "https://ee-eu.kobotoolbox.org/single/ccIcHAqm?d%5BcollectorID%5D=CH%2031"
   )
+})
+
+test_that("el enlace sale con la forma exacta del formulario de 2026", {
+  # La referencia es el enlace real del estudio, confirmado por Gonzalo el
+  # 2026-08-27, no una lectura de la documentacion:
+  #
+  #   https://ee-eu.kobotoolbox.org/single/ccIcHAqm
+  #     ?d%5B/aNNuP72AedZ886EoAUeV5o/collectorID%5D=PRUEBA_2026
+  #     &returnUrl=https%5C%3A%2F%2Fpulso.pucp.edu.pe%2Fnoticias%2Fenlace
+  #
+  # Tres piezas, y las tres se han discutido con un enlace distinto delante:
+  #   1. `d[/asset_uid/collectorID]`, la ruta XPath COMPLETA. El operativo de
+  #      2025 uso el nombre pelado; manda el formulario que se va a usar.
+  #   2. `returnUrl` en camelCase y con el valor codificado. En 2025 era
+  #      `return_url` literal.
+  #   3. Los corchetes escapados y la barra de la ruta SIN escapar.
+  #
+  # Si alguna vuelve a cambiar, que sea con un enlace escaneado delante.
+  binding <- list(
+    access_ref = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm",
+    access_kind = "parameterized_link",
+    prefill = list(`/aNNuP72AedZ886EoAUeV5o/collectorID` = "PRUEBA_2026")
+  )
+  url <- .collection_access_url(
+    binding, "operational", "kobo",
+    return_url = "https://pulso.pucp.edu.pe/noticias/enlace"
+  )
+  expect_identical(
+    url,
+    paste0(
+      "https://ee-eu.kobotoolbox.org/single/ccIcHAqm?",
+      "d%5B/aNNuP72AedZ886EoAUeV5o/collectorID%5D=PRUEBA_2026&",
+      "returnUrl=https%3A%2F%2Fpulso.pucp.edu.pe%2Fnoticias%2Fenlace"
+    )
+  )
+})
+
+test_that("el adapter arma ese enlace sin que nadie configure el campo", {
+  # El default tiene que ser el formato de 2026: si hay que escribir
+  # `prefill_field` a mano para obtenerlo, alguien lo olvidara en el proyecto que
+  # importa y las 1.512 fichas saldran con la otra forma.
+  plan <- list(units = list(list(
+    unit_id = "unit-aulas-ch-1-50200d1467", label = "mat202_0591", role = "titular",
+    dimensions = list(classroom_id = "mat202_0591", legacy_ref = "CH 1")
+  )))
+  preview <- .ca_preview_deployment("kobo_existing_v1", plan, list(
+    provider = "kobo",
+    base_access_url = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm",
+    asset_uid = "aNNuP72AedZ886EoAUeV5o"
+  ))
+  binding <- preview$bindings[[1]]
+  # La ruta XPath sin configurar nada, y el CODIGO OPERATIVO como valor
+  # (dictado del 2026-08-31, supersede la L2 del 08-27 que mandaba el
+  # curso-horario): «CH 1» es lo que el equipo reconoce al mirar una respuesta
+  # suelta en Kobo. El curso-horario queda de fallback para la unidad que no
+  # trae codigo, y lo ya repartido con el valor viejo sigue contando porque
+  # `.monitoreo_aulas_contar_por_fila()` empareja por el segundo intento.
+  expect_identical(names(binding$prefill), "/aNNuP72AedZ886EoAUeV5o/collectorID")
+  expect_identical(binding$prefill[[1]], "CH 1")
+})
+
+test_that("nadie es reemplazo de si mismo, y la cadena apunta en codigo operativo", {
+  # Dos defectos que vivian juntos en la misma lista de candidatos, medidos
+  # sobre las 1.512 unidades de HSVG2026:
+  #
+  #   1. Los 174 titulares se reemplazaban a si mismos. Su `replacement_for`
+  #      viene vacio y el fallback caia en `titular_operational_code`, que para
+  #      un titular ES su propio codigo.
+  #   2. Las 1.259 reservas apuntaban con el `classroom_id` del titular
+  #      («mat202_0591»), no con su codigo operativo: **0 de 1.259** enlazaban
+  #      con el `legacy_ref` de ninguna unidad del plan. Tras el arreglo,
+  #      1.259 de 1.259.
+  fila <- function(code, titular, rf = "", rol = "titular") list(
+    selection_run_id = "sel-rf", operational_code = code, classroom_id = tolower(code),
+    label = tolower(code), sample_role = rol,
+    titular_operational_code = titular, replacement_for = rf
+  )
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "monitoreo_aulas_plan", list(
+    fila("CH 1", "CH 1"),
+    fila("R 1.1", "CH 1", rf = "mat202_0591", rol = "chain_reserve"),
+    fila("R 1.2", "CH 1", rf = "mat202_0591", rol = "chain_reserve"),
+    fila("EXTRA 1", "", rol = "extra_reserve_pool")
+  ))
+  units <- collection_state_seed(sid)$state$plan$units
+  de <- function(codigo) {
+    hit <- Filter(function(u) identical(u$dimensions$legacy_ref, codigo), units)
+    hit[[1]]$dimensions$replacement_for
+  }
+
+  # El titular no reemplaza a nadie: su `titular_operational_code` es el suyo.
+  expect_identical(de("CH 1"), "")
+  # La reserva apunta a la cabeza de cadena en el idioma del equipo —«CH 1»—,
+  # no con el codigo academico que traia `replacement_for`.
+  expect_identical(de("R 1.1"), "CH 1")
+  expect_identical(de("R 1.2"), "CH 1")
+  # El banco no tiene cadena.
+  expect_identical(de("EXTRA 1"), "")
+
+  # Y lo que apunta ENLAZA: el valor es el `legacy_ref` de una unidad del plan.
+  refs <- vapply(units, function(u) as.character(u$dimensions$legacy_ref), character(1))
+  apuntan <- Filter(nzchar, vapply(units, function(u) as.character(u$dimensions$replacement_for), character(1)))
+  expect_true(all(apuntan %in% refs))
+})
+
+test_that("un marco sin codigo de titular conserva su propio replacement_for", {
+  # El arreglo antepone `titular_operational_code`, pero no puede tirar el dato
+  # de un marco que sí trae un `replacement_for` bueno y no tiene el otro campo.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "monitoreo_aulas_plan", list(
+    list(selection_run_id = "s", operational_code = "AULA-01", classroom_id = "a1",
+         label = "a1", sample_role = "titular"),
+    list(selection_run_id = "s", operational_code = "AULA-02", classroom_id = "a2",
+         label = "a2", sample_role = "chain_reserve", replacement_for = "AULA-01")
+  ))
+  units <- collection_state_seed(sid)$state$plan$units
+  reserva <- Filter(function(u) identical(u$dimensions$legacy_ref, "AULA-02"), units)[[1]]
+  expect_identical(reserva$dimensions$replacement_for, "AULA-01")
 })

@@ -6,10 +6,12 @@ import {
   aulasCheckLabel,
   aulasFieldLabel,
   aulasStatusLabel,
+  soloFacultad,
   escalaDeProporciones,
   presentAulasRow,
   summarizeAulasValidation,
 } from "./aulasPresentation";
+import { fuenteDelPageDeAulas } from "./fuenteDelPerfil";
 
 const featureDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,15 +21,18 @@ describe("aulasPresentation", () => {
     // `MUESTRA` es como el Excel del equipo rotula la ola. El rótulo dejó de ser
     // «Ola» —palabra mía— para usar la columna, que es lo que ellos leen.
     expect(aulasFieldLabel("wave")).toBe("Muestra");
-    // Y esta NO se traduce a «efectivas»: las válidas las cuenta el sistema
-    // desde Kobo y las efectivas el encuestador en el aula. Que no cuadren es lo
-    // que detecta el cuadre del parte, así que igualar los nombres borraría la
-    // comparación.
-    expect(aulasFieldLabel("respuestas_validas")).toBe("Respuestas válidas");
+    // «Efectivas» por D-L12; la colisión con la cifra del parte se resuelve por
+    // apellido de fuente, no reteniendo «válidas» (censo cuatro-cifras
+    // 2026-09-01, choque 6).
+    expect(aulasFieldLabel("respuestas_validas")).toBe("Respuestas efectivas");
     // El código lo llama `CURSO-HORARIO` y al descriptivo `SESIONES Y AULA`:
     // estaban cruzados.
     expect(aulasFieldLabel("operational_code")).toBe("Curso-horario");
-    expect(aulasFieldLabel("label")).toBe("Sesiones y aula");
+    // «Sesiones y aula» pasó a `sesiones_legibles` (A23/a0250367), su dueño
+    // real; el guard de rótulos no admite dos claves con el mismo nombre y
+    // `label` volvió a ser lo que es: la etiqueta-identificador del aula.
+    expect(aulasFieldLabel("label")).toBe("Etiqueta");
+    expect(aulasFieldLabel("sesiones_legibles")).toBe("Sesiones y aula");
   });
 
   it("presenta los seis controles técnicos con etiquetas operativas", () => {
@@ -41,7 +46,7 @@ describe("aulasPresentation", () => {
     ].map(aulasCheckLabel)).toEqual([
       "Respuestas anónimas",
       "Identificadores personales en la base",
-      "Respuestas válidas sin curso-horario",
+      "Respuestas efectivas sin curso-horario",
       "Respuestas repetidas",
       "Representatividad efectiva",
       "Cuota por sexo y facultad",
@@ -193,14 +198,21 @@ describe("aulasPresentation", () => {
   });
 
   it("conecta la presentación pura con las tablas y el resumen de calidad", () => {
-    const page = fs.readFileSync(path.join(featureDir, "AulasMonitoreoPage.tsx"), "utf8");
+    // El PAGE y sus trozos: las tablas se mudaron a `AulasSeccion*` al partir
+    // el page-file, y la conexión con la presentación pura sigue siendo la
+    // misma. Ver `fuenteDelPerfil.ts`.
+    const page = fuenteDelPageDeAulas();
 
     expect(page).toContain("presentAulasRow(row, enProporcion)");
     // La escala sale de TODAS las filas, no de las que sobreviven al recorte.
     expect(page).toContain("escalaDeProporciones(rows)");
     expect(page).toContain("aulasFieldLabel(column)");
     expect(page).toContain("const summary = summarizeAulasValidation(rows)");
-    expect(page).toContain("<span>{summary.label}</span>");
+    // Que el resumen SE PINTE, no el markup exacto que lo envuelve. La
+    // aserción anterior fijaba `<span>{summary.label}</span>` entero y se rompió
+    // al añadir al subtítulo de dónde sale ese panel —«· lo que deriva la app»,
+    // C5 del GOAL—, que no toca la conexión que este test protege.
+    expect(page).toContain("{summary.label}");
     expect(page).not.toMatch(/\{fmt\(rows\.length\)\} alertas/);
   });
 });
@@ -280,7 +292,11 @@ describe("los vocabularios cerrados no derivan entre R y la UI", () => {
     // y los campos por grupo del libro— y no a otro vector del motor. Un vector
     // del motor puede publicar columnas que ninguna tabla muestra; lo que hay
     // que etiquetar es lo que se ve.
-    const pagina = fuente2("AulasMonitoreoPage.tsx");
+    // El page MÁS sus trozos: las `preferredColumns` viajaron a `AulasSeccion*`
+    // al partir el page-file. El guard cuenta cuántas columnas ve y falla si
+    // bajan, así que leer sólo el page lo habría dejado ciego justo donde este
+    // comentario avisa que ya se quedó ciego una vez.
+    const pagina = fuenteDelPageDeAulas();
     const libro = fuente2("AulasControlDelLibro.tsx");
     const pedidas = [...pagina.matchAll(/preferredColumns=\{\[([^\]]*)\]/g)]
       .flatMap((m) => literalesDe(m[1]));
@@ -380,5 +396,124 @@ describe("la escala de una columna la decide su grueso, no su tope", () => {
     ];
     expect(Math.max(...filas.map((f) => f.quota_pct))).toBeGreaterThan(1.5);
     expect(escalaDeProporciones(filas).has("quota_pct")).toBe(true);
+  });
+});
+
+describe("los códigos del marco no llegan crudos a la tabla", () => {
+  it("el tramo de tamaño se dice en alumnos, no en G-algo", () => {
+    // «G2» bajo una columna llamada «Tamaño de aula» no dice el tamaño: los
+    // cortes viven en `calc_muestra_aulas.R` y quien lee la tabla no los tiene.
+    const fila = presentAulasRow({ size_group: "G2" });
+    expect(fila.size_group).toBe("21-30 alumnos");
+    expect(presentAulasRow({ size_group: "G4" }).size_group).toBe("41 alumnos o más");
+  });
+
+  it("el sexo mayoritario se dice en palabras", () => {
+    // Aquí basta «Mujeres» porque el encabezado ya dice «Sexo mayoritario». En
+    // la CLAVE del estrato, que no tiene encabezado, hace falta decir «mayoría
+    // mujeres» entero: esa F no son las mujeres de la cuota.
+    expect(presentAulasRow({ sex_top_1: "F" }).sex_top_1).toBe("Mujeres");
+    expect(presentAulasRow({ sex_top_2: "M" }).sex_top_2).toBe("Hombres");
+  });
+
+  it("un código que no reconoce lo deja ver, no lo borra", () => {
+    // El control: si el motor añade un tramo, la celda tiene que enseñarlo tal
+    // cual. Una lista cerrada que se traga lo que no entiende deja la columna
+    // vacía y el defecto se ve como un hueco, no como un error.
+    expect(presentAulasRow({ size_group: "G9" }).size_group).toBe("G9");
+    expect(presentAulasRow({ sex_top_1: "X" }).sex_top_1).toBe("X");
+  });
+});
+
+describe("soloFacultad (B77) — el corte del foco con su guardia", () => {
+  const filas = [
+    { operational_code: "CH 1", faculty: "DERECHO" },
+    { operational_code: "CH 2", faculty: "EDUCACION" },
+    { operational_code: "CH 3", faculty: "DERECHO" },
+  ];
+
+  it("con foco, quedan solo las filas de esa facultad", () => {
+    expect(soloFacultad(filas, "DERECHO").map((f) => f.operational_code))
+      .toEqual(["CH 1", "CH 3"]);
+  });
+
+  it("sin foco, la lista pasa intacta", () => {
+    expect(soloFacultad(filas, undefined)).toBe(filas);
+  });
+
+  it("GUARDIA: si ninguna fila declara faculty, NO se filtra — vaciar la vista sería mentir", () => {
+    const sinDimension = [{ operational_code: "CH 9" }, { operational_code: "CH 10" }];
+    expect(soloFacultad(sinDimension, "DERECHO")).toBe(sinDimension);
+  });
+});
+
+/**
+ * S14b (loop estética-aulas-sheets, 2026-09-07). Dictado de Gonzalo, textual:
+ * «se cambió el encabezado de efectivas a "CANTIDAD DE ENCUESTAS APLICADAS"
+ * porque las efectivas las da la app no el aplicador, el aplicador ve temas de
+ * lo que ve en aulas nomás». El conteo del parte (`effective_surveys`, clave
+ * que NO cambia) deja de llamarse «efectivas» en la app: «efectivas» son las
+ * de la plataforma, que pasan el criterio.
+ */
+describe("el conteo del parte se llama «encuestas aplicadas», no «efectivas»", () => {
+  it("la ficha lo rotula así", () => {
+    expect(aulasFieldLabel("effective_surveys")).toBe("Encuestas aplicadas (parte)");
+  });
+});
+
+describe("la escala de una columna no la deciden sus ceros", () => {
+  it("una columna en 0-100 con mayoría de ceros NO se multiplica", () => {
+    // **El defecto, medido en `avance/estratos` el 2026-09-08.** 73 estratos y
+    // casi ninguno con cursos-horario aplicados todavía, así que la mayoría de
+    // `avance_respuestas_pct` era 0. La mediana daba 0, la columna se
+    // clasificaba como proporción y un 6,5 —que YA venía en 0-100— se publicaba
+    // como «650 %». La misma columna enseñaba «2 430 %» y «3 510 %».
+    //
+    // Un cero vale igual en las dos escalas, así que no dice nada de cuál es;
+    // lo único que hacía era arrastrar la mediana al suelo. Y el fallo aparece
+    // justo al empezar el operativo, que es cuando más se mira el tablero.
+    const filas = [
+      ...Array.from({ length: 10 }, () => ({ avance_respuestas_pct: 0 })),
+      { avance_respuestas_pct: 6.5 },
+      { avance_respuestas_pct: 24.3 },
+      { avance_respuestas_pct: 9.3 },
+    ];
+    expect(escalaDeProporciones(filas).has("avance_respuestas_pct")).toBe(false);
+  });
+
+  it("una columna que de verdad viene en 0-1 se sigue reconociendo", () => {
+    // La detección no se rompe: lo que se quitó del cálculo son los ceros, no
+    // la regla. Con ceros al lado, los valores reales siguen mandando.
+    const filas = [
+      ...Array.from({ length: 10 }, () => ({ quota_pct: 0 })),
+      { quota_pct: 0.62 },
+      { quota_pct: 0.81 },
+      { quota_pct: 1.09 },
+    ];
+    expect(escalaDeProporciones(filas).has("quota_pct")).toBe(true);
+  });
+
+  it("una columna toda a cero no se multiplica: 0 es 0 en las dos escalas", () => {
+    const filas = [{ quota_pct: 0 }, { quota_pct: 0 }];
+    expect(escalaDeProporciones(filas).has("quota_pct")).toBe(false);
+  });
+});
+
+describe("el porcentaje de las tablas lleva su decimal, como el resto del perfil", () => {
+  it("un cero se escribe «0.0 %», no «0 %»", () => {
+    // Medido en `avance/estratos` el 2026-09-08: la misma columna decía «9.3 %»
+    // en una fila y «0 %» en la siguiente, porque `Intl` con sólo
+    // `maximumFractionDigits` quita el decimal cuando es cero. Es el último
+    // superviviente del defecto que se corrigió en los paneles unificando todo a
+    // `pctPerfil`.
+    const [fila] = [{ avance_respuestas_pct: 0 }, { avance_respuestas_pct: 9.3 }]
+      .map((f) => presentAulasRow(f, new Set()));
+    expect(String(fila.avance_respuestas_pct)).toBe("0.0 %");
+  });
+
+  it("y un valor con decimal no cambia", () => {
+    const filas = [{ avance_respuestas_pct: 0 }, { avance_respuestas_pct: 9.3 }]
+      .map((f) => presentAulasRow(f, new Set()));
+    expect(String(filas[1].avance_respuestas_pct)).toBe("9.3 %");
   });
 });

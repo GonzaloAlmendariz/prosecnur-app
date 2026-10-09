@@ -114,7 +114,20 @@ export function resolveAulasStageNotice(
 
   if (stage === "objetivo") return null;
 
-  if (!model.comparisonReady) {
+  // La comparacion de metodos es prerrequisito de EJECUTAR un sorteo nuevo, no
+  // de LEER uno hecho. Decision de Gonzalo (2026-08-27), textual: «lo segundo».
+  //
+  // Medido sobre HSVG26ULT, con su seleccion de 174 aulas completa y verificada:
+  // CUATRO de las seis pestañas de Aulas —Seleccion, Reemplazos, Auditoria y
+  // Relato— decian «vuelve a comparar metodos» sobre una seleccion correcta. Y
+  // de las cuatro claves que invalidaban la comparacion, dos (`monte_carlo_n` y
+  // `simulation_runs`) ni siquiera cambian que aulas salen. Re-comparar tampoco
+  // lo arreglaba: el campo desactualizado vive en el workspace, que es la
+  // mordida 1 del ADR 0080.
+  //
+  // Sin seleccion valida el aviso vuelve, porque entonces no hay nada que leer.
+  const etapaEjecuta = stage === "metodo" || stage === "laboratorio";
+  if (!model.comparisonReady && (etapaEjecuta || !model.selectionReady)) {
     const stored = model.hasStoredComparison || model.hasStoredSelection;
     const partialSimulation = stage === "laboratorio" && hasAulasSimulationEvidence(model);
     return {

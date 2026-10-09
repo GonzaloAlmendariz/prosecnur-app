@@ -1561,7 +1561,7 @@ exportar_cruces_multi <- function(data,
             letras_map_text,
             paste0(
               s_lbl, ": ",
-              paste0("(", col_letters, ") ", estr_labels, collapse = " · ")
+              paste0("(", col_letters, ") ", estr_labels, collapse = ", ")
             )
           )
 
@@ -1697,8 +1697,8 @@ exportar_cruces_multi <- function(data,
             unique(Filter(nzchar, vapply(bloques_sig, function(bl) as.character(bl$reason %||% ""), character(1))))
           } else character(0)
           metodo_sig <- if (is.list(repeat_design) && all(metodos_repeat == "cluster_robust")) {
-            paste0("segun contrastes cluster-robust por persona con correccion de Bonferroni ",
-                   "para comparaciones multiples (α = ", alpha, "). ")
+            paste0("según contrastes cluster-robust por persona con corrección de Bonferroni ",
+                   "para comparaciones múltiples (α = ", alpha, "). ")
           } else if (is.list(repeat_design)) {
             if (!length(razones_repeat)) razones_repeat <- "diseño repeat insuficiente"
             paste0(
@@ -1706,14 +1706,14 @@ exportar_cruces_multi <- function(data,
               paste(razones_repeat, collapse = " "), ". "
             )
           } else {
-            paste0("segun pruebas z de diferencia de proporciones con correccion de Bonferroni ",
-                   "para comparaciones multiples (α = ", alpha, "). ")
+            paste0("según pruebas z de diferencia de proporciones con corrección de Bonferroni ",
+                   "para comparaciones múltiples (α = ", alpha, "). ")
           }
           pie_sig <- paste0(
-            "Las letras indican columnas cuya proporcion es significativamente mayor ",
-            "que la proporcion de la columna marcada por esa letra, ", metodo_sig,
+            "Las letras indican columnas cuya proporción es significativamente mayor ",
+            "que la proporción de la columna marcada por esa letra, ", metodo_sig,
             if (!is.list(repeat_design) || all(metodos_repeat == "cluster_robust")) {
-              "'.a' indica categoria excluida del contraste (proporciones 0 o 1).\n"
+              "«.a» indica categoría excluida del contraste (proporciones 0 o 1).\n"
             } else {
               "\n"
             },
@@ -3005,7 +3005,7 @@ exportar_dimensiones_multi <- function(data,
           col_letters <- LETTERS[seq_along(estr_lbl_s)]
           letras_map_text <- c(
             letras_map_text,
-            paste0(s_lbl, ": ", paste0("(", col_letters, ") ", estr_lbl_s, collapse = " · "))
+            paste0(s_lbl, ": ", paste0("(", col_letters, ") ", estr_lbl_s, collapse = ", "))
           )
 
           letras_mat <- matrix("", nrow = I_t, ncol = length(idx_cv))
@@ -3084,7 +3084,7 @@ exportar_dimensiones_multi <- function(data,
 
         pie_sig <- paste0(
           "Las letras indican columnas cuya media es significativamente mayor que la media de la columna identificada con esa letra, ",
-          "segun pruebas t de Welch con correccion de Bonferroni (alpha = ", alpha, "). ",
+          "según pruebas t de Welch con corrección de Bonferroni (α = ", alpha, "). ",
           "Letras por estrato: ", paste(letras_map_text, collapse = "  |  "), ". ",
           "Fuente: ", fuente
         )
@@ -3611,7 +3611,7 @@ exportar_dimensiones_multi <- function(data,
           letras_map_text,
           paste0(
             s_lbl, ": ",
-            paste0("(", col_letters, ") ", estr_lbl_s, collapse = " \u00b7 ")
+            paste0("(", col_letters, ") ", estr_lbl_s, collapse = ", ")
           )
         )
 
@@ -3751,7 +3751,7 @@ exportar_dimensiones_multi <- function(data,
 
         pie_sig <- paste0(
           "Las letras indican columnas cuya media es significativamente mayor que la media de la columna identificada con esa letra, ",
-          "segun pruebas t de Welch con correccion de Bonferroni (alpha = ", alpha, "). ",
+          "según pruebas t de Welch con corrección de Bonferroni (α = ", alpha, "). ",
           "Letras por estrato: ", paste(letras_map_text, collapse = "  |  "), ". ",
           "Fuente: ", fuente
         )

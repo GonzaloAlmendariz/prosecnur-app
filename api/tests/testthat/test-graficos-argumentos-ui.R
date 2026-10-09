@@ -329,7 +329,7 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_top_two$accent_color$grupo, "valores")
   expect_equal(by_name_top_two$colores$label, "Paleta de la escala")
   expect_equal(by_name_top_two$colores$grupo, "valores")
-  expect_equal(by_name_top_two$colores$default, "#D8504F, #FFD966, #B7D7A8, #70AD47")
+  expect_equal(by_name_top_two$colores$default, paste(.std_paleta("likert")[1:4], collapse = ", "))
   expect_equal(by_name_top_two$grosor_barra$label, "Grosor de la barra")
   expect_equal(by_name_top_two$grosor_barra$tipo_input, "number")
   expect_equal(by_name_top_two$grosor_barra$grupo, "espacio")
@@ -391,6 +391,7 @@ test_that("barras categoricas grafican pocas categorias con color propio y prome
   )
 
   p <- graficar_barras_categoricas(
+    orientacion = "vertical",  # el test revisa el tema de las columnas (ADR 0092)
     data = df,
     var_categoria = "categoria",
     var_valor = "valor",
@@ -824,7 +825,7 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(apiladas_args$color_conectores_etiquetas$grupo, "valores")
   expect_equal(
     vapply(apiladas_args$color_conectores_etiquetas$choices, `[[`, character(1), "value"),
-    c("segmento", "azul_pulso")
+    c("tenue", "segmento", "azul_pulso")   # ADR 0093: la guía gris del recetario es la primera
   )
   expect_equal(apiladas_args$posicion_conector_etiquetas$label, "Salida de la línea guía")
   expect_equal(apiladas_args$posicion_conector_etiquetas$grupo, "valores")
@@ -845,7 +846,7 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(multi_args$color_conectores_etiquetas$grupo, "valores")
   expect_equal(
     vapply(multi_args$color_conectores_etiquetas$choices, `[[`, character(1), "value"),
-    c("segmento", "azul_pulso")
+    c("tenue", "segmento", "azul_pulso")
   )
   expect_equal(multi_args$posicion_conector_etiquetas$label, "Salida de la línea guía")
   expect_equal(multi_args$posicion_conector_etiquetas$grupo, "valores")
@@ -867,8 +868,8 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_agrupadas$face_subtitulo, "bold")
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_agrupadas$size_subtitulo, 13)
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_agrupadas$encabezado_separacion_in, 0.18)
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
-  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_barra_extra, .std_color("verde_top_two_box"))
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_barra_extra, .std_color("verde_top_two_box"))
   # **Calibre del entregable aprobado** (`1019c001` y `a297207d`, 2026-08-16).
   # Comparando tamaño por ROL, el motor escribia un tercio mas grande que el
   # mazo aprobado: cifras 15.93 pt contra 14, etiquetas 15.99 contra 12-13.
@@ -886,7 +887,8 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
     .PRESETS_DEFAULT_PULSO$barras_apiladas$size_texto_barras_peq
   )
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_leyenda, 12)
-  expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_barra_extra, 16)
+  # ADR 0092 (F2.4): la columna Top Two Box del recetario, cifras a 14 pt.
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_barra_extra, .std_pt("cifra"))
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$grosor_barras, 0.68)
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_agrupadas$grosor_barras, 0.68)
   expect_equal(
@@ -901,18 +903,20 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$umbral_mostrar_etiqueta, 0.12)
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$etiquetas_peq_factor_ancho, 2.5)
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_peq_factor_ancho, 2.5)
-  # B45 (pedido directo): sacar la etiqueta chica arriba de la barra con
-  # conector es una opcion, no el default.
-  expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$barras_apiladas$etiquetas_arriba_si_no_caben))
-  expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_arriba_si_no_caben))
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_conectores_etiquetas, "segmento")
-  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_conectores_etiquetas, "segmento")
+  # ADR 0092 (F2.3): el recetario sube con guía la cifra que no cabe en su
+  # segmento (Gonzalo, 2026-10-08); reemplaza a B45, que la dejaba como opción.
+  expect_true(isTRUE(.PRESETS_DEFAULT_PULSO$barras_apiladas$etiquetas_arriba_si_no_caben))
+  expect_true(isTRUE(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_arriba_si_no_caben))
+  # ADR 0093: la guía de la cifra chica es gris tenue, como en el recetario.
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_conectores_etiquetas, "tenue")
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_conectores_etiquetas, "tenue")
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$posicion_conector_etiquetas, "centro")
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$posicion_conector_etiquetas, "centro")
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$linewidth_conectores_etiquetas, 0.42)
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$linewidth_conectores_etiquetas, 0.42)
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_titulo_extra, 16)
-  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$size_titulo_extra, 16)
+  # ADR 0092 (F2.4): el rótulo «Top Two Box» va a 10 pt, centrado sobre la columna.
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_titulo_extra, .std_pt("rotulo_top_two_box"))
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$size_titulo_extra, .std_pt("rotulo_top_two_box"))
   expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "Top 2 Box")
 })
 
@@ -933,7 +937,8 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
   # Mismo calibre del entregable aprobado: la leyenda y los ejes van a 12 pt.
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_leyenda, 12)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 12)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 14)
+  # La base de la lámina sigue al estándar de los recetarios (ADR 0092): 10 pt.
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 10)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_titulo, .PULSO_PPT_COLORS$rojo)
 	  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$azul)
 	  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_leyenda, .PULSO_PPT_COLORS$azul)
@@ -1559,9 +1564,12 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   # 41 laminas (`.PPT_ROTULO_TOP_TWO_BOX`). Buscar «Top 2 Box» sobre ese mismo
   # entregable devolvia 0 columnas cuando tiene 40, que es lo que motivo el
   # cambio de forma.
-  expect_true(grepl("TOP TWO BOX", xml, fixed = TRUE))
+  expect_true(grepl(.PPT_ROTULO_TOP_TWO_BOX, xml, fixed = TRUE))
   expect_false(grepl("N =", xml, fixed = TRUE))
-  expect_true(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
+  # La selección múltiple se anuncia como en la lámina 73 del recetario (ADR 0093): el encabezado sobre las
+  # barras, no el aviso «Pregunta de opción múltiple» que el gráfico ggplot ponía de subtítulo.
+  expect_true(grepl("% de encuestados que marcó cada opción", xml, fixed = TRUE))
+  expect_false(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })
 
 test_that("el tipo de un bloque recod se resuelve tambien con codigos no numericos", {

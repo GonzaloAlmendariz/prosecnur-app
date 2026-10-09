@@ -1,6 +1,6 @@
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { ESTADOS_OPERATIVOS, STATUS_LABELS } from "./aulasPresentation";
-import { COLOR_AULA_LISTA, TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
+import { COLOR_AULA_LISTA, TRAMOS_DE_APLICACION, clavesDelTramo } from "./estadoDeAplicacion";
 
 /**
  * El estado de una fila, como chip de color y no como texto plano.
@@ -86,8 +86,15 @@ const COLOR_OPERATIVO: Record<string, string> = {
  * significados en la misma fila. Lo que se unifica es el color.
  */
 const COLOR_POR_ROTULO_ALTERNO = new Map(
+  // **Por las CLAVES DEL MOTOR del tramo, no por la del tramo.** Desde que
+  // «En cierre» se disolvió dentro de los aplicados (2026-09-10) el tramo se
+  // llama `aplicado`, que no es un valor de `STATUS_LABELS`: mirando sólo
+  // `t.clave` las celdas de `en_aplicacion` y `cerrando` se quedaban SIN chip
+  // —el mismo defecto que este mapa nació para arreglar, 160 celdas de 236 en
+  // gris— y nada habría fallado.
   TRAMOS_DE_APLICACION
-    .map((t) => [String(STATUS_LABELS[t.clave] ?? "").toLowerCase(), t.color] as const)
+    .flatMap((t) => clavesDelTramo(t)
+      .map((k) => [String(STATUS_LABELS[k] ?? "").toLowerCase(), t.color] as const))
     .filter(([rotulo]) => Boolean(rotulo)),
 );
 
@@ -146,6 +153,10 @@ export function colorDeEstado(valor: string): string | null {
   if (texto.startsWith("en reserva")) {
     return TRAMOS_DE_APLICACION.find((t) => t.clave === "en_reserva")?.color ?? null;
   }
+  // El RECHAZO del eje de MUESTRA (B13b): llega como rótulo propio desde
+  // STATUS MUESTRA y ninguna tabla operativa lo lista — mismo tono que
+  // sin_acceso/cancelada, que son sus vecinos de «el aula cayó».
+  if (texto.startsWith("rechaz")) return COLOR_RESULTADO.rechazo;
   return null;
 }
 

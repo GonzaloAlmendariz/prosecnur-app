@@ -288,7 +288,7 @@
         label = "Color de numeración de subíndices",
         tipo_input = "color",
         grupo = "lectura",
-        default = "#D8504F",
+        default = "#CA5651",
         descripcion = "Color del número tipográfico que jerarquiza cada subíndice."
       ),
       list(
@@ -356,10 +356,10 @@
       list(name = "extremo_derecha", label = "Texto extremo derecho", tipo_input = "string", grupo = "textos",
            descripcion = "Etiqueta inferior del extremo derecho de la escala."),
       list(name = "accent_color", label = "Color de acento", tipo_input = "color", grupo = "valores",
-           default = "#D8504F",
+           default = "#CA5651",
            descripcion = "Color usado en el título y la anotación del Top Two Box. En Ingeniería se usa el rojo Pulso."),
       list(name = "colores", label = "Paleta de la escala", tipo_input = "string", grupo = "valores",
-           default = "#D8504F, #FFD966, #B7D7A8, #70AD47",
+           default = "#F4B183, #FFD965, #ADD493, #70AD47",
            descripcion = "Colores de los segmentos de la escala, separados por coma. Por defecto usa la paleta de barras apiladas de Ingeniería."),
       list(name = "grosor_barra", label = "Grosor de la barra", tipo_input = "number", grupo = "espacio",
            default = 82, min = 30, max = 130, step = 2,
@@ -410,7 +410,7 @@
            default = 0, min = 0, max = 2, step = 1,
            descripcion = "Resolución con la que se rotula el ejemplo. Conviene que coincida con la del mazo."),
       list(name = "accent_color", label = "Color de acento", tipo_input = "color", grupo = "valores",
-           default = "#D8504F",
+           default = "#CA5651",
            descripcion = "Color del título y de la suma que no cierra en 100 %."),
       list(name = "colores", label = "Paleta del ejemplo", tipo_input = "string", grupo = "valores",
            descripcion = "Colores de los segmentos, separados por coma. Vacío usa la paleta de la casa."),
@@ -1670,7 +1670,7 @@
            default = 0,
            min = 0, max = 99,
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Piso del eje radial. Con 0 se ve el eje completo. Súbelo cuando todos los valores caen en una banda estrecha —seis temas entre 90 % y 98 % se ven idénticos de 0 a 100 y se separan de 50 a 100. Si el piso deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
+           descripcion = "Piso del eje radial. Con 0 es automático, como en el recetario: si los valores son altos, el eje arranca en el múltiplo de 5 bajo el más bajo y los anillos se rotulan, para que el acercamiento se vea. Un valor mayor fija el piso; si deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
       list(name = "mostrar_tabla", label = "Tabla al costado", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            depende = list(arg = "modo", valores = list("publicos")),
@@ -2192,13 +2192,14 @@
            default = TRUE,
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro",
-           default = FALSE,
-           descripcion = "Opción: si una barra tiene un porcentaje que no entra bien, coloca todos sus porcentajes encima conectados con una línea guía. Por defecto la etiqueta vive dentro de su segmento."),
+           default = TRUE,
+           descripcion = "Lo fija el estándar de los recetarios (ADR 0092): si un porcentaje no entra en su segmento, sube encima de la barra con una línea guía. En el estilo común se impone; sólo se puede apagar lámina por lámina."),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
            descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
-           default = "segmento",
+           default = "tenue",
            choices = list(
+             list(value = "tenue", label = "Gris tenue (recetario)"),
              list(value = "segmento", label = "Color del segmento"),
              list(value = "azul_pulso", label = "Azul Pulso")
            ),
@@ -2398,8 +2399,9 @@
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro"),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro"),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
-           default = "segmento",
+           default = "tenue",
            choices = list(
+             list(value = "tenue", label = "Gris tenue (recetario)"),
              list(value = "segmento", label = "Color del segmento"),
              list(value = "azul_pulso", label = "Azul Pulso")
            )),
@@ -2750,7 +2752,7 @@
       list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro", default = 40),
       list(name = "min_chars", label = "Mínimo de caracteres", tipo_input = "number", grupo = "filtro", default = 3),
       list(name = "colores_palabras", label = "Colores de palabras", tipo_input = "series_colors", grupo = "estilo",
-           descripcion = "Paleta cíclica para colorear los términos."),
+           descripcion = "Paleta cíclica para colorear los términos. Vacía, la nube usa el degradado de azul por menciones del recetario."),
       list(name = "size_titulo", label = "Tamaño título", tipo_input = "number", grupo = "estilo", default = 16),
       list(name = "size_subtitulo", label = "Tamaño subtítulo", tipo_input = "number", grupo = "estilo", default = 12),
       list(name = "size_nota_pie", label = "Tamaño nota al pie", tipo_input = "number", grupo = "estilo", default = 10)
@@ -3585,7 +3587,9 @@
     size_cuerpo_slide = 16,
     size_leyenda      = 12,
     size_ejes         = 12,
-    size_nota_pie     = 14,
+    # La base de la lámina va a 10 pt, como en el recetario (ADR 0092, `.std_pt("base")`);
+    # test-estandar-tokens.R falla si este literal se aparta del estándar.
+    size_nota_pie     = 10,
     size_texto_barras = 4.92,
     slide_1_plot_height_cm = 14.00,
     slide_1_narrativo_plot_top_cm = 3.10,
@@ -3614,7 +3618,7 @@
   ),
 
   barras_apiladas = list(
-    color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
+    color_barra_extra        = "#4E9438",  # ADR 0092: verde_top_two_box del estándar
 
     canvas_w_etiquetas       = 0.18,
     canvas_w_buf_etq_bars    = 0.03,
@@ -3659,8 +3663,8 @@
     size_texto_barras        = 4.92,
     size_texto_barras_peq    = 4.92,
     size_leyenda             = 12,
-    size_barra_extra         = 16,
-    size_titulo_extra        = 16,
+    size_barra_extra         = 14,  # ADR 0092: cifra de la columna Top Two Box
+    size_titulo_extra        = 10,  # ADR 0092: rótulo «Top Two Box»
     # 22 partia las preguntas largas en 6+ lineas (feedback directo B36).
     ancho_max_eje_y          = 34,
     prefijo_barra_extra      = "",
@@ -3672,9 +3676,9 @@
     # B45 (pedido directo): sacar la etiqueta chica ARRIBA de la barra con
     # flecha es una opcion, no el default — por defecto la etiqueta vive
     # dentro de su segmento (o se oculta bajo el umbral).
-    etiquetas_arriba_si_no_caben = FALSE,
+    etiquetas_arriba_si_no_caben = TRUE,  # ADR 0092: las cifras chicas suben con guía
     etiquetas_arriba_offset = 0.17,
-    color_conectores_etiquetas = "segmento",
+    color_conectores_etiquetas = "tenue",
     posicion_conector_etiquetas = "centro",
     linewidth_conectores_etiquetas = 0.42,
     desplazamiento_max_etiquetas_peq = 0.09,
@@ -3713,7 +3717,7 @@
     legend_gap_npc           = 0.012,
 
     color_texto_barras       = "white",
-    color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
+    color_barra_extra        = "#4E9438",  # ADR 0092: verde_top_two_box del estándar
     # Mismo criterio que en apiladas: la columna extra de una multiapilada es
     # el Top 2 Box. `mostrar_barra_extra` lo enciende el plan con `top2box` o
     # el propio preset; el preset del indicador tiene que estar puesto para que
@@ -3721,16 +3725,16 @@
     barra_extra_preset       = "top2box",
     size_texto_barras        = 4.92,
     size_texto_barras_peq    = 4.92,
-    size_titulo_extra        = 16,
+    size_titulo_extra        = 10,  # ADR 0092: rótulo «Top Two Box»
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
     size_ejes                = 12,
     size_leyenda             = 12,
-    size_barra_extra         = 16,
+    size_barra_extra         = 14,  # ADR 0092: cifra de la columna Top Two Box
     # B45: opt-in, igual que en apiladas.
-    etiquetas_arriba_si_no_caben = FALSE,
+    etiquetas_arriba_si_no_caben = TRUE,  # ADR 0092: las cifras chicas suben con guía
     etiquetas_arriba_offset = 0.17,
-    color_conectores_etiquetas = "segmento",
+    color_conectores_etiquetas = "tenue",
     posicion_conector_etiquetas = "centro",
     linewidth_conectores_etiquetas = 0.42,
     desplazamiento_max_etiquetas_peq = 0.09,
@@ -3865,14 +3869,8 @@
     color_titulo             = .PULSO_PPT_COLORS$rojo,
     color_subtitulo          = .PULSO_PPT_COLORS$azul,
     color_nota_pie           = .PULSO_PPT_COLORS$azul,
-    colores_palabras         = c(
-      .PULSO_PPT_COLORS$azul,
-      .PULSO_PPT_COLORS$rojo,
-      .PULSO_PPT_COLORS$verde,
-      .PULSO_PPT_COLORS$amarillo,
-      .PULSO_PPT_COLORS$azul_secundario,
-      .PULSO_PPT_COLORS$morado
-    )
+    # Sin paleta de fábrica: la nube usa el degradado del recetario por menciones (graficador_nube_palabras.R).
+    colores_palabras         = NULL
   ),
 
   barras_numericas = list(
@@ -3897,7 +3895,7 @@
 
   histograma = list(
     modo                     = "porcentaje_total",
-    bins                     = 8,
+    bins                     = NULL,  # ADR 0092: una barra por valor (histograma del recetario)
     ancho_bin                = NULL,
     mostrar_bins_vacios      = TRUE,
     mostrar_valores          = TRUE,
@@ -4001,10 +3999,10 @@
   radar_tabla = list(
     escala_valor             = "proporcion_1",
     cortes_grilla            = 6,
-    limites                  = c(0, 1),
+    limites                  = NULL,  # ADR 0092: el eje arranca en el mínimo (radar del recetario)
     rellenar_poligono        = FALSE,
     mostrar_radios           = FALSE,
-    mostrar_niveles          = FALSE,
+    mostrar_niveles          = TRUE,  # ADR 0092: cifras de los anillos en la diagonal
     eje_label_mult           = 1.2,
     radar_scale              = 0.85,
     wrap_ejes                = 20,
@@ -4629,7 +4627,7 @@
     ),
     color_conectores_etiquetas = list(
       label = "Color de la línea guía",
-      descripcion = "Define si la línea guía usa el color del segmento o el azul Pulso.",
+      descripcion = "Por defecto, el gris tenue del recetario; también puede usar el color del segmento o el azul Pulso.",
       efecto = "Solo afecta las líneas que conectan porcentajes superiores con la barra."
     ),
     posicion_conector_etiquetas = list(

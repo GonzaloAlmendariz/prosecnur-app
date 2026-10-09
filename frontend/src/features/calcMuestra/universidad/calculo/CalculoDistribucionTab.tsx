@@ -59,13 +59,13 @@ function DistributionState({ state }: { state: Exclude<CalcMuestraDistribucionI1
   const copy = state.kind === "empty"
     ? {
         title: "Aún no hay una distribución calculada",
-        hint: "Ve a Propuestas y ejecuta Calcular muestra para publicar P1 y P2 desde R.",
+        hint: "Ve a Propuestas y ejecuta Calcular muestra para obtener P1 y P2.",
         icon: <Database size={20} aria-hidden="true" />,
       }
     : state.kind === "legacy"
       ? {
-          title: "Esta corrida usa el contrato anterior",
-          hint: "Ve a Propuestas y recalcula la muestra. No se reutilizan la distribución TS ni perfiles de ejemplo.",
+          title: "Esta corrida es de una versión anterior de la app",
+          hint: "Ve a Propuestas y recalcula la muestra para ver su distribución.",
           icon: <RefreshCw size={20} aria-hidden="true" />,
         }
       : state.kind === "stale"
@@ -75,7 +75,7 @@ function DistributionState({ state }: { state: Exclude<CalcMuestraDistribucionI1
             icon: <RefreshCw size={20} aria-hidden="true" />,
           }
         : {
-            title: "R no pudo acreditar esta distribución",
+            title: "No se pudo verificar esta distribución",
             hint: "Corrige la incompatibilidad indicada y recalcula en Propuestas. No se muestra un escenario alternativo.",
             icon: <TriangleAlert size={20} aria-hidden="true" />,
           };
@@ -84,6 +84,12 @@ function DistributionState({ state }: { state: Exclude<CalcMuestraDistribucionI1
       className="cmv2-dist-state"
       role={state.kind === "invalid" ? "alert" : "status"}
       data-state={state.kind}
+      // Los tres estados de aquí —vacío, contrato viejo y no acreditado— son
+      // TERMINALES: la vista ya resolvió qué mostrar. Sin la marca, el puente
+      // respondía `sin-marca-de-readiness` (la rama con datos, más abajo, sí la
+      // declara) y el gate se cortaba justo en los estados en que más importa
+      // mirar. Precedente sellado en auditReadyRoutes.contract.test.ts.
+      data-audit-ready="true"
       data-qa-geometry-group="calc-muestra/distribucion-estado"
       data-qa-geometry-contract="intrinsic"
     >
@@ -228,7 +234,7 @@ function PrecisionTable({
         </div>
         <span className="cmv2-dist-count"><Gauge size={14} aria-hidden="true" /> {p1 ? "alcance global" : "alcance facultad"}</span>
       </header>
-      <div className="cmv2-dist-table-surface" tabIndex={0} aria-label="Bandas de precisión publicadas por R" data-qa-geometry-capacity="owned">
+      <div className="cmv2-dist-table-surface" tabIndex={0} aria-label="Bandas de precisión por facultad" data-qa-geometry-capacity="owned">
         <table className="cmv2-dist-table cmv2-dist-table--precision">
           <thead><tr><th>Facultad</th><th>Alcance</th><th>Objetivo</th><th>Alcanzada</th><th>Banda</th><th>Confianza</th><th>p</th><th>deff</th><th>{p1 ? "Lectura diagnóstica" : "Resultado formal"}</th></tr></thead>
           <tbody>
@@ -328,7 +334,7 @@ export function CalculoDistribucionTab({
       <header className="cmv2-dist-toolbar">
         <div>
           <strong>Distribución universitaria</strong>
-          <span>{model.selection.shortLabel} · resultado vigente del engine R</span>
+          <span>{model.selection.shortLabel} · resultado vigente</span>
         </div>
       </header>
       {model.state.kind !== "ready" ? (

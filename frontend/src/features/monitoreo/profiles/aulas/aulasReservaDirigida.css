@@ -1,0 +1,157 @@
+/* A qué aula del banco ir por celda de cuota.
+   Hoja propia: `aulasMonitoreo.css` está congelado a crecimiento
+   (`agentic/manifest.json`) y esta familia es nueva y completa. */
+
+.aulas-reserva-dirigida {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.aulas-reserva-dirigida-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-reserva-dirigida-head h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.aulas-reserva-dirigida-head span {
+  font-size: 0.75rem;
+  color: var(--pulso-text-muted);
+}
+
+.aulas-reserva-dirigida-lista,
+.aulas-reserva-dirigida-candidatos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.aulas-reserva-dirigida-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-reserva-dirigida-celda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+/* La celda que el banco NO cierra obliga a algo distinto que activar una
+   reserva, y por eso se distingue del resto. El color no es el único canal:
+   la etiqueta del motor ya dice «El banco no alcanza». */
+.aulas-reserva-dirigida-celda[data-alcanza="no"] {
+  border-color: var(--pulso-border-strong);
+  box-shadow: inset 3px 0 0 0 var(--pulso-module-monitoring);
+}
+
+.aulas-reserva-dirigida-celda-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-reserva-dirigida-celda-head strong {
+  font-size: 0.82rem;
+  color: var(--pulso-text);
+}
+
+.aulas-reserva-dirigida-sexo,
+.aulas-reserva-dirigida-brecha {
+  font-size: 0.75rem;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-reserva-dirigida-brecha {
+  margin-inline-start: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-reserva-dirigida-etiqueta {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-reserva-dirigida-candidatos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-block-start: var(--pulso-space-1);
+}
+
+.aulas-reserva-dirigida-candidatos li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  font-size: 0.75rem;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-reserva-dirigida-candidatos code {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--pulso-text);
+}
+
+.aulas-reserva-dirigida-estimado {
+  flex: none;
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--pulso-text-muted);
+}
+
+/* **La salida común, dicha una vez.** Cuando el banco no tiene nada para
+   ninguno y el motivo es el mismo, la lista de tarjetas repetía la frase tantas
+   veces como grupos —cuatro tarjetas de 80 px para una oración— y lo único que
+   las distinguía, cuánto falta, quedaba de adorno. Aquí la frase va arriba y
+   los grupos en una línea, que es donde se comparan. */
+.aulas-reserva-dirigida-sin-salida {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-warn-fg);
+  border-radius: var(--pulso-radius-chip, 6px);
+  background: var(--pulso-surface);
+}
+
+.aulas-reserva-dirigida-faltas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-reserva-dirigida-faltas > li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+}
+
+.aulas-reserva-dirigida-faltas > li > strong {
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}

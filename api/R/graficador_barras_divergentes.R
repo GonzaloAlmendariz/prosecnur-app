@@ -141,7 +141,7 @@ graficar_barras_divergentes <- function(
     leyenda_posicion = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
 
     grosor_barras = 0.68,
-    color_ejes = "#081F5C",
+    color_ejes = .std_color("azul"),
     size_ejes = 9,
     size_valores = 3.0,
     color_texto_barras = "#FFFFFF",
@@ -155,7 +155,8 @@ graficar_barras_divergentes <- function(
     size_nota_pie = 8,
     textos_negrita = NULL,
     font_family = "Arial",
-    reparto = NULL
+    reparto = NULL,
+    codigos_grupos = NULL
 ) {
   escala_valor <- match.arg(escala_valor)
   leyenda_posicion <- match.arg(leyenda_posicion)
@@ -192,6 +193,9 @@ graficar_barras_divergentes <- function(
     )
   }
 
+  espec_div <- tryCatch(.espec_divergentes(data, var_categoria, cols_porcentaje, etiquetas, particion, escala_valor,
+                                           valores_decimales, colores_grupos, incluir_neutro = incluir_neutro,
+                                           reparto_explicito = !is.null(reparto), codigos = codigos_grupos), error = function(e) NULL)
   items <- as.character(data[[var_categoria]])
   filas <- list()
   for (i in seq_along(items)) {
@@ -309,7 +313,7 @@ graficar_barras_divergentes <- function(
     tope <- tope * 1.18
   }
 
-  p +
+  out <- p +
     ggplot2::scale_fill_manual(
       values = colores, breaks = cols_porcentaje,
       labels = function(x) unname(etiquetas[x])
@@ -345,4 +349,6 @@ graficar_barras_divergentes <- function(
       panel.grid.major.x = ggplot2::element_line(colour = "#E3E8EF", linewidth = 0.3),
       plot.margin = ggplot2::margin(10, 16, 8, 12)
     )
+  attr(out, "pulso_espec") <- espec_div
+  out
 }

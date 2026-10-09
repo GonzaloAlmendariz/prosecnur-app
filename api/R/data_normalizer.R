@@ -439,7 +439,8 @@
     return(stats::setNames(rep(NA_character_, nrow(choices_sub)), choices_sub$name))
   }
 
-  prefix_pat <- paste0("^", .dn_escape_regex(parent), "([_/.])(.+)$")
+  # H67: sin distinguir mayusculas. SPSS exporta las dummies como `P6_1` frente a un XLSForm `p6`.
+  prefix_pat <- paste0("(?i)^", .dn_escape_regex(parent), "([_/.])(.+)$")
   candidates <- data_names[grepl(prefix_pat, data_names, perl = TRUE)]
   # Qué candidata es una dummy de opción se decide por NATURALEZA, jamás por el
   # NOMBRE de la opción. Cualquier opción real —código con letras (`legal`),
@@ -967,6 +968,10 @@ normalize_data_for_xlsform <- function(data,
   if (isTRUE(drop_source_dummies) && length(dropped)) {
     out <- out[, setdiff(names(out), dropped), drop = FALSE]
   }
+  # H67: el texto de «Otro» que SPSS guarda como `<VAR>_O` (u _OTRO, _OTRA, _OTHER, _ESP) llega a `<var>_other`.
+  other_info <- .dn_alias_other_text_columns(out, survey, choices, sm_rows)
+  out <- other_info$data
+  aliased_combined <- c(aliased_combined, other_info$aliased)
 
   if (isTRUE(add_metadata) &&
       (length(normalized) || length(aliased_combined) ||
@@ -984,6 +989,42 @@ normalize_data_for_xlsform <- function(data,
   }
 
   out
+}
+
+# H67: conecta el texto libre de «Otro» exportado por SPSS (`P6_O`, `P2_OTRO`...) con la variable `<var>_other` del
+# XLSForm cuando esta no existe en la data. Si la madre es select_multiple con una opcion «other» y la persona escribio
+# en «Otro», se marca la opcion (sin duplicarla).
+#' @keywords internal
+.dn_alias_other_text_columns <- function(data, survey, choices, sm_rows) {
+  aliased <- character()
+  nm_survey <- as.character(survey$name)
+  destinos <- nm_survey[grepl("_other$", nm_survey) & !(nm_survey %in% names(data))]
+  for (dest in destinos) {
+    madre <- sub("_other$", "", dest)
+    pat <- paste0("(?i)^", .dn_escape_regex(madre), "_(o|otro|otra|other|esp|especifique)$")
+    cand <- names(data)[grepl(pat, names(data), perl = TRUE)]
+    cand <- cand[!(cand %in% nm_survey)]
+    if (!length(cand)) next
+    src <- cand[[1]]
+    txt <- as.character(data[[src]]); txt[is.na(txt)] <- ""
+    data[[dest]] <- txt
+    data[[src]] <- NULL
+    aliased[[dest]] <- src
+    if (madre %in% as.character(sm_rows$name) && madre %in% names(data)) {
+      ln <- .dn_survey_list_name(sm_rows[as.character(sm_rows$name) == madre, , drop = FALSE][1, , drop = FALSE])
+      codigos <- as.character(choices$name[as.character(choices$list_name) == ln])
+      cod_otro <- intersect(c("other", "otro", "otra", "96", "98"), codigos)
+      if (length(cod_otro)) {
+        m <- as.character(data[[madre]]); m[is.na(m)] <- ""
+        escribio <- nzchar(trimws(txt))
+        sin_marca <- escribio & !vapply(strsplit(m, " ", fixed = TRUE), function(z) cod_otro[[1]] %in% z, logical(1))
+        m[sin_marca] <- trimws(paste(m[sin_marca], cod_otro[[1]]))
+        m[!nzchar(m)] <- NA_character_
+        lbl <- attr(data[[madre]], "label"); data[[madre]] <- m; attr(data[[madre]], "label") <- lbl
+      }
+    }
+  }
+  list(data = data, aliased = aliased)
 }
 
 #' Validar compatibilidad estricta entre data normalizada y XLSForm.

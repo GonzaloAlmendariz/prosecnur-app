@@ -1,0 +1,144 @@
+/* La cobertura por tramo en barras CSS — E22, mismo criterio que el estado
+ * (474b8149) y el chart de sexo. Hoja propia (la madre está congelada); la
+ * importa AulasCoberturaChart.tsx. El color de cada tramo es un dato del
+ * semáforo y viaja en línea; esta hoja pinta la geometría. */
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-css { display: flex; flex-direction: column; gap: 8px; }
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-filas {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cobertura-filas li { min-width: 0; }
+/* La rejilla pasa del `li` al BOTÓN: desde que cada tramo se puede abrir, la
+   fila entera es el control, y dejar la rejilla fuera partía el botón en tres
+   trozos que no se podían pulsar juntos. `minmax(0, …)` en las dos flexibles —el
+   mínimo automático de una columna deja que el contenido empuje el track y se
+   salga de su caja, medido en el trío de Rendimiento el 2026-09-10. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 230px) minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-fila:disabled {
+  cursor: default;
+}
+
+/* El hover sólo donde hay algo que abrir: un tramo vacío que se ilumina al pasar
+   promete un gesto que no responde. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-fila:not(:disabled):hover {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-fila:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, transparent);
+  outline-offset: 1px;
+}
+
+/* El tramo abierto se queda marcado: sin esto, la tabla de abajo aparece y no
+   se sabe de cuál de los seis salió. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-filas li.es-abierto .aulas-cobertura-fila {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 11%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-cobertura-etiqueta {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  text-align: right;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-cobertura-pista {
+  display: block;
+  height: 16px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+}
+.mon-profile-page.is-aulas-flow .aulas-cobertura-pista i {
+  display: block; height: 100%;
+  min-width: 3px;
+  border-radius: 4px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cobertura-n {
+  font-size: 12px; font-weight: 600;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+/* E10: el cero describe la forma del reparto, pero susurra. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-n.es-cero {
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}
+
+/* Las dos tasas del panel: la que se les pedía y la que están sacando. Va bajo
+   las barras y antes del desglose, que es el orden en que se lee: primero el
+   reparto, luego contra qué, y sólo al pulsar, quiénes. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas {
+  margin: 10px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El desvío en color de resultado y no en gris: quedarse corto es la noticia
+   que este panel existe para dar. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas em {
+  margin-left: 5px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sin respaldo en hex: `--pulso-danger-fg` existe en `tokens.css` desde hace
+   tiempo, y un fallback inline es un color de feature escondido en una coma. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas em.es-corto { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas em.es-sobra { color: var(--pulso-success-fg); }
+
+/* **El balance en personas.** «Se les pedía 53,9 % y están rindiendo 60,0 %»
+   contesta si rinden lo que se supuso; esto contesta las otras dos preguntas
+   —cuánto se lleva de más o de menos a día de hoy, y si con lo agendado se
+   llega—, y en personas, que es como se decide si hay que pedir más aulas. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance {
+  display: grid;
+  gap: 3px;
+  margin: 8px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.45;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mismo par de tonos que la línea de las tasas de arriba: quedarse corto tiñe,
+   ir sobrado también, y los dos con el mismo peso que allí. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance em {
+  font-style: normal;
+  font-weight: 560;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance em.es-corto { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance em.es-sobra { color: var(--pulso-success-fg); }
+
+/* La aclaración de los dos universos no compite con las cifras del balance. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance em.aulas-cob-bal-nota {
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}

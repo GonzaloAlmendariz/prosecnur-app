@@ -109,7 +109,7 @@
   queries <- .monitoreo_acreditacion_internal_queries(data, profile)
   cases <- queries$cases %||% list()
   hits <- Filter(function(item) identical(.monitoreo_scalar(item$response_id, ""), response_id), cases)
-  if (!length(hits)) stop_api(404, "E_MONITOREO_CASE_NOT_FOUND", "No se encontro el response_id en los casos del corte.")
+  if (!length(hits)) stop_api(404, "E_MONITOREO_CASE_NOT_FOUND", "No se encontró el response_id en los casos del corte.")
   item <- hits[[1]]
   assisted <- item$assisted_review %||% list()
   reviewable_case <- .monitoreo_text_key(item$base_result %||% "") %in% c("sin cruce", "sin llave") ||
@@ -145,7 +145,7 @@
     weak_assignment <- selected_evidence_level %in% c("possible")
     partial_assignment <- identical(state_key, "parcial")
     if ((isTRUE(partial_assignment) || isTRUE(has_contradiction) || isTRUE(manual_assignment) || isTRUE(weak_assignment)) && !nzchar(note)) {
-      stop_api(400, "E_MONITOREO_NOTE_REQUIRED", "Agrega una nota para incluir con salvedad cuando la asignacion no nace de una coincidencia exacta o cuando codigo y correo se contradicen.")
+      stop_api(400, "E_MONITOREO_NOTE_REQUIRED", "Agrega una nota para incluir con salvedad cuando la asignación no nace de una coincidencia exacta o cuando código y correo se contradicen.")
     }
   }
 

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import AulasFacultadDeclarada, { type AulasFacultadDeclaradaProps } from "./AulasFacultadDeclarada";
+import { AulasSexoYDescartes, type ValoresDeSexo } from "./AulasSexoYDescartes";
 
 import type { MonitoreoVariable } from "../../../../api/monitoreo";
 import { Plus, Trash2 } from "../../../../vendor/lucide-react";
@@ -36,6 +38,10 @@ export const MAXIMO_DE_FILTROS = 4;
  */
 export function AulasFiltrosDeEfectiva({
   filtros, variables, criterio, guardando, onChange, onGuardar,
+  variableDeSexo = "", onVariableDeSexo = null,
+  facultadDeclarada = null,
+  valoresDeSexo = null, onValoresDeSexo = null,
+  descartes = [], onDescartes = null, sugerenciasDeDescarte = [],
 }: {
   filtros: ReadonlyArray<FiltroDeEfectiva>;
   variables: ReadonlyArray<MonitoreoVariable>;
@@ -44,6 +50,34 @@ export function AulasFiltrosDeEfectiva({
   guardando?: boolean;
   onChange: (filtros: FiltroDeEfectiva[]) => void;
   onGuardar: () => void;
+  /**
+   * Qué variable de la base dice el SEXO de quien respondió (dictado
+   * 2026-09-04: «poder mapear cuántas se esperaban en hombres y en mujeres y
+   * cuánto obtuvimos»). Se declara aquí, junto al resto del criterio, porque es
+   * la misma pregunta: qué columna de la base significa qué. Sin declararla, el
+   * motor no cuenta por sexo y las celdas callan; adivinar cuál es sería el
+   * error que ya costó una lectura en este estudio.
+   */
+  variableDeSexo?: string;
+  /**
+   * La declaración de la facultad del alumno, gemela de la del sexo: sin ella
+   * no hay cruce entre la facultad del aula y la que el alumno dice, y sin ese
+   * cruce no se puede ver qué cuota la está llenando gente de otra facultad.
+   * `null` = la sesión no puede guardarla y el bloque no se ofrece.
+   */
+  facultadDeclarada?: AulasFacultadDeclaradaProps | null;
+  /** `null` = sólo lectura; el selector no se pinta. */
+  onVariableDeSexo?: ((variable: string) => void) | null;
+  /**
+   * A5 (2026-09-08): qué valor de la variable de sexo cuenta como mujeres y
+   * cuál como hombres, y qué códigos de colector quedan fuera del operativo.
+   * Se pintan bajo el selector de sexo cuando hay callbacks o valores.
+   */
+  valoresDeSexo?: ValoresDeSexo | null;
+  onValoresDeSexo?: ((v: ValoresDeSexo) => void) | null;
+  descartes?: ReadonlyArray<string>;
+  onDescartes?: ((valores: string[]) => void) | null;
+  sugerenciasDeDescarte?: ReadonlyArray<string>;
 }) {
   const [abierto, setAbierto] = useState<number | null>(null);
   /**
@@ -170,6 +204,45 @@ export function AulasFiltrosDeEfectiva({
           La base no trae {ausentes.map((v) => `«${v}»`).join(" ni ")}, así que{" "}
           {ausentes.length === 1 ? "esa condición no se aplica" : "esas condiciones no se aplican"}.
         </p>
+      ) : null}
+
+      {onVariableDeSexo ? (
+        <div className="aulas-efectiva-sexo">
+          <label>
+            <span>Variable que dice el sexo</span>
+            <select
+              value={variableDeSexo}
+              onChange={(e) => onVariableDeSexo(e.target.value)}
+            >
+              <option value="">sin declarar</option>
+              {nombres.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <em>
+            {variableDeSexo
+              ? "Con ella, el Plan del día dice cuántas efectivas se obtuvieron de cada sexo."
+              : "Sin ella, las cifras por sexo del Plan del día quedan vacías: no se adivina qué columna es."}
+          </em>
+          {/* A5: los valores de esa variable, repartidos en mujeres y hombres, y
+              los descartes del colector. Sólo con alguien que los guarde o con
+              algo ya declarado que enseñar. */}
+          {onValoresDeSexo || onDescartes || valoresDeSexo || descartes.length ? (
+            <AulasSexoYDescartes
+              variableDeSexo={variableDeSexo}
+              valoresDeLaVariable={valoresDe(variableDeSexo)}
+              mujeres={valoresDeSexo?.mujeres ?? []}
+              hombres={valoresDeSexo?.hombres ?? []}
+              descartes={descartes}
+              sugerencias={sugerenciasDeDescarte}
+              onValoresDeSexo={onValoresDeSexo}
+              onDescartes={onDescartes}
+            />
+          ) : null}
+          {/* La facultad declarada va debajo del sexo y no en otra pantalla:
+              son las dos variables que el estudio declara sobre quien responde,
+              y separarlas hace que la segunda no se encuentre. */}
+          {facultadDeclarada ? <AulasFacultadDeclarada {...facultadDeclarada} /> : null}
+        </div>
       ) : null}
 
       <div className="aulas-efectiva-mando">

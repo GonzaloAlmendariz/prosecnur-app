@@ -142,7 +142,7 @@ monitoreo_texto_preguntas <- function(survey = NULL, columnas = character(0)) {
     preguntas = list(), excluidas = list()
   )
   if (is.null(survey) || !NROW(survey)) {
-    return(vacio("Este estudio no trae instrumento, asi que no se sabe que preguntas son abiertas."))
+    return(vacio("Este estudio no trae instrumento, así que no se sabe qué preguntas son abiertas."))
   }
   col_tipo <- grep("^type$", names(survey), ignore.case = TRUE)[1]
   col_nom <- grep("^name$", names(survey), ignore.case = TRUE)[1]
@@ -186,7 +186,7 @@ monitoreo_texto_preguntas <- function(survey = NULL, columnas = character(0)) {
   list(
     disponible = length(preguntas) > 0L,
     motivo = if (length(preguntas)) "" else
-      "Las preguntas abiertas del instrumento son identificadores o no estan en la base.",
+      "Las preguntas abiertas del instrumento son identificadores o no están en la base.",
     preguntas = preguntas,
     excluidas = excluidas
   )

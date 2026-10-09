@@ -118,3 +118,21 @@ NULL
   if (!is.finite(n)) return(TRUE)
   n <= 1
 }
+
+
+#' ¿Alguna cifra de la lámina tendrá que subir sobre su barra?
+#'
+#' Estimación previa al dibujo, para decidir el paso de fila antes de conocer
+#' las cajas de texto: un segmento más angosto que la cifra («99 %», ~0.42 in a
+#' 14 pt con su margen) no la contiene. El área de barras ocupa ~62 % del ancho.
+#' @param valores Proporciones de los segmentos (0 a 1).
+#' @param ancho Ancho del gráfico en pulgadas.
+#' @keywords internal
+.apiladas_hay_cifras_chicas <- function(valores, ancho) {
+  v <- suppressWarnings(as.numeric(valores))
+  w <- suppressWarnings(as.numeric(ancho)[1])
+  if (!is.finite(w) || w <= 0) w <- 10
+  umbral <- min(0.12, max(0.02, 0.42 / (0.62 * w)))
+  any(is.finite(v) & v > 0 & v < umbral)
+}
+

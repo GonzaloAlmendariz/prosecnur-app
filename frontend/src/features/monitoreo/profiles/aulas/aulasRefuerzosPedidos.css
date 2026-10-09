@@ -1,0 +1,169 @@
+/* Dónde viven los refuerzos que la app pidió, y en qué punto está cada uno.
+   Sin esta hoja, marcar era un acto sin vuelta: la fila salía del reparto y no
+   aparecía en ninguna otra parte. */
+
+.mon-profile-page.is-aulas-flow .aulas-pedidos { display: grid; gap: 9px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lectura,
+.mon-profile-page.is-aulas-flow .aulas-pedidos-pie {
+  margin: 0;
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-pie {
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.45;
+}
+
+/* El embudo. Cuatro escalones fijos: ninguna pista se mide por contenido. */
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0; padding: 0; list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera li {
+  display: grid;
+  gap: 1px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  border-left: 3px solid var(--pulso-border);
+  min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera li b {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera li em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera li.es-vacio b { color: var(--pulso-text-faint); }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera li.es-por_contactar { border-left-color: var(--pulso-accent-violet); }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera li.es-en_gestion { border-left-color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera li.es-con_fecha { border-left-color: var(--pulso-primary); }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-escalera li.es-aplicado { border-left-color: var(--pulso-success-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lista {
+  display: grid; gap: 5px; margin: 0; padding: 0; list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lista li {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1.3fr) minmax(0, 1fr) 124px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lista.es-con-accion li {
+  grid-template-columns: 108px minmax(0, 1.3fr) minmax(0, 1fr) 124px 74px;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-accion { display: grid; }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-accion button,
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lote button {
+  padding: 3px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-accion button:hover:not(:disabled),
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lote button:hover:not(:disabled) {
+  border-color: var(--pulso-primary);
+  color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-accion button:disabled,
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lote button:disabled { opacity: 0.45; cursor: default; }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-lote { margin: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-pedidos-paso {
+  display: grid; place-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-semibold);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-paso.es-por_contactar {
+  background: var(--pulso-surface-3); color: var(--pulso-accent-violet);
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-paso.es-en_gestion { color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-paso.es-con_fecha { color: var(--pulso-primary); }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-paso.es-aplicado { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-paso.es-rechazado { color: var(--pulso-danger-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-pedidos-quien { display: grid; gap: 0; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-quien b {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-quien em,
+.mon-profile-page.is-aulas-flow .aulas-pedidos-para,
+.mon-profile-page.is-aulas-flow .aulas-pedidos-fruto {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-para b { color: var(--pulso-text-soft); }
+.mon-profile-page.is-aulas-flow .aulas-pedidos-fruto {
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-pedidos-fruto b { color: var(--pulso-success-fg); }
+
+@media (max-width: 1100px) {
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-escalera {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-lista li {
+    grid-template-columns: 108px minmax(0, 1.3fr) 124px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-lista.es-con-accion li {
+    grid-template-columns: 108px minmax(0, 1.3fr) 124px 74px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-pedidos-para { grid-column: 2 / -1; }
+}
+
+/* El acuse de una marca hecha desde un popover de Consultas. Vive en esta hoja
+   —y no en la del reparto— porque la hoja del reparto sólo se carga con su
+   pestaña: el popover de complemento se abre desde la cadena, que es otra. */
+.mon-profile-page.is-aulas-flow .aulas-acuse-marca {
+  margin: 0;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: var(--pulso-surface-3);
+  border-left: 3px solid var(--pulso-success-fg);
+  font-size: var(--aulas-sec);
+  color: var(--pulso-text-soft);
+  line-height: 1.45;
+}
+.mon-profile-page.is-aulas-flow .aulas-acuse-marca.es-fallo { border-left-color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-acuse-marca b { color: var(--pulso-text); }
+.mon-profile-page.is-aulas-flow .aulas-acuse-marca button {
+  border: 0; background: none; padding: 0;
+  color: var(--pulso-primary);
+  font-size: var(--aulas-min);
+  text-decoration: underline;
+  cursor: pointer;
+}

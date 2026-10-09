@@ -4,6 +4,8 @@ import {
   BarChart3,
   BarChartBig,
   Boxes,
+  Search,
+  CalendarClock,
   CalendarRange,
   ClipboardCheck,
   Clock,
@@ -11,7 +13,9 @@ import {
   ContactRound,
   DatabaseZap,
   Download,
+  Gauge,
   Layers3,
+  LifeBuoy,
   Link2,
   ListChecks,
   MapPin,
@@ -222,16 +226,73 @@ export const MONITOREO_PESTANAS = {
       // plan, y la agenda no tiene sitio para un tercer panel: su stack reparte
       // el alto entre dos.
       pestana("aulas", "modelo", "contacto", "Contacto", "Qué medio agenda mejor", PhoneCall),
+      // Última de agendación a propósito: cierra el recorrido «qué aulas son →
+      // a dónde ir → a quién llamo → cuánta gente hace falta». Las tres
+      // anteriores listan el plan; ésta lo dimensiona, y sólo tiene sentido
+      // cuando ya se sabe qué aulas son.
+      //
+      // Es la única superficie que lee el RANGO horario y no la hora de inicio:
+      // sobre el plan de HSVG 2026 el pico contado por hora de inicio daba 8
+      // aulas simultáneas y contado por rango da 19, que es el número que
+      // dimensiona el equipo de campo.
+      pestana("aulas", "modelo", "carga", "Carga", "Cuántos aplicadores por franja", CalendarClock),
     ],
     avance: [
-      pestana("aulas", "avance", "resumen", "Resumen", "Avance por curso-horario", BarChart3),
-      pestana("aulas", "avance", "estratos", "Estratos", "Avance y brecha por estrato", Layers3),
-      pestana("aulas", "avance", "cuotas", "Cuotas", "Sexo por facultad", Target),
+      // **El orden lo fijó Gonzalo el 2026-08-29**: «la pestaña más importante
+      // debería estar al inicio, entonces los cierres de cuota por facultad y
+      // el avance general deben estar al principio».
+      //
+      // Es su norte, y estaba tercero: «lo que me interesa es que TODAS LAS
+      // FACULTADES CUMPLAN CON SU CUOTA DE SEXO. Ese es lo fundamental de todo
+      // esto». Quien abre Avance se encontraba antes con dos pantallas del
+      // operativo —cuántas aulas se aplicaron, cómo va cada estrato del
+      // sorteo— y la pregunta que decide quedaba detrás.
+      // Se llama «Metas» y no «Cuotas» (Gonzalo, 2026-09-08). La pestaña habla de
+      // dos metas —muestra y sobremuestra— y de lo que falta para cada una; «cuota»
+      // era el vocabulario del diseño muestral, no el de quien mira el avance.
+      // La CLAVE sigue siendo `cuotas`: cambiarla rompería las direcciones ya
+      // enlazadas, los docs de direcciones y el recorrido de QA.
+      // **Reordenado el 2026-09-09 por Gonzalo, y con Estratos FUERA.** Su
+      // recorrido, textual: «resumen debería estar al inicio, seguido de metas,
+      // luego rendimiento, luego efectividad y luego salidas». Es el orden de
+      // las preguntas de quien entra: primero qué llevamos en total, después si
+      // cada facultad llega a su cuota de sexo, después qué rinde, después si
+      // el campo se comporta como el diseño supuso, y al final publicar.
+      //
+      // El orden anterior abría por Metas —decisión suya del 2026-08-29, cuando
+      // Resumen todavía no resumía— y esa razón se cayó sola: Resumen ahora abre
+      // con las respuestas efectivas, que es «el primer alcance que yo tengo
+      // cuando entro a avance».
+      pestana("aulas", "avance", "resumen", "Resumen", "Avance general del operativo", BarChart3),
+      pestana("aulas", "avance", "cuotas", "Metas", "Avance hacia la muestra y la sobremuestra, por cada grupo de la cuota", Target),
       // El eje que sustituye a «aula válida / no válida», retirado por Gonzalo
       // el 2026-08-18: la unidad es la encuesta conseguida, no un porcentaje
       // contra un umbral. Va en pestaña propia y no apilada en Resumen, que ya
       // lleva siete paneles.
       pestana("aulas", "avance", "rendimiento", "Rendimiento", "Qué rinde más, por facultad", TrendingUp),
+      // **«Estratos» se retiró el 2026-09-09.** Gonzalo, tres veces y la última
+      // sin rodeos: «ya no entra porque, como ya te dije mil veces, yo no
+      // conceptualizo los avances ni las metas ni el desarrollo del campo en
+      // función de si hay una facultad donde la mayoría sea hombres o la
+      // mayoría sea mujeres. Yo no lo conceptualizo de esa forma».
+      //
+      // No es un problema de formato: la pestaña partía el operativo por un eje
+      // que él nunca usa para decidir. Sus dos paneles legítimos —cómo se
+      // repartió el sorteo y cuánto se ha movido la composición— son del DISEÑO
+      // muestral, no del avance, y si vuelven será a donde se decide la muestra.
+      // `AulasPestanaEstratos` sigue en el árbol, sin montar.
+      // **Pestaña propia, y no un panel dentro de Rendimiento** (ADR 0082,
+      // decisión de Gonzalo del 2026-08-26). Las dos miden efectivas sobre
+      // elegibles y ahí se acaba el parecido: Rendimiento ordena facultades por
+      // lo que deja cada visita —un ranking para decidir a dónde ir mañana, con
+      // el numerador del PARTE— y esto contrasta la τ que dimensionó la muestra
+      // contra la que rinde el campo, con el numerador de PLATAFORMA. Apiladas,
+      // los dos numeradores quedarían uno debajo del otro sin que nada los
+      // distinga, que es el defecto más caro de este perfil; y la tabla de
+      // decisión son quince filas con banda y reservas que necesitan la vista
+      // entera. El `detail` es el que las separa: los rótulos cortos son
+      // sinónimos en castellano.
+      pestana("aulas", "avance", "efectividad", "Efectividad", "La τ del diseño contra la del campo", Gauge),
       pestana("aulas", "avance", "salidas", "Salidas", "Publicación a Sheets", Download),
     ],
     // Validación tenía las dos superficies apiladas y la hoja quedaba enterrada
@@ -264,9 +325,21 @@ export const MONITOREO_PESTANAS = {
       // podria ser un tap o una pestaña en si misma». Vivia dentro de Registro
       // de campo, apretada con otros seis paneles, y leer respuestas abiertas
       // es un trabajo entero: se entra a hacer eso y no a mirarlo de paso.
+      // **Sólo existe en un estudio CONFIDENCIAL.** Gonzalo, 2026-09-22: «esta
+      // pestaña sólo está disponible si la encuesta, en vez de ser anónima, es
+      // confidencial» —las confidenciales piden un código identificador, las
+      // anónimas no—. El catálogo la declara y `railDeAulas` la retira cuando el
+      // estudio no pide código: el catálogo dice qué existe en el perfil, el
+      // rail qué existe en ESTE estudio.
+      pestana("aulas", "calidad", "alumnos", "Cruce de alumnos", "Quién respondió, por su código", Users),
       pestana("aulas", "calidad", "abiertas", "Respuestas abiertas", "Lo que se escribió a mano", MessageSquare),
     ],
     consultas: [
+      // **La primera de Consultas, y a propósito.** Las otras cuatro contestan
+      // preguntas de conjunto —la cadena, las brechas, el parte, los extras— y
+      // ésta contesta por UNA fila concreta, que es lo que se pregunta cuando
+      // alguien llama con un código en la mano. Gonzalo la pidió el 2026-09-09.
+      pestana("aulas", "consultas", "ficha", "Buscar por código", "Un curso-horario, de CH o R a su ficha", Search),
       pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),
       pestana("aulas", "consultas", "brechas", "Brechas", "Cursos-horario por debajo de su meta", AlertCircle),
       pestana("aulas", "consultas", "parte", "Parte de campo", "Lo que se anotó en cada aula", ClipboardCheck),
@@ -274,6 +347,17 @@ export const MONITOREO_PESTANAS = {
       // hombres y mujeres de cada facultad. Estaban en el plan —639 en el
       // estudio de 2026 contra 202 titulares— y no se veían en ninguna pantalla.
       pestana("aulas", "consultas", "extras", "Extras", "Aulas adicionales para la cuota por facultad", Boxes),
+      // **Pestaña propia, y detrás de Extras, por pedido de Gonzalo del
+      // 2026-09-11**: «los refuerzos deberían tener su propia pestaña en
+      // Consultas luego de la pestaña Extras».
+      //
+      // Va después de Extras porque es su continuación: Extras dice qué
+      // inventario hay, y Refuerzos qué se hace con él —cuáles conviene pedir
+      // dentro de un techo, cuáles se pidieron ya y en qué punto está la
+      // gestión de cada una—. Y va en pestaña propia porque es un circuito
+      // entero con acciones: elegir el techo, marcar y seguir lo marcado no
+      // caben de paso en un panel de Resumen.
+      pestana("aulas", "consultas", "refuerzos", "Refuerzos", "Qué reforzar dentro del techo y en qué va lo pedido", LifeBuoy),
     ],
   },
 } as const satisfies Record<

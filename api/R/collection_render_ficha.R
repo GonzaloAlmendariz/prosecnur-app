@@ -88,8 +88,23 @@
   base
 }
 
+# **Lo que se imprime se limpia una vez, aqui.**
+#
+# El dato de origen trae espacios que en pantalla no se ven y en papel si: la
+# base de la DTI compone el docente como «APEPATERNO APEMATERNO, NOMBRES» y con
+# el apellido materno vacio sale «ADINS  , SEBASTIEN». Medido el 2026-09-20
+# sobre el plan de CCSS Perfil 2026-II: 5 de 136 fichas con espacio antes de la
+# coma y 3 con espacios dobles.
+#
+# Se colapsa el blanco repetido y se pega la puntuacion al texto que la
+# precede. En un rotulo impreso un espacio doble nunca significa nada, asi que
+# no hay nada que preservar; y va en `.crf_txt` -por donde pasa TODO campo de
+# la ficha- y no en el plan, que es dato del estudio y no se reescribe para que
+# salga bonito.
 .crf_txt <- function(value, fallback = "Por confirmar") {
   v <- if (is.null(value) || !length(value)) "" else trimws(as.character(value)[1])
+  v <- gsub("[[:space:]]+", " ", v)
+  v <- gsub("[[:space:]]+([,;.:])", "\\1", v)
   if (!nzchar(v) || is.na(v)) fallback else v
 }
 
@@ -237,6 +252,33 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   if (nzchar(target)) paste0("Reemplazo", pos, " de ", target) else paste0("Reemplazo", pos)
 }
 
+#' Compone el titulo de una ficha: codigo operativo + curso-horario.
+#'
+#' Devuelve `"CH 1 MAT202_0591"`. Si falta uno de los dos, devuelve el otro
+#' entero: media identidad es mejor que una cadena con un hueco. Si los dos son
+#' el mismo valor —hay marcos donde el codigo operativo ES el curso-horario— no
+#' lo repite.
+#'
+#' @param codigo codigo operativo («CH 1», «R 1.2», «EXTRA 7»).
+
+#' @param curso codigo academico del curso-horario, como venga del marco.
+#' @return una cadena; vacia solo si ambos lo estan.
+#' @keywords internal
+.crf_codigo_ficha <- function(codigo, curso) {
+  codigo <- toupper(trimws(as.character(codigo %||% "")[1]))
+  curso <- toupper(trimws(as.character(curso %||% "")[1]))
+  # El guion bajo se CONSERVA: «MAT202_0591» es la forma estandar del
+  # curso-horario —la del marco, la del nombre del PDF y la del identificador que
+  # viaja en el QR—. Traducirlo a guion daba dos escrituras del mismo codigo en
+  # la misma hoja, que es la clase de detalle que obliga a comprobar dos veces si
+  # se esta hablando de lo mismo. Solo se sube la caja.
+  if (!nzchar(codigo)) return(curso)
+  if (!nzchar(curso) || identical(codigo, curso)) return(codigo)
+  # Punto medio y no espacio: separa dos cosas de naturaleza distinta —la
+  # ficha y su lugar— sin que se lean como un solo codigo largo.
+  paste(codigo, curso, sep = " \u00b7 ")
+}
+
 .crf_unit_context <- function(unit) {
   dims <- unit$dimensions %||% list()
   scheduling <- unit$scheduling %||% list()
@@ -250,6 +292,31 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
       .crf_txt(unit$label, "Unidad de aplicacion")
     ),
     label = .crf_txt(unit$label, "Unidad de aplicacion"),
+    # Los DOS codigos juntos, que es como se titula la ficha: «CH 1 MAT202_0591».
+    #
+    # Por separado ninguno basta. El academico solo —«mat202_0591»— era el titulo
+    # hasta el 2026-08-27 y no dice nada del operativo: el equipo habla de «CH 1»
+    # y ese codigo solo aparecia en el nombre del archivo, que se pierde en
+    # cuanto la hoja se imprime. El operativo solo no identifica el curso.
+    #
+    # El curso-horario va en caja alta y con su guion bajo —MAT202_0591, la
+    # forma estandar— porque asi se lee de un vistazo en una pila de papeles y
+    # coincide letra por letra con el nombre del archivo y con el identificador
+    # del QR.
+    # **El titulo es el codigo y el PABELLON, no el horario** (poda de Gonzalo,
+    # 2026-09-03: «el titulo debajo del QR deberia tener simplemente el codigo
+    # y el pabellon. El pabellon CONFIRMADO... sobre todo cuando hay dos
+    # pabellones a la vez, lo que hace el agendador es definirte finalmente a
+    # cual se tiene que ir»). El horario del curso ya vive en su propio campo;
+    # repetirlo en el elemento mas grande de la hoja gastaba el sitio de lo
+    # unico que el aplicador necesita de un vistazo: que ficha es y adonde va.
+    #
+    # `dims$venue` YA trae el confirmado del Sheets cuando existe (la
+    # precedencia vive en el seed), asi que aqui no hay que elegir de nuevo.
+    codigo_ficha = .crf_codigo_ficha(
+      .crf_txt(dims$legacy_ref %||% unit$operational_code, ""),
+      trimws(as.character(dims$venue %||% "")[1])
+    ),
     role = .crf_role_label(
       unit$role, replacement_for,
       dims$replacement_order %||% unit$replacement_order
@@ -260,6 +327,13 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     # frase que existe para leerse, no para compararse.
     role_key = tolower(gsub("[ -]+", "_", trimws(as.character(unit$role %||% "")[1]))),
     replacement_for = replacement_for,
+    # El NUMERO del eslabon, ademas de la frase. `role` sale ya redactado
+    # —«Reemplazo 2»— y quien tiene que agrupar por nivel necesita el entero:
+    # el paquete reparte los 1.259 reemplazos en una carpeta por nivel, y
+    # sacarlo del texto obligaria a parsear una frase que existe para leerse.
+    replacement_order = suppressWarnings(as.integer(
+      dims$replacement_order %||% unit$replacement_order %||% NA
+    )),
     group = .crf_txt(unit$group, ""),
     faculty = .crf_txt(dims$faculty %||% unit$faculty, ""),
     # La escuela dentro de la facultad: ARTE Y DISEÑO agrupa escuelas que no
@@ -291,6 +365,7 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     "deployment.provider" = context$deployment$provider,
     "unit.unit_id" = context$unit$unit_id,
     "unit.operational_code" = context$unit$operational_code,
+    "unit.codigo_ficha" = context$unit$codigo_ficha,
     "unit.label" = context$unit$label,
     "unit.role" = context$unit$role,
     "unit.replacement_for" = context$unit$replacement_for,
@@ -510,6 +585,9 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
   }
   if (identical(page$layout_preset, "field_form")) {
     return(collection_material_draw_field_form(page, page_no, total_pages, brand_assets))
+  }
+  if (identical(page$layout_preset, "croquis_campus")) {
+    return(collection_material_draw_campus_croquis(page, page_no, total_pages, brand_assets))
   }
   collection_material_draw_sheet(page, page_no, total_pages, brand_assets)
 }

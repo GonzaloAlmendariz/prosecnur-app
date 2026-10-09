@@ -224,7 +224,9 @@ describe("montaje: margen y sexo viven en la pestaña de Solidez", () => {
         model={model}
       />,
     );
-    expect(html).toContain("cmv2-aulas-vacio-nota");
+    // Desde 2026-09-27 el vacío es el EmptyState de la casa con su camino.
+    expect(html).toContain("Todavía no hay una selección corrida");
+    expect(html).toContain("pulso-empty-state");
     expect(html).not.toContain("cmv2-margen-card");
   });
 });

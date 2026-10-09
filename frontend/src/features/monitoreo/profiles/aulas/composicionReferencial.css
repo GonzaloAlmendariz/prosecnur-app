@@ -1,0 +1,199 @@
+/* Hoja propia del panel referencial de sexo y carrera. `aulasMonitoreo.css`
+ * está congelado a crecimiento y esto es un componente nuevo: hoja nueva, como
+ * `tresLecturasDeCuota.css`. El guard `cssSinDueno` exige que cada clase de
+ * aquí la nombre un `.tsx`. */
+
+/* La leyenda: los dos repartos, dichos antes de dibujarlos. Sin semáforo — no
+ * hay «bien» ni «mal» aquí, y un tono de alarma lo inventaría. */
+/* Sobre cuánta gente está medido todo esto, y nada más: los dos rótulos con su
+   muestra de color se fueron con las barras superpuestas —cada barra lleva
+   ahora el suyo pegado a la izquierda, y el color es de la categoría—. */
+.aulas-comp-leyenda { margin: 0 0 12px; font-size: var(--aulas-min); color: var(--pulso-text-faint); }
+.aulas-comp-swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+.aulas-comp-dimensiones { display: grid; gap: 18px; }
+.aulas-comp-dimension { display: grid; gap: 8px; }
+.aulas-comp-titulo { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin: 0; }
+.aulas-comp-titulo h4 { margin: 0; font-size: var(--aulas-sec); font-weight: 650; color: var(--pulso-text); }
+.aulas-comp-titulo span { font-size: var(--aulas-min); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+
+.aulas-comp-nombre { overflow-wrap: normal; word-break: keep-all; font-weight: 600; }
+
+/* --- barras apiladas al 100 % ---------------------------------------------
+   Gonzalo, 2026-09-22: «¿no sería mejor barras apiladas elegantes por tipo de
+   estrato […] con la barra de base y la barra de cómo va el campo hasta ahora?».
+   Con una fila por categoría eran seis pares de barras finas y la comparación
+   había que hacerla de dos en dos; apiladas, el sesgo salta de un golpe. */
+
+.aulas-comp-pilas { display: grid; gap: 6px; margin: 2px 0 10px; }
+
+.aulas-comp-pila-fila {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9.5rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.aulas-comp-pila-rotulo { font-size: 11.5px; color: var(--pulso-text-faint); }
+
+.aulas-comp-pila {
+  display: flex;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--pulso-surface-2);
+  /* **Sin `overflow: hidden`**, que recortaba el globo del hover contra el
+     borde de la barra. Las esquinas las redondean el primer y el último
+     segmento, que es lo que el recorte hacía. */
+}
+
+.aulas-comp-pila-vacia {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+
+.aulas-comp-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2px;
+  height: 100%;
+  background: var(--comp-tono, var(--pulso-surface-2));
+  /* La hendidura entre segmentos la hace el propio fondo del carril, no un
+     borde: con seis segmentos, seis bordes de 1 px se comen tres puntos
+     porcentuales de ancho y la barra deja de sumar lo que dice. */
+  box-shadow: inset -1px 0 0 var(--pulso-surface);
+}
+
+.aulas-comp-seg:last-child { box-shadow: none; }
+.aulas-comp-seg:first-child { border-radius: 4px 0 0 4px; }
+.aulas-comp-seg:last-child { border-radius: 0 4px 4px 0; }
+.aulas-comp-seg:only-child { border-radius: 4px; }
+
+/* **El globo del hover, que es donde viven ahora las cifras.** El `title` del
+   navegador tarda un segundo largo, sale donde el sistema quiere y no se puede
+   estilar; con seis segmentos por barra eso es la diferencia entre poder leer
+   el reparto y no poder. Sale también con el teclado: un dato que sólo existe
+   bajo el ratón no existe para quien no lo usa. */
+.aulas-comp-seg { position: relative; cursor: default; outline: none; }
+
+.aulas-comp-seg::after {
+  content: attr(data-info);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: var(--pulso-text);
+  color: var(--pulso-surface);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.aulas-comp-seg:hover::after,
+.aulas-comp-seg:focus-visible::after { opacity: 1; }
+
+/* El segmento se aclara al pasar por encima: dice cuál está leyendo el globo
+   cuando hay seis pegados y el globo va centrado sobre uno estrecho. */
+.aulas-comp-seg:hover,
+.aulas-comp-seg:focus-visible { filter: brightness(1.12); }
+
+/* Los de los extremos empujan su globo hacia dentro: centrado sobre el primer
+   segmento se sale por la izquierda del panel. */
+.aulas-comp-seg:first-child::after { left: 0; transform: none; }
+.aulas-comp-seg:last-child::after { left: auto; right: 0; transform: none; }
+
+/* Lo que falta para el 100 %: categorías que el bloque no lista, o gente sin
+   ese dato. Va sin nombre y en el gris del carril porque no es una categoría
+   más; repartirlo entre las demás sería inventar a quién pertenece. */
+.aulas-comp-seg.es-resto {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pulso-surface-2) 0 4px,
+    color-mix(in srgb, var(--pulso-border) 55%, transparent) 4px 8px
+  );
+}
+
+.aulas-comp-seg > em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  /* Los tonos del sistema son medios-oscuros: el blanco resuelve sobre los
+     ocho. La sombra sostiene el caso del ámbar, que es el más claro. */
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* **La leyenda es el pie de la barra, no una tabla.** En rejilla vertical eran
+   seis renglones de cuatro columnas debajo del gráfico, compitiendo con él. En
+   línea y centrada se lee de un vistazo y cada item se lleva sus dos cifras
+   juntas, así que ninguna columna tiene que cuadrar con la de al lado. */
+.aulas-comp-leyenda-cats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-comp-leyenda-cats > li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+  /* La muestra de color se alinea con el texto y no con su línea base, que la
+     deja flotando medio píxel alta en cada item. */
+  line-height: 1.5;
+}
+
+.aulas-comp-leyenda-cats .aulas-comp-swatch { align-self: center; }
+
+.aulas-comp-leyenda-cats .aulas-comp-nombre { color: var(--pulso-text-soft); }
+
+/* **El cero, dicho sin número.** La categoría que no tiene ni una recogida no
+   dibuja segmento, así que sin esto desaparecería del panel: se marca con el
+   color hueco y dos palabras. Un «0» suelto en una leyenda sin números se
+   leería como un error de la pantalla. */
+.aulas-comp-leyenda-cats > li[data-cero] .aulas-comp-nombre { color: var(--pulso-text-faint); }
+.aulas-comp-leyenda-cats > li[data-cero] .aulas-comp-swatch {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--comp-tono, var(--pulso-border));
+}
+.aulas-comp-leyenda-cats > li > em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+/* La paleta del perfil, la misma de los pabellones y de los chips de aula: el
+   tono sale del nombre, así que una carrera conserva su color entre pantallas. */
+.aulas-comp-seg.es-tono-0, .aulas-comp-swatch.es-tono-0 { --comp-tono: var(--pulso-accent-steel); }
+.aulas-comp-seg.es-tono-1, .aulas-comp-swatch.es-tono-1 { --comp-tono: var(--pulso-accent-green); }
+.aulas-comp-seg.es-tono-2, .aulas-comp-swatch.es-tono-2 { --comp-tono: var(--pulso-accent-rose); }
+.aulas-comp-seg.es-tono-3, .aulas-comp-swatch.es-tono-3 { --comp-tono: var(--pulso-accent-amber); }
+.aulas-comp-seg.es-tono-4, .aulas-comp-swatch.es-tono-4 { --comp-tono: var(--pulso-accent-violet); }
+.aulas-comp-seg.es-tono-5, .aulas-comp-swatch.es-tono-5 { --comp-tono: var(--pulso-accent-cyan); }
+.aulas-comp-seg.es-tono-6, .aulas-comp-swatch.es-tono-6 { --comp-tono: var(--pulso-module-monitoring); }
+.aulas-comp-seg.es-tono-7, .aulas-comp-swatch.es-tono-7 { --comp-tono: var(--pulso-module-processing); }
+
+.aulas-comp-swatch[class*="es-tono-"] {
+  background: var(--comp-tono);
+  border-radius: 2px;
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+}

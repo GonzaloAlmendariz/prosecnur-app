@@ -180,3 +180,76 @@ describe("historiaDeCadena y el banco", () => {
     expect(res.sinReserva).toBe(1);
   });
 });
+
+/**
+ * **«En contacto» con el número muerto no es una gestión en marcha.**
+ *
+ * Visto en pantalla el 2026-09-11: la cadena de CH 85 —Derecho, titular
+ * rechazado— mostraba `R 85.1 · En contacto`, y ese mismo R 85.1 salía en el
+ * panel de riesgo entre los que no tienen teléfono válido. Quien trabajara esa
+ * pantalla habría vuelto a llamar a un número inexistente en vez de saltar a
+ * R 85.2.
+ */
+describe("el eslabón sin vía de contacto", () => {
+  const conLlamada = (fila: MonitoreoAulasPlanRow, call: string) =>
+    ({ ...fila, call_status: call }) as unknown as MonitoreoAulasPlanRow;
+
+  test("marca sinVia por el resultado de la llamada, con tildes o sin ellas", () => {
+    const filas = [
+      conLlamada({ ...titular("CH 85", 0, 20), sample_status: "rechazo" } as MonitoreoAulasPlanRow, ""),
+      conLlamada({ ...reserva("R 85.1", "CH 85", 1, 0, 20), sample_status: "en_contacto" } as MonitoreoAulasPlanRow,
+        "Número no existe"),
+      conLlamada({ ...reserva("R 85.2", "CH 85", 2, 0, 20), sample_status: "en_contacto" } as MonitoreoAulasPlanRow,
+        "NUMERO FUERA DE SERVICIO"),
+      conLlamada({ ...reserva("R 85.3", "CH 85", 3, 0, 20), sample_status: "en_contacto" } as MonitoreoAulasPlanRow,
+        "Contactar después"),
+    ];
+    const [cadena] = historiaDeCadena(filas).historias;
+    const por = Object.fromEntries(cadena.eslabones.map((e) => [e.codigo, e.sinVia]));
+    expect(por["R 85.1"]).toBe(true);
+    expect(por["R 85.2"]).toBe(true);
+    // «Contactar después» sí es una gestión en marcha: hay por dónde llamar.
+    expect(por["R 85.3"]).toBe(false);
+    expect(por["CH 85"]).toBe(false);
+  });
+
+  test("sin la columna de llamada no inventa vías muertas", () => {
+    const [cadena] = historiaDeCadena(
+      [titular("CH 1", 0, 20), reserva("R 1.1", "CH 1", 1, 0, 20)]).historias;
+    expect(cadena.eslabones.every((e) => e.sinVia === false)).toBe(true);
+  });
+});
+
+/**
+ * **El desenlace manda sobre la vía de contacto.** Visto en pantalla el
+ * 2026-09-11: CH 89 llevaba la pastilla «Rechazó el docente» y su propio
+ * eslabón decía «Sin teléfono», que le cambiaba el motivo de la caída.
+ */
+describe("la precedencia del estado del eslabón", () => {
+  test("el que rechazó sigue diciendo que rechazó, tenga o no teléfono", () => {
+    const filas = [
+      { ...titular("CH 89", 0, 20), sample_status: "rechazo", call_status: "Número no existe" },
+      { ...reserva("R 89.1", "CH 89", 1, 0, 20), sample_status: "sin_contactar" },
+    ] as unknown as MonitoreoAulasPlanRow[];
+    const [cadena] = historiaDeCadena(filas).historias;
+    // El dato sigue viajando: lo que cambia es qué se enseña primero.
+    expect(cadena.eslabones.find((e) => e.codigo === "CH 89")?.sinVia).toBe(true);
+  });
+});
+
+describe("el motivo de la caída no se inventa", () => {
+  test("un titular sin teléfono NO rechazó: la cadena lo dice con su palabra", () => {
+    // Medido el 2026-09-11: CH 89 está en `en_contacto` con «Número no existe» y
+    // la fila le ponía «Rechazó el docente». Un motivo inventado sobre un
+    // docente concreto cambia a quién se le reclama y cómo.
+    const filas = [
+      { ...titular("CH 89", 0, 20), sample_status: "en_contacto", call_status: "Número no existe" },
+      { ...reserva("R 89.1", "CH 89", 1, 0, 20), sample_status: "sin_contactar" },
+    ] as unknown as MonitoreoAulasPlanRow[];
+    const [cadena] = historiaDeCadena(filas).historias;
+    const tit = cadena.eslabones.find((e) => e.orden === 0)!;
+    expect(tit.sinVia).toBe(true);
+    // El estado de muestra sigue siendo el suyo: nadie lo convirtió en rechazo.
+    expect(tit.status).toBe("en_contacto");
+  });
+});

@@ -105,7 +105,7 @@ const PROVIDERS: ProviderMeta[] = [
     Icon: ServerCog,
     credentialKind: "token",
     inputLabel: "Nueva clave de API",
-    inputHelp: "Elige el servidor correcto y pega una clave con acceso a los proyectos que leerá Prosecnur.",
+    inputHelp: "Elige el servidor y pega una clave con acceso a sus proyectos. Ponle un alias para guardarla como perfil aparte; si dejas el alias vacío y el servidor es el mismo, se reemplaza el perfil activo.",
     inputPlaceholder: "Pegar clave de KoboToolbox",
     emptyHelp: "Conecta un perfil para leer proyectos y respuestas Kobo.",
     verifyHint: "Consulta assets visibles en el servidor activo; no valida formularios específicos del proyecto.",
@@ -134,11 +134,23 @@ const EMPTY_HF_SETTINGS: HfSettingsState = {
 };
 
 const KOBO_DEFAULT_BASE_URL = "https://kf.kobotoolbox.org";
+
 const KOBO_SERVER_OPTIONS = [
   { label: "Global", value: KOBO_DEFAULT_BASE_URL },
   { label: "EU", value: "https://eu.kobotoolbox.org" },
   { label: "UNHCR", value: "https://kobo.unhcr.org" },
 ];
+
+/** «https://eu.kobotoolbox.org» → «Kobo EU»; el alias de un perfil nuevo. */
+function etiquetaDeServidorKobo(baseUrl: string): string {
+  const conocido = KOBO_SERVER_OPTIONS.find((opcion) => opcion.value === baseUrl);
+  if (conocido) return `Kobo ${conocido.label}`;
+  try {
+    return `Kobo ${new URL(baseUrl).hostname}`;
+  } catch {
+    return "Kobo";
+  }
+}
 
 const EMPTY_CONNECTIONS: Record<ConnectionProvider, ConnectionTokenState> = {
   surveymonkey: {
@@ -412,12 +424,27 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
       const next = provider === "google_sheets"
         ? await authorizeGoogleSheets(token)
         : provider === "kobo"
-        ? await apiConnectionProfileSave(provider, token, {
-            alias: aliasInput || connections[provider].active_profile_alias || "Kobo",
-            profile_id: aliasInput ? undefined : connections[provider].active_profile_id || undefined,
-            make_default: true,
-            base_url: baseUrls[provider] || KOBO_DEFAULT_BASE_URL,
-          })
+        ? await (async () => {
+            const servidor = baseUrls[provider] || KOBO_DEFAULT_BASE_URL;
+            // **Un token de OTRO servidor es de otra cuenta y nunca pisa al
+            // anterior.** Sin alias, el guardado reusaba el `profile_id` del
+            // perfil activo, así que conectar el Kobo europeo del estudio de
+            // aulas reemplazaba en silencio el perfil de UNHCR y dejaba el otro
+            // estudio sin credencial. Gonzalo se topó con ello el 2026-09-07:
+            // «además no me deja crear uno más». Sí dejaba, pero sólo si
+            // adivinabas que había que escribir un alias, y nada lo decía.
+            const otroServidor =
+              servidor !== koboBaseUrlFromConnection(connections[provider]);
+            const reutiliza = !aliasInput && !otroServidor;
+            return apiConnectionProfileSave(provider, token, {
+              alias: aliasInput
+                || (otroServidor ? etiquetaDeServidorKobo(servidor) : connections[provider].active_profile_alias)
+                || "Kobo",
+              profile_id: reutiliza ? connections[provider].active_profile_id || undefined : undefined,
+              make_default: true,
+              base_url: servidor,
+            });
+          })()
         : provider === "surveymonkey" && remember[provider]
         ? await apiConnectionProfileSave(provider, token, {
             alias: aliasInput || connections[provider].active_profile_alias || "Principal",

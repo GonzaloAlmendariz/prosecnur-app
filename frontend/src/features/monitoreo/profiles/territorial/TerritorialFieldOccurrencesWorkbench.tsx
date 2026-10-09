@@ -52,6 +52,7 @@ import {
   type OccurrenceUmpAttentionReason,
   type OccurrenceUmpAttentionStatus,
 } from "../../fieldOccurrences";
+import { copiarTexto } from "../../../../lib/portapapeles";
 
 type OccurrenceTab = "states" | "distritos" | "registro" | "ump" | "alerts" | "rhythm";
 type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "sync" | "ump-export";
@@ -762,7 +763,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
   const copyOccurrenceLink = useCallback(async () => {
     if (!surveyLink) return;
     try {
-      await navigator.clipboard?.writeText(surveyLink);
+      await copiarTexto(surveyLink);
       setCopiedLink(true);
       window.setTimeout(() => setCopiedLink(false), 1600);
     } catch {
@@ -1849,7 +1850,7 @@ function OccurrenceUmpDetail({
   const missingNoticeText = row.status === "completa_sin_reporte"
     ? "Ya cumple la cuota de avance, pero falta el registro operativo de ocurrencias."
     : row.status === "incompleta_sin_reporte"
-      ? "Ya registra avance valido, todavia no completa cuota y falta el registro operativo de ocurrencias."
+      ? "Ya registra avance válido, todavía no completa cuota y falta el registro operativo de ocurrencias."
       : "Registra avance territorial valido, pero falta el registro operativo de ocurrencias.";
   const title = unexpectedUmp ? "UMP sin conciliacion" : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
   const subtitle = unexpectedUmp

@@ -16,19 +16,25 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { contar } from "../../fuentes/vocabulario";
-import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, TriangleAlert } from "../../../../vendor/lucide-react";
+import { ArrowRightLeft, ClipboardCheck, ClipboardList, ExternalLink, FileCheck2, Link2Off, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
+import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
+import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
+import { fichaEscaneadaDelParte } from "./fichaEscaneada";
 import {
   apiMonitoreoAulasActivarReemplazo,
   apiMonitoreoAulasAgenda,
   type MonitoreoAulasPlanRow,
 } from "../../../../api/monitoreo";
 import { ESTADOS_OPERATIVOS, MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
+import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { etiquetaSinRepetir, facultadesDelRegistro } from "./registroPorFacultad";
 import { porQueEsaMeta } from "./porQueEsaMeta";
 import { EstadoEnCelda } from "./EstadoEnCelda";
 import "./registroDeCampo.css";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
+import { PANEL_REEMPLAZO_AULAS } from "../../../../lib/navegacion/manifiesto";
+import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 
 // Mudado a `aulasPresentation`, que es donde vive el vocabulario: acá sólo
 // alimentaba este select y la tabla que pinta la misma columna no lo alcanzaba.
@@ -46,7 +52,15 @@ const ESTADOS_CON_MOTIVO = new Set(["sin_acceso", "cancelada", "reemplazo_pendie
 // Estados en los que el aula CAE y tiene sentido ofrecer su reemplazo. No
 // incluye `reemplazada`: esa ya lo fue, y volver a activar consumiría otra
 // reserva de la cadena sin que nadie lo haya pedido.
-const ESTADOS_QUE_CAEN = new Set(["sin_acceso", "cancelada", "reemplazo_pendiente"]);
+//
+// **La misma tripleta decide en el motor qué entra en el reporte `brechas`**
+// (`monitoreo_aulas_universitarias.R`, junto a `brecha > 0`), y eso no lo
+// declaraba ningún comentario: se encontró comparando las listas de literales de
+// los dos lados. Son dos usos del mismo concepto —«el aula cayó»— y si divergen,
+// el motor cuenta como caída una que aquí no se puede reemplazar, o al revés.
+// `estadosQueCaenSonLosDelMotor.contract.test.ts` las compara; si algún día la
+// diferencia es deliberada, hay que decirlo ahí.
+export const ESTADOS_QUE_CAEN = new Set(["sin_acceso", "cancelada", "reemplazo_pendiente"]);
 
 /** Si en este estado procede ofrecer la activación de la cadena. */
 export function aulaPuedeReemplazarse(estado: string, row: MonitoreoAulasPlanRow | null): boolean {
@@ -90,8 +104,10 @@ export function cambiosDelRegistro(
     ["observed_students", form.aforo],
     ["applied_surveys", form.aplicadas],
     ["refusals", form.rechazos],
-    // Duplicados y efectivas no son adorno: sin ellos el cuadre del parte
-    // —asistentes − rechazos − duplicados = efectivas— no se puede comprobar
+    // Duplicados y encuestas aplicadas no son adorno: sin ellos el cuadre del
+    // parte —asistentes − rechazos − duplicados = encuestas aplicadas— no se
+    // puede comprobar (S14b: el aplicador cuenta lo que aplicó; las efectivas
+    // las da la app)
     // sobre lo que la app captura, y ese control ya existe en Validación.
     ["duplicates", form.duplicados],
     ["effective_surveys", form.efectivas],
@@ -158,6 +174,12 @@ function formDesdeFila(row: MonitoreoAulasPlanRow | null): RegistroForm {
 type Props = {
   agenda: MonitoreoAulasPlanRow[];
   /**
+   * Las celdas de cuota por sexo y facultad (`dashboard.quotas_sex_faculty`).
+   * Con ellas el popover de reemplazo ordena por lo que a la facultad le
+   * falta y no sólo por parecido; sin ellas se comporta como antes.
+   */
+  celdasSexo?: ReadonlyArray<Record<string, unknown>>;
+  /**
    * La hoja de partes del libro, sólo para decir cuántas aulas YA lo tienen.
    * El registro no la edita: la escribe fila a fila con el formulario.
    */
@@ -176,12 +198,47 @@ type Props = {
 };
 
 export function RegistroDeCampo({
+  celdasSexo,
   agenda, partes = [], onGuardado, codigoEnFoco = "", onElegir,
 }: Props) {
-  const [seleccion, setSeleccion] = useState<string>("");
-  const [form, setForm] = useState<RegistroForm>(FORM_VACIO);
+  // **La selección se queda en `useState`, y es deliberado.** El foco YA es
+  // direccionable por otro camino: llega como `codigoEnFoco` desde el padre,
+  // que extrae el código de `?foco=aula:<código>` —con su prefijo—. Leerlo aquí
+  // otra vez, crudo, daba `aula:CH 1` contra un `operational_code` que es
+  // `CH 1`, así que nunca casaba y el formulario se quedaba en «Elige un
+  // curso-horario de la lista». El mecanismo existía; duplicarlo lo rompía.
+  //
+  // Y la dirección manda DESDE EL PRIMER RENDER: el initializer resuelve el
+  // foco de llegada, porque el efecto de abajo recién corre tras el montaje —
+  // la ficha parpadeaba vacía un frame y en render estático no abría nunca—.
+  // El efecto queda para los cambios de foco posteriores.
+  const filaEnFoco = (codigo: string): MonitoreoAulasPlanRow | null => {
+    const buscado = codigo.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!buscado) return null;
+    return agenda.find((r) => {
+      const clave = String(r.operational_code ?? r.classroom_id ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+      return clave === buscado;
+    }) ?? null;
+  };
+  const [seleccion, setSeleccion] = useState<string>(() => {
+    const fila = filaEnFoco(codigoEnFoco);
+    return fila ? String(fila.operational_code ?? fila.classroom_id) : "";
+  });
+  const [form, setForm] = useState<RegistroForm>(() => {
+    const fila = filaEnFoco(codigoEnFoco);
+    return fila ? formDesdeFila(fila) : FORM_VACIO;
+  });
   const [guardando, setGuardando] = useState(false);
   const [activando, setActivando] = useState(false);
+  // La ventana de elección. Va aquí y no en una superficie nueva porque ESTE es
+  // el sitio donde ya vive la única acción que activa un reemplazo: separar la
+  // elección de la activación habría dejado dos caminos para lo mismo.
+  const panelReemplazo = usePanelDireccionable(PANEL_REEMPLAZO_AULAS);
+  const eligiendo = panelReemplazo.abierto;
+  const setEligiendo = (abierto: boolean) => {
+    if (abierto) panelReemplazo.abrir();
+    else panelReemplazo.cerrar();
+  };
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   // La advertencia de ponderación de la reserva activada. Vive aparte de `ok`
@@ -278,6 +335,18 @@ export function RegistroDeCampo({
     [filas, seleccion],
   );
 
+  // El escaneo de la ficha que volvió del aula (B6c): vive en el PARTE del
+  // libro, no en la fila del plan —`.PARTE_APP_AL_PLAN` no lo copia—, así que
+  // se resuelve contra la misma hoja de partes que alimenta el contador «con
+  // parte». El resolvedor dice también el motivo del hueco: no es lo mismo un
+  // parte que no trae el enlace que un aula cuyo parte todavía no está.
+  const fichaEscaneada = useMemo(
+    () => (activa
+      ? fichaEscaneadaDelParte(String(activa.operational_code ?? activa.classroom_id ?? ""), partes)
+      : null),
+    [activa, partes],
+  );
+
   // Lo que el registro de ESTA APP marcó como aplicado. Es el otro eje, y el
   // que la lista pinta chip a chip: sin él, la cabecera decía «3 con parte en
   // el libro» mientras diez filas de abajo llevaban su chip «Aplicada», y quien
@@ -342,7 +411,17 @@ export function RegistroDeCampo({
   const set = <K extends keyof RegistroForm>(campo: K, valor: RegistroForm[K]) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
 
-  const activarReemplazo = async () => {
+  /**
+   * Activa un reemplazo para el aula en foco.
+   *
+   * Sin `elegida` entra la que toca por orden de cadena, que es lo que este
+   * botón hizo siempre. Con `elegida` entra ESA, y el backend comprueba que
+   * exista, no sea la caída, siga dormida y sea de la misma facultad.
+   *
+   * La cadena sigue siendo la guía —«el orden recomendado, no un candado»—; el
+   * popover existe para el caso en que la que toca no sirve y hay una mejor.
+   */
+  const activarReemplazo = async (elegida?: string) => {
     if (!activa) return;
     const codigo = String(activa.operational_code ?? activa.classroom_id ?? "").trim();
     if (!codigo) return;
@@ -359,7 +438,10 @@ export function RegistroDeCampo({
         // distintos —`sin_acceso` es un estado, `docente_no_autoriza` un
         // motivo— y colarlo aquí lo normalizaba a «otro», perdiendo el dato.
         motivo: form.motivo.trim(),
+        ...(elegida ? { elegida } : {}),
       });
+      // Decidir es una de las dos salidas de la ventana; la otra es cerrarla.
+      setEligiendo(false);
       // El mensaje del motor dice la consecuencia —cuántas reservas quedan, o
       // que la cadena se agotó y esa meta se queda sin cubrir—, así que se
       // muestra tal cual en vez de resumirlo aquí.
@@ -405,11 +487,19 @@ export function RegistroDeCampo({
       // wrapper de datos hace que el padding del encabezado se lea como
       // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
       // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
+      //
+      // El `data-qa-geometry-contract` de aquí abajo es INERTE y se deja a
+      // propósito: `ui-quick-check` lee el contrato del mismo elemento que
+      // lleva el grupo, así que éste no lo mide nadie. Pero
+      // `AulasCompactWorkbenchLayout.test.ts` exige que TODO panel declare su
+      // contrato en su etiqueta de apertura, y esa convención documenta qué es
+      // el panel aunque el runner no la consuma. Las dos reglas conviven y el
+      // conflicto está anotado; quitarlo por «inerte» rompe el test.
     data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-profile-panel-head">
         {/* Es la hoja «Aulas Aplicadas (Campo)» del libro, llenada aquí en vez
-            de en Excel: asistentes, rechazos, duplicados, efectivas, aplicador,
+            de en Excel: asistentes, rechazos, duplicados, encuestas aplicadas, aplicador,
             aula y momento son sus columnas. La pestaña sigue diciendo «Registro
             de campo» —lo que se hace—; el panel dice qué se está llenando. */}
         {/* **Que se lea como la hoja que es, no como un recuento.**
@@ -440,7 +530,7 @@ export function RegistroDeCampo({
       {filas.length === 0 ? (
         <p className="registro-campo-vacio">
           No hay agenda de cursos-horario. Importa el plan desde el cálculo de muestra
-          para registrar lo que pasa en cada aula.
+          para registrar lo que pasa en cada curso-horario.
         </p>
       ) : (
         <div className="registro-campo-cuerpo">
@@ -534,7 +624,7 @@ export function RegistroDeCampo({
                 <strong>Elige un curso-horario de la lista</strong>
                 <p>
                   Aquí se registra cómo fue su aplicación: asistentes, rechazos,
-                  duplicados y efectivas.
+                  duplicados y encuestas aplicadas.
                 </p>
                 {porRegistrar ? (
                   <p className="registro-campo-vacio-cifra">
@@ -544,7 +634,7 @@ export function RegistroDeCampo({
                         y aquí pone 170, sin explicación se lee como aulas
                         perdidas. */}
                     {reemplazadas ? (
-                      <em> · {reemplazadas} reemplazadas no se registran</em>
+                      <em> · {reemplazadas} reemplazados no se registran</em>
                     ) : null}
                   </p>
                 ) : null}
@@ -554,6 +644,72 @@ export function RegistroDeCampo({
                 <p className="registro-campo-contexto">
                   {etiquetaDeAula(activa)}
                   {activa.eligible_n ? ` · ${contar(activa.eligible_n, "matriculado", "matriculados")}` : ""}
+                </p>
+                {/* La cita a la vista de quien registra: dónde, de qué
+                    facultad, qué día y a qué hora, como la fila de chips del
+                    Sistema Pabellón (B33) — el mismo A206 con el mismo tono
+                    que la Agenda, en el orden del canon de Carga. El lugar
+                    acordado (B30) gana al salón del catálogo, y la facultad
+                    también es seña del box (canon B34): quien registra piensa
+                    por facultad y el formulario no la decía. */}
+                {(() => {
+                  const lugar = String(activa.scheduled_venue ?? "").trim()
+                    || String(activa.venue ?? "").trim();
+                  const facultad = String(activa.faculty ?? "").trim();
+                  const hora = String(activa.scheduled_time ?? "").trim();
+                  const fecha = String(activa.scheduled_date ?? "").trim().slice(0, 10);
+                  if (!lugar && !facultad && !hora && !fecha) return null;
+                  return (
+                    <div className="aulas-chips-fila">
+                      {lugar ? <ChipLugar lugar={lugar} /> : null}
+                      {facultad ? <ChipDato>{facultad}</ChipDato> : null}
+                      {fecha ? <ChipDato>{fecha}</ChipDato> : null}
+                      {hora ? <ChipHora>{hora}</ChipHora> : null}
+                    </div>
+                  );
+                })()}
+                {/* El enlace de aplicación A LA MANO: quien registra es quien lo
+                    reparte cuando el QR impreso no alcanza. Lo escribe la
+                    entrega de Recopiladores en `row.link`; sin él, el motivo es
+                    un dato y no un hueco (patrón de Fuentes). */}
+                {/* Y al lado, la ficha ESCANEADA (B6c): el escaneo de la hoja
+                    que volvió del aula, pegado por el equipo en el libro. Son
+                    dos cosas —la ficha para aplicar y el escaneo del
+                    resultado— y por eso llevan dos rótulos que no se pisan.
+                    Éste se lee del PARTE, no del plan (ver `fichaEscaneada`). */}
+                <p className="registro-campo-contexto">
+                  {String(activa.link ?? "").trim() ? (
+                    <a
+                      href={String(activa.link ?? "").trim()}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={String(activa.link ?? "").trim()}
+                    >
+                      <ExternalLink size={12} aria-hidden="true" /> Enlace de la ficha
+                    </a>
+                  ) : (
+                    <span className="aulas-fuente-sin-enlace">
+                      <Link2Off size={12} aria-hidden="true" /> Sin enlace de ficha: lo escribe la entrega de Recopiladores
+                    </span>
+                  )}
+                  {" · "}
+                  {fichaEscaneada?.estado === "enlace" ? (
+                    <a
+                      href={fichaEscaneada.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={fichaEscaneada.url}
+                    >
+                      <FileCheck2 size={12} aria-hidden="true" /> Ficha escaneada
+                    </a>
+                  ) : (
+                    <span className="aulas-fuente-sin-enlace">
+                      <Link2Off size={12} aria-hidden="true" />{" "}
+                      {fichaEscaneada?.estado === "parte-sin-enlace"
+                        ? "Sin ficha escaneada: el parte no trae su enlace"
+                        : "Sin ficha escaneada: aún sin parte en el libro"}
+                    </span>
+                  )}
                 </p>
                 {/* **Por qué esta aula espera lo que espera.**
                     Gonzalo: «el que monitorea tiene que saber por qué estamos
@@ -566,7 +722,7 @@ export function RegistroDeCampo({
                   const p = (v: number) => `${Math.round(v * 100)} %`;
                   return (
                     <p className="registro-campo-meta">
-                      Esta aula espera <strong>{pq.meta.toLocaleString("es-PE")}</strong> encuestas:{" "}
+                      Este curso-horario espera <strong>{pq.meta.toLocaleString("es-PE")}</strong> encuestas:{" "}
                       {pq.elegibles} elegibles{" "}
                       {/* `p_aplicada` sólo aparece si es factor de ESTA meta.
                           Desde el rediseño «1b» del cálculo de muestra dejó de
@@ -589,7 +745,7 @@ export function RegistroDeCampo({
                       {pq.factorFacultad !== null && Math.abs(pq.factorFacultad - 1) > 0.001 ? (
                         <>
                           {" "}× {p(pq.factorFacultad)} de su facultad
-                          {pq.facultadK ? ` (${fmt(pq.facultadK)} aulas de referencia)` : ""}
+                          {pq.facultadK ? ` (${fmt(pq.facultadK)} cursos-horario de referencia)` : ""}
                         </>
                       ) : null}
                       .
@@ -656,7 +812,7 @@ export function RegistroDeCampo({
                   </label>
                   <label className="registro-campo-campo">
                     {/* Se queda: el libro no tiene columna de repartidas. Sólo
-                        cuenta asistentes, rechazos, duplicados y efectivas. */}
+                        cuenta asistentes, rechazos, duplicados y encuestas aplicadas. */}
                     <span>Encuestas aplicadas</span>
                     <input
                       type="number" min={0} inputMode="numeric"
@@ -681,7 +837,7 @@ export function RegistroDeCampo({
                     />
                   </label>
                   <label className="registro-campo-campo">
-                    <span>Cantidad de efectivas</span>
+                    <span>Cantidad de encuestas aplicadas</span>
                     <input
                       type="number" min={0} inputMode="numeric"
                       value={form.efectivas} onChange={(e) => set("efectivas", e.target.value)}
@@ -692,8 +848,16 @@ export function RegistroDeCampo({
                         nombra la unidad entera: sin el «real» se leería como el
                         aula planificada, que es justo la que puede no ser. */}
                     <span>Aula real</span>
+                    {/* Mismo trato que la fecha (B54): el ejemplo es el salón
+                        AGENDADO — lo que casi siempre es la verdad; el campo
+                        existe justo para cuando NO lo fue. */}
                     <input
                       type="text" value={form.aulaReal}
+                      placeholder={(() => {
+                        const lugar = String(activa.scheduled_venue ?? "").trim()
+                          || String(activa.venue ?? "").trim();
+                        return lugar ? `p. ej. ${lugar}` : "p. ej. A206";
+                      })()}
                       onChange={(e) => set("aulaReal", e.target.value)}
                     />
                   </label>
@@ -712,8 +876,18 @@ export function RegistroDeCampo({
                   </label>
                   <label className="registro-campo-campo">
                     <span>Fecha y hora de aplicación</span>
+                    {/* El ejemplo del placeholder es LA CITA del aula cuando
+                        existe — enseña el formato con el dato que casi
+                        siempre corresponde—; el fijo «2026-08-16 10:15» era
+                        una fecha vieja que a ojo parecía un valor tecleado. */}
                     <input
-                      type="text" placeholder="2026-08-16 10:15" value={form.momento}
+                      type="text"
+                      placeholder={(() => {
+                        const f = String(activa.scheduled_date ?? "").trim().slice(0, 10);
+                        const h = String(activa.scheduled_time ?? "").trim();
+                        return f ? `p. ej. ${f}${h ? ` ${h}` : " 10:15"}` : "p. ej. 2026-09-07 10:15";
+                      })()}
+                      value={form.momento}
                       onChange={(e) => set("momento", e.target.value)}
                     />
                   </label>
@@ -737,7 +911,7 @@ export function RegistroDeCampo({
                     <button
                       type="button"
                       className="registro-campo-reemplazo"
-                      onClick={activarReemplazo}
+                      onClick={() => void activarReemplazo()}
                       disabled={guardando || activando}
                       title="Marca este curso-horario como reemplazado y pone en campo su siguiente reserva"
                     >
@@ -745,9 +919,52 @@ export function RegistroDeCampo({
                       {activando ? "Activando…" : "Activar reemplazo"}
                     </button>
                   ) : null}
+                  {aulaPuedeReemplazarse(form.estado, activa) && activa ? (
+                    <button
+                      type="button"
+                      className="registro-campo-elegir"
+                      onClick={() => setEligiendo(true)}
+                      disabled={guardando || activando}
+                      title="Compara las reservas disponibles y elige cuál entra, en vez de seguir el orden"
+                      /* **El disparador declara lo que abre.**
+
+                         Lo que despliega es un `role="dialog"` con
+                         `aria-modal`, y el botón no lo decía: un lector de
+                         pantalla lo anunciaba como un botón cualquiera, sin
+                         avisar de que va a abrir un diálogo modal ni de si ya
+                         está abierto.
+
+                         Y tenía una segunda consecuencia, medida el 2026-08-29:
+                         el barrido de popovers del runner busca justamente
+                         `aria-haspopup` y `aria-expanded`, así que **este
+                         overlay nunca entró en el gate**. Todas las corridas del
+                         perfil reportaban `popovers=0`, que se leía como «no hay
+                         ninguno» cuando significaba «ninguno se declara». */
+                      aria-haspopup="dialog"
+                      aria-expanded={eligiendo}
+                    >
+                      <Search size={14} /> Elegir reemplazo
+                    </button>
+                  ) : null}
                   {ok ? <span className="registro-campo-ok">{ok}</span> : null}
                   {error ? <span className="registro-campo-error">{error}</span> : null}
                 </div>
+                {eligiendo && activa ? (
+                  <AulasPopoverReemplazo
+                    abierto
+                    caido={activa}
+                    filas={agenda}
+                    // Lo que le falta a SU facultad, que es contra lo que se
+                    // elige: el motor ya lo tiene por celda y hasta ahora no
+                    // llegaba hasta aquí.
+                    brecha={brechaDeLaFacultad(celdasSexo, String(activa.faculty ?? ""))}
+                    onElegir={(fila) => {
+                      const cod = String(fila.operational_code ?? fila.classroom_id ?? "").trim();
+                      if (cod) void activarReemplazo(cod);
+                    }}
+                    onCerrar={() => setEligiendo(false)}
+                  />
+                ) : null}
                 {avisoPeso ? (
                   <p className="registro-campo-peso">
                     <TriangleAlert size={13} aria-hidden="true" />

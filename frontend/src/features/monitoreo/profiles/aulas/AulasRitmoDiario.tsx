@@ -1,5 +1,5 @@
-import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { fmt } from "./kpisDeAulas";
+import { AulasAvanceDiario } from "./AulasAvanceDiario";
+import { fmt, fmtCuenta } from "./kpisDeAulas";
 
 /**
  * Cómo avanzó la recolección, día por día.
@@ -24,6 +24,12 @@ export type RitmoDiario = {
   mejor_dia?: { fecha: string; validas: number } | null;
   media_diaria: number;
   meta: number;
+  /**
+   * Lo que falta según el motor, que **no es `meta - acumulado`**: suma lo que
+   * le debe cada grupo de facultad y sexo (ADR 0079). `null` en payloads
+   * anteriores a que el motor la publicara.
+   */
+  brecha?: number | null;
 };
 
 /** «Lun 10/08», que es como se nombra un día de campo en el resto del perfil. */
@@ -34,7 +40,14 @@ function etiquetaDeDia(iso: string) {
   return `${dia.charAt(0).toUpperCase()}${dia.slice(1, 3)} ${d.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}`;
 }
 
-export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
+export function AulasRitmoDiario({ ritmo, hasta }: {
+  ritmo: RitmoDiario | null;
+  /**
+   * El final del horizonte, para que el eje llegue donde llega el pronóstico
+   * del panel de abajo. Lo calcula la pestaña, que es quien ve los dos.
+   */
+  hasta?: string;
+}) {
   if (!ritmo || !ritmo.dias.length) {
     return (
       // El vacío dice de dónde saldría el dato: sin marca de envío no hay
@@ -56,44 +69,84 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
   const { dias, dias_con_campo: conCampo, mejor_dia: mejor, media_diaria: media, meta } = ritmo;
   const tope = dias.reduce((max, d) => Math.max(max, d.validas), 0);
   const total = dias[dias.length - 1]?.acumulado ?? 0;
-  const falta = Math.max(0, meta - total);
+  // **La meta se muestra REDONDEADA y el faltante se calcula sobre esa misma
+  // cifra**, para que la resta cuadre y para que coincida con el resto de la
+  // app.
+  //
+  // Al pasar el pie a `fmtCuenta` —que redondea hacia arriba, y para «lo que
+  // falta» es lo correcto— la meta salió **3.492** mientras Cuotas y Salidas
+  // dicen **3.491**: la misma cantidad (3.491,4) con dos redondeos. Eso no son
+  // dos granos legítimos, es una inconsistencia, y la introduje yo.
+  //
+  // Una meta no es «lo que hace falta conseguir de más»: es una cantidad ya
+  // fijada, y el motor la publica redondeada al entero más cercano en
+  // `avance_cuota$total$cuota`. Se muestra igual aquí. Y el faltante se saca de
+  // la meta MOSTRADA, así que 667 + 2.824 = 3.491 cuadra a la vista y da el
+  // mismo número que la banda de KPIs y que la tabla del cliente.
+  const metaEntera = Math.round(meta);
+  /**
+   * **Lo que falta lo dice el motor, no esta resta.**
+   *
+   * `metaEntera - total` da CERO en cuanto el acumulado supera la cuota, y sobre
+   * este corte eso pasa con 2.668 sobre 2.500 mientras siguen faltando 170
+   * personas en los grupos que no cierran. El pie entero está tras un
+   * `falta > 0`, así que el panel no publicaba una cifra equivocada: **se
+   * callaba**, que es más difícil de ver.
+   *
+   * La resta se queda como respaldo para un payload que aún no traiga la
+   * brecha; con ella, manda la del motor.
+   */
+  // `Number(null)` es CERO, no `NaN`: comprobar sólo `isFinite` hacía que un
+  // payload sin brecha se leyera como brecha cero y apagara el pie entero, que
+  // es justo el silencio que esta reparación viene a quitar. El `== null` va
+  // primero y cubre `null` y `undefined` de una vez.
+  const brechaDelMotor = ritmo.brecha == null ? Number.NaN : Number(ritmo.brecha);
+  const falta = Number.isFinite(brechaDelMotor)
+    ? Math.max(0, brechaDelMotor)
+    : Math.max(0, metaEntera - total);
+  /**
+   * **Cuando el total ya cubre la meta y aun así falta gente, la brecha es de
+   * composición y no de volumen**: las respuestas que quedan tienen que caer en
+   * los grupos cortos, no en cualquiera. Prometer «N días más al ritmo de» sería
+   * falso —al ritmo medio no se cierra una cuota por sexo—, así que ahí el pie
+   * dice lo que falta y de qué se trata, y se calla los días.
+   */
+  const brechaDeComposicion = falta > 0 && total >= metaEntera;
   // Cuántos días más al ritmo medio. Es una división, no un pronóstico, y por
   // eso se dice «al ritmo de» y no «terminará el».
-  const diasAlRitmo = media > 0 && falta > 0 ? Math.ceil(falta / media) : 0;
+  const diasAlRitmo = media > 0 && falta > 0 && !brechaDeComposicion ? Math.ceil(falta / media) : 0;
 
   return (
     <div className="aulas-ritmo">
       <p className="aulas-cadenas-lectura">
+        {/* **«de recolección», no «de campo».** Este panel cuenta los días con
+            RESPUESTAS en la plataforma —del 1/9 al 5/9 en el estudio real— y
+            «Encuestas por día de cada facultad», dos pestañas más allá, decía
+            «2 días de campo, de 01/09 a 02/09» contando los días con PARTE.
+            Los dos números son correctos y son dos ejes; lo que no puede ser es
+            que compartan las mismas tres palabras. Medido el 2026-08-29: 5
+            contra 2. */}
         <strong>{fmt(total)}</strong> respuestas en <strong>{fmt(conCampo)}</strong>{" "}
-        {conCampo === 1 ? "día de campo" : "días de campo"}
-        {media > 0 ? <> · {fmt(media)} al día</> : null}
+        {conCampo === 1 ? "día de recolección" : "días de recolección"}
+        {/* `fmt` conserva el decimal del dato y aquí son RESPUESTAS: «139,8 al
+            día» son personas partidas. Tercera vez que aparece el mismo defecto
+            en una jornada, así que va con `fmtCuenta`, que redondea y no
+            inventa medias encuestas. */}
+        {media > 0 ? <> · {fmtCuenta(media)} al día</> : null}
         {mejor ? <> · el mejor, {etiquetaDeDia(mejor.fecha)} con <strong>{fmt(mejor.validas)}</strong></> : null}
       </p>
-      <ol className="aulas-ritmo-dias" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        {dias.map((d) => (
-          <li key={d.fecha} className={d.validas ? "" : "es-sin-campo"}>
-            <span className="aulas-ritmo-fecha">{etiquetaDeDia(d.fecha)}</span>
-            {/* Decorativa: las dos cifras de la fila —las del día y el
-                acumulado— ya son texto en las celdas de al lado, así que un
-                lector de pantalla tiene el dato sin la barra. La agenda por día
-                SÍ etiqueta las suyas porque allí la barra reparte tramos que no
-                están escritos en ninguna otra parte de la fila. */}
-            <span className="aulas-ritmo-barra" aria-hidden="true">
-              <i
-                style={{
-                  width: `${tope ? Math.max(d.validas ? 2 : 0, (100 * d.validas) / tope) : 0}%`,
-                  background: COLOR_RESULTADO.efectiva,
-                }}
-              />
-            </span>
-            {/* Las dos cifras del día: lo suyo y el acumulado. Sin el acumulado
-                hay que sumar diez barras de cabeza para saber por dónde va el
-                estudio, que es lo que se viene a mirar. */}
-            <span className="aulas-ritmo-cifra"><strong>{fmt(d.validas)}</strong></span>
-            <span className="aulas-ritmo-acumulado">{fmt(d.acumulado)}</span>
-          </li>
-        ))}
-      </ol>
+      {/* **El gráfico del boceto, no la tabla que lo sustituía.** Aquí había
+          una lista de diez filas —fecha, barra, cifra del día y acumulado en una
+          celda— con exactamente estos datos. La cifra estaba y la CURVA no, que
+          es lo que dice si el ritmo se sostiene. Gonzalo, 2026-09-10: «no estás
+          tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar,
+          como el avance diario».
+
+          Su forma: barras del día en el eje izquierdo, acumulado en línea sobre
+          el derecho, y cada rótulo de eje del color de su serie. El valor de
+          cada día se conserva encima de su barra, que es lo único que la tabla
+          daba y el boceto no. */}
+      <AulasAvanceDiario dias={dias} hasta={hasta} />
       {falta > 0 ? (
         <p className="mon-profile-table-recorte">
           {/* «para la meta TOTAL». Sin esa palabra, este pie dice «faltan 43» a
@@ -103,9 +156,28 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
               pueden colgar de un aula —que sobre este corte son cero, porque
               llegan sin identificar su curso-horario—. Una de las dos tenía que
               decir cuál es la suya. */}
-          Faltan <strong>{fmt(falta)}</strong> para la meta total de {fmt(meta)}
+          {/* `fmtCuenta` y NO `fmt`: son RESPUESTAS y aquí salían con decimal
+              —«Faltan 2.824,4 para la meta total de 3.491,4»—. Es exactamente
+              el defecto que el comentario de arriba dice haber cazado ya tres
+              veces, y estaba **una línea más abajo del sitio donde lo
+              arreglaron**: se corrigió la media diaria y no este pie. Hacia
+              arriba en los dos, que es la regla de una meta y de lo que falta
+              para cumplirla: quedarse a 0,4 de una persona es quedarse corto. */}
+          {brechaDeComposicion ? (
+            <>
+              Faltan <strong>{fmtCuenta(falta)}</strong> en los grupos de facultad y sexo que
+              aún no cierran, aunque el total ya pasa la meta de {fmtCuenta(metaEntera)}
+            </>
+          ) : (
+            <>
+              Faltan <strong>{fmtCuenta(falta)}</strong> para la meta total de {fmtCuenta(metaEntera)}
+            </>
+          )}
           {diasAlRitmo
-            ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo de estos ${fmt(conCampo)}`
+            // «al ritmo de estos 1» salía con una facultad de un solo día de
+            // campo, que es el caso normal en cuanto el panel se filtra. Con un
+            // solo día la referencia es ese día, no «estos uno».
+            ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo ${conCampo === 1 ? "de ese día" : `de estos ${fmt(conCampo)}`}`
             : ""}
         </p>
       ) : null}

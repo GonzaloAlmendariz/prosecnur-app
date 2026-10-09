@@ -5,7 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { perfilDesdeElMotor, perfilPorFacultad, type FilaDeFacultadDelMotor } from "./perfilPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
-import { fmt, fmtCuenta } from "./kpisDeAulas";
+import { fmt, fmtCuenta, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Cada facultad contra su meta, ordenadas por lo que falta.
@@ -18,6 +18,10 @@ import { fmt, fmtCuenta } from "./kpisDeAulas";
  * Barras en CSS, sin Plotly, como el resto de la sección.
  */
 
+/** ⚠ SIN MONTAR desde el 2026-09-08. Era «Dónde falta más» en Resumen, y ese
+    panel medía contra la cuota del estudio —la pregunta de Metas, donde ya se
+    contesta dos veces con más detalle—. Registrado en
+    `componentesSinMontar.test.ts`. */
 export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** `avance_por_facultad` del motor. Cuando llega, MANDA. */
@@ -27,7 +31,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
   /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
-  const { facultades, sinFacultad, tope, cumplidas } = useMemo(
+  const { facultades, sinFacultad, tope, cumplidas, vara } = useMemo(
     // El bloque del motor manda porque agrega sobre el conjunto correcto: un
     // aula por slot y sin banco. Calcularlo aquí sobre `course_status` medía
     // 500 filas de 2 615, reservas dormidas incluidas. El cálculo local se
@@ -56,7 +60,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
       <p className="aulas-facultades-lectura">
         <strong>{fmt(facultades.length)}</strong>{" "}
         {facultades.length === 1 ? "facultad" : "facultades"} ·{" "}
-        <strong>{fmt(cumplidas)}</strong> con su meta cumplida
+        <strong>{fmt(cumplidas)}</strong> con su {vara === "cuota del estudio" ? "cuota" : "meta"} cumplida
         {sinFacultad ? <> · {fmt(sinFacultad)} cursos-horario sin facultad declarada</> : null}
       </p>
       {/* El envoltorio lleva el scroll; la rejilla conserva su `1fr`, que es lo
@@ -66,7 +70,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
         {facultades.map((f) => (
           <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-facultad-nombre"
-              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco}>
+              enFoco={f.facultad === facultadEnFoco}>
               {/* En su propio elemento para poder elipsarlo: como texto suelto
                   dentro del grid genera una caja anónima, y `text-overflow` no
                   se aplica a una caja anónima. Medido: «Ciencias y Artes de la
@@ -84,7 +88,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
               className="aulas-facultad-carril"
               style={{ width: `${tope ? Math.max(8, (100 * f.meta) / tope) : 0}%` }}
               role="img"
-              aria-label={`${f.facultad}: ${f.avance}% de su meta`}
+              aria-label={`${f.facultad}: ${pctPerfil(f.avance)} de su meta`}
             >
               <i
                 style={{
@@ -109,11 +113,36 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
                       «Cumplimiento en respuestas», que es el choque que el
                       guard de títulos ya tumbó una vez—, así que va donde vive
                       la ambigüedad. */}
-                  <em>{" "}respuestas faltan · {f.avance}%</em>
+                  {/* El porcentaje NOMBRA lo que mide. «532 respuestas faltan
+                      · 20%» pegaba dos cifras de sentido opuesto y se leía como
+                      «falta el 20 %», cuando es lo CONSEGUIDO. Y con el formato
+                      de la casa —un decimal y espacio antes del «%»—, que es el
+                      que usa la tabla del cliente para este mismo cociente. */}
+                  <em>{" "}respuestas faltan · {pctPerfil(f.avance)} conseguido</em>
                 </>
               ) : (
-                <em className="es-cumplida">meta cumplida</em>
+                <em className="es-cumplida">{vara === "cuota del estudio" ? "cuota" : "meta"} cumplida</em>
               )}
+              {/* **De qué lado va corta.** El número de arriba es el total de la
+                  facultad y puede leerse cubierto con una celda de sexo corta:
+                  «lo que me interesa es que TODAS LAS FACULTADES CUMPLAN CON SU
+                  CUOTA DE SEXO». Sin esta línea la fila contesta la pregunta
+                  equivocada.
+
+                  Se escribe sólo el lado que falta. Con las dos cubiertas no se
+                  dice nada: una fila que repite «0 · 0» compite por la atención
+                  con las que sí piden algo. */}
+              {f.mujeresFalta || f.hombresFalta ? (
+                /* **Las dos celdas suman el total de arriba**, desde que el
+                   avance se mide contra la CUOTA y no contra el pronóstico. El
+                   prefijo «para su cuota» que llevaba aquí sobraba en cuanto
+                   dejó de haber dos varas. */
+                <em className="aulas-facultad-sexo">
+                  {f.mujeresFalta ? `faltan ${fmtCuenta(f.mujeresFalta)} mujeres` : ""}
+                  {f.mujeresFalta && f.hombresFalta ? " y " : ""}
+                  {f.hombresFalta ? `${fmtCuenta(f.hombresFalta)} hombres` : ""}
+                </em>
+              ) : null}
             </span>
           </li>
         ))}

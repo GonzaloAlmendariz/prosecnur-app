@@ -295,7 +295,7 @@ export function buildReconciliationGroups(cases: MonitoreoInternalQueryCase[], a
       id: "complete-review",
       label: "Completas",
       title: "Completas por revisar",
-      detail: "Respuestas completas que todavia no pueden entrar sin cruce o decisión.",
+      detail: "Respuestas completas que todavía no pueden entrar sin cruce o decisión.",
       cases: scoped.filter(isCompleteReview),
       filters: { state: "reviewable" },
       tone: "warning",

@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, X, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
+import { pctDecimal } from "../../core/formatoComun";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
   apiConnectionCheck,
@@ -213,6 +214,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { MetaCuotaInput } from "./MetaCuotaInput";
 import { resumenDeEquipo } from "./conteoDeEquipo";
 import { fusionarResponsablesPorPersona } from "./fusionDeResponsables";
+import { barridoDelResponsable, totalDeAsignadas } from "../barridoDelResponsable";
 import {
   aplicarMetasPendientes,
   etiquetaDeConfirmacion,
@@ -6350,7 +6352,7 @@ function AcreditacionPhonePendingInsistence({
   const medianaIntentos = phoneMedian(baseRows.map((row) => row.avgForMedian));
   const rows = baseRows.map((row) => ({ ...row, intensity: phoneAttemptIntensity(row.avgForMedian, medianaIntentos) }));
 
-  const totalAssigned = rows.reduce((sum, row) => sum + (row.assigned ?? 0), 0);
+  const { valor: totalAssigned, sinDato: sinAsignadas } = totalDeAsignadas(rows);
   const totalPending = rows.reduce((sum, row) => sum + row.pending, 0);
   const totalNoAnswer = rows.reduce((sum, row) => sum + row.noAnswer, 0);
   const totalAttemptCases = rows.reduce((sum, row) => sum + row.buckets.reduce((inner, bucket) => inner + bucket.value, 0), 0);
@@ -6386,7 +6388,7 @@ function AcreditacionPhonePendingInsistence({
         ) : null}
         <span className={totalPending ? "is-warning" : "is-ok"}><strong>{formatMetric(totalPending)}</strong><em>por llamar, ya asignados</em></span>
         <span><strong>{formatMetric(totalNoAnswer)}</strong><em>no contestan</em></span>
-        <span><strong>{formatMetric(totalAssigned)}</strong><em>casos repartidos</em></span>
+        <span><strong>{totalAssigned == null ? "S/D" : formatMetric(totalAssigned)}</strong><em>casos repartidos{sinAsignadas ? ` · ${formatMetric(sinAsignadas)} sin dato` : ""}</em></span>
         <span><strong>{avgAttempts == null ? "—" : avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>intentos en promedio</em></span>
       </div>
       <div className="mon-phone-attempt-scale" aria-label="Escala de insistencia por intentos">
@@ -6399,17 +6401,16 @@ function AcreditacionPhonePendingInsistence({
       </div>
       <div className="mon-phone-pending-workbench-list">
         {rows.map((row) => {
-          const assigned = Math.max(0, row.assigned ?? row.pending);
-          const swept = Math.max(0, row.swept ?? Math.max(0, assigned - row.pending));
-          const pendingPct = safePercentValue(row.pending, assigned) ?? 0;
-          const sweptPct = safePercentValue(swept, assigned) ?? 0;
+          const { asignadas: assigned, barridos: swept, pctPendiente, pctBarrido } = barridoDelResponsable(row);
+          const pendingPct = pctPendiente ?? 0;
+          const sweptPct = pctBarrido ?? 0;
           const anchosIntentos = anchosDeSegmentos(row.buckets.map((bucket) => bucket.value));
           return (
             <section key={row.key} className={`mon-phone-pending-person is-${row.pending ? "pending" : "clear"}`}>
               <header>
                 <div>
                   <strong>{row.name}</strong>
-                  <em>{formatMetric(assigned)} casos asignados · {formatMetric(row.noAnswer)} sin respuesta</em>
+                  <em>{assigned == null ? "S/D" : formatMetric(assigned)} casos asignados · {formatMetric(row.noAnswer)} sin respuesta</em>
                 </div>
                 <span className={row.pending ? "is-warning" : "is-ok"}>
                   <strong>{formatMetric(row.pending)}</strong>
@@ -6418,15 +6419,15 @@ function AcreditacionPhonePendingInsistence({
               </header>
               <div className="mon-phone-pending-track-block">
                 <div className="mon-phone-track-labels">
-                  <span><strong>{formatMetric(swept)}</strong><em>ya llamados</em></span>
+                  <span><strong>{(swept == null ? "S/D" : formatMetric(swept))}</strong><em>ya llamados</em></span>
                 </div>
-                <div className="mon-phone-pending-track" aria-label={`${row.name}: ${formatMetric(swept)} barridos y ${formatMetric(row.pending)} por barrer`}>
-                  {swept > 0 ? (
+                <div className="mon-phone-pending-track" aria-label={`${row.name}: ${(swept == null ? "S/D" : formatMetric(swept))} barridos y ${formatMetric(row.pending)} por barrer`}>
+                  {(swept ?? 0) > 0 ? (
                     <i
                       className="is-swept"
                       tabIndex={0}
-                      title={`${row.name}: ${formatMetric(swept)} casos barridos`}
-                      aria-label={`${row.name}: ${formatMetric(swept)} casos barridos`}
+                      title={`${row.name}: ${(swept == null ? "S/D" : formatMetric(swept))} casos barridos`}
+                      aria-label={`${row.name}: ${(swept == null ? "S/D" : formatMetric(swept))} casos barridos`}
                       style={{ "--phone-segment": `${Math.max(0, Math.min(100, sweptPct))}%` } as CSSProperties}
                     />
                   ) : null}
@@ -6717,7 +6718,7 @@ function phoneCodPulsoDifferenceParts(comparison: Pick<PhonePlatformComparisonTo
 }
 
 export function phoneCodPulsoDifferenceHint(comparison: Pick<PhonePlatformComparisonTotals, "mismatch" | "phoneWithoutPlatform" | "platformWithoutPhone" | "withoutCode" | "total">) {
-  if (!comparison.mismatch) return comparison.total ? `${fmt(comparison.total)} registros comparados` : "todavia no hay cruce que comparar";
+  if (!comparison.mismatch) return comparison.total ? `${fmt(comparison.total)} registros comparados` : "todavía no hay cruce que comparar";
   const parts: string[] = [];
   if (comparison.platformWithoutPhone) parts.push(`${fmt(comparison.platformWithoutPhone)} Kobo con telefono pendiente`);
   if (comparison.phoneWithoutPlatform) parts.push(`${fmt(comparison.phoneWithoutPlatform)} tel. sin Kobo`);
@@ -6985,7 +6986,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
             {totals.mismatch
               ? `${formatMetric(totals.platformWithoutPhone)} efectivas Kobo tienen estado telefónico pendiente.`
               : comparableEffective
-                ? "Las efectivas telefonicas estan alineadas con Kobo por codigo."
+                ? "Las efectivas telefónicas están alineadas con Kobo por código."
                 : "Aún no hay efectivas comparables por código."}
           </p>
         </div>
@@ -8488,6 +8489,13 @@ function AcreditacionSheetSourceEditor({
             placeholder="https://docs.google.com/spreadsheets/d/..."
             disabled={Boolean(busy)}
           />
+          {/* **El módulo que decide ya escribió el motivo; se enseña.** Se
+            * calculaba para construir el enlace y su rechazo se tiraba, así que
+            * pegar cualquier cosa dejaba el botón activo y el error llegaba del
+            * backend sin decir qué arreglar. */}
+          {spreadsheetId.trim() && !lecturaDelSpreadsheet.ok ? (
+            <small className="mon-acr-sheet-aviso">{lecturaDelSpreadsheet.mensaje}</small>
+          ) : null}
         </label>
         <label>
           <span>{preset.sheetLabel ?? "Pestaña"}</span>
@@ -8517,11 +8525,15 @@ function AcreditacionSheetSourceEditor({
           />
         </label>
         <div className="mon-acr-sheet-actions">
-          <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !spreadsheetId.trim()}>
+          {/* La guarda sale de la lectura que DECIDE si eso es un Sheet, no de
+            * «hay texto»: con `!trim()` el botón se encendía con cualquier cosa
+            * pegada. Es el patrón que dejó «pega su enlace una vez» con el
+            * enlace ya pegado, en el perfil de aulas. */}
+          <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !lecturaDelSpreadsheet.ok}>
             {busy === "inspect" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
             Leer pestañas
           </button>
-          <button type="button" onClick={() => { void saveSheet(); }} disabled={Boolean(busy) || !spreadsheetId.trim() || !sheetName.trim()}>
+          <button type="button" onClick={() => { void saveSheet(); }} disabled={Boolean(busy) || !lecturaDelSpreadsheet.ok || !sheetName.trim()}>
             {busy === "save" ? <Loader2 size={14} className="pulso-spin" /> : <CheckCircle2 size={14} />}
             {editingSourceId ? "Guardar ajuste" : "Registrar base"}
           </button>
@@ -9602,6 +9614,9 @@ function AcreditacionSheetsByActorView({
   const [selectedActor, setSelectedActor] = useState(actorOptions[0] ?? "");
   const selectedSource = baseSources.find((source) => normalizeSourceMatch(sourceActorLabel(source)) === normalizeSourceMatch(selectedActor)) ?? null;
   const [spreadsheetId, setSpreadsheetId] = useState("");
+  // La lectura que decide si lo pegado es un Sheet, para que la guarda de los
+  // botones no diga «hay texto» mientras este módulo ya sabe que no lo es.
+  const lecturaDelActor = leerDireccionDeSheets(spreadsheetId);
   const [sheetName, setSheetName] = useState("");
   const [range, setRange] = useState("");
   const [inspection, setInspection] = useState<MonitoreoSheetsInspectResult | null>(null);
@@ -9746,6 +9761,9 @@ function AcreditacionSheetsByActorView({
               <label>
                 <span>Enlace del Google Sheet</span>
                 <input value={spreadsheetId} onChange={(event) => setSpreadsheetId(event.currentTarget.value)} placeholder="https://docs.google.com/spreadsheets/d/..." disabled={Boolean(busy) || !selectedActor} />
+                {spreadsheetId.trim() && !lecturaDelActor.ok ? (
+                  <small className="mon-acr-sheet-aviso">{lecturaDelActor.mensaje}</small>
+                ) : null}
               </label>
               <label>
                 <span>Pestaña del actor</span>
@@ -9756,11 +9774,11 @@ function AcreditacionSheetsByActorView({
                 <input value={range} onChange={(event) => setRange(event.currentTarget.value)} placeholder="Opcional" disabled={Boolean(busy) || !selectedActor} />
               </label>
               <div className="mon-acr-sheet-actions">
-                <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !spreadsheetId.trim() || !selectedActor}>
+                <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !lecturaDelActor.ok || !selectedActor}>
                   {busy === "inspect" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
                   Leer pestañas
                 </button>
-                <button type="button" onClick={() => { void saveActorSheet(); }} disabled={Boolean(busy) || !selectedActor || !spreadsheetId.trim() || !sheetName.trim()}>
+                <button type="button" onClick={() => { void saveActorSheet(); }} disabled={Boolean(busy) || !selectedActor || !lecturaDelActor.ok || !sheetName.trim()}>
                   {busy === "save" ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
                   Confirmar base
                 </button>
@@ -15260,8 +15278,7 @@ function safePercentValue(value: number | null | undefined, total: number | null
 }
 
 function formatPercentLabel(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "S/D";
-  return `${value.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return pctDecimal(value);
 }
 
 function formatSignedPp(value: number | null | undefined) {
@@ -16539,17 +16556,17 @@ function AcreditacionAdvanceStorage({
     ? [
       { key: "completed", label: "Tel. efectivas", value: phoneEffective, pct: safePercentValue(phoneEffective, phoneUniverse) ?? 0, hint: "estado efectivo", detail: "Casos que el barrido telefónico declara como efectivos; se contrastan con Kobo por CodPulso." },
       { key: "phone", label: "Sin efectiva tel.", value: phoneSweptWithoutEffective, pct: safePercentValue(phoneSweptWithoutEffective, phoneUniverse) ?? 0, hint: "barridas no efectivas", detail: "Casos ya barridos con un estado telefonico distinto de efectivo." },
-      { key: "pending", label: "Por barrer", value: phonePending, pct: safePercentValue(phonePending, phoneUniverse) ?? 0, hint: "base telefonica", detail: "Casos de la base telefonica que todavia no tienen estado de llamada." },
+      { key: "pending", label: "Por barrer", value: phonePending, pct: safePercentValue(phonePending, phoneUniverse) ?? 0, hint: "base telefonica", detail: "Casos de la base telefónica que todavía no tienen estado de llamada." },
     ]
     : [
       { key: "completed", label: "Efectivas", value: totals.effective, pct: safePercentValue(totals.effective, universe) ?? 0, hint: "del universo", detail: "Respuestas completas que cuentan para el avance." },
       { key: "partial", label: "Parciales", value: totals.partial, pct: safePercentValue(totals.partial, universe) ?? 0, hint: "no cuentan como efectivas", detail: "Respuestas iniciadas o incompletas que no cuentan como efectivas." },
       { key: "refusals", label: "Rechazos", value: totals.refusals, pct: safePercentValue(totals.refusals, universe) ?? 0, hint: "requieren trazabilidad", detail: "Casos con rechazo registrado en plataforma o campo." },
-      { key: "pending", label: "Sin respuesta", value: totals.pending, pct: safePercentValue(totals.pending, universe) ?? 0, hint: "por cerrar", detail: "Casos del universo que todavia no tienen respuesta util para avance." },
+      { key: "pending", label: "Sin respuesta", value: totals.pending, pct: safePercentValue(totals.pending, universe) ?? 0, hint: "por cerrar", detail: "Casos del universo que todavía no tienen respuesta útil para avance." },
     ];
   const legendSegments = isPhoneScope
     ? [
-      { key: "swept", label: "Barridos", value: phoneSwept, pct: safePercentValue(phoneSwept, phoneUniverse) ?? 0, hint: "con estado", tone: "phone", detail: "Casos de la base telefonica que ya tienen algun estado de llamada registrado." },
+      { key: "swept", label: "Barridos", value: phoneSwept, pct: safePercentValue(phoneSwept, phoneUniverse) ?? 0, hint: "con estado", tone: "phone", detail: "Casos de la base telefónica que ya tienen algún estado de llamada registrado." },
       ...segments,
       { key: "platform", label: "Efectivas Kobo", value: phoneContext?.platformEffective ?? totals.effective, pct: safePercentValue(phoneContext?.platformEffective ?? totals.effective, phoneUniverse) ?? 0, hint: "avance", tone: "completed", detail: "Respuestas Kobo completas, no prueba y que pasan el filtro de consentimiento; son las que mandan el avance." },
     ]
@@ -18429,7 +18446,7 @@ function formatReportCell(value: unknown, column: string) {
     const normalized = normalizeReportMatch(column);
     if (normalized.includes("avance") || String(column).includes("%") || normalized.includes("ratio")) {
       const pctValue = Math.abs(value) <= 10 ? value * 100 : value;
-      return `${pctValue.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+      return pctDecimal(pctValue);
     }
     return Number.isInteger(value) ? fmt(value) : value.toLocaleString("es-PE", { maximumFractionDigits: 1 });
   }
@@ -20275,7 +20292,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       >
         <span
           hidden
-          data-audit-ready={auditReady ? (isPhone ? "monitoreo-telefonico" : "monitoreo-acreditacion") : undefined}
+          data-audit-ready={auditReady ? (isPhone ? "monitoreo-telefonico" : "monitoreo-acreditacion") : "false"}
           data-audit-loading={seccionCargando ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />

@@ -178,10 +178,55 @@ Desarrollo:
 Verificación:
 
 - Front: `pnpm -C frontend typecheck` · `pnpm -C frontend test` · `pnpm -C frontend exec tsc --noEmit --pretty false`
+- **Front por área, que es lo que debe correrse al cerrar un cambio**: `make gate-front AREA=monitoreo/profiles/aulas`. Corre las suites del área **más los contratos transversales, siempre**: `tokensDefinidos` (un `var()` que no resuelve), `estadoQueNadieLee` (un `useState` que nadie pinta), `guardsQueGuardan` (un guard que dejó de guardar), `cssConcatenable`, `auditReadyRoutes` y `modulesNavigation`. Mismo motivo que `gate-area` en R: esos contratos escanean todo el árbol y se rompen **desde otro archivo**, así que «las suites que toqué» no los alcanza. Sin `AREA` corre sólo los transversales (menos de 1 s).
 - R focalizado: `Rscript -e 'pkgload::load_all("api"); testthat::test_file("api/tests/testthat/test-<X>.R")'`
-- R completo (igual que CI): `Rscript -e 'pkgload::load_all("api", quiet = TRUE); testthat::test_dir("api/tests/testthat", reporter = "summary")'`. Los tests que disparan jobs `callr` reales necesitan además `R CMD INSTALL --no-docs --library="$R_LIBS_USER" api`.
+- **R por área, que es lo que debe correrse al cerrar un cambio**: `make gate-area AREA=aulas GATE_ARGS='--patron "refuerzo|reemplazo"'`. Corre las suites que casan el patrón **más los contratos transversales, siempre**: `errors-registry`, `namespace-contract`, `campos-declarados` y `estado-normalizado`. Existe porque «las suites que toqué» deja fuera justo a los contratos —se rompen desde OTRO archivo— y `test-errors-registry.R` llevó tres commits en rojo sin que nadie lo viera. Sin `GATE_ARGS` corre el área entera (250 suites en aulas: lento, para el cierre).
+- R completo (igual que CI): `Rscript -e 'pkgload::load_all("api", quiet = TRUE); testthat::test_dir("api/tests/testthat", reporter = "summary")'`. Los tests que disparan jobs `callr` reales necesitan además instalar el paquete:
+
+  ```bash
+  R CMD INSTALL --no-docs --no-multiarch --library="$(Rscript -e 'cat(.libPaths()[1])')" api
+  ```
+
+  Dos avisos que costaron una sesión con la app caída (2026-08-27):
+
+  - **`$R_LIBS_USER` no sirve en un shell.** Aquí decía `--library="$R_LIBS_USER"`, y esa variable **está vacía en el entorno del shell**: sólo la resuelve R por su cuenta. El comando expandía a `--library=""`. Se pide con `Rscript -e 'cat(.libPaths()[1])'`, que es lo que R usaría.
+  - **Nunca dos instalaciones a la vez, y nunca interrumpir una.** `R CMD INSTALL` borra el paquete antes de escribirlo, así que una corrida abortada —o dos sesiones instalando sobre la misma librería— deja el directorio **vacío**: ningún backend puede cargar `prosecnurapp` y la UI entera responde *failed to fetch*. Antes de instalar, comprobar que nadie más lo está haciendo (`pgrep -f "R CMD INSTALL"`, y que no exista `00LOCK-api` en la librería) y dejar terminar sin matar el proceso: tarda varios minutos por el `inst/`. Con worktrees paralelos esto es fácil de provocar; ver `docs/loops-reparacion.md`.
 - Agentic OS: `node agentic/sync-agentic-os.mjs --check` · `node --test agentic/tests/*.test.mjs`
 - Visual: `make ui-quick-check` · `make visual-qa` · `make monitoreo-qa`
+  - **El tope por defecto son 30 s y no alcanza para Monitoreo**: su warm start
+    con proyecto real tarda 4–6 min, así que el runner se rinde en
+    `marca-en-false` antes de capturar nada. Pásale `--timeout-ms 420000` (o
+    `UI_QA_TIMEOUT_MS`). Ese motivo ahí no significa «la vista está rota»,
+    significa «no le diste tiempo»: son acciones opuestas y distinguirlas costó
+    un ciclo entero el 2026-09-12.
+  - **Sin `--post-click-wait-selector ".js-plotly-plot"`, todo panel con gráfico
+    sale VACÍO**: la readiness dice que la vista montó, no que Plotly pintó. Una
+    matriz capturada sin ese flag no sirve para juzgar gráficos, y el gate la da
+    por buena —un panel de 250 px en blanco no es recorte, ni derrame, ni
+    desborde—. (`--wait-selector` no vale: se evalúa antes.)
+  - **`overflow-x` sobre un `<td>` con `colSpan` en una tabla `table-layout:
+    fixed` es FALSO POSITIVO**: la caja de esa celda mide lo que suman sus
+    columnas y el contenido se pinta sobre el ancho real, sin recorte. Mira la
+    captura antes de tocar CSS —11 «desbordes» de Avance > Metas resultaron ser
+    texto que se lee entero—.
+  - **Comprueba que las capturas son DISTINTAS antes de darlas por mediciones
+    distintas**: `md5 -q out/*.png | sort -u | wc -l`. Una `?seccion=` que no
+    existe en ese perfil **no falla**: aterriza muda en la sección por defecto, y
+    el gate mide y aprueba la misma pantalla N veces. Pasó el 2026-09-12 con 5
+    «vistas» de acreditación que eran un solo archivo byte a byte.
+  - **`desplazamientoH=N` en el resumen** dice cuántos contenedores esconden
+    contenido a la derecha, y el informe trae el selector y los píxeles. No
+    falla el gate —desplazarse en horizontal es legítimo—, pero un `0` ahí es
+    lo único que permite afirmar que no se está perdiendo una columna.
+  - **Las corridas NO se paralelizan** —y sus TESTS tampoco: correr
+    `node --test scripts/tests/*.test.mjs` con una captura en background fabrica
+    rojos por contención (4 tests caídos, los 4 verdes aislados).** Dos a la vez se pisan en el puerto de la
+    API y la segunda muere con «/api/system/bootstrap no devolvió sid». Van en
+    serie; varias `--route` dentro de UNA corrida sí comparten la pila.
+  - **`--ir` encadena y captura SÓLO el final.** Varias vistas en una sola pila
+    se piden con varios `--route` y query (`--route "/monitoreo?seccion=modelo"`),
+    que es para lo que existe la regla de que toda vista sea enlazable; así se
+    paga un warm start en vez de uno por vista.
 - Auditoría canónica: `make audit-reference-build` · `make audit-project-visual-matrix` · `make desktop-audit`
 - Proyectos de referencia: `make reference-project-verify` (gate de PII + cobertura) · `make reference-project-run REFERENCE_PROJECT=<slug>` · `make reference-project-visual-matrix REFERENCE_PROJECT=<slug>`
 

@@ -9,6 +9,7 @@ import {
   type CalcMuestraAlumnosPorChMethod,
 } from "../../../../api/calcMuestraAlumnosPorCh";
 import { fmtDec, fmtInt } from "../../sharedCore";
+import { EmptyState } from "../../../../components/States";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import {
   ALUMNOS_POR_CH_METHODS,
@@ -35,6 +36,7 @@ export function AlumnosPorChMarcoTab({
   aulasState,
   onConfirmDecision,
   motorPideRefirmar = false,
+  onNavigate,
 }: {
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
@@ -50,6 +52,8 @@ export function AlumnosPorChMarcoTab({
    * tiene razón sobre la vigencia.
    */
   motorPideRefirmar?: boolean;
+  /** Lleva al paso previo cuando la pestaña todavía no tiene datos. */
+  onNavigate?: (section: string, tab?: string) => void;
 }) {
   const frameHash = aulasState?.frame?.frame_hash ?? "";
   const rawSnapshot = aulasState?.frame?.alumnos_por_ch ?? null;
@@ -87,11 +91,24 @@ export function AlumnosPorChMarcoTab({
           <span aria-hidden="true"><BarChart3 size={18} /></span>
           <div><small>Decisión del marco</small><h3 id="cmv2-alumnos-ch-title">Alumnos por CH</h3></div>
         </header>
-        <AvisoModulo tone={rawSnapshot ? "warn" : "info"} role="status">
-          {rawSnapshot
-            ? "La distribución no acredita todas las unidades o pertenece a otro marco. Reconstruye el marco; React no rellenará ningún valor por su cuenta."
-            : "Reconstruye el marco para obtener media, P25 y mediana por facultad antes de elegir el valor de alumnos por CH."}
-        </AvisoModulo>
+        {rawSnapshot ? (
+          <AvisoModulo tone="warn" role="status">
+            La distribución no acredita todas las unidades o pertenece a otro marco. Reconstruye el marco; mientras tanto no se rellena ningún valor.
+          </AvisoModulo>
+        ) : (
+          // Sin distribución: el vacío dice qué falta y lleva a construir el
+          // marco en Fuentes (2026-09-27), como Perfil.
+          <EmptyState
+            icon={<BarChart3 size={22} aria-hidden="true" />}
+            title="Todavía no hay una distribución de alumnos por curso-horario"
+            hint="Construye el marco en Fuentes: con él aparecen la media, el P25 y la mediana por facultad para elegir el valor de alumnos por CH."
+            cta={onNavigate ? (
+            <button type="button" className="pulso-empty-cta" onClick={() => onNavigate("definicion", "def-bases")}>
+              Ir a Fuentes
+            </button>
+          ) : undefined}
+          />
+        )}
       </section>
     );
   }

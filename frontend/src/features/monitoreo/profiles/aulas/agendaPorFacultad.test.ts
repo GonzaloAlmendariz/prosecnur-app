@@ -42,6 +42,39 @@ describe("agendaPorFacultad", () => {
     expect(salida.map((f) => f.facultad)).toEqual(["ConFecha", "SinFecha"]);
   });
 
+  it("el LUGAR DE APLICACIÓN confirmado manda sobre la etiqueta del sorteo (B30)", () => {
+    // Pregunta de Gonzalo (2026-09-03): «¿estamos tomando la columna de dónde
+    // aplicar como fuente de verdad? porque en las observaciones algunos
+    // pabellones están cambiando». Esta era la ÚNICA superficie de lugar sin
+    // la precedencia — y es la de «a dónde ir cada día»: un docente que se
+    // mudó a P104 tecleado en el libro NO puede seguir mandando al salón viejo.
+    const [f] = agendaPorFacultad([
+      fila({ operational_code: "MOVIDA", faculty: "Derecho", label: "LUN 08:00 A101",
+             scheduled_venue: "P104 CEPREPUCP" } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "QUIETA", faculty: "Derecho", label: "MAR 10:00 Z205" }),
+    ]);
+    const movida = f.aulas.find((a) => a.codigo === "MOVIDA")!;
+    const quieta = f.aulas.find((a) => a.codigo === "QUIETA")!;
+    expect(movida.donde).toBe("P104 CEPREPUCP");
+    expect(movida.esLugarConfirmado).toBe(true);
+    // Sin confirmado, el compuesto del sorteo como siempre.
+    expect(quieta.donde).toBe("MAR 10:00 Z205");
+    expect(quieta.esLugarConfirmado).toBe(false);
+  });
+
+  it("el RECHAZO de STATUS MUESTRA manda sobre el estado operativo (B13b)", () => {
+    // Dictado 2026-09-03, señalando CH 90: nota de rechazo del docente y el
+    // chip en «Planificado» — el rechazo vive en el eje de muestra y la ruta
+    // solo leía el operativo. Mismo criterio contains del motor.
+    const [f] = agendaPorFacultad([
+      fila({ operational_code: "CH 90", faculty: "Derecho", operational_status: "planificada",
+             sample_status: "rechazo" } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "CH 91", faculty: "Derecho", operational_status: "planificada" }),
+    ]);
+    expect(f.aulas.find((a) => a.codigo === "CH 90")!.esRechazo).toBe(true);
+    expect(f.aulas.find((a) => a.codigo === "CH 91")!.esRechazo).toBe(false);
+  });
+
   it("lleva la observación de quien agendó", () => {
     // Viaja en `replacement_note` —el motor acepta ahí la columna OBSERVACIONES
     // del libro— y hasta ahora no la pedía ninguna superficie: el dato llegaba,

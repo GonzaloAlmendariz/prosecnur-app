@@ -1,0 +1,454 @@
+{
+  "graficadores": [
+    {
+      "id": "p_barras_agrupadas",
+      "nombre": "Barras agrupadas",
+      "cat": "distribution",
+      "desc": "Barras horizontales o verticales, una por categoría. Si hay cruce, las barras se agrupan por grupo. Útil para comparar porcentajes de una variable entre segmentos.",
+      "nargs": 22,
+      "_row": "p_barras_agrupadas"
+    },
+    {
+      "id": "p_barras_categoricas",
+      "nombre": "Barras categóricas",
+      "cat": "distribution",
+      "desc": "Barras verticales para pocas categorías (máximo 10), con un color propio por categoría. Útil para puntajes o distribuciones simples que necesitan una lectura más cuidada.",
+      "nargs": 23,
+      "_row": "p_barras_categoricas"
+    },
+    {
+      "id": "p_barras_apiladas",
+      "nombre": "Barras apiladas",
+      "cat": "distribution",
+      "desc": "Barras donde cada segmento es una categoría de respuesta. Suma 100% por fila. Ideal para escalas Likert (satisfacción, acuerdo, etc.).",
+      "nargs": 9,
+      "_row": "p_barras_apiladas"
+    },
+    {
+      "id": "p_barras_multiapiladas",
+      "nombre": "Multi-apiladas",
+      "cat": "distribution",
+      "desc": "Varias barras apiladas en un solo gráfico. Perfecto para comparar preguntas con la misma escala de respuesta.",
+      "nargs": 13,
+      "_row": "p_barras_multiapiladas"
+    },
+    {
+      "id": "p_nube_palabras",
+      "nombre": "Nube de palabras",
+      "cat": "text",
+      "desc": "Nube visual de términos frecuentes en respuestas abiertas. Útil para campos Otro/Otros y comentarios breves.",
+      "nargs": 8,
+      "_row": "p_nube_palabras"
+    },
+    {
+      "id": "p_mapa_cobertura_territorial",
+      "nombre": "Mapa de cobertura territorial",
+      "cat": "territory",
+      "desc": "Mapa distrital con zonas de aplicación. Disponible cuando el proyecto tiene Hojas de Ruta y Monitoreo territorial.",
+      "nargs": 5,
+      "_row": "p_mapa_cobertura_territorial"
+    },
+    {
+      "id": "p_pie",
+      "nombre": "Gráfico de torta",
+      "cat": "distribution",
+      "desc": "Pie chart clásico con porcentajes. Útil para variables con pocas categorías.",
+      "nargs": 7,
+      "_row": "p_pie"
+    },
+    {
+      "id": "p_donut",
+      "nombre": "Gráfico de dona",
+      "cat": "distribution",
+      "desc": "Variante compacta del pie, con un hueco al centro. Usado en grids densas.",
+      "nargs": 7,
+      "_row": "p_donut"
+    },
+    {
+      "id": "p_numerico",
+      "nombre": "Indicador numérico",
+      "cat": "numeric",
+      "desc": "Cifra grande (media, mediana, N, %) cruzada opcionalmente por un segmento. Ideal para KPIs.",
+      "nargs": 8,
+      "_row": "p_numerico"
+    },
+    {
+      "id": "p_histograma",
+      "nombre": "Histograma",
+      "cat": "numeric",
+      "desc": "Distribución de una variable numérica por intervalos. Puede apilar cada intervalo por un grupo, como sexo o sede.",
+      "nargs": 26,
+      "_row": "p_histograma"
+    },
+    {
+      "id": "p_boxplot",
+      "nombre": "Box plot",
+      "cat": "numeric",
+      "desc": "Caja con cuartiles y bigotes. Muestra la distribución de una variable numérica, opcionalmente por grupos.",
+      "nargs": 9,
+      "_row": "p_boxplot"
+    },
+    {
+      "id": "p_media_rango",
+      "nombre": "Media y rango",
+      "cat": "numeric",
+      "desc": "Puntos o burbujas con el promedio de una variable, uno por grupo. Opcional: barras de rango (min-max, IQR).",
+      "nargs": 10,
+      "_row": "p_media_rango"
+    },
+    {
+      "id": "p_barras_divergentes",
+      "nombre": "Barras divergentes",
+      "cat": "distribution",
+      "desc": "Escala Likert centrada en cero: cada lado conserva el significado declarado sin reordenar niveles. Excluir respuestas cambia el denominador.",
+      "nargs": 12,
+      "_row": "p_barras_divergentes"
+    },
+    {
+      "id": "p_puntos_comparativos",
+      "nombre": "Puntos comparativos",
+      "cat": "comparison",
+      "desc": "Compara un porcentaje descriptivo entre grupos de una sola base. Muestra un punto y los casos válidos de cada grupo; no incluye intervalos ni pruebas.",
+      "nargs": 9,
+      "_row": "p_puntos_comparativos"
+    },
+    {
+      "id": "p_dumbbell",
+      "nombre": "Brecha entre dos bases",
+      "cat": "comparison",
+      "desc": "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = segunda − primera.",
+      "nargs": 9,
+      "_row": "p_dumbbell"
+    },
+    {
+      "id": "p_lollipop",
+      "nombre": "Ranking (lollipop)",
+      "cat": "distribution",
+      "desc": "Tallo fino y punto: la misma lectura que una barra con una fracción de la tinta. Para preguntas con muchas opciones, donde quince barras llenan la lámina.",
+      "nargs": 9,
+      "_row": "p_lollipop"
+    },
+    {
+      "id": "p_serie_temporal",
+      "nombre": "Serie temporal",
+      "cat": "comparison",
+      "desc": "Evolución completa de select_one plano independiente con filtros y peso activos y firma E1 común; no puentea periodos ausentes.",
+      "nargs": 15,
+      "_row": "p_serie_temporal"
+    },
+    {
+      "id": "p_radar",
+      "nombre": "Radar",
+      "cat": "comparison",
+      "desc": "Gráfico radar (telaraña) sin tabla al costado. Ocupa todo el espacio disponible. Adecuado cuando la tabla va en otro espacio o no se necesita.",
+      "nargs": 23,
+      "_row": "p_radar"
+    },
+    {
+      "id": "p_tabla",
+      "nombre": "Tabla",
+      "cat": "comparison",
+      "desc": "Tabla de Top-Two-Box (o indicadores agregados) sin el radar al costado. Útil para acompañar un radar colocado en otro slot, o como resumen ejecutivo suelto.",
+      "nargs": 13,
+      "_row": "p_tabla"
+    },
+    {
+      "id": "p_dim_radar",
+      "nombre": "Radar por dimensiones",
+      "cat": "dimensions",
+      "desc": "Radar que compara el puntaje de varias dimensiones (subíndices o indicadores). Requiere haber calculado las dimensiones primero.",
+      "nargs": 10,
+      "_row": "p_dim_radar"
+    },
+    {
+      "id": "p_dim_heatmap",
+      "nombre": "Heatmap de dimensiones",
+      "cat": "dimensions",
+      "desc": "Mapa de calor con filas = dimensiones y columnas = grupos del cruce. Celdas coloreadas por puntaje.",
+      "nargs": 18,
+      "_row": "p_dim_heatmap"
+    },
+    {
+      "id": "p_dim_comparativo_radarbar",
+      "nombre": "Radar + barras comparativo",
+      "cat": "dimensions",
+      "desc": "Radar con barras al lado, comparando dos o más grupos en un mismo lienzo. Ideal para reportes ejecutivos.",
+      "nargs": 11,
+      "_row": "p_dim_comparativo_radarbar"
+    },
+    {
+      "id": "p_dim_foda",
+      "nombre": "Matriz FODA dimensional",
+      "cat": "dimensions",
+      "desc": "Matriz 2×2 o dispersión estilo FODA (fortalezas, oportunidades, debilidades, amenazas) sobre indicadores. Altamente personalizable.",
+      "nargs": 15,
+      "_row": "p_dim_foda"
+    },
+    {
+      "id": "p_dim_heatmap_criterios",
+      "nombre": "Heatmap por criterios",
+      "cat": "dimensions",
+      "desc": "Heatmap agrupado por criterios temáticos definidos en la config de dimensiones.",
+      "nargs": 5,
+      "_row": "p_dim_heatmap_criterios"
+    }
+  ],
+  "laminas": [
+    {
+      "id": "p_slide_portada",
+      "nombre": "Portada",
+      "cat": "estructural",
+      "desc": "Primera lámina del reporte, con el título principal, subtítulo, fecha y un texto descriptivo.",
+      "slots": "",
+      "_row": "p_slide_portada"
+    },
+    {
+      "id": "p_slide_indice",
+      "nombre": "Índice",
+      "cat": "estructural",
+      "desc": "Tabla de contenidos del reporte. Puede usar el layout de la plantilla o un índice limpio generado desde Prosecnur.",
+      "slots": "",
+      "_row": "p_slide_indice"
+    },
+    {
+      "id": "p_slide_top_two_box",
+      "nombre": "Explicación Top Two Box",
+      "cat": "estructural",
+      "desc": "Lámina explicativa reutilizable para mostrar cómo se calcula Top Two Box con barra, llave, flecha y leyenda.",
+      "slots": "",
+      "_row": "p_slide_top_two_box"
+    },
+    {
+      "id": "p_slide_redondeo",
+      "nombre": "Explicación del redondeo",
+      "cat": "estructural",
+      "desc": "Lámina metodológica reutilizable: muestra la misma distribución rotulada por los dos métodos de redondeo, con su suma al lado. Responde de una vez la pregunta de por qué una barra suma 99 % o 101 %.",
+      "slots": "",
+      "_row": "p_slide_redondeo"
+    },
+    {
+      "id": "p_slide_seccion",
+      "nombre": "Separador de sección",
+      "cat": "estructural",
+      "desc": "Lámina de transición entre bloques grandes del reporte. Muestra solo el título de la sección.",
+      "slots": "",
+      "_row": "p_slide_seccion"
+    },
+    {
+      "id": "p_slide_objetivo_icono",
+      "nombre": "Objetivo con ícono",
+      "cat": "estructural",
+      "desc": "Bloque de texto con un ícono grande al costado. Útil para enunciar objetivos o hallazgos clave.",
+      "slots": "icono",
+      "_row": "p_slide_objetivo_icono"
+    },
+    {
+      "id": "p_slide_texto",
+      "nombre": "Bloque de texto",
+      "cat": "estructural",
+      "desc": "Lámina solo con texto: título + párrafo + bullets opcionales. Útil para conclusiones o metodología.",
+      "slots": "",
+      "_row": "p_slide_texto"
+    },
+    {
+      "id": "p_slide_tabla_tecnica",
+      "nombre": "Tabla técnica",
+      "cat": "estructural",
+      "desc": "Slide con una tabla editorial (ej. ficha técnica del estudio, parámetros, metodología).",
+      "slots": "",
+      "_row": "p_slide_tabla_tecnica"
+    },
+    {
+      "id": "p_slide_1_grafico",
+      "nombre": "Un gráfico",
+      "cat": "1grafico",
+      "desc": "Lámina estándar con un solo gráfico grande al centro y encabezados arriba/abajo.",
+      "slots": "grafico",
+      "_row": "p_slide_1_grafico"
+    },
+    {
+      "id": "p_slide_1_grafico_narrativo",
+      "nombre": "Un gráfico + narrativa",
+      "cat": "1grafico",
+      "desc": "Gráfico central con un bloque de texto narrativo arriba. Útil para guiar la lectura.",
+      "slots": "grafico",
+      "_row": "p_slide_1_grafico_narrativo"
+    },
+    {
+      "id": "p_slide_grafico_texto_derecha",
+      "nombre": "Gráfico + texto a la derecha",
+      "cat": "1grafico",
+      "desc": "Gráfico a la izquierda, bloque de texto a la derecha. Ideal para hallazgos o recomendaciones junto a la evidencia.",
+      "slots": "grafico",
+      "_row": "p_slide_grafico_texto_derecha"
+    },
+    {
+      "id": "p_slide_grafico_texto_izquierda",
+      "nombre": "Gráfico + texto a la izquierda",
+      "cat": "1grafico",
+      "desc": "Texto a la izquierda, gráfico a la derecha. Útil cuando quieres que el mensaje se lea antes del gráfico.",
+      "slots": "grafico",
+      "_row": "p_slide_grafico_texto_izquierda"
+    },
+    {
+      "id": "p_slide_2_graficos",
+      "nombre": "Dos gráficos",
+      "cat": "2graficos",
+      "desc": "Dos gráficos lado a lado, mismo tamaño. Útil para comparaciones directas.",
+      "slots": "izquierda, derecha",
+      "_row": "p_slide_2_graficos"
+    },
+    {
+      "id": "p_slide_2_graficos_narrativo",
+      "nombre": "Dos gráficos + narrativa",
+      "cat": "2graficos",
+      "desc": "Dos gráficos con un bloque de texto narrativo arriba.",
+      "slots": "izquierda, derecha",
+      "_row": "p_slide_2_graficos_narrativo"
+    },
+    {
+      "id": "p_slide_2_graficos_texto_izquierda",
+      "nombre": "Dos gráficos + texto izquierda",
+      "cat": "2graficos",
+      "desc": "Los dos gráficos a la derecha y un bloque de texto a la izquierda.",
+      "slots": "grafico_1, grafico_2",
+      "_row": "p_slide_2_graficos_texto_izquierda"
+    },
+    {
+      "id": "p_slide_2_graficos_texto_derecha",
+      "nombre": "Dos gráficos + texto derecha",
+      "cat": "2graficos",
+      "desc": "Los dos gráficos a la izquierda y un bloque de texto a la derecha.",
+      "slots": "grafico_1, grafico_2",
+      "_row": "p_slide_2_graficos_texto_derecha"
+    },
+    {
+      "id": "p_slide_4_graficos",
+      "nombre": "Cuatro gráficos",
+      "cat": "4graficos",
+      "desc": "Grid 2×2 con cuatro gráficos compactos. Ideal para ver varias dimensiones en paralelo.",
+      "slots": "superior_izquierda, superior_derecha, inferior_izquierda, inferior_derecha",
+      "_row": "p_slide_4_graficos"
+    },
+    {
+      "id": "p_slide_2_graficos_poblacion",
+      "nombre": "Dos gráficos + ícono (población)",
+      "cat": "poblacion",
+      "desc": "Dos gráficos con un ícono grande al centro. Usado para láminas de perfil poblacional.",
+      "slots": "izquierda, derecha, icono",
+      "_row": "p_slide_2_graficos_poblacion"
+    },
+    {
+      "id": "p_slide_3_graficos_poblacion_tira",
+      "nombre": "Tres franjas + ícono (población)",
+      "cat": "poblacion",
+      "desc": "Ícono a la izquierda y tres franjas anchas: cuando las categorías son largas, el ancho vale más que el alto.",
+      "slots": "superior, medio, inferior, icono",
+      "_row": "p_slide_3_graficos_poblacion_tira"
+    },
+    {
+      "id": "p_slide_3_graficos_poblacion_corona",
+      "nombre": "Tres gráficos alrededor del ícono",
+      "cat": "poblacion",
+      "desc": "El ícono al centro y los tres alrededor: la composición dice que describen al mismo sujeto, no una secuencia.",
+      "slots": "superior_izquierda, superior_derecha, inferior, icono",
+      "_row": "p_slide_3_graficos_poblacion_corona"
+    },
+    {
+      "id": "p_slide_3_graficos_poblacion_cifras",
+      "nombre": "Tres gráficos + cifras + ícono",
+      "cat": "poblacion",
+      "desc": "Como la de perfil, más dos cifras sueltas bajo el ícono: el N del público, la tasa de respuesta.",
+      "slots": "superior_izquierda, derecha, cifra_superior, inferior_izquierda, cifra_inferior, icono",
+      "_row": "p_slide_3_graficos_poblacion_cifras"
+    },
+    {
+      "id": "p_slide_cifras_y_graficos",
+      "nombre": "Banda de cifras + dos gráficos",
+      "cat": "2graficos",
+      "desc": "Tres cifras destacadas arriba y dos gráficos debajo, para láminas de cierre donde el titular es un número.",
+      "slots": "cifra_izquierda, cifra_centro, cifra_derecha, grafico_izquierda, grafico_derecha",
+      "_row": "p_slide_cifras_y_graficos"
+    },
+    {
+      "id": "p_slide_3_graficos_2mas1",
+      "nombre": "Tres gráficos: dos apilados + uno alto",
+      "cat": "3graficos",
+      "desc": "Dos paneles apilados a la izquierda y uno alto a la derecha, sin ícono.",
+      "slots": "superior_izquierda, inferior_izquierda, derecha",
+      "_row": "p_slide_3_graficos_2mas1"
+    },
+    {
+      "id": "p_slide_3_graficos_1mas2",
+      "nombre": "Tres gráficos: uno alto + dos apilados",
+      "cat": "3graficos",
+      "desc": "El espejo del anterior: el panel alto abre la lectura a la izquierda.",
+      "slots": "izquierda, superior_derecha, inferior_derecha",
+      "_row": "p_slide_3_graficos_1mas2"
+    },
+    {
+      "id": "p_slide_3_graficos_fila",
+      "nombre": "Tres gráficos en fila",
+      "cat": "3graficos",
+      "desc": "Tres paneles del mismo ancho: la geometría afirma que se leen en paralelo.",
+      "slots": "izquierda, centro, derecha",
+      "_row": "p_slide_3_graficos_fila"
+    },
+    {
+      "id": "p_slide_3_graficos_1arriba",
+      "nombre": "Tres gráficos: uno ancho arriba",
+      "cat": "3graficos",
+      "desc": "Un panel ancho arriba con el resultado principal y dos abajo que lo desglosan.",
+      "slots": "superior, inferior_izquierda, inferior_derecha",
+      "_row": "p_slide_3_graficos_1arriba"
+    },
+    {
+      "id": "p_slide_2_graficos_vertical",
+      "nombre": "Dos gráficos apilados",
+      "cat": "2graficos",
+      "desc": "Dos paneles en una sola columna ancha, uno sobre otro.",
+      "slots": "superior, inferior",
+      "_row": "p_slide_2_graficos_vertical"
+    },
+    {
+      "id": "p_slide_2_graficos_asimetrico",
+      "nombre": "Dos gráficos: principal y apoyo",
+      "cat": "2graficos",
+      "desc": "Reparto 60/26 en vez de mitades: un gráfico manda y el otro lo acompaña.",
+      "slots": "principal, apoyo",
+      "_row": "p_slide_2_graficos_asimetrico"
+    },
+    {
+      "id": "p_slide_3_graficos_poblacion",
+      "nombre": "Tres gráficos + ícono (población)",
+      "cat": "poblacion",
+      "desc": "Dos paneles apilados a la izquierda y uno alto a la derecha, que ocupa el alto de los dos. El alto es para la variable con más categorías —nivel, ciclo, año de egreso—: con la mitad sus barras quedan por debajo del piso de legibilidad. Antes de existir, tres gráficos se armaban con la de cuatro dejando un slot vacío.",
+      "slots": "superior_izquierda, inferior_izquierda, derecha, icono",
+      "_row": "p_slide_3_graficos_poblacion"
+    },
+    {
+      "id": "p_slide_4_graficos_poblacion",
+      "nombre": "Cuatro gráficos + ícono (población)",
+      "cat": "poblacion",
+      "desc": "Grid 2×2 con ícono central, típico para slides demográficas.",
+      "slots": "superior_izquierda, superior_derecha, inferior_izquierda, inferior_derecha, icono",
+      "_row": "p_slide_4_graficos_poblacion"
+    },
+    {
+      "id": "p_slide_5_graficos_poblacion",
+      "nombre": "Cinco gráficos + ícono",
+      "cat": "poblacion",
+      "desc": "Tres gráficos arriba + dos abajo, con ícono central. Diseñado para caracterizar poblaciones con muchas dimensiones.",
+      "slots": "grafico_superior_1, grafico_superior_2, grafico_superior_3, grafico_inferior_1, grafico_inferior_2, icono",
+      "_row": "p_slide_5_graficos_poblacion"
+    },
+    {
+      "id": "p_slide_6_graficos_poblacion",
+      "nombre": "Seis gráficos + ícono",
+      "cat": "poblacion",
+      "desc": "Grid 3×2 con ícono central, la lámina más densa de población.",
+      "slots": "grafico_superior_1, grafico_superior_2, grafico_superior_3, grafico_inferior_1, grafico_inferior_2, grafico_inferior_3, icono",
+      "_row": "p_slide_6_graficos_poblacion"
+    }
+  ]
+}

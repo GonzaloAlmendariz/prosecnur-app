@@ -177,9 +177,20 @@ test_that("P1 y P2 consumen la decisión R y la fijación de titulares SOBREVIVE
       vapply(component$marco$estratos, `[[`, numeric(1), "aulas_base_fijas"),
       c(777, 888)
     )
+    # El divisor SELLADO vive en `divisor_conglomerado` desde `bfaa0d9b`
+    # (decision de Gonzalo, 2026-08-27: «la separacion para el 5»). Antes se
+    # materializaba dentro de `promedio_conglomerado`, y por eso este test lo
+    # leia ahi.
+    expect_equal(
+      vapply(component$marco$estratos, `[[`, numeric(1), "divisor_conglomerado"),
+      c(15, 30)
+    )
+    # Y la medida del marco NO se pisa: ese es justamente el punto de haberlos
+    # separado. El fixture siembra 777/888 y siguen ahi tras resolver; antes el
+    # sellado los machacaba y borraba la mediana con ellos.
     expect_equal(
       vapply(component$marco$estratos, `[[`, numeric(1), "promedio_conglomerado"),
-      c(15, 30)
+      c(777, 888)
     )
   }
 
@@ -309,7 +320,7 @@ test_that("divisor decidido, usado y auditado conserva exactamente su valor", {
 
   for (component in resolved$estudio$componentes) {
     expect_identical(
-      vapply(component$marco$estratos, `[[`, numeric(1), "promedio_conglomerado"),
+      vapply(component$marco$estratos, `[[`, numeric(1), "divisor_conglomerado"),
       expected
     )
   }

@@ -204,6 +204,21 @@ calc_muestra_explorar_base <- function(datos = NULL, sheet = "", filtros = list(
     length(unique(trimws(as.character(datos[[col_id]]))[!.cm_expl_vacio(datos[[col_id]])]))
   } else NA_integer_
 
+  # Cursos-horario UNICOS de la hoja, sin construir el marco.
+  #
+  # Este numero solo existia despues de construir, asi que una base recien
+  # cargada no podia decir de cuantos cursos-horario habla: la cabecera seguia
+  # enseñando el universo del marco ANTERIOR. Y no basta con contar distintos de
+  # una columna —la identidad del aula es curso x seccion x horario, y `HORARIO`
+  # a solas da 847 donde los cursos-horario son 5.269—, por eso se compone con
+  # `.cm_aulas_classroom_id`, el mismo constructor que usa el motor, con sus
+  # guardas anti-colapso de identidad.
+  cursos_horario <- tryCatch({
+    claves <- .cm_aulas_classroom_id(datos, mapping)
+    claves <- trimws(as.character(claves))
+    length(unique(claves[nzchar(claves) & claves != "::" & claves != "::::"]))
+  }, error = function(e) NA_integer_)
+
   columnas <- lapply(names(datos), function(nombre) {
     x <- datos[[nombre]]
     vacios <- .cm_expl_vacio(x)
@@ -254,6 +269,7 @@ calc_muestra_explorar_base <- function(datos = NULL, sheet = "", filtros = list(
     filas = as.integer(filas),
     filas_base = as.integer(filas_totales),
     estudiantes = if (is.na(estudiantes)) NULL else as.integer(estudiantes),
+    cursos_horario = if (is.na(cursos_horario) || !cursos_horario) NULL else as.integer(cursos_horario),
     unidad = if (por_estudiante) "estudiantes" else "filas",
     # La superficie necesita saber si pudo contar personas: sin columna de
     # estudiante el conmutador no debe ofrecer una unidad que no existe.

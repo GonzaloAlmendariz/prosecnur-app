@@ -148,6 +148,26 @@ const PANEL_CONECTAR_FUENTE: PanelDeclarado = {
   clase: "sideover",
 };
 
+/**
+ * Elegir el reemplazo de un curso-horario caído, en Monitoreo de cursos-horario.
+ *
+ * **Se declara aquí porque el QA visual recorre este manifiesto**, y esta
+ * superficie era la única del perfil que ningún gate había visto nunca: el
+ * popover llevaba su `data-pulso-panel` a mano y se abría con un `useState`
+ * suelto, así que `popovers=0` en las 28 corridas del runner. Alcanzarlo por
+ * click tampoco servía —el botón sólo existe tras seleccionar en la lista un
+ * curso-horario caído, y el intento daba `locator.click: Timeout`—.
+ *
+ * Con el panel en la dirección, `?panel=aulas-reemplazo&foco=<código>` lo abre
+ * sobre el curso-horario que se quiera, que es lo que pide la regla de la casa:
+ * un overlay se conecta con `usePanelDireccionable`, no con un `useState`.
+ */
+export const PANEL_REEMPLAZO_AULAS: PanelDeclarado = {
+  id: "aulas-reemplazo",
+  label: "Elegir reemplazo",
+  clase: "popover",
+};
+
 /** Centro de avisos del cronograma (ADR 0047). */
 export const PANEL_AVISOS: PanelDeclarado = {
   id: "avisos",
@@ -167,7 +187,7 @@ export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
-  monitoreo: [PANEL_CONECTAR_FUENTE],
+  monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS],
   "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
   procesamiento: PANELES_GRAFICOS,
 };

@@ -249,7 +249,7 @@
     409,
     "E_MONITOREO_PROCESSING_HANDOFF_XLSFORM",
     paste(
-      "No se encontro un XLSForm exacto para empaquetar.",
+      "No se encontró un XLSForm exacto para empaquetar.",
       "Sube el XLSForm del formulario (la ultima version descargada de Kobo) antes de generar el paquete."
     )
   )
@@ -349,7 +349,35 @@
     check.names = FALSE
   )
   xlsform_meta <- .monitoreo_processing_handoff_xlsform(sid, s, xlsform_path, cfg = cfg)
-  handoff_inst <- tryCatch(leer_instrumento_xlsform(xlsform_path), error = function(e) NULL)
+  # **Si el XLSForm no se puede LEER, no se pasa de largo.**
+  #
+  # El `NULL` se tragaba el motivo y entonces se saltaba el bloque entero: no se
+  # alineaban las columnas de Kobo, no se completaban las esperadas, no se
+  # reordenaban y —lo peor— no corria
+  # `.monitoreo_processing_handoff_xlsform_score()`, que es el `stop_api` que
+  # protege este handoff. O sea: el unico camino en el que la verificacion
+  # importaba era justo el que se la saltaba. Fallar ABIERTO en la puerta que
+  # existe para cerrar.
+  #
+  # Los dos casos se separan, como en el resto de este recorrido: que el archivo
+  # NO exista es legitimo —un estudio sin instrumento— y sigue de largo
+  # declarandolo; que exista y no se deje leer es un fallo y se dice.
+  hay_xlsform <- file.exists(xlsform_path)
+  fallo_xlsform <- ""
+  handoff_inst <- if (!hay_xlsform) NULL else tryCatch(
+    leer_instrumento_xlsform(xlsform_path),
+    error = function(e) { fallo_xlsform <<- conditionMessage(e); NULL }
+  )
+  if (nzchar(fallo_xlsform)) {
+    stop_api(
+      422, "E_MONITOREO_PROCESSING_HANDOFF_XLSFORM_ILEGIBLE",
+      paste0("El XLSForm del traspaso existe pero no se pudo leer, asi que no se ",
+             "pudo comprobar que calce con la data. Detalle: ", fallo_xlsform)
+    )
+  }
+  # Lo declara aunque no haya nada que comprobar: un handoff sin instrumento no
+  # es un handoff verificado, y el manifiesto tiene que poder decirlo.
+  if (is.null(handoff_inst)) xlsform_meta$compatibility <- list(ok = NA, message = "sin XLSForm que comprobar")
   if (!is.null(handoff_inst)) {
     data_out <- .carga_align_kobo_data(data_out, handoff_inst)
     data_out <- .monitoreo_processing_handoff_complete_expected_columns(data_out, handoff_inst)
@@ -360,7 +388,7 @@
         409,
         "E_MONITOREO_PROCESSING_HANDOFF_XLSFORM_INCOMPATIBLE",
         sprintf(
-          "El XLSForm exacto no calza con la data procesable despues de alinear columnas: %s",
+          "El XLSForm exacto no calza con la data procesable después de alinear columnas: %s",
           .monitoreo_scalar(compatibility$message, "incompatible")
         )
       )
@@ -438,7 +466,7 @@
     "1. En la otra PC, abrir Prosecnur.",
     "2. Cargar el XLSForm de este paquete.",
     "3. Cargar el XLSX principal como data.",
-    "4. Continuar el flujo de Procesamiento/Validacion/Codificacion segun corresponda."
+    "4. Continuar el flujo de Procesamiento/Validación/Codificación según corresponda."
   ), readme_path, useBytes = TRUE)
 
   zip_name <- paste(project_slug, universe_slug, "processing-handoff", cut_slug, sep = "-")

@@ -9,6 +9,7 @@ import { METODO_GOO_LEYENDA } from "../../didactica/MetodoGooEsquema";
 import { fmtInt } from "../../sharedCore";
 import { avisoDuracionComparacion } from "./duracionComparacion";
 import { normalizeAulasSelectorEngine, normalizeUniversityAulasConfig } from "../shared/study";
+import { VariablesBalanceControl } from "./VariablesBalanceControl";
 import { DescuentoRepetidosControl } from "./DescuentoRepetidosControl";
 import {
   ClassroomLabCommandBar,
@@ -69,6 +70,16 @@ export function AulasMetodoTab({
     onWorkspace({
       ...workspace,
       aulas_config: normalizeUniversityAulasConfig({ ...config, sequential_discount: value }),
+    });
+  }
+
+  // La decision de que se equilibra no tenia superficie: se leia del config y
+  // no se escribia desde ninguna pantalla. Surte efecto en la proxima seleccion,
+  // como el resto de los ajustes de metodo.
+  function setBalanceVars(balanceVars: string[]) {
+    onWorkspace({
+      ...workspace,
+      aulas_config: normalizeUniversityAulasConfig({ ...config, balance_vars: balanceVars }),
     });
   }
 
@@ -200,6 +211,12 @@ export function AulasMetodoTab({
             checked={config.sequential_discount ?? true}
             selectorEngine={String(config.selector_engine ?? config.selector)}
             onChange={setSequentialDiscount}
+          />
+
+          <VariablesBalanceControl
+            filas={model.frameIncludedRows}
+            config={config as { balance_vars?: unknown; spread_vars?: unknown }}
+            onChange={setBalanceVars}
           />
         </div>
       </div>

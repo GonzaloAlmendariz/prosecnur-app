@@ -1,0 +1,498 @@
+/* La τ del diseño contra la del campo (ADR 0082).
+ *
+ * Hoja propia y no un bloque más de `aulasMonitoreo.css`, que ya pasa de 5 000
+ * líneas. Las clases llevan prefijo `aulas-tau-` para que el contrato de CSS sin
+ * dueño las reconozca como del perfil.
+ *
+ * La geometría es la de una tabla: el nombre cede el ancho y las cifras se leen
+ * EN COLUMNA entre facultades, que es lo único que permite comparar de un
+ * vistazo. El marco lleva `overflow-x` propio para que la tabla nunca empuje el
+ * scroll horizontal de la página. */
+
+/* **Escala propia, más grande que la del perfil.**
+ *
+ * Gonzalo, 2026-09-10: «todo se ve muy pequeño y sin vida». Tenía razón y la
+ * causa es medible: esta tabla usaba `--aulas-txt` (12 px) y `--aulas-min`
+ * (10 px), la escala que el perfil fija para EJES Y MARCAS de gráficos, donde
+ * 10 px es correcto porque el dato lo lleva la forma. Aquí el dato son las
+ * cifras, y son la superficie principal de la pestaña.
+ *
+ * Las variables son locales al bloque y no tocan las del perfil: subir
+ * `--aulas-txt` habría movido cuarenta archivos, incluidos los SVG donde el
+ * tamaño está calculado contra el viewBox.
+ */
+.mon-profile-page.is-aulas-flow .aulas-tau {
+  --tau-dato: 15.5px;   /* la cifra que se compara: la tasa observada */
+  --tau-txt: 13px;      /* nombre de facultad y cifras de apoyo */
+  --tau-meta: 11.5px;   /* metadata, celdas de sexo, encabezado */
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 6px 0 2px;
+}
+
+/* El supuesto del estudio, en una línea. No es una tarjeta: es el encabezado
+   que da sentido a todo lo de abajo. */
+.mon-profile-page.is-aulas-flow .aulas-tau-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cabeza strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Los sellos que cierran la frase de cabecera. Iban sueltos: al envolver, el
+   último caía en una línea propia pegada al margen izquierdo, en 10 px tenues,
+   con aire de párrafo huérfano —«a veces pones texto abajo de un gráfico y no
+   le pones formato, se ve como pegada a la izquierda» (Gonzalo, 2026-09-09)—.
+   Ahora cada uno se anuncia con un punto medio y respira, así que aunque
+   envuelva se lee como continuación de la frase y no como una nota perdida. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sello {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-tau-sello::before {
+  content: "·";
+  margin: 0 7px 0 3px;
+  color: var(--pulso-border-strong);
+}
+
+/* TABLA de verdad, no una lista con grid.
+ *
+ * El encabezado anterior era un `li` con `aria-hidden="true"`: un lector de
+ * pantalla recibía cinco columnas de números sin un solo nombre. Y llevaba
+ * `text-transform: uppercase` a 10 px, que convertía «τ campo» en «Τ CAMPO» —
+ * tau mayúscula, que se lee como una T latina—. Las dos cosas se arreglan
+ * volviendo a `<table>` con `<th scope>` y rótulos en castellano llano. */
+.mon-profile-page.is-aulas-flow .aulas-tau-marco {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--aulas-txt);
+}
+
+/* El `caption` nombra la tabla para quien no ve el encabezado de la sección.
+   Se oculta visualmente pero NO con `display:none`, que lo quitaría también
+   del árbol de accesibilidad. */
+.mon-profile-page.is-aulas-flow .aulas-tau-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla thead th {
+  /* Pegajoso: son quince filas altas y al llegar a la mitad de la tabla ya no
+     se sabía qué columna era cuál. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  padding: 7px 10px 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  /* 11px y sin uppercase: a 10 px en mayúsculas el encabezado competía con los
+     datos y rompía las letras griegas. */
+  font-size: var(--tau-meta);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla th.es-num,
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla td.aulas-tau-cifra {
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr > * {
+  /* Más aire vertical: con 5 px la metadata de una fila casi tocaba el nombre
+     de la siguiente y la tabla se leía como un bloque continuo. */
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+/* Zebra muy leve: guía el ojo a lo largo de una fila de siete columnas sin
+   competir con el resaltado del foco ni con el fondo de las que van bajas. */
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr:nth-child(even):not(.es-bajo) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, transparent);
+}
+
+/* La primera celda es `th scope="row"`: identifica la fila. */
+/* **Rejilla de dos filas, no una fila flex.**
+ *
+ * El bloque por sexo tenía que ir DEBAJO del nombre —lo decía su propio
+ * comentario en el componente— pero la celda era un `flex` en fila, así que se
+ * colocaba AL LADO y desbordaba sobre la columna de la tasa prevista: «+1» y
+ * «54,6 %» impresos uno encima del otro, quince veces. Visto en la captura que
+ * mandó Gonzalo el 2026-09-10.
+ *
+ * Con `grid`, el chip ocupa su columna en las dos filas y el bloque de sexo cae
+ * bajo el nombre, dentro de la celda. */
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre-celda {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+  border-left: 3px solid transparent;
+  font-weight: 400;
+  text-align: left;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre-celda > .aulas-tau-sexo {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-bajo .aulas-tau-nombre-celda {
+  border-left-color: var(--pulso-danger-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-bajo {
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-sobre .aulas-tau-nombre-celda {
+  border-left-color: var(--pulso-success-fg);
+}
+
+/* El foco cruza toda la sección y aquí se RESALTA, no filtra: filtrar
+   destruiría la comparación entre facultades, que es lo único que esta tabla
+   aporta. */
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-en-foco {
+  outline: 1px solid var(--pulso-accent);
+  outline-offset: -1px;
+}
+
+/* EL VEREDICTO EN PALABRA, no sólo en color: quien no distingue los tonos —o
+   mira la pantalla proyectada, o la imprime— recibía el dato principal de la
+   fila únicamente por el borde. */
+/* Con FONDO y no sólo contorno: quince píldoras de borde fino sobre blanco es
+   lo que hacía que la columna se leyera apagada. El fondo es el propio tono al
+   10 %, así que sigue siendo el mismo código de color. */
+.mon-profile-page.is-aulas-flow .aulas-tau-chip {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-size: var(--tau-meta);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-riesgo { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-aviso { color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-ok { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-neutro { color: var(--pulso-text-faint); }
+
+/* La leyenda es VISUAL y vive junto a la tabla. Antes el significado de la
+   marca y de la barra sólo estaba en prosa al pie, que es pedirle al lector que
+   memorice una explicación para decodificar un gráfico que tiene delante. */
+/* La leyenda: separada de la frase de arriba y de la tabla de abajo. Con
+   `margin: 0` quedaba encajada entre las dos, sin decir a cuál pertenece. */
+.mon-profile-page.is-aulas-flow .aulas-tau-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 10px 0 12px;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-muestra-vara {
+  width: 2px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-muestra-banda {
+  width: 22px;
+  height: 9px;
+  border-radius: 5px 0 0 5px;
+  background: var(--pulso-text-faint);
+  opacity: 0.55;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre em {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  /* **La línea de detalle envuelve.**
+
+     Hereda `white-space: nowrap` del botón de foco, y con `nowrap` el
+     `overflow-wrap: anywhere` del contenedor no llega a aplicarse nunca: la
+     línea sale entera y desborda su celda. Estaba latente y lo destapó una
+     frase más larga —«19 cursos-horario aplicados» donde antes decía «19 aulas
+     aplicadas»—, que subió el `overflow-x` del panel de 1 a 9 en las mismas
+     dos resoluciones.
+
+     La reparación es dejarla partir, no acortar el texto ni bajarle el cuerpo:
+     son dato operativo —cuántos se aplicaron y cuántos alumnos respondieron— y
+     el contrato no admite recortarlo. */
+  white-space: normal;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra {
+  color: var(--pulso-text);
+  font-size: var(--tau-txt);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* **La tasa observada es EL dato de la fila**, y se lee como tal: es la única
+   cifra que la tabla existe para comparar. Iba a 12 px y del mismo gris que su
+   propia metadata. */
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla td.aulas-tau-observada {
+  font-size: var(--tau-dato);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Y con color, que es lo que la hacía «sin vida»: verde cuando llega a la vara
+   del diseño y granate cuando no. El color repite el de la barra de al lado, no
+   inventa una segunda codificación. */
+.mon-profile-page.is-aulas-flow .aulas-tau-observada.es-mejor { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-observada.es-peor { color: var(--pulso-danger-fg); }
+
+/* Las dos columnas de alumnos: cifra de apoyo, pero con signo y color. */
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-corto { color: var(--pulso-danger-fg); font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-sobra { color: var(--pulso-success-fg); font-weight: 600; }
+
+/* Columna de texto: se alinea con su encabezado, a la izquierda. */
+.mon-profile-page.is-aulas-flow .aulas-tau-respaldo {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-debil {
+  color: var(--pulso-text-faint);
+}
+
+/* **El déficit de hoy se tiñe; el superávit no.** Una facultad que va corta de
+   rendimiento es lo que hay que ver de un barrido por la columna, y teñir
+   también lo que sobra dejaría la tabla entera en color. */
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-corto {
+  color: var(--pulso-danger-fg);
+  font-weight: 560;
+}
+
+/* LA BARRA VA DE 0 A 100 %, con la marca en lo previsto y el relleno desde la
+ * izquierda. Antes era un segmento flotante sobre una escala recortada al
+ * máximo observado, y no se podía leer: un segmento sin extremos conocidos no
+ * dice qué es «lleno» y obliga a decodificarlo con la leyenda. Con relleno, la
+ * lectura es inmediata: la barra llega o no llega a la marca. */
+.mon-profile-page.is-aulas-flow .aulas-tau-pista {
+  display: block;
+  position: relative;
+  /* Ancho mínimo real: la barra es el gráfico de la fila y a menos de esto deja
+     de poder leerse dónde cae la marca. La tabla scrollea antes que aplastarla. */
+  min-width: 150px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-relleno {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 18px;
+  border-radius: 9px 0 0 9px;
+  background: var(--pulso-text-faint);
+  opacity: 0.55;
+}
+
+/* Verde si llega o pasa la marca, granate si se queda corto. El color habla de
+   la TASA; el veredicto de la fila —si la cuota cierra— lo lleva el chip, que
+   es otra pregunta y por eso no comparten señal. */
+.mon-profile-page.is-aulas-flow .aulas-tau-relleno.es-mejor {
+  background: var(--pulso-success-fg);
+  opacity: 0.8;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-relleno.es-peor {
+  background: var(--pulso-danger-fg);
+  opacity: 0.8;
+}
+
+/* El margen de error va como NÚMERO junto a la tasa, no como bigote sobre la
+   barra. Dibujado ahí quedaba feo y, peor, no se sabía qué medía: una línea que
+   cruza el relleno se lee como parte del relleno. */
+.mon-profile-page.is-aulas-flow .aulas-tau-error {
+  margin-left: 5px;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+/* LA MARCA: lo que el diseño supuso. Va por encima de todo —es la vara contra
+   la que se lee la barra— y de borde a borde del alto para que se distinga del
+   relleno aunque caiga dentro de él. */
+.mon-profile-page.is-aulas-flow .aulas-tau-vara {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-pie {
+  margin: 2px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-pie code {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* --- las dos celdas de sexo, bajo el nombre de la facultad ------------------- */
+
+/* Van aquí y no en columnas nuevas: la tabla ya tiene siete y la τ por sexo son
+   seis cifras más por fila, que en columnas obligarían a leer en zigzag para
+   comparar una facultad consigo misma. */
+/* **Las dos celdas de sexo, en rejilla y no en prosa.**
+ *
+ * Gonzalo, 2026-09-10, con la captura de una fila delante: «creo que toda esta
+ * sección puede tener mejor formato, ahora se ve muy desnuda y poco
+ * profesional». Iban en un `flex` con `wrap`, así que «Mujeres 55,9 % de 54,6 %
+ * +1» y su «Hombres…» caían donde cupieran: las cifras no se alineaban entre
+ * los dos sexos de una misma facultad ni entre facultades, que es justo la
+ * comparación para la que existen.
+ *
+ * Ahora son cuatro columnas fijas —sexo · observada · prevista · diferencia— y
+ * un bloque con fondo propio, así que la vista puede barrer una columna hacia
+ * abajo. Los anchos van en `em` para que sigan al tamaño de letra. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo {
+  display: grid;
+  gap: 1px;
+  margin: 5px 0 1px;
+  padding: 4px 7px 5px;
+  border-radius: 5px;
+  background: var(--pulso-surface-2);
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda {
+  display: grid;
+  /* **Tres columnas, no cuatro: la prevista NO se repite aquí.**
+     La τ prevista es la de la fila —la misma para mujeres y para hombres— y ya
+     tiene su columna en la tabla. Repetida en las dos líneas del bloque no
+     añadía nada, no cabía en su ancho y partía el «%» a la línea de abajo:
+     «de 54,6» arriba y «%» solo debajo, dos veces por facultad. Visto en la
+     captura que mandó Gonzalo. */
+  grid-template-columns: 4.6em 4.6em 3em;
+  align-items: baseline;
+  gap: 0 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La observada y la diferencia, a la derecha de su columna: es donde se leen
+   los dígitos cuando se comparan hacia abajo. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda strong,
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda i,
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em { text-align: right; }
+
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda strong {
+  color: var(--pulso-text);
+  font-weight: 580;
+}
+
+/* La prevista es la vara: se lee detrás de la observada, como en el resto del
+   perfil. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda i {
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em {
+  font-style: normal;
+  font-weight: 560;
+  color: var(--pulso-text-soft);
+}
+
+/* Sólo lo que va corto se tiñe: es lo que hay que ver de un barrido. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em.es-corto { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em.es-sobra { color: var(--pulso-success-fg); }
+
+/* Una tasa por encima del 100 % —más respuestas de un sexo que elegibles declara
+   el padrón— se marca para que se pueda preguntar por ella, y NO se capa: capar
+   borraría la señal. El subrayado punteado dice «hay algo que explicar aquí» sin
+   gritar como una alerta, porque no es un fallo del operativo. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda.es-imposible {
+  cursor: help;
+  text-decoration: underline dotted var(--pulso-border-strong);
+  text-underline-offset: 3px;
+}
+
+/* El sexo, en su columna: peso normal y color tenue, que la cifra es lo que
+   se compara. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda b {
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+}
+
+/* **La lectura que dice qué hacer**, no sólo cómo va: cuántas facultades piden
+   aula adicional, cuántas hay que vigilar y cuántas no tienen todavía base para
+   juzgarse. Va en su propia línea y con una regla delante porque es una
+   conclusión, no un dato más de la frase de arriba. */
+.mon-profile-page.is-aulas-flow .aulas-tau-aviso {
+  flex-basis: 100%;
+  margin-top: 2px;
+  padding-left: 9px;
+  border-left: 2px solid color-mix(in srgb, var(--pulso-border-strong) 70%, transparent);
+  color: var(--pulso-text-soft);
+  font-size: var(--tau-meta);
+  line-height: 1.5;
+}

@@ -33,9 +33,24 @@ describe("el selector de secciones dice qué falta", () => {
     expect(fuente).toContain("?? null");
   });
 
-  it("el punto no es sólo color: lleva texto para lector de pantalla", () => {
+  it("el estado no es sólo color: va en texto y en el título", () => {
+    // Desde el 2026-08-28 el avance lo dibujan `is-done` e `is-next` de
+    // `pulso-phase-pillbar`, el mismo sistema que Cálculo de muestra, Hojas de
+    // ruta y Monitoreo. Un tinte en el círculo NO es una señal accesible, así
+    // que la palabra sigue viajando en el nombre accesible y en el tooltip.
     expect(fuente).toContain("pulso-sr-only");
-    expect(fuente).toContain("· hecho");
-    expect(fuente).toContain("· es lo siguiente");
+    expect(fuente).toContain('"hecho"');
+    expect(fuente).toContain('"es lo siguiente"');
+    expect(fuente).toMatch(/title=\{estado/);
+  });
+
+  it("usa las píldoras de fase compartidas y no un selector propio", () => {
+    // Tres módulos con un lenguaje visual y éste con otro es lo que hacía que
+    // Recopiladores desentonara. El sistema vive en `app/theme.css`.
+    expect(fuente).toContain("pulso-phase-pillbar");
+    expect(fuente).toContain("pulso-phase-pill-list");
+    expect(fuente).toContain("pulso-phase-pill-number");
+    expect(fuente).toContain("is-done");
+    expect(fuente).toContain("is-next");
   });
 });

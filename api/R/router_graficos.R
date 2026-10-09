@@ -1381,7 +1381,8 @@
     if (is.null(pal) || !length(pal)) next
     out[[ln]] <- pal
   }
-  out
+  # ADR 0093: el coral de fábrica del extremo negativo migra al salmón del recetario.
+  .std_migrar_paletas(out)$paletas
 }
 
 .graficos_unknown_fields <- function(x) {
@@ -1429,11 +1430,10 @@
 # decision del analista y se respeta. Se aplica en el normalizador, la unica
 # costura por la que pasan el GET de config y el config efectivo del export.
 .GRAFICOS_MIGRACIONES_DEFAULTS <- list(
-  list(tipo = "barras_apiladas", arg = "ancho_max_eje_y", de = 22, a = 34),
-  # B45: la etiqueta chica fuera de la barra con flecha paso a opt-in; el
-  # TRUE fosilizado era el default que la UI copiaba sola.
-  list(tipo = "barras_apiladas", arg = "etiquetas_arriba_si_no_caben", de = TRUE, a = FALSE),
-  list(tipo = "multi_apiladas", arg = "etiquetas_arriba_si_no_caben", de = TRUE, a = FALSE)
+  list(tipo = "barras_apiladas", arg = "ancho_max_eje_y", de = 22, a = 34)
+  # B45 (la cifra chica arriba como opt-in) se retiro con el ADR 0092 (F2.3):
+  # el recetario sube las cifras chicas con guia y `estandar_presets.R` lo
+  # impone; migrar TRUE a FALSE aqui lo desharia en cada normalizacion.
 )
 
 .graficos_migrar_defaults_fosiles <- function(presets) {
@@ -1459,7 +1459,8 @@
       presets[[mig$tipo]] <- entry
     }
   }
-  presets
+  # ADR 0092: las claves que fija el estándar se imponen sobre lo guardado.
+  .std_imponer_base(presets)
 }
 
 .graficos_normalize_config <- function(input, sid = NULL, include_legacy_aliases = FALSE) {
@@ -1755,7 +1756,8 @@
   # G-16: los presets del body llegan directo de la UI (sin pasar por el
   # normalizador de config), asi que la migracion de defaults fosiles
   # tambien tiene que correr aqui — es la costura comun de ppt/word/ppt-all.
-  presets_json <- .graficos_migrar_defaults_fosiles(presets_json)
+  # El aviso sale aquí, en la costura del render, y no en el GET de la config.
+  presets_json <- .graficos_migrar_defaults_fosiles(.std_imponer_base(presets_json, avisar = TRUE))
 
   # 0) Suelo editorial: cada tipo hereda `.PRESETS_DEFAULT_PULSO` y el proyecto
   # escribe encima.

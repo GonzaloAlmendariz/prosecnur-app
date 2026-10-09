@@ -6,9 +6,10 @@
  *   ① Fórmula (n de Cochran + deff + FPC)
  *   ② Redondeo de diseño (el n objetivo NO sale exacto de la fórmula; es cifra
  *      fijada — con su error implícito)
- *   ③ Afijación por facultad   n_fac = round(n · N_fac / N)
- *   ④ Afijación por sexo        n_sexo = round(n_fac · sexo_fac / N_fac)
- *   ⑤ Cuadratura                Σ celdas debe cerrar en el n objetivo
+ *   ③ Afijación por facultad   n · N_fac / N, por mayor resto
+ *   ④ Afijación por sexo        n_fac · sexo_fac / N_fac, por mayor resto
+ *   ⑤ Cuadratura                Σ celdas cierra en el n objetivo (el mayor
+ *                               resto la garantiza; decisión P1, 2026-09-24)
  *   ⑥ LA META                   el reparto exacto M / H = n objetivo
  *
  * Consume las cifras VALIDADAS del motor (backend R) que ya vienen en el
@@ -63,14 +64,14 @@ export function CadenaAfijacion({
       id: "facultad",
       label: "③ Afijación facultad",
       valor: `${rows.length} unidades`,
-      detalle: "round(n · N_fac / N)",
+      detalle: "n · N_fac / N, mayor resto",
       estado: rows.length > 0 ? "ready" : "pending",
     },
     {
       id: "sexo",
       label: "④ Afijación sexo",
       valor: `M ${fmtInt(totalMujeres)} · H ${fmtInt(totalHombres)}`,
-      detalle: "round(n_fac · sexo / N_fac)",
+      detalle: "n_fac · sexo / N_fac, mayor resto",
       estado: rows.length > 0 ? "ready" : "pending",
     },
     {

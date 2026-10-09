@@ -18,8 +18,27 @@ export type AulaEnAgenda = {
   docente: string;
   fecha: string;
   hora: string;
-  /** «LUN 08:00 A101»: el texto descriptivo del libro, que es dónde está el aula. */
+  /**
+   * A dónde ir. B30 aplicado también aquí (pregunta de Gonzalo 2026-09-03:
+   * «¿estamos tomando la columna de dónde aplicar como fuente de verdad?
+   * porque en las observaciones algunos pabellones están cambiando»): el
+   * LUGAR DE APLICACIÓN confirmado del libro MANDA cuando existe — es donde
+   * se pactó aplicar y puede diferir del aula de la clase —; sin él, el
+   * texto descriptivo del sorteo («LUN 08:00 A101»). Era la ÚNICA superficie
+   * de lugar sin la precedencia, y es justo la de «a dónde ir cada día».
+   */
   donde: string;
+  /** `donde` es el lugar confirmado (venue a secas), no el compuesto del sorteo. */
+  esLugarConfirmado: boolean;
+  /**
+   * El docente RECHAZÓ (B13b: RECHAZO tecleado en STATUS MUESTRA — el mismo
+   * criterio contains del motor y del semáforo del libro). Dictado de Gonzalo
+   * (2026-09-03, señalando CH 90 con su nota de rechazo y el chip en
+   * «Planificado»): «aquí no hay nada que indique que esta aula fue
+   * rechazada» — el estado operativo no sabe del rechazo, que vive en el eje
+   * de muestra, y la ruta solo enseñaba el primero.
+   */
+  esRechazo: boolean;
   estado: string;
   /**
    * Lo que anotó quien agendó. Viaja en `replacement_note` —el motor acepta ahí
@@ -29,8 +48,19 @@ export type AulaEnAgenda = {
   nota: string;
   /** Es una reserva de cadena, no un curso-horario titular. */
   esReserva: boolean;
-  /** El titular al que reemplaza, cuando lo es. */
+  /** El titular de SU cadena de diseño, cuando lo hay. */
   titular: string;
+  /**
+   * Qué relación tiene con ese titular (dictado 2026-09-03: «yo sé que se
+   * llaman reemplazos, pero no siempre reemplazan en ese sentido de la
+   * palabra»): `reemplaza` cuando el titular salió (caso A — rechazo o
+   * reemplazada), `complementa` cuando el titular sigue vivo y ambos suman
+   * (caso B), `refuerzo` cuando no cuelga de ningún titular (caso C — una R
+   * usada de forma operativa, con nomenclatura propia). La relación se lee
+   * de la CADENA DE DISEÑO: la decisión operativa «el que mejor calza» aún
+   * no deja rastro en la fila del plan, y afirmar más sería inventar.
+   */
+  relacion: "reemplaza" | "complementa" | "refuerzo";
 };
 
 export type FacultadEnAgenda = {
@@ -47,11 +77,27 @@ function texto(valor: unknown): string {
 }
 
 /**
- * @param filas la agenda ya sin banco —los extras no están agendados y no
+ * @param filas la agenda ya sin la reserva adicional —los extras no están agendados y no
  *   tienen a dónde ir—, tal como la recibe la tabla de al lado.
  */
 export function agendaPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): FacultadEnAgenda[] {
   const porFacultad = new Map<string, AulaEnAgenda[]>();
+
+  // El estado de muestra de cada titular, para leer la relación de sus
+  // reservas: caído (rechazo/reemplazada) → la reserva lo reemplaza; vivo →
+  // lo complementa (caso B: ambos suman).
+  const estadoDelTitular = new Map<string, string>();
+  for (const fila of filas) {
+    if (fila.sample_role && texto(fila.sample_role) !== "titular") continue;
+    const cod = texto(fila.operational_code);
+    if (cod) estadoDelTitular.set(cod, texto(fila.sample_status).toLowerCase());
+  }
+  const relacionCon = (titular: string): "reemplaza" | "complementa" | "refuerzo" => {
+    if (!titular) return "refuerzo";
+    const estado = estadoDelTitular.get(titular);
+    if (estado === undefined) return "refuerzo";
+    return /^(rechaz|reemplazada)/.test(estado) ? "reemplaza" : "complementa";
+  };
 
   for (const fila of filas) {
     const facultad = texto(fila.faculty) || "Sin facultad";
@@ -60,7 +106,9 @@ export function agendaPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): 
       docente: texto(fila.teacher),
       fecha: texto(fila.scheduled_date),
       hora: texto(fila.scheduled_time),
-      donde: texto(fila.label),
+      donde: texto((fila as { scheduled_venue?: unknown }).scheduled_venue) || texto(fila.label),
+      esLugarConfirmado: Boolean(texto((fila as { scheduled_venue?: unknown }).scheduled_venue)),
+      esRechazo: /rechaz/i.test(texto((fila as { sample_status?: unknown }).sample_status)),
       // El estado OPERATIVO y no el de muestra: lo que se pregunta antes de
       // salir es si el aula ya se aplicó, no si es titular o reemplazo.
       estado: texto(fila.operational_status) || "planificada",
@@ -73,6 +121,10 @@ export function agendaPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): 
       esReserva: texto(fila.sample_role) === "chain_reserve",
       titular: texto((fila as { titular_operational_code?: unknown }).titular_operational_code)
         || texto((fila as { replacement_for?: unknown }).replacement_for),
+      relacion: relacionCon(
+        texto((fila as { titular_operational_code?: unknown }).titular_operational_code)
+          || texto((fila as { replacement_for?: unknown }).replacement_for),
+      ),
     };
     const grupo = porFacultad.get(facultad);
     if (grupo) grupo.push(aula);

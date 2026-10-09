@@ -135,7 +135,14 @@ test_that("ninguna condición de negrita tiene sus dos ramas iguales", {
   # `if ("titulo" %in% textos_negrita) "bold" else "bold"` — la condición era
   # decorativa y el interruptor no hacía nada. Un grep lo habría visto; mirar el
   # código, no.
-  for (f in list.files(file.path("..", "..", "R"), pattern = "^graficador_.*\\.R$", full.names = TRUE)) {
+  fuentes <- list.files(file.path("..", "..", "R"), pattern = "^graficador_.*\\.R$",
+                        full.names = TRUE)
+  # **Centinela de no-mudez.** El bucle de abajo afirma una vez por archivo: si
+  # el patron dejara de casar —un renombre del prefijo `graficador_`, una
+  # carpeta que se mueve— no iteraria, el `for` no ejecutaria una sola
+  # asercion y este test pasaria en verde sin haber mirado nada.
+  expect_gt(length(fuentes), 10L)
+  for (f in fuentes) {
     src <- paste(readLines(f, warn = FALSE), collapse = "\n")
     expect_false(grepl('"bold" else "bold"', src, fixed = TRUE),
                  info = basename(f))

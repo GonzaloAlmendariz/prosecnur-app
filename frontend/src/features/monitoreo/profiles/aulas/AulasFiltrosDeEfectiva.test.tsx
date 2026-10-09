@@ -95,3 +95,52 @@ describe("la lista de valores se abre hacia el lado que cabe", () => {
     expect(css).toMatch(/\.aulas-efectiva-opciones\.es-arriba[^}]*bottom:\s*100%/);
   });
 });
+
+/**
+ * **La variable que dice el sexo, declarada aquí** (dictado 2026-09-04: «poder
+ * mapear fácilmente cuántas se esperaban en total y en hombres y en mujeres y
+ * cuánto obtuvimos»).
+ *
+ * Vive en este panel y no en otro porque es la misma pregunta que las
+ * condiciones: qué columna de la base significa qué. Y no es una condición más,
+ * así que va separada de la lista y no puede leerse como un quinto filtro.
+ */
+describe("la variable que dice el sexo", () => {
+  const conSexo = (variableDeSexo: string) =>
+    renderToStaticMarkup(
+      <AulasFiltrosDeEfectiva
+        filtros={[]} variables={VARS}
+        onChange={() => {}} onGuardar={() => {}}
+        variableDeSexo={variableDeSexo}
+        onVariableDeSexo={() => {}} />);
+
+  it("ofrece las variables de la base y arranca sin declarar", () => {
+    const html = conSexo("");
+    expect(html).toContain("Variable que dice el sexo");
+    expect(html).toContain("sin declarar");
+    // Las mismas variables que las condiciones, no una lista aparte.
+    expect(html).toMatch(/<option value="sexo"[^>]*>sexo<\/option>/);
+    expect(html).toMatch(/<option value="p01"[^>]*>p01<\/option>/);
+  });
+
+  it("sin declarar, DICE que las cifras por sexo quedan vacías y por qué", () => {
+    // Adivinar qué columna es el sexo ya costó una lectura en este estudio
+    // (`sub_a` es el más frecuente, no las mujeres). El pie lo explica en vez
+    // de dejar al lector con celdas vacías sin causa.
+    expect(conSexo("")).toContain("no se adivina qué columna es");
+  });
+
+  it("declarada, dice para qué sirve", () => {
+    const html = conSexo("sexo");
+    expect(html).toMatch(/<option value="sexo"[^>]*selected[^>]*>sexo<\/option>/);
+    expect(html).toContain("cuántas efectivas se obtuvieron de cada sexo");
+  });
+
+  it("sin el callback el selector NO se pinta: es la hoja de sólo lectura", () => {
+    const html = renderToStaticMarkup(
+      <AulasFiltrosDeEfectiva
+        filtros={[]} variables={VARS}
+        onChange={() => {}} onGuardar={() => {}} />);
+    expect(html).not.toContain("Variable que dice el sexo");
+  });
+});

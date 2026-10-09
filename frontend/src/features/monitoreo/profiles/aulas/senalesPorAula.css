@@ -1,0 +1,354 @@
+/* La señal por curso-horario contra su propio margen (unidad B3).
+ *
+ * Hoja propia y no un bloque más de `aulasMonitoreo.css`, que está congelada a
+ * crecimiento: el precedente es `efectividadSeguimiento.css`, la mitad facultad
+ * de esta misma pestaña. Prefijo `aulas-dt-` (dos tasas) para que el contrato
+ * de CSS sin dueño reconozca las clases como del perfil.
+ *
+ * La geometría repite la de la tabla vecina a propósito —las dos contestan la
+ * misma pregunta en granos distintos y se leen una debajo de la otra—: cifras
+ * en columna con tabular-nums, el marco con `overflow-x` propio para no empujar
+ * el scroll de la página, y una escala propia del bloque (--dt-txt / --dt-meta),
+ * que el 2026-09-10 dejó de ser la del perfil: `--aulas-txt` mide 12 px y
+ * `--aulas-min` 10, que es lo correcto para el eje de un gráfico y demasiado
+ * pequeño para una tabla cuyo contenido son las cifras. */
+
+/* **La misma escala que la tabla vecina**, por la misma razón que allí: las dos
+   se leen una debajo de la otra y `--aulas-txt` / `--aulas-min` son la escala de
+   los EJES de los gráficos —10 px—, no la de una tabla cuyo contenido son las
+   cifras. Gonzalo, 2026-09-10: «todo se ve muy pequeño y sin vida». */
+.mon-profile-page.is-aulas-flow .aulas-dt {
+  --dt-dato: 15.5px;
+  --dt-txt: 13px;
+  --dt-meta: 11.5px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 6px 0 2px;
+}
+
+/* La frase que da sentido a las cifras: encabezado, no tarjeta. */
+.mon-profile-page.is-aulas-flow .aulas-dt-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--dt-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-cabeza strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Los dos sellos van en la MISMA línea, uno de 561 px y otro de 475 sobre un
+   ancho de 1 155, separados sólo por 14 px de hueco: visto en pantalla el
+   2026-09-10 se leían como una sola frase corrida que cambia de tema a mitad
+   —«…y la fila lo dice   salirse del margen señala qué mirar…»—. Una regla
+   fina delante de cada uno los convierte en dos notas, que es lo que son, sin
+   gastar una línea más de alto. */
+.mon-profile-page.is-aulas-flow .aulas-dt-sello {
+  color: var(--pulso-text-faint);
+  font-size: var(--dt-meta);
+  border-left: 2px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  padding-left: 7px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-sello strong {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El dueño del overflow horizontal es el marco, nunca la página (C4). */
+.mon-profile-page.is-aulas-flow .aulas-dt-marco {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--dt-txt);
+}
+
+/* El `caption` nombra la tabla para quien no ve el encabezado de la sección.
+   Oculto visualmente pero NO con `display:none`, que lo sacaría también del
+   árbol de accesibilidad. */
+.mon-profile-page.is-aulas-flow .aulas-dt-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla thead th {
+  /* Las tres mejoras que recibió la tabla vecina el 2026-09-10 —encabezado
+     pegajoso, más aire y zebra— vienen aquí también: las dos se leen una debajo
+     de la otra y su parecido es deliberado, así que separarlas ahora sería
+     empezar a tener dos tablas distintas para la misma pregunta. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  padding: 7px 10px 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--dt-meta);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla th.es-num,
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla td.aulas-dt-cifra {
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla tbody tr > * {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla tbody tr:nth-child(even):not(.es-bajo) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, transparent);
+}
+
+/* La primera celda es `th scope="row"`: identifica la fila. */
+.mon-profile-page.is-aulas-flow .aulas-dt-codigo {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  font-weight: 400;
+  text-align: left;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-detalle {
+  color: var(--pulso-text-faint);
+  font-size: var(--dt-meta);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  /* La línea de detalle envuelve: es dato operativo y no se recorta. */
+  white-space: normal;
+}
+
+/* La SEÑAL en palabra, no sólo en color: quien no distingue tonos —o proyecta,
+   o imprime— recibe el dato igual. El color acompaña, no decide. */
+.mon-profile-page.is-aulas-flow .aulas-dt-chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: var(--dt-meta);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Aviso, no peligro: «bajo su margen» pide una mirada, no dicta un descarte.
+   Pintarlo del rojo de riesgo lo convertiría en el veredicto que el mandato
+   prohíbe. */
+.mon-profile-page.is-aulas-flow .aulas-dt-chip.es-aviso { color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-dt-chip.es-sobre { color: var(--pulso-success-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-dt-cifra {
+  color: var(--pulso-text);
+  font-size: var(--dt-txt);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-cifra.es-debil {
+  color: var(--pulso-text-faint);
+}
+
+/* El margen va como número junto a su tasa, igual que en la tabla vecina. */
+.mon-profile-page.is-aulas-flow .aulas-dt-margen {
+  margin-left: 5px;
+  color: var(--pulso-text-faint);
+  font-size: var(--dt-meta);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+/* El foco cruza la sección y aquí RESALTA, no filtra: filtrar rompería la
+   comparación entre facultades que la columna de la vara aporta. */
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla tbody tr.es-en-foco {
+  outline: 1px solid var(--pulso-accent);
+  outline-offset: -1px;
+}
+
+/* Los pliegues: conformes y grupos sin contraste. El `summary` es el control
+   nativo del navegador —foco y teclado vienen con él—. */
+.mon-profile-page.is-aulas-flow .aulas-dt-conformes,
+.mon-profile-page.is-aulas-flow .aulas-dt-grupo {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--dt-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-conformes summary,
+.mon-profile-page.is-aulas-flow .aulas-dt-grupo summary {
+  cursor: pointer;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-conformes summary strong,
+.mon-profile-page.is-aulas-flow .aulas-dt-grupo summary strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2px 14px;
+  margin: 6px 0 0;
+  padding: 0 0 0 14px;
+  list-style: none;
+  font-size: var(--dt-meta);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-lista em {
+  color: var(--pulso-text-faint);
+  font-style: normal;
+}
+
+/* El descuadre a la vista y con nombre propio (hallazgo 1): más efectivas que
+   elegibles es una inconsistencia de números —no un logro— y no se pliega,
+   porque plegado se leería como un detalle menor. El tono es el de AVISO, no
+   el rojo de riesgo: pide cuadrar números, no dicta un descarte. */
+.mon-profile-page.is-aulas-flow .aulas-dt-descuadre {
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-descuadre-titulo {
+  margin: 0;
+  color: var(--pulso-warn-fg);
+  font-size: var(--dt-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-descuadre-titulo strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* El criterio del motor, tal cual viaja (M4): la cifra del umbral vive en el
+   payload y no aquí. Plegado y al final: es referencia, no primera lectura. */
+.mon-profile-page.is-aulas-flow .aulas-dt-criterio {
+  min-width: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--dt-meta);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-criterio summary {
+  cursor: pointer;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-criterio p {
+  margin: 4px 0 0;
+  /* Un párrafo del motor puede ser largo; el ancho de lectura lo acota. */
+  max-width: 72ch;
+}
+
+/* El buscador que cruza los siete grupos del panel. Misma geometría que la
+   lente de reconciliación de territorial —32 px de alto, icono 15, campo y
+   contador en dos columnas— porque es el mismo gesto en otro perfil, y dos
+   buscadores con dos formas distintas en el mismo módulo se leen como dos
+   controles distintos. */
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador-campo {
+  min-width: 0;
+  min-height: 32px;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 86%, #fff);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  padding: 5px 7px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador-campo:focus-within {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 42%, var(--pulso-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 10%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador-campo input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador-campo input::placeholder {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* La cruz ocupa su columna siempre: sin ella reservada, el campo se encoge al
+   escribir la primera letra y el cursor da un salto. */
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador-campo button {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  padding: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador-campo button:hover {
+  color: var(--pulso-text);
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 38%, var(--pulso-border));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador > span {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* **La cruz nativa de `type="search"` se apaga.** Chromium dibuja su propio
+   `::-webkit-search-cancel-button` dentro del input, así que con el botón de
+   limpiar de la casa al lado salían DOS cruces pegadas —visto en pantalla el
+   2026-09-10, el input acaba en 412 px y la cruz propia empieza en 418—. Se
+   queda la de la casa: es la que hereda el color y el foco del campo. */
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador-campo input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}

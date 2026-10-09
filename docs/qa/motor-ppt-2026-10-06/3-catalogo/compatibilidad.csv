@@ -1,0 +1,25 @@
+graficador,p_slide_1_grafico,p_slide_1_grafico_narrativo,p_slide_2_graficos,p_slide_3_graficos_fila,p_slide_4_graficos,p_slide_4_graficos_poblacion,revision_visual_p_slide_4_graficos
+p_barras_agrupadas,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_barras_categoricas,OK,OK,OK,OK,OK,OK,etiquetas de categoria se pisan entre si
+p_barras_apiladas,DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),columna de etiqueta del item se envuelve palabra por palabra y la leyenda se monta
+p_barras_multiapiladas,DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),DEGRADADO: aviso top2box sin categorias declaradas (preset; igual en toda lamina),11 filas comprimidas; ilegible
+p_nube_palabras,OK,OK,OK,OK,OK,OK,"palabras cortadas en acentos (gesti, acad/emico, ingenier)"
+p_mapa_cobertura_territorial,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_pie,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_donut,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_numerico,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_histograma,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_boxplot,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_media_rango,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_barras_divergentes,OK,OK,OK,OK,OK,OK,etiquetas del eje son refs crudas (estudiantes$p16_1); ilegible a este tamano
+p_puntos_comparativos,OK,OK,OK,OK,OK,OK,titulo del indicador se sale por la izquierda
+p_dumbbell,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_lollipop,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_serie_temporal,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_radar,DEGRADADO: aviso escala del radar 0-1 leida como % (igual en toda lamina) ; fuente Arial ausente en PostScript (entorno local),DEGRADADO: aviso escala del radar 0-1 leida como % (igual en toda lamina) ; tabla del radar NO nativa (sale dibujada en el canvas) ; fuente Arial ausente en PostScript (entorno local),DEGRADADO: aviso escala del radar 0-1 leida como % (igual en toda lamina) ; tabla del radar NO nativa (sale dibujada en el canvas) ; fuente Arial ausente en PostScript (entorno local),DEGRADADO: aviso escala del radar 0-1 leida como % (igual en toda lamina) ; tabla del radar NO nativa (sale dibujada en el canvas) ; fuente Arial ausente en PostScript (entorno local),DEGRADADO: aviso escala del radar 0-1 leida como % (igual en toda lamina) ; tabla del radar NO nativa (sale dibujada en el canvas) ; fuente Arial ausente en PostScript (entorno local),DEGRADADO: aviso escala del radar 0-1 leida como % (igual en toda lamina) ; tabla del radar NO nativa (sale dibujada en el canvas) ; fuente Arial ausente en PostScript (entorno local),sin tabla (la nativa solo existe en p_slide_1_grafico)
+p_tabla,OK,OK,OK,OK,OK,OK,tabla se sale del panel por abajo
+p_dim_radar,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_dim_heatmap,OK,OK,OK,OK,OK,OK,etiquetas del eje X se pisan
+p_dim_comparativo_radarbar,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_dim_foda,OK,OK,OK,OK,OK,OK,sin defecto evidente a 30 dpi
+p_dim_heatmap_criterios,OK,OK,OK,OK,OK,OK,texto de criterios ilegible

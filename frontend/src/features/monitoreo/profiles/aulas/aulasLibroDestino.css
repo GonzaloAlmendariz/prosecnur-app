@@ -1,0 +1,64 @@
+/* El campo del Sheets del operativo, dentro del panel «Operación del plan».
+   Hoja propia porque `aulasMonitoreo.css` está congelada a crecimiento; las
+   medidas calcan la fila de acciones vecina (control de 28px, texto 13px). */
+
+.mon-profile-page.is-aulas-flow .aulas-libro-destino {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-libro-destino label {
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-libro-destino input {
+  flex: 1 1 260px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-libro-destino input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pulso-module-monitoring) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-libro-destino input:disabled {
+  opacity: 0.55;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-libro-destino small {
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec);
+}
+
+/* En la banda compacta el panel pasa a dos columnas (rejilla + acciones);
+   este bloque llega después de las acciones y toma el ancho entero para no
+   robarle el carril a la fila de botones. */
+@media (max-height: 760px) {
+  .mon-profile-page.is-aulas-flow .aulas-libro-destino {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Loop mejora-ui E12: el estado logrado también habla. La tarjeta en espera
+   ya se anuncia en ámbar (is-waiting strong, hoja madre), pero «Conectada /
+   Registrado / Trazable» iba en tinta plana — el logro no hacía eco del
+   verde con que los pills del seguimiento, dos dedos más arriba, dicen lo
+   mismo. Misma fórmula de mezcla que el ámbar del pendiente, con la tinta
+   de éxito de la casa. */
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article.is-ready strong {
+  color: color-mix(in srgb, var(--pulso-success-fg) 78%, var(--pulso-text));
+}

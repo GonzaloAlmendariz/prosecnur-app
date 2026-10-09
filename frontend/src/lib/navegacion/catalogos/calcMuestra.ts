@@ -23,7 +23,11 @@ import {
   Users,
   type LucideIcon,
   Link2,
-} from "../../../vendor/lucide-react";
+  Shuffle,
+  FileSpreadsheet,
+  Layers3,
+  ListOrdered,
+  SlidersHorizontal,} from "../../../vendor/lucide-react";
 
 export type CalcMuestraUniversidadSeccionId =
   | "definicion"
@@ -41,7 +45,14 @@ export type ClassroomLabTab =
   | "perfil"
   | "reemplazos"
   | "aulas-relato"
-  | "auditoria";
+  | "auditoria"
+  | "aulas-rerandomizacion";
+
+/** Secciones de Muestra general y Acreditación que parten su trabajo en pestañas (E15). */
+export type CalcMuestraMesaSeccionId = "marco" | "metodo" | "seleccion";
+
+/** Modo de la gramática en que vive la pestaña (el `modo` de la dirección). */
+export type CalcMuestraModoConPestanas = "opinion-universitaria" | "marco-disponible" | "acreditacion";
 
 export type PestanaCalcMuestraUniversidad<Key extends string = string> = {
   readonly id: Key;
@@ -57,13 +68,14 @@ export type PestanaCalcMuestraUniversidad<Key extends string = string> = {
 };
 
 function pestana<const Key extends string>(
-  seccion: CalcMuestraUniversidadSeccionId,
+  seccion: CalcMuestraUniversidadSeccionId | CalcMuestraMesaSeccionId,
   key: Key,
   label: string,
   detail: string,
   icon: LucideIcon,
-  opciones: { targetId?: string } = {},
+  opciones: { targetId?: string; modo?: CalcMuestraModoConPestanas } = {},
 ): PestanaCalcMuestraUniversidad<Key> {
+  const modo = opciones.modo ?? "opinion-universitaria";
   return {
     id: key,
     key,
@@ -71,7 +83,7 @@ function pestana<const Key extends string>(
     detail,
     icon,
     ...(opciones.targetId ? { targetId: opciones.targetId } : {}),
-    to: `/calc-muestra?modo=opinion-universitaria&seccion=${seccion}&pestana=${key}`,
+    to: `/calc-muestra?modo=${modo}&seccion=${seccion}&pestana=${key}`,
     layoutPolicy: "viewport",
     direccionPublicada: true,
   };
@@ -119,6 +131,10 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     pestana("calculo", "calculo-propuestas", "Propuestas", "N y cuotas por facultad (motor R)", Calculator, { targetId: "cmv2-local-calculo-propuestas" }),
     pestana("calculo", "calculo-ch-facultad", "Cursos-horario requeridos", "alumnos por CH y CH definitivos", Grid3X3, { targetId: "cmv2-local-calculo-ch-facultad" }),
     pestana("calculo", "calculo-distribucion", "Distribución", "población y cuota planificada por unidad × sexo", PieChart, { targetId: "cmv2-local-calculo-distribucion" }),
+    // La certeza era un panel dentro de «Cursos-horario requeridos» y contesta
+    // una pregunta propia —si el número que pide la fórmula alcanza de verdad—
+    // con su propio método. Va la última porque es lo último que se decide.
+    pestana("calculo", "calculo-certeza", "¿Alcanza?", "simula el sorteo y dice cuántos cursos-horario hacen falta de verdad", ShieldCheck, { targetId: "cmv2-local-calculo-certeza" }),
   ],
   aulas: [
     pestanaAula("objetivo", "Objetivo de muestra", "Cuotas y cursos-horario necesarios", Target),
@@ -135,6 +151,10 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     // porque publica los MISMOS números de la misma corrida.
     pestanaAula("aulas-relato", "Relato", "La corrida contada escena por escena", CirclePlay),
     pestanaAula("auditoria", "Sustento técnico", "Campos, pesos y fuentes", FileText),
+    // ADR 0082, aceptado 2026-08-27. Va la ÚLTIMA porque es la última decisión
+    // antes de fijar la muestra: con el criterio ya declarado, aceptar o
+    // rechazar sorteos es lo que queda por decidir.
+    pestanaAula("aulas-rerandomizacion", "¿Este sorteo o otro?", "aceptar o rechazar contra un criterio fijado antes", Shuffle),
   ],
   salidas: [
     // Primera de Entrega y con su propio protagonismo: es la pregunta con la que
@@ -154,3 +174,47 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
 export const TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD = Object.values(
   CALC_MUESTRA_UNIVERSIDAD_PESTANAS,
 ).reduce((total, pestanas) => total + pestanas.length, 0);
+
+const GENERAL = { modo: "marco-disponible" } as const;
+const ACREDITACION = { modo: "acreditacion" } as const;
+
+/**
+ * Muestra general (modo `marco-disponible`, E15 · aulas como patrón): una
+ * pregunta por pestaña. Resultados no se parte: es una sola lectura.
+ *
+ * El orden es el del trabajo —la forma antes que el archivo, la técnica antes
+ * que sus parámetros—; la pestaña que abre por defecto la decide la mesa según
+ * lo que ya está hecho (con marco declarado, «Archivo del marco»).
+ */
+export const CALC_MUESTRA_GENERAL_PESTANAS = {
+  marco: [
+    pestana("marco", "marco-forma", "Forma del marco", "¿qué elementos contiene el marco muestral?", Layers3, GENERAL),
+    pestana("marco", "marco-archivo", "Archivo del marco", "¿de qué archivo salen las unidades y el N?", FileSpreadsheet, GENERAL),
+    pestana("marco", "marco-ficha", "Ficha del estudio", "¿qué estudio es y qué variables controla?", ClipboardList, GENERAL),
+  ],
+  metodo: [
+    pestana("metodo", "metodo-tecnica", "Técnica", "¿con qué técnica de muestreo se calcula el tamaño de muestra (n)?", Settings2, GENERAL),
+    pestana("metodo", "metodo-parametros", "Parámetros", "¿con qué confianza, margen y respuesta?", SlidersHorizontal, GENERAL),
+    pestana("metodo", "metodo-memoria", "Cálculo del n", "¿qué fórmula lleva del N de la población al n y a la muestra a contactar?", Sigma, GENERAL),
+    pestana("metodo", "metodo-estratos", "Estratos", "¿cómo se reparte el n entre los estratos del marco?", Layers3, GENERAL),
+  ],
+  seleccion: [
+    pestana("seleccion", "seleccion-sorteo", "Selección aleatoria", "¿con qué método, semilla y reemplazos se seleccionan las unidades?", Shuffle, GENERAL),
+    pestana("seleccion", "seleccion-corrida", "Resumen", "¿es reproducible y cómo se repartió?", History, GENERAL),
+    pestana("seleccion", "seleccion-unidades", "Unidades", "¿qué unidades salieron, con qué probabilidad de selección (π) y peso?", ListOrdered, GENERAL),
+  ],
+} as const satisfies Record<CalcMuestraMesaSeccionId, readonly PestanaCalcMuestraUniversidad[]>;
+
+/**
+ * Acreditación › Selección: el actor en `foco` se elige arriba y sus pestañas
+ * son las de Muestra general, precedidas por el archivo de SU marco (este modo
+ * no tiene sección Marco: el marco de cada actor vive aquí).
+ */
+export const CALC_MUESTRA_ACREDITACION_PESTANAS = {
+  seleccion: [
+    pestana("seleccion", "seleccion-marco", "Archivo del marco", "¿de qué archivo salen las unidades de este actor?", FileSpreadsheet, ACREDITACION),
+    pestana("seleccion", "seleccion-sorteo", "Selección aleatoria", "¿con qué método, semilla y reemplazos se seleccionan las unidades de este actor?", Shuffle, ACREDITACION),
+    pestana("seleccion", "seleccion-corrida", "Resumen", "¿es reproducible y cómo se repartió?", History, ACREDITACION),
+    pestana("seleccion", "seleccion-unidades", "Unidades", "¿qué unidades salieron, con qué probabilidad de selección (π) y peso?", ListOrdered, ACREDITACION),
+  ],
+} as const satisfies Partial<Record<CalcMuestraMesaSeccionId, readonly PestanaCalcMuestraUniversidad[]>>;

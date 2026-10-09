@@ -1980,6 +1980,19 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     ),
     # NA y no NULL: sin glosario, un NULL saldría `{}` y el cliente lo leería
     # como un bloque de encuentros presente, contradiciendo a `glosario_completo`.
+    #
+    # **CONTRATO DE LOS CUATRO SLOTS QUE PUEDEN SALIR `NA`** —`encuentros`,
+    # `cuotas`, `serie_campo` y `cadenas_reemplazo`—: quien los consuma tiene que
+    # comprobar `is.list()` ANTES de encadenar. `referencia$cadenas_reemplazo$filas`
+    # sobre un `NA` no devuelve NULL: LANZA «$ operator is invalid for atomic
+    # vectors», y `%||%` no lo atrapa porque sólo mira el NULL.
+    #
+    # No es hipotético: el 2026-09-12 eso devolvía 500 `E_INTERNAL` en
+    # `POST /api/calc-muestra/marco/construir` para toda sesión que hubiera
+    # cargado la referencia (commit `f02b96fc`). El resto de consumidores sí
+    # guardaba —`calc_muestra_referencia_criterios_rescate.R` lo tiene escrito
+    # desde antes—, que es lo que hace que valga la pena decirlo AQUÍ, en el
+    # productor, y no sólo en el que se acordó.
     encuentros = encuentros %||% NA,
     # El mismo embudo, abierto por las dimensiones que el operativo puede
     # accionar. Vacío cuando la base no trae el glosario del encuentro.

@@ -13,10 +13,12 @@ import {
   Table2,
   Upload,
   UsersRound,
+  ChevronDown,
 } from "lucide-react";
 import {
   apiJobStatus,
   apiMonitoreoClientReportPdf,
+  type MonitoreoPortadaPdf,
   apiMonitoreoProcessingHandoffExport,
   apiMonitoreoPublicationEvidencePack,
   apiMonitoreoPublicationPreflight,
@@ -46,18 +48,27 @@ type OutputFamily = "acreditacion" | "territorial" | "telefonico" | "aulas";
 /**
  * Qué PDF sabe emitir cada familia.
  *
- * La garantía vive acá y no en el call site a propósito:
- * `.monitoreo_client_report_model_for_snapshot` solo ramifica para territorial y
- * telefónico, así que cursos-horario cae al modelo de acreditación y el botón
- * entregaría un documento con actores y encuestas que ese perfil no tiene. Si el
- * permiso dependiera de que cada montaje recuerde pasar la prop, el primer
- * montaje que la olvide vuelve a ofrecer el documento equivocado.
+ * La garantía vive acá y no en el call site a propósito: si el permiso
+ * dependiera de que cada montaje recuerde pasar la prop, el primer montaje que
+ * la olvide vuelve a ofrecer el documento equivocado.
+ *
+ * **`aulas.client` pasó a `true` el 2026-09-11.** Estaba en `false` porque
+ * `.monitoreo_client_report_model_for_snapshot()` sólo ramificaba para
+ * territorial y telefónico, así que cursos-horario caía al modelo de
+ * acreditación y el botón habría entregado un documento con «actores» y
+ * «encuestas» que ese perfil no tiene. Esa rama existe desde el 2026-08-27
+ * (`build_monitoreo_aulas_report_model`) y el reporte se terminó el 2026-09-11:
+ * el guard llevaba dos semanas protegiendo contra algo ya arreglado, y sólo se
+ * vio al abrir la app y no encontrar la tarjeta.
+ *
+ * `aulas.production` sigue en `false`: el PDF de producción por aplicador es
+ * otro reporte, y el motor de aulas no lo construye.
  */
 export const PDF_POR_FAMILIA: Record<OutputFamily, { client: boolean; production: boolean }> = {
   acreditacion: { client: true, production: true },
   territorial: { client: true, production: true },
   telefonico: { client: true, production: true },
-  aulas: { client: false, production: false },
+  aulas: { client: true, production: false },
 };
 type PublicationStatus = {
   kind: "idle" | "checking" | "publishing" | "success" | "error";
@@ -613,6 +624,15 @@ export function MonitoreoOutputsWorkbench({
 }: MonitoreoOutputsWorkbenchProps) {
   const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
   const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
+  // La portada existe sólo en el renderizador de aulas. Ofrecer sus campos en un
+  // perfil cuyo PDF no la dibuja sería prometer un control que no hace nada.
+  const ofrecePortada = ofreceClientPdf && family === "aulas";
+  // **«Incluir metas» no hace nada en cursos-horario.** Su reporte se define
+  // contra la cuota del diseño —«1.390 de 2.500», «faltan 1.110»— y apagarla lo
+  // dejaría sin objeto, así que el motor ignora el parámetro. Ofrecer la casilla
+  // igualmente es peor que no tenerla: quien la desmarca cree que ha cambiado
+  // algo. En territorial y telefónico sí gobierna las secciones de cuotas.
+  const ofreceMetasOpcionales = includeTargetsSupported && family !== "aulas";
   const ofreceProductionPdf = pdfSupport?.production ?? pdfDeLaFamilia.production;
   const hasSnapshot = corte.hasSnapshot;
   const nRows = corte.ingesta;
@@ -628,14 +648,40 @@ export function MonitoreoOutputsWorkbench({
     () => productionPdfTitleSeed(family, defaultTitle, routeLabel),
     [defaultTitle, family, routeLabel],
   );
+  // **Los seis campos de la portada, declarados una vez.** El rótulo, el
+  // placeholder —que dice lo que el motor pondrá si se deja en blanco— y el
+  // tope de caracteres viven juntos, para que la tarjeta no tenga seis bloques
+  // casi iguales que se desincronizan al primer retoque.
+  const camposDePortada: ReadonlyArray<{
+    clave: keyof MonitoreoPortadaPdf;
+    rotulo: string;
+    ejemplo: string;
+    tope: number;
+    ancho?: "completo";
+  }> = [
+    { clave: "titulo", rotulo: "Título", ejemplo: "Avance del trabajo de campo", tope: 140 },
+    { clave: "subtitulo", rotulo: "Subtítulo", ejemplo: "El nombre del estudio", tope: 180 },
+    { clave: "cliente", rotulo: "Preparado para", ejemplo: "Sin destinatario en la portada", tope: 140 },
+    { clave: "periodo", rotulo: "Periodo de campo", ejemplo: "Del primer al último día con respuestas", tope: 90 },
+    { clave: "corte", rotulo: "Datos al", ejemplo: "La fecha del corte sincronizado", tope: 90 },
+    { clave: "nota", rotulo: "Nota al pie", ejemplo: "Sin nota", tope: 320, ancho: "completo" },
+  ];
+  const [portada, setPortada] = useState<MonitoreoPortadaPdf>({});
+  const [portadaAbierta, setPortadaAbierta] = useState(false);
+  const portadaEscrita = Object.values(portada).filter((v) => (v ?? "").trim() !== "").length;
+
   const [includeTargets, setIncludeTargets] = useState(false);
   const [activeAudience, setActiveAudience] = useState<OutputAudience>("client");
   const [internalConfirmed, setInternalConfirmed] = useState(false);
+  // Sello de la generación: cambia la URL de descarga en cada PDF nuevo, para
+  // que el navegador no pueda servir el anterior de su caché.
+  const [pdfSello, setPdfSello] = useState<number>(0);
   const [pdfJobId, setPdfJobId] = useState<string | null>(null);
   const [pdfProgress, setPdfProgress] = useState<number | null>(null);
   const [pdfReady, setPdfReady] = useState(false);
   const [pdfMessage, setPdfMessage] = useState("");
   const [pdfError, setPdfError] = useState("");
+  const [productionPdfSello, setProductionPdfSello] = useState<number>(0);
   const [productionPdfJobId, setProductionPdfJobId] = useState<string | null>(null);
   const [productionPdfProgress, setProductionPdfProgress] = useState<number | null>(null);
   const [productionPdfReady, setProductionPdfReady] = useState(false);
@@ -964,7 +1010,11 @@ export function MonitoreoOutputsWorkbench({
     setPdfMessage("");
     setPdfError("");
     try {
-      const start = await apiMonitoreoClientReportPdf({ includeTargets, ...(config ? { config } : {}) });
+      const start = await apiMonitoreoClientReportPdf({
+        includeTargets,
+        ...(config ? { config } : {}),
+        ...(ofrecePortada ? { portada } : {}),
+      });
       setPdfJobId(start.job_id);
     } catch (e) {
       setPdfProgress(null);
@@ -1111,7 +1161,7 @@ export function MonitoreoOutputsWorkbench({
           <strong>{copy.sheetsTitle}</strong>
           <small>{snapshotHint}</small>
         </div>
-        {includeTargetsSupported ? (
+        {ofreceMetasOpcionales ? (
           <label className="mon-outputs-targets-toggle">
             <input
               type="checkbox"
@@ -1145,6 +1195,50 @@ export function MonitoreoOutputsWorkbench({
                   <AlertTriangle size={14} /> {readiness.bloqueos[0].mensaje}
                 </div>
               ) : null}
+              {ofrecePortada ? (
+                <div className="mon-outputs-portada">
+                  <button
+                    type="button"
+                    className="mon-outputs-portada__toggle"
+                    aria-expanded={portadaAbierta}
+                    onClick={() => setPortadaAbierta((v) => !v)}
+                  >
+                    <ChevronDown size={14} aria-hidden />
+                    <span>Portada del PDF</span>
+                    <small>
+                      {portadaEscrita
+                        ? `${portadaEscrita} de ${camposDePortada.length} escritos`
+                        : "Se completa sola con los datos del corte"}
+                    </small>
+                  </button>
+                  {portadaAbierta ? (
+                    <div className="mon-outputs-portada__campos">
+                      {camposDePortada.map((campo) => (
+                        <label
+                          key={campo.clave}
+                          className="mon-outputs-field"
+                          data-ancho={campo.ancho ?? "medio"}
+                        >
+                          <span>{campo.rotulo}</span>
+                          <input
+                            type="text"
+                            value={portada[campo.clave] ?? ""}
+                            maxLength={campo.tope}
+                            placeholder={campo.ejemplo}
+                            disabled={Boolean(pdfJobId)}
+                            onChange={(event) =>
+                              setPortada((prev) => ({ ...prev, [campo.clave]: event.target.value }))
+                            }
+                          />
+                        </label>
+                      ))}
+                      <small className="mon-outputs-portada__nota">
+                        Lo que dejes en blanco lo escribe el reporte con lo que ves en gris.
+                      </small>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               <button
                 type="button"
                 className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
@@ -1163,6 +1257,7 @@ export function MonitoreoOutputsWorkbench({
                   setPdfJobId(null);
                   setPdfProgress(100);
                   setPdfReady(true);
+                  setPdfSello(Date.now());
                   setPdfMessage(copy.ready);
                 }}
                 onError={(message) => {
@@ -1179,7 +1274,7 @@ export function MonitoreoOutputsWorkbench({
               {pdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {pdfError}</div> : null}
               {pdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {pdfMessage}</div> : null}
               {pdfReady ? (
-                <a className="mon-outputs-download" href={monitoreoClientReportPdfDownloadUrl()} download>
+                <a className="mon-outputs-download" href={monitoreoClientReportPdfDownloadUrl({ v: pdfSello })} download>
                   <Download size={14} />
                   {copy.download}
                 </a>
@@ -1231,6 +1326,7 @@ export function MonitoreoOutputsWorkbench({
                   setProductionPdfJobId(null);
                   setProductionPdfProgress(100);
                   setProductionPdfReady(true);
+                  setProductionPdfSello(Date.now());
                   setProductionPdfMessage(productionCopy.ready);
                 }}
                 onError={(message) => {
@@ -1247,7 +1343,7 @@ export function MonitoreoOutputsWorkbench({
               {productionPdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {productionPdfError}</div> : null}
               {productionPdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {productionPdfMessage}</div> : null}
               {productionPdfReady ? (
-                <a className="mon-outputs-download" href={monitoreoProductionReportPdfDownloadUrl()} download>
+                <a className="mon-outputs-download" href={monitoreoProductionReportPdfDownloadUrl({ v: productionPdfSello })} download>
                   <Download size={14} />
                   {productionCopy.download}
                 </a>

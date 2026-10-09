@@ -48,6 +48,7 @@ import type {
 import type { AcreditacionSourceTab } from "./pestanasDeFuentes";
 export { pct } from "../../core/formatoComun";
 import { pct } from "../../core/formatoComun";
+import { pctDecimal } from "../../core/formatoComun";
 
 export const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 export const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -187,7 +188,7 @@ export function formatCaseLabel(value: number) {
 
 export function pctFrom(value: number, total: number) {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return "S/D";
-  return `${((value / total) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return pctDecimal((value / total) * 100);
 }
 
 export function num(value: unknown, fallback = 0) {
@@ -361,7 +362,7 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
     <div className="mon-acr-state-compact" aria-label={label}>
       <div className="mon-acr-state-compact-copy">
         <span>{label}</span>
-        <strong>{progress.toLocaleString("es-PE", { maximumFractionDigits: 0 })}%</strong>
+        <strong>{pct(progress)}</strong>
         <em>{fmt(summary.effective)} efectivas · {fmt(summary.unanswered)} sin respuesta · base {fmt(summary.universe)}</em>
       </div>
       <div className="mon-acr-state-compact-meter" aria-label={`Base reportada ${fmt(summary.universe)}`}>

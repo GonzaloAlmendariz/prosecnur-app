@@ -1,14 +1,49 @@
 # ADR 0080 — El workspace se resella entero, no campo a campo
 
-- **Estado**: Propuesto (borrador del loop de Cálculo de muestra; la decisión
-  es de Gonzalo)
-- **Implementación**: No iniciada — este ADR primero
+- **Estado**: Aceptado · **Ratificado** por Gonzalo el 2026-08-27, textual:
+  «Si ratifica». Propuesto el 2026-08-18 como borrador del loop de Cálculo de
+  muestra.
+- **Implementación**: No iniciada. Lo commiteado hasta ahora **no** es esta
+  decisión sino contención de sus consecuencias en la capa que lee, y así se
+  declara en cada commit.
 - **Ámbito**: Cálculo de muestra · `workspace.aulas_config` ↔ config de la
   corrida de Aulas · gates de acreditación
 - **Fecha**: 2026-08-18
 - **Relación**: hermano operativo de
   [ADR 0077](0077-avisa-fuerte-lo-que-sigue-produciendo-dano.md) (avisar
   fuerte) — aquí se decide **no producir la divergencia**, no solo avisarla.
+
+## Ratificación y qué se hizo antes de implementarla
+
+Ratificado el 2026-08-27. Entre la propuesta y la ratificación aparecieron dos
+mordidas más de la misma familia, medidas sobre `HSVG26ULT.pulso`, que llevan la
+cuenta a **siete**:
+
+**Mordida 6** — el `n_aulas` con el que se compara la frescura de una corrida
+**no era un valor guardado sino un default**:
+`safeNumber(config.n_aulas, 30)` en `classroomComparisonSelectorSnapshot`. El
+aviso decía «n_aulas (corrida 30 · vigente 165)» y mandaba a buscar una cifra
+que nadie eligió. Contenido en `e0880c49`: el snapshot declara `null` y el diff
+dice «sin declarar».
+
+**Mordida 7** — con el workspace en 165 y el sorteo en 174, la corrida **no se
+publicaba en absoluto**, en silencio, y el proyecto nunca llegó a Monitoreo: sin
+`monitoreo_config`, sin snapshot, sin plan y sin partes. Contenido en `bcb33dff`:
+la identidad decide —`frame_hash` y `selection_run_id`— y la cantidad se declara
+en `parametros`.
+
+Ninguno de los dos repara el origen. Las corridas ya guardadas conservan sus
+valores desfasados, incluido el 30 que HSVG26ULT tiene persistido en
+`frame$config$selector$n_aulas`.
+
+### Una forma de la familia que conviene nombrar
+
+El guardián comparaba `workspace.aulas_config.n_aulas` contra un
+`expectedTarget` recomputado del propio workspace (`corridas.ts:113` y
+`classroomHandoff.ts:282`). **Dos copias del mismo número coinciden siempre**,
+así que el check pasaba en verde sin mirar nunca los 174 del selector ni del
+sorteo. No es un campo desfasado: es un check que estructuralmente no puede
+fallar. Cualquier implementación del resello debe evitar reproducirlo.
 
 ## Contexto
 

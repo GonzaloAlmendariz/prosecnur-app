@@ -54,9 +54,9 @@
 #' Un rol que no conocemos NO se reparte a ojo: va a «Otros» y se ve. Meterlo en
 #' cualquiera de los tres cajones cambiaria en silencio lo que alguien lleva a
 #' campo.
-.cmj_carpeta_de_rol <- function(role_key) {
+.cmj_carpeta_de_rol <- function(role_key, replacement_order = NULL) {
   key <- tolower(gsub("[ -]+", "_", trimws(as.character(role_key %||% "")[1])))
-  switch(
+  cajon <- switch(
     key,
     titular = "Titulares",
     chain_reserve = "Reemplazos",
@@ -64,6 +64,114 @@
     extra_reserve_pool = "Adicionales",
     "Otros"
   )
+  if (!identical(cajon, "Reemplazos")) return(cajon)
+  # **Los reemplazos se reparten por NIVEL dentro de su cajon.**
+  #
+  # Los tres cajones no bastaban. Medido sobre el paquete de HSVG2026: los 1.259
+  # reemplazos dejaban **380 fichas en una sola carpeta** (Ciencias e Ingenieria),
+  # que es el mismo problema que los cajones vinieron a resolver, un nivel mas
+  # abajo. Separando por nivel esa carpeta baja a 37 como maximo y 8 de mediana.
+  #
+  # El cero a la izquierda no es adorno: sin el, el sistema de archivos ordena
+  # «Reemplazo 1, Reemplazo 10, Reemplazo 11, Reemplazo 2» y el decimo se cuela
+  # entre el primero y el segundo. Las cadenas de este estudio llegan a once.
+  #
+  # **Y van al primer nivel, no dentro de «Reemplazos».** Gonzalo, 2026-09-20:
+  # «solo todo en una carpeta separa por titular, reemplazos 1 y reemplazo 2».
+  # El envoltorio agrupaba, pero a costa de un clic para llegar a la carpeta que
+  # de verdad se abre; «Titulares», «Reemplazo 01» y «Reemplazo 02» uno al lado
+  # del otro es como se trabaja. Un reemplazo cuyo orden no se reconoce se queda
+  # en «Reemplazos» a secas, que sigue siendo su cajon y se ve.
+  n <- suppressWarnings(as.integer(replacement_order %||% NA))
+  if (length(n) != 1L || is.na(n) || n < 1L) return(cajon)
+  sprintf("Reemplazo %02d", n)
+}
+
+#' Si el paquete separa por facultad, y la ruta de una ficha.
+#'
+#' **La facultad es un cajon solo cuando hay mas de una.**
+#'
+#' El nivel existe porque quien imprime reparte por facultad: en HSVG2026, con
+#' 15, es lo que separa los montones. En un estudio de UNA sola facultad no
+#' separa nada -las fichas quedan igual de juntas, un clic mas adentro- y ademas
+#' repite el mismo nombre en cada ruta.
+#'
+#' Gonzalo, 2026-09-20, sobre el paquete de CCSS Perfil 2026-II: «no hace falta
+#' que el zip divida, solo todo en una carpeta separa por titular, reemplazos 1
+#' y reemplazo 2».
+#'
+#' Se decide por el CONTENIDO del paquete y no por el estudio: uno con varias
+#' facultades las sigue separando sin que nadie lo declare.
+#' @keywords internal
+.cmj_separa_por_facultad <- function(facultades) {
+  length(unique(facultades[nzchar(facultades)])) > 1L
+}
+
+#' @keywords internal
+.cmj_carpeta_de_ficha <- function(facultad, cajon, separa) {
+  if (isTRUE(separa)) file.path(facultad, cajon) else cajon
+}
+
+#' El codigo operativo con su numero acolchado, para que la carpeta ordene.
+#'
+#' El sistema de archivos ordena alfabeticamente, y eso destroza el orden del
+#' operativo: «CH 1, CH 10, CH 100, CH 101, …, CH 2». Medido sobre el paquete de
+#' HSVG2026, con 174 titulares, 1.259 reemplazos en cadenas de hasta 11 y 79
+#' extras, **los tres cajones salen desordenados**: quien busca la cadena 2 la
+#' encuentra despues de la 19.
+#'
+#' Se acolcha SOLO el numero que ordena dentro de la carpeta —el de la cadena o
+#' el del extra—, no el orden del reemplazo: dentro de «Reemplazo 02» todas las
+#' fichas comparten ese `.2`, asi que acolcharlo tambien solo alargaria el
+#' nombre. «CH 001», «R 001.2», «EXTRA 01».
+#'
+#' El ancho se calcula del plan, no se fija: un estudio de 40 aulas no necesita
+#' tres digitos y uno de 1.200 necesita cuatro.
+#'
+#' Un codigo sin numero —o con una forma que no reconocemos— pasa TAL CUAL. Es
+#' preferible una ficha fuera de orden a una con el codigo reescrito a ojo.
+#'
+#' @param codigo codigo operativo («CH 5», «R 5.3», «EXTRA 12»).
+#' @param ancho digitos a los que acolchar.
+#' @return el codigo con su numero acolchado.
+#' @keywords internal
+.cmj_codigo_ordenable <- function(codigo, ancho) {
+  codigo <- trimws(as.character(codigo %||% "")[1])
+  ancho <- suppressWarnings(as.integer(ancho))
+  if (!nzchar(codigo) || length(ancho) != 1L || is.na(ancho) || ancho < 1L) return(codigo)
+  # El prefijo se conserva LITERAL, con su separacion o sin ella. Comerse el
+  # espacio y reponerlo despues inventaba uno donde no lo habia: `URB209_0601`
+  # -un codigo academico entero, no «URB» + 209- salia como `URB 209_0601`.
+  m <- regmatches(codigo, regexec("^([^0-9]*)([0-9]+)(.*)$", codigo))[[1]]
+  if (length(m) != 4L) return(codigo)
+  # Solo se acolcha el ordinal de una CADENA, que es lo que trae separador antes
+  # del numero: `CH 5`, `R 5.3`, `MAT-01`, `AULA_7`. Un codigo academico compacto
+  # (`URB209_0601`, `1ARC66_0601`) no lleva separador y no es un ordinal: pasa
+  # entero. Acolcharlo daba `01ARC66_0601`, que ya es otro codigo.
+  if (!grepl("[ _-]$", m[[2]])) return(codigo)
+  # Y el acolchado RELLENA, nunca encoge. `MAT-01` es el codigo del aula tal
+  # como viene del marco; recalcularlo a `MAT-1` porque en este paquete basta un
+  # digito reescribe un identificador para ordenar una carpeta.
+  ancho <- max(ancho, nchar(m[[3]]))
+  paste0(m[[2]], sprintf(paste0("%0", ancho, "d"), as.integer(m[[3]])), m[[4]])
+}
+
+#' Cuantos digitos hace falta acolchar para que este plan ordene.
+#'
+#' @param paginas `compiled$pages`.
+#' @return entero >= 1.
+#' @keywords internal
+.cmj_ancho_codigo <- function(paginas) {
+  numeros <- vapply(paginas %||% list(), function(p) {
+    m <- regmatches(
+      .crf_txt(p$unit$operational_code, ""),
+      regexec("^[^0-9]*?\\s*([0-9]+)", .crf_txt(p$unit$operational_code, ""))
+    )[[1]]
+    if (length(m) == 2L) suppressWarnings(as.integer(m[[2]])) else NA_integer_
+  }, integer(1))
+  numeros <- numeros[is.finite(numeros)]
+  if (!length(numeros)) return(1L)
+  max(1L, nchar(as.character(max(numeros))))
 }
 
 # Vista de una sola pagina sobre un `compiled` ya armado, para poder llamar a
@@ -75,11 +183,25 @@
   list(
     schema = compiled$schema,
     pages = compiled$pages[index],
-    page_count = 1L,
+    # `length(index)`, no 1L: desde que la ficha de campo tiene verso (B32),
+    # el PDF de una unidad lleva sus DOS caras.
+    page_count = as.integer(length(index)),
     page_map = compiled$page_map[index],
     warnings = list(),
     layout_fingerprint = compiled$layout_fingerprint
   )
+}
+
+# Indices de pagina agrupados por unidad, en el orden del compilado. El bundle
+# corta un PDF por UNIDAD, no por pagina: con plantillas de una cara ambas
+# cosas coincidian y el corte por pagina parecia correcto — hasta que el verso
+# del croquis convirtio cada ficha en dos paginas y el corte viejo hubiera
+# emitido el croquis como «ficha» aparte.
+.cmj_paginas_por_unidad <- function(compiled) {
+  unit_ids <- vapply(compiled$page_map, function(item) {
+    as.character(item$unit_id %||% "")
+  }, character(1))
+  split(seq_along(unit_ids), factor(unit_ids, levels = unique(unit_ids)))
 }
 
 .cmj_tsv_rows <- function(compiled) {
@@ -161,17 +283,26 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
     dir.create(fichas_dir, showWarnings = FALSE)
     tsv_path <- file.path(stage, "accesos.tsv")
 
-    n_pages <- length(compiled$pages)
+    grupos <- .cmj_paginas_por_unidad(compiled)
+    n_unidades <- length(grupos)
     draw_warnings <- list()
     # Cuenta repeticiones de "carpeta/nombre" para no pisar un archivo cuando
     # dos unidades de la misma facultad comparten label (dos secciones del
     # mismo curso, por ejemplo).
     seen_names <- new.env(parent = emptyenv())
-    for (i in seq_len(n_pages)) {
-      page_i <- compiled$pages[[i]]
+    # Un solo ancho para todo el paquete: mezclarlos entre carpetas haria que
+    # «CH 01» y «CH 001» convivieran en el mismo zip.
+    ancho_codigo <- .cmj_ancho_codigo(compiled$pages)
+    # Ver `.cmj_separa_por_facultad()`: el cajon de facultad solo aparece
+    # cuando el paquete trae mas de una.
+    separa_por_facultad <- .cmj_separa_por_facultad(vapply(compiled$pages,
+      function(pg) .cmj_path_segment(pg$unit$faculty, "Sin facultad"), character(1)))
+    for (i in seq_len(n_unidades)) {
+      indices <- grupos[[i]]
+      page_i <- compiled$pages[[indices[[1]]]]
       facultad <- .cmj_path_segment(page_i$unit$faculty, "Sin facultad")
-      cajon <- .cmj_carpeta_de_rol(page_i$unit$role_key)
-      folder <- file.path(facultad, cajon)
+      cajon <- .cmj_carpeta_de_rol(page_i$unit$role_key, page_i$unit$replacement_order)
+      folder <- .cmj_carpeta_de_ficha(facultad, cajon, separa_por_facultad)
       folder_path <- file.path(fichas_dir, folder)
       dir.create(folder_path, recursive = TRUE, showWarnings = FALSE)
       # **El codigo del aula delante, y el curso-horario en MAYUSCULAS.**
@@ -186,7 +317,8 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
       #
       # El marco trae el label en minuscula y en una carpeta de cientos de PDF
       # la caja uniforme deja escanear la lista sin leerla entera.
-      codigo <- .crf_txt(page_i$unit$operational_code, "")
+      # Acolchado para que la carpeta ordene por cadena y no alfabeticamente.
+      codigo <- .cmj_codigo_ordenable(.crf_txt(page_i$unit$operational_code, ""), ancho_codigo)
       curso <- toupper(
         .cmj_path_segment(page_i$unit$label, page_i$unit$unit_id %||% sprintf("unidad-%d", i))
       )
@@ -200,13 +332,13 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
       assign(key, count, envir = seen_names)
       file_name <- if (count > 1L) sprintf("%s (%d).pdf", base_name, count) else sprintf("%s.pdf", base_name)
       rendered_unit <- collection_material_render_compiled(
-        .cmj_page_subset(compiled, i), file.path(folder_path, file_name), device = "pdf",
+        .cmj_page_subset(compiled, indices), file.path(folder_path, file_name), device = "pdf",
         brand_assets = snapshot$brand_assets %||% list()
       )
       draw_warnings <- c(draw_warnings, rendered_unit$warnings %||% list())
-      if (i %% 5L == 0L || i == n_pages) {
-        report("render", percent = 40L + as.integer(35 * i / max(1L, n_pages)),
-               message = sprintf("Renderizando ficha %d de %d...", i, n_pages))
+      if (i %% 5L == 0L || i == n_unidades) {
+        report("render", percent = 40L + as.integer(35 * i / max(1L, n_unidades)),
+               message = sprintf("Renderizando ficha %d de %d...", i, n_unidades))
       }
     }
     rendered <- list(warnings = draw_warnings)

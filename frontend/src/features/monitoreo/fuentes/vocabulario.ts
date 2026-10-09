@@ -89,10 +89,18 @@ export function textoDeImportacion(fecha: string | null | undefined) {
  *
  * `contar(0, "encuesta", "encuestas")` → `"Sin encuestas"`, no `"0 encuestas"`:
  * un cero con unidad se lee como dato faltante, y un "sin" se lee como estado.
+ *
+ * **Acepta el string numérico del JSON de R.** El backend serializa conteos
+ * como `"55"` según de qué hoja salgan —`eligible_n` del libro del operativo
+ * llegó así— y exigir `number` mandaba 55 matriculados al hueco «Sin
+ * matriculados» (A18, checklist 2026-08-31). Un contador que no cuenta "55"
+ * está roto, así que la coerción vive aquí y no en cada callsite. Lo que no es
+ * un número —`"NA"`, `""`, basura— sigue cayendo al hueco, que es su estado.
  */
-export function contar(total: number, singular: string, plural: string) {
-  if (!Number.isFinite(total) || total <= 0) return `Sin ${plural}`;
-  return total === 1 ? `1 ${singular}` : `${total.toLocaleString("es-PE")} ${plural}`;
+export function contar(total: number | string, singular: string, plural: string) {
+  const n = typeof total === "string" ? Number.parseFloat(total.trim()) : total;
+  if (!Number.isFinite(n) || n <= 0) return `Sin ${plural}`;
+  return n === 1 ? `1 ${singular}` : `${n.toLocaleString("es-PE")} ${plural}`;
 }
 
 /**

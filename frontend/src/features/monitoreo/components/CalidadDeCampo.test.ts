@@ -28,6 +28,24 @@ describe("el vacío del bloque se explica", () => {
     expect(sinRol?.detalle).toContain("Validación");
   });
 
+  test("en aulas el aplicador ya está declarado y el texto no manda a declararlo", () => {
+    const generico = textoDelVacio("sin_rol_de_agente");
+    const enAulas = textoDelVacio("sin_rol_de_agente", "aulas");
+
+    expect(enAulas).not.toBeNull();
+    expect(enAulas?.titulo).not.toBe(generico?.titulo);
+    // El operativo de aulas es presencial: no se llama a nadie, y el parte de
+    // campo ya trae quién aplicó cada curso-horario.
+    expect(enAulas?.detalle).not.toContain("llamar");
+    expect(enAulas?.detalle).toContain("parte de campo");
+    // Y dice la causa real, no el hecho pelado: falta la atribución por
+    // respuesta, no la declaración del aplicador.
+    expect(enAulas?.detalle).toContain("respuesta");
+
+    // Los demás perfiles siguen viendo el texto de siempre.
+    expect(textoDelVacio("sin_rol_de_agente", "telefonico")?.titulo).toBe(generico?.titulo);
+  });
+
   test("los cuatro motivos del backend tienen texto", () => {
     // Si el backend suma un motivo y acá no se traduce, el bloque se queda mudo
     // justo cuando tenía algo que explicar.

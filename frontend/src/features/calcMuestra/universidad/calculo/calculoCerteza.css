@@ -1,0 +1,4 @@
+/* La pestaña «¿Alcanza?»: el resultado primero y la explicación después,
+   plegada (AD7-E15, patrón «veredicto primero» de aulas). La prosa vive en
+   `ExplicacionPlegable` (ui/), que la reparte en columnas al abrirse. */
+.cmv2-calc-certeza-tab { display: grid; gap: var(--pulso-space-3); }

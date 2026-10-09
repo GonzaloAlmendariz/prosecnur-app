@@ -1047,9 +1047,30 @@ async function irADireccion(page, destino, timeoutMs) {
   const readiness = await esperarListo(page, timeoutMs);
   if (!readiness?.listo) {
     throw new Error(
-      `La dirección "${destino}" no alcanzó readiness final: ${readiness?.motivo || "estado desconocido"}.`,
+      `La dirección "${destino}" no alcanzó readiness final: ${readiness?.motivo || "estado desconocido"}.`
+      + pistaDeReadiness(readiness, timeoutMs),
     );
   }
+}
+
+// El motivo solo dice el HECHO. Para actuar hace falta el tope que se agotó: el
+// warm start de Monitoreo con proyecto real tarda 4-6 min y el tope por defecto
+// son 30 s, así que `marca-en-false` ahí no significa «la vista está rota», sino
+// «no le diste tiempo». Distinguir una causa de otra costó un ciclo entero.
+function pistaDeReadiness(readiness, timeoutMs) {
+  const segundos = Math.round(timeoutMs / 1000);
+  if (readiness?.motivo === "marca-en-false") {
+    return ` La vista declara su contrato y aún no lo cumple tras ${segundos} s.`
+      + " Si es Monitoreo con proyecto real, súbelo: --timeout-ms 420000.";
+  }
+  if (readiness?.motivo === "sin-proyecto-abierto") {
+    return " La sesión no tiene proyecto abierto: el fallo no es de esta vista.";
+  }
+  if (readiness?.motivo === "sin-marca-de-readiness") {
+    return " Esa vista no declara `data-audit-ready`: es una laguna de contrato,"
+      + " y esperar más no la arregla.";
+  }
+  return ` Tope agotado: ${segundos} s.`;
 }
 
 // Readiness preguntada a la app, no adivinada con sleeps.
@@ -1209,7 +1230,8 @@ async function runCaptures(opts, stack) {
           const tabReadiness = await esperarListo(page, opts.timeoutMs);
           if (!tabReadiness?.listo) {
             throw new Error(
-              `La pestaña "${tab}" no alcanzó readiness final: ${tabReadiness?.motivo || "estado desconocido"}.`,
+              `La pestaña "${tab}" no alcanzó readiness final: ${tabReadiness?.motivo || "estado desconocido"}.`
+              + pistaDeReadiness(tabReadiness, opts.timeoutMs),
             );
           }
           if (opts.waitAfterClickSelector) {
@@ -1220,7 +1242,8 @@ async function runCaptures(opts, stack) {
         const finalReadiness = await esperarListo(page, opts.timeoutMs);
         if (!finalReadiness?.listo) {
           throw new Error(
-            `La ruta "${route}" no alcanzó readiness final antes de la captura: ${finalReadiness?.motivo || "estado desconocido"}.`,
+            `La ruta "${route}" no alcanzó readiness final antes de la captura: ${finalReadiness?.motivo || "estado desconocido"}.`
+            + pistaDeReadiness(finalReadiness, opts.timeoutMs),
           );
         }
         let postClickWaitSelectorMatched = true;
@@ -1481,7 +1504,21 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     const round2 = (value) => Math.round(value * 100) / 100;
     const isVisibleElement = (el) => {
       const closedDetails = el.closest("details:not([open])");
-      if (closedDetails) {
+      // `closest()` SE INCLUYE A SI MISMO, asi que para un `<details>` cerrado
+      // devolvia el propio elemento y lo declaraba invisible: no es su
+      // `summary` y su `summary` no lo contiene. Pero un `details` cerrado si se
+      // ve —es exactamente la caja de su summary— y su marco cuenta.
+      //
+      // Medido el 2026-08-29 en `monitoreo/aulas/modelo/agenda`: el contenedor
+      // de datos de «Cuanto cuesta cerrar un aula» es un `<details>` cerrado que
+      // SI declara `data-qa-geometry-member`, y este filtro lo descartaba. Con
+      // cero miembros explicitos el auditor cae a los hijos del grupo y mide la
+      // cabecera del panel, que es el `capacity-drift` espurio que llevaba ocho
+      // apariciones.
+      //
+      // La norma dice «cerrado, solo el `summary` participa de la geometria»:
+      // eso excluye a los DESCENDIENTES ocultos, no al contenedor.
+      if (closedDetails && closedDetails !== el) {
         const visibleSummary = closedDetails.querySelector(":scope > summary");
         if (!visibleSummary || (el !== visibleSummary && !visibleSummary.contains(el))) return false;
       }
@@ -1975,6 +2012,13 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     const auditScrollOwner = async (owner) => {
       const originalScrollTop = owner.scrollTop;
       const maxScroll = Math.max(0, owner.scrollHeight - owner.clientHeight);
+      // **El eje que este auditor no miraba.** Todo lo de abajo mide hacia
+      // ABAJO, así que una tabla con columnas fuera del marco pasaba con
+      // `desbordes=0`: en Consultas > Parte la última columna se leía partida
+      // («EFECTIVAS QU…») y en Agenda se perdía el AULA, que es identidad.
+      // No se hace fallar —desplazarse en horizontal es legítimo— pero deja de
+      // ser invisible: quien mire el informe ve que hay contenido a la derecha.
+      const maxScrollX = Math.max(0, owner.scrollWidth - owner.clientWidth);
       const textMetrics = Array.from(owner.querySelectorAll("strong"))
         .filter((node) => isVisibleElement(node))
         .slice(0, 60)
@@ -2017,6 +2061,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       return {
         scrollAudit: {
           maxScroll,
+          maxScrollX,
           originalScrollTop,
           positions,
           atEnd,
@@ -2407,6 +2452,35 @@ function summarize(results, opts) {
   )));
   const apiErrors = opts.api === "real" ? results.flatMap((item) => item.apiErrors || []) : [];
   const resourceErrors = results.flatMap((item) => item.resourceErrors || []);
+  // Los que esconden contenido a la derecha, con cuánto y quién: sin el
+  // «cuánto» no se distingue un par de píxeles de cuatro columnas enteras.
+  //
+  // Se recorre el resultado ENTERO en vez de un par de claves: los audits
+  // cuelgan de `geometryAudits[].members[].overflowOwner`, y buscarlos en
+  // `scrollJails`/`scrollEvidence` —donde supuse que estaban— devolvía 0 con
+  // 454 px ocultos delante. Recursivo no se equivoca de sitio.
+  const desplazamientoH = [];
+  const vistosH = new Set();
+  const buscarDesplazamiento = (nodo) => {
+    if (!nodo || typeof nodo !== "object") return;
+    if (Array.isArray(nodo)) {
+      for (const hijo of nodo) buscarDesplazamiento(hijo);
+      return;
+    }
+    const px = nodo.scrollAudit?.maxScrollX ?? 0;
+    if (px > 2) {
+      const selector = nodo.selector ?? nodo.className ?? nodo.tag ?? "?";
+      const clave = `${selector}::${px}`;
+      if (!vistosH.has(clave)) {
+        vistosH.add(clave);
+        //  vive dentro del `page.evaluate`, en el navegador; aquí
+        // estamos en Node y no existe.
+        desplazamientoH.push({ selector, px: Math.round(px * 100) / 100 });
+      }
+    }
+    for (const hijo of Object.values(nodo)) buscarDesplazamiento(hijo);
+  };
+  buscarDesplazamiento(results);
   const projectMisses = results.filter((item) => item.projectLoaded === false);
   const waitSelectorMisses = results.filter((item) => item.waitSelectorMatched === false);
   const postClickWaitSelectorMisses = results.filter((item) => item.postClickWaitSelectorMatched === false);
@@ -2418,6 +2492,10 @@ function summarize(results, opts) {
     popoverIssues: popoverIssues.length,
     popoversSinSuperficie: popoversSinSuperficie.length,
     scrollJails: scrollJails.length,
+    // Contenedores con columnas fuera del marco. No es un fallo —desplazarse
+    // en horizontal es legítimo— pero sin declararlo se lee como un recorte.
+    desplazamientoH: desplazamientoH.length,
+    desplazamientoHDetalle: desplazamientoH.slice(0, 5),
     derrames: derrames.length,
     solapes: solapes.length,
     desbordes: desbordes.length,
@@ -2549,7 +2627,7 @@ async function main() {
     for (const o of summary.solapeDetalle || []) {
       console.log(`[ui-quick-check] solape ${o.interseccion}: ${o.a?.selector || o.a?.tag || "?"} × ${o.b?.selector || o.b?.tag || "?"}`);
     }
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();

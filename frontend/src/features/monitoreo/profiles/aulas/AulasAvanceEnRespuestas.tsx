@@ -37,13 +37,30 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
 }) {
   const a = useMemo(() => {
     if (resumen && Number(resumen.meta) > 0) {
-      const meta = Number(resumen.meta) || 0;
-      const cubierto = Number(resumen.cubierto) || 0;
+      // **El resumen del motor entra CRUDO y se normaliza aquí, no al pintar.**
+      //
+      // El cálculo local ya redondea por aula (`Math.ceil` sobre `expected_valid`),
+      // pero el agregado del motor suma las fracciones y llegaba tal cual al
+      // render: la pantalla decía «1 306,3 cubren meta» y «504,7 de más». Media
+      // respuesta no existe. La dirección va por rubro, no pareja:
+      //
+      // - lo CONSEGUIDO (`cubierto`, `excedente`) hacia ABAJO — declarar
+      //   cubierta la respuesta 1 307 es declarar una que no se consiguió;
+      // - la META al entero más próximo — es el objetivo agregado, no una
+      //   cuenta de logro ni de deuda;
+      // - lo que FALTA se queda crudo: `fmtCuenta` le pone el techo al pintar
+      //   (con 1 851 no se cierra una falta de 1 851,5) y el verbo de la frase
+      //   sigue a ese número pintado.
+      //
+      // El epsilon es el de `fmtAporte`: un 1 306 guardado como 1 305,999…9 no
+      // debe leerse como 1 305.
+      const meta = Math.round(Number(resumen.meta) || 0);
+      const cubierto = Math.floor((Number(resumen.cubierto) || 0) + 1e-9);
       return {
         meta,
         validas: Number(resumen.validas) || 0,
         cubierto,
-        excedente: Number(resumen.excedente) || 0,
+        excedente: Math.floor((Number(resumen.excedente) || 0) + 1e-9),
         falta: Number(resumen.falta) || 0,
         aulasConBrecha: Number(resumen.aulas_con_brecha) || 0,
         sinMeta: Number(resumen.sin_meta) || 0,
@@ -78,7 +95,12 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
   return (
     <div className="aulas-avance-respuestas">
       <p className="aulas-avance-titular">
-        <strong>{fmtCuenta(a.cubierto)}</strong> de <strong>{fmtCuenta(a.meta)}</strong> respuestas que pide
+        {/* `fmt` y no `fmtCuenta`: los dos números ya son enteros por
+            construcción —el cálculo local por aula, el resumen del motor en la
+            frontera de arriba— y un techo aquí volvería a declarar cubierta una
+            respuesta que no existe (1 306,3 pintado «1 307», contradiciendo al
+            «1 306 cubren meta» de dos líneas más abajo). */}
+        <strong>{fmt(a.cubierto)}</strong> de <strong>{fmt(a.meta)}</strong> respuestas que pide
         el plan · <span className="aulas-avance-pct">{a.avance}%</span>
       </p>
       {/* El hueco entre lo recogido y lo atribuido, DICHO. Hay estudios donde
@@ -90,7 +112,7 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
       {validasTotales > 0 && a.validas === 0 ? (
         <p className="aulas-avance-sin-atribuir">
           Las <strong>{fmt(validasTotales)}</strong> respuestas del corte llegan sin identificar
-          su curso-horario, así que ninguna cuenta para la meta de un aula.
+          su curso-horario, así que ninguna cuenta para la meta de un curso-horario.
         </p>
       ) : null}
       <div className="aulas-avance-carril" role="img" aria-label={`${a.avance}% de la meta cubierta`}>
@@ -103,17 +125,26 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
         ) : null}
       </div>
       <ul className="aulas-avance-mermas" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {/* **Las tres etiquetas dicen su unidad.** «57 cubren meta» y «142
+            faltan» se leían como cursos-horario en un panel que se llamaba
+            «Cumplimiento aula por aula»: son RESPUESTAS, y el número de
+            cursos-horario aparece sólo como reparto de las que faltan. */}
         <li className="es-cubierto">
-          <strong>{fmt(a.cubierto)}</strong> cubren meta
+          <strong>{fmt(a.cubierto)}</strong> respuestas cuentan para la meta de su curso-horario
         </li>
         <li className="es-falta">
-          <strong>{fmtCuenta(a.falta)}</strong> faltan, en {fmt(a.aulasConBrecha)} cursos-horario
+          {/* Concuerda con el número QUE SE MUESTRA, no con `a.falta`:
+              `fmtCuenta` redondea hacia arriba, así que 0,4 se pinta «1» y el
+              verbo tiene que seguir a lo pintado. */}
+          <strong>{fmtCuenta(a.falta)}</strong>{" "}
+          {fmtCuenta(a.falta) === "1" ? "falta" : "faltan"} por recoger, repartidas en{" "}
+          {fmt(a.aulasConBrecha)} {a.aulasConBrecha === 1 ? "curso-horario" : "cursos-horario"}
         </li>
         {a.excedente ? (
           <li className="es-excedente">
             {/* La frase entera: sin ella, «excedente» se lee como logro. */}
-            <strong>{fmt(a.excedente)}</strong> de más en aulas que ya cumplieron — no cubren
-            la falta de ninguna otra
+            <strong>{fmt(a.excedente)}</strong> se recogieron de más en cursos-horario que ya
+            habían llegado a su meta; no cubren lo que falta en los otros
           </li>
         ) : null}
         {/* **El puente entre esta cuenta y el KPI de arriba.**

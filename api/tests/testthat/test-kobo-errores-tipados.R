@@ -71,3 +71,32 @@ test_that("kobo: el handler entrega el diagnóstico y no «Error interno»", {
   expect_false(identical(payload$error$code, "E_INTERNAL"))
   expect_false(grepl("Error interno del servidor", payload$error$message, fixed = TRUE))
 })
+
+test_that("kobo: un 200 con cuerpo ILEGIBLE no se lee como cero respuestas", {
+  # El defecto: `jsonlite::fromJSON` fallaba, el parseo devolvia NULL y aguas
+  # abajo eso se lee como «Kobo no devolvio envios» — CERO respuestas, que en
+  # mitad de una jornada de campo es la cifra mas cara que esta app puede dar
+  # por buena. Pasa de verdad: un portal cautivo o un proxy contestan 200 con
+  # HTML.
+  testthat::local_mocked_bindings(
+    .kobo_api_fetch_with_retry = function(url, handle_factory) {
+      .kbe_res(200L, body = "<html><body>Inicia sesion en la red</body></html>")
+    }
+  )
+  err <- .kbe_capturar(kobo_api_fetch_assets("tok-kobo-fixture"))
+
+  expect_s3_class(err, "api_error")
+  expect_equal(err$code, "E_KOBO_RESPUESTA_ILEGIBLE")
+  expect_equal(err$status, 502)
+  # Y dice la causa mas probable, que es lo que evita ir a mirar a Kobo.
+  expect_match(conditionMessage(err), "proxy o un portal", fixed = TRUE)
+})
+
+test_that("kobo: un cuerpo VACIO sigue siendo legitimo y no levanta nada", {
+  # La contracara: un 204 o un DELETE no traen JSON y eso no es un fallo.
+  # Sin ella, «declarar siempre» se convierte en una alarma en el caso bueno.
+  testthat::local_mocked_bindings(
+    .kobo_api_fetch_with_retry = function(url, handle_factory) .kbe_res(200L, body = "")
+  )
+  expect_null(.kbe_capturar(kobo_api_fetch_assets("tok-kobo-fixture")))
+})

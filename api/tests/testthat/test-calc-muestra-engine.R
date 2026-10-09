@@ -42,6 +42,23 @@ test_that("distribuir_proporcional_pesos suma exacta con cuadratura", {
   expect_equal(sum(asig), 100L)
 })
 
+test_that("distribuir_proporcional_pesos reparte por mayor resto en ambos modos (H01, P1)", {
+  for (modo in c("cuadratura", "round_residuo_controlado")) {
+    # Antes: 0,1,1,1,1,1,1 (suma 6, la categoría del 94 % en cero).
+    expect_identical(distribuir_proporcional_pesos(5L, c(100, rep(1, 6)), redondeo = modo),
+                     c(5L, 0L, 0L, 0L, 0L, 0L, 0L))
+    # Antes: 2,4,4 con cuadratura.
+    expect_identical(distribuir_proporcional_pesos(10L, c(1, 1, 1), redondeo = modo), c(4L, 3L, 3L))
+    # La celda canónica de la distribución universitaria no se mueve.
+    expect_identical(distribuir_proporcional_pesos(126L, c(744, 336), redondeo = modo), c(87L, 39L))
+    # Marcos de millones: n·peso en double, sin desborde a NA.
+    asig <- distribuir_proporcional_pesos(3000L, c(4e6, 3e6, 1), redondeo = modo)
+    expect_identical(sum(asig), 3000L)
+    expect_false(anyNA(asig))
+  }
+  expect_identical(distribuir_proporcional_pesos(5L, c(1, 1, 1), redondeo = "arriba"), c(2L, 2L, 2L))
+})
+
 # ---------------------------------------------------------------------------
 # Normalización de estudio
 # ---------------------------------------------------------------------------
@@ -489,8 +506,11 @@ test_that("backtesting acreditación reproduce decisiones por actor", {
 
   expect_equal(by_id$administrativos$tecnica, "intencion_censal")
   expect_equal(by_id$administrativos$resultado$n_objetivo, 40L)
-  expect_equal(by_id$docentes$tecnica, "no_prob_cuotas")
-  expect_equal(by_id$docentes$resultado$n_objetivo, 150L)
+  # ADR 0091: con N = 280 una muestra a ±5 % pide menos del 60 %, así que se
+  # sortea (antes: 150 cuotas sin margen desde N ≥ 251).
+  expect_equal(by_id$docentes$tecnica, "prob_aleatorio_simple")
+  expect_equal(by_id$docentes$resultado$n_objetivo,
+               calc_n_muestra(N = 280, p = 0.5, z = 1.96, e = 0.05, deff = 1))
   expect_equal(by_id$estudiantes$tecnica, "prob_conglomerado_multietapico")
   expect_gt(by_id$estudiantes$resultado$n_objetivo, 0L)
   expect_equal(by_id$egresados$tecnica, "intencion_censal")

@@ -68,7 +68,21 @@
     condicion_curso = list(scope = "aula",  kind = "flat",         label = "Condición del curso",
                            emptyBucket = list(key = "sin_condicion", label = "Sin condición")),
     enrolled_total = list(scope = "aula",   kind = "numeric",      label = "Matriculados / población"),
-    campus         = list(scope = "aula",   kind = "flat",         label = "Sede")
+    campus         = list(scope = "aula",   kind = "flat",         label = "Sede"),
+    # El aula del reporte. NO es identidad —una faceta suelta jamas identifica
+    # un curso-horario, ver `facetas_sueltas` en calc_muestra_aulas.R— pero SI
+    # es criterio de marco, y de los mas basicos: a un curso-horario sin aula
+    # asignada no se puede ir.
+    #
+    # El reporte de la DTI declara presenciales cursos-horario con dia y hora y
+    # sin aula. Medido en HSVG 2026, segundo sorteo: **61 de 1.573**. Hasta hoy
+    # ese recorte se hacia FUERA de la app, a mano en un Excel, y por eso el
+    # marco del sorteo no se reproducia desde el proyecto.
+    #
+    # El bucket sintetico es lo que vuelve util al criterio: lo que se filtra no
+    # es un valor, es la AUSENCIA de valor. Mismo mecanismo que condicion_curso.
+    venue          = list(scope = "aula",   kind = "flat",         label = "Aula asignada",
+                          emptyBucket = list(key = "sin_aula", label = "Sin aula asignada"))
   )
 }
 
@@ -222,9 +236,27 @@
   course_ranges <- .cm_criterios_normalize_nivel_por_unidad(x$courseLevelRanges %||% x$rangos_nivel_curso)
   min_elig <- NULL
   me <- x$minEligible %||% x$min_elegibles
-  if (is.list(me) && !is.null(me$threshold)) {
+  bf_in <- if (is.list(me)) me$byFaculty %||% me$por_facultad else NULL
+  # **El umbral NO es obligatorio para que existan mínimos por facultad.**
+  #
+  # La guarda pedía `threshold` y sólo `threshold`. Pero la app manda el umbral
+  # general únicamente cuando el usuario lo cambia: si deja el general por
+  # defecto y declara diez mínimos propios, el payload viaja como
+  # `{byFaculty: {...}}` SIN threshold — y esta condición lo descartaba entero.
+  #
+  # Medido en la app el 2026-08-25 sobre HSVG 2026: se declararon y confirmaron
+  # los diez mínimos por facultad del diseño, la tarjeta mostraba «Propio: ≥ 20»,
+  # el contador de pendientes se ponía en cero y el `.pulso` guardaba
+  # `minEligible: {}`. El marco se construyó con el mismo mínimo para las quince
+  # facultades: Artes Escénicas quedó con 33 cursos-horario en vez de 92.
+  #
+  # Se conserva la intención original —que una `attendance_rate` suelta no
+  # active la suite— exigiendo threshold O mínimos por facultad, nunca la tasa
+  # sola. Sin threshold viaja NA y `.cm_criterios_min_eligible_efectivo()` cae
+  # a `min_eligible_per_class`, que es el general declarado.
+  if (is.list(me) && (!is.null(me$threshold) || (is.list(bf_in) && length(bf_in)))) {
     by_fac <- list()
-    bf <- me$byFaculty %||% me$por_facultad
+    bf <- bf_in
     if (is.list(bf) && length(bf)) {
       for (fac in names(bf)) {
         k <- .cm_criterios_fac_key(fac)
@@ -334,9 +366,13 @@
   # constructor lo hacen por separado— y el centinela ya normalizado tiene que
   # reconocerse a si mismo. Sin esto, la segunda pasada no lo veia como
   # exencion, `.cm_criterios_normalize_rangos` no le encontraba min/max y la
-  # clave DESAPARECIA del mapa; sin rango declarado el evaluador excluye, asi
-  # que declarar una exencion borraba la facultad. Medido en HSVG2026: mande 15
-  # facultades y el motor guardo 13.
+  # clave DESAPARECIA del mapa. Cuando esto se escribio, sin rango declarado el
+  # evaluador EXCLUIA, asi que declarar una exencion borraba la facultad: medido
+  # en HSVG2026, mande 15 facultades y el motor guardo 13. Desde 2026-08-25 la
+  # ausencia ya no excluye (ver .cm_criterios_eval_course_ranges), asi que la
+  # perdida del centinela seria silenciosa en vez de destructiva — sigue siendo
+  # un defecto: la exencion es una declaracion auditable y `llegada.R` la usa
+  # para no anunciar como nueva una facultad que el estudio ya considero.
   if (.cm_criterios_es_rango_exento(entrada)) return(TRUE)
   if (is.character(entrada)) {
     return(any(.cm_aulas_text_key(entrada) %in% c("exenta", "exento", "no_aplica")))
@@ -578,7 +614,7 @@
   # `teacher` y `teacher_email` son suyas aunque el mapeo apunte a otra parte.
   ocupadas <- c(
     .cm_aulas_col(raw, mapping$teacher), .cm_aulas_col(raw, mapping$condition),
-    "teacher", "teacher_email"
+    "teacher", "teacher_email", "teacher_phone"
   )
   ocupadas <- .cm_aulas_text_key(ocupadas[nzchar(ocupadas)])
   if (.cm_aulas_text_key(col) %in% ocupadas) return("")
@@ -619,14 +655,20 @@
 # catálogo. El bucket sintético "Sin condición" solo se activa para estas: sin
 # columna la variable ni siquiera se enumera, y el vacío no debe forzar recorte
 # (graceful). La gate replica la de la enumeración (col_or: catálogo OR base).
-# Hoy solo condicion_curso; sumar otra variable es una entrada aquí + emptyBucket
-# en .cm_criterios_var_registry.
+# Hoy condicion_curso y classroom; sumar otra variable es una entrada aquí +
+# emptyBucket en .cm_criterios_var_registry.
 .cm_criterios_empty_bucket_cols <- function(raw, mapping, catalog_signals = list()) {
   cols <- (catalog_signals %||% list())$columns %||% list()
   out <- character(0)
   cc_existe <- nzchar(.cm_criterios_col_condicion_curso(raw, mapping)) ||
     nzchar(.cm_aulas_scalar(cols$condicion_curso, ""))
   if (cc_existe) out <- c(out, "condicion_curso")
+  # El aula: su columna puede venir del catalogo de curso-horario o de la base.
+  # `venue` es el aula YA PARSEADA de SESIONES por
+  # `calc_muestra_aulas_anotar_sesiones()`. NO se lee `classroom_label` crudo:
+  # esa columna trae la cadena entera («MIE 17:00-20:00 A506») y su alias `aula`
+  # captura columnas ajenas —la trampa que ese mismo archivo documenta—.
+  if ("venue" %in% names(raw)) out <- c(out, "venue")
   out
 }
 
@@ -1135,6 +1177,33 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   vapply(seq_along(x), function(i) .cm_criterios_parse_nivel(x[[i]]), numeric(1))
 }
 
+# Repara los pares (facultad del curso, nivel) a los que les falta la FACULTAD.
+# Un par sin facultad no puede casar con ningún rango declarado y, por la regla
+# "cualquier par", arrastra al aula entera a FALSE. Se sustituye por la facultad
+# EFECTIVA del aula, que es exactamente lo que hace el fallback de par modal
+# cuando no hay catálogo — misma semántica, aplicada par a par.
+.cm_criterios_pares_con_facultad <- function(course_pairs, faculty) {
+  if (!length(course_pairs)) return(course_pairs)
+  fld <- .cm_catalogo_pair_fld
+  rec <- .cm_catalogo_pair_rec
+  vapply(seq_along(course_pairs), function(i) {
+    set <- course_pairs[[i]]
+    if (is.na(set)) return("")
+    if (!nzchar(set)) return(set)
+    # Sin par degradado no se toca nada: el set queda bit a bit como llegó.
+    if (!startsWith(set, fld) && !grepl(paste0(rec, fld), set, fixed = TRUE)) return(set)
+    fac_aula <- if (length(faculty) >= i) (faculty[[i]] %||% "") else ""
+    pares <- strsplit(set, rec, fixed = TRUE)[[1]]
+    reparados <- vapply(pares, function(p) {
+      kv <- strsplit(p, fld, fixed = TRUE)[[1]]
+      fac <- if (length(kv) >= 1L) kv[[1]] else ""
+      if (nzchar(fac)) return(p)
+      paste0(fac_aula, fld, if (length(kv) >= 2L) kv[[2]] else "")
+    }, character(1), USE.NAMES = FALSE)
+    paste(unique(reparados), collapse = rec)
+  }, character(1), USE.NAMES = FALSE)
+}
+
 # Valores CONSTANTES por aula para el scope aula: catálogo autoritativo (fix del
 # −281) con fallback a las columnas modales de la base cuando no hay catálogo.
 .cm_criterios_valores_aula <- function(aula_frame, catalog_signals, base_course_level_num) {
@@ -1174,6 +1243,13 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   course_pairs <- if (length(pairs_sig)) unname(pairs_sig[afk]) else rep(NA_character_, n)
   fallback_pair <- paste0(faculty, .cm_catalogo_pair_fld, ifelse(is.finite(course_level), course_level, ""))
   course_pairs <- ifelse(is.na(course_pairs) | !nzchar(course_pairs), fallback_pair, course_pairs)
+  # El par DEGRADADO —el que trae nivel pero NO facultad, "<US>2"— no está
+  # vacío, así que sobrevivía al fallback de arriba y llegaba entero al
+  # evaluador, que busca la facultad del par en el mapa de rangos, no la
+  # encuentra y devuelve FALSE. Medido en HSVG26DEF: TODAS las aulas caían por
+  # un separador. Repararlo por PAR (no por set) conserva los pares buenos
+  # cuando solo algunas filas del catálogo traen la facultad en blanco.
+  course_pairs <- .cm_criterios_pares_con_facultad(course_pairs, faculty)
   list(
     modality = pick_chr("modality", "modality"),
     session_type = pick_chr("session_type", "session_type"),
@@ -1185,7 +1261,13 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     faculty = faculty,
     faculty_aula = faculty_aula,
     condicion_curso = pick_chr("condicion_curso", "condicion_curso"),
-    campus = pick_chr("campus", "campus")
+    campus = pick_chr("campus", "campus"),
+    # PRESENCIA, no identidad. El valor crudo es el nombre del salon y hay
+    # ~1.000 distintos: enumerarlos daria una tarjeta con mil fichas —«LHID
+    # 22 CH», «A601 17 CH»…— y nadie muestrea por nombre de salon. La decision
+    # real es binaria: entra o no entra el curso-horario que no tiene aula.
+    # Se colapsa a un solo valor; el vacio lo recoge el bucket sintetico.
+    venue = ifelse(nzchar(pick_chr("venue", "venue")), "Con aula asignada", "")
   )
 }
 
@@ -1309,7 +1391,11 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     if (!nzchar(vk[[i]])) return(TRUE)
     cats <- .cm_criterios_eff_cats(crit, faculty_keys[[i]])
     if (!length(cats)) return(TRUE)
+    # Primero la clave vigente —que aquí puede ser el bucket de vacíos, ya
+    # sustituido arriba— y sólo si no casa, la anterior al arreglo de la eñe:
+    # las categorías las guarda la config y el normalizador cambió después.
     inset <- vk[[i]] %in% cats
+    if (!inset) inset <- isTRUE(.cm_aulas_clave_en(values[[i]], cats))
     if (identical(crit$mode, "exclude")) !inset else inset
   }, logical(1))
 }
@@ -1382,12 +1468,19 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 # (§3ter). Un curso-horario le cuenta a varias carreras/facultades en distinto
 # ciclo (1609/5262 aulas sirven a ≥2), así que el aula pasa si ALGUNA de sus
 # (facultad del curso, nivel) cae en el rango de esa facultad. Reglas:
-#   - facultad AUSENTE del mapa NO aporta (el mapa es la whitelist de unidades
-#     objetivo: Consorcio/Estudios Especiales/Posgrado quedan fuera);
+#   - facultad AUSENTE del mapa: no declara tramo, así que no restringe a SUS
+#     aulas (se resuelve abajo por la facultad DEL AULA, igual que la exención).
+#     Como par ajeno NO aporta: que un curso del aula esté catalogado en una
+#     facultad sin tramo no libra al aula de la facultad que sí lo declaró.
+#     Hasta 2026-08-25 la ausencia EXCLUÍA el aula entera (el mapa se leía como
+#     whitelist de unidades objetivo); decidido con Gonzalo que el mapa sólo
+#     gobierna lo que nombra — para dejar una facultad fuera del estudio está el
+#     criterio de FACULTAD, no el de nivel;
 #   - un par pasa SOLO con nivel PARSEABLE dentro del rango; un par cuyo nivel
 #     no se puede leer NO aporta (no se puede confirmar que el curso esté en el
-#     nivel objetivo → no acredita al aula). El aula se EXCLUYE si ningún par
-#     (facultad mapeada, nivel en rango) existe.
+#     nivel objetivo → no acredita al aula). Un aula cuya PROPIA facultad sí
+#     declaró tramo se EXCLUYE si ningún par (facultad mapeada, nivel en rango)
+#     existe.
 # Nota canónica: la comparación de facultad usa .cm_criterios_fac_key, robusta a
 # la ñ Y a los apóstrofes que iconv/ASCII//TRANSLIT mete en macOS (ÉNICAS →
 # 'ENICAS); sin esa limpieza las 5 facultades acentuadas (Escénicas, Psicología,
@@ -1398,6 +1491,16 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 .cm_criterios_eval_course_ranges <- function(course_pairs, ranges, faculty_keys = NULL) {
   n <- length(course_pairs)
   if (!length(ranges)) return(rep(TRUE, n))
+  # Claves guardadas antes del arreglo de la eñe, traducidas con las etiquetas
+  # reales del marco — igual que `crit$exceptions` y `minEligible$byFaculty`.
+  # Sin esto el rango de «ARTE Y DISEÑO» viaja como `arte_y_dise_no`, no casa con
+  # ninguna facultad, y como el mapa NO está vacío el criterio sí se aplica: el
+  # bucle no encuentra par que decida y devuelve FALSE. Es decir, la facultad
+  # entera sale del marco — incluidas las aulas cuyo nivel está DENTRO del rango
+  # declarado. Medido: nivel 3 contra un rango 1–5 daba excluida.
+  # La canonización va aquí y no en el llamador porque los tres consumidores
+  # —marco, cascada viva y radiografía— pasan por esta función.
+  if (length(faculty_keys)) ranges <- .cm_aulas_canonizar_claves(ranges, faculty_keys)
   claves <- .cm_criterios_fac_key(names(ranges))
   # La EXENCION se decide contra la facultad DEL AULA, no contra la del curso.
   # Medido en HSVG2026: un curso de Estudios Generales esta catalogado bajo la
@@ -1408,11 +1511,31 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   fac_aula <- if (length(faculty_keys) == n) .cm_criterios_fac_key(faculty_keys) else rep("", n)
   vapply(seq_len(n), function(i) {
     if (nzchar(fac_aula[[i]]) && fac_aula[[i]] %in% exentas) return(TRUE)
+    # SIN ENTRADA DECLARADA la facultad NO RESTRINGE a sus aulas: el mapa sólo
+    # gobierna lo que nombra. Antes la ausencia las EXCLUÍA enteras — con rangos
+    # en 2 de 15 facultades las otras 13 perdían TODAS sus aulas (Artes Escénicas
+    # 438, Arte y Diseño 342, Ciencias Sociales 207…)— mientras tres superficies
+    # de la UI prometían lo contrario y el toggle «Aplica», al apagarse, BORRABA
+    # la clave: apagar el criterio de una facultad la borraba del marco. La
+    # discontinuidad lo delataba: con CERO facultades declaradas pasaban todas, y
+    # bastaba declarar UNA para que las demás desaparecieran.
+    #
+    # Se decide AQUÍ, contra la facultad DEL AULA, por la misma razón que la
+    # exención y no un renglón más abajo: resolverlo dentro del bucle por par
+    # dejaría que UN curso catalogado en una facultad sin tramo acreditara al
+    # aula entera, y entonces la ausencia sería MÁS permisiva que la exención
+    # explícita —que deliberadamente no libra a aulas ajenas—. El criterio tiene
+    # que seguir mordiendo donde SÍ se declaró.
+    if (nzchar(fac_aula[[i]]) && !(fac_aula[[i]] %in% claves)) return(TRUE)
     pares <- strsplit(course_pairs[[i]], .cm_catalogo_pair_rec, fixed = TRUE)[[1]]
     for (p in pares) {
       kv <- strsplit(p, .cm_catalogo_pair_fld, fixed = TRUE)[[1]]
       fac <- .cm_criterios_fac_key(kv[[1]])
       hit <- which(claves == fac)
+      # Par de facultad sin tramo declarado: no decide. No acredita al aula —
+      # mismo trato que el par de una facultad exenta (ver abajo). Que la
+      # ausencia no restrinja a SUS aulas se resolvió arriba, por la facultad
+      # del aula.
       if (!length(hit)) next
       nivel <- .cm_criterios_parse_nivel(if (length(kv) >= 2L) kv[[2]] else "")
       if (!is.finite(nivel)) next
@@ -1426,6 +1549,37 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     }
     FALSE
   }, logical(1))
+}
+
+# El umbral general falta, pero los mínimos por facultad NO se tiran.
+#
+# `.cm_criterios_normalize_seleccion()` ya conserva `{byFaculty: {...}}` sin
+# `threshold` —la app manda el general sólo cuando el usuario lo cambia—, pero
+# sus TRES consumidores repetían la guarda vieja `!is.finite(threshold)` y
+# reemplazaban el objeto entero por uno con `byFaculty = list()`. Es decir: la
+# normalización salvaba los mínimos propios y el evaluador los descartaba tres
+# líneas después, sin aviso.
+#
+# Medido el 2026-08-25 sobre HSVG26DEF: `minEligible = {threshold: NA,
+# byFaculty: {ciencias_e_ingenieria: 20}}` y el marco construido dejó DENTRO
+# 333 de las 899 aulas incluidas de Ingeniería con menos de 20 elegibles —una
+# con 1—, y ninguna fila excluida por `min_eligible_per_class`.
+#
+# Los tres sitios eran el marco (`.cm_criterios_evaluar_aula`), la cascada viva
+# y la radiografía por criterio, así que el «quedan fuera» de la tarjeta tampoco
+# se movía al cambiar el mínimo: los tres evaluaban el mismo umbral general.
+.cm_criterios_min_elig_con_fallback <- function(min_elig, fallback) {
+  piso <- max(1L, .cm_aulas_int(fallback, 1L))
+  por_facultad <- if (is.list(min_elig)) min_elig$byFaculty %||% list() else list()
+  # Sin umbral propio NI mínimos por facultad no hay criterio del usuario: manda
+  # el piso legacy, como antes.
+  if (!is.list(min_elig) || (!is.finite(min_elig$threshold) && !length(por_facultad))) {
+    return(list(threshold = piso, byFaculty = list()))
+  }
+  # Con mínimos por facultad y sin general, el general es el piso y cada
+  # facultad con valor propio lo sobrescribe en `.cm_criterios_eval_min_eligible`.
+  if (!is.finite(min_elig$threshold)) min_elig$threshold <- piso
+  min_elig
 }
 
 # Umbral de matriculados/población por aula con override por facultad.
@@ -1477,7 +1631,10 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
       .cm_criterios_facultad_curso_label(crit_fac)
     )
   }
-  orden <- c("modality", "session_type", "teacher_type", "course_level", "condicion_curso", "enrolled_total", "campus")
+  # Listas paralelas: agregar una variable de aula exige tocar ESTE orden, los
+  # `vals` de .cm_criterios_valores_aula y la enumeracion. Si falta en una sola,
+  # el criterio se guarda y NO filtra, en silencio.
+  orden <- c("modality", "session_type", "teacher_type", "course_level", "condicion_curso", "enrolled_total", "campus", "venue")
   for (id in orden) {
     if (identical(id, "course_level")) {
       if (length(seleccion$courseLevelRanges)) {
@@ -1496,6 +1653,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     crit <- by[[id]]
     if (!identical(crit$scope, "aula")) next
     if (!.cm_criterios_regla_aula_accionable(crit)) next
+    # Las excepciones se buscan por clave de facultad: misma traducción que el
+    # mínimo por facultad (calc_muestra_aulas_claves_legadas.R).
+    crit$exceptions <- .cm_aulas_canonizar_claves(crit$exceptions, vals$faculty)
     empty_key <- if (id %in% empty_bucket_cols) registry[[id]]$emptyBucket$key else NULL
     flag <- switch(crit$kind,
       flat = .cm_criterios_eval_flat_vec(vals[[id]] %||% rep("", n), crit, fac_keys,
@@ -1527,10 +1687,19 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   # El FLAG se conserva —el corte debe seguir aplicándose— y sólo se calla la
   # razón: cuando el umbral es heredado, quien la publica es el filtro legacy,
   # que es de quien realmente viene la decisión.
-  min_elig_propio <- !is.null(min_elig) && is.finite(min_elig$threshold)
-  if (!min_elig_propio) {
-    min_elig <- list(threshold = max(1L, .cm_aulas_int(min_eligible_fallback, 1L)), byFaculty = list())
+  # Config guardada antes del arreglo de la eñe: sus claves por facultad se
+  # traducen a la vigente con las etiquetas reales del marco, o el override de
+  # «ARTE Y DISEÑO» se ignora en silencio (calc_muestra_aulas_claves_legadas.R).
+  if (is.list(min_elig)) {
+    min_elig$byFaculty <- .cm_aulas_canonizar_claves(min_elig$byFaculty, vals$faculty)
   }
+  # La razón se atribuye al criterio del usuario sólo cuando el usuario lo
+  # declaró; con el piso legacy la exclusión ya la nombra el marco base. Un
+  # mínimo POR FACULTAD sin umbral general también es criterio del usuario: sin
+  # esta segunda condición, las aulas que caen por él se excluían sin razón.
+  min_elig_propio <- is.list(min_elig) &&
+    (is.finite(min_elig$threshold) || length(min_elig$byFaculty %||% list()) > 0L)
+  min_elig <- .cm_criterios_min_elig_con_fallback(min_elig, min_eligible_fallback)
   add(
     "minEligible",
     .cm_criterios_eval_min_eligible(vals$eligible_n, fac_keys, min_elig),
@@ -1850,6 +2019,15 @@ calc_muestra_aulas_criterios_catalogo <- function(aula_frame, catalog_signals,
     push(.cm_criterios_enum_flat("condicion_curso", registry$condicion_curso, vals$condicion_curso, col_or("condicion_curso", "condicion_curso"), "aula", facultades = vals$faculty))
     push(.cm_criterios_enum_numeric("enrolled_total", registry$enrolled_total, vals$enrolled_total, col_or("enrolled_total", "enrolled_total"), "aula"))
     push(.cm_criterios_enum_flat("campus", registry$campus, vals$campus, col_or("campus", "campus"), "aula", facultades = vals$faculty))
+    # `venue` NO es un rol mapeado: es una columna DERIVADA que
+    # `calc_muestra_aulas_anotar_sesiones()` anota parseando SESIONES. Por eso
+    # su puerta no puede ser `col_or` —que busca en el mapeo y devolveria ""—
+    # sino la existencia de la columna en el marco.
+    # La columna existe SIEMPRE (la anota el enriquecido), asi que su presencia
+    # no prueba que haya dato: sin una sola aula poblada, enumerar diria «6 sin
+    # aula asignada» sobre una base que nunca trajo aulas — verde por ausencia.
+    col_venue <- if (any(nzchar(vals$venue %||% character(0)))) "venue" else ""
+    push(.cm_criterios_enum_flat("venue", registry$venue, vals$venue, col_venue, "aula", facultades = vals$faculty))
   }
 
   list(schema = "calc_muestra_aulas_criterios_catalogo_v1", variables = vars)

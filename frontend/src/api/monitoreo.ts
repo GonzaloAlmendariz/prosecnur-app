@@ -670,6 +670,31 @@ export type MonitoreoAulasPlanRow = {
   course_name: string;
   section: string;
   schedule: string;
+  /**
+   * El RANGO horario del curso-horario, tal como lo declara el catálogo:
+   * `"MAR 14:00-16:00 · MIE 10:00-12:00"`. No es lo mismo que `schedule`
+   * —que dice cuándo empieza— ni que `scheduled_time` —cuándo se agendó—:
+   * es el único campo que permite saber cuántas aulas están EN CURSO a la
+   * vez, y de ahí cuántos aplicadores hacen falta simultáneamente.
+   */
+  sesiones_dia_hora?: string;
+  /** Salón donde se dicta (`"A501"`, `"LFIA"`). Vacío si el catálogo no lo trae. */
+  venue?: string;
+  /**
+   * El LUGAR DE APLICACIÓN confirmado por el equipo al agendar («A206»),
+   * columna nueva del libro (dictado 2026-09-02). Cuando existe manda sobre
+   * `venue`: el salón del catálogo dice dónde se dicta el curso; éste, dónde
+   * se acordó aplicar. Opcional porque los libros anteriores no lo traen.
+   */
+  scheduled_venue?: string;
+  /**
+   * En qué momento de la clase entra la aplicación, cuando el docente ya lo
+   * acordó: `"inicio" | "intermedio" | "final"`. Hasta 2025 esto vivía en las
+   * observaciones en prosa libre y no se podía agregar. Vacío mientras el aula
+   * no esté agendada — ahí el momento todavía no se sabe y la carga se cuenta
+   * como banda plausible sobre el rango de la clase.
+   */
+  scheduled_moment?: string;
   teacher: string;
   teacher_email: string;
   faculty: string;
@@ -712,14 +737,118 @@ export type MonitoreoAulasPlanRow = {
 
 export type MonitoreoAulasConfig = {
   /**
+   * **Contra qué se mide la cuota del estudio.** `facultad` (el default de
+   * siempre), `nivel` o `carrera`. No es cosmético: con `nivel` el valor de
+   * cada respuesta sale de la PERSONA —su código declarado cruzado contra el
+   * padrón— y sin padrón ninguna cae en su celda.
+   */
+  eje_cuota?: string;
+  /** Por qué se eligió ese eje. Viaja con él y se publica. */
+  eje_cuota_motivo?: string;
+  /**
+   * **Por qué dimensión agrupa el resumen operativo de Avance**, que es otra
+   * pregunta que el eje de cuotas: aquél mide personas contra su meta, éste
+   * cuenta AULAS planificadas y aplicadas. Un estudio que vive dentro de una
+   * facultad mide por nivel y resume por carrera.
+   */
+  agrupacion_operativa?: string;
+  /**
+   * **El día que arrancó la recolección.** Lo anterior es ensayo —capacitación,
+   * pruebas del enlace— y sale por `fuera_del_operativo`. Existe porque
+   * `descartes` casa VALORES de una columna y una prueba abierta por el enlace
+   * no trae recopilador que casar. `""` no descarta nada.
+   */
+  inicio_campo?: string;
+  /**
    * Qué es un aula válida en este estudio. `null` mientras no se declare, que
    * es como están todos los estudios hoy: el veredicto se lo cree al Excel.
    * En modo «esperado» se compara con `efectivas_esperadas`, la meta que el
    * cálculo de muestra calculó para cada curso-horario.
    */
   aula_valida?: { modo?: "esperado" | "proporcion"; alfa?: number; umbral?: number; exige?: string } | null;
+  /**
+   * A partir de cuántos minutos una respuesta es sospechosa.
+   *
+   * El motor lo aceptaba desde siempre —misma doctrina que `aula_valida`: sin
+   * declarar no juzga— pero **no estaba en este tipo**, así que el frontend no
+   * podía enviarlo y la pantalla decía qué faltaba sin dejar ponerlo. Una
+   * capacidad sin consumidor.
+   */
+  duracion_sospecha_min?: number | null;
+  /**
+   * B70 (dictado 2026-09-03): cuántos minutos dura la aplicación. El slider
+   * de Carga de campo la edita; ventanas/franjas/reparto del backend la
+   * respetan. Default del motor: 30.
+   */
+  duracion_aplicacion_min?: number | null;
+  /**
+   * B75 (dictado 2026-09-03): el rango de despliegue del reparto — «quiero
+   * distribuir equitativamente entre de este día a este día». Ambas puntas
+   * ISO; `{}` lo des-declara (todo el horizonte).
+   */
+  reparto_rango?: { desde?: string; hasta?: string } | null;
+  /**
+   * Las metas del diseño importadas de Cálculo de muestra. Aquí sólo se declara
+   * lo que la pantalla consume —el nombre de cada facultad con cuota—, que es
+   * la lista que ofrece el desplegable al mapear los códigos de la facultad
+   * declarada. El bloque entero lo gobierna el backend.
+   */
+  design_targets?: { facultades?: { facultad?: string }[] } | null;
+  /**
+   * El recibo de la última publicación del libro: cuándo se escribió y con qué
+   * corte de plataforma. Es lo que permite decir si el Sheets está al día sin
+   * tener que comparar dos pantallas a ojo. Ver `selloDePublicacion.ts`.
+   */
+  libro_publicado?: {
+    publicado_en?: string; synced_at?: string; hojas?: number; partes?: number;
+  } | null;
+  /**
+   * **Contra qué otro estudio se cruza, y de dónde se lee.** Es una decisión de
+   * ESTE estudio —no un dato del otro— y por eso se persiste, igual que el eje
+   * de cuotas. Sin ella el cruce sólo lo puede inyectar un script y la app no
+   * tiene cómo releerlo, que fue el caso hasta el 2026-09-18.
+   *
+   * No lleva credenciales: el Sheets se lee con el token que el proyecto ya
+   * tiene (ADR 0005), y aquí sólo va su identificador.
+   */
+  traslape_fuente?: {
+    etiqueta?: string; pulso?: string; spreadsheet_id?: string;
+    /**
+     * La hoja del otro estudio de la que se lee quién ya fue contactado. Vacía
+     * = la que esta misma app escribe. Es declarable porque **una
+     * particularidad no puede quedarse cableada**: otro operativo puede llamar
+     * a su hoja de otra forma, y entonces se dice aquí en vez de reescribir el
+     * motor.
+     */
+    hoja?: string;
+    motivo?: string;
+  } | null;
+  /**
+   * Los TRAMOS del operativo: rangos de fecha con nombre propio (dictado
+   * 2026-09-15). Lo que se guarda es la decisión —el rango y cómo se llama—;
+   * su estado (citas, aplicadas, por aplicar) se deriva del plan y viaja en el
+   * dashboard, no aquí. Sin tramos declarados el backend cae a las semanas de
+   * calendario del plan.
+   */
+  tramos?: { nombre?: string; desde?: string; hasta?: string }[] | null;
+  /**
+   * Quién NO sale en el despliegue vigente, con el nombre CRUDO de la oferta
+   * (dictado 2026-09-12). El motor los quita antes de repartir; el backend
+   * compara por una clave que ignora coma, tildes y mayúsculas.
+   */
+  reparto_fuera?: string[] | null;
+  /** B67: la semilla del resorteo — rota el desempate del reparto; 0 = alfabeto. */
+  reparto_semilla?: number;
+  /** Dictado 2026-09-04: concentrar el día del aplicador (default TRUE). */
+  reparto_concentrado?: boolean;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
+  /**
+   * B36: las fijaciones del reparto de aplicadores — código de cita →
+   * aplicador. Se manda el mapa COMPLETO (la whitelist del backend lo
+   * reemplaza entero); un valor vacío suelta la fijación.
+   */
+  reparto_fijado?: Record<string, string>;
   schema: "monitoreo_aulas_universitarias_v1" | string;
   enabled: boolean;
   selection_run_id: string;
@@ -732,6 +861,20 @@ export type MonitoreoAulasConfig = {
     link_var: string;
     date_var: string;
     status_var: string;
+    /**
+     * Qué variable de la base dice el SEXO de quien respondió (dictado
+     * 2026-09-04). Vacía = no declarada, y entonces las cifras por sexo del
+     * Plan del día callan: adivinar qué columna es sería el error que ya costó
+     * una lectura aquí (`sub_a` es el sexo más frecuente, no las mujeres).
+     */
+    sex_var?: string;
+    /**
+     * La variable donde el alumno DECLARA su facultad y el catálogo que
+     * traduce su código a nombre. Las dos juntas habilitan la hoja «Control de
+     * facultad»; sin el catálogo el cruce compararía un «7» contra un nombre.
+     */
+    faculty_var?: string;
+    faculty_labels?: Record<string, string>;
     valid_statuses: string[];
     /**
      * Los filtros que definen una encuesta EFECTIVA, hasta cuatro.
@@ -743,6 +886,11 @@ export type MonitoreoAulasConfig = {
      * suele ser completa **y** con consentimiento **y** del público elegible—.
      */
     valid_filters?: Array<{ var: string; values: string[] }>;
+    /** A5: qué valores de `sex_var` cuentan como mujeres y cuáles como hombres. */
+    sex_female_values?: string[];
+    sex_male_values?: string[];
+    /** A5: lo que llega por la plataforma pero no es del operativo (mismo formato que los filtros). */
+    descartes?: Array<{ var: string; values: string[] }>;
   };
   plan: MonitoreoAulasPlanRow[];
   quotas: unknown;
@@ -752,13 +900,68 @@ export type MonitoreoAulasConfig = {
     min_valid_per_class: number;
     warn_partial_under_valid: number;
   };
+  /**
+   * El Google Sheets del operativo, recordado en el proyecto: se pega el
+   * enlace una vez (al publicar el libro o por config) y leer/publicar lo
+   * usan sin volver a pedirlo. El id NO es secreto (el token OAuth sí — ADR
+   * 0005), por eso viaja en la config y en el `.pulso`.
+   */
+  libro_sheets?: MonitoreoAulasLibroSheets | null;
+  /** S7: el Sheets de los aplicadores y la huella de lo último publicado. */
+  distribucion_sheets?: MonitoreoAulasDistribucionSheets | null;
   [key: string]: unknown;
+};
+
+/** El destino recordado del libro de aulas (`cfg.aulas_universitarias.libro_sheets`). */
+/**
+ * S7 (2026-09-07): el Sheets que leen los aplicadores, recordado al publicar
+ * la distribución, con la huella (sha256 de las filas) y el número de citas
+ * publicadas; `reparto.distribucion` trae la huella del reparto vigente.
+ */
+export type MonitoreoAulasDistribucionSheets = {
+  spreadsheet_id: string;
+  url: string;
+  updated_at: string;
+  huella: string;
+  citas: number;
+};
+
+export type MonitoreoAulasLibroSheets = {
+  spreadsheet_id?: string;
+  /** URL canónica derivada del id; la UI la enseña sin reconstruirla. */
+  url?: string;
+  updated_at?: string;
 };
 
 import type { BancoDeExtras } from "../features/monitoreo/profiles/aulas/AulasBancoExtras";
 
 /** El total del bloque `avance_cuota`, ya agregado por el motor. */
 export type MonitoreoAulasAvanceCuotaTotal = {
+  /**
+   * Las tres cifras que el eje por persona añade, y su comprobación.
+   *
+   * `sin_eje` son válidas cuya PERSONA no resuelve —sin código, ilegible, o no
+   * está en el padrón—; `duplicadas` son personas que respondieron dos veces
+   * dentro de su celda. Con el eje en facultad las dos son 0 y se publican
+   * igual. `invariante` dice si las partes suman las válidas.
+   */
+  sin_eje?: number;
+  duplicadas?: number;
+  /**
+   * Válidas cuyo valor de eje RESOLVIÓ y el diseño no traza: nivel 5 en un
+   * estudio dimensionado de 6 a 9. No son `sin_eje` —resolvieron— ni
+   * huérfanas —casaron con el plan—, y hasta el 2026-09-22 no estaban en
+   * ninguna bolsa: el bloque publicaba 7 válidas sobre 9 atribuidas y el
+   * invariante en verde.
+   */
+  sin_celda?: number;
+  invariante?: {
+    schema?: string;
+    ok?: boolean;
+    suma?: number;
+    total?: number;
+    solapadas?: number;
+  } | null;
   /** `null` cuando el motor no puede afirmar una cuota total (NA). */
   cuota: number | null;
   respuestas_validas: number;
@@ -775,16 +978,28 @@ export type MonitoreoAulasAvanceCuotaFacultad = {
   faculty_key: string;
   /** `null` = facultad del plan sin cuota en el diseño: no hay denominador. */
   cuota: number | null;
+  /**
+   * La τ que dimensionó ESTA facultad. `null` cuando el diseño no la trazó o
+   * cuando el bloque degradó a la meta del plan. Existe porque `tasa_esperada`
+   * —la compartida— queda en `null` justo cuando las τ difieren por facultad,
+   * que en HSVG2026 es siempre: van de 0,409 a 0,800.
+   */
+  tau_prevista: number | null;
   respuestas_validas: number;
   /** `null` en las filas sin cuota: sin denominador no hay resta. */
   brecha: number | null;
   avance_pct: number | null;
-  fuente_fila: "diseno" | "plan" | "sin_cuota";
+  fuente_fila: "diseno" | "plan" | "sin_cuota" | "fuera_del_diseno";
   /**
    * `sin_aulas_en_plan` = facultad del diseño sin aulas sorteadas: hueco
    * estructural del sorteo, no retraso de campo.
+   *
+   * `fuera_del_diseno` = valor de eje OBSERVADO que el diseño no traza. Nace de
+   * respuestas que ya existen, así que nunca está vacía, y es lo contrario de
+   * una celda que no se llena: lo que dice es que esas encuestas se recogieron
+   * y no cuentan para ninguna cuota.
    */
-  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota";
+  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota" | "fuera_del_diseno";
   fuera_universo: number;
   respuestas_sin_sexo: number;
 };
@@ -803,16 +1018,860 @@ export type MonitoreoAulasAvanceCuota = {
   vigencia: "vigente" | "no_verificable" | "obsoleta" | "sin_diseno";
   /** `""` o el porqué de la degradación, con sellos. */
   motivo: string;
+  /**
+   * **Por qué el eje no puede resolver, cuando no puede.** Distinto de `motivo`,
+   * que es la vigencia de las metas: son dos degradaciones y pueden darse a la
+   * vez. Lo llena un eje por PERSONA al que le falta la variable del código o el
+   * padrón; con el eje en el aula va siempre vacío.
+   */
+  aviso_eje?: string;
+  /**
+   * **De qué son estas celdas.**
+   *
+   * `facultades`, `facultad` y `faculty_key` conservan sus nombres —contrato
+   * congelado, ADR 0079— y con el eje declarable sus VALORES pueden ser niveles.
+   * Sin esta declaración el mismo payload significa dos cosas y la UI adivina.
+   * Un contrato viejo sin `eje` se lee como `facultad`, que es lo que es.
+   */
+  eje?: {
+    clave: string;
+    columna: string;
+    etiqueta: string;
+    etiqueta_plural: string;
+    etiqueta_sin: string;
+    atribucion: "aula" | "persona" | string;
+    fuente_valor: "plan" | "padron" | string;
+    motivo: string;
+  } | null;
+  /**
+   * Sexo y carrera, DESCRIPTIVOS: composición obtenida contra la de la
+   * población. Sin umbrales y sin avisos de desvío a propósito — la cuota es por
+   * el eje, y pintar un desvío en rojo convertiría en incumplimiento algo que el
+   * estudio no prometió. Lo calcula el motor: el payload del estado recorta
+   * `quotas.category_profiles`, así que desde aquí no se puede derivar.
+   */
+  composicion?: {
+    schema: string;
+    caracter: "referencial" | string;
+    nota: string;
+    fuente: "padron" | "sin_cruce" | string;
+    personas: number;
+    dimensiones: Record<string, {
+      dimension: string;
+      etiqueta: string;
+      poblacion_total: number;
+      obtenidas_total: number;
+      filas: Array<{
+        categoria: string;
+        poblacion: number;
+        poblacion_pct: number | null;
+        obtenidas: number;
+        obtenidas_pct: number | null;
+      }>;
+    }>;
+  } | null;
   /** τ compartida; `null` cuando difiere por facultad. */
   tasa_esperada: number | null;
   tasa_fuente: "tau_disenio" | "certificacion" | "sin_tasa" | "";
+  /**
+   * La meta del diseño y su sobremuestra, cuando el estudio las declara.
+   *
+   * El operativo compara contra las dos: la meta es lo que hay que conseguir y
+   * la sobremuestra hasta dónde se compró aforo. `meta_operativa` es la suma, o
+   * sea el techo. Vienen `null` en un estudio que no las publica, y ahí la
+   * pantalla se calla en vez de inventar un techo.
+   */
+  meta_diseno?: number | null;
+  sobremuestra?: number | null;
+  meta_operativa?: number | null;
   total: MonitoreoAulasAvanceCuotaTotal;
   facultades: MonitoreoAulasAvanceCuotaFacultad[];
+};
+
+/**
+ * Una facultad en el seguimiento de τ (ADR 0082).
+ *
+ * `senal` es lo único que autoriza a pintar una fila en rojo, y la dispara la
+ * BANDA, nunca el punto: con dos o tres aulas aplicadas la τ de una facultad es
+ * ruido, y el motor lo sabe —el mismo repo midió que dos tercios de la varianza
+ * entre facultades del histórico es error de estimación—.
+ */
+export type MonitoreoAulasEfectividadFacultad = {
+  facultad: string;
+  faculty_key: string;
+  /** La τ que el diseño supuso. `null` cuando no trazó esta facultad. */
+  tau_previsto: number | null;
+  /**
+   * De dónde sale la τ prevista: su celda del diseño, la τ única del diseño
+   * (eje en la persona) o por qué no hay. Opcional: payloads viejos no la traen.
+   */
+  tau_previsto_fuente?: "celda_del_diseno" | "uniforme_del_diseno" | "diseno_con_tau_distintas"
+    | "sin_tau_del_diseno" | string;
+  /** Efectivas de plataforma / elegibles de las aulas aplicadas. */
+  tau_observado: number | null;
+  /** Extremos de la banda al 95 %. `null` con menos de dos aulas aplicadas. */
+  banda_bajo: number | null;
+  banda_alto: number | null;
+  aulas_aplicadas: number;
+  elegibles_aplicados: number;
+  /** Aforo del plan vigente que todavía no se aplicó. */
+  elegibles_pendientes: number;
+  efectivas: number;
+  /**
+   * Alumnos de diferencia ATRIBUIBLES A τ, no brecha contra la cuota: esa vive
+   * en `avance_cuota` y tiene otro denominador. Negativo = por debajo.
+   */
+  alumnos_corte: number | null;
+  /** El mismo cálculo extendido al aforo pendiente. */
+  alumnos_cierre: number | null;
+  /**
+   * El veredicto de la BANDA: ¿τ difiere de lo supuesto? Es la GUARDA contra el
+   * ruido, no el disparador. Medido sobre 2025: por sí sola detecta caídas de
+   * 13,6 pp de mediana y el escenario que importa vale 2–4 pp.
+   */
+  senal: "bajo" | "sobre" | "conforme" | "sin_banda" | "sin_previsto";
+  /**
+   * El veredicto del MARGEN, y **éste es el que decide**: ¿la proyección cierra
+   * la cuota? `riesgo_firme` = ni proyectando al extremo optimista de la banda.
+   * Una facultad puede rendir bajo su τ y estar `holgado`: en la selección 2026
+   * el margen mediano es +49,2 % de la cuota.
+   */
+  riesgo: "holgado" | "ajustado" | "riesgo" | "riesgo_firme" | "sin_campo" | "sin_cuota" | "sin_cumplimiento"
+    /**
+     * La cuota se reparte por otro eje (nivel) y este grupo no tiene la suya:
+     * su cierre se lee celda por celda en `avance_cuota`, no aquí.
+     */
+    | "cuota_en_otro_eje";
+  /** La cuota de alumnos del diseño para esta facultad. */
+  cuota: number | null;
+  /** Válidas de plataforma ya conseguidas. Sale de `avance_cuota`, no se recalcula. */
+  conseguido: number | null;
+  /** `conseguido + elegibles_pendientes × τ observada`. Nunca × τ prevista. */
+  proyectado: number | null;
+  /** La misma proyección a los extremos de la banda. */
+  proyectado_optimista: number | null;
+  proyectado_pesimista: number | null;
+  /** `proyectado − cuota`. Negativo = no cierra. */
+  margen_restante: number | null;
+  /**
+   * **La misma cuenta, sólo sobre lo que tiene fecha.**
+   *
+   * Gonzalo, 2026-09-11: «que el motor proyecte también sólo sobre lo agendado,
+   * que finalmente es lo que más importa siempre, porque es lo que tenemos».
+   *
+   * `proyectado` proyecta sobre todo el eslabón en juego sin aplicar, tenga
+   * fecha o no —sobre todo, titulares que nadie ha contactado—; esto proyecta
+   * sólo sobre los cursos-horario agendados. La distancia entre ambos es el
+   * aforo del plan que sigue sin fecha. Medido en HSVG26ULT2: Derecho salía
+   * `holgado` con 570,2 sobre una cuota de 363 y sus 6 cursos-horario con fecha
+   * esperaban traer 125 sobre una deuda de 216.
+   */
+  elegibles_agendados: number;
+  /** Cuántos cursos-horario sostienen esa proyección. */
+  cursos_agendados: number;
+  /**
+   * Los del plan que siguen sin fecha. Son los que se pueden agendar **sin
+   * gastar una reserva**, y separan las dos acciones que una facultad corta
+   * puede necesitar: agendar lo que ya es suyo, o llamar a un docente de
+   * refuerzo.
+   */
+  cursos_sin_agendar: number;
+  /**
+   * De los anteriores, los que **ya se contactaron y no cierran fecha**. Lo que
+   * piden es insistir o darlos por caídos, no llamar por primera vez: el
+   * 2026-09-11, de los 174 titulares de HSVG2026 ninguno estaba sin contactar y
+   * 22 llevaban días en gestión.
+   */
+  cursos_en_gestion: number;
+  /**
+   * De las gestiones abiertas, las que ya piden cubrirse con reserva **en
+   * paralelo**: `cursos_sin_via` no tiene teléfono válido («Número no existe»,
+   * «fuera de servicio») y `cursos_estancados` lleva más días abiertos que los
+   * que la propia reserva necesita para contactar y confirmar.
+   */
+  cursos_sin_via: number;
+  /**
+   * Los códigos de esas aulas, hasta tres. «3 no tienen teléfono válido» dice
+   * que hay un problema; «CH 3, CH 17 y CH 89» dice qué hacer esta tarde.
+   */
+  codigos_sin_via: string[];
+  cursos_estancados: number;
+  /**
+   * Titulares cuyo contacto YA se resolvió —tienen fecha, se aplicaron o
+   * rechazaron— y cuántos de ésos rechazaron. Viajan los dos y no su cociente:
+   * sin denominador, «33 %» puede ser 1 de 3.
+   */
+  titulares_resueltos: number;
+  titulares_rechazo: number;
+  /**
+   * Citas que pasaron sin aplicarse. Ni aforo ni «por agendar»: piden reagendar
+   * o darlas por caídas, y hasta entonces no rinden nada.
+   */
+  cursos_vencidos: number;
+  elegibles_vencidos: number;
+  proyectado_agendado: number | null;
+  /** `proyectado_agendado − cuota`. Negativo = no cierra con lo que hay agendado. */
+  margen_agendado: number | null;
+  riesgo_agendado: MonitoreoAulasEfectividadFacultad["riesgo"];
+  residual: number | null;
+  residual_k: number | null;
+  /**
+   * `sin_base` = el residual vale 1 porque el histórico no le dio base propia
+   * (nueve de quince facultades en HSVG2026), no porque se midiera en 1.
+   * `sin_dato` = el plan no trae la columna, que es otra cosa.
+   */
+  residual_base: "propia" | "sin_base" | "sin_dato";
+  reservas_libres: number;
+  /**
+   * Aulas del banco de extras sin aplicar. Recurso DISTINTO de la reserva de
+   * cadena —el banco no reemplaza a nadie— pero sirve igual para tapar un
+   * hueco de margen, y contar sólo la cadena dejaba veinte facultades en
+   * «0 libres» con 73 aulas de banco delante.
+   */
+  banco_disponible: number;
+  /** `null` cuando ni cadena ni banco alcanzan a cerrar el déficit. */
+  reservas_necesarias: number | null;
+  /** De las necesarias, cuántas salen de la cadena y cuántas del banco. */
+  reservas_de_cadena: number;
+  reservas_de_banco: number;
+  reservas_alcanzan: boolean;
+  /** Alumnos que seguirían faltando con TODA la reserva libre activada. */
+  sin_cubrir: number | null;
+  estado: "ok" | "sin_previsto" | "sin_campo";
+};
+
+/**
+ * Un aula del banco propuesta para una celda de cuota concreta.
+ *
+ * Contrato congelado con `monitoreo_aulas_reserva_dirigida()`: la UI proyecta
+ * `motivo` y las cifras sin recalcular aportes ni solapes.
+ */
+export type MonitoreoAulasCandidatoDirigido = {
+  classroom_id: string;
+  faculty: string;
+  sexo: string;
+  elegibles_del_sexo: number;
+  solape_estimado: number;
+  aporte_esperado: number;
+  tasa_efectividad: number;
+  /** `false` cuando el aula no trae padrón y el solape es una estimación. */
+  solape_medible: boolean;
+  motivo: string;
+};
+
+/**
+ * Para cada celda de cuota que NO va a llegar, a qué aula del banco ir.
+ *
+ * Va al grano de facultad×sexo, que es UN NIVEL MÁS FINO que
+ * `reservas_alcanzan`. Esa bandera es por facultad y puede decir que las
+ * reservas alcanzan mientras la celda de mujeres de esa misma facultad no tiene
+ * ni un aula de banco que ayude, porque las que quedan son de composición
+ * masculina. El total no compensa lo que no se compensa entre celdas.
+ *
+ * Lista vacía significa que no hay decisión que tomar —ninguna celda en
+ * déficit, o el estudio no tiene banco—, no que el dato falte.
+ */
+/**
+ * Una facultad en la proyección de metas, tal como la emite
+ * `monitoreo_aulas_proyeccion_metas()`. **El supuesto viaja con el dato**: quien
+ * dibuje la barra tiene que poder escribirlo al pie sin ir a buscarlo.
+ */
+export type MonitoreoAulasProyeccionFila = {
+  facultad: string;
+  /** Clave de la celda (facultad o valor del eje). */
+  faculty_key?: string;
+  /**
+   * La fila es de una cuota SIN sexo —celda del eje, p. ej. nivel—: los campos
+   * `_M`/`_F` llegan nulos y se pinta un solo carril (`carrilesDeLaFila`).
+   */
+  sin_sexo?: boolean;
+  /** Cursos-horario en juego sin composición por nivel (no aportan). */
+  aulas_sin_composicion?: number;
+  supuesto_nivel?: string;
+  /** La meta de la combinación elegida, ya escalada por `factor_meta`. */
+  meta: number;
+  meta_M: number;
+  meta_F: number;
+  /** Lo que ya está conseguido y cuenta. */
+  obtenidas: number;
+  obtenidas_M: number;
+  obtenidas_F: number;
+  aulas_aplicadas: number;
+  aulas_agendadas: number;
+  /** Elegibles de lo agendado y todavía sin aplicar: la base de la proyección. */
+  elegibles_agendados: number;
+  /**
+   * Cuáles son esas aulas agendadas y sin aplicar, por fecha y hora, con sus
+   * elegibles por sexo del padrón (`hombres`/`mujeres` en null sin sexo).
+   */
+  agendadas?: MonitoreoAulasAgendadaDeLaFila[];
+  /** La tasa con la que se proyecta, y de cuál de las dos salió. */
+  tasa_usada: number | null;
+  tasa_es_del_diseno: boolean;
+  tasa_diseno: number | null;
+  /**
+   * La tasa obtenida en campo, con el material para juzgarla —aulas aplicadas,
+   * elegibles y distancia a la del diseño—. No hay umbral que la vuelva fiable,
+   * así que el motor no emite un booleano que mienta: emite de qué depende.
+   */
+  tasa_obtenida: number | null;
+  elegibles_aplicados: number;
+  desvio_de_la_del_diseno: number | null;
+  /** Lo que sumaría lo agendado si se aplica entero a esa tasa. */
+  proyectadas: number | null;
+  proyectadas_M: number | null;
+  proyectadas_F: number | null;
+  /** `obtenidas + proyectadas`, y lo que le falta a la meta. */
+  total: number;
+  brecha: number;
+  llega: boolean;
+  meta_elegida: "muestra" | "sobremuestra";
+  factor_meta: number;
+  /** Vacío cuando no aplica; nunca ausente. */
+  supuesto_meta: string;
+  supuesto_sexo: string;
+};
+
+export type MonitoreoAulasAgendadaDeLaFila = {
+  codigo: string;
+  curso: string;
+  seccion: string;
+  /** `YYYY-MM-DD`, o vacío. */
+  fecha: string;
+  hora: string;
+  horario: string;
+  lugar: string;
+  elegibles: number | null;
+  hombres: number | null;
+  mujeres: number | null;
+  /** Elegibles por nivel curricular («6» → 3); vacío si el marco no la trae. */
+  niveles?: Record<string, number> | unknown[];
+};
+
+/** Las cuatro combinaciones, ya calculadas por el motor. */
+export type MonitoreoAulasProyeccionMetas = {
+  muestra_diseno?: MonitoreoAulasProyeccionFila[];
+  muestra_obtenida?: MonitoreoAulasProyeccionFila[];
+  sobremuestra_diseno?: MonitoreoAulasProyeccionFila[];
+  sobremuestra_obtenida?: MonitoreoAulasProyeccionFila[];
+};
+
+/** Las tres razones de una cuenta de respuestas; suman `observadas`. */
+export type MonitoreoAulasRespuestasCuenta = {
+  observadas: number;
+  efectivas: number;
+  fuera_del_operativo: number;
+  no_pasan_criterio: number;
+};
+
+/** Aulas planificadas (titulares) y aplicadas de una facultad. */
+export type MonitoreoAulasPorFacultad = {
+  facultad: string;
+  planificadas: number;
+  aplicadas: number;
+};
+
+export type MonitoreoAulasReservaDirigida = {
+  faculty: string;
+  sex: string;
+  /** Cuántos faltan en la celda. */
+  brecha: number;
+  candidatos: MonitoreoAulasCandidatoDirigido[];
+  aporte_de_los_candidatos: number;
+  /** Si con esos candidatos se cierra la brecha. Las dos cifras hacen falta. */
+  alcanza: boolean;
+  /** La frase que ya redacta el motor; no se reescribe en la UI. */
+  etiqueta: string;
+};
+
+/**
+ * La τ del diseño contra la del campo. Contrato congelado con el motor: la UI
+ * lo proyecta sin recalcular tasas, bandas ni déficits.
+ */
+export type MonitoreoAulasEfectividadSeguimiento = {
+  schema: "monitoreo_aulas_efectividad_seguimiento_v1" | string;
+  generado_en: string;
+  fuente: "design_targets" | "plan_expected";
+  vigencia: "vigente" | "no_verificable" | "obsoleta" | "sin_diseno";
+  motivo: string;
+  /** Contra qué se mide la cuota; la misma declaración que `avance_cuota.eje`. */
+  eje?: MonitoreoAulasAvanceCuota["eje"];
+  criterio: {
+    numerador: string;
+    denominador: string;
+    /** Qué dispara la señal: el margen restante. */
+    disparador: string;
+    /** Qué papel juega la banda: acotar la proyección. */
+    guarda: string;
+    senal: string;
+    no_cubre: string;
+  };
+  total: {
+    tau_previsto: number | null;
+    tau_observado: number | null;
+    banda_bajo: number | null;
+    banda_alto: number | null;
+    aulas_aplicadas: number;
+    elegibles_aplicados: number;
+    efectivas: number;
+  /**
+   * Rinden bajo su τ con evidencia que lo sostiene. NO es lo mismo que estar en
+   * riesgo de no cerrar, y publicarlo como un solo número fue lo que el
+   * backtest mostró que engaña.
+   */
+    facultades_bajo_su_tau: number;
+    /** Las que su proyección no cierra la cuota. Éste es el número que decide. */
+    facultades_en_riesgo: number;
+    /** Sólo el déficit de las que están en riesgo: no se compensa entre facultades. */
+    alumnos_en_riesgo: number;
+    /**
+     * Lo mismo contando SÓLO lo agendado. Es la cifra operativa: `facultades_en_riesgo`
+     * cuenta con aforo que todavía no tiene día en que aplicarse.
+     */
+    facultades_en_riesgo_agendado: number;
+    alumnos_en_riesgo_agendado: number;
+    /**
+     * **Lo planificado sin fecha no es aforo seguro.** Gonzalo, 2026-09-11: «un
+     * CH puede estar en titulares (planificado) pero hasta que no esté agendado
+     * no sabemos realmente si vamos a poder aplicar allí». Éstos son los dos
+     * números de lo ya ocurrido, con los que se puede decir eso sin inventar
+     * una tasa de conversión.
+     */
+    titulares_resueltos: number;
+    titulares_rechazo: number;
+    /** Citas pasadas sin aplicar en todo el estudio: alerta del operativo. */
+    cursos_vencidos: number;
+    elegibles_vencidos: number;
+    /** Los que están en gestión y no cierran fecha. */
+    cursos_en_gestion: number;
+    cursos_sin_via: number;
+    cursos_estancados: number;
+    /** El umbral declarado: días abiertos tras los que conviene cubrir. */
+    dias_para_cubrir: number;
+    /**
+     * **El denominador de los dos conteos de riesgo.** Sin él, un 0 en riesgo
+     * dice dos cosas opuestas: «medí los quince y ninguno está en riesgo» y «no
+     * pude medir ninguno». Medido el 2026-09-17 sobre CCSS por nivel: cinco
+     * grupos, **cero evaluados**, y la pantalla publicaba «todas las facultades
+     * cierran su cuota» mientras Metas decía que faltaban 342 personas.
+     *
+     * Opcionales porque un payload anterior al 2026-09-17 no los trae; el
+     * view-model se cae a afirmar en ese caso, que es lo cierto para los
+     * estudios que ya corren.
+     */
+    facultades?: number;
+    facultades_evaluadas?: number;
+    /** Tienen cuota del diseño y ninguna aula atribuida. */
+    facultades_sin_campo?: number;
+    /** Tienen campo y ninguna cuota contra la que medirlo. */
+    facultades_sin_cuota?: number;
+  };
+  facultades: MonitoreoAulasEfectividadFacultad[];
+};
+
+/**
+ * Un aula del bloque `dos_tasas`, con sus dos varas LADO A LADO.
+ *
+ * Contrato congelado con `monitoreo_aulas_dos_tasas()`: la UI proyecta señal,
+ * tasas y banda sin recalcular nada. La señal SEÑALA, no veredicta —el motor no
+ * publica ningún campo «válido»/«cumple» y ninguna aula sale del cálculo por su
+ * tasa—, y `conforme` va sin dirección a propósito.
+ */
+export type MonitoreoAulasDosTasasAula = {
+  codigo: string;
+  facultad: string;
+  /**
+   * El `operational_status` LITERAL de la fila («agendada», «reemplazada»…),
+   * tal como se escribió en el plan; ausente cuando no hay estado (o cuando el
+   * equipo puso el «-» de relleno). Es lo que distingue en la vista los cuatro
+   * casos de `pendiente` y los cuatro de `retirada` (B3, 2026-08-31).
+   */
+  estado_operativo?: string | null;
+  elegibles?: number | null;
+  /**
+   * Los campos del CONTRASTE —`efectivas`, `numerador`, `tasa_observada`,
+   * `banda`— sólo viajan en el aula APLICADA (aplicada/cerrada/parcial). En
+   * `pendiente`/`retirada` el motor NO los emite: ahí el 0 sería relleno de
+   * agenda, no medición, y emitirlo invitaría a leer un juicio donde no lo hay.
+   */
+  efectivas?: number | null;
+  /** De dónde sale la cifra: la efectiva de plataforma manda, el parte respalda. */
+  numerador?: "plataforma" | "parte" | string | null;
+  /** La tasa del DISEÑO para esta aula (`tasa_efectividad_aula`). */
+  tasa_prevista?: number | null;
+  /** La vara AGREGADA: la tasa PREVISTA de su facultad, tal como viaja en la fila del plan. */
+  tasa_facultad?: number | null;
+  tasa_observada?: number | null;
+  /** Media banda, en proporción: z*sqrt(p*(1-p)/elegibles) con la z de la casa (1.959964) sobre la prevista. */
+  banda?: number | null;
+  /**
+   * `pendiente` = pre-aplicación (la prevista es condicional a aplicarse, B1);
+   * `retirada` = su desenlace ya no es aplicarse por esta vía; `descuadre` =
+   * más efectivas que elegibles, inconsistencia de números y no un logro.
+   */
+  senal:
+    | "conforme"
+    | "bajo"
+    | "sobre"
+    | "descuadre"
+    | "sin_banda"
+    | "sin_previsto"
+    | "sin_datos"
+    | "pendiente"
+    | "retirada"
+    | string;
+};
+
+/**
+ * Las dos tasas de efectividad al grano de AULA (unidad B3, 2026-08-31).
+ *
+ * Hermano de `efectividad_seguimiento`, que contesta la MISMA pregunta al grano
+ * facultad: sin las dos tasas en la misma fila, «bajo su propia meta» y «bajo
+ * la de su facultad pero sobre la suya» se ven iguales. `criterio` es el bloque
+ * autodescriptivo del motor (numerador, banda, vara agregada, señal).
+ */
+export type MonitoreoAulasDosTasas = {
+  aulas: MonitoreoAulasDosTasasAula[];
+  criterio: {
+    numerador: string;
+    denominador: string;
+    /**
+     * Cómo se clasifica por `operational_status` (B1): sólo lo aplicado se
+     * contrasta; pendiente/retirada con su porqué. Opcional porque el bloque
+     * existió antes de esta regla y un backend anterior no lo emite.
+     */
+    estados?: string | null;
+    banda: string;
+    vara_agregada: string;
+    senal: string;
+  };
+};
+
+/**
+ * Una ventana dibujable del mapa de horas: la cita pactada ocupa
+ * [hora, hora+20min] con `confirmada = true`; la franja tentativa del curso
+ * (agendada sin hora, con sesiones legibles) llega con `confirmada = false`.
+ * Horas en `HH:MM` de 24 horas, ya parseadas por el motor (AM/PM incluido).
+ */
+export type MonitoreoAulasFranjaVentana = {
+  codigo: string;
+  inicio: string;
+  fin: string;
+  confirmada: boolean;
+};
+
+/**
+ * Un día del bloque `franjas`: sus ventanas, su pico de carga simultánea
+ * —contado por RANGO real, no por hora de inicio— y los códigos del día sin
+ * hora pactada. Con cero confirmadas el pico dice `aulas = 0` sin franja.
+ */
+export type MonitoreoAulasFranjaDia = {
+  fecha: string;
+  ventanas: MonitoreoAulasFranjaVentana[];
+  pico: { aulas: number; inicio?: string; fin?: string } | null;
+  por_confirmar: string[];
+};
+
+/**
+ * El mapa de horas por día agendado (contrato congelado con
+ * `monitoreo_aulas_franjas()`, 2026-09-02). Derivado del motor de ventanas
+ * B11: la UI dibuja, no recalcula. `personas_fuente = "confirmadas"` declara
+ * que el pico sale SOLO de citas pactadas — una cita sin pactar no pide gente.
+ * La forma defensiva la trata `mapaDeHoras()` en el feature, que es quien
+ * lidia con los escalares envueltos de la frontera jsonlite.
+ */
+export type MonitoreoAulasFranjas = {
+  dias: MonitoreoAulasFranjaDia[];
+  personas_fuente?: string;
+  /** B70: con qué duración de aplicación (min) se armaron las ventanas. */
+  duracion_min?: number;
+  /** B71: minutos de preparación previa (recojo + desplazamiento). */
+  preparacion_min?: number;
+  /** B71: minutos antes de la pactada en que se sale hacia el aula. */
+  salida_min?: number;
+};
+
+/**
+ * Una franja de 30 minutos de la OFERTA: cuántos aplicadores pueden estar en
+ * campo ese tramo y quiénes. `nombres` llega en orden alfabético estable del
+ * motor; horas `HH:MM` de 24 horas.
+ */
+export type MonitoreoAulasDisponibilidadFranja = {
+  inicio: string;
+  fin: string;
+  disponibles: number;
+  nombres: string[];
+};
+
+/** Un día de semana con cobertura: clave minúscula sin tilde («miercoles»). */
+export type MonitoreoAulasDisponibilidadDia = {
+  dia: string;
+  franjas: MonitoreoAulasDisponibilidadFranja[];
+};
+
+/**
+ * La malla de oferta de la vista «Disponibilidad de aplicadores» (contrato
+ * congelado con `monitoreo_aulas_disponibilidad_bloque()`, B29 2026-09-02):
+ * días en orden de semana, solo los cubiertos. La forma defensiva —escalares
+ * envueltos de jsonlite— la trata `mallaDeOferta()` en el feature.
+ */
+export type MonitoreoAulasDisponibilidad = {
+  dias: MonitoreoAulasDisponibilidadDia[];
+};
+
+/** Una cita pactada con su aplicador asignado y la ventana `[inicio, fin]`. */
+export type MonitoreoAulasRepartoAsignacion = {
+  codigo: string;
+  aplicador: string;
+  inicio: string;
+  fin: string;
+  /** B36: TRUE cuando la puso el usuario (fijación), no el greedy. */
+  fijada?: boolean;
+  /** B36: lo que la oferta no respalda («sin_disponibilidad», «se_solapa»). */
+  advertencia?: string;
+  /** B71: a qué hora recoge materiales (T−30), dicho por el motor. */
+  recojo?: string;
+  /** B71: a qué hora sale hacia el aula (T−15), dicho por el motor. */
+  salida?: string;
+};
+
+/**
+ * Un día del reparto: `no_cubiertos` son citas pactadas sin candidato libre
+ * —el problema operativo— y `por_confirmar` las fechas sin hora pactada, que
+ * no piden gente todavía (vocabulario B11).
+ */
+export type MonitoreoAulasRepartoDia = {
+  fecha: string;
+  asignaciones: MonitoreoAulasRepartoAsignacion[];
+  no_cubiertos: string[];
+  por_confirmar: string[];
+};
+
+/** La carga de un aplicador. El motor lista a TODOS, 0 incluido, alfabético. */
+export type MonitoreoAulasRepartoEquidad = {
+  aplicador: string;
+  asignadas: number;
+};
+
+/**
+ * El reparto equitativo vigente (contrato congelado con
+ * `monitoreo_aulas_reparto()`, B29): greedy determinista por fecha+hora, carga
+ * mínima acumulada, sin solapes. La forma defensiva la trata
+ * `repartoDeAplicadores()` en el feature.
+ */
+/**
+ * Una clase a la que se puede entrar sin cita, en un día concreto.
+ *
+ * La unidad es (curso-horario, DÍA): el que se dicta martes y jueves llega dos
+ * veces, una por fecha, porque quien lee está mirando un día.
+ *
+ * **El aula puede venir sin resolver, y eso se respeta.** El catálogo arma los
+ * días y las aulas con funciones distintas —una reordena los días a orden de
+ * calendario, la otra deduplica las aulas en orden de entrada— así que con
+ * varias no se puede decir cuál toca ese día. Entonces `aula` llega vacía y
+ * manda `aulas`: pintar una de las dos mandaría a alguien a la puerta
+ * equivocada.
+ */
+export type MonitoreoAulasClaseSinCita = {
+  codigo: string;
+  curso?: string;
+  docente?: string;
+  /** El aula cuando es una sola; vacía cuando `aula_incierta`. */
+  aula?: string;
+  aulas?: string[];
+  aula_incierta?: boolean;
+  /** Hora de inicio y fin de la CLASE, en HH:MM de 24 horas. */
+  inicio: string;
+  fin: string;
+  modalidad?: string;
+  elegibles?: number | null;
+};
+
+export type MonitoreoAulasSinAgendar = {
+  dias: Array<{ fecha: string; dia?: string; cursos: MonitoreoAulasClaseSinCita[] }>;
+  total: number;
+  /** Las sin cita cuyo horario no se puede leer: se declaran, no se pierden. */
+  sin_horario?: Array<{ codigo: string; curso?: string; motivo?: string }>;
+};
+
+export type MonitoreoAulasReparto = {
+  dias: MonitoreoAulasRepartoDia[];
+  /**
+   * S7: huella y citas de lo que HOY se publicaría a los aplicadores, y las
+   * aulas agendadas del rango a las que no va nadie. `no_cubiertos` no contesta
+   * eso: sólo lista las citas que ENTRARON al reparto y no hallaron a quién, así
+   * que un aula agendada que ni llegó a ser cita no aparecía en ninguna parte.
+   */
+  distribucion?: {
+    huella?: string;
+    citas?: number;
+    agendadas_sin_cita?: number;
+    sin_cita?: Array<{ curso_horario?: string; fecha?: string; facultad?: string }>;
+  } | null;
+  equidad: MonitoreoAulasRepartoEquidad[];
+  /** B36: el eco del mapa de fijaciones saneado — código → aplicador. */
+  fijadas?: Array<{ codigo: string; aplicador: string }>;
+  /** B36: códigos fijados por el usuario cuya cita ya no está pactada. */
+  fijadas_sin_cita?: string[];
+  /** 2026-09-04: eco del criterio de concentración por día del motor. */
+  concentrado?: boolean;
+  /** B70: con qué duración de aplicación (min) se armó el reparto. */
+  duracion_min?: number;
+  /** B71: minutos de preparación previa (recojo + desplazamiento). */
+  preparacion_min?: number;
+  /** B71: minutos antes de la pactada en que se sale hacia el aula. */
+  salida_min?: number;
+  /** B75: lo aplazado por el rango de despliegue, declarado por fecha. */
+  fuera_de_rango?: Array<{ fecha: string; codigos?: string[]; por_confirmar?: string[] }>;
+  /** B75: el rango saneado que rigió este reparto; ausente sin rango. */
+  rango?: { desde?: string; hasta?: string } | null;
+  /** B67: con qué sorteo (semilla) se armó este reparto. */
+  semilla?: number;
+};
+
+/** El estado de aplicación repartido por rol; la forma del libro. */
+export type MonitoreoAulasRolYEstado = {
+  /**
+   * Los códigos de lo que pide una acción hoy. `aplicado_sin_agenda` y
+   * `agendado_vencido` faltan cuando el plan no trae la fecha agendada.
+   */
+  acciones?: {
+    aplicado_sin_agenda?: string[] | null;
+    agendado_vencido?: string[] | null;
+    sin_agendar?: string[];
+    rechazado?: string[];
+  };
+  /** `aplicado_sin_agenda` ⊂ `aplicado` y `agendado_vencido` ⊂ `agendado`. */
+  titulares?: { total?: number; aplicado?: number; agendado?: number;
+                sin_agendar?: number; rechazado?: number; reemplazado?: number;
+                aplicado_sin_agenda?: number | null; agendado_vencido?: number | null };
+  reemplazos?: { total?: number; utilizado?: number; en_cadena?: number; al_aire?: number;
+                 utilizado_sin_agenda?: number | null };
+  banco?: { total?: number; utilizado?: number; disponible?: number };
+};
+
+/**
+ * Un desenlace del libro —reemplazo, complemento o refuerzo— con su reparto.
+ *
+ * `declarados` son los que el coordinador escribió en el libro; `en_curso`, los
+ * que el campo ya vive y el libro todavía no dice. La diferencia entre los dos
+ * no es ruido: dice cuánto le falta al registro para estar al día.
+ */
+export type MonitoreoAulasDesenlace = {
+  total?: number;
+  declarados?: number;
+  en_curso?: number;
+  /**
+   * En qué punto está el aula que RESUELVE cada caso —la reserva que entró, no
+   * el titular—: «de los 4 reemplazos cuántos ya han sido aplicados, cuántos
+   * agendados y cuántos sin agendar» (Gonzalo, 2026-09-10). Los tres suman
+   * `total`.
+   */
+  aplicados?: number;
+  agendados?: number;
+  sin_agendar?: number;
+  por_facultad?: Array<{ facultad?: string; aulas?: number }>;
+  aulas?: Array<{
+    codigo?: string;
+    facultad?: string;
+    titular?: string;
+    /** Con CUÁL se resolvió. Vacía cuando el libro no lo dice: es media frase. */
+    aula_utilizada?: string;
+    /** `aplicado` | `agendado` | `sin_agendar`, del aula que resuelve el caso. */
+    punto?: string;
+    motivo?: string;
+    efectivas?: number | null;
+  }>;
+};
+
+/**
+ * Los tres desenlaces del libro, contados por separado (2026-09-10).
+ *
+ * A · reemplazo — el titular cayó y otra ocupa su lugar.
+ * B · complemento — el titular rindió poco y se le sumó una reserva; los dos cuentan.
+ * C · refuerzo — se salió a una reserva por cuota, sin titular caído.
+ */
+/**
+ * Un TRAMO del operativo: un rango de fecha con nombre propio (dictado de
+ * Gonzalo, 2026-09-15: «más que semana en el estricto senso, con rango a los
+ * que llamamos de forma personalizada»).
+ *
+ * `nombre`, `desde` y `hasta` son la decisión guardada; todo lo demás lo
+ * DERIVA el backend del plan en cada corrida, así que no puede quedarse viejo.
+ * `declarado` distingue el tramo que alguien nombró del respaldo por semanas
+ * de calendario que el motor produce cuando no hay ninguno.
+ */
+export type MonitoreoAulasTramo = {
+  nombre: string;
+  desde: string;
+  hasta: string;
+  declarado?: boolean;
+  citas?: number;
+  aplicadas?: number;
+  por_aplicar?: number;
+  /** Citas con algo escrito en la fecha que no se deja leer: no caen en ningún tramo. */
+  sin_fecha_legible?: number;
+  /** El que contiene hoy. Entre dos tramos manda el siguiente, no el que pasó. */
+  vigente?: boolean;
+};
+
+export type MonitoreoAulasReemplazosPorTipo = {
+  reemplazadas?: MonitoreoAulasDesenlace;
+  complementadas?: MonitoreoAulasDesenlace;
+  refuerzos?: MonitoreoAulasDesenlace;
+  /** Titulares caídos sin ningún relevo activado: el hueco sigue abierto. */
+  caidos_sin_relevo?: number;
+  /** Casos A o B que no dicen CON CUÁL se resolvieron. */
+  sin_aula_utilizada?: number;
+  total?: number;
 };
 
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
+  /**
+   * El supuesto que dimensionó, contrastado con el campo (ADR 0082). Llega
+   * SIEMPRE, también sin plan: sin aulas aplicadas la pantalla tiene que poder
+   * decirlo, que es distinto de quedarse sin superficie.
+   */
+  efectividad_seguimiento?: MonitoreoAulasEfectividadSeguimiento | null;
+  /**
+   * La misma pregunta al grano AULA: señal por curso-horario contra su propia
+   * tasa prevista, con la vara de su facultad al lado. Ausente en payloads
+   * anteriores al bloque (backend viejo): la vista lo declara, no revienta.
+   */
+  dos_tasas?: MonitoreoAulasDosTasas | null;
+  /**
+   * El mapa de horas por día: qué ventana ocupa cada cita y cuántas aulas
+   * caen a la vez (el número que dimensiona a los aplicadores). Ausente en
+   * payloads anteriores al bloque (backend viejo): la vista lo declara, no
+   * revienta.
+   */
+  franjas?: MonitoreoAulasFranjas | null;
+  /**
+   * La malla de OFERTA: quiénes pueden estar en campo por día de semana y
+   * franja de 30 minutos. Solo se publica cuando la sesión tiene cargada la
+   * clave de disponibilidad (B29); ausente no es un error sino «el estudio
+   * todavía no cargó el libro de disponibilidad», y la vista lo declara.
+   */
+  disponibilidad?: MonitoreoAulasDisponibilidad | null;
+  /**
+   * El gemelo de `disponibilidad`: el reparto del plan contra ESA oferta,
+   * recomputado por el motor en cada conversar — la repetibilidad del dictado
+   * («que sea repetible por si llegan nuevas confirmaciones»). Llega solo con
+   * la clave en sesión.
+   */
+  reparto?: MonitoreoAulasReparto | null;
+  /**
+   * A qué clase se puede entrar SIN cita, en la misma ventana del reparto.
+   *
+   * Gonzalo, 2026-09-21: «el despliegue de las semanas [debe incluir] al lado
+   * una tabla con los cursos-horario no agendados que se podrían ir a aplicar
+   * […] sólo tendrían que tener bien clara la hora de inicio y fin de la clase
+   * y el aula donde se dan». Sólo TITULARES por agendar: un reemplazo o una
+   * extra se activan por su cadena, no entrando por la puerta.
+   */
+  sin_agendar?: MonitoreoAulasSinAgendar | null;
   /**
    * El banco de reservas extra: las que NO cuelgan de ningún titular, agregadas
    * por facultad con su composición por sexo. Es el segundo nivel de respaldo
@@ -901,6 +1960,177 @@ export type MonitoreoAulasDashboard = {
 	  course_status?: MonitoreoRow[];
 	  avance_por_estrato: MonitoreoRow[];
 	  quotas_sex_faculty?: MonitoreoRow[];
+	  /** Avance por celda facultad × sexo: logrado, previsto, proyectado y si el
+	   *  campo se está comportando como el modelo. Va AL LADO de
+	   *  `quotas_sex_faculty`, no en su lugar: una dice dónde estás y la otra si
+	   *  vas a llegar. Las frases vienen del motor. */
+	  avance_sexo_facultad?: Array<Record<string, unknown>>;
+	  /**
+	   * «Con lo que ya tengo agendado, ¿llego?», por facultad, en las CUATRO
+	   * combinaciones de los dos mandos de la pestaña Metas: la meta contra la
+	   * muestra o contra la sobremuestra, y lo agendado proyectado con la tasa
+	   * del diseño o con la obtenida en campo.
+	   *
+	   * **Las cuatro las calcula el motor, no la pantalla.** Cambiar de mando
+	   * cambia de escenario, no de fórmula: si la UI derivara una de otra
+	   * habría dos sitios calculando la misma cifra, que es exactamente cómo
+	   * empiezan a discrepar. Ausente (`null`) cuando el estudio no declara
+	   * cuotas — «no se sabe» no es lo mismo que «no llega».
+	   */
+	  proyeccion_metas?: MonitoreoAulasProyeccionMetas | null;
+	  /**
+	   * Aulas de cada facultad: cuántas planificó el sorteo y cuántas se han
+	   * aplicado. Va por facultad y NO por sexo a propósito — un aula no se
+	   * reparte entre hombres y mujeres, la misma visita da de los dos.
+	   * «Planificadas» son los TITULARES, no titulares más reservas.
+	   */
+	  aulas_por_facultad?: MonitoreoAulasPorFacultad[];
+	  /**
+	   * De cuántas respuestas cuentan, y por qué no cuentan las demás.
+	   *
+	   * Las tres cifras SUMAN `observadas` sin residuo, y las dos razones van
+	   * separadas a propósito: `fuera_del_operativo` no pide nada —otra ola, una
+	   * prueba, un aula que no está en el plan— y `no_pasan_criterio` es trabajo
+	   * que se hizo y no suma. Juntarlas en «descartadas» es el rótulo que ya
+	   * salió del perfil el 2026-09-07 por meter en la misma bolsa cosas que
+	   * piden acciones opuestas.
+	   *
+	   * `sin_aula` son las respuestas cuya aula no se pudo identificar: entran en
+	   * `total` y en NINGUNA facultad, así que las facultades no suman el total.
+	   */
+	  /**
+   * Qué relevo le queda a cada titular: `{ "CH 3": { disponibles, siguiente } }`.
+   *
+   * Es la SALIDA de la tabla del margen —dice quién rindió por debajo y ahí se
+   * paraba—. Medido el 2026-09-10: 13 de los 14 por debajo tenían reserva viva.
+   *
+   * **No es `reserva_dirigida`**: aquélla va por celda en déficit y busca en el
+   * banco de extras a qué aula NUEVA ir; ésta mira la cadena del propio
+   * curso-horario, el relevo que el sorteo ya le asignó.
+   *
+   * Un titular sin relevo NO aparece —no aparece con cero—, así que la ausencia
+   * de la clave significa «no tiene», nunca «no se calculó».
+   */
+  reserva_de_la_cadena?: Record<string, { disponibles: number; siguiente: string }>;
+  /**
+   * El catálogo de dimensiones declarables, tal como lo publica el motor. La
+   * pantalla que deja elegir el eje NO lo copia: añadir una cuarta dimensión
+   * exigiría acordarse de dos sitios y el segundo se olvidaría.
+   */
+  ejes_declarables?: Array<{
+    clave: string;
+    etiqueta: string;
+    etiqueta_plural: string;
+    columna: string;
+    atribucion: "aula" | "persona" | string;
+    fuente_valor: "plan" | "padron" | string;
+    /** Un eje por persona sin padrón deja el avance en cero: hay que decirlo. */
+    requiere_padron: boolean;
+  }>;
+  /**
+   * El recibo PUBLICABLE del padrón: conteos, sin un solo código. Es lo mismo
+   * que queda al purgarlo, así que viaja sin reabrir el F114.
+   */
+  padron?: {
+    schema?: string;
+    personas: number;
+    sin_nivel?: number;
+    por_nivel?: Record<string, number>;
+    por_carrera?: Record<string, number>;
+    por_sexo?: Record<string, number>;
+  };
+  /**
+   * **El cruce de alumnos por código PUCP, repartido por carrera.** Lo calcula
+   * el bloque de cuotas —que es quien resuelve la persona de cada respuesta— y
+   * el tablero lo iza aquí para Validación.
+   *
+   * `aplica` es falso en un estudio ANÓNIMO: sin código identificador no hay a
+   * quién cruzar, y su pestaña no existe.
+   */
+  cruce_por_carrera?: {
+    schema?: string;
+    aplica?: boolean;
+    motivo?: string;
+    /** El estudio pide código Y se declara anónimo: no pueden ser las dos. */
+    aviso_anonimato?: string;
+    total?: {
+      consideradas: number;
+      personas: number;
+      duplicadas: number;
+      sin_cruce: number;
+      tasa: number | null;
+    };
+    carreras?: Array<{
+      carrera: string;
+      carrera_key?: string;
+      personas: number;
+      duplicadas?: number;
+      poblacion?: number | null;
+    }>;
+    sin_cruce?: Array<{ motivo: string; etiqueta: string; respuestas: number }>;
+    /**
+     * **Una fila por alumno**, la más reciente primero. El agregado contesta
+     * «cuántos»; esto contesta «quién, cuándo y desde qué curso-horario», que
+     * es con lo que se comprueba una respuesta concreta.
+     */
+    alumnos?: Array<{
+      codigo: string;
+      carrera: string;
+      nivel: string;
+      sexo: string;
+      fecha: string;
+      hora: string;
+      curso_horario: string;
+      /**
+       * El estado de la RESPUESTA, aparte del estado del cruce: son dos
+       * preguntas y acreditación las publica en dos columnas por eso mismo.
+       * `""` cuando el estudio no tiene columna de consentimiento —no se
+       * supone que aceptaron—.
+       */
+      respuesta?: "efectiva" | "huerfana" | "rechaza" | "no_criterio" | "fuera_operativo" | "" | string;
+      respuesta_etiqueta?: string;
+      estado: "identificado" | "repetida" | "sin_identificar" | string;
+      motivo?: string;
+      motivo_etiqueta?: string;
+    }>;
+    /** Cuántas filas de detalle se publican como máximo, y si recortó. */
+    tope?: number;
+    truncado?: boolean;
+  };
+  respuestas_desglose?: {
+	    total: MonitoreoAulasRespuestasCuenta & {
+	      sin_aula: number;
+	      /**
+	       * La misma cuenta sobre las EFECTIVAS. Es la que hace cuadrar la nota
+	       * del panel —cuyo total son las efectivas— en cuanto el estudio
+	       * declara `descartes`: sin ella decía «N cuentan en el total» con
+	       * parte de esas N ya fuera de él. Ausente en payloads anteriores.
+	       */
+	      sin_aula_efectivas?: number;
+	    };
+	    facultades: Array<MonitoreoAulasRespuestasCuenta & { facultad: string }>;
+	    /**
+	     * De qué son estas filas. El campo `facultad` conserva su nombre
+	     —contrato congelado— y su VALOR puede ser una carrera: un estudio que
+	     * vive dentro de una facultad agrupa este bloque por carrera, porque por
+	     * facultad es una tabla de una fila. Ausente en payloads anteriores.
+	     */
+	    agrupacion?: {
+	      clave: string;
+	      columna: string;
+	      etiqueta: string;
+	      etiqueta_plural: string;
+	      etiqueta_sin: string;
+	      motivo_degradacion: string;
+	    };
+	  };
+	  /**
+	   * Para cada celda de cuota en déficit, a qué aula del banco ir. Grano
+	   * facultad×sexo: un nivel POR DEBAJO de `reservas_alcanzan`, que es por
+	   * facultad y puede decir que alcanzan mientras una celda concreta no
+	   * tiene ni un aula de banco que ayude.
+	   */
+	  reserva_dirigida?: MonitoreoAulasReservaDirigida[];
 	  brechas: MonitoreoRow[];
 	  reemplazos: MonitoreoRow[];
 	  /** El parte de campo de cada aula, con su resta ya hecha por el motor. */
@@ -932,6 +2162,48 @@ export type MonitoreoAulasDashboard = {
 	    meta: number;
 	  };
 	  /**
+	   * La MISMA serie, repartida por facultad y sobre el mismo eje de días.
+	   *
+	   * La calcula el motor y no la vista porque se construye sobre las
+	   * respuestas, que no viajan: lo que llega es `course_status` recortado a
+	   * 500 filas y los bloques ya agregados, y ninguno trae el día de cada
+	   * respuesta. `meta` y `brecha` son las de `avance_cuota` (ADR 0079).
+	   */
+	  /**
+	   * La efectividad al grano de FACULTAD × SEXO.
+	   *
+	   * La τ general promedia dos poblaciones que el operativo no trata igual: la
+	   * cuota se fija por facultad Y sexo (ADR 0079) y la brecha se suma celda a
+	   * celda, porque un hombre de más no cubre a una mujer que falta. Una
+	   * facultad puede ir conforme en su τ y estar corta en una de las dos.
+	   *
+	   * Todo sobre las aulas APLICADAS: mezclar esperadas de todo el plan con
+	   * efectivas de lo aplicado daría un déficit del tamaño de lo no visitado.
+	   */
+	  efectividad_por_sexo?: Array<{
+	    faculty_key: string;
+	    facultad: string;
+	    sexo: "F" | "M";
+	    /** Del padrón del aula; `sex_top_1` es el sexo MÁS frecuente, no mujeres. */
+	    elegibles: number;
+	    esperadas: number;
+	    efectivas: number;
+	    tasa_prevista: number | null;
+	    tasa_observada: number | null;
+	    /** En PERSONAS y con signo: efectivas − esperadas. */
+	    diferencia: number;
+	  }>;
+	  ritmo_por_facultad?: Array<{
+	    facultad: string;
+	    faculty_key: string;
+	    dias: Array<{ fecha: string; validas: number; acumulado: number }>;
+	    dias_con_campo: number;
+	    mejor_dia?: { fecha: string; validas: number } | null;
+	    media_diaria: number;
+	    meta: number;
+	    brecha?: number | null;
+	  }>;
+	  /**
 	   * El cumplimiento en respuestas, calculado por el MOTOR sobre el conjunto
 	   * en juego y entero. La vista lo sumaba sobre `course_status`, que viaja
 	   * recortado a 500 filas.
@@ -956,6 +2228,49 @@ export type MonitoreoAulasDashboard = {
 	   * adicionales esperando en su estrato, no aulas que alguien vaya a visitar.
 	   */
 	  course_status_banco?: number;
+	  course_status_reservas_dormidas?: number;
+	  course_status_con_meta?: number;
+	  /** Los que están en juego y con meta pero TODAVÍA NO se han aplicado. */
+	  course_status_sin_aplicar?: number;
+	  /**
+	   * El estado de aplicación repartido por ROL, que es la forma del libro:
+	   * «Aulas Aplicadas (Campo)» va por bloques —TITULAR, REEMPLAZO 1…11— y cada
+	   * uno lleva su propio `STATUS DE APLICACIÓN`.
+	   *
+	   * `en_cadena` contra `al_aire` es la distinción que el eje plano no podía
+	   * hacer y que nadie escribe en el libro: una reserva deja de poder usarse
+	   * en cuanto algún eslabón de su cadena se aplica.
+	   */
+	  course_status_rol_y_estado?: MonitoreoAulasRolYEstado;
+	  /**
+	   * Los tres desenlaces del libro —reemplazo (A), complemento (B) y refuerzo
+	   * (C)— contados por separado, cada uno con lo que declara el libro y lo que
+	   * el campo ya vive. Ver `monitoreo_aulas_desenlaces.R`.
+	   */
+	  reemplazos_por_tipo?: MonitoreoAulasReemplazosPorTipo;
+	  /** Los tramos del operativo con su estado derivado. Ver `MonitoreoAulasTramo`. */
+	  tramos?: MonitoreoAulasTramo[];
+	  /**
+	   * El titular del cruce facultad del aula ↔ facultad declarada. Sirve para
+	   * decir si el catálogo que alguien acaba de mapear es el correcto: bien
+	   * emparejado coincide en ~95 %, corrido una posición en ~1 %.
+	   */
+	  control_facultad?: {
+	    ok?: boolean; motivo?: string;
+	    comparables?: number; coinciden?: number; discrepan?: number;
+	  } | null;
+	  /**
+	   * El mismo reparto por FACULTAD, para que el selector de la cabecera filtre
+	   * de verdad. Se calcula en el motor y no aquí porque `course_status` viaja
+	   * recortado a 500 filas: filtrarlo en la pantalla daría el reparto de un
+	   * recorte con nombre de facultad.
+	   */
+	  course_status_rol_y_estado_por_facultad?: Record<string, MonitoreoAulasRolYEstado>;
+	  course_status_cobertura_por_facultad?: Record<string, {
+	    cobertura?: Array<{ clave: string; aulas: number; etiqueta?: string }>;
+	    con_meta?: number;
+	    sin_aplicar?: number;
+	  }>;
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;
@@ -3142,6 +4457,14 @@ export type MonitoreoState = {
   reports?: Record<string, unknown> | null;
   chart_models?: MonitoreoChartModels | null;
   sync_errors?: { source_id?: string; source_label?: string; message: string }[];
+  /**
+   * B3: el aviso de la última sincronización que volvió de vacío, junto a
+   * `sync_errors` porque se lee igual. Viaja en el ESTADO y no sólo en el
+   * resultado del job: quien abre la app al día siguiente ve las cifras de la
+   * última sincronización que sí trajo algo, con la fecha de la que no trajo
+   * nada, y tiene el mismo derecho a saberlo que quien pulsó el botón.
+   */
+  aviso_fuentes_vacias?: MonitoreoAvisoFuentesVacias | null;
   pending_regeneration?: boolean;
   n_rows: number;
   variables: MonitoreoVariable[];
@@ -3172,6 +4495,35 @@ export type MonitoreoSyncResult = {
   dashboard: MonitoreoDashboard;
   sync_summary?: Record<string, unknown>;
   errors: { source_id?: string; source_label?: string; message: string }[];
+  /**
+   * B3 (2026-09-08): qué fuente volvió SIN NINGÚN registro y qué se está viendo
+   * en su lugar. Ausente cuando todas trajeron algo.
+   *
+   * No es un error —el sync terminó bien— pero se lee igual: algo que revisar
+   * antes de creerle a las cifras. Existe porque conservar el snapshot anterior
+   * arregla la pérdida de datos y deja el otro medio del problema en pie: la
+   * pantalla enseña las cifras de antes con la fecha de ahora.
+   */
+  aviso_fuentes_vacias?: MonitoreoAvisoFuentesVacias | null;
+};
+
+/** Ver `aviso_fuentes_vacias` en `MonitoreoSyncResult`. */
+export type MonitoreoAvisoFuentesVacias = {
+  /** Etiquetas de las fuentes que no trajeron nada; su id si no tienen etiqueta. */
+  fuentes: string[];
+  /** Filas que quedaron en pie. 0 significa que no había nada que conservar. */
+  conservadas: number;
+  /** El aviso ya redactado por el motor: la causa y su consecuencia. */
+  mensaje: string;
+  /**
+   * Con qué cara se enseña. `"ok"` cuando no hay nada que arreglar: en modo
+   * incremental, cero registros es lo que devuelve una sincronización sana si
+   * nadie envió desde la anterior. `"atencion"` cuando un full volvió vacío,
+   * que sí es una señal. Ausente en payloads viejos: se lee como `"atencion"`.
+   */
+  tono?: "ok" | "atencion";
+  /** `"incremental"` o `"full"`: en cuál de los dos modos volvió vacía. */
+  modo?: "incremental" | "full";
 };
 
 export type MonitoreoSourcePayload = {
@@ -3700,9 +5052,42 @@ export async function apiMonitoreoClientReportSheetsPublish(
   );
 }
 
+/**
+ * Los seis campos de la portada del PDF de avance.
+ *
+ * Todos opcionales, y todos **override opt-in**: lo que va en blanco lo resuelve
+ * el defecto que el motor deriva de los datos (el periodo sale del primer y el
+ * último día con efectivas; el corte, del sello del snapshot). Mandar un campo
+ * vacío NO borra su defecto.
+ */
+export type MonitoreoPortadaPdf = {
+  titulo?: string;
+  subtitulo?: string;
+  cliente?: string;
+  periodo?: string;
+  corte?: string;
+  nota?: string;
+};
+
+/** Sólo se manda lo que tiene texto: un campo vacío no viaja. */
+function portadaConTexto(portada?: MonitoreoPortadaPdf): MonitoreoPortadaPdf | null {
+  if (!portada) return null;
+  const limpia = Object.fromEntries(
+    Object.entries(portada)
+      .map(([k, v]) => [k, typeof v === "string" ? v.trim() : ""])
+      .filter(([, v]) => v !== ""),
+  ) as MonitoreoPortadaPdf;
+  return Object.keys(limpia).length ? limpia : null;
+}
+
 export async function apiMonitoreoClientReportPdf(
-  options: { includeTargets?: boolean; config?: Partial<MonitoreoConfig> } = {},
+  options: {
+    includeTargets?: boolean;
+    config?: Partial<MonitoreoConfig>;
+    portada?: MonitoreoPortadaPdf;
+  } = {},
 ) {
+  const portada = portadaConTexto(options.portada);
   return handle<JobStart>(
     await apiFetch("/api/monitoreo/client-report/pdf", {
       method: "POST",
@@ -3710,16 +5095,29 @@ export async function apiMonitoreoClientReportPdf(
       body: JSON.stringify({
         include_targets: !!options.includeTargets,
         ...(options.config ? { config: options.config } : {}),
+        ...(portada ? { portada } : {}),
       }),
     }),
   );
 }
 
-export function monitoreoClientReportPdfDownloadUrl(opts: { inline?: boolean } = {}): string {
+/**
+ * `v` identifica la generación. **No es cosmético.** La descarga vive siempre en
+ * la misma URL y el backend no manda `Cache-Control` para `/api/` —el filtro
+ * `no-store` de `plumber_app.R` sólo cubre lo que NO es API—, así que el
+ * navegador puede servir de su caché el PDF anterior. Quien cambia la portada,
+ * regenera y descarga se encontraría el documento viejo y concluiría que los
+ * campos no funcionan. Cambiando la URL en cada generación, no hay nada que
+ * acertar: es otra petición.
+ */
+export function monitoreoClientReportPdfDownloadUrl(
+  opts: { inline?: boolean; v?: string | number } = {},
+): string {
   const sid = localStorage.getItem(SESSION_KEY);
   const params = new URLSearchParams();
   if (sid) params.set("sid", sid);
   if (opts.inline) params.set("inline", "1");
+  if (opts.v !== undefined && opts.v !== "") params.set("v", String(opts.v));
   const qs = params.toString();
   return apiPath(`/api/monitoreo/client-report/pdf/download${qs ? `?${qs}` : ""}`);
 }
@@ -3740,11 +5138,15 @@ export async function apiMonitoreoProductionReportPdf(
   );
 }
 
-export function monitoreoProductionReportPdfDownloadUrl(opts: { inline?: boolean } = {}): string {
+/** Mismo motivo que en el reporte de cliente: ver `monitoreoClientReportPdfDownloadUrl`. */
+export function monitoreoProductionReportPdfDownloadUrl(
+  opts: { inline?: boolean; v?: string | number } = {},
+): string {
   const sid = localStorage.getItem(SESSION_KEY);
   const params = new URLSearchParams();
   if (sid) params.set("sid", sid);
   if (opts.inline) params.set("inline", "1");
+  if (opts.v !== undefined && opts.v !== "") params.set("v", String(opts.v));
   const qs = params.toString();
   return apiPath(`/api/monitoreo/production-report/pdf/download${qs ? `?${qs}` : ""}`);
 }
@@ -4575,12 +5977,15 @@ export async function apiMonitoreoAulasGenerarLibro() {
 /**
  * Relee el libro que alguien llenó. `hojas_ausentes` dice cuáles de las tres no
  * venían: el resultado no finge que estaban vacías.
+ *
+ * Solo `file_id`: el archivo sube antes por `apiUpload` (/api/files/upload).
+ * La firma aceptaba también un `File` directo, pero esa vía multipart está
+ * documentada rota en el propio router (router_monitoreo.R, endpoint
+ * importar-libro) y ningún llamador la usaba: un tipo que ofrece un camino
+ * que no funciona es una promesa falsa.
  */
-export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: string }) {
-  const esArchivo = origen instanceof File;
-  const cuerpo = esArchivo
-    ? (() => { const fd = new FormData(); fd.append("file", origen); return fd; })()
-    : JSON.stringify({ file_id: origen.file_id });
+export async function apiMonitoreoAulasImportarLibro(origen: { file_id: string }) {
+  const cuerpo = JSON.stringify({ file_id: origen.file_id });
   return handle<{
     ok: true;
     resumen: {
@@ -4600,11 +6005,365 @@ export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: s
     agenda_campos_ausentes?: string[] | null;
     state: MonitoreoState;
   }>(
-    // Sin `Content-Type` cuando va `FormData`: el navegador pone el boundary.
     await apiFetch("/api/monitoreo/aulas/importar-libro", {
       method: "POST",
-      headers: esArchivo ? headers() : headers({ "Content-Type": "application/json" }),
+      headers: headers({ "Content-Type": "application/json" }),
       body: cuerpo,
+    }),
+  );
+}
+
+/** La respuesta del import es la misma venga del `.xlsx` o del Sheets. */
+export type MonitoreoAulasImportacion = Awaited<
+  ReturnType<typeof apiMonitoreoAulasImportarLibro>
+>;
+
+/**
+ * B74 (dictado 2026-09-03): importa el excel de disponibilidad de
+ * aplicadores. Mismo camino de dos pasos que el libro: el archivo sube antes
+ * por `apiUpload` (kind `aulas_disponibilidad`) y aquí viaja su `file_id`.
+ * La clave de sesión invalida el dashboard (B29) y el reparto se rearma con
+ * la oferta nueva en el siguiente estado.
+ */
+export async function apiMonitoreoAulasDisponibilidad(origen: { file_id: string }) {
+  return handle<{
+    ok: true;
+    /** Cuántos aplicadores trajo el excel. */
+    aplicadores: number;
+    /** Decisiones del lector (celdas ilegibles tomadas como no disponible). */
+    avisos: string[];
+    saved_project: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/disponibilidad", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id: origen.file_id }),
+    }),
+  );
+}
+
+/**
+ * La plantilla vacía de disponibilidad, para que el coordinador la llene.
+ *
+ * Gonzalo, 2026-09-21: «la app debe ser capaz de dar un formato para que el
+ * coordinador pueda llenarlos fácilmente, quizás que ya todas las columnas ya
+ * estén y él solo ponga el nombre del aplicador y la x por día y hora»; y el
+ * mismo día, sobre el contenido de la celda: «o cero y uno están bien, me
+ * parece más limpio pero que los ceros y los unos se pinten, 1 de verde y 0 de
+ * rojo».
+ *
+ * La entrega el motor con los días y las franjas ya puestos, las cabeceras
+ * giradas para que se lean enteras, el 1 en verde y el 0 en rojo, y una hoja
+ * «Cómo llenar» al lado. Los aplicadores YA declarados vienen escritos: la
+ * segunda vuelta no obliga a reteclear a nadie.
+ */
+export async function apiMonitoreoAulasDisponibilidadPlantilla() {
+  const result = await handle<{
+    ok: true;
+    file_id: string;
+    filename: string;
+    size: number;
+    /** Cuántos nombres ya conocidos vienen escritos en la plantilla. */
+    aplicadores: number;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/disponibilidad/plantilla", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({}),
+    }),
+  );
+  return { ...result, download_url: downloadUrl(result.file_id) };
+}
+
+/**
+ * Relee el libro desde las tres pestañas de un Google Sheets.
+ *
+ * La otra puerta del mismo ciclo: el `.xlsx` sirve para el cierre, esto para el
+ * operativo en marcha, cuando el equipo trabaja sobre la pestaña en línea y
+ * nadie quiere descargar un archivo para ver cómo va.
+ *
+ * Acepta el **enlace entero** que se copia de la barra del navegador; el
+ * backend extrae el id. Pedir las 44 letras del medio es un paso donde
+ * equivocarse en silencio.
+ *
+ * Devuelve exactamente lo mismo que `apiMonitoreoAulasImportarLibro`, así que
+ * quien la llame no tiene que ramificar por procedencia.
+ */
+export async function apiMonitoreoAulasImportarSheets(
+  enlace: string,
+  pestanas?: { agendadas?: string; aplicadas?: string; control?: string },
+) {
+  return handle<MonitoreoAulasImportacion>(
+    await apiFetch("/api/monitoreo/aulas/importar-sheets", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ url: enlace, ...(pestanas ? { pestanas } : {}) }),
+    }),
+  );
+}
+
+/** Una hoja del libro publicado y qué hizo el publicador con ella. */
+export type MonitoreoAulasHojaPublicada = {
+  hoja: string;
+  /**
+   * Lista ABIERTA a propósito: el motor declara hoy `sembrada` (la pestaña no
+   * existía o estaba vacía), `actualizada`, `sin_cambios` y `respetada` (hoja
+   * del equipo con contenido: ni una escritura sobre ella), pero una acción
+   * nueva tiene que llegar a pantalla con su nombre, no morir en el tipo.
+   */
+  accion: "sembrada" | "actualizada" | "sin_cambios" | "respetada" | string;
+  /** Filas de DATOS, sin cabeceras; en `respetada`, las que el equipo ya tiene. */
+  filas: number;
+};
+
+/**
+ * Lo que publicar LEYÓ del equipo antes de escribir (desde `732c4221`): las
+ * hojas del equipo se importan en el mismo acto y el recibo lo declara. `ok`
+ * trae el `resumen` del importador; `error` dice por qué no se pudo (se
+ * publica igual, con lo que la sesión tenía); `omitida` cuando quien llamó ya
+ * había leído (`monitoreo_aulas_conversar_libro`).
+ */
+export type MonitoreoAulasLecturaPrevia = {
+  ok: boolean;
+  omitida: boolean;
+  error: string;
+  resumen: {
+    unidades?: number;
+    titulares?: number;
+    reservas?: number;
+    contactadas?: number;
+    partes_de_campo?: number;
+    filas_de_control?: number;
+  };
+};
+
+/**
+ * Publica el libro de aulas en el Google Sheets del operativo.
+ *
+ * La contraparte de `apiMonitoreoAulasImportarSheets`: aquélla lee lo que el
+ * equipo escribió, ésta escribe lo que la app sabe — y SOLO donde la app es
+ * dueña: «Base de control». Las dos hojas del equipo se siembran una única vez
+ * si están vacías y después se respetan (regla textual de Gonzalo: «sin
+ * sobreescribir las dos primeras hojas, que las llenan desde el sheets»).
+ *
+ * Con `enlace` el destino se RECUERDA antes de publicar (aunque la publicación
+ * falle, el enlace pegado no se pierde); sin él se usa el recordado del
+ * proyecto —por eso el body va sin `url`, no con una vacía, que lo olvidaría—.
+ * Acepta el enlace entero de la barra del navegador; el backend extrae el id.
+ *
+ * Errores del contrato: 400 `E_SHEETS_SPREADSHEET` (sin destino o enlace no
+ * parseable) y 409 `E_AULAS_LIBRO_SIN_PLAN`.
+ */
+/**
+ * Publica la distribución de la semana al Sheets de los aplicadores (documento
+ * aparte del libro: sólo el reparto, dictado 2026-09-07). Con `enlace` lo
+ * recuerda; sin él usa el recordado (`distribucion_sheets`). El recibo trae la
+ * huella de lo publicado y el bloque recordado para refrescar el campo.
+ */
+export async function apiMonitoreoAulasPublicarDistribucion(enlace?: string) {
+  const limpio = enlace?.trim() ?? "";
+  return handle<{
+    ok: true;
+    spreadsheet_id: string;
+    url: string;
+    updated_at: string;
+    hojas: MonitoreoAulasHojaPublicada[];
+    huella?: string;
+    citas?: number;
+    distribucion_sheets?: MonitoreoAulasDistribucionSheets | null;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/publicar-distribucion", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(limpio ? { url: limpio } : {}),
+    }),
+  );
+}
+
+/** Lo que la sincronización propone o hace sobre el Sheets de los aplicadores. */
+export type MonitoreoAulasSincronizacion = {
+  ok: true;
+  /** `false` es el ENSAYO: describe lo que haría y no escribe nada. */
+  aplicado: boolean;
+  spreadsheet_id: string;
+  url: string;
+  hoja: string;
+  citas_antes: number;
+  citas_despues: number;
+  anadidas: Array<{ curso_horario?: string; fecha?: string; facultad?: string }>;
+  descartadas: Array<{ curso_horario?: string; motivo?: string; detalle?: string }>;
+  estado: {
+    cambios: Array<{ curso_horario?: string; fila?: number; antes?: string; ahora?: string }>;
+    conflictos: Array<{ curso_horario?: string; fila?: number; tecleado?: string; plataforma?: string }>;
+  };
+  sin_aplicador: Array<{ curso_horario?: string; fecha?: string }>;
+  /**
+   * En qué se quedó atrás la adopción del reparto: la app tiene fijado a
+   * alguien y la hoja dice OTRO. **Sólo `cambiadas` contradice a la app** —una
+   * cita nueva en la hoja o una que ya no está no la contradicen— y por eso
+   * `hay` se enciende sólo con ellas: alumbrar por las tres haría saltar el
+   * aviso cada día del operativo y dejaría de leerse.
+   *
+   * Ausente en recibos anteriores al 2026-09-09.
+   */
+  fijaciones_desfasadas?: {
+    hay: boolean;
+    cambiadas: Array<{ curso_horario?: string; guardado?: string; en_la_hoja?: string }>;
+    nuevas: string[];
+    retiradas: string[];
+  };
+  /**
+   * La columna AULA puesta al día con el libro. **Es la única celda ajena que
+   * la sincronización pisa**, y a propósito: el ESTADO lo teclea el
+   * coordinador y es suyo, pero el aula la pacta quien agenda —en LUGAR DE
+   * APLICACIÓN— y aquí sólo vive una copia, que envejece. `corregidas` son las
+   * que importan: la hoja daba un aula por buena y el libro dice otra, así que
+   * alguien iba a caminar hasta la equivocada. `sin_dato` es el hueco del
+   * operativo: ni la hoja ni el libro saben dónde. Ausente en recibos
+   * anteriores al 2026-09-09.
+   */
+  aulas?: {
+    rellenadas: number;
+    corregidas: number;
+    sin_dato: number;
+    cambios: Array<{
+      curso_horario?: string;
+      fecha?: string;
+      antes?: string;
+      despues?: string;
+      motivo?: "rellenada" | "corregida";
+    }>;
+  };
+  /** Lo escrito que no cuadra por sí solo: fecha ilegible, fuera de la semana, sin código. */
+  dudosas?: Array<{ fila?: number; curso_horario?: string; motivo?: string; valor?: string }>;
+  /**
+   * La cara cara de `anadidas`: citas escritas cuya aula ya no está agendada
+   * ese día. `aula_movida` trae en `detalle` la fecha nueva; `ya_no_agendada`,
+   * el status de hoy; `sin_plan` no trae detalle. Ausente en recibos anteriores.
+   */
+  sin_agenda?: Array<{
+    fila?: number;
+    curso_horario?: string;
+    fecha?: string;
+    motivo?: "aula_movida" | "ya_no_agendada" | "sin_plan";
+    detalle?: string;
+  }>;
+  ventana: { desde?: string; hasta?: string };
+  /** La frase con la que termina la jornada, ya redactada por el motor. */
+  resumen: string;
+};
+
+/**
+ * Sincroniza el Sheets de los aplicadores con la agenda y con la plataforma.
+ *
+ * Encadena los cuatro movimientos del ciclo en una sola llamada: lee la hoja,
+ * adopta lo que el coordinador decidió, añade las aulas agendadas que no tienen
+ * cita —con el aplicador en blanco, que es quien lo decide— y refresca el
+ * ESTADO con lo que la plataforma demuestra.
+ *
+ * **`aplicar = false` es un ENSAYO y no escribe nada.** Son veintidós personas
+ * leyendo esa hoja: la primera llamada dice qué haría y la segunda lo hace.
+ *
+ * Sin `desde`/`hasta` la ventana es la del reparto vigente, nunca «todo»: fuera
+ * de su rango, lo agendado está aplazado a propósito y contarlo como hueco
+ * propondría añadir semanas enteras que nadie pidió.
+ */
+export async function apiMonitoreoAulasSincronizarDistribucion(
+  opciones: { url?: string; desde?: string; hasta?: string; aplicar?: boolean } = {},
+) {
+  const cuerpo: Record<string, unknown> = {};
+  const limpio = opciones.url?.trim() ?? "";
+  if (limpio) cuerpo.url = limpio;
+  if (opciones.desde) cuerpo.desde = opciones.desde;
+  if (opciones.hasta) cuerpo.hasta = opciones.hasta;
+  if (opciones.aplicar) cuerpo.aplicar = true;
+  return handle<MonitoreoAulasSincronizacion>(
+    await apiFetch("/api/monitoreo/aulas/sincronizar-distribucion", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(cuerpo),
+    }),
+  );
+}
+
+export async function apiMonitoreoAulasPublicarLibro(enlace?: string) {
+  const limpio = enlace?.trim() ?? "";
+  return handle<{
+    ok: true;
+    spreadsheet_id: string;
+    spreadsheet_url: string;
+    updated_at: string;
+    hojas: MonitoreoAulasHojaPublicada[];
+    /** `true` cuando el enlace del body se acaba de recordar en la config. */
+    destino_guardado: boolean;
+    /** El destino recordado tras publicar, para refrescar el campo sin releer todo. */
+    libro_sheets?: MonitoreoAulasLibroSheets | null;
+    /** Qué se leyó del equipo antes de escribir; ausente en recibos anteriores a `732c4221`. */
+    lectura_previa?: MonitoreoAulasLecturaPrevia | null;
+    /**
+     * Qué adoptó de la hoja de los aplicadores antes de rehacer «Asignación de
+     * aplicadores». El coordinador cambia a mano quién va a qué aula y esos
+     * cambios son la verdad del operativo: publicar sin leerlos reescribía el
+     * reparto con un sorteo nuevo. `motivo` dice por qué no adoptó cuando
+     * `omitida`: `sin_destino`, `sin_hoja`, `hoja_vacia` o `error`.
+     * Ausente en recibos anteriores.
+     */
+    adopcion_distribucion?: {
+      ok: boolean;
+      omitida: boolean;
+      motivo?: "sin_destino" | "sin_hoja" | "hoja_vacia" | "error" | "";
+      error?: string;
+      hoja?: string;
+      adoptadas: number;
+      fijaciones_previas?: number;
+      aplicadores_desconocidos?: string[];
+    } | null;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/publicar-libro", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(limpio ? { url: limpio } : {}),
+    }),
+  );
+}
+
+/**
+ * **Relee el cruce con el otro estudio, a petición.**
+ *
+ * Decisión de Gonzalo (2026-09-18) entre «al abrir», «al sincronizar» y ésta:
+ * al abrir encarece el warm start con el plan ajeno entero y un Sheets vivo, y
+ * al sincronizar lo ata a una acción que además PUBLICA. A petición es
+ * explícito, y encaja con que el recibo ya diga la edad del cruce.
+ *
+ * El otro estudio se lee en SOLO LECTURA: puede haber gente agendando en vivo
+ * en sus hojas. Y el traslape informa, no descuenta ni excluye.
+ */
+export async function apiMonitoreoAulasRecalcularTraslape() {
+  return handle<{
+    ok: true;
+    traslape: {
+      unidades: number;
+      con_traslape: number;
+      por_veredicto: Record<string, number>;
+      etiqueta?: string;
+      leido_en?: string;
+      fuente?: string;
+      dias?: number | null;
+      aviso?: string;
+    };
+    /**
+     * Si se pudo leer el libro vivo del otro estudio. Sin él el cruce vale
+     * igual —los planes se cruzan— pero **no puede afirmar quién fue
+     * contactado**, y callarlo sería dar por medido lo que no se midió.
+     */
+    libro_leido: boolean;
+    aulas_del_otro: number;
+    saved_project: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/traslape/recalcular", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
     }),
   );
 }
@@ -4612,10 +6371,26 @@ export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: s
 export async function apiMonitoreoAulasActivarReemplazo(payload: {
   operational_code: string;
   motivo?: string;
+  /**
+   * Qué reserva entra. Vacío o ausente = la que toca por orden de cadena, que
+   * es lo que este endpoint hizo siempre y sigue siendo el respaldo.
+   *
+   * Con código entra ESA, y el motor comprueba que exista, no sea la caída,
+   * siga dormida y sea de la misma facultad. La frontera de facultad es dura:
+   * «el bolsón es siempre siempre siempre dentro de la misma facultad, jamás de
+   * otra».
+   */
+  elegida?: string;
 }) {
   return handle<{
     ok: true;
     activada: string | null;
+    /**
+     * De dónde salió la que entró: `cadena` es seguir el plan, `otra_cadena` y
+     * `extra` son decisiones distintas. Se declara en vez de deducirse del
+     * código, porque quien activa tiene que ver qué está eligiendo.
+     */
+    origen?: "cadena" | "otra_cadena" | "extra" | "";
     reemplazada: string;
     agotada: boolean;
     mensaje: string;
@@ -4637,8 +6412,283 @@ export async function apiMonitoreoAulasActivarReemplazo(payload: {
   );
 }
 
+/**
+ * **Marca un complemento (B) o un refuerzo (C) como REFUERZO POR CONTACTAR.**
+ *
+ * Gonzalo, 2026-09-11: «el popover necesita operar sobre B y C porque A se
+ * aplica desde el mismo Sheets sin ayuda de la app, la app solo lo lee». Por eso
+ * esto no pasa por `apiMonitoreoAulasActivarReemplazo`: son dos circuitos, y escribir
+ * también el de A pondría a la app a competir con quien agenda en vivo.
+ *
+ * El aula NO queda «agendada» sino en su estado propio: está en juego y nadie ha
+ * llamado. Hoy esa marca se ve SOLO en la app: el morado está definido, pero las
+ * dos hojas que pintan STATUS MUESTRA son del equipo y la app no escribe en
+ * ellas mientras tengan contenido.
+ */
+export async function apiMonitoreoAulasMarcarRefuerzo(payload: {
+  /** El curso-horario que entra a ayudar. */
+  operational_code: string;
+  /** A quién ayuda: un curso-horario en B, una facultad en C. */
+  para?: string;
+  tipo: "complemento" | "refuerzo";
+  motivo?: string;
+}) {
+  return handle<{
+    ok: true;
+    marcada: MonitoreoAulasPlanRow;
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/marcar-refuerzo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+/**
+ * Retira una marca de refuerzo que puso la app y devuelve el curso-horario al
+ * inventario de reservas sin contactar.
+ *
+ * Sólo retira lo que la app marcó y nadie ha tocado todavía: en cuanto el
+ * agendador lo pasa a EN CONTACTO o AGENDADA, la marca dejó de ser una decisión
+ * pendiente y retirarla borraría el trabajo de otra persona; el motor lo
+ * rechaza con `E_REFUERZO_YA_EN_MARCHA`.
+ */
+export async function apiMonitoreoAulasDesmarcarRefuerzo(payload: {
+  operational_code: string;
+}) {
+  return handle<{
+    ok: true;
+    retirada: MonitoreoAulasPlanRow;
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/desmarcar-refuerzo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+/** Lo que el motor devuelve de cada curso-horario que NO entró en un lote. */
+export type MonitoreoAulasMarcaFallida = {
+  operational_code: string;
+  code: string;
+  message: string;
+};
+
+/**
+ * Marca VARIOS cursos-horario de una vez.
+ *
+ * Existe por una medida, no por elegancia: una marca suelta tarda ~2 minutos
+ * porque el endpoint reconstruye el tablero entero de 1.392 filas, así que el
+ * autopicker de quince en serie eran ~30 minutos con la pantalla bloqueada. En
+ * lote el tablero se reconstruye UNA vez.
+ *
+ * No aborta en la primera que falla: devuelve las que entraron y, aparte, cuál
+ * no y por qué.
+ */
+export async function apiMonitoreoAulasMarcarRefuerzos(payload: {
+  pedidos: ReadonlyArray<{
+    codigo: string;
+    para?: string;
+    tipo: "complemento" | "refuerzo";
+    motivo?: string;
+  }>;
+}) {
+  return handle<{
+    ok: true;
+    marcadas: MonitoreoAulasPlanRow[];
+    fallidas: MonitoreoAulasMarcaFallida[];
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/marcar-refuerzos", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+/** Retira VARIAS marcas de una vez, con una sola reconstrucción del tablero. */
+export async function apiMonitoreoAulasDesmarcarRefuerzos(payload: {
+  pedidos: ReadonlyArray<string>;
+}) {
+  return handle<{
+    ok: true;
+    retiradas: MonitoreoAulasPlanRow[];
+    fallidas: MonitoreoAulasMarcaFallida[];
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/desmarcar-refuerzos", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+/**
+ * Lleva «REFUERZO POR CONTACTAR» a la hoja de agendación del equipo.
+ *
+ * Es la ÚNICA escritura de la app sobre una hoja del equipo, y va con las
+ * cuatro garantías del motor: una sola columna (STATUS MUESTRA), sólo las filas
+ * que la app marcó, sólo si la celda remota está libre —vacía, «EN RESERVA» o
+ * «SIN CONTACTAR»— y nunca un borrado. `aplicar: false` es el ensayo: dice qué
+ * celdas se pintarían sin tocar ninguna.
+ */
+export async function apiMonitoreoAulasPublicarMarcas(payload?: { aplicar?: boolean }) {
+  return handle<{
+    ok: true;
+    escritas: Array<{ codigo: string; hoja: string; fila: number }>;
+    respetadas: Array<{ codigo: string; hoja: string; habia: string }>;
+    sin_fila: string[];
+    por_hoja: Array<{ hoja: string; escribibles: number; celdas: number; respetadas: number }>;
+    aplicado: boolean;
+    mensaje: string;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/publicar-marcas", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload ?? { aplicar: true }),
+    }),
+  );
+}
+
+/**
+ * La conversación app↔Sheets que el sync de aulas corre cuando hay un
+ * `libro_sheets` recordado (unidad B7): LEE las hojas del equipo y RE-PUBLICA
+ * las de la app, en ese orden. El bloque viaja SOLO con destino recordado —
+ * ausente no significa «falló»: significa «no participa», y el sync se lee
+ * exactamente como siempre.
+ */
+export type MonitoreoAulasLibroConversacion = {
+  conversado: boolean;
+  /**
+   * Por qué no terminó. Lista ABIERTA: hoy `lectura_fallo` (no se publicó
+   * nada, para no pisar el remoto con datos viejos) y `publicacion_fallo`
+   * (lo leído SÍ quedó en sesión; solo la escritura falló).
+   */
+  motivo?: "lectura_fallo" | "publicacion_fallo" | string;
+  /**
+   * `documento_virgen`: la lectura volvió vacía porque el documento responde
+   * pero no tiene NINGUNA pestaña del libro. No es un fallo — se publica
+   * igual (la siembra crea las hojas) y `leido` viene null.
+   */
+  motivo_lectura?: "documento_virgen" | string;
+  mensaje?: string;
+  /** La mitad leída, sin las listas pesadas (plan/partes/control ya viajan en `state`). */
+  leido?: {
+    fusion?: { actualizadas: number; nuevas: number; intactas: number } | null;
+    hojas_ausentes?: string[];
+    control_sin_nombre?: number[];
+    agenda_campos_ausentes?: string[];
+    resumen?: Partial<{
+      unidades: number;
+      titulares: number;
+      reservas: number;
+      contactadas: number;
+      partes_de_campo: number;
+      filas_de_control: number;
+    }>;
+  } | null;
+  /** La mitad publicada: la misma forma por hoja que `apiMonitoreoAulasPublicarLibro`. */
+  publicado?: {
+    hojas?: MonitoreoAulasHojaPublicada[];
+    spreadsheet_url?: string;
+    updated_at?: string;
+    /**
+     * Vacío cuando todo fue bien; el código de error de Sheets («#REF!»,
+     * «#N/A»…) cuando la celda del área del «Plan del día» quedó rota. El
+     * publicador lee la celda que acaba de escribir: antes decía «actualizada»
+     * sobre un bloque roto y sólo se veía abriendo el documento.
+     */
+    plan_dia_formula_error?: string;
+  } | null;
+};
+
+/**
+ * OJO: el `dashboard` de esta respuesta es PRE-conversación — lo que la
+ * conversación importó ya está en `state`, pero el tablero se construyó antes
+ * y se refresca en el siguiente rebuild.
+ */
+/**
+ * Una de las cinco tablas de «Avance de campo», tal como la publica el motor.
+ *
+ * **El contrato de formato viaja CON los datos, a propósito.** El front no
+ * decide qué columna es porcentaje ni de qué color va: si lo decidiera, habría
+ * dos respuestas a la misma pregunta y una acabaría mintiendo. Ya pasó con
+ * «Diferencia», que era encuestas en una tabla y puntos porcentuales en otra y
+ * salió publicado como «−3 500,0 %».
+ */
+export type MonitoreoAulasAvanceTabla = {
+  /** `general` · `facultad` · `rendimiento` · `aplicador` · `diario`. */
+  clave: string;
+  titulo: string;
+  /** La nota de encabezado; es la MISMA que escribe la hoja. No se reescribe. */
+  nota?: string;
+  /** La nota al pie, también de la hoja. */
+  nota_pie?: string;
+  /** `general` es la única traspuesta: una fila por concepto. */
+  traspuesta?: boolean;
+  cabecera: string[];
+  /** Por COLUMNA: qué es cada una. */
+  tipos?: Array<"texto" | "numero" | "porcentaje">;
+  /** Por COLUMNA: qué escala de color le toca. */
+  semaforos?: Array<"deposito" | "diferencia" | "meta_muestra" | "meta_sobremuestra" | "">;
+  /** Por FILA, sólo en la traspuesta: ahí la naturaleza la decide el renglón. */
+  tipos_fila?: Array<"numero" | "porcentaje">;
+  semaforos_fila?: Array<"deposito" | "diferencia" | "meta_muestra" | "meta_sobremuestra" | "">;
+  /**
+   * Las celdas. Una celda sin dato viaja como `null`, NO como «—»: el vacío se
+   * declara en cada pantalla y no se hereda el del Sheets. Los porcentajes
+   * viajan como proporción (0 a 1), no como 19.8; el `tipo` dice cuáles.
+   */
+  filas: Array<Array<string | number | null>>;
+  /** La fila de cierre; sólo en `facultad`. */
+  total?: Array<string | number | null>;
+  /** Cuando no hay filas: el motivo, ya redactado. */
+  vacio?: string;
+};
+
+/**
+ * Las cinco tablas de «Avance de campo» para la pantalla.
+ *
+ * Endpoint propio y no el estado (decisión del motor, 2026-09-08): estas cinco
+ * cruzan las respuestas con el plan aula por aula, y `/monitoreo/state` lo pide
+ * cada pantalla del perfil en cada refresco. Cobrarle ese cruce a vistas que no
+ * las miran sería caro; se piden al abrir la vista que las usa.
+ */
+export async function apiMonitoreoAulasAvanceTablas() {
+  return handle<{
+    ok: true;
+    corte?: string;
+    actualizado?: string;
+    titular?: string;
+    tablas: MonitoreoAulasAvanceTabla[];
+  }>(
+    await apiFetch("/api/monitoreo/aulas/avance-tablas", { headers: headers() }),
+  );
+}
+
 export async function apiMonitoreoAulasSync(responses?: MonitoreoRow[]) {
-  return handle<{ ok: true; synced_at: string; dashboard: MonitoreoAulasDashboard; state: MonitoreoState }>(
+  return handle<{
+    ok: true;
+    synced_at: string;
+    dashboard: MonitoreoAulasDashboard;
+    state: MonitoreoState;
+    libro_conversacion?: MonitoreoAulasLibroConversacion;
+    /** Lo que el sync retiró de la distribución de aplicadores (ya aplicadas o cerradas). */
+    distribucion_retiro?: {
+      ok?: boolean; retiradas?: number; mensaje?: string;
+      filas?: Array<{ pestana?: string; codigo?: string; fecha?: string }> | null;
+    };
+  }>(
     await apiFetch("/api/monitoreo/aulas/sync", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),

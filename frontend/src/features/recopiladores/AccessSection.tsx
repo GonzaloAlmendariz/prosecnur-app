@@ -77,9 +77,9 @@ function targetFromFields(
     asset_type: adapterId === "kobo_existing_v1" ? fields.assetType || null : null,
     deployment_active: adapterId === "kobo_existing_v1" ? fields.active : null,
     type: adapterId === "surveymonkey_weblink_existing_v1" ? "web_link" : null,
-    // Sin valor, el motor decide sola: ruta XPath completa si el Asset UID
-    // se conoce, nombre pelado si no. Este campo es la salida de escape
-    // explicita, no el camino por defecto.
+    // Sin valor, el motor usa el nombre pelado (`collectorID`), que es el del
+    // enlace que corrió en campo en 2025. Este campo es la salida de escape
+    // para quien necesite la ruta XPath completa, no el camino por defecto.
     prefill_field: adapterId === "kobo_existing_v1" ? fields.prefillField || null : null,
     return_url: adapterId === "kobo_existing_v1" ? fields.returnUrl || null : null,
     custom_variable: adapterId === "surveymonkey_weblink_existing_v1" ? fields.customVariable || null : null,
@@ -296,7 +296,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
               <input
                 value={prefillField}
                 onChange={(event) => setPrefillField(event.target.value)}
-                placeholder={remoteId ? `/${remoteId}/collectorID` : "collectorID"}
+                placeholder="collectorID"
               />
             </label>
             <label>Return URL

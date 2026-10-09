@@ -24,14 +24,14 @@ graficar_nube_palabras <- function(
     max_palabras = 40,
     min_chars = 3,
     seed = 123,
-    colores_palabras = c("#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#7594CC", "#9688D3"),
+    colores_palabras = NULL,
     font_family = "Arial",
     size_titulo = 16,
     size_subtitulo = 12,
     size_nota_pie = 10,
-    color_titulo = "#CA5651",
-    color_subtitulo = "#081F5C",
-    color_nota_pie = "#081F5C",
+    color_titulo = .std_color("coral"),
+    color_subtitulo = .std_color("azul"),
+    color_nota_pie = .std_color("azul"),
     ...
 ) {
   if (!is.data.frame(data)) stop("`data` debe ser data.frame.", call. = FALSE)
@@ -60,10 +60,12 @@ graficar_nube_palabras <- function(
     x <- gsub("https?://\\S+|www\\.\\S+", " ", x, perl = TRUE, ignore.case = TRUE)
     x <- gsub("\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b", " ", x, perl = TRUE, ignore.case = TRUE)
     x <- gsub("\\+?\\d[\\d\\s().-]{6,}\\d", " ", x, perl = TRUE)
-    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
-    x[is.na(x)] <- ""
+    # Se conservan las tildes, como la nube del recetario («formación», «gestión»). Transliterar a ASCII fuera de un
+    # locale UTF-8 dejaba la tilde como un carácter que el filtro siguiente tomaba por separador: «gestión» salía
+    # «gesti» y «académico», «acad» y «emico».
+    x <- enc2utf8(x); x[is.na(x)] <- ""
     x <- tolower(x)
-    x <- gsub("[^[:alpha:] ]+", " ", x, perl = TRUE)
+    x <- gsub("[^\\p{L}\\s]+", " ", x, perl = TRUE)
     trimws(gsub("\\s+", " ", x, perl = TRUE))
   }
 
@@ -112,7 +114,7 @@ graficar_nube_palabras <- function(
     tok <- tokens[[i]]
     tok <- tok[nzchar(tok)]
     tok <- tok[nchar(tok, type = "chars") >= min_chars]
-    tok <- tok[!tok %in% stopwords_es]
+    tok <- tok[!chartr("áéíóúüñ", "aeiouun", tok) %in% stopwords_es]   # las palabras vacías se escriben sin tilde
     if (!length(tok)) return(NULL)
     data.frame(palabra = tok, n = rep(weights[i], length(tok)), stringsAsFactors = FALSE)
   }))
@@ -149,29 +151,43 @@ graficar_nube_palabras <- function(
     size <- 4.8 + (words$n - rng[1]) / diff(rng) * 8.2
   }
 
-  colores_palabras <- as.character(colores_palabras)
+  # Color: el que declare el analista; si no, el degradado del recetario (recetario_graficos2.R:29): cinco azules
+  # del claro al marino por cuartil de menciones, así la palabra más dicha es también la más oscura.
+  colores_palabras <- as.character(colores_palabras %||% character(0))
   colores_palabras <- colores_palabras[!is.na(colores_palabras) & nzchar(trimws(colores_palabras))]
-  if (!length(colores_palabras)) colores_palabras <- "#081F5C"
+  # La paleta cíclica de fábrica (azul, rojo, verde, amarillo, azul secundario, morado) viaja en los proyectos
+  # guardados: si llega tal cual, no es una decisión del analista y rige el degradado.
+  fabrica <- toupper(unname(unlist(.PULSO_PPT_COLORS[c("azul", "rojo", "verde", "amarillo", "azul_secundario", "morado")])))
+  if (length(colores_palabras) == 6L && identical(toupper(colores_palabras), fabrica)) colores_palabras <- character(0)
+  color_palabra <- if (length(colores_palabras)) rep_len(colores_palabras, n_words) else {
+    cortes <- unique(stats::quantile(words$n, seq(0, 1, 0.25), names = FALSE))
+    tramo <- if (length(cortes) > 1L) cut(words$n, breaks = cortes, include.lowest = TRUE, labels = FALSE) else rep(5L, n_words)
+    grDevices::colorRampPalette(c("#8EA3C6", .std_color("azul")))(5)[pmin(5L, pmax(1L, tramo))]
+  }
 
   plot_df <- data.frame(
     x = x,
     y = y,
     palabra = words$palabra,
     size = size,
-    color = rep_len(colores_palabras, n_words),
+    color = color_palabra,
     stringsAsFactors = FALSE
   )
 
-  ggplot2::ggplot(plot_df, ggplot2::aes(.data$x, .data$y)) +
-    ggplot2::geom_text(
-      ggplot2::aes(label = .data$palabra, size = .data$size, color = .data$color),
-      family = font_family,
-      fontface = "bold",
-      show.legend = FALSE
-    ) +
-    ggplot2::scale_size_identity() +
+  # Con ggwordcloud, la nube del recetario: cada palabra donde cabe sin pisar a otra, de 11 a 46 pt según sus
+  # menciones (recetario_graficos2.R:27-33). Sin el paquete, la espiral de siempre.
+  capa <- if (requireNamespace("ggwordcloud", quietly = TRUE)) {
+    plot_df$n <- words$n
+    list(ggwordcloud::geom_text_wordcloud(ggplot2::aes(label = .data$palabra, size = .data$n, color = .data$color), family = font_family,
+                                          fontface = "bold", rm_outside = TRUE, eccentricity = 0.55, grid_margin = 2.4, seed = 7),   # 2.4 y no 0.7: con 0.7 y 1.6 se pegaban o chocaban palabras; con 2.4, 2.1 pt o más en seis semillas y 40 de 40
+         ggplot2::scale_size(range = c(11, 46) / ggplot2::.pt, guide = "none"))
+  } else {
+    list(ggplot2::geom_text(ggplot2::aes(x = .data$x, y = .data$y, label = .data$palabra, size = .data$size, color = .data$color),
+                            family = font_family, fontface = "bold", show.legend = FALSE),
+         ggplot2::scale_size_identity(), ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE))
+  }
+  p_out <- ggplot2::ggplot(plot_df) + capa +
     ggplot2::scale_color_identity() +
-    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
     ggplot2::labs(title = titulo, subtitle = subtitulo, caption = nota_pie) +
     ggplot2::theme_void(base_family = font_family) +
     ggplot2::theme(
@@ -180,4 +196,7 @@ graficar_nube_palabras <- function(
       plot.caption = ggplot2::element_text(color = color_nota_pie, size = size_nota_pie, hjust = 0),
       plot.margin = ggplot2::margin(4, 4, 4, 4)
     )
+  # ADR 0093 (N6): la nube va en la lámina del recetario (antetítulo, título y pie nativos), a todo el ancho.
+  attr(p_out, "pulso_espec") <- .espec_ggplot_marco("nube", nota = nota_pie, lectura = "El tamaño crece con las menciones")
+  p_out
 }

@@ -1,0 +1,78 @@
+/* «Avance diario»: barras del día y línea del acumulado, cada una con su eje.
+   Hoja propia porque `aulasMonitoreo.css` está congelada a crecimiento.
+
+   Los colores van en la HOJA y no en el SVG: el boceto traía `#4f7cbf` y
+   `#002457` a mano, que son exactamente `--pulso-accent-steel` y
+   `--pulso-primary`. Escribirlos en el atributo habría metido dos hex en un
+   feature, que es lo que la casa prohíbe, y además habría perdido el tono del
+   módulo, que es de donde `--pulso-primary` toma su valor aquí. */
+.mon-profile-page.is-aulas-flow .aulas-avdia { min-width: 0; }
+
+/* **El dibujo llena el panel.** Con el ancho calculado a partir de los días
+   —tres jornadas daban 420 px— quedaban 735 px de panel en blanco a la derecha,
+   medido el 2026-09-10. El `viewBox` fija las proporciones y este 100 % las
+   estira hasta donde haya sitio. */
+.mon-profile-page.is-aulas-flow .aulas-avdia > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avdia-regla {
+  stroke: color-mix(in srgb, var(--pulso-border) 70%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avdia-barra {
+  fill: var(--pulso-accent-steel);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avdia-linea {
+  stroke: var(--pulso-primary);
+  stroke-width: 1.75;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avdia-punto { fill: var(--pulso-primary); }
+
+.mon-profile-page.is-aulas-flow .aulas-avdia-eje {
+  /* 10 px y no los 9,5 del boceto: el perfil declara su suelo tipográfico y el
+     guard lo sujeta. Medio píxel no compra nada y abrir el suelo por un rótulo
+     de eje lo abre para todo lo demás. */
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cada rótulo de eje del color de SU serie: es lo que impide leer la línea
+   contra la escala de las barras. */
+.mon-profile-page.is-aulas-flow .aulas-avdia-eje.es-dia { fill: var(--pulso-accent-steel); }
+.mon-profile-page.is-aulas-flow .aulas-avdia-eje.es-acumulado { fill: var(--pulso-primary); }
+
+.mon-profile-page.is-aulas-flow .aulas-avdia-valor {
+  fill: var(--pulso-text);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avdia-fecha {
+  fill: var(--pulso-text-soft);
+  /* 9,5 px chocaría con el suelo de la escala tipográfica del perfil; 10 es el
+     mínimo, y con las fechas giradas ya no hace falta bajar de ahí. */
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un día sin campo —el domingo— se dibuja igual pero apagado: saber que ese día
+   no se trabajó es parte de leer el ritmo, y saltarlo dejaría huecos de ancho
+   distinto que romperían la alineación con el gráfico de abajo. */
+.mon-profile-page.is-aulas-flow .aulas-avdia-fecha.es-sin-campo {
+  fill: var(--pulso-text-faint);
+}
+
+/* El mes, bajo el día y sólo donde cambia: repetido en los veinticinco rótulos
+   era ruido, y quitarlo del todo dejaba un eje de números sin unidad. */
+.mon-profile-page.is-aulas-flow .aulas-avdia-mes {
+  fill: var(--pulso-text-faint);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

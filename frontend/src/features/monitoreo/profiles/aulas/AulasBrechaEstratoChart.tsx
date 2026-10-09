@@ -6,11 +6,37 @@ import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { fuenteDeEjeAulas } from "./ejesDeAulas";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { brechaPorEstrato } from "./brechaPorEstrato";
+import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { fmt } from "./kpisDeAulas";
 
 /** El mismo formato que el resto del perfil: «3,743» y no «3743». */
 
 /**
+ * ⚠ SIN MONTAR desde el 2026-08-29.
+ *
+ * Dibujaba el estrato del SORTEO —`FACULTAD / F / G3`, que la etiqueta traduce
+ * como «mayoría mujeres · 41 alumnos o más»— y ese sexo es el dominante del
+ * aula, no el del alumno. Gonzalo: «cómo vas a poner mayoría hombres o mayoría
+ * mujeres cuando eso no me interesa; lo que me interesa es cuántos hombres y
+ * cuántas mujeres». El panel pasó a `AulasSexoPorFacultadChart`, que sale de la
+ * celda de cuota.
+ *
+ * **No se borra sin decidirlo aparte.** La lectura por estrato de diseño sigue
+ * siendo válida para otra pregunta —si el sorteo cubrió sus grupos— y ese es un
+ * panel que no existe todavía. Si se decide que no hace falta, se borra con su
+ * test y su entrada en `componentesSinMontar`.
+ *
+ * **Y si se decide montarlo, su denominador hay que decirlo.** Medido el
+ * 2026-08-30 sobre `HSVG2026_sem15_como_2025`: los 72 estratos suman **891** de
+ * brecha, mientras el estudio entero debe **170**. Las válidas coinciden —2.668
+ * en los dos— así que no es un error de cuenta: el estrato es
+ * `facultad / sexo / tamaño` y sus brechas no se compensan entre grupos de
+ * tamaño, mientras la cuota se mide sobre `facultad / sexo`. Montado tal cual, y
+ * como este componente publica `brechaTotal`, la pantalla diría «faltan 891» a
+ * dos paneles de un «faltan 170» sin nada que los reconcilie: exactamente la
+ * clase de contradicción que ya obligó a renombrar los dos «Cumplimiento» de
+ * Avance.
+ *
  * Dónde falta más, de un vistazo.
  *
  * La tabla de `avance_por_estrato` trae los mismos números, pero contesta mal la
@@ -58,10 +84,13 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
     {
       type: "bar",
       orientation: "h",
-      // `CANTIDAD DE EFECTIVAS` es la columna del parte de campo; «Recogidas»
-      // era mío.
+      // «Efectivas» por D-L12: la respuesta que pasa los filtros se llama
+      // efectiva. La cifra es `respuestas_validas` —la efectiva de PLATAFORMA—,
+      // no `CANTIDAD DE EFECTIVAS`, que es la columna del parte de campo y otra
+      // cuenta (una versión anterior de este comentario citaba esa columna como
+      // procedencia, y era la equivocada). «Recogidas» era mío.
       name: "Efectivas",
-      y: orden.map((e) => e.estrato),
+      y: orden.map((e) => etiquetaDeEstrato(e.estrato)),
       x: orden.map((e) => e.validas),
       marker: { color: COLOR_RESULTADO.efectiva },
       hovertemplate: "%{y}: %{x} efectivas<extra></extra>",
@@ -70,7 +99,7 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
       type: "bar",
       orientation: "h",
       name: "Faltan",
-      y: orden.map((e) => e.estrato),
+      y: orden.map((e) => etiquetaDeEstrato(e.estrato)),
       x: orden.map((e) => e.brecha),
       marker: { color: COLOR_RESULTADO.parcial },
       text: orden.map((e) => (e.brecha ? String(e.brecha) : "")),
@@ -87,13 +116,16 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
       <PlotlyChart
         data={data}
         height={Math.max(200, 34 * orden.length + 56)}
-        ariaLabel="Respuestas recogidas y brecha por estrato"
+        // «Efectivas», como la leyenda y el hover: el mismo eje con tres
+        // nombres —«Respuestas recogidas», «respuestas», «efectivas»— era un
+        // tercer rótulo para la misma cifra.
+        ariaLabel="Efectivas y brecha por estrato"
         layout={{
           // La escala de eje del perfil, no el default compartido de Plotly.
           font: fuenteDeEjeAulas(),
           barmode: "stack",
           margin: { l: 8, r: 52, t: 30, b: 28 },
-          xaxis: { title: { text: "respuestas" }, zeroline: false, fixedrange: true },
+          xaxis: { title: { text: "efectivas" }, zeroline: false, fixedrange: true },
           yaxis: { automargin: true, fixedrange: true },
           // `PlotlyChart` esconde la leyenda por defecto —casi todos sus usos
           // tienen una serie— y aquí sin ella el verde no se explica: la barra
@@ -102,7 +134,9 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
           showlegend: true,
           // `traceorder: normal`: apilado, Plotly invierte la leyenda y la
           // dejaba como «Faltan · Recogidas», al revés de como se lee la barra.
-          legend: { orientation: "h", y: 1.16, x: 0, traceorder: "normal" },
+          // E17: leyenda que informa, no que filtra (mismo motivo que en el
+          // chart de estado — el toggle re-escala y engaña).
+          legend: { orientation: "h", y: 1.16, x: 0, traceorder: "normal", itemclick: false, itemdoubleclick: false },
           bargap: 0.3,
         }}
         config={{ displayModeBar: false, responsive: true }}

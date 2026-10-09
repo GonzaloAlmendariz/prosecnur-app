@@ -1,0 +1,270 @@
+# **El encabezado dice de qué sirve cada columna, por color.**
+#
+# Dictado 2026-09-04: «en Aulas Aplicadas Campo tiene que haber paleta de
+# colores para los encabezados en función de la función que tenga… se tiene que
+# distinguir lo que viene de la agenda de lo que es genuinamente de campo, lo
+# que se debe llenar manualmente de lo que se llena en automático».
+#
+# El contraste se MIDE, como en `test-carga-aulas-libro-color-eslabon.R`: pinear
+# un hex sólo congela lo que hoy hay escrito, y lo que la hoja promete es que su
+# cabecera se pueda LEER.
+
+.tcf_luminancia <- function(hex) {
+  canal <- grDevices::col2rgb(hex)[, 1] / 255
+  lineal <- ifelse(canal <= 0.03928, canal / 12.92, ((canal + 0.055) / 1.055)^2.4)
+  sum(c(0.2126, 0.7152, 0.0722) * lineal)
+}
+
+.tcf_contraste <- function(a, b) {
+  la <- .tcf_luminancia(a); lb <- .tcf_luminancia(b)
+  (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+}
+
+test_that("las cuatro funciones se leen: texto normal sobre su fondo", {
+  for (nombre in names(AULAS_LIBRO_FUNCION_COLUMNA)) {
+    spec <- AULAS_LIBRO_FUNCION_COLUMNA[[nombre]]
+    # 4.5 es el umbral de texto normal; la cabecera va en negrita, así que el
+    # margen es real y no el 3.0 de texto grande con el que se conforma la
+    # banda de eslabón.
+    expect_gte(.tcf_contraste(spec$fill, spec$texto), 4.5)
+  }
+})
+
+test_that("las cuatro se distinguen ENTRE SÍ, que es de lo que va la paleta", {
+  fondos <- vapply(AULAS_LIBRO_FUNCION_COLUMNA, function(s) s$fill, character(1))
+  distancia <- function(a, b) sum(abs(grDevices::col2rgb(a)[, 1] - grDevices::col2rgb(b)[, 1]))
+  pares <- utils::combn(fondos, 2)
+  for (i in seq_len(ncol(pares))) {
+    expect_gte(distancia(pares[1, i], pares[2, i]), 24)
+  }
+})
+
+test_that("la cabecera de «lo pone la app» habla igual que sus celdas de abajo", {
+  # El gris de las columnas de la app ya existía en las filas de DATOS
+  # (`#F2F4F7` con texto `#5B6472`). Que la cabecera use el mismo par es lo que
+  # hace que la columna se lea entera como un bloque, y no como dos cosas.
+  expect_equal(AULAS_LIBRO_FUNCION_COLUMNA$app$fill, "#F2F4F7")
+  expect_equal(AULAS_LIBRO_FUNCION_COLUMNA$app$texto, "#5B6472")
+})
+
+test_that("cada columna del bloque cae en su función, y el reparto se repite por eslabón", {
+  agenda <- c("A1", "A2", "A3")
+  campo <- c("MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES", "APLICADOR",
+             "% ASISTENCIA", "OBSERVACIONES SOBRE APLICACIONES")
+  # Bloque = 1 (ID MATCH) + 3 agenda + 5 campo = 9 columnas.
+  tramos <- aulas_libro_funciones_de_columna(agenda, campo, bloques = 2L)
+  por <- setNames(lapply(tramos, function(t) t$cols), vapply(tramos, function(t) t$funcion, character(1)))
+
+  # ID MATCH (1) y los dos denominadores (5 y 6) son de la app, y otro tanto
+  # nueve columnas más allá en el segundo bloque.
+  expect_equal(por$app, c(1L, 5L, 6L, 10L, 14L, 15L))
+  # El eco de la agenda: las tres de en medio.
+  expect_equal(por$agenda, c(2L, 3L, 4L, 11L, 12L, 13L))
+  # `% ASISTENCIA` sale de una fórmula, no del aplicador.
+  expect_equal(por$calculada, c(8L, 17L))
+  # Y lo que se teclea en campo: aplicador y observaciones.
+  expect_equal(por$campo, c(7L, 9L, 16L, 18L))
+})
+
+test_that("el reparto se hace por NOMBRE, así que reordenar los títulos no mueve el color", {
+  agenda <- c("A1")
+  # `% ASISTENCIA` cambia de sitio; su columna nueva tiene que seguir siendo la
+  # calculada. Pinear posiciones era exactamente el defecto que esto evita.
+  campo <- c("% ASISTENCIA", "APLICADOR", "MATRICULADOS ELEGIBLES")
+  tramos <- aulas_libro_funciones_de_columna(agenda, campo, bloques = 1L)
+  por <- setNames(lapply(tramos, function(t) t$cols), vapply(tramos, function(t) t$funcion, character(1)))
+  expect_equal(por$calculada, 3L)
+  expect_equal(por$campo, 4L)
+  expect_equal(por$app, c(1L, 5L))
+})
+
+test_that("una función sin columnas no produce tramo vacío", {
+  tramos <- aulas_libro_funciones_de_columna(c("A1"), c("APLICADOR"), bloques = 1L)
+  funciones <- vapply(tramos, function(t) t$funcion, character(1))
+  # Sin denominadores ni calculadas, sólo quedan app (el ID MATCH), agenda y campo.
+  expect_false("calculada" %in% funciones)
+  expect_setequal(funciones, c("app", "agenda", "campo"))
+})
+
+test_that("sobre los títulos REALES, cada columna del bloque cae en una sola función", {
+  # La invariante que importa: ninguna columna se queda sin color y ninguna
+  # recibe dos. Con los títulos de verdad, que son los que se van a pintar.
+  agenda <- .calg_titulos_agenda()
+  campo <- .calg_titulos_campo()
+  ancho <- 1L + length(agenda) + length(campo)
+  tramos <- aulas_libro_funciones_de_columna(agenda, campo, bloques = 3L)
+  todas <- unlist(lapply(tramos, function(t) t$cols))
+  expect_equal(sort(todas), seq_len(ancho * 3L))
+  expect_equal(anyDuplicated(todas), 0L)
+})
+
+test_that("«% ASISTENCIA» es calculada y «STATUS DE APLICACIÓN» se llena en campo", {
+  # Los dos casos que el dictado nombra: lo que se llena a mano frente a lo que
+  # sale solo. Si alguien mueve uno de bando, aquí se ve.
+  agenda <- .calg_titulos_agenda()
+  campo <- .calg_titulos_campo()
+  tramos <- aulas_libro_funciones_de_columna(agenda, campo, bloques = 1L)
+  por <- stats::setNames(lapply(tramos, function(t) t$cols),
+                         vapply(tramos, function(t) t$funcion, character(1)))
+  base <- 1L + length(agenda)
+  expect_true((base + which(campo == "% ASISTENCIA")) %in% por$calculada)
+  expect_true((base + which(campo == "STATUS DE APLICACIÓN")) %in% por$campo)
+  expect_true((base + which(campo == "MATRICULADOS TOTAL DTI")) %in% por$app)
+  # Y el eco de la agenda incluye STATUS MUESTRA, que se decide en la otra hoja.
+  expect_true((1L + which(agenda == "STATUS MUESTRA")) %in% por$agenda)
+})
+
+# ── Los tres estados de la cadena y la columna que los completa ───────────────
+#
+# Dictado 2026-09-04: «los estatus de aplicación deberían contemplar estatus
+# como Reemplazada por para A y Complementado con para B», con «Reforzado con»
+# para C, «y debemos tener una columna adicional con algo así como AULA
+# UTILIZADA que le diga al usuario cuál fue el reemplazo que usamos, al lado de
+# status muestra».
+
+test_that("el desplegable de aplicación distingue las tres situaciones", {
+  expect_true(all(c("APLICADA", "NO APLICADA") %in% AULAS_LIBRO_STATUS_APLICACION))
+  # A, B y C. Los tres terminan en preposición porque piden AULA UTILIZADA.
+  # **Dos vocabularios, no uno** (dictado 2026-09-09). El titular puede haber
+  # sido reemplazado o complementado y necesita decir por CUÁL; un reemplazo o
+  # un extra no reemplaza a nadie desde su propia fila: lo que puede ser es la
+  # aplicación de refuerzo, y ésa se explica sola.
+  expect_true("REEMPLAZADA POR" %in% aulas_libro_status_aplicacion_de(1L))
+  expect_true("COMPLEMENTADA CON" %in% aulas_libro_status_aplicacion_de(1L))
+  expect_false("APLICADA DE REFUERZO" %in% aulas_libro_status_aplicacion_de(1L))
+  expect_true("APLICADA DE REFUERZO" %in% aulas_libro_status_aplicacion_de(3L))
+  # Y al reemplazo NO se le ofrece marcar que reemplazó a alguien: sería marcar
+  # algo que no significa nada, y deja a dos filas de la misma cadena
+  # declarándose reemplazo la una de la otra.
+  expect_false("REEMPLAZADA POR" %in% aulas_libro_status_aplicacion_de(3L))
+  expect_false("COMPLEMENTADA CON" %in% aulas_libro_status_aplicacion_de(3L))
+  # «REFORZADA CON» ya no existe: no era un estado del titular.
+  expect_false("REFORZADA CON" %in% AULAS_LIBRO_STATUS_APLICACION)
+})
+
+test_that("AULA UTILIZADA va PEGADA a STATUS MUESTRA, que es donde se lee", {
+  titulos <- .calg_titulos_agenda()
+  i <- which(titulos == "STATUS MUESTRA")
+  expect_length(i, 1L)
+  expect_equal(titulos[[i + 1L]], "AULA UTILIZADA")
+})
+
+# **Por qué estos fixtures llevan `activated_at`.** Se escribieron cuando
+# `replacement_for` parecía prueba de activación, y con datos reales no lo es: lo
+# pone el DISEÑO. Medido en CCSS Perfil 2026-II, las 85 reservas de cadena lo
+# traen con `activated_at` vacío y todo en «SIN CONTACTAR», así que la columna
+# salía con la cadena entera de cada titular el primer día —y llegó al Sheets del
+# operativo—. Gonzalo, 2026-09-17: «AULA UTILIZADA se usa sólo cuando el aula es
+# reemplazada o complementada con otra CH», y «puede ser que se use la titular y
+# no haga falta ni complementar ni reemplazar». Lo que estas pruebas querían
+# comprobar —que el titular sabe qué reserva ocupó su lugar— sigue igual; lo que
+# les faltaba era declarar que la reserva ENTRÓ. El caso de sólo-diseño está en
+# `test-carga-aulas-libro-generar.R`.
+
+test_that("AULA UTILIZADA la llena el coordinador: su celda va BLANCA", {
+  # Nació como columna de la app y el dictado del 2026-09-08 la devolvió a la
+  # persona: «lo apruebo, pero es algo que lo hace el coordinador de campo». Si
+  # se quedara fuera de los campos de la persona saldría gris —«esto no lo
+  # toques»— sobre la única columna que él tiene que llenar.
+  expect_true("aula_utilizada" %in% AULAS_LIBRO_CAMPOS_DE_LA_PERSONA)
+  # Y sigue sin ser suya en exclusiva: la app la siembra con lo que ya sabe.
+  sembrado <- aulas_libro_anotar_aula_utilizada(list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2",
+         sample_role = "chain_reserve", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
+  ))
+  expect_equal(sembrado[[1]]$aula_utilizada, "R 1.1")
+  # Pero lo tecleado manda: la siembra no pisa la verdad de campo.
+  tecleado <- aulas_libro_anotar_aula_utilizada(list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         aula_utilizada = "R 9.9 (a mano)"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2",
+         sample_role = "chain_reserve", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
+  ))
+  expect_equal(tecleado[[1]]$aula_utilizada, "R 9.9 (a mano)")
+})
+
+test_that("el titular sabe qué reserva ocupó su lugar", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", sample_role = "chain_reserve",
+         replacement_for = "aula_1", activated_at = "2026-09-17T10:00:00Z")
+  )
+  out <- aulas_libro_anotar_aula_utilizada(plan)
+  expect_equal(out[[1]]$aula_utilizada, "R 1.1")
+  # La reserva no se anota a sí misma: ella ES la usada.
+  expect_null(out[[2]]$aula_utilizada)
+})
+
+test_that("si entraron VARIAS se listan todas: esconder la segunda mentiría", {
+  # Es el caso B/C, donde el titular no sale y pueden sumarse dos reservas.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z"),
+    list(operational_code = "R 1.2", classroom_id = "aula_3", replacement_for = "aula_1",
+         activated_at = "2026-09-17T11:00:00Z")
+  )
+  expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 1.1, R 1.2")
+})
+
+test_that("lo ya escrito en el libro manda: la app no lo pisa", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", aula_utilizada = "R 9.9"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
+  )
+  expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 9.9")
+})
+
+test_that("un plan sin ningún reemplazo activado sale intacto", {
+  plan <- list(list(operational_code = "CH 1", classroom_id = "aula_1"))
+  expect_identical(aulas_libro_anotar_aula_utilizada(plan), plan)
+  expect_identical(aulas_libro_anotar_aula_utilizada(list()), list())
+})
+
+# **Cuál de los tres casos es, derivado del estado del titular.**
+#
+# Los tres los distinguía el operativo de boca (dictado 2026-09-03: «yo sé que
+# se llaman reemplazos, pero no siempre reemplazan en ese sentido de la
+# palabra») y el libro los escribía todos igual.
+test_that("el titular que CAYÓ sale como REEMPLAZADA POR", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         operational_status = "reemplazada"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
+  )
+  out <- aulas_libro_anotar_aula_utilizada(plan)
+  expect_equal(out[[1]]$estado_aplicacion, "REEMPLAZADA POR")
+  expect_equal(out[[1]]$aula_utilizada, "R 1.1")
+})
+
+test_that("el titular que sigue VIVO sale como COMPLEMENTADA CON", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         operational_status = "agendada"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
+  )
+  expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$estado_aplicacion,
+               "COMPLEMENTADA CON")
+})
+
+test_that("lo tecleado en campo manda sobre lo derivado", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         operational_status = "reemplazada", estado_aplicacion = "APLICADA"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
+  )
+  expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$estado_aplicacion, "APLICADA")
+})
+
+test_that("sin reserva usada no se deriva estado: el aula sigue POR APLICAR", {
+  plan <- list(list(operational_code = "CH 1", classroom_id = "aula_1",
+                    operational_status = "agendada"))
+  expect_null(aulas_libro_anotar_aula_utilizada(plan)[[1]]$estado_aplicacion)
+})

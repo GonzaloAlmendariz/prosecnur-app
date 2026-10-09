@@ -22,6 +22,37 @@ function token(nombre: string, respaldo: string) {
   return valor || respaldo;
 }
 
+/**
+ * La cifra que va SOBRE una barra no es un rotulo de eje.
+ *
+ * `layout.font` gobierna los ticks y, de paso, el texto de las barras: las
+ * cifras salian a 10 px como una marca de eje cualquiera. Pero el tick es
+ * mobiliario y el numero sobre la barra es **el dato** —lo que la persona vino
+ * a leer—, asi que va en la escala de lectura del perfil y con peso. Ademas un
+ * texto mas grande y semibold necesita menos contraste para leerse, que es la
+ * otra mitad del «no se ve» que se reporto desde la pantalla.
+ */
+export function fuenteDeCifraEnBarra(color: string | string[]) {
+  return { family: "system-ui, -apple-system, sans-serif", size: 12, weight: 600, color };
+}
+
+/**
+ * Un alto declarado en la hoja, en px, para quien necesita el numero en JS.
+ *
+ * Plotly exige el alto como numero, asi que no puede leerlo de CSS por su
+ * cuenta. Pero si el numero vive SOLO en el TSX, el vecino que tiene que
+ * emparejarse con el —el tope de la lista de facultades, que es CSS— acaba
+ * siendo una copia a mano en otro archivo. Fue exactamente lo que paso: 360
+ * aqui y 400 alla, y al crecer uno de los dos paneles la pareja se descaso 31 px.
+ *
+ * Con esto la hoja es la fuente y el TSX la lee. El respaldo mantiene el
+ * comportamiento de hoy si la hoja aun no esta aplicada.
+ */
+export function altoDeclarado(nombre: string, respaldo: number): number {
+  const px = Number.parseFloat(token(nombre, ""));
+  return Number.isFinite(px) && px > 0 ? px : respaldo;
+}
+
 /** La fuente de los ejes de aulas, para el `layout` de un `PlotlyChart`. */
 export function fuenteDeEjeAulas() {
   return {

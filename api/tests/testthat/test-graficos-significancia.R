@@ -215,7 +215,7 @@ test_that("un alpha invalido cae al 0,05 y no revienta el mazo", {
     activo = TRUE,
     alpha = "no-es-un-numero"
   )
-  expect_match(out$nota_pie_significancia, "alpha = 0.05")
+  expect_match(out$nota_pie_significancia, "α = 0.05", fixed = TRUE)
 })
 
 test_that("una base hija de repeat se reconoce como diseno cluster", {
@@ -555,4 +555,27 @@ test_that("un cruce de una sola serie no inventa un contraste", {
   )
   expect_null(out$sufijos_etiqueta)
   expect_true(nzchar(out$nota_pie_significancia))
+})
+
+test_that("las notas de significancia de los graficos salen con tildes", {
+  skip_if_not_installed("stringr")
+  con_letras <- .graficos_sig_nota(etiquetas_series = c("Hombres", "Mujeres"), alpha = 0.05, ancho = 200)
+  expect_match(con_letras, "corrección de Bonferroni, α = 0.05", fixed = TRUE)
+
+  sin_dif <- .graficos_sig_aplicar(
+    base_args = list(),
+    df_long = tibble::tibble(categoria = "Si", n_1 = 101, n_2 = 99),
+    cols_n = c(pct_1 = "n_1", pct_2 = "n_2"),
+    group_totals = c(pct_1 = 200, pct_2 = 200),
+    cols_porcentaje = c("pct_1", "pct_2"),
+    etiquetas_series = c(pct_1 = "Hombres", pct_2 = "Mujeres"),
+    activo = TRUE
+  )$nota_pie_significancia
+  expect_match(gsub("\\s+", " ", sin_dif), "resultó significativa (prueba z, corrección de Bonferroni", fixed = TRUE)
+
+  motivo <- .graficos_sig_motivo_abstencion("cluster", n_series = 2L, n_bases_validas = 2L)
+  expect_match(motivo, "el diseño tiene grupos repeat", fixed = TRUE)
+
+  todas <- c(con_letras, sin_dif, motivo)
+  expect_false(any(grepl("\\b(correccion|resulto|diseno)\\b|alpha =", todas, perl = TRUE)))
 })

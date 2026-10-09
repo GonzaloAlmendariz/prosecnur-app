@@ -275,8 +275,10 @@ test_that("el piso del eje estira la banda alta sin recortar ningun dato", {
                   valor = c(92.2, 98.0), n = c(51L, 51L))
   # `graficar_radar` toma los limites en escala 0-1.
   expect_equal(.radar_mb_capturar_args(d, eje_min = 50)$limites, c(0.5, 1))
-  # Cero = eje completo, que sigue siendo el defecto.
-  expect_equal(.radar_mb_capturar_args(d)$limites, c(0, 100))
+  # Cero = automático (ADR 0092, F2.7d): sin límites fijos, el graficador arranca
+  # el eje en el múltiplo de 5 bajo el mínimo, como el radar del recetario, y
+  # rotula los anillos para que el acercamiento quede a la vista.
+  expect_null(.radar_mb_capturar_args(d)$limites)
 
   # Un piso por encima del valor mas bajo baja hasta el, y lo dice. Dejarlo
   # dibujaria ese 42 % en el centro del radar, donde se lee como cero.

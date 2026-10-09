@@ -1,10 +1,14 @@
 source("setup-load-all.R")
 
-# B56/W-8 — la nota de Base declara el criterio cuando el denominador se
-# redujo por exclusión de opciones («Base: 47 docentes (respuestas válidas)»
-# vs «Base: 52 docentes»). Veredicto metodológico CAMBIAR; helper nuevo en
-# reporte_plan_base_criterio.R, hooks en .base_auto_from_var/.base_auto_from_refs
-# (reporte_plan_ppt.R, congelado a crecimiento).
+# B56/W-8, REVERTIDO 2026-08-25 — la marca «(respuestas válidas)» ya NO se
+# anexa por defecto: la cifra reducida («Base: 47» contra «Base: 52») ya dice
+# que hay menos, y repetirlo en palabras gasta el único renglón de la lámina
+# donde no sobra sitio. Decisión del dueño de entregables.
+#
+# Lo que esta suite fija ahora: (a) por defecto la nota NO lleva marca, aunque
+# el denominador esté reducido; (b) la DETECCIÓN de base reducida —que es la
+# parte cara: exclusión de opciones, no-respuesta, filtros, prorrateo
+# multiactor— sigue intacta y se comprueba activándola con `marcar = TRUE`.
 
 .bc_inst <- function(survey, choices) {
   list(survey = survey, choices = choices, orders_list = NULL)
@@ -62,7 +66,7 @@ test_that("exclusion activa marca la base con el criterio (var unica)", {
     .bc_docentes(), .bc_inst(.bc_survey_p1(), .bc_acuerdo_choices()),
     .bc_plan_var(overrides = list(excluir_opciones = "SIN INF"))
   )
-  expect_identical(.bc_bases(meta), "Base: 47 (respuestas válidas)")
+  expect_identical(.bc_bases(meta), "Base: 47")
 })
 
 test_that("exclusion activa compone sufijo_auto antes de la marca", {
@@ -71,7 +75,7 @@ test_that("exclusion activa compone sufijo_auto antes de la marca", {
     .bc_plan_var(overrides = list(excluir_opciones = "SIN INF")),
     presets = list(base = list(args = list(sufijo_auto = "docentes")))
   )
-  expect_identical(.bc_bases(meta), "Base: 47 docentes (respuestas válidas)")
+  expect_identical(.bc_bases(meta), "Base: 47 docentes")
 })
 
 test_that("sin exclusion la nota de Base queda byte-identica a la historica", {
@@ -112,7 +116,7 @@ test_that("multiactor prorrateado marca una sola vez al final", {
   # La marca es global y una sola: los N mostrados son los validos por parte.
   expect_identical(
     .bc_bases(meta),
-    "Base: 47 docentes y 150 estudiantes (respuestas válidas)"
+    "Base: 47 docentes y 150 estudiantes"
   )
 
   # Paridad prorrateada: sin exclusion, ni marca ni cambio alguno.
@@ -146,7 +150,7 @@ test_that("reporte multibase con grafico de una fuente marca la base rotulada", 
       )
     ))
   )
-  expect_identical(.bc_bases(meta), "Base: 47 docentes (respuestas válidas)")
+  expect_identical(.bc_bases(meta), "Base: 47 docentes")
 
   meta_sin <- .bc_meta(
     data_multi, inst_multi,
@@ -166,7 +170,7 @@ test_that("filtro + exclusion marcan sobre el universo ya filtrado", {
     )
   )
   # Grupo A: 26 casos, 2 SIN INF => 24 validas.
-  expect_identical(.bc_bases(meta), "Base: 24 (respuestas válidas)")
+  expect_identical(.bc_bases(meta), "Base: 24")
 
   # Filtro SOLO (sin exclusion) es una decision de disenio declarada del
   # estudio: no activa la marca y queda byte-identico al historico.
@@ -189,7 +193,7 @@ test_that("no-respuesta del item (NA) marca la base sin excluir_opciones", {
     docentes_na, .bc_inst(.bc_survey_p1(), .bc_acuerdo_choices()),
     .bc_plan_var()
   )
-  expect_identical(.bc_bases(meta), "Base: 47 (respuestas válidas)")
+  expect_identical(.bc_bases(meta), "Base: 47")
 
   # En reporte multibase, la lamina de una fuente rotulada tambien marca.
   estudiantes <- data.frame(p1 = rep(c("3", "4"), 75), stringsAsFactors = FALSE)
@@ -203,7 +207,7 @@ test_that("no-respuesta del item (NA) marca la base sin excluir_opciones", {
       grafico = p_barras_multiapiladas(modo = "var", vars = "docentes$p1")
     ))
   )
-  expect_identical(.bc_bases(meta_multi), "Base: 47 docentes (respuestas válidas)")
+  expect_identical(.bc_bases(meta_multi), "Base: 47 docentes")
 })
 
 test_that("select_multiple con no-marcadores tampoco lleva marca", {
@@ -298,7 +302,7 @@ test_that("bases ponderadas no dan falso positivo y marcan solo masa en NA", {
     docentes_w_na, .bc_inst(.bc_survey_p1(), .bc_acuerdo_choices()),
     .bc_plan_var()
   )
-  expect_identical(.bc_bases(meta_na), "Base: 47 (respuestas válidas)")
+  expect_identical(.bc_bases(meta_na), "Base: 47")
 })
 
 test_that("la marca de criterio es idempotente y con paridad exacta", {
@@ -307,17 +311,55 @@ test_that("la marca de criterio es idempotente y con paridad exacta", {
 
   expect_identical(componer(52), "Base: 52")
   expect_identical(componer(52, sufijo_auto = "docentes"), "Base: 52 docentes")
+  # Con la marca activada, la composición es la misma de siempre.
   expect_identical(
-    componer(47, sufijo_auto = "docentes", reducida = TRUE),
+    componer(47, sufijo_auto = "docentes", reducida = TRUE, marcar = TRUE),
     "Base: 47 docentes (respuestas válidas)"
   )
-  expect_identical(componer(1500, reducida = TRUE), "Base: 1,500 (respuestas válidas)")
+  expect_identical(componer(1500, reducida = TRUE, marcar = TRUE),
+                   "Base: 1,500 (respuestas válidas)")
   expect_identical(
-    componer(47, formato = "N = %s", reducida = TRUE),
+    componer(47, formato = "N = %s", reducida = TRUE, marcar = TRUE),
     "N = 47 (respuestas válidas)"
   )
+  # El separador de miles no depende de la marca.
+  expect_identical(componer(1500, reducida = TRUE), "Base: 1,500")
 
   # Idempotencia: recomponer/re-sellar no duplica la marca.
-  una_vez <- marcar("47 docentes", reducida = TRUE)
-  expect_identical(marcar(una_vez, reducida = TRUE), una_vez)
+  una_vez <- marcar("47 docentes", reducida = TRUE, marcar = TRUE)
+  expect_identical(marcar(una_vez, reducida = TRUE, marcar = TRUE), una_vez)
+})
+
+# ---------------------------------------------------------------------------
+# La capacidad sigue viva: lo que cambió es el default, no el mecanismo.
+# ---------------------------------------------------------------------------
+
+test_that("por defecto la base reducida no lleva marca", {
+  expect_identical(
+    .reporte_plan_base_componer_nota(47, "docentes", "Base: %s", reducida = TRUE),
+    "Base: 47 docentes"
+  )
+  # Idéntica a la de un denominador NO reducido: la cifra es la que informa.
+  expect_identical(
+    .reporte_plan_base_componer_nota(47, "docentes", "Base: %s", reducida = FALSE),
+    .reporte_plan_base_componer_nota(47, "docentes", "Base: %s", reducida = TRUE)
+  )
+})
+
+test_that("la marca se puede reactivar y compone igual que antes", {
+  expect_identical(
+    .reporte_plan_base_componer_nota(47, "docentes", "Base: %s",
+                                     reducida = TRUE, marcar = TRUE),
+    "Base: 47 docentes (respuestas válidas)"
+  )
+  # Sigue siendo idempotente: re-sellar no duplica la marca.
+  ya <- .reporte_plan_base_marca_criterio("47 docentes (respuestas válidas)",
+                                          reducida = TRUE, marcar = TRUE)
+  expect_identical(ya, "47 docentes (respuestas válidas)")
+  # Y sin base reducida no marca ni activada.
+  expect_identical(
+    .reporte_plan_base_componer_nota(52, "docentes", "Base: %s",
+                                     reducida = FALSE, marcar = TRUE),
+    "Base: 52 docentes"
+  )
 })

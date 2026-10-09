@@ -170,6 +170,36 @@
   line-height: 1.1;
 }
 
+/* Indicador accionable (ChromeIndicator con onClick): misma geometría que el
+ * dato; se distingue al pasar el mouse y con el foco, sin parecer otro botón. */
+.pulso-chrome-indicator.is-accion {
+  align-items: flex-start;
+  margin: 0;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.pulso-chrome-indicator.is-accion .pulso-chrome-indicator-value {
+  text-decoration: underline dotted color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, transparent);
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-chrome-indicator.is-accion:hover {
+    background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 10%, transparent);
+  }
+}
+
+.pulso-chrome-indicator.is-accion:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 1px;
+}
+
 /* La escalera, en el orden que preserva el significado. Lo primero que cede es
  * un indicador COMPLETO —etiqueta y valor juntos, con su dato a salvo en el
  * `title` del grupo— y la etiqueta de los que sobreviven es lo ÚLTIMO que se va.

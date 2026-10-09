@@ -54,23 +54,14 @@
 }
 
 .rec-cabecera-perfil {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-module-sample);
-  background: var(--pulso-module-sample-soft);
-  border: 1px solid var(--pulso-module-sample-border);
-  border-radius: 999px;
-  padding: 4px 10px;
-  max-width: 380px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 
 .rec-cabecera-perfil[data-fuente="proyecto"] {
-  color: var(--pulso-accent-green);
-  background: color-mix(in srgb, var(--pulso-accent-green) 8%, transparent);
-  border-color: color-mix(in srgb, var(--pulso-accent-green) 35%, transparent);
+  color: var(--pulso-success-fg);
 }
 
 .rec-badge-ejemplo {
@@ -1963,9 +1954,14 @@
     gap: 2px;
   }
 
+  /* Una fila con TODAS las cifras, sean cuantas sean: con `repeat(6, …)` y
+   * ocho cifras la banda se partía en 6 + 2 con celdas huérfanas (QA de
+   * aulas, 2026-09-24). */
   .rec-resumen,
   .rec-resumen[class] {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: none;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
   }
 
   .rec-resumen .rec-resumen-item {
@@ -1988,6 +1984,19 @@
     display: none;
   }
 
+  /* El desglose sobrevive a la franja corta, aunque las notas no.
+   *
+   * La regla de arriba deja caer la nota de procedencia para ganar alto, y el
+   * desglose es hermano suyo en el marcado, así que se iba con ella. Pero no es
+   * una nota: es de qué está hecho el número de arriba. Ocultarlo devuelve
+   * exactamente el problema que vino a resolver —«174» a secas, con tres
+   * decisiones indistinguibles— y lo devuelve en 1280x720 y 1024x600, dos de
+   * los cinco viewports de la matriz de QA. Cuesta una línea de 10px. */
+  .rec-resumen-item-copy > .rec-resumen-desglose {
+    display: flex;
+    font-size: 9px;
+  }
+
   .rec-resumen-item strong {
     font-size: 13px;
   }
@@ -2000,4 +2009,60 @@
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   letter-spacing: -0.005em;
+}
+
+/* De qué está hecha la cifra de aulas: «165 fórmula + 8 certeza + 1 operativa».
+ *
+ * Va entre el número y la nota de procedencia, y no la reemplaza: la nota dice
+ * de qué componente sale la cifra, y esto dice de qué decisiones está hecha.
+ * Son dos preguntas distintas y antes no se respondía ninguna —el 174 aparecía
+ * como un número plano y las tres decisiones eran indistinguibles—.
+ *
+ * Envuelve en vez de recortarse, por la misma razón que el nombre del KPI: en
+ * la franja el ancho lo reparte `1fr`, así que sólo crece el alto de la fila. */
+.rec-resumen-item-copy > .rec-resumen-desglose {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 3px;
+  min-width: 0;
+  /* Media talla por debajo de la nota: es una cifra de apoyo y compite con el
+   * número de arriba, no lo reemplaza. A 9px las tres partes entran en una sola
+   * línea dentro de una sexta parte de 1280 —donde a 10px envolvían— y siguen
+   * legibles en 1024. */
+  font-size: 9px;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: var(--pulso-text-muted);
+}
+
+.rec-resumen-desglose > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+/* El signo separa los sumandos sin competir con ellos. */
+.rec-resumen-desglose i {
+  font-style: normal;
+  opacity: 0.55;
+}
+
+.rec-resumen-desglose b {
+  color: var(--pulso-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lo que se apartó sin decir de dónde sale no puede verse igual que una
+ * decisión declarada: es lo único de esta línea que hay que ir a mirar. */
+.rec-resumen-desglose > span[data-parte="sinDeclarar"],
+.rec-resumen-desglose > span[data-parte="recorte"] {
+  color: var(--pulso-warn-fg);
+}
+
+.rec-resumen-desglose > span[data-parte="sinDeclarar"] b,
+.rec-resumen-desglose > span[data-parte="recorte"] b {
+  color: inherit;
 }

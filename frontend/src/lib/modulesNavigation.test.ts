@@ -350,7 +350,13 @@ describe("manifiesto primario de navegación", () => {
     // (2026-08-20): «Cursos-horario titulares» se parte en dos y lo operativo
     // deja de cargar con el porqué: nace «Solidez de la selección»
     // (`solidez`), justo después. 29 → 30.
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(30);
+    // (2026-08-27): Cálculo gana «¿Alcanza?» (`calculo-certeza`), la
+    // certificación por simulación, que sale de ser un panel dentro de
+    // «Cursos-horario requeridos» y pasa a pestaña propia y última. 30 → 31.
+    // (2026-08-27, ADR 0082): Selección gana «¿Este sorteo o otro?»
+    // (`aulas-rerandomizacion`), la última: aceptar o rechazar contra un
+    // criterio fijado antes de sortear. 31 → 32.
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(32);
     expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas.map((tab) => tab.id)).toEqual([
       "objetivo",
       "metodo",
@@ -361,6 +367,7 @@ describe("manifiesto primario de navegación", () => {
       "reemplazos",
       "aulas-relato",
       "auditoria",
+      "aulas-rerandomizacion",
     ]);
     expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(26);
     expect(DASHBOARD_PESTANAS).toHaveLength(4);

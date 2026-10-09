@@ -163,19 +163,19 @@ graficar_barras_numericas <- function(
     pos_nota_pie         = c("derecha", "izquierda", "centro"),
 
     # Estilo texto
-    color_titulo         = "#081F5C",
+    color_titulo         = .std_color("azul"),
     size_titulo          = 11,
-    color_subtitulo      = "#081F5C",
+    color_subtitulo      = .std_color("azul"),
     size_subtitulo       = 9,
-    color_nota_pie       = "#081F5C",
+    color_nota_pie       = .std_color("azul"),
     size_nota_pie        = 8,
-    color_leyenda        = "#081F5C",
+    color_leyenda        = .std_color("azul"),
     size_leyenda         = 8,
-    color_texto_barras   = "#081F5C",
+    color_texto_barras   = .std_color("azul"),
     color_texto_barras_interno = NULL,
     color_texto_barras_externo = NULL,
     size_texto_barras    = 3,
-    color_ejes           = "#081F5C",
+    color_ejes           = .std_color("azul"),
     size_ejes            = 9,
     color_fondo          = NA,
 
@@ -1017,7 +1017,7 @@ graficar_histograma <- function(
 
     font_family = "Arial",
     color_fondo = "transparent",
-    color_titulo = "#CA5651",
+    color_titulo = .std_color("coral"),
     color_subtitulo = "#06245C",
     color_nota_pie = "#06245C",
     size_titulo = 12,
@@ -1026,6 +1026,9 @@ graficar_histograma <- function(
     pos_y_subtitulo = 0.25,
     pos_titulo = "center",
     pos_nota_pie = "left",
+    # ADR 0092 (F2.7c): el histograma del recetario para una serie de valores
+    # enteros (graficador_histograma_recetario.R); "clasico" conserva el previo.
+    estilo = c("recetario", "clasico"),
 
     usar_canvas = TRUE,
     canvas_h_title = 0.12,
@@ -1067,6 +1070,21 @@ graficar_histograma <- function(
   x <- suppressWarnings(as.numeric(data[[var]]))
   keep <- is.finite(x)
   if (!any(keep)) stop("`var` no tiene valores numericos finitos.", call. = FALSE)
+
+  estilo <- match.arg(estilo)
+  if (identical(estilo, "recetario") && .histograma_recetario_aplica(x[keep], grupo, bins, ancho_bin)) {
+    p <- .histograma_recetario(x[keep], modo = modo, decimales = decimales, limite_superior = limite_superior,
+                               titulo = titulo, subtitulo = subtitulo, nota_pie = nota_pie,
+                               textos_negrita = textos_negrita, font_family = font_family,
+                               color_titulo = color_titulo, size_titulo = size_titulo,
+                               color_subtitulo = color_subtitulo, size_subtitulo = size_subtitulo,
+                               color_nota_pie = color_nota_pie, size_nota_pie = size_nota_pie,
+                               unidad = .unidad_de_etiqueta(attr(data[[var]], "label", exact = TRUE) %||% var))
+    if (identical(exportar, "png") && !is.null(path_salida) && nzchar(path_salida)) {
+      ggplot2::ggsave(path_salida, p, width = ancho, height = alto %||% 4.6, dpi = dpi, bg = "transparent")
+    }
+    return(p)
+  }
 
   d <- data.frame(.x = x[keep], stringsAsFactors = FALSE)
   if (is.null(grupo)) {

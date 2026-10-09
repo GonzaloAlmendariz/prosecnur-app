@@ -97,3 +97,254 @@ test_that("el libro importado queda en la sesion sin fusionar las tres medidas",
   expect_true("monitoreo_aulas_control" %in% names(s))
   expect_identical(s$monitoreo_aulas_libro$resumen$unidades, 1L)
 })
+
+# ---------------------------------------------------------------------------
+# El parte llega en CASTELLANO y la hoja tiene que llenarse igual.
+#
+# Cuarta vez que la misma regla se lee en una capa que no conocia los alias. La
+# cabecera de `.MONITOREO_AULAS_PARTE_ALIAS` ya contaba las tres anteriores:
+# «una capa aprendio los alias y las otras dos no se enteraron; por eso son UNA
+# constante y no tres listas». El generador del libro era la cuarta: escribia la
+# hoja leyendo solo nombres ingleses, y sobre un .pulso real —152 partes, todos
+# castellanos— salian las 192 filas vacias y releer el libro devolvia 0 partes.
+#
+# El test usa el vocabulario CASTELLANO a proposito: con el ingles pasaria
+# igual antes y despues del arreglo, que es como se colo las cuatro veces.
+# ---------------------------------------------------------------------------
+
+test_that("la hoja de campo se llena con un parte en castellano", {
+  unidades <- list(list(operational_code = "CH 1", classroom_id = "aula_1",
+                        faculty = "DERECHO", enrolled_total = 40, eligible_n = 30))
+  parte_es <- list(operational_code = "CH 1", classroom_id = "aula_1",
+                   asistentes = 25, validas = 18, aplicador = "APL-3",
+                   fecha = "2026-09-08", rechazos = 4, duplicados = 3)
+  hoja <- aulas_libro_hoja_aplicadas(unidades, partes = list(parte_es))
+  plano <- as.character(unlist(hoja))
+  for (v in c("25", "18", "APL-3", "2026-09-08", "4", "3")) {
+    expect_true(v %in% plano, info = paste("falta en la hoja:", v))
+  }
+})
+
+test_that("el vocabulario ingles sigue funcionando: los alias suman, no sustituyen", {
+  unidades <- list(list(operational_code = "CH 1", classroom_id = "aula_1",
+                        enrolled_total = 40, eligible_n = 30))
+  parte_en <- list(operational_code = "CH 1", classroom_id = "aula_1",
+                   observed_students = 25, effective_surveys = 18,
+                   applied_by = "APL-3", applied_date = "2026-09-08")
+  plano <- as.character(unlist(aulas_libro_hoja_aplicadas(unidades, partes = list(parte_en))))
+  for (v in c("25", "18", "APL-3", "2026-09-08")) expect_true(v %in% plano)
+})
+
+test_that("cada campo del parte que el libro escribe tiene su entrada en la constante", {
+  # El guard de fondo: si alguien añade una columna al bloque de campo y la lee
+  # por nombre literal, este aserto no la ve —pero si la lee por alias y se
+  # olvida de declararlo, salta aqui en vez de en un libro vacio.
+  usados <- c("asistentes", "asistencia_pct", "rechazos", "duplicados",
+              "efectivas", "aplicador", "aula", "fecha", "hora", "estado", "nota")
+  faltan <- setdiff(usados, names(prosecnurapp:::.MONITOREO_AULAS_PARTE_ALIAS))
+  expect_equal(faltan, character(0))
+})
+
+# ---------------------------------------------------------------------------
+# «Base de control necesita saber lo que las otras dos saben» (Gonzalo).
+#
+# No lo sabia: de sus 43 columnas salian vacias FECHA AGENDADA y HORA —que
+# estan en la unidad del plan, al lado— y las de campo, porque la funcion ni
+# recibia los partes. El parte va en CASTELLANO a proposito: es el vocabulario
+# que produce la app y el que dejo vacia la otra hoja durante meses.
+# ---------------------------------------------------------------------------
+
+test_that("la base de control recoge lo que saben agenda y campo", {
+  unidades <- list(list(operational_code = "CH 1", classroom_id = "aula_1",
+                        sample_role = "titular", course_name = "MATEMATICAS",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08", scheduled_time = "17:00"))
+  partes <- list(list(operational_code = "CH 1", asistentes = 25,
+                      aplicador = "APL-3", fecha = "2026-09-08",
+                      hora = "17:15", estado = "APLICADA"))
+  hoja <- aulas_libro_hoja_control(unidades, control = list(), partes = partes)
+  plano <- as.character(unlist(hoja))
+  for (v in c("2026-09-08", "17:00", "APL-3", "17:15", "APLICADA", "25")) {
+    expect_true(v %in% plano, info = paste("la base de control no recogio:", v))
+  }
+})
+
+test_that("sin aplicar todavía, la base de control sale con su cabecera y sin filas", {
+  # **Cambió el criterio el 2026-09-07, primer día de campo.** Hasta entonces la
+  # hoja escribía la fila de toda aula agendada, «para que el equipo la llene».
+  # Gonzalo la vio publicada con una sola aula aplicada y 174 filas: «muestra
+  # todos los CH cuando solo deberían ser los que ya se aplicaron». Y tenía
+  # razón: 173 filas vacías esconden justo la que hay que mirar.
+  #
+  # Lo que se sujeta ahora es que la hoja no se caiga ni pierda su cabecera
+  # cuando todavía no hay nada aplicado; simplemente no lista aulas.
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08"))
+  hoja <- aulas_libro_hoja_control(unidades, control = list())
+  plano <- as.character(unlist(hoja))
+  expect_gt(nrow(hoja), 0L)
+  expect_true("CURSO-HORARIO" %in% plano)
+  expect_false("CH 1" %in% plano)
+})
+
+test_that("un aula con respuestas entra aunque nadie haya escrito su parte", {
+  # **Primer día de campo, 2026-09-07.** Seis aulas tenían encuestas llegando
+  # por la plataforma y la Base de control enseñaba una sola: la única con parte
+  # escrito. «Hay aulas que se están aplicando ahora, pero no tengo nada en la
+  # base de control».
+  #
+  # El parte lo escribe el encargado de campo cuando puede; las respuestas
+  # llegan solas. Una efectiva obtenida es prueba de que ese curso-horario se
+  # está aplicando, así que basta para que la fila exista.
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08"))
+  efectivas <- c("CH 1" = 12)
+  plano <- as.character(unlist(
+    aulas_libro_hoja_control(unidades, control = list(), efectivas = efectivas)))
+  expect_true("CH 1" %in% plano)
+  expect_true("12" %in% plano)
+  # Y CERO efectivas no es lo mismo que unas cuantas: un aula que todavía no
+  # recibe nada sigue fuera, que es el criterio que Gonzalo pidió.
+  vacio <- as.character(unlist(
+    aulas_libro_hoja_control(unidades, control = list(), efectivas = c("CH 1" = 0))))
+  expect_false("CH 1" %in% vacio)
+})
+
+test_that("y en cuanto el aula se aplica, su fila aparece con la agenda puesta", {
+  # La contracara del caso de arriba: el mismo aula, ya aplicada, sí se escribe
+  # y trae lo que las otras hojas saben.
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08",
+                        application_status = "APLICADA"))
+  plano <- as.character(unlist(aulas_libro_hoja_control(unidades, control = list())))
+  expect_true("CH 1" %in% plano)
+  expect_true("2026-09-08" %in% plano)
+})
+
+# ---------------------------------------------------------------------------
+# Las fechas se escriben como FECHAS, en las tres hojas.
+#
+# Se cazó con un censo del xlsx y llegó por partida doble el mismo día: las
+# columnas que la Base de control ganó al conectarla con agenda y campo salieron
+# sin tipar, y la «FECHA DE APLICACIÓN» del bloque de campo llevaba sin tipar
+# desde siempre —no se veía porque esa hoja salía VACÍA, y sólo apareció al
+# reparar los alias del parte: un defecto tapado por otro—.
+#
+# Importa porque quien dirige el campo ORDENA por fecha para saber qué toca
+# mañana, y como texto «2026-09-10» va antes que «2026-09-9».
+# ---------------------------------------------------------------------------
+
+test_that("las fechas del libro se escriben como fechas y no como texto", {
+  destino <- withr::local_tempfile(fileext = ".xlsx")
+  unidades <- list(list(
+    operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+    faculty = "DERECHO", enrolled_total = 40, eligible_n = 30,
+    scheduled_date = "2026-09-08", contact_date = "2026-09-01"
+  ))
+  partes <- list(list(operational_code = "CH 1", asistentes = 25, validas = 18,
+                      aplicador = "APL-3", fecha = "2026-09-08"))
+  aulas_libro_generar(unidades = unidades, path = destino, partes = partes,
+                      control = list(), cfg = list())
+
+  # Se comprueba por el TIPO que devuelve la relectura, no por el XML: una
+  # columna tipada vuelve como fecha o numero, y una de texto como cadena. Es
+  # ademas lo que le pasa al equipo cuando ordena la hoja.
+  # **SIN `detectDates`**: esa opcion convierte el texto «2026-09-08» en fecha
+  # al leer, o sea hace exactamente lo que el test quiere detectar y lo tapa.
+  # Comprobado con un mutante: quitando el tipado del generador, con
+  # `detectDates` el test seguia verde. Sin el, una columna tipada vuelve como
+  # NUMERO (el serial de Excel) y una de texto como cadena.
+  agenda <- openxlsx::read.xlsx(destino, sheet = "Aulas Agendadas",
+                                check.names = FALSE)
+  # `read.xlsx` cambia los espacios por puntos aunque se le pase
+  # `check.names = FALSE`, asi que «FECHA DE LLAMADA» llega como
+  # «FECHA.DE.LLAMADA». Comparar literal devolvia NULL siempre y el test se
+  # saltaba solo.
+  # **TODAS las columnas con ese titulo, no la primera.** La hoja de campo tiene
+  # SEIS «FECHA DE APLICACIÓN» —una por bloque de intento, y ademas la de agenda
+  # y la de campo dentro del mismo bloque— y quedarse con la primera hacia que
+  # el guard comprobara una columna que tipa OTRA llamada: el mutante que quita
+  # el tipado de la de campo pasaba verde.
+  cols <- function(df, titulo) {
+    clave <- gsub("[ .]+", " ", trimws(titulo))
+    i <- which(gsub("[ .]+", " ", trimws(names(df))) == clave)
+    lapply(i, function(k) df[[k]])
+  }
+  # Solo las que traen dato: los bloques de reemplazo sin usar salen vacios y
+  # como `character`, y eso no es un defecto de tipado.
+  con_dato <- function(lista) Filter(function(v) any(!is.na(v) & nzchar(trimws(as.character(v)))), lista)
+  # **Las columnas TIENEN que existir con dato.** Sin esto el test se saltaba
+  # solo: los `if` caian en `next`, testthat lo marcaba SKIP y pasaba sin
+  # comprobar nada. Un guard que no muerde es peor que ninguno.
+  for (titulo in c("FECHA DE LLAMADA", "FECHA AGENDADA")) {
+    vs <- con_dato(cols(agenda, titulo))
+    expect_true(length(vs) > 0, info = paste("la agenda no trae con dato", titulo))
+    # `character` es el sintoma: «2026-09-10» se ordena antes que «2026-09-9».
+    for (v in vs) {
+      expect_false(is.character(v), info = paste("va como texto en la agenda:", titulo))
+    }
+  }
+
+  campo <- openxlsx::read.xlsx(destino, sheet = "Aulas Aplicadas (Campo)",
+                               startRow = 2, check.names = FALSE)
+  vs <- con_dato(cols(campo, "FECHA DE APLICACIÓN"))
+  expect_true(length(vs) > 0, info = "la hoja de campo no trae FECHA DE APLICACIÓN con dato")
+  for (v in vs) expect_false(is.character(v), info = "va como texto en la hoja de campo")
+})
+
+# **El tramo que decide si una fila de control «es del equipo» no lo escribe la app.**
+#
+# **La hoja es de la app, y por eso el criterio de fila es uno solo.**
+#
+# Hubo un segundo criterio —conservar el aula cuyo bloque de conteo el equipo
+# hubiera llenado a mano, «el único tramo que la app no escribe nunca»— con su
+# propio guard aquí. Duró un día: el 2026-09-07 la app pasó a escribir ese
+# bloque entero desde la plataforma y el tramo dejó de existir como tal.
+#
+# Lo que este test sujeta ahora es la consecuencia, que es la que costó un
+# defecto real: si una fila publicada por la app pudiera contar como anotación
+# del equipo, el bucle se cierra solo —se publica, se relee, se conserva— y la
+# hoja vuelve a salir con las 174 aulas. Medido ese día.
+test_that("una fila publicada por la app no se conserva sola al releerla", {
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        course_name = "MATEMATICAS", enrolled_total = 40,
+                        eligible_n = 30, scheduled_date = "2026-09-08"))
+  # El registro es EXACTAMENTE lo que la app escribiría de esta aula si
+  # estuviera aplicada, releído del libro.
+  registro <- list(list(operational_code = "CH 1", course_name = "MATEMATICAS",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08", sent_total = 12,
+                        efectivas_obtenidas = 10, no_efectivas = 2))
+  plano <- as.character(unlist(aulas_libro_hoja_control(unidades, control = registro)))
+  # Sin aplicar y sin respuestas en ESTA generación, no vuelve.
+  expect_false("CH 1" %in% plano)
+})
+
+
+# ---------------------------------------------------------------------------
+# **Ningún ancla de la Base de control se pone por rótulo.**
+#
+# El 2026-09-07 un barrido de vocabulario renombró veintitrés columnas y rompió
+# SEIS anclas distintas en el mismo día: las bandas de la hoja, los formatos de
+# porcentaje, el corte del bloque del equipo, las llamadas de `pon()`, la lista
+# de columnas numéricas y el tipado de fechas. Ninguna falló: todas dejaron de
+# hacer su trabajo en silencio, y se encontraron de una en una, mirando.
+#
+# La spec tiene dos identificadores —el `campo`, que es estable, y el título,
+# que es justo lo que el usuario pide cambiar—. Este guard prohíbe el segundo.
+# ---------------------------------------------------------------------------
+
+test_that("el generador no ancla la Base de control por rótulo", {
+  fuente <- readLines("../../R/carga_aulas_libro_generar.R", warn = FALSE)
+  # `.calg_col_control()` resuelve por TÍTULO; `.calg_col_control_campo()` por
+  # campo. La primera sólo puede usarse con un valor calculado, nunca con un
+  # literal, que es lo que se queda atrás en un renombrado.
+  por_rotulo <- grep('\\.calg_col_control\\("', fuente, value = TRUE)
+  expect_identical(
+    por_rotulo, character(0),
+    info = paste("ancla por rótulo:", paste(trimws(por_rotulo), collapse = " | "))
+  )
+})

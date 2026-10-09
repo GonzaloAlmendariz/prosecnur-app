@@ -62,8 +62,8 @@ export function avisoLibroImportado(res: {
     ].filter(Boolean);
     frases.push(
       cadena.length
-        ? `Entraron ${fmt(r.unidades)} aulas (${cadena.join(" y ")})`
-        : `Entraron ${fmt(r.unidades)} aulas`,
+        ? `Entraron ${fmt(r.unidades)} cursos-horario (${cadena.join(" y ")})`
+        : `Entraron ${fmt(r.unidades)} cursos-horario`,
     );
   }
   const registros = [
@@ -93,12 +93,12 @@ export function avisoLibroImportado(res: {
   const noCruza = Boolean(f && f.intactas > 0 && f.actualizadas === 0 && f.nuevas > 0);
   if (noCruza && f) {
     texto.push(
-      `Ninguna de las ${fmt(f.nuevas)} aulas del libro estaba en el plan: se añadieron al lado de las ${f.intactas} que ya había. Si esperabas que actualizara el plan, el libro es de otro sorteo.`,
+      `Ninguno de los ${fmt(f.nuevas)} cursos-horario del libro estaba en el plan: se añadieron al lado de las ${f.intactas} que ya había. Si esperabas que actualizara el plan, el libro es de otro sorteo.`,
     );
   } else if (f && f.nuevas > 0 && f.actualizadas > 0) {
     // Pocas nuevas junto a actualizaciones: es lo normal, se dice sin alarmar.
     texto.push(
-      `${f.actualizadas} ${f.actualizadas === 1 ? "aula del plan se actualizó" : "aulas del plan se actualizaron"} y ${f.nuevas} no ${f.nuevas === 1 ? "estaba" : "estaban"} en él.`,
+      `${f.actualizadas} ${f.actualizadas === 1 ? "curso-horario del plan se actualizó" : "cursos-horario del plan se actualizaron"} y ${f.nuevas} no ${f.nuevas === 1 ? "estaba" : "estaban"} en él.`,
     );
   }
 

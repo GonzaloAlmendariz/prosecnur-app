@@ -1,10 +1,13 @@
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { ChipHora } from "./AulasSistemaPabellon";
 import { colaDeContacto } from "./colaDeContacto";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt } from "./kpisDeAulas";
+import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
+import { agendamiento } from "./agendamiento";
 
 /**
  * A quién llamar hoy, y cuánto ha costado agendar.
@@ -37,8 +40,14 @@ function diaLegible(iso: string): string {
   return CALENDARIO.format(d).replace(/\.$/, "");
 }
 
-export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
+export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * El pool con las reservas de cadena — solo para que el rechazo de un
+   * titular despierte a su relevo en la cola (caso A). Opcional: sin él, la
+   * cola busca el relevo entre sus propias filas.
+   */
+  conReservas?: ReadonlyArray<MonitoreoAulasPlanRow>;
   /**
    * La facultad enfocada. **Resalta, no filtra**, como en las cinco listas de
    * Avance: ésta es la última lista de facultad del perfil que no participaba
@@ -49,7 +58,8 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
-  const { pendientes, citadas, esfuerzo } = useMemo(() => colaDeContacto(filas), [filas]);
+  const { pendientes, citadas, esfuerzo, yaAplicadasSinCita, rechazadas } = useMemo(() => colaDeContacto(filas, conReservas ?? filas), [filas, conReservas]);
+  const distribucionDeGestiones = useMemo(() => agendamiento(filas as never).distribucionDeGestiones, [filas]);
   // Los cuatro estados con su conteo, sin los que valen cero: un «0 con cita»
   // permanente entrena a no mirar la banda.
   const resumen = useMemo(() => {
@@ -58,8 +68,11 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
     return [
       { clase: "es-sin-empezar", etiqueta: "Sin contactar", n: pendientes.length - insistiendo },
       { clase: "es-insistiendo", etiqueta: "Insistiendo", n: insistiendo },
-      { clase: "es-citada", etiqueta: "Con cita", n: citadas.length - aplicadas },
-      { clase: "es-aplicada", etiqueta: "Aplicadas", n: aplicadas },
+      { clase: "es-citada", etiqueta: "Agendados", n: citadas.length - aplicadas },
+      // «Aplicados»: la unidad es el curso-horario. Los otros tres peldaños no
+      // llevan género —«Sin contactar», «Insistiendo», «Con cita»— y éste se
+      // quedó en el femenino de «aula».
+      { clase: "es-aplicada", etiqueta: "Aplicados", n: aplicadas },
     ].filter((x) => x.n > 0);
   }, [pendientes, citadas]);
   // Hay desglose sólo si algún grupo mezcla estados; si cada grupo es de un
@@ -95,6 +108,25 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
             {pendientes.length === 1 ? "curso-horario sigue" : "cursos-horario siguen"} sin cita ·
             el que más lleva va por <strong>{fmt(pendientes[0].intentos)}</strong>{" "}
             {pendientes[0].intentos === 1 ? "intento" : "intentos"}
+            {/* Las que salieron de la cola por estar ya aplicadas se DICEN. Si
+                el contador baja de 183 a 145 sin explicar por qué, quien lo
+                estaba usando para repartir llamadas no sabe si mejoró el dato o
+                se perdió trabajo. */}
+            {yaAplicadasSinCita ? (
+              <em>{" "}· {fmt(yaAplicadasSinCita)} más ya se aplicaron sin cita registrada,
+                así que no están en la cola</em>
+            ) : null}
+            {/* B13b (dictado 2026-09-03, CH 90): el rechazo tecleado sale de
+                la cola y se DICE, no se calla. Sin coletilla explicativa —
+                veredicto del mismo día: «no me parece un producto profesional
+                y sobrio» — el dato del rol es lo que informa: un titular
+                rechazado abre su reemplazo. */}
+            {rechazadas.total ? (
+              <em>{" "}· {fmt(rechazadas.total)}{" "}
+                {rechazadas.total === 1 ? "docente rechazó" : "docentes rechazaron"}
+                {" "}({fmt(rechazadas.titulares)}{" "}
+                {rechazadas.titulares === 1 ? "titular" : "titulares"})</em>
+            ) : null}
           </>
         ) : (
           <>Todos los cursos-horario del plan tienen cita: no queda nadie a quien llamar.</>
@@ -174,15 +206,18 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                     <em>{c.facultad}</em>
                   </td>
                   <td className="aulas-cola-cita">
+                    {/* La hora con el chip del Sistema Pabellón (B33): es la
+                        identidad del compromiso, y el mismo cuadrito que la
+                        Agenda. El día queda en texto — densidad manda. */}
                     {diaLegible(c.fecha)}
-                    {c.hora ? <em> · {c.hora}</em> : null}
+                    {c.hora ? <> <ChipHora>{c.hora}</ChipHora></> : null}
                   </td>
                   <td className="aulas-cola-intentos es-num">
                     {c.intentos > 0 ? <strong>{fmt(c.intentos)}</strong> : <span className="es-vacio">—</span>}
                   </td>
                   <td>
                     <span className={`aulas-cola-estado ${c.aplicada ? "es-aplicada" : "es-citada"}`}>
-                      {c.aplicada ? "Aplicada" : "Con cita"}
+                      {c.aplicada ? "Aplicado" : "Agendado"}
                     </span>
                   </td>
                 </tr>
@@ -208,8 +243,14 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
             </thead>
             <tbody>
               {pendientes.map((p) => (
-                <tr key={`p-${p.codigo}`}>
-                  <td className="aulas-cola-codigo">{p.codigo}</td>
+                <tr key={`p-${p.codigo}`} className={p.relevoDe ? "es-caso-a" : undefined}>
+                  <td className="aulas-cola-codigo">
+                    {p.codigo}
+                    {/* El relevo del rechazo directo se presenta como tal: a
+                        quién reemplaza es lo que el llamador necesita saber
+                        antes de marcar (caso A, dictado 2026-09-03). */}
+                    {p.relevoDe ? <em className="aulas-cola-releva">releva a {p.relevoDe}</em> : null}
+                  </td>
                   <td className="aulas-cola-quien" title={`${p.docente} · ${p.facultad}`}>
                     {p.docente || "—"}
                     <em>{p.facultad}</em>
@@ -219,6 +260,9 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                   <td className="aulas-cola-como">
                     {p.telefono || "—"}
                     {p.medio ? <em> · {p.medio}</em> : null}
+                    {/* Si el correo de gestión llegó, en las palabras del
+                        equipo — la otra mitad del canal de contacto. */}
+                    {p.correo ? <em> · correo: {p.correo}</em> : null}
                   </td>
                   <td className="aulas-cola-intentos es-num">
                     {p.intentos > 0 ? <strong>{fmt(p.intentos)}</strong> : <span className="es-vacio">—</span>}
@@ -226,9 +270,12 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                   </td>
                   <td>
                     {/* Sin gestiones aún no es lo mismo que insistiendo: la
-                        primera está sin empezar y la segunda se está atascando. */}
+                        primera está sin empezar y la segunda se está atascando.
+                        Y cuando el libro dice POR QUÉ («No contesta»,
+                        «Apagado»…), mandan las palabras del equipo — el
+                        genérico «Insistiendo» es el fallback, no el titular. */}
                     <span className={`aulas-cola-estado ${p.intentos > 0 ? "es-insistiendo" : "es-sin-empezar"}`}>
-                      {p.intentos > 0 ? "Insistiendo" : "Sin contactar"}
+                      {p.estadoLlamada || (p.intentos > 0 ? "Insistiendo" : "Sin contactar")}
                     </span>
                   </td>
                 </tr>
@@ -252,7 +299,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
             {esfuerzo.map((e) => (
               <li key={e.facultad} className={e.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
                 <NombreDeFacultad facultad={e.facultad} className=""
-                  enFoco={e.facultad === facultadEnFoco} onFoco={onFoco} />
+                  enFoco={e.facultad === facultadEnFoco} />
                 <span>
                   {e.intentos == null ? "—" : `${e.intentos.toLocaleString("es-PE")} ${e.intentos === 1 ? "intento" : "intentos"}`}
                   {/* «cursos-horario», que es lo que cuenta el plan y lo que
@@ -264,6 +311,18 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
               </li>
             ))}
           </ul>
+          {/* La OTRA mitad de «lo que cuesta»: la mediana dice el centro y el
+              histograma enseña la cola cara — de la tercera llamada en
+              adelante el aula se cae el doble (medido 2025). El componente
+              existía sin montar; el guardia de componentes lo destapó. */}
+          {distribucionDeGestiones.length ? (
+            <>
+              <p className="aulas-cola-subtitulo">
+                Cuántas llamadas cuesta cerrar · <em>todas las gestiones anotadas</em>
+              </p>
+              <AulasGestionesPorAula distribucion={distribucionDeGestiones} />
+            </>
+          ) : null}
         </>
       ) : null}
     </div>

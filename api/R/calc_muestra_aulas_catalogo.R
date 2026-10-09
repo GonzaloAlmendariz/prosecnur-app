@@ -87,6 +87,7 @@
   audit$teacher_type_values <- 0L
   audit$campus_values <- 0L
   audit$course_level_values <- 0L
+  audit$modality_values <- 0L
   if (!is.data.frame(raw) || !nrow(raw) || !is.data.frame(catalogo) || !nrow(catalogo)) {
     return(list(data = raw, audit = audit))
   }
@@ -99,6 +100,23 @@
   nivel <- .cm_catalogo_rellenar_rol(raw, catalogo, mapping, raw_key, catalog_key, "course_level", concat = FALSE)
   raw <- nivel$data
   audit$course_level_values <- nivel$filled
+  # MODALIDAD. Faltaba, y es el mismo caso que el docente: el mapeo apunta a
+  # `MODALIDADCURSO`, que sólo existe en el CATÁLOGO, y el marco la leía de la
+  # base del alumno —donde esa columna no está—. Resultado medido el 2026-08-25
+  # sobre HSVG 2026: `modality` vacía en las 5.269 aulas y la tarjeta de salud
+  # avisando «está declarado pero su columna llega vacía: el criterio no puede
+  # filtrar a nadie y no es que deje pasar a todos».
+  #
+  # El marco seguía saliendo bien —las 2.446 incluidas son 100 % presenciales,
+  # porque el path legacy por patrones excluye virtual/distancia leyendo la base
+  # fila a fila—, así que esto NO cambia a quién se filtra hoy. Lo que arregla es
+  # que la señal EXISTA: sin ella el criterio por categorías no se puede evaluar,
+  # la salud del marco miente en rojo, y `modality` —que es una de las
+  # `replacement_equivalence_vars`— no puede usarse para decidir qué aula
+  # sustituye a cuál.
+  modal <- .cm_catalogo_rellenar_rol(raw, catalogo, mapping, raw_key, catalog_key, "modality", concat = FALSE)
+  raw <- modal$data
+  audit$modality_values <- modal$filled
   list(data = raw, audit = audit)
 }
 
@@ -153,8 +171,32 @@
       c(mapping$condicion_curso, "condicion")
     },
     enrolled_total = mapping$enrolled_total,
-    faculty_curso  = c("facultad_del_curso", "facultad del curso", mapping$faculty),
+    # La facultad DEL CURSO es un rol PROPIO del catálogo y no puede derivar sus
+    # genéricos del mapeo de la facultad DEL ALUMNO. Antes el vector era
+    # c("facultad_del_curso", "facultad del curso", mapping$faculty): con
+    # `faculty` en defaults arrastraba el genérico "facultad" y por ahí resolvía
+    # la columna FACULTAD del catálogo —por accidente, no por diseño—. Al mapear
+    # `faculty` A MANO (ADR 0035, mapeo exclusivo) el genérico desaparecía y
+    # ninguna clave calzaba: la señal quedaba VACÍA, los pares (facultad, nivel)
+    # salían degradados y el criterio de nivel vaciaba el marco ENTERO. Medido
+    # en HSVG26DEF con PUCP 2026-2: 0 de 5.269 aulas con `faculty` a mano contra
+    # 1.222 con `faculty` en automático — el mismo estudio, el mismo catálogo.
+    #
+    # A diferencia de condicion_curso, aquí NO hay homónima sucia que temer: un
+    # catálogo de curso-horario no tiene estudiantes, así que su "Facultad" es
+    # la del curso por construcción. Los genéricos van SIEMPRE; `mapping$faculty`
+    # se conserva al final para el catálogo que nombra su columna igual que la
+    # base (p. ej. ambas NOMBREFAC), donde es lo único que la encuentra.
+    faculty_curso  = c(
+      "facultad_del_curso", "facultad del curso", "facultad_curso",
+      "facultad", "nombre_facultad", "nombrefac",
+      "unidad_academica", "unidad_academica_curso",
+      mapping$faculty
+    ),
     campus         = mapping$campus,
+    # El aula tal como viene en el reporte. Los genericos van SIEMPRE porque en
+    # un catalogo de curso-horario no hay homonima que temer: "aula"/"salon"/
+    # "ambiente" solo pueden ser el ambiente fisico del dictado.
     character(0)
   )
   unique(.cm_aulas_chr_vec(base))

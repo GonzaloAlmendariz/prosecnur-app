@@ -209,7 +209,7 @@ function totalRows(card: CriterioRadiografiaCard, totals: CalcMuestraCriteriosTo
       criterionId: row.criterion_id,
       gateLabel: row.label,
       facultyKey: "__total_r__",
-      facultyLabel: "Total recalculado por R",
+      facultyLabel: "Total del marco",
       segmentKey: row.segment_key,
       segmentLabel: rotulo(row),
       segmentKind: row.segment_kind,
@@ -410,8 +410,8 @@ function V2Distribution({
           data-qa-geometry-capacity="owned"
           role="status"
         >
-          <header><strong>Total recalculado por R</strong><span>No publicado</span></header>
-          <p>El frontend no suma facultades, estudiantes únicos, matrículas ni deltas para fabricar este Total.</p>
+          <header><strong>Total del marco</strong><span>Sin calcular</span></header>
+          <p>El total aparece al reconstruir el marco; no se obtiene sumando facultades, porque un estudiante puede estar en más de una.</p>
         </section>
       ) : null}
       </div>
@@ -507,13 +507,13 @@ function ImpactoMarginal({
           <li key={`${row.facultad_key}:${row.categoria_key}`}>
             <span><strong>{row.facultad_label}</strong> · {row.categoria_label}</span>
             <span>{signed(row.delta_marginal.delta_ch, "CH")} · {signed(row.delta_marginal.delta_matriculas_elegibles, "matrículas")}</span>
-            <small>Adapter I11 · referencia {row.delta_marginal.referencia}</small>
+            <small>Referencia: {row.delta_marginal.referencia}</small>
           </li>
         ))}
       </ul>
     );
   }
-  return <p className="cmv2-crc-inline-empty">{invalid ? "Impacto retenido: el contrato de la tarjeta es inválido." : `No hay delta marginal publicable para ${card.label}.`}</p>;
+  return <p className="cmv2-crc-inline-empty">{invalid ? "Impacto no disponible: el detalle de este criterio no se pudo verificar." : `No hay delta marginal publicable para ${card.label}.`}</p>;
 }
 
 export function CriteriosRadiografiaCardDetalle({
@@ -619,7 +619,7 @@ export function CriteriosRadiografiaCardDetalle({
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "ancla"} aria-labelledby={`crc-ancla-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
         <header><span>{numeroPaso("ancla")}</span><h5 id={`crc-ancla-${idSuffix}`}>Comparación con 2025</h5></header>
-        <p>Coincidencia o degradación publicada por R; nunca combina marginales ni enlaza CH históricos.</p>
+        <p>Cuánto se parece cada criterio a cómo se aplicó en el estudio anterior.</p>
         <CriterioAnclaHistorica cardId={card.cardId} rows={anchors?.rows ?? []} facultyKey={facultyKey} />
       </section>
 

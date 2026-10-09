@@ -337,8 +337,62 @@ export type CalcMuestraEstrato = {
   cuota_fija?: number;
   sobremuestra_fija?: number;
   aulas_base_fijas?: number;
+  /**
+   * Hasta dónde llegó la CERTIFICACIÓN, aparte de dónde quedó la base.
+   *
+   * `aulas_base_origen` es un solo campo y sólo puede nombrar UN dueño, así que
+   * un estrato con dos decisiones encima pierde la primera. Medido en HSVG 2026
+   * el 2026-08-27: Derecho tenía 18 por certificación —la fórmula pedía 16— y
+   * al subirlo a 19 con el stepper quedó entero como `operativa`; el total
+   * seguía siendo 174 pero la descomposición decía 6 aulas de certificación y
+   * 3 operativas, en vez de 8 y 1.
+   *
+   * Con esto la descomposición se deriva sin ambigüedad:
+   * fórmula → `aulas_base_certificada` → `aulas_base`.
+   */
+  aulas_base_certificada?: number;
+  /**
+   * De dónde sale `aulas_base_fijas`. Sin esta etiqueta los tres orígenes
+   * producen números idénticos a la vista y el sustento no puede reconstruir
+   * el diseño: en HSVG2026 `max(fórmula, certeza)` da 173 y el final es 174,
+   * y ese aula de diferencia es una decisión que el proyecto no distinguía.
+   *
+   * `operativa` es la que Gonzalo nombró (2026-08-27): la que se añade por
+   * juicio, sin criterio estadístico. NO confundir con
+   * `aulas_extra_operativas`, que es el cupo de RESERVA.
+   */
+  aulas_base_origen?: "" | "formula" | "certificacion" | "operativa";
+  /** Por qué se agregó. Obligatoria cuando el origen es `operativa`. */
+  aulas_base_nota?: string;
   aulas_extra_operativas?: number;
+  /**
+   * Promedio del tamaño de conglomerado del estrato. **Guarda el promedio y
+   * nada más.**
+   *
+   * Se deja dicho porque durante un tiempo no fue así: al sellar la decisión de
+   * alumnos por CH, aquí se materializaba el estadístico ELEGIDO —P25 incluido—
+   * y de paso se ponía `mediana_conglomerado` en 0. El campo decía «promedio»
+   * guardando otra cosa, y sellar borraba la mediana medida del marco, con lo
+   * que un estudio que después quisiera `min_media_mediana` se quedaba sin con
+   * qué. Desde 2026-08-27 el divisor sellado tiene campo propio
+   * (`divisor_conglomerado`) y éste volvió a su significado.
+   *
+   * Si alguien vuelve a necesitar materializar un divisor, va en
+   * `divisor_conglomerado`, NO aquí.
+   */
   promedio_conglomerado: number;
+  /**
+   * El divisor SELLADO por la decisión de alumnos por CH, con su estadístico
+   * al lado. Manda sobre el par `promedio_`/`mediana_conglomerado`.
+   *
+   * Vive en campo propio desde 2026-08-27 (decisión de Gonzalo, «la separación
+   * para el 5»). Antes el estadístico elegido —P25 incluido— se materializaba
+   * dentro de `promedio_conglomerado`, que además obligaba a poner la mediana
+   * en 0: sellar borraba la medida del marco y `min_media_mediana` se quedaba
+   * sin con qué. 0 = no hay decisión sellada.
+   */
+  divisor_conglomerado?: number;
+  divisor_estadistico?: string;
   /**
    * Mediana del tamaño de conglomerado del estrato. El motor R la acepta desde
    * siempre y la usa cuando `estadistico_conglomerado` vale `mediana` o
@@ -386,19 +440,32 @@ export type CalcMuestraParametros = {
    *  (reunión Ramiro 2026-07-15). Espejo del `resumenEstAula` del Recorrido;
    *  default del backend: "media". */
   estadistico_conglomerado?: "media" | "mediana" | "min_media_mediana";
+  /** Reparto del n entre estratos (estratificado); default del motor: proporcional. */
+  asignacion?: CalcMuestraAsignacion;
+  /** Qué se estima (MAS, sistemático, estratificado); default del motor: proporción. */
+  tipo_indicador?: "proporcion" | "media";
+  /** Coeficiente de variación esperado, sólo para medias; default del motor: 1. */
+  cv?: number;
 };
+
+/** Asignación entre estratos: proporcional, Neyman o potencia (Bankier). */
+export type CalcMuestraAsignacion = "proporcional" | "neyman" | "potencia";
 
 export type CalcMuestraMeta = {
   tipo: "objetivo" | "cuota" | "cobertura" | "contractual";
   valor: number;
   variable_control: string;
   sub_cuotas: Record<string, number>;
+  /** «cuadro»: la puso la inferencia de acreditación y se recalcula; «usuario»: manda. */
+  origen?: "" | "usuario" | "cuadro";
 };
 
 export type CalcMuestraDistribucionEstrato = {
   estrato: string;
   N: number;
   n: number;
+  /** n a campo del estrato (reparto de n_operativo, el mismo que sortea el motor). */
+  n_campo?: number;
   p_e?: number;
   z_e?: number;
   confianza_e?: number;
@@ -420,6 +487,15 @@ export type CalcMuestraAulasEstrato = {
   avg_conglomerado: number;
   tau: number;
   aulas_base: number;
+  /** Lo que pide la fórmula, siempre, aunque el estrato traiga una fijación.
+   *  Sin esto la pantalla no puede decir cuánto se apartó una decisión. */
+  aulas_formula?: number;
+  /** Hasta dónde llegó la certificación. 0 si no pidió nada sobre la fórmula. */
+  aulas_base_certificada?: number;
+  /** De dónde sale `aulas_base`. Vacío en resultados anteriores al campo. */
+  aulas_base_origen?: "" | "formula" | "certificacion" | "operativa";
+  /** El motivo de una agregación operativa. */
+  aulas_base_nota?: string;
   aulas_reemplazo: number;
   aulas_extra_operativas?: number;
   aulas_total: number;
@@ -463,6 +539,18 @@ export type CalcMuestraCuotaMatriz = {
   regla?: string;
 };
 
+/**
+ * Corrección declarada de un parámetro fuera de rango: el motor no rechaza el
+ * valor —bloquearía el guardado del estudio— pero dice qué llegó y qué usó
+ * (p. ej. e = 3 → 0.05). Viaja en el componente y en su resultado.
+ */
+export type CalcMuestraAvisoParametro = {
+  param: string;
+  recibido: number;
+  usado: number;
+  texto: string;
+};
+
 export type CalcMuestraResultado = {
   n_bruto?: number;
   n_teorico: number | null;
@@ -473,6 +561,8 @@ export type CalcMuestraResultado = {
   sobremuestra?: number;
   cobertura_objetivo?: number;
   tasa_respuesta_esperada?: number;
+  /** Completas que vuelven cuando se aborda todo el marco y no alcanzan la meta (L3/L18). */
+  n_completas_esperadas?: number;
   universo_a_contactar?: number;
   variable_control?: string;
   sub_cuotas?: Record<string, number>;
@@ -500,6 +590,17 @@ export type CalcMuestraResultado = {
   /** Payload crítico raw; solo el normalizador I19 acredita la variante ready. */
   distribucion_universitaria?: unknown;
   cuotas_matriz?: CalcMuestraCuotaMatriz[];
+  /** Correcciones de parámetros aplicadas en este cálculo. */
+  avisos_parametros?: CalcMuestraAvisoParametro[];
+  /** Estratificado con fórmula por estrato (p por estrato, Neyman o potencia). */
+  asignacion?: CalcMuestraAsignacion;
+  formula_n?: "proporcional_por_estrato" | "neyman" | "potencia" | "media_global";
+  /**
+   * Memoria sustituida (técnicas de elementos): data.frame serializado como
+   * filas `{paso, formula, sustitucion, resultado}`. Payload crudo; se lee con
+   * `normalizeCalcMuestraMemoriaCalculo` de `calcMuestraGeneral.ts`.
+   */
+  memoria_calculo?: unknown;
 };
 
 export type CalcMuestraActorCategoria =
@@ -547,6 +648,8 @@ export type CalcMuestraComponente = {
   parametros: CalcMuestraParametros;
   meta: CalcMuestraMeta;
   inferencia_acreditacion?: CalcMuestraInferenciaAcreditacion;
+  /** Parámetros que el motor corrigió por estar fuera de rango. */
+  avisos_parametros?: CalcMuestraAvisoParametro[];
   resultado?: CalcMuestraResultado | null;
 };
 
@@ -657,6 +760,24 @@ export type CalcMuestraWorkspaceAulasConfig = {
   /** Afijación del diseño: facultad → aulas titulares (el motor la respeta en
    *  el sorteo; ver calc_muestra_aulas_afijacion.R y afijacionTargets.ts). */
   faculty_targets?: Record<string, number>;
+  /**
+   * ADR 0082: la rerandomización, con su criterio como dato.
+   *
+   * Se persiste en el `.pulso` porque una muestra aceptada por un criterio que
+   * el proyecto no recuerda no se puede reconstruir. `activa` sólo enciende si
+   * hay criterio: pedirla sin decir contra qué aceptar dejaría la corrida
+   * declarando una propiedad que nadie evaluó.
+   */
+  rerandomizacion?: {
+    activa: boolean;
+    /** Tope de sorteos. Con un criterio duro, la espera crece rápido. */
+    tope: number;
+    criterio: {
+      tipo: "cobertura_celdas";
+      umbral: number;
+      celdas: Array<{ faculty_key: string; cuota_f: number; cuota_m: number; tau: number }>;
+    } | null;
+  };
   selector_engine?: CalcMuestraWorkspaceAulasSelector | string;
   method_family?: string;
   min_elegibles_aula: number;
@@ -941,6 +1062,14 @@ export type CalcMuestraCorrida = {
     sobremuestra?: number;
     waves?: number;
     aulas_objetivo?: number;
+    /**
+     * La divergencia entre el objetivo que guarda el workspace y el que el
+     * sorteo usó de verdad. Sólo aparecen cuando difieren: una corrida válida
+     * ya no se descarta por eso, pero la diferencia se declara para que la
+     * superficie pueda nombrarla. Repararlo en origen es el ADR 0080.
+     */
+    objetivo_workspace?: number;
+    objetivo_corrida?: number;
   };
   /** Resumen de resultados para comparar corridas lado a lado. */
   resumen?: {
@@ -1027,6 +1156,11 @@ export type CalcMuestraAulasPerfilEmbudoPaso = {
   label: string;
   conteo: number;
   excluidos: number;
+  /** El paso que dejó el embudo en 0 viniendo de N>0. SOLO el primero: los
+   *  siguientes heredan el cero y no lo causaron. Ausente en frames viejos. */
+  vacia_marco?: boolean;
+  /** Aviso redactado por el motor para ese paso; "" cuando no vacía el marco. */
+  aviso?: string;
 };
 
 /** Agregados por unidad académica del perfil (facultad/escuela) sobre el marco depurado. */
@@ -2320,6 +2454,29 @@ export type CalcMuestraAulasSelection = {
   sexo_por_facultad?: unknown;
   /** Certificación por facultad; derivada al servir, puede no venir. */
   certificacion_facultad?: unknown;
+  /**
+   * ADR 0082: qué pasó con la rerandomización en ESTA corrida. Ausente cuando
+   * no la hubo. Sin este bloque la muestra aceptada y la primera que salió del
+   * sorteo se ven idénticas, y el proyecto describiría un diseño que no es el
+   * ejecutado.
+   */
+  rerandomizacion?: {
+    schema: string;
+    aplicada: boolean;
+    motivo: "aceptada_por_criterio" | "presupuesto_agotado_sin_aceptar" | "sin_criterio" | string;
+    sorteos: number;
+    tope?: number;
+    aceptados: number;
+    /** Dato del diseño, no telemetría: un 50 % avisa de que el criterio está al
+     *  filo de lo que el marco da; un 2 %, de que el criterio es irreal. */
+    tasa_aceptacion?: number | null;
+    cobertura_minima?: number | null;
+    sorteo_elegido?: number | null;
+    /** El presupuesto se agotó sin aceptar ninguno: lo que se entrega es el
+     *  mejor de los que NO pasaron, y hay que decirlo. */
+    agotado?: boolean;
+    criterio?: { tipo: string; umbral: number; celdas_n: number };
+  };
   selection_run_id: string;
   generated_at: string;
   frame_hash: string;
@@ -2578,6 +2735,13 @@ export type CalcMuestraAulasCertezaPunto = {
   probabilidad: number;
   rendimiento_medio: number;
   rendimiento_p05: number;
+  /**
+   * Cuántas aulas devolvió el sorteo de verdad, promediadas sobre las corridas.
+   * Debe seguir a `aulas`: si no se mueve mientras `aulas` crece, la config
+   * está fijando el número por su cuenta y la curva no mide su propio eje
+   * (fue el defecto de `faculty_targets`, ver calc_muestra_aulas_certeza.R).
+   */
+  aulas_efectivas?: number;
 };
 
 export type CalcMuestraAulasCertezaFila = {

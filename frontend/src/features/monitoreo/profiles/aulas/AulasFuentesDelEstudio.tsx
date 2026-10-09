@@ -104,6 +104,9 @@ export type ReciboDelLibro = {
   /** Campos del bloque de agenda que ningún título de la hoja bautiza. Una
       columna renombrada en el Sheets se leía vacía sin decirlo. */
   agenda_campos_ausentes?: ReadonlyArray<string>;
+  /** Estatus de muestra que la app no sabe leer: caen en «SIN CONTACTAR» y
+      devuelven a la cola de llamadas aulas que ya se gestionaron. */
+  estados_desconocidos?: ReadonlyArray<{ valor: string; filas: number }>;
   resumen?: {
     unidades?: number;
     /** Cuántas facultades cubre el libro: un libro de 15 y uno de 6 son cosas distintas. */
@@ -220,6 +223,21 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
             : esas columnas se leen vacías.
           </p>
         ) : null}
+        {/* **Un estatus que la app no reconoce no falla: degrada.** Cae en
+            «SIN CONTACTAR», que es el estado de los titulares que nadie tocó,
+            así que un aula ya gestionada vuelve a la cola de llamadas y se
+            cuenta como trabajo pendiente. Se dice el texto TAL CUAL está en la
+            hoja —es la celda que hay que corregir— y se dice la consecuencia,
+            que es lo que convierte el aviso en algo accionable. */}
+        {recibo.estados_desconocidos?.length ? (
+          <p className="aulas-fuente-falta">
+            {recibo.estados_desconocidos
+              .map((e) => `«${e.valor}» (${e.filas} ${e.filas === 1 ? "fila" : "filas"})`)
+              .join("; ")}
+            : la app no reconoce ese estatus de muestra y lo lee como «SIN
+            CONTACTAR», así que esas aulas vuelven a la cola de llamadas.
+          </p>
+        ) : null}
       </div>
     </article>
   );
@@ -237,7 +255,11 @@ export function AulasFuentesDelEstudio({ fuentes, anonimas, libro, filas, column
 }) {
   if (!fuentes.length && !libro) {
     return (
-      <p className="mon-profile-muted">
+      // Declara lo mismo que la rama con datos, que es lo que exige
+      // `vaciosDeclarados.contract.test.ts` — y lo cazó en cuanto declaré la
+      // otra: un componente con una rama declarada y la vacía sin declarar es
+      // justo el caso que deja el encabezado del panel entrando en la medida.
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Este estudio todavía no tiene fuentes conectadas. Añade el formulario de
         aplicación en aulas para que el tablero lea las respuestas.
       </p>
@@ -245,7 +267,10 @@ export function AulasFuentesDelEstudio({ fuentes, anonimas, libro, filas, column
   }
 
   return (
-    <div className="aulas-fuentes">
+    // Este `div` es el contenedor de datos del panel «De dónde salen las
+    // respuestas»: sin declararlo miembro, el runner cae a los hijos directos
+    // del grupo y mide también el encabezado del panel.
+    <div className="aulas-fuentes" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <div className="aulas-fuentes-lista">
         {/* El volumen se le da a la ÚNICA fuente activa: `n_rows` es del estado
             entero, así que repartirlo entre dos fuentes diría de cada una lo

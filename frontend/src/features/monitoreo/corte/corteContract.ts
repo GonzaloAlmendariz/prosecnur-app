@@ -41,6 +41,20 @@ export type MonitoreoCorte = {
   /** Válidas defendibles que cuentan como avance. `null` = no determinado. */
   oficial: number | null;
   meta: number | null;
+  /**
+   * **Cómo se llama esa cifra en ESTE perfil.**
+   *
+   * La tarjeta de Salidas rotulaba siempre «meta N», y en aulas la cifra que
+   * recibe es `avance_cuota$total$cuota` —la CUOTA del diseño, 2.500—, mientras
+   * «meta» en esa misma sección nombra otra cosa: la suma de metas por
+   * curso-horario, que son 3.227. Dos cifras distintas bajo la misma palabra, a
+   * una pestaña de distancia.
+   *
+   * El número es correcto; lo que mentía era el nombre. Se deja que cada perfil
+   * declare el suyo en vez de renombrar para todos: territorial y acreditación
+   * sí publican una meta.
+   */
+  metaEtiqueta: string;
   brecha: number | null;
   avancePct: number | null;
   cutAt: string;
@@ -56,6 +70,8 @@ export type MonitoreoCorteInput = {
   procesable?: number | null;
   oficial?: number | null;
   meta?: number | null;
+  /** Cómo se llama esa cifra en este perfil. Por defecto, «meta». */
+  metaEtiqueta?: string;
   cutAt?: string | null;
   hasSnapshot?: boolean;
   generationStatus?: MonitoreoGenerationStatus | null;
@@ -133,11 +149,18 @@ export function construirCorte(input: MonitoreoCorteInput): MonitoreoCorte {
     procesable,
     oficial,
     meta,
+    metaEtiqueta: input.metaEtiqueta || "meta",
     brecha,
     avancePct,
     cutAt: input.cutAt || "",
     hasSnapshot: input.hasSnapshot ?? ingesta > 0,
-    generationStatus: input.generationStatus || "partial",
+    // El vacío se queda vacío: «todavía no se generó» y «la última terminó
+    // con errores» son historias distintas, y el colapso a "partial" hacía
+    // que un estudio SIN primera sincronización se narrara como una que
+    // FALLÓ («revisa Fuentes antes de publicar» sobre un sync_errors vacío,
+    // medido en vivo 2026-09-03 pre-campo). El corte sigue bloqueado igual
+    // (≠ "complete"); solo cambia que el mensaje dice la verdad.
+    generationStatus: input.generationStatus || "",
     saltos,
     fuentes: fuentesRequeridas != null
       ? { activas: conteo(input.fuentesActivas) ?? 0, requeridas: fuentesRequeridas }
@@ -172,6 +195,38 @@ export type MonitoreoSalidaReadiness = {
  * mayor que cero. El conteo crudo del snapshot no habilita nada — ese era el
  * defecto que permitía emitir un PDF "oficial" con cero válidas.
  */
+/**
+ * Por qué este corte no se puede publicar, dicho por su nombre.
+ *
+ * El mensaje era uno solo —«El corte está incompleto o desactualizado; vuelve a
+ * sincronizar»— para tres estados que significan cosas distintas y piden cosas
+ * distintas, **teniendo el sistema el dato exacto**: `partial` es una
+ * sincronización que terminó CON ERRORES (resincronizar puede no arreglar nada
+ * si el error persiste), `stale` es un corte que quedó viejo (ahí sí basta
+ * volver a sincronizar) y `failed` es una generación que no llegó a terminar.
+ * Una disyunción deja al lector eligiendo entre dos diagnósticos cuando abajo
+ * hay uno.
+ *
+ * El bloqueo de al lado, `FUENTES_INCOMPLETAS`, ya nombra su causa con las dos
+ * cifras; éste se había quedado en el «o».
+ */
+function mensajeDeCorteIncompleto(estado: MonitoreoGenerationStatus): string {
+  if (estado === "partial") {
+    return "La última sincronización terminó con errores, así que el corte está incompleto: revisa Fuentes antes de publicar.";
+  }
+  if (estado === "stale") {
+    return "El corte quedó desactualizado desde la última sincronización; vuelve a sincronizar antes de publicar.";
+  }
+  if (estado === "failed") {
+    return "La generación del corte falló y no hay nada completo que publicar: vuelve a sincronizar desde Fuentes.";
+  }
+  // Un estado que el contrato no conoce todavía. Se dice que no está completo
+  // —que es lo comprobado— y se nombra el valor en vez de inventarle una causa.
+  return estado
+    ? `El corte no está completo (estado «${estado}»); vuelve a sincronizar antes de publicar.`
+    : "El corte todavía no está completo; vuelve a sincronizar antes de publicar.";
+}
+
 export function readinessDeSalidas(corte: MonitoreoCorte): MonitoreoSalidaReadiness {
   const bloqueos: MonitoreoBloqueoSalida[] = [];
 
@@ -198,7 +253,7 @@ export function readinessDeSalidas(corte: MonitoreoCorte): MonitoreoSalidaReadin
     if (corte.generationStatus !== "complete") {
       bloqueos.push({
         codigo: "CORTE_INCOMPLETO",
-        mensaje: "El corte está incompleto o desactualizado; vuelve a sincronizar antes de publicar.",
+        mensaje: mensajeDeCorteIncompleto(corte.generationStatus),
         direccion: "seccion=fuentes",
       });
     }
@@ -294,17 +349,33 @@ export function recorteTabla<T>(
   rows: readonly T[],
   limite: number,
   sustantivo: "fila" | "columna" = "fila",
+  /**
+   * Cuántas filas hay DE VERDAD, cuando el payload ya llegó recortado.
+   *
+   * Sin esto el denominador es el largo del array recibido, que en Aulas es el
+   * tope del servidor: `MONITOREO_AULAS_COURSE_STATUS_TOPE` manda 500 filas de
+   * un plan de 3.409, y el pie decía «Mostrando 400 de 500». Quien lo lee
+   * concluye que faltan 100 y faltan 3.009 — un rótulo que promete otro número.
+   *
+   * Y cubre el caso peor, que no se ve: si el servidor manda MENOS que el tope
+   * local (300 de 3.409), no hay recorte local, `recortado` era `false` y la
+   * tabla no rotulaba nada. El truncado del servidor desaparecía en silencio,
+   * que es justo lo que esta función existe para impedir.
+   */
+  totalReal?: number,
 ): RecorteTabla<T> {
-  const total = rows.length;
-  if (!Number.isFinite(limite) || limite <= 0 || total <= limite) {
-    return { visibles: rows, total, recortado: false, etiqueta: "" };
+  const total = Math.max(rows.length, Number.isFinite(totalReal) ? Number(totalReal) : 0);
+  const cabenTodas = !Number.isFinite(limite) || limite <= 0 || rows.length <= limite;
+  const visibles = cabenTodas ? rows : rows.slice(0, limite);
+  if (visibles.length >= total) {
+    return { visibles, total, recortado: false, etiqueta: "" };
   }
   const plural = sustantivo === "fila" ? "filas" : "columnas";
   return {
-    visibles: rows.slice(0, limite),
+    visibles,
     total,
     recortado: true,
-    etiqueta: `Mostrando ${limite} de ${total.toLocaleString("es-PE")} ${plural}`,
+    etiqueta: `Mostrando ${visibles.length} de ${total.toLocaleString("es-PE")} ${plural}`,
   };
 }
 

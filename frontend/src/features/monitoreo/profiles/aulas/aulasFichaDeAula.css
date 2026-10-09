@@ -1,0 +1,14 @@
+/* La ficha del aula — hoja propia porque `aulasMonitoreo.css` está congelada
+ * a crecimiento (misma doctrina que aulasRutaPorFacultad.css). La importa
+ * `AulasFichaDeAula.tsx`.
+ *
+ * Loop mejora-ui E6 (2026-09-03): la fuente que no habló susurra. Las cuatro
+ * tarjetas de la ficha son una narrativa (esperado → plataforma → campo →
+ * libro), pero el «—» de una fuente sin dato pesaba igual —17px/600 en tinta
+ * plena— que una cifra real: la ausencia gritaba al volumen del dato. El
+ * guion baja a tinta tenue y peso normal; los números reales conservan su
+ * voz y la ficha gana la jerarquía que su lectura pide. */
+.mon-profile-page.is-aulas-flow .aulas-ficha-cifras dd.es-sin-dato {
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}

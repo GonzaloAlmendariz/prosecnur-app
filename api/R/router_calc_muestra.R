@@ -121,6 +121,24 @@
   }
 }
 
+# Firma de las fuentes con las que se construyó un marco: por rol, el `file_id`
+# y la hoja que el cliente mandó. Se guarda en el marco para que la vista pueda
+# decir «esto es del marco anterior» sin reconstruirlo.
+#
+# Solo roles con `file_id`: una tabla mandada inline no tiene identidad estable y
+# firmarla con un valor inventado daría un desfase fantasma en cada build.
+.cm_aulas_sources_signature <- function(body) {
+  roles <- c("base_madre", "estudiantes", "inscripciones", "catalogo_curso_horario")
+  out <- list()
+  for (rol in roles) {
+    fid <- calc_str(body[[paste0(rol, "_file_id")]] %||% body[[paste0(rol, "FileId")]], "")
+    if (!nzchar(fid)) next
+    hoja <- calc_str(body[[paste0(rol, "_sheet")]] %||% body[[paste0(rol, "Sheet")]], "")
+    out[[rol]] <- list(file_id = fid, sheet = hoja)
+  }
+  out
+}
+
 .cm_table_from_payload <- function(sid, body, key) {
   direct <- body[[key]] %||% NULL
   if (!is.null(direct)) return(.cm_aulas_as_df(direct, key))
@@ -299,6 +317,9 @@
   list(
     estudio = estudio,
     referencia_asistencia = s$calc_muestra_referencia_asistencia %||% NULL,
+    # Muestra general (ADR 0090): marcos declarados y resumen de corridas. El
+    # listado con π viaja por GET /general/corrida, que no redondea.
+    general = calc_muestra_general_resumen(s$calc_muestra_general),
     aulas = list(
       config = s$calc_muestra_aulas_config %||% calc_muestra_aulas_default_config(),
       frame = s$calc_muestra_aulas_frame %||% NULL,
@@ -369,6 +390,7 @@ mount_calc_muestra <- function(pr) {
     # GET /api/calc-muestra/state — snapshot completo del módulo
     # -----------------------------------------------------------------------
     plumber::pr_get("/api/calc-muestra/state",
+                    serializer = .cm_serializer_sin_redondeo(),
                     wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       .cm_state_payload(sid)
@@ -379,6 +401,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { estudio: {...} }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/estudio",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -407,6 +430,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { componente: {...}, op: "add"|"update" }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/componente",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -430,6 +454,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { id: "cmp-xxxxxxxx" }
     # -----------------------------------------------------------------------
     plumber::pr_delete("/api/calc-muestra/componente",
+                       serializer = .cm_serializer_sin_redondeo(),
                        wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -451,6 +476,7 @@ mount_calc_muestra <- function(pr) {
     # POST /api/calc-muestra/calcular — ejecuta cálculo para todos los componentes
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/calcular",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       s <- session_get(sid)
@@ -506,6 +532,7 @@ mount_calc_muestra <- function(pr) {
     # de facultades como punto de partida, sin acoplar el motor a una institución.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/iniciar-estudio",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -543,6 +570,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { modo: "estimacion_preliminar"|"diseno_validado" }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/modo-trabajo",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -561,6 +589,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { config: {...} }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/marco/config",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -680,6 +709,7 @@ mount_calc_muestra <- function(pr) {
     #         referencia_asistencia_sheet?, estudio?: {...}, workspace?: {...} }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/asistencia/referencia",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -822,6 +852,7 @@ mount_calc_muestra <- function(pr) {
     #         config }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/marco/construir",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -830,6 +861,21 @@ mount_calc_muestra <- function(pr) {
         body$config %||% s$calc_muestra_aulas_config %||% list(), body
       )
       config <- calc_muestra_aulas_normalize_config(config_input)
+      # El multiplicador por facultad, sellado desde el histórico ANTES de
+      # construir: el marco anota `factor_facultad` dentro de
+      # `calc_muestra_aulas_construir()`, que no recibe la referencia. Sellarlo
+      # después sería tarde y el factor se quedaría en 1 —que es justo lo que
+      # pasaba: medido el 2026-08-25, `efectividad` era NULL en los seis
+      # `.pulso` del repo y las quince facultades dimensionaban con la misma
+      # tasa. Ver calc_muestra_aulas_efectividad_sello.R.
+      config <- calc_muestra_aulas_sellar_efectividad(
+        config, s$calc_muestra_referencia_asistencia %||% NULL
+      )
+      # Y los tramos de rendimiento, DESPUES del multiplicador porque solo
+      # actua sobre `fuente == "historico"` y es el sello de arriba quien la
+      # pone. Invertir el orden lo dejaria sin efecto la primera vez y sellaria
+      # recien en la segunda construccion (ADR 0083).
+      config <- calc_muestra_aulas_sellar_rendimiento(config)
       # Las lecturas de payload también fallan con stop() crudo (tabla
       # malformada, hoja inexistente): dentro del tryCatch se traducen al
       # mismo 400 accionable en vez de filtrarse como 500 E_INTERNAL. Un
@@ -869,8 +915,12 @@ mount_calc_muestra <- function(pr) {
             catalogo_curso_horario = tablas$catalogo_curso_horario,
             config = config
           ),
+          # La firma viaja al job: a escala real SIEMPRE se construye por aqui,
+          # asi que firmar solo en la via sincrona era firmar solo los marcos de
+          # juguete.
           on_complete = .cm_aulas_construir_on_complete(
-            sid, s$calc_muestra_referencia_asistencia
+            sid, s$calc_muestra_referencia_asistencia,
+            sources_used = .cm_aulas_sources_signature(body)
           )
         )
         return(list(ok = TRUE, mode = "job", job_id = job_id, input_rows = input_rows))
@@ -889,6 +939,22 @@ mount_calc_muestra <- function(pr) {
           stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
         }
       )
+      # El marco FIRMA con qué fuentes se construyó.
+      #
+      # Sin esto, subir bases nuevas no invalida nada de lo derivado: la banda de
+      # KPIs seguía diciendo «UNIVERSO DE ESTUDIANTES 29,090 · marco vigente» y
+      # Consistencia «136,284 filas leídas» —cifras de la base del año anterior—
+      # mientras el Explorador, en la MISMA sección, leía el archivo nuevo y
+      # decía 137,919. Dos pestañas contando el mismo archivo distinto.
+      #
+      # Y lo grave no es el tamaño del desfase sino lo pequeño que puede ser:
+      # medido con las bases 2026 de HSVG, lo viejo y lo nuevo se diferencian en
+      # 63 estudiantes y 6 cursos-horario. Nadie lo nota mirando.
+      #
+      # La firma son los `file_id` y las hojas que el cliente mandó a construir.
+      # El cliente conoce los suyos actuales, así que puede comparar y declarar
+      # el desfase sin reconstruir nada.
+      frame$sources_used <- .cm_aulas_sources_signature(body)
       frame <- .cm_criterios_frame_guardar(
         sid, frame, s$calc_muestra_referencia_asistencia
       )
@@ -912,6 +978,7 @@ mount_calc_muestra <- function(pr) {
     #     el frontend refresca via GET /api/calc-muestra/state.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/comparar-metodos",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -920,7 +987,7 @@ mount_calc_muestra <- function(pr) {
       if (is.null(frame)) {
         stop_api(409, "E_SIN_MARCO_AULAS", "Construye el marco de aulas antes de comparar métodos.")
       }
-      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      base_config <- .cm_aulas_config_vigente(s$calc_muestra_aulas_config, frame$config)
       config_input <- body$config %||% base_config
       if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
@@ -985,6 +1052,7 @@ mount_calc_muestra <- function(pr) {
     # aulas. Respuesta sync o job, con el mismo gate que el resto de aulas.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/certeza",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -1000,7 +1068,7 @@ mount_calc_muestra <- function(pr) {
       # sesión —la misma contra la que valida el guard de la decisión—, no la
       # copia congelada dentro del marco: con esa copia el guard rebota una
       # medición que no cambia ninguna configuración.
-      base_config <- s$calc_muestra_aulas_config %||% frame$config %||% list()
+      base_config <- .cm_aulas_config_vigente(s$calc_muestra_aulas_config, frame$config)
       config <- calc_muestra_aulas_normalize_config(body$config %||% base_config)
       .cm_aulas_assert_decision_vigente(s, config)
       estratos <- body$estratos %||% body$aulas_por_estrato %||% list()
@@ -1045,6 +1113,7 @@ mount_calc_muestra <- function(pr) {
     # Body: { config?: {...}, frame?: {...}, method_id?: "cube_balanceado" }
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/seleccionar",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -1053,7 +1122,7 @@ mount_calc_muestra <- function(pr) {
       if (is.null(frame)) {
         stop_api(409, "E_SIN_MARCO_AULAS", "Construye el marco de aulas antes de seleccionar.")
       }
-      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      base_config <- .cm_aulas_config_vigente(s$calc_muestra_aulas_config, frame$config)
       config_input <- body$config %||% base_config
       if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
@@ -1124,6 +1193,7 @@ mount_calc_muestra <- function(pr) {
     #     GET /api/jobs/<id> y refrescar via GET /api/calc-muestra/state.
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/simular-reemplazos",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
@@ -1133,7 +1203,7 @@ mount_calc_muestra <- function(pr) {
       if (is.null(frame) || is.null(selection)) {
         stop_api(409, "E_SIN_SELECCION_AULAS", "Selecciona aulas antes de simular reemplazos.")
       }
-      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      base_config <- .cm_aulas_config_vigente(s$calc_muestra_aulas_config, frame$config)
       config_input <- body$config %||% base_config
       if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
@@ -1175,6 +1245,7 @@ mount_calc_muestra <- function(pr) {
     # POST /api/calc-muestra/aulas/exportar — workbook de seleccion
     # -----------------------------------------------------------------------
     plumber::pr_post("/api/calc-muestra/aulas/exportar",
+                     serializer = .cm_serializer_sin_redondeo(),
                      wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       s <- session_get(sid)
@@ -1284,7 +1355,8 @@ mount_calc_muestra <- function(pr) {
         kind   = "calc_muestra_reporte",
         func   = calc_muestra_render_job,
         args   = list(estudio = estudio, formato = formato,
-                      tasas_facultad = tasas_fac),
+                      tasas_facultad = tasas_fac,
+                      general = calc_muestra_general_resumen(s$calc_muestra_general)),
         result_filename = filename,
         on_complete = on_complete
       )

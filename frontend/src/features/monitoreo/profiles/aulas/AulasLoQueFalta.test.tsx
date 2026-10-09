@@ -18,7 +18,7 @@ describe("AulasLoQueFalta · los vacíos", () => {
     const html = renderToStaticMarkup(
       <AulasLoQueFalta filas={[{ operational_code: "CH 1", cumple_total: true, cumple_poblacion: true }]} />,
     );
-    expect(html).toContain("Ninguna aula evaluada se quedó corta");
+    expect(html).toContain("Ningún curso-horario evaluado se quedó corto");
     expect(html).not.toContain("Sin datos");
   });
 
@@ -85,7 +85,7 @@ describe("AulasLoQueFalta · el foco por facultad", () => {
     // Sólo el aula de Letras en la lista; las dos de Derecho fuera.
     expect(html).toContain("CH 3");
     expect(html).not.toContain("CH 1");
-    expect(html).toContain("1 aula de Letras, que es la facultad en foco");
+    expect(html).toContain("1 curso-horario de Letras, que es la facultad en foco");
     // El bloque de facultades NO se filtra: existe para comparar unas con
     // otras, y con una sola fila no compara nada.
     expect(html).toContain("Derecho");
@@ -93,15 +93,37 @@ describe("AulasLoQueFalta · el foco por facultad", () => {
     expect(html).toContain("encuestas cierran las 3 aulas");
   });
 
-  it("con onFoco cada facultad es pulsable y la enfocada se marca", () => {
+  it("la facultad en foco se marca, y el nombre NO es un botón", () => {
+    // Los nombres dejaron de ser botones el 2026-08-31: el foco se pone desde
+    // el selector de la cabecera, que es permanente y existe en todas las
+    // pestañas. Gonzalo: «no es necesario que sean botones cuando ya tenemos un
+    // selector arriba». Lo que esta lista sigue debiendo es REFLEJARLO.
     const html = renderToStaticMarkup(
       <AulasLoQueFalta filas={filas} facultadEnFoco="Derecho" onFoco={() => {}} />,
     );
-    expect(html).toContain("aulas-foco-boton");
     expect(html).toContain("es-en-foco");
-    // `aria-pressed` y no `aria-selected`: es un interruptor, igual que en las
-    // otras cinco listas. El control de que la marca no se pone en todas.
-    expect(html.match(/aria-pressed="true"/g)?.length).toBe(1);
-    expect(html.match(/aria-pressed="false"/g)?.length).toBe(1);
+    expect(html).not.toContain("aulas-foco-boton");
+    expect(html).not.toContain("aria-pressed");
+    // La marca se pone en UNA, no en todas: es lo que hace util la señal.
+    expect(html.match(/es-en-foco/g)?.length).toBe(1);
+  });
+});
+
+describe("el gráfico se describe, no se bautiza", () => {
+  /**
+   * El `aria-label` abría con «Escalera de esfuerzo». Dentro del código la
+   * metáfora se entiende —los peldaños son aulas que se van cerrando— pero quien
+   * no ve la pantalla oye un nombre propio que nadie le ha definido, y es lo
+   * único que oye del gráfico. El panel ya se llama «Lo que falta para cerrar».
+   */
+  it("el aria-label dice qué se está mirando, sin metáfora", () => {
+    const html = renderToStaticMarkup(
+      <AulasLoQueFalta filas={[
+        { operational_code: "CH 1", cumple_total: false, cumple_poblacion: true, sent_total: 8, threshold_total: 10 },
+        { operational_code: "CH 2", cumple_total: false, cumple_poblacion: true, sent_total: 1, threshold_total: 11 },
+      ] as never} />,
+    );
+    expect(html).toContain("Cursos-horario que se cierran según lo que cuestan");
+    expect(html).not.toContain("Escalera de esfuerzo");
   });
 });

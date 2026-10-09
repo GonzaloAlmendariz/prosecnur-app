@@ -46,6 +46,7 @@ import "../../didactica/didactica.css";
 import "./aulas.css";
 import { avisoDuracionSorteo } from "./duracionComparacion";
 import { AvisoModulo } from "../shared/AvisoModulo";
+import { ROTULO_REEMPLAZOS_EN_CADENA, detalleReemplazosEnCadena } from "./rotulosReservas";
 
 export function AulasSeleccionTab({
   model,
@@ -90,6 +91,7 @@ export function AulasSeleccionTab({
     coverageRows,
     m1Rows,
     reserveRows,
+    extraReserveRows,
     replacementSimulation,
     recommendedMethodId,
     engineOption,
@@ -201,9 +203,9 @@ export function AulasSeleccionTab({
                   hero
                 />
                 <CifraMotor
-                  label="Reemplazos"
+                  label={ROTULO_REEMPLAZOS_EN_CADENA}
                   value={fmtInt(reserveRows.length)}
-                  detalle="asociados a titulares"
+                  detalle={detalleReemplazosEnCadena(extraReserveRows.length)}
                   origen="motor"
                 />
                 <CifraMotor

@@ -1,6 +1,11 @@
 import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
 import { AulasMatrizUmbrales } from "./AulasMatrizUmbrales";
 import { contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
+import { fmt } from "./kpisDeAulas";
+import { columnasConDato } from "./columnasConDato";
+import { perdidaDelControl } from "./perdidaDelControl";
+import { avisoAsistenciaSinParte } from "./avisoAsistenciaSinParte";
+import { Info } from "../../../../vendor/lucide-react";
 
 /**
  * «Base de control», la tercera hoja del operativo, leída en la app.
@@ -79,10 +84,20 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
       <p className="aulas-control-titular">
         {/* Dos redacciones, no una con la palabra intercalada: «102 aulas
             evaluadas efectivas» encadena dos adjetivos y se lee torcido. */}
+        {/* **«grupos de curso-horario y sexo», no «aulas».** Este veredicto NO
+            cuenta aulas: la hoja está en formato largo, con una fila por
+            curso-horario y sexo, y el motor cuenta filas —medido: 304 filas
+            sobre 152 cursos-horario, cada uno con su «F» y su «M», e
+            `indeterminadas: 304`—. Decir «aulas» prometía un número que es el
+            DOBLE de las aulas que existen.
+
+            Es la misma reparación que ya se hizo con «de 30 celdas sexo ×
+            facultad» → «de 30 grupos de facultad y sexo»: la unidad de la cuota
+            de sexo es el grupo, y el rótulo tiene que nombrarla. */}
         {sinEvaluar ? (
-          <><strong>{v.efectivas}</strong> efectivas de {evaluadas} evaluadas</>
+          <><strong>{v.efectivas}</strong> efectivos de {evaluadas} grupos evaluados</>
         ) : (
-          <><strong>{v.efectivas}</strong> de {evaluadas} aulas efectivas</>
+          <><strong>{v.efectivas}</strong> de {evaluadas} grupos de curso-horario y sexo</>
         )}
         {pct !== null ? <span> · {pct} %</span> : null}
       </p>
@@ -142,6 +157,9 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
  */
 const NOMBRE_DE_GRUPO: Record<string, string> = {
   cuenta: "Cuenta",
+  // El grupo se llama por lo que compara, no por la columna que lo abre: la
+  // pregunta que contesta es si el aula llegó a lo que se esperaba de ella.
+  esperado: "Esperado vs obtenido",
   duracion: "Duración",
   cuotas: "Cuotas",
   horario: "Rango horario",
@@ -159,10 +177,23 @@ const CAMPOS_POR_GRUPO: Record<string, string[]> = {
     "short_total", "short_vs_total", "long_total", "long_vs_total",
     "threshold_total", "threshold_population", "valid_total", "valid_population",
   ],
+  // **El bloque que decide.** `efectivas_esperadas` es la vara vigente y sus
+  // columnas viajan en el libro desde que sustituyeron al 70 %; no estaban en
+  // ningún grupo, así que esta tabla pintaba `70T` y `70P` —retirados— y no la
+  // meta ni la brecha. La pantalla que enseña lo que trae el libro enseñaba lo
+  // viejo y escondía lo vigente.
+  esperado: [
+    "efectivas_esperadas", "efectivas_obtenidas",
+    "efectivas_pct_esperado", "efectivas_pct_obtenido",
+    "efectivas_brecha", "elegibles_esperados",
+  ],
   duracion: ["last_response_day"],
   cuotas: [
     "observed_students", "non_respondents", "attendance_pct",
-    "quota_pct", "quota_missing", "women_n", "men_n", "women_pct", "men_pct",
+    "quota_pct", "quota_missing",
+    // Cada esperado junto a su obtenido: la cuota de sexo se veía sin su vara.
+    "mujeres_esperadas", "women_n", "women_pct",
+    "hombres_esperados", "men_n", "men_pct",
   ],
   horario: ["schedule_norm", "schedule_range"],
 };
@@ -176,6 +207,24 @@ const CAMPOS_POR_GRUPO: Record<string, string[]> = {
  * derecha, tabulares y sin partirse; los dos veredictos se pintan como marca,
  * porque un `1` y un `0` en una tabla de números no se leen como sí y no.
  */
+/* Loop mejora-ui E13: el rótulo «%» cumple lo que promete. Las columnas de
+   porcentaje que la app calcula viajan como FRACCIÓN (0.5178571) y la celda
+   las pintaba crudas — siete decimales donde el título dice «%». Solo se
+   formatea lo que ES una fracción numérica en [0, 1]; lo tecleado en la hoja
+   («92.3 %», un 85 a secas, NA) pasa intacto — presentación, no parseo. */
+const COLUMNAS_DE_PORCENTAJE = new Set([
+  "attendance_pct", "quota_pct", "women_pct", "men_pct",
+  "efectivas_pct_esperado", "efectivas_pct_obtenido",
+]);
+const comoPorcentaje = (v: unknown): string | null => {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  if (s === "" || !/^[0-9]*\.?[0-9]+$/.test(s)) return null;
+  const n = Number(s);
+  if (!Number.isFinite(n) || n > 1) return null;
+  return `${Math.round(n * 100)} %`;
+};
+
 const COLUMNAS_DE_CIFRA = new Set([
   "sent_total", "sent_vs_total", "sent_vs_population",
   "validator_1", "validator_2", "validator_3",
@@ -183,6 +232,9 @@ const COLUMNAS_DE_CIFRA = new Set([
   "threshold_total", "threshold_population",
   "observed_students", "non_respondents", "attendance_pct",
   "quota_pct", "quota_missing", "women_n", "men_n", "women_pct", "men_pct",
+  "efectivas_esperadas", "efectivas_obtenidas", "efectivas_pct_esperado",
+  "efectivas_pct_obtenido", "efectivas_brecha", "elegibles_esperados",
+  "mujeres_esperadas", "hombres_esperados",
 ]);
 
 /**
@@ -192,6 +244,34 @@ const COLUMNAS_DE_CIFRA = new Set([
  * releyendo la celda. El campo del motor y el umbral con el que se calcula el
  * respaldo van al lado del nombre de la columna porque son la misma decisión.
  */
+/**
+ * Qué columnas del bloque tienen algo que decir sobre estas filas.
+ *
+ * Es `columnasConDato` **más una excepción que un test cazó**: las columnas de
+ * veredicto no traen su valor en la fila, **la app las deriva** del umbral. Al
+ * descartarlas por venir vacías desaparecía «Válido total» justo en el caso que
+ * este componente existe para cubrir —la celda que la hoja no llenó y el motor
+ * resolvió—, y con ella su marca de «lo calculó la app».
+ *
+ * Así que una columna se queda si trae dato **o si se puede derivar**: si alguna
+ * fila trae su veredicto o el umbral con el que se calcula.
+ */
+function camposConAlgoQueDecir(
+  filas: ReadonlyArray<Record<string, unknown>>,
+  campos: ReadonlyArray<string>,
+): string[] {
+  const conDato = new Set(columnasConDato(filas, campos));
+  const hay = (clave: string) => filas.some((f) => {
+    const v = f[clave];
+    return v !== null && v !== undefined && String(v).trim() !== "";
+  });
+  return campos.filter((campo) => {
+    if (conDato.has(campo)) return true;
+    const derivada = COLUMNAS_DE_VEREDICTO.get(campo);
+    return Boolean(derivada) && (hay(derivada!.veredicto) || hay(derivada!.umbral));
+  });
+}
+
 const COLUMNAS_DE_VEREDICTO = new Map([
   ["valid_total", { veredicto: "cumple_total", umbral: "threshold_total", celda: "valid_total" }],
   ["valid_population", { veredicto: "cumple_poblacion", umbral: "threshold_population", celda: "valid_population" }],
@@ -291,13 +371,28 @@ export function AulasControlDelLibro({
   filas,
   resumen,
   criterio,
+  partes,
 }: {
   filas: ReadonlyArray<Record<string, unknown>>;
   resumen: ResumenDeControl | null;
   /** El criterio de validez que declara el ESTUDIO, para contrastarlo. */
   criterio?: CriterioDelEstudio | null;
+  /** Los partes de campo en sesión: con ellos el aviso de A3 distingue el aula
+   *  sin parte de la que lo tiene y el libro leído aún no trae. */
+  partes?: ReadonlyArray<Record<string, unknown>> | null;
 }) {
   const validadores = contrasteDeValidadores(criterio, filas);
+  // A3: lo que sólo sabe quien estuvo en el salón, dicho con causa y salida.
+  const asistencia = avisoAsistenciaSinParte(filas, partes ?? []);
+  // **La banda compara dos cifras de la misma hoja, no el veredicto.**
+  // `sent_total` es lo que el equipo da por enviado y `efectivas_obtenidas` la
+  // efectiva de plataforma que la app escribe en la fila; `valid_total` es el
+  // veredicto que esta misma tabla pinta como marca de sí/no dos líneas más
+  // abajo, y leerlo como conteo daba «De 770 enviadas cuentan 2» con banderas
+  // 0/1 y apagaba la banda con «SI»/«NO» (checklist A20 · censo de las cuatro
+  // cifras 2026-09-01, choque 1). Medido en 2025 se pierde el 9-13 %, y para
+  // saberlo había que sumar 190 filas a mano.
+  const perdida = perdidaDelControl(filas);
   const grupos = resumen?.grupos ?? [];
   const aulas = resumen?.aulas ?? filas.length;
 
@@ -314,7 +409,7 @@ export function AulasControlDelLibro({
       // grupo iba verde, así que el defecto sólo existía en el estado vacío.
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         El libro importado no trae la hoja «Base de control», o la trae sin filas.
-        Es la hoja donde el equipo lleva el control de calidad por aula.
+        Es la hoja donde el equipo lleva el control de calidad por curso-horario.
       </p>
     );
   }
@@ -329,10 +424,24 @@ export function AulasControlDelLibro({
   // «Control - cuenta», «- duracion», «- cuotas» y «- rango horario», y sin esa
   // banda las 27 columnas iban seguidas: no se veia donde acababa un bloque y
   // empezaba el siguiente, que es lo que convertia la tabla en un muro.
+  // **La tabla enseña lo que el libro TRAE, no la plantilla de 2025.**
+  //
+  // Gonzalo, al verla: «¿por qué sigue poniendo 70T y 70P? Veo que sigue siendo
+  // una copia de la tabla del año pasado [...] parece que estuvieras haciendo un
+  // calco». Tenía razón y el mecanismo es preciso: `carga_base_control.R` marca
+  // `70T`/`70P` como `solo_lectura` —«la hoja que generamos YA NO ESCRIBE esa
+  // columna», sólo se leen para no romper un libro viejo— pero esta tabla las
+  // pintaba igual, vacías. Y con ellas «Validador 1/2/3», «Total cortas» y
+  // «Total largas», que este estudio tampoco llena.
+  //
+  // `columnasConDato` ya encierra el criterio —«una columna vacía en TODAS las
+  // filas no llega a la tabla»— y esta tabla era la única del perfil que no lo
+  // usaba. Un libro de 2025 que SÍ traiga 70T las sigue viendo: se descarta lo
+  // vacío, no lo viejo.
   const bloques = conDato.map((g) => ({
     clave: g.clave,
     nombre: nombreDeGrupo(g),
-    campos: CAMPOS_POR_GRUPO[g.clave] ?? [],
+    campos: camposConAlgoQueDecir(filas, CAMPOS_POR_GRUPO[g.clave] ?? []),
   })).filter((b) => b.campos.length);
   const columnas = ["operational_code", ...bloques.flatMap((b) => b.campos)];
   // Que columna abre cada bloque, para pintarle la linea divisoria y que el ojo
@@ -361,9 +470,17 @@ export function AulasControlDelLibro({
           <Veredicto v={resumen.veredicto} aulas={aulas} />
         </>
       ) : null}
+      {/* A3: ALUMNOS EN AULA sólo la sabe el parte. Sin él, tres columnas de
+          esta hoja se apagan en silencio; el aviso nombra las aulas y dice
+          dónde se llena. Mismo marco que los avisos de la página. */}
+      {asistencia.texto ? (
+        <div className="aulas-aviso" data-tono={asistencia.tono} data-qa-geometry-member>
+          <Info size={16} /> {asistencia.texto}
+        </div>
+      ) : null}
       {/* **De quién son los validadores.**
           La hoja trae columnas VALIDADOR y el estudio declara sus propios
-          filtros de respuesta válida en la app: dos sistemas distintos, juntos
+          filtros de respuesta efectiva en la app: dos sistemas distintos, juntos
           en la misma pantalla y sin nada que dijera cuál es cuál. Aquí no se
           inventa la relación —no la hay— sino que se nombra. */}
       {/* **De qué está hecha esta hoja, en un solo sitio.**
@@ -382,7 +499,7 @@ export function AulasControlDelLibro({
             {" "}de validador {validadores.columnas === 1 ? "es" : "son"} del equipo: las llena
             en su Excel y la app no las calcula.{" "}
             {validadores.sinDeclarar ? (
-              <>Este estudio todavía no declara sus filtros de respuesta válida, así
+              <>Este estudio todavía no declara sus filtros de respuesta efectiva, así
               que no hay con qué compararlas.</>
             ) : (
               <>
@@ -393,6 +510,31 @@ export function AulasControlDelLibro({
             )}
           </p>
         ) : null}
+        {/* **Qué filtro decide, que es la pregunta siguiente.**
+
+            Arriba se lee cuántos filtros declara el estudio y cuáles; eso deja
+            sin contestar cuál de ellos tumba las respuestas. El motor ya lo
+            tenía contado y el dato viajaba dentro de `criterio_validez` sin
+            consumidor: sobre este corte, «filtro» tumba 109 y `consent_1` sólo
+            7, y con la lectura vieja los tres pesaban igual.
+
+            La segunda cifra es la que evita el error de sumarlos: son las que
+            caen SÓLO por ese filtro, o sea lo que se recuperaría quitándolo.
+            Cuando es mucho menor que la primera, ese filtro está tumbando
+            respuestas que otro ya tumbaba. */}
+        {/* **El desglose por filtro NO va aqui: ya vive en Fuentes.**
+
+            Lo puse en los dos sitios el mismo dia sin darme cuenta: el motor
+            lo dice en «Que cuenta como encuesta efectiva» —«de las 144 que no
+            cuentan, 109 por filtro»— que es donde el criterio SE CONFIGURA y
+            donde la cifra explica lo que acabas de tocar. Repetirlo en la hoja
+            del libro no añade lectura, solo otra copia que mantener.
+
+            Es ademas la queja literal de Gonzalo sobre esta familia de
+            paneles, ya anotada en `AulasFiltrosDeEfectiva`: «todos los
+            elementos visuales siguen bastante verborreados en esta seccion».
+            El dato sigue viajando en `criterio_validez.por_filtro` y
+            `caidasPorFiltro()` sigue exportado para quien lo necesite. */}
         <p className="aulas-cadenas-lectura">
           {/* Filas de la hoja, no aulas del plan: son 210 contra las 196 que el
               plan sigue, y llamarlas igual confundía dos denominadores. */}
@@ -424,11 +566,41 @@ export function AulasControlDelLibro({
         // rama con datos, que es lo que evita que el gate mida el encabezado
         // del panel como si fuera el contenedor de datos.
         <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-          La hoja trae sus filas pero ninguna columna de control llena, asi que
-          todavia no hay veredicto por aula que mostrar. Se llenan en el Excel
+          La hoja trae sus filas pero ninguna columna de control llena, así que
+          todavía no hay veredicto por curso-horario que mostrar. Se llenan en el Excel
           del equipo y vuelven al importar el libro.
         </p>
       ) : (
+      <>
+      {/* La banda va ANTES de la tabla porque contesta la pregunta con la que
+          se entra —«¿cuánto de lo que mandamos cuenta?»— y la tabla es donde se
+          busca un aula concreta. Una sola línea: la sección reparte alto y un
+          panel nuevo se lo quitaría a los vecinos. */}
+      {perdida ? (
+        <p className="aulas-perdida" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+          {/* Cada cifra con su fuente, como en el alcance del banco: «enviado»
+              lo declara la hoja y «efectivas» la plataforma; sin decirlo, las
+              dos parecen cuentas de la app. */}
+          <span className="aulas-perdida-cifras">
+            De <strong>{fmt(perdida.enviadas)}</strong> que la hoja da por enviado,
+            la plataforma da por efectivas <strong>{fmt(perdida.validas)}</strong>
+            {perdida.pierde > 0 ? <> · se pierden {fmt(perdida.pierde)}</> : null}
+            {" "}({Math.round(perdida.pasa * 100)} % pasa)
+            {/* Las filas sin efectiva de plataforma NO son pérdida: decirlo
+                evita leer el porcentaje como si el libro estuviera completo. */}
+            {perdida.sinRevisar > 0 ? (
+              <small>
+                {" "}· {fmt(perdida.sinRevisar)} {perdida.sinRevisar === 1 ? "fila" : "filas"} aún
+                sin efectiva de plataforma, fuera de la comparación
+              </small>
+            ) : null}
+          </span>
+          <span className="aulas-perdida-barra" aria-hidden="true">
+            <i className="es-cuenta" style={{ width: `${perdida.pasa * 100}%` }} />
+            <i className="es-pierde" style={{ width: `${(1 - perdida.pasa) * 100}%` }} />
+          </span>
+        </p>
+      ) : null}
       <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <table className="mon-profile-table">
           <thead>
@@ -498,7 +670,8 @@ export function AulasControlDelLibro({
                           celdaDeLaHoja={COLUMNAS_DE_VEREDICTO.get(c)!.celda}
                         />
                       )
-                      : texto(fila[c]) || <span className="mon-profile-muted">—</span>}
+                      : (COLUMNAS_DE_PORCENTAJE.has(c) ? comoPorcentaje(fila[c]) : null)
+                        ?? (texto(fila[c]) || <span className="mon-profile-muted">—</span>)}
                   </td>
                 ))}
               </tr>
@@ -506,6 +679,7 @@ export function AulasControlDelLibro({
           </tbody>
         </table>
       </div>
+      </>
       )}
     </div>
   );

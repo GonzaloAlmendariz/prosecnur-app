@@ -23,7 +23,9 @@ export type FlujoEtapa = {
   /** Cifra principal ya formateada (ej. "2,356"). */
   valor?: string;
   detalle?: string;
-  estado?: "ready" | "working" | "pending";
+  /** "alerta" es el paso que dejó el flujo en 0 viniendo de N>0: no es un paso
+   *  pendiente, es el que rompió la cadena y tiene que verse distinto. */
+  estado?: "ready" | "working" | "pending" | "alerta";
   /** Merma en la arista que llega a la SIGUIENTE etapa (ej. −520 excluidos). */
   merma?: { n: number; label: string };
 };
@@ -33,11 +35,14 @@ export function FlujoVertical({
   orientacion = "vertical",
   onEtapaClick,
   ariaLabel,
+  geometryGroup,
 }: {
   etapas: FlujoEtapa[];
   orientacion?: "vertical" | "horizontal" | "adaptive";
   onEtapaClick?: (id: string) => void;
   ariaLabel?: string;
+  /** Grupo de geometría (C1) si el llamador lo declara; sin él no cambia nada. */
+  geometryGroup?: string;
 }) {
   const Etapa = onEtapaClick ? "button" : "div";
   return (
@@ -48,6 +53,8 @@ export function FlujoVertical({
       style={{ "--cmv2-flujo-columnas": Math.min(etapas.length, 6) } as CSSProperties}
       role="list"
       aria-label={ariaLabel}
+      data-qa-geometry-group={geometryGroup}
+      data-qa-geometry-contract={geometryGroup ? "intrinsic" : undefined}
     >
       {etapas.map((etapa, i) => (
         <Fragment key={etapa.id}>
@@ -66,6 +73,9 @@ export function FlujoVertical({
             className="cmv2-uni-flujo-etapa"
             style={{ "--cmv2-flujo-index": i } as CSSProperties}
             data-estado={etapa.estado ?? "pending"}
+            // Con grupo declarado, sólo las etapas se miden: las aristas son
+            // conectores decorativos que estiran al alto de la fila.
+            data-qa-geometry-member={geometryGroup ? true : undefined}
             role="listitem"
             onClick={onEtapaClick ? () => onEtapaClick(etapa.id) : undefined}
           >

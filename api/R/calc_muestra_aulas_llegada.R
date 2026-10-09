@@ -12,8 +12,11 @@
 #     está excluido por criterio y NO es novedad; un tipo de sesión que 2025
 #     no tenía SÍ lo es.
 #   - Además, para cada novedad se dice si ALGÚN criterio la reconoce — una
-#     facultad nueva fuera de la whitelist de rangos quedaría EXCLUIDA ENTERA
-#     en silencio: ése es el peor tragado posible y aquí se declara primero.
+#     facultad nueva fuera del mapa de rangos entra SIN FILTRO DE NIVEL en
+#     silencio: nadie declaró su tramo, así que pasan todas sus aulas. Ése es
+#     el peor tragado posible y aquí se declara primero. (Hasta 2026-08-25 el
+#     evaluador la EXCLUÍA entera y esto lo decía así; el defecto era el
+#     evaluador, no el aviso — ver .cm_criterios_eval_course_ranges.)
 #
 # El snapshot viaja en el payload del frame en cada build; el diff corre
 # cuando hay un snapshot anterior contra el cual comparar (el sellado del
@@ -71,8 +74,12 @@ calc_muestra_aulas_novedades <- function(aula_frame, baseline, config = list()) 
   out$comparado <- TRUE
   bloques <- list()
 
-  # 1 · Facultades nuevas — y si la whitelist de rangos las reconoce. Una
-  # facultad fuera del mapa queda EXCLUIDA del marco entera: gravedad alta.
+  # 1 · Facultades nuevas — y si el mapa de rangos las reconoce. Una facultad
+  # fuera del mapa entra SIN filtro de nivel: nadie declaró su tramo, así que
+  # sus aulas pasan enteras. Gravedad alta por lo mismo que antes —el marco no
+  # es el que el analista cree—, pero por la razón CONTRARIA: hasta 2026-08-25
+  # el evaluador la excluía entera y este aviso lo decía; ese era el defecto (el
+  # mapa sólo gobierna lo que nombra, ver .cm_criterios_eval_course_ranges).
   cs <- config$criterios_seleccion %||% list()
   rangos <- cs$courseLevelRanges %||% list()
   fac_whitelist <- toupper(trimws(names(rangos)))
@@ -84,7 +91,7 @@ calc_muestra_aulas_novedades <- function(aula_frame, baseline, config = list()) 
         valor = f,
         reconocida_por_rangos = f %in% fac_whitelist,
         consecuencia = if (f %in% fac_whitelist) "entra con sus rangos declarados"
-                       else "EXCLUIDA ENTERA del marco: la whitelist de rangos no la conoce"
+                       else "entra SIN FILTRO DE NIVEL: nadie declaró su tramo, pasan todas sus aulas"
       ))
     )
   }

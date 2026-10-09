@@ -108,3 +108,156 @@ aulas_libro_desde_fuente <- function(values, rol) {
   if (!nzchar(hoja)) return(list())
   aulas_libro_desde_valores(values, hoja)
 }
+
+#' Importa el libro completo desde los valores de tres pestañas de Sheets.
+#'
+#' **La otra puerta del ciclo, ahora conectada.** Este modulo sabia convertir
+#' los valores de la API en plan, partes y control desde que se escribio, y
+#' nadie lo llamaba: `aulas_libro_desde_valores()` no tenia un solo consumidor
+#' en todo el repo. Lo que faltaba no era la conversion sino el remate —el
+#' recuento del resumen vivia dentro del lector de Excel—, asi que se extrajo a
+#' `.calb_ensamblar()` y las dos puertas lo comparten.
+#'
+#' El resultado tiene la MISMA forma que `aulas_libro_importar()`, que es lo que
+#' permite que `aulas_libro_importar_en_sesion()` no tenga que saber por donde
+#' entro el libro.
+#'
+#' Una hoja que no venga se declara en `hojas_ausentes`, igual que en el `.xlsx`:
+#' leer solo la agenda es un caso normal —el jefe de campo llena la suya en otro
+#' momento— y no un error.
+#'
+#' @param hojas lista con `agendadas`, `aplicadas` y/o `control` —y, si el
+#'   libro trae banco (B14), `agendadas_extra` / `aplicadas_extra`—; cada una
+#'   son las filas tal como las devuelve la API de Sheets (`values`).
+#' @return La misma estructura que `aulas_libro_importar()`.
+#' @export
+aulas_libro_importar_valores <- function(hojas = list()) {
+  hojas <- hojas %||% list()
+  trae <- function(k) {
+    v <- hojas[[k]]
+    !is.null(v) && length(v) > 0L
+  }
+  presentes <- vapply(c("agendadas", "aplicadas", "control"), trae, logical(1))
+  if (!any(presentes)) {
+    stop_api(
+      422, "E_AULAS_LIBRO_SIN_HOJAS",
+      "Ninguna de las tres pestañas del operativo de aulas trajo filas.",
+      details = list(esperadas = lapply(AULAS_LIBRO_HOJAS, function(x) x$hoja))
+    )
+  }
+
+  plan <- if (presentes[["agendadas"]]) aulas_libro_desde_valores(hojas$agendadas, "agendadas") else list()
+  partes <- if (presentes[["aplicadas"]]) aulas_libro_desde_valores(hojas$aplicadas, "aplicadas") else list()
+
+  # B14: las pestañas Extra, con los MISMOS traductores que sus contrapartes
+  # (la geometria del bloque unico cae en la de siempre): la agenda y los
+  # partes de un extra vuelven por codigo como cualquier aula, igual que en la
+  # puerta del `.xlsx`. `.calx_unir_plan` conserva el attr `campos_ausentes`
+  # del plan principal, que `c()` descartaria.
+  if (trae("agendadas_extra")) {
+    # `[[` y no `$`: «agendadas» es PREFIJO de «agendadas_extra» y el `$` de R
+    # parcial-matchea — la trampa de `config$plan` pescando `plan_rows`.
+    plan <- .calx_unir_plan(plan, aulas_libro_desde_valores(hojas[["agendadas_extra"]], "agendadas"))
+  }
+  if (trae("aplicadas_extra")) {
+    partes <- c(partes, aulas_libro_desde_valores(hojas[["aplicadas_extra"]], "aplicadas"))
+  }
+  # `base_control_a_filas()` devuelve la lista de filas a secas; el ensamblado
+  # espera la forma del lector de Excel, que ademas lleva `sin_nombre`.
+  filas_control <- if (presentes[["control"]]) aulas_libro_desde_valores(hojas$control, "control") else list()
+  control <- if (is.list(filas_control) && !is.null(filas_control$filas)) {
+    filas_control
+  } else {
+    list(filas = filas_control, sin_nombre = integer(0))
+  }
+
+  ausentes <- lapply(AULAS_LIBRO_HOJAS[!presentes], function(x) x$hoja)
+  .calb_ensamblar(plan, partes, control, ausentes)
+}
+
+#' Trae las filas crudas de una pestaña.
+#'
+#' Se pide `values` en crudo y no un `data.frame` como hace
+#' `monitoreo_sheets_read_source()`: la cabecera del libro no siempre esta en la
+#' fila 1 —la agenda si, las otras dos en la 2— y ese detalle ya lo resuelve
+#' `aulas_libro_desde_valores()`. Convertir aqui obligaria a decidirlo dos veces.
+#' @keywords internal
+.cads_valores_de_pestana <- function(spreadsheet_id, pestana) {
+  rango <- sprintf("'%s'", gsub("'", "''", pestana))
+  url <- paste0(.monitoreo_sheets_api_base(spreadsheet_id), "/values/",
+                utils::URLencode(rango, reserved = TRUE))
+  payload <- .monitoreo_google_api(url)
+  payload$values %||% list()
+}
+
+#' Lee las tres pestañas del libro de aulas de un Google Sheets.
+#'
+#' **Una pestaña que no existe NO es un error.** El operativo empieza con la
+#' agenda y la hoja de campo aparece dias despues; fallar por eso obligaria al
+#' equipo a crear pestañas vacias para poder sincronizar. Lo que no se pudo leer
+#' se omite y `aulas_libro_importar_valores()` lo declara en `hojas_ausentes`,
+#' igual que hace el `.xlsx` cuando le falta una hoja.
+#'
+#' @param spreadsheet_id id del documento.
+#' @param pestanas nombres por clave (`agendadas`, `aplicadas`, `control`,
+#'   `agendadas_extra`, `aplicadas_extra`). Por defecto los del libro que
+#'   genera la app, que es el caso normal: el equipo sube ese archivo a Drive
+#'   y trabaja sobre el.
+#' @return lista de `values` por clave, lista para `aulas_libro_importar_valores()`.
+#'   Lleva el atributo `fallos`: las pestañas que NO se pudieron leer por un
+#'   motivo que no es «no existe», cada una con su mensaje. Una pestaña ausente
+#'   y una que fallo por red no son lo mismo y antes se contaban igual.
+#' @export
+aulas_libro_leer_de_sheets <- function(spreadsheet_id, pestanas = list()) {
+  id <- as.character(spreadsheet_id %||% "")[1]
+  if (!nzchar(trimws(id))) {
+    stop_api(400, "E_AULAS_SHEETS_SIN_ID",
+             "Falta el identificador del Google Sheets del libro de aulas.")
+  }
+  # B14: las dos pestañas Extra entran al juego POR DEFECTO — la publicacion
+  # las siembra y lo que el equipo teclee ahi tiene que volver por el sync,
+  # igual que en el `.xlsx` (sin esto el dato muere camino a la app). Van
+  # PRIMERO a proposito: cada pestaña se lee independiente y asi las tres
+  # principales conservan su posicion de cierre en el recorrido, que es lo que
+  # observan los contratos de esta puerta. Un libro sin extras las omite por
+  # la regla de siempre (pestaña que no existe no es un error).
+  por_defecto <- c(
+    .calx_pestanas_sheets(),
+    stats::setNames(
+      lapply(AULAS_LIBRO_HOJAS, function(x) x$hoja),
+      vapply(AULAS_LIBRO_HOJAS, function(x) x$clave, character(1))
+    )
+  )
+  nombres <- utils::modifyList(por_defecto, as.list(pestanas %||% list()))
+
+  out <- list()
+  # **«No existe» y «no se pudo leer» NO son lo mismo, y se estaban contando
+  # igual.** Cualquier error —red caida, cuota de la API, permiso revocado,
+  # token vencido— se tragaba con `NULL` y la pestaña acababa en
+  # `hojas_ausentes`, donde la UI dice «no esta en el libro». Es peor que
+  # callar: manda a mirar el Sheets cuando lo que habia que hacer era
+  # reintentar, y si la pestaña era «Aulas Aplicadas (Campo)» el parte entero
+  # desaparece de la lectura sin una sola alarma.
+  #
+  # Los fallos viajan como ATRIBUTO para no cambiar la firma de una funcion con
+  # consumidores; quien los quiera, `attr(x, "fallos")`.
+  fallos <- list()
+  for (clave in names(por_defecto)) {
+    pestana <- as.character(nombres[[clave]] %||% "")[1]
+    if (!nzchar(trimws(pestana))) next
+    valores <- tryCatch(.cads_valores_de_pestana(id, pestana),
+                        error = function(e) structure(list(), fallo = conditionMessage(e)))
+    motivo <- attr(valores, "fallo")
+    if (!is.null(motivo)) {
+      # **Si no se sabe clasificar, es un fallo.** La pestaña que no existe se
+      # reconoce porque la API se queja del RANGO; cualquier otra cosa —o algo
+      # que no sepamos leer— se reporta, que es fallar cerrado.
+      if (!grepl("unable to parse range|no such sheet|rango", motivo, ignore.case = TRUE)) {
+        fallos[[length(fallos) + 1L]] <- list(clave = clave, pestana = pestana, motivo = motivo)
+      }
+      next
+    }
+    if (length(valores)) out[[clave]] <- valores
+  }
+  structure(out, fallos = fallos)
+}

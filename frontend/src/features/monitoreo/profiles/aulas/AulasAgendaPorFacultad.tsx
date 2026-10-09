@@ -2,6 +2,8 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { agendaPorFacultad } from "./agendaPorFacultad";
+import { ChipHora, ChipLugar } from "./AulasSistemaPabellon";
+import { bloquesDeSesion } from "./sistemaPabellon";
 import { EstadoEnCelda } from "./EstadoEnCelda";
 import { ESTADOS_OPERATIVOS } from "./aulasPresentation";
 import { fmt } from "./kpisDeAulas";
@@ -24,7 +26,36 @@ function fechaCorta(iso: string): string {
   return `${dia} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
+export function AulasAgendaPorFacultad({ filas, choques, hrefDeFicha, onVerFicha }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * Código → choque cita/horario de clase (`choquesDeHorario`), computado por
+   * la sección desde las ventanas del motor. Opcional: sin él la ruta pinta
+   * como siempre — el aviso es una capa, no una dependencia.
+   */
+  choques?: ReadonlyMap<string, string>;
+  /**
+   * La dirección de la ficha de ese curso-horario, para que el código de cada
+   * entrada LLEVE a todo lo que sabemos de él.
+   *
+   * **Esta vista ya trata el curso-horario como una unidad** —día, hora, chip
+   * de lugar, docente, estado y la nota de gestión, uno por entrada— y el
+   * código era el único dato muerto de la fila: para ver su ficha había que
+   * cambiar de sección y teclearlo a mano.
+   *
+   * Va como `href` de verdad y no como botón: así se copia, se abre en pestaña
+   * nueva y se lee con el teclado. El `onClick` navega por el router —la SPA no
+   * puede recargar: el warm start del proyecto tarda minutos— y el `href` queda
+   * de respaldo.
+   *
+   * Ambas OPCIONALES a propósito: sin ellas la entrada pinta el `<span>` de
+   * siempre, que es lo que mantiene el componente renderizable sin Router
+   * —varios contratos lo pintan con `renderToStaticMarkup`—.
+   */
+  hrefDeFicha?: (codigo: string) => string;
+  /** Navegación por el router; sin ella el `href` hace su trabajo solo. */
+  onVerFicha?: (codigo: string) => void;
+}) {
   const facultades = useMemo(() => agendaPorFacultad(filas), [filas]);
 
   if (!facultades.length) {
@@ -61,7 +92,7 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
             <summary>
               <span className="aulas-ruta-nombre">{f.facultad}</span>
               <span className="aulas-ruta-cuenta">
-                {fmt(f.aulas.length)} {f.aulas.length === 1 ? "aula" : "aulas"}
+                {fmt(f.aulas.length)} {f.aulas.length === 1 ? "curso-horario" : "cursos-horario"}
                 {f.enMarcha ? <em> · {fmt(f.enMarcha)} en marcha</em> : null}
               </span>
               <span className="aulas-ruta-desde">
@@ -69,36 +100,116 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
               </span>
             </summary>
             <ul>
-              {f.aulas.map((a) => (
-                <li key={a.codigo}>
-                  <span className="aulas-ruta-cuando">
+              {f.aulas.map((a, i) => (
+                <li
+                  key={a.codigo}
+                  // El caso se ve en el FONDO del box (dictado 2026-09-03:
+                  // «un color quizás un poquito amarillento si es caso A…
+                  // ligeramente distinto si es B… y distinto si es C, para
+                  // poder distinguir»): lavados tenues por relación, solo en
+                  // reservas — el titular queda en blanco de siempre.
+                  className={a.esReserva
+                    ? `es-caso-${a.relacion === "reemplaza" ? "a" : a.relacion === "complementa" ? "b" : "c"}`
+                    : undefined}
+                >
+                  {/* Loop mejora-ui E5: el día canta solo cuando cambia. Cinco
+                      «lun 07/09» seguidos aplanaban la lectura por días — la
+                      fecha repetida susurra (la hora conserva su voz) y el ojo
+                      salta de día en día, que es lo que la vista promete. */}
+                  <span
+                    className={`aulas-ruta-cuando${
+                      i > 0 && !!a.fecha && f.aulas[i - 1].fecha === a.fecha ? " es-mismo-dia" : ""
+                    }`}
+                  >
                     {a.fecha ? fechaCorta(a.fecha) : "—"}
                     {a.hora ? <em> {a.hora}</em> : null}
                   </span>
                   <span className="aulas-ruta-codigo">
-                    {a.codigo}
+                    {hrefDeFicha ? (
+                      <a
+                        className="aulas-ruta-codigo-enlace"
+                        href={hrefDeFicha(a.codigo)}
+                        title={`Ver la ficha de ${a.codigo}`}
+                        onClick={(e) => {
+                          // Un click con modificador —o con la rueda— es una
+                          // petición de abrir en otra pestaña: ahí NO se
+                          // intercepta, o se le quita al usuario lo único que
+                          // un enlace le daba de más que un botón.
+                          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                          if (!onVerFicha) return;
+                          e.preventDefault();
+                          onVerFicha(a.codigo);
+                        }}
+                      >
+                        {a.codigo}
+                      </a>
+                    ) : a.codigo}
                     {/* Una reserva se ve como reserva. Iba suelta entre los
                         titulares de su facultad —un `R 21.1` junto a un `CH 21`—
                         y su relación había que adivinarla por el número. */}
+                    {/* La relación en SU palabra (dictado 2026-09-03): un R
+                        con titular caído reemplaza; con titular vivo
+                        COMPLEMENTA — ambos suman —; sin titular es un
+                        refuerzo operativo, con nomenclatura propia. */}
                     {a.esReserva ? (
-                      <em className="aulas-ruta-reserva">
-                        {a.titular ? `reemplaza a ${a.titular}` : "reserva"}
+                      <em className={`aulas-ruta-reserva es-${a.relacion}`}>
+                        {a.relacion === "refuerzo"
+                          ? "refuerzo"
+                          : `${a.relacion} a ${a.titular}`}
                       </em>
                     ) : null}
                   </span>
-                  {/* DÓNDE, que es lo que se viene a buscar: «LUN 08:00 A101»
-                      lleva el pabellón y el salón. Sin esta columna la vista
-                      diría cuándo y con quién, y no a dónde ir. */}
-                  <span className="aulas-ruta-donde" title={a.donde}>{a.donde || "—"}</span>
+                  {/* DÓNDE, que es lo que se viene a buscar — y en el Sistema
+                      Pabellón el pabellón habla con su color: cada bloque de
+                      sesión va como chip de hora + chip de lugar. Lo que el
+                      parser no entiende se pinta tal cual llegó. */}
+                  <span className="aulas-ruta-donde" title={a.donde}>
+                    {/* B30 también aquí: cuando el libro trae el LUGAR DE
+                        APLICACIÓN confirmado, ESE es el dónde — chip de
+                        pabellón directo (un venue a secas no calza el patrón
+                        día+hora y saldría plano). Sin confirmado, el
+                        compuesto del sorteo como siempre. */}
+                    {a.donde
+                      ? a.esLugarConfirmado
+                        ? (
+                          <span className="aulas-ruta-bloque">
+                            <ChipLugar lugar={a.donde} />
+                          </span>
+                        )
+                        : bloquesDeSesion(a.donde).map((b, i) =>
+                          "crudo" in b ? (
+                            <span key={i}>{b.crudo}</span>
+                          ) : (
+                            <span key={i} className="aulas-ruta-bloque">
+                              <ChipHora>{b.sesion}</ChipHora>
+                              <ChipLugar lugar={b.lugar} />
+                            </span>
+                          ),
+                        )
+                      : "—"}
+                  </span>
                   <span className="aulas-ruta-docente" title={a.docente}>{a.docente || "—"}</span>
                   <span className="aulas-ruta-estado">
-                    <EstadoEnCelda valor={ROTULO.get(a.estado) ?? a.estado} />
+                    {/* B13b en la ruta (dictado 2026-09-03, CH 90): el RECHAZO
+                        tecleado en STATUS MUESTRA manda sobre el estado
+                        operativo — «Planificado» junto a una nota de rechazo
+                        era mentirle a quien va al aula. */}
+                    {a.esRechazo
+                      ? <EstadoEnCelda valor="Rechazo" />
+                      : <EstadoEnCelda valor={ROTULO.get(a.estado) ?? a.estado} />}
                   </span>
                   {/* Lo que anotó quien agendó. Es una condición para entrar al
                       aula —«el docente pide llegar 10 min antes», «coordinar con
                       el jefe de práctica»— y el sitio donde sirve es éste, no una
                       columna de una tabla: se lee camino al aula. Ocupa su propia
                       línea sólo cuando existe. */}
+                  {/* El choque cita/horario, EN la fila (dictado 2026-09-03,
+                      señalando CH 30: «aquí choca la información» — cita
+                      12:40, clase hasta 13:00, aplicación de 30). Habla en
+                      rojo suave porque pide acción de agendación, no pánico. */}
+                  {choques?.get(a.codigo) ? (
+                    <span className="aulas-ruta-choque">⚠ {choques.get(a.codigo)}</span>
+                  ) : null}
                   {a.nota ? <span className="aulas-ruta-nota">{a.nota}</span> : null}
                 </li>
               ))}

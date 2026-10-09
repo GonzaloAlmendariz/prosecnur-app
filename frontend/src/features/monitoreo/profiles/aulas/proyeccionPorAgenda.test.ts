@@ -56,7 +56,7 @@ describe("proyeccionPorAgenda", () => {
   });
 
   it("una reserva dormida no es agenda, aunque lleve fecha", () => {
-    // `dashboard.agenda` es el PLAN ENTERO, y el banco de extras viene con
+    // `dashboard.agenda` es el PLAN ENTERO, y la reserva adicional viene con
     // fecha puesta. Contarlo como trabajo comprometido proyectaba encuestas que
     // nadie iba a recoger y tapaba justo la brecha que esto sirve para ver:
     // sembrar 30 extras mas en una facultad le bajaba la brecha de 152 a 81.
@@ -210,5 +210,74 @@ describe("los elegibles son el techo del día, y van aparte", () => {
     const agenda = [aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11" })];
     const [d] = proyeccionPorAgenda(agenda, historia, []);
     expect(d.dias[0].elegibles).toBe(0);
+  });
+
+  describe("la segunda llegada: lo que el diseño pedía de la agenda", () => {
+    it("suma el expected_valid de las aulas agendadas, no una tasa por su número", () => {
+      // La diferencia importa: dos aulas de tamaños distintos. Una tasa por dos
+      // daría lo mismo para 12+40 que para 26+26; el diseño no.
+      const agenda = [
+        aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11",
+               eligible_n: 20, expected_valid: 12, meta_origen: "diseno" }),
+        aula({ operational_code: "CH 91", faculty: "Derecho", scheduled_date: "2026-08-12",
+               eligible_n: 60, expected_valid: 40, meta_origen: "diseno" }),
+      ];
+      const [d] = proyeccionPorAgenda(agenda, historia, [
+        cuota({ faculty: "Derecho", sex: "Mujer", target: 30, observed: 10 }),
+      ]);
+      expect(d.esperadasPorDisenoTotal).toBe(52);
+      expect(d.aulasConDiseno).toBe(2);
+      // Y la del campo NO coincide: son dos llegadas distintas, que es el punto.
+      expect(Math.round(d.dias[d.dias.length - 1]!.acumuladas)).not.toBe(52);
+    });
+
+    it("una meta escrita a mano no es la vara del diseño", () => {
+      // Misma trampa que en la serie diaria: `expected_valid` colapsa tres
+      // cosas y sólo la de origen `diseno` sirve de vara.
+      const agenda = [
+        aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11",
+               eligible_n: 20, expected_valid: 12, meta_origen: "diseno" }),
+        aula({ operational_code: "CH 91", faculty: "Derecho", scheduled_date: "2026-08-12",
+               eligible_n: 60, expected_valid: 60, meta_origen: "elegibles" }),
+      ];
+      const [d] = proyeccionPorAgenda(agenda, historia, [
+        cuota({ faculty: "Derecho", sex: "Mujer", target: 30, observed: 10 }),
+      ]);
+      expect(d.esperadasPorDisenoTotal).toBe(12);
+      expect(d.aulasConDiseno).toBe(1);
+      expect(d.aulasAgendadas).toBe(2);
+    });
+
+    it("sin ninguna vara devuelve null, no cero", () => {
+      // Cero se leería como «el diseño no esperaba nada de esas aulas». Lo que
+      // pasa es que el plan no lo dice.
+      const agenda = [
+        aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11",
+               eligible_n: 20, expected_valid: 12, meta_origen: "declarada" }),
+      ];
+      const [d] = proyeccionPorAgenda(agenda, historia, [
+        cuota({ faculty: "Derecho", sex: "Mujer", target: 30, observed: 10 }),
+      ]);
+      expect(d.esperadasPorDisenoTotal).toBeNull();
+      expect(d.dias[0]!.esperadasPorDiseno).toBeNull();
+    });
+
+    it("el acumulado del diseño no cae a cero en un día sin vara", () => {
+      // Arrastra lo anterior: si el día 2 no trae meta, la segunda línea debe
+      // quedarse donde estaba, no desplomarse y parecer que el diseño dejó de
+      // pedir nada.
+      const agenda = [
+        aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11",
+               eligible_n: 20, expected_valid: 12, meta_origen: "diseno" }),
+        aula({ operational_code: "CH 91", faculty: "Derecho", scheduled_date: "2026-08-12",
+               eligible_n: 20, expected_valid: 12, meta_origen: "declarada" }),
+      ];
+      const [d] = proyeccionPorAgenda(agenda, historia, [
+        cuota({ faculty: "Derecho", sex: "Mujer", target: 30, observed: 10 }),
+      ]);
+      expect(d.dias[0]!.acumuladasPorDiseno).toBe(12);
+      expect(d.dias[1]!.esperadasPorDiseno).toBeNull();
+      expect(d.dias[1]!.acumuladasPorDiseno).toBe(12);
+    });
   });
 });

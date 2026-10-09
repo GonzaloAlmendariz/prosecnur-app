@@ -308,7 +308,7 @@ build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targe
   data <- snapshot$data
   cfg <- monitoreo_normalize_config(cfg, data)
   family <- .monitoreo_publication_family_key(cfg$monitoreo_profile$family %||% detect_monitoreo_family(config = cfg, data = data))
-  if (!identical(family, "telefonico")) stop_api(409, "E_PERFIL_NO_TELEFONICO", "El reporte telefonico requiere un perfil telefonico.")
+  if (!identical(family, "telefonico")) stop_api(409, "E_PERFIL_NO_TELEFONICO", "El reporte telefónico requiere un perfil telefónico.")
   blocks <- .monitoreo_report_phone_blocks(data, cfg$monitoreo_profile %||% list(), cfg)
   summary <- .mtpdf_block_df(blocks, "resumen_telefonico")
   daily <- .mtpdf_normalize_daily(.mtpdf_block_df(blocks, "avance_efectivo_dia"))
@@ -360,7 +360,7 @@ build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targe
     universe_filter = snapshot$report_universe_filter %||% list(applied = FALSE),
     methodology = c(
       "El universo operativo proviene de la hoja de barrido y las encuestas validas provienen de la base de respuestas filtrada.",
-      "Las fechas equivalentes se normalizan al dia civil; fechas invalidas o alejadas mas de un año del corte se excluyen del grafico y se contabilizan.",
+      "Las fechas equivalentes se normalizan al día civil; fechas inválidas o alejadas más de un año del corte se excluyen del gráfico y se contabilizan.",
       "El documento cliente presenta el volumen recogido, su distribución, el registro diario y la base telefónica considerada.",
       if (isTRUE((snapshot$report_universe_filter %||% list())$applied)) {
         sprintf("Preparación de datos: se recibieron %s respuestas, se retiraron %s encuestas de prueba o no clasificadas y se consideraron %s respuestas de campo.", snapshot$report_universe_filter$responses_before, snapshot$report_universe_filter$excluded, snapshot$report_universe_filter$responses_after)

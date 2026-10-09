@@ -1,0 +1,24 @@
+/* El separador de evidencia del ranking de rendimiento.
+ *
+ * Hoja propia y no `aulasMonitoreo.css`: esa está congelada a crecimiento
+ * (`agentic/manifest.json`), y lo que la política pide es que lo nuevo viva en
+ * archivo nuevo que el grande no tenga que crecer para alojar.
+ *
+ * La fila ocupa las cinco columnas de la rejilla —`1 / -1`— porque no es un
+ * dato: es una frontera. Con una sola celda caería en la columna del nombre y
+ * se leería como una facultad más. */
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-corte {
+  /* Sin fondo ni borde de caja: una regla fina con su texto encima, que es como
+     se dibuja una frontera sin competir con las barras que separa. */
+  border-top: 1px dashed color-mix(in srgb, var(--pulso-border) 88%, #fff);
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-corte > span {
+  grid-column: 1 / -1;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-style: italic;
+  line-height: 1.35;
+}

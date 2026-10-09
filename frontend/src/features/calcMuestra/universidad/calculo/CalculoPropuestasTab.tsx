@@ -313,6 +313,12 @@ export function CalculoPropuestasTab({
       // toolbar y daba «ok=true» sin haber mirado la pestaña. `intrinsic`
       // porque sus paneles —las propuestas, los parámetros, las cifras— tienen
       // alturas propias y no deben igualarse entre sí.
+      // Readiness declarada: la geometría ya estaba, pero el puente
+      // (`window.__pulsoNav.listo()`) busca `[data-audit-ready]` y sin él
+      // respondía `sin-marca-de-readiness`, así que el QA cortaba y nadie
+      // podía saber si la pestaña terminó de montar. `true` al montar: esta
+      // vista no carga nada por su cuenta, recibe sus datos por props.
+      data-audit-ready="true"
       data-qa-geometry-group="calc-muestra/calculo-propuestas"
       data-qa-geometry-contract="intrinsic"
     >

@@ -295,6 +295,17 @@
       "Repository": "CRAN",
       "Source": "Repository"
     },
+    "colorspace": {
+      "Package": "colorspace",
+      "Version": "2.1-4",
+      "Depends": "R (>= 3.0.0), methods",
+      "Imports": "graphics, grDevices, stats",
+      "License": "BSD_3_clause + file LICENSE",
+      "MD5sum": "2b2d367a454e47b574db3839fd550e36",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
     "commonmark": {
       "Package": "commonmark",
       "Version": "2.0.0",
@@ -684,6 +695,18 @@
       "License": "GPL-2",
       "MD5sum": "fb0b751ae1d0cb66c7e75006c3cf8cc7",
       "NeedsCompilation": "no",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
+    "ggwordcloud": {
+      "Package": "ggwordcloud",
+      "Version": "0.6.2",
+      "Depends": "R (>= 3.5.0), ggplot2 (>= 3.0.0)",
+      "Imports": "grid, gridtext, Rcpp, scales (>= 1.0.0), colorspace, png",
+      "LinkingTo": "Rcpp",
+      "License": "GPL-3",
+      "MD5sum": "a10c84c635d64ba9de6ef08845c7bc23",
+      "NeedsCompilation": "yes",
       "Repository": "CRAN",
       "Source": "Repository"
     },

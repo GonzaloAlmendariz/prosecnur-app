@@ -179,7 +179,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
     error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
   )
   report("export", percent = 96, message = "Guardando PPTX...")
-  list(path = result_path, n_slides = length(slides_r))
+  list(path = result_path, n_slides = .graficos_laminas_entregadas(result_path, length(slides_r)))
 }
 attr(graficos_job_worker_ppt, "prosecnur_job_function_name") <- "graficos_job_worker_ppt"
 
@@ -235,7 +235,8 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
       ),
       error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
     )
-    results[[i]] <- list(nombre = base, filename = info$filename, n_slides = length(slides_r))
+    results[[i]] <- list(nombre = base, filename = info$filename,
+                         n_slides = .graficos_laminas_entregadas(out_path, length(slides_r)))
   }
   report("zip", percent = 95, message = "Empaquetando ZIP...")
   old_wd <- setwd(stage)
@@ -281,3 +282,16 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   list(path = result_path, n_slides = length(slides_r))
 }
 attr(graficos_job_worker_word, "prosecnur_job_function_name") <- "graficos_job_worker_word"
+
+#' Láminas que el pptx entregado trae de verdad (ADR 0093)
+#'
+#' Una entrada del plan puede producir varias láminas: la partición en «(cont.)»
+#' del compositor nativo y las láminas de «Otros». Contar las entradas del plan
+#' le decía a la UI un número que no era el del archivo. Si el archivo no se
+#' puede leer, se informa el conteo del plan.
+#' @keywords internal
+.graficos_laminas_entregadas <- function(path, respaldo) {
+  n <- tryCatch(length(officer::read_pptx(path)), error = function(e) NA_integer_)
+  if (is.na(n) || n < 1L) respaldo else n
+}
+

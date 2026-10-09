@@ -82,10 +82,38 @@ test_that("cada casilla del papel tiene su columna en la hoja del libro", {
 
 test_that("las columnas que el aplicador puede llenar tienen casilla en el papel", {
   casillas <- tolower(paste(collection_material_application_log_labels(), collapse = " "))
-  # Lo que solo se sabe estando en el aula. Quedan fuera a proposito los
-  # derivados —«% asistencia»— y los que trae el marco —«matriculados»—.
-  for (col in c("asistentes", "efectivas", "rechazos", "duplicados", "aplicador",
-                "aula", "fecha", "hora", "observaciones")) {
+  # **La lista NO se teclea: se DERIVA de las columnas del libro.**
+  #
+  # Escrita a mano era una tercera copia del vocabulario —la ficha y las
+  # columnas eran las otras dos— y envejeció sola: cuando la columna pasó a
+  # «CANTIDAD DE ENCUESTAS APLICADAS» esta lista seguía pidiendo «efectivas», y
+  # con eso TAPABA al test de arriba, que sí estaba viendo la divergencia. Un
+  # guard que se sostiene en una copia del dato que vigila no vigila nada.
+  #
+  # Lo único que se declara es lo que NO le toca al aplicador, por nombre EXACTO
+  # de columna: los derivados y los que trae el marco. Todo lo demás se deriva,
+  # así que renombrar una columna mueve este test con ella en vez de dejarlo
+  # pidiendo la palabra vieja.
+  fuera_del_papel <- c(
+    "% ASISTENCIA",                      # derivado de asistentes y elegibles
+    "MATRICULADOS TOTAL DTI",            # del marco, no del aula
+    "MATRICULADOS ELEGIBLES",            # idem
+    "STATUS DE APLICACIÓN",              # lo elige el coordinador en el chip
+    "AULA UTILIZADA (CAMPO)",            # lo resuelve la cadena
+    "ENLACE DE FICHA ESCANEADA"          # lo pega quien escanea, no quien aplica
+  )
+  columnas_del_aplicador <- setdiff(prosecnurapp:::.calg_titulos_campo(), fuera_del_papel)
+  expect_gt(length(columnas_del_aplicador), 5L)
+  # El nombre corto que tiene que aparecer en el papel: la columna sin su
+  # cuantificador ni su complemento, que es como la escribe la ficha.
+  corto <- function(x) {
+    x <- tolower(trimws(x))
+    x <- sub("^cantidad de ", "", x)
+    x <- sub(" de aplicaci[oó]n$", "", x)
+    x <- sub(" sobre aplicaciones$", "", x)
+    trimws(sub("\\s*\\(.*\\)$", "", x))
+  }
+  for (col in vapply(columnas_del_aplicador, corto, character(1))) {
     expect_true(grepl(col, casillas, fixed = TRUE),
                 info = sprintf("«%s» se pide en el libro y no en el papel", col))
   }
@@ -173,4 +201,104 @@ test_that("la escuela viaja del marco a la ficha", {
   expect_identical(prosecnurapp:::.collection_first_string(
     list(program = "ARQUITECTURA"),
     c("program", "escuela", "school", "especialidad", "carrera", "programa")), "ARQUITECTURA")
+})
+
+test_that("el codigo del archivo ordena por cadena, no alfabeticamente", {
+  # El sistema de archivos ordena alfabeticamente y eso destroza el orden del
+  # operativo: «CH 1, CH 10, CH 100, …, CH 2». Medido sobre el paquete de
+  # HSVG2026 —174 titulares, 1.259 reemplazos, 79 extras—, los TRES cajones
+  # salian desordenados: quien busca la cadena 2 la encuentra despues de la 19.
+  padded <- vapply(
+    c("R 1.2", "R 10.2", "R 2.2", "R 100.2", "R 11.2"),
+    .cmj_codigo_ordenable, character(1), ancho = 3L, USE.NAMES = FALSE
+  )
+  expect_identical(
+    sort(padded),
+    c("R 001.2", "R 002.2", "R 010.2", "R 011.2", "R 100.2")
+  )
+
+  # Se acolcha el numero de la CADENA, no el del reemplazo: dentro de
+  # «Reemplazo 02» todas comparten ese `.2`, y acolcharlo solo alargaria.
+  expect_identical(.cmj_codigo_ordenable("R 5.3", 3L), "R 005.3")
+  expect_identical(.cmj_codigo_ordenable("CH 5", 3L), "CH 005")
+  expect_identical(.cmj_codigo_ordenable("EXTRA 12", 3L), "EXTRA 012")
+})
+
+test_that("el ancho sale del plan y no se fija", {
+  # Un estudio de 40 aulas no necesita tres digitos; uno de 1.200 necesita cuatro.
+  pag <- function(...) lapply(list(...), function(x) list(unit = list(operational_code = x)))
+  expect_identical(.cmj_ancho_codigo(pag("CH 1", "CH 9")), 1L)
+  expect_identical(.cmj_ancho_codigo(pag("CH 1", "CH 174")), 3L)
+  expect_identical(.cmj_ancho_codigo(pag("CH 1", "CH 1200")), 4L)
+  # Sin numeros no se inventa un ancho.
+  expect_identical(.cmj_ancho_codigo(pag("AULA-A")), 1L)
+  expect_identical(.cmj_ancho_codigo(list()), 1L)
+})
+
+test_that("un codigo que no reconocemos pasa tal cual", {
+  # Es preferible una ficha fuera de orden a una con el codigo reescrito a ojo.
+  for (crudo in c("AULA-A", "", "SIN NUMERO")) {
+    expect_identical(.cmj_codigo_ordenable(crudo, 3L), crudo)
+  }
+  # Y un ancho invalido no toca nada.
+  expect_identical(.cmj_codigo_ordenable("CH 5", NA), "CH 5")
+  expect_identical(.cmj_codigo_ordenable("CH 5", 0L), "CH 5")
+})
+
+test_that("los reemplazos se reparten en una carpeta por nivel, al primer nivel", {
+  # 1.259 reemplazos dejaban 380 fichas en una sola carpeta, que es el mismo
+  # problema que los tres cajones vinieron a resolver, un nivel mas abajo.
+  #
+  # Desde el 2026-09-20 la carpeta de nivel va al PRIMER nivel y no dentro de
+  # «Reemplazos». Gonzalo: «solo todo en una carpeta separa por titular,
+  # reemplazos 1 y reemplazo 2». El envoltorio agrupaba a costa de un clic para
+  # llegar a la carpeta que de verdad se abre.
+  expect_identical(.cmj_carpeta_de_rol("titular"), "Titulares")
+  expect_identical(.cmj_carpeta_de_rol("extra_reserve_pool"), "Adicionales")
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 1L), "Reemplazo 01")
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 11L), "Reemplazo 11")
+
+  # El cero a la izquierda: sin el, «Reemplazo 10» se cuela entre el 1 y el 2.
+  niveles <- vapply(c(1L, 2L, 10L, 11L), function(n) {
+    basename(.cmj_carpeta_de_rol("chain_reserve", n))
+  }, character(1))
+  expect_identical(sort(niveles), niveles)
+
+  # Sin orden declarado NO se inventa un nivel: la ficha va al cajon a secas.
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve"), "Reemplazos")
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", NA), "Reemplazos")
+  # Y no hay tope: si un estudio llega a 14, hay carpeta 14.
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 14L), "Reemplazo 14")
+})
+
+# **El cajon de facultad solo aparece cuando hay mas de una.**
+#
+# Gonzalo, 2026-09-20, sobre el paquete de CCSS Perfil 2026-II —una sola
+# facultad, 136 fichas—: «no hace falta que el zip divida, solo todo en una
+# carpeta separa por titular, reemplazos 1 y reemplazo 2». Con una facultad ese
+# nivel no separa nada y repite el mismo nombre en las 136 rutas. Con quince
+# —HSVG2026— es lo que separa los montones de quien imprime, y no se toca.
+test_that("con una sola facultad el paquete no abre cajon de facultad", {
+  expect_false(prosecnurapp:::.cmj_separa_por_facultad(rep("CIENCIAS SOCIALES", 136)))
+  expect_equal(
+    prosecnurapp:::.cmj_carpeta_de_ficha("CIENCIAS SOCIALES", "Titulares", FALSE),
+    "Titulares")
+  expect_equal(
+    prosecnurapp:::.cmj_carpeta_de_ficha("CIENCIAS SOCIALES", "Reemplazo 01", FALSE),
+    "Reemplazo 01")
+})
+
+test_that("con varias facultades el cajon se mantiene, byte a byte", {
+  # HSVG2026 esta en campo con quince: su paquete no se mueve.
+  expect_true(prosecnurapp:::.cmj_separa_por_facultad(c("DERECHO", "LETRAS", "DERECHO")))
+  expect_equal(
+    prosecnurapp:::.cmj_carpeta_de_ficha("DERECHO", "Titulares", TRUE),
+    file.path("DERECHO", "Titulares"))
+})
+
+test_that("un paquete vacio o sin facultad declarada no inventa el cajon", {
+  expect_false(prosecnurapp:::.cmj_separa_por_facultad(character(0)))
+  expect_false(prosecnurapp:::.cmj_separa_por_facultad(c("", "")))
+  # Una sola facultad ademas de vacios sigue siendo una sola.
+  expect_false(prosecnurapp:::.cmj_separa_por_facultad(c("", "CIENCIAS SOCIALES")))
 })

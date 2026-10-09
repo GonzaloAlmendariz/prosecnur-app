@@ -73,13 +73,13 @@ monitoreo_aulas_estados_no_reconocidos_texto <- function(x) {
   restantes <- length(x$valores) - length(muestra)
   sprintf(
     paste0(
-      "%d aulas se cuentan como SIN CONTACTAR sin estarlo: su STATUS MUESTRA trae un ",
-      "valor que el lector no reconoce, y todo lo no reconocido se lee como vacio. %s%s ",
-      "Mientras siga asi se pueden ofrecer como reserva libre, o mandar a llamar, aulas ",
-      "que ya estan en campo. Corrige la hoja o pide que se añada ese estado."
+      "%d cursos-horario se cuentan como SIN CONTACTAR sin estarlo: su STATUS MUESTRA trae un ",
+      "valor que el lector no reconoce, y todo lo no reconocido se lee como vacío. %s%s ",
+      "Mientras siga así se pueden ofrecer como reserva libre, o mandar a llamar, cursos-horario ",
+      "que ya están en campo. Corrige la hoja o pide que se añada ese estado."
     ),
     x$total,
     nombres,
-    if (restantes > 0L) sprintf(" y %d valor%s mas.", restantes, if (restantes == 1L) "" else "es") else "."
+    if (restantes > 0L) sprintf(" y %d valor%s más.", restantes, if (restantes == 1L) "" else "es") else "."
   )
 }

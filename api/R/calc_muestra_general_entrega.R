@@ -1,0 +1,366 @@
+# Entrega del sorteo de Muestra general (ADR 0090, E6): memoria de cálculo y
+# libro XLSX con la corrida, los estratos y el listado.
+#
+# La memoria no describe la fórmula: la SUSTITUYE. Cada paso lleva la fórmula,
+# los valores puestos en ella y el resultado, que es lo que un comité revisa
+# para defender el n. Sale del mismo resultado que publicó el motor, no de un
+# recálculo: si difieren, el que miente es el motor y así se ve.
+
+.cm_general_num <- function(x, digits = 4L) {
+  if (length(x) > 1L) return(vapply(x, .cm_general_num, character(1), digits = digits))
+  if (is.null(x) || !length(x) || is.na(x)) return("—")
+  trimws(formatC(as.numeric(x), format = "fg", digits = digits, big.mark = ""))
+}
+
+#' Memoria de cálculo sustituida de un componente probabilístico de elementos.
+#'
+#' @param comp componente normalizado (técnica, parámetros, marco).
+#' @param resultado resultado del motor para ese componente.
+#' @return data.frame(paso, formula, sustitucion, resultado).
+calc_muestra_general_memoria <- function(comp, resultado) {
+  # Sólo los diseños de elementos se resuelven con esta cadena; los demás
+  # (conglomerados, dominios, cobertura, cuotas) tienen su propia fórmula y
+  # mostrarles ésta sería inventar la defensa.
+  if (!comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) {
+    return(data.frame(paso = "Memoria no disponible", formula = "",
+                      sustitucion = sprintf("La técnica «%s» no se calcula con la fórmula de elementos.", comp$tecnica),
+                      resultado = "", stringsAsFactors = FALSE))
+  }
+  par <- comp$parametros %||% list()
+  N <- as.numeric(comp$marco$marco_validado %||% NA)
+  z <- as.numeric(par$z); p <- as.numeric(par$p); e <- as.numeric(par$e)
+  deff <- if (identical(comp$tecnica, "prob_aleatorio_simple") || identical(comp$tecnica, "sistematico")) 1 else as.numeric(par$deff)
+  rr <- as.numeric(par$tasa_respuesta %||% 1)
+  os <- as.numeric(par$oversample_pct %||% 0)
+  n0 <- z^2 * p * (1 - p) * deff / e^2
+  n_fpc <- if (is.finite(N) && N > 0) n0 / (1 + (n0 - 1) / N) else n0
+  base <- ceiling(as.numeric(resultado$n_objetivo) / rr)
+  estratos <- comp$marco$estratos %||% list()
+  por_estrato <- identical(comp$tecnica, "prob_estratificado") &&
+    .cm_general_estratificado_por_estrato(estratos, par)
+  media <- .cm_general_es_media(par)
+  if (media) {
+    cv <- as.numeric(par$cv)
+    n0 <- z^2 * cv^2 * deff / e^2
+    n_fpc <- if (is.finite(N) && N > 0) n0 / (1 + (n0 - 1) / N) else n0
+  }
+  filas <- if (por_estrato && !media) .cm_general_memoria_por_estrato(comp, resultado, estratos, par, N)
+           else if (media) .cm_general_memoria_media(resultado, z, cv, deff, e, N, n0, n_fpc, base, rr, os)
+           else list(
+    list("Tamaño sin corrección (Cochran)",
+         "n0 = z² · p · (1 − p) · deff / e²",
+         sprintf("%s² · %s · %s · %s / %s²", .cm_general_num(z), .cm_general_num(p),
+                 .cm_general_num(1 - p), .cm_general_num(deff), .cm_general_num(e)),
+         .cm_general_num(n0, 6L)),
+    list("Corrección por población finita",
+         "n = n0 / (1 + (n0 − 1) / N)",
+         sprintf("%s / (1 + (%s − 1) / %s)", .cm_general_num(n0, 6L), .cm_general_num(n0, 6L),
+                 .cm_general_num(N, 10L)),
+         sprintf("%s → %s", .cm_general_num(n_fpc, 6L), as.integer(resultado$n_teorico))),
+    list("Encuestas completas objetivo",
+         "n objetivo = n (o la meta declarada, si la hay)",
+         sprintf("%s", as.integer(resultado$n_teorico)),
+         as.character(as.integer(resultado$n_objetivo))),
+    list("Casos a abordar por no respuesta",
+         "⌈n objetivo / tasa de respuesta⌉",
+         sprintf("⌈%s / %s⌉", as.integer(resultado$n_objetivo), .cm_general_num(rr)),
+         as.character(as.integer(base))),
+    list("n a campo",
+         "mín(casos a abordar + ⌈casos · sobremuestra⌉, N)",
+         {
+           sin_tope <- as.integer(base) + as.integer(ceiling(base * os))
+           if (is.finite(N) && N > 0 && sin_tope > N) {
+             sprintf("mín(%s + ⌈%s · %s⌉, %s) = mín(%s, %s): censo del marco", as.integer(base), as.integer(base),
+                     .cm_general_num(os), .cm_general_num(N, 10L), sin_tope, .cm_general_num(N, 10L))
+           } else sprintf("%s + ⌈%s · %s⌉", as.integer(base), as.integer(base), .cm_general_num(os))
+         },
+         as.character(as.integer(resultado$n_operativo))),
+    list("Margen de error alcanzado",
+         "e = z · √(p(1 − p) · deff · (N − n) / (n (N − 1)))",
+         .cm_general_sustitucion_margen(resultado, sprintf("y N = %s", .cm_general_num(N, 10L))),
+         .cm_general_num(resultado$precision_alcanzada, 4L))
+  )
+  if (por_estrato && !media) filas <- c(filas, .cm_general_memoria_campo(resultado, base, os, rr, N))
+  filas <- .cm_general_memoria_campo_por_estrato(filas, comp, resultado, rr, os)
+  data.frame(
+    paso = vapply(filas, `[[`, "", 1L),
+    formula = vapply(filas, `[[`, "", 2L),
+    sustitucion = vapply(filas, `[[`, "", 3L),
+    resultado = vapply(filas, `[[`, "", 4L),
+    stringsAsFactors = FALSE
+  )
+}
+
+.CM_GENERAL_METODO_ROTULO <- c(
+  mas = "Muestreo aleatorio simple sin reemplazo",
+  sistematico = "Sistemático con intervalo fraccional y arranque aleatorio",
+  pps = "Probabilidad proporcional al tamaño (sistemático, con certezas)"
+)
+
+# Con estratos, el método se aplica dentro de cada uno: «Muestreo aleatorio
+# simple» a secas describía como MAS un diseño estratificado (L10, 2026-09-27).
+.cm_general_metodo_rotulo <- function(metodo, estratos) {
+  base <- .CM_GENERAL_METODO_ROTULO[[metodo]] %||% metodo
+  claves <- if (is.data.frame(estratos)) as.character(estratos$clave)
+            else vapply(estratos %||% list(), function(e) as.character(e$clave %||% ""), "")
+  claves <- setdiff(claves, c(.CM_GENERAL_SIN_ESTRATO, ""))
+  if (length(claves) > 1L) sprintf("%s dentro de cada estrato (%d estratos)", base, length(claves)) else base
+}
+
+#' Escribe el libro de entrega de una corrida.
+#'
+#' Hojas: «Corrida» (qué se hizo y cómo repetirlo), «Memoria de cálculo»,
+#' «Estratos» y «Listado» (titulares y reservas, con π y peso base).
+calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resultado, path) {
+  pal <- pulso_xlsx_palette()
+  font <- pulso_xlsx_font()
+  titulo <- openxlsx::createStyle(fontName = font, fontSize = 13, textDecoration = "bold",
+                                  fontColour = pal$ink)
+  cab <- openxlsx::createStyle(fontName = font, fontSize = 10, textDecoration = "bold",
+                               fontColour = pal$ink, border = "bottom",
+                               borderColour = pal$rule_strong, wrapText = TRUE)
+  cuerpo <- openxlsx::createStyle(fontName = font, fontSize = 10, fontColour = pal$ink,
+                                  wrapText = TRUE, valign = "top")
+  nota <- openxlsx::createStyle(fontName = font, fontSize = 9, fontColour = pal$ink_soft,
+                                wrapText = TRUE)
+  prob <- openxlsx::createStyle(fontName = font, fontSize = 10, numFmt = "0.000000")
+  peso <- openxlsx::createStyle(fontName = font, fontSize = 10, numFmt = "0.0000")
+
+  wb <- openxlsx::createWorkbook()
+  cr <- corrida$corrida
+  col <- marco$columnas %||% list()
+
+  # --- Corrida -------------------------------------------------------------
+  pulso_xlsx_new_sheet(wb, "Corrida")
+  openxlsx::writeData(wb, "Corrida", "Sorteo de la muestra", startRow = 1, startCol = 1)
+  openxlsx::addStyle(wb, "Corrida", titulo, rows = 1, cols = 1)
+  ficha <- data.frame(
+    campo = c("Componente", "Método de selección", "Universo (N del marco)",
+              "n a campo sorteado", "Titulares", "Reservas", "Semilla",
+              "Generador aleatorio", "Versión de R", "Identificador de corrida",
+              "Hash del marco (SHA-256)", "Hash de la configuración",
+              "Archivo del marco", "Hoja", "Columna id", "Columna estrato",
+              "Columna tamaño", "Fecha del sorteo (UTC)"),
+    valor = c(comp$actor %||% "", .cm_general_metodo_rotulo(cr$metodo, corrida$estratos),
+              as.character(cr$N), as.character(corrida$n_fuente), as.character(cr$n_titulares),
+              as.character(cr$n_reservas), as.character(cr$semilla), cr$rng_kind, cr$r_version,
+              cr$run_id, cr$marco_hash, cr$config_hash, marco$file_id %||% "", marco$hoja %||% "",
+              col$id %||% "", if (nzchar(col$estrato %||% "")) col$estrato else "—",
+              if (nzchar(col$tamano %||% "")) col$tamano else "—", corrida$sorteado_at %||% ""),
+    stringsAsFactors = FALSE
+  )
+  openxlsx::writeData(wb, "Corrida", ficha, startRow = 3, colNames = FALSE)
+  openxlsx::addStyle(wb, "Corrida", cuerpo, rows = 3:(2 + nrow(ficha)), cols = 1:2, gridExpand = TRUE)
+  fila_nota <- 4 + nrow(ficha)
+  notas <- c(
+    "Para repetir el sorteo: el mismo archivo de marco (mismo hash), la misma semilla y el mismo método dan el mismo listado en cualquier máquina.",
+    "El peso base de cada titular es 1/π. Las reservas no tienen π propia: si se libera un lote, la π del estrato se recalcula como (n_h + liberadas)/N_h."
+  )
+  notas <- c(notas, .cm_general_nota_varianza(cr$metodo, cr$modalidad))
+  if (isTRUE(cr$piso_incumplible)) notas <- c(notas, "El piso por estrato no cabía en n: se repartió proporcional sin piso.")
+  if (isTRUE(cr$reservas_omitidas_pps)) notas <- c(notas, "En PPS no se sortean reservas: su π al liberarlas no sería exacta.")
+  openxlsx::writeData(wb, "Corrida", notas, startRow = fila_nota, startCol = 1)
+  openxlsx::addStyle(wb, "Corrida", nota, rows = fila_nota:(fila_nota + length(notas) - 1), cols = 1)
+  openxlsx::setColWidths(wb, "Corrida", cols = 1:2, widths = c(30, 70))
+
+  # --- Memoria de cálculo --------------------------------------------------
+  memoria <- calc_muestra_general_memoria(comp, resultado)
+  names(memoria) <- c("Paso", "Fórmula", "Sustitución", "Resultado")
+  pulso_xlsx_new_sheet(wb, "Memoria de cálculo")
+  openxlsx::writeData(wb, "Memoria de cálculo", memoria, startRow = 1)
+  openxlsx::addStyle(wb, "Memoria de cálculo", cab, rows = 1, cols = 1:4, gridExpand = TRUE)
+  openxlsx::addStyle(wb, "Memoria de cálculo", cuerpo, rows = 2:(1 + nrow(memoria)), cols = 1:4, gridExpand = TRUE)
+  openxlsx::setColWidths(wb, "Memoria de cálculo", cols = 1:4, widths = c(30, 42, 42, 18))
+
+  # --- Estratos ------------------------------------------------------------
+  est <- corrida$estratos
+  est_out <- data.frame(Estrato = est$clave, N_h = est$N_h, n_h = est$n_h, `π` = est$pi,
+                        `Peso base` = ifelse(is.na(est$pi) | est$pi <= 0, NA_real_, 1 / est$pi),
+                        Reservas = est$n_reservas, check.names = FALSE, stringsAsFactors = FALSE)
+  pulso_xlsx_new_sheet(wb, "Estratos")
+  openxlsx::writeData(wb, "Estratos", est_out, startRow = 1)
+  openxlsx::addStyle(wb, "Estratos", cab, rows = 1, cols = 1:6, gridExpand = TRUE)
+  if (nrow(est_out)) {
+    openxlsx::addStyle(wb, "Estratos", prob, rows = 2:(1 + nrow(est_out)), cols = 4)
+    openxlsx::addStyle(wb, "Estratos", peso, rows = 2:(1 + nrow(est_out)), cols = 5)
+  }
+  openxlsx::setColWidths(wb, "Estratos", cols = 1:6, widths = c(24, 10, 10, 12, 12, 10))
+
+  # --- Listado -------------------------------------------------------------
+  u <- corrida$unidades
+  u <- u[order(u$estado != "titular", u$estrato, u$orden, method = "radix"), , drop = FALSE]
+  listado <- data.frame(Id = u$id, Estrato = u$estrato,
+                        Estado = ifelse(u$estado == "titular", "Titular", "Reserva"),
+                        Orden = u$orden, `Lote de reserva` = u$lote_reserva,
+                        `π` = u$pi, `Peso base` = u$peso_base,
+                        check.names = FALSE, stringsAsFactors = FALSE)
+  pulso_xlsx_new_sheet(wb, "Listado")
+  openxlsx::writeData(wb, "Listado", listado, startRow = 1)
+  openxlsx::addStyle(wb, "Listado", cab, rows = 1, cols = 1:7, gridExpand = TRUE)
+  if (nrow(listado)) {
+    openxlsx::addStyle(wb, "Listado", prob, rows = 2:(1 + nrow(listado)), cols = 6)
+    openxlsx::addStyle(wb, "Listado", peso, rows = 2:(1 + nrow(listado)), cols = 7)
+  }
+  openxlsx::freezePane(wb, "Listado", firstRow = TRUE)
+  openxlsx::setColWidths(wb, "Listado", cols = 1:7, widths = c(18, 20, 10, 8, 10, 12, 12))
+
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  invisible(path)
+}
+
+# Pasos 1–2 y error de un estratificado calculado por estrato (Cochran 5.25 /
+# 5.26): la memoria global contradecía al n —mostraba «356.816 → 212» con
+# Neyman—, así que el estratificado por estrato se defiende con su fórmula.
+.cm_general_memoria_por_estrato <- function(comp, resultado, estratos, par, N) {
+  v <- .cm_general_estratos_varianza(estratos, par)
+  W <- v$N_h / sum(v$N_h)
+  neyman <- identical(par$asignacion %||% "proporcional", "neyman")
+  potencia <- identical(par$asignacion %||% "proporcional", "potencia")
+  suma_s2 <- sum(W * v$S2_h)
+  num <- .cm_general_n_estratificado(estratos, par)$num
+  V <- (as.numeric(par$e) / as.numeric(par$z))^2
+  deff <- as.numeric(par$deff %||% 1)
+  con_deff <- if (abs(deff - 1) > 1e-12) sprintf("·%s", .cm_general_num(deff)) else ""
+  terminos <- if (neyman) {
+    sprintf("%s·√(%s·%s%s)", .cm_general_num(W, 3L), .cm_general_num(v$p_h, 3L), .cm_general_num(1 - v$p_h, 3L), con_deff)
+  } else {
+    sprintf("%s·%s·%s%s", .cm_general_num(W, 3L), .cm_general_num(v$p_h, 3L), .cm_general_num(1 - v$p_h, 3L), con_deff)
+  }
+  if (length(terminos) > 6L) terminos <- c(terminos[1:5], sprintf("… (%d estratos)", length(terminos)))
+  suma_txt <- paste(terminos, collapse = " + ")
+  if (neyman) suma_txt <- sprintf("(%s)²", suma_txt)
+  if (potencia) suma_txt <- sprintf("Σ W_h² S_h² / a_h con a_h ∝ √N_h · S_h (%d estratos)", length(W))
+  n_crudo <- num / (V + suma_s2 / N)
+  list(
+    list("Varianza por estrato",
+         if (neyman) "(Σ W_h · S_h)², con S_h² = p_h(1 − p_h) · deff"
+         else if (potencia) "Σ W_h² S_h² / a_h (asignación de potencia, Bankier)"
+         else "Σ W_h · p_h(1 − p_h) · deff",
+         suma_txt,
+         .cm_general_num(num, 6L)),
+    list(if (neyman) "Tamaño con asignación de Neyman (Cochran 5.26)"
+         else if (potencia) "Tamaño con asignación de potencia (Cochran 5.24)"
+         else "Tamaño estratificado (Cochran 5.25)",
+         "n = varianza / ((e / z)² + Σ W_h S_h² / N)",
+         sprintf("%s / ((%s / %s)² + %s / %s)", .cm_general_num(num, 6L), .cm_general_num(par$e),
+                 .cm_general_num(par$z), .cm_general_num(suma_s2, 6L), .cm_general_num(N, 10L)),
+         sprintf("%s → %s", .cm_general_num(n_crudo, 6L), as.integer(resultado$n_teorico))),
+    list("Encuestas completas objetivo",
+         "n objetivo = n (o la meta declarada, si la hay)",
+         sprintf("%s", as.integer(resultado$n_teorico)),
+         as.character(as.integer(resultado$n_objetivo)))
+  )
+}
+
+# El margen se mide con las completas esperadas cuando el n a campo se topa
+# (L3): la memoria lo dice en vez de sustituir el n de la fórmula.
+.cm_general_sustitucion_margen <- function(resultado, resto) {
+  esp <- resultado$n_completas_esperadas
+  if (!is.null(esp) && !is.na(esp)) {
+    sprintf("con n = %s completas esperadas (de %s pedidas; el marco se topa) %s",
+            .cm_general_fmt_completas(esp), as.integer(resultado$n_objetivo), resto)
+  } else sprintf("con n = %s %s", as.integer(resultado$n_objetivo), resto)
+}
+
+.cm_general_sustitucion_campo <- function(base, os, N) {
+  sin_tope <- as.integer(base) + as.integer(ceiling(base * os))
+  if (is.finite(N) && N > 0 && sin_tope > N) {
+    sprintf("mín(%s + ⌈%s · %s⌉, %s) = mín(%s, %s): censo del marco", as.integer(base), as.integer(base),
+            .cm_general_num(os), .cm_general_num(N, 10L), sin_tope, .cm_general_num(N, 10L))
+  } else sprintf("%s + ⌈%s · %s⌉", as.integer(base), as.integer(base), .cm_general_num(os))
+}
+
+.cm_general_memoria_campo <- function(resultado, base, os, rr, N) {
+  list(
+    list("Casos a abordar por no respuesta",
+         "⌈n objetivo / tasa de respuesta⌉",
+         sprintf("⌈%s / %s⌉", as.integer(resultado$n_objetivo), .cm_general_num(rr)),
+         as.character(as.integer(base))),
+    list("n a campo",
+         "mín(casos a abordar + ⌈casos · sobremuestra⌉, N)",
+         .cm_general_sustitucion_campo(base, os, N),
+         as.character(as.integer(resultado$n_operativo))),
+    list("Margen de error alcanzado",
+         "e = z · √(Σ W_h² S_h² (1 − n_h / N_h) / n_h), con el reparto efectivo",
+         .cm_general_sustitucion_margen(resultado, sprintf("repartidos entre %s estratos",
+                 length(resultado$distribucion_estratos %||% list()))),
+         .cm_general_num(resultado$precision_alcanzada, 4L))
+  )
+}
+
+# Con estratos, el n a campo se infla estrato por estrato (L2): los pasos
+# «casos a abordar» y «n a campo» se sustituyen con la suma de los estratos,
+# no con la fórmula del total, que da otro número.
+.cm_general_memoria_campo_por_estrato <- function(filas, comp, resultado, rr, os) {
+  dist <- resultado$distribucion_estratos %||% list()
+  if (!identical(comp$tecnica, "prob_estratificado") || !length(dist)) return(filas)
+  n_h <- vapply(dist, function(d) as.integer(d$n %||% 0L), integer(1))
+  N_h <- vapply(dist, function(d) as.integer(d$N %||% 0L), integer(1))
+  campo <- vapply(dist, function(d) as.integer(d$n_campo %||% 0L), integer(1))
+  por_h <- .cm_general_campo_por_estrato(n_h, N_h, list(tasa_respuesta = rr, oversample_pct = os))
+  lista <- function(x) {
+    x <- as.character(x)
+    if (length(x) > 5L) paste(c(x[1:5], sprintf("… (%d estratos)", length(x))), collapse = " + ")
+    else paste(x, collapse = " + ")
+  }
+  for (i in seq_along(filas)) {
+    paso <- filas[[i]][[1]]
+    if (identical(paso, "Casos a abordar por no respuesta")) {
+      filas[[i]] <- list(paso, "Σ ⌈n_h / tasa de respuesta⌉, estrato por estrato",
+                         lista(sprintf("⌈%d / %s⌉", n_h, .cm_general_num(rr))),
+                         as.character(sum(por_h$base)))
+    } else if (identical(paso, "n a campo")) {
+      topados <- if (length(por_h$topados)) sprintf(" (%d estrato%s censado%s)", length(por_h$topados),
+        if (length(por_h$topados) > 1L) "s" else "", if (length(por_h$topados) > 1L) "s" else "") else ""
+      filas[[i]] <- list(paso, "Σ mín(casos_h + ⌈casos_h · sobremuestra⌉, N_h)",
+                         paste0(lista(campo), topados),
+                         as.character(as.integer(resultado$n_operativo)))
+    }
+  }
+  filas
+}
+
+# Memoria de una media con error relativo (H21).
+.cm_general_memoria_media <- function(resultado, z, cv, deff, r, N, n0, n_fpc, base, rr, os) {
+  list(
+    list("Tamaño sin corrección (media, error relativo)",
+         "n0 = z² · CV² · deff / r²",
+         sprintf("%s² · %s² · %s / %s²", .cm_general_num(z), .cm_general_num(cv), .cm_general_num(deff), .cm_general_num(r)),
+         .cm_general_num(n0, 6L)),
+    list("Corrección por población finita",
+         "n = n0 / (1 + (n0 − 1) / N)",
+         sprintf("%s / (1 + (%s − 1) / %s)", .cm_general_num(n0, 6L), .cm_general_num(n0, 6L), .cm_general_num(N, 10L)),
+         sprintf("%s → %s", .cm_general_num(n_fpc, 6L), as.integer(resultado$n_teorico))),
+    list("Encuestas completas objetivo",
+         "n objetivo = n (o la meta declarada, si la hay)",
+         sprintf("%s", as.integer(resultado$n_teorico)),
+         as.character(as.integer(resultado$n_objetivo))),
+    list("Casos a abordar por no respuesta",
+         "⌈n objetivo / tasa de respuesta⌉",
+         sprintf("⌈%s / %s⌉", as.integer(resultado$n_objetivo), .cm_general_num(rr)),
+         as.character(as.integer(base))),
+    list("n a campo",
+         "mín(casos a abordar + ⌈casos · sobremuestra⌉, N)",
+         .cm_general_sustitucion_campo(base, os, N),
+         as.character(as.integer(resultado$n_operativo))),
+    list("Error relativo alcanzado",
+         "r = z · CV · √(deff · (N − n) / (n (N − 1)))",
+         .cm_general_sustitucion_margen(resultado, sprintf("y N = %s", .cm_general_num(N, 10L))),
+         .cm_general_num(resultado$precision_alcanzada, 4L))
+  )
+}
+
+# Cómo estimar la varianza con esta muestra (research H28). El sorteo publica
+# π de primer orden, no π_ij: el sistemático y el PPS necesitan una
+# aproximación, y quien analiza tiene que saber cuál (Särndal et al. 1992,
+# §3.3; Wolter 2007, cap. 8).
+.cm_general_nota_varianza <- function(metodo, modalidad = NULL) {
+  if (identical(modalidad, "censo")) {
+    return("Estimación: cobertura censal; no hay error de muestreo, sí sesgo posible de no respuesta.")
+  }
+  switch(metodo %||% "mas",
+    mas = "Estimación: pesos 1/π; varianza de muestreo aleatorio simple sin reemplazo (estratificada si hay estratos), con corrección por población finita.",
+    sistematico = "Estimación: pesos 1/π; el sistemático no tiene estimador insesgado de varianza con un solo arranque: se aproxima como aleatorio simple (conservador si el orden del marco agrupa unidades parecidas; revisar si el orden es periódico).",
+    pps = "Estimación: pesos 1/π; varianza aproximada con la fórmula con reemplazo (Hansen–Hurwitz), conservadora para un PPS sin reemplazo; las certezas (π = 1) no aportan varianza.",
+    "Estimación: pesos 1/π.")
+}

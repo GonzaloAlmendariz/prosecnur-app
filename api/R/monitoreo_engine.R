@@ -1696,7 +1696,7 @@ monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
   }
   cumplimiento$benchmark_comparado <- benchmark_comparado
 
-  cuotas <- resultado$sub_cuotas %||% meta_raw$sub_cuotas %||% NULL
+  cuotas <- resultado$sub_cuotas %||% meta_raw$sub_cuotas %||% .monitoreo_subcuotas_desde_distribucion(resultado$distribucion_estratos)
   subcuotas <- .monitoreo_acreditacion_subcuotas(
     seguimiento_raw$sub_cuotas_progreso %||% comp$sub_cuotas_progreso,
     cuotas
@@ -3881,7 +3881,14 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
     previous = previous_config$territorial %||% previous_config$monitoreo_territorial %||% list()
   )
   aulas_input <- config$aulas_universitarias %||% config$monitoreo_aulas_universitarias %||% list()
-  aulas <- monitoreo_aulas_normalize_config(aulas_input)
+  # `previous` como el territorial de arriba (2026-09-08): sin él, una
+  # normalización con el body incompleto —la de cada sincronización— dejaba el
+  # `source_mapping` en cadenas vacías y el estudio ciego.
+  aulas <- monitoreo_aulas_normalize_config(
+    aulas_input,
+    previous = previous_config$aulas_universitarias %||%
+      previous_config$monitoreo_aulas_universitarias %||% list()
+  )
 
   list(
     enumerator_var = keep_col(config$enumerator_var %||% config$col_enumerador, defaults$enumerator_var),
@@ -4456,7 +4463,17 @@ monitoreo_sheets_oauth_status <- function() {
 .monitoreo_sheets_oauth_payload <- function(required = TRUE) {
   raw <- tryCatch(prosecnur_secret_load(.monitoreo_sheets_secret_name()), error = function(e) NA_character_)
   if (is.na(raw) || !nzchar(raw)) {
-    if (isTRUE(required)) stop("Falta autorizacion local de Google Sheets.", call. = FALSE)
+    # **«No hay» y «hay y no abre» son dos noticias distintas.** Las dos daban
+    # el mismo mensaje, y el 2026-09-08 la segunda mandó a buscar una sesión
+    # caducada de Google durante un cuarto de hora en pleno campo: el token
+    # estaba guardado y lo que fallaba era la clave que lo cifra.
+    if (isTRUE(required)) {
+      if (prosecnur_secret_locked(.monitoreo_sheets_secret_name())) {
+        stop(paste("La autorizacion de Google Sheets esta guardada pero no se puede descifrar",
+                   "en esta maquina. Vuelve a autorizar Google Sheets en la app."), call. = FALSE)
+      }
+      stop("Falta autorizacion local de Google Sheets.", call. = FALSE)
+    }
     return(NULL)
   }
   parsed <- tryCatch(jsonlite::fromJSON(raw, simplifyVector = FALSE), error = function(e) NULL)
@@ -4467,7 +4484,13 @@ monitoreo_sheets_oauth_status <- function() {
 .monitoreo_sheets_oauth_client <- function(required = TRUE) {
   raw <- tryCatch(prosecnur_secret_load(.monitoreo_sheets_client_secret_name()), error = function(e) NA_character_)
   if (is.na(raw) || !nzchar(raw)) {
-    if (isTRUE(required)) stop("Falta cliente OAuth local de Google Sheets.", call. = FALSE)
+    if (isTRUE(required)) {
+      if (prosecnur_secret_locked(.monitoreo_sheets_client_secret_name())) {
+        stop(paste("El cliente OAuth de Google Sheets esta guardado pero no se puede descifrar",
+                   "en esta maquina. Vuelve a registrarlo en Configuracion global."), call. = FALSE)
+      }
+      stop("Falta cliente OAuth local de Google Sheets.", call. = FALSE)
+    }
     return(NULL)
   }
   client <- tryCatch(jsonlite::fromJSON(raw, simplifyVector = FALSE), error = function(e) NULL)
@@ -4557,7 +4580,11 @@ monitoreo_sheets_oauth_save <- function(oauth) {
 .monitoreo_sheets_oauth_scopes <- function() {
   c(
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive.metadata.readonly"
+    "https://www.googleapis.com/auth/drive.metadata.readonly",
+    # B6(b): subir las fichas QR al Drive del operativo. `drive.file` es el
+    # scope minimo (solo archivos creados por la app); los tokens anteriores
+    # siguen sirviendo para Sheets y el publicador les pide reconectar.
+    "https://www.googleapis.com/auth/drive.file"
   )
 }
 
@@ -4732,8 +4759,15 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
 
 .monitoreo_google_api <- function(url, method = "GET", body = NULL) {
   first <- .monitoreo_google_api_once(url, method = method, body = body)
+  # **Si el refresco falla, su motivo NO se pierde.** Se tragaba con `NULL` y
+  # entonces salia el 401 crudo de Google —«invalid authentication
+  # credentials»—, que manda a revisar el permiso del documento. La causa real
+  # suele ser otra y esta un escalon antes: el secreto no se pudo leer. Decir el
+  # 401 en ese caso es la razon equivocada, no una razon de menos.
+  fallo_refresco <- ""
   if (identical(as.integer(first$status_code), 401L)) {
-    refreshed <- tryCatch(.monitoreo_sheets_refresh_access_token(), error = function(e) NULL)
+    refreshed <- tryCatch(.monitoreo_sheets_refresh_access_token(),
+                          error = function(e) { fallo_refresco <<- conditionMessage(e); NULL })
     if (nzchar(.monitoreo_scalar(refreshed, ""))) {
       first <- .monitoreo_google_api_once(url, method = method, body = body, token = refreshed)
     }
@@ -4741,6 +4775,9 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
   parsed <- first$parsed
   if (first$status_code >= 300L) {
     msg <- parsed$error$message %||% parsed$error_description %||% sprintf("Google Sheets respondio HTTP %s.", first$status_code)
+    if (nzchar(fallo_refresco)) {
+      msg <- paste0(msg, " (y renovar el acceso tampoco funciono: ", fallo_refresco, ")")
+    }
     stop(msg, call. = FALSE)
   }
   parsed
@@ -4776,107 +4813,10 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
 }
 
 .monitoreo_sheets_controlled_tab_names <- function() {
-  c(
-    "Prosecnur - Resumen",
-    "Prosecnur - Alertas",
-    "Prosecnur - Auditoria",
-    "Prosecnur - Reporte",
-    "Reporte",
-    "Detalle del avance",
-    "Administrativos - Avance",
-    "Docentes - Avance",
-    "Egresados - Avance",
-    "Empleadores - Avance",
-    "Estudiantes - Avance",
-    "Avance por actor",
-    "Efectivas por fecha",
-    "Fuentes por actor",
-    "Cliente - Portada",
-    "Cliente - Avance",
-    "Cliente - Avance diario",
-    "Cliente - Avance unidad",
-    "Cliente - Avance distrito",
-    "Cliente - Fuentes agregadas",
-    "Cliente - Diccionario",
-    "Interno - Portada",
-    "Interno - Avance",
-    "Interno - Alertas",
-    "Interno - Casos accionables",
-    "Interno - Auditoria",
-    "Interno - GPS territorio",
-    "Interno - Fuentes",
-    "Interno - Snapshot operativo",
-    "Portada",
-    "Resumen de avance",
-    "Resumen territorial",
-    "Producción",
-    "Tabla maestra",
-    "Avance por distrito",
-    "Avance por UMP",
-    "Avance diario",
-    "Avance por responsable",
-    "Cuotas resumen",
-    "Resumen del avance",
-    "Resumen ejecutivo",
-    "Resumen",
-    "Vista general",
-    "Avance general",
-    "Avance por segmento",
-    "Avance por canal",
-    "Avance por encuesta",
-    "Avance por canal/fuente",
-    "Canal y responsable",
-    "Avance por canal/recopilador",
-    "Brechas de cumplimiento",
-    "Pendientes por cubrir",
-    "Cobertura y pendientes",
-    "Resumen operativo",
-    "Mínimos por actor",
-    "Metas internas por actor",
-    "Faltantes por actor",
-    "Pendientes por actor",
-    "Seguimiento",
-    "Seguimiento operativo",
-    "Control de seguimiento",
-    "Seguimiento telefónico",
-    "Monitoreo telefónico",
-    "Puntos de atención",
-    "Alertas internas",
-    "Alertas",
-    "Casos para revisar",
-    "Avance de campo",
-    "Encuestadores y rutas",
-    "Manzanas y responsables",
-    "Responsables y rutas",
-    "Cuotas por UMP",
-    "Cuotas por manzana",
-    "Cuotas sexo y edad",
-    "Cierre de cuotas",
-    "Llenado sexo y edad",
-    "Tabla maestra",
-    "Ritmo diario",
-    "Validacion de tiempos",
-    "Validación de tiempos",
-    "Ocurrencias de campo",
-    "Ocurrencias en campo",
-    "Anulaciones",
-    "Casos accionables",
-    "GPS y territorio",
-    "Corte y fuentes",
-    "Reporte telefónico",
-    "Avance y cuotas",
-    "Responsables",
-    "Conciliación",
-    "Casos y alertas",
-    "Fuentes y actualizacion",
-    "Fuentes y actualización",
-    "Trazabilidad del corte",
-    "Auditoria tecnica",
-    "Auditoría técnica",
-    "Registros del corte",
-    "Base tecnica",
-    "Base técnica"
-  )
+  # Cáscara que delega: la lista vive en monitoreo_sheets_pestanas.R (unidad
+  # B1; este archivo está congelado a crecimiento). Dos listas que nadie ata es
+  # el patrón que se tragaba las pestañas del ejecutivo de aulas.
+  monitoreo_sheets_pestanas_controladas()
 }
 
 .monitoreo_sheets_owner_key <- function() {
@@ -4960,14 +4900,27 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
   paste0(substr(value, 1L, keep), marker)
 }
 
+# Una celda NUMÉRICA conserva su tipo; el resto se sanea como siempre. Sin tipo
+# no hay numFmt de porcentaje ni regla de color en Sheets, que es lo que pidió
+# Gonzalo para «Avance de campo» el 2026-09-08; ver la nota larga en
+# `.monitoreo_sync_sheets_padded_rows()`. Los productores de texto —todos menos
+# uno— salen byte a byte igual que antes.
 .monitoreo_sheets_values_rows <- function(rows) {
   rows <- rows %||% list()
   if (!length(rows)) return(list())
   lapply(rows, function(row) {
-    cells <- as.character(unlist(row %||% character(0), use.names = FALSE))
-    cells[is.na(cells)] <- ""
-    cells <- vapply(cells, .monitoreo_sheets_sanitize_cell, character(1), USE.NAMES = FALSE)
-    as.list(cells)
+    celdas <- list()
+    for (v in unname(as.list(row %||% list()))) {
+      trozos <- if (is.null(v) || !length(v)) list("") else as.list(v)
+      for (x in trozos) {
+        celdas[[length(celdas) + 1L]] <- if (is.numeric(x) && length(x) == 1L) {
+          if (is.finite(x)) x else ""
+        } else {
+          .monitoreo_sheets_sanitize_cell(x)
+        }
+      }
+    }
+    celdas
   })
 }
 
@@ -5958,7 +5911,7 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL, sid = N
       sync_mode <- "full"
     }
     if (!is.null(progress)) {
-      progress(6L, 8L, sprintf("Kobo: %s respuestas recibidas", format(as.integer(payload$count %||% 0L), big.mark = ",", trim = TRUE)))
+      progress(6L, 8L, local({ n_kobo <- as.integer(payload$count %||% 0L); sprintf("Kobo: %s respuesta%s recibida%s", format(n_kobo, big.mark = ",", trim = TRUE), if (identical(n_kobo, 1L)) "" else "s", if (identical(n_kobo, 1L)) "" else "s") }))
       progress(7L, 8L, "Kobo: normalizando respuestas")
     }
     data <- kobo_api_flatten_results(payload$results)
@@ -8644,7 +8597,7 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   entries <- list.files(".", recursive = TRUE, all.files = TRUE, no.. = TRUE)
   zip::zip(tmp_out, files = entries)
   setwd(old_wd)
-  if (!file.exists(tmp_out)) stop("No se pudo crear el XLSX minimo.", call. = FALSE)
+  if (!file.exists(tmp_out)) stop("No se pudo crear el XLSX mínimo.", call. = FALSE)
   file.rename(tmp_out, path)
   invisible(path)
 }
@@ -24438,13 +24391,52 @@ monitoreo_export_workbook <- function(data, config = list(), path) {
   reemplazos <- .monitoreo_publication_nonempty_df(reports$reemplazos %||% list())
   validacion <- .monitoreo_publication_nonempty_df(reports$validation %||% list())
   kpis <- reports$kpis %||% list()
+  # **`reemplazos_usados` NO cuenta reemplazos, y esta hoja va al cliente.**
+  #
+  # El KPI suma reservas con `replacement_for` en estado agendada/en campo/
+  # aplicada/cerrada/parcial, o sea reservas EN JUEGO. Sobre HSVG2026 «como
+  # 2025» vale 174 —el numero de titulares— mientras los titulares que de
+  # verdad se cayeron y fueron sustituidos son 18.
+  #
+  # El frontend ya lo tenia advertido en tres sitios (`embudoDelOperativo.R`
+  # ~40, `kpisDeAulas.ts` ~684 y el badge del rail) y ninguna de las tres
+  # advertencias llego hasta aqui: la hoja del cliente seguia publicando 174
+  # bajo el rotulo «Reemplazos usados».
+  #
+  # La cifra correcta es el tramo `reemplazada` del reparto que el motor ya
+  # publica, que es el estado del TITULAR sustituido.
+  reemplazados <- {
+    tramos <- reports$course_status_estados %||% list()
+    n <- 0L
+    for (tramo in tramos) {
+      if (identical(.monitoreo_scalar(tramo$clave, ""), "reemplazada")) {
+        n <- as.integer(.monitoreo_num(tramo$aulas, 0))
+      }
+    }
+    n
+  }
   resumen <- data.frame(
-    Indicador = c("Aulas planificadas", "Aulas aplicadas", "Aulas parciales", "Reemplazos usados", "Respuestas validas", "Brechas aula"),
+    # «Cursos-horario reemplazados» y no «Reemplazos usados»: lo que se cuenta
+    # es cuantos titulares hubo que sustituir, no cuantas reservas hay en juego.
+    # **«Planificadas» eran 1.347 y las que hay que aplicar son 174.**
+    #
+    # `total_aulas` cuenta el plan sin banco: titulares MAS sus reservas
+    # encadenadas. Junto a «aplicadas 152», el lector hace 152 de 1.347 y lee un
+    # 11 % de avance donde va un 87 %. Las 1.173 reservas no se aplican salvo que
+    # caiga su titular, asi que no son aulas planificadas para aplicar: son
+    # respaldo, y el propio motor ya las separa en `tracked_df`.
+    #
+    # Se publican las dos, con su nombre: lo que hay que aplicar y el tamano del
+    # plan con sus respaldos. Quitar la segunda perderia informacion real.
+    Indicador = c("Cursos-horario a aplicar", "Cursos-horario del plan, con reservas",
+                  "Aulas aplicadas", "Aulas parciales", "Cursos-horario reemplazados",
+                  "Respuestas validas", "Brechas aula"),
     Valor = c(
+      kpis$aulas_titulares %||% kpis$total_aulas %||% 0L,
       kpis$total_aulas %||% 0L,
       kpis$aulas_aplicadas %||% 0L,
       kpis$aulas_parciales %||% 0L,
-      kpis$reemplazos_usados %||% 0L,
+      reemplazados,
       kpis$respuestas_validas %||% 0L,
       kpis$brechas %||% 0L
     ),

@@ -97,7 +97,22 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   selector: "cube_balanceado",
   selector_engine: "cube_balanceado",
   method_family: "balanced_probability",
-  min_elegibles_aula: 15,
+  // **Ningún criterio es global: el mínimo de elegibles se decide POR FACULTAD.**
+  //
+  // Era 15 y recortaba el marco de un proyecto recién creado sin que nadie lo
+  // decidiera —3.491 de 5.269 cursos-horario con las bases 2026—, y el recorte
+  // cae desigual: Artes Escénicas 45 de 440, Posgrado 173 de 811, EE.GG.
+  // Ciencias 486 de 507. Un umbral pensado para aulas grandes se lleva nueve de
+  // cada diez cursos-horario de una facultad chica.
+  //
+  // El motor ya se corrigió (`calc_muestra_aulas.R`, default 1), pero **este
+  // valor gana**: el front siembra el workspace y R lo lee como alias de
+  // `min_eligible_per_class`. Cambiar sólo el motor no se veía en la app —
+  // medido: un proyecto nuevo seguía dando 3.491.
+  //
+  // La decisión por facultad ya existe («mínimo propio de la facultad» en la
+  // radiografía); este default se le adelantaba.
+  min_elegibles_aula: 1,
   accepted_conditions: ["regular"],
   require_undergraduate: true,
   require_adult: true,

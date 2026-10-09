@@ -1,0 +1,106 @@
+/* El mapa de la deuda por sexo. Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-mapa { display: grid; gap: 8px; min-width: 0; }
+
+/* **El lienzo tiene un techo.** El SVG conserva su proporción (560 × 430), así
+   que a lo ancho de un panel de Consultas —971 px— salía de 746 px de alto: el
+   mapa ocupaba una pantalla entera y empujaba fuera de la vista el ranking que
+   lo acompaña, que es su otra mitad. El ancho se acota en vez del alto porque
+   así el gráfico no se deforma, y se centra para que el panel no quede cojo. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-lienzo {
+  display: block;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  height: auto;
+  overflow: visible;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-reja { stroke: var(--pulso-border-strong); stroke-width: 1; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-cero { stroke: var(--pulso-text-faint); stroke-width: 1.2; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-hilo { stroke: var(--pulso-border-strong); stroke-width: 0.8; }
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-marca {
+  fill: var(--pulso-text-faint);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto { cursor: pointer; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto text {
+  fill: var(--pulso-text);
+  font-size: 10px;
+  font-weight: 600;
+  transition: fill 140ms ease;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto circle { transition: stroke-width 140ms ease; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:hover text,
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:focus-visible text {
+  fill: var(--module-accent, var(--pulso-primary));
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:hover circle,
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:focus-visible circle { stroke-width: 3; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:focus-visible { outline: none; }
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-pie {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  line-height: 1.45;
+}
+
+/* Con una facultad elegida, el resto del mapa baja a fondo: sigue estando —es
+   lo que da la comparación— pero deja de competir por la mirada. */
+.aulas-mapa-punto.es-apagada { opacity: 0.3; }
+.aulas-mapa-punto.es-apagada text { opacity: 0.55; }
+.aulas-mapa-punto.es-foco text { font-weight: 700; }
+.aulas-mapa-anillo { opacity: 0.5; }
+
+/* El marco del gráfico, rehecho el 2026-09-10: «el eje de coordenadas no
+   termina de verse bien». */
+.mon-profile-page.is-aulas-flow .aulas-mapa-borde {
+  fill: none;
+  stroke: var(--pulso-border);
+  stroke-width: 1;
+}
+/* El cuadrante que duele y el que va bien, teñidos: así «arriba a la derecha es
+   lo bueno» se ve antes de leer ningún rótulo. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-zona.es-debe {
+  fill: var(--pulso-danger-fg);
+  fill-opacity: 0.045;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-zona.es-bien {
+  fill: var(--pulso-success-fg);
+  fill-opacity: 0.05;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-eje {
+  fill: var(--pulso-text-faint);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+/* El lado que duele, con su tinta: la dirección del eje ES la lectura del
+   cuadrante, y en gris las dos mitades se leen igual. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-eje.es-debe { fill: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-mapa-eje.es-titulo {
+  fill: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+}
+
+/* El foco del punto: un halo concéntrico en vez del anillo del navegador, que
+   envolvía el bounding box del `<g>` —círculo más etiqueta— y dibujaba una
+   cápsula amarilla de 300 px atravesando el gráfico. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto { outline: none; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-halo {
+  stroke: var(--pulso-primary);
+  stroke-width: 2;
+  opacity: 0;
+  transition: opacity 90ms ease-out;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:focus-visible .aulas-mapa-halo,
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:hover .aulas-mapa-halo { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .mon-profile-page.is-aulas-flow .aulas-mapa-halo { transition: none; }
+}

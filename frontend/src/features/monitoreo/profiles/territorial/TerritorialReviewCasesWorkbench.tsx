@@ -27,6 +27,7 @@ import {
   territorialDurationOperationalStatusFromValues,
 } from "../../territorialDuration";
 import { TerritorialOperationalAdjustmentsWorkspace } from "./TerritorialOperationalAdjustmentsWorkspace";
+import { copiarTexto } from "../../../../lib/portapapeles";
 
 type TerritorialValidationTab = "geolocalizacion" | "duracion";
 type TerritorialReviewTypeFilter = "all" | "record" | "gps" | "duration" | "ump" | "subsanacion";
@@ -146,8 +147,8 @@ function TerritorialReviewCasesWorkbenchImpl({
 
   const copyUuid = (id: string, responseIdValue: string) => {
     const responseId = responseIdValue.trim();
-    if (!responseId || !navigator.clipboard) return;
-    void navigator.clipboard.writeText(responseId).then(() => {
+    if (!responseId) return;
+    void copiarTexto(responseId).then(() => {
       setCopiedCaseId(id);
       window.setTimeout(() => setCopiedCaseId((current) => (current === id ? "" : current)), 1200);
     }).catch(() => undefined);
@@ -205,7 +206,12 @@ function TerritorialReviewCasesWorkbenchImpl({
                 <input
                   value={filters.search}
                   onChange={(event) => patchFilters({ search: event.target.value })}
-                  placeholder="Buscar UUID, UMP, distrito, manzana o encuestador..."
+                  // El placeholder medía 323 px en 294 disponibles y se cortaba a media
+                  // palabra (lo cazó ui-quick-check como `placeholder-clipped`). La
+                  // enumeración completa se lee ahora en el nombre accesible, que no
+                  // se recorta, y el campo dice lo justo.
+                  aria-label="Buscar por UUID, UMP, distrito, manzana o encuestador"
+                  placeholder="Buscar UUID, UMP o encuestador…"
                 />
               </label>
               <TerritorialReviewSelect label="Distrito" value={filters.district} options={options.districts} onChange={(district) => patchFilters({ district })} />

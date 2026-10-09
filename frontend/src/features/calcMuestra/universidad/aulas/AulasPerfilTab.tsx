@@ -136,7 +136,13 @@ export function AulasPerfilTab({
     return (
       <section
         className="cmv2-perfil-vacio"
-        data-audit-ready="false"
+        // Un vacío es un estado TERMINAL, no una carga. Declararlo `false`
+        // decía «todavía no terminé» de una vista que ya había terminado: el
+        // gate no la medía y el puente la reportaba como no lista. Mismo
+        // precedente que Analítica, sellado en auditReadyRoutes.contract.test:
+        // la readiness «se publica en los tres estados terminales, incluido el
+        // vacío — una sección sin datos también terminó de cargar».
+        data-audit-ready="true"
         data-qa-geometry-group="calc-muestra/aulas-perfil"
         data-qa-geometry-contract="intrinsic"
         aria-label="Perfil de la muestra seleccionada"

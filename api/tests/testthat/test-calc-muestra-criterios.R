@@ -7,8 +7,11 @@
 #
 # El fixture es sintético a propósito (sin acentos, cifras redondas): ejerce
 # CADA regla del contrato con un resultado calculable a mano. El objetivo del
-# marco canónico del fixture es 3 aulas (A1, A4, A10); ver el desglose regla por
-# regla en el test principal. La reconciliación contra la base canónica REAL
+# marco canónico del fixture depende de la CAPA del criterio de ciclo, así que
+# se nombran las dos para que ningún rótulo prometa otro número: con el ciclo en
+# capa 'instrumento' son 5 aulas (A1, A4, A8, A10, A12) y con el ciclo en capa
+# 'marco' son 4 (las mismas sin A12, cuyos alumnos son todos de ciclo 1). Ver el
+# desglose regla por regla en el test principal. La reconciliación contra la base canónica REAL
 # (2483) vive en el test gated del final.
 
 # --- Fixture sintético -------------------------------------------------------
@@ -187,7 +190,7 @@ test_that("criterios_catalogo enumera ambos scopes con kind y mappedColumn", {
 
 # --- Selección canónica sobre el fixture -------------------------------------
 
-test_that("selección canónica reproduce el marco esperado del fixture (3 aulas)", {
+test_that("selección canónica reproduce el marco esperado del fixture (5 aulas)", {
   # Desglose regla por regla (nivel en capa 'instrumento', no reduce el marco):
   #   A1  PASA (presencial, teorico, ordinario, ING nivel 6, matric 20)
   #   A2  cae por modalidad (virtual)
@@ -196,7 +199,14 @@ test_that("selección canónica reproduce el marco esperado del fixture (3 aulas
   #   A5  cae por tipo (taller SIN excepción en Ingeniería)
   #   A6  cae por docente (solo extraordinario-visitante)
   #   A7  cae por nivel del curso (2 ∉ [5,10] de Ingeniería)
-  #   A8  cae por nivel (Consorcio no está en el mapa → fuera)
+  #   A8  PASA: CONSORCIO DE UNIVERSIDADES no está en courseLevelRanges, y una
+#        facultad SIN entrada no declara tramo → el criterio de nivel no la
+#        restringe. Hasta 2026-08-25 este golden esperaba lo contrario ("no está
+#        en el mapa → fuera"): esa lectura de whitelist contradecía las tres
+#        superficies de la UI y borraba 13 de 15 facultades en HSVG26DEF.
+#        Decidido con Gonzalo: el mapa sólo gobierna lo que nombra. Para dejar
+#        una facultad fuera del estudio está el criterio de FACULTAD, no el de
+#        nivel. (A8 cumple lo demás: presencial, teórico, contratado, matric 20.)
   #   A9  cae por el criterio independiente Matriculados / población (5 < 10)
   #   A10 PASA (laboratorio ∈ set; EDU nivel 3 ∈ [2,10]; contratado; matric 15)
   #   A11 cae: todos maestría → 0 elegibles (criterio de alumno 'formation' marco)
@@ -207,8 +217,8 @@ test_that("selección canónica reproduce el marco esperado del fixture (3 aulas
     base_madre = fx$estudiantes, catalogo_curso_horario = fx$catalogo,
     config = .crit_gold_config(nivel_layer = "instrumento")
   )
-  expect_identical(.crit_gold_incluidas(frame), c("A1", "A10", "A12", "A4"))
-  expect_identical(sum(frame$aula_frame$included %in% TRUE), 4L)
+  expect_identical(.crit_gold_incluidas(frame), c("A1", "A10", "A12", "A4", "A8"))
+  expect_identical(sum(frame$aula_frame$included %in% TRUE), 5L)
 
   # Razones de exclusión acumuladas por aula (auditables a mano).
   af <- frame$aula_frame
@@ -218,19 +228,21 @@ test_that("selección canónica reproduce el marco esperado del fixture (3 aulas
   expect_true(grepl("session_type", razon[["A5"]]))
   expect_true(grepl("teacher_type", razon[["A6"]]))
   expect_true(grepl("course_level", razon[["A7"]]))
-  expect_true(grepl("course_level", razon[["A8"]]))
+  # A8 ya no cae por nivel: su facultad no declara tramo. El criterio de nivel
+  # sigue mordiendo donde SÍ se declaró (A7, Ingeniería nivel 2 ∉ [5,10]).
+  expect_false(grepl("course_level", razon[["A8"]]))
   expect_true(grepl("enrolled_total", razon[["A9"]]))
 })
 
 test_that("capa del ciclo: 'marco' recorta A12, 'instrumento' no", {
   fx <- .crit_gold_base()
   # Con ciclo en capa 'marco', los alumnos de A12 (ciclo 1) quedan fuera de la
-  # población → A12 sin elegibles → fuera del marco (3 aulas).
+  # población → A12 sin elegibles → fuera del marco (4 aulas).
   frame_marco <- calc_muestra_aulas_construir(
     base_madre = fx$estudiantes, catalogo_curso_horario = fx$catalogo,
     config = .crit_gold_config(nivel_layer = "marco")
   )
-  expect_identical(.crit_gold_incluidas(frame_marco), c("A1", "A10", "A4"))
+  expect_identical(.crit_gold_incluidas(frame_marco), c("A1", "A10", "A4", "A8"))
   # El reporte del scope alumno registra la capa efectiva de cada criterio.
   rep_marco <- frame_marco$criterios_alumno_report
   expect_true(rep_marco$activa)

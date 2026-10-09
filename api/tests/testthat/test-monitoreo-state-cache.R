@@ -53,10 +53,13 @@
   sid
 }
 
-# Mismos flags que serializer_unboxed_json (plumber_app.R): la paridad se
-# juzga sobre los bytes que viajarían por el cable.
+# Mismos flags que `.api_serializer()` (plumber_app.R): la paridad se juzga
+# sobre los bytes que viajarían por el cable, y para eso los flags tienen que
+# ser los mismos de verdad. `na = "null"` faltaba aquí mientras el serializador
+# real mandaba `NA_real_` como la cadena "NA" (arreglado el 2026-09-09); el
+# contrato vive en `test-serializer-valores-especiales.R`.
 .monitoreo_state_cache_json <- function(payload) {
-  as.character(jsonlite::toJSON(payload, auto_unbox = TRUE))
+  as.character(jsonlite::toJSON(payload, auto_unbox = TRUE, na = "null"))
 }
 
 test_that("hit del derived cache: payload byte a byte idéntico al miss y sin recomputar", {

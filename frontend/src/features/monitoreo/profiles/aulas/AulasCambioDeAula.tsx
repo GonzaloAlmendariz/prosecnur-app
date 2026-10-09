@@ -29,8 +29,8 @@ export function AulasCambioDeAula({ partes, plan }: {
     return (
       <div className="aulas-cambio-aula">
         <p className="aulas-cambio-aula-lectura">
-          No se puede saber si alguna aula se aplicó en otro salón: el plan agendado
-          no trae salón para ningún curso-horario, así que no hay contra qué comparar
+          No se puede saber si algún curso-horario se aplicó en otro salón: el plan
+          agendado no trae salón para ninguno, así que no hay contra qué comparar
           los {fmt(r.sinComparar)} {r.sinComparar === 1 ? "parte" : "partes"} de campo.
         </p>
       </div>

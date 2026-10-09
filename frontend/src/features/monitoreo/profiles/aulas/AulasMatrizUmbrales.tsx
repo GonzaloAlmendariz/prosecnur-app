@@ -73,7 +73,15 @@ export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas
         // leyendo esta misma pantalla.
         <p className="mon-profile-table-recorte">
           <strong>{fmt(v.indeterminadas)}</strong>{" "}
-          {v.indeterminadas === 1 ? "aula sin sus dos umbrales" : "aulas sin sus dos umbrales"} en
+          {/* **«Filas de la hoja», igual que cuatro líneas más arriba.** Esta
+              frase decía «aulas» sobre EL MISMO denominador que la de arriba
+              llama filas, en el mismo componente. Y la decisión ya estaba tomada
+              en el panel que lo envuelve: «"filas de la hoja" y no "aulas": son
+              las que trae el libro que llena el equipo, y no tienen por qué ser
+              las del plan… llamarlas "aulas" ponía dos cifras con el mismo
+              nombre en un perfil cuya unidad es el curso-horario». Medido sobre
+              `campo_malo`: 304 filas de la hoja contra 152 partes de campo. */}
+          {v.indeterminadas === 1 ? "fila sin sus dos umbrales" : "filas sin sus dos umbrales"} en
           la hoja · {aulas ? Math.round((100 * v.indeterminadas) / aulas) : 0} %
         </p>
       ) : null}
@@ -89,7 +97,7 @@ export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas
           100 es más que 14 de 20. */}
       <p className="mon-profile-muted aulas-umbrales-nota">
         Es el corte que el equipo escribió en el libro, no un criterio que la app
-        verifique. No dice a qué aula conviene ir: un aula con 100 elegibles al 40 %
+        verifique. No dice a qué curso-horario conviene ir: uno con 100 elegibles al 40 %
         rinde 40 encuestas, y una con 20 al 70 % rinde 14.
       </p>
     </div>

@@ -1,0 +1,82 @@
+/* «Hacia dónde va la efectividad», jornada a jornada.
+   Hoja propia: `aulasMonitoreo.css` está congelada a crecimiento. */
+/* Escala propia, como las dos tablas de esta misma pestaña: 13 px la lectura y
+   11,5 la metadata. Los literales de 13/10 px venían de la escala de los ejes
+   de gráfico y en un panel de texto se leían pequeños —«todo se ve muy pequeño
+   y sin vida» (Gonzalo, 2026-09-10)—. */
+.aulas-efdia {
+  --efd-dato: 15px;
+  --efd-txt: 13px;
+  --efd-meta: 11.5px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.aulas-efdia-lectura { margin: 0; font-size: var(--efd-txt); color: var(--pulso-text-soft); line-height: 1.5; }
+.aulas-efdia-lectura strong { color: var(--pulso-text); font-weight: 600; }
+.aulas-efdia-lectura em {
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+.aulas-efdia-serie { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.aulas-efdia-serie > li {
+  display: grid;
+  grid-template-columns: 6.5rem 7.5rem minmax(0, 1fr) 6rem 7rem;
+  align-items: center;
+  gap: 12px;
+}
+.aulas-efdia-cab {
+  font-size: var(--efd-meta);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.aulas-efdia-cab > span:not(:first-child) { text-align: right; }
+.aulas-efdia-cab > span:nth-child(3) { text-align: left; }
+.aulas-efdia-dia { font-size: var(--efd-txt); font-weight: 500; color: var(--pulso-text); }
+.aulas-efdia-num {
+  text-align: right;
+  font-size: var(--efd-txt);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+.aulas-efdia-barra {
+  display: block;
+  height: 20px;
+  border-radius: 3px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+.aulas-efdia-barra > i {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  padding-right: 7px;
+  border-radius: 3px;
+  background: var(--pulso-success-fg);
+  color: var(--pulso-on-accent, #fff);
+  font-size: 11.5px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.aulas-efdia-pie {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  max-width: 92ch;
+}
+
+/* El relevo, junto al chip de «bajo su margen». Tenue y en su línea: es la
+   salida de la fila, no su titular — el dato que manda sigue siendo la tasa. */
+.aulas-dt-relevo {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-success-fg);
+}
+.aulas-dt-relevo.es-sin { color: var(--pulso-text-faint); }

@@ -11,14 +11,23 @@
 # operativo. El fixture ponia solo el primero con un `CH n` dentro, y esa
 # mentira tapaba que agrupar la cadena por `replacement_for` no funciona: sobre
 # HSVG2026, 0 de 202 valores coincidian con un titular.
-.calg_unidad <- function(code, role = "titular", rf = "", orden = NULL) list(
+# **`aplicada` por defecto desde el 2026-09-07.** La «Base de control» dejo de
+# escribir los titulares que todavia no se aplicaron: publicaba las 174 filas
+# del plan con una sola aula aplicada, y 173 filas vacias esconden justo lo que
+# la hoja existe para vigilar (dictado de Gonzalo el primer dia de campo,
+# «muestra todos los CH cuando solo deberian ser los que ya se aplicaron»).
+# Estos casos comprueban CONTENIDO y ORDEN de las filas, asi que sus aulas
+# tienen que existir en la hoja; el caso que mira la hoja SIN aplicar pasa
+# `aplicada = FALSE` a proposito.
+.calg_unidad <- function(code, role = "titular", rf = "", orden = NULL,
+                         aplicada = TRUE) c(list(
   operational_code = code, sample_role = role, replacement_for = rf,
   titular_operational_code = rf,
   replacement_order = orden, wave = "Muestra 01", teacher = "Docente Demo",
   teacher_phone = "999", teacher_email = "d@x.test", course_name = "Curso Demo",
   faculty = "SOCIALES", level = "3", label = "LUN A101", schedule = "LUN 08:00",
   enrolled_total = 40, eligible_n = 35, link = paste0("https://x.test/", code)
-)
+), if (aplicada) list(application_status = "APLICADA") else list())
 
 test_that("lo que se genera se vuelve a leer sin perder la cadena", {
   unidades <- list(
@@ -61,8 +70,8 @@ test_that("la profundidad de la cadena sale del plan, no de una constante", {
   aulas_libro_generar(cortas, path)
   hojas <- readxl::read_excel(path, sheet = "Aulas Agendadas", col_names = FALSE, .name_repair = "minimal")
 
-  # 1 columna de id + 2 bloques de 20.
-  expect_identical(ncol(hojas), 41L)
+  # 1 columna de id + 2 bloques del ancho vigente.
+  expect_identical(ncol(hojas), 1L + 2L * AULAS_AGENDADAS_ANCHO_BLOQUE)
 })
 
 test_that("el parte de campo generado trae la identidad y espera el resto", {
@@ -252,10 +261,20 @@ test_that("el estado se tiñe, y solo el estado", {
     expect_true(any(grepl(estado, textos, fixed = TRUE)), info = estado)
   }
 
-  # Una regla por bloque de cadena y no una por columna con validacion: colgarlo
-  # de las validaciones teñia tambien «MEDIO DE CONTACTO» y «DÍA».
+  # Una regla por bloque de cadena y por PALETA. La serie, que es la que cuenta
+  # la historia: eran **3** —el semáforo de estados en titular + dos reservas—,
+  # pasaron a **9** cuando «MEDIO DE CONTACTO» y «DÍA» ganaron la suya (Gonzalo
+  # las pidió con color porque son las dos columnas que el agendador recorre en
+  # vertical para repartir su jornada), y son **15** desde el 2026-09-17, cuando
+  # «STATUS DE LLAMADA» y «RECIBIÓ CORREO» ganaron las suyas: eran las dos
+  # únicas tecleables con desplegable y sin color, justo las del barrido
+  # telefónico.
+  #
+  # Lo que el guard defiende no cambia: cada columna lleva LA SUYA. El defecto
+  # que evitaba era colgar el semaforo de ESTADOS de las validaciones, que
+  # teñia esas dos con reglas que ninguna de sus celdas casa.
   rangos <- regmatches(xml, gregexpr('conditionalFormatting sqref="[^"]+"', xml))[[1]]
-  expect_equal(length(rangos), 3L)   # titular + dos reservas
+  expect_equal(length(rangos), 15L)   # 5 paletas x (titular + dos reservas)
 })
 
 test_that("la hoja de aplicadas tiñe su propio estado", {
@@ -400,19 +419,35 @@ test_that("un % que llega en 0-100 NO se formatea como porcentaje", {
 })
 
 test_that("el semaforo de la hoja de campo cae sobre STATUS DE APLICACIÓN", {
-  # `STATUS DE APLICACIÓN` es la columna 33 (AG) porque su bloque lleva los 20
-  # titulos de agenda en medio. Contando solo los titulos de campo daba la 13
-  # (M), que es `MEDIO DE CONTACTO`: la regla existia y no teñia nada.
-  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"), collapse = "")
-  expect_true(grepl('sqref="AG[0-9]', xml))
+  # `STATUS DE APLICACIÓN` cae despues del ID MATCH y de TODOS los titulos de
+  # agenda, que van en medio del bloque. Contando solo los titulos de campo daba
+  # la 13 (M), que es `MEDIO DE CONTACTO`: la regla existia y no teñia nada.
+  #
+  # La letra se DERIVA del ancho vigente en vez de fijarse: cuando el bloque de
+  # agenda crecio de 20 a 21 campos, la columna paso de AG a AH y este aserto
+  # era lo unico que quedaba apuntando al sitio viejo.
+  libro <- .libro_con_pct(0.61)
+  cab <- openxlsx::read.xlsx(libro, sheet = "Aulas Aplicadas (Campo)",
+                             colNames = FALSE, skipEmptyRows = FALSE, rows = 2)
+  letra <- openxlsx::int2col(
+    which(as.character(unlist(cab[1, ], use.names = FALSE)) == "STATUS DE APLICACIÓN")[[1]])
+  xml <- paste(.xml_de_hoja_llamada(libro, "Aulas Aplicadas (Campo)"), collapse = "")
+  expect_true(grepl(sprintf('sqref="%s[0-9]', letra), xml), info = letra)
   expect_false(grepl('sqref="M[0-9]', xml))
 })
 
 test_that("las cuentas de campo entran como numero, no como texto", {
-  # Un numFmt sobre una celda de texto no se ve. La celda de los asistentes
-  # (columna W, la 23) no puede ser una cadena.
-  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"), collapse = "")
-  celda <- regmatches(xml, regexpr('<c r="W3"[^>]*>', xml))
+  # Un numFmt sobre una celda de texto no se ve. La celda de los asistentes no
+  # puede ser una cadena. La letra se DERIVA por titulo, igual que el semaforo
+  # de arriba: fijada en «W3» sobrevivio de suerte al ensanche de B22 (la col
+  # 23 seguia siendo un numero) y con B23 apuntaba a ENLACE DE LA FICHA.
+  libro <- .libro_con_pct(0.61)
+  cab <- openxlsx::read.xlsx(libro, sheet = "Aulas Aplicadas (Campo)",
+                             colNames = FALSE, skipEmptyRows = FALSE, rows = 2)
+  letra <- openxlsx::int2col(
+    which(as.character(unlist(cab[1, ], use.names = FALSE)) == "CANTIDAD DE ASISTENTES")[[1]])
+  xml <- paste(.xml_de_hoja_llamada(libro, "Aulas Aplicadas (Campo)"), collapse = "")
+  celda <- regmatches(xml, regexpr(sprintf('<c r="%s3"[^>]*>', letra), xml))
   expect_length(celda, 1L)
   expect_false(grepl('t="s"', celda, fixed = TRUE))
   expect_false(grepl('t="str"', celda, fixed = TRUE))
@@ -420,9 +455,12 @@ test_that("las cuentas de campo entran como numero, no como texto", {
 
 # --- Los tramos de la «Base de control» -------------------------------------
 
-test_that("los cuatro tramos se anclan por NOMBRE y cubren la hoja entera", {
+test_that("los cinco tramos se anclan por NOMBRE y cubren la hoja entera", {
   g <- aulas_libro_grupos_control()
-  expect_length(g, 4L)
+  # Cinco desde el reordenamiento del 2026-09-07: «lo esperado» se separó de
+  # «lo que llegó de la plataforma», que convivían bajo «CONTROL - CUENTA», y
+  # las razones bajaron a su propio tramo porque comparan a los dos.
+  expect_length(g, 5L)
   # Los tramos se calculan sobre las columnas que la hoja ESCRIBE, no sobre la
   # spec entera: las cuatro `solo_lectura` existen para releer libros viejos y
   # no salen en la hoja, asi que compararlas con `BASE_CONTROL_CAMPOS` dejaba
@@ -439,8 +477,10 @@ test_that("los cuatro tramos se anclan por NOMBRE y cubren la hoja entera", {
   # El control de que el anclaje es por nombre y no por numero: el primer campo
   # de cada tramo es el que dice la etiqueta.
   expect_identical(campos[[g[[2]]$desde]], "FECHA AGENDADA")
-  expect_identical(campos[[g[[3]]$desde]], "TOTAL ENVIADAS")
-  expect_identical(campos[[g[[4]]$desde]], "N ASISTENTES EN AULA")
+  expect_identical(campos[[g[[3]]$desde]], "TASA DE LA FACULTAD")
+  # El ancla es el CAMPO desde el 2026-09-07; el título es lo que cambia.
+  expect_identical(campos[[g[[4]]$desde]], "TOTAL ENVIADAS A PLATAFORMA")
+  expect_identical(campos[[g[[5]]$desde]], "ENVIADAS VS MATRICULADOS")
 })
 
 test_that("la base de control combina sus tramos y repite hasta el curso-horario", {
@@ -481,13 +521,19 @@ test_that("la hoja de campo avisa cuando las efectivas no cuadran", {
   expect_true(grepl("AND(", xml, fixed = TRUE))
 })
 
-test_that("la regla de cuadre se repite en cada intento, no solo en el primero", {
-  # Un aula que se visita dos veces tiene dos bloques de parte y los dos se
-  # llenan a mano. Contar columnas para uno solo ya costo el semaforo.
-  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"),
+test_that("la regla de cuadre se repite en cada eslabon, no solo en el primero", {
+  # B24: los bloques son eslabones y cada uno se llena a mano. La cuenta se
+  # DERIVA del numero real de bloques de la hoja (contar para uno solo ya
+  # costo el semaforo; asumir 3 fijos costo este pin cuando el diseño cambio).
+  libro <- .libro_con_pct(0.61)
+  cab <- openxlsx::read.xlsx(libro, sheet = "Aulas Aplicadas (Campo)",
+                             colNames = FALSE, skipEmptyRows = FALSE, rows = 2)
+  bloques <- sum(as.character(unlist(cab[1, ], use.names = FALSE)) == "ID MATCH",
+                 na.rm = TRUE)
+  xml <- paste(.xml_de_hoja_llamada(libro, "Aulas Aplicadas (Campo)"),
                collapse = "")
   n <- length(gregexpr('type="expression"', xml, fixed = TRUE)[[1]])
-  expect_gte(n, 2L)
+  expect_gte(n, bloques)
 })
 
 test_that("declarar de MENOS no se tiñe: es posible y corriente", {
@@ -546,19 +592,25 @@ test_that("las siete columnas de identidad del control se llenan de verdad", {
   d <- aulas_libro_hoja_control(list(
     list(operational_code = "CH 1", sample_role = "titular", wave = "M1",
          course_name = "Curso 1", label = "Aula 101", schedule = "Lun 10:00",
-         enrolled_total = 34, eligible_n = 30)
+         enrolled_total = 34, eligible_n = 30,
+         # La hoja solo escribe lo ya aplicado; sin esto el aula no tiene fila
+         # y el test miraria una hoja vacia.
+         application_status = "APLICADA")
   ))
-  campos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$titulos[[1]], character(1))
+  # Por CAMPO canonico y no por titulo literal: el titulo es justo lo que un
+  # renombrado (B17: POBLACION → ELEGIBLES) cambia, y este test vigila el
+  # llenado, no el rotulo — el rotulo lo pinea el contrato v4.
+  campos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$campo, character(1))
   fila <- unlist(d[3, ], use.names = FALSE)
-  valor <- function(titulo) fila[[which(campos == titulo)[[1]]]]
+  valor <- function(campo) fila[[which(campos == campo)[[1]]]]
 
-  expect_identical(valor("MUESTRA"), "M1")
-  expect_identical(valor("CURSO-HORARIO"), "CH 1")
-  expect_identical(valor("NOMBRE DEL CURSO"), "Curso 1")
-  expect_identical(valor("AULA"), "Aula 101")
-  expect_identical(valor("HORARIO"), "Lun 10:00")
-  expect_identical(valor("MATRICULADOS TOTALES"), "34")
-  expect_identical(valor("MATRICULADOS POBLACION"), "30")
+  expect_identical(valor("wave"), "M1")
+  expect_identical(valor("operational_code"), "CH 1")
+  expect_identical(valor("course_name"), "Curso 1")
+  expect_identical(valor("room"), "Aula 101")
+  expect_identical(valor("schedule"), "Lun 10:00")
+  expect_identical(valor("enrolled_total"), "34")
+  expect_identical(valor("eligible_n"), "30")
 })
 
 test_that("las hojas anchas se imprimen en horizontal", {
@@ -596,11 +648,16 @@ test_that("el semaforo de la agenda cae sobre STATUS MUESTRA", {
 
   campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(sp) sp$campo, character(1))
   esperada <- openxlsx::int2col(1L + which(campos == "sample_status"))
-  otra <- openxlsx::int2col(1L + which(campos == "contact_medium"))
+  con_paleta <- openxlsx::int2col(1L + which(campos == "contact_medium"))
+  sin_paleta <- openxlsx::int2col(1L + which(campos == "teacher"))
 
   cols <- columnas_con_formato_condicional(libro, "Aulas Agendadas")
   expect_true(esperada %in% cols)
-  expect_false(otra %in% cols)
+  # `contact_medium` YA lleva color, con su propia paleta: se pidio asi. Lo que
+  # sigue sin tenerlo es una columna de texto libre, que es donde un formato por
+  # valor no significaria nada.
+  expect_true(con_paleta %in% cols)
+  expect_false(sin_paleta %in% cols)
 })
 
 test_that("el telefono del docente NO es un numero", {
@@ -768,5 +825,270 @@ test_that("las tres hojas listan las aulas en el MISMO orden", {
   esperado <- c("CH 1", "CH 2", "CH 10", "CH 11", "CH 100")
   expect_identical(codigos("Aulas Agendadas", 1L), esperado)
   expect_identical(codigos("Aulas Aplicadas (Campo)", 2L), esperado)
-  expect_identical(codigos("Base de control", 2L), esperado)
+  # **La base de control lista un SUBCONJUNTO, y en el mismo orden.** Desde el
+  # 2026-09-07 escribe solo lo ya aplicado más lo que ya tiene control
+  # registrado, así que aquí entran las cinco aplicadas de la fijación más
+  # CH 2, que trae control. Lo que sigue siendo contrato es el ORDEN: si las
+  # tres hojas ordenaran distinto, cruzarlas a mano sería imposible.
+  ctrl <- codigos("Base de control", 2L)
+  expect_true(all(ctrl %in% esperado))
+  expect_identical(ctrl, esperado[esperado %in% ctrl])
+})
+
+test_that("«Plan del día» tipa su FECHA AGENDADA: 07/09 no puede leerse como 09/07", {
+  # Era la única hoja con una columna de fecha sin declarar, así que su celda
+  # salía con el formato por defecto del escritor —mes/día— y el lunes 7 de
+  # setiembre se veía «09/07/2026». En un operativo de septiembre con jornadas
+  # del 7 al 12, todos los días caben también como mes: no se ve rara, se ve
+  # como otra fecha. Visto en el PDF del libro el 2026-09-09.
+  destino <- tempfile(fileext = ".xlsx")
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         sample_status = "agendada", faculty = "DERECHO", course_name = "Cálculo",
+         teacher = "Docente Uno", scheduled_venue = "A101",
+         scheduled_date = "2026-09-07", scheduled_time = "10:00",
+         eligible_n = 40, expected_valid = 20)
+  )
+  aulas_libro_generar(plan, destino)
+  wb <- openxlsx::loadWorkbook(destino)
+  col <- which(prosecnurapp:::.capd_CABECERA == "FECHA AGENDADA")
+  expect_length(col, 1L)
+  estilos <- wb$styleObjects
+  # El estilo de fecha tiene que alcanzar a esa columna en «Plan del día», y
+  # con el formato del día PRIMERO. Un `numFmt` cualquiera no sirve: la avería
+  # era justamente tener formato, pero el otro.
+  toca <- Filter(function(e) {
+    identical(e$sheet, "Plan del día") && col %in% e$cols &&
+      identical(e$style$numFmt$numFmtId, "165") ||
+      (identical(e$sheet, "Plan del día") && col %in% e$cols &&
+         grepl("dd/mm", e$style$numFmt$formatCode %||% "", fixed = TRUE))
+  }, estilos)
+  expect_gt(length(toca), 0L)
+  formatos <- unique(unlist(lapply(toca, function(e) e$style$numFmt$formatCode)))
+  expect_true(any(grepl("^dd/mm", formatos)))
+  expect_false(any(grepl("^mm/dd", formatos)))
+})
+
+# =============================================================================
+# «SESIONES Y AULA»: el horario que el que llama va a proponer
+# =============================================================================
+#
+# La celda prefiere `sesiones_legibles` —día↔aula apareados desde el catálogo
+# DTI— y caía directamente al `label`, que es el CÓDIGO INTERNO del
+# curso-horario (`ant310_0811`). Entre las dos faltaba un escalón, y con datos
+# reales se abrió: en CCSS Perfil 2026-II `sesiones_legibles` viene en **0 de
+# 136** aulas (su marco no la produjo) mientras `sesiones_dia_hora` viene en
+# **136 de 136** con «LUN 15:00-18:00» y `venue` trae el aula («Z410»).
+#
+# O sea: el dato estaba, en el campo hermano, y la columna publicaba un código
+# que al docente no le dice nada — justo lo que el dictado B15 pedía evitar
+# («no vaya a ser que jale mal algún número […] y el docente pierda seriedad
+# sobre el estudio»). Es la columna con la que se agenda, así que el fallback al
+# `label` no es un detalle cosmético: es una llamada sin horario que proponer.
+
+test_that("SESIONES Y AULA: la legible manda, y el dia y hora la respaldan", {
+  celda <- prosecnurapp:::.calg_sesiones_y_aula
+  # 1) La legible gana siempre que exista: HSVG no se mueve.
+  expect_identical(
+    celda(list(sesiones_legibles = "LUN 16:00-18:00 L101",
+               sesiones_dia_hora = "MAR 10:00-12:00", venue = "Z410",
+               label = "ant310_0811")),
+    "LUN 16:00-18:00 L101")
+  # 2) Sin legible, el día y la hora con su aula al lado.
+  expect_identical(
+    celda(list(sesiones_legibles = "", sesiones_dia_hora = "LUN 15:00-18:00",
+               venue = "Z410", label = "ant310_0811")),
+    "LUN 15:00-18:00 Z410")
+  # 3) Sin aula, el día y la hora solos: sigue siendo lo que hace falta para
+  #    proponer una fecha.
+  expect_identical(
+    celda(list(sesiones_dia_hora = "LUN 15:00-18:00", label = "ant310_0811")),
+    "LUN 15:00-18:00")
+  # 4) Sin día ni hora, el aula sola dice más que el código interno.
+  expect_identical(celda(list(venue = "Z410", label = "ant310_0811")), "Z410")
+  # 5) Y el `label` queda como ÚLTIMO recurso, que es lo que era.
+  expect_identical(celda(list(label = "ant310_0811")), "ant310_0811")
+})
+
+test_that("SESIONES Y AULA: el libro publica el horario, no el codigo del curso", {
+  # La comprobación sobre la hoja, no sólo sobre el helper: un test que mide el
+  # helper y no la aplicación declara cobertura que no tiene.
+  plan <- list(list(
+    classroom_id = "ant310_0811", operational_code = "CH 1",
+    label = "ant310_0811", sesiones_dia_hora = "LUN 15:00-18:00", venue = "Z410",
+    faculty = "CIENCIAS SOCIALES", program = "ANTROPOLOGÍA", level = "7",
+    course_name = "ANTROPOLOGÍA POLÍTICA 1", teacher = "DAMONTE VALENCIA, GERARDO HECTOR",
+    teacher_phone = "990340822", teacher_email = "gdamonte@pucp.pe",
+    sample_role = "titular", eligible_n = 12, expected_valid = 9.6, orden = 1
+  ))
+  hoja <- aulas_libro_hoja_agendadas(plan)
+  col <- which(as.character(unlist(hoja[1, ])) == "SESIONES Y AULA")
+  expect_length(col, 1L)
+  expect_identical(as.character(hoja[2, col[[1]]]), "LUN 15:00-18:00 Z410")
+  # Y que NO sea el código interno, que es el defecto concreto que se reparó.
+  expect_false(identical(as.character(hoja[2, col[[1]]]), "ant310_0811"))
+})
+
+# =============================================================================
+# El barrido telefónico se ve sin leerlo
+# =============================================================================
+#
+# `STATUS MUESTRA`, `MEDIO DE CONTACTO` y `DÍA` llevaban color desde B13b/B18;
+# `STATUS DE LLAMADA` y `RECIBIÓ CORREO` eran las dos únicas columnas
+# TECLEABLES con desplegable y **sin** color. Y son justo las dos que el
+# agendador recorre en vertical durante la jornada: «a quién vuelvo a llamar» y
+# «a quién le falta el correo». Dictado de Gonzalo del 2026-09-17: «que todos
+# los estatus y colores tanto de llamada, de recibió correo, de encontrado o
+# agendada estén disponibles para que HOY se puedan realizar las llamadas
+# telefónicas».
+#
+# La comprobación se ancla por RÓTULO, no por posición: el semáforo se cuelga
+# por índice de columna y ya se pintó una vez sobre la columna equivocada
+# —`MEDIO DE CONTACTO` en vez de `STATUS DE APLICACIÓN`—, y una regla que
+# existe pero no tiñe nada no se ve por ningún lado.
+
+test_that("las cinco columnas del barrido llevan color, ancladas por su rotulo", {
+  plan <- lapply(1:3, function(i) list(
+    classroom_id = sprintf("c%d", i), operational_code = sprintf("CH %d", i),
+    label = sprintf("c%d", i), sesiones_dia_hora = "LUN 15:00-18:00", venue = "Z410",
+    faculty = "CIENCIAS SOCIALES", program = "ANTROPOLOGÍA", level = "7",
+    course_name = "CURSO", teacher = "DOCENTE", teacher_phone = "990000000",
+    sample_role = "titular", eligible_n = 12, expected_valid = 9.6, orden = i
+  ))
+  dest <- file.path(tempdir(), sprintf("libro-color-%d.xlsx", as.integer(runif(1, 1, 1e9))))
+  on.exit(unlink(dest), add = TRUE)
+  aulas_libro_generar(plan, dest)
+
+  hoja <- suppressMessages(openxlsx::read.xlsx(dest, sheet = "Aulas Agendadas", colNames = FALSE))
+  cab <- as.character(unlist(hoja[1, ]))
+  letra <- function(rotulo) {
+    i <- which(cab == rotulo)
+    expect_length(i, 1L)
+    # Índice de columna a letra de Excel, que es como la trae el `sqref`.
+    n <- i[[1]]; out <- ""
+    while (n > 0) { r <- (n - 1L) %% 26L; out <- paste0(LETTERS[r + 1L], out); n <- (n - 1L) %/% 26L }
+    out
+  }
+  reglas <- reglas_condicionales_de(dest, "Aulas Agendadas")
+
+  for (rotulo in c("STATUS MUESTRA", "MEDIO DE CONTACTO", "DÍA",
+                   "STATUS DE LLAMADA", "RECIBIÓ CORREO")) {
+    col <- letra(rotulo)
+    propias <- reglas[reglas$col == col, , drop = FALSE]
+    expect_gt(nrow(propias), 0L)
+    # `contains` y no otra clase: son semáforos de texto, no barras de datos.
+    expect_true(all(propias$tipo == "containsText"), info = rotulo)
+  }
+})
+
+test_that("el color de la llamada separa los tres destinos, y el correo no alarma", {
+  # Lo que se comprueba es el SIGNIFICADO del color, no que haya color: el
+  # agendador busca «a quién vuelvo a llamar», así que lo logrado, lo que vuelve
+  # a la cola y lo que se cierra sin logro tienen que distinguirse.
+  paletas <- prosecnurapp:::aulas_libro_paletas_de_estado()
+  ll <- paletas$llamada
+  # El color de un `bgFill` vive en `fill$fillBg$rgb`, no en `fillFg`: leer el
+  # campo equivocado devuelve `NULL` para TODOS y entonces cualquier par de
+  # tonos sale «idéntico» — el test pasaría con la paleta entera del mismo
+  # color, que es justo lo que viene a impedir.
+  tono <- function(p, texto) {
+    hit <- Filter(function(r) identical(r$texto, texto), p)
+    expect_length(hit, 1L)
+    rgb <- hit[[1]]$estilo$fill$fillBg$rgb
+    expect_true(is.character(rgb) && nzchar(rgb[[1]]), info = texto)
+    rgb[[1]]
+  }
+  # Las siete opciones del desplegable están todas cubiertas: una opción sin
+  # regla es una celda que se queda en blanco en la jornada.
+  expect_setequal(vapply(ll, function(r) r$texto, character(1)), AULAS_LIBRO_STATUS_LLAMADA)
+  # Logrado: la efectiva y la de WhatsApp comparten tono — las dos salen de la
+  # cola de llamadas.
+  expect_identical(tono(ll, "Efectiva"), tono(ll, "Contactado por WhatsApp"))
+  # Vuelve a la cola: los tres reintentos comparten tono, distinto del logrado.
+  expect_identical(tono(ll, "No contesta"), tono(ll, "Apagado"))
+  expect_identical(tono(ll, "No contesta"), tono(ll, "Contactar después"))
+  expect_false(identical(tono(ll, "No contesta"), tono(ll, "Efectiva")))
+  # Se cierra sin logro, y no se confunde con ninguno de los otros dos.
+  expect_identical(tono(ll, "Colgó"), tono(ll, "Rechazo"))
+  expect_false(identical(tono(ll, "Rechazo"), tono(ll, "Efectiva")))
+  expect_false(identical(tono(ll, "Rechazo"), tono(ll, "No contesta")))
+
+  co <- paletas$correo
+  expect_setequal(vapply(co, function(r) r$texto, character(1)), AULAS_LIBRO_RECIBIO_CORREO)
+  # El «No» NO va en el rojo del rechazo: es el valor sembrado por defecto, y
+  # pintar la columna entera de rojo el primer día diría que hay cincuenta
+  # problemas donde sólo hay correos sin enviar.
+  expect_false(identical(tono(co, "No"), tono(ll, "Rechazo")))
+  expect_identical(tono(co, "Sí"), tono(ll, "Efectiva"))
+})
+
+# =============================================================================
+# «AULA UTILIZADA» dice quién entró, no quién podría
+# =============================================================================
+#
+# Gonzalo, 2026-09-17: «AULA UTILIZADA se usa sólo cuando el aula es reemplazada
+# o complementada con otra CH».
+#
+# La anotación leía `replacement_for`, y su propia cabecera explicaba que usaba
+# ESE campo «y no la cadena de diseño a propósito — la cadena dice quién PODRÍA
+# entrar, y esta columna dice quién entró de verdad». La distinción no se
+# sostenía: `replacement_for` **lo pone el diseño**. Medido en CCSS Perfil
+# 2026-II, las 85 reservas de cadena lo traen con `activated_at` vacío y todo en
+# `sin_contactar`, así que la columna salía con la cadena entera de cada titular
+# —«R 1.1, R 1.2»— en las 50 filas, el primer día y sin que nadie hubiera
+# reemplazado nada. Y llegó al Sheets del operativo.
+#
+# Un campo que existe no es una señal de que algo pasó.
+
+test_that("AULA UTILIZADA esta VACIA mientras ninguna reserva haya entrado", {
+  plan <- list(
+    list(classroom_id = "a1", operational_code = "CH 1", sample_role = "titular",
+         label = "a1", sample_status = "SIN CONTACTAR", orden = 1),
+    # Las dos reservas de su cadena, tal como las trae el diseño: con su
+    # `replacement_for` puesto y sin una sola marca de activación.
+    list(classroom_id = "r11", operational_code = "R 1.1", sample_role = "chain_reserve",
+         replacement_for = "a1", label = "r11", sample_status = "SIN CONTACTAR", orden = 2),
+    list(classroom_id = "r12", operational_code = "R 1.2", sample_role = "chain_reserve",
+         replacement_for = "a1", label = "r12", sample_status = "SIN CONTACTAR", orden = 3)
+  )
+  out <- aulas_libro_anotar_aula_utilizada(plan)
+  expect_identical(out[[1]]$aula_utilizada %||% "", "")
+})
+
+test_that("AULA UTILIZADA se llena en cuanto una reserva ENTRA, por cualquiera de sus señales", {
+  base <- list(
+    list(classroom_id = "a1", operational_code = "CH 1", sample_role = "titular",
+         label = "a1", sample_status = "REEMPLAZADA", orden = 1),
+    list(classroom_id = "r11", operational_code = "R 1.1", sample_role = "chain_reserve",
+         replacement_for = "a1", label = "r11", orden = 2)
+  )
+  # Cada señal por separado: la marca de activación, el estado operativo de
+  # campo y el estado que teclea el equipo en la hoja.
+  for (marca in list(list(activated_at = "2026-09-17T10:00:00Z"),
+                     list(activation_origin = "refuerzo"),
+                     list(operational_status = "agendada"),
+                     list(sample_status = "AGENDADA"))) {
+    plan <- base
+    plan[[2]][names(marca)] <- marca
+    out <- aulas_libro_anotar_aula_utilizada(plan)
+    expect_identical(out[[1]]$aula_utilizada, "R 1.1",
+                     info = paste(names(marca), collapse = ","))
+  }
+})
+
+test_that("si entraron VARIAS se listan todas, y lo tecleado a mano no se pisa", {
+  plan <- list(
+    list(classroom_id = "a1", operational_code = "CH 1", sample_role = "titular",
+         label = "a1", sample_status = "COMPLEMENTADA", orden = 1),
+    list(classroom_id = "r11", operational_code = "R 1.1", sample_role = "chain_reserve",
+         replacement_for = "a1", operational_status = "aplicada", label = "r11", orden = 2),
+    list(classroom_id = "r12", operational_code = "R 1.2", sample_role = "chain_reserve",
+         replacement_for = "a1", operational_status = "agendada", label = "r12", orden = 3)
+  )
+  # Complementada: el titular no sale y le entran dos. Esconder la segunda diría
+  # que se usó una sola.
+  expect_identical(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 1.1, R 1.2")
+  # Y lo que ya venga escrito es la verdad de campo: la app no la pisa.
+  plan[[1]]$aula_utilizada <- "R 1.2"
+  expect_identical(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 1.2")
 })

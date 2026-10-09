@@ -46,6 +46,10 @@ type EstudioState = {
   estudio: CalcMuestraEstudio;
   hydrated: boolean;
   dirty: boolean;
+  /** Un PUT del autosave en vuelo (no el debounce que lo espera). */
+  guardando: boolean;
+  /** El último PUT falló; se limpia con el siguiente guardado exitoso. */
+  errorGuardado: boolean;
   calculando: boolean;
   reporteDisponible: boolean;
   reporteJobId: string | null;
@@ -64,12 +68,16 @@ type EstudioActions = {
   setCalculando: (v: boolean) => void;
   setReporteMeta: (m: { disponible: boolean; jobId?: string | null }) => void;
   markClean: () => void;
+  setGuardando: (v: boolean) => void;
+  setErrorGuardado: (v: boolean) => void;
 };
 
 const initialEstudio: EstudioState = {
   estudio: DEFAULT_CALC_MUESTRA_ESTUDIO,
   hydrated: false,
   dirty: false,
+  guardando: false,
+  errorGuardado: false,
   calculando: false,
   reporteDisponible: false,
   reporteJobId: null,
@@ -82,6 +90,8 @@ export const useCalcMuestraStore = create<EstudioState & EstudioActions>((set) =
       estudio,
       hydrated: true,
       dirty: false,
+      guardando: false,
+      errorGuardado: false,
     })),
   replaceEstudio: (estudio) =>
     set(() => ({
@@ -124,7 +134,9 @@ export const useCalcMuestraStore = create<EstudioState & EstudioActions>((set) =
       reporteDisponible: disponible,
       reporteJobId: jobId ?? null,
     })),
-  markClean: () => set(() => ({ dirty: false })),
+  markClean: () => set(() => ({ dirty: false, errorGuardado: false })),
+  setGuardando: (guardando) => set(() => ({ guardando })),
+  setErrorGuardado: (errorGuardado) => set(() => ({ errorGuardado })),
 }));
 
 // ----- Estado UI del motor muestral (efímero, serializado al workspace) -----

@@ -52,6 +52,24 @@
 
 # Dominio en el que un divisor por conglomerado sobrevive exactamente la
 # normalización y entra a las fórmulas sin el piso `max(valor, 1)`.
+# De dónde sale el número de titulares de un estrato. `aulas_base_fijas` es un
+# entero pelado y el motor lo respeta venga de donde venga, así que sin esta
+# etiqueta los tres orígenes producen números idénticos a la vista y el sustento
+# no puede reconstruir el diseño.
+#
+# - "formula"       lo que calcula `cuota / (divisor × tau)`
+# - "certificacion" lo que certificó la simulación de cobertura
+# - "operativa"     lo que decidió el analista por juicio, sin criterio
+#                   estadístico (Gonzalo, 2026-08-27: «si veo que derecho va muy
+#                   justo le puedo agregar una más… esa agregación se puede
+#                   llamar agregación operativa»). En HSVG26ULT es exactamente
+#                   un aula: `max(fórmula, certeza)` da 173 y el final es 174.
+# - ""              origen desconocido: proyectos anteriores a este campo.
+#
+# NO confundir con `aulas_extra_operativas`, que es el cupo de RESERVA y suma a
+# `aulas_total`, no a los titulares.
+.CM_AULAS_BASE_ORIGENES <- c("formula", "certificacion", "operativa")
+
 .CM_CONGLOMERADO_DIVISOR_MIN <- 1
 .CM_CONGLOMERADO_DIVISOR_MAX <- 1000
 
@@ -184,8 +202,9 @@
   tasa_elegibilidad = 0.9,
   tasa_respuesta = 0.6,
   cobertura_objetivo = 0.50,
-  # Defaults canónicos PULSO PUCP para conveniencia estratificada (egresados
-  # telefónicos de acreditación, documento Marzo 2026):
+  # Defaults canónicos PULSO PUCP para conveniencia estratificada (documento
+  # Marzo 2026; los egresados de acreditación ya no caen aquí desde el ADR
+  # 0091, que los lleva a censo o MAS por precisión):
   #   - cobertura_objetivo = 0.50 (50% de cobertura por carrera)
   #   - n_minimo_estrato   = 30   (mínimo TCL para análisis válido)
   #   - tope_operativo     = 150  (cap por eficiencia/costos sobre N>300)
@@ -581,6 +600,12 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
     spread_vars = .cm_normalize_chr_list(cfg$spread_vars %||% c("program", "level", "schedule", "size_group")),
     candidate_pool_size = calc_int(cfg$candidate_pool_size, 500L, min = 1L, max = 100000L),
     simulation_runs = calc_int(cfg$simulation_runs, 500L, min = 0L, max = 100000L),
+    # ADR 0082: el criterio de rerandomizacion se PERSISTE, y esta whitelist es
+    # estricta —lo que no este aqui se pierde en el round-trip sin avisar—. El
+    # ADR exige que el `.pulso` lo guarde para que el sustento pueda citarlo:
+    # una muestra aceptada por un criterio que el proyecto no recuerda no se
+    # puede reconstruir.
+    rerandomizacion = .cm_rerandom_normalize_config(cfg$rerandomizacion),
     mos_strategy = calc_str(cfg$mos_strategy, "eligible_yield_winsorized"),
     coordination_mode = calc_str(cfg$coordination_mode, "permanent_random_number"),
     # W1: campos de reemplazos del DEFAULT_UNIVERSITY_AULAS_CONFIG (TS,
@@ -758,13 +783,18 @@ calc_muestra_normalize_componente <- function(comp = list()) {
       if (!is.null(inferencia$tope_operativo)) {
         parametros_in <- fill_default(parametros_in, "tope_operativo", inferencia$tope_operativo)
       }
+      meta_in <- .cm_cuadro_liberar_meta(meta_in, actor_categoria, canal_recojo, N)
+      valor_meta_antes <- meta_in$valor
       if (!is.null(inferencia$minimo_cuota)) {
         meta_in <- fill_default(meta_in, "valor", inferencia$minimo_cuota)
-        meta_in <- fill_default(meta_in, "variable_control", inferencia$variable_control %||% "")
+      }
+      if (!is.null(inferencia$variable_control)) {
+        meta_in <- fill_default(meta_in, "variable_control", inferencia$variable_control)
       }
       if (!is.null(inferencia$minimo_n)) {
         meta_in <- fill_default(meta_in, "valor", inferencia$minimo_n)
       }
+      meta_in <- .cm_cuadro_sellar_meta(meta_in, valor_meta_antes)
       # Parámetros canónicos para estudiantes ≥3001: aplicar como defaults
       if (!is.null(inferencia$params_canonicos)) {
         for (key in names(inferencia$params_canonicos)) {
@@ -774,6 +804,10 @@ calc_muestra_normalize_componente <- function(comp = list()) {
     }
   }
 
+  parametros_norm <- .cm_normalize_parametros(parametros_in, tecnica)
+  tecnica_cambio <- !is.null(inferencia$tecnica) && nzchar(calc_str(comp$tecnica, "")) &&
+    !identical(calc_str(comp$tecnica, ""), tecnica)
+
   list(
     id                = calc_str(comp$id, .cm_random_id()),
     actor             = calc_str(comp$actor, "Componente"),
@@ -782,12 +816,22 @@ calc_muestra_normalize_componente <- function(comp = list()) {
     canal_recojo      = canal_recojo,
     tecnica           = tecnica,
     naturaleza        = .CM_NATURALEZAS_POR_TECNICA[[tecnica]],
-    origen_tamano     = calc_enum(comp$origen_tamano, .CM_ORIGENES_TAMANO,
-                                  .cm_origen_default_para(tecnica)),
-    nivel_respaldo    = calc_enum(comp$nivel_respaldo, .CM_NIVELES_RESPALDO,
-                                  .cm_respaldo_default_para(tecnica)),
+    # Si el cuadro de acreditación cambió la técnica guardada (ADR 0091:
+    # docentes y egresados de cuotas/conveniencia a MAS), el origen y el
+    # respaldo guardados describen la técnica vieja: se toman los de la nueva.
+    origen_tamano     = if (tecnica_cambio) .cm_origen_default_para(tecnica)
+                        else calc_enum(comp$origen_tamano, .CM_ORIGENES_TAMANO,
+                                       .cm_origen_default_para(tecnica)),
+    nivel_respaldo    = if (tecnica_cambio) .cm_respaldo_default_para(tecnica)
+                        else calc_enum(comp$nivel_respaldo, .CM_NIVELES_RESPALDO,
+                                       .cm_respaldo_default_para(tecnica)),
     marco             = marco_normalizado,
-    parametros        = .cm_normalize_parametros(parametros_in, tecnica),
+    parametros        = parametros_norm,
+    # Correcciones declaradas: qué valor llegó fuera de rango y cuál se usó.
+    # Contra `parametros_in`: lo que la inferencia de acreditación completó
+    # no llegó fuera de rango, lo puso el cuadro maestro.
+    avisos_parametros = .cm_general_avisos_parametros(parametros_in, parametros_norm,
+                                                      comp$avisos_parametros),
     meta              = .cm_normalize_meta(meta_in),
     inferencia_acreditacion = inferencia,
     # Opaco, lo escribe calcular(). El único retoque es el repair del carrier
@@ -860,67 +904,48 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     ))
   }
   if (actor == "docentes") {
-    if (N <= 250L) {
+    # Corte por precisión, no por N fijo: calc_muestra_acreditacion_cuadro.R.
+    if (.cm_cuadro_conviene_censo(N, .CM_CUADRO_DOCENTES)) {
       return(list(
         tecnica = "intencion_censal",
-        minimo_cobertura = 0.60,
-        regla = "intencion_censal_60_si_N_<=_250",
-        justificacion = "Docentes con N ≤ 250: intención censal con cobertura mínima 60%."
+        minimo_cobertura = .CM_CUADRO_COBERTURA_CENSAL,
+        variable_control = "dedicacion_docente",
+        regla = "intencion_censal_60_mientras_mas_pida_60",
+        justificacion = "Docentes: intención censal con cobertura mínima 60%, porque una muestra aleatoria a ±5% pediría al menos ese 60% de la nómina."
       ))
     }
     return(list(
-      tecnica = "no_prob_cuotas",
-      minimo_cuota = 150L,
+      tecnica = "prob_aleatorio_simple",
+      # La no respuesta ya se cubre con la tasa (60 %): sin sobremuestra
+      # encima, que la inflaría dos veces.
+      params_canonicos = c(.CM_CUADRO_DOCENTES, list(tasa_respuesta = .CM_CUADRO_COBERTURA_CENSAL,
+                                                     oversample_pct = 0)),
       variable_control = "dedicacion_docente",
-      regla = "cuotas_min_150_si_N_>=_251",
-      justificacion = "Docentes con N ≥ 251: cuotas no aleatorias, mínimo 150 con control por dedicación docente."
+      regla = "mas_e5_si_censo_pide_mas_que_la_muestra",
+      justificacion = "Docentes: muestra aleatoria de la nómina a ±5% (95% de confianza, p = 0.5), estratificada por dedicación si el marco la trae, con la respuesta inflada al 60% de cobertura observada. Da margen de error, cosa que 150 cuotas no daban."
     ))
   }
   if (actor == "estudiantes") {
-    if (canal == "aula_qr" && N >= 3001L) {
-      # Parámetros canónicos PUCP para estudiantes en aulas:
-      # z=1.96, p=0.5, e=2.5%, deff=2.0, sobremuestra 50%
+    if (canal == "aula_qr" && !.cm_cuadro_conviene_censo(N, .CM_CUADRO_ESTUDIANTES_AULA)) {
+      # Corte por precisión, no por N fijo: calc_muestra_acreditacion_cuadro.R.
       return(list(
         tecnica = "prob_conglomerado_multietapico",
-        params_canonicos = list(z = 1.96, p = 0.5, e = 0.025, deff = 2.0,
-                                oversample_pct = 0.50, tasa_respuesta = 0.70,
-                                promedio_conglomerado = 25, tau = 0.50),
-        aulas_referencia = 72L,
-        regla = "conglomerados_z195_p050_e25_deff20_si_aula_y_N_>=_3001",
-        justificacion = "Estudiantes con N ≥ 3001 y marco de cursos-horario: conglomerados multietápico con parámetros canónicos PUCP (95% confianza, ±2.5%, deff=2, p=0.5, sobremuestra 50%). Referencia operativa: 72 cursos-horario × 25 estudiantes ≈ 1800 encuestas base."
+        params_canonicos = c(.CM_CUADRO_ESTUDIANTES_AULA,
+                             list(oversample_pct = 0.50, tasa_respuesta = 0.70,
+                                  promedio_conglomerado = 25, tau = 0.50)),
+        regla = "conglomerados_e25_deff2_si_censo_pide_mas_que_la_muestra",
+        justificacion = "Estudiantes con marco de cursos-horario: conglomerados por aulas a ±2.5% (95% de confianza, p = 0.5, deff 2), sobremuestra 50%. Se sortea porque intentar el censo con cobertura mínima de 60% pediría más encuestas que la muestra."
       ))
     }
     return(list(
       tecnica = "intencion_censal",
       minimo_cobertura = 0.60,
-      regla = "intencion_censal_60_si_N_<=_3000",
-      justificacion = "Estudiantes con N ≤ 3000 (o sin marco de cursos-horario): intención censal con cobertura mínima 60%."
+      regla = "intencion_censal_60_mientras_mas_pida_60",
+      justificacion = "Estudiantes: intención censal con cobertura mínima 60%, porque la muestra por aulas a ±2.5% pediría al menos ese 60% (o no hay marco de cursos-horario que sortear)."
     ))
   }
-  if (actor == "egresados") {
-    if (N <= 300L) {
-      return(list(
-        tecnica = "intencion_censal",
-        minimo_cobertura = 0.50,
-        regla = "intencion_censal_50_si_N_<=_300",
-        justificacion = "Egresados con N ≤ 300: intención censal con cobertura mínima 50%."
-      ))
-    }
-    # Para N ≥ 301: regla canónica clamp(N×50%, 30, 150).
-    # Si hay estratos por carrera, se aplica por carrera (sumar cuotas).
-    # Si no hay estratos, se aplica al N total como meta directa.
-    cuota_directa <- max(min(as.integer(ceiling(N * 0.50)), 150L), 30L)
-    if (cuota_directa > N) cuota_directa <- as.integer(N)
-    return(list(
-      tecnica = "no_prob_conveniencia",
-      minimo_cobertura = 0.50,
-      piso_n_minimo = 30L,
-      tope_operativo = 150L,
-      minimo_n = cuota_directa,  # se usa como meta.valor cuando no hay estratos
-      regla = "clamp_50pct_30_150_si_N_>=_301",
-      justificacion = "Egresados con N ≥ 301: conveniencia con regla canónica clamp(N×50%, 30, 150). Si hay estratos por carrera, aplica por carrera y suma. Si no hay estratos, aplica al N total."
-    ))
-  }
+  # Corte por precisión, no por N fijo: calc_muestra_acreditacion_cuadro.R.
+  if (actor == "egresados") return(.cm_cuadro_inferir_egresados(N))
   # Actores cualitativos o sin clasificación: no inferir.
   list(tecnica = NULL, regla = "sin_inferencia",
        justificacion = "Actor cualitativo o sin clasificación canónica.")
@@ -1033,9 +1058,30 @@ calc_muestra_componentes_sin <- function(componentes, id) {
       cuota_fija            = calc_int(e$cuota_fija, 0L, min = 0L),
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
+      aulas_base_certificada = calc_int(e$aulas_base_certificada, 0L, min = 0L),
+      aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
+      aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
+      # Promedio del tamaño de conglomerado del estrato. GUARDA EL PROMEDIO Y
+      # NADA MAS.
+      #
+      # Se deja dicho porque durante un tiempo no fue asi: al sellar la decision
+      # de alumnos por CH se materializaba aqui el estadistico ELEGIDO —P25
+      # incluido— y se ponia `mediana_conglomerado` en 0. El campo decia
+      # «promedio» guardando otra cosa, y sellar borraba la mediana medida del
+      # marco, con lo que un estudio que despues quisiera `min_media_mediana` se
+      # quedaba sin con que. Desde 2026-08-27 («la separacion para el 5») el
+      # divisor sellado tiene campo propio y este volvio a su significado.
+      #
+      # Si hay que materializar un divisor otra vez, va en
+      # `divisor_conglomerado`, NO aqui.
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      # El divisor sellado y su estadistico. 0 = no hay decision sellada, y
+      # entonces manda el par promedio/mediana como siempre.
+      divisor_conglomerado  = calc_num(e$divisor_conglomerado, 0, min = 0,
+                                       max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      divisor_estadistico   = calc_str(e$divisor_estadistico, ""),
       # Mediana del tamaño de conglomerado del estrato (opcional, la aporta el
       # perfil del marco de aulas: est_aula_mediana por facultad). Solo se usa
       # cuando parametros$estadistico_conglomerado la pide; 0 = ausente.
@@ -1075,13 +1121,26 @@ calc_muestra_componentes_sin <- function(componentes, id) {
   Filter(Negate(is.null), out)
 }
 
+.CM_TECNICAS_DE_ELEMENTOS <- c("prob_aleatorio_simple", "prob_estratificado", "sistematico")
+
 .cm_normalize_parametros <- function(par, tecnica) {
   if (is.null(par) || !is.list(par)) par <- list()
   list(
     z                 = calc_num(par$z, .CM_DEFAULTS_PARAMS$z, min = 0.5, max = 5),
-    p                 = calc_num(par$p, .CM_DEFAULTS_PARAMS$p, min = 0, max = 1),
+    # p en (0, 1) abierto: con 0 o 1 la varianza es cero y n sale 0 (H20).
+    p                 = calc_num(par$p, .CM_DEFAULTS_PARAMS$p, min = 1e-6, max = 1 - 1e-6),
     e                 = calc_num(par$e, .CM_DEFAULTS_PARAMS$e, min = 0.001, max = 0.5),
-    deff              = calc_num(par$deff, .CM_DEFAULTS_PARAMS$deff, min = 1, max = 10),
+    # En un diseño de elementos —MAS, estratificado, sistemático— el deff de
+    # referencia es 1: heredar 1.5 inflaba 370 a 545 con N=10.000 sin que nadie
+    # lo hubiera declarado (research H07). Las demás técnicas conservan 1.5:
+    # las de aulas para que un .pulso viejo no cambie su n, y las censales y
+    # de cuotas porque la inferencia de acreditación reconoce «no declarado»
+    # comparando contra ese 1.5 (`fill_default`): con 1 el estudiante de
+    # aulas perdía su deff canónico 2 y bajaba de 1904 a 1176 con N = 5000
+    # (ADR 0091: el n sale de ±2,5 % con ese deff).
+    deff              = calc_num(par$deff,
+                                 if (tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) 1 else .CM_DEFAULTS_PARAMS$deff,
+                                 min = 1, max = 10),
     tau               = calc_num(par$tau, .CM_DEFAULTS_PARAMS$tau, min = 0, max = 1),
     oversample_pct    = calc_num(par$oversample_pct, .CM_DEFAULTS_PARAMS$oversample_pct,
                                  min = 0, max = 2),
@@ -1100,6 +1159,13 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     # Default "media" = comportamiento histórico bit a bit (back-compat);
     # "mediana"/"min_media_mediana" usan la mediana_conglomerado del estrato
     # cuando el marco/perfil la aportó (declarativo si no hay mediana).
+    # Asignación entre estratos del estratificado del motor general (E3):
+    # proporcional a N_h (histórica) o de Neyman, ∝ N_h·S_h.
+    asignacion        = calc_enum(par$asignacion, .CM_ASIGNACIONES, "proporcional"),
+    # Qué se estima (H21): una proporción (e absoluto) o una media (e
+    # relativo, con el coeficiente de variación esperado).
+    tipo_indicador    = calc_enum(par$tipo_indicador, .CM_TIPOS_INDICADOR, "proporcion"),
+    cv                = calc_num(par$cv, 1, min = 0.01, max = 10),
     estadistico_conglomerado = calc_enum(par$estadistico_conglomerado,
                                          c("media", "mediana", "min_media_mediana"), "media"),
     n_minimo_estrato  = calc_int(par$n_minimo_estrato, .CM_DEFAULTS_PARAMS$n_minimo_estrato,
@@ -1116,7 +1182,10 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     tipo              = calc_enum(meta$tipo, tipo_opts, "objetivo"),
     valor             = calc_int(meta$valor, 0L, min = 0L),
     variable_control  = calc_str(meta$variable_control, ""),
-    sub_cuotas        = if (is.list(meta$sub_cuotas)) meta$sub_cuotas else list()
+    sub_cuotas        = if (is.list(meta$sub_cuotas)) meta$sub_cuotas else list(),
+    # «cuadro» si la puso la inferencia de acreditación (se recalcula);
+    # «usuario» si la tecleó alguien (manda). Vacío: legado sin marca.
+    origen            = calc_enum(meta$origen, c("", "usuario", "cuadro"), "")
   )
 }
 
@@ -1216,6 +1285,54 @@ calc_muestra_calcular_componente <- function(comp) {
   )
 
   resultado$inferencia <- inferencia
+  # Tope en el marco también para cuotas y conveniencia (H05 cubría sólo las
+  # técnicas probabilísticas): docentes de acreditación con N = 251 pasaban a
+  # cuotas de 150 y mandaban 275 a campo, más que la población entera.
+  if (comp$tecnica %in% c("no_prob_cuotas", "no_prob_conveniencia")) {
+    N_marco <- as.integer(if ((comp$marco$marco_contactable %||% 0L) > 0L) comp$marco$marco_contactable
+                          else comp$marco$marco_validado %||% 0L)
+    if (N_marco > 0L) {
+      avisos_tope <- NULL
+      if (!is.na(resultado$n_objetivo %||% NA) && resultado$n_objetivo > N_marco) {
+        avisos_tope <- sprintf("La meta (%d) supera el marco (%d): se piden todas las unidades.",
+                               as.integer(resultado$n_objetivo), N_marco)
+        resultado$n_objetivo <- N_marco
+      }
+      if (!is.na(resultado$n_operativo %||% NA) && resultado$n_operativo > N_marco) {
+        avisos_tope <- c(avisos_tope, sprintf(
+          "El n a campo (%d) alcanza el marco: se aborda el marco completo (%d).",
+          as.integer(resultado$n_operativo), N_marco))
+        resultado$sobremuestra <- as.integer(max(0L, N_marco - (resultado$n_operativo - (resultado$sobremuestra %||% 0L))))
+        resultado$n_operativo <- N_marco
+      }
+      if (length(avisos_tope)) resultado$advertencia <- paste(c(avisos_tope, resultado$advertencia), collapse = " ")
+    }
+  }
+  # Una meta menor que el n que exige el margen manda, pero se dice (H12): el
+  # diseño no alcanza el error declarado y el resultado publica cuál alcanza.
+  if (comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS &&
+      !is.na(resultado$n_teorico %||% NA) && !is.na(resultado$n_objetivo %||% NA) &&
+      resultado$n_objetivo < resultado$n_teorico) {
+    ea <- resultado$precision_alcanzada %||% NA
+    alcance <- if (is.na(ea)) "el error total no se puede estimar (hay estratos sin casos)"
+               else sprintf("el error alcanzado es ±%.1f %s, no ±%.1f", 100 * ea, if (.cm_general_es_media(comp$parametros)) "% de la media" else "puntos", 100 * comp$parametros$e)
+    resultado$advertencia <- paste(c(sprintf(
+      "La meta declarada (%d) es menor que el n que exige el margen (%d): %s.",
+      as.integer(resultado$n_objetivo), as.integer(resultado$n_teorico), alcance), resultado$advertencia), collapse = " ")
+  }
+  if (length(comp$avisos_parametros)) {
+    resultado$avisos_parametros <- comp$avisos_parametros
+    resultado$advertencia <- paste(c(
+      vapply(comp$avisos_parametros, `[[`, character(1), "texto"),
+      resultado$advertencia
+    ), collapse = " ")
+  }
+  # La memoria sustituida viaja con el resultado para que Método y Resultados
+  # la muestren: el n se defiende en la pantalla, no sólo en el XLSX.
+  if (comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS && !is.na(resultado$n_teorico %||% NA)) {
+    resultado$memoria_calculo <- tryCatch(calc_muestra_general_memoria(comp, resultado),
+                                          error = function(e) NULL)
+  }
   resultado$computado_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   resultado$tecnica <- comp$tecnica
   resultado
@@ -1229,6 +1346,18 @@ calc_muestra_calcular_componente <- function(comp) {
 # est_aula_mediana por facultad); sin mediana degradan DECLARADAMENTE a la
 # media. `usado` audita esa degradación por estrato en la salida de cuotas.
 .cm_estadistico_conglomerado_estrato <- function(e, par) {
+  # El divisor SELLADO manda sobre todo lo demas: es la decision vigente de
+  # alumnos por CH, ya resuelta por estrato, y su estadistico viaja al lado.
+  # Vive en campo propio desde 2026-08-27 (decision de Gonzalo, «la separacion
+  # para el 5»); antes se materializaba dentro de `promedio_conglomerado`, que
+  # ademas obligaba a poner la mediana en 0 y con eso borraba la medida del
+  # marco. Los proyectos anteriores no traen este campo y caen a la logica de
+  # siempre, que sigue intacta debajo.
+  sellado <- calc_num(e$divisor_conglomerado, 0, min = 0,
+                      max = .CM_CONGLOMERADO_DIVISOR_MAX)
+  if (sellado > 0) {
+    return(list(valor = sellado, usado = calc_str(e$divisor_estadistico, "media")))
+  }
   media <- if ((e$promedio_conglomerado %||% 0) > 0) e$promedio_conglomerado else par$promedio_conglomerado
   mediana <- calc_num(e$mediana_conglomerado, 0, min = 0,
                       max = .CM_CONGLOMERADO_DIVISOR_MAX)
@@ -1363,10 +1492,46 @@ calc_muestra_calcular_componente <- function(comp) {
     est_e <- .cm_estadistico_conglomerado_estrato(e, par)
     avg_e <- est_e$valor
     tau_e <- if (e$tau > 0) e$tau else par$tau
-    aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
-      as.integer(e$aulas_base_fijas)
+    aulas_formula <- as.integer(ceiling(
+      cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))
+    ))
+    fijado <- (e$aulas_base_fijas %||% 0L) > 0L
+    aulas_base <- if (fijado) as.integer(e$aulas_base_fijas) else aulas_formula
+    # El origen viaja al resultado o el dato muere acá: la pantalla y el
+    # sustento leen `aulas_por_estrato`, no los estratos del componente. Un
+    # número fijado que coincide con la fórmula NO es una fijación efectiva y
+    # se declara como fórmula, para no atribuir una decisión donde no la hubo.
+    origen_declarado <- calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, "")
+    aulas_base_origen <- if (!fijado || aulas_base == aulas_formula) {
+      "formula"
+    } else if (nzchar(origen_declarado)) {
+      origen_declarado
     } else {
-      as.integer(ceiling(cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))))
+      ""
+    }
+    # Hasta donde llego la CERTIFICACION, aparte de donde quedo la base.
+    #
+    # `aulas_base_origen` es un solo campo y solo puede nombrar UN dueño, asi
+    # que un estrato con dos decisiones encima pierde la primera. Medido en
+    # HSVG 2026 el 2026-08-27: Derecho tenia 18 por certificacion —la formula
+    # pedia 16— y al subirlo a 19 con el stepper quedo entero como "operativa";
+    # el total seguia siendo 174 pero la descomposicion decia 6 aulas de
+    # certificacion y 3 operativas, en vez de 8 y 1.
+    #
+    # Con este campo la descomposicion se deriva sin ambiguedad:
+    # formula -> `aulas_base_certificada` -> `aulas_base`. Vale 0 cuando la
+    # certificacion no pidio nada por encima de la formula, y nunca pasa de la
+    # base: una certificacion por encima de lo que se va a sortear no es lo
+    # certificado, es una decision de quedarse por debajo.
+    certificada_cruda <- calc_int(e$aulas_base_certificada, 0L, min = 0L)
+    aulas_base_certificada <- if (certificada_cruda > aulas_formula) {
+      min(certificada_cruda, aulas_base)
+    } else if (identical(aulas_base_origen, "certificacion")) {
+      # Proyectos anteriores al campo: si el origen dice certificacion, la base
+      # ES lo que la certificacion pidio.
+      aulas_base
+    } else {
+      0L
     }
     aulas_reemplazo <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
@@ -1386,6 +1551,10 @@ calc_muestra_calcular_componente <- function(comp) {
       estadistico_usado = est_e$usado,
       tau             = tau_e,
       aulas_base      = aulas_base,
+      aulas_formula   = aulas_formula,
+      aulas_base_certificada = aulas_base_certificada,
+      aulas_base_origen = aulas_base_origen,
+      aulas_base_nota = calc_str(e$aulas_base_nota, ""),
       aulas_reemplazo = aulas_reemplazo,
       aulas_extra_operativas = aulas_reemplazo,
       aulas_total     = aulas_total,
@@ -1444,9 +1613,14 @@ calc_muestra_calcular_componente <- function(comp) {
   n_objetivo <- as.integer(ceiling(N * cobertura_obj))
   n_operativo <- N  # se intenta contactar a todos
   sobremuestra <- 0L  # no aplica
-  tasa_respuesta_esperada <- if (par$tasa_respuesta > 0) par$tasa_respuesta else cobertura_obj
+  tasa_respuesta_esperada <- min(if (par$tasa_respuesta > 0) par$tasa_respuesta else cobertura_obj, 1)
+  # Lo que vuelve abordando a todos es N · tasa (L18, 2026-09-27): con N = 2000,
+  # cobertura .8 y respuesta .7 la meta pide 1600 y se esperan 1400. La tasa
+  # no movía nada y el aviso llamaba «esperada» a la cobertura pedida.
+  esperadas <- N * tasa_respuesta_esperada
+  no_alcanza <- esperadas < n_objetivo - 1e-9
 
-  list(
+  out <- list(
     n_teorico                = NA_integer_,
     n_objetivo               = as.integer(n_objetivo),
     n_operativo              = as.integer(n_operativo),
@@ -1456,9 +1630,19 @@ calc_muestra_calcular_componente <- function(comp) {
     sobremuestra             = sobremuestra,
     precision_alcanzada      = NA_real_,
     origen_tamano            = comp$origen_tamano,
-    advertencia              = paste("Intención censal: se reporta cobertura, no margen de error.",
-                                     "Aplica TCL: con n >= 30 la lectura es estable.")
+    # Un censo no tiene error de muestreo, pero sí sesgo de no respuesta: con
+    # cobertura parcial, quienes responden pueden no parecerse a quienes no
+    # (research H19; AAPOR). «n ≥ 30 da estabilidad» no aplica a eso.
+    advertencia              = paste(c(
+      "Intención censal: se reporta cobertura, no margen de error.",
+      if (no_alcanza) sprintf(
+        "Abordando a todo el marco se esperan %s de las %d que pide la cobertura del %.0f %%: sube la respuesta esperada o baja la cobertura.",
+        .cm_general_fmt_completas(esperadas), as.integer(n_objetivo), 100 * cobertura_obj),
+      sprintf("Con una cobertura esperada del %.0f %%, el riesgo es el sesgo de no respuesta: conviene comparar quién respondió con el marco (sexo, programa, etc.).",
+              100 * min(tasa_respuesta_esperada, cobertura_obj))), collapse = " ")
   )
+  if (no_alcanza) out$n_completas_esperadas <- esperadas
+  out
 }
 
 #' Calcula resultado para cuotas no probabilísticas.
@@ -1497,7 +1681,8 @@ calc_muestra_calcular_componente <- function(comp) {
 
   if (!inferencia$permitido) {
     n_teorico <- if (N > 0L) {
-      calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
+      if (.cm_general_es_media(par)) .cm_general_n_media(N, par$cv, par$z, par$e, 1)
+      else calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
     } else NA_integer_
     return(list(
       n_teorico              = n_teorico,
@@ -1511,22 +1696,31 @@ calc_muestra_calcular_componente <- function(comp) {
     ))
   }
 
-  n_teorico <- calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
+  media <- .cm_general_es_media(par)
+  n_teorico <- if (media) .cm_general_n_media(N, par$cv, par$z, par$e, 1) else
+    calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = 1)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
-  n_operativo_base <- as.integer(n_objetivo)
-  sobremuestra <- as.integer(ceiling(n_operativo_base * par$oversample_pct))
-  precision_alcanzada <- calc_e_desde_n_muestra(
-    n = n_objetivo, N = N, p = par$p, z = par$z, deff = 1
-  )
+  campo <- .cm_general_inflar_operativo(n_objetivo, par, N)
+  # Con tope, el margen se mide con las completas que el marco puede dar (L3).
+  n_error <- .cm_general_completas_esperadas(n_objetivo, campo$n_operativo, par)
+  precision_alcanzada <- if (media) .cm_general_error_media(n_error, N, par$cv, par$z, 1) else
+    calc_e_desde_n_muestra(n = n_error, N = N, p = par$p, z = par$z, deff = 1)
+  if (n_error < n_objetivo - 1e-9) {
+    campo$advertencia <- paste(c(campo$advertencia, .cm_general_aviso_margen_topado(
+      n_objetivo, n_error, precision_alcanzada, par$e, relativo = media)), collapse = " ")
+  }
 
-  list(
+  out <- list(
     n_teorico            = as.integer(n_teorico),
     n_objetivo           = as.integer(n_objetivo),
-    n_operativo          = as.integer(n_operativo_base + sobremuestra),
+    n_operativo          = campo$n_operativo,
     precision_alcanzada  = precision_alcanzada,
-    sobremuestra         = sobremuestra,
+    sobremuestra         = campo$sobremuestra,
     origen_tamano        = comp$origen_tamano
   )
+  if (n_error < n_objetivo - 1e-9) out$n_completas_esperadas <- n_error
+  if (!is.null(campo$advertencia)) out$advertencia <- campo$advertencia
+  out
 }
 
 .cm_aplicar_ajuste_objetivo <- function(n_teorico, comp) {
@@ -1550,7 +1744,9 @@ calc_muestra_calcular_componente <- function(comp) {
 
   if (!inferencia$permitido) {
     n_teorico <- if (N > 0L) {
-      calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
+      if (.cm_general_es_media(par) && !identical(comp$tecnica, "prob_estratificado_independiente"))
+        .cm_general_n_media(N, par$cv, par$z, par$e, par$deff)
+      else calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
     } else NA_integer_
     return(list(
       n_teorico              = n_teorico,
@@ -1564,32 +1760,145 @@ calc_muestra_calcular_componente <- function(comp) {
     ))
   }
 
-  n_teorico <- calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
+  media <- .cm_general_es_media(par) && !identical(comp$tecnica, "prob_estratificado_independiente")
+  # La fórmula por estrato es de proporciones (p_h): con una media se usa la
+  # global con su CV.
+  por_estrato <- !media && .cm_general_estratificado_por_estrato(estratos, par)
+  diseno <- if (por_estrato) .cm_general_n_estratificado(estratos, par) else NULL
+  n_teorico <- if (por_estrato) diseno$n else if (media)
+    .cm_general_n_media(N, par$cv, par$z, par$e, par$deff) else
+    calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
-  n_operativo_base <- as.integer(n_objetivo)
-  sobremuestra <- as.integer(ceiling(n_operativo_base * par$oversample_pct))
-  precision_alcanzada <- calc_e_desde_n_muestra(
-    n = n_objetivo, N = N, p = par$p, z = par$z, deff = par$deff
-  )
+  # Los dominios independientes de aulas caen aquí cuando no traen estratos;
+  # su n a campo lo gobierna el motor de aulas, no esta inflación.
+  campo <- if (identical(comp$tecnica, "prob_estratificado_independiente")) {
+    .cm_general_inflar_operativo(n_objetivo, list(tasa_respuesta = 1, oversample_pct = par$oversample_pct), NA)
+  } else {
+    .cm_general_inflar_operativo(n_objetivo, par, N)
+  }
+  precision_alcanzada <- if (media) .cm_general_error_media(n_objetivo, N, par$cv, par$z, par$deff) else
+    calc_e_desde_n_muestra(n = n_objetivo, N = N, p = par$p, z = par$z, deff = par$deff)
 
   base_result <- list(
     n_teorico            = as.integer(n_teorico),
     n_objetivo           = as.integer(n_objetivo),
-    n_operativo          = as.integer(n_operativo_base + sobremuestra),
+    n_operativo          = campo$n_operativo,
     precision_alcanzada  = precision_alcanzada,
-    sobremuestra         = sobremuestra,
+    sobremuestra         = campo$sobremuestra,
     origen_tamano        = comp$origen_tamano
   )
 
   if (length(estratos) == 0L) {
     return(c(base_result, list(
-      advertencia = "Muestreo estratificado sin tabla de estratos: se calculó n total, pero falta la distribución por capas."
+      advertencia = paste(c(campo$advertencia,
+                            "Muestreo estratificado sin tabla de estratos: se calculó n total, pero falta la distribución por capas."),
+                          collapse = " ")
     )))
   }
 
   pesos <- vapply(estratos, function(e) e$N, integer(1))
   piso <- if (par$n_minimo_estrato > 0L) par$n_minimo_estrato else 0L
-  cuotas <- .cm_distribuir_con_piso(n_total = n_objetivo, pesos = pesos, piso = piso)
+  pesos_reparto <- if (por_estrato) diseno$pesos else NULL
+  # Con la fórmula por estrato cada estrato necesita al menos 2 casos: con
+  # menos no se estima su varianza y el error total no existe. Neyman, con
+  # estratos chicos de p chica, les asignaba 0 y el sorteo reventaba (lo vio
+  # el verificador de E3/E7). Si el piso declarado no cabe, se prueba con 2.
+  repartir <- function(n) {
+    if (!por_estrato) return(.cm_general_reparto(n, pesos, piso, pesos = pesos_reparto))
+    x <- .cm_general_reparto(n, pesos, max(piso, 2L), pesos = pesos_reparto)
+    if (isTRUE(attr(x, "piso_incumplible")) && piso > 2L) {
+      x <- .cm_general_reparto(n, pesos, 2L, pesos = pesos_reparto)
+      if (!isTRUE(attr(x, "piso_incumplible"))) attr(x, "piso_reducido") <- TRUE
+    }
+    x
+  }
+  cuotas <- repartir(n_objetivo)
+  # El n a campo por estrato infla las completas DE ESE estrato (L2,
+  # 2026-09-27; ver `.cm_general_campo_por_estrato`) y el n a campo del
+  # componente es su suma: es el mismo número que sortea el sorteo.
+  par_campo <- if (identical(comp$tecnica, "prob_estratificado_independiente"))
+    list(tasa_respuesta = 1, oversample_pct = par$oversample_pct) else par
+  por_h <- .cm_general_campo_por_estrato(cuotas, pesos, par_campo)
+  cuotas_campo <- por_h$n_campo
+  # Estratos tecleados cuyos N_h suman más que el marco (redondeo de la tabla):
+  # el n a campo nunca pasa de N; el exceso se descuenta de los estratos
+  # mayores, uno por uno.
+  exceso <- as.integer(sum(cuotas_campo) - N)
+  while (is.finite(exceso) && exceso > 0L) {
+    i <- which.max(cuotas_campo)
+    cuotas_campo[[i]] <- cuotas_campo[[i]] - 1L
+    exceso <- exceso - 1L
+  }
+  base_result$n_operativo <- sum(cuotas_campo)
+  # Completas esperadas por estrato: un estrato censado entrega N_h · tasa, que
+  # puede quedar bajo su n_h (L3). El error se mide con ellas.
+  esperadas_h <- .cm_general_completas_esperadas(cuotas, cuotas_campo, par_campo)
+  topado_error <- sum(esperadas_h) < sum(as.numeric(cuotas)) - 1e-9
+  if (topado_error) {
+    base_result$n_completas_esperadas <- sum(esperadas_h)
+    if (!por_estrato) {
+      base_result$precision_alcanzada <- if (media)
+        .cm_general_error_media(sum(esperadas_h), N, par$cv, par$z, par$deff) else
+        calc_e_desde_n_muestra(n = sum(esperadas_h), N = N, p = par$p, z = par$z, deff = par$deff)
+    }
+  }
+  base_result$sobremuestra <- as.integer(sum(cuotas_campo) - sum(pmin(por_h$base, pesos)))
+  if (sum(cuotas_campo) >= N) {
+    campo$advertencia <- sprintf(
+      "El n a campo (%d con respuesta %.0f%%) alcanza el marco: se aborda el marco completo (%d), es un censo del marco.",
+      as.integer(sum(por_h$pedido)), 100 * min(par_campo$tasa_respuesta %||% 1, 1), as.integer(N))
+  } else if (length(por_h$topados)) {
+    etiquetas <- vapply(estratos[por_h$topados], function(e) as.character(e$label %||% ""), "")
+    campo$advertencia <- sprintf(
+      "%s: el n a campo alcanza el estrato completo y se censa%s.",
+      paste(etiquetas, collapse = ", "), if (length(etiquetas) > 1L) "n" else "")
+  } else campo$advertencia <- NULL
+  aviso_error <- NULL
+  aviso_media <- NULL
+  if (media) {
+    # Neyman y potencia necesitan la variabilidad de cada estrato, que con una
+    # media no se declara: se reparte proporcional y se dice (el front
+    # anunciaba Neyman mientras el motor repartía proporcional).
+    base_result$asignacion <- "proporcional"
+    base_result$formula_n <- "media_global"
+    if (!identical(par$asignacion %||% "proporcional", "proporcional")) {
+      aviso_media <- "Con una media se reparte proporcional al tamaño del estrato: Neyman y potencia necesitan la variabilidad de cada estrato."
+    }
+    # El error total es el de la fórmula; el de cada estrato supone que todos
+    # tienen el CV del total, y un estrato mucho más disperso lo subestima
+    # (verificador: ±6,5 % publicado donde el real era ±15 %). Se dice.
+    if (length(estratos) > 1L) {
+      aviso_media <- c(aviso_media, "La precisión de cada estrato supone el mismo coeficiente de variación en todos; si un estrato es más disperso, su error propio es mayor.")
+    }
+  }
+  if (por_estrato) {
+    # El error alcanzado sale de la asignación efectiva, no de la fórmula
+    # global: es el que el diseño de verdad logra con esos n_h.
+    base_result$precision_alcanzada <- .cm_general_error_estratificado(
+      if (topado_error) esperadas_h else as.integer(cuotas), estratos, par)
+    base_result$asignacion <- par$asignacion
+    base_result$formula_n <- switch(par$asignacion, neyman = "neyman", potencia = "potencia", "proporcional_por_estrato")
+    # Un piso aleja el reparto del óptimo: el n de la fórmula ya no garantiza
+    # el margen, y eso se dice con la cifra (Monte Carlo del verificador:
+    # piso 40 con e = .035 dejaba ±.0364).
+    ea <- base_result$precision_alcanzada
+    if (!is.na(ea) && ea > as.numeric(par$e) + 1e-9 && !topado_error) {
+      # Dos decimales cuando el exceso es chico: «±5.0 supera ±5.0» se
+      # contradecía. La causa se nombra por lo que la produjo: el piso que
+      # declaró el usuario o el mínimo de 2 que impone el motor.
+      dec <- if (100 * (ea - as.numeric(par$e)) < 0.05) 2L else 1L
+      causa <- if (piso > 2L) sprintf("el piso de %d por estrato", piso)
+               else "el mínimo de 2 casos por estrato (para estimar su varianza)"
+      aviso_error <- sprintf(
+        "Con %s, el error alcanzado (±%.*f puntos) supera el declarado (±%.*f): sube n%s.",
+        causa, dec, 100 * ea, dec, 100 * as.numeric(par$e),
+        if (piso > 2L) " o baja el piso" else "")
+    }
+  }
+  if (topado_error && !is.na(base_result$precision_alcanzada %||% NA)) {
+    aviso_error <- .cm_general_aviso_margen_topado(n_objetivo, sum(esperadas_h),
+                                                   base_result$precision_alcanzada, par$e, relativo = media)
+  }
   distribucion_estratos <- lapply(seq_along(estratos), function(i) {
     e <- estratos[[i]]
     n_i <- as.integer(cuotas[[i]])
@@ -1597,16 +1906,49 @@ calc_muestra_calcular_componente <- function(comp) {
       estrato     = e$label,
       N           = e$N,
       n           = n_i,
-      precision_e = if (n_i > 0L) calc_e_desde_n_muestra(
-        n = n_i, N = e$N, p = par$p, z = par$z, deff = par$deff
-      ) else NA_real_,
-      regla       = if (piso > 0L && n_i <= piso) sprintf("piso_%d", piso) else "proporcional"
+      n_campo     = as.integer(cuotas_campo[[i]]),
+      # Con la fórmula por estrato, la precisión del estrato usa SU p.
+      precision_e = if (n_i <= 0L) NA_real_
+        # Con una media, el error del estrato es RELATIVO y sale del CV (lo
+        # publicaba con la fórmula de proporción: ±3,2 % donde era ±6,5 %).
+        # Un estrato censado se mide con sus completas esperadas (L3).
+        else if (media) .cm_general_error_media(esperadas_h[[i]], e$N, par$cv, par$z, par$deff)
+        else calc_e_desde_n_muestra(
+          n = esperadas_h[[i]], N = e$N, z = par$z, deff = par$deff,
+          p = if (por_estrato && !is.null(e$p_facultad) && !is.na(e$p_facultad)) e$p_facultad else par$p
+        ),
+      regla       = if (n_i >= e$N) "censo_estrato"
+                    else if (piso > 0L && n_i <= piso && !isTRUE(attr(cuotas, "piso_incumplible"))) sprintf("piso_%d", piso)
+                    else "proporcional"
     )
   })
+  aviso_piso <- if (isTRUE(attr(cuotas, "piso_incumplible"))) sprintf(
+    "El piso de %d por estrato no cabe en n = %d: se repartió proporcional sin piso.",
+    piso, as.integer(n_objetivo)
+  ) else if (isTRUE(attr(cuotas, "piso_reducido"))) sprintf(
+    "El piso de %d por estrato no cabe en n = %d: se aseguraron 2 casos por estrato, el mínimo para estimar su varianza.",
+    piso, as.integer(n_objetivo)
+  ) else NULL
+  sin_casos <- sum(as.integer(cuotas) == 0L & pesos > 0L)
+  aviso_vacios <- if (sin_casos > 0L) sprintf(
+    "%d de %d estratos quedan sin casos: su población no entra al sorteo ni a la estimación. Sube n (o la meta) para cubrirlos.",
+    sin_casos, length(pesos)) else NULL
+  if (isTRUE(attr(cuotas, "piso_incumplible")) && !is.null(base_result$asignacion) &&
+      !identical(base_result$asignacion, "proporcional")) {
+    nombre <- if (identical(base_result$asignacion, "neyman")) "de Neyman" else "de potencia"
+    aviso_piso <- sub("proporcional sin piso", sprintf("sin piso (asignación %s)", nombre), aviso_piso, fixed = TRUE)
+  }
+  cierre <- if (identical(base_result$asignacion, "neyman")) {
+    "Muestreo estratificado con asignación de Neyman: el margen de error formal corresponde al diseño probabilístico documentado."
+  } else if (identical(base_result$asignacion, "potencia")) {
+    "Muestreo estratificado con asignación de potencia (Bankier): protege a los estratos chicos a costa de un poco de precisión global."
+  } else {
+    "Muestreo estratificado proporcional: el margen de error formal corresponde al diseño probabilístico documentado."
+  }
 
   c(base_result, list(
     distribucion_estratos = distribucion_estratos,
-    advertencia = "Muestreo estratificado proporcional: el margen de error formal corresponde al diseño probabilístico documentado."
+    advertencia = paste(c(campo$advertencia, aviso_media, aviso_piso, aviso_vacios, aviso_error, cierre), collapse = " ")
   ))
 }
 
@@ -1715,10 +2057,46 @@ calc_muestra_calcular_componente <- function(comp) {
     est_e <- .cm_estadistico_conglomerado_estrato(e, par)
     avg_e <- est_e$valor
     tau_e <- if (e$tau > 0) e$tau else par$tau
-    aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
-      as.integer(e$aulas_base_fijas)
+    # SEGUNDO constructor de `aulas_por_estrato`. Existe otro casi idéntico más
+    # arriba y es el que primero ganó los campos de origen; éste se quedó atrás
+    # y por eso la ruta de cálculo publicaba filas sin `aulas_formula`. Los dos
+    # tienen que declarar lo mismo o el dato muere según por dónde entre.
+    aulas_formula <- as.integer(ceiling(
+      cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))
+    ))
+    fijado <- (e$aulas_base_fijas %||% 0L) > 0L
+    aulas_base <- if (fijado) as.integer(e$aulas_base_fijas) else aulas_formula
+    origen_declarado <- calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, "")
+    aulas_base_origen <- if (!fijado || aulas_base == aulas_formula) {
+      "formula"
+    } else if (nzchar(origen_declarado)) {
+      origen_declarado
     } else {
-      as.integer(ceiling(cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))))
+      ""
+    }
+    # Hasta donde llego la CERTIFICACION, aparte de donde quedo la base.
+    #
+    # `aulas_base_origen` es un solo campo y solo puede nombrar UN dueño, asi
+    # que un estrato con dos decisiones encima pierde la primera. Medido en
+    # HSVG 2026 el 2026-08-27: Derecho tenia 18 por certificacion —la formula
+    # pedia 16— y al subirlo a 19 con el stepper quedo entero como "operativa";
+    # el total seguia siendo 174 pero la descomposicion decia 6 aulas de
+    # certificacion y 3 operativas, en vez de 8 y 1.
+    #
+    # Con este campo la descomposicion se deriva sin ambiguedad:
+    # formula -> `aulas_base_certificada` -> `aulas_base`. Vale 0 cuando la
+    # certificacion no pidio nada por encima de la formula, y nunca pasa de la
+    # base: una certificacion por encima de lo que se va a sortear no es lo
+    # certificado, es una decision de quedarse por debajo.
+    certificada_cruda <- calc_int(e$aulas_base_certificada, 0L, min = 0L)
+    aulas_base_certificada <- if (certificada_cruda > aulas_formula) {
+      min(certificada_cruda, aulas_base)
+    } else if (identical(aulas_base_origen, "certificacion")) {
+      # Proyectos anteriores al campo: si el origen dice certificacion, la base
+      # ES lo que la certificacion pidio.
+      aulas_base
+    } else {
+      0L
     }
     aulas_extra <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
@@ -1733,6 +2111,10 @@ calc_muestra_calcular_componente <- function(comp) {
       estadistico_usado = est_e$usado,
       tau = tau_e,
       aulas_base = aulas_base,
+      aulas_formula = aulas_formula,
+      aulas_base_certificada = aulas_base_certificada,
+      aulas_base_origen = aulas_base_origen,
+      aulas_base_nota = calc_str(e$aulas_base_nota, ""),
       aulas_reemplazo = aulas_extra,
       aulas_extra_operativas = aulas_extra,
       aulas_total = aulas_base + aulas_extra,
@@ -1764,8 +2146,11 @@ calc_muestra_calcular_componente <- function(comp) {
   res <- .cm_calc_mas(comp, inferencia)
   N <- comp$marco$marco_validado
   n <- res$n_objetivo %||% 0L
-  intervalo <- if (!is.na(n) && n > 0L && N > 0L) floor(N / n) else NA_integer_
-  res$intervalo_sistematico <- as.integer(intervalo)
+  # Intervalo fraccional k = N/n (research H11): con floor(N/n) un N=1000 y
+  # n=300 daba k=3 y la vuelta al marco sacaba 333 o 334 unidades. El sorteo
+  # (calc_muestra_general_sortear) usa este k con arranque U(0, k].
+  intervalo <- if (!is.na(n) && n > 0L && N > 0L) N / n else NA_real_
+  res$intervalo_sistematico <- as.numeric(intervalo)
   res$advertencia <- paste(
     res$advertencia %||% "",
     "Muestreo sistemático: requiere marco ordenado y arranque aleatorio documentado."
@@ -1855,17 +2240,11 @@ calc_muestra_calcular_componente <- function(comp) {
   max(calc_n_muestra(N = N, p = p, z = z, e = e, deff = deff), 1L)
 }
 
+# Estratificado y matriz de servicios del motor general. El reparto vive en
+# calc_muestra_general_reparto.R (mayor resto, piso = max(piso, cuota), tope
+# N_h); `pesos` son los N_h de cada estrato.
 .cm_distribuir_con_piso <- function(n_total, pesos, piso = 0L) {
-  if (length(pesos) == 0L) return(integer())
-  if (n_total <= 0L || sum(pesos, na.rm = TRUE) <= 0) return(rep(0L, length(pesos)))
-  piso <- as.integer(max(piso, 0L))
-  if (piso == 0L || n_total < piso * length(pesos)) {
-    return(distribuir_proporcional_pesos(n_total, pesos, redondeo = "cuadratura"))
-  }
-  base <- rep(piso, length(pesos))
-  remanente <- as.integer(n_total - sum(base))
-  if (remanente <= 0L) return(as.integer(base))
-  as.integer(base + distribuir_proporcional_pesos(remanente, pesos, redondeo = "cuadratura"))
+  .cm_general_reparto(n_total, pesos, piso)
 }
 
 #' Calcula resultado para barrido operativo de cobertura.
@@ -1883,19 +2262,26 @@ calc_muestra_calcular_componente <- function(comp) {
 
   # Personas objetivo = % del universo
   personas_objetivo <- as.integer(ceiling(N * cobertura))
-  # Unidades operativas necesarias = personas_objetivo / (promedio * tau)
+  # Se barren TODAS las unidades del marco: ⌈N / tamaño medio⌉ (L30,
+  # 2026-09-27, decisión de Gonzalo: el barrido aborda el marco entero). Antes
+  # salían de N·cobertura / (promedio·tau), en otra base que el n a campo (N).
+  # La asistencia no cambia cuántas se visitan, sólo cuántas completas vuelven;
+  # y no hay unidades de reserva fuera del marco, así que no hay refuerzo.
   promedio_aula <- max(par$promedio_conglomerado, .CM_CONGLOMERADO_DIVISOR_MIN)
   tau_efec <- max(par$tau, 0.01)
-  unidades_operativas <- as.integer(ceiling(
-    personas_objetivo / (promedio_aula * tau_efec)
-  ))
-  # Sobremuestra operativa (refuerzo)
-  unidades_refuerzo <- as.integer(ceiling(unidades_operativas * par$oversample_pct))
+  unidades_operativas <- as.integer(ceiling(N / promedio_aula - 1e-9))
+  unidades_refuerzo <- 0L
 
-  list(
+  # Se aborda todo el marco, que es lo que sortea Selección (el marco entero,
+  # π = 1); la cobertura es la meta y la asistencia dice cuántas vuelven (L19,
+  # 2026-09-27; confirmado por Gonzalo, opción a). Publicaba n a campo
+  # = N·cobertura mientras el sorteo listaba N.
+  esperadas <- N * min(tau_efec, 1)
+  no_alcanza <- esperadas < personas_objetivo - 1e-9
+  out <- list(
     n_teorico               = NA_integer_,
     n_objetivo              = personas_objetivo,
-    n_operativo             = personas_objetivo,
+    n_operativo             = as.integer(N),
     unidades_operativas     = as.integer(unidades_operativas + unidades_refuerzo),
     unidades_base           = unidades_operativas,
     unidades_refuerzo       = unidades_refuerzo,
@@ -1904,11 +2290,16 @@ calc_muestra_calcular_componente <- function(comp) {
     sobremuestra            = 0L,
     precision_alcanzada     = NA_real_,
     origen_tamano           = comp$origen_tamano,
-    advertencia             = paste(
+    advertencia             = paste(c(
       "Barrido operativo: la meta se reporta como cobertura del universo,",
-      "no como muestra inferencial. No produce margen de error formal."
-    )
+      "no como muestra inferencial. No produce margen de error formal.",
+      if (no_alcanza) sprintf(
+        "Con una asistencia del %.0f %% se esperan %s de las %d que pide la cobertura del %.0f %%.",
+        100 * min(tau_efec, 1), .cm_general_fmt_completas(esperadas), as.integer(personas_objetivo),
+        100 * cobertura)), collapse = " ")
   )
+  if (no_alcanza) out$n_completas_esperadas <- esperadas
+  out
 }
 
 #' Calcula resultado para conveniencia no probabilística.
@@ -2016,19 +2407,36 @@ calc_muestra_calcular_componente <- function(comp) {
 
   registros_a_contactar <- as.integer(ceiling(meta_efectiva / (tau_cont * tau_eleg * tau_resp)))
   n_objetivo <- as.integer(meta_efectiva)
+  # Un listado tiene los registros que tiene: si con estas tasas la meta pide
+  # más, se contacta el listado entero y se dice cuántas completas cabe
+  # esperar (el barrido de propiedad encontró 6.523 registros pedidos a un
+  # listado de 1.509).
+  N_listado <- as.integer(if ((comp$marco$marco_contactable %||% 0L) > 0L) comp$marco$marco_contactable
+                          else comp$marco$marco_validado %||% 0L)
+  aviso_listado <- NULL
+  meta_alcanzable <- NA_integer_
+  if (N_listado > 0L && registros_a_contactar > N_listado) {
+    meta_alcanzable <- as.integer(floor(N_listado * tau_cont * tau_eleg * tau_resp))
+    aviso_listado <- sprintf(
+      "La meta (%d) no se alcanza con este listado: con estas tasas harían falta %d registros y hay %d; contactándolo entero se esperan unas %d completas.",
+      n_objetivo, registros_a_contactar, N_listado, meta_alcanzable)
+    registros_a_contactar <- N_listado
+  }
 
   list(
     n_teorico              = NA_integer_,
     n_objetivo             = n_objetivo,
     n_operativo            = registros_a_contactar,
-    sobremuestra           = as.integer(registros_a_contactar - n_objetivo),
+    sobremuestra           = as.integer(max(0L, registros_a_contactar - n_objetivo)),
     tasa_contacto          = tau_cont,
     tasa_elegibilidad      = tau_eleg,
     tasa_respuesta         = tau_resp,
     registros_a_contactar  = registros_a_contactar,
+    meta_alcanzable        = meta_alcanzable,
     precision_alcanzada    = NA_real_,
     origen_tamano          = comp$origen_tamano,
-    advertencia            = paste("Listado externo: meta contractual.",
+    advertencia            = paste(c(aviso_listado, "Listado externo: meta contractual."),
+                                   collapse = " ") |> paste(
                                    "El diseño original del listado puede ser desconocido;",
                                    "no se reporta margen de error.")
   )
@@ -2343,9 +2751,30 @@ calc_muestra_aplicar_preset_hsvg <- function() {
       cuota_fija            = calc_int(e$cuota_fija, 0L, min = 0L),
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
+      aulas_base_certificada = calc_int(e$aulas_base_certificada, 0L, min = 0L),
+      aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
+      aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
+      # Promedio del tamaño de conglomerado del estrato. GUARDA EL PROMEDIO Y
+      # NADA MAS.
+      #
+      # Se deja dicho porque durante un tiempo no fue asi: al sellar la decision
+      # de alumnos por CH se materializaba aqui el estadistico ELEGIDO —P25
+      # incluido— y se ponia `mediana_conglomerado` en 0. El campo decia
+      # «promedio» guardando otra cosa, y sellar borraba la mediana medida del
+      # marco, con lo que un estudio que despues quisiera `min_media_mediana` se
+      # quedaba sin con que. Desde 2026-08-27 («la separacion para el 5») el
+      # divisor sellado tiene campo propio y este volvio a su significado.
+      #
+      # Si hay que materializar un divisor otra vez, va en
+      # `divisor_conglomerado`, NO aqui.
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      # El divisor sellado y su estadistico. 0 = no hay decision sellada, y
+      # entonces manda el par promedio/mediana como siempre.
+      divisor_conglomerado  = calc_num(e$divisor_conglomerado, 0, min = 0,
+                                       max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      divisor_estadistico   = calc_str(e$divisor_estadistico, ""),
       tau                   = calc_num(e$tau, 0, min = 0, max = 1)
     )
   })
@@ -2354,7 +2783,8 @@ calc_muestra_aplicar_preset_hsvg <- function() {
   parametros <- .cm_normalize_parametros(tpl$parametros, "prob_conglomerado_multietapico")
 
   # Pasar por normalize para que aplique la inferencia del cuadro maestro
-  # (estudiantes + aula_qr + N≥3001 → conglomerados con parámetros canónicos).
+  # (estudiantes + aula_qr, del lado probabilístico del corte por precisión del
+  # ADR 0091 → conglomerados con parámetros canónicos).
   raw <- list(
     actor           = calc_str(tpl$actor, "Estudiantes pregrado"),
     actor_id        = calc_str(tpl$actor_id, "estudiantes"),

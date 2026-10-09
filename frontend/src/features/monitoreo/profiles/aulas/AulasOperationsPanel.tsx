@@ -5,11 +5,17 @@
 // muestra y recalcular el corte de campo (/api/monitoreo/aulas/sync).
 // La agenda y las fichas QR siguen viviendo en Recopiladores: ese flujo
 // pertenece al módulo de fichas y este monitoreo solo lo lee.
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { contar } from "../../fuentes/vocabulario";
-import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload } from "../../../../vendor/lucide-react";
+import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload, UploadCloud } from "../../../../vendor/lucide-react";
 import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../api/client";
 import { fmt } from "./kpisDeAulas";
+import { estadoDelSheets, type SelloDePublicacion } from "./selloDePublicacion";
+import {
+  enlaceParaLeer, enlaceParaPublicar, enlaceRecordado, hayDestinoDelLibro, textoDelRecordado,
+} from "./destinoDelLibro";
+import "./aulasLibroDestino.css";
+import { AulasDosSheets } from "./AulasDosSheets";
 
 // Movido del monolito (aulasShortId): compacta hashes/run-ids largos.
 function aulasOpsShortId(value: unknown, limit = 18) {
@@ -51,16 +57,61 @@ export type AulasOperationsPanelProps = {
   busy: boolean;
   onImportPlan: () => void;
   onSyncField: () => void;
+  /**
+   * El recibo de la última publicación y el corte por el que va la app: con los
+   * dos, el panel dice si el Sheets está al día. Sin ellos calla, que es lo
+   * correcto —afirmar «al día» sin haber mirado es peor que no decir nada—.
+   */
+  selloDeLibro?: SelloDePublicacion | null;
+  sincronizadoEn?: string;
   /** Produce el libro que el equipo llena en Excel y lo descarga. */
   onGenerarLibro: () => void;
   /** Relee el libro que alguien llenó. */
   onImportarLibro: (archivo: File) => void;
+  /** Lee el libro desde las tres pestañas de un Google Sheets. Recibe el
+   *  destino ya resuelto —el escrito en el campo o el recordado del proyecto—
+   *  tal como se copia del navegador; el backend extrae el id. */
+  onLeerDeSheets?: (enlace: string) => void;
+  /** Publica el libro al Sheets del operativo. Con enlace lo reemplaza y lo
+   *  recuerda; `undefined` usa el destino ya recordado en el proyecto. */
+  onPublicarASheets?: (enlace?: string) => void;
+  /**
+   * Releer el cruce con el otro estudio. **Ausente sin fuente declarada**: un
+   * botón que sólo puede fallar ocupa sitio para no hacer nada, y la causa —que
+   * el estudio no declara contra quién se cruza— no se arregla pulsándolo.
+   */
+  onRecalcularTraslape?: () => void;
+  /** Contra quién se cruza, para que el botón diga a quién relee. */
+  traslapeDe?: string;
 };
 
 export function AulasOperationsPanel({
   config, sources, busy, origen = null, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
+  onLeerDeSheets, onPublicarASheets, onRecalcularTraslape, traslapeDe = "",
+  selloDeLibro = null, sincronizadoEn = "",
 }: AulasOperationsPanelProps) {
+  // Se calcula aquí y no en el render de abajo para que la frase exista una
+  // sola vez: dos sitios decidiendo si el Sheets está al día acabarían
+  // discrepando, que es el defecto del que sale esta frase.
+  const sheets = estadoDelSheets(selloDeLibro, sincronizadoEn);
   const entradaLibro = useRef<HTMLInputElement | null>(null);
+  // El destino del Sheets del operativo. El estado DURO —qué enlace quedó
+  // recordado— vive en el backend (`libro_sheets` de la config); aquí sólo el
+  // borrador de lo que se está escribiendo: `null` = «no tocado, enseña el
+  // recordado». Se pega una vez y las dos acciones (leer y publicar) lo usan.
+  const recordado = config?.libro_sheets ?? null;
+  const recordadoUrl = enlaceRecordado(recordado);
+  const [enlaceEditado, setEnlaceEditado] = useState<string | null>(null);
+  // Cuando el recordado cambia —típicamente porque la publicación acaba de
+  // guardar lo pegado— el borrador se suelta y el campo enseña la URL canónica.
+  useEffect(() => {
+    setEnlaceEditado(null);
+  }, [recordado?.spreadsheet_id]);
+  const escrito = (enlaceEditado ?? "").trim();
+  // La guarda sale del MISMO módulo que decide qué enlace viaja: calcularla
+  // aparte es como se abrió el agujero del panel de los aplicadores.
+  const hayDestino = hayDestinoDelLibro(escrito, recordado);
+  const sheetsConectado = Boolean(onLeerDeSheets || onPublicarASheets);
   const hayPlan = aulasHayPlan(config);
   // Cuántas trae ese plan, para poder decir de dónde salió cuando no hay corrida.
   const filasDelPlan = config?.plan_rows ?? config?.plan?.length ?? 0;
@@ -139,6 +190,14 @@ export function AulasOperationsPanel({
       // wrapper de datos hace que el padding del encabezado se lea como
       // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
       // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
+      //
+      // El `data-qa-geometry-contract` de aquí abajo es INERTE y se deja a
+      // propósito: `ui-quick-check` lee el contrato del mismo elemento que
+      // lleva el grupo, así que éste no lo mide nadie. Pero
+      // `AulasCompactWorkbenchLayout.test.ts` exige que TODO panel declare su
+      // contrato en su etiqueta de apertura, y esa convención documenta qué es
+      // el panel aunque el runner no la consuma. Las dos reglas conviven y el
+      // conflicto está anotado; quitarlo por «inerte» rompe el test.
     data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-profile-panel-head">
@@ -162,6 +221,12 @@ export function AulasOperationsPanel({
           );
         })}
       </div>
+      {/* Los dos Sheets, dichos juntos y antes de los botones: sus acciones
+          viven en dos pantallas y no había dónde ver si los dos estaban al
+          día. Sólo cuando el proyecto ya conoce alguno de los dos. */}
+      {(config?.libro_sheets || config?.distribucion_sheets) ? (
+        <AulasDosSheets config={config} />
+      ) : null}
       <div className="aulas-ops-actions">
         <button
           type="button"
@@ -178,14 +243,33 @@ export function AulasOperationsPanel({
           onClick={onSyncField}
           disabled={busy || !imported}
           title={imported
-            ? `Recalcular el corte de campo (${contar(activeSources.length, "fuente activa", "fuentes activas")}: ${sourceKinds})`
+            // `contar()` ya antepone el número, así que el rótulo NO lleva
+            // artículo: con él salía «a 1 la fuente activa». Visto en el
+            // tooltip el 2026-09-09.
+            ? `Pide las respuestas nuevas a la plataforma (${contar(activeSources.length, "fuente activa", "fuentes activas")}: ${sourceKinds}) y recalcula el corte de campo`
             : "Primero importa el plan de cursos-horario"}
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
-          <span>Sincronizar campo</span>
+          {/* **El rótulo promete lo que el botón hace, desde el 2026-09-09.**
+              Antes sólo recalculaba con el snapshot que ya había en la sesión, y
+              el nombre decía «sincronizar»: dos jornadas devolviendo las mismas
+              cifras de la víspera sin nada en pantalla que lo explicara. Ahora
+              baja primero de la plataforma; el rótulo se queda porque ya es
+              cierto. */}
+          <span>Traer respuestas</span>
         </button>
+        {/* Lo que el botón deja detrás: si el Sheets quedó escrito con este
+            mismo corte o se quedó en uno anterior. Sin esto, «se supone que
+            traer respuestas actualiza todo» no se podía comprobar. */}
+        <span className={`aulas-ops-sello es-${sheets.estado}`} title={sheets.texto}>
+          {sheets.texto}
+        </span>
         {/* El ciclo del libro: la app lo produce, alguien lo llena en Excel y la
-            app lo relee. Sin estos dos botones sólo se podía cerrar por API. */}
+            app lo relee. Sin estos dos botones sólo se podía cerrar por API.
+            Desde el 2026-09-08 «Publicar al Sheets» LEE antes de escribir, así
+            que el ciclo completo son dos clics —«Traer respuestas» para traer
+            las respuestas y «Publicar al Sheets» para el resto— y no hace falta
+            acordarse de «Leer del Sheets» en medio. */}
         <button
           type="button"
           onClick={onGenerarLibro}
@@ -211,6 +295,78 @@ export function AulasOperationsPanel({
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <Upload size={14} />}
           <span>Leer libro llenado</span>
         </button>
+        {/* **La otra puerta del mismo ciclo.**
+
+            El botón de al lado lee el archivo; éste lee la pestaña que el
+            equipo llena en línea, que es lo que pasa mientras el operativo está
+            en marcha y nadie quiere descargar un `.xlsx` para ver cómo va.
+
+            Va junto a los otros dos y no en un panel propio: son formas de la
+            misma operación —cruzar el operativo con lo que el equipo
+            escribió— y separarlas obligaría a saber de antemano cuál toca.
+
+            El destino sale del campo de abajo (o del recordado del proyecto):
+            el prompt del navegador que vivía aquí pedía el enlace en cada
+            lectura y no guardaba nada. */}
+        {onLeerDeSheets ? (
+          <button
+            type="button"
+            onClick={() => {
+              const destino = enlaceParaLeer(escrito, recordado);
+              if (destino) onLeerDeSheets(destino);
+            }}
+            disabled={busy || !hayPlan || !hayDestino}
+            title={!hayPlan
+              ? "Primero importa el plan de cursos-horario"
+              : !hayDestino
+                ? "Pega el enlace del Google Sheets del operativo: sin él no hay de dónde leer"
+                : "Lee las tres pestañas del Sheets y actualiza el operativo"}
+          >
+            {busy ? <Loader2 size={14} className="pulso-spin" /> : <Link2 size={14} />}
+            <span>Leer del Sheets</span>
+          </button>
+        ) : null}
+        {/* La vuelta de ese viaje: escribir en el MISMO Sheets lo que la app
+            sabe. Sólo donde la app es dueña —«Base de control»—; las dos hojas
+            del equipo se siembran una única vez si están vacías y después se
+            respetan (regla de Gonzalo: las llenan desde el Sheets, no desde la
+            app). Sin destino no dispara un 400: el título dice qué falta. */}
+        {onPublicarASheets ? (
+          <button
+            type="button"
+            onClick={() => onPublicarASheets(enlaceParaPublicar(escrito))}
+            disabled={busy || !hayPlan || !hayDestino}
+            title={!hayPlan
+              ? "Primero importa el plan de cursos-horario"
+              : !hayDestino
+                ? "Pega el enlace del Google Sheets del operativo: sin él no hay dónde publicar"
+                : "Lee primero lo que el equipo escribió en sus hojas y luego reescribe las de la app; las cuatro del equipo no se tocan"}
+          >
+            {busy ? <Loader2 size={14} className="pulso-spin" /> : <UploadCloud size={14} />}
+            <span>Publicar al Sheets</span>
+          </button>
+        ) : null}
+        {/* **Releer el cruce con el otro estudio.** Va junto a las dos de Sheets
+            porque es la misma familia —leer algo de fuera— y no junto a
+            «Publicar»: esto NO escribe nada, ni aquí ni allá. El otro estudio
+            se lee en solo lectura, que puede tener gente agendando en vivo.
+
+            Sin fuente declarada el botón no existe (ver `onRecalcularTraslape`):
+            pulsar algo que sólo puede fallar no acerca a la solución, que es
+            declarar contra quién se cruza. */}
+        {onRecalcularTraslape ? (
+          <button
+            type="button"
+            onClick={() => onRecalcularTraslape()}
+            disabled={busy || !hayPlan}
+            title={!hayPlan
+              ? "Primero importa el plan de cursos-horario"
+              : `Vuelve a leer ${traslapeDe || "el otro estudio"} y recalcula qué unidades comparte con éste. Sólo lee: no escribe nada en sus hojas`}
+          >
+            {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
+            <span>{traslapeDe ? `Releer cruce con ${traslapeDe}` : "Releer el cruce"}</span>
+          </button>
+        ) : null}
         <input
           ref={entradaLibro}
           type="file"
@@ -228,6 +384,27 @@ export function AulasOperationsPanel({
             estudio de aulas— la barra decía «1 fuentes activas». */}
         <em>{activeSources.length ? `${contar(activeSources.length, "fuente activa", "fuentes activas")} · ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
       </div>
+      {/* El destino de las dos acciones de Sheets: se pega UNA vez y queda
+          recordado en el proyecto (decisión textual de Gonzalo). Va después de
+          los botones para que la banda compacta conserve su par rejilla +
+          acciones; su hoja lo hace ocupar el ancho entero ahí. El valor enseña
+          el recordado hasta que alguien escribe encima; pegar uno nuevo lo
+          reemplaza al publicar. */}
+      {sheetsConectado ? (
+        <div className="aulas-libro-destino">
+          <label htmlFor="aulas-libro-destino-enlace">Sheets del operativo</label>
+          <input
+            id="aulas-libro-destino-enlace"
+            type="url"
+            spellCheck={false}
+            placeholder="Pega el enlace del Google Sheets del libro"
+            value={enlaceEditado ?? recordadoUrl}
+            onChange={(event) => setEnlaceEditado(event.target.value)}
+            disabled={busy}
+          />
+          <small>{textoDelRecordado(recordado)}</small>
+        </div>
+      ) : null}
     </section>
   );
 }

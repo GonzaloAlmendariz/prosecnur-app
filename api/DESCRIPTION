@@ -63,10 +63,10 @@ Imports:
     qrcode,
     scales,
     sf,
-    rsvg
+    rsvg,
+    systemfonts
 Suggests:
     testthat (>= 3.0.0),
-    systemfonts,
     DBI,
     duckdb,
     pkgload,
@@ -77,6 +77,7 @@ Suggests:
     shiny,
     plotly,
     DT,
+    ggwordcloud,
     sampling,
     BalancedSampling
 RoxygenNote: 7.3.3

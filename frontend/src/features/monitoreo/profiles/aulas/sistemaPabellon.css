@@ -1,0 +1,64 @@
+/* --- Sistema Pabellón: los recuadros de identidad del perfil de aulas. ------
+   Dictado B31 (2026-09-02): «los pabellones con números en recuadros elegantes
+   de colores en función de la letra, el horario como otro cuadrito elegante y
+   bonito» — extendido a todo el perfil por B33. El índice del tono lo decide
+   `tonoDePabellon` (determinista por letra); aquí vive el color, siempre sobre
+   tokens.
+
+   Ésta es la única dueña de las reglas de chip: el bloque gemelo que nació en
+   `aulasCargaDeCampo.css` con B31 se retiró en la unificación (P8 del
+   checklist sistema-pabellon). */
+.aulas-chip {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11.5px; font-weight: 500; line-height: 1.4;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+/* B72/B73 — la preparación como box del sistema (dictado 2026-09-03): tenue y
+   con borde punteado — protocolo previo, no identidad; los números tabulares
+   alinean con el chip de hora que acompaña. */
+.aulas-chip.aulas-chip-prep {
+  background: transparent;
+  border-style: dashed;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+/* La hora: sobria, numérica, distinta del lugar — un cuadrito de reloj, no de
+   edificio. */
+.aulas-chip-hora {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+/* El lugar: fondo suave y texto del tono de SU letra. El texto se mezcla con
+   --pulso-text para asegurar contraste AA sobre el fondo pálido, incluso en
+   los tonos claros de la paleta. */
+.aulas-chip-lugar {
+  --chip-tono: var(--pulso-text-soft);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--chip-tono) 13%, var(--pulso-surface));
+  border-color: color-mix(in srgb, var(--chip-tono) 34%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--chip-tono) 58%, var(--pulso-text));
+}
+.aulas-chip-lugar.es-tono-0 { --chip-tono: var(--pulso-accent-steel); }
+.aulas-chip-lugar.es-tono-1 { --chip-tono: var(--pulso-accent-green); }
+.aulas-chip-lugar.es-tono-2 { --chip-tono: var(--pulso-accent-rose); }
+.aulas-chip-lugar.es-tono-3 { --chip-tono: var(--pulso-accent-amber); }
+.aulas-chip-lugar.es-tono-4 { --chip-tono: var(--pulso-accent-violet); }
+.aulas-chip-lugar.es-tono-5 { --chip-tono: var(--pulso-accent-cyan); }
+.aulas-chip-lugar.es-tono-6 { --chip-tono: var(--pulso-module-monitoring); }
+.aulas-chip-lugar.es-tono-7 { --chip-tono: var(--pulso-module-processing); }
+
+/* La pareja sesión + aula de «Sesiones y aula», como una sola pieza que puede
+   partirse en dos líneas si la celda aprieta. */
+.aulas-chip-sesion { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+/* La fila de badges del sistema: chips alineados bajo el código, en cualquier
+   ficha o formulario del perfil. Es la jerarquía del dictado — código fuerte
+   primero, docente en su peso, chips como fila. */
+.aulas-chips-fila { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }

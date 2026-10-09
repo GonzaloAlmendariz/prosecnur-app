@@ -244,7 +244,6 @@ export function ConectarFuente({
   // A qué servidor de Kobo pertenece la cuenta conectada. Se resuelve del
   // perfil activo en vez de asumir el público: ver servidorKobo.ts.
   const [koboServidor, setKoboServidor] = useState(KOBO_POR_DEFECTO);
-  const [koboPerfil, setKoboPerfil] = useState("");
   const [encuestasSm, setEncuestasSm] = useState<Array<{ id: string; title: string }> | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
@@ -264,7 +263,6 @@ export function ConectarFuente({
       .then((data) => {
         if (!vigente) return;
         setKoboServidor(servidorKoboActivo(data.connections));
-        setKoboPerfil(perfilKoboActivo(data.connections));
       })
       .catch(() => undefined);
     return () => {
@@ -333,7 +331,6 @@ export function ConectarFuente({
         const servidor = servidorKoboActivo(conexiones?.connections);
         const perfil = perfilKoboActivo(conexiones?.connections);
         setKoboServidor(servidor);
-        setKoboPerfil(perfil);
         const data = await apiMonitoreoKoboAssets(servidor, 100, { profile_id: perfil });
         setAssetsKobo(data.assets ?? []);
       } else if (servicio === "surveymonkey") {
@@ -678,13 +675,13 @@ export function ConectarFuente({
                 * por definición. */}
               {pieza.papel === "respuestas" && renderCanal ? (
                 <fieldset className="fuentes-conectar-grupo">
-                  <legend>Cómo se aplica</legend>
+                  <legend>Modalidad de aplicación</legend>
                   {renderCanal(canal, setCanal)}
                   {/* La frase decía «Es el canal base de la encuesta: …», que es
                     * repetir el rótulo que está justo encima. Queda lo único que
                     * el rótulo no dice y no se ve en ningún otro sitio. */}
                   <p className="fuentes-conectar-pista is-neutra">
-                    Los recopiladores lo heredan; cada uno puede declarar su excepción.
+                    Los recopiladores la heredan; cada uno puede declarar su excepción.
                   </p>
                 </fieldset>
               ) : null}

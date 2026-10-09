@@ -71,13 +71,15 @@ describe("target Kobo — enlace personalizado", () => {
     expect(markup).toContain('placeholder="collectorID"');
   });
 
-  it("con asset_uid guardado, el placeholder muestra la ruta XPath completa", () => {
-    // Reproduce lo verificado a mano en el navegador: con Asset UID
-    // "aNNuP72AedZ886EoAUeV5o" el placeholder pasa de "collectorID" a
-    // "/aNNuP72AedZ886EoAUeV5o/collectorID" — el mismo formato del enlace
-    // real que Gonzalo confirmó en producción.
+  it("el placeholder sigue siendo el nombre pelado aunque haya asset_uid", () => {
+    // Antes, con Asset UID el placeholder pasaba a "/<asset_uid>/collectorID"
+    // porque ése era el default del motor. Desde el 2026-08-27 el default es el
+    // campo pelado —el del operativo de 2025— y el placeholder tiene que decir
+    // lo que el motor hará si el campo se deja vacío. Prometer la ruta XPath y
+    // generar la pelada es la clase de desajuste que sólo se descubre
+    // escaneando un QR ya impreso.
     const markup = render(deploymentWithAssetUid("aNNuP72AedZ886EoAUeV5o"));
-    expect(markup).toContain('placeholder="/aNNuP72AedZ886EoAUeV5o/collectorID"');
-    expect(markup).not.toContain('placeholder="collectorID"');
+    expect(markup).toContain('placeholder="collectorID"');
+    expect(markup).not.toContain('placeholder="/aNNuP72AedZ886EoAUeV5o/collectorID"');
   });
 });

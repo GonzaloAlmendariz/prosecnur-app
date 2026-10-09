@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { veredictoDeCeldaDeCuota } from "./serieDeRendimiento";
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -74,8 +75,15 @@ describe("la serie separa lo aplicado de lo agendado", () => {
     // Se comprueba que la zona SE PINTE, no que exista: un `<rect>` con
     // `fill="none" opacity="0"` tiene la misma geometría y no se ve. La primera
     // versión de este aserto miraba sólo x/ancho/alto y ese mutante pasaba.
+    // **La franja se identifica por su NOMBRE, no por su aspecto.** Desde que el
+    // «Día a día» dibuja barras también sin facultad en foco (2026-09-08), una
+    // barra de elegibles que llega justo al tope del eje tiene la misma caja Y
+    // la misma tinta que la franja: el fixture, con `eligible_n: 40`, producía
+    // exactamente ese empate y el regex contaba cuatro donde hay dos. Un guard
+    // que reconoce las cosas por cómo se ven caduca en cuanto otra cosa se ve
+    // igual.
     const zonas = [...html.matchAll(
-      /<rect x="([\d.]+)" y="4" width="([\d.]+)" height="92" fill="([^"]+)" opacity="([\d.]+)"/g)];
+      /<rect x="([\d.]+)" y="4" width="([\d.]+)" height="92" fill="([^"]+)" opacity="([\d.]+)" class="aulas-serie-franja"/g)];
     expect(zonas).toHaveLength(2);
     for (const [, x, ancho, fill, opacidad] of zonas) {
       expect(Number(x)).toBeGreaterThan(4);
@@ -181,12 +189,18 @@ describe("las dos líneas de sexo no suman la verde, y hay que decirlo", () => {
       <AulasSerieDeRendimiento partes={partes} control={control} />);
   }
 
-  it("el hover del día sin reparto dice que el libro todavía no lo declara", () => {
+  it("el hover del día sin reparto dice que EL PARTE no lo declara", () => {
     // Gonzalo: «¿por qué las líneas de hombre y mujer recién salen el 11 de
     // agosto y no el 10?». Porque el libro calla el reparto de esas aulas, no
     // porque no hubiera aulas: el 10/08 la verde ya valía 31. Eso tenía que
     // poder leerse en el gráfico, y no se podía.
-    expect(conLibroAMedias()).toContain("sin sexo declarado todavía");
+    //
+    // El rótulo nombra LA FUENTE desde el 2026-08-31: «sin sexo declarado
+    // todavía» era correcto respecto al parte y contradictorio en pantalla,
+    // porque la leyenda de al lado muestra las series de sexo de PLATAFORMA.
+    // Visto en vivo con Educación en foco: el globo negaba el sexo mientras
+    // arriba se leía «Mujeres 32/20 ✓».
+    expect(conLibroAMedias()).toContain("el parte no declara sexo");
   });
 
   it("el hover del día con reparto da el desglose Y su cobertura", () => {
@@ -261,8 +275,18 @@ describe("el eje X es un calendario, no una lista de días con datos", () => {
     const partes = [aplicada("2026-08-14", 20, "A1"), aplicada("2026-08-17", 22, "A2")];
     const html = renderToStaticMarkup(
       <AulasSerieDeRendimiento partes={partes} agenda={[]} />);
+    const ejes = [...html.matchAll(/<ol class="aulas-serie-dias"/g)];
     const ticks = [...html.matchAll(/<li class="[^"]*" style="left:/g)];
-    expect(ticks).toHaveLength(4);
+    // **Dos ejes, uno por gráfico** (2026-09-08). El acumulado no tenía ninguno:
+    // compartía la escala horizontal con el «Día a día» —mismo lienzo, misma
+    // `x()`— pero sin fechas, así que no se podía saber a qué día correspondía
+    // cada punto sin bajar al gráfico de abajo y contar. Gonzalo: «no veo el eje
+    // x que está alineado al gráfico de abajo».
+    expect(ejes).toHaveLength(2);
+    // Cuatro días × dos ejes. Es el MISMO cálculo montado dos veces, no una
+    // copia: si alguien duplicara el eje con otro origen, este número dejaría de
+    // ser un múltiplo exacto y el test lo diría.
+    expect(ticks).toHaveLength(8);
     expect(html).toContain("es-domingo");
     expect(html).toContain("es-vacio");
   });
@@ -407,5 +431,243 @@ describe("las etiquetas de meta no se montan una sobre otra", () => {
     const fuera = separaLasMetas([{ clave: "a", y: 50 }, { clave: "b", y: 50 }, { clave: "c", y: 50 }]);
     expect(fuera[1].y - fuera[0].y).toBeCloseTo(MINIMO, 5);
     expect(fuera[2].y - fuera[1].y).toBeCloseTo(MINIMO, 5);
+  });
+});
+
+describe("una celda sin cuota declarada no es una cuota cumplida", () => {
+  /**
+   * El tercer sitio del mismo `0 >= 0`, después del KPI de cierre y del panel de
+   * avance proyectado: con meta 0 la resta da 0 y la fila salía pintada de verde
+   * y rotulada «cuota cumplida» sobre un objetivo que nadie pidió.
+   *
+   * Se comprueba sobre `veredictoDeCeldaDeCuota` y no sobre el markup **porque
+   * el markup no se puede comprobar**: la tabla sólo se monta con una facultad
+   * elegida, así que la primera versión de este test —un `toContain` sobre
+   * `renderToStaticMarkup`— pasaba sin llegar a ver la tabla nunca. Verde por
+   * ausencia, en el test escrito para cazar un verde por ausencia.
+   */
+  const celda = (meta: number, faltan: number, extra: Partial<Parametros> = {}) => ({
+    meta, faltan, alcanza: false, fechaDeCruce: null, faltanAlCerrarAgenda: faltan, ...extra,
+  });
+  type Parametros = { alcanza: boolean; fechaDeCruce: string | null; faltanAlCerrarAgenda: number };
+  const n = (x: number) => String(x);
+  const f = (x: string) => x;
+
+  it("la nombra por lo que es y no la pinta como logro", () => {
+    const v = veredictoDeCeldaDeCuota(celda(0, 0), n, f);
+    expect(v.clase).toBe("es-sin-cuota");
+    expect(v.texto).toBe("sin cuota declarada");
+    expect(v.sinCuota).toBe(true);
+  });
+
+  it("la que sí llegó a su cuota conserva su lectura", () => {
+    // El control del mutante: si «sin cuota» se leyera como «no falta nada», una
+    // celda de verdad cumplida perdería su veredicto.
+    const v = veredictoDeCeldaDeCuota(celda(100, 0), n, f);
+    expect(v.clase).toBe("es-cumplida");
+    expect(v.texto).toBe("cuota cumplida");
+  });
+
+  it("y la que va corta dice cuánto le faltaría", () => {
+    const v = veredictoDeCeldaDeCuota(celda(100, 40), n, f);
+    expect(v.clase).toBe("es-corta");
+    expect(v.texto).toContain("faltarían 40");
+  });
+
+  it("una meta negativa o rota se trata como ausente, no como cumplida", () => {
+    // `!(meta > 0)` y no `meta === 0`: un NaN colado desde el payload pasaría el
+    // segundo y volvería a pintar la fila de verde.
+    expect(veredictoDeCeldaDeCuota(celda(Number.NaN, 0), n, f).clase).toBe("es-sin-cuota");
+  });
+});
+
+
+/**
+ * **Las tres cantidades del estudio, juntas y en la misma unidad.**
+ *
+ * Encargo de Gonzalo el 2026-08-30: separar «a lo que tenemos que llegar, que
+ * son las metas», «lo que se espera llegar con las aulas, que es lo diseñado al
+ * principio del estudio» y «cuánto esperamos llegar en base a […] cómo va el
+ * rendimiento en aquella facultad».
+ *
+ * Las dos expectativas ya se calculaban —la vara del diseño sale de
+ * `expected_valid` con `meta_origen === "diseno"`, y el esperado es la media
+ * posterior de un Gamma-Poisson— pero vivían separadas: una en la leyenda del
+ * gráfico y otra en el titular, tres bandas más arriba.
+ */
+describe("las dos expectativas se contrastan en la misma frase", () => {
+  const conVara = (fecha: string, efectivas: number, codigo: string): MonitoreoRow =>
+    ({
+      faculty: "Derecho", applied_at: fecha, effective_surveys: efectivas,
+      operational_code: codigo,
+    }) as unknown as MonitoreoRow;
+  const planConDiseno = (codigo: string): MonitoreoRow =>
+    ({
+      faculty: "Derecho", operational_code: codigo, eligible_n: 40,
+      expected_valid: 30, meta_origen: "diseno",
+    }) as unknown as MonitoreoRow;
+
+  const pintarConFoco = () => renderToStaticMarkup(
+    <AulasSerieDeRendimiento
+      partes={[conVara("2026-08-10", 20, "A1"), conVara("2026-08-11", 22, "A2"),
+               conVara("2026-08-12", 19, "A3")]}
+      plan={[planConDiseno("A1"), planConDiseno("A2"), planConDiseno("A3")]}
+      facultadEnFoco="Derecho"
+    />);
+
+  it("el titular dice lo conseguido, lo que pidió el diseño y lo que cabe esperar", () => {
+    const html = pintarConFoco();
+    expect(html).toContain("el diseño pedía");
+    expect(html).toContain("se espera");
+    // Y en el mismo párrafo: son tres cifras de la misma unidad que se comparan
+    // entre sí, no tres datos sueltos.
+    const titular = html.slice(html.indexOf("aulas-cadenas-lectura"));
+    const fin = titular.indexOf("</p>");
+    const frase = titular.slice(0, fin);
+    expect(frase).toContain("el diseño pedía");
+    expect(frase).toContain("se espera");
+  });
+
+  it("sin vara del diseño no se escribe nada: la leyenda ya declara ese caso", () => {
+    // Sin `meta_origen: "diseno"` no hay vara, y una frase que dijera «el diseño
+    // pedía —» afirmaría más de lo que se sabe.
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento
+        partes={[conVara("2026-08-10", 20, "A1"), conVara("2026-08-11", 22, "A2")]}
+        facultadEnFoco="Derecho"
+      />);
+    const titular = html.slice(html.indexOf("aulas-cadenas-lectura"));
+    expect(titular.slice(0, titular.indexOf("</p>"))).not.toContain("el diseño pedía");
+  });
+});
+
+describe("el vacío de la serie por sexo manda a revisar lo que de verdad falta", () => {
+  /**
+   * `hayObservadasPorSexo` sale de las celdas de cuota con `observadas > 0`, y
+   * esas celdas se llenan con **el sexo de cada respuesta**. Si están todas en
+   * cero es porque el sexo no llega —la variable sin mapear o sin decodificar—,
+   * y la atribución al curso-horario puede estar funcionando: va por el enlace
+   * del recopilador, que es otro camino.
+   *
+   * El vacío decía «Sin respuestas atribuidas a un curso-horario», que manda a
+   * revisar el enlace. `kpisDeAulas` documenta ese mismo error ya cometido y
+   * corregido en su tarjeta, y la corrección no había llegado aquí.
+   */
+  const conCuotas = (observadas: number) => renderToStaticMarkup(
+    <AulasSerieDeRendimiento
+      partes={[aplicada("2026-08-10", 20, "A1"), aplicada("2026-08-11", 22, "A2")]}
+      cuotas={[
+        { faculty: "Derecho", sex: "F", target: 40, observed: observadas },
+        { faculty: "Derecho", sex: "M", target: 30, observed: observadas },
+      ] as unknown as MonitoreoRow[]}
+    />);
+
+  it("sin sexo en ninguna respuesta, lo dice por su nombre", () => {
+    const html = conCuotas(0);
+    expect(html).toContain("Ninguna respuesta trae el sexo declarado");
+    // Y NO manda a revisar el enlace, que puede estar bien.
+    expect(html).not.toContain("Sin respuestas atribuidas a un curso-horario");
+  });
+
+  it("con sexo declarado no aparece el aviso", () => {
+    expect(conCuotas(12)).not.toContain("Ninguna respuesta trae el sexo declarado");
+  });
+});
+
+describe("la cuenta se nombra igual se lea o se escuche", () => {
+  /**
+   * Gonzalo, sobre la tarjeta del día: «no entiendo si con "encuesta" te
+   * refieres a "efectivas", porque eso tiene que estar bien claro».
+   *
+   * La tarjeta se arregló primero y el `aria-label` de cada punto se quedó
+   * atrás diciendo «encuestas»: quien ve la pantalla leía una cosa y quien la
+   * escucha oía la palabra ambigua. Es el mismo defecto que este perfil ya tuvo
+   * con el género de «Los N con más brecha», que también sólo se veía en el
+   * `aria-label`.
+   *
+   * **Se mira el FUENTE y no un render**, como hace `rendimientoPorFacultad`:
+   * el punto vive en el «Día a día», que sólo se dibuja con plan, elegibles y
+   * varios días, y construir ese fixture para comprobar una palabra cuesta más
+   * de lo que cubre. Lo que se defiende es la regla, y la regla está escrita.
+   */
+  const fuente = readFileSync(
+    new URL("./AulasSerieDeRendimiento.tsx", import.meta.url),
+    "utf8",
+  );
+
+  it("el punto del día se anuncia con «efectivas del parte»", () => {
+    const etiquetas = [...fuente.matchAll(/aria-label=\{`([^`]*)`\}/g)].map((m) => m[1]);
+    const delDia = etiquetas.filter((e) => e.includes("observado"));
+    expect(delDia.length).toBeGreaterThan(0);
+    for (const e of delDia) expect(e).toContain("efectivas del parte");
+  });
+
+  it("y ninguna etiqueta cuenta «encuestas» a secas", () => {
+    // «encuestas DEL PARTE» sí puede quedarse: ahí la fuente está dicha, y es
+    // lo que distingue esta cuenta de la de plataforma. Lo que no puede quedar
+    // es una cifra seguida de «encuestas» sin más.
+    const etiquetas = [...fuente.matchAll(/aria-label=\{`([^`]*)`\}/g)].map((m) => m[1]);
+    for (const e of etiquetas) {
+      expect(e, `«${e}» no dice de qué cuenta habla`).not.toMatch(/\}\s*encuestas(?!\s+del parte)/);
+    }
+  });
+});
+
+/**
+ * A17 (checklist operativo 2026-08-31): con «Todas las facultades»,
+ * `avance_cuota.meta_operativa` llegó del JSON de R como el STRING `"NA"` y
+ * atravesó el `?? null` de la pestaña. Aquí entraba al `Math.max` del techo,
+ * `escalaDeEje(NaN)` volvía todas las Y `NaN` y el lienzo quedaba VACÍO bajo
+ * una leyenda con cifras —quince errores de consola incluidos—.
+ *
+ * La frontera ya normaliza (`AulasPestanaRendimiento`), pero este guard es la
+ * defensa de segundo nivel: NINGÚN campo sucio futuro puede vaciar el gráfico,
+ * venga de donde venga. El techo ignora lo no finito en vez de propagarlo.
+ */
+describe("una sobremuestra sucia no vacía el gráfico (A17, C5)", () => {
+  const partes = [
+    aplicada("2026-08-10", 20, "A1"),
+    aplicada("2026-08-11", 22, "A2"),
+    aplicada("2026-08-12", 19, "A3"),
+  ];
+  const agenda = [agendada("2026-08-17", "B1")];
+
+  it("con el string \"NA\" del payload las Y siguen siendo finitas", () => {
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento
+        partes={partes}
+        agenda={agenda}
+        sobremuestra={"NA" as unknown as number}
+      />);
+    expect(html).not.toContain("NaN");
+    // Y el acumulado SE DIBUJA: un lienzo en blanco sin NaN también pasaría el
+    // aserto de arriba (verde por ausencia).
+    expect(html).toMatch(/<polyline points="[\d.]+,[\d.]+/);
+  });
+
+  it("una sobremuestra legítima sigue entrando al techo del eje", () => {
+    // Control positivo del filtro: si `Number.isFinite` descartara de más, el
+    // eje dejaría de subir hasta la sobremuestra. Con datos bajo 65 y una
+    // sobremuestra de 500, el escalón superior tiene que decir 500.
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento partes={partes} agenda={agenda} sobremuestra={500} />);
+    expect(html).toContain(">500<");
+    expect(html).not.toContain("NaN");
+  });
+});
+
+describe("cuando lo conseguido supera lo esperado", () => {
+  // «912 de 761» es una buena noticia escrita como una fracción invertida: el
+  // lector se para a comprobar si alguien cambió los números de sitio. Visto en
+  // pantalla el 2026-09-09.
+  it("lo dice como un exceso, no como una fracción al revés", () => {
+    const texto = (conseguido: number, meta: number) =>
+      conseguido > meta
+        ? `${conseguido} encuestas, un ${Math.round((100 * (conseguido - meta)) / meta)} % por encima de las ${meta}`
+        : `${conseguido} de ${meta} encuestas`;
+    expect(texto(912, 761)).toContain("un 20 % por encima de las 761");
+    expect(texto(912, 761)).not.toContain("912 de 761");
+    // Y por debajo la fracción se lee bien: no se toca.
+    expect(texto(500, 761)).toBe("500 de 761 encuestas");
   });
 });

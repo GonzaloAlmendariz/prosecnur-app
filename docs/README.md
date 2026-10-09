@@ -121,6 +121,16 @@ arquitectura canónica.
 
 ### Planes de dominio y mejora
 
+- [GOAL de Cálculo de muestra con paridad de aulas](qa/goal-calc-muestra-paridad-aulas-2026-09-23.md):
+  loop de septiembre 2026 — tablero E0–E10, lo que cambió y las decisiones
+  pendientes de Gonzalo.
+- [Research metodológico del motor general de Cálculo de muestra](qa/research-calc-muestra-robustez-2026-09-23.md):
+  28 reglas contra Cochran, Kish, Lohr y Tillé con lo que hacía el motor
+  (loop de septiembre 2026); con su [Monte Carlo del sorteo](qa/montecarlo-muestra-general-2026-09-24.md)
+  y la [regresión de aulas sobre hsvg2026](qa/regresion-aulas-hsvg2026-2026-09-24.md).
+- [GOAL de Cálculo de muestra desde el segundo sorteo](qa/goal-calc-muestra-ult2-2026-08-28.md):
+  el módulo mirado sobre HSVG26ULT2 — la cadena del marco (1.632 → 1.573 →
+  1.392), el criterio «Aula asignada» y el barrido estético de las 21 pestañas.
 - [GOAL v2 de Cálculo de muestra](qa/goal-loop-calc-muestra-v2-2026-08-01.md):
   loop permanente vigente, ledger y cola de lotes del módulo.
 - [GOAL de la superficie de Cálculo de muestra](qa/goal-loop-calc-muestra-frontend-2026-08-02.md):
@@ -149,6 +159,12 @@ arquitectura canónica.
 - [Checklist de `respondent_id` y decimales de Frecuencias](qa/checklist-respondent-id-decimales-2026-08-14.md):
   las tres barreras que dejaban el identificador de caso fuera de la BBDD y
   hasta dónde se decidió llevar la metadata de SurveyMonkey.
+- [Checklist de los criterios de curso-horario y su nivel global](qa/checklist-criterios-ch-dos-niveles-2026-08-25.md):
+  por qué la pestaña apilaba dos superficies de criterios, qué se midió antes de
+  retirar la global y las capacidades que hubo que reubicar.
+- [Checklist del criterio de nivel que vaciaba el marco](qa/checklist-nivel-curso-vacia-marco-2026-08-25.md):
+  por qué mapear la facultad a mano dejaba el marco en 0 de 5.269, y la decisión
+  sobre qué significa una facultad sin tramo declarado.
 - [El XLSForm final ignora los overrides en `label::es`](qa/bug-xlsform-final-label-es-sin-overrides.md):
   defecto abierto; el instrumento exportado se contradice con la base de datos.
 - [Prompt del loop de la superficie](qa/prompt-goal-loop-calc-muestra-frontend.md).

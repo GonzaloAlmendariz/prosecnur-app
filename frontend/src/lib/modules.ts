@@ -38,7 +38,11 @@ import {
   IconWorkPlan,
 } from "./icons";
 import { MONITOREO_PESTANAS } from "./navegacion/catalogos/monitoreo";
-import { CALC_MUESTRA_UNIVERSIDAD_PESTANAS } from "./navegacion/catalogos/calcMuestra";
+import {
+  CALC_MUESTRA_ACREDITACION_PESTANAS,
+  CALC_MUESTRA_GENERAL_PESTANAS,
+  CALC_MUESTRA_UNIVERSIDAD_PESTANAS,
+} from "./navegacion/catalogos/calcMuestra";
 import { PROCESAMIENTO_PESTANAS } from "./navegacion/catalogos/procesamiento";
 import { DASHBOARD_PESTANAS } from "./navegacion/catalogos/dashboard";
 
@@ -321,8 +325,9 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "marco-disponible",
         label: "Muestra general",
         sections: [
-          { id: "marco", label: "Marco", icon: IconStudyDesign, to: "/calc-muestra?modo=marco-disponible&seccion=marco", layoutPolicy: "viewport" },
-          { id: "metodo", label: "Método", icon: ListChecks, to: "/calc-muestra?modo=marco-disponible&seccion=metodo", layoutPolicy: "viewport" },
+          { id: "marco", label: "Marco", icon: IconStudyDesign, to: "/calc-muestra?modo=marco-disponible&seccion=marco", layoutPolicy: "viewport", tabs: CALC_MUESTRA_GENERAL_PESTANAS.marco },
+          { id: "metodo", label: "Método", icon: ListChecks, to: "/calc-muestra?modo=marco-disponible&seccion=metodo", layoutPolicy: "viewport", tabs: CALC_MUESTRA_GENERAL_PESTANAS.metodo },
+          { id: "seleccion", label: "Selección", icon: Shuffle, to: "/calc-muestra?modo=marco-disponible&seccion=seleccion", layoutPolicy: "viewport", tabs: CALC_MUESTRA_GENERAL_PESTANAS.seleccion },
           { id: "resultados", label: "Resultados", icon: BarChart3, to: "/calc-muestra?modo=marco-disponible&seccion=resultados", layoutPolicy: "viewport" },
         ],
       },
@@ -332,6 +337,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         sections: [
           { id: "actores", label: "Actores", icon: ClipboardList, to: "/calc-muestra?modo=acreditacion&seccion=actores", layoutPolicy: "viewport" },
           { id: "contexto", label: "Contexto", icon: IconStudyDesign, to: "/calc-muestra?modo=acreditacion&seccion=contexto", layoutPolicy: "viewport" },
+          { id: "seleccion", label: "Selección", icon: Shuffle, to: "/calc-muestra?modo=acreditacion&seccion=seleccion", layoutPolicy: "viewport", tabs: CALC_MUESTRA_ACREDITACION_PESTANAS.seleccion },
           { id: "resultados", label: "Resultados", icon: BarChart3, to: "/calc-muestra?modo=acreditacion&seccion=resultados", layoutPolicy: "viewport" },
         ],
       },

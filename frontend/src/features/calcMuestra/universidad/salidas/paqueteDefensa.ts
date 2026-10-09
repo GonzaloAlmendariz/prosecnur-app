@@ -65,7 +65,60 @@ function contextoAcreditado({
   const frameHash = String(aulasState?.frame?.frame_hash ?? "").trim();
   const selectionRunId = String(selection?.selection_run_id ?? "").trim();
   if (!status.selectedResultReady || !status.selectionReady || !frameHash || !selectionRunId || !selection) return null;
+  /**
+   * **El paquete de defensa es MÁS estricto que la pantalla, y a propósito.**
+   *
+   * `classroomHandoff` publica `selectionTargetDiff` sin descalificar: por ADR
+   * 0066 la selección manda sobre el conteo, y una superficie puede decir «se
+   * sortearon 174 donde la fórmula pedía 165» y seguir funcionando. Eso vale
+   * para mirar; no vale para defender.
+   *
+   * Aquí se serializa un `n_objetivo` junto a una selección concreta, y si los
+   * dos no son del mismo escenario el documento afirma algo que no ocurrió —el
+   * peor defecto posible en la pieza que existe justamente para sostener el
+   * método ante un tercero—. Ante la duda, no se emite: se falla cerrado.
+   */
+  if (status.selectionTargetDiff) return null;
   return { status, selection, frameHash, selectionRunId };
+}
+
+/**
+ * **Por qué NO se puede emitir el paquete, en las palabras del caso.**
+ *
+ * `contextoAcreditado` devuelve `null` por seis motivos distintos y la página
+ * los resumía todos en el mismo aviso: «requiere cálculo, marco y selección
+ * vigentes para el escenario elegido». Para cinco de ellos eso orienta. Para el
+ * sexto —la selección se sorteó para un tamaño y la fórmula pide otro— manda al
+ * lector a revisar tres cosas que están perfectamente bien, y no menciona la
+ * única que no lo está.
+ *
+ * Es el caso que ADR 0066 hace NORMAL, no excepcional: la selección manda sobre
+ * el conteo, así que un ajuste operativo deliberado deja al paquete sin emitir
+ * y sin explicación. El aviso tiene que decir la causa, no sólo el hecho.
+ *
+ * Sólo se llama cuando el paquete NO se puede emitir: el llamador ya tiene
+ * `fingerprint === null` para saberlo, y devolver aquí un `null` que nunca se
+ * usa obligaría a cada llamador a redactar su propio texto por defecto. El
+ * texto genérico es el DEFECTO de
+ * esta función y no del llamador: puesto en el llamador obliga a la página —un
+ * archivo congelado a crecimiento— a cargar con la redacción, y deja el caso
+ * por defecto lejos de los cinco casos que decide aquí.
+ */
+export function paqueteDefensaMotivo(context: PaqueteDefensaContext): string {
+  const { estudio, workspace, aulasState, marcoDesactualizado = false } = context;
+  const totalComp = estudio.componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const facultyComp = estudio.componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  if (!totalComp || !facultyComp) {
+    return "El estudio no declara los componentes de universidad y facultad.";
+  }
+  const status = resolveClassroomArtifactStatus({
+    workspace, totalComp, facultyComp, aulasState, marcoDesactualizado,
+  });
+  const diff = status.selectionTargetDiff;
+  if (diff) {
+    return `La selección se sorteó para ${diff.seleccionadas} cursos-horario y la fórmula pide ${diff.pedidas}. El paquete no se emite con las dos cifras a la vez: vuelve a sortear con el objetivo vigente, o ajusta el objetivo al sorteo.`;
+  }
+  return "El paquete requiere cálculo, marco y selección vigentes para el escenario elegido.";
 }
 
 export function paqueteDefensaFingerprint(context: PaqueteDefensaContext): PaqueteDefensaFingerprint | null {

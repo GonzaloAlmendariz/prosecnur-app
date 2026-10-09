@@ -30,6 +30,12 @@ export type ChromeIndicatorProps = {
   prioridad?: ChromeIndicatorPrioridad;
   /** Texto largo para el tooltip. Sin él se arma con label y value. */
   detalle?: string;
+  /**
+   * El indicador también abre lo que nombra (ej. «Tipo» abre el selector de
+   * tipos). Se pinta como botón con la misma geometría: no suma un control a
+   * la barra, vuelve accionable un dato que ya está.
+   */
+  onClick?: () => void;
 };
 
 export function ChromeIndicator({
@@ -37,16 +43,32 @@ export function ChromeIndicator({
   value,
   prioridad = "media",
   detalle,
+  onClick,
 }: ChromeIndicatorProps) {
-  return (
-    <span
-      className="pulso-chrome-indicator"
-      data-chrome-indicator=""
-      data-prioridad={prioridad}
-      title={detalle ?? `${label}: ${typeof value === "string" || typeof value === "number" ? value : ""}`.trim()}
-    >
+  const title = detalle ?? `${label}: ${typeof value === "string" || typeof value === "number" ? value : ""}`.trim();
+  const contenido = (
+    <>
       <small className="pulso-chrome-indicator-label">{label}</small>
       <strong className="pulso-chrome-indicator-value">{value}</strong>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className="pulso-chrome-indicator is-accion"
+        data-chrome-indicator=""
+        data-prioridad={prioridad}
+        title={title}
+        onClick={onClick}
+      >
+        {contenido}
+      </button>
+    );
+  }
+  return (
+    <span className="pulso-chrome-indicator" data-chrome-indicator="" data-prioridad={prioridad} title={title}>
+      {contenido}
     </span>
   );
 }

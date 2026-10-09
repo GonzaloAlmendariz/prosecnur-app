@@ -76,7 +76,22 @@ export function avanceEnRespuestas(
     // Medido: sin esto el panel pedía 4 336 mientras el ritmo y la cuota decían
     // 3 743 en la misma pantalla.
     if (fila.en_juego === false) continue;
-    const objetivo = numero(fila.expected_valid);
+    // **La meta de un aula se redondea HACIA ARRIBA, y aquí, no al pintar.**
+    //
+    // `expected_valid` llega fraccionario —es `eligible_n × rendimiento × factor`,
+    // p. ej. 18,2— y capar un conteo entero contra una fracción arrastraba el
+    // decimal a las personas: la pantalla decía «1 306,3 cubren meta» y «504,7 de
+    // más». Media respuesta no existe.
+    //
+    // Hacia arriba y no al más cercano, por la misma razón que `fmtCuenta`: una
+    // meta es algo que hay que ALCANZAR, y con 18 no se cumple una de 18,2. El
+    // motor sigue calculando con la fracción; esto es el conteo operativo.
+    //
+    // Se redondea **aquí y no en la vista** porque si sólo se redondeara al
+    // pintar, `cubierto` y `excedente` dejarían de sumar `validas` —dos cifras
+    // de la misma banda que no cuadran—. Con el objetivo entero, las cuatro
+    // salidas son enteras y reconcilian por construcción.
+    const objetivo = Math.ceil(numero(fila.expected_valid));
     const recogidas = numero(fila.respuestas_validas);
     validas += recogidas;
     // Un aula sin meta declarada no entra en el denominador: su avance no está

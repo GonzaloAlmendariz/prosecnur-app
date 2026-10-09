@@ -13,6 +13,7 @@
 // encuestas que cuentan.
 import type { FlujoEtapa } from "../../../calcMuestra/universidad/ui/FlujoVertical";
 import { fmt } from "./kpisDeAulas";
+import { entero, mermaDeRespuestas } from "./mermaDeRespuestas";
 
 /** Las cifras del tablero que este embudo necesita. */
 export type CifrasDelOperativo = {
@@ -20,14 +21,13 @@ export type CifrasDelOperativo = {
   aulas_aplicadas?: number;
   respuestas_total?: number;
   respuestas_validas?: number;
+  respuestas_fuera_del_operativo?: number;
   filter_rejected?: number;
   reemplazos_usados?: number;
 };
 
-const entero = (v: unknown): number => {
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
-};
+// `entero` vive en mermaDeRespuestas.ts: la misma cuenta para el embudo y la
+// tarjeta de Fuentes (A2).
 
 /**
  * El recorrido del operativo, con su merma en cada paso.
@@ -36,16 +36,69 @@ const entero = (v: unknown): number => {
  * el sitio de un vacío que sí podría decir qué falta — es la misma regla que el
  * resto del perfil aplica a sus paneles.
  */
-export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined): FlujoEtapa[] {
+/**
+ * **`reemplazos_usados` no cuenta reemplazos.**
+ *
+ * El motor lo define como reservas cuyo `operational_status` ya salió del estado
+ * inicial —`agendada`, `en_campo`, `aplicada`, `cerrada` o `parcial`
+ * (`monitoreo_aulas_universitarias.R:2330`)—, o sea **reservas en juego**, no
+ * titulares que se cayeron y fueron sustituidos.
+ *
+ * El repo ya lo sabía: `kpisDeAulas.ts` lo retiró de un KPI con esta nota —«el
+ * KPI `reemplazos_usados` del motor NO sirve aquí… con el registro vacío decía
+ * "0" mientras el panel de al lado decía "3 cerraron con un reemplazo"»— y esta
+ * superficie se quedó con él. Medido sobre `campo_malo`: el embudo decía «174
+ * con reemplazo activado» y «ya han entrado 174» mientras Consultas contaba
+ * «Cerraron con reemplazo 3».
+ *
+ * Se recibe en su lugar el conteo del tramo `reemplazada`, que es el estado del
+ * **titular sustituido** y por tanto lo que la frase promete. No se recalcula
+ * aquí: lo pasa quien ya lo tiene de `estadoDeAplicacion()`, para no crear una
+ * segunda regla de lo mismo.
+ */
+export function embudoDelOperativo(
+  cifras: CifrasDelOperativo | null | undefined,
+  titularesReemplazados?: number | null,
+): FlujoEtapa[] {
   const c = cifras ?? {};
   const titulares = entero(c.aulas_titulares);
   if (!titulares) return [];
 
   const aplicadas = entero(c.aulas_aplicadas);
-  const recibidas = entero(c.respuestas_total);
-  const validas = entero(c.respuestas_validas);
-  const rechazadas = entero(c.filter_rejected);
-  const reemplazos = entero(c.reemplazos_usados);
+  // A2: recibidas, efectivas y la merma repartida salen de UNA regla,
+  // compartida con la tarjeta «Respuestas leídas» de Fuentes; la explicación
+  // de por qué se resta (y no se lee `filter_rejected`) vive allá.
+  const merma = mermaDeRespuestas(c);
+  const recibidas = merma.recibidas;
+  const validas = merma.efectivas;
+  // **La merma de una etapa es la diferencia con la siguiente, no otra cuenta.**
+  //
+  // Se leía de `filter_rejected`, que el motor calcula con
+  // `.monitoreo_aulas_filter_passed()` — y esa función **no mira la cadena de
+  // filtros declarada**: busca en la base una columna llamada `filter_passed`,
+  // `apto`, `elegible`, `consent` o `consentimiento`, y si la encuentra cuenta
+  // sobre ella. Como el instrumento de este estudio abre con la pregunta de
+  // consentimiento, la columna se llama exactamente así, y la merma pasó a ser
+  // la caída de ESE filtro en vez de la de los dos declarados.
+  //
+  // Medido en pantalla: «1 811 recibidas · −67 descartadas» sobre «1 637 que
+  // cuentan», y 1 811 − 1 637 = **174**. Dos etapas contiguas del mismo embudo
+  // contando con criterios distintos.
+  //
+  // Restar las dos etapas hace la merma **cierta por construcción**: es lo que
+  // se pierde entre este escalón y el de abajo, que es lo que un embudo dice.
+  // La heurística del motor sigue sirviendo donde nació —estudios que no
+  // declaran criterio— y ahí las dos cuentas coinciden.
+  const rechazadas = merma.rechazadas;
+  // **Y de esa merma, cuánta no era del estudio.** «60 descartadas por el
+  // filtro» mete en la misma bolsa dos noticias que piden cosas distintas: las
+  // que llegaron por el QR de capacitación o de prueba —no son del operativo y
+  // no hay nada que arreglar— y las que sí salieron de un curso-horario pero no
+  // pasan el criterio, que es lo único sobre lo que el campo puede actuar. El
+  // primer día de HSVG2026 eran 36 y 24, y el aviso decía 60 a secas.
+  const fueraDelOperativo = merma.fueraDelOperativo;
+  const noPasanElCriterio = merma.noPasanElCriterio;
+  const reemplazos = entero(titularesReemplazados);
 
   const etapas: FlujoEtapa[] = [
     {
@@ -66,19 +119,19 @@ export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined
     },
     {
       id: "aplicadas",
-      label: "Aplicadas en campo",
+      label: "Aplicados en campo",
       valor: fmt(aplicadas),
-      // **«registradas en esta app», no «con parte de campo».**
+      // **El detalle dice las TRES vías desde el 2026-09-07.**
       //
-      // `aulas_aplicadas` cuenta `operational_status`, que escribe el registro
-      // de la app. El «parte de campo» es el artefacto del LIBRO —la hoja que
-      // el jefe de campo transcribe desde las fichas de papel— y NO mueve esta
-      // cifra. Medido: tres partes importados con estado «Aplicada» y la etapa
-      // seguia en 0 debajo de un rotulo que los nombraba.
+      // Decía «registradas en esta app» porque `aulas_aplicadas` sólo contaba
+      // `operational_status`, que escribe el registro de la app. Ese día el
+      // predicado pasó a incluir el parte y las respuestas —ocho aulas
+      // produciendo encuestas y la etapa decía UNA—, así que este renglón se
+      // corrige con él.
       //
-      // La prosa de mas abajo se corrigio por esto mismo y este renglon se
-      // quedo atras, en el MISMO archivo: es como vuelve un defecto reparado.
-      detalle: "registradas en esta app",
+      // Ya pasó una vez que la prosa de más abajo se arregló y este renglón se
+      // quedó atrás, en el MISMO archivo: es como vuelve un defecto reparado.
+      detalle: "registrados, con parte o ya recibiendo respuestas",
       estado: aplicadas ? "ready" : "pending",
     },
   ];
@@ -88,11 +141,30 @@ export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined
   if (recibidas) {
     etapas.push({
       id: "recibidas",
-      label: "Respuestas recibidas",
+      // «Respuestas leídas», el mismo rótulo que el KPI de Fuentes: los dos
+      // salen de la MISMA clave (`kpis.respuestas_total`, todas las filas de la
+      // base) y «recibidas» era un cuarto nombre para esa cifra.
+      label: "Respuestas leídas",
       valor: fmt(recibidas),
-      detalle: "filas que llegaron de la plataforma",
+      // **Aquí cambia lo que se cuenta, y por eso la cifra sube.** Con datos
+      // reales el flujo va 174 → 152 → 2.817 → 2.668: un embudo que se
+      // multiplica por 18 en el tercer peldaño. No es un error de cálculo, es
+      // que los dos primeros cuentan cursos-horario y los dos últimos cuentan
+      // respuestas. Los rótulos ya lo decían por separado —«Aplicados en campo»
+      // y «Respuestas leídas»— pero nadie enunciaba el salto, y la arista
+      // entre ambos va vacía a propósito: entre unidades distintas no hay merma
+      // que restar. Quien lee de arriba abajo veía crecer un embudo.
+      detalle: "respuestas, ya no cursos-horario: por eso sube",
       estado: "ready",
-      merma: rechazadas ? { n: rechazadas, label: "descartadas por el filtro" } : undefined,
+      merma: rechazadas
+        ? {
+            n: rechazadas,
+            label: fueraDelOperativo
+              ? `no cuentan: ${fmt(fueraDelOperativo)} fuera del operativo · `
+                + `${fmt(noPasanElCriterio)} no pasan el criterio`
+              : "no pasan el criterio de efectividad",
+          }
+        : undefined,
     });
     etapas.push({
       id: "validas",
@@ -125,38 +197,41 @@ export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined
  * - el banco no cuelga de ningún titular: es respaldo del estrato, no aulas que
  *   alguien vaya a visitar (`:1873`).
  */
-export function explicacionDelEmbudo(cifras: CifrasDelOperativo | null | undefined): string[] {
+/** Misma corrección que `embudoDelOperativo`: la frase de las reservas hablaba
+ *  con `reemplazos_usados`, que cuenta reservas en juego y no titulares
+ *  sustituidos. */
+export function explicacionDelEmbudo(
+  cifras: CifrasDelOperativo | null | undefined,
+  titularesReemplazados?: number | null,
+): string[] {
   const c = cifras ?? {};
   const titulares = entero(c.aulas_titulares);
   if (!titulares) return [];
 
   const frases = [
-    // **«Parte de campo» nombraba aquí lo que NO mueve esta cifra.**
+    // **Los tres caminos, y desde el 2026-09-07 los tres cuentan.**
     //
-    // La frase decía «cuenta como aplicado cuando su parte de campo lo declara»,
-    // y en esta app «parte de campo» es el nombre del artefacto del LIBRO: la
-    // hoja «Aulas Aplicadas (Campo)» que el jefe de campo transcribe desde las
-    // fichas de papel, que viaja como `partes_campo` y que esta misma pantalla
-    // rotula «3 con parte en el libro».
+    // Esta frase decía que sólo el registro de la app movía la cifra, y era
+    // cierto: `aulas_aplicadas` miraba `operational_status`, que el libro no
+    // mueve a «aplicada» nunca. El primer día de campo eso dio **una** aula
+    // aplicada con ocho produciendo encuestas —«hay aulas que se están
+    // aplicando ahora, pero no tengo nada en la base de control»—, así que la
+    // definición pasó a incluir el parte y las respuestas
+    // (`monitoreo_aulas_aula_aplicada.R`).
     //
-    // Ese parte NO mueve esta cifra. `aulas_aplicadas` cuenta
-    // `operational_status ∈ {aplicada, cerrada}`, y ese campo lo escribe el
-    // registro de campo de la APP. Medido el 2026-08-23: tres partes importados
-    // con estado «Aplicada» y `aulas_aplicadas = 0`.
-    //
-    // Es deliberado —son dos medidas del mismo aula y mezclarlas perdería de
-    // cuál viene cada número— pero la explicación decía lo contrario, así que un
-    // analista que importa el libro y ve «Aplicadas 0» concluye que la app está
-    // rota. Ahora nombra las tres fuentes y dice cuál manda.
-    "Un curso-horario cuenta como aplicado cuando alguien lo registra en esta app, "
-    + "aunque todavía no haya llegado ninguna respuesta. Son tres caminos distintos y "
-    + "sólo el primero mueve esta cifra: el registro de la app, el parte de papel que "
-    + "se transcribe al libro —que se guarda y se contrasta, pero no la mueve— y las "
-    + "respuestas, que llegan por la plataforma.",
+    // La frase se corrige con el motor: una explicación que sobrevive al cambio
+    // que describe deja de explicar y pasa a desmentir la cifra que tiene
+    // encima.
+    "Un curso-horario cuenta como aplicado por tres caminos, y basta con uno: "
+    + "alguien lo registra en esta app, su parte de campo lo declara aplicado, o ya "
+    + "están llegando sus respuestas por la plataforma. El parte se rinde al cerrar "
+    + "la aplicación y a veces tarda; las respuestas llegan solas, así que un "
+    + "curso-horario que ya está recogiendo se ve aquí aunque nadie haya escrito "
+    + "nada todavía.",
   ];
 
   // Las reservas sólo se explican si las hay: sin cadena, la frase sobra.
-  const reemplazos = entero(c.reemplazos_usados);
+  const reemplazos = entero(titularesReemplazados);
   frases.push(
     reemplazos
       ? `Las reservas no aparecen en este recorrido: entran sólo cuando su titular se cae, `

@@ -1,0 +1,45 @@
+/* aulasEslabon.css — el mando «Eslabón» de la tabla de la Agenda (B27).
+ *
+ * Hoja propia porque `aulasMonitoreo.css` está congelada a crecimiento
+ * (agentic/manifest.json); la importa `AulasSelectorDeEslabon.tsx`, su único
+ * consumidor. Habla el mismo lenguaje del mando de facultad
+ * (`.aulas-serie-mando`): control de 26 px, borde y superficie de tokens.
+ *
+ * El mando es `<label>` con el texto directo, SIN `<span>`: la regla congelada
+ * `.aulas-mon-view .mon-profile-panel-head span` convierte en píldora cualquier
+ * span de la cabecera, y la que la des-píldora sólo alcanza a los hijos
+ * directos. Un span aquí dentro ganaría la píldora sin forma barata de
+ * quitársela desde una hoja que carga después.
+ *
+ * `margin-left: auto` empuja el mando —y el contador que le sigue— al borde
+ * derecho de la cabecera, que reparte con `space-between`: sin él, el mando
+ * flotaría centrado entre el título y el contador. Cuando el plan no tiene
+ * reservas el mando no se pinta y la cabecera queda exactamente como estaba.
+ */
+.aulas-eslabon-mando {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec, 11px);
+  font-weight: var(--pulso-weight-medium, 500);
+}
+
+.aulas-eslabon-mando select {
+  height: 26px;
+  max-width: 200px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: var(--aulas-sec, 11px);
+}
+
+.aulas-eslabon-mando select:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring);
+  outline-offset: 1px;
+}

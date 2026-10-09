@@ -37,6 +37,8 @@ const cascade: CalcMuestraCriteriosCascada = {
   source_frame_hash: "frame-1",
   criteria_hash: "criteria-1",
   momento: "marco_ejecutado",
+    alumnos_vivos: true,
+    descartadas: [],
   grain: "paso_x_facultad_efectiva",
   unit: "curso_horario_unico",
   order_source: "motor_r",
@@ -327,6 +329,8 @@ function canonicalContracts() {
     source_frame_hash: radiography.frame_hash,
     criteria_hash: "criteria-canonical",
     momento: "marco_ejecutado",
+    alumnos_vivos: true,
+    descartadas: [],
     grain: "paso_x_facultad_efectiva",
     unit: "curso_horario_unico",
     order_source: "motor_r",
@@ -551,7 +555,7 @@ describe("superficie I18b de criterios", () => {
         />,
       );
       expect(html, card.cardId).toContain('role="img"');
-      expect(html, card.cardId).toContain("Total recalculado por R");
+      expect(html, card.cardId).toContain("Total del marco");
       expect(html, card.cardId).toContain("Qué queda después de cada criterio");
       expect(html, card.cardId).toContain('data-match-level="exacta"');
       expect(html, card.cardId).toContain(`data-card-id="${card.cardId}"`);

@@ -6,7 +6,7 @@
  *
  * Es ilustrativo, NO navegable: el rail y el sidebar ya son el recorrido real;
  * este dibujo solo orienta. Cada nodo declara su RESULTADO ("qué obtienes"),
- * `highlight` marca dónde está parado el usuario con el pin "Estás aquí" y
+ * `highlight` marca la primera etapa PENDIENTE con el pin "Lo siguiente" y
  * `estados` rellena el círculo de los pasos ya completados por el motor.
  *
  * Layout: stepper FLEX responsivo — los nodos tienen tamaño fijo y los
@@ -68,7 +68,12 @@ export function MuestraFlowDiagram({ highlight, estados, compacto }: MuestraFlow
                 style={{ animationDelay: `${i * 45}ms` } as CSSProperties}
               >
                 <span className="cmv2-muestra-flow-badge">
-                  {state === "active" && <span className="cmv2-muestra-flow-pin">Estás aquí</span>}
+                  {/* «Estás aquí» prometía ubicación y entregaba otra cosa: `highlight` es la
+                      primera etapa PENDIENTE (DefEstudioTab.tsx), no la pestaña abierta, así
+                      que con el recorrido hecho hasta el cálculo el pin señalaba Selección
+                      mientras el analista leía Datos › Estudio. El cálculo está bien; la
+                      palabra no. */}
+                  {state === "active" && <span className="cmv2-muestra-flow-pin">Lo siguiente</span>}
                   <NodeIllustration nodeKey={node.key} />
                 </span>
                 <span className="cmv2-muestra-flow-label">

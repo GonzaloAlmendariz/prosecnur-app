@@ -1,0 +1,124 @@
+/* La declaración de la facultad — hoja propia porque `aulasMonitoreo.css` está
+ * congelada a crecimiento. La importa `AulasFacultadDeclarada.tsx`.
+ *
+ * Quince desplegables en columna son un muro. El código va delante, en caja
+ * monoespaciada y estrecha, para que el ojo baje por la columna de códigos y
+ * no tenga que releer el nombre largo de cada facultad. */
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-declarada {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-declarada em {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  font-style: normal;
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-mandos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-mandos button,
+.mon-profile-page.is-aulas-flow .aulas-facultad-guardar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface-raised);
+  color: var(--pulso-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-mandos button:disabled,
+.mon-profile-page.is-aulas-flow .aulas-facultad-guardar:disabled {
+  cursor: default;
+  color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-faltan {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+/* Dos columnas cuando el ancho da: quince filas de una sola columna obligan a
+ * desplazarse para ver si falta alguna por asignar. */
+.mon-profile-page.is-aulas-flow .aulas-facultad-mapa {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 4px 14px;
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-mapa li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-codigo {
+  min-width: 26px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--pulso-surface-raised);
+  border: 1px solid var(--pulso-border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  text-align: right;
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-mapa select {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2px 5px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* El veredicto del cruce: es el que dice si el mapeo sirve, así que se lee sin
+ * buscarlo. En atención NO se pinta de rojo pleno —no es un error del campo,
+ * es un catálogo por corregir— sino con la tinta del aviso. */
+.mon-profile-page.is-aulas-flow .aulas-facultad-veredicto {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-veredicto.es-ok {
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-veredicto.es-atencion {
+  color: var(--pulso-danger-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-facultad-vacio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}

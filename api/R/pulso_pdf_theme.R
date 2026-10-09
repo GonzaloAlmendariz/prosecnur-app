@@ -24,7 +24,12 @@ pulso_pdf_tokens <- function() {
     navy   = "#002457",  # marca Pulso: títulos, reglas, nombres de variable
     ink    = "#1f2933",  # texto principal
     soft   = "#5f6b7a",  # secundario: subtítulos, códigos, periodo, nº pág
-    faint  = "#8792a2",  # terciario: notas tenues, ejes
+    # #8792a2 daba 3,15:1 sobre blanco: por debajo del 4,5:1 de WCAG AA para
+    # texto normal, y es el color de CASI TODOS los rótulos pequeños del
+    # documento —encabezados de columna, ejes, antetítulos, versalitas— a 5,8 y
+    # 7,4 pt, que no son «texto grande» por ningún criterio. Oscurecido sobre su
+    # propio matiz hasta cruzar el umbral: 4,53:1. Medido, no estimado.
+    faint  = "#6e7784",  # terciario: notas tenues, ejes
     rule   = "#d0d5dd",  # regla hairline (divisores)
     line   = "#d8e0ef",  # regla de cabecera/pie
     # Tabla estructurada
@@ -34,6 +39,26 @@ pulso_pdf_tokens <- function() {
     tbl_div    = "#c9d1de",  # divisor de columnas
     canvas     = "#f6f8fb",  # lienzo de fondo (dashboards)
     surface    = "#ffffff",  # tarjetas/paneles
+    # Sobre fondo navy (portadas, bandas): el blanco para la cifra y un azul
+    # lavado para el rótulo. Un gris neutro sobre navy se ve sucio; el rótulo
+    # tiene que ser el MISMO tono de la marca, sólo más claro.
+    sobre_navy = "#ffffff",
+    sobre_navy_tenue = "#8ea8cc",
+    # Sexo: los MISMOS valores que la app en pantalla
+    # (`--pulso-module-dashboard` y `--pulso-accent-rose` de `tokens.css`). Van
+    # copiados y no derivados porque el PDF no puede leer el CSS, y van copiados
+    # CON esta nota porque un lector del PDF y un lector de la pantalla comparan
+    # los dos: si el azul de hombres no fuera el mismo azul, el documento
+    # contradiría a la herramienta con la que se hizo.
+    # **En gris son el mismo tono**: sus luminancias relativas son 0,160 y 0,163,
+    # así que una impresión en blanco y negro los vuelve indistinguibles. No se
+    # corrigen aquí —son la identidad de la app en pantalla y el documento se
+    # compara con ella—, se compensa en el dibujo: ningún gráfico puede confiar
+    # SÓLO en estos dos colores para decir cuál es cuál. En «Metas por facultad»
+    # cada carril lleva su letra; en las tablas, su fila dice «Hombres» o
+    # «Mujeres». Medido con la fórmula de luminancia de WCAG.
+    sexo_h = "#4a6eb6",
+    sexo_m = "#c2416b",
     # Acentos semánticos (opcionales, para dashboards; no decorativos)
     success = "#0f766e",  # verde territorial (zonas aplicadas, cumplimiento alto)
     warn    = "#b7791f",
@@ -42,7 +67,32 @@ pulso_pdf_tokens <- function() {
 }
 
 # --- Escala tipográfica (pt) -----------------------------------------------
-pulso_pdf_type <- function() {
+#' @param escala `"tecnica"` (por defecto) para los documentos densos —libro de
+#'   códigos, formulario—, donde el cuerpo pequeño es lo que permite que una
+#'   variable entre por página. `"cliente"` para los entregables que alguien lee
+#'   de un tirón: **un punto y medio más de cuerpo en todo**.
+#'
+#'   No es una preferencia: son dos problemas distintos. El libro de códigos se
+#'   consulta, y su lector busca un nombre en una lista; el reporte de avance se
+#'   lee, muchas veces proyectado o impreso, y con 8 pt de cuerpo y 6,4 de
+#'   caption las cifras de sus gráficos se ven diminutas (Gonzalo, 2026-09-11:
+#'   «los gráficos por alguna razón se sienten muy pequeños, las letras muy
+#'   chicas; no importa usar más página con tal de que se vea bien»).
+#' @export
+pulso_pdf_type <- function(escala = c("tecnica", "cliente")) {
+  escala <- match.arg(escala)
+  if (identical(escala, "cliente")) {
+    return(list(
+      title = 17,
+      subtitle = 10.5,
+      section = 15,
+      body = 9.6,
+      code = 9.0,
+      footer = 8.8,
+      caption = 7.4,
+      eyebrow = 6.6
+    ))
+  }
   list(
     title = 15,      # título de cabecera (bold, navy)
     subtitle = 9.5,  # subtítulo de cabecera (plain, soft)
@@ -50,7 +100,28 @@ pulso_pdf_type <- function() {
     body = 8.0,      # cuerpo
     code = 7.8,      # código / celdas de tabla
     footer = 8.0,    # periodo / nº pág
-    caption = 6.4    # etiquetas de KPI / captions
+    caption = 6.4,   # etiquetas de KPI / captions
+    eyebrow = 5.8    # versalitas con aire: antetítulos, rótulos de sección
+  )
+}
+
+# --- Pesos de regla ----------------------------------------------------------
+#
+# Tres funciones, tres grosores, y ninguno más. Sin este vocabulario un mismo
+# documento acumuló OCHO pesos distintos —0,28 · 0,3 · 0,4 · 0,5 · 0,6 · 0,7 ·
+# 0,8 · 0,9— para lo que son tres cosas: separar dos filas, cerrar un encabezado
+# de columnas y abrir o cerrar un bloque. Cada uno se eligió razonablemente en su
+# momento; juntos hacen que dos tablas de la misma hoja no se parezcan, y ésa es
+# exactamente la clase de descuido que se nota sin poder nombrarse.
+
+#' Grosores canónicos de regla del sistema Pulso PDF.
+#' @export
+pulso_pdf_pesos <- function() {
+  list(
+    fila = 0.3,      # divisoria entre dos filas de una tabla
+    columna = 0.6,   # bajo el encabezado de columnas
+    bloque = 0.9,    # apertura de tabla, cierre de bloque
+    acento = 2.2     # el segmento navy que ancla un título
   )
 }
 
@@ -65,6 +136,30 @@ pulso_pdf_geo <- function(orientation = c("portrait", "landscape")) {
     list(orientation = orientation, page_w = 11.69, page_h = 8.27,
          margin = 0.048, y_top = 0.900, y_bottom = 0.082)
   }
+}
+
+#' Abre el device PDF con la geometría del kit.
+#'
+#' Existe porque el nombre de los campos se puede escribir mal y nadie se entera:
+#' el reporte de avance de aulas pedía `geo$w_in`/`geo$h_in` —que no existen— y
+#' `grDevices::pdf()` caía en silencio a su defecto de 7×7 pulgadas. El documento
+#' se generaba, se abría y se veía razonable; simplemente no era apaisado, y la
+#' tabla ancha para la que se eligió el apaisado venía apretándose desde el día
+#' uno. Un `$` sobre una lista devuelve `NULL` por un nombre inexistente, así que
+#' no hay error que ver. Con esta función el nombre se escribe UNA vez.
+#'
+#' @param path ruta del PDF.
+#' @param geo salida de `pulso_pdf_geo()`.
+#' @export
+pulso_pdf_abrir <- function(path, geo = pulso_pdf_geo(), onefile = TRUE) {
+  w <- geo$page_w; h <- geo$page_h
+  if (!is.numeric(w) || !is.numeric(h) || !length(w) || !length(h) ||
+      !is.finite(w[[1L]]) || !is.finite(h[[1L]])) {
+    stop("pulso_pdf_abrir(): la geometria no trae page_w/page_h numericos.")
+  }
+  grDevices::pdf(path, width = w[[1L]], height = h[[1L]],
+                 paper = "special", onefile = onefile)
+  invisible(path)
 }
 
 # --- Logo con corrección de aspecto -----------------------------------------
@@ -126,7 +221,8 @@ pulso_pdf_header <- function(titulo, subtitulo = "", tokens = pulso_pdf_tokens()
 # --- Pie: logo (izq) · periodo (centro) · "Pág. N" (der) · hairline ---------
 # El logo YA identifica a Pulso; el centro NO repite "Fuente: Pulso".
 pulso_pdf_footer <- function(page_no, periodo = "", tokens = pulso_pdf_tokens(),
-                             ty = pulso_pdf_type(), geo = pulso_pdf_geo()) {
+                             ty = pulso_pdf_type(), geo = pulso_pdf_geo(),
+                             pagina = TRUE) {
   m <- geo$margin; right <- 1 - m
   grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.062, "npc"),
                    gp = grid::gpar(col = tokens$line, lwd = 0.7))
@@ -135,9 +231,14 @@ pulso_pdf_footer <- function(page_no, periodo = "", tokens = pulso_pdf_tokens(),
     grid::grid.text(periodo, x = grid::unit(0.5, "npc"), y = grid::unit(0.038, "npc"),
                     gp = grid::gpar(fontsize = ty$footer, col = tokens$soft))
   }
-  grid::grid.text(paste0("Pag. ", page_no), x = grid::unit(right, "npc"),
-                  y = grid::unit(0.038, "npc"), just = c("right", "center"),
-                  gp = grid::gpar(fontsize = ty$footer, col = tokens$soft))
+  # `pagina = FALSE` deja el pie en solo el logo: en una hoja de UNA pagina que
+  # se reparte suelta por aula, «Pag. 1» no informa nada (dictado de Gonzalo,
+  # 2026-09-01). Los reportes multipagina conservan su numeracion.
+  if (isTRUE(pagina)) {
+    grid::grid.text(paste0("Pag. ", page_no), x = grid::unit(right, "npc"),
+                    y = grid::unit(0.038, "npc"), just = c("right", "center"),
+                    gp = grid::gpar(fontsize = ty$footer, col = tokens$soft))
+  }
   invisible(NULL)
 }
 

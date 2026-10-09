@@ -9,22 +9,61 @@
 # 1— y solo teñia la cabecera, asi que veinte columnas dentro las celdas eran
 # todas blancas y no habia forma de saber en que eslabon se escribe.
 
-test_that("cada eslabon tiene SU color, sin repetir", {
-  # Con doce bloques, dos tonos alternando dan seis pares iguales.
-  for (n in c(3L, 12L)) {
+# La distancia RGB entre dos tonos. El paso de la escala vieja era ~17 y
+# Gonzalo la leyo como UN color repetido; 40 es el piso por encima del cual dos
+# cabeceras vecinas se leen como colores distintos, con margen sobre ese 17.
+.ce_distancia <- function(a, b) {
+  sqrt(sum((grDevices::col2rgb(a)[, 1] - grDevices::col2rgb(b)[, 1])^2))
+}
+
+# Contraste WCAG contra el texto BLANCO de la cabecera (que ademas va en
+# negrita: el umbral de texto grande/bold es 3.0).
+.ce_contraste_blanco <- function(hex) {
+  v <- grDevices::col2rgb(hex)[, 1] / 255
+  v <- ifelse(v <= 0.03928, v / 12.92, ((v + 0.055) / 1.055)^2.4)
+  lum <- sum(c(0.2126, 0.7152, 0.0722) * v)
+  (1.0 + 0.05) / (lum + 0.05)
+}
+
+test_that("B18: cada reemplazo tiene SU color — cinco tonos como minimo antes de repetir", {
+  # Dictado de Gonzalo (2026-09-01): «solo el titular y el reemplazo 1 tienen
+  # color diferente; luego todas las demas tienen el mismo color que el
+  # reemplazo 1. Cada reemplazo deberia tener un color diferente — por lo menos
+  # cinco colores que se repitan y contrasten bien con el encabezado blanco».
+  # La escala vieja degradaba UN azul en pasos de ~17 RGB: numericamente unicos,
+  # visualmente el mismo color. El contrato v4: paleta ciclica de >=5 tonos, y
+  # dentro de cualquier ventana de cinco reemplazos consecutivos TODOS
+  # distinguibles entre si (repetir esta permitido recien al agotar el ciclo).
+  for (n in c(3L, 6L, 12L)) {
     tonos <- aulas_libro_colores_eslabon(n)
     expect_length(tonos, n)
-    expect_identical(anyDuplicated(tonos), 0L)
+    reemplazos <- tonos[-1]
+    for (i in seq_along(reemplazos)) {
+      for (j in seq_len(min(length(reemplazos), i + 4L))[-seq_len(i)]) {
+        expect_gte(
+          .ce_distancia(reemplazos[[i]], reemplazos[[j]]), 40,
+          label = sprintf("distancia R%d–R%d con n=%d (%s vs %s)",
+                          i, j, n, reemplazos[[i]], reemplazos[[j]])
+        )
+      }
+    }
   }
+  # Con doce bloques hay al menos cinco tonos de reemplazo distintos.
+  expect_gte(length(unique(aulas_libro_colores_eslabon(12L)[-1])), 5L)
   # El titular conserva el navy del resto del libro.
   expect_identical(aulas_libro_colores_eslabon(5L)[[1]], "#002457")
 })
 
-test_that("los reemplazos se aclaran segun se alejan de la cadena", {
-  # La jerarquia es real: el primero entra antes que el ultimo.
-  tonos <- aulas_libro_colores_eslabon(6L)
-  luminancia <- vapply(tonos[-1], function(h) sum(grDevices::col2rgb(h)), numeric(1))
-  expect_true(all(diff(luminancia) > 0))
+test_that("B18: todos los tonos aguantan el texto blanco de la cabecera", {
+  # La cola de la escala vieja llegaba a #99B0CB: contraste 2.2 contra el texto
+  # blanco — la cabecera del reemplazo 11 no se leia. Todos los tonos, a
+  # cualquier profundidad, sostienen >=3.0 (texto grande en negrita, WCAG).
+  for (n in c(3L, 6L, 12L)) {
+    for (tono in aulas_libro_colores_eslabon(n)) {
+      expect_gte(.ce_contraste_blanco(tono), 3.0,
+                 label = sprintf("contraste de %s con n=%d", tono, n))
+    }
+  }
 })
 
 test_that("el color baja a las filas de datos y distingue los eslabones", {
@@ -158,7 +197,7 @@ test_that("el mismo eslabon tiene el mismo color en las DOS hojas", {
   }
 })
 
-test_that("los cuatro tramos de la Base de control se distinguen", {
+test_that("los cinco tramos de la Base de control se distinguen", {
   # 43 columnas: el color es lo unico que dice en que parte de la hoja se esta
   # cuando la banda ya quedo arriba. Salian los cuatro con el mismo navy.
   libro <- withr::local_tempfile(fileext = ".xlsx")
@@ -166,7 +205,7 @@ test_that("los cuatro tramos de la Base de control se distinguen", {
   g <- aulas_libro_grupos_control()
   bandas <- vapply(g, function(x) relleno_de_celda(libro, "Base de control", x$desde, 1),
                    character(1))
-  expect_length(bandas, 4L)
+  expect_length(bandas, 5L)
   expect_identical(anyDuplicated(bandas), 0L)
 })
 

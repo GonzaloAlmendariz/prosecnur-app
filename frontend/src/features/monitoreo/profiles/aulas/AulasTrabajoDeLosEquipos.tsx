@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { produccionPorAplicador } from "./produccionPorAplicador";
 import { fmt } from "./kpisDeAulas";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 
 /**
  * Cómo trabaja cada equipo.
@@ -44,8 +45,8 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
     // tres paneles a la vez.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Los partes no dicen quién aplicó cada aula, así que no hay producción que
-        repartir. El aplicador se anota al registrar el aula.
+        Los partes no dicen quién aplicó cada curso-horario, así que no hay producción que
+        repartir. El aplicador se anota al registrar el curso-horario.
       </p>
     );
   }
@@ -58,20 +59,22 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
         {r.distinguibles === 0 ? (
           <>
             Ningún equipo se separa de las <strong>{fmt1(r.mediaDelEstudio)}</strong>{" "}
-            encuestas por aula del estudio
+            efectivas por curso-horario del estudio
           </>
         ) : (
           <>
             <strong>{fmt(r.distinguibles)}</strong>{" "}
             {r.distinguibles === 1 ? "equipo se separa" : "equipos se separan"} de las{" "}
-            {fmt1(r.mediaDelEstudio)} encuestas por aula del estudio
+            {fmt1(r.mediaDelEstudio)} efectivas por curso-horario del estudio
           </>
         )}
       </p>
       <ul className="aulas-equipos-lista">
         {r.equipos.map((e) => (
           <li key={e.aplicador} className={e.seDistingue ? "es-distinto" : undefined}>
-            <span className="aulas-equipos-nombre">{e.aplicador}</span>
+            {/* El nombre, como se escribe un nombre (dictado 2026-09-04).
+                La `key` se queda con el crudo: es su identidad. */}
+            <span className="aulas-equipos-nombre">{nombreDeAplicador(e.aplicador)}</span>
             <span className="aulas-equipos-barra">
               <span style={{
                 width: `${(e.porAula / tope) * 100}%`,
@@ -82,7 +85,7 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
             </span>
             <span className="aulas-equipos-n"><strong>{fmt1(e.porAula)}</strong></span>
             <span className="aulas-equipos-por">
-              por aula en {e.aulas} · ±{fmt1(2 * e.ee)}
+              por curso-horario en {e.aulas} · ±{fmt1(2 * e.ee)}
               {e.rechazosPorCien !== null && e.rechazosPorCien > 0
                 ? ` · ${fmtUnDecimal(e.rechazosPorCien)} rechazos/100`
                 : ""}
@@ -97,9 +100,9 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
         {/* Qué significa el ± y por qué está. Sin esto, la lista ordenada se lee
             como un ranking de personas. */}
         El ± es lo que puede moverse la media de un equipo por el reparto de
-        aulas que le tocó. Cuando dos bandas se solapan, la diferencia entre esos
+        cursos-horario que le tocó. Cuando dos bandas se solapan, la diferencia entre esos
         equipos no se puede atribuir a cómo trabajan.
-        {" "}Rechazos y duplicados van por cada cien encuestas conseguidas: en
+        {" "}Rechazos y duplicados van por cada cien efectivas conseguidas: en
         bruto, quien hace más aulas parece siempre el más problemático.
       </p>
     </div>

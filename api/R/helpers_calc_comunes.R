@@ -164,75 +164,48 @@ calc_e_desde_n_muestra <- function(n, N, p = 0.5, z = 1.96, deff = 1) {
 
 #' Distribuye un total proporcionalmente a una columna de pesos.
 #'
-#' Por defecto usa "cuadratura": los residuos del redondeo se absorben en la
-#' categoría mayor para que la suma exacta coincida con `n_total`.
+#' Reparto por mayor resto (Hamilton): piso de cada cuota cruda y las
+#' unidades sobrantes a los mayores decimales, empates por el orden de
+#' entrada. La suma cierra exacta y ninguna categoría con peso queda en cero
+#' por arrastrar el residuo de otra (research H01; decisión de Gonzalo del
+#' 2026-09-24, P1 del loop de Cálculo de muestra).
+#'
+#' Hasta esa decisión, «cuadratura» hacía ceiling y cargaba el residuo entero
+#' en la categoría mayor —5 sobre (100,1×6) daba 0,1,1,1,1,1,1: suma 6 y la
+#' del 94 % en cero— y «round_residuo_controlado» hacía round() con el residuo
+#' también a la mayor. Ambos nombres se aceptan y hoy significan mayor resto;
+#' sobre hsvg2026 el cambio no movió ninguna cifra (delta medido, docs/qa/
+#' goal-calc-muestra-paridad-aulas-2026-09-23.md).
 #'
 #' @param n_total Tamaño total a distribuir.
 #' @param pesos Vector numérico con pesos relativos (típicamente N por categoría).
-#' @param redondeo `"arriba"`, `"cuadratura"` o
-#'   `"round_residuo_controlado"`. El último modo conserva el `round()`
-#'   metodológico y aplica el residuo a la categoría de mayor peso; se usa
-#'   únicamente en la distribución universitaria P1/P2.
+#' @param redondeo `"cuadratura"` o `"round_residuo_controlado"` (ambos mayor
+#'   resto) o `"arriba"` (ceiling de cada cuota, sin cuadrar la suma).
 #' @return Vector entero con asignación por categoría.
 distribuir_proporcional_pesos <- function(n_total, pesos, redondeo = "cuadratura") {
   if (length(pesos) == 0L) return(integer())
-  total_peso <- sum(pesos, na.rm = TRUE)
-  if (total_peso <= 0) return(rep(0L, length(pesos)))
-  prop <- pesos / total_peso
-  crudo <- n_total * prop
-  asignado <- if (identical(redondeo, "round_residuo_controlado")) {
-    round(crudo)
-  } else {
-    ceiling(crudo)
-  }
-  asignado[is.na(asignado)] <- 0L
-
-  if (identical(redondeo, "cuadratura")) {
-    asignado <- ajustar_cuadratura_residuo(asignado, n_total, pesos)
-  } else if (identical(redondeo, "round_residuo_controlado")) {
-    asignado <- ajustar_round_residuo_controlado(asignado, n_total, pesos)
-  }
-  as.integer(asignado)
-}
-
-#' Ajusta el residuo posterior a round() sin alterar la cuadratura legacy.
-#'
-#' Los empates se resuelven por el orden de entrada. Un residuo positivo se
-#' suma a la categoría de mayor peso; uno negativo se descuenta de esa misma
-#' categoría y, solo si no alcanza, continúa por peso descendente.
-ajustar_round_residuo_controlado <- function(asignado, n_objetivo, pesos) {
-  asignado <- as.integer(asignado)
-  diff <- as.integer(n_objetivo - sum(asignado))
-  if (diff == 0L || !length(asignado)) return(asignado)
-
   pesos <- suppressWarnings(as.numeric(pesos))
-  pesos[!is.finite(pesos)] <- -Inf
-  orden <- order(-pesos, seq_along(pesos))
-  if (diff > 0L) {
-    asignado[orden[[1L]]] <- asignado[orden[[1L]]] + diff
-    return(asignado)
-  }
-
-  pendiente <- -diff
-  for (idx in orden) {
-    descuento <- min(asignado[[idx]], pendiente)
-    asignado[[idx]] <- asignado[[idx]] - descuento
-    pendiente <- pendiente - descuento
-    if (pendiente == 0L) break
-  }
-  asignado
+  pesos[!is.finite(pesos) | pesos < 0] <- 0
+  total_peso <- sum(pesos)
+  if (total_peso <= 0) return(rep(0L, length(pesos)))
+  # En double: n·peso pasa de 2^31 con marcos de millones.
+  crudo <- as.numeric(n_total) * pesos / total_peso
+  if (identical(redondeo, "arriba")) return(as.integer(ceiling(crudo)))
+  reparto_mayor_resto(crudo, n_total)
 }
 
-#' Ajusta una asignación entera para que su suma == n_objetivo.
-#'
-#' El residuo se aplica completo a la categoría con mayor peso.
-ajustar_cuadratura_residuo <- function(asignado, n_objetivo, pesos = NULL) {
-  diff <- n_objetivo - sum(asignado)
-  if (diff == 0L) return(asignado)
-  idx <- if (!is.null(pesos)) which.max(pesos) else which.max(asignado)
-  asignado[idx] <- asignado[idx] + diff
-  asignado[asignado < 0L] <- 0L
-  asignado
+#' Redondea cuotas crudas a enteros que suman exactamente `n_total`: piso de
+#' cada una y las unidades que faltan a los mayores decimales (empates por
+#' orden de entrada).
+reparto_mayor_resto <- function(crudo, n_total) {
+  base <- floor(crudo)
+  faltan <- as.integer(round(as.numeric(n_total) - sum(base)))
+  if (faltan > 0L) {
+    orden <- order(-(crudo - base), seq_along(crudo))
+    idx <- orden[seq_len(min(faltan, length(crudo)))]
+    base[idx] <- base[idx] + 1
+  }
+  as.integer(base)
 }
 
 # ---------------------------------------------------------------------------
@@ -466,4 +439,49 @@ calc_bool <- function(x, default = FALSE) {
 .pulso_pct_etiquetas <- function(p, dec = 0, metodo = "estandar") {
   units <- .pulso_pct_unidades(p, dec = dec, metodo = metodo)
   list(units = units, labels = .pulso_fmt_pct_unidades(units, dec))
+}
+
+#' Clasifica un valor de sexo en `"F"` / `"M"`, o `NA` si no es ninguno.
+#'
+#' **«Mujer» empieza por eme.** Tres sitios del motor se hacían su propia
+#' clasificación y dos de ellas miraban la primera letra
+#' (`substr(k, 1, 1) %in% c("F", "M")`), así que un padrón que etiquete
+#' «Mujer»/«Hombre» —o «MUJER», o «Masculino»— metía **todas las mujeres en la
+#' cuenta de hombres**, sin un solo aviso y con los totales por facultad
+#' cuadrando. El tercero comparaba contra los literales y las descartaba en
+#' silencio, dejando la facultad en cero.
+#'
+#' No es hipotético: `sex_top_1` sale del padrón de la universidad **tal cual**
+#' —la regla de la casa es no normalizar lo que viene de la DTI— y
+#' `audit_reference.R` mapea `"1" = "Mujer", "2" = "Hombre"`. Que HSVG2026
+#' traiga `F`/`M` es una propiedad de ESE archivo, no del formato.
+#'
+#' El criterio es el mismo que el `sexSeriesKind` del frontend: **pertenencia
+#' exacta primero, subcadena después**, para que `"M"` a secas siga siendo
+#' hombre y `"Mujer"` sea mujer. Lo que no se reconoce devuelve `NA` y quien
+#' llame decide; nunca cae a un sexo por descarte.
+#'
+#' @param x Vector de valores de sexo tal como vienen del dato.
+#' @return Vector carácter de la misma longitud con `"F"`, `"M"` o `NA`.
+#' @keywords internal
+.pulso_sexo_fm <- function(x) {
+  k <- tolower(trimws(as.character(x)))
+  k <- gsub("[^a-z]", "", iconv(k, to = "ASCII//TRANSLIT", sub = ""))
+  fem <- c("f", "fem", "femenino", "femenina", "female", "mujer", "mujeres", "m2")
+  masc <- c("m", "masc", "masculino", "masculina", "male", "hombre", "hombres",
+            "varon", "varones", "h")
+  out <- rep(NA_character_, length(k))
+  # Pertenencia exacta antes que subcadena: al revés, "m" caería en el
+  # `grepl("mujer")` de nadie pero "mujer" sí casa un `grepl("m")`, que es
+  # exactamente el error que esto viene a cerrar.
+  out[k %in% fem] <- "F"
+  out[k %in% masc] <- "M"
+  # El `grepl` va sobre `k` ENTERO, no sobre `k[pend]`: cruzar un vector
+  # recortado con una mascara de longitud completa recicla en silencio y la
+  # clasificacion sale corrida. Lo cazo el test de los valores desconocidos.
+  pend <- is.na(out) & nzchar(k)
+  out[pend & grepl("mujer|femenin|female", k)] <- "F"
+  pend <- is.na(out) & nzchar(k)
+  out[pend & grepl("hombre|masculin|varon", k)] <- "M"
+  out
 }

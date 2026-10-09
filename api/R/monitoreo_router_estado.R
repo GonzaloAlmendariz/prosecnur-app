@@ -5,9 +5,47 @@
 # mismo namespace: el traslado no cambia comportamiento, solo reparte el
 # archivo. La lógica de dominio nueva va al engine, no aquí.
 
+# A6b (loop estética-aulas-sheets, 2026-09-08): la clave de cache no serializa
+# el estudio entero. Medido con HSVG2026 (1.392 unidades): esta función tardaba
+# 2,18 s y devolvía 29 MB, y corre al menos dos veces por petición (la clave del
+# derivado y el token del tablero); el token era una cadena de 29,9 millones de
+# caracteres que se comparaba y se guardaba en la sesión. Eran los ~8 s de
+# `/api/monitoreo/state` que no salían ni en `derived` ni en `dashboard`, y por
+# eso un «hit» costaba 2 s. El plan y las listas del marco se resumen en su
+# conteo más un digest del objeto R (xxhash64: 0,014 s para el plan), que
+# invalida igual —cualquier cambio en una fila cambia el digest— y pesa nada.
+.MONITOREO_CACHE_LISTAS_DEL_MARCO <- c("profile_distributions", "sex_by_faculty", "category_profiles")
+
+.monitoreo_cache_resumen_lista <- function(x) {
+  n <- if (is.data.frame(x)) nrow(x) else length(x %||% list())
+  hash <- if (requireNamespace("digest", quietly = TRUE)) digest::digest(x, algo = "xxhash64") else ""
+  list(n = as.integer(n), hash = hash)
+}
+
+.monitoreo_cache_config_compacta <- function(cfg) {
+  if (!is.list(cfg)) return(cfg)
+  au <- cfg[["aulas_universitarias"]]
+  if (!is.list(au)) return(cfg)
+  if (!is.null(au[["plan"]])) au[["plan"]] <- .monitoreo_cache_resumen_lista(au[["plan"]])
+  compactar <- function(bloque) {
+    if (!is.list(bloque)) return(bloque)
+    for (k in intersect(.MONITOREO_CACHE_LISTAS_DEL_MARCO, names(bloque))) {
+      bloque[[k]] <- .monitoreo_cache_resumen_lista(bloque[[k]])
+    }
+    bloque
+  }
+  au[["quotas"]] <- compactar(au[["quotas"]])
+  au[["representativity"]] <- compactar(au[["representativity"]])
+  if (is.list(au[["methodology"]])) {
+    au[["methodology"]][["representativity"]] <- compactar(au[["methodology"]][["representativity"]])
+  }
+  cfg[["aulas_universitarias"]] <- au
+  cfg
+}
+
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(
-    jsonlite::toJSON(cfg, auto_unbox = TRUE, null = "null", dataframe = "rows"),
+    jsonlite::toJSON(.monitoreo_cache_config_compacta(cfg), auto_unbox = TRUE, null = "null", dataframe = "rows"),
     error = function(e) ""
   )
 }
@@ -88,6 +126,112 @@
   }
   ids
 }
+# Las fuentes que sincronizaron SIN TRAER NADA (2026-09-08).
+#
+# Kobo respondiendo 200 con cero registros devuelve un `data.frame` de 0 filas,
+# que no es `NULL`: entraba en `sync_summary` como fuente sincionada con éxito y
+# el merge borraba sus filas previas sin poner ninguna en su lugar. El camino de
+# ERROR ya estaba protegido —una fuente que revienta no entra en el resumen—;
+# el del éxito vacío, no. Esta función las nombra para que el merge las respete
+# y para que quien avisa pueda decir CUÁLES no trajeron nada.
+.monitoreo_sync_empty_source_ids <- function(sync_summary = list()) {
+  if (!is.list(sync_summary) || !length(sync_summary)) return(character(0))
+  ids <- vapply(sync_summary, function(item) {
+    if (!is.list(item)) return("")
+    filas <- suppressWarnings(as.integer(item$rows %||% NA))
+    if (!is.na(filas) && filas > 0L) return("")
+    .monitoreo_scalar(item$source_id, "")
+  }, character(1))
+  unique(ids[nzchar(ids)])
+}
+
+# B3 (2026-09-08): **conservar en silencio también engaña.**
+#
+# Con el guard de arriba, una fuente que vuelve vacía ya no borra lo anterior.
+# Pero la pantalla sigue enseñando las cifras de antes con la fecha de ahora, y
+# nadie sabe que la última sincronización no trajo nada: es exactamente la
+# situación en la que Gonzalo leyó «Efectivas 0» y la creyó. El aviso dice la
+# CAUSA y su consecuencia —qué fuente no trajo nada y qué se está viendo en su
+# lugar—, no sólo el hecho.
+#
+# @param sync_summary el resumen del sync.
+# @param conservadas filas que quedan en el snapshot tras el merge.
+# @return `NULL` cuando todas las fuentes trajeron algo; si no, una lista con
+#   `fuentes` (sus etiquetas o, a falta de ellas, sus ids), `conservadas` y el
+#   `mensaje` ya redactado.
+.monitoreo_sync_aviso_vacias <- function(sync_summary = list(), conservadas = 0L) {
+  vacias <- .monitoreo_sync_empty_source_ids(sync_summary)
+  if (!length(vacias)) return(NULL)
+  # La ETIQUETA, no el id: «HSVG 2026 PUCP (Kobo EU)» le dice algo a quien mira;
+  # «kobo_annup72aedz886eoauev5o» no.
+  info <- lapply(vacias, function(id) {
+    item <- (sync_summary %||% list())[[id]] %||% list()
+    etiqueta <- .monitoreo_scalar(item$source_label, "")
+    list(
+      nombre = if (nzchar(etiqueta)) etiqueta else id,
+      incremental = identical(.monitoreo_scalar(item$mode, "full"), "incremental"),
+      desde = .monitoreo_scalar((item$cursor %||% list())$updated_at, "")
+    )
+  })
+  nombres <- vapply(info, function(x) x$nombre, character(1), USE.NAMES = FALSE)
+  filas <- suppressWarnings(as.integer(conservadas))
+  if (is.na(filas)) filas <- 0L
+  lista <- paste(nombres, collapse = ", ")
+  verbo <- if (length(nombres) == 1L) "no devolvió ningún registro" else "no devolvieron ningún registro"
+
+  # **En modo incremental, cero registros es la respuesta NORMAL.**
+  #
+  # El aviso se escribió para el reemplazo full: ahí volver vacío significa que
+  # algo pasó, porque un full pide TODO y todo no puede ser nada. En
+  # incremental se piden sólo las posteriores al cursor, así que una
+  # sincronización sana devuelve cero cada vez que nadie ha enviado desde la
+  # anterior. Con el texto único, el operativo de HSVG2026 leía «revisa la
+  # conexión» en pantalla —en pleno campo— cada vez que pulsaba el botón dos
+  # veces seguidas, y la conexión estaba perfecta. Un aviso que se enciende
+  # cuando no pasa nada enseña a ignorarlo, que es justo lo contrario de para
+  # lo que se puso.
+  #
+  # Lo que sí hace falta decir es DESDE CUÁNDO no entra nada: eso es lo que
+  # distingue «el campo está parado ahora mismo» de «el cursor se quedó
+  # colgado», y es un dato, no una alarma.
+  solo_incremental <- all(vapply(info, function(x) x$incremental, logical(1)))
+  if (solo_incremental && filas > 0L) {
+    desde <- unique(Filter(nzchar, vapply(info, function(x) x$desde, character(1),
+                                          USE.NAMES = FALSE)))
+    cola <- if (length(desde) == 1L) {
+      paste0(" La última que sí trajo respuestas fue la de ", desde, ".")
+    } else {
+      ""
+    }
+    return(list(
+      fuentes = as.list(nombres), conservadas = filas, tono = "ok",
+      modo = "incremental",
+      mensaje = paste0(
+        lista, " no trajo respuestas NUEVAS: sigues viendo las ",
+        format(filas, big.mark = " ", trim = TRUE, scientific = FALSE),
+        " que ya estaban, que es lo correcto. No es un fallo de conexión — en ",
+        "modo incremental sólo se piden las posteriores a la última que entró, ",
+        "así que cero significa que nadie ha enviado desde entonces.", cola)
+    ))
+  }
+
+  mensaje <- if (filas > 0L) {
+    paste0(
+      lista, " ", verbo, " en esta sincronización, así que se conservan las ",
+      format(filas, big.mark = " ", trim = TRUE, scientific = FALSE),
+      " respuestas anteriores: lo que ves es lo de la sincronización previa, no lo de ahora. ",
+      "Si el campo sigue produciendo, revisa la conexión antes de leer el avance."
+    )
+  } else {
+    paste0(
+      lista, " ", verbo, " y el estudio sigue sin respuestas cargadas. ",
+      "Revisa la conexión y el formulario antes de leer el avance."
+    )
+  }
+  list(fuentes = as.list(nombres), conservadas = filas, mensaje = mensaje,
+       tono = "atencion", modo = "full")
+}
+
 .monitoreo_sync_stable_row_key <- function(data) {
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(character(0))
   source <- if (".source_id" %in% names(data)) as.character(data$.source_id %||% "") else rep("", nrow(data))

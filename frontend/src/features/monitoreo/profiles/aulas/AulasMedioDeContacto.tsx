@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { difereDeVerdad, medioDeContacto } from "./medioDeContacto";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Qué medio agenda mejor y a qué coste en intentos.
@@ -14,7 +14,7 @@ import { fmt } from "./kpisDeAulas";
  */
 
 export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  const medios = useMemo(() => medioDeContacto(filas), [filas]);
+  const { medios, aplicadasSinMedio } = useMemo(() => medioDeContacto(filas), [filas]);
 
   // Dos causas distintas: que no haya cursos-horario, o que los haya y ninguno
   // declare medio. La segunda es un aviso sobre el libro; la primera, no.
@@ -29,6 +29,7 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
   }
 
   const descartados = medios.reduce((n, m) => n + m.intentosDescartados, 0);
+  const conMedio = medios.reduce((n, m) => n + m.aulas, 0);
   const mejor = medios[0];
   const peor = medios[medios.length - 1];
 
@@ -37,13 +38,31 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
       {/* Su propio rótulo: el panel contiene dos bloques y el título ya no
           nombra sólo a éste. */}
       <p className="aulas-medio-titulo">Qué medio agenda mejor</p>
+      {/* **Lo que este panel NO está mirando, dicho aquí y no en ningún sitio.**
+
+          Las filas sin medio declarado salían del gráfico en silencio. La
+          mayoría es legítima —una reserva dormida no se ha contactado— pero las
+          que YA tienen parte sí se contactaron, y alguien no dejó por dónde.
+          Medido: 31 de 152, una de cada cinco, mientras el panel hablaba de las
+          otras 121 como si fueran todas.
+
+          Va arriba y no al pie: quien lee «Llamada agenda el 92 %» necesita
+          saber antes sobre cuántas se mide. */}
+      {aplicadasSinMedio > 0 ? (
+        <p className="mon-profile-muted">
+          Se mide sobre <strong>{fmt(conMedio)}</strong>{" "}
+          {conMedio === 1 ? "curso-horario" : "cursos-horario"}:{" "}
+          <strong>{fmt(aplicadasSinMedio)}</strong> se gestionaron y no dejaron dicho por qué
+          medio.
+        </p>
+      ) : null}
       <p className="aulas-medio-lectura">
         {medios.length > 1 ? (
           difereDeVerdad(mejor, peor) ? (
             <>
               <strong>{mejor.medio}</strong> agenda el{" "}
-              <strong>{mejor.tasa.toLocaleString("es-PE")} %</strong> y{" "}
-              <strong>{peor.medio}</strong> el {peor.tasa.toLocaleString("es-PE")} %
+              <strong>{pctPerfil(mejor.tasa)}</strong> y{" "}
+              <strong>{peor.medio}</strong> el {pctPerfil(peor.tasa)}
             </>
           ) : (
             // **No se ordena lo que el dato no distingue.** Medido: Llamada
@@ -53,8 +72,8 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
             // por casualidad la mitad de las veces.
             <>
               Ningún medio agenda claramente mejor: <strong>{mejor.medio}</strong>{" "}
-              {mejor.tasa.toLocaleString("es-PE")} % y <strong>{peor.medio}</strong>{" "}
-              {peor.tasa.toLocaleString("es-PE")} %, una diferencia que cabe en el margen de
+              {pctPerfil(mejor.tasa)} y <strong>{peor.medio}</strong>{" "}
+              {pctPerfil(peor.tasa)}, una diferencia que cabe en el margen de
               estos tamaños
             </>
           )
@@ -62,21 +81,24 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
           <>Todo el contacto se hizo por <strong>{mejor.medio}</strong>, así que no hay con qué comparar.</>
         )}
       </p>
-      <ul className="aulas-medio-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        <li className="aulas-medio-cabecera" aria-hidden="true">
-          <span>Medio</span>
-          <span>{medios.length > 1 ? "Agenda" : "Resultado"}</span>
+      <ul role="table"
+        aria-label="Medios de contacto"
+        className="aulas-medio-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {/* Roles de tabla sobre la rejilla: la cabecera estaba oculta. */}
+        <li className="aulas-medio-cabecera" role="row">
+          <span role="columnheader">Medio</span>
+          <span role="columnheader">{medios.length > 1 ? "Agenda" : "Resultado"}</span>
           {/* **El estadístico va en la cabecera de su columna, no en un pie.**
               Es mediana y no promedio, y eso hay que decirlo siempre: un
               «Intentos: 3» sin apellido se lee como promedio. Dicho aquí ocupa
               dos palabras y está donde se mira el número; el pie queda libre
               para la justificación, que sólo hace falta cuando hay medios que
               comparar y el estadístico decide cuál gana. */}
-          <span>Intentos · <em>mediana</em></span>
+          <span role="columnheader">Intentos · <em>mediana</em></span>
         </li>
         {medios.map((m) => (
-          <li key={m.medio}>
-            <span className="aulas-medio-nombre">
+          <li key={m.medio} role="row">
+            <span role="rowheader" className="aulas-medio-nombre">
               {m.medio}
               <em>{fmt(m.agendadas)} de {fmt(m.aulas)}</em>
             </span>
@@ -87,15 +109,17 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
                 un solo medio queda la cifra sola, que es el dato de verdad: qué
                 proporción de lo contactado por ahí llegó a agendarse. */}
             {medios.length > 1 ? (
+              <span role="cell" className="aulas-medio-barra-celda">
               <span className="aulas-medio-barra" role="img"
                 aria-label={`${m.tasa} % agendadas por ${m.medio}`}>
                 <i style={{ width: `${Math.max(4, m.tasa)}%`, background: COLOR_RESULTADO.efectiva }}>
-                  {m.tasa.toLocaleString("es-PE")} %
+                  {pctPerfil(m.tasa)}
                 </i>
               </span>
+              </span>
             ) : (
-              <span className="aulas-medio-solo">
-                <strong>{m.tasa.toLocaleString("es-PE")} %</strong> agendadas
+              <span role="cell" className="aulas-medio-solo">
+                <strong>{pctPerfil(m.tasa)}</strong> agendadas
               </span>
             )}
             {/* MEDIANA, y dicho: la media del correo en el libro real sale 19,65
@@ -105,7 +129,7 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
                 unidad —la añadía mal—. En un panel titulado «Medio de contacto»,
                 «2 med.» se lee como **2 medios**, que es la lectura natural y es
                 falsa: son 2 intentos. */}
-            <span className="aulas-medio-intentos">
+            <span role="cell" className="aulas-medio-intentos">
               {m.intentos == null ? "—" : m.intentos.toLocaleString("es-PE")}
             </span>
           </li>

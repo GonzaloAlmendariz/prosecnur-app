@@ -2,20 +2,27 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
 import { downloadUrl } from "../../api/core";
 import {
+  apiRecopiladoresMaterialDrive,
   COLLECTION_BLOCK_TYPES,
   apiRecopiladoresMaterialInstances,
+  apiRecopiladoresMaterialPrueba,
+  apiRecopiladoresMaterialPruebas,
   apiRecopiladoresMaterialsRender,
   apiRecopiladoresMaterialTemplateGet,
   apiRecopiladoresMaterialTemplatePut,
   type CollectionArtifactReceipt,
+  type CollectionDrivePublicacion,
   type CollectionBlockType,
   type CollectionMaterialBlock,
   type CollectionMaterialField,
+  type CollectionFichaPrueba,
   type CollectionMaterialInstance,
   type CollectionMaterialRenderResult,
   type CollectionMaterialTemplate,
   type CollectionStatePayload,
 } from "../../api/recopiladores";
+import { FichaPruebaControl } from "./FichaPruebaControl";
+import { FichasPruebaHistorico } from "./FichasPruebaHistorico";
 import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
@@ -24,6 +31,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  UploadCloud,
   FileText,
   Image,
   Layers,
@@ -42,6 +50,7 @@ import {
   templateHistoryShortcut,
 } from "./templateHistory";
 import "./styles/materials.css";
+import "./driveDeFichas.css";
 import { composicionDelPlan, unidadesDelPlan } from "./codigoOperativo";
 
 type Props = {
@@ -225,7 +234,12 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const [instanceBusy, setInstanceBusy] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobFormat, setJobFormat] = useState<"png" | "pdf" | "bundle" | null>(null);
+  const [codigoPrueba, setCodigoPrueba] = useState("");
+  const [pruebas, setPruebas] = useState<CollectionFichaPrueba[]>([]);
   const [renderResult, setRenderResult] = useState<CollectionMaterialRenderResult | null>(null);
+  const [driveBusy, setDriveBusy] = useState(false);
+  const [drivePub, setDrivePub] = useState<CollectionDrivePublicacion | null>(null);
+  const [driveError, setDriveError] = useState("");
   const [error, setError] = useState("");
   useEffect(() => { onCargando?.(loading); }, [loading, onCargando]);
   const template = history.present;
@@ -280,6 +294,16 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         if (alive) setError(cause instanceof Error ? cause.message : "No se pudo leer la plantilla.");
       })
       .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  // El histórico de fichas de prueba se lee aparte de la plantilla: si fallara,
+  // el editor tiene que abrir igual. Un error aquí no vale un panel en blanco.
+  useEffect(() => {
+    let alive = true;
+    void apiRecopiladoresMaterialPruebas()
+      .then((lista) => { if (alive) setPruebas(lista); })
+      .catch(() => { if (alive) setPruebas([]); });
     return () => { alive = false; };
   }, []);
 
@@ -395,12 +419,58 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     }
   };
 
+  // Ficha suelta con un identificador inventado: la que se escanea ANTES de
+  // imprimir las 1.512 para comprobar que el QR abre y que la respuesta llega
+  // con su colector, y la que se usa en la capacitación sin ensuciar el estudio.
+  // No pasa por `createInstances()`: no persiste nada en el plan.
+  const renderPrueba = async (codigoPedido?: string) => {
+    const codigo = (codigoPedido ?? codigoPrueba).trim();
+    if (!deployment || !codigo) return;
+    setError("");
+    setRenderResult(null);
+    try {
+      const job = await apiRecopiladoresMaterialPrueba({ codigo });
+      setJobFormat("pdf");
+      setJobId(job.job_id);
+      // El histórico se relee del backend en vez de añadir la entrada a mano:
+      // ahí es donde se decide si un código ya existía —se actualiza en su
+      // sitio— y si su enlace sigue siendo el del despliegue de hoy.
+      setPruebas(await apiRecopiladoresMaterialPruebas());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo generar la ficha de prueba.");
+    }
+  };
+
   const onRenderDone = useCallback((result: CollectionMaterialRenderResult) => {
     setJobId(null);
     setRenderResult(result);
+    setDrivePub(null);
+    setDriveError("");
     onArtifact(firstReceipt(result));
     void onStateRefresh();
   }, [onArtifact, onStateRefresh]);
+
+  // B6(b): el artefacto YA renderizado se sube al Drive del operativo con la
+  // credencial del libro. La carpeta se recuerda en el estado; lo que falla
+  // llega con su causa (sin Google, sin permiso de Drive) y se muestra tal
+  // cual — el backend ya habla en lenguaje de la persona.
+  const enviarAlDrive = async () => {
+    if (!payload || !renderResult) return;
+    setDriveBusy(true);
+    setDriveError("");
+    try {
+      const pub = await apiRecopiladoresMaterialDrive({
+        file_id: renderResult.file_id,
+        expected_revision: payload.state_revision,
+      });
+      setDrivePub(pub);
+      await onStateRefresh();
+    } catch (cause) {
+      setDriveError(cause instanceof Error ? cause.message : "No se pudo subir al Drive.");
+    } finally {
+      setDriveBusy(false);
+    }
+  };
 
   if (loading) return <div className="rec-loading">Leyendo la plantilla de la ficha…</div>;
 
@@ -460,6 +530,24 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             <PulsoButton variant="primary" title={motivoBloqueo ?? undefined} onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Generar PDF</PulsoButton>
             <PulsoButton variant="secondary" title={motivoBloqueo ?? undefined} onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Generar el paquete</PulsoButton>
           </div>
+          {/* **La ficha de ensayo no es un formato mas, por eso va aparte.**
+              No sale del plan ni deja instancia: es una hoja con el MISMO
+              enlace del operativo y un colector inventado, para escanearla
+              antes de imprimir el lote y para la capacitacion. Vive en su
+              propio archivo para poder renderizarla y mirar su markup. */}
+          <FichaPruebaControl
+            codigo={codigoPrueba}
+            onCodigo={setCodigoPrueba}
+            onGenerar={() => { void renderPrueba(); }}
+            motivoBloqueo={motivoBloqueo}
+            listo={Boolean(deployment)}
+            ocupado={Boolean(jobId)}
+          />
+          <FichasPruebaHistorico
+            fichas={pruebas}
+            onPdf={(codigo) => { void renderPrueba(codigo); }}
+            ocupado={Boolean(jobId)}
+          />
           <JobProgress<CollectionMaterialRenderResult>
             label={`Render ${jobFormat ?? "material"}`}
             jobId={jobId}
@@ -474,6 +562,18 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               ) : null}
               <div><strong>{renderResult.filename}</strong><span>{renderResult.media_type} · {renderResult.page_count} páginas · {renderResult.size_bytes} bytes</span><code>{renderResult.sha256}</code></div>
               <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar la ficha</a>
+              <div className="rec-drive">
+                <button type="button" onClick={() => { void enviarAlDrive(); }} disabled={driveBusy}>
+                  <UploadCloud size={14} /> {driveBusy ? "Subiendo al Drive…" : "Enviar al Drive del operativo"}
+                </button>
+                {drivePub ? (
+                  <span className="rec-drive-listo">
+                    En <strong>{drivePub.folderName || "el Drive"}</strong>:{" "}
+                    <a href={drivePub.webViewLink} target="_blank" rel="noreferrer">ver en Drive</a>
+                  </span>
+                ) : null}
+                {driveError ? <span className="rec-inline-error" role="alert">{driveError}</span> : null}
+              </div>
             </div>
           ) : (
             /* **El vacio dice lo que hace falta, no una nota de archivo.**

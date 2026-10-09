@@ -175,11 +175,15 @@
 # DENTRO del canvas. No volver a subir este tope por ese sintoma.
 .BARRAS_PANEL_ESTIRA_MAX <- 1.8
 
-# Rotulo de la columna extra, tal como lo escribe el entregable aprobado en sus
-# 41 laminas. La forma importa ademas de por coherencia: buscando «Top 2 Box»
-# —como lo escribia el motor— el conteo sobre el aprobado devolvia 0 columnas
-# cuando tiene 40.
-.PPT_ROTULO_TOP_TWO_BOX <- "TOP TWO BOX"
+# Rotulo de la columna extra. El entregable aprobado de 2021 lo escribia «TOP TWO
+# BOX» (estilo fiel); el recetario moderno, que es el estandar (ADR 0092), lo
+# escribe «Top Two Box» (recetario_piezas.R:14). Quien mida contra el aprobado
+# debe buscar sin distinguir mayusculas.
+.PPT_ROTULO_TOP_TWO_BOX <- "Top Two Box"
+
+# Ancho de cada columna cuando van Top Two Box y Bottom Two Box juntas
+# (filas_pulso, propuestas_rescatables.R:24: `wcol <- 1.25`).
+.BTB_COLUMNA_IN <- 1.25
 
 .finalizar_estado_labels_apiladas <- function(df_lab,
                                              color_texto_barras,
@@ -469,7 +473,7 @@
                                                            etiquetas_peq_padding = 0.012,
                                                            color_texto_barras_fuera,
                                                            colores_grupos = NULL,
-                                                           color_conectores_etiquetas = c("segmento", "azul_pulso"),
+                                                           color_conectores_etiquetas = c("tenue", "segmento", "azul_pulso"),
                                                            posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
                                                            offset_y = 0.17,
                                                            connector_gap_y = 0.060,
@@ -593,11 +597,11 @@
     df_lab$.label_fuera[mover] <- TRUE
     df_lab$.label_arriba[mover] <- TRUE
     df_lab$.col_label[mover] <- color_texto_barras_fuera
-    df_lab$.col_conector[mover] <- if (identical(color_conectores_etiquetas, "azul_pulso")) {
-      color_texto_barras_fuera
-    } else {
-      color_segmento[mover]
-    }
+    # «tenue» es la guía del recetario (gris tenue, barra_apilada() de recetario.R); las otras dos son de antes.
+    df_lab$.col_conector[mover] <- switch(color_conectores_etiquetas,
+      azul_pulso = color_texto_barras_fuera,
+      segmento = color_segmento[mover],
+      .std_color("texto_tenue"))
     df_lab$y_label[mover] <- top_y[mover] + offset_y
     df_lab$x_conector_label[mover] <- x_conector_label
     df_lab$x_conector_barra[mover] <- df_lab$x_center[mover]
@@ -1186,18 +1190,18 @@ graficar_barras_apiladas <- function(
     centro_cowplot        = NA_real_,
 
     # Estilo de texto y layout
-    color_titulo          = "#081F5C",
+    color_titulo          = .std_color("azul"),
     size_titulo           = 11,
-    color_subtitulo       = "#081F5C",
+    color_subtitulo       = .std_color("azul"),
     size_subtitulo        = 9,
     # Italica, como en barras agrupadas: el subtitulo es una acotacion sobre la
     # pregunta —«Pregunta de opcion multiple»—, no un segundo titulo. El formal
     # NO existia, asi que el `face` que le mandaba el motor se descartaba en
     # silencio y el aviso salia en redonda.
     face_subtitulo        = "italic",
-    color_nota_pie        = "#081F5C",
+    color_nota_pie        = .std_color("azul"),
     size_nota_pie         = 8,
-    color_leyenda         = "#081F5C",
+    color_leyenda         = .std_color("azul"),
     size_leyenda          = 8,
     color_texto_barras    = "white",
     color_texto_barras_fuera = NULL,
@@ -1216,7 +1220,7 @@ graficar_barras_apiladas <- function(
     etiquetas_peq_sesgo_derecha = 0.5,
     etiquetas_peq_confinadas = FALSE,
     etiquetas_peq_margen_interno = 0,
-    etiquetas_arriba_si_no_caben = FALSE,
+    etiquetas_arriba_si_no_caben = TRUE,
     # Paso entre filas forzado desde fuera. Lo usa `multilista` para que todos
     # sus bloques compartan paso: sin esto cada uno lo calcula con SUS
     # categorias y las barras salen de distinto grosor en la misma lamina.
@@ -1225,10 +1229,10 @@ graficar_barras_apiladas <- function(
     # calcula recorriendo todos los bloques. Ver `graficador_n_por_barra.R`.
     bases_publico         = NULL,
     etiquetas_arriba_offset = 0.13,
-    color_conectores_etiquetas = c("segmento", "azul_pulso"),
+    color_conectores_etiquetas = c("tenue", "segmento", "azul_pulso"),
     posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
     linewidth_conectores_etiquetas = 0.32,
-    color_barra_extra     = "#081F5C",
+    color_barra_extra     = .std_color("azul"),
     # 3 pt no es un tamano, es un borron. La columna extra lleva la cifra que
     # resume la lamina —el top-two-box— y salia mas pequena que cualquier otro
     # texto del grafico; dos rutas del motor ya la subian a 11 a mano, senal de
@@ -1259,7 +1263,7 @@ graficar_barras_apiladas <- function(
     barra_extra_umbral_medio = NULL,
     barra_extra_tendencia   = TRUE,
     barra_extra_tolerancia_pp = 0,
-    color_ejes            = "#081F5C",
+    color_ejes            = .std_color("azul"),
     size_ejes             = 9,
     preservar_tamanos_texto = FALSE,
     color_titulos_grupo   = NULL,
@@ -1363,6 +1367,22 @@ graficar_barras_apiladas <- function(
     alto                  = 6,
     alto_por_categoria    = NULL,
     grosor_min_in         = 0.32,
+    # ADR 0092: el grosor sale de la tabla del estándar por número de filas.
+    # FALSE vuelve a la fracción de fila con piso y techo (comportamiento previo).
+    grosor_estandar       = TRUE,
+    # ADR 0092 (F2.4): la columna Top Two Box mide 1 in, a 0.1 in de la barra
+    # (recetario_piezas.R:12-13). NULL vuelve al reparto proporcional previo.
+    columna_extra_in      = .std_geom("columna_top_two_box"),
+    # ADR 0092 (F2.5): junto a la columna Top Two Box, la Bottom Two Box del
+    # recetario (filas_pulso, propuestas_rescatables.R:23-47): dos columnas de
+    # 1.25 in con su rótulo y sus cifras en naranja.
+    columna_bottom2box    = FALSE,
+    # ADR 0092 (F2.5): fila «Total» ponderada por la base de cada actor, primera
+    # y separada por un filete (graficador_fila_total.R).
+    fila_total            = FALSE,
+    # ADR 0093: orden de la especificación nativa. Por defecto el declarado: los niveles de un cruce
+    # (ciclo, sexo) no se reordenan. La batería de afirmaciones la ordena el compositor (lámina 221).
+    orden_escala          = c("declarado", "auto", "top_two_box"),
     dpi                   = 300,
 
     ppt_append            = TRUE,
@@ -1569,7 +1589,12 @@ graficar_barras_apiladas <- function(
   color_titulos_grupo <- color_titulos_grupo %||% color_ejes
   size_titulos_grupo  <- size_titulos_grupo  %||% size_ejes
 
-  df <- data
+  fila_total_activa <- isTRUE(fila_total) && !is.null(var_n) && nrow(data) >= 2L && is.null(var_grupo_id)
+  df <- if (fila_total_activa) {
+    .apiladas_fila_total(data, var_categoria, var_etiqueta_categoria, var_n, cols_porcentaje, cols_n)
+  } else {
+    data
+  }
   row_id_col <- ".pulso_tmp_row_id"
   while (row_id_col %in% names(df)) row_id_col <- paste0(row_id_col, "_")
   df[[row_id_col]] <- seq_len(nrow(df))
@@ -1811,6 +1836,15 @@ graficar_barras_apiladas <- function(
   }
 
   usar_y_numerico <- isTRUE(usar_canvas)
+  # ADR 0092 (F2.3): el aire para las cifras que suben se reserva sólo si alguna
+  # va a subir. Antes toda fila crecía 1.72 veces con la opción encendida, hubiera
+  # o no cifras chicas, y desde cinco filas la barra adelgazaba a 0.19-0.43 in.
+  arriba_layout <- isTRUE(etiquetas_arriba_si_no_caben) &&
+    .apiladas_hay_cifras_chicas(df_long$.valor_plot, ancho)
+  # Subir sólo es posible sobre el lienzo (eje Y numérico). Sin lienzo, la opción
+  # encendida saltaba el reparto que separa las cifras de adentro y las dejaba
+  # encimadas: ahí rige el reparto de siempre.
+  arriba_efectivo <- isTRUE(usar_canvas) && arriba_layout
   min_filas_layout <- min_filas_canvas
   if (usar_y_numerico && n_categorias == 1L) {
     min_filas_layout <- max(min_filas_layout, 2L)
@@ -1819,7 +1853,7 @@ graficar_barras_apiladas <- function(
   if (usar_y_numerico) {
     gap_grupos_eff <- if (isTRUE(usar_grupos_canvas)) suppressWarnings(as.numeric(canvas_gap_grupos)) else 0
     if (!is.finite(gap_grupos_eff) || is.na(gap_grupos_eff) || gap_grupos_eff < 0) gap_grupos_eff <- 0
-    row_step_eff <- if (isTRUE(etiquetas_arriba_si_no_caben)) 1.72 else 1
+    row_step_eff <- if (arriba_layout) 1.72 else 1
     # El hueco entre bloques se mide contra la fila BASE, no contra la inflada.
     #
     # `row_step_eff` crece hasta 3,2× cuando hay pocas categorías con etiquetas
@@ -1831,7 +1865,7 @@ graficar_barras_apiladas <- function(
     row_step_gap <- row_step_eff
     row_step_eff <- .apiladas_row_step(
       n_categorias, max_lineas_eje_y_est,
-      etiquetas_arriba = isTRUE(etiquetas_arriba_si_no_caben)
+      etiquetas_arriba = arriba_layout
     )
     # Un paso impuesto desde fuera gana, pero nunca por debajo del que este
     # bloque necesita para su propio texto: se toma el mayor.
@@ -1843,6 +1877,8 @@ graficar_barras_apiladas <- function(
     for (i in seq_len(n_categorias)) {
       y_from_top[i] <- offset_top
       offset_top <- offset_top + row_step_eff
+      # Aire bajo el Total para su filete (filas_pulso: 0.22 in con filas de ~0.6).
+      if (i == 1L && fila_total_activa) offset_top <- offset_top + 0.35 * row_step_eff
       if (i < n_categorias) {
         grp_i <- cat_layout$.group_id[i] %||% ""
         grp_n <- cat_layout$.group_id[i + 1] %||% ""
@@ -1941,7 +1977,7 @@ graficar_barras_apiladas <- function(
   # ---------------------------------------------------------------------------
   y_axis_extra_top <- 0
   y_axis_extra_bottom <- 0
-  if (usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben)) {
+  if (usar_y_numerico && arriba_layout) {
     offset_top_labels <- suppressWarnings(as.numeric(etiquetas_arriba_offset)[1])
     if (!is.finite(offset_top_labels) || is.na(offset_top_labels) || offset_top_labels <= 0) {
       offset_top_labels <- 0.13
@@ -2108,7 +2144,7 @@ graficar_barras_apiladas <- function(
         ) |>
         dplyr::filter(.mostrar, is.finite(x_center))
 
-      if (!isTRUE(etiquetas_arriba_si_no_caben) && nrow(df_lab) > 1L) {
+      if (!arriba_efectivo && nrow(df_lab) > 1L) {
         idx_por_cat_borde <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
         for (idx in idx_por_cat_borde) {
           idx_izq <- idx[df_lab$.label_fuera[idx] & df_lab$x_center[idx] <= 0.5]
@@ -2189,7 +2225,7 @@ graficar_barras_apiladas <- function(
       df_lab <- .posicionar_labels_arriba_si_no_caben_apiladas(
         df_lab,
         var_categoria = var_categoria,
-        usar_y_numerico = usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben),
+        usar_y_numerico = arriba_efectivo,
         grosor_eff = grosor_eff,
         fit_padding = fit_padding,
         etiquetas_peq_padding = etiquetas_peq_padding,
@@ -2202,10 +2238,15 @@ graficar_barras_apiladas <- function(
       arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
       df_lab_arriba <- df_lab[arriba_idx, , drop = FALSE]
       df_lab_dentro <- df_lab[!arriba_idx, , drop = FALSE]
-      df_lab_dentro <- if (isTRUE(etiquetas_arriba_si_no_caben)) {
-        .centrar_labels_interiores_segmento_apiladas(
-          df_lab_dentro,
-          color_texto_barras = color_texto_barras
+      df_lab_dentro <- if (arriba_efectivo) {
+        # Contraste igual que en la otra rama: centrar devuelve el color fijo y
+        # dejaba cifras blancas sobre el amarillo y el verde claro (ADR 0092, F2.3).
+        .aplicar_contraste_labels_apiladas(
+          .centrar_labels_interiores_segmento_apiladas(
+            df_lab_dentro,
+            color_texto_barras = color_texto_barras
+          ),
+          color_texto_barras, colores_efectivos
         )
       } else {
         .finalizar_labels_interiores_apiladas(
@@ -2230,21 +2271,8 @@ graficar_barras_apiladas <- function(
         df_lab_arriba_plot <- df_lab[arriba_plot_idx, , drop = FALSE]
         if (nrow(df_lab_arriba_plot) > 0) {
           labels_arriba_activas <- TRUE
-          p_bars <- p_bars +
-            ggplot2::geom_segment(
-              data = df_lab_arriba_plot,
-              mapping = ggplot2::aes(
-                x = x_conector_label,
-                xend = x_conector_barra,
-                y = y_conector_label,
-                yend = y_conector_barra,
-                colour = .data$.col_conector
-              ),
-              linewidth = linewidth_conectores_etiquetas,
-              lineend = "round",
-              inherit.aes = FALSE,
-              show.legend = FALSE
-            )
+          # Guía en codo, como el recetario: vertical desde el segmento y horizontal hasta la cifra.
+          p_bars <- p_bars + .apiladas_guia_codo(df_lab_arriba_plot, linewidth = linewidth_conectores_etiquetas)
         }
         labels_rendered <- as.character(df_lab$lab)
         p_bars <- p_bars +
@@ -2299,7 +2327,7 @@ graficar_barras_apiladas <- function(
         ) |>
         dplyr::filter(.tamano_etq != "ninguna", is.finite(x_center))
 
-      if (!isTRUE(etiquetas_arriba_si_no_caben) && nrow(df_lab) > 1L) {
+      if (!arriba_efectivo && nrow(df_lab) > 1L) {
         idx_por_cat_borde <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
         for (idx in idx_por_cat_borde) {
           idx_izq <- idx[df_lab$.label_fuera[idx] & df_lab$x_center[idx] <= 0.5]
@@ -2412,7 +2440,7 @@ graficar_barras_apiladas <- function(
       df_lab <- .posicionar_labels_arriba_si_no_caben_apiladas(
         df_lab,
         var_categoria = var_categoria,
-        usar_y_numerico = usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben),
+        usar_y_numerico = arriba_efectivo,
         grosor_eff = grosor_eff,
         fit_padding = fit_padding,
         etiquetas_peq_padding = etiquetas_peq_padding,
@@ -2425,10 +2453,15 @@ graficar_barras_apiladas <- function(
       arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
       df_lab_arriba <- df_lab[arriba_idx, , drop = FALSE]
       df_lab_dentro <- df_lab[!arriba_idx, , drop = FALSE]
-      df_lab_dentro <- if (isTRUE(etiquetas_arriba_si_no_caben)) {
-        .centrar_labels_interiores_segmento_apiladas(
-          df_lab_dentro,
-          color_texto_barras = color_texto_barras
+      df_lab_dentro <- if (arriba_efectivo) {
+        # Contraste igual que en la otra rama: centrar devuelve el color fijo y
+        # dejaba cifras blancas sobre el amarillo y el verde claro (ADR 0092, F2.3).
+        .aplicar_contraste_labels_apiladas(
+          .centrar_labels_interiores_segmento_apiladas(
+            df_lab_dentro,
+            color_texto_barras = color_texto_barras
+          ),
+          color_texto_barras, colores_efectivos
         )
       } else {
         .finalizar_labels_interiores_apiladas(
@@ -2453,21 +2486,8 @@ graficar_barras_apiladas <- function(
         df_lab_arriba_plot <- df_lab[arriba_plot_idx, , drop = FALSE]
         if (nrow(df_lab_arriba_plot) > 0) {
           labels_arriba_activas <- TRUE
-          p_bars <- p_bars +
-            ggplot2::geom_segment(
-              data = df_lab_arriba_plot,
-              mapping = ggplot2::aes(
-                x = x_conector_label,
-                xend = x_conector_barra,
-                y = y_conector_label,
-                yend = y_conector_barra,
-                colour = .data$.col_conector
-              ),
-              linewidth = linewidth_conectores_etiquetas,
-              lineend = "round",
-              inherit.aes = FALSE,
-              show.legend = FALSE
-            )
+          # Guía en codo, como el recetario: vertical desde el segmento y horizontal hasta la cifra.
+          p_bars <- p_bars + .apiladas_guia_codo(df_lab_arriba_plot, linewidth = linewidth_conectores_etiquetas)
         }
         labels_rendered <- as.character(df_lab$lab)
         p_bars <- p_bars +
@@ -2785,6 +2805,66 @@ graficar_barras_apiladas <- function(
     extra_labels[!is.finite(extra_vals)] <- ""
   }
 
+  # Segunda columna: Bottom Two Box, sólo junto a un Top Two Box y si sus
+  # categorías están declaradas (mismo guardia que la primera).
+  btb_activa <- isTRUE(columna_bottom2box) && isTRUE(mostrar_barra_extra) &&
+    identical(barra_extra_preset, "top2box") && is.null(t2b_comparativo)
+  btb_labels <- rep("", length(cat_lvls))
+  if (btb_activa) {
+    btb_dec <- .box_decidir(labels = bottom2box_labels, etiquetas_grupos = etiquetas_grupos,
+                            cols_porcentaje = cols_porcentaje, minimo = 3L)
+    if (!isTRUE(btb_dec$dibujar)) {
+      if (identical(btb_dec$motivo, "sin_declaracion")) {
+        .pulso_aviso("La columna «Bottom Two Box» se omite: no hay categorias declaradas (bottom2box_labels).")
+      }
+      btb_activa <- FALSE
+    }
+  }
+  if (btb_activa) {
+    base_btb <- df[, cols_porcentaje, drop = FALSE]
+    if (escala_valor == "proporcion_100") base_btb <- base_btb / 100
+    cols_btb <- .box_cols_desde_etiquetas(bottom2box_labels, etiquetas_grupos, cols_porcentaje)
+    v_btb <- rowSums(as.matrix(base_btb[, cols_btb, drop = FALSE]), na.rm = TRUE) * 100
+    btb_vals <- v_btb[match(cat_lvls, as.character(df[[var_categoria]]))]
+    btb_labels <- paste0(.format_pct_clean(btb_vals, decimales), "%")
+    btb_labels[!is.finite(btb_vals)] <- ""
+  }
+
+  # ---------------------------------------------------------------------------
+  # 6.9) ESPECIFICACIÓN (ADR 0093): lo que afirma el gráfico, con las reglas del
+  # recetario. La lámina nativa la dibuja; aquí la columna del box la lee para
+  # que la cifra sea la misma en las dos rutas: la suma de las cifras rotuladas
+  # (lámina 19 del recetario, «90% = 35% + 55%»), no el redondeo de la suma.
+  # ---------------------------------------------------------------------------
+  espec_escala <- tryCatch(preparar_escala(
+    data, var_categoria = var_categoria, var_n = var_n, cols_porcentaje = cols_porcentaje,
+    etiquetas_grupos = etiquetas_grupos, var_etiqueta_categoria = var_etiqueta_categoria,
+    var_grupo_id = var_grupo_id, var_grupo_titulo = var_grupo_titulo, escala_valor = escala_valor,
+    colores_grupos = colores_grupos, etiquetas_leyenda = etiquetas_leyenda, decimales = decimales,
+    metodo_redondeo = metodo_redondeo, mostrar_categorias_en_cero = mostrar_categorias_en_cero,
+    piso_categoria_cero = piso_categoria_cero, mostrar_barra_extra = mostrar_barra_extra,
+    barra_extra_preset = barra_extra_preset, top2box_labels = top2box_labels, top3box_labels = top3box_labels,
+    bottom2box_labels = bottom2box_labels, columna_bottom2box = columna_bottom2box,
+    sufijos_etiqueta = sufijos_etiqueta, fila_total = fila_total_activa, orden = match.arg(orden_escala),
+    invertir_barras = invertir_barras, invertir_segmentos = invertir_segmentos, invertir_leyenda = invertir_leyenda
+  ), error = function(e) {
+    # Si la especificación falla, el gráfico ggplot conserva su cálculo previo y la lámina
+    # nativa cae a la imagen; el mensaje deja el defecto a la vista en vez de tragarlo.
+    message("[espec escala] ", conditionMessage(e))
+    NULL
+  })
+  if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% c("top2box", "top3box", "bottom2box") &&
+      !is.null(espec_escala$box$unidades)) {
+    i_esp <- match(cat_lvls, espec_escala$filas$id)
+    extra_vals <- unname(espec_escala$box$unidades[i_esp]) / 10^espec_escala$redondeo$decimales
+    extra_labels <- paste0(prefijo_extra_int, unname(espec_escala$box$cifras[i_esp]))
+    extra_labels[is.na(i_esp)] <- ""
+  }
+  if (isTRUE(btb_activa) && !is.null(espec_escala$box2$unidades)) {
+    i_esp <- match(cat_lvls, espec_escala$filas$id)
+    btb_labels <- unname(espec_escala$box2$cifras[i_esp]); btb_labels[is.na(i_esp)] <- ""
+  }
+
   # ---------------------------------------------------------------------------
   # 7) Caption (texto)
   # ---------------------------------------------------------------------------
@@ -2805,6 +2885,7 @@ graficar_barras_apiladas <- function(
       ggplot2::theme(legend.position = if (mostrar_leyenda) legend_pos_gg else "none") +
       ggplot2::labs(title = titulo, subtitle = subtitulo, caption = caption_text)
 
+    attr(out, "pulso_espec") <- espec_escala
     if (exportar == "rplot") return(out)
 
     # EXPORT PNG / PPT / WORD (sin canvas): se exporta el ggplot directamente
@@ -3106,6 +3187,27 @@ graficar_barras_apiladas <- function(
   w_buf2  <- w_buf2  / w_sum
   w_extra <- w_extra / w_sum
 
+  # ADR 0092 (F2.4): la columna extra mide lo que pide el recetario en pulgadas,
+  # no una fracción del lienzo (con 0.12 salía de ~1.5 a 2 in en la lámina
+  # ancha); el resto del ancho se reparte en las mismas proporciones.
+  col_in <- suppressWarnings(as.numeric(columna_extra_in %||% NA_real_)[1])
+  ancho_num <- suppressWarnings(as.numeric(ancho)[1])
+  if (isTRUE(btb_activa)) col_in <- 2 * .BTB_COLUMNA_IN + 0.05
+  if (isTRUE(mostrar_barra_extra) && w_extra > 0 && is.finite(col_in) && col_in > 0 &&
+      is.finite(ancho_num) && ancho_num > col_in + 1) {
+    w_extra_std <- col_in / ancho_num
+    w_buf2_std <- 0.1 / ancho_num
+    escala_resto <- (1 - w_extra_std - w_buf2_std) / (1 - w_extra - w_buf2)
+    w_legend_side <- w_legend_side * escala_resto
+    w_group <- w_group * escala_resto
+    w_buf0  <- w_buf0  * escala_resto
+    w_etq   <- w_etq   * escala_resto
+    w_buf1  <- w_buf1  * escala_resto
+    w_bars  <- w_bars  * escala_resto
+    w_buf2  <- w_buf2_std
+    w_extra <- w_extra_std
+  }
+
   x_legend_side0 <- if (identical(leyenda_posicion, "izquierda")) 0 else NA_real_
   x_group0 <- if (identical(leyenda_posicion, "izquierda")) w_legend_side else 0
   x_buf00  <- x_group0 + w_group
@@ -3238,7 +3340,7 @@ graficar_barras_apiladas <- function(
         !is.null(titulo_extra_int) && nzchar(titulo_extra_int)) {
       canvas <- canvas + cowplot::draw_text(
         text     = titulo_extra_int,
-        x        = x_extra0 + (w_extra * 0.5),
+        x        = if (isTRUE(btb_activa)) x_extra0 + .BTB_COLUMNA_IN / (2 * as.numeric(ancho)) else x_extra0 + (w_extra * 0.5),
         y        = y_top0 + (top_h * 0.5),
         hjust    = 0.5,
         vjust    = 0.5,
@@ -3247,6 +3349,13 @@ graficar_barras_apiladas <- function(
         family = font_family,
         fontface = "bold"
       )
+      if (isTRUE(btb_activa)) {
+        canvas <- canvas + cowplot::draw_text(
+          text = "Bottom Two Box", x = x_extra0 + w_extra - .BTB_COLUMNA_IN / (2 * as.numeric(ancho)),
+          y = y_top0 + (top_h * 0.5), hjust = 0.5, vjust = 0.5, size = size_titulo_extra,
+          colour = .std_color("naranja_bottom_two_box_texto"), family = font_family, fontface = "bold"
+        )
+      }
     }
   }
 
@@ -3285,6 +3394,28 @@ graficar_barras_apiladas <- function(
 
   y_padtop0 <- y_bars_area0 + h_bars_area
   h_padtop  <- pad_npc
+
+  # ADR 0092 (F2.1): la barra mide lo que pide la tabla del estándar según las
+  # filas de la lámina. Se decide aquí y no al armar el geom porque recién aquí se
+  # conoce el alto físico de la fila: el área de barras, el rango del eje y el alto
+  # con que se coloca el lienzo (la misma cuenta que la guía de `debug_ph_bordes`).
+  if (isTRUE(grosor_estandar) && h_bars_area > 0) {
+    y_rng_std <- ggplot2::ggplot_build(p_bars_panel)$layout$panel_params[[1]]$y.range
+    den_std <- if (is.numeric(y_rng_std) && length(y_rng_std) == 2L) diff(y_rng_std) else NA_real_
+    fila_in <- h_bars_area * suppressWarnings(as.numeric(alto)[1]) / den_std
+    paso_in <- if (arriba_layout) fila_in * row_step_eff else NA_real_
+    g_std <- .grosor_fraccion_estandar(n_categorias, fila_in, "escala_apilada", paso_in = paso_in)
+    if (is.finite(g_std)) {
+      # Las cifras que suben y sus guías se ubicaron contra el techo de la barra
+      # con el grosor anterior: se corren lo que se movió el techo (verificador
+      # de F2: con 5 filas la cifra montaba la barra, con 3 la guía no la tocaba).
+      p_bars_panel <- .grosor_reubicar_cifras_arriba(p_bars_panel, (g_std - grosor_eff) / 2,
+                                                     fila_in = fila_in,
+                                                     size_pt = suppressWarnings(as.numeric(size_texto_barras)[1]) * ggplot2::.pt)
+      grosor_eff <- g_std
+      p_bars_panel <- .grosor_reemplazar_ancho_col(p_bars_panel, grosor_eff)
+    }
+  }
 
   # dibujar barras SOLO en el área útil
   if (h_bars_area > 0) {
@@ -3532,8 +3663,29 @@ graficar_barras_apiladas <- function(
     }
   }
 
-  # Extra (columna derecha)
-  x_extra_txt <- x_extra0 + (w_extra * 0.5)
+  # Filete bajo la barra del Total, a 0.08 in, de los rótulos al borde derecho.
+  if (fila_total_activa && length(y_abs)) {
+    y_filete <- y_abs[1] - (grosor_eff / den) * h_bars_area / 2 - 0.08 / as.numeric(alto)
+    canvas <- canvas + cowplot::draw_line(
+      x = c(x_etq0, x_extra0 + w_extra), y = c(y_filete, y_filete),
+      colour = .std_color("filete"), linewidth = 0.6
+    )
+  }
+
+  # Extra (columna derecha). Con Bottom Two Box, la primera ocupa la mitad izquierda.
+  x_extra_txt <- if (isTRUE(btb_activa)) x_extra0 + .BTB_COLUMNA_IN / (2 * as.numeric(ancho)) else x_extra0 + (w_extra * 0.5)
+  if (isTRUE(btb_activa)) {
+    x_btb_txt <- x_extra0 + w_extra - .BTB_COLUMNA_IN / (2 * as.numeric(ancho))
+    for (i in seq_len(n_categorias)) {
+      if (nzchar(btb_labels[i])) {
+        canvas <- canvas + cowplot::draw_text(
+          text = btb_labels[i], x = x_btb_txt, y = y_abs[i], hjust = 0.5, vjust = 0.5,
+          size = size_barra_extra, colour = .std_color("naranja_bottom_two_box_texto"),
+          family = font_family, fontface = fontface_barra_extra
+        )
+      }
+    }
+  }
   if (!is.null(t2b_comparativo)) {
     # Tabla comparativa: dos columnas con rejilla, semáforo por umbral y
     # triángulo de tendencia. Reemplaza a la cifra suelta, no se suma a ella.
@@ -3620,6 +3772,7 @@ graficar_barras_apiladas <- function(
       )
       if (debug_ph_bordes) canvas <- canvas + .ph_border(x_legend_side0, y_main0, w_legend_side, main_h)
     } else if (usar_leyenda_manual) {
+      n_capas_antes_leyenda <- length(canvas$layers)
       labels_manual <- unname(labels_leyenda)
       fills_manual <- unname(colores_leyenda_manual)
       n_items <- length(labels_manual)
@@ -3769,6 +3922,21 @@ graficar_barras_apiladas <- function(
           )
         }
       }
+      # ADR 0092 (F3): la lámina puede dibujar esta leyenda con formas nativas a
+      # 12 pt (reporte_lamina_leyenda.R) en el mismo lugar; aquí se declara qué
+      # capas son y dónde va. Centro: el bloque entero, columna extra incluida.
+      x_fin_bloque <- if (isTRUE(mostrar_barra_extra) && w_extra > 0) x_extra0 + w_extra else x_bars0 + w_bars
+      attr(canvas, "pulso_leyenda_nativa") <- list(
+        etiquetas = labels_manual, colores = fills_manual, filas = row_ids,
+        y_filas_npc = vapply(seq_len(n_rows), function(r) y_legend0 + legend_h - ((r - 0.5) * row_h) + dy_leg, numeric(1)),
+        x_centro_npc = (x_bars0 + x_fin_bloque) / 2,
+        banda_npc = c(y0 = y_legend0 + dy_leg, alto = legend_h),
+        # Aire libre bajo la banda (sin pie dibujado, hasta el borde inferior):
+        # la leyenda a su tamaño real puede bajar ahí, nunca subir a las barras.
+        libre_abajo_npc = if (has_legend && legend_is_top && !legend_is_side) 0 else
+          if (has_caption) max(0, dy_leg) else max(0, y_legend0 + dy_leg),
+        capas = seq.int(n_capas_antes_leyenda + 1L, length(canvas$layers))
+      )
       if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_legend0, 1, legend_h)
     } else {
       # P40, MEDIDO Y SIN REPARAR TODAVIA: este 0.5 centra la leyenda sobre TODO
@@ -3873,13 +4041,25 @@ graficar_barras_apiladas <- function(
       grosor_eff = grosor_eff,
       h_panel_in = h_panel_in,
       pad_in = pad_in,
-      h_bars_area_in = h_bars_area * h_total_in
+      h_bars_area_in = h_bars_area * h_total_in,
+      # Lo que se dibuja, en pulgadas de la lámina (fila física ya colocada): es
+      # lo que se compara con `.std_grosor()` en el banco de F2 (ADR 0092).
+      alto_fila_in = h_bars_area * as.numeric(alto) / den,
+      grosor_in = grosor_eff * h_bars_area * as.numeric(alto) / den,
+      h_total_in = h_total_in,
+      ancho_columna_extra_in = if (isTRUE(mostrar_barra_extra)) w_extra * as.numeric(ancho) else 0,
+      bottom2box = if (isTRUE(btb_activa)) btb_labels else NULL
     )
     if (!is.null(legend_manual_layout)) {
       layout_attr <- attr(canvas, "pulso_barras_apiladas_layout")
       layout_attr$legend_manual <- legend_manual_layout
       attr(canvas, "pulso_barras_apiladas_layout") <- layout_attr
     }
+    # Traza del banco de grosor (scripts/qa_estandar_grosor.R): apagada salvo que
+    # la opción nombre un archivo. Va por archivo porque el renderer se traga los
+    # mensajes y el objeto no siempre vuelve a quien mide.
+    .traza_grosor_apiladas(n_categorias, y_axis_max, grosor_eff, h_bars_area * as.numeric(alto) / den, h_total_in, alto)
+    attr(canvas, "pulso_espec") <- espec_escala
     return(canvas)
   }
 

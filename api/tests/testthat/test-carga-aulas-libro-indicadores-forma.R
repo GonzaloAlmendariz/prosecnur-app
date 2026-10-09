@@ -1,4 +1,5 @@
-# Tres defectos de la hoja «Como va el campo», los tres vistos en el PDF y
+# Tres defectos de la hoja «Avance de campo» —hasta A13a (2026-08-31) se
+# llamaba «Cómo va el campo»; Gonzalo: «es AVANCE»—, los tres vistos en el PDF y
 # ninguno visible desde el XML sin mirar la pagina entera.
 #
 # 1. `#,##0.#` OMITE el cero decimal, asi que «Media por aula» enseñaba un 23
@@ -6,15 +7,15 @@
 #    ese equipo como si tuviera una cifra mas redonda que los demas.
 # 2. Sin serie diaria, el bloque «Avance diario» **desaparecia entero** de la
 #    hoja. Quien la vio con datos no puede saber si se retiro o si falta el dato.
-# 3. El bloque de meta ponia cuatro «—» y dos bloques mas abajo sumaba 3 508
-#    «efectivas declaradas» por aplicador: la misma pagina parecia decir que no
-#    hay efectivas y listarlas. No se contradicen —una sale de plataforma y la
-#    otra del parte— pero sin decirlo, quien lee elige cual creer.
+# 3. El bloque de meta ponia cuatro «—» y dos bloques mas abajo listaba
+#    producción por aplicador: la misma pagina parecia decir que no hay
+#    efectivas y listarlas. La nota de procedencia lo explica, y sólo aparece
+#    cuando de verdad hay huecos.
 
 # Los textos de la hoja, aplanados: `skipEmptyRows = FALSE` para que los indices
 # no se corran (trampa conocida de `read.xlsx`).
 .cif_textos <- function(ruta) {
-  d <- openxlsx::read.xlsx(ruta, sheet = "Cómo va el campo", colNames = FALSE,
+  d <- openxlsx::read.xlsx(ruta, sheet = "Avance de campo", colNames = FALSE,
                            skipEmptyRows = FALSE)
   v <- unlist(lapply(d, as.character), use.names = FALSE)
   v[!is.na(v)]
@@ -22,52 +23,69 @@
 
 # En que fila esta un rotulo de la primera columna util.
 .cif_fila_de <- function(ruta, rotulo) {
-  d <- openxlsx::read.xlsx(ruta, sheet = "Cómo va el campo", colNames = FALSE,
+  d <- openxlsx::read.xlsx(ruta, sheet = "Avance de campo", colNames = FALSE,
                            skipEmptyRows = FALSE)
   hit <- which(apply(d, 1, function(r) any(as.character(r) == rotulo, na.rm = TRUE)))
   if (!length(hit)) return(NA_integer_)
   hit[[1]]
 }
 
-.cif_libro <- function(con_diario = FALSE) {
+.cif_libro <- function(con_diario = FALSE, con_plataforma = TRUE) {
   ruta <- tempfile(fileext = ".xlsx")
   plan <- lapply(1:6, function(i) list(
     classroom_id = paste0("A", i), operational_code = paste("CH", i), label = "x",
     wave = "M1", sample_role = "titular", orden = i, eligible_n = 30,
-    expected_valid = 21, faculty = "F1"
+    expected_valid = 21, faculty = "F1", rendimiento_ref = 0.7
   ))
   # Dos aplicadores con media entera y media con decimal: el caso que destapo el
-  # formato. 25 aulas a 23 encuestas da 23.0 exacto.
+  # formato. Dos cursos-horario a 23 encuestas dan 23.0 exacto; 20 y 21 dan 20.5.
+  #
+  # Desde el 2026-09-07 la media sale de la PLATAFORMA. La atribución la manda
+  # el reparto y, sin reparto —este libro no lo tiene—, el parte: también dice
+  # quién aplicó cada curso-horario.
   partes <- list(
     list(operational_code = "CH 1", applicator = "Equipo 1", effective_surveys = 23),
     list(operational_code = "CH 2", applicator = "Equipo 1", effective_surveys = 23),
     list(operational_code = "CH 3", applicator = "Equipo 2", effective_surveys = 20),
     list(operational_code = "CH 4", applicator = "Equipo 2", effective_surveys = 21)
   )
-  aulas_libro_generar(plan, ruta, partes = partes)
+  # Sin efectivas de plataforma el bloque de meta sale en «—» y la hoja escribe
+  # sus dos notas de procedencia: ése es el caso que los tests del vacío miran.
+  aulas_libro_generar(plan, ruta, partes = partes,
+                      efectivas = if (con_plataforma) {
+                        c(`CH 1` = 23, `CH 2` = 23, `CH 3` = 20, `CH 4` = 21)
+                      } else NULL)
   ruta
 }
 
-test_that("«Media por aula» declara su decimal aunque sea cero", {
+test_that("una TASA declara su decimal aunque su columna sea de razones", {
+  # `#,##0.#` OMITE el cero decimal, así que una columna de razones enseñaba un
+  # 23 entre 20,5 y 23,8 y el ojo lo lee como si ese equipo tuviera una cifra
+  # más redonda que los demás. Desde el 2026-09-08 las razones de esta hoja son
+  # tasas de rendimiento y van con formato de PORCENTAJE, que siempre declara su
+  # decimal — y de paso cumple el dictado: el «(%)» va en la celda, no en el
+  # rótulo.
   ruta <- .cif_libro()
   on.exit(unlink(ruta), add = TRUE)
-  # La columna 4 de «Produccion por aplicador». El formato se resuelve celda a
-  # celda —`s=` → `cellXfs` → `numFmtId` → `formatCode`— y no por el catalogo:
-  # un `0.0` presente por OTRA hoja no prueba nada sobre esta.
-  cab <- .cif_fila_de(ruta, "Media por aula")
-  expect_true(is.finite(cab), info = "no se encontro la cabecera de la media")
+  cab <- .cif_fila_de(ruta, "Tasa de rendimiento obtenida")
+  expect_true(is.finite(cab), info = "no se encontró la cabecera de la tasa")
+  # La columna se BUSCA por su cabecera: estuvo fijada al índice 4 y la tabla
+  # ganó columnas, así que el índice apuntaba a otra cosa. Un número de columna
+  # a mano es la misma ancla frágil que un rótulo.
+  d <- openxlsx::read.xlsx(ruta, sheet = "Avance de campo", colNames = FALSE,
+                           skipEmptyRows = FALSE)
+  col_tasa <- which(as.character(unlist(d[cab, ])) == "Tasa de rendimiento obtenida")[[1]]
   formatos <- vapply((cab + 1L):(cab + 2L),
-                     function(f) formato_de_celda(ruta, "Cómo va el campo", 4, f),
+                     function(f) formato_de_celda(ruta, "Avance de campo", col_tasa, f),
                      character(1))
-  # Ninguna celda de la media puede llevar un formato que omita el decimal.
   expect_false(any(grepl("0\\.#", formatos)),
-               info = paste("formatos de la media:", paste(formatos, collapse = " · ")))
-  expect_true(any(grepl("0\\.0", formatos)),
-              info = paste("formatos de la media:", paste(formatos, collapse = " · ")))
+               info = paste("formatos de la tasa:", paste(formatos, collapse = " · ")))
+  expect_true(all(formatos == "0.0%"),
+              info = paste("formatos de la tasa:", paste(formatos, collapse = " · ")))
 })
 
 test_that("«Avance diario» no desaparece cuando no hay serie", {
-  ruta <- .cif_libro()
+  ruta <- .cif_libro(con_plataforma = FALSE)
   on.exit(unlink(ruta), add = TRUE)
   textos <- .cif_textos(ruta)
   expect_true(any(grepl("^Avance diario$", textos)),
@@ -78,7 +96,7 @@ test_that("«Avance diario» no desaparece cuando no hay serie", {
 })
 
 test_that("el bloque de meta dice de donde saldrian sus cifras", {
-  ruta <- .cif_libro()
+  ruta <- .cif_libro(con_plataforma = FALSE)
   on.exit(unlink(ruta), add = TRUE)
   textos <- .cif_textos(ruta)
   expect_true(any(grepl("salen de la plataforma, no del parte", textos)),

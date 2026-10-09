@@ -1,3 +1,29 @@
+#' Serializador unico de la API.
+#'
+#' `na = "null"` no es cosmetico. Sin el, `serializer_unboxed_json()` manda
+#' `NA_real_`, `NaN` e `Inf` como las CADENAS "NA", "NaN" e "Inf"
+#' (`NA_character_` ya salia `null` por su cuenta), y un campo numerico que
+#' llega como texto atraviesa intacto todos los guards de la UI: en
+#' `AulasEfectividadSeguimiento.tsx:116` y `:248` el `f.banda_bajo == null` esta
+#' escrito para tapar «no hay banda» y nunca disparaba, asi que el panel
+#' calculaba `("NA" - "NA") / 2` y publicaba el resultado. Medido el 2026-09-09;
+#' nadie en el frontend lee esas tres cadenas: los `!== "NA"` de Bases y de
+#' Hojas de ruta miran texto que viene del Excel, no del serializador.
+#'
+#' Vive en una funcion y no inline en el pipe para que el contrato
+#' (`test-serializer-valores-especiales.R`) ejercite EL MISMO serializador que
+#' monta la app. Un test que replique los flags a mano es un espejo, y un espejo
+#' no falla cuando el original cambia.
+#'
+#' Interno: solo lo llama `build_plumber_app()`, y el contrato lo alcanza con
+#' `prosecnurapp:::`.
+#'
+#' @return Un serializador de plumber.
+#' @noRd
+.api_serializer <- function() {
+  plumber::serializer_unboxed_json(na = "null")
+}
+
 #' Build the Plumber app with all routers mounted.
 #'
 #' @param static_dir Path to the directory containing the frontend build
@@ -13,7 +39,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
   ensure_registry_populated()
 
   pr <- plumber::pr() |>
-    plumber::pr_set_serializer(plumber::serializer_unboxed_json()) |>
+    plumber::pr_set_serializer(.api_serializer()) |>
     plumber::pr_set_error(function(req, res, err) handle_api_error(req, res, err))
 
   pr <- mount_sistema(pr)
@@ -46,6 +72,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_label_overrides(pr)
     pr <- mount_hojas_ruta(pr)
     pr <- mount_calc_muestra(pr)
+    pr <- mount_calc_muestra_general(pr)
     pr <- mount_plan_trabajo(pr)
     pr <- mount_diseno_estudio(pr)
     pr <- mount_bitacora(pr)
@@ -53,6 +80,10 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_monitoreo(pr)
     pr <- mount_monitoreo_telefonico(pr)
     pr <- mount_monitoreo_territorial_mapeo(pr)
+    pr <- mount_monitoreo_aulas_plantilla(pr)
+    pr <- mount_monitoreo_aulas_libro(pr)
+    pr <- mount_monitoreo_aulas_avance(pr)
+    pr <- mount_monitoreo_aulas_distribucion(pr)
     pr <- mount_graficos(pr)
     pr <- mount_graficos_consolidado(pr)
     pr <- mount_dashboard(pr)

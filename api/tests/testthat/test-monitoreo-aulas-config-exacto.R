@@ -70,3 +70,70 @@ test_that("la config de estado devuelta por el cliente pasa entera por el normal
   expect_identical(cfg$monitoreo_profile$family, "aulas_universitarias")
   expect_identical(cfg$aulas_universitarias[["plan"]], list())
 })
+
+test_that("B36: reparto_fijado sobrevive a la frontera jsonlite — vector nombrado, no lista", {
+  # plumber parsea {"CH 7": "..."} del body con simplifyVector y entrega un
+  # VECTOR nombrado. El normalizador lo tiraba (`!is.list` → list()) y el
+  # mapa fijado por la UI se perdia en silencio: medido en vivo 2026-09-02
+  # («fijado: []» tras el POST). La frontera acepta ambas formas.
+  cfg <- monitoreo_aulas_normalize_config(list(
+    reparto_fijado = c("CH 7" = "Aquino Dulanto, Alejandro Moises", "CH 9" = "")
+  ))
+  # El valor vacio es SOLTAR: se descarta; el resto sobrevive con su nombre.
+  expect_identical(cfg$reparto_fijado,
+                   list("CH 7" = "Aquino Dulanto, Alejandro Moises"))
+
+  # Y como lista (asi vuelve del .pulso guardado): mismo contrato.
+  cfg2 <- monitoreo_aulas_normalize_config(list(reparto_fijado = cfg$reparto_fijado))
+  expect_identical(cfg2$reparto_fijado, cfg$reparto_fijado)
+})
+
+test_that("B70: duracion_aplicacion_min persiste, se sanea y cae al default con basura", {
+  # Dictado 2026-09-03: el slider decia 30 y el aviso salia con 20 porque la
+  # duracion nunca viajaba. La clave esta en la whitelist del normalizador:
+  # sin esta entrada, confirmar el slider y guardar la perderia en silencio.
+  cfg <- monitoreo_aulas_normalize_config(list(duracion_aplicacion_min = 45))
+  expect_identical(cfg$duracion_aplicacion_min, 45L)
+
+  # Sin declarar: el default operativo (30, «la aplicacion dura media hora»).
+  expect_identical(monitoreo_aulas_normalize_config(list())$duracion_aplicacion_min, 30L)
+
+  # Fuera de rango o ilegible: default, no un config roto.
+  expect_identical(monitoreo_aulas_normalize_config(list(duracion_aplicacion_min = 2))$duracion_aplicacion_min, 30L)
+  expect_identical(monitoreo_aulas_normalize_config(list(duracion_aplicacion_min = "treinta"))$duracion_aplicacion_min, 30L)
+
+  # Ida y vuelta (como vuelve del .pulso): mismo contrato.
+  expect_identical(
+    monitoreo_aulas_normalize_config(list(duracion_aplicacion_min = cfg$duracion_aplicacion_min))$duracion_aplicacion_min,
+    45L
+  )
+})
+
+test_that("B75: reparto_rango persiste con ambas puntas ISO y la basura se des-declara", {
+  cfg <- monitoreo_aulas_normalize_config(list(
+    reparto_rango = list(desde = "2026-09-07", hasta = "2026-09-13")
+  ))
+  expect_identical(cfg$reparto_rango, list(desde = "2026-09-07", hasta = "2026-09-13"))
+
+  # Sin declarar o ilegible: NULL = todo el horizonte, sin romper el config.
+  expect_null(monitoreo_aulas_normalize_config(list())$reparto_rango)
+  expect_null(monitoreo_aulas_normalize_config(list(
+    reparto_rango = list(desde = "la proxima semana", hasta = "2026-09-13")
+  ))$reparto_rango)
+  expect_null(monitoreo_aulas_normalize_config(list(
+    reparto_rango = list(desde = "2026-09-07")
+  ))$reparto_rango)
+
+  # Ida y vuelta (como vuelve del .pulso): mismo contrato.
+  expect_identical(
+    monitoreo_aulas_normalize_config(list(reparto_rango = cfg$reparto_rango))$reparto_rango,
+    cfg$reparto_rango
+  )
+})
+
+test_that("B67: reparto_semilla persiste como entero y la basura cae a 0", {
+  expect_identical(monitoreo_aulas_normalize_config(list(reparto_semilla = 4))$reparto_semilla, 4L)
+  expect_identical(monitoreo_aulas_normalize_config(list())$reparto_semilla, 0L)
+  expect_identical(monitoreo_aulas_normalize_config(list(reparto_semilla = -2))$reparto_semilla, 0L)
+  expect_identical(monitoreo_aulas_normalize_config(list(reparto_semilla = "tres"))$reparto_semilla, 0L)
+})

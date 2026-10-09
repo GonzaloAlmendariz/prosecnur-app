@@ -1,0 +1,73 @@
+# monitoreo_aulas_brecha_facultad.R — cuánto le falta a una facultad, UNA
+# regla para el tablero y para el libro. Unidad A4 del loop de mejora
+# estética y técnica (2026-09-08).
+#
+# ADR 0079: la cuota es por facultad Y por sexo, y no se compensa entre
+# celdas — pasarse en mujeres no cubre lo que falta en hombres. El tablero
+# (`.monitoreo_aulas_avance_cuota()`) ya sumaba lo que falta en cada celda; el
+# libro (`.calaf_avance_por_facultad()`, hoja «Avance de campo» del xlsx y del
+# Sheets) restaba el neto. Con un sexo pasado de su cuota, la misma facultad
+# decía «faltan 1» en la hoja y «faltan 3» en la app. Medido el 07/09
+# coincidían (2.288 en las 15 facultades) sólo porque ninguna celda sobraba
+# todavía.
+
+#' Lo que le falta a UNA celda, que es el ladrillo de la regla.
+#'
+#' Se expone aparte porque tres superficies necesitan la misma cuenta por celda
+#' —la brecha de la fila, el déficit por sexo que se publica al lado, y la
+#' bandera de «alguna celda no cierra»— y tenerla escrita tres veces es cómo se
+#' llega a que discrepen.
+#'
+#' @param target cuota de la celda.
+#' @param observed lo conseguido en la celda; ausente observa 0.
+#' @param redondear si `TRUE`, techo por celda (ver el aviso de
+#'   [monitoreo_aulas_brecha_facultad()] sobre el redondeo).
+#' @return número no negativo, o `NA` si la celda no trae cuota finita.
+#' @keywords internal
+monitoreo_aulas_brecha_celda <- function(target, observed = 0, redondear = FALSE) {
+  tg <- suppressWarnings(as.numeric(target %||% NA))[1]
+  if (!is.finite(tg)) return(NA_real_)
+  ob <- suppressWarnings(as.numeric(observed %||% 0))[1]
+  if (!is.finite(ob)) ob <- 0
+  # El `1e-9` es del bloque del tablero y existe por el coma flotante: una
+  # cuota de 21 contra 21 logrado daba `ceiling(1e-16)` = 1, y la celda se
+  # publicaba corta por una respuesta que sí estaba.
+  if (isTRUE(redondear)) return(max(0, ceiling(tg - ob - 1e-9)))
+  max(0, tg - ob)
+}
+
+#' La brecha de una facultad contra su cuota.
+#'
+#' @section El redondeo, que todavía no es uno:
+#' `redondear_celda` existe para no cambiar ninguna cifra publicada al unificar.
+#' El tablero (`avance_cuota`) y el libro suman las faltas **sin redondear**; la
+#' tabla `avance_por_facultad` del dashboard aplicaba techo **por celda**. Con
+#' cuotas fraccionarias —y lo son: `.mac_brecha()` ya las trata así— las dos
+#' cuentas pueden diferir hasta en 1 por celda, así que ya hay una divergencia
+#' en las cifras y no sólo en el código. Unificar la implementación es el paso
+#' que la deja VISIBLE; cuál de los dos redondeos gana es una decisión de
+#' producto y se toma aparte.
+#'
+#' @param cuota la cuota de la facultad (personas).
+#' @param conseguidas lo conseguido en total.
+#' @param celdas lista de celdas de sexo, cada una `list(target, observed)`;
+#'   se consideran sólo las que traen `target` finito; un `observed` ausente
+#'   observa 0. Sin celdas útiles, la brecha es el neto `cuota − conseguidas`.
+#' @param redondear_celda techo por celda antes de sumar.
+#' @return número no negativo, o `NA` sin cuota.
+#' @keywords internal
+monitoreo_aulas_brecha_facultad <- function(cuota, conseguidas, celdas = list(),
+                                            redondear_celda = FALSE) {
+  cuota <- suppressWarnings(as.numeric(cuota %||% NA))[1]
+  if (!is.finite(cuota)) return(NA_real_)
+  conseguidas <- suppressWarnings(as.numeric(conseguidas %||% 0))[1]
+  if (!is.finite(conseguidas)) conseguidas <- 0
+  faltas <- vapply(celdas %||% list(), function(c) {
+    if (!is.list(c)) return(NA_real_)
+    monitoreo_aulas_brecha_celda(c$target %||% NA, c$observed %||% 0,
+                                 redondear = redondear_celda)
+  }, numeric(1))
+  faltas <- faltas[is.finite(faltas)]
+  if (length(faltas)) return(sum(faltas))
+  max(0, cuota - conseguidas)
+}

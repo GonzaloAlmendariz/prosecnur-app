@@ -56,30 +56,69 @@ function mediana(xs: number[]): number {
 
 /**
  * @param partes filas del parte YA unidas a su facultad.
- * @param plan el plan; el banco NO cuenta: los extras no son aulas que haya que
- *   aplicar para cerrar, son respaldo del estrato.
+ * @param plan el plan. **El universo son los SLOTS, uno por titular.**
+ *
+ * La reserva adicional ya se excluía —«los extras no son aulas que haya que aplicar para
+ * cerrar, son respaldo del estrato»— y ese argumento vale igual, palabra por
+ * palabra, para las reservas encadenadas: una reserva sólo sale a campo si cae
+ * su titular, así que tampoco es una aula que haya que aplicar.
+ *
+ * Medido sobre HSVG2026 «como 2025»: el plan tiene 174 titulares, 1.173 reservas
+ * encadenadas y 77 de la reserva adicional. Excluyendo sólo la reserva
+ * adicional, el universo salía
+ * **1.347** y el panel publicaba «152 de 1.347 aulas del plan» con «faltan
+ * 1.195», proyectando al ritmo observado cuándo se terminan de aplicar mil
+ * trescientas aulas que nadie va a aplicar. Lo que falta son **22**.
+ *
+ * Una reserva aplicada SÍ cuenta, pero por el slot de su titular: de las 152
+ * aplicadas, 134 son titulares y 18 son reservas que cubrieron al suyo —las
+ * mismas 18 que el motor cuenta como `reemplazada`—. Sin esa atribución, contar
+ * sólo titulares daría 134 y perdería las que sí se aplicaron.
  */
 export function pronosticoDeCierre(
   partes: ReadonlyArray<MonitoreoRow>,
   plan: ReadonlyArray<MonitoreoRow>,
 ): PronosticoDeCierre {
+  // Los slots que hay que cubrir: uno por titular.
   const delPlan = new Set<string>();
+  // Y de qué slot es cada código, para que una reserva aplicada cuente por el
+  // suyo. Una reserva sin titular declarado no se atribuye a ningún slot: no
+  // sabemos cuál cubre, e inventarlo inflaría el numerador.
+  const slotDe = new Map<string, string>();
   for (const fila of plan) {
-    if (texto(fila.sample_role) === "extra_reserve_pool") continue;
+    const rol = texto(fila.sample_role);
+    if (rol === "extra_reserve_pool") continue;
     const codigo = texto(fila.operational_code);
-    if (codigo) delPlan.add(codigo);
+    if (!codigo) continue;
+    if (rol === "titular" || !rol) {
+      delPlan.add(codigo);
+      slotDe.set(codigo, codigo);
+      continue;
+    }
+    // **El respaldo a `replacement_for` es de riesgo conocido y hoy no se usa.**
+    // Ese campo no es estable entre proyectos: en el estudio de 2.615 filas
+    // llevaba el `classroom_id` del titular y CERO de sus 202 valores existían
+    // como fila —la medición está en `consumoDeCadena.ts`, que por eso lo
+    // descarta—, mientras que en el de 1.424 trae códigos operativos y mapea
+    // 174 de 174. Aquí no muerde: medido el 2026-08-30, las **1.173 reservas
+    // traen `titular_operational_code`**, así que el respaldo nunca se evalúa.
+    // Si alguna vez se evalúa sobre un proyecto del primer tipo, el slot
+    // apuntaría a un titular inexistente y se contaría de más.
+    const titular = texto(fila.titular_operational_code) || texto(fila.replacement_for);
+    if (titular) slotDe.set(codigo, titular);
   }
 
-  // Una aula se cuenta el día de su parte, y UNA sola vez: dos partes de la
-  // misma aula no son dos aulas aplicadas.
+  // Un SLOT se cuenta el día de su parte, y una sola vez: ni dos partes de la
+  // misma aula ni un titular y su reserva son dos slots cubiertos.
   const diaPorAula = new Map<string, string>();
   for (const fila of partes) {
     const codigo = texto(fila.operational_code);
-    if (!codigo || !delPlan.has(codigo)) continue;
+    const slot = codigo ? slotDe.get(codigo) : undefined;
+    if (!slot || !delPlan.has(slot)) continue;
     const fecha = fechaDeAplicacion(fila.applied_at ?? fila.applied_date);
     if (!fecha) continue;
-    const previa = diaPorAula.get(codigo);
-    if (!previa || fecha < previa) diaPorAula.set(codigo, fecha);
+    const previa = diaPorAula.get(slot);
+    if (!previa || fecha < previa) diaPorAula.set(slot, fecha);
   }
 
   const porDia = new Map<string, number>();

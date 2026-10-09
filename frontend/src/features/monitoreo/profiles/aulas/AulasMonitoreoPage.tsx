@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type {
+  MonitoreoAulasTramo,
+  MonitoreoAulasDistribucionSheets,
+  MonitoreoAulasSincronizacion,
+} from "../../../../api/monitoreo";
 import { contar } from "../../fuentes/vocabulario";
 import type { CSSProperties, ReactNode } from "react";
 // Por el shim, que es la regla de la casa: los imports directos de
@@ -7,10 +12,18 @@ import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, CalendarRange, CheckCircle2, Info } from "../../../../vendor/lucide-react";
 import {
   apiMonitoreoAulasGenerarLibro,
+  apiMonitoreoAulasDisponibilidad,
+  apiMonitoreoAulasDisponibilidadPlantilla,
   apiMonitoreoAulasImportarLibro,
+  apiMonitoreoAulasImportarSheets,
+  apiMonitoreoAulasPublicarDistribucion,
+  apiMonitoreoAulasSincronizarDistribucion,
+  apiMonitoreoAulasPublicarLibro,
+  apiMonitoreoAulasRecalcularTraslape,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,
+  apiMonitoreoSync,
   apiMonitoreoState,
   type MonitoreoAulasConfig,
   type MonitoreoAulasDashboard,
@@ -24,62 +37,45 @@ import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
-import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
-import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
-import { AulasBancoExtras } from "./AulasBancoExtras";
-import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
+import { AccionEnCelda, COLUMNA_DE_ACCION } from "./AccionEnCelda";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
-import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
-import { AulasCambioDeAula } from "./AulasCambioDeAula";
-import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
+import { COLUMNAS_DE_CODIGO, CodigoEnCelda } from "./CodigoEnCelda";
+import { COLUMNAS_DE_NOTA, NotaEnCelda } from "./NotaEnCelda";
+import { identidadEnCelda } from "./AulasSistemaPabellon";
 import { columnasConDato } from "./columnasConDato";
-import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
-import { avanceEnRespuestas } from "./avanceEnRespuestas";
-import { AulasColaDeContacto } from "./AulasColaDeContacto";
-import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
-import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
-import { AulasCadenaChart } from "./AulasCadenaChart";
-import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
-import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
-import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
-import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
-import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
-import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
-import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
-import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
-import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
-import { AulasControles } from "./AulasControles";
-import { AulasControlDelLibro, columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibro";
+import { filaVisibleEnAgenda } from "./filaVisibleEnAgenda";
+import { AulasPestanaRendimiento } from "./AulasPestanaRendimiento";
+import { AulasPestanaResumen } from "./AulasPestanaResumen";
+import { AulasPestanaCuotas } from "./AulasPestanaCuotas";
+import { AulasVistaPreviaDelLibro } from "./AulasVistaPreviaDelLibro";
+import { AulasPestanaEfectividad } from "./AulasPestanaEfectividad";
+import { AulasPestanaEstratos } from "./AulasPestanaEstratos";
+import { AulasSeccionModelo } from "./AulasSeccionModelo";
+import { AulasComoMideElEstudio, type ComoMideElEstudio } from "./AulasComoMideElEstudio";
+import { AulasSeccionFuentes } from "./AulasSeccionFuentes";
+import { AulasSeccionCalidad } from "./AulasSeccionCalidad";
+import { AulasSeccionConsultas } from "./AulasSeccionConsultas";
+import { avisoConversacion } from "./avisoConversacion";
+import { fraseDelRetiro } from "./retiroDeLaDistribucion";
+import { avisoDelSync } from "./avisoDelSync";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
+import { avisoDisponibilidadImportada } from "./avisoDisponibilidadImportada";
+import { avisoLibroPublicado, avisoTraslapeRecalculado } from "./avisoLibroPublicado";
+import { avisoDistribucionPublicada } from "./distribucionDeAplicadores";
+import { sugerenciasDeDescarte } from "./AulasSexoYDescartes";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
-import { columnasDeLaTabla } from "./columnasDeLaTabla";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
-import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
-import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
-import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
-import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
-import { AulasFichaDeAula } from "./AulasFichaDeAula";
-import { dondeSeSaca } from "./dondeSeSaca";
-import { fichaDeAula } from "./fichaDeAula";
-import { AulasTextoAbierto } from "./AulasTextoAbierto";
-import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
-import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
-import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
-import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
-import { historiaDeCadena } from "./historiaDeCadena";
-import { AulasCoberturaChart } from "./AulasCoberturaChart";
-import { AulasPiramideCuota } from "./AulasPiramideCuota";
-import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
-import { AulasAvanceCuota } from "./AulasAvanceCuota";
-import { avanceCuota } from "./avanceCuota";
-import { fmtCuenta, aulasKpis, fmt } from "./kpisDeAulas";
-import { AulasEstadoChart } from "./AulasEstadoChart";
-import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
+import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota, esFocoDelEje } from "./AulasCuotasResumen";
+import { AulasSelectorDeFoco } from "./AulasSelectorDeFoco";
+import { valoresDelEje } from "./valoresDelEje";
+import { mandoDeFacultadVisible } from "./mandoDeFacultad";
+import { aulasKpis, fmt } from "./kpisDeAulas";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
-import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
+import { corteDelEstudio } from "./corteDelEstudio";
+import { estadoDeMuestraLegible } from "./estadoDeMuestraLegible";
 import { queTocaConCadaAula } from "./queTocaConCadaAula";
 // Deuda declarada: `FlujoVertical` vive en `features/calcMuestra/universidad/ui/`
 // y es genérico —etapas con valor, detalle, estado y merma—. Importarlo entre
@@ -105,9 +101,9 @@ import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
 import { railDeAulas } from "./railDeAulas";
-import { parteDeCampo } from "./parteDeCampo";
 import {
   aulasFieldLabel,
+  aulasFieldTitle,
   escalaDeProporciones,
   presentAulasRow,
   summarizeAulasValidation,
@@ -116,10 +112,22 @@ import type { MonitoreoReportScope } from "../types";
 import "../profilePage.css";
 import "../../shell/monitoreoShell.css";
 import "./aulasMonitoreo.css";
+// Después de la hoja madre, nunca antes: ver la cabecera de
+// `aulasReemplazos.css`.
+import "./aulasReemplazos.css";
+import "./aulasCargaDeCampo.css";
+import "./aulasRutaPorFacultad.css";
+import "./aulasTextoAbierto.css";
+import "./aulasReservaDirigida.css";
+import "./aulasProbabilidadDeCierre.css";
 import { recorteTabla } from "../../corte/corteContract";
 import { corteAulas } from "../../corte/corteAdapters";
-import { pct } from "../../core/formatoComun";
 import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQueAportan";
+// El poll del job de sincronización de fuentes. Se IMPORTA en vez de copiarse:
+// la nota de ese archivo defiende la copia por perfil para lo que diverge entre
+// telefónico y acreditación (su vocabulario, sus fases), y esto no es eso — es
+// esperar a un job y leer su progreso, idéntico para cualquier familia.
+import { useWaitForSourceSyncJob } from "../telefonico/sync/pollSourceSync";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
@@ -191,6 +199,21 @@ const COLUMNAS_DE_INFRAESTRUCTURA = new Set([
   // Identificadores técnicos con su equivalente legible ya en la tabla:
   // `operational_code` es «CH 1» y `course_name` el nombre del curso.
   "classroom_id", "course_id", "unit_id",
+  // **El sexo DOMINANTE del aula es vocabulario del sorteo, no del operativo.**
+  //
+  // Gonzalo, 2026-08-31: «las columnas de sexo del plan nos sirven para ver las
+  // cuotas por sexo de cada facultad; a nivel operativo no nos importa a qué
+  // segmentos pertenezca el aula, eso sólo es a nivel de la selección del
+  // aula».
+  //
+  // `sex_top_1` dice CUÁL sexo domina —«F» o «M»—, que es con lo que se repartió
+  // la muestra. Quien monitorea necesita cuántas mujeres y cuántos hombres, y
+  // eso ya está donde decide: las cuotas por facultad y sexo en Avance, y el
+  // desglose de cada candidata en la ventana de reemplazo, que resuelven la F
+  // a su conteo en vez de enseñarla cruda. Ya hay precedente de que la
+  // construcción se malinterpreta: `sub_a` es el sexo MÁS FRECUENTE y se leyó
+  // como «mujeres», lo que invirtió una tabla de cuotas entera.
+  "sex_top_1", "sex_top_2", "sex_top_1_n", "sex_top_2_n",
 ]);
 
 function compactColumns(
@@ -250,12 +273,42 @@ function columnasDeCifra(
 // La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
 // panel de Avance y así se puede probar sin montar la página.
 
-function AulasKpiBand({ dashboard, seccion, pestana }: {
+function AulasKpiBand({ dashboard, seccion, pestana, facultadEnFoco = "", cargando = false, onIr = null }: {
   dashboard: MonitoreoAulasDashboard | null;
   seccion: MonitoreoSeccion;
   pestana: string;
+  /**
+   * La facultad del selector de la cabecera. La banda presidía un Resumen ya
+   * filtrado con las cifras del estudio entero —«1 063 efectivas · meta 2 500»
+   * encima de un panel que decía «12 de 99»—, y la de arriba es la que se lee
+   * primero.
+   */
+  facultadEnFoco?: string;
+  /** El proyecto todavía se está leyendo y no hay dashboard con qué contar. */
+  cargando?: boolean;
+  /**
+   * Cambia de pestaña dentro de la sección: con él, la tarjeta con `destino`
+   * se vuelve ACCESO — «Por agendar 144» lleva a la cola de Contacto en vez
+   * de solo enunciarla. Sin callback, todo queda de lectura como siempre.
+   */
+  onIr?: ((clave: string) => void) | null;
 }) {
-  const kpis = aulasKpis(dashboard, seccion, pestana);
+  const kpis = aulasKpis(dashboard, seccion, pestana, facultadEnFoco);
+  // **Un cero mientras se carga no es un dato, es una cuenta que aún no se
+  // pudo hacer.**
+  //
+  // Sin dashboard, `aulasKpis` devuelve sus tiles con ceros, y la banda queda
+  // publicando «Agendadas 0 · de 0 que se van a visitar» sobre un proyecto de
+  // 193 titulares. Medido el 2026-08-24 abriendo el estudio real: **la lectura
+  // del proyecto tarda entre 48 s y 3 min** —el backend queda al 100 % de CPU y
+  // Plumber atiende en un solo hilo—, o sea minutos enteros enseñando ceros que
+  // se leen como «no hay nada». El panel de abajo sí declara «Preparando
+  // vista»; estas tarjetas contradecían ese mismo aviso dos centímetros arriba.
+  //
+  // El marco se queda (C2: no depende de los datos) y las cifras se declaran
+  // pendientes. Es el mismo criterio de `c4af437d`: cuando la cuenta no se
+  // puede hacer, se dice, no se resuelve a cero.
+  const enEspera = cargando && !dashboard;
   // Sin tiles no hay banda: pintarla vacía dejaría 111 px de marco sin nada
   // dentro, que es peor que la repetición que se viene a quitar.
   if (!kpis.length) return null;
@@ -269,12 +322,24 @@ function AulasKpiBand({ dashboard, seccion, pestana }: {
     >
       {kpis.map((kpi) => {
         const Icono = kpi.icono;
+        // La tarjeta con destino navega; el resto sigue siendo lectura. El
+        // botón conserva la geometría de la tarjeta (misma clase, C2).
+        const esAcceso = Boolean(kpi.destino && onIr && !enEspera);
+        const Tarjeta: "button" | "div" = esAcceso ? "button" : "div";
         return (
-          <div
+          <Tarjeta
             key={kpi.label}
-            className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}
-            title={kpi.detalle}
-            aria-label={kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
+            type={esAcceso ? "button" : undefined}
+            onClick={esAcceso ? () => onIr?.(kpi.destino ?? "") : undefined}
+            className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}${esAcceso ? " es-acceso" : ""}`}
+            title={enEspera
+              ? "Todavía se está leyendo el proyecto"
+              : esAcceso ? `${kpi.detalle ?? kpi.label} — click para ir a la lista` : kpi.detalle}
+            aria-label={enEspera
+              ? `${kpi.label}: todavía se está leyendo el proyecto`
+              : esAcceso
+                ? `${kpi.label}: ${kpi.value}. Ir a la lista`
+                : kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
           >
             {/* Ícono y pista son el patrón de telefónico y acreditación: cada
                 cifra se reconoce de un vistazo y dice de dónde sale. Los llevan
@@ -285,24 +350,40 @@ function AulasKpiBand({ dashboard, seccion, pestana }: {
               <Icono size={13} aria-hidden="true" />
               {kpi.label}
             </span>
-            <strong>{kpi.value}</strong>
-            <small>{kpi.pista}</small>
-          </div>
+            <strong>{enEspera ? "—" : kpi.value}</strong>
+            <small>{enEspera ? "leyendo el proyecto" : kpi.pista}</small>
+          </Tarjeta>
         );
       })}
     </div>
   );
 }
 
-function DataTable({
+// Exportada para poder probarla con filas reales: la intercepción de chips de
+// identidad (Sistema Pabellón, B33) vive en su celda y un test de fuente no
+// probaría que se pinta.
+export function DataTable({
   rows,
   empty,
   preferredColumns = [],
   maxColumns = 8,
+  totalReal,
+  onVerFicha = null,
 }: {
   rows: Array<Record<string, unknown>>;
   empty: string;
   preferredColumns?: string[];
+  /**
+   * Llevar de una celda de código a la ficha de ese curso-horario. Opcional a
+   * propósito: sin ella la celda se pinta como hoy y la tabla sigue siendo
+   * renderizable sin Router.
+   */
+  onVerFicha?: ((codigo: string) => void) | null;
+  /**
+   * El total del motor cuando el payload viene topeado, para que el pie divida
+   * por el plan y no por lo que cupo en la respuesta. Ver `recorteTabla`.
+   */
+  totalReal?: number;
   /**
    * Cuántas columnas caben. Por defecto ocho, y lo que sobra hasta ocho lo
    * rellena el payload en su propio orden — que es como la tabla de brechas
@@ -354,7 +435,12 @@ function DataTable({
   // si el recorte dejara fuera justo la que pasa de 1, la misma columna se
   // formatearía distinto según cuántas filas quepan.
   const enProporcion = escalaDeProporciones(rows);
-  const recorteFilas = recorteTabla(rows.map((row) => presentAulasRow(row, enProporcion)), 400);
+  const recorteFilas = recorteTabla(
+    rows.map((row) => presentAulasRow(row, enProporcion)),
+    TOPE_DE_FILAS,
+    "fila",
+    totalReal,
+  );
   const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
   // Sobre las filas ya presentadas y ya recortadas: son las que se pintan.
   const cifras = columnasDeCifra(recorteFilas.visibles, columns);
@@ -367,7 +453,15 @@ function DataTable({
       <table className="mon-profile-table">
         <thead>
           <tr>{columns.map((column) => (
-            <th key={column} scope="col" className={cifras.has(column) ? "es-cifra" : undefined}>
+            <th
+              key={column}
+              scope="col"
+              className={cifras.has(column) ? "es-cifra" : undefined}
+              // El alcance de un casi homónimo («Respuestas atribuidas» contra
+              // «Respuestas leídas») vive en el title de su cabecera; para las
+              // demás columnas devuelve undefined y no pinta nada.
+              title={aulasFieldTitle(column)}
+            >
               {aulasFieldLabel(column)}
             </th>
           ))}</tr>
@@ -377,12 +471,30 @@ function DataTable({
             <tr key={index}>
               {columns.map((column) => (
                 <td key={column} className={cifras.has(column) ? "es-cifra" : undefined}>
-                  {/* Un estado se pinta como chip de color; el resto, texto.
-                      Los colores son los de la franja por día: la misma aula
-                      tiene que verse igual en su barra y en su fila. */}
+                  {/* Un estado se pinta como chip de color; la identidad
+                      —lugar, hora, «Sesiones y aula»— como chips del Sistema
+                      Pabellón (B33); el resto, texto. Los colores del estado
+                      son los de la franja por día y el tono del lugar deriva
+                      de su letra: la misma aula tiene que verse igual en su
+                      barra, en su fila y en cualquier otra vista del perfil. */}
+                  {/* Las OBSERVACIONES van plegadas en su botón (B42): cada
+                      familia por su columna, y el peek dice de cuál es. */}
                   {COLUMNAS_DE_ESTADO.has(column)
                     ? <EstadoEnCelda valor={String(row[column] ?? "")} />
-                    : String(row[column] ?? "")}
+                    : column === COLUMNA_DE_ACCION
+                      ? <AccionEnCelda valor={String(row[column] ?? "")} />
+                      : COLUMNAS_DE_NOTA.has(column)
+                        ? <NotaEnCelda texto={String(row[column] ?? "")} origen={COLUMNAS_DE_NOTA.get(column) ?? ""} />
+                        : COLUMNAS_DE_CODIGO.has(column)
+                          ? (
+                            <CodigoEnCelda
+                              valor={String(row[column] ?? "")}
+                              hrefDeFicha={(codigo) =>
+                                `/monitoreo?seccion=consultas&pestana=ficha&foco=${encodeURIComponent(`aula:${codigo}`)}`}
+                              onVerFicha={onVerFicha ?? undefined}
+                            />
+                          )
+                          : identidadEnCelda(column, String(row[column] ?? "")) ?? String(row[column] ?? "")}
                 </td>
               ))}
             </tr>
@@ -430,12 +542,9 @@ function agendaReservas(dashboard: MonitoreoAulasDashboard | null) {
 
 function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   const filas = ((dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>)
-    .filter((fila) => {
-      const rol = String(fila.sample_role ?? "");
-      // Ni el banco —capacidad, no visitas— ni las reservas de cadena. Ver
-      // `agendaReservas` y `docs/qa/roles-del-operativo-de-aulas-2026-08-22.md`.
-      return rol !== "extra_reserve_pool" && rol !== "chain_reserve";
-    });
+    // Quién se ve es UNA verdad nombrada (caso A del dictado 2026-09-03):
+    // titulares siempre, reservas solo despiertas — filaVisibleEnAgenda.ts.
+    .filter(filaVisibleEnAgenda);
   // En el orden en que se recorre el operativo: cada titular con sus reservas
   // detrás. La tabla las enseñaba en el orden crudo del plan, que agrupa por rol
   // —todos los titulares y después todas las reservas—, así que la cadena, que
@@ -446,9 +555,22 @@ function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   // Qué toca hacer con cada aula, calculado aquí y no en la cabeza del
   // agendador: la tabla enseñaba el estado y él lo traducía a una acción 193
   // veces. Ver `queTocaConCadaAula.ts`.
-  const corte = String((dashboard as { generated_at?: unknown } | null)?.generated_at ?? "").slice(0, 10);
+  // **El corte del ESTUDIO, no el sello del tablero.** `generated_at` dice
+  // cuándo se calculó el tablero —el reloj de la máquina que lo abrió— y con él
+  // «qué toca» se calculaba contra un día que el campo no vivió. Ver
+  // `corteDelEstudio.ts`: el «hoy» del estudio es su último parte.
+  const corte = corteDelEstudio(
+    ((dashboard as { partes_campo?: unknown } | null)?.partes_campo ?? []) as Array<Record<string, unknown>>,
+    (dashboard as { generated_at?: unknown } | null)?.generated_at,
+  ).dia;
   const conAccion: Array<Record<string, unknown>> = filas.map((fila) => ({
     ...fila, que_toca: queTocaConCadaAula(fila, corte),
+    // **Una fila no puede decir «Aplicada» y «Sin contactar» a la vez.** El
+    // normalizador del estado de muestra es una lista cerrada y las seis
+    // palabras que los equipos escriben de verdad caen todas al default. Ver
+    // `estadoDeMuestraLegible.ts`: no cambia el mapeo, sólo impide que la tabla
+    // afirme la contradicción sin señalarla.
+    sample_status: estadoDeMuestraLegible(fila.sample_status, fila.operational_status),
   }));
   return ordenarPorCadenaOperativa(conAccion, (fila) => ({
     rol: String(fila.sample_role ?? ""),
@@ -503,15 +625,29 @@ export function reemplazosEnOrdenDeCadena(
  * Sin recorte NO se dice «se ven»: ahí no hay nada escondido, y anunciar un
  * recorte que no existe hace dudar de una cifra completa.
  */
+/**
+ * Cuántas filas pinta la tabla como mucho.
+ *
+ * Se exporta porque el CONTADOR del panel vive fuera de la tabla y decía otra
+ * cosa: el pie de «Avance por curso-horario» publicaba «se ven 500 de 1 392»
+ * mientras el DOM tenía 400 filas, medido el 2026-09-08. Le pasaban el largo de
+ * `course_status` —que el motor topea en 500— en vez de lo que de verdad se ve.
+ *
+ * El denominador ya se había arreglado una vez («el plan entero, no lo que cupo
+ * en el payload») y el numerador se quedó con el mismo defecto una capa más
+ * arriba: la fracción volvía a contar dos conjuntos distintos.
+ */
+export const TOPE_DE_FILAS = 400;
+
 export function contadorDeCursosHorario(
   visibles: number,
   total: number,
-  delBanco: number,
+  deReservaAdicional: number,
 ): string {
   const base = total > visibles
     ? `se ven ${fmt(visibles)} de ${fmt(total)} cursos-horario`
     : `${fmt(visibles)} cursos-horario`;
-  return delBanco ? `${base} · ${fmt(delBanco)} del banco` : base;
+  return deReservaAdicional ? `${base} · ${fmt(deReservaAdicional)} de la reserva adicional` : base;
 }
 
 function cleanCell(value: unknown) {
@@ -592,6 +728,14 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
       // capacidad inflada. El contenedor de datos —la rejilla de tarjetas— ya
       // declara su propio grupo `equal` justo debajo, que es lo que hay que
       // vigilar aquí.
+      //
+      // El `data-qa-geometry-contract` de aquí abajo es INERTE y se deja a
+      // propósito: `ui-quick-check` lee el contrato del mismo elemento que
+      // lleva el grupo, así que éste no lo mide nadie. Pero
+      // `AulasCompactWorkbenchLayout.test.ts` exige que TODO panel declare su
+      // contrato en su etiqueta de apertura, y esa convención documenta qué es
+      // el panel aunque el runner no la consuma. Las dos reglas conviven y el
+      // conflicto está anotado; quitarlo por «inerte» rompe el test.
     data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-profile-panel-head">
@@ -661,25 +805,58 @@ function diasDeCampoDelCorte(partes: ReadonlyArray<MonitoreoRow>): number {
   return dias.size;
 }
 
-function renderAulasView(
-  view: MonitoreoSeccion,
-  dashboard: MonitoreoAulasDashboard | null,
-  operations: ReactNode,
-  vacioSinTablero: ReactNode,
-  registro: ReactNode,
+function renderAulasView({
+  view,
+  dashboard,
+  // Recarga la vista tras marcar un complemento o un refuerzo: el plan cambia y
+  // sin esto la pantalla sigue ofreciendo el aula que se acaba de apartar.
+  onGuardado = undefined,
+  operations,
+  vacioSinTablero,
+  registro,
+  fuentes,
+  pestana,
+  foco,
+  onFoco,
+  volumen = {},
+  comoMide = null,
+  criterioDeEfectiva = null,
+  criterioDeAula = null,
+  irAPestana = null,
+  verFichaDe = null,
+  onDeclararUmbralDeDuracion = null,
+  onFijarReparto = null,
+  onConfirmarDuracion = null,
+  onImportarDisponibilidad = null,
+  onPlantillaDisponibilidad = null,
+  onDeclararRango = null,
+  fueraDelReparto = [],
+  onDeclararFuera = null,
+  onResortear = null,
+  onConcentrar = null,
+  distribucionRecordada = null,
+  onPublicarDistribucion = null,
+  onSincronizarDistribucion = null,
+  sincronizacion = null,
+}: {
+  view: MonitoreoSeccion;
+  dashboard: MonitoreoAulasDashboard | null;
+  operations: ReactNode;
+  vacioSinTablero: ReactNode;
+  registro: ReactNode;
   /** Las fuentes del estudio; Fuentes es la sección que promete decir cuáles son. */
-  fuentes: ReadonlyArray<MonitoreoSource>,
-  pestana: string,
+  fuentes: ReadonlyArray<MonitoreoSource>;
+  pestana: string;
   /** Corte elegido en el resumen de cuotas; vive en la URL, no en un estado suelto. */
-  foco: FocoDeCuota,
-  onFoco: (foco: FocoDeCuota) => void,
+  foco: FocoDeCuota;
+  onFoco: (foco: FocoDeCuota) => void;
   /**
    * Cuánto trajo la plataforma: `n_rows` y `variables` del ESTADO, no del
    * tablero. Se pasan porque esta función no ve el estado —recibe sólo el
    * dashboard—, y sin ellos la tarjeta de la fuente describía igual una base de
    * 3 700 filas y 43 columnas que una de 3 700 y dos.
    */
-  volumen: { filas?: number; columnas?: number } = {},
+  volumen?: { filas?: number; columnas?: number };
   /**
    * Qué cuenta como encuesta EFECTIVA en este estudio, ya construido.
    *
@@ -688,14 +865,20 @@ function renderAulasView(
    * config. Gonzalo: «la sección de fuentes no deja declarar las variables que
    * definen a una encuesta efectiva».
    */
-  criterioDeEfectiva: ReactNode = null,
+  /**
+   * Las tres declaraciones que gobiernan lo que el tablero significa, ya
+   * construidas. Se pasa hecha por el mismo motivo que `criterioDeEfectiva`:
+   * esta función no ve el estado ni sabe guardar.
+   */
+  comoMide?: ReactNode;
+  criterioDeEfectiva?: ReactNode;
   /**
    * La declaración de qué es un aula válida, ya construida.
    *
    * Se pasa hecha —como `criterioDeEfectiva`— porque esta función no ve el
    * estado ni sabe guardar, y el control necesita las dos cosas.
    */
-  criterioDeAula: ReactNode = null,
+  criterioDeAula?: ReactNode;
   /**
    * Cambia de pestaña dentro de la misma sección.
    *
@@ -705,102 +888,91 @@ function renderAulasView(
    * función y no se resuelve aquí porque quien recuerda la pestaña activa de
    * cada sección es el componente de arriba.
    */
-  irAPestana: ((clave: string) => void) | null = null,
-) {
+  irAPestana?: ((clave: string) => void) | null;
+  /**
+   * Del código de un curso-horario a su ficha: cruza de sección, mueve su
+   * pestaña y deja el foco puesto. Lo arma la página, que es quien recuerda la
+   * pestaña activa de cada sección.
+   */
+  verFichaDe?: ((codigo: string) => void) | null;
+  /**
+   * Declarar a partir de cuántos minutos una respuesta es sospechosa.
+   *
+   * Va como función y no como nodo ya construido —al revés que
+   * `criterioDeEfectiva` y `criterioDeAula`— porque el control vive DENTRO del
+   * panel de tiempos, junto a la distribución con la que se elige el número.
+   * Sacarlo a un nodo aparte lo alejaría del histograma que lo justifica.
+   */
+  onDeclararUmbralDeDuracion?: ((minutos: number) => void | Promise<void>) | null;
+  /**
+   * Fijar o soltar el aplicador de una cita del reparto (B36). Función y no
+   * nodo por lo mismo que el umbral: el control vive DENTRO de la tabla de
+   * Asignación, fila por fila.
+   */
+  onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
+  /** B70: persistir la duración de la aplicación (config del backend). */
+  onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
+  /** B74: importar el excel de disponibilidad de aplicadores. */
+  onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
+  /** Descargar la plantilla vacía de disponibilidad. */
+  onPlantillaDisponibilidad?: (() => void | Promise<void>) | null;
+  /** B75: declarar/limpiar el rango de despliegue del reparto. */
+  onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
+  /** Los tramos del operativo con su estado derivado, de paso hacia la asignación. */
+  tramos?: MonitoreoAulasTramo[];
+  onGuardarTramos?: ((tramos: { nombre: string; desde: string; hasta: string }[]) => void | Promise<void>) | null;
+  guardandoTramos?: boolean;
+  /** Quién no sale en el despliegue vigente, y cómo cambiarlo. */
+  fueraDelReparto?: ReadonlyArray<string>;
+  onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
+  /** B67: pedir otro sorteo del reparto. */
+  onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
+  /** Dictado 2026-09-04: concentrar el día del aplicador en el reparto. */
+  onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
+  /** S7: el Sheets de los aplicadores recordado y su publicación. */
+  distribucionRecordada?: MonitoreoAulasDistribucionSheets | null;
+  onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
+  onSincronizarDistribucion?:
+    | ((aplicar: boolean, enlace?: string) => void | Promise<void>)
+    | null;
+  sincronizacion?: MonitoreoAulasSincronizacion | null;
+  /** Recarga la vista tras marcar un complemento (B) o un refuerzo (C). */
+  onGuardado?: () => void;
+}) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
   // —la tabla de cuotas— teniendo el perfil SEIS listas de las mismas veinte
   // facultades. Para saber cómo va Derecho había que cazar su fila seis veces.
-  const facultadEnFoco = foco?.tipo === "facultad" ? foco.valor : undefined;
+  // Se pregunta por el EJE, no por su nombre de hoy: en un estudio cuyas metas
+  // son por nivel el foco llega como `nivel:7` y esta comparación lo daba por
+  // «no es el eje», así que la sección entera dejaba de obedecer al foco. La
+  // clave la declara el motor en `avance_cuota.eje`; sin ella, `facultad`.
+  const ejeDeLaSeccion = String(
+    (dashboard as { avance_cuota?: { eje?: { clave?: unknown } } } | null)
+      ?.avance_cuota?.eje?.clave ?? "facultad",
+  );
+  const facultadEnFoco = esFocoDelEje(foco, ejeDeLaSeccion) ? foco!.valor : undefined;
+  // El umbral declarado, leído del mismo bloque que dibuja el panel de tiempos
+  // para que las dos pantallas no puedan discrepar.
+  const umbralDeDuracion = (() => {
+    const u = (dashboard as { tiempos?: { umbral?: { declarado?: unknown; minutos?: unknown } } } | null)
+      ?.tiempos?.umbral;
+    const m = Number(u?.minutos);
+    return { declarado: u?.declarado === true, minutos: Number.isFinite(m) ? m : null };
+  })();
 
   if (view === "fuentes") {
-    // Las operaciones (importar plan / sincronizar campo) se muestran incluso
-    // sin dashboard: importar el plan es justamente la acción de arranque.
-    const embudo = embudoDelOperativo(dashboard?.kpis);
     return (
-      <div className="mon-profile-stack aulas-fuentes-stack">
-        {operations}
-        {/* **El recorrido, con su merma en cada paso.** Es el patrón 4 del
-            catálogo: Cálculo tiene un mapa que va de las filas leídas a los
-            titulares y contesta «¿de dónde salió este número?» sin salir de la
-            pantalla; Monitoreo enseñaba KPIs sueltos sin decir cómo se encadenan.
-            Ver docs/qa/roles-del-operativo-de-aulas-2026-08-22.md.
-            Vacío cuando no hay plan: el embudo de ceros no explica nada. */}
-        {embudo.length ? (
-          <section
-            className="mon-profile-panel aulas-embudo-panel"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Del plan a las encuestas que cuentan</h3>
-              <span>dónde está cada curso-horario ahora mismo</span>
-            </div>
-            <div data-qa-geometry-capacity="owned">
-              <FlujoVertical
-                etapas={embudo}
-                orientacion="horizontal"
-                ariaLabel="Recorrido del operativo: del plan a las encuestas válidas"
-              />
-              {/* **La explicación debajo de las cifras**, patrón 5 del catálogo.
-                  Cálculo pone bajo su cadena de conversión un párrafo que explica
-                  por qué el divisor son elegibles y por qué las reservas no
-                  cambian la muestra; un analista que lo abre entiende el cálculo.
-                  Aquí cada frase corresponde a una regla del motor, no a una
-                  intuición — las referencias están en `embudoDelOperativo.ts`. */}
-              {explicacionDelEmbudo(dashboard?.kpis).map((frase) => (
-                <p className="aulas-embudo-prosa" key={frase.slice(0, 32)}>{frase}</p>
-              ))}
-            </div>
-          </section>
-        ) : null}
-        <section
-          className="mon-profile-panel"
-          // Sin grupo en el `section`: con él, la CABECERA entra como miembro y sus
-          // 5 px de holgura se leen como `capacity-drift` del panel. Es la trampa
-          // que la norma describe —declarar el grupo en el `section` en vez del
-          // wrapper de datos hace que el padding del encabezado se lea como
-          // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
-          // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
-        data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* Antes decía «Fuente y plan» y era una tabla campo/valor que
-                repetía la corrida y el marco —ya son tarjetas de «Operación del
-                plan», justo arriba— y el sello de generación, que es el «Corte»
-                de la banda. Lo que faltaba era esto: qué se está leyendo. */}
-            <h3>De dónde salen las respuestas</h3>
-            {/* El libro cuenta como fuente: de él salen el plan, el parte de
-                campo y el control. Si no se contara, la cuenta diría una menos
-                de las que la lista enseña. */}
-            <span>{(() => {
-              const n = fuentes.length + (dashboard?.libro ? 1 : 0);
-              return n === 1 ? "1 fuente" : `${fmt(n)} fuentes`;
-            })()}</span>
-          </div>
-          <AulasFuentesDelEstudio
-            fuentes={fuentes}
-            anonimas={Boolean(dashboard?.anonymous_responses)}
-            libro={(dashboard?.libro ?? null) as ReciboDelLibro | null}
-            filas={volumen.filas}
-            columnas={volumen.columnas}
-          />
-        </section>
-        {/* **Qué cuenta como efectiva**, aquí y no en otra sección: Fuentes es la
-            que promete decir de dónde salen las respuestas, y de qué vale cada
-            una es parte de eso. Hasta ahora no se podía declarar en aulas —los
-            perfiles hermanos sí— y el motor sólo admitía una condición. */}
-        {criterioDeEfectiva ? (
-          <section className="mon-profile-panel" data-qa-geometry-contract="intrinsic">
-            <div className="mon-profile-panel-head">
-              <h3>Qué cuenta como encuesta efectiva</h3>
-              <span className="mon-profile-panel-hint">
-                hasta cuatro condiciones, y se cumplen todas
-              </span>
-            </div>
-            {criterioDeEfectiva}
-          </section>
-        ) : null}
-      </div>
+      <AulasSeccionFuentes
+        dashboard={dashboard}
+        operations={operations}
+        fuentes={fuentes}
+        volumen={volumen}
+        comoMide={comoMide}
+        criterioDeEfectiva={criterioDeEfectiva}
+        umbralDeDuracion={umbralDeDuracion}
+        onDeclararUmbralDeDuracion={onDeclararUmbralDeDuracion}
+      />
     );
   }
   // El vacío lo pone la página, que es la que sabe si el plan está importado.
@@ -808,1253 +980,110 @@ function renderAulasView(
   if (!dashboard) return vacioSinTablero;
   if (view === "modelo") {
     return (
-      // La franja de traza acompaña a las dos pestañas: dice de dónde viene el
-      // plan, y eso importa igual consultándolo que registrando sobre él. Lo que
-      // ya no compite es la tabla contra el registro.
-      // El reparto es POSITIVO —«¿es esta pestaña?»— desde que son tres. Con dos
-      // bastaba negar la otra; al llegar la tercera, «no es registro» incluye
-      // «por facultad» y la agenda se pintaba también ahí. Es literalmente el
-      // mismo tropiezo que ya costó el reparto de Consultas al llegar su cuarta
-      // pestaña, y por eso acá se escribe positivo desde el principio.
-      <div className={`mon-profile-stack aulas-agenda-stack${
-        pestana === "facultad" ? " is-ruta" : ""}`}>
-        {/* La preparación NO entra en «Por facultad». A 1366x768 la sección
-            entera dispone de 367 px y ese panel se lleva 158: a la ruta le
-            quedaban 198, o sea una ventana de 104 px para 5 538 de contenido
-            —el «scroll interno muy agresivo» que ya costó una queja en la
-            agenda—. Sin él, la ruta se queda con los 367. No se pierde nada:
-            el mismo panel está en las otras dos pestañas de la sección, a un
-            click. */}
-        {/* La preparación NO entra en «Por facultad» ni en «Contacto». En las
-            dos la sección dispone de 367 px a 1366x768 y ese panel se lleva
-            159: en la ruta dejaba la lista en 104 px y en Contacto ahogaba el
-            bloque de medios. Y en ninguna de las dos aporta —una dice a dónde
-            ir y la otra a quién llamar—; el mismo panel sigue en la pestaña
-            Agenda, a un click. */}
-        {pestana === "facultad" || pestana === "contacto"
-          ? null
-          : <HandoffTracePanel dashboard={dashboard} />}
-        {pestana === "contacto" ? (
-        <section
-          // Clase propia: el stack de Agenda reparte el alto entre DOS filas con
-          // `height: 100%`, y esta pestaña mete dos paneles en uno. Sin ella, a
-          // 1024x600 la seccion quedaba en 54 px, el bloque de medios en CERO y
-          // 421 px de contenido desbordaban SIN NINGUN dueño de scroll —medido—.
-          // El gate no lo vio: da ok=true porque no hay grupo declarado que se
-          // viole ni dueño que auditar. Un contenido que desborda sin dueño es
-          // invisible para el.
-          className="mon-profile-panel aulas-contacto-panel"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* El título cubre las DOS cosas que hay dentro. Decía «Qué medio
-                agenda mejor», que es sólo la primera: quien buscara «a quién
-                llamo hoy» no lo encontraba ahí, y la superficie no declaraba lo
-                que contiene (C1). Cada bloque lleva ahora su propio rótulo. */}
-            <h3>Cómo se consigue la cita</h3>
-            <span>el medio y la cola de contacto</span>
-          </div>
-          {/* Los dos dentro de UN dueño de scroll, no cada uno con el suyo: la
-              pantalla tiene que tener un solo recorrido. */}
-          <div className="aulas-contacto-cuerpo">
-            <AulasMedioDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
-            {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita»,
-                por eso comparten pestaña; el medio dice con qué y la cola con
-                quién. */}
-            <AulasColaDeContacto
-              filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
-              facultadEnFoco={facultadEnFoco}
-              onFoco={onFoco}
-            />
-          </div>
-        </section>
-        ) : null}
-        {pestana === "facultad" ? (
-        <section
-          // `mon-profile-panel` a secas y NO `aulas-agenda-panel`: aquella clase
-          // tiene su grid afinado a TRES hijos —cabecera, banda de días y
-          // tabla— y este panel tiene dos. Reusándola, la lista recibía la fila
-          // del medio —118 px para 5 538 de contenido, cuatro filas visibles— y
-          // quedaban 223 px muertos debajo. Medido antes de cambiarla.
-          className="mon-profile-panel aulas-ruta-panel"
-          data-qa-geometry-group="monitoring-aulas-table"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* «Ruta por facultad» terminaba igual que «Cuota sexo por
-                facultad» y el guard de títulos lo tumbó. El nombre dice ahora lo
-                que la vista CONTESTA —a dónde hay que ir cada día—; que sea por
-                facultad ya lo dice la pestaña. */}
-            <h3>A dónde ir cada día</h3>
-            {/* La MISMA fuente que la tabla de la pestaña de al lado: si cada
-                una sacara sus filas por su cuenta, las dos vistas de la misma
-                agenda podrían enseñar cuentas distintas. */}
-            <span>{(() => {
-              const n = agendaRows(dashboard).length;
-              return n ? `${n.toLocaleString("es-PE")} cursos-horario` : "sin agenda";
-            })()}</span>
-          </div>
-          <AulasAgendaPorFacultad filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
-        </section>
-        ) : null}
-        {pestana === "agenda"
-          || (pestana !== "facultad" && pestana !== "contacto") ? (
-        <section
-          // `aulas-agenda-panel`: este panel tiene TRES filas —cabecera, lectura
-          // por día y tabla— y la regla común declara dos. Un hijo de más se
-          // lleva una fila declarada y se dibuja encima del siguiente; medido:
-          // los días se pintaban sobre la tabla. Es el mismo tropiezo que ya
-          // costó el reparto de alto del banner de KPIs.
-          className="mon-profile-panel aulas-agenda-panel"
-          data-qa-geometry-group="monitoring-aulas-table"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* La hoja del libro se llama así y estas son sus filas: las
-                escribe `aulas_libro_hoja_agendadas()` y las vuelve a leer
-                `aulas_agendadas_leer()`. */}
-            <h3>Aulas agendadas</h3>
-            {/* Cuenta lo que la tabla ENSEÑA, no lo que trae el payload. Y las
-                reservas se declaran al lado en vez de listarse: existen, pero no
-                son trabajo del agendador hasta que una titular se cae. */}
-            <span>
-              {fmt(agendaRows(dashboard).length)} cursos-horario
-              {agendaReservas(dashboard)
-                ? ` · ${fmt(agendaReservas(dashboard))} reservas detrás`
-                : ""}
-            </span>
-          </div>
-          {/* Primero cuándo se aplica cada cosa —que es lo que se pregunta al
-              entrar a Agenda— y después la tabla, que es donde se busca un
-              curso-horario concreto. La tabla NO se va: en esta sección sirve. */}
-          {/* Sin el banco, por lo mismo: un aula sin fecha no tiene día en el
-              que contarse, y las 40 caían en el tramo «sin fecha». */}
-          <AulasAgendaPorDia
-            filas={((dashboard.course_status ?? []) as MonitoreoAulasPlanRow[])
-              .filter((f) => String((f as { sample_role?: unknown }).sample_role ?? "") !== "extra_reserve_pool")}
-            // El plan de verdad, no lo que cupo en el payload: `course_status`
-            // llega topeado a 500 filas y contar las recibidas hacía decir
-            // «ninguno de los 42» sobre un plan de 686.
-            //
-            // Y son los TITULARES, no el plan entero: desde que la agenda lista
-            // titulares, decir «ninguno de los 700» al pie de una tabla de 193
-            // vuelve a poner dos denominadores en la misma pantalla. Es el mismo
-            // efecto colateral que dejó «Libro de 2616 aulas» sobre un libro de
-            // 190: al cambiar lo que se cuenta hay que revisar quién lo cuenta.
-            totalDelPlan={
-              Number(dashboard.kpis?.aulas_titulares ?? 0)
-              || Number(dashboard.course_status_total_plan ?? 0)
-              || 0
-            }
-          />
-          <DataTable
-            rows={agendaRows(dashboard)}
-            empty="No hay agenda importada para cursos-horario."
-            // El rol y a quién reemplaza van delante de la sección y el
-            // responsable: con una cadena de seis, las siete filas del mismo
-            // titular sólo se distinguían por su código. La tabla recorta a
-            // ocho columnas y lo declara, así que el orden decide qué se ve.
-            // La AGENDA enseña lo que la agenda recoge. Medido: la hoja «Aulas
-            // Agendadas» trae 20 campos por eslabón —el ciclo de contacto
-            // entero: a quién se llama, por qué medio, qué día, cuántos
-            // intentos, en qué quedó y para cuándo— y la tabla no mostraba NI
-            // UNO: enseñaba curso, facultad, rol, a quién reemplaza, sesiones,
-            // nombre del curso, horario, ficha y estado de ficha. Todo eso se
-            // puede mirar en otras superficies; el ciclo de contacto sólo vive
-            // aquí. El orden es el de quien agenda: a quién llamo, cómo, cuándo
-            // llamé, cuántas veces, en qué quedó, para cuándo quedó.
-            maxColumns={12}
-            // «Qué toca» va DELANTE del status: la acción manda sobre el
-            // estado del que sale. Es el orden que ya usa la tabla de Cálculo,
-            // donde «A coordinar» cierra la fila con lo accionable.
-            preferredColumns={["operational_code", "que_toca", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
-          />
-        </section>
-        ) : null}
-      </div>
+      <AulasSeccionModelo
+        dashboard={dashboard}
+        pestana={pestana}
+        facultadEnFoco={facultadEnFoco}
+        onFoco={onFoco}
+        verFichaDe={verFichaDe}
+        tabla={DataTable}
+        traza={<HandoffTracePanel dashboard={dashboard} />}
+        agendaRows={agendaRows}
+        agendaReservas={agendaReservas}
+        onFijarReparto={onFijarReparto}
+        onConfirmarDuracion={onConfirmarDuracion}
+        onImportarDisponibilidad={onImportarDisponibilidad}
+        onPlantillaDisponibilidad={onPlantillaDisponibilidad}
+        onDeclararRango={onDeclararRango}
+        fueraDelReparto={fueraDelReparto}
+        onDeclararFuera={onDeclararFuera}
+        onResortear={onResortear}
+        onConcentrar={onConcentrar}
+        distribucionRecordada={distribucionRecordada}
+        onPublicarDistribucion={onPublicarDistribucion}
+        onSincronizarDistribucion={onSincronizarDistribucion}
+        sincronizacion={sincronizacion}
+      />
     );
   }
   if (view === "calidad") {
-    // **El registro de campo abre Validación.**
-    //
-    // Estaba en «Agenda de cursos-horario», que es otro trabajo: agendar es
-    // conseguir la cita y el control de campo empieza cuando se sale. Y va
-    // primero porque esta sección la usan dos personas —el jefe de campo, que
-    // entra por lo que pasó en el aula, y el analista, que entra por los
-    // controles— y lo que se registra viene antes de lo que se valida.
-    if (pestana === "abiertas") {
-      return (
-        <div className="mon-profile-stack aulas-tablas-apiladas">
-        {/* **La calidad de lo que se escribió a mano.** Capacidad que no
-            existía en ningún perfil de Monitoreo. Es un visualizador: ordena
-            por dónde empezar a leer y no esconde respuestas. Como el de
-            tiempos, se muestra aunque este estudio no traiga instrumento.
-            Tiene pestaña propia —«Respuestas abiertas»— porque leerlas es un
-            trabajo entero y no algo que se mire de paso entre otros seis
-            paneles. */}
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-table"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            <h3>Lo que se escribió a mano</h3>
-            <span>calidad de las respuestas abiertas</span>
-          </div>
-          <AulasTextoAbierto bloque={dashboard.texto_abierto} />
-        </section>
-        </div>
-      );
-    }
-    if (pestana === "registro") {
-      return (
-        <div className="mon-profile-stack">
-          {registro}
-          {/* **Lo que el campo reportó, que hasta hoy no se leía en ninguna
-              pantalla.** `field_note` tenía formulario de entrada y cero
-              superficies de lectura: el aplicador anotaba lo que vio en el aula
-              y eso no llegaba a nadie. Va aquí, debajo del registro, porque es
-              la misma pestaña y la misma persona: quien registra y quien lee lo
-              registrado son el jefe de campo. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Lo que reportó el campo</h3>
-              <span>observaciones de partes y registros</span>
-            </div>
-            {/* Las DOS fuentes: el parte del libro y el registro de esta app,
-                que guarda su `field_note` en la fila del plan. El panel leía
-                sólo la primera mientras su vacío decía «se escriben al registrar
-                un aula» — el camino que no miraba. */}
-            <AulasObservacionesDeCampo
-              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
-              registros={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
-            />
-          </section>
-          {/* **Cómo trabaja cada equipo, en Validación y no enterrado en
-              Avance.** Es lo que el jefe de campo viene a ver, y existía sólo
-              como el cuarto de nueve paneles de otra sección midiendo encuestas
-              por aula. Aquí va con su banda: se está juzgando el trabajo de
-              personas y una diferencia de cinco encuestas entre el primero y el
-              último cabe entera en el ruido. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Cómo trabaja cada equipo</h3>
-              <span>producción y calidad por aplicador</span>
-            </div>
-            <AulasTrabajoDeLosEquipos
-              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
-            />
-          </section>
-          {/* La pregunta del analista: ¿lo de plataforma coincide con lo que se
-              vio en el aula? Va en la misma pestaña que el registro porque es el
-              contraste de lo que ahí se anota. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>El parte contra la plataforma</h3>
-              <span>lo declarado y lo que llegó</span>
-            </div>
-            <AulasParteContraPlataforma
-              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
-              agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
-            />
-          </section>
-          {/* **El control de tiempos, que el Excel anterior tenía y la app no.**
-              Va en Validación porque es pregunta del analista, y se muestra
-              aunque este estudio no traiga marcas de tiempo: el panel dice que
-              faltan. Un panel que desaparece cuando no hay dato deja al usuario
-              sin saber que el dato existe. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Cuánto se tarda en responder</h3>
-              <span>duración por respuesta y por aula</span>
-            </div>
-            <AulasTiemposDeRespuesta tiempos={dashboard.tiempos} />
-          </section>
-
-          {/* **Qué descarta cada filtro.** Con sólo el total de válidas no se
-              puede saber si el criterio trabaja: un filtro que acepta todos los
-              valores da el mismo número que no tener filtro. Va en Validación
-              porque es la pregunta del analista sobre su propio criterio. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Qué descarta cada filtro</h3>
-              <span>la cadena de validez, paso a paso</span>
-            </div>
-            <AulasCadenaDeFiltros bloque={dashboard.cadena_filtros} />
-          </section>
-        </div>
-      );
-    }
-    const rows = (dashboard.validation ?? []) as Array<Record<string, unknown>>;
-    const summary = summarizeAulasValidation(rows);
-    const control = (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>;
-    const controlResumen = (dashboard.control_calidad_resumen ?? null) as ResumenDeControl | null;
-    // Cada pestaña muestra SU panel, y el reparto es POSITIVO —«¿es ésta?»— y no
-    // por negación de la otra: con dos bastaría negar, pero en Consultas la
-    // negación ya falló al llegar la cuarta y no hay razón para repetirla acá.
-    const enBase = pestana === "base";
     return (
-      <div className="mon-profile-stack aulas-tablas-apiladas">
-      {/* **La ficha del aula en foco.** Va primero porque quien la abrió
-          viene a verla, y se gobierna con `foco=aula:<codigo>`, igual que el
-          detalle de facultad de esta misma sección. Cerrarla limpia el foco
-          y la sección vuelve a su lectura completa. */}
-      {foco?.tipo === "aula" ? (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Ficha del curso-horario</h3>
-          <span>lo esperado, lo conseguido y lo que anotó el campo</span>
-        </div>
-        <AulasFichaDeAula
-          codigo={foco.valor}
-          fuentes={{
-            agenda: (dashboard.agenda ?? []) as Array<Record<string, unknown>>,
-            partes: (dashboard.partes_campo ?? []) as Array<Record<string, unknown>>,
-            control: (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>,
-            brechas: (dashboard.brechas ?? []) as Array<Record<string, unknown>>,
-          }}
-          onCerrar={() => onFoco(null)}
-          // El foco viaja en la URL, así que el registro se abre ya sobre esta
-          // aula: `codigoEnFoco` lo recoge del mismo `foco=aula:<codigo>`.
-          onRegistrar={irAPestana ? () => irAPestana("registro") : undefined}
-        />
-      </section>
-      ) : null}
-      {enBase ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* Se queda: los controles los deriva el motor —el libro no trae hoja
-              de validación—, así que no hay encabezado que copiar. */}
-          <h3>Validación de cursos-horario</h3>
-          <span>{summary.label}</span>
-        </div>
-        {/* Avisos y no tabla: el detalle de un control es una frase entera y en
-            una celda de tres columnas se lee mal. Es además el lenguaje que ya
-            usa `CalidadDeCampo` justo arriba, en esta misma sección. */}
-        <AulasControles filas={rows} plan={(dashboard.agenda ?? []) as Array<Record<string, unknown>>} />
-      </section>
-      )}
-      {/* La tercera hoja del operativo. Los dos paneles son control de calidad y
-          por eso comparten sección, pero no son la misma medida: arriba lo que
-          deriva el motor, aquí lo que el equipo calcula en su Excel. Separarlos
-          evita que una fila parezca respaldar a la otra, y ahora además cada uno
-          recibe la vista entera en vez de competir por el alto. */}
-      {enBase ? (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El nombre de la hoja, tal cual, porque es a lo que el equipo va a
-              buscarlo en su libro. */}
-          <h3>Base de control</h3>
-          {/* «filas de la hoja» y no «aulas»: son las que trae el libro que llena
-              el equipo, y no tienen por qué ser las del plan —aquí 210 contra
-              196—. Llamarlas «aulas» ponía dos cifras con el mismo nombre en un
-              perfil cuya unidad es el curso-horario. El recibo del libro ya usa
-              este mismo lenguaje: «210 filas de control». */}
-          {/* Y cuantas columnas: en 1440 solo caben nueve, asi que dos tercios
-              de la tabla viven a la derecha del borde. La sombra de
-              desplazamiento ensena que hay mas; el numero dice cuanto mas.
-              «en la tabla» y no «columnas» a secas: pegado a «filas de la
-              hoja», se leia como el ancho de la HOJA, que son 39. */}
-          <span>
-            {control.length
-              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${columnasDeLaTabla(controlResumen)}`
-              : "Sin datos"}
-          </span>
-        </div>
-        {/* La vara, junto al veredicto que produce. Declararla en una pantalla
-            de ajustes la dejaría lejos de su resultado, que es lo que hacía que
-            nadie supiera cuál era. */}
-        {criterioDeAula}
-        <AulasControlDelLibro
-          filas={control}
-          resumen={controlResumen}
-          criterio={(dashboard.criterio_validez ?? null) as never}
-        />
-      </section>
-      ) : null}
-      {/* El precio de cerrar lo que no llegó. Va DESPUÉS de la tabla del libro
-          —el veredicto primero, la cola de trabajo después— y en la misma
-          pestaña porque sale del mismo dato: en una pestaña propia habría que
-          saltar entre las dos para saber de qué aula se habla. */}
-      {enBase && control.length ? (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Lo que falta para cerrar</h3>
-          <span>en encuestas, sobre el umbral que la hoja calculó</span>
-        </div>
-        <AulasLoQueFalta filas={control} facultadEnFoco={facultadEnFoco} onFoco={onFoco} />
-      </section>
-      ) : null}
-      </div>
+      <AulasSeccionCalidad
+        dashboard={dashboard}
+        criterioDeAula={criterioDeAula}
+        facultadEnFoco={facultadEnFoco}
+        foco={foco}
+        irAPestana={irAPestana}
+        onDeclararUmbralDeDuracion={onDeclararUmbralDeDuracion}
+        onFoco={onFoco}
+        pestana={pestana}
+        registro={registro}
+      />
     );
   }
   if (view === "consultas") {
-    // Las tres listas van en paneles propios. Concatenadas producian una tabla
-    // donde la misma aula salia hasta tres veces sin que ninguna columna dijera
-    // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
-    const reemplazos = reemplazosEnOrdenDeCadena(dashboard.reemplazos);
-    const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
-    const cuadre = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[], (dashboard.agenda ?? []) as MonitoreoRow[]);
-    // El PLAN entero, no `reemplazos`: la historia y el gráfico necesitan también
-    // los titulares que nunca necesitaron reserva, porque «146 no necesitaron
-    // reemplazo» es parte de la respuesta.
-    // El BANCO fuera de la agenda. Las aulas extra no cuelgan de ningún titular,
-    // no tienen fecha y no están agendadas: son respaldo del estrato para cerrar
-    // la cuota, y desde hace poco tienen su propia pestaña. Metidas aquí añadían
-    // 40 filas sin fecha a una tabla de 196 que sí importan, y hacían que el
-    // panel dijera «236 cursos-horario» dos dedos debajo de un KPI que decía
-    // 196: la misma palabra con dos cifras.
-    const agendaFilas = ((dashboard.agenda ?? []) as MonitoreoAulasPlanRow[])
-      .filter((f) => String((f as { sample_role?: unknown }).sample_role ?? "") !== "extra_reserve_pool");
-    // La MISMA función que escribe la lectura: el contador de la cabecera y el
-    // renglón de abajo no pueden salir de dos cuentas distintas.
-    const cadenas = historiaDeCadena(agendaFilas);
-    // Cada pestaña muestra SU panel, y el reparto es POSITIVO. Con dos bastaba
-    // negar la otra; con tres hubo que negar dos; con la cuarta —Extras— la
-    // negación volvía a fallar y la cadena se pintaba encima. Preguntar «¿es
-    // esta pestaña?» en vez de «¿no es ninguna de las otras?» hace que la
-    // siguiente pestaña que se añada no herede el panel de nadie.
-    const enParte = pestana === "parte";
-    const enBrechas = pestana === "brechas";
-    const enExtras = pestana === "extras";
-    const enCadena = !enParte && !enBrechas && !enExtras;
     return (
-      <div className="mon-profile-stack aulas-tablas-apiladas">
-        {enCadena ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-consultas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* Se queda: el libro no tiene hoja de cadena, la expresa por
-                bloques —«APLICACIÓN DE REEMPLAZO n»— y por el valor «EN RESERVA
-                n» de STATUS MUESTRA. El nombre de la vista es nuestro. */}
-            <h3>Cadena de reemplazos</h3>
-            {/* En CADENAS, que es la unidad de la lectura de abajo. Decía «50
-                filas» dos renglones encima de «3 con un reemplazo · 21 sin
-                cerrar», que suman 24: el mismo panel daba dos números para lo
-                que se lee como la misma cosa. La cuenta sale de la MISMA función
-                que escribe la lectura. */}
-            <span>{(() => {
-              const n = cadenas.historias.length;
-              return n === 1 ? "1 cadena" : `${fmt(n)} cadenas`;
-            })()}</span>
-          </div>
-          {/* Primero CÓMO se llegó —titular, su reemplazo, cuál cerró—, que es
-              lo que se pregunta al cerrar el operativo; después cuánta reserva
-              se gastó. La tabla de abajo queda como el detalle fila a fila. */}
-          <AulasHistoriaCadena filas={agendaFilas} />
-          {/* Sale del PLAN entero, no de `reemplazos`: esa lista sólo trae
-              reservas y caídas, así que un titular sin ninguna reserva —el caso
-              de L54— no aparecería y el gráfico diría que el plan tiene un
-              colchón que no tiene. */}
-          <AulasCadenaChart filas={agendaFilas} />
-          {/* Y DÓNDE aguanta. El consumo de arriba es del operativo entero; la
-              cuota, en cambio, es por facultad: veinte reservas libres no
-              sirven si la facultad que perdió un aula tiene cero. */}
-          <AulasColchonPorFacultad filas={agendaFilas} />
-          {/* La tabla cambia de unidad y lo dice: la lectura cuenta cadenas y
-              aquí va cada aula de esas cadenas, la que cayó y sus reservas. Sin
-              este renglón, 24 arriba y 50 abajo se leen como una contradicción. */}
-          <p className="mon-profile-muted">
-            Cada cadena, aula por aula: la que cayó y sus reservas.
-          </p>
-          <DataTable
-            rows={reemplazos}
-            empty="Ningún curso-horario ha necesitado reemplazo."
-            // El ORDEN y el ESTADO van delante del rol: con seis reservas del
-            // mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten
-            // en las seis filas, y lo que hay que ver es cuál sigue y cuáles ya
-            // se usaron.
-            // `motivo` y no `replacement_reason`: el motivo vive en un campo
-            // distinto según el papel de la fila —la que cae lo lleva en
-            // `replacement_reason` y la que entra en `activation_reason`—, así
-            // que sobre las 26 filas de reserva esa columna era estructuralmente
-            // vacía. El motor lo resuelve en una sola columna.
-            preferredColumns={["operational_code", "faculty", "replacement_for", "replacement_order", "sample_status", "sample_role", "motivo"]}
-          />
-        </section>
-        ) : null}
-        {enBrechas ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-consultas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* Se queda: la brecha la calcula el motor contra la meta; ninguna
-                columna del libro la trae escrita. */}
-            <h3>Cursos-horario con brecha</h3>
-            <span>{fmt(brechas.length)} filas</span>
-          </div>
-          {/* ¿Hay atajo? Una lista ordenada por brecha SUGIERE que las primeras
-              concentran lo que falta, y puede ser al revés. Esto lo dice. */}
-          <AulasConcentracionBrecha filas={(dashboard.brechas ?? []) as MonitoreoRow[]} />
-          <DataTable
-            rows={brechas}
-            empty="Ningún curso-horario tiene brecha abierta."
-            // Siete y se declaran: la octava la rellenaba el payload con
-            // `classroom_id`, que en las 86 filas vale lo mismo que
-            // `operational_code`. `faculty` entra a mano porque es el corte con
-            // el que se reparte el trabajo, no porque toque por orden.
-            preferredColumns={["operational_code", "label", "faculty", "respuestas_validas", "expected_valid", "brecha", "operational_status"]}
-            maxColumns={7}
-          />
-        </section>
-        ) : null}
-        {enParte ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-consultas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* «Partes de campo» y no «Aulas aplicadas (campo)», que es como se
-                llama el panel del registro en Agenda: son dos superficies
-                distintas sobre la misma hoja —allí se llena un parte, aquí se
-                leen todos— y el guard de títulos rechaza que compartan nombre.
-                Lo pilló al escribirlo. */}
-            <h3>Partes de campo</h3>
-            <span>{cuadre.label}</span>
-          </div>
-          {/* De qué hoja sale. Las otras dos superficies del libro llevan el
-              nombre EXACTO de la suya —«Aulas agendadas» y «Base de control»,
-              que es a lo que el equipo va a buscarlas—; ésta se llama «partes de
-              campo», que es como se dice, y la hoja se llama «Aulas Aplicadas
-              (Campo)». Sin decirlo, quien busca en su libro no sabe cuál abrir. */}
-          <p className="mon-profile-muted">
-            De la hoja «Aulas Aplicadas (Campo)» del libro: lo que anotó quien
-            estuvo en el aula.
-          </p>
-          {/* La cadena del parte, SUMADA. Fila a fila no se ve que los
-              duplicados pesen más que los rechazos. */}
-          <AulasEmbudoDelAula filas={(dashboard.partes_campo ?? []) as MonitoreoRow[]} />
-          {/* La resta ya viene hecha del motor —el mismo helper que decide el
-              descuadre—, así que esta línea y el aviso de Validación no pueden
-              discrepar. Es el destino que le faltaba a «Cuadre del parte de
-              campo», que nombraba las aulas sin dar dónde mirarlas. */}
-          {cuadre.descuadrados ? (
-            <p className="aulas-parte-aviso">
-              <strong>{fmt(cuadre.descuadrados)}</strong>{" "}
-              {cuadre.descuadrados === 1 ? "parte no cuadra" : "partes no cuadran"}: asistentes
-              menos rechazos y duplicados no dan las efectivas declaradas. Se ven primero.
-            </p>
-          ) : null}
-          {/* El cambio de aula va DESPUÉS del descuadre, no en medio.
-              Metido entre el embudo y esta frase, partía la narración: el
-              lector iba «5 390 → 4 865 → el equipo declaró 4 863, DOS MENOS» y
-              se cruzaba con «30 aulas en otro salón» antes de leer la frase que
-              explica esos dos. Son dos hechos del mismo parte, pero uno explica
-              al anterior y el otro no. */}
-          <AulasCambioDeAula
-            partes={cuadre.filas as MonitoreoRow[]}
-            plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          />
-          <DataTable
-            rows={cuadre.filas}
-            empty="Todavía no se ha registrado ningún parte de campo."
-            // SÓLO las columnas del parte, más el código para saber de qué aula
-            // es. Añadir facultad, curso u horario la convertiría en una segunda
-            // Agenda, y de eso ya hay una.
-            // Nueve y no ocho: `% Asistencia` va pegada a los asistentes que
-            // califica. Es el único de los once campos de la hoja que se leía y
-            // no llegaba a ninguna pantalla, y es el número que dice si el 70 %
-            // del padrón era alcanzable —con 55 % de asistencia no se llega ni
-            // respondiendo todos los presentes—.
-            // El parte dice DOS cosas y la tabla solo enseñaba una: la
-            // aritmetica del cuadre. Lo otro —si se aplico, en que aula de
-            // verdad, que dia y quien estuvo— es lo que el aplicador reporta y
-            // solo vive en esta hoja. Va primero porque es lo que se pregunta
-            // antes de mirar si las cuentas cuadran.
-            maxColumns={13}
-            preferredColumns={["operational_code", "faculty", "application_status", "actual_room", "applied_date", "applied_by", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia"]}
-          />
-        </section>
-        ) : null}
-        {enExtras ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-extras"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* «Extras» es el nombre del dato: el plan las trae con
-                `wave = "Extra"`. La descripción dice para qué sirven, que es lo
-                que no se deduce del nombre —y que yo tenía mal: no reemplazan
-                a nadie—. */}
-            {/* NO «… por facultad»: choca con «Cuota sexo por facultad» y el
-                guard de títulos lo caza. Dos paneles que terminan igual se
-                confunden en el rail y en el historial de navegación. */}
-            <h3>Aulas extra disponibles</h3>
-            <span>{fmt(dashboard.banco_extras?.total ?? 0)} extras</span>
-          </div>
-          <p className="mon-profile-muted">
-            No reemplazan a ningún curso-horario: son aulas adicionales para
-            cerrar la cuota de hombres y mujeres de cada facultad.
-          </p>
-          {/* **Antes del inventario, no después.** La frase de arriba dice que
-              estas aulas existen para cerrar la cuota; lo primero que hay que
-              saber es si la cierran. Puesto debajo quedaba tras una tabla de 73
-              filas, y la respuesta se leía al final del catálogo —el mismo orden
-              que la Base de control ya sigue: veredicto, después detalle—. En el
-              mismo panel porque es una sola decisión. */}
-          <AulasAlcanceDelBanco
-            banco={dashboard.banco_extras ?? null}
-            control={(dashboard.control_calidad ?? []) as Array<Record<string, unknown>>}
-            quotas={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
-            agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-            partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
-          />
-          <AulasBancoExtras banco={dashboard.banco_extras ?? null} />
-        </section>
-        ) : null}
-      </div>
+      <AulasSeccionConsultas
+        dashboard={dashboard}
+        Tabla={DataTable}
+        pestana={pestana}
+        reemplazosEnOrdenDeCadena={reemplazosEnOrdenDeCadena}
+        facultadEnFoco={facultadEnFoco}
+        // El mismo par que ya recibe Calidad: `?foco=aula:<código>` abre
+        // «Buscar por código» sobre ese curso-horario, y la ficha que se está
+        // viendo se escribe de vuelta en la dirección.
+        foco={foco}
+        onFoco={onFoco}
+        // Marcar un complemento o un refuerzo cambia el plan: sin recargar, la
+        // pantalla sigue ofreciendo como disponible el aula que se acaba de
+        // apartar.
+        onGuardado={onGuardado}
+      />
     );
   }
-  // Avance: las tres miradas del mismo campo, cada una en su panel. Antes las
-  // cuotas y el avance por estrato COMPETIAN por un solo panel —`quotaRows.length
-  // ? quotaRows : avance_por_estrato`—, y como un estudio de cursos-horario
-  // siempre trae cuotas del calculo de muestra, el avance por estrato no se veia
-  // nunca. El avance por aula ni siquiera estaba: vivia en Consultas, mezclado.
-  const quotaRows = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
-  // El detalle de abajo obedece al corte elegido arriba. Sin foco se ven las
-  // doce celdas; con foco, sólo las de esa facultad o ese sexo.
-  const quotaEnFoco = !foco ? quotaRows : quotaRows.filter((fila) => (
-    foco.tipo === "facultad" ? String(fila.faculty ?? "") === foco.valor
-      : String(fila.sex ?? "") === foco.valor
-  ));
-  const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
-  // El view-model del cumplimiento contra el diseño se calcula UNA vez y
-  // alimenta el chip del encabezado y el cuerpo del panel: los dos no pueden
-  // discrepar. La lógica vive en `avanceCuota.ts`, no aquí.
-  const cuotaDiseno = avanceCuota(dashboard.avance_cuota);
-  const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
-  const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
-  // Cuántas de esas filas son EXTRAS del banco. Avance cuenta 236 donde Fuentes
-  // cuenta 196 «titulares y sus reservas encadenadas», y la diferencia son los
-  // 40 extras: la misma palabra con dos cifras y nada que explique el salto.
-  // Aquí el 236 es correcto —los extras se aplican y traen respuestas— así que
-  // lo que faltaba no era la cuenta sino decir qué entra en ella.
-  const aulasExtra = aulaRows.reduce(
-    (n, row) => (String(row.sample_role ?? "") === "extra_reserve_pool" ? n + 1 : n),
-    0,
-  );
-  const contadorDeAulas = (visibles: number) =>
-    contadorDeCursosHorario(visibles, totalAulas, aulasExtra);
+  // **Las derivaciones de Avance se mudaron con sus pestañas.** `quotaRows`,
+  // `quotaEnFoco` y `cuotaDiseno` viven en `AulasPestanaCuotas`; `estratoRows`
+  // y `estratoRowsLegibles`, en `AulasPestanaEstratos`. Dejarlas aquí las
+  // convertía en código muerto: cada pestaña ya las calcula. Mover el JSX sin
+  // mover el peso habría dejado el archivo igual de gordo.
   return (
     // `aulas-tablas-apiladas`: sin ella el stack es grid y asigna 0 px a la fila
     // cuyo contenido no la empuja —medido: el panel del gráfico quedaba en 26 px
     // y el gráfico se dibujaba encima de la tabla—. La clase lo pasa a flex con
     // hijos que no se encogen, que es lo que ya arregló el reparto de alto.
     <div className="mon-profile-stack aulas-tablas-apiladas">
-      {pestana !== "resumen" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* Abre la sección porque es su primera pregunta —¿se está
-              cumpliendo?—. La unidad va en el TÍTULO y no en el contador: se
-              llamaba «Cumplimiento de la meta» y dos paneles más abajo estaba
-              «Cobertura de la meta», que cuenta cursos-horario. Dos nombres casi
-              iguales para dos unidades distintas, con la distinción escondida en
-              un contador de 11 px —y en un comentario de código—. */}
-          <h3>Cumplimiento en respuestas</h3>
-          {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
-              recortado a 500 filas. */}
-          {/* Una meta de respuestas no puede ser fraccionaria: sale de
-              dividir la cuota entre la tasa y llegaba «3.491,4».
-              **Y por eso hay que decir de dónde sale.** Redondeada da 3.492
-              mientras la tarjeta «Cuota por recoger», tres centímetros más
-              arriba, dice 3.491: son dos cuentas distintas del mismo objetivo
-              —una suma metas por curso-horario, la otra objetivos de 30 celdas
-              sexo × facultad— y a 0,4 de distancia el redondeo las separa en
-              uno. Sin nombrar la procedencia, quien lee encuentra la diferencia
-              y desconfía de las dos, que es exactamente lo que la tarjeta de
-              cuota ya resuelve explicando su resta celda a celda. */}
-          <span>meta {fmtCuenta(
-            Number(dashboard?.cumplimiento_respuestas?.meta)
-            || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
-          )} · suma de metas por curso-horario</span>
-        </div>
-        <AulasAvanceEnRespuestas
-          filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
-          resumen={dashboard?.cumplimiento_respuestas ?? null}
-          validasTotales={Number(dashboard.kpis?.respuestas_validas ?? 0) || 0}
-        />
-      </section>
-      )}
-      {/* Va justo después del cumplimiento: primero CUÁNTO se lleva y en
-          seguida CÓMO se llegó. Separarlos con el estado de aplicación en medio
-          obligaba a recordar la cifra mientras se baja. */}
-      {pestana !== "resumen" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Ritmo de la recolección</h3>
-          {/* «12 días» a secas contradecía la lectura de dentro —«en 10 días
-              de campo»— y el pie —«al ritmo de estos 10»—: el mismo panel daba
-              dos cifras para la misma palabra. Los 12 son corridos y 2 son fin
-              de semana sin campo; el contador lo dice en vez de elegir uno. */}
-          <span>{(() => {
-            const dias = (dashboard?.ritmo_diario?.dias ?? []) as Array<{ validas?: unknown }>;
-            const conCampo = dias.filter((d) => Number(d?.validas ?? 0) > 0).length;
-            const base = `${fmt(dias.length)} ${dias.length === 1 ? "día" : "días"}`;
-            return conCampo && conCampo !== dias.length ? `${base} · ${fmt(conCampo)} con campo` : base;
-          })()}</span>
-        </div>
-        <AulasRitmoDiario ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null} />
-      </section>
-      )}
-      {pestana !== "resumen" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El perfil sabía por separado las dos mitades —la agenda tiene la
-              fecha de cada aula, la hoja de partes dice cuáles se llenaron— y
-              nadie las cruzaba. Los demás paneles de Avance contestan cuánto se
-              lleva; éste, qué se quedó atrás. */}
-          {/* El registro del informe. «Lo que se quedó atrás» es la frase de una
-              reunión, no de un reporte, y este panel cuenta algo muy concreto:
-              cursos-horario cuya fecha ya pasó y que siguen sin parte. */}
-          <h3>Cursos-horario vencidos sin aplicar</h3>
-          <span>fecha ya pasada al corte, sin parte de campo</span>
-        </div>
-        <AulasFrenteDelOperativo
-          filas={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
-          partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
-          // El día del corte y NO `new Date()`: un panel que lee el reloj da un
-          // resultado distinto cada vez que se abre y no hay forma de fijarlo en
-          // un test ni de reproducir lo que vio el usuario.
-          corte={String(dashboard?.generated_at ?? "").slice(0, 10)}
-        />
-      </section>
-      )}
-      {pestana !== "resumen" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Status de aplicación</h3>
-          {/* El recorte del PAYLOAD se declara aquí. La tabla ya declara el
-              suyo, pero éste ocurre antes de que la tabla vea nada: el motor
-              manda 500 filas de las 2 615 del plan, y sin decirlo la pantalla
-              afirmaba que el estudio tiene 500 aulas. */}
-          <span>{contadorDeAulas(aulaRows.length)}</span>
-        </div>
-        {/* Los dos ejes van en paneles propios porque contestan preguntas
-            distintas y cada superficie declara qué es (C1): éste dice en qué
-            punto del circuito está cada aula —y cuántas ni se han agendado—, el
-            de abajo cuánto lleva recogido cada una. Los dos van ANTES de la
-            tabla: la tabla dice aula por aula y esto dice la forma del
-            conjunto. */}
-        <AulasEstadoChart
-          filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
-          resumen={dashboard.course_status_estados ?? null}
-          desconocidasMotor={dashboard.course_status_estados_desconocidos}
-          // El banco, contado por el motor sobre TODAS las filas: sin él, el
-          // pie decía «2.109 de 2.109 cursos-horario en juego» sobre un
-          // operativo de 193 visitas.
-          bancoMotor={dashboard.course_status_banco}
-        />
-      </section>
-      )}
-      {/* Los dos que se parecen, en pareja. Medido a 1440: cobertura ocupa 239 px
-          de alto y «Dónde falta más» 206, cada uno solo en una caja de 1 316 de
-          ancho, y la sección entera sumaba 1 636 px de columna para cuatro
-          lecturas pequeñas. Eso es lo que se lee como «vacío y crudo»: no es
-          relleno de más —el padding es el del sistema— sino cuatro gráficos
-          cortos apilados sin usar el ancho. Son además la pareja natural: uno
-          reparte los cursos-horario por cuánto cubren y el otro dice dónde
-          falta. Bajo 1180 px vuelven a apilarse. */}
-      {pestana !== "resumen" ? null : (
-      <div
-        className="aulas-avance-pareja"
-        data-qa-geometry-group="monitoring-aulas-pareja"
-        /* `intrinsic` y no `equal`, y la diferencia importa: son dos secciones
-           INDEPENDIENTES —una reparte cursos-horario por cobertura y la otra
-           dice dónde falta— que comparten fila por composición, no un par de
-           variantes del mismo componente. Cuando comparten fila el grid las
-           estira y salen idénticas (652×311 a 1440); cuando se apilan bajo
-           1180 px cada una vuelve a su alto propio, y medí 307 contra 274. Con
-           `equal` declarado esos 33 px serían un incumplimiento del contrato
-           que yo mismo escribí de más, no un defecto. */
-        data-qa-geometry-contract="intrinsic"
-      >
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El nombre dice la unidad —lo que reparte son AULAS según cuánto
-              cubren de su propia meta— y el de arriba mide la misma meta en
-              respuestas. Primer intento fue «Cobertura por curso-horario» y el
-              guard lo tumbó en el acto: terminaba igual que «Avance por
-              curso-horario», la tabla del mismo stack. Cambiar un choque por
-              otro no es renombrar. */}
-          <h3>Cursos-horario por cobertura</h3>
-          <span>{contadorDeAulas(aulaRows.length)}</span>
-        </div>
-        <AulasCoberturaChart
-          filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
-          resumen={dashboard.course_status_cobertura ?? null}
-          sinMetaMotor={dashboard.course_status_sin_meta}
-          bancoMotor={dashboard.course_status_banco}
-        />
-      </section>
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* La tercera pregunta de la sección, después del total y del estado:
-              a dónde va el equipo mañana. El título es esa pregunta; «Por
-              facultad» a secas no decía QUÉ por facultad y además terminaba
-              igual que «Cuota sexo por facultad», que mide otra cosa en otra
-              pestaña. El denominador es la meta del PLAN, no la cuota de sexo, y
-              por eso el contador lo dice. */}
-          <h3>Dónde falta más</h3>
-          <span>contra la meta del plan</span>
-        </div>
-        <AulasPerfilPorFacultad
-          filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
-          resumen={(dashboard.avance_por_facultad ?? []) as never}
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
-        />
-      </section>
-      </div>
-      )}
-      {pestana !== "resumen" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Avance por curso-horario</h3>
-          <span>{fmt(aulaRows.length)} filas</span>
-        </div>
-        {/* El orden, DICHO. La tabla no abre por código ni alfabéticamente: la
-            ordena el motor por dónde está el aula en el circuito —en campo,
-            lista, planificada— y dentro de cada tramo por brecha. Sin decirlo,
-            «CH 74, CH 99, CH 49» se lee como desorden y el lector busca un
-            control de orden que no existe. */}
-        <p className="mon-profile-muted">
-          Primero las que están en campo y con más brecha; el banco y las reservas dormidas, al final.
-        </p>
-        <DataTable
-          rows={aulaRows}
-          empty="Todavía no hay respuestas que atribuir a un curso-horario."
-          preferredColumns={["operational_code", "faculty", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
-        />
-      </section>
-      )}
-      {pestana !== "estratos" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Avance por estrato</h3>
-          <span>{fmt(estratoRows.length)} filas</span>
-        </div>
-        {/* El gráfico va antes que la tabla por la misma razón que en Resumen:
-            contesta la pregunta del día siguiente —a dónde mando el equipo— que
-            la tabla obliga a resolver restando de cabeza. */}
-        <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
-        <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
-      </section>
-      )}
-      {pestana !== "rendimiento" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* Lo primero de la pestaña, antes que ningún gráfico: es lo único que
-              pide una acción hoy. Los demás paneles explican el campo; éste dice
-              a quién llamar. */}
-          <h3>A quién hay que agendar</h3>
-          <span>aulas por pedir, con la anticipación del operativo de 2025</span>
-        </div>
-        <AulasAlertaDeAnticipacion
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-          agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
-          banco={dashboard.banco_extras?.por_facultad ?? []}
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
-        />
-      </section>
-      )}
-      {pestana !== "rendimiento" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El ranking de arriba dice QUIÉN rinde más; esto, cómo le fue día a
-              día y qué cabe esperar de su próxima aula. Son preguntas distintas
-              y por eso son dos paneles: el ranking se mira para repartir hoy, la
-              serie para ver si una facultad se está apagando. */}
-          <h3>Cómo rinde cada facultad, día a día</h3>
-          <span>encuestas por aula visitada · y lo que cabe esperar</span>
-        </div>
-        <AulasSerieDeRendimiento
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-          agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
-          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          control={(dashboard.control_calidad ?? []) as MonitoreoRow[]}
-        />
-      </section>
-      )}
-      {pestana !== "rendimiento" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El título son SUS palabras —«qué nos está rindiendo más, qué no
-              está rindiendo más»— y además esquiva el guard: «Rendimiento por
-              facultad» terminaría igual que «Cuota sexo por facultad». */}
-          <h3>Qué está rindiendo más</h3>
-          {/* «del parte»: estas encuestas son las que el equipo anotó aula por
-              aula —4 863 sobre este corte— y no las respuestas de Kobo que la
-              pestaña vecina cuenta como VÁLIDAS —3 700—. Sin nombrar la fuente,
-              dos cifras separadas por una pestaña y con 1 163 de diferencia se
-              leen como la misma. */}
-          <span>encuestas del parte, por aula visitada</span>
-        </div>
-        {/* Las filas del parte YA UNIDAS a su facultad, que es lo que devuelve
-            `parteDeCampo`. Pasando el parte crudo salían las 210 aulas bajo
-            «Sin facultad»: la hoja «Aulas Aplicadas (Campo)» no tiene columna de
-            facultad y la une el mismo helper que la tabla de Consultas — usar el
-            suyo evita que las dos superficies discrepen en de qué facultad es un
-            aula. */}
-        <AulasRendimientoPorFacultad
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
-        />
-      </section>
-      )}
-      {/* Las otras TRES unidades de esfuerzo, en paneles propios y no tras un
-          selector: se leen juntas —una facultad rinde poco Y su aplicador rinde
-          bien— y un control las escondería de a dos.
-
-          Y ahora en FILA, que es lo que hace verdad esa frase. Apiladas medían
-          920 px dentro de una pestaña de 7,5 pantallas de scroll, así que para
-          comparar la franja con el día había que recordar el primero. La cuarta
-          —por facultad— se queda encima a todo lo ancho: son 21 filas contra 7 y
-          a un tercio de ancho sus nombres no caben. */}
-      {pestana !== "rendimiento" ? null : (
-      <div
-        className="aulas-lentes-trio"
-        data-qa-geometry-group="monitoring-aulas-lentes"
-        /* `intrinsic` por el mismo motivo que la pareja: apiladas bajo 1180 px
-           cada una vuelve a su alto propio —7, 3 y 7 filas— así que `equal`
-           sería una promesa que no pueden cumplir. */
-        data-qa-geometry-contract="intrinsic"
-      >
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Quién consigue más</h3>
-          <span>encuestas por aula, según quién aplicó</span>
-        </div>
-        <AulasRendimientoPorFacultad
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          clave="applied_by"
-          unidad="Aplicador"
-          /* Las columnas ya las explica «Qué está rindiendo más», dos paneles
-             más arriba y en esta misma pantalla. */
-          explicaLasColumnas={false}
-        />
-      </section>
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* Las franjas son las del libro —hoja «planilla»—, no unas nuestras. */}
-          {/* «A qué hora se consigue más» terminaba igual que «Quién consigue
-              más» y el guard lo tumbó. El título nombra la unidad, que además es
-              la del libro. */}
-          <h3>Franja horaria del operativo</h3>
-          <span>encuestas por aula, según cuándo se aplicó</span>
-        </div>
-        <AulasRendimientoPorFacultad
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          clave="franja"
-          unidad="Franja"
-          explicaLasColumnas={false}
-        />
-      </section>
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* La cuarta unidad de esfuerzo, y la única sobre la que el equipo
-              decide al agendar: la hora la pone el curso, el aplicador lo pone
-              la asignación, la facultad la pone la muestra — el día se elige.
-
-              Y no es una curiosidad: el pronóstico de cierre proyecta «al ritmo
-              observado de N aulas por día de campo», o sea tratando todos los
-              días como iguales. Si un martes rinde el doble que un viernes, dos
-              agendas con el mismo número de aulas dan resultados distintos.
-
-              El título nombra la unidad y no termina como ningún otro, que es
-              la regla que el guard de títulos sujeta. */}
-          <h3>Día de la semana</h3>
-          <span>encuestas por aula, según qué día se aplicó</span>
-        </div>
-        <AulasRendimientoPorFacultad
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          clave="dia_semana"
-          unidad="Día"
-          explicaLasColumnas={false}
-        />
-      </section>
-      </div>
-      )}
-      {pestana !== "rendimiento" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El ritmo del estudio entero ya existe en Resumen; éste dice QUIÉN
-              lo sostiene y quién se paró. «Siempre todo es por facultad». */}
-          {/* «Encuestas por día» y no «ritmo» a secas: el panel de arriba también
-              es día a día y por facultad, y se llamaban casi igual. Éste cuenta
-              PRODUCCIÓN —cuántas encuestas trajo cada día— y el otro RENDIMIENTO
-              —cuántas dejó cada aula—. Son la misma pregunta a dos escalas y
-              conviene decidir si sobra uno; mientras tanto, que al menos se
-              distingan. */}
-          <h3>Encuestas por día de cada facultad</h3>
-          <span>producción diaria, sin dividir entre aulas</span>
-        </div>
-        <AulasRitmoPorFacultad
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-        />
-      </section>
-      )}
-      {pestana !== "rendimiento" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* Se proyectan AULAS y no respuestas: la meta esta en respuestas
-              atribuidas a un curso-horario y sobre este corte hay cero —llegan
-              anonimas—, asi que proyectar la serie del parte contra esa meta
-              daria una fecha inventada. Las aulas viven en un solo universo. */}
-          {/* La unidad en el subtítulo. Este panel cuenta AULAS y el acumulado
-              del panel de arriba cuenta ENCUESTAS: son dos preguntas distintas
-              —terminar de visitar no es llegar a la cuota— y sin decir la unidad
-              parecían el mismo gráfico dos veces. */}
-          <h3>Cuándo se termina de aplicar el plan</h3>
-          <span>aulas del plan aplicadas, al ritmo observado</span>
-        </div>
-        <AulasPronosticoDeCierre
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-        />
-      </section>
-      )}
-      {pestana !== "rendimiento" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El registro es el del informe, no el de la sala. Se llamaba
-              «Cuánto aguanta el colchón · al ritmo al que están cayendo». */}
-          {/* Sin «por facultad» en el título: el guard de títulos lo cazó por
-              terminar igual que «Cuota sexo por facultad», que es el defecto que
-              ese guard existe para impedir. La unidad va en el subtítulo. */}
-          <h3>Consumo de la reserva</h3>
-          <span>por facultad, al ritmo de reemplazos observado</span>
-        </div>
-        {/* Los días de campo salen de los PARTES —los días en que el operativo
-            salió de verdad— y no de `ritmo_diario`, que cuenta días con
-            respuestas y en este corte abarca 24 por las aulas ya agendadas: una
-            caída sólo puede ocurrir un día en que se sale. */}
-        <AulasConsumoDelBanco
-          filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
-          diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
-        />
-      </section>
-      )}
-      {pestana !== "cuotas" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Cuota sexo por facultad</h3>
-          {/* En CELDAS, que es la unidad del cruce sexo × facultad y la que usa
-              la lectura de abajo («5 de 12 celdas cumplidas»). «Filas» nombraba
-              la tabla, que ahora puede ir filtrada. */}
-          <span>{fmt(quotaRows.length)} celdas</span>
-        </div>
-        {/* La cuota del estudio en PERSONAS: «2/12 celdas» no distingue faltar
-            una respuesta de faltar doscientas. Sólo el total y su lectura — los
-            dos desagregados que había aquí decían lo mismo que la pirámide, y
-            dos gráficos del mismo cruce le quitaban protagonismo al que sí
-            contesta la pregunta. */}
-        <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} />
-        {/* Pirámide: una facultad por fila y un sexo a cada lado, cada uno
-            contra SU propia meta. Se ve de qué lado va corta cada facultad, que
-            es la pregunta con la que se sale a campo, y es además quien lleva el
-            foco: elegir una facultad enfoca el detalle de abajo y el foco viaja
-            en la URL (`?foco=facultad:Derecho`) para que la vista siga siendo
-            enlazable.
-
-            Recibe TODAS las filas, no las enfocadas: es el control, y filtrada
-            se quedaría en una sola fila sin forma de elegir otra ni de soltar el
-            foco. Quien se filtra es la tabla, que es el detalle. */}
-        <AulasPiramideCuota
-          filas={quotaRows as MonitoreoRow[]}
-          foco={foco}
-          onFoco={onFoco}
-          agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-        />
-        {/* La tabla filtrada lo dice: la cabecera del panel cuenta las 12 celdas
-            del estudio y con un foco puesto abajo se ven dos. Un contador que no
-            cuadra con lo que hay debajo es lo que llevo el día arreglando. */}
-        {foco ? (
-          <p className="mon-profile-muted">
-            Detalle de <strong>{foco.valor}</strong> · {quotaEnFoco.length} de {quotaRows.length} celdas.
-            Vuelve a pulsar su fila en la pirámide para ver todas.
-          </p>
-        ) : null}
-        <DataTable rows={quotaEnFoco} empty="El plan no declara composición por sexo para estos cursos-horario." />
-      </section>
-      )}
-      {pestana !== "cuotas" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* La OTRA vara de la pestaña: arriba, las celdas de sexo del plan;
-              aquí, lo recogido contra la cuota de ALUMNOS del cálculo de
-              muestra —más baja que la meta del plan por diseño—, con
-              titulares caídos y reservas incluidos. «… contra el diseño» y no
-              «… por facultad» ni «… de la cuota»: esas colas ya tienen dueño
-              y el guard de títulos caza a quien termina igual que un vecino. */}
-          <h3>Cumplimiento contra el diseño</h3>
-          {/* El chip declara el denominador —y su degradación, si la hay—; el
-              porqué viaja en el title, como el `detalle` de los KPIs. */}
-          <span title={cuotaDiseno.procedencia.detalle || undefined}>
-            {cuotaDiseno.procedencia.chip}
-          </span>
-        </div>
-        <AulasAvanceCuota vista={cuotaDiseno} />
-      </section>
-      )}
+      <AulasPestanaResumen
+        dashboard={dashboard}
+        pestana={pestana}
+        tabla={DataTable}
+        facultadEnFoco={facultadEnFoco}
+        onFoco={onFoco}
+      />
+      <AulasPestanaEstratos dashboard={dashboard} pestana={pestana} tabla={DataTable} facultadEnFoco={facultadEnFoco} />
+      <AulasPestanaEfectividad
+        dashboard={dashboard}
+        pestana={pestana}
+        facultadEnFoco={facultadEnFoco}
+        onFoco={onFoco}
+      />
+      <AulasPestanaRendimiento
+        dashboard={dashboard}
+        pestana={pestana}
+        facultadEnFoco={facultadEnFoco}
+        onFoco={onFoco}
+        diasDeCampoDelCorte={diasDeCampoDelCorte}
+      />
+      <AulasPestanaCuotas
+        dashboard={dashboard}
+        pestana={pestana}
+        foco={foco}
+        facultadEnFoco={facultadEnFoco}
+        onFoco={onFoco}
+        tabla={DataTable}
+        // Llegó con «Consumo de la reserva», que vino de Rendimiento el
+        // 2026-09-08 para quedar junto a «A qué aula del banco ir».
+        diasDeCampoDelCorte={diasDeCampoDelCorte}
+      />
     </div>
   );
 }
@@ -2124,9 +1153,17 @@ export default function AulasMonitoreoPage() {
   // para lo que hay que mirar — y como viajan juntos, no hay forma de anunciar
   // algo nuevo heredando el tono de la acción anterior: un `setAviso` suelto que
   // olvidara el tono pintaría el resultado siguiente con el color del anterior.
+  // Espera del job de descarga de la plataforma, amarrada al ciclo de vida de
+  // esta página: al salir del módulo el poll se corta en vez de seguir vivo.
+  const esperarSyncDeFuentes = useWaitForSourceSyncJob();
+  const [guardandoTramos, setGuardandoTramos] = useState(false);
+  const [guardandoFacultad, setGuardandoFacultad] = useState(false);
   const [aviso, setAviso] = useState<{ texto: string; tono: TonoAviso }>({
     texto: "", tono: "ok",
   });
+  // El recibo del último ensayo o de la última sincronización: es lo que decide
+  // si se ofrece el botón que escribe.
+  const [sincronizacion, setSincronizacion] = useState<MonitoreoAulasSincronizacion | null>(null);
   const [error, setError] = useState("");
   /**
    * Los filtros que definen una encuesta efectiva, en edición.
@@ -2137,6 +1174,7 @@ export default function AulasMonitoreoPage() {
    * vaciado a propósito—.
    */
   const [filtrosEfectiva, setFiltrosEfectiva] = useState<FiltroDeEfectiva[] | null>(null);
+  const [guardandoComoMide, setGuardandoComoMide] = useState(false);
   const [guardandoCriterio, setGuardandoCriterio] = useState(false);
 
   const activeDef = useMemo(
@@ -2144,6 +1182,30 @@ export default function AulasMonitoreoPage() {
     [seccionActiva],
   );
   const dashboard = dashboardFromState(state);
+  // **La clave del eje de cuotas del estudio, leída del motor.**
+  //
+  // El bloque `avance_cuota` declara de qué son sus celdas (`eje.clave`:
+  // `facultad` para todo lo vigente, `nivel` para CCSS Perfil 2026-II). Se lee
+  // aquí una vez y baja: preguntar por «facultad» en cada sitio era una
+  // respuesta cableada que en un estudio por nivel decía «no es el eje».
+  // Un payload viejo sin `eje` cae a `facultad`, que es lo que era.
+  const ejeDeclarado = (dashboard as {
+    avance_cuota?: { eje?: { clave?: string; etiqueta?: string; etiqueta_plural?: string; etiqueta_sin?: string } | null };
+  } | null)?.avance_cuota?.eje ?? null;
+  const ejeClave = String(ejeDeclarado?.clave ?? "facultad");
+  // Las categorías de una dimensión descriptiva, tal como el motor las publica.
+  // **Se leen de `avance_cuota.composicion` y no de `quotas.category_profiles`**:
+  // el payload del estado RECORTA esas listas —pesaban ~54 MB— y sustituirlas
+  // por conteos deja `undefined` aquí en un estudio real y cero en los tests
+  // sintéticos. Es el fallo mudo más caro de este perfil.
+  const categoriasDeLaComposicion = useCallback((dimension: string): string[] => {
+    const dims = (dashboard as {
+      avance_cuota?: { composicion?: { dimensiones?: Record<string, { filas?: Array<{ categoria?: unknown }> }> } | null };
+    } | null)?.avance_cuota?.composicion?.dimensiones;
+    const filas = dims?.[dimension]?.filas ?? [];
+    // Ya vienen ordenadas por población desde el motor: no se reordenan.
+    return filas.map((f) => String(f?.categoria ?? "").trim()).filter((v) => v.length > 0);
+  }, [dashboard]);
   // El foco de cuotas vive en la URL, como el resto de la dirección: así la
   // vista sigue siendo enlazable y el botón Atrás la deshace.
   //
@@ -2154,12 +1216,41 @@ export default function AulasMonitoreoPage() {
   // a la URL—.
   const [focoTexto, escribirFoco] = useFocoMonitoreo();
   const foco = focoDesdeTexto(focoTexto);
+  /**
+   * Las facultades del estudio, para el selector de la cabecera.
+   *
+   * Salen de `quotas_sex_faculty`, la lista que fija el DISEÑO: tomarlas de lo
+   * que aparece en el parte dejaría fuera justo las que no han empezado, que
+   * son las que hay que ir a mirar. Orden alfabético porque el selector se
+   * recorre a mano con las flechas y el orden por rendimiento cambia cada día.
+   *
+   * **Salían de `quotas_sex_faculty` y ésa es la lista equivocada.** Son las
+   * celdas de SEXO, y un estudio cuya meta es sólo por nivel no declara ninguna:
+   * medido en el simulacro de CCSS Perfil 2026-II, la lista salía **vacía** y con
+   * ella **la dimensión del eje desaparecía del selector de la cabecera** — el
+   * control ofrecía «Carrera» y «Sexo» y ni una palabra del eje que manda.
+   *
+   * Ahora salen de `avance_cuota.facultades`, que es la lista del diseño para el
+   * EJE y existe declare o no cuotas de sexo. El razonamiento de la cabecera no
+   * cambia: sigue siendo el diseño y no lo que ha aparecido.
+   */
+  const facultadesDelEstudio = useMemo(() => valoresDelEje(
+    (dashboard as { avance_cuota?: { facultades?: Array<Record<string, unknown>> } } | null)
+      ?.avance_cuota?.facultades,
+    (dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+  ), [dashboard]);
+  const facultadDeLaCabecera = esFocoDelEje(foco, ejeClave) ? foco!.valor : "";
   const cambiarFoco = useCallback(
     (siguiente: FocoDeCuota) => escribirFoco(textoDesdeFoco(siguiente) || null),
     [escribirFoco],
   );
   const corte = useMemo(() => corteAulas(state, dashboard), [state, dashboard]);
   const aulasConfig = state?.config?.aulas_universitarias ?? null;
+  // A5: lo declarado fuera del operativo y el nombre del colector, para la UI
+  // del criterio y sus sugerencias.
+  const colectorDeclarado = String(state?.aulas_universitarias?.source_mapping?.collector_var ?? "collectorID");
+  const descartesDeclarados: string[] = (state?.aulas_universitarias?.source_mapping?.descartes ?? [])
+    .flatMap((d) => (d.values ?? []).map(String));
   // Cuántas aulas traen META DEL DISEÑO, que es lo que hace juzgable el
   // criterio.
   //
@@ -2176,15 +1267,23 @@ export default function AulasMonitoreoPage() {
   const sourceTotal = state?.sources?.length ?? 0;
   const activeSources = (state?.sources ?? []).filter((source) => source.enabled).length;
   const busy = loading || mutating;
+  // **Un mismo acto, un mismo nombre.** Este botón y el «Traer respuestas» del
+  // panel de Fuentes llaman los DOS a `syncField()`: son la misma acción
+  // ofrecida en dos sitios. Se llamaba «Recargar», y con dos nombres para lo
+  // mismo nadie sabe cuál aprieta ni qué esperar — Gonzalo, el 2026-09-09: «no
+  // entiendo el propósito de estos dos botones entonces». El título dice lo que
+  // hace en el orden en que lo hace, que es lo que faltaba: primero pide a la
+  // plataforma, después recalcula.
   const refreshTitle = busy
+    ? "Trayendo respuestas de la plataforma..."
+    : imported
+      ? "Pide las respuestas nuevas a la plataforma y recalcula el corte de campo, la agenda y el avance"
+      : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
+  // «Avance» NO trae datos: abre la sección y la recalcula con lo que el
+  // proyecto ya tiene. Decirlo evita que se lea como una segunda sincronización.
+  const advanceTitle = busy
     ? "Actualizando vista de cursos-horario..."
-    : `Recargar ${activeDef.shortLabel ?? activeDef.label} desde la memoria local del proyecto`;
-  const advanceTitle = imported
-    // «snapshot» es como se llama por dentro a la copia descargada de la
-    // plataforma; quien lee el tooltip lo que necesita saber es que se usa lo
-    // que ya está en el proyecto y no se vuelve a la red.
-    ? "Recalcular el corte de campo con las respuestas y la agenda que ya están en el proyecto"
-    : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
+    : "Abre la sección Avance y la recalcula con los datos que ya están en el proyecto (no pide nada a la plataforma)";
 
   /**
    * Relee el estado del proyecto.
@@ -2244,6 +1343,42 @@ export default function AulasMonitoreoPage() {
     }
   }, []);
 
+  /**
+   * La plantilla de disponibilidad, para que haya qué importar.
+   *
+   * El motor la sabía escribir —días, franjas, el 1 en verde y el 0 en rojo—
+   * y no la pedía nadie: hasta hoy el coordinador tenía que adivinar el
+   * formato que el lector espera. Misma mecánica de descarga efímera que el
+   * libro: un Excel operativo no vive dentro del proyecto, y sacarlo es el punto.
+   */
+  const plantillaDisponibilidad = useCallback(async () => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasDisponibilidadPlantilla();
+      setAviso({
+        texto: "Plantilla lista" +
+          (res.aplicadores
+            ? ": trae escritos los " + fmt(res.aplicadores) + " aplicadores ya declarados."
+            : ": se llena con el nombre de cada aplicador y un 1 o un 0 por franja.") +
+          " Al llenarla, vuelve por «Importar disponibilidad».",
+        tono: "ok",
+      });
+      const a = document.createElement("a");
+      a.href = res.download_url;
+      a.download = res.filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo generar la plantilla.");
+    } finally {
+      setMutating(false);
+    }
+  }, []);
+
   const importarLibro = useCallback(async (archivo: File) => {
     setMutating(true);
     setError("");
@@ -2263,6 +1398,171 @@ export default function AulasMonitoreoPage() {
       await loadView(seccionActiva, true, true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo leer el libro.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * B74 (dictado 2026-09-03): «la pestaña de disponibilidad no tiene ningún
+   * mecanismo para poder importarla… ¿qué pasa si quiero enviarte una
+   * actualizada y volver a hacer una asignación?». La misma vía de dos pasos
+   * que el libro (upload → import por file_id); el refresco forzado trae el
+   * reparto rearmado con la oferta nueva — las fijaciones sobreviven porque
+   * viven en el config, no en la disponibilidad.
+   */
+  const importarDisponibilidad = useCallback(async (archivo: File) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const subido = await apiUpload(archivo, "aulas_disponibilidad");
+      const res = await apiMonitoreoAulasDisponibilidad({ file_id: subido.file_id });
+      // El aviso lo arma `avisoDisponibilidadImportada`: aquí se contaban TODOS
+      // los avisos del lector y se les llamaba «celdas ilegibles», que dejó de
+      // ser cierto en cuanto el lector empezó a declarar filas —una persona en
+      // dos filas, una disponibilidad sin dueño—. Y los textos, que son los que
+      // dicen la fila del excel, no se enseñaban nunca.
+      setAviso(avisoDisponibilidadImportada(res));
+      await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo leer la disponibilidad.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * La misma operación por la otra puerta: el Sheets en vez del archivo.
+   *
+   * No hay paso de subida —no hay nada que subir— pero de ahí en adelante es
+   * idéntico, y el aviso se arma con el MISMO `avisoLibroImportado`: la
+   * respuesta tiene la misma forma venga de donde venga, y ramificar aquí por
+   * procedencia sería inventar una diferencia que el backend ya no hace.
+   */
+  const leerDeSheets = useCallback(async (enlace: string) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasImportarSheets(enlace);
+      setState(res.state);
+      setAviso(avisoLibroImportado(res));
+      await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo leer el Sheets.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * La vuelta de ese viaje: publicar el libro al MISMO destino recordado.
+   *
+   * Sin `enlace` el backend usa el que guarda la config (`libro_sheets`); con
+   * enlace lo recuerda ANTES de publicar, así que un fallo de red no pierde lo
+   * pegado. El aviso cuenta hoja por hoja qué pasó —una `respetada` con su
+   * motivo, que es la regla de dueño hecha visible, no un fallo—. La recarga
+   * silenciosa trae la config con el destino recién recordado al campo.
+   */
+  /**
+   * S7: publicar la distribución de la semana al Sheets de los aplicadores.
+   * Con enlace lo recuerda; sin él usa el recordado. La recarga trae el
+   * bloque recordado y la huella nueva, y el aviso de Asignación pasa a
+   * «al día».
+   */
+  const publicarDistribucion = useCallback(async (enlace?: string) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasPublicarDistribucion(enlace);
+      setAviso(avisoDistribucionPublicada(res));
+      await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo publicar la distribución a los aplicadores.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * El ciclo del Sheets de los aplicadores en una sola acción: lee la hoja,
+   * adopta lo que el coordinador decidió, añade las agendadas que no tienen
+   * cita y refresca el ESTADO. `aplicar = false` es un ENSAYO y no escribe.
+   *
+   * Hasta hoy los cuatro movimientos se hacían con scripts fuera de la app, así
+   * que el operativo dependía de que hubiera alguien con una consola abierta.
+   */
+  const sincronizarDistribucion = useCallback(async (aplicar: boolean, enlace?: string) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      // **El enlace pegado viaja con la llamada.** Sin él sólo servía el destino
+      // recordado, y un proyecto reabierto que aún no lo tiene guardado enseñaba
+      // el enlace en su campo y devolvía «No hay Sheets de la distribución que
+      // sincronizar: pega su enlace una vez». El ensayo lo recuerda al llegar,
+      // así que pegarlo una vez basta — que es lo que el mensaje prometía.
+      const res = await apiMonitoreoAulasSincronizarDistribucion({ aplicar, url: enlace });
+      setSincronizacion(res);
+      // El motor ya redacta la frase que cierra la jornada; la pantalla no la
+      // vuelve a componer para que no existan dos versiones del mismo recibo.
+      setAviso({
+        texto: res.aplicado ? res.resumen : `Ensayo: ${res.resumen}`,
+        // Un aula CORREGIDA es motivo de atención aunque todo lo demás cuadre:
+        // significa que la hoja que los veintidós tienen abierta les estaba
+        // dando un aula que el libro ya había cambiado.
+        tono:
+          res.sin_aplicador.length ||
+          res.estado.conflictos.length ||
+          (res.aulas?.corregidas ?? 0) > 0 ||
+          // Que el reparto de la app no sea el de la hoja es lo más grave que
+          // puede decir este recibo: significa que la pestaña de Asignación
+          // lleva quién sabe cuánto enseñando una foto vieja.
+          res.fijaciones_desfasadas?.hay
+            ? "atencion"
+            : "ok",
+      });
+      if (aplicar) await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo sincronizar la distribución.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * **Releer el cruce con el otro estudio.** A petición y no al abrir ni al
+   * sincronizar: leer el plan ajeno entero y su Sheets encarece el warm start,
+   * y atarlo a «traer respuestas» lo metería bajo un botón que además publica.
+   *
+   * No recarga el tablero: el cruce no cambia ninguna cifra del avance —informa,
+   * no descuenta— así que sólo el recibo tiene algo nuevo que decir.
+   */
+  const recalcularTraslape = useCallback(async () => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      setAviso(avisoTraslapeRecalculado(await apiMonitoreoAulasRecalcularTraslape()));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo releer el cruce con el otro estudio.");
+    } finally {
+      setMutating(false);
+    }
+  }, []);
+
+  const publicarASheets = useCallback(async (enlace?: string) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasPublicarLibro(enlace);
+      setAviso(avisoLibroPublicado(res));
+      await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo publicar el libro al Sheets.");
     } finally {
       setMutating(false);
     }
@@ -2292,6 +1592,93 @@ export default function AulasMonitoreoPage() {
       setFiltrosEfectiva([]);
     }
   }, [state, filtrosEfectiva]);
+
+  /**
+   * Dictado 2026-09-04: qué columna de la base dice el sexo. Se persiste en el
+   * mismo `source_mapping` que el resto del criterio y el refresco trae las
+   * cifras por sexo ya contadas; vacío la des-declara.
+   */
+  const declararVariableDeSexo = useCallback(async (variable: string) => {
+    try {
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(state?.aulas_universitarias?.source_mapping ?? {}),
+          sex_var: variable,
+        },
+      } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva, state]);
+
+  /**
+   * A5 (2026-09-08): los valores de la variable de sexo (mujeres / hombres) y
+   * los códigos de colector fuera del operativo, guardados en el MISMO
+   * `source_mapping` que la variable y los filtros. El 07/09 se escribieron
+   * por API; sin pantalla el próximo estudio repite el día 1 de éste.
+   */
+  const declararValoresDeSexo = useCallback(async (v: { mujeres: string[]; hombres: string[] }) => {
+    try {
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(state?.aulas_universitarias?.source_mapping ?? {}),
+          sex_female_values: v.mujeres,
+          sex_male_values: v.hombres,
+        },
+      } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva, state]);
+
+  const declararDescartes = useCallback(async (valores: string[]) => {
+    const mapping = state?.aulas_universitarias?.source_mapping;
+    const colector = String(mapping?.collector_var ?? "collectorID");
+    try {
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(mapping ?? {}),
+          descartes: valores.length ? [{ var: colector, values: valores }] : [],
+        },
+      } as unknown as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva, state]);
+
+  /**
+   * **Las tres declaraciones de «cómo mide este estudio»**, por el mismo camino
+   * que el resto de la config de aulas: guardar y refrescar con el scope de
+   * VALIDACIÓN, que es donde viajan los veredictos que cambian. Con el scope de
+   * la sección el panel seguiría enseñando el reparto anterior.
+   *
+   * Se envía sólo lo que cambió: un `POST` con las tres claves reescribiría las
+   * otras dos con lo que la pantalla tenía en memoria, que no es lo mismo que
+   * lo que el motor tiene guardado.
+   */
+  const declararComoMide = useCallback(async (cambio: Partial<ComoMideElEstudio>) => {
+    setGuardandoComoMide(true);
+    setError("");
+    try {
+      const cuerpo: Record<string, unknown> = {};
+      if (cambio.eje !== undefined) cuerpo.eje_cuota = cambio.eje;
+      if (cambio.agrupacion !== undefined) cuerpo.agrupacion_operativa = cambio.agrupacion;
+      if (cambio.inicioCampo !== undefined) cuerpo.inicio_campo = cambio.inicioCampo;
+      if (!Object.keys(cuerpo).length) return;
+      await apiMonitoreoAulasConfig(cuerpo as Partial<MonitoreoAulasConfig>);
+      const next = await apiMonitoreoState({
+        includeReports: true, reportScope: "validation_summary", force: true,
+      });
+      setState(next);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardandoComoMide(false);
+    }
+  }, []);
 
   const guardarCriterio = useCallback(async () => {
     if (!filtrosEfectiva) return;
@@ -2335,6 +1722,165 @@ export default function AulasMonitoreoPage() {
    * cambia viaja ahí: sin eso el panel seguiría enseñando el reparto anterior y
    * el botón parecería no hacer nada.
    */
+  /**
+   * Declarar el umbral de duración sospechosa.
+   *
+   * Mismo camino que `aula_valida` y que el criterio de respuesta válida: la
+   * config de aulas y después un refresco con el scope de VALIDACIÓN, porque el
+   * veredicto que cambia viaja ahí. Sin ese scope el panel seguiría enseñando
+   * «no ha declarado» después de declararlo, y un botón que no puede mostrar su
+   * propio efecto enseña a desconfiar del botón.
+   */
+  const guardarUmbralDeDuracion = useCallback(async (minutos: number) => {
+    try {
+      await apiMonitoreoAulasConfig({ duracion_sospecha_min: minutos } as Partial<MonitoreoAulasConfig>);
+      const next = await apiMonitoreoState({
+        includeReports: true, reportScope: "validation_summary", force: true,
+      });
+      setState(next);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  /**
+   * Fijar o soltar el aplicador de una cita (B36, dictado 2026-09-02:
+   * «mecanismo propio de asignación y reasignación, que sea equitativo»).
+   *
+   * Viaja el mapa COMPLETO de fijaciones —la whitelist del config lo
+   * reemplaza entero— y después el mismo refresco forzado que las demás
+   * declaraciones: el reparto recalculado con la fijación viaja en el
+   * dashboard, y sin refresco el selector parecería no hacer nada.
+   */
+  const fijarReparto = useCallback(async (mapa: Record<string, string>) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_fijado: mapa } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * B70 (dictado 2026-09-03): confirmar el slider PERSISTE la duración en el
+   * config (`duracion_aplicacion_min`) y fuerza el refresco — ventanas,
+   * franjas, reparto y aviso del día se rearman con ella en el backend. Sin
+   * esto el slider era estado local y el aviso salía con los 20 del default.
+   */
+  /**
+   * B75: el rango de despliegue del reparto — se persiste en el config
+   * (`reparto_rango`; `{}` lo des-declara) y el refresco forzado trae el
+   * reparto re-particionado con lo aplazado declarado.
+   */
+  /**
+   * Los TRAMOS del operativo (dictado 2026-09-15). Se persiste la LISTA
+   * entera, porque quitar uno es tan legítimo como añadirlo y un merge por
+   * nombre dejaría vivo el que alguien acaba de borrar. `[]` devuelve el
+   * estudio al respaldo por semanas de calendario, que es el comportamiento de
+   * siempre para quien no los ha declarado.
+   */
+  /**
+   * QUÉ pregunta dice la facultad del alumno, y qué es cada código. Las dos
+   * cosas van juntas en la misma llamada: una variable declarada sin catálogo
+   * hace que el cruce compare un «7» contra un nombre, y el motor se niega —con
+   * razón— porque eso daría 100 % de desacuerdo sobre un campo sano.
+   */
+  const declararFacultad = useCallback(async (
+    variable: string, etiquetas: Record<string, string>,
+  ) => {
+    setGuardandoFacultad(true);
+    try {
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(state?.aulas_universitarias?.source_mapping ?? {}),
+          faculty_var: variable,
+          faculty_labels: etiquetas,
+        },
+      } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardandoFacultad(false);
+    }
+  }, [loadView, seccionActiva, state]);
+
+  const guardarTramos = useCallback(async (
+    tramos: { nombre: string; desde: string; hasta: string }[],
+  ) => {
+    setGuardandoTramos(true);
+    try {
+      await apiMonitoreoAulasConfig({ tramos } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardandoTramos(false);
+    }
+  }, [loadView, seccionActiva]);
+
+  const declararRango = useCallback(async (rango: { desde: string; hasta: string } | null) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_rango: rango ?? {} } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * B67: otro sorteo — la semilla siguiente se persiste en el config y el
+   * refresco trae el reparto con el desempate rotado; equidad y fijaciones
+   * intactas (contrato del motor).
+   */
+  /**
+   * C9: quién no sale en este despliegue. Se persiste en el config
+   * (`reparto_fuera`) y el refresco forzado trae el reparto ya sin esa gente
+   * —el motor los quita ANTES de repartir, así que las citas se reparten entre
+   * quienes sí salen en vez de quedar descubiertas—.
+   */
+  const declararFuera = useCallback(async (nombres: string[]) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_fuera: nombres } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
+  const resortear = useCallback(async (semillaSiguiente: number) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_semilla: semillaSiguiente } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * Dictado 2026-09-04: concentrar el día del aplicador —«que sus cursos
+   * horario no estén dispersos en toda la semana»—. Se persiste en el config
+   * (`reparto_concentrado`) y el refresco forzado trae el reparto rearmado
+   * con el criterio nuevo; la equidad y lo fijado a mano siguen mandando.
+   */
+  const concentrar = useCallback(async (valor: boolean) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_concentrado: valor } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
+  const confirmarDuracion = useCallback(async (min: number) => {
+    try {
+      await apiMonitoreoAulasConfig({ duracion_aplicacion_min: min } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
   const guardarCriterioDeAula = useCallback(async (valor: { modo: string; alfa: number }) => {
     try {
       await apiMonitoreoAulasConfig({ aula_valida: valor } as Partial<MonitoreoAulasConfig>);
@@ -2387,14 +1933,74 @@ export default function AulasMonitoreoPage() {
     setMutating(true);
     setError("");
     try {
+      // **Primero TRAER de la plataforma, y sólo después recalcular.**
+      //
+      // `/aulas/sync` no baja nada: recalcula con el snapshot que ya está en la
+      // sesión. El botón se llama «Sincronizar campo» y durante dos jornadas
+      // (2026-09-08 y 09) devolvió las mismas cifras viejas sin decir por qué:
+      // Gonzalo lo pulsaba, veía 579 respuestas del día anterior y no había
+      // nada en pantalla que dijera que no se había pedido nada a Kobo. La
+      // descarga vive en `/monitoreo/sync`, que es un job.
+      //
+      // Un fallo de la descarga NO cancela el recálculo: el corte de campo se
+      // rehace igual con lo que haya y el motivo se dice como aviso. Sin
+      // fuentes activas no se pide nada y no es un error: hay estudios de aulas
+      // que cargan la base a mano.
+      let avisoDescarga = "";
+      if (activeSources > 0) {
+        try {
+          // **Sin config.** La de la pantalla viene RECORTADA del payload (sin
+          // plan ni tablas del marco) y el backend la guardaba tal cual: tras
+          // cada «Traer respuestas» la población de «A quién se está
+          // alcanzando» quedaba en 0 (CCSS, 2026-09-23). Aquí no hay nada que
+          // editar en ella: el backend usa la que ya tiene.
+          const inicio = await apiMonitoreoSync(undefined, [], { syncMode: "advance" });
+          if (inicio?.job_id) await esperarSyncDeFuentes(inicio.job_id);
+        } catch (cause) {
+          avisoDescarga = cause instanceof Error ? cause.message : String(cause);
+        }
+      }
       const result = await apiMonitoreoAulasSync();
       setState(result.state);
+      if (avisoDescarga) {
+        setAviso({
+          texto: `No se pudieron traer respuestas nuevas de la plataforma (${avisoDescarga}). Las cifras son las de la última sincronización que sí entró.`,
+          tono: "atencion",
+        });
+      }
+      // La conversación con el Sheets (B7) viaja SOLO con destino recordado.
+      // Sin bloque el aviso ni se toca: el sync se comunica como siempre. Y un
+      // fallo de la conversación NO es un fallo del sync —el corte de campo
+      // sí se recalculó—, así que va como aviso de atención, no a `error`.
+      const conversacion = avisoConversacion(result.libro_conversacion);
+      // B3 (2026-09-08): si la última sincronización volvió sin ningún registro,
+      // se dice. El 08/09 Gonzalo leyó «Efectivas 0» en una pantalla que no
+      // tenía nada que le avisara de que no había traído nada, y la creyó. El
+      // motor redacta la causa y su consecuencia; aquí sólo se enseña, y manda
+      // sobre el aviso del libro porque decide si las cifras son de hoy.
+      // **Un solo sitio para dos avisos: manda la gravedad, no el orden.**
+      //
+      // El de las fuentes se escribía DESPUÉS y pisaba al del libro sin mirar
+      // qué decía, así que una publicación fallida quedaba tapada por un «no
+      // trajo respuestas nuevas». Gonzalo lo vio desde fuera el 2026-09-16:
+      // «actualiza la data de la app pero ya no actualiza el Sheets», sin
+      // ningún error en pantalla. Ver `avisoDelSync.ts`.
+      const elegido = avisoDelSync(conversacion, result.state?.aviso_fuentes_vacias);
+      // Y lo que se retiró de la distribución de aplicadores, junto al aviso
+      // que ya hay o solo; un fallo de esa limpieza pide atención.
+      const retiro = fraseDelRetiro(result.distribucion_retiro);
+      if (elegido && retiro) {
+        setAviso({ texto: `${elegido.texto} ${retiro.texto}`,
+                   tono: retiro.tono === "atencion" ? "atencion" : elegido.tono });
+      } else if (elegido || retiro) {
+        setAviso((elegido ?? retiro)!);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setMutating(false);
     }
-  }, []);
+  }, [activeSources, state?.config, esperarSyncDeFuentes]);
 
   return (
     <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>
@@ -2431,14 +2037,22 @@ export default function AulasMonitoreoPage() {
         nRows={state?.n_rows ?? 0}
         hasSnapshot={Boolean(state?.has_snapshot)}
         syncing={busy}
-        advanceSyncDisabled={busy || !imported}
+        // A26b — semántica dictada por el dueño (2026-09-01): «Avance es para
+        // ver el avance en plataforma; Recargar es para cargar el excel y
+        // todo lo demás». Estaba al revés: «Avance» conversaba con el libro y
+        // «Recargar» solo releía memoria — medido: un Recargar dejó la agenda
+        // en 12 con el libro en 28.
+        advanceSyncDisabled={busy}
         advanceSyncLabel="Avance"
         advanceSyncTitle={advanceTitle}
-        onSyncAdvance={() => { void syncField(); }}
-        syncDisabled={busy}
-        syncLabel="Recargar"
+        onSyncAdvance={() => {
+          if (seccionActiva !== "avance") setActiveView("avance");
+          void loadView("avance", true);
+        }}
+        syncDisabled={busy || !imported}
+        syncLabel="Traer respuestas"
         syncTitle={refreshTitle}
-        onSyncAll={() => { void loadView(seccionActiva, true); }}
+        onSyncAll={() => { void syncField(); }}
         onCambioSeccion={(view) => {
           if (view !== seccionActiva) setActiveView(view);
         }}
@@ -2459,6 +2073,7 @@ export default function AulasMonitoreoPage() {
           pasan las clases de aulas (`mainClassName`/`contentClassName`) para no
           perder la hoja del perfil, que gobierna stacks, tablas y gráficos. */}
       <MonitoreoWorkbenchChrome
+        perfil="aulas"
         seccionActiva={seccionActiva}
         ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
         className="is-aulas"
@@ -2488,6 +2103,40 @@ export default function AulasMonitoreoPage() {
             title={activeDef.label}
             detail={activeDef.desc}
             pestanaLabel={pestanaActivaLabel}
+            // **El MANDO vive sólo en Resumen; el foco sigue cruzando todo.**
+            //
+            // Está en la cabecera y no dentro de un panel porque ahí se movía con
+            // el scroll. Pero estaba en las CINCO pestañas de Avance y en las
+            // otras cuatro secciones, y Gonzalo lo dijo el 2026-09-10: «el
+            // selector de facultades que está en el encabezado debería ser un
+            // botón que sólo esté en resumen, no en las demás pestañas, porque
+            // es Resumen quien maneja este selector».
+            //
+            // Tiene razón en el reparto: Resumen es la única pestaña donde el
+            // foco FILTRA —el bloque «Respuestas» enseña las de esa facultad—;
+            // en las demás sólo RESALTA una fila de un ranking
+            // (`focoQueCruzaLaSeccion.test.tsx`). Un mando que en cuatro de cada
+            // cinco pantallas no cambia lo que se lee, sino que pinta una fila,
+            // pide más atención de la que devuelve.
+            //
+            // El resaltado NO se toca: sigue cruzando la sección, y quien quiera
+            // quitarlo vuelve a Resumen, que es de donde salió.
+            control={mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? (
+              <AulasSelectorDeFoco
+                // El eje desde las filas del avance; carrera y sexo desde
+                // `avance_cuota.composicion`, que el motor publica YA ordenado
+                // por población — reordenarlos aquí haría bailar la lista con
+                // cada sincronización.
+                valores={{
+                  eje: facultadesDelEstudio,
+                  carrera: categoriasDeLaComposicion("carrera"),
+                  sexo: categoriasDeLaComposicion("sexo"),
+                }}
+                foco={foco}
+                onFoco={cambiarFoco}
+                eje={ejeDeclarado}
+              />
+            ) : undefined}
           />
           )
         }
@@ -2516,13 +2165,27 @@ export default function AulasMonitoreoPage() {
         )}
       >
 
-          <AulasKpiBand dashboard={dashboard} seccion={seccionActiva} pestana={pestanaActiva} />
+          <AulasKpiBand
+            dashboard={dashboard}
+            seccion={seccionActiva}
+            pestana={pestanaActiva}
+            facultadEnFoco={facultadDeLaCabecera}
+            cargando={loading}
+            onIr={(clave) => elegirPestana(seccionActiva, clave)}
+          />
           {seccionActiva === "fuentes" ? (
             <AulasApplicationFlow
               tone="monitoreo"
               current="monitoreo"
               compact
-              title="Seguimiento de la intervención por cursos-horario"
+              // «Seguimiento de la INTERVENCIÓN» convivía con el eyebrow
+              // «APLICACIÓN por cursos-horario» en el mismo bloque: dos palabras
+              // para lo mismo, que es la ambigüedad que este perfil lleva todo
+              // el día pagando. «Intervención» es palabra del dueño (cita del
+              // 18/08 en AulasMatrizUmbrales), pero el vocabulario dominante de
+              // la pantalla es «aplicación» —estados, fechas, KPIs— y el bloque
+              // ya lo usa de eyebrow. Se unifica hacia el dominante.
+              title="Seguimiento de la aplicación por cursos-horario"
               // **La franja en prosa era la propia franja.** Decía «lee el plan
               // del cálculo de muestra y sus enlaces QR/PDF para medir avance,
               // caídas, reemplazos y brechas» —26 palabras— y justo debajo están
@@ -2560,6 +2223,7 @@ export default function AulasMonitoreoPage() {
               // Salidas se muestra aunque no haya dashboard: el workbench declara
               // por qué está bloqueada (sin corte, sin válidas) en vez de dejar la
               // pestaña muda.
+              <>
               <MonitoreoOutputsWorkbench
                 family="aulas"
                 routeLabel="Cursos-horario"
@@ -2575,76 +2239,206 @@ export default function AulasMonitoreoPage() {
                 // lo único que dice DÓNDE quedó publicado.
                 onPublished={() => { void loadView(seccionActiva, true, true); }}
               />
-            ) : renderAulasView(
-              seccionActiva,
+                {/* Y debajo del workbench, lo que se va a publicar. Las cinco
+                    tablas del libro estuvieron en Metas y volvieron aquí: allá
+                    duplicaban paneles que ya existían, aquí contestan la
+                    pregunta de la pestaña —qué sale— antes de que alguien le
+                    dé al botón. */}
+                <AulasVistaPreviaDelLibro />
+              </>
+            ) : renderAulasView({
+              onGuardado: () => { void loadView(seccionActiva, true, true); },
+              view: seccionActiva,
               dashboard,
-              <AulasOperationsPanel
-                config={aulasConfig}
-                sources={state?.sources ?? []}
-                busy={busy}
-                origen={state?.aulas_origen}
-                onImportPlan={() => { void importPlan(); }}
-                onSyncField={() => { void syncField(); }}
-                onGenerarLibro={() => { void generarLibro(); }}
-                onImportarLibro={(archivo) => { void importarLibro(archivo); }}
-              />,
-              <VacioSinTablero
-                planImportado={imported}
-                fuentesActivas={activeSources}
-                fuentesDeclaradas={sourceTotal}
-                onIrAFuentes={() => setActiveView("fuentes")}
-              />,
-              <RegistroDeCampo
-                // Del TABLERO, no de la config: el plan dejo de viajar ahi y
-                // `agenda` es un superconjunto suyo —mismos campos mas
-                // `respuestas_validas` y `brecha`— que ademas se reconstruye en
-                // cada peticion, tambien antes de la primera respuesta.
-                agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
-                // La hoja de partes, sólo para el contador: sin ella el panel
-                // decía «0 con parte» mientras Consultas enseñaba «210 partes».
-                partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
-                onGuardado={() => { void loadView(seccionActiva, true, true); }}
-                // La dirección abre el aula: `?foco=aula:CH 21` deja el
-                // formulario puesto sobre ella, que es donde vive la única
-                // acción que activa su reemplazo. Antes había que buscarla
-                // entre 196 filas, y quien la veía caer en la ruta del día no
-                // tenía cómo llegar hasta aquí.
-                codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
-                onElegir={(codigo) => cambiarFoco({ tipo: "aula", valor: codigo })}
-              />,
-              state?.sources ?? [],
-              pestanaActiva,
+              operations: (
+                <AulasOperationsPanel
+                  config={aulasConfig}
+                  sources={state?.sources ?? []}
+                  busy={busy}
+                  origen={state?.aulas_origen}
+                  onImportPlan={() => { void importPlan(); }}
+                  onSyncField={() => { void syncField(); }}
+              selloDeLibro={aulasConfig?.libro_publicado ?? null}
+              sincronizadoEn={state?.synced_at ?? ""}
+                  onGenerarLibro={() => { void generarLibro(); }}
+                  onImportarLibro={(archivo) => { void importarLibro(archivo); }}
+                  onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
+                  onPublicarASheets={(enlace) => { void publicarASheets(enlace); }}
+                  onRecalcularTraslape={
+                    aulasConfig?.traslape_fuente?.etiqueta
+                      ? () => { void recalcularTraslape(); }
+                      : undefined
+                  }
+                  traslapeDe={aulasConfig?.traslape_fuente?.etiqueta ?? ""}
+                />
+              ),
+              vacioSinTablero: (
+                <VacioSinTablero
+                  planImportado={imported}
+                  fuentesActivas={activeSources}
+                  fuentesDeclaradas={sourceTotal}
+                  onIrAFuentes={() => setActiveView("fuentes")}
+                />
+              ),
+              registro: (
+                <RegistroDeCampo
+                  // Del TABLERO, no de la config: el plan dejo de viajar ahi y
+                  // `agenda` es un superconjunto suyo —mismos campos mas
+                  // `respuestas_validas` y `brecha`— que ademas se reconstruye en
+                  // cada peticion, tambien antes de la primera respuesta.
+                  agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
+                  // La hoja de partes, sólo para el contador: sin ella el panel
+                  // decía «0 con parte» mientras Consultas enseñaba «210 partes».
+                  partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
+                  // Las cuotas por sexo, para que elegir un reemplazo mire lo
+                  // que a la facultad le falta. Es el mismo bloque que pinta la
+                  // pestaña de cuotas.
+                  celdasSexo={(dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
+                  onGuardado={() => { void loadView(seccionActiva, true, true); }}
+                  // La dirección abre el aula: `?foco=aula:CH 21` deja el
+                  // formulario puesto sobre ella, que es donde vive la única
+                  // acción que activa su reemplazo. Antes había que buscarla
+                  // entre 196 filas, y quien la veía caer en la ruta del día no
+                  // tenía cómo llegar hasta aquí.
+                  codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
+                  onElegir={(codigo) => cambiarFoco({ tipo: "aula", valor: codigo })}
+                />
+              ),
+              fuentes: state?.sources ?? [],
+              pestana: pestanaActiva,
               foco,
-              cambiarFoco,
-              {
-                filas: Number(state?.n_rows ?? 0) || undefined,
-                columnas: (state?.variables ?? []).length || undefined,
-              },
+              onFoco: cambiarFoco,
+              volumen: (
+                {
+                  filas: Number(state?.n_rows ?? 0) || undefined,
+                  columnas: (state?.variables ?? []).length || undefined,
+                }
+              ),
+              // Las tres declaraciones de «cómo mide este estudio», ya
+              // construidas: la sección no ve el estado ni sabe guardar.
+              comoMide: (
+                <AulasComoMideElEstudio
+                  valores={{
+                    eje: state?.aulas_universitarias?.eje_cuota ?? "",
+                    ejeMotivo: state?.aulas_universitarias?.eje_cuota_motivo ?? "",
+                    agrupacion: state?.aulas_universitarias?.agrupacion_operativa ?? "",
+                    inicioCampo: state?.aulas_universitarias?.inicio_campo ?? "",
+                  }}
+                  dimensiones={dashboard?.ejes_declarables ?? []}
+                  padron={{
+                    personas: Number(dashboard?.padron?.personas ?? 0) || 0,
+                    sinNivel: Number(dashboard?.padron?.sin_nivel ?? 0) || 0,
+                  }}
+                  fueraDelOperativo={
+                    dashboard?.respuestas_desglose?.total
+                      ? Number(dashboard.respuestas_desglose.total.fuera_del_operativo ?? 0) || 0
+                      : null
+                  }
+                  guardando={guardandoComoMide}
+                  onGuardar={(cambio) => { void declararComoMide(cambio); }}
+                />
+              ),
               // El panel del criterio, ya construido: el render no ve el estado
               // ni sabe guardar. Sólo cuando hay base que mirar —sin variables
               // no hay nada que elegir y el panel sería un formulario vacío.
-              filtrosEfectiva && (state?.variables ?? []).length ? (
-                <AulasFiltrosDeEfectiva
-                  filtros={filtrosEfectiva}
-                  variables={state?.variables ?? []}
-                  criterio={((dashboard?.validation ?? []).find(
-                    (c) => (c as { check?: string }).check === "valid_response_criterion",
-                  )?.detail as string | undefined) || undefined}
-                  guardando={guardandoCriterio}
-                  onChange={setFiltrosEfectiva}
-                  onGuardar={() => { void guardarCriterio(); }}
-                />
-              ) : null,
+              criterioDeEfectiva: (
+                filtrosEfectiva && (state?.variables ?? []).length ? (
+                  <AulasFiltrosDeEfectiva
+                    filtros={filtrosEfectiva}
+                    variables={state?.variables ?? []}
+                    criterio={((dashboard?.validation ?? []).find(
+                      (c) => (c as { check?: string }).check === "valid_response_criterion",
+                    )?.detail as string | undefined) || undefined}
+                    guardando={guardandoCriterio}
+                    onChange={setFiltrosEfectiva}
+                    onGuardar={() => { void guardarCriterio(); }}
+                    variableDeSexo={state?.aulas_universitarias?.source_mapping?.sex_var ?? ""}
+                    facultadDeclarada={{
+                      variables: (state?.variables ?? []).map((v) => ({
+                        name: v.name, values: (v.values ?? []).map(String),
+                      })),
+                      facultadVar: state?.aulas_universitarias?.source_mapping?.faculty_var ?? "",
+                      etiquetas: (state?.aulas_universitarias?.source_mapping?.faculty_labels ?? {}) as Record<string, string>,
+                      // Las facultades que ofrece el desplegable salen del
+                      // DISEÑO, no de la base: son las que tienen cuota, y son
+                      // las que el cruce va a comparar contra lo declarado.
+                      facultadesDelPlan: (aulasConfig?.design_targets?.facultades ?? [])
+                        .map((f) => String(f?.facultad ?? "")).filter((f) => f !== ""),
+                      control: dashboard?.control_facultad ?? null,
+                      onDeclarar: declararFacultad,
+                      ocupado: guardandoFacultad,
+                    }}
+                    onVariableDeSexo={declararVariableDeSexo}
+                    valoresDeSexo={{
+                      mujeres: (state?.aulas_universitarias?.source_mapping?.sex_female_values ?? []).map(String),
+                      hombres: (state?.aulas_universitarias?.source_mapping?.sex_male_values ?? []).map(String),
+                    }}
+                    onValoresDeSexo={(v) => { void declararValoresDeSexo(v); }}
+                    descartes={descartesDeclarados}
+                    onDescartes={(v) => { void declararDescartes(v); }}
+                    sugerenciasDeDescarte={sugerenciasDeDescarte(
+                      (state?.variables ?? []).find((v) => v.name === colectorDeclarado)?.values?.map(String) ?? [],
+                      (dashboard?.agenda ?? []).map((r) => String((r as { operational_code?: unknown }).operational_code ?? "")),
+                      descartesDeclarados,
+                    )}
+                  />
+                ) : null
+              ),
               // La vara de aula válida, también construida aquí por lo mismo.
-              <AulasCriterioDeAula
-                criterio={(state?.aulas_universitarias?.aula_valida ?? null) as never}
-                hayMetas={metasDelDiseno}
-                onGuardar={guardarCriterioDeAula}
-              />,
+              criterioDeAula: (
+                <AulasCriterioDeAula
+                  criterio={(state?.aulas_universitarias?.aula_valida ?? null) as never}
+                  hayMetas={metasDelDiseno}
+                  onGuardar={guardarCriterioDeAula}
+                />
+              ),
               // Cambiar de pestaña dentro de la sección: quien recuerda la
               // activa de cada una es este componente, no el render.
-              (clave) => elegirPestana(seccionActiva, clave),
-            )}
+              irAPestana: (clave) => elegirPestana(seccionActiva, clave),
+              // **Del código de una entrada a su ficha.** Cruza de sección, así
+              // que no le basta `irAPestana`: escribe sección, pestaña y foco
+              // en UNA sola navegación, y la vista la sigue.
+              //
+              // Hacerlo en dos —mover la vista por estado y el foco por la
+              // URL— NO funciona y falla callando: el escritor del foco navega
+              // con el `search` del render actual, que todavía trae la sección
+              // vieja, y el efecto de seguimiento devuelve la vista a donde
+              // estaba. Medido en pantalla el 2026-09-12: el foco quedaba
+              // puesto y la sección nunca cambiaba.
+              //
+              // No se navega a mano: escribir la dirección con `useSearchParams`
+              // aquí convertiría a este archivo en el séptimo lector, que es lo
+              // que el contrato de `lectoresDeDireccion` impide.
+              verFichaDe: (codigo: string) => {
+                escribirFoco(`aula:${codigo}`, { seccion: "consultas", pestana: "ficha" });
+              },
+              // El umbral de duración sospechosa: el motor lo aceptaba desde
+              // siempre y no había dónde ponerlo.
+              onDeclararUmbralDeDuracion: guardarUmbralDeDuracion,
+              // Fijar/reasignar aplicadores del reparto (B36).
+              onFijarReparto: fijarReparto,
+              onConfirmarDuracion: confirmarDuracion,
+              onImportarDisponibilidad: importarDisponibilidad,
+              onPlantillaDisponibilidad: plantillaDisponibilidad,
+              onDeclararRango: declararRango,
+              // Los tramos del operativo y su estado ya derivado por el motor.
+              // Van al lado del rango porque contestan la misma pregunta —«qué
+              // estoy repartiendo»— y el rango queda como la excepción.
+              tramos: dashboard?.tramos ?? [],
+              onGuardarTramos: guardarTramos,
+              guardandoTramos,
+              // C9 (dictado 2026-09-12): quién NO sale este despliegue, sin
+              // tener que editar el Excel de disponibilidad y recargarlo.
+              fueraDelReparto: aulasConfig?.reparto_fuera ?? [],
+              onDeclararFuera: declararFuera,
+              onResortear: resortear,
+              onConcentrar: concentrar,
+              // S7: el Sheets de los aplicadores, recordado en la config.
+              distribucionRecordada: aulasConfig?.distribucion_sheets ?? null,
+              onPublicarDistribucion: publicarDistribucion,
+              onSincronizarDistribucion: sincronizarDistribucion,
+              sincronizacion,
+            })}
           </div>
       </MonitoreoWorkbenchChrome>
     </div>

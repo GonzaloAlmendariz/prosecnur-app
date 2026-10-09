@@ -146,7 +146,7 @@ describe("ReferenciaAsistenciaTau", () => {
     // página. Renombrado al vocabulario nuevo (serie P, 2026-08-20): el
     // griego murió en superficies; el compendio metodológico— junto a
     // su nombre.
-    expect(html).toContain("Tasa de efectividad actual");
+    expect(html).toContain("Tasa de la facultad, vigente");
     expect(html).toContain("72.0%");
     expect(html).toContain("Producto de referencia");
     expect(html).toContain("47.0%");

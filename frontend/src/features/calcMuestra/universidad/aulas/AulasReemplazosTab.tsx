@@ -20,7 +20,6 @@ import { AvisoModulo } from "../shared/AvisoModulo";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import {
-  ClassroomLabCommandBar,
   ClassroomOperationalHandoffPanel,
   ClassroomReplacementBlueprintPanel,
   ClassroomReplacementChainPanel,
@@ -34,6 +33,9 @@ import {
   resolveAulasStageNotice,
   type AulasNavigate,
 } from "./aulasSurfaceState";
+import { AulasStaleJobAviso } from "./AulasStaleJobAviso";
+import { MetodoRecomendadoLinea } from "./MetodoRecomendadoLinea";
+import { ProbarReemplazosBoton } from "./ProbarReemplazosBoton";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
@@ -197,14 +199,10 @@ export function AulasReemplazosTab({
         />
       )}
 
-      {replacementReady && (
-        <ClassroomLabCommandBar
-          model={model}
-          busy={busy}
-          acciones={["reemplazos"]}
-          onSimulateReplacements={onSimulateReplacements}
-        />
-      )}
+      {/* «Probar reemplazos» ya no ocupa una tarjeta propia: vive en el
+          bloque cuyo resultado re-ejecuta (AD8-E15). El aviso de job
+          descartado, que antes colgaba de esa barra, se queda aquí. */}
+      <AulasStaleJobAviso aviso={model.staleJobAviso} />
 
       <ReserveDepthHeader
         model={model}
@@ -234,6 +232,15 @@ export function AulasReemplazosTab({
             <div className="cmv2-classroom-lab-main">
               <div className="cmv2-subhead">
                 <strong>Efecto esperado de los reemplazos</strong>
+                {replacementReady && <MetodoRecomendadoLinea model={model} />}
+                {replacementReady && (
+                  <ProbarReemplazosBoton
+                    config={config}
+                    busy={busy}
+                    selectionReady={selectionReady}
+                    onSimulateReplacements={onSimulateReplacements}
+                  />
+                )}
               </div>
               <WavesTimeline model={model} />
               <div

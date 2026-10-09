@@ -30,8 +30,19 @@ function aula(faculty: string, asistentes: number, efectivas: number): Monitoreo
 }
 
 /** Lo que se pinta DENTRO de las barras, que es donde vive el número por aula. */
-function porAulaEnPantalla(html: string): string[] {
+/** Lo que dibuja la BARRA. Desde el 2026-09-09 es el % del potencial —la lista
+ *  ordena por él— y «por visita» bajó a columna: una lista ordenada por A con
+ *  barras que dibujan B se lee como rota. */
+function barraEnPantalla(html: string): string[] {
   return [...html.matchAll(/<i[^>]*>([^<]*)<\/i>/g)].map((m) => m[1]);
+}
+
+/** Las celdas numéricas de la fila, donde vive ahora «por visita». */
+function porAulaEnPantalla(html: string): string[] {
+  // Tres celdas numéricas por fila —por visita · ajustado · de los asistentes—
+  // y la primera es la que este archivo vigila.
+  return [...html.matchAll(/class="aulas-rendimiento-tasa"[^>]*>([^<]*)</g)]
+    .map((m) => m[1]).filter((_, i) => i % 3 === 0);
 }
 
 describe("qué está rindiendo más, en personas enteras", () => {
@@ -43,10 +54,12 @@ describe("qué está rindiendo más, en personas enteras", () => {
     const html = renderToStaticMarkup(
       <AulasRendimientoPorFacultad partes={partes} plan={[]} />);
 
-    // Sobre la BARRA, no sobre el html entero: la lectura de arriba también dice
-    // «28» y un `toContain` global se daba por satisfecho con ella mientras la
-    // columna seguía mostrando 28,9.
-    expect(porAulaEnPantalla(html)).toEqual(["28"]);
+    // Sobre la COLUMNA, no sobre el html entero: la lectura de arriba también
+    // dice «28» y un `toContain` global se daba por satisfecho con ella
+    // mientras la columna seguía mostrando 28,9. (La barra dibuja el potencial
+    // desde el 2026-09-09; sin elegibles en el fixture, sale «—».)
+    expect(porAulaEnPantalla(html)[0]).toEqual("28");
+    expect(barraEnPantalla(html)).toEqual(["—"]);
   });
 
   it("no deja ni un decimal en la columna por aula", () => {
@@ -73,7 +86,10 @@ describe("qué está rindiendo más, en personas enteras", () => {
     const html = renderToStaticMarkup(
       <AulasRendimientoPorFacultad partes={partes} plan={[]} />);
 
+    // Las dos primeras celdas numéricas de cada fila son «por visita»: 28 y 28.
     expect(porAulaEnPantalla(html)).toEqual(["28", "28"]);
+    // Sin elegibles las dos empatan en potencial, así que el desempate cae en
+    // «por visita» y Zoología —28,9 contra 28,1— sigue delante.
     expect(html.indexOf("Zoologia")).toBeLessThan(html.indexOf("Antropologia"));
   });
 });
@@ -85,7 +101,11 @@ describe("el pie de columnas no se repite panel tras panel", () => {
   // imprimía palabra por palabra las tres veces: 191 de las 896 palabras de
   // prosa de la pestaña, un tercio de la prosa larga.
   const filas = [aula("Derecho", 100, 40), aula("Arte", 100, 20)];
-  const columnas = "es lo que deja cada visita";
+  // El centinela cambió el 2026-08-28 con el rótulo: la columna pasó de «Por
+  // aula» a «Por visita» porque el motor ya usa «tasa del aula» para el
+  // pronóstico del diseño. Con el rótulo nuevo la frase anterior quedaba
+  // circular («Por visita es lo que deja cada visita»).
+  const columnas = "es lo que deja cada curso-horario visitado";
   const tramos = "no un corte de la";
 
   it("el primer panel sí explica las columnas", () => {

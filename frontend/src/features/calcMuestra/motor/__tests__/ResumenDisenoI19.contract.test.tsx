@@ -53,10 +53,17 @@ const p2 = {
   resultado: p2Result,
 } as CalcMuestraComponente;
 const estudio = { componentes: [p1, p2] } as CalcMuestraEstudio;
-const workspace = {
+/**
+ * El escenario que rige lo lee la tira del WORKSPACE, no del store: el store
+ * responde `e1` mientras nadie elija y esa respuesta por defecto no distingue
+ * una decisión de su ausencia (`escenarioEnVigor`, ADR 0074). El fixture lo
+ * declara donde la pantalla lo busca, así que mover `motorStoreState.scenario`
+ * sigue expresando «este escenario es el que rige».
+ */
+const workspaceDe = (escenario: "e1" | "e2") => ({
   aulas_config: { criterios_seleccion: { byVariable: {} } },
-  motor_recorrido: { decisiones: { escenario: "e1" } },
-} as unknown as CalcMuestraWorkspace;
+  motor_recorrido: { decisiones: { escenario } },
+}) as unknown as CalcMuestraWorkspace;
 const aulasState = {
   frame: {
     frame_hash: CURRENT_FRAME_HASH,
@@ -72,7 +79,12 @@ const motor = {
 
 function renderSummary() {
   return renderToStaticMarkup(
-    <ResumenDiseno motor={motor} estudio={estudio} workspace={workspace} aulasState={aulasState} />,
+    <ResumenDiseno
+      motor={motor}
+      estudio={estudio}
+      workspace={workspaceDe(motorStoreState.scenario)}
+      aulasState={aulasState}
+    />,
   );
 }
 

@@ -56,6 +56,23 @@ export type RendimientoDeFacultad = {
   deLosAsistentes: number | null;
   /** Efectivas sobre los elegibles del curso, 0-100. `null` si no se conocen. */
   delPotencial: number | null;
+  /**
+   * El potencial ENCOGIDO hacia el del estudio, con el mismo prior declarado
+   * que `porAulaAjustado`: `PESO_DEL_PRIOR` cursos-horario imaginarios al
+   * rendimiento medio.
+   *
+   * Por qué hacía falta aunque el potencial ya sea una fracción: normaliza el
+   * tamaño del AULA, no el número de aulas observadas. Medido en pantalla el
+   * 2026-09-10, el ranking lo encabezaban PSICOLOGÍA con 100,0 % de UN
+   * curso-horario, ARTE Y DISEÑO con 92,1 % de dos y LETRAS Y CIENCIAS HUMANAS
+   * con 90,0 % de uno — que es literalmente lo que Gonzalo pidió evitar: «¿cuál
+   * está rindiendo más? Es relativo, porque hay facultades más grandes y otras
+   * más pequeñas». Una facultad con un aula perfecta no rinde más que una con
+   * treinta y nueve al 60 %; tiene menos evidencia, no más mérito.
+   *
+   * `null` cuando no hay elegibles: sin denominador no hay nada que encoger.
+   */
+  delPotencialAjustado: number | null;
 };
 
 function texto(valor: unknown): string {
@@ -65,6 +82,19 @@ function texto(valor: unknown): string {
 function numero(valor: unknown): number {
   const n = Number(valor);
   return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Un número, o `null` cuando NO HAY dato. La diferencia importa aquí.
+ *
+ * `numero()` devuelve 0 tanto para un cero medido como para una celda vacía, y
+ * en un ranking de rendimiento esas dos cosas son opuestas: una dice que el aula
+ * rindió cero, la otra que nadie apuntó cuánto rindió.
+ */
+function numeroONulo(valor: unknown): number | null {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
 }
 
 /**
@@ -85,6 +115,50 @@ function numero(valor: unknown): number {
  * día para otro, que es peor que un prior fijo y dicho.
  */
 export const PESO_DEL_PRIOR = 5;
+
+/**
+ * Cuántos cursos-horario visitados hacen falta para que una facultad ENTRE en
+ * la comparación de rendimiento.
+ *
+ * Tres, y es una elección DECLARADA como el prior de arriba. Sale de medir el
+ * operativo el 2026-09-10, con 44 cursos-horario repartidos en once facultades:
+ * con uno o dos visitados, un aula afortunada mueve el porcentaje treinta o
+ * cuarenta puntos, y la lista la encabezaban PSICOLOGÍA con el 100 % de UNO y
+ * LETRAS Y CIENCIAS HUMANAS con el 90 % de otro.
+ *
+ * **Por qué un corte y no sólo el encogimiento.** Se probó encoger hacia la
+ * media —`delPotencialAjustado`, que se queda— y en pantalla las seis primeras
+ * barras salieron a 69,0 · 66,5 · 65,1 · 64,8 · 63,8 · 62,7 %: seis puntos de
+ * diferencia en toda la cabeza de la lista y seis barras del mismo largo. Con
+ * casi todas las facultades por debajo del prior, el encogimiento las aplasta
+ * contra la media y el ranking deja de rankear. El corte dice la verdad que el
+ * encogimiento disimulaba: **con dos visitas todavía no se puede comparar**.
+ */
+export const MINIMO_PARA_COMPARAR = 3;
+
+/**
+ * Los cajones que NO son un tramo de la lente: ni un nivel de rendimiento ni una
+ * opción que el equipo pueda elegir al agendar.
+ *
+ * Dos clases, y las dos van fuera de la comparación:
+ *
+ * - **Falta el dato con el que agrupa la lente**: «Sin fecha», «Sin hora», «Sin
+ *   aplicador», «Sin facultad». Son partes incompletos. Un «Sin aplicador» con
+ *   cinco partes es un agujero de registro, no alguien que rinde.
+ * - **El dato existe y no cae en ningún tramo**: «Fuera de franja». Encabezaba
+ *   la lente de horas el 2026-09-10 con el 70,6 % de 8 cursos-horario, en un
+ *   panel que se subtitula «a qué hora conviene agendar» — y fuera de franja no
+ *   es una hora a la que se pueda agendar. Encima, ocho de esos nueve partes son
+ *   horas de tarde escritas en formato de 12 horas (`horaDeDoceHoras.ts`), o sea
+ *   que el tramo ni siquiera es real.
+ *
+ * Vive exportado porque la pantalla también lo necesita: la frase de cabecera
+ * dice «del X % (A) al Y % (B)» y sin este filtro nombraba a «Sin hora».
+ */
+export const esCajonSinTramo = (nombre: string) =>
+  nombre === "Sin fecha" || nombre === "Sin hora"
+  || nombre === "Sin aplicador" || nombre === "Sin facultad"
+  || nombre === "Fuera de franja";
 
 export const FRANJAS_DE_APLICACION = [
   { clave: "manana", etiqueta: "7:00 – 9:00", hasta: 9 * 60 },
@@ -145,6 +219,28 @@ export function diaDeSemanaDeAplicacion(valor: unknown): string {
  *   de esfuerzo —facultad, aplicador y franja— porque lo único que cambia es la
  *   clave: duplicarla habría dado tres sitios donde arreglar el mismo redondeo.
  */
+/**
+ * Cuántos partes se quedan fuera del ranking por no traer su cifra de efectivas.
+ *
+ * El ranking los descarta —un `effective_surveys` ausente no es un cero, y
+ * publicarlo como tal ponía «0 efectivas · 0.0 %» con el nombre de una persona
+ * al lado— pero descartarlos EN SILENCIO cambia el denominador sin avisar: sobre
+ * HSVG26ULT2 el 2026-09-08 son 2 de 17, así que la cabecera diría «15
+ * cursos-horario visitados» donde el resto del perfil cuenta 17 partes.
+ *
+ * Mismo criterio que el descarte, en la misma unidad de compilación, para que no
+ * puedan divergir.
+ */
+export function partesSinCifraDeEfectivas(partes: ReadonlyArray<MonitoreoRow>): number {
+  return partes.filter((fila) => {
+    const f = fila as Record<string, unknown>;
+    if (numeroONulo(f.effective_surveys) !== null) return false;
+    // El parte ENTERO vacío no cuenta: ése nunca estuvo en el ranking, y decir
+    // que «falta su cifra» sugeriría que alguien fue y no la apuntó.
+    return numero(f.observed_students) > 0;
+  }).length;
+}
+
 export function rendimientoPorFacultad(
   partes: ReadonlyArray<MonitoreoRow>,
   plan: ReadonlyArray<MonitoreoRow> = [],
@@ -167,17 +263,33 @@ export function rendimientoPorFacultad(
       : clave === "dia_semana"
         ? diaDeSemanaDeAplicacion(fila.applied_at ?? fila.applied_date)
         : texto(fila[clave]) || (clave === "applied_by" ? "Sin aplicador" : "Sin facultad");
-    const efectivas = numero(fila.effective_surveys);
+    const efectivasMedidas = numeroONulo(fila.effective_surveys);
+    const efectivas = efectivasMedidas ?? 0;
     const asistentes = numero(fila.observed_students);
     // Un parte sin efectivas NI asistentes no es un aula que rindió cero: es un
     // parte vacío. Contarlo hundiría la tasa de su facultad con un aula que
     // nadie visitó todavía.
     if (!efectivas && !asistentes) continue;
+    // **Y un parte CON asistentes pero SIN efectivas tampoco rindió cero.**
+    //
+    // El guard de arriba sólo caza el parte entero vacío. Medido el 2026-09-08:
+    // CH 7 viene con `application_status: "APLICADA"`, 29 asistentes y la celda
+    // de efectivas VACÍA —«NA»—, mientras la Base de control le cuenta 27
+    // encuestas por sexo. El aula se aplicó; lo que falta es que alguien
+    // escribiera la cifra.
+    //
+    // Pasaba el filtro por sus asistentes, `numero()` convertía el hueco en 0 y
+    // el ranking publicaba «Aguilar Cuya, Renzo Mariano · 1 curso-horario · 0
+    // efectivas · 0.0 %» — un cero inventado, con el nombre de una persona al
+    // lado. La ausencia se declara, no se disfraza de dato, y menos de un dato
+    // que juzga a alguien.
+    if (efectivasMedidas === null) continue;
     let f = acumulado.get(facultad);
     if (!f) {
       f = {
         facultad, aulas: 0, efectivas: 0, asistentes: 0, elegibles: 0,
         porAula: null, porAulaAjustado: null, deLosAsistentes: null, delPotencial: null,
+        delPotencialAjustado: null,
       };
       acumulado.set(facultad, f);
     }
@@ -193,6 +305,10 @@ export function rendimientoPorFacultad(
   const totalEfectivas = [...acumulado.values()].reduce((n, f) => n + f.efectivas, 0);
   const totalAulas = [...acumulado.values()].reduce((n, f) => n + f.aulas, 0);
   const media = totalAulas ? totalEfectivas / totalAulas : 0;
+  // La media del POTENCIAL, ponderada por elegibles y no promediando tasas: es
+  // hacia donde encoge `delPotencialAjustado`.
+  const totalElegibles = [...acumulado.values()].reduce((n, f) => n + f.elegibles, 0);
+  const mediaPotencial = totalElegibles ? (100 * totalEfectivas) / totalElegibles : 0;
 
   const salida = [...acumulado.values()].map((f) => ({
     ...f,
@@ -202,12 +318,53 @@ export function rendimientoPorFacultad(
       : null,
     deLosAsistentes: f.asistentes ? Math.round((1000 * f.efectivas) / f.asistentes) / 10 : null,
     delPotencial: f.elegibles ? Math.round((1000 * f.efectivas) / f.elegibles) / 10 : null,
+    // El encogimiento se pondera en CURSOS-HORARIO y no en elegibles, que es lo
+    // que dice el prior: «cinco cursos-horario imaginarios al rendimiento
+    // medio». Ponderarlo en elegibles haría que una facultad de un aula pequeña
+    // pesara un 8 % de lo suyo en vez del 17 % que le toca por tener un aula.
+    delPotencialAjustado: f.elegibles
+      ? Math.round(
+          (10 * (f.aulas * ((100 * f.efectivas) / f.elegibles) + PESO_DEL_PRIOR * mediaPotencial))
+            / (f.aulas + PESO_DEL_PRIOR),
+        ) / 10
+      : null,
   }));
 
-  // Por lo que MÁS deja cada visita, que es la pregunta «qué nos está rindiendo
-  // más». NO por porcentaje: ordenar por «% de los asistentes» pondría primero
-  // a un aula diminuta donde respondieron los cuatro que había.
-  return salida.sort((x, y) => (y.porAula ?? -1) - (x.porAula ?? -1)
+  // **Por el % DEL POTENCIAL, que es la única medida sin tamaño.**
+  //
+  // Ordenaba por lo que deja cada visita, y eso ordenaba por TAMAÑO DE AULA
+  // disfrazado de rendimiento. Medido sobre el operativo el 2026-09-09, con 11
+  // facultades: los dos órdenes no comparten NI UNA posición. Derecho encabeza
+  // por visita —29,3 encuestas por curso-horario— y es la 4.ª por potencial;
+  // Psicología recoge el 100 % de sus elegibles y aparecía 7.ª; Letras y
+  // Ciencias Humanas recoge el 90 % y salía LA ÚLTIMA, porque sus aulas son
+  // pequeñas. Quien leía la lista concluía lo contrario de lo que pasa.
+  //
+  // Gonzalo lo dijo antes de que se midiera: «¿cuál está rindiendo más? Es
+  // relativo, porque hay facultades más grandes y otras más pequeñas, y ahorita
+  // simplemente estás poniendo todas en un mismo saco».
+  //
+  // «Por visita» se queda como COLUMNA porque contesta otra pregunta —cuántas
+  // encuestas trae un viaje, que es logística— pero ya no manda en el orden.
+  // Sin elegibles no hay potencial que calcular: esas filas caen al final, con
+  // el desempate por visita, en vez de encabezar por un `null`.
+  // **Los cajones de «no se sabe» van al final, pase lo que pase con su cifra.**
+  // «Sin fecha», «Sin hora», «Sin aplicador» y «Sin facultad» no son un nivel de
+  // rendimiento: son partes a los que les falta un dato. Ordenados con los
+  // demás, un «Sin fecha» con un solo parte a cero se planta como una barra en
+  // cero al lado de los días reales y se lee como que ese día no se rindió.
+  // Medido el 2026-09-09: en «Día de la semana» había exactamente eso, un
+  // cajón con un parte de 45.
+  // Tres cajones en este orden: las comparables, las que aún tienen poca
+  // evidencia y los «no se sabe». Dentro de cada uno manda el potencial CRUDO,
+  // que es lo observado y lo que la barra dibuja.
+  const orden = (f: RendimientoDeFacultad) => (esCajonSinTramo(f.facultad)
+    ? 2
+    : f.aulas >= MINIMO_PARA_COMPARAR ? 0 : 1);
+  return salida.sort((x, y) => orden(x) - orden(y)
+    || (y.delPotencial ?? -1) - (x.delPotencial ?? -1)
+    || (y.delPotencialAjustado ?? -1) - (x.delPotencialAjustado ?? -1)
+    || (y.porAula ?? -1) - (x.porAula ?? -1)
     || y.efectivas - x.efectivas
     || x.facultad.localeCompare(y.facultad, "es"));
 }

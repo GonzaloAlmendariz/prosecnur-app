@@ -1,0 +1,206 @@
+/* «Qué pasó, y por dónde se sale» — los tres caminos del libro.
+
+   Tres tarjetas hermanas: misma altura, mismos bordes, mismo sitio para cada
+   cosa. La letra es el ancla visual y la única tinta fuerte de la tarjeta; el
+   resto se lee en gris hasta que hay una cifra que decir. */
+
+.aulas-cam { display: grid; gap: 11px; min-width: 0; }
+
+.aulas-cam-intro {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.55;
+  max-width: 76ch;
+}
+.aulas-cam-intro strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+
+.aulas-cam-tres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
+  gap: 10px;
+  /* **Las tres miden igual.** Son tarjetas hermanas de una misma lectura y con
+     `start` cada una se quedaba con el alto de su contenido: la de A —que trae
+     su aporte y su botón— sacaba una cabeza a las otras dos y las tres dejaban
+     de leerse como un juego. El pie se ancla abajo, así que «se decide en la
+     app» cae a la misma altura en las tres. */
+  align-items: stretch;
+}
+
+.aulas-cam-uno {
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 9px;
+  padding: 12px 13px 11px;
+  border: 1px solid var(--pulso-border);
+  border-top: 2px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+/* El filo de arriba distingue los tres sin teñir la tarjeta entera: A sale del
+   titular caído, B y C entran por otra puerta. */
+.aulas-cam-uno.es-a { border-top-color: var(--pulso-danger-fg); }
+.aulas-cam-uno.es-b { border-top-color: var(--pulso-warn-fg); }
+.aulas-cam-uno.es-c { border-top-color: var(--module-accent, var(--pulso-primary)); }
+
+.aulas-cam-alto {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+.aulas-cam-letra {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pulso-surface);
+}
+.aulas-cam-uno.es-a .aulas-cam-letra { background: var(--pulso-danger-fg); }
+.aulas-cam-uno.es-b .aulas-cam-letra { background: var(--pulso-warn-fg); }
+.aulas-cam-uno.es-c .aulas-cam-letra { background: var(--module-accent, var(--pulso-primary)); }
+
+.aulas-cam-alto h4 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.aulas-cam-cuantos {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  text-align: right;
+}
+.aulas-cam-cuantos b {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-cam-cuantos span { font-size: 10.5px; color: var(--pulso-text-faint); }
+
+/* «Circunstancia» y no «cuándo usarlo»: lo que define el camino es un hecho
+   que ya pasó, no una instrucción. */
+.aulas-cam-cuando { margin: 0; display: grid; gap: 2px; }
+.aulas-cam-cuando dt {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.aulas-cam-cuando dd {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+
+.aulas-cam-aporte {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.aulas-cam-aporte b {
+  /* **La cifra no se parte.** Con la frase larga al lado —«respuestas repuestas
+     · 8 mujeres y 2 hombres»— el flex encogía el `<b>` hasta dejarlo sin ancho
+     y «10» salía como «1» y «0» en dos líneas. Visto en pantalla. */
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-cam-aporte span { min-width: 0; }
+.aulas-cam-aporte span { color: var(--pulso-text-faint); }
+/* Lo que suma va en verde y con signo; lo que repone, en tinta normal: el plan
+   ya contaba con esas respuestas y pintarlas de ganancia sería contarlas dos
+   veces. */
+.aulas-cam-aporte.es-suma {
+  background: color-mix(in srgb, var(--pulso-success-fg) 7%, transparent);
+}
+.aulas-cam-aporte.es-suma b { color: var(--pulso-success-fg); }
+.aulas-cam-aporte.es-repone b { color: var(--pulso-text-soft); }
+.aulas-cam-aporte.es-vacio { background: transparent; padding: 0 2px; }
+
+.aulas-cam-pie {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* Dónde se toma la decisión, que no es un detalle: A vive en el Sheets de
+   agendación y sólo B y C se deciden aquí. */
+.aulas-cam-donde {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.aulas-cam-donde.es-sheets {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+}
+.aulas-cam-donde.es-app {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.aulas-cam-ver {
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.aulas-cam-ver:hover { background: var(--pulso-surface-2); }
+
+.aulas-cam-lista {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pulso-border);
+  padding-top: 8px;
+}
+.aulas-cam-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px 78px;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.aulas-cam-quien { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.aulas-cam-quien b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.aulas-cam-quien em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aulas-cam-rindio, .aulas-cam-trajo {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+.aulas-cam-rindio.es-ok { color: var(--pulso-success-fg); }
+.aulas-cam-rindio.es-justo { color: var(--pulso-warn-fg); }
+.aulas-cam-rindio.es-bajo { color: var(--pulso-danger-fg); }

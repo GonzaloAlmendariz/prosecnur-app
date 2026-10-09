@@ -29,7 +29,13 @@ function declaraCapacidad(fuente: string): boolean {
  * —la forma canónica del estado vacío en este perfil— sin declarar.
  */
 function vaciosSinDeclarar(fuente: string): number {
-  const re = /return \(\s*(?:\{?\s*\/\*[\s\S]*?\*\/\s*\}?\s*)*<p className="mon-profile-muted"(?![^>]*data-qa-geometry-member)/g;
+  // **La clase puede llevar sufijo.** El patrón exigía `className="mon-profile-muted"`
+  // EXACTO y `AulasTablasDeAvance` escribe `"mon-profile-muted aulas-tav-vacio"`,
+  // así que sus TRES ramas vacías —error, cargando y sin tablas— se le
+  // escapaban; el gate visual las cazó como `capacity-drift` en «Así se verá el
+  // libro», que es el síntoma que no se parece a su causa. Un guard que exige la
+  // clase a secas deja fuera a quien añade una suya, que es lo normal.
+  const re = /return \(?\s*(?:\{?\s*\/\*[\s\S]*?\*\/\s*\}?\s*)*<p className="mon-profile-muted[^"]*"(?![^>]*data-qa-geometry-member)/g;
   return (fuente.match(re) ?? []).length;
 }
 

@@ -17,8 +17,63 @@ import path from "node:path";
 
 const RAIZ = path.resolve(__dirname);
 
-/** Los seis medidos el 2026-08-19, cada uno marcado en su archivo. */
+/**
+ * Los seis medidos el 2026-08-19, más el de aulas que quedó suelto el
+ * 2026-08-29 y la proyección que se desmontó el 2026-09-08. Cada uno marcado en
+ * su archivo.
+ */
 const SIN_MONTAR_CONOCIDOS = [
+  // Salió de la pestaña «Metas» el 2026-09-08 con el resto de la predicción.
+  // Gonzalo: «lo nada que tenga que ver con predicción porque eso le pertenece a
+  // otra pestaña» — es una MUDANZA pendiente, no un borrado, y por eso el
+  // componente y su view-model (`avanceProyectado.ts`) siguen en el árbol. Si la
+  // pestaña de predicción no llega a existir, esta entrada es la que recuerda
+  // que hay que decidir entre montarlo allí o retirarlo.
+  // Sustituido el 2026-09-08 por las cinco tablas que sirve el motor
+  // (`AulasTablasDeAvance`). Gonzalo, sobre la tabla que enseñaba: «está súper
+  // pobre y no refleja el avance real». Se queda en el árbol porque su
+  // view-model —`avanceParaCliente.ts`, con la regla de no netear los
+  // faltantes— sigue documentando decisiones que las tablas nuevas heredan; si
+  // dentro de unas semanas nadie lo ha reclamado, se retira con su test.
+  "AulasAvanceParaCliente.tsx::AulasAvanceParaCliente",
+  // Desconectado de «Metas» el 2026-09-09 al montar el revamp, y NO borrado:
+  // este panel («Qué metas van a cerrar y cuáles no») y el bloque nuevo «Metas
+  // y aulas» discrepan en 28 de las 30 celdas facultad × sexo —DERECHO/F 152,9
+  // contra 300,9— porque cuentan universos distintos: el nuevo proyecta sólo lo
+  // AGENDADO y éste cuenta todos los cursos-horario en juego, y hay 33
+  // titulares planificados sin fecha. Dos «proyectado» por celda con el doble
+  // de diferencia en la misma pantalla no se puede quedar.
+  //
+  // Lo que este panel dice y el nuevo no es la CALIBRACIÓN —«el campo está
+  // rindiendo un X % menos de lo previsto»—, y esa pieza merece volver como
+  // lectura, no como un segundo panel de proyección. Esta entrada es la que
+  // recuerda que hay que decidirlo con Gonzalo, no dejarlo pudrirse.
+  "AulasSexoPorFacultadChart.tsx::AulasSexoPorFacultadChart",
+  // Retirada de «Metas» el 2026-09-08, con decisión de Gonzalo. Su función era
+  // dimensionar la magnitud de cada meta; hoy esa magnitud se lee en el carril
+  // de «Cumplimiento de la cuota» —proporcional a la cuota de cada facultad— y
+  // en «Qué metas van a cerrar y cuáles no», que publica las cifras absolutas
+  // por facultad y sexo. Con cinco paneles en la pestaña, era tinta repetida.
+  // Era «Dónde falta más» en Resumen, retirado el 2026-09-08: medía cada
+  // facultad contra LA CUOTA DEL ESTUDIO, que es el denominador y la pregunta de
+  // Metas, no el avance del operativo. Allá ya se contesta dos veces con más
+  // detalle, y por un camino distinto del suyo (`avance_cuota` en vez de
+  // `avance_por_facultad`), que es la forma más barata de que un día discrepen.
+  "AulasPerfilPorFacultad.tsx::AulasPerfilPorFacultad",
+  "AulasPiramideCuota.tsx::AulasPiramideCuota",
+  // Retirado de «Rendimiento» el mismo día, y su propio comentario ya lo pedía:
+  // «son la misma pregunta a dos escalas y conviene decidir si sobra uno».
+  // Contaba efectivas del PARTE con el mismo nombre que «Ritmo de la
+  // recolección» cuenta válidas de PLATAFORMA. Manda la plataforma: es el
+  // numerador de la banda de KPIs y el de la meta.
+  "AulasRitmoPorFacultad.tsx::AulasRitmoPorFacultad",
+  "AulasAvanceProyectado.tsx::AulasAvanceProyectado",
+  "AulasBrechaEstratoChart.tsx::AulasBrechaEstratoChart",
+  // Retirado de Resumen el 2026-09-10 a pedido de Gonzalo: «Cursos-horario
+  // vencidos sin aplicar se va porque no es necesario». Lo que contaba —fecha
+  // pasada y sin parte— lo dice el reparto por rol del panel de agendación, que
+  // separa agendadas de aplicadas. Se desmonta, no se borra.
+  "AulasFrenteDelOperativo.tsx::AulasFrenteDelOperativo",
   "TelefonicoMonitoreoPage.tsx::TelefonicoPendingOperationalTable",
   "TerritorialFieldOccurrencesWorkbench.tsx::OccurrenceAlertLine",
   "TerritorialModelWorkbench.tsx::RouteSheetStrip",
@@ -67,7 +122,7 @@ describe("ningún componente nuevo queda sin montar", () => {
     expect(fuentes.size).toBeGreaterThan(60);
   });
 
-  it("sólo están los seis conocidos", () => {
+  it("sólo están los conocidos", () => {
     expect(sinMontar()).toEqual([...SIN_MONTAR_CONOCIDOS].sort());
   });
 

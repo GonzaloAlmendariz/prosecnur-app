@@ -1,0 +1,188 @@
+/*
+ * «Hombres y mujeres por facultad» — geometría dictada por Gonzalo (2026-09-08).
+ *
+ * Hoja propia y no `aulasMonitoreo.css`: ese archivo está congelado a
+ * crecimiento en `agentic/manifest.json` (237 KB), y lo nuevo va en archivo
+ * nuevo que el grande no necesita conocer.
+ *
+ * Cuatro exigencias literales del dictado, y dónde se cumple cada una:
+ *   · «dos filas bien alineadas»          -> grid de tres columnas fijas, misma
+ *                                            rejilla en los dos carriles.
+ *   · «barra rectangular más ancha»       -> --aulas-bpf-alto, 14px, y radio 3px:
+ *                                            rectángulo, no píldora.
+ *   · «con el mismo largo»                -> la pista ocupa 1fr; todos los
+ *                                            carriles miden igual pase lo que pase.
+ *   · «no está usando todo el ancho»      -> width:100% y sin max-width.
+ */
+
+.aulas-bpf {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* El rótulo del sexo y el bloque de cifras son columnas FIJAS: si respiraran
+     con el contenido, las barras de cada fila empezarían y acabarían en
+     abscisas distintas y dejarían de ser comparables de un vistazo. */
+  --aulas-bpf-col-sexo: 74px;
+  --aulas-bpf-col-cifras: 232px;
+  --aulas-bpf-alto: 14px;
+}
+
+.aulas-bpf-vacio { margin: 8px 0 0; }
+
+.aulas-bpf-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-bpf-cabecera-meta strong { color: var(--pulso-text); }
+.aulas-bpf-cabecera-sexo { margin-left: 10px; }
+.aulas-bpf-cabecera-sexo::before { content: "· "; color: var(--pulso-text-faint); }
+
+.aulas-bpf-leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-faint);
+}
+
+.aulas-bpf-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 8px;
+  border-radius: 2px;
+  border: 1px solid var(--pulso-border);
+}
+
+.aulas-bpf-swatch[data-tramo="logrado"] { background: var(--pulso-success-fg); border-color: var(--pulso-success-border); }
+.aulas-bpf-swatch[data-tramo="falta"] { background: var(--pulso-surface-2); }
+
+.aulas-bpf-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aulas-bpf-fila {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.aulas-bpf-fila[data-enfocada="si"] {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.aulas-bpf-fila-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.aulas-bpf-nombre {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pulso-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.aulas-bpf-nombre:hover { text-decoration: underline; }
+
+.aulas-bpf-chip {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+}
+
+.aulas-bpf-chip[data-estado="cumplida"] {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.aulas-bpf-carriles {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.aulas-bpf-carril {
+  display: grid;
+  grid-template-columns: var(--aulas-bpf-col-sexo) 1fr var(--aulas-bpf-col-cifras);
+  align-items: center;
+  gap: 12px;
+}
+
+.aulas-bpf-carril-sexo {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+/* La PISTA: el 100 % de la meta de ese carril. Borde definido —el dictado lo
+   pide— para que el final de la barra se vea aunque el avance sea del 2 %. */
+.aulas-bpf-barra {
+  position: relative;
+  height: var(--aulas-bpf-alto);
+  border-radius: 3px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  overflow: hidden;
+}
+
+.aulas-bpf-barra-logrado {
+  display: block;
+  height: 100%;
+  background: var(--pulso-success-fg);
+  /* Sin radio a la derecha: el tramo verde es un corte dentro de la pista, y
+     una punta redondeada lo haría parecer una píldora acabada. */
+  border-radius: 2px 0 0 2px;
+  transition: width 180ms ease-out;
+}
+
+.aulas-bpf-barra-logrado[data-lleno="si"] { border-radius: 2px; }
+
+/* Celeste al pasarse de la meta: la barra ya está llena y lo que dice es que
+   sobra trabajo en ese grupo, no que algo vaya mal. */
+.aulas-bpf-barra-logrado[data-pasada="si"] { background: var(--pulso-info-fg); }
+
+.aulas-bpf-cifras {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.aulas-bpf-cifras strong { color: var(--pulso-text); font-size: 13px; }
+.aulas-bpf-de { color: var(--pulso-text-faint); }
+.aulas-bpf-pct { margin-left: 2px; color: var(--pulso-text); font-weight: 600; }
+.aulas-bpf-resto { color: var(--pulso-text-faint); }
+.aulas-bpf-resto[data-signo="sobra"] { color: var(--pulso-success-fg); }
+
+/* Por debajo de 1280 el bloque de cifras se estrecha antes que la barra: la
+   barra es el dato y las cifras son su lectura. */
+@media (max-width: 1280px) {
+  .aulas-bpf { --aulas-bpf-col-cifras: 190px; --aulas-bpf-col-sexo: 64px; }
+  .aulas-bpf-de { display: none; }
+}

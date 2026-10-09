@@ -36,7 +36,15 @@ describe("la lista de anticipación alinea sus columnas", () => {
     // `minmax(0, 1fr)` en el nombre sí es común a todas las filas: reparte el
     // sobrante, no mide el texto. Lo que rompe es `auto`, `min-content`,
     // `max-content` y `fit-content`.
-    const culpables = pistas.filter((p) => /^(auto|min-content|max-content|fit-content)/.test(p));
+    // El MAXIMO es lo que manda, no el prefijo: en `minmax(120px, auto)` la
+    // pista se dimensiona con el contenido igual que en un `auto` suelto, y
+    // mirando solo el prefijo este guard daba verde sobre esa forma. Se cazo
+    // con un mutante el 2026-08-31; el detector general vive en
+    // `rejillasAlineadas.contract.test.ts` y usa esta misma regla.
+    const culpables = pistas.filter((p) => {
+      const mm = p.trim().match(/^minmax\(([^,]+),(.+)\)$/);
+      return /^(auto|min-content|max-content|fit-content)\b/.test((mm ? mm[2] : p).trim());
+    });
     expect(culpables).toEqual([]);
   });
 

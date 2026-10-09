@@ -47,6 +47,7 @@ import {
 import type { MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import { cruceDeDistritos } from "./cruceDeDistritos";
 import { describirFilasDeFase } from "./filasDeFase";
+import { useFormatoDelPadron } from "./formatoDelPadron";
 import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
@@ -318,7 +319,7 @@ function TerritorialSourceConsoleImpl({
   const [umpReviewSearch, setUmpReviewSearch] = useState("");
   const [umpQueueLens, setUmpQueueLens] = useState<TerritorialSourceUmpQueueLens>("manual");
   const [rosterFile, setRosterFile] = useState<File | null>(null);
-  const [rosterFormat, setRosterFormat] = useState<"PXXX" | "DNI">("PXXX");
+  const [rosterFormat, setRosterFormat] = useFormatoDelPadron(config?.territorial.enumerator_roster);
   const [rosterSearch, setRosterSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // Espera de jobs amarrada al desmontaje: al salir del módulo el poll se corta.
