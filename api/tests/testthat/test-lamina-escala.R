@@ -108,20 +108,36 @@ test_that("en la ruta real el folio es la posición de la lámina en el mazo", {
   expect_identical(folio, as.character(length(doc)))
 })
 
-test_that("Bottom Two Box y fila Total quedan en la ruta anterior; los actores ya son nativos", {
+test_that("actores, fila Total y Bottom Two Box ya son nativos; la ruta anterior se pide con motor_nativo = FALSE", {
   e <- .espec_bateria(3)
   p <- ggplot2::ggplot()
-  attr(p, "pulso_espec") <- e
-  expect_true(.lam_compositor_aplica(p))
-  e2 <- e; e2$box2 <- list(unidades = c(1, 2, 3)); attr(p, "pulso_espec") <- e2
-  expect_false(.lam_compositor_aplica(p))
-  e3 <- e; e3$filas$es_total[1] <- TRUE; attr(p, "pulso_espec") <- e3
-  expect_false(.lam_compositor_aplica(p))
-  # N2: los bloques con actores ya son nativos (lámina 217)
-  e4 <- e; e4$filas$grupo_id <- c("P1", "P1", "P2"); attr(p, "pulso_espec") <- e4
-  expect_true(.lam_compositor_aplica(p))
+  for (mod in list(function(x) x, function(x) { x$box2 <- list(unidades = c(1, 2, 3)); x },
+                   function(x) { x$filas$es_total[1] <- TRUE; x }, function(x) { x$filas$grupo_id <- c("P1", "P1", "P2"); x })) {
+    attr(p, "pulso_espec") <- mod(e)
+    expect_true(.lam_compositor_aplica(p))
+  }
   attr(p, "pulso_espec") <- e
   expect_false(.lam_compositor_aplica(p, list(meta = list(motor_nativo = FALSE))))
+})
+
+test_that("con fila Total y Bottom Two Box las filas van bajo la pregunta, la Total primera y con su filete (lámina 77)", {
+  d <- data.frame(item = c("doc", "est"), actor = c("Docentes", "Estudiantes"), N = c(52, 172),
+                  t1 = c(0, 6), t2 = c(2, 18), t3 = c(29, 34), t4 = c(54, 19), t5 = c(15, 23))
+  d[paste0("t", 1:5)] <- d[paste0("t", 1:5)] / 100
+  e <- preparar_escala(d, "item", "N", paste0("t", 1:5), .niv_esc, var_etiqueta_categoria = "actor",
+                       colores_grupos = as.list(setNames(.std_paleta("likert"), .niv_esc)),
+                       barra_extra_preset = "top2box", top2box_labels = .niv_esc[3:4],
+                       columna_bottom2box = TRUE, bottom2box_labels = .niv_esc[1:2], fila_total = TRUE)
+  e$pregunta <- "La Unidad cuenta con servicios de tutoría académica"
+  o <- .lam_laminas_escala(.doc_vacio(), e, "Servicios de tutoría", ante = "Escalas", base = "Base: 52 docentes y 172 estudiantes", folio = 77)
+  expect_identical(o$partes, 1L)
+  actores <- .formas(o$doc, "actor")
+  expect_identical(actores$texto[order(actores$y)], c("Total", "Docentes", "Estudiantes"))
+  expect_equal(nrow(.formas(o$doc, "filete:total")), 1L)
+  expect_identical(.formas(o$doc, "box2:rotulo")$texto, "Bottom Two Box")
+  b2 <- .formas(o$doc, "box2:cifra"); b2 <- b2$texto[order(b2$y)]
+  expect_identical(b2, unname(e$box2$cifras[e$orden$aplicado]))
+  expect_identical(.formas(o$doc, "pregunta")$texto, "La Unidad cuenta con servicios de tutoría académica")
 })
 
 test_that("el graficador deja el orden declarado (un cruce no se reordena) y la batería se ordena aparte", {

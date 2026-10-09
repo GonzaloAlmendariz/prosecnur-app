@@ -4,7 +4,7 @@
 #
 # Uso (desde la raíz del repo):
 #   OUT=/ruta/escala.pptx Rscript docs/qa/motor-ppt-2026-10-06/herramientas/pares_escala.R
-#   printf "recetario,motor,nombre\n216,1,e216\n221,2,e221\n222,3,e222\n217,4,e217\n" > mapa.csv
+#   printf "recetario,motor,nombre\n216,1,e216\n221,2,e221\n222,3,e222\n217,4,e217\n77,5,e077\n" > mapa.csv
 #   Rscript scripts/qa_pares_recetario.R /ruta/escala.pptx mapa.csv /ruta/pares
 Sys.setlocale("LC_ALL", "en_US.UTF-8")
 suppressMessages(pkgload::load_all("api", quiet = TRUE))
@@ -43,5 +43,17 @@ e217 <- preparar_escala(d217, "item", "N", paste0("t", 1:5), niv, var_etiqueta_c
                         barra_extra_preset = "top2box", top2box_labels = niv[3:4])
 o <- .lam_laminas_escala(o$doc, e217, "Gestión y planificación", ante = "Estructura organizacional de gobierno",
                          base = "Base: 52 docentes, 178 egresados y 15 administrativos", folio = 217)
+# 77: fila Total ponderada, actores y columnas Top Two Box y Bottom Two Box. Los datos son los del
+# recetario (propuestas_rescatables.R:167, rr_b2b): porcentajes de docentes (52) y estudiantes (172).
+d77 <- data.frame(item = c("doc", "est"), actor = c("Docentes", "Estudiantes"), N = c(52, 172),
+                  t1 = c(0, 6), t2 = c(2, 18), t3 = c(29, 34), t4 = c(54, 19), t5 = c(15, 23))
+d77[paste0("t", 1:5)] <- d77[paste0("t", 1:5)] / 100
+e077 <- preparar_escala(d77, "item", "N", paste0("t", 1:5), niv, var_etiqueta_categoria = "actor",
+                        colores_grupos = as.list(setNames(.std_paleta("likert"), niv)), barra_extra_preset = "top2box",
+                        top2box_labels = niv[3:4], columna_bottom2box = TRUE, bottom2box_labels = niv[1:2], fila_total = TRUE)
+e077$pregunta <- "La Unidad cuenta con servicios de tutoría académica"
+o <- .lam_laminas_escala(o$doc, e077, "Servicios de tutoría", ante = "Escalas: Bottom Two Box y fila Total",
+                         base = "Top Two Box: «De acuerdo» más «Totalmente de acuerdo». Bottom Two Box: las dos respuestas en desacuerdo. Base: 52 docentes y 172 estudiantes",
+                         folio = 77)
 print(o$doc, target = OUT); cat("OK partes 221:", partes_221, " láminas:", length(o$doc), "\n")
 cat("TTB 221:", paste(e221$filas$rotulo[e221$orden$aplicado], e221$box$cifras[e221$orden$aplicado], collapse = " | "), "\n")
