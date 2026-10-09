@@ -144,8 +144,9 @@ graficar_dumbbell <- function(
   # ggplot pinta el primer nivel abajo: orden ascendente deja arriba la brecha mayor con su signo (como las pesas).
   orden_ejes <- switch(
     orden,
-    brecha = res$.eje[order(res$.brecha)],
-    valor  = res$.eje[order(res$.a)],
+    # En un empate, la fila declarada antes va arriba, como `order(-dif)` estable en las pesas.
+    brecha = res$.eje[order(res$.brecha, -seq_along(res$.eje))],
+    valor  = res$.eje[order(res$.a, -seq_along(res$.eje))],
     res$.eje
   )
   if (identical(orden, "declarado")) orden_ejes <- rev(ejes)
@@ -261,7 +262,7 @@ graficar_dumbbell <- function(
     }, numeric(1)) else rep(NA_real_, nrow(r2))
     list(version = "pesas/1", tipo = "pesas", rotulos = r2$.eje, a = r2$.a, b = r2$.b,
          cifras_a = .pulso_fmt_pct_half_up(r2$.a, dec_p, escala = 1), cifras_b = .pulso_fmt_pct_half_up(r2$.b, dec_p, escala = 1),
-         diferencia = r2$.dif, textos_diferencia = paste0(ifelse(r2$.dif > 0, "+", ""), .pulso_fmt_half_up(r2$.dif, 0), " ", etiqueta_brecha),
+         diferencia = r2$.dif, textos_diferencia = paste0(ifelse(r2$.dif >= 0, "+", ""), .pulso_fmt_half_up(r2$.dif, dec_p), " ", etiqueta_brecha),
          mostrar_diferencia = isTRUE(mostrar_brecha), encabezado_diferencia = encabezado_brecha,
          grupos = niveles_grupo, colores = unname(colores[niveles_grupo]), leyenda = unname(etiquetas_leyenda),
          n_fila = unname(n_fila), eje = c(lo = lo, hi = hi, paso = paso), titulo_eje = titulo_eje)
