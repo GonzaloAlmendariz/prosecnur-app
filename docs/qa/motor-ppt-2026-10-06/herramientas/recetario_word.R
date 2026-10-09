@@ -338,6 +338,11 @@ mm <- sapply(list(c("docentes", "p30_"), c("estudiantes", "p22_"), c("egresados"
 doc <- gal(doc, "Barras de categorías", "Preguntas de categorías sin orden propio. Van de la más elegida a la menos elegida y la mayor se destaca en azul oscuro.")
 doc <- grafico(doc, "¿Qué herramientas de inteligencia artificial usa en sus funciones laborales?", g_barras(c("IA generativa (ChatGPT, Copilot, etc.)", "Automatización inteligente", "Analítica avanzada", "Machine Learning", "Visión computacional", "No precisa"),
   c(99, 13, 11, 7, 1, 1), con_n = c(172, 23, 19, 12, 2, 2), n_txt = "N = 174 egresados que usan IA. Opción múltiple: los porcentajes pueden sumar más de 100"), alto_barras(6))
+doc <- gal(doc, "Barras de 0 a 100 %, con y sin marcas", "Las barras agrupadas van de 0 a 100 % para comparar entre gráficos. Las marcas del eje son opcionales: la misma pregunta sin marcas y con ellas.")
+doc <- grafico(doc, "¿Qué herramientas de inteligencia artificial usa en sus funciones laborales? (sin marcas)", g_barras(c("Automatización inteligente", "Analítica avanzada", "Machine Learning", "Visión computacional"),
+  c(13, 11, 7, 1), n_txt = "N = 174 egresados que usan IA", escala_100 = TRUE), alto_barras(4))
+doc <- grafico(doc, "¿Qué herramientas de inteligencia artificial usa en sus funciones laborales? (con marcas)", g_barras(c("Automatización inteligente", "Analítica avanzada", "Machine Learning", "Visión computacional"),
+  c(13, 11, 7, 1), n_txt = "N = 174 egresados que usan IA", escala_100 = TRUE, marcas = TRUE), alto_barras(4) + 0.15)
 doc <- gal(doc, "Columnas en orden natural", "Escalas numéricas y años. Las columnas siguen el orden de la escala y «No sabe» va al final en gris.")
 doc <- grafico(doc, "En una escala de 1 a 10, ¿cuánto confía en el Congreso?", g_columnas(c(as.character(1:10), "NS/NR"), c(18, 9, 12, 11, 15, 10, 8, 6, 3, 2, 6), corte = 5, n_txt = "N = 1,200 entrevistados"), 2.4)
 doc <- gal(doc, "Escala apilada con Top Two Box", "Escalas de acuerdo, satisfacción o utilidad. La columna verde suma las dos respuestas positivas.")
