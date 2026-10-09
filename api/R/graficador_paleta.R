@@ -35,6 +35,9 @@
 # punta tiene que ser el polo negativo («Totalmente en desacuerdo», «Muy insatisfecho», «Nada útil»...).
 .PALETA_ESCALA_PASO <- "acuerdo|satisf|util|importante|bueno|malo|buena|mala|probable|frecuente|nunca|siempre|confia|confianza"
 .PALETA_ESCALA_NEGATIVO <- "desacuerdo|insatisf|nada|malo|mala|nunca|improbable|ningun"
+# Un paso neutro no tiene por qué nombrar el eje («Neutral / Regular») y lo especial incluye el «no usé» de los servicios.
+.PALETA_ESCALA_NEUTRO <- "neutral|regular|indiferente|^ni .* ni "
+.PALETA_ESCALA_ESPECIAL_EXTRA <- "^(no utilic|no us[eé]|no he usado|no aplica)"
 
 #' Paleta Likert del estándar para una escala ordinal sin paleta propia, o `NULL` si las categorías no son una escala
 #'
@@ -43,11 +46,17 @@
 #' @keywords internal
 .graficos_paleta_likert <- function(levels_cat) {
   norm <- function(x) tolower(trimws(.box_norm_etiqueta(x)))
-  especial <- grepl(.DIVERGENTES_ESPECIAL, levels_cat, ignore.case = TRUE)
+  especial <- grepl(.DIVERGENTES_ESPECIAL, levels_cat, ignore.case = TRUE) |
+    grepl(.PALETA_ESCALA_ESPECIAL_EXTRA, norm(levels_cat))
   pasos <- levels_cat[!especial]; k <- length(pasos)
   if (k < 3L || k > 7L) return(NULL)
   n <- norm(pasos)
-  if (!all(grepl(.PALETA_ESCALA_PASO, n))) return(NULL)
+  # Cada paso nombra el eje, salvo el neutro y, si los dos extremos lo nombran, los pasos intermedios que sólo son números
+  # («1 Muy insatisfecho», «2», «3», «4», «5 Muy satisfecho»).
+  nombra <- grepl(.PALETA_ESCALA_PASO, n) | grepl(.PALETA_ESCALA_NEUTRO, n)
+  numero <- grepl("^[0-9]+$", n)
+  extremos_ok <- grepl(.PALETA_ESCALA_PASO, n[1]) && grepl(.PALETA_ESCALA_PASO, n[k])
+  if (!all(nombra | (numero & extremos_ok)) || sum(nombra) < 2L) return(NULL)
   neg_primero <- grepl(.PALETA_ESCALA_NEGATIVO, n[1]); neg_ultimo <- grepl(.PALETA_ESCALA_NEGATIVO, n[k])
   if (neg_primero == neg_ultimo) return(NULL)
   lk <- unname(.std_paleta("likert"))
