@@ -8962,8 +8962,8 @@ reporte_ppt_plan <- function(
       )
     }
 
-    # Las disposiciones de composición comparten renderer: lo que las distingue
-    # está en la plantilla. Una rama para las seis, no seis ramas.
+    # Composición: un renderer para todas (lo que las distingue está en la plantilla). El cierre (ADR 0093) va antes.
+    if (identical(stype, "cierre")) { if (!isTRUE(solo_lista)) { cto <- .lam_cierre_contacto(slide$slots %||% list()); var_c <- .lam_cierre_variante((slide$slots %||% list())$variante %||% (slide$meta %||% list())$variante); var_c <- if (.lam_cierre_cabe(cto, var_c)) var_c else "tres_columnas"; doc <- if (.lam_plantilla_estandar(opened_template_path) && .lam_cierre_cabe(cto, var_c)) .lam_laminas_cierre(doc, var_c, cto, PPT_CONTRACT$cierre$layout, master)$doc else .add_slide_strict(doc, PPT_CONTRACT$cierre$layout) }; log_rows[[length(log_rows) + 1]] <- tibble::tibble(slide_i = i, slide_type = "cierre", element = NA_character_, var = NA_character_); next }
     if (stype %in% names(.SLIDES_COMPOSICION)) {
       res <- .composicion_render(
         doc = doc, slide = .lam_con_antetitulo(slide, ANTETITULOS[[i]]), contract = PPT_CONTRACT[[stype]],

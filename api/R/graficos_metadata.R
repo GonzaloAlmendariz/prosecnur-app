@@ -970,6 +970,38 @@
     # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
     # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
     args = .args_slide_poblacion_basico(c("titulo", "icono", "pie"))
+  ),
+
+  # ADR 0093 (N7): el cierre del recetario, láminas 61 a 65. Sin slots: el logo es de la plantilla y el contacto, texto.
+  p_slide_cierre = list(
+    titulo_humano = "Cierre",
+    descripcion   = "Contraportada del informe: el logo institucional centrado y el contacto, en una de las cinco composiciones del recetario.",
+    icono_ui      = "BookMarked",
+    categoria     = "estructural",
+    render_key    = "cierre",
+    blueprint     = list(
+      kind = "closing",
+      ppt_layout = "Contraportada",
+      structure_label = "Contraportada"
+    ),
+    slot_specs    = list(),
+    args = list(
+      list(name = "variante", label = "Composición", tipo_input = "choice", grupo = "textos", default = "contraportada",
+           choices = list(
+             list(value = "contraportada", label = "Contacto al pie"),
+             list(value = "banda_azul", label = "Banda azul al pie"),
+             list(value = "banda_clara", label = "Banda clara al pie"),
+             list(value = "contacto", label = "Contacto bajo el logo"),
+             list(value = "tres_columnas", label = "Contacto en tres columnas")
+           ),
+           descripcion = "Dónde y cómo va el contacto. El logo de la plantilla queda siempre al centro."),
+      list(name = "correo",    label = "Correo",    tipo_input = "string", grupo = "textos",
+           descripcion = "Vacío para omitirlo. Sin tocar, el de PULSO PUCP."),
+      list(name = "direccion", label = "Dirección", tipo_input = "string", grupo = "textos",
+           descripcion = "Vacía para omitirla. Sin tocar, la de PULSO PUCP."),
+      list(name = "web",       label = "Web",       tipo_input = "string", grupo = "textos",
+           descripcion = "Vacía para omitirla. Sin tocar, la de PULSO PUCP.")
+    )
   )
 )
 

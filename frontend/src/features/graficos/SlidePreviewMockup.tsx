@@ -346,6 +346,7 @@ export default function SlidePreviewMockup({ slide, compact = false }: { slide: 
     case "p_slide_objetivo_icono": return <SlideSectionMockup slide={slide} compact={compact} />;
     case "p_slide_texto":          return <SlideSectionMockup slide={slide} compact={compact} />;
     case "p_slide_tabla_tecnica":  return <SlideSectionMockup slide={slide} compact={compact} />;
+    case "p_slide_cierre":         return <SlideTitleMockup slide={slide} compact={compact} />;
 
     // 1 gráfico
     case "p_slide_1_grafico":                return <SlideContenidoMockup slide={slide} layout="1" compact={compact} />;

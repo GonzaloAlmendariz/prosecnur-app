@@ -250,6 +250,20 @@ test_that("en la 24 y la 25 un título de tres líneas sube con su rótulo y no 
   expect_false(.lam_portada_cabe(paste(t3, t3), "banda"))
 })
 
+test_that("la compuerta de la portada corta por palabras: en la frontera, lo que se compone en cuatro líneas no entra", {
+  # Títulos del barrido del verificador (ronda 11) que LibreOffice, con Arial Bold embebida, compuso en cuatro líneas y
+  # que el estimador por ancho total daba en tres.
+  b <- strsplit("Estudio de opinión sobre el servicio educativo ofrecido por la carrera de Contabilidad y Finanzas Corporativas, en el marco del proceso de reacreditación institucional y su seguimiento", " ")[[1]]
+  a <- strsplit("Evaluación de la gestión y política pública aplicada en los gobiernos regionales del sur del Perú, junio 2026, con énfasis en la ejecución presupuestal, la gobernanza y la participación ciudadana juvenil", " ")[[1]]
+  t <- function(x, n) paste(x[1:n], collapse = " ")
+  expect_false(.lam_portada_cabe(t(a, 23), "izquierda"))
+  expect_false(.lam_portada_cabe(t(b, 21), "izquierda"))
+  expect_false(.lam_portada_cabe(t(b, 23), "banda"))
+  expect_false(.lam_portada_cabe(t(b, 23), "centrada"))
+  expect_true(.lam_portada_cabe(t(b, 18), "izquierda"))
+  expect_identical(.lam_lineas_tinta(c("Uno", "Uno\nDos"), 9.6, 30, TRUE), c(1L, 2L))
+})
+
 test_that("el índice nativo toma los subíndices en el formato de la app y no confunde un iconos_focos vacío con focos", {
   c3 <- c("Perfil", "Metodología", "Resultados")
   lam <- .id_mazo(list(
@@ -263,4 +277,32 @@ test_that("el índice nativo toma los subíndices en el formato de la app y no c
   expect_identical(.id_txt(lam[[2]], "indice:subcapitulo"), c("Egresados", "Satisfacción"))
   expect_true(all(c("Tutoría", "Becas") %in% .id_txt(lam[[3]], "indice:subcapitulo")))      # los subtemas van, como en la ruta anterior
   expect_identical(.lam_icono_capitulo("Desarrollo de políticas institucionales"), "scroll-text")
+})
+
+test_that("el cierre ofrece las cinco composiciones del recetario (61 a 65) sobre el layout Contraportada", {
+  expect_identical(vapply(c("61", "banda clara", "contacto", "64", NA, "rara"), .lam_cierre_variante, ""),
+                   c("banda_azul", "banda_clara", "contacto", "tres_columnas", "contraportada", "contraportada"), ignore_attr = TRUE)
+  cto <- .lam_cierre_contacto(list(web = "", correo = "otro@pucp.edu.pe"))
+  expect_identical(cto$clave, c("correo", "direccion"))
+  expect_identical(cto$dato[1], "otro@pucp.edu.pe")
+  expect_identical(.lam_cierre_contacto(list())$dato[3], "pulso.pucp.edu.pe")
+  vs <- c("banda_azul", "banda_clara", "contacto", "tres_columnas", "contraportada")
+  lam <- .id_mazo(lapply(vs, p_slide_cierre))
+  nm <- function(x) xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name")
+  expect_true(all(vapply(lam, function(x) "prosecnur:cierre" %in% nm(x), TRUE)))
+  for (x in lam) expect_identical(.id_txt(x, "cierre:web"), "pulso.pucp.edu.pe")
+  expect_identical(vapply(lam, function(x) sum(nm(x) == "cierre:icono"), 0L), c(3L, 3L, 3L, 3L, 0L))   # la 65 usa los de la plantilla
+  expect_identical(vapply(lam, function(x) "cierre:banda" %in% nm(x), TRUE), c(TRUE, TRUE, FALSE, FALSE, FALSE))
+  expect_identical(.id_txt(lam[[4]], "cierre:rotulo"), c("CORREO", "DIRECCIÓN", "WEB"))
+})
+
+test_that("un contacto que no cabe en su composición pasa a tres columnas y un dato vacío tapa su ícono al pie", {
+  largo <- "Pabellón Z, oficina 301, Av. Universitaria 1801, San Miguel, Lima 32, Perú"
+  expect_false(.lam_cierre_cabe(.lam_cierre_contacto(list(direccion = largo)), "contraportada"))
+  expect_true(.lam_cierre_cabe(.lam_cierre_contacto(list(direccion = largo)), "tres_columnas"))
+  lam <- .id_mazo(list(p_slide_cierre(direccion = largo), p_slide_cierre(web = "")))
+  expect_identical(.id_txt(lam[[1]], "cierre:rotulo"), c("CORREO", "DIRECCIÓN", "WEB"))
+  nm <- xml2::xml_attr(xml2::xml_find_all(lam[[2]], "//p:cNvPr"), "name")
+  expect_identical(sum(nm == "cierre:tapa"), 1L)
+  expect_length(.id_txt(lam[[2]], "cierre:web"), 0L)
 })

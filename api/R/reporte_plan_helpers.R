@@ -927,6 +927,15 @@
   ),
 
   # ------------------------------------------------------------
+  # CIERRE (contraportada): el logo es del layout; el contacto lo dibuja
+  # `.lam_laminas_cierre`.
+  # ------------------------------------------------------------
+  cierre = list(
+    layout = "Contraportada",
+    slots  = list()
+  ),
+
+  # ------------------------------------------------------------
   # OBJETIVO CON ICONO
   # body 1 = logo superior derecho (Google Shape;66;p47) — SKIP
   # body 2 = "Marcador de texto 11" (3.9, 1.9) 8.5x2.3 — TEXT
@@ -1565,6 +1574,20 @@
       if (!ok) {
         msg <- paste0("`.validate_plan()`: title_slide (i=", i, ") requiere `title` no vacío.")
         if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+      }
+      next
+    }
+
+    # -------------------------
+    # CIERRE: sin slots obligatorios; el contacto es texto
+    # -------------------------
+    if (identical(stype, "cierre")) {
+      for (k in c("correo", "direccion", "web")) {
+        v <- (s$slots %||% list())[[k]]
+        if (!is.null(v) && !(is.character(v) && length(v) == 1L)) {
+          msg <- paste0("`.validate_plan()`: cierre (i=", i, ") `", k, "` debe ser character(1) o NULL.")
+          if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+        }
       }
       next
     }

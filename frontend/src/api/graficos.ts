@@ -24,6 +24,7 @@ export type SlideType =
   | "p_slide_texto"
   | "p_slide_tabla_tecnica"
   | "p_slide_top_two_box"
+  | "p_slide_cierre"
   // 1 gráfico
   | "p_slide_1_grafico"
   | "p_slide_1_grafico_narrativo"
