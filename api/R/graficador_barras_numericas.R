@@ -1026,6 +1026,9 @@ graficar_histograma <- function(
     pos_y_subtitulo = 0.25,
     pos_titulo = "center",
     pos_nota_pie = "left",
+    # ADR 0092 (F2.7c): el histograma del recetario para una serie de valores
+    # enteros (graficador_histograma_recetario.R); "clasico" conserva el previo.
+    estilo = c("recetario", "clasico"),
 
     usar_canvas = TRUE,
     canvas_h_title = 0.12,
@@ -1067,6 +1070,20 @@ graficar_histograma <- function(
   x <- suppressWarnings(as.numeric(data[[var]]))
   keep <- is.finite(x)
   if (!any(keep)) stop("`var` no tiene valores numericos finitos.", call. = FALSE)
+
+  estilo <- match.arg(estilo)
+  if (identical(estilo, "recetario") && .histograma_recetario_aplica(x[keep], grupo, bins, ancho_bin)) {
+    p <- .histograma_recetario(x[keep], modo = modo, decimales = decimales, limite_superior = limite_superior,
+                               titulo = titulo, subtitulo = subtitulo, nota_pie = nota_pie,
+                               textos_negrita = textos_negrita, font_family = font_family,
+                               color_titulo = color_titulo, size_titulo = size_titulo,
+                               color_subtitulo = color_subtitulo, size_subtitulo = size_subtitulo,
+                               color_nota_pie = color_nota_pie, size_nota_pie = size_nota_pie)
+    if (identical(exportar, "png") && !is.null(path_salida) && nzchar(path_salida)) {
+      ggplot2::ggsave(path_salida, p, width = ancho, height = alto %||% 4.6, dpi = dpi, bg = "transparent")
+    }
+    return(p)
+  }
 
   d <- data.frame(.x = x[keep], stringsAsFactors = FALSE)
   if (is.null(grupo)) {
