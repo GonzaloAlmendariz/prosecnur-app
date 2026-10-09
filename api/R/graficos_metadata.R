@@ -3842,6 +3842,7 @@
     umbral_posicion          = 0.07,
     grosor_barras            = 0.82,
     usar_eje_libre           = FALSE,
+    marcas_eje               = FALSE,
     canvas_min_filas         = 7,
 
     mostrar_barra_extra      = FALSE,
