@@ -60,3 +60,18 @@ test_that("radar y puntos por competencia leen radar/1 en su escala de 0 a 1 y l
   gc <- .word_g_competencias(e)
   expect_true(all(gc$layers[[2]]$data$v > 1))                               # en por ciento, no 0.99
 })
+
+test_that("el mapa del Word dibuja la espec mapa/1 con su leyenda a la derecha y mide lo que mide el mapa", {
+  sq <- function(x0, y0, g, fill) data.frame(x = x0 + c(0, .1, .1, 0), y = y0 + c(0, 0, .1, .1), group = g, fill = fill)
+  e <- list(version = "mapa/1", tipo = "mapa", forma = "resultado",
+            capas = list(list(datos = rbind(sq(-77, -12, "a", "#081F5C"), sq(-76.9, -12, "b", "#E1E5EE")), borde = "#FFFFFF", grosor = 0.3)),
+            caja = c(xmin = -77, xmax = -76.8, ymin = -12, ymax = -11.6),   # más alto que ancho, como Lima
+            leyenda = list(titulo = "Satisfechos", rotulos = c("75 % a más", "Sin encuestas"), colores = c("#081F5C", "#E1E5EE")))
+  g <- .word_g_mapa(e)
+  b <- suppressWarnings(ggplot2::ggplot_build(g))
+  expect_setequal(unique(b$data[[1]]$fill), c("#081F5C", "#E1E5EE"))
+  expect_identical(levels(b$plot$layers[[2]]$data$k), c("75 % a más", "Sin encuestas"))
+  expect_lt(attr(g, "ancho"), .std_word("pagina", "ancho_util"))       # un mapa alto y angosto no ocupa toda la página
+  e$grupos <- list(list(titulo = "Intervención", color = "#2F4B7C"))
+  expect_identical(levels(suppressWarnings(ggplot2::ggplot_build(.word_g_mapa(e)))$plot$layers[[2]]$data$k)[1], "Intervención")
+})

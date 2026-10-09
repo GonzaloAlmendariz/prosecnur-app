@@ -128,3 +128,30 @@
   attr(g, "nota_eje") <- sprintf("El eje empieza en %s%%", lo)
   g
 }
+
+#' Mapa del Word (`g_mapa()`): el mismo dibujo que la lámina (`.lam_mapa_gg`, polígonos de `mapa/1` en su caja) con la
+#' leyenda a la derecha centrada en el alto del mapa y la figura tan ancha como el dibujo y su leyenda («leyendas mal
+#' posicionadas en los mapas», Gonzalo, 2026-10-08). En la forma general la leyenda nombra primero los grupos del estudio.
+#' @param alto Alto de la figura en pulgadas (el recetario usa 4).
+#' @keywords internal
+.word_g_mapa <- function(espec, alto = 4) {
+  navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
+  ley_rot <- c(vapply(espec$grupos %||% list(), function(g) as.character(g$titulo), ""), as.character(espec$leyenda$rotulos %||% character(0)))
+  ley_col <- c(vapply(espec$grupos %||% list(), function(g) as.character(g$color), ""), as.character(espec$leyenda$colores %||% character(0)))
+  titulo <- espec$leyenda$titulo %||% ""
+  cj <- espec$caja
+  # La leyenda va con claves propias (los rellenos del mapa son colores, no categorías): un punto invisible por clave.
+  ley <- data.frame(x = unname(cj[["xmin"]]), y = unname(cj[["ymin"]]), k = factor(ley_rot, levels = ley_rot))
+  g <- .lam_mapa_gg(espec) +
+    ggplot2::geom_point(data = ley, ggplot2::aes(.data$x, .data$y, colour = .data$k), alpha = 0) +
+    ggplot2::scale_colour_manual(values = stats::setNames(ley_col, ley_rot), name = titulo, drop = FALSE) +
+    ggplot2::guides(colour = ggplot2::guide_legend(override.aes = list(alpha = 1, shape = 22, size = 3.6, fill = ley_col, colour = "#B8C2D3"))) +
+    ggplot2::theme(legend.position = "right", legend.title = ggplot2::element_text(size = 8, face = "bold", colour = T$gris, family = "Arial"),
+                   legend.text = ggplot2::element_text(size = 8.5, colour = navy, family = "Arial"), legend.justification = c(0, 0.5),
+                   legend.box.spacing = ggplot2::unit(0.15, "in"), plot.margin = ggplot2::margin(4, 4, 4, 4))
+  asp <- unname((cj[["ymax"]] - cj[["ymin"]]) / ((cj[["xmax"]] - cj[["xmin"]]) * cos(mean(cj[c("ymin", "ymax")]) * pi / 180)))
+  ley_w <- 0.35 + max(nchar(c(titulo, ley_rot))) * 8.5 * 0.5 / 72
+  attr(g, "alto") <- alto - 0.22
+  attr(g, "ancho") <- min(.std_word("pagina", "ancho_util"), (alto - 0.35) / asp + ley_w + 0.25)
+  g
+}

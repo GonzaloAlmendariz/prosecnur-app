@@ -46,7 +46,6 @@ magick <- function(...) {
 }
 
 pdf_receta <- a_pdf(recetario, file.path(salida, "recetario.pdf"))
-ancho_texto <- round(6.27 * DPI)
 for (i in seq_len(nrow(mapa))) {
   p <- mapa$pagina[[i]]
   m <- mapa$motor[[i]]
@@ -58,8 +57,9 @@ for (i in seq_len(nrow(mapa))) {
     pdf_m <- a_pdf(docx, file.path(salida, paste0(tools::file_path_sans_ext(basename(docx)), ".pdf")))
     pagina(pdf_m, as.integer(sub("^.*#", "", m)), der)
   } else {
-    # Fondo blanco (el PNG es transparente) y marco rojo para que se vea dónde acaba la figura.
-    magick(normalizePath(m, mustWork = TRUE), "-background", "white", "-flatten", "-resize", paste0(ancho_texto, "x"),
+    # Fondo blanco (el PNG es transparente) y marco rojo para que se vea dónde acaba la figura. Se escala por resolución
+    # (el PNG de .word_png sale a 300 dpi), no al ancho de texto: una figura más angosta, como un mapa, mide lo que mide.
+    magick(normalizePath(m, mustWork = TRUE), "-background", "white", "-flatten", "-resize", sprintf("%.4f%%", DPI / 300 * 100),
            "-bordercolor", "#D33", "-border", "2", der)
   }
   par <- file.path(salida, sprintf("par_p%03d_%s.png", p, nombre))
