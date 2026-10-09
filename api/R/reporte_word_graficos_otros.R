@@ -41,9 +41,12 @@
 #' Mapa de calor de filas por columnas (`g_heat()`): rampa de claro a oscuro sobre el rango de la espec, la cifra en blanco
 #' sobre los tonos oscuros, columnas con su rótulo arriba y filas a la izquierda
 #' @keywords internal
-.word_g_heat <- function(espec) {
+.word_g_heat <- function(espec, lo = 80, hi = 100) {
+  # El Word fija el tono de 80 % a 100 % «para que un color diga lo mismo en todo el informe» (página 31; g_heat, RG:284);
+  # el recetario lo cambia sólo a mano (lo = 70, 0-20, 50). La espec trae el rango del dato, que es el del PPT (recetario_m3d).
+  # Gonzalo, 2026-10-09: «El recetairo es la fuente de verdad» — cada formato el suyo. Bajo el piso, el tono más claro.
   navy <- .std_word("colores", "titulos")
-  M <- espec$valores; Mc <- espec$valores_crudos %||% M; lo <- espec$rango[1]; hi <- espec$rango[2]
+  M <- espec$valores; Mc <- espec$valores_crudos %||% M
   filas <- espec$filas; cols <- espec$columnas$rotulo; nf <- length(filas); nc <- length(cols)
   rampa <- grDevices::colorRampPalette(c("#EEF2F8", "#2F4B7C"))(41)
   d <- expand.grid(i = seq_len(nf), j = seq_len(nc)); d$v <- M[cbind(d$i, d$j)]; d$vc <- Mc[cbind(d$i, d$j)]
