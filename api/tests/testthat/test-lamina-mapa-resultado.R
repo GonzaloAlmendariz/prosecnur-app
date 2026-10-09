@@ -51,9 +51,37 @@ test_that("la 104 sale nativa en el motor, con su ranking, y avisa por su nombre
   expect_identical(txt("panel:pregunta"), "Satisfechos o muy satisfechos")
 })
 
-test_that("con más distritos de los que caben en el ranking la lámina no va en nativo", {
-  lima <- .mapa_resultado_lima(); lima <- lima[startsWith(lima$ubigeo, "1501"), ][1:20, ]
-  f <- data.frame(codigo = lima$ubigeo, etiqueta = lima$distrito, porcentaje = seq(40, 90, length.out = 20), n = 50L, ubigeo = lima$ubigeo)
-  expect_false(.lam_mapa_resultado_cabe(.espec_mapa_resultado(f)))
-  expect_true(.lam_mapa_resultado_cabe(.espec_mapa_resultado(f[1:12, ])))
+test_that("el ranking cambia de forma con los distritos y Lima y Callao enteros caben (13, 14, 26, 27 y 50)", {
+  lima <- .mapa_resultado_lima()
+  f <- data.frame(codigo = lima$ubigeo, etiqueta = lima$distrito, porcentaje = seq(40, 90, length.out = nrow(lima)), n = 50L, ubigeo = lima$ubigeo)
+  for (k in c(1L, 13L, 14L, 26L, 27L, nrow(lima))) expect_true(.lam_mapa_resultado_cabe(.espec_mapa_resultado(f[seq_len(k), ])), label = paste(k, "distritos"))
+  expect_identical(vapply(c(13L, 14L, 26L, 27L), .lam_mapa_resultado_forma, ""), c("una", "dos", "dos", "lista"))
+  expect_identical(nrow(lima), 50L)
+  vacio <- .espec_mapa_resultado(f[0, ])
+  expect_identical(nrow(vacio$ranking), 0L); expect_true(.lam_mapa_resultado_cabe(vacio))
+})
+
+test_that("las guardas de los puntos comparativos: códigos fuera de escala, distritos fuera de opciones, corte trivial o solapado", {
+  fx <- .mr_fixture()
+  d <- fx$data; d$sat[1] <- "7"
+  expect_error(.mapa_resultado_calcular(d, fx$inst, "sat", "dist", c("4", "5")), "fuera de su escala: 7")
+  d <- fx$data; d$dist[1] <- "99"
+  expect_error(.mapa_resultado_calcular(d, fx$inst, "sat", "dist", c("4", "5")), "fuera de sus opciones: 99")
+  expect_error(.mapa_resultado_calcular(fx$data, fx$inst, "sat", "dist", as.character(1:5)), "subconjunto propio")
+  expect_error(.mapa_resultado_calcular(fx$data, fx$inst, "sat", "dist", c("4", "5"), excluir_opciones = "5"), "se solapan")
+  expect_identical(.mapa_nombre_distrito(c("PACHACAMAC", "BRENA")), c("Pachacámac", "Breña"))
+  e <- .espec_mapa_resultado(data.frame(codigo = "150108", etiqueta = "Chorrillos", porcentaje = 60, n = 5L, ubigeo = "150108"), cortes = c(55.5, 70))
+  expect_identical(e$leyenda$rotulos[2], "55.5 a menos de 70 %")
+})
+
+test_that("la 104 con 30 distritos sale nativa en tres columnas, con todas sus cifras", {
+  lima <- .mapa_resultado_lima()[1:30, ]
+  fx <- .mr_fixture(dist_labels = lima$distrito, pct = rep(c(40, 60, 80), 10), n = 100)
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$data, instrumento = fx$inst, plan = list(p_slide_1_grafico(
+    p_mapa_resultado_distrital("sat", cruces = "dist", corte = c("4", "5")), titulo = "Treinta")), path_ppt = out, mensajes_progreso = FALSE)))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  vals <- xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='mapa:valor']]"))
+  expect_length(vals, 30L)
+  expect_length(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='mapa:clase']]"), 30L)
 })

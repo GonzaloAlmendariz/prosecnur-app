@@ -176,8 +176,13 @@
       pal <- strsplit(trimws(parrafo), "\\s+")[[1]]; pal <- pal[nzchar(pal)]
       if (!length(pal)) { total <- total + 1L; next }
       a <- .lam_ancho_tinta(pal, size, bold); esp <- .lam_ancho_tinta(" ", size, bold)
-      n <- 1L; cur <- a[1]
-      for (k in seq_along(pal)[-1]) if (cur + esp + a[k] <= util) cur <- cur + esp + a[k] else { n <- n + 1L; cur <- a[k] }
+      # Una palabra más ancha que la caja se parte: ocupa sus propias líneas (verificador, ronda 14).
+      partir <- function(ak) max(1L, as.integer(ceiling(ak / util)))
+      n <- partir(a[1]); cur <- if (a[1] > util) a[1] %% util else a[1]
+      for (k in seq_along(pal)[-1]) {
+        if (a[k] <= util && cur + esp + a[k] <= util) cur <- cur + esp + a[k]
+        else { n <- n + partir(a[k]); cur <- if (a[k] > util) a[k] %% util else a[k] }
+      }
       total <- total + n
     }
     max(1L, total)

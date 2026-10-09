@@ -262,6 +262,7 @@ test_that("la compuerta de la portada corta por palabras: en la frontera, lo que
   expect_false(.lam_portada_cabe(t(b, 23), "centrada"))
   expect_true(.lam_portada_cabe(t(b, 18), "izquierda"))
   expect_identical(.lam_lineas_tinta(c("Uno", "Uno\nDos"), 9.6, 30, TRUE), c(1L, 2L))
+  expect_identical(.lam_lineas_tinta("Interdisciplinariedad", 1.4, 12), 2L)   # una palabra más ancha que la caja se parte
 })
 
 test_that("el índice nativo toma los subíndices en el formato de la app y no confunde un iconos_focos vacío con focos", {

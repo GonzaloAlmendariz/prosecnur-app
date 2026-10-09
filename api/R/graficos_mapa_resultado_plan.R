@@ -51,10 +51,18 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   corte <- .puntos_comparativos_codigos(corte, "corte")
   falta <- setdiff(corte, indicador$codigos)
   if (length(falta)) stop("mapa_resultado_distrital: el corte trae códigos que no están en la escala: ", paste(falta, collapse = ", "), ".", call. = FALSE)
-  elegibles <- setdiff(indicador$codigos, .puntos_comparativos_exclusiones(excluir_opciones, indicador))
+  excluir <- .puntos_comparativos_exclusiones(excluir_opciones, indicador)
+  # Las mismas guardas que los puntos comparativos: nada se descarta en silencio (verificador, ronda 14).
+  if (length(intersect(corte, excluir))) stop("mapa_resultado_distrital: `corte` y `excluir_opciones` se solapan en `", paste(intersect(corte, excluir), collapse = ", "), "`.", call. = FALSE)
+  elegibles <- setdiff(indicador$codigos, excluir)
+  if (!length(elegibles) || setequal(corte, elegibles)) stop("mapa_resultado_distrital: `corte` debe ser un subconjunto propio de la escala elegible.", call. = FALSE)
   filtrada <- .apply_named_filters(data, filters = filtros %||% list(), arg_name = "filtros", mode = "strict")
   pesos <- .puntos_comparativos_pesos(filtrada, declaracion = attr(data, "var_peso", exact = TRUE))$valores
   v <- trimws(as.character(filtrada[[var]])); g <- trimws(as.character(filtrada[[distrito]]))
+  fuera_v <- setdiff(unique(v[!is.na(v) & nzchar(v)]), indicador$codigos)
+  if (length(fuera_v)) stop("mapa_resultado_distrital: el indicador observa códigos fuera de su escala: ", paste(fuera_v, collapse = ", "), ".", call. = FALSE)
+  fuera_g <- setdiff(unique(g[!is.na(g) & nzchar(g)]), grupos$codigos)
+  if (length(fuera_g)) stop("mapa_resultado_distrital: la pregunta del distrito observa códigos fuera de sus opciones: ", paste(fuera_g, collapse = ", "), ".", call. = FALSE)
   valida <- !is.na(v) & v %in% elegibles & !is.na(g) & nzchar(g) & is.finite(pesos) & pesos > 0
   obs <- intersect(grupos$codigos, unique(g[valida]))
   filas <- lapply(obs, function(cod) {
@@ -79,9 +87,10 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
 .mapa_nombre_distrito <- function(d) {
   s <- gsub("\\b(De|Del|La|El|Los|Las)\\b", "\\L\\1", tools::toTitleCase(tolower(d)), perl = TRUE)
   s <- paste0(toupper(substr(s, 1, 1)), substring(s, 2))
-  tildes <- c(Peru = "Perú", Rimac = "Rímac", Lurin = "Lurín", Maria = "María", Martin = "Martín", Jesus = "Jesús", Ancon = "Ancón")
+  tildes <- c(Peru = "Perú", Rimac = "Rímac", Lurin = "Lurín", Maria = "María", Martin = "Martín", Jesus = "Jesús", Ancon = "Ancón", Pachacamac = "Pachacámac", Brena = "Breña")
   for (k in names(tildes)) s <- gsub(paste0("\\b", k, "\\b"), tildes[[k]], s)
-  sub("Villa el Salvador", "Villa El Salvador", s, fixed = TRUE)
+  s <- sub("Villa el Salvador", "Villa El Salvador", s, fixed = TRUE)
+  sub("Carmen de la Legua Reynoso", "Carmen de la Legua", s, fixed = TRUE)   # su forma corta: la larga no entra en el ranking
 }
 
 #' Casa cada distrito del estudio con la cartografía: por UBIGEO si el código lo es, si no por nombre sin tildes
@@ -110,7 +119,7 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   bordes <- c(0, cortes, 100)
   rot <- vapply(seq_along(pal), function(k) {
     if (k == 1L) sprintf("Menos de %s %%", bordes[2]) else if (k == length(pal)) sprintf("%s %% a más", bordes[k])
-    else sprintf("%s a %s %%", bordes[k], bordes[k + 1L] - 1)
+    else if (all(bordes == round(bordes))) sprintf("%s a %s %%", bordes[k], bordes[k + 1L] - 1) else sprintf("%s a menos de %s %%", bordes[k], bordes[k + 1L])
   }, "")
   o <- order(-ok$porcentaje, ok$etiqueta)
   lim <- .mapa_resultado_lima()
@@ -130,7 +139,9 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
 #' @keywords internal
 graficar_mapa_resultado_distrital <- function(espec) {
   if (is.null(espec)) return(.plan_canvas_render_nulo("mapa_resultado_distrital: sin cartografía de Lima."))
-  p <- .lam_mapa_gg(espec)
+  # La ruta ggplot no se queda sin leyenda: el lector necesita saber qué dice cada color (verificador, ronda 14).
+  p <- suppressMessages(.lam_mapa_gg(espec) + ggplot2::scale_fill_identity(guide = "legend", breaks = espec$leyenda$colores, labels = espec$leyenda$rotulos,
+                                                                            name = espec$leyenda$titulo))
   attr(p, "pulso_espec") <- espec
   p
 }
@@ -149,5 +160,7 @@ graficar_mapa_resultado_distrital <- function(espec) {
   if (length(espec$sin_casar)) message("[PULSO-AVISO] Mapa por distrito: no se ubicaron en la cartografía de Lima: ", paste(espec$sin_casar, collapse = ", "), ".")
   if (length(espec$pocos_casos)) message("[PULSO-AVISO] Mapa por distrito: con menos de ", el$min_n, " casos válidos van como «Sin encuestas»: ",
                                           paste(espec$pocos_casos, collapse = ", "), ".")
+  if (!is.null(espec) && !.lam_mapa_resultado_cabe(espec)) message("[PULSO-AVISO] Mapa por distrito: el ranking no cabe en la lámina del recetario ",
+                                                                   "(nombres de distrito demasiado largos); sale el mapa con su leyenda, sin las cifras.")
   graficar_mapa_resultado_distrital(espec)
 }
