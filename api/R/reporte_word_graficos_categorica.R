@@ -28,13 +28,16 @@
   list(y = tot - (cumsum(esp) - esp / 2) + 0.5, tot = tot)
 }
 
-.word_envolver <- function(x, ancho) vapply(as.character(x), function(r) paste(strwrap(r, width = ancho), collapse = "\n"), "", USE.NAMES = FALSE)
+.word_recortar <- function(x, n) { x <- as.character(x); ifelse(nchar(x) > n, paste0(trimws(substr(x, 1L, n - 3L), "right"), "..."), x) }
+.word_envolver <- function(x, ancho)vapply(as.character(x), function(r) paste(strwrap(r, width = ancho), collapse = "\n"), "", USE.NAMES = FALSE)
 
 #' Barras horizontales de una categórica o una agrupada de una serie
 #' @keywords internal
 .word_g_barras <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
-  l <- .word_envolver(espec$rotulos, 40); p <- espec$largos * 100
+  # Rótulo largo: se corta a 70 caracteres con «...» antes de envolver, como el ranking en barras del recetario
+  # (recetario_word.R:377, página 29); sin el corte, una opción de 120 caracteres ocupa cinco líneas y desfasa las filas.
+  l <- .word_envolver(.word_recortar(espec$rotulos, 70), 40); p <- espec$largos * 100
   resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
   ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
   col <- if (isTRUE(espec$realce)) ifelse(resid, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue)) else ifelse(resid, T$gris, T$navy)
