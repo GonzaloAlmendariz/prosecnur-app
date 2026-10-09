@@ -225,3 +225,12 @@ test_that("el índice alinea los subcapítulos por nombre y respeta el estilo de
   expect_true(.lam_indice_focos(list(), list(composicion = "focos")))
   expect_false(.lam_indice_focos(list(), list(composicion = "arcos")))
 })
+
+test_that("la portada ofrece sus tres variantes del recetario: centrada (23), izquierda (24) y con banda (25)", {
+  pp <- function(v) p_slide_portada("Estudio de opinión", "Informe consolidado", fecha = "Setiembre de 2026", subtexto = "Por encargo", meta = list(variante = v))
+  lam <- .id_mazo(list(a = pp("centrada"), b = pp("izquierda"), c = pp("banda")))
+  algn <- function(x) xml2::xml_attr(xml2::xml_find_first(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='portada:titulo']]//a:pPr"), "algn")
+  expect_identical(vapply(lam, algn, ""), c("ctr", "l", "ctr"))
+  expect_true("portada:banda" %in% xml2::xml_attr(xml2::xml_find_all(lam[[3]], "//p:cNvPr"), "name"))
+  expect_identical(.lam_portada_variante("25"), "banda"); expect_identical(.lam_portada_variante(NULL), "centrada")
+})
