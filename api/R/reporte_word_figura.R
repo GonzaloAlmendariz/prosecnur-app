@@ -75,7 +75,8 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
 .word_figura <- function(doc, n, titulo, png, alto, ancho = .std_word("pagina", "ancho_util"), base = NULL, lectura = NULL) {
   doc <- .word_rotulo(doc, n, titulo)
   doc <- officer::body_add_fpar(doc, officer::fpar(officer::external_img(png, width = ancho, height = alto),
-                                                   fp_p = officer::fp_par(text.align = "center", keep_with_next = TRUE)))
+                                                   fp_p = officer::fp_par(text.align = "center", keep_with_next = !is.null(base) && nzchar(trimws(base)))))
+  # Sin base la imagen no se pega a lo que sigue: encadenaba figura tras figura y empujaba el capítulo a otra página (N8.13).
   con_lectura <- !is.null(lectura) && nzchar(trimws(lectura))
   doc <- .word_base(doc, base, con_lectura = con_lectura)
   if (con_lectura) doc <- .word_lectura(doc, lectura)
