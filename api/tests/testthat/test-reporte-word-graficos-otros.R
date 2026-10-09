@@ -75,3 +75,13 @@ test_that("el mapa del Word dibuja la espec mapa/1 con su leyenda a la derecha y
   e$grupos <- list(list(titulo = "Intervención", color = "#2F4B7C"))
   expect_identical(levels(suppressWarnings(ggplot2::ggplot_build(.word_g_mapa(e)))$plot$layers[[2]]$data$k)[1], "Intervención")
 })
+
+test_that("el mapa de calor del Word va siempre de 80 a 100 % (página 31), aunque la espec traiga el rango del dato, y acepta lo/hi a mano", {
+  M <- rbind(c(60, 90, 100)); e <- list(filas = "F", columnas = data.frame(rotulo = c("a", "b", "c")), valores = M, valores_crudos = M, rango = c(60, 100))
+  rampa <- grDevices::colorRampPalette(c("#EEF2F8", "#2F4B7C"))(41)
+  t <- suppressWarnings(ggplot2::ggplot_build(.word_g_heat(e)))$data[[1]]
+  expect_identical(t$fill[order(t$x)], rampa[c(1, 21, 41)])                     # 60 se satura al claro; 90 al medio
+  expect_identical(attr(.word_g_heat(e), "nota_rango"), "El tono va de 80% (claro) a 100% (oscuro)")
+  t2 <- suppressWarnings(ggplot2::ggplot_build(.word_g_heat(e, lo = 60)))$data[[1]]
+  expect_identical(t2$fill[order(t2$x)][1], rampa[1]); expect_identical(t2$fill[order(t2$x)][2], rampa[31])
+})
