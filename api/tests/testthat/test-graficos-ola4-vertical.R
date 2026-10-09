@@ -129,7 +129,7 @@ test_that("el pipeline publico renderiza las cuatro familias con filtros y matri
   # El filtro deja 50 % en ola1 y 100 % en ola2. Si los renderers no pasan
   # `el$filtros` al estimador, se obtienen 83.3 % y 33.3 %, justo al reves.
   dumbbell <- salida$rendered[[2]]
-  expect_equal(dumbbell$layers[[1]]$data$.brecha, 50)
+  expect_equal(dumbbell$layers[[1]]$data$.brecha, -50)   # ola1 50 % menos ola2 100 % (primera menos segunda)
 
   serie <- salida$rendered[[4]]
   expect_equal(serie$data$.y, c(50, 100))

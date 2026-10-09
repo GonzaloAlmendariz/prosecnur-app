@@ -5,6 +5,26 @@
 # Capa pura de los gráficos numéricos del recetario (recetario_m3b.R). Los
 # renderers nativos (lamina_numericos.R) leen esto y no recalculan.
 
+#' Cifra de una mediana como la escribe el recetario
+#'
+#' Con datos enteros (edades, años, conteos) la mediana se TRUNCA hacia cero, como `as.integer()` en el recetario
+#' (recetario.R:631, recetario_m3b.R:41): 21.5 se escribe «21» y -1.5, «-1». Sólo el texto: la posición del
+#' triángulo o de la barra sigue en el valor real. Con datos decimales (notas de 0 a 20) no se trunca y va con un
+#' decimal. Gonzalo, 2026-10-09: «Todo eso guiate dle recetario porfavor, es la fuente de verdad».
+#' @param m Mediana.
+#' @param enteros `TRUE` si todos los datos de los que sale son enteros.
+#' @keywords internal
+.cifra_mediana <- function(m, enteros) {
+  vapply(m, function(x) {
+    if (!is.finite(x)) return("")
+    if (isTRUE(enteros)) return(formatC(trunc(x), format = "d", big.mark = ","))
+    x <- .pulso_round_half_up(x, 1)
+    formatC(x, format = "f", digits = if (abs(x - round(x)) < 1e-9) 0L else 1L, big.mark = ",")
+  }, "", USE.NAMES = FALSE)
+}
+
+.datos_enteros <- function(x) { x <- x[is.finite(x)]; length(x) > 0L && all(abs(x - round(x)) < 1e-9) }
+
 #' Especificación de un diagrama de caja por grupo (lámina 81, recetario_m3b.R:27-45)
 #'
 #' Cuartiles con `quantile()` de tipo 7, bigotes a 1.5 RIC acotados por el mínimo y el máximo, y los atípicos
@@ -31,7 +51,7 @@ preparar_boxplot <- function(categoria, valor) {
                            q1 = vapply(r, function(z) z$q[1], 0), mediana = vapply(r, function(z) z$q[2], 0),
                            q3 = vapply(r, function(z) z$q[3], 0), bigote_inf = vapply(r, `[[`, 0, "bi"),
                            bigote_sup = vapply(r, `[[`, 0, "bs"), stringsAsFactors = FALSE, row.names = NULL),
-       atipicos = unname(lapply(r, `[[`, "out")), rango = range(valor[ok]))
+       atipicos = unname(lapply(r, `[[`, "out")), rango = range(valor[ok]), enteros = .datos_enteros(valor[ok]))
 }
 
 #' Especificación de una serie de dos mediciones (lámina 87, recetario_m3c.R:47-64)

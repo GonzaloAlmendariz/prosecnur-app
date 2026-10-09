@@ -153,7 +153,7 @@ test_that("ordena por brecha de fabrica y el mayor queda arriba", {
   # El eje Y se dibuja de abajo hacia arriba, asi que la brecha mayor es el
   # ultimo nivel del factor.
   niveles <- levels(p$layers[[1]]$data$.eje)
-  # Brechas: Salud -27, Educacion -18, Vivienda -25.
+  # Brechas (primera menos segunda, como el recetario): Salud +27, Educacion +18, Vivienda +25.
   expect_identical(niveles[[length(niveles)]], "Salud")
   expect_identical(niveles[[1]], "Educacion")
 })
@@ -179,8 +179,8 @@ test_that("la brecha rotulada es la diferencia real", {
   p <- graficar_dumbbell(.df_brecha(), mostrar_brecha = TRUE)
   txt <- .capas(p, "GeomText")
   labs <- unlist(lapply(txt, function(l) as.character(l$data$.lab)))
-  expect_true("-27 pts" %in% labs)   # Salud: 45 - 72
-  expect_true("-18 pts" %in% labs)   # Educacion: 62 - 80
+  expect_true("+27 pts" %in% labs)   # Salud: 72 - 45 (Acogida, la primera, menos Refugiada)
+  expect_true("+18 pts" %in% labs)   # Educacion: 80 - 62
 })
 
 test_that("el umbral silencia las brechas chicas", {
@@ -188,8 +188,8 @@ test_that("el umbral silencia las brechas chicas", {
   p <- graficar_dumbbell(.df_brecha(), mostrar_brecha = TRUE, umbral_brecha_pct = 26)
   txt <- .capas(p, "GeomText")
   labs <- unlist(lapply(txt, function(l) as.character(l$data$.lab)))
-  expect_true("-27 pts" %in% labs)
-  expect_false("-18 pts" %in% labs)
+  expect_true("+27 pts" %in% labs)
+  expect_false("+18 pts" %in% labs)
 })
 
 # --- Lollipop ---------------------------------------------------------------
@@ -537,4 +537,40 @@ test_that("los constructores rechazan una declaracion incompleta", {
   expect_error(p_dumbbell(vars = list(), corte = "3"), "lista nombrada")
   expect_error(p_dumbbell(vars = list("T" = "a$b"), corte = ""), "al menos un codigo")
   expect_error(p_lollipop(var = ""), "character\\(1\\)")
+})
+
+# --- Brecha a − b del recetario (Gonzalo, 2026-10-09) -----------------------
+
+.df_p29 <- function() data.frame(eje = rep(c("Docentes", "Estudiantes"), 2),
+                                 grupo = factor(rep(c("Conoce", "Sabe"), each = 2), levels = c("Conoce", "Sabe")),
+                                 valor = c(98, 77, 92, 80), N = rep(c(52, 172), 2), stringsAsFactors = FALSE)
+
+test_that("la brecha es primera menos segunda como la página 29 del recetario, y el ggplot dice lo mismo que las pesas", {
+  skip_if_not_installed("ggplot2")
+  p <- graficar_dumbbell(.df_p29(), mostrar_brecha = TRUE)
+  d <- p$layers[[1]]$data
+  expect_equal(d$.brecha[match(c("Docentes", "Estudiantes"), as.character(d$.eje))], c(6, -3))
+  labs <- unlist(lapply(.capas(p, "GeomText"), function(l) as.character(l$data$.lab)))
+  expect_true(all(c("+6 pts", "-3 pts") %in% labs))
+  pesas <- attr(p, "pulso_espec")
+  if (!is.null(pesas$textos_diferencia)) expect_setequal(gsub("[^0-9+-]", "", pesas$textos_diferencia), c("+6", "-3"))
+})
+
+test_that("la brecha se resta entre las cifras que se leen, el cero lleva signo y una base sin valor no deja fila NA", {
+  skip_if_not_installed("ggplot2")
+  df <- data.frame(eje = c("T", "T", "U", "U"), grupo = factor(c("a", "b", "a", "b"), levels = c("a", "b")),
+                   valor = c(20.4, 18.5, 50, 50), stringsAsFactors = FALSE)
+  p <- graficar_dumbbell(df, mostrar_brecha = TRUE)
+  labs <- unlist(lapply(.capas(p, "GeomText"), function(l) as.character(l$data$.lab)))
+  expect_true("+1 pts" %in% labs)                    # se leen 20 y 19: +1, no +2
+  expect_true("+0 pts" %in% labs)                    # «%+d» del recetario
+})
+
+test_that("con orden por brecha la mayor con su signo va arriba, igual en ggplot y en pesas", {
+  skip_if_not_installed("ggplot2")
+  df <- data.frame(eje = rep(c("Sube", "Baja"), 2), grupo = factor(rep(c("a", "b"), each = 2), levels = c("a", "b")),
+                   valor = c(55, 40, 50, 48), stringsAsFactors = FALSE)   # Sube +5, Baja -8
+  p <- graficar_dumbbell(df)
+  niv <- levels(p$layers[[1]]$data$.eje)
+  expect_identical(niv[[length(niv)]], "Sube")      # arriba la +5, aunque |−8| sea mayor
 })

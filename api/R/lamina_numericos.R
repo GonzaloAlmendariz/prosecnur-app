@@ -130,7 +130,7 @@
     .lam_txt(lz, .lam_num(v), px(v) - 0.45, yt + 0.05, 0.9, 0.24, 10, tenue, align = "center", nombre = "boxplot:eje")
   }
   if (!is.null(encabezado) && nzchar(encabezado)) .lam_txt(lz, encabezado, xl, yt - 0.25, 3, 0.26, 10, suave, bold = TRUE, nombre = "boxplot:encabezado")
-  fmt <- function(v) paste0(.lam_num(v), if (nzchar(unidad)) paste0(" ", unidad) else "")
+  sufijo_mediana <- if (nzchar(unidad)) paste0(" ", unidad) else ""
   for (i in seq_len(k)) {
     yc <- yt + 0.35 + (i - 0.5) * fila; hb <- min(0.42, fila * 0.55)
     hr <- .lam_alto_txt(G$rotulo[i], 1.75, 12, TRUE)
@@ -142,7 +142,7 @@
     .lam_caja(lz, px(G$q1[i]), yc - hb / 2, max(px(G$q3[i]) - px(G$q1[i]), 0.002), hb, claro, nombre = "boxplot:caja", borde = azul)
     .lam_caja(lz, px(G$mediana[i]) - 0.015, yc - hb / 2, 0.03, hb, azul, nombre = "boxplot:mediana")
     for (o in espec$atipicos[[i]]) .lam_caja(lz, px(o) - 0.045, yc - 0.045, 0.09, 0.09, suave, nombre = "boxplot:atipico", geom = "ellipse")
-    .lam_txt(lz, fmt(G$mediana[i]), W - mr - 1.25, yc - 0.16, 1.25, 0.32, .std_pt("cifra"), azul, bold = TRUE, align = "center",
+    .lam_txt(lz, paste0(.cifra_mediana(G$mediana[i], espec$enteros %||% FALSE), sufijo_mediana), W - mr - 1.25, yc - 0.16, 1.25, 0.32, .std_pt("cifra"), azul, bold = TRUE, align = "center",
              nombre = "boxplot:cifra")
   }
   .lam_txt(lz, "Mediana", W - mr - 1.25, yt + 0.03, 1.25, 0.26, 10, azul, bold = TRUE, align = "center", nombre = "boxplot:titulo_columna")

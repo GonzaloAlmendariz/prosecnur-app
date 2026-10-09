@@ -62,7 +62,7 @@ test_that("el diagrama de caja nativo escribe la mediana con su unidad y dibuja 
   e <- preparar_boxplot(g, x)
   o <- .lam_laminas_boxplot(.nm_doc(), e, "Edad por ciclo", folio = 81, encabezado = "Edad, en años", unidad = "años")
   xml <- .nm_xml(.nm_print(o$doc), length(o$doc))
-  expect_identical(.nm_txt(xml, "boxplot:cifra"), c("20 años", "21.5 años"))
+  expect_identical(.nm_txt(xml, "boxplot:cifra"), c("20 años", "21 años"))   # edades enteras: 21.5 se trunca como recetario_m3b.R:41 (Gonzalo, 2026-10-09)
   expect_equal(nrow(.nm_ext(xml, "boxplot:atipico")), 1L)
   expect_identical(xml2::xml_attr(xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='boxplot:caja']]//a:ln/a:solidFill/a:srgbClr"), "val"),
                    .lam_hex(.std_color("azul")))
@@ -236,4 +236,18 @@ test_that("la unidad y el encabezado del eje salen de la etiqueta del instrument
   x2 <- .nm_xml(out, 2)
   expect_true(all(grepl("años$", .nm_txt(x2, "boxplot:cifra"))))
   expect_identical(.nm_txt(x2, "boxplot:encabezado"), "Edad, en años")              # pendiente 2
+})
+
+test_that("la mediana no entera de datos enteros se trunca en el texto como el recetario y el triángulo sigue en su valor (Gonzalo, 2026-10-09)", {
+  e <- attr(.histograma_recetario(c(20, 21, 22, 23), modo = "conteo", unidad = "años"), "pulso_espec")
+  expect_identical(e$texto_mediana, "Mediana: 21 años")
+  expect_equal(e$mediana, 21.5); expect_equal(e$x_mediana, 1.5)
+  expect_identical(attr(.histograma_recetario(c(20, 21, 22), modo = "conteo"), "pulso_espec")$texto_mediana, "Mediana: 21")
+  expect_identical(.cifra_mediana(-1.5, TRUE), "-1")                       # hacia cero, no «-2»
+  expect_identical(.cifra_mediana(14.35, FALSE), "14.4")                   # datos decimales: no se trunca
+  b <- preparar_boxplot(rep("A", 4), c(20, 21, 24, 25))
+  expect_true(b$enteros); expect_equal(b$grupos$mediana, 22.5)
+  o <- .lam_laminas_boxplot(.nm_doc(), b, "Edad", folio = 81, unidad = "años")
+  expect_identical(.nm_txt(.nm_xml(.nm_print(o$doc), length(o$doc)), "boxplot:cifra"), "22 años")
+  expect_false(preparar_boxplot(rep("A", 3), c(14.2, 14.35, 15))$enteros)
 })

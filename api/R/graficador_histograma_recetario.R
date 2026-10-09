@@ -43,7 +43,8 @@
   d <- data.frame(.x = seq_along(niveles), .valor = valor, .lab = lab, .rot = rot)
   ymax <- max(d$.valor) * 1.18
   x_med <- min(mediana, if (is.finite(tope)) tope else Inf) - min(xv) + 1
-  texto_med <- trimws(sprintf("Mediana: %s %s", format(round(mediana, 1), trim = TRUE), unidad))
+  enteros <- .datos_enteros(x)
+  texto_med <- trimws(sprintf("Mediana: %s %s", .cifra_mediana(mediana, enteros), unidad))
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$.x, y = .data$.valor)) +
     ggplot2::geom_col(width = 0.88, fill = .std_color("azul")) +
     ggplot2::geom_text(ggplot2::aes(label = .data$.lab), vjust = -0.5, size = 12 / ggplot2::.pt,
@@ -68,6 +69,6 @@
   attr(p, "pulso_histograma_recetario") <- list(mediana = mediana, niveles = niveles, conteos = cnt)
   # ADR 0093 (N4): lo que afirma el histograma para la lámina nativa; las cifras son las mismas que rotula el gráfico.
   attr(p, "pulso_espec") <- list(version = "histograma/1", tipo = "histograma", rotulos = rot, valores = valor, cifras = lab,
-                                 conteos = cnt, mediana = mediana, x_mediana = x_med - 1, texto_mediana = texto_med)
+                                 conteos = cnt, mediana = mediana, x_mediana = x_med - 1, texto_mediana = texto_med, enteros = enteros)
   p
 }

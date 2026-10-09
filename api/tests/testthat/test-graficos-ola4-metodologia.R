@@ -212,7 +212,7 @@ test_that("Dumbbell exige las mismas dos fuentes completas y en el mismo orden",
   .g2_esperar_error_contextual(error_orden, c("Tema_B", "orden|fuentes"))
 })
 
-test_that("la diferencia Dumbbell es segunda fuente menos primera", {
+test_that("la diferencia Dumbbell es primera fuente menos segunda, como el recetario (Gonzalo, 2026-10-09)", {
   skip_if_not_installed("ggplot2")
   datos <- data.frame(
     eje = c("Tema", "Tema"),
@@ -221,7 +221,7 @@ test_that("la diferencia Dumbbell es segunda fuente menos primera", {
     stringsAsFactors = FALSE
   )
   grafico <- graficar_dumbbell(datos, mostrar_brecha = TRUE)
-  expect_equal(grafico$layers[[1]]$data$.brecha, 80)
+  expect_equal(grafico$layers[[1]]$data$.brecha, -80)
 })
 
 test_that("Serie temporal exige secuencia implicita identica y matriz completa", {
