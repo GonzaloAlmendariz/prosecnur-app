@@ -2842,8 +2842,10 @@ p_reset <- function(
     # the title/legend even on a full-width slide.
     if (is.null(el$overrides$size_leyenda)) el$overrides$size_leyenda <- 11
     if (is.null(el$overrides$size_ejes)) el$overrides$size_ejes <- 11
-    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
-    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
+    # La columna Top Two Box sigue al estándar (ADR 0092, F2.4): mide 1 in y sus
+    # cifras van a 14 pt, también en las baterías largas.
+    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- .std_pt("cifra")
+    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- .std_pt("rotulo_top_two_box")
     if (is.null(el$overrides$size_nota_pie)) el$overrides$size_nota_pie <- 10
     if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.55
     if (is.null(el$overrides$canvas_h_caption_in)) el$overrides$canvas_h_caption_in <- 0.34
@@ -2859,8 +2861,8 @@ p_reset <- function(
   if (width < 7.25 && etype %in% c("barras_apiladas", "barras_multiapiladas")) {
     if (is.null(el$overrides$size_leyenda)) el$overrides$size_leyenda <- 10
     if (is.null(el$overrides$size_ejes)) el$overrides$size_ejes <- 11
-    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
-    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
+    if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- .std_pt("cifra")
+    if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- .std_pt("rotulo_top_two_box")
     if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.68
     # Ídem en gráficos estrechos: apretar el canvas no autoriza a esconder el dato.
   }

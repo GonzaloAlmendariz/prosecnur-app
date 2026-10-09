@@ -36,8 +36,14 @@
 #' la cifra que no cabe en su segmento sube con guía (`reglas.cifras_chicas`).
 #' @keywords internal
 .std_claves_tipo <- function() {
-  arriba <- list(etiquetas_arriba_si_no_caben = list(valor = TRUE, token = "reglas.cifras_chicas"))
-  list(barras_apiladas = arriba, multi_apiladas = arriba)
+  # y la columna Top Two Box: cifras a 14 pt, rótulo a 10 pt, en su verde.
+  claves <- list(
+    etiquetas_arriba_si_no_caben = list(valor = TRUE, token = "reglas.cifras_chicas"),
+    size_barra_extra  = list(valor = .std_pt("cifra"), token = "tipografia.cifra"),
+    size_titulo_extra = list(valor = .std_pt("rotulo_top_two_box"), token = "tipografia.rotulo_top_two_box"),
+    color_barra_extra = list(valor = .std_color("verde_top_two_box"), token = "colores.verde_top_two_box")
+  )
+  list(barras_apiladas = claves, multi_apiladas = claves)
 }
 
 #' Impone el estándar sobre `presets$base` (y `base$args` si existe)

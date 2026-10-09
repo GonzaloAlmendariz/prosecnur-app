@@ -1366,6 +1366,9 @@ graficar_barras_apiladas <- function(
     # ADR 0092: el grosor sale de la tabla del estándar por número de filas.
     # FALSE vuelve a la fracción de fila con piso y techo (comportamiento previo).
     grosor_estandar       = TRUE,
+    # ADR 0092 (F2.4): la columna Top Two Box mide 1 in, a 0.1 in de la barra
+    # (recetario_piezas.R:12-13). NULL vuelve al reparto proporcional previo.
+    columna_extra_in      = .std_geom("columna_top_two_box"),
     dpi                   = 300,
 
     ppt_append            = TRUE,
@@ -3128,6 +3131,26 @@ graficar_barras_apiladas <- function(
   w_buf2  <- w_buf2  / w_sum
   w_extra <- w_extra / w_sum
 
+  # ADR 0092 (F2.4): la columna extra mide lo que pide el recetario en pulgadas,
+  # no una fracción del lienzo (con 0.12 salía de ~1.5 a 2 in en la lámina
+  # ancha); el resto del ancho se reparte en las mismas proporciones.
+  col_in <- suppressWarnings(as.numeric(columna_extra_in %||% NA_real_)[1])
+  ancho_num <- suppressWarnings(as.numeric(ancho)[1])
+  if (isTRUE(mostrar_barra_extra) && w_extra > 0 && is.finite(col_in) && col_in > 0 &&
+      is.finite(ancho_num) && ancho_num > col_in + 1) {
+    w_extra_std <- col_in / ancho_num
+    w_buf2_std <- 0.1 / ancho_num
+    escala_resto <- (1 - w_extra_std - w_buf2_std) / (1 - w_extra - w_buf2)
+    w_legend_side <- w_legend_side * escala_resto
+    w_group <- w_group * escala_resto
+    w_buf0  <- w_buf0  * escala_resto
+    w_etq   <- w_etq   * escala_resto
+    w_buf1  <- w_buf1  * escala_resto
+    w_bars  <- w_bars  * escala_resto
+    w_buf2  <- w_buf2_std
+    w_extra <- w_extra_std
+  }
+
   x_legend_side0 <- if (identical(leyenda_posicion, "izquierda")) 0 else NA_real_
   x_group0 <- if (identical(leyenda_posicion, "izquierda")) w_legend_side else 0
   x_buf00  <- x_group0 + w_group
@@ -3916,7 +3939,8 @@ graficar_barras_apiladas <- function(
       # lo que se compara con `.std_grosor()` en el banco de F2 (ADR 0092).
       alto_fila_in = h_bars_area * as.numeric(alto) / den,
       grosor_in = grosor_eff * h_bars_area * as.numeric(alto) / den,
-      h_total_in = h_total_in
+      h_total_in = h_total_in,
+      ancho_columna_extra_in = if (isTRUE(mostrar_barra_extra)) w_extra * as.numeric(ancho) else 0
     )
     if (!is.null(legend_manual_layout)) {
       layout_attr <- attr(canvas, "pulso_barras_apiladas_layout")

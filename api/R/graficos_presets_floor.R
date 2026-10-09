@@ -43,9 +43,11 @@
 #'   la lamina baja de 14 a 10 pt (`size_nota_pie`).
 #' - `4`: ADR 0092 (F2.3) — las cifras chicas de las apiladas suben con guia
 #'   (`etiquetas_arriba_si_no_caben = TRUE`), como en el recetario.
+#' - `5`: ADR 0092 (F2.4) — columna Top Two Box del recetario: cifras 14 pt,
+#'   rotulo 10 pt, verde #4E9438.
 #'
 #' @keywords internal
-.PRESETS_FLOOR_VERSION <- 4L
+.PRESETS_FLOOR_VERSION <- 5L
 
 #' Sello del suelo editorial vigente
 #'

@@ -3616,7 +3616,7 @@
   ),
 
   barras_apiladas = list(
-    color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
+    color_barra_extra        = "#4E9438",  # ADR 0092: verde_top_two_box del estándar
 
     canvas_w_etiquetas       = 0.18,
     canvas_w_buf_etq_bars    = 0.03,
@@ -3661,8 +3661,8 @@
     size_texto_barras        = 4.92,
     size_texto_barras_peq    = 4.92,
     size_leyenda             = 12,
-    size_barra_extra         = 16,
-    size_titulo_extra        = 16,
+    size_barra_extra         = 14,  # ADR 0092: cifra de la columna Top Two Box
+    size_titulo_extra        = 10,  # ADR 0092: rótulo «Top Two Box»
     # 22 partia las preguntas largas en 6+ lineas (feedback directo B36).
     ancho_max_eje_y          = 34,
     prefijo_barra_extra      = "",
@@ -3715,7 +3715,7 @@
     legend_gap_npc           = 0.012,
 
     color_texto_barras       = "white",
-    color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
+    color_barra_extra        = "#4E9438",  # ADR 0092: verde_top_two_box del estándar
     # Mismo criterio que en apiladas: la columna extra de una multiapilada es
     # el Top 2 Box. `mostrar_barra_extra` lo enciende el plan con `top2box` o
     # el propio preset; el preset del indicador tiene que estar puesto para que
@@ -3723,12 +3723,12 @@
     barra_extra_preset       = "top2box",
     size_texto_barras        = 4.92,
     size_texto_barras_peq    = 4.92,
-    size_titulo_extra        = 16,
+    size_titulo_extra        = 10,  # ADR 0092: rótulo «Top Two Box»
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
     size_ejes                = 12,
     size_leyenda             = 12,
-    size_barra_extra         = 16,
+    size_barra_extra         = 14,  # ADR 0092: cifra de la columna Top Two Box
     # B45: opt-in, igual que en apiladas.
     etiquetas_arriba_si_no_caben = TRUE,  # ADR 0092: las cifras chicas suben con guía
     etiquetas_arriba_offset = 0.17,

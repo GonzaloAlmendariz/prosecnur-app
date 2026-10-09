@@ -71,3 +71,16 @@ test_that("cambiar el ancho de la capa no la deja sin barras", {
   expect_true(all(c("ymin", "ymax") %in% names(b)))
   expect_equal(unique(round(b$ymax - b$ymin, 3)), 0.3)
 })
+
+test_that("la columna Top Two Box mide 1 in, como en el recetario", {
+  skip_if_not_installed("cowplot")
+  d <- data.frame(categoria = c("A", "B", "C"), N = 200L,
+                  t1 = c(.1, .2, .1), t2 = c(.2, .2, .1), t3 = c(.4, .3, .5), t4 = c(.3, .3, .3))
+  ranura <- .std_tipo_lamina("p_slide_1_grafico")$ranuras[[1]]
+  p <- suppressMessages(suppressWarnings(graficar_barras_apiladas(
+    data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = paste0("t", 1:4),
+    etiquetas_grupos = c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA"), exportar = "rplot", usar_canvas = TRUE,
+    ancho = ranura$w, alto = ranura$h, mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+    top2box_labels = c("A", "TA"))))
+  expect_equal(attr(p, "pulso_barras_apiladas_layout")$ancho_columna_extra_in, .std_geom("columna_top_two_box"), tolerance = 1e-6)
+})

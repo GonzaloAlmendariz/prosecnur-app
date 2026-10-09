@@ -14,7 +14,7 @@ geom <- list(unidad = "in", ancho = W, alto = H, margen_izq_borde = ML0, margen_
              ancho_contenido = r3(AC), separacion_paneles = 0.5, columna_top_two_box = 1.0, aire_cifra_chica = 0.36,
              likert = list(x_premisa = ML, ancho_premisa = 3.3, x_actor = 3.6, ancho_actor = 1.5, x_barra = 5.2, ancho_barra = 6.0, x_top_two_box = 11.4))
 tipografia_ppt <- list(unidad = "pt", titulo = 24, antetitulo = 10, pregunta = 13, cifra = 14, cifra_fuera = 12, leyenda = 12, actor = 12,
-                       base = 10, n = 10, cuerpo = 14, narrativa = 15, cifra_destacada = 34, fuente = "Arial")
+                       base = 10, n = 10, cuerpo = 14, narrativa = 15, cifra_destacada = 34, rotulo_top_two_box = 10, fuente = "Arial")
 colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_suave = "#5A6480", texto_tenue = "#8A93A8", filete = "#D5D9DF",
                 cebra = "#E9ECF1", fondo = "#F2F2F2", verde_top_two_box = "#4E9438", naranja_bottom_two_box = "#B4541F")
 paletas <- list(
