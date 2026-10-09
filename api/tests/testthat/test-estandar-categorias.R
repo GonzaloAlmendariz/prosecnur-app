@@ -76,3 +76,27 @@ test_that("dos categorías con paleta propia siguen en barras", {
   p <- .cat_h(c("Sí", "No"), c(126, 46), colores_categorias = list("Sí" = "#111111", No = "#222222"))
   expect_false(isTRUE(attr(p, "pulso_barras_horizontales_layout")$dicotomia))
 })
+
+test_that("una categoría en 0 % se dibuja si llega (verificador de F2)", {
+  p <- .cat_h(c("A", "B", "C", "D"), c(5, 3, 2, 0))
+  expect_length(attr(p, "pulso_barras_horizontales_layout")$orden, 4L)
+})
+
+test_that("dos categorías que no suman 100 % no se dibujan como dicotomía partida", {
+  d <- data.frame(categoria = c("Sí", "No"), n = c(60, 25), pct = c(0.6, 0.25))
+  p <- suppressWarnings(graficar_barras_categoricas(
+    data = d, var_categoria = "categoria", var_valor = "pct", var_n = "n", var_pct = "pct",
+    modo_valor = "valor", formato_valor = "porcentaje", ancho = 12.5, alto = 4.6))
+  expect_false(isTRUE(attr(p, "pulso_barras_horizontales_layout")$dicotomia))
+})
+
+test_that("el Word calibra la categórica a su lienzo y a su tamaño de rótulo", {
+  el <- list(overrides = list())
+  out <- .word_ajustar_el(el, "barras_categoricas", word_image = NULL)
+  expect_true(is.numeric(out$overrides$ancho) && is.numeric(out$overrides$alto))
+  expect_equal(out$overrides$size_rotulos_h, .std_word("tipografia", "grafico_rotulo"))
+  # y el rótulo más largo cabe en el lienzo de Word
+  p <- .cat_h(c("Redes sociales", "Familia", "Otros"), c(20, 40, 9),
+              size_rotulos_h = out$overrides$size_rotulos_h)
+  expect_lte(attr(p, "pulso_barras_horizontales_layout")$ancho_rotulo_in, 0.32 * 12.5)
+})
