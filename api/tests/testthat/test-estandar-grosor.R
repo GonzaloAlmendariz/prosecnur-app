@@ -84,3 +84,29 @@ test_that("la columna Top Two Box mide 1 in, como en el recetario", {
     top2box_labels = c("A", "TA"))))
   expect_equal(attr(p, "pulso_barras_apiladas_layout")$ancho_columna_extra_in, .std_geom("columna_top_two_box"), tolerance = 1e-6)
 })
+
+test_that("con Bottom Two Box van dos columnas de 1.25 in y la segunda suma el desacuerdo", {
+  skip_if_not_installed("cowplot")
+  d <- data.frame(categoria = c("A", "B"), N = 200L,
+                  t1 = c(.06, .12), t2 = c(.14, .20), t3 = c(.41, .45), t4 = c(.39, .23))
+  ranura <- .std_tipo_lamina("p_slide_1_grafico")$ranuras[[1]]
+  lay <- attr(suppressMessages(suppressWarnings(graficar_barras_apiladas(
+    data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = paste0("t", 1:4),
+    etiquetas_grupos = c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA"), exportar = "rplot", usar_canvas = TRUE,
+    ancho = ranura$w, alto = ranura$h, mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+    top2box_labels = c("A", "TA"), columna_bottom2box = TRUE, bottom2box_labels = c("TD", "D")))),
+    "pulso_barras_apiladas_layout")
+  expect_equal(lay$ancho_columna_extra_in, 2 * 1.25 + 0.05, tolerance = 1e-6)
+  expect_equal(unname(lay$bottom2box), c("20%", "32%"))
+})
+
+test_that("sin categorías declaradas la Bottom Two Box no se inventa", {
+  skip_if_not_installed("cowplot")
+  d <- data.frame(categoria = "A", N = 200L, t1 = .1, t2 = .2, t3 = .4, t4 = .3)
+  expect_message(p <- suppressWarnings(graficar_barras_apiladas(
+    data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = paste0("t", 1:4),
+    etiquetas_grupos = c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA"), exportar = "rplot", usar_canvas = TRUE,
+    ancho = 12.5, alto = 4.6, mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+    top2box_labels = c("A", "TA"), columna_bottom2box = TRUE)), "Bottom Two Box")
+  expect_null(attr(p, "pulso_barras_apiladas_layout")$bottom2box)
+})

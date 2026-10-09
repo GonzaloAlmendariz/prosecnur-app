@@ -1563,7 +1563,7 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   # 41 laminas (`.PPT_ROTULO_TOP_TWO_BOX`). Buscar «Top 2 Box» sobre ese mismo
   # entregable devolvia 0 columnas cuando tiene 40, que es lo que motivo el
   # cambio de forma.
-  expect_true(grepl("TOP TWO BOX", xml, fixed = TRUE))
+  expect_true(grepl(.PPT_ROTULO_TOP_TWO_BOX, xml, fixed = TRUE))
   expect_false(grepl("N =", xml, fixed = TRUE))
   expect_true(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })

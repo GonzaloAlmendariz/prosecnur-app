@@ -4577,17 +4577,17 @@ reporte_ppt_plan <- function(
         base_args$top2box_labels <- el$top2box_labels
       }
       if (is.null(base_args$titulo_barra_extra) || !nzchar(base_args$titulo_barra_extra)) {
-        # «TOP TWO BOX», como lo escribe el entregable aprobado en sus 41
-        # laminas. Ademas de coherencia, la forma importa para medir: buscando
-        # «Top 2 Box» el conteo sobre el aprobado devolvia 0 columnas cuando
-        # tiene 40.
-        base_args$titulo_barra_extra <- "TOP TWO BOX"
+        # El rotulo de la casa vive en `.PPT_ROTULO_TOP_TWO_BOX`: «Top Two Box»
+        # del recetario moderno (ADR 0092), no el «TOP TWO BOX» del aprobado de
+        # 2021. Una sola fuente para el graficador y para este renderer, que
+        # antes lo escribian cada uno a mano.
+        base_args$titulo_barra_extra <- .PPT_ROTULO_TOP_TWO_BOX
       }
       col_extra <- as.character(base_args$color_barra_extra %||% "")[1]
       if (is.na(col_extra)) col_extra <- ""
       col_extra <- trimws(col_extra)
       if (!nzchar(col_extra) || identical(toupper(col_extra), "#081F5C")) {
-        base_args$color_barra_extra <- "#70AD47"
+        base_args$color_barra_extra <- .std_color("verde_top_two_box")
       }
 
       base_args

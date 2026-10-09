@@ -175,11 +175,15 @@
 # DENTRO del canvas. No volver a subir este tope por ese sintoma.
 .BARRAS_PANEL_ESTIRA_MAX <- 1.8
 
-# Rotulo de la columna extra, tal como lo escribe el entregable aprobado en sus
-# 41 laminas. La forma importa ademas de por coherencia: buscando «Top 2 Box»
-# —como lo escribia el motor— el conteo sobre el aprobado devolvia 0 columnas
-# cuando tiene 40.
-.PPT_ROTULO_TOP_TWO_BOX <- "TOP TWO BOX"
+# Rotulo de la columna extra. El entregable aprobado de 2021 lo escribia «TOP TWO
+# BOX» (estilo fiel); el recetario moderno, que es el estandar (ADR 0092), lo
+# escribe «Top Two Box» (recetario_piezas.R:14). Quien mida contra el aprobado
+# debe buscar sin distinguir mayusculas.
+.PPT_ROTULO_TOP_TWO_BOX <- "Top Two Box"
+
+# Ancho de cada columna cuando van Top Two Box y Bottom Two Box juntas
+# (filas_pulso, propuestas_rescatables.R:24: `wcol <- 1.25`).
+.BTB_COLUMNA_IN <- 1.25
 
 .finalizar_estado_labels_apiladas <- function(df_lab,
                                              color_texto_barras,
@@ -1369,6 +1373,10 @@ graficar_barras_apiladas <- function(
     # ADR 0092 (F2.4): la columna Top Two Box mide 1 in, a 0.1 in de la barra
     # (recetario_piezas.R:12-13). NULL vuelve al reparto proporcional previo.
     columna_extra_in      = .std_geom("columna_top_two_box"),
+    # ADR 0092 (F2.5): junto a la columna Top Two Box, la Bottom Two Box del
+    # recetario (filas_pulso, propuestas_rescatables.R:23-47): dos columnas de
+    # 1.25 in con su rótulo y sus cifras en naranja.
+    columna_bottom2box    = FALSE,
     dpi                   = 300,
 
     ppt_append            = TRUE,
@@ -2810,6 +2818,31 @@ graficar_barras_apiladas <- function(
     extra_labels[!is.finite(extra_vals)] <- ""
   }
 
+  # Segunda columna: Bottom Two Box, sólo junto a un Top Two Box y si sus
+  # categorías están declaradas (mismo guardia que la primera).
+  btb_activa <- isTRUE(columna_bottom2box) && isTRUE(mostrar_barra_extra) &&
+    identical(barra_extra_preset, "top2box") && is.null(t2b_comparativo)
+  btb_labels <- rep("", length(cat_lvls))
+  if (btb_activa) {
+    btb_dec <- .box_decidir(labels = bottom2box_labels, etiquetas_grupos = etiquetas_grupos,
+                            cols_porcentaje = cols_porcentaje, minimo = 3L)
+    if (!isTRUE(btb_dec$dibujar)) {
+      if (identical(btb_dec$motivo, "sin_declaracion")) {
+        .pulso_aviso("La columna «Bottom Two Box» se omite: no hay categorias declaradas (bottom2box_labels).")
+      }
+      btb_activa <- FALSE
+    }
+  }
+  if (btb_activa) {
+    base_btb <- df[, cols_porcentaje, drop = FALSE]
+    if (escala_valor == "proporcion_100") base_btb <- base_btb / 100
+    cols_btb <- .box_cols_desde_etiquetas(bottom2box_labels, etiquetas_grupos, cols_porcentaje)
+    v_btb <- rowSums(as.matrix(base_btb[, cols_btb, drop = FALSE]), na.rm = TRUE) * 100
+    btb_vals <- v_btb[match(cat_lvls, as.character(df[[var_categoria]]))]
+    btb_labels <- paste0(.format_pct_clean(btb_vals, decimales), "%")
+    btb_labels[!is.finite(btb_vals)] <- ""
+  }
+
   # ---------------------------------------------------------------------------
   # 7) Caption (texto)
   # ---------------------------------------------------------------------------
@@ -3136,6 +3169,7 @@ graficar_barras_apiladas <- function(
   # ancha); el resto del ancho se reparte en las mismas proporciones.
   col_in <- suppressWarnings(as.numeric(columna_extra_in %||% NA_real_)[1])
   ancho_num <- suppressWarnings(as.numeric(ancho)[1])
+  if (isTRUE(btb_activa)) col_in <- 2 * .BTB_COLUMNA_IN + 0.05
   if (isTRUE(mostrar_barra_extra) && w_extra > 0 && is.finite(col_in) && col_in > 0 &&
       is.finite(ancho_num) && ancho_num > col_in + 1) {
     w_extra_std <- col_in / ancho_num
@@ -3283,7 +3317,7 @@ graficar_barras_apiladas <- function(
         !is.null(titulo_extra_int) && nzchar(titulo_extra_int)) {
       canvas <- canvas + cowplot::draw_text(
         text     = titulo_extra_int,
-        x        = x_extra0 + (w_extra * 0.5),
+        x        = if (isTRUE(btb_activa)) x_extra0 + .BTB_COLUMNA_IN / (2 * as.numeric(ancho)) else x_extra0 + (w_extra * 0.5),
         y        = y_top0 + (top_h * 0.5),
         hjust    = 0.5,
         vjust    = 0.5,
@@ -3292,6 +3326,13 @@ graficar_barras_apiladas <- function(
         family = font_family,
         fontface = "bold"
       )
+      if (isTRUE(btb_activa)) {
+        canvas <- canvas + cowplot::draw_text(
+          text = "Bottom Two Box", x = x_extra0 + w_extra - .BTB_COLUMNA_IN / (2 * as.numeric(ancho)),
+          y = y_top0 + (top_h * 0.5), hjust = 0.5, vjust = 0.5, size = size_titulo_extra,
+          colour = .std_color("naranja_bottom_two_box_texto"), family = font_family, fontface = "bold"
+        )
+      }
     }
   }
 
@@ -3593,8 +3634,20 @@ graficar_barras_apiladas <- function(
     }
   }
 
-  # Extra (columna derecha)
-  x_extra_txt <- x_extra0 + (w_extra * 0.5)
+  # Extra (columna derecha). Con Bottom Two Box, la primera ocupa la mitad izquierda.
+  x_extra_txt <- if (isTRUE(btb_activa)) x_extra0 + .BTB_COLUMNA_IN / (2 * as.numeric(ancho)) else x_extra0 + (w_extra * 0.5)
+  if (isTRUE(btb_activa)) {
+    x_btb_txt <- x_extra0 + w_extra - .BTB_COLUMNA_IN / (2 * as.numeric(ancho))
+    for (i in seq_len(n_categorias)) {
+      if (nzchar(btb_labels[i])) {
+        canvas <- canvas + cowplot::draw_text(
+          text = btb_labels[i], x = x_btb_txt, y = y_abs[i], hjust = 0.5, vjust = 0.5,
+          size = size_barra_extra, colour = .std_color("naranja_bottom_two_box_texto"),
+          family = font_family, fontface = fontface_barra_extra
+        )
+      }
+    }
+  }
   if (!is.null(t2b_comparativo)) {
     # Tabla comparativa: dos columnas con rejilla, semáforo por umbral y
     # triángulo de tendencia. Reemplaza a la cifra suelta, no se suma a ella.
@@ -3940,7 +3993,8 @@ graficar_barras_apiladas <- function(
       alto_fila_in = h_bars_area * as.numeric(alto) / den,
       grosor_in = grosor_eff * h_bars_area * as.numeric(alto) / den,
       h_total_in = h_total_in,
-      ancho_columna_extra_in = if (isTRUE(mostrar_barra_extra)) w_extra * as.numeric(ancho) else 0
+      ancho_columna_extra_in = if (isTRUE(mostrar_barra_extra)) w_extra * as.numeric(ancho) else 0,
+      bottom2box = if (isTRUE(btb_activa)) btb_labels else NULL
     )
     if (!is.null(legend_manual_layout)) {
       layout_attr <- attr(canvas, "pulso_barras_apiladas_layout")
