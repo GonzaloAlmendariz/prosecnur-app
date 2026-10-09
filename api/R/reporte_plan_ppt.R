@@ -7782,7 +7782,6 @@ reporte_ppt_plan <- function(
 
     # ---- TOP_TWO_BOX --------------------------------------------------------
     if (identical(stype, "top_two_box")) {
-
       contract <- PPT_CONTRACT$top_two_box
       slots <- slide$slots %||% list()
       style <- slide$style %||% slots$estilo %||% list()
@@ -7799,7 +7798,8 @@ reporte_ppt_plan <- function(
         .plan_input_abort("La plantilla NO tiene layout requerido para `top_two_box`: 'Title and Content' o 'General Objective'.")
       }
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_top_two_box_cabe(slots)) doc <- .lam_laminas_top_two_box(doc, slots, folio = length(doc) + 1L, layout = PPT_CONTRACT$slide_1$layout, master = master, por_lamina = .add_partner_footer_logo)$doc
+      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_top_two_box_cabe(slots))) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         font_family_default <- presets$base$args$font_family_ppt %||%
