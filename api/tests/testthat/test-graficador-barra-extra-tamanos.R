@@ -23,7 +23,8 @@ test_that("la columna extra no escribe mas grande que las barras", {
 test_that("la capa de presets sigue declarando los suyos", {
   # Si un proyecto SÍ trae la config, manda ella. Este test existe para que
   # subir los defaults de firma no se confunda con haber tocado los presets.
+  # ADR 0092 (F2.4): los de la columna Top Two Box del recetario.
   pr <- .PRESETS_DEFAULT_PULSO$multi_apiladas
-  expect_gte(as.numeric(pr$size_barra_extra), 11)
-  expect_gte(as.numeric(pr$size_titulo_extra), 11)
+  expect_equal(as.numeric(pr$size_barra_extra), .std_pt("cifra"))
+  expect_equal(as.numeric(pr$size_titulo_extra), .std_pt("rotulo_top_two_box"))
 })

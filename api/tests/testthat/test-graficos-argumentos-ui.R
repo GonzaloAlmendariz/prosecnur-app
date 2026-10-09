@@ -868,8 +868,8 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_agrupadas$face_subtitulo, "bold")
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_agrupadas$size_subtitulo, 13)
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_agrupadas$encabezado_separacion_in, 0.18)
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
-  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_barra_extra, .std_color("verde_top_two_box"))
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_barra_extra, .std_color("verde_top_two_box"))
   # **Calibre del entregable aprobado** (`1019c001` y `a297207d`, 2026-08-16).
   # Comparando tamaño por ROL, el motor escribia un tercio mas grande que el
   # mazo aprobado: cifras 15.93 pt contra 14, etiquetas 15.99 contra 12-13.
@@ -887,7 +887,8 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
     .PRESETS_DEFAULT_PULSO$barras_apiladas$size_texto_barras_peq
   )
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_leyenda, 12)
-  expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_barra_extra, 16)
+  # ADR 0092 (F2.4): la columna Top Two Box del recetario, cifras a 14 pt.
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_barra_extra, .std_pt("cifra"))
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$grosor_barras, 0.68)
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_agrupadas$grosor_barras, 0.68)
   expect_equal(
@@ -912,8 +913,9 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$posicion_conector_etiquetas, "centro")
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$linewidth_conectores_etiquetas, 0.42)
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$linewidth_conectores_etiquetas, 0.42)
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_titulo_extra, 16)
-  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$size_titulo_extra, 16)
+  # ADR 0092 (F2.4): el rótulo «Top Two Box» va a 10 pt, centrado sobre la columna.
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_titulo_extra, .std_pt("rotulo_top_two_box"))
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$size_titulo_extra, .std_pt("rotulo_top_two_box"))
   expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "Top 2 Box")
 })
 
