@@ -154,3 +154,52 @@ test_that("el graficador deja el orden declarado (un cruce no se reordena) y la 
   o <- .espec_ordenar_por_box(e)
   expect_identical(o$filas$id[o$orden$aplicado], c("Sexto", "Séptimo", "Quinto"))   # 80, 60, 50
 })
+
+# ---- verificador de N2 ------------------------------------------------------
+
+.fondo_max <- function(doc, k) {
+  x <- doc$slide$get_slide(k)$get()
+  sp <- xml2::xml_find_all(x, "//p:grpSp[starts-with(p:nvGrpSpPr/p:cNvPr/@name, 'prosecnur:grafico')]/p:sp")
+  off <- as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, "p:spPr/a:xfrm/a:off"), "y"))
+  ext <- as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, "p:spPr/a:xfrm/a:ext"), "cy"))
+  max((off + ext) / 914400)
+}
+.textos <- function(doc, k, nombre) {
+  x <- doc$slide$get_slide(k)$get()
+  xml2::xml_text(xml2::xml_find_all(x, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", nombre)))
+}
+
+test_that("una fila Total con diez grupos y Bottom Two Box se parte, repite la Total y nada sale de la zona de datos", {
+  set.seed(10)
+  d <- do.call(rbind, lapply(1:10, function(k) {
+    p <- stats::runif(5, 0.05, 1); p <- p / sum(p)
+    data.frame(item = sprintf("g%02d", k), actor = sprintf("Grupo %02d", k), N = 50, t1 = p[1], t2 = p[2], t3 = p[3], t4 = p[4], t5 = p[5])
+  }))
+  e <- preparar_escala(d, "item", "N", paste0("t", 1:5), .niv_esc, var_etiqueta_categoria = "actor",
+                       colores_grupos = as.list(setNames(.std_paleta("likert"), .niv_esc)), barra_extra_preset = "top2box",
+                       top2box_labels = .niv_esc[3:4], columna_bottom2box = TRUE, bottom2box_labels = .niv_esc[1:2], fila_total = TRUE)
+  o <- .lam_laminas_escala(.doc_vacio(), e, "Grupos", base = "Base", folio = 1)
+  expect_gt(o$partes, 1L)
+  n0 <- length(o$doc) - o$partes
+  vistos <- character(0)
+  for (k in seq_len(o$partes)) {
+    expect_lte(.fondo_max(o$doc, n0 + k), .std_geom("base_y") - 0.05)
+    act <- .textos(o$doc, n0 + k, "actor")
+    expect_identical(act[1], "Total")
+    vistos <- c(vistos, act[-1])
+  }
+  expect_setequal(vistos, sprintf("Grupo %02d", 1:10))   # ningún grupo se pierde ni se repite
+  expect_false(any(duplicated(vistos)))
+})
+
+test_that("con actores y Bottom Two Box cada premisa conserva su título", {
+  d <- data.frame(item = c("a1", "a2", "b1", "b2"), actor = c("Alumnos", "Docentes", "Alumnos", "Docentes"),
+                  grupo = c("P1", "P1", "P2", "P2"), titulo = c("Premisa uno larga", "Premisa uno larga", "Premisa dos larga", "Premisa dos larga"),
+                  N = 100, t1 = .1, t2 = .1, t3 = .4, t4 = .3, t5 = .1)
+  e <- preparar_escala(d, "item", "N", paste0("t", 1:5), .niv_esc, var_etiqueta_categoria = "actor", var_grupo_id = "grupo",
+                       var_grupo_titulo = "titulo", colores_grupos = as.list(setNames(.std_paleta("likert"), .niv_esc)),
+                       barra_extra_preset = "top2box", top2box_labels = .niv_esc[3:4], columna_bottom2box = TRUE, bottom2box_labels = .niv_esc[1:2])
+  o <- .lam_laminas_escala(.doc_vacio(), e, "Premisas", base = "Base", folio = 1)
+  textos <- unlist(lapply(seq_len(o$partes), function(k) .textos(o$doc, length(o$doc) - o$partes + k, "pregunta")))
+  expect_setequal(textos, c("Premisa uno larga", "Premisa dos larga"))
+})

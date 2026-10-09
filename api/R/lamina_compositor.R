@@ -44,15 +44,16 @@
   # primer add_slide y saldría corrido. Se fuerza antes de tocar el documento (verificador de N1).
   force(folio)
   premisas <- .lam_escala_premisas(espec)
-  # Con fila Total o Bottom Two Box el bloque es una pregunta con sus filas: no se parte (la Total no se
-  # separa de los grupos que resume).
-  partes <- if (.lam_escala_en_filas(espec)) list(premisas) else .lam_escala_partir(premisas)
+  # Con fila Total o Bottom Two Box el recetario compone filas bajo cada pregunta (lámina 77); se parte por
+  # bloques y, si hace falta, por filas repitiendo la Total (verificador de N2).
+  en_filas <- .lam_escala_en_filas(espec)
+  partes <- if (en_filas) .lam_filas_planear(espec, premisas) else .lam_escala_partir(premisas)
   for (k in seq_along(partes)) {
     doc <- officer::add_slide(doc, layout = layout, master = master)
     # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122).
     doc <- .lam_titulo(doc, paste0(titulo, if (k > 1) " (cont.)" else ""), ante = ante, sub = if (k == 1L) sub else NULL)
     lz <- .lam_lienzo()
-    .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L)
+    if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L)
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:escala")
     doc <- .lam_pie(doc, base, if (is.null(folio)) NULL else folio + k - 1L)
     doc <- por_lamina(doc)
@@ -162,12 +163,14 @@
 #' (piezas de la lámina de un gráfico), todos comparten la escala (una sola leyenda) y cada panel cabe sobre
 #' la leyenda con la barra mínima.
 #' @keywords internal
-.lam_compositor_aplica_paneles <- function(ps, slide = NULL) {
+.lam_compositor_aplica_paneles <- function(ps, slide = NULL, tipo = "p_slide_2_graficos") {
   if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
   especs <- lapply(ps, function(p) if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL)
   if (any(vapply(especs, is.null, TRUE))) return(FALSE)
   if (!all(vapply(especs, function(e) identical(e$tipo, "escala") && NROW(e$filas) >= 1L && !.lam_escala_en_filas(e), TRUE))) return(FALSE)
   if (!.lam_paneles_misma_escala(especs)) return(FALSE)
+  # La apilada mide con su propia geometría: los bloques van uno bajo otro (verificador de N2).
+  if (identical(tipo, "p_slide_2_graficos_vertical")) return(isTRUE(.lam_vertical_geo(especs)$cabe))
   disp <- (.std_geom("leyenda_y") - 0.1) - (.std_geom("zona_datos_y0") + 0.8)
   all(vapply(especs, function(e) disp / NROW(e$filas) >= 0.24 + 0.36, TRUE))
 }
@@ -215,7 +218,7 @@
 #'
 #' Hoy `graficos_2_vertical` (lámina 142). Devuelve el documento o `NULL` si el tipo aún no es nativo.
 #' @keywords internal
-.lam_composicion_nativa <- function(doc, stype, rendered, els, slide) {
+.lam_composicion_nativa <- function(doc, stype, rendered, els, slide, titulo_de_var = NULL) {
   if (!identical(stype, "graficos_2_vertical")) return(NULL)
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   slots <- slide$slots %||% list()
@@ -225,7 +228,10 @@
     bases <- unique(unlist(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL))))
     base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
   }
-  preguntas <- lapply(els, function(el) texto(el$overrides$titulo) %||% texto(el$title_slide) %||% "")
+  preguntas <- lapply(els, function(el) {
+    texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
+      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(titulo_de_var(el$var), error = function(e) NULL))) %||% ""
+  })
   especs <- lapply(seq_along(rendered), function(k) {
     e <- attr(rendered[[k]], "pulso_espec")
     if (identical(els[[k]]$.element_type, "barras_multiapiladas") && identical(els[[k]]$modo %||% "var", "var")) e <- .espec_ordenar_por_box(e)

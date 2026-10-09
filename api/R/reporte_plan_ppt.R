@@ -8958,7 +8958,7 @@ reporte_ppt_plan <- function(
         inject_var_titulo = .inject_var_titulo,
         inject_title_override = .inject_title_override,
         base_por_grafico = .base_por_grafico,
-        base_auto_from_element = .base_auto_from_element
+        base_auto_from_element = .base_auto_from_element, title_of_var = .title_of_var
       )
     }
 
