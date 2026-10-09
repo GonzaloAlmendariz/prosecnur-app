@@ -99,3 +99,75 @@ test_that(".dim_build_context ofrece como filtro un select_one tras un grupo sin
   )
   expect_true("p1" %in% unlist(ctx$filter_var_map))
 })
+
+# Segunda tanda: el mismo defecto con el survey llamado `survey`. El lector
+# canónico (`reporte_instrumento()`) deja los end_group con name NA, así que
+# basta un grupo para que muerda a toda variable posterior.
+
+.inst_con_end_group_sin_nombre <- function() {
+  list(
+    survey = data.frame(
+      type = c("begin_group", "select_one sn", "end_group", "select_one sx", "select_multiple sx"),
+      name = c("g1", "p0", NA, "sexo", "multi"),
+      label = c("G", "P0", NA, "Sexo", "Multi"),
+      list_name = c(NA, "sn", NA, "sx", "sx"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("sn", "sn", "sx", "sx"), name = c("1", "2", "1", "2"),
+      label = c("Sí", "No", "Mujer", "Hombre"), stringsAsFactors = FALSE
+    )
+  )
+}
+
+test_that("tipo_pregunta no revienta con una variable derivada que no está en el survey", {
+  surv <- .inst_con_end_group_sin_nombre()$survey
+  expect_no_error(tipo_pregunta("r100_derivada", surv))
+  expect_identical(tipo_pregunta("sexo", surv), "so")
+  expect_identical(tipo_pregunta("multi", surv), "sm")
+})
+
+test_that("reporte_data conserva la medida declarada de una variable tras un end_group", {
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "survey")
+  openxlsx::writeData(wb, "survey", data.frame(
+    type = c("begin_group", "select_one sn", "end_group", "integer"),
+    name = c("g1", "p0", NA, "hijos"),
+    label = c("G", "P0", NA, "Hijos"),
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::addWorksheet(wb, "choices")
+  openxlsx::writeData(wb, "choices", data.frame(
+    list_name = c("sn", "sn"), name = c("1", "2"), label = c("Sí", "No"),
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path)
+  inst <- suppressMessages(reporte_instrumento(path))
+  expect_true(any(is.na(inst$survey$name)))
+  mr <- inst$measure_rules
+  declarada <- mr$measure_sugerida[which(mr$name == "hijos")[1]]
+  expect_identical(declarada, "scale")
+
+  # El conteo llega como texto (lo normal desde Kobo o un CSV): la heurística
+  # no le asigna medida, así que sólo puede venir de lo declarado.
+  dat <- data.frame(p0 = c("1", "2", "1"), hijos = c("0", "2", "1"))
+  rd <- suppressWarnings(suppressMessages(reporte_data(dat, inst)))
+  expect_identical(attr(rd$hijos, "measure"), declarada)
+})
+
+test_that("la validación nombra la opción de un select_one posterior a un end_group", {
+  inst <- .inst_con_end_group_sin_nombre()
+  r <- relevant_a_r_y_humano("selected(${sexo}, '2')", inst$survey, inst$choices, NULL)
+  expect_match(r$human, "«Hombre»", fixed = TRUE)
+})
+
+test_that("el cruce del interactivo rotula sus estratos aunque haya un end_group antes", {
+  inst <- .inst_con_end_group_sin_nombre()
+  dat <- data.frame(
+    p0 = c("1", "2", "1", "1"), sexo = c("1", "1", "2", "2"),
+    stringsAsFactors = FALSE
+  )
+  out <- .preparar_tabla_proporciones(dat, inst, "p0", var_cruce = "sexo")
+  expect_setequal(as.character(out$estrato_label), c("Mujer", "Hombre"))
+})
