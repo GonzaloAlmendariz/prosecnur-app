@@ -97,6 +97,11 @@
   if (espec$tipo %in% c("heatmap_dim", "comparativo_dim")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_dimensiones_cabe(espec)))
   }
+  # N3: barras divergentes (lámina 71) y ranking con puntos (lámina 72), si caben.
+  if (identical(espec$tipo, "divergentes")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_divergentes_cabe(espec)))
+  if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
+    return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_lollipop_cabe(espec)))
+  }
   if (identical(espec$tipo, "categorica")) {
     # N3: la categórica de una serie (columnas, lámina 68) es nativa cuando tiene categorías que dibujar.
     # Va nativa si cabe en columnas o en barras; si no cabe en ninguna, sigue la ruta anterior (verificador de N3).
@@ -186,6 +191,18 @@
       pesas = do.call(.lam_laminas_pesas, c(comunes, list(unidad_n = unidad))),
       serie2 = do.call(.lam_laminas_serie2, comunes))
     return(o$doc)
+  }
+  if (identical(espec$tipo, "divergentes")) {
+    return(.lam_laminas_divergentes(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
+                                    layout = layout, master = master, por_lamina = por_lamina)$doc)
+  }
+  if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
+    # Ranking con puntos (lámina 72); en selección múltiple lleva el encabezado del recetario.
+    return(.lam_laminas_lollipop(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                                 base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
+                                 encabezado = if (sum(espec$valores) > 1.02) "% de encuestados que marcó cada opción" else NULL,
+                                 layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der"))) {
     # Dos categorías que reparten el 100 % de un público: la dicotomía partida a todo el ancho (lámina 74). La

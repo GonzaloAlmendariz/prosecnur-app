@@ -120,6 +120,14 @@ graficar_lollipop <- function(
 
   # El eje Y se dibuja de abajo hacia arriba, asi que el orden se invierte para
   # que el mayor quede arriba.
+  # ADR 0093 (N3): lo que afirma el ranking para la lámina nativa (lámina 72): las categorías en su orden con las
+  # residuales al final y sin las que rotulan 0 % (preparar_categorica), la cifra con el redondeo de la casa.
+  dec_l <- suppressWarnings(as.integer(valores_decimales)[1]); if (!is.finite(dec_l) || dec_l < 0) dec_l <- 0L
+  espec_lollipop <- tryCatch({
+    e <- preparar_categorica(df$.cat, df$.valor / 100, .pulso_fmt_pct_half_up(df$.valor, dec_l, escala = 1),
+                             if (!is.null(var_n) && var_n %in% names(data)) data[[var_n]][match(df$.cat, as.character(data[[var_categoria]]))] else NULL)
+    e$nota <- nota_pie; e
+  }, error = function(e) NULL)
   df$.cat <- factor(df$.cat, levels = rev(df$.cat))
   df$.destacada <- df$.cat %in% as.character(resaltar %||% character(0))
 
@@ -175,5 +183,7 @@ graficar_lollipop <- function(
     )
 
   attr(out, "pulso_lollipop_recortadas") <- recortadas
+  if (!is.null(espec_lollipop)) espec_lollipop$forma <- "lollipop"
+  attr(out, "pulso_espec") <- espec_lollipop
   out
 }
