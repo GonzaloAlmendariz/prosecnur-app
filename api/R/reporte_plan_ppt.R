@@ -6222,10 +6222,10 @@ reporte_ppt_plan <- function(
 
       ln <- NA_character_
       if ("list_name" %in% names(surv)) {
-        tmp <- surv$list_name[surv$name == varname]
+        tmp <- surv$list_name[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       } else if ("list_norm" %in% names(surv)) {
-        tmp <- surv$list_norm[surv$name == varname]
+        tmp <- surv$list_norm[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       }
       if (is.na(ln) || !nzchar(ln)) return(NULL)
@@ -6396,10 +6396,10 @@ reporte_ppt_plan <- function(
 
       ln <- NA_character_
       if ("list_name" %in% names(surv)) {
-        tmp <- surv$list_name[surv$name == varname]
+        tmp <- surv$list_name[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       } else if ("list_norm" %in% names(surv)) {
-        tmp <- surv$list_norm[surv$name == varname]
+        tmp <- surv$list_norm[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       }
       if (is.na(ln) || !nzchar(ln)) return(NULL)
@@ -6574,10 +6574,10 @@ reporte_ppt_plan <- function(
 
       ln <- NA_character_
       if ("list_name" %in% names(surv)) {
-        tmp <- surv$list_name[surv$name == varname]
+        tmp <- surv$list_name[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       } else if ("list_norm" %in% names(surv)) {
-        tmp <- surv$list_norm[surv$name == varname]
+        tmp <- surv$list_norm[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       }
       if (is.na(ln) || !nzchar(ln)) return(NULL)

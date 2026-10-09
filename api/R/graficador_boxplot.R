@@ -288,6 +288,8 @@ graficar_boxplot <- function(
   }
   if (isTRUE(invertir_barras)) lvls <- rev(lvls)
   df$categoria <- factor(df$categoria, levels = lvls)
+  # ADR 0093 (N4): lo que afirma el diagrama de caja para la lámina nativa, en el orden de los grupos.
+  espec_boxplot <- tryCatch(preparar_boxplot(df$categoria, df$valor), error = function(e) NULL)
 
   if (!is.null(ancho_max_eje_cat) &&
       is.finite(ancho_max_eje_cat) &&
@@ -580,6 +582,7 @@ graficar_boxplot <- function(
   # Las bandas ya llevan su cota (ver arriba); un marco mas alrededor del
   # conjunto solo añadiria una linea que no mide nada nuevo.
 
+  attr(p_out, "pulso_espec") <- espec_boxplot
   if (identical(exportar, "rplot")) return(p_out)
 
   if (is.null(path_salida) || !nzchar(path_salida)) {

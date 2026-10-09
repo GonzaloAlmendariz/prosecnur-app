@@ -87,6 +87,12 @@
 .lam_compositor_aplica <- function(p, slide = NULL) {
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (is.null(espec)) return(FALSE)
+  # N4: los gráficos de números son nativos cuando traen su especificación con grupos que dibujar.
+  if (espec$tipo %in% c("histograma", "numerico", "media_rango")) {
+    n <- length(espec$valores %||% espec$media)
+    return(n >= 1L && n <= 12L && !identical((slide$meta %||% list())$motor_nativo, FALSE))
+  }
+  if (identical(espec$tipo, "boxplot")) return(NROW(espec$grupos) %in% 1:12 && !identical((slide$meta %||% list())$motor_nativo, FALSE))
   if (identical(espec$tipo, "categorica")) {
     # N3: la categórica de una serie (columnas, lámina 68) es nativa cuando tiene categorías que dibujar.
     # Va nativa si cabe en columnas o en barras; si no cabe en ninguna, sigue la ruta anterior (verificador de N3).
@@ -146,6 +152,19 @@
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
   if (!isTRUE(sin_base) && is.null(texto(base)) && is.null(texto(pie))) base <- texto(espec$nota)
+  if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango")) {
+    # Los gráficos de números (láminas 79-82): el público de la base nombra los casos («22 estudiantes»).
+    unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
+    comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
+                    layout = layout, master = master, por_lamina = por_lamina)
+    o <- switch(espec$tipo,
+      histograma = do.call(.lam_laminas_histograma, comunes),
+      numerico = do.call(.lam_laminas_numerico, c(comunes, list(unidad_n = unidad, encabezado = espec$etiqueta))),
+      boxplot = do.call(.lam_laminas_boxplot, comunes),
+      media_rango = do.call(.lam_laminas_media_rango, c(comunes, list(unidad_n = unidad))))
+    return(o$doc)
+  }
   if (.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der"))) {
     # Dos categorías que reparten el 100 % de un público: la dicotomía partida a todo el ancho (lámina 74). La
     # pregunta encabeza el panel cuando la lámina tiene su propio título; si no, el título ya es la pregunta.
