@@ -19,6 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { fuenteDelPerfilDeAulas } from "./fuenteDelPerfil";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,6 +38,15 @@ const LISTAS = [
 ];
 
 describe("las listas de unidades usan la regla de orden de cadena", () => {
+  // **Centinela de no-mudez.** Los dos barridos de abajo enumeran el directorio
+  // del perfil y afirman que nadie redefine `fmt` ni el comparador. Sin
+  // fuentes, las dos listas salen vacías y el guard pasa sin leer un archivo.
+  it("el barrido encuentra las fuentes del perfil, o no está guardando nada", () => {
+    expect(
+      fs.readdirSync(aqui).filter((f) => f.endsWith(".tsx") || f.endsWith(".ts")).length,
+    ).toBeGreaterThan(60);
+  });
+
   it.each(LISTAS)("$archivo — $que", ({ archivo }) => {
     const fuente = fs.readFileSync(path.join(aqui, archivo), "utf8");
     expect(fuente).toContain("ordenarPorCadenaOperativa");
@@ -92,10 +102,24 @@ describe("las dos cifras del objetivo declaran su procedencia", () => {
     fs.readFileSync(path.join(aqui, archivo), "utf8");
 
   it("la barra de cumplimiento dice que suma metas por curso-horario", () => {
-    expect(fuente("AulasMonitoreoPage.tsx")).toContain("suma de metas por curso-horario");
+    // En el PERFIL, no en un archivo concreto: la barra vive hoy en
+    // `AulasPestanaResumen.tsx` porque el page-file se está partiendo en una
+    // pestaña por fichero. Lo que este test protege es que la unidad esté
+    // declarada, no dónde.
+    // La frase pasó a castellano el 2026-09-10: «suma de metas por curso-horario,
+    // TOPADA en cada uno» dice la operación y no lo que significa, y él lo dijo
+    // dos veces —«no entiendo lo del cumplimiento por aula»—. Lo protegido es
+    // que la unidad y la regla de no compensación estén declaradas, no la
+    // fórmula con que se digan.
+    const fuente = fuenteDelPerfilDeAulas();
+    expect(fuente).toContain("lo que se le pide a cada uno de los");
+    expect(fuente).toContain("Lo que sobra en uno no cubre lo que falta en otro");
   });
 
   it("y la tarjeta de cuota dice que sus celdas son sexo × facultad", () => {
-    expect(fuente("kpisDeAulas.ts")).toContain("celdas sexo × facultad");
+    // El texto dejó de llevar el signo × y los guiones largos el 2026-09-08
+    // (Gonzalo: nada de em dashes en lo que él lee). Lo protegido es que la
+    // tarjeta declare la UNIDAD de su cuota, no la tipografía con que lo diga.
+    expect(fuente("kpisDeAulas.ts")).toContain("grupo a grupo de sexo por facultad");
   });
 });

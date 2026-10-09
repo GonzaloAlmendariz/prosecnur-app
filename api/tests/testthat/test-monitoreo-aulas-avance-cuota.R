@@ -466,3 +466,123 @@ test_that("el ritmo hereda la cuota vigente y el bloque es la unica fuente del a
   expect_false("cuota_diseno_total" %in% names(d$kpis))
   expect_false("avance_cuota_pct" %in% names(d$kpis))
 })
+
+# --- Un sexo sin decodificar no puede dar cero mudo --------------------------
+# `.maac_sexo_key()` acepta palabras («mujer», «hombre», «F», «M») pero Kobo
+# devuelve lo que el XLSForm guarda como NOMBRE de opcion, y el instrumento real
+# de HSVG2026 usa `1` = Mujer y `2` = Hombre. Con codigos, las treinta celdas
+# salen a cero y nada falla. Medido sobre el instrumento del estudio.
+
+.avc_plan_sexo <- function() list(
+  .avc_aula("A1", "DERECHO", expected = 10, eligible = 20)
+)
+
+.avc_dt_sexo <- function() .avc_dt(list(.avc_fac("DERECHO", 10, F = 6, M = 4)))
+
+test_that("con el sexo en codigo, el aviso dice la CAUSA y nombra los valores", {
+  d <- .avc_dash(.avc_plan_sexo(),
+                 .avc_resp(rep("A1", 3), sexo = c("1", "1", "2")),
+                 .avc_dt_sexo())
+  celda <- .avc_celda(d, "F")
+  expect_false(is.null(celda))
+  # Las respuestas SI se atribuyeron a su aula; lo que no resolvio es el sexo.
+  expect_identical(as.integer(celda$observed), 0L)
+  aviso <- as.character(celda$warning %||% "")
+  expect_true(nzchar(aviso))
+  # Nombra la columna y los valores que llegaron: sin eso hay que adivinar.
+  expect_match(aviso, "sexo", fixed = TRUE)
+  expect_match(aviso, "1", fixed = TRUE)
+  expect_match(aviso, "2", fixed = TRUE)
+  # Y NO adivina que 1 es mujer: otro estudio puede numerarlo al reves.
+  expect_false(grepl("1 es Mujer|1 = Mujer", aviso))
+})
+
+test_that("con etiquetas reconocibles no hay aviso y las celdas se llenan", {
+  # El control: sin esto, un aviso que saliera SIEMPRE pasaria el test de arriba.
+  d <- .avc_dash(.avc_plan_sexo(),
+                 .avc_resp(rep("A1", 3), sexo = c("Mujer", "Mujer", "Hombre")),
+                 .avc_dt_sexo())
+  f <- .avc_celda(d, "F")
+  m <- .avc_celda(d, "M")
+  expect_identical(as.integer(f$observed), 2L)
+  expect_identical(as.integer(m$observed), 1L)
+  expect_false(nzchar(as.character(f$warning %||% "")))
+})
+
+test_that("sin columna de sexo no se inventa un aviso sobre ella", {
+  # Que no exista la columna es otro problema —y ya tiene su propia lectura—:
+  # este aviso habla de valores que no se reconocen, y sin columna no hay valores.
+  d <- .avc_dash(.avc_plan_sexo(), .avc_resp(rep("A1", 3)), .avc_dt_sexo())
+  celda <- .avc_celda(d, "F")
+  expect_false(grepl("no se reconocen", as.character(celda$warning %||% "")))
+})
+
+# --- la brecha suma celdas, no resta totales (ADR 0079) -----------------------
+
+test_that("una facultad que se pasa en un sexo y debe en el otro NO sale con brecha cero", {
+  # ARQUITECTURA en HSVG2026 «como 2025»: cuota 125 (85 F / 40 M) y 126
+  # logradas, 68 F y 58 H. El total dice 126 sobre 125 y aun asi le faltan 17
+  # mujeres. Restar sobre el total publicaba brecha CERO y el panel de Cuotas la
+  # contaba entre las «cumplidas», mientras `avance_por_facultad` —del mismo
+  # payload y la misma pantalla— publicaba 17.
+  plan <- list(.avc_aula("A1", "FAC1", expected = 200, eligible = 400))
+  d <- .avc_dash(
+    plan,
+    .avc_resp(rep("A1", 126), sexo = c(rep("F", 68), rep("M", 58))),
+    dt = .avc_dt(list(.avc_fac("FAC1", 125, F = 85, M = 40)))
+  )
+  fila <- .avc_fila(d$avance_cuota, "FAC1")
+  expect_equal(fila$respuestas_validas, 126L)
+  expect_equal(fila$avance_pct, 100.8)
+  # 85 - 68 = 17 mujeres; los hombres sobran y no cubren nada.
+  expect_equal(fila$brecha, 17)
+  # Y las partes suman el total: la cabecera no puede decir cero con 17 abajo.
+  expect_equal(d$avance_cuota$total$brecha, 17)
+})
+
+test_that("sin celdas de sexo la brecha sigue siendo la resta del total", {
+  # Una facultad sin desglose no tiene celdas que sumar; fabricarle un cero
+  # seria peor que la resta. Es el fallback, y tiene que seguir vivo.
+  plan <- list(.avc_aula("A2", "FAC2", expected = 200, eligible = 400))
+  d <- .avc_dash(plan, .avc_resp(rep("A2", 30)),
+                 dt = .avc_dt(list(.avc_fac("FAC2", 50))))
+  fila <- .avc_fila(d$avance_cuota, "FAC2")
+  expect_equal(fila$brecha, 20)
+})
+
+test_that("un diseno que declara sus celdas declara su total, aunque no traiga total_cuota", {
+  # Medido el 2026-09-21 sobre CCSS Perfil 2026-II: el `design_targets` del
+  # proyecto trae las cuatro celdas por nivel —119, 122, 97 y 62— y NO trae
+  # `total_cuota`, porque lo armo otro camino que el constructor canonico. El
+  # KPI de cabecera leia `total$cuota`, lo encontraba NA y publicaba «S/D · el
+  # estudio no declara cuota del diseno» encima de una tabla que sumaba 400: el
+  # titular negando lo que su propio detalle afirma.
+  plan <- list(.avc_aula("A1", "FAC1", expected = 10), .avc_aula("A2", "FAC2", expected = 10))
+  dt <- .avc_dt(list(.avc_fac("FAC1", 8), .avc_fac("FAC2", 12)))
+  dt$total_cuota <- NULL
+  b <- .avc_dash(plan, .avc_resp("A1"), dt = dt)$avance_cuota
+  expect_identical(b$vigencia, "vigente")
+  # El respaldo es la MISMA cuenta del constructor canonico, no una invencion.
+  expect_equal(b$total$cuota, 20)
+  expect_equal(.avc_fila(b, "FAC1")$cuota, 8)
+  expect_equal(.avc_fila(b, "FAC2")$cuota, 12)
+})
+
+test_that("el total declarado por el diseno MANDA sobre la suma de las celdas", {
+  # Si el diseno dice su total, es el suyo: recomponerlo desde las celdas seria
+  # pisarle una cifra que el estudio calculo aparte (p. ej. con redondeos que no
+  # suman exacto).
+  plan <- list(.avc_aula("A1", "FAC1", expected = 10))
+  dt <- .avc_dt(list(.avc_fac("FAC1", 8)), total = 400)
+  b <- .avc_dash(plan, .avc_resp("A1"), dt = dt)$avance_cuota
+  expect_equal(b$total$cuota, 400)
+})
+
+test_that("sin ninguna celda con cuota el total sigue sin afirmarse", {
+  # Ahi si no hay meta que decir, y un cero seria peor que un vacio declarado.
+  plan <- list(.avc_aula("A1", "FAC1", expected = 10))
+  dt <- .avc_dt(list(.avc_fac("FAC1", NA_real_)))
+  dt$total_cuota <- NULL
+  b <- .avc_dash(plan, .avc_resp("A1"), dt = dt)$avance_cuota
+  expect_true(is.null(b$total$cuota) || !is.finite(suppressWarnings(as.numeric(b$total$cuota))))
+})

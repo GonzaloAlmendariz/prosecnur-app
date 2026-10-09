@@ -128,3 +128,30 @@ describe("soloElAula · un código no pasa por aula", () => {
     expect(soloElAula("urb209_0601")).toBe("urb209_0601");
   });
 });
+
+describe("qué cuenta «sin fecha»", () => {
+    it("son los titulares sin fecha, no las reservas dormidas", () => {
+    // **El defecto, visto en pantalla el 2026-09-08.** Este panel publicaba
+    // «1 230 sin fecha en la agenda» mientras «Qué metas van a cerrar» y el
+    // acumulado de Rendimiento decían «59 cursos-horario del plan sin fecha». Las
+    // mismas palabras y dos universos en la misma sección: el contador sumaba toda
+    // fila sin fecha que no fuera del banco, así que se llevaba dentro las 1 173
+    // reservas encadenadas dormidas.
+    //
+    // Y no es una brecha de agenda: una reserva dormida sin fecha no es una cita
+    // pendiente de poner, es una reserva que no ha entrado. Sugería 1 230 cosas
+    // que citar cuando son 59.
+    const filas = [
+      { operational_code: "CH 1", sample_role: "titular", scheduled_date: "" },
+      { operational_code: "CH 2", sample_role: "titular", scheduled_date: "" },
+      { operational_code: "CH 3", sample_role: "titular", scheduled_date: "2026-09-07" },
+      { operational_code: "R 1.1", sample_role: "chain_reserve", scheduled_date: "" },
+      { operational_code: "R 1.2", sample_role: "chain_reserve", scheduled_date: "" },
+      { operational_code: "X 1", sample_role: "extra_reserve_pool", scheduled_date: "" },
+    ] as unknown as Parameters<typeof frenteDelOperativo>[0];
+
+    const f = frenteDelOperativo(filas, [], "2026-09-08");
+    expect(f.sinFecha).toBe(2);
+  });
+});
+

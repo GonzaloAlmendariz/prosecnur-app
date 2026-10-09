@@ -20,7 +20,7 @@ export function AulasCadenaDeFiltros({ bloque }: { bloque: unknown }) {
     return (
       <div className="aulas-cadena-filtros" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         <p className="aulas-cadenas-lectura">
-          Este estudio <strong>no declara filtros de respuesta válida</strong>,
+          Este estudio <strong>no declara filtros de respuesta efectiva</strong>,
           así que cuentan todas las respuestas que llegan.
         </p>
         <p className="mon-profile-muted">
@@ -42,14 +42,31 @@ export function AulasCadenaDeFiltros({ bloque }: { bloque: unknown }) {
         </p>
       ) : (
         <p className="aulas-cadenas-lectura">
-          De <strong>{fmt(c.entran)}</strong> respuestas, la cadena deja{" "}
-          <strong>{fmt(c.quedan)}</strong>.
+          {/* «de plataforma» es el puente con la banda del Control, que declara
+              la suya (enviadas del libro): a una pestaña de distancia las dos
+              dicen «cuánto llegó» y pueden coincidir en valor significando
+              cosas opuestas —lo que ENTRA a esta cadena contra lo que SALE de
+              la revisión del equipo. Censo A9-B7, choque 4. */}
+          De <strong>{fmt(c.entran)}</strong> respuestas de plataforma, la cadena
+          deja <strong>{fmt(c.quedan)}</strong>.
         </p>
       )}
 
+      {/* **La escalera, que es lo que un embudo es.**
+          La lista decía bien las cifras pero no se veía de un vistazo qué filtro
+          cuesta más: había que restar cuatro parejas de números mentalmente. La
+          barra pone los pasos en la MISMA escala —la de lo que entra a la
+          cadena— así que el descenso se lee como forma y no como aritmética.
+          Va `aria-hidden`: cada cifra que dibuja está ya en el texto de su fila,
+          y una barra que repite lo que su vecino dice no aporta nada a un lector
+          de pantalla. */}
       <ol className="aulas-cadena-pasos">
         {c.pasos.map((p) => (
           <li key={`${p.orden}-${p.variable}`}>
+            <span className="aulas-cadena-barra" aria-hidden="true">
+              <i className="es-queda" style={{ width: `${c.entran ? (100 * p.quedan) / c.entran : 0}%` }} />
+              <i className="es-cae" style={{ width: `${c.entran ? (100 * p.caen) / c.entran : 0}%` }} />
+            </span>
             <span className="aulas-cadena-var">
               {p.variable}
               <small>{p.valores.join(" · ")}</small>

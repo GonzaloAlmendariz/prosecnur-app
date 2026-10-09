@@ -1,4 +1,8 @@
-# La hoja de indicadores del libro: como va el campo, hoy.
+# La hoja de indicadores del libro: «Avance de campo».
+#
+# Se llamaba «Cómo va el campo» hasta A13a (2026-08-31); Gonzalo, textual:
+# «noto mucha jerga […] no, es AVANCE» — la app y el Sheets hablan en registro
+# académico.
 #
 # Gonzalo la pidio asi: «podria tener una pestaña u hoja con indicadores, pero
 # deben ser indicadores UTILES para el campo y para el analista, como la
@@ -39,14 +43,56 @@
 #' @param validas vector logico por fila de `responses`: cuales son efectivas.
 #'   Sin el, la serie contaria TODAS las respuestas y no cuadraria con la meta.
 #' @param partes partes de campo, para la produccion por aplicador.
-#' @return lista con `meta`, `diario` y `aplicadores`.
+#' @param asignados `codigo -> aplicador` del reparto vigente.
+#' @param extras banco de extras sin activar, para las aulas adicionales.
+#' @return lista con las CINCO tablas dictadas —`general`, `facultades`,
+#'   `rendimiento`, `aplicadores`, `diario`— más `meta`, el bloque de escalares
+#'   que sobrevive para el tablero y para el respaldo sin cuotas del diseño.
+#'   Los conteos de personas salen ENTEROS del modelo; las tasas conservan su
+#'   decimal y viajan como PROPORCIÓN (0–1), nunca como texto con «%»: el
+#'   porcentaje es formato de celda en los dos renderers.
 #' @export
 aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL,
-                                    partes = list(), validas = NULL) {
+                                    partes = list(), validas = NULL,
+                                    cuotas = NULL, cfg = list(),
+                                    # `codigo -> aplicador` del reparto: sin él,
+                                    # la producción por aplicador sólo puede
+                                    # hablar de quien ya rindió parte.
+                                    asignados = NULL,
+                                    # El banco de extras SIN activar
+                                    # (`aulas_libro_extras_banco()`), para poder
+                                    # contar las aulas adicionales que el equipo
+                                    # ya pidió y agendó aunque todavía no las
+                                    # haya aplicado.
+                                    extras = list(),
+                                    # El bloque de avance contra la cuota
+                                    # (`monitoreo_aulas_avance_cuota_del_plan()`),
+                                    # que sólo tiene quien tiene el plan ENTERO y
+                                    # el padrón de la sesión. Va AL FINAL de la
+                                    # firma a propósito: hay un llamador que pasa
+                                    # los cinco primeros por posición
+                                    # (`carga_aulas_libro_generar.R`). NULL, o un
+                                    # estudio con el eje en el aula, dejan la
+                                    # tabla por facultad exactamente como estaba.
+                                    avance_cuota = NULL) {
   titulares <- Filter(function(u) identical(.cai_txt(u$sample_role), "titular"), unidades)
   metas <- vapply(titulares, function(u) .cai_num(u$expected_valid), numeric(1))
-  meta_total <- sum(metas[is.finite(metas)])
-  logrado <- if (is.null(efectivas)) NA_real_ else sum(efectivas, na.rm = TRUE)
+
+  # **Los conteos de personas salen ENTEROS del modelo** (A9-B6, checklist
+  # 2026-08-31). `expected_valid` llega fraccionario del calculo (eligible_n x
+  # rendimiento x factor) y el libro decia «Encuestas de la meta | 3157.8»:
+  # media encuesta no existe. Se redondea AQUI y no en los formateadores para
+  # que el xlsx y la pestaña de Sheets hereden el mismo numero sin repetir la
+  # regla —y su direccion, que es por cifra— en cada renderer:
+  #   · la META al entero mas proximo, mitades hacia ARRIBA: floor(x + 0.5).
+  #     NO round(): el de R es banquero y round(3158.5) da 3158;
+  #   · lo CONSEGUIDO hacia abajo: no se declara cubierto lo que no se consiguio;
+  #   · lo que FALTA hacia arriba, y mas abajo se dice desde que valor.
+  # Los BRUTOS se conservan para las tasas y para las restas direccionales.
+  meta_bruta <- sum(metas[is.finite(metas)])
+  logrado_bruto <- if (is.null(efectivas)) NA_real_ else sum(efectivas, na.rm = TRUE)
+  meta_total <- if (is.finite(meta_bruta)) floor(meta_bruta + 0.5) else meta_bruta
+  logrado <- if (is.finite(logrado_bruto)) floor(logrado_bruto) else logrado_bruto
 
   # Cuantas aulas ya llegaron a SU meta, que no es lo mismo que el total: se
   # puede ir al 90 % global con la mitad de las aulas sin cerrar.
@@ -61,73 +107,81 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
     aulas = length(titulares),
     meta_total = meta_total,
     logrado = logrado,
-    # Un 0 de 0 no es 0 %.
-    avance = if (is.finite(meta_total) && meta_total > 0 && is.finite(logrado)) {
-      logrado / meta_total
+    # Un 0 de 0 no es 0 %. La tasa se calcula con los BRUTOS: es un promedio,
+    # no un conteo, y la regla de enteros no la alcanza.
+    avance = if (is.finite(meta_bruta) && meta_bruta > 0 && is.finite(logrado_bruto)) {
+      logrado_bruto / meta_bruta
     } else NA_real_,
-    falta = if (is.finite(meta_total) && is.finite(logrado)) max(0, meta_total - logrado) else NA_real_,
+    # La falta sube al entero desde los BRUTOS, no restando los redondeados:
+    # con meta 10.4 y logrado 3.2 faltan 7.2 -> 8, y el 10 - 3 = 7 de los
+    # redondeados sub-declara — con 7 no se cierra. El precio es que alguna vez
+    # logrado + falta != meta_total en la hoja, y se paga: la regla congelada
+    # es no decirle al campo que falta menos de lo que falta.
+    falta = if (is.finite(meta_bruta) && is.finite(logrado_bruto)) {
+      ceiling(max(0, meta_bruta - logrado_bruto))
+    } else NA_real_,
     aulas_cerradas = cerradas
   )
 
-  # **La serie diaria, con acumulado**: una barra por dia dice cuanto se
-  # produjo; el acumulado dice si se llega.
-  diario <- NULL
-  if (is.data.frame(responses) && nrow(responses)) {
-    col <- intersect(c("_submission_time", "submission_time", "fecha", "end"),
-                     names(responses))
-    if (length(col)) {
-      dias <- substr(as.character(responses[[col[[1]]]]), 1, 10)
-      # **Solo las EFECTIVAS.** Contando todas las respuestas, la serie
-      # acumulaba 3 700 mientras el logrado eran 2 220, y la columna «falta
-      # para la meta» acababa diciendo 47 cuando faltaban 1 527: dos cifras
-      # distintas bajo la misma tabla. La meta se mide en efectivas, asi que la
-      # serie tambien.
-      if (!is.null(validas) && length(validas) == nrow(responses)) {
-        dias <- dias[validas %in% TRUE]
-      }
-      dias <- dias[nzchar(dias) & !is.na(dias)]
-      if (length(dias)) {
-        t <- table(dias)
-        n <- as.integer(t)
-        diario <- data.frame(
-          Dia = names(t), Respuestas = n, Acumulado = cumsum(n),
-          stringsAsFactors = FALSE
-        )
-        diario$`Efectivas acumuladas` <- diario$Acumulado
-        diario$Acumulado <- NULL
-        names(diario)[names(diario) == "Respuestas"] <- "Efectivas del dia"
-        diario$`Falta para la meta` <- if (is.finite(meta_total)) {
-          pmax(0, meta_total - diario$`Efectivas acumuladas`)
-        } else NA_real_
-      }
-    }
-  }
+  # **El corte por facultad y por sexo**: la cuota no se compensa entre celdas
+  # (ADR 0079), así que un avance global sano puede esconder facultades cortas.
+  # Vive en `carga_aulas_libro_avance_facultad.R`.
+  facultades <- .calaf_avance_por_facultad(
+    unidades, efectivas = efectivas, cuotas = cuotas,
+    responses = responses, validas = validas, cfg = cfg, partes = partes,
+    # Con el eje declarable las celdas de la cuota pueden no ser facultades, y
+    # entonces las cifras salen del bloque que ya cruzó por persona. Ver
+    # `monitoreo_aulas_avance_cuota_libro.R`.
+    avance_cuota = avance_cuota
+  )
 
-  # **Produccion por aplicador**: el campo pregunta a quien empujar.
-  aplicadores <- NULL
-  if (length(partes)) {
-    quien <- vapply(partes, function(p) .cai_txt(p$applied_by %||% p$applicator), character(1))
-    ef <- vapply(partes, function(p) {
-      v <- .cai_num(p$effective_surveys); if (is.finite(v)) v else 0
-    }, numeric(1))
-    ok <- nzchar(quien)
-    if (any(ok)) {
-      claves <- sort(unique(quien[ok]))
-      aplicadores <- data.frame(
-        Aplicador = claves,
-        Aulas = vapply(claves, function(k) sum(quien == k), integer(1)),
-        `Efectivas declaradas` = vapply(claves, function(k) sum(ef[quien == k]), numeric(1)),
-        check.names = FALSE, stringsAsFactors = FALSE
-      )
-      aplicadores$`Media por aula` <- round(
-        aplicadores$`Efectivas declaradas` / pmax(1, aplicadores$Aulas), 1
-      )
-      # Por produccion, no alfabetico: se mira primero quien va mas flojo.
-      aplicadores <- aplicadores[order(aplicadores$`Media por aula`), , drop = FALSE]
-    }
-  }
+  # **LAS CINCO TABLAS DICTADAS** (Gonzalo, 2026-09-08). Cada una vive en su
+  # archivo, y las cinco comparten el vocabulario de
+  # `carga_aulas_libro_avance_columnas.R`: los dos renderers —el xlsx imperativo
+  # y la pestaña de Sheets— leen de ahí sus rótulos y su naturaleza, así que no
+  # hay una segunda lista de nombres que pueda separarse de la primera.
+  rendimiento <- .calar_rendimiento_por_facultad(
+    unidades, efectivas = efectivas, partes = partes, extras = extras,
+    # Las metas y el reparto por sexo llegan de los MISMOS insumos que la tabla
+    # por facultad, para que las dos tablas no puedan decir dos metas distintas.
+    cuotas = cuotas, responses = responses, cfg = cfg,
+    # Y la fuga del mismo bloque: sin ella la tabla mediría contra lo recogido
+    # en bruto, que es el «+24 en verde» que Gonzalo cazó en la hoja publicada.
+    avance_cuota = avance_cuota)
+  aplicadores <- .calaa_produccion_por_aplicador(
+    unidades, efectivas = efectivas, partes = partes, asignados = asignados)
+  # **El avance diario cuenta ENTREVISTAS EFECTIVAS.** La máscara sale del mismo
+  # reparto de bolsas que alimenta el rendimiento (`monitoreo_aulas_casos_por_aula.R`),
+  # así que las dos tablas de la hoja no pueden contradecirse — que es lo que
+  # pasaba: −12 arriba y +21 en verde abajo.
+  diario <- .calad_avance_diario(
+    unidades, responses = responses, validas = validas, cuotas = cuotas, cfg = cfg,
+    efectivas_resp = attr((avance_cuota %||% list())$casos, "efectiva", exact = TRUE))
 
-  list(meta = meta, diario = diario, aplicadores = aplicadores)
+  # Las tres cifras de AULAS que preside «Avance general». No se derivan de la
+  # cuota —la tabla por facultad sólo conoce las aplicadas— así que se cuentan
+  # aquí, con la definición única de aplicada y con el reparto vigente.
+  aplicadas <- monitoreo_aulas_aula_aplicada(unidades, partes = partes, efectivas = efectivas)
+  codigos_del_plan <- vapply(unidades, function(u) .cai_txt(u$operational_code), character(1))
+  aulas_conteo <- list(
+    aplicadas = sum(aplicadas),
+    # ASIGNADAS son las que tienen aplicador en el reparto vigente, no las
+    # agendadas: un aula puede tener fecha y hora y no tener todavía a nadie que
+    # la lleve, y ésa es justo la que hay que ver. Sin reparto cargado la celda
+    # calla en vez de decir cero, que se leería como «nadie tiene nada».
+    asignadas = if (length(asignados %||% list())) {
+      sum(codigos_del_plan %in% names(asignados))
+    } else NA_real_,
+    planificadas = length(titulares)
+  )
+
+  list(meta = meta, diario = diario, aplicadores = aplicadores,
+       facultades = facultades, rendimiento = rendimiento,
+       # **La cobertura, que el motor ya calculaba y nadie pintaba.** Sale del
+       # mismo bloque de cuota que las cifras del eje, así que no hay un segundo
+       # cruce: ver `carga_aulas_libro_avance_cobertura.R`.
+       cobertura = aulas_libro_cobertura((avance_cuota %||% list())$composicion),
+       general = .calag_tabla_general(facultades, aulas_conteo))
 }
 
 #' Por que no hay avance diario, en una frase.
@@ -135,6 +189,14 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 #' Un «—» dice que falta el dato; no dice que hacer. Las dos causas piden cosas
 #' distintas: sin base de respuestas hay que cargarla, y con base pero sin
 #' fechas legibles el problema esta en la columna de fecha del formulario.
+# S11 (loop estética, 2026-09-07): la frase del vacío del bloque de
+# aplicadores, UNA para el xlsx y el Sheets. El Sheets ya la escribía (C3: la
+# sección no desaparece, dice por qué está vacía) y el xlsx omitía el bloque
+# entero: dos hojas del mismo modelo con dos respuestas a la misma pregunta.
+.cali_motivo_sin_aplicadores <- function() {
+  "Sin partes de campo registrados: todavía no hay producción por aplicador que mostrar."
+}
+
 .cali_motivo_sin_diario <- function(ind) {
   m <- ind$meta %||% list()
   if (is.null(m$logrado) || !length(m$logrado) || !is.finite(suppressWarnings(as.numeric(m$logrado)))) {
@@ -143,7 +205,267 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   "Las respuestas no traen fecha legible, asi que no se puede repartir el avance por dia."
 }
 
-aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo") {
+# S10 (loop estética, 2026-09-07): la marca de lectura del libro se escribe
+# en hora local legible («07/09/2026 15:41»), no en el ISO UTC del estado
+# («2026-09-07T20:41:36Z»): quien lee el libro lee horas de Lima. Lo que no es
+# una marca ISO —«Ninguna: sale sólo del plan», vacío— se deja como llegó. El
+# huso es el del equipo que genera; `tz` existe para que el test no dependa de
+# la máquina.
+.cai_marca_local <- function(x, tz = Sys.timezone()) {
+  x <- as.character(x %||% "")[1]
+  if (is.na(x)) x <- ""
+  if (!grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?Z$", x)) return(x)
+  if (is.null(tz) || is.na(tz) || !nzchar(tz)) tz <- "UTC"
+  marca <- suppressWarnings(as.POSIXct(x, tz = "UTC", format = "%Y-%m-%dT%H:%M:%SZ"))
+  if (is.na(marca)) marca <- suppressWarnings(as.POSIXct(x, tz = "UTC", format = "%Y-%m-%dT%H:%MZ"))
+  if (is.na(marca)) return(x)
+  format(marca, "%d/%m/%Y %H:%M", tz = tz)
+}
+
+# El SELLO del corte: la hora local de la última sincronización pegada a la
+# fecha, con el mismo separador en las dos hojas que llevan portada («Avance de
+# campo» y «Avance de agendación»). Gonzalo, 2026-09-22: «al título de la fecha
+# de actualización también le falta la hora de actualización».
+#
+# Es sólo el sello. La línea llevaba además «datos de plataforma actualizados» y
+# «escrito con N aulas con parte de campo», y las dos se fueron con las notas
+# didácticas; lo que queda es lo que permite saber si las cifras son de ahora o
+# de hace tres horas.
+#
+# **Sale del ESTADO (`synced_at`) y nunca del reloj**, y eso es lo que sostiene
+# el motor batch+hash: dos generaciones del mismo estado escriben la misma
+# celda, el hash no cambia y la pestaña no se reescribe —con ella se irían el
+# formato y las reglas de color de una hoja que veintidós personas tienen
+# abierta—. Un `Sys.time()` aquí la reescribiría en cada publicación.
+#
+# La hora SOLA sólo se entiende si cae en el día del corte. Cuando no —campo
+# parado el fin de semana, o una agenda que ya llega al viernes que viene— se
+# escribe la fecha entera: «· 11:52» encima de un corte de otro día no dice de
+# qué día es esa hora.
+.cai_sello_corte <- function(corte, actualizado, fecha = NULL, tz = Sys.timezone()) {
+  corte <- as.character(corte %||% "")[1]
+  marca <- .cai_marca_local(.cai_txt(actualizado), tz = tz)
+  # Lo que no es una marca ISO vuelve tal cual de `.cai_marca_local()`: sin
+  # sello legible la portada no se inventa una hora.
+  if (!grepl("^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}$", marca)) return(corte)
+  # `as.Date()` sobre un texto que no parsea LANZA, no avisa, y aquí llegan
+  # cortes escritos de varias formas —«11/09» de la agendación no trae año—.
+  dia <- tryCatch(suppressWarnings(as.Date(fecha[1])), error = function(e) as.Date(NA))
+  mismo_dia <- length(dia) == 1L && !is.na(dia) &&
+    identical(substr(marca, 1, 10), format(dia, "%d/%m/%Y"))
+  paste0(corte, " · ", if (mismo_dia) substr(marca, 12, 16) else marca)
+}
+
+# S2 (loop estética, 2026-09-07): una NOTA es texto corrido en la columna A.
+# Sin fusionar, Excel la deja derramarse sobre las celdas vacías de al lado y
+# Sheets la corta en la primera ocupada: en los dos casos sobresale de su
+# tabla y no se lee como parte del bloque. Aquí se fusiona a lo ancho de la
+# hoja, baja de línea y su fila crece lo que el texto necesita.
+#
+# Los caracteres que caben por línea son la SUMA de los anchos reales de la
+# hoja. Antes esta función los suponía —«A = 34 y el resto 16»— y el día que los
+# anchos pasaron a derivarse del contenido (`.cai_anchos_columna`) la suposición
+# habría quedado corta sin que nada fallara: la nota se envuelve igual y sólo el
+# ALTO de su fila sale mal, que es un defecto que no rompe ningún test y se ve
+# como un hueco raro encima de la tabla. Se le pasan los anchos cuando se tienen.
+.cai_chars_por_linea <- function(n_hoja, anchos = NULL) {
+  if (length(anchos)) return(max(20L, as.integer(sum(anchos))))
+  n_hoja <- max(1L, as.integer(n_hoja))
+  34L + 16L * (n_hoja - 1L)
+}
+
+.cai_nota <- function(wb, hoja, fila, texto, estilo, n_hoja, anchos = NULL) {
+  texto <- as.character(texto %||% "")[1]
+  if (is.na(texto)) texto <- ""
+  openxlsx::writeData(wb, hoja, texto, startCol = 1, startRow = fila)
+  openxlsx::mergeCells(wb, hoja, cols = seq_len(n_hoja), rows = fila)
+  openxlsx::addStyle(wb, hoja, estilo, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
+  lineas <- max(1L, ceiling(nchar(texto, type = "chars") / .cai_chars_por_linea(n_hoja, anchos)))
+  openxlsx::setRowHeights(wb, hoja, rows = fila, heights = 15 * lineas + 2)
+  invisible(fila)
+}
+
+# S4 (loop estética, 2026-09-07): la celda sin dato de una tabla se declara.
+# `writeData` deja en blanco los NA de un data.frame, y en el libro real 19 de
+# 24 aplicadores sin parte tenían «Encuestas aplicadas (parte)» vacía: la fila quedaba
+# con un hueco en medio que se lee como olvido. Se escribe «—» (el vocabulario
+# del bloque de meta y de la procedencia: sin dato ≠ cero) celda a celda,
+# después de la tabla, para que las cifras sigan siendo números.
+.cai_rayas <- function(wb, hoja, tabla, fila_cabecera, estilo) {
+  if (!is.data.frame(tabla) || !nrow(tabla)) return(invisible(NULL))
+  for (j in seq_along(tabla)) {
+    columna <- tabla[[j]]
+    if (!is.numeric(columna)) next
+    huecos <- which(!is.finite(columna))
+    for (i in huecos) {
+      openxlsx::writeData(wb, hoja, "\u2014", startCol = j, startRow = fila_cabecera + i)
+      openxlsx::addStyle(wb, hoja, estilo, rows = fila_cabecera + i, cols = j, stack = TRUE)
+    }
+  }
+  invisible(NULL)
+}
+
+# S3: el ancho de la hoja lo fija su tabla más ancha (hoy la de facultades,
+# doce columnas), y TODAS las bandas de sección lo cubren. Medido antes: la
+# banda de «Avance contra la meta» iba con `cols = 1:2` y la de procedencia
+# igual, sobre una hoja de doce; el subrayado se cortaba a la mitad y no se
+# veía dónde terminaba cada bloque. Las cabeceras de tabla siguen al ancho de
+# SU tabla: rotulan columnas, no separan bloques.
+.cai_ancho_hoja <- function(ind) {
+  ind <- if (is.list(ind)) ind else list()
+  ancho_de <- function(df) if (is.data.frame(df) && nrow(df)) ncol(df) else 0L
+  max(2L, 4L, vapply(AULAS_AVANCE_CAMPOS, function(k) ancho_de(ind[[k]]), integer(1)))
+}
+
+#' El ancho de cada columna, DERIVADO del contenido de las cinco tablas.
+#'
+#' **Un 16 plano cortaba los nombres.** Se vio abriendo el libro: la columna 2
+#' es «Total» en el avance general y «Aplicador» en la producción, y con dieciséis
+#' caracteres «Panta Gutierrez, Percy Aarón» salía como «Panta Gutierrez, Perc».
+#' Un nombre a medias en una tabla que existe para saber a quién empujar es el
+#' peor sitio donde ahorrar espacio.
+#'
+#' Se toma el máximo de lo que ocupa esa columna en CUALQUIERA de las tablas
+#' —incluida su cabecera, que baja de línea y por eso cuenta a la mitad— con
+#' suelo en 16 para que las columnas de cifras no se estrechen y techo en 42
+#' para que una observación larga no empuje la hoja a lo ancho. Misma idea que
+#' `.maaf_anchos_px()` en Sheets y que `.calf_anchos()` en las hojas de datos del
+#' propio xlsx: el ancho lo decide el contenido.
+#'
+#' **Por qué es una TERCERA función y no se reusa `.calf_anchos()`.** Aquélla lee
+#' la hoja YA ESCRITA (`readWorkbook`) y aquí eso mediría también las notas, que
+#' van fusionadas a lo ancho de la hoja y pedirían cuarenta y dos para la columna
+#' A. Ésta mide el MODELO, antes de escribir. Y su suelo es 16 y no 9 porque aquí
+#' las cabeceras bajan de línea y una columna de nueve las parte en cinco
+#' renglones. Mismo criterio, dos entradas distintas.
+#' @keywords internal
+.cai_anchos_columna <- function(ind) {
+  n <- .cai_ancho_hoja(ind)
+  tablas <- Filter(function(df) is.data.frame(df) && nrow(df),
+                   lapply(unname(AULAS_AVANCE_CAMPOS), function(k) ind[[k]]))
+  vapply(seq_len(n), function(j) {
+    largos <- unlist(lapply(tablas, function(df) {
+      if (j > ncol(df)) return(0L)
+      c(nchar(names(df)[[j]], type = "chars") %/% 2L,
+        if (is.character(df[[j]])) nchar(df[[j]], type = "chars") else 0L)
+    }), use.names = FALSE)
+    largos <- largos[is.finite(largos)]
+    # **El techo de una posición compartida lo paga la tabla que NO la pidió.**
+    #
+    # Dictado de Gonzalo (2026-09-15): «que en avance por facultad efectivas no
+    # ocupe tanto ancho». Medido: la columna 2 salía a 38 y «Efectivas» —un
+    # número de cuatro dígitos— no tiene nada que ver con eso. En la posición 2
+    # también vive «Aplicador» de «Producción por aplicador», cuyos nombres
+    # miden 28 de mediana, y una pestaña tiene UN ancho por columna, no uno por
+    # tabla: el máximo de las cinco manda sobre las cinco.
+    #
+    # El techo de las posiciones compartidas baja a 20 y el nombre largo baja de
+    # línea (`.cai_texto_envuelto`, aplicado a las columnas de texto). La
+    # primera columna conserva el suyo porque ahí las cinco tablas dicen lo
+    # mismo —la facultad— y nadie hereda el ancho de nadie.
+    as.integer(min(if (j == 1L) 42L else 20L,
+                   max(if (j == 1L) 34L else 16L,
+                       if (length(largos)) max(largos) + 2L else 0L)))
+  }, integer(1))
+}
+
+# Texto que baja de línea en vez de cortarse. Va arriba a la izquierda para que
+# un nombre de dos renglones no quede flotando en medio de la fila.
+.cai_texto_envuelto <- function() {
+  openxlsx::createStyle(wrapText = TRUE, valign = "top", halign = "left")
+}
+
+# --- El SEMÁFORO de la hoja, el mismo criterio en los dos renderers -----------
+#
+# Dictado de Gonzalo (2026-09-08): «las diferencias positivas (nos fue mejor de
+# lo esperado) deben estar pintadas en escalas de verde y en los que la
+# diferencia sea negativa que vayan en escalas de rojo. Por el lado de la meta,
+# cuando la celda llegue a la meta debe pintarse de verde, y cuando llegue a la
+# sobremuestra que se pinte de azul o celeste».
+#
+# **Qué celda se pinta lo decide el RÓTULO, no la posición**, y la clasificación
+# vive en el vocabulario compartido: aquí se traduce a reglas de openxlsx y en
+# `monitoreo_aulas_avance_formato.R` a `addConditionalFormatRule` de la API de
+# Sheets. Dos motores, una sola respuesta a «¿esta celda ya llegó?».
+#
+# El tono es CLARO a propósito: la regla de color ayuda a barrer la tabla de un
+# vistazo, pero el dato es el número, y un fondo saturado lo tapa (ya pasó con
+# las databar en navy del PDF).
+.CAI_VERDE_META <- "#D6EBD6"
+.CAI_CELESTE_SOBRE <- "#D8E7F8"
+.CAI_ESCALA_DIF <- c("#E9A8A8", "#FFFFFF", "#A9D5A9")
+.CAI_NEUTRO_AVANCE <- "#EFF2F6"
+
+.cai_semaforo <- function(wb, hoja, tabla, cabecera_en, traspuesta = FALSE) {
+  if (!is.data.frame(tabla) || !nrow(tabla)) return(invisible(NULL))
+  n <- nrow(tabla)
+  verde <- openxlsx::createStyle(bgFill = .CAI_VERDE_META)
+  celeste <- openxlsx::createStyle(bgFill = .CAI_CELESTE_SOBRE)
+
+  # Un rango de la tabla: en la traspuesta es una FILA (columnas de datos), en
+  # las demás una COLUMNA (filas de datos).
+  pintar <- function(k, tipo, ...) {
+    if (traspuesta) {
+      openxlsx::conditionalFormatting(
+        wb, hoja, cols = 2:ncol(tabla), rows = cabecera_en + k, type = tipo, ...)
+    } else {
+      openxlsx::conditionalFormatting(
+        wb, hoja, cols = k, rows = (cabecera_en + 1L):(cabecera_en + n), type = tipo, ...)
+    }
+  }
+  # Los valores del rango, para poder fijar la escala de la diferencia con un
+  # cero en el medio: la escala automática de openxlsx pone el punto medio en la
+  # mediana, y entonces «peor que lo esperado» puede salir verde.
+  valores_de <- function(k) {
+    v <- if (traspuesta) {
+      suppressWarnings(as.numeric(unlist(tabla[k, -1L], use.names = FALSE)))
+    } else {
+      suppressWarnings(as.numeric(tabla[[k]]))
+    }
+    v[is.finite(v)]
+  }
+
+  rotulos <- if (traspuesta) as.character(tabla[[1L]]) else names(tabla)
+  for (k in seq_along(rotulos)) {
+    if (!traspuesta && k == 1L) next
+    r <- trimws(rotulos[[k]])
+    if (r %in% AULAS_AVANCE_DIFERENCIAS) {
+      v <- valores_de(k)
+      tope <- if (length(v)) max(abs(v)) else 0
+      if (tope > 0) {
+        pintar(k, "colourScale", style = .CAI_ESCALA_DIF, rule = c(-tope, 0, tope))
+      }
+      next
+    }
+    if (r %in% AULAS_AVANCE_FALTAN_MUESTRA) {
+      # Cero faltantes = esta celda ya cubrió su meta.
+      pintar(k, "expression", rule = "==0", style = verde)
+      next
+    }
+    if (r %in% AULAS_AVANCE_FALTAN_SOBREMUESTRA) {
+      pintar(k, "expression", rule = "==0", style = celeste)
+      next
+    }
+    if (r %in% AULAS_AVANCE_AVANCES) {
+      # Un depósito que se llena, no un veredicto: la escala va de vacío a
+      # verde entre 0 y 1, y al pasarse del 100 % la celda va celeste. Sin
+      # rojo — un avance bajo el día 2 es el día 2, no un fracaso.
+      pintar(k, "colourScale",
+             style = c(.CAI_NEUTRO_AVANCE, .CAI_VERDE_META), rule = c(0, 1))
+      pintar(k, "expression", rule = ">=1", style = celeste)
+    }
+  }
+  invisible(NULL)
+}
+
+aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
+                                             procedencia = NULL,
+                                             # La declaración del eje de cuotas,
+                                             # sólo para la PALABRA de la primera
+                                             # columna. NULL = «Facultad», que
+                                             # es lo que era. Ver
+                                             # `carga_aulas_libro_avance_eje.R`.
+                                             eje = NULL) {
   openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
 
   titulo <- openxlsx::createStyle(fontSize = 16, textDecoration = "bold",
@@ -153,128 +475,317 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
                                    fontColour = "#002457", border = "bottom",
                                    borderColour = "#C7D0DD")
   etiqueta <- openxlsx::createStyle(fontColour = "#5B6472")
-  cifra <- openxlsx::createStyle(textDecoration = "bold", halign = "right",
-                                 numFmt = "#,##0.#")
-  pct <- openxlsx::createStyle(textDecoration = "bold", halign = "right",
-                               numFmt = "0.0%")
+  n_hoja <- .cai_ancho_hoja(ind)
+  # Los mismos anchos que se fijan al cierre: las notas los necesitan para saber
+  # cuántas líneas ocupan y darle a su fila el alto justo.
+  anchos_col <- .cai_anchos_columna(ind)
+  # S2: las notas bajan de línea dentro de su fusión y se leen desde arriba.
+  nota <- openxlsx::createStyle(fontColour = "#5B6472", wrapText = TRUE, valign = "top")
+  nota_pie <- openxlsx::createStyle(fontSize = 9, fontColour = "#5B6472", wrapText = TRUE,
+                                    valign = "top")
+  # S4: el «—» de una celda sin dato, alineado como la cifra que no está.
+  sin_dato_celda <- openxlsx::createStyle(halign = "right", fontColour = "#5B6472")
+  rejilla <- openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149")
+  derecha <- openxlsx::createStyle(halign = "right")
+  total_fila <- openxlsx::createStyle(textDecoration = "bold", halign = "right",
+                                      border = "top", borderColour = "#C7D0DD",
+                                      numFmt = "#,##0")
+  # Las columnas de conteo son enteras por definición —muestra, conseguidas,
+  # aulas, faltan— así que van sin parte decimal: el `.#` sólo aportaba la coma
+  # colgando que Gonzalo vio publicada («174,»).
+  numero <- openxlsx::createStyle(halign = "right", numFmt = "#,##0")
   cabecera <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#002457",
                                     fontColour = "#FFFFFF", halign = "left")
-  numero <- openxlsx::createStyle(halign = "right", numFmt = "#,##0.#")
-  # `#,##0.#` OMITE el cero decimal, asi que en «Media por aula» un 23.0 salia
-  # «23» entre 20.5, 21.9 y 23.8: la misma columna con dos formatos, y el ojo lo
-  # lee como si ese equipo tuviera una cifra mas redonda que los demas. Visto en
-  # el PDF. Las columnas de conteo se quedan con `numero` —«26.0 aulas» seria
-  # ruido—; solo la media, que es un promedio, declara su decimal.
-  promedio <- openxlsx::createStyle(halign = "right", numFmt = "#,##0.0")
+  # El porcentaje es FORMATO DE CELDA, nunca un «(%)» en el rótulo (Gonzalo,
+  # 2026-09-08). Un decimal: la diferencia entre 19,2 % y 19 % se mira todos los
+  # días y la de 19,24 % no la mira nadie.
+  porcentaje <- openxlsx::createStyle(halign = "right", numFmt = "0.0%")
+  cabecera_partida <- openxlsx::createStyle(wrapText = TRUE, valign = "bottom",
+                                            halign = "center")
 
-  openxlsx::writeData(wb, hoja, "Cómo va el campo", startCol = 1, startRow = 1)
+  openxlsx::writeData(wb, hoja, "Avance de campo", startCol = 1, startRow = 1)
   openxlsx::addStyle(wb, hoja, titulo, rows = 1, cols = 1)
   openxlsx::writeData(wb, hoja, paste("Al", format(Sys.Date(), "%d/%m/%Y")),
                       startCol = 1, startRow = 2)
   openxlsx::addStyle(wb, hoja, pie, rows = 2, cols = 1)
 
-  m <- ind$meta %||% list()
   fila <- 4L
-  openxlsx::writeData(wb, hoja, "Cómo vamos con la meta", startCol = 1, startRow = fila)
-  openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:2, gridExpand = TRUE)
-  fila <- fila + 1L
-  # El porcentaje va con su estilo propio: escrito como cifra saldria «0.6».
-  filas_meta <- list(
-    list("Encuestas de la meta", m$meta_total, cifra),
-    list("Efectivas conseguidas", m$logrado, cifra),
-    list("Avance", m$avance, pct),
-    list("Faltan", m$falta, cifra),
-    # Que la suma vaya al 59 % no dice cuantas aulas quedan por cerrar: se puede
-    # ir alto con la mitad de las aulas a medias.
-    list("Aulas que llegaron a SU meta", m$aulas_cerradas, cifra),
-    list("Aulas del operativo", m$aulas, cifra)
-  )
-  sin_dato <- 0L
-  for (f in filas_meta) {
-    openxlsx::writeData(wb, hoja, f[[1]], startCol = 1, startRow = fila)
-    valor <- f[[2]]
-    if (is.null(valor) || !length(valor) || !is.finite(suppressWarnings(as.numeric(valor)))) {
-      # Sin respuestas leidas todavia no hay avance que dar, y un 0 diria que
-      # se lleva cero.
-      sin_dato <- sin_dato + 1L
-      openxlsx::writeData(wb, hoja, "—", startCol = 2, startRow = fila)
-    } else {
-      openxlsx::writeData(wb, hoja, as.numeric(valor), startCol = 2, startRow = fila)
-      openxlsx::addStyle(wb, hoja, f[[3]], rows = fila, cols = 2)
+
+  # **Una sola rutina escribe las cinco tablas.** Antes había cinco bloques
+  # copiados con sus estilos, y cada vez que una tabla ganaba una columna había
+  # que acordarse de los otros cuatro: así es como «Techo con sobremuestra» se
+  # coló delante de «Avance» y la hoja salió con 188 aulas pintadas como
+  # «18800,0 %». Qué columna es porcentaje, cuál es diferencia y cuál se pinta al
+  # llegar a la meta lo decide el VOCABULARIO por el nombre del rótulo
+  # (`carga_aulas_libro_avance_columnas.R`), que es el mismo que lee el Sheets.
+  escribir_tabla <- function(clave, tabla, nota_arriba = NULL,
+                             vacio = NULL, con_total = FALSE, titulo = NULL) {
+    # `titulo` sólo lo usa «Cobertura», que tiene una tabla por dimensión y por
+    # tanto un título por tabla; las cinco dictadas lo sacan del vocabulario.
+    titulo_bloque <- titulo %||% aulas_avance_titulos_eje(clave, eje)
+    openxlsx::writeData(wb, hoja, titulo_bloque, startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
+    fila <<- fila + 1L
+    # C3: la sección no desaparece cuando no hay datos, dice por qué está vacía.
+    if (!is.data.frame(tabla) || !nrow(tabla)) {
+      if (!is.null(vacio)) {
+        .cai_nota(wb, hoja, fila, vacio, nota, n_hoja, anchos_col)
+        fila <<- fila + 2L
+      } else {
+        fila <<- fila + 1L
+      }
+      return(invisible(NULL))
     }
-    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
-    fila <- fila + 1L
+    if (!is.null(nota_arriba)) {
+      .cai_nota(wb, hoja, fila, nota_arriba, nota, n_hoja, anchos_col)
+      fila <<- fila + 1L
+    }
+    # **El VALOR se redondea, no sólo su formato.** Una tasa llega como
+    # 0.266666666666667 y el numFmt tapa la cola en pantalla; basta que alguien
+    # cambie el formato de la celda, la copie o la sume para que el ruido salga.
+    # Cuatro decimales en las proporciones (el porcentaje se muestra con uno) y
+    # dos en lo demás fraccionario; los conteos ya llegan enteros del modelo.
+    # En «Avance general» la naturaleza es de la FILA y en las demás de la
+    # COLUMNA; redondear por columna y volver a redondear por fila dejaba el
+    # 26,67 % en 0.27 y el porcentaje salía «27,0 %».
+    if (identical(clave, "general")) {
+      pct <- vapply(as.character(tabla[[1L]]), .calac_es_proporcion,
+                    logical(1), tabla = clave, USE.NAMES = FALSE)
+      for (k in names(tabla)[-1L]) {
+        if (!is.numeric(tabla[[k]])) next
+        tabla[[k]] <- ifelse(pct, round(tabla[[k]], 4L), round(tabla[[k]], 2L))
+      }
+    } else {
+      for (k in names(tabla)) {
+        if (!is.numeric(tabla[[k]])) next
+        tabla[[k]] <- round(tabla[[k]], if (.calac_es_proporcion(k, clave)) 4L else 2L)
+      }
+    }
+    nombres <- names(tabla)
+    n_col <- length(nombres)
+    n <- nrow(tabla)
+    cabecera_en <- fila
+    # **La cabecera que se ESCRIBE lleva la palabra del eje; `nombres` conserva
+    # la original** y con ella siguen decidiendo el semáforo y las
+    # proporciones, que es la separación entera del satélite del eje. Y el xlsx
+    # tiene que decir lo MISMO que el Sheets: la misma hoja saliendo distinta
+    # en los dos sitios ya mordió una vez (2026-09-07, con la fecha de corte y
+    # el avance diario ausentes sólo en el Sheets).
+    para_escribir <- tabla
+    del_eje <- aulas_avance_cabecera_con_eje(nombres, clave, eje)
+    if (length(del_eje) == n_col && !identical(as.character(del_eje[[1]]), nombres[[1]])) {
+      names(para_escribir)[[1]] <- as.character(del_eje[[1]])
+    }
+    openxlsx::writeData(wb, hoja, para_escribir, startCol = 1, startRow = cabecera_en)
+    .cai_rayas(wb, hoja, tabla, cabecera_en, sin_dato_celda)
+    openxlsx::addStyle(wb, hoja, cabecera, rows = cabecera_en, cols = seq_len(n_col),
+                       gridExpand = TRUE)
+    # Una cabecera de treinta caracteres en una columna de quince se PARTE; no
+    # se corta. «Faltantes mujeres sobremuestra» a medias obliga a contar
+    # posiciones para saber qué se está leyendo.
+    openxlsx::addStyle(wb, hoja, cabecera_partida, rows = cabecera_en,
+                       cols = seq_len(n_col), gridExpand = TRUE, stack = TRUE)
+    openxlsx::setRowHeights(wb, hoja, rows = cabecera_en, heights = 45)
+
+    # **Por NOMBRE de columna, nunca por índice.** Un índice fijo es una
+    # dependencia invisible con el orden de las columnas: quien las añade no
+    # tiene forma de saber que existe.
+    es_pct <- vapply(nombres, .calac_es_proporcion, logical(1), tabla = clave)
+    # La primera columna de una tabla traspuesta («Avance general») son rótulos,
+    # y su naturaleza se decide por FILA. En las demás, la primera es texto.
+    # **Por la CLAVE y no por su cabecera literal**: «Avance general» pierde sus
+    # columnas de sexo cuando el estudio no lo declara, y comparar contra la
+    # constante entera la habría dejado de reconocer como traspuesta — sus diez
+    # filas se habrían formateado como columnas.
+    traspuesta <- identical(clave, "general")
+    cols_datos <- seq_len(n_col)[-1L]
+    if (traspuesta) {
+      pct_fila <- vapply(as.character(tabla[[1L]]), .calac_es_proporcion,
+                         logical(1), tabla = clave, USE.NAMES = FALSE)
+      for (i in seq_len(n)) {
+        openxlsx::addStyle(wb, hoja, if (pct_fila[[i]]) porcentaje else numero,
+                           rows = cabecera_en + i, cols = cols_datos,
+                           gridExpand = TRUE, stack = TRUE)
+        openxlsx::addStyle(wb, hoja, etiqueta, rows = cabecera_en + i, cols = 1)
+      }
+    } else {
+      texto <- vapply(nombres, function(k) is.character(tabla[[k]]), logical(1))
+      cols_pct <- which(es_pct & !texto)
+      cols_num <- setdiff(which(!texto), cols_pct)
+      # Con el techo de ancho en 20, 61 de los 66 nombres de aplicador se
+      # cortarían: bajan de línea en vez de perderse. Sin esto, estrechar la
+      # columna cambia un defecto de lectura por otro peor —un dato a medias
+      # parece un dato entero—.
+      cols_txt <- setdiff(which(texto), 1L)
+      if (length(cols_txt)) {
+        openxlsx::addStyle(wb, hoja, .cai_texto_envuelto(),
+                           rows = (cabecera_en + 1L):(cabecera_en + n),
+                           cols = cols_txt, gridExpand = TRUE, stack = TRUE)
+      }
+      if (length(cols_num)) {
+        openxlsx::addStyle(wb, hoja, numero, rows = (cabecera_en + 1L):(cabecera_en + n),
+                           cols = cols_num, gridExpand = TRUE, stack = TRUE)
+      }
+      if (length(cols_pct)) {
+        openxlsx::addStyle(wb, hoja, porcentaje, rows = (cabecera_en + 1L):(cabecera_en + n),
+                           cols = cols_pct, gridExpand = TRUE, stack = TRUE)
+      }
+    }
+    ultima <- cabecera_en + n
+    if (isTRUE(con_total)) {
+      total <- .calaf_fila_total(tabla)
+      if (!is.null(total)) {
+        ultima <- ultima + 1L
+        openxlsx::writeData(wb, hoja, total, startCol = 1, startRow = ultima, colNames = FALSE)
+        .cai_rayas(wb, hoja, total, ultima - 1L, sin_dato_celda)
+        openxlsx::addStyle(wb, hoja, total_fila, rows = ultima, cols = seq_len(n_col),
+                           gridExpand = TRUE)
+      }
+    }
+    # Bordes en toda la tabla, cabecera incluida: sin ellos diecisiete columnas
+    # se leen como una lista de números sueltos. Gonzalo: «todas las tres
+    # primeras hojas debería tener bordes negros sus tablas».
+    openxlsx::addStyle(wb, hoja, rejilla, rows = cabecera_en:ultima,
+                       cols = seq_len(n_col), gridExpand = TRUE, stack = TRUE)
+    # El COLOR que sigue al valor (Gonzalo, 2026-09-08): diferencia positiva en
+    # verde y negativa en rojo; celda que llegó a la meta en verde y a la
+    # sobremuestra en celeste. En el xlsx son reglas de openxlsx sobre el rango
+    # de la columna; en el Sheets, `addConditionalFormatRule` — dos motores, la
+    # misma clasificación por rótulo.
+    .cai_semaforo(wb, hoja, tabla, cabecera_en, traspuesta)
+    fila <<- ultima + 2L
+    invisible(NULL)
   }
 
-  # **Un «—» dice que falta, no de donde saldria.** Y en esta hoja el hueco se
-  # lee peor todavia: dos bloques mas abajo hay 3 508 «efectivas declaradas»
-  # sumadas por aplicador, asi que la misma pagina parece decir que no hay
-  # efectivas y listarlas. No se contradicen —una sale de PLATAFORMA y la otra
-  # de lo que el equipo escribio en su parte— pero sin decirlo, quien lee elige
-  # cual creer. Solo aparece cuando de verdad hay huecos.
-  if (sin_dato) {
-    openxlsx::writeData(
-      wb, hoja,
-      "Estas cifras salen de la plataforma, no del parte de campo: se llenan al cargar la base de respuestas.",
-      startCol = 1, startRow = fila
+  # --- 1. AVANCE GENERAL ------------------------------------------------------
+  # Sin cuotas del diseño no hay tabla que derivar (la cuota no se reconstruye):
+  # queda el bloque de siempre, etiqueta|valor, que es lo único computable.
+  if (is.data.frame(ind$general) && nrow(ind$general)) {
+    escribir_tabla(
+      "general", ind$general,
+      nota_arriba = .calam_titular(ind$facultades)
     )
-    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
-    fila <- fila + 1L
-  }
-
-  if (!is.null(ind$aplicadores) && nrow(ind$aplicadores)) {
-    fila <- fila + 1L
-    openxlsx::writeData(wb, hoja, "Producción por aplicador", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:4, gridExpand = TRUE)
-    fila <- fila + 1L
-    openxlsx::writeData(wb, hoja, ind$aplicadores, startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:4, gridExpand = TRUE)
-    n <- nrow(ind$aplicadores)
-    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n), cols = 2:3,
-                       gridExpand = TRUE, stack = TRUE)
-    openxlsx::addStyle(wb, hoja, promedio, rows = (fila + 1L):(fila + n), cols = 4,
-                       gridExpand = TRUE, stack = TRUE)
-    # **La barra en un tono CLARO, o tapa el numero.** Con el navy del libro, la
-    # cifra quedaba en negro sobre azul oscuro y no se leia: la barra ayuda a
-    # comparar de un vistazo, pero el numero es el dato. Visto en el PDF.
-    openxlsx::conditionalFormatting(
-      wb, hoja, cols = 4, rows = (fila + 1L):(fila + n),
-      type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
-    )
-    fila <- fila + n + 2L
-  }
-
-  # **La seccion no desaparece: dice por que esta vacia.** Sin avance diario, el
-  # bloque entero se esfumaba de la hoja y quien la vio con datos no podia saber
-  # si se habia retirado o si faltaba el dato. El avance diario cuenta EFECTIVAS
-  # de plataforma, asi que sin base de respuestas no hay serie — y eso es lo que
-  # hay que decir, no callarlo.
-  if (is.null(ind$diario) || !nrow(ind$diario)) {
-    openxlsx::writeData(wb, hoja, "Avance diario", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:4, gridExpand = TRUE)
-    openxlsx::writeData(wb, hoja, .cali_motivo_sin_diario(ind), startCol = 1,
-                        startRow = fila + 1L)
-    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila + 1L, cols = 1)
-    fila <- fila + 3L
   } else {
-    openxlsx::writeData(wb, hoja, "Avance diario", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:4, gridExpand = TRUE)
+    m <- ind$meta %||% list()
+    openxlsx::writeData(wb, hoja, AULAS_AVANCE_TITULOS[["general"]], startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
     fila <- fila + 1L
-    openxlsx::writeData(wb, hoja, ind$diario, startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:4, gridExpand = TRUE)
-    n <- nrow(ind$diario)
-    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n), cols = 2:4,
-                       gridExpand = TRUE, stack = TRUE)
-    openxlsx::conditionalFormatting(
-      wb, hoja, cols = 2, rows = (fila + 1L):(fila + n),
-      # Mismo motivo que arriba: el numero por encima de la barra.
-      type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
-    )
-    fila <- fila + n + 1L
+    sin_dato <- 0L
+    for (f in list(list("Encuestas de la meta", m$meta_total, numero),
+                   list("Efectivas conseguidas", m$logrado, numero),
+                   list("Avance", m$avance, porcentaje),
+                   list("Faltan", m$falta, numero),
+                   list("Aulas del operativo", m$aulas, numero))) {
+      openxlsx::writeData(wb, hoja, f[[1]], startCol = 1, startRow = fila)
+      valor <- suppressWarnings(as.numeric(f[[2]] %||% NA))[1]
+      if (!length(valor) || !is.finite(valor)) {
+        sin_dato <- sin_dato + 1L
+        openxlsx::writeData(wb, hoja, "—", startCol = 2, startRow = fila)
+        openxlsx::addStyle(wb, hoja, sin_dato_celda, rows = fila, cols = 2)
+      } else {
+        openxlsx::writeData(wb, hoja, round(valor, 4), startCol = 2, startRow = fila)
+        openxlsx::addStyle(wb, hoja, f[[3]], rows = fila, cols = 2)
+      }
+      openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+      fila <- fila + 1L
+    }
+    if (sin_dato) {
+      .cai_nota(
+        wb, hoja, fila,
+        "Estas cifras salen de la plataforma, no del parte de campo: se llenan al cargar la base de respuestas.",
+        nota, n_hoja
+      )
+      fila <- fila + 1L
+    }
+    fila <- fila + 1L
   }
 
-  openxlsx::setColWidths(wb, hoja, cols = 1, widths = 30)
-  openxlsx::setColWidths(wb, hoja, cols = 2:4, widths = 20)
+  # --- 2. AVANCE POR FACULTAD -------------------------------------------------
+  # Va ANTES que la producción por aplicador: es la tabla que el cliente lee, y
+  # la cuota es por facultad. La producción dice a quién empujar; esto dice si
+  # el estudio cierra.
+  if (is.data.frame(ind$facultades) && nrow(ind$facultades)) {
+    escribir_tabla("facultad", ind$facultades, con_total = TRUE)
+  }
+
+  # --- 2b. COBERTURA ----------------------------------------------------------
+  # Va pegada al bloque del eje y antes del rendimiento: describe a quién se
+  # está alcanzando, que es la pregunta que sigue a «cuánto llevas».
+  for (cob in (ind$cobertura %||% list())) {
+    escribir_tabla(AULAS_COBERTURA_CLAVE, cob$tabla, titulo = cob$titulo)
+  }
+
+  # --- 3. RENDIMIENTO POR FACULTAD --------------------------------------------
+  escribir_tabla(
+    "rendimiento", ind$rendimiento,
+    vacio = "El plan todavía no trae facultades con aulas que medir."
+  )
+
+  # --- 4. PRODUCCIÓN POR APLICADOR --------------------------------------------
+  escribir_tabla(
+    "aplicador", ind$aplicadores,
+    vacio = .cali_motivo_sin_aplicadores()
+  )
+
+  # --- 5. AVANCE DIARIO -------------------------------------------------------
+  escribir_tabla(
+    "diario", ind$diario,
+    vacio = .cali_motivo_sin_diario(ind)
+  )
+
+  # DE DONDE SALIO ESTE LIBRO, dentro del propio libro.
+  #
+  # El riesgo de la sinergia app <-> Excel no es que la app destruya el archivo
+  # del equipo —no lo toca: genera uno nuevo cada vez— sino la DIVERGENCIA:
+  # alguien edita su copia, otro genera sin haberla subido, y quedan dos libros
+  # sin nada que diga cual esta al dia. Abrir los dos y comparar esta seccion lo
+  # resuelve sin adivinar.
+  #
+  # El dato ya existia y no tenia consumidor dentro del libro: el recibo
+  # `monitoreo_aulas_libro` que compone `aulas_libro_importar_en_sesion()`.
+  #
+  # `importado_en` viene del ESTADO, no del reloj de aqui: dos generaciones del
+  # mismo estado escriben lo mismo. (La cabecera de esta hoja si lee
+  # `Sys.Date()`, que es anterior a esto y por eso el libro ya cambiaba de un
+  # dia para otro.)
+  if (is.list(procedencia) && length(procedencia)) {
+    fila <- fila + 1L
+    openxlsx::writeData(wb, hoja, "De dónde salió este libro", startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
+    fila <- fila + 1L
+    r <- procedencia$resumen %||% list()
+    leido <- .cai_marca_local(as.character(procedencia$importado_en %||% "")[1])
+    filas_proc <- list(
+      list("Última vez que la app leyó un libro lleno",
+           if (nzchar(leido)) leido else "Ninguna: sale sólo del plan"),
+      list("Aulas que traía esa lectura", r$unidades),
+      list("Partes de campo que traía", r$partes_de_campo),
+      list("Filas de control que traía", r$filas_de_control)
+    )
+    for (f in filas_proc) {
+      openxlsx::writeData(wb, hoja, f[[1]], startCol = 1, startRow = fila)
+      openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+      v <- f[[2]]
+      if (is.null(v) || !length(v)) v <- "—"
+      openxlsx::writeData(wb, hoja, v[1], startCol = 2, startRow = fila)
+      # S12: las cifras con separador de miles como el resto de la hoja; la
+      # marca y la raya, alineadas con ellas.
+      openxlsx::addStyle(wb, hoja, if (is.numeric(v[1])) numero else derecha, rows = fila, cols = 2)
+      fila <- fila + 1L
+    }
+    # La frase que convierte el dato en una accion: sin esto son cuatro cifras
+    # que nadie sabe para que mirar.
+    .cai_nota(
+      wb, hoja, fila,
+      "Si editaste el libro después de esa fecha y no lo subiste, la app todavía no lo sabe.",
+      nota_pie, n_hoja
+    )
+    fila <- fila + 2L
+  }
+
+  # La primera columna lleva rótulos y nombres de facultad; las demás, cifras.
+  # Anchos derivados del contenido, no un 16 plano: ver `.cai_anchos_columna()`.
+  openxlsx::setColWidths(wb, hoja, cols = seq_along(anchos_col), widths = anchos_col)
   openxlsx::pageSetup(wb, hoja, orientation = "portrait", fitToWidth = TRUE,
                       fitToHeight = FALSE)
   invisible(fila)

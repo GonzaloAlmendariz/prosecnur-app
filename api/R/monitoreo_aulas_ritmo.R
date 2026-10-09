@@ -20,12 +20,14 @@
 #   justo lo que paso, mientras que saltarlo comprime el calendario y hace
 #   parecer continuo lo que fue intermitente.
 
-# Los nombres con los que puede llegar la marca de envio. Es la misma lista que
-# `monitoreo_engine.R` ya usa para el resto de familias; se repite aqui la parte
-# que aplica en vez de exportar la deteccion entera, que arrastra la config.
+# Los nombres con los que puede llegar la marca de envio.
+#
+# **La que trae su HUSO va primero.** Estaba encabezada por `_submission_time`,
+# que Kobo publica en UTC, y este operativo agenda hasta las 19:30 de Lima: esas
+# respuestas se anotaban en el ritmo del día SIGUIENTE. `start`/`end` los escribe
+# el dispositivo con su desfase. Ver `monitoreo_aulas_hora_local.R`.
 MONITOREO_AULAS_COLUMNAS_FECHA <- c(
-  "kobo_timestamp_iso", "_submission_time", "submission_time",
-  "fecha", "fecha_envio", "end"
+  MONITOREO_AULAS_COLUMNAS_TIEMPO, "fecha_envio"
 )
 
 # Un dia en formato ISO, o "" si el valor no es una fecha legible. Se corta por
@@ -48,11 +50,27 @@ MONITOREO_AULAS_COLUMNAS_FECHA <- c(
 #' @param meta meta total del estudio, para el acumulado contra ella.
 #' @return lista con `dias` (fecha, validas, acumulado) y el resumen del ritmo.
 #' @export
+# `brecha` viaja aparte de `meta` porque NO es `meta - acumulado`: es la suma de
+# lo que le falta a cada grupo de facultad y sexo (ADR 0079). Un estudio puede
+# llevar 2.668 sobre una cuota de 2.500 y deber 170 personas donde la cuota no
+# cierra, y la resta da cero justo en ese caso.
+#' @param desde,hasta Extremos del calendario, `YYYY-MM-DD`. Por defecto los
+#'   pone la propia serie. Se pasan cuando varias series tienen que compartir
+#'   eje: el ritmo de una facultad que solo aplico dos dias dibujaria un eje de
+#'   dos dias y, puesto al lado del de otra, mentiria sobre el calendario del
+#'   operativo. Un dia FUERA de los extremos no se descarta: los extremos se
+#'   ensanchan hasta contenerlo, porque perder una respuesta para que el eje
+#'   quede bonito es peor que un eje mas ancho.
 monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
                                          valid_response = logical(0),
-                                         meta = 0) {
+                                         meta = 0,
+                                         brecha = NULL,
+                                         desde = NULL,
+                                         hasta = NULL) {
+  .brecha <- suppressWarnings(as.numeric(brecha %||% NA_real_))
+  .brecha <- if (length(.brecha) == 1L && is.finite(.brecha)) max(0, .brecha) else NA_real_
   vacio <- list(dias = list(), dias_con_campo = 0L, mejor_dia = NULL,
-                media_diaria = 0, meta = as.numeric(meta %||% 0))
+                media_diaria = 0, meta = as.numeric(meta %||% 0), brecha = .brecha)
   if (!is.data.frame(responses) || !nrow(responses)) return(vacio)
 
   col <- .monitoreo_aulas_col(responses, MONITOREO_AULAS_COLUMNAS_FECHA)
@@ -75,7 +93,18 @@ monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
   # El calendario COMPLETO entre el primer y el ultimo dia con campo, con ceros
   # donde no se trabajo. Saltar esos dias comprimiria el eje y haria parecer
   # continuo un operativo que tuvo fines de semana y pausas.
-  todos <- format(seq(as.Date(fechas[[1]]), as.Date(fechas[[length(fechas)]]), by = "day"), "%Y-%m-%d")
+  primero <- as.Date(fechas[[1]])
+  ultimo <- as.Date(fechas[[length(fechas)]])
+  .borde <- function(valor) {
+    if (is.null(valor)) return(NULL)
+    d <- suppressWarnings(as.Date(substr(trimws(as.character(valor)), 1L, 10L), format = "%Y-%m-%d"))
+    if (length(d) != 1L || is.na(d)) NULL else d
+  }
+  d0 <- .borde(desde)
+  d1 <- .borde(hasta)
+  if (!is.null(d0)) primero <- min(primero, d0)
+  if (!is.null(d1)) ultimo <- max(ultimo, d1)
+  todos <- format(seq(primero, ultimo, by = "day"), "%Y-%m-%d")
   por_dia <- stats::setNames(rep(0L, length(todos)), todos)
   por_dia[fechas] <- validas
 
@@ -97,6 +126,7 @@ monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
     # Media sobre los dias CON campo, no sobre el calendario: dividir entre los
     # dias muertos daria un ritmo que ningun dia se parecio al real.
     media_diaria = if (con_campo > 0L) round(sum(as.integer(por_dia)) / con_campo, 1) else 0,
-    meta = as.numeric(meta %||% 0)
+    meta = as.numeric(meta %||% 0),
+    brecha = .brecha
   )
 }

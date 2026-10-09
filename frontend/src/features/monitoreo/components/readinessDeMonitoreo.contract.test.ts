@@ -35,6 +35,12 @@ function codigo(ruta: string) {
 }
 
 describe("readiness de Monitoreo", () => {
+  // Centinela de no-mudez: sin componentes que leer, la lista de culpables sale
+  // vacía y el guard pasa sin haber mirado ninguno.
+  it("el barrido encuentra componentes del chrome, o no está guardando nada", () => {
+    expect(readdirSync(dir).filter((f) => f.endsWith(".tsx")).length).toBeGreaterThan(3);
+  });
+
   it("ningún componente compartido del chrome publica data-audit-ready", () => {
     const culpables = readdirSync(dir)
       .filter((f) => f.endsWith(".tsx"))

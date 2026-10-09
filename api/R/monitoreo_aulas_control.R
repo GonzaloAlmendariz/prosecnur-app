@@ -25,13 +25,13 @@
 MONITOREO_AULAS_CONTROL_GRUPOS <- list(
   list(
     clave = "curso",
-    etiqueta = "Informacion del curso",
+    etiqueta = "Información del curso",
     campos = c("wave", "operational_code", "course_name", "room", "schedule",
                "enrolled_total", "eligible_n")
   ),
   list(
     clave = "campo",
-    etiqueta = "Informacion del campo",
+    etiqueta = "Información del campo",
     campos = c("scheduled_date", "scheduled_time", "applied_by", "applied_date",
                "applied_time", "application_status")
   ),
@@ -44,6 +44,21 @@ MONITOREO_AULAS_CONTROL_GRUPOS <- list(
                "threshold_total", "threshold_population",
                "valid_total", "valid_population")
   ),
+  # **El bloque que decide, y que no estaba en ningun grupo.**
+  #
+  # `efectivas_esperadas` es la vara vigente —la meta que el diseño calculo para
+  # ESA aula— y sus columnas viajan en el libro desde que sustituyeron al 70 %.
+  # Ninguna estaba agrupada, asi que el inspector de la Base de control pintaba
+  # las 27 columnas del grupo «cuenta» —incluidos `70T` y `70P`, retirados— y
+  # NO enseñaba la meta ni la brecha. La pantalla que existe para mostrar lo que
+  # trae el libro enseñaba lo viejo y escondia lo vigente.
+  list(
+    clave = "esperado",
+    etiqueta = "Control - esperado vs obtenido",
+    campos = c("efectivas_esperadas", "efectivas_obtenidas",
+               "efectivas_pct_esperado", "efectivas_pct_obtenido",
+               "efectivas_brecha", "elegibles_esperados")
+  ),
   list(
     clave = "duracion",
     etiqueta = "Control - duracion",
@@ -52,9 +67,13 @@ MONITOREO_AULAS_CONTROL_GRUPOS <- list(
   list(
     clave = "cuotas",
     etiqueta = "Control - cuotas",
+    # Cada esperado al lado de su obtenido: `mujeres_esperadas` y
+    # `hombres_esperados` los escribe la app y no estaban en ningun grupo, asi
+    # que la cuota de sexo del aula se veia sin su vara.
     campos = c("observed_students", "non_respondents", "attendance_pct",
                "quota_pct", "quota_missing",
-               "women_n", "men_n", "women_pct", "men_pct")
+               "mujeres_esperadas", "women_n", "women_pct",
+               "hombres_esperados", "men_n", "men_pct")
   ),
   list(
     clave = "horario",
@@ -172,7 +191,25 @@ monitoreo_aulas_control_meta <- function(fila) {
   if (!is.finite(logrado)) logrado <- .mac_num(fila[["effective_surveys"]])
   if (!is.finite(logrado)) logrado <- .mac_num(fila[["sent_total"]])
   if (!is.finite(logrado)) return(NA)
-  logrado >= meta
+  # **La meta se redondea antes de comparar, y la media vuelta va ARRIBA.**
+  #
+  # `logrado >= meta` con la meta cruda parece «no redondear» y no lo es: lo
+  # conseguido son personas, siempre entero, asi que `17 >= 17,4` es identico a
+  # `17 >= 18`. Es un techo implicito que nadie decidio, y pide a cada aula
+  # rendir por encima de su propia media cuando por construccion la mitad cae por
+  # debajo. Medido sobre las 194 aulas aplicadas de 2025 —191 de ellas con meta
+  # no entera—: el criterio crudo declara 103 conformes y este declara 113. Las
+  # diez de diferencia llegaron a su meta; una entrego 19 contra una meta de
+  # 19,02 que la superficie mostraba como «19,0».
+  #
+  # `floor(x + 0.5)` y NO `round()`: R redondea al par —`round(16.5)` es 16,
+  # `round(17.5)` es 18, `round(0.5)` es 0—, asi que la mitad de los empates
+  # caeria hacia abajo sin avisar.
+  #
+  # Esto es la vara de UNA aula. Los agregados (balance del dia, cobertura de la
+  # celda) suman metas CRUDAS: sumar metas ya redondeadas mueve el total sin que
+  # nadie haya ido a ningun sitio.
+  logrado >= floor(meta + 0.5)
 }
 
 #' Filas de «Base de control» listas para publicar.

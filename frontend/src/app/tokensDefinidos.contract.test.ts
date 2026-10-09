@@ -23,10 +23,8 @@ const DEUDA_CONOCIDA = new Set([
   "--pulso-border-soft",
   "--pulso-chrome-pad",
   "--pulso-chrome-radius",
-  "--pulso-danger",
   "--pulso-danger-soft",
   "--pulso-focus-ring",
-  "--pulso-info",
   "--pulso-ink",
   "--pulso-material-thin",
   "--pulso-muted",
@@ -38,7 +36,6 @@ const DEUDA_CONOCIDA = new Set([
   "--pulso-radius-lg",
   "--pulso-radius-md",
   "--pulso-radius-pill",
-  "--pulso-success",
   "--pulso-success-soft",
   "--pulso-surface-muted",
   "--pulso-validacion-border",
@@ -46,9 +43,6 @@ const DEUDA_CONOCIDA = new Set([
   "--pulso-warn-soft",
   "--pulso-warn-text",
   "--pulso-warning",
-  "--pulso-warning-bg",
-  "--pulso-warning-border",
-  "--pulso-warning-fg",
 ]);
 
 const DEFINICION = /(--pulso-[A-Za-z0-9_-]+)\s*:/g;
@@ -86,6 +80,15 @@ function inventario() {
   // (los que usa el producto en TSX ya salían por CSS), y por eso mismo entra
   // ahora: cierra la puerta antes de que entre el primero.
   for (const archivo of archivos(srcDir, [".ts", ".tsx"])) {
+    // **Los tests no pintan nada, así que su `var()` no es un uso.** Este guard
+    // mide una cosa muy concreta —«la declaración que lo usa no llega a
+    // pantalla»— y un token citado dentro de una prueba no llega a pantalla ni
+    // pretende llegar. Sin esta línea el guard se cazaba a sí mismo: el
+    // comentario de `tokensQueExisten.contract.test.ts` nombra
+    // `--pulso-surface-sunken` como el ejemplo histórico del defecto, y eso
+    // bastaba para dejar la suite completa en rojo. Un guard que da un falso
+    // rojo es un guard que se acaba ignorando, y entonces ya no guarda nada.
+    if (/(\.test\.|__tests__)/.test(archivo)) continue;
     const fuente = fs.readFileSync(archivo, "utf8");
     for (const [, nombre] of fuente.matchAll(/"(--pulso-[A-Za-z0-9_-]+)"\s*:/g)) {
       definidos.add(nombre);

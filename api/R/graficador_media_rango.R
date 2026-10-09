@@ -115,19 +115,19 @@ graficar_media_rango <- function(
     mostrar_n_por_categoria = FALSE,
     prefijo_n         = "N=",
     size_n            = 2.8,
-    color_n           = "#081F5C",
+    color_n           = .std_color("azul"),
     titulo            = NULL,
     subtitulo         = NULL,
     nota_pie          = NULL,
     pos_titulo        = c("izquierda", "centro", "derecha"),
     pos_nota_pie      = c("derecha", "izquierda", "centro"),
-    color_titulo      = "#081F5C",
+    color_titulo      = .std_color("azul"),
     size_titulo       = 11,
-    color_subtitulo   = "#081F5C",
+    color_subtitulo   = .std_color("azul"),
     size_subtitulo    = 9,
-    color_nota_pie    = "#081F5C",
+    color_nota_pie    = .std_color("azul"),
     size_nota_pie     = 8,
-    color_ejes        = "#081F5C",
+    color_ejes        = .std_color("azul"),
     size_ejes         = 9,
     textos_negrita    = NULL,
     limites_y         = NULL,
@@ -447,6 +447,15 @@ graficar_media_rango <- function(
       marker_fill = if (identical(modo, "score")) NA_character_ else unname(pal[as.character(.data$categoria)]),
       marker_colour = unname(pal[as.character(.data$categoria)])
     )
+  # ADR 0093 (N4): lo que afirma «media y rango» para la lámina nativa (lámina 82): por grupo, en su orden, la
+  # media con su cifra, el rango y los casos. Sólo en modo score (delta y referencia son otra lámina).
+  espec_media_rango <- if (identical(modo, "score")) tryCatch(list(
+    version = "media_rango/1", tipo = "media_rango", tipo_rango = tipo_rango,
+    rotulos = trimws(gsub("\\s*\n\\s*", " ", as.character(sum_df$categoria))), n = as.numeric(sum_df$n),
+    media = as.numeric(sum_df$media_raw),
+    cifras = paste0(formatC(.pulso_round_half_up(sum_df$media_raw, chip_decimales), format = "f", digits = chip_decimales, big.mark = ","), chip_sufijo),
+    inf = as.numeric(sum_df$rango_inf_raw), sup = as.numeric(sum_df$rango_sup_raw)
+  ), error = function(e) NULL) else NULL
 
   chip_cols <- .resolve_chip_colores(chip_colores)
   # El semaforo solo actua con cortes declarados o modo degradado explicito.
@@ -1220,6 +1229,7 @@ graficar_media_rango <- function(
   # Las bandas ya llevan su cota (ver arriba); un marco mas alrededor del
   # conjunto solo añadiria una linea que no mide nada nuevo.
 
+  attr(p_out, "pulso_espec") <- espec_media_rango
   if (identical(exportar, "rplot")) return(p_out)
 
   if (is.null(path_salida) || !nzchar(path_salida)) {

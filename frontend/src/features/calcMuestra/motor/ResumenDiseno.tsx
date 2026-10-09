@@ -19,6 +19,8 @@ import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoD
 import { estadisticoDelReparto, nombreEstadistico } from "../universidad/calculo/estadisticoAula";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import { frameIntegrity, notaEstadoDelMarco } from "../universidad/shared/frameIntegrity";
+import { desglosarAulas, partesDelDesglose } from "../universidad/shared/desgloseAulas";
+import { escenarioEnVigor } from "../universidad/shared/escenarioEnVigor";
 import {
   normalizeUniversityAulasConfig,
   universityComponentForScenario,
@@ -26,6 +28,7 @@ import {
 import { useMotorStore } from "../store";
 import type { MotorEfectivo } from "./usePerfilEfectivo";
 import "./motor.css";
+import { marcoCorrespondeALasFuentes, type FirmaDeFuentes } from "../universidad/shared/frame";
 
 /**
  * La primera razón por la que el motor rechazó el resultado, lista para la
@@ -59,6 +62,8 @@ type SummaryMetric = {
   value: number | null;
   /** Valor de texto para el KPI que declara el método, no una cantidad. */
   texto?: string;
+  /** De qué está hecha la cifra, cuando la cifra es una suma de decisiones. */
+  desglose?: ReactNode;
   note: string;
   icon: ReactNode;
   tone: "universe" | "estimated" | "confirmed" | "operation";
@@ -71,20 +76,47 @@ export function ResumenDiseno({
   estudio,
   workspace,
   aulasState,
+  fuentesActuales,
 }: {
   motor: MotorEfectivo;
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  /**
+   * Las fuentes cargadas AHORA, para contrastarlas con las que construyeron el
+   * marco. Sale del mismo `universityMarcoPayload` que se manda a construir.
+   */
+  fuentesActuales?: ReadonlyArray<{ role?: string; file_id?: string; sheet?: string }>;
 }) {
   const resetCanon = useMotorStore((s) => s.resetCanon);
   const opcionalesActivos = useMotorStore((s) => s.decisiones.opcionalesActivos);
-  const escenario = useMotorStore((s) => s.decisiones.escenario);
   const { perfil } = motor;
   const frame = aulasState?.frame ?? null;
   const frameProfile = frame?.perfil ?? null;
   const integridadFrame = frameIntegrity(frame);
   const marcoPublicable = integridadFrame.status === "consistent";
+
+  // Con qué escenario está dimensionado el estudio DE VERDAD.
+  //
+  // El store responde `e1` mientras nadie elija, y esa respuesta por defecto es
+  // indistinguible de una decisión tomada. Medido en HSVG 2026 el 2026-08-27:
+  // esta tira decía «165» —componente Universidad, el que sale por defecto—
+  // mientras la corrida sellada el 2026-08-26 llevaba 174 aulas y seguía al
+  // componente Facultades en las quince facultades, sin una sola discrepancia;
+  // `motor_recorrido.decisiones` estaba vacío. Tres superficies, tres números,
+  // y nada en pantalla lo advertía.
+  //
+  // Una corrida sellada es evidencia de con qué se dimensionó. Una decisión
+  // declarada le sigue ganando (ADR 0074) y la contradicción se publica.
+  const vigor = useMemo(
+    () => escenarioEnVigor({
+      workspace,
+      componentes: estudio.componentes,
+      seleccion: aulasState?.selection ?? null,
+    }),
+    [workspace, estudio.componentes, aulasState?.selection],
+  );
+  const escenario = vigor.escenario;
 
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
 
@@ -94,6 +126,24 @@ export function ResumenDiseno({
   const universoEstudiantes = frameProfile?.universo ?? null;
   const universoCursosHorario =
     frameProfile?.aulas_totales ?? (frameAuditNumber(frame, "classroom_n") || null);
+  // **De qué semestre son estos datos.**
+  //
+  // Un `.pulso` llamado HSVG2026 con la base de 2025 cargada calcula sin
+  // protestar: el único síntoma es un aviso genérico y unas cifras fuera de
+  // rango. Medido el 2026-08-24 sobre el proyecto real — contra la base
+  // correcta, ARTE Y DISEÑO pasa de 63 cursos-horario elegibles a 228 y la
+  // ESCUELA DE POSGRADO de 2 a 0. El marco guardaba `generated_at`, que es
+  // cuándo se construyó, no de cuándo son los datos: son dos fechas distintas y
+  // sólo una contesta «¿esto es del semestre del estudio?».
+  const periodoMarco = String((frame as { periodo?: unknown } | null)?.periodo ?? "").trim();
+  // Se compara sólo el AÑO: el ciclo puede no estar en el nombre del estudio y
+  // saltar por eso convertiría el aviso en ruido. Sin uno de los dos, no se
+  // afirma nada.
+  const anio = (t: string) => (t.match(/20\d{2}/) ?? [""])[0];
+  const periodoCuadra =
+    periodoMarco && anio(perfil.nombre)
+      ? anio(periodoMarco) === anio(perfil.nombre)
+      : null;
   const estudiantesElegibles = marcoPublicable ? frameProfile?.poblacion_n ?? null : null;
   const cursosHorarioElegibles = integridadFrame.marcoAulas;
 
@@ -122,6 +172,45 @@ export function ResumenDiseno({
   // Criterios del estudiante, y aquí pesa más porque esta tira acompaña a TODAS
   // las pestañas del módulo.
   const notaIntegridad = notaEstadoDelMarco(frame);
+  // **El marco puede ser de OTRAS fuentes que las cargadas.**
+  //
+  // Medido en la app: con un proyecto de 2025 abierto y las bases 2026 subidas
+  // por la UI, esta banda seguía diciendo «Universo de estudiantes 29,090 ·
+  // Cursos-horario elegibles 2,468 · marco vigente» —cifras de 2025— mientras
+  // el Explorador, dos pestañas al lado, leía el archivo nuevo. Y lo que lo
+  // vuelve invisible es lo PARECIDAS que son: las bases 2026 tienen 29,027
+  // estudiantes y 5,269 cursos-horario únicos. Sesenta y tres y seis de
+  // diferencia; a ojo es el mismo número.
+  //
+  // `null` = el marco no trae firma (proyecto anterior al contrato). No se
+  // acusa desfase sin saberlo, pero tampoco se afirma que está al día.
+  const correspondeALasFuentes = marcoCorrespondeALasFuentes(
+    (frame as { sources_used?: FirmaDeFuentes } | null)?.sources_used ?? null,
+    fuentesActuales ?? [],
+  );
+  const fuentesCambiaron = correspondeALasFuentes === false;
+  // Y si el marco NO trae firma, tampoco se puede decir «marco vigente»: eso es
+  // una afirmación, y aquí no consta de qué bases salió. Se dice lo que se
+  // sabe. Un marco construido desde este contrato firma siempre, así que la
+  // frase desaparece en cuanto se reconstruye.
+  //
+  // `frame != null` es la mitad que faltaba: en un proyecto SIN marco esta nota
+  // salía igual —«no consta de qué bases salió» sobre un estudio recién creado
+  // donde no hay nada que constar— y tapaba la nota correcta, que es «sin
+  // construir · calcula elegibles». Sólo se pregunta por la procedencia de algo
+  // que existe.
+  // «Hay marco» se mide por sus filas de entrada, no por `frame != null`: en un
+  // proyecto en blanco `frame` llega como objeto vacío, no como null, y la nota
+  // salía igual sobre un estudio donde no hay nada cuya procedencia constar.
+  // Es la misma prueba que usa `universidadTabs` para decidir si hay marco.
+  const hayMarco = frameAuditNumber(frame, "input_rows") > 0;
+  const procedenciaDesconocida =
+    hayMarco && correspondeALasFuentes === null && (fuentesActuales?.length ?? 0) > 0;
+  const notaDeFuentes = fuentesCambiaron
+    ? "otras bases cargadas · reconstruye"
+    : procedenciaDesconocida
+      ? "no consta de qué bases salió · reconstruye"
+      : null;
 
   // Metas operativas: el mismo selector P1/P2 y el mismo normalizador de la
   // superficie Distribución acreditan actor, escenario, owner R y frame. Un
@@ -172,6 +261,13 @@ export function ResumenDiseno({
     return total > 0 ? total : null;
   };
   const aulasTitulares = sumaDelReparto("aulas_base");
+  // De qué está hecho ese número. Gonzalo, 2026-08-27: «el 165 cambiar a 174
+  // tomando en cuenta el porqué de las aulas extra, separando las de certeza de
+  // las extra operativas». Las tres decisiones se veían como una sola cifra.
+  const desgloseAulas = useMemo(
+    () => (resultReady ? desglosarAulas(resultModel.component?.resultado?.aulas_por_estrato) : null),
+    [resultReady, resultModel.component],
+  );
   // CON QUÉ se dimensiona, justo antes de decir cuántas aulas salen. Gonzalo,
   // 2026-08-21: «ojo, las aulas de reserva no se coordinan así; más bien antes
   // de aulas titulares podría indicar que estamos usando P25 y tasa de
@@ -191,6 +287,15 @@ export function ResumenDiseno({
       && conResidual.some((f) => (f as { con_residual?: unknown })?.con_residual === true);
     return `${divisor} × tasa ${hayHistorico ? "histórica" : "de referencia"}`;
   })();
+  // De dónde sale el escenario, dicho en la tira. Un número correcto con un
+  // origen invisible es exactamente lo que dejó a HSVG 2026 mostrando 165
+  // mientras el sorteo llevaba 174: la elección nunca se hizo y la pantalla no
+  // tenía cómo decirlo. El aviso nombra la causa, no sólo el hecho.
+  const notaEscenario = vigor.discrepa && vigor.delSorteo
+    ? `el sorteo ejecutado dimensionó con ${calculoDistribucionScenarioMeta(vigor.delSorteo).shortLabel} · revisa`
+    : vigor.origen === "sorteo"
+      ? "escenario tomado del sorteo ejecutado; nadie lo eligió"
+      : null;
   // Vocabulario de la pantalla, no del código: aquí decía «frame» —inglés en
   // una interfaz en español— y «contrato anterior», que no le dice a nadie qué
   // hacer. Los estados que piden acción la nombran: «recalcula».
@@ -208,47 +313,56 @@ export function ResumenDiseno({
         : resultModel.state.kind === "legacy"
           ? `${resultModel.selection.shortLabel} · calculado con una versión anterior · recalcula`
           : `${resultModel.selection.shortLabel} · falta calcular`;
+  const notaResultado = notaEscenario ? `${resultNote} · ${notaEscenario}` : resultNote;
 
   const metrics: SummaryMetric[] = [
     {
       label: "Universo de estudiantes",
       value: universoEstudiantes,
-      note: "base completa",
+      note: notaDeFuentes ?? "base completa",
       icon: <Users size={16} aria-hidden="true" />,
       tone: "universe",
     },
     {
       label: "Universo de cursos-horario",
       value: universoCursosHorario,
-      note: "unidades únicas",
+      // El periodo va en la nota de ESTA tarjeta porque es su base la que
+      // define el catálogo. Cuando el año no cuadra con el del estudio se dice
+      // entero —«base 2025 · el estudio es 2026»—: nombrar los dos es lo que
+      // deja ver el error sin abrir ningún archivo.
+      note: notaDeFuentes ?? (periodoMarco
+        ? periodoCuadra === false
+          ? `base ${periodoMarco} · el estudio es ${anio(perfil.nombre)}`
+          : `base ${periodoMarco} · unidades únicas`
+        : "unidades únicas"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
-      tone: "universe",
+      tone: fuentesCambiaron || procedenciaDesconocida || periodoCuadra === false ? "estimated" : "universe",
     },
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
+      note: notaDeFuentes ?? notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
-      tone: estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
+      tone: fuentesCambiaron || procedenciaDesconocida || estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
+      note: notaDeFuentes ?? notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
-      tone: cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
+      tone: fuentesCambiaron || procedenciaDesconocida || cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Muestra objetivo",
       value: muestraObjetivo,
-      note: resultNote,
+      note: notaResultado,
       icon: <Target size={16} aria-hidden="true" />,
       tone: "operation",
     },
     {
       label: "Sobremuestra operativa",
       value: sobremuestraOperativa,
-      note: resultNote,
+      note: notaResultado,
       icon: <ShieldCheck size={16} aria-hidden="true" />,
       tone: "operation",
     },
@@ -256,7 +370,7 @@ export function ResumenDiseno({
       label: "Se dimensiona con",
       value: null,
       texto: metodoDimensionado ?? "—",
-      note: metodoDimensionado ? "alumnos por CH × efectividad" : resultNote,
+      note: metodoDimensionado ? "alumnos por CH × efectividad" : notaResultado,
       icon: <Sigma size={16} aria-hidden="true" />,
       tone: "operation",
     },
@@ -275,7 +389,21 @@ export function ResumenDiseno({
       // mismo rótulo se leen como una contradicción y no como un dato.
       label: "Aulas que pide el cálculo",
       value: aulasTitulares,
-      note: resultNote,
+      // Sólo cuando hay algo que separar: con todo por fórmula, «165 fórmula»
+      // repite el número de arriba y no dice nada.
+      desglose: desgloseAulas && partesDelDesglose(desgloseAulas).length > 1
+        ? (
+          <span className="rec-resumen-desglose">
+            {partesDelDesglose(desgloseAulas).map((parte, i) => (
+              <span key={parte.clave} data-parte={parte.clave}>
+                {i > 0 && <i aria-hidden="true">{parte.valor < 0 ? "−" : "+"}</i>}
+                <b>{fmtInt(Math.abs(parte.valor))}</b> {parte.etiqueta}
+              </span>
+            ))}
+          </span>
+        )
+        : undefined,
+      note: notaResultado,
       icon: <School size={16} aria-hidden="true" />,
       tone: "operation",
     },
@@ -295,9 +423,14 @@ export function ResumenDiseno({
         </span>
         <span className="rec-resumen-meta">
           {perfil.esEjemplo && <span className="rec-badge-ejemplo">EJEMPLO</span>}
-          <span className="rec-cabecera-perfil" data-fuente={motor.usaProyecto ? "proyecto" : "manual"}>
-            {motor.marcaFuente} · {perfil.nombre}
-          </span>
+          {/* De dónde salen las cifras, en una frase llana. Antes era una píldora
+              con jerga interna («Manual · Proyecto nuevo — universidad») que se
+              leía como botón (Gonzalo, 2026-10-02). El ejemplo ya lo dice su sello. */}
+          {!perfil.esEjemplo && (
+            <span className="rec-cabecera-perfil" data-fuente={motor.usaProyecto ? "proyecto" : "manual"}>
+              {motor.usaProyecto ? "Cifras del proyecto" : "Cifras escritas a mano"}
+            </span>
+          )}
           {motor.tocado && (
             <button type="button" className="rec-link" onClick={resetCanon}>
               <RotateCcw size={12} aria-hidden="true" /> Restaurar parámetros
@@ -324,6 +457,7 @@ export function ResumenDiseno({
               <strong data-texto={metric.texto ? "true" : undefined}>
                 {metric.texto ?? (metric.value == null ? "—" : fmtInt(metric.value))}
               </strong>
+              {metric.desglose}
               <span>{metric.note}</span>
             </span>
           </div>

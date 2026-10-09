@@ -1697,6 +1697,20 @@
 # preguntas SM aparecen como `q0001` en vez de `p1`, y el evaluador reporta
 # decenas de "no aplicable" + falsos positivos.
 #
+.pulso_reponer_marco_aulas <- function(sid, s) {
+  cfg <- s$monitoreo_config
+  au <- if (is.list(cfg)) cfg[["aulas_universitarias"]] else NULL
+  if (!is.list(au)) return(invisible(FALSE))
+  au2 <- .monitoreo_aulas_reponer_marco_de_calc(au, s[["calc_muestra_aulas_frame"]],
+                                                s[["calc_muestra_aulas_selection"]])
+  if (!length(attr(au2, "repuesto"))) return(invisible(FALSE))
+  message("[pulso] marco de aulas repuesto al abrir: ", paste(attr(au2, "repuesto"), collapse = ", "))
+  attr(au2, "repuesto") <- NULL
+  cfg[["aulas_universitarias"]] <- au2
+  session_set(sid, "monitoreo_config", cfg)
+  invisible(TRUE)
+}
+
 # Detección barata: `attr(rp_data, "xlsform_normalized")` es NULL. Si es así,
 # corremos el normalizador y reescribimos el cache en sesión. También
 # invalidamos `evaluacion` para forzar re-auditoría (los flags están escritos
@@ -1704,6 +1718,11 @@
 .pulso_renormalize_after_load <- function(sid) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(invisible(NULL))
+  # Un proyecto guardado con el marco de aulas recortado lo recupera al abrir
+  # desde el marco y la selección que viajan en él
+  # (monitoreo_aulas_restaurar_marco.R).
+  .pulso_reponer_marco_aulas(sid, s)
+  s <- session_get(sid, required = FALSE)
   inst <- s$rp_inst %||% s$instrumento
   changed <- FALSE
   validation_inputs_changed <- FALSE
@@ -1891,6 +1910,12 @@
     if (!is.list(binding)) return(invisible(NULL))
     add_fid(binding$file_id %||% binding$fileId)
     invisible(NULL)
+  }
+
+  # El archivo de marco que Muestra general declara por componente (ADR 0090)
+  # es input: sin él no se puede repetir el sorteo.
+  for (marco in (s$calc_muestra_general %||% list())$marcos %||% list()) {
+    if (is.list(marco)) add_fid(marco$file_id)
   }
 
   estudio <- s$calc_muestra_estudio %||% NULL

@@ -167,17 +167,17 @@ graficar_pie <- function(
     textos_negrita = NULL,
 
     # Estilo texto
-    color_titulo    = "#081F5C",
+    color_titulo    = .std_color("azul"),
     size_titulo     = 11,
-    color_subtitulo = "#081F5C",
+    color_subtitulo = .std_color("azul"),
     size_subtitulo  = 9,
-    color_nota_pie  = "#081F5C",
+    color_nota_pie  = .std_color("azul"),
     size_nota_pie   = 8,
 
     # ==========================
     # LEYENDA (PARCHE MINIMAL)
     # ==========================
-    color_leyenda         = "#081F5C",
+    color_leyenda         = .std_color("azul"),
     size_leyenda          = 8,
     tamano_key_cm         = 0.40,
     espaciado_vertical_cm = 0.16,
@@ -337,6 +337,15 @@ graficar_pie <- function(
                                  ordenar_categorias, df$pct), , drop = FALSE]
 
   df$categoria <- factor(df$categoria, levels = df$categoria)
+  # ADR 0093 (N6): lo que afirma la torta o la dona para la lámina nativa (láminas 69 y 70): las porciones en su
+  # orden, la cifra con el redondeo del gráfico y la frecuencia de cada una.
+  espec_pie <- tryCatch({
+    u <- .pulso_pct_unidades(df$pct, decimales_pct, metodo_redondeo)
+    list(version = "pie/1", tipo = "pie", forma = tipo_pie[1], rotulos = as.character(df$categoria), valores = df$pct,
+         cifras = .pulso_fmt_pct_unidades(u, decimales_pct), unidades = u, n = df$n,
+         total_n = if (all(is.finite(df$n))) sum(df$n) else NA_real_,
+         nota = nota_pie)   # la base viaja en el caption del gráfico (ruta anterior): la lámina nativa la necesita
+  }, error = function(e) NULL)
 
   # Una torta ES una distribución que cierra a 100 %, así que aquí el método
   # tiene algo que decidir y se aplica al vector entero de porciones, no
@@ -699,6 +708,7 @@ graficar_pie <- function(
   # ---------------------------------------------------------------------------
   attr(p_final, "pulso_title_lines") <- as.integer(title_lines)
   attr(p_final, "pulso_canvas_title_height") <- as.numeric(canvas_title_height_eff)
+  attr(p_final, "pulso_espec") <- espec_pie
   if (exportar == "rplot") return(p_final)
 
   if (is.null(path_salida) || !nzchar(path_salida)) {

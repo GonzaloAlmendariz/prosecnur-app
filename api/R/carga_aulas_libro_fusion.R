@@ -22,19 +22,46 @@
 #'
 #' Sale de lo que las tres hojas realmente preguntan
 #' (`carga_aulas_agendadas.R` y `carga_aulas_aplicadas.R`).
+#'
+#' El bloque «Parte de campo» que la lista declaraba (2026-08-31: `actual_room`,
+#' `attendees`, `refusals`, `duplicates`, `applied_surveys`,
+#' `effective_surveys`, `application_status`, `application_date`,
+#' `field_notes`) se retiro por muerto, medido: la fusion solo procesa
+#' `out$plan` —la hoja de agenda— y ese lector no emite campos de parte, asi
+#' que el bloque era inalcanzable; y cuatro de los nueve nombres (`attendees`,
+#' `applied_surveys`, `application_date`, `field_notes`) no los emite NINGUN
+#' lector. Los partes viajan por `out$partes` -> `monitoreo_aulas_partes_campo`
+#' (`.calb_aplicar_en_sesion`), no por esta lista. Los campos de agenda quedan
+#' intactos.
 #' @export
 AULAS_LIBRO_CAMPOS_PROPIOS <- c(
-  # Identidad y agenda
+  # Identidad y agenda. `wave` salio el 2026-08-31 junto con la columna MUESTRA
+  # del bloque de agenda: la ola es del plan (Calculo de muestra) y el libro ya
+  # no la pregunta, asi que tampoco puede pisarla.
   "label", "course_name", "faculty", "level", "teacher", "teacher_phone",
-  "teacher_email", "schedule", "wave", "enrolled_total", "eligible_n",
+  "teacher_email", "schedule", "enrolled_total", "eligible_n",
   "selection_slot_id",
-  # Estado y ciclo de contacto
+  # Estado y ciclo de contacto. `email_received` entra con B22: el libro POSEE
+  # esa marca (su hoja la pregunta) y el flujo del dia 2 es una CORRECCION
+  # «No» -> «Sí» — fuera de esta lista solo llenaria vacios y el «Sí» tecleado
+  # moriria en silencio camino al plan.
   "sample_status", "contact_medium", "contact_date", "contact_attempts",
-  "scheduled_date", "scheduled_day", "scheduled_time", "link",
-  "replacement_note", "notes",
-  # Parte de campo
-  "actual_room", "attendees", "refusals", "duplicates", "applied_surveys",
-  "effective_surveys", "application_status", "application_date", "field_notes"
+  "email_received",
+  # B23: el resultado de cada llamada tambien es del libro — la correccion
+  # tecleada («No contesta» -> «Efectiva») debe pisar el valor del plan.
+  "call_status",
+  # B30: el lugar de aplicacion CONFIRMADO se teclea en el libro y tiene que
+  # NUTRIR a las demas hojas y a la app. Fuera de esta lista la fusion solo
+  # llenaria vacios y la correccion del aula pactada («A206» -> «A305»)
+  # moriria en silencio camino al plan — la trampa que B22 ya pago.
+  "scheduled_venue",
+  # `scheduled_moment` entra el 2026-08-31 (A3 del checklist del operativo):
+  # el bloque de agenda lo escribe y el lector lo emite, pero fuera de esta
+  # lista una correccion de horario hecha en el Excel solo se aplicaba si el
+  # plan estaba vacio — contra la regla del 08-24 («robusta a actualizarse
+  # desde el Excel» en agenda y registro).
+  "scheduled_date", "scheduled_day", "scheduled_time", "scheduled_moment",
+  "link", "replacement_note", "notes"
 )
 
 #' Fusiona las filas del libro sobre el plan existente.
@@ -110,6 +137,65 @@ aulas_libro_fusionar_plan <- function(previo = list(), nuevo = list()) {
     nuevas = as.integer(length(nuevas)),
     intactas = as.integer(length(previo) - length(unique(vistas)))
   )
+}
+
+#' Fusiona los partes del libro sobre los de la sesion: upsert por codigo.
+#'
+#' B24: la hoja de campo lleva UN bloque por eslabon y siembra solo el parte
+#' MAS RECIENTE de cada codigo, asi que los intentos anteriores viven SOLO en
+#' la app. El `session_set` wholesale que habia aqui los borraba al reimportar:
+#' esta fusion actualiza el parte de MAYOR intento de cada codigo con lo que
+#' el libro trae (conservando su numero de intento — el eslabon del lector no
+#' es un intento) y deja intactos los demas. Un codigo nuevo entra tal cual.
+#' Un parte de la sesion que el libro no menciona SE CONSERVA: su ausencia
+#' significa que la hoja ya no lo enseña, no que la visita no ocurrio.
+#'
+#' @param previos partes de la sesion.
+#' @param nuevos partes leidos del libro.
+#' @return lista de partes fusionada.
+#' @export
+aulas_libro_fusionar_partes <- function(previos = list(), nuevos = list()) {
+  previos <- previos %||% list()
+  nuevos <- nuevos %||% list()
+  if (!length(previos)) return(nuevos)
+  if (!length(nuevos)) return(previos)
+
+  cod_de <- function(p) {
+    if (!is.list(p)) return("")
+    v <- .alf_txt(p[["operational_code"]])
+    if (nzchar(v)) v else .alf_txt(p[["classroom_id"]])
+  }
+  intento_de <- function(p) {
+    n <- suppressWarnings(as.integer(p[["intento"]] %||% 1L))
+    if (!length(n) || is.na(n) || n < 1L) 1L else n
+  }
+
+  # Posicion del parte de MAYOR intento por codigo; a igual intento gana el
+  # ultimo registrado (el orden de la lista es cronologico).
+  idx <- list()
+  for (i in seq_along(previos)) {
+    k <- cod_de(previos[[i]])
+    if (!nzchar(k)) next
+    if (is.null(idx[[k]]) || intento_de(previos[[i]]) >= intento_de(previos[[idx[[k]]]])) {
+      idx[[k]] <- i
+    }
+  }
+
+  out <- previos
+  for (p in nuevos) {
+    k <- cod_de(p)
+    pos <- if (nzchar(k)) idx[[k]] else NULL
+    if (is.null(pos)) {
+      out[[length(out) + 1L]] <- p
+      next
+    }
+    # El libro manda en el contenido; el numero de intento es de la APP (el
+    # `intento` del lector es la posicion del ESLABON, no una visita).
+    actualizado <- p
+    actualizado[["intento"]] <- intento_de(out[[pos]])
+    out[[pos]] <- actualizado
+  }
+  out
 }
 
 .alf_txt <- function(x) {

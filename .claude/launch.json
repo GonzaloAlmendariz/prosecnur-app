@@ -2,6 +2,60 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Backend HSVG26ULT trabajo (8812)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8812",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/private/tmp/claude-501/-Users-gonzaloalmendariz-Documents-Pulso-prosecnur-app--claude-worktrees-infallible-mayer-024785/79a3c874-bd2a-4e83-9b8f-5b1bcf3cba56/scratchpad/HSVG26ULT_trabajo.pulso"
+      },
+      "port": 8812
+    },
+    {
+      "name": "Frontend (dev vs 8812)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8812"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "Backend QA aulas en campo (8811)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8811",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/private/tmp/claude-501/-Users-gonzaloalmendariz-Documents-Pulso-prosecnur-app--claude-worktrees-infallible-mayer-024785/79a3c874-bd2a-4e83-9b8f-5b1bcf3cba56/scratchpad/aulas_campo.pulso"
+      },
+      "port": 8811
+    },
+    {
+      "name": "Frontend (dev vs 8811)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8811"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
       "name": "Backend Conta 10-08 (8806)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
@@ -272,6 +326,58 @@
         "PULSO_BOOTSTRAP_PROJECT": "outputs/reference-runs/acnur_acg-20260730-173319/acnur_acg.pulso"
       },
       "port": 8801
+    },
+    {
+      "name": "Frontend semana1 (dev vs 8891)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8891"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "Backend 8799 sin proyecto (diagnostico)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8799",
+        "PULSO_OPEN_BROWSER": "false"
+      },
+      "port": 8799
+    },
+    {
+      "name": "Backend HSVG26ULT (8787)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8787",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/HSTVG2026/HSVG26ULT.pulso"
+      },
+      "port": 8787
+    },
+    {
+      "name": "Backend HSVG26ULT (8799)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8799",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/HSTVG2026/HSVG26ULT.pulso"
+      },
+      "port": 8799
     }
   ]
 }

@@ -8,7 +8,7 @@ import type {
 import { defaultComponente } from "../../../sharedCore";
 import { universityDefaultWorkspace } from "../../shared/study";
 import { buildClassroomLabModel } from "../aulasParts";
-import { classroomComparisonConfigDiff, classroomComparisonSelectorSnapshot } from "../classroomHandoff";
+import { classroomComparisonConfigDiff, classroomComparisonMatchesConfig, classroomComparisonSelectorSnapshot } from "../classroomHandoff";
 import { classroomRiskRows } from "../ClassroomRiskList";
 import {
   UNIVERSITY_FACULTY_COMPONENT_ID,
@@ -348,7 +348,7 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
     expect(model.comparison).toBeNull();
   });
 
-  it("acredita cada artefacto con su propio target, no con el eco global", () => {
+  it("la comparación exige su target; la selección ejecutada manda y publica el desvío", () => {
     const workspaceBase = universityDefaultWorkspace();
     const workspace = {
       ...workspaceBase,
@@ -376,10 +376,33 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
       } as unknown as CalcMuestraAulasState,
     });
 
+    // La COMPARACIÓN sí se acredita contra el target vigente: su trabajo es
+    // decir qué método conviene PARA ese tamaño, así que corrida con otro no
+    // responde a la pregunta.
     expect(model.comparisonReady).toBe(true);
-    expect(model.selectionReady).toBe(false);
-    expect(model.selection).toBeNull();
-    expect(model.m1Rows).toHaveLength(0);
+
+    // **La SELECCIÓN ya no.** Se exigía además que su target coincidiera, y
+    // Gonzalo lo cambió el 2026-08-26: «si la selección de aulas finalmente
+    // indica ciento setenta y cuatro, entonces es ciento setenta y cuatro las
+    // titulares de monitoreo». Medido sobre HSVG26ULT, de las siete condiciones
+    // sólo fallaba ésa —sorteó 174 donde la fórmula pedía 165— y con ella caía
+    // el pase a Monitoreo entero: cuatro filas en «pendiente» y «completa la
+    // selección» sobre una selección completa. Es el principio del ADR 0066
+    // aplicado al conteo: el dimensionamiento es el paso intermedio y la
+    // selección es el entregable.
+    //
+    // Este test se quedó con el contrato viejo y llevaba rojo desde entonces.
+    expect(model.selectionReady).toBe(true);
+    expect(model.selection).not.toBeNull();
+
+    // Y aceptarla tiene consecuencias visibles aguas abajo: sus filas entran.
+    expect(model.m1Rows).toHaveLength(1);
+
+    // NOTA. El desvío («se sortearon 7 donde la fórmula pedía 13») lo calcula
+    // `classroomHandoff` en `selectionTargetDiff` y lo consume el paquete de
+    // defensa, pero `buildClassroomLabModel` NO lo reexpone: la pantalla de
+    // aulas no puede escribirlo aunque el motor lo sepa. Queda anotado; no se
+    // cambia aquí la forma pública del modelo sin una superficie que lo pida.
   });
 
   it("P2 publica solo las cifras del componente por facultad", () => {
@@ -744,7 +767,9 @@ describe("classroomComparisonConfigDiff", () => {
     const corrida = { ...classroomComparisonSelectorSnapshot(config), n_aulas: 202, simulation_runs: 500, monte_carlo_n: 500 };
     const diff = classroomComparisonConfigDiff({ selector: corrida } as never, config);
     expect(diff.some((linea) => linea.includes("n_aulas") && linea.includes("202") && linea.includes("203"))).toBe(true);
-    expect(diff.some((linea) => linea.includes("simulation_runs") && linea.includes("500") && linea.includes("0"))).toBe(true);
+    // E15 AD1: el presupuesto de simulación no decide la vigencia ni se nombra
+    // como diferencia («Comparar» corre 0 a propósito; la estabilidad, 500).
+    expect(diff.some((linea) => linea.includes("simulation_runs") || linea.includes("monte_carlo_n"))).toBe(false);
     // Solo los campos que difieren: declarar donde no muerde ensucia el aviso.
     expect(diff.some((linea) => linea.startsWith("seed"))).toBe(false);
   });
@@ -759,3 +784,18 @@ describe("classroomComparisonConfigDiff", () => {
     expect(classroomComparisonConfigDiff(null, configVigente(203))).toEqual([]);
   });
 });
+
+describe("E15 AD1: «Comparar» basta para que la comparación quede vigente", () => {
+  it("una comparación con 0 corridas (la de «Comparar») vale contra un workspace con 500", () => {
+    const config = { ...universityDefaultWorkspace().aulas_config, n_aulas: 186, simulation_runs: 500 } as AulasConfigConObjetivo;
+    const corrida = { ...classroomComparisonSelectorSnapshot(config), simulation_runs: 0, monte_carlo_n: 0 };
+    expect(classroomComparisonMatchesConfig({ selector: corrida } as never, config)).toBe(true);
+  });
+
+  it("cualquier otro campo sigue invalidándola", () => {
+    const config = { ...universityDefaultWorkspace().aulas_config, n_aulas: 186, simulation_runs: 500 } as AulasConfigConObjetivo;
+    const corrida = { ...classroomComparisonSelectorSnapshot(config), simulation_runs: 0, monte_carlo_n: 0, n_aulas: 185 };
+    expect(classroomComparisonMatchesConfig({ selector: corrida } as never, config)).toBe(false);
+  });
+});
+

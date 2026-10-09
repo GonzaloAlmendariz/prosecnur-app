@@ -120,3 +120,146 @@ test_that("el conteo sobrevive al normalizador de config", {
   cfg <- monitoreo_aulas_normalize_config(list(enabled = TRUE, control_sin_nombre = 7L))
   expect_identical(as.integer(cfg$control_sin_nombre), 7L)
 })
+
+# ── El sello de la marca de refuerzo sobrevive al normalizador ───────────────
+#
+# La lista de campos de `monitoreo_aulas_normalize_plan()` es CERRADA y lo que
+# no se declara se cae en silencio. Ya se llevo una vez las tres marcas de
+# `activar_reemplazo`; el 2026-09-11 se llevo `activation_origin` y
+# `activated_for`, que son lo UNICO que distingue una marca de la app de una
+# casilla tecleada. Medido en vivo: se marco EXTRA 11, el estado llego al
+# tablero y el origen no, asi que «Refuerzos pedidos» seguia vacio y el contador
+# del techo en cero con una pedida.
+
+test_that("marcar un refuerzo deja origen y destino visibles tras normalizar", {
+  plan <- list(list(classroom_id = "A-01", operational_code = "R 1.1", label = "x",
+                    wave = "M1", orden = 1, faculty = "DERECHO",
+                    sample_role = "chain_reserve", sample_status = "SIN CONTACTAR"))
+  marcado <- monitoreo_aulas_marcar_refuerzo(plan, "R 1.1", para = "DERECHO",
+                                             tipo = "refuerzo", motivo = "prueba",
+                                             ahora = "2026-09-11T10:00:00Z")
+  fila <- monitoreo_aulas_normalize_plan(marcado$plan)[[1]]
+  expect_identical(as.character(fila$sample_status), "refuerzo_por_contactar")
+  expect_identical(as.character(fila$activation_origin), "refuerzo")
+  expect_identical(as.character(fila$activated_for), "DERECHO")
+  expect_identical(as.character(fila$activated_at), "2026-09-11T10:00:00Z")
+  expect_identical(as.character(fila$activation_reason), "prueba")
+})
+
+test_that("los cuatro sellos siguen presentes cuando el estado ya avanzo", {
+  # La pregunta de Gonzalo: «¿la app sabe reconocer cuando paso de su estado
+  # especial a estar en contacto o incluso agendado?». Sabe si y solo si el
+  # sello sobrevive al cambio de estado.
+  plan <- list(list(classroom_id = "A-01", operational_code = "R 1.1", label = "x",
+                    wave = "M1", orden = 1, faculty = "DERECHO",
+                    sample_role = "chain_reserve", sample_status = "AGENDADA",
+                    activation_origin = "refuerzo", activated_for = "DERECHO",
+                    activated_at = "2026-09-11T10:00:00Z"))
+  fila <- monitoreo_aulas_normalize_plan(plan)[[1]]
+  expect_identical(as.character(fila$sample_status), "agendada")
+  expect_identical(as.character(fila$activation_origin), "refuerzo")
+  expect_identical(as.character(fila$activated_for), "DERECHO")
+})
+
+test_that("activar un reemplazo deja a la caida diciendo QUIEN la reemplazo", {
+  # Tercer campo que se tragaba la lista cerrada, tras `activation_origin` y
+  # `activated_for`. `monitoreo_aulas_reemplazos.R:112` escribe `replaced_by` en
+  # la fila que cae y el normalizador declaraba solo `replaced_at`: la fecha sin
+  # el sucesor no dice a donde fue el slot.
+  #
+  # Y el test que existia —test-monitoreo-aulas-reemplazos.R:382— miraba la
+  # salida del MOTOR, antes de normalizar: verde con el dato muerto.
+  plan <- list(
+    list(classroom_id = "A-01", operational_code = "CH 1", label = "x", wave = "M1",
+         orden = 1, faculty = "DERECHO", sample_role = "titular",
+         sample_status = "agendada", titular_operational_code = "CH 1"),
+    list(classroom_id = "A-02", operational_code = "R 1.1", label = "y", wave = "M1",
+         orden = 2, faculty = "DERECHO", sample_role = "chain_reserve",
+         sample_status = "sin_contactar", titular_operational_code = "CH 1")
+  )
+  # La puerta de la reserva ELEGIDA a mano, que es la que se pudo ejercitar con
+  # una fixture minima. La automatica escribia `replaced_at` sin `replaced_by` y
+  # se corrigio en el mismo commit, pero con este plan contesta «agotada» —
+  # `monitoreo_aulas_reservas_disponibles()` pide mas de lo que arma esta
+  # fixture— y NO se da por probada: queda anotada en el encargo del loop.
+  out <- monitoreo_aulas_activar_reemplazo(plan, "CH 1", ahora = "2026-09-12T10:00:00Z",
+                                           elegida = "R 1.1")
+  caida <- Filter(function(r) identical(r$operational_code, "CH 1"), out$plan)[[1]]
+  expect_identical(caida$replaced_by, "R 1.1")
+
+  # Y sobrevive al normalizador, que es donde se moria.
+  filas <- monitoreo_aulas_normalize_plan(out$plan)
+  normalizada <- Filter(function(r) identical(as.character(r$operational_code), "CH 1"), filas)[[1]]
+  expect_identical(as.character(normalizada$replaced_by), "R 1.1")
+  expect_identical(as.character(normalizada$replaced_at), "2026-09-12T10:00:00Z")
+})
+
+# ── EL GUARD: ningun campo que un motor escriba se cae al normalizar ─────────
+#
+# **Por que hace falta y por que se BARRE en vez de listarse a mano.** La lista
+# de campos de `monitoreo_aulas_normalize_plan()` es cerrada y lo no declarado
+# se cae en silencio; ya se tragó `activation_origin`, `activated_for` y
+# `replaced_by` en tres episodios distintos, y cada uno se descubrió mirando la
+# app, no corriendo tests. Una lista escrita a mano aquí tendria el mismo
+# defecto que la de alla: el motor numero nueve la deja atras sin avisar.
+#
+# Asi que el guard **no sabe cuales son los campos**: los saca del codigo. Barre
+# `api/R/*.R` buscando el patron con el que TODOS los motores escriben sobre una
+# fila del plan —`plan[[pos]]$campo <- …`— y exige que cada uno sobreviva a una
+# vuelta por el normalizador. Un motor nuevo entra al guard solo.
+#
+# Y comprueba COMPORTAMIENTO, no texto: borra una linea del normalizador y este
+# test cae, que es justo el mutante que hay que matar.
+
+test_that("todo campo que un motor escribe en el plan sobrevive al normalizador", {
+  dir_r <- testthat::test_path("..", "..", "R")
+  skip_if_not(dir.exists(dir_r), "sin fuentes de api/R a mano")
+
+  fuentes <- list.files(dir_r, pattern = "\\.R$", full.names = TRUE)
+  escritos <- unique(unlist(lapply(fuentes, function(f) {
+    lineas <- readLines(f, warn = FALSE)
+    # El patron de los motores: `plan[[pos]]$campo <-`. Se ancla en `plan[[`
+    # para no recoger asignaciones sobre otras estructuras.
+    hits <- regmatches(lineas, regexpr("plan\\[\\[[a-z_]+\\]\\]\\$[a-z_]+", lineas))
+    sub(".*\\$", "", hits)
+  })))
+  escritos <- sort(escritos[nzchar(escritos)])
+  # Si el barrido deja de encontrar nada, el guard se habria vuelto mudo: es la
+  # avería de «una búsqueda que no encuentra no puede callar».
+  expect_gt(length(escritos), 5L)
+
+  # **Los que el normalizador transforma a proposito**, y por eso no se les
+  # puede pedir que devuelvan el centinela. Los DOS pasan por un vocabulario
+  # cerrado, asi que un valor que no pertenece a el sale convertido:
+  #
+  #   - `sample_status` por `monitoreo_aulas_estado_muestra()`, que convierte lo
+  #     desconocido en `sin_contactar`.
+  #   - `replacement_reason` por `.monitoreo_aulas_reason()` (~1032 de
+  #     `monitoreo_aulas_universitarias.R`), que lo convierte en «otro».
+  #
+  # Su supervivencia la prueban los tests de esos vocabularios, no este. La
+  # lista se escribe con su MOTIVO a la vista: una exclusion sin razon escrita
+  # es por donde se cuela el campo que si se estaba cayendo.
+  TRANSFORMADOS <- c("sample_status", "replacement_reason")
+  aprobar <- setdiff(escritos, TRANSFORMADOS)
+
+  centinela <- "CENTINELA-42"
+  fila <- list(classroom_id = "A-01", operational_code = "CH 1", label = "x",
+               wave = "M1", orden = 1, sample_role = "titular")
+  for (campo in aprobar) fila[[campo]] <- centinela
+
+  normalizada <- monitoreo_aulas_normalize_plan(list(fila))[[1]]
+  perdidos <- aprobar[vapply(aprobar, function(campo) {
+    !identical(as.character(normalizada[[campo]] %||% ""), centinela)
+  }, logical(1))]
+
+  expect_identical(
+    perdidos, character(0),
+    info = paste0(
+      "Estos campos los escribe algun motor sobre una fila del plan y el ",
+      "normalizador NO los declara, asi que se caen camino al tablero sin que ",
+      "nada falle: ", paste(perdidos, collapse = ", "),
+      ". Declararlos en `.monitoreo_aulas_normalize_plan_calcula()`."
+    )
+  )
+})

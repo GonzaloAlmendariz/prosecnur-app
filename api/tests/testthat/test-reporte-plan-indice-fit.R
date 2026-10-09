@@ -48,3 +48,33 @@ test_that("los overrides explicitos del analista se respetan sin desborde", {
   expect_equal(fit$row_height, 0.5)
   expect_equal(fit$style$subtopic_badge_width, 0.4)
 })
+
+# H73 (docs/qa/checklist-motor-ppt-diagnostico-2026-10-06.md): con los 13 estandares de acreditacion la letra seguia en
+# 16 pt sobre una tabla de 5.22 in; cuatro titulos largos se partian en dos lineas, esas filas crecian al alto del
+# texto y la ultima entrada quedaba en el borde inferior de la lamina (7.49 de 7.5 in en el render).
+.estandares13 <- c("Perfil del encuestado", "Caracteristicas institucionales", "Desarrollo de politicas institucionales",
+  "Estructura organizacional, administrativa y financiera", "Cuerpo academico", "Estudiantes y graduados",
+  "Infraestructura, instalaciones y recursos de apoyo", "Caracteristicas del perfil de egreso", "Estructura curricular",
+  "Vinculacion con el medio y desarrollo sostenible", "Internacionalizacion integral", "Investigacion, desarrollo e innovacion (I+D+i)",
+  "Integridad y transparencia")
+.ancho_texto <- function(fit, txt) nchar(txt) * 0.52 * fit$style$section_size / 72   # ancho estimado en Arial negrita
+
+test_that("con 13 estandares cada titulo cabe en una linea de la tabla (H73)", {
+  fit <- .indice_fit_layout(list(), "INDICE", .estandares13, .subdf(0))
+  disponible <- fit$table_width - fit$style$number_width - 0.22   # menos el relleno de la celda
+  expect_lte(max(.ancho_texto(fit, .estandares13)), disponible)
+  expect_gte(fit$style$section_size, 11)                          # nunca bajo el piso legible
+  expect_lte(fit$style$number_size, fit$style$section_size)
+  expect_lte(fit$table_top + length(.estandares13) * fit$row_height, 7.05 + 1e-6)
+})
+
+test_that("con 5 secciones cortas la letra no cambia (H73)", {
+  fit <- .indice_fit_layout(list(), "INDICE", .estandares13[c(1, 2, 5, 6, 9)], .subdf(0))
+  expect_equal(fit$style$section_size, 16)
+  expect_equal(fit$style$number_size, 16)
+})
+
+test_that("con 8 secciones la letra no baja: partir un titulo en dos lineas cabe (H73)", {
+  fit <- .indice_fit_layout(list(), "INDICE", .estandares13[1:8], .subdf(0))
+  expect_equal(fit$style$section_size, 16)
+})

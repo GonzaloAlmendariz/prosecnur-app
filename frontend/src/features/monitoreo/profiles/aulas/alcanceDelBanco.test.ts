@@ -29,10 +29,11 @@ describe("alcanceDelBanco", () => {
   const control = [aula(5, 10), aula(10, 20), aula(20, 40)];
 
   it("el déficit se suma por facultad y no se compensa entre ellas", () => {
-    // Derecho: banco de 100 elegibles rinde 50 y le faltan 10 → le sobra.
-    // Letras: sin banco y le faltan 40 → déficit 40.
-    // Restando totales: 50 de falta contra 50 que rinde el banco = déficit 0,
-    // que es el número más favorable y el que esconde a Letras entera.
+    // Derecho: reserva adicional de 100 elegibles rinde 50 y le faltan 10 →
+    // le sobra. Letras: sin reserva adicional y le faltan 40 → déficit 40.
+    // Restando totales: 50 de falta contra 50 que rinde la reserva adicional
+    // = déficit 0, que es el número más favorable y el que esconde a Letras
+    // entera.
     const r = alcanceDelBanco(
       control,
       [{ faculty: "Derecho", elegibles: 100 }],
@@ -43,12 +44,12 @@ describe("alcanceDelBanco", () => {
     expect(r.rinde).toBe(50);
     expect(r.deficit).toBe(40);
     expect(r.deficitSiSeCompensara).toBe(0);
-    // Letras aparece aunque no tenga banco: es el peor caso y quedarse fuera
-    // por no tener fila sería no contarla.
+    // Letras aparece aunque no tenga reserva adicional: es el peor caso y
+    // quedarse fuera por no tener fila sería no contarla.
     expect(r.facultades[0]).toEqual({ facultad: "Letras", elegibles: 0, rinde: 0, falta: 40, deficit: 40 });
   });
 
-  it("ningún alumno del banco es una encuesta", () => {
+  it("ningún alumno de la reserva adicional es una encuesta", () => {
     // 200 elegibles al 50 % son 100 encuestas, no 200.
     const r = alcanceDelBanco(control, [{ faculty: "A", elegibles: 200 }], new Map([["A", 150]]), 10)!;
     expect(r.rinde).toBe(100);
@@ -57,12 +58,13 @@ describe("alcanceDelBanco", () => {
 
   it("no dice que alcanza si alguna facultad se queda corta, aunque el total sobre", () => {
     // **El defecto que esto fija, y estaba en mi propio panel.** El veredicto
-    // salía de comparar totales, así que decía «el banco alcanza» sobre un
-    // corte donde 14 facultades se quedaban cortas y faltaban 363 encuestas: el
-    // titular usaba justo la cuenta optimista que el pie desautoriza.
+    // salía de comparar totales, así que decía «la reserva adicional alcanza»
+    // sobre un corte donde 14 facultades se quedaban cortas y faltaban 363
+    // encuestas: el titular usaba justo la cuenta optimista que el pie
+    // desautoriza.
     //
-    // Aquí: el banco rinde 200 en total y falta 150 en total —sobra—, pero
-    // Letras no tiene banco y le faltan 50.
+    // Aquí: la reserva adicional rinde 200 en total y falta 150 en total
+    // —sobra—, pero Letras no tiene reserva adicional y le faltan 50.
     const r = alcanceDelBanco(
       control,
       [{ faculty: "Derecho", elegibles: 400 }, { faculty: "Letras", elegibles: 0 }],
@@ -74,11 +76,12 @@ describe("alcanceDelBanco", () => {
     expect(r.veredicto).toBe("no alcanza");
   });
 
-  it("un aula del banco también se cae, y el rendimiento lo descuenta", () => {
-    // Sin esto el banco rendía como si las 73 aulas se aplicaran todas, y la
-    // alerta de anticipación de al lado —que sí pide sobre el neto— contaba 18
-    // facultades sin aulas suficientes contra las 14 de aquí. La misma pregunta
-    // en dos unidades no puede dar dos respuestas sin que nadie lo diga.
+  it("un aula de la reserva adicional también se cae, y el rendimiento lo descuenta", () => {
+    // Sin esto la reserva adicional rendía como si las 73 aulas se aplicaran
+    // todas, y la alerta de anticipación de al lado —que sí pide sobre el
+    // neto— contaba 18 facultades sin aulas suficientes contra las 14 de aquí.
+    // La misma pregunta en dos unidades no puede dar dos respuestas sin que
+    // nadie lo diga.
     const sinCaida = alcanceDelBanco(control, [{ faculty: "A", elegibles: 200 }], new Map([["A", 90]]), 10)!;
     const conCaida = alcanceDelBanco(control, [{ faculty: "A", elegibles: 200 }], new Map([["A", 90]]), 10, 0.2)!;
     expect(sinCaida.rinde).toBe(100);
@@ -119,17 +122,19 @@ describe("alcanceDelBanco", () => {
 describe("faltaTrasLaAgenda", () => {
   it("cuenta lo que faltará al acabarse la agenda, no lo que falta hoy", () => {
     // **El defecto que esto fija, y era mío.** El panel usaba `target −
-    // observed`, o sea lo que falta HOY, y el banco se abre DESPUÉS de agotar
-    // las aulas comprometidas. Medido en el corte real: 1 558 hoy contra 1 192
-    // al acabarse la agenda —366 encuestas que ya vienen—, suficiente para que
-    // el panel declare «no alcanza» sobre un banco que sí cubre.
+    // observed`, o sea lo que falta HOY, y la reserva adicional se abre
+    // DESPUÉS de agotar las aulas comprometidas. Medido en el corte real:
+    // 1 558 hoy contra 1 192 al acabarse la agenda —366 encuestas que ya
+    // vienen—, suficiente para que el panel declare «no alcanza» sobre una
+    // reserva adicional que sí cubre.
     const falta = faltaTrasLaAgenda([
       { facultad: "Letras", cuotas: [{ faltanAlCerrarAgenda: 40 }, { faltanAlCerrarAgenda: 23 }] },
       { facultad: "Derecho", cuotas: [{ faltanAlCerrarAgenda: 0 }, { faltanAlCerrarAgenda: 0 }] },
     ]);
     expect(falta.get("Letras")).toBe(63);
-    // Una facultad que cierra con lo agendado no entra: no hay nada que pedirle
-    // al banco. Con el denominador viejo entraba con toda su cuota pendiente.
+    // Una facultad que cierra con lo agendado no entra: no hay nada que
+    // pedirle a la reserva adicional. Con el denominador viejo entraba con
+    // toda su cuota pendiente.
     expect(falta.has("Derecho")).toBe(false);
   });
 

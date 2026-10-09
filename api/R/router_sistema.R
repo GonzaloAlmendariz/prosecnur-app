@@ -714,8 +714,22 @@ mount_sistema <- function(pr) {
         list(bytes = file[[1]], original = names(file)[1] %||% "upload.bin")
       } else if (is.list(file) && is.raw(file$value)) {
         list(bytes = file$value, original = file$filename %||% "upload.bin")
+      } else if (is.list(file) && length(file) == 1L && is.character(file[[1]]) && length(file[[1]]) == 1L) {
+        # text/csv (o cualquier text/*): plumber ya la pasó por rawToChar, así
+        # que charToRaw devuelve los mismos bytes; el nombre viaja como clave.
+        list(bytes = charToRaw(file[[1]]), original = names(file)[1] %||% "upload.bin")
       } else {
-        stop_api(400, "E_BAD_FILE", "Could not extract file bytes from multipart payload")
+        # Plumber aplica a cada parte el parser de su Content-Type: un CSV que
+        # el navegador manda como text/csv llega ya convertido a texto y sin sus
+        # bytes. Se relee el multipart crudo para recuperarlos intactos (y el
+        # nombre); antes esto respondía E_BAD_FILE a todo CSV subido desde la app.
+        partes <- tryCatch(parse_multipart_upload(req), error = function(e) NULL)
+        parte <- if (is.list(partes)) partes$file else NULL
+        if (is.list(parte) && is.raw(parte$value)) {
+          list(bytes = parte$value, original = parte$filename %||% "upload.bin")
+        } else {
+          stop_api(400, "E_BAD_FILE", "No se pudieron leer los bytes del archivo subido.")
+        }
       }
 
       # El `kind` puede llegar de tres formas y las tres tienen que acabar en un

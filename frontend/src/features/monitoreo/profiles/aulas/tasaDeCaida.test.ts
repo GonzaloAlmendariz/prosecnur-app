@@ -68,11 +68,12 @@ describe("no se declara diferencia hasta que la haya", () => {
   });
 
   it("dentro del margen tampoco se dice «va igual»", () => {
-    // 24 de 100 es 24 %, casi exactamente el supuesto. Afirmar que va igual
-    // seria afirmar algo que la evidencia no distingue de la casualidad.
+    // 12 de 100 es 12 %, casi exactamente el supuesto (21/170 = 12,4 %).
+    // Afirmar que va igual seria afirmar algo que la evidencia no distingue
+    // de la casualidad.
     const c = caidaObservada([
-      ...muchos(24, "reemplazada", "planificada"),
-      ...muchos(76, "agendada", "aplicada"),
+      ...muchos(12, "reemplazada", "planificada"),
+      ...muchos(88, "agendada", "aplicada"),
     ]);
     // La afirmación no es «la tasa vale 0.235» sino «la diferencia cabe en el
     // margen», que es lo que decide el veredicto. Comparar el número exacto

@@ -4,9 +4,11 @@ import {
   AlertCircle,
   CalendarCheck,
   CalendarClock,
+  BarChart3,
   CalendarRange,
   CheckCircle2,
   ClipboardCheck,
+  Layers,
   Link2,
   Link2Off,
   PhoneCall,
@@ -14,11 +16,13 @@ import {
   ShieldAlert,
   Table2,
   Target,
-  Users,
   type LucideIcon,
 } from "../../../../vendor/lucide-react";
-import { sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { pct } from "../../core/formatoComun";
+import {
+  etiquetaDelEje, etiquetaPluralDelEje, etiquetaSinValorDelEje,
+  etiquetaDeValorEnGrafico, type EjeDeclarado,
+} from "./etiquetaDelEje";
 
 /**
  * `puntajeSobreCien` se retiró con el tile de Representatividad, su único
@@ -31,12 +35,17 @@ import { pct } from "../../core/formatoComun";
  * desvío contra la muestra planificada.
  */
 import { summarizeAulasValidation } from "./aulasPresentation";
+import { corteDelEstudio } from "./corteDelEstudio";
 import { cuotasResumen } from "./cuotasResumen";
+import { deLaFacultad } from "./deLaFacultad";
+import { delMapaPorFacultad } from "./delMapaPorFacultad";
+import { mermaDeRespuestas, type CifrasDeRespuestas } from "./mermaDeRespuestas";
 import { parteDeCampo } from "./parteDeCampo";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { estadoDeAplicacion } from "./estadoDeAplicacion";
 import { agendamiento } from "./agendamiento";
 import { historiaDeCadena } from "./historiaDeCadena";
+import { esMuestraAgendada } from "./muestraAgendada";
 
 /**
  * La banda de KPIs del perfil de cursos-horario, **una por sección**.
@@ -80,6 +89,12 @@ export type AulasKpi = {
   icono: LucideIcon;
   /** Lectura larga del mismo dato; va al `title`, así que no ocupa alto (C2). */
   detalle?: string;
+  /**
+   * La pestaña (clave de la MISMA sección) donde vive la lista detrás de la
+   * cifra: la tarjeta se vuelve acceso — «Por agendar 144» lleva a la cola.
+   * Sin destino, la tarjeta es solo lectura, como siempre.
+   */
+  destino?: string;
 };
 
 export function fmt(value: unknown, fallback = "0") {
@@ -102,6 +117,67 @@ export function fmt(value: unknown, fallback = "0") {
  * que corresponde a algo que hay que ALCANZAR. El dato exacto no se toca: esto
  * es presentación, y el motor sigue calculando con la fracción.
  */
+/**
+ * El porcentaje del perfil de aulas: **un decimal y espacio antes del «%»**.
+ *
+ * Vive aquí, junto a `fmt` y `fmtCuenta`, porque el perfil entero lo importa de
+ * este módulo. Lo escribí dos veces como helper local —`pctTexto` en el embudo y
+ * `pctCasa` en el perfil por facultad— antes de darme cuenta de que estaba
+ * creando el mismo problema que llevo cerrando: dos sitios formateando lo mismo
+ * acaban separándose.
+ *
+ * No confundir con el `pct()` de `monitoreo/core/formatoComun`, que redondea a
+ * entero, pega el símbolo y escribe «S/D»: ése sirve a otros perfiles.
+ */
+/**
+ * Lo que un aula va a APORTAR, en personas enteras y **hacia abajo**.
+ *
+ * No es `fmtCuenta()`, que redondea hacia arriba: esa es la regla de una META
+ * que hay que cumplir. Un aporte esperado es lo contrario —prometer 3 cuando se
+ * esperan 2,1 es prometer de más— y la regla ya estaba escrita en
+ * `monitoreo_aulas_reserva_dirigida.R`, en el comentario de `.mard_personas()`:
+ * «hacia abajo y no al más cercano… `fmtCuenta()` del frontend redondea hacia
+ * arriba por el motivo contrario, y las dos reglas son correctas en su sitio».
+ *
+ * Estaba aplicada al revés en `avanceProyectado`, y se veía: «Lleva 1 de 4:
+ * faltan 3 y las aulas que faltan por aplicar aportan 3» junto a un veredicto
+ * que decía «falta 1 encuesta». 3 − 3 = 0, no 1. Con el aporte real (2,1) hacia
+ * abajo, la resta cuadra.
+ */
+export function fmtAporte(value: unknown, fallback = "0") {
+  if (value == null || value === "") return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  // El epsilon evita que un 3 guardado como 2,9999999 se lea como 2.
+  return Math.max(0, Math.floor(n + 1e-9)).toLocaleString("es-PE");
+}
+
+/**
+ * Un decimal, escrito **como lo escribe el resto del perfil**.
+ *
+ * Existe porque `pctPerfil()` no cubría todo lo que se publica con un decimal:
+ * los extremos de un intervalo de confianza, los puntos de una diferencia y un
+ * margen «±5.3 pts» se armaban con `toFixed(1)` a mano, cada uno en su archivo.
+ * Formatear en un solo sitio es la regla de la casa; el símbolo se pega aparte.
+ *
+ * **Y una premisa que resultó falsa, medida en pantalla el 2026-09-10**: creí
+ * —y lo escribí en el guard `formateadorUnico` y en un mensaje de commit— que
+ * `toFixed(1)` era peor porque «da punto decimal» frente a la coma de
+ * `toLocaleString("es-PE")`. No: en CLDR, **es-PE usa punto decimal y coma de
+ * millares** («1,234.5»), igual que `toFixed`. Comprobado en el navegador:
+ * `(51.4).toLocaleString("es-PE", …)` devuelve `"51.4"`, y es `es-ES` el que
+ * devuelve `"51,4"`. El motivo para tener un solo formateador sigue en pie —dos
+ * sitios acaban separándose, y `toFixed` redondea distinto en los medios
+ * puntos—, pero no es el que yo contaba.
+ */
+export function unDecimalPerfil(n: number) {
+  return n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+export function pctPerfil(n: number) {
+  return `${unDecimalPerfil(n)} %`;
+}
+
 export function fmtCuenta(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
   const n = Number(value);
@@ -113,61 +189,38 @@ export function fmtCuenta(value: unknown, fallback = "0") {
   return new Intl.NumberFormat("es-PE").format(entero === 0 ? 0 : entero);
 }
 
-/** Sólo la fecha del sello ISO del tablero; la hora no decide nada. */
+/**
+ * Sólo la fecha del sello ISO del tablero; la hora no decide nada.
+ *
+ * **Un `YYYY-MM-DD` pelado NO pasa por `new Date()`.** La especificación lo
+ * parsea como medianoche UTC, y `toLocaleDateString` lo devuelve al huso del
+ * lector: en Lima —UTC−5— `2026-09-05` sale como **4/9/2026**. El día del corte
+ * del estudio es justo un `YYYY-MM-DD` sin hora, así que se formatea a mano
+ * desde sus tres números. Con hora sí se deja a `Date`, que es lo que quiere el
+ * sello del tablero.
+ */
 function fecha(iso: unknown) {
   const texto = typeof iso === "string" ? iso.trim() : "";
   if (!texto) return "";
+  const soloDia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
+  if (soloDia) return `${Number(soloDia[3])}/${Number(soloDia[2])}/${soloDia[1]}`;
   const d = new Date(texto);
   return Number.isNaN(d.getTime()) ? texto.slice(0, 10) : d.toLocaleDateString("es-PE");
 }
 
 /**
- * La tarjeta de cuota, en personas y compartida por dos secciones.
+ * `cuotaKpi`, `cierreKpi` y `validasKpi` se retiraron el 2026-09-08 con la
+ * banda de Avance que dictó Gonzalo: «no me interesa saber cuántos llegaron a
+ * su meta (...) no me interesa saber cuántas cierran con lo agendado». Eran sus
+ * únicas llamadas, y una función que nadie llama es deuda, no una capacidad —la
+ * misma doctrina con la que se fue `puntajeSobreCien`.
  *
- * En personas porque es la unidad del operativo: doce celdas pueden estar a una
- * respuesta o a doscientas y el contador de celdas se ve igual.
+ * Lo que enseñaban vive ahora en otra parte: las efectivas y la cuota, en las
+ * cinco primeras tarjetas de Avance, que salen de `avance_cuota` para no
+ * discrepar con la tabla; la proyección de cierre, en la pestaña de predicción,
+ * que es donde Gonzalo la quiere.
  */
-function cuotaKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
-  // `quotas_sex_faculty` viaja en TODOS los scopes —comprobado pidiendo
-  // `report_scope=source`, que devuelve las 12 celdas—, así que la tarjeta no se
-  // vacía en las secciones que piden ese scope.
-  const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
-  // Lo que falta, por sexo. Se agrega desde las celdas —facultad x sexo— porque
-  // pasarse en una facultad no cubre lo que falta en otra, igual que en el total.
-  const faltanPorSexo = new Map<string, number>();
-  for (const fila of (dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>) {
-    const sexo = String(fila.sex ?? "").trim() || "Sin dato";
-    const falta = Math.max(0, Number(fila.target ?? 0) - Number(fila.observed ?? 0));
-    if (!falta) continue;
-    faltanPorSexo.set(sexo, (faltanPorSexo.get(sexo) ?? 0) + falta);
-  }
-  const porSexo = [...faltanPorSexo.entries()]
-    .map(([sexo, faltan]) => ({ etiqueta: sexSeriesLabel(sexo), faltan }))
-    .sort((a, b) => b.faltan - a.faltan);
-  return {
-    label: "Cuota por recoger",
-    icono: Users,
-    value: cuota.celdas ? fmt(cuota.faltan) : "S/D",
-    // El desglose por sexo en la pista: «3 743» no dice a quién hay que buscar.
-    pista: cuota.celdas
-      ? (porSexo.length
-          ? porSexo.map((x) => `${fmt(x.faltan)} ${x.etiqueta.toLowerCase()}`).join(" · ")
-          : "personas de sexo por facultad")
-      : "el plan no declara cuotas",
-    tone: cuota.faltan ? "warn" : "neutral",
-    // La última frase contesta la resta que no cuadra: 4 376 − 3 700 son 676 y
-    // la tarjeta dice 701. No es un error —lo que falta se suma celda a celda,
-    // porque pasarse en una facultad no cubre lo que falta en otra— pero sin
-    // decirlo el lector encuentra la diferencia y desconfía de las dos cifras.
-    // Y nombra su unidad: «Cumplimiento en respuestas», tres centímetros más
-    // abajo, cuenta lo MISMO por otro camino —metas por curso-horario— y a 0,4
-    // de distancia el redondeo separa las dos cifras en uno. Decir de dónde
-    // sale cada una es lo que impide leer esa diferencia como un error.
-    detalle: cuota.celdas
-      ? `${fmt(cuota.logrado)} de ${fmt(cuota.meta)} personas · ${fmt(cuota.celdasCumplidas)} de ${fmt(cuota.celdas)} celdas sexo × facultad · lo que falta se suma celda a celda`
-      : "el plan no declara cuotas de sexo por facultad",
-  };
-}
+
 
 /**
  * La fecha dentro de un `sel_aulas_AAAAMMDDHHMMSS_hash`.
@@ -235,119 +288,144 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
  * telefónico resolvió nombrando la fuente en el rótulo: «Declaradas efectivas»
  * (la hoja) frente a «Efectivas Kobo» (la plataforma).
  */
-function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
+/**
+ * «Respuestas leídas» con su desglose (A2, 2026-09-07). `respuestas_total`
+ * cuenta TODAS las filas que llegaron, incluidas las del QR de capacitación y
+ * de prueba; la tarjeta decía «273» a secas mientras el embudo de al lado
+ * restaba «37 fuera del operativo · 24 no pasan el criterio». Los tres números
+ * salen de `mermaDeRespuestas`, la MISMA regla del embudo, y se dicen con las
+ * mismas palabras. Sin filas no se enseña un 0: se declara que todavía no
+ * llegó nada (C3).
+ */
+function respuestasKpi(kpis: CifrasDeRespuestas | null | undefined): AulasKpi {
+  const m = mermaDeRespuestas(kpis);
+  if (!m.recibidas) {
+    return {
+      label: "Respuestas leídas",
+      icono: Table2,
+      value: "Ninguna",
+      pista: "todavía no llegó ninguna fila de la plataforma",
+      tone: "warn",
+    };
+  }
   return {
-    label: "Aplicadas",
-    icono: ClipboardCheck,
-    value: fmt(dashboard?.kpis?.aulas_aplicadas),
-    pista: "declaradas en el registro de campo",
-    detalle: "Las declara el aplicador al registrar la aplicación; no se derivan de las respuestas recibidas.",
+    label: "Respuestas leídas",
+    icono: Table2,
+    value: fmt(m.recibidas),
+    pista: `${fmt(m.fueraDelOperativo)} fuera del operativo · ${fmt(m.noPasanElCriterio)} no pasan el criterio · ${fmt(m.efectivas)} efectivas`,
   };
 }
 
-/**
- * **¿Vamos a llegar?** — la única pregunta del tablero que no tenía cifra.
- *
- * La banda de Avance dice «llegaron a su meta: 0», «cuota por recoger: 1 558» y
- * «brechas: 168»: tres formas de decir que se va atrás, y ninguna dice si con lo
- * que hay agendado se llega. Ese número existe desde que la pirámide predice
- * —`proyeccionPorAgenda` decide celda a celda si la agenda comprometida cubre su
- * cuota— pero vivía sólo en el detalle, a dos pestañas de distancia.
- *
- * El denominador son las celdas sexo × facultad, que es por lo que se aprueba o
- * no el estudio. Un `0 de 40` es una alarma; un `0` a secas no dice nada.
- *
- * `tone` en `warn` cuando no cierran todas: es la cifra que decide si hay que
- * salir a pedir aulas, y neutra se lee como un dato más de contexto.
- */
-function cierreKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
-  const proyeccion = proyeccionPorAgenda(
-    (dashboard?.agenda ?? []) as MonitoreoRow[],
-    parteDeCampo(
-      (dashboard?.partes_campo ?? []) as MonitoreoRow[],
-      (dashboard?.agenda ?? []) as MonitoreoRow[],
-    ).filas as MonitoreoRow[],
-    (dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[],
-  );
-  const celdas = proyeccion.flatMap((f) => f.cuotas);
-  const cierran = celdas.filter((c) => c.alcanza).length;
+function registroKpi(dashboard: MonitoreoAulasDashboard | null, facultadEnFoco = ""): AulasKpi {
+  // Con una facultad puesta, los aplicados son los SUYOS. Salen del reparto por
+  // rol que el motor calcula sobre el plan entero —no del `course_status`
+  // recortado a 500 filas—, y son los titulares aplicados de esa facultad.
+  const mapa = dashboard?.course_status_rol_y_estado_por_facultad ?? null;
+  const hayReparto = !!mapa && Object.keys(mapa).length > 0;
+  const suyo = facultadEnFoco ? delMapaPorFacultad(mapa, facultadEnFoco) : null;
+  // **Con una facultad puesta, la cifra del estudio NO sirve de respaldo.** Sin
+  // esta rama, una facultad que no aparece en el reparto heredaba los 56
+  // aplicados del operativo entero y los presentaba como suyos. Cero es el dato
+  // correcto cuando el reparto llegó y ella no está —no tiene aulas en el
+  // plan—; cuando el reparto no llegó, la banda lo declara en vez de contar.
+  const aplicados = facultadEnFoco
+    ? Number(suyo?.titulares?.aplicado ?? 0)
+    : Number(dashboard?.kpis?.aulas_aplicadas ?? 0);
+  if (facultadEnFoco && !hayReparto) {
+    return {
+      label: "Cursos-horario aplicados",
+      icono: ClipboardCheck,
+      value: "S/D",
+      pista: "el reparto por facultad no llegó con los datos",
+      detalle: "Cuenta el curso-horario que alguien registró en esta app, el que su parte declara aplicado y el que ya recibe respuestas por la plataforma. Con una facultad en el selector hace falta el reparto que calcula el motor sobre el plan entero, y este payload no lo trae.",
+    };
+  }
   return {
-    label: "Cierran con lo agendado",
-    icono: CalendarRange,
-    value: celdas.length ? fmt(cierran) : "S/D",
-    pista: celdas.length
-      ? `de ${fmt(celdas.length)} celdas sexo × facultad`
-      : "el estudio no declara cuotas por sexo y facultad",
-    tone: celdas.length && cierran < celdas.length ? "warn" : "neutral",
-    detalle: celdas.length
-      ? "Cuenta las celdas que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Las que no cierran se ven una a una en Cuotas."
-      : undefined,
+    // **El rótulo dice su unidad.** Decía «Aplicadas» a secas, en una banda
+    // donde la tarjeta de al lado —«Válidas 2,668»— cuenta PERSONAS: quien no
+    // diseñó el estudio compara 152 con 2.668 sin nada que le avise de que son
+    // cursos-horario contra encuestas. Se usa el mismo nombre con que el
+    // glosario de columnas traduce este dato (`aulas_aplicadas`), así que la
+    // tarjeta y la tabla lo llaman igual.
+    label: "Cursos-horario aplicados",
+    icono: ClipboardCheck,
+    value: fmt(aplicados),
+    // **Y la pista dice las TRES vías, porque desde el 2026-09-07 son tres.**
+    // Decía «declarados en el registro de campo» y prometía que la cifra no se
+    // derivaba de las respuestas; ese día se derivó, porque con ocho aulas
+    // produciendo encuestas la tarjeta enseñaba UNA.
+    pista: facultadEnFoco && suyo
+      ? `de ${fmt(suyo.titulares?.total ?? 0)} titulares de ${facultadEnFoco}`
+      : "registrados, con parte o ya recibiendo respuestas",
+    detalle: "Cuenta el curso-horario que alguien registró en esta app, el que su parte declara aplicado y el que ya recibe respuestas por la plataforma. Basta con uno: el parte llega al cerrar la aplicación y a veces tarda, pero las respuestas llegan solas.",
   };
 }
+
 
 function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const brechas = Number(dashboard?.kpis?.brechas ?? 0);
   // Nunca un agregado sin su desglose. «168» no dice dónde hay que ir; «168 en
-  // 20 facultades · la mayor, Educación con 232» sí. La facultad sale de
-  // `course_status`, que ya viaja con ella.
+  // 20 facultades · la mayor, Educación con 232» sí.
+  //
+  // **Y se reparte por la columna del EJE, no por `faculty` fijo.** En un
+  // estudio de una sola facultad esa cuenta era «en 1 facultad» —el desglose
+  // sin desglosar— y salía en SEIS pestañas, porque esta banda preside todas
+  // las de Consultas. El valor sale de `course_status`, que trae las dos
+  // columnas.
+  const eje = (dashboard as { avance_cuota?: { eje?: EjeDeclarado } } | null)?.avance_cuota?.eje;
+  const columna = eje?.columna || "faculty";
   const porFacultad = new Map<string, number>();
   for (const fila of (dashboard?.course_status ?? []) as Array<Record<string, unknown>>) {
     const b = Number(fila.brecha ?? 0);
     if (!Number.isFinite(b) || b <= 0) continue;
-    const f = String(fila.faculty ?? "").trim() || "Sin facultad";
+    const f = String(fila[columna] ?? "").trim() || etiquetaSinValorDelEje(eje);
     porFacultad.set(f, (porFacultad.get(f) ?? 0) + b);
   }
+  const unidad = etiquetaDelEje(eje).toLocaleLowerCase("es");
+  const unidades = etiquetaPluralDelEje(eje).toLocaleLowerCase("es");
   const mayor = [...porFacultad.entries()].sort((a, b) => b[1] - a[1])[0];
   return {
-    label: "Brechas",
+    // **«Brechas» no decía brecha de qué**, y la tarjeta de al lado —«Cuota por
+    // recoger 170»— también cuenta lo que falta, pero en PERSONAS. Las dos
+    // cifras se leían como dos cuentas del mismo hueco cuando son dos ejes: 170
+    // son alumnos que faltan para la cuota del estudio; 98, cursos-horario que
+    // no llegaron a su propia meta (`sum(tracked_df$brecha > 0)`,
+    // `monitoreo_aulas_universitarias.R:2342`).
+    //
+    // Con el nombre completo queda además a la vista que es el complemento de
+    // «Llegaron a su meta», que es la tarjeta vecina por el otro lado.
+    label: "Cursos-horario bajo su meta",
     icono: AlertCircle,
     value: fmt(brechas),
     pista: porFacultad.size
-      ? `cursos-horario en ${fmt(porFacultad.size)} ${porFacultad.size === 1 ? "facultad" : "facultades"}`
-      : "cursos-horario por debajo de su meta",
+      ? `en ${fmt(porFacultad.size)} ${porFacultad.size === 1 ? unidad : unidades}`
+      // No es «ninguno»: el desglose sale de `course_status`, que puede llegar
+      // recortado. Se dice que falta el reparto, no que no haya brechas.
+      : `sin el desglose por ${unidad}`,
     detalle: mayor
-      ? `La mayor es ${mayor[0]}, con ${fmt(mayor[1])} respuestas por recoger. El corte de `
-        + `\`course_status\` puede venir recortado, así que el reparto por facultad se lee como orden de magnitud.`
+      // Sin jerga: «course_status» es el nombre interno del payload y no le
+      // dice nada a quien lee el tooltip — la idea es que la lista de
+      // cursos-horario puede llegar recortada por tamaño (el tope declarado
+      // del estado) y por eso el reparto es orden de magnitud.
+      ? `La mayor es ${etiquetaDeValorEnGrafico(mayor[0], eje)}, con ${fmt(mayor[1])} respuestas por recoger. `
+        + `La lista de cursos-horario puede llegar recortada por tamaño, así que el reparto por ${unidad} `
+        + `se lee como orden de magnitud.`
+        // **El matiz del valor de PERSONA, dicho donde cabe.** Con un eje que
+        // resuelve por padrón, el valor de un curso-horario es el de la mayoría
+        // de sus alumnos y el de una meta es el de cada persona: son la misma
+        // palabra sobre dos poblaciones, y aquí se agrupan aulas. En la pista no
+        // entra; el tooltip existe para esto.
+        // La frase evita `${...} de`, que el guard de cifras crudas lee como una
+        // cifra seguida de su denominador. El guard no se debilita por una
+        // redacción: se redacta de otra forma.
+        + (eje?.atribucion === "persona"
+          ? ` El ${unidad} que agrupa aquí es el que declara la mayoría de los alumnos del curso-horario.`
+          : "")
       : undefined,
     tone: brechas ? "warn" : "neutral",
   };
 }
 
-function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
-  // El desglose honesto de esta tarjeta es decir que NO se puede desglosar: si
-  // ninguna respuesta se ata a un curso-horario, no hay facultad ni sexo que
-  // repartir. Callarlo la deja igual que si el reparto existiera, y repartirla
-  // por la meta sería inventarlo.
-  const validas = Number(dashboard?.kpis?.respuestas_validas ?? 0);
-  const atribuidas = ((dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>)
-    .reduce((n, f) => n + Number(f.observed ?? 0), 0);
-  // **El caso intermedio, que era el real y no se decía.**
-  //
-  // La rama de arriba sólo miraba el todo-o-nada. En este corte hay 2 220
-  // válidas y 2 185 atribuidas a una celda sexo × facultad: **35 encuestas
-  // hechas que no cuentan para ninguna cuota**, en un operativo donde faltan
-  // 1 558 y el banco entero no alcanza. La cifra estaba calculada dos líneas
-  // más arriba y sólo se usaba para el caso extremo.
-  //
-  // No es un tope: se comprobó que ninguna de las 40 celdas supera su meta, así
-  // que `observed` no está recortado y la diferencia es real.
-  const fuera = Math.max(0, validas - atribuidas);
-  return {
-    label: "Válidas",
-    icono: CheckCircle2,
-    value: fmt(dashboard?.kpis?.respuestas_validas),
-    pista: validas > 0 && atribuidas === 0
-      ? "de Kobo · ninguna atribuida a un curso-horario"
-      : fuera > 0
-        ? `${fmt(fuera)} no entran en ninguna celda de cuota`
-        : "respuestas de Kobo que pasan el filtro",
-    detalle: validas > 0 && atribuidas === 0
-      ? "Sin atribución no se pueden repartir por facultad ni por sexo, así que no cuentan para ninguna cuota."
-      : fuera > 0
-        ? `${fmt(atribuidas)} de ${fmt(validas)} caen en una celda sexo × facultad. Las otras ${fmt(fuera)} están hechas y no cuentan para ninguna cuota: si el control «Respuestas válidas sin curso-horario» está en verde, lo que les falta es el sexo.`
-        : undefined,
-  };
-}
 
 /**
  * Las tarjetas de cada sección.
@@ -366,21 +444,46 @@ export function aulasKpis(
    * decorado. Opcional: sin ella, la banda se comporta como antes.
    */
   pestana = "",
+  /**
+   * La facultad del selector de la cabecera, si hay una puesta.
+   *
+   * La banda presidía un Resumen filtrado diciendo las cifras del estudio
+   * entero: «1 063 efectivas · meta 2 500 · 56 aplicados» encima de un panel que
+   * decía «12 de 99» para Psicología. Dos lecturas contradictorias a diez
+   * centímetros, y la de arriba es la que se lee primero.
+   */
+  facultadEnFoco = "",
 ): AulasKpi[] {
   const kpis = dashboard?.kpis;
 
   if (seccion === "fuentes") {
     // De dónde viene todo: el plan, lo que se leyó y cuándo se calculó. Es la
     // misma tríada que telefónico pone en su sección de fuentes.
-    const sello = fecha(dashboard?.generated_at);
+    // **El corte del estudio NO es `generated_at`.**
+    //
+    // `corteDelEstudio.ts` existe exactamente por esto y su cabecera lo explica:
+    // ese sello dice cuándo se CALCULÓ el tablero —el reloj de la máquina que lo
+    // abrió— y sobre un estudio reabierto o simulado dice cualquier cosa. El
+    // módulo ya resolvía el «hoy» del estudio como el último día con parte de
+    // campo, y esta tarjeta, que es la que publica la palabra «Corte» en la
+    // banda, seguía leyendo el sello.
+    //
+    // Medido el 2026-08-29 sobre `aulas_con_respuestas.pulso`: la tarjeta decía
+    // **29/8/2026** con partes del 1/9 al 5/9 y con Salidas diciendo «corte
+    // 05/09/26». Dos capas, dos lecturas de la misma regla — que es la frase que
+    // el propio `corteDelEstudio` usa para describir el defecto hermano.
+    //
+    // Cuando no hay ni un parte no hay reloj de campo: el módulo devuelve el
+    // sello y lo declara con `esDelCampo: false`, y aquí se dice en la pista en
+    // vez de afirmar un corte que nadie midió.
+    const corte = corteDelEstudio(
+      (dashboard?.partes_campo ?? []) as MonitoreoRow[],
+      dashboard?.generated_at,
+    );
+    const sello = fecha(corte.dia);
     return [
       planKpi(dashboard),
-      {
-        label: "Respuestas leídas",
-        icono: Table2,
-        value: fmt(kpis?.respuestas_total),
-        pista: "filas que llegaron de la plataforma",
-      },
+      respuestasKpi(kpis),
       {
         // La tarjeta se llama «Corte» y decía «Listo»: prometia una fecha y
         // entregaba un estado, con la fecha escondida en la pista. El corte ES
@@ -389,7 +492,9 @@ export function aulasKpis(
         label: "Corte",
         icono: RefreshCw,
         value: sello || "Pendiente",
-        pista: sello ? "todo el atraso se mide contra este día" : "todavía sin tablero generado",
+        pista: !sello ? "todavía sin tablero generado"
+          : corte.esDelCampo ? "último día con parte; todo el atraso se mide contra él"
+            : "sello del tablero: todavía no hay ningún parte de campo con el que fijar el corte",
         tone: sello ? "neutral" : "warn",
       },
     ];
@@ -404,7 +509,7 @@ export function aulasKpis(
       const ag = agendamiento((dashboard?.agenda ?? []) as Array<Record<string, unknown>>);
       const tiles: AulasKpi[] = [
         {
-          label: "Agendadas",
+          label: "Agendados",
           icono: CalendarCheck,
           value: fmt(ag.agendadas),
           // Con su denominador: «160» y «160 de 186» dicen lo mismo del
@@ -417,6 +522,8 @@ export function aulasKpis(
           value: fmt(ag.porAgendar),
           pista: "sin fecha cerrada todavía",
           tone: ag.porAgendar ? "warn" : "neutral",
+          // La lista de a quién llamar vive en Contacto: la cifra es la puerta.
+          destino: "contacto",
         },
       ];
       // **Un aula aplicada sin fecha agendada es un descuadre, no un estado.**
@@ -426,13 +533,54 @@ export function aulasKpis(
       // la agenda, o el parte se anoto en la fila equivocada. El tile aparece
       // sólo cuando las hay —un «0 descuadres» permanente entrena a no mirarlo—
       // y en tono de alerta, porque pide una correccion.
+      /**
+       * **Fecha prevista no es cita cerrada, y este panel promete lo segundo.**
+       *
+       * Arriba está escrito que «agendar es llamar al docente y cerrar una
+       * cita», y «Agendadas» se cuenta por tener `scheduled_date`. Esa columna
+       * llega **pre-rellenada con la fecha prevista de cada curso-horario**: las
+       * 1.173 reservas dormidas la traen sin que nadie las haya agendado, y
+       * 1.137 de ellas con fecha distinta de la de su titular —la de su propio
+       * curso—.
+       *
+       * Contar por fecha sigue siendo correcto para «cuántas se pueden visitar»,
+       * que es lo que mide `agendamiento`. Lo que faltaba es no dejar que «Por
+       * agendar 0» esconda a nueve filas cuyos DOS estados se contradicen: el de
+       * muestra dice «sin contactar» y el operativo dice «agendada». La primera
+       * versión de este tile decía «sin contacto logrado», que elegía uno de los
+       * dos como verdadero sin poder probarlo.
+       *
+       * Mismo patrón que el descuadre de abajo: sólo aparece cuando las hay.
+       */
+      if (ag.estadosEnDesacuerdo > 0) {
+        tiles.push({
+          label: "Estados que se contradicen",
+          icono: CalendarClock,
+          value: fmt(ag.estadosEnDesacuerdo),
+          // **Manda el operativo, y eso se dice.** Gonzalo, 2026-08-31: «se
+          // supone que en las aulas titulares se agendan a primer momento antes
+          // del campo». La agenda es previa por diseño, así que la fecha es el
+          // dato bueno y el de muestra es el que hay que corregir. Decir sólo
+          // «se contradicen» deja al lector eligiendo, y ya no hay nada que
+          // elegir.
+          pista: "tienen fecha y el estado de muestra dice «sin contactar»: manda la fecha, hay que corregir la muestra",
+          // **Cuánto depende de la contradicción, no sólo cuántas hay.** El
+          // conteo solo deja al lector sin saber si son nueve casos sueltos o
+          // media proyección. Medido el 2026-08-30: esas 9 aportan 168 de las
+          // 373,5 efectivas del aporte pendiente.
+          detalle: ag.esperadasEnDesacuerdo > 0
+            ? `De ellas se esperan ${fmt(ag.esperadasEnDesacuerdo)} encuestas, así que la proyección de cierre se apoya en filas cuyos dos estados no coinciden. Cuál manda, lo agendado o lo contactado, decide si esas encuestas cuentan.`
+            : undefined,
+          tone: "warn",
+        });
+      }
       if (ag.aplicadasSinAgenda > 0) {
         tiles.push({
-          label: "Aplicadas sin agenda",
+          label: "Aplicados sin agenda",
           icono: CalendarClock,
           value: fmt(ag.aplicadasSinAgenda),
           pista: "tienen parte y no tienen fecha agendada",
-          detalle: "No deberia ocurrir: sin agendar no se aplica. Revisa la fecha en la hoja de agenda o si el parte se anoto en la fila que no era.",
+          detalle: "No debería ocurrir: sin agendar no se aplica. Revisa la fecha en la hoja de agenda o si el parte se anotó en la fila que no era.",
           tone: "warn",
         });
       }
@@ -445,6 +593,42 @@ export function aulasKpis(
           icono: PhoneCall,
           value: fmt(ag.conInsistencia),
           pista: `gestiones; la mediana es ${fmt(ag.intentosMedianos)}`,
+          destino: "contacto",
+        });
+      }
+      // **La insistencia describía; ahora también avisa.**
+      //
+      // «12 cuestan más de una gestión» no dice qué hacer. Medido sobre el campo
+      // de 2025 (170 titulares): las que se cerraron en una o dos gestiones se
+      // cayeron el 17-19 %, y de la TERCERA en adelante el 36-38 %. O sea que a
+      // partir de la tercera llamada el aula tiene el doble de probabilidad de
+      // no sostenerse, y eso se sabe ANTES de que se caiga — que es cuando
+      // todavía sirve para activar una reserva.
+      if (ag.enUmbralDeRiesgo > 0) {
+        tiles.push({
+          label: "Van por la tercera",
+          icono: PhoneCall,
+          value: fmt(ag.enUmbralDeRiesgo),
+          pista: "gestiones y siguen sin fecha",
+          destino: "contacto",
+          detalle: "En el campo de 2025, un curso-horario que llegaba a la tercera gestión se caía el doble de veces que una cerrada en una o dos (36 % contra 18 %). Conviene mirar su reserva antes de que se caiga.",
+          tone: "warn",
+        });
+      }
+      // Sin medio de contacto no es «difícil»: es que no hay por dónde llamar.
+      // En 2025 fueron 14 de 170 y se cayeron LAS CATORCE.
+      if (ag.sinMedioDeContacto > 0) {
+        tiles.push({
+          label: "Sin medio de contacto",
+          icono: PhoneCall,
+          value: fmt(ag.sinMedioDeContacto),
+          // El rótulo decía «sin medio de contacto» y la cuenta exige ADEMÁS
+          // que sigan sin fecha: una ya agendada no necesita que la llamen. Sin
+          // decirlo, 33 sin medio conviven con un contador en 0.
+          pista: "ni teléfono ni correo anotado, entre las que aún hay que agendar",
+          detalle: "En 2025 los 14 cursos-horario sin medio de contacto anotado se cayeron todos. No es que sean difíciles: es que no hay por dónde llamarlos.",
+          tone: "warn",
+          destino: "contacto",
         });
       }
       return tiles;
@@ -452,14 +636,75 @@ export function aulasKpis(
     // La sección de la agenda y el registro: cuántas hay, cuántas se
     // registraron y cuántas no han recibido ni una respuesta.
     const estado = estadoDeAplicacion((dashboard?.course_status ?? []) as MonitoreoAulasPlanRow[]);
+    const deTramo = (clave: string) =>
+      estado.estados.find((e) => e.clave === clave)?.aulas ?? 0;
+    const sinFecha = deTramo("pendiente");
+    const agendadasConFecha = deTramo("lista");
+    // **El tramo «lista» NO quiere decir «tiene cita».** Medido el 2026-08-30
+    // sobre el estudio de 174 titulares: los 22 de este sello son **13
+    // `agendada` + 9 `sin_contactar`**, y la pista decía «agendados, todavía
+    // sin salir a campo» sobre los 22. Los 9 son justo los que la cola de
+    // contacto de Modelo publica como «siguen sin cita · el que más lleva va
+    // por 5 intentos», a dos bloques de distancia.
+    //
+    // Es la advertencia que este mismo comentario ya traía —«llamar agendado a
+    // lo que no tiene fecha invierte la decisión: una agendada se espera, una
+    // sin fecha hay que salir a agendarla»— con el eje equivocado: se miró
+    // `application_state`, que agrupa las dos, en vez de `sample_status`, que
+    // las separa.
+    const enLista = ((dashboard?.course_status ?? []) as MonitoreoAulasPlanRow[])
+      .filter((f) => String(f.application_state ?? "").trim() === "lista");
+    //
+    // **Sólo se separa si TODAS declaran su estado.** Asumir «sin cita» donde
+    // no hay `sample_status` es el mismo error al revés: se estaría afirmando
+    // que nadie contactó a filas que no dicen nada.
+    const declaran = enLista.filter((f) => String(f.sample_status ?? "").trim() !== "");
+    //
+    // **Cuando los dos estados se contradicen, manda el OPERATIVO.**
+    //
+    // Gonzalo, 2026-08-31: «se supone que en las aulas titulares se agendan a
+    // primer momento antes del campo». La agenda es previa al campo por diseño,
+    // así que un titular con fecha no puede estar sin contactar: lo que está
+    // desactualizado es `sample_status`, y las nueve filas lo confirman por su
+    // cuenta —llevan de tres a cinco gestiones anotadas—.
+    //
+    // Antes se miraba sólo la muestra y esas nueve salían como «sin contactar
+    // todavía», que manda a llamar a docentes que ya dieron hora.
+    const conAgenda = (f: MonitoreoAulasPlanRow) => {
+      const op = String(f.operational_status ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+      return op === "agendada" || op === "aplicada" || op === "cerrada";
+    };
+    const conCita = declaran.filter((f) => esMuestraAgendada(f.sample_status) || conAgenda(f)).length;
+    // Las que tienen cita en el operativo y la muestra aún no lo dice: es un
+    // dato que hay que corregir, y se declara en vez de esconderse detrás del
+    // recuento ya arreglado.
+    const muestraDesfasada = declaran.filter((f) => !esMuestraAgendada(f.sample_status) && conAgenda(f)).length;
+    const sinCita = declaran.length === enLista.length ? declaran.length - conCita : 0;
     return [
       planKpi(dashboard),
       registroKpi(dashboard),
       {
+        // **La pista nombraba sólo la mitad, y era la que valía cero.**
+        //
+        // `sinSalirACampo` suma los tramos `pendiente` («Sin agendar») y `lista`
+        // («Agendada»), como dice su propio comentario en `estadoDeAplicacion`.
+        // La pista decía «agendadas que aún no salen a campo» sobre 145 aulas
+        // de las que —medido el 2026-08-29— **ninguna estaba agendada**: el
+        // Status de aplicación de esa misma sesión daba «Agendada 0», y el panel
+        // de abajo, «145 sin fecha, al final de su facultad». Llamar agendado a
+        // lo que no tiene fecha invierte la decisión: una agendada se espera, una
+        // sin fecha hay que salir a agendarla.
+        //
+        // Se declara el reparto, que además es lo que decide.
         label: "Sin empezar",
         icono: AlertCircle,
         value: fmt(estado.sinSalirACampo),
-        pista: "agendadas que aún no salen a campo",
+        pista: !agendadasConFecha ? "todavía sin fecha: hay que agendarlas"
+          : sinFecha ? `${fmt(sinFecha)} sin fecha · ${fmt(agendadasConFecha)} agendadas`
+            : sinCita ? `${fmt(conCita)} con cita · ${fmt(sinCita)} sin contactar todavía`
+              : muestraDesfasada
+                ? `${fmt(conCita)} con cita · ${fmt(muestraDesfasada)} sin actualizar en la muestra`
+                : "agendados, todavía sin salir a campo",
         tone: estado.sinSalirACampo ? "warn" : "neutral",
       },
     ];
@@ -493,8 +738,15 @@ export function aulasKpis(
         // —que sigue mostrando las once— la explica la propia pista; callarla
         // dejaria dos fuentes del mismo hecho discrepando sin que nadie lo diga.
         value: fmt(alertas.evaluados),
+        // **Con su sustantivo, que si no parece una discordancia.** La otra rama
+        // dice «reglas evaluadas» y el femenino es correcto —son REGLAS—, pero
+        // esta lo elidía y quedaba «CONTROLES · 11 · evaluadas», con el rótulo en
+        // masculino justo encima. Visto a ojo en la captura de
+        // `calidad/controles` a 1024 el 2026-08-30: parece un error de género y
+        // no lo es, que es la peor clase de duda porque lleva a «arreglar» lo
+        // que está bien.
         pista: alertas.sinComprobar
-          ? `evaluadas · ${alertas.sinComprobar} sin comprobar`
+          ? `reglas evaluadas · ${alertas.sinComprobar} sin comprobar`
           : "reglas evaluadas sobre este corte",
       },
       {
@@ -531,15 +783,26 @@ export function aulasKpis(
         icono: Link2,
         value: fmt(cadenas.cerraronEnReemplazo),
         pista: "la reserva alcanzó la meta del titular",
-      },
+        destino: "reemplazos",
+        },
       {
         label: "Cadenas sin cerrar",
         icono: Link2Off,
         value: fmt(cadenas.abiertas),
-        pista: "ningún eslabón llegó a su meta",
+        // **La pista dice por qué está abierta, y son dos motivos distintos.**
+        // «Ningún eslabón llegó a su meta» acusa de haber fallado; sobre un
+        // operativo recién empezado —193 abiertas y 183 sin una sola respuesta—
+        // eso convierte trabajo pendiente en fracaso. Cuando todas están sin
+        // estrenar se dice eso, y cuando es mezcla se declara el reparto.
+        pista: cadenas.sinRespuestaAlguna >= cadenas.abiertas
+          ? "todavía sin una sola respuesta"
+          : cadenas.sinRespuestaAlguna > 0
+            ? `${fmt(cadenas.sinRespuestaAlguna)} sin una sola respuesta · el resto no llegó a su meta`
+            : "ningún eslabón llegó a su meta",
         tone: cadenas.abiertas ? "warn" : "neutral",
         detalle: `${fmt(cadenas.cerraronEnTitular)} cerraron con el titular · ${fmt(cadenas.cerraronEnReemplazo)} con un reemplazo · ${fmt(cadenas.sinReserva)} sin reserva asignada`,
-      },
+        destino: "reemplazos",
+        },
       brechasKpi(dashboard),
     ];
   }
@@ -561,7 +824,12 @@ export function aulasKpis(
   // ya publica esa cuenta, calculada en el motor sobre TODAS las filas y con el
   // filtro de validez aplicado, asi que se lee de ahi en vez de recomponerla.
   const cobertura = (dashboard?.course_status_cobertura ?? []) as Array<{ clave?: unknown; aulas?: unknown }>;
-  const cumplen = Number(cobertura.find((c) => c.clave === "cumplida")?.aulas ?? 0) || 0;
+  // La clave es `pleno` desde el recorte de tramos: `cumplida` significaba DOS
+  // cosas —este tramo del aula y el estado de la celda facultad x sexo— y por
+  // eso se separaron. Si el motor deja de publicarla, esto da 0 y el rotulo
+  // miente en silencio; el test de kpis fija el 7 del fixture para que ese caso
+  // falle en vez de pasar desapercibido.
+  const cumplen = Number(cobertura.find((c) => c.clave === "pleno")?.aulas ?? 0) || 0;
   // El denominador tambien sale del motor: son las filas con meta, o sea el
   // total menos las que no la declaran. Contarlo sobre `course_status` lo dejaba
   // a merced del recorte a 500 filas.
@@ -571,47 +839,206 @@ export function aulasKpis(
   // mismo motivo por el que ya no entraba en `brechas`, asi que el denominador
   // de esta cifra tiene que seguirlo o diria «0 de 267» sobre un reparto de 194.
   const banco = Number(dashboard?.course_status_banco ?? 0) || 0;
-  const conMeta = Math.max(0, totalDelMotor - sinMeta - banco);
+  // **El denominador lo publica el motor.** Restarlo aqui obligaba a conocer
+  // TODAS las poblaciones que no entran y a acertar con todas: faltaban las
+  // reservas de cadena dormidas, que no son banco, y el KPI decia «de 360»
+  // sobre un plan de 30 slots con 330 reservas detras — 12 veces el
+  // denominador real, en la misma pantalla donde la agenda decia «de 30 que se
+  // van a visitar». La resta queda de respaldo para un payload viejo.
+  const conMetaDelMotor = Number(dashboard?.course_status_con_meta ?? NaN);
+  const conMeta = Number.isFinite(conMetaDelMotor)
+    ? conMetaDelMotor
+    : Math.max(0, totalDelMotor - sinMeta - banco);
+  void cumplen; void conMeta;
+  // **Los siete KPIs de Avance, en el orden que dictó Gonzalo (2026-09-08).**
+  //
+  // Textual: «No me interesa saber cuántos llegaron a su meta sino el
+  // porcentaje de avance hacia la muestra (en este caso 2500), no me interesa
+  // saber cuántas cierran con lo agendado. Me interesa que los KPIs sean los
+  // siguientes y en este orden: Efectivas · Muestra (meta) · Avance (%) en base
+  // a la muestra · Sobremuestra · Avance (%) en base a la sobremuestra · Cursos
+  // horario aplicados · Cursos horarios planificados.»
+  //
+  // Se fueron «Llegaron a su meta» (por curso-horario, no por muestra),
+  // «Cierran con lo agendado» (proyección: vive en otra pestaña) y «Cursos-
+  // horario bajo su meta». Siguen calculándose para las bandas de otras
+  // secciones; lo que cambia es qué preside Avance.
+  //
+  // Las cinco primeras salen de UNA fuente, `avance_cuota`, que es la misma de
+  // la tabla de abajo y la misma que el libro escribe en «Avance de campo»: si
+  // el KPI y la tabla discrepan, el lector no tiene forma de saber cuál creer.
+  const metas = metasDeAvance(dashboard, facultadEnFoco);
   return [
-    // **Las aulas aplicadas van PRIMERO, y antes no estaban.**
-    //
-    // La banda de Avance abria con «Válidas», que cuenta respuestas de la
-    // plataforma. Medido el 2026-08-24 simulando cinco dias de campo —10 aulas
-    // aplicadas, 213 efectivas registradas a mano, ninguna respuesta de Kobo
-    // todavia—: los cinco KPIs salian en 0 o S/D y la pantalla que se llama
-    // «Avance», subtitulada «Cursos-horario **aplicados**, cuotas y brechas»,
-    // no enseñaba los aplicados en ninguna parte.
-    //
-    // El KPI ya existia —`registroKpi`, con su pista «declaradas en el registro
-    // de campo»— y se usaba en otra banda. Aqui faltaba, que es donde primero se
-    // mira si el operativo arranco.
-    //
-    // Va primero porque es lo que ocurre ANTES: se aplica el aula, luego llegan
-    // las respuestas. La banda cuenta el recorrido en su orden.
-    registroKpi(dashboard),
-    validasKpi(dashboard),
     {
-      label: "Llegaron a su meta",
-      icono: Target,
-      value: fmt(cumplen),
-      // Un conteo sin su denominador no se puede leer: «0» y «0 de 196» dicen lo
-      // mismo del numerador y cosas distintas del estudio.
-      //
-      // Y el denominador son **los que tienen meta declarada**: medido sobre el
-      // corte, 234 de las 236 filas de `course_status` la traen —las dos que no,
-      // que el propio perfil ya declara en Cuotas—. Con `estado.total` esas dos
-      // entraban en el denominador, y «llegar a su meta» no significa nada para
-      // una fila que no tiene ninguna.
-      //
-      // La diferencia es de dos filas, no de cuarenta: la primera version de este
-      // comentario decia que los 40 extras no tenian meta y ESO ERA FALSO. La
-      // cifra se midio despues de escribirlo.
-      pista: conMeta
-        ? `de ${fmt(conMeta)} cursos-horario con meta`
-        : "cursos-horario que llegaron a su meta",
+      // **Se llama por lo que cuenta.** Es la cifra de la cuota —efectivas de
+      // la población del diseño, identificadas y sin duplicar—, no la de las
+      // que pasan los filtros: con el eje en la persona son dos números (171 y
+      // 228 en CCSS, 2026-09-23) y llamarlos igual era la incoherencia.
+      label: "Cuentan para la muestra",
+      icono: CheckCircle2,
+      value: fmt(metas.efectivas),
+      // **Las dos ramas nombran la fuente.** Sin eso, estas respuestas y las
+      // 4 863 que declara el parte de campo vuelven a ser indistinguibles en
+      // la misma pantalla: una llega de la plataforma y la otra la escribe el
+      // aplicador al cerrar el aula.
+      pista: metas.muestra
+        ? `de ${fmt(metas.muestra)} de la muestra, de la plataforma`
+        : "de la plataforma, las que suman a la cuota",
+      detalle: "Efectivas de la plataforma que suman a la cuota: de la población que el diseño mide, identificadas y sin duplicar. El bloque «Respuestas» explica las que no suman.",
     },
-    cierreKpi(dashboard),
-    cuotaKpi(dashboard),
-    brechasKpi(dashboard),
+    {
+      label: "Muestra",
+      icono: Target,
+      value: metas.muestra ? fmt(metas.muestra) : "S/D",
+      pista: metas.muestra
+        ? (facultadEnFoco ? `la meta de ${facultadEnFoco}` : "la meta del estudio")
+        : (facultadEnFoco ? "el diseño no trazó cuota para esta facultad" : "el estudio no declara cuota del diseño"),
+      detalle: "La cuota que el diseño fijó para el estudio, repartida por facultad y por sexo.",
+    },
+    {
+      label: "Avance a la muestra",
+      icono: BarChart3,
+      value: metas.avanceMuestra === null ? "S/D" : pctPerfil(metas.avanceMuestra * 100),
+      pista: metas.muestra ? `faltan ${fmt(metas.faltanMuestra)}` : "sin meta contra la que medir",
+      tone: metas.avanceMuestra !== null && metas.avanceMuestra < 1 ? "warn" : "neutral",
+      detalle: "Efectivas sobre la muestra. Lo que falta se suma grupo a grupo de sexo por facultad: pasarse en uno no cubre lo que falta en otro.",
+    },
+    {
+      label: "Sobremuestra",
+      icono: Layers,
+      value: metas.sobremuestra ? fmt(metas.sobremuestra) : "S/D",
+      // Con una facultad puesta no es que falte: es que el diseño la fijó para
+      // el estudio y no por facultad, y prorratearla sería inventar una meta.
+      pista: metas.sobremuestra
+        ? "la segunda meta del estudio"
+        : facultadEnFoco ? "el diseño la fija para el estudio, no por facultad" : "el estudio no declara sobremuestra",
+      detalle: "La sobremuestra del diseño. Recibe el mismo trato que la muestra: meta, avance y faltantes, en total, por sexo y por facultad.",
+    },
+    {
+      label: "Avance a la sobremuestra",
+      icono: BarChart3,
+      value: metas.avanceSobremuestra === null ? "S/D" : pctPerfil(metas.avanceSobremuestra * 100),
+      pista: metas.sobremuestra
+        ? `faltan ${fmt(metas.faltanSobremuestra)}`
+        : facultadEnFoco ? "no hay sobremuestra por facultad contra la que medir" : "sin sobremuestra contra la que medir",
+      detalle: "Efectivas sobre la sobremuestra, con la misma regla de suma por grupo que el avance a la muestra.",
+    },
+    registroKpi(dashboard, facultadEnFoco),
+    {
+      label: "Cursos-horario planificados",
+      icono: CalendarRange,
+      value: metas.planificados ? fmt(metas.planificados) : "S/D",
+      pista: metas.planificados ? "titulares del plan" : "el plan no declara cursos-horario",
+      detalle: "Los cursos-horario titulares del sorteo, que son el denominador de lo aplicado. El banco de reemplazos no entra.",
+    },
   ];
+}
+
+/**
+ * Las cinco cifras de meta de la banda de Avance, de UNA fuente.
+ *
+ * `avance_cuota` es la misma que alimenta la tabla de abajo y la hoja del
+ * libro. Los faltantes NO se restan del total: se suman grupo a grupo desde
+ * `quotas_sex_faculty`, porque pasarse en una facultad o en un sexo no cubre lo
+ * que falta en otro (ADR 0079) — la misma regla que ya aplicaba `cuotaKpi`.
+ */
+/**
+ * Las mismas cinco cifras, pero de UNA facultad.
+ *
+ * **De `avance_cuota.facultades`, que es su dueño** (ADR 0079): efectivas,
+ * cuota y brecha salen de la fila de esa facultad, no de una resta sobre el
+ * total. La brecha de una facultad es la suma de sus celdas de sexo — restar
+ * cuota menos conseguido publica cero justo donde faltan mujeres.
+ *
+ * **La sobremuestra NO se reparte.** El diseño la declara para el estudio y no
+ * por facultad; prorratearla sería inventarse una segunda meta que nadie fijó,
+ * así que esas dos casillas quedan en «S/D» y lo dicen.
+ */
+function metasDeUnaFacultad(
+  dashboard: MonitoreoAulasDashboard | null,
+  avance: Record<string, unknown> | null,
+  facultad: string,
+  numero: (valor: unknown) => number,
+) {
+  const filas = (avance?.facultades ?? []) as Array<Record<string, unknown>>;
+  const suya = delMapaPorFacultad(
+    Object.fromEntries(filas.map((f) => [String(f.facultad ?? ""), f])),
+    facultad,
+  );
+  // Sus celdas de sexo, para el faltante sumado grupo a grupo. Es la misma
+  // regla del agregado y se aplica al mismo subconjunto que la fila.
+  const suyas = deLaFacultad((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[], facultad);
+  const cuota = cuotasResumen(suyas as MonitoreoRow[]).general;
+
+  const efectivas = numero(suya?.respuestas_validas) || cuota.logrado || 0;
+  const muestra = numero(suya?.cuota) || cuota.meta || 0;
+  const faltan = suya?.brecha == null
+    ? (cuota.celdas ? cuota.faltan : Math.max(0, muestra - efectivas))
+    : Math.max(0, numero(suya.brecha));
+  const rol = delMapaPorFacultad(dashboard?.course_status_rol_y_estado_por_facultad, facultad);
+  return {
+    efectivas,
+    muestra,
+    sobremuestra: 0,
+    avanceMuestra: muestra > 0 ? efectivas / muestra : null,
+    avanceSobremuestra: null,
+    faltanMuestra: faltan,
+    faltanSobremuestra: 0,
+    planificados: Number(rol?.titulares?.total ?? 0) || 0,
+  };
+}
+
+function metasDeAvance(dashboard: MonitoreoAulasDashboard | null, facultadEnFoco = ""): {
+  efectivas: number;
+  muestra: number;
+  sobremuestra: number;
+  avanceMuestra: number | null;
+  avanceSobremuestra: number | null;
+  faltanMuestra: number;
+  faltanSobremuestra: number;
+  planificados: number;
+} {
+  const avance = (dashboard?.avance_cuota ?? null) as Record<string, unknown> | null;
+  const total = (avance?.total ?? {}) as Record<string, unknown>;
+  const numero = (valor: unknown): number => {
+    const n = Number(valor ?? 0);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+
+  if (facultadEnFoco) return metasDeUnaFacultad(dashboard, avance, facultadEnFoco, numero);
+
+  const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
+  // Efectivas: la del avance contra la cuota; si el motor no la publica, la
+  // suma de lo observado en los grupos, que es su mismo origen.
+  const efectivas = numero(total.respuestas_validas) || cuota.logrado || 0;
+  const muestra = numero(total.cuota) || numero(avance?.meta_diseno) || cuota.meta || 0;
+  const sobremuestra = numero(avance?.meta_operativa) || numero(avance?.sobremuestra_total) || 0;
+  const faltanMuestra = cuota.celdas ? cuota.faltan : Math.max(0, muestra - efectivas);
+  return {
+    efectivas,
+    muestra,
+    sobremuestra,
+    avanceMuestra: muestra > 0 ? efectivas / muestra : null,
+    avanceSobremuestra: sobremuestra > 0 ? efectivas / sobremuestra : null,
+    faltanMuestra,
+    // Contra la sobremuestra la brecha por grupo no viaja al front todavía, así
+    // que se declara el neto y no se finge un desglose que no se tiene.
+    faltanSobremuestra: Math.max(0, sobremuestra - efectivas),
+    // **Los TITULARES, la misma fuente que la rama por facultad.**
+    //
+    // Leía `course_status_con_meta`, que es otra población —las que están en
+    // juego y con meta declarada— y el rótulo promete «titulares del plan». En
+    // HSVG2026 eso publicaba 74 planificados con 87 aplicados encima: más
+    // aplicadas que planificadas, que es imposible y se ve a simple vista. Los
+    // titulares son 174, y es lo que ya dicen el PDF de cliente y la columna
+    // x/x del detalle por facultad.
+    //
+    // La rama de `metasDeUnaFacultad` ya leía `rol.titulares.total`: con foco
+    // en una facultad el número era correcto y sin foco no, sobre la misma
+    // tarjeta. Ahora las dos salen de `course_status_rol_y_estado`.
+    planificados: Number(
+      (dashboard?.course_status_rol_y_estado as { titulares?: { total?: unknown } } | null)
+        ?.titulares?.total ?? 0,
+    ) || 0,
+  };
 }

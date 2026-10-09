@@ -13,6 +13,7 @@ import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import type { CriteriosSeleccionMarco } from "../../../../api/client";
 import type { AulaFinal } from "../../dominio/criteriosImpacto";
 import { fmtInt } from "../../sharedCore";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { Switch } from "../criterios/Switch";
 import { aulaExcluida, contarExcluidas, reactivarTodas } from "../criterios/aulasFinalesModel";
 
@@ -32,6 +33,9 @@ export function AulasFinalesCard({
   facLabel,
   onToggle,
   onReactivarTodas,
+  marcoDesactualizado = false,
+  desfasadas = null,
+  descartadas,
 }: {
   /**
    * Asistencia histórica del marco, para estimar presentes por curso-horario.
@@ -47,6 +51,33 @@ export function AulasFinalesCard({
   onToggle: (classroomId: string, excluida: boolean) => void;
   /** Reactiva todos los apagados de esta facultad (claves en text_key). */
   onReactivarTodas: (clavesTextKey: string[]) => void;
+  /**
+   * El marco vigente ya no refleja los criterios declarados. La lista sale de
+   * ese marco, así que cuando es true lo que se ve es una foto anterior a los
+   * criterios de ahora y hay que decirlo antes de que alguien apague a mano.
+   */
+  marcoDesactualizado?: boolean;
+  /**
+   * Cuántos cursos-horario de los que ESTA lista enseña ya no pasan los
+   * criterios del borrador, según el recorrido vivo de la facultad.
+   *
+   * La lista sale del `aula_frame` ejecutado y el embudo de arriba va con el
+   * borrador: son dos relojes. Pero avisar cada vez que difieren convierte el
+   * aviso en permanente —con el recorrido vivo, diferir ES el estado normal de
+   * trabajo— y un aviso siempre encendido deja de ser señal. Con la cifra, sólo
+   * aparece cuando de verdad sobran filas, y dice cuántas.
+   *
+   * `null` cuando no hay recorrido vivo con el que comparar.
+   */
+  desfasadas?: number | null;
+  /**
+   * `classroom_id` que el borrador ya descarta, tal como los publica el motor.
+   * La lista los OCULTA: enseñarlos y avisar de que sobran obliga a apagar a
+   * mano lo que el recálculo iba a quitar solo, que es justo lo que pasó.
+   * No se evalúan aquí los criterios —eso pondría la regla en dos sitios—: se
+   * consume la identidad que decide el motor.
+   */
+  descartadas?: ReadonlySet<string>;
 }) {
   // ADR 0057 · Este es el «mayor detalle, ver uno por uno» que cierra el embudo
   // de la facultad: es su destino, no un anexo. Plegado medía 50 px y exigía un
@@ -63,18 +94,25 @@ export function AulasFinalesCard({
   const [abierto, setAbierto] = usarPlegado(true);
   const [q, setQ] = useState("");
   const [verTodas, setVerTodas] = useState(false);
-  const claves = useMemo(() => aulas.map((a) => a.classroomKey), [aulas]);
-  const total = aulas.length;
+  /* Fuera las que el borrador ya descarta: la lista enseña lo que va a quedar,
+     no lo que quedó la última vez. */
+  const vigentes = useMemo(
+    () => (descartadas?.size ? aulas.filter((a) => !descartadas.has(a.classroomId)) : aulas),
+    [aulas, descartadas],
+  );
+  const ocultas = aulas.length - vigentes.length;
+  const claves = useMemo(() => vigentes.map((a) => a.classroomKey), [vigentes]);
+  const total = vigentes.length;
   const apagadas = contarExcluidas(seleccion, claves);
   const activas = total - apagadas;
   const propia = apagadas > 0;
   const filtradas = useMemo(() => {
     const t = normalizarBusqueda(q);
-    if (!t) return aulas;
-    return aulas.filter(
+    if (!t) return vigentes;
+    return vigentes.filter(
       (a) => normalizarBusqueda(a.label).includes(t) || normalizarBusqueda(a.detalle).includes(t),
     );
-  }, [aulas, q]);
+  }, [vigentes, q]);
 
   // Medido: la lista renderizaba sus 646 filas, cada una con su conmutador —**646
   // paradas de tabulación** para pasar de aquí con el teclado—. Es el mismo
@@ -120,6 +158,28 @@ export function AulasFinalesCard({
           <p className="cmv2-chfp-selecciona-nota">
             Todos entran por defecto; apaga los cursos-horario de {facLabel} que no quieras en el marco.
           </p>
+          {/* C1 · La lista describe el MARCO CONSTRUIDO, no el borrador.
+              `aulasSupervivientesFacultad` filtra por `included` del último
+              `aula_frame`, así que con criterios cambiados sin recalcular
+              enseña cursos que esos criterios ya descartan. Medido el
+              2026-08-25 sobre HSVG26DEF: Ingeniería listaba 899 cursos-horario
+              con laboratorios y seminarios dentro porque el marco vigente se
+              construyó antes de declararse los criterios de curso-horario.
+              Gonzalo estuvo apagándolos a mano —«de todas formas no debería
+              pasar»— sobre una lista que el recálculo iba a cambiar sola. La
+              superficie no puede impedir el recálculo, pero sí decir de cuándo
+              es lo que enseña. */}
+          {ocultas > 0 ? (
+            <AvisoModulo tone="info" role="status" compact>
+              <strong>{fmtInt(ocultas)}</strong> cursos-horario del último marco ya no pasan tus
+              criterios y no se listan. Vuelven a aparecer si aflojas el criterio que los deja fuera.
+            </AvisoModulo>
+          ) : desfasadas == null && marcoDesactualizado ? (
+            <AvisoModulo tone="warn" role="status" compact>
+              Esta lista es la del último marco construido y tus criterios cambiaron. Sin
+              recorrido vivo no se puede decir cuáles sobran: recalcula para verla al día.
+            </AvisoModulo>
+          ) : null}
           <div className="cmv2-aulas-finales-toolbar">
             <span className="cmv2-aulas-finales-search">
               <Search size={13} aria-hidden="true" />

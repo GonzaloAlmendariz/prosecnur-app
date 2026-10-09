@@ -34,10 +34,12 @@ test_that("FIX 1: sin canvas o n invalido devuelve el grosor base", {
 test_that("FIX 2: enriquecer_presets rellena estilos de seccion ausentes", {
   base_in <- list(base = list(size_titulo_slide = 22.5, color_subtitulo = "#18375F",
                               color_titulo = "#1A1A1A"))
-  out <- .enriquecer_presets(base_in)$base
+  out <- suppressMessages(.enriquecer_presets(base_in))$base
 
-  expect_equal(out$size_titulo_seccion, round(22.5 * 1.3, 1))
-  expect_gt(out$size_titulo_seccion, 22.5)
+  # El 22.5 guardado migra al titulo del estandar (ADR 0092) y la seccion se
+  # deriva de ese cuerpo.
+  expect_equal(out$size_titulo_seccion, round(.std_pt("titulo") * 1.3, 1))
+  expect_gt(out$size_titulo_seccion, .std_pt("titulo"))
   expect_true(isTRUE(out$bold_titulo_seccion))
   # Color de seccion derivado del secundario de marca (no repite el cuerpo).
   expect_equal(out$color_titulo_seccion, "#18375F")

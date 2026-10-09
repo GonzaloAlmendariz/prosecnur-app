@@ -32,7 +32,16 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
   it("«Recargar» SÍ blanquea, porque ahí el blanqueo es la respuesta", () => {
     // El aserto que evita la sobrecorrección: silenciar TODAS las recargas
     // dejaría el botón explícito sin ninguna señal de que hizo algo.
-    expect(page).toContain("onSyncAll={() => { void loadView(seccionActiva, true); }}");
+    // A26b (dictado 2026-09-01): «Recargar es para cargar el excel y todo lo
+    // demás» — ahora dispara el ciclo completo (syncField: libro + corte),
+    // que pone estado fresco y su aviso; el blanqueo sigue siendo la señal.
+    expect(page).toContain("onSyncAll={() => { void syncField(); }}");
+  });
+
+  it("«Avance» lleva a VER el avance con datos frescos (A26b)", () => {
+    // «Avance es para ver el avance en plataforma»: navega a la sección y
+    // recarga sin silencioso — el gesto debe notarse.
+    expect(page).toContain('void loadView("avance", true);');
   });
 
   it("`silencioso` no toca `loading` ni al entrar ni al salir", () => {

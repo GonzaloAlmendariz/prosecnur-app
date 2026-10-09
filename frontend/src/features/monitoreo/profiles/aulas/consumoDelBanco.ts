@@ -1,5 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { colchonPorFacultad } from "./consumoDeCadena";
+import { colchonPorFacultad, SIN_VALOR_DEL_EJE } from "./consumoDeCadena";
 import { fechaDeAplicacion } from "./ritmoPorFacultad";
 
 /**
@@ -10,10 +10,10 @@ import { fechaDeAplicacion } from "./ritmoPorFacultad";
  * pasemos de determinadas aulas».
  *
  * **Ese tope de política NO existe como dato**: ninguna configuración del perfil
- * declara un máximo de aulas. Lo que sí existe y sí es un techo real es el
- * banco: cuando una facultad se queda sin reservas libres, un aula que caiga ya
- * no se puede reemplazar. Esta función mide ese techo, que es el único que los
- * datos sostienen.
+ * declara un máximo de aulas. Lo que sí existe y sí es un techo real es la
+ * reserva adicional: cuando una facultad se queda sin reservas libres, un aula
+ * que caiga ya no se puede reemplazar. Esta función mide ese techo, que es el
+ * único que los datos sostienen.
  *
  * `colchonPorFacultad` ya dice cuánto queda; lo que faltaba es **a qué ritmo se
  * gasta**, y eso lo dan las fechas de caída.
@@ -66,21 +66,32 @@ function texto(valor: unknown): string {
 export function consumoDelBanco(
   filas: ReadonlyArray<MonitoreoAulasPlanRow>,
   diasDeCampo = 0,
+  /**
+   * La columna por la que se agrupa: la del EJE del estudio, `faculty` por
+   * defecto. Ver la nota larga en `colchonPorFacultad`, incluida la razón por
+   * la que `stratum` no sirve.
+   */
+  columna: string = "faculty",
 ): {
   facultades: ConsumoDeFacultad[];
   caidasPorDia: Array<{ fecha: string; caidas: number }>;
   sinFecha: number;
 } {
-  const colchon = new Map(colchonPorFacultad(filas).map((f) => [f.facultad, f]));
+  // La MISMA columna a los dos lados: el colchón dice cuánto queda por grupo y
+  // esto a qué ritmo se gasta, y agrupar cada uno por una columna distinta
+  // haría que el «quedan» de una fila fuera de otro grupo. Es el mismo defecto
+  // que dejó la reserva dirigida en cero (`8506f6cb`).
+  const colchon = new Map(colchonPorFacultad(filas, columna).map((f) => [f.facultad, f]));
 
   const porFacultad = new Map<string, { caidas: number; dias: Set<string> }>();
   const porDia = new Map<string, number>();
   let sinFecha = 0;
 
   for (const fila of filas) {
-    // Sólo lo que YA cayó. Una reserva en el banco no es consumo.
+    // Sólo lo que YA cayó. Una reserva en la reserva adicional no es consumo.
     if (texto(fila.sample_status) !== "reemplazada") continue;
-    const facultad = texto(fila.faculty) || "Sin facultad";
+    const facultad = texto((fila as unknown as Record<string, unknown>)[columna])
+      || SIN_VALOR_DEL_EJE;
     let f = porFacultad.get(facultad);
     if (!f) { f = { caidas: 0, dias: new Set() }; porFacultad.set(facultad, f); }
     f.caidas += 1;

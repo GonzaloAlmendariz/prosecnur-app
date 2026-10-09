@@ -111,6 +111,9 @@ aula <- function(codigo, unidad, rol, facultad, elegibles, validas_meta,
     teacher_email = sprintf("docente.%s@ejemplo.edu", tolower(gsub("[^A-Za-z0-9]", "", codigo))),
     sample_role = rol, wave = "M1", orden = orden,
     eligible_n = elegibles, expected_valid = validas_meta,
+    # La misma vara del diseno que siembra el lote grande, para que las aulas
+    # escritas a mano no salgan sin ella y rompan la serie por facultad.
+    efectivas_esperadas = validas_meta, meta_origen = "diseno",
     faculty = facultad, stratum = facultad, level = "Pregrado",
     sample_status = estado_muestra,
     contact_attempts = if (identical(estado_muestra, "agendada")) 1L else 3L,
@@ -315,6 +318,29 @@ if (ESCALA_2025) {
               # ello (`AulasAvanceEnRespuestas` y `AulasCoberturaChart`) no se
               # ven NUNCA aunque esten escritas.
               expected_valid = if (i %in% c(58L, 133L)) 0 else max(1, round((20 + (i %% 25)) * 0.7)),
+              # **La meta DEL DISENO, que es otra cosa que `expected_valid`.**
+              #
+              # El motor publica `meta_origen` justo para no colapsar tres cosas
+              # en un numero: `diseno` es lo que el calculo de muestra computo
+              # —`eligible_n` x el rendimiento de referencia de esa facultad—,
+              # `declarada` es lo que alguien escribio a mano, y `elegibles` no
+              # es una meta: es el techo puesto ahi porque no habia ninguna.
+              #
+              # Sin sembrarla, TODA la fixture derivaba a `declarada` y la vara
+              # del diseno no se dibujaba en ninguna pantalla de QA. En el
+              # proyecto real las 1512 filas del plan son `diseno` con razon
+              # meta/elegibles entre 0,41 y 0,80 por facultad, asi que aqui se
+              # siembra en ese mismo rango y variando POR FACULTAD, que es lo que
+              # hace que la vara se lea distinta de una a otra.
+              #
+              # **Y no todas.** Una de cada nueve se deja sin meta del diseno
+              # para que el dia salga MEZCLADO —unas aulas con vara y otras
+              # sin— y se pueda ver que el promedio se toma sobre las que la
+              # tienen y no sobre todas. Con las 196 declarando diseno, ese caso
+              # no se ve nunca aunque este escrito.
+              efectivas_esperadas = if (i %in% c(58L, 133L) || i %% 9L == 4L) NULL else
+                round((20 + (i %% 25)) * (0.40 + 0.04 * (abs(sum(utf8ToInt(fac))) %% 11L)), 1),
+              meta_origen = if (i %in% c(58L, 133L) || i %% 9L == 4L) "" else "diseno",
               sample_status = est,
               sex_top_1 = "F", sex_top_1_n = 11 + (i %% 8),
               sex_top_2 = "M", sex_top_2_n = 9 + (i %% 6),
@@ -544,7 +570,15 @@ if (ESCALA_2025) {
          # Una de cada trece no se pudo aplicar. Con todas en «APLICADA» la
          # columna no distingue nada y da igual mostrarla que no.
          application_status = if (i %% 13 == 0) "NO APLICADA" else "APLICADA",
-         field_note = if (i %% 9 == 0) "El docente pidio empezar al final de la clase" else "")
+         field_note = if (i %% 9 == 0) "El docente pidio empezar al final de la clase" else "",
+         # La ficha ESCANEADA que el equipo sube al Drive y pega en la columna
+         # manual del libro (B6c). Una de cada cinco la trae y el resto no:
+         # sin ambos casos, la «Ficha escaneada» de la ficha del registro y su
+         # hueco «el parte no trae su enlace» eran inobservables en QA (las dos
+         # DEBT del QA visual del 2026-09-01).
+         scanned_sheet_link = if (i %% 5 == 0) {
+           sprintf("https://drive.google.com/file/d/qa-ficha-%03d/view", i)
+         } else "")
   })
   asistentes_del_parte <- stats::setNames(
     lapply(partes, function(p) p$observed_students),
@@ -760,6 +794,90 @@ libro_recibo <- list(
 )
 session_set(sid, "monitoreo_aulas_libro", libro_recibo)
 session_set(sid, "monitoreo_aulas_partes_campo", partes)
+# --- metas del diseno, para que la pestana de Efectividad tenga vara ----------
+#
+# Sin `design_targets` el seguimiento de tau (ADR 0082) sale vacio declarado:
+# no hay tau prevista contra la que medir ni cuota contra la que proyectar el
+# margen. El fixture las fabrica aqui porque su plan NO viene de un import de
+# Calculo de muestra.
+#
+# Calibrado con lo medido en el campo 2025 y en la seleccion 2026 para que se
+# parezca a un operativo real y no a numeros redondos:
+#
+#   - tau por facultad entre 0,41 y 0,80, que es el rango real de HSVG2026.
+#   - la cuota deja un margen mediano de ~+47 % del esperado, cerca del +49,2 %
+#     que tiene la seleccion 2026 de 193 titulares.
+#   - UNA facultad se siembra CORTA a proposito. Sin ella la senal de riesgo
+#     solo se podria ver apagada, y una pantalla que nunca se ha visto encendida
+#     no esta comprobada.
+.qa_design_targets <- local({
+  pd <- .monitoreo_aulas_df(monitoreo_aulas_normalize_plan(plan), "plan")
+  tit <- pd$sample_role == "titular"
+  el <- suppressWarnings(as.numeric(pd$eligible_n)); el[!is.finite(el)] <- 0
+  facs <- unique(pd$faculty[tit & nzchar(pd$faculty)])
+  facs <- sort(facs)
+  # Se calcula ANTES de las tau porque las tau se derivan de esto.
+  conseguido <- local({
+    aula <- .monitoreo_aulas_response_classroom(data, list(
+      source_mapping = list(collector_var = "collectorID")))
+    codigo_de <- stats::setNames(pd$faculty, pd$classroom_id)
+    fac_resp <- unname(codigo_de[aula]); fac_resp[is.na(fac_resp)] <- ""
+    tb <- table(fac_resp[nzchar(fac_resp)])
+    stats::setNames(as.integer(tb), names(tb))
+  })
+  toma <- function(f) { v <- suppressWarnings(as.integer(conseguido[f])); if (length(v) != 1L || is.na(v)) 0L else v }
+  # LA TAU SE DERIVA DE LO QUE CADA FACULTAD RINDE, no de un rango repartido por
+  # orden alfabetico.
+  #
+  # Primer intento: `seq(0.41, 0.80)` por orden alfabetico. Visto en pantalla el
+  # 2026-08-26, las VEINTE barras salian verdes —el fixture rinde ~0,69 y casi
+  # ninguna tau asignada llegaba ahi—, asi que el estado «responde por debajo de
+  # lo esperado» no se podia ver nunca. Una pantalla que solo se puede ver
+  # apagada no esta comprobada, y es la segunda vez que este fixture cae en lo
+  # mismo (antes con la cuota).
+  #
+  # Ahora la tau de cada facultad es su propio rendimiento multiplicado por un
+  # factor que ALTERNA alrededor de 1: las de indice par quedan por encima de lo
+  # esperado y las impares por debajo. Reproducible, sin RNG, y las dos mitades
+  # de la escala se ven a la vez.
+  factores <- rep(c(0.82, 1.18), length.out = max(1L, length(facs)))
+  taus <- round(vapply(seq_along(facs), function(i) {
+    f <- facs[[i]]
+    el_f <- sum(el[tit & pd$faculty == f])
+    logrado_f <- toma(f)
+    rinde <- if (el_f > 0 && logrado_f > 0) logrado_f / el_f else 0.55
+    max(0.20, min(0.95, rinde * factores[[i]]))
+  }, numeric(1)), 3)
+  # LA CUOTA SE CALIBRA CONTRA LO QUE EL FIXTURE REALMENTE CONSIGUE, no contra
+  # `elegibles x tau`. Primer intento: se puso la cuota a 1,08 del esperado
+  # segun tau y salieron las VEINTE facultades en `holgado`, porque el fixture
+  # rinde ~0,69 y las tau asignadas van de 0,41 a 0,80 — la cuota quedaba
+  # calibrada contra una tasa que nadie sigue. Una pantalla de riesgo que solo
+  # se puede ver apagada no esta comprobada.
+  # Tres estados sembrados a proposito, para que la pantalla se pueda ver en
+  # los tres: una CORTA (no cierra ni en el mejor escenario), una AJUSTADA
+  # (cierra justo) y el resto holgadas.
+  corta <- facs[[1]]
+  ajustada <- if (length(facs) > 1L) facs[[2]] else facs[[1]]
+  filas <- lapply(seq_along(facs), function(i) {
+    f <- facs[[i]]; tau <- taus[[i]]
+    logrado <- toma(f)
+    esperado <- sum(el[tit & pd$faculty == f]) * tau
+    cuota <- if (identical(f, corta)) round(logrado * 1.25)
+             else if (identical(f, ajustada)) round(logrado * 1.02)
+             else round(esperado * 0.68)
+    list(facultad = f, faculty_key = .cm_criterios_fac_key(f),
+         cuota = max(1, cuota),
+         cuota_sexo = list(F = round(cuota * 0.52), M = cuota - round(cuota * 0.52)),
+         tau = tau)
+  })
+  list(schema = "monitoreo_aulas_design_targets_v1", source = "calc-muestra",
+       tasa_esperada = NA_real_, tasa_fuente = "tau_disenio",
+       total_cuota = sum(vapply(filas, function(x) as.numeric(x$cuota), numeric(1))),
+       facultades = filas,
+       selection_run_id = "qa-aulas-campo-run-1", frame_hash = "qa-aulas-campo-frame-1")
+})
+
 session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(
   monitoreo_profile = list(family = "aulas_universitarias", variant = "multi_actor",
                            status = "active", route_selected = TRUE),
@@ -770,6 +888,10 @@ session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(
     # respuestas, porque Kobo deja esa columna vacia mientras nadie las revisa
     # a mano —y "" no esta entre los estados validos. Es la otra cara de L12.
     source_mapping = list(collector_var = "collectorID", valid_filters = FILTROS_DE_EFECTIVA),
+    # Los sellos van con el bloque Y en la config: si difieren, `avance_cuota`
+    # degrada a la meta del plan y lo declara, que es otra pantalla.
+    selection_run_id = "qa-aulas-campo-run-1", frame_hash = "qa-aulas-campo-frame-1",
+    design_targets = .qa_design_targets,
     # Siete columnas huerfanas, como las que trae la Base de control del estudio
     # de 2025: tienen datos y su cabecera esta vacia en la hoja.
     control_sin_nombre = 7L
@@ -789,6 +911,8 @@ invisible(capture.output(build_pulso(sid, destino, project_name = "QA aulas en c
 tablero <- monitoreo_aulas_dashboard(plan, data, monitoreo_aulas_normalize_config(list(
   enabled = TRUE, plan = plan, partes_campo = partes, control = control, libro = libro_recibo,
   source_mapping = list(collector_var = "collectorID", valid_filters = FILTROS_DE_EFECTIVA),
+  selection_run_id = "qa-aulas-campo-run-1", frame_hash = "qa-aulas-campo-frame-1",
+  design_targets = .qa_design_targets,
   control_sin_nombre = 7L
 )))
 

@@ -23,8 +23,24 @@
  * Al raiz del perfil, y todo lo que estaba fuera de escala se ajusta al escalon
  * mas cercano hacia abajo —encoger nunca desborda, agrandar si—.
  */
-.mon-profile-page.is-aulas-flow {
+/* **Y los portales**, que viven en `document.body` y NO cuelgan de la pagina.
+   Medido en vivo el 2026-09-11 con el popover de reemplazo abierto: dentro de
+   el, `--aulas-min`, `--aulas-txt` y `--aulas-sec` resolvian a cadena VACIA, asi
+   que cada `font-size: var(--aulas-min)` era una declaracion invalida y todo el
+   popover heredaba los 16 px del documento. Un `var()` que no resuelve no
+   falla: deja la propiedad sin poner, y eso no se ve en ningun test.
+
+   Los dos popovers del perfil se dibujan con `createPortal` porque tienen que
+   escapar del `overflow` de la mesa; el precio es que salen del alcance de este
+   selector, y el remedio es nombrarlos aqui. */
+.mon-profile-page.is-aulas-flow,
+.aulas-reemplazo-fondo,
+.aulas-refuerzo-fondo {
   --aulas-txt: 12px;   /* la lectura de cada grafico y el texto de una fila */
+  /* Alto del grafico de cobertura, y por tanto de la pareja de Avance. Vive
+     aqui y no en el TSX porque su vecino —el tope de `.aulas-facultades-scroll`—
+     se deriva de el: una sola fuente para los dos lados de la pareja. */
+  --aulas-cobertura-alto: 360px;
   --aulas-sec: 11px;   /* leyenda, tabla, pie */
   --aulas-min: 10px;   /* ejes, marcas y rotulos micro */
 }
@@ -61,6 +77,20 @@
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  /* **Todas las filas miden lo mismo, no solo todas las columnas.**
+
+     En una sola fila el marco se comparte solo y por eso la nota de la pista
+     dice que «crece parejo (C2)». En cuanto la banda se parte —tres columnas a
+     1180 px, dos con cuatro tarjetas— cada fila del grid crece por su cuenta
+     con su propio contenido, y las pistas de arriba envuelven a mas lineas que
+     las de abajo: medido a 1024x600, tres tarjetas de 97 px contra tres de
+     84.5, con la tolerancia del contrato en 2.
+
+     Con `1fr` las filas implicitas comparten el alto de la mayor. El sobrante
+     queda DENTRO de la tarjeta, debajo de su pista, que es capacidad legitima
+     de un grupo de pares (C3) y no contenido estirado: las tres filas internas
+     de `.aulas-kpi` siguen siendo `auto`. */
+  grid-auto-rows: 1fr;
   gap: 8px;
   padding: 8px;
   border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 18%, var(--pulso-border));
@@ -171,6 +201,11 @@
    430. A la tabla le quedaban 88 px —TRES filas de 236—, que es lo que se
    sentia como «scroll interno muy agresivo»: no es que el scroll corriera
    mucho, es que la ventana por la que se mira era diminuta. */
+/* Sin malla que dibujar, el panel de carga NO toma el `1fr` del stack: su
+   contenido es un aviso de tres lineas y el resto seria un hueco sin dueno. Con
+   malla si lo toma, porque la rejilla de dias x franjas si usa el alto. */
+.mon-profile-page.is-aulas-flow .mon-profile-panel.es-sin-malla { align-self: start; }
+
 .mon-profile-page.is-aulas-flow .mon-profile-stack.aulas-agenda-stack {
   /* SIN `> ` desde `.aulas-mon-view`: el stack cuelga de
      `div#aulas-mon-panel-agenda`, no de la vista, asi que el combinador de hijo
@@ -222,6 +257,30 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
+/* **Salidas no cabe en una fila que puede valer cero.**
+ *
+ * El `min-height: 0` de arriba es lo que deja que esta vista ceda su alto y el
+ * scroll lo lleve el panel; en las otras cinco pestañas de Avance funciona
+ * —medido: 4835, 1815, 1053, 4423 y 839 px, todas con alto igual a su
+ * contenido—. Pero el workbench de salidas es una sola pieza que no scrollea por
+ * dentro, así que al quedarse sin fila colapsaba a 0 con 802 px dentro:
+ * `avance/salidas` a 1024x600, con el panel en 360 px y la banda de KPIs más el
+ * bloque de calidad ocupando 350. El resultado era `scroll-unreachable` (C4).
+ *
+ * Con `:has()` porque es una excepción del CONTENIDO, no de la pestaña.
+ *
+ * **Y aquí, no en `.mon-outputs-workbench`.** Ese componente lo montan CUATRO
+ * perfiles —telefónico, acreditación, territorial y aulas— y sólo se ha medido
+ * el defecto en éste. Poner ahí el `min-height` habría exportado a los otros
+ * tres un cambio sin verificar; comprobado ademas que **no hace falta**: con
+ * esta regla sola, `avance/salidas` da `geometryIssues=0` a 1024 y a 1440. Si
+ * algún día aparece el mismo colapso en otro perfil, la señal es la misma —una
+ * sección con altura 0 y contenido dentro— y la reparación, su propia regla. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .mon-outputs-workbench) {
+  min-height: min-content;
+  grid-template-rows: minmax(min-content, 1fr);
+}
+
 .mon-profile-page.is-aulas-flow .aulas-mon-view:has(.mon-profile-error) {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
@@ -252,9 +311,27 @@
   align-content: stretch;
 }
 
-/* Agenda (modelo): handoff (auto) + tabla de agenda (1fr) */
+/* Agenda (modelo): handoff (auto) + tabla de agenda (1fr).
+   **El minimo de la segunda fila NO puede ser 0, y ese 0 era el solape.**
+   Medido en el navegador a 1024x600: el stack se queda en 129 px y las filas
+   resuelven a `14px 0px 180px` —la tercera lleva `min-height: 180px` y se lleva
+   lo que hay—. La fila del panel de agenda queda en CERO, pero el panel mide
+   26 px de padding y borde aunque su contenido colapse, asi que se dibujaba de
+   471 a 497 sobre una fila que acaba en 481: **16 px encima de «Cuánto cuesta
+   cerrar un curso-horario»**, la interseccion 920x16 que reporta el runner.
+   Con `26px` de minimo, reproducido en un caso aislado: filas `14px 26px 180px`,
+   solape 0 y **las tres alturas identicas** (14, 26, 180). No cambia nada
+   visible; solo impide que la fila sea mas pequeña que la caja que contiene.
+   Descartados, con medicion: `overflow: hidden` (recorta el interior, no la
+   caja), `height: 0`, `grid-auto-rows`, y `minmax(min-content, 1fr)`, que
+   arregla el solape pero infla la fila a 11.685 px porque el min-content de una
+   tabla de 174 filas es enorme.
+   Va en ESTA regla y no en `.mon-profile-stack.aulas-agenda-stack`: esta tiene
+   cinco clases de especificidad y aquella cuatro, asi que aquella pierde.
+   Esto NO arregla que el panel quede apretado, que es la deuda estructural
+   documentada mas abajo: son dos defectos distintos. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack:has(.mon-aulas-handoff-panel) {
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(26px, 1fr);
 }
 
 /* Fuentes: operación del plan y la lista de fuentes, las dos intrínsecas.
@@ -454,8 +531,8 @@
   color: color-mix(in srgb, var(--pulso-module-monitoring) 78%, var(--pulso-text));
   font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-heavy);
-  padding: 3px 9px;
-  white-space: nowrap;
+  padding: 3px 9px; min-width: 0; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis;
 }
 
 @media (max-height: 760px) {
@@ -590,8 +667,23 @@
    * espacio: lo pide prestado al vecino. Con mínimo 0 las tarjetas se encogen
    * y truncan su rótulo, que es lo que corresponde — truncar es legible y
    * pisar al de al lado no. */
+  /* **Dos columnas, no tres: el VALOR no se trunca.**
+   *
+   * Lo de arriba sigue en pie —el mínimo en píxeles pedía prestado al vecino y
+   * por eso el mínimo es 0—, pero razonaba sobre «su rótulo», y con tres
+   * columnas también se truncaba el valor. Medido el 2026-08-30 a 1024x600: 347
+   * px de grid daban 112 por tarjeta, 66 para el texto tras el icono, y ahí
+   * «Conectada» y «Registrado» (70 px) se cortaban. El Contrato acepta elipsis
+   * en una etiqueta larga y **la prohíbe en dato operativo** (C4), y un estado es
+   * dato.
+   *
+   * Con dos, cada texto tiene 125 px: los cuatro valores entran enteros y sólo
+   * «MARCO INSTITUCIONAL» (138) se queda con elipsis, que es una etiqueta y
+   * puede. Comprobado que la grid **sigue sin desbordar**, así que no reabre el
+   * solape con «Importar plan» que motivó la regla. El precio es una fila más de
+   * alto, y a cambio se lee lo que importa. */
   .mon-profile-page.is-aulas-flow .aulas-ops-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 5px;
   }
 
@@ -684,7 +776,6 @@
     min-height: 128px;
     height: 100%;
   }
-
 
 }
 
@@ -984,7 +1075,6 @@
   min-width: 0;
 }
 
-
 /* Un panel que contiene un GRÁFICO es intrínseco, no `1fr`.
    `.mon-profile-panel` reparte `auto minmax(0,1fr)` porque su caso normal es una
    tabla, que sí debe llenar lo que le den. Un gráfico no puede: Plotly fija su
@@ -1014,7 +1104,9 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cuota-fila {
   display: grid;
-  grid-template-columns: minmax(96px, 168px) minmax(0, 1fr) minmax(104px, auto);
+  /* La última no puede crecer a `auto`: cada fila la mediría por su contenido
+     y las tres columnas dejarían de coincidir entre filas. */
+  grid-template-columns: minmax(96px, 168px) minmax(0, 1fr) 128px;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -1076,6 +1168,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* La causa de un cero, encima de las cifras que explica. Tono de advertencia y
+   no de error: el dato no está roto, falta declarar una equivalencia. */
+.mon-profile-page.is-aulas-flow .aulas-cuota-aviso {
+  margin: 0 0 var(--pulso-space-2, 8px);
+  padding: var(--pulso-space-2, 8px) var(--pulso-space-3, 12px);
+  border-left: 2px solid var(--pulso-warn-fg);
+  border-radius: var(--pulso-radius-sm, 4px);
+  background: var(--pulso-warn-bg, transparent);
+  font-size: var(--aulas-txt);
+  color: var(--pulso-warn-fg, var(--pulso-text-soft));
+}
+
 /* ── Historia de la cadena ───────────────────────────────────────────────
    Cada cadena es una fila con sus eslabones en línea: titular → en reserva 1 →
    en reserva 2, y el que cerró marcado. Se lee de izquierda a derecha como
@@ -1120,23 +1224,6 @@
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-titular { border-left-color: var(--pulso-state-ready-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-reemplazo { border-left-color: var(--pulso-state-partial-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-abierta { border-left-color: var(--pulso-danger-fg, var(--pulso-resultado-rechazo)); }
-
-.mon-profile-page.is-aulas-flow .aulas-cadena-head {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cadena-head strong { font-size: 13px; }
-.mon-profile-page.is-aulas-flow .aulas-cadena-head span,
-.mon-profile-page.is-aulas-flow .aulas-cadena-head em {
-  font-size: var(--aulas-sec);
-  color: var(--pulso-text-soft);
-  font-style: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* El banco de extras. Las facultades son filtro Y resumen a la vez: la misma
    fila dice cuánto queda ahí y sirve para entrar. Dos superficies —una tabla de
@@ -1324,59 +1411,12 @@
    n.º 2 es la columna n.º 2 para todas, y una cadena que cerró antes deja su
    última columna vacía: ese hueco ES el dato —cerró en dos y no en tres—, no
    un vacío sin dueño (C3). */
-.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
-  display: grid;
-  grid-template-columns: repeat(var(--aulas-eslabones, 3), minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  min-width: 0;
-}
-
-/* En compacto la reja aprieta demasiado: tres columnas de ~90 px parten
-   «en reserva 2» en dos líneas. Ahí vuelve a la fila que se ajusta, donde el
-   texto manda y la comparación entre cadenas se pierde a cambio de leerse. */
-@media (max-width: 1180px) {
-  .mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
-    display: flex;
-    flex-wrap: wrap;
-  }
-}
 
 /* La reja da la COLUMNA; la burbuja no la rellena. Estirada a los 341 px de
    la columna quedaba con la mitad del ancho en hueco: alineaba, sí, pero a
    cambio de tres cajas medio vacías. Anclada al inicio, los códigos siguen
    cayendo uno bajo otro —que es lo que permite comparar— y cada burbuja mide
    lo que dice. */
-.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones > .aulas-eslabon {
-  justify-self: start;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-eslabon {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 55%, #fff);
-  font-size: var(--aulas-sec);
-  font-variant-numeric: tabular-nums;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-eslabon.es-cierre {
-  border-color: color-mix(in srgb, var(--pulso-state-ready-fg) 45%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-state-ready-fg) 8%, #fff);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-eslabon-codigo { font-weight: var(--pulso-weight-black); }
-.mon-profile-page.is-aulas-flow .aulas-eslabon-rol { color: var(--pulso-text-soft); }
-.mon-profile-page.is-aulas-flow .aulas-eslabon-cifra { color: var(--pulso-text); }
-.mon-profile-page.is-aulas-flow .aulas-eslabon-sello {
-  font-weight: var(--pulso-weight-black);
-  color: var(--pulso-state-ready-fg);
-}
 
 /* La fila del corte es un botón cuando enfoca: se resetea el chrome nativo y se
    conserva la rejilla, y el activo se marca con la franja de módulo. */
@@ -1525,6 +1565,13 @@
 
 .mon-profile-page.is-aulas-flow .aulas-umbrales-celdas li {
   display: grid;
+  /* **Aqui el `auto` por fila es CORRECTO y no se toca.** El contenedor es
+     `repeat(auto-fit, minmax(150px, 1fr))`: una rejilla de TARJETAS que se
+     reparten en varias columnas, no filas de una misma tabla. Dos tarjetas
+     que caen una al lado de otra no tienen por que compartir el reparto
+     interno, y forzarlo con subgrid las estira a todo el ancho y rompe el
+     auto-fit. El patron «rejilla declarada en el li» solo es defecto cuando
+     los `li` son filas que se leen en columna. */
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 8px;
@@ -1577,22 +1624,31 @@
   margin-bottom: 4px;
 }
 
-.mon-profile-page.is-aulas-flow .aulas-embudo-pasos {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+/* Un embudo son barras que se comparan entre si, asi que TIENEN que salir del
+   mismo cero. Con la rejilla solo en el `li`, cada paso medía su propio `auto`
+   y la barra de «Efectivas» arrancaba en otra x que la de «Estaban en el
+   aula», que es justo lo que un embudo no puede permitirse. Misma causa y
+   misma reparacion que en la concentracion de brecha.
 
-.mon-profile-page.is-aulas-flow .aulas-embudo-pasos li {
+   NO VERIFICADO EN PANTALLA: con el parte de este estudio el embudo tiene un
+   solo paso —«ningun parte declara los que no quisieron responder ni los que
+   ya habian respondido»— y con una sola fila las columnas coinciden siempre.
+   Se repara por la causa, medida y verificada en el vecino. */
+.mon-profile-page.is-aulas-flow .aulas-embudo-pasos {
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(0, 1fr) minmax(96px, auto);
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-embudo-pasos li {
+  display: contents;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-embudo-carril {
@@ -1623,59 +1679,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* «¿Hay atajo?» — la concentración de la brecha, en Consultas.
-   Tres carriles y una frase; ni Plotly ni ejes: son tres cifras y lo que se
-   compara es cuánto avanza cada carril, no su valor exacto. Mismo criterio que
-   la franja de consumo de reserva y que el ritmo diario. */
-.mon-profile-page.is-aulas-flow .aulas-concentracion {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-concentracion-tramos {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-concentracion-tramos li {
-  display: grid;
-  grid-template-columns: minmax(120px, auto) minmax(0, 1fr) minmax(120px, auto);
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  font-size: var(--aulas-txt);
-  color: var(--pulso-text-soft);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-concentracion-rotulo strong,
-.mon-profile-page.is-aulas-flow .aulas-concentracion-cifra strong {
-  color: var(--pulso-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-concentracion-carril {
-  display: block;
-  height: 12px;
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
-  overflow: hidden;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-concentracion-carril i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-concentracion-cifra em {
-  font-size: var(--aulas-sec);
-  font-style: normal;
-}
-
 /* El chip de estado de las tablas. Mismo material que los chips de estado de
    los otros perfiles —borde teñido por `color-mix`, radio de chip, peso alto y
    cuerpo pequeño— y el acento lo pone cada estado con su color de la franja
@@ -1700,15 +1703,21 @@
    conviven sin que ninguno quede suelto. */
 .mon-profile-page.is-aulas-flow .aulas-control-casos {
   display: grid;
-  gap: 4px;
+  gap: 4px 8px;
   margin: 5px 0 0;
   padding: 0;
   list-style: none;
+  /* El reparto vive aqui y no en el `li`: dentro del `li` cada fila mide
+     su propio `auto` y las columnas dejan de coincidir entre filas. */
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control-casos li {
   display: grid;
+  /* Fallback y luego subgrid: ver la nota del contenedor. */
+  grid-column: 1 / -1;
   grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: subgrid;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
@@ -1971,65 +1980,12 @@
   font-size: var(--aulas-txt);
 }
 
-.mon-profile-page.is-aulas-flow .aulas-agenda-lista {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-lista li {
-  display: grid;
-  grid-template-columns: 118px minmax(0, 1fr) 116px;
-  align-items: center;
-  gap: 10px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-dia {
-  color: var(--pulso-text);
-  font-size: var(--aulas-txt);
-  font-weight: var(--pulso-weight-medium);
-}
-
-/* Las que no tienen fecha no se esconden: son justo las que nadie va a aplicar
-   mañana. Se leen en gris y al final. */
-.mon-profile-page.is-aulas-flow .aulas-agenda-lista li.es-sin-fecha .aulas-agenda-dia {
-  color: var(--pulso-text-soft);
-  font-style: italic;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-barra {
-  display: flex;
-  height: 16px;
-  overflow: hidden;
-  border-radius: 5px;
-  background: var(--pulso-surface-2);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-barra i {
-  display: block;
-  min-width: 2px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-cifra {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  color: var(--pulso-text);
-  font-size: var(--aulas-txt);
-  font-variant-numeric: tabular-nums;
-}
-
-/* El punto medio que separa las dos cifras va en el MARKUP, no aquí. Probado
-   como `::before`: separaba a la vista pero el texto seguía siendo «193 sin
-   empezar», así que un lector de pantalla leía un número de tres dígitos que
-   no existe. Un separador decorativo no arregla un dato. */
-.mon-profile-page.is-aulas-flow .aulas-agenda-cifra em {
-  color: var(--pulso-text-soft);
-  font-size: var(--aulas-sec);
-  font-style: normal;
-}
+/* La lista de chips de días (`aulas-agenda-lista`/`-barra`/`-cifra`) se retiró
+   el 2026-09-02: la franja evolucionó a la cuadrícula de calendario de
+   `AulasCalendarioDeAgenda.tsx`, con hoja PROPIA (`aulasCalendarioDeAgenda.css`,
+   esta hoja está congelada a crecimiento). Sus lecciones viven en el nuevo
+   markup: el «193 sin empezar» se sigue pronunciando como dos cifras separadas
+   por palabras en el `aria-label` de cada celda. */
 
 /* Agenda: cabecera + lectura por día + tabla. Tres filas declaradas, no dos:
    con `auto minmax(0,1fr)` el tercer hijo cae en una fila implícita y se dibuja
@@ -2165,7 +2121,12 @@
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-falta::before { background: var(--pulso-resultado-pendiente); }
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-excedente::before { background: var(--pulso-resultado-parcial); }
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-sin-meta::before { background: var(--pulso-border); }
+/* «Vencidos sin aplicar» reusa esta leyenda y necesita el color de su segundo
+   segmento, que ahi no es lo pendiente sino lo que ya se perdio. */
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-sin-parte::before { background: var(--pulso-resultado-rechazo); }
 
+/* Qué filtro decide. Una linea por filtro, el nombre en la columna izquierda
+   para que las cifras queden alineadas y se comparen de un vistazo. */
 /* ── Por facultad ────────────────────────────────────────────────────────────
    El carril de cada facultad mide SU meta contra la meta más alta, y el relleno
    lo cubierto: una facultad grande a medias se ve distinta de una pequeña
@@ -2212,10 +2173,17 @@
  * `capacity-drift` de 380 px. Se acota quien impone el alto, que es la lista.
  * El envoltorio es el dueño declarado de su scroll, así que no es una jaula. */
 .mon-profile-page.is-aulas-flow .aulas-facultades-scroll {
-  /* 400 px son nueve facultades y pico; con el grafico vecino a 360 los dos
-   * paneles quedan a la par. Medido: 311 vs 654 antes, y el hueco era de 343
-   * incluso tras el primer recorte. */
-  max-height: 400px;
+  /* El tope NO es un numero elegido: es el del grafico vecino mas la diferencia
+     de lo que cada panel lleva alrededor. Estaban a mano —400 aqui y 360 en el
+     TSX del grafico, en archivos que no se referencian— y por eso se descasaron:
+     al sumarse la linea «15 facultades · 0 con su meta cumplida» el escalon entre
+     los dos paneles de la pareja fue de 31 px, que es justo lo que se ve.
+
+     Los +10 son la cuenta: el pie del grafico (26) y su hueco (6) menos la
+     lectura de la lista y los suyos (22). Si alguien mueve el alto del grafico,
+     este tope se mueve solo; si mueve el pie o la lectura, tiene que tocar este
+     numero, y el comentario dice por que. */
+  max-height: calc(var(--aulas-cobertura-alto) + 10px);
   overflow-y: auto;
   min-height: 0;
   /* Sitio para la barra, o la última columna queda debajo de ella. */
@@ -2232,7 +2200,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-facultades-lista li {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr) 128px;
+  grid-template-columns: 190px minmax(0, 1fr) 182px;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -2242,6 +2210,19 @@
   display: grid;
   gap: 1px;
   min-width: 0;
+  /* Es un <button>, y el user-agent lo centra. Cada facultad arrancaba en una x
+     distinta —«DERECHO» en 736, «ESTUDIOS GENERALES LETRAS» en 687— y la columna
+     se leia como un bloque irregular en vez de como una lista.
+
+     Hacen falta las TRES, y `justify-content` es la que de verdad lo arregla:
+     `text-align` gobierna el texto dentro de su linea, `justify-items` coloca
+     cada hijo dentro de la columna del grid —medido: con solo esas dos el
+     rotulo ya encogia a su contenido pero seguia desplazado—, y
+     `justify-content` es la que coloca LA COLUMNA dentro del boton. El centrado
+     estaba en esta ultima. */
+  justify-content: start;
+  justify-items: start;
+  text-align: left;
   /* Los nombres largos se salian de la caja. `min-width: 0` deja que la celda
      se encoja, pero sin esto el CONTENIDO sigue pintandose fuera. */
   overflow: hidden;
@@ -2250,14 +2231,34 @@
   font-weight: var(--pulso-weight-medium);
 }
 
-/* Nombre y cuenta, cada uno en una linea y con elipsis. Sin `nowrap` el nombre
-   envolveria a dos lineas y la fila creceria: el marco no puede depender del
-   largo del nombre de una facultad (C2). */
-.mon-profile-page.is-aulas-flow .aulas-facultad-rotulo,
+/* El conteo de abajo si cabe en una linea y se corta con puntos. El nombre ya
+   no: ver la regla siguiente y su motivo. El marco sigue sin depender del largo
+   del nombre porque quien acota la altura es `.aulas-facultades-scroll`, no la
+   fila (C2). */
 .mon-profile-page.is-aulas-flow .aulas-facultad-nombre em {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+}
+
+/* El nombre de la facultad, en cambio, no puede cortarse en una linea: en 190 px
+   «ESTUDIOS GENERALES LETRAS» y «ESTUDIOS GENERALES CIENCIAS» quedaban las dos
+   como «ESTUDIOS GENERALES ...» —dos filas con cifras distintas y el mismo texto
+   visible, imposible saber cual es cual—. Dos lineas dejan ver la palabra que
+   las separa, y las cortas siguen ocupando una sola. */
+.mon-profile-page.is-aulas-flow .aulas-facultad-rotulo {
+  /* Medido: el computado del rotulo era `nowrap` y NINGUNA regla que le case lo
+     declara —viene heredado de un ancestro fuera de esta hoja—. Por eso hay que
+     reponerlo aqui de forma explicita en vez de darlo por normal. */
+  white-space: normal;
+  /* `-webkit-box` con line-clamp no sirve aqui: el rotulo es item de un grid y
+     el navegador blockifica ese display —queda en `flow-root`— dejando el clamp
+     inerte. Dos lineas de alto con el sobrante oculto hacen el mismo trabajo sin
+     depender de un display que el layout puede reescribir. */
+  line-height: 1.2;
+  max-height: 2.4em;
+  overflow: hidden;
   min-width: 0;
 }
 
@@ -2280,13 +2281,27 @@
   height: 100%;
 }
 
+/* **La cifra se apila sobre su rótulo, y no se parte nunca.**
+   Iban en la MISMA fila flex dentro de una pista de 128 px —«7,006» más
+   «respuestas faltan · 3%»— así que el `strong` se encogía por debajo de su
+   contenido y el número **se partía a mitad**: en pantalla se leía «7,00» y
+   debajo «6». Un número roto en dos líneas no es un número.
+
+   Apilados caben los dos, y alineados a la derecha la columna se recorre con el
+   ojo, que es lo que `tabular-nums` promete y el flex impedía. */
 .mon-profile-page.is-aulas-flow .aulas-facultad-cifra {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  min-width: 0;
   color: var(--pulso-text);
   font-size: var(--aulas-txt);
   font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-cifra strong {
+  white-space: nowrap;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-facultad-cifra em {
@@ -2420,13 +2435,116 @@
 /* `flex` en LOS DOS lados, no `block` en uno.
    Con un solo hijo, `block` valía; con el relleno y su sombra son dos, y en
    `block` se apilarían en vertical en vez de encadenarse. */
+/* La pista se queda con TODO lo que sobra tras la cifra, y es contra ella
+   contra la que el carril mide su porcentaje. `min-width: 0` para que pueda
+   encoger por debajo de su contenido en vez de empujar la fila. */
+/* **El hover de la pirámide** (2026-09-08). Sustituye al `title` del navegador,
+   que tarda en salir, no se puede estilar y nunca aparece con el teclado. Sale
+   al instante en hover y también con `:focus-visible` del botón de la fila, que
+   es la ruta de quien no usa ratón.
+
+   `pointer-events: none` para que el propio globo no robe el hover y lo haga
+   parpadear al pasar por encima. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado {
+  position: relative;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: none;
+  width: max-content;
+  max-width: 320px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: var(--pulso-material-bg-strong);
+  border: 1px solid var(--pulso-border-strong);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 14%);
+  color: var(--pulso-text);
+  font-size: var(--aulas-min);
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado:hover > .aulas-piramide-tip,
+.mon-profile-page.is-aulas-flow .aulas-piramide-fila:focus-visible .aulas-piramide-tip {
+  display: block;
+}
+
+/* **Cada lado ancla el globo hacia dentro.** Centrado sobre el lado, el de la
+   columna izquierda se salía por el borde del panel y quedaba cortado —visto en
+   pantalla el 2026-09-08—. Anclarlo al borde interior de su propio lado lo
+   mantiene dentro sin necesidad de medir nada en tiempo de ejecución. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-izquierda .aulas-piramide-tip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-derecha .aulas-piramide-tip {
+  left: 0;
+  right: auto;
+  transform: none;
+}
+
+/* El porcentaje junto al resto: la barra enseña la proporción y la cifra decía
+   sólo cuánto queda, así que no se podía saber si 107 por recoger era el 20 %
+   o el 80 % sin medir el relleno con el ojo. Va en un tono más débil que la
+   cifra para que el orden de lectura siga siendo «cuánto falta» y luego «de
+   cuánto». */
+/* El separador va en el CSS y no en el JSX: sin él, «faltan 10» y «0 %» se
+   pegan al leerse y salen como «faltan 100 %» —visto en pantalla el 2026-09-08,
+   el margen los separaba a la vista pero no al ojo que los lee seguidos—. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-pct::before {
+  content: "·";
+  margin: 0 5px 0 0;
+  color: var(--pulso-border-strong);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-pct {
+  margin-left: 5px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-pista {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/* El carril crece hacia el CENTRO de la pirámide, o sea pegado a la cifra: a la
+   izquierda de su pista en el lado derecho, y a la derecha en el izquierdo. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-izquierda .aulas-piramide-pista {
+  justify-content: flex-end;
+}
+
+/* **El carril tiene que verse ENTERO, no sólo su relleno** (Gonzalo,
+   2026-09-08: «apenas se ve el contraste de las barras que están vacías»).
+   Medido en su captura: con `--pulso-surface-2` a secas, la parte pendiente
+   sobre el fondo blanco del panel era casi invisible, y en esta pirámide el
+   LARGO TOTAL es el dato —es la sección que enseña el tamaño de cada meta—.
+   Una fila con 10 por recoger y otra con 312 se veían casi iguales.
+
+   Se arregla con las dos cosas a la vez: un fondo un punto más oscuro y un
+   borde definido, que es lo que hace legible el final de la barra aunque el
+   avance sea del 2 %. Mismo tratamiento que las barras de «Hombres y mujeres
+   por facultad», para que las dos secciones se lean como una familia. */
 .mon-profile-page.is-aulas-flow .aulas-piramide-carril {
   display: flex;
   flex: none;
   height: 16px;
   overflow: hidden;
   border-radius: 5px;
-  background: var(--pulso-surface-2);
+  background: color-mix(in srgb, var(--pulso-text-faint) 12%, var(--pulso-surface-2));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
 }
 
 /* El relleno crece desde el centro hacia afuera, que es lo que hace que las dos
@@ -2458,26 +2576,19 @@
 
 .mon-profile-page.is-aulas-flow .aulas-piramide-cifra {
   flex: none;
+  /* Todas las filas reservan lo mismo para la cifra; si no, la pista mide
+     distinto en cada una y el 100 % del carril dejaría de ser comparable entre
+     facultades, que es justo lo que la pirámide existe para comparar.
+     «faltarán 1.234» y «cierra 12/09» son los textos más largos que produce
+     `veredicto()`. */
+  min-width: 6.4rem;
   color: var(--pulso-text-soft);
   font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-/* La leyenda del rayado, con su propia muestra a la izquierda: decir «lo rayado»
-   sin enseñar el rayado obliga a buscarlo en las barras. */
-.mon-profile-page.is-aulas-flow .aulas-piramide-leyenda {
-  display: flex; align-items: center; gap: 7px;
-  margin: 0 0 6px; font-size: var(--aulas-sec); color: var(--pulso-text-faint);
-}
-.mon-profile-page.is-aulas-flow .aulas-piramide-leyenda i {
-  flex: none; width: 26px; height: 10px; border-radius: 3px;
-  background: repeating-linear-gradient(
-    -45deg,
-    color-mix(in srgb, var(--pulso-text-faint) 42%, transparent) 0 3px,
-    transparent 3px 6px
-  );
-  outline: 1px solid var(--pulso-border);
-}
+/* Aquí vivía la leyenda del rayado de la proyección. Salió el 2026-09-08 con
+   el resto de la predicción, que se mudó a su propia pestaña. */
 
 /* El veredicto en color: sólo el que pide acción se tiñe. Teñir los tres deja
    la columna hecha un semáforo donde nada destaca. */
@@ -2603,34 +2714,8 @@
 
 /* Las cadenas, agrupadas por desenlace. Sin grupos eran 24 cajas idénticas en
    1 554 px: las tres que cerraron quedaban enterradas entre veintiuna iguales. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-grupo {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cadenas-grupo + .aulas-cadenas-grupo {
-  margin-top: 12px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cadenas-grupo > h4 {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--aulas-sec);
-  font-weight: var(--pulso-weight-black);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
 
 /* El conteo del grupo, en la misma tinta pero sin el peso del rótulo. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-grupo > h4 span {
-  font-weight: var(--pulso-weight-medium);
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
 
 /* ── La franja de flujo, con el material del perfil ──────────────────────────
    `AulasApplicationFlow` es COMPARTIDA: la usan también Salidas y la auditoría
@@ -2669,12 +2754,6 @@
    no se distingue una fila de otra. En columnas alineadas se comparan, que es
    lo que la sección Consultas pide. Las cifras van tabulares y a la derecha
    para que el ojo baje por la columna sin releer. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-tabla th.es-cifra,
-.mon-profile-page.is-aulas-flow .aulas-cadenas-tabla td.es-cifra {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
 
 /* El envoltorio de esta tabla vive dentro del panel de cadenas, que ya reparte
    su alto; sin esto heredaría el `calc(100vh - 360px)` del resto y empujaría
@@ -2869,69 +2948,16 @@
   }
 }
 
-/* LAS TRES LENTES PEQUEÑAS, EN FILA.
- *
- * «Quién consigue más», «Franja horaria» y «Día de la semana» son el mismo
- * componente con distinta clave y viven en paneles separados a propósito: «las
- * tres se leen juntas —una facultad rinde poco Y su aplicador rinde bien— y un
- * control las escondería de a dos». Apiladas median 350 + 220 + 350 = 920 px
- * dentro de una pestaña de **7,5 pantallas de scroll**, o sea que «se leen
- * juntas» era una intención que la maquetación no permitía: para comparar la
- * franja con el día había que recordar el primero.
- *
- * En fila ocupan lo que el más alto y quedan literalmente comparables, que es lo
- * unico que las justifica como paneles aparte. `align-items: start` y contrato
- * `intrinsic` por el mismo motivo que la pareja de arriba: apiladas bajo el
- * corte vuelven cada una a su alto propio, asi que `equal` seria una promesa que
- * no pueden cumplir.
- *
- * La cuarta lente —«Qué está rindiendo más», por facultad— NO entra: son 21
- * filas contra 7, y a un tercio de ancho sus nombres de facultad no caben. Se
- * queda a todo lo ancho, encima de las tres. */
-.mon-profile-page.is-aulas-flow .aulas-lentes-trio {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  align-items: start;
-  flex: none;
-}
-.mon-profile-page.is-aulas-flow .aulas-lentes-trio > .mon-profile-panel { min-width: 0; }
+/* El trío de lentes se retiró el 2026-09-10. Medido en el DOM con el operativo
+   real: a un tercio de ancho el panel daba 386 px de caja y la lista pedía 615,
+   así que la tabla del ranking de aplicadores SE SALÍA 229 px por la derecha y
+   la del día se iba más allá del viewport. El propio comentario que vivía aquí
+   ya lo avisaba —«un ancho fijo pensado para ancho completo no sobrevive a un
+   tercio»— y aun así el reparto seguía en pie.
 
-/* **La fila de estas listas necesita su propio reparto a un tercio de ancho.**
- *
- * El reparto de ancho completo pide 120 px de nombre + 76 + 92 + 88 de cifras +
- * 36 de gaps = **412 px sólo en columnas fijas**, y un panel del trío da ~400 de
- * contenido. La columna de la barra —la que es `minmax(0, 1.7fr)`— se quedaba
- * con lo que sobraba, o sea nada, y su cabecera «POR AULA» se partía **en una
- * letra por línea**. Un ancho fijo pensado para ancho completo no sobrevive a un
- * tercio, y encogerlo no es un parche: es el mismo dato en menos sitio.
- *
- * Las cifras siguen cabiendo —«92.6 %» mide ~40 px a 10 px— y la alineación
- * entre filas se conserva porque los anchos siguen siendo fijos, que es de donde
- * sale. */
-.mon-profile-page.is-aulas-flow .aulas-lentes-trio .aulas-rendimiento-lista > li {
-  /* Los anchos salen de la PALABRA MÁS LARGA de cada cabecera, no de la cifra:
-     «AJUSTADO» a 10 px con la letra espaciada mide ~52 px y la columna tenía 46,
-     así que se partía en «AJUSTA / DO». Una cabecera rota a media palabra se lee
-     peor que una columna estrecha. */
-  grid-template-columns: minmax(60px, 1fr) minmax(30px, 1.2fr) 56px 68px 60px;
-  gap: 6px;
-}
-/* Y que no vuelva a partirse: si algún día una etiqueta no cupiera, que se
-   salga y se vea, en vez de romperse por la mitad y parecer intencionado. */
-.mon-profile-page.is-aulas-flow .aulas-lentes-trio .aulas-rendimiento-cabecera > span {
-  overflow-wrap: normal;
-  word-break: keep-all;
-  hyphens: none;
-}
-
-/* Bajo 1180 px, el mismo corte que la pareja y la banda de KPIs. A un tercio de
-   1180 son 380 px por panel y las barras dejan de leerse. */
-@media (max-width: 1180px) {
-  .mon-profile-page.is-aulas-flow .aulas-lentes-trio {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
+   Ahora manda siempre el reparto que ya existía para el otro caso: el ranking
+   de aplicadores a todo lo ancho —21 filas y nombres de treinta caracteres— y
+   las dos lentes de tiempo en la pareja de arriba, que les da ~580 px. */
 
 /* El nombre de facultad cuando ADEMAS pone el foco.
  *
@@ -2942,6 +2968,16 @@
 .mon-profile-page.is-aulas-flow .aulas-foco-boton {
   appearance: none; background: none; border: 0; padding: 0; margin: 0;
   font: inherit; color: inherit; text-align: left; cursor: pointer; min-width: 0;
+  /* **`justify-items` y no solo `text-align`.**
+     El navegador centra el CONTENIDO de un `<button>`, y cuando el boton es
+     ademas `display: grid` —lo es en «Que esta rindiendo mas», donde la celda
+     lleva el nombre y su detalle en dos filas— eso centra los grid items como
+     CAJAS. `text-align: left` ya estaba y no corregia nada: alineaba el texto
+     dentro de una caja que seguia centrada. Se veia como una columna de
+     facultades en zigzag, con los nombres largos empezando antes que los
+     cortos. Gonzalo: «no solo no esta alineado sino que no se entiende». */
+  justify-items: start;
+  justify-content: start;
   /* **`min-height: 0`, y es lo que de verdad engordaba la fila.**
      El sistema le da a todo `<button>` una altura minima de 28 px —correcta para
      un control que se pulsa con el dedo, equivocada para un texto de 11 px
@@ -3002,54 +3038,10 @@
   white-space: nowrap;
 }
 
-/* Ritmo de la recolección: el eje de tiempo que el perfil no tenía.
-   Barras en CSS como la agenda por día — son los días de un operativo, no una
-   serie larga, y esta pestaña ya carga bastante. */
-.mon-profile-page.is-aulas-flow .aulas-ritmo-dias {
-  display: grid;
-  gap: 3px;
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.mon-profile-page.is-aulas-flow .aulas-ritmo-dias > li {
-  display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) 52px 60px;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--aulas-sec);
-  color: var(--pulso-text-soft);
-}
-.mon-profile-page.is-aulas-flow .aulas-ritmo-fecha { white-space: nowrap; }
-.mon-profile-page.is-aulas-flow .aulas-ritmo-barra {
-  display: block;
-  height: 14px;
-  border-radius: 4px;
-  background: var(--pulso-surface-2);
-  overflow: hidden;
-}
-.mon-profile-page.is-aulas-flow .aulas-ritmo-barra > i {
-  display: block;
-  height: 100%;
-  border-radius: 4px;
-}
-/* Un día sin campo no se disimula: su fila queda apagada y el hueco de la barra
-   se ve, porque saber que ese día no se trabajó es parte de leer el ritmo. */
-.mon-profile-page.is-aulas-flow .aulas-ritmo-dias > li.es-sin-campo { opacity: 0.55; }
-.mon-profile-page.is-aulas-flow .aulas-ritmo-cifra,
-.mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.mon-profile-page.is-aulas-flow .aulas-ritmo-cifra strong { color: var(--pulso-text); }
-/* El acumulado va más callado que el día: es contexto, no el dato de la fila.
-   Pero callado no es invisible: estaba con `--pulso-border-strong`, un token de
-   BORDE haciendo de color de texto, y medido daba **1.48:1** de contraste a
-   11 px —el minimo legible es 4.5—. Un borde esta calibrado para una linea de
-   1 px, no para glifos. `--pulso-text-faint` lo deja en ~5:1, todavia por
-   debajo del 8.28 de la cifra del dia, que es la jerarquia que se buscaba. */
-.mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado { color: var(--pulso-text-faint); }
+/* La tabla de días del ritmo se retiró el 2026-09-10: el panel dibuja ahora el
+   gráfico del boceto —barras del día y línea del acumulado, cada uno con su
+   eje— en `aulasAvanceDiario.css`. Las clases de aquella lista se van con ella;
+   el guard de CSS sin dueño las cazó en la misma corrida. */
 
 /* El encabezado compartido dentro de la reja de aulas.
    `mon-workbench-main` aporta FILAS —`auto auto minmax(0,1fr)`— y la clase
@@ -3086,7 +3078,12 @@
    material que aulas ya usa. */
 .mon-profile-page.is-aulas-flow .mon-workbench-head {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  /* Tercera pista para el CONTROL de seccion —el selector de facultad—. El
+     perfil sobrescribe aqui la rejilla del workbench, y con dos pistas ese
+     tercer hijo caia a una segunda fila y sus cuatro controles se apilaban en
+     vertical. La regla general de `monitoreo.css` no llegaba: esta gana por
+     especificidad, y ese es justo el detalle que cuesta media hora encontrar. */
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
@@ -3179,7 +3176,7 @@
   color: var(--pulso-text-faint);
   font-size: var(--aulas-min);
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-cabecera > span:nth-child(n + 3) {
@@ -3211,6 +3208,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Celda que envuelve la barra: lleva el `role="cell"` y la geometría, para
+   que la rejilla siga viendo el mismo número de hijos. */
+.mon-profile-page.is-aulas-flow .aulas-colchon-barra-celda { display: flex; align-items: center; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-colchon-barra-celda > .aulas-colchon-barra { flex: 1; }
 .mon-profile-page.is-aulas-flow .aulas-colchon-barra {
   display: flex;
   align-items: center;
@@ -3358,8 +3359,29 @@
   min-width: 0;
 }
 
+/* El reparto sube al `ul`: la ultima pista era `auto`, asi que cada fila la
+   dimensionaba con SU estado y el `1fr` de al lado quedaba con un ancho
+   distinto en cada una. El comentario de abajo ya avisaba de esto —«va fijo y
+   no max-content porque cada fila es su propia grilla»—: se resolvia una
+   columna a mano y quedaban las otras. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad > ul {
+  display: grid;
+  /* **El «cuándo» va a `max-content`, no a 108 px.** Con `white-space: nowrap`
+     una pista fija no recorta: DESBORDA sobre la de al lado. Medido en pantalla
+     el 2026-09-12: «lun 07/09 11:30 am» se comía el gap entero y salía
+     «11:30 amCH 7» pegado, mientras «lun 07/09 6:30 pm» —tres caracteres menos—
+     se leía con holgura. Caber no es no pisarse, y el gate no lo ve: no hay
+     recorte, ni derrame, ni solape de cajas.
+     `max-content` se puede usar AQUÍ y no en el `li` por lo que dice el
+     comentario de abajo: el reparto subió al `ul` y los `li` son `subgrid`, así
+     que la columna la fija el más ancho de TODAS las filas y todas quedan
+     alineadas. En el `li` cada fila era su propia grilla y desalineaba. */
+  grid-template-columns: max-content 98px minmax(0, 1.1fr) minmax(0, 1fr) auto;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-ruta-facultad > ul > li {
   display: grid;
+  grid-column: 1 / -1;
   /* Cuándo · código · dónde · docente · estado. «Dónde» y «docente» ceden
      ancho; las otras tres tienen el suyo para que se lean en columna. */
   /* La columna del codigo pasa de 74 a 98 px: con «reemplaza a CH 21» debajo,
@@ -3368,6 +3390,7 @@
      cada fila es su propia grilla: dejarlo crecer desalinearia las columnas
      entre filas, que es peor que el recorte. */
   grid-template-columns: 108px 98px minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: 8px;
   padding: 3px 0;
@@ -3391,6 +3414,49 @@
   color: var(--pulso-text);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* El código de una CELDA de tabla lleva a su ficha, con el mismo criterio que
+   el de la ruta: hereda el color de la celda y descubre el subrayado sólo al
+   pasar el puntero. En una tabla de 400 filas, una columna entera de enlaces
+   azules compite con el dato. */
+.mon-profile-page.is-aulas-flow .aulas-codigo-enlace {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 3px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-codigo-enlace:hover {
+  color: var(--pulso-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-codigo-enlace:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+}
+
+/* El código lleva a su ficha. NO se pinta como enlace de cuerpo de texto —azul
+   y subrayado en cada una de las 199 entradas sería un mar de azul sobre la
+   única columna que ordena la lectura—: hereda el color del código y sólo
+   descubre el subrayado al pasar el puntero o al recibir el foco. El foco de
+   teclado sí se ve siempre, que es lo que lo deja alcanzable. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-codigo-enlace {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 3px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-codigo-enlace:hover {
+  color: var(--pulso-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-codigo-enlace:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
 }
 
 /* El pabellón y el salón NO se recortan con elipsis: es dato operativo, y un
@@ -3519,11 +3585,17 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-lista > li {
   display: grid;
-  grid-template-columns: minmax(120px, 1.1fr) minmax(0, 1.7fr) 76px 92px 88px;
+  /* La primera columna baja de 1.1fr a 0.7: con 1.1 se llevaba ~530 px para
+     nombres que ocupan 200, y todo ese hueco quedaba a la izquierda de la
+     barra. Lo que gana se lo lleva la barra, que es lo que se compara. */
+  grid-template-columns: minmax(120px, 0.7fr) minmax(0, 2.1fr) 76px 108px 96px;
   align-items: center; gap: 9px; padding: 4px 6px; border-radius: 6px; min-width: 0;
 }
+/* Sin `text-transform: uppercase`: a este tamaño compite con los datos, y es el
+   mismo ajuste que se hizo en la tabla de Efectividad —ahí además rompía la «τ»,
+   que salía como «Τ» mayúscula griega—. El peso distingue la cabecera. */
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-soft); font-size: var(--aulas-min); font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera > span:nth-child(n + 3) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-nombre {
@@ -3531,6 +3603,16 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-nombre em {
   color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
+}
+/* La celda que envuelve la barra: lleva el `role="cell"` y la geometría que
+   tenía la barra, para que la rejilla siga viendo cinco hijos y ni un píxel se
+   mueva. La barra de dentro conserva su `role="img"`: si el rol de celda fuera
+   suyo, el lector perdería la posición en la fila. */
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-barra-celda {
+  display: flex; align-items: center; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-barra-celda > .aulas-rendimiento-barra {
+  flex: 1;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-barra { display: flex; align-items: center; height: 18px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-barra i {
@@ -3561,11 +3643,23 @@
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-nombre em {
   color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
 }
+/* Celda que envuelve la serie: lleva el `role="cell"` y no cambia la geometría
+   —la serie de dentro conserva su alto y su alineación al pie—. */
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-serie-celda {
+  display: flex; align-items: center; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-serie-celda > .aulas-ritmofac-serie { flex: 1; }
+/* Barras ESTRECHAS y pegadas a la izquierda, con suelo. Con `flex: 1 1 0` y dos
+   días de campo cada barra se llevaba media celda —285 px— y la fila se leía
+   como dos bloques de color puestos a distinta altura según qué día tuvo dato;
+   Gonzalo, viéndolo el 2026-09-08: «se ve horrible». Un sparkline de dos barras
+   sólo es un sparkline si las barras son barras. */
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-serie {
-  display: flex; align-items: flex-end; gap: 2px; height: 26px; min-width: 0;
+  display: flex; align-items: flex-end; gap: 3px; height: 30px; min-width: 0;
+  justify-content: flex-start; border-bottom: 1px solid var(--pulso-border);
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-serie i {
-  flex: 1 1 0; min-width: 3px; border-radius: 2px 2px 0 0;
+  flex: 1 1 0; min-width: 3px; max-width: 20px; border-radius: 2px 2px 0 0;
 }
 /* La tendencia que no se distingue del vaivén va apagada: se sigue viendo —el
    dato es el dato— pero sin el peso de una que sí decide algo. */
@@ -3664,7 +3758,7 @@
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:not(:first-child) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-cabecera {
   color: var(--pulso-text-faint); font-size: var(--aulas-min); font-weight: 600;
-  letter-spacing: 0.02em; text-transform: uppercase;
+  letter-spacing: 0.02em; font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li.es-urgente {
   background: color-mix(in srgb, var(--pulso-resultado-rechazo) 4%, transparent);
@@ -3730,6 +3824,155 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-gris::before {
   background: var(--pulso-border-strong);
+}
+/* La vara del diseño no es un trazo: es la ZONA baja de la barra, y su marca
+   tiene que parecerse a eso. Con el swatch de raya, la leyenda prometía una
+   línea punteada que el gráfico ya no dibuja —la vara pasó a relleno + línea
+   sólida— y las dos cosas dejaron de corresponderse. */
+/* El formulario del umbral de duración. Una línea: es una cifra sola y el panel
+   ya reparte alto con el resto de la sección. */
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 8px; font-size: var(--aulas-sec); color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral input {
+  width: 76px; height: 26px; padding: 0 8px;
+  border: 1px solid var(--pulso-border); border-radius: 6px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  font-size: var(--aulas-sec); font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral button {
+  height: 26px; padding: 0 12px;
+  border: 1px solid var(--pulso-border); border-radius: 999px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  font-size: var(--aulas-sec); font-weight: 600; cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral button:hover {
+  border-color: var(--pulso-border-strong);
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral-leyenda {
+  display: inline-flex; align-items: center; gap: 5px;
+  flex-basis: 100%; color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral-unidad {
+  margin-left: -4px; color: var(--pulso-text-soft);
+}
+
+/* La pérdida enviadas → válidas del libro: una sola línea con su barra. Es la
+   cuarta cifra de «cuántas encuestas hay» y la única que no se dibujaba. Tokens
+   medidos como resolubles en esta página. */
+.mon-profile-page.is-aulas-flow .aulas-perdida {
+  display: grid; gap: 4px; margin: 0 0 10px;
+  font-size: var(--aulas-sec); color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-perdida-cifras small {
+  color: var(--pulso-text-soft); font-weight: 500;
+}
+.mon-profile-page.is-aulas-flow .aulas-perdida-barra {
+  display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-text) 6%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-perdida-barra i { display: block; height: 100%; }
+.mon-profile-page.is-aulas-flow .aulas-perdida-barra i.es-cuenta {
+  background: color-mix(in srgb, var(--pulso-success-fg) 82%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-perdida-barra i.es-pierde {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 55%, transparent);
+}
+
+/* Plegado, el histograma sólo ocupa su resumen. La sección es de política
+   `viewport` y sus paneles se REPARTEN el alto: un panel nuevo siempre le quita
+   sitio a los demás, y aquí le quitó el suyo a la franja de días —medida en
+   0 px—. La cifra que decide vive en el `summary`, así que cerrado no se pierde
+   nada; la forma se abre cuando se quiere mirar. */
+.mon-profile-page.is-aulas-flow .aulas-gestiones-detalle > summary {
+  cursor: pointer; list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-detalle > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* El histograma de gestiones. Barras verticales sobre una base común: el eje X
+   son llamadas y el alto, aulas. El tramo en riesgo cambia de tono en vez de
+   llevar una línea de corte encima, que a esta altura (56 px) no se vería.
+   Los tokens son los medidos como resolubles en esta página. */
+.mon-profile-page.is-aulas-flow .aulas-gestiones-lectura {
+  margin: 0 0 8px; font-size: var(--aulas-sec); color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-lectura small {
+  display: block; margin-top: 2px;
+  font-size: var(--aulas-min); color: var(--pulso-text-soft); font-weight: 500;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barras {
+  display: flex; align-items: flex-end; gap: 8px;
+  margin: 0; padding: 0; list-style: none;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barras li {
+  display: grid; justify-items: center; gap: 2px;
+  flex: 1 1 0; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barra {
+  display: flex; align-items: flex-end;
+  width: 100%; height: 56px;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barra i {
+  display: block; width: 100%; border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--pulso-primary) 34%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barras li.es-riesgo .aulas-gestiones-barra i {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 62%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-n {
+  font-size: var(--aulas-min); font-weight: 600; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-x {
+  font-size: var(--aulas-min); color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barras li.es-riesgo .aulas-gestiones-x {
+  color: var(--pulso-warn-fg); font-weight: 600;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-pie { margin: 6px 0 0; }
+
+/* La escalera de la cadena de filtros. Los pasos comparten escala —la de lo que
+   entra a la cadena— para que el descenso se lea como forma. El tramo que cae va
+   pegado al que queda, no encima: así la fila entera mide lo que ese filtro
+   recibió, y el hueco a la derecha es lo que se perdió antes. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-barra {
+  display: flex; align-items: stretch;
+  grid-column: 1 / -1;
+  height: 6px; margin-top: 4px;
+  border-radius: 3px; overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-text) 6%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-barra i {
+  display: block; height: 100%;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-barra i.es-queda {
+  /* **Medido en el navegador, no elegido por grep.** `--pulso-accent` aparece
+     definido en `monitoreo.css` pero su valor computado en esta página es
+     **vacío**, así que la barra salía transparente justo en el tramo que más
+     importa. Lo mismo `--pulso-module-accent` y `--pulso-ok-fg`. Los que sí
+     resuelven aquí son `--pulso-primary`, `--pulso-success-fg` y `--pulso-text`;
+     se usa el positivo, que es lo que este tramo significa: lo que sobrevive al
+     filtro.
+
+     La lección va con el token: **un token se verifica por su valor computado
+     en el contexto donde se usa**, no por encontrar su definición en el árbol. */
+  background: color-mix(in srgb, var(--pulso-success-fg) 82%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-barra i.es-cae {
+  /* `--pulso-warn-fg`, el mismo token con el que esta lista ya pinta su «−N
+     cae» dos reglas más abajo. NO `--pulso-danger`: ese token **no existe** en
+     `theme.css` y usarlo dejaría la barra transparente en el tramo que más
+     importa. */
+  background: color-mix(in srgb, var(--pulso-warn-fg) 55%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-zona::before {
+  width: 11px; height: 9px; border-radius: 1px;
+  background: color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  border-top: 1.5px solid var(--pulso-text-soft);
+  box-sizing: border-box;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-ausente {
   color: var(--pulso-text-faint); font-weight: 500;
@@ -3807,7 +4050,13 @@
  * tengas problema en cambiar la dimension». Con 220 px y veinte lineas la
  * dispersion entre facultades se aplastaba contra el eje; a 320 se separan. */
 /* El diario: el DETALLE del panel, debajo del acumulado. */
-.mon-profile-page.is-aulas-flow .aulas-serie-grafico { width: 100%; height: 264px; overflow: visible; }
+/* 264 -> 320 (2026-09-08). Gonzalo, viendo el diario con las barras del estudio
+ * ya dibujadas: «está muy ajustado el gráfico». Con las barras de elegibles
+ * ocupando todo el alto, las líneas de facultad y la mediana quedaban apretadas
+ * contra el suelo en la mitad inferior. Sigue valiendo su permiso de la vez
+ * anterior: «si este gráfico necesita más tamaño, más alto, dáselo, no tengas
+ * problema en cambiar la dimensión». */
+.mon-profile-page.is-aulas-flow .aulas-serie-grafico { width: 100%; height: 320px; overflow: visible; }
 /* El acumulado va arriba y con mas peso: es la pregunta que manda —«si llegamos a
  * la meta»— y el diario de abajo es el detalle.
  *
@@ -3916,6 +4165,31 @@
 }
 /* En los extremos del eje el globo se ancla por el lado que CABE: centrado, su
  * mitad se sale del lienzo y el borde del panel lo recorta. */
+/* **La cifra que la tarjeta viene a dar, con el peso que eso implica.**
+
+   El trozo `es-titular` se añadio al markup con la promesa de jerarquia —«la
+   fecha tenue, la cifra destacada»— y quedo SIN regla: el `es-titular` que ya
+   existia en la hoja es de otra cosa (el borde de `.aulas-cadena`), asi que el
+   titular se pintaba con el mismo cuerpo que el contexto y la tarjeta seguia
+   siendo cuatro lineas parejas. Confirmado leyendo la hoja, no en pantalla:
+   el globo solo sale con hover y el runner no lo hace.
+
+   14px sobre los 11 del resto: la cifra domina sin convertir el globo en un
+   cartel. La unidad va al lado en el cuerpo normal, porque «18» sin «efectivas
+   del parte» es justo la ambiguedad que se acaba de quitar. */
+.mon-profile-page.is-aulas-flow .aulas-serie-pista .es-titular {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 1px 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-pista .es-titular b {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
 .mon-profile-page.is-aulas-flow .aulas-serie-pista.es-derecha {
   transform: translate(calc(-100% + 12px), calc(-100% - 12px));
 }
@@ -4027,6 +4301,13 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-cumplida td:last-child { color: var(--pulso-resultado-efectiva); }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-llega td:last-child { color: var(--pulso-resultado-parcial); }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-corta td:last-child { color: var(--pulso-resultado-rechazo); }
+/* Sin cuota no es ni logro ni alarma: se dice, en voz baja. Mismo tratamiento
+   que el lado sin cuota de la pirámide, para que la misma situación se lea
+   igual en las dos superficies. */
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-sin-cuota td:last-child {
+  color: var(--pulso-text-soft);
+  font-style: italic;
+}
 
 .mon-profile-page.is-aulas-flow .aulas-serie-aviso {
   margin: 2px 0 0; padding: 7px 10px; border-radius: 8px;
@@ -4035,7 +4316,7 @@
   color: var(--pulso-text); font-size: var(--aulas-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-pie {
-  margin: 0; font-size: var(--aulas-sec);
+  margin: 12px 0 0; font-size: var(--aulas-sec); line-height: 1.55; max-width: 96ch;
 }
 
 /* Consumo del banco: cuánto aguanta cada facultad. */
@@ -4054,7 +4335,7 @@
   border-left: 3px solid transparent; border-radius: 6px; min-width: 0; font-size: var(--aulas-txt);
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera > span:nth-child(n + 2) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista > li.es-seca {
@@ -4084,7 +4365,7 @@
   align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; min-width: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-cabecera > span:nth-child(3) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-medio-nombre {
@@ -4093,6 +4374,10 @@
 .mon-profile-page.is-aulas-flow .aulas-medio-nombre em {
   color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
 }
+/* Celda que envuelve la barra: lleva el `role="cell"` y la geometría, para
+   que la rejilla siga viendo el mismo número de hijos. */
+.mon-profile-page.is-aulas-flow .aulas-medio-barra-celda { display: flex; align-items: center; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-medio-barra-celda > .aulas-medio-barra { flex: 1; }
 .mon-profile-page.is-aulas-flow .aulas-medio-barra { display: flex; align-items: center; height: 20px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-medio-barra i {
   display: flex; align-items: center; justify-content: flex-end; height: 100%; padding-right: 6px;
@@ -4184,7 +4469,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera > span:nth-child(3) { text-align: right; }
 
@@ -4611,9 +4896,18 @@
   color: var(--pulso-text);
 }
 
+/* Las columnas se calculan sobre TODAS las filas, no fila a fila.
+   Con la rejilla declarada solo en el `li`, cada fila medía su propio `auto`:
+   «9 min» y «10.5 min» arrancaban en x distintas y el paréntesis de al lado
+   tambien, así que trece filas de duraciones bailaban en vez de compararse.
+   Aquí no vale `display: contents` como en la concentración —el `li` es una
+   píldora con fondo, padding y radio, y contents le quitaría la caja—: se usa
+   `subgrid`, que conserva la caja y hereda las columnas del padre. La línea
+   anterior queda como fallback para un motor sin subgrid. */
 .mon-profile-page.is-aulas-flow .aulas-tiempos-lista {
   display: grid;
-  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 4px 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -4621,7 +4915,9 @@
 
 .mon-profile-page.is-aulas-flow .aulas-tiempos-lista li {
   display: grid;
+  grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: subgrid;
   gap: 10px;
   align-items: baseline;
   padding: 5px 8px;
@@ -4649,117 +4945,6 @@
 
 /* ── Respuestas abiertas ─────────────────────────────────────────────────
    Lista de lectura rapida: el texto manda y la señal va al margen, para poder
-   recorrer muchas respuestas sin que los rotulos compitan con lo que se lee. */
-.mon-profile-page.is-aulas-flow .aulas-abiertas {
-  display: grid;
-  gap: 8px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  max-width: 260px;
-  padding: 4px 9px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  font-size: 11.5px;
-  color: var(--pulso-text-muted);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button.is-activa {
-  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface-2));
-  color: var(--pulso-text);
-  font-weight: 600;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button small {
-  color: var(--pulso-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil li {
-  display: grid;
-  gap: 2px;
-  padding: 7px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil span {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--pulso-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil small {
-  font-size: 11px;
-  color: var(--pulso-text-muted);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-lista {
-  display: grid;
-  gap: 3px;
-  max-height: 320px;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-lista li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: baseline;
-  padding: 5px 9px;
-  border-radius: 8px;
-  background: var(--pulso-surface-2);
-  font-size: 12px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-lista li.is-relleno {
-  background: color-mix(in srgb, var(--pulso-warn-accent) 9%, var(--pulso-surface-2));
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-texto {
-  min-width: 0;
-  color: var(--pulso-text);
-  overflow-wrap: anywhere;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-meta {
-  display: inline-flex;
-  gap: 6px;
-  align-items: baseline;
-  font-size: 11px;
-  color: var(--pulso-text-muted);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-abiertas-meta em {
   font-style: normal;
   color: color-mix(in srgb, var(--pulso-warn-fg) 70%, var(--pulso-text));
 }
@@ -4845,16 +5030,22 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cadena-pasos {
   display: grid;
-  gap: 4px;
+  gap: 4px 12px;
   margin: 0;
   padding: 0;
   list-style: none;
   counter-reset: paso;
+  /* El reparto vive aqui y no en el `li`: dentro del `li` cada fila mide
+     su propio `auto` y las columnas dejan de coincidir entre filas. */
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cadena-pasos li {
   display: grid;
+  /* Fallback y luego subgrid: ver la nota del contenedor. */
+  grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: subgrid;
   gap: 12px;
   align-items: baseline;
   padding: 6px 10px;
@@ -5071,7 +5262,6 @@
   color: var(--pulso-module-monitoring);
 }
 
-
 /* **Dónde está el operativo ahora mismo.** El recorrido de Cálculo marca con un
    badge en qué paso estás; estas cuatro tarjetas eran una rejilla al mismo
    nivel. La fase en curso es la primera que todavía no está lista.
@@ -5088,6 +5278,14 @@
   border-color: var(--pulso-module-monitoring-border);
 }
 
+/* **El suelo tipográfico del perfil es `--aulas-min` (10 px) y lo declara este
+   mismo archivo**: «ejes, marcas y rotulos micro». El 2026-08-29 había seis
+   literales por debajo —un 9,5 en este badge y cinco 9 en el registro y la
+   familia de reemplazos—, todos con vecinos que ya usaban el token. Medido en
+   la app antes de tocarlos: el badge pasa de 67x18 a 70x19 sin recortar y sin
+   mover a su contenedor. Los de reemplazos NO se pudieron ver en la app —el
+   widget no monta sin reemplazos registrados— y se cambian por la misma razón
+   de escala, no por haberlos comprobado. */
 .mon-profile-page.is-aulas-flow .mon-aulas-fase-aqui {
   position: absolute;
   top: -8px;
@@ -5097,7 +5295,7 @@
   border: 1px solid var(--pulso-module-monitoring-border);
   background: var(--pulso-module-monitoring-soft);
   color: var(--pulso-module-monitoring);
-  font-size: 9.5px;
+  font-size: var(--aulas-min);
   font-style: normal;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -5211,9 +5409,9 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cola-estado.es-citada {
-  border-color: var(--pulso-info-border);
-  background: var(--pulso-info-bg);
-  color: var(--pulso-info-fg);
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cola-estado.es-aplicada {
@@ -5280,7 +5478,7 @@
 .mon-profile-page.is-aulas-flow .registro-campo-hoja {
   margin: 0 0 1px;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--aulas-min);
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -5298,7 +5496,7 @@
    que el hueco es lo accionable de la línea: se marca en el tono de aviso, sin
    pasar a alarma —no anotar todavía no rompe nada, sólo queda pendiente—. */
 .mon-profile-page.is-aulas-flow .aulas-observaciones-hueco {
-  color: var(--pulso-warning-text, var(--pulso-text-soft));
+  color: var(--pulso-warn-fg, var(--pulso-text-soft));
   font-weight: 600;
 }
 
@@ -5311,18 +5509,183 @@
   margin-right: 6px;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: var(--aulas-min);
   font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-observaciones-origen.es-agenda {
-  background: color-mix(in srgb, var(--pulso-module-monitoreo, var(--pulso-accent)) 14%, transparent);
-  color: var(--pulso-module-monitoreo, var(--pulso-accent));
+  background: color-mix(in srgb, var(--pulso-module-monitoreo, var(--pulso-primary)) 14%, transparent);
+  color: var(--pulso-module-monitoreo, var(--pulso-primary));
 }
 
 .mon-profile-page.is-aulas-flow .aulas-observaciones-origen.es-aplicacion {
-  background: color-mix(in srgb, var(--pulso-success) 14%, transparent);
-  color: var(--pulso-success-text, var(--pulso-success));
+  background: color-mix(in srgb, var(--pulso-success-fg) 14%, transparent);
+  color: var(--pulso-success-text, var(--pulso-success-fg));
+}
+
+/* ── Avance proyectado por celda facultad × sexo ───────────────────────────
+   El unico panel del perfil que manda a alguien a un aula, asi que la fila se
+   lee de izquierda a derecha como una decision: quien, cuanto, y que hacer.
+   La causa y la calibracion van apagadas: son el porque, no el titular. */
+.mon-profile-page.is-aulas-flow .aulas-avance-titular {
+  margin: 0 0 var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--pulso-space-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-fila {
+  display: grid;
+  grid-template-columns: minmax(11rem, 16rem) minmax(4rem, 1fr) minmax(14rem, 2fr);
+  /* `center` centraba una etiqueta de una línea contra un bloque de TRES
+     (titular + causa + calibración), así que la fila parecía flotar y ninguna
+     columna empezaba donde empezaba la de al lado. Alineadas arriba, las tres
+     arrancan en la misma línea de texto y la fila se lee como una fila. */
+  align-items: start;
+  gap: var(--pulso-space-3);
+}
+
+/* La separación entre filas, en DOS niveles, porque la unidad es la facultad y
+   no la celda. El hairline separa facultades; los dos sexos de una misma
+   facultad quedan pegados y sin línea entre ellos, así que el bloque se ve. */
+.mon-profile-page.is-aulas-flow .aulas-avance-fila + .aulas-avance-fila {
+  margin-top: var(--pulso-space-1);
+  padding-top: var(--pulso-space-1);
+}
+
+/* Sólo la fila que ABRE facultad lleva separador —y sólo si no es la primera de
+   la lista—. Una regla que se lo pusiera a «la fila que sigue a un inicio» sería
+   justo la contraria: esa fila es el segundo sexo de la MISMA facultad. */
+.mon-profile-page.is-aulas-flow .aulas-avance-fila + .aulas-avance-fila[data-grupo="inicio"] {
+  margin-top: var(--pulso-space-3);
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* La segunda fila del bloque sólo dice «Hombres»: entra bajo el nombre de su
+   facultad para que se lea como parte de ella. */
+.mon-profile-page.is-aulas-flow .aulas-avance-fila[data-grupo="sigue"] .aulas-avance-celda {
+  padding-left: var(--pulso-space-3);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-celda {
+  color: var(--pulso-text-soft);
+  font-size: 0.92em;
+}
+
+/* «CIENCIAS E INGENIERIA ·⏎Hombres» dejaba el punto medio huérfano al final de
+   la línea. El sexo viaja pegado a su separador y no se parte. */
+.mon-profile-page.is-aulas-flow .aulas-avance-sexo {
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-pista {
+  display: block;
+  height: 0.5rem;
+  border-radius: 999px;
+  /* El canal de la barra. `--pulso-surface-sunken` NO existe -lo escribi de
+     memoria- y caia a transparente: el relleno quedaba flotando sin nada contra
+     lo que compararse, asi que la barra no decia cuanto falta. Es el mismo mix
+     que usa la pista de cuotas, tres paneles mas arriba. Se vio mirando la app;
+     ningun test compara un color computado con el token que se pretendia. */
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, #fff);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-pista > span {
+  display: block;
+  height: 100%;
+}
+
+/* Con la fila alineada arriba, la barra tiene que bajar hasta la línea base del
+   titular: si no, queda colgando del borde superior de la celda. */
+.mon-profile-page.is-aulas-flow .aulas-avance-fila > .aulas-avance-pista {
+  margin-top: 0.42rem;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-dicho {
+  display: grid;
+  gap: 0.1rem;
+}
+
+/* El titular de la fila es lo único que cambia entre las 19: «faltan 101»,
+   «faltan 36». Con cifras tabulares los números caen en columna y la lista se
+   escanea por la cifra en vez de por la palabra repetida. */
+.mon-profile-page.is-aulas-flow .aulas-avance-dicho > strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-dicho em,
+.mon-profile-page.is-aulas-flow .aulas-avance-dicho small {
+  color: var(--pulso-text-muted);
+  font-style: normal;
+  font-size: 0.88em;
+}
+
+/* ── Carga de campo ────────────────────────────────────────────────────────
+   La malla es una tabla de verdad y no un grid de divs: el eje es día × franja
+   y cada celda tiene dos encabezados que la nombran. Con divs el lector de
+   pantalla lee ciento ochenta números sueltos.
+}
+
+/* ---------------------------------------------------------------------------
+   Popover de reemplazo. A quien ir cuando un aula no sale.
+
+   La jerarquia visual sigue la de la decision: primero de que grupo se elige
+   (solapas), luego el candidato, y dentro de el las DOS medidas separadas.
+   Parecido y ayuda nunca se funden en una barra: son la eleccion, y una sola
+   barra la escondería.
+   --------------------------------------------------------------------------- */
+/* (Aquí vivían dos líneas de declaraciones sin selector y una llave de más —
+   restos de un truncado antiguo, muertas para todo parser; retiradas porque
+   la llave suelta desincronizaba el bundle concatenado.) */
+
+/* ── B25: la agenda es la protagonista de su sección ───────────────────────
+ * Dictado (2026-09-01): «esta tabla es muy pequeña». La deuda estructural
+ * documentada arriba: la tabla repartía el alto con los bloques de encima y
+ * quedaba en ~200 px para 500 filas. Mínimo real para la tabla; lo que no
+ * quepa lo toma `.mon-workbench-content`, que ya declara overflow-y: auto
+ * como capacidad suya (mismo criterio que el stack de Fuentes). */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table-wrap {
+  /* B25c: 420 seguia corto en pantalla real («necesita mas alto»); la tabla
+     es el trabajo de la seccion y se lleva el grueso del viewport. */
+  min-height: max(560px, 58vh);
+}
+.mon-profile-page.is-aulas-flow .aulas-mon-view {
+  min-height: max-content;
+}
+
+/* A5: valores de sexo y descartes, dentro del panel del criterio de efectiva. */
+.aulas-sexo-descartes { display: grid; gap: 12px; margin-top: 10px; }
+.aulas-sexo-valores, .aulas-descartes { display: grid; gap: 6px; }
+.aulas-sexo-grupo { display: grid; gap: 4px; }
+.aulas-sexo-grupo > span, .aulas-descartes-rotulo { font-size: 12px; font-weight: 600; color: var(--pulso-text); display: inline-flex; align-items: center; gap: 6px; }
+.aulas-sexo-chips, .aulas-descartes-sugerencias { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.aulas-descartes-sugerencias > span { font-size: 12px; color: var(--pulso-text-muted); }
+.aulas-sexo-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px; font-size: 12px; font: inherit;
+  border: 1px solid var(--pulso-border); background: var(--pulso-surface); color: var(--pulso-text);
+  cursor: pointer;
+}
+span.aulas-sexo-chip { cursor: default; }
+.aulas-sexo-chip[aria-pressed="true"] { background: var(--pulso-module-monitoring); color: var(--pulso-on-accent, #fff); border-color: var(--pulso-module-monitoring); }
+.aulas-sexo-chip.aulas-descarte[aria-pressed="true"] { background: var(--pulso-warn-bg, var(--pulso-surface-2)); color: var(--pulso-warn-fg); border-color: var(--pulso-warn-fg); }
+.aulas-sexo-chip button { border: 0; background: transparent; color: inherit; padding: 0; display: inline-flex; cursor: pointer; }
+.aulas-sexo-descartes em { font-style: normal; font-size: 12px; color: var(--pulso-text-muted); line-height: 1.4; }
+
+/* El descuadre del invariante del bloque de cuotas: sólo aparece cuando las
+   partes no suman las válidas, así que grita con el tono de la atención del
+   perfil y no con uno nuevo. Tokens del tema, nunca hex. */
+.aulas-cuota-descuadre {
+  color: var(--pulso-danger-fg);
+  font-weight: 600;
 }

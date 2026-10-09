@@ -91,7 +91,7 @@ test_that("todo `@export` del código está en el NAMESPACE", {
   expect_equal(
     detalle, character(0),
     info = paste0(
-      "Hay `@export` sin línea en api/NAMESPACE. Regenerá con ",
+      "Hay `@export` sin línea en api/NAMESPACE. Regenera con ",
       "`Rscript -e 'roxygen2::roxygenise(\"api\")'`, no agregues la línea a mano."
     )
   )

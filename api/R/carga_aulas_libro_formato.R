@@ -16,25 +16,135 @@
 # asi quedan a la vista de quien llena, y Excel no tiene el limite de 255
 # caracteres de la lista inline —`EN RESERVA 1..11` lo rozaria—.
 
-# Vocabulario observado en el estudio de 2025, con sus frecuencias:
-# AGENDADA (119) · REEMPLAZADA (24) · EN RESERVA 1 (19) · REAGENDADA (8).
-# `EN RESERVA n` se completa con la profundidad real de las cadenas del plan,
-# no con un 1 fijo: un estudio con cadenas de once necesita las once.
-AULAS_LIBRO_STATUS_MUESTRA_BASE <- c("AGENDADA", "REAGENDADA", "REEMPLAZADA")
+# Los CINCO estados TECLEABLES, en el orden del dictado del dueño (D-B13
+# CERRADA, docs/qa/checklist-operativo-aulas-2026-08-31.md; poda textual
+# 2026-09-01): «simplemente pon rechazo. Sin contactar, en contacto, agendada,
+# reagendada y rechazo». Los estados de cadena del vocabulario de 2025 —«EN
+# RESERVA k», «REEMPLAZADA», y los derivados REFUERZO/CERRADA— son de la APP:
+# el código R n.k ya dice la posición en cadena y el desplegable no los ofrece.
+# Lo ya escrito en libros vivos v3 se sigue LEYENDO con su clave de siempre
+# (`monitoreo_aulas_estado_muestra`), y el regenerador conserva «REEMPLAZADA»
+# como dato vivo del export: el desplegable no la ofrece pero la validación
+# (allowBlank / strict = FALSE) la tolera.
+#
+# «SIN CONTACTAR» va primero porque es el estado INICIAL del plan: la siembra lo
+# escribe en TODAS las filas —titulares y reservas— y el desplegable tiene que
+# ofrecerlo byte a byte, o el chip sale con warning rojo sobre un dato correcto
+# (B13a, reporte del dueño 2026-09-01). La forma es la legible sin guion bajo —
+# la misma que `.capd_estado_legible` da al Plan del día.
+# «REFUERZO POR CONTACTAR» lo escribe la APP, no el equipo, pero tiene que estar
+# en la lista: sin el, la celda sale con el warning de validacion sobre un dato
+# correcto —el mismo problema que B13a documenta para «SIN CONTACTAR»— y quien
+# agenda lee un aviso de error donde hay una instruccion.
+AULAS_LIBRO_STATUS_MUESTRA_BASE <- c(
+  "SIN CONTACTAR", "EN CONTACTO", "AGENDADA", "REAGENDADA", "RECHAZO",
+  "REFUERZO POR CONTACTAR", "REFUERZO AGENDADO"
+)
 
-# **Un color por ESLABON, no dos alternando.**
+# **Un color por ESLABON, y de una paleta que se VE distinta (B18).**
 #
-# La banda usaba `#1D4F8C` y `#2F6BB0` en ciclo, asi que el reemplazo 3 repetia
-# el color del 1 y con once reservas la pista dejaba de distinguir. Gonzalo:
-# «las columnas de titular deberian ser de un color, y las columnas de
-# reemplazo uno, reemplazo dos, reemplazo tres y subsiguientes de otros colores
-# para distinguirlos».
+# Dos escalas fallaron antes de esta:
+#   1. Dos azules alternando: el reemplazo 3 repetia el color del 1.
+#   2. UN azul degradado hacia blanco por profundidad: numericamente unico,
+#      visualmente el mismo color (pasos de ~17 RGB) — Gonzalo lo leyo como
+#      «solo el titular y el reemplazo 1 tienen color diferente; luego todas
+#      las demas tienen el mismo color que el reemplazo 1» — y la cola
+#      (#99B0CB) daba 2.2 de contraste con el texto blanco: ilegible.
 #
-# El titular conserva el navy del resto del libro. Los reemplazos van
-# aclarandose desde el: cuanto mas lejos de la cadena, mas claro, que es la
-# jerarquia real —el primero entra antes que el ultimo—. La escala se calcula
-# para la profundidad que tenga el estudio, asi que doce bloques dan doce tonos
-# distintos y no seis repetidos.
+# El dictado (2026-09-01): «cada reemplazo deberia tener un color diferente —
+# por lo menos cinco colores que se repitan y contrasten bien con el encabezado
+# blanco». Paleta CICLICA de cinco tonos: dentro de cualquier ventana de cinco
+# reemplazos consecutivos todos se distinguen (>=40 de distancia RGB por par) y
+# todos sostienen el texto blanco en negrita (contraste WCAG >=3.0, el umbral
+# de texto grande). Repetir esta permitido recien al agotar el ciclo — R6
+# vuelve al color de R1, a cinco bloques de distancia.
+#
+# Los cinco: el azul acero historico del reemplazo, y cuatro companeros de la
+# misma saturacion media —naranja quemado, verde jade, purpura y vino— todos
+# medidos contra el blanco y entre si (test-carga-aulas-libro-color-eslabon.R
+# los verifica computacionalmente, no por hex pineado).
+AULAS_LIBRO_PALETA_ESLABON <- c(
+  "#1D4F8C", # R1 azul acero (el reemplazo de siempre)
+  "#B3541E", # R2 naranja quemado
+  "#1F7A55", # R3 verde jade
+  "#6B4FA3", # R4 purpura
+  "#9C1F45"  # R5 vino
+)
+
+# **Un color por FUNCION de la columna, en la SEGUNDA fila de cabecera.**
+#
+# Dictado del 2026-09-04: «en Aulas Aplicadas Campo tiene que haber paleta de
+# colores para los encabezados en funcion de la funcion que tenga, y ese es un
+# criterio que aplica a todas las hojas: se tiene que distinguir lo que viene de
+# la agenda de lo que es genuinamente de campo, lo que se debe llenar
+# manualmente de lo que se llena en automatico».
+#
+# La fila 1 ya esta ocupada: lleva el tono del ESLABON (titular, reemplazo 1...),
+# que es la otra pista que la hoja necesita. Por eso la funcion vive en la fila
+# de TITULOS, y para que las dos no se peleen invierte el peso visual: arriba
+# fondo oscuro con texto blanco, abajo fondo claro con texto oscuro. Se leen como
+# lo que son, dos ejes distintos, y no como dos bandas compitiendo.
+#
+# Los cuatro tonos dicen su funcion, no son una paleta decorativa:
+#   - `agenda`   azul palido: ya se decidio en la otra hoja, aqui solo se mira.
+#   - `app`      el MISMO gris `#F2F4F7` con el que ya se tiñen abajo las celdas
+#                de «esto no lo toques»: la cabecera y su columna hablan igual.
+#   - `campo`    ambar: el unico calido, y el unico que pide accion. Es donde se
+#                escribe.
+#   - `calculada` verde palido: sale solo de lo que se escriba al lado.
+#
+# El contraste se MIDE (test-carga-aulas-libro-color-funcion.R), no se pinea:
+# los cuatro pares sostienen texto normal (>= 4.5) sobre su fondo.
+# Los tonos son PALIDOS pero no lavados: la primera version los dejo a 15-21 de
+# distancia RGB entre si —cuatro casi-blancos— y el propio test los tumbo. Un
+# color que no se distingue del de al lado no es una pista, es ruido con buena
+# intencion. Ahora estan a 34 o mas por par.
+AULAS_LIBRO_FUNCION_COLUMNA <- list(
+  agenda    = list(fill = "#D6E4F5", texto = "#2C4A6E", etiqueta = "viene de la agenda"),
+  app       = list(fill = "#F2F4F7", texto = "#5B6472", etiqueta = "lo pone la app"),
+  campo     = list(fill = "#FFE7BF", texto = "#845200", etiqueta = "se llena en campo"),
+  calculada = list(fill = "#D3EFE1", texto = "#0F6B4F", etiqueta = "se calcula sola")
+)
+
+#' A que funcion pertenece cada columna de un bloque de la hoja de campo.
+#'
+#' El bloque es `[ID MATCH][titulos de agenda][titulos de campo]`, y se repite
+#' `bloques` veces. Devuelve la lista que `aulas_libro_aplicar_formato` espera:
+#' una entrada por funcion con sus columnas absolutas.
+#'
+#' No recibe los titulos por posicion sino por NOMBRE, para que reordenar
+#' `.calg_titulos_campo()` no mueva silenciosamente un color a otra columna.
+#'
+#' @param titulos_agenda titulos del eco de la agenda, en su orden.
+#' @param titulos_campo titulos del parte, en su orden.
+#' @param bloques cuantos eslabones tiene la hoja.
+#' @param automaticas titulos de `titulos_campo` que pone la APP, no la persona.
+#' @param calculadas titulos de `titulos_campo` que salen de una formula.
+#' @return lista de `list(funcion, cols)`.
+#' @keywords internal
+aulas_libro_funciones_de_columna <- function(titulos_agenda, titulos_campo, bloques,
+                                             automaticas = c("MATRICULADOS TOTAL DTI",
+                                                             "MATRICULADOS ELEGIBLES"),
+                                             calculadas = c("% ASISTENCIA")) {
+  ancho <- 1L + length(titulos_agenda) + length(titulos_campo)
+  base_campo <- 1L + length(titulos_agenda)
+  # Dentro de UN bloque, que columna cae en cada funcion.
+  rel <- list(
+    app = c(1L, base_campo + which(titulos_campo %in% automaticas)),
+    agenda = 1L + seq_along(titulos_agenda),
+    calculada = base_campo + which(titulos_campo %in% calculadas),
+    campo = base_campo + which(!(titulos_campo %in% c(automaticas, calculadas)))
+  )
+  salida <- list()
+  for (funcion in names(rel)) {
+    relativas <- rel[[funcion]]
+    if (!length(relativas)) next
+    cols <- unlist(lapply(seq_len(bloques), function(b) (b - 1L) * ancho + relativas))
+    salida[[length(salida) + 1L]] <- list(funcion = funcion, cols = sort(unique(cols)))
+  }
+  salida
+}
+
 .calf_mezcla <- function(hex, blanco, peso) {
   c1 <- grDevices::col2rgb(hex)[, 1]
   c2 <- grDevices::col2rgb(blanco)[, 1]
@@ -63,6 +173,12 @@ AULAS_LIBRO_STATUS_MUESTRA_BASE <- c("AGENDADA", "REAGENDADA", "REEMPLAZADA")
 
 #' La escala de color de los eslabones de una cadena.
 #'
+#' El titular conserva el navy del resto del libro; los reemplazos toman la
+#' paleta ciclica de cinco (`AULAS_LIBRO_PALETA_ESLABON`, B18): R1..R5 tonos
+#' distintos, R6 repite el de R1. Ya no se degrada hacia blanco por
+#' profundidad: esa escala producia tonos «unicos» que el ojo leia como uno
+#' solo y una cola sin contraste.
+#'
 #' @param n cuantos bloques hay, titular incluido.
 #' @return vector de colores; el primero es el titular.
 #' @export
@@ -70,32 +186,271 @@ aulas_libro_colores_eslabon <- function(n = 1L) {
   n <- max(1L, suppressWarnings(as.integer(n)))
   if (!is.finite(n)) n <- 1L
   if (n == 1L) return("#002457")
-  # Del azul medio al claro, sin llegar a perder el contraste con el blanco del
-  # texto: el ultimo eslabon sigue leyendose.
-  pasos <- seq(0, 0.55, length.out = n - 1L)
-  c("#002457", vapply(pasos, function(p) .calf_mezcla("#1D4F8C", "#FFFFFF", p), character(1)))
+  ciclo <- length(AULAS_LIBRO_PALETA_ESLABON)
+  reemplazos <- vapply(seq_len(n - 1L), function(k) {
+    AULAS_LIBRO_PALETA_ESLABON[[((k - 1L) %% ciclo) + 1L]]
+  }, character(1))
+  c("#002457", reemplazos)
 }
 
-# Llamada (123) · Correo Electronico (33). El «-» observado (14) NO entra: es
-# como el equipo escribe «todavia nada aqui», y el lector ya lo trata como
-# ausencia. Ofrecerlo en el desplegable lo convertiria en un valor.
-AULAS_LIBRO_MEDIO_CONTACTO <- c("Llamada", "Correo Electrónico", "Presencial")
+# Dictado del dueño (2026-08-31): «la forma de contacto solo debería ser o por
+# teléfono o por correo». Antes ofrecia lo observado en 2025 —Llamada (123),
+# Correo Electronico (33), Presencial— pero el vocabulario del desplegable lo
+# fija quien dirige el operativo, no la frecuencia historica. Los valores
+# viejos ya escritos en libros existentes se siguen LEYENDO igual: ningun
+# lector valida `contact_medium` contra esta lista (el campo viaja como texto
+# libre en `carga_aulas_agendadas.R` y `monitoreo_aulas_universitarias.R`), y
+# el «-» observado sigue fuera por lo mismo de siempre: es «todavia nada
+# aqui», no un valor. Esta constante es la UNICA lista: la consumen el xlsx
+# (hoja «Listas») y los desplegables del Sheets publicado.
+AULAS_LIBRO_MEDIO_CONTACTO <- c("Teléfono", "Correo")
 
 AULAS_LIBRO_DIA <- c("LUN", "MAR", "MIE", "JUE", "VIE", "SAB")
 
-AULAS_LIBRO_STATUS_APLICACION <- c("APLICADA", "NO APLICADA")
+# **Un aula no solo se aplica o no: puede haber entrado otra en su lugar.**
+#
+# Dictado del 2026-09-04: «los estatus de aplicacion deberian contemplar
+# estatus como Reemplazada por para A y Complementado con para B», y el caso C
+# con el suyo («Reforzado con», elegido por el dueño el mismo dia).
+#
+# Los tres nombran las TRES situaciones que el operativo ya distinguia de boca
+# y el libro escribia igual (dictado 2026-09-03: «yo se que se llaman
+# reemplazos, pero no siempre reemplazan en ese sentido de la palabra»):
+#
+#   A  REEMPLAZADA POR    el aula cayo —rechazo o no se aplico— y otra ocupa su
+#                         lugar. Es reemplazo en sentido estricto: el titular
+#                         sale y la reserva entra.
+#   B  COMPLEMENTADA CON  el aula rindio poco y se suma su cadena u otra
+#                         reserva. El titular NO sale: los dos cuentan.
+#   C  REFORZADA CON      no es del aula: faltaban alumnos o un sexo para la
+#                         meta y se sale a una reserva por decision operativa.
+#
+# Los tres terminan en preposicion a proposito: piden la columna «AULA
+# UTILIZADA», que dice CUAL. El estado dice que paso; la columna, con quien.
+# Separarlos es lo que permite contar reemplazos sin contar refuerzos.
+#
+# La concordancia va en femenino como sus dos hermanas —el sujeto es el aula,
+# igual que en APLICADA— aunque el dictado las nombrara en masculino.
+# «POR APLICAR» abre la lista porque es el estado INICIAL y va SEMBRADO en
+# todas las filas (dictado 2026-09-04: «todas actualmente ahora deberían tener
+# por default en status de aplicación: POR APLICAR»). Mismo trato que
+# «SIN CONTACTAR» en STATUS MUESTRA: una celda vacía no dice «todavía no» —
+# dice que nadie la miró.
+AULAS_LIBRO_STATUS_APLICACION <- c(
+  "POR APLICAR", "APLICADA", "NO APLICADA",
+  "REEMPLAZADA POR", "COMPLEMENTADA CON", "APLICADA DE REFUERZO"
+)
+
+# **El vocabulario NO es el mismo en el titular que en un reemplazo.**
+#
+# Dictado de Gonzalo (2026-09-09): «reforzada con ya no existiría, sino es una
+# aplicada de refuerzo, por ejemplo un aula adicional que necesitemos aplicar;
+# no entraría como categoría sino sería una categoría disponible para los
+# reemplazos y los extras, y no necesita mencionar aulas. Pero reemplazada por y
+# complementada con sí necesitan la relación con quién».
+#
+# Es decir, dos vocabularios y no uno:
+#
+# - El TITULAR puede haber sido reemplazado o complementado por otra aula, y
+#   entonces hace falta decir por CUÁL: esos dos terminan en preposición porque
+#   piden la columna «AULA UTILIZADA».
+# - Un REEMPLAZO o un EXTRA no reemplaza a nadie desde su propia fila: lo que
+#   puede ser es la aplicación de refuerzo, y ésa se explica sola. Ofrecerle
+#   «REEMPLAZADA POR» en su desplegable invita a marcar algo que no significa
+#   nada, y a que dos filas de la misma cadena se declaren reemplazo la una de
+#   la otra.
+#
+# Se reparte por ESLABÓN, que es como la hoja está construida: el bloque 1 es el
+# titular y del 2 al 12 son R1…R11. La hoja Extra entera es del segundo juego.
+# **«APLICADA POR REAGENDACIÓN» entra el 2026-09-10** (Gonzalo, mirando esta
+# columna: «además a las que se aplicaron por reagendación las has quitado,
+# cuando ésas también deberían estar»). No la quitó nadie: nunca estuvo. El
+# vocabulario de la distribución sí la tenía y el del libro no, así que la misma
+# aula salía «APLICADA POR REAGENDACIÓN» en la hoja de los aplicadores y sólo
+# «APLICADA» aquí — y con eso se pierde lo único que esa palabra cuenta: que
+# costó una llamada más y un hueco en la agenda de alguien.
+#
+# Va en las DOS listas: una reserva también se puede aplicar después de moverla.
+AULAS_LIBRO_STATUS_APLICACION_TITULAR <- c(
+  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "NO APLICADA",
+  "REEMPLAZADA POR", "COMPLEMENTADA CON"
+)
+AULAS_LIBRO_STATUS_APLICACION_RESERVA <- c(
+  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "NO APLICADA",
+  "APLICADA DE REFUERZO"
+)
+
+#' El desplegable de STATUS DE APLICACIÓN que le toca a un eslabón.
+#'
+#' @param bloque índice del bloque, 1-based. El 1 es el titular.
+#' @return vector de valores para el desplegable.
+#' @export
+aulas_libro_status_aplicacion_de <- function(bloque = 1L) {
+  b <- suppressWarnings(as.integer(bloque)[1])
+  if (!is.finite(b) || b <= 1L) AULAS_LIBRO_STATUS_APLICACION_TITULAR
+  else AULAS_LIBRO_STATUS_APLICACION_RESERVA
+}
+
+# B22: el desplegable de «RECIBIÓ CORREO» — exactamente Sí y No, con el «No»
+# como default sembrado en reemplazos y extras (dictado 2026-09-01). UNA lista
+# para las dos capas, como el resto de vocabularios de este archivo: la
+# consumen la hoja «Listas» del xlsx y los ONE_OF_LIST del Sheets publicado.
+#' Las paletas de los semáforos de texto del libro, en un solo sitio.
+#'
+#' Estaban como variables locales dentro del formateador, y su prueba no podía
+#' leerlas: comprobar el color acababa siendo mirar el XML del `.xlsx` y contar
+#' rangos, que dice que HAY regla pero no qué significa. Con la paleta
+#' declarada, el formateador y la prueba leen el MISMO objeto —que es la única
+#' forma de que la prueba no sea un espejo del código—.
+#'
+#' @return lista nombrada de paletas (`estado`, `medio`, `dia`, `llamada`,
+#'   `correo`); cada una es una lista de `list(texto, estilo)` y la regla que
+#'   las aplica es `contains` sobre el texto de la celda.
+#' @keywords internal
+aulas_libro_paletas_de_estado <- function() {
+# **El estado se ve sin leerlo.**
+#
+# Las columnas de estado son las que se recorren buscando «que falta»: con 951
+# filas y el valor en texto, encontrar las que siguen por agendar era leer
+# celda a celda. El color lo dice de un vistazo y el texto se queda —el color
+# solo no sirve: hay quien no lo distingue, y el fichero se imprime en blanco
+# y negro—.
+#
+# Los tonos salen de lo que significa cada estado, no de una paleta: verde lo
+# cerrado, ambar lo que espera accion, gris lo que ya no se toca. La regla es
+# `contains` sobre el texto del vocabulario, asi que un estado nuevo no rompe
+# nada: simplemente no se tiñe.
+#
+# B13b: «EN CONTACTO» y «RECHAZO» entran al semaforo con los cinco
+# tecleables. EN CONTACTO en ambar claro —gestion en curso, espera accion,
+# distinto del verde de lo pactado—; RECHAZO en el rojo suave que ya usa el
+# descuadre del parte: terminal, y no es un logro. «EN RESERVA» y
+# «REEMPLAZADA» se QUEDAN aunque el desplegable ya no las ofrezca: los libros
+# vivos v3 las traen escritas y la regla es `contains` sobre la celda, no
+# sobre la lista de hoy (mismo criterio que «Llamada» en la paleta de medio).
+semaforo <- list(
+  list(texto = "AGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "REAGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "APLICADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "EN CONTACTO", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "RECHAZO", estilo = openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C")),
+  list(texto = "EN RESERVA", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+  list(texto = "REEMPLAZADA", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472")),
+  list(texto = "NO APLICADA", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B"))
+)
+# **El medio de contacto: dos vías que se reparten distinto.**
+#
+# Una llamada se hace en el momento y un correo espera respuesta, así que
+# quien reparte el día necesita separarlas de un vistazo. Los tonos salen de
+# la misma familia que el semáforo —fondo claro, texto del mismo tono— para
+# que la hoja no acabe con dos lenguajes de color.
+# «Teléfono» lleva el tono que llevaba «Llamada» —es la misma via con el
+# nombre que dicto el dueño— y las dos reglas viejas se QUEDAN: los libros de
+# 2025 traen «Llamada» y «Presencial» escritos, y la regla es `contains`
+# sobre lo que hay en la celda, no sobre lo que ofrece el desplegable de hoy.
+paleta_medio <- list(
+  list(texto = "Teléfono", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
+  list(texto = "Llamada", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
+  list(texto = "Correo", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+  list(texto = "Presencial", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86"))
+)
+
+# **El día: seis colores porque la columna se lee en vertical.**
+#
+# El agendador no lee un día, lee la COLUMNA entera buscando cuántas caen el
+# martes. Con un solo tono para todos hay que ir palabra por palabra. La lista
+# del desplegable es de tres letras (`AULAS_LIBRO_DIA`), y la regla es
+# `contains`, así que casa igual si alguien escribe «Martes» a mano.
+paleta_dia <- list(
+  list(texto = "LUN", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+  list(texto = "MAR", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
+  list(texto = "MIE", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "JUE", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "VIE", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86")),
+  list(texto = "SAB", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472"))
+)
+
+# **El resultado de la llamada: siete estados y tres destinos.**
+#
+# Es la columna del barrido telefónico, y hasta aquí era la ÚNICA de las
+# tecleables que tenía desplegable y NO tenía color: quien recorre la hoja
+# buscando «a quién vuelvo a llamar» tenía que leerla palabra por palabra,
+# que es exactamente el trabajo que el color ahorra en `STATUS MUESTRA` y en
+# `DÍA`. Gonzalo, 17/09: «que todos los estatus y colores tanto de llamada, de
+# recibió correo, de encontrado o agendada estén disponibles para que HOY se
+# puedan realizar las llamadas telefónicas».
+#
+# Los tonos dicen el DESTINO de la fila, no el matiz del estado, porque eso es
+# lo que se busca a ojo: verde la que ya no hay que volver a llamar
+# (contacto logrado, por teléfono o por WhatsApp), ámbar la que vuelve a la
+# cola, rojo suave la que se cierra sin logro. Misma familia de color que el
+# semáforo de estados para que la hoja no acabe con dos lenguajes.
+#
+# Las reglas van con el texto COMPLETO de cada opción: `contains` sobre
+# «Contact» teñiría «Contactar después» y «Contactado por WhatsApp» con la
+# misma regla, que son destinos opuestos. Ninguna de las siete es subcadena de
+# otra, comprobado.
+paleta_llamada <- list(
+  list(texto = "Efectiva", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "Contactado por WhatsApp", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "Contactar después", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "No contesta", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "Apagado", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "Colgó", estilo = openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C")),
+  list(texto = "Rechazo", estilo = openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C"))
+)
+
+# **Si recibió el correo: sí o todavía no.**
+#
+# El «No» va en GRIS y no en rojo a propósito: es el valor sembrado por
+# defecto en reemplazos y extras, así que la columna nace entera en «No» y
+# pintarla de rojo diría que hay cincuenta problemas el primer día. Gris es
+# «todavía no», que es lo que significa.
+paleta_correo <- list(
+  list(texto = "Sí", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "No", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472"))
+)
+
+  list(estado = semaforo, medio = paleta_medio, dia = paleta_dia,
+       llamada = paleta_llamada, correo = paleta_correo)
+}
+
+AULAS_LIBRO_RECIBIO_CORREO <- c("Sí", "No")
+
+# B23: el desplegable de «STATUS DE LLAMADA», en el orden del dictado
+# (2026-09-01, con el libro en uso): «Efectiva / Contactar después / No
+# contesta / Apagado / Colgó / Rechazo. Ah también, una opción de Contactado
+# por WhatsApp». Es el resultado de CADA llamada — otro eje que STATUS
+# MUESTRA — y se siembra VACIO: lo teclea el equipo. UNA lista para xlsx y
+# Sheets, como sus hermanas.
+AULAS_LIBRO_STATUS_LLAMADA <- c(
+  "Efectiva", "Contactar después", "No contesta", "Apagado", "Colgó",
+  "Rechazo", "Contactado por WhatsApp"
+)
+
+# El desplegable NO absoluto de «MOMENTO DE LA CLASE» (B15, dictado 2026-09-01):
+# tres momentos tecleables y texto libre permitido — el docente puede responder
+# «a las 9:30, tras el control de lectura» y eso sigue siendo un dato valido.
+# En el xlsx la validacion ya es allowBlank + sin error duro (el patron de todo
+# el libro) y en Sheets viaja como ONE_OF_LIST strict = FALSE. UNA lista para
+# las dos capas, como el resto de vocabularios de este archivo.
+AULAS_LIBRO_MOMENTO_CLASE <- c(
+  "Al inicio de la clase", "En el receso", "Al final de la clase"
+)
 
 #' Las opciones de `STATUS MUESTRA` para una profundidad de cadena dada.
 #'
-#' @param profundidad eslabones de la cadena mas larga del plan.
+#' B13b: los cinco tecleables a CUALQUIER profundidad. `EN RESERVA k` salió del
+#' desplegable —la posición en cadena ya la dice el código R n.k— así que la
+#' lista no depende de cuántos eslabones tenga el estudio. El parámetro se
+#' conserva por contrato de llamada (el generador y el Sheets pasan la
+#' profundidad real) y por si un vocabulario futuro vuelve a necesitarla.
+#'
+#' @param profundidad eslabones de la cadena mas larga del plan (hoy no cambia
+#'   la lista).
 #' @export
 aulas_libro_status_muestra <- function(profundidad = 1L) {
-  n <- max(1L, suppressWarnings(as.integer(profundidad)))
-  if (!is.finite(n)) n <- 1L
-  # Sin el titular: `EN RESERVA k` describe a la reserva k, y el bloque 1 es el
-  # titular. Con profundidad 12 (titular + 11) salen once reservas.
-  reservas <- if (n > 1L) paste("EN RESERVA", seq_len(n - 1L)) else character(0)
-  c(AULAS_LIBRO_STATUS_MUESTRA_BASE, reservas)
+  AULAS_LIBRO_STATUS_MUESTRA_BASE
 }
 
 # Que campos del bloque de agenda llena la PERSONA y cuales trae la app.
@@ -108,6 +463,20 @@ aulas_libro_status_muestra <- function(profundidad = 1L) {
 # `link` es la excepcion dentro del tramo de la persona: lo produce la app.
 AULAS_LIBRO_CAMPOS_DE_LA_PERSONA <- c(
   "contact_medium", "contact_date", "contact_attempts", "sample_status",
+  # AULA UTILIZADA: **la llena el coordinador de campo**. Nacio como columna de
+  # la app —la app sabe que reserva activo— y el dictado del 2026-09-08 la
+  # devolvio a la persona: «lo apruebo, pero es algo que lo hace el coordinador
+  # de campo». Las dos cosas conviven sin contradiccion:
+  # `aulas_libro_anotar_aula_utilizada()` la SIEMBRA con lo que la app ya sabe y
+  # respeta lo que venga tecleado, que es la verdad de campo. Lo que no puede
+  # quedarse es el gris: seria la unica señal de la celda y diria «esto no lo
+  # toques» sobre la columna que el coordinador tiene que llenar — el mismo
+  # argumento que ya obligo a blanquear `scheduled_venue`.
+  "aula_utilizada",
+  # B30: el lugar CONFIRMADO «se llena manual» (dictado 2026-09-02) y no tiene
+  # desplegable, asi que el tinte gris de columna-de-la-app seria su UNICA
+  # señal — y diria justo lo contrario. La celda queda blanca: «escribe aqui».
+  "scheduled_venue",
   "scheduled_date", "scheduled_day", "scheduled_time", "notes"
 )
 
@@ -167,6 +536,20 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
 #' el texto mas largo de cada columna —cabecera incluida— y se acota, porque una
 #' columna de observaciones libre puede traer 300 caracteres y dejaria la hoja
 #' inservible.
+# Si la primera columna de la hoja es el identificador de fila (`ID MATCH`).
+# Se mira su contenido, no el nombre de la hoja: es el mismo criterio de anclaje
+# por rótulo que usa el resto del libro.
+.calf_col1_es_identificador <- function(wb, hoja) {
+  datos <- tryCatch(
+    openxlsx::readWorkbook(wb, sheet = hoja, colNames = FALSE, skipEmptyRows = FALSE,
+                           skipEmptyCols = FALSE, rows = 1:3),
+    error = function(e) NULL
+  )
+  if (is.null(datos) || !ncol(datos)) return(FALSE)
+  v <- toupper(trimws(as.character(datos[[1]])))
+  any(!is.na(v) & v == "ID MATCH")
+}
+
 .calf_anchos <- function(wb, hoja, n_col) {
   datos <- openxlsx::readWorkbook(wb, sheet = hoja, colNames = FALSE,
                                   skipEmptyRows = FALSE, skipEmptyCols = FALSE)
@@ -201,7 +584,8 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
                                         columnas_repetidas = list(),
                                         combinar = list(),
                                         descuadres = list(),
-                                        tintes = list()) {
+                                        tintes = list(),
+                                        funciones = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -220,6 +604,25 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     filas_datos[[hoja]] <- if (is.null(dims)) n_cab else dims[[1]]
     openxlsx::addStyle(wb, hoja, cabecera, rows = seq_len(n_cab), cols = seq_len(n_col),
                        gridExpand = TRUE, stack = TRUE)
+    # **Bordes en toda la tabla, cabecera y datos.**
+    #
+    # Gonzalo, mirando el libro al lado del Sheets que el equipo usa: «todas las
+    # tres primeras hojas deberia tener bordes negros sus tablas». Sin ellos una
+    # rejilla de 241 columnas se lee como una nube de valores: el ojo no tiene
+    # donde apoyarse para seguir una fila hasta el final, que es exactamente lo
+    # que hace quien agenda.
+    #
+    # Van con `stack = TRUE` para no pisar el color de banda de cada bloque ni
+    # el semaforo de estados, que se aplican despues. El gris muy oscuro y no
+    # negro puro: a 241 columnas el negro satura la hoja.
+    if (n_col > 0 && filas_datos[[hoja]] > 0) {
+      openxlsx::addStyle(
+        wb, hoja,
+        openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149"),
+        rows = seq_len(filas_datos[[hoja]]), cols = seq_len(n_col),
+        gridExpand = TRUE, stack = TRUE
+      )
+    }
     # El panel congela las cabeceras Y la primera columna: en una hoja de 241
     # columnas, perder de vista el `ID MATCH` es perder la fila.
     openxlsx::freezePane(wb, hoja, firstActiveRow = n_cab + 1L, firstActiveCol = 2L)
@@ -229,9 +632,28 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     # primero desperdiciaba media columna y el segundo cortaba el titulo. Se
     # mide el contenido real —cabecera incluida— y se acota entre 9 y 42 para
     # que ninguna columna se coma la pantalla ni quede ilegible.
-    openxlsx::setColWidths(wb, hoja, cols = seq_len(n_col),
-                           widths = .calf_anchos(wb, hoja, n_col))
-    openxlsx::setColWidths(wb, hoja, cols = 1, widths = 11)
+    anchos_hoja <- .calf_anchos(wb, hoja, n_col)
+    openxlsx::setColWidths(wb, hoja, cols = seq_len(n_col), widths = anchos_hoja)
+    # **La columna 1 se estrecha a 11 SÓLO si es el identificador.**
+    #
+    # El 11 existe para `ID MATCH`, que son ocho caracteres y va congelado a la
+    # izquierda: estrecharlo deja sitio a lo que importa. Pero se aplicaba a
+    # TODAS las hojas de este bucle, y la primera columna del «Plan del día» es
+    # «FECHA AGENDADA» —catorce— con la columna «DÍA» ocupada al lado, así que
+    # su cabecera salía cortada en «FECHA AGEND». Se pregunta por el RÓTULO y no
+    # por el nombre de la hoja: una hoja nueva con identificador lo hereda sola,
+    # y una sin él conserva el ancho que su contenido pidió.
+    #
+    # Y donde NO es el identificador tampoco vale el ancho derivado a secas: la
+    # columna 1 lleva también las bandas de bloque —«IDENTIFICACIÓN DEL
+    # CURSO-HORARIO», treinta y dos caracteres— que se derraman sobre celdas
+    # vacías y no necesitan columna. Contándolas, «Plan del día» pedía 39 y se
+    # comía media pantalla. Se acota en 16, que es lo que pide la cabecera de
+    # primera columna más larga del libro («FECHA AGENDADA») con su margen.
+    openxlsx::setColWidths(
+      wb, hoja, cols = 1,
+      widths = if (.calf_col1_es_identificador(wb, hoja)) 11 else min(anchos_hoja[[1]], 16)
+    )
     # El autofiltro sobre la ULTIMA fila de cabecera: con dos filas —la banda de
     # bloques y los titulos— Excel filtra por la de abajo, que es la que tiene
     # los nombres. Sin esto, buscar una facultad en 951 filas era desplazarse a
@@ -349,26 +771,30 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
                        gridExpand = TRUE, stack = TRUE)
   }
 
-  # **El estado se ve sin leerlo.**
+  # **La funcion de cada columna, en su fila de titulos** (dictado 2026-09-04).
   #
-  # Las columnas de estado son las que se recorren buscando «que falta»: con 951
-  # filas y el valor en texto, encontrar las que siguen por agendar era leer
-  # celda a celda. El color lo dice de un vistazo y el texto se queda —el color
-  # solo no sirve: hay quien no lo distingue, y el fichero se imprime en blanco
-  # y negro—.
-  #
-  # Los tonos salen de lo que significa cada estado, no de una paleta: verde lo
-  # cerrado, ambar lo que espera accion, gris lo que ya no se toca. La regla es
-  # `contains` sobre el texto del vocabulario, asi que un estado nuevo no rompe
-  # nada: simplemente no se tiñe.
-  semaforo <- list(
-    list(texto = "AGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
-    list(texto = "REAGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
-    list(texto = "APLICADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
-    list(texto = "EN RESERVA", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
-    list(texto = "REEMPLAZADA", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472")),
-    list(texto = "NO APLICADA", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B"))
-  )
+  # Va DESPUES de la banda de eslabon y del gris de la app a proposito: pinta
+  # solo la ULTIMA fila de cabecera, que es la de los titulos, y deja intacta la
+  # primera, que es donde vive el eslabon. Aplicado antes, la banda —que pinta
+  # con `stack = FALSE`— lo habria borrado.
+  for (hoja in names(funciones)) {
+    n_cab <- filas_cabecera[[hoja]] %||% 1L
+    # Con una sola fila de cabecera no hay dos ejes que separar: el color de la
+    # funcion pisaria al del bloque. Se declara y no se pinta.
+    if (n_cab < 2L) next
+    for (tramo in funciones[[hoja]]) {
+      spec <- AULAS_LIBRO_FUNCION_COLUMNA[[tramo$funcion]]
+      if (is.null(spec) || !length(tramo$cols)) next
+      estilo <- openxlsx::createStyle(
+        textDecoration = "bold", fgFill = spec$fill, fontColour = spec$texto,
+        halign = "left", valign = "center", wrapText = TRUE,
+        border = "TopBottomLeftRight", borderColour = "#FFFFFF"
+      )
+      openxlsx::addStyle(wb, hoja, estilo, rows = n_cab, cols = tramo$cols,
+                         gridExpand = TRUE, stack = FALSE)
+    }
+  }
+
   # **Los números se escriben como números y las fechas como fechas.**
   #
   # Todo salía como texto plano, así que Excel no podía ordenar por fecha ni
@@ -398,13 +824,26 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
                        cols = fm$cols, gridExpand = TRUE, stack = TRUE)
   }
 
-  # Sobre las columnas de ESTADO y sólo esas: colgarlo de las validaciones
-  # teñía también «MEDIO DE CONTACTO» y «DÍA», que no llevan estos valores. No
-  # rompía nada —ninguna celda casaba— pero dejaba reglas donde no significan.
+  # **Cada columna con su paleta, no una sola para todas.**
+  #
+  # Antes se teñían sólo las de ESTADO, y con razón: colgar el semáforo de las
+  # validaciones pintaba también «MEDIO DE CONTACTO» y «DÍA» con reglas que
+  # ninguna de sus celdas casa. No rompía nada, pero dejaba reglas donde no
+  # significan, y sobre todo dejaba esas dos columnas en blanco.
+  #
+  # Gonzalo, comparando con el Sheets que el equipo usa de verdad: «chips
+  # desplegables para los status y días de la semana». En su hoja el medio de
+  # contacto y el día TAMBIÉN van con color, y son justo las dos columnas que
+  # el agendador recorre a ojo para repartir su día.
+  #
+  # Cada entrada de `semaforos` puede traer sus propias `reglas`; sin ellas cae
+  # al semáforo de estados, que es lo que hacían todas hasta ahora.
+  .calf_paletas <- aulas_libro_paletas_de_estado()
   for (sem in semaforos) {
     if (!length(sem$cols) || !sem$filas) next
+    reglas <- .calf_paletas[[sem$paleta %||% "estado"]] %||% .calf_paletas$estado
     for (col in sem$cols) {
-      for (regla in semaforo) {
+      for (regla in reglas) {
         openxlsx::conditionalFormatting(
           wb, sem$hoja, cols = col, rows = seq_len(sem$filas) + sem$desde,
           type = "contains", rule = regla$texto, style = regla$estilo

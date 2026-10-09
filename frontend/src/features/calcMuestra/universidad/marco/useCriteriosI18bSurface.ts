@@ -30,6 +30,14 @@ export type CriteriosI18bSurfaceSource = {
    * en la raíz → 2→2 y `applies = FALSE`.
    */
   filtersPayload?: Record<string, unknown> | null;
+  /**
+   * Cambia para forzar que se vuelva a pedir el preview aunque el borrador sea
+   * el mismo. Lo usa la recuperación del recuento de estudiantes: el contexto
+   * cambia en el SERVIDOR —pasa a tener la tabla atómica— y aquí no hay ninguna
+   * entrada que lo delate, así que sin esto la pantalla se quedaba con la
+   * respuesta anterior después de esperar el minuto de relectura.
+   */
+  nonce?: number;
 };
 
 export function useCriteriosI18bSurface(
@@ -101,7 +109,7 @@ export function useCriteriosI18bSurface(
     };
   }, [
     frameHash, i18b.cascade, source?.borrador, source?.config,
-    source?.filtersPayload, source?.previewEnabled,
+    source?.filtersPayload, source?.previewEnabled, source?.nonce,
   ]);
 
   return {

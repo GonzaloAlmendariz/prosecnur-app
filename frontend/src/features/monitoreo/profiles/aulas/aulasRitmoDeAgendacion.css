@@ -1,0 +1,75 @@
+/* El ritmo de la agendación — hoja propia (la madre está congelada; misma
+ * doctrina que las hermanas del loop). La importa AulasRitmoDeAgendacion.tsx.
+ *
+ * Barras CSS por jornada: fecha corta, pista con la barra en el verde de lo
+ * conseguido (agendar ES el logro de esta pestaña) y el conteo tabular. */
+
+.mon-profile-page.is-aulas-flow .aulas-ritmo { display: flex; flex-direction: column; gap: 8px; }
+
+.mon-profile-page.is-aulas-flow .aulas-ritmo-lectura {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-lectura em {
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ritmo-jornadas {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 3px;
+  max-width: 560px;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-jornadas li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 40px;
+  align-items: center; gap: 10px;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-fecha {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-pista {
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-pista i {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 4px;
+  background: var(--pulso-success-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-n {
+  font-size: 12px; font-weight: 600;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El relevo del rechazo directo, bajo su código en la cola (caso A del
+   dictado 2026-09-03): la reserva que entra a llamar dice a quién reemplaza.
+   Vive en esta hoja hermana por la congelación de la madre. */
+.mon-profile-page.is-aulas-flow .aulas-cola-releva {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+/* La fila del relevo (caso A) en la cola, con el mismo lavado amarillento de
+   la ruta: quien reparte llamadas ve de un vistazo cuáles son reemplazos
+   directos de un rechazo. */
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla tr.es-caso-a td {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface));
+}

@@ -77,15 +77,16 @@ describe("consumoDeCadena", () => {
 });
 
 /**
- * El banco no es una cadena.
+ * La reserva adicional no es una cadena.
  *
  * `extra_reserve_pool` son reservas que el diseño dejó sin colgar de ningún
- * titular. Contadas como titulares, el estudio real HSVG2026 —639 de banco
- * frente a 202 titulares— enseñaba 841 cadenas donde hay 202. Ningún fixture
- * del perfil tenía una sola fila de banco, así que el defecto no podía salir.
+ * titular. Contadas como titulares, el estudio real HSVG2026 —639 de reserva
+ * adicional frente a 202 titulares— enseñaba 841 cadenas donde hay 202.
+ * Ningún fixture del perfil tenía una sola fila de reserva adicional, así que
+ * el defecto no podía salir.
  */
-describe("consumoDeCadena y el banco de reservas sueltas", () => {
-  function banco(codigo: string): MonitoreoAulasPlanRow {
+describe("consumoDeCadena y la reserva adicional de reservas sueltas", () => {
+  function reservaAdicional(codigo: string): MonitoreoAulasPlanRow {
     return {
       operational_code: codigo,
       sample_role: "extra_reserve_pool",
@@ -93,20 +94,21 @@ describe("consumoDeCadena y el banco de reservas sueltas", () => {
     } as unknown as MonitoreoAulasPlanRow;
   }
 
-  test("las reservas del banco no inventan cadenas ni titulares", () => {
+  test("las reservas de la reserva adicional no inventan cadenas ni titulares", () => {
     const res = consumoDeCadena([
       titular("CH 1"), reserva("R 1.1", "CH 1", "en_reserva"),
-      banco("EXTRA 1"), banco("EXTRA 2"), banco("EXTRA 3"),
+      reservaAdicional("EXTRA 1"), reservaAdicional("EXTRA 2"), reservaAdicional("EXTRA 3"),
     ]);
 
     // UNA cadena, no cuatro. Sin el reparto por rol esto daba 4.
     expect(res.total).toBe(1);
     expect(res.cadenas).toBe(1);
-    // Y ninguna del banco cuenta como «titular sin reserva», que es la frase
-    // que avisa de metas que quedarían sin cubrir: el banco no tiene meta.
+    // Y ninguna de la reserva adicional cuenta como «titular sin reserva», que
+    // es la frase que avisa de metas que quedarían sin cubrir: la reserva
+    // adicional no tiene meta.
     expect(res.sinReserva).toBe(0);
-    // Pero sí engorda el colchón: 1 de la cadena + 3 del banco.
-    expect(res.enElBanco).toBe(3);
+    // Pero sí engorda el colchón: 1 de la cadena + 3 de la reserva adicional.
+    expect(res.enLaReservaAdicional).toBe(3);
     expect(res.reservasLibres).toBe(4);
   });
 });

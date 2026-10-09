@@ -1796,3 +1796,90 @@
   border-color: var(--pulso-nav-selected);
   color: var(--pulso-nav-selected);
 }
+
+/* --- Portada editable del PDF de avance ---------------------------------- */
+/*
+ * Plegada por defecto: los seis campos son un override opcional, no un paso
+ * obligatorio del flujo. Abiertos siempre, la tarjeta de generar el PDF pasaba
+ * de un botón a un formulario y el botón dejaba de ser lo primero que se ve.
+ */
+.mon-outputs-portada {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+}
+
+/*
+ * El galón dice que el bloque se abre. Sin él, el titular «Portada del PDF» se
+ * lee como un encabezado y nadie descubre que hay seis campos debajo: un
+ * control plegado que no declara que lo está es un control que no existe.
+ */
+.mon-outputs-portada__toggle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "galon titulo" "galon resumen";
+  align-items: center;
+  gap: 2px 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-outputs-portada__toggle > svg {
+  grid-area: galon;
+  color: var(--pulso-muted, #64748b);
+  transition: transform 140ms ease;
+}
+
+.mon-outputs-portada__toggle[aria-expanded="false"] > svg {
+  transform: rotate(-90deg);
+}
+
+.mon-outputs-portada__toggle span {
+  grid-area: titulo;
+}
+
+.mon-outputs-portada__toggle small {
+  grid-area: resumen;
+}
+
+.mon-outputs-portada__toggle span {
+  font-weight: var(--pulso-weight-black);
+  font-size: 0.82rem;
+}
+
+.mon-outputs-portada__toggle small {
+  color: var(--pulso-muted, #64748b);
+  font-size: 0.74rem;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-outputs-portada__campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+
+.mon-outputs-portada__campos .mon-outputs-field[data-ancho="completo"],
+.mon-outputs-portada__nota {
+  grid-column: 1 / -1;
+}
+
+.mon-outputs-portada__campos .mon-outputs-field span {
+  font-size: 0.74rem;
+}
+
+.mon-outputs-portada__campos input {
+  min-width: 0;
+}
+
+.mon-outputs-portada__nota {
+  color: var(--pulso-muted, #64748b);
+  font-size: 0.72rem;
+  font-weight: var(--pulso-weight-bold);
+}

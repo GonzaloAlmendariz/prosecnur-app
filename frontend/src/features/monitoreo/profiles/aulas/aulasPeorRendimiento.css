@@ -1,0 +1,135 @@
+/* Dónde el campo rinde peor de lo previsto. Es el complemento del ranking de
+   deuda: aquél ordena por tamaño y éste por eficiencia, y piden acciones
+   distintas. */
+
+.mon-profile-page.is-aulas-flow .aulas-peor { display: grid; gap: 9px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-peor-lectura {
+  margin: 0;
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-peor-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-peor-lista {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-peor-lista li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) minmax(80px, 130px) 88px 54px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-peor-puesto {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-peor-quien { display: grid; gap: 0; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-peor-quien b {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-peor-quien em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+
+/* La barra crece con lo que se cumple, así que la más corta es la que peor va:
+   la lista se lee de un vistazo sin comparar cifras. */
+.mon-profile-page.is-aulas-flow .aulas-peor-carril {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+.mon-profile-page.is-aulas-flow .aulas-peor-carril b { display: block; height: 100%; border-radius: 3px; }
+.mon-profile-page.is-aulas-flow .es-grave .aulas-peor-carril b { background: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .es-bajo .aulas-peor-carril b { background: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .es-cerca .aulas-peor-carril b { background: var(--pulso-success-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-peor-cifras {
+  display: grid;
+  gap: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-peor-cifras b {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+}
+.mon-profile-page.is-aulas-flow .aulas-peor-cifras em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+
+/* La razón es lo que ordena la lista, así que lleva la tinta del veredicto. */
+.mon-profile-page.is-aulas-flow .aulas-peor-razon {
+  text-align: right;
+  font-size: var(--aulas-sec);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .es-grave .aulas-peor-razon { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .es-bajo .aulas-peor-razon { color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .es-cerca .aulas-peor-razon { color: var(--pulso-success-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-peor-pie {
+  margin: 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .mon-profile-page.is-aulas-flow .aulas-peor-lista li {
+    grid-template-columns: 20px minmax(0, 1fr) 88px 54px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-peor-carril { display: none; }
+}
+
+/* La facultad del filtro, cuando cae fuera de las cinco peores: se añade en su
+   puesto real tras un corte, porque un ranking sin ella no contesta la pregunta
+   con la que se entró. */
+.mon-profile-page.is-aulas-flow .aulas-peor-lista li.es-foco {
+  outline: 1px solid var(--pulso-primary);
+  background: var(--pulso-surface-3);
+}
+.mon-profile-page.is-aulas-flow .aulas-peor-corte {
+  display: block;
+  padding: 0;
+  background: none;
+  height: 9px;
+}
+.mon-profile-page.is-aulas-flow .aulas-peor-corte span {
+  display: block;
+  height: 100%;
+  border-top: 1px dashed var(--pulso-border);
+  margin: 4px 8px 0;
+}

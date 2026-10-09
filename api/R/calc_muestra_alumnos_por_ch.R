@@ -250,9 +250,14 @@ calc_muestra_alumnos_por_ch <- function(aula_frame, frame_hash = NA_character_) 
   stop_api(
     409,
     "E_CALC_MUESTRA_ALUMNOS_CH_DECISION",
+    # Tras AD2 el guardado del estudio re-sella la config de sesión, así que
+    # esto sólo ocurre si el pedido trae una config con otra decisión (una
+    # pantalla que no recargó el estado) o si la del estudio no está
+    # confirmada. Recalcular no arregla ninguna de las dos.
     paste0(
-      "La decisión de alumnos por CH cambió desde esta corrida. ",
-      "Recalcula y vuelve a generar los artefactos de Aulas."
+      "La decisión de alumnos por CH cambió o no está confirmada: esta ",
+      "configuración de Aulas lleva otra. Confirma la decisión en ",
+      "Alumnos por CH y recarga la página para que Aulas use la vigente."
     ),
     details = list(reason = "decision_stale")
   )
@@ -268,6 +273,9 @@ calc_muestra_alumnos_por_ch <- function(aula_frame, frame_hash = NA_character_) 
   session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
   session_set(sid, "calc_muestra_aulas_export", NULL)
   session_set(sid, "calc_muestra_aulas_stale_job_result", NULL)
+  # La config de Aulas pasa a firmar la decisión nueva; sin esto la certeza
+  # (que la toma de la sesión) rebotaba con 409 tras cada confirmación (AD2).
+  .cm_alumnos_por_ch_sellar_decision_en_config(sid)
   invisible(TRUE)
 }
 
@@ -566,8 +574,21 @@ calc_muestra_alumnos_por_ch_resolver_estudio <- function(estudio, frame = NULL) 
       # calcular → 0). Un .pulso viejo con semillas ya no las pierde en
       # silencio: el letrero de fijaciones las MUESTRA y el stepper las
       # corrige.
-      estrato$promedio_conglomerado <- normalized_value
-      estrato$mediana_conglomerado <- 0
+      # ADR: el divisor SELLADO tiene campo propio (decisión de Gonzalo,
+      # 2026-08-27: «la separación para el 5»).
+      #
+      # Antes esto escribía el estadístico elegido —P25 incluido— dentro de
+      # `promedio_conglomerado` y ponía la mediana en 0. Dos costos: el campo
+      # decía «promedio» guardando otra cosa, y **sellar borraba la mediana
+      # medida del marco**, de modo que un estudio que después quisiera volver
+      # a `min_media_mediana` ya no tenía con qué (el sincronizador sólo
+      # repuebla mientras el marco no está validado).
+      #
+      # Ahora el divisor sellado vive en `divisor_conglomerado` con su
+      # estadístico al lado, y `promedio_`/`mediana_conglomerado` vuelven a ser
+      # lo que dicen: las medidas del perfil del marco, intactas.
+      estrato$divisor_conglomerado <- normalized_value
+      estrato$divisor_estadistico <- method
       estratos[[j]] <- estrato
       audit_rows[[length(audit_rows) + 1L]] <- list(
         estrato = estrato$label,
@@ -577,7 +598,11 @@ calc_muestra_alumnos_por_ch_resolver_estudio <- function(estudio, frame = NULL) 
       )
     }
     comp$marco$estratos <- estratos
-    comp$parametros$estadistico_conglomerado <- "media"
+    # `estadistico_conglomerado` ya NO se fuerza a "media". Se forzaba para que
+    # `.cm_estadistico_conglomerado_estrato` tomara la rama de la media, que era
+    # donde quedaba el valor materializado. Con `divisor_conglomerado` esa rama
+    # manda por sí sola, así que el parámetro puede seguir declarando lo que el
+    # estudio eligió en vez de decir «media» sobre un P25.
     estudio$componentes[[i]] <- comp
     audit_components[[comp$actor_id]] <- list(
       component_id = comp$id,
@@ -657,7 +682,11 @@ calc_muestra_alumnos_por_ch_adjuntar_auditoria <- function(estudio, auditoria) {
 # auditoría. El router no deriva estadísticos ni manipula el resultado.
 calc_muestra_alumnos_por_ch_calcular_estudio <- function(estudio, frame = NULL) {
   decision_resuelta <- calc_muestra_alumnos_por_ch_resolver_estudio(estudio, frame)
-  calculado <- calc_muestra_calcular_estudio(decision_resuelta$estudio)
+  # Y la tasa de efectividad de cada facultad, del marco a su estrato: el
+  # divisor ya se resuelve arriba y el τ caía al global para las quince.
+  # Ver calc_muestra_aulas_efectividad_sello.R.
+  con_tau <- calc_muestra_aulas_resolver_tau_estratos(decision_resuelta$estudio, frame)
+  calculado <- calc_muestra_calcular_estudio(con_tau)
   auditado <- calc_muestra_alumnos_por_ch_adjuntar_auditoria(
     calculado,
     decision_resuelta$auditoria

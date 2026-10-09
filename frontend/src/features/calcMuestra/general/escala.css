@@ -1,0 +1,183 @@
+/* Escala de las mesas de Muestra general y Acreditación (revamp 2026-09-27).
+ *
+ * «No está aprovechando el alto»: a 1710x1107 la ficha dejaba ~22 % de la
+ * pantalla vacía con campos de 32 px, rótulos de 10 px y texto de 12 px. Se
+ * diseña en grande dentro de la mesa (`.cmg-mesa`) sin tocar los estilos
+ * compartidos con aulas ni estirar tarjetas (C3: cada panel conserva su alto
+ * intrínseco); el alto se gana con controles, texto y aire más generosos.
+ * Todo sale de tokens: el campo mide `control-height-lg` + un paso de 4 px. */
+
+.cmg-mesa {
+  --cmg-campo-h: calc(var(--pulso-control-height-lg) + var(--pulso-space-1));
+}
+
+.cmg-mesa .cmv2-panel {
+  padding: var(--pulso-space-5) var(--pulso-space-6);
+}
+
+.cmg-mesa .cmv2-panel-head {
+  margin-bottom: var(--pulso-space-4);
+}
+
+.cmg-mesa .cmg-panel-titulo,
+.cmg-mesa .cmv2-panel-head .cmg-panel-titulo {
+  font-size: 17px;
+}
+
+/* Ficha del estudio */
+.cmg-mesa .cmv2-form-grid {
+  gap: var(--pulso-space-5) var(--pulso-space-6);
+}
+
+.cmg-mesa .cmv2-form-grid label {
+  gap: var(--pulso-space-2);
+}
+
+.cmg-mesa .cmv2-form-grid label span {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.cmg-mesa :is(.cmv2-form-grid input, .cmv2-variable input, .cmv2-variable select, .cmg-campo input, .cmg-campo select) {
+  min-height: var(--cmg-campo-h);
+  padding: 0 var(--pulso-space-3);
+  font-size: 14px;
+}
+
+.cmg-mesa .cmv2-panel textarea {
+  padding: var(--pulso-space-3);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Parámetros */
+.cmg-mesa .cmg-parametros {
+  gap: var(--pulso-space-6) var(--pulso-space-7);
+}
+
+.cmg-mesa .cmg-campo {
+  gap: var(--pulso-space-2);
+}
+
+.cmg-mesa .cmg-campo > label {
+  font-size: 13px;
+}
+
+.cmg-mesa .cmg-campo small {
+  font-size: 12px;
+}
+
+/* Variables de control: nombre, uso e interruptor en una fila con aire. */
+.cmg-mesa .cmv2-variable-list {
+  gap: var(--pulso-space-3);
+  margin-bottom: var(--pulso-space-4);
+}
+
+.cmg-mesa .cmv2-variable {
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 180px) auto;
+  gap: var(--pulso-space-4);
+}
+
+.cmg-variable-disponible {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 96px;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+/* Tarjetas de elección: forma del marco, técnica y método de sorteo. Con 11 px
+ * de descripción y 92 px de alto, seis tarjetas dejaban 305–404 px vacíos
+ * bajo ellas a 1710x1107 (MacBook Air 15"). */
+.cmg-mesa :is(.cmv2-shape-grid, .cmv2-method-grid, .cmg-metodos) {
+  gap: var(--pulso-space-4);
+}
+
+.cmg-mesa :is(.cmv2-shape, .cmv2-method) {
+  gap: var(--pulso-space-2);
+  min-height: 128px;
+  padding: var(--pulso-space-5);
+}
+
+.cmg-mesa .cmg-metodo {
+  min-height: 104px;
+}
+
+.cmg-mesa :is(.cmv2-shape, .cmv2-method) strong {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.cmg-mesa :is(.cmv2-shape span, .cmv2-method small) {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cmg-mesa .cmv2-method span {
+  font-size: 11px;
+}
+
+/* Acciones dentro de los paneles: del alto de los campos que acompañan. El
+ * encabezado de la mesa conserva su escala compacta. */
+.cmg-mesa .cmv2-panel :is(.cmv2-primary, .cmv2-ghost) {
+  min-height: var(--cmg-campo-h);
+  padding-inline: var(--pulso-space-4);
+  font-size: 14px;
+}
+
+/* Tablas de la mesa (estratos, unidades, actores): filas con aire y cifras
+ * legibles; el ancho mínimo y el dueño del scroll horizontal no cambian. */
+.cmg-mesa .cmv2-table :is(th, td) {
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.cmg-mesa .cmv2-table th {
+  font-size: 11px;
+}
+
+.cmg-mesa .cmv2-table-input {
+  min-height: var(--pulso-control-height-lg);
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .cmg-mesa .cmv2-panel {
+    padding: var(--pulso-space-4) var(--pulso-space-5);
+  }
+
+  .cmg-mesa .cmg-parametros {
+    gap: var(--pulso-space-5) var(--pulso-space-5);
+  }
+
+  /* El relleno lateral de las celdas cede antes que la tabla: a 1024 la de
+   * actores pasaba 79 px del ancho y pedía scroll horizontal. */
+  .cmg-mesa .cmv2-table :is(th, td) {
+    padding-inline: var(--pulso-space-2);
+  }
+}
+
+/* Pantallas bajas (MacBook Air 13", ~956 px útiles): el aire vertical cede
+ * antes que la acción principal. En Parámetros «Recalcular» quedaba 50 px
+ * bajo el pliegue a 1470x956. */
+@media (max-height: 1000px) {
+  .cmg-mesa .cmv2-panel {
+    padding-block: var(--pulso-space-4);
+  }
+
+  .cmg-mesa .cmv2-panel-head {
+    margin-bottom: var(--pulso-space-3);
+  }
+
+  .cmg-mesa .cmg-parametros {
+    row-gap: var(--pulso-space-4);
+  }
+
+  .cmg-mesa .cmv2-form-grid {
+    row-gap: var(--pulso-space-4);
+  }
+}

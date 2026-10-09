@@ -13,9 +13,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { fuenteDelPageDeAulas } from "./fuenteDelPerfil";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
-const fuente = fs.readFileSync(path.join(aqui, "AulasMonitoreoPage.tsx"), "utf8");
+// Las dos listas (`const … = new Set([…])`) siguen declarándose en el
+// page-file, pero las `preferredColumns` viajaron a `AulasSeccion*` al
+// partirlo. Se lee el page MÁS sus trozos: es la misma superficie.
+const fuente = fuenteDelPageDeAulas();
 
 const listaDe = (nombre: string) => {
   const bloque = (fuente.match(new RegExp(`const ${nombre} = new Set\\(\\[([\\s\\S]*?)\\]\\)`)) ?? [])[1] ?? "";
@@ -54,5 +58,48 @@ describe("las columnas de infraestructura no rellenan la tabla", () => {
     expect(preferidas.length).toBeGreaterThan(10);
     const pedidas = preferidas.filter((c) => infraestructura.includes(c));
     expect(pedidas, `tablas que piden infraestructura: ${pedidas.join(", ")}`).toEqual([]);
+  });
+});
+
+describe("el sexo dominante del aula no entra en las tablas del operativo", () => {
+  // Gonzalo, 2026-08-31: «las columnas de sexo del plan nos sirven para ver las
+  // cuotas por sexo de cada facultad; a nivel operativo no nos importa a qué
+  // segmentos pertenezca el aula, eso sólo es a nivel de la selección del aula».
+  it("las cuatro columnas del sorteo están excluidas", () => {
+    for (const campo of ["sex_top_1", "sex_top_2", "sex_top_1_n", "sex_top_2_n"]) {
+      expect(infraestructura, `falta ${campo}`).toContain(campo);
+    }
+  });
+
+  it("y donde el sexo SÍ decide, se resuelve a mujeres y hombres", () => {
+    // La decisión no es esconder el sexo: es no enseñar el DOMINANTE crudo.
+    // Las dos superficies que lo usan para decidir traducen la «F» a su
+    // conteo, y eso tiene que seguir así. Ya hay precedente de que la
+    // construcción se malinterpreta: `sub_a` es el sexo más frecuente y se leyó
+    // como «mujeres», lo que invirtió una tabla de cuotas entera.
+    /* **La lectura se unificó en `composicionDelAula` el 2026-09-10.** Vivía
+       escrita tres veces —el popover, la puntuación de ayuda y el chip nuevo— y
+       este guard comprobaba la FORMA en cada archivo: el `toUpperCase()`, la
+       comparación contra «M», las dos variables. Al mudarla a su módulo el
+       guard se puso rojo sin que nada se hubiera roto: es la trampa del guard
+       anclado a un símbolo que se renombra.
+
+       Ahora exige lo que de verdad importa: que exista UN sitio que resuelva el
+       dominante, y que quien decide con el sexo pase por él en vez de volver a
+       leer `sex_top_*` por su cuenta. */
+    const casa = fs.readFileSync(path.join(aqui, "composicionDelAula.ts"), "utf8");
+    expect(casa, "la casa del reparto ya no lee sex_top_1").toContain("sex_top_1");
+    expect(casa, "la casa dejó de normalizar la caja").toContain("toUpperCase()");
+    expect(casa, "la casa ya no compara contra F ni M").toMatch(/===\s*"[FM]"/);
+    expect(casa, "la casa ya no deriva mujeres y hombres").toMatch(/mujeres[\s\S]{0,300}hombres/);
+
+    for (const archivo of ["AulasPopoverReemplazo.tsx", "candidatosDeReemplazo.ts"]) {
+      const src = fs.readFileSync(path.join(aqui, archivo), "utf8");
+      expect(src, `${archivo} decide con el sexo y no pasa por composicionDelAula`)
+        .toContain("composicionDelAula");
+      const codigo = src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+      expect(codigo, `${archivo} volvió a leer sex_top_* por su cuenta`)
+        .not.toMatch(/sex_top_[12]_n/);
+    }
   });
 });

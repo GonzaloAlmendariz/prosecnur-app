@@ -194,18 +194,51 @@ test_that("el marcador de exencion se acepta en las tres formas", {
   expect_equal(r$derecho[[1]]$min, 2)
 })
 
-test_that("una exencion NO se confunde con «sin rango declarado»", {
-  # Sin rango la facultad se EXCLUYE (comportamiento vigente); exenta PASA. Si el
-  # centinela fuera una lista vacia, las dos cosas serian la misma y una
-  # exencion borraria la facultad en vez de salvarla.
+test_that("el centinela de exencion SOBREVIVE a la normalizacion del mapa", {
+  # Este bloque afirmaba «sin rango la facultad se EXCLUYE (comportamiento
+  # vigente); exenta PASA». Eso dejo de ser cierto el 2026-08-25: decidido con
+  # Gonzalo que una facultad sin entrada NO declara tramo y por tanto no filtra,
+  # asi que exencion y ausencia COINCIDEN en el evaluador. No es un descuido: es
+  # la decision (ver docs/qa/checklist-nivel-curso-vacia-marco-2026-08-25.md).
+  #
+  # Lo que el test protegia de verdad sigue en pie y es lo que se mide aqui: si
+  # el centinela fuera una lista vacia, `.cm_criterios_normalize_rangos` no le
+  # encontraria min/max y la clave DESAPARECERIA del mapa. Antes eso borraba la
+  # facultad del marco; ahora no cambia el marco, pero rompe `llegada.R`, que usa
+  # `reconocida_por_rangos` para NO anunciar como nueva una facultad que el
+  # estudio ya considero. La clave tiene que seguir ahi.
+  r <- .cm_criterios_normalize_nivel_por_unidad(
+    list(derecho = list(list(min = 2, max = 10)), gastronomia = "exenta"))
+  expect_true("gastronomia" %in% names(r))
+  expect_true(.cm_criterios_es_rango_exento(r$gastronomia))
+  expect_false(.cm_criterios_es_rango_exento(r$derecho))
+})
+
+test_that("exenta y sin declarar coinciden en el evaluador tras la decision", {
+  # Las dos dicen lo mismo —esa facultad no tiene tramo— y las dos salvan a SUS
+  # aulas aunque el curso este catalogado en una facultad declarada fuera de
+  # rango. El eje que decide es la facultad DEL AULA, no la del curso.
+  ranges <- list(derecho = list(list(min = 2, max = 10)),
+                 gastronomia = .cm_criterios_rango_exento)
   ok <- .cm_criterios_eval_course_ranges(
-    course_pairs = c(.clr_pairs("GASTRONOMIA", 1), .clr_pairs("GASTRONOMIA", 1)),
-    ranges = list(derecho = list(list(min = 2, max = 10)),
-                  gastronomia = .cm_criterios_rango_exento),
-    faculty_keys = c("SIN DECLARAR", "GASTRONOMIA")
+    course_pairs = rep(.clr_pairs("DERECHO", 1), 3L),
+    ranges = ranges,
+    faculty_keys = c("SIN DECLARAR", "GASTRONOMIA", "DERECHO")
   )
-  expect_false(ok[[1]])
-  expect_true(ok[[2]])
+  expect_true(ok[[1]])   # ausente: no declara tramo
+  expect_true(ok[[2]])   # exenta: lo declara explicitamente
+  expect_false(ok[[3]])  # DERECHO si declaro [2,10] y su curso esta en nivel 1
+
+  # Y ninguna de las dos libra a un aula AJENA: que el aula de Derecho tenga un
+  # curso catalogado en Gastronomia o en una facultad sin declarar no la salva.
+  ajeno <- .cm_criterios_eval_course_ranges(
+    course_pairs = paste(c(.clr_pairs("DERECHO", 1), .clr_pairs("GASTRONOMIA", 1),
+                           .clr_pairs("SIN DECLARAR", 1)),
+                         collapse = .cm_catalogo_pair_rec),
+    ranges = ranges,
+    faculty_keys = "DERECHO"
+  )
+  expect_false(ajeno[[1]])
 })
 
 test_that("la etiqueta del paso NOMBRA a las facultades exentas", {
@@ -221,9 +254,12 @@ test_that("la exencion sobrevive a normalizar DOS veces", {
   # El config se normaliza mas de una vez —el router y el constructor lo hacen
   # por separado— y el centinela tiene que reconocerse a si mismo. Sin esto la
   # segunda pasada no lo veia como exencion, no le encontraba min/max y la clave
-  # DESAPARECIA del mapa; y sin rango declarado el evaluador EXCLUYE, asi que
-  # declarar una exencion borraba la facultad. Medido contra HSVG2026: mande 15
-  # facultades y el motor guardo 13.
+  # DESAPARECIA del mapa. Cuando esto se midio (HSVG2026: mande 15 facultades y
+  # el motor guardo 13) sin rango declarado el evaluador EXCLUIA, asi que perder
+  # el centinela borraba la facultad del marco. Desde 2026-08-25 la ausencia ya
+  # no excluye, asi que perderlo ya no cambia el marco — pero rompe `llegada.R`,
+  # que usa `reconocida_por_rangos` para no anunciar como nueva una facultad que
+  # el estudio ya considero. La idempotencia sigue siendo obligatoria.
   una <- .cm_criterios_normalize_nivel_por_unidad(list(egl = "exenta"))
   dos <- .cm_criterios_normalize_nivel_por_unidad(una)
   tres <- .cm_criterios_normalize_nivel_por_unidad(dos)

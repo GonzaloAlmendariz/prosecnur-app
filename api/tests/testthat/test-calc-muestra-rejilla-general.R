@@ -1,0 +1,397 @@
+# Rejilla de casos del motor general de Cálculo de muestra (Muestra general y
+# Acreditación) contra la aritmética a mano de
+# docs/qa/research-calc-muestra-robustez-2026-09-23.md, sección (b).
+#
+# B1 es el contrato de la fórmula y pasó desde el primer día. B3 fija H03
+# (la no respuesta no inflaba n) y H05 (n a campo por encima de N): nació en
+# rojo y se puso verde con `.cm_general_inflar_operativo`. Los rojos de H01,
+# H02, H04 y H07 se suman aquí con el commit de su fix.
+#
+# Alcance deliberado: el reparto que se prueba es `.cm_distribuir_con_piso`,
+# que sólo consumen el estratificado y la matriz de servicios del motor general.
+# El conglomerado y `calc_muestra_distribucion.R` alimentan aulas y quedan con
+# el reparto legacy hasta que Gonzalo decida lo contrario.
+
+.rejilla_comp <- function(tecnica = "prob_aleatorio_simple", N = 1000L,
+                          parametros = list(), estratos = list(), meta = NULL) {
+  base_par <- list(z = 1.96, p = 0.5, e = 0.05, deff = 1, oversample_pct = 0,
+                   tasa_respuesta = 1, tasa_elegibilidad = 1, tasa_contacto = 1,
+                   n_minimo_estrato = 0L)
+  par <- utils::modifyList(base_par, parametros)
+  comp <- list(
+    actor = "Rejilla", actor_id = "rejilla", actor_categoria = "otros",
+    tecnica = tecnica, origen_tamano = "formula",
+    marco = list(universo_bruto = N, marco_validado = N, marco_contactable = N,
+                 estado = "validado", estratos = estratos),
+    parametros = par
+  )
+  if (!is.null(meta)) comp$meta <- meta
+  comp
+}
+
+.rejilla_calc <- function(...) calc_muestra_calcular_componente(.rejilla_comp(...))
+
+.rejilla_estratos <- function(N_h) {
+  lapply(seq_along(N_h), function(i) list(id = paste0("e", i), label = paste0("E", i), N = N_h[[i]]))
+}
+
+# --- B1 · tamaño base (R1) --------------------------------------------------
+
+test_that("B1: calc_n_muestra cuadra con Cochran + FPC (n0−1)/N en 18 casos a mano", {
+  casos <- list(
+    list(N = Inf,   p = .5,  e = .05,  z = 1.96,  deff = 1,   n = 385L),
+    list(N = 1e6,   p = .5,  e = .05,  z = 1.96,  deff = 1,   n = 385L),
+    list(N = 1000,  p = .5,  e = .05,  z = 1.96,  deff = 1,   n = 278L),
+    list(N = 30,    p = .5,  e = .05,  z = 1.96,  deff = 1,   n = 28L),
+    list(N = 500,   p = .5,  e = .10,  z = 1.96,  deff = 1,   n = 81L),
+    list(N = Inf,   p = .05, e = .05,  z = 1.96,  deff = 1,   n = 73L),
+    list(N = 10000, p = .05, e = .01,  z = 1.96,  deff = 1,   n = 1544L),
+    list(N = Inf,   p = .5,  e = .05,  z = 2.576, deff = 1,   n = 664L),
+    list(N = Inf,   p = .5,  e = .05,  z = 1.645, deff = 1,   n = 271L),
+    list(N = Inf,   p = .5,  e = .05,  z = 1.96,  deff = 2,   n = 769L),
+    list(N = 5000,  p = .5,  e = .05,  z = 1.96,  deff = 1.5, n = 517L),
+    list(N = 3001,  p = .5,  e = .025, z = 1.96,  deff = 2,   n = 1519L),
+    list(N = 1,     p = .5,  e = .05,  z = 1.96,  deff = 1,   n = 1L),
+    list(N = 2,     p = .5,  e = .05,  z = 1.96,  deff = 1,   n = 2L),
+    list(N = Inf,   p = .5,  e = .03,  z = 1.96,  deff = 1,   n = 1068L),
+    list(N = 10000, p = .5,  e = .03,  z = 1.96,  deff = 1,   n = 965L),
+    list(N = 200,   p = .3,  e = .05,  z = 1.96,  deff = 1,   n = 124L),
+    list(N = 30,    p = .5,  e = .05,  z = 1.96,  deff = 2,   n = 29L)
+  )
+  for (k in seq_along(casos)) {
+    cs <- casos[[k]]
+    got <- calc_n_muestra(N = cs$N, p = cs$p, z = cs$z, e = cs$e, deff = cs$deff)
+    expect_identical(as.integer(got), cs$n, info = sprintf("caso B1-%d", k))
+  }
+})
+
+test_that("B1: el MAS del componente devuelve el mismo n teórico que la fórmula", {
+  r <- .rejilla_calc(N = 5000L)
+  expect_identical(as.integer(r$n_teorico), 357L)
+  expect_identical(as.integer(r$n_objetivo), 357L)
+})
+
+# --- B3 · inflación por no respuesta y tope N (H03, H05) --------------------
+
+test_that("B3-23: con tasa de respuesta 0.6 el MAS sale a campo con ⌈278/0.6⌉ = 464", {
+  r <- .rejilla_calc(N = 1000L, parametros = list(tasa_respuesta = 0.6))
+  expect_identical(as.integer(r$n_objetivo), 278L)
+  expect_identical(as.integer(r$n_operativo), 464L)
+})
+
+test_that("B3-24: N grande con respuesta 0.63 → ⌈385/0.63⌉ = 612", {
+  r <- .rejilla_calc(N = 1000000L, parametros = list(tasa_respuesta = 0.63))
+  expect_identical(as.integer(r$n_operativo), 612L)
+})
+
+test_that("B3: el estratificado también infla por no respuesta", {
+  r <- .rejilla_calc(tecnica = "prob_estratificado", N = 5000L,
+                     parametros = list(tasa_respuesta = 0.6),
+                     estratos = .rejilla_estratos(c(3000L, 2000L)))
+  expect_identical(as.integer(r$n_objetivo), 357L)
+  # Desde L2 (2026-09-27) cada estrato infla sus completas: 214 y 143 →
+  # ⌈214/.6⌉ + ⌈143/.6⌉ = 357 + 239 = 596 (antes ⌈357/.6⌉ = 595 del total).
+  expect_identical(as.integer(r$n_operativo), 596L)
+})
+
+test_that("B3-25/26: n operativo nunca supera N (censo)", {
+  r25 <- .rejilla_calc(N = 30L, parametros = list(tasa_respuesta = 0.6))
+  expect_lte(as.integer(r25$n_operativo), 30L)
+  r26 <- .rejilla_calc(N = 30L, parametros = list(oversample_pct = 0.10))
+  expect_lte(as.integer(r26$n_operativo), 30L)
+  # El tope se declara: quien lee el resultado sabe que es un censo del marco.
+  expect_match(r25$advertencia, "censo del marco")
+  expect_identical(as.integer(r25$n_operativo), 30L)
+})
+
+# --- B4 · reparto entre estratos (H01, H02) ---------------------------------
+
+test_that("B4-27: proporcional por mayor resto (Hamilton), empates por orden", {
+  expect_identical(as.integer(.cm_distribuir_con_piso(370L, c(4000L, 3500L, 2500L))),
+                   c(148L, 130L, 92L))
+})
+
+test_that("B4-28: 10 sobre tres estratos iguales reparte 4,3,3 (el legacy daba 2,4,4)", {
+  expect_identical(as.integer(.cm_distribuir_con_piso(10L, c(100L, 100L, 100L))), c(4L, 3L, 3L))
+  # Con N_h = (1,1,1) el tope manda: 10 no caben en 3 personas, es un censo.
+  expect_identical(as.integer(.cm_distribuir_con_piso(10L, c(1L, 1L, 1L))), c(1L, 1L, 1L))
+})
+
+test_that("B4: si los pisos no caben en n, no se aplican y se declara", {
+  x <- .cm_distribuir_con_piso(50L, c(1000L, 1000L, 1000L), piso = 30L)
+  expect_identical(sum(as.integer(x)), 50L)
+  expect_true(isTRUE(attr(x, "piso_incumplible")))
+})
+
+test_that("B4-29: 5 sobre (100,1×6) suma 5 y no vacía al estrato del 94 %", {
+  x <- as.integer(.cm_distribuir_con_piso(5L, c(100L, rep(1L, 6))))
+  expect_identical(sum(x), 5L)
+  expect_identical(x, c(5L, rep(0L, 6)))
+})
+
+test_that("B4-30/31: el piso nunca excede N_h; el excedente se redistribuye", {
+  expect_identical(as.integer(.cm_distribuir_con_piso(300L, c(20L, 1000L, 1000L), piso = 30L)),
+                   c(20L, 140L, 140L))
+  expect_identical(as.integer(.cm_distribuir_con_piso(100L, c(20L, 1000L, 1000L), piso = 30L)),
+                   c(20L, 40L, 40L))
+})
+
+test_that("B4: invariantes del reparto en 200 marcos aleatorios (suma exacta, 0 ≤ n_h ≤ N_h)", {
+  set.seed(20260924)
+  for (k in seq_len(200)) {
+    H <- sample(2:8, 1)
+    N_h <- as.integer(sample(c(1:5, 10:50, 100:3000), H, replace = TRUE))
+    n <- as.integer(sample(1:sum(N_h), 1))
+    piso <- sample(c(0L, 2L, 30L), 1)
+    x <- as.integer(.cm_distribuir_con_piso(n, N_h, piso = piso))
+    info <- sprintf("k=%d n=%d piso=%d N_h=%s -> %s", k, n, piso,
+                    paste(N_h, collapse = ","), paste(x, collapse = ","))
+    expect_identical(sum(x), n, info = info)
+    expect_true(all(x >= 0L & x <= N_h), info = info)
+  }
+})
+
+test_that("B4: el estratificado rotula censo y piso por estrato y avisa el piso que no cabe", {
+  r <- .rejilla_calc(tecnica = "prob_estratificado", N = 2020L,
+                     parametros = list(n_minimo_estrato = 30L),
+                     estratos = .rejilla_estratos(c(20L, 1000L, 1000L)))
+  reglas <- vapply(r$distribucion_estratos, `[[`, character(1), "regla")
+  ns <- vapply(r$distribucion_estratos, `[[`, integer(1), "n")
+  expect_identical(sum(ns), as.integer(r$n_objetivo))
+  expect_identical(ns[[1]], 20L)
+  expect_identical(reglas[[1]], "censo_estrato")
+  chico <- .rejilla_calc(tecnica = "prob_estratificado", N = 3000L,
+                         parametros = list(n_minimo_estrato = 200L, e = 0.10),
+                         estratos = .rejilla_estratos(c(1000L, 1000L, 1000L)))
+  expect_match(chico$advertencia, "no cabe")
+})
+
+# --- H07 · deff por defecto en diseños de elementos -------------------------
+
+test_that("H07: el estratificado de elementos no inventa deff 1.5 cuando no se declaró", {
+  comp <- .rejilla_comp(tecnica = "prob_estratificado", N = 10000L,
+                        estratos = .rejilla_estratos(c(6000L, 4000L)))
+  comp$parametros$deff <- NULL
+  r <- calc_muestra_calcular_componente(comp)
+  expect_identical(as.integer(r$n_teorico), 370L)
+})
+
+test_that("H07: las técnicas de aulas conservan el deff 1.5 por defecto", {
+  for (tec in c("prob_conglomerado_multietapico", "prob_estratificado_independiente")) {
+    comp <- calc_muestra_normalize_componente(list(actor = "a", actor_id = "a", tecnica = tec))
+    expect_identical(comp$parametros$deff, 1.5, info = tec)
+  }
+  comp <- calc_muestra_normalize_componente(list(actor = "a", actor_id = "a", tecnica = "prob_aleatorio_simple"))
+  expect_identical(comp$parametros$deff, 1)
+})
+
+# --- B6 · entradas fuera de rango (H04, H20) --------------------------------
+# La mesa guarda el estudio entero, así que un valor fuera de rango no se
+# rechaza: se corrige y la corrección queda declarada en el componente y en el
+# resultado. Lo que el research pedía evitar es que se corrija EN SILENCIO.
+
+test_that("B6-36: e = 3 se corrige a 0.05 y se declara con la pista del porcentaje", {
+  comp <- calc_muestra_normalize_componente(.rejilla_comp(parametros = list(e = 3)))
+  avisos <- comp$avisos_parametros
+  expect_length(avisos, 1L)
+  expect_identical(avisos[[1]]$param, "e")
+  expect_identical(avisos[[1]]$recibido, 3)
+  expect_identical(avisos[[1]]$usado, 0.05)
+  expect_match(avisos[[1]]$texto, "escribe 0.03", fixed = TRUE)
+  r <- calc_muestra_calcular_componente(comp)
+  expect_match(r$advertencia, "fuera de rango en margen de error")
+  expect_length(r$avisos_parametros, 1L)
+})
+
+test_that("B6-37: p = 0 ya no da n = 0: se usa 0.5 y se declara", {
+  r <- .rejilla_calc(parametros = list(p = 0))
+  expect_identical(as.integer(r$n_teorico), 278L)
+  expect_match(r$advertencia, "varianza es cero")
+})
+
+test_that("B6: el aviso vive mientras el valor siga siendo el corregido", {
+  c1 <- calc_muestra_normalize_componente(.rejilla_comp(parametros = list(e = 3, deff = 0.8)))
+  expect_setequal(vapply(c1$avisos_parametros, `[[`, character(1), "param"), c("e", "deff"))
+  c2 <- calc_muestra_normalize_componente(c1)
+  expect_length(c2$avisos_parametros, 2L)
+  c2$parametros$e <- 0.03
+  c3 <- calc_muestra_normalize_componente(c2)
+  expect_identical(vapply(c3$avisos_parametros, `[[`, character(1), "param"), "deff")
+})
+
+test_that("B6: un parámetro válido no genera avisos", {
+  comp <- calc_muestra_normalize_componente(.rejilla_comp())
+  expect_length(comp$avisos_parametros, 0L)
+})
+
+
+# --- Regresiones que encontró el verificador de E2 (2026-09-24) ------------
+
+test_that("V1: el reparto no desborda enteros con marcos de millones", {
+  expect_identical(as.integer(.cm_general_reparto(2401L, c(2000000L, 1000000L))), c(1601L, 800L))
+  x <- .cm_general_reparto(1537L, c(9000000L, 4000000L, 250000L), piso = 30L)
+  expect_identical(sum(as.integer(x)), 1537L)
+})
+
+test_that("V2: acreditación de estudiantes con N ≥ 3001 conserva el deff canónico 2", {
+  comp <- .cm_iniciar_acreditacion()$componentes[[3]]
+  comp$marco$marco_validado <- 5000L
+  comp$marco$universo_bruto <- 5000L
+  comp$marco$marco_contactable <- 5000L
+  comp$marco$estado <- "validado"
+  comp <- calc_muestra_normalize_componente(comp)
+  expect_identical(comp$tecnica, "prob_conglomerado_multietapico")
+  expect_identical(comp$parametros$deff, 2)
+  expect_identical(as.integer(calc_muestra_calcular_componente(comp)$n_objetivo), 1904L)
+})
+
+test_that("V3: lo que completa la inferencia de acreditación no se declara fuera de rango", {
+  comp <- .cm_iniciar_acreditacion()$componentes[[3]]
+  comp$marco$marco_validado <- 5000L
+  comp$marco$estado <- "validado"
+  comp <- calc_muestra_normalize_componente(comp)
+  expect_length(comp$avisos_parametros, 0L)
+})
+
+test_that("V4: el estratificado independiente de aulas sin estratos no cambia su n a campo", {
+  r <- .rejilla_calc(tecnica = "prob_estratificado_independiente", N = 5000L,
+                     parametros = list(tasa_respuesta = 0.6))
+  expect_identical(as.integer(r$n_operativo), as.integer(r$n_objetivo))
+})
+
+test_that("E3: el reparto acepta pesos distintos de N_h (Neyman: N_h·S_h) con tope en N_h", {
+  # Dos estratos iguales en tamaño; S = 0.5 y 0.1 → 300 · (0.5, 0.1) / 0.6 = 250, 50.
+  expect_identical(as.integer(.cm_general_reparto(300L, c(2000L, 2000L), pesos = c(2000 * .5, 2000 * .1))),
+                   c(250L, 50L))
+  # Si el peso manda más que el tamaño, censo y redistribución.
+  x <- as.integer(.cm_general_reparto(300L, c(100L, 2000L), pesos = c(100 * 5, 2000 * .1)))
+  expect_identical(x, c(100L, 200L))
+  # Todos los pesos en cero: cae al tamaño, no divide por cero.
+  expect_identical(sum(as.integer(.cm_general_reparto(50L, c(100L, 300L), pesos = c(0, 0)))), 50L)
+})
+
+# --- E3 · estratificado por estrato (Cochran 5.25/5.26) ----------------------
+
+.e3_comp <- function(asignacion = "proporcional", p_h = c(.1, .5), N_h = c(3000L, 2000L)) {
+  est <- lapply(seq_along(N_h), function(i) {
+    e <- list(label = LETTERS[i], N = N_h[[i]])
+    if (!is.na(p_h[[i]])) e$p_facultad <- p_h[[i]]
+    e
+  })
+  .rejilla_comp(tecnica = "prob_estratificado", N = sum(N_h), estratos = est,
+                parametros = list(asignacion = asignacion))
+}
+
+test_that("E3: sin p por estrato ni Neyman, el estratificado no cambia (357 como siempre)", {
+  r <- calc_muestra_calcular_componente(.e3_comp(p_h = c(NA, NA)))
+  expect_identical(as.integer(r$n_teorico), 357L)
+  expect_null(r$asignacion)
+})
+
+test_that("E3: con p por estrato, n = ΣW_h S_h² / (V + ΣW_h S_h²/N) = 226 (a mano 225.95)", {
+  r <- calc_muestra_calcular_componente(.e3_comp())
+  expect_identical(as.integer(r$n_teorico), 226L)
+  expect_identical(r$formula_n, "proporcional_por_estrato")
+  ns <- vapply(r$distribucion_estratos, `[[`, integer(1), "n")
+  expect_identical(ns, c(136L, 90L))
+  # Error con la asignación efectiva: 1.96·√(.36·.09·(1−136/3000)/136 + .16·.25·(1−90/2000)/90) ≈ 0.0500.
+  expect_equal(r$precision_alcanzada, 0.05004, tolerance = 1e-3)
+})
+
+test_that("E3: Neyman da n = (ΣW_h S_h)² / (V + ΣW_h S_h²/N) = 212 y reparte ∝ N_h S_h (100/112)", {
+  r <- calc_muestra_calcular_componente(.e3_comp("neyman"))
+  expect_identical(as.integer(r$n_teorico), 212L)
+  expect_identical(vapply(r$distribucion_estratos, `[[`, integer(1), "n"), c(100L, 112L))
+  expect_identical(r$asignacion, "neyman")
+})
+
+test_that("E3: a igual n, Neyman no tiene más error que la proporcional", {
+  comp_p <- .e3_comp(); comp_n <- .e3_comp("neyman")
+  comp_p$meta <- list(valor = 300L); comp_n$meta <- list(valor = 300L)
+  rp <- calc_muestra_calcular_componente(comp_p); rn <- calc_muestra_calcular_componente(comp_n)
+  expect_identical(as.integer(rp$n_objetivo), 300L)
+  expect_lte(rn$precision_alcanzada, rp$precision_alcanzada)
+})
+
+test_that("E3: el sorteo sortea el reparto de Neyman que publicó el cálculo", {
+  set.seed(5)
+  marco <- data.frame(id = sprintf("U%05d", 1:5000), est = rep(c("A", "B"), c(3000, 2000)))
+  comp <- calc_muestra_normalize_componente(.e3_comp("neyman"))
+  est <- calc_muestra_normalize_estudio(list(componentes = list(comp)))
+  cid <- est$componentes[[1]]$id
+  dec <- calc_muestra_general_declarar_marco(est, NULL, cid, marco, "f1", columnas = list(id = "id", estrato = "est"))
+  # Declarar el marco reescribe los N_h pero conserva la p que ya tenía cada estrato.
+  i <- 1L
+  expect_identical(vapply(dec$estudio$componentes[[i]]$marco$estratos, function(e) e$p_facultad, numeric(1)), c(.1, .5))
+  res <- calc_muestra_calcular_componente(dec$estudio$componentes[[i]])
+  dec$estudio$componentes[[i]]$resultado <- res
+  sel <- calc_muestra_general_seleccionar(dec$estudio, dec$estado, cid, marco, semilla = 2L)
+  campo <- vapply(res$distribucion_estratos, `[[`, integer(1), "n_campo")
+  expect_identical(sel$corrida$estratos$n_h, campo)
+  expect_equal(sel$corrida$estratos$pi, campo / c(3000, 2000))
+})
+
+test_that("H11: el sistemático publica el intervalo fraccional N/n", {
+  r <- .rejilla_calc(tecnica = "sistematico", N = 1000L, parametros = list(e = .0474))
+  expect_equal(r$intervalo_sistematico, 1000 / r$n_objetivo)
+  expect_false(r$intervalo_sistematico == floor(r$intervalo_sistematico))
+})
+
+test_that("H12: una meta menor que el n requerido se declara con el error que sí alcanza", {
+  r <- .rejilla_calc(N = 5000L, meta = list(valor = 150L))
+  expect_identical(as.integer(r$n_objetivo), 150L)
+  expect_identical(as.integer(r$n_teorico), 357L)
+  expect_match(r$advertencia, "La meta declarada (150) es menor que el n que exige el margen (357)", fixed = TRUE)
+  mayor <- .rejilla_calc(N = 5000L, meta = list(valor = 500L))
+  expect_false(grepl("es menor que el n", mayor$advertencia %||% ""))
+})
+
+test_that("H19: la cobertura censal habla de sesgo de no respuesta, no de TCL", {
+  r <- calc_muestra_calcular_componente(calc_muestra_normalize_componente(list(
+    tecnica = "intencion_censal", marco = list(marco_validado = 300L, marco_contactable = 300L, estado = "validado"),
+    parametros = list(cobertura_objetivo = .5))))
+  expect_false(grepl("TCL", r$advertencia, fixed = TRUE))
+  expect_match(r$advertencia, "sesgo de no respuesta")
+  expect_match(r$advertencia, "50 %", fixed = TRUE)
+})
+
+test_that("H24: la asignación de potencia queda entre Neyman y la proporcional (215, a mano 214.05)", {
+  r <- calc_muestra_calcular_componente(.e3_comp("potencia"))
+  expect_identical(as.integer(r$n_teorico), 215L)
+  expect_identical(r$formula_n, "potencia")
+  expect_match(r$memoria_calculo$paso[[2]], "potencia", fixed = TRUE)
+})
+
+test_that("H24: la potencia protege al estrato chico frente a la proporcional", {
+  est <- list(list(label = "Grande", N = 9000L, p_facultad = .3), list(label = "Chico", N = 1000L, p_facultad = .3))
+  mk <- function(a) calc_muestra_calcular_componente(calc_muestra_normalize_componente(.rejilla_comp(
+    tecnica = "prob_estratificado", N = 10000L, estratos = est, meta = list(valor = 400L),
+    parametros = list(asignacion = a))))
+  prop <- mk("proporcional"); pot <- mk("potencia")
+  chico <- function(r) r$distribucion_estratos[[2]]
+  expect_identical(chico(prop)$n, 40L)
+  expect_gt(chico(pot)$n, 90L)
+  # Y su precisión propia mejora con la potencia (usa SU p, no la global).
+  expect_lt(chico(pot)$precision_e, chico(prop)$precision_e)
+  expect_equal(chico(pot)$precision_e, calc_e_desde_n_muestra(n = chico(pot)$n, N = 1000, p = .3, z = 1.96, deff = 1))
+})
+
+test_that("H05: docentes de acreditación nunca mandan a campo más que el marco", {
+  # Hasta 2026-09-24 N = 251 pasaba a cuotas de 150 y mandaba 275. Con el
+  # corte por precisión (calc_muestra_acreditacion_cuadro.R) cerca del cruce
+  # se sortea a ±5 % inflado por respuesta: el tope en N sigue valiendo.
+  for (N in c(251L, 259L, 270L, 300L)) {
+    comp <- .cm_iniciar_acreditacion()$componentes[[2]]
+    comp$marco$marco_validado <- N; comp$marco$universo_bruto <- N
+    comp$marco$marco_contactable <- N; comp$marco$estado <- "validado"
+    r <- calc_muestra_calcular_componente(calc_muestra_normalize_componente(comp))
+    expect_lte(as.integer(r$n_operativo), N)
+  }
+})
+
+test_that("H05 en cuotas: una meta mayor que el marco se ajusta al marco y se dice", {
+  r <- .rejilla_calc(tecnica = "no_prob_cuotas", N = 80L, meta = list(valor = 150L))
+  expect_identical(as.integer(r$n_objetivo), 80L)
+  expect_identical(as.integer(r$n_operativo), 80L)
+  expect_match(r$advertencia, "supera el marco")
+})

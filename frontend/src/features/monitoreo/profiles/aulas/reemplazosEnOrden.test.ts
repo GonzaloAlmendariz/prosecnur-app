@@ -68,7 +68,7 @@ describe("reemplazosEnOrdenDeCadena", () => {
     expect(codigos(salida)).toEqual(["CH 4", "R x", "CH 5"]);
   });
 
-  it("manda el banco de extras al final, detrás de todas las cadenas", () => {
+  it("manda la reserva adicional al final, detrás de todas las cadenas", () => {
     // Los extras son capacidad sin asignar: no son el siguiente turno de nadie.
     const salida = reemplazosEnOrdenDeCadena([
       { operational_code: "EXTRA 1", sample_role: "extra_reserve_pool" },

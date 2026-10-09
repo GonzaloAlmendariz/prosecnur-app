@@ -1,5 +1,6 @@
 import { useId } from "react";
 
+import { CampoNumero } from "./CampoNumero";
 import { acotarUmbral } from "./ControlUmbral";
 import "./controlUmbral.css";
 
@@ -124,23 +125,27 @@ export function ControlRango({
       </div>
 
       <div className="cmv2-rango-campos">
-        <span className="cmv2-umbral-campo">
-          <input
-            type="number" min={min} max={max} step={paso} value={desde} disabled={deshabilitado}
-            aria-label={`${etiqueta} — desde, valor exacto`}
-            onChange={(e) => { const v = Number(e.currentTarget.value); if (Number.isFinite(v)) emitir(v, hasta); }}
-          />
-          {sufijo ? <em aria-hidden="true">{sufijo}</em> : null}
-        </span>
+        <CampoNumero
+          valor={desde}
+          min={min}
+          max={max}
+          paso={paso}
+          sufijo={sufijo}
+          deshabilitado={deshabilitado}
+          ariaLabel={`${etiqueta} — desde, valor exacto`}
+          onConfirmar={(v) => emitir(v, hasta)}
+        />
         <span className="cmv2-rango-guion" aria-hidden="true">–</span>
-        <span className="cmv2-umbral-campo">
-          <input
-            type="number" min={min} max={max} step={paso} value={hasta} disabled={deshabilitado}
-            aria-label={`${etiqueta} — hasta, valor exacto`}
-            onChange={(e) => { const v = Number(e.currentTarget.value); if (Number.isFinite(v)) emitir(desde, v); }}
-          />
-          {sufijo ? <em aria-hidden="true">{sufijo}</em> : null}
-        </span>
+        <CampoNumero
+          valor={hasta}
+          min={min}
+          max={max}
+          paso={paso}
+          sufijo={sufijo}
+          deshabilitado={deshabilitado}
+          ariaLabel={`${etiqueta} — hasta, valor exacto`}
+          onConfirmar={(v) => emitir(desde, v)}
+        />
       </div>
 
       {descripcion ? <p className="cmv2-umbral-efecto">{descripcion}</p> : null}

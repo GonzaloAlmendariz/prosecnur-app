@@ -67,8 +67,10 @@ test_that("detecta dos cifras que se pisan y ve cuando dejan de pisarse", {
     valor = c(45, 58, 67, 72, 62, 60, 71, 78),
     stringsAsFactors = FALSE
   )
-  con <- graficar_serie_temporal(df, mostrar_valores = TRUE)
-  sin <- graficar_serie_temporal(df, mostrar_valores = TRUE, separacion_etiquetas = 0)
+  # El estilo clásico: este test mide al auditor con un gráfico que se pisa a
+  # propósito, y el del recetario ubica sus cifras para no pisarse (ADR 0092).
+  con <- graficar_serie_temporal(df, mostrar_valores = TRUE, estilo = "clasico")
+  sin <- graficar_serie_temporal(df, mostrar_valores = TRUE, separacion_etiquetas = 0, estilo = "clasico")
 
   expect_equal(sum(graficos_composicion_auditar(con)$regla == "solape"), 0L)
   expect_gt(sum(graficos_composicion_auditar(sin)$regla == "solape"), 0L)
@@ -81,8 +83,8 @@ test_that("detecta el texto por debajo del minimo legible", {
   df <- data.frame(
     eje = "A", grupo = c("O1", "O2"), valor = c(45, 72), stringsAsFactors = FALSE
   )
-  chico <- graficar_serie_temporal(df, mostrar_valores = TRUE, size_valores = 1.5)
-  normal <- graficar_serie_temporal(df, mostrar_valores = TRUE)
+  chico <- graficar_serie_temporal(df, mostrar_valores = TRUE, size_valores = 1.5, estilo = "clasico")
+  normal <- graficar_serie_temporal(df, mostrar_valores = TRUE, estilo = "clasico")
 
   expect_gt(sum(graficos_composicion_auditar(chico)$regla == "ilegible"), 0L)
   expect_equal(sum(graficos_composicion_auditar(normal)$regla == "ilegible"), 0L)

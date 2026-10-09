@@ -39,6 +39,10 @@
 .monitoreo_invalidate_dashboard_caches <- function(sid, snapshot = NULL) {
   s <- session_get(sid)
   monitoreo_perf_variables_cache_invalidate(sid)
+  # El dashboard de aulas vive en memoria del proceso, no en la sesion, asi que
+  # no lo alcanza el borrado de claves de abajo: se invalida aparte o un .pulso
+  # nuevo sobre un `sid` reusado leeria las cifras del proyecto anterior.
+  monitoreo_aulas_cache_invalidate(sid)
   scopes <- c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "phone_summary", "full")
   # Nombres en NULL, no borrados: si algún día un scope queda fuera de `scopes`,
   # `s$monitoreo_dashboard_cache` resolvería por partial matching a ese scoped.
@@ -553,16 +557,32 @@
   as.integer(removed)
 }
 
+# `empty_source_ids` (2026-09-08): **un reemplazo full sólo reemplaza si trae
+# con qué.**
+#
+# Una fuente en modo full borra de `prev_data` todas sus filas antes de poner
+# las nuevas. Cuando la plataforma responde 200 con cero registros no hay filas
+# nuevas, así que el borrado se quedaba solo: medido en el `.pulso` de HSVG2026
+# el 2026-09-08, 273 respuestas se convirtieron en un `data.frame` de 0 x 0 en
+# una pulsación de «actualizar», con el campo abierto y 212 efectivas dentro.
+#
+# Vaciar es destructivo y no se hace por defecto. Si de verdad se borró todo en
+# la plataforma, el vacío llega con la siguiente sincronización que sí traiga
+# datos, o se limpia a mano; conservar de más es reversible y borrar de más, no.
 .monitoreo_merge_sync_result_data <- function(prev_data,
                                               result_data,
                                               synced_source_ids = character(0),
-                                              incremental_source_ids = character(0)) {
+                                              incremental_source_ids = character(0),
+                                              empty_source_ids = character(0)) {
   if (is.null(prev_data) || !is.data.frame(prev_data)) prev_data <- data.frame()
   if (is.null(result_data) || !is.data.frame(result_data)) result_data <- data.frame()
   synced_source_ids <- unique(.monitoreo_chr_vec(synced_source_ids))
   synced_source_ids <- synced_source_ids[nzchar(synced_source_ids)]
+  empty_source_ids <- unique(.monitoreo_chr_vec(empty_source_ids))
+  empty_source_ids <- empty_source_ids[nzchar(empty_source_ids)]
   incremental_source_ids <- intersect(unique(.monitoreo_chr_vec(incremental_source_ids)), synced_source_ids)
   full_source_ids <- setdiff(synced_source_ids, incremental_source_ids)
+  full_source_ids <- setdiff(full_source_ids, empty_source_ids)
 
   base <- prev_data
   if (nrow(base) && length(full_source_ids) && ".source_id" %in% names(base)) {
@@ -1125,14 +1145,63 @@
       aulas_cfg$partes_campo, s$monitoreo_aulas_partes_campo, list()
     )
     aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan %||% list()
-    aulas_dashboard <- monitoreo_aulas_dashboard(aulas_plan, display_data, aulas_cfg)
+    # **El instrumento NO llega al tablero de aulas, y pasarlo aqui no basta.**
+    #
+    # `monitoreo_aulas_dashboard` lee `cfg$instrumento_survey` para el bloque de
+    # texto abierto —«este estudio no trae instrumento, asi que la vista...»—
+    # pero esa clave aparece **una sola vez en todo `api/R`**: en el consumidor.
+    # `monitoreo_aulas_normalize_config` construye una lista CERRADA y no la
+    # transporta, asi que `cfg$instrumento_survey` es NULL **por construccion** y
+    # el panel no puede decir otra cosa nunca.
+    #
+    # Probado: sembrando el instrumento real en la sesion y pasandolo aqui, el
+    # panel sigue diciendo que no lo hay. Escribirlo en esta ruta es necesario
+    # pero no suficiente; falta que el normalizador lo lleve, y ese archivo esta
+    # CONGELADO a crecimiento (`agentic/manifest.json`), asi que anadir el campo
+    # exige subir su linea base de forma deliberada.
+    #
+    # Se deja la nota y no el codigo muerto: `s$instrumento$survey` esta ahi
+    # cuando se decida abrir el normalizador.
+
+    # **Aulas era la unica familia que reconstruia su dashboard en cada request.**
+    # Aqui arriba territorial pasa por su cache de mapa y acreditacion/telefonico
+    # por la suya; esta linea llamaba al motor a pelo, y encima FUERA del
+    # `if (should_build_dashboard)`, asi que se reconstruia incluso cuando el
+    # tablero general venia de cache. Medido: 6,6 s por request sobre 2.616
+    # cursos-horario x 6 requests que dispara abrir un proyecto = ~40 s con
+    # Plumber bloqueado. Detalle y token en `monitoreo_aulas_cache.R`.
+    aulas_cache_token <- monitoreo_aulas_cache_token(
+      cache_token, aulas_plan, aulas_cfg, scope = report_scope
+    )
+    aulas_cache <- monitoreo_aulas_dashboard_cached(
+      sid, aulas_plan, display_data, aulas_cfg, aulas_cache_token
+    )
+    aulas_dashboard <- aulas_cache$dashboard
     if (is.null(dashboard) || !is.list(dashboard)) {
       dashboard <- list(ok = TRUE, kpis = list(), progress = data.frame(), production = data.frame(), inconsistencies = data.frame())
     }
     dashboard$aulas_universitarias_reports <- aulas_dashboard
-    dashboard$kpis$aulas_total <- aulas_dashboard$kpis$total_aulas %||% 0L
-    dashboard$kpis$aulas_aplicadas <- aulas_dashboard$kpis$aulas_aplicadas %||% 0L
-    dashboard$kpis$respuestas_validas_aulas <- aulas_dashboard$kpis$respuestas_validas %||% 0L
+    # **AQUI NO VAN `kpis$aulas_total`, `kpis$aulas_aplicadas` NI
+    # `kpis$respuestas_validas_aulas`. Estuvieron y se quitaron; no los repongas.**
+    #
+    # Eran espejos de `aulas_universitarias_reports$kpis`, que es donde el
+    # frontend los lee de verdad —`railDeAulas.ts` y `kpisDeAulas.ts` tipan su
+    # objeto como `MonitoreoAulasDashboard`, o sea el BLOQUE—. Aqui arriba nadie
+    # entraba: cero consumidores en tres barridos (2026-08-30, y dos veces el
+    # 2026-09-09), y ni siquiera estaban declarados en
+    # `frontend/src/api/monitoreo.ts`.
+    #
+    # Y no eran neutros. `total_aulas` cuenta el plan SIN BANCO —titulares mas
+    # sus reservas encadenadas: 1.347 sobre HSVG2026 «como 2025», de los que 174
+    # son titulares—, asi que junto a `aulas_aplicadas` invitaba a leer 152 de
+    # 1.347: un 11 % donde va un 87 %. Ese mismo error de universo ya hubo que
+    # repararlo en el pronostico de cierre, en la hoja del cliente y en el badge
+    # de Registro; publicarlo aqui era dejar la cuarta trampa puesta esperando a
+    # quien conectara el home.
+    #
+    # Quien necesite estas cifras las toma del bloque, y usa `aulas_titulares`
+    # para «lo que hay que aplicar» —nunca `total_aulas`, que es «el plan con sus
+    # reservas»—. Lo fija `test-monitoreo-kpis-sin-espejos-de-aulas.R`.
   }
   # Espeja al home los KPIs de la familia recien servidos (single source fresca),
   # despues de las transformaciones por familia y sin tocar
@@ -1159,25 +1228,13 @@
     tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
   }
   include_snapshot_artifacts <- isTRUE(include_reports) && !identical(family, "territorial")
-  # El plan tampoco viaja dentro de `config`. Medido sobre 196 aulas: 333 KB de
-  # un payload de 934, y `dashboard$aulas_universitarias_reports$agenda` es un
-  # SUPERCONJUNTO estricto de esa copia —las mismas 196 filas con los mismos 80
-  # campos, mas `respuestas_validas` y `brecha`—, asi que no se pierde nada.
-  #
-  # Y esta siempre: el tablero de aulas se reconstruye en cada peticion desde
-  # `s$monitoreo_aulas_plan`, no depende de que exista snapshot, asi que el
-  # registro de campo lo tiene desde antes de la primera respuesta.
-  #
-  # Queda `plan_rows` porque hay una pregunta que sigue siendo de la config:
-  # cuantas unidades hay, que es lo que decide si se puede generar el libro.
-  # Mandar 333 KB para contar 196 filas es el intercambio que se deshace aqui.
+  # El plan no viaja dentro de `config` (333 KB medidos): queda `plan_rows`,
+  # contado desde la fuente veraz —la sesion, que es lo que escribe el handoff—.
+  # El porque entero vive en monitoreo_aulas_estado_payload.R (A14).
   cfg_payload <- cfg
-  if (is.list(cfg_payload$aulas_universitarias)) {
-    au <- cfg_payload$aulas_universitarias
-    au$plan_rows <- as.integer(length(au$plan %||% list()))
-    au$plan <- NULL
-    cfg_payload$aulas_universitarias <- au
-  }
+  cfg_payload$aulas_universitarias <- monitoreo_aulas_estado_payload(
+    cfg$aulas_universitarias, s$monitoreo_aulas_plan
+  )
   list(
     ok = TRUE,
     # De que sorteo viene el plan de aulas y si sigue siendo el vigente. La
@@ -1195,6 +1252,11 @@
     reports = if (isTRUE(include_snapshot_artifacts)) snapshot$reports %||% NULL else NULL,
     chart_models = if (isTRUE(include_snapshot_artifacts)) snapshot$chart_models %||% NULL else NULL,
     sync_errors = snapshot$sync_errors %||% snapshot$errors %||% list(),
+    # B3: qué fuente volvió sin nada en la última sincronización y qué se está
+    # viendo en su lugar. Va junto a `sync_errors` porque se lee igual —algo que
+    # revisar antes de creerle a las cifras— pero NO es un error: el sync
+    # terminó bien, sólo que de vacío.
+    aviso_fuentes_vacias = snapshot$aviso_fuentes_vacias %||% NULL,
     pending_regeneration = isTRUE(snapshot$pending_regeneration),
     n_rows = as.integer(nrow(display_data)),
     variables = monitoreo_variables_cached(sid, display_data, snapshot$synced_at %||% "", cfg),
@@ -1227,11 +1289,12 @@
     # copia pesaba 356 KB de los 1377 del payload y era identica byte a byte a
     # la otra. Se conserva el resto de la config —enabled, mapeos, cuotas— por
     # si algo la lee: lo unico que se quita es el duplicado grande.
-    aulas_universitarias = {
-      au <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
-      if (is.list(au)) au$plan <- NULL
-      au
-    },
+    # A6: la MISMA función que recorta la copia de `config` (sin plan, sin las
+    # listas del marco): dos recortes distintos del mismo bloque es como volvió
+    # a pesar 61 MB.
+    aulas_universitarias = monitoreo_aulas_estado_payload(
+      cfg$aulas_universitarias %||% monitoreo_aulas_default_config(), s$monitoreo_aulas_plan
+    ),
     errors = snapshot$errors %||% list()
   )
 }
@@ -2201,7 +2264,13 @@
     asset_uid = parsed$asset_uid %||% parsed$assetUid %||% "",
     survey_id = parsed$survey_id %||% parsed$surveyId %||% "",
     survey_title = parsed$survey_title %||% parsed$surveyTitle %||% "",
-    base_url = parsed$base_url %||% parsed$baseUrl %||% if (identical(kind, "kobo")) kobo_api_default_base_url() else if (identical(kind, "surveymonkey")) "https://api.surveymonkey.com/v3" else "",
+    # El servidor lo hereda del PERFIL cuando el cuerpo no lo dice: rellenarlo
+    # con el default tapaba al perfil y una fuente EU se preguntaba al Kobo
+    # global. Ver monitoreo_fuente_servidor.R.
+    base_url = .monitoreo_fuente_base_url(
+      parsed$base_url %||% parsed$baseUrl, kind,
+      parsed$connection_profile_id %||% parsed$connectionProfileId %||%
+        parsed$profile_id %||% parsed$profileId %||% ""),
     connection_profile_id = parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% "",
     role = parsed$role %||% parsed$rol %||% NULL,
     integration_mode = parsed$integration_mode %||% parsed$integrationMode %||% NULL,
@@ -2349,7 +2418,13 @@
   list(ok = TRUE, source = source, validation = validation, state = .monitoreo_state_payload(sid))
 }
 
-.monitoreo_client_report_model_for_snapshot <- function(snapshot, cfg, include_targets = FALSE) {
+.monitoreo_client_report_model_for_snapshot <- function(snapshot, cfg, include_targets = FALSE,
+                                                        # El padrón de la sesión, sólo para aulas:
+                                                        # su eje de cuota puede resolverse por
+                                                        # PERSONA y sin él la tabla no tiene de
+                                                        # dónde sacar sus efectivas (ADR 0087: no
+                                                        # viaja dentro de `cfg`).
+                                                        padron = NULL) {
   if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
     stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de generar el reporte a cliente.")
   }
@@ -2401,6 +2476,18 @@
       snapshot = snapshot,
       cfg = cfg,
       include_targets = include_targets
+    ))
+  }
+  # Aulas universitarias tiene su propio reporte de avance desde 2026-08-27.
+  # Antes caia al `else` de acreditacion, que NO es un generico: su modelo y su
+  # renderizador hablan de `actors`, `daily_actor` y `channel_labels`, asi que
+  # informar aulas con el obligaba a llamar «actores» a las facultades.
+  if (identical(.monitoreo_publication_family_key(publication_family), "aulas_universitarias")) {
+    return(build_monitoreo_aulas_report_model(
+      snapshot = snapshot,
+      cfg = cfg,
+      include_targets = include_targets,
+      padron = padron
     ))
   }
   dashboard <- snapshot$dashboard %||% NULL
@@ -2705,7 +2792,8 @@ monitoreo_sync_job_runner <- function(sources_path,
 monitoreo_client_report_pdf_job_runner <- function(model_path,
                                                    include_targets = FALSE,
                                                    result_path = NULL,
-                                                   progress_path = NULL) {
+                                                   progress_path = NULL,
+                                                   portada = list()) {
   report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
   report("prepare", percent = 15, message = "Preparando reporte...")
   model <- readRDS(model_path)
@@ -2717,6 +2805,10 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
   } else if (identical(report_kind, "telefonico_advance_pdf") || identical(family, "telefonico")) {
     report("render", percent = 55, message = "Renderizando avance telefónico...")
     monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets)
+  } else if (identical(report_kind, "aulas_advance_pdf") || identical(family, "aulas_universitarias")) {
+    report("render", percent = 55, message = "Renderizando avance de cursos-horario...")
+    monitoreo_aulas_advance_report_pdf(model, result_path, include_targets = include_targets,
+                                       portada = portada)
   } else {
     report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
     monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
@@ -3015,7 +3107,8 @@ mount_monitoreo <- function(pr) {
       snapshot <- monitoreo_client_snapshot_with_carga_universe(snapshot, s)
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
-      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
+      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets,
+                                                          padron = s[["monitoreo_aulas_padron"]])
       spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "client")
       if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para el reporte a cliente.")
       tabs <- .monitoreo_client_report_tabs_payload(model)
@@ -3145,19 +3238,30 @@ mount_monitoreo <- function(pr) {
       snapshot <- s$monitoreo_snapshot %||% NULL
       snapshot <- monitoreo_client_snapshot_with_carga_universe(snapshot, s)
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
+      cfg <- monitoreo_aulas_config_con_sesion(cfg, s)
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
       occ_snap <- s$monitoreo_territorial_occurrences_snapshot %||% NULL
       if (is.list(occ_snap) && is.data.frame(occ_snap$data) && nrow(occ_snap$data) && !is.null(snapshot)) {
         attr(snapshot, "occurrences_snapshot") <- occ_snap
       }
-      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
+      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets,
+                                                          padron = s[["monitoreo_aulas_padron"]])
+      portada <- monitoreo_aulas_portada_desde_body(parsed)
       model_path <- job_save_rds(sid, "monitoreo_client_report_model", model)
       is_territorial_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "territorial_advance_pdf") ||
         identical(.monitoreo_publication_family_key(model$family %||% ""), "territorial")
       is_telefonico_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "telefonico_advance_pdf") ||
         identical(.monitoreo_publication_family_key(model$family %||% ""), "telefonico")
-      report_slug <- if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo" else if (isTRUE(is_telefonico_pdf)) "avance_telefonico_monitoreo" else "reporte_cliente_monitoreo"
-      report_job_kind <- if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf" else if (isTRUE(is_telefonico_pdf)) "monitoreo.telefonico_advance_pdf" else "monitoreo.client_report_pdf"
+      is_aulas_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "aulas_advance_pdf") ||
+        identical(.monitoreo_publication_family_key(model$family %||% ""), "aulas_universitarias")
+      report_slug <- if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo"
+        else if (isTRUE(is_telefonico_pdf)) "avance_telefonico_monitoreo"
+        else if (isTRUE(is_aulas_pdf)) "avance_aulas_monitoreo"
+        else "reporte_cliente_monitoreo"
+      report_job_kind <- if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf"
+        else if (isTRUE(is_telefonico_pdf)) "monitoreo.telefonico_advance_pdf"
+        else if (isTRUE(is_aulas_pdf)) "monitoreo.aulas_advance_pdf"
+        else "monitoreo.client_report_pdf"
       filename <- .export_filename(sid, report_slug, "pdf")
       pdf_job_runner <- monitoreo_client_report_pdf_job_runner
       attr(pdf_job_runner, "prosecnur_job_function_name") <- "monitoreo_client_report_pdf_job_runner"
@@ -3165,7 +3269,8 @@ mount_monitoreo <- function(pr) {
         sid = sid,
         kind = report_job_kind,
         func = pdf_job_runner,
-        args = list(model_path = model_path, include_targets = include_targets),
+        args = list(model_path = model_path, include_targets = include_targets,
+                    portada = portada),
         result_filename = filename,
         on_complete = function(j) {
           if (identical(j$status, "done") && !is.null(j$result_path) && file.exists(j$result_path)) {
@@ -4868,6 +4973,168 @@ mount_monitoreo <- function(pr) {
     # recoge el control. Es el mismo papel del Excel de barrido en telefonico.
     # Activa la siguiente reserva de un curso-horario caido. Mientras el aula
     # caida siga contando contra su meta, la brecha del estudio miente.
+    # **El Sheets que se comparte con los aplicadores** (dictado 2026-09-07).
+    # Documento aparte del libro operativo: sólo la distribución, para que el
+    # equipo lea su semana sin ver la base de control ni las hojas que otros
+    # están editando. Acepta el enlace entero, que es lo que se copia del
+    # navegador.
+    plumber::pr_post("/api/monitoreo/aulas/publicar-distribucion", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data.frame())
+      aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
+      destino <- .monitoreo_scalar(parsed$url %||% parsed$spreadsheet_id %||% parsed$enlace, "")
+      # S7: sin enlace en el body se publica al destino RECORDADO, como hace
+      # el libro; y lo publicado deja su huella en la config para que el
+      # tablero pueda decir después si el reparto cambió.
+      if (!nzchar(destino)) {
+        destino <- .monitoreo_scalar((aulas_cfg[["distribucion_sheets"]] %||% list())[["spreadsheet_id"]], "")
+      }
+      out <- monitoreo_aulas_publicar_distribucion(
+        destino,
+        plan = s[["monitoreo_aulas_plan"]] %||% aulas_cfg[["plan"]] %||% list(),
+        disponibilidad = s[["monitoreo_aulas_disponibilidad"]],
+        config_reparto = aulas_cfg,
+        partes = aulas_cfg[["partes_campo"]] %||% list(),
+        # El veredicto del cruce con el otro estudio, con `[[` para que sus
+        # seis atributos lleguen enteros: la columna usa `etiqueta` y `fechas`.
+        traslape = s[["monitoreo_aulas_daa_traslape"]]
+      )
+      cfg <- monitoreo_aulas_distribucion_destino_set(cfg, out$spreadsheet_id,
+                                                      huella = out$huella, citas = out$citas)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+      .monitoreo_mark_project_dirty_if_open(sid)
+      c(out, list(
+        distribucion_sheets = cfg$aulas_universitarias$distribucion_sheets,
+        state = .monitoreo_state_payload(sid)
+      ))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/marcar-refuerzo", wrap_endpoint(function(req, res, ...) {
+      # B y C, y NUNCA A: el reemplazo se aplica en el Sheets y la app solo lo
+      # lee (Gonzalo, 2026-09-11). Escribir tambien ahi pondria a la app a
+      # competir con quien agenda en vivo.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      codigo <- .monitoreo_scalar(body$operational_code %||% body$codigo %||% "", "")
+      s <- session_get(sid)
+      plan <- s$monitoreo_aulas_plan %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
+      out <- monitoreo_aulas_marcar_refuerzo(
+        plan, codigo,
+        para = .monitoreo_scalar(body$para %||% body$destino %||% "", ""),
+        tipo = .monitoreo_scalar(body$tipo %||% "refuerzo", "refuerzo"),
+        motivo = .monitoreo_scalar(body$motivo %||% body$reason %||% "", "")
+      )
+      session_set(sid, "monitoreo_aulas_plan", out$plan)
+      cfg <- s$monitoreo_config %||% list()
+      if (is.list(cfg$aulas_universitarias)) {
+        cfg$aulas_universitarias$plan <- out$plan
+        .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      }
+      .monitoreo_mark_project_dirty_if_open(sid)
+      list(ok = TRUE, marcada = out$marcada,
+           mensaje = monitoreo_aulas_marcar_refuerzo_texto(out),
+           state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/publicar-marcas", wrap_endpoint(function(req, res, ...) {
+      # **La EXCEPCION, y la unica escritura de la app sobre una hoja del
+      # equipo.** Gonzalo dio la palabra el 2026-09-11 y solo para este caso:
+      # una columna (STATUS MUESTRA), solo las filas que la app marco, solo si
+      # la celda remota esta libre, y nunca un borrado.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      cfg <- s$monitoreo_config %||% list()
+      destino <- monitoreo_aulas_libro_destino(cfg)
+      if (!nzchar(destino)) {
+        stop_api(409, "E_AULAS_LIBRO_SIN_ORIGEN",
+                 "No hay un Google Sheets del operativo recordado al que publicar.")
+      }
+      plan <- s$monitoreo_aulas_plan %||%
+        ((cfg$aulas_universitarias %||% list())$plan %||% list())
+      # `aplicar = FALSE` es el ENSAYO: dice que celdas se pintarian sin tocar
+      # una sola. Es lo que deja mirar antes de escribir en la hoja de otro.
+      aplicar <- .mapm_aplicar_del_cuerpo(body)
+      out <- monitoreo_aulas_publicar_marcas(destino, plan, aplicar = aplicar)
+      list(ok = TRUE, escritas = out$escritas, respetadas = out$respetadas,
+           sin_fila = as.list(out$sin_fila), por_hoja = out$por_hoja,
+           formato = out$formato, aplicado = out$aplicado, mensaje = out$mensaje)
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/marcar-refuerzos", wrap_endpoint(function(req, res, ...) {
+      # **El lote, y existe por una medida.** Una marca suelta tardaba ~120 s
+      # porque este endpoint reconstruye el tablero entero de 1.392 filas; el
+      # autopicker de quince eran ~30 minutos. Aqui las N marcas se aplican
+      # sobre el plan en memoria y el tablero se reconstruye UNA vez.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      pedidos <- body$pedidos %||% body$marcas %||% list()
+      if (!length(pedidos)) {
+        stop_api(400, "E_REFUERZO_LOTE_VACIO",
+                 "El lote no trae ningun curso-horario que marcar.")
+      }
+      s <- session_get(sid)
+      plan <- s$monitoreo_aulas_plan %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
+      out <- monitoreo_aulas_marcar_refuerzos(plan, pedidos)
+      session_set(sid, "monitoreo_aulas_plan", out$plan)
+      cfg <- s$monitoreo_config %||% list()
+      if (is.list(cfg$aulas_universitarias)) {
+        cfg$aulas_universitarias$plan <- out$plan
+        .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      }
+      .monitoreo_mark_project_dirty_if_open(sid)
+      list(ok = TRUE, marcadas = out$marcadas, fallidas = out$fallidas,
+           mensaje = monitoreo_aulas_lote_texto(out, "marcados"),
+           state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/desmarcar-refuerzos", wrap_endpoint(function(req, res, ...) {
+      # La contracara del autopicker: si se marcan quince de una vez, tiene que
+      # poder soltarse quince de una vez, y con una sola reconstruccion.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      pedidos <- body$pedidos %||% body$codigos %||% list()
+      if (!length(pedidos)) {
+        stop_api(400, "E_REFUERZO_LOTE_VACIO",
+                 "El lote no trae ningun curso-horario que retirar.")
+      }
+      s <- session_get(sid)
+      plan <- s$monitoreo_aulas_plan %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
+      out <- monitoreo_aulas_desmarcar_refuerzos(plan, pedidos)
+      session_set(sid, "monitoreo_aulas_plan", out$plan)
+      cfg <- s$monitoreo_config %||% list()
+      if (is.list(cfg$aulas_universitarias)) {
+        cfg$aulas_universitarias$plan <- out$plan
+        .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      }
+      .monitoreo_mark_project_dirty_if_open(sid)
+      list(ok = TRUE, retiradas = out$retiradas, fallidas = out$fallidas,
+           mensaje = monitoreo_aulas_lote_texto(out, "retirados"),
+           state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/desmarcar-refuerzo", wrap_endpoint(function(req, res, ...) {
+      # Deshacer la marca. Sin esto, el autopicker —quince de golpe— era una
+      # decision sin vuelta, y un lote mal elegido dejaba quince cursos-horario
+      # apartados del inventario sin forma de devolverlos.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      codigo <- .monitoreo_scalar(body$operational_code %||% body$codigo %||% "", "")
+      s <- session_get(sid)
+      plan <- s$monitoreo_aulas_plan %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
+      out <- monitoreo_aulas_desmarcar_refuerzo(plan, codigo)
+      session_set(sid, "monitoreo_aulas_plan", out$plan)
+      cfg <- s$monitoreo_config %||% list()
+      if (is.list(cfg$aulas_universitarias)) {
+        cfg$aulas_universitarias$plan <- out$plan
+        .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      }
+      .monitoreo_mark_project_dirty_if_open(sid)
+      list(ok = TRUE, retirada = out$retirada,
+           mensaje = monitoreo_aulas_desmarcar_refuerzo_texto(out),
+           state = .monitoreo_state_payload(sid))
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/activar-reemplazo", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       body <- .monitoreo_parse_body(req)
@@ -4881,7 +5148,13 @@ mount_monitoreo <- function(pr) {
         ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
       out <- monitoreo_aulas_activar_reemplazo(
         plan, codigo,
-        motivo = .monitoreo_scalar(body$motivo %||% body$reason %||% "", "")
+        motivo = .monitoreo_scalar(body$motivo %||% body$reason %||% "", ""),
+        # Cual reserva entra. Vacio = la que toca por orden de cadena, que es lo
+        # que la ruta hacia siempre y sigue siendo el respaldo. Con codigo, entra
+        # ESA: el motor comprueba que exista, no sea la caida, siga dormida y sea
+        # de la misma facultad, y si algo falla devuelve su E_* en vez de activar
+        # otra por su cuenta.
+        elegida = .monitoreo_scalar(body$elegida %||% body$chosen %||% "", "")
       )
       session_set(sid, "monitoreo_aulas_plan", out$plan)
       cfg <- s$monitoreo_config %||% list()
@@ -4897,6 +5170,10 @@ mount_monitoreo <- function(pr) {
            # mensaje operativo. La escribio Calculo de muestra para el momento
            # de la activacion y no llegaba a quien activa.
            advertencia_peso = out$advertencia_peso %||% "",
+           # De donde salio la que entro: `cadena` es seguir el plan, y
+           # `otra_cadena` o `extra` son decisiones distintas que el operativo
+           # tiene que ver declaradas, no deducir del codigo.
+           origen = out$origen %||% "",
            state = .monitoreo_state_payload(sid))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/generar-libro", wrap_endpoint(function(req, res, ...) {
@@ -4931,6 +5208,16 @@ mount_monitoreo <- function(pr) {
         ),
         error = function(e) NULL
       )
+      # Y su reparto por sexo (dictado 2026-09-04). Sin `sex_var` declarada
+      # devuelve NULL y la columna del Plan del dia calla.
+      efectivas_sexo <- tryCatch(
+        monitoreo_aulas_efectivas_por_sexo(
+          unidades,
+          (s$monitoreo_snapshot %||% list())$data,
+          ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())
+        ),
+        error = function(e) NULL
+      )
       # Y las respuestas, para la hoja de indicadores: el avance diario sale de
       # cuando ENTRO cada encuesta, no de cuando se aplico el aula.
       respuestas <- (s$monitoreo_snapshot %||% list())$data
@@ -4943,9 +5230,24 @@ mount_monitoreo <- function(pr) {
         } else NULL,
         error = function(e) NULL
       )
+      # Y la procedencia, para que el libro diga de que lectura salio: es lo
+      # unico que permite comparar dos copias sin adivinar cual esta al dia.
       escrito <- aulas_libro_generar(unidades, destino, partes = partes, control = control,
-                          efectivas = efectivas, responses = respuestas,
-                          validas = validas)
+                          procedencia = s$monitoreo_aulas_libro %||% NULL,
+                          disponibilidad = s$monitoreo_aulas_disponibilidad %||% NULL,
+                          efectivas = efectivas, efectivas_sexo = efectivas_sexo,
+                          responses = respuestas,
+                          validas = validas,
+                          # Las cuotas del diseño, para el avance por facultad y
+                          # sexo de la hoja de indicadores. Sin ellas ese bloque
+                          # no se escribe: la cuota no se reconstruye.
+                          cuotas = ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$design_targets,
+                          # El padrón, para la hoja «Control de nivel». Se lee
+                          # de la SESIÓN con `[[` y no de la config: vive sólo
+                          # ahí para que la purga lo alcance (ADR 0087), y el
+                          # `$` parcial-matchearía `monitoreo_aulas_padron_corte`.
+                          padron = s[["monitoreo_aulas_padron"]],
+                          cfg = ((s$monitoreo_config %||% list())$aulas_universitarias %||% list()))
       # Las que entraron al archivo, no las del plan: el banco sin usar se queda
       # fuera y contar el plan crudo hacia decir «Libro de 2616 aulas» de un
       # libro con 190.
@@ -4969,69 +5271,26 @@ mount_monitoreo <- function(pr) {
     })) |>
     # Importa el libro operativo del estudio: las tres hojas que el equipo llena
     # en Excel. La app LEE; no sustituye la hoja de calculo.
-    # `parsers`: sin declarar `multi`, plumber no descompone el multipart y el
-    # `file` llega NULL, asi que la subida desde la app moria con «indica el
-    # file_id». `json` se conserva para la via del `file_id`.
+    # Solo la via del `file_id` (mas `path` en desarrollo): la rama multipart
+    # que vivio aqui estaba documentada rota —plumber no parseaba la parte
+    # interna del xlsx— y la app dejo de ofrecerla en A4 (36d81fc4); se retiro
+    # entera el 2026-09-01 con sus dos E_* del registry. El libro se sube por
+    # /api/files y se importa por su id.
     plumber::pr_post("/api/monitoreo/aulas/importar-libro",
-                     # PENDIENTE (medido, no supuesto): la subida multipart no
-                     # termina de funcionar. Con `c("multi","json")` el `file`
-                     # llega pero plumber muere al parsear la parte interna —«No
-                     # suitable parser found to handle request body type
-                     # application/vnd.openxmlformats-officedocument…»—; al
-                     # anadir `octet` deja de llegar. La via del `file_id` si
-                     # funciona y es la que usa la app.
-                     parsers = c("multi", "json"),
-                     wrap_endpoint(function(req, res, file = NULL, ...) {
+                     wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
-      # El body solo se parsea como JSON cuando NO viene archivo: con multipart,
-      # `.monitoreo_parse_body()` falla con E_BAD_JSON antes de mirar el `file`.
-      parsed <- if (is.null(file)) .monitoreo_parse_body(req) else list()
+      parsed <- .monitoreo_parse_body(req)
       s <- session_get(sid)
       ruta <- ""
-      # El libro puede llegar SUBIDO —que es como lo manda la app— o por
-      # `file_id` si ya esta en la sesion. Sin la primera via el ciclo «la app
-      # genera, alguien llena, la app relee» solo se podia cerrar con curl.
-      if (!is.null(file)) {
-        extracted <- if (is.raw(file)) {
-          list(bytes = file, original = "libro_aulas.xlsx")
-        } else if (is.list(file) && length(file) >= 1 && is.raw(file[[1]])) {
-          list(bytes = file[[1]], original = names(file)[1] %||% "libro_aulas.xlsx")
-        } else if (is.list(file) && is.raw(file$value)) {
-          list(bytes = file$value, original = file$filename %||% "libro_aulas.xlsx")
-        } else if (is.list(file) && length(file) && is.list(file[[1]])) {
-          # Forma que entrega el parser `multi` de plumber: una lista NOMBRADA
-          # por el fichero, cuyo elemento es a su vez una lista con el raw
-          # dentro. Medido con el diagnostico, no supuesto.
-          interior <- file[[1]]
-          crudo <- Filter(is.raw, interior)
-          if (!length(crudo)) {
-            stop_api(400, "E_AULAS_LIBRO_BAD_FILE", "El libro subido llego vacio.")
-          }
-          list(bytes = crudo[[1]], original = names(file)[1] %||% "libro_aulas.xlsx")
-        } else {
-          stop_api(400, "E_AULAS_LIBRO_BAD_FILE", "No se pudo leer el libro subido.")
-        }
-        original <- .monitoreo_scalar(extracted$original, "libro_aulas.xlsx")
-        if (!tolower(tools::file_ext(original)) %in% c("xls", "xlsx", "xlsm")) {
-          stop_api(400, "E_AULAS_LIBRO_BAD_FILE_TYPE",
-                   "Sube el libro en Excel (.xls, .xlsx o .xlsm) con sus tres hojas.")
-        }
-        meta_subida <- save_upload(sid, "data", original, extracted$bytes)
-        ruta <- as.character(meta_subida$path)
-        s <- session_get(sid)
-      }
       fid <- .monitoreo_scalar(parsed$file_id, "")
-      if (!nzchar(ruta) && nzchar(fid)) {
+      if (nzchar(fid)) {
         meta <- (s$files %||% list())[[fid]]
         if (is.null(meta) || !nzchar(as.character(meta$path %||% ""))) {
           stop_api(404, "E_AULAS_LIBRO_FILE_ID", "El file_id no corresponde a un archivo de la sesion.")
         }
         ruta <- as.character(meta$path)
-      } else if (!nzchar(ruta)) {
+      } else {
         # Solo en desarrollo: permite apuntar a un libro del disco sin subirlo.
-        # El `else` era incondicional y PISABA la ruta que acababa de dejar la
-        # rama multipart con la cadena vacia de `parsed$path`, asi que un archivo
-        # bien recibido moria con «indica el file_id».
         ruta <- .monitoreo_scalar(parsed$path, "")
       }
       if (!nzchar(ruta)) {
@@ -5043,11 +5302,213 @@ mount_monitoreo <- function(pr) {
         ok = TRUE,
         resumen = out$resumen,
         hojas_ausentes = out$hojas_ausentes,
+        # Las que NO se pudieron leer, aparte de las ausentes: una pestaña que
+        # cayo por cuota o por red no es una hoja que falte, y decirlo igual
+        # manda a mirar el Sheets cuando tocaba reintentar.
+        hojas_con_fallo = out$hojas_con_fallo %||% list(),
         control_sin_nombre = out$control_sin_nombre,
         # `aulas_libro_importar_en_sesion()` calcula las dos y la respuesta las
         # dejaba morir aqui. Es el tercer caso del mismo patron en este mismo
         # camino —antes paso con `reservas` y con `teacher_phone`—: el backend
         # produce el dato y nadie lo emite, asi que la cifra no llega.
+        fusion = out$fusion,
+        agenda_campos_ausentes = out$agenda_campos_ausentes,
+        state = .monitoreo_state_payload(sid),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    # B74 (dictado 2026-09-03): «la pestaña de disponibilidad no tiene ningun
+    # mecanismo para poder importarla… ¿que pasa si quiero enviarte una
+    # actualizada y volver a hacer una asignacion?». Hasta hoy la clave la
+    # escribia un runner externo (patron DAA, session_schema.R). El excel sube
+    # por /api/files/upload (kind aulas_disponibilidad) y aqui se importa por
+    # su file_id; la marca de disponibilidad ya vive en el token del dashboard
+    # (B29), asi que el reparto se rearma solo en el siguiente estado.
+    # **El padrón que traduce un código de alumno a su nivel.** Puerta propia
+    # porque con Cálculo de muestra fuera de alcance no se puede derivar durante
+    # la construcción del marco: el nivel per-persona se colapsa a la moda del
+    # aula y el `.pulso` subroga los códigos sin guardar el mapa (F114). Ver
+    # `carga_aulas_padron.R`.
+    #
+    # El filtro de población se pasa desde el cliente y se guarda CON el padrón:
+    # sin él el lector devuelve todo pregrado —medido: 22.746 personas— y como
+    # «resuelve en el padrón» significa «es población», eso acreditaría celdas
+    # de gente que no lo es.
+    plumber::pr_post("/api/monitoreo/aulas/padron",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      ruta <- ""
+      fid <- .monitoreo_scalar(parsed$file_id, "")
+      if (nzchar(fid)) {
+        meta <- (s$files %||% list())[[fid]]
+        if (is.null(meta) || !nzchar(as.character(meta$path %||% ""))) {
+          stop_api(404, "E_AULAS_PADRON_FILE_ID",
+                   "El file_id no corresponde a un archivo de la sesion.")
+        }
+        ruta <- as.character(meta$path)
+      } else {
+        ruta <- .monitoreo_scalar(parsed$path, "")
+      }
+      if (!nzchar(ruta)) {
+        stop_api(400, "E_AULAS_PADRON_SIN_ORIGEN",
+                 "Indica el file_id del excel de matriculados del que sale el padron.")
+      }
+      # Todo con `[[`: el `$` parcial-matchea y este body viene del cliente.
+      filtro <- list(
+        facultades = parsed[["facultades"]] %||% parsed[["faculties"]],
+        niveles = parsed[["niveles"]] %||% parsed[["levels"]],
+        edad_minima = parsed[["edad_minima"]] %||% parsed[["edadMinima"]],
+        condiciones = parsed[["condiciones"]] %||% parsed[["conditions"]]
+      )
+      padron <- carga_aulas_padron(
+        ruta,
+        hoja = .monitoreo_scalar(parsed[["hoja"]] %||% parsed[["sheet"]], "") %||% NULL,
+        filtro = filtro
+      )
+      session_set(sid, "monitoreo_aulas_padron", padron)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        personas = length(padron$filas),
+        vigencia = padron$vigencia,
+        columnas = padron$columnas,
+        filtro = padron$filtro,
+        # El resumen NO lleva codigos: es lo publicable del padron y lo que
+        # queda cuando se purga.
+        resumen = monitoreo_aulas_padron_resumen(padron),
+        # Los avisos del lector, enteros. El de «sin filtro de poblacion» es el
+        # que hay que ver: un padron de toda la universidad es casi siempre un
+        # archivo equivocado.
+        avisos = as.list(attr(padron, "avisos") %||% character(0)),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    # **Purgar el padrón a mano**, cuando el campo cierra. Deja su corte: los
+    # conteos, sin códigos. Y hay que decir lo que cuesta: sin padrón una
+    # respuesta nueva no resuelve a ningún nivel, así que el avance por ese eje
+    # no se puede continuar. Purgar es cerrar la medición, no bajarle la
+    # resolución.
+    # **Releer el cruce con el otro estudio, a petición.** Decisión de Gonzalo,
+    # 2026-09-18, entre «al abrir», «al sincronizar» y ésta: al abrir encarece
+    # el warm start con 1.392 aulas y un Sheets vivo, y al sincronizar lo ata a
+    # una acción que además PUBLICA. A petición es explícito y encaja con lo que
+    # ya existe: el recibo dice la edad del cruce y quien la ve decide.
+    #
+    # El traslape INFORMA, no descuenta ni excluye, y la lectura del otro
+    # estudio es de SOLO LECTURA: hay gente agendando en vivo en sus hojas.
+    plumber::pr_post("/api/monitoreo/aulas/traslape/recalcular",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      s <- session_get(sid)
+      aulas_cfg <- (s$monitoreo_config %||% list())$aulas_universitarias %||% list()
+      unidades <- s[["monitoreo_aulas_plan"]] %||% aulas_cfg[["plan"]] %||% list()
+      if (!length(unidades)) {
+        stop_api(409, "E_AULAS_TRASLAPE_SIN_FUENTE",
+                 "Este estudio no tiene plan de aulas, así que no hay qué cruzar.")
+      }
+      tras <- monitoreo_aulas_traslape_recalcular(unidades, aulas_cfg)
+      session_set(sid, "monitoreo_aulas_daa_traslape", tras)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        # El resumen lleva la vigencia dentro (`409094d3`), así que el recibo
+        # dice de cuándo es sin que esta ruta lo recomponga.
+        traslape = aulas_traslape_resumen(tras),
+        # Lo que la lectura pudo: sin el libro vivo del otro estudio el cruce
+        # vale igual —los planes se cruzan— pero no puede afirmar quién fue
+        # contactado, y callarlo sería dar por medido lo que no se midió.
+        libro_leido = isTRUE(attr(tras, "libro_leido")),
+        aulas_del_otro = attr(tras, "aulas_del_otro") %||% 0L,
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    plumber::pr_delete("/api/monitoreo/aulas/padron",
+                       wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      s <- session_get(sid)
+      estado <- list(
+        monitoreo_aulas_padron = s[["monitoreo_aulas_padron"]],
+        monitoreo_aulas_padron_corte = s[["monitoreo_aulas_padron_corte"]]
+      )
+      out <- monitoreo_aulas_padron_purgar(estado, motivo = "purga manual")
+      session_set(sid, "monitoreo_aulas_padron", NULL)
+      if (!is.null(out$estado[["monitoreo_aulas_padron_corte"]])) {
+        session_set(sid, "monitoreo_aulas_padron_corte",
+                    out$estado[["monitoreo_aulas_padron_corte"]])
+      }
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        purgado = out$purgado,
+        corte = out$estado[["monitoreo_aulas_padron_corte"]],
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/disponibilidad",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      ruta <- ""
+      fid <- .monitoreo_scalar(parsed$file_id, "")
+      if (nzchar(fid)) {
+        meta <- (s$files %||% list())[[fid]]
+        if (is.null(meta) || !nzchar(as.character(meta$path %||% ""))) {
+          stop_api(404, "E_AULAS_DISPONIBILIDAD_FILE_ID",
+                   "El file_id no corresponde a un archivo de la sesion.")
+        }
+        ruta <- as.character(meta$path)
+      } else {
+        # Solo en desarrollo: permite apuntar al excel del disco sin subirlo.
+        ruta <- .monitoreo_scalar(parsed$path, "")
+      }
+      if (!nzchar(ruta)) {
+        stop_api(400, "E_AULAS_DISPONIBILIDAD_SIN_ORIGEN",
+                 "Indica el file_id del excel de disponibilidad a importar.")
+      }
+      disp <- carga_disponibilidad_aplicadores(ruta)
+      session_set(sid, "monitoreo_aulas_disponibilidad", disp)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        aplicadores = length(disp),
+        # Los avisos del lector, enteros: una celda ilegible tomada como «no
+        # disponible» es una decision que el usuario tiene que ver.
+        avisos = as.list(attr(disp, "avisos") %||% character(0)),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    # **La otra puerta del mismo ciclo.** El `.xlsx` de arriba sirve para el
+    # cierre; esto es para el operativo en marcha, cuando el equipo trabaja
+    # sobre la pestaña en linea y nadie quiere descargar un archivo para ver
+    # como va. Devuelve exactamente el mismo payload: quien llame no tiene que
+    # saber por donde entro el libro.
+    #
+    # NO publica. Ver la cabecera de `carga_aulas_desde_sheets.R`: las tres
+    # hojas las llena el equipo y escribir encima borraria su trabajo.
+    plumber::pr_post("/api/monitoreo/aulas/importar-sheets", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      # Se acepta el ENLACE entero, no solo el id: es lo que el equipo copia de
+      # la barra del navegador, y pedirles que extraigan las 44 letras del medio
+      # es un paso donde equivocarse en silencio.
+      id <- .monitoreo_scalar(parsed$spreadsheet_id %||% parsed$id, "")
+      if (!nzchar(id)) id <- .monitoreo_scalar(parsed$url %||% parsed$enlace, "")
+      m <- regmatches(id, regexec("/spreadsheets/d/([a-zA-Z0-9_-]+)", id))[[1]]
+      if (length(m) == 2L) id <- m[[2]]
+      out <- aulas_libro_importar_sheets_en_sesion(sid, id, parsed$pestanas %||% list())
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        resumen = out$resumen,
+        hojas_ausentes = out$hojas_ausentes,
+        # Las que NO se pudieron leer, aparte de las ausentes: una pestaña que
+        # cayo por cuota o por red no es una hoja que falte, y decirlo igual
+        # manda a mirar el Sheets cuando tocaba reintentar.
+        hojas_con_fallo = out$hojas_con_fallo %||% list(),
+        control_sin_nombre = out$control_sin_nombre,
         fusion = out$fusion,
         agenda_campos_ausentes = out$agenda_campos_ausentes,
         state = .monitoreo_state_payload(sid),
@@ -5069,7 +5530,8 @@ mount_monitoreo <- function(pr) {
       data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
       cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
       aulas <- tryCatch(
-        monitoreo_aulas_from_calc(estudio, selection, frame, parsed$config %||% cfg$aulas_universitarias %||% list()),
+        monitoreo_aulas_from_calc(estudio, selection, frame, parsed$config %||% cfg$aulas_universitarias %||% list(),
+                                  s$calc_muestra_referencia_asistencia %||% NULL),
         error = function(e) stop_api(400, "E_AULAS_IMPORT", conditionMessage(e))
       )
       cfg$monitoreo_profile <- monitoreo_normalize_profile(list(
@@ -5107,14 +5569,35 @@ mount_monitoreo <- function(pr) {
       incoming <- parsed$config %||% parsed$aulas_universitarias %||% parsed
       current <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
       if (!is.list(incoming)) incoming <- list()
-      for (nm in names(incoming)) current[[nm]] <- incoming[[nm]]
-      cfg$aulas_universitarias <- monitoreo_aulas_normalize_config(current)
+      # EL MERGE ES POR CLAVE RAIZ, asi que `source_mapping` se REEMPLAZA
+      # entero: un panel que guarda su propio trozo del mapeo se lleva por
+      # delante lo que el no conoce. `previous` es la misma red que el sync ya
+      # tiene desde el 2026-09-08 (`monitoreo_engine.R`), y aqui faltaba.
+      #
+      # Medido en el `.pulso` de HSVG2026 el 2026-09-18: el proyecto guardado a
+      # las 10:14 publico el libro con la hoja «Control de facultad» muda
+      # —`faculty_var` en "" y 0 etiquetas— cuando el 16/09 tenia
+      # `datos_demo/P7` y sus 15. Con el mapeo recuperado el cruce mide 2 745
+      # comparables y 137 que declaran otra facultad; sin el, el bloque entero
+      # contesta «el estudio no declara su variable de facultad».
+      #
+      # Conservar lo que no llega NO tapa el cambio deliberado: lo que viene en
+      # el body manda campo por campo, y declarar otra variable sigue pisando la
+      # anterior. Las dos mitades tienen su test en
+      # `test-http-contract-monitoreo-aulas-config.R`.
+      fusion <- current
+      for (nm in names(incoming)) fusion[[nm]] <- incoming[[nm]]
+      cfg$aulas_universitarias <- monitoreo_aulas_normalize_config(fusion, previous = current)
       profile <- cfg$monitoreo_profile %||% list()
       profile$family <- "aulas_universitarias"
       profile$status <- "active"
       profile$route_selected <- TRUE
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
-      session_set(sid, "monitoreo_aulas_plan", cfg$aulas_universitarias$plan)
+      # Solo cuando el body TRAE plan/agenda: la clave de sesion guarda el plan
+      # FUSIONADO por el sync (fechas y horas del libro) y un POST parcial
+      # —umbral, criterio, fijaciones— la pisaba con el plan del config, sin
+      # fusion: «0 de 174 aulas ya tienen hora», medido en vivo 2026-09-02.
+      if (!is.null(incoming[["plan"]]) || !is.null(incoming[["agenda"]])) session_set(sid, "monitoreo_aulas_plan", cfg$aulas_universitarias$plan)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
       saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, aulas_universitarias = cfg$aulas_universitarias, config = cfg, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
@@ -5133,6 +5616,23 @@ mount_monitoreo <- function(pr) {
         # tal cual para no aplastarlo bajo E_AULAS_AGENDA.
         error = function(e) if (inherits(e, "api_error")) stop(e) else stop_api(400, "E_AULAS_AGENDA", conditionMessage(e))
       )
+      # **Agendar una reserva cuyo titular no ha caído ES un refuerzo**, y aquí
+      # es donde la app lo sabe. Sellarlo ahora es registrar un hecho; deducirlo
+      # después es adivinarlo.
+      #
+      # Medido el 2026-09-18 sobre HSVG26ULT2: de las 15 aulas que entraron como
+      # refuerzo, UNA sola tenía `activation_origin`. Las otras catorce se
+      # agendaron directo y perdieron el morado de `refuerzo_por_contactar` al
+      # pasar a `agendada`, sin que nada dejara constancia de por qué estaban
+      # ahí. Gonzalo: «el sheets los marcó de morados y muchos se agendaron,
+      # entonces ya no estuvieron marcados como refuerzo».
+      #
+      # Es idempotente y NO pisa lo que alguien declaró a mano, así que la
+      # primera pasada además repara las de atrás. Lo que sella se marca como
+      # deducido (`adicional_inferido`), no como declarado, y SIN letra de
+      # caso: consta que entró de más, no si fue para completar un
+      # curso-horario (B) o para reforzar la facultad (C).
+      plan <- monitoreo_aulas_sellar_procedencia(plan)$plan
       cfg$aulas_universitarias$enabled <- TRUE
       cfg$aulas_universitarias$plan <- plan
       profile <- cfg$monitoreo_profile %||% list()
@@ -5140,7 +5640,7 @@ mount_monitoreo <- function(pr) {
       profile$status <- "active"
       profile$route_selected <- TRUE
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
-      session_set(sid, "monitoreo_aulas_plan", plan)
+      cfg <- monitoreo_aulas_registrar_en_sesion(sid, cfg, updates, plan)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
       saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, agenda = plan, aulas_universitarias = cfg$aulas_universitarias, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
@@ -5207,7 +5707,7 @@ mount_monitoreo <- function(pr) {
         response_rows = as.integer(nrow(data))
       ))
       saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
-      list(ok = TRUE, synced_at = snapshot$synced_at, dashboard = dashboard$aulas_universitarias_reports, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
+      monitoreo_aulas_sync_payload(sid, snapshot, dashboard, saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_get("/api/monitoreo/aulas/state", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

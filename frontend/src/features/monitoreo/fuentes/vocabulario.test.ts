@@ -65,6 +65,23 @@ describe("contar (R3)", () => {
   test("los miles se separan como en el resto de la app", () => {
     expect(contar(1277, "registro", "registros")).toBe("1,277 registros");
   });
+
+  // A18 (checklist operativo 2026-08-31): `eligible_n` llega del JSON de R como
+  // el STRING "55" y el Registro de campo decía «Sin matriculados» con 55
+  // elegibles delante. Un contador que no cuenta "55" está roto: la coerción es
+  // del helper, no de cada callsite.
+  test("un string numérico cuenta, no cae al hueco (A18)", () => {
+    expect(contar("55", "matriculado", "matriculados")).toBe("55 matriculados");
+    expect(contar("1", "matriculado", "matriculados")).toBe("1 matriculado");
+    expect(contar("1277", "registro", "registros")).toBe("1,277 registros");
+  });
+
+  test("un string que no es número sigue siendo el hueco", () => {
+    expect(contar("NA", "matriculado", "matriculados")).toBe("Sin matriculados");
+    expect(contar("", "matriculado", "matriculados")).toBe("Sin matriculados");
+    expect(contar("basura", "matriculado", "matriculados")).toBe("Sin matriculados");
+    expect(contar("0", "matriculado", "matriculados")).toBe("Sin matriculados");
+  });
 });
 
 // El defecto que motiva esto: al conectar una fuente el actor se elige en el

@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { esMuestraAgendada } from "./muestraAgendada";
 
 /**
  * Qué medio de contacto agenda mejor, y a qué coste en intentos.
@@ -49,21 +50,50 @@ function mediana(xs: number[]): number | null {
 
 export function medioDeContacto(
   filas: ReadonlyArray<MonitoreoAulasPlanRow>,
-): MedioDeContacto[] {
+): { medios: MedioDeContacto[]; aplicadasSinMedio: number } {
   const porMedio = new Map<string, { aulas: number; agendadas: number; intentos: number[]; fuera: number }>();
+  let aplicadasSinMedio = 0;
 
   for (const fila of filas) {
-    // El banco no se contacta: no cuelga de ningún titular ni tiene agenda.
+    // La reserva adicional no se contacta: no cuelga de ningún titular ni tiene agenda.
     if (texto(fila.sample_role) === "extra_reserve_pool") continue;
     const medio = texto(fila.contact_medium);
-    if (!medio) continue;
+    if (!medio) {
+      /**
+       * **Lo que se descarta se cuenta, no desaparece.**
+       *
+       * Estas filas salían del gráfico en silencio. La mayoría es legítima —una
+       * reserva dormida no se ha contactado y no tiene por qué declarar medio—
+       * pero **las que ya tienen parte sí se contactaron**: alguien las agendó y
+       * no dejó por dónde.
+       *
+       * Medido sobre HSVG2026 «como 2025»: de las 152 filas con parte, **31 no
+       * declaran medio** —13 titulares y 18 reservas—, y el panel hablaba de las
+       * 121 restantes como si fueran todas. Una de cada cinco.
+       *
+       * El módulo ya contaba `intentosDescartados` por la misma razón; esto
+       * aplica la misma disciplina al descarte de más arriba.
+       */
+      // **Sólo cuenta si hubo gestión.** Una reserva que se activó al caer su
+      // titular hereda la cita: nadie la contactó, así que no tiene medio que
+      // declarar y contarla seria una falsa alarma.
+      //
+      // Medido sobre HSVG2026 «como 2025»: de las 31 con parte y sin medio, **18
+      // son reservas con CERO intentos** —las activadas— y 13 son titulares con
+      // entre 1 y 7 gestiones. Sólo esos 13 son un hueco de registro: se les
+      // contactó y no se anotó por dónde.
+      const gestiones = Number(fila.contact_attempts);
+      if (texto(fila.applied_at) && Number.isFinite(gestiones) && gestiones > 0) {
+        aplicadasSinMedio += 1;
+      }
+      continue;
+    }
     let m = porMedio.get(medio);
     if (!m) { m = { aulas: 0, agendadas: 0, intentos: [], fuera: 0 }; porMedio.set(medio, m); }
     m.aulas += 1;
     // «Agendada» y «reagendada» cuentan las dos: el medio consiguió la cita, que
     // luego se moviera es otra historia.
-    const estado = texto(fila.sample_status).toLowerCase();
-    if (estado.startsWith("agendada") || estado.startsWith("reagendada")) m.agendadas += 1;
+    if (esMuestraAgendada(fila.sample_status)) m.agendadas += 1;
     const n = Number(fila.contact_attempts);
     if (Number.isFinite(n) && n > 0) {
       if (n <= INTENTOS_MAXIMO_CREIBLE) m.intentos.push(n);
@@ -81,9 +111,10 @@ export function medioDeContacto(
   }));
 
   // Por el que MÁS agenda. A igualdad, el que lo consigue con menos intentos.
-  return salida.sort((x, y) => y.tasa - x.tasa
+  const medios = salida.sort((x, y) => y.tasa - x.tasa
     || (x.intentos ?? Infinity) - (y.intentos ?? Infinity)
     || y.aulas - x.aulas);
+  return { medios, aplicadasSinMedio };
 }
 
 /**

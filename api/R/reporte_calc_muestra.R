@@ -21,7 +21,8 @@ reporte_calc_muestra <- function(estudio, output_file,
                                   formato = c("html", "pdf"),
                                   quiet = FALSE,
                                   progress_path = NULL,
-                                  tasas_facultad = NULL) {
+                                  tasas_facultad = NULL,
+                                  general = NULL) {
   formato <- match.arg(formato)
 
   if (!requireNamespace("quarto", quietly = TRUE)) {
@@ -68,12 +69,23 @@ reporte_calc_muestra <- function(estudio, output_file,
   # compuesto: sin sus dos términos el reporte enseña un porcentaje y pide que
   # se le crea. Lo calcula el router, que es quien tiene el marco en sesión;
   # NULL cuando no hay marco y la sección se omite en vez de inventarla.
+  tiene_aulas <- .cm_reporte_tiene_aulas(estudio, tasas_facultad)
   bundle <- list(
     estudio = estudio,
     formato = formato,
     modo = modo,
     tasas_facultad = tasas_facultad,
-    metodologia = tryCatch(.cm_aulas_methodological_sources(), error = function(e) NULL)
+    # La tabla de fuentes es la del diseño de AULAS (curso-horario, cube, PISA):
+    # sólo viaja si el estudio es de aulas. En un estratificado por regiones
+    # afirmaba métodos que no se usaron (L26, 2026-09-27).
+    tiene_aulas = tiene_aulas,
+    rotulos = .cm_reporte_rotulos(),
+    metodologia = if (tiene_aulas) tryCatch(.cm_aulas_methodological_sources(), error = function(e) NULL) else NULL,
+    # Memoria de cálculo sustituida y sorteo de Muestra general (ADR 0090):
+    # el reporte defiende el n con la fórmula y los valores puestos en ella, y
+    # dice cómo se eligieron las unidades y cómo repetirlo.
+    memorias = .cm_reporte_memorias(estudio),
+    general = general
   )
   path_rds <- file.path(tmp_root, "bundle_calc_muestra.rds")
   saveRDS(bundle, file = path_rds, version = 3)
@@ -132,6 +144,19 @@ reporte_calc_muestra <- function(estudio, output_file,
   invisible(output_file)
 }
 
+# Memorias de cálculo de los componentes de elementos que tienen resultado.
+# Lista con nombre = actor; vacía si ninguno aplica.
+.cm_reporte_memorias <- function(estudio) {
+  out <- list()
+  for (comp in estudio$componentes %||% list()) {
+    if (!is.list(comp) || is.null(comp$resultado)) next
+    if (!comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) next
+    m <- tryCatch(calc_muestra_general_memoria(comp, comp$resultado), error = function(e) NULL)
+    if (is.data.frame(m)) out[[comp$actor %||% comp$id]] <- m
+  }
+  out
+}
+
 .cm_reporte_filtrar_componentes <- function(estudio) {
   ws <- estudio$workspace %||% NULL
   escenarios <- ws$escenarios %||% list()
@@ -164,7 +189,8 @@ reporte_calc_muestra <- function(estudio, output_file,
 calc_muestra_render_job <- function(estudio, formato = "html",
                                      result_path = NULL,
                                      progress_path = NULL,
-                                     tasas_facultad = NULL) {
+                                     tasas_facultad = NULL,
+                                     general = NULL) {
   if (is.null(result_path) || !nzchar(result_path)) {
     stop("result_path requerido para el job de reporte.", call. = FALSE)
   }
@@ -174,7 +200,8 @@ calc_muestra_render_job <- function(estudio, formato = "html",
     formato        = formato,
     quiet          = TRUE,
     progress_path  = progress_path,
-    tasas_facultad = tasas_facultad
+    tasas_facultad = tasas_facultad,
+    general        = general
   )
   list(ok = TRUE, path = result_path, formato = formato,
        generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
@@ -183,3 +210,12 @@ calc_muestra_render_job <- function(estudio, formato = "html",
 # la función desde el namespace fresco (load_all) en vez del closure
 # serializado, que apunta al paquete instalado potencialmente viejo.
 attr(calc_muestra_render_job, "prosecnur_job_function_name") <- "calc_muestra_render_job"
+
+# ¿El estudio es de aulas? Sí si trae el desglose de tasas por facultad o algún
+# componente de conglomerados o dominios independientes (las técnicas del modo
+# de aulas). Decide qué secciones de aulas publica el reporte (L26).
+.cm_reporte_tiene_aulas <- function(estudio, tasas_facultad = NULL) {
+  if (!is.null(tasas_facultad) && length(tasas_facultad)) return(TRUE)
+  tecnicas <- vapply(estudio$componentes %||% list(), function(c) as.character(c$tecnica %||% ""), "")
+  any(tecnicas %in% c("prob_conglomerado_multietapico", "prob_estratificado_independiente"))
+}

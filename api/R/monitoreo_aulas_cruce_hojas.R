@@ -34,14 +34,19 @@
 # Los campos que las dos hojas traen con el mismo nombre y el mismo
 # significado. `etiqueta` es como se nombra en la frase, sin jerga de columna.
 MONITOREO_AULAS_CRUCE_CAMPOS <- list(
-  list(campo = "observed_students", etiqueta = "los asistentes", tipo = "numero"),
+  # `claves` son los alias con los que ese numero puede llegar. Se leia por
+  # nombre exacto, y el libro real se llena en castellano: ver la nota de
+  # `comparaciones` mas abajo.
+  list(campo = "observed_students", etiqueta = "los asistentes", tipo = "numero",
+       claves = .MONITOREO_AULAS_PARTE_ALIAS$asistentes),
   # `unidad = "porcentaje"` para que la frase no diga «0.765» donde la tabla de
   # al lado ya dice «76.5 %». La escala la decide la COLUMNA entera, igual que
   # en la capa de presentacion del frontend: el libro puede traer estas razones
   # en 0-1 o en 0-100 y el motor no las normaliza.
   list(campo = "attendance_pct", etiqueta = "el % de asistencia", tipo = "numero",
-       unidad = "porcentaje"),
-  list(campo = "applied_by", etiqueta = "quien aplico", tipo = "texto")
+       unidad = "porcentaje", claves = .MONITOREO_AULAS_PARTE_ALIAS$asistencia_pct),
+  list(campo = "applied_by", etiqueta = "quién aplicó", tipo = "texto",
+       claves = .MONITOREO_AULAS_PARTE_ALIAS$aplicador)
 )
 
 .mach_num <- function(valor) {
@@ -79,7 +84,7 @@ MONITOREO_AULAS_CRUCE_CAMPOS <- list(
 #'   aulas que si se pudieron comparar.
 #' @export
 monitoreo_aulas_cruce_hojas <- function(partes = list(), control = list(), tolerancia = 0.01) {
-  vacio <- list(comparables = 0L, hallazgos = list())
+  vacio <- list(comparables = 0L, comparaciones = 0L, hallazgos = list())
   if (!length(partes) || !length(control)) return(vacio)
 
   por_codigo <- list()
@@ -96,15 +101,29 @@ monitoreo_aulas_cruce_hojas <- function(partes = list(), control = list(), toler
   en_proporcion <- list()
   for (spec in MONITOREO_AULAS_CRUCE_CAMPOS) {
     if (!identical(spec$unidad %||% "", "porcentaje")) next
+    claves <- spec$claves %||% spec$campo
     valores <- c(
-      vapply(partes, function(p) if (is.list(p)) .mach_num(p[[spec$campo]]) else NA_real_, numeric(1)),
-      vapply(control, function(f) if (is.list(f)) .mach_num(f[[spec$campo]]) else NA_real_, numeric(1))
+      vapply(partes, function(p) if (is.list(p)) .mach_num(.monitoreo_aulas_parte_primero(p, claves)) else NA_real_, numeric(1)),
+      vapply(control, function(f) if (is.list(f)) .mach_num(.monitoreo_aulas_parte_primero(f, claves)) else NA_real_, numeric(1))
     )
     valores <- valores[is.finite(valores)]
     en_proporcion[[spec$campo]] <- length(valores) > 0L && max(abs(valores)) <= 1.5
   }
 
   comparables <- 0L
+  # **Cuantos pares (aula, campo) tenian valor en LAS DOS hojas.**
+  #
+  # `comparables` cuenta aulas cuyo codigo esta en las dos hojas, que no es lo
+  # mismo que tener algo que comparar, y el control publicaba lo segundo
+  # diciendo lo primero: «Las 152 aulas que estan en las dos hojas dicen lo
+  # mismo en asistentes, % de asistencia y quien aplico». Medido el 2026-08-30
+  # sobre el estudio de 152 partes: los tres campos estaban en **0 de 152
+  # partes y 0 de 304 filas de control** —la Base de control de ese estudio es
+  # la de sexo, con `operational_code, faculty, sexo, n`—, asi que no se
+  # comparo ni un valor y el control salio en verde afirmando la coincidencia.
+  # `.mach_discrepan_*` devuelve FALSE cuando falta un lado, que es correcto
+  # para no inventar discrepancias y era exactamente lo que producia el verde.
+  comparaciones <- 0L
   hallazgos <- list()
   for (p in partes) {
     if (!is.list(p)) next
@@ -114,8 +133,15 @@ monitoreo_aulas_cruce_hojas <- function(partes = list(), control = list(), toler
     if (is.null(c_fila)) next
     comparables <- comparables + 1L
     for (spec in MONITOREO_AULAS_CRUCE_CAMPOS) {
-      en_parte <- p[[spec$campo]]
-      en_control <- c_fila[[spec$campo]]
+      claves <- spec$claves %||% spec$campo
+      en_parte <- .monitoreo_aulas_parte_primero(p, claves)
+      en_control <- .monitoreo_aulas_parte_primero(c_fila, claves)
+      hay_ambos <- if (identical(spec$tipo, "numero")) {
+        is.finite(.mach_num(en_parte)) && is.finite(.mach_num(en_control))
+      } else {
+        nzchar(.mach_txt(en_parte)) && nzchar(.mach_txt(en_control))
+      }
+      if (hay_ambos) comparaciones <- comparaciones + 1L
       discrepan <- if (identical(spec$tipo, "numero")) {
         .mach_discrepan_numero(en_parte, en_control, tolerancia)
       } else {
@@ -133,7 +159,7 @@ monitoreo_aulas_cruce_hojas <- function(partes = list(), control = list(), toler
       )
     }
   }
-  list(comparables = comparables, hallazgos = hallazgos)
+  list(comparables = comparables, comparaciones = comparaciones, hallazgos = hallazgos)
 }
 
 #' Frase que explica una discrepancia entre las dos hojas, sin jerga.

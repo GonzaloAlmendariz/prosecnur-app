@@ -1,0 +1,344 @@
+/* «Cómo le va a cada facultad». Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-cvf {
+  --cvf-dato: 15px;
+  --cvf-txt: 13px;
+  --cvf-meta: 11.5px;
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--cvf-txt);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-lista {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Seis columnas fijas: la comparación entre facultades se lee HACIA ABAJO, y
+   para eso las cifras tienen que caer en la misma vertical. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-fila {
+  display: grid;
+  /* **La última columna va FIJA, no a `max-content`.** Cada fila es su propio
+     grid —son botones, no una tabla— así que con `max-content` cada una medía
+     su propia pastilla y repartía el resto de otra manera: medido el
+     2026-09-11, la columna de la deuda caía en x=495 en Derecho, 506 en
+     Psicología y 500 en Ciencias Sociales, y las barras y las tasas con ella.
+     Ninguna columna quedaba en columna. 124px caben la etiqueta más larga,
+     «Debe en hombres». */
+  grid-template-columns: minmax(150px, 1.5fr) 84px minmax(150px, 1.4fr) 116px 124px;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-fila:hover {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-fila:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 2px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-lista li.es-abierta .aulas-cvf-fila {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, transparent);
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 34%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-nombre { display: grid; gap: 1px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-nombre b { font-size: var(--cvf-txt); font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-nombre > span {
+  font-size: var(--cvf-meta);
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda {
+  text-align: right;
+  font-size: var(--cvf-dato);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda small {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--pulso-text-faint);
+  letter-spacing: 0.02em;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda.es-debe { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda.es-sobra { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda.es-cero { color: var(--pulso-text-faint); }
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-sexos { display: grid; gap: 3px; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 7px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-letra {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril {
+  position: relative;
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+/* El cero, marcado en el centro: cruzarlo es lo que separa deber de sobrar. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--pulso-border-strong);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril i.es-debe {
+  right: 50%;
+  background: var(--pulso-danger-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril i.es-sobra {
+  left: 50%;
+  background: var(--pulso-success-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra b {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra b.es-debe { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra b.es-sobra { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra b.es-cero { color: var(--pulso-text-faint); }
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa {
+  display: grid;
+  gap: 1px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa b { font-size: var(--cvf-txt); font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa b.es-bajo { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa b.es-ok { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa > span {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-align: center;
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-debe_en_los_dos {
+  background: color-mix(in srgb, var(--pulso-danger-fg) 10%, transparent);
+  color: var(--pulso-danger-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-debe_mujeres,
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-debe_hombres {
+  background: color-mix(in srgb, var(--pulso-warn-accent) 12%, transparent);
+  color: var(--pulso-warn-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-por_encima {
+  background: color-mix(in srgb, var(--pulso-success-fg) 10%, transparent);
+  color: var(--pulso-success-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-en_lo_previsto,
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-sin_campo {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-porque {
+  display: grid;
+  gap: 5px;
+  margin: 2px 0 7px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 30%, transparent);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-porque p {
+  margin: 0;
+  font-size: var(--cvf-txt);
+  color: var(--pulso-text);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-consejo { color: var(--pulso-text-soft) !important; }
+
+@media (max-width: 1180px) {
+  /* **La columna del veredicto se mide por su texto, no por un número.**
+
+     Gonzalo, 2026-09-11: «el box de debe está con overflow». Y lo estaba: esta
+     columna valía 74 px fijos y «Debe en mujeres» pide 101, así que el fondo de
+     la píldora se cortaba a mitad de palabra.
+
+     Un ancho fijo para un texto variable falla justo en el caso que más
+     importa: aquí el veredicto más largo es el de la facultad que peor va.
+     `max-content` la ajusta a la etiqueta más ancha del juego, y como todas las
+     filas se miden contra la misma columna siguen alineadas entre sí. */
+  .mon-profile-page.is-aulas-flow .aulas-cvf-fila {
+    /* Mismo motivo que la pista ancha: `max-content` se mide POR FILA. */
+    grid-template-columns: minmax(0, 1fr) 84px minmax(0, 1fr);
+    row-gap: 7px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-cvf-tasa,
+  .mon-profile-page.is-aulas-flow .aulas-cvf-veredicto { grid-column: span 1; }
+  .mon-profile-page.is-aulas-flow .aulas-cvf-veredicto { justify-self: start; }
+}
+
+/* La entrada al refuerzo (C). Va dentro del detalle de la facultad y no en la
+   fila: es una acción sobre una facultad ya elegida, no una columna más que
+   comparar. */
+.aulas-cvf-refuerzo {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.aulas-cvf-refuerzo:hover { filter: brightness(0.94); }
+
+/* La serie por jornada: la deuda al cierre de cada día. Tres o cuatro puntos y
+   una línea; lo que se compara es la FORMA —si baja, se está arreglando—, no el
+   valor exacto de cada uno. */
+.aulas-cvf-rumbo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+.aulas-cvf-rumbo svg { flex: 0 0 auto; width: 190px; height: 42px; overflow: visible; }
+/* La línea del cero: cruzarla es lo que separa deber de ir sobrado, igual que
+   en el mapa de la deuda. */
+.aulas-cvf-rumbo-cero { stroke: var(--pulso-border-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.aulas-cvf-rumbo-linea { stroke-width: 1.6; }
+.aulas-cvf-rumbo-punto { fill: var(--pulso-surface); stroke-width: 1.4; }
+.aulas-cvf-rumbo-hoy { stroke-width: 1.6; }
+.aulas-cvf-rumbo.es-mejora .aulas-cvf-rumbo-linea,
+.aulas-cvf-rumbo.es-mejora .aulas-cvf-rumbo-punto { stroke: var(--pulso-success-fg); }
+.aulas-cvf-rumbo.es-mejora .aulas-cvf-rumbo-hoy { fill: var(--pulso-success-fg); stroke: var(--pulso-success-fg); }
+.aulas-cvf-rumbo.es-empeora .aulas-cvf-rumbo-linea,
+.aulas-cvf-rumbo.es-empeora .aulas-cvf-rumbo-punto { stroke: var(--pulso-danger-fg); }
+.aulas-cvf-rumbo.es-empeora .aulas-cvf-rumbo-hoy { fill: var(--pulso-danger-fg); stroke: var(--pulso-danger-fg); }
+.aulas-cvf-rumbo.es-estable .aulas-cvf-rumbo-linea,
+.aulas-cvf-rumbo.es-estable .aulas-cvf-rumbo-punto { stroke: var(--pulso-text-soft); }
+.aulas-cvf-rumbo.es-estable .aulas-cvf-rumbo-hoy { fill: var(--pulso-text-soft); stroke: var(--pulso-text-soft); }
+
+/* El detalle de una facultad, en tres columnas: qué pasó, dónde duele y qué se
+   hace. Antes la sparkline ocupaba un tercio y el resto era hueco. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-porque {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.1fr) minmax(210px, 0.9fr) minmax(230px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-columna { display: grid; gap: 7px; align-content: start; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-columna h5 {
+  margin: 0;
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-columna p { margin: 0; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-sinrumbo {
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  font-style: italic;
+}
+
+/* El desglose por sexo contra su vara: es lo que el ranking resume en una sola
+   barra, y aquí se abre porque la decisión se toma por sexo. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-desglose {
+  border-collapse: collapse;
+  font-size: var(--aulas-sec);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-desglose th {
+  padding: 2px 10px 2px 0;
+  text-align: left;
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-desglose td {
+  padding: 2px 8px 2px 0;
+  text-align: right;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-desglose td em {
+  font-style: normal;
+  font-weight: var(--pulso-weight-regular);
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-desglose td:last-child { text-align: left; }
+/* Sólo se tiñe lo que se debe: lo que va en lo previsto o de más no pide nada. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-desglose .es-debe td:first-of-type { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-desglose .es-tasa th,
+.mon-profile-page.is-aulas-flow .aulas-cvf-desglose .es-tasa td { color: var(--pulso-text-soft); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-consejo.es-calma { color: var(--pulso-text-faint); }
+
+@media (max-width: 900px) {
+  .mon-profile-page.is-aulas-flow .aulas-cvf-porque { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}
+
+/* Qué mide esta columna y qué no: sin esto, «−7» aquí y «faltan 46» en el
+   popover de refuerzo se leen como una contradicción, y son dos preguntas. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-aclara {
+  margin: 4px 0 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.45;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-aclara strong {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}

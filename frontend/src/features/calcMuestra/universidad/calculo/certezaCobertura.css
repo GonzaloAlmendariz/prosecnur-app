@@ -129,3 +129,62 @@
 .cmv2-certeza-pie svg {
   vertical-align: -1px;
 }
+
+/* La curva de la que sale el número certificado: evidencia, no adorno. Plana
+   marca el caso imposible —el rendimiento no puede quedarse quieto al sumar
+   aulas— para que se note sin abrir el detalle. */
+.cmv2-certeza-curva { width: 62px; text-align: center; }
+.cmv2-certeza-curva svg { width: 46px; height: 16px; display: block; margin: 0 auto; overflow: visible; }
+.cmv2-certeza-curva polyline { fill: none; stroke: var(--pulso-text-muted); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+.cmv2-certeza-curva[data-plana] polyline { stroke: var(--pulso-danger-fg); }
+.cmv2-certeza-curva[data-plana] small { display: block; font-size: 8.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--pulso-danger-fg); }
+
+/* La acción donde aparece el hallazgo. Discreta: sólo asoma en las filas cuya
+   brecha es positiva, que son las que piden algo. */
+.cmv2-certeza-fijar {
+  display: block; margin-top: 2px; padding: 1px 6px;
+  font-size: 10px; line-height: 1.5; white-space: nowrap;
+  border: 1px solid var(--pulso-border); border-radius: 999px;
+  background: transparent; color: var(--pulso-text-muted); cursor: pointer;
+}
+.cmv2-certeza-fijar:hover { color: var(--pulso-warn-fg); border-color: var(--pulso-warn-fg); }
+
+/* Con cuántos sorteos se decidió el mínimo. En el ruido significa que el margen
+   sobre el nivel exigido es menor que el error de muestreo: el veredicto no
+   distingue cumplir de no cumplir. */
+.cmv2-certeza-corridas { display: block; font-size: 9px; color: var(--pulso-text-muted); white-space: nowrap; }
+.cmv2-certeza-corridas[data-ruido] { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-medium); }
+
+/* El neto del motor, dicho sin competir con los tres KPI de arriba. */
+.cmv2-certeza-neto {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+  max-width: 760px;
+}
+
+.cmv2-certeza-neto strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La acción que aplica todos los mínimos, dentro del aviso que los nombra. */
+.cmv2-certeza-aplicar {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 10px 0 0;
+}
+
+.cmv2-certeza-aplicar span {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-certeza-aplicar strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}

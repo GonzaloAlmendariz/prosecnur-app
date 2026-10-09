@@ -1,0 +1,103 @@
+/* «Cómo va esta facultad», el bloque que sólo existe con una puesta en el
+   selector. Hoja propia: `aulasMonitoreo.css` está congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-segfac { display: grid; gap: 10px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-lectura {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  line-height: 1.5;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-lectura strong,
+.mon-profile-page.is-aulas-flow .aulas-segfac-pie strong { font-variant-numeric: tabular-nums; }
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-cuotas {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cuatro columnas fijas: la comparación entre las tres metas se lee HACIA
+   ABAJO, y para eso las cifras tienen que caer en la misma vertical. */
+.mon-profile-page.is-aulas-flow .aulas-segfac-cuotas li {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr) 9.5em 6.5em;
+  align-items: center;
+  gap: 10px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-etiqueta {
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-carril {
+  position: relative;
+  display: block;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+/* Lo conseguido, en firme. */
+.mon-profile-page.is-aulas-flow .aulas-segfac-carril i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 8px 0 0 8px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+/* Lo que traerá lo ya agendado: mismo carril, tono más claro, porque es una
+   previsión y no una respuesta en mano. */
+.mon-profile-page.is-aulas-flow .aulas-segfac-carril b {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 34%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-cifras {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: var(--aulas-txt);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-cifras strong { color: var(--pulso-text); }
+.mon-profile-page.is-aulas-flow .aulas-segfac-cifras em {
+  font-style: normal;
+  color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 78%, var(--pulso-text));
+}
+.mon-profile-page.is-aulas-flow .aulas-segfac-cifras i {
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-brecha {
+  text-align: right;
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-brecha.es-corta { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-segfac-brecha.es-sobra { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-segfac-brecha.es-muda {
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-segfac-pie {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.5;
+}

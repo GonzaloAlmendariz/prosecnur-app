@@ -161,3 +161,112 @@ describe("textoAvance", () => {
     expect(textoAvance(null, 1200)).toBe("S/D");
   });
 });
+
+/**
+ * **El denominador es el plan, no lo que cupo en la respuesta.**
+ *
+ * Medido en pantalla el 2026-08-25 sobre el recorrido de 400 titulares: el pie
+ * decía «Mostrando 400 de 500 filas» y el plan tenía 3.409. Ese 500 no es
+ * ningún total del proyecto — es `MONITOREO_AULAS_COURSE_STATUS_TOPE`, el tope
+ * del payload. El lector concluye que faltan 100 aulas y faltan 3.009.
+ *
+ * El segundo caso es el que no se ve y el peor: cuando el servidor manda MENOS
+ * filas que el tope local, no hay recorte local, y la tabla no rotulaba nada.
+ * El truncado desaparecía en silencio, que es justo lo que esta función existe
+ * para impedir.
+ */
+describe("recorteTabla con el total real del motor", () => {
+  it("divide por el plan y no por el payload topeado", () => {
+    const payload = Array.from({ length: 500 }, (_, i) => i);
+    const recorte = recorteTabla(payload, 400, "fila", 3409);
+    expect(recorte.etiqueta).toBe("Mostrando 400 de 3,409 filas");
+    expect(recorte.total).toBe(3409);
+  });
+
+  it("declara el recorte del servidor aunque no haya recorte local", () => {
+    const payload = Array.from({ length: 300 }, (_, i) => i);
+    const recorte = recorteTabla(payload, 400, "fila", 3409);
+    expect(recorte.recortado).toBe(true);
+    expect(recorte.etiqueta).toBe("Mostrando 300 de 3,409 filas");
+  });
+
+  it("sin recorte del servidor se comporta igual que antes", () => {
+    const payload = Array.from({ length: 300 }, (_, i) => i);
+    expect(recorteTabla(payload, 400, "fila", 300).etiqueta).toBe("");
+    expect(recorteTabla(payload, 400, "fila").recortado).toBe(false);
+  });
+
+  it("un total menor que las filas recibidas no encoge el denominador", () => {
+    // Defensivo: si el motor mandara un total incoherente, el pie no puede
+    // prometer menos filas de las que ya tiene en la mano.
+    const payload = Array.from({ length: 500 }, (_, i) => i);
+    expect(recorteTabla(payload, 400, "fila", 12).etiqueta).toBe("Mostrando 400 de 500 filas");
+  });
+});
+
+describe("el bloqueo del corte incompleto dice CUÁL de los tres estados es", () => {
+  /**
+   * Un mensaje único —«incompleto o desactualizado»— cubría `partial`, `stale`
+   * y `failed`, que piden cosas distintas: en `partial` la sincronización
+   * terminó con errores y repetirla puede no arreglar nada, mientras que en
+   * `stale` basta con volver a sincronizar. El sistema tiene el estado exacto,
+   * así que la disyunción era pérdida de información, no cautela.
+   *
+   * Visto en la pestaña Salidas del perfil de cursos-horario, a 1440.
+   */
+  const mensaje = (generationStatus: string) =>
+    readinessDeSalidas(construirCorte({
+      ingesta: 1400, procesable: 1300, oficial: 1283, meta: 1200,
+      hasSnapshot: true, generationStatus,
+    })).bloqueos.find((b) => b.codigo === "CORTE_INCOMPLETO")?.mensaje ?? "";
+
+  it("«partial» nombra los errores de la sincronización", () => {
+    expect(mensaje("partial")).toContain("terminó con errores");
+    expect(mensaje("partial")).not.toContain(" o desactualizado");
+  });
+
+  it("«stale» dice que quedó viejo, que es lo que se arregla sincronizando", () => {
+    expect(mensaje("stale")).toContain("desactualizado");
+    expect(mensaje("stale")).not.toContain("errores");
+  });
+
+  it("«failed» no se disfraza de corte incompleto", () => {
+    expect(mensaje("failed")).toContain("falló");
+  });
+
+  it("un estado desconocido nombra el valor en vez de inventarle una causa", () => {
+    // Sin esto, un estado nuevo del backend caería en la rama de otro y el
+    // aviso afirmaría una causa que nadie comprobó.
+    const texto = mensaje("reindexing");
+    expect(texto).toContain("reindexing");
+    expect(texto).not.toContain("errores");
+    expect(texto).not.toContain("falló");
+  });
+
+  it("los tres mensajes conocidos son distintos entre sí", () => {
+    const todos = ["partial", "stale", "failed"].map(mensaje);
+    expect(new Set(todos).size).toBe(3);
+    expect(todos.every((t) => t.length > 0)).toBe(true);
+  });
+});
+
+describe("el estado vacío no se disfraza de sincronización fallida", () => {
+  it("sin generation_status, el corte queda bloqueado pero el mensaje no inventa errores", () => {
+    // Medido en vivo (2026-09-03, pre-campo): sync_errors vacío y ninguna
+    // generación corrida, y la banda decía «la última sincronización terminó
+    // con errores» — el colapso ""→"partial" fabricaba la historia.
+    const corte = construirCorte({ ingesta: 0, procesable: 0, oficial: 0, meta: 2500 });
+    expect(corte.generationStatus).toBe("");
+    const r = readinessDeSalidas(corte);
+    expect(r.bloqueos.length).toBeGreaterThan(0);
+    const textos = r.bloqueos.map((b) => b.mensaje ?? "").join(" ");
+    expect(textos).not.toContain("terminó con errores");
+  });
+
+  it("con partial declarado de verdad, el mensaje sí nombra los errores", () => {
+    const corte = construirCorte({ ingesta: 10, procesable: 8, oficial: 5, meta: 2500, generationStatus: "partial" });
+    const r = readinessDeSalidas(corte);
+    const textos = r.bloqueos.map((b) => b.mensaje ?? "").join(" ");
+    expect(textos).toContain("terminó con errores");
+  });
+});

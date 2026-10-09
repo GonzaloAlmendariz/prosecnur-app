@@ -1,0 +1,179 @@
+/* «Estado de aplicación» por rol. Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento y esto es superficie nueva. */
+.mon-profile-page.is-aulas-flow .aulas-epr { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-epr-grupos {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-grupo { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-epr-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 6px;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-cabeza strong {
+  font-size: 1.35em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-cabeza > span { font-weight: 600; }
+
+.mon-profile-page.is-aulas-flow .aulas-epr-cabeza em {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+}
+
+/* Cada barra reparte SU grupo al 100 %: 174 titulares y 1 173 reservas no se
+   comparan en un carril común sin dejar a los titulares en una raya. La cifra
+   va dentro del tramo cuando cabe. */
+.mon-profile-page.is-aulas-flow .aulas-epr-barra {
+  display: flex;
+  gap: 2px;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-barra > i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-width: 3px;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-barra > i[data-oscuro] {
+  color: var(--pulso-surface);
+  text-shadow: 0 0 2px color-mix(in srgb, var(--pulso-text) 55%, transparent);
+}
+
+/* La leyenda nombra y cuenta; lo que cada estado significa va en el title. */
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--pulso-text);
+  cursor: help;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda > li > i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda > li strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Qué hacer hoy ---------------------------------------------------------- */
+.mon-profile-page.is-aulas-flow .aulas-epr-acciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-accion {
+  display: grid;
+  grid-template-columns: 4px minmax(0, 1fr);
+  gap: 4px 10px;
+  min-width: 0;
+  padding: 9px 12px 10px 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-accion > i {
+  grid-row: 1 / span 2;
+  align-self: stretch;
+  margin: -9px 0 -10px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-accion > p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  font-weight: 600;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-accion > p strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-accion > p em {
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-codigos {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-codigos > b {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-al-dia {
+  margin: 0 0 14px;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+}

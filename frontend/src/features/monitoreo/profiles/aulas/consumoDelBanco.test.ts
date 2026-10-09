@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { consumoDelBanco } from "./consumoDelBanco";
+import { SIN_VALOR_DEL_EJE } from "./consumoDeCadena";
 
 const fila = (f: Partial<MonitoreoAulasPlanRow>) => f as MonitoreoAulasPlanRow;
 
@@ -67,7 +68,7 @@ describe("consumoDelBanco", () => {
     expect(salida.facultades[0].diasHastaAgotarse).toBeNull();
   });
 
-  it("una reserva en el banco no es consumo", () => {
+  it("una reserva en la reserva adicional no es consumo", () => {
     const salida = consumoDelBanco([
       fila({ operational_code: "CH 1", faculty: "X", titular_operational_code: "CH 1" }),
       fila({ operational_code: "R 1.1", faculty: "X", sample_role: "chain_reserve",
@@ -150,5 +151,61 @@ describe("el ritmo de caídas se mide por día de CAMPO, no por día con caídas
     const s = facultades.find((f) => f.facultad === "Sola")!;
     expect(s.quedan).toBe(0);
     expect(s.diasHastaAgotarse).toBe(0);
+  });
+});
+
+describe("consumoDelBanco: la columna del eje", () => {
+  /**
+   * Un plan como el de CCSS: UNA facultad y el nivel como estrato. Agrupado por
+   * facultad, el panel cae a una sola fila —«CIENCIAS SOCIALES», con todas las
+   * cadenas dentro— y deja de contestar su única pregunta: DÓNDE se rompe la
+   * reserva. Visto en pantalla el 2026-09-17.
+   */
+  const PLAN_UNA_FACULTAD = [
+    fila({ operational_code: "CH 1", faculty: "CIENCIAS SOCIALES", level: "6",
+      titular_operational_code: "CH 1", sample_status: "reemplazada",
+      replaced_at: "2026-09-15" } as Partial<MonitoreoAulasPlanRow>),
+    fila({ operational_code: "CH 2", faculty: "CIENCIAS SOCIALES", level: "7",
+      titular_operational_code: "CH 2", sample_status: "reemplazada",
+      replaced_at: "2026-09-16" } as Partial<MonitoreoAulasPlanRow>),
+    fila({ operational_code: "R 1.1", faculty: "CIENCIAS SOCIALES", level: "6",
+      sample_role: "chain_reserve", titular_operational_code: "CH 1",
+      sample_status: "en_reserva" }),
+    fila({ operational_code: "R 2.1", faculty: "CIENCIAS SOCIALES", level: "7",
+      sample_role: "chain_reserve", titular_operational_code: "CH 2",
+      sample_status: "en_reserva" }),
+  ];
+
+  it("por facultad, un estudio de una sola facultad da UNA fila: el caso degenerado", () => {
+    const porFacultad = consumoDelBanco(PLAN_UNA_FACULTAD, 2);
+    expect(porFacultad.facultades.length).toBe(1);
+    expect(porFacultad.facultades[0]?.caidas).toBe(2);
+  });
+
+  it("por la columna del eje, el mismo plan se parte donde importa", () => {
+    const porNivel = consumoDelBanco(PLAN_UNA_FACULTAD, 2, "level");
+    expect(porNivel.facultades.map((f) => f.facultad).sort()).toEqual(["6", "7"]);
+    // Y cada grupo lleva SU reserva: el colchón se agrupa por la misma columna,
+    // porque con dos columnas distintas el «quedan» de una fila sería de otro
+    // grupo. Es el mismo defecto que dejó la reserva dirigida en cero.
+    for (const f of porNivel.facultades) {
+      expect(f.caidas).toBe(1);
+      expect(f.quedan).toBe(1);
+    }
+  });
+
+  it("sin columna declarada el resultado es IDÉNTICO al de hoy", () => {
+    // HSVG está en campo con 15 facultades: el defecto no puede mover un byte
+    // de lo que su equipo lee.
+    expect(consumoDelBanco(PLAN_UNA_FACULTAD, 2))
+      .toEqual(consumoDelBanco(PLAN_UNA_FACULTAD, 2, "faculty"));
+  });
+
+  it("una columna que el plan no trae agrupa en el centinela, no en «undefined»", () => {
+    // Filtrar por una columna ausente devuelve un grupo mudo, y el panel tiene
+    // que poder ponerle la palabra de su eje en vez de pintar un hueco.
+    const sinEsaColumna = consumoDelBanco(PLAN_UNA_FACULTAD, 2, "no_existe");
+    expect(sinEsaColumna.facultades.length).toBe(1);
+    expect(sinEsaColumna.facultades[0]?.facultad).toBe(SIN_VALOR_DEL_EJE);
   });
 });

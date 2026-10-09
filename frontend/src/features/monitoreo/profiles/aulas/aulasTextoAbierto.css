@@ -1,0 +1,139 @@
+/* Las respuestas abiertas del perfil de aulas.
+ *
+ * Tercer corte de `aulasMonitoreo.css` (N1), y el primero que hace la hoja
+ * congelada: al añadir `.aulas-abiertas-base` —la línea que declara sobre qué
+ * se calculan los tres porcentajes, C4 del GOAL— el `--audit` cazó el +6 sobre
+ * la línea base de 5.701. La regla de la casa es fichero nuevo, no subir la
+ * base, así que sale la familia entera: contigua y sin un solo selector ajeno
+ * dentro, medido antes de cortar.
+ *
+ * **EL ORDEN DE IMPORTACIÓN ES CARGA ÚTIL**: va después de la hoja madre en
+ * `AulasMonitoreoPage.tsx`, como las otras dos hijas.
+ */
+
+/* Compacto a propósito: la pestaña existe para recorrer muchas respuestas sin
+   que los rotulos compitan con lo que se lee. (Esta línea perdió su apertura
+   de comentario en a493d68d y el texto suelto, inofensivo en dev porque cada
+   hoja se parsea sola, MATABA todo el CSS posterior del bundle concatenado —
+   el escritorio entero se veía sin estilos. Un cierre sin apertura es veneno
+   de concatenación.) */
+.mon-profile-page.is-aulas-flow .aulas-abiertas {
+  display: grid;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 260px;
+  padding: 4px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button.is-activa {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface-2));
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button small {
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-base {
+  margin: 0 0 4px;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+}
+
+.aulas-abiertas-perfil {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil li {
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil span {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil small {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-lista {
+  display: grid;
+  gap: 3px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-lista li.is-relleno {
+  background: color-mix(in srgb, var(--pulso-warn-accent) 9%, var(--pulso-surface-2));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-texto {
+  min-width: 0;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-meta {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-meta em {
+  /* Cerrado: el archivo terminaba con este bloque ABIERTO (mismo truncado que
+     aulasReemplazos.css) y en el bundle se tragaba la hoja siguiente. */
+  font-style: normal;
+}

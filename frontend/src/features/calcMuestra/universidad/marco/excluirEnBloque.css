@@ -1,0 +1,87 @@
+/* Apagar una lista pegada. Discreta sobre el selector de facultad: es una
+ * puerta de excepción —traer una decisión tomada fuera—, no el camino normal,
+ * que sigue siendo apagar un curso-horario mirándolo en su tarjeta. */
+.cmv2-exbloque {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border-soft, var(--pulso-border));
+  border-radius: 8px;
+  background: var(--pulso-surface-2, var(--pulso-surface));
+}
+
+.cmv2-exbloque-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-exbloque-head span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-exbloque-head strong {
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cmv2-exbloque-head small {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-exbloque-area {
+  width: 100%;
+  max-width: 760px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-family: var(--pulso-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.cmv2-exbloque-pie {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.cmv2-exbloque-pie small {
+  max-width: 640px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-exbloque-saldo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  max-width: 760px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-exbloque-saldo b {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lo que no casó con el marco es lo unico que hay que ir a mirar. */
+.cmv2-exbloque-saldo > span[data-parte="ojo"],
+.cmv2-exbloque-saldo > span[data-parte="ojo"] b {
+  color: var(--pulso-warn-fg);
+}

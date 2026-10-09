@@ -1,0 +1,278 @@
+/* Cadena de reemplazos — la forma del ensayo «Relevos de aula».
+
+   Una fila por cadena: a la izquierda quién cayó y por qué, a la derecha el
+   recorrido. La rejilla es `218px | tira` y la tira scrollea, que es lo que
+   arregla el defecto que dio origen a este diseño: las cadenas de HSVG2026
+   tienen hasta once reservas, y repartir el ancho entre todas dejaba columnas
+   de treinta píxeles con «CH 84» partido letra a letra. */
+
+.mon-profile-page.is-aulas-flow .aulas-cadenas { display: grid; gap: 10px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-cadenas-lectura {
+  margin: 0;
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadenas-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+/* El cero susurra: es la ausencia, no el dato que se viene a buscar. */
+.mon-profile-page.is-aulas-flow .aulas-cadenas-lectura strong.es-cero {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadenas-matiz {
+  margin: 0;
+  padding: 8px 11px;
+  border-radius: 9px;
+  border-left: 3px solid var(--pulso-warn-fg);
+  background: color-mix(in srgb, var(--pulso-warn-fg) 6%, transparent);
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadenas-lista { display: grid; gap: 9px; min-width: 0; }
+
+/* ── La cadena ──────────────────────────────────────────────────────────── */
+
+.mon-profile-page.is-aulas-flow .aulas-cadena {
+  display: grid;
+  grid-template-columns: 218px minmax(0, 1fr);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+/* El filo dice la circunstancia antes de leer nada, y son cuatro distintas, no
+   cuatro grados de la misma. */
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-abierta { border-left: 3px solid var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-seca { border-left: 3px solid var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-corta { border-left: 3px solid var(--module-accent, var(--pulso-primary)); }
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-cerrada { border-left: 3px solid var(--pulso-success-fg); }
+/* La quinta circunstancia también lleva filo: sólo aparece al desplegar «ver
+   todas», y ahí era la única fila sin marca izquierda mientras las otras cuatro
+   la tenían. Neutro a propósito —no le ha pasado nada— pero presente, porque la
+   ausencia de filo se leía como un fallo de pintado. */
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-intacta { border-left: 3px solid var(--pulso-border); }
+
+/* La columna fija: por eso el código nunca se parte y las cadenas se comparan
+   en vertical. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-quien {
+  display: grid;
+  gap: 3px;
+  align-content: center;
+  padding: 12px 14px;
+  border-right: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-cod {
+  font-size: var(--aulas-sec);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-meta {
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+/* La pastilla se tiñe con `currentColor`: un solo juego de reglas y el color lo
+   pone la circunstancia. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-pastilla {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 2px 9px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-abierta { color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-seca { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-corta { color: var(--module-accent, var(--pulso-primary)); }
+.mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-cerrada { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-intacta { color: var(--pulso-text-faint); }
+
+/* ── La tira ────────────────────────────────────────────────────────────── */
+
+/* La tira desvanece su borde derecho: con más eslabones de los que caben, un
+   corte seco se lee como un defecto de maquetación y el degradado se lee como
+   «sigue, arrástrala». La máscara no recorta nada —el contenido sigue ahí y se
+   alcanza con scroll o con teclado—, sólo lo atenúa. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-tira {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent 100%);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-paso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-flecha {
+  flex: 0 0 auto;
+  color: var(--pulso-border-strong);
+  font-size: var(--aulas-sec);
+  font-style: normal;
+}
+
+/* **El ancho lo manda el texto**: 138 px de mínimo por eslabón y la tira
+   scrollea. Comparar dos cadenas cuesta un arrastre; antes no se podía leer
+   ninguna. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon {
+  flex: 0 0 auto;
+  min-width: 138px;
+  display: grid;
+  gap: 2px;
+  padding: 8px 11px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon b {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+
+/* El que se trabaja lleva el acento del módulo por dentro, no un fondo
+   saturado: detrás de un código en negrita un relleno fuerte le quita contraste
+   al propio código. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon.es-activo {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 22%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon.es-activo em {
+  color: var(--module-accent, var(--pulso-primary));
+  font-weight: var(--pulso-weight-semibold);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon.es-dormido { opacity: 0.5; }
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon.es-caido { opacity: 0.6; }
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon.es-caido b { text-decoration: line-through; }
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon.es-cierre {
+  border-color: var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-fg) 8%, var(--pulso-surface));
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabon.es-cierre em {
+  color: var(--pulso-success-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* El resto se cuenta, no se dibuja: las de detrás importan como cuántas
+   quedan, no como cuáles son. El borde discontinuo dice que ahí hay algo
+   plegado y no un eslabón más. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-resto {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 6px 12px;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  font: inherit;
+  font-size: var(--aulas-min);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-resto:hover {
+  border-color: var(--module-accent, var(--pulso-primary));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadenas-mas {
+  justify-self: start;
+  padding: 5px 11px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--aulas-min);
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadenas-mas:hover { background: var(--pulso-surface-2); }
+
+@media (max-width: 760px) {
+  .mon-profile-page.is-aulas-flow .aulas-cadena,
+  .mon-profile-page.is-aulas-flow .aulas-cadena.con-salida { grid-template-columns: minmax(0, 1fr); }
+  .mon-profile-page.is-aulas-flow .aulas-cadena-salida { justify-items: start; padding: 0 14px 11px; }
+  .mon-profile-page.is-aulas-flow .aulas-cadena-quien {
+    border-right: 0;
+    border-bottom: 1px solid var(--pulso-border);
+  }
+}
+
+/* Lo que se lista y lo que se cuenta, dicho antes de la lista: sin esto, «136
+   sin cerrar» arriba y cuatro tarjetas abajo se leen como un recorte que nadie
+   declaró. */
+.mon-profile-page.is-aulas-flow .aulas-cadenas-alcance {
+  margin: 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadenas-alcance strong {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Este vacío es un ESTADO del operativo —todo el plan en pie y nadie caído—,
+   no una laguna de datos, y se redacta como tal. */
+.mon-profile-page.is-aulas-flow .aulas-cadenas-vacio {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border-left: 3px solid var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-fg) 6%, transparent);
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadenas-vacio strong { color: var(--pulso-text); }
+
+/* La salida de la fila, en COLUMNA PROPIA y no dentro de la tira: ahí viajaba
+   con el scroll horizontal —quedaba fuera de vista justo en las cadenas
+   largas— y su `margin-left: auto` se comía el padding derecho. */
+.mon-profile-page.is-aulas-flow .aulas-cadena.con-salida {
+  /* **La columna de la salida va fija.** Con `auto` la medía cada fila por su
+     propio botón —«Complementar» y «Buscar relevo» no miden lo mismo— y la tira
+     de eslabones empezaba en una x distinta en cada cadena. 132px caben el más
+     largo. */
+  grid-template-columns: 218px minmax(0, 1fr) 132px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-salida {
+  display: grid;
+  place-items: center;
+  padding: 11px 14px 11px 4px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-salida button {
+  padding: 6px 13px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  border-radius: 8px;
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-salida button:hover { filter: brightness(0.94); }

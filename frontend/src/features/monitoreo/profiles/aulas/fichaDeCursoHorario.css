@@ -1,0 +1,193 @@
+/* Hoja propia del buscador por código. No crece `aulasMonitoreo.css`, que está
+ * congelado a crecimiento, y sigue el patrón que ya usa `senalesPorAula.css`:
+ * componente nuevo, hoja nueva, y el guard `cssSinDuenoTests` exige que cada
+ * clase de aquí la nombre un `.tsx`. */
+
+.aulas-ficha-buscador { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.aulas-ficha-buscador input {
+  flex: 1 1 220px; min-width: 0; padding: 6px 10px;
+  border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text); font: inherit;
+}
+.aulas-ficha-pista { color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* Las coincidencias, cuando hay más de una: se elige, no se adivina. */
+.aulas-ficha-opciones { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.aulas-ficha-opcion {
+  border: 1px solid var(--pulso-border); border-radius: 999px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  padding: 2px 10px; font: inherit; font-size: var(--aulas-min); cursor: pointer;
+}
+.aulas-ficha-opcion[aria-pressed="true"] {
+  background: var(--pulso-module-monitoring); color: var(--pulso-on-accent, #fff);
+  border-color: var(--pulso-module-monitoring);
+}
+
+.aulas-ficha-titulo { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 12px 0 2px; }
+.aulas-ficha-codigo { font-size: 1.05rem; font-weight: 700; }
+.aulas-ficha-estado {
+  border-radius: 999px; padding: 1px 8px; font-size: var(--aulas-min);
+  font-weight: 650; text-transform: uppercase; letter-spacing: 0.03em;
+  background: color-mix(in srgb, var(--aulas-ficha-tono) 14%, transparent);
+  color: var(--aulas-ficha-tono);
+}
+.aulas-ficha-sub { color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* Los datos, APILADOS: el rótulo encima y el valor debajo.
+ *
+ * El primer intento los puso uno al lado del otro con el valor pegado a la
+ * derecha de su celda, y no funcionaba por dos razones que sólo se ven en
+ * pantalla: con dos o tres pares por línea el ojo no sabe qué valor pertenece a
+ * qué rótulo —«Elegibles del plan … 50   Asistentes (parte) … 17» se lee como
+ * una fila de cuatro cosas—, y un valor largo («GOMEZ RAZZA, VICTOR HUMBERTO»)
+ * aplastaba su rótulo hasta partirlo. Apilado, el par es una unidad: el valor
+ * puede ser un 8 o un nombre de treinta caracteres y el bloque no cambia de
+ * forma. Gonzalo, viéndolo: «el formato está roto». */
+.aulas-ficha-grupo { margin: 12px 0 0; }
+.aulas-ficha-grupo-titulo {
+  font-size: var(--aulas-min); font-weight: 650; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--pulso-text-soft);
+  margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--pulso-border);
+}
+.aulas-ficha-pares {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px 18px; margin: 0;
+}
+.aulas-ficha-par { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+/* `overflow-wrap: normal` en los dos, y no es cosmético: el perfil hereda
+ * `overflow-wrap: anywhere` —está para que un identificador largo no desborde su
+ * celda— y aquí partía las palabras por la mitad, «Facult/ad», «Docen/te».
+ * Es la misma excepción que la hoja del perfil ya hace en otras dos zonas
+ * (`aulasMonitoreo.css:680`). Son palabras, no identificadores. */
+.aulas-ficha-clave {
+  color: var(--pulso-text-soft); font-size: var(--aulas-min);
+  overflow-wrap: normal; word-break: keep-all;
+}
+.aulas-ficha-valor {
+  font-variant-numeric: tabular-nums; overflow-wrap: normal;
+  /* Sin `nowrap`: aquí conviven un «8» y «GOMEZ RAZZA, VICTOR HUMBERTO», y
+     obligar a una línea al segundo lo saca de la celda. Que envuelva por el
+     espacio. */
+  line-height: 1.25;
+}
+/* La ausencia se dice, no se deja en blanco: un hueco se lee como un cero. */
+.aulas-ficha-vacio { color: var(--pulso-text-faint); font-style: italic; }
+/* **Pero se dice en voz baja.** Heredando el tamaño de cifra, un «sin dato» en
+ * cursiva de 1,25 rem pesaba MÁS que los números de al lado: la ficha de un
+ * curso-horario sin aplicar gritaba sus tres ausencias y susurraba sus dos
+ * datos. Presente, no protagonista. */
+.aulas-ficha-par.es-cifra .aulas-ficha-valor.aulas-ficha-vacio {
+  font-size: 0.95rem; font-weight: 400;
+}
+
+/* La fila de chips del Sistema Pabellón, respirando bajo el título. */
+.aulas-ficha-chips { margin: 6px 0 10px; }
+/* La frase que contesta «¿y para cuándo?». Va pegada al título, que es donde se
+ * mira después del estado. */
+.aulas-ficha-cuando { margin: 2px 0 0; color: var(--pulso-text); font-weight: 550; }
+
+/* **Jerarquía en las cifras.** Con rótulo y valor del mismo peso la ficha era
+ * una lista gris donde nada destacaba: Gonzalo, «le falta pop visual». Lo que se
+ * viene a ver son los NÚMEROS —cuántas trajo, cuánto le falta, qué efectividad
+ * consiguió—, así que el número manda y el rótulo lo acompaña. */
+.aulas-ficha-par.es-cifra .aulas-ficha-valor {
+  font-size: 1.25rem; font-weight: 650; line-height: 1.15; color: var(--pulso-text);
+}
+
+/* El contraste de lo obtenido contra lo que el diseño pedía. Dos porcentajes
+ * uno al lado del otro obligan a restar de cabeza; la barra con la marca de lo
+ * previsto se lee de un vistazo, y es la misma gramática que «Cumplimiento». */
+.aulas-ficha-contraste { margin: 10px 0 2px; display: flex; flex-direction: column; gap: 4px; }
+.aulas-ficha-pista-barra {
+  position: relative; display: block; height: 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text) 7%, transparent); overflow: visible;
+}
+.aulas-ficha-pista-barra i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
+/* La marca de tinta: dónde estaba la meta de ESTE curso-horario. */
+.aulas-ficha-pista-barra em {
+  position: absolute; top: -3px; bottom: -3px; width: 2px;
+  background: var(--pulso-text); opacity: 0.75; transform: translateX(-1px);
+}
+.aulas-ficha-contraste-lectura { color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* La nota del aplicador: lo único de la ficha que no es una cifra, así que se
+   sale de la rejilla de pares y se lee como lo que es, una frase. */
+.aulas-ficha-nota {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--pulso-accent);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-raised);
+}
+
+.aulas-ficha-nota > span {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-ficha-nota > p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text);
+}
+
+/* Por dónde empezar: lo que la pestaña ofrece mientras no hay código tecleado.
+   Los códigos van como chips pulsables, y la lista NO se recorta —«…y N más»
+   es justo lo que el Sistema Pabellón prohíbe—: si crece, scrollea. */
+.aulas-ficha-atajos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.aulas-ficha-atajo-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+
+.aulas-ficha-atajo-titulo strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.aulas-ficha-atajo-titulo em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-ficha-atajo-codigos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+
+.aulas-ficha-atajo-codigos button {
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.aulas-ficha-atajo-codigos button:hover {
+  border-color: var(--pulso-border-strong);
+  background: color-mix(in srgb, var(--pulso-accent) 10%, var(--pulso-surface));
+}

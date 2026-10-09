@@ -14,6 +14,8 @@ import type {
   CalcMuestraSexoPorFacultad,
   CalcMuestraWorkspace,
 } from "../../../../api/client";
+import { ShieldCheck } from "../../../../vendor/lucide-react";
+import { EmptyState } from "../../../../components/States";
 import { MargenPorFacultadCard } from "./MargenPorFacultadCard";
 import { EfectividadExplicadaCard } from "./EfectividadExplicadaCard";
 import { SustentoDimensionamientoCard } from "./SustentoDimensionamientoCard";
@@ -42,6 +44,7 @@ export function AulasSolidezTab({
   fichas = null,
   periodoAnterior = "",
   referencia = null,
+  onNavigate,
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
@@ -54,6 +57,8 @@ export function AulasSolidezTab({
   periodoAnterior?: string;
   /** El estudio anterior, para la lectura REFERENCIAL del τ propio. */
   referencia?: CalcMuestraReferenciaAsistencia | null;
+  /** Lleva al paso previo cuando la pestaña todavía no tiene datos. */
+  onNavigate?: (section: string, tab?: string) => void;
 }) {
   const {
     selection,
@@ -82,12 +87,16 @@ export function AulasSolidezTab({
           <div className="cmv2-subhead">
             <strong>Solidez de la selección</strong>
           </div>
-          <p className="cmv2-aulas-vacio-nota">
-            Todavía no hay una selección corrida: el sustento se construye sobre
-            ella. Corre la selección en «Cursos-horario titulares» y esta
-            pestaña mostrará por qué salieron esas aulas y qué tan sólida es la
-            muestra que arman.
-          </p>
+          <EmptyState
+            icon={<ShieldCheck size={22} aria-hidden="true" />}
+            title="Todavía no hay una selección corrida"
+            hint="El sustento se construye sobre ella. Corre la selección en «Cursos-horario titulares» y aquí verás por qué salieron esas aulas y qué tan sólida es la muestra que arman."
+            cta={onNavigate ? (
+            <button type="button" className="pulso-empty-cta" onClick={() => onNavigate("aulas", "seleccion")}>
+              Ir a Cursos-horario titulares
+            </button>
+          ) : undefined}
+          />
         </section>
       </div>
     );

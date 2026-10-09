@@ -56,6 +56,9 @@ export type FichaDeAula = {
   estado: string;
   rol: string;
   fecha: string;
+  /** Dónde se aplica: el lugar acordado (B30) y, sin él, el salón del catálogo. */
+  lugar: string;
+  hora: string;
   /** Lo que el diseño esperaba de esta aula. `null` si el estudio no lo declara. */
   esperado: number | null;
   elegibles: number | null;
@@ -82,6 +85,8 @@ export function fichaDeAula(
     partes?: ReadonlyArray<Fila>;
     control?: ReadonlyArray<Fila>;
     brechas?: ReadonlyArray<Fila>;
+    /** `banco_extras.por_facultad`; sólo lo usa la salida, no la ficha. */
+    banco?: ReadonlyArray<{ faculty?: unknown; disponibles?: unknown }>;
   },
 ): FichaDeAula {
   const enPlan = buscar(fuentes.agenda ?? [], codigo);
@@ -95,9 +100,18 @@ export function fichaDeAula(
     existe: Boolean(base),
     facultad: texto(base?.faculty ?? base?.facultad ?? ""),
     etiqueta: texto(base?.label ?? base?.course_name ?? ""),
-    estado: texto(enPlan?.operational_status ?? enPlan?.sample_status ?? ""),
+    // B13b: el RECHAZO de STATUS MUESTRA manda sobre el operativo — la ficha
+    // decía «Planificado» junto a la nota del rechazo (mismo defecto que la
+    // ruta, dictado 2026-09-03 CH 90).
+    estado: /^rechaz/i.test(texto(enPlan?.sample_status ?? ""))
+      ? "rechazo"
+      : texto(enPlan?.operational_status ?? enPlan?.sample_status ?? ""),
     rol: texto(enPlan?.sample_role ?? ""),
     fecha: texto(enPlan?.scheduled_date ?? "").slice(0, 10),
+    // `scheduled_venue` gana: es donde se ACORDÓ aplicar, confirmado por el
+    // equipo (B30); `venue` es donde se dicta el curso según el catálogo.
+    lugar: texto(enPlan?.scheduled_venue ?? "") || texto(enPlan?.venue ?? ""),
+    hora: texto(enPlan?.scheduled_time ?? ""),
     esperado: num(enPlan?.expected_valid ?? enBrechas?.expected_valid),
     elegibles: num(enPlan?.eligible_n),
     validas: num(enBrechas?.respuestas_validas ?? enPlan?.respuestas_validas),

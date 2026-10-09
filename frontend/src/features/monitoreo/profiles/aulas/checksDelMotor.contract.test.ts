@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { aulasCheckLabel, aulasFieldLabel } from "./aulasPresentation";
+import { fuenteDelMotor } from "./fuenteDelMotor.testutil";
 
 /**
  * Toda regla que el motor emite tiene su rótulo en la capa de presentación.
@@ -23,7 +23,7 @@ const RUTA_MOTOR = path.join(__dirname, "../../../../../../api/R/monitoreo_aulas
 
 /** Las claves del vector `check = c(...)` de `monitoreo_aulas_dashboard()`. */
 function checksDelMotor(): string[] {
-  const fuente = readFileSync(RUTA_MOTOR, "utf8");
+  const fuente = fuenteDelMotor(RUTA_MOTOR);
   const linea = fuente.split("\n").find((l) => l.trim().startsWith("check = c("));
   if (!linea) throw new Error("No se encontró el vector `check = c(...)` en el motor");
   return [...linea.matchAll(/"([a-z0-9_]+)"/g)].map((m) => m[1]);
@@ -62,7 +62,7 @@ describe("los controles del motor llegan traducidos", () => {
 const RUTA_LECTOR = path.join(__dirname, "../../../../../../api/R/carga_base_control.R");
 
 function camposDelLector(): string[] {
-  const fuente = readFileSync(RUTA_LECTOR, "utf8");
+  const fuente = fuenteDelMotor(RUTA_LECTOR);
   return [...fuente.matchAll(/campo\s*=\s*"([a-z0-9_]+)"/g)].map((m) => m[1]);
 }
 

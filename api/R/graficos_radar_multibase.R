@@ -550,7 +550,10 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
       data = datos_graf,
       var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
       escala_valor = "proporcion_100",
-      limites = c(0, 100),
+      # Sin límites fijos: el radar arranca en el múltiplo de 5 bajo el mínimo
+      # (ADR 0092, F2.7d). Con c(0, 100) aquí el mazo seguía mostrando el eje
+      # desde 0 (lo halló el verificador en la lámina de públicos).
+      limites = NULL,
       titulo = titulo,
       # El indicador va aqui y no en el encabezado de la tabla: «De acuerdo +
       # Totalmente de Acuerdo» dentro de una celda se comia media tabla, y
@@ -850,6 +853,23 @@ p_radar_publicos <- function(
                                ancho_tema = NA_real_, proporcion = NA_real_,
                                texto_pt = .RADAR_MB_TEXTO_PT,
                                tabla_nativa = FALSE) {
+  # ADR 0093 (N6): la lámina 90 dibuja esta misma tabla al lado del radar, con el encabezado que ve el analista.
+  espec <- attr(grafico, "pulso_espec")
+  if (identical(espec$tipo, "radar")) {
+    espec$con_tabla <- TRUE
+    espec$encabezado <- .radar_mb_nombres_tabla(tabla, titulo_tema, encabezados)[1]
+    # Las cifras son las de esta tabla: los decimales del analista y «—» donde no hay dato (verificador de N6).
+    dec_t <- suppressWarnings(as.integer(attr(tabla, "decimales") %||% 0L)[1]); if (!is.finite(dec_t)) dec_t <- 0L
+    for (k in seq_along(espec$grupos)) {
+      g <- espec$grupos[k]
+      # La tabla nombra sus columnas por la fuente cruda («docentes») y el radar, capitalizada («Docentes»). Sin
+      # coincidencia no se adivina por posición: con columnas reordenadas daría las cifras de otra fuente.
+      j <- match(tolower(g), tolower(names(tabla))); if (is.na(j) || j < 2L) next
+      v <- tabla[[j]][match(espec$ejes, as.character(tabla[[1]]))]
+      espec$cifras[, g] <- ifelse(is.na(v), "\u2014", .pulso_fmt_pct_half_up(espec$valores[, g], dec_t))
+    }
+    attr(grafico, "pulso_espec") <- espec
+  }
   if (!requireNamespace("gridExtra", quietly = TRUE) ||
       !requireNamespace("cowplot", quietly = TRUE)) {
     return(grafico)
@@ -947,8 +967,10 @@ p_radar_publicos <- function(
     ))
   }
 
-  cowplot::plot_grid(grafico, cowplot::ggdraw(grob),
-                     ncol = 2, rel_widths = c(1.35, rel))
+  out <- cowplot::plot_grid(grafico, cowplot::ggdraw(grob),
+                            ncol = 2, rel_widths = c(1.35, rel))
+  attr(out, "pulso_espec") <- attr(grafico, "pulso_espec")
+  out
 }
 
 

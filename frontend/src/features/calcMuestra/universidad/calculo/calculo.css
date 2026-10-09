@@ -852,6 +852,13 @@
 }
 
 .cmv2-cadena-a-meta {
+  /* Medida de lectura de la casa. Medido en 1440x1000 sobre ULT2: la línea
+   * llegaba a 1.270px —del orden de 200 caracteres— y este párrafo explica el
+   * n objetivo frente al despeje de la fórmula, que es de lo más denso del
+   * módulo. Es el único de las cuatro pestañas antiguas de Cálculo que
+   * excedía: las demás anchas son filas de tabla y una leyenda, que deben
+   * recorrer el ancho. */
+  max-width: 760px;
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--pulso-radius-md, 8px);

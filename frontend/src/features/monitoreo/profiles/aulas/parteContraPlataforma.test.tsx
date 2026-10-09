@@ -106,6 +106,114 @@ describe("parteContraPlataforma", () => {
     expect(r.descuadran).toBe(0);
     expect(r.fuentesSinCorrespondencia).toBe(false);
   });
+
+  // ── El filtro se descuenta antes de acusar a la atribución ──────────────
+  //
+  // Medido (docs/qa/checklist-tres-fuentes-monitoreo-2026-08-27.md:183-213):
+  // el panel comparaba `effective_surveys` contra `respuestas_validas` —el
+  // POST-filtro— y con filtros declarados concluyó «descuadran 74 de 78 → la
+  // atribución está rota». El filtro descartaba respuestas en EXACTAMENTE esas
+  // 74; la atribución estaba perfecta y el panel mandó a cazar un problema
+  // inexistente.
+  //
+  // La regla: antes de acusar a la atribución hay que descontar lo que el
+  // filtro explica. Si parte − plataforma ≈ descartadas por el filtro, no hay
+  // descuadre que reportar; y si sobra diferencia después de descontarlo, ÉSA
+  // es la que apunta a la atribución. La fila de agenda YA trae el crudo:
+  // `responses_total` (todas las atribuidas al aula) y `filter_rejected`,
+  // publicados por la whitelist del motor (monitoreo_aulas_universitarias.R).
+
+  describe("el filtro se descuenta antes de acusar a la atribución", () => {
+    const cruda = (
+      operational_code: string,
+      o: { total?: number; validas: number; rejected?: number },
+      faculty = "Derecho",
+    ) => ({
+      operational_code,
+      faculty,
+      ...(o.total !== undefined ? { responses_total: o.total } : {}),
+      respuestas_validas: o.validas,
+      ...(o.rejected !== undefined ? { filter_rejected: o.rejected } : {}),
+    });
+
+    it("lo que el filtro descarta no es descuadre, y el resultado dice cuántas explicó", () => {
+      // Parte 20, llegaron 20, el filtro dejó 15: las 5 que faltan las explica
+      // el filtro, no la atribución. Residual 0 → nada que listar.
+      const r = parteContraPlataforma(
+        [parte("A", 20)],
+        [cruda("A", { total: 20, validas: 15 })],
+      );
+      expect(r.descuadran).toBe(0);
+      expect(r.explicadasPorFiltro).toBe(1);
+    });
+
+    it("la diferencia listada es la RESIDUAL, no residual + descartadas", () => {
+      // Parte 20, llegaron 12 (el filtro dejó 5). El descuadre que apunta a la
+      // atribución es 8 —contra el crudo—, no 15 —contra el post-filtro—.
+      const r = parteContraPlataforma(
+        [parte("A", 20)],
+        [cruda("A", { total: 12, validas: 5 })],
+      );
+      expect(r.descuadran).toBe(1);
+      expect(r.casos[0].diferencia).toBe(8);
+      // Los dos números que el panel enseña («parte X · plataforma Y») tienen
+      // que restar a la diferencia listada, o el lector no puede reconstruirla.
+      expect(r.casos[0].declaradas - r.casos[0].enPlataforma).toBe(8);
+    });
+
+    it("74 de 78 explicadas por el filtro NO disparan la alarma de mapeo", () => {
+      // El caso medido, literal: 74 cursos-horario cuya diferencia la explica
+      // el filtro y 4 que cuadran del todo. Hoy la alarma dispara (74/78 ≥ 90 %)
+      // y manda a revisar la columna en Fuentes con la atribución perfecta.
+      // La sospecha del mapeo se evalúa sobre los descuadres RESIDUALES.
+      const partes = Array.from({ length: 78 }, (_, i) => parte(`CH ${i}`, 20));
+      const agenda = Array.from({ length: 78 }, (_, i) =>
+        i < 74
+          ? cruda(`CH ${i}`, { total: 20, validas: 15 })
+          : cruda(`CH ${i}`, { total: 20, validas: 20 }),
+      );
+      const r = parteContraPlataforma(partes, agenda);
+      // La alarma primero: es el defecto medido. Hoy sale `true` y el panel
+      // dice «revisa qué columna identifica el curso-horario, en Fuentes».
+      expect(r.fuentesSinCorrespondencia).toBe(false);
+      expect(r.descuadran).toBe(0);
+      expect(r.explicadasPorFiltro).toBe(74);
+      expect(r.sinCrudo).toBe(false);
+    });
+
+    it("sin responses_total, filter_rejected reconstruye el crudo", () => {
+      // La whitelist puede traer el rechazo sin el total: válidas + rechazadas
+      // ES el crudo, y con él la cuenta se descuenta igual.
+      const r = parteContraPlataforma(
+        [parte("A", 20)],
+        [cruda("A", { validas: 15, rejected: 5 })],
+      );
+      expect(r.descuadran).toBe(0);
+      expect(r.explicadasPorFiltro).toBe(1);
+      expect(r.sinCrudo).toBe(false);
+    });
+
+    it("sin ningún crudo compara contra válidas, como hoy, y LO DECLARA", () => {
+      // Payloads viejos sin `responses_total` ni `filter_rejected`: la única
+      // comparación posible es contra el post-filtro. Se mantiene, pero el
+      // resultado lo declara para que el panel pueda decir su limitación.
+      const r = parteContraPlataforma([parte("A", 20)], [aula("A", 15)]);
+      expect(r.descuadran).toBe(1);
+      expect(r.casos[0].diferencia).toBe(5);
+      expect(r.sinCrudo).toBe(true);
+    });
+
+    it("con el crudo presente, cuadrar sigue cuadrando", () => {
+      // declaradas == responses_total == válidas: ni descuadre ni nada que el
+      // filtro tenga que explicar.
+      const r = parteContraPlataforma(
+        [parte("A", 20)],
+        [cruda("A", { total: 20, validas: 20 })],
+      );
+      expect(r.descuadran).toBe(0);
+      expect(r.explicadasPorFiltro).toBe(0);
+    });
+  });
 });
 
 // ── El panel declara la agrupación ────────────────────────────────────────
@@ -130,5 +238,36 @@ describe("AulasParteContraPlataforma declara los partes agrupados", () => {
     const html = render([parte("A", 20)], [aula("A", 20)]);
     expect(html).toContain("cursos-horario comparables");
     expect(html).not.toContain("aulas comparables");
+  });
+});
+
+/**
+ * S8: el panel avisa arriba de la lista cuando el parte está lejos de la
+ * plataforma, con las dos cuentas y la salida.
+ */
+describe("AulasParteContraPlataforma · el aviso de los que están lejos", () => {
+  const agenda = [
+    { operational_code: "CH 76", respuestas_validas: 38, responses_total: 38, faculty: "Letras" },
+    { operational_code: "CH 43", respuestas_validas: 16, responses_total: 16, faculty: "Letras" },
+  ];
+  it("nombra al lejos y no al que difiere en 1", () => {
+    const html = renderToStaticMarkup(
+      <AulasParteContraPlataforma
+        partes={[{ operational_code: "CH 76", effective_surveys: 23 }, { operational_code: "CH 43", effective_surveys: 17 }]}
+        agenda={agenda}
+      />,
+    );
+    expect(html).toContain("1 curso-horario con el parte lejos de la plataforma: CH 76 (parte 23, plataforma 38)");
+    expect(html).toContain("collectorID");
+    expect(html).toContain('data-tono="atencion"');
+  });
+  it("con diferencias chicas no pinta el aviso", () => {
+    const html = renderToStaticMarkup(
+      <AulasParteContraPlataforma
+        partes={[{ operational_code: "CH 43", effective_surveys: 17 }]}
+        agenda={agenda}
+      />,
+    );
+    expect(html).not.toContain("lejos de la plataforma");
   });
 });

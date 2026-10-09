@@ -39,7 +39,9 @@ describe("observacionesDeCampo", () => {
 
   it("sin observaciones no inventa ninguna", () => {
     const r = observacionesDeCampo([parte({ operational_code: "CH 1" })]);
-    expect(r).toEqual({ observaciones: [], conNota: 0, partes: 1 });
+    // `aulasConNota` se añadió el 2026-09-12: `conNota` cuenta NOTAS y un aula
+    // puede traer dos, así que comparar una con `partes` daba «283 de 200».
+    expect(r).toEqual({ observaciones: [], conNota: 0, aulasConNota: 0, partes: 1 });
   });
 
   it("el mismo aplicador no se repite en la lista de quién lo reportó", () => {
@@ -169,6 +171,40 @@ describe("observacionesDeCampo · las dos fuentes", () => {
       ]);
       expect(r.conNota).toBe(2);
       expect(r.partes).toBeGreaterThanOrEqual(r.conNota);
+    });
+
+    it("una fila «planificada» no está gestionada por traer la fecha del plan", () => {
+      // **El defecto que este bloque existe para cazar.** El plan del cálculo de
+      // muestra trae `scheduled_date` en TODAS sus filas: es el día que le toca
+      // a ese curso-horario, no una cita que alguien fijó. Aceptarla como señal
+      // daba por gestionada la agenda entera.
+      //
+      // Medido el 2026-08-30 sobre el estudio de 1.424: las **1.424** filas
+      // entraban por esa línea y ninguna por otra —1.232 de ellas en
+      // «planificada»— y el panel publicaba «ninguno de los 1.424 cursos-horario
+      // gestionados trae observación», acusando al equipo por 1.232 aulas que
+      // nadie había tocado. Reparado, el denominador es 192.
+      const r = observacionesDeCampo([], [
+        { operational_code: "CH 1", operational_status: "planificada", scheduled_date: "2026-09-18" },
+        { operational_code: "CH 2", operational_status: "planificada", scheduled_date: "2026-09-18" },
+        { operational_code: "CH 3", operational_status: "agendada", scheduled_date: "2026-09-18" },
+      ]);
+      // Sólo la agendada. Las dos planificadas traen la fecha del plan y nada más.
+      expect(r.partes).toBe(1);
+    });
+
+    it("la fecha del plan sí cuenta cuando la fila trae señal propia", () => {
+      // El veto es sólo sobre la señal débil: una «planificada» con nota, con
+      // paso por campo o con cifras ya salió por las condiciones fuertes. Es el
+      // caso del Excel corregido a mano, que este perfil documenta.
+      const r = observacionesDeCampo([], [
+        { operational_code: "CH 1", operational_status: "planificada", scheduled_date: "2026-09-18", field_note: "El docente pidió otro día" },
+        { operational_code: "CH 2", operational_status: "planificada", scheduled_date: "2026-09-18", applied_at: "2026-09-18 10:00" },
+        { operational_code: "CH 3", operational_status: "planificada", scheduled_date: "2026-09-18", effective_surveys: 12 },
+        { operational_code: "CH 4", operational_status: "planificada", scheduled_date: "2026-09-18" },
+      ]);
+      expect(r.partes).toBe(3);
+      expect(r.conNota).toBe(1);
     });
 
     it("un aula con parte en el libro cuenta aunque su fila de agenda esté cruda", () => {

@@ -12,13 +12,64 @@ monitoreo_aulas_estados <- function() {
 # puede estar REEMPLAZADA en muestra y APLICADA en campo, porque una cosa es
 # como se consiguio el aula y otra como fue la aplicacion. Medido en el estudio
 # de 2025 sobre 230 aulas contactadas.
+#
+# B13b (D-B13 cerrada): los cinco TECLEABLES del libro son sin_contactar,
+# en_contacto, agendada, reagendada y rechazo. `en_reserva` y `reemplazada`
+# siguen en el vocabulario como DERIVADOS: el plan los publica (la activacion
+# de reemplazos los escribe) y los libros vivos v3 los traen tecleados.
 monitoreo_aulas_estados_muestra <- function() {
-  c("agendada", "reagendada", "en_reserva", "reemplazada", "sin_contactar")
+  c("sin_contactar", "en_contacto", "agendada", "reagendada", "rechazo",
+    "en_reserva", "reemplazada", "refuerzo_por_contactar", "refuerzo_agendado")
 }
 
 # Estados de la APLICACION, tal como los escribe el parte de campo.
 monitoreo_aulas_estados_aplicacion <- function() {
   c("aplicada", "no_aplicada", "pendiente")
+}
+
+# Los SEIS verbos del libro, sin agrupar. `monitoreo_aulas_estados_aplicacion()`
+# devuelve las tres claves GRUESAS con las que cuenta el resto del motor; esto
+# es el vocabulario fino que teclea el coordinador.
+monitoreo_aulas_desenlaces_aplicacion <- function() {
+  c("pendiente", "aplicada", "no_aplicada",
+    "reemplazada_por", "complementada_con", "aplicada_de_refuerzo")
+}
+
+#' El desenlace FINO de la aplicacion, con los tres verbos del libro.
+#'
+#' `monitoreo_aulas_estado_aplicacion()` agrupa —y tiene que seguir haciendolo,
+#' porque medio motor cuenta `== "aplicada"`—. Esto conserva cual de los tres
+#' casos fue, que es la pregunta de Gonzalo del 2026-09-10: «quiero empezar a
+#' ver la parte de reemplazos para aulas complementarias (B) o aulas de refuerzo
+#' (C)».
+#'
+#' Los tres, con la definicion del libro (`carga_aulas_libro_formato.R`):
+#'
+#' - **A · REEMPLAZADA POR**: el aula cayo y otra ocupa su lugar. El titular
+#'   SALE, asi que su fila no es una aplicacion.
+#' - **B · COMPLEMENTADA CON**: el aula rindio poco y se suma su cadena. El
+#'   titular NO sale: los dos cuentan, y por eso agrupa como `aplicada`.
+#' - **C · APLICADA DE REFUERZO**: no es del aula; faltaban alumnos o un sexo
+#'   para la meta y se salio a una reserva por decision operativa. Se aplico.
+#'
+#' @param x valor crudo del libro.
+#' @return una de `monitoreo_aulas_desenlaces_aplicacion()`.
+#' @export
+monitoreo_aulas_desenlace_aplicacion <- function(x) {
+  key <- gsub(" ", "_", .monitoreo_text_key(.monitoreo_scalar(x, "")), fixed = TRUE)
+  if (!nzchar(key)) return("pendiente")
+  switch(key,
+    aplicada = "aplicada",
+    no_aplicada = "no_aplicada",
+    noaplicada = "no_aplicada",
+    reemplazada_por = "reemplazada_por",
+    reemplazada = "reemplazada_por",
+    complementada_con = "complementada_con",
+    complementada = "complementada_con",
+    aplicada_de_refuerzo = "aplicada_de_refuerzo",
+    reforzada_con = "aplicada_de_refuerzo",
+    "pendiente"
+  )
 }
 
 #' Normaliza un estado de agendamiento a su clave canonica.
@@ -41,10 +92,30 @@ monitoreo_aulas_estado_muestra <- function(x) {
   key <- trimws(gsub("[[:space:]]+", " ", key))
   if (!nzchar(key)) return("sin_contactar")
   if (startsWith(key, "en reserva")) return("en_reserva")
+  # **«REFUERZO POR CONTACTAR» es un estado propio, no una variante de otro.**
+  #
+  # Gonzalo, 2026-09-11: «sería mejor que tenga un estado propio algo así como
+  # REFUERZO POR CONTACTAR». Lo marca la app cuando se elige un complemento (B) o
+  # un refuerzo (C), y dice exactamente lo que pasa: el aula está en juego y
+  # nadie ha llamado todavia. Distinguirlo de `sin_contactar` importa porque ese
+  # es el estado de los titulares que nunca se tocaron, y lo que el agendador
+  # necesita ver es SU cola: lo que la app le acaba de poner por delante.
+  if (startsWith(key, "refuerzo por contactar")) return("refuerzo_por_contactar")
+  # **Y «REFUERZO AGENDADO», su paso siguiente.** Gonzalo, 2026-09-24: «sería
+  # bueno tenerla como agendada como refuerzo». Al pasar a AGENDADA el refuerzo
+  # perdía el morado en la hoja y el agendador ya no lo distinguía; con estado
+  # propio cuenta como agendado en todo —aforo, proyección, ritmo— y sigue
+  # diciendo por qué entró. «Agendado/agendada» se aceptan las dos.
+  if (startsWith(key, "refuerzo agendad")) return("refuerzo_agendado")
   out <- switch(gsub(" ", "_", key, fixed = TRUE),
     agendada = "agendada",
     reagendada = "reagendada",
     reemplazada = "reemplazada",
+    # B13b: los dos tecleables nuevos del dictado. Sin estas ramas, «EN
+    # CONTACTO» y «RECHAZO» degradaban al default y un rechazo tecleado
+    # volvia a la cola de llamadas como si nadie hubiera llamado.
+    en_contacto = "en_contacto",
+    rechazo = "rechazo",
     "sin_contactar"
   )
   out
@@ -56,12 +127,27 @@ monitoreo_aulas_estado_muestra <- function(x) {
 #' @return clave canonica.
 #' @export
 monitoreo_aulas_estado_aplicacion <- function(x) {
-  key <- gsub(" ", "_", .monitoreo_text_key(.monitoreo_scalar(x, "")), fixed = TRUE)
-  if (!nzchar(key)) return("pendiente")
-  switch(key,
+  # **Los tres verbos del libro caian en `pendiente`, y eso PERDIA campo.**
+  #
+  # El libro ofrece seis estados desde el 2026-09-04 —POR APLICAR, APLICADA, NO
+  # APLICADA, REEMPLAZADA POR, COMPLEMENTADA CON, APLICADA DE REFUERZO— y esta
+  # funcion solo conocia dos. Los otros tres caian al `pendiente` del default:
+  # un aula aplicada de refuerzo se contaba como si nadie la hubiera tocado, y
+  # un titular reemplazado seguia figurando en la cola de trabajo.
+  #
+  # Es la trampa de la lista cerrada que se traga lo que no entiende, y aqui no
+  # avisaba de nada porque el default es un estado legitimo.
+  #
+  # Se agrupan, no se propagan: medio motor cuenta `== "aplicada"` y el reparto
+  # fino vive en `monitoreo_aulas_desenlace_aplicacion()`. Complementada y
+  # aplicada de refuerzo SON aplicaciones —el aula se visito y dejo encuestas—;
+  # reemplazada por NO lo es: es el titular que cayo.
+  switch(monitoreo_aulas_desenlace_aplicacion(x),
     aplicada = "aplicada",
+    complementada_con = "aplicada",
+    aplicada_de_refuerzo = "aplicada",
     no_aplicada = "no_aplicada",
-    noaplicada = "no_aplicada",
+    reemplazada_por = "no_aplicada",
     "pendiente"
   )
 }
@@ -75,6 +161,13 @@ monitoreo_aulas_motivos_reemplazo <- function() {
 }
 
 .monitoreo_aulas_df <- function(x, label = "tabla") {
+  # **Se llama trece veces por build sobre los mismos insumos.** La memoria de
+  # un paso vive en `monitoreo_aulas_df_cache.R`, con las cifras que la
+  # justifican: convertir cuesta 0,32 s y comparar 0,0001 s.
+  .mad_recuerda(x, function(x) .monitoreo_aulas_df_calcula(x, label))
+}
+
+.monitoreo_aulas_df_calcula <- function(x, label = "tabla") {
   if (is.null(x)) return(data.frame(stringsAsFactors = FALSE))
   if (is.data.frame(x)) return(as.data.frame(x, stringsAsFactors = FALSE, check.names = FALSE))
   if (!is.list(x)) {
@@ -111,10 +204,61 @@ BRECHAS_COLUMNAS_PUBLICADAS <- c(
   "expected_valid", "brecha"
 )
 
+# Lo mismo para `reemplazos`, por la MISMA razon y con mas peso.
+#
+# Salia con las 104 columnas del plan seguido: 1 173 filas x ~3 590 bytes =
+# **4 109 KB de un payload de 10 331**, medido sobre HSVG26ULT2 el 2026-09-08.
+# Y no es una lista aparte: sus 1 173 codigos estan TODOS en `agenda`, y las
+# filas son identicas campo por campo salvo `motivo`. Cuatro megabytes
+# duplicados para llevar una columna de texto.
+#
+# El comentario de `brechas`, tres lineas mas abajo, ya lo habia visto —«tanto
+# como el plan entero, que ademas ya viaja dos veces»— y se quedo en el
+# diagnostico.
+#
+# Las columnas son la UNION de lo que piden sus tres consumidores, y estan
+# cubiertas por test: la tabla de Consultas (`preferredColumns`), el ordenador de
+# cadena `reemplazosEnOrdenDeCadena` (`sample_role`, `operational_sequence`,
+# `replacement_order`, `operational_code`, `replacement_for`,
+# `titular_operational_code`, `label`) y el badge del rail (`sample_status`).
+# `faculty` la pide el filtro por facultad de la seccion.
+REEMPLAZOS_COLUMNAS_PUBLICADAS <- c(
+  "operational_code", "classroom_id", "label", "faculty",
+  "titular_operational_code", "replacement_for", "replacement_order",
+  "operational_sequence", "sample_role", "sample_status", "operational_status",
+  "motivo"
+)
+
+#' El data.frame como lista de filas.
+#'
+#' **Por columnas y no por filas.** La version anterior hacia
+#' `as.list(df[i, , drop = FALSE])` una vez por fila, y `[.data.frame` sobre 109
+#' columnas construye un data.frame entero —atributos, nombres de fila, clases—
+#' para tirarlo acto seguido. Medido con Rprof sobre HSVG2026 el 2026-09-10:
+#' **298 de las 307 muestras de `[.data.frame` de un build salian de aqui**, y
+#' convertir el plan costaba 0,42 s; extrayendo las columnas UNA vez y componiendo
+#' cada fila cuesta 0,04 s. Diez veces menos, con el mismo resultado: sobre el
+#' plan real las dos salidas son `identical()`.
+#'
+#' **La columna-lista es el caso que obliga a distinguir.** `df[i, ]` conserva la
+#' envoltura de la celda y `col[[i]]` la quita, asi que una columna de listas
+#' salia distinta; `col[i]` la conserva. Comprobado ademas con factores, fechas,
+#' logicos y `NA`: las seis formas dan salidas identicas a la anterior.
+#' @keywords internal
 .monitoreo_aulas_records <- function(df, max_rows = Inf) {
   if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(list())
   if (is.finite(max_rows)) df <- utils::head(df, max_rows)
-  lapply(seq_len(nrow(df)), function(i) as.list(df[i, , drop = FALSE]))
+  cols <- as.list(df)
+  nombres <- names(cols)
+  es_lista <- vapply(cols, function(col) is.list(col) && !is.data.frame(col), logical(1))
+  lapply(seq_len(nrow(df)), function(i) {
+    fila <- vector("list", length(cols))
+    names(fila) <- nombres
+    for (k in seq_along(cols)) {
+      fila[[k]] <- if (es_lista[[k]]) cols[[k]][i] else cols[[k]][[i]]
+    }
+    fila
+  })
 }
 
 .monitoreo_aulas_col <- function(df, candidates) {
@@ -175,14 +319,45 @@ BRECHAS_COLUMNAS_PUBLICADAS <- c(
 # brechas, estratos y reemplazos igual de ciegos.
 .monitoreo_aulas_contar_por_fila <- function(rows, counts) {
   if (!is.data.frame(rows) || !nrow(rows)) return(integer(0))
-  por_aula <- as.integer(counts[rows$classroom_id])
-  if ("collection_unit_id" %in% names(rows)) {
-    por_unidad <- as.integer(counts[rows$collection_unit_id])
-    falta <- is.na(por_aula)
-    por_aula[falta] <- por_unidad[falta]
+  aulas <- as.character(rows$classroom_id)
+  unidades <- if ("collection_unit_id" %in% names(rows)) {
+    as.character(rows$collection_unit_id)
+  } else {
+    NULL
   }
-  por_aula[is.na(por_aula)] <- 0L
-  por_aula
+  # Tercera clave: el QR de 2026 viaja con el CODIGO OPERATIVO (`CH 1`) y un
+  # plan que no paso por el handoff de Recopiladores solo tiene el
+  # curso-horario en `classroom_id` — la respuesta nueva caia a 0 en silencio
+  # (medido 2026-09-01 sobre el plan de la demo: `CH 1` -> 0 atribuidas).
+  codigos <- if ("operational_code" %in% names(rows)) {
+    as.character(rows$operational_code)
+  } else {
+    NULL
+  }
+  # El identificador tambien llega TECLEADO (`ch1`, `R6_1`); si el plan no
+  # tiene claves que colisionen, la comparacion corre en el espacio canonico y
+  # esas variantes suman a su aula. Ver `.monitoreo_aulas_clave_colector()`.
+  if (length(counts) && .monitoreo_aulas_claves_sin_colision(c(aulas, unidades, codigos))) {
+    counts <- .monitoreo_aulas_counts_por_clave(counts)
+    aulas <- .monitoreo_aulas_clave_colector(aulas)
+    if (!is.null(unidades)) unidades <- .monitoreo_aulas_clave_colector(unidades)
+    if (!is.null(codigos)) codigos <- .monitoreo_aulas_clave_colector(codigos)
+  }
+  # La fila SUMA las claves unicas que declara, no la primera que matchea: en
+  # la transicion curso-horario -> codigo operativo conviven respuestas
+  # repartidas entre dos claves de la MISMA aula, y el fallback excluyente se
+  # quedaba con una poblacion y perdia la otra en silencio. Claves repetidas
+  # dentro de la fila (post-handoff `classroom_id` == `operational_code`)
+  # cuentan una sola vez.
+  n <- nrow(rows)
+  if (is.null(unidades)) unidades <- rep("", n)
+  if (is.null(codigos)) codigos <- rep("", n)
+  vapply(seq_len(n), function(i) {
+    ks <- unique(c(aulas[[i]], unidades[[i]], codigos[[i]]))
+    ks <- ks[!is.na(ks) & nzchar(ks)]
+    if (!length(ks)) return(0L)
+    sum(as.integer(counts[ks]), na.rm = TRUE)
+  }, integer(1))
 }
 
 .monitoreo_aulas_status <- function(x, default = "planificada") {
@@ -253,6 +428,72 @@ monitoreo_aulas_default_config <- function() {
       link_var = "",
       date_var = "",
       status_var = "",
+      # **Qué valor de `sex_var` es cada sexo.** La plataforma devuelve el
+      # CÓDIGO, no la etiqueta: `datos_demo/P2` llega como «1» y «2», y
+      # `.pulso_sexo_fm()` —que reconoce «Mujer», «F», «femenino»— no puede
+      # saber cuál es cuál. Sin esta declaración las columnas de sexo obtenido
+      # se quedan vacías, que es lo correcto: `sub_a` ya costó una lectura al
+      # revés por adivinar cuál columna era mujeres.
+      sex_female_values = list(),
+      sex_male_values = list(),
+      # **Lo que llega por la plataforma pero NO es del estudio.** El QR de
+      # capacitación y el de prueba producen envíos reales —26 de CAPACITACION y
+      # 9 de PRUEBA_2026 el primer día de HSVG2026— que pasan todos los filtros
+      # de validez porque son encuestas bien llenadas. No son del operativo, y
+      # Gonzalo pidió que no sumen: «fuera del avance».
+      #
+      # Es la contracara de `valid_filters`: aquéllos dicen qué CUENTA, éstos
+      # qué se descarta. Mismo formato `{var, values}`, y basta con que uno case.
+      descartes = list(),
+      # **`valid_filters` también va aquí**, y no por el valor por defecto: la
+      # siembra desde el mapeo anterior recorre `names(defaults$source_mapping)`,
+      # así que una clave ausente de esta lista NO se conserva entre guardados
+      # parciales por mucho que el normalizador la lea. Faltaba, y era la otra
+      # mitad del borrado silencioso que se llevó los descartes.
+      valid_filters = list(),
+      consent_var = "",
+      # **La variable que dice el sexo de quien respondio** (dictado
+      # 2026-09-04: «poder mapear cuantas se esperaban en total y en hombres y
+      # en mujeres y cuanto obtuvimos»). Sin declararla no se cuenta por sexo y
+      # la columna calla: adivinar cual de las variables de la base es el sexo
+      # es exactamente el error que ya costo una lectura en este estudio.
+      sex_var = "",
+      # **La variable donde el alumno DECLARA su facultad**, y el catálogo que
+      # traduce su código a nombre (`faculty_labels`: «7» →
+      # «CIENCIAS Y ARTES DE LA COMUNICACIÓN»). Alimentan la hoja «Control de
+      # facultad», que cruza esa declaración con la facultad que el diseño le
+      # puso al curso-horario. Sin las dos no hay hoja, y es deliberado: el
+      # avance por facultad se cuenta con la del marco, así que adivinar cuál
+      # pregunta es la facultad sería inventar justo el dato que el control
+      # existe para vigilar. Sin el catálogo, el cruce compararía un «7» contra
+      # un nombre y daría 100 % de desacuerdo — una catástrofe de campo que no
+      # ocurrió.
+      faculty_var = "",
+      faculty_labels = list(),
+      # **La variable donde el alumno declara su CÓDIGO PUCP**, y cómo se llama
+      # esa pregunta en el cuestionario. Es la llave del padrón: con el eje de
+      # cuotas en «nivel», el nivel de una respuesta no está en la respuesta
+      # —está en la persona—, y el código es lo único que las une. Ver
+      # `carga_aulas_padron.R` y `monitoreo_aulas_nivel.R`.
+      #
+      # Se declara por la misma razón que `faculty_var`: adivinar qué pregunta
+      # trae el código sería inventar el dato del que dependen todas las celdas.
+      # Sin declararla, el eje «nivel» no puede medir y lo dice; no cae a la
+      # pregunta de ciclo autodeclarado, que es una decisión tomada (sin cruce
+      # no hay nivel).
+      student_code_var = "",
+      student_code_label = "",
+      # **El ciclo que el alumno declara**, y su catálogo de opciones. No es una
+      # fuente de nivel —sin cruce no hay nivel, ADR 0088— sino el OTRO lado del
+      # control: la hoja «Control de nivel» contrasta el nivel del padrón contra
+      # lo que la misma persona declaró.
+      #
+      # El catálogo se declara por la misma razón que `faculty_labels`, y con el
+      # mismo modo de fallo medido: sin él se compara el código de la opción
+      # («1», «2») contra el nivel del padrón (6, 7) y el control publica cero
+      # coincidencias, que es la alarma máxima por hablar dos idiomas.
+      declared_level_var = "",
+      declared_level_labels = list(),
       # De la constante, no de una copia. La lista viajaba por DOS sitios —aqui y
       # el default de `.monitoreo_aulas_valid_response()`— y el normalizador
       # siempre rellena desde este, asi que ampliar el otro no cambiaba nada:
@@ -273,6 +514,45 @@ monitoreo_aulas_default_config <- function() {
     representativity = list(),
     # Metas del diseño importadas de calc-muestra (ver monitoreo_aulas_metas_diseno.R).
     design_targets = list(),
+    # **El eje de las cuotas.** Nace en «facultad», que es lo que las cinco
+    # capas hacían ya sin declararlo. Un estudio que mide por otra cosa —CCSS
+    # Perfil 2026-II mide por nivel curricular— lo dice aquí y el resto lo
+    # hereda. Ver monitoreo_aulas_eje.R. El motivo es para que un humano
+    # entienda la decisión al reabrir el proyecto, no un requisito del motor.
+    eje_cuota = "facultad",
+    eje_cuota_motivo = "",
+    # Por qué dimensión agrupa el RESUMEN OPERATIVO de Avance. Es otra pregunta
+    # que el eje de cuotas y puede tener otra respuesta: ver
+    # `monitoreo_aulas_agrupacion.R`.
+    agrupacion_operativa = "facultad",
+    # El día que arrancó la recolección. Lo anterior es ensayo y sale por
+    # `fuera_del_operativo`: ver `monitoreo_aulas_inicio_campo.R`.
+    inicio_campo = "",
+    # **Contra qué otro estudio se cruza, y de dónde se lee.** Sin esto el
+    # veredicto del traslape sólo podía inyectarlo un runner externo y la app no
+    # tenía cómo recalcularlo. Ver `monitoreo_aulas_traslape_fuente.R`.
+    traslape_fuente = list(),
+    # **Los TRAMOS del operativo: rangos de fecha con nombre propio.** Dictado
+    # 2026-09-15: «más que semana en el estricto senso, con rango a los que
+    # llamamos de forma personalizada; en este caso seleccioné dos rangos
+    # semanales y les puse Semana 1 y Semana 2, pero puede ser otro rango con
+    # otros nombres». El rango y su nombre son decisión suya y no se deducen de
+    # ningún sitio, así que se guardan; el estado de cada tramo se deriva del
+    # plan en cada corrida (`monitoreo_aulas_tramos_estado()`). Sin tramos
+    # declarados el motor cae a las semanas de calendario de siempre.
+    tramos = list(),
+    # Cuándo se publicó el libro por última vez, con qué corte y con cuántos
+    # partes. Lo escribe el publicador al terminar; la pantalla lo enseña al
+    # lado de «Traer respuestas».
+    libro_publicado = list(),
+    # B70 (dictado 2026-09-03): la duración de la aplicación en minutos. 30 es
+    # la verdad operativa de hoy («la aplicación dura media hora»); el slider
+    # de Carga de campo la edita y la persiste por aquí. Los motores de
+    # ventanas/franjas/reparto la reciben por parámetro.
+    duracion_aplicacion_min = 30L,
+    # Sin techo declarado: el estudio decide cuántas aulas admite y hasta que
+    # lo diga no se le supone ninguno (dictado 2026-09-18).
+    techo_aulas_campo = 0L,
     alerts = list(
       min_valid_per_class = 1L,
       warn_partial_under_valid = 5L
@@ -295,9 +575,33 @@ monitoreo_aulas_default_config <- function() {
 # `control` vs `control_sin_nombre` es la misma trampa esperando, asi que TODO el
 # body se lee con `[[`, que es exacto. `defaults$` se deja como esta: es interno
 # y no lo escribe nadie de fuera.
-monitoreo_aulas_normalize_config <- function(config = list()) {
+# `previous` (2026-09-08): el fallback de `source_mapping` es LO QUE YA ESTABA
+# GUARDADO, no el default vacío.
+#
+# Esta whitelist corre en cada sincronización (`monitoreo_normalize_config`), y
+# el body que le llega no siempre trae `source_mapping`: cuando no lo trae, cada
+# campo caía a su default —cadena vacía— y el estudio se quedaba sin saber qué
+# columna es el colector ni cuál el sexo. Medido en el `.pulso` de HSVG2026 el
+# 2026-09-08: `collector_var` pasó de "collectorID" a "" y `sex_var` de
+# "datos_demo/P2" a "" en una sola pulsación de «actualizar», y toda la pestaña
+# de Avance quedó en cero sobre un campo con 212 efectivas.
+#
+# El hermano territorial ya recibía `previous` (`monitoreo_engine.R`, la línea
+# de arriba de la de aulas); aulas no. Lo que llega manda, campo por campo; lo
+# que no llega se conserva; sin previo, el default de siempre.
+monitoreo_aulas_normalize_config <- function(config = list(), previous = list()) {
   if (is.null(config) || !is.list(config)) config <- list()
+  # Lo que el payload del estado recortó no se pierde si la pantalla lo
+  # devuelve (monitoreo_aulas_restaurar_marco.R).
+  config <- .monitoreo_aulas_restaurar_marco(config, previous)
   defaults <- monitoreo_aulas_default_config()
+  prev_mapping <- if (is.list(previous)) (previous[["source_mapping"]] %||% list()) else list()
+  if (is.list(prev_mapping) && length(prev_mapping)) {
+    for (nm in names(defaults$source_mapping)) {
+      v <- prev_mapping[[nm]]
+      if (!is.null(v) && length(v)) defaults$source_mapping[[nm]] <- v
+    }
+  }
   mapping <- config[["source_mapping"]] %||% config[["mapeo_fuentes"]] %||% list()
   if (!is.list(mapping)) mapping <- list()
   alerts <- config[["alerts"]] %||% config[["alertas"]] %||% list()
@@ -315,6 +619,61 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       link_var = .monitoreo_scalar(mapping$link_var %||% mapping$link, defaults$source_mapping$link_var),
       date_var = .monitoreo_scalar(mapping$date_var %||% mapping$fecha_var, defaults$source_mapping$date_var),
       status_var = .monitoreo_scalar(mapping$status_var %||% mapping$estado_var, defaults$source_mapping$status_var),
+      # Misma doctrina de whitelist: sin esta linea, declararla en la UI no
+      # persistiria y el campo se caeria en silencio.
+      sex_var = .monitoreo_scalar(mapping$sex_var %||% mapping$sexo_var, defaults$source_mapping$sex_var),
+      # Misma doctrina de whitelist: sin nombrarlas aquí, declararlas no
+      # persistiría y la hoja de control nunca aparecería en el libro.
+      faculty_var = .monitoreo_scalar(
+        mapping$faculty_var %||% mapping$facultad_var,
+        defaults$source_mapping$faculty_var),
+      faculty_labels = .mcfd_normalizar_etiquetas(
+        mapping$faculty_labels %||% mapping$etiquetas_facultad %||%
+          defaults$source_mapping$faculty_labels),
+      # La llave del padrón, por la misma doctrina: sin nombrarla aquí,
+      # declararla en la pantalla no sobreviviría al primer «actualizar» y el
+      # eje «nivel» se quedaría mudo sin que nadie supiera por qué.
+      student_code_var = .monitoreo_scalar(
+        mapping$student_code_var %||% mapping$codigo_var %||%
+          mapping$codigo_pucp_var,
+        defaults$source_mapping$student_code_var),
+      student_code_label = .monitoreo_scalar(
+        mapping$student_code_label %||% mapping$codigo_label %||%
+          mapping$codigo_pucp_label,
+        defaults$source_mapping$student_code_label),
+      # El otro lado del control de nivel, misma doctrina de whitelist: sin
+      # nombrarlos aquí, declararlos no persistiría y la hoja «Control de
+      # nivel» nunca aparecería en el libro.
+      declared_level_var = .monitoreo_scalar(
+        mapping$declared_level_var %||% mapping$ciclo_var %||%
+          mapping$nivel_declarado_var,
+        defaults$source_mapping$declared_level_var),
+      declared_level_labels = .mcfd_normalizar_etiquetas(
+        mapping$declared_level_labels %||% mapping$etiquetas_ciclo %||%
+          defaults$source_mapping$declared_level_labels),
+      # Misma doctrina de whitelist que la linea de arriba: sin nombrarlos aqui,
+      # declararlos no persistiria.
+      # Caían a `list()` pelada en vez de a `defaults`, así que un body sin
+      # mapeo también se llevaba por delante qué valor es mujer y cuál hombre.
+      sex_female_values = as.list(.monitoreo_chr_vec(
+        mapping$sex_female_values %||% mapping$valores_mujer %||%
+          defaults$source_mapping$sex_female_values %||% list())),
+      sex_male_values = as.list(.monitoreo_chr_vec(
+        mapping$sex_male_values %||% mapping$valores_hombre %||%
+          defaults$source_mapping$sex_male_values %||% list())),
+      # **Al `previous`, no a `list()` pelada.** Es exactamente la trampa que la
+      # línea de arriba describe para los valores de sexo, y aquí seguía viva:
+      # un `POST` que trae sólo parte del mapeo —declarar el criterio de
+      # efectiva, por ejemplo— se llevaba por delante los descartes, y con
+      # ellos los QR de capacitación y prueba volvían a contar como operativo.
+      # Medido el 2026-09-22 declarando `valid_filters` en CCSS Perfil 2026-II:
+      # `descartes` pasó de dos valores a cero sin que nada lo dijera.
+      #
+      # La UI no lo sufría porque envía el mapeo entero (`...source_mapping`);
+      # cualquier otro llamador sí, y el silencio es el problema.
+      descartes = .monitoreo_aulas_filas_de_filtro(
+        mapping$descartes %||% mapping$descartadas %||%
+          defaults$source_mapping$descartes %||% list()),
       valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses)),
       # **Los filtros de encuesta efectiva, que si no se declaran AQUI se pierden
       # al guardar.** Este normalizador es la whitelist de la config: lo que no
@@ -325,9 +684,17 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       # `.pulso` viejo o de otra sesion: **un filtro sin variable o sin valores
       # descartaria TODAS las respuestas**, y el tope de cuatro es el que Gonzalo
       # declaro —«puede tener hasta 4»—.
+      # **La columna del consentimiento**, para que un rechazo se lea como
+      # rechazo y no como «no declaró su código». Va en la whitelist o no
+      # persiste. Vacía: el resolutor la busca por su cuenta
+      # (`monitoreo_aulas_consentimiento.R`).
+      consent_var = .monitoreo_scalar(
+        mapping$consent_var %||% mapping$consentimiento_var,
+        defaults$source_mapping$consent_var),
       valid_filters = local({
         crudos <- .monitoreo_aulas_filas_de_filtro(
-          mapping$valid_filters %||% mapping$filtros_validez
+          mapping$valid_filters %||% mapping$filtros_validez %||%
+            defaults$source_mapping$valid_filters
         )
         limpios <- list()
         for (f in crudos) {
@@ -368,6 +735,105 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       ))
       if (isTRUE(crit$declarado)) crit$umbral_min else NULL
     }),
+    # **El techo de cursos-horario del operativo (dictado 2026-09-18).**
+    #
+    # Gonzalo: «Poder definir el techo de aulas y en base a ello poder pedir mas
+    # refuerzos». Cuántas aulas admite el estudio es una decisión suya —en
+    # HSVG2026 son 195— y hasta ahora vivía en su cabeza: cada vez que había que
+    # saber cuántos refuerzos caben, el número se tecleaba en una consulta.
+    #
+    # `0` es «sin techo declarado», que NO es un techo de cero: con él,
+    # `monitoreo_aulas_refuerzos()` devuelve `caben = NA` en vez de inventar un
+    # límite. Misma doctrina de whitelist que sus vecinas: sin esta entrada,
+    # declararlo y guardar el proyecto lo perdería en silencio.
+    techo_aulas_campo = local({
+      crudo <- suppressWarnings(as.integer(
+        (config[["techo_aulas_campo"]] %||% config[["techo_de_aulas"]] %||%
+           defaults$techo_aulas_campo)[1]
+      ))
+      if (is.na(crudo) || crudo < 0) 0L else crudo
+    }),
+    # **Cuánto dura la aplicación (B70, dictado 2026-09-03).** Misma doctrina
+    # de whitelist: sin esta entrada, confirmar el slider y guardar el
+    # proyecto perdería la duración en silencio. Se sanea a entero en
+    # [5, 180]; lo ilegible cae al default (30) en vez de romper el config.
+    duracion_aplicacion_min = local({
+      crudo <- suppressWarnings(as.integer(
+        (config[["duracion_aplicacion_min"]] %||% defaults$duracion_aplicacion_min)[1]
+      ))
+      if (is.na(crudo) || crudo < 5L || crudo > 180L) {
+        defaults$duracion_aplicacion_min
+      } else {
+        crudo
+      }
+    }),
+    # **La semilla del resorteo (B67, dictado 2026-09-03: «no tengo una forma
+    # de hacer un resorteo»).** Entero >= 0; rota el desempate del greedy sin
+    # tocar equidad ni fijadas. Basura o negativo caen a 0 (el alfabeto de
+    # siempre), no rompen el config.
+    reparto_semilla = local({
+      crudo <- suppressWarnings(as.integer((config[["reparto_semilla"]] %||% 0L)[1]))
+      if (is.na(crudo) || crudo < 0L) 0L else crudo
+    }),
+    # **La concentración por día del reparto (dictado 2026-09-04: «que sus
+    # cursos-horario asignados no estén dispersos en toda la semana, sino
+    # concentrados en un día o dos como máximo… sí quiero que se active»).**
+    # Lógico; el default es TRUE por su dictado — apagar es la excepción.
+    reparto_concentrado = local({
+      crudo <- config[["reparto_concentrado"]]
+      if (is.null(crudo) || length(crudo) == 0L) TRUE else isTRUE(crudo[[1]])
+    }),
+    # **El rango de despliegue del reparto (B75, dictado 2026-09-03).** Misma
+    # doctrina de whitelist. Ambas puntas en ISO o no hay rango (NULL =
+    # todo el horizonte); un rango con basura no rompe el config, se
+    # des-declara. El intercambio desde>hasta lo hace el motor, no aqui: una
+    # sola normalizacion duena del significado.
+    reparto_rango = local({
+      crudo <- config[["reparto_rango"]]
+      if (!is.list(crudo)) return(NULL)
+      d1 <- trimws(as.character(crudo[["desde"]] %||% "")[1])
+      d2 <- trimws(as.character(crudo[["hasta"]] %||% "")[1])
+      es_iso <- function(x) grepl("^\\d{4}-\\d{2}-\\d{2}$", x)
+      if (es_iso(d1) && es_iso(d2)) list(desde = d1, hasta = d2) else NULL
+    }),
+    # **Quien NO sale esta semana** (dictado 2026-09-12). El operativo pierde y
+    # gana gente de una semana a otra —la 1 salio con 19 y la 2 con 17— y hasta
+    # ahora la unica forma de dejar a alguien fuera era editar el archivo de
+    # disponibilidad y volver a cargarlo. Es una lista de NOMBRES tal como los
+    # trae la oferta; el reparto los quita antes de repartir.
+    #
+    # Los nombres se guardan como llegan, sin normalizar a la forma de mostrar:
+    # `aulas_nombre_aplicador()` es presentacion y usarla como identidad ya
+    # partio a una persona en dos en la hoja de produccion (2026-09-12). La
+    # comparacion la hace el motor con su propia clave.
+    reparto_fuera = local({
+      crudo <- config[["reparto_fuera"]]
+      if (is.null(crudo)) return(NULL)
+      v <- trimws(as.character(unlist(crudo, use.names = FALSE)))
+      v <- unique(v[!is.na(v) & nzchar(v)])
+      if (!length(v)) return(character(0))
+      v
+    }),
+    # **Las fijaciones del reparto de aplicadores (B36)** — codigo de cita →
+    # aplicador, la voluntad explicita del usuario sobre el greedy. Misma
+    # doctrina de whitelist: sin esta entrada, fijar una cita y guardar el
+    # proyecto la perderia en silencio. Un valor vacio ("") es la forma de
+    # SOLTAR una fijacion: se descarta aqui y la cita vuelve al automatico.
+    reparto_fijado = local({
+      crudo <- config[["reparto_fijado"]]
+      # jsonlite simplifica {"CH 7": "..."} del body HTTP a VECTOR nombrado,
+      # no lista — sin esta linea el POST de la UI llegaba y el mapa se
+      # perdia en silencio (medido en vivo 2026-09-02).
+      if (is.character(crudo)) crudo <- as.list(crudo)
+      if (!is.list(crudo)) crudo <- list()
+      limpio <- list()
+      for (nm in (names(crudo) %||% character(0))) {
+        cod <- trimws(nm)
+        v <- trimws(as.character(crudo[[nm]] %||% "")[1])
+        if (nzchar(cod) && !is.na(v) && nzchar(v)) limpio[[cod]] <- v
+      }
+      limpio
+    }),
     plan = monitoreo_aulas_normalize_plan(config[["plan"]] %||% config[["agenda"]] %||% defaults$plan),
     # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el
     # normalizador descartaba los partes y el control de reconciliacion no
@@ -398,6 +864,20 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # `plan_rows` — un 0 llegaba a `.monitoreo_aulas_df()` y elegir un modo en
     # /monitoreo respondia 500 E_INTERNAL.
     libro = if (is.list(config[["libro"]])) config[["libro"]] else NULL,
+    # El Google Sheets del operativo del libro (unidad B1). Va en la whitelist
+    # o no persiste — la misma trampa que ya se comió a `valid_filters`. El id
+    # NO es secreto (el token sí, ADR 0005): viaja en la config y el `.pulso`.
+    # Acceso `[[` exacto: `libro_sheets_borrador` u otra hermana no es esto.
+    libro_sheets = monitoreo_aulas_libro_sheets_normalizar(config[["libro_sheets"]]),
+    # S7: el Sheets de los aplicadores y la huella de lo último publicado, para
+    # que el tablero pueda decir «el reparto cambió desde la última publicación».
+    distribucion_sheets = monitoreo_aulas_distribucion_sheets_normalizar(config[["distribucion_sheets"]]),
+    # «Estas respuestas cuentan para otro aula». Viaja en el `.pulso` porque es
+    # una decisión operativa con su motivo, no una caché: sin passthrough, esta
+    # lista CERRADA se la tragaría en el segundo pase de normalización y la
+    # corrección duraría hasta el siguiente refresco. Ver
+    # monitoreo_aulas_reatribucion.R.
+    reatribuciones = monitoreo_aulas_reatribuciones_normalizar(config[["reatribuciones"]]),
     quotas = config[["quotas"]] %||% config[["cuotas"]] %||% defaults$quotas,
     variables_control = config[["variables_control"]] %||% config[["variablesControl"]] %||% defaults$variables_control,
     methodology = config[["methodology"]] %||% config[["metodologia"]] %||% defaults$methodology,
@@ -405,6 +885,31 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # Esta lista es CERRADA y el engine re-normaliza la config en cada pase:
     # sin este passthrough las metas del diseño se tragaban en el segundo pase.
     design_targets = config[["design_targets"]] %||% config[["metas_diseno"]] %||% defaults$design_targets,
+    # El eje de las cuotas, por la MISMA razón: sin nombrarlo aquí, declararlo
+    # en la UI no sobreviviría al primer «actualizar» y el estudio volvería a
+    # medir por facultad sin avisar. Se guarda crudo y lo resuelve
+    # `monitoreo_aulas_eje()`, que es el único que sabe qué ejes existen: un eje
+    # retirado del catálogo cae al default en vez de envenenar la config.
+    eje_cuota = config[["eje_cuota"]] %||% config[["ejeCuota"]] %||% defaults$eje_cuota,
+    eje_cuota_motivo = config[["eje_cuota_motivo"]] %||% config[["ejeCuotaMotivo"]] %||% defaults$eje_cuota_motivo,
+    agrupacion_operativa = config[["agrupacion_operativa"]] %||% config[["agrupacionOperativa"]] %||% defaults$agrupacion_operativa,
+    inicio_campo = config[["inicio_campo"]] %||% config[["inicioCampo"]] %||% defaults$inicio_campo,
+    # La fuente del cruce, por la MISMA razón: sin nombrarla aquí, declararla no
+    # sobreviviría al primer «actualizar» y el botón de recalcular se quedaría
+    # sin saber de dónde leer. Se normaliza al guardar y una clave desconocida
+    # se RECHAZA en vez de tragarse.
+    traslape_fuente = .matf_normalizar(
+      config[["traslape_fuente"]] %||% config[["traslapeFuente"]] %||% defaults$traslape_fuente),
+    # Misma doctrina de whitelist que el resto: sin nombrarlos aquí, declarar
+    # un tramo en la UI no persistiría y el mecanismo entero se caería en
+    # silencio al primer «actualizar». Se normalizan al guardar —fechas ISO,
+    # orden por inicio, se descarta el tramo sin las dos fechas— para que lo
+    # guardado ya esté en la forma en que el motor lo lee.
+    tramos = .mat_normalizar(config[["tramos"]] %||% defaults$tramos),
+    # El recibo de la última publicación del libro. Misma doctrina de whitelist:
+    # sin nombrarlo aquí, el sello se perdería en el primer guardado y volvería
+    # a no haber forma de saber si el Sheets está al día.
+    libro_publicado = config[["libro_publicado"]] %||% defaults$libro_publicado,
     alerts = list(
       min_valid_per_class = max(1L, .monitoreo_int(alerts$min_valid_per_class %||% alerts$min_validas_aula, defaults$alerts$min_valid_per_class)),
       warn_partial_under_valid = max(1L, .monitoreo_int(alerts$warn_partial_under_valid %||% alerts$alerta_parcial_menor_a, defaults$alerts$warn_partial_under_valid))
@@ -413,6 +918,31 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
 }
 
 monitoreo_aulas_normalize_plan <- function(plan = list()) {
+  # **Y la memoria por CONTENIDO, porque la marca de abajo no sobrevive.**
+  # Medido: siete llamadas por build y cero atajos. Ver
+  # `monitoreo_aulas_df_cache.R`.
+  .mad_plan_normalizado(plan, .monitoreo_aulas_normalize_plan_calcula)
+}
+
+.monitoreo_aulas_normalize_plan_calcula <- function(plan = list()) {
+  # **Camino rapido: un plan ya normalizado se devuelve tal cual.**
+  #
+  # Medido sobre el simulacro de campo malo, 1.424 aulas: el tablero tarda
+  # 5,0 s y **`monitoreo_aulas_normalize_plan()` es el 49,6 % de ese tiempo**,
+  # llamada DOS veces por tablero —una dentro de `normalize_config()` sobre
+  # `config$plan`, otra en el propio `monitoreo_aulas_dashboard()` sobre el
+  # mismo plan—. Dentro de ella el coste es la conversion ida y vuelta entre
+  # data.frame y lista de registros: 18 conversiones por tablero.
+  #
+  # La funcion ya era idempotente —resuelve alias que en la segunda pasada ya
+  # estan resueltos— asi que la segunda vuelta produce lo mismo y solo cuesta.
+  # La marca lo hace explicito y comprobable.
+  #
+  # La marca viaja en la LISTA que esta funcion devuelve. Si alguien reconstruye
+  # esa lista —un `lapply`, un viaje por JSON— el atributo se pierde y se vuelve
+  # a normalizar, que es lo correcto: mas vale pagar de mas que creerse una
+  # marca sobre datos que ya no son los mismos.
+  if (isTRUE(attr(plan, "plan_normalizado", exact = TRUE))) return(plan)
   df <- .monitoreo_aulas_df(plan, "plan")
   if (!nrow(df)) return(list())
   col <- function(candidates) .monitoreo_aulas_col(df, candidates)
@@ -436,6 +966,19 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     course_name = get(c("course_name", "curso", "nombre_curso"), ""),
     section = get(c("section", "seccion"), ""),
     schedule = get(c("schedule", "horario"), ""),
+    # El RANGO de la clase y el salon, que `schedule` no dice: aquel es el
+    # CODIGO del horario —«0591»— y este el tramo real —«MAR 14:00-16:00»—.
+    # Sin ellos la agenda de campo no puede saber cuantas aulas estan en curso
+    # a la vez, que es lo que fija cuantos aplicadores hacen falta.
+    sesiones_dia_hora = get(c("sesiones_dia_hora", "sesiones", "sesiones_y_aula"), ""),
+    # La forma LEGIBLE que anota el armador del calculo (B15,
+    # calc_muestra_aulas_anotar_sesiones): «MAR 14:00-16:00 · V303». La hoja
+    # «SESIONES Y AULA» del libro la prefiere, y esta lista cerrada la
+    # tragaba: la unidad llegaba del from_calc solo con el slug
+    # («2civ09_0703») y la siembra tenia que reponerla por injerto (A23,
+    # destapado 2026-09-01). Mismo patron que teacher_phone, dos campos abajo.
+    sesiones_legibles = get(c("sesiones_legibles", "sesiones_legible"), ""),
+    venue = get(c("venue", "aula_fisica", "salon"), ""),
     modality = get(c("modality", "modalidad"), ""),
     session_type = get(c("session_type", "tipo_sesion", "tipo_sesión"), ""),
     teacher = get(c("teacher", "docente"), ""),
@@ -454,6 +997,10 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     sex_top_1_n = getn(c("sex_top_1_n", "n_sexo_principal", "sexo_top_1_n"), 0),
     sex_top_2 = get(c("sex_top_2", "sexo_secundario", "sexo_top_2"), ""),
     sex_top_2_n = getn(c("sex_top_2_n", "n_sexo_secundario", "sexo_top_2_n"), 0),
+    # Cuántos elegibles de cada nivel tiene el aula («6:3|7:10»), igual que los
+    # dos conteos de sexo de arriba. Sin declararla aquí la lista cerrada se la
+    # traga (calc_muestra_aulas_composicion_nivel.R).
+    level_composition = get(c("level_composition", "composicion_nivel"), ""),
     stratum = get(c("stratum", "estrato"), "global"),
     eligible_n = getn(c("eligible_n", "elegibles"), 0),
     enrolled_total = getn(c("enrolled_total", "matriculados", "total_matriculados"), 0),
@@ -531,6 +1078,16 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # la escribe por fila y aqui no se recalcula: si el productor cambia de
     # ecuacion, la tasa que se ensena tiene que seguir siendo la suya.
     tasa_efectividad_aula = getn(c("tasa_efectividad_aula"), NA_real_),
+    # LA OTRA VARA, para que Monitoreo pueda distinguirlas igual que Calculo.
+    # `expected_valid` de arriba usa la del aula, que es la meta operativa de
+    # ESE salon. Estas dos traen la de la facultad, que es con la que se
+    # dimensiono la muestra y con la que se mide la cuota: un aula que rinde
+    # por debajo de su propia meta tuvo un problema, y una que rinde por debajo
+    # de la de su facultad pero cumple la suya solo es mas grande que el
+    # promedio, y eso ya estaba previsto. Sin las dos, los dos casos se ven
+    # iguales y el segundo dispara una alarma que no existe.
+    tasa_facultad = getn(c("tasa_facultad"), NA_real_),
+    esperadas_facultad = getn(c("esperadas_facultad"), NA_real_),
     # La tasa unica de los estudios SIN historico: ahi el esperado es
     # `elegibles x efectividad_tau` y no hay tramo ni factor de facultad que
     # aplicar —`rendimiento_ref` y `p_aplicada_ref` llegan vacios—. Aviso de la
@@ -571,9 +1128,21 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     contact_date = get(c("contact_date", "fecha_de_llamada", "fecha_llamada"), ""),
     # Sin los intentos no se puede decir POR QUE un aula sigue sin agendar.
     contact_attempts = getn(c("contact_attempts", "numero_de_intentos", "intentos"), NA_real_),
+    # B23/B22: el resultado de cada llamada y la marca del correo. Esta lista
+    # es cerrada y no declararlos era tragarselos — exactamente lo que el
+    # contrato de campos-declarados existe para cazar (estuvo ROJO desde
+    # f67ffeec hasta aqui sin que ningun gate lo corriera).
+    call_status = get(c("call_status", "status_de_llamada"), ""),
+    email_received = get(c("email_received", "recibio_correo"), ""),
     scheduled_date = get(c("scheduled_date", "fecha_agendada"), ""),
     scheduled_day = get(c("scheduled_day", "dia"), ""),
     scheduled_time = get(c("scheduled_time", "hora_agendada"), ""),
+    scheduled_moment = get(c("scheduled_moment", "momento", "momento_de_la_clase"), ""),
+    # B30: el aula/pabellon CONFIRMADO de la aplicacion («A206»), tecleado en
+    # la columna LUGAR DE APLICACIÓN del libro. Esta lista es cerrada: sin
+    # declararlo aqui, el lugar volveria del Excel y se caeria en silencio —
+    # el contrato de campos-declarados lo exige desde la spec del bloque.
+    scheduled_venue = get(c("scheduled_venue", "lugar_de_aplicacion"), ""),
     # --- Eje de APLICACION (hoja «Aulas Aplicadas (Campo)») --------------
     application_status = get(c("application_status", "status_de_aplicacion"), ""),
     # Ya habian respondido en otra aula: ni rechazo ni efectiva.
@@ -582,6 +1151,14 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     effective_surveys = getn(c("effective_surveys", "cantidad_de_efectivas", "efectivas"), NA_real_),
     # Donde se aplico de verdad; puede no ser la planificada.
     actual_room = get(c("actual_room", "aula_real"), ""),
+    # **El aula que de verdad se usó cuando hubo reemplazo** (dictado
+    # 2026-09-04: «una columna adicional con algo así como AULA UTILIZADA que le
+    # diga al usuario cuál fue el reemplazo que usamos»). El lector del libro ya
+    # la producía y el normalizador la descartaba, así que moría camino al plan
+    # y ninguna vista podía enseñarla: la columna existía en el papel y en
+    # ningún sitio más. Lo cazó `test-monitoreo-aulas-campos-declarados.R`, que
+    # existe justo para eso.
+    aula_utilizada = get(c("aula_utilizada", "aula_usada"), ""),
     responsible = get(c("responsible", "responsable"), ""),
     operational_status = get(c("operational_status", "estado", "estado_operativo"), "planificada"),
     replacement_for = get(c("replacement_for", "reemplazo_de"), ""),
@@ -598,8 +1175,26 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # CERRADA: lo que no se declara aqui se cae, y por eso `monitoreo_aulas_activar_reemplazo()`
     # escribia estas tres marcas y el tablero las mostraba vacias.
     replaced_at = get(c("replaced_at", "reemplazada_en"), ""),
+    # **Quien la reemplazo.** Lo escribe `monitoreo_aulas_activar_reemplazo()`
+    # en la fila que CAE (`monitoreo_aulas_reemplazos.R:112`) y es la otra mitad
+    # de `replaced_at`: la fecha sin el sucesor no dice a donde fue el slot.
+    # Estaba sin declarar, asi que se caia aqui igual que se cayeron
+    # `activation_origin` y `activated_for` — la misma lista cerrada, el tercer
+    # campo que se traga.
+    replaced_by = get(c("replaced_by", "reemplazada_por"), ""),
     activated_at = get(c("activated_at", "activada_en"), ""),
     activation_reason = get(c("activation_reason", "motivo_activacion"), ""),
+    # **Quien pidio el refuerzo y para quien.** Los escribe
+    # `monitoreo_aulas_marcar_refuerzo()` y son lo UNICO que distingue una marca
+    # de la app de una casilla que alguien tecleo en el libro: el estado de
+    # muestra se mueve —EN CONTACTO, AGENDADA— y estos dos no. Sin declararlos
+    # aqui se caian por el mismo agujero que ya se llevo las tres marcas de
+    # `activar_reemplazo`: medido el 2026-09-11 contra el operativo, se marco
+    # EXTRA 11, el estado llego al tablero y el origen no, asi que «Refuerzos
+    # pedidos» seguia diciendo que no habia ninguno y el contador del techo
+    # seguia en cero.
+    activation_origin = get(c("activation_origin", "origen_activacion"), ""),
+    activated_for = get(c("activated_for", "activada_para"), ""),
     analysis_weight_warning = get(c("analysis_weight_warning", "alerta_peso_analitico"), ""),
     representativity_score = getn(c("representativity_score", "score_representatividad"), NA_real_),
     representativity_distance = getn(c("representativity_distance", "distancia_representatividad"), NA_real_),
@@ -758,9 +1353,33 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     slot_number = slot_cadena,
     replacement_order = rep_order
   )
+  # **Una EXTRA es cabeza de su propia cadena, y hasta hoy nadie se lo escribía.**
+  #
+  # La convención está declarada en los tests desde el 2026-08-31 —«un extra
+  # activado es cabeza de su propia cadena: lleva su propio código como
+  # `titular_operational_code`, la misma convención que los titulares»— pero el
+  # sorteo le pone `operational_code` y deja el otro campo vacío
+  # (`calc_muestra_aulas_codigos.R`, bloque `extra_idx`). Mientras la extra
+  # duerme no se nota; en cuanto recibe parte de campo, `E_AULAS_LIBRO_SIN_CADENAS`
+  # la rechaza y **se cae la publicación entera**.
+  #
+  # Pasó el 2026-09-16 con EXTRA 36, el primer refuerzo aplicado: cada «Traer
+  # respuestas» moría con ese error y el Sheets del operativo llevaba días
+  # congelado mientras la app se actualizaba con normalidad. Gonzalo lo vio
+  # desde fuera: «actualiza la data de la app pero ya no actualiza el Sheets».
+  #
+  # No cambia ninguna cuenta: todo el que resuelve cadenas lo hace con
+  # `ifelse(nzchar(titular), titular, codigo)` —«Avance de agendación», «en
+  # juego», el arrastre— así que la extra ya se agrupaba consigo misma. Lo que
+  # cambia es que ahora lo dice, y el libro publicado se puede regenerar.
+  sin_cabeza <- out$sample_role == "extra_reserve_pool" & !nzchar(out$titular_operational_code)
+  out$titular_operational_code[sin_cabeza] <- out$operational_code[sin_cabeza]
+
   out <- out[nzchar(out$classroom_id), , drop = FALSE]
   rownames(out) <- NULL
-  .monitoreo_aulas_records(out)
+  res <- .monitoreo_aulas_records(out)
+  attr(res, "plan_normalizado") <- TRUE
+  res
 }
 
 # Localiza una fila del plan por cualquiera de sus identificadores.
@@ -790,7 +1409,8 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   idx
 }
 
-monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = NULL, config = list()) {
+monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = NULL, config = list(),
+                                      referencia_asistencia = NULL) {
   sel <- selection$selection %||% selection
   plan <- monitoreo_aulas_normalize_plan(sel)
   cfg <- monitoreo_aulas_normalize_config(config)
@@ -825,6 +1445,12 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     source = "calc-muestra"
   )
   cfg$representativity <- selection$representativity %||% cfg$representativity
+  # **El embudo de asistencia del estudio de referencia**, que hasta ahora se
+  # quedaba en Calculo de muestra. Sin el, Monitoreo tiene el PRODUCTO de la
+  # tasa y no sus dos factores, asi que no puede partir la cadena «elegibles ->
+  # los que esperamos ver -> los que esperamos que respondan».
+  asistencia <- monitoreo_aulas_asistencia_referencia(referencia_asistencia)
+  if (!is.null(asistencia)) cfg$asistencia_referencia <- asistencia
   # Metas del DISEÑO, no del sorteo: `quotas$strata` son aulas por estrato y no
   # dicen cuántos alumnos se trazó cada facultad ni con qué τ de rendimiento.
   # Ver `monitoreo_aulas_metas_diseno.R`. Se pasa `selection` completo —no
@@ -836,6 +1462,12 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # como stale.
     metas$selection_run_id <- cfg$selection_run_id
     metas$frame_hash <- cfg$frame_hash
+    # **Qué SIGNIFICAN las claves de `facultades`.** El campo conserva su nombre
+    # porque el contrato del import está congelado (test-monitoreo-aulas-metas-
+    # diseno.R, ADR 0079); lo que se añade es el bloque hermano que declara de
+    # qué eje son esas filas. Un `design_targets` viejo no lo trae y se lee como
+    # facultad, que es lo que es.
+    metas$eje <- monitoreo_aulas_eje_declaracion(monitoreo_aulas_eje(cfg))
     cfg$design_targets <- metas
     cfg$plan <- .monitoreo_aulas_aplicar_meta_tau(cfg$plan, metas)
   }
@@ -846,345 +1478,100 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   cfg
 }
 
-.monitoreo_aulas_distribution_distance <- function(planned, effective, var = "stratum", weight_col = "eligible_n") {
-  if (!nrow(planned) || !nrow(effective) || !var %in% names(planned) || !var %in% names(effective)) {
-    return(list(score = NA_real_, distance = NA_real_, table = data.frame(stringsAsFactors = FALSE), warning = "Sin datos suficientes para distancia efectiva."))
-  }
-  pv <- .monitoreo_aulas_values(planned, var, "sin_dato")
-  ev <- .monitoreo_aulas_values(effective, var, "sin_dato")
-  pw <- suppressWarnings(as.numeric(planned[[weight_col]] %||% rep(1, nrow(planned))))
-  ew <- suppressWarnings(as.numeric(effective[[weight_col]] %||% rep(1, nrow(effective))))
-  pw[!is.finite(pw) | pw < 0] <- 0
-  ew[!is.finite(ew) | ew < 0] <- 0
-  cats <- sort(unique(c(pv, ev)))
-  rows <- lapply(cats, function(cat) {
-    planned_n <- sum(pw[pv == cat], na.rm = TRUE)
-    effective_n <- sum(ew[ev == cat], na.rm = TRUE)
-    planned_prop <- planned_n / max(1, sum(pw, na.rm = TRUE))
-    effective_prop <- effective_n / max(1, sum(ew, na.rm = TRUE))
-    data.frame(
-      variable = var,
-      categoria = cat,
-      planned_n = round(planned_n, 6),
-      effective_n = round(effective_n, 6),
-      planned_prop = round(planned_prop, 6),
-      effective_prop = round(effective_prop, 6),
-      abs_error = round(abs(effective_prop - planned_prop), 6),
-      stringsAsFactors = FALSE,
-      check.names = FALSE
-    )
-  })
-  table <- if (length(rows)) do.call(rbind, rows) else data.frame(stringsAsFactors = FALSE)
-  avg_abs <- if (nrow(table)) mean(table$abs_error, na.rm = TRUE) else NA_real_
-  max_abs <- if (nrow(table)) max(table$abs_error, na.rm = TRUE) else NA_real_
-  score <- if (is.finite(avg_abs)) round(max(0, 100 - min(100, 100 * avg_abs / 0.05)), 1) else NA_real_
-  list(
-    score = score,
-    distance = round(avg_abs %||% NA_real_, 6),
-    table = table,
-    warning = if (is.finite(max_abs) && max_abs > 0.10) "La muestra efectiva se aleja mas de 10 pp en al menos una celda." else ""
-  )
-}
-
-# Estado y frase de la representatividad efectiva.
-#
-# La escala: `score = 100 - 100 * desvio_medio / 0.05`. O sea 100 es una muestra
-# efectiva identica a la planificada y 0 es un desvio medio de 5 pp o mas —el
-# tope de la escala, no «sin dato»—. El estado se derivaba solo de `warning`,
-# que exige 10 pp en UNA celda, asi que un 0 sobre 100 salia como «Correcto».
-.monitoreo_aulas_representatividad_estado <- function(rep) {
-  score <- suppressWarnings(as.numeric(rep$effective_score %||% NA_real_))
-  # Sin muestra efectiva no hay nada que aprobar: decir «Correcto» cuando no hay
-  # ni un curso-horario en campo es peor que no decir nada. Tampoco es una
-  # alerta de representatividad —no hay desvio, hay ausencia—, asi que `review`.
-  if (!is.finite(score)) return("review")
-  if (nzchar(rep$warning %||% "")) return("warning")
-  if (score < 70) "review" else "ok"
-}
-
-.monitoreo_aulas_representatividad_texto <- function(rep) {
-  score <- suppressWarnings(as.numeric(rep$effective_score %||% NA_real_))
-  dist <- suppressWarnings(as.numeric(rep$effective_distance %||% NA_real_))
-  if (!is.finite(score)) {
-    return(if (nzchar(rep$warning %||% "")) rep$warning else "Todavia no hay muestra efectiva que comparar con la planificada.")
-  }
-  base <- sprintf(
-    "Puntaje %.1f de 100: la muestra efectiva se desvia %.1f pp en promedio de la planificada (100 = identica, 0 = 5 pp o mas).",
-    score, 100 * (if (is.finite(dist)) dist else 0)
-  )
-  if (nzchar(rep$warning %||% "")) paste(base, rep$warning) else base
-}
-
-.monitoreo_aulas_effective_representativity <- function(plan_df, cfg) {
-  planned <- plan_df[plan_df$wave == "M1", , drop = FALSE]
-  active_status <- c("planificada", "contactada", "agendada", "en_campo", "aplicada", "parcial", "cerrada")
-  effective <- rbind(
-    planned[planned$operational_status %in% active_status & !planned$operational_status %in% c("reemplazada", "cancelada", "sin_acceso"), , drop = FALSE],
-    plan_df[nzchar(plan_df$replacement_for) & plan_df$operational_status %in% active_status, , drop = FALSE]
-  )
-  distance <- .monitoreo_aulas_distribution_distance(planned, effective, "stratum", "eligible_n")
-  planned_score <- suppressWarnings(as.numeric(planned$representativity_score[is.finite(planned$representativity_score)][1]))
-  if (!is.finite(planned_score)) {
-    planned_score <- suppressWarnings(as.numeric(cfg$representativity$representativity_score %||% cfg$representativity$overall_score %||% NA_real_))
-  }
-  score_loss <- if (is.finite(planned_score) && is.finite(distance$score)) round(planned_score - distance$score, 3) else NA_real_
-  list(
-    planned_score = if (is.finite(planned_score)) planned_score else NA_real_,
-    effective_score = distance$score,
-    effective_distance = distance$distance,
-    score_loss = score_loss,
-    planned_aulas = as.integer(nrow(planned)),
-    effective_aulas = as.integer(nrow(effective)),
-    distribution = .monitoreo_aulas_records(distance$table),
-    warning = distance$warning
-  )
-}
-
-#' Normaliza `valid_filters` a una LISTA DE LISTAS, venga como venga.
-#'
-#' **`jsonlite` convierte un array de objetos en un `data.frame`**, no en una
-#' lista: `[{"var":"sexo","values":["F"]}]` llega como un data.frame de una fila.
-#' Iterando con `for (f in crudos)` se recorren entonces las COLUMNAS, `is.list(f)`
-#' es falso y **se descarta todo en silencio**. El sintoma exacto: el POST
-#' devuelve 200, la clave aparece en la config y su valor es `[]`.
-#'
-#' Es la misma trampa de `simplifyDataFrame` que este repo ya tiene fichada, y
-#' solo salio haciendo el ciclo entero desde la pantalla: guardar y ver que el
-#' numero no se movia.
-.monitoreo_aulas_filas_de_filtro <- function(x) {
-  if (is.null(x)) return(list())
-  if (is.data.frame(x)) {
-    if (!nrow(x)) return(list())
-    return(lapply(seq_len(nrow(x)), function(i) as.list(x[i, , drop = FALSE])))
-  }
-  if (!is.list(x)) return(list())
-  x
-}
-
-#' Los filtros que definen una encuesta EFECTIVA, tal como los declara el estudio.
-#'
-#' Gonzalo: «la seccion de fuentes no deja declarar las variables que definen a
-#' una encuesta efectiva, que en algunos casos tiene mas de un filtro, puede
-#' tener hasta 4».
-#'
-#' Hasta aqui el criterio era **una sola columna** —`status_var` contra una lista
-#' de estados— y eso no alcanza para un estudio real: «efectiva» suele ser
-#' completa **y** con consentimiento **y** del publico elegible. Con un unico
-#' filtro, las otras condiciones no se podian declarar y el tablero contaba de
-#' mas sin decirlo.
-#'
-#' `valid_filters` es una lista de `list(var = , values = )`; una respuesta vale
-#' si **cumple TODOS**. `status_var` + `valid_statuses` siguen funcionando y se
-#' leen como el primer filtro: un estudio ya configurado no cambia de numero.
-#' @export
-monitoreo_aulas_filtros_de_validez <- function(cfg = list()) {
-  mapping <- cfg$source_mapping %||% list()
-  declarados <- .monitoreo_aulas_filas_de_filtro(mapping$valid_filters)
-  filtros <- list()
-  for (f in declarados) {
-    var <- .monitoreo_scalar(f$var %||% f$variable, "")
-    vals <- .monitoreo_chr_vec(f$values %||% f$valores %||% character(0))
-    # Un filtro sin variable o sin valores no filtra nada: dejarlo entrar
-    # descartaria TODAS las respuestas en silencio.
-    if (nzchar(var) && length(vals)) {
-      filtros[[length(filtros) + 1L]] <- list(var = var, values = vals)
-    }
-  }
-  if (!length(filtros)) {
-    var <- .monitoreo_scalar(mapping$status_var, "")
-    if (nzchar(var)) {
-      filtros[[1L]] <- list(
-        var = var,
-        values = .monitoreo_chr_vec(mapping$valid_statuses %||% MONITOREO_AULAS_ESTADOS_VALIDOS)
-      )
-    }
-  }
-  filtros
-}
-
-.monitoreo_aulas_valid_response <- function(data, cfg) {
-  if (!is.data.frame(data) || !nrow(data)) return(rep(FALSE, 0L))
-  mapping <- cfg$source_mapping %||% list()
-  # **Varios filtros, si el estudio los declara.** Se exige que se cumplan TODOS:
-  # cada uno acota, ninguno amplia. Un filtro cuya columna no esta en la base NO
-  # se aplica —y el criterio lo declara aparte—, porque descartarlo todo por una
-  # columna ausente seria peor que contar de mas.
-  # **Basta con UNO declarado.** Ponia `> 1L` y con un solo `valid_filters` la
-  # respuesta se iba por el camino viejo de `status_var` —vacio en un estudio que
-  # solo declaro filtros— y contaba TODO. Salio haciendo el ciclo entero desde la
-  # pantalla: se guardaba «sexo = F» y las validas seguian siendo 3 700. Los tests
-  # no lo veian porque el caso de un filtro se probaba con `status_var`.
-  filtros <- monitoreo_aulas_filtros_de_validez(cfg)
-  declarados <- (cfg$source_mapping %||% list())$valid_filters
-  if (length(filtros) && length(declarados)) {
-    ok <- rep(TRUE, nrow(data))
-    for (f in filtros) {
-      if (!f$var %in% names(data)) next
-      ok <- ok & (.monitoreo_text_key(data[[f$var]]) %in% .monitoreo_text_key(f$values))
-    }
-    return(ok)
-  }
-  status_col <- .monitoreo_scalar(mapping$status_var, "")
-  if (!nzchar(status_col) || !status_col %in% names(data)) {
-    # `_status` NO entra. Kobo lo manda en TODAS las filas de su export con el
-    # valor `submitted_via_web`, que dice como llego el formulario, no si la
-    # respuesta vale. Como ese valor no esta en ninguna lista de validos, el
-    # avance del estudio entero caia a CERO en silencio en cuanto alguien
-    # sincronizaba un export completo de Kobo. Medido: 0 de 6.
-    #
-    # `_validation_status` SI es un estado de validacion y ahora se reconoce
-    # —antes no, porque el guion bajo inicial no casaba y por eso «fallaba
-    # abierto»: contaba todo—.
-    status_col <- .monitoreo_aulas_col(data, c(
-      "response_status", "_validation_status", "validation_status", "estado"
-    ))
-  }
-  if (!nzchar(status_col) || !status_col %in% names(data)) return(rep(TRUE, nrow(data)))
-  valid <- .monitoreo_text_key(.monitoreo_chr_vec(
-    mapping$valid_statuses %||% MONITOREO_AULAS_ESTADOS_VALIDOS
-  ))
-  .monitoreo_text_key(data[[status_col]]) %in% valid
-}
-
-#' Estados que cuentan como respuesta valida cuando el estudio no declara los suyos.
-#'
-#' La lista traia solo vocabulario en ingles, asi que un estudio con su columna
-#' `estado` en espanol —«completa»— daba CERO validas, y el propio vocabulario de
-#' Kobo (`validation_status_approved`) tampoco entraba. Medido: 0 de 4 en los dos
-#' casos. Un estudio puede seguir declarando `valid_statuses` y esta lista no se
-#' usa; es el defecto por defecto, no una imposicion.
-#' @export
-MONITOREO_AULAS_ESTADOS_VALIDOS <- c(
-  "completed", "complete", "valid", "aprobado",
-  # Espanol, que es como lo escriben los estudios de la casa.
-  "completa", "completo", "valida", "valido", "aprobada", "aplicada",
-  # Vocabulario propio de Kobo en `_validation_status`.
-  "validation_status_approved", "approved"
-)
-
-#' Que criterio de validez se aplico, para poder decirlo.
-#'
-#' El criterio se resolvia en silencio: nadie sabia si el tablero contaba TODO
-#' —porque no habia columna de estado— o si estaba filtrando por una columna que
-#' quiza no era la correcta. Las dos cosas producen numeros muy distintos y
-#' ninguna se anunciaba.
-#' @export
-monitoreo_aulas_criterio_validez <- function(data, cfg = list()) {
-  if (!is.data.frame(data) || !nrow(data)) {
-    return(list(columna = "", modo = "sin_datos", validas = 0L, total = 0L))
-  }
-  mapping <- cfg$source_mapping %||% list()
-  # Con varios filtros el criterio ya no es «una columna»: se declara cuantos se
-  # aplicaron y cuales, y si alguno pedia una columna que la base no trae.
-  filtros <- monitoreo_aulas_filtros_de_validez(cfg)
-  declarados <- (cfg$source_mapping %||% list())$valid_filters
-  if (length(filtros) && length(declarados)) {
-    ausentes <- vapply(filtros, function(f) !f$var %in% names(data), logical(1))
-    return(list(
-      columna = "", modo = "por_filtros",
-      filtros = vapply(filtros, function(f) f$var, character(1)),
-      filtros_ausentes = vapply(filtros[ausentes], function(f) f$var, character(1)),
-      validas = as.integer(sum(.monitoreo_aulas_valid_response(data, cfg))),
-      total = as.integer(nrow(data))
-    ))
-  }
-  declarada <- .monitoreo_scalar(mapping$status_var, "")
-  col <- if (nzchar(declarada) && declarada %in% names(data)) declarada else
-    .monitoreo_aulas_col(data, c("response_status", "_validation_status", "validation_status", "estado"))
-  validas <- sum(.monitoreo_aulas_valid_response(data, cfg))
-  modo <- if (nzchar(declarada) && !declarada %in% names(data)) {
-    # El estudio declaro una columna que no existe. Antes se caia al detector
-    # automatico sin decir nada, asi que un error de tipeo en la config pasaba
-    # por criterio deliberado.
-    "declarada_ausente"
-  } else if (!nzchar(col)) "sin_columna" else "por_columna"
-  list(columna = col, modo = modo, declarada = declarada,
-       validas = as.integer(validas), total = as.integer(nrow(data)))
-}
-
-#' Frase que explica el criterio sin jerga.
-#' @export
-monitoreo_aulas_criterio_texto <- function(crit) {
-  total <- as.integer(crit$total %||% 0L)
-  validas <- as.integer(crit$validas %||% 0L)
-  switch(crit$modo %||% "sin_datos",
-    sin_datos = "Todavia no hay respuestas que contar.",
-    declarada_ausente = sprintf(
-      "El estudio declara la columna de estado '%s' y la base no la trae, asi que se conto por '%s': %d de %d respuestas.",
-      crit$declarada %||% "", crit$columna %||% "(ninguna)", validas, total),
-    sin_columna = sprintf(
-      "La base no trae columna de estado, asi que cuentan las %d respuestas. Si el formulario marca incompletas, declara cual es esa columna.",
-      total),
-    por_columna = sprintf(
-      "Cuentan las respuestas cuyo '%s' esta en la lista de estados validos: %d de %d.",
-      crit$columna %||% "", validas, total),
-    # **Los filtros se NOMBRAN.** Decir «se aplicaron 4 filtros» sin cuales
-    # obligaria a abrir la config para saber que se esta contando, y una columna
-    # declarada que la base no trae tiene que salir: es la diferencia entre un
-    # criterio deliberado y un error de tipeo que pasa por criterio.
-    por_filtros = {
-      nombres <- crit$filtros %||% character(0)
-      ausentes <- crit$filtros_ausentes %||% character(0)
-      paste0(
-        if (length(nombres) == 1L)
-        sprintf("Una respuesta cuenta si su '%s' esta entre los valores declarados: %d de %d.",
-                nombres[[1]], validas, total)
-      else
-        sprintf("Una respuesta cuenta si cumple %d condiciones a la vez (%s): %d de %d.",
-                length(nombres), paste(nombres, collapse = ", "), validas, total),
-        if (length(ausentes)) sprintf(
-          " La base no trae %s, asi que %s no se aplico.",
-          paste(sprintf("'%s'", ausentes), collapse = " ni "),
-          if (length(ausentes) == 1L) "esa condicion" else "esas condiciones"
-        ) else ""
-      )
-    }
-  )
-}
-
-.monitoreo_aulas_response_classroom <- function(data, cfg) {
-  if (!is.data.frame(data) || !nrow(data)) return(character(0))
-  mapping <- cfg$source_mapping %||% list()
-  candidates <- c(
-    mapping$classroom_id_var, "classroom_id", "aula_id", "codigo_aula", "aula",
-    # `collectorID` es la columna que devuelve Kobo cuando el QR lo genera este
-    # mismo sistema: Recopiladores cuelga `d[collectorID]=` y ese es el nombre
-    # del parametro por defecto. Faltaba en la lista, y `.monitoreo_text_key()`
-    # conserva el guion bajo —"collectorid" no es "collector_id"—, asi que
-    # nuestro propio enlace producia una columna que este cruce no encontraba.
-    "collectorID", "collector_id", mapping$collector_var, mapping$link_var
-  )
-  col <- .monitoreo_aulas_col(data, candidates)
-  .monitoreo_aulas_values(data, col, "")
-}
-
-.monitoreo_aulas_filter_passed <- function(data, valid_response) {
-  if (!is.data.frame(data) || !nrow(data)) return(logical(0))
-  col <- .monitoreo_aulas_col(data, c(
-    "filter_passed", "pasa_filtro", "apto", "elegible", "eligible",
-    "screening_status", "estado_filtro", "consent", "consentimiento"
-  ))
-  if (!nzchar(col) || !col %in% names(data)) return(valid_response %in% TRUE)
-  key <- .monitoreo_text_key(as.character(data[[col]] %||% ""))
-  passed <- key %in% c(
-    "1", "true", "t", "si", "sí", "yes", "y", "apto", "aprobado",
-    "eligible", "elegible", "pasa", "passed", "valid", "valido", "válido",
-    "acepta", "consiente", "consent"
-  )
-  rejected <- key %in% c(
-    "0", "false", "f", "no", "n", "no_apto", "no elegible", "no_elegible",
-    "rechazado", "rejected", "fail", "failed", "no pasa", "no_pasa"
-  )
-  passed[!passed & !rejected & valid_response %in% TRUE] <- TRUE
-  passed
-}
-
 .monitoreo_aulas_named_counts <- function(keys, mask = NULL) {
   keys <- trimws(as.character(keys %||% character(0)))
   if (is.null(mask)) mask <- rep(TRUE, length(keys))
   mask <- mask %in% TRUE & nzchar(keys)
   if (!length(keys) || !any(mask)) return(integer(0))
   table(keys[mask])
+}
+
+#' El reparto por sexo de las validas de cada curso-horario.
+#'
+#' Gonzalo, 2026-09-10, sobre las aulas que se meten de complemento (B) o de
+#' refuerzo (C): «como esa aula no estaba prevista, los alumnos tanto hombres
+#' como mujeres que habiamos recolectado alli son alumnos netos o puros,
+#' ingresos completos». Para poder decir eso hace falta saber cuantas mujeres y
+#' cuantos hombres respondio CADA curso-horario, y el plan solo publicaba el
+#' total.
+#'
+#' El agregado por facultad que ya existe —`quotas_sex_faculty`— no sirve para
+#' esto: una facultad puede ir sobrada en mujeres y aun asi el unico refuerzo
+#' que se metio no haber traido ninguna, que es justo el caso en que la decision
+#' fue mala.
+#'
+#' **Sin columna de sexo no se publica CERO.** No saber el reparto y saber que
+#' no hubo mujeres son cosas distintas, y un cero se leeria como lo segundo. Se
+#' devuelve el plan sin las dos columnas, y la vista dice que no lo sabe.
+#'
+#' **El reparto puede no sumar el total, y eso es correcto.** Una respuesta con
+#' un sexo que el estudio no clasifica —«Prefiero no decir»— es valida y cuenta
+#' en `respuestas_validas`, pero no cae en ningun sexo. Repartirla seria
+#' inventar; la diferencia es visible y la vista la nombra.
+#'
+#' @param plan_df el plan ya normalizado, con `respuestas_validas` puesto.
+#' @param responses las respuestas de la plataforma.
+#' @param cfg config de aulas universitarias.
+#' @param valid_response mascara de validez, la misma que cuenta el total.
+#' @param response_classroom el aula de cada respuesta, ya emparejada.
+#' @return `plan_df` con `validas_mujeres` y `validas_hombres`, o tal cual si no
+#'   hay columna de sexo utilizable.
+.monitoreo_aulas_validas_por_sexo <- function(plan_df, responses, cfg,
+                                              valid_response, response_classroom) {
+  if (!is.data.frame(plan_df) || !nrow(plan_df)) return(plan_df)
+  sexo_col <- monitoreo_aulas_columna_sexo(responses, cfg)
+  if (!nzchar(sexo_col)) return(plan_df)
+  sexo_key <- monitoreo_aulas_sexo_key(.monitoreo_aulas_values(responses, sexo_col, ""), cfg)
+  if (length(sexo_key) != length(response_classroom) || !any(nzchar(sexo_key))) return(plan_df)
+
+  plan_df$validas_mujeres <- .monitoreo_aulas_contar_por_fila(
+    plan_df,
+    .monitoreo_aulas_named_counts(response_classroom, valid_response %in% TRUE & sexo_key == "F"))
+  plan_df$validas_hombres <- .monitoreo_aulas_contar_por_fila(
+    plan_df,
+    .monitoreo_aulas_named_counts(response_classroom, valid_response %in% TRUE & sexo_key == "M"))
+  plan_df
+}
+
+#' La fecha de aplicacion de cada aula, SEGUN LA PLATAFORMA.
+#'
+#' Gonzalo, y ya lo habia dicho antes: «tienes que entender que lo que contamos
+#' son las efectivas en plataforma… tienes la informacion de cuando inicia la
+#' encuesta, cuando finaliza, si es efectiva o no. Lo que se registra en campo es
+#' una cosa, pero lo que a nosotros nos importa es lo que sale en la plataforma».
+#'
+#' **Toda la lectura temporal de Avance estaba muerta por leer la fuente
+#' equivocada.** Nueve modulos del perfil —serie de rendimiento, ritmo por
+#' facultad, pronostico de cierre, corte del estudio— toman la fecha de
+#' `applied_at`, que viene de la hoja de campo del libro. Medido sobre el
+#' simulacro de campo malo: `applied_at` vacio en los 152 partes y en las 1.424
+#' filas del plan, mientras las 1.595 respuestas traen `_submission_time`,
+#' `start` y `end` COMPLETOS, con `collectorID` enlazando 151 aulas y doce dias
+#' de campo (7 al 18 de septiembre). El dato estaba; se miraba donde no.
+#'
+#' Se toma la PRIMERA respuesta del aula y no la ultima: es cuando se aplico. La
+#' ultima puede ser un rezagado que contesto por la noche.
+#'
+#' @param response_classroom aula de cada respuesta, ya resuelta.
+#' @param responses las respuestas de la plataforma.
+#' @return vector nombrado aula -> fecha ISO, o vacio si no hay con que.
+#' @keywords internal
+.monitoreo_aulas_fecha_de_plataforma <- function(response_classroom, responses) {
+  if (!is.data.frame(responses) || !nrow(responses)) return(character(0))
+  aulas <- trimws(as.character(response_classroom %||% character(0)))
+  if (length(aulas) != nrow(responses)) return(character(0))
+  # **La columna con HUSO manda sobre la del servidor.** Prefería
+  # `_submission_time`, que Kobo publica en UTC: un aula de las 19:30 de Lima
+  # —este operativo agenda hasta esa hora— se fecha en la jornada siguiente.
+  # Ver `monitoreo_aulas_hora_local.R`.
+  col <- .monitoreo_aulas_col(responses, MONITOREO_AULAS_COLUMNAS_TIEMPO)
+  if (!nzchar(col)) return(character(0))
+  crudo <- as.character(responses[[col]])
+  fecha <- monitoreo_aulas_fecha_local(crudo)
+  ok <- nzchar(aulas) & nzchar(fecha)
+  if (!any(ok)) return(character(0))
+  # La primera respuesta de cada aula.
+  tapply(fecha[ok], aulas[ok], min, simplify = TRUE)
 }
 
 .monitoreo_aulas_course_status <- function(plan_df, responses, cfg, valid_response, response_classroom) {
@@ -1208,7 +1595,21 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   # siempre 0 y "0" >= "30" da FALSE.
   meta <- suppressWarnings(as.numeric(rows$expected_valid))
   meta[!is.finite(meta)] <- 0
-  rows$brecha <- pmax(0, meta - rows$respuestas_validas)
+  # **La brecha son PERSONAS, y una persona no se parte.**
+  #
+  # Gonzalo, viendo «faltan 236.1 respuestas» en el grafico de estratos: «como
+  # vas a poner decimales». La meta de un aula sale de `elegibles x tasa` y es
+  # fraccionaria por construccion, pero lo que falta RECOGER son encuestas
+  # enteras y asi es como se lee, se reparte y se suma por estrato.
+  #
+  # Hacia ARRIBA, que es la misma regla que `.mac_brecha()` ya aplica a las
+  # celdas de cuota —«es el unico sitio del avance donde se redondea hacia
+  # arriba, porque es lo unico que se PIDE»—: si faltan 0,1 encuestas falta una
+  # persona. Esta capa se habia quedado fuera de esa regla.
+  #
+  # La META no se toca: se sigue calculando exacta y las decisiones que dependen
+  # de ella no se mueven. Lo que se redondea es lo que se publica como falta.
+  rows$brecha <- ceiling(pmax(0, meta - rows$respuestas_validas) - 1e-9)
   rows$brecha[!is.finite(rows$brecha)] <- 0
   # El escalon de agendamiento sale de STATUS MUESTRA, no del estado operativo.
   #
@@ -1230,7 +1631,11 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   # al coordinador que salga a agendar ocho aulas que no debe tocar salvo que
   # caiga su titular. Medido: las 8 que decian «Sin agendar» eran las 8 reservas
   # libres, y ademas con fecha en la fila. Tramo propio, como las reemplazadas.
-  agendada_en_muestra <- muestra %in% c("agendada", "reagendada")
+  # El predicado vive en `.maau_agendada()` (monitoreo_aulas_agendada.R) desde
+  # que la proyeccion sobre lo agendado necesito el mismo criterio: escrito dos
+  # veces se separa, y «agendada» es justo la palabra que el operativo usa en
+  # dos ejes distintos.
+  agendada_en_muestra <- muestra %in% MONITOREO_AULAS_MUESTRA_AGENDADA
   # MISMA definicion que `monitoreo_aulas_reservas_disponibles()`: una reserva
   # que el motor considera disponible es la que esta en el banco. Si las dos
   # divergen, el tramo dira que hay reservas que la activacion ya no ofrece.
@@ -1246,7 +1651,7 @@ monitoreo_aulas_criterio_texto <- function(crit) {
     "cerrando",
     ifelse(rows$responses_total > 0 | rows$operational_status %in% c("en_campo", "parcial"), "en_aplicacion",
            ifelse(muestra == "reemplazada", "reemplazada",
-                  ifelse(rows$operational_status %in% c("agendada", "contactada") | agendada_en_muestra,
+                  ifelse(rows$operational_status %in% MONITOREO_AULAS_OPERATIVO_AGENDADA | agendada_en_muestra,
                          "lista",
                          ifelse(en_reserva, "en_reserva", "pendiente"))))
   )
@@ -1279,12 +1684,41 @@ monitoreo_aulas_criterio_texto <- function(crit) {
     # FECHA, que es lo que trae `FECHA DE APLICACION` del libro. Sin ella la
     # vista de agenda tendria que unir dos listas por codigo para saber que dia
     # es cada aula.
-    "scheduled_date", "scheduled_day", "scheduled_time",
+    "scheduled_date", "scheduled_day", "scheduled_time", "scheduled_moment",
+    # B30: el lugar CONFIRMADO viaja con el estado — la vista de agenda dice a
+    # QUE salon ir, y ese es el tecleado en el libro, no el aula de la clase.
+    "scheduled_venue",
+    # El RANGO horario del curso, no un instante: «MAR 14:00-16:00 · MIE
+    # 10:00-12:00». `schedule` dice cuando EMPIEZA y `scheduled_*` cuando se
+    # agendo; ninguno de los dos permite saber cuantas aulas estan en curso a la
+    # vez, que es lo que fija cuantos aplicadores hacen falta. Medido sobre el
+    # plan de HSVG 2026: contando por hora de inicio el pico daba 8 aulas
+    # simultaneas; contando el rango real, 19. `venue` viaja al lado porque la
+    # carga se reparte por pabellon y sin el la agenda no puede agrupar por
+    # edificio. Los dos salen del catalogo en `calc_muestra_aulas_sesiones.R`.
+    # `sesiones_legibles` es su forma para humanos (A23): sin ella aqui, el
+    # estado publicaba el slug donde el libro esperaba «MAR 14:00-16:00 · V303».
+    "sesiones_dia_hora", "sesiones_legibles", "venue",
     # `sample_status` viaja con el estado porque el escalon de agendamiento sale
     # de el: sin publicarlo, la vista no puede explicar por que un aula esta en
     # «Agendada» o en «Reemplazada».
     "responsible", "collector_id", "sample_status", "operational_status", "application_state",
+    # `observed_students` son los ASISTENTES que declaro el parte: cuantos
+    # estaban en el aula ese dia. NO son los elegibles —esos son los
+    # matriculados que cumplen los criterios y no cambian con el dia— y la
+    # distincion es del operativo, no de vocabulario: la cadena va elegibles ->
+    # los que esperabamos ver -> los que esperabamos que respondieran ->
+    # efectivas. Sin esta columna, el desglose de un tramo de cobertura enseñaba
+    # «—» en el sitio donde va el eslabon del medio (medido en pantalla el
+    # 2026-09-10, las tres filas de «Se quedo a medias»).
+    "observed_students",
     "eligible_n", "expected_valid", "responses_total", "respuestas_validas",
+    # El reparto por sexo de lo que ese curso-horario rindio. Sin el, la vista
+    # no puede decir que trajo un aula que no estaba prevista.
+    "validas_mujeres", "validas_hombres",
+    # Las dos varas del esperado, para que la vista pueda separar «este salon
+    # rindio mal» de «este salon es mas grande que el promedio de su facultad».
+    "tasa_efectividad_aula", "tasa_facultad", "esperadas_facultad",
     "filter_passed", "filter_rejected", "brecha", "link", "updated_at"
   ), names(rows))
   out <- rows[, cols, drop = FALSE]
@@ -1331,17 +1765,78 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   #
   # Se cuentan aparte para que la vista pueda nombrarlas: sacarlas del reparto y
   # no decir donde fueron deja al lector con dos totales que no cuadran.
-  en_juego_cs <- !(tolower(trimws(as.character(out$sample_role %||% ""))) %in% "extra_reserve_pool")
-  con_meta <- meta_cs > 0 & en_juego_cs
+  #
+  # Y «en juego» es el del motor, no el rol: `monitoreo_aulas_en_juego()` ya lo
+  # calculo unas lineas mas arriba y viaja en `out$en_juego`. La version que
+  # vivia aqui —«no es del banco de extras»— dejaba dentro las RESERVAS DE
+  # CADENA dormidas, que es el mismo defecto una capa mas abajo: medido sobre el
+  # estudio de HSVG, el reparto y el denominador de «Llegaron a su meta» corrian
+  # sobre **360** filas cuando los slots que alguien va a visitar son **30** —30
+  # titulares con 330 reservas detras—. Un reemplazo dormido no es un aula sin
+  # respuestas: es un aula a la que no le toca, y sale a campo solo si su
+  # titular cae.
+  del_banco_cs <- tolower(trimws(as.character(out$sample_role %||% ""))) %in% "extra_reserve_pool"
+  en_juego_cs <- if (!is.null(out$en_juego)) {
+    v <- as.logical(out$en_juego); v[is.na(v)] <- FALSE; v
+  } else {
+    !del_banco_cs
+  }
+  # **Y el reparto corre SOLO sobre los APLICADOS.**
+  #
+  # Gonzalo, 2026-09-10: «en el rendimiento por curso-horario tiene que
+  # considerar tambien que debe medirlo solo aquellos que han sido aplicados».
+  # Estaba escrito desde el 2026-09-09 en el titulo de su propio boceto de
+  # Resumen —«Rendimiento de los cursos-horario APLICADOS»— y el motor repartia
+  # todo lo que estuviera en juego.
+  #
+  # Medido sobre HSVG26ULT2 el 2026-09-10: el reparto corria sobre **219**
+  # cursos-horario de los que solo **45** tenian parte de campo. Los otros
+  # **174** caian en «Sin respuestas» —el 79 % del grafico, y la barra que el
+  # ojo mira primero— diciendo que rindieron cero cuando lo que pasa es que
+  # todavia no les toca. Es el mismo defecto que ya se corrigio en la tabla del
+  # margen: la prevision del diseño es CONDICIONAL a aplicarse, asi que del
+  # pendiente no hay rendimiento que juzgar.
+  #
+  # «Aplicado» con el vocabulario que el motor ya usa dos pantallas mas arriba:
+  # `en_aplicacion` (tiene respuestas o esta en campo) o `cerrando` (aplicada,
+  # cerrada, o ya llego a su meta). Un aula aplicada con CERO efectivas sigue
+  # entrando, y entra en «Sin respuestas», que ahi si es un resultado.
+  aplicado_cs <- as.character(out$application_state %||% rep("", nrow(out))) %in%
+    c("en_aplicacion", "cerrando")
+  con_meta <- meta_cs > 0 & en_juego_cs & aplicado_cs
   razon <- ifelse(con_meta, val_cs / pmax(meta_cs, 1), NA_real_)
+  # **Los tramos separan «le falto una» de «no fue nadie».**
+  #
+  # El corte anterior (`hasta_25 / hasta_50 / hasta_99 / cumplida`) metia en
+  # `hasta_99` todo lo que estuviera entre el 51 % y el 99 %. Medido sobre las
+  # 194 aulas aplicadas de 2025 eso son **82 aulas que van de 8 a 270 encuestas
+  # faltantes en total**: la banda tapaba justo la distincion que decide si vale
+  # la pena volver. Con este corte, las 17 aulas `satisfactorio` suman **8
+  # encuestas faltantes entre todas** y las 51 de `insuficiente` + `critico`
+  # suman 353.
+  #
+  # Los nombres son la escala de cumplimiento del aula, monotona y en un solo
+  # eje. `pleno` sustituye a `cumplida`, que significaba DOS cosas: este tramo y
+  # el estado de la celda facultad x sexo (`quota_status`, mas abajo).
+  #
+  # La clave viaja al cliente y el grafico empareja POR CLAVE: emparejar por
+  # posicion —como se hacia— convierte cualquier recorte futuro en etiquetas
+  # cambiadas de sitio sin que nada falle.
   tramo <- ifelse(is.na(razon), NA_character_,
-           ifelse(razon <= 0, "sin_respuestas",
-           ifelse(razon <= 0.25, "hasta_25",
-           ifelse(razon <= 0.5, "hasta_50",
-           ifelse(razon < 1, "hasta_99", "cumplida")))))
-  claves_cob <- c("sin_respuestas", "hasta_25", "hasta_50", "hasta_99", "cumplida")
+           ifelse(razon <= 0, "nulo",
+           ifelse(razon <= 0.50, "critico",
+           ifelse(razon <= 0.75, "insuficiente",
+           ifelse(razon <= 0.90, "parcial",
+           ifelse(razon < 1, "satisfactorio", "pleno"))))))
+  claves_cob <- c("nulo", "critico", "insuficiente", "parcial", "satisfactorio", "pleno")
+  # La frase viaja CON la clave. Traducir en R y no en el front tiene un motivo
+  # medido: en el tick de los tramos, la definicion estaba duplicada en los dos
+  # lenguajes y el grafico las emparejaba por posicion, asi que un recorte movia
+  # los numeros de etiqueta sin romper nada. Un solo dueño del idioma evita esa
+  # familia entera de defectos, y el test anti-jerga ya vive de este lado.
   cobertura <- lapply(claves_cob, function(k) {
-    list(clave = k, aulas = as.integer(sum(tramo == k, na.rm = TRUE)))
+    list(clave = k, aulas = as.integer(sum(tramo == k, na.rm = TRUE)),
+         etiqueta = monitoreo_aulas_etiqueta_tramo(k))
   })
 
   # **El banco al final ANTES de recortar.** El tope corta por posicion, y con el
@@ -1354,8 +1849,16 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   # `sample_role` viaja para distinguirlo—: solo decide QUE se sacrifica cuando
   # hay que sacrificar algo. Lo que se quede fuera sigue declarandose en `total`.
   if (nrow(out)) {
-    del_banco <- as.character(out$sample_role %||% rep("", nrow(out))) == "extra_reserve_pool"
-    out <- out[order(del_banco), , drop = FALSE]
+    rol <- as.character(out$sample_role %||% rep("", nrow(out)))
+    del_banco <- rol == "extra_reserve_pool"
+    # A26 (residuo, 2026-09-02): segundo peldano de la escalera de sacrificio.
+    # El tope corta por posicion y una reserva DE CADENA con mejor estado
+    # podia dejar fuera a un titular — sobre ULT2 (174 titulares + 1.173
+    # reservas) la agenda diria «contado sobre 500» con titulares ausentes.
+    # El titular entra SIEMPRE: la agenda habla del operativo y el operativo
+    # son los titulares. `order` es estable: dentro de cada peldano se
+    # conserva el orden del estado.
+    out <- out[order(del_banco, rol != "titular"), , drop = FALSE]
   }
   recortado <- .monitoreo_aulas_records(out, max_rows = MONITOREO_AULAS_COURSE_STATUS_TOPE)
   attr(recortado, "total") <- nrow(out)
@@ -1371,7 +1874,84 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   # Las que no declaran meta, contadas SOLO entre las que estan en juego: una
   # reserva del banco sin meta no es un dato que falte, es que no le toca.
   attr(recortado, "sin_meta") <- as.integer(sum(en_juego_cs & !(meta_cs > 0)))
-  attr(recortado, "banco") <- as.integer(sum(!en_juego_cs))
+  # `banco` sigue siendo el BANCO DE EXTRAS y nada mas: la vista lo nombra asi
+  # («N del banco») y meterle las reservas dormidas le pondria un nombre que no
+  # es. Las dormidas se cuentan aparte, que son otra poblacion: el banco espera
+  # en su estrato, la reserva espera a que caiga SU titular.
+  attr(recortado, "banco") <- as.integer(sum(del_banco_cs))
+  attr(recortado, "reservas_dormidas") <- as.integer(sum(!en_juego_cs & !del_banco_cs))
+  # El denominador de «cuantos llegaron a su meta», publicado en vez de dejar
+  # que el cliente lo reste. Restarlo obligaba a conocer las tres poblaciones y
+  # a acertar con las tres: el KPI hacia `total - sin_meta - banco` y le salia
+  # 360 porque las dormidas no estaban en ninguno de los dos sustraendos.
+  attr(recortado, "con_meta") <- as.integer(sum(con_meta))
+  # Las que estan en juego y con meta pero TODAVIA NO SE HAN APLICADO. Salen del
+  # reparto y se cuentan aparte para que la vista las nombre: sacarlas y no decir
+  # donde fueron deja al lector con dos totales que no cuadran, que es el mismo
+  # agujero que ya se tapo con el banco y con las dormidas.
+  attr(recortado, "sin_aplicar") <- as.integer(sum(meta_cs > 0 & en_juego_cs & !aplicado_cs))
+  # El reparto por ROL y estado, que es la forma del libro: la hoja «Aulas
+  # Aplicadas (Campo)» va por bloques —TITULAR, REEMPLAZO 1…11— con su propio
+  # `STATUS DE APLICACION`. Se calcula sobre `out`, que ya tiene el
+  # `application_state` derivado y el estado operativo cruzado con los partes.
+  attr(recortado, "rol_y_estado") <- monitoreo_aulas_rol_y_estado(out)
+  # **Y el mismo reparto POR FACULTAD.** Gonzalo, 2026-09-10: «el selector de
+  # facultad que está en el encabezado no hace que los gráficos actualicen…
+  # cuando yo selecciono una facultad, debería mostrarme sólo la de esa
+  # facultad; todos los demás gráficos se deben acomodar a ello».
+  #
+  # Se calcula aquí y no en el frontend por una razón medida: `course_status`
+  # viaja RECORTADO a 500 filas de las 1 392 del plan, así que filtrar en la
+  # pantalla daría el reparto de un recorte y lo presentaría como el de la
+  # facultad. El mismo agujero que ya costó dos paneles en este perfil.
+  fac_cs <- trimws(as.character(out$faculty %||% rep("", nrow(out))))
+  attr(recortado, "rol_y_estado_por_facultad") <- stats::setNames(
+    lapply(sort(unique(fac_cs[nzchar(fac_cs)])), function(f)
+      monitoreo_aulas_rol_y_estado(out[fac_cs == f, , drop = FALSE])),
+    sort(unique(fac_cs[nzchar(fac_cs)]))
+  )
+  # **La efectividad al grano de FACULTAD x SEXO**, aqui y no fuera por la misma
+  # razon: `out` tiene el `application_state` ya derivado y las columnas del
+  # plan —incluida la composicion por sexo del padron—, mientras que `plan_df`
+  # NO tiene esa columna. Calcularlo con `plan_df` devolvia una lista vacia sin
+  # que nada fallara. Ver `monitoreo_aulas_efectividad_por_sexo.R`.
+  #
+  # **El padron por sexo vive en `plan_df`, no en `out`.** `out` se construye
+  # eligiendo las columnas que el tablero necesita y `sex_top_1`/`sex_top_1_n`
+  # no estan entre ellas: pasandole `out` al motor, las efectivas por sexo
+  # salian bien —57 mujeres y 31 hombres en Arquitectura— y los elegibles y las
+  # esperadas salian CERO, con lo que la diferencia publicada era la efectiva
+  # entera. Visto en pantalla el 2026-09-10; los 19 tests no lo vieron porque su
+  # fixture llevaba el padron y el estado en la misma tabla.
+  #
+  # Se cruza por `classroom_id` y no por posicion: `out` puede reordenar o
+  # filtrar, y un vector desalineado mandaria las respuestas de un aula a la
+  # celda de otra, que es peor que no publicar nada.
+  # **Se le pasa `plan_df`, que es quien tiene el padron por sexo**, y NO se le
+  # pasa el estado: `out` no conserva `sex_top_*` y ademas se reordena por
+  # prioridad, asi que su vector de estado no esta alineado con el plan. El
+  # motor deduce que se visito de las respuestas atribuidas, que es la misma
+  # regla de respaldo que usa el resto del perfil y no puede desalinearse.
+  attr(recortado, "efectividad_por_sexo") <- monitoreo_aulas_efectividad_por_sexo(
+    plan_df, responses, cfg = cfg,
+    valid_response = valid_response, response_classroom = response_classroom
+  )
+  # La cobertura de cada facultad, con el MISMO criterio que la global: sólo los
+  # aplicados, y las que no declaran meta fuera del reparto.
+  attr(recortado, "cobertura_por_facultad") <- stats::setNames(
+    lapply(sort(unique(fac_cs[nzchar(fac_cs)])), function(f) {
+      dentro <- fac_cs == f & con_meta
+      tramo_f <- tramo[dentro]
+      list(
+        cobertura = lapply(claves_cob, function(k)
+          list(clave = k, aulas = as.integer(sum(tramo_f == k, na.rm = TRUE)),
+               etiqueta = monitoreo_aulas_etiqueta_tramo(k))),
+        con_meta = as.integer(sum(dentro)),
+        sin_aplicar = as.integer(sum(fac_cs == f & meta_cs > 0 & en_juego_cs & !aplicado_cs))
+      )
+    }),
+    sort(unique(fac_cs[nzchar(fac_cs)]))
+  )
   recortado
 }
 
@@ -1425,7 +2005,27 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   )
 }
 
+# **El fallback es POR FACULTAD, y sólo vale si el eje es la facultad.**
+#
+# Cubre a las facultades que el diseño no trazó, proyectando el cruce
+# facultad × sexo del marco. Con el eje declarable eso deja de ser un respaldo y
+# pasa a ser OTRO VOCABULARIO: en el simulacro de CCSS Perfil 2026-II, cuyas
+# metas son por nivel, las celdas salían mezcladas —ocho del diseño (niveles 6 a
+# 9, sumando 400) más dos del fallback («CIENCIAS SOCIALES» F 404 y M 364)— y la
+# pantalla publicaba **«faltan 1.168» sobre una muestra de 400**: la misma
+# carencia contada dos veces, en dos idiomas.
+#
+# Lo encontró el simulacro en la app, no un test, y es el motivo por el que
+# Gonzalo pidió verlo: el número imposible estaba en la cabecera de la pestaña.
+#
+# Con `atribucion = "persona"` no hay fallback que ofrecer: si el diseño no trae
+# la cuota por sexo del eje, esa celda NO existe, y decirlo es mejor que
+# rellenarla con la cuenta de otra cosa.
 .monitoreo_aulas_quota_targets_fallback <- function(plan_df, cfg) {
+  eje <- monitoreo_aulas_eje(cfg)
+  if (!identical(.monitoreo_scalar(eje$atribucion, "aula"), "aula")) {
+    return(.monitoreo_aulas_plan_sex_faculty_targets(NULL))
+  }
   quota_df <- .monitoreo_aulas_quota_source_df(cfg)
   if (nrow(quota_df)) {
     faculty_col <- .monitoreo_aulas_col(quota_df, c("primary_raw", "faculty", "facultad"))
@@ -1478,11 +2078,42 @@ monitoreo_aulas_criterio_texto <- function(crit) {
     # atribuye el numerador de cumplimiento, y con la precedencia invertida
     # las celdas F+M no cuadraban con el total de su facultad.
     valores <- as.character(plan_df$faculty %||% plan_df$stratum %||% "")
-    lookup <- stats::setNames(valores, as.character(plan_df$classroom_id %||% ""))
-    if ("collection_unit_id" %in% names(plan_df)) {
-      por_unidad <- stats::setNames(valores, as.character(plan_df$collection_unit_id))
+    aulas_plan <- as.character(plan_df$classroom_id %||% "")
+    unidades_plan <- if ("collection_unit_id" %in% names(plan_df)) {
+      as.character(plan_df$collection_unit_id)
+    } else {
+      NULL
+    }
+    # Tercera clave, igual que las otras dos copias: el QR de 2026 viaja el
+    # codigo operativo.
+    codigos_plan <- if ("operational_code" %in% names(plan_df)) {
+      as.character(plan_df$operational_code)
+    } else {
+      NULL
+    }
+    # Mismo espacio canonico que las otras dos copias del emparejamiento; un
+    # identificador tecleado conserva su facultad. Ver
+    # `.monitoreo_aulas_clave_colector()`.
+    if (.monitoreo_aulas_claves_sin_colision(c(aulas_plan, unidades_plan, codigos_plan))) {
+      aulas_plan <- .monitoreo_aulas_clave_colector(aulas_plan)
+      if (!is.null(unidades_plan)) {
+        unidades_plan <- .monitoreo_aulas_clave_colector(unidades_plan)
+      }
+      if (!is.null(codigos_plan)) {
+        codigos_plan <- .monitoreo_aulas_clave_colector(codigos_plan)
+      }
+      response_classroom <- .monitoreo_aulas_clave_colector(response_classroom)
+    }
+    lookup <- stats::setNames(valores, aulas_plan)
+    if (!is.null(unidades_plan)) {
+      por_unidad <- stats::setNames(valores, unidades_plan)
       por_unidad <- por_unidad[nzchar(names(por_unidad))]
       lookup <- c(lookup, por_unidad[!names(por_unidad) %in% names(lookup)])
+    }
+    if (!is.null(codigos_plan)) {
+      por_codigo <- stats::setNames(valores, codigos_plan)
+      por_codigo <- por_codigo[nzchar(names(por_codigo))]
+      lookup <- c(lookup, por_codigo[!names(por_codigo) %in% names(lookup)])
     }
     con_id <- nzchar(response_classroom)
     faculty[con_id] <- as.character(lookup[response_classroom[con_id]] %||% "")
@@ -1493,9 +2124,117 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   faculty
 }
 
-monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), config = list()) {
+#' Estado de una celda de cuota facultad x sexo.
+#'
+#' **Es RETROSPECTIVO: mide lo ya observado, no lo que se va a alcanzar.** Por
+#' eso los nombres dicen «alcanzada» y «en progreso» y no «asegurada» ni
+#' «deficit proyectado»: esos cuatro estados del contrato de indicadores
+#' (`asegurada / ajustada / deficit_proyectado / deficit_no_subsanable`) exigen
+#' la proyeccion —lo observado mas el aporte de las aulas pendientes— que
+#' todavia no existe. Ponerles ese nombre a estos seria prometer una lectura que
+#' el dato no da.
+#'
+#' Los nombres anteriores mentian de dos formas:
+#'
+#'   · `en_riesgo` no medía riesgo: medía «ya empezó». Una celda al 10 % y otra
+#'     al 99 % caían las dos ahí.
+#'   · `pendiente` sonaba benigno y era el caso PEOR —cero observadas— así que
+#'     la lectura tranquilizaba justo donde había que mirar.
+#'
+#' Aqui viven los cuatro estados y en ningun otro sitio: es el unico lugar donde
+#' se decide como se llama esto.
+#'
+#' @param target cuota de la celda.
+#' @param observed efectivas observadas en la celda.
+#' @return vector de estados.
+#' @keywords internal
+.monitoreo_aulas_quota_estado <- function(target, observed) {
+  target <- suppressWarnings(as.numeric(target))
+  observed <- suppressWarnings(as.numeric(observed))
+  target[!is.finite(target)] <- 0
+  observed[!is.finite(observed)] <- 0
+  ifelse(target <= 0, "sin_cuota",
+  ifelse(observed >= target, "alcanzada",
+  ifelse(observed > 0, "en_progreso", "sin_avance")))
+}
+
+.monitoreo_aulas_quota_sex_faculty <- function(plan_df, responses, cfg, valid_response, response_classroom) {
+  targets <- .monitoreo_aulas_quota_targets(plan_df, cfg)
+  if (!is.data.frame(targets) || !nrow(targets)) return(list())
+  sex_col <- monitoreo_aulas_columna_sexo(responses, cfg)
+  faculty <- .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom)
+  sex <- if (nzchar(sex_col)) .monitoreo_aulas_values(responses, sex_col, "") else character(0)
+  if (!length(sex)) {
+    observed <- data.frame(faculty = character(0), sex = character(0), observed = integer(0), stringsAsFactors = FALSE)
+  } else {
+    keep <- valid_response %in% TRUE & nzchar(faculty) & nzchar(sex)
+    observed <- if (any(keep)) {
+      stats::aggregate(rep(1L, sum(keep)), by = list(faculty = faculty[keep], sex = sex[keep]), FUN = sum)
+    } else {
+      # La columna se llama `observed` DESDE AQUI. Nombrarla `x` y renombrarla
+      # despues dejaba el caso vacio sin renombrar —el `if` de abajo pide filas—,
+      # asi que el merge salia sin columna `observed` y la linea siguiente
+      # asignaba `integer(0)` a un data.frame con filas: 500 al abrir Monitoreo.
+      # Se veia el primer dia de campo, con envios que aun no pasan el filtro.
+      data.frame(faculty = character(0), sex = character(0), observed = integer(0), stringsAsFactors = FALSE)
+    }
+    if (nrow(observed)) names(observed)[names(observed) == "x"] <- "observed"
+  }
+  out <- merge(targets, observed, by = c("faculty", "sex"), all.x = TRUE, sort = FALSE)
+  out$observed[is.na(out$observed)] <- 0L
+  target_num <- suppressWarnings(as.numeric(out$target))
+  target_num[!is.finite(target_num)] <- 0
+  out$target <- as.integer(pmax(0L, round(target_num)))
+  out$missing <- as.integer(pmax(0L, out$target - out$observed))
+  out$progress_pct <- ifelse(out$target > 0L, round(100 * out$observed / out$target, 1), NA_real_)
+  out$status <- .monitoreo_aulas_quota_estado(out$target, out$observed)
+  # La frase, al lado de la clave y no en el front: un solo dueño del idioma.
+  out$etiqueta <- vapply(out$status, monitoreo_aulas_etiqueta_celda, character(1), USE.NAMES = FALSE)
+  # Mismo criterio de siempre, con los nombres nuevos. Ojo: renombrar sin tocar
+  # esta linea NO rompia nada visible —las dos comparaciones daban FALSE para
+  # todas las filas y la tabla quedaba ordenada solo por brecha—, que es la
+  # forma mas silenciosa de romper un orden.
+  out <- out[order(out$status != "en_progreso", out$status != "sin_avance", -out$missing, out$faculty, out$sex), , drop = FALSE]
+  .monitoreo_aulas_records(out, max_rows = 240L)
+}
+
+monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), config = list(),
+                                      # El padrón que traduce un código de alumno
+                                      # a su nivel. Vive SOLO en la sesión —nunca
+                                      # en la config, que se persiste y lo
+                                      # duplicaría fuera del alcance de la
+                                      # purga— así que entra por aquí. Lo
+                                      # inyecta `monitoreo_aulas_dashboard_cached()`,
+                                      # que es el único punto sid-aware, igual
+                                      # que hace con la disponibilidad. Un eje
+                                      # que no lo necesita lo ignora; uno que sí
+                                      # y no lo recibe lo DECLARA en su aviso, no
+                                      # lo suple.
+                                      padron = NULL) {
   cfg <- monitoreo_aulas_normalize_config(config)
+  # **El plan se normaliza UNA vez, no dos.**
+  #
+  # `normalize_config()` ya normalizo `config$plan`, y el caso normal es que el
+  # `plan` que llega aqui SEA ese mismo objeto: el router hace
+  # `aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan`. Normalizarlo otra
+  # vez costaba la mitad del tablero — medido sobre 1.424 aulas:
+  # `monitoreo_aulas_normalize_plan()` es el **49,6 %** de los 5,0 s, llamada dos
+  # veces, con 18 conversiones lista↔data.frame entre las dos.
+  #
+  # Se compara con el plan CRUDO de la config, no con el normalizado: si son el
+  # mismo objeto de partida, el resultado de normalizarlos es el mismo y basta
+  # con reusar el que ya se hizo. Si el llamador pasa otro plan —y puede—, se
+  # normaliza como siempre.
+  plan_crudo <- config[["plan"]] %||% config[["agenda"]]
+  ya_normalizado <- !is.null(plan) && !is.null(plan_crudo) && identical(plan, plan_crudo)
+  plan <- if (ya_normalizado) cfg[["plan"]] else plan
+  # La meta por aula con la τ del diseño donde la calibración no tiene dueño,
+  # ANTES de que nadie la lea (monitoreo_aulas_meta_del_diseno.R).
+  plan <- monitoreo_aulas_meta_del_diseno(plan %||% cfg[["plan"]], cfg)
   plan_df <- .monitoreo_aulas_df(plan %||% cfg[["plan"]], "plan")
+  # El eje del estudio, resuelto UNA vez para todo el tablero. Sin declaración
+  # es `facultad`, así que un estudio existente no cambia un byte.
+  .mau_eje <- monitoreo_aulas_eje(cfg)
   if (!nrow(plan_df)) {
     return(list(
       schema = "monitoreo_aulas_dashboard_v1",
@@ -1510,12 +2249,31 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         .monitoreo_aulas_valid_response(responses, cfg),
         .monitoreo_aulas_response_classroom(responses, cfg)
       ),
+      # Y el del seguimiento de tau tambien (C2): sin plan la pantalla tiene
+      # que poder decir «todavia no hay aulas aplicadas», que es distinto de no
+      # tener bloque y quedarse sin superficie.
+      efectividad_seguimiento = .monitoreo_aulas_efectividad_seguimiento(
+        plan_df, plan_df, responses, cfg,
+        .monitoreo_aulas_valid_response(responses, cfg),
+        .monitoreo_aulas_response_classroom(responses, cfg)
+      ),
+      # Y las dos tasas por AULA tambien (C2): sin plan viaja vacio y con su
+      # criterio declarado. La logica vive en monitoreo_aulas_dos_tasas.R.
+      dos_tasas = monitoreo_aulas_dos_tasas(plan_df),
+      # Y el mapa de horas tambien (C2, decision del lead 2026-09-02): sin
+      # plan viaja con dias vacios declarados. La logica vive en
+      # monitoreo_aulas_franjas.R.
+      franjas = monitoreo_aulas_franjas(plan_df, duracion_min = cfg[["duracion_aplicacion_min"]]),
       brechas = list(),
       reemplazos = list(),
       validation = list()
     ))
   }
-  plan_df <- .monitoreo_aulas_df(monitoreo_aulas_normalize_plan(plan_df), "plan")
+  # Con `ya_normalizado` la marca de arriba no sobrevive al paso por
+  # `.monitoreo_aulas_df()`, asi que la decision viaja en una bandera y no en un
+  # atributo. Sin esto el plan se normalizaba DOS veces por tablero.
+  plan_df <- if (ya_normalizado) plan_df
+             else .monitoreo_aulas_df(monitoreo_aulas_normalize_plan(plan_df), "plan")
   tracked_df <- plan_df[plan_df$sample_role != "extra_reserve_pool", , drop = FALSE]
   if (!nrow(tracked_df)) tracked_df <- plan_df
   status <- plan_df$operational_status
@@ -1530,9 +2288,81 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # copias. Antes esta linea solo miraba `classroom_id`, asi que brechas,
   # estratos y reemplazos se calculaban sobre ceros.
   plan_df$respuestas_validas <- .monitoreo_aulas_contar_por_fila(plan_df, valid_counts)
+
+  # El reparto por sexo de lo que rindio cada curso-horario, en su helper: la
+  # cuenta se decide en un sitio y se puede medir sin levantar el tablero.
+  plan_df <- .monitoreo_aulas_validas_por_sexo(
+    plan_df, responses, cfg, valid_response, response_classroom)
+
+  # **La tasa prevista de la FACULTAD, que el plan declara y nunca traia.**
+  #
+  # `tasa_facultad` existe en el esquema del plan y su contrato dice que la vara
+  # agregada «viaja al lado en `tasa_facultad`, tal como la trae la fila del
+  # plan». Medido sobre HSVG26ULT2 el 2026-09-08: viene VACIA en las 174 filas
+  # M1, igual que `efectividad_tau`. Solo `tasa_efectividad_aula` —la del propio
+  # curso-horario— llega llena.
+  #
+  # La consecuencia se veia en pantalla: la tabla de «Cada curso-horario contra
+  # su propio margen» promete una columna «Prevista de su facultad» y la pintaba
+  # en blanco en todas sus filas. Y esa columna no es decoracion; su panel
+  # explica por que estan las dos varas juntas: «un curso-horario bajo su propia
+  # meta tuvo un problema; uno bajo la de su facultad pero sobre la suya solo es
+  # mas grande que el promedio».
+  #
+  # No se puede derivar del plan: dentro de una misma facultad las tasas por
+  # curso-horario difieren (0,519 y 0,64 en Ciencias e Ingenieria), asi que la de
+  # la facultad es un agregado del DISEÑO, no un promedio de filas. Sale de la
+  # misma vigencia que usa `efectividad_seguimiento` para su `tau_previsto`, que
+  # es funcion pura de `cfg`. Se rellena AQUI —donde el plan se enriquece— y no
+  # en cada consumidor: la columna ya existe para esto y asi la reciben todos.
+  local({
+    vig <- .monitoreo_aulas_avance_vigencia(cfg)
+    taus <- list()
+    for (f in vig$facultades) {
+      if (!is.list(f)) next
+      k <- .monitoreo_scalar(f$faculty_key, "")
+      if (!nzchar(k)) k <- .cm_criterios_fac_key(.monitoreo_scalar(f$facultad, ""))
+      tau <- .monitoreo_num(f$tau, NA_real_)
+      if (nzchar(k) && is.finite(tau)) taus[[k]] <- tau
+    }
+    if (!length(taus) || !nrow(plan_df)) return(invisible(NULL))
+    # Lo YA declarado manda: si una fila trae su propia `tasa_facultad`, se
+    # respeta. Esto rellena el hueco, no pisa un dato del plan.
+    actual <- suppressWarnings(as.numeric(plan_df$tasa_facultad %||% rep(NA_real_, nrow(plan_df))))
+    claves <- vapply(as.character(plan_df$faculty %||% rep("", nrow(plan_df))),
+                     function(x) .cm_criterios_fac_key(x), character(1), USE.NAMES = FALSE)
+    desde_diseno <- vapply(claves, function(k) {
+      v <- if (nzchar(k)) taus[[k]] else NULL
+      if (is.null(v)) NA_real_ else as.numeric(v)
+    }, numeric(1), USE.NAMES = FALSE)
+    plan_df$tasa_facultad <<- ifelse(is.finite(actual), actual, desde_diseno)
+    invisible(NULL)
+  })
+  # **La fecha de aplicacion sale de la PLATAFORMA, no del parte de campo.**
+  #
+  # Aqui es donde tiene que ir: `plan_df` es lo que alimenta la agenda y con
+  # ella la serie, el ritmo, el pronostico y el corte. Sin esto los cuatro salen
+  # vacios, porque `applied_at` solo se llena si el equipo anota la hoja de
+  # campo — y el registro de campo es una cosa y lo que cuenta es otra. Si el
+  # parte SI trae fecha, esa gana: es una declaracion explicita del aplicador.
+  .fecha_plataforma <- .monitoreo_aulas_fecha_de_plataforma(response_classroom, responses)
+  if (length(.fecha_plataforma)) {
+    .de_plataforma <- unname(.fecha_plataforma[as.character(plan_df$classroom_id)])
+    if ("collection_unit_id" %in% names(plan_df)) {
+      .por_unidad <- unname(.fecha_plataforma[as.character(plan_df$collection_unit_id)])
+      .falta <- is.na(.de_plataforma)
+      .de_plataforma[.falta] <- .por_unidad[.falta]
+    }
+    plan_df$fecha_plataforma <- ifelse(is.na(.de_plataforma), "", .de_plataforma)
+    .sin_parte <- !nzchar(trimws(as.character(plan_df$applied_at %||% "")))
+    plan_df$applied_at <- ifelse(.sin_parte & nzchar(plan_df$fecha_plataforma),
+                                 plan_df$fecha_plataforma,
+                                 as.character(plan_df$applied_at %||% ""))
+  }
   meta_plan <- suppressWarnings(as.numeric(plan_df$expected_valid))
   meta_plan[!is.finite(meta_plan)] <- 0
-  plan_df$brecha <- pmax(0, meta_plan - plan_df$respuestas_validas)
+  # Personas enteras, igual que arriba y que `.mac_brecha()`.
+  plan_df$brecha <- ceiling(pmax(0, meta_plan - plan_df$respuestas_validas) - 1e-9)
   plan_df$brecha[!is.finite(plan_df$brecha)] <- 0
   # El plan SEGUIDO: un aula por slot, no una por fila.
   #
@@ -1555,10 +2385,87 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # dictamen 2026-08-18 (ver monitoreo_aulas_avance_cuota.R): toda respuesta
   # recogida cuenta a la facultad del aula donde se recogio.
   quotas_sex_faculty <- .monitoreo_aulas_cuotas_sexo_celdas(plan_df, tracked_df, responses, cfg, valid_response, response_classroom)
+  # El avance por celda se calcula UNA vez: lo consumen el payload y la reserva
+  # dirigida, y dos calculos del mismo dato es como dos lecturas empiezan a
+  # discrepar. Sobre `tracked_df`, que excluye el banco: el previsto sale de las
+  # aulas del plan, no de las que estan esperando en el estrato. Toma las celdas
+  # de `.monitoreo_aulas_cuotas_sexo_celdas` —que reemplazo a
+  # `.monitoreo_aulas_quota_sex_faculty` en el tablero— y expone las mismas
+  # claves `faculty`/`sex`/`target`/`observed` que esta funcion pide.
   # El avance contra la CUOTA del diseño: numerador sobre el plan entero,
   # denominador del bloque de metas mientras su sello siga vigente, y meta del
   # plan —declarada como tal— cuando no lo este.
-  avance_cuota <- .monitoreo_aulas_avance_cuota(plan_df, tracked_df, responses, cfg, valid_response, response_classroom)
+  # Recibe las celdas de sexo YA calculadas arriba: la brecha de una facultad
+  # es la suma de las suyas, no la resta de su total (ADR 0079).
+  avance_cuota <- .monitoreo_aulas_avance_cuota(plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
+                                               celdas_sexo = quotas_sex_faculty,
+                                               padron = padron)
+  # **Sin cuotas de sexo, las celdas proyectadas son las del EJE.**
+  #
+  # El panel «Qué grupos no llegan, y con qué remedio» —las tres lecturas: lo
+  # recogido, lo que traerá lo agendado y el techo de todo el plan— proyecta
+  # estas celdas. En un estudio cuya meta es sólo por nivel no hay ninguna celda
+  # de sexo, así que el panel publicaba su vacío («el estudio no declara cuotas
+  # de facultad y sexo») y **la pestaña se quedaba sin la cifra que el estudio
+  # prometió**: las cuatro cuotas por nivel —120 · 121 · 95 · 64— estaban en el
+  # payload y no se veían en ninguna parte.
+  #
+  # Lo vio el simulacro en la app, no un test. La salida no es un panel nuevo
+  # —el perfil ya tiene 19 pestañas— sino el MISMO panel con un grano menos
+  # fino: una celda por valor del eje, sin sexo.
+  #
+  # Ojo con la diferencia: a `avance_cuota` se le siguen pasando las celdas de
+  # SEXO, vacías si el estudio no las declara, porque ahí la ausencia es la que
+  # hace que la brecha sea el neto y no la suma (la meta es sólo por nivel). Lo
+  # que se rellena es el insumo del PROYECTOR, que es otra pregunta.
+  .mau_celdas_para_proyectar <- if (length(quotas_sex_faculty)) {
+    quotas_sex_faculty
+  } else {
+    .monitoreo_aulas_celdas_del_eje(avance_cuota)
+  }
+  .mau_avance_celdas <- monitoreo_aulas_avance_sexo_facultad(
+    .monitoreo_aulas_records(tracked_df), .mau_celdas_para_proyectar
+  )
+  # El SUPUESTO que dimensionó, contrastado con el campo (ADR 0082). Comparte
+  # insumos con `avance_cuota` y contesta otra pregunta: aquél mide si ya
+  # tenemos a la gente, éste si las aulas rinden lo que se supuso al comprar el
+  # aforo. Vive en `monitoreo_aulas_efectividad_seguimiento.R`.
+  # Recibe `avance_cuota` porque el conseguido y la cuota de cada facultad son
+  # SUYOS (ADR 0079) y aqui no se recalculan: el margen se proyecta sobre el
+  # mismo numerador con el que se mide el cumplimiento.
+  efectividad_seguimiento <- .monitoreo_aulas_efectividad_seguimiento(
+    plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
+    avance_cuota = avance_cuota
+  )
+
+  # **Los refuerzos y el techo** (dictado 2026-09-18), calculados UNA vez.
+  #
+  # Los tres bloques del payload —`refuerzos`, `cuotas_urgentes` y
+  # `candidatos_refuerzo`— comparten insumo. Calcularlo dentro de cada uno
+  # llevó el tablero de 7,6 s a 43,4 s en la primera versión: el cruce de
+  # facultad declarada, que `monitoreo_aulas_riesgo_facultades()` necesita para
+  # la retención, se corría tres veces sobre 3 000 respuestas.
+  #
+  # Y el motor de riesgo pide un dashboard mientras AQUÍ se construye uno: se
+  # le pasa el par de piezas que consume —ya calculadas arriba— en lugar del
+  # objeto entero. Con `NULL` se llamaría a sí mismo.
+  .mau_registros <- .monitoreo_aulas_records(plan_df)
+  # El cruce de facultad declarada, UNA vez: lo consumen `control_facultad` y
+  # el bloque de riesgo, y cuesta 11,9 s sobre 3 000 respuestas.
+  .mau_cruce <- tryCatch(
+    monitoreo_aulas_cruce_facultad_declarada(.mau_registros, responses, cfg,
+                                             cuotas = cfg$design_targets),
+    error = function(e) NULL)
+  .mau_refuerzos <- tryCatch(
+    monitoreo_aulas_refuerzos(.mau_registros, responses, cfg),
+    error = function(e) NULL)
+  .mau_riesgo <- tryCatch(
+    monitoreo_aulas_riesgo_facultades(
+      .mau_registros, responses, cfg, cuotas = cfg$design_targets,
+      dashboard = list(efectividad_seguimiento = efectividad_seguimiento,
+                       avance_sexo_facultad = .mau_avance_celdas),
+      cruce = .mau_cruce),
+    error = function(e) NULL)
 
   # POR FACULTAD, en el motor y no en la vista.
   #
@@ -1571,6 +2478,33 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # Es la unidad con la que se dirige el operativo: «todo debe ser por facultad».
   # El estrato —facultad/sexo/tamaño— sigue publicandose aparte porque es la
   # unidad del DISEÑO, y no son la misma pregunta.
+  # **El plan a registros, UNA vez.**
+  #
+  # `.monitoreo_aulas_records(plan_df)` aparecia dos veces en la salida —la
+  # agenda y la reserva dirigida— y convierte las 1.424 filas cada vez. En el
+  # perfil ese coste se atribuia a `monitoreo_aulas_reserva_por_celda()`, que
+  # salia como el 17,7 % del tablero: R evalua los argumentos de forma perezosa,
+  # asi que la conversion se cobraba dentro de la llamada. Medida aparte, esa
+  # funcion tarda 0,05 s sobre un banco de 77 aulas; el resto era la conversion.
+  # **`methodological_warning` no viaja con la agenda.**
+  #
+  # Es la MISMA cadena en todas las filas —`calc_muestra_aulas_demo.R:497` la
+  # escribe con `paste(collapse = " | ")` una sola vez para la seleccion entera—
+  # y por eso pesa lo que pesa: 893 KB de los 4 865 de `agenda`, medido sobre
+  # HSVG26ULT2 el 2026-09-08. Un quinto del bloque para repetir un parrafo mil
+  # trescientas noventa y dos veces.
+  #
+  # Y NO SE VE: la tabla descarta las columnas con el mismo valor en todas las
+  # filas (`columnasSinConstantesInertes`) y esta no esta en las que sobreviven a
+  # esa regla —solo lo hacen las de estado y `que_toca`—. Ningun otro consumidor
+  # de Monitoreo lo lee; sus unicas lecturas viven en `calcMuestra`, y ahi salen
+  # del objeto de seleccion, no de una fila del plan.
+  #
+  # Se quita SOLO del payload publicado. `plan_df` lo conserva, porque es el que
+  # alimenta al resto del motor y a la publicacion.
+  .agenda_registros <- .monitoreo_aulas_records(
+    plan_df[, setdiff(names(plan_df), "methodological_warning"), drop = FALSE])
+
   avance_por_facultad <- stats::aggregate(
     cbind(aulas = rep(1L, nrow(tracked_df)),
           respuestas_validas = tracked_df$respuestas_validas,
@@ -1579,6 +2513,151 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     data = tracked_df,
     FUN = function(x) sum(x, na.rm = TRUE)
   )
+  # **Y su corte por SEXO, porque el total puede tapar una celda corta.**
+  #
+  # Gonzalo: «lo que me interesa es que TODAS LAS FACULTADES CUMPLAN CON SU
+  # CUOTA DE SEXO». Esta tabla decia `faculty · aulas · respuestas_validas ·
+  # brecha · meta` y ninguna de las cinco columnas conoce el sexo, asi que una
+  # facultad podia leerse cubierta con su celda de mujeres cuarenta corta. Es su
+  # propio patron: el agregado esconde lo que muerde por celda.
+  #
+  # No se recalcula nada: se toman las celdas que `monitoreo_aulas_avance_sexo_facultad()`
+  # ya produjo unas lineas arriba. Dos lecturas del mismo dato acabarian
+  # discrepando.
+  local({
+    celdas <- .mau_avance_celdas %||% list()
+    if (!length(celdas) || !nrow(avance_por_facultad)) return(invisible(NULL))
+    # **Y no si las celdas son del EJE: no tienen sexo que cortar.**
+    #
+    # Desde que el proyector recibe celdas del eje cuando el estudio no declara
+    # cuota por sexo, este bloque se encontraba con celdas sin dimensión de sexo
+    # y añadía sus cuatro columnas en `NA` —«esta facultad no tiene esa celda»—
+    # más una bandera `celda_corta = FALSE`. Son cuatro columnas que no
+    # significan nada: preguntar «¿cuántas mujeres faltan?» a una cuota que no
+    # es por sexo no tiene respuesta, ni siquiera `NA`. La tabla se queda con sus
+    # columnas de siempre, que es lo que su prueba de forma ya fijaba.
+    if (all(vapply(celdas, function(c1) identical(c1$grano %||% "", "eje"), logical(1)))) {
+      return(invisible(NULL))
+    }
+    # **El sexo de la celda se casa por su CLAVE, no por su etiqueta.**
+    #
+    # `c1$sex` es la etiqueta con la que la celda se MUESTRA, y
+    # `.maac_sexo_etiqueta()` está hecha para que sea una palabra: la del plan
+    # (`sex_top_*`) primero, la de las respuestas después, y "F"/"M" pelado sólo
+    # como último recurso. Comparar `toupper()` contra "F" casaba en HSVG2026
+    # nada más que por coincidencia de vocabulario —su marco escribe "F"/"M"
+    # literal en `sex_top_1` (medido: 2.427 aulas "F", 1.916 "M")— y quedaba
+    # muda con cualquier otro: con la etiqueta "Femenino" las cuatro columnas de
+    # sexo salen NA, `meta_origen` cae a "prevista" y la brecha se publica como
+    # el NETO. Es el fallo que la cuota por sexo existe para impedir, y no
+    # fallaba nada: la prueba que guardaba este bloque llamaba a
+    # `monitoreo_aulas_avance_sexo_facultad()` con celdas escritas a mano cuyo
+    # `sex` ya venía "F"/"M".
+    por <- function(fac, sexo, campo) {
+      hit <- Filter(function(c1) identical(as.character(c1$faculty %||% ""), fac) &&
+                      identical(.maac_sexo_key(as.character(c1$sex %||% "")), sexo), celdas)
+      if (!length(hit)) return(NA_real_)
+      v <- suppressWarnings(as.numeric(hit[[1]][[campo]] %||% NA))
+      if (length(v) == 1L && is.finite(v)) v else NA_real_
+    }
+    fac <- as.character(avance_por_facultad$faculty)
+    # **EL AVANCE SE MIDE CONTRA LA CUOTA, no contra lo pronosticado.**
+    #
+    # Gonzalo, 2026-08-29: «el avance se mide sobre las cuotas del plan, no
+    # sobre lo que nosotros hemos pronosticado que va a suceder. Lo que
+    # pronosticamos nos sirve para el diseño, para el dimensionamiento de las
+    # aulas, pero a nosotros nos interesa llegar a dos mil quinientos con las
+    # cuotas que hemos establecido por sexo en cada facultad. Esa es nuestra
+    # meta.»
+    #
+    # Esta tabla publicaba como `meta` la suma de `expected_valid` —elegibles
+    # por su tasa—, que es el PRONOSTICO. Medido sobre «campo malo»: esa suma da
+    # **3.145,7** frente a una cuota de **2.500**, un 26 % mas alta. Por
+    # facultad, CIENCIAS E INGENIERIA publicaba «faltan 397» cuando contra su
+    # cuota faltan **232**: 165 respuestas de deficit inflado, un 71 % de mas.
+    #
+    # El pronostico no se tira: pasa a `meta_prevista`, que es lo que dimensiono
+    # el operativo y sigue haciendo falta para leer si el campo rinde. Pero la
+    # META es la cuota.
+    cuota_de <- function(f) {
+      dos <- c(por(f, "F", "cuota"), por(f, "M", "cuota"))
+      if (all(is.na(dos))) return(NA_real_)
+      sum(dos, na.rm = TRUE)
+    }
+    avance_por_facultad$meta_prevista <<- avance_por_facultad$meta
+    .cuota <- vapply(fac, cuota_de, numeric(1))
+    avance_por_facultad$meta <<- ifelse(is.na(.cuota),
+                                        avance_por_facultad$meta_prevista, .cuota)
+    avance_por_facultad$meta_origen <<- ifelse(is.na(.cuota), "prevista", "cuota")
+    # **La brecha es la SUMA DE LAS CELDAS, no la resta del total.**
+    #
+    # Un hombre de mas no cubre a una mujer que falta. Restar sobre el total
+    # deja que un sexo compense al otro, y eso es justo lo que la cuota por sexo
+    # existe para impedir — la misma doctrina del ADR 0079 para facultades.
+    #
+    # **Observado, no hipotetico.** En «campo malo», GASTRONOMIA, HOTELERIA Y
+    # TURISMO lleva mujeres 10 de 12 y hombres 14 de 9: el total da 24 sobre una
+    # cuota de 21 y la facultad se publicaba con **cero faltan**, con dos
+    # mujeres todavia cortas. Es el primer caso medido del agregado engañando, y
+    # aparecio al hacer que las partes sumaran el total.
+    # **Lo que falta AHORA, no lo que faltaría después de aplicar lo agendado.**
+    #
+    # La `brecha` de una celda es `cuota - PROYECCION`, y la de la facultad es
+    # `cuota - logrado`. Mezclarlas hacía que las partes no sumaran el total:
+    # visto en pantalla, «397 respuestas faltan» con «31 mujeres» y «114
+    # hombres» debajo. Con la vara unica —la cuota— las dos celdas tienen que
+    # sumar lo que le falta a su facultad, o el lector suma y no le cuadra.
+    # **La regla es UNA, y vive en `monitoreo_aulas_brecha_facultad.R`.** Esto
+    # tenía su propio `falta_ahora()` escrito aquí dentro: replicaba la doctrina
+    # —sumar lo que falta en cada celda, no restar el neto— pero no llamaba a la
+    # función compartida, así que era una TERCERA implementación de la misma
+    # cuenta junto al tablero y al libro. Con el eje de cuotas declarable eso es
+    # garantía de divergencia: la que no se toque seguiría leyendo `faculty`.
+    #
+    # `redondear_celda = TRUE` conserva exactamente lo que esta tabla publicaba
+    # (techo por celda); el tablero y el libro siguen sin redondear. La
+    # divergencia de redondeo queda declarada en la función, no escondida en tres
+    # sitios.
+    falta_ahora <- function(f, sexo) {
+      monitoreo_aulas_brecha_celda(por(f, sexo, "cuota"), por(f, sexo, "logrado"),
+                                   redondear = TRUE)
+    }
+    .por_celdas <- vapply(fac, function(f) {
+      monitoreo_aulas_brecha_facultad(
+        cuota = 1,  # sólo para no cortar por cuota ausente: manda `celdas`
+        conseguidas = 0,
+        celdas = list(
+          list(target = por(f, "F", "cuota"), observed = por(f, "F", "logrado")),
+          list(target = por(f, "M", "cuota"), observed = por(f, "M", "logrado"))
+        ),
+        redondear_celda = TRUE
+      )
+    }, numeric(1))
+    # Sin ninguna celda con cuota, la compartida cae al neto de su `cuota`
+    # ficticia; aquí eso no sirve, así que se detecta y se usa el neto real.
+    sin_celdas <- vapply(fac, function(f) {
+      !is.finite(por(f, "F", "cuota")) && !is.finite(por(f, "M", "cuota"))
+    }, logical(1))
+    .por_celdas[sin_celdas] <- NA_real_
+    .por_total <- ceiling(pmax(0, avance_por_facultad$meta -
+                               avance_por_facultad$respuestas_validas) - 1e-9)
+    avance_por_facultad$brecha <<- ifelse(is.na(.por_celdas), .por_total, .por_celdas)
+    avance_por_facultad$mujeres_logrado  <<- vapply(fac, por, numeric(1), "F", "logrado")
+    avance_por_facultad$mujeres_deficit  <<- vapply(fac, falta_ahora, numeric(1), "F")
+    avance_por_facultad$hombres_logrado  <<- vapply(fac, por, numeric(1), "M", "logrado")
+    avance_por_facultad$hombres_deficit  <<- vapply(fac, falta_ahora, numeric(1), "M")
+    # La bandera que la tabla necesitaba: **esta facultad tiene alguna celda que
+    # no va a cerrar**, aunque su total diga que si.
+    # Una celda cuenta como corta cuando su deficit es mayor que cero. `NA`
+    # significa que esa celda no existe para la facultad —no que este bien—, y
+    # por eso NO cuenta: inventar una alarma sobre una celda ausente es peor que
+    # callarla, y el caso se ve en `mujeres_deficit` valiendo NA.
+    corta <- function(x) !is.na(x) & x > 0
+    avance_por_facultad$celda_corta <<- corta(avance_por_facultad$mujeres_deficit) |
+                                       corta(avance_por_facultad$hombres_deficit)
+    invisible(NULL)
+  })
+
   # La que mas lejos esta de su meta primero: es a donde va el equipo mañana.
   avance_por_facultad <- avance_por_facultad[order(-avance_por_facultad$brecha,
                                                    avance_por_facultad$faculty), , drop = FALSE]
@@ -1600,7 +2679,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     v <- suppressWarnings(as.numeric(x))
     ifelse(is.finite(v), v, 0)
   }
-  .meta_por_aula <- .aulas_num(tracked_df$expected_valid)
+  # La meta de un aula se redondea HACIA ARRIBA, y aqui: `expected_valid` llega
+  # fraccionario —es `eligible_n x rendimiento x factor`, p. ej. 18,2— y capar un
+  # conteo entero contra una fraccion arrastraba el decimal a las PERSONAS: la
+  # pantalla decia «1 248,9 cubren meta» y «358,1 de mas». Media respuesta no
+  # existe. Hacia arriba y no al mas cercano, por la misma razon que `fmtCuenta`
+  # en el frontend: con 18 no se cumple una meta de 18,2.
+  #
+  # Se redondea en la meta POR AULA y no en las sumas, para que `cubierto`,
+  # `excedente` y `falta` sigan reconciliando: con el objetivo entero las tres
+  # salen enteras y `cubierto + excedente` sigue siendo las validas.
+  .meta_por_aula <- ceiling(.aulas_num(tracked_df$expected_valid))
   .validas_por_aula <- .aulas_num(tracked_df$respuestas_validas)
   .con_meta <- .meta_por_aula > 0
   cumplimiento_respuestas <- list(
@@ -1694,6 +2783,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     )
     replacements$motivo[is.na(replacements$motivo)] <- ""
   }
+  # Y AQUI se recorta, despues de calcular `motivo` y no antes: es la unica
+  # columna que esta lista aporta sobre `agenda`.
+  replacements <- replacements[
+    , intersect(REEMPLAZOS_COLUMNAS_PUBLICADAS, names(replacements)), drop = FALSE]
   # Sobre `seguidas`: la representatividad compara la muestra efectiva con la
   # planificada, y la planificada incluye las reservas que el diseño compro.
   representativity <- .monitoreo_aulas_effective_representativity(seguidas, cfg)
@@ -1708,17 +2801,24 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
 
   # Una respuesta huerfana es la que trae un colector que NO pertenece a ninguna
   # aula del plan: un QR de otro estudio, una ficha vieja, un id mal tecleado.
-  # Antes este chequeo solo miraba si la respuesta TENIA valor de colector, no
-  # si ese valor casaba con algo, asi que una respuesta de un aula inexistente
-  # pasaba como buena. Comprobarlo solo es posible desde que el emparejamiento
-  # conoce `collection_unit_id`.
-  ids_del_plan <- unique(c(
-    as.character(plan_df$classroom_id %||% character(0)),
-    as.character(plan_df$collection_unit_id %||% character(0))
-  ))
-  ids_del_plan <- ids_del_plan[nzchar(ids_del_plan)]
+  #
+  # **Y se decide con la MISMA atribucion que el numerador del tablero.** Esto
+  # tenia su propio emparejamiento, con dos claves —`classroom_id` y
+  # `collection_unit_id`— y sin normalizar; el numerador usa tres, porque «el QR
+  # de 2026 viaja el codigo operativo» (`.maac_atribucion`, tercera clave). El
+  # resultado era que una respuesta bien atribuida al tablero salia aqui como
+  # huerfana, con el aviso en `warning`.
+  #
+  # Medido el 2026-09-22, primer dia de campo de CCSS Perfil 2026-II: el panel
+  # decia «29 respuestas validas no corresponden a ningun curso-horario» sobre
+  # 29 respuestas —o sea, todas— cuando 10 estaban atribuidas a CH 45 y contadas
+  # en el avance. Lo destapo el aviso nuevo al NOMBRAR los valores: «CH 45»
+  # aparecia en la lista de colectores ajenos de su propio plan.
+  #
+  # Dos lecturas de la misma respuesta no pueden convivir: la que cuenta manda.
   huerfanas <- if (length(valid_response)) {
-    valid_response %in% TRUE & (!nzchar(response_classroom) | !(response_classroom %in% ids_del_plan))
+    atr_control <- .maac_atribucion(plan_df, valid_response, response_classroom)
+    atr_control$valid %in% TRUE & !(atr_control$matched %in% TRUE)
   } else {
     logical(0)
   }
@@ -1742,11 +2842,26 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # sesion justo para no perder de cual medida viene cada numero.
   partes_campo <- cfg$partes_campo %||% list()
   descuadres <- monitoreo_aulas_reconciliacion_partes(partes_campo)
+  # **Cuantos partes tienen identidad que comprobar**, que no es lo mismo que
+  # cuantos partes hay. El control decidia con `length(partes_campo) > 0L`, asi
+  # que un lote entero sin asistentes ni efectivas —o con las columnas que el
+  # motor no supiera leer— publicaba «Los numeros de cada parte de campo
+  # cuadran» sobre partes que nadie comprobo. Es la misma correccion que el
+  # cruce entre hojas, en el control de al lado.
+  partes_comprobables <- sum(vapply(
+    partes_campo,
+    function(p) is.list(p) && !is.null(monitoreo_aulas_parte_descuadre(p)),
+    logical(1)
+  ))
 
   # El criterio de validez se resolvia en silencio, y contar TODO o filtrar por
   # una columna equivocada dan numeros muy distintos.
   criterio <- monitoreo_aulas_criterio_validez(responses, cfg)
   quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
+  # Los cuatro consumidores de abajo NO comparan contra una lista literal: el
+  # productor de estas celdas emite `sin_meta/cumplida/en_riesgo/pendiente` y
+  # existe otro juego de claves para lo mismo. La equivalencia vive en
+  # `monitoreo_aulas_etiquetas.R`, que es el dueno del idioma.
   # Las dos hojas del libro cuentan la misma aula en dos momentos y nadie las
   # comparaba: el cuadre de arriba mira la aritmetica DENTRO del parte.
   cruce <- monitoreo_aulas_cruce_hojas(partes_campo, cfg$control %||% list())
@@ -1757,12 +2872,22 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # Una sola vez: lo consumen el payload y el contraste de veredictos, y
   # calcularlo dos veces sobre 152 filas es trabajo repetido con riesgo de que
   # las dos copias se separen.
-  control_publicado <- monitoreo_aulas_control_publicado(cfg$control %||% list())
+  # A11 (2026-09-07): la fila leída del libro se completa con el parte de
+  # campo ANTES de publicarse al tablero, con la regla del publicador de la
+  # hoja; sin esto seis de nueve filas del día 1 iban sin ALUMNOS EN AULA
+  # teniendo parte (monitoreo_aulas_control_desde_parte.R). El cruce de hojas
+  # de arriba sigue mirando las filas CRUDAS: mide lo que el equipo tecleó.
+  control_publicado <- monitoreo_aulas_control_publicado(
+    monitoreo_aulas_control_completar_con_partes(cfg$control %||% list(), partes_campo)
+  )
   # De declaracion de diseño a control de verdad: ver
   # `monitoreo_aulas_identificadores.R`.
   identificadores <- monitoreo_aulas_identificadores(responses, isTRUE(cfg$anonymous_responses))
+  # Dos cursos-horario con el mismo enlace: sus respuestas entran por la misma
+  # puerta y no se pueden separar. Ver `monitoreo_aulas_enlaces.R`.
+  enlaces <- monitoreo_aulas_enlaces_compartidos(tracked_df)
   validation <- data.frame(
-    check = c("anonymous_responses", "personal_identifiers", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion"),
+    check = c("anonymous_responses", "personal_identifiers", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion", "shared_collector_link"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       identificadores$status,
@@ -1782,14 +2907,21 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # expresar— se mostraba como «Correcto».
       .monitoreo_aulas_representatividad_estado(representativity),
       monitoreo_aulas_estado_control(length(quota_status) > 0L,
-                                     any(quota_status %in% c("pendiente", "en_riesgo")), "warning"),
+                                     any(monitoreo_aulas_celda_en_deuda(quota_status)), "warning"),
       # El Excel no comprueba que asistentes - rechazos - duplicados cuadre con
       # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
       # de 101 columnas.
-      monitoreo_aulas_estado_control(length(partes_campo) > 0L, length(descuadres) > 0L),
+      monitoreo_aulas_estado_control(partes_comprobables > 0L, length(descuadres) > 0L),
       # El cruce entre las dos hojas. `ok` cuando coinciden Y cuando no hay con
       # que comparar no se finge que cuadran: eso se dice en el detalle.
-      monitoreo_aulas_estado_control(cruce$comparables > 0L, length(cruce$hallazgos) > 0L),
+      #
+      # **Comprobable es que haya VALORES que comparar, no codigos que
+      # coincidan.** `comparables` cuenta aulas presentes en las dos hojas;
+      # medido el 2026-08-30, las 152 del estudio lo estaban y los tres campos
+      # cruzados no aparecian en ninguna de las dos —la Base de control de ese
+      # estudio es la de sexo—, asi que el control salia verde afirmando una
+      # coincidencia que nunca se comprobo.
+      monitoreo_aulas_estado_control(cruce$comparaciones > 0L, length(cruce$hallazgos) > 0L),
       # Columnas de «Base de control» con datos que la cabecera no bautiza. No
       # es un fallo del lector —adivinar seria peor— pero es informacion del
       # equipo que no entra, y hasta ahora nadie lo decia.
@@ -1805,38 +2937,95 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # STATUS MUESTRA con valores que el lector no reconoce. `review` y no
       # `warning` porque se arregla en la hoja o añadiendo el estado, no en
       # campo.
-      if (estados_raros$total > 0L) "review" else "ok",
+      # Comprobable es que HAYA plan: sin filas, «ok» afirmaba que se miraron
+      # los estados de un conjunto vacio.
+      monitoreo_aulas_estado_control(
+        length(plan %||% cfg$plan %||% list()) > 0L,
+        estados_raros$total > 0L,
+        "review"
+      ),
       # Que criterio de validez se aplico. `review` cuando el estudio declaro
       # una columna que la base no trae —un error de tipeo en la config pasaba
       # por criterio deliberado— y cuando no hay columna y por tanto cuenta
       # TODO, que es una decision que conviene tomar a sabiendas.
       monitoreo_aulas_estado_control(nrow(responses) > 0L,
-                                     criterio$modo %in% c("declarada_ausente", "sin_columna"))
+                                     criterio$modo %in% c("declarada_ausente", "sin_columna")),
+      # **`warning` y no `review`: esto no se revisa, se arregla.**
+      #
+      # Regla del operativo (Gonzalo, 2026-08-30): «cada curso-horario debe tener
+      # un enlace al forms», y dos aulas con el mismo no producen una duda que
+      # mirar sino respuestas que ya no se pueden separar. `review` lo ponia al
+      # nivel de «conviene comprobar esto»; el estudio necesita verlo con el
+      # aviso mas fuerte que la lista sabe dar.
+      #
+      # Sin enlaces sigue siendo `sin_datos`, no «ok»: no se pudo comprobar.
+      monitoreo_aulas_estado_control(enlaces$comprobable, enlaces$enlaces > 0L, "warning")
     ),
     detail = c(
-      "El tablero agrega por aula/collector/link.",
+      "El tablero agrega por curso-horario, recopilador y enlace.",
       identificadores$detail,
       if (any(huerfanas)) {
-        sprintf("%d respuestas validas no corresponden a ninguna aula del plan.", sum(huerfanas))
+        # La causa, no sólo el hecho: sin recopilador y con uno ajeno son dos
+        # averías distintas y se arreglan en sitios distintos. Ver
+        # `monitoreo_aulas_huerfanas_causa.R`.
+        monitoreo_aulas_huerfanas_causa(huerfanas, response_classroom)$frase
       } else if (length(valid_response)) {
-        "Todas las respuestas validas se atribuyeron a un aula del plan."
+        "Todas las respuestas válidas se atribuyeron a un curso-horario del plan."
       } else {
         # El estado ya dice `sin_datos`; el texto tiene que decir lo mismo. Con
         # cero respuestas, «todas se atribuyeron» afirma un recuento que no se
         # hizo.
-        "Todavia no hay respuestas validas que atribuir a un aula."
+        "Todavía no hay respuestas válidas que atribuir a un curso-horario."
       },
       if (!nzchar(respuesta_id_col)) {
         "La fuente no trae identificador de respuesta; no se puede comprobar."
       } else {
-        sprintf("%d respuestas repetidas.", respuestas_repetidas)
+        sprintf("%d respuesta%s repetida%s.", respuestas_repetidas,
+                if (respuestas_repetidas == 1L) "" else "s",
+                if (respuestas_repetidas == 1L) "" else "s")
       },
       .monitoreo_aulas_representatividad_texto(representativity),
-      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("pendiente", "en_riesgo"))) else "Sin cuota sexo x facultad detectable.",
+      # **«grupos de facultad y sexo», no «celdas».** El vocabulario de la casa
+      # retiro «celda» de la pantalla —es jerga de tabla estadistica para quien
+      # lee un tablero— y el ratchet que lo vigila mira el FRONTEND, asi que no
+      # podia ver este texto: el detalle sale del motor y `presentDetail` lo
+      # pinta tal cual. Medido el 2026-08-30: 14 textos de `monitoreo_aulas_*.R`
+      # usan «aula» o «celda» y ninguno esta cubierto por ese ratchet.
+      if (length(quota_status)) local({
+        n_brecha <- sum(monitoreo_aulas_celda_en_deuda(quota_status))
+        sprintf("%s grupo%s de facultad y sexo con brecha.", n_brecha,
+                if (n_brecha == 1L) "" else "s")
+      }) else if (length((cfg$design_targets %||% list())$facultades %||% list())) {
+        # **«No aplica» NO es «no lo sabemos».** El texto decía «sin cuota sexo
+        # x facultad detectable», que se lee como que la app buscó un dato y no
+        # lo encontró. En un estudio cuya cuota es por el eje y nada más —CCSS
+        # prometió sus metas por nivel curricular, con sexo y carrera
+        # referenciales— no falta nada: el diseño no lo prometió. Son los tres
+        # estados de siempre —no se sabe, medimos cero, no aplica— con el
+        # tercero colapsado en el primero.
+        #
+        # El ESTADO se queda en «sin comprobar», que es correcto: no hay nada
+        # que comprobar. Lo que cambia es el porqué, que es para lo que existe
+        # el detalle.
+        sprintf(paste(
+          "El diseño no fija cuota por sexo: la cuota de este estudio es por %s,",
+          "y el sexo se describe sin exigirle nada."),
+          tolower(.monitoreo_scalar(monitoreo_aulas_eje(cfg)$etiqueta, "facultad")))
+      } else "El estudio no declara cuota por sexo y grupo que comprobar.",
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
+      } else if (partes_comprobables > 0L) {
+        sprintf(
+          "Los números de los %d partes de campo comprobables cuadran.",
+          partes_comprobables
+        )
       } else if (length(partes_campo)) {
-        "Los numeros de cada parte de campo cuadran."
+        # Hay partes y ninguno declara lo que hace falta para la identidad:
+        # decir «cuadran» afirmaba una comprobacion que no se hizo.
+        sprintf(
+          "Los %d partes de campo no declaran asistentes y efectivas, así que no hay identidad que comprobar.",
+          length(partes_campo)
+        )
       } else {
         "No hay partes de campo que comprobar."
       },
@@ -1849,30 +3038,99 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
             sprintf(" Y %d discrepancia%s mas.", restantes, if (restantes == 1L) "" else "s")
           } else ""
         )
-      } else if (cruce$comparables > 0L) {
+      } else if (cruce$comparaciones > 0L) {
         sprintf(
-          "Las %d aulas que estan en las dos hojas dicen lo mismo en asistentes, %% de asistencia y quien aplico.",
+          "Los %d cursos-horario que están en las dos hojas dicen lo mismo en asistentes, %% de asistencia y quién aplicó.",
+          cruce$comparables
+        )
+      } else if (cruce$comparables > 0L) {
+        # El caso que salia como «dicen lo mismo»: los codigos coinciden y no
+        # hay un solo valor que enfrentar. El aviso dice cual es la causa, que
+        # es lo unico accionable —faltan esas columnas en el libro—.
+        sprintf(
+          "Los %d cursos-horario están en las dos hojas, pero ninguna de las dos trae asistentes, %% de asistencia ni quién aplicó, así que no hay valores que enfrentar.",
           cruce$comparables
         )
       } else {
-        "Ninguna aula esta en las dos hojas a la vez, asi que no hay nada que cruzar."
+        "Ningún curso-horario está en las dos hojas a la vez, así que no hay nada que cruzar."
       },
       if ((cfg$control_sin_nombre %||% 0L) > 0L) {
         sprintf(
-          "%d columnas de la Base de control tienen datos pero su cabecera esta vacia en el Excel, asi que no se leyeron. Ponles nombre en la hoja para que entren.",
-          cfg$control_sin_nombre
+          "%d columna%s de la Base de control con datos y la cabecera vacía en el Excel, así que no se leyeron. Ponles nombre en la hoja para que entren.",
+          cfg$control_sin_nombre,
+          if (identical(as.integer(cfg$control_sin_nombre), 1L) ) "" else "s"
         )
       } else if (length(cfg$control %||% list()) || (cfg$control_sin_nombre %||% 0L) > 0L) {
         "Todas las columnas con datos de la Base de control tienen nombre."
       } else {
-        "El libro todavia no trae la hoja «Base de control» que comprobar."
+        "El libro todavía no trae la hoja «Base de control» que comprobar."
       },
       monitoreo_aulas_estados_no_reconocidos_texto(estados_raros),
-      monitoreo_aulas_criterio_texto(criterio)
+      monitoreo_aulas_criterio_texto(criterio),
+      # **Dice a donde ir, no solo que hay un problema.** Un aviso que declarara
+      # «25 enlaces repetidos» y nada mas obliga a buscar cuales a mano en un
+      # libro de mil filas.
+      if (!enlaces$comprobable) {
+        # Dos ausencias distintas y el lector necesita saber cual: sin enlaces no
+        # hay nada, y con enlaces base sin personalizar el estudio esta en el
+        # paso anterior —los QR todavia no se han generado— y eso NO es un
+        # problema, es el orden del trabajo.
+        if ((enlaces$sin_personalizar %||% 0L) > 0L) {
+          sprintf(
+            paste0("Los %d enlaces del plan son direcciones base, sin el parametro por ",
+                   "unidad que distingue a cada curso-horario. Se comprobara cuando se ",
+                   "generen los enlaces personalizados y sus QR."),
+            enlaces$sin_personalizar
+          )
+        } else {
+          "El plan todavía no trae enlaces de recopilador que comprobar."
+        }
+      } else if (enlaces$enlaces > 0L) {
+        # **La causa, cuando se puede probar.** «23 enlaces repetidos» dice que
+        # hay un problema; «el enlace lleva solo los 8 primeros caracteres del
+        # identificador» dice como se arregla y de una vez para todas.
+        causa <- if (is.na(enlaces$truncado)) "" else sprintf(
+          paste0(" El enlace lleva solo los %d primeros caracteres del identificador ",
+                 "del curso-horario, así que dos que empiecen igual caen en el mismo."),
+          enlaces$truncado
+        )
+        sprintf(
+          paste0("%d cursos-horario comparten %d enlaces con otro: sus respuestas entran ",
+                 "por la misma puerta y no se pueden separar después (%s).%s Revisa el ",
+                 "enlace en el plan antes de que entre mas campo."),
+          enlaces$aulas, enlaces$enlaces, paste(enlaces$ejemplos, collapse = "; "), causa
+        )
+      } else {
+        "Cada curso-horario en juego tiene su propio enlace de recopilador."
+      }
     ),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+
+  # El ritmo global se calcula ANTES de la lista para que el reparto por facultad
+  # pueda compartir su eje de dias: dos series temporales del mismo operativo, una
+  # encima de la otra, con calendarios distintos, no se pueden comparar.
+  ritmo_global <- monitoreo_aulas_ritmo_diario(
+    responses, valid_response,
+    meta = {
+      m <- suppressWarnings(as.numeric(avance_cuota$total$cuota))
+      if (length(m) == 1L && is.finite(m)) m else 0
+    },
+    # Y la BRECHA del mismo bloque, que no es `meta - acumulado`: suma lo que
+    # le falta a cada grupo de facultad y sexo. Sin ella el pie del ritmo
+    # calculaba la resta y se apagaba entero en cuanto el total superaba la
+    # cuota, callando las 170 personas que sí faltaban.
+    brecha = {
+      b <- suppressWarnings(as.numeric(avance_cuota$total$brecha))
+      if (length(b) == 1L && is.finite(b)) b else NULL
+    }
+  )
+  .ritmo_borde <- function(cual) {
+    d <- ritmo_global$dias
+    if (!length(d)) return(NULL)
+    (if (identical(cual, "desde")) d[[1L]] else d[[length(d)]])$fecha
+  }
 
   list(
     schema = "monitoreo_aulas_dashboard_v1",
@@ -1888,13 +3146,52 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # cuota, ritmo— si van por slot, sobre `tracked_df`.
       total_aulas = as.integer(nrow(seguidas)),
       aulas_titulares = as.integer(sum(seguidas$wave == "M1")),
-      aulas_aplicadas = as.integer(sum(seguidas$operational_status %in% c("aplicada", "cerrada"))),
+      # **El registro de campo cuenta, que es lo que promete el rotulo.**
+      #
+      # La tarjeta dice «APLICADAS · declaradas en el registro de campo» y la
+      # cifra salia SOLO de `operational_status`, que es el estado del PLAN.
+      # Medido el 2026-08-25 importando una semana simulada de 40 partes (35
+      # APLICADA): Consultas ensenaba «40 partes · de 586 personas en el aula
+      # quedaron 540 respuestas» y la tarjeta seguia diciendo 0.
+      #
+      # Y no era un olvido del operativo: desde el libro ese estado NO PUEDE
+      # llegar a «aplicada». Los unicos valores que la hoja «Listas» ofrece para
+      # STATUS MUESTRA son AGENDADA / REAGENDADA / REEMPLAZADA / EN RESERVA n, y
+      # ninguno mapea a «aplicada» en `.monitoreo_aulas_status`. El parte guarda
+      # su veredicto en `application_status`, que es OTRO campo de la MISMA fila.
+      #
+      # Se unen en vez de sustituir: `operational_status` la enciende por otras
+      # vias —handoff, sincronizacion— y quedarse solo con el parte bajaria la
+      # cifra de los estudios que no llenan el libro.
+      #
+      # Y la tercera vía, desde el 2026-09-07: **un aula con RESPUESTAS se está
+      # aplicando, haya parte o no.** Primer día de campo, ocho aulas
+      # produciendo encuestas y la tarjeta decía UNA, la única con parte
+      # escrito. El parte lo rinde el encargado de campo cuando puede y en la
+      # primera semana llega tarde; las respuestas llegan solas. Es la misma
+      # definición que usan la Base de control, el Plan del día y el avance por
+      # facultad —`monitoreo_aulas_aula_aplicada()`—, aplicada aquí sobre las
+      # columnas del frame para no rearmar la lista de unidades.
+      aulas_aplicadas = as.integer(sum(
+        seguidas$operational_status %in% c("aplicada", "cerrada") |
+          seguidas$application_status %in% "aplicada" |
+          .monitoreo_aulas_contar_por_fila(
+            seguidas, .monitoreo_aulas_named_counts(response_classroom, valid_response)) > 0
+      )),
       aulas_parciales = as.integer(sum(seguidas$operational_status == "parcial")),
       # Reemplazos GASTADOS: cuenta reservas que entraron, asi que necesita ver
       # la cadena entera y no solo el eslabon en juego.
       reemplazos_usados = as.integer(sum(nzchar(seguidas$replacement_for) & seguidas$operational_status %in% c("agendada", "en_campo", "aplicada", "cerrada", "parcial"))),
       respuestas_validas = as.integer(sum(valid_response)),
       respuestas_total = as.integer(length(response_classroom)),
+      # **Las que no son del estudio, contadas aparte.** «60 descartadas por el
+      # filtro» mete en la misma bolsa dos noticias distintas: las que llegaron
+      # por el QR de capacitación o de prueba —no son del operativo y no hay
+      # nada que arreglar— y las que sí son de un aula pero no pasan el criterio
+      # de validez, que es lo que el campo puede mover. El primer día de
+      # HSVG2026 eran 36 y 24.
+      respuestas_fuera_del_operativo = as.integer(sum(
+        .monitoreo_aulas_descartada(responses, cfg))),
       filter_passed = as.integer(sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE)),
       filter_rejected = as.integer(max(0L, length(response_classroom) - sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE))),
       # Sobre `tracked_df` y no sobre `plan_df`, que es el plan ENTERO. Eran dos
@@ -1906,12 +3203,12 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # por debajo de su meta convertia el banco en deuda.
       brechas = as.integer(sum(tracked_df$brecha > 0)),
       quota_cells = as.integer(length(quotas_sex_faculty)),
-      quota_cells_ok = as.integer(sum(quota_status == "cumplida")),
-      quota_cells_pending = as.integer(sum(quota_status %in% c("pendiente", "en_riesgo"))),
+      quota_cells_ok = as.integer(sum(monitoreo_aulas_celda_cubierta(quota_status))),
+      quota_cells_pending = as.integer(sum(monitoreo_aulas_celda_en_deuda(quota_status))),
       representativity_effective_score = representativity$effective_score,
       representativity_score_loss = representativity$score_loss
     ),
-    agenda = .monitoreo_aulas_records(plan_df),
+    agenda = .agenda_registros,
     course_status = course_status,
     # Cuantas hay DE VERDAD. Sin esto, `course_status` de 500 sobre un plan de
     # 2 615 se leia como «el estudio tiene 500 aulas».
@@ -1925,6 +3222,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # Cuantas del reparto son banco. La vista las nombra en vez de dejar dos
     # totales que no cuadran entre la cabecera y el pie.
     course_status_banco = as.integer(attr(course_status, "banco") %||% 0L),
+    course_status_reservas_dormidas = as.integer(attr(course_status, "reservas_dormidas") %||% 0L),
+    course_status_con_meta = as.integer(attr(course_status, "con_meta") %||% 0L),
+    course_status_sin_aplicar = as.integer(attr(course_status, "sin_aplicar") %||% 0L),
+    course_status_rol_y_estado = attr(course_status, "rol_y_estado") %||% list(),
+    course_status_rol_y_estado_por_facultad = attr(course_status, "rol_y_estado_por_facultad") %||% list(),
+    course_status_cobertura_por_facultad = attr(course_status, "cobertura_por_facultad") %||% list(),
+    # El embudo del estudio de referencia, por facultad: elegibles -> asistentes
+    # -> elegibles presentes -> efectivas, con sus porcentajes de ausencia, ya
+    # medidas y rechazo. Viaja tal cual lo dejo el import; el tablero no lo
+    # recalcula.
+    asistencia_referencia = cfg$asistencia_referencia %||% list(),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una
@@ -1941,19 +3249,193 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # por facultad y global miden contra `design_targets`; el resto del payload
     # sigue midiendo el operativo aula a aula contra la meta del plan.
     avance_cuota = avance_cuota,
+    # La τ del diseño contra la del campo, por facultad, con banda y reservas.
+    # No es cumplimiento: el déficit que publica es el ATRIBUIBLE A τ, y su
+    # denominador son las aulas ya aplicadas, no la cuota.
+    efectividad_seguimiento = efectividad_seguimiento,
+    # Las DOS tasas al grano de AULA: la prevista del diseño y la vara de su
+    # facultad lado a lado, contra la observada, con banda y señal. SEÑALA, no
+    # descarta (mandato B3). Sobre `plan_df` entero porque el propio bloque
+    # decide quien entra —titulares y quien tenga señal de campo—; las
+    # `respuestas_validas` por fila ya estan calculadas arriba. La logica vive
+    # en monitoreo_aulas_dos_tasas.R.
+    dos_tasas = monitoreo_aulas_dos_tasas(plan_df),
+    # El mapa de HORAS por dia: ventanas confirmadas y tentativas, pico por
+    # rango real y citas por confirmar. Deriva de monitoreo_aulas_ventanas()
+    # (B11); la logica vive en monitoreo_aulas_franjas.R.
+    franjas = monitoreo_aulas_franjas(plan_df, duracion_min = cfg[["duracion_aplicacion_min"]]),
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
     # recomponerla desde otro bloque del payload. Es el denominador global de
     # `avance_cuota`: la cuota del diseño vigente, o la meta del plan en
     # degradacion —que es exactamente la conducta que esta linea ya tenia.
-    ritmo_diario = monitoreo_aulas_ritmo_diario(
+    # **Lo que la pantalla necesita para dejar DECLARAR cómo mide el estudio.**
+    #
+    # El eje de cuotas, la agrupación del resumen y el arranque del campo se
+    # declaraban sólo por API, así que sus tres decisiones vivían donde nadie
+    # las ve y sólo se cambiaban a mano. Para ofrecerlas hacen falta dos cosas
+    # que el payload no llevaba: el catálogo —para no copiarlo en TypeScript— y
+    # el recibo del padrón —para no ofrecer un eje por persona sin con qué
+    # resolverlo—.
+    ejes_declarables = monitoreo_aulas_ejes_declarables(),
+    # **El cruce de alumnos por código PUCP, repartido por carrera.** De él
+    # depende todo el avance de un estudio cuyo eje se resuelve por persona, y
+    # sólo se publicaba su total.
+    #
+    # Lo calcula `avance_cuota`, que es quien resuelve la persona de cada
+    # respuesta, y aquí sólo se IZA al primer nivel: volver a cruzar daría dos
+    # lecturas de la misma respuesta, que es el defecto que este perfil lleva
+    # todo el día corrigiendo. Sube al primer nivel —en vez de leerse dentro del
+    # bloque de cuotas— porque lo consume Validación, que no habla de cuotas.
+    cruce_por_carrera = avance_cuota$cruce_por_carrera %||% list(),
+    # El resumen es lo PUBLICABLE del padrón: conteos, sin un solo código. Es lo
+    # mismo que queda cuando se purga, así que publicarlo no reabre el F114.
+    padron = monitoreo_aulas_padron_resumen(padron %||% list()),
+    ritmo_diario = ritmo_global,
+    # **La misma serie, repartida por facultad.** Con una facultad en el selector
+    # del encabezado, «Ritmo de la recoleccion» seguia dibujando el operativo
+    # entero: la serie se construye sobre `responses`, que no viaja a la vista,
+    # asi que el reparto no se podia hacer alli. La calcula la MISMA funcion que
+    # la global, sobre el mismo eje de dias. Ver
+    # `monitoreo_aulas_ritmo_por_facultad.R`.
+    ritmo_por_facultad = monitoreo_aulas_ritmo_por_facultad(
       responses, valid_response,
-      meta = {
-        m <- suppressWarnings(as.numeric(avance_cuota$total$cuota))
-        if (length(m) == 1L && is.finite(m)) m else 0
-      }
+      faculty_values = .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom),
+      avance_cuota = avance_cuota,
+      desde = .ritmo_borde("desde"), hasta = .ritmo_borde("hasta")
+    ),
+    # **La efectividad al grano de FACULTAD x SEXO.** Gonzalo, 2026-09-10: «ese
+    # valor no debería estar en términos generales sino en términos de sexo; a
+    # ese gráfico le falta granularidad: tiene la tasa general pero también
+    # necesitamos la tasa por sexo y por facultad, y el superávit o déficit de
+    # alumnos por sexo y por facultad». La τ general promedia dos poblaciones
+    # que el operativo no trata igual —la cuota se fija por facultad Y sexo, y
+    # la brecha se suma celda a celda—. Ver
+    # `monitoreo_aulas_efectividad_por_sexo.R`.
+    #
+    # **Con la máscara de efectivas del diseño cuando existe.** El atributo de
+    # `course_status` se calcula antes que `avance_cuota` y no la tiene: con el
+    # eje en la persona contaba en el numerador a quien los elegibles no cuentan.
+    #
+    # **Sólo con el eje en la persona**, que es donde las dos poblaciones
+    # difieren. Con el eje en el aula la máscara además saca las respuestas de
+    # un aula fuera de universo cuyo padrón este motor sigue sumando a los
+    # elegibles: bajaba el numerador con el denominador intacto (lo cazó el
+    # verificador, 4 → 2 sobre 12). Ahí la cuenta de siempre ya es coherente.
+    efectividad_por_sexo = local({
+      efectiva <- attr((avance_cuota %||% list())$casos, "efectiva", exact = TRUE)
+      por_persona <- identical(
+        .monitoreo_scalar(monitoreo_aulas_eje(cfg)$atribucion, "aula"), "persona")
+      if (por_persona && is.logical(efectiva) && length(efectiva) == length(valid_response)) {
+        monitoreo_aulas_efectividad_por_sexo(
+          plan_df, responses, cfg = cfg, valid_response = valid_response,
+          response_classroom = response_classroom, efectiva = efectiva)
+      } else attr(course_status, "efectividad_por_sexo") %||% list()
+    }),
+    # **Los tres desenlaces del libro, contados por separado** (2026-09-10):
+    # «quiero empezar a ver la parte de reemplazos para aulas complementarias
+    # (B) o aulas de refuerzo (C)». A —reemplazada por— es el titular que cae y
+    # otra ocupa su lugar; B —complementada con— es el titular que rindio poco y
+    # se le suma una reserva, y los dos cuentan; C —aplicada de refuerzo— es
+    # salir a una reserva por cuota, sin titular caido.
+    #
+    # Los tres se escriben en la misma columna del libro y hasta hoy el
+    # normalizador solo conocia dos estados: un aula aplicada de refuerzo caia
+    # en `pendiente` y se contaba como si nadie la hubiera tocado. Ver
+    # `monitoreo_aulas_desenlaces.R`. NO es `monitoreo_aulas_reemplazos.R`, que
+    # es el gesto de ACTIVAR un reemplazo desde la app.
+    reemplazos_por_tipo = monitoreo_aulas_desenlaces_por_tipo(plan_df),
+    # **El cruce facultad del aula ↔ facultad declarada, en resumen.** La hoja
+    # entera vive en el libro; aquí viaja sólo el titular —comparables, cuántas
+    # coinciden y el motivo cuando no se puede— porque es lo que la pantalla de
+    # declaración necesita para decir si el catálogo que alguien acaba de
+    # mapear es el correcto: un mapeo bueno coincide en ~95 % y uno corrido,
+    # en ~0 %. Sin esa devolución, mapear quince códigos a ciegas es un acto
+    # de fe. Ver `monitoreo_aulas_cruce_facultad_declarada.R`.
+    control_facultad = if (is.null(.mau_cruce)) NULL else list(
+      ok = isTRUE(.mau_cruce$ok), motivo = .mau_cruce$motivo %||% "",
+      comparables = .mau_cruce$comparables, coinciden = .mau_cruce$coinciden,
+      discrepan = .mau_cruce$discrepan),
+    # **Los refuerzos y el techo** (dictado 2026-09-18). Tres bloques que salen
+    # de `monitoreo_aulas_refuerzos.R` y que la pantalla necesita juntos:
+    # cuánto sitio queda, qué cuotas aprietan y a quién llamar.
+    #
+    # El motor de riesgo pide un dashboard y AQUÍ estamos construyendo uno: se
+    # le pasa el par de piezas que consume —ya calculadas arriba— en vez del
+    # objeto entero. Pasarle `NULL` lo haría llamarse a sí mismo.
+    #
+    # Los tres van en `tryCatch` como sus vecinos: un bloque condicional no
+    # puede tumbar el tablero entero, y si falla se nota por su ausencia.
+    refuerzos = .mau_refuerzos,
+    cuotas_urgentes = tryCatch(monitoreo_aulas_cuotas_urgentes(.mau_riesgo),
+                               error = function(e) NULL),
+    candidatos_refuerzo = tryCatch(
+      monitoreo_aulas_candidatos_refuerzo(.mau_registros, responses, cfg,
+                                          riesgo = .mau_riesgo),
+      error = function(e) NULL),
+    # **Los tramos del operativo y su estado, DERIVADO** (dictado 2026-09-15).
+    # El rango y su nombre se guardan porque son decisión suya; las citas, las
+    # aplicadas y las que faltan se cuentan aquí en cada corrida. Sin tramos
+    # declarados salen las semanas de calendario del plan, que es lo que la
+    # pestaña de la distribución ya usaba: declararlos es un añadido, no un
+    # corte. Ver `monitoreo_aulas_tramos.R`.
+    tramos = monitoreo_aulas_tramos_estado(
+      monitoreo_aulas_tramos(cfg, .monitoreo_aulas_records(plan_df)),
+      .monitoreo_aulas_records(plan_df),
+      partes = partes_campo,
+      # Las efectivas cuentan como aplicada un aula que produjo respuestas
+      # aunque nadie haya tecleado su estado: el hecho ocurre antes que el
+      # verbo, y sin ellas el tramo en curso se lee siempre más vacío de lo
+      # que está.
+      efectivas = tryCatch(
+        monitoreo_aulas_efectivas_por_aula(
+          .monitoreo_aulas_records(plan_df), responses, cfg),
+        error = function(e) NULL)
     ),
     quotas_sex_faculty = quotas_sex_faculty,
+    # **«Con lo que ya tengo agendado, ¿llego?»**, por facultad y sexo, en las
+    # cuatro combinaciones de los dos mandos de la pestaña «Metas». Se calcula
+    # aquí y no en la pantalla por la misma razón que las jornadas del día a
+    # día: dos sitios que calculan la misma cifra empiezan a discrepar. Ver
+    # `monitoreo_aulas_payload_proyeccion.R`.
+    proyeccion_metas = monitoreo_aulas_proyeccion_payload(
+      .monitoreo_aulas_records(plan_df), responses = responses,
+      partes = partes_campo, cuotas = cfg[["design_targets"]], cfg = cfg,
+      avance_cuota = avance_cuota
+    ),
+    # **De cuántas respuestas cuentan, y por qué no cuentan las demás.** La
+    # resta muda —«944 de 1 049»— metía en la misma bolsa las que no son del
+    # operativo y las que sí lo son y no pasan el criterio. Son dos cosas: la
+    # primera no pide nada, la segunda es trabajo hecho que no suma. Ver
+    # `monitoreo_aulas_respuestas_desglose.R`.
+    respuestas_desglose = monitoreo_aulas_respuestas_desglose(
+      .monitoreo_aulas_records(plan_df), responses = responses, cfg = cfg
+    ),
+    # Y las aulas de cada facultad: cuántas planificó el sorteo y cuántas se han
+    # aplicado. Van por facultad y no por sexo — un aula no se reparte entre
+    # hombres y mujeres, la misma visita da de los dos.
+    aulas_por_facultad = monitoreo_aulas_aulas_por_facultad(
+      .monitoreo_aulas_records(plan_df), responses = responses,
+      partes = partes_campo, cfg = cfg
+    ),
+    # El avance por celda con sus cuatro series. Va AL LADO del estado
+    # retrospectivo y no en su lugar: `quotas_sex_faculty` dice donde estas y
+    # esto dice si vas a llegar y si el campo se comporta como el modelo. Son
+    # dos lecturas y las dos sirven.
+    avance_sexo_facultad = .mau_avance_celdas,
+    # Y para las celdas que NO van a llegar, a que aula del banco ir. Solo donde
+    # hay decision que tomar: una celda asegurada no necesita candidatos.
+    # **Qué relevo le queda a cada titular.** Es la SALIDA que le faltaba a la
+    # tabla del margen: dice quién rindió por debajo y, hasta ahora, ahí se
+    # paraba. Medido el 2026-09-10: 13 de los 14 por debajo tienen reserva de
+    # cadena viva. No se confunde con `reserva_dirigida`, que va por celda en
+    # déficit y busca en el banco de extras — ver el motor.
+    reserva_de_la_cadena = monitoreo_aulas_reserva_de_la_cadena(
+      .monitoreo_aulas_records(plan_df)
+    ),
+    reserva_dirigida = monitoreo_aulas_reserva_por_celda(
+      .mau_avance_celdas, .agenda_registros, eje = .mau_eje
+    ),
     brechas = .monitoreo_aulas_records(brechas),
     reemplazos = .monitoreo_aulas_records(replacements),
     # El parte de campo entero, no solo lo que no cuadra. El control de
@@ -2100,12 +3582,12 @@ monitoreo_aulas_apply_replacement <- function(current, classroom_id, replacement
   classroom_id <- .monitoreo_scalar(classroom_id, "")
   replacement_id <- .monitoreo_scalar(replacement_id, "")
   if (!nzchar(classroom_id) || !nzchar(replacement_id)) {
-    stop("Se requiere aula caida y aula de reemplazo.", call. = FALSE)
+    stop("Se requiere el curso-horario caído y el de reemplazo.", call. = FALSE)
   }
   idx_old <- .monitoreo_aulas_plan_index(plan_df, classroom_id, classroom_id)
   idx_new <- .monitoreo_aulas_plan_index(plan_df, replacement_id, replacement_id)
-  if (!length(idx_old)) stop("No se encontro el aula caida en el plan.", call. = FALSE)
-  if (!length(idx_new)) stop("No se encontro el aula de reemplazo en el plan.", call. = FALSE)
+  if (!length(idx_old)) stop("No se encontró el curso-horario caído en el plan.", call. = FALSE)
+  if (!length(idx_new)) stop("No se encontró el curso-horario de reemplazo en el plan.", call. = FALSE)
   old_classroom_id <- .monitoreo_scalar(plan_df$classroom_id[[idx_old[[1]]]], classroom_id)
   reason <- .monitoreo_aulas_reason(reason)
   plan_df$operational_status[idx_old] <- "reemplazada"

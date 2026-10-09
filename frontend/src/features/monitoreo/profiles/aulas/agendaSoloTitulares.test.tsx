@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { fuenteDelPerfilDeAulas } from "./fuenteDelPerfil";
 
 const fuente = fs.readFileSync(
   path.join(path.dirname(fileURLToPath(import.meta.url)), "AulasMonitoreoPage.tsx"),
@@ -17,17 +18,23 @@ const fuente = fs.readFileSync(
 );
 
 describe("la agenda lista titulares y declara sus reservas", () => {
-  it("filtra el banco y las reservas de cadena", () => {
+  it("quién se ve es la verdad nombrada: filaVisibleEnAgenda", () => {
+    // E20/dictado 2026-09-03: el filtro por rol a secas era más burdo que la
+    // doctrina — la reserva DESPIERTA sí entra («el otro sale y yo entro en
+    // la tarjeta»). La regla vive en filaVisibleEnAgenda.ts con sus propios
+    // pins (titular siempre, dormida oculta, despierta visible); aquí se
+    // pinea que agendaRows la usa y no re-inventa el filtro en línea.
     const cuerpo = (fuente.match(/function agendaRows[\s\S]*?\n}/) ?? [])[0] ?? "";
-    expect(cuerpo).toContain("extra_reserve_pool");
-    expect(cuerpo).toContain("chain_reserve");
+    expect(cuerpo).toContain("filaVisibleEnAgenda");
   });
 
   it("cuenta las reservas en vez de esconderlas", () => {
     // Sin esto, las 507 desaparecerían sin dejar rastro y el agendador no sabría
     // que tiene plan B.
+    // La FUNCIÓN sigue en el page-file, que es donde se declara; el RÓTULO se
+    // mudó con la sección Modelo. Cada uno se busca donde le toca.
     expect(fuente).toContain("function agendaReservas");
-    expect(fuente).toContain("reservas detrás");
+    expect(fuenteDelPerfilDeAulas()).toContain("reservas detrás");
   });
 
   it("la cuenta de reservas mira sólo las de cadena, no el banco", () => {

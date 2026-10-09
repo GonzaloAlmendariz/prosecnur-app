@@ -57,7 +57,7 @@ test_that("el aviso dice la consecuencia, no solo el hecho", {
   txt <- monitoreo_aulas_estados_no_reconocidos_texto(x)
   expect_true(grepl("aplicada", txt, fixed = TRUE))
   # Lo que pasa si no se arregla, que es lo que hace que alguien lo arregle.
-  expect_true(grepl("ya estan en campo", txt, fixed = TRUE))
+  expect_true(grepl("ya están en campo", txt, fixed = TRUE))
   expect_identical(
     monitoreo_aulas_estados_no_reconocidos_texto(monitoreo_aulas_estados_no_reconocidos(list())),
     "Todos los valores de STATUS MUESTRA se reconocieron."

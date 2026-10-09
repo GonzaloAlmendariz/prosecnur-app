@@ -6,7 +6,13 @@ import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { DIAS_DE_ANTICIPACION, TASA_DE_CAIDA, alertaDeAnticipacion } from "./alertaDeAnticipacion";
 
 // Agosto de 2026: los domingos caen 2, 9, 16, 23 y 30.
-const dia = (fecha: string) => ({ fecha, aulas: 1, elegibles: 40, esperadas: 20, acumuladas: 20 });
+// La vara del diseño no la mira esta alerta —cuenta días de agenda, no
+// encuestas— así que se siembra neutra y el helper la absorbe: lo que este
+// archivo prueba no debe romperse cada vez que la proyección publique un campo.
+const dia = (fecha: string) => ({
+  fecha, aulas: 1, elegibles: 40, esperadas: 20, acumuladas: 20,
+  esperadasPorDiseno: null, acumuladasPorDiseno: null, aulasConDiseno: 0,
+});
 
 const facultad = (p: Partial<ProyeccionDeFacultad> & { facultad: string }): ProyeccionDeFacultad => ({
   esperadoPorAula: 20,
@@ -16,6 +22,8 @@ const facultad = (p: Partial<ProyeccionDeFacultad> & { facultad: string }): Proy
   reparto: "observada",
   alcanzaTodo: false,
   corte: "2026-08-10",
+  esperadasPorDisenoTotal: null,
+  aulasConDiseno: 0,
   ...p,
 });
 
@@ -39,7 +47,9 @@ describe("cuántas aulas hay que pedir", () => {
     ]);
     expect(a.aulasNecesarias).toBe(3);
     expect(a.aulasAPedir).toBe(Math.ceil(3 / (1 - TASA_DE_CAIDA)));
-    expect(a.aulasAPedir).toBeGreaterThan(a.aulasNecesarias);
+    // Con rendimiento observado las dos son cifra, no «no se sabe».
+    expect(a.aulasNecesarias).not.toBeNull();
+    expect(a.aulasAPedir).toBeGreaterThan(a.aulasNecesarias as number);
   });
 
   it("suma la brecha de los dos sexos", () => {
@@ -59,11 +69,18 @@ describe("cuántas aulas hay que pedir", () => {
 
   it("sin rendimiento conocido no inventa un número de aulas", () => {
     // Dividir por cero daría Infinity y la pantalla pediría infinitas aulas.
+    //
+    // Este test afirmaba `0`, que frena el Infinity sustituyendo un número
+    // inventado por otro **peor**: Infinity grita y se investiga, 0 se lee como
+    // «no hace falta ninguna» justo de la facultad a la que más le falta. Con
+    // el nombre del test prometiendo lo contrario, pasaba en verde mientras la
+    // pantalla decía «hay que pedir 0 en total» sobre 15 facultades con brecha.
     const [a] = alertaDeAnticipacion([
       facultad({ facultad: "Nueva", esperadoPorAula: 0, cuotas: [cuota(50)] }),
     ]);
-    expect(a.aulasNecesarias).toBe(0);
-    expect(a.aulasAPedir).toBe(0);
+    expect(a.aulasNecesarias).toBeNull();
+    expect(a.aulasAPedir).toBeNull();
+    // Lo que SÍ se sabe se sigue diciendo: la brecha no depende del rendimiento.
     expect(a.faltan).toBe(50);
   });
 });
@@ -135,15 +152,15 @@ describe("si el banco de esa facultad tiene las aulas que se piden", () => {
   it("alcanza cuando quedan al menos las que se piden", () => {
     const [a] = alertaDeAnticipacion([conBrecha()], banco(4));
     expect(a.aulasAPedir).toBe(4);
-    expect(a.bancoDisponible).toBe(4);
-    expect(a.bancoAlcanza).toBe(true);
+    expect(a.reservaDisponible).toBe(4);
+    expect(a.reservaAlcanza).toBe(true);
   });
 
   it("no alcanza cuando quedan menos, aunque el banco sea grande", () => {
     // `extras` es 99: lo que decide es cuántas quedan SIN USAR, no cuántas
     // llegó a haber. Un banco de 99 del que se gastaron 96 no da para 4.
     const [a] = alertaDeAnticipacion([conBrecha()], banco(3));
-    expect(a.bancoAlcanza).toBe(false);
+    expect(a.reservaAlcanza).toBe(false);
   });
 
   it("no saber cuántas quedan no es saber que no queda ninguna", () => {
@@ -151,19 +168,19 @@ describe("si el banco de esa facultad tiene las aulas que se piden", () => {
     // como cero acusaría a la facultad de una escasez que nadie midió, y esta
     // lista manda a gente a trabajar: tiene que poder defenderse.
     const [sinCampo] = alertaDeAnticipacion([conBrecha()], banco(undefined));
-    expect(sinCampo.bancoDisponible).toBeNull();
-    expect(sinCampo.bancoAlcanza).toBeNull();
+    expect(sinCampo.reservaDisponible).toBeNull();
+    expect(sinCampo.reservaAlcanza).toBeNull();
 
     const [sinBanco] = alertaDeAnticipacion([conBrecha()], []);
-    expect(sinBanco.bancoDisponible).toBeNull();
-    expect(sinBanco.bancoAlcanza).toBeNull();
+    expect(sinBanco.reservaDisponible).toBeNull();
+    expect(sinBanco.reservaAlcanza).toBeNull();
   });
 
   it("el banco de otra facultad no cuenta como propio", () => {
     // El banco viene repartido por estrato justamente para que no se mezcle: si
     // se leyera el total, Derecho con 207 taparía a Arquitectura con 12.
     const [a] = alertaDeAnticipacion([conBrecha()], banco(50, "Arquitectura"));
-    expect(a.bancoDisponible).toBeNull();
+    expect(a.reservaDisponible).toBeNull();
   });
 
   it("sin nada que pedir no se juzga el banco", () => {
@@ -172,7 +189,7 @@ describe("si el banco de esa facultad tiene las aulas que se piden", () => {
       banco(0),
     );
     expect(a.aulasAPedir).toBe(0);
-    expect(a.bancoAlcanza).toBeNull();
+    expect(a.reservaAlcanza).toBeNull();
   });
 });
 
@@ -199,7 +216,8 @@ describe("el orden es el de salir a llamar", () => {
       facultad({ facultad: "Urgente", cuotas: [cuota(40)], dias: [dia("2026-08-11"), dia("2026-08-21")] }),
     ]);
     expect(res.map((r) => r.facultad)).toEqual(["Urgente", "Grande"]);
-    expect(res[0].aulasAPedir).toBeLessThan(res[1].aulasAPedir);
+    expect(res[1].aulasAPedir).not.toBeNull();
+    expect(res[0].aulasAPedir).toBeLessThan(res[1].aulasAPedir as number);
   });
 });
 
@@ -254,11 +272,14 @@ describe("los tres momentos se alcanzan desde el payload, no sólo a mano", () =
 });
 
 describe("las constantes vienen del operativo de 2025 y están declaradas", () => {
-  it("7 días de anticipación y 23.5 % de caída", () => {
-    // Si alguien las cambia, que sea a sabiendas: son la mediana de llamada a
-    // aplicación de los titulares y los 40 reemplazos de 170.
+  it("7 días de anticipación y 12.4 % de caída", () => {
+    // Si alguien las cambia, que sea a sabiendas: la mediana de llamada a
+    // aplicación de los titulares, y las 21 caídas reales de 170 —titular sin
+    // aplicar cubierto por reemplazo—. El 40/170 anterior no lo reproducía
+    // ninguna definición del libro 2025: mezclaba caídas con refuerzos
+    // (checklist-tres-fuentes-monitoreo-2026-08-27.md §A7).
     expect(DIAS_DE_ANTICIPACION).toBe(7);
-    expect(TASA_DE_CAIDA).toBeCloseTo(40 / 170, 2);
+    expect(TASA_DE_CAIDA).toBeCloseTo(21 / 170, 2);
   });
 });
 
@@ -300,5 +321,44 @@ describe("lo que falta, y DE QUÉ", () => {
   it("sin brecha no hay desglose", () => {
     const [a] = alertaDeAnticipacion([conCuotas(0, 0)]);
     expect(a.faltanPorSexo).toEqual([]);
+  });
+});
+
+/**
+ * **Una facultad con brecha y sin rendimiento observado no necesita «0» aulas.**
+ *
+ * Medido en pantalla el 2026-08-25, con el plan de 400 recién importado y aún
+ * sin un solo parte de campo: la lectura decía «15 facultades necesitan aulas
+ * nuevas · hay que pedir 0 en total» encima de una tabla cuya columna FALTAN
+ * traía 983 en Artes Escénicas y 1.340 en Ciencias e Ingeniería.
+ *
+ * La causa es `esperadoPorAula = 0` antes del primer parte: sin rendimiento no
+ * hay entre qué dividir, y ese hueco se estaba resolviendo como cero. Es el
+ * mismo error que este archivo ya evita para `reservaDisponible`, donde no saber
+ * cuántas quedan no se pinta como que no queda ninguna.
+ */
+describe("lo que no se puede dimensionar no vale cero", () => {
+  it("con brecha y sin rendimiento observado devuelve null, no 0", () => {
+    const [a] = alertaDeAnticipacion([
+      facultad({ facultad: "Artes Escénicas", cuotas: [cuota(983)], esperadoPorAula: 0 }),
+    ]);
+    expect(a.aulasNecesarias).toBeNull();
+    expect(a.aulasAPedir).toBeNull();
+  });
+
+  it("sin brecha sí es cero, porque eso sí se sabe", () => {
+    const [a] = alertaDeAnticipacion([
+      facultad({ facultad: "Cerrada", cuotas: [cuota(0)], esperadoPorAula: 0 }),
+    ]);
+    expect(a.aulasNecesarias).toBe(0);
+    expect(a.aulasAPedir).toBe(0);
+  });
+
+  it("no declara que el banco alcanza cuando no sabe cuánto hay que pedir", () => {
+    const [a] = alertaDeAnticipacion(
+      [facultad({ facultad: "Derecho", cuotas: [cuota(400)], esperadoPorAula: 0 })],
+      [{ faculty: "Derecho", disponibles: 274, extras: 274, elegibles: 274, mujeres: 140, hombres: 134 }],
+    );
+    expect(a.reservaAlcanza).toBeNull();
   });
 });

@@ -1,0 +1,168 @@
+/* Vista previa de otro tipo de estudio (VistaPreviaTipo.tsx). Mirar no cuesta
+   nada; el paso que borra se pinta aparte, con el tono de peligro. */
+
+.cmv2-vista-previa {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.cmv2-vista-previa-head {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.cmv2-vista-previa-icon,
+.cmv2-vista-previa-alerta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--pulso-radius);
+}
+
+.cmv2-vista-previa-icon {
+  border: 1px solid var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-vista-previa-head small {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmv2-vista-previa-head h3 {
+  margin: 2px 0 4px;
+  color: var(--pulso-text);
+  font-size: 18px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmv2-vista-previa-head p {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cmv2-vista-previa-secciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-vista-previa-secciones > li {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 24%, var(--pulso-surface));
+}
+
+.cmv2-vista-previa-secciones strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmv2-vista-previa-secciones strong span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  font-size: 11px;
+}
+
+.cmv2-vista-previa-secciones ul {
+  display: grid;
+  gap: 3px;
+  margin: 8px 0 0;
+  padding: 0 0 0 28px;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.cmv2-vista-previa-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cmv2-vista-previa-confirmar {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-danger-bg);
+}
+
+.cmv2-vista-previa-alerta {
+  border: 1px solid var(--pulso-danger-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-danger-fg);
+}
+
+.cmv2-vista-previa-confirmar strong {
+  color: var(--pulso-danger-fg);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmv2-vista-previa-confirmar p,
+.cmv2-vista-previa-confirmar ul {
+  margin: 4px 0 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cmv2-vista-previa-confirmar ul {
+  padding-left: 18px;
+}
+
+.cmv2-vista-previa-confirmar .cmv2-vista-previa-guardado {
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-vista-previa-confirmar .cmv2-vista-previa-acciones {
+  grid-column: 1 / -1;
+}
+
+.cmv2-vista-previa .cmv2-vista-previa-borrar {
+  border-color: var(--pulso-danger-fg);
+  background: var(--pulso-danger-fg);
+  box-shadow: none;
+  color: var(--pulso-surface);
+}
+
+/* La tarjeta que se está mirando se distingue de la actual. */
+.cmv2-frame-card.is-previewing {
+  outline: 2px solid var(--cmv2-accent-border);
+  outline-offset: 2px;
+}

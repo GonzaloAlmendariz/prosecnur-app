@@ -2003,7 +2003,13 @@ export default function TerritorialMonitoreoPage() {
     >
       <span
         hidden
-        data-audit-ready={activeLoading ? undefined : "monitoreo"}
+        // `undefined` BORRA el atributo, y un atributo ausente es exactamente lo
+        // que el puente lee como «esta vista no declara readiness»
+        // (`sin-marca-de-readiness`), no como «espera, está cargando». Con eso
+        // el QA visual no podía medir ninguna vista de este perfil. La marca en
+        // "false" es la convención del resto del repo: dice que hay contrato y
+        // que aún no se cumple.
+        data-audit-ready={activeLoading ? "false" : "monitoreo"}
         data-audit-loading={activeLoading ? "true" : "false"}
         data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
       />

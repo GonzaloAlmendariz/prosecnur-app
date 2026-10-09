@@ -22,7 +22,7 @@ function dm(iso: string): string {
 const MOTIVOS: Record<string, string> = {
   "sin-dias": "Ningún parte de campo trae fecha, así que no hay ritmo que proyectar.",
   "pocos-dias": "Hacen falta al menos tres días de campo para proyectar: con dos, la fecha de cierre sería un accidente.",
-  "ya-cerrado": "Todas las aulas del plan tienen parte de campo.",
+  "ya-cerrado": "Todos los cursos-horario del plan tienen parte de campo.",
   "sin-ritmo": "El ritmo observado es cero, así que no hay nada que proyectar.",
 };
 
@@ -40,7 +40,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
             medir. Misma familia que `c4af437d`. */}
         {p.universo ? (
           <p className="aulas-pronostico-lectura">
-            <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> aulas del plan
+            <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> cursos-horario del plan
             tienen parte de campo.
           </p>
         ) : (
@@ -102,7 +102,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
     // equivocado que salió en cinco paneles del perfil.
     <div className="aulas-pronostico" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-pronostico-lectura">
-        <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> aulas aplicadas ·
+        <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> cursos-horario aplicados ·
         faltan <strong>{fmt(p.faltan)}</strong> · al ritmo de estos{" "}
         {fmt(p.diasConCampo)} días cierra hacia el <strong>{dm(fin)}</strong>
       </p>
@@ -112,7 +112,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
         </ul>
       <div className="aulas-pronostico-lienzo">
       <svg className="aulas-pronostico-grafico" viewBox="0 0 100 100" preserveAspectRatio="none"
-        role="img" aria-label={`${fmt(p.aplicadas)} de ${fmt(p.universo)} aulas; cierre estimado entre ${dm(pronto)} y ${dm(tarde)}`}>
+        role="img" aria-label={`${fmt(p.aplicadas)} de ${fmt(p.universo)} cursos-horario; cierre estimado entre ${dm(pronto)} y ${dm(tarde)}`}>
         {/* La rejilla. Va primero para quedar detras de todo. */}
         {marcas.map((m) => (
           <line key={m} x1={MARGEN} y1={y(m)} x2={100 - MARGEN} y2={y(m)}
@@ -155,7 +155,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
             79 % del dibujo. */}
         <span className="aulas-pronostico-hoy"
           style={{ left: `${x(desde)}%`, top: `${y(p.aplicadas)}%` }}
-          title={`${fmt(p.aplicadas)} de ${fmt(p.universo)} aulas al ${dm(p.ultimaFecha)}`} />
+          title={`${fmt(p.aplicadas)} de ${fmt(p.universo)} cursos-horario al ${dm(p.ultimaFecha)}`} />
       </div>
       </div>
       <p className="aulas-pronostico-eje">
@@ -183,7 +183,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
       <p className="mon-profile-muted aulas-pronostico-pie">
         {sinVariacion ? (
           <>
-            Proyectado al ritmo observado de <strong>{fmt(p.ritmoLento ?? 0)}</strong> aulas por día
+            Proyectado al ritmo observado de <strong>{fmt(p.ritmoLento ?? 0)}</strong> cursos-horario por día
             de campo, igual todos los días, contando todos los días menos el domingo. Sin
             variación entre días no
             hay banda que dibujar: la fecha es <strong>{dm(fin)}</strong> mientras el ritmo se
@@ -191,14 +191,15 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
           </>
         ) : (
           <>
-            Proyectado al ritmo observado de <strong>{p.ritmo?.toLocaleString("es-PE")}</strong> aulas
-            por día de campo (entre {fmt(p.ritmoLento ?? 0)} y {fmt(p.ritmoRapido ?? 0)} según el
+            Proyectado al ritmo observado de <strong>{p.ritmo?.toLocaleString("es-PE")}</strong>{" "}
+            cursos-horario por día de campo (entre {fmt(p.ritmoLento ?? 0)} y{" "}
+            {fmt(p.ritmoRapido ?? 0)} según el
             día), contando todos los días menos el domingo. Con un día flojo
             cerraría el <strong>{dm(tarde)}</strong>; con uno bueno,
             el <strong>{dm(pronto)}</strong>.
           </>
         )}{" "}
-        No descuenta las aulas que aún no tienen fecha ni supone que el ritmo mejore.
+        No descuenta los cursos-horario que aún no tienen fecha ni supone que el ritmo mejore.
       </p>
     </div>
   );

@@ -59,7 +59,7 @@ export function AulasCriterioDeAula({ criterio, hayMetas, onGuardar }: {
         <Target size={13} aria-hidden="true" />
         {declarado ? (
           <>
-            Un aula cumple con el <strong>{fmtPct(criterio!.alfa ?? 0)}</strong> de
+            Un curso-horario cumple con el <strong>{fmtPct(criterio!.alfa ?? 0)}</strong> de
             lo que el diseño esperaba de ella.
           </>
         ) : (
@@ -67,7 +67,7 @@ export function AulasCriterioDeAula({ criterio, hayMetas, onGuardar }: {
             {/* No se inventa un valor por defecto: decir «70 %» aquí sería poner
                 una vara que nadie eligió, que es justo lo que se viene a
                 corregir. */}
-            Este estudio <strong>no ha declarado</strong> qué es un aula válida:
+            Este estudio <strong>no ha declarado</strong> qué es un curso-horario válido:
             lo que se ve abajo es el veredicto que el equipo escribió en su Excel.
           </>
         )}
@@ -99,8 +99,8 @@ export function AulasCriterioDeAula({ criterio, hayMetas, onGuardar }: {
             Se compara con lo que el diseño esperaba de cada curso-horario
             (`efectivas_esperadas` del cálculo de muestra).{" "}
             {hayMetas > 0
-              ? `${fmt(hayMetas)} aulas del plan la traen; las que no, quedarán sin juzgar.`
-              : "Ninguna aula del plan la trae, así que este criterio no podría juzgar ninguna: el plan tiene que venir del cálculo de muestra."}
+              ? `${fmt(hayMetas)} cursos-horario del plan la traen; los que no, quedarán sin juzgar.`
+              : "Ningún curso-horario del plan la trae, así que este criterio no podría juzgar ninguno: el plan tiene que venir del cálculo de muestra."}
           </p>
         </div>
       ) : null}

@@ -68,12 +68,36 @@ export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
       <p className="aulas-cuota-lectura">
         <strong>{fmt(total.validas)}</strong> de <strong>{fmt(total.cuota)}</strong> personas ·{" "}
         {/* SIN cap: pasarse de 100 es información, no un error de la barra. */}
-        {total.avanceTexto}%
+        {total.avanceTexto}
         {/* Las mermas no se ocultan: fuera de universo y sin aula del plan son
             respuestas que existieron y no cuentan aquí, y callarlas haría que
             esta cifra y la de Procesamiento parecieran contradecirse. */}
         {total.notas.length ? <em> · {total.notas.join(" · ")}</em> : null}
+        {/* **El descuadre se pinta al revés que las notas: callado si cuadra.**
+            Un «las partes suman» permanente es ruido; un bloque cuyas partes NO
+            suman su total no se puede leer, y ninguna otra pantalla lo dice.
+            Va con `role="status"` y no como una nota más porque es lo único de
+            esta cabecera que pide una acción. */}
+        {total.descuadre ? (
+          <strong className="aulas-cuota-descuadre" role="status"> · {total.descuadre}</strong>
+        ) : null}
       </p>
+      {/* **Por qué conviven un 106.7 % y un «170 por recoger».**
+
+          Desde que la brecha suma los grupos de facultad y sexo en vez de restar
+          el total, las dos cifras pueden apuntar a lados contrarios y las dos son
+          ciertas: el estudio lleva 168 personas de más y a la vez le faltan 170
+          donde la cuota aún no se cubre. Sin esta línea, quien no diseñó el
+          estudio ve una contradicción y deja de fiarse de las dos.
+
+          Sólo aparece cuando de verdad chocan —cuota superada Y algo por
+          recoger—; en cualquier otro caso sobra y no se pinta. */}
+      {total.brecha > 0 && total.avance >= 100 ? (
+        <p className="aulas-cuota-lectura mon-profile-muted">
+          Se ha recogido de más en unas facultades y todavía falta en otras:
+          pasarse en un grupo no cubre al que va corto.
+        </p>
+      ) : null}
       <div className="aulas-facultades">
         <p className="aulas-facultades-lectura">
           <strong>{fmt(filas.length)}</strong>{" "}
@@ -88,8 +112,14 @@ export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
                 {f.facultad}
                 {/* Con espacio: sin él, el nombre y su cuenta se leen pegados
                     —«Derecho412 de 380»— en lectores de pantalla, el mismo
-                    defecto que ya arregló el perfil por facultad. */}
-                <em>{" "}{f.subtexto}</em>
+                    defecto que ya arregló el perfil por facultad.
+
+                    Y sólo cuando hay algo que decir: desde que la fracción se
+                    fue a la derecha, junto al porcentaje que explica, la mayoría
+                    de las filas no tiene subtexto, y un `em` vacío dejaba una
+                    línea en blanco bajo cada nombre —la rejilla del nombre es
+                    `grid` con `gap`, así que el hueco lo pagaba igual. */}
+                {f.subtexto ? <em>{" "}{f.subtexto}</em> : null}
               </span>
               <span
                 className="aulas-facultad-carril"

@@ -239,3 +239,56 @@ test_that("los repartos de estado y cobertura se calculan ANTES del recorte", {
   # Y las 40 sin meta se ven, que es justo lo que el recorte escondia.
   expect_identical(tablero$course_status_sin_meta, 40L)
 })
+
+test_that("A23: sesiones_legibles sobrevive al normalizador del plan y al estado del curso", {
+  # El armador del calculo (B15) anota la forma legible y la hoja «SESIONES Y
+  # AULA» la prefiere; la lista cerrada del normalizador la tragaba y la
+  # unidad llegaba del from_calc solo con el slug («2civ09_0703») — la
+  # siembra final (2026-09-01) tuvo que reponerla por injerto. Mismo patron
+  # documentado para teacher_phone.
+  plan <- monitoreo_aulas_normalize_plan(list(list(
+    classroom_id = "2civ09_0703",
+    label = "2civ09_0703",
+    sesiones_dia_hora = "MAR 14:00-16:00",
+    sesiones_legibles = "MAR 14:00-16:00 · V303",
+    eligible_n = 20
+  )))
+  expect_identical(plan[[1]][["sesiones_legibles"]], "MAR 14:00-16:00 · V303")
+
+  # Y el estado del curso (la whitelist de columnas) la publica, no la corta.
+  rows <- .monitoreo_aulas_course_status(
+    .monitoreo_aulas_df(plan, "plan"), data.frame(),
+    monitoreo_aulas_normalize_config(list()),
+    valid_response = logical(0), response_classroom = character(0)
+  )
+  primera <- rows[[1]]
+  expect_true(is.list(primera) && "sesiones_legibles" %in% names(primera))
+  expect_identical(as.character(primera[["sesiones_legibles"]]), "MAR 14:00-16:00 · V303")
+})
+
+test_that("A26 (residuo): el titular sobrevive SIEMPRE al tope de course_status", {
+  # El tope (500) corta por posicion. 504 reservas de cadena que ordenan
+  # ANTES que el titular (facultad AAA vs ZZZ, mismo estado) lo dejaban
+  # fuera del payload: la agenda decia «contado sobre 500» sin el operativo
+  # completo. El peldano nuevo lo mete siempre; el orden dentro de cada
+  # peldano no cambia (order estable).
+  reservas <- lapply(seq_len(504L), function(i) list(
+    classroom_id = sprintf("res_%03d", i), label = sprintf("res_%03d", i),
+    operational_code = sprintf("R %d", i), sample_role = "chain_reserve",
+    faculty = "AAA", eligible_n = 10
+  ))
+  titular <- list(list(
+    classroom_id = "tit_1", label = "tit_1", operational_code = "CH TITULAR",
+    sample_role = "titular", faculty = "ZZZ", eligible_n = 10
+  ))
+  plan <- monitoreo_aulas_normalize_plan(c(reservas, titular))
+  rows <- .monitoreo_aulas_course_status(
+    .monitoreo_aulas_df(plan, "plan"), data.frame(),
+    monitoreo_aulas_normalize_config(list()),
+    valid_response = logical(0), response_classroom = character(0)
+  )
+  expect_length(rows, 500L)
+  codigos <- vapply(rows, function(r) as.character(r[["operational_code"]] %||% ""), character(1))
+  expect_true("CH TITULAR" %in% codigos)
+  expect_identical(attr(rows, "total"), 505L)
+})

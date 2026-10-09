@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import { MessageSquare } from "../../../../vendor/lucide-react";
 import { textoAbierto } from "./textoAbierto";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Las respuestas abiertas, para leerlas rápido.
@@ -16,7 +16,10 @@ import { fmt } from "./kpisDeAulas";
  * nombre del encuestador se repiten, y ahí repetir es lo correcto.
  */
 
-const pct = (n: number | null) => (n === null ? "—" : `${n.toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`);
+/** El porcentaje de la casa. Éste formateaba con `maximumFractionDigits: 1` y
+ *  sin mínimo, así que escribía «50 %» donde el resto del perfil escribe
+ *  «50,0 %»: la misma cifra con dos caras en la misma pantalla. */
+const pct = (n: number | null) => (n === null ? "—" : pctPerfil(n));
 
 export function AulasTextoAbierto({ bloque }: { bloque: unknown }) {
   const t = useMemo(() => textoAbierto(bloque), [bloque]);
@@ -25,9 +28,20 @@ export function AulasTextoAbierto({ bloque }: { bloque: unknown }) {
   if (!t.disponible) {
     return (
       <div className="aulas-abiertas" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        {/* **No se afirma la ausencia: se dice el motivo, que ya la explica.**
+            Decía «Este estudio no tiene preguntas abiertas que revisar» y a
+            continuación el motivo del motor, que en dos de sus tres casos dice
+            justo lo contrario —«no se SABE qué preguntas son abiertas»—. Las dos
+            frases juntas se leían como una contradicción, y además empezaban
+            igual.
+
+            Los tres motivos son autosuficientes: «no trae instrumento, así que
+            no se sabe qué preguntas son abiertas», «el instrumento no declara
+            tipo y nombre de sus preguntas» y «el instrumento no tiene ni una
+            pregunta de texto abierto» (`monitoreo_texto_abierto.R:145-158`).
+            Sólo el tercero permite afirmar que no las hay. */}
         <p className="aulas-cadenas-lectura">
-          Este estudio <strong>no tiene preguntas abiertas que revisar</strong>.{" "}
-          {t.motivo}
+          <strong>{t.motivo || "No hay nada que revisar en esta pestaña."}</strong>
         </p>
         <p className="mon-profile-muted">
           Con el instrumento cargado, aquí se leen las respuestas de cada
@@ -76,6 +90,13 @@ export function AulasTextoAbierto({ bloque }: { bloque: unknown }) {
         )}
       </p>
 
+      {/* **Sobre qué se calculan.** La frase de arriba deja DOS denominadores en
+          pantalla —las que contestaron y las que dijeron algo distinto— y estos
+          tres porcentajes salían desnudos, así que no había forma de saber
+          cuál. En el motor los cuatro son `100 * sum(x) / n` con
+          `n = contestadas` (`monitoreo_texto_abierto.R`), o sea el primero.
+          Una línea, una vez, en vez de repetir la base en cada ítem. */}
+      <p className="aulas-abiertas-base">De las que contestaron:</p>
       <ul className="aulas-abiertas-perfil">
         <li><span>{pct(q.pctRelleno)}</span><small>rellenó sin decir nada</small></li>
         <li><span>{pct(q.pctRepetida)}</span><small>repite otra respuesta</small></li>

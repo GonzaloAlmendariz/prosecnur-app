@@ -211,6 +211,60 @@
   unique(pat$categoria[hit])
 }
 
+# Claves que escribir NO vuelve el proyecto «sin guardar» (AD3, 2026-09-24).
+#
+# Una caché que el save descarta no cambia lo que se guardaría: marcarla dirty
+# dejaba el proyecto «sin guardar» con sólo abrir el Explorador. La exención
+# sale de dos fuentes que ya existen, sin lista paralela: la fila del censo
+# (`cache_stripped`) y el propio `.pulso_strip_caches`, del que sólo cuentan
+# los resets de NIVEL SUPERIOR del cuerpo. Un reset dentro de un `if` es
+# condicional —`rp_data` y compañía se strippean en multibase pero VIAJAN en
+# un proyecto legacy single-base— y ahí escribir sí es una edición. Si alguien
+# mueve un reset a una rama, la clave vuelve a marcar dirty: el error cae del
+# lado seguro. Se calcula una vez por proceso; session_set lo consulta siempre.
+.session_schema_memo <- new.env(parent = emptyenv())
+
+.session_schema_claves_sin_dirty <- function() {
+  memo <- .session_schema_memo$claves_sin_dirty
+  if (!is.null(memo)) return(memo)
+  cuerpo <- body(.pulso_strip_caches)
+  sentencias <- if (is.call(cuerpo) && identical(cuerpo[[1]], as.name("{"))) {
+    as.list(cuerpo)[-1]
+  } else {
+    list(cuerpo)
+  }
+  es_reset <- function(rhs) {
+    is.null(rhs) || identical(rhs, FALSE) ||
+      (is.call(rhs) && identical(rhs[[1]], as.name("list")) && length(rhs) == 1L)
+  }
+  reseteadas <- character(0)
+  for (e in sentencias) {
+    if (!is.call(e) || length(e) != 3L ||
+        !as.character(e[[1]])[1] %in% c("<-", "=")) next
+    lhs <- e[[2]]
+    rhs <- e[[3]]
+    # `s <- .session_state_clear(s, c("a", "b"))`
+    if (identical(lhs, quote(s)) && is.call(rhs) &&
+        identical(rhs[[1]], as.name(".session_state_clear")) && length(rhs) >= 3L) {
+      keys <- rhs[[3]]
+      lits <- if (is.character(keys)) keys else if (is.call(keys)) as.list(keys)[-1] else list()
+      lits <- unlist(lits[vapply(lits, is.character, logical(1))], use.names = FALSE)
+      reseteadas <- c(reseteadas, as.character(lits))
+      next
+    }
+    # `s$clave <- NULL | FALSE | list()` directo sobre `s`.
+    if (is.call(lhs) && identical(lhs[[1]], as.name("$")) &&
+        identical(lhs[[2]], quote(s)) && es_reset(rhs)) {
+      reseteadas <- c(reseteadas, as.character(lhs[[3]]))
+    }
+  }
+  schema <- session_schema()
+  cache <- schema$clave[schema$tipo == "literal" & schema$categoria == "cache_stripped"]
+  out <- sort(unique(intersect(cache, reseteadas)))
+  .session_schema_memo$claves_sin_dirty <- out
+  out
+}
+
 # Esquema censado: clave | tipo | categoria | modulo | origen | nota.
 session_schema <- function() {
   tabla <- c(
@@ -326,6 +380,21 @@ session_schema <- function() {
     "monitoreo_aulas_libro",        "literal", "persistible",    "carga_aulas_libro.R", "session_set", "libro operativo importado: hojas, sello y recibo de la carga",
     "monitoreo_aulas_partes_campo", "literal", "persistible",    "carga_aulas_libro.R", "session_set", "partes de campo leidos de la hoja «Aulas Aplicadas (Campo)»",
     "monitoreo_aulas_control",      "literal", "persistible",    "carga_aulas_libro.R", "session_set", "filas de la hoja «Base de control» que el equipo llena en campo",
+    "monitoreo_aulas_disponibilidad", "literal", "persistible",  "monitoreo_aulas_cache.R", "directa", "B29/B74: la escribe POST /api/monitoreo/aulas/disponibilidad (router_monitoreo.R) desde el excel subido; el dashboard la lee con [[ y publica disponibilidad+reparto",
+    "monitoreo_aulas_daa_traslape", "literal", "persistible",   "monitoreo_aulas_publicar_libro.R", "session_set", "veredicto del cruce con OTRO estudio por codigo operativo (aulas_traslape_estudio); el publicador la lee y la columna condicional del libro se titula con su atributo `rotulo`. Censada el 2026-09-17: el read existia desde B8h y la clave nunca entro aqui, asi que nadie sabia si sobrevivia al .pulso. Lleva SEIS atributos y los seis sobreviven el round-trip: `rotulo`, `etiqueta`, `leido_en` (ISO), `fuente`, y desde 2026-09-22 `fechas` (codigo -> dia en que el OTRO estudio aplico esa aula) y `fechas_fuente`. Las dos ultimas nacen de la columna TRASLAPE de la hoja de los aplicadores: el veredicto solo dice QUE hubo traslape, y el aplicador necesita saber CUANDO para medir si mandarlo hostiga al aula. La fecha se toma de las EFECTIVAS EN KOBO del otro estudio y no de sus hojas de «Aulas Aplicadas», que no son su fuente de verdad (HSVG2026 el 2026-09-22: 155 partes contra 151 aulas con efectivas, y no son el mismo conjunto). Los dos ultimos existen porque el veredicto es una FOTO de otro operativo que se mueve todos los dias y aqui se persiste: sin fecha se lee como si fuera de hoy, y una unidad que el otro estudio agendo ayer sigue apareciendo libre (aulas_traslape_vigencia)",
+    # REVIERTE EL F114 EN SU ALCANCE, y es deliberado: esta es la unica clave
+    # del proyecto que guarda codigos de alumno REALES, sin subrogar. El marco
+    # sigue subrogado (project_pulso.R) y population/exclusions siguen en NULL;
+    # lo que se revierte es una tabla, no la doctrina. Existe porque con el eje
+    # de cuotas en «nivel» el nivel de una respuesta esta en la PERSONA, y el
+    # codigo es lo unico que las une: no hay version anonima que sirva para
+    # traducir. Se purga a mano (DELETE /api/monitoreo/aulas/padron) y
+    # AUTOMATICAMENTE en toda copia que sale (pulso_anonimizar_proyecto.R).
+    "monitoreo_aulas_padron", "literal", "persistible", "carga_aulas_padron.R", "session_set", "padron codigo->nivel/carrera/sexo de la poblacion del estudio; unica clave con codigo PUCP real; se purga a mano y al exportar",
+    # Lo que queda cuando el padron se purga: los conteos por celda, SIN
+    # codigos. El avance por eje sigue publicandose desde aqui, declarado como
+    # congelado — no se puede continuar, y decirlo es lo unico honesto.
+    "monitoreo_aulas_padron_corte", "literal", "persistible", "carga_aulas_padron.R", "session_set", "corte congelado del avance por eje al purgar el padron: conteos por celda, sin codigos",
     "monitoreo_client_report_pdf", "literal", "persistible",    "router_monitoreo.R", "session_set", "",
     "monitoreo_production_report_pdf", "literal", "persistible", "router_monitoreo.R", "session_set", "",
     "monitoreo_telefonico_report_pdf", "literal", "persistible", "router_monitoreo_telefonico.R", "session_set", "meta del PDF de avance telefonico; analoga a client/production_report_pdf",
@@ -358,6 +427,7 @@ session_schema <- function() {
     "calc_muestra_referencia_asistencia", "literal", "persistible", "router_calc_muestra.R", "session_set", "agregados del estudio ANTERIOR: celda/k/tasa/IC, embudos, composicion, cuotas, serie semanal y cadenas de reemplazo (fila por cadena del historico, sin PII). La fuente raw no viaja y su binding queda pendiente, asi que si el agregado no se guarda la lectura se pierde y hay que volver a subir la base",
     "calc_muestra_reporte",        "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_config",   "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
+    "calc_muestra_general",        "literal", "persistible",    "router_calc_muestra_general.R", "session_set", "ADR 0090: marcos declarados de Muestra general y Acreditación y sus corridas de sorteo (con unidades, pi y pesos); el archivo del marco entra a files/ por .pulso_collect_calc_muestra_fids",
     "calc_muestra_aulas_criterios_contexto", "literal", "cache_stripped", "router_calc_muestra_criterios.R", "session_set", "contexto atomico estudiante x CH para preview; nunca viaja en .pulso",
     "calc_muestra_explorador_cache", "literal", "cache_stripped", "project_pulso.R", "directa", "distribuciones por columna del Explorador; el save las resetea y se recalculan del marco",
     "calc_muestra_aulas_frame",    "literal", "persistible",    "router_calc_muestra.R", "session_set", "sanitizada en save: unique_student_ids SUBROGADOS sin mapa (F114) y population/exclusions fuera",

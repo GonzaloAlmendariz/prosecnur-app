@@ -1934,7 +1934,13 @@ test_that("apiladas sube solo etiquetas que no caben y mantiene dentro las que e
   expect_gt(out$y_label[1], out$.y_plot[1])
   expect_equal(out$y_label[-1], out$.y_plot[-1])
   expect_equal(out$.col_label, c("#081F5C", "white", "white", "white"))
-  expect_equal(out$.col_conector[1], unname(colores[out$.grupo[1]]))
+  # ADR 0093: por defecto la guía es el gris tenue del recetario; «segmento» sigue disponible.
+  expect_equal(out$.col_conector[1], .std_color("texto_tenue"))
+  out_seg <- prosecnurapp:::.posicionar_labels_arriba_si_no_caben_apiladas(
+    df_lab, var_categoria = "categoria", usar_y_numerico = TRUE, grosor_eff = 0.70, fit_padding = 0.003,
+    etiquetas_peq_padding = 0.012, color_texto_barras_fuera = "#081F5C", colores_grupos = colores,
+    offset_y = 0.13, color_conectores_etiquetas = "segmento")
+  expect_equal(out_seg$.col_conector[1], unname(colores[out_seg$.grupo[1]]))
   expect_equal(out$x_conector_label[1], out$x_label[1])
   expect_true(all(is.finite(out$x_conector_label[1])))
   expect_true(all(is.finite(out$x_conector_barra[1])))
@@ -1977,7 +1983,8 @@ test_that("apiladas sube solo etiquetas que no caben y mantiene dentro las que e
 
 test_that("apiladas expone color y grosor de conectores como argumentos publicos", {
   fml <- formals(prosecnurapp::graficar_barras_apiladas)
-  expect_equal(eval(fml$color_conectores_etiquetas), c("segmento", "azul_pulso"))
+  # ADR 0093: «tenue» (la guía gris del recetario) pasa a ser la primera opción y el defecto.
+  expect_equal(eval(fml$color_conectores_etiquetas), c("tenue", "segmento", "azul_pulso"))
   expect_equal(eval(fml$posicion_conector_etiquetas), c("centro", "izquierda", "derecha"))
   expect_equal(eval(fml$linewidth_conectores_etiquetas), 0.32)
 
@@ -2480,9 +2487,20 @@ test_that("graficar_barras_apiladas modera layout canvas con una sola barra", {
   layout <- attr(p, "pulso_barras_apiladas_layout")
   expect_equal(layout$n_categorias, 1)
   expect_equal(layout$y_axis_max, 2)
-  # B36/G-2: una fila real bajo filas virtuales recibe el piso editorial
-  # (0.95) — el 0.70 manual por defecto dejaba una cinta enclenque.
-  expect_equal(layout$grosor_eff, 0.95)
+  # ADR 0092 (F2.1): la barra sola mide lo que pide el estándar para una fila
+  # (0.50 in), medido en la lámina; ya no es una fracción fija de la fila.
+  expect_lte(abs(layout$grosor_in - .std_grosor(1, "escala_apilada")), 0.03)
+
+  # B36/G-2 sigue vigente con la regla del estándar apagada: una fila real bajo
+  # filas virtuales recibe el piso editorial (0.95) y no la cinta del 0.70 manual.
+  p_previo <- prosecnurapp::graficar_barras_apiladas(
+    data = data.frame(categoria = "Item", N = 100, pct_1 = 0.04, pct_2 = 0.57, pct_3 = 0.39,
+                      stringsAsFactors = FALSE),
+    var_categoria = "categoria", var_n = "N", cols_porcentaje = c("pct_1", "pct_2", "pct_3"),
+    etiquetas_grupos = c(pct_1 = "1", pct_2 = "2", pct_3 = "3"), usar_canvas = TRUE,
+    grosor_modo = "manual", grosor_barras = 0.70, mostrar_leyenda = FALSE, grosor_estandar = FALSE
+  )
+  expect_equal(attr(p_previo, "pulso_barras_apiladas_layout")$grosor_eff, 0.95)
 })
 
 test_that("multiapiladas multiactor reservan la mayor parte del canvas para las barras", {
@@ -3137,6 +3155,11 @@ test_that("reporte_ppt_plan usa frecuencias solo en barras agrupadas", {
   expect_false(grepl("40% (2)", slide2_xml, fixed = TRUE))
   expect_false(grepl("60% (3)", slide2_xml, fixed = TRUE))
 
-  expect_true(grepl("40% (2)", slide3_xml, fixed = TRUE))
-  expect_true(grepl("60% (3)", slide3_xml, fixed = TRUE))
+  # Dos categorías que suman 100 salen como dicotomía partida (lámina 74, ADR 0093): la frecuencia pedida con
+  # mostrar_n_en_etiquetas va en el rótulo («Nada util (2)») y la cifra queda limpia.
+  expect_true(grepl("40%", slide3_xml, fixed = TRUE))
+  expect_true(grepl("60%", slide3_xml, fixed = TRUE))
+  rot3 <- xml2::xml_text(xml2::xml_find_all(xml2::read_xml(file.path(slide_dir, "ppt/slides/slide3.xml")),
+                                              "//p:sp[p:nvSpPr/p:cNvPr[@name='dicotomia:rotulo']]"))
+  expect_setequal(sub("^.*\\s", "", rot3), c("(2)", "(3)"))
 })

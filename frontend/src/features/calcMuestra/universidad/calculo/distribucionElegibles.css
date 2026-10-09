@@ -1,6 +1,8 @@
 /* Distribución de elegibles por aula, por facultad — el gráfico que hace
-   visible el P25 que dimensiona. Sólo tokens var(--pulso-*/--cmv2-*); el
-   acento del módulo marca el P25, el resto es neutro. */
+   visible el P25 que dimensiona. Sólo tokens de la casa (pulso y cmv2); el
+   acento del módulo marca el P25, el resto es neutro. (El texto anterior
+   contenía la secuencia asterisco-barra dentro del comentario y lo cerraba a
+   la mitad: veneno para el bundle concatenado.) */
 
 .cmv2-distelig-lista {
   list-style: none;

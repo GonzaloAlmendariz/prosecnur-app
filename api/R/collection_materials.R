@@ -10,7 +10,8 @@ COLLECTION_ARTIFACT_RECEIPT_SCHEMA <- "collection_artifact_receipt/v1"
 
 COLLECTION_MATERIAL_BLOCK_TYPES <- c(
   "brand_header", "brand_strip", "status_tag", "heading", "body", "access_qr",
-  "field_grid", "form_lines", "instructions", "application_log", "divider", "footer"
+  "field_grid", "form_lines", "instructions", "application_log", "divider", "footer",
+  "campus_map"
 )
 
 # Registro cerrado de presets. Antes las compuertas de preset, material_kind y
@@ -39,13 +40,18 @@ COLLECTION_MATERIAL_PRESETS <- list(
   # domina la pagina y debajo va un formulario de lineas que se llena a mano.
   # No comparte layout con `ficha_aplicacion_a4_v1`: alli los datos vienen
   # impresos del plan, aqui casi todo nace en campo.
+  # Dos layouts, no uno: la ficha de campo es la unica plantilla con VERSO. La
+  # cara (`field_form`) lleva el QR y el formulario; el reverso
+  # (`croquis_campus`, B32) es el croquis del campus con el pabellon del aula
+  # resaltado. La validacion acepta cualquiera de los dos por pagina.
   ficha_campo_qr_a4_v1 = list(
-    layout_preset = "field_form",
+    layout_preset = c("field_form", "croquis_campus"),
     material_kind = "application_sheet",
     # Sin `status_tag`: en esta hoja lo que identifica la ficha es su titulo, y
     # el titulo es el id del colector. Una pildora aparte diria dos veces lo
     # mismo, o peor, algo distinto.
-    blocks = c("brand_strip", "heading", "access_qr", "form_lines", "footer")
+    blocks = c("brand_strip", "heading", "access_qr", "form_lines", "footer",
+               "campus_map")
   )
 )
 
@@ -64,7 +70,7 @@ COLLECTION_MATERIAL_BINDINGS <- c(
   # se titulaba con `unit.label` —«1ges08_0601», el nombre academico— y ese codigo
   # solo aparecia de refilon, dentro del rol de un reemplazo («Reemplazo de CH 3»).
   # En un papel impreso eso no se corrige despues.
-  "unit.unit_id", "unit.operational_code", "unit.label", "unit.role",
+  "unit.unit_id", "unit.operational_code", "unit.codigo_ficha", "unit.label", "unit.role",
   "unit.replacement_for", "unit.group",
   "unit.faculty", "unit.program", "unit.course_name", "unit.schedule", "unit.venue",
   "unit.teacher", "unit.sample_label", "unit.eligible_n",
@@ -118,6 +124,7 @@ COLLECTION_MATERIAL_BINDINGS <- c(
     brand_strip = c("assets", "align", "max_height_mm"),
     status_tag = c("text"),
     form_lines = c("rows"),
+    campus_map = c("binding"),
     heading = c("binding", "text", "max_lines"),
     body = c("binding", "text", "max_lines"),
     access_qr = c("binding", "correction", "quiet_zone", "min_size_mm"),
@@ -173,6 +180,16 @@ COLLECTION_MATERIAL_BINDINGS <- c(
   }
   if (!is.null(block$binding)) {
     problems <- c(problems, .cm_binding_problem(block$binding, paste0(path, ".binding")))
+  }
+  if (identical(type, "campus_map")) {
+    # El croquis resalta el pabellon del AULA de la unidad y nada mas: dejarle
+    # elegir binding permitiria «resaltar» un dato que no es un lugar.
+    if (!identical(block$binding, "unit.venue")) {
+      problems[[length(problems) + 1L]] <- .cm_problem(
+        paste0(path, ".binding"), "campus_map_binding_protected",
+        "campus_map solo puede resolver unit.venue."
+      )
+    }
   }
   if (identical(type, "access_qr")) {
     if (!identical(block$binding, "access.qr_payload")) {
@@ -264,7 +281,31 @@ COLLECTION_MATERIAL_BINDINGS <- c(
             )
             next
           }
-          for (nm in setdiff(names(cell) %||% character(0), c("label", "span", "binding"))) {
+          # `lines` es cuantos renglones de escritura pide este campo. Existe
+          # para «Observaciones», que es la casilla que se llena justo cuando
+          # pasa algo que ninguna otra previo, y con media linea despues de su
+          # etiqueta prometia sitio sin darlo. Se declara en el campo y NO como
+          # una fila extra sin etiqueta: el contrato de al lado exige que toda
+          # linea diga a quien la llena lo que va en ella, y una fila fantasma
+          # seria justo la excepcion que ese contrato existe para evitar.
+          if (!is.null(cell$lines)) {
+            n <- suppressWarnings(as.integer(cell$lines))
+            if (length(n) != 1L || is.na(n) || n < 1L || n > 3L) {
+              problems[[length(problems) + 1L]] <- .cm_problem(
+                paste0(cell_path, ".lines"), "bad_form_lines_count",
+                "lines debe ser un entero entre 1 y 3."
+              )
+            }
+          }
+          # `note` es un campo que DICE algo en vez de pedirlo: se imprime como
+          # texto tenue y no dibuja raya. Existe para «Efectivas», que el
+          # aplicador no puede observar —la plataforma es quien sabe si la
+          # respuesta pasó los filtros— pero que el equipo buscaría en la hoja
+          # si desapareciera sin explicación (dictado de Gonzalo, 2026-09-03).
+          if (!is.null(cell$note)) {
+            problems <- c(problems, .cm_plain_text_problem(cell$note, paste0(cell_path, ".note")))
+          }
+          for (nm in setdiff(names(cell) %||% character(0), c("label", "span", "binding", "lines", "note"))) {
             problems[[length(problems) + 1L]] <- .cm_problem(
               paste0(cell_path, ".", nm), "form_field_not_allowed",
               "Cada campo del formulario solo admite label, span y binding."
@@ -421,10 +462,16 @@ collection_material_application_log_labels <- function() {
   # el formulario de captura de la hoja «Aulas Aplicadas (Campo)».
   #
   # Y no coincidian. La ficha pedia «Alumnos en aula» donde la hoja espera
-  # «CANTIDAD DE ASISTENTES», y «Encuestas aplicadas» donde espera «CANTIDAD DE
-  # EFECTIVAS»: quien transcribe tenia que traducir dos nombres en cada aula, y
-  # una traduccion repetida 193 veces es una fuente de error que no hacia falta
-  # tener.
+  # «CANTIDAD DE ASISTENTES», y el nombre de las efectivas bailo entre las dos:
+  # quien transcribe tenia que traducir en cada aula, y una traduccion repetida
+  # 193 veces es una fuente de error que no hacia falta tener.
+  #
+  # **El baile costo un rojo.** La casilla se puso «Efectivas» cuando la columna
+  # se llamaba «CANTIDAD DE EFECTIVAS»; la columna paso despues a «CANTIDAD DE
+  # ENCUESTAS APLICADAS» y la casilla se quedo atras. La regla es que manda LA
+  # COLUMNA —es la que el importador relee y la que ya esta escrita en el Sheets
+  # vivo del operativo—, y la casilla lleva la forma corta que cabe dentro de su
+  # nombre. `test-collection-bundle-carpetas.R` lo vigila en los dos sentidos.
   #
   # «Observaciones» estaba en la hoja —«OBSERVACIONES SOBRE APLICACIONES»— y en
   # el generador de fichas anterior, y no en esta ficha: lo que el aplicador
@@ -438,7 +485,7 @@ collection_material_application_log_labels <- function() {
   # Cada casilla lleva el nombre de SU columna en la hoja, para que transcribir
   # sea copiar y no traducir:
   #
-  #   CANTIDAD DE ASISTENTES · CANTIDAD DE EFECTIVAS · CANTIDAD DE RECHAZOS
+  #   CANTIDAD DE ASISTENTES · CANTIDAD DE ENCUESTAS APLICADAS · CANTIDAD DE RECHAZOS
   #   DUPLICADOS (YA RESPONDIERON) · AULA · APLICADOR
   #   FECHA DE APLICACION · HORA DE APLICACION · OBSERVACIONES SOBRE APLICACIONES
   #
@@ -451,7 +498,7 @@ collection_material_application_log_labels <- function() {
   # transcribe al libro interpreta 193 veces. Cuatro caracteres en la etiqueta
   # ahorran esa interpretacion.
   c(
-    "Asistentes: | Efectivas:",
+    "Asistentes: | Encuestas aplicadas:",
     "Rechazos: | Duplicados:",
     "Aula: | Aplicador:",
     "Fecha (DD/MM/AA): | Hora (00:00 AM/PM):",
@@ -750,10 +797,13 @@ collection_material_template_validate <- function(template) {
         }
         ids <- c(ids, page_spec$page_id)
       }
-      if (!is.null(preset) && !identical(page_spec$layout_preset, preset$layout_preset)) {
+      if (!is.null(preset) &&
+          !(is.character(page_spec$layout_preset) && length(page_spec$layout_preset) == 1L &&
+            page_spec$layout_preset %in% preset$layout_preset)) {
         problems[[length(problems) + 1L]] <- .cm_problem(
           paste0(path, ".layout_preset"), "layout_not_allowed",
-          sprintf("El preset %s se dibuja con %s.", template$preset_id, preset$layout_preset)
+          sprintf("El preset %s se dibuja con %s.", template$preset_id,
+                  paste(preset$layout_preset, collapse = " o "))
         )
       }
       blocks <- page_spec$blocks

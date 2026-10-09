@@ -1,0 +1,107 @@
+/**
+ * Pedir un refuerzo por código. Hoja propia: `aulasMonitoreo.css` está
+ * congelada a crecimiento y lo nuevo va en su archivo. La importa
+ * `AulasRefuerzoPorCodigo.tsx`.
+ */
+
+.aulas-refcod {
+  display: grid;
+  gap: 8px;
+}
+
+.aulas-refcod-campos {
+  display: grid;
+  grid-template-columns: 9rem 12rem 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+/* Por debajo del ancho de dos columnas el grid fijo empuja el botón fuera de
+   la caja: apilado se lee igual y no se sale. */
+@media (max-width: 900px) {
+  .aulas-refcod-campos { grid-template-columns: 1fr 1fr; }
+  .aulas-refcod-campos .es-ancho,
+  .aulas-refcod-pedir { grid-column: 1 / -1; }
+}
+
+.aulas-refcod-campo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.aulas-refcod-campo > span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pulso-text-soft);
+  text-transform: uppercase;
+}
+
+.aulas-refcod-campo > input {
+  min-width: 0;
+  padding: 6px 9px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+}
+
+.aulas-refcod-campo > input:focus-visible {
+  outline: 2px solid var(--pulso-accent-steel);
+  outline-offset: 1px;
+}
+
+.aulas-refcod-pedir {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  background: var(--pulso-accent-steel);
+  border: 1px solid transparent;
+  border-radius: 7px;
+}
+
+.aulas-refcod-pedir:disabled {
+  color: var(--pulso-text-soft);
+  cursor: not-allowed;
+  background: var(--pulso-surface-raised);
+  border-color: var(--pulso-border);
+}
+
+/* `min-height` y no contenido condicional: sin él la caja saltaba al escribir
+   la primera letra, y un salto bajo el cursor se lee como un error. */
+.aulas-refcod-veredicto {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-height: 1.35rem;
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-refcod-veredicto strong { color: var(--pulso-text); }
+.aulas-refcod-veredicto em { font-style: normal; opacity: 0.75; }
+.aulas-refcod-veredicto.es-ok { color: #1e5b2a; }
+.aulas-refcod-veredicto.es-no { color: var(--pulso-danger-fg); }
+
+.aulas-refcod-aviso {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.aulas-refcod-fallos {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 12px;
+  color: var(--pulso-danger-fg);
+}

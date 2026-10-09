@@ -97,10 +97,12 @@ test_that("el agendamiento ya registrado NO se borra al regenerar", {
   # lo entiende.
   expect_identical(unname(estados[["CH 1"]]), "AGENDADA")
   expect_identical(unname(estados[["CH 4"]]), "REEMPLAZADA")
-  expect_identical(unname(estados[["R 4.1"]]), "EN RESERVA 1")
+  # B13b: la posicion en cadena la dice el codigo (R 4.1); la siembra escribe
+  # el estado inicial tecleable, no el derivado.
+  expect_identical(unname(estados[["R 4.1"]]), "SIN CONTACTAR")
   expect_identical(monitoreo_aulas_estado_muestra(estados[["CH 1"]]), "agendada")
   expect_identical(monitoreo_aulas_estado_muestra(estados[["CH 4"]]), "reemplazada")
-  expect_identical(monitoreo_aulas_estado_muestra(estados[["R 4.1"]]), "en_reserva")
+  expect_identical(monitoreo_aulas_estado_muestra(estados[["R 4.1"]]), "sin_contactar")
   expect_identical(unname(intentos[["CH 1"]]), "2")
   expect_identical(unname(intentos[["CH 4"]]), "3")
 })
@@ -262,7 +264,10 @@ test_that("el control ya registrado NO se borra al regenerar", {
   # `threshold_total` ya no se escribe —es `solo_lectura`, existe para releer
   # libros viejos— asi que no vuelve. Lo que sustituye a esa columna si:
   expect_equal(as.numeric(fila$sent_total), 17)
-  expect_equal(as.numeric(fila$quota_missing), 4)
+  # `quota_missing` dejó de escribirse el 2026-09-08 —«cada aula consigue lo que
+  # se consigue, no hay que volver a ir»— así que ya no vuelve del libro. Lo que
+  # sustituye a esa columna sí:
+  expect_equal(as.numeric(fila$validator_1), 3)
   expect_identical(as.character(fila$last_response_day), "2026-08-19")
 })
 
@@ -303,6 +308,13 @@ test_that("la identidad del aula la manda el PLAN, no el registro", {
   u <- .rt_unico(ag, 100)
   u$operational_code <- "CH 1"; u$sample_role <- "titular"; u$classroom_id <- "A-01"
   pt <- .rt_unico(ap, 300); pt$operational_code <- "CH 1"; pt$intento <- 1L
+  # **El aula tiene que estar APLICADA para que su fila de control exista.**
+  # Desde el 2026-09-07 la «Base de control» sólo escribe el aula aplicada o con
+  # respuestas: el criterio de «tiene control tecleado por el equipo» se retiró
+  # cuando la app pasó a escribir ese bloque entero desde la plataforma. Sin
+  # esto el barrido se quedaba sin fila de control que comparar.
+  pt$estado <- "APLICADA"
+  pt$application_status <- "APLICADA"
   ct1 <- .rt_unico(ct, 500); ct1$operational_code <- "CH 1"
   libro <- withr::local_tempfile(fileext = ".xlsx", .local_envir = parent.frame())
   aulas_libro_generar(list(u), libro, partes = list(pt), control = list(ct1))
@@ -332,7 +344,17 @@ test_that("los campos del agendamiento vuelven, salvo el alias declarado", {
   # y el lector la guarda como `replacement_note`. El dato NO se pierde —cambia
   # de nombre en el viaje—, y esa asimetria es la que engaño al barrido con el
   # que se encontro esto. Queda fijada aqui para que se vea, no escondida.
-  expect_identical(perdidos, "notes")
+  # `aula_utilizada` tampoco vuelve, y es correcto que no vuelva: la ESCRIBE la
+  # app desde la decisión operativa del plan (`replacement_for`) en cada
+  # generación, así que releerla sería darle al libro autoridad sobre un dato
+  # que no es suyo. Lo tecleado a mano sí se respeta —`aulas_libro_anotar_
+  # aula_utilizada` no pisa una celda con contenido—, pero vive en el libro, no
+  # de vuelta en el plan.
+  # `program` estuvo aqui un rato: la columna CARRERA se escribia y el lector la
+  # mapeaba, pero la lista cerrada que arma la fila de plan no la emitia, asi
+  # que el dato moria en el viaje. Es la MISMA lista que ya se trago
+  # `teacher_phone`. Este barrido la cazo en el acto, que es para lo que existe.
+  expect_identical(perdidos, c("aula_utilizada", "notes"))
   expect_identical(as.character(b$plan$replacement_note), as.character(b$u$notes))
 })
 
@@ -342,19 +364,42 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
   # Estos cinco no vuelven con el valor del REGISTRO porque el plan es su
   # fuente y no se deja pisar. No es perdida: es la regla, y si algun dia deja
   # de cumplirse este test lo dice.
-  # `elegibles_esperados` se suma a la lista por el mismo motivo: es
-  # `eligible_n` del plan publicado en la Base de control, asi que tampoco lo
-  # pisa el registro. Que aparezca aqui es la señal de que la columna nueva se
-  # escribe de verdad.
-  # Los cuatro `solo_lectura` se suman a la lista: la hoja ya no los escribe, y
+  # Los DIEZ `solo_lectura` se suman a la lista: la hoja ya no los escribe, y
   # eso es deliberado —salian como columnas vacias—. Siguen en la spec para que
   # un libro viejo que las traiga se lea entero, que es lo que comprueba
   # `test-carga-aulas-libro-control-esperado.R`.
+  #
+  # Los cuatro últimos entraron el 2026-09-07: `short_*`/`long_*` eran la
+  # partición por DURACIÓN de 2025 —«cortas y largas ya no existe, es efectivas
+  # y no efectivas»—, `efectivas_pct_esperado` era `esperadas / elegibles`, la
+  # misma cifra que «TASA DEL AULA», y `elegibles_esperados` era `eligible_n`
+  # repetido. Una columna que repite a su vecina no informa, confunde.
+  #
+  # `attendance_pct` se suma porque la calcula la APP desde el parte
+  # (`asistentes / elegibles`) y por tanto no la pisa el registro, igual que las
+  # siete de agenda y campo de abajo.
+  # Los SIETE de agenda y campo se suman por el mismo motivo, y su presencia
+  # aqui es la señal de que la Base de control ya los escribe: hasta el
+  # 2026-08-31 salian VACIOS —«base de control necesita saber lo que las otras
+  # dos saben», y no lo sabia—, asi que ni siquiera llegaban a esta lista. Su
+  # fuente es el plan y el parte, y el registro no los pisa.
   expect_setequal(perdidos,
                   c("wave", "course_name", "room", "enrolled_total", "eligible_n",
                     "elegibles_esperados",
                     "threshold_total", "threshold_population",
-                    "valid_total", "valid_population"))
+                    "valid_total", "valid_population",
+                    "efectivas_pct_esperado", "attendance_pct",
+                    "short_total", "short_vs_total", "long_total", "long_vs_total",
+                    # Del barrido del 2026-09-08: los tres que la app escribe
+                    # (la facultad del plan y las dos cuentas del parte) y los
+                    # tres que dejaron de escribirse (la cuota por aula, que
+                    # mide lo que ya no se puede corregir, y el horario
+                    # normalizado, que repetía a HORA).
+                    "faculty", "declared_surveys", "refusals",
+                    "quota_pct", "quota_missing", "schedule_norm",
+                    "scheduled_date", "scheduled_time",
+                    "applied_by", "applied_date", "applied_time",
+                    "application_status", "observed_students"))
   expect_identical(as.character(b$control$course_name),
                    as.character(b$u$course_name))
 })
@@ -376,12 +421,19 @@ test_that("el control de una RESERVA activada no se pierde al regenerar", {
   expect_true("CH 1" %in% codigos)
 })
 
-test_that("un titular sin control sigue teniendo su fila, para que la llenen", {
-  # Las filas de titulares que aparecen al regenerar no son un defecto: son la
-  # hoja ofreciendo el sitio donde se escribe.
+test_that("un titular sin control ni aplicar YA NO ocupa fila en el control", {
+  # **Al revés que hasta el 2026-09-07.** La hoja ofrecía la fila de todo
+  # titular «para que la llenen», y el primer día de campo eso se vio por lo que
+  # es: 174 filas para una sola aula aplicada. Gonzalo: «muestra todos los CH
+  # cuando solo deberían ser los que ya se aplicaron».
+  #
+  # Lo que NO cambió, y por eso sigue comprobándose aquí: el aula que ya tiene
+  # control registrado vuelve siempre, aunque no esté aplicada. Sin esa mitad,
+  # regenerar el libro a mitad de operativo borraba el control ya escrito.
   v <- .rt_vuelta(control = list(list(operational_code = "CH 1", sent_total = 17)))
   codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
-  expect_true("CH 4" %in% codigos)
+  expect_false("CH 4" %in% codigos)
+  expect_true("CH 1" %in% codigos)
 })
 
 # --- El barrido de FILAS: ninguna unidad con registro se queda fuera ---------
@@ -403,8 +455,13 @@ test_that("un titular sin control sigue teniendo su fila, para que la llenen", {
        titular_operational_code = "CH 2", replacement_for = "CH 2",
        replacement_order = 1, eligible_n = 26, enrolled_total = 29,
        expected_valid = 17),
+  # Un extra activado es cabeza de su propia cadena: lleva su propio codigo
+  # como `titular_operational_code`, la misma convencion que los titulares.
+  # Sin el, `E_AULAS_LIBRO_SIN_CADENAS` lo rechaza en cuanto trae parte
+  # (contrato de test-monitoreo-aulas-libro-estructura.R).
   list(classroom_id = "A-4", operational_code = "X 1", course_name = "C4",
        faculty = "Letras", sample_role = "extra_reserve_pool",
+       titular_operational_code = "X 1",
        eligible_n = 24, enrolled_total = 27, expected_valid = 15)
 )
 
@@ -414,16 +471,29 @@ test_that("vuelve el control de CUALQUIER unidad que lo tenga, sea del rol que s
   # titulares costo 22 filas en el estudio de trabajo.
   v <- .rt_vuelta(
     plan = .rt_plan_tres_roles(),
-    partes = list(),
+    # **Con parte APLICADA**: desde el 2026-09-07 la hoja sólo escribe el aula
+    # aplicada o con respuestas, así que un control suelto sobre un aula que
+    # nadie aplicó ya no basta para que la fila exista. Lo que este test sujeta
+    # sigue siendo lo suyo —que el rol de muestreo no decida si el control
+    # vuelve—, y para eso las tres se aplican.
+    partes = list(
+      list(operational_code = "CH 1", estado = "APLICADA", intento = 1L),
+      list(operational_code = "R 2.1", estado = "APLICADA", intento = 1L),
+      list(operational_code = "X 1", estado = "APLICADA", intento = 1L)
+    ),
     control = list(
-      list(operational_code = "CH 1", sent_total = 11),
-      list(operational_code = "R 2.1", sent_total = 22),
-      list(operational_code = "X 1", sent_total = 33)
+      list(operational_code = "CH 1", validator_1 = 11),
+      list(operational_code = "R 2.1", validator_1 = 22),
+      list(operational_code = "X 1", validator_1 = 33)
     )
   )
   codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
+  # Por `validator_1` y no por `sent_total`: las enviadas las escribe ahora la
+  # app desde la plataforma y pisarían el valor del registro. El filtro de
+  # validación sólo se llena cuando el estudio declara su criterio, así que en
+  # este barrido sin respuestas conserva lo tecleado, que es lo que aquí se mide.
   valores <- setNames(
-    vapply(v$control, function(r) as.numeric(r$sent_total %||% NA), numeric(1)),
+    vapply(v$control, function(r) as.numeric(r$validator_1 %||% NA), numeric(1)),
     codigos
   )
   # Los tres, con SU valor: si el generador los repartiera mal, los numeros
@@ -494,4 +564,50 @@ test_that("un libro sin columnas sueltas no inventa ninguna", {
   ))
   out <- aulas_libro_importar(libro)
   expect_length(out$control_sin_nombre, 0L)
+})
+
+test_that("un libro de antes de A13a —hoja «Cómo va el campo»— sigue importando", {
+  # A13a (2026-08-31) renombró la hoja de indicadores a «Avance de campo»
+  # (Gonzalo: «es AVANCE»). El libro es efímero por sesión, pero un .xlsx
+  # guardado antes del rename puede vivir en el disco del equipo:
+  # `aulas_libro_importar()` lee las TRES hojas de datos por nombre e ignora
+  # las que no conoce, así que el nombre viejo ni rompe el import ni pierde
+  # ninguna de las tres.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.rt_plan(), libro, partes = .rt_partes(),
+                      control = .rt_control())
+  wb <- openxlsx::loadWorkbook(libro)
+  openxlsx::renameWorksheet(wb, "Avance de campo", "Cómo va el campo")
+  openxlsx::saveWorkbook(wb, libro, overwrite = TRUE)
+  viejo <- aulas_libro_importar(libro)
+  nuevo <- .rt_vuelta()
+  expect_length(viejo$hojas_ausentes, 0L)
+  expect_identical(length(viejo$plan), length(nuevo$plan))
+  expect_identical(length(viejo$partes), length(nuevo$partes))
+  expect_identical(length(viejo$control), length(nuevo$control))
+})
+
+# **«POR APLICAR» no es un parte de campo.**
+#
+# Dictado 2026-09-04: «todas actualmente ahora deberían tener por default en
+# status de aplicación: POR APLICAR». Sembrarlo en todas las filas hacía que el
+# lector viera estado en todas y devolviera un parte por cada aula: un libro
+# recién generado, sin una sola visita, se releía con el avance completo.
+test_that("un libro recién generado no devuelve partes aunque el estado esté sembrado", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_role = "titular",
+         titular_operational_code = "CH 1", faculty = "Derecho", course_name = "C",
+         teacher = "D", eligible_n = 30, scheduled_date = "2026-09-07",
+         scheduled_time = "10:00", operational_status = "agendada")
+  )
+  destino <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(plan, destino)
+
+  # La celda SÍ trae el estado inicial…
+  celdas <- openxlsx::read.xlsx(destino, sheet = "Aulas Aplicadas (Campo)",
+                                colNames = FALSE, skipEmptyRows = FALSE)
+  expect_match(paste(unlist(lapply(celdas, as.character)), collapse = " | "),
+               "POR APLICAR", fixed = TRUE)
+  # …y aun así no hay ni un parte que leer: nadie ha visitado nada.
+  expect_length(aulas_aplicadas_leer(destino), 0L)
 })

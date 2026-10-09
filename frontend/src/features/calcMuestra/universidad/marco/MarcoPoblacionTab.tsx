@@ -102,6 +102,12 @@ export function MarcoPoblacionTab({
       // «ok=true» sin haber mirado la pestaña.
       data-qa-geometry-group="calc-muestra/marco-poblacion"
       data-qa-geometry-contract="intrinsic"
+      // Readiness declarada: la geometría ya estaba, pero el runner cortaba con
+      // `sin-marca-de-readiness` y NADIE podía saber si la pestaña terminó de
+      // montar. Es `true` al montar porque esta vista no carga nada por su
+      // cuenta: recibe sus datos ya resueltos por props, así que pintar ES
+      // haber terminado. Una vista con fetch propio tendría que condicionarlo.
+      data-audit-ready="true"
     >
       <section className="cmv2-panel cmv2-marco-poblacion-head" data-qa-geometry-member>
         <div className="cmv2-marco-flujo-layout">

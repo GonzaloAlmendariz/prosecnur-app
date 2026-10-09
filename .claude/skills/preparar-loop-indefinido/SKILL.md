@@ -21,7 +21,9 @@ reglas viven acá.
 
 - **El disparador es el fin de una tarea de fondo**:
 
-  `Bash({run_in_background: true, command: "sleep 300", description: "TICK DEL LOOP <tema> — retoma <scratchpad>/ENCARGO_LOOP.md"})`
+  `Bash({run_in_background: true, command: "sleep <N>", description: "TICK DEL LOOP <tema> — retoma <scratchpad>/ENCARGO_LOOP.md"})`
+
+  donde `<N>` es la cadencia que el usuario eligió al abrir el loop (ver abajo).
 
   Al terminar el `sleep` llega la `<task-notification>` y con ella el turno
   siguiente. Sólo el `sleep` en foreground está bloqueado; en background corre.
@@ -45,9 +47,19 @@ reglas viven acá.
   el del programador se descarta sin reintento.** Por eso los wakeups morían
   justo en las fases de turnos largos: el rearme se hacía a mitad del trabajo,
   la hora del tick caía dentro del turno y el tick se perdía sin dejar rastro.
-- **Cinco minutos** (`sleep 300`), y la cadencia la fija el usuario, no el
-  cálculo de eficiencia. La cadencia efectiva será 5 min + lo que dure el turno
-  (mediana medida: ~7 min entre ticks); no compensarlo acortando el sleep.
+- **La cadencia se PREGUNTA al usuario al abrir el loop.** Es una opción suya,
+  no un valor por defecto del skill ni un cálculo de eficiencia: antes de lanzar
+  el primer ticker se le pregunta «cada cuánto quieres el tick», y ese número es
+  el `sleep` de TODOS los rearmes del loop. Se anota en la primera línea de
+  `ENCARGO_LOOP.md` (`sleep <N>`), porque el encargo es lo único que sobrevive a
+  la compactación: sin el número escrito ahí, el turno siguiente se inventa otra
+  cadencia. Sólo él la cambia a mitad del loop, y entonces se reescribe esa
+  primera línea. Cadencias que ya pidió en loops anteriores, por si no quiere
+  elegir en el momento: **300 s** (ago 2026) y **60 s** —«tiene que ser cada
+  minuto», sep 2026.
+- La cadencia efectiva será `<N>` más lo que dure el turno (con 300 s, mediana
+  medida: ~7 min entre ticks); no compensarlo acortando el sleep por cuenta
+  propia.
 - **El encargo vive en `<scratchpad>/ENCARGO_LOOP.md`** (o la ruta que el loop
   declare), no en el prompt del reloj: la notificación sólo trae el
   `description`. Cada turno reescribe el archivo y relanza el ticker.
@@ -121,15 +133,19 @@ y ese turno lo relanza de inmediato, antes de trabajar.
    (`<nombre>_trabajo.pulso`), nunca el original del cliente, nunca fuentes de
    cliente dentro del repo. Verificación activa: correr el motor, cambiar la
    config, regenerar — no leer código y opinar.
-4. **Escribe `ENCARGO_LOOP.md` completo** con los bloques de abajo, aunque la
-   mitad estén vacíos, lanza el ticker y avisa los dos límites (app cerrada,
-   suspensión).
+4. **Pregunta la cadencia del tick** y no la asumas: «¿cada cuánto quieres el
+   tick?». Va junto con la vara, antes de escribir el encargo. Si contesta con
+   una unidad («cada minuto», «cada 5 min»), tradúcela a segundos y cítala
+   textual en el encargo.
+5. **Escribe `ENCARGO_LOOP.md` completo** con los bloques de abajo, aunque la
+   mitad estén vacíos, lanza el ticker con el `sleep <N>` que él eligió y avisa
+   los dos límites (app cerrada, suspensión).
 
 ## Anatomía del encargo
 
 | # | Bloque | Qué lleva | Por qué |
 |---|---|---|---|
-| 0 | **Cómo se mantiene vivo, en la PRIMERA línea** | «Lo dispara el fin de una tarea de fondo `sleep 300`. Al cerrar CADA turno: reescribe este archivo y relanza el ticker (`TaskList` primero: un solo TICK). NO montes el reloj en `ScheduleWakeup` ni `CronCreate`: se aceptan y tienen ventanas de horas sin disparar» | Iba al final y los loops murieron igual: la última línea de un encargo largo es justo la que se hojea. Va arriba, donde se lee. |
+| 0 | **Cómo se mantiene vivo, en la PRIMERA línea** | «Lo dispara el fin de una tarea de fondo `sleep <N>` — cadencia elegida por <quién>: «<lo que dijo, textual>». Al cerrar CADA turno: reescribe este archivo y relanza el ticker CON ESE MISMO `<N>` (`TaskList` primero: un solo TICK). NO montes el reloj en `ScheduleWakeup` ni `CronCreate`: se aceptan y tienen ventanas de horas sin disparar» | Iba al final y los loops murieron igual: la última línea de un encargo largo es justo la que se hojea. Va arriba, donde se lee. Y el `<N>` va ahí porque es dato del usuario: si no está escrito, el turno siguiente lo inventa. |
 | 1 | Encabezado | `/loop <MODO> sobre <objeto real>, encargo de <quién>` | El turno siguiente sabe en una línea qué hace y para quién. |
 | 2 | Instrucciones acumuladas | Cada indicación vigente del usuario, **entre comillas y textual** | Parafrasear degrada: «por facultad» se vuelve «revisar facultades» y a los tres ticks ya no es una vara. |
 | 3 | Vara | La afirmación comprobable que decide si el trabajo está bien | Es lo que distingue avanzar de moverse. |
@@ -184,6 +200,10 @@ y ese turno lo relanza de inmediato, antes de trabajar.
   primero `TaskList`: si el ticker sigue corriendo, el tick viene en camino
   (encolado tras un turno largo); si no está, se relanza el mismo mecanismo. El
   bandazo wakeup→cron→otro deja disparadores huérfanos conviviendo.
+- **Elegir la cadencia por el usuario**, o rearmar con un `sleep` distinto del
+  que él pidió porque el turno duró mucho o porque parecía derrochador. El
+  número es suyo; si el encargo no lo trae escrito, el turno siguiente lo
+  inventa y la cadencia deriva tick a tick sin que nadie lo note.
 - Rearmar con el encargo del tick anterior sin actualizarlo: el turno repite lo
   ya hecho y lo reporta como nuevo.
 - Cerrar el turno sin rearmar después de una interrupción del usuario.
@@ -203,9 +223,11 @@ y ese turno lo relanza de inmediato, antes de trabajar.
 ## Plantilla de `ENCARGO_LOOP.md`
 
 ```text
-TICK DEL LOOP — lo dispara el fin de una tarea de fondo `sleep 300` lanzada con
-`run_in_background`. AL CERRAR CADA TURNO, y como última llamada antes del
-cierre: reescribe este archivo y relanza el ticker con el description
+TICK DEL LOOP — lo dispara el fin de una tarea de fondo `sleep <N>` lanzada con
+`run_in_background`. CADENCIA ELEGIDA POR <quién>: <N> s — «<textual>»; sólo él
+la cambia. AL CERRAR CADA TURNO, y como última llamada antes del cierre:
+reescribe este archivo y relanza el ticker con ESE MISMO `sleep <N>` y el
+description
 «TICK DEL LOOP <tema> — retoma <esta ruta>». Antes de lanzar, `TaskList`: un
 solo TICK corriendo. NO montes el reloj en `ScheduleWakeup` ni `CronCreate`
 (se aceptan y tienen ventanas de horas sin disparar; medido). Si un turno

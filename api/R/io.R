@@ -8,7 +8,18 @@ allowed_upload_kinds <- c("xlsform", "data", "sav", "sav_bundle", "plan_limpieza
                           # dentro, y añadir `octet` hacia que dejara de llegar.
                           # Esta ruta ya sabe guardar binarios y devuelve un
                           # `file_id`, que es lo que el endpoint acepta.
-                          "aulas_libro")
+                          "aulas_libro",
+                          # B74 (dictado 2026-09-03): el excel de disponibilidad
+                          # de aplicadores entra por la app — misma via de dos
+                          # pasos que el libro (upload aqui, import por file_id).
+                          "aulas_disponibilidad",
+                          # El excel de matriculados del que sale el padron que
+                          # traduce un codigo de alumno a su nivel. Misma via de
+                          # dos pasos. Ojo: el archivo ORIGINAL trae PII (nombre,
+                          # correo, codigo) y por eso no se guarda dentro del
+                          # `.pulso` — de el solo se deriva la tabla minima, que
+                          # se purga al exportar (monitoreo_aulas_padron_purga.R).
+                          "aulas_padron")
 
 ext_for_kind <- function(kind, original_name) {
   name <- trimws(as.character(original_name %||% ""))
@@ -65,14 +76,21 @@ get_file <- function(sid, file_id) {
   meta
 }
 
+# webutils::parse_multipart recibe el boundary, no el Content-Type: llamarlo
+# con `content_type =` fallaba siempre, y los dos respaldos que lo usaban
+# nunca llegaron a funcionar (encontrado el 2026-09-24).
+.multipart_boundary <- function(ctype) {
+  b <- sub('.*boundary="?([^";]+)"?.*', "\\1", ctype)
+  if (identical(b, ctype)) "" else b
+}
+
 parse_multipart_upload <- function(req) {
   body <- req$bodyRaw
   ctype <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
   if (!grepl("multipart/form-data", ctype, fixed = TRUE)) {
     stop_api(400, "E_NOT_MULTIPART", "Expected multipart/form-data body")
   }
-  parsed <- webutils::parse_multipart(body, content_type = ctype)
-  parsed
+  webutils::parse_multipart(body, .multipart_boundary(ctype))
 }
 
 # Multipart text fields arrive inconsistently in plumber (as character, list, or
@@ -89,7 +107,7 @@ parse_multipart_upload <- function(req) {
   body <- req$bodyRaw
   ctype <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
   if (!grepl("multipart/form-data", ctype, fixed = TRUE) || is.null(body)) return("")
-  parts <- tryCatch(webutils::parse_multipart(body, content_type = ctype), error = function(e) NULL)
+  parts <- tryCatch(webutils::parse_multipart(body, .multipart_boundary(ctype)), error = function(e) NULL)
   raw_val <- parts[[field_name]]
   if (is.null(raw_val)) return("")
   if (is.raw(raw_val)) return(rawToChar(raw_val))

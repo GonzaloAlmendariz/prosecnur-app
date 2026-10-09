@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { tieneComparacionAlmacenada, tieneSeleccionAlmacenada } from "../evidenciaAlmacenada";
+import {
+  CLASSROOM_COMPARISON_SELECTOR_SCHEMA,
+  classroomComparisonConfigDiff,
+  classroomComparisonSelectorSnapshot,
+} from "../classroomHandoff";
 
 /**
  * Medido en el recorrido de un usuario nuevo: en un proyecto donde jamás se
@@ -32,5 +37,33 @@ describe("evidencia almacenada", () => {
     expect(tieneSeleccionAlmacenada({ selection_run_id: "sel_123" })).toBe(true);
     expect(tieneSeleccionAlmacenada({ selection: [{ classroom_id: "CH-1" }] })).toBe(true);
     expect(tieneSeleccionAlmacenada({ selection_run_id: "", selection: [] })).toBe(false);
+  });
+});
+
+// El chequeo de frescura comparaba contra un numero que nadie eligio: con
+// `config.n_aulas` ausente, el snapshot escribia `safeNumber(config.n_aulas, 30)`
+// = 30. Sobre HSVG2026 el aviso decia «n_aulas (corrida 30 · vigente 165)» y ese
+// 30 era el default de esa linea, no un valor guardado por nadie. Un aviso que
+// nombra una cifra fabricada manda a buscar donde no hay nada.
+//
+// La familia entera —workspace y corrida desfasados— tiene direccion decidida en
+// el ADR 0080, sin implementar. Esto NO la repara: sólo deja de inventar el
+// numero con el que se compara.
+describe("el objetivo ausente no se fabrica", () => {
+  it("sin n_aulas el snapshot no declara treinta", () => {
+    const snap = classroomComparisonSelectorSnapshot({} as never);
+    expect(snap.n_aulas).toBeNull();
+  });
+
+  it("con n_aulas declarado lo respeta", () => {
+    expect(classroomComparisonSelectorSnapshot({ n_aulas: 174 } as never).n_aulas).toBe(174);
+  });
+
+  it("el diff nombra la ausencia en vez de una cifra inventada", () => {
+    const corrida = { schema: CLASSROOM_COMPARISON_SELECTOR_SCHEMA, n_aulas: 30 } as never;
+    const d = classroomComparisonConfigDiff({ selector: corrida } as never, {} as never);
+    const linea = d.find((x) => x.startsWith("n_aulas"));
+    expect(linea).toContain("corrida 30");
+    expect(linea).toContain("sin declarar");
   });
 });

@@ -541,3 +541,48 @@ export function classroomMetricValue(rows: Array<Record<string, unknown>>, metri
   const row = rows.find((item) => classroomRowText(item, ["metric"]) === metric);
   return row ? classroomRowNumber(row, ["value"]) : Number.NaN;
 }
+
+/** La firma de fuentes que el motor guarda en el marco al construirlo. */
+export type FirmaDeFuentes = Record<string, { file_id?: unknown; sheet?: unknown }>;
+
+/**
+ * Si el marco construido corresponde a las fuentes que hay cargadas AHORA.
+ *
+ * Sin esta comprobación, subir bases nuevas no invalidaba nada de lo derivado:
+ * la banda de KPIs seguía diciendo «UNIVERSO DE ESTUDIANTES 29,090 · **marco
+ * vigente**» y Consistencia «136,284 filas leídas» —cifras de la base del año
+ * anterior— mientras el Explorador, en la MISMA sección, leía el archivo nuevo
+ * y decía 137,919. Dos pestañas contando distinto el mismo archivo.
+ *
+ * Y lo que lo hace difícil de ver no es el tamaño del desfase sino lo pequeño
+ * que puede ser: medido con las bases 2026 de HSVG contra el marco de 2025, la
+ * diferencia era de **63 estudiantes y 6 cursos-horario**. A ojo son el mismo
+ * número.
+ *
+ * Devuelve `null` cuando no se puede saber —marco sin firma, de un proyecto
+ * anterior a este contrato—, que NO es lo mismo que «está al día»: quien lo
+ * consuma tiene que decidir qué dice en ese caso, y callar no es una opción.
+ */
+export function marcoCorrespondeALasFuentes(
+  firma: FirmaDeFuentes | null | undefined,
+  actuales: ReadonlyArray<{ role?: string; file_id?: string; sheet?: string }>,
+): boolean | null {
+  if (!firma || typeof firma !== "object" || !Object.keys(firma).length) return null;
+  const roles = Object.keys(firma);
+  for (const role of roles) {
+    const firmado = firma[role] ?? {};
+    const actual = actuales.find((b) => b.role === role);
+    // Un rol que el marco usó y ahora no está cargado es desfase, no empate.
+    if (!actual?.file_id) return false;
+    if (String(firmado.file_id ?? "") !== String(actual.file_id)) return false;
+    // La hoja cuenta: «MATRICULADO» y «CURSO Y HORARIO» viven en el mismo
+    // archivo y son insumos distintos.
+    const hojaFirmada = String(firmado.sheet ?? "");
+    const hojaActual = String(actual.sheet ?? "");
+    if (hojaFirmada !== hojaActual) return false;
+  }
+  // Un rol NUEVO que el marco no usó también es desfase: añadir el catálogo
+  // cambia el marco aunque la base madre siga siendo la misma.
+  const cargados = actuales.filter((b) => b.file_id).map((b) => b.role);
+  return cargados.every((role) => role && roles.includes(role));
+}

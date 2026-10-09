@@ -49,7 +49,12 @@ test_that("base identica al baseline: comparado y LIMPIO", {
   expect_length(n$bloques, 0L)
 })
 
-test_that("una facultad nueva fuera de la whitelist se declara EXCLUIDA ENTERA", {
+# Hasta 2026-08-25 este bloque afirmaba «EXCLUIDA ENTERA». Era cierto y era el
+# defecto: una facultad sin entrada en courseLevelRanges perdía todas sus aulas
+# mientras tres superficies de la UI prometían lo contrario. Reparado el
+# evaluador, el aviso sigue siendo de gravedad alta —el marco no es el que el
+# analista cree— pero por la razón contraria: la facultad entra SIN FILTRAR.
+test_that("una facultad nueva fuera del mapa de rangos entra SIN FILTRO DE NIVEL", {
   base <- .cm_llegada_snapshot(.ll_frame())
   nueva <- data.frame(
     classroom_id = "N1", faculty = "FACULTAD DE DATOS",
@@ -64,7 +69,7 @@ test_that("una facultad nueva fuera de la whitelist se declara EXCLUIDA ENTERA",
   v <- b[[1]]$valores[[1]]
   expect_identical(v$valor, "FACULTAD DE DATOS")
   expect_false(v$reconocida_por_rangos)
-  expect_match(v$consecuencia, "EXCLUIDA ENTERA", fixed = TRUE)
+  expect_match(v$consecuencia, "SIN FILTRO DE NIVEL", fixed = TRUE)
 })
 
 test_that("un tipo de sesion nuevo y un docente nuevo se declaran con su gravedad", {

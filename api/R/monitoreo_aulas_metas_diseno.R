@@ -109,15 +109,65 @@
   # escondidas lo que el diseño trazó por separado.
   usadas <- unique(round(taus[is.finite(taus)], 4))
   cuotas <- vapply(facultades, function(x) x$cuota %||% NA_real_, numeric(1))
+  sm <- .monitoreo_aulas_sobremuestra_diseno(estudio)
   list(
     schema = "monitoreo_aulas_design_targets_v1",
     source = "calc-muestra",
     tasa_esperada = if (length(usadas) == 1L) usadas else NA_real_,
     tasa_fuente = tasa_fuente,
     total_cuota = if (any(is.finite(cuotas))) round(sum(cuotas[is.finite(cuotas)])) else NA_real_,
+    # La meta y el techo operativo, que el estudio SI calcula y hasta ahora no
+    # viajaban. Ver `.monitoreo_aulas_sobremuestra_diseno()`.
+    meta_diseno = sm$meta,
+    sobremuestra = sm$sobremuestra,
+    meta_operativa = sm$operativa,
     facultades = facultades,
     certificacion_facultad = certificacion
   )
+}
+
+#' La meta del diseño y su sobremuestra, del componente del estudio.
+#'
+#' **Existía y no viajaba.** Gonzalo compara el avance contra DOS cifras: «cuánto
+#' es la meta de la muestra, cuánto es la meta de la sobremuestra, y cuánto
+#' íbamos». La segunda no llegaba a Monitoreo, así que la tabla de cuotas sólo
+#' podía comparar contra la primera y lo declaraba en su pie.
+#'
+#' Las tres salen de `componente$resultado` y se relacionan: sobre HSVG 2026 son
+#' `n_objetivo` 2.500, `sobremuestra` 1.250 y `n_operativo` 3.750, o sea meta más
+#' sobremuestra.
+#'
+#' **Se toma el componente que trae `n_objetivo`, no el primero.** Un estudio
+#' lleva varios -HSVG 2026 tiene el general y el de facultad- y sólo el que
+#' dimensiona la muestra declara el objetivo.
+#'
+#' Y la sobremuestra es REFERENCIA, no meta. Gonzalo: «sobrellegar a la muestra
+#' no es una necesidad [...] la sobremuestra podría servir como un valor
+#' referencial». Lo que decide sigue siendo la cuota por facultad y sexo.
+#'
+#' @param estudio estudio de calc-muestra, o `NULL`.
+#' @return lista con `meta`, `sobremuestra` y `operativa`; `NA_real_` lo que no esté.
+#' @keywords internal
+.monitoreo_aulas_sobremuestra_diseno <- function(estudio) {
+  vacio <- list(meta = NA_real_, sobremuestra = NA_real_, operativa = NA_real_)
+  comps <- if (is.list(estudio)) estudio$componentes %||% list() else list()
+  if (!length(comps)) return(vacio)
+  num <- function(x) {
+    v <- suppressWarnings(as.numeric(x %||% NA))[1]
+    if (is.finite(v)) v else NA_real_
+  }
+  for (c in comps) {
+    r <- if (is.list(c)) c$resultado %||% list() else list()
+    meta <- num(r$n_objetivo)
+    if (!is.finite(meta)) next
+    sobre <- num(r$sobremuestra)
+    oper <- num(r$n_operativo)
+    # Si el estudio no publica el operativo, se compone: es meta + sobremuestra
+    # por definición, y componerlo es mejor que dejar el techo sin declarar.
+    if (!is.finite(oper) && is.finite(sobre)) oper <- meta + sobre
+    return(list(meta = meta, sobremuestra = sobre, operativa = oper))
+  }
+  vacio
 }
 
 #' Ajusta `expected_valid` del plan con la τ del diseño.

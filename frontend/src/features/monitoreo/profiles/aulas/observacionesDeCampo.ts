@@ -43,21 +43,43 @@ const txt = (v: unknown) => String(v ?? "").trim();
  *
  * Cuentan cuatro señales, y la primera es la decisiva: **si trae nota, alguien
  * la escribió**, y una unidad no puede quedar fuera del denominador de su
- * propia observación. Las otras tres —cita fijada, paso por campo, cifra
- * declarada— se miran todas porque una fila corregida a mano en el Excel puede
- * traer los números sin el estado, o el estado sin la hora, y descartarla por
- * el campo que le falta borraría un aula que sí se gestionó.
+ * propia observación. Las otras tres —paso por campo, estado, cifra declarada—
+ * se miran todas porque una fila corregida a mano en el Excel puede traer los
+ * números sin el estado, o el estado sin la hora, y descartarla por el campo
+ * que le falta borraría un aula que sí se gestionó.
+ *
+ * **La quinta, la fecha programada, es débil y va con veto.** El plan la trae
+ * para toda su agenda, tocada o no, así que sólo cuenta cuando el estado no
+ * dice «planificada». El comentario de esa línea lleva la medición.
  */
 function tuvoGestion(fila: Fila): boolean {
   if (txt(fila.field_note) || txt(fila.replacement_note)) return true;
-  if (txt(fila.scheduled_date) || txt(fila.scheduled_time)) return true;
   if (txt(fila.applied_at) || txt(fila.applied_date)) return true;
   const estado = txt(fila.operational_status).toLowerCase();
-  if (estado === "aplicada" || estado === "aplicado") return true;
+  // «cerrada» va con «aplicada» en los otros ocho sitios del perfil que
+  // comparan este campo, y aquí faltaba. Casi siempre da igual —una cerrada
+  // trae parte y ya salió por `applied_at` tres líneas arriba— pero una cerrada
+  // sin parte se contaba como sin gestión, que es lo contrario de lo que es.
+  if (estado === "aplicada" || estado === "aplicado" || estado === "cerrada") return true;
   for (const k of ["effective_surveys", "efectivas", "attendees", "asistentes"]) {
     const v = fila[k];
     if (v != null && v !== "" && Number(v) > 0) return true;
   }
+  // **La fecha programada es la señal DÉBIL, y va al final con un veto.** El
+  // plan del cálculo de muestra trae `scheduled_date` para TODAS sus filas —es
+  // el día que le toca a ese curso-horario, no una cita que alguien fijó—, así
+  // que aceptarla a secas daba por gestionada la agenda entera. Medido el
+  // 2026-08-30 sobre el estudio de 1.424: las 1.424 filas entraban por esta
+  // línea y ninguna por otra, incluidas **1.232 en «planificada»**, y el panel
+  // publicaba «ninguno de los 1.424 cursos-horario gestionados trae
+  // observación» —una acusación al equipo por 1.232 aulas que nadie ha tocado
+  // todavía—. Con el veto, el denominador es 192: 152 aplicadas, 22 agendadas
+  // y 18 reemplazadas.
+  //
+  // El veto es sólo sobre esta señal: una fila «planificada» que traiga nota,
+  // aplicación o cifras ya salió por las condiciones de arriba, que es el caso
+  // del Excel corregido a mano que este perfil documenta.
+  if (txt(fila.scheduled_date) || txt(fila.scheduled_time)) return estado !== "planificada";
   return false;
 }
 
@@ -105,8 +127,17 @@ export type ObservacionDeCampo = {
 
 export type ResumenDeObservaciones = {
   observaciones: ObservacionDeCampo[];
-  /** Partes con observación, sobre el total. */
+  /**
+   * **NOTAS, no cursos-horario.** Un curso-horario puede traer dos —lo que costó
+   * agendarlo y lo que pasó al aplicarlo—, así que esta cifra pasa del total de
+   * aulas y NO es comparable con `partes`.
+   */
   conNota: number;
+  /**
+   * Cursos-horario con al menos una nota. Éste sí se compara con `partes`, y es
+   * el que da el hueco: las gestionadas que aún no tienen nada anotado.
+   */
+  aulasConNota: number;
   partes: number;
 };
 
@@ -116,6 +147,12 @@ export function observacionesDeCampo(
 ): ResumenDeObservaciones {
   const grupos = new Map<string, ObservacionDeCampo & { porAplicador: Map<string, number> }>();
   let conNota = 0;
+  // Cursos-horario con al menos una nota. `conNota` cuenta NOTAS y un aula
+  // puede traer dos, así que sin este conjunto la pantalla comparaba notas
+  // contra aulas: «283 de 200 cursos-horario gestionados traen observación»
+  // —imposible— y, peor, el HUECO que se quería ver (`partes > conNota`) no se
+  // enseñaba nunca, porque 283 > 200.
+  const aulasConNota = new Set<string>();
   // Un aula puede traer la MISMA nota por los dos caminos —se registró en la app
   // y además se transcribió al libro—. Sin esta guarda contaría dos aulas donde
   // hay una, y «2 aulas» sobre un operativo de una sola es peor que no decirlo.
@@ -153,6 +190,7 @@ export function observacionesDeCampo(
         vistos.add(huella);
       }
       conNota += 1;
+      if (codigo) aulasConNota.add(codigo);
       const k = clave(texto);
       const g = grupos.get(k) ?? {
         texto, aulas: 0, origenes: [] as OrigenDeObservacion[],
@@ -205,5 +243,10 @@ export function observacionesDeCampo(
     const codigo = txt(p.operational_code);
     if (codigo) universo.add(codigo);
   }
-  return { observaciones, conNota, partes: universo.size || partes.length };
+  return {
+    observaciones,
+    conNota,
+    aulasConNota: aulasConNota.size,
+    partes: universo.size || partes.length,
+  };
 }

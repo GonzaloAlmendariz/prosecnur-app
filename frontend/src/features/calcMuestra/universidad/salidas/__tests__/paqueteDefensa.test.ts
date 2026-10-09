@@ -15,6 +15,7 @@ import {
 } from "../../shared/constants";
 import { universityDefaultWorkspace } from "../../shared/study";
 import {
+  paqueteDefensaMotivo,
   construirMemoriaPaqueteDefensa,
   leerContextoPaqueteTrasRefresco,
   paqueteDefensaFingerprint,
@@ -189,5 +190,37 @@ describe("paquete de defensa — escenario y concurrencia", () => {
     expect(contextoLeido.workspace.aulas_config?.n_aulas).toBe(175);
     expect(paqueteDefensaFingerprint(contextoLeido)).toBeNull();
     expect(() => construirMemoriaPaqueteDefensa(contextoLeido)).toThrow(/escenario|selección/i);
+  });
+});
+
+/**
+ * El aviso dice la CAUSA, no sólo el hecho.
+ *
+ * `contextoAcreditado` devuelve null por seis motivos y la página los resumía
+ * todos igual: «requiere cálculo, marco y selección vigentes». Para el caso que
+ * ADR 0066 vuelve NORMAL —la selección se sorteó para un tamaño y la fórmula
+ * pide otro— eso manda a revisar tres cosas que están bien y calla la única que
+ * no lo está.
+ */
+describe("paqueteDefensaMotivo", () => {
+  it("nombra las dos cifras cuando el sorteo y la fórmula no coinciden", () => {
+    const base = escenarioE2();
+    const ctx = {
+      ...base,
+      aulasState: {
+        ...base.aulasState,
+        selection: { ...base.aulasState.selection, selector: { n_aulas: 175 } },
+      } as CalcMuestraAulasState,
+    };
+    const motivo = paqueteDefensaMotivo(ctx);
+    expect(motivo).not.toBeNull();
+    expect(motivo).toContain("se sorteó para");
+    // Las dos cifras, o el lector no sabe cuál mover.
+    expect(motivo).toMatch(/\d+ cursos-horario/);
+    expect(motivo).toContain("la fórmula pide");
+    // Y dice qué hacer, no sólo qué pasa.
+    expect(motivo).toMatch(/vuelve a sortear|ajusta el objetivo/);
+    // El texto genérico NO aparece: era el que desorientaba.
+    expect(motivo).not.toContain("requiere cálculo, marco y selección vigentes");
   });
 });

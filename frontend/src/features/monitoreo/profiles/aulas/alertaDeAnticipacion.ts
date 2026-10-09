@@ -39,17 +39,18 @@ import { diasDeCampoEntre, restarDiasDeCampo } from "./pronosticoDeCierre";
  *   abierta. Ahí el campo YA está parado; es lo más urgente que puede decir esta
  *   lista y antes se confundía con lo anterior.
  *
- * ## Y si el banco de esa facultad no tiene las aulas que se piden
+ * ## Y si la reserva adicional de esa facultad no tiene las aulas que se piden
  *
  * Decir «pide 14 en Educación» sin mirar si existen es mandar a llamar al
- * vacío. El banco de extras **es** el sitio de donde salen esas aulas —no
+ * vacío. La reserva adicional **es** el sitio de donde salen esas aulas —no
  * reemplazan a nadie: existen para cerrar la cuota de hombres y mujeres por
- * facultad— y viene repartido por estrato, no en un montón común.
+ * facultad— y viene repartida por estrato, no en un montón común.
  *
- * Cuando el banco de la facultad no llega, **el problema deja de ser de agenda y
- * pasa a ser de muestra**: no hay llamada que lo arregle, hay que volver a
- * Cálculo de muestra. Se dice con `bancoAlcanza`, y en ese caso la lista tiene
- * que hablar distinto, porque las dos situaciones piden acciones opuestas.
+ * Cuando la reserva adicional de la facultad no llega, **el problema deja de
+ * ser de agenda y pasa a ser de muestra**: no hay llamada que lo arregle, hay
+ * que volver a Cálculo de muestra. Se dice con `reservaAlcanza`, y en ese caso
+ * la lista tiene que hablar distinto, porque las dos situaciones piden
+ * acciones opuestas.
  *
  * ## Los dos umbrales vienen del operativo de 2025, no de una intuición
  *
@@ -59,8 +60,13 @@ import { diasDeCampoEntre, restarDiasDeCampo } from "./pronosticoDeCierre";
  *   mediana en los titulares (rango 0–21). Los reemplazos se agendaron más
  *   justos —5 y 4,5 días—, pero se toma el del titular porque el error barato es
  *   pedir con demasiado margen, no con poco.
- * - **Caída**: de 170 titulares, **40 necesitaron reemplazo (23,5 %)**. Pedir
- *   exactamente las aulas que faltan es pedir de menos.
+ * - **Caída**: de 170 titulares de 2025, **21 cayeron (12,4 %)** — el titular
+ *   no llegó a aplicarse y un reemplazo ocupó su lugar. «Necesitó reemplazo»
+ *   NO es la vara: 25 aulas más consumieron reserva con el titular aplicado
+ *   (refuerzo, no caída) y contarlas infla la tasa a niveles que ninguna
+ *   definición del libro reproduce. Derivación completa en
+ *   docs/qa/checklist-tres-fuentes-monitoreo-2026-08-27.md (§A7).
+ *   Pedir exactamente las aulas que faltan sigue siendo pedir de menos.
  *
  * Los dos son constantes **declaradas y fechadas**, no estimadas del corte en
  * curso: con dos semanas de campo la tasa de caída propia todavía es ruido, y
@@ -70,8 +76,8 @@ import { diasDeCampoEntre, restarDiasDeCampo } from "./pronosticoDeCierre";
 /** Días entre llamar a un aula y aplicarla. Mediana de los titulares, 2025. */
 export const DIAS_DE_ANTICIPACION = 7;
 
-/** Proporción de titulares que en 2025 acabaron necesitando reemplazo. */
-export const TASA_DE_CAIDA = 0.235;
+/** Titulares de 2025 cuya aplicación cayó y la cubrió un reemplazo: 21 de 170. */
+export const TASA_DE_CAIDA = 21 / 170;
 
 export type UrgenciaDeAgenda = "sin brecha" | "hay margen" | "pedir ahora" | "sin agenda";
 
@@ -84,7 +90,7 @@ export type AlertaDeFacultad = {
    *
    * La lista decía «pide 12 aulas en Gestión» y esa facultad está corta de 52
    * mujeres y 24 hombres: dos tercios de lo que falta es de un lado. Doce aulas
-   * cualesquiera no cierran la celda que falla, y el banco existe justamente
+   * cualesquiera no cierran la celda que falla, y la reserva adicional existe justamente
    * para elegir por composición —«necesitamos bastantes mujeres en determinada
    * facultad, ¿qué extra me garantiza tantos hombres y tantas mujeres?»—.
    *
@@ -96,10 +102,16 @@ export type AlertaDeFacultad = {
    */
   faltanPorSexo: Array<{ sexo: string; faltan: number }>;
   esperadoPorAula: number;
-  /** Aulas que cubrirían esa brecha si todas se aplicaran. */
-  aulasNecesarias: number;
-  /** Las que hay que pedir contando con que una parte se caerá. */
-  aulasAPedir: number;
+  /**
+   * Aulas que cubrirían esa brecha si todas se aplicaran. `null` cuando la
+   * facultad tiene brecha pero todavía no se sabe cuánto rinde un aula suya:
+   * sin rendimiento observado no hay entre qué dividir. Devolver 0 diría «no
+   * hace falta ninguna» justo de la facultad a la que más le falta — que es el
+   * mismo error que `reservaDisponible` evita unas líneas más abajo.
+   */
+  aulasNecesarias: number | null;
+  /** Las que hay que pedir contando con que una parte se caerá. `null` igual que arriba. */
+  aulasAPedir: number | null;
   /** Aulas ya agendadas por delante, que es lo que amortigua. */
   aulasAgendadas: number;
   /** Último día con agenda de esa facultad, o `null` si no tiene ninguna. */
@@ -108,16 +120,16 @@ export type AlertaDeFacultad = {
   diasDeAgenda: number;
   /**
    * Extras de ESA facultad que todavía no entraron al operativo. `null` cuando
-   * el estudio no publica banco: no saber cuántas quedan no es lo mismo que
-   * saber que no queda ninguna, y pintarlo como cero acusaría de una escasez
-   * que nadie midió.
+   * el estudio no publica reserva adicional: no saber cuántas quedan no es lo
+   * mismo que saber que no queda ninguna, y pintarlo como cero acusaría de una
+   * escasez que nadie midió.
    */
-  bancoDisponible: number | null;
+  reservaDisponible: number | null;
   /**
-   * Si el banco de la facultad cubre lo que hay que pedir. `null` cuando no hay
-   * banco publicado o no hay nada que pedir.
+   * Si la reserva adicional de la facultad cubre lo que hay que pedir. `null`
+   * cuando no hay reserva adicional publicada o no hay nada que pedir.
    */
-  bancoAlcanza: boolean | null;
+  reservaAlcanza: boolean | null;
   /**
    * Último día útil para llamar sin que la facultad se quede parada: el día del
    * que aún salen `DIAS_DE_ANTICIPACION` días de campo antes de que se acabe su
@@ -144,7 +156,7 @@ export function alertaDeAnticipacion(
 ): AlertaDeFacultad[] {
   // Se indexa por nombre de facultad porque es la clave con la que el motor
   // publica las dos cosas. `disponibles` puede faltar en un payload viejo: ahí
-  // el banco existe pero no se sabe cuánto queda, y eso NO es cero.
+  // la reserva adicional existe pero no se sabe cuánto queda, y eso NO es cero.
   const porFacultad = new Map(banco.map((f) => [f.faculty, f]));
 
   return proyeccion
@@ -155,13 +167,21 @@ export function alertaDeAnticipacion(
         .map((c) => ({ sexo: c.sexo, faltan: c.faltanAlCerrarAgenda }))
         .sort((a, b) => b.faltan - a.faltan);
       const porAula = f.esperadoPorAula > 0 ? f.esperadoPorAula : 0;
-      const aulasNecesarias = faltan > 0 && porAula > 0 ? Math.ceil(faltan / porAula) : 0;
+      // Tres estados, no dos. Sin brecha son 0 aulas —eso es un hecho—; con
+      // brecha y sin rendimiento observado es `null`, que es «no se sabe».
+      // Medido el 2026-08-25 con el plan de 400 recién importado: las 15
+      // facultades tenían brecha (983 en Artes Escénicas, 1.340 en Ciencias e
+      // Ingeniería) y la cabecera decía «hay que pedir 0 en total», porque
+      // `porAula` vale 0 antes del primer parte y el 0 se sumaba como cifra.
+      const aulasNecesarias = faltan <= 0
+        ? 0
+        : porAula > 0 ? Math.ceil(faltan / porAula) : null;
       // Pedir exactamente las que faltan es pedir de menos: una de cada cuatro no
       // se va a aplicar. Se pide sobre el neto, que es como se dimensiona una
       // reserva.
-      const aulasAPedir = aulasNecesarias > 0
-        ? Math.ceil(aulasNecesarias / (1 - TASA_DE_CAIDA))
-        : 0;
+      const aulasAPedir = aulasNecesarias == null
+        ? null
+        : aulasNecesarias > 0 ? Math.ceil(aulasNecesarias / (1 - TASA_DE_CAIDA)) : 0;
 
       const primerDiaAgendado = f.dias.length ? f.dias[0].fecha : null;
       const ultimoDiaAgendado = f.dias.length ? f.dias[f.dias.length - 1].fecha : null;
@@ -180,7 +200,7 @@ export function alertaDeAnticipacion(
           : margen <= 0 ? "pedir ahora" : "hay margen";
 
       const suyo = porFacultad.get(f.facultad);
-      const bancoDisponible = suyo == null
+      const reservaDisponible = suyo == null
         ? null
         : typeof suyo.disponibles === "number" ? suyo.disponibles : null;
 
@@ -197,10 +217,10 @@ export function alertaDeAnticipacion(
         pedirAntesDe: urgencia === "hay margen" && ultimoDiaAgendado
           ? restarDiasDeCampo(ultimoDiaAgendado, DIAS_DE_ANTICIPACION)
           : null,
-        bancoDisponible,
-        bancoAlcanza: bancoDisponible == null || aulasAPedir <= 0
+        reservaDisponible,
+        reservaAlcanza: reservaDisponible == null || aulasAPedir == null || aulasAPedir <= 0
           ? null
-          : bancoDisponible >= aulasAPedir,
+          : reservaDisponible >= aulasAPedir,
         urgencia,
       } satisfies AlertaDeFacultad;
     })
@@ -221,7 +241,10 @@ export function alertaDeAnticipacion(
       if (a.urgencia === "hay margen" && a.pedirAntesDe && b.pedirAntesDe && a.pedirAntesDe !== b.pedirAntesDe) {
         return a.pedirAntesDe.localeCompare(b.pedirAntesDe);
       }
-      return b.aulasAPedir - a.aulasAPedir
+      // Las que no se pueden dimensionar van al final del grupo: no compiten por
+      // tamaño con las que sí tienen cifra, y ordenarlas como 0 las escondería
+      // entre las que no necesitan nada.
+      return (b.aulasAPedir ?? -1) - (a.aulasAPedir ?? -1)
         || a.facultad.localeCompare(b.facultad, "es");
     });
 }

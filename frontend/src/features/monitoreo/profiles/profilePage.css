@@ -1152,7 +1152,26 @@
   border: 1px solid var(--pulso-border);
   border-radius: 18px;
   background: var(--pulso-surface);
-  overflow: hidden;
+  /* **`clip` y no `hidden`: aquí estaba el scroll jail de verdad.**
+
+     Gonzalo, 2026-09-10: «hay un espacio en blanco aquí». El primer intento
+     puso `clip` en `.mon-workbench-main` —los tests pasaron y en pantalla el
+     hueco seguía—: quien crea el contenedor de scroll es ESTA caja, que es la
+     que lleva el `overflow` junto al radio de 18 px.
+
+     Su contenido desborda, así que con `hidden` es un contenedor scrollable
+     SIN barra: cualquier cosa que desplace el foco dentro —un
+     `scrollIntoView`, un `focus()` sobre algo fuera de vista, el reset al
+     cambiar de pestaña— le sube el `scrollTop`, y sin barra nadie puede
+     devolverlo. El contenido se queda desplazado hacia arriba y deja el hueco
+     al pie hasta que se recarga la página. Medido en vivo provocando un
+     `scrollIntoView`: `scrollTop: 105.5`, hueco de 107 px.
+
+     `clip` recorta igual —también con el radio— y NO crea contenedor de
+     scroll, así que no hay nada que desplazar. Es «No Scroll Jail» de
+     docs/ui-layout-grammar.md: el scroll lo tiene quien lo declara, y aquí es
+     `.mon-workbench-content`, que sí trae barra. */
+  overflow: clip;
 }
 
 .mon-profile-sidebar {
@@ -1258,18 +1277,8 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   line-height: 1.45;
-  /* **Un párrafo no se estira con su panel.**
-   *
-   * `.mon-profile-panel` es un `grid`, y en un grid `align-self` vale `stretch`
-   * por defecto: la fila del párrafo crece hasta llenar lo que el panel tenga
-   * de alto. Medido el 2026-08-24 en Agenda > «Aulas agendadas»: dos líneas de
-   * texto con `line-height` de 17,4 px ocupaban **133 px** —`grid-template-rows:
-   * 50.7px 132.6px 200px`—, y esos ~80 px de nada entre la frase y la tabla es
-   * justo lo que se ve como espacio muerto.
-   *
-   * Es el mismo defecto que ya se corrigió en los vacíos de Recopiladores. Va
-   * en la regla compartida y no en un panel concreto porque la clase se usa en
-   * decenas de paneles del perfil, todos en grid. */
+  /* En un grid `align-self` vale `stretch`: dos líneas de texto ocupaban 133 px
+     en Agenda > «Aulas agendadas», y esos ~80 px de nada son el espacio muerto. */
   align-self: start;
 }
 
@@ -1436,7 +1445,7 @@
   min-height: 82px;
   padding: 10px;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: var(--pulso-radius-card); /* era 12px, entre peldaños; ver GOAL 2026-08-28 */
   background: rgba(255, 255, 255, 0.9);
 }
 
@@ -2089,6 +2098,28 @@
   overflow: auto;
   border: 1px solid var(--pulso-border);
   border-radius: 12px;
+}
+
+/* **La señal de que hay columnas a la derecha.** Medido en Consultas > Parte:
+   454 px ocultos, y nada lo decía —la última columna se leía partida y parecía
+   un recorte—. Va como pseudo-elemento `sticky` y NO como `background` del
+   contenedor: ese intento no se vio (2026-09-12), porque el degradado queda
+   detrás de la tabla. `float` lo mete en el flujo desplazable y `sticky` lo
+   pega al borde visible, así que aparece sólo mientras quede algo por ver. */
+.mon-profile-table-wrap::after {
+  content: "";
+  position: sticky;
+  right: 0;
+  float: right;
+  width: 26px;
+  height: 100%;
+  margin-left: -26px;
+  pointer-events: none;
+  background: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--pulso-text) 14%, transparent),
+    transparent
+  );
 }
 
 .mon-profile-table {
@@ -20218,4 +20249,28 @@ button.mon-acr-requirement-metric:active {
   font-size: 11px;
   font-weight: 600;
   color: var(--pulso-state-partial-fg);
+}
+
+
+/* El control de seccion en la cabecera: a la derecha del titulo y antes de las
+   pastillas, con su propio hueco para que no se pegue a ninguno de los dos.
+   `margin-left: auto` lo empuja al lado libre cuando no hay pastillas. */
+.mon-workbench-head-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* **El control trae su layout puesto.**
+   El selector de facultad se estila con `.mon-profile-page.is-aulas-flow
+   .aulas-serie-mando`, y la cabecera del workbench esta FUERA de ese ancestro:
+   al subirlo aqui perdia su `display: flex` y sus cuatro controles se apilaban
+   en vertical. Se le da el layout tambien desde este lado, que es el que
+   siempre aplica cuando el control vive en la cabecera. */
+.mon-workbench-head-control > * {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
 }

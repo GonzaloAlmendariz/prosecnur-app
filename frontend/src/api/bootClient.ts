@@ -141,9 +141,25 @@ export async function bootApiHealth() {
 }
 
 export async function bootApiSystemBootstrap() {
-  return handle<{ sid: string | null }>(
+  const body = await handle<{ sid: string | null }>(
     await apiFetch("/api/system/bootstrap", { headers: headers() }),
   );
+  // El sid del bootstrap viaja en el CUERPO, no en la cabecera. `handle()`
+  // sólo adopta sesión desde `X-Pulso-Session`, y esta ruta no la emite, así
+  // que sin esta línea nadie guardaba el sid: la llamada devolvía la sesión
+  // con el proyecto ya cargado y el resto del arranque seguía sin sesión.
+  //
+  // En Electron no se veía porque el proyecto entra por `getLaunchProject()`,
+  // que abre por ruta. Fuera de Electron —un navegador contra el 8787, que es
+  // como se mira la app cuando el shell no está abierto— el efecto era que
+  // `PULSO_BOOTSTRAP_PROJECT` se cargaba en el backend, el frontend lo pedía,
+  // lo recibía y lo tiraba: `project/status` salía sin sid, contestaba
+  // `has_project: false` y el arranque terminaba en el selector de proyecto.
+  //
+  // Y el backend consume el bootstrap al entregarlo (una sola vez, a
+  // propósito), así que ese sid perdido no se podía volver a pedir.
+  if (typeof body?.sid === "string" && body.sid.trim()) setSession(body.sid.trim());
+  return body;
 }
 
 export async function bootApiCreateSession(options: { fresh?: boolean } = {}) {

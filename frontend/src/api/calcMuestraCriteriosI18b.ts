@@ -100,6 +100,21 @@ export type CalcMuestraCriteriosCascada = {
   source_frame_hash: string;
   criteria_hash: string;
   momento: "marco_ejecutado" | "borrador_no_persistido";
+  /**
+   * Los pasos de ALUMNO reflejan el borrador. `false` cuando el preview corre
+   * sobre un contexto rehidratado del marco guardado: los de curso-horario son
+   * vivos, los de alumno son los del marco construido y sus pasos vienen como
+   * `sin_recuento`. Ausente en payloads anteriores ⇒ se asume `true`.
+   */
+  alumnos_vivos: boolean;
+  /**
+   * `classroom_id` de los cursos-horario que el marco CONSTRUIDO incluye y el
+   * borrador ya no. La lista del marco sale del `aula_frame` ejecutado y no
+   * tiene forma de saber cuáles descarta el borrador: contar no basta para
+   * dejar de enseñarlos, y reevaluar los criterios aquí sería tener la regla en
+   * dos sitios. La identidad la publica quien decide. Vacío en la ejecutada.
+   */
+  descartadas: string[];
   grain: "paso_x_facultad_efectiva";
   unit: "curso_horario_unico";
   order_source: "motor_r";
@@ -187,6 +202,27 @@ function text(value: unknown): string | Invalid {
   if (typeof parsed !== "string") return INVALID;
   const result = parsed.trim();
   return result && result.toUpperCase() !== "NA" ? result : INVALID;
+}
+
+/**
+ * Etiqueta OPCIONAL: vacía es un valor legítimo, no un payload corrupto.
+ *
+ * `periodo` nombra el estudio de referencia del que salen las anclas
+ * históricas; su identidad es `reference_hash`, no este rótulo. Medido el
+ * 2026-08-25 sobre HSVG26DEF: la referencia estaba cargada sin etiqueta de
+ * periodo, así que `periodo` llegaba vacío en la raíz y en las 260 filas.
+ * Con `text()` eso es INVALID, las anclas enteras se descartaban y —como el
+ * bundle es todo-o-nada— caían con ellas los totales y la cascada. Efecto
+ * final: `previewRequest` nulo, el recorrido vivo apagado para siempre y el
+ * embudo mostrando la cascada ejecutada sin decir que no era la del borrador.
+ * Un rótulo ausente no puede costar el recorrido vivo entero.
+ */
+function optionalLabel(value: unknown): string | Invalid {
+  const parsed = unwrap(value);
+  if (parsed === null || parsed === undefined) return "";
+  if (typeof parsed !== "string") return INVALID;
+  const result = parsed.trim();
+  return result && result.toUpperCase() !== "NA" ? result : "";
 }
 
 function nullableText(value: unknown): string | null | Invalid {
@@ -527,7 +563,13 @@ export function normalizeCalcMuestraCriteriosCascada(
     if (
       order === INVALID || criterionId === INVALID || cardId === INVALID ||
       label === INVALID || scope === INVALID || gate === INVALID || applies === INVALID ||
-      status === INVALID || !["aplicado", "inactivo", "informativo"].includes(status) ||
+      status === INVALID ||
+      // `sin_recuento`: el preview corre sin la tabla atómica estudiante x CH
+      // —contexto rehidratado desde el marco guardado— y no puede recalcular el
+      // efecto de un criterio de ALUMNO. El motor lo declara en vez de dejarlo
+      // pasar sobre cifras vacías. Va en la lista porque esta guarda RECHAZA lo
+      // que no reconoce: sin él, un estado nuevo invalida la cascada entera.
+      !["aplicado", "inactivo", "informativo", "sin_recuento"].includes(status) ||
       facultiesRaw === null || !total || orders.has(order) ||
       criterionIds.has(criterionId) || order <= previousOrder ||
       order !== steps.length + 1 ||
@@ -620,6 +662,13 @@ export function normalizeCalcMuestraCriteriosCascada(
     source_frame_hash: sourceFrameHash,
     criteria_hash: criteriaHash,
     momento,
+    // Ausente en payloads anteriores al contexto rehidratado: se asume vivo,
+    // que es como se comportaba el preview cuando sólo existía con el marco
+    // construido en la sesión.
+    alumnos_vivos: source.alumnos_vivos !== false,
+    descartadas: (Array.isArray(source.descartadas) ? source.descartadas : [])
+      .map((id) => (typeof id === "string" ? id.trim() : ""))
+      .filter((id) => id.length > 0),
     grain,
     unit,
     order_source: orderSource,
@@ -723,7 +772,7 @@ export function normalizeCalcMuestraCriteriosAnclasHistoricas(
   const sourceFrameHash = text(source.source_frame_hash);
   const referenceSchema = text(source.reference_schema);
   const referenceHash = text(source.reference_hash);
-  const periodo = text(source.periodo);
+  const periodo = optionalLabel(source.periodo);
   const grain = literal(source.grain, ["criterio_x_facultad_efectiva"] as const);
   const facultyDimensions = anchorFacultyDimensions(source.faculty_dimensions);
   const referenceFacultyDimension = literal(
@@ -775,7 +824,7 @@ export function normalizeCalcMuestraCriteriosAnclasHistoricas(
     const icHigh = rate(row.ic_high);
     const metodoIc = text(row.metodo_ic);
     const suficiencia = text(row.suficiencia);
-    const rowPeriod = text(row.periodo);
+    const rowPeriod = optionalLabel(row.periodo);
     const warning = text(row.warning);
     if (
       criterionId === INVALID || cardId === INVALID || facultyKey === INVALID ||
@@ -1004,6 +1053,31 @@ export type CalcMuestraCriteriosPreviewResponse = {
   ok: true;
   preview: CalcMuestraCriteriosCascada;
 };
+
+/**
+ * Pide recuperar el recuento de ESTUDIANTES releyendo la base.
+ *
+ * El recorrido de curso-horario ya vive desde el marco guardado; el efecto de un
+ * criterio de alumno exige la tabla atómica, que no viaja en el `.pulso`. El
+ * backend la relee con las fuentes que el marco firma y verifica el resultado
+ * contra ese marco antes de adoptarlo. Va como job: medido sobre HSVG26DEF, ~70 s.
+ *
+ * `ya_vivo` cuando la sesión ya tiene la tabla y no hay nada que releer.
+ */
+export async function apiCalcMuestraCriteriosRehidratar(): Promise<
+  { mode: "ya_vivo" } | { mode: "job"; jobId: string }
+> {
+  const response = await handle<{ ok: true; mode: string; job_id?: string }>(
+    await apiFetch("/api/calc-muestra/marco/criterios/rehidratar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
+    }),
+  );
+  return response.mode === "job" && response.job_id
+    ? { mode: "job", jobId: response.job_id }
+    : { mode: "ya_vivo" };
+}
 
 export async function apiCalcMuestraCriteriosPreview(
   input: CalcMuestraCriteriosPreviewInput,

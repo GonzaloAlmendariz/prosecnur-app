@@ -1,0 +1,936 @@
+# Publicar el libro de aulas al Google Sheets del operativo.
+#
+# Unidad B1. Decisión textual de Gonzalo (2026-08-31): «El frontend debería
+# poder tener un campo para poner el enlace del nuevo sheets y recordarlo, para
+# escribir sobre él y leer, SIN SOBREESCRIBIR las dos primeras hojas, que las
+# llenan desde el sheets, no desde la app».
+#
+# Traducción a contrato — dueño POR HOJA, no por documento:
+#   - «Aulas Agendadas» y «Aulas Aplicadas (Campo)» son del EQUIPO: la app las
+#     siembra solo si la pestaña no existe o está vacía; con CUALQUIER contenido
+#     remoto no emite ni una escritura sobre ellas y las declara `respetada`.
+#     La regla es de dueño, no de delta: un plan cambiado en la app NO abre la
+#     puerta.
+#   - «Base de control» es de la APP: se publica siempre, con el delta del motor
+#     (sin cambios → sin request de values → `sin_cambios`).
+#
+# `monitoreo_aulas_publicar_libro()` (R/monitoreo_aulas_publicar_libro.R, NUEVO)
+# produce los values con los generadores existentes (aulas_libro_hoja_*) y envía
+# por el motor batch+hash (`monitoreo_sheets_publish_tabs`). Devuelve un resumen
+# por hoja: `hoja`, `accion` ∈ {sembrada, actualizada, sin_cambios, respetada} y
+# `filas`.
+#
+# El mock calca `.msi_sheets_mock()` (test-monitoreo-sync-incremental.R) y le
+# suma lo que esta regla necesita: contestar lecturas de values (para que la
+# implementación pueda preguntar si una pestaña tiene contenido) y APLICAR los
+# values:batchUpdate al estado, para que una siembra deje huella que la segunda
+# publicación y el lector releen. Sin red: todo pasa por `.monitoreo_google_api`
+# mockeado.
+
+.mapl_sin_comillas <- function(rango) {
+  rango <- sub("!.*$", "", as.character(rango %||% "")[1])
+  gsub("''", "'", sub("^'(.*)'$", "\\1", rango))
+}
+
+.mapl_sheets_mock <- function() {
+  env <- new.env(parent = emptyenv())
+  env$sheets <- list()
+  env$calls <- list()
+  env$next_id <- 100L
+  sembrar <- function(titulo, values = list()) {
+    env$sheets[[titulo]] <- list(
+      sheetId = env$next_id, title = titulo,
+      developerMetadata = list(), values = values
+    )
+    env$next_id <- env$next_id + 1L
+  }
+  handler <- function(url, method = "GET", body = NULL) {
+    env$calls[[length(env$calls) + 1L]] <- list(url = url, method = method, body = body)
+    if (grepl("/values:batchUpdate$", url)) {
+      for (entry in body$data %||% list()) {
+        titulo <- .mapl_sin_comillas(entry$range)
+        if (nzchar(titulo) && !is.null(env$sheets[[titulo]])) {
+          env$sheets[[titulo]]$values <- entry$values
+        }
+      }
+      return(list(totalUpdatedSheets = length(body$data %||% list())))
+    }
+    if (grepl("/values:batchGet", url)) {
+      crudos <- regmatches(url, gregexpr("ranges=[^&]+", url))[[1]]
+      vr <- lapply(crudos, function(r) {
+        titulo <- .mapl_sin_comillas(utils::URLdecode(sub("^ranges=", "", r)))
+        list(range = titulo, values = env$sheets[[titulo]]$values %||% list())
+      })
+      return(list(valueRanges = vr))
+    }
+    if (grepl("/values/", url)) {
+      pedazo <- sub("[?].*$", "", sub(".*/values/", "", url))
+      titulo <- .mapl_sin_comillas(utils::URLdecode(pedazo))
+      return(list(values = env$sheets[[titulo]]$values %||% list()))
+    }
+    if (grepl("[?]fields=", url)) {
+      return(list(
+        spreadsheetId = "sheet_libro",
+        sheets = unname(lapply(env$sheets, function(s) list(
+          properties = list(
+            sheetId = s$sheetId,
+            title = s$title,
+            gridProperties = list(rowCount = 1000L, columnCount = 26L)
+          ),
+          developerMetadata = s$developerMetadata
+        )))
+      ))
+    }
+    if (grepl(":batchUpdate$", url)) {
+      apply_metadata <- function(sheet_id, key, value, update = FALSE) {
+        for (nm in names(env$sheets)) {
+          if (!identical(env$sheets[[nm]]$sheetId, sheet_id)) next
+          md <- env$sheets[[nm]]$developerMetadata
+          if (isTRUE(update)) {
+            for (j in seq_along(md)) {
+              if (identical(md[[j]]$metadataKey, key)) md[[j]]$metadataValue <- value
+            }
+          } else {
+            md[[length(md) + 1L]] <- list(metadataKey = key, metadataValue = value)
+          }
+          env$sheets[[nm]]$developerMetadata <- md
+        }
+      }
+      for (request in body$requests %||% list()) {
+        title <- request$addSheet$properties$title %||% ""
+        if (nzchar(title)) sembrar(title)
+        cdm <- request$createDeveloperMetadata$developerMetadata
+        if (!is.null(cdm)) apply_metadata(cdm$location$sheetId, cdm$metadataKey, cdm$metadataValue)
+        udm <- request$updateDeveloperMetadata
+        if (!is.null(udm)) {
+          apply_metadata(
+            udm$developerMetadata$location$sheetId,
+            udm$developerMetadata$metadataKey,
+            udm$developerMetadata$metadataValue,
+            update = TRUE
+          )
+        }
+      }
+      return(list(replies = list()))
+    }
+    list()
+  }
+  list(env = env, handler = handler, seed = sembrar)
+}
+
+# --- lecturas del registro de llamadas --------------------------------------
+
+# Títulos de pestaña que recibieron values en algún values:batchUpdate.
+.mapl_values_titulos <- function(calls) {
+  out <- character(0)
+  for (call in calls) {
+    if (!grepl("/values:batchUpdate$", call$url)) next
+    for (entry in call$body$data %||% list()) {
+      out <- c(out, .mapl_sin_comillas(entry$range))
+    }
+  }
+  out
+}
+
+# Las llamadas registradas DESPUÉS de un corte (sin contar hacia atrás si no
+# hubo ninguna nueva: seq.int(n+1, n) descendería).
+.mapl_desde <- function(calls, corte) {
+  if (length(calls) <= corte) return(list())
+  calls[seq.int(corte + 1L, length(calls))]
+}
+
+# Requests de los batchUpdate estructurales (addSheet, reset, formato, estado).
+.mapl_batch_requests <- function(calls) {
+  out <- list()
+  for (call in calls) {
+    if (!grepl(":batchUpdate$", call$url)) next
+    if (grepl("values:batchUpdate", call$url, fixed = TRUE)) next
+    out <- c(out, call$body$requests %||% list())
+  }
+  out
+}
+
+.mapl_addsheet_titulos <- function(calls) {
+  reqs <- .mapl_batch_requests(calls)
+  titulos <- vapply(reqs, function(r) as.character(r$addSheet$properties$title %||% ""), character(1))
+  titulos[nzchar(titulos)]
+}
+
+# Todos los sheetId referidos dentro de una estructura de requests, recursivo:
+# updateCells, repeatCell, updateSheetProperties, metadata… da igual la forma.
+.mapl_sheet_ids_en <- function(x) {
+  out <- integer(0)
+  if (!is.list(x)) return(out)
+  nombres <- names(x) %||% rep("", length(x))
+  for (i in seq_along(x)) {
+    v <- x[[i]]
+    if (identical(nombres[[i]], "sheetId") && length(v) == 1L) {
+      id <- suppressWarnings(as.integer(v))
+      if (!is.na(id)) out <- c(out, id)
+    } else if (is.list(v)) {
+      out <- c(out, .mapl_sheet_ids_en(v))
+    }
+  }
+  out
+}
+
+# --- lectura del resumen por hoja -------------------------------------------
+
+.mapl_resumen <- function(res) {
+  candidatos <- res$hojas %||% res
+  hojas <- Filter(function(h) is.list(h) && nzchar(as.character(h$hoja %||% "")), candidatos)
+  stats::setNames(hojas, vapply(hojas, function(h) as.character(h$hoja), character(1)))
+}
+
+.mapl_accion <- function(res, hoja) {
+  resumen <- .mapl_resumen(res)
+  if (!hoja %in% names(resumen)) return("")
+  as.character(resumen[[hoja]]$accion %||% "")
+}
+
+.mapl_filas <- function(res, hoja) {
+  resumen <- .mapl_resumen(res)
+  if (!hoja %in% names(resumen)) return(NA_real_)
+  suppressWarnings(as.numeric(resumen[[hoja]]$filas %||% NA_real_))[1]
+}
+
+.mapl_retenidos <- function(res, hoja) {
+  for (h in res$hojas) if (identical(h$hoja, hoja)) return(as.character(h$rotulos_retenidos %||% character(0)))
+  character(0)
+}
+
+.mapl_hojas_datos <- c("Aulas Agendadas", "Aulas Aplicadas (Campo)", "Base de control")
+.mapl_hojas_equipo <- c("Aulas Agendadas", "Aulas Aplicadas (Campo)")
+
+# Un parte de campo del equipo, con el vocabulario que produce el LECTOR
+# (`carga_aulas_aplicadas.R`), que es de donde viene en un estudio real.
+# El parte trae su `application_status`: desde el 2026-09-07 la «Base de control»
+# escribe SOLO lo aplicado, así que sin el veredicto esta aula no tendría fila y
+# el libro de prueba dejaría de ejercitar esa hoja.
+.mapl_partes <- function() list(
+  list(operational_code = "CH 1", intento = 1L, observed_students = 30,
+       refusals = 2, duplicates = 0, effective_surveys = 28,
+       application_status = "APLICADA",
+       applied_by = "Ana", actual_room = "L321", applied_date = "2026-08-12")
+)
+
+# --- contexto (verde deliberado): el adaptador df→values sigue en pie -------
+
+test_that("contexto: los generadores del libro entregan la cabecera como primera fila", {
+  # Assert de CONTEXTO, verde también en fase roja: pinea la entrada que
+  # `monitoreo_aulas_publicar_libro()` va a adaptar (data.frame sin nombres con
+  # la cabecera como primera fila). Si un generador cambia de forma, el rojo de
+  # los tests de abajo dejaría de significar «falta la función».
+  hoja <- aulas_libro_hoja_agendadas(.libro_de_prueba())
+  expect_true(is.data.frame(hoja))
+  expect_identical(as.character(hoja[1, 1]), "ID MATCH")
+  hoja_campo <- aulas_libro_hoja_aplicadas(.libro_de_prueba(), partes = .mapl_partes())
+  expect_true(is.data.frame(hoja_campo))
+  expect_gte(nrow(hoja_campo), 3L) # dos cabeceras + al menos el titular
+  # Con los partes, igual que la llama el publicador: la hoja escribe lo
+  # aplicado y el veredicto viaja en el parte.
+  hoja_control <- aulas_libro_hoja_control(.libro_de_prueba(), partes = .mapl_partes())
+  expect_true(is.data.frame(hoja_control))
+  expect_gte(nrow(hoja_control), 3L)
+})
+
+# --- 1. siembra completa -----------------------------------------------------
+
+test_that("libro a Sheets: un documento vacío recibe las tres hojas sembradas", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes()
+  )
+
+  for (hoja in .mapl_hojas_datos) {
+    expect_identical(.mapl_accion(res, hoja), "sembrada", info = hoja)
+    expect_gt(.mapl_filas(res, hoja), 0)
+  }
+  # El mock registró la creación de las tres pestañas…
+  creadas <- .mapl_addsheet_titulos(mock$env$calls)
+  expect_true(all(.mapl_hojas_datos %in% creadas))
+  # …y UN solo values:batchUpdate que las incluye (la siembra va en batch,
+  # como el resto de la publicación incremental).
+  values_calls <- Filter(function(c) grepl("/values:batchUpdate$", c$url), mock$env$calls)
+  expect_identical(length(values_calls), 1L)
+  expect_true(all(.mapl_hojas_datos %in% .mapl_values_titulos(mock$env$calls)))
+})
+
+# --- 2. dueño por hoja: contenido del equipo = intocable ---------------------
+
+test_that("una hoja respetada dice QUÉ rótulos no le llegaron", {
+  # Respetar la hoja del equipo es correcto y no se discute. Lo que no puede
+  # pasar es que el recibo lo calle: medido el 2026-09-18 sobre CCSS, el libro
+  # ganó la columna CARRERA y las cuatro hojas que crecieron son las del equipo,
+  # así que republicar devolvía cuatro «respetada» y ninguna señal de que la
+  # columna se quedó fuera. Con el campo a cuatro días.
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  # La hoja viva del equipo tiene «ID MATCH» y no tiene «CURSO-HORARIO».
+  mock$seed("Aulas Agendadas", values = list(
+    list("ID MATCH", "OLA"),
+    list("CH 1", "agendada a mano por el equipo")
+  ))
+  mock$seed("Base de control", values = list(list("corte viejo")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes()
+  )
+
+  retenidos <- .mapl_retenidos(res, "Aulas Agendadas")
+  expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
+  # Lo que el motor produce y esa hoja no tiene, por su nombre.
+  expect_true("CURSO-HORARIO" %in% retenidos)
+  # Y lo que sí tiene NO se reporta como retenido: sin esta mitad, publicar la
+  # cabecera entera pasaría por «te faltan todas» y no diría nada.
+  expect_false("ID MATCH" %in% retenidos)
+  # Una hoja de la APP no retiene nada: se reasserta entera.
+  expect_identical(.mapl_retenidos(res, "Base de control"), character(0))
+})
+
+
+test_that("libro a Sheets: las hojas del equipo con contenido quedan respetadas", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  # El equipo ya trabajó sus dos hojas EN el Sheets (no vinieron de la app).
+  mock$seed("Aulas Agendadas", values = list(
+    list("ID MATCH", "OLA"),
+    list("CH 1", "agendada a mano por el equipo")
+  ))
+  mock$seed("Aulas Aplicadas (Campo)", values = list(
+    list("IDENTIDAD DEL AULA"),
+    list("CODIGO DE CURSO"),
+    list("CH 1")
+  ))
+  # La base de control existe con un corte viejo de la app: SÍ se actualiza.
+  mock$seed("Base de control", values = list(list("corte viejo")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  id_agendadas <- mock$env$sheets[["Aulas Agendadas"]]$sheetId
+  id_aplicadas <- mock$env$sheets[["Aulas Aplicadas (Campo)"]]$sheetId
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes()
+  )
+
+  expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
+  expect_identical(.mapl_accion(res, "Aulas Aplicadas (Campo)"), "respetada")
+  expect_identical(.mapl_accion(res, "Base de control"), "actualizada")
+
+  # Ni un values sobre las hojas del equipo; la base de control sí viaja.
+  tocadas <- .mapl_values_titulos(mock$env$calls)
+  expect_false(any(.mapl_hojas_equipo %in% tocadas))
+  expect_true("Base de control" %in% tocadas)
+
+  # Sobre los sheetId del equipo sí puede haber requests —desde el 2026-09-12
+  # el FORMATO viaja, por decisión de Gonzalo—, pero cada uno tiene que pasar
+  # el filtro: colores y desplegables sí, contenido jamás. Antes esta línea
+  # decía «ni un request», y el precio era que el morado de «REFUERZO POR
+  # CONTACTAR» no llegaba a la hoja donde se teclea ese estado.
+  estructurales <- Filter(function(r) is.null(r$addSheet), .mapl_batch_requests(mock$env$calls))
+  del_equipo <- Filter(function(r) {
+    any(.mapl_sheet_ids_en(list(r)) %in% c(id_agendadas, id_aplicadas))
+  }, estructurales)
+  for (r in del_equipo) expect_true(prosecnurapp:::.mafr_seguro(r))
+
+  # Y el contenido del equipo sigue intacto en el remoto.
+  expect_identical(
+    as.character(mock$env$sheets[["Aulas Agendadas"]]$values[[2]][[2]]),
+    "agendada a mano por el equipo"
+  )
+})
+
+# --- 3. delta de la base de control ------------------------------------------
+
+test_that("libro a Sheets: republicar sin cambios de control no reescribe nada", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  plan <- .libro_de_prueba()
+
+  monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = plan, partes = .mapl_partes()
+  )
+  primeras <- length(mock$env$calls)
+
+  res2 <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = plan, partes = .mapl_partes()
+  )
+
+  # Las sembradas ya tienen contenido (el de la siembra): pasan a ser del
+  # equipo y quedan respetadas. La base de control no cambió: sin_cambios.
+  expect_identical(.mapl_accion(res2, "Aulas Agendadas"), "respetada")
+  expect_identical(.mapl_accion(res2, "Aulas Aplicadas (Campo)"), "respetada")
+  expect_identical(.mapl_accion(res2, "Base de control"), "sin_cambios")
+
+  segundas <- .mapl_desde(mock$env$calls, primeras)
+  # Tres del ciclo más DOS. La serie: **4** desde el 2026-09-12, cuando el
+  # formato empezó a reenviarse a las hojas del equipo (decisión de Gonzalo) con
+  # su `batchUpdate` de formato; y **5** desde el 2026-09-17, cuando ese reenvío
+  # pasó a LIMPIAR las reglas antes de pintarlas. La llamada que se suma es un
+  # GET que cuenta las reglas que ya hay, y es **una sola para todo el
+  # documento** por muchas hojas que lleve. Sin ella las reglas se acumulaban:
+  # medido sobre el Sheets vivo de CCSS, «Aulas Agendadas» pasó de 37 a 62 a 137
+  # reglas en cuatro publicaciones.
+  expect_lte(length(segundas), 5L)
+  urls <- vapply(segundas, function(c) c$url, character(1))
+  expect_false(any(grepl("values:batchUpdate", urls, fixed = TRUE)))
+
+  # **Y lo que viaja en esa llamada no puede escribir una sola celda.** Es la
+  # línea que el «sí» de Gonzalo no borra: pintar su hoja es seguro, escribirla
+  # les borraría el trabajo.
+  formato <- Filter(function(c) grepl(":batchUpdate", c$url, fixed = TRUE) &&
+                      !grepl("values:batchUpdate", c$url, fixed = TRUE), segundas)
+  for (llamada in formato) {
+    for (req in (llamada$body$requests %||% list())) {
+      expect_true(prosecnurapp:::.mafr_seguro(req))
+      expect_false(grepl("userEnteredValue", paste(unlist(req), collapse = " "), fixed = TRUE))
+    }
+  }
+})
+
+# --- 4. la regla es de dueño, no de delta ------------------------------------
+
+test_that("libro a Sheets: un plan cambiado NO reescribe las hojas del equipo", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(2L), partes = .mapl_partes()
+  )
+  agendadas_sembradas <- mock$env$sheets[["Aulas Agendadas"]]$values
+  primeras <- length(mock$env$calls)
+
+  # La app cambió el plan: cadena más profunda → values distintos para las
+  # tres hojas. El hash distinto NO abre la puerta de las hojas del equipo.
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(4L), partes = .mapl_partes()
+  )
+
+  expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
+  expect_identical(.mapl_accion(res, "Aulas Aplicadas (Campo)"), "respetada")
+  expect_identical(.mapl_accion(res, "Base de control"), "actualizada")
+
+  nuevas <- .mapl_desde(mock$env$calls, primeras)
+  tocadas <- .mapl_values_titulos(nuevas)
+  expect_false(any(.mapl_hojas_equipo %in% tocadas))
+  expect_true("Base de control" %in% tocadas)
+  # El remoto conserva byte a byte lo sembrado con el plan viejo.
+  expect_identical(mock$env$sheets[["Aulas Agendadas"]]$values, agendadas_sembradas)
+})
+
+# --- 5. los nombres son los que el lector relee sin configurar ---------------
+
+test_that("libro a Sheets: lo publicado se relee con aulas_libro_leer_de_sheets sin configurar", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(), partes = .mapl_partes()
+  )
+
+  # Los nombres de pestaña son EXACTAMENTE los de la spec del libro…
+  hojas_spec <- vapply(AULAS_LIBRO_HOJAS, function(x) x$hoja, character(1))
+  expect_true(all(hojas_spec %in% names(mock$env$sheets)))
+
+  # …así que el lector con sus valores por defecto las encuentra las tres.
+  hojas <- aulas_libro_leer_de_sheets("sheet_libro")
+  expect_setequal(names(hojas), c("agendadas", "aplicadas", "control"))
+
+  # Y la vuelta entera funciona: el plan releído trae al titular sembrado.
+  releido <- aulas_libro_desde_valores(hojas$agendadas, "agendadas")
+  codigos <- vapply(releido, function(p) as.character(p$operational_code %||% ""), character(1))
+  expect_true("CH 1" %in% codigos)
+})
+
+# --- C. destino recordado -----------------------------------------------------
+
+test_that("el destino del operativo se guarda en la config y se relee", {
+  # Contrato mínimo (guardar → leer); la forma final del setter la fija
+  # backend-r. Lo pineado: la ruta de lectura es
+  # cfg$aulas_universitarias$libro_sheets$spreadsheet_id, el campo del frontend
+  # trae el ENLACE (decisión 2026-08-31) y el helper devuelve el id pelado. El
+  # id NO es secreto (el token sí, ADR 0005): puede viajar en cfg/.pulso.
+  expect_true(exists("monitoreo_aulas_libro_destino", mode = "function"))
+
+  cfg <- list(aulas_universitarias = list(libro_sheets = list(spreadsheet_id = "1AbC_deF-123")))
+  expect_identical(monitoreo_aulas_libro_destino(cfg), "1AbC_deF-123")
+
+  cfg_enlace <- list(aulas_universitarias = list(libro_sheets = list(
+    spreadsheet_id = "https://docs.google.com/spreadsheets/d/1AbC_deF-123/edit#gid=0"
+  )))
+  expect_identical(monitoreo_aulas_libro_destino(cfg_enlace), "1AbC_deF-123")
+
+  # Sin destino guardado: vacío, no error.
+  expect_identical(as.character(monitoreo_aulas_libro_destino(list()) %||% "")[1], "")
+
+  # `$` parcial-matchea (config$plan pescó plan_rows): una clave hermana no es
+  # el destino.
+  cfg_trampa <- list(aulas_universitarias = list(
+    libro_sheets_borrador = list(spreadsheet_id = "NO-ES-EL-DESTINO")
+  ))
+  expect_identical(as.character(monitoreo_aulas_libro_destino(cfg_trampa) %||% "")[1], "")
+})
+
+test_that("el publicador vive en su archivo propio", {
+  r_dir <- testthat::test_path("..", "..", "R")
+  skip_if_not(dir.exists(r_dir), "sin fuentes R/ a mano (paquete instalado)")
+  expect_true(file.exists(file.path(r_dir, "monitoreo_aulas_publicar_libro.R")))
+})
+
+# --- B68 tercera pata: la hoja «Asignación de aplicadores» -------------------
+
+.mapl_disponibilidad <- function() list(
+  list(nombre = "Ana Prueba", dias = stats::setNames(
+    rep(list(list(list(inicio = "08:00", fin = "22:00"))), 6L),
+    c("lunes", "martes", "miercoles", "jueves", "viernes", "sabado")
+  ))
+)
+
+test_that("B68: con disponibilidad, la asignación entra como hoja de la APP y las del equipo siguen intactas", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  # Las dos hojas del equipo YA tienen contenido tecleado: el miedo textual de
+  # Gonzalo («tengo miedo de que lo que se está avanzando se sobreescriba o
+  # pierda») es exactamente este escenario.
+  mock$seed("Aulas Agendadas", list(list("ID MATCH"), list("algo del equipo")))
+  mock$seed("Aulas Aplicadas (Campo)", list(list("x"), list("y"), list("tecleado")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes(),
+    disponibilidad = .mapl_disponibilidad(),
+    config_reparto = list(duracion_aplicacion_min = 30L)
+  )
+
+  # La hoja nueva se siembra como hoja de la app…
+  expect_identical(.mapl_accion(res, "Asignación de aplicadores"), "sembrada")
+  # …y las del equipo, CON contenido, no reciben ni un request: respetadas.
+  expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
+  expect_identical(.mapl_accion(res, "Aulas Aplicadas (Campo)"), "respetada")
+
+  # El contenido publicado es el del motor: protocolo, día y equidad.
+  vals <- mock$env$sheets[["Asignación de aplicadores"]]$values
+  texto <- paste(unlist(vals), collapse = " | ")
+  expect_match(texto, "ASIGNACIÓN DE APLICADORES")
+  expect_match(texto, "Materiales se recogen 30 min antes")
+  expect_match(texto, "CARGAS POR APLICADOR")
+  expect_match(texto, "Ana Prueba")
+})
+
+test_that("B68: sin disponibilidad la hoja NO juega — ni se crea ni se toca una remota previa", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  # Una publicación anterior dejó la hoja; esta sesión no tiene disponibilidad.
+  mock$seed("Asignación de aplicadores", list(list("ASIGNACIÓN DE APLICADORES"), list("contenido previo")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes()
+  )
+
+  hojas <- vapply(res$hojas, function(h) as.character(h$hoja), character(1))
+  expect_false("Asignación de aplicadores" %in% hojas)
+  # El contenido remoto previo sigue byte a byte.
+  expect_identical(
+    mock$env$sheets[["Asignación de aplicadores"]]$values[[2]][[1]],
+    "contenido previo"
+  )
+})
+
+# ── La disponibilidad del equipo, publicada ──────────────────────────────────
+#
+# Dictado 2026-09-04: «el Sheets debería tener una forma muy elegante de poder
+# mostrar la disponibilidad de cada encuestador en una hoja, para que el equipo
+# de campo también pueda saber cuándo o a quién reclutar y no dependa
+# enteramente de mí». Hermana de la de asignación: hoja de la APP y condicional
+# a que la sesión tenga oferta cargada.
+
+test_that("con disponibilidad, su hoja se publica y las del equipo siguen intactas", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  mock$seed("Aulas Agendadas", list(list("ID MATCH"), list("algo del equipo")))
+  mock$seed("Aulas Aplicadas (Campo)", list(list("x"), list("y"), list("tecleado")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes(),
+    disponibilidad = .mapl_disponibilidad(),
+    config_reparto = list(duracion_aplicacion_min = 30L)
+  )
+
+  expect_identical(.mapl_accion(res, "Disponibilidad de aplicadores"), "sembrada")
+  # La regla de dueño no se mueve por añadir una hoja de la app.
+  expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
+  expect_identical(.mapl_accion(res, "Aulas Aplicadas (Campo)"), "respetada")
+
+  # **«Avance de agendación» se publica SIEMPRE**, a diferencia de la
+  # asignación y la disponibilidad: lo que mide —qué está agendado y qué falta
+  # por agendar— existe desde el primer día, antes de que haya nadie repartido.
+  expect_identical(.mapl_accion(res, "Avance de agendación"), "sembrada")
+  agenda <- mock$env$sheets[["Avance de agendación"]]$values
+  texto_agenda <- paste(unlist(agenda), collapse = " | ")
+  expect_match(texto_agenda, "Avance de agendación", fixed = TRUE)
+  expect_match(texto_agenda, "Agendación por eslabón", fixed = TRUE)
+  expect_match(texto_agenda, "Rechazos con reemplazo agendado", fixed = TRUE)
+
+  vals <- mock$env$sheets[["Disponibilidad de aplicadores"]]$values
+  texto <- paste(unlist(vals), collapse = " | ")
+  expect_match(texto, "DISPONIBILIDAD DE APLICADORES")
+  # Las dos tablas que la hoja existe para cruzar (rehecha el 2026-09-04: tres
+  # ejes no caben en una columna). La segunda pasó a columnas por HORA el
+  # 2026-09-11 —él: «los rangos horarios ya siempre son iguales, entonces quién
+  # puede cada día tiene que sistematizarse por hora»— y su título cambió con
+  # ella. Se comprueba contra la constante y no contra el literal: éste fue el
+  # TERCER sitio que lo repetía, y los otros dos apagaron el color de la tabla
+  # en silencio al renombrarla.
+  expect_match(texto, prosecnurapp:::.ALD_TITULO_CONTEOS, fixed = TRUE)
+  expect_match(texto, prosecnurapp:::.ALD_TITULO_PERSONAS, fixed = TRUE)
+  expect_match(texto, "Ana Prueba")
+})
+
+test_that("sin disponibilidad la hoja NO juega — ni se crea ni se toca una remota previa", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  mock$seed("Disponibilidad de aplicadores",
+            list(list("DISPONIBILIDAD DE APLICADORES"), list("contenido previo")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes()
+  )
+
+  hojas <- vapply(res$hojas, function(h) as.character(h$hoja), character(1))
+  expect_false("Disponibilidad de aplicadores" %in% hojas)
+  expect_identical(
+    mock$env$sheets[["Disponibilidad de aplicadores"]]$values[[2]][[1]],
+    "contenido previo"
+  )
+})
+
+test_that("la pestaña está en la whitelist controlada, o la publicación reventaría", {
+  # `.monitoreo_sheets_validate_controlled_tabs()` frena escrituras ad hoc sobre
+  # pestañas del usuario; una hoja nueva que no se declare aquí no se publica,
+  # revienta con E_GOOGLE_SHEETS.
+  expect_true("Disponibilidad de aplicadores" %in% monitoreo_sheets_pestanas_controladas())
+})
+
+# ---------------------------------------------------------------------------
+# **Publicar LEE antes de escribir.**
+#
+# Las cuatro hojas del equipo se respetan —nunca se pisan— pero lo que el
+# encargado de campo teclea en ellas no entraba a la sesión, así que las hojas
+# que produce la app se generaban desde un estado viejo y lo contradecían.
+#
+# Medido el 2026-09-07: siete cursos-horario con aplicador, hora, salón y
+# APLICADA escritos en «Aulas Aplicadas (Campo)», y la Base de control publicada
+# enseñaba UNO. «Pero el encargado de campo ha estado registrando la info en el
+# excel».
+# ---------------------------------------------------------------------------
+
+test_that("la publicación lee las hojas del equipo antes de producir las suyas", {
+  llamadas <- character(0)
+  testthat::local_mocked_bindings(
+    aulas_libro_importar_sheets_en_sesion = function(sid, id, pestanas = list()) {
+      llamadas <<- c(llamadas, "importar")
+      list(resumen = list(partes_de_campo = 7L))
+    },
+    monitoreo_aulas_publicar_libro = function(...) {
+      llamadas <<- c(llamadas, "publicar")
+      list(ok = TRUE, hojas = list())
+    },
+    .package = "prosecnurapp"
+  )
+  sid <- session_create()
+  session_set(sid, "monitoreo_aulas_plan",
+              list(list(operational_code = "CH 1", sample_role = "titular")))
+  out <- monitoreo_aulas_publicar_libro_en_sesion(
+    sid, list(), "https://docs.google.com/spreadsheets/d/ABC123/edit")
+  # El ORDEN es lo que importa: leer y luego escribir.
+  expect_identical(llamadas, c("importar", "publicar"))
+  # Y el recibo lo dice, para que no sea un efecto invisible.
+  expect_true(isTRUE(out$lectura_previa$ok))
+  expect_equal(out$lectura_previa$resumen$partes_de_campo, 7L)
+})
+
+test_that("si el Sheets no se deja leer, la publicación sigue y lo declara", {
+  # Un Sheets que hoy no se puede leer —permisos, red— no puede impedir que el
+  # operativo publique: se declara en el recibo y se sigue con lo que la sesión
+  # tenga. Callarlo sería peor que las dos cosas.
+  testthat::local_mocked_bindings(
+    aulas_libro_importar_sheets_en_sesion = function(sid, id, pestanas = list()) {
+      stop("403 sin permiso de lectura")
+    },
+    monitoreo_aulas_publicar_libro = function(...) list(ok = TRUE, hojas = list()),
+    .package = "prosecnurapp"
+  )
+  sid <- session_create()
+  session_set(sid, "monitoreo_aulas_plan",
+              list(list(operational_code = "CH 1", sample_role = "titular")))
+  out <- monitoreo_aulas_publicar_libro_en_sesion(
+    sid, list(), "https://docs.google.com/spreadsheets/d/ABC123/edit")
+  expect_true(isTRUE(out$ok))
+  expect_false(isTRUE(out$lectura_previa$ok))
+  expect_match(out$lectura_previa$error, "permiso")
+})
+
+test_that("la publicación adopta los cambios manuales de la hoja de aplicadores", {
+  # Dictado 2026-09-09: «el sheets de distribución lo arma la app pero en el
+  # camino puede haber cambios manuales con respecto a quién recibe qué, y la
+  # app debe ser robusta en entender esos cambios».
+  #
+  # Sin esto, publicar rehacía «Asignación de aplicadores» desde un reparto SIN
+  # FIJAR y el sorteo nuevo no caía donde el ya comunicado: sobre el operativo
+  # real fueron 38 de 85 aulas con dos aplicadores distintos.
+  visto <- NULL
+  testthat::local_mocked_bindings(
+    aulas_libro_importar_sheets_en_sesion = function(sid, id, pestanas = list()) list(),
+    .malp_adoptar_distribucion = function(aulas_cfg, plan, s) list(
+      ok = TRUE, omitida = FALSE, motivo = "", error = "", hoja = "Semana 1",
+      fijadas = list("CH 1" = "Otro Aplicador"),
+      aplicadores_desconocidos = character(0)
+    ),
+    monitoreo_aulas_publicar_libro = function(..., config_reparto = list()) {
+      visto <<- config_reparto
+      list(ok = TRUE, hojas = list())
+    },
+    .package = "prosecnurapp"
+  )
+  sid <- session_create()
+  session_set(sid, "monitoreo_aulas_plan",
+              list(list(operational_code = "CH 1", sample_role = "titular")))
+  out <- monitoreo_aulas_publicar_libro_en_sesion(
+    sid, list(), "https://docs.google.com/spreadsheets/d/ABC123/edit")
+  # Lo escrito a mano llega al motor del reparto como fijación.
+  expect_equal(visto[["reparto_fijado"]][["CH 1"]], "Otro Aplicador")
+  # Y el recibo lo cuenta: un efecto invisible no se puede auditar.
+  expect_true(isTRUE(out$adopcion_distribucion$ok))
+  expect_equal(out$adopcion_distribucion$adoptadas, 1L)
+  expect_equal(out$adopcion_distribucion$hoja, "Semana 1")
+})
+
+# --- Publicar no es declarar éxito sin mirar ---------------------------------
+#
+# El 2026-09-12 el recibo decía «Plan del día: actualizada» mientras la celda
+# del área —el bloque que contesta «qué toca hoy»— estaba en `#REF!`. Nadie se
+# enteró hasta que alguien la leyó a mano diez horas después: la fórmula se
+# escribía con un PUT y se devolvía TRUE sin volver a mirarla.
+#
+# Ahora se lee la celda escrita y, si Sheets la dejó en error, el código viaja
+# en el recibo. La hoja NO se revierte —se escribió de verdad— pero deja de
+# poder decir «actualizada» sobre un bloque roto.
+
+test_that("si la fórmula del «Plan del día» queda en error, el recibo lo dice", {
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = mock$handler,
+    .mapds_formula_publicar = function(spreadsheet_id, hoja, values) invisible("#REF!")
+  )
+  out <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(), partes = .mapl_partes())
+  expect_true(isTRUE(out$ok))
+  expect_identical(out$plan_dia_formula_error, "#REF!")
+})
+
+test_that("cuando la fórmula queda bien el recibo no inventa un aviso", {
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = mock$handler,
+    .mapds_formula_publicar = function(spreadsheet_id, hoja, values) invisible(TRUE)
+  )
+  out <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(), partes = .mapl_partes())
+  expect_true(isTRUE(out$ok))
+  expect_identical(out$plan_dia_formula_error, "")
+})
+
+# --- una hoja de la app que ENCOGE se declara --------------------------------
+#
+# El 2026-09-12 una publicación hecha con el estado rearmado desde el propio
+# Sheets dejó «Base de control» sin 3.555 celdas y «Avance de campo» con 105
+# filas donde tenía 181 —al round-trip le faltaban las respuestas de plataforma
+# y media hoja de control—, y el recibo dijo «actualizada» las dos veces.
+# Encoger y actualizar se veían igual, y eso es lo que hace que nadie mire.
+
+test_that("publicar declara las hojas de la app que salen mucho más cortas", {
+  skip_if_not_installed("digest")
+  # Un plan de doce aulas en tres facultades y varios días: lo bastante para
+  # que las hojas de la app tengan cuerpo. Luego se publica con UNA, que es la
+  # forma de que encojan de verdad y no por una fila.
+  aula <- function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_role = "titular", operational_status = "agendada",
+    sample_status = "AGENDADA",
+    scheduled_date = sprintf("2026-09-%02d", 7 + (i %% 5)),
+    scheduled_time = sprintf("%02d:00", 8 + (i %% 8)),
+    faculty = c("DERECHO", "PSICOLOGÍA", "ARTE Y DISEÑO")[[1 + (i %% 3)]],
+    teacher = sprintf("Docente %d", i), course_name = sprintf("Curso %d", i))
+  grande <- lapply(1:12, aula)
+
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  primera <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = grande, partes = list())
+  # En la siembra no hay nada previo, así que nada puede encoger.
+  expect_length(primera$encogidas, 0L)
+
+  segunda <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = grande[1], partes = list())
+  expect_gt(length(segunda$encogidas), 0L)
+  for (e in segunda$encogidas) {
+    # Con sus dos cifras: «encogió» sin el antes y el después no deja decidir.
+    expect_true(nzchar(e$hoja))
+    expect_gt(e$antes, e$ahora)
+  }
+  # Y son hojas de la APP: las del equipo no pueden aparecer aquí, porque ni
+  # siquiera se escriben.
+  hojas <- vapply(segunda$encogidas, function(e) e$hoja, character(1))
+  expect_false(any(c("Aulas Agendadas", "Aulas Aplicadas (Campo)") %in% hojas))
+})
+
+test_that("una hoja que crece o se mantiene NO se declara encogida", {
+  skip_if_not_installed("digest")
+  aula <- function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_role = "titular", operational_status = "agendada",
+    sample_status = "AGENDADA", scheduled_date = "2026-09-08",
+    scheduled_time = "10:00", faculty = "DERECHO",
+    teacher = "Docente", course_name = "Curso")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = lapply(1:3, aula), partes = list())
+  crece <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = lapply(1:9, aula), partes = list())
+  expect_length(crece$encogidas, 0L)
+})
+
+# --- publicar se niega con reservas huérfanas, igual que generar -------------
+#
+# El 2026-09-12: `aulas_libro_generar()` se niega a escribir un libro cuyas
+# reservas no sepan de qué cadena son; este publicador NO lo comprobaba, y es el
+# que escribe en el documento del operativo. Publicar con un plan reconstruido
+# leyendo el propio Sheets —donde las reservas vuelven sin su titular— dejó
+# «Avance de agendación» con «Aulas del diseño» sumando 1.372 donde iban 170, y
+# estuvo así siete horas: no falló, no avisó, y el cotejo por forma no lo vio.
+#
+# Dos caminos que escriben el mismo libro no pueden tener dos contratos. El que
+# escribe en vivo, menos.
+
+test_that("publicar a Sheets se niega si una reserva no sabe de qué cadena es", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_role = "titular",
+         operational_status = "agendada", sample_status = "AGENDADA",
+         scheduled_date = "2026-09-11", scheduled_time = "10:00",
+         faculty = "DERECHO", teacher = "D", course_name = "C"),
+    # La huérfana: sin `titular_operational_code`.
+    list(operational_code = "R 1.1", classroom_id = "r11",
+         sample_role = "chain_reserve", sample_status = "EN RESERVA 1",
+         faculty = "DERECHO", teacher = "D2", course_name = "C2"))
+
+  expect_error(
+    monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = plan,
+                                   partes = .mapl_partes()),
+    "cadena")
+  # Y no escribió NADA antes de negarse: media publicación sería peor que
+  # ninguna.
+  expect_length(.mapl_values_titulos(mock$env$calls), 0L)
+})
+
+test_that("con la cadena completa publica como siempre", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_role = "titular",
+         operational_status = "agendada", sample_status = "AGENDADA",
+         scheduled_date = "2026-09-11", scheduled_time = "10:00",
+         faculty = "DERECHO", teacher = "D", course_name = "C"),
+    list(operational_code = "R 1.1", classroom_id = "r11",
+         sample_role = "chain_reserve", titular_operational_code = "CH 1",
+         replacement_order = 1L, sample_status = "EN RESERVA 1",
+         faculty = "DERECHO", teacher = "D2", course_name = "C2"))
+  out <- monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = plan,
+                                        partes = .mapl_partes())
+  expect_true(isTRUE(out$ok))
+})
+
+# =============================================================================
+# El orden de las pestañas es el del operativo
+# =============================================================================
+#
+# Gonzalo, 2026-09-17, señalando las pestañas del documento vivo: «y este
+# debería ser el orden». Cuatro bloques leídos en el orden en que se trabaja:
+# agendar, planificar, aplicar, el resultado. Antes las dos hojas del equipo
+# iban pegadas —criterio de PROPIEDAD— y el control y el plan del día caían
+# detrás; quien abre el documento no busca por dueño, busca por el paso en que
+# está.
+
+test_that("las pestañas se crean en el orden del operativo", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(), partes = .mapl_partes()
+  )
+  orden <- vapply(res$hojas, function(h) as.character(h$hoja), character(1))
+  esperado <- c("Aulas Agendadas", "Avance de agendación",
+                "Base de control", "Plan del día",
+                "Aulas Aplicadas (Campo)", "Avance de campo")
+  # Se comprueban las POSICIONES RELATIVAS y no la lista entera: el juego de
+  # hojas depende de lo que el estudio tenga (extras, disponibilidad,
+  # asignación), y fijar la lista completa rompería el test cada vez que una
+  # hoja condicional aparece o falta.
+  presentes <- esperado[esperado %in% orden]
+  expect_identical(match(presentes, orden), sort(match(presentes, orden)))
+  # Y las dos que motivaron el cambio, explícitas: el control y el plan del día
+  # van ANTES de las aplicadas.
+  if (all(c("Base de control", "Aulas Aplicadas (Campo)") %in% orden)) {
+    expect_lt(match("Base de control", orden), match("Aulas Aplicadas (Campo)", orden))
+  }
+  if (all(c("Plan del día", "Aulas Aplicadas (Campo)") %in% orden)) {
+    expect_lt(match("Plan del día", orden), match("Aulas Aplicadas (Campo)", orden))
+  }
+  # «Avance de agendación» sigue pegada a «Aulas Agendadas» (dictado del 09/09).
+  expect_lt(match("Avance de agendación", orden), match("Base de control", orden))
+})
+
+test_that("rotulos_retenidos viaja como LISTA en el JSON, también con un solo rótulo", {
+  # CCSS, 2026-09-23: una hoja respetada retuvo UNA columna, el vector de largo
+  # 1 salió como texto (auto_unbox) y la pantalla falló con «(a ?? []).map is
+  # not a function» al traer respuestas.
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  mock$seed("Aulas Agendadas", values = list(list("ID MATCH", "OLA"), list("CH 1", "x")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  res <- monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro",
+                                        plan = .libro_de_prueba(), partes = .mapl_partes())
+  for (h in res$hojas) {
+    json <- as.character(jsonlite::toJSON(h$rotulos_retenidos, auto_unbox = TRUE))
+    expect_true(startsWith(json, "["), info = paste(h$hoja, json))
+  }
+  uno <- as.character(jsonlite::toJSON(list(r = as.list("CARRERA")), auto_unbox = TRUE))
+  expect_identical(uno, '{"r":["CARRERA"]}')
+})

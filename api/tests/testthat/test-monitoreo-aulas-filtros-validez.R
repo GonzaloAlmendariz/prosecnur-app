@@ -98,7 +98,7 @@ test_that("el criterio NOMBRA los filtros, y avisa del que no se pudo aplicar", 
   expect_true(grepl("estado, consentimiento", txt, fixed = TRUE))
   # Y la que no se pudo aplicar se dice, o un error de tipeo pasaria por criterio.
   expect_true(grepl("columna_que_no_existe", txt, fixed = TRUE))
-  expect_true(grepl("no se aplico", txt, fixed = TRUE))
+  expect_true(grepl("no se aplicó", txt, fixed = TRUE))
 })
 
 test_that("los filtros SOBREVIVEN al normalizador de config", {
@@ -172,4 +172,111 @@ test_that("los filtros sobreviven aunque lleguen como DATA.FRAME desde el JSON",
   # Y filtran de verdad, que es lo que se estaba perdiendo.
   ok <- prosecnurapp:::.monitoreo_aulas_valid_response(.mafv_base(), cfg)
   expect_identical(sum(ok), 3L)
+})
+
+# --- En CUAL condicion se cae cada respuesta que no cuenta -------------------
+#
+# Gonzalo, 2026-08-31: «estas son las efectivas, estas son las que no pasan el
+# filtro, estas son las que se quedan en el primer, segundo o tercer filtro».
+#
+# El criterio decia «2.616 de 2.760» y eso no dice donde esta el problema: 144
+# descartadas pueden ser 144 sin consentimiento o 144 fuera de la poblacion, y se
+# hacen cosas distintas en cada caso.
+
+test_that("dice cuantas caen en cada filtro, y cuantas caen SOLO por ese", {
+  # Cinco respuestas. La 3 falla solo consentimiento, la 4 solo publico, y la 5
+  # falla LOS DOS: no la salva arreglar ninguno por separado.
+  datos <- data.frame(
+    consentimiento = c("si", "si", "no", "si", "no"),
+    publico        = c("alumno", "alumno", "alumno", "docente", "docente"),
+    stringsAsFactors = FALSE
+  )
+  cfg <- list(source_mapping = list(valid_filters = list(
+    list(var = "consentimiento", values = list("si")),
+    list(var = "publico", values = list("alumno"))
+  )))
+  d <- prosecnurapp:::.monitoreo_aulas_caidas_por_filtro(datos, cfg)
+  por <- setNames(d, vapply(d, function(f) f$var, character(1)))
+
+  # `caen` cuenta todas las que lo incumplen, se cumplan o no los demas.
+  expect_identical(por$consentimiento$caen, 2L)   # la 3 y la 5
+  expect_identical(por$publico$caen, 2L)          # la 4 y la 5
+
+  # `solo_este` es lo accionable: arreglando ESE filtro, esas entran.
+  expect_identical(por$consentimiento$solo_este, 1L)  # solo la 3
+  expect_identical(por$publico$solo_este, 1L)         # solo la 4
+
+  # Y la 5 no la salva ninguno de los dos por separado: `caen` suma 4 sobre 3
+  # descartadas, que es justo la senal de que hay solapamiento.
+  validas <- sum(prosecnurapp:::.monitoreo_aulas_valid_response(datos, cfg))
+  expect_identical(as.integer(nrow(datos) - validas), 3L)
+  expect_identical(sum(vapply(d, function(f) f$solo_este, integer(1))), 2L)
+})
+
+test_that("un filtro cuya columna no esta en la base no se cuenta como incumplido", {
+  # Misma regla que `.monitoreo_aulas_valid_response()`: sin la columna el filtro
+  # NO se aplica. Contarlo como que las 5 lo incumplen mandaria a arreglar una
+  # variable que el estudio ni siquiera trae.
+  datos <- data.frame(consentimiento = rep("si", 5), stringsAsFactors = FALSE)
+  cfg <- list(source_mapping = list(valid_filters = list(
+    list(var = "consentimiento", values = list("si")),
+    list(var = "columna_que_no_existe", values = list("x"))
+  )))
+  d <- prosecnurapp:::.monitoreo_aulas_caidas_por_filtro(datos, cfg)
+  expect_identical(vapply(d, function(f) f$var, character(1)), "consentimiento")
+})
+
+test_that("el desglose viaja dentro del criterio, que es quien lo publica", {
+  datos <- data.frame(consentimiento = c("si", "no"), stringsAsFactors = FALSE)
+  cfg <- list(source_mapping = list(valid_filters = list(
+    list(var = "consentimiento", values = list("si"))
+  )))
+  cr <- monitoreo_aulas_criterio_validez(datos, cfg)
+  expect_identical(cr$modo, "por_filtros")
+  expect_identical(cr$por_filtro[[1]]$var, "consentimiento")
+  expect_identical(cr$por_filtro[[1]]$caen, 1L)
+})
+
+test_that("el texto del criterio dice en cual condicion se cae, y ordena por la peor", {
+  datos <- data.frame(
+    consentimiento = c("si", "si", "no", "si", "si", "si"),
+    publico        = c("alumno", "docente", "alumno", "docente", "docente", "alumno"),
+    stringsAsFactors = FALSE
+  )
+  cfg <- list(source_mapping = list(valid_filters = list(
+    list(var = "consentimiento", values = list("si")),
+    list(var = "publico", values = list("alumno"))
+  )))
+  txt <- monitoreo_aulas_criterio_texto(monitoreo_aulas_criterio_validez(datos, cfg))
+  # 3 caen solo por publico, 1 solo por consentimiento.
+  expect_match(txt, "De las 4 que no cuentan")
+  # El que mas descarta va primero: es por donde se empieza a mirar.
+  expect_match(txt, "3 por 'publico' · 1 por 'consentimiento'", fixed = TRUE)
+})
+
+test_that("las que fallan mas de una condicion se declaran aparte", {
+  # Arreglar un filtro no las recupera, asi que repartirlas entre los dos
+  # prometeria una ganancia que no existe.
+  datos <- data.frame(
+    consentimiento = c("si", "no", "no"),
+    publico        = c("alumno", "alumno", "docente"),
+    stringsAsFactors = FALSE
+  )
+  cfg <- list(source_mapping = list(valid_filters = list(
+    list(var = "consentimiento", values = list("si")),
+    list(var = "publico", values = list("alumno"))
+  )))
+  txt <- monitoreo_aulas_criterio_texto(monitoreo_aulas_criterio_validez(datos, cfg))
+  expect_match(txt, "1 por 'consentimiento'", fixed = TRUE)
+  # Y concuerda en singular: «Las otras 1 fallan» es lo que sale de no mirarlo.
+  expect_match(txt, "La otra falla más de una condición", fixed = TRUE)
+})
+
+test_that("sin descartadas no se anade la frase", {
+  datos <- data.frame(consentimiento = c("si", "si"), stringsAsFactors = FALSE)
+  cfg <- list(source_mapping = list(valid_filters = list(
+    list(var = "consentimiento", values = list("si"))
+  )))
+  txt <- monitoreo_aulas_criterio_texto(monitoreo_aulas_criterio_validez(datos, cfg))
+  expect_false(grepl("que no cuentan", txt, fixed = TRUE))
 })

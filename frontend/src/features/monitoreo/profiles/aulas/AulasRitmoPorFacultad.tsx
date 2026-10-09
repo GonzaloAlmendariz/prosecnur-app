@@ -5,7 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { ritmoPorFacultad } from "./ritmoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Cómo va cada facultad día a día, y hacia dónde.
@@ -21,6 +21,10 @@ function dm(iso: string): string {
   return d && m ? `${d}/${m}` : iso;
 }
 
+/** ⚠ SIN MONTAR desde el 2026-09-08. Se retiró de «Rendimiento»: contaba
+    efectivas del PARTE con el mismo nombre que «Ritmo de la recolección»
+    cuenta válidas de PLATAFORMA, y manda la plataforma. Registrado en
+    `componentesSinMontar.test.ts`. */
 export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
   /**
@@ -44,7 +48,7 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {partes.length
           ? `Ninguno de los ${fmt(partes.length)} partes de campo trae fecha de aplicación, así que no se puede seguir el ritmo.`
-          : "Todavía no hay partes de campo: el ritmo aparece en cuanto se registre la primera aula aplicada."}
+          : "Todavía no hay partes de campo: el ritmo aparece en cuanto se registre el primer curso-horario aplicado."}
       </p>
     );
   }
@@ -69,28 +73,38 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
         ) : (
           <>Ninguna facultad ha bajado su ritmo de forma apreciable.</>
         )}{" "}
-        · {fmt(fechas.length)} {fechas.length === 1 ? "día" : "días"} de campo,
+        {/* «con parte de campo» y no «de campo» a secas: estas fechas salen de
+            los PARTES, y el ritmo diario cuenta los días con respuestas en la
+            plataforma. Dos ejes, dos cifras —2 contra 5 en el estudio real— y
+            hasta ahora las mismas palabras. */}
+        · {fmt(fechas.length)} {fechas.length === 1 ? "día" : "días"} con parte de campo,
         de {dm(fechas[0])} a {dm(fechas[fechas.length - 1])}
       </p>
       {/* Cabecera, como en los demás paneles del perfil: sin ella el «−37,9 %»
           de la derecha es un número suelto y hay que bajar al pie para saber
           qué mide. */}
-      <ul className="aulas-ritmofac-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        <li className="aulas-ritmofac-cabecera" aria-hidden="true">
-          <span>Facultad</span><span>Día a día</span><span>Tendencia</span>
+      <ul role="table" aria-label="Ritmo diario por facultad" className="aulas-ritmofac-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {/* Roles de tabla sobre la rejilla, no `<table>`: el defecto es que la
+            cabecera estaba oculta, no la maquetación. */}
+        <li className="aulas-ritmofac-cabecera" role="row">
+          <span role="columnheader">Facultad</span><span role="columnheader">Día a día</span><span role="columnheader">Tendencia</span>
         </li>
         {facultades.map((f) => (
-          <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
+          <li key={f.facultad} role="row" className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-ritmofac-nombre"
-              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco}>
+              rol="rowheader"
+              enFoco={f.facultad === facultadEnFoco}>
               {f.facultad}
               <em>{fmt(f.efectivas)} en {fmt(f.diasConCampo)} {f.diasConCampo === 1 ? "día" : "días"} · {f.mediaDiaria.toLocaleString("es-PE")}/día</em>
             </NombreDeFacultad>
             {/* Una barra por día del rango COMPARTIDO: los huecos son días sin
                 recoger y tienen que ocupar su sitio, porque una facultad parada
                 tres días es lo que hay que ver. */}
+            {/* La serie conserva su `role="img"` dentro de una celda propia: si
+                el rol de celda fuera suyo, el lector perdería la posición. */}
+            <span role="cell" className="aulas-ritmofac-serie-celda">
             <span className="aulas-ritmofac-serie" role="img"
-              aria-label={`${f.efectivas} encuestas en ${f.diasConCampo} días`}>
+              aria-label={`${fmt(f.efectivas)} encuestas en ${fmt(f.diasConCampo)} días`}>
               {f.dias.map((d) => (
                 <i key={d.fecha} title={`${dm(d.fecha)}: ${fmt(d.efectivas)}`}
                   style={{
@@ -99,10 +113,12 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
                   }} />
               ))}
             </span>
+            </span>
             {/* La tendencia compara días YA OCURRIDOS: no es un pronóstico. Nula
                 cuando hay menos de cuatro días con campo, porque con menos es
                 ruido y decirlo sería inventar. */}
             <span
+              role="cell"
               className={`aulas-ritmofac-tend${
                 f.tendencia == null || !f.distinguible
                   ? " es-ruido"
@@ -113,7 +129,7 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
                   ? "El cambio es mayor que el vaivén normal de esta facultad."
                   : "El cambio cabe dentro del vaivén normal de esta facultad, así que no se puede distinguir de la casualidad."}
             >
-              {f.tendencia == null ? "—" : `${f.tendencia > 0 ? "+" : ""}${f.tendencia.toLocaleString("es-PE")} %`}
+              {f.tendencia == null ? "—" : `${f.tendencia > 0 ? "+" : ""}${pctPerfil(f.tendencia)}`}
             </span>
           </li>
         ))}

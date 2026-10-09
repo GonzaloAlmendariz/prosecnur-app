@@ -70,13 +70,14 @@ test_that("la config por defecto declara la lamina Otros apagada", {
   expect_false(.graficos_normalize_config(list(auto_otros_slides = "si"))$auto_otros_slides)
 })
 
-test_that("etiquetas_arriba_si_no_caben TRUE fosilizado migra a FALSE (B45)", {
+test_that("etiquetas_arriba_si_no_caben sigue al estándar: la cifra chica sube (ADR 0092 retira B45)", {
+  # El recetario sube con guía la cifra que no cabe (reglas.cifras_chicas);
+  # la migración B45 que la apagaba se retiró y lo guardado se impone en TRUE.
   presets <- list(barras_apiladas = list(args = list(etiquetas_arriba_si_no_caben = TRUE)))
-  out <- .graficos_migrar_defaults_fosiles(presets)
-  expect_false(out$barras_apiladas$args$etiquetas_arriba_si_no_caben)
-  # FALSE explicito o ausente no se tocan.
+  expect_true(.graficos_migrar_defaults_fosiles(presets)$barras_apiladas$args$etiquetas_arriba_si_no_caben)
   p2 <- list(barras_apiladas = list(args = list(etiquetas_arriba_si_no_caben = FALSE)))
-  expect_false(.graficos_migrar_defaults_fosiles(p2)$barras_apiladas$args$etiquetas_arriba_si_no_caben)
+  expect_true(.graficos_migrar_defaults_fosiles(p2)$barras_apiladas$args$etiquetas_arriba_si_no_caben)
+  # Ausente no se crea: rige el suelo de fábrica, que ya es TRUE.
   p3 <- list(barras_apiladas = list(args = list(otro = 1)))
   expect_null(.graficos_migrar_defaults_fosiles(p3)$barras_apiladas$args$etiquetas_arriba_si_no_caben)
 })

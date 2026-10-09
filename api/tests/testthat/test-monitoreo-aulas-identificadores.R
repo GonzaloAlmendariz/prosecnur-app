@@ -36,7 +36,7 @@ test_that("el GPS no cuenta como identificador personal en aulas", {
 test_that("sin base es SIN COMPROBAR, no correcto", {
   r <- monitoreo_aulas_identificadores(data.frame(), anonimo = TRUE)
   expect_identical(r$status, "sin_datos")
-  expect_match(r$detail, "Todavia no hay base")
+  expect_match(r$detail, "Todavía no hay base")
 })
 
 test_that("no reimplanta la deteccion: hereda el clasificador de PII", {

@@ -18,6 +18,19 @@ describe("colaDeContacto", () => {
     expect(pendientes.map((p) => p.codigo)).toEqual(["CH 2", "CH 1"]);
   });
 
+  it("B23 con consumidor: el estado de llamada y el correo cruzan a la cola en las palabras del equipo", () => {
+    // call_status y email_received viajaban desde 7c8e0bd3 sin que nadie los
+    // mirara — una capacidad existe solo si alguien la consume. Textuales:
+    // el vocabulario es del operativo, no una lista cerrada nuestra.
+    const { pendientes } = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "", contact_attempts: 3,
+             call_status: "No contesta", email_received: "S\u00cd" }),
+      fila({ operational_code: "CH 2", sample_status: "", contact_attempts: 0 }),
+    ]);
+    expect(pendientes[0]).toMatchObject({ codigo: "CH 1", estadoLlamada: "No contesta", correo: "S\u00cd" });
+    expect(pendientes[1]).toMatchObject({ codigo: "CH 2", estadoLlamada: "", correo: "" });
+  });
+
   it("una reserva dormida NO se persigue", () => {
     // No se llama hasta que su titular cae; meterla en la cola mandaría al
     // equipo a perseguir aulas que nadie necesita todavía.
@@ -79,5 +92,103 @@ describe("un componente no usa dos unidades para la misma poblacion", () => {
 
   it("no queda copy visible que llame «aulas» a esas filas", () => {
     expect(visible).not.toMatch(/"aula" : "aulas"/);
+  });
+});
+
+describe("la cola no insiste a quien rechazó (B13b)", () => {
+  it("el RECHAZO tecleado sale de la cola y se declara", () => {
+    // Dictado 2026-09-03 (CH 90): la cola mandaba a insistirle a un docente
+    // cuya nota decía «no puede permitirse perder más tiempo de clase» y cuyo
+    // STATUS MUESTRA ya decía rechazo.
+    const { pendientes, rechazadas } = colaDeContacto([
+      fila({ operational_code: "CH 90", sample_status: "rechazo", contact_attempts: "1" }),
+      fila({ operational_code: "CH 91", contact_attempts: "1" }),
+    ]);
+    expect(pendientes.map((p) => p.codigo)).toEqual(["CH 91"]);
+    expect(rechazadas).toEqual({ total: 1, titulares: 1 });
+  });
+
+  it("el rechazo del titular DESPIERTA a su primera reserva en la cola (caso A)", () => {
+    // «Se está optando por sus reemplazos directos para llamar»: la regla del
+    // motor (en_juego B13b) en la pantalla que reparte llamadas — la primera
+    // reserva no caída de SU cadena entra a la cola, marcada como relevo.
+    const { pendientes, rechazadas } = colaDeContacto([
+      fila({ operational_code: "CH 90", sample_role: "titular", faculty: "Derecho",
+             sample_status: "rechazo", contact_attempts: "1" }),
+      fila({ operational_code: "R 90.1", sample_role: "chain_reserve", faculty: "Derecho",
+             titular_operational_code: "CH 90", replacement_order: 1,
+             sample_status: "en reserva 1", teacher: "Reserva Uno" } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "R 90.2", sample_role: "chain_reserve", faculty: "Derecho",
+             titular_operational_code: "CH 90", replacement_order: 2,
+             sample_status: "en reserva 2" } as Partial<MonitoreoAulasPlanRow>),
+    ]);
+    expect(rechazadas).toEqual({ total: 1, titulares: 1 });
+    expect(pendientes.map((p) => p.codigo)).toEqual(["R 90.1"]);
+    expect(pendientes[0]).toMatchObject({ relevoDe: "CH 90", docente: "Reserva Uno" });
+  });
+
+  it("una reserva rechazada no releva: pasa a la siguiente de la cadena", () => {
+    const { pendientes } = colaDeContacto([
+      fila({ operational_code: "CH 90", sample_role: "titular", faculty: "Derecho",
+             sample_status: "rechazo" }),
+      fila({ operational_code: "R 90.1", sample_role: "chain_reserve", faculty: "Derecho",
+             titular_operational_code: "CH 90", replacement_order: 1,
+             sample_status: "rechazo" } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "R 90.2", sample_role: "chain_reserve", faculty: "Derecho",
+             titular_operational_code: "CH 90", replacement_order: 2,
+             sample_status: "en reserva 2" } as Partial<MonitoreoAulasPlanRow>),
+    ]);
+    expect(pendientes.map((p) => p.codigo)).toEqual(["R 90.2"]);
+    expect(pendientes[0]!.relevoDe).toBe("CH 90");
+  });
+});
+
+describe("la cola no manda a llamar lo que ya se aplicó", () => {
+  /**
+   * `tieneCita()` mira `sample_status`, y en cuanto un aula se aplica ese estado
+   * deja de ser «agendada»: el aula volvía a la cola de contacto.
+   *
+   * Medido el 2026-08-29 sobre `aulas_con_respuestas.pulso`: 10 citas fijadas +
+   * 183 por contactar = 193, con 48 aplicadas. O sea 38 aulas ya aplicadas en la
+   * lista de a quién llamar, en la pantalla que existe para repartir llamadas.
+   */
+  const fila = (p: Record<string, unknown>) => p as never;
+
+  it("una aplicada sin cita sale de la cola y se cuenta aparte", () => {
+    const out = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "aplicada", operational_status: "aplicada" }),
+      fila({ operational_code: "CH 2", sample_status: "sin contactar", operational_status: "planificada" }),
+    ]);
+    expect(out.pendientes.map((p) => p.codigo)).toEqual(["CH 2"]);
+    expect(out.yaAplicadasSinCita).toBe(1);
+  });
+
+  it("«cerrada» cuenta igual que «aplicada»", () => {
+    const out = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "sin contactar", operational_status: "cerrada" }),
+    ]);
+    expect(out.pendientes).toHaveLength(0);
+    expect(out.yaAplicadasSinCita).toBe(1);
+  });
+
+  it("una agendada aplicada sigue en CITAS, no en la cuenta aparte", () => {
+    // El control: las citadas ya llevaban su propio flag `aplicada` y ese lado
+    // no cambia. Si esta exclusión se les aplicara también, desaparecerían las
+    // citas conseguidas, que son el resultado del trabajo de quien agenda.
+    const out = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "agendada", operational_status: "aplicada",
+             scheduled_date: "2026-09-01" }),
+    ]);
+    expect(out.citadas).toHaveLength(1);
+    expect(out.citadas[0]!.aplicada).toBe(true);
+    expect(out.yaAplicadasSinCita).toBe(0);
+  });
+
+  it("sin aplicadas el contador es 0 y no inventa un vacío", () => {
+    const out = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "sin contactar", operational_status: "planificada" }),
+    ]);
+    expect(out.pendientes).toHaveLength(1);
+    expect(out.yaAplicadasSinCita).toBe(0);
   });
 });

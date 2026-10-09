@@ -1,0 +1,1025 @@
+/* Muestra general › Marco (archivo) y › Selección (ADR 0090).
+ * Hereda la paleta del módulo por las variables --cmv2-* de calcMuestra.css y
+ * los tokens --pulso-*; no define colores propios. */
+
+.cmg-archivo-form,
+.cmg-resumen-marco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+.cmg-resumen-marco + .cmg-archivo-form {
+  margin-top: var(--cmv2-space-4);
+  padding-top: var(--cmv2-space-4);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmg-archivo-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--cmv2-space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.cmg-archivo-nombre {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+/* --- Campos ----------------------------------------------------------------- */
+
+.cmg-columnas,
+.cmg-parametros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+.cmg-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cmg-campo--hoja {
+  max-width: 320px;
+}
+
+.cmg-campo > label {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmg-requerido {
+  color: var(--pulso-text-soft);
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-campo small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
+}
+
+.cmg-campo input,
+.cmg-campo select {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  outline: none;
+}
+
+.cmg-campo input:focus-visible,
+.cmg-campo select:focus-visible {
+  border-color: var(--cmv2-accent-border);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+}
+
+.cmg-campo input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+/* Deshabilitado sin opacidad: el valor se sigue leyendo con contraste AA
+   (V17); el fondo y el cursor dicen que no se edita. */
+.cmg-campo input:disabled,
+.cmg-campo select:disabled {
+  background: var(--pulso-surface-2);
+  color: color-mix(in srgb, var(--pulso-text) 66%, var(--pulso-surface));
+  cursor: not-allowed;
+}
+
+.cmg-semilla {
+  display: flex;
+  gap: var(--cmv2-space-2);
+  min-width: 0;
+}
+
+.cmg-semilla input {
+  flex: 1 1 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-semilla .cmv2-ghost {
+  flex: 0 0 auto;
+}
+
+/* --- Métodos ---------------------------------------------------------------- */
+
+/* Las tarjetas de método pintan su propio estado activo (`.cmv2-method.is-active`);
+ * el indicador deslizante del grupo queda transparente para no duplicarlo. */
+.cmg-metodos {
+  --pulso-gliding-indicator-bg: transparent;
+  --pulso-gliding-indicator-border: transparent;
+  --pulso-gliding-indicator-shadow: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cmv2-space-2);
+  margin-bottom: var(--cmv2-space-4);
+}
+
+.cmg-metodo {
+  min-height: 72px;
+}
+
+.cmg-metodo:disabled {
+  background: var(--pulso-surface-2);
+  color: color-mix(in srgb, var(--pulso-text) 66%, var(--pulso-surface));
+  cursor: not-allowed;
+}
+
+.cmg-metodo:disabled strong,
+.cmg-metodo:disabled small {
+  color: inherit;
+}
+
+.cmg-metodo:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* --- Métricas y trazabilidad ------------------------------------------------ */
+
+.cmg-metricas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--cmv2-space-2);
+  margin: 0;
+}
+
+.cmg-metrica {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+}
+
+.cmg-metrica dt {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.cmg-metrica dd {
+  margin: 3px 0 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.cmg-metrica dd.cmg-columnas-declaradas {
+  font-size: 12px;
+}
+
+.cmg-traza {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px var(--cmv2-space-4);
+  margin: var(--cmv2-space-3) 0;
+}
+
+.cmg-traza div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmg-traza dt {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: uppercase;
+}
+
+.cmg-traza dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  overflow-wrap: break-word;
+}
+
+.cmg-archivo code,
+.cmg-seleccion code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.cmg-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.4;
+}
+
+.cmg-ficha .cmv2-panel-head,
+.cmg-unidades .cmv2-panel-head {
+  flex-wrap: wrap;
+}
+
+.cmg-exportar {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.cmg-exportar small {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  text-align: right;
+}
+
+.cmg-sortear {
+  margin-top: var(--cmv2-space-3);
+}
+
+.cmg-censo {
+  margin-bottom: var(--cmv2-space-3);
+  color: var(--pulso-text);
+}
+
+.cmg-ficha > .pulso-alert {
+  margin-bottom: var(--cmv2-space-3);
+}
+
+/* --- Tablas ----------------------------------------------------------------- */
+
+/* Sólo desplazamiento horizontal: el vertical es del panel de la sección. */
+.cmg-tabla-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+}
+
+.cmg-estratos-marco {
+  max-width: 520px;
+}
+
+.cmg-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.cmg-tabla th,
+.cmg-tabla td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--cmv2-border);
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.cmg-tabla th {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* N_h, n_h y π no se pasan a mayúsculas: «NH» y «Π» dicen otra cosa. */
+.cmg-tabla th.cmg-simbolo {
+  color: var(--pulso-text);
+  font-size: 12px;
+  text-transform: none;
+}
+
+.cmg-tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.cmg-tabla--compacta {
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+}
+
+.cmg-tabla .cmg-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmg-mas {
+  margin-top: var(--cmv2-space-2);
+}
+
+.cmg-mas summary {
+  color: var(--cmv2-accent-fg);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  cursor: pointer;
+}
+
+.cmg-mas[open] summary {
+  margin-bottom: var(--cmv2-space-2);
+}
+
+.cmg-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.cmg-estado {
+  display: inline-flex;
+  padding: 2px 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  white-space: nowrap;
+}
+
+.cmg-estado--titular {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmg-estado--reserva {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+/* --- Filtro y paginación ---------------------------------------------------- */
+
+.cmg-filtros {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+}
+
+.cmg-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  cursor: pointer;
+}
+
+.cmg-filtros .cmg-filtro[aria-checked="true"] {
+  color: var(--pulso-surface);
+}
+
+.cmg-filtro:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmg-filtro-n {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cmv2-space-3);
+  margin-top: var(--cmv2-space-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-vacio-tabla {
+  margin: 0;
+  padding: var(--cmv2-space-4);
+  border: 1px dashed var(--cmv2-border-strong);
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  text-align: center;
+}
+
+.cmg-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-2);
+}
+
+.cmg-error-lista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.cmg-error-lista span {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmg-error-lista ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmg-error-lista li code {
+  padding: 1px 6px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+/* --- Acreditación › Selección (E5) ------------------------------------------ */
+
+/* El único dueño de scroll es `.cmv2-main` (mesa.css deja `.cmv2-tab-panel`
+ * en overflow visible); el bloque del actor y su Selección crecen en flujo,
+ * sin overflow propio. */
+.cmg-actor-trabajo,
+.cmg-seleccion--actor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.cmg-actores-lista {
+  display: grid;
+  /* auto-fill: con un solo actor la tarjeta conserva su ancho y el sobrante es
+   * de la fila (C3); con muchos, la fila baja sin estirar el marco (C2). */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--cmv2-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmg-actores-item {
+  display: flex;
+  min-width: 0;
+}
+
+.cmg-actor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-surface);
+  color: var(--pulso-text);
+  text-align: left;
+  /* El botón global no parte línea: aquí el nombre y el estado sí. */
+  white-space: normal;
+  cursor: pointer;
+  /* El press (scale 0.97, movimiento.css) usa la duración del press. */
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmg-actor:hover:not(.is-active) {
+    border-color: color-mix(in srgb, var(--cmv2-accent) 22%, var(--pulso-border));
+    background: color-mix(in srgb, var(--cmv2-accent) 3%, var(--cmv2-surface));
+  }
+}
+
+.cmg-actor:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* Selección con el acento del módulo; el estado del marco va en su chip. */
+.cmg-actor.is-active {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cmv2-accent) 18%, var(--pulso-border));
+}
+
+.cmg-actor-nombre {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  overflow-wrap: anywhere;
+}
+
+.cmg-actor-tecnica {
+  color: var(--cmv2-accent-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.cmg-actor-tecnica--cuotas,
+.cmg-actor-tecnica--sin_sorteo {
+  color: var(--pulso-text-soft);
+}
+
+/* Ficha y cifra son unidades que no se parten; la fila sí baja. */
+.cmg-actor-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cmg-actor-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-state-unset-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-state-unset-bg);
+  /* El gris de «sin definir» mide 4.1–4.4:1 sobre su propio tinte a 11 px:
+     se oscurece hacia el texto hasta pasar 4.5:1 (V17). */
+  color: color-mix(in srgb, var(--pulso-state-unset-fg) 60%, var(--pulso-text));
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-actor-estado > svg {
+  flex: 0 0 auto;
+}
+
+.cmg-actor-estado--marco {
+  border-color: var(--pulso-state-partial-border);
+  background: var(--pulso-state-partial-bg);
+  color: var(--pulso-state-partial-fg);
+}
+
+.cmg-actor-estado--sorteado {
+  border-color: var(--pulso-state-ready-border);
+  background: var(--pulso-state-ready-bg);
+  color: var(--pulso-state-ready-fg);
+}
+
+.cmg-actor-estado--sorteo_viejo {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.cmg-actor-estado--sin_sorteo {
+  border-color: var(--pulso-state-unchecked-border);
+  background: var(--pulso-state-unchecked-bg);
+  color: var(--pulso-state-unchecked-fg);
+}
+
+.cmg-actor-cifra {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- Mesa de Muestra general y Acreditación (E7) ---------------------------- */
+
+/* Sin pestañas locales no hay rail: el canvas toma el ancho entero (G4). */
+.cmv2-workbench.cmg-sin-rail {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* La pastilla «Desplaza para ver más» sólo cuando hay desborde real (G5). */
+.cmv2-table-wrap.cmg-tabla-desplazable::after {
+  content: none;
+  display: none;
+}
+
+.cmv2-table-wrap.cmg-tabla-desplazable[data-desborda="true"]::after {
+  content: "Desplaza para ver más";
+  display: block;
+}
+
+.cmv2-table-wrap.cmg-tabla-desplazable:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* Parámetros de la técnica: sólo los que consume, con su ayuda. */
+/* Cada campo mide lo suyo: el aviso o una ayuda larga no estiran al vecino. */
+.cmg-parametros--tecnica {
+  align-items: start;
+  margin-top: var(--cmv2-space-3);
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmg-parametros-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cmv2-space-2);
+  margin-top: var(--cmv2-space-3);
+}
+
+.cmg-avisos-resultado li {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
+}
+
+.cmg-avisos-resultado li > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+/* El aviso del campo es el del módulo (AvisoModulo compacto, V4): ocupa el
+   ancho del campo para que un texto largo envuelva en vez de desbordar. */
+.cmg-campo .cmg-aviso-param {
+  width: 100%;
+  border-radius: var(--pulso-radius);
+}
+
+.cmg-avisos-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 var(--cmv2-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+/* Memoria de cálculo: el paso se lee como rótulo de fila, no como cabecera. */
+.cmg-memoria-tabla tbody th {
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: none;
+  white-space: normal;
+}
+
+.cmg-memoria-tabla code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+/* «Grupo presencial / QR» entero: el canal es dato operativo, no se recorta. */
+.cmg-tabla-desplazable select.cmv2-channel-select {
+  min-width: 156px;
+}
+
+.cmg-ir-seleccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.cmg-motivo {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-ficha-notas {
+  grid-column: 1 / -1;
+}
+
+.cmg-ficha-notas textarea {
+  min-height: 64px;
+}
+
+/* --- Compacto (1024 px y menos) --------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .cmg-columnas,
+  .cmg-parametros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cmg-metricas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmg-metodo {
+    transition: none;
+  }
+
+  /* Sin press: el tono sí cruza. */
+  .cmg-actor {
+    transition-property: background-color, border-color, box-shadow;
+  }
+}
+
+/* --- Método › Estratos de Muestra general (G8) ------------------------------ */
+
+/* Seis o siete columnas cortas: sin el piso de 780 px de la tabla de aulas,
+   que en compacto inventaba un desborde sin nada escondido. */
+.cmv2-table.cmg-tabla-estratos {
+  min-width: 520px;
+}
+
+.cmg-tabla-estratos .cmg-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmg-tabla-estratos td {
+  vertical-align: middle;
+}
+
+.cmg-tabla-estratos .cmv2-number-cell {
+  max-width: 128px;
+  margin-left: auto;
+}
+
+.cmg-celda-p {
+  display: grid;
+  gap: 2px;
+  max-width: 120px;
+}
+
+.cmg-celda-p input {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmg-tabla-estratos td.cmg-num .cmg-celda-p {
+  margin-left: auto;
+  text-align: right;
+}
+
+.cmg-celda-p input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+.cmg-error-p {
+  color: var(--pulso-danger-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-estratos-vacio {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmg-estratos-general .cmg-nota {
+  margin-bottom: var(--cmv2-space-2);
+}
+
+/* --- E11 · Paridad con aulas: encabezados, tablas y foco -------------------- */
+
+/* Los títulos de panel son h3 bajo el h2 de la sección (V12), con la misma
+   voz que el `strong` de los paneles de aulas. */
+.cmv2-panel-head .cmg-panel-titulo {
+  display: block;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.cmv2-side .cmv2-panel-head .cmg-panel-titulo {
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+/* V9 · Cabecera fija con UN dueño de scroll. Mientras la tabla cabe, el
+   envoltorio no es contenedor de scroll (overflow visible) y la cabecera se
+   pega al panel de la sección, que es quien desplaza; el recorte redondeado
+   lo pone el clip-path, que no crea contenedor. Si la tabla desborda en
+   horizontal, el envoltorio vuelve a desplazar y la pastilla lo dice. */
+.cmv2-table-wrap.cmg-tabla-desplazable[data-desborda="false"] {
+  overflow: visible;
+  clip-path: inset(0 round var(--pulso-radius));
+}
+
+.cmg-tabla-desplazable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 -1px 0 var(--cmv2-border);
+}
+
+/* Filas: hover sutil, como `cmv2-tabla`. */
+.cmg-tabla-desplazable tbody tr > * {
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.cmg-tabla-desplazable tbody tr:hover > * {
+  background: color-mix(in srgb, var(--cmv2-accent-fg) 4%, var(--cmv2-surface));
+}
+
+/* El rótulo de fila (`th scope="row"`) se lee como dato, no como cabecera:
+   `.cmv2-table th` lo volvía sticky, en mayúsculas y con fondo. */
+.cmg-tabla-desplazable .cmv2-table tbody th[scope="row"] {
+  position: static;
+  z-index: auto;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  text-transform: none;
+  vertical-align: middle;
+  /* La divisoria recorre la fila entera (V9): el rótulo heredaba de
+     `.cmv2-table th` una sombra inferior extra y otro gris de borde, y su
+     línea quedaba 1 px más arriba que la de las celdas vecinas. */
+  box-shadow: none;
+  border-bottom-color: color-mix(in srgb, var(--cmv2-border) 86%, var(--cmv2-accent-border) 14%);
+}
+
+.cmg-tabla-desplazable .cmv2-table tbody tr:last-child > th[scope="row"] {
+  border-bottom: 0;
+}
+
+.cmg-tabla-desplazable .cmv2-table tbody tr:hover > th[scope="row"] {
+  background: color-mix(in srgb, var(--cmv2-accent-fg) 4%, var(--cmv2-surface));
+}
+
+/* Numéricas a la derecha con dígitos tabulares, también dentro del input. */
+.cmg-tabla-desplazable .cmg-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmg-tabla-desplazable .cmg-num input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Listado de unidades: gramática `cmv2-tabla`; π y N_h no van en mayúsculas. */
+.cmg-tabla-unidades th.cmg-simbolo {
+  color: var(--pulso-text);
+  font-size: 12px;
+  text-transform: none;
+}
+
+.cmg-tabla-unidades tbody th[scope="row"] code {
+  font-size: 11px;
+}
+
+/* --- Acreditación › Actores (V11, V15, V16) --------------------------------- */
+
+.cmg-tabla-actores td,
+.cmg-tabla-actores tbody th {
+  vertical-align: middle;
+}
+
+/* El actor no reserva 210 px: a 1024 esa columna le robaba el ancho a la
+   técnica y al resultado, que se partían en dos líneas. */
+.cmg-tabla-actores .cmv2-actor-cell {
+  min-width: 168px;
+}
+
+.cmg-tabla-actores .cmv2-number-cell {
+  max-width: 112px;
+  margin-left: auto;
+}
+
+.cmg-tabla-actores .cmv2-percent-cell {
+  max-width: 96px;
+}
+
+.cmg-tabla-actores td.cmg-num .cmv2-target-stack {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* El pie de la meta baja por piezas enteras: «Respuesta» / «margen ±5.0%»,
+   nunca una palabra partida ni tres líneas a 1024 (V15). */
+.cmg-tabla-actores .cmg-meta-pie {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.cmg-tabla-actores .cmg-meta-pieza {
+  white-space: nowrap;
+}
+
+/* «Por calcular», «Cobertura censal» o «Muestra probabilística» son una
+   unidad: no se parten (V15). El origen de la técnica sí puede envolver. */
+.cmg-tabla-actores .cmg-actor-tecnica,
+.cmg-tabla-actores .cmg-actor-resultado {
+  white-space: nowrap;
+}
+
+.cmg-tabla-actores .cmg-actor-resultado {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Foco visible en todo lo interactivo de general (V14) ------------------- */
+
+.cmg-actores-acred :is(a, button, select, input):focus-visible,
+.cmg-estratos-general :is(button, input):focus-visible,
+.cmg-unidades :is(a, button):focus-visible,
+.cmg-seleccion :is(button, select, input):focus-visible,
+.cmg-acred-seleccion :is(button, a):focus-visible,
+.cmg-archivo :is(button, select):focus-visible,
+.cmg-metodo-general :is(button, select, input):focus-visible,
+.cmv2-variable :is(input, select):focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmg-tabla-desplazable :is(input, select):focus-visible {
+  outline-offset: 1px;
+}
+
+.cmg-motivo {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmg-tabla-desplazable tbody tr > *,
+  .cmg-filtro,
+  .cmg-ir-seleccion {
+    transition: none;
+  }
+
+  .cmg-seleccion .pulso-spin,
+  .cmg-archivo .pulso-spin,
+  .cmg-actores .pulso-spin {
+    animation: none;
+  }
+}
+
+/* --- Compacto: 1024 px -------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .cmg-tabla-actores .cmv2-actor-cell {
+    min-width: 148px;
+  }
+
+  /* El canal conserva sus 156 px («Grupo presencial / QR» entero): cede el N. */
+  .cmg-tabla-actores .cmv2-number-cell {
+    max-width: 96px;
+  }
+}

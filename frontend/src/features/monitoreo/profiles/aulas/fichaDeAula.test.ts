@@ -41,6 +41,25 @@ describe("ficha de aula", () => {
     expect(f.parte.asistentes).toBe(10);
   });
 
+  test("la ficha aprende dónde y a qué hora, con el lugar acordado por delante", () => {
+    // `scheduled_venue` es donde se ACORDÓ aplicar (B30) y gana al salón del
+    // catálogo; sin él, `venue` responde. Son los datos que la fila de chips
+    // del Sistema Pabellón pinta (B33/P4).
+    const f = fichaDeAula("CH 2", {
+      agenda: [{
+        operational_code: "CH 2", faculty: "Derecho",
+        venue: "A206", scheduled_venue: "V110", scheduled_time: "16:00",
+      }],
+    });
+    expect(f.lugar).toBe("V110");
+    expect(f.hora).toBe("16:00");
+    const sinAcuerdo = fichaDeAula("CH 2", {
+      agenda: [{ operational_code: "CH 2", venue: "A206" }],
+    });
+    expect(sinAcuerdo.lugar).toBe("A206");
+    expect(sinAcuerdo.hora).toBe("");
+  });
+
   test("un código que no está en ninguna hoja se declara inexistente", () => {
     const f = fichaDeAula("CH 999", { agenda: [{ operational_code: "CH 1" }] });
     expect(f.existe).toBe(false);

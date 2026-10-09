@@ -1,0 +1,1450 @@
+/* La carga de campo del perfil de aulas.
+ *
+ * Segundo corte de `aulasMonitoreo.css` (N1 del GOAL 2026-08-28). Elegido por
+ * lo mismo que el de reemplazos: su rango es contiguo y **no tiene un solo
+ * selector de otra familia dentro**, medido antes de cortar. Las demás familias
+ * —`aulas-control`, `aulas-libro`, `aulas-cola`, `aulas-serie`— están
+ * entrelazadas con cientos de selectores ajenos en su rango y NO se pueden
+ * cortar así; necesitan otro criterio.
+ *
+ * **EL ORDEN DE IMPORTACIÓN ES CARGA ÚTIL.** La hoja madre declara que «se
+ * importa despues de profilePage.css para ganar en igualdad de
+ * especificidad», así que ésta va inmediatamente después de ella en
+ * `AulasMonitoreoPage.tsx`, nunca antes.
+ */
+
+
+/* El alto de la celda es fijo (`--aulas-carga-celda`) y NO se deriva del número
+   de franjas vivas: con el control de duración al mínimo se pintan quince
+   columnas y con el máximo veintiocho, y un alto proporcional haría que la
+   malla cambiara de tamaño al mover un slider (C2).
+
+   Retune 2026-09-02, dictado en vivo mirando la malla: «no está usando todo el
+   alto y apenas se ve». Las filas pasan de 28 a 36px y la cifra de la celda a
+   14px/600 —el número ES el dato—; el alto sigue FIJO por celda (C2), así que
+   la malla crece con sus filas y el sobrante lo recorre
+   `mon-workbench-content`, no un viewport en el que ya no tiene que caber. */
+.aulas-carga {
+  --aulas-carga-celda: 36px;
+  --aulas-carga-ancho: 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.aulas-carga-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.aulas-carga-cab h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.aulas-carga-cab p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  max-width: 62ch;
+}
+.aulas-carga-exportar {
+  flex: none;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.aulas-carga-exportar:hover { border-color: var(--pulso-border-strong); }
+.aulas-carga-exportar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
+
+.aulas-carga-acciones { display: flex; align-items: center; gap: 10px; flex: none; flex-wrap: wrap; }
+/* Segmentado y no dos botones sueltos: las cuatro lecturas del mismo plan son
+   alternativas —una excluye a las otras— y el control tiene que decirlo.
+   Retune 2026-09-03 (dictado: «un selector de vistas con un poco más de
+   espaciado y elegante»): pastilla flotante sobre riel tenue, sin tabiques
+   duros — el activo se levanta con superficie y sombra, no con un tinte. */
+.aulas-carga-eje {
+  display: inline-flex;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+.aulas-carga-eje button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  padding: 7px 16px;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+.aulas-carga-eje button:hover { color: var(--pulso-text); background: color-mix(in srgb, var(--pulso-surface) 60%, transparent); }
+.aulas-carga-eje button.es-activo {
+  background: var(--pulso-surface);
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 26%, var(--pulso-border));
+  color: var(--pulso-module-monitoring);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(41, 20, 22, 0.10);
+}
+.aulas-carga-eje button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+
+.aulas-carga-controles {
+  display: flex;
+  align-items: center;
+  gap: 16px 28px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+.aulas-carga-controles > label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--pulso-text-soft); }
+.aulas-carga-controles > label em { display: block; font-style: normal; font-size: 11px; color: var(--pulso-text-faint); }
+.aulas-carga-controles strong { color: var(--pulso-module-monitoring); font-variant-numeric: tabular-nums; }
+.aulas-carga-controles input[type="range"] { width: 210px; accent-color: var(--pulso-module-monitoring); }
+
+/* El slider vive detrás del lápiz: confirmada la duración queda el valor y
+   este botón, y un roce accidental ya no mueve la malla entera. */
+.aulas-carga-duracion-cab { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.aulas-carga-duracion-boton {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font: inherit; font-size: 11px; color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+.aulas-carga-duracion-boton:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
+.aulas-carga-duracion-boton:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+
+.aulas-carga-kpis { display: flex; gap: 26px; margin: 0 0 0 auto; }
+.aulas-carga-kpis div { display: flex; flex-direction: column; }
+/* Loop mejora-ui E7: el marcador gana arquitectura. Los KPIs anclados a la
+   derecha flotaban como dígitos sueltos frente al vacío del centro; el
+   hairline entre columnas los vuelve UN marcador —el mismo lenguaje de
+   divisores del panel de mandos de E1— y el ojo los recorre como serie. */
+.aulas-carga-kpis div + div { border-left: 1px solid var(--pulso-border); padding-left: 26px; }
+.aulas-carga-kpis dt { font-size: 11px; color: var(--pulso-text-faint); order: 2; max-width: 15ch; line-height: 1.3; }
+.aulas-carga-kpis dd {
+  margin: 0 0 3px; order: 1;
+  font-size: 26px; font-weight: 600; line-height: 1;
+  color: var(--pulso-module-monitoring); font-variant-numeric: tabular-nums;
+}
+.aulas-carga-kpis dd.es-texto { font-size: 15px; padding-top: 8px; }
+
+/* El scroll horizontal vive aquí y sólo aquí: la malla no cabe en 1024 y el
+   cuerpo de la página nunca debe desplazarse de lado (C4). */
+.aulas-carga-malla-scroll { overflow-x: auto; }
+/* `table-layout: fixed` + `width: 100%`: la malla SE COME el ancho disponible
+   (retune 2026-09-02, «más amplio, menos vacío») repartiendo las franjas en
+   columnas iguales; el `min-width` devuelve el scroll horizontal cuando el
+   viewport no da para celdas legibles. Las columnas no bailan con el slider:
+   `vivas` sale de `aulas`, que no depende de la duración. */
+.aulas-carga-malla { border-collapse: separate; border-spacing: 2px; width: 100%; min-width: 960px; table-layout: fixed; }
+.aulas-carga-malla th {
+  font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
+  text-transform: uppercase; letter-spacing: 0.06em; padding: 0 0 6px; white-space: nowrap;
+}
+.aulas-carga-malla thead th:first-child { width: 112px; }
+/* La columna del total de la fila: cursos-horario distintos del día. */
+.aulas-carga-malla th.aulas-carga-total-cab { width: 46px; text-align: right; }
+.aulas-carga-malla td.aulas-carga-total {
+  padding-left: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* La regla vertical de cada hora en punto. Sin ella, en una malla dispersa —15
+   fechas con cuatro celdas cada una— no hay forma de saber en qué columna cae un
+   cuadrito suelto sin recorrer la fila con el dedo. Loop mejora-ui E3: medio
+   tono más presente — a la intensidad de --pulso-border la guía se perdía
+   entre los cortes del border-spacing. */
+.aulas-carga-malla th.es-hora, .aulas-carga-malla td.es-hora {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--pulso-border-strong) 60%, var(--pulso-border));
+}
+.aulas-carga-malla thead th.es-media { box-shadow: none; }
+
+/* Loop mejora-ui E3 (hereda B69, la pasada creativa del calendario): el
+   lienzo de planner. Los chips flotaban en blanco puro y una celda suelta de
+   las 15:00 no se podía ubicar; cada media hora vacía es ahora una loseta
+   apenas presente — el campo se lee como superficie de agenda, no como vacío.
+   El CH de la derecha (total) y las cabeceras quedan fuera; la celda ocupada
+   tapa su loseta porque llena el td con el mismo radio. */
+.aulas-carga-malla tbody td:not(.aulas-carga-total) {
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+  border-radius: 4px;
+}
+
+/* Corte de semana: quince fechas seguidas son una lista; en semanas son un
+   operativo. */
+.aulas-carga-malla tbody tr.abre-semana > * { border-top: 1px solid var(--pulso-border-strong); }
+.aulas-carga-malla tbody tr.abre-semana > th { padding-top: 7px; }
+.aulas-carga-malla tbody tr.abre-semana td .aulas-carga-celda { margin-top: 5px; }
+.aulas-carga-malla tbody th {
+  text-align: right; padding-right: 10px; text-transform: none; letter-spacing: 0;
+  font-size: 13px; color: var(--pulso-text-soft); white-space: nowrap;
+}
+/* B37: la fecha es un control — click y el detalle cuenta el día entero. */
+.aulas-carga-dia {
+  border: 0; background: transparent; padding: 0;
+  font: inherit; color: inherit; cursor: pointer;
+  border-radius: 4px;
+}
+.aulas-carga-dia:hover { color: var(--pulso-module-monitoring); }
+.aulas-carga-dia.es-activo { color: var(--pulso-module-monitoring); font-weight: 600; }
+.aulas-carga-dia:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
+.aulas-carga-malla td { padding: 0; }
+/* El carril de «por agendar» se retiró del calendario (dictado en vivo
+   2026-09-02: «el por agendar ya está en patrón semanal, no lo necesitas en
+   calendario»); sus reglas se fueron con él. */
+.aulas-carga-celda {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: var(--aulas-carga-celda); min-width: var(--aulas-carga-ancho); border-radius: 4px;
+  /* La cifra es EL dato de la celda: legible de un vistazo (retune 2026-09-02). */
+  font-size: 14px; font-variant-numeric: tabular-nums; font-weight: 600;
+}
+
+/* La celda ocupada es un botón: hover/foco asoman su detalle y el click lo
+   fija — el equivalente accesible del hover. Reset del botón nativo; el color
+   viene del estilo en línea de las dos capas. */
+button.aulas-carga-celda { padding: 0; border: 0; font: inherit; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+/* B39 segunda ronda: el «+N» dentro del verde quedó revocado por veredicto
+   («no se ve… francamente mal») — la celda con confirmados dice SOLO el
+   confirmado y el techo vive en hover/detalle. */
+button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+/* Loop mejora-ui E4 — dos capas, dos voces: la distinción confirmado/techo ya
+   existía en color (verde vs rosa) pero no en tipografía, y en el patrón real
+   la banda rosa cubre casi toda la malla — el mismo 600/14px en ambas capas
+   hacía competir el «puede ser» con el «ya es». El techo por-agendar habla un
+   punto más bajo; el verde confirmado conserva 14px/600 y lleva la melodía. */
+button.aulas-carga-celda.es-plausible { font-weight: 500; font-size: 13px; }
+
+/* El pico del operativo, marcado EN la malla. `outline` y no `box-shadow`: el
+   estilo en línea de la capa plausible ya usa box-shadow y lo taparía.
+   E3: a tono de warn-border el anillo se confundía con el borde de la loseta;
+   sube hacia la tinta para que el KPI «momento más cargado» se encuentre. */
+.aulas-carga-celda.es-pico {
+  outline: 2px solid color-mix(in srgb, var(--pulso-warn-fg) 70%, var(--pulso-warn-border));
+  outline-offset: -2px;
+}
+/* B38 — la demanda confirmada sobre la malla de oferta: el anillo verde dice
+   «aquí hay citas», la alarma dice «más citas que gente». Van por box-shadow
+   interior para convivir con los outlines de es-pico/es-activa. */
+.aulas-carga-celda.tiene-citas { box-shadow: inset 0 0 0 2px var(--pulso-success-fg); }
+.aulas-carga-celda.es-deficit { box-shadow: inset 0 0 0 2px var(--pulso-danger-fg); }
+span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-danger-fg) 14%, var(--pulso-surface)); }
+.aulas-carga-detalle-citas { font-weight: 500; color: var(--pulso-success-fg); }
+.aulas-carga-detalle-citas.es-deficit { color: var(--pulso-danger-fg); font-weight: 600; }
+/* La celda explorada; declarada después del pico para ganar cuando coinciden. */
+.aulas-carga-celda.es-activa { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
+
+/* El pager por semana del calendario. */
+.aulas-carga-semana {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  color: var(--pulso-text-soft); font-size: 13px;
+}
+.aulas-carga-semana strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.aulas-carga-semana button {
+  height: 26px; min-width: 26px; padding: 0 10px;
+  border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  font-size: 12.5px; cursor: pointer;
+}
+.aulas-carga-semana button:hover { border-color: var(--pulso-border-strong); }
+.aulas-carga-semana button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+
+/* El detalle de la celda explorada: región fija bajo la malla, no un tooltip
+   flotante — no pelea con el scroll horizontal, la lee el teclado y el gate
+   puede medirla. `min-height` para que el marco no salte entre vacío y lleno
+   (C2). */
+.aulas-carga-detalle {
+  min-height: 88px;
+  display: grid; gap: 8px; align-content: start;
+  padding: 10px 12px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, #fff);
+}
+.aulas-carga-detalle-vacio { margin: 0; color: var(--pulso-text-faint); font-size: 12.5px; }
+.aulas-carga-detalle-titulo { margin: 0; color: var(--pulso-text); font-size: 13px; font-variant-numeric: tabular-nums; }
+.aulas-carga-detalle-titulo em { color: var(--pulso-text-faint); font-size: 11.5px; font-style: normal; }
+.aulas-carga-detalle-grupo h4 {
+  margin: 0 0 4px; color: var(--pulso-text-faint);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+}
+/* Cada cita es una TARJETA compacta en una rejilla, no una línea corrida de
+   puntos medios (dictado 2026-09-02: «una lista más jerarquizada y ordenada»).
+   `auto-fill` reparte en columnas lo que quepa y la lista COMPLETA crece hacia
+   abajo — los techos de contenido quedaron revocados el mismo día. */
+.aulas-carga-detalle-grupo ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 6px;
+  margin: 0; padding: 0; list-style: none;
+}
+.aulas-carga-cita {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+.aulas-carga-cita-cab { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.aulas-carga-cita-codigo { color: var(--pulso-text); font-size: 12.5px; }
+.aulas-carga-cita-docente { color: var(--pulso-text-soft); font-size: 12px; overflow-wrap: anywhere; }
+.aulas-carga-cita-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.aulas-carga-detalle-mas { margin: 4px 0 0; color: var(--pulso-text-faint); font-size: 11.5px; }
+
+/* Los nombres del detalle de la oferta: chips en línea, no tarjetas — una
+   persona no tiene señas que jerarquizar, solo su nombre. El selector repite
+   al padre a propósito: sin él, la rejilla de tarjetas de arriba gana por
+   especificidad y cada nombre recibiría 250 px de tarjeta vacía. */
+.aulas-carga-detalle-grupo ul.aulas-carga-nombres {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  grid-template-columns: none;
+}
+
+/* Los chips del Sistema Pabellón viven en su hoja compartida
+   (`sistemaPabellon.css`, importada por `AulasSistemaPabellon.tsx`): el bloque
+   que nació aquí con B31 migró allá al extenderse el sistema a todo el perfil
+   (B33). Aquí quedan sólo las clases propias de Carga. */
+
+.aulas-carga-pie { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: center; }
+.aulas-carga-leyenda { display: flex; gap: 14px; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-carga-leyenda li { display: inline-flex; align-items: center; gap: 5px; }
+.aulas-carga-leyenda i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.aulas-carga-pabellones {
+  margin: 0; font-size: 12.5px; color: var(--pulso-text-soft);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+}
+.aulas-carga-pabellon {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--pulso-text); font-variant-numeric: tabular-nums;
+}
+.aulas-carga-aviso, .aulas-carga-vacio {
+  margin: 0; padding: 12px 14px; border-radius: 8px;
+  background: var(--pulso-warn-bg); border: 1px solid var(--pulso-warn-border);
+  color: var(--pulso-warn-fg); font-size: 12.5px;
+}
+.aulas-carga-vacio { max-width: 64ch; }
+
+@media (max-width: 900px) {
+  .aulas-carga-kpis { margin-left: 0; width: 100%; }
+  .aulas-carga-controles input[type="range"] { width: 100%; }
+}
+/* ^ La llave de arriba faltaba: el bloque @media quedaba abierto hasta el EOF.
+   El parser lo cierra solo, pero cualquier regla añadida después habría caído
+   DENTRO del media query en silencio. Medido antes de añadir lo que sigue. */
+
+/* El panel de la pestaña Carga es INTRÍNSECO: malla de filas fijas + detalle +
+   pie. El reparto de alto del stack de Agenda lo aplastaba —medido 2026-09-02
+   a 1024x600 con la base real: panel de 221 px con 654 de contenido
+   derramándose con overflow visible, sin dueño—. El mínimo es su contenido y
+   lo que no quepa lo recorre `.mon-workbench-content`, que ya declara
+   overflow-y auto como capacidad suya (patrón B25, `min-height: max-content`
+   de `.aulas-mon-view`). */
+.mon-profile-page.is-aulas-flow .mon-profile-panel.aulas-carga-panel {
+  align-self: start;
+  min-height: max-content;
+}
+
+/* --- Vista «Disponibilidad»: la malla de oferta, espejo de la demanda. ------ */
+
+/* El texto guía de la barra de controles de la oferta: ocupa el lugar del
+   slider de duración, que aquí no aplica —la oferta no tiene duración de
+   aplicación—, y así las dos barras pesan lo mismo al conmutar (C2). */
+.aulas-carga-oferta-lead {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  max-width: 46ch;
+}
+
+/* --- Vista «Asignación»: el reparto vigente por día. ------------------------ */
+
+.aulas-asigna { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* Dictado 2026-09-04: «le falta formato al texto de arriba». Eran tres frases
+   distintas en un bloque gris corrido; ahora la primera dice QUÉ es este
+   reparto y la segunda es el PROTOCOLO, leído como tres pasos separados por su
+   propio divisor en vez de por comas. */
+.aulas-asigna-vigencia {
+  display: flex; flex-direction: column; gap: 5px;
+  max-width: 74ch;
+}
+.aulas-asigna-vigencia-que {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+.aulas-asigna-vigencia strong { color: var(--pulso-text); font-weight: 600; }
+.aulas-asigna-protocolo {
+  margin: 0;
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: 2px 10px;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+.aulas-asigna-protocolo > span { display: inline-flex; align-items: baseline; gap: 4px; }
+.aulas-asigna-protocolo > span + span::before {
+  content: "";
+  align-self: center;
+  width: 3px; height: 3px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--pulso-border-strong);
+}
+.aulas-asigna-protocolo strong {
+  color: var(--pulso-text-soft);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El KPI de citas descubiertas se enciende solo cuando hay: un cero en rojo
+   gritaría un problema que no existe. */
+.aulas-carga-kpis dd.es-descubierto { color: var(--pulso-danger-fg); }
+.aulas-asigna-de { font-size: 14px; font-weight: 500; color: var(--pulso-text-faint); }
+
+/* Días a la izquierda, cargas a la derecha: la lista se lee con el rail al
+   lado, que es como se pregunta «¿y a Ana cuánto le tocó?». */
+.aulas-asigna-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: start;
+}
+
+.aulas-asigna-dias { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.aulas-asigna-sin-dias {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 10px;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.aulas-asigna-dia {
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  padding: 13px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.aulas-asigna-dia h4 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+/* Solo el conteo «· N citas» se atenúa. La versión `h4 span` a secas también
+   alcanzaba (y le ganaba por especificidad) al sello de la salida — el pill
+   rojo quedó con texto gris de 12px, ilegible; medido en la captura del
+   dictado 2026-09-03. */
+.aulas-asigna-dia h4 .aulas-asigna-conteo { font-weight: 400; font-size: 12px; color: var(--pulso-text-faint); }
+
+/* Lo descubierto, DESTACADO y arriba de su día: es lo que hay que resolver
+   antes de esa fecha, no un pie de página. */
+.aulas-asigna-descubiertos {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  /* `wrap`: los códigos van en chips y la lista es COMPLETA — una fila larga
+     baja de línea, no desborda. */
+  flex-wrap: wrap;
+  gap: 5px 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 12.5px;
+}
+.aulas-asigna-descubiertos svg { flex: none; align-self: center; }
+.aulas-asigna-descubiertos strong { font-weight: 600; }
+/* Los chips heredan el contexto: dentro del aviso hablan en rojo… */
+.aulas-asigna-descubiertos .aulas-chip {
+  background: color-mix(in srgb, var(--pulso-danger-fg) 8%, var(--pulso-surface));
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+  font-weight: 600;
+}
+/* …y en la línea de pendientes respiran entre renglones. */
+.aulas-asigna-pendientes .aulas-chip { margin: 1px 3px 1px 0; }
+
+/* B36 — el mecanismo de fijar/reasignar. El selector es sobrio y por fila;
+   la marca «fijada» y la advertencia hablan al lado, no en un tooltip. */
+.aulas-asigna-descubiertos > p { margin: 0; display: inline-flex; align-items: center; gap: 5px; }
+.aulas-asigna-resolver { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.aulas-asigna-resolver-item { display: inline-flex; align-items: center; gap: 4px; }
+.aulas-asigna-quien { display: inline-flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.aulas-asigna-selector {
+  font: inherit; font-size: 12px;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  padding: 3px 6px;
+  /* El nombre NO se corta: «Automático — Chamorro Rodríguez» necesita aire y
+     240px lo decapitaba (dictado 2026-09-03: «el aplicador se está cortando»). */
+  max-width: min(100%, 380px);
+}
+.aulas-asigna-selector:hover { border-color: var(--pulso-border-strong); }
+.aulas-asigna-selector:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-asigna-advertencia {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px;
+  color: var(--pulso-danger-fg);
+}
+.aulas-asigna-huerfanas .aulas-asigna-resolver-item { margin: 0 6px 0 2px; }
+
+/* B67+B75 — la fila de mandos del reparto: rango y resorteo, juntos. Loop
+   mejora-ui E1 (2026-09-03, tras el «es poco intuitivo»): los mandos dejaron
+   de flotar sueltos entre la vigencia y los KPIs — ahora son UN panel de
+   instrumentos: contenedor de hairline sobre fondo apenas hundido, divisor
+   entre el rango y el resorteo (solo en ancho, donde no envuelven), y el
+   «sorteo n.º N» como chip en vez de texto suelto. */
+.aulas-asigna-mandos {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+  width: fit-content; max-width: 100%;
+  /* Dictado 2026-09-04: «le falta formato a este box». Más aire vertical, el
+     rótulo del panel arriba y el mismo alto para los tres instrumentos, que
+     antes quedaban a alturas distintas por llevar controles de otro tamaño. */
+  padding: 9px 14px 11px;
+  border: 1px solid var(--pulso-border);
+  /* 10 es peldaño de la escala de radios del perfil; 12 cae entre dos. */
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-bg) 55%, var(--pulso-surface));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 70%, transparent);
+}
+.aulas-asigna-mandos > * { min-height: 24px; }
+/* El rótulo del panel: sin él los tres instrumentos flotaban sueltos dentro de
+   una caja sin nombre. Ocupa el renglón entero y usa la voz de los demás
+   encabezados del perfil. */
+.aulas-asigna-mandos-rotulo {
+  flex-basis: 100%;
+  min-height: 0;
+  margin: 0 0 1px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.aulas-asigna-resorteo { display: inline-flex; align-items: center; gap: 8px; }
+@media (min-width: 900px) {
+  .aulas-asigna-mandos > .aulas-asigna-resorteo:not(:first-child),
+  .aulas-asigna-mandos > .aulas-asigna-concentrar:not(:first-child) {
+    border-left: 1px solid var(--pulso-border);
+    padding-left: 16px;
+  }
+}
+/* Dictado 2026-09-04 — «concentrar el día del aplicador»: el tercer
+   instrumento del panel. Casilla y no botón porque es un CRITERIO que queda
+   puesto, no una acción que se dispara: su estado es el del reparto de abajo,
+   leído del motor. */
+.aulas-asigna-concentrar {
+  display: inline-flex; align-items: center; gap: 9px;
+}
+.aulas-asigna-concentrar:has(.pulso-switch:disabled) { opacity: 0.55; }
+.aulas-asigna-concentrar-texto {
+  display: flex; flex-direction: column; gap: 1px;
+  line-height: 1.3;
+}
+.aulas-asigna-concentrar-texto strong {
+  font-size: 12px; font-weight: 600;
+  color: var(--pulso-text);
+}
+.aulas-asigna-concentrar-texto em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+.aulas-asigna-resorteo em {
+  font-style: normal; font-size: 11px; font-weight: 600;
+  color: var(--pulso-text-soft);
+  padding: 1px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* B75 — el rango de despliegue: dos fechas sobrias en la cabecera de la
+   Asignación; aplicar re-particiona y lo de fuera queda declarado. */
+.aulas-asigna-rango {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--pulso-text-soft);
+}
+.aulas-asigna-rango-rotulo { font-weight: 500; }
+.aulas-asigna-rango input[type="date"] {
+  font: inherit; font-size: 12px;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  padding: 2px 6px;
+}
+.aulas-asigna-rango input[type="date"]:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-asigna-rango-boton {
+  border: 1px solid var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  border-radius: 999px;
+  padding: 2px 11px;
+  font: inherit; font-size: 11.5px; font-weight: 600;
+  cursor: pointer;
+}
+.aulas-asigna-rango-boton:hover:not(:disabled) { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
+.aulas-asigna-rango-boton:disabled { opacity: 0.45; cursor: default; }
+.aulas-asigna-rango-boton:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-asigna-rango-boton.es-limpiar { font-weight: 400; color: var(--pulso-text-soft); }
+/* Dictado 2026-09-04: sin fechas declaradas el reparto toma todo el horizonte.
+   Se dice en el mismo renglón del control, en tono de nota — no es un error,
+   es el estado en el que está. */
+.aulas-asigna-rango-sin {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+.aulas-asigna-aplazadas { max-width: 72ch; }
+
+/* El día QUE TOCA protagoniza y lo pasado se atenúa: el jefe despliega por
+   día y la lista no puede pesar parejo. El acento usa el rojo primordial de
+   la marca — el estándar validado: color nuevo sin sacrificarlo. */
+.aulas-asigna-dia.es-el-que-toca {
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
+  border-left: 4px solid var(--pulso-module-monitoring);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 4%, var(--pulso-surface));
+}
+.aulas-asigna-toca {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--pulso-module-monitoring);
+  color: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.aulas-asigna-dia.es-pasado { opacity: 0.6; }
+/* La entrada del día que toca en el rail: la hoja de despliegue en una
+   línea — hora y pabellón de cada aplicador, debajo de su carga. El botón
+   es grid de dos columnas; esta línea ocupa el ancho entero. */
+.aulas-asigna-despliegue {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+}
+.aulas-asigna-ya-paso { font-style: normal; color: var(--pulso-text-faint); font-size: 12px; }
+.aulas-asigna-soltar {
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font: inherit; font-size: 11px;
+  cursor: pointer;
+}
+.aulas-asigna-soltar:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
+.aulas-asigna-soltar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+
+/* Dictado 2026-09-03 (2.ª ronda): la preparación se distingue de la hora
+   pactada — apilada sobre el chip firme. La secuencia misma es ChipPrep del
+   Sistema Pabellón (3.ª ronda: «como un box como el resto»). */
+.aulas-asigna-horas { display: inline-flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+
+/* B74 — importar la disponibilidad desde la app (también en los vacíos, que
+   es donde más muerde su ausencia). Label-botón sobrio con nota tenue. */
+.aulas-dispo-vacio { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.aulas-dispo-importar {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  cursor: pointer;
+  width: fit-content;
+}
+.aulas-dispo-importar:hover { border-color: var(--pulso-module-monitoring); color: var(--pulso-module-monitoring); }
+.aulas-dispo-importar:focus-within { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-dispo-importar em {
+  font-style: normal; font-weight: 400;
+  font-size: 11px; color: var(--pulso-text-faint);
+}
+
+/* B76 — la lente por aplicador: el desplegable y la semana de la persona. */
+.aulas-dispo-persona {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-size: 12px; font-weight: 500; color: var(--pulso-text-soft);
+}
+.aulas-dispo-persona select {
+  font: inherit; font-size: 12px;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  padding: 3px 6px;
+  max-width: min(100%, 340px);
+}
+.aulas-dispo-persona select:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-dispo-semana {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  display: flex; flex-wrap: wrap; gap: 5px 18px; align-items: baseline;
+  max-width: 100ch;
+  padding: 8px 12px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 9px;
+  flex-basis: 100%;
+}
+.aulas-dispo-semana strong { color: var(--pulso-text); font-weight: 600; }
+.aulas-dispo-semana-dia { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aulas-dispo-semana-dia em {
+  font-style: normal; font-weight: 600; color: var(--pulso-text);
+  margin-right: 3px;
+}
+/* Con persona elegida: lo suyo salta con el anillo del módulo y lo ajeno
+   recede — los conteos del agregado siguen legibles en tenue. */
+.aulas-carga-celda.es-suyo { box-shadow: 0 0 0 2px var(--pulso-module-monitoring); }
+.aulas-carga-celda.es-ajeno { opacity: 0.28; }
+
+.aulas-asigna-tabla { border-collapse: collapse; width: 100%; }
+.aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 5px 12px 5px 0; }
+.aulas-asigna-tabla thead th {
+  font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.aulas-asigna-tabla tbody th {
+  font-size: 12.5px; font-weight: 600; color: var(--pulso-text);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.aulas-asigna-tabla tbody td {
+  font-size: 12.5px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums;
+}
+.aulas-asigna-tabla tbody tr + tr > * { border-top: 1px solid color-mix(in srgb, var(--pulso-border) 55%, transparent); }
+
+/* El resalte desde el rail: las citas del aplicador explorado al frente y el
+   resto atenuado — sin mover nada, que el ojo no pierda la fila (C2). */
+.aulas-asigna-tabla tbody tr.es-resaltada > * {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface));
+}
+.aulas-asigna-tabla tbody tr.es-apagada > * { opacity: 0.42; }
+
+.aulas-asigna-pendientes { margin: 0; font-size: 12px; color: var(--pulso-text-faint); }
+
+.aulas-asigna-equidad {
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.aulas-asigna-equidad h4 {
+  margin: 0;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.aulas-asigna-nota { margin: 0; font-size: 11.5px; color: var(--pulso-text-faint); }
+/* B66 — el veredicto de equidad, dicho arriba de las barras: parejo habla en
+   verde de la casa; el desbalance en el tono neutro-fuerte, no en rojo (no es
+   un error: sus causas van declaradas en la misma línea). */
+.aulas-asigna-veredicto {
+  margin: 0 0 6px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.aulas-asigna-veredicto.es-parejo {
+  color: var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-bg) 45%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 60%, var(--pulso-border));
+}
+.aulas-asigna-veredicto.es-desparejo {
+  color: var(--pulso-text);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border-strong);
+}
+
+.aulas-asigna-equidad ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+
+/* Cada carga es un botón de fila entera: hover/foco resaltan sus citas y el
+   click las deja fijadas — el mismo gesto que las franjas de la malla. */
+.aulas-asigna-carga {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aulas-asigna-carga:hover { background: var(--pulso-surface-2); }
+.aulas-asigna-carga:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
+.aulas-asigna-carga.es-activo { background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface)); }
+/* El nombre ENVUELVE, no se recorta: «Castillo S…» con elipsis era el mismo
+   techo de contenido que el dictado 2026-09-02 revocó — un nombre largo toma
+   dos líneas y la fila crece. */
+.aulas-asigna-nombre {
+  font-size: 12.5px; color: var(--pulso-text);
+  overflow-wrap: anywhere;
+  /* Un <button> computa `white-space: nowrap` por defecto del navegador, así
+     que `overflow-wrap` no alcanzaba: el nombre largo se salía de su columna y
+     la cifra se pintaba encima (visto el 2026-09-04, al ensanchar la columna
+     con la marca de días). Envolver es lo que esta fila siempre quiso. */
+  white-space: normal;
+}
+.aulas-asigna-carga.es-libre .aulas-asigna-nombre { color: var(--pulso-text-soft); }
+/* La carga es un badge del mismo sistema de chips (veredicto 2026-09-02): el
+   tono del módulo dice «cita tuya» y el estado libre lo atenúa por contexto. */
+.aulas-asigna-cifra { display: inline-flex; align-items: center; gap: 6px; }
+.aulas-asigna-cifra .aulas-chip {
+  font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--pulso-module-monitoring);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 8%, var(--pulso-surface));
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 24%, var(--pulso-surface));
+}
+.aulas-asigna-carga.es-libre .aulas-asigna-cifra .aulas-chip {
+  color: var(--pulso-text-faint);
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border);
+}
+/* En cuántos DÍAS cae su carga (dictado 2026-09-04). Va pegado a la cifra
+   porque se lee con ella: «4» dice cuánto, «2 días» dice si vino dos veces a
+   la universidad o cuatro. Un solo día no se anota — es la meta cumplida. */
+.aulas-asigna-ndias {
+  font-style: normal;
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+  align-self: center;
+}
+/* El desglose que se abre al explorar a una persona: sus días y las horas de
+   cada uno. Ocupa el ancho entero del botón —como la línea de despliegue— y
+   se sangra bajo el nombre para que se lea como su detalle, no como otra fila. */
+.aulas-asigna-agenda {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: 3px;
+  padding-left: 9px;
+  border-left: 2px solid color-mix(in srgb, var(--pulso-module-monitoring) 35%, var(--pulso-surface));
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.aulas-asigna-agenda-dia strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+/* Dictado 2026-09-04: «automático debe ser un aviso pequeño, no el brillito
+   cliché de siempre; y si lo cambias, cambia de loguito y se pone manual». Dos
+   sellos del mismo tamaño y sitio: sólo cambian el ícono, la palabra y el tono.
+   El manual es un botón porque además es el camino de vuelta al automático. */
+.aulas-asigna-sello {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  font: inherit; font-size: 10.5px; font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.aulas-asigna-sello.es-auto { color: var(--pulso-text-faint); }
+.aulas-asigna-sello.es-manual {
+  color: var(--pulso-module-monitoring);
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 32%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 8%, var(--pulso-surface));
+  font-weight: 600;
+  cursor: pointer;
+}
+.aulas-asigna-sello.es-manual:hover {
+  border-color: var(--pulso-module-monitoring);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 15%, var(--pulso-surface));
+}
+.aulas-asigna-sello.es-manual:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px;
+}
+/* La hora que no existe se nombra en vez de dejar un guion mudo. */
+.aulas-asigna-sin-hora { font-size: 11.5px; color: var(--pulso-text-faint); }
+
+.aulas-asigna-barra {
+  position: absolute;
+  left: 8px; right: 8px; bottom: 4px;
+  height: 3px;
+  max-width: calc(100% - 16px);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-surface));
+}
+.aulas-asigna-carga.es-libre .aulas-asigna-barra { background: var(--pulso-border); }
+
+@media (max-width: 900px) {
+  /* El rail baja debajo de los días: 280 px fijos no caben al lado en un
+     viewport compacto, y un grid que no colapsa fabrica scroll lateral (C4). */
+  .aulas-asigna-cuerpo { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* El botón «copiar aviso del día» de la próxima salida: al lado del sello, sobrio. */
+.aulas-asigna-copiar {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font: inherit; font-size: 11px; font-weight: 500;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+.aulas-asigna-copiar:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
+.aulas-asigna-copiar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-asigna-revelado { margin: 8px 0 4px; }
+.aulas-asigna-revelado p { margin: 0 0 4px; font-size: 12px; color: var(--pulso-text-soft); }
+.aulas-asigna-revelado textarea {
+  width: 100%;
+  font: 12px ui-monospace, "SF Mono", Menlo, monospace;
+  line-height: 1.5;
+  color: var(--pulso-text);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+/* B46, hermano de B43: en el calendario, la fila del día que toca lleva su
+   sello y lo pasado se atenúa — la lectura de despliegue en la malla. */
+.aulas-carga-malla tbody tr.es-el-que-toca > th { box-shadow: inset 3px 0 0 var(--pulso-module-monitoring); }
+.aulas-carga-malla tbody tr.es-el-que-toca > th button { color: var(--pulso-module-monitoring); font-weight: 700; }
+.aulas-carga-toca {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--pulso-module-monitoring);
+  color: var(--pulso-surface);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* En la columna FECHA del calendario el sello va DEBAJO de la fecha (dictado
+   2026-09-03: «esta parte se corta y no se ve bien, puede ir abajo; además no
+   están alineados los días»): inline empujaba «Lunes 07/09» fuera de los
+   112px de la columna y el recorte se comía la L. Bloque propio, pegado al
+   borde derecho como las fechas — la alineación de los días no se toca. */
+.aulas-carga-malla tbody th .aulas-carga-toca {
+  display: block;
+  margin: 2px 0 1px auto;
+  width: fit-content;
+  font-size: 10px;
+  padding: 0 6px;
+}
+.aulas-carga-malla tbody tr.es-pasado { opacity: 0.55; }
+/* Los edificios del parte del día: letra coloreada + cuenta, en el título. */
+.aulas-carga-detalle-pabellon { display: inline-flex; align-items: center; gap: 2px; margin-left: 7px; }
+.aulas-carga-detalle-pabellon em { font-style: normal; font-size: 11px; color: var(--pulso-text-soft); }
+
+/* Dictado 2026-09-04: «los avisos [tienen que] permitirnos hacer algo». La
+   causa de una cita descubierta va DEBAJO de su código y su selector, en línea
+   propia y en tono de nota: es la frase que dice a quién soltar para abrirla. */
+.aulas-asigna-causa {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  padding-left: 2px;
+}
+/* Quien quedó sin nada y qué cubre: plegado por defecto porque son diez líneas
+   que sólo se miran cuando se quiere mover una cita, y nativo para que el
+   teclado llegue sin estado suelto. */
+.aulas-asigna-libres { margin: 0 0 2px; }
+.aulas-asigna-libres > summary {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  padding: 2px 0;
+  list-style-position: inside;
+}
+.aulas-asigna-libres > summary:hover { color: var(--pulso-module-monitoring); }
+.aulas-asigna-libres > summary:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; border-radius: 4px;
+}
+.aulas-asigna-libres ul {
+  margin: 4px 0 6px;
+  padding: 6px 9px;
+  display: flex; flex-direction: column; gap: 4px;
+  list-style: none;
+  border-left: 2px solid var(--pulso-border-strong);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+.aulas-asigna-libres ul strong { color: var(--pulso-text); font-weight: 600; }
+
+/* ── Las secuencias del día (dictado 2026-09-04) ──────────────────────────────
+   «Algún tipo de raíz o conexión cuando la misma persona haga más de una
+   aplicación seguida en el día, para poder mapear esas secuencias, sabiendo que
+   puede haber más de una». La tabla va ordenada por hora, así que las citas de
+   una persona quedan salteadas entre las de otros; la cadena las une con una
+   línea por su carril, un nodo en cada parada suya y las puntas redondeadas.
+
+   Lenguaje prestado del grafo de lógica del editor de instrumento: una relación
+   por color, la línea cruza lo que no le toca, y al enfocarla se enciende. Los
+   tonos son los ocho del Sistema Pabellón, que ya viven en el tema. */
+/* La celda es el marco de posición de sus carriles. Ella SÍ tiene el alto de
+   la fila, y por eso los carriles se anclan a sus bordes con `top/bottom: 0`:
+   un `height: 100%` dentro de una celda sin alto declarado resuelve a cero, y
+   la primera versión pintó los nodos sin la línea que los une. */
+.aulas-asigna-canalon {
+  position: relative;
+  padding: 0 6px 0 0;
+  font-size: 0;
+}
+/* Cada carril es una franja de 14 px con su línea en el medio; ocupa la fila
+   entera, que es lo que hace continua la línea de una fila a la siguiente. */
+.aulas-asigna-carril {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 14px;
+}
+.aulas-asigna-carril::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0; bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--carril-tono) 55%, var(--pulso-surface));
+}
+/* Las puntas: la cadena empieza y acaba EN su parada, no en el borde de la
+   fila, así que el tramo se recorta a la mitad de la celda. */
+.aulas-asigna-carril.es-cabeza::before { top: 50%; border-radius: 2px 2px 0 0; }
+.aulas-asigna-carril.es-cola::before { bottom: 50%; border-radius: 0 0 2px 2px; }
+.aulas-asigna-carril.es-cabeza.es-cola::before { top: 50%; bottom: 50%; }
+/* El nodo de una parada suya: relleno del tono, aro del fondo para que la
+   línea no se le vea por debajo. */
+.aulas-asigna-carril.es-parada::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--carril-tono);
+  box-shadow: 0 0 0 2px var(--pulso-surface);
+}
+/* Enfocada desde el rail: la cadena se enciende entera, igual que sus filas. */
+.aulas-asigna-carril.es-enfoco::before { background: var(--carril-tono); width: 3px; margin-left: -1.5px; }
+.aulas-asigna-carril.es-enfoco::after { box-shadow: 0 0 0 2px var(--pulso-surface), 0 0 0 4px color-mix(in srgb, var(--carril-tono) 28%, transparent); }
+
+.aulas-asigna-carril.es-tono-0 { --carril-tono: var(--pulso-accent-steel); }
+.aulas-asigna-carril.es-tono-1 { --carril-tono: var(--pulso-accent-green); }
+.aulas-asigna-carril.es-tono-2 { --carril-tono: var(--pulso-accent-rose); }
+.aulas-asigna-carril.es-tono-3 { --carril-tono: var(--pulso-accent-amber); }
+.aulas-asigna-carril.es-tono-4 { --carril-tono: var(--pulso-accent-violet); }
+.aulas-asigna-carril.es-tono-5 { --carril-tono: var(--pulso-accent-cyan); }
+.aulas-asigna-carril.es-tono-6 { --carril-tono: var(--pulso-module-monitoring); }
+.aulas-asigna-carril.es-tono-7 { --carril-tono: var(--pulso-module-processing); }
+
+/* Con canalón, la primera columna de datos pierde su sangría izquierda: la
+   línea ya hace de margen y si no, la cita quedaba flotando lejos. */
+.aulas-asigna-tabla.es-con-cadenas tbody th[scope="row"] { padding-left: 2px; }
+
+/* La facultad en la tabla de Asignación (dictado 2026-09-04: «el cuadro no
+   muestra la facultad»). Va en tono secundario y envuelve: es el corte al que
+   pertenece la cita, no su identidad, y algunos nombres son largos. */
+.aulas-asigna-facultad {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+  max-width: 18ch;
+}
+
+/* El bloque de descubiertos, una cita por renglón (2026-09-04: «este aviso está
+   roto»). El item era `inline-flex` SIN wrap, así que la causa —que pide línea
+   propia con `flex-basis: 100%`— no podía bajar y apretaba a sus vecinos: los
+   chips salían recortados («08:15 a 08») y la frase se iba al margen derecho.
+   Acotado a `.aulas-asigna-descubiertos` para no tocar las fijaciones
+   huérfanas, que sí son chips en línea. */
+.aulas-asigna-descubiertos .aulas-asigna-resolver {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: stretch;
+}
+.aulas-asigna-descubiertos .aulas-asigna-resolver-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 9px;
+}
+/* Los chips dicen QUÉ cita y a qué hora: no se encogen ni se parten. */
+.aulas-asigna-descubiertos .aulas-asigna-resolver-item > .aulas-chip { flex: none; }
+/* Y el selector no se come el renglón: cede antes que los chips. */
+.aulas-asigna-descubiertos .aulas-asigna-selector { flex: 0 1 auto; min-width: 12ch; }
+
+/* La jornada de punta a punta dentro del desglose del rail (dictado 2026-09-04:
+   «qué días tiene que estar en oficina»). Va en su renglón, entre el día y las
+   horas de sus citas: primero cuándo entra, después a qué hora es cada una. */
+.aulas-asigna-agenda-dia { display: flex; flex-direction: column; gap: 1px; }
+.aulas-asigna-agenda-jornada {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--pulso-module-monitoring);
+}
+.aulas-asigna-agenda-horas { color: var(--pulso-text-soft); }
+
+/* La variable de sexo, declarada junto al resto del criterio (dictado
+   2026-09-04). Va en su propio renglón, antes de los mandos: es otra pregunta
+   del mismo tipo —qué columna de la base significa qué— y no una condición más
+   de la lista, así que no puede leerse como un quinto filtro. */
+.aulas-efectiva-sexo {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+  margin: 10px 0 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pulso-border);
+}
+.aulas-efectiva-sexo label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--pulso-text);
+}
+.aulas-efectiva-sexo select {
+  font: inherit; font-size: 12px;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  padding: 3px 6px;
+  max-width: 28ch;
+}
+.aulas-efectiva-sexo select:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-efectiva-sexo em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  flex: 1 1 22ch;
+}
+
+/* ── Los viajes por una sola aula, con su motivo ──────────────────────────────
+   Dictado 2026-09-04: «que todos tengan asignaciones el mismo día… o aunque sea
+   por lo menos vengan por dos aplicaciones». El motor baja los viajes
+   solitarios hasta donde la física deja; los que quedan se explican aquí, uno
+   por uno y con la gente nombrada.
+
+   Hereda el plegado y la tipografía de `.aulas-asigna-libres` porque son
+   vecinos en el mismo rail y son la misma clase de aviso: diagnóstico que se
+   mira cuando se va a mover algo, no permanentemente. Lo que añade es la marca
+   de lo ACCIONABLE, que es la única distinción que cambia qué hace el usuario:
+   la causa `tope` se resuelve fijando la cita desde la tabla; las otras tres
+   piden mover la agenda o conseguir gente. */
+.aulas-asigna-solitarios { margin: 0 0 2px; }
+.aulas-asigna-solitarios > summary {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  padding: 2px 0;
+  list-style-position: inside;
+}
+.aulas-asigna-solitarios > summary:hover { color: var(--pulso-module-monitoring); }
+.aulas-asigna-solitarios > summary:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; border-radius: 4px;
+}
+/* **Una línea por viaje, y las tres columnas alineadas entre filas.**
+   Cada ítem nombra a quién está ocupado y en qué cita, y eso no cabe apilado:
+   en el rail de 250px cada uno se partía en cinco renglones y doce viajes
+   medían 1.194px de alto. Con el ancho de la columna de días entra en una
+   línea.
+
+   La rejilla vive en el `ul` y los `li` van en `display: contents`, no una
+   rejilla por ítem: con una rejilla por ítem cada fila calculaba su propio
+   ancho de columna y «Martes 08/09» empezaba en una x distinta en cada línea,
+   que es justo lo que hace ilegible una lista de doce. El `li` pierde su caja,
+   así que la marca de accionable cuelga del nombre y no del ítem. */
+.aulas-asigna-solitarios ul {
+  margin: 4px 0 6px;
+  padding: 6px 0 6px 9px;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 5px;
+  list-style: none;
+  border-left: 2px solid var(--pulso-border-strong);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+.aulas-asigna-solitarios li { display: contents; }
+.aulas-asigna-solitarios li strong { color: var(--pulso-text); font-weight: 600; white-space: nowrap; }
+/* La cita va en el tono de los metadatos: se lee primero el nombre, después el
+   motivo, y la cita queda como referencia entre los dos. */
+.aulas-asigna-solitarios-cita { color: var(--pulso-text-faint); white-space: nowrap; }
+.aulas-asigna-solitarios-motivo { min-width: 0; }
+/* Estrecho: una sola columna y cada pieza en su renglón, que ahí es lo legible.
+   Como los `li` son `contents`, basta con colapsar la rejilla del `ul`. */
+@media (max-width: 720px) {
+  .aulas-asigna-solitarios ul { grid-template-columns: minmax(0, 1fr); row-gap: 1px; }
+  .aulas-asigna-solitarios li strong { margin-top: 5px; white-space: normal; }
+  .aulas-asigna-solitarios-cita { white-space: normal; }
+}
+/* Lo accionable se marca con la barra del módulo, no con un color de alarma:
+   no es un error, es lo único de esta lista que el usuario puede cerrar. */
+.aulas-asigna-solitarios li.es-accionable > strong {
+  border-left: 2px solid var(--pulso-module-monitoring);
+  margin-left: -10px;
+  padding-left: 8px;
+  color: var(--pulso-module-monitoring);
+}
+.aulas-asigna-solitarios-nota {
+  margin: 0 0 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+}
+
+/* S7: el Sheets de los aplicadores dentro de los controles de Asignación —
+   rótulo, aviso con causa y salida, y el campo del enlace con su acción. */
+.aulas-asigna-sheets {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.aulas-asigna-sheets-campo { flex-wrap: wrap; }
+/* El ciclo (leer, adoptar, añadir, refrescar) debajo del campo del enlace, con
+   una separación que lo distinga de la acción de publicar: son dos cosas
+   distintas y una de ellas sobrescribe. */
+.aulas-asigna-sheets-ciclo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--pulso-border);
+}
+.aulas-asigna-sheets-campo input[type="url"] {
+  flex: 1 1 280px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+}
+.aulas-asigna-sheets-campo input[type="url"]:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring);
+  outline-offset: 1px;
+}
+.aulas-asigna-sheets-enlace {
+  color: var(--pulso-module-monitoring);
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+/* Los dos Sheets del operativo, dichos juntos (dictado 2026-09-09). Va antes de
+   los botones del panel: sus acciones viven en dos pantallas y no había dónde
+   ver de un vistazo si los dos estaban al día. Tokens `--pulso-*`, nunca hex. */
+.aulas-dos-sheets {
+  /* El panel que lo contiene es un GRID de dos columnas: sin esto el bloque
+     caía en la estrecha y se medía 61 px de ancho por 2 984 de alto. Medido en
+     pantalla el 2026-09-09; ningún test lo habría visto. */
+  grid-column: 1 / -1;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+.aulas-dos-sheets-rotulo {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.aulas-dos-sheets ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aulas-dos-sheets li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "titulo cuando"
+    "que    cuando"
+    "siguiente siguiente";
+  gap: 2px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: 3px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+.aulas-dos-sheets li.is-conectado { border-left-color: var(--pulso-button-accent); }
+.aulas-dos-sheets li.is-pendiente { border-left-color: var(--pulso-warn-accent); }
+.aulas-dos-sheets-titulo { grid-area: titulo; font-size: 12.5px; font-weight: 620; }
+.aulas-dos-sheets-titulo a { color: inherit; }
+.aulas-dos-sheets-que { grid-area: que; font-size: 11.5px; color: var(--pulso-text-soft); }
+.aulas-dos-sheets-cuando {
+  grid-area: cuando;
+  align-self: center;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+.aulas-dos-sheets-siguiente {
+  grid-area: siguiente;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+/* El sello de la última publicación, al lado de «Traer respuestas».
+ *
+ * Es una frase de estado, no una alarma: en azul apagado cuando la hoja está
+ * al día y con la tinta de atención sólo cuando se quedó en un corte anterior.
+ * Se recorta con elipsis porque la barra de acciones es estrecha y el texto
+ * completo vive en el `title`: una frase que rompe la fila la vuelve ilegible
+ * para todo lo demás. */
+.mon-profile-page.is-aulas-flow .aulas-ops-sello {
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-ops-sello.es-atrasado,
+.mon-profile-page.is-aulas-flow .aulas-ops-sello.es-sin_publicar {
+  color: var(--pulso-danger-fg);
+}
+
+/* La plantilla y el import, pegados: primero se baja, después se sube. */
+.aulas-dispo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+button.aulas-dispo-importar {
+  text-align: left;
+  font-family: inherit;
+}
+
+/* A qué clase se puede entrar sin cita, dentro del día del despliegue. */
+.aulas-sincita {
+  margin-top: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface-2);
+  padding: 8px 10px;
+}
+.aulas-sincita > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+}
+.aulas-sincita > summary strong { color: var(--pulso-text); }
+.aulas-sincita > summary em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  flex-basis: 100%;
+}
+.aulas-sincita-tabla {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: auto;
+}
+.aulas-sincita-tabla th,
+.aulas-sincita-tabla td {
+  text-align: left;
+  vertical-align: top;
+  padding: 4px 8px 4px 0;
+  border-top: 1px solid var(--pulso-border);
+  font-weight: 400;
+}
+.aulas-sincita-tabla thead th {
+  border-top: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-faint);
+}
+.aulas-sincita-cod { font-weight: 600; color: var(--pulso-text); white-space: nowrap; }
+.aulas-sincita-curso { color: var(--pulso-text-soft); }
+/* El horario abre la fila: tabular para que las horas queden en columna. */
+.aulas-sincita-hora {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.aulas-sincita-hora em,
+.aulas-sincita-aula em,
+.aulas-sincita-curso em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+.aulas-sincita-aula[data-incierta="1"] { color: var(--pulso-warn-fg); }
+.aulas-sincita-eleg { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }

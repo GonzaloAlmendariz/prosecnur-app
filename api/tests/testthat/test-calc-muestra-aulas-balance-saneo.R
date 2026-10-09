@@ -155,3 +155,69 @@ test_that("pick_local sortea de verdad: no son siempre las primeras filas", {
   expect_false(all(prefijos))
   expect_gt(length(unique(vapply(muestras, function(m) paste(sort(m), collapse = ","), character(1)))), 1L)
 })
+
+# El costo del aterrizaje del cubo crece como 2^columnas. Medido sobre
+# `.cm_aulas_samplecube_estable` con 60 aulas y cuota 20: 16 columnas tardan
+# 1,4 s, 20 tardan 29,2 s y 24 no terminaron en 930 s. No falla: se cuelga, y
+# un timeout no lo rescata porque el trabajo ocurre en codigo compilado que no
+# atiende interrupciones. La guarda tiene que ir ANTES del aterrizaje.
+#
+# El caso que lo disparo: `program` con 1 049 niveles en HSVG2026 daba 1 048
+# columnas, y sobre los 76 estratos del marco la mediana quedaba en 9 pero el
+# maximo en 146, con 18 estratos por encima de 20. Una variable que aporta mas
+# columnas de las que el aterrizaje puede recorrer no balancea nada: entra en
+# la misma categoria que una constante y se trata igual, descartandola y
+# DECLARANDOLA.
+
+.bs_estrato_ancho <- function(n = 40L, niveles = 30L) {
+  data.frame(
+    classroom_id = paste0("CH", seq_len(n)),
+    faculty = "DERECHO", sex_top_1 = "F", size_group = "G2",
+    program = paste0("P", rep(seq_len(niveles), length.out = n)),
+    level = rep(c("4", "6"), length.out = n),
+    eligible_n = rep(20, n),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("una variable con demasiados niveles se descarta y se declara, no cuelga el sorteo", {
+  df <- .bs_estrato_ancho()
+  m <- .cm_aulas_balance_matrix_saneada(df, .bs_vars, pik = rep(0.5, nrow(df)))
+
+  # La cota es sobre las columnas que llegan al aterrizaje; + intercepto y pik.
+  expect_lte(ncol(m), .CM_AULAS_MAX_BALANCE_COLS + 2L)
+  expect_true("program" %in% attr(m, "balance_vars_descartadas"))
+
+  # Lo que si cabe sobrevive: `level` varia y aporta una sola columna.
+  expect_false("level" %in% attr(m, "balance_vars_descartadas"))
+})
+
+test_that("por debajo de la cota no se descarta nada por cardinalidad", {
+  df <- .bs_estrato_ancho(n = 40L, niveles = 3L)
+  m <- .cm_aulas_balance_matrix_saneada(df, .bs_vars, pik = rep(0.5, nrow(df)))
+  expect_false("program" %in% attr(m, "balance_vars_descartadas"))
+  expect_false("level" %in% attr(m, "balance_vars_descartadas"))
+})
+
+# El aviso de balance se recalcula aparte de la matriz, asi que las dos lecturas
+# de la misma regla pueden divergir: cuando la cota por cardinalidad entro, el
+# aviso seguia reportando solo las variables SIN VARIACION y callaba el descarte
+# que de verdad cambia el diseno del usuario. La capacidad existe solo si el
+# analista puede verla.
+test_that("el aviso nombra tambien lo descartado por cardinalidad, no solo lo constante", {
+  df <- .bs_estrato_ancho()
+  selector <- list(balance_vars = .bs_vars, spread_vars = list())
+  msg <- .cm_aulas_balance_descartadas_warning(df, selector, "cube_balanceado")
+
+  expect_length(msg, 1L)
+  expect_match(msg, "program")           # la que la cota descarta
+  expect_match(msg, "niveles|cardinal")  # y POR QUE se descarto
+  expect_match(msg, "faculty")           # las constantes se siguen declarando
+})
+
+test_that("sin descartes por cardinalidad el aviso no inventa ninguno", {
+  df <- .bs_estrato_ancho(n = 40L, niveles = 3L)
+  selector <- list(balance_vars = .bs_vars, spread_vars = list())
+  msg <- .cm_aulas_balance_descartadas_warning(df, selector, "cube_balanceado")
+  expect_false(any(grepl("niveles|cardinal", msg)))
+})

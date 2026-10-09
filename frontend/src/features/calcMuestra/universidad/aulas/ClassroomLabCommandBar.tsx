@@ -1,9 +1,11 @@
 import { CM_CORRIDAS_COMPARACION, corridasDeEstabilidad } from "./duracionComparacion";
-import { BarChart3, Loader2, RefreshCw, Sigma, Table2 } from "lucide-react";
+import { BarChart3, Loader2, Sigma, Table2 } from "lucide-react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { AulasStaleJobAviso } from "./AulasStaleJobAviso";
 import type { ClassroomLabModel } from "./classroomLabModel";
 import { classroomMethodLabel } from "./classroomLabels";
+import { MetodoRecomendadoLinea } from "./MetodoRecomendadoLinea";
+import { ProbarReemplazosBoton } from "./ProbarReemplazosBoton";
 
 export function ClassroomLabCommandBar({
   model,
@@ -83,15 +85,12 @@ export function ClassroomLabCommandBar({
         </button>
       )}
       {acciones.includes("reemplazos") && onSimulateReplacements && (
-        <button
-          type="button"
-          className="cmv2-ghost"
-          onClick={() => void onSimulateReplacements(config)}
-          disabled={Boolean(busy) || !model.selectionReady}
-        >
-          {busy === "Simulando reemplazos" ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
-          Probar reemplazos
-        </button>
+        <ProbarReemplazosBoton
+          config={config}
+          busy={busy}
+          selectionReady={model.selectionReady}
+          onSimulateReplacements={onSimulateReplacements}
+        />
       )}
       {/* En Método y Simulación esta línea repite, a 83-120 px de distancia, lo
           que la tarjeta de recomendación ya dice con su nombre Y su
@@ -106,11 +105,7 @@ export function ClassroomLabCommandBar({
           El comparador prefiere <strong>{classroomMethodLabel(model.recommendedMethodId)}</strong>
         </span>
       )}
-      {mostrarRecomendado && model.comparison?.recommendation && (
-        <span className="cmv2-classroom-recommendation">
-          Recomendado: <strong>{classroomMethodLabel(model.recommendedMethodId) || model.comparison.recommendation.method_label}</strong>
-        </span>
-      )}
+      {mostrarRecomendado && <MetodoRecomendadoLinea model={model} />}
     </div>
     {/* F4: la barra vive en todas las pestañas con acciones de la mesa; el
         aviso de "resultado no aplicado por marco viejo" se ancla aquí para

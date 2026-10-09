@@ -1,0 +1,168 @@
+/* La tabla de avance al cliente (por facultad y sexo).
+ *
+ * Hoja propia, con prefijo `aulas-cliente-` para que el contrato de CSS sin
+ * dueño la reconozca. Misma geometría que la tabla de Efectividad: el nombre
+ * cede el ancho, las cifras se leen en columna, y el marco lleva su propio
+ * scroll para que diez columnas nunca empujen el de la página. */
+
+.mon-profile-page.is-aulas-flow .aulas-cliente {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 6px 0 2px;
+}
+
+/* Aquí vivían las dos reglas del párrafo que encabezaba el panel —su caja y su
+   nota al pie—. Gonzalo lo cortó el 2026-09-08 («es mejor quitarlo») y lo que
+   decía pasó a la fila de cierre de la tabla y a su pie. Los nombres de aquellas
+   clases no se citan aquí a propósito: el guard de CSS sin dueño lee este
+   archivo entero y un nombre en un comentario le parece una regla viva. */
+
+/* La fila de cierre: filete arriba y negrita, como el «Total» del libro. No se
+   tiñe de fondo —la tabla ya alterna filas— para que el filete haga solo el
+   trabajo de separar el cuerpo del cierre. */
+.mon-profile-page.is-aulas-flow .aulas-cliente-total > * {
+  border-top: 1.5px solid var(--pulso-border-strong);
+  font-weight: 650;
+  color: var(--pulso-text);
+  padding-top: 6px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-total > th {
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+
+/* La segunda meta se lee como cierre, no como una facultad más: misma negrita,
+   sin filete propio, para que las dos filas se lean como un bloque. */
+.mon-profile-page.is-aulas-flow .aulas-cliente-total.es-sobremuestra > * {
+  border-top: 0;
+  padding-top: 2px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-marco {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--aulas-txt);
+}
+
+/* Se oculta a la vista pero NO del árbol de accesibilidad. */
+.mon-profile-page.is-aulas-flow .aulas-cliente-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-tabla thead th {
+  padding: 4px 8px 6px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* La fila de grupos: separa «la muestra» de «lo que se lleva», que comparten
+   los rótulos «Mujeres» y «Hombres». Va más tenue que la fila de columnas —es
+   contexto, no el nombre del dato— y con un filete que agrupa visualmente. */
+.mon-profile-page.is-aulas-flow .aulas-cliente-grupos th {
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  text-align: center;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-grupos td {
+  border: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-tabla th.es-num,
+.mon-profile-page.is-aulas-flow .aulas-cliente-tabla td.aulas-cliente-cifra {
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-tabla tbody tr > * {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-tabla tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-nombre-celda {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  border-left: 3px solid transparent;
+  font-weight: 400;
+  text-align: left;
+}
+
+/* Sólo se pinta la que NO ha cerrado su cuota: es lo que pide acción. */
+.mon-profile-page.is-aulas-flow .aulas-cliente-tabla tbody tr.es-abierta .aulas-cliente-nombre-celda {
+  border-left-color: var(--pulso-danger-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-tabla tbody tr.es-en-foco {
+  outline: 1px solid var(--pulso-accent);
+  outline-offset: -1px;
+}
+
+/* El veredicto en palabra Y en color: quien no distingue los tonos —o imprime
+   la tabla, que es justo lo que se hace con un reporte a cliente— lo recibe
+   igual. */
+.mon-profile-page.is-aulas-flow .aulas-cliente-chip {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-riesgo { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-aviso { color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-ok { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-neutro { color: var(--pulso-text-faint); }
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-nombre {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-cifra {
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-cifra.es-debil {
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cliente-pie {
+  margin: 2px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}

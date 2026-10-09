@@ -55,10 +55,15 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
 # viene el 1.96 del tamaño de muestra: no es un número nuevo que aprender.
 .CM_CERTEZA_NIVEL_DEFAULT <- 0.95
 
-# Corridas por candidato. 300 deja el error estándar de una probabilidad
-# cercana a 0.95 en ~1.3 puntos, suficiente para decidir entre n y n+1 sin
-# volver interactivamente inviable el barrido.
-.CM_CERTEZA_CORRIDAS_DEFAULT <- 300L
+# Corridas por candidato: 40 (decisión de Gonzalo, 2026-09-25: «Deja las 40
+# corridas en ¿Alcanza?»). Con p cercana a 0.95 el error estándar es ~3.4
+# puntos (300 lo bajaba a ~1.3), a cambio de que la medición no tarde decenas
+# de minutos: medido sobre hsvg2026 (2.561 CH), un sorteo cubo cuesta
+# ~0.3 s tenga el estrato 93 o 577 filas, así que el antiguo reparto por
+# filas (60/n) no abarataba nada y los estratos chicos pagaban 120–300
+# corridas a costo completo (~25–44 min en total). Una petición puede pedir
+# más corridas explícitamente; no se baja de 40.
+.CM_CERTEZA_CORRIDAS_DEFAULT <- 40L
 .CM_CERTEZA_CORRIDAS_MIN <- 40L
 
 # Tope de candidatos evaluados por estrato. La probabilidad crece con el
@@ -79,7 +84,8 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
 
 # Presupuesto de corridas por escala. Un estrato con 400 cursos-horario cuesta
 # por corrida bastante más que uno con 8; sin esto, una facultad masiva se come
-# el tiempo de todas las demás.
+# el tiempo de todas las demás. Con el default en 40 (= el mínimo) el reparto
+# sólo actúa si una petición pide más.
 .cm_certeza_corridas <- function(solicitadas, n_aulas) {
   pedidas <- .cm_aulas_int(solicitadas, .CM_CERTEZA_CORRIDAS_DEFAULT)
   if (pedidas <= 0L) pedidas <- .CM_CERTEZA_CORRIDAS_DEFAULT
@@ -103,16 +109,64 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
   list(valor = if (is.finite(suma)) suma else 0, base = "suma_elegibles")
 }
 
+# Claves de la config que fijan por su cuenta CUÁNTAS aulas se sortean y por
+# tanto compiten con el `n_aulas` que la búsqueda quiere probar.
+#
+# `.cm_aulas_quota_estratos` (calc_muestra_aulas_afijacion.R) da PRECEDENCIA a
+# `faculty_targets` sobre `n_aulas`: con targets puestos, cada evaluación
+# sortea el número del target y no el candidato. La curva de rendimiento sale
+# plana y la búsqueda —que baja mientras la probabilidad siga alcanzando—
+# certifica en 1 aula. Medido el 2026-08-27 sobre el marco HSVG2026 de 1.447
+# aulas: 11 de 15 facultades certificaron en exactamente 1 y el total dio 64
+# contra 165 de la cuenta directa.
+#
+# No se había visto porque en el flujo natural se certifica ANTES de sortear,
+# cuando la config todavía no tiene targets. Muerde al RE-certificar sobre un
+# proyecto ya sorteado —el usuario cambia criterios y vuelve a medir— porque la
+# config de sesión arrastra los targets del sorteo anterior.
+#
+# Acá un reparto por facultad nunca puede significar nada: la certeza evalúa UN
+# estrato a la vez con un n explícito, así que una afijación entre facultades
+# solo puede ser una instrucción contradictoria con la pregunta que se hace.
+.CM_CERTEZA_CLAVES_AFIJACION <- c("faculty_targets", "afijacion_facultades")
+
+# Por qué `faculty_targets` es de esta lista y no un caso aparte: la afijación
+# del diseño fija cuántas aulas toca cada facultad, y dentro de una
+# certificación eso deja la pregunta sin objeto —el candidato ES lo que se está
+# midiendo—. Con `faculty_targets` puestos, `.cm_aulas_quota_estratos` aplica su
+# regla declarada —«facultades con target: su n manda»— y sortea siempre el
+# mismo número, así que la curva sale plana. Medido en HSVG2026: con
+# DERECHO = 19 el rendimiento quedaba en 394 de 40 a 55 aulas.
+#
+# Este es el ÚNICO punto de saneo, a propósito. `.cm_certeza_evaluar` llevaba
+# además un `sim_selector$faculty_targets <- NULL` suelto que hacía lo mismo, y
+# esa redundancia apagó en silencio la regresión que la vigila: el test la
+# neutraliza mockeando esta función, y con la segunda limpieza en pie el
+# síntoma ya no volvía. La red contra la clase entera del defecto —una clave
+# nueva que compita con `n_aulas`— es `aulas_efectivas`, no una segunda copia.
+.cm_certeza_selector_sin_afijacion <- function(selector) {
+  if (!is.list(selector)) return(selector)
+  for (clave in .CM_CERTEZA_CLAVES_AFIJACION) selector[[clave]] <- NULL
+  selector
+}
+
 # Un candidato: sortea `aulas` cursos-horario del estrato `corridas` veces y
 # mide en cuántas se alcanza la cuota.
 #
-# El selector se clona con `n_aulas = aulas` y el subconjunto viaja con un
-# `stratum` constante, así que la cuota del sorteo es exactamente `aulas` y no
-# una repartición proporcional: acá el estrato ya está fijado por el llamador.
+# El selector se clona con `n_aulas = aulas`, sin afijación entre facultades y
+# con el subconjunto viajando con un `stratum` constante, así que la cuota del
+# sorteo es exactamente `aulas` y no una repartición: acá el estrato ya está
+# fijado por el llamador.
+#
+# `aulas_efectivas` mide cuántas aulas devolvió el sorteo de verdad. Es la red
+# que atrapa la clase entera del defecto de arriba: la lista de claves que
+# compiten con `n_aulas` es cerrada y una clave nueva volvería a colarse en
+# silencio, pero una curva cuyo n crece sin que crezcan las aulas sorteadas se
+# ve sin tener que adivinar cuál fue.
 .cm_certeza_evaluar <- function(rows, selector, engine, aulas, corridas,
                                 tau, cuota, seed, objective = NULL) {
   aulas <- max(1L, min(nrow(rows), as.integer(aulas)))
-  sim_selector <- selector
+  sim_selector <- .cm_certeza_selector_sin_afijacion(selector)
   sim_selector$n_aulas <- aulas
   # Sin olas de reemplazo: lo que se mide es lo que rinde la primera cadena que
   # pisa el aula. Contar reservas acá contestaría otra pregunta —cuánto rinde
@@ -122,6 +176,7 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
 
   rendimientos <- numeric(corridas)
   bases <- character(corridas)
+  sorteadas <- integer(corridas)
   for (i in seq_len(corridas)) {
     picked <- .cm_aulas_select_once_dispatch(
       rows, sim_selector, engine,
@@ -131,6 +186,7 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
     netos <- .cm_certeza_estudiantes_netos(picked)
     rendimientos[[i]] <- netos$valor * tau
     bases[[i]] <- netos$base
+    sorteadas[[i]] <- nrow(picked)
   }
 
   exitos <- rendimientos >= cuota
@@ -140,6 +196,7 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
     probabilidad = as.numeric(mean(exitos)),
     rendimiento_medio = as.numeric(mean(rendimientos)),
     rendimiento_p05 = as.numeric(stats::quantile(rendimientos, probs = 0.05, names = FALSE, type = 7L)),
+    aulas_efectivas = as.numeric(mean(sorteadas)),
     base_conteo = .cm_aulas_mode(bases, "estudiantes_unicos")
   )
 }
@@ -254,6 +311,23 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
   .cm_criterios_fac_key(labels)
 }
 
+# ¿El sorteo respondió al n que se le pidió?
+#
+# La búsqueda solo significa algo si pedir más aulas devuelve más aulas. Si la
+# curva recorrió varios n y las aulas efectivamente sorteadas no se movieron ni
+# una, la config está fijando el número por su cuenta y el mínimo publicado no
+# es interpretable —esa es exactamente la forma que tomó el defecto de
+# `faculty_targets`—. La lista de claves que compiten con `n_aulas` es cerrada
+# y una clave nueva volvería a colarse en silencio; esto la atrapa sin tener
+# que saber cuál es.
+.cm_certeza_sorteo_insensible <- function(curva) {
+  if (length(curva) < 2L) return(FALSE)
+  pedidas <- vapply(curva, function(p) as.numeric(p$aulas), numeric(1))
+  efectivas <- vapply(curva, function(p) .cm_aulas_num(p$aulas_efectivas, NA_real_), numeric(1))
+  if (anyNA(efectivas)) return(FALSE)
+  length(unique(pedidas)) > 1L && length(unique(round(efectivas, 6))) == 1L
+}
+
 .cm_certeza_fila_vacia <- function(estrato, disponibles, motivo) {
   list(
     key = estrato$key,
@@ -337,6 +411,19 @@ calc_muestra_aulas_certeza <- function(frame, config = list(), estratos = list()
       filas[[i]] <- .cm_certeza_fila_vacia(estrato, nrow(rows), "no_evaluable")
       next
     }
+    if (.cm_certeza_sorteo_insensible(busqueda$curva)) {
+      pedidas <- vapply(busqueda$curva, function(p) as.integer(p$aulas), integer(1))
+      warning(sprintf(
+        paste0(
+          "Certeza de cobertura en %s: se probaron %d a %d aulas y el sorteo ",
+          "devolvio %s en todos los casos, asi que la curva no mide el n ",
+          "solicitado y el minimo no es interpretable. Revisa que la config no ",
+          "fije el numero de aulas por su cuenta."
+        ),
+        estrato$label, min(pedidas), max(pedidas),
+        format(round(.cm_aulas_num(busqueda$curva[[1L]]$aulas_efectivas, NA_real_), 2))
+      ), call. = FALSE)
+    }
 
     minimo <- busqueda$minimo
     alcanzable <- is.finite(minimo)
@@ -384,7 +471,10 @@ calc_muestra_aulas_certeza <- function(frame, config = list(), estratos = list()
         aulas = as.integer(p$aulas),
         probabilidad = round(p$probabilidad, 4),
         rendimiento_medio = round(p$rendimiento_medio, 2),
-        rendimiento_p05 = round(p$rendimiento_p05, 2)
+        rendimiento_p05 = round(p$rendimiento_p05, 2),
+        # Cuántas aulas devolvió el sorteo de verdad. Si no sigue a `aulas`, la
+        # curva no está midiendo lo que su eje dice.
+        aulas_efectivas = round(.cm_aulas_num(p$aulas_efectivas, NA_real_), 2)
       ))
     )
   }

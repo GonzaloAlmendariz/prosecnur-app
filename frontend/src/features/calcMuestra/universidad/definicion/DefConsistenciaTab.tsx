@@ -1,4 +1,3 @@
-import { Link2 } from "../../../../vendor/lucide-react";
 import type { CalcMuestraAulasState, CalcMuestraWorkspace } from "../../../../api/client";
 import { MarcoConsistenciaTab } from "../marco/MarcoConsistenciaTab";
 import "./fuentesConsistencia.css";
@@ -22,22 +21,18 @@ export function DefConsistenciaTab({
   return (
     <section
       className="cmv2-fuentes-consistencia-block"
-      aria-labelledby="cmv2-fuentes-consistencia-title"
+      aria-label="Consistencia entre fuentes"
       data-surface-group="calc-muestra-datos"
       data-surface-contract="consistencia-entre-fuentes"
       data-qa-geometry-group="calc-muestra/consistencia-fuentes"
       data-qa-geometry-contract="intrinsic"
     >
-      <header className="cmv2-fuentes-consistencia-head">
-        <span aria-hidden="true"><Link2 size={18} /></span>
-        <div>
-          <small>Datos</small>
-          <h3 id="cmv2-fuentes-consistencia-title">Consistencia entre fuentes</h3>
-          {/* S3: qué califica esta pestaña, en una línea. El «después de
-              declarar y construir» lo dice ya el orden del riel. */}
-          <p>Comprueba que la relación estudiante–curso-horario conserve sus llaves.</p>
-        </div>
-      </header>
+      {/* Sin cabecera propia: el chrome de la pestaña ya pinta el MISMO icono
+          de enlace, el mismo título y su detalle («Consistencia · llaves entre
+          estudiante y curso-horario»). Esta repetía las tres cosas y añadía un
+          «Datos» que el riel ya dice — parafrasear el título es sobreexplicar,
+          y la duplicación se veía a simple vista en 1024×600, donde ocupaba
+          dos tercios de lo visible antes del primer dato. */}
       <MarcoConsistenciaTab workspace={workspace} aulasState={aulasState} />
     </section>
   );

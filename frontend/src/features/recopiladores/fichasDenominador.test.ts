@@ -65,6 +65,17 @@ describe("el panel de render explica su propio bloqueo", () => {
     expect(fuente.match(/title=\{motivoBloqueo/g) ?? []).toHaveLength(3);
   });
 
+  it("la ficha de prueba comparte ese motivo en vez de escribir el suyo", () => {
+    // Es la cuarta acción del panel y se apaga por lo mismo que las otras tres.
+    // Vive en su propio componente —`FichaPruebaControl`, que sí se puede
+    // renderizar y mirar— pero el motivo se le PASA, no se le duplica.
+    expect(fuente).toContain("<FichaPruebaControl");
+    expect(fuente).toContain("motivoBloqueo={motivoBloqueo}");
+    expect(fuente).toContain("apiRecopiladoresMaterialPrueba");
+    // Y no pasa por createInstances(): no persiste nada en el plan.
+    expect(fuente).not.toMatch(/renderPrueba[\s\S]{0,400}createInstances/);
+  });
+
   it("el motivo dice la causa, no sólo el hecho", () => {
     // «Sin accesos» es el hecho; que la ficha no tenga enlace que codificar es
     // la causa, y es lo que deja actuar.

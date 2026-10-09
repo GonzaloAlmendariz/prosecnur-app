@@ -18,7 +18,13 @@
     "hojas_ruta_http.R",       # ArcGIS (manzanas) -> test-hojas-ruta-http.R
     "kobo_api.R",              # KoboToolbox       -> test-monitoreo-sync-incremental.R
     "monitoreo_google_http.R", # Google/Sheets     -> test-monitoreo-google-http.R
-    "surveymonkey_api.R"       # SurveyMonkey      -> test-engine-surveymonkey-api.R
+    "surveymonkey_api.R",      # SurveyMonkey      -> test-engine-surveymonkey-api.R
+    # B6(b): la subida de las fichas QR al Drive del operativo. Reusa el
+    # constructor acotado de Google (`.monitoreo_google_apply_timeouts`, que
+    # pone timeout y connecttimeout) y le suma un timeout proporcional al peso
+    # del cuerpo, porque un bundle de fichas no sube en los segundos que basta
+    # para una llamada de Sheets. Su test de módulo comprueba las dos cosas.
+    "collection_drive.R"       # Google Drive      -> test-collection-drive.R
   )
 }
 

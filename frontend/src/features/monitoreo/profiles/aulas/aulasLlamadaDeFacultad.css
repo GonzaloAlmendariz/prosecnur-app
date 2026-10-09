@@ -1,0 +1,43 @@
+/* La entrada al refuerzo, al pie de la tabla de brechas. Va separada de la
+   tabla —barra propia, no una fila más— porque no cuelga de ningún
+   curso-horario: la cuota no la rompió ninguno en particular. */
+
+.mon-profile-page.is-aulas-flow .aulas-llamada {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding: 11px 14px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--module-accent, var(--pulso-primary));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 5%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-llamada-dice {
+  flex: 1 1 300px;
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-llamada-dice strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-llamada-boton {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  border-radius: 8px;
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-llamada-boton:hover { filter: brightness(0.94); }

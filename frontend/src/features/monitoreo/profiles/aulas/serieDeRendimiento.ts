@@ -53,6 +53,32 @@ import { PESO_DEL_PRIOR } from "./rendimientoPorFacultad";
  * modelo una precisión que el dato no sostiene, y por eso **se asume constante y
  * se declara en la pantalla** en vez de asumirlo en silencio, que es lo peor de
  * los dos mundos.
+ *
+ * ## Lo que el diseño supuso, que es la tercera altura
+ *
+ * La serie tenía dos alturas por día: el **techo** —los elegibles de esas aulas,
+ * toda la gente que podía responder— y lo **conseguido**. Entre las dos hay una
+ * tercera que decide y no estaba: **cuánto supuso el diseño que dejaría cada una
+ * de esas aulas**. Sin ella el gráfico compara el campo consigo mismo y con la
+ * media del estudio, pero nunca contra la vara con la que se dimensionó.
+ *
+ * Sale de `expected_valid` del plan, que para las aulas del diseño es
+ * `eligible_n × rendimiento_ref × factor_facultad` —o sea la τ prevista de esa
+ * facultad aplicada a ESA aula—, y por eso está en las mismas unidades que el
+ * eje: encuestas por aula. No hay que convertir nada ni cruzar fuentes: plan y
+ * parte, el mismo par de siempre.
+ *
+ * **Pero `expected_valid` colapsa tres cosas distintas**, y el propio motor lo
+ * dice al publicar `meta_origen` junto a ella: `diseno` es lo que el cálculo de
+ * muestra computó, `declarada` es lo que alguien escribió a mano, y `elegibles`
+ * **no es una meta**: es el techo, puesto ahí porque no había ninguna. Promediar
+ * las tres daría una vara que en parte es la vara y en parte es el techo, y
+ * dibujarla pegada al techo se leería como que el diseño esperaba el 100 %.
+ *
+ * Así que la tercera altura **sólo cuenta las aulas con `meta_origen === "diseno"`**
+ * y se divide entre ESAS, no entre todas las del día: si de tres aulas sólo una
+ * viene del diseño, la altura es la de esa una. Los días sin ninguna no tienen
+ * vara y devuelven `null`, que se dibuja como ausencia y no como cero.
  */
 
 export type DiaDeRendimiento = {
@@ -88,6 +114,26 @@ export type DiaDeRendimiento = {
   efectivasAcumuladas: number;
   /** Media posterior Gamma-Poisson con el prior del estudio a esa fecha. */
   esperado: number;
+  /**
+   * La banda del 90 % alrededor de ese esperado, o `null` cuando la posterior
+   * es demasiado débil para que la aproximación valga.
+   *
+   * El esperado es una media posterior y se dibujaba como una línea sola, que
+   * es exactamente el defecto que la probabilidad de cierre repara en las
+   * celdas: un estimador puntual leído como si fuera cierto. Con dos aulas
+   * visitadas y con treinta el punteado se ve igual, y no significa lo mismo.
+   */
+  esperadoBanda: { bajo: number; alto: number } | null;
+  /**
+   * Lo que el DISEÑO supuso que dejaría cada una de las aulas de ese día, en
+   * encuestas por aula. `null` cuando ninguna trae meta del diseño.
+   *
+   * Se promedia sobre `aulasConDiseno`, no sobre `aulas`: mezclar las que no
+   * tienen vara hundiría la altura sin que nada lo dijera.
+   */
+  esperadoPorAulaDelDiseno: number | null;
+  /** Cuántas de las aulas del día traen meta del diseño. El denominador de arriba. */
+  aulasConDiseno: number;
 };
 
 export type RendimientoDiarioDeFacultad = {
@@ -107,7 +153,7 @@ export type RendimientoDiarioDeFacultad = {
    * con el parte fue el defecto que hizo que el gráfico dijera «llegamos»
    * mientras su pie decía «0 de 196».
    */
-  metaDeLoVisitado: number;
+  esperadoDeLoVisitado: number;
   /** Lo observado en todo el corte, sin encoger. Se enseña al lado. */
   observadoFinal: number | null;
 };
@@ -128,6 +174,38 @@ const redondea = (n: number) => Math.round(n * 10) / 10;
  *   misma razón que en `rendimientoPorFacultad`: si cada superficie uniera por su
  *   cuenta podrían discrepar en de qué facultad es un aula.
  */
+/**
+ * Los extremos de la banda creíble del esperado.
+ *
+ * La posterior de un Gamma-Poisson conjugado es `Gamma(alfa, beta)` con
+ * `alfa = efectivas + peso*media` y `beta = aulas + peso`, y su media es
+ * `alfa/beta` — que es justo lo que ya se dibuja. Los cuantiles salen por
+ * **Wilson-Hilferty**, que aproxima la Gamma con un cubo de una normal:
+ *
+ *     q(p) ~= (alfa/beta) * (1 - 1/(9*alfa) + z_p/(3*sqrt(alfa)))^3
+ *
+ * Se usa porque no hay `qgamma` en el navegador y traer una libreria de
+ * estadistica por dos cuantiles no se paga. **La aproximacion se degrada con
+ * `alfa` pequeña**, asi que por debajo de `ALFA_MINIMA` se devuelve `null` en
+ * vez de una banda que no vale: una banda inventada es peor que ninguna, porque
+ * la banda es justo la promesa de que se conoce la incertidumbre.
+ */
+const Z_90 = 1.6448536269514722;   // cuantil 0,95 de la normal: banda central del 90 %
+const ALFA_MINIMA = 5;
+
+export function bandaDelEsperado(alfa: number, beta: number): { bajo: number; alto: number } | null {
+  if (!Number.isFinite(alfa) || !Number.isFinite(beta) || alfa < ALFA_MINIMA || beta <= 0) return null;
+  const media = alfa / beta;
+  const cuantil = (z: number) => {
+    const t = 1 - 1 / (9 * alfa) + z / (3 * Math.sqrt(alfa));
+    return media * Math.max(0, t) ** 3;
+  };
+  const bajo = cuantil(-Z_90);
+  const alto = cuantil(Z_90);
+  if (!Number.isFinite(bajo) || !Number.isFinite(alto) || alto <= bajo) return null;
+  return { bajo: redondea(bajo), alto: redondea(alto) };
+}
+
 export function serieDeRendimiento(
   partes: ReadonlyArray<MonitoreoRow>,
   /** El plan, sólo para los elegibles de cada aula: el parte no los trae. */
@@ -141,8 +219,8 @@ export function serieDeRendimiento(
   mediaDelEstudio: number;
 } {
   const fechas = new Set<string>();
-  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number; mujeres: number; hombres: number; conSexo: number }>>();
-  const metaVisitadaPorFacultad = new Map<string, number>();
+  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number; mujeres: number; hombres: number; conSexo: number; esperadoDiseno: number; aulasConDiseno: number }>>();
+  const esperadoDeLoVisitadoPorFacultad = new Map<string, number>();
   // El reparto por sexo, aula por aula, tal como lo declara la Base de control.
   const sexoPorCodigo = new Map<string, { mujeres: number; hombres: number }>();
   for (const fila of control) {
@@ -158,32 +236,73 @@ export function serieDeRendimiento(
   // `operational_code`, la misma clave con la que `parteDeCampo` une las dos
   // hojas: si cada superficie uniera por su cuenta podrían discrepar.
   const elegiblesPorCodigo = new Map<string, number>();
-  const metaPorCodigo = new Map<string, number>();
+  /**
+   * **«Meta» estaba nombrando dos cantidades distintas en este archivo.**
+   *
+   * Aquí era `expected_valid` —lo que se espera de UN aula— y unas líneas más
+   * abajo, en el acumulado por sexo, era la CUOTA de la celda: a lo que hay que
+   * llegar. Son las dos cantidades que el encargo del 2026-08-30 pide separar, y
+   * compartían palabra dentro del mismo módulo. En pantalla nunca colisionaron
+   * —«Meta» es siempre la cuota y lo del aula se dice «el diseño pedía»— pero
+   * leyendo el código sí, y me confundió a mí al auditarlo.
+   *
+   * `meta` queda para la cuota. Lo del aula se llama por lo que es: lo esperado.
+   */
+  const esperadoPorAula = new Map<string, number>();
+  // Lo esperado por aula SEGÚN EL DISEÑO, aparte. `expected_valid` también llega con metas escritas
+  // a mano y con el propio techo de elegibles cuando no había ninguna, y el motor
+  // lo dice en `meta_origen`. Ver la cabecera: promediarlas juntas daría una vara
+  // que en parte es el techo.
+  const esperadoDelDisenoPorAula = new Map<string, number>();
+  /**
+   * **La facultad de cada curso-horario, del PLAN.**
+   *
+   * El parte de campo no la trae: medido sobre HSVG26ULT2 el 2026-09-11, cero
+   * de 57 partes tienen `faculty`. Agrupando por la del parte, las quince
+   * facultades caían en un único cubo «Sin facultad» y cualquier consumidor que
+   * buscara la suya por nombre se iba de vacío —que es justo lo que le pasó a
+   * la serie por jornada del ranking al estrenarse—.
+   *
+   * Es el mismo defecto que vigila el guard `elParteTraeSuFacultad`, y se
+   * resuelve igual: el parte identifica el curso-horario, y la facultad se mira
+   * en el plan, que es quien la declara.
+   */
+  const facultadPorCodigo = new Map<string, string>();
   for (const fila of plan) {
     const codigo = texto(fila.operational_code);
     if (!codigo) continue;
+    const suya = texto(fila.faculty);
+    if (suya) facultadPorCodigo.set(codigo, suya);
     elegiblesPorCodigo.set(codigo, numero(fila.eligible_n));
-    metaPorCodigo.set(codigo, numero(fila.expected_valid));
+    const esperado = numero(fila.expected_valid);
+    esperadoPorAula.set(codigo, esperado);
+    if (texto(fila.meta_origen) === "diseno" && esperado > 0) esperadoDelDisenoPorAula.set(codigo, esperado);
   }
 
   for (const fila of partes) {
     const fecha = fechaDeAplicacion(fila.applied_at ?? fila.applied_date);
     if (!fecha) continue;
-    const facultad = texto(fila.faculty) || "Sin facultad";
     const efectivas = numero(fila.effective_surveys);
     const codigo = texto(fila.operational_code);
+    // La del parte primero —si algún día la trae, manda—, y si no la del plan.
+    const facultad = texto(fila.faculty) || facultadPorCodigo.get(codigo) || "Sin facultad";
     const elegibles = elegiblesPorCodigo.get(codigo) ?? numero(fila.eligible_n);
-    metaVisitadaPorFacultad.set(
+    esperadoDeLoVisitadoPorFacultad.set(
       facultad,
-      (metaVisitadaPorFacultad.get(facultad) ?? 0) + (metaPorCodigo.get(codigo) ?? 0),
+      (esperadoDeLoVisitadoPorFacultad.get(facultad) ?? 0) + (esperadoPorAula.get(codigo) ?? 0),
     );
     fechas.add(fecha);
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;
-    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0 };
+    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0, esperadoDiseno: 0, aulasConDiseno: 0 };
     dia.aulas += 1;
     dia.elegibles += elegibles;
     dia.efectivas += efectivas;
+    const esperadoDiseno = esperadoDelDisenoPorAula.get(codigo);
+    if (esperadoDiseno != null) {
+      dia.esperadoDiseno += esperadoDiseno;
+      dia.aulasConDiseno += 1;
+    }
     const sexo = sexoPorCodigo.get(codigo);
     if (sexo) {
       dia.mujeres += sexo.mujeres;
@@ -216,7 +335,7 @@ export function serieDeRendimiento(
     let aulasAcum = 0;
     let efectivasAcum = 0;
     const serie = orden.map((fecha) => {
-      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0 };
+      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0, esperadoDiseno: 0, aulasConDiseno: 0 };
       aulasAcum += dia.aulas;
       efectivasAcum += dia.efectivas;
       const media = mediaHasta.get(fecha) ?? 0;
@@ -234,6 +353,9 @@ export function serieDeRendimiento(
         aulasAcumuladas: aulasAcum,
         efectivasAcumuladas: efectivasAcum,
         esperado: redondea((efectivasAcum + PESO_DEL_PRIOR * media) / (aulasAcum + PESO_DEL_PRIOR)),
+        esperadoBanda: bandaDelEsperado(efectivasAcum + PESO_DEL_PRIOR * media, aulasAcum + PESO_DEL_PRIOR),
+        esperadoPorAulaDelDiseno: dia.aulasConDiseno ? redondea(dia.esperadoDiseno / dia.aulasConDiseno) : null,
+        aulasConDiseno: dia.aulasConDiseno,
       } satisfies DiaDeRendimiento;
     });
     const ultimo = serie[serie.length - 1];
@@ -243,7 +365,7 @@ export function serieDeRendimiento(
       aulas: aulasAcum,
       efectivas: efectivasAcum,
       esperadoFinal: ultimo?.esperado ?? 0,
-      metaDeLoVisitado: Math.round(metaVisitadaPorFacultad.get(facultad) ?? 0),
+      esperadoDeLoVisitado: Math.round(esperadoDeLoVisitadoPorFacultad.get(facultad) ?? 0),
       observadoFinal: aulasAcum ? redondea(efectivasAcum / aulasAcum) : null,
     } satisfies RendimientoDiarioDeFacultad;
   });
@@ -255,5 +377,47 @@ export function serieDeRendimiento(
     facultades,
     fechas: orden,
     mediaDelEstudio: redondea(aulasEstudio ? efectivasEstudio / aulasEstudio : 0),
+  };
+}
+
+/** El veredicto de una celda de cuota en la tabla de la serie. */
+export type VeredictoDeCeldaDeCuota = {
+  /** Clase de la fila. `es-sin-cuota` cuando no hay objetivo que cerrar. */
+  clase: "es-sin-cuota" | "es-cumplida" | "es-llega" | "es-corta";
+  /** Lo que dice la última columna. */
+  texto: string;
+  /** `true` cuando la celda no declara objetivo: la meta y lo que falta se callan. */
+  sinCuota: boolean;
+};
+
+/**
+ * Qué dice una celda de cuota de la tabla de la serie.
+ *
+ * Vive fuera del componente porque **el veredicto se comprobaba en el markup y
+ * el markup no se podía comprobar**: la tabla sólo se monta con una facultad
+ * elegida, así que un test sobre `renderToStaticMarkup` pasaba sin llegar a
+ * verla nunca. Sacarlo a una función es lo que permite fijar el contrato.
+ *
+ * Y lo que había que fijar es el `0 >= 0` de siempre, en su tercera aparición
+ * tras el KPI de cierre y el panel de avance proyectado: **una celda sin cuota
+ * no es una cuota cumplida**. Con meta 0 la resta da 0, y la fila salía verde y
+ * rotulada «cuota cumplida» sobre un objetivo que nadie pidió.
+ */
+export function veredictoDeCeldaDeCuota(
+  celda: { meta: number; faltan: number; alcanza: boolean; fechaDeCruce: string | null; faltanAlCerrarAgenda: number },
+  fmtNumero: (n: number) => string,
+  fmtFecha: (f: string) => string,
+): VeredictoDeCeldaDeCuota {
+  if (!(celda.meta > 0)) {
+    return { clase: "es-sin-cuota", texto: "sin cuota declarada", sinCuota: true };
+  }
+  if (celda.faltan === 0) return { clase: "es-cumplida", texto: "cuota cumplida", sinCuota: false };
+  if (celda.fechaDeCruce) {
+    return { clase: "es-llega", texto: `llega el ${fmtFecha(celda.fechaDeCruce)}`, sinCuota: false };
+  }
+  return {
+    clase: celda.alcanza ? "es-llega" : "es-corta",
+    texto: `no llega · faltarían ${fmtNumero(celda.faltanAlCerrarAgenda)}`,
+    sinCuota: false,
   };
 }

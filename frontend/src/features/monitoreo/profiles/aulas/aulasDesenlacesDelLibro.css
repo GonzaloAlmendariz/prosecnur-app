@@ -1,0 +1,135 @@
+/* Reemplazos (A), complementos (B) y refuerzos (C). Hoja propia:
+   `aulasMonitoreo.css` está congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-abc { display: grid; gap: 9px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-abc-lectura {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  line-height: 1.5;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-tipos {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Tres columnas: la letra, el cuerpo y la cifra. La letra tiene ancho fijo para
+   que los tres nombres empiecen en la misma vertical. */
+.mon-profile-page.is-aulas-flow .aulas-abc-tipos li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 7.5em;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+}
+
+/* El tipo que todavía no ha pasado se dibuja igual, apagado: que exista es
+   parte de lo que hay que saber. */
+.mon-profile-page.is-aulas-flow .aulas-abc-tipos li.es-cero { background: transparent; }
+.mon-profile-page.is-aulas-flow .aulas-abc-tipos li.es-cero .aulas-abc-letra {
+  background: transparent;
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-abc-tipos li.es-cero .aulas-abc-cifra strong {
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-letra {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font-size: var(--aulas-txt);
+  font-weight: 700;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-cuerpo { display: grid; gap: 1px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-abc-nombre {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  font-weight: 600;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-nombre em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-facultades {
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+}
+.mon-profile-page.is-aulas-flow .aulas-abc-facultades b {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-cifra {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  text-align: right;
+}
+.mon-profile-page.is-aulas-flow .aulas-abc-cifra strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-abc-cifra i {
+  font-style: normal;
+  color: var(--pulso-warn-fg);
+  font-size: var(--aulas-min);
+  cursor: help;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-pie {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-abc-pie strong { font-variant-numeric: tabular-nums; }
+
+/* **En qué punto está el aula que resuelve cada caso.** Tres pastillas en vez
+   de una frase: se comparan hacia abajo entre los tres tipos, y el color dice
+   cuál pide trabajo hoy —sin agendar— y cuál ya no pide nada. */
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 1px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos b {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos b.es-aplicado { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos b.es-agendado { color: var(--module-accent, var(--pulso-primary)); }
+/* El que pide trabajo hoy: su reserva está viva y nadie la ha citado. */
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos b.es-pendiente { color: var(--pulso-warn-fg); }

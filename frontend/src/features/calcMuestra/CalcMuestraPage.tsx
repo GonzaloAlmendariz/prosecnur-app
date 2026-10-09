@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  ArrowRight,
   BarChart3,
   Calculator,
   CheckCircle2,
-  CircleHelp,
   ClipboardList,
   Database,
   FileText,
@@ -14,16 +12,13 @@ import {
   Layers3,
   Loader2,
   MapPinned,
-  Plus,
   RefreshCw,
   Route,
   Settings2,
   SlidersHorizontal,
   Table2,
   Target,
-  Trash2,
   Users,
-  Wand2,
   X,
 } from "lucide-react";
 import { PageFrame } from "../../components/PageFrame";
@@ -31,12 +26,12 @@ import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIn
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
-import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { ContextTabRail } from "../../components/ContextTabRail";
 import { GlidingTabList } from "../../components/GlidingTabList";
-import { useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
+import { IndicadorGuardadoCalcMuestra, useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
 import { useCalcMuestraStore, useMotorStore } from "./store";
 import { useMotorPersistencia } from "./motor/useMotorPersistencia";
+import { useAvisoCaducidadResuelta } from "./avisoCaducidadResuelta";
 import { ResumenDiseno } from "./motor/ResumenDiseno";
 import { usePerfilEfectivo } from "./motor/usePerfilEfectivo";
 import { EMPTY_WORKSPACE } from "./workspaceDefaults";
@@ -61,15 +56,12 @@ import {
   calcMuestraReporteDescargarUrl,
   downloadUrl,
   normalizeCalcMuestraReferenciaAsistencia,
-  type CalcMuestraCanalRecojo,
   type CalcMuestraAulasFileInspection,
   type CalcMuestraAulasSheetInspectionSheet,
   type CalcMuestraAulasState,
   type CalcMuestraComponente,
-  type CalcMuestraEstrato,
   type CalcMuestraEstudio,
   type CalcMuestraMacroFamilia,
-  type CalcMuestraMatrizOperativaCelda,
   type CalcMuestraReferenciaAsistencia,
   type CalcMuestraState,
   type CalcMuestraTecnica,
@@ -77,19 +69,14 @@ import {
   type CalcMuestraWorkspaceAulasConfig,
   type CalcMuestraWorkspaceProducto,
   type CalcMuestraWorkspaceSourceBinding,
-  type CalcMuestraWorkspaceVariableMapping,
-  type CalcMuestraWorkspaceVariableControl,
   type JobSnapshot,
 } from "../../api/client";
 import {
   defaultComponente,
   fmtInt,
-  fmtPct,
-  guideStatus,
   rowsFrom,
   safeNumber,
   setTecnica,
-  uid,
   type ActiveDesk,
   type ComponentePatch,
   type GuideStatus,
@@ -111,7 +98,6 @@ import {
   classroomSelectionReady,
   frameAuditNumber,
 } from "./universidad/shared/frame";
-import { criterioSalida, metaCuotaFijada, sugerenciaCuota } from "./criterioSalida";
 import { seleccionActiva } from "./dominio/criteriosMarco";
 import { facultadesDesdeFrame } from "./dominio";
 import { conDivisorDelMarco } from "./universidad/marco/divisorDelMarco";
@@ -125,8 +111,6 @@ import {
   prepareUniversityStudyForCalculation,
   reconcileUniversityAulasTarget,
   estratosDesdeFrame,
-  universityFacultyConfidence,
-  universityFacultyError,
   universityComponentForScenario,
   universityComponents,
   universityDefaultWorkspace,
@@ -149,7 +133,6 @@ import {
   applyRefreshedDiagnostics,
   sourceBindingsPendingInspection,
 } from "./universidad/shared/refreshDiagnostics";
-import { NumberCell } from "./universidad/aulas";
 import {
   corridaDeCalculo,
   corridaDeSeleccion,
@@ -162,6 +145,7 @@ import {
   leerContextoPaqueteTrasRefresco,
   paqueteDefensaFingerprint,
   paqueteDefensaFingerprintIgual,
+  paqueteDefensaMotivo,
   type PaqueteDefensaFingerprint,
 } from "./universidad/salidas/paqueteDefensa";
 import {
@@ -175,25 +159,15 @@ import {
 import { debeResetearRailSection } from "./hooks/railReset";
 import { UniversidadDesk, universityContextTabId } from "./universidad/UniversidadDesk";
 import { JobProgressBanner } from "./JobProgressBanner";
-import { presentResultadoPrecision } from "./resultadoPrecision";
 import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
+import { estrato, matrizEjemplo } from "./ComponenteTablas";
+import { SelectorTipo } from "./SelectorTipo";
+import { loQueSePierde } from "./modeloVistaPreviaTipo";
+import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
-type GuidancePoint = {
-  prompt: string;
-  answer: string;
-  detail: string;
-  icon?: typeof Database;
-};
-type MarcoOcasional =
-  | "marco_total"
-  | "estratos"
-  | "conglomerados"
-  | "servicios"
-  | "cuotas_controladas"
-  | "cobertura";
 type CalcMuestraSectionNavItem = {
   id: string;
   label: string;
@@ -243,190 +217,6 @@ function guidedStatusLabel(status: GuideStatus) {
   return "Aún no disponible";
 }
 
-const CANAL_OPTIONS: Array<{ id: CalcMuestraCanalRecojo; label: string }> = [
-  { id: "aula_qr", label: "Cursos-horario / QR" },
-  { id: "online_email", label: "Correo / online" },
-  { id: "telefonico", label: "Telefónico" },
-  { id: "presencial", label: "Presencial" },
-  { id: "mixto", label: "Mixto" },
-  { id: "sin_definir", label: "Por definir" },
-];
-
-const METODOS_CLASICOS: Array<{
-  id: CalcMuestraTecnica;
-  label: string;
-  marco: string;
-  producto: CalcMuestraWorkspaceProducto;
-}> = [
-  {
-    id: "prob_aleatorio_simple",
-    label: "Probabilístico clásico",
-    marco: "Marco enumerable con unidades individuales",
-    producto: "muestra_probabilistica",
-  },
-  {
-    id: "prob_estratificado",
-    label: "Estratificado proporcional",
-    marco: "Marco por capas o variables de control",
-    producto: "muestra_probabilistica",
-  },
-  {
-    id: "prob_estratificado_independiente",
-    label: "Dominios independientes",
-    marco: "Cada dominio calcula su propio n con margen y p propios",
-    producto: "muestra_probabilistica",
-  },
-  {
-    id: "sistematico",
-    label: "Sistemático",
-    marco: "Marco ordenado con arranque aleatorio",
-    producto: "muestra_probabilistica",
-  },
-  {
-    id: "prob_conglomerado_multietapico",
-    label: "Por conglomerados",
-    marco: "Unidades agrupadas: cursos-horario, sedes, servicios, manzanas",
-    producto: "muestra_probabilistica",
-  },
-  {
-    id: "intencion_censal",
-    label: "Cobertura censal",
-    marco: "Universo pequeño o actor que conviene cubrir",
-    producto: "cobertura_marco",
-  },
-  {
-    id: "barrido",
-    label: "Barrido operativo",
-    marco: "Marco operativo a cubrir por rutas, cursos-horario o servicios",
-    producto: "cobertura_marco",
-  },
-  {
-    id: "no_prob_cuotas",
-    label: "Cuotas controladas",
-    marco: "Control sin selección probabilística final",
-    producto: "matriz_cuotas",
-  },
-  {
-    id: "no_prob_conveniencia",
-    label: "Conveniencia con pisos",
-    marco: "Acceso parcial con cuotas mínimas por capa",
-    producto: "matriz_cuotas",
-  },
-];
-
-const FRAME_CARDS: Array<{
-  id: ActiveDesk;
-  title: string;
-  eyebrow: string;
-  copy: string;
-  action: string;
-  details: string[];
-  sourceRoles: Array<{ label: string; detail: string }>;
-  guidance: GuidancePoint[];
-  icon: typeof Database;
-}> = [
-  {
-    id: "opinion_universitaria",
-    title: "Muestra de cursos-horario",
-    eyebrow: "Base institucional",
-    copy: "Para intervenciones universitarias cuya muestra se aplica por cursos-horario y parte de matrícula, facultades, sexo y unidades disponibles.",
-    action: "Empezar este camino",
-    details: ["Matrícula", "Cuotas", "Cursos-horario", "Seguimiento"],
-    sourceRoles: [
-      { label: "Base", detail: "estudiantes por facultad y sexo" },
-      { label: "Muestra", detail: "tamaño final y cuotas" },
-      { label: "Cursos-horario", detail: "titulares y reemplazos" },
-      { label: "Campo", detail: "queda listo para seguimiento" },
-    ],
-    guidance: [
-      { prompt: "¿A quién representa?", answer: "Estudiantes matriculados", detail: "La base se ordena por facultad, sexo y cursos-horario disponibles.", icon: Users },
-      { prompt: "¿Qué se calcula?", answer: "Entrevistas y cuotas", detail: "Define metas por universidad y por facultad antes de seleccionar cursos-horario.", icon: SlidersHorizontal },
-      { prompt: "¿Qué queda listo?", answer: "Cursos-horario titulares y reemplazos", detail: "El plan queda trazable para seguimiento de campo.", icon: FileText },
-    ],
-    icon: Grid3X3,
-  },
-  {
-    id: "marco_disponible",
-    title: "Cálculo de muestra general",
-    eyebrow: "Marco propio",
-    copy: "Para estudios con una población conocida, registros por estrato, servicios, sedes o cuotas operativas.",
-    action: "Empezar este camino",
-    details: ["Marco total", "Estratos", "Grupos", "Cuotas"],
-    sourceRoles: [
-      { label: "Población", detail: "persona, atención o institución" },
-      { label: "Base", detail: "total, estratos o grupos operativos" },
-      { label: "Decisión", detail: "muestra, cobertura o cuotas" },
-      { label: "Resultado", detail: "tamaño, distribución y reporte" },
-    ],
-    guidance: [
-      { prompt: "¿A quién cubre?", answer: "Población o registros propios", detail: "Sirve para personas, atenciones, sedes, servicios o instituciones.", icon: Users },
-      { prompt: "¿Cómo se organiza?", answer: "Marco, estratos o cuotas", detail: "Parte de lo que realmente existe en el proyecto.", icon: SlidersHorizontal },
-      { prompt: "¿Qué se entrega?", answer: "Tamaño y distribución", detail: "Deja resultados revisables para reporte o seguimiento.", icon: FileText },
-    ],
-    icon: SlidersHorizontal,
-  },
-  {
-    id: "acreditacion",
-    title: "Acreditación institucional",
-    eyebrow: "Actores y cuotas",
-    copy: "Para procesos donde se necesitan metas por actor, programa, canal o componente institucional.",
-    action: "Empezar este camino",
-    details: ["Actores", "Programas", "Canales", "Brechas"],
-    sourceRoles: [
-      { label: "Universo", detail: "actores y segmentos" },
-      { label: "Regla", detail: "meta, cobertura o cuota" },
-      { label: "Cálculo", detail: "mínimos por componente" },
-      { label: "Reporte", detail: "metas y brechas" },
-    ],
-    guidance: [
-      { prompt: "¿Quiénes deben aparecer?", answer: "Actores institucionales", detail: "Ordena grupos para no dejar voces importantes fuera.", icon: Users },
-      { prompt: "¿Cómo se levanta?", answer: "Metas por canal", detail: "Define actor, programa, canal y mínimo esperado.", icon: SlidersHorizontal },
-      { prompt: "¿Qué sustenta?", answer: "Cobertura por componente", detail: "Muestra brechas y criterios de suficiencia.", icon: FileText },
-    ],
-    icon: ClipboardList,
-  },
-  {
-    id: "territorial_handoff",
-    title: "Rutas territoriales y hogares",
-    eyebrow: "Hojas de ruta",
-    copy: "Para estudios donde el diseño depende de zonas, manzanas, viviendas, reemplazos y recorrido de campo.",
-    action: "Ir a Hojas de Ruta",
-    details: ["Zonas", "Manzanas", "Viviendas", "Reemplazos"],
-    sourceRoles: [
-      { label: "Territorio", detail: "distritos, zonas y cartografía" },
-      { label: "Recorrido", detail: "manzanas y viviendas titulares" },
-      { label: "Campo", detail: "reemplazos y ocurrencias" },
-      { label: "Cierre", detail: "avance territorial" },
-    ],
-    guidance: [
-      { prompt: "¿Dónde se trabaja?", answer: "Zonas y viviendas", detail: "Convierte territorio en visitas concretas para campo.", icon: Home },
-      { prompt: "¿Cómo se recorre?", answer: "Rutas y reemplazos", detail: "Controla manzanas, titulares, reservas y ocurrencias.", icon: Route },
-      { prompt: "¿Qué se verifica?", answer: "Cobertura espacial", detail: "Deja evidencia cartográfica y dispersión territorial.", icon: FileText },
-    ],
-    icon: MapPinned,
-  },
-];
-
-const PATHWAY_PRIMER: GuidancePoint[] = [
-  {
-    prompt: "¿De dónde sale la muestra?",
-    answer: "Base, actores, marco o territorio",
-    detail: "Cada camino abre una mesa distinta.",
-    icon: Users,
-  },
-  {
-    prompt: "¿Qué avance se guarda?",
-    answer: "Un tipo de cálculo por proyecto",
-    detail: "Cambiar de camino reinicia la mesa para no mezclar avances.",
-    icon: SlidersHorizontal,
-  },
-  {
-    prompt: "¿Qué debe quedar listo?",
-    answer: "Resultado y salida operativa",
-    detail: "Tamaño, distribución, selección o plan de campo.",
-    icon: FileText,
-  },
-];
 
 function workspaceFor(mode: ActiveDesk): CalcMuestraWorkspace {
   if (mode === "acreditacion") {
@@ -482,14 +272,6 @@ function workspaceFor(mode: ActiveDesk): CalcMuestraWorkspace {
     notas_diseno:
       "Primero se declara qué contiene el marco y luego se elige el cálculo: muestra, cobertura o cuotas.",
   };
-}
-
-function variableControl(
-  id: string,
-  label: string,
-  tipo: CalcMuestraWorkspaceVariableControl["tipo"],
-): CalcMuestraWorkspaceVariableControl {
-  return { id, label, tipo, disponible: true, notas: "" };
 }
 
 function normalizeWorkspace(estudio: CalcMuestraEstudio): CalcMuestraWorkspace {
@@ -551,21 +333,21 @@ function defaultRailSectionForDesk(desk: ActiveDesk) {
 }
 
 function railTitleForDesk(desk: ActiveDesk) {
-  if (desk === "opinion_universitaria") return "Muestra de cursos-horario";
+  if (desk === "opinion_universitaria") return "Conglomerados en aulas";
   if (desk === "marco_disponible") return "Muestra general";
-  if (desk === "acreditacion") return "Acreditación";
-  if (desk === "territorial_handoff") return "Territorial";
+  if (desk === "acreditacion") return "Metas por grupo";
+  if (desk === "territorial_handoff") return "Áreas y viviendas";
   if (desk === "legacy") return "Sesión anterior";
   return "Tipo de estudio";
 }
 
 function deskSubtitleForDesk(desk: ActiveDesk) {
   if (desk === "opinion_universitaria") return "Base institucional, cuotas, cursos-horario y seguimiento de aplicación.";
-  if (desk === "marco_disponible") return "Unidad, forma del marco, método y resultados.";
-  if (desk === "acreditacion") return "Actores, canales, mínimos y reporte metodológico.";
-  if (desk === "territorial_handoff") return "Territorio, rutas y viviendas se resuelven en Hojas de Ruta.";
+  if (desk === "marco_disponible") return "Marco, método, selección y resultados.";
+  if (desk === "acreditacion") return "Grupos de informantes, canales, mínimos y reporte metodológico.";
+  if (desk === "territorial_handoff") return "Zonas, rutas y viviendas se resuelven en Hojas de ruta.";
   if (desk === "legacy") return "Sesión antigua conservada para compatibilidad.";
-  return "Elige el tipo de muestra para abrir la mesa de trabajo.";
+  return "Elige el tipo de muestra para abrir el cálculo.";
 }
 
 function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
@@ -582,6 +364,7 @@ function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
     return [
       { id: "marco", label: "Marco", detail: "unidad y cobertura", icon: Database, targetId: "cmv2-section-general-marco" },
       { id: "metodo", label: "Método", detail: "muestra, cobertura o cuotas", icon: Settings2, targetId: "cmv2-section-general-metodo" },
+      { id: "seleccion", label: "Selección", detail: "sorteo, π y pesos", icon: Grid3X3, targetId: "cmv2-section-general-seleccion" },
       { id: "resultados", label: "Resultados", detail: "n, distribución y reporte", icon: BarChart3, targetId: "cmv2-section-general-resultados" },
     ];
   }
@@ -589,6 +372,7 @@ function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
     return [
       { id: "actores", label: "Actores", detail: "marco y canal", icon: ClipboardList, targetId: "cmv2-section-acreditacion-actores" },
       { id: "contexto", label: "Contexto", detail: "programa y fuente", icon: Database, targetId: "cmv2-section-acreditacion-contexto" },
+      { id: "seleccion", label: "Selección", detail: "marco y sorteo por actor", icon: Grid3X3, targetId: "cmv2-section-acreditacion-seleccion" },
       { id: "resultados", label: "Resultados", detail: "metas por actor", icon: BarChart3, targetId: "cmv2-section-acreditacion-resultados" },
     ];
   }
@@ -598,84 +382,6 @@ function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
     ];
   }
   return [];
-}
-
-function tecnicaLabel(tecnica: CalcMuestraTecnica) {
-  return METODOS_CLASICOS.find((m) => m.id === tecnica)?.label ??
-    ({
-      medicion_recurrente: "Medición recurrente",
-      listado_externo_meta_fija: "Flujo legacy",
-    } as Partial<Record<CalcMuestraTecnica, string>>)[tecnica] ??
-    tecnica;
-}
-
-function productoLabel(producto: CalcMuestraWorkspaceProducto) {
-  const labels: Record<CalcMuestraWorkspaceProducto, string> = {
-    muestra_probabilistica: "Muestra probabilística",
-    cobertura_marco: "Cobertura / marco a cubrir",
-    matriz_cuotas: "Matriz de cuotas",
-    componentes_mixtos: "Componentes mixtos calculables",
-  };
-  return labels[producto];
-}
-
-function tecnicaProducto(comp: CalcMuestraComponente): CalcMuestraWorkspaceProducto {
-  if ((comp.marco.matriz_operativa?.length ?? 0) > 0) return "matriz_cuotas";
-  if (comp.tecnica === "intencion_censal" || comp.tecnica === "barrido") return "cobertura_marco";
-  if (comp.tecnica === "no_prob_cuotas" || comp.tecnica === "no_prob_conveniencia") return "matriz_cuotas";
-  return "muestra_probabilistica";
-}
-
-function actorVisual(comp: CalcMuestraComponente) {
-  const key = comp.actor_categoria === "otros" ? comp.actor_id || "otros" : comp.actor_categoria;
-  const meta: Record<string, { label: string; copy: string; key: string }> = {
-    administrativos: {
-      key: "administrativos",
-      label: "Personal administrativo",
-      copy: "Actor institucional de cobertura censal",
-    },
-    docentes: {
-      key: "docentes",
-      label: "Docentes",
-      copy: "Cobertura o cuotas según tamaño del marco",
-    },
-    estudiantes: {
-      key: "estudiantes",
-      label: "Estudiantes pregrado",
-      copy: "Cobertura o cursos-horario según el marco disponible",
-    },
-    egresados: {
-      key: "egresados",
-      label: "Egresados",
-      copy: "Cobertura o cuotas por acceso al marco",
-    },
-    empleadores: {
-      key: "empleadores",
-      label: "Empleadores",
-      copy: "Actor cualitativo o de cuota específica",
-    },
-    otros: {
-      key: "otros",
-      label: comp.actor,
-      copy: "Actor adicional",
-    },
-  };
-  return meta[key] ?? meta.otros;
-}
-
-function primaryMetric(comp: CalcMuestraComponente) {
-  const r = comp.resultado;
-  if (!r) return "Pendiente";
-  if ((r.cuotas_matriz?.length ?? 0) > 0) {
-    return `${fmtInt(r.n_objetivo)} encuestas · ${r.cuotas_matriz?.length ?? 0} cuotas`;
-  }
-  if (comp.tecnica === "intencion_censal" || comp.tecnica === "barrido") {
-    return `${fmtInt(r.n_objetivo)} objetivo · ${fmtInt(r.n_operativo)} a cubrir`;
-  }
-  if (r.unidades_operativas) {
-    return `${fmtInt(r.n_objetivo)} casos · ${fmtInt(r.unidades_operativas)} unidades`;
-  }
-  return `${fmtInt(r.n_objetivo)} casos`;
 }
 
 function classroomRecoveryTarget(
@@ -737,9 +443,10 @@ function chromeStatusForDesk({
   if (calculando) return { label: "Calculando", detail: "componentes en proceso", tone: "working", icon: Loader2 };
   if (busy) return { label: busy, detail: "operación activa", tone: "working", icon: Loader2 };
   if (reporteEnCurso) return { label: "Reporte", detail: "generando evidencia", tone: "working", icon: FileText };
-  if (desk === "sin_definir") return { label: "Tipo por elegir", detail: "abre una mesa de muestra", tone: "idle", icon: Database };
+  if (desk === "sin_definir") return { label: "Tipo por elegir", detail: "abre el cálculo de muestra", tone: "idle", icon: Database };
+  if (desk === "territorial_handoff") return { label: "Deriva a Hojas de Ruta", detail: "este tipo no calcula aquí", tone: "idle", icon: MapPinned };
   if (resultados > 0) return { label: "Cálculo listo", detail: `${resultados}/${componentes} componentes`, tone: "ready", icon: CheckCircle2 };
-  if (componentes > 0) return { label: "Mesa preparada", detail: "pendiente de cálculo", tone: "working", icon: Target };
+  if (componentes > 0) return { label: "Cálculo preparado", detail: "pendiente de cálculo", tone: "idle", icon: Target };
   return { label: "Sin componentes", detail: "declara el marco", tone: "idle", icon: ClipboardList };
 }
 
@@ -777,7 +484,7 @@ export function chromeTokensForDesk({
     const target = safeNumber(status?.selectedComp.resultado?.n_objetivo, 0);
     const selectedResultReady = status?.selectedResultReady ?? false;
     return [
-      { label: "Mesa", value: "Muestra de cursos-horario", tone: "path" },
+      { label: "Tipo", value: "Conglomerados en aulas", tone: "path" },
       { label: "Base", value: marcoTotal ? `${fmtInt(marcoTotal)} est.` : estratos.length ? `${fmtInt(estratos.length)} dominios` : "por validar", tone: marcoTotal ? "ready" : "working" },
       { label: "Cálculo", value: target ? `${fmtInt(target)} objetivo` : selectedResultReady ? "calculado" : "pendiente", tone: target || selectedResultReady ? "ready" : "working" },
       { label: "Cursos-horario", value: selectionReady ? "titulares + reemplazos" : comparisonReady ? "métodos listos" : "por seleccionar", tone: selectionReady ? "ready" : comparisonReady ? "working" : "neutral" },
@@ -787,7 +494,7 @@ export function chromeTokensForDesk({
   if (desk === "acreditacion") {
     const withChannel = componentes.filter((comp) => comp.canal_recojo !== "sin_definir").length;
     return [
-      { label: "Tipo", value: "Acreditación", tone: "path" },
+      { label: "Tipo", value: "Metas por grupo", tone: "path" },
       { label: "Actores", value: componentes.length ? `${componentes.length} componentes` : "sin actores", tone: componentes.length ? "ready" : "working" },
       { label: "Canales", value: `${withChannel}/${componentes.length || 0} definidos`, tone: componentes.length > 0 && withChannel === componentes.length ? "ready" : "working" },
       { label: "Salida", value: hasResult ? "metas listas" : productText, tone: hasResult ? "ready" : "neutral" },
@@ -796,9 +503,9 @@ export function chromeTokensForDesk({
 
   if (desk === "territorial_handoff") {
     return [
-      { label: "Tipo", value: "Territorial", tone: "path" },
+      { label: "Tipo", value: "Áreas y viviendas", tone: "path" },
       { label: "Base", value: "zonas/manzanas", tone: "ready" },
-      { label: "Mesa", value: "Hojas de Ruta", tone: "ready" },
+      { label: "Tipo", value: "Hojas de Ruta", tone: "ready" },
       { label: "Salida", value: "rutas y viviendas", tone: "neutral" },
     ];
   }
@@ -813,7 +520,7 @@ export function chromeTokensForDesk({
   }
 
   return [
-    { label: "Tipo", value: "General", tone: "path" },
+    { label: "Tipo", value: "Muestra general", tone: "path" },
     { label: "Base", value: sourceReady ? "marco propio" : "por definir", tone: sourceReady ? "ready" : "working" },
     { label: "Método", value: firstComp ? compactTechniqueLabel(firstComp.tecnica) : "por elegir", tone: firstComp ? "ready" : "working" },
     { label: "Salida", value: hasResult ? "resultado listo" : productText, tone: hasResult ? "ready" : "neutral" },
@@ -936,7 +643,7 @@ function contextChecksForDesk({
   return [
     { label: "Marco", value: marcoReady ? "declarado" : "pendiente", ready: marcoReady, icon: Database },
     { label: "Variables", value: hasVariables ? "configuradas" : "pendientes", ready: hasVariables, icon: Layers3 },
-    { label: "Método", value: componentes[0] ? tecnicaLabel(componentes[0].tecnica) : "sin método", ready: componentes.length > 0, icon: Settings2 },
+    { label: "Método", value: componentes[0] ? tecnicaCalculadaLabel(componentes[0]) : "sin método", ready: componentes.length > 0, icon: Settings2 },
     { label: "Resultados", value: hasResult ? "calculados" : "por calcular", ready: hasResult, icon: BarChart3 },
   ];
 }
@@ -958,21 +665,9 @@ function sidebarTabsForDeskSection({
     const universityTabs = universitySidebarTabs({ activeSection, estudio, workspace, aulasState });
     if (universityTabs) return universityTabs;
   }
-  const componentes = estudio.componentes;
-  const hasResult = componentes.some(hasUsefulResult);
-  const activeMeta = activeSectionMetaForDesk(desk, activeSection);
-  return [
-    {
-      id: "resumen",
-      label: activeMeta?.label ?? "Sección",
-      detail: activeMeta?.detail ?? "trabajo de la sección",
-      icon: activeMeta?.icon ?? Route,
-      status: guideStatus(true),
-      targetId: activeMeta?.targetId,
-    },
-    { id: "configuracion", label: "Configuración", detail: "entradas y criterios", icon: SlidersHorizontal, status: guideStatus(Boolean(componentes.length)), targetId: activeMeta?.targetId },
-    { id: "resultado", label: "Resultado", detail: "salida verificable", icon: BarChart3, status: guideStatus(hasResult), targetId: activeMeta?.targetId },
-  ];
+  // Fuera de aulas no hay pestañas locales: las tres que había («<sección>»,
+  // «Configuración», «Resultado») llevaban al mismo sitio (G4, C4).
+  return [];
 }
 
 // --- Jobs asíncronos de aulas (marcos grandes) ------------------------------
@@ -996,7 +691,14 @@ export function esDecisionAlumnosChCaducada(e: unknown): boolean {
   const code = (e as { code?: unknown } | null)?.code;
   if (typeof code === "string" && code === "E_CALC_MUESTRA_ALUMNOS_CH_DECISION") return true;
   const texto = e instanceof Error ? e.message : typeof e === "string" ? e : "";
-  return /alumnos por ch/i.test(texto) && /cambi|caduc|stale/i.test(texto);
+  // El motor tiene DOS razones bajo el mismo codigo y cada una redacta distinto:
+  // `decision_stale` dice «cambió desde esta corrida» y `frame_stale` —el que
+  // sale al abrir un sorteo posterior— dice «no corresponde al marco vigente».
+  // El regex se escribio contra la primera, asi que la segunda no se reconocia
+  // cuando el codigo se perdia en el camino. Medido sobre el segundo sorteo de
+  // HSVG 2026 el 2026-08-28.
+  return /alumnos por ch/i.test(texto)
+    && /cambi|caduc|stale|no corresponde al marco/i.test(texto);
 }
 
 function msgDeFallo(e: unknown, fallback: string): Msg {
@@ -1012,7 +714,6 @@ export default function CalcMuestraPage() {
   const {
     estudio,
     hydrated,
-    dirty,
     calculando,
     reporteJobId,
     reporteDisponible,
@@ -1027,6 +728,7 @@ export default function CalcMuestraPage() {
     setReporteMeta,
   } = useCalcMuestraStore();
   const [msg, setMsg] = useState<Msg>(null);
+  const limpiarMsg = useCallback(() => setMsg(null), []);
   const [busy, setBusy] = useState<string | null>(null);
   // F36 · El motor rechazó comparar por decisión caducada. Vive aquí porque lo
   // enciende la respuesta del motor y lo consume la pestaña que lo repara, que
@@ -1077,6 +779,15 @@ export default function CalcMuestraPage() {
   useEffect(() => {
     aulasStateRef.current = aulasState;
   }, [aulasState]);
+  // Un aviso de caducidad que sobrevive a la reparación miente: la lógica y el
+  // porqué viven en avisoCaducidadResuelta.ts.
+  useAvisoCaducidadResuelta(msg, limpiarMsg, {
+    frameHash: aulasState?.frame?.frame_hash,
+    contratoHash: aulasState?.frame?.alumnos_por_ch?.frame_hash,
+    decisionHashes: estudio.componentes.flatMap((comp) =>
+      (comp.resultado?.aulas_por_estrato ?? []).map((fila) => fila.alumnos_por_ch?.frame_hash),
+    ),
+  });
   const [referenciaAsistencia, setReferenciaAsistencia] =
     useState<CalcMuestraReferenciaAsistencia | null>(null);
   const [aulasStateChecked, setAulasStateChecked] = useState(false);
@@ -1348,7 +1059,7 @@ export default function CalcMuestraPage() {
         : mode === "opinion_universitaria"
           ? "encuesta_estudiantes"
           : "estudio_propio";
-    setBusy("Preparando mesa");
+    setBusy("Preparando el cálculo");
     try {
       // La UI siempre inicia estudios genéricos vacíos; el preset legacy con
       // estratos pre-poblados quedó solo como fixture de tests del backend.
@@ -1381,7 +1092,7 @@ export default function CalcMuestraPage() {
         workspace: finalWorkspace,
       });
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo iniciar la mesa." });
+      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo iniciar el cálculo." });
     } finally {
       setBusy(null);
     }
@@ -1507,10 +1218,7 @@ export default function CalcMuestraPage() {
     const next = setTecnica(
       {
         ...base,
-        actor:
-          kind === "servicios"
-            ? "Usuarios / atenciones de servicios"
-            : base.actor || "Población objetivo",
+        actor: base.actor || "Población objetivo",
         marco: {
           ...base.marco,
           estado: base.marco.estado === "no_definido" ? "bruto" : base.marco.estado,
@@ -1518,7 +1226,7 @@ export default function CalcMuestraPage() {
             kind === "servicios"
               ? base.marco.matriz_operativa?.length
                 ? base.marco.matriz_operativa
-                : matrizGizEjemplo()
+                : matrizEjemplo()
               : [],
           estratos:
             kind === "estratos" || kind === "conglomerados"
@@ -1562,11 +1270,56 @@ export default function CalcMuestraPage() {
       hydrate(res.estudio);
       registrarCorridaDeCalculo(res.estudio);
       useMotorStore.getState().invalidarCursosHorario();
+      // Calcular DESCARTA los artefactos derivados —certeza, comparacion de
+      // metodos, seleccion— y `/calcular` solo devuelve `{ok, estudio}`, asi
+      // que la pantalla no tiene como enterarse: se queda con el `aulasState`
+      // anterior y sigue enseñando lo que el motor ya tiro.
+      //
+      // Medido el 2026-08-28 sobre el segundo sorteo de HSVG 2026: tras
+      // recalcular, `aulas.certeza` venia VACIO del backend y la pestaña
+      // «¿Alcanza?» seguia mostrando la medicion anterior rotulada «cifra
+      // validada», con su boton «Llevar las 5 a su minimo» ofreciendo escribir
+      // fijaciones derivadas de un marco que ya no existe. Un `location.reload`
+      // dejaba ver la verdad: «Sin medir todavia».
+      //
+      // La autoridad sobre que sobrevivio es el backend, no una invalidacion
+      // adivinada aca: se relee el estado, como ya hacen los otros flujos.
+      try {
+        const estadoTrasCalcular = await apiCalcMuestraState();
+        setAulasState(estadoTrasCalcular.aulas ?? null);
+      } catch {
+        // Si la relectura falla, es peor conservar artefactos que el motor
+        // descarto que quedarse sin ellos: se limpian y la pantalla lo dice.
+        setAulasState(null);
+      }
       // Contar componentes no es contar éxitos: si el motor marcó alguna
       // distribución «incompatible», el aviso lo dice en vez de felicitar.
       setMsg(avisoTrasCalcular(res.estudio.componentes));
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo calcular." });
+      // El mismo 409 se leia de dos maneras segun por donde entrara.
+      //
+      // `E_CALC_MUESTRA_ALUMNOS_CH_DECISION` («la decision de alumnos por CH no
+      // corresponde al marco vigente») ya tenia trato en comparar metodos: se
+      // dice donde se resuelve y se enciende la superficie de Marco que pide
+      // reconfirmar. Por aqui salia el mensaje crudo del backend con el codigo
+      // interno pegado —«… · E_CALC_MUESTRA_ALUMNOS_CH_DECISION»—, sin decir
+      // que hacer y sin encender nada.
+      //
+      // Medido el 2026-08-28 abriendo el SEGUNDO sorteo de HSVG 2026: sus
+      // componentes vienen calculados contra el marco del primero
+      // (`87df265f…` frente a `f1ab83df…`, 1.512 aulas elegibles frente a
+      // 1.392), asi que «Recalcular muestra» es lo primero que un analista
+      // toca al abrirlo, y es justo el camino que no explicaba nada.
+      const caducada = esDecisionAlumnosChCaducada(e);
+      setRefirmaAlumnosCh(caducada);
+      setMsg(
+        caducada
+          ? {
+              kind: "error",
+              text: "La decisión de «Alumnos por CH» quedó sellada contra un marco anterior. Vuelve a confirmarla en Marco › Alumnos por CH y recalcula.",
+            }
+          : { kind: "error", text: e instanceof Error ? e.message : "No se pudo calcular." },
+      );
     } finally {
       setCalculando(false);
     }
@@ -1804,6 +1557,34 @@ export default function CalcMuestraPage() {
     }
 
     throw new Error("La lectura histórica se importa como selección o agenda; no reconstruye el marco base.");
+  }
+
+  /**
+   * Las fuentes que se mandarían a construir AHORA, en la forma que el marco
+   * firma al construirse (`sources_used`).
+   *
+   * Sale de `universityMarcoPayload`, la misma función que arma el payload:
+   * derivarla aparte era pedir que las dos versiones divergieran, que es
+   * exactamente el defecto que este mecanismo existe para cazar.
+   *
+   * Si el payload no se puede armar —faltan fuentes— devuelve lista vacía: no
+   * hay nada que comparar y el marco, si existe, es de otras fuentes.
+   */
+  function firmaDeFuentesActuales(): Array<{ role: string; file_id?: string; sheet?: string }> {
+    let payload: Record<string, unknown>;
+    try {
+      payload = universityMarcoPayload(workspace) as unknown as Record<string, unknown>;
+    } catch {
+      return [];
+    }
+    const roles = ["base_madre", "estudiantes", "inscripciones", "catalogo_curso_horario"];
+    return roles
+      .map((role) => ({
+        role,
+        file_id: (payload[`${role}_file_id`] as string | undefined) ?? undefined,
+        sheet: (payload[`${role}_sheet`] as string | undefined) ?? undefined,
+      }))
+      .filter((item) => Boolean(item.file_id));
   }
 
   async function construirMarcoDesdeFuentes(nextWorkspace: CalcMuestraWorkspace = workspace) {
@@ -2328,10 +2109,7 @@ export default function CalcMuestraPage() {
     setMsg(null);
     const contextoInicial = await leerContextoPaquete();
     if (!contextoInicial.fingerprint) {
-      setMsg({
-        kind: "warn",
-        text: "El paquete requiere cálculo, marco y selección vigentes para el escenario elegido.",
-      });
+      setMsg({ kind: "warn", text: paqueteDefensaMotivo(contextoInicial) });
       return;
     }
     const fingerprintInicial = contextoInicial.fingerprint;
@@ -2441,6 +2219,7 @@ export default function CalcMuestraPage() {
   const chromeTokens = chromeTokensForDesk({ desk, estudio, workspace, productos, resultados, aulasState });
   const primaryChromeToken = chromeTokens[0] ?? null;
   const sidebarTabs = sidebarTabsForDeskSection({ desk, activeSection: activeRailSection, estudio, workspace, aulasState });
+  const sinRailLocal = desk !== "opinion_universitaria" && desk !== "sin_definir" && sidebarTabs.length === 0;
   const railSectionStates = desk === "opinion_universitaria"
     ? universitySectionStates({ estudio, workspace, aulasState })
     : undefined;
@@ -2477,7 +2256,27 @@ export default function CalcMuestraPage() {
     navegarPestanaLocal(tab.targetId);
   }
 
-  if (!hydrated) return <LoadingBlock label="Cargando mesa de muestra..." />;
+  // Declara que está cargando, en vez de no declarar nada.
+  //
+  // Este early return se pinta mientras el store se hidrata: no es el BootGate
+  // (hay proyecto) ni la pantalla de warm start (otro selector), y sin marca el
+  // puente respondía `sin-marca-de-readiness` — que se lee como «esta pestaña
+  // no declara readiness» y acusa a la vista que se intentaba medir. Medido el
+  // 2026-08-25: con la máquina cargada esta ventana se alarga y el QA cae
+  // dentro; fue la causa REAL de los rojos de `def-explorador`,
+  // `marco-poblacion`, `marco-aulas` y `calculo-distribucion`, y de que se
+  // «repararan» cuatro pestañas que no tenían nada.
+  //
+  // `false` es la respuesta correcta y no un parche: la mesa AFIRMA que todavía
+  // no está lista, el puente devuelve `marca-en-false` y el runner sigue
+  // esperando en vez de culpar a la pestaña.
+  if (!hydrated) {
+    return (
+      <div data-audit-ready="false" data-audit-desk="calc-muestra-hidratando">
+        <LoadingBlock label="Cargando el cálculo de muestra..." />
+      </div>
+    );
+  }
 
   return (
     <PageFrame
@@ -2511,6 +2310,9 @@ export default function CalcMuestraPage() {
                       label={primaryChromeToken.label}
                       value={primaryChromeToken.value}
                       prioridad="alta"
+                      // El tipo abre el selector: mirar los otros tipos no borra nada.
+                      onClick={openStudyChooser}
+                      detalle="Ver los otros tipos de estudio"
                     />
                   )}
                   {desk === "opinion_universitaria" && (
@@ -2534,67 +2336,31 @@ export default function CalcMuestraPage() {
                 />
               ) : undefined
             }
-            estado={[
+            // Sólo lo que está pasando ahora: «preparado», «listo» o «sin
+            // componentes» repetían el rail y el resumen, y parecían un botón.
+            estado={chromeStatus.tone !== "working" ? [] : [
               {
                 id: "estado",
                 label: chromeStatus.label,
-                // Los tonos de este módulo son ready | working | idle, no la escala
-                // de cinco del chip; se mapean, no se inventan.
-                tone:
-                  chromeStatus.tone === "ready"
-                    ? "success"
-                    : chromeStatus.tone === "working"
-                      ? "info"
-                      : "neutral",
+                tone: "info",
                 detail: chromeStatus.detail,
               },
             ]}
-            herramientas={
-              desk === "opinion_universitaria" ? (
-                <SaveStatusIndicator state={dirty ? "saving" : "saved"} variant="badge" />
-              ) : reporteJobId ? (
-                <a
-                  className="cmv2-link-button"
-                  href={calcMuestraReporteDescargarUrl({ inline: true })}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Ver
-                </a>
-              ) : undefined
-            }
+            herramientas={desk === "sin_definir" ? undefined : <IndicadorGuardadoCalcMuestra />}
             acciones={
-              desk === "sin_definir" || desk === "opinion_universitaria"
-                ? []
-                : [
-                    {
-                      id: "calcular",
-                      label: "Calcular",
-                      rank: 1,
-                      kind: "primary",
-                      onSelect: () => void calcular(),
-                      disabled: calculando || estudio.componentes.length === 0,
-                      busy: calculando,
-                    },
-                    {
-                      id: "reporte",
-                      label: "Reporte",
-                      rank: 2,
-                      onSelect: () => void generarReporte(),
-                      disabled: reporteEnCurso || resultados === 0,
-                      busy: reporteEnCurso,
-                    },
-                    {
-                      id: "cambiar-tipo",
-                      label: "Cambiar tipo",
-                      rank: 3,
-                      onSelect: openStudyChooser,
-                    },
-                  ]
+              // Sin atajos: cada sección tiene su acción, como en aulas (B1). El
+              // cambio de tipo lo abre el propio indicador «Tipo», en todo modo.
+              []
             }
           />
           {desk === "opinion_universitaria" && (
-            <ResumenDiseno motor={universityMotor} estudio={estudio} workspace={workspace} aulasState={aulasState} />
+            <ResumenDiseno
+              motor={universityMotor}
+              estudio={estudio}
+              workspace={workspace}
+              aulasState={aulasState}
+              fuentesActuales={firmaDeFuentesActuales()}
+            />
           )}
         </div>
       }
@@ -2605,7 +2371,7 @@ export default function CalcMuestraPage() {
         data-audit-ready="calc-muestra"
         data-audit-desk={desk}
       />
-      <div className={`cmv2-workbench ${desk === "sin_definir" ? "is-pathway-picker" : ""}${desk === "opinion_universitaria" ? " pulso-context-tab-layout" : ""}`}>
+      <div className={`cmv2-workbench ${desk === "sin_definir" ? "is-pathway-picker" : ""}${desk === "opinion_universitaria" ? " pulso-context-tab-layout" : ""}${sinRailLocal ? " cmg-sin-rail" : ""}`}>
         {desk === "opinion_universitaria" ? (
           <ContextTabRail
             ariaLabel={`Pestañas de ${activeRailMeta?.label ?? "la sección"}`}
@@ -2654,13 +2420,14 @@ export default function CalcMuestraPage() {
           )}
 
           {desk === "sin_definir" && (
-            <FrameSelector
+            <SelectorTipo
               currentDesk={currentDesk}
               hasExistingStudy={hasExistingDesk}
               pendingReset={pendingDeskReset}
               onSelect={elegirEstudio}
               onCancelReset={() => setPendingDeskReset(null)}
               onConfirmReset={confirmarCambioEstudio}
+              perdidas={loQueSePierde({ titulo: estudio.titulo, componentes: estudio.componentes, tieneEstadoAulas: hasAulasDeskState })}
             />
           )}
 
@@ -2674,7 +2441,7 @@ export default function CalcMuestraPage() {
           {desk === "territorial_handoff" && <TerritorialHandoff onOpen={() => navigate("/hojas-ruta")} onBack={() => setWorkspace(EMPTY_WORKSPACE)} />}
 
           {desk === "acreditacion" && (
-            <AcreditacionDesk
+            <MesaAcreditacion
               estudio={estudio}
               workspace={workspace}
               activeSection={activeRailSection}
@@ -2684,6 +2451,8 @@ export default function CalcMuestraPage() {
               onComponente={updateComponente}
               onCalcular={calcular}
               calculando={calculando}
+              reporte={{ resultados, enCurso: reporteEnCurso, disponible: reporteDisponible, verUrl: reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null, onGenerar: () => void generarReporte() }}
+              onCambiarTipo={openStudyChooser}
             />
           )}
 
@@ -2693,6 +2462,7 @@ export default function CalcMuestraPage() {
               onPatchEstudio={patchEstudio}
               workspace={workspace}
               aulasState={aulasState}
+              aulasStateComprobado={aulasStateChecked}
               motorPideRefirmarAlumnosCh={refirmaAlumnosCh}
               referenciaAsistencia={referenciaAsistencia}
               motor={universityMotor}
@@ -2729,11 +2499,12 @@ export default function CalcMuestraPage() {
               paqueteEnCurso={paqueteEnCurso}
               paquetePasos={paquetePasos}
               onNavigate={navegarDesdeRecorrido}
+              onCambiarTipo={openStudyChooser}
             />
           )}
 
           {desk === "marco_disponible" && (
-            <MarcoDisponibleDesk
+            <MesaGeneral
               estudio={estudio}
               workspace={workspace}
               activeSection={activeRailSection}
@@ -2748,6 +2519,8 @@ export default function CalcMuestraPage() {
               onMonitoreo={enviarMonitoreo}
               calculando={calculando}
               reporteListo={!!reporteJobId}
+              reporte={{ resultados, enCurso: reporteEnCurso, disponible: reporteDisponible, verUrl: reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null, onGenerar: () => void generarReporte() }}
+              onCambiarTipo={openStudyChooser}
             />
           )}
         </main>
@@ -2839,6 +2612,7 @@ function CalcMuestraContextSidebar({
 }) {
   const activeMeta = activeSectionMetaForDesk(desk, activeSection);
   const tabs = sidebarTabsForDeskSection({ desk, activeSection, estudio, workspace, aulasState });
+  if (tabs.length === 0) return null;
   const firstTabId = tabs[0]?.id ?? "";
   const activeTabId = activeSection === "aulas" ? activeClassroomLabTab : activeLocalTab || firstTabId;
 
@@ -2939,435 +2713,6 @@ function CalcMuestraContextSidebar({
   );
 }
 
-function PathwayPrimer() {
-  return (
-    <div className="cmv2-pathway-primer" aria-label="Preguntas para escoger el tipo de muestra">
-      {PATHWAY_PRIMER.map((item) => {
-        const Icon = item.icon ?? CircleHelp;
-        return (
-          <article key={item.prompt}>
-            <span><Icon size={14} /></span>
-            <div>
-              <small>{item.prompt}</small>
-              <strong>{item.answer}</strong>
-              <p>{item.detail}</p>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
-}
-
-function FrameSelector({
-  currentDesk,
-  hasExistingStudy,
-  pendingReset,
-  onSelect,
-  onCancelReset,
-  onConfirmReset,
-}: {
-  currentDesk: ActiveDesk;
-  hasExistingStudy: boolean;
-  pendingReset: ActiveDesk | null;
-  onSelect: (mode: ActiveDesk) => void;
-  onCancelReset: () => void;
-  onConfirmReset: () => void;
-}) {
-  const currentCard = FRAME_CARDS.find((card) => card.id === currentDesk);
-  const pendingCard = FRAME_CARDS.find((card) => card.id === pendingReset);
-  const currentTitle = currentCard?.title ?? (currentDesk === "legacy" ? "sesión anterior" : "mesa actual");
-
-  return (
-    <section className="cmv2-selector cmv2-route-hub" aria-label="Caminos de cálculo muestral">
-      <div className="cmv2-selector-head cmv2-route-hub-head">
-        <div>
-          <span className="cmv2-eyebrow">Caminos de cálculo</span>
-          <h2>Elige el tipo de muestra</h2>
-          <p>Primero escoge el camino de trabajo. Esa decisión define la mesa del proyecto y evita mezclar avances de cálculos distintos.</p>
-        </div>
-        <div className="cmv2-route-hub-status" aria-label="Estado de rutas">
-          <span><CheckCircle2 size={13} /> 4 caminos disponibles</span>
-          <span><Route size={13} /> 1 mesa por proyecto</span>
-        </div>
-      </div>
-
-      <PathwayPrimer />
-
-      {hasExistingStudy && (
-        <div className="cmv2-route-warning" role="note">
-          <CheckCircle2 size={15} />
-          <span>
-            <strong>Esta mesa ya está usando: {currentTitle}.</strong>
-            Puedes volver a ella o reiniciarla con otro camino si el proyecto cambió de tipo de muestra.
-          </span>
-        </div>
-      )}
-
-      {pendingCard && (
-        <div className="cmv2-reset-confirm" role="alert">
-          <span className="cmv2-reset-confirm-icon"><RefreshCw size={16} /></span>
-          <div>
-            <strong>Reiniciar mesa de muestra</strong>
-            <p>
-              Vas a pasar de {currentTitle} a {pendingCard.title}. La mesa actual se reiniciará y el proyecto quedará preparado para este nuevo tipo de muestra.
-            </p>
-          </div>
-          <div className="cmv2-reset-confirm-actions">
-            <button type="button" className="cmv2-ghost" onClick={onCancelReset}>Cancelar</button>
-            <button type="button" className="cmv2-primary" onClick={onConfirmReset}>
-              Reiniciar mesa
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="cmv2-frame-grid cmv2-frame-grid--routes">
-        {FRAME_CARDS.map((card) => {
-          const Icon = card.icon;
-          const isCurrent = hasExistingStudy && card.id === currentDesk;
-          const actionLabel = isCurrent
-            ? "Seguir trabajando"
-            : hasExistingStudy
-              ? "Reiniciar con este camino"
-              : card.action;
-          return (
-            <button
-              key={card.id}
-              type="button"
-              className={`cmv2-frame-card cmv2-frame-card--${card.id} ${card.id === "territorial_handoff" ? "is-handoff" : ""} ${isCurrent ? "is-current" : ""}`}
-              onClick={() => onSelect(card.id)}
-              aria-pressed={isCurrent}
-            >
-              <span className="cmv2-card-icon"><Icon size={20} /></span>
-              <small>{isCurrent ? "Camino actual" : card.eyebrow}</small>
-              <strong>{card.title}</strong>
-              <p>{card.copy}</p>
-              <div className="cmv2-path-tags" aria-label={`Alcance ${card.title}`}>
-                {card.details.map((detail) => <span key={detail}>{detail}</span>)}
-              </div>
-              <div className="cmv2-card-answers" aria-label={`Orientación para ${card.title}`}>
-                {card.guidance.map((item) => {
-                  const HelpIcon = item.icon ?? CircleHelp;
-                  return (
-                  <em key={item.prompt}>
-                    <i><HelpIcon size={12} /></i>
-                    <b>{item.prompt}</b>
-                    <span>{item.answer}</span>
-                    <small>{item.detail}</small>
-                  </em>
-                  );
-                })}
-              </div>
-              <span className="cmv2-card-action">
-                {actionLabel}
-                <ArrowRight size={14} />
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function ShellHeader({
-  eyebrow,
-  title,
-  copy,
-  icon: Icon,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  copy: string;
-  icon: typeof Database;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="cmv2-desk-head">
-      <div className="cmv2-desk-title">
-        <span className="cmv2-desk-icon"><Icon size={18} /></span>
-        <div>
-          <span className="cmv2-eyebrow">{eyebrow}</span>
-          <h2>{title}</h2>
-          <p>{copy}</p>
-        </div>
-      </div>
-      {children && <div className="cmv2-desk-actions">{children}</div>}
-    </div>
-  );
-}
-
-function StudyBasics({
-  estudio,
-  workspace,
-  onTitulo,
-  onContexto,
-  onWorkspace,
-}: {
-  estudio: CalcMuestraEstudio;
-  workspace: CalcMuestraWorkspace;
-  onTitulo: (titulo: string) => void;
-  onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
-  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
-}) {
-  return (
-    <section className="cmv2-panel cmv2-basics">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Ficha de propuesta</span>
-        <strong>Contexto y marco</strong>
-      </div>
-      <div className="cmv2-form-grid">
-        <label>
-          <span>Título</span>
-          <input
-            value={estudio.titulo}
-            placeholder="Nombre del estudio o propuesta"
-            onChange={(e) => onTitulo(e.currentTarget.value)}
-          />
-        </label>
-        <label>
-          <span>Cliente</span>
-          <input
-            value={estudio.contexto.cliente}
-            placeholder="Institución o área solicitante"
-            onChange={(e) => onContexto("cliente", e.currentTarget.value)}
-          />
-        </label>
-        <label>
-          <span>Fuente del marco</span>
-          <input
-            value={workspace.fuente_marco}
-            placeholder="Censo, padrón, listado externo..."
-            onChange={(e) => onWorkspace({ ...workspace, fuente_marco: e.currentTarget.value })}
-          />
-        </label>
-        <label>
-          <span>Marco disponible</span>
-          <input
-            value={workspace.marco_disponible}
-            placeholder="Universo validado o cobertura estimada"
-            onChange={(e) => onWorkspace({ ...workspace, marco_disponible: e.currentTarget.value })}
-          />
-        </label>
-        <label>
-          <span>Unidad de observación</span>
-          <input
-            value={workspace.unidad_observacion}
-            placeholder="Persona, hogar, curso-horario, actor..."
-            onChange={(e) => onWorkspace({ ...workspace, unidad_observacion: e.currentTarget.value })}
-          />
-        </label>
-        <label>
-          <span>Unidad de muestreo</span>
-            <input
-              value={workspace.unidad_muestreo}
-              placeholder="Unidad seleccionable del marco"
-              onChange={(e) => onWorkspace({ ...workspace, unidad_muestreo: e.currentTarget.value })}
-            />
-        </label>
-      </div>
-    </section>
-  );
-}
-
-function AcreditacionDesk({
-  estudio,
-  workspace,
-  activeSection,
-  onTitulo,
-  onContexto,
-  onWorkspace,
-  onComponente,
-  onCalcular,
-  calculando,
-}: {
-  estudio: CalcMuestraEstudio;
-  workspace: CalcMuestraWorkspace;
-  activeSection: string;
-  onTitulo: (titulo: string) => void;
-  onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
-  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
-  onComponente: (id: string, patch: ComponentePatch) => void;
-  onCalcular: () => void;
-  calculando: boolean;
-}) {
-  const selectedSection = ["actores", "contexto", "resultados"].includes(activeSection)
-    ? activeSection
-    : "actores";
-  return (
-    <div className="cmv2-desk">
-      <ShellHeader
-        eyebrow="Acreditación institucional"
-        title="Actores y cuotas"
-        copy="Actores, marco, meta mínima y salida."
-        icon={ClipboardList}
-      >
-        <button type="button" className="cmv2-primary" onClick={() => void onCalcular()} disabled={calculando}>
-          {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
-          Calcular actores
-        </button>
-      </ShellHeader>
-      <div className="cmv2-university-workbench" data-active-section={selectedSection}>
-        {selectedSection === "actores" && (
-          <div id="cmv2-section-acreditacion-actores" className="cmv2-tab-panel" role="tabpanel" aria-label="Actores">
-            <AcreditacionActorsTable componentes={estudio.componentes} onComponente={onComponente} />
-          </div>
-        )}
-        {selectedSection === "contexto" && (
-          <div id="cmv2-section-acreditacion-contexto" className="cmv2-tab-panel" role="tabpanel" aria-label="Contexto">
-          <StudyBasics estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} />
-          </div>
-        )}
-        {selectedSection === "resultados" && (
-          <div id="cmv2-section-acreditacion-resultados" className="cmv2-tab-panel" role="tabpanel" aria-label="Resultados">
-            <ResultadoPanel componentes={estudio.componentes} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AcreditacionActorsTable({
-  componentes,
-  onComponente,
-}: {
-  componentes: CalcMuestraComponente[];
-  onComponente: (id: string, patch: ComponentePatch) => void;
-}) {
-  return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Marco por actor</span>
-        <strong>Actores canónicos</strong>
-      </div>
-      <div className="cmv2-table-wrap">
-        <table className="cmv2-table">
-          <thead>
-            <tr>
-              <th>Actor</th>
-              <th>Canal</th>
-              <th>Marco</th>
-              <th>Meta mínima</th>
-              <th>Salida esperada</th>
-              <th>Resultado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {componentes.map((comp) => {
-              const meta = actorVisual(comp);
-              return (
-                <tr key={comp.id} className={`cmv2-actor-row cmv2-actor-row--${meta.key}`}>
-                  <td>
-                    <div className="cmv2-actor-cell">
-                      <span className="cmv2-actor-dot" />
-                      <span>
-                        <strong>{meta.label}</strong>
-                        <small>{meta.copy}</small>
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <select
-                      className="cmv2-channel-select"
-                      value={comp.canal_recojo}
-                      onChange={(e) => onComponente(comp.id, { canal_recojo: e.currentTarget.value as CalcMuestraCanalRecojo })}
-                    >
-                      {CANAL_OPTIONS.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <NumberCell
-                      value={comp.marco.marco_validado}
-                      onChange={(v) => onComponente(comp.id, { marco: { marco_validado: v, universo_bruto: v, marco_contactable: v } })}
-                    />
-                  </td>
-                  <td>
-                    <AcreditacionTargetCell comp={comp} onComponente={onComponente} />
-                  </td>
-                  <td><ProductBadge producto={tecnicaProducto(comp)} /></td>
-                  <td><strong>{primaryMetric(comp)}</strong></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function AcreditacionTargetCell({
-  comp,
-  onComponente,
-}: {
-  comp: CalcMuestraComponente;
-  onComponente: (id: string, patch: ComponentePatch) => void;
-}) {
-  const sugerido = sugerenciaCuota(comp);
-  if (comp.tecnica === "no_prob_cuotas") {
-    return (
-      <NumberCell
-        value={metaCuotaFijada(comp)}
-        placeholder={sugerido == null ? undefined : String(sugerido)}
-        title={
-          sugerido == null
-            ? "Cuota sin fijar."
-            : `Sin fijar. El motor aplica ${sugerido}.`
-        }
-        onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota" } })}
-      />
-    );
-  }
-  if (comp.tecnica === "no_prob_conveniencia") {
-    return (
-      <div className="cmv2-target-stack">
-        <PercentCell
-          value={comp.parametros.cobertura_objetivo}
-          onChange={(v) => onComponente(comp.id, { parametros: { cobertura_objetivo: v } })}
-        />
-        <small>Piso {comp.parametros.n_minimo_estrato} · tope {comp.parametros.tope_operativo}</small>
-      </div>
-    );
-  }
-  if (comp.tecnica === "prob_conglomerado_multietapico" || comp.tecnica === "prob_aleatorio_simple" || comp.tecnica === "prob_estratificado") {
-    return (
-      <div className="cmv2-target-stack">
-        <PercentCell
-          value={comp.parametros.oversample_pct}
-          onChange={(v) => onComponente(comp.id, { parametros: { oversample_pct: v } })}
-        />
-        <small>Sobremuestra</small>
-      </div>
-    );
-  }
-  return (
-    <PercentCell
-      value={comp.parametros.cobertura_objetivo}
-      onChange={(v) => onComponente(comp.id, { parametros: { cobertura_objetivo: v } })}
-    />
-  );
-}
-
-function PercentCell({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  return (
-    <label className="cmv2-number-cell cmv2-percent-cell">
-      <input
-        type="number"
-        min={0}
-        max={100}
-        step={5}
-        value={Number.isFinite(value) ? String(Math.round(value * 100)) : ""}
-        onChange={(e) => onChange(safeNumber(e.currentTarget.value, 0) / 100)}
-      />
-      <span>%</span>
-    </label>
-  );
-}
-
 function chooseSourceSheet(binding: CalcMuestraWorkspaceSourceBinding, inspection: { sheets?: CalcMuestraAulasSheetInspectionSheet[]; suggested_sheet?: string; suggested_role?: string }) {
   const sheets = rowsFrom<CalcMuestraAulasSheetInspectionSheet>(inspection.sheets);
   if (!sheets.length) return binding.sheet_name ?? "";
@@ -3381,590 +2726,6 @@ function chooseSourceSheet(binding: CalcMuestraWorkspaceSourceBinding, inspectio
   if (inspection.suggested_sheet && sheets.some((sheet) => sheet.name === inspection.suggested_sheet)) return inspection.suggested_sheet;
   if (current && sheets.some((sheet) => sheet.name === current)) return current;
   return sheets[0]?.name ?? "";
-}
-
-function MarcoDisponibleDesk({
-  estudio,
-  workspace,
-  activeSection,
-  onTitulo,
-  onContexto,
-  onPatchEstudio,
-  onWorkspace,
-  onComponente,
-  onReplaceComponente,
-  onEnsureKind,
-  onCalcular,
-  onMonitoreo,
-  calculando,
-  reporteListo,
-}: {
-  estudio: CalcMuestraEstudio;
-  workspace: CalcMuestraWorkspace;
-  activeSection: string;
-  onTitulo: (titulo: string) => void;
-  onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
-  onPatchEstudio: (patch: Partial<CalcMuestraEstudio>) => void;
-  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
-  onComponente: (id: string, patch: ComponentePatch) => void;
-  onReplaceComponente: (comp: CalcMuestraComponente) => void;
-  onEnsureKind: (kind: MarcoOcasional) => void;
-  onCalcular: () => void;
-  onMonitoreo: () => void;
-  calculando: boolean;
-  reporteListo: boolean;
-}) {
-  const comp = estudio.componentes[0] ?? defaultComponente();
-  const matrizMode = (comp.marco.matriz_operativa?.length ?? 0) > 0;
-  const estratosMode = (comp.marco.estratos?.length ?? 0) > 0 && !matrizMode;
-  const selectedSection = ["marco", "metodo", "resultados"].includes(activeSection)
-    ? activeSection
-    : "marco";
-
-  return (
-    <div className="cmv2-desk">
-      <ShellHeader
-        eyebrow="Cálculo de muestra general"
-        title="Marco propio"
-        copy="Define unidad, variables de control y forma del marco. Luego eliges el cálculo y ajustas parámetros."
-        icon={SlidersHorizontal}
-      >
-        <button type="button" className="cmv2-primary" onClick={() => void onCalcular()} disabled={calculando}>
-          {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
-          Calcular mesa
-        </button>
-      </ShellHeader>
-      <div className="cmv2-university-workbench" data-active-section={selectedSection}>
-        {selectedSection === "marco" && (
-          <div id="cmv2-section-general-marco" className="cmv2-tab-panel" role="tabpanel" aria-label="Marco">
-            <div className="cmv2-desk-grid">
-              <div className="cmv2-stack">
-          <MarcoShapeSelector selected={workspace.marco_disponible} onSelect={onEnsureKind} />
-                <VariablesControl workspace={workspace} onWorkspace={onWorkspace} />
-              </div>
-              <aside className="cmv2-side">
-                <StudyBasics estudio={estudio} workspace={workspace} onTitulo={onTitulo} onContexto={onContexto} onWorkspace={onWorkspace} />
-              </aside>
-            </div>
-          </div>
-        )}
-
-        {selectedSection === "metodo" && (
-          <div id="cmv2-section-general-metodo" className="cmv2-tab-panel" role="tabpanel" aria-label="Método">
-          <section className="cmv2-panel">
-            <div className="cmv2-panel-head">
-              <span className="cmv2-eyebrow">Cálculo</span>
-              <strong>Tipo de cálculo y parámetros</strong>
-            </div>
-            <MetodoSelector comp={comp} onReplace={onReplaceComponente} />
-            <ParametrosPanel comp={comp} onComponente={onComponente} />
-          </section>
-          {matrizMode && <MatrizServiciosTable comp={comp} onComponente={onComponente} />}
-          {estratosMode && <EstratosTable comp={comp} onComponente={onComponente} />}
-        </div>
-        )}
-
-        {selectedSection === "resultados" && (
-          <div id="cmv2-section-general-resultados" className="cmv2-tab-panel" role="tabpanel" aria-label="Resultados">
-          <ResultadoPanel componentes={estudio.componentes} />
-          <section className="cmv2-panel">
-            <div className="cmv2-panel-head">
-              <span className="cmv2-eyebrow">Salida</span>
-              <strong>Propuesta y traspaso</strong>
-            </div>
-            <textarea
-              value={workspace.notas_diseno}
-              onChange={(e) => onWorkspace({ ...workspace, notas_diseno: e.currentTarget.value })}
-              rows={5}
-            />
-            <div className="cmv2-inline-actions">
-              <button type="button" className="cmv2-ghost" onClick={() => onPatchEstudio({ modo_trabajo: "diseno_validado" })}>
-                <CheckCircle2 size={14} /> Marcar propuesta cerrada
-              </button>
-              <button type="button" className="cmv2-ghost" onClick={onMonitoreo} disabled={!reporteListo && estudio.componentes.every((c) => !c.resultado)}>
-                <Route size={14} /> Enviar a Monitoreo
-              </button>
-            </div>
-          </section>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MarcoShapeSelector({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (kind: MarcoOcasional) => void;
-}) {
-  const shapes: Array<{ id: MarcoOcasional; label: string; copy: string; icon: typeof Table2 }> = [
-    { id: "marco_total", label: "Marco total", copy: "Tengo un N enumerable de la población objetivo.", icon: Database },
-    { id: "estratos", label: "Capas / variables de control", copy: "Tengo N por estrato, actor, sexo, edad, distrito u otra capa.", icon: Layers3 },
-    { id: "conglomerados", label: "Conglomerados", copy: "Seleccionaré cursos-horario, sedes, servicios, instituciones u otras unidades agrupadas.", icon: Grid3X3 },
-    { id: "servicios", label: "Atenciones por servicio y municipalidad", copy: "Patrón GIZ: volumen por celda, n por territorio y cuotas proporcionales.", icon: Table2 },
-    { id: "cuotas_controladas", label: "Control no probabilístico", copy: "No hay selección probabilística final, pero sí variables de control.", icon: Target },
-    { id: "cobertura", label: "Cobertura de marco", copy: "Quiero saber cuánto del marco corresponde cubrir o contactar.", icon: BarChart3 },
-  ];
-  return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Forma del marco</span>
-        <strong>Qué elementos contiene</strong>
-      </div>
-      <div className="cmv2-shape-grid">
-        {shapes.map((shape) => {
-          const Icon = shape.icon;
-          const active = selected === labelMarcoOcasional(shape.id);
-          return (
-            <button key={shape.id} type="button" className={`cmv2-shape ${active ? "is-active" : ""}`} onClick={() => onSelect(shape.id)}>
-              <Icon size={16} />
-              <strong>{shape.label}</strong>
-              <span>{shape.copy}</span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function MetodoSelector({
-  comp,
-  onReplace,
-}: {
-  comp: CalcMuestraComponente;
-  onReplace: (comp: CalcMuestraComponente) => void;
-}) {
-  return (
-    <div className="cmv2-method-grid">
-      {METODOS_CLASICOS.map((metodo) => (
-        <button
-          key={metodo.id}
-          type="button"
-          className={`cmv2-method ${comp.tecnica === metodo.id ? "is-active" : ""}`}
-          onClick={() => onReplace(setTecnica(comp, metodo.id))}
-        >
-          <span><Settings2 size={14} /> {productoLabel(metodo.producto)}</span>
-          <strong>{metodo.label}</strong>
-          <small>{metodo.marco}</small>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function ParametrosPanel({
-  comp,
-  onComponente,
-}: {
-  comp: CalcMuestraComponente;
-  onComponente: (id: string, patch: ComponentePatch) => void;
-}) {
-  const p = comp.parametros;
-  return (
-    <section className="cmv2-param-panel">
-      <div className="cmv2-param-grid">
-        <Param label="Confianza z" value={p.z} step={0.01} onChange={(v) => onComponente(comp.id, { parametros: { z: v } })} />
-        <Param label="p esperada" value={p.p} step={0.01} onChange={(v) => onComponente(comp.id, { parametros: { p: v } })} />
-        <Param label="Error" value={p.e} step={0.005} suffix="prop." onChange={(v) => onComponente(comp.id, { parametros: { e: v } })} />
-        <Param label="Deff" value={p.deff} step={0.1} onChange={(v) => onComponente(comp.id, { parametros: { deff: v } })} />
-        <Param label="Sobremuestra" value={p.oversample_pct} step={0.05} suffix="prop." onChange={(v) => onComponente(comp.id, { parametros: { oversample_pct: v } })} />
-        <Param label="Respuesta" value={p.tasa_respuesta} step={0.05} suffix="prop." onChange={(v) => onComponente(comp.id, { parametros: { tasa_respuesta: v } })} />
-        <Param label="Cobertura" value={p.cobertura_objetivo} step={0.05} suffix="prop." onChange={(v) => onComponente(comp.id, { parametros: { cobertura_objetivo: v } })} />
-        <Param label="Piso por celda" value={p.n_minimo_estrato} step={1} onChange={(v) => onComponente(comp.id, { parametros: { n_minimo_estrato: Math.round(v) } })} />
-      </div>
-    </section>
-  );
-}
-
-function Param({
-  label,
-  value,
-  onChange,
-  step = 1,
-  suffix,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  step?: number;
-  suffix?: string;
-}) {
-  return (
-    <label className="cmv2-param">
-      <span>{label}</span>
-      <NumberCell value={value} onChange={onChange} step={step} suffix={suffix} />
-    </label>
-  );
-}
-
-function ResultadoPanel({
-  componentes,
-  showNested = true,
-}: {
-  componentes: CalcMuestraComponente[];
-  showNested?: boolean;
-}) {
-  const hasRows = componentes.length > 0;
-  const productos = Array.from(new Set(componentes.map(tecnicaProducto)));
-  return (
-    <section className="cmv2-panel cmv2-output">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Tabla de salida</span>
-        <strong>{productos.length > 1 ? "Componentes mixtos calculables" : productoLabel(productos[0] ?? "muestra_probabilistica")}</strong>
-      </div>
-      {!hasRows ? (
-        <div className="cmv2-empty">Elige un marco para construir la primera matriz.</div>
-      ) : (
-        <div className="cmv2-table-wrap">
-          <table className="cmv2-table">
-            <thead>
-              <tr>
-                <th>Componente</th>
-                <th>Producto</th>
-                <th>Marco</th>
-                <th>n objetivo</th>
-              <th>Operativo</th>
-              <th>Precisión</th>
-                <th>Ajuste</th>
-              </tr>
-            </thead>
-            <tbody>
-              {componentes.map((comp) => {
-                const r = comp.resultado;
-                const precision = presentResultadoPrecision({
-                  naturaleza: comp.naturaleza,
-                  precisionAlcanzada: r?.precision_alcanzada,
-                  coberturaObjetivo: r?.cobertura_objetivo,
-                });
-                return (
-                  <tr key={comp.id}>
-                    <td>
-                      <strong>{comp.actor}</strong>
-                      <small>{tecnicaLabel(comp.tecnica)}</small>
-                    </td>
-                    <td><ProductBadge producto={tecnicaProducto(comp)} /></td>
-                    <td>{fmtInt(comp.marco.marco_validado)}</td>
-                    <td>{fmtInt(r?.n_objetivo)}</td>
-                    <td>{fmtInt(r?.n_operativo)}</td>
-                    <td>
-                      {precision.value}
-                      {precision.note && <small>{precision.note}</small>}
-                    </td>
-                    <td className="cmv2-note-cell">{criterioSalida(comp)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {showNested && <NestedOutputs componentes={componentes} />}
-    </section>
-  );
-}
-
-function ProductBadge({ producto }: { producto: CalcMuestraWorkspaceProducto }) {
-  return <span className={`cmv2-product cmv2-product--${producto}`}>{productoLabel(producto)}</span>;
-}
-
-function NestedOutputs({ componentes }: { componentes: CalcMuestraComponente[] }) {
-  const rows = componentes.flatMap((comp) => (comp.resultado?.cuotas_matriz ?? []).map((row) => ({ comp, row })));
-  const estratos = componentes.flatMap((comp) => (comp.resultado?.distribucion_estratos ?? []).map((row) => ({ comp, row })));
-  if (rows.length === 0 && estratos.length === 0) return null;
-  const estratosTitle = estratos.some(({ comp }) => comp.actor_categoria === "estudiantes" && comp.canal_recojo === "aula_qr")
-    ? "Distribución por facultad"
-    : "Distribución por estrato";
-  return (
-    <div className="cmv2-nested-output">
-      {estratos.length > 0 && (
-        <div>
-          <h4>{estratosTitle}</h4>
-          <div className="cmv2-mini-table">
-            {estratos.map(({ comp, row }, i) => (
-              <span key={`${comp.id}-estrato-${i}`}>
-                <strong>{row.estrato}</strong>
-                <em>N {fmtInt(row.N)} · n {fmtInt(row.n)}</em>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-      {rows.length > 0 && (
-        <div>
-          <h4>Matriz de cuotas</h4>
-          <div className="cmv2-mini-table">
-            {rows.map(({ comp, row }, i) => (
-              <span key={`${comp.id}-cuota-${i}`}>
-                <strong>{row.territorio} · {row.servicio}</strong>
-                <em>N {fmtInt(row.N)} · n {fmtInt(row.n)}</em>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EstratosTable({
-  comp,
-  onComponente,
-  variant = "estratos",
-}: {
-  comp: CalcMuestraComponente;
-  onComponente: (id: string, patch: ComponentePatch) => void;
-  variant?: "estratos" | "facultades";
-}) {
-  const estratos = comp.marco.estratos ?? [];
-  const facultades = variant === "facultades";
-  const title = facultades ? "Facultades del marco" : "Estratos del marco";
-  const primaryLabel = facultades ? "Facultad" : "Estrato";
-  const subALabel = facultades ? "Mujeres" : "Sub A";
-  const subBLabel = facultades ? "Hombres" : "Sub B";
-  const avgLabel = "Promedio unidad";
-  const tauLabel = "Rendimiento";
-  const addLabel = facultades ? "Agregar facultad" : "Agregar estrato";
-  function update(index: number, patch: Partial<CalcMuestraEstrato>) {
-    const next = estratos.map((e, i) => (i === index ? { ...e, ...patch } : e));
-    const total = next.reduce((sum, e) => sum + safeNumber(e.N), 0);
-    onComponente(comp.id, { marco: { estratos: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-  }
-  return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Tabla editable</span>
-        <strong>{title}</strong>
-      </div>
-      <div className="cmv2-table-wrap">
-        <table className="cmv2-table">
-          <thead>
-            <tr>
-              <th>{primaryLabel}</th>
-              <th>Total</th>
-              <th>{subALabel}</th>
-              <th>{subBLabel}</th>
-              {facultades && <th>Error facultad</th>}
-              {facultades && <th>Confianza</th>}
-              {facultades && <th>p éxito</th>}
-              {facultades && <th>+ aulas</th>}
-              {!facultades && <th>{avgLabel}</th>}
-              {!facultades && <th>{tauLabel}</th>}
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {estratos.map((e, i) => (
-              <tr key={e.id}>
-                <td><input className="cmv2-table-input" value={e.label} onChange={(ev) => update(i, { label: ev.currentTarget.value })} /></td>
-                <td><NumberCell value={e.N} onChange={(v) => {
-                  const N = Math.round(v);
-                  update(i, facultades ? { N, e_facultad: universityFacultyError(N), confianza_facultad: universityFacultyConfidence(N) } : { N });
-                }} /></td>
-                <td><NumberCell value={e.N_a} onChange={(v) => update(i, { N_a: Math.round(v) })} /></td>
-                <td><NumberCell value={e.N_b} onChange={(v) => update(i, { N_b: Math.round(v) })} /></td>
-                {facultades && <td><NumberCell value={e.e_facultad} step={0.005} suffix="prop." onChange={(v) => update(i, { e_facultad: v })} /></td>}
-                {facultades && <td><NumberCell value={e.confianza_facultad} step={0.01} suffix="prop." onChange={(v) => update(i, { confianza_facultad: v, z_facultad: undefined })} /></td>}
-                {facultades && <td><NumberCell value={e.p_facultad} step={0.01} suffix="prop." onChange={(v) => update(i, { p_facultad: v })} /></td>}
-                {facultades && <td><NumberCell value={e.aulas_extra_operativas} step={1} onChange={(v) => update(i, { aulas_extra_operativas: Math.max(0, Math.round(v)) })} /></td>}
-                {!facultades && <td><NumberCell value={e.promedio_conglomerado} onChange={(v) => update(i, { promedio_conglomerado: v })} /></td>}
-                {!facultades && <td><NumberCell value={e.tau} step={0.05} onChange={(v) => update(i, { tau: v })} /></td>}
-                <td>
-                  <button
-                    type="button"
-                    className="cmv2-icon-button"
-                    onClick={() => {
-                      const next = estratos.filter((_, idx) => idx !== i);
-                      const total = next.reduce((sum, item) => sum + safeNumber(item.N), 0);
-                      onComponente(comp.id, { marco: { estratos: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-                    }}
-                    aria-label={facultades ? "Eliminar facultad" : "Eliminar estrato"}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="cmv2-inline-actions">
-        <button
-          type="button"
-          className="cmv2-ghost"
-          onClick={() => {
-            const next = [
-              ...estratos,
-              estrato(facultades ? `Facultad ${estratos.length + 1}` : `Estrato ${estratos.length + 1}`, 0, {
-                sub_a_label: facultades ? "Mujeres" : "Sub A",
-                sub_b_label: facultades ? "Hombres" : "Sub B",
-                e_facultad: facultades ? universityFacultyError(0) : undefined,
-                confianza_facultad: facultades ? universityFacultyConfidence(0) : undefined,
-                p_facultad: facultades ? 0.5 : undefined,
-                aulas_extra_operativas: facultades ? 1 : undefined,
-              }),
-            ];
-            onComponente(comp.id, { marco: { estratos: next } });
-          }}
-        >
-          <Plus size={14} /> {addLabel}
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function MatrizServiciosTable({
-  comp,
-  onComponente,
-}: {
-  comp: CalcMuestraComponente;
-  onComponente: (id: string, patch: ComponentePatch) => void;
-}) {
-  const matriz = comp.marco.matriz_operativa ?? [];
-  function update(index: number, patch: Partial<CalcMuestraMatrizOperativaCelda>) {
-    const next = matriz.map((m, i) => (i === index ? { ...m, ...patch } : m));
-    const total = next.reduce((sum, item) => sum + safeNumber(item.N), 0);
-    onComponente(comp.id, { marco: { matriz_operativa: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-  }
-  return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Tabla editable</span>
-        <strong>Atenciones por servicio y municipalidad</strong>
-      </div>
-      <div className="cmv2-table-wrap">
-        <table className="cmv2-table">
-          <thead>
-            <tr>
-              <th>Municipalidad / territorio</th>
-              <th>Servicio</th>
-              <th>Volumen del marco</th>
-              <th>Notas</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {matriz.map((row, i) => (
-              <tr key={row.id}>
-                <td><input className="cmv2-table-input" value={row.territorio} onChange={(e) => update(i, { territorio: e.currentTarget.value })} /></td>
-                <td><input className="cmv2-table-input" value={row.servicio} onChange={(e) => update(i, { servicio: e.currentTarget.value })} /></td>
-                <td><NumberCell value={row.N} onChange={(v) => update(i, { N: Math.round(v) })} /></td>
-                <td><input className="cmv2-table-input" value={row.notas} onChange={(e) => update(i, { notas: e.currentTarget.value })} /></td>
-                <td>
-                  <button
-                    type="button"
-                    className="cmv2-icon-button"
-                    onClick={() => {
-                      const next = matriz.filter((_, idx) => idx !== i);
-                      const total = next.reduce((sum, item) => sum + safeNumber(item.N), 0);
-                      onComponente(comp.id, { marco: { matriz_operativa: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-                    }}
-                    aria-label="Eliminar fila"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="cmv2-inline-actions">
-        <button
-          type="button"
-          className="cmv2-ghost"
-          onClick={() => onComponente(comp.id, { marco: { matriz_operativa: [...matriz, matrizCell()] } })}
-        >
-          <Plus size={14} /> Agregar celda
-        </button>
-        <button
-          type="button"
-          className="cmv2-ghost"
-          onClick={() => {
-            const next = matrizGizEjemplo();
-            const total = next.reduce((sum, item) => sum + item.N, 0);
-            onComponente(comp.id, { marco: { matriz_operativa: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-          }}
-        >
-          <Wand2 size={14} /> Cargar ejemplo GIZ
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function VariablesControl({
-  workspace,
-  onWorkspace,
-}: {
-  workspace: CalcMuestraWorkspace;
-  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
-}) {
-  const variables = workspace.variables_control;
-  function update(index: number, patch: Partial<CalcMuestraWorkspaceVariableControl>) {
-    onWorkspace({
-      ...workspace,
-      variables_control: variables.map((v, i) => (i === index ? { ...v, ...patch } : v)),
-    });
-  }
-  return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Control</span>
-        <strong>Variables disponibles</strong>
-      </div>
-      <div className="cmv2-variable-list">
-        {variables.map((v, i) => (
-          <div className="cmv2-variable" key={v.id}>
-            <input value={v.label} onChange={(e) => update(i, { label: e.currentTarget.value })} />
-            <select value={v.tipo} onChange={(e) => update(i, { tipo: e.currentTarget.value as CalcMuestraWorkspaceVariableControl["tipo"] })}>
-              <option value="estrato">Estrato</option>
-              <option value="cuota">Cuota</option>
-              <option value="filtro">Filtro</option>
-              <option value="segmento">Segmento</option>
-              <option value="otro">Otro</option>
-            </select>
-            <label className="cmv2-check">
-              <input type="checkbox" checked={v.disponible} onChange={(e) => update(i, { disponible: e.currentTarget.checked })} />
-              Disponible
-            </label>
-          </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        className="cmv2-ghost"
-        onClick={() => onWorkspace({ ...workspace, variables_control: [...variables, variableControl(uid("var"), "Nueva variable", "estrato")] })}
-      >
-        <Plus size={14} /> Agregar variable
-      </button>
-    </section>
-  );
-}
-
-function TerritorialHandoff({ onOpen, onBack }: { onOpen: () => void; onBack: () => void }) {
-  return (
-    <section className="cmv2-handoff">
-      <div className="cmv2-handoff-icon"><MapPinned size={26} /></div>
-      <span className="cmv2-eyebrow">Territorial / hogares</span>
-      <h2>Este marco se diseña mejor en Hojas de Ruta</h2>
-      <p>
-        Si el estudio depende de territorio, zonas, manzanas, viviendas o rutas de campo, el cálculo necesita cartografía, selección de zonas, reemplazos y salida operativa. Esa mesa ya existe en Hojas de Ruta.
-      </p>
-      <div className="cmv2-inline-actions">
-        <button type="button" className="cmv2-primary" onClick={onOpen}>
-          <Home size={14} /> Abrir Hojas de Ruta
-        </button>
-        <button type="button" className="cmv2-ghost" onClick={onBack}>
-          Volver a marcos
-        </button>
-      </div>
-    </section>
-  );
 }
 
 function LegacyDesk({ onNew, onClear }: { onNew: () => void; onClear: () => void }) {
@@ -3983,76 +2744,4 @@ function LegacyDesk({ onNew, onClear }: { onNew: () => void; onClear: () => void
       </div>
     </section>
   );
-}
-
-function estrato(
-  label: string,
-  N: number,
-  overrides: Partial<CalcMuestraEstrato> = {},
-): CalcMuestraEstrato {
-  const a = Math.floor(N / 2);
-  return {
-    id: uid("est"),
-    label,
-    N,
-    N_a: a,
-    N_b: N - a,
-    sub_a_label: overrides.sub_a_label ?? "Sub A",
-    sub_b_label: overrides.sub_b_label ?? "Sub B",
-    e_facultad: overrides.e_facultad,
-    p_facultad: overrides.p_facultad,
-    confianza_facultad: overrides.confianza_facultad,
-    z_facultad: overrides.z_facultad,
-    cuota_fija: overrides.cuota_fija,
-    sobremuestra_fija: overrides.sobremuestra_fija,
-    aulas_base_fijas: overrides.aulas_base_fijas,
-    aulas_extra_operativas: overrides.aulas_extra_operativas,
-    promedio_conglomerado: overrides.promedio_conglomerado ?? 25,
-    tau: overrides.tau ?? 0.7,
-  };
-}
-
-function matrizCell(): CalcMuestraMatrizOperativaCelda {
-  return {
-    id: uid("cell"),
-    territorio: "Territorio",
-    servicio: "Servicio",
-    N: 0,
-    notas: "",
-  };
-}
-
-function matrizGizEjemplo(): CalcMuestraMatrizOperativaCelda[] {
-  return [
-    ["Villa El Salvador", "ULE", 280],
-    ["Villa El Salvador", "CIAM", 210],
-    ["Villa El Salvador", "OMAPED", 110],
-    ["Villa El Salvador", "DEMUNA", 213],
-    ["San Juan de Lurigancho", "ULE", 90],
-    ["San Juan de Lurigancho", "CIAM", 460],
-    ["San Juan de Lurigancho", "OMAPED", 230],
-    ["San Juan de Lurigancho", "DEMUNA", 131],
-    ["Ate", "ULE", 165],
-    ["Ate", "CIAM", 135],
-    ["Ate", "OMAPED", 145],
-    ["Ate", "DEMUNA", 271],
-  ].map(([territorio, servicio, N]) => ({
-    id: uid("cell"),
-    territorio: String(territorio),
-    servicio: String(servicio),
-    N: Number(N),
-    notas: "",
-  }));
-}
-
-function labelMarcoOcasional(kind: MarcoOcasional) {
-  const labels: Record<MarcoOcasional, string> = {
-    marco_total: "Marco total enumerable",
-    estratos: "Marco por capas o variables de control",
-    conglomerados: "Marco con unidades agrupadas",
-    servicios: "Atenciones por servicio y municipalidad",
-    cuotas_controladas: "Control no probabilístico con variables disponibles",
-    cobertura: "Marco a cubrir o contactar",
-  };
-  return labels[kind];
 }

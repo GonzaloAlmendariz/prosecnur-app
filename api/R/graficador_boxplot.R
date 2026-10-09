@@ -94,19 +94,19 @@ graficar_boxplot <- function(
     mostrar_n_por_categoria = FALSE,
     prefijo_n         = "N=",
     size_n            = 2.8,
-    color_n           = "#081F5C",
+    color_n           = .std_color("azul"),
     titulo            = NULL,
     subtitulo         = NULL,
     nota_pie          = NULL,
     pos_titulo        = c("izquierda", "centro", "derecha"),
     pos_nota_pie      = c("derecha", "izquierda", "centro"),
-    color_titulo      = "#081F5C",
+    color_titulo      = .std_color("azul"),
     size_titulo       = 11,
-    color_subtitulo   = "#081F5C",
+    color_subtitulo   = .std_color("azul"),
     size_subtitulo    = 9,
-    color_nota_pie    = "#081F5C",
+    color_nota_pie    = .std_color("azul"),
     size_nota_pie     = 8,
-    color_ejes        = "#081F5C",
+    color_ejes        = .std_color("azul"),
     size_ejes         = 9,
     limites_y         = NULL,
     cortes_y          = NULL,
@@ -288,6 +288,11 @@ graficar_boxplot <- function(
   }
   if (isTRUE(invertir_barras)) lvls <- rev(lvls)
   df$categoria <- factor(df$categoria, levels = lvls)
+  # ADR 0093 (N4): lo que afirma el diagrama de caja para la lámina nativa, en el orden de los grupos.
+  espec_boxplot <- tryCatch(preparar_boxplot(df$categoria, df$valor), error = function(e) NULL)
+  # Los chips de semáforo declarados por el analista no tienen par en la lámina del recetario: con ellos la lámina
+  # sigue por la ruta anterior en vez de descartarlos en silencio.
+  if (!is.null(espec_boxplot)) espec_boxplot$cortes_chip <- cortes_chip
 
   if (!is.null(ancho_max_eje_cat) &&
       is.finite(ancho_max_eje_cat) &&
@@ -580,6 +585,7 @@ graficar_boxplot <- function(
   # Las bandas ya llevan su cota (ver arriba); un marco mas alrededor del
   # conjunto solo añadiria una linea que no mide nada nuevo.
 
+  attr(p_out, "pulso_espec") <- espec_boxplot
   if (identical(exportar, "rplot")) return(p_out)
 
   if (is.null(path_salida) || !nzchar(path_salida)) {

@@ -26,6 +26,18 @@ export type EslabonDeCadena = {
   meta: number;
   /** Si ese eslabón, por sí solo, alcanzó su meta. */
   cumple: boolean;
+  /**
+   * **No hay por dónde llamarle.** El resultado de la llamada dice «Número no
+   * existe» o «fuera de servicio», así que su «En contacto» no es una gestión en
+   * marcha: es una vía muerta.
+   *
+   * Visto en pantalla el 2026-09-11: la cadena de CH 85 —Derecho, titular
+   * rechazado— mostraba `R 85.1 · En contacto`, y ese mismo R 85.1 salía en el
+   * panel de riesgo entre los que no tienen teléfono válido. Quien trabajara
+   * esta pantalla habría vuelto a llamar a un número inexistente en vez de
+   * saltar a R 85.2.
+   */
+  sinVia: boolean;
 };
 
 export type HistoriaDeCadena = {
@@ -69,6 +81,14 @@ function numero(valor: unknown): number {
  * distintos, CERO coincidían con un titular y ninguno existía siquiera como
  * fila, así que cada reserva formaba una cadena huérfana con un titular que no
  * existe. `titular_operational_code` sí mapea: 1 774 de 1 774.
+ *
+ * **Y no porque `replacement_for` venga siempre mal: porque viene INCONSISTENTE.**
+ * Medido el 2026-08-30 sobre el estudio de 1.424 filas, ese mismo campo trae
+ * códigos operativos —«CH 3», «CH 4»— y sus 174 valores distintos existen los
+ * 174 como fila, justo al revés que en el estudio de 2.615. Un campo que en un
+ * proyecto es `classroom_id` y en otro es código operativo no se puede usar
+ * como clave, y eso vale más que «viene mal»: `titular_operational_code`
+ * mapea en los dos.
  */
 function titularDe(fila: MonitoreoAulasPlanRow): string {
   return texto(fila.titular_operational_code)
@@ -124,7 +144,16 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
       .map((fila) => {
         const codigo = texto(fila.operational_code);
         const validas = numero(fila.respuestas_validas);
-        const meta = numero(fila.expected_valid);
+        // **La meta se publica en personas enteras.** `expected_valid` es
+        // `elegibles x tasa` y llega fraccionaria por construcción: la tabla
+        // mostraba «META 24.6» y «CH 88, 18 de 24.6». Es la QUINTA vez que el
+        // mismo defecto aparece hoy, y las cuatro anteriores las arreglé donde
+        // las vi en vez de barrer las tablas.
+        //
+        // Hacia ARRIBA, como `.mac_brecha()` y `fmtCuenta()`: es una meta que
+        // hay que ALCANZAR, y con 24 no se cumple una de 24,6. La comparación
+        // `cumple` usa la meta ya redondeada, que es contra la que se juzga.
+        const meta = Math.ceil(numero(fila.expected_valid) - 1e-9);
         return {
           codigo,
           // El titular es el orden 0 aunque el plan no lo diga: es de donde sale
@@ -134,6 +163,13 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
           validas,
           meta,
           cumple: meta > 0 && validas >= meta,
+          // El mismo criterio que el motor (`.maau_con_fecha` y su vecino
+          // `sin_via`): sin tildes y por subcadena, porque el libro lo escribe
+          // a mano —«Número no existe», «NUMERO FUERA DE SERVICIO»—.
+          sinVia: /no existe|fuera de servicio/.test(
+            texto((fila as { call_status?: unknown }).call_status)
+              .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+          ),
         };
       })
       .sort((a, b) => a.orden - b.orden || comparaCodigos(a.codigo, b.codigo));
@@ -162,5 +198,11 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
     cerraronEnTitular: historias.filter((h) => h.desenlace === "titular").length,
     cerraronEnReemplazo: historias.filter((h) => h.desenlace === "reemplazo").length,
     abiertas: historias.filter((h) => h.desenlace === "abierta").length,
+    // **Sin intentar no es lo mismo que no llegó.** Una cadena abierta que no
+    // ha recibido ni una respuesta no falló su meta: todavía no se aplicó. El
+    // KPI decía «ningún eslabón llegó a su meta» sobre las 193, cuando 183 ni
+    // se habían visitado — y eso convierte trabajo pendiente en fracaso.
+    sinRespuestaAlguna: historias
+      .filter((h) => h.desenlace === "abierta" && !h.validas).length,
   };
 }

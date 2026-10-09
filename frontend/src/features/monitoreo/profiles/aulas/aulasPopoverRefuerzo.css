@@ -1,0 +1,421 @@
+/* Refuerzo (C) — el popover que se abre desde una FACULTAD, no desde un aula.
+   Comparte la geometría del popover de reemplazo a propósito: es la misma
+   decisión operativa vista desde el otro extremo, y dos cajas distintas para lo
+   mismo obligarían a reaprender la lectura. Lo que cambia es la columna de la
+   derecha, que aquí mide una sola vara —cuánto cierra— y añade con qué te
+   quedas si la tomas. */
+
+.aulas-refuerzo-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--pulso-text) 28%, transparent);
+}
+
+.aulas-refuerzo-popover {
+  width: min(780px, 100%);
+  max-height: min(76vh, 720px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--pulso-text) 22%, transparent);
+  overflow: hidden;
+}
+
+.aulas-refuerzo-cuerpo {
+  display: grid;
+  gap: 11px;
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.aulas-refuerzo-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.aulas-refuerzo-titulo {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+}
+.aulas-refuerzo-deuda {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.aulas-refuerzo-deuda b { font-weight: 600; color: var(--pulso-text); }
+.aulas-refuerzo-deuda strong {
+  padding: 0 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--pulso-danger-fg) 12%, transparent);
+  color: var(--pulso-danger-fg);
+  font-weight: 700;
+}
+
+.aulas-refuerzo-cerrar {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.aulas-refuerzo-cerrar:hover { background: var(--pulso-surface-2); }
+
+/* El veredicto: lo que se decide aquí, antes de la lista que lo sostiene. */
+.aulas-refuerzo-veredicto {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border-left: 3px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.aulas-refuerzo-veredicto.es-alcanza {
+  border-left-color: var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-fg) 7%, transparent);
+}
+.aulas-refuerzo-veredicto.es-corto {
+  border-left-color: var(--pulso-danger-fg);
+  background: color-mix(in srgb, var(--pulso-danger-fg) 7%, transparent);
+}
+.aulas-refuerzo-veredicto strong { font-variant-numeric: tabular-nums; }
+
+.aulas-refuerzo-pie {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+  line-height: 1.45;
+}
+
+.aulas-refuerzo-lista {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aulas-refuerzo-item {
+  padding: 9px 11px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+.aulas-refuerzo-item:first-child {
+  border-color: var(--pulso-text-soft);
+  background: var(--pulso-surface);
+}
+/* La que no cierra nada sigue en la lista —existe, y saberlo importa— pero no
+   compite por la mirada con las que sí sirven. */
+.aulas-refuerzo-item.es-inutil { opacity: 0.62; }
+
+.aulas-refuerzo-fila {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 168px;
+  align-items: start;
+  gap: 12px;
+}
+
+.aulas-refuerzo-puesto {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-refuerzo-item:first-child .aulas-refuerzo-puesto {
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+}
+
+.aulas-refuerzo-quien { display: grid; gap: 4px; min-width: 0; }
+
+.aulas-refuerzo-codigo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* De dónde sale el aula, que no es un adorno: la reserva adicional no sirve
+   para otra cosa, la liberada podría volver a hacer falta. */
+.aulas-refuerzo-origen {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.aulas-refuerzo-origen.es-extra {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+}
+.aulas-refuerzo-origen.es-al_aire {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 14%, transparent);
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-refuerzo-curso {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.35;
+}
+.aulas-refuerzo-curso em { font-style: normal; color: var(--pulso-text-faint); }
+.aulas-refuerzo-resto {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+.aulas-refuerzo-resto b { font-weight: 600; color: var(--pulso-text-soft); }
+
+.aulas-refuerzo-vacio {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .aulas-refuerzo-fila { grid-template-columns: 26px minmax(0, 1fr); }
+}
+
+/* Las tres varas, con la misma forma que en el popover de reemplazo: es la
+   misma decisión vista desde el otro extremo y no puede tener dos lenguajes. */
+
+/* Lo que cierra en RESPUESTAS, junto al porcentaje: la barra da la proporción
+   y esta cifra el absoluto, que es con el que se suma mentalmente cuántos
+   candidatos hacen falta. */
+
+/* La acción, que no existía: se podía mirar pero no decidir. */
+.aulas-refuerzo-elegir {
+  justify-self: start;
+  margin-top: 8px;
+  padding: 6px 13px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  border-radius: 8px;
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.aulas-refuerzo-elegir:hover { filter: brightness(0.94); }
+
+/* La distancia entre el plan y la proyección, con el mismo criterio que en el
+   popover de reemplazo: en gris cuando coinciden, con tinta cuando se separan. */
+.aulas-refuerzo-desvio {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+.aulas-refuerzo-desvio.es-corto { color: var(--pulso-danger-fg); }
+.aulas-refuerzo-desvio.es-sobra { color: var(--pulso-success-fg); }
+
+/* **Cuánto cubre del déficit, en una sola lectura.**
+
+   Eran tres cifras sueltas —«cierra 21 %», «17 del déficit», «quedarían 65»—
+   que decían lo mismo en tres unidades y ninguna declaraba su base. Ahora la
+   fracción lleva su denominador a la vista, la barra es la proporción de esa
+   misma fracción, y el resto va debajo. */
+.aulas-refuerzo-cubre { display: grid; gap: 3px; align-content: start; }
+.aulas-refuerzo-cubre em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.aulas-refuerzo-cubre > b {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--module-accent, var(--pulso-primary));
+}
+/* El denominador en su peso: es el marco de la cifra, no la cifra. */
+.aulas-refuerzo-cubre > b i {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--pulso-text-faint);
+}
+.aulas-refuerzo-carril {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+.aulas-refuerzo-carril b {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+.aulas-refuerzo-resto {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+
+/* De dónde sale la cifra de la cabecera: la meta y lo que lleva. Una cifra que
+   puede explicarse a sí misma no contradice a la de la pantalla anterior. */
+.aulas-refuerzo-detrasDe {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* **Las tres varas del candidato.**
+ *
+ * Estas once reglas se perdieron el 2026-09-11 al limpiar las de la forma
+ * vieja: el borrado automático buscaba `aulas-refuerzo-vara` como subcadena y
+ * `aulas-refuerzo-varas3` la contiene, así que se llevó la tabla entera. En
+ * pantalla se veía «Proyección actual50.5 % suyo» pegado y sin alinear, y
+ * Gonzalo lo leyó como lo que parecía: «parece que está roto».
+ *
+ * Un borrado por subcadena de selector se lleva a sus vecinos con prefijo
+ * común, y ninguna suite lo ve: el CSS no tiene quien lo compile. */
+.aulas-refuerzo-varas3 {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-refuerzo-varas3 thead th {
+  padding: 0 6px 3px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+  text-align: right;
+}
+.aulas-refuerzo-varas3 thead th:first-child { text-align: left; }
+.aulas-refuerzo-varas3 tbody th {
+  padding: 2px 6px 2px 0;
+  color: var(--pulso-text-soft);
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+/* De dónde sale la tasa del pronóstico, en su propio renglón: pegada al rótulo
+   se leía «Proyección actual50.5 % suyo». */
+.aulas-refuerzo-varas3 tbody th em {
+  display: block;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: 400;
+}
+.aulas-refuerzo-varas3 td { padding: 2px 6px; text-align: right; color: var(--pulso-text-soft); }
+.aulas-refuerzo-varas3 td b { color: var(--pulso-text); font-weight: 600; }
+.aulas-refuerzo-varas3 .es-techo th,
+.aulas-refuerzo-varas3 .es-techo td { color: var(--pulso-text-faint); }
+.aulas-refuerzo-varas3 .es-ritmo td b { color: var(--module-accent, var(--pulso-primary)); }
+.aulas-refuerzo-varas3 .es-plan { border-top: 1px solid var(--pulso-border); }
+
+/* Los avisos del candidato: el docente ya contactado y el traslape estimado de
+   alumnos. No descalifican —la decisión es de quien llama— así que van en tono
+   de advertencia y no de error. */
+.aulas-refuerzo-aviso {
+  display: block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border-left: 2px solid var(--pulso-warn-fg);
+  background: color-mix(in srgb, var(--pulso-warn-fg) 8%, transparent);
+  font-size: 10.5px;
+  color: var(--pulso-warn-fg);
+  line-height: 1.4;
+}
+.aulas-refuerzo-aviso.es-traslape {
+  border-left-color: var(--pulso-danger-fg);
+  background: color-mix(in srgb, var(--pulso-danger-fg) 7%, transparent);
+  color: var(--pulso-danger-fg);
+}
+
+/* Lo que ya viene en camino, antes de decidir si hace falta más. */
+.aulas-refuerzo-encamino {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border-left: 3px solid var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 6%, transparent);
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.aulas-refuerzo-encamino.es-cubierto {
+  border-left-color: var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-fg) 7%, transparent);
+}
+.aulas-refuerzo-encamino b { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+/* La proyección se marca como tal: no es un hecho y no puede leerse como uno. */
+.aulas-refuerzo-encamino i {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+/* El marco del plan de la facultad. */
+.aulas-refuerzo-plan {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.aulas-refuerzo-plan b { color: var(--pulso-text-soft); font-weight: 600; }
+
+/* La columna de la tasa: antes de los sexos, porque es la vara con la que se
+   calculó la fila y no un resultado más. */
+.aulas-refuerzo-varas3 td.es-tasa {
+  color: var(--pulso-text-faint);
+  text-align: right;
+  padding-right: 10px;
+}
+.aulas-refuerzo-varas3 .es-ritmo td.es-tasa { color: var(--pulso-text-soft); }
+
+/* El traslape se enseña siempre; sólo lleva tinta de alarma cuando pesa. */
+.aulas-refuerzo-aviso.es-traslape {
+  border-left-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+}
+.aulas-refuerzo-aviso.es-traslape.es-fuerte {
+  border-left-color: var(--pulso-danger-fg);
+  background: color-mix(in srgb, var(--pulso-danger-fg) 7%, transparent);
+  color: var(--pulso-danger-fg);
+}

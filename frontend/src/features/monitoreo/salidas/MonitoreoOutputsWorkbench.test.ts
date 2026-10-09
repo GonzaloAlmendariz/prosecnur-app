@@ -458,14 +458,20 @@ describe("MonitoreoOutputsWorkbench processing handoff package", () => {
 });
 
 describe("PDF por familia", () => {
-  test("cursos-horario no ofrece PDF: su modelo cae al de acreditación", () => {
-    // El permiso vive en la tabla y no en el call site a propósito. Mientras
-    // `.monitoreo_client_report_model_for_snapshot` solo ramifique para
-    // territorial y telefónico, un botón de PDF en cursos-horario entrega el
-    // documento de acreditación —con actores y encuestas que este perfil no
-    // tiene—. Encender esto exige un modelo de reporte propio, no cambiar la
-    // bandera.
-    expect(PDF_POR_FAMILIA.aulas).toEqual({ client: false, production: false });
+  test("cursos-horario ofrece PDF de cliente desde que tiene modelo propio", () => {
+    // **Contrato anterior, cambiado el 2026-09-11.** Decía `client: false`, y la
+    // razón era buena: `.monitoreo_client_report_model_for_snapshot` sólo
+    // ramificaba para territorial y telefónico, así que cursos-horario caía al
+    // modelo de acreditación y el botón habría entregado un documento con
+    // «actores» y «encuestas» que este perfil no tiene. La condición que ese
+    // guard describía dejó de ser cierta el 2026-08-27, cuando se añadió
+    // `build_monitoreo_aulas_report_model()`, y el reporte se terminó el
+    // 2026-09-11. El guard llevaba dos semanas protegiendo contra algo ya
+    // arreglado y sólo se vio abriendo la app: la tarjeta no aparecía.
+    expect(PDF_POR_FAMILIA.aulas.client).toBe(true);
+    // La producción por aplicador es otro reporte y el motor de aulas no lo
+    // construye: eso sigue apagado, y apagado por el mismo motivo de siempre.
+    expect(PDF_POR_FAMILIA.aulas.production).toBe(false);
   });
 
   test("las familias con modelo propio conservan sus dos PDF", () => {

@@ -1,0 +1,39 @@
+/* Hoja propia del panel de las tres lecturas. `aulasMonitoreo.css` está
+ * congelado a crecimiento y esto es un componente nuevo: hoja nueva, como
+ * `fichaDeCursoHorario.css`. El guard `cssSinDuenoTests` exige que cada clase
+ * de aquí la nombre un `.tsx`. */
+
+.aulas-tres-lectura { margin: 0 0 10px; color: var(--pulso-text); }
+
+/* La leyenda: los tres tramos, dichos antes de dibujarlos. */
+.aulas-tres-leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 10px; font-size: var(--aulas-min); color: var(--pulso-text-soft); }
+.aulas-tres-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+.aulas-tres-swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+.aulas-tres-filas { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+/* La tercera no crece a `auto`: cada fila la mediría por su contenido y las tres
+   columnas dejarían de coincidir entre filas. */
+.aulas-tres-fila { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(160px, 2fr) 148px; gap: 6px 14px; align-items: center; }
+.aulas-tres-nombre { overflow-wrap: normal; word-break: keep-all; }
+.aulas-tres-nombre strong { display: block; font-weight: 600; }
+.aulas-tres-nombre em { font-style: normal; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* El carril. Tres tramos que se apilan de menor a mayor: lo logrado dentro de
+ * lo comprometido, y lo comprometido dentro del techo. Uno CONTIENE al otro por
+ * construcción, así que se dibujan superpuestos y no en fila: así el ojo lee la
+ * inclusión en vez de una suma. */
+.aulas-tres-carril { position: relative; height: 18px; border-radius: 4px; background: color-mix(in srgb, var(--pulso-text) 6%, transparent); overflow: visible; }
+.aulas-tres-tramo { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; }
+.aulas-tres-tramo.es-techo { background: color-mix(in srgb, var(--pulso-text) 12%, transparent); }
+.aulas-tres-tramo.es-comprometido { background: color-mix(in srgb, var(--pulso-resultado-parcial) 34%, transparent); }
+.aulas-tres-tramo.es-logrado { background: var(--pulso-resultado-efectiva); }
+/* La marca de la meta: si el tramo no la alcanza, esa celda no llega. */
+.aulas-tres-meta { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--pulso-text); opacity: 0.8; }
+/* Dónde queda la lectura corregida por lo que rinde el campo. */
+.aulas-tres-campo { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--pulso-resultado-parcial); }
+
+.aulas-tres-cifras { text-align: right; font-variant-numeric: tabular-nums; font-size: var(--aulas-min); }
+.aulas-tres-cifras b { display: block; font-size: 0.95rem; }
+.aulas-tres-remedio { display: inline-block; border-radius: 999px; padding: 0 7px; font-size: var(--aulas-min); font-weight: 650; }
+.aulas-tres-remedio.es-agenda { background: color-mix(in srgb, var(--pulso-resultado-parcial) 16%, transparent); color: var(--pulso-warn-fg); }
+.aulas-tres-remedio.es-banco { background: color-mix(in srgb, var(--pulso-resultado-rechazo) 14%, transparent); color: var(--pulso-resultado-rechazo); }

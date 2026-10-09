@@ -1,0 +1,134 @@
+/* aulasCalendarioDeAgenda.css — la cuadrícula de calendario de la Agenda
+ * (encargo 2026-09-01).
+ *
+ * Hoja propia porque `aulasMonitoreo.css` está congelada a crecimiento
+ * (agentic/manifest.json); la importa `AulasCalendarioDeAgenda.tsx`, su único
+ * consumidor — el mismo precedente que `aulasEslabon.css`. Tokens `--pulso-*`
+ * y escala `--aulas-txt/sec/min` del perfil.
+ *
+ * La cuadrícula vive dentro de `.aulas-agenda-detalle`, que ya es el dueño de
+ * scroll declarado de la franja: con muchas semanas el calendario se recorre
+ * ahí, no aprieta a la tabla de abajo.
+ */
+
+.mon-profile-page.is-aulas-flow .aulas-calendario {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  align-content: start;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-titulo {
+  padding-bottom: 4px;
+  caption-side: top;
+  color: var(--pulso-text);
+  font-size: var(--aulas-sec);
+  font-weight: var(--pulso-weight-semibold, 600);
+  text-align: left;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla th {
+  padding: 2px 4px;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td {
+  height: 42px;
+  padding: 3px 4px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 65%, transparent);
+  background: #fff;
+  vertical-align: top;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-num {
+  display: block;
+  color: var(--pulso-text);
+  font-size: var(--aulas-sec);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* La celda con agenda es la que se viene a leer: tinte del módulo y cifra
+   protagonista. */
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.tiene-agenda {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-carga {
+  display: block;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-carga strong {
+  color: var(--pulso-module-monitoring);
+  font-size: var(--aulas-txt);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-carga em {
+  display: block;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fuera de rango o sin agendados: gris contenido, presente pero sin voz. */
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-relleno {
+  background: color-mix(in srgb, var(--pulso-surface-2) 55%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-relleno .aulas-calendario-num {
+  color: var(--pulso-text-faint);
+}
+
+/* HOY: anillo del módulo por dentro de la celda, sin mover la rejilla. */
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-hoy {
+  box-shadow: inset 0 0 0 2px var(--pulso-module-monitoring);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-hoy .aulas-calendario-num {
+  color: var(--pulso-module-monitoring);
+  font-weight: var(--pulso-weight-semibold, 600);
+}
+
+/* Las repisas: lo que no cabe en un calendario, declarado bajo él. */
+.mon-profile-page.is-aulas-flow .aulas-calendario-repisa {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-repisa strong {
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-calendario-repisa.es-aviso {
+  color: color-mix(in srgb, var(--pulso-warn-fg) 82%, var(--pulso-text));
+}
+
+/* La familia del día que toca (B43/B46/B49/B57): la primera fecha no pasada
+   con agenda lleva el anillo del rojo de marca en el mapa del mes. */
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-el-que-toca {
+  box-shadow: inset 0 0 0 2px var(--pulso-module-monitoring);
+  border-radius: 6px;
+}
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-el-que-toca .aulas-calendario-num {
+  color: var(--pulso-module-monitoring);
+  font-weight: 700;
+}
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-pasado { opacity: 0.55; }

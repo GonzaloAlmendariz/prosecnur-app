@@ -74,20 +74,18 @@ test_that("el suelo Pulso del pie respeta instrumento y da aire a la leyenda", {
   expect_identical(suelo$canvas_h_legend_bottom, 0.14)
 })
 
-# B26 (B-H30): comparacion y efectiva del mapa territorial compartian dos
-# teals indistinguibles (#00A98F vs #00B398). comparacion CONSERVA el teal
-# institucional ACNUR (paridad con barras, P9); efectiva pasa al verde de
-# exito de la casa.
+# B26 (B-H30) y ADR 0093 (N6): los estados del mapa usan los azules del recetario, en la ruta nativa y en la anterior,
+# y dentro de cada alcance los que conviven se distinguen («intervención» es el grupo en la vista general y la zona en
+# ruta en el distrito).
 
-test_that("los estados del mapa territorial tienen colores distinguibles", {
-  cols <- .mapa_status_colors
-  expect_identical(cols[["comparacion"]], "#00A98F")
-  expect_identical(cols[["efectiva"]], "#2E7D32")
-  d <- utils::combn(names(cols), 2, function(par) {
-    a <- grDevices::col2rgb(cols[[par[1]]]); b <- grDevices::col2rgb(cols[[par[2]]])
-    sqrt(sum((a - b)^2))
-  })
-  expect_true(all(d > 40))
+test_that("los estados del mapa territorial tienen colores distinguibles y son los del recetario", {
+  dist <- function(a, b) sqrt(sum((grDevices::col2rgb(a) - grDevices::col2rgb(b))^2))
+  d <- .mapa_paleta("district"); g <- .mapa_paleta("overview_koica")
+  expect_identical(d[["efectiva"]], .std_color("mapa_aplicada")); expect_identical(d[["intervencion"]], .std_color("mapa_medio"))
+  expect_identical(g[["intervencion"]], .std_color("mapa_aplicada")); expect_identical(g[["comparacion"]], .std_color("mapa_medio"))
+  par_d <- utils::combn(c("efectiva", "intervencion", "no_intervenido"), 2, function(p) dist(d[[p[1]]], d[[p[2]]]))
+  par_g <- utils::combn(c("intervencion", "comparacion", "no_intervenido"), 2, function(p) dist(g[[p[1]]], g[[p[2]]]))
+  expect_true(all(c(par_d, par_g) > 40))
 })
 
 # B28 (B-H31): en paneles compartidos el pie clipeaba sus etiquetas — ahora

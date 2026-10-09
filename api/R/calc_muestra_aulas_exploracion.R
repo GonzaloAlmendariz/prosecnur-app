@@ -391,6 +391,13 @@ calc_muestra_aulas_exploracion <- function(aula_frame, particularidades = NULL) 
         criterios = criterios,
         particularidades = out$particularidades
       )
+    # La misma matriz, leida como la pregunta que el equipo hace: cuanto quita
+    # cada criterio EN CADA FACULTAD. La matriz trae el contrafactual por celda
+    # y con eso ya estaba todo; lo que faltaba era publicarlo con esa forma, que
+    # es la unica en la que se ve que el efecto no es parejo -43,8 % del marco
+    # de PSICOLOGIA contra 0,0 % de CONTABLES, con el mismo criterio-.
+    out$criterios_radiografia$recorte_por_facultad <-
+      calc_muestra_aulas_recorte_por_facultad(out$criterios_radiografia$matriz_embudo)
   }
   out
 }

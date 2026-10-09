@@ -96,8 +96,17 @@ Si cambiaste un router, añade o corre su contrato HTTP. Si el test dispara un
 worker real contra el namespace instalado:
 
 ```bash
-R CMD INSTALL --no-docs --library="$R_LIBS_USER" api
+R CMD INSTALL --no-docs --no-multiarch --library="$(Rscript -e 'cat(.libPaths()[1])')" api
 ```
+
+`$R_LIBS_USER` está **vacía en el entorno del shell** —sólo la resuelve R por su
+cuenta—, así que la forma anterior expandía a `--library=""`.
+
+Y no lances esto si otra sesión ya lo está haciendo, ni lo interrumpas:
+`R CMD INSTALL` borra el paquete antes de escribirlo, y una corrida abortada deja
+el directorio vacío. Con él vacío ningún backend carga `prosecnurapp` y la UI
+entera responde *failed to fetch*. Comprueba antes con
+`pgrep -f "R CMD INSTALL"` y que no exista `00LOCK-api` en la librería.
 
 La suite completa se reserva para el gate de release o cuando el diff transversal
 la justifique.

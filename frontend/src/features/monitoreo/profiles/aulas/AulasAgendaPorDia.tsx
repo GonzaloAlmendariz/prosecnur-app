@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { agendaPorDia } from "./agendaPorDia";
+import { AulasCalendarioDeAgenda } from "./AulasCalendarioDeAgenda";
+import { hoyISO } from "./calendarioDeAgenda";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -18,15 +20,24 @@ import { fmt } from "./kpisDeAulas";
 /** Alto por debajo del cual la franja de días no cabe junto a una tabla usable. */
 const ALTO_COMPACTO = 820;
 
-export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
+export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
-  /** Cursos-horario que tiene el plan de verdad, sin el banco.
+  /** Cursos-horario que tiene el plan de verdad, sin la reserva adicional.
    *
    * `filas` llega recortada: `course_status` se topea a 500 antes de salir del
    * backend. Contar lo que llegó y llamarlo «los N cursos-horario» presentaba un
    * recorte de payload como si fuera el universo — medido: «ninguno de los 42»
    * sobre un plan de 686. */
   totalDelPlan?: number;
+  /**
+   * Cuántas filas del plan **llegaron** y cuántas hay de verdad.
+   *
+   * No se deduce aquí comparando con `totalDelPlan`: ése cuenta titulares y
+   * `filas` trae además las reservas encadenadas, así que la comparación daría
+   * un recorte fantasma o lo escondería. Lo sabe el sitio que recibe el
+   * payload, y el backend ya publica `course_status_total` justo para esto.
+   */
+  recorte?: { recibidas: number; total: number };
 }) {
   // Se mide una vez y se escucha el cambio: el usuario redimensiona la ventana
   // y la franja tiene que abrirse o cerrarse con ella.
@@ -40,7 +51,7 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
     mq.addEventListener("change", alCambiar);
     return () => mq.removeEventListener("change", alCambiar);
   }, []);
-  const { dias, diasDeCampo, tope, sinFecha, desde, hasta, leyenda } = useMemo(
+  const { dias, diasDeCampo, sinFecha, desde, hasta, leyenda } = useMemo(
     () => agendaPorDia(filas),
     [filas],
   );
@@ -103,38 +114,31 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
           <strong>{diasDeCampo}</strong> {diasDeCampo === 1 ? "día de campo" : "días de campo"}
           {desde ? <> · de {desde} a {hasta}</> : null}
           {sinFecha ? <> · <strong>{sinFecha}</strong> sin fecha</> : null}
+          {/* **El recorte del payload se declara donde se ven sus cifras.**
+              `course_status` llega topeado a 500 filas, así que «sin fecha» y
+              el reparto de la leyenda están contados sobre lo que cupo, no
+              sobre el plan. La rama vacía ya lo decía —«la agenda dibuja los N
+              que caben en esta vista»— pero la franja normal no, y ahí es donde
+              se leen. Medido sobre HSVG2026: la franja decía «355 sin fecha»
+              mientras el tile de al lado decía «Por agendar 29», y 355 es
+              exactamente 500 − 145. Dos cifras para lo mismo, factor 12, sin
+              que nada avisara de que una está recortada. */}
+          {recorte && recorte.recibidas < recorte.total ? (
+            <> · <em className="aulas-agenda-recorte">
+              contado sobre {fmt(recorte.recibidas)} de {fmt(recorte.total)} cursos-horario del plan
+            </em></>
+          ) : null}
         </summary>
-      <ol className="aulas-agenda-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        {dias.map((dia) => (
-          <li key={dia.fecha || "sin-fecha"} className={dia.fecha ? "" : "es-sin-fecha"}>
-            <span className="aulas-agenda-dia">{dia.etiqueta}</span>
-            {/* La barra mide el día contra el más cargado, así que la carga
-                relativa se ve sin leer una cifra; el reparto interno dice en qué
-                estado llega ese día. */}
-            <span
-              className="aulas-agenda-barra"
-              style={{ width: `${tope ? Math.max(6, (100 * dia.aulas) / tope) : 0}%` }}
-              role="img"
-              aria-label={`${fmt(dia.aulas)} cursos-horario, ${dia.cumplen} cumplen`}
-            >
-              {dia.tramos.filter((t) => t.aulas > 0).map((tramo) => (
-                <i
-                  key={tramo.clave}
-                  style={{ flexGrow: tramo.aulas, background: tramo.color }}
-                  title={`${tramo.etiqueta}: ${tramo.aulas}`}
-                />
-              ))}
-            </span>
-            <span className="aulas-agenda-cifra">
-              <strong>{dia.aulas}</strong>
-              {/* El punto es un carácter de verdad y no un `::before`: el total
-                  del día y los que no empezaron quedaban pegados —«19» y «3»—
-                  y el texto se leía «193 sin empezar». */}
-              <em>{" · "}{dia.sinEmpezar ? `${dia.sinEmpezar} sin empezar` : "todas con respuestas"}</em>
-            </span>
-          </li>
-        ))}
-      </ol>
+      {/* **De la lista de chips a la cuadrícula de calendario** (dictado
+          2026-09-01: «que… el calendario de CHs a agendar se vea mejor»). La
+          lista decía la carga de cada fecha pero no su FORMA de semana: qué
+          días quedan libres, si el campo cae en fin de semana, cuánto falta
+          desde hoy. La celda conserva la lectura de la fila vieja —total y
+          sin empezar, separados por palabras en el `aria-label`, que es lo
+          que el guard de «193 sin empezar» vigila— y las repisas declaran lo
+          que un calendario no puede colocar: sin fecha, fechas que no
+          existen, años tecleados mal. */}
+      <AulasCalendarioDeAgenda dias={dias} hoy={hoyISO()} />
       </details>
       {/* La leyenda va DEBAJO de las barras y no encima: primero se ve la forma
           del periodo y sólo después se pregunta qué es cada color. Lleva el

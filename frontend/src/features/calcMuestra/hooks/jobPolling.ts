@@ -79,6 +79,37 @@ export function cmFraccionEsDelTotal(snap: JobSnapshot): boolean {
   return fase != null && CM_FASES_DEL_TOTAL.has(fase);
 }
 
+/**
+ * Fases cuya fracción NO mide avance: `certeza_cobertura` publica «evaluación
+ * i de 16», y 16 es el TOPE de la búsqueda, que suele parar antes; además se
+ * reinicia en cada estrato. Extrapolar con eso anunció «~190:17» a los 12:41
+ * (QA de aulas, 2026-09-24): con f = 1/16 el estimado es 15 veces lo
+ * transcurrido. Sin avance medible, no se promete un tiempo restante.
+ */
+const CM_FASES_SIN_ETA = new Set(["certeza_cobertura"]);
+
+/**
+ * Tiempo que la ETA puede usar: el del job entero si la fracción es del total;
+ * si es de una etapa, sólo lo que lleva ESA etapa (desde que la fase cambió o la
+ * fracción retrocedió, que es cuando empieza otra). Con el tiempo del job
+ * entero sobre la fracción de una etapa el estimado se multiplicaba.
+ */
+export function cmCrearRelojDeEtapa(): (snap: JobSnapshot, elapsedMs: number, fraccion: number | null) => number | null {
+  let fase: string | null = null;
+  let fraccionPrevia: number | null = null;
+  let inicio = 0;
+  return (snap, elapsedMs, fraccion) => {
+    const faseActual = cmJobFase(snap);
+    if (faseActual !== null && CM_FASES_SIN_ETA.has(faseActual)) return null;
+    if (cmFraccionEsDelTotal(snap)) return elapsedMs;
+    const retrocedio = fraccion !== null && fraccionPrevia !== null && fraccion < fraccionPrevia;
+    if (faseActual !== fase || retrocedio) inicio = elapsedMs;
+    fase = faseActual;
+    fraccionPrevia = fraccion;
+    return elapsedMs - inicio;
+  };
+}
+
 export function cmJobStageMessage(snap: JobSnapshot): string | null {
   const progress = snap.progress;
   if (progress && typeof progress === "object" && "message" in progress && typeof progress.message === "string" && progress.message) {
@@ -123,6 +154,56 @@ export function cmJobEta(elapsedMs: number, fraccion: number | null): number | n
 }
 
 /**
+ * Estabilizador del tiempo restante: mientras el motor no publique una
+ * fracción nueva, el estimado NO puede subir.
+ *
+ * Por qué existe (medido el 2026-08-25 sobre HSVG26DEF, base de 137.919
+ * filas): el build del marco de aulas publica ocho HITOS discretos
+ * (`.cm_aulas_construir_progreso`, api/R/calc_muestra_aulas_construir_job.R),
+ * así que durante toda una etapa la fracción vale lo mismo — 1/8 en «Leyendo
+ * la base institucional», que además es la etapa más larga porque lee el Excel
+ * entero. Con la fracción congelada, `elapsedMs * (1 - f) / f` es
+ * `elapsedMs * 7`: cada segundo de espera sumaba siete al estimado. A los
+ * 01:26 el banner decía «~10:32 en esta etapa» y seguía creciendo. Un contador
+ * que sólo sube mientras esperas comunica «esto va cada vez peor» sobre un
+ * build perfectamente sano.
+ *
+ * La regla que aplica: la fracción publicada es la única información nueva que
+ * llega. Mientras no se mueva, lo que falta se descuenta con el reloj —lo que
+ * dijimos que faltaba, menos lo que ya pasó— y nunca sube. Si ese descuento se
+ * agota, el estimado se calla: la etapa duró más de lo prometido, ya no
+ * sabemos cuánto falta y decirlo es más honesto que inventarlo (queda el
+ * transcurrido, que sí es un hecho). En cuanto el motor publica una fracción
+ * nueva hay evidencia fresca y el estimado se rehace con ella, aunque salga
+ * mayor: eso es una medición, no la deriva de la extrapolación.
+ *
+ * Tiene estado, así que se crea UNO por corrida de job (lo hace `esperarJob`).
+ */
+export function cmCrearEtaEstable(): (elapsedMs: number, fraccion: number | null) => number | null {
+  let fraccionAncla: number | null = null;
+  let etaAncla = 0;
+  let elapsedAncla = 0;
+  return (elapsedMs, fraccion) => {
+    const crudo = cmJobEta(elapsedMs, fraccion);
+    if (crudo === null || fraccion === null) return null;
+    if (fraccion !== fraccionAncla) {
+      // El motor avanzó: hay medición nueva y el estimado se rehace con ella.
+      fraccionAncla = fraccion;
+      etaAncla = crudo;
+      elapsedAncla = elapsedMs;
+      return crudo;
+    }
+    // Mismo hito: nada nuevo que saber, sólo tiempo que pasó.
+    const restante = etaAncla - (elapsedMs - elapsedAncla);
+    if (restante <= 0) return null;
+    const eta = Math.min(crudo, restante);
+    etaAncla = eta;
+    elapsedAncla = elapsedMs;
+    return eta;
+  };
+}
+
+/**
  * La línea que ve el usuario mientras espera: qué se está haciendo, en qué va,
  * cuánto lleva, cuánto falta y —si se pasó de lo previsto— que sigue vivo.
  */
@@ -133,12 +214,18 @@ export function cmTextoProgreso(args: {
   fraccion: number | null;
   /** true si la fracción mide el job entero; false si mide una etapa. */
   fraccionEsDelTotal?: boolean;
+  /**
+   * Tiempo restante ya calculado, en ms, o null para no anunciar ninguno.
+   * `esperarJob` pasa aquí el del estabilizador (`cmCrearEtaEstable`), que es
+   * el que ve el usuario. Si se omite se extrapola en el acto, sin memoria.
+   */
+  etaMs?: number | null;
   avisoLargoMs?: number;
 }): string {
   const { label, stage, elapsedMs, fraccion } = args;
   const avisoLargoMs = args.avisoLargoMs ?? CM_JOB_AVISO_LARGO_MS;
   const partes = [`${label}${stage ? ` — ${stage}` : ""}`, cmFormatElapsed(elapsedMs)];
-  const eta = cmJobEta(elapsedMs, fraccion);
+  const eta = args.etaMs !== undefined ? args.etaMs : cmJobEta(elapsedMs, fraccion);
   // Se dice de QUÉ falta ese tiempo. Un «faltan ~00:48» junto a «corrida 8 de
   // 17» se lee como el fin del trabajo, y son las 17 de UN método de cuatro.
   if (eta !== null) {
@@ -221,6 +308,10 @@ export async function esperarJob(
   const avisoLargoMs = opciones.avisoLargoMs ?? CM_JOB_AVISO_LARGO_MS;
   const maxNotFound = opciones.maxNotFound ?? CM_JOB_MAX_NOT_FOUND;
   const start = now();
+  // Uno por corrida: es la memoria que impide que el estimado crezca mientras
+  // el motor sigue clavado en el mismo hito.
+  const etaEstable = cmCrearEtaEstable();
+  const relojDeEtapa = cmCrearRelojDeEtapa();
   let notFoundSeguidos = 0;
   for (;;) {
     // El usuario pidió cancelar: cortamos el polling de inmediato (el backend
@@ -260,13 +351,17 @@ export async function esperarJob(
       if (snap.status === "error") {
         throw new Error(`${label}: ${cmJobErrorText(snap)}`);
       }
+      const elapsedMs = now() - start;
+      const fraccion = cmJobFraccion(snap);
+      const elapsedEta = relojDeEtapa(snap, elapsedMs, fraccion);
       opciones.onProgress?.(
         cmTextoProgreso({
           label,
           stage: cmJobStageMessage(snap),
-          elapsedMs: now() - start,
-          fraccion: cmJobFraccion(snap),
+          elapsedMs,
+          fraccion,
           fraccionEsDelTotal: cmFraccionEsDelTotal(snap),
+          etaMs: elapsedEta === null ? null : etaEstable(elapsedEta, fraccion),
           avisoLargoMs,
         }),
       );

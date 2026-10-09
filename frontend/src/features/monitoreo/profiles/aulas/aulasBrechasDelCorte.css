@@ -1,0 +1,200 @@
+/* «Cursos-horario con brecha», con el diseño del ensayo del 2026-09-10.
+   Hoja propia: `aulasMonitoreo.css` está congelada a crecimiento.
+
+   La escala es la de las tablas de Efectividad —13 px la fila, 11,5 la
+   metadata—, y no la de los ejes de gráfico: aquí el dato son las cifras. */
+.mon-profile-page.is-aulas-flow .aulas-brc {
+  --brc-dato: 15px;
+  --brc-txt: 13px;
+  --brc-meta: 11.5px;
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--brc-txt);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-marco { min-width: 0; overflow-x: auto; }
+
+.mon-profile-page.is-aulas-flow .aulas-brc-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--brc-txt);
+}
+
+/* Nombra la tabla para quien no ve el encabezado de la sección; oculta a la
+   vista pero NO con `display:none`, que la sacaría del árbol de accesibilidad. */
+.mon-profile-page.is-aulas-flow .aulas-brc-caption {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  padding: 7px 10px 8px;
+  border-bottom: 1px solid var(--pulso-border-strong);
+  color: var(--pulso-text-soft);
+  font-size: var(--brc-meta);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-align: left;
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-tabla th.es-num,
+.mon-profile-page.is-aulas-flow .aulas-brc-tabla td.es-num { text-align: right; }
+
+.mon-profile-page.is-aulas-flow .aulas-brc-tabla tbody tr > * {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-tabla tbody tr:last-child > * { border-bottom: 0; }
+.mon-profile-page.is-aulas-flow .aulas-brc-tabla tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 55%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-tabla tbody tr:hover {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, transparent);
+}
+
+/* La primera celda es `th scope="row"`: identifica la fila. */
+.mon-profile-page.is-aulas-flow .aulas-brc-aula {
+  display: grid;
+  grid-template-columns: 3px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-weight: 400;
+  text-align: left;
+}
+
+/* **La severidad, en forma antes que en número.** Se barre la columna sin leer
+   una cifra: sin campo es gris, muy corta es granate, corta es ámbar. */
+.mon-profile-page.is-aulas-flow .aulas-brc-severidad {
+  display: block;
+  width: 3px;
+  height: 34px;
+  border-radius: 2px;
+  background: var(--pulso-border-strong);
+}
+.mon-profile-page.is-aulas-flow tr.es-muy_por_debajo .aulas-brc-severidad { background: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow tr.es-por_debajo .aulas-brc-severidad { background: var(--pulso-warn-accent); }
+.mon-profile-page.is-aulas-flow tr.es-cerca .aulas-brc-severidad {
+  background: color-mix(in srgb, var(--pulso-warn-accent) 45%, var(--pulso-border-strong));
+}
+.mon-profile-page.is-aulas-flow tr.es-cumplida .aulas-brc-severidad { background: var(--pulso-success-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-brc-quien { display: grid; gap: 1px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-brc-quien b {
+  font-size: var(--brc-txt);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-quien em {
+  font-style: normal;
+  font-size: var(--brc-meta);
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-cuando {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--brc-meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-rinde {
+  display: inline-grid;
+  gap: 1px;
+  justify-items: end;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-rinde b { font-size: var(--brc-dato); font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-brc-rinde.es-bajo b { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-brc-rinde.es-ok b { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-brc-rinde em {
+  font-style: normal;
+  font-size: var(--brc-meta);
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-faltan {
+  font-size: var(--brc-dato);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-nada {
+  color: var(--pulso-text-faint);
+  font-size: var(--brc-meta);
+}
+
+/* El parte se contradice consigo mismo. Va en tono de advertencia y no de
+   error: el registro puede ser bueno y lo que falte sea actualizar el resto de
+   la fila —CH 143 trajo 23 encuestas con el contacto sin cerrar—. Lo que no
+   puede es decidirse por el operativo en silencio. */
+.mon-profile-page.is-aulas-flow .aulas-brc-conflicto {
+  display: grid;
+  gap: 0;
+  text-align: right;
+  color: var(--pulso-warn-fg);
+  font-size: var(--brc-meta);
+  font-weight: var(--pulso-weight-semibold);
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-conflicto em {
+  font-style: normal;
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-boton {
+  font: inherit;
+  font-size: var(--brc-meta);
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 34%, transparent);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 9%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-boton:hover {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 16%, transparent);
+  border-color: var(--module-accent, var(--pulso-primary));
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-boton:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-brc-pie {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--brc-meta);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-pie strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}

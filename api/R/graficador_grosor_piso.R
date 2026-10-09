@@ -436,7 +436,15 @@
 #
 # Vive aqui y no en `reporte_plan_ppt.R` porque ese archivo esta congelado a
 # crecimiento: alli queda solo el paso del valor.
-.POBLACION_4_ALTO_SLOT_IN <- 2.565
+#
+# 2.82, no 2.565: el contrato de `poblacion_4` dejo de usar el placeholder de la
+# plantilla y declara los cuatro huecos por coordenadas, recuperando el aire que
+# la lamina tenia sin dibujar (titulo termina en 1.10, base empieza en 6.91:
+# 5.81 in para dos filas, contra las dos de 2.565 + 0.68 de hueco muerto).
+# Este valor tiene que seguir al del contrato — es el mismo cajon medido desde
+# el otro lado, y si divergen el graficador calcula sobre un alto que no existe,
+# que es justo el defecto que dejo las cuatro etiquetas ilegibles de la 13.
+.POBLACION_4_ALTO_SLOT_IN <- 2.82
 
 
 # =============================================================================
@@ -851,3 +859,112 @@
 # instrumento que la produjo tampoco se hereda: aqui el filtro daba al aprobado
 # una dispersion de 1.6974 —peor que el motor— hasta que se le exigio que una
 # barra tuviera color.
+
+
+#' Anota en el archivo de `getOption("pulso.traza_grosor")` el grosor dibujado
+#'
+#' Una línea CSV por gráfico: filas reales, filas del eje, fracción, alto físico
+#' de la fila y grosor en pulgadas de la lámina, alto intrínseco y alto pedido. Sin la opción
+#' no hace nada. Instrumento del banco de grosor de F2 (ADR 0092).
+#' @keywords internal
+.traza_grosor_apiladas <- function(n_filas, filas_eje, grosor_eff, alto_fila_in, h_total_in, alto_in) {
+  destino <- getOption("pulso.traza_grosor")
+  if (!is.character(destino) || !nzchar(destino[1])) return(invisible(FALSE))
+  num <- function(x) suppressWarnings(as.numeric(x)[1])
+  fila <- c(num(n_filas), num(filas_eje), num(grosor_eff), num(alto_fila_in),
+            num(grosor_eff) * num(alto_fila_in), num(h_total_in), num(alto_in))
+  cat(paste(round(fila, 4), collapse = ","), "\n", sep = "", file = destino[1], append = TRUE)
+  invisible(TRUE)
+}
+
+
+#' Fracción de fila que hace medir a la barra lo que pide el estándar
+#'
+#' ADR 0092 (F2.1): el grosor sale de la tabla del recetario por número de filas
+#' (`.std_grosor()`), no de una fracción fija. Medido el 2026-10-08 en la ranura
+#' estándar: con la fracción 0.82 y la fila que crece hasta 1.12 in (ADR 0065),
+#' una lámina de una a cuatro filas dibujaba barras de 0.88 a 1.06 in donde el
+#' recetario pide 0.44 a 0.50; sólo 3 de 12 alturas cumplían.
+#'
+#' @param n_filas Filas reales de la lámina.
+#' @param alto_fila_in Alto físico de la fila ya colocada en la lámina, en pulgadas.
+#' @param tipo `escala_apilada` o `categorias`.
+#' @param tope Fracción máxima: si la fila es tan corta que ni así cabe, se llega
+#'   al tope y no más (las barras no se tocan).
+#' @return Fracción para `geom_col(width = )`, o `NA` si falta un dato.
+#' @keywords internal
+.grosor_fraccion_estandar <- function(n_filas, alto_fila_in, tipo = "escala_apilada",
+                                      tope = .GROSOR_TOPE_FRACCION, paso_in = NA_real_) {
+  a <- suppressWarnings(as.numeric(alto_fila_in)[1])
+  if (!is.finite(a) || is.na(a) || a <= 0) return(NA_real_)
+  g <- .std_grosor(n_filas, tipo)
+  # Con cifras que suben, el recetario (recetario.R:283-288) da a la fila el aire
+  # de `aire_cifra_chica` si cabe; si no cabe, la barra cede, pero no por debajo
+  # de 0.24 in.
+  p <- suppressWarnings(as.numeric(paso_in)[1])
+  if (is.finite(p) && p > 0) g <- min(g, max(.GROSOR_PISO_CON_CHICAS_IN, p - .std_aire_chica()))
+  min(tope, g / a)
+}
+
+# Piso de la barra cuando sus cifras chicas suben y el aire no cabe entero
+# (recetario.R:288: `g <- max(0.24, fila - 0.36)`).
+.GROSOR_PISO_CON_CHICAS_IN <- 0.24
+
+
+#' Cambia el ancho de las capas `geom_col` de un ggplot ya armado
+#'
+#' Cambia el ancho en la capa misma. Clonarla con `ggproto(NULL, capa)` se probó
+#' y rompe en silencio dentro del lienzo: la capa clonada calculaba los datos de la
+#' capa de texto vecina y la lámina salía sin barras. El panel y la leyenda
+#' comparten la capa, y a la leyenda el ancho no le importa.
+#' @keywords internal
+.grosor_reemplazar_ancho_col <- function(p, ancho) {
+  for (capa in p$layers) {
+    if (!inherits(capa$geom, "GeomCol") || is.null(capa$aes_params$width)) next
+    capa$aes_params$width <- ancho
+  }
+  p
+}
+
+
+#' Corre las cifras que suben y sus guías cuando cambia el grosor de la barra
+#'
+#' Las posiciones (`y_label`, `y_conector_label`, `y_conector_barra`) se calculan
+#' desde el techo de la barra, `y + grosor / 2`; si el grosor cambia después, el
+#' techo se mueve `delta` y las cifras deben moverse lo mismo.
+#' @param delta Desplazamiento en unidades del eje Y (nuevo − viejo grosor) / 2.
+#' @keywords internal
+.grosor_reubicar_cifras_arriba <- function(p, delta, fila_in = NA_real_, size_pt = NA_real_) {
+  d <- suppressWarnings(as.numeric(delta)[1])
+  if (!is.finite(d)) d <- 0
+  # La cifra queda por encima del extremo de su guía con media altura de letra
+  # más 0.03 in, medidos en pulgadas: la distancia fija en unidades del eje se
+  # achicaba con filas cortas y la guía tachaba la cifra (verificador de F2,
+  # 5 y 8 filas).
+  f <- suppressWarnings(as.numeric(fila_in)[1]); s <- suppressWarnings(as.numeric(size_pt)[1])
+  holgura <- if (is.finite(f) && f > 0 && is.finite(s) && s > 0) (s * 0.72 / 72 / 2 + 0.03) / f else NA_real_
+  for (capa in p$layers) {
+    datos <- capa$data
+    if (!is.data.frame(datos) || !".label_arriba" %in% names(datos)) next
+    filas <- datos$.label_arriba %in% TRUE
+    if (!any(filas)) next
+    for (col in intersect(c("y_label", "y_conector_label", "y_conector_barra"), names(datos))) {
+      datos[[col]][filas] <- datos[[col]][filas] + d
+    }
+    if (is.finite(holgura) && all(c("y_label", "y_conector_label") %in% names(datos))) {
+      minimo <- datos$y_conector_label[filas] + holgura
+      datos$y_label[filas] <- pmax(datos$y_label[filas], minimo)
+    }
+    capa$data <- datos
+  }
+  # Una cifra que sube por encima del rango del eje no se descarta (ggplot la
+  # borraba en la primera fila y quedaba la guía sin su número): se conserva y
+  # el panel no la recorta, porque arriba está el margen del lienzo.
+  if (is.finite(holgura) || abs(d) > 0) {
+    esc <- p$scales$get_scales("y")
+    if (!is.null(esc)) esc$oob <- scales::oob_keep
+    if (!is.null(p$coordinates)) p$coordinates$clip <- "off"
+  }
+  p
+}
+

@@ -35,7 +35,13 @@ describe("cursosHorarioDesdeResultado", () => {
   it("proyecta filas y totales publicados sin recalcularlos", () => {
     const model = cursosHorarioDesdeResultado(resultado());
     expect(model).toMatchObject({ aulasBaseTotal: 7, aulasExtraTotal: 2, aulasTotal: 9 });
-    expect(planCursosHorarioPublicado(model!)).toEqual({ Derecho: 9 });
+    // El plan publica TITULARES (7), no el total con reserva (9). El «cupo de
+    // reserva» se retiró de la superficie: no lo consumía nadie —los targets del
+    // sorteo salen de `aulas_base`— y lo llenaba un fijo de 1 por facultad
+    // mientras el rótulo prometía «la mitad de los titulares». El modelo sigue
+    // proyectando los tres totales porque el backend los emite; lo que cambia es
+    // cuál se firma.
+    expect(planCursosHorarioPublicado(model!)).toEqual({ Derecho: 7 });
   });
 
   it("falla cerrado si la auditoría no firma el frame o falta", () => {

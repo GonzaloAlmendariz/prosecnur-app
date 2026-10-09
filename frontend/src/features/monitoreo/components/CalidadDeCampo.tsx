@@ -26,7 +26,24 @@ import "./calidadDeCampo.css";
  * «el campo está limpio» son estados opuestos, y un bloque vacío sin explicar
  * se lee siempre como el segundo.
  */
-export function textoDelVacio(motivo: string): { titulo: string; detalle: string } | null {
+/**
+ * En aulas el aplicador SÍ está declarado: viaja en el parte de campo, uno por
+ * aula. Lo que no existe es la atribución respuesta a persona, que es lo que
+ * estas señales necesitan para cruzar identidades o detectar solapes. Decirle
+ * «falta declarar quién recolecta» a un operativo que tiene los 152 partes
+ * firmados manda a arreglar algo que ya está hecho.
+ */
+export function textoDelVacio(
+  motivo: string,
+  perfil?: string,
+): { titulo: string; detalle: string } | null {
+  if (motivo === "sin_rol_de_agente" && perfil === "aulas") {
+    return {
+      titulo: "El aplicador se declara por aula, no por respuesta",
+      detalle:
+        "El parte de campo dice quién aplicó cada curso-horario, y con eso se mide la carga del equipo. Estas señales necesitan además saber qué respuesta tomó cada persona, y el cuestionario del alumno no lo pregunta.",
+    };
+  }
   if (motivo === "sin_datos") {
     return {
       titulo: "Todavía no hay datos que revisar",
@@ -146,11 +163,14 @@ function Grupo({
 
 export default function CalidadDeCampo({
   calidad,
+  perfil,
 }: {
   calidad?: MonitoreoCalidadCampo | null;
+  /** Perfil que monta el bloque; sólo cambia el texto del vacío. */
+  perfil?: string;
 }) {
   const alertas = calidad?.alertas ?? [];
-  const vacio = alertas.length ? null : textoDelVacio(calidad?.motivo ?? "sin_datos");
+  const vacio = alertas.length ? null : textoDelVacio(calidad?.motivo ?? "sin_datos", perfil);
   const bloqueantes = calidad?.resumen?.bloqueantes ?? 0;
 
   return (
@@ -175,7 +195,7 @@ export default function CalidadDeCampo({
     >
       <header className="mon-calidad-head">
         <div>
-          <h3 id="mon-calidad-titulo">Cómo se está trabajando</h3>
+          <h3 id="mon-calidad-titulo">Desempeño del trabajo de campo</h3>
           <p>
             Lo que se puede corregir mientras el campo sigue abierto. Las alertas
             de avance responden cuánto falta; estas, cómo se está recolectando.

@@ -18,6 +18,43 @@
 # por eso nunca queda desfasada de la selección vigente. Se mide sobre las
 # TITULARES, que son las que se visitan y entregan la cuota.
 
+# El escenario que RIGE, y su componente.
+#
+# El workspace marca cual manda con `activo = TRUE` y lo enlaza a su componente
+# por `component_id`. Antes ambos selectores de aqui usaban «el primero que
+# publica margen» como proxy, y en HSVG2026 acertaban por ORDEN, no por regla:
+# el estudio tiene dos componentes con margen —`cmp-cine0qk8` con n_objetivo
+# 2 500 y `cmp-cine0qk8-fac` con 4 050— y el activo resulta ser el primero.
+# Activar «facultades» habria dejado a monitoreo publicando 2 500 contra un
+# diseno de 4 050 sin que nada fallara: un 62 % de diferencia en la meta.
+#
+# La regla vive AQUI y solo aqui; `.maoe_escenario_activo()` la lee de esta
+# funcion en vez de reimplementarla, porque dos capas leyendo «cual es el
+# activo» a su manera es como se separan en silencio.
+.cm_estudio_escenario_activo <- function(estudio) {
+  if (!is.list(estudio)) return(NULL)
+  escenarios <- estudio$workspace$escenarios %||% list()
+  if (!is.list(escenarios)) return(NULL)
+  for (esc in escenarios) {
+    if (is.list(esc) && isTRUE(esc$activo)) return(esc)
+  }
+  NULL
+}
+
+# El componente del escenario activo, o NULL si no hay escenario activo, no
+# declara `component_id`, o el id no existe entre los componentes. NULL significa
+# «no hay declaracion», y cada llamador decide su respaldo: no se adivina aqui.
+.cm_estudio_componente_activo <- function(estudio) {
+  esc <- .cm_estudio_escenario_activo(estudio)
+  if (!is.list(esc)) return(NULL)
+  id <- trimws(as.character(esc$component_id %||% ""))
+  if (!nzchar(id)) return(NULL)
+  for (cmp in (estudio$componentes %||% list())) {
+    if (is.list(cmp) && identical(trimws(as.character(cmp$id %||% "")), id)) return(cmp)
+  }
+  NULL
+}
+
 .cm_certificacion_componente_facultad <- function(estudio) {
   if (!is.list(estudio)) return(NULL)
   componentes <- estudio$componentes
@@ -26,8 +63,14 @@
     is.list(c) && is.list(c$resultado) && length(c$resultado$aulas_por_estrato)
   }, componentes)
   if (!length(con_filas)) return(NULL)
-  # Igual que filasParaFichas en la UI: manda el primer componente cuyo
-  # resultado publica margen (el escenario vigente del diseño).
+  # Manda el componente del escenario ACTIVO. Solo si el estudio no lo declara
+  # se cae al proxy historico —el primero que publica margen, igual que
+  # filasParaFichas en la UI—, que es lo correcto para estudios de un unico
+  # escenario y para los guardados antes de que el workspace marcara el activo.
+  activo <- .cm_estudio_componente_activo(estudio)
+  if (is.list(activo) && length(activo$resultado$aulas_por_estrato)) {
+    return(activo$resultado$aulas_por_estrato)
+  }
   con_margen <- Filter(function(c) {
     any(vapply(c$resultado$aulas_por_estrato, function(f) !is.null(f$margen), logical(1)))
   }, con_filas)
@@ -43,8 +86,16 @@
   if (!is.list(estudio)) return(list())
   componentes <- estudio$componentes
   if (!is.list(componentes)) return(list())
+  # Misma regla que arriba: el activo manda. Este selector iba por su cuenta
+  # («el primero con distribucion_sub»), asi que las cuotas por sexo podian
+  # salir de un escenario distinto al de las cuotas por facultad sin que nada
+  # lo delatara.
   sub <- NULL
-  for (comp in componentes) {
+  activo <- .cm_estudio_componente_activo(estudio)
+  if (is.list(activo) && length(activo$resultado$distribucion_sub)) {
+    sub <- activo$resultado$distribucion_sub
+  }
+  for (comp in if (is.null(sub)) componentes else list()) {
     if (is.list(comp) && is.list(comp$resultado) && length(comp$resultado$distribucion_sub)) {
       sub <- comp$resultado$distribucion_sub
       break
@@ -74,7 +125,9 @@
   for (lado in c("sex_top_1", "sex_top_2")) {
     col_n <- paste0(lado, "_n")
     if (!lado %in% names(filas) || !col_n %in% names(filas)) next
-    sexo <- toupper(as.character(filas[[lado]]))
+    # Comparar contra los literales "F"/"M" descartaba en silencio un padron
+    # etiquetado ("Mujer"), y la facultad salia con cero elegibles de ese sexo.
+    sexo <- .pulso_sexo_fm(filas[[lado]])
     n <- suppressWarnings(as.numeric(filas[[col_n]]))
     n[!is.finite(n)] <- 0
     for (sx in c("F", "M")) acc[[sx]] <- acc[[sx]] + sum(n[sexo == sx])
@@ -153,6 +206,21 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
   usa_tau_disenio <- any(is.finite(taus_disenio))
   tasa_fuente <- if (usa_tau_disenio) "tau_disenio" else if (is.finite(tasa_referencia)) "referencia" else "sin_tasa"
   fmt1 <- function(x) format(round(x, 1), trim = TRUE, scientific = FALSE, big.mark = " ")
+  # **Las encuestas son personas: el aviso que lee un humano no lleva decimales,
+  # y la direccion del redondeo no es la misma en los dos numeros del aviso.**
+  #
+  #   · lo que PROMETEMOS (las efectivas esperadas) va hacia ABAJO: prometer
+  #     media persona de mas es lo contrario de dimensionar con prudencia;
+  #   · lo que PEDIMOS (las que faltan) va hacia ARRIBA: si faltan 2,6 encuestas
+  #     faltan 3 personas, y con 2 la facultad sigue corta.
+  #
+  # Solo cambia lo PUBLICADO. `esperadas` sigue crudo para el margen y para el
+  # estado: redondear antes de comparar convertiria una facultad de 99,6 sobre
+  # una cuota de 100 en certificada.
+  #
+  # Las tasas y porcentajes NO pasan por aqui: ahi el decimal es la informacion.
+  fmt_prometido <- function(x) format(floor(x), trim = TRUE, scientific = FALSE, big.mark = " ")
+  fmt_pedido <- function(x) format(ceiling(x), trim = TRUE, scientific = FALSE, big.mark = " ")
   filas <- list()
   certificadas <- 0L
   evaluables <- 0L
@@ -200,21 +268,21 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
     aviso <- switch(estado,
       certificada = if (identical(metodo_fila, "suma_esperadas")) sprintf(
         "Sus %d titulares suman %s efectivas esperadas (aula por aula, seg\u00fan el tama\u00f1o y la facultad de cada una) para una cuota de %s.",
-        aulas, fmt1(esperadas), fmt1(cuota)
+        aulas, fmt_prometido(esperadas), fmt1(cuota)
       ) else sprintf(
         "Sus %d titulares cargan %s elegibles; con la tasa de rendimiento %s de %s %% rinden %s efectivas para una cuota de %s.",
         aulas, fmt1(elegibles),
         if (identical(tasa_fuente, "tau_disenio")) "del dise\u00f1o (\u03c4)" else "esperada",
-        fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota)
+        fmt1(tasa * 100), fmt_prometido(esperadas), fmt1(cuota)
       ),
       no_cubre = if (identical(metodo_fila, "suma_esperadas")) sprintf(
         "NO CUBRE: sus %d titulares suman %s efectivas esperadas (aula por aula) frente a una cuota de %s. Faltan %s.",
-        aulas, fmt1(esperadas), fmt1(cuota), fmt1(cuota - esperadas)
+        aulas, fmt_prometido(esperadas), fmt1(cuota), fmt_pedido(cuota - esperadas)
       ) else sprintf(
         "NO CUBRE: sus %d titulares cargan %s elegibles y con la tasa de rendimiento %s de %s %% rinden %s efectivas, por debajo de la cuota de %s. Faltan %s.",
         aulas, fmt1(elegibles),
         if (identical(tasa_fuente, "tau_disenio")) "del dise\u00f1o (\u03c4)" else "esperada",
-        fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota), fmt1(cuota - esperadas)
+        fmt1(tasa * 100), fmt_prometido(esperadas), fmt1(cuota), fmt_pedido(cuota - esperadas)
       ),
       sin_titulares = "El sorteo vigente no le asignó titulares: no hay con qué certificar.",
       sin_tasa = "El diseño no declara la tasa de asistencia esperada: los elegibles están medidos pero la certificación no se puede afirmar.",
@@ -238,7 +306,10 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
           sexo = sx,
           cuota = round(cuota_sx),
           elegibles = round(el_sx),
-          esperadas = if (is.finite(esp_sx)) round(esp_sx) else NA_real_,
+          # Promesa por celda: hacia ABAJO, igual que el aviso de la facultad.
+          # `cubre` y `margen` siguen saliendo del valor CRUDO, dos lineas mas
+          # abajo: el entero es para leer, no para decidir.
+          esperadas = if (is.finite(esp_sx)) floor(esp_sx) else NA_real_,
           margen = if (is.finite(esp_sx) && cuota_sx > 0) round(esp_sx / cuota_sx, 2) else NA_real_,
           cubre = if (is.finite(esp_sx)) esp_sx >= cuota_sx else NA
         )

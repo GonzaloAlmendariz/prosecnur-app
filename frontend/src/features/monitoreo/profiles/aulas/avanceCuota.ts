@@ -3,7 +3,7 @@ import type {
   MonitoreoAulasAvanceCuotaFacultad,
   MonitoreoAulasAvanceCuotaTotal,
 } from "../../../../api/monitoreo";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Cumplimiento contra la cuota del DISEÑO, listo para pintar.
@@ -29,7 +29,7 @@ export type ProcedenciaDeCuota = {
 };
 
 export type TotalDeAvanceCuota = {
-  /** «Cuota del diseño» o «Meta del plan», según la procedencia. */
+  /** Siempre «Cuota del estudio»: la cantidad no cambia de nombre según de dónde salga. */
   etiqueta: string;
   cuota: number;
   validas: number;
@@ -42,6 +42,26 @@ export type TotalDeAvanceCuota = {
   aria: string;
   /** Lecturas secundarias —fuera de universo, sin aula del plan—; nunca se ocultan. */
   notas: string[];
+  /**
+   * **Cuántas respuestas llegaron y no entran en ninguna celda**, que es la
+   * cifra que le falta a «Efectivas 58 de 400» para poder leerse.
+   *
+   * Es la suma de las cuatro bolsas, no una resta contra `validas`: cada bolsa
+   * la publica el motor y sumarlas dice lo mismo que el invariante comprueba.
+   * Restar `total − validas` daría el mismo número mientras el invariante
+   * cuadre y un número inventado justo cuando no —que es cuando importa—.
+   */
+  fueraDeCelda: number;
+  /**
+   * **El invariante del bloque, y sólo cuando NO cuadra.**
+   *
+   * `respuestas_validas = Σ celdas + duplicados + sin eje + fuera de universo +
+   * huérfanas`. El motor lo comprueba y lo publica; aquí se pinta al revés que
+   * las notas: callado si cierra —un «cuadra» permanente es ruido— y ruidoso si
+   * no, porque un bloque cuyas partes no suman su total no se puede leer y
+   * ninguna otra pantalla lo va a decir.
+   */
+  descuadre: string | null;
 };
 
 export type FilaDeAvanceCuota = {
@@ -56,7 +76,7 @@ export type FilaDeAvanceCuota = {
   carril: number;
   /** Ancho del relleno dentro del carril; capado a 100 sólo para pintar. */
   relleno: number;
-  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota";
+  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota" | "fuera_del_diseno";
   cumplida: boolean;
   /** La cifra fuerte de la derecha; `null` cuando no hay resta que mostrar. */
   cifra: string | null;
@@ -84,8 +104,16 @@ function numero(valor: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Distingue el `null` con significado —sin cuota— de un número de verdad. */
-function numeroONulo(valor: unknown): number | null {
+/**
+ * Distingue el `null` con significado —sin cuota— de un número de verdad.
+ *
+ * Exportado porque es la frontera de TODO el bloque `avance_cuota`: el JSON de
+ * R serializa sus campos a veces como string —`meta_operativa` llegó como
+ * `"NA"` con «Todas las facultades" (A17, 2026-08-31)— y quien lea el bloque
+ * fuera de este módulo (la pestaña de Rendimiento le pasa la sobremuestra al
+ * gráfico) tiene que normalizar con la MISMA regla: número finito o `null`.
+ */
+export function numeroONulo(valor: unknown): number | null {
   if (valor == null || valor === "") return null;
   const n = Number(valor);
   return Number.isFinite(n) ? n : null;
@@ -97,14 +125,45 @@ function texto(valor: unknown): string {
 
 
 /** Porcentaje con coma decimal y a lo sumo un decimal; sin cap. */
-function pctTexto(n: number): string {
-  return String(Math.round(n * 10) / 10).replace(".", ",");
-}
+/**
+ * **El porcentaje se escribe como lo escribe el Perú.**
+ *
+ * Aquí había un formateador propio que forzaba la coma decimal —`87,4`— con un
+ * `.replace(".", ",")`. Es la convención de España; la de Perú, que es la que
+ * `Intl` aplica bajo `es-PE` y la que usa el resto del perfil, pone **punto
+ * decimal y coma de millar**: `2,668` alumnos avanzan un `88.1 %`.
+ *
+ * El resultado era que la misma pestaña de Cuotas publicaba «88.1 %» en la
+ * tabla por facultad y «88,1%» en la barra de tres centímetros más arriba —dos
+ * notaciones para la misma cifra, y con la coma haciendo de decimal en una y de
+ * millar en la otra, que es lo que obliga a releer—. Se usa `pctPerfil()`, que
+ * ya es el formateador de la casa y añade el espacio antes del signo.
+ */
 
-/** τ con coma decimal; «—» cuando difiere por facultad, más fiel que ocultarla. */
-function tauTexto(tasa: number | null): string {
-  if (tasa == null) return "—";
-  return tasa.toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+/**
+ * **La tasa se nombra, no se escribe en griego.**
+ *
+ * El chip decía «cuota del diseño · τ 0,53». Es la misma cantidad que Cálculo
+ * de muestra publica —`tasa_esperada` es el `tau` que ese módulo trazó por
+ * facultad, con `source = "calc-muestra"`—, y allá ya se decidió no publicar la
+ * letra: «la tasa de efectividad se nombra, no se escribe en griego… quien
+ * recibe la app veía "τ 53%" sin saber ni qué es ni de dónde viene»
+ * (`CalculoPropuestasTab.tsx`). Monitoreo se quedó con la letra, así que el
+ * mismo número tenía dos presentaciones según el módulo.
+ *
+ * Se dice en porcentaje porque es lo que la vuelve legible sin definición: «53
+ * %» se entiende como *de cada cien alumnos elegibles del aula responden 53*;
+ * «0,53» obliga a preguntar 0,53 de qué.
+ *
+ * Cuando no hay una tasa única —el motor deja `NA` si las facultades tienen
+ * tasas distintas, para no promediar a escondidas lo que el diseño trazó por
+ * separado— se dice eso mismo. Antes iba un «—», que se decidió «más fiel que
+ * ocultarla»: se conserva la intención de no ocultarla y se sustituye el guion,
+ * que no significa nada, por el hecho.
+ */
+function tasaDeEfectividadTexto(tasa: number | null): string {
+  if (tasa == null) return "tasa de efectividad sin valor único";
+  return `tasa de efectividad ${pctPerfil(tasa * 100)}`;
 }
 
 function notasDeFila(bruta: MonitoreoAulasAvanceCuotaFacultad): string[] {
@@ -116,7 +175,12 @@ function notasDeFila(bruta: MonitoreoAulasAvanceCuotaFacultad): string[] {
   return notas;
 }
 
-function fila(bruta: MonitoreoAulasAvanceCuotaFacultad): Omit<FilaDeAvanceCuota, "carril"> {
+function fila(
+  bruta: MonitoreoAulasAvanceCuotaFacultad,
+  // La palabra del eje declarado («Nivel», «Facultad»). Se pasa en vez de
+  // cablear «facultad»: el bloque ya no siempre habla de facultades.
+  etiquetaEje?: string,
+): Omit<FilaDeAvanceCuota, "carril"> {
   const facultad = texto(bruta.facultad) || "Sin facultad";
   const clave = texto(bruta.faculty_key) || facultad;
   const cuota = numeroONulo(bruta.cuota);
@@ -124,14 +188,39 @@ function fila(bruta: MonitoreoAulasAvanceCuotaFacultad): Omit<FilaDeAvanceCuota,
   // Sin cuota manda aunque el estado no lo diga: sin denominador no se inventa
   // un porcentaje.
   const sinCuota = estadoBruto === "sin_cuota" || cuota == null;
+  // **`fuera_del_diseno` manda sobre `sinCuota`.** Las dos filas llegan sin
+  // cuota y sin ella la de nivel 5 se leía «facultad del plan sin cuota en el
+  // diseño»: una frase sobre el PLAN para algo que el plan no dijo. Son dos
+  // vacíos distintos y la regla del contrato es clasificarlos, no unificarlos.
+  const fueraDelDiseno = estadoBruto === "fuera_del_diseno";
   // Anotado para que el literal no se ensanche a `string` al entrar al objeto.
   const estado: FilaDeAvanceCuota["estado"] =
-    sinCuota ? "sin_cuota" : estadoBruto === "sin_aulas_en_plan" ? "sin_aulas_en_plan" : "ok";
+    fueraDelDiseno ? "fuera_del_diseno"
+      : sinCuota ? "sin_cuota"
+      : estadoBruto === "sin_aulas_en_plan" ? "sin_aulas_en_plan" : "ok";
   const validas = numero(bruta.respuestas_validas);
   const brecha = sinCuota ? 0 : Math.max(0, numero(bruta.brecha));
   const avance = sinCuota ? null : numero(bruta.avance_pct);
   const notas = notasDeFila(bruta);
   const cumplida = estado === "ok" && brecha === 0;
+
+  if (estado === "fuera_del_diseno") {
+    const eje = (etiquetaEje ?? "valor").toLocaleLowerCase("es");
+    return {
+      facultad, clave, cuota: null, validas, brecha, avance: null,
+      relleno: 0, estado, cumplida: false,
+      cifra: null,
+      lectura: `fuera del dise\u00f1o`,
+      subtexto: [`${fmt(validas)} recogidas`, ...notas].join(" \u00b7 "),
+      titulo: [
+        `El dise\u00f1o no traza este ${eje}: estas respuestas se recogieron y no ` +
+          `cuentan para ninguna cuota. Se publican para que la cuenta del d\u00eda ` +
+          `cuadre \u2014antes desaparec\u00edan del bloque\u2014.`,
+        ...notas,
+      ].join(" \u00b7 "),
+      aria: `${facultad}: fuera del dise\u00f1o, ${fmt(validas)} recogidas que no cuentan para ninguna cuota`,
+    };
+  }
 
   if (estado === "sin_cuota") {
     return {
@@ -162,21 +251,39 @@ function fila(bruta: MonitoreoAulasAvanceCuotaFacultad): Omit<FilaDeAvanceCuota,
     return {
       ...base, cumplida: false,
       cifra: brecha > 0 ? fmt(brecha) : null,
-      lectura: "sin aulas sorteadas",
+      lectura: "sin cursos-horario sorteados",
       titulo: [
         "El sorteo no le asignó aulas: su cuota no puede salir del plan actual. Es un hueco del diseño de campo, no retraso del equipo.",
         ...notas,
       ].join(" · "),
-      aria: `${facultad}: sin aulas sorteadas para su cuota`,
+      aria: `${facultad}: sin cursos-horario sorteados para su cuota`,
     };
   }
 
+  // **El porcentaje viaja con la frecuencia que lo produce.**
+  //
+  // Gonzalo, 2026-09-08, señalando el «faltan · 31.5 %» de Estudios Generales
+  // Ciencias: «debería decir "Faltan X · 57 % (15 de 25)"». La fracción ya
+  // existía, pero vivía en la otra punta de la fila —bajo el nombre de la
+  // facultad, a 190 px y una columna de distancia—, así que la cifra fuerte
+  // (276, que es la BRECHA) quedaba pegada a un porcentaje (31.5 %, que es el
+  // AVANCE) sin nada que dijera de qué eran. Dos marcos contrarios juntos y
+  // ningún denominador a la vista.
+  //
+  // Por eso se mueve, no se duplica: `subtexto` deja de repetir la fracción y
+  // se queda con las mermas. Un mismo par de números en dos sitios de la misma
+  // fila es la forma más barata de que un día digan cosas distintas.
+  const fraccion = `${fmt(validas)} de ${fmt(cuota ?? 0)}`;
   return {
-    ...base, cumplida,
+    ...base,
+    subtexto: notas.join(" · "),
+    cumplida,
     cifra: cumplida ? null : fmt(brecha),
-    lectura: cumplida ? `cuota cumplida · ${pctTexto(avance ?? 0)}%` : `faltan · ${pctTexto(avance ?? 0)}%`,
+    lectura: cumplida
+      ? `cuota cumplida · ${pctPerfil(avance ?? 0)} (${fraccion})`
+      : `faltan · ${pctPerfil(avance ?? 0)} (${fraccion})`,
     titulo: notas.join(" · "),
-    aria: `${facultad}: ${pctTexto(avance ?? 0)}% de su cuota del diseño`,
+    aria: `${facultad}: ${pctPerfil(avance ?? 0)} de su cuota del diseño, ${fraccion}`,
   };
 }
 
@@ -202,7 +309,7 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   const degradada = vigencia === "obsoleta" || vigencia === "sin_diseno" || fuente === "plan_expected";
   const chipBase = degradada
     ? "contra la meta del plan"
-    : `cuota del diseño · τ ${tauTexto(numeroONulo(bloque.tasa_esperada))}`;
+    : `cuota del diseño · ${tasaDeEfectividadTexto(numeroONulo(bloque.tasa_esperada))}`;
   const procedencia: ProcedenciaDeCuota = {
     chip: vigencia === "no_verificable" ? `${chipBase} (sello sin verificar)` : chipBase,
     detalle: motivo,
@@ -221,8 +328,9 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
     };
   }
 
+  const etiquetaEje = texto(bloque.eje?.etiqueta) || "Facultad";
   const parciales = brutas
-    .map(fila)
+    .map((b) => fila(b, etiquetaEje))
     // Primero la que más lejos está: es el orden con el que se decide a dónde
     // va el equipo mañana. Las filas sin cuota no tienen brecha definida y
     // bajan al final, ordenadas por nombre.
@@ -242,8 +350,68 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   const fueraTotal = numero(t.fuera_universo);
   const huerfanas = numero(t.huerfanas);
   if (fueraTotal > 0) notasTotal.push(`${fmt(fueraTotal)} fuera de universo`);
-  if (huerfanas > 0) notasTotal.push(`${fmt(huerfanas)} sin aula del plan`);
-  const etiqueta = degradada ? "Meta del plan" : "Cuota del diseño";
+  if (huerfanas > 0) notasTotal.push(`${fmt(huerfanas)} sin curso-horario del plan`);
+  /**
+   * **Las dos bolsas del eje por persona, que el motor publicaba y nadie
+   * pintaba.**
+   *
+   * Comprobado con un grep sobre `src/` entero el 2026-09-17: nada consumía
+   * `sin_eje` ni `duplicadas`. El motor las calcula y morían ahí.
+   *
+   * Mismo trato que sus hermanas —sólo cuando hay algo—, y por el mismo motivo:
+   * «0 sin nivel» es ruido, y con el eje en facultad las dos valen 0 siempre.
+   * Lo que sí es propio es el rótulo de `duplicadas`: cuenta **personas que
+   * respondieron dos veces**, no respuestas de más. La cuota es de personas, y
+   * llamarlo «respuestas duplicadas» haría pensar que sobran encuestas cuando lo
+   * que hay es alguien contado una sola vez a propósito.
+   */
+  const sinEje = numero(t.sin_eje);
+  const duplicadas = numero(t.duplicadas);
+  const sinEjeRotulo = bloque.eje?.etiqueta_sin ?? "Sin valor del eje";
+  if (sinEje > 0) notasTotal.push(`${fmt(sinEje)} ${sinEjeRotulo.toLocaleLowerCase("es")}`);
+  /**
+   * **La quinta bolsa.** Válidas cuyo valor de eje resolvió y el diseño no
+   * traza. Va con la palabra del eje dentro porque «1 fuera del diseño» no
+   * dice de qué dimensión habla, y el lector que ve caer el total necesita
+   * saber que la causa es el NIVEL y no el aula.
+   */
+  const sinCelda = numero(t.sin_celda);
+  if (sinCelda > 0) {
+    notasTotal.push(
+      `${fmt(sinCelda)} de un ${etiquetaEje.toLocaleLowerCase("es")} que el dise\u00f1o no mide`,
+    );
+  }
+  if (duplicadas > 0) {
+    notasTotal.push(
+      duplicadas === 1
+        ? `${fmt(duplicadas)} persona que respondió dos veces`
+        : `${fmt(duplicadas)} personas que respondieron dos veces`,
+    );
+  }
+  // El invariante: se lee del motor, no se recalcula. Recalcularlo aquí daría
+  // una segunda verdad sobre la misma suma.
+  const inv = bloque.total?.invariante;
+  const descuadre = inv && inv.ok === false
+    ? `Las partes no suman las válidas: ${fmt(numero(inv.suma))} contra ${fmt(numero(inv.total))}` +
+      (numero(inv.solapadas) > 0 ? `, y ${fmt(numero(inv.solapadas))} en dos bolsas a la vez` : "")
+    : null;
+  /**
+   * **La cantidad tiene un nombre; de dónde sale lo dice el chip.**
+   *
+   * Era «Cuota del diseño» / «Meta del plan», y en la misma cabecera conviven ya
+   * el título «Cumplimiento de la cuota del estudio» y el chip «cuota del diseño
+   * · tasa de efectividad 53.0 %»: tres rótulos para dos cosas, con dos de ellos
+   * diciendo lo mismo. `AulasCuotasResumen` —compartido por otras cuatro
+   * pestañas— llamaba «Cuota del estudio» a esta misma cantidad, y **es la misma
+   * de verdad**: medido, 2.500 y 2.668 en las dos.
+   *
+   * Y «diseño» hacía de dos cosas a la vez: de dónde salió la META, y lo que se
+   * esperaba aportar con las aulas calculadas —lo que el motor llama `previsto`
+   * y el encargo llama «lo diseñado»—. Reservarlo para lo segundo es lo que
+   * permite distinguir las tres cantidades del estudio: la meta, lo diseñado y
+   * lo que se espera según el rendimiento.
+   */
+  const etiqueta = "Cuota del estudio";
 
   return {
     procedencia,
@@ -254,10 +422,15 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
       validas: numero(t.respuestas_validas),
       brecha: Math.max(0, numero(t.brecha)),
       avance: avanceTotal,
-      avanceTexto: pctTexto(avanceTotal),
+      avanceTexto: pctPerfil(avanceTotal),
       relleno: Math.max(0, Math.min(100, avanceTotal)),
-      aria: `${pctTexto(avanceTotal)}% de la ${etiqueta.toLowerCase()}`,
+      // La procedencia entra en el aria porque quien no ve la pantalla no ve el
+      // chip que la declara, y sin ella «de la cuota del estudio» suena igual
+      // con el denominador del diseño que con el del plan degradado.
+      aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()} · ${procedencia.chip}`,
       notas: notasTotal,
+      fueraDeCelda: fueraTotal + huerfanas + sinEje + duplicadas + sinCelda,
+      descuadre,
     },
     filas,
     cumplidas: filas.filter((f) => f.cumplida).length,

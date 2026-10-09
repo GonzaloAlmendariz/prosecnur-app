@@ -408,13 +408,16 @@
   accent-color: var(--pulso-primary);
 }
 
+/* La fila la dimensiona el contenido, no el `min-height` de abajo: con filas
+   `auto`, el mínimo de un item con `overflow: hidden` es cero, y el expandido
+   colapsaba a 2 px —abrir un UMP lo hacía desaparecer—. */
+.mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-accordion-scroll {
+  grid-auto-rows: min-content;
+}
+
 .mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-accordion-item {
   flex: 0 0 auto;
   min-height: 64px;
-}
-
-.mon-page .mon-territorial-route-workbench[data-model-tab="tabla"] .mon-territorial-route-accordion-item.is-expanded {
-  min-height: 0;
 }
 
 .mon-page .mon-territorial-route-workbench[data-model-tab="resumen"] .mon-territorial-route-summary-tab {
@@ -1641,7 +1644,7 @@
 
 .mon-territorial-route-map-status {
   position: absolute;
-  top: 10px;
+  top: 58px;
   right: 10px;
   display: inline-flex;
   align-items: center;
@@ -11990,7 +11993,7 @@
 
 .mon-territorial-route-map-loading {
   position: absolute;
-  top: 10px;
+  top: 58px;
   right: 10px;
   display: inline-flex;
   align-items: center;

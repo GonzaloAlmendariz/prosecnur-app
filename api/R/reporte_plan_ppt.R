@@ -653,7 +653,7 @@ reporte_ppt_plan <- function(
 
     out <- tryCatch(
       if (inherits(value, "dml")) {
-        .ph_with_dml_safe(doc, value = value, location = loc)
+        .ppt_colocar_dml(doc, value, loc, .ph_with_dml_safe)
       } else {
         officer::ph_with(
           doc,
@@ -1126,7 +1126,7 @@ reporte_ppt_plan <- function(
     # contra los 1.71 del aprobado, y el indice se leia apretado.
     row_height <- .style_num(style, "row_height", 0.543, min = 0.24)
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
-    number_fill <- as.character(.style_value(style, "number_fill", "#D8504F"))[1]
+    number_fill <- as.character(.style_value(style, "number_fill", .std_color("coral")))[1]
     section_fill <- as.character(.style_value(style, "section_fill", "#E7E7E7"))[1]
     text_color <- as.character(.style_value(style, "text_color", "#081F5C"))[1]
     number_size <- .style_num(style, "number_size", 14, min = 7)
@@ -1299,9 +1299,9 @@ reporte_ppt_plan <- function(
     out
   }
 
-  .indice_subtopic_badge_asset <- function(label, fill = "#D8504F", text_color = "#FFFFFF",
+  .indice_subtopic_badge_asset <- function(label, fill = .std_color("coral"), text_color = "#FFFFFF",
                                            font_family = "Arial") {
-    fill <- .indice_sanitize_fill(fill, "#D8504F")
+    fill <- .indice_sanitize_fill(fill, .std_color("coral"))
     text_color <- .indice_sanitize_fill(text_color, "#FFFFFF")
     label <- gsub("&", "&amp;", as.character(label %||% "")[1], fixed = TRUE)
     label <- gsub("<", "&lt;", label, fixed = TRUE)
@@ -1375,7 +1375,7 @@ reporte_ppt_plan <- function(
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
     text_color <- as.character(.style_value(style, "subtopic_color", "#081F5C"))[1]
     bullet_color <- as.character(.style_value(style, "subtopic_bullet_color", text_color))[1]
-    badge_fill <- as.character(.style_value(style, "subtopic_badge_fill", .style_value(style, "accent_color", "#D8504F")))[1]
+    badge_fill <- as.character(.style_value(style, "subtopic_badge_fill", .style_value(style, "accent_color", .std_color("coral"))))[1]
     badge_text_color <- as.character(.style_value(style, "subtopic_badge_text_color", "#FFFFFF"))[1]
     font_size <- .style_num(style, "subtopic_size", 10.1, min = 6)
     marker_style <- as.character(.style_value(style, "subtopic_marker", "number_text"))[1]
@@ -1818,7 +1818,7 @@ reporte_ppt_plan <- function(
 
   # Extremo negativo NARANJA, no rojo (regla R4). Ver `reporte_ppt_numero_respuestas.R`.
   .top_two_parse_colors <- function(style, n) {
-    default <- c("#F4B183", "#FFD966", "#B7D7A8", "#70AD47")
+    default <- .std_paleta("likert")[1:4]
     raw <- style[["colores"]] %||% style[["colores_escala"]] %||% default
     if (is.list(raw) && !is.data.frame(raw)) {
       raw <- unlist(raw, recursive = TRUE, use.names = FALSE)
@@ -1856,7 +1856,7 @@ reporte_ppt_plan <- function(
 
     colors <- .top_two_parse_colors(style, length(valores))
     blue <- .indice_sanitize_fill(.style_value(style, "text_color", "#081F5C"), "#081F5C")
-    accent <- .indice_sanitize_fill(.style_value(style, "accent_color", .style_value(style, "title_color", "#D8504F")), "#D8504F")
+    accent <- .indice_sanitize_fill(.style_value(style, "accent_color", .style_value(style, "title_color", .std_color("coral"))), .std_color("coral"))
     brace_color <- .indice_sanitize_fill(.style_value(style, "brace_color", accent), accent)
     top_label_color <- .indice_sanitize_fill(.style_value(style, "top_label_color", accent), accent)
     label_color <- .indice_sanitize_fill(
@@ -4577,17 +4577,17 @@ reporte_ppt_plan <- function(
         base_args$top2box_labels <- el$top2box_labels
       }
       if (is.null(base_args$titulo_barra_extra) || !nzchar(base_args$titulo_barra_extra)) {
-        # «TOP TWO BOX», como lo escribe el entregable aprobado en sus 41
-        # laminas. Ademas de coherencia, la forma importa para medir: buscando
-        # «Top 2 Box» el conteo sobre el aprobado devolvia 0 columnas cuando
-        # tiene 40.
-        base_args$titulo_barra_extra <- "TOP TWO BOX"
+        # El rotulo de la casa vive en `.PPT_ROTULO_TOP_TWO_BOX`: «Top Two Box»
+        # del recetario moderno (ADR 0092), no el «TOP TWO BOX» del aprobado de
+        # 2021. Una sola fuente para el graficador y para este renderer, que
+        # antes lo escribian cada uno a mano.
+        base_args$titulo_barra_extra <- .PPT_ROTULO_TOP_TWO_BOX
       }
       col_extra <- as.character(base_args$color_barra_extra %||% "")[1]
       if (is.na(col_extra)) col_extra <- ""
       col_extra <- trimws(col_extra)
       if (!nzchar(col_extra) || identical(toupper(col_extra), "#081F5C")) {
-        base_args$color_barra_extra <- "#70AD47"
+        base_args$color_barra_extra <- .std_color("verde_top_two_box")
       }
 
       base_args
@@ -6199,7 +6199,7 @@ reporte_ppt_plan <- function(
     preset_args <- preset_args %||% list()
     overrides   <- el$overrides %||% list()
 
-    ctx_var <- .resolve_ref(var, arg_name = "var")
+    ctx_var <- .ctx_var_numerica_cruda(.resolve_ref(var, arg_name = "var"))   # H38
 
     cruce_ref <- overrides$cruce %||% el$cruce %||% preset_args$cruce %||% NULL
     preset_args$cruce <- NULL
@@ -6222,10 +6222,10 @@ reporte_ppt_plan <- function(
 
       ln <- NA_character_
       if ("list_name" %in% names(surv)) {
-        tmp <- surv$list_name[surv$name == varname]
+        tmp <- surv$list_name[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       } else if ("list_norm" %in% names(surv)) {
-        tmp <- surv$list_norm[surv$name == varname]
+        tmp <- surv$list_norm[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       }
       if (is.na(ln) || !nzchar(ln)) return(NULL)
@@ -6373,7 +6373,7 @@ reporte_ppt_plan <- function(
     preset_args <- preset_args %||% list()
     overrides   <- el$overrides %||% list()
 
-    ctx_var <- .resolve_ref(var, arg_name = "var")
+    ctx_var <- .ctx_var_numerica_cruda(.resolve_ref(var, arg_name = "var"))   # H38
 
     cruce_ref <- overrides$cruce %||% el$cruce %||% preset_args$cruce %||% NULL
     preset_args$cruce <- NULL
@@ -6396,10 +6396,10 @@ reporte_ppt_plan <- function(
 
       ln <- NA_character_
       if ("list_name" %in% names(surv)) {
-        tmp <- surv$list_name[surv$name == varname]
+        tmp <- surv$list_name[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       } else if ("list_norm" %in% names(surv)) {
-        tmp <- surv$list_norm[surv$name == varname]
+        tmp <- surv$list_norm[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       }
       if (is.na(ln) || !nzchar(ln)) return(NULL)
@@ -6547,7 +6547,7 @@ reporte_ppt_plan <- function(
     preset_args <- preset_args %||% list()
     overrides   <- el$overrides %||% list()
 
-    ctx_var <- .resolve_ref(var, arg_name = "var")
+    ctx_var <- .ctx_var_numerica_cruda(.resolve_ref(var, arg_name = "var"))   # H38
 
     cruce_ref <- overrides$cruce %||% el$cruce %||% preset_args$cruce %||% NULL
     preset_args$cruce <- NULL
@@ -6574,10 +6574,10 @@ reporte_ppt_plan <- function(
 
       ln <- NA_character_
       if ("list_name" %in% names(surv)) {
-        tmp <- surv$list_name[surv$name == varname]
+        tmp <- surv$list_name[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       } else if ("list_norm" %in% names(surv)) {
-        tmp <- surv$list_norm[surv$name == varname]
+        tmp <- surv$list_norm[which(surv$name == varname)]
         if (length(tmp)) ln <- tmp[1]
       }
       if (is.na(ln) || !nzchar(ln)) return(NULL)
@@ -7161,7 +7161,7 @@ reporte_ppt_plan <- function(
     args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
     args <- .force_canvas_args(graficar_heatmap_dimensiones, args)
     args <- .keep_formals(graficar_heatmap_dimensiones, args)
-    suppressWarnings(do.call(graficar_heatmap_dimensiones, args))
+    .espec_dim_adjuntar(suppressWarnings(do.call(graficar_heatmap_dimensiones, args)), args, "heatmap")
   }
 
   .render_dim_heatmap_criterios <- function(el, preset_args) {
@@ -7267,7 +7267,7 @@ reporte_ppt_plan <- function(
     args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
     args <- .force_canvas_args(graficar_comparativo_radarbar_dimensiones, args)
     args <- .keep_formals(graficar_comparativo_radarbar_dimensiones, args)
-    suppressWarnings(do.call(graficar_comparativo_radarbar_dimensiones, args))
+    .espec_dim_adjuntar(suppressWarnings(do.call(graficar_comparativo_radarbar_dimensiones, args)), args, "comparativo")
   }
 
   .render_dim_foda <- function(el, preset_args) {
@@ -7439,8 +7439,8 @@ reporte_ppt_plan <- function(
   rendered   <- list()
   render_meta <- list()
 
+  ANTETITULOS <- .lam_antetitulos(plan)   # ADR 0093: capítulo vigente de cada lámina
   for (i in seq_along(plan)) {
-
     slide <- plan[[i]]
     if (!inherits(slide, "ppt_slide")) {
       .plan_input_abort("Cada slide debe tener clase `ppt_slide`.")
@@ -7814,7 +7814,7 @@ reporte_ppt_plan <- function(
           officer::ftext(
             title_text,
             prop = officer::fp_text(
-              color = as.character(.style_value(style, "title_color", .style_value(style, "accent_color", "#D8504F")))[1],
+              color = as.character(.style_value(style, "title_color", .style_value(style, "accent_color", .std_color("coral"))))[1],
               font.size = .style_num(style, "title_size", 24, min = 8),
               bold = TRUE,
               font.family = as.character(style$font_family)[1]
@@ -8408,8 +8408,8 @@ reporte_ppt_plan <- function(
         }
       }
 
-      if (!isTRUE(solo_lista)) {
-
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica(p, slide)) doc <- .lam_slide_1_nativa(doc, p, slide, title_slide, subtitle_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, suppress_base_placeholder, suppress_footer_placeholder, .add_partner_footer_logo, .title_of_var)
+      if (!isTRUE(solo_lista) && !.lam_compositor_aplica(p, slide)) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         if (!is.null(title_slide) && nzchar(title_slide)) {
@@ -8545,8 +8545,8 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_right, pR)
       }
 
-      if (!isTRUE(solo_lista)) {
-
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica_paneles(list(pL, pR), slide)) doc <- .lam_slide_paneles_nativa(doc, list(pL, pR), list(el_left, el_right), slide, title_slide, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_de_elementos, .ppt_note_from, .add_partner_footer_logo, .title_of_var)
+      if (!isTRUE(solo_lista) && !.lam_compositor_aplica_paneles(list(pL, pR), slide)) {
         doc <- .add_slide_strict(doc, contract$layout)
 
         if (!is.null(title_slide) && nzchar(title_slide)) {
@@ -8602,7 +8602,6 @@ reporte_ppt_plan <- function(
 
     # ---- SLIDE_1_NARRATIVO --------------------------------------------------
     if (identical(stype, "slide_1_narrativo")) {
-
       contract <- PPT_CONTRACT$slide_1_narrativo
       slots    <- slide$slots %||% list()
 
@@ -8638,7 +8637,8 @@ reporte_ppt_plan <- function(
         }
       }
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && .lam_narrativo_aplica(p, slide)) doc <- .lam_slide_narrativo_nativa(doc, p, slide, title_slide, el_plot, presets, contract$layout, master, ANTETITULOS[[i]], .base_auto_from_element, .ppt_note_from, .add_partner_footer_logo)
+      if (!isTRUE(solo_lista) && !.lam_narrativo_aplica(p, slide)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
 
@@ -8714,7 +8714,6 @@ reporte_ppt_plan <- function(
 
     # ---- SLIDE_2_NARRATIVO --------------------------------------------------
     if (identical(stype, "slide_2_narrativo")) {
-
       contract <- PPT_CONTRACT$slide_2_narrativo
       slots    <- slide$slots %||% list()
 
@@ -8760,7 +8759,8 @@ reporte_ppt_plan <- function(
         }
       }
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && .lam_narrativo2_aplica(pL, pR, el_left, el_right, slide, .title_of_var)) doc <- .lam_slide_narrativo2_nativa(doc, pL, pR, el_left, el_right, slide, title_slide, ANTETITULOS[[i]], if (isTRUE((slide$meta %||% list())$suppress_base_placeholder)) NULL else slots$base %||% .base_auto_de_elementos(els = list(el_left, el_right), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"), .title_of_var)
+      if (!isTRUE(solo_lista) && !.lam_narrativo2_aplica(pL, pR, el_left, el_right, slide, .title_of_var)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
 
@@ -8882,8 +8882,8 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_bl, pBL)
         .push_render_meta_for_element(el_br, pBR)
       }
-
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_composicion_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, base = slots$base %||% .base_auto_de_elementos(els = list(el_ul, el_ur, el_bl, el_br), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
+      if (!isTRUE(solo_lista) && !.lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
 
@@ -8958,7 +8958,7 @@ reporte_ppt_plan <- function(
         inject_var_titulo = .inject_var_titulo,
         inject_title_override = .inject_title_override,
         base_por_grafico = .base_por_grafico,
-        base_auto_from_element = .base_auto_from_element
+        base_auto_from_element = .base_auto_from_element, title_of_var = .title_of_var
       )
     }
 
@@ -8966,7 +8966,7 @@ reporte_ppt_plan <- function(
     # está en la plantilla. Una rama para las seis, no seis ramas.
     if (stype %in% names(.SLIDES_COMPOSICION)) {
       res <- .composicion_render(
-        doc = doc, slide = slide, contract = PPT_CONTRACT[[stype]],
+        doc = doc, slide = .lam_con_antetitulo(slide, ANTETITULOS[[i]]), contract = PPT_CONTRACT[[stype]],
         helpers = .plan_ppt_helpers_slide(), presets = presets,
         solo_lista = isTRUE(solo_lista)
       )
@@ -8990,7 +8990,6 @@ reporte_ppt_plan <- function(
     }
 
     if (identical(stype, "poblacion_4")) {
-
       contract <- PPT_CONTRACT$poblacion_4
       slots    <- slide$slots %||% list()
 
@@ -9057,7 +9056,8 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_br, pBR)
       }
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_composicion_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, base = slots$base %||% .base_auto_de_elementos(els = list(el_ul, el_ur, el_bl, el_br), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
+      if (!isTRUE(solo_lista) && !.lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
 

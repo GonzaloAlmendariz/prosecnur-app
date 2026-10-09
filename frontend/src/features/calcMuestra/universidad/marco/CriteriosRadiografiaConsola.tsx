@@ -17,6 +17,7 @@ import {
   type CriteriosI18bSurfaceSource,
 } from "./useCriteriosI18bSurface";
 import { CriteriosRadiografiaRecovery } from "./CriteriosRadiografiaRecovery";
+import { avisoEvidenciaCriterios } from "../criterios/evidenciaCriteriosTexto";
 import "./criteriosRadiografia.css";
 
 export { CriteriosRadiografiaCardDetalle } from "./CriteriosRadiografiaCardDetalle";
@@ -217,21 +218,21 @@ export function CriteriosRadiografiaConsola({
             onClick={() => setFocusedId(card.cardId)}
           >
             <strong>{card.label}</strong>
-            <span>{card.gateIds.length} {card.gateIds.length === 1 ? "gate" : "gates"}</span>
+            <span>{card.gateIds.length} {card.gateIds.length === 1 ? "regla" : "reglas"}</span>
             <em data-state={card.state}>{CRITERIO_RADIOGRAFIA_STATE_COPY[card.state].label}</em>
           </button>
         ))}
       </nav>
       {model.orphanGateIds.length || model.duplicateCardIds.length ? (
         <div className="cmv2-crc-contract-alert" role="alert">
-          Contrato incompleto: {model.orphanGateIds.length ? `gates huérfanos ${model.orphanGateIds.join(", ")}` : ""}
+          Detalle incompleto: {model.orphanGateIds.length ? `reglas sin tarjeta ${model.orphanGateIds.join(", ")}` : ""}
           {model.orphanGateIds.length && model.duplicateCardIds.length ? " · " : ""}
           {model.duplicateCardIds.length ? `tarjetas duplicadas ${model.duplicateCardIds.join(", ")}` : ""}.
         </div>
       ) : null}
       {i18b.invalid.length ? (
         <div className="cmv2-crc-contract-alert" role="alert">
-          Evidencia I18b inválida u obsoleta: {i18b.invalid.join(", ")}. React no sustituye esos datos con cálculos locales.
+          {avisoEvidenciaCriterios(i18b.invalid)}
         </div>
       ) : null}
       <div

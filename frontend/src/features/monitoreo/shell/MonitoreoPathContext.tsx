@@ -67,7 +67,7 @@ export function MonitoreoPathContext({ route }: Props) {
                 title={
                   item.status === "planned"
                     ? `${item.label} — camino previsto, aún no disponible`
-                    : `${item.label} — otro camino de monitoreo; lo define el tipo de estudio del proyecto`
+                    : `${item.label}: otro camino de monitoreo, lo define el tipo de estudio del proyecto`
                 }
               >
                 <Icon size={13} aria-hidden="true" />

@@ -13,11 +13,21 @@
   which(campos == t)[[1]]
 }
 
+# `application_status = "APLICADA"` porque desde el 2026-09-07 la hoja escribe
+# SOLO las aulas ya aplicadas (mas las que ya tienen control registrado): antes
+# publicaba los 174 titulares y con una sola aplicada quedaban 173 filas vacias,
+# que es como se esconde justo lo que la hoja existe para vigilar. Estos casos
+# comprueban el CONTENIDO de la fila, asi que sus aulas tienen que existir.
 .ce_aula <- function(cod, eleg, esperadas, f = 17, m = 13) list(
   operational_code = cod, sample_role = "titular", faculty = "Letras",
   wave = "M1", course_name = paste("Curso", cod), label = "A101",
   schedule = "Lun 10:00", enrolled_total = eleg + 4, eligible_n = eleg,
-  expected_valid = esperadas,
+  expected_valid = esperadas, application_status = "APLICADA",
+  # La tasa del aula es, por definición, `esperadas / elegibles`: el plan la
+  # trae calculada y la hoja la escribe en su propia columna desde el
+  # 2026-09-07, en lugar del antiguo «% EFECTIVAS ESPERADO», que era la misma
+  # cifra con otro nombre.
+  tasa_efectividad_aula = esperadas / eleg,
   sex_top_1 = "F", sex_top_1_n = f, sex_top_2 = "M", sex_top_2_n = m
 )
 
@@ -34,12 +44,13 @@ test_that("el esperado se publica por curso-horario, en numero Y en porcentaje",
          .ce_aula("CH 2", eleg = 40, esperadas = 24)),
     list(), NULL
   )
-  esperadas <- .ce_titulo("EFECTIVAS ESPERADAS")
-  pct <- .ce_titulo("% EFECTIVAS ESPERADO")
+  esperadas <- .ce_titulo("ESPERADAS POR TASA DEL AULA")
+  pct <- .ce_titulo("TASA DEL AULA")
   expect_identical(unlist(d[3, ], use.names = FALSE)[[esperadas]], "21")
   expect_identical(unlist(d[4, ], use.names = FALSE)[[esperadas]], "24")
   # 21/30 = 0.7 y 24/40 = 0.6: el numero solo no distingue que la segunda pide
-  # menos esfuerzo por alumno, y el porcentaje si.
+  # menos esfuerzo por alumno, y la tasa si. Es la misma cifra que publicaba
+  # «% EFECTIVAS ESPERADO», ahora con el nombre de lo que es.
   expect_identical(unlist(d[3, ], use.names = FALSE)[[pct]], "0.7")
   expect_identical(unlist(d[4, ], use.names = FALSE)[[pct]], "0.6")
 })
@@ -50,10 +61,10 @@ test_that("lo obtenido sale de la PLATAFORMA y la diferencia lleva signo", {
   # el aplicador anota en su parte.
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)),
                    efectivas = c(`CH 1` = 18))
-  expect_identical(fila[[.ce_titulo("EFECTIVAS OBTENIDAS")]], "18")
-  expect_identical(fila[[.ce_titulo("% EFECTIVAS OBTENIDO")]], "0.6")
+  expect_identical(fila[[.ce_titulo("EFECTIVAS")]], "18")
+  expect_identical(fila[[.ce_titulo("TASA OBTENIDA")]], "0.6")
   # En encuestas y con signo: «te faltan 3» es accionable, «-13 %» no.
-  expect_identical(fila[[.ce_titulo("EFECTIVAS: DIFERENCIA")]], "-3")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA EN ENCUESTAS VS AULA")]], "-3")
 })
 
 test_that("por encima de lo esperado la diferencia es POSITIVA", {
@@ -61,7 +72,7 @@ test_that("por encima de lo esperado la diferencia es POSITIVA", {
   # corta se leerian igual.
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)),
                    efectivas = c(`CH 1` = 25))
-  expect_identical(fila[[.ce_titulo("EFECTIVAS: DIFERENCIA")]], "4")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA EN ENCUESTAS VS AULA")]], "4")
 })
 
 test_that("sin respuestas leidas las columnas de obtenido quedan VACIAS", {
@@ -69,17 +80,27 @@ test_that("sin respuestas leidas las columnas de obtenido quedan VACIAS", {
   # aula sin aplicar la segunda es la cierta. Es el mismo criterio que «un 0 de
   # 0 no es 0 %».
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)), efectivas = NULL)
-  expect_identical(fila[[.ce_titulo("EFECTIVAS OBTENIDAS")]], "")
-  expect_identical(fila[[.ce_titulo("% EFECTIVAS OBTENIDO")]], "")
-  expect_identical(fila[[.ce_titulo("EFECTIVAS: DIFERENCIA")]], "")
+  expect_identical(fila[[.ce_titulo("EFECTIVAS")]], "")
+  expect_identical(fila[[.ce_titulo("TASA OBTENIDA")]], "")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA EN ENCUESTAS VS AULA")]], "")
   # Pero lo ESPERADO si se publica: se sabe desde que se hizo el plan.
-  expect_identical(fila[[.ce_titulo("EFECTIVAS ESPERADAS")]], "21")
+  expect_identical(fila[[.ce_titulo("ESPERADAS POR TASA DEL AULA")]], "21")
 })
 
-test_that("el sexo esperado sale del plan por aula, y cual es cual lo dice sex_top_1", {
+test_that("el sexo esperado REPARTE LA META, no el padrón, y suma exactamente", {
+  # **`sex_top_*_n` es la composición del PADRÓN.** La columna decía «MUJERES
+  # ESPERADAS 17 · HOMBRES 13» al lado de «ESPERADAS 21», y 17 + 13 = 30, que
+  # son los ELEGIBLES. El «Plan del día» ya repartía la meta por resto mayor y
+  # esta hoja se había quedado con el crudo; se vio en cuanto la columna dejó de
+  # llamarse «MUJERES ESPERADAS» a secas y dijo por qué tasa (2026-09-08).
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21, f = 17, m = 13)))
-  expect_identical(fila[[.ce_titulo("MUJERES ESPERADAS")]], "17")
-  expect_identical(fila[[.ce_titulo("HOMBRES ESPERADOS")]], "13")
+  muj <- as.numeric(fila[[.ce_titulo("MUJERES ESPERADAS POR TASA DEL AULA")]])
+  hom <- as.numeric(fila[[.ce_titulo("HOMBRES ESPERADOS POR TASA DEL AULA")]])
+  # Las dos partes suman la meta escrita al lado, no el padrón.
+  expect_equal(muj + hom, 21)
+  # Y conservan la proporción del padrón: 17 de 30 son mujeres.
+  expect_equal(muj, 12)
+  expect_equal(hom, 9)
 
   # Y si el mayoritario es el otro sexo, los numeros NO se cruzan: la posicion
   # no decide, lo dice `sex_top_1`.
@@ -87,8 +108,10 @@ test_that("el sexo esperado sale del plan por aula, y cual es cual lo dice sex_t
   otra$sex_top_1 <- "M"; otra$sex_top_1_n <- 19
   otra$sex_top_2 <- "F"; otra$sex_top_2_n <- 11
   f2 <- .ce_fila(list(otra))
-  expect_identical(f2[[.ce_titulo("HOMBRES ESPERADOS")]], "19")
-  expect_identical(f2[[.ce_titulo("MUJERES ESPERADAS")]], "11")
+  h2 <- as.numeric(f2[[.ce_titulo("HOMBRES ESPERADOS POR TASA DEL AULA")]])
+  m2 <- as.numeric(f2[[.ce_titulo("MUJERES ESPERADAS POR TASA DEL AULA")]])
+  expect_equal(h2 + m2, 21)
+  expect_gt(h2, m2)
 })
 
 test_that("los titulos viejos siguen leyendose: un libro a medio llenar no se rompe", {
@@ -134,27 +157,40 @@ test_that("un libro con las columnas viejas se sigue leyendo entero", {
   expect_equal(as.numeric(filas[[1]]$threshold_total), 1)
 })
 
-# «ELEGIBLES ESPERADOS» prometia un pronostico y llevaba el padron.
+# El padrón es el denominador, y la meta es otra columna.
 #
 # Gonzalo, 2026-08-24: «deberiamos tenerlo todo muy validado a lo ultimo que
-# tenemos y realmente usamos». La columna escribe `eligible_n` —el mismo numero
-# que «MATRICULADOS POBLACION» de la misma fila— y esta ahi para que el
-# `% EFECTIVAS ESPERADO` se lea sin cruzar la hoja. Su nombre viejo costo un
-# defecto real: el veredicto de aula valida la tomo por meta, y usar el padron
-# como vara exige el 100 % de asistencia efectiva.
+# tenemos y realmente usamos». Hubo una columna «ELEGIBLES: BASE DEL %» que
+# repetía `eligible_n` para que el porcentaje se leyera sin cruzar la hoja; con
+# el reordenamiento del 2026-09-07 el porcentaje ya está junto a su denominador
+# y esa columna dejó de escribirse. Su nombre original, «ELEGIBLES ESPERADOS»,
+# costó un defecto real: el veredicto de aula válida la tomó por meta, y usar el
+# padrón como vara exige el 100 % de asistencia efectiva.
 test_that("la base del % es el padron, y la meta es otra columna", {
   u <- list(.ce_aula("CH 1", eleg = 36, esperadas = 17.3))
   fila <- .ce_fila(u)
-  expect_equal(fila[[.ce_titulo("ELEGIBLES: BASE DEL %")]], "36")
-  expect_equal(fila[[.ce_titulo("MATRICULADOS POBLACION")]], "36")
-  # La meta NO es ninguna de las dos.
-  expect_equal(fila[[.ce_titulo("EFECTIVAS ESPERADAS")]], "17.3")
+  expect_equal(fila[[.ce_titulo("MATRICULADOS ELEGIBLES")]], "36")
+  # La meta NO es ninguna de las dos, y se escribe EN PERSONAS: el motor la
+  # calcula como producto de tasas (17,3) y desde el 2026-09-07 la hoja la
+  # redondea, porque nadie consigue diecisiete coma tres encuestas.
+  expect_equal(fila[[.ce_titulo("ESPERADAS POR TASA DEL AULA")]], "17")
+  # Y la tasa se calcula sobre la meta SIN redondear: 17,3/36 y no 17/36.
+  expect_equal(fila[[.ce_titulo("TASA DEL AULA")]], "0.481")
 })
 
-test_that("el titulo viejo sigue leyendose: los libros ya emitidos no se rompen", {
-  spec <- Filter(function(s) identical(s$campo, "elegibles_esperados"),
-                 BASE_CONTROL_CAMPOS)[[1]]
-  # El primero es el que se ESCRIBE; los siguientes son alias de lectura.
-  expect_equal(spec$titulos[[1]], "ELEGIBLES: BASE DEL %")
-  expect_true("ELEGIBLES ESPERADOS" %in% spec$titulos)
+test_that("los titulos viejos siguen leyendose: los libros ya emitidos no se rompen", {
+  por_campo <- function(k) Filter(function(s) identical(s$campo, k), BASE_CONTROL_CAMPOS)[[1]]
+  # Ya no se escribe, pero un libro que la traiga se sigue leyendo entera.
+  eleg <- por_campo("elegibles_esperados")
+  expect_true(isTRUE(eleg$solo_lectura))
+  expect_true(all(c("ELEGIBLES: BASE DEL %", "ELEGIBLES ESPERADOS") %in% eleg$titulos))
+  # Y las efectivas conservan su rótulo anterior de alias: el primero es el que
+  # se ESCRIBE, los siguientes son de lectura.
+  ef <- por_campo("efectivas_obtenidas")
+  expect_equal(ef$titulos[[1]], "EFECTIVAS")
+  expect_true("EFECTIVAS OBTENIDAS" %in% ef$titulos)
+  # Cortas y largas, la partición por duración de 2025, sólo se leen.
+  for (k in c("short_total", "short_vs_total", "long_total", "long_vs_total")) {
+    expect_true(isTRUE(por_campo(k)$solo_lectura), info = k)
+  }
 })

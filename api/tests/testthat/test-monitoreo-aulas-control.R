@@ -35,8 +35,11 @@ test_that("los grupos de identidad no inflan la cobertura del control", {
   ))
 
   expect_identical(res$aulas, 1L)
+  # `esperado` entra en la lista: es el bloque de la vara vigente —meta,
+  # obtenidas y brecha— y sin él el resumen no podia declarar cobertura del
+  # criterio que de verdad decide.
   expect_setequal(vapply(res$grupos, function(g) g$clave, character(1)),
-                  c("cuenta", "duracion", "cuotas", "horario"))
+                  c("cuenta", "esperado", "duracion", "cuotas", "horario"))
   expect_true(all(vapply(res$grupos, function(g) g$aulas_con_dato, integer(1)) == 0L))
 })
 
@@ -85,7 +88,11 @@ test_that("la importacion deja el control donde el tablero lo busca", {
     course_name = "Curso 1", label = "Lun 08:00", schedule = "Lun 08:00",
     faculty = "Ciencias", level = "Pregrado", enrolled_total = 40, eligible_n = 30,
     sample_status = "AGENDADA", sample_role = "titular", replacement_order = 0,
-    replacement_for = ""
+    replacement_for = "",
+    # La hoja de control escribe lo ya aplicado (2026-09-07); este caso
+    # comprueba que la fila VUELVE a la sesión al importar, así que el aula
+    # tiene que estar en la hoja.
+    application_status = "APLICADA"
   ))
   aulas_libro_generar(unidades, path)
   session_set(sid, "monitoreo_config", list(aulas_universitarias = list(enabled = TRUE)))
@@ -336,4 +343,49 @@ test_that("`expected_valid` manda sobre `efectivas_esperadas`", {
   )
   pub <- monitoreo_aulas_control_publicado(list(fila))[[1]]
   expect_true(pub$efectiva)
+})
+
+# El bloque que decide tiene que estar agrupado, o el inspector no lo enseña.
+#
+# `efectivas_esperadas` es la vara vigente y sus columnas viajan en el libro
+# desde que sustituyeron al 70 %, pero ninguna estaba en `MONITOREO_AULAS_CONTROL_GRUPOS`:
+# el panel de la Base de control pintaba las 27 columnas del grupo «cuenta»
+# —incluidos `70T` y `70P`, retirados— y NO la meta, ni la brecha, ni las cuotas
+# esperadas por sexo. La pantalla que existe para enseñar lo que trae el libro
+# enseñaba lo viejo y escondía lo vigente.
+test_that("el grupo del esperado existe y lleva sus seis columnas", {
+  g <- Filter(function(x) identical(x$clave, "esperado"), MONITOREO_AULAS_CONTROL_GRUPOS)
+  expect_length(g, 1)
+  expect_setequal(
+    g[[1]]$campos,
+    c("efectivas_esperadas", "efectivas_obtenidas", "efectivas_pct_esperado",
+      "efectivas_pct_obtenido", "efectivas_brecha", "elegibles_esperados")
+  )
+})
+
+test_that("cada cuota esperada por sexo va junto a su obtenida", {
+  g <- Filter(function(x) identical(x$clave, "cuotas"), MONITOREO_AULAS_CONTROL_GRUPOS)[[1]]
+  expect_true(all(c("mujeres_esperadas", "hombres_esperados") %in% g$campos))
+  # Al lado, no al final: se leen en pareja.
+  expect_equal(which(g$campos == "mujeres_esperadas") + 1L, which(g$campos == "women_n"))
+  expect_equal(which(g$campos == "hombres_esperados") + 1L, which(g$campos == "men_n"))
+})
+
+test_that("un aula con sólo el bloque del esperado lo declara como grupo con dato", {
+  # Un libro de 2026 no trae `70T`/`70P`: si el esperado no fuera grupo, esa
+  # fila no declararía NINGÚN control y el panel la daría por vacía.
+  pub <- monitoreo_aulas_control_publicado(list(list(
+    operational_code = "CH 1", efectivas_esperadas = 17.3, efectivas_obtenidas = 20
+  )))[[1]]
+  expect_true("esperado" %in% unlist(pub$grupos_con_dato))
+})
+
+test_that("todos los campos agrupados existen en la spec de la hoja", {
+  # Una clave mal escrita en un grupo se lee como columna vacía y desaparece sin
+  # avisar: es el modo en que este panel ya perdió el bloque del esperado.
+  declarados <- vapply(BASE_CONTROL_CAMPOS, function(s) s$campo, character(1))
+  for (g in MONITOREO_AULAS_CONTROL_GRUPOS) {
+    faltan <- setdiff(g$campos, declarados)
+    expect_equal(faltan, character(0), info = paste("grupo", g$clave))
+  }
 })

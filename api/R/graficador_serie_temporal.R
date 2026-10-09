@@ -130,6 +130,9 @@ graficar_serie_temporal <- function(
     # `max_categorias` en barras categoricas: el motor declara su limite en vez
     # de dibujar algo ilegible.
     max_series_con_cifras = 5L,
+    # ADR 0092 (F2.7b): el estilo del recetario (graficador_serie_recetario.R);
+    # "clasico" conserva el dibujo previo, con eje desde 0 y leyenda.
+    estilo = c("recetario", "clasico"),
 
     size_linea  = 0.9,
     size_punto  = 2.4,
@@ -140,22 +143,23 @@ graficar_serie_temporal <- function(
     colores_series   = NULL,
 
     mostrar_grid_y = TRUE,
-    color_ejes  = "#081F5C",
+    color_ejes  = .std_color("azul"),
     size_ejes   = 9,
     limite_y    = NULL,
     expand_y    = 0.12,
 
-    color_titulo    = "#081F5C",
+    color_titulo    = .std_color("azul"),
     size_titulo     = 11,
-    color_subtitulo = "#081F5C",
+    color_subtitulo = .std_color("azul"),
     size_subtitulo  = 9,
-    color_nota_pie  = "#081F5C",
+    color_nota_pie  = .std_color("azul"),
     size_nota_pie   = 8,
     textos_negrita  = NULL,
     font_family     = "Arial"
 ) {
   escala_valor <- match.arg(escala_valor)
   leyenda_posicion <- match.arg(leyenda_posicion)
+  estilo <- match.arg(estilo)
   textos_negrita <- textos_negrita %||% character(0)
   face_de <- function(token) if (token %in% textos_negrita) "bold" else "plain"
 
@@ -208,6 +212,27 @@ graficar_serie_temporal <- function(
   df$.y <- valores_plot
 
   colores <- .serie_temporal_colores(niveles_serie, colores_series)
+
+  tope_cifras_r <- suppressWarnings(as.integer(max_series_con_cifras)[1])
+  if (!is.finite(tope_cifras_r) || tope_cifras_r < 1L) tope_cifras_r <- 5L
+  if (identical(estilo, "recetario")) {
+    cifras_r <- length(niveles_serie) <= tope_cifras_r
+    p <- .serie_recetario(df, colores, decimales = valores_decimales,
+                          mostrar_valores = isTRUE(mostrar_valores) && cifras_r, limite_y = limite_y,
+                          titulo = titulo, subtitulo = subtitulo, nota_pie = nota_pie,
+                          textos_negrita = textos_negrita, font_family = font_family,
+                          color_titulo = color_titulo, size_titulo = size_titulo,
+                          color_subtitulo = color_subtitulo, size_subtitulo = size_subtitulo,
+                          color_nota_pie = color_nota_pie, size_nota_pie = size_nota_pie)
+    attr(p, "pulso_serie_periodos") <- niveles_periodo
+    attr(p, "pulso_serie_series") <- niveles_serie
+    attr(p, "pulso_serie_cifras_omitidas") <- isTRUE(mostrar_valores) && !cifras_r
+    # Dos mediciones: la lámina nativa (87). Tres o más: el ggplot del recetario dentro de su lámina (88), con la
+    # ubicación de recetario_m3c.R:68 (0.4 in a la derecha, 4.7 in de alto).
+    attr(p, "pulso_espec") <- tryCatch(.espec_serie_dos(df, colores, valores_decimales, limite_y), error = function(e) NULL) %||%
+      .espec_ggplot_marco("serie", nota = nota_pie, zona = c(dx = 0.4, dy = 0.1, dw = 0.4, dh = 0.27))
+    return(p)
+  }
 
   p <- ggplot2::ggplot(
     df,

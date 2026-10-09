@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import type { FacultadDelBanco } from "./AulasBancoExtras";
+import { etiquetaDeSexo } from "./etiquetaDeSexo";
 import {
   DIAS_DE_ANTICIPACION,
   TASA_DE_CAIDA,
@@ -11,6 +12,7 @@ import {
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { caidaObservada } from "./tasaDeCaida";
 import { NombreDeFacultad } from "./NombreDeFacultad";
+import "./aulasAnticipacion.css";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt } from "./kpisDeAulas";
 
@@ -25,10 +27,11 @@ import { fmt } from "./kpisDeAulas";
  * puede agendar; un «antes del 24/08» sí, y es lo que pidió Gonzalo al decir que
  * hay que poder predecirlo con antelación.
  *
- * Y «Banco» va pegada a «Pedir» porque la comparación es exactamente entre esas
- * dos. Cuando el banco de la facultad no llega, la lista deja de pedir llamadas:
- * no hay de dónde sacar esas aulas y el problema vuelve a Cálculo de muestra.
- * Decir «pide 14» sin mirar si existen es mandar a llamar al vacío.
+ * Y «Reserva adicional» va pegada a «Pedir» porque la comparación es
+ * exactamente entre esas dos. Cuando la reserva adicional de la facultad no
+ * llega, la lista deja de pedir llamadas: no hay de dónde sacar esas aulas y
+ * el problema vuelve a Cálculo de muestra. Decir «pide 14» sin mirar si
+ * existen es mandar a llamar al vacío.
  */
 
 /** `2026-08-24` → `24/08`. En UTC: con hora local sale el día anterior. */
@@ -56,6 +59,37 @@ const CARGA_QUE_MANDA = 2 / 3;
 
 /** `0.235` → `24 %`. */
 const pctCorto = (n: number) => `${Math.round(n * 100)} %`;
+
+/**
+ * Por qué se le piden N cursos-horario a esta facultad, con sus números.
+ *
+ * Es la cadena completa en una frase: lo que falta, lo que deja cada
+ * curso-horario suyo, cuántos bastarían y por qué se piden más. El pie del panel
+ * ya explicaba la REGLA —la tasa de caída de 2025— pero no la aplicaba a la fila
+ * que se está mirando, y la pregunta era justo ésa: «¿en base a qué te basas?».
+ */
+function razonDelPedido(f: AlertaDeFacultad): string {
+  if (!f.aulasAPedir) return "Todavía no se puede dimensionar: falta saber cuánto deja un curso-horario de esta facultad.";
+  const partes: string[] = [];
+  // **El sexo se traduce, no se pone en minúscula.** Viaja como «F»/«M» y
+  // `s.sexo.toLowerCase()` publicaría «6 de f». Hay un guard del perfil que lo
+  // caza y aquí lo cazó: `etiquetaDeSexo` es el único dueño de esa traducción.
+  const porSexo = f.faltanPorSexo
+    .filter((s) => s.faltan > 0)
+    .map((s) => `${fmt(s.faltan)} de ${etiquetaDeSexo(s.sexo)}`)
+    .join(" y ");
+  partes.push(`Faltan ${fmt(f.faltan)} respuestas${porSexo ? ` (${porSexo})` : ""}.`);
+  if (f.esperadoPorAula > 0) {
+    const bastan = f.aulasNecesarias === 1
+      ? "bastaría 1"
+      : `bastarían ${fmt(f.aulasNecesarias ?? 0)}`;
+    partes.push(`Cada curso-horario suyo deja unas ${fmt(Math.round(f.esperadoPorAula))}, así que ${bastan}.`);
+  }
+  if ((f.aulasAPedir ?? 0) > (f.aulasNecesarias ?? 0)) {
+    partes.push(`Se piden ${fmt(f.aulasAPedir)} porque una parte no llega a aplicarse: en 2025 cayeron 21 de cada 170 titulares.`);
+  }
+  return partes.join(" ");
+}
 
 export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], banco = [], facultadEnFoco, onFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
@@ -88,13 +122,19 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
   );
 
   const conBrecha = filas.filter((f) => f.urgencia !== "sin brecha");
-  const aulasTotales = conBrecha.reduce((n, f) => n + f.aulasAPedir, 0);
+  // Sólo se suma lo que tiene cifra. Las facultades cuyo pedido no se puede
+  // dimensionar todavía —brecha conocida, rendimiento por aula aún no— se
+  // cuentan aparte y se dicen: sumarlas como 0 hacía que la lectura declarara
+  // «hay que pedir 0 en total» encima de una tabla con 983 y 1.340 en FALTAN.
+  const dimensionadas = conBrecha.filter((f) => f.aulasAPedir != null);
+  const sinDimensionar = conBrecha.length - dimensionadas.length;
+  const aulasTotales = dimensionadas.reduce((n, f) => n + (f.aulasAPedir ?? 0), 0);
   const paradas = conBrecha.filter((f) => f.urgencia === "sin agenda").length;
-  const sinBanco = conBrecha.filter((f) => f.bancoAlcanza === false).length;
-  // Si NINGUNA fila sabe cuánto banco le queda, la columna sería «S/D» veinte
-  // veces. Se omite entera: una columna que no distingue nada sólo estrecha las
-  // que sí lo hacen.
-  const hayBanco = conBrecha.some((f) => f.bancoDisponible != null);
+  const sinReservaAdicional = conBrecha.filter((f) => f.reservaAlcanza === false).length;
+  // Si NINGUNA fila sabe cuánta reserva adicional le queda, la columna sería
+  // «S/D» veinte veces. Se omite entera: una columna que no distingue nada
+  // sólo estrecha las que sí lo hacen.
+  const hayReservaAdicional = conBrecha.some((f) => f.reservaDisponible != null);
   // **El supuesto que hay detrás de cada número de esta lista.**
   //
   // «Pedir 14» sale de multiplicar lo que falta por la tasa de caída de 2025.
@@ -128,8 +168,14 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
     <div className="aulas-anticipacion">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(conBrecha.length)}</strong>{" "}
-        {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} aulas nuevas ·
-        hay que pedir <strong>{fmt(aulasTotales)}</strong> en total
+        {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} cursos-horario nuevos
+        {dimensionadas.length
+          ? <> · hay que pedir <strong>{fmt(aulasTotales)}</strong> en total</>
+          : null}
+        {sinDimensionar
+          ? <> · <strong>{fmt(sinDimensionar)}</strong> sin dimensionar todavía: hace falta
+              el primer curso-horario aplicado para saber cuánto rinde uno</>
+          : null}
         {/* Las paradas van en la lectura y no sólo en la tabla: son las que
             tienen días de campo perdiéndose ahora mismo. */}
         {paradas > 0
@@ -166,17 +212,19 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
       ) : null}
 
       {/* Va fuera de la lectura y antes de la tabla porque cambia QUÉ hacer, no
-          cuánto: con el banco corto no hay llamada que lo arregle. */}
-      {sinBanco > 0 ? (
+          cuánto: con la reserva adicional corta no hay llamada que lo arregle. */}
+      {sinReservaAdicional > 0 ? (
         <p className="aulas-anticipacion-sinbanco">
-          En <strong>{fmt(sinBanco)}</strong> {sinBanco === 1 ? "facultad" : "facultades"}{" "}
-          el banco de extras no tiene las aulas que se piden: eso no se resuelve
+          En <strong>{fmt(sinReservaAdicional)}</strong> {sinReservaAdicional === 1 ? "facultad" : "facultades"}{" "}
+          la reserva adicional no tiene los cursos-horario que se piden: eso no se resuelve
           llamando, se resuelve ampliando la muestra en Cálculo de muestra.
         </p>
       ) : null}
 
       <ul
-        className={`aulas-anticipacion-lista${hayBanco ? " con-banco" : ""}`}
+        role="table"
+        aria-label="Cursos-horario por pedir, por facultad"
+        className={`aulas-anticipacion-lista${hayReservaAdicional ? " con-banco" : ""}`}
         data-qa-geometry-capacity="owned"
         data-qa-geometry-member
       >
@@ -185,48 +233,78 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
             delante, la primera columna numérica que lee el ojo salta —232, 196,
             191, 186, 169, 163, 153, 168…— y la tabla parece desordenada cuando
             está ordenada por otra cosa. */}
-        <li className="aulas-anticipacion-cabecera" aria-hidden="true">
-          <span>Facultad</span>
-          <span>Pedir</span>
-          {hayBanco ? <span>Banco</span> : null}
-          <span>Cubren</span>
-          <span>Faltan</span>
-          {cuandos.size > 1 ? <span>Cuándo</span> : null}
+        {/* Roles de tabla sobre la rejilla, no `<table>`: la cabecera estaba
+            oculta y un lector de pantalla recibía las cifras sin nombre. **Las
+            columnas condicionales llevan el rol DENTRO de su condicional**, o la
+            fila declararía más celdas de las que pinta. */}
+        <li className="aulas-anticipacion-cabecera" role="row">
+          <span role="columnheader">Facultad</span>
+          <span role="columnheader">Pedir</span>
+          {hayReservaAdicional ? <span role="columnheader">Reserva adicional</span> : null}
+          {/* **«Cubren» se leía como una afirmación sobre la reserva
+              adicional.** Va pegada a la columna «Reserva adicional», que casi
+              siempre dice «S/D», y la fila quedaba «Pedir 33 · Reserva
+              adicional S/D · Cubren 25»: con la reserva adicional sin dato,
+              ¿con qué cubren 25? No habla de la reserva adicional — son las
+              aulas que BASTARÍAN para cerrar la brecha, y se piden más porque
+              una parte se cae, como explica el pie. El rótulo nombra ahora lo
+              que cuenta. */}
+          <span role="columnheader">Bastarían</span>
+          <span role="columnheader">Faltan</span>
+          {cuandos.size > 1 ? <span role="columnheader">Cuándo</span> : null}
         </li>
         {conBrecha.map((f) => (
-          <li key={f.facultad} className={`${f.urgencia === "hay margen" ? "" : "es-urgente"}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`}>
+          <li key={f.facultad} role="row" className={`${f.urgencia === "hay margen" ? "" : "es-urgente"}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`}>
+            {/* **El eslabón que faltaba de la cadena.** Gonzalo, dos veces:
+                «a quién hay que agendar, no entiendo en base a qué te basas» y
+                «no está claro las que hay que agendar, por qué me estás diciendo
+                que hay que agendarlas». La fila daba el principio —«faltan 7»— y
+                el final —«pedir 2»—, y entre los dos hay un paso que no estaba:
+                cuánto deja un curso-horario de ESA facultad. Sin él, 7 y 2 no se
+                relacionan con nada. */}
             <NombreDeFacultad facultad={f.facultad} className="aulas-anticipacion-nombre"
-              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco} />
-            <span className="aulas-anticipacion-pedir">
+              rol="rowheader"
+              enFoco={f.facultad === facultadEnFoco}>
+              {f.facultad}
+              {f.esperadoPorAula > 0 ? (
+                <em>cada curso-horario suyo deja unas {fmt(Math.round(f.esperadoPorAula))} respuestas</em>
+              ) : null}
+            </NombreDeFacultad>
+            <span
+              role="cell"
+              className="aulas-anticipacion-pedir"
+              /* La cadena entera, con los números de ESTA facultad. */
+              title={razonDelPedido(f)}
+            >
               {f.aulasAPedir ? <strong>{fmt(f.aulasAPedir)}</strong> : <em>S/D</em>}
             </span>
             {/* Extras de ESA facultad sin usar. `null` es «no se sabe», que no es
                 cero: pintarlo como cero acusaría de una escasez no medida. */}
-            {hayBanco ? (
-              <span className={f.bancoAlcanza === false ? "aulas-anticipacion-ya" : ""}>
-                {f.bancoDisponible == null ? <em>S/D</em> : fmt(f.bancoDisponible)}
+            {hayReservaAdicional ? (
+              <span role="cell" className={f.reservaAlcanza === false ? "aulas-anticipacion-ya" : ""}>
+                {f.reservaDisponible == null ? <em>S/D</em> : fmt(f.reservaDisponible)}
               </span>
             ) : null}
             {/* Las que cubrirían la brecha si TODAS se aplicaran. Se enseña al
                 lado de las que hay que pedir para que el margen se vea, en vez de
                 aparecer como un número inflado sin explicación. */}
-            <span>{f.aulasNecesarias ? fmt(f.aulasNecesarias) : "S/D"}</span>
+            <span role="cell">{f.aulasNecesarias ? fmt(f.aulasNecesarias) : "S/D"}</span>
             {/* Lo que falta Y DE QUÉ. Sumar los dos sexos escondía la mitad de
                 la instrucción: «pide 12 en Gestión» con 52 mujeres y 24 hombres
-                de brecha. El banco se elige por composición, así que el pedido
-                también. */}
-            <span className="aulas-anticipacion-faltan" title={
+                de brecha. La reserva adicional se elige por composición, así
+                que el pedido también. */}
+            <span role="cell" className="aulas-anticipacion-faltan" title={
               f.faltanPorSexo.length
-                ? f.faltanPorSexo.map((x) => `${fmt(x.faltan)} ${x.sexo}`).join(" · ")
+                ? f.faltanPorSexo.map((x) => `${fmt(x.faltan)} ${etiquetaDeSexo(x.sexo)}`).join(" · ")
                 : undefined
             }>
               {fmt(f.faltan)}
               {f.faltanPorSexo.length > 1 && f.faltanPorSexo[0].faltan >= f.faltan * CARGA_QUE_MANDA ? (
-                <em> · {fmt(f.faltanPorSexo[0].faltan)} {f.faltanPorSexo[0].sexo.toLowerCase()}</em>
+                <em> · {fmt(f.faltanPorSexo[0].faltan)} {etiquetaDeSexo(f.faltanPorSexo[0].sexo)}</em>
               ) : null}
             </span>
             {cuandos.size > 1 ? (
-              <span className={f.urgencia === "hay margen" ? "" : "aulas-anticipacion-ya"}>
+              <span role="cell" className={f.urgencia === "hay margen" ? "" : "aulas-anticipacion-ya"}>
                 {cuando(f)}
               </span>
             ) : null}
@@ -235,17 +313,19 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
       </ul>
 
       <p className="mon-profile-muted aulas-anticipacion-pie">
-        {/* «40 de cada 170» y no «24 de cada 100»: redondear la tasa dejaba en la
-            misma frase un 24 % y un «(40 de 170)» que da 23,5 —dos cifras del
-            mismo hecho a cinco palabras de distancia—. La fracción real no
-            necesita redondeo. */}
+        {/* «21 de cada 170» y no «12 de cada 100»: redondear la tasa deja en la
+            misma frase dos cifras del mismo hecho a cinco palabras de
+            distancia. La fracción real no necesita redondeo — y es la fracción
+            de CAÍDAS (titular sin aplicar cubierto por reemplazo), no la de
+            «usó algún reemplazo», que en 2025 también contaba 25 refuerzos
+            (checklist-tres-fuentes §A7). */}
         Se piden más aulas de las que cubren la brecha porque una parte no llega a
-        aplicarse: en el operativo de 2025, <strong>40 de cada 170</strong>{" "}
-        titulares acabaron necesitando reemplazo. La fecha es el último día para
+        aplicarse: en el operativo de 2025, <strong>21 de cada 170</strong>{" "}
+        titulares cayeron y un reemplazo ocupó su lugar. La fecha es el último día para
         llamar sin que la facultad se quede parada: se cuenta desde el día en que
         se le acaba la agenda, restando los <strong>{DIAS_DE_ANTICIPACION} días</strong>{" "}
-        que pasaron de mediana entre llamar a un aula y aplicarla, también en 2025.
-        {hayBanco ? " «Banco» son las aulas extra de esa facultad que siguen sin usarse." : ""}
+        que pasaron de mediana entre llamar a un curso-horario y aplicarlo, también en 2025.
+        {hayReservaAdicional ? " «Reserva adicional» son los cursos-horario extra de esa facultad que siguen sin usarse." : ""}
       </p>
     </div>
   );

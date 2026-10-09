@@ -350,15 +350,52 @@
 # que el values:batchUpdate sobreescriba TODO el rectángulo publicado antes
 # (sin celdas huérfanas cuando una fila se acorta). El hash se calcula sobre
 # este rectángulo, que es exactamente lo que se escribe.
+#
+# **Y una celda NUMÉRICA llega numérica.** Hasta el 2026-09-08 esto hacía
+# `as.character(unlist(row))` y todo el libro viajaba a Sheets como texto. Con
+# `valueInputOption=RAW` una cadena se guarda como cadena: la celda queda de
+# tipo texto, y sobre texto no hay numFmt de porcentaje que aplicar, ni regla
+# de color que compare, ni orden ni suma dentro del propio documento. Gonzalo lo
+# pidió el día 2 de campo para «Avance de campo» («el (%) es el formato de la
+# celda, no el título») y la conversión estaba aquí, tres capas más abajo.
+#
+# El cambio es CONSERVADOR a propósito: sólo sobrevive el número cuando el
+# productor emite un número, y hoy el único que lo hace es `aulas_libro_hoja_avance()`.
+# Para todos los demás —que emiten data.frames de caracteres— la salida es
+# byte a byte la de antes, así que ni su hash de pestaña cambia ni se
+# republican solos.
+.monitoreo_sync_sheets_celda <- function(v) {
+  if (is.numeric(v) && length(v) == 1L) {
+    return(if (is.finite(v)) v else "")
+  }
+  x <- as.character(v)
+  if (!length(x) || is.na(x[[1L]])) return("")
+  x[[1L]]
+}
+
 .monitoreo_sync_sheets_padded_rows <- function(rows) {
   rows <- rows %||% list()
   if (!length(rows)) return(list(list("")))
   width <- max(1L, max(vapply(rows, function(row) length(row %||% list()), integer(1))))
   lapply(rows, function(row) {
-    cells <- as.character(unlist(row %||% character(0), use.names = FALSE))
-    cells[is.na(cells)] <- ""
-    if (length(cells) < width) cells <- c(cells, rep("", width - length(cells)))
-    as.list(cells)
+    # `unname` antes de nada: una fila con nombres daría una lista nombrada y
+    # con ella un hash distinto para el mismo contenido.
+    crudas <- unname(as.list(row %||% list()))
+    cells <- list()
+    for (v in crudas) {
+      # Un elemento de largo > 1 se aplana en varias celdas, que es lo que hacía
+      # el `unlist` de antes; un NULL ocupa su celda vacía en vez de desaparecer
+      # y correr las de su derecha.
+      if (is.null(v) || !length(v)) {
+        cells[[length(cells) + 1L]] <- ""
+      } else if (length(v) == 1L) {
+        cells[[length(cells) + 1L]] <- .monitoreo_sync_sheets_celda(v)
+      } else {
+        for (k in seq_along(v)) cells[[length(cells) + 1L]] <- .monitoreo_sync_sheets_celda(v[[k]])
+      }
+    }
+    if (length(cells) < width) cells <- c(cells, rep(list(""), width - length(cells)))
+    cells
   })
 }
 
@@ -425,7 +462,20 @@
 # ahora: 1 GET de metadata, [addSheet si hay pestañas nuevas], 1 batch de
 # ownership/reset, 1 values:batchUpdate con TODAS las pestañas cambiadas y
 # 1 batch de formato/estado. Con todo sin cambios: 1 solo request.
-.monitoreo_sync_sheets_publish_tabs <- function(spreadsheet_id, tabs) {
+#
+# `format_requests` (B8/W2): quién produce las requests de formato del batch-2
+# — `function(sheet_id, tab_name, rows)`. Con NULL (todos los llamadores
+# previos) sigue siendo `.monitoreo_sheets_professional_format_requests`; el
+# libro de aulas pasa la suya porque la heurística de cabecera del genérico no
+# reconoce sus filas y su regla de anchos emite una request POR COLUMNA (253 en
+# la agenda real). El contrato del batch-2 no cambia: el formato viaja DESPUÉS
+# de los values y solo para pestañas nuevas o con dimensiones cambiadas.
+.monitoreo_sync_sheets_publish_tabs <- function(spreadsheet_id, tabs, format_requests = NULL) {
+  formato_de <- if (is.function(format_requests)) {
+    format_requests
+  } else {
+    .monitoreo_sheets_professional_format_requests
+  }
   spreadsheet_id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(spreadsheet_id)) stop("Falta spreadsheet_id para publicar.", call. = FALSE)
   tab_names <- names(tabs)
@@ -532,7 +582,7 @@
   for (tab_name in names(changed)) {
     p <- changed[[tab_name]]
     if (isTRUE(p$dims_changed)) {
-      batch2 <- c(batch2, .monitoreo_sheets_professional_format_requests(p$tab$sheet_id, tab_name, tabs[[tab_name]]))
+      batch2 <- c(batch2, formato_de(p$tab$sheet_id, tab_name, tabs[[tab_name]]))
     }
     if (nzchar(p$hash)) {
       batch2 <- c(batch2, .monitoreo_sync_sheets_tab_state_requests(
@@ -766,11 +816,14 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
   prev_snapshot <- s_prev$monitoreo_snapshot %||% NULL
   prev_data <- if (!is.null(prev_snapshot) && is.data.frame(prev_snapshot$data)) prev_snapshot$data else data.frame()
   incremental_source_ids <- .monitoreo_sync_incremental_source_ids(result$sync_summary %||% list())
+  # Las fuentes que volvieron con cero filas no borran lo que ya había: un
+  # reemplazo full sólo reemplaza si trae con qué (2026-09-08).
   combined_data <- .monitoreo_merge_sync_result_data(
     prev_data,
     result$data,
     synced_source_ids = synced_source_ids,
-    incremental_source_ids = incremental_source_ids
+    incremental_source_ids = incremental_source_ids,
+    empty_source_ids = .monitoreo_sync_empty_source_ids(result$sync_summary %||% list())
   )
   .monitoreo_sync_oncomplete_log("merge", t_fase, list(rows = nrow(combined_data)))
 
@@ -872,7 +925,16 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
     synced_at = result$synced_at,
     data = combined_data,
     config = result$config,
-    errors = result$errors
+    errors = result$errors,
+    # B3: el aviso vive en el SNAPSHOT, no sólo en el resultado del job. Quien
+    # abre la app al día siguiente ve las cifras de la última sincronización que
+    # sí trajo algo, con la fecha de la que no trajo nada, y tiene el mismo
+    # derecho a saberlo que quien pulsó el botón. `NULL` lo limpia en cuanto una
+    # sincronización vuelve con datos.
+    aviso_fuentes_vacias = .monitoreo_sync_aviso_vacias(
+      result$sync_summary %||% list(),
+      conservadas = nrow(combined_data)
+    )
   ), artifacts)
   # Los facts del home se conservan del corte previo (stale pero informativo)
   # hasta que el primer GET de la familia los re-espeje con el tablero fresco
@@ -939,7 +1001,13 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
     sync_mode = sync_mode,
     report_scope = report_scope,
     errors = result$errors,
-    sync_summary = result$sync_summary %||% list()
+    sync_summary = result$sync_summary %||% list(),
+    # B3: qué fuente volvió sin nada y qué se está viendo en su lugar. `NULL`
+    # cuando todas trajeron algo, para que el front no tenga que decidirlo.
+    aviso_fuentes_vacias = .monitoreo_sync_aviso_vacias(
+      result$sync_summary %||% list(),
+      conservadas = nrow(dashboard_data)
+    )
   )
 }
 
@@ -962,11 +1030,14 @@ monitoreo_sheets_sync_apply_result <- function(sid, result, report = NULL) {
     result$data
   )
   incremental_source_ids <- .monitoreo_sync_incremental_source_ids(result$sync_summary %||% list())
+  # Las fuentes que volvieron con cero filas no borran lo que ya había: un
+  # reemplazo full sólo reemplaza si trae con qué (2026-09-08).
   combined_data <- .monitoreo_merge_sync_result_data(
     prev_data,
     result$data,
     synced_source_ids = synced_source_ids,
-    incremental_source_ids = incremental_source_ids
+    incremental_source_ids = incremental_source_ids,
+    empty_source_ids = .monitoreo_sync_empty_source_ids(result$sync_summary %||% list())
   )
   current_cfg <- .monitoreo_request_config(NULL, s_current$monitoreo_config %||% list(), combined_data)
   result$config <- monitoreo_normalize_config(result$config, combined_data, previous_config = current_cfg)

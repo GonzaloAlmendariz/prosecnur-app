@@ -49,7 +49,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
     // estados con distinta acción —celebrar o ir a llenar la hoja—.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        El libro todavía no evalúa ninguna aula, así que no se puede decir
+        El libro todavía no evalúa ningún curso-horario, así que no se puede decir
         cuáles se quedaron cortas. El veredicto sale de las dos columnas de
         umbral de «Base de control».
       </p>
@@ -61,7 +61,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
     // llegaron—. Decirlo como «sin datos» la haría parecer un fallo del panel.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Ninguna aula evaluada se quedó corta: las que el libro evalúa alcanzaron
+        Ningún curso-horario evaluado se quedó corto: los que el libro evalúa alcanzaron
         sus dos umbrales.
       </p>
     );
@@ -74,9 +74,9 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
       // 2026 el equipo iba a buscarlas y no estaban. Lo que falta hoy es lo que
       // el aula consiguió, porque la meta ya viaja con cada curso-horario.
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        {fmt(r.noEfectivas)} aulas no alcanzaron su meta, pero el libro no trae
-        con qué calcular cuánto les falta: hace falta cuántas efectivas
-        consiguió cada una (columna «EFECTIVAS OBTENIDAS»).
+        {fmt(r.noEfectivas)} cursos-horario no alcanzaron su meta, pero el libro
+        no trae con qué calcular cuánto les falta: hace falta cuántas efectivas
+        consiguió cada uno (columna «EFECTIVAS OBTENIDAS»).
       </p>
     );
   }
@@ -119,7 +119,8 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
         {conCinco ? (
           <>
             {" · "}
-            <strong>{fmt(conCinco)}</strong> están a cinco o menos
+            <strong>{fmt(conCinco)}</strong>{" "}
+            {fmt(conCinco) === "1" ? "está" : "están"} a cinco o menos
           </>
         ) : null}
       </p>
@@ -127,9 +128,16 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
           `preserveAspectRatio="none"` que estira la curva a lo ancho estiraría
           también el texto. Es el mismo patrón del pronóstico de cierre. */}
       <div className="aulas-falta-lienzo">
+        {/* **El aria-label describe el gráfico; no lo bautiza.**
+
+            Abría con «Escalera de esfuerzo», que es una metáfora y no un
+            término: dentro del código se entiende —los peldaños son aulas que se
+            van cerrando— pero quien no ve la pantalla oye un nombre propio que
+            nadie le ha definido, y es lo único que oye. El panel ya se llama «Lo
+            que falta para cerrar»; esto dice qué se está mirando. */}
         <svg className="aulas-falta-grafico" viewBox="0 0 100 100" preserveAspectRatio="none"
           role="img"
-          aria-label={`Escalera de esfuerzo: ${fmt(costo)} encuestas cierran ${fmt(total)} aulas; ${fmt(conCinco)} necesitan cinco o menos`}>
+          aria-label={`Cursos-horario que se cierran según lo que cuestan: con ${fmt(costo)} encuestas cierran los ${fmt(total)}; ${fmt(conCinco)} necesitan cinco o menos`}>
           {[0.5, 1].map((f) => (
             <line key={f} x1={MARGEN} y1={y(total * f)} x2={100 - MARGEN} y2={y(total * f)}
               stroke="var(--pulso-border)" strokeWidth="1" vectorEffect="non-scaling-stroke"
@@ -149,7 +157,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
         </svg>
         {/* La escala del eje Y. Sin ella la curva sube pero no dice hacia
             cuántas aulas, que es la mitad de la lectura. */}
-        <span className="aulas-falta-y es-alto">{fmt(total)} aulas</span>
+        <span className="aulas-falta-y es-alto">{fmt(total)} cursos-horario</span>
         <span className="aulas-falta-y es-medio">{fmt(Math.round(total / 2))}</span>
         {conCinco ? (
           <span className="aulas-falta-marca" style={{ left: `${x(gastoCinco)}%` }}>
@@ -175,7 +183,6 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
                 facultad={f.facultad}
                 className="aulas-falta-fac"
                 enFoco={f.facultad === facultadEnFoco}
-                onFoco={onFoco}
               />
               <span className="aulas-falta-barra">
                 <span style={{ width: `${(f.aulas / grupos.filas[0].aulas) * 100}%` }} />
@@ -186,7 +193,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
                   distintas. Ese dato ya está arriba para el conjunto y abajo
                   aula por aula. */}
               <span className="aulas-falta-por">
-                {f.aulas === 1 ? "aula" : "aulas"} · {fmt(f.costo)} encuestas
+                {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.costo)} encuestas
               </span>
             </li>
           ))}
@@ -197,8 +204,11 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
           para comparar facultades entre sí —la misma razón por la que la
           pirámide recibe todas las filas: es el control—. Aquí es al revés:
           quien está siguiendo a una facultad quiere SUS aulas. */}
+      {/* La lista ENTERA, del más barato al más caro: el techo de diez quedó
+          revocado (B33, principio 3 — se organiza, no se esconde). El orden es
+          la priorización; el scroll de la sección recorre lo que no quepa. */}
       <ul className="aulas-falta-lista">
-        {enFoco.slice(0, 10).map((a) => (
+        {enFoco.map((a) => (
           <li key={a.codigo}>
             {/* El codigo abre la ficha de esa aula. Es el unico sitio del perfil
                 que lista aulas pintando sus propias filas —`DataTable` no
@@ -227,11 +237,15 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
             puesto se ven tres aulas y se leen como si fueran todas. */}
         {facultadEnFoco ? (
           <>
-            Las {enFoco.length > 10 ? "diez más baratas de " : ""}{fmt(enFoco.length)}{" "}
-            {enFoco.length === 1 ? "aula" : "aulas"} de {facultadEnFoco}, que es la facultad en foco.{" "}
+            {/* «Los … cursos-horario»: el sujeto es la unidad, y aquí sí está
+                escrito, así que arrastraba artículo y sustantivo. */}
+            Los {fmt(enFoco.length)}{" "}
+            {enFoco.length === 1 ? "curso-horario" : "cursos-horario"} de {facultadEnFoco}, que es la facultad en foco.{" "}
           </>
-        ) : total > 10 ? (
-          <>Las diez más baratas; quedan {fmt(total - 10)} más, hasta {fmt(r.aulas[total - 1].faltan)} encuestas. </>
+        ) : total > 1 ? (
+          /* La lectura del ORDEN, que era lo que el tope decía de paso: la
+             lista va del más barato al más caro y el último dice el peor caso. */
+          <>Del más barato al más caro; el último pide {fmt(r.aulas[total - 1].faltan)} encuestas. </>
         ) : null}
         {conDiez > conCinco ? <>Con diez o menos cierran {fmt(conDiez)}. </> : null}
         {conLaMitad ? <>Con la mitad del esfuerzo —{fmt(Math.round(costo / 2))} encuestas— se cierran {fmt(conLaMitad)} de las {fmt(total)}. </> : null}
@@ -240,12 +254,30 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
         {grupos.filas.length > 6 ? <>Las seis facultades que más cierran, de {fmt(grupos.filas.length)}. </> : null}
         {/* El cruce con el plan se cuenta, no se da por hecho: en este mismo
             perfil catorce campos que parecían llegar eran homónimos. */}
-        {grupos.sinFacultad ? <>{fmt(grupos.sinFacultad)} de estas aulas no cruzan con ninguna facultad del plan por su código, así que quedan fuera del reparto de arriba. </> : null}
-        {r.sinCifras ? <>Otras {fmt(r.sinCifras)} se quedaron cortas y el libro no trae con qué medirles el faltante. </> : null}
+        {grupos.sinFacultad ? <>{fmt(grupos.sinFacultad)} de estos cursos-horario no cruzan con ninguna facultad del plan por su código, así que quedan fuera del reparto de arriba. </> : null}
+        {r.sinCifras ? <>Otros {fmt(r.sinCifras)} se quedaron cortos y el libro no trae con qué medirles el faltante. </> : null}
         {r.contradicciones ? (
           <>
             En {fmt(r.contradicciones)} el libro dice que no cumple aunque las
             enviadas ya pasan su umbral: eso lo decide el equipo, no la app.
+          </>
+        ) : null}
+        {/* **De dónde sale lo conseguido, cuando no sale de un solo sitio.**
+            La brecha es meta menos conseguido, y el conseguido recorre tres
+            numeradores distintos: la efectiva de plataforma —la única que el
+            ADR 0082 reconoce como τ—, la cuenta del aplicador en el parte, y lo
+            que la hoja da por enviado. Con más de uno en juego, el faltante de
+            un aula NO es comparable con el de su vecina, y callarlo es
+            exactamente el defecto que ese ADR nombra: un rótulo que promete
+            otro número. Con todo de plataforma no se dice nada, porque no hay
+            nada que advertir. */}
+        {r.mezclaDeOrigenes ? (
+          <>
+            {" "}Ojo al comparar: {fmt(r.origenes.plataforma)} de estos cursos-horario
+            miden lo conseguido con las respuestas que llegaron a la plataforma,
+            {r.origenes.parte ? ` ${fmt(r.origenes.parte)} con lo que anotó el aplicador al salir` : ""}
+            {r.origenes.hoja ? ` y ${fmt(r.origenes.hoja)} con lo que la hoja da por enviado` : ""}.
+            Son cuentas distintas del mismo aula.
           </>
         ) : null}
       </p>

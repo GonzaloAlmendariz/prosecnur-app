@@ -298,7 +298,7 @@
   background: color-mix(in srgb, var(--pulso-border) 30%, transparent);
   color: var(--pulso-text);
 }
-.cmv2-crit-col-warn { color: var(--pulso-warning-fg, var(--pulso-text-muted)); }
+.cmv2-crit-col-warn { color: var(--pulso-warn-fg, var(--pulso-text-muted)); }
 
 .cmv2-crit-card-body {
   padding: 12px 14px;
@@ -454,7 +454,10 @@
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
-.cmv2-crit-item-count em { font-style: normal; opacity: 0.75; }
+/* El rótulo («estudiantes en la base») se distingue por peso, no por opacidad:
+ * con opacity 0.75 sobre --pulso-text-muted quedaba en 4.2:1 a 11 px (QA de
+ * aulas, 2026-09-24). */
+.cmv2-crit-item-count em { font-style: normal; font-weight: var(--pulso-weight-regular, 400); }
 
 .cmv2-crit-item-variants {
   grid-column: 1 / -1;
@@ -838,7 +841,13 @@
 .cmv2-crit-exc-form { display: grid; gap: 8px; }
 .cmv2-crit-exc-cats-pick { display: flex; flex-wrap: wrap; gap: 6px; }
 
-.cmv2-crit-empty-note { margin: 0; font-size: 11px; color: var(--pulso-text-muted); }
+.cmv2-crit-empty-note {
+  /* Medida de lectura de la casa: a 1440 esta prosa llegaba a ~1.270px. */
+  max-width: 760px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
 
 /* --- Listas planas largas: tarjeta ancha + lista multi-columna -------------
    Facultad (18), Tipo de sesión (11), Condición (8) crecían en una sola
@@ -1323,6 +1332,8 @@
 
 /* --- Criterio 8 · dos pasos ordenados -------------------------------------- */
 .cmv2-crit-paso-intro {
+  /* Medida de lectura de la casa: a 1440 esta prosa llegaba a ~1.270px. */
+  max-width: 760px;
   margin: 0 0 10px;
   font-size: 11.5px;
   line-height: 1.5;
@@ -1640,8 +1651,19 @@
   gap: 6px;
 }
 
+/* Las columnas se resuelven en la TABLA y las filas las heredan con `subgrid`.
+   Estaban declaradas en la fila, así que cada una repartía su ancho por su
+   cuenta: la cuarta columna es `auto` y las filas con sugerencia larga
+   («Sugerido: solo teorico(teorico-practico, teorico-laboratorio)») la
+   ensanchaban mientras las que no tienen sugerencia la dejaban en cero. Ese
+   ancho variable empujaba a las tres columnas `fr` y los nombres de facultad
+   arrancaban en X distintas. Medido: las barras de MiniDistribucion no
+   compartían origen, que es justo lo único para lo que sirve esa columna.
+   `subgrid` conserva la caja de la fila, así que no toca el cebrado
+   `:nth-child(odd of …)` ni el filo `inset 2px` de `[data-decision="propia"]`. */
 .cmv2-crit-tsf-tabla {
   display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(90px, 0.9fr) minmax(0, 1.1fr) minmax(0, auto);
   gap: 0;
   border: 1px solid var(--cmv2-border);
   border-radius: 10px;
@@ -1649,7 +1671,8 @@
 }
 .cmv2-crit-tsf-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(90px, 0.9fr) minmax(0, 1.1fr) auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: 10px;
   min-height: 30px;
@@ -1740,6 +1763,9 @@
 
 .cmv2-crit-tsf-detalle {
   display: grid;
+  /* Es hijo directo de la tabla y se intercala entre filas: sin esto caería en
+     la primera columna del grid de columnas de la tabla. */
+  grid-column: 1 / -1;
   gap: 8px;
   padding: 8px 10px 10px 28px;
   border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
@@ -1806,7 +1832,10 @@
 .cmv2-crit-tsf-link:hover { text-decoration: underline; }
 
 /* Compacto (matriz QA hasta 1024x600): la fila fluye en dos líneas — la barra
-   y el estado pasan debajo del nombre; nada se recorta en scroll horizontal. */
+   y el estado pasan debajo del nombre; nada se recorta en scroll horizontal.
+   Aquí la fila SÍ declara sus columnas y abandona el `subgrid` a propósito: en
+   dos líneas no hay eje común que heredar. Conserva `grid-column: 1 / -1`, así
+   que sigue ocupando el ancho entero de la tabla. */
 @media (max-width: 1180px) {
   .cmv2-crit-tsf-row {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2056,10 +2085,16 @@
 
 /* Facultades excluidas por diseño. La lista es densa a propósito: son 15-17
    nombres y el analista los revisa de un vistazo, no de uno en uno. */
+/* Columnas de 300px, no de 240: con 240 la mitad de los nombres envolvía en dos
+   líneas y la lista quedaba dentada. Medido sobre las 15 facultades de la PUCP,
+   el más largo —«GASTRONOMÍA, HOTELERÍA Y TURISMO»— pide 298px de texto, así
+   que ése es el ancho que hace que la rejilla se lea como una columna y no como
+   un bloque irregular. Debajo de ~950px caben dos columnas y el que sobra
+   envuelve, que es lo correcto: antes se recortaba. */
 .cmv2-facultades-excluidas-lista {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 4px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 2px 14px;
   margin: 8px 0 0;
   padding: 0;
   list-style: none;
@@ -2068,12 +2103,19 @@
 
 .cmv2-facultades-excluidas-lista > li {
   display: flex;
-  align-items: baseline;
+  /* `start`, no `baseline`: con el nombre envolviendo en dos líneas, alinear por
+     la primera línea de texto dejaba la casilla flotando a media fila. */
+  align-items: start;
   justify-content: space-between;
   gap: 8px;
-  padding: 3px 6px;
-  border-radius: 6px;
+  padding: 5px 8px;
+  border-radius: 7px;
   min-width: 0;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.cmv2-facultades-excluidas-lista > li:hover {
+  background: color-mix(in srgb, var(--pulso-surface-2) 55%, transparent);
 }
 
 .cmv2-facultades-excluidas-lista > li[data-excluida] {
@@ -2088,10 +2130,17 @@
   cursor: pointer;
 }
 
+/* El nombre de la facultad NO se recorta: es el dato con el que se decide, no
+   una etiqueta larga. Llevaba `text-overflow: ellipsis` y, medido el
+   2026-08-25 sobre las 15 facultades de HSVG26DEF a 1024 px, dos quedaban
+   cortadas —«GASTRONOMÍA, HOTELERÍA Y TURISMO» pedía 298 px y tenía 254—, así
+   que la casilla de una facultad se marcaba sin poder leer cuál era. C4 del
+   Contrato de Superficie. Envuelve en dos líneas y la fila crece con ella. */
 .cmv2-facultades-excluidas-lista label > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 /* La facultad excluida se tacha: el estado se lee sin buscar la casilla. */
@@ -2416,15 +2465,29 @@
    ancho entero y el subhead se estiraba en UNA fila (titulo izquierda,
    subtitulo flotando a la derecha). El subhead vuelve a columna, el ancho se
    contiene y las casillas toman el acento del modulo. */
+/* La tarjeta hereda `padding: 0` de `.cmv2-crit-card`, que lo delega en su
+   cabecera y su cuerpo; ésta no tiene ninguno de los dos, así que su contenido
+   quedaba pegado al borde. Con la tarjeta fuera del botón de recalcular pasó a
+   verse entera y el descuido quedó a la vista. */
 .cmv2-crit-card[data-criterio="facultades-excluidas"] {
   max-width: 1040px;
+  padding: 12px 14px 13px;
 }
 
 .cmv2-crit-card[data-criterio="facultades-excluidas"] .cmv2-subhead {
   display: grid;
   gap: 3px;
   justify-items: start;
-  margin-bottom: 6px;
+  /* Separa el encabezado de la lista: con 6 px el subtítulo de dos líneas
+     quedaba tocando la primera fila de casillas. */
+  margin-bottom: 10px;
+}
+
+.cmv2-crit-card[data-criterio="facultades-excluidas"] .cmv2-subhead strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: -0.005em;
+  color: var(--pulso-text);
 }
 
 .cmv2-crit-card[data-criterio="facultades-excluidas"] .cmv2-subhead {
@@ -2442,8 +2505,16 @@
 
 .cmv2-facultades-excluidas-lista input[type="checkbox"] {
   accent-color: var(--module-accent, var(--pulso-primary));
+  /* Tamaño y caja fijos: la casilla nativa encogía con el `flex` de la fila y
+     el nombre envolviendo la empujaba fuera de su línea. */
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 2px 0 0;
 }
 
 .cmv2-facultades-excluidas-pie {
-  margin-top: 10px;
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
 }

@@ -1,0 +1,19 @@
+/* El banco de extras — hoja propia porque `aulasMonitoreo.css` está congelada
+ * a crecimiento (misma doctrina que aulasRutaPorFacultad.css y
+ * aulasFichaDeAula.css). La importa `AulasBancoExtras.tsx`.
+ *
+ * Loop mejora-ui E8 (2026-09-03): el cero declarado susurra. Las tarjetas de
+ * facultad son filtro y resumen a la vez, y la doctrina de la casa exige los
+ * ceros A LA VISTA — pero doce «0 · 0 M · 0 H» al peso pleno de la tipografía
+ * ahogaban a las tres tarjetas con contenido. La agotada baja la tinta de sus
+ * números y afloja el peso del nombre; sigue presente, legible y clickeable —
+ * declara sin gritar, como el «—» de la ficha (E6). */
+.mon-profile-page.is-aulas-flow .aulas-banco-facultades button.es-agotada .aulas-banco-nombre {
+  color: var(--pulso-text-soft);
+  font-weight: 500;
+}
+.mon-profile-page.is-aulas-flow .aulas-banco-facultades button.es-agotada .aulas-banco-cuenta,
+.mon-profile-page.is-aulas-flow .aulas-banco-facultades button.es-agotada .aulas-banco-sexos {
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}

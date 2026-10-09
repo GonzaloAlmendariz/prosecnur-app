@@ -27,10 +27,23 @@ function graficosPlotly(): string[] {
 }
 
 describe("la escala de eje del perfil", () => {
-  it("el perfil sigue teniendo gráficos de Plotly que vigilar", () => {
-    // Si un día no queda ninguno, este guard dejaría de comprobar nada y hay
-    // que enterarse por aquí.
-    expect(graficosPlotly().length).toBeGreaterThanOrEqual(3);
+  it("el perfil ya no dibuja con Plotly, y el único que queda está sin montar", () => {
+    // **Este aserto cambió de premisa el 2026-09-08, y el guard hizo su trabajo
+    // para que se notara.** Pedía `>= 3` gráficos Plotly y llevaba rojo desde
+    // que el perfil se pasó entero a barras CSS y SVG a mano —decisión repetida
+    // y dictada: «Barras en CSS y no Plotly» (E21, E22, 2026-09-03)—. Un rojo
+    // permanente que nadie puede arreglar enseña a ignorar los rojos, que es
+    // peor que no tener el test.
+    //
+    // Lo que se protege sigue siendo lo mismo: si alguien vuelve a meter un
+    // Plotly, tiene que pasar la fuente del perfil (el `it` de abajo). Lo que
+    // deja de afirmarse es un CONTEO que ya no es verdad.
+    //
+    // El único que queda, `AulasBrechaEstratoChart`, está SIN MONTAR desde el
+    // 2026-08-29 y registrado en `componentesSinMontar.test.ts`. Si algún día
+    // se borra, este aserto pasa a `toBe(0)` y el de abajo sigue cubriendo al
+    // Plotly que llegue después.
+    expect(graficosPlotly().length).toBeLessThanOrEqual(1);
   });
 
   it("todos pasan la fuente del perfil, ninguno se queda con el default", () => {

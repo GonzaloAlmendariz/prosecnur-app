@@ -68,7 +68,7 @@
 /* Crossfade con blur para cifras que cambian de valor: el blur funde ambos
    estados en una sola transformación en vez de dos objetos superpuestos. */
 .cmv2-uni-swap {
-  transition: filter 180ms ease, opacity 180ms ease;
+  transition: filter var(--motion-dur-fast) var(--motion-ease-out), opacity var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .cmv2-uni-swap[data-cambiando="true"] {
@@ -78,7 +78,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cmv2-uni-swap {
-    transition: opacity 150ms ease;
+    transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
   }
 
   .cmv2-uni-swap[data-cambiando="true"] {
@@ -462,6 +462,22 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 .cmv2-uni-flujo-etapa[data-estado="working"] .cmv2-uni-flujo-dot {
   background: var(--cmv2-accent);
   border-color: transparent;
+}
+
+/* El paso que dejó el flujo en 0: no es "pendiente", es el que lo rompió. */
+.cmv2-uni-flujo-etapa[data-estado="alerta"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.cmv2-uni-flujo-etapa[data-estado="alerta"] .cmv2-uni-flujo-dot {
+  background: var(--pulso-danger-fg);
+  border-color: transparent;
+}
+
+.cmv2-uni-flujo-etapa[data-estado="alerta"] .cmv2-uni-flujo-valor,
+.cmv2-uni-flujo-etapa[data-estado="alerta"] .cmv2-uni-flujo-detalle {
+  color: var(--pulso-danger-fg);
 }
 
 .cmv2-uni-flujo-dot {

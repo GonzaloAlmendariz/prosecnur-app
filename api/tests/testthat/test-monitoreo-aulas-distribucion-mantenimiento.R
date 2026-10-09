@@ -1,0 +1,969 @@
+# **Los dos pasos del ciclo que se hacían fuera de la app.**
+#
+# Dictado de Gonzalo (2026-09-08): «Dejemos todo el proceso robusto para tapar
+# el agujero». El agujero no era sólo que publicar pudiera borrar la hoja del
+# coordinador —eso ya tiene su guarda—: era que añadir las aulas agendadas sin
+# cita y refrescar el ESTADO se hacían con scripts, y el operativo dependía de
+# que hubiera alguien con una consola abierta.
+#
+# Lo que se sujeta aquí es la regla que mantiene el ciclo estable: **una fila
+# que ya existe no se vuelve a proponer; la app añade lo que falta y actualiza
+# lo que puede demostrar.**
+
+.madm_cab <- function() as.list(prosecnurapp:::.alpa_CABECERA)
+
+.madm_fila <- function(quien, dia, fecha, oficina, sale, aplica, cod,
+                       aula = "A101", fac = "Ciencias", curso = "Cálculo",
+                       doc = "Docente Uno", estado = "POR APLICAR") {
+  as.list(c(quien, dia, fecha, oficina, sale, aplica, cod, aula, fac, curso, doc, estado))
+}
+
+.madm_hoja <- function(...) c(list(.madm_cab()), list(...))
+
+.madm_aula <- function(cod, fecha, hora, estado = "agendada", fac = "Ciencias") {
+  list(operational_code = cod, classroom_id = tolower(gsub(" ", "", cod)),
+       sample_role = "titular", sample_status = estado, faculty = fac,
+       course_name = "Cálculo", teacher = "Docente Uno", scheduled_venue = "A101",
+       scheduled_date = fecha, scheduled_time = hora,
+       eligible_n = 40, expected_valid = 20)
+}
+
+# --- A2 · qué agendadas no tienen cita ---------------------------------------
+
+test_that("una agendada sin fila se propone, y una que ya está no se vuelve a proponer", {
+  hoja <- .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45",
+                                "10:00 a 10:30", "CH 1"))
+  plan <- list(.madm_aula("CH 1", "2026-09-07", "10:00 am"),
+               .madm_aula("CH 2", "2026-09-07", "12:00 pm"))
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  expect_length(out$faltantes, 1L)
+  expect_identical(out$faltantes[[1]]$curso_horario, "CH 2")
+  # El aplicador va EN BLANCO: quién va lo decide una persona en el desplegable.
+  expect_identical(out$faltantes[[1]]$fila[[1]], "")
+  # Y con las horas que el reparto usaría: recojo T−30, salida T−15.
+  expect_identical(out$faltantes[[1]]$fila[[4]], "11:30")
+  expect_identical(out$faltantes[[1]]$fila[[5]], "11:45")
+  expect_identical(out$faltantes[[1]]$fila[[6]], "12:00 a 12:30")
+  expect_identical(out$faltantes[[1]]$fila[[12]], "POR APLICAR")
+})
+
+test_that("lo que no entra se DICE: sin agendar y sin hora se declaran, no se callan", {
+  hoja <- .madm_hoja()
+  plan <- list(
+    .madm_aula("CH 3", "2026-09-09", "10:00 am", estado = "sin_contactar"),
+    .madm_aula("CH 4", "2026-09-09", "no es una hora"),
+    .madm_aula("CH 5", "2026-09-09", "10:00 am", estado = "reagendada")
+  )
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  # Una reagendada SÍ necesita que alguien vaya.
+  expect_identical(vapply(out$faltantes, function(f) f$curso_horario, character(1)), "CH 5")
+  motivos <- vapply(out$descartadas, function(d) d$motivo, character(1))
+  codigos <- vapply(out$descartadas, function(d) d$curso_horario, character(1))
+  expect_setequal(codigos, c("CH 3", "CH 4"))
+  expect_identical(motivos[codigos == "CH 3"], "sin_agendar")
+  expect_identical(motivos[codigos == "CH 4"], "sin_hora")
+})
+
+test_that("las otras pestañas son todas menos la de DESTINO, no todas menos la primera", {
+  # **El defecto que dejó la Semana 1 fuera de la lectura.**
+  #
+  # La expresión era `hojas[-1L]`: saltaba la primera pestaña y no la de
+  # destino. Mientras la ventana del reparto cayó en «Semana 1» las dos
+  # coincidían y nadie lo vio. Al avanzar a «Semana 2», la «Semana 1» dejó de
+  # contarse como publicada: sus aulas se volvían a proponer y sus aplicadores
+  # salían como fijaciones retiradas. CCSS Perfil 2026-II, 25/09/2026: 31
+  # fijaciones retiradas de golpe.
+  hojas <- c("Semana 1", "Semana 2", "Semana 3")
+  expect_identical(prosecnurapp:::.madm_otras_pestanas(hojas, "Semana 2"),
+                   c("Semana 1", "Semana 3"))
+  expect_identical(prosecnurapp:::.madm_otras_pestanas(hojas, "Semana 1"),
+                   c("Semana 2", "Semana 3"))
+  # La última también: `[-1L]` acertaba aquí por casualidad y fallaba al revés.
+  expect_identical(prosecnurapp:::.madm_otras_pestanas(hojas, "Semana 3"),
+                   c("Semana 1", "Semana 2"))
+})
+
+test_that("sin destino legible no se descarta ninguna pestaña", {
+  # Leer una de más la absorbe el `unique()` de `en_hoja`; dejar una semana
+  # fuera vuelve a proponer sus aulas, que es el daño que esto evita.
+  hojas <- c("Semana 1", "Semana 2")
+  expect_identical(prosecnurapp:::.madm_otras_pestanas(hojas, ""), hojas)
+  expect_identical(prosecnurapp:::.madm_otras_pestanas(hojas, NULL), hojas)
+  expect_identical(prosecnurapp:::.madm_otras_pestanas(NULL, "Semana 1"), character(0))
+})
+
+test_that("un aula que ya consta APLICADA no se vuelve a proponer, y se dice por qué", {
+  # **El caso real que lo destapó: CH 25, CCSS Perfil 2026-II, 25/09/2026.**
+  #
+  # Se agendó para el 30/09, el equipo la reagendó y la aplicó el 23/09 —10
+  # efectivas en plataforma—, y su fila quedó en la pestaña de la semana
+  # anterior. Al sincronizar la semana del 28/09 la app proponía añadirla otra
+  # vez: la fila del 30/09 no estaba en esa pestaña, la agenda seguía diciendo
+  # «agendada» y la fecha caía en la ventana, así que pasaba las cuatro
+  # condiciones. Mandar a alguien al campus por un aula ya encuestada es el
+  # daño exacto que esta función existe para evitar.
+  #
+  # El llamador YA calcula `aplicadas` —se lo pasa a `estados_distribucion` y a
+  # `citas_sin_agenda`— y esta función no lo recibía. No es una condición nueva:
+  # es la que faltaba conectar.
+  hoja <- .madm_hoja()
+  plan <- list(.madm_aula("CH 25", "2026-09-30", "4:10 pm"),
+               .madm_aula("CH 26", "2026-09-30", "5:00 pm"))
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja, aplicadas = "CH 25")
+  expect_identical(vapply(out$faltantes, function(f) f$curso_horario, character(1)), "CH 26")
+  # Y dicho, no callado: un descarte mudo es indistinguible de un cero real, y
+  # aquí el coordinador necesita leer «no la añado porque ya se aplicó».
+  codigos <- vapply(out$descartadas, function(d) d$curso_horario, character(1))
+  expect_identical(codigos, "CH 25")
+  expect_identical(vapply(out$descartadas, function(d) d$motivo, character(1)), "ya_aplicada")
+})
+
+test_that("sin `aplicadas` la función se comporta exactamente como antes", {
+  # La firma crece con un valor por defecto vacío: los llamadores que no lo
+  # pasan —y las semanas de estudios que no llevan la cuenta— no cambian.
+  hoja <- .madm_hoja()
+  plan <- list(.madm_aula("CH 25", "2026-09-30", "4:10 pm"))
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  expect_length(out$faltantes, 1L)
+  expect_length(out$descartadas, 0L)
+})
+
+test_that("una aplicada fuera de la ventana tampoco se cuenta como pendiente del rango", {
+  # `fuera_de_ventana` existe para avisar de que el rango se quedó viejo y está
+  # tapando agendadas de verdad. Una ya aplicada ahí dentro infla ese aviso y
+  # manda a revisar un rango que estaba bien.
+  hoja <- .madm_hoja()
+  plan <- list(.madm_aula("CH 25", "2026-09-23", "4:10 pm"))
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja, aplicadas = "CH 25",
+                                            desde = "2026-09-28", hasta = "2026-10-02")
+  expect_length(out$fuera_de_ventana, 0L)
+  expect_identical(vapply(out$descartadas, function(d) d$motivo, character(1)), "ya_aplicada")
+})
+
+test_that("la ventana de fechas acota, y una hoja sin CURSO-HORARIO se declara ilegible", {
+  hoja <- .madm_hoja()
+  plan <- list(.madm_aula("CH 6", "2026-09-07", "10:00 am"),
+               .madm_aula("CH 7", "2026-09-20", "10:00 am"))
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja, desde = "2026-09-07", hasta = "2026-09-13")
+  expect_identical(vapply(out$faltantes, function(f) f$curso_horario, character(1)), "CH 6")
+
+  rota <- list(as.list(c("APLICADOR", "DÍA", "FECHA")))
+  err <- tryCatch(monitoreo_aulas_agendadas_sin_cita(plan, rota), api_error = function(e) e)
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_AULAS_DISTRIBUCION_ILEGIBLE")
+})
+
+# --- A3 · dónde entra cada una -----------------------------------------------
+
+test_that("la hora se compara en MINUTOS: una fila de 09:20 va DESPUÉS de una escrita «8:30»", {
+  # La regresión de Gonzalo, 2026-09-08, con el Sheets delante: «la fila no se
+  # puso en orden y hay que estar en oficina a las 9:20, ¿no debería ir después
+  # de CH 161?». El equipo teclea las horas sin el cero de la izquierda y, como
+  # TEXTO, «8:30» es MAYOR que «09:20» —compara «8» contra «0»—, así que la fila
+  # nueva se colaba en el primer sitio donde el orden textual mentía.
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Miércoles", "09/09", "08:20", "08:35", "08:50 a 09:20", "CH 117"),
+    .madm_fila("Dos", "Miércoles", "09/09", "8:30", "8:45", "9:00 a 9:30", "CH 74"),
+    .madm_fila("Tres", "Miércoles", "09/09", "09:15", "09:30", "09:45 a 10:15", "CH 161"),
+    .madm_fila("Cuatro", "Miércoles", "09/09", "10:00", "10:15", "10:30 a 11:00", "CH 121")
+  )
+  plan <- list(.madm_aula("CH 35", "2026-09-09", "09:50 am"))
+  faltan <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  pos <- monitoreo_aulas_posiciones_de_las_nuevas(hoja, faltan$faltantes)
+  expect_length(pos, 1L)
+  # Fila 5 de la hoja: justo después de CH 161 (fila 4) y antes de CH 121.
+  expect_identical(pos[[1]]$posicion, 5L)
+})
+
+test_that("varias filas nuevas salen de abajo arriba, y un día que no existe va al final", {
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1"),
+    .madm_fila("Dos", "Lunes", "07/09", "13:30", "13:45", "14:00 a 14:30", "CH 2")
+  )
+  plan <- list(.madm_aula("CH 3", "2026-09-07", "12:00 pm"),
+               .madm_aula("CH 4", "2026-09-10", "09:00 am"))
+  faltan <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  pos <- monitoreo_aulas_posiciones_de_las_nuevas(hoja, faltan$faltantes)
+  posiciones <- vapply(pos, function(x) x$posicion, integer(1))
+  expect_true(all(diff(posiciones) < 0))
+  # CH 3 entra entre las dos del lunes; CH 4 abre un día nuevo al final.
+  esperado <- stats::setNames(posiciones, vapply(pos, function(x) x$curso_horario, character(1)))
+  expect_identical(unname(esperado[["CH 3"]]), 3L)
+  expect_identical(unname(esperado[["CH 4"]]), 4L)
+})
+
+# --- A4 · el ESTADO ----------------------------------------------------------
+
+test_that("la app SIEMBRA la celda vacía con POR APLICAR, y nada más", {
+  # Regla de Gonzalo, textual (2026-09-09): «el status de aplicada es manual y lo
+  # hace el aplicador, no la app; la app solo pone por defecto POR APLICAR al
+  # construir, punto».
+  #
+  # Antes la app ASCENDÍA la fila cuando un código constaba aplicado, y eso
+  # convirtió una columna de la persona en una columna de la app. El daño se vio
+  # el mismo día: CH 111 y CH 82, agendadas para el VIERNES y con cero
+  # respuestas, quedaron marcadas APLICADA porque un parte de campo estaba
+  # tecleado en la fila de al lado. La hoja con la que el equipo sabe a dónde ir
+  # decía que dos aulas del futuro ya estaban hechas.
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1", estado = ""),
+    .madm_fila("Dos", "Miércoles", "09/09", "09:30", "09:45", "10:00 a 10:30", "CH 2", estado = "")
+  )
+  est <- monitoreo_aulas_estados_distribucion(
+    hoja, aplicadas = c("CH 1", "CH 2"),
+    fecha_agenda = c(`CH 1` = "2026-09-07", `CH 2` = "2026-09-07")
+  )
+  expect_identical(est$estados, c("POR APLICAR", "POR APLICAR"))
+  expect_length(est$cambios, 2L)
+  # **Lo que la app sabe no se pierde: se OBSERVA.** Las dos constan aplicadas
+  # en la plataforma y CH 2 además está en un día que no es el de su agenda.
+  motivos <- vapply(est$observaciones, function(x) x$motivo, character(1))
+  expect_true("consta_aplicada" %in% motivos)
+  expect_true("fecha_movida" %in% motivos)
+})
+
+test_that("una celda YA escrita no se toca nunca, diga lo que diga la plataforma", {
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1", estado = "RECHAZADA"),
+    .madm_fila("Dos", "Lunes", "07/09", "11:30", "11:45", "12:00 a 12:30", "CH 2", estado = "REAGENDADA"),
+    .madm_fila("Tres", "Lunes", "07/09", "13:30", "13:45", "14:00 a 14:30", "CH 3", estado = "POR APLICAR")
+  )
+  est <- monitoreo_aulas_estados_distribucion(
+    hoja, aplicadas = c("CH 1", "CH 3"),
+    fecha_agenda = c(`CH 1` = "2026-09-07", `CH 2` = "2026-09-07", `CH 3` = "2026-09-07")
+  )
+  expect_identical(est$estados, c("RECHAZADA", "REAGENDADA", "POR APLICAR"))
+  expect_length(est$cambios, 0L)
+  # Ni siquiera CH 3, que está en POR APLICAR y consta aplicada: ascenderla era
+  # exactamente lo que ponía APLICADA sobre aulas del futuro. Se dice y ya.
+  obs <- Filter(function(x) identical(x$curso_horario, "CH 3"), est$observaciones)
+  expect_length(obs, 1L)
+  expect_identical(obs[[1]]$motivo, "consta_aplicada")
+})
+
+# --- A5 · la acción única ----------------------------------------------------
+
+.madm_mock_con_hoja <- function() {
+  mock <- .sheets_api_mock()
+  mock$seed("Semana 1", values = .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1", estado = "")
+  ))
+  mock
+}
+
+test_that("el ensayo no escribe NADA y describe lo que haría", {
+  mock <- .madm_mock_con_hoja()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_sincronizar_distribucion(
+    "sheet_dist",
+    plan = list(.madm_aula("CH 1", "2026-09-07", "10:00 am"),
+                .madm_aula("CH 2", "2026-09-07", "12:00 pm")),
+    aplicadas = "CH 1", roster = "Ana Prueba"
+  )
+  expect_false(isTRUE(out$aplicado))
+  expect_length(out$anadidas, 1L)
+  expect_identical(out$hoja, "Semana 1")
+  escrituras <- Filter(function(c) !identical(c$method, "GET"), mock$env$calls)
+  expect_length(escrituras, 0L)
+})
+
+test_that("aplicar añade la fila en su sitio, deja el aplicador en blanco y escribe el ESTADO", {
+  mock <- .madm_mock_con_hoja()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_sincronizar_distribucion(
+    "sheet_dist",
+    plan = list(.madm_aula("CH 1", "2026-09-07", "10:00 am"),
+                .madm_aula("CH 2", "2026-09-07", "12:00 pm")),
+    aplicadas = "CH 1", roster = "Ana Prueba", aplicar = TRUE
+  )
+  expect_true(isTRUE(out$aplicado))
+  v <- mock$env$sheets[["Semana 1"]]$values
+  expect_length(v, 3L)
+  fila <- function(i) as.character(unlist(v[[i]], use.names = FALSE))
+  expect_identical(fila(2)[[7]], "CH 1")
+  expect_identical(fila(3)[[7]], "CH 2")
+  # El aplicador de la nueva, en blanco.
+  expect_identical(fila(3)[[1]], "")
+  # **Y el estado no lo pone la app.** CH 1 consta aplicada en la plataforma y su
+  # celda venía VACÍA: se siembra con POR APLICAR, que es lo único que la app
+  # escribe. Antes ascendía a APLICADA, y eso es lo que marcaba como hechas
+  # aulas del futuro. La nueva nace igual.
+  expect_identical(fila(2)[[12]], "POR APLICAR")
+  expect_identical(fila(3)[[12]], "POR APLICAR")
+})
+
+test_that("una hoja con dueño se lee y se respeta: ninguna fila existente cambia de aplicador", {
+  mock <- .sheets_api_mock()
+  # El coordinador reasignó CH 1 a otra persona: la app lo ADOPTA, no lo revierte.
+  mock$seed("Semana 1", values = .madm_hoja(
+    .madm_fila("Otro Aplicador", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1")
+  ))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_sincronizar_distribucion(
+    "sheet_dist", plan = list(.madm_aula("CH 1", "2026-09-07", "10:00 am")),
+    roster = c("Ana Prueba", "Otro Aplicador"), aplicar = TRUE
+  )
+  expect_identical(out$fijaciones[["CH 1"]], aulas_nombre_aplicador("Otro Aplicador"))
+  fila <- as.character(unlist(mock$env$sheets[["Semana 1"]]$values[[2]], use.names = FALSE))
+  expect_identical(fila[[1]], "Otro Aplicador")
+})
+
+test_that("el recibo termina diciendo cuántas citas quedan sin aplicador", {
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE,
+    anadidas = list(list(curso_horario = "CH 35")),
+    estado = list(cambios = list(), conflictos = list()),
+    sin_aplicador = list(list(curso_horario = "CH 35", fecha = "09/09"))
+  ))
+  expect_match(texto, "CH 35", fixed = TRUE)
+  expect_match(texto, "sin aplicador", fixed = TRUE)
+  # Un cero SE DICE: omitirlo deja sin saber si es que no hay o no se miró.
+  vacio <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, anadidas = list(),
+    estado = list(cambios = list(), conflictos = list()), sin_aplicador = list()
+  ))
+  expect_match(vacio, "Todas las citas tienen aplicador", fixed = TRUE)
+})
+
+# --- la ventana por defecto, que no puede ser «todo» -------------------------
+#
+# Medido sobre el operativo el 2026-09-08: el reparto rige del 07 al 12 de
+# septiembre y aplaza a propósito lo agendado más allá. Preguntar sin acotar
+# devolvía 28 aulas de las semanas 2 a 4 como si fueran huecos; con el rango del
+# propio reparto la respuesta es 0, que es la verdad de ese día. Sin esta
+# defensa, una llamada sin fechas proponía añadirle esas 28 filas a la hoja del
+# coordinador.
+
+test_that("la ventana de un reparto sale de su propio rango, y sin rango no inventa una", {
+  ventana <- prosecnurapp:::.madm_ventana_del_reparto
+  expect_identical(ventana(list(rango = list(desde = "2026-09-07", hasta = "2026-09-12"))),
+                   list(desde = "2026-09-07", hasta = "2026-09-12"))
+  expect_identical(ventana(list()), list(desde = "", hasta = ""))
+  expect_identical(ventana(NULL), list(desde = "", hasta = ""))
+})
+
+test_that("acotar por la ventana deja fuera lo que el reparto aplaza a propósito", {
+  hoja <- .madm_hoja()
+  plan <- list(
+    .madm_aula("CH 1", "2026-09-09", "10:00 am"),   # dentro de la semana
+    .madm_aula("CH 2", "2026-09-21", "10:00 am")    # semana 3: aplazada, no es hueco
+  )
+  sin <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  con <- monitoreo_aulas_agendadas_sin_cita(plan, hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(sin$faltantes, 2L)
+  expect_length(con$faltantes, 1L)
+  expect_identical(con$faltantes[[1]]$curso_horario, "CH 1")
+  # Y la ventana que rigió viaja en el recibo: quien lea el resultado tiene que
+  # poder saber sobre qué se contestó.
+  expect_identical(con$ventana$desde, "2026-09-07")
+  expect_identical(con$ventana$hasta, "2026-09-12")
+})
+
+test_that("el tablero publica cuántas agendadas no tienen cita, acotado al rango", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_role = "titular",
+         sample_status = "agendada", faculty = "Ciencias", course_name = "Cálculo",
+         teacher = "Docente Uno", scheduled_venue = "A101",
+         scheduled_date = "2026-09-07", scheduled_time = "10:00 am",
+         eligible_n = 40, expected_valid = 20),
+    # Agendada dentro de la semana a una hora que nadie cubre: es un hueco de
+    # verdad y tiene que salir contado.
+    list(operational_code = "CH 9", classroom_id = "a9", sample_role = "titular",
+         sample_status = "agendada", faculty = "Ciencias", course_name = "Física",
+         teacher = "Docente Dos", scheduled_venue = "A109",
+         scheduled_date = "2026-09-07", scheduled_time = "11:00 pm",
+         eligible_n = 40, expected_valid = 20)
+  )
+  disp <- list(list(nombre = "Ana Prueba",
+                    dias = list(lunes = list(list(inicio = "08:00", fin = "13:00")))))
+  d <- prosecnurapp:::.mac_publicar_disponibilidad(
+    list(), plan, disp, rango = list(desde = "2026-09-07", hasta = "2026-09-12"))
+  dist <- d$reparto$distribucion
+  expect_true(is.numeric(dist$agendadas_sin_cita))
+  expect_identical(dist$agendadas_sin_cita, 1L)
+  # Y las nombra: un «falta 1» sin el código obliga a volver a cruzarlo a mano.
+  expect_length(dist$sin_cita, 1L)
+  expect_identical(dist$sin_cita[[1]]$curso_horario, "CH 9")
+  expect_identical(dist$sin_cita[[1]]$fecha, "07/09")
+  # La huella y las citas de siempre siguen ahí: el bloque gana un campo, no
+  # cambia de forma.
+  expect_true(nzchar(dist$huella))
+  expect_gte(dist$citas, 1L)
+})
+
+# --- las filas que YA están y no cuadran --------------------------------------
+#
+# El motor revisaba lo que falta y lo que se puede demostrar, y no miraba lo que
+# ya está escrito. Dos defectos vivían en la hoja del operativo desde el 08/09
+# sin que nadie los viera: CH 74 con la fecha tecleada «9:09» en vez de «09/09»,
+# y CH 12 conservando su fila del lunes después de reagendarse al 14/09.
+
+test_that("una fecha que no parsea se DICE, y no se toca", {
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Miércoles", "9:09", "08:30", "08:45", "09:00 a 09:30", "CH 74"),
+    .madm_fila("Dos", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1")
+  )
+  d <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(d, 1L)
+  expect_identical(d[[1]]$curso_horario, "CH 74")
+  expect_identical(d[[1]]$motivo, "fecha_ilegible")
+  # Dice el valor tal como está escrito: sin él hay que ir a buscarlo a la hoja.
+  expect_identical(d[[1]]$valor, "9:09")
+  # Y la fila, para poder ir a ella.
+  expect_identical(d[[1]]$fila, 2L)
+})
+
+test_that("una fila que se fue de semana y dejó la vieja también se dice", {
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1"),
+    .madm_fila("Dos", "Lunes", "14/09", "09:30", "09:45", "10:00 a 10:30", "CH 12")
+  )
+  d <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(d, 1L)
+  expect_identical(d[[1]]$curso_horario, "CH 12")
+  expect_identical(d[[1]]$motivo, "fuera_de_la_semana")
+})
+
+test_that("sin ventana no se inventa un rango: sólo se revisa lo que no depende de él", {
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Lunes", "14/09", "09:30", "09:45", "10:00 a 10:30", "CH 12"),
+    .madm_fila("Dos", "Miércoles", "9:09", "08:30", "08:45", "09:00 a 09:30", "CH 74")
+  )
+  d <- monitoreo_aulas_filas_dudosas(hoja)
+  motivos <- vapply(d, function(x) x$motivo, character(1))
+  # La del 14/09 no se puede juzgar sin saber qué semana rige: callar es lo
+  # correcto, porque acusarla sería inventarse el rango.
+  expect_false("fuera_de_la_semana" %in% motivos)
+  expect_true("fecha_ilegible" %in% motivos)
+})
+
+test_that("una fila con contenido y sin curso-horario es invisible para todo lo demás", {
+  hoja <- .madm_hoja(
+    .madm_fila("Alguien", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "")
+  )
+  d <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(d, 1L)
+  expect_identical(d[[1]]$motivo, "sin_curso_horario")
+  # Y una fila del todo vacía NO es dudosa: es una fila vacía.
+  limpia <- monitoreo_aulas_filas_dudosas(
+    c(.madm_hoja(), list(as.list(rep("", length(prosecnurapp:::.alpa_CABECERA))))),
+    desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(limpia, 0L)
+})
+
+test_that("el recibo las nombra aunque no se toquen", {
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, anadidas = list(),
+    estado = list(cambios = list(), conflictos = list()),
+    dudosas = list(list(curso_horario = "CH 74", motivo = "fecha_ilegible"),
+                   list(curso_horario = "CH 12", motivo = "fuera_de_la_semana")),
+    sin_aplicador = list()
+  ))
+  expect_match(texto, "CH 74: fecha_ilegible", fixed = TRUE)
+  expect_match(texto, "CH 12: fuera_de_la_semana", fixed = TRUE)
+  expect_match(texto, "se dejaron como están", fixed = TRUE)
+})
+
+# --- A2b · qué citas escritas ya no tienen agenda -----------------------------
+#
+# La pregunta inversa, y la cara cara: `agendadas_sin_cita` deja un aula sin
+# nadie; ésta manda a alguien al campus por un aula que se movió. Salió de
+# cruzar las DOS hojas en vivo el 2026-09-09: CH 12 seguía citado el 07/09 con
+# la agenda ya en el 14/09, y CH 74 igual con la suya en el 09/09. No las veía
+# nadie porque `filas_dudosas` mira la hoja SOLA y esas fechas caen dentro de su
+# semana.
+
+test_that("una cita cuya aula se movió de día se dice, con la fecha nueva", {
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 12"),
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1")
+  )
+  plan <- list(
+    .madm_aula("CH 12", "2026-09-14", "10:00", estado = "reagendada"),
+    .madm_aula("CH 1", "2026-09-07", "10:00")
+  )
+  out <- monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07",
+                                          hasta = "2026-09-12")
+  expect_length(out, 1L)
+  expect_equal(out[[1]]$curso_horario, "CH 12")
+  expect_equal(out[[1]]$motivo, "aula_movida")
+  # El detalle trae A DÓNDE se movió: sin eso hay que ir a buscarlo al libro.
+  expect_equal(out[[1]]$detalle, "2026-09-14")
+  # Y la fila, para poder mirarla en la hoja. La 1 es la cabecera.
+  expect_equal(out[[1]]$fila, 2L)
+})
+
+test_that("una cita cuya aula dejó de estar agendada se dice con su status", {
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 3")
+  )
+  # El vocabulario del plan dice «rechazo», no «rechazada»: escribir el segundo
+  # degrada a `sin_contactar` sin avisar (`monitoreo_aulas_estado_muestra()`).
+  plan <- list(.madm_aula("CH 3", "2026-09-07", "10:00", estado = "rechazo"))
+  out <- monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07",
+                                          hasta = "2026-09-12")
+  expect_length(out, 1L)
+  expect_equal(out[[1]]$motivo, "ya_no_agendada")
+  expect_equal(out[[1]]$detalle, "rechazo")
+})
+
+test_that("un curso-horario que el plan no conoce se dice, no se calla", {
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 999")
+  )
+  out <- monitoreo_aulas_citas_sin_agenda(list(.madm_aula("CH 1", "2026-09-07", "10:00")),
+                                          hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(out, 1L)
+  expect_equal(out[[1]]$motivo, "sin_plan")
+})
+
+test_that("lo APLICADO no es huérfano: su fila prueba que alguien fue", {
+  # Es el mutante que importa, y hay que reconocerlo por DOS sitios porque el
+  # plan no guarda si se aplicó: su `sample_status` sólo llega hasta
+  # `reagendada`. Las dos aulas de abajo se movieron de día en la agenda —el
+  # caso que dispara «aula_movida»— y aun así alguien fue.
+  hoja <- .madm_hoja(
+    # 1) la columna ESTADO de la propia fila, que es lo que la app mantiene.
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30",
+               "CH 1", estado = "APLICADA"),
+    # 2) el código que llega en `aplicadas`, cuando la hoja aún no se refrescó.
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30",
+               "CH 2", estado = "POR APLICAR")
+  )
+  plan <- list(
+    .madm_aula("CH 1", "2026-09-14", "10:00", estado = "reagendada"),
+    .madm_aula("CH 2", "2026-09-14", "10:00", estado = "reagendada")
+  )
+  expect_length(monitoreo_aulas_citas_sin_agenda(plan, hoja, aplicadas = c("CH 1", "CH 2"),
+                                                 desde = "2026-09-07", hasta = "2026-09-12"), 0L)
+  # Y sin ninguna de las dos señales, las MISMAS filas sí salen: es lo que
+  # prueba que el silencio de arriba lo produce la aplicación y no el filtro
+  # de la ventana.
+  expect_length(monitoreo_aulas_citas_sin_agenda(plan, .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30",
+               "CH 1", estado = "POR APLICAR"),
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30",
+               "CH 2", estado = "POR APLICAR")
+  ), desde = "2026-09-07", hasta = "2026-09-12"), 2L)
+})
+
+test_that("una cita al día no sale, y fuera de la ventana tampoco", {
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1"),
+    # Ésta SÍ está huérfana, pero cae fuera de la semana que rige la hoja: la
+    # contesta la hoja de esa semana, no ésta. Sin acotar, el recibo mezclaría
+    # semanas y diría que sobran filas que nadie escribió aquí.
+    .madm_fila("Ana Prueba", "Lunes", "20/09", "09:30", "09:45", "10:00 a 10:30", "CH 7")
+  )
+  plan <- list(
+    .madm_aula("CH 1", "2026-09-07", "10:00"),
+    .madm_aula("CH 7", "2026-09-28", "10:00", estado = "reagendada")
+  )
+  expect_length(monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07",
+                                                 hasta = "2026-09-12"), 0L)
+})
+
+test_that("el recibo de la sincronización trae las citas sin agenda", {
+  # La capacidad existe sólo si alguien la consume: el motor puede saberlo y el
+  # recibo no decirlo, y entonces nadie se entera nunca.
+  mock <- .sheets_api_mock()
+  mock$seed("Semana 1", values = .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 12")
+  ))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  recibo <- monitoreo_aulas_sincronizar_distribucion(
+    "sheet_dist",
+    plan = list(.madm_aula("CH 12", "2026-09-14", "10:00 am", estado = "reagendada")),
+    desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(recibo$sin_agenda, 1L)
+  expect_equal(recibo$sin_agenda[[1]]$curso_horario, "CH 12")
+  expect_equal(recibo$sin_agenda[[1]]$motivo, "aula_movida")
+  # Y el ensayo sigue sin escribir: mirar no cambia la hoja.
+  expect_length(Filter(function(c) !identical(c$method, "GET"), mock$env$calls), 0L)
+})
+
+test_that("la frase del recibo dice las citas huérfanas CON su fecha nueva", {
+  # Decir «1 cita ya no tiene su aula agendada» sin la fecha obliga a ir al
+  # libro a buscarla, que es justo el trabajo que esto ahorra.
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = FALSE,
+    sin_agenda = list(list(curso_horario = "CH 12", fecha = "2026-09-07",
+                           motivo = "aula_movida", detalle = "2026-09-14")),
+    sin_aplicador = list()
+  ))
+  expect_match(texto, "CH 12 el 2026-09-07", fixed = TRUE)
+  expect_match(texto, "ahora el 2026-09-14", fixed = TRUE)
+})
+
+test_that("sin huérfanas la frase no las menciona", {
+  texto <- monitoreo_aulas_sincronizacion_texto(list(aplicado = FALSE,
+                                                     sin_agenda = list(),
+                                                     sin_aplicador = list()))
+  expect_false(grepl("agendada ese día", texto, fixed = TRUE))
+})
+
+test_that("sincronizar con un enlace lo RECUERDA, o la red de publicar queda muerta", {
+  # Visto en vivo el 2026-09-09: se sincronizó pasando el enlace, se publicó a
+  # continuación y el recibo dijo «adoptadas 0, motivo sin_destino». La lectura
+  # previa que publicar hace de esta hoja depende de que el destino esté
+  # guardado; usar el enlace y tirarlo dejaba la red desconectada por una línea.
+  cfg <- monitoreo_aulas_distribucion_destino_set(
+    list(), "https://docs.google.com/spreadsheets/d/ABC123/edit")
+  guardado <- cfg$aulas_universitarias$distribucion_sheets
+  expect_equal(guardado$spreadsheet_id, "ABC123")
+  # Y desde ahí, la adopción de publicar YA encuentra a dónde mirar: su motivo
+  # deja de ser `sin_destino`, que es el síntoma exacto que se vio.
+  expect_false(identical(
+    prosecnurapp:::.malp_adoptar_distribucion(
+      cfg$aulas_universitarias, list(), list())$motivo, "sin_destino"))
+})
+
+test_that("el enlace se recuerda la PRIMERA vez y no se vuelve a pisar", {
+  # Se guarda en cuanto la hoja se deja leer, ENSAYO incluido: si sólo pasara al
+  # aplicar, dejar armada la lectura previa de publicar exigiría escribir en la
+  # hoja de 22 personas, que es justo lo que el ensayo existe para no hacer. Y
+  # no se repisa: un destino ya recordado es una decisión del usuario, y alguien
+  # puede pasar otro enlace de paso para mirar otra semana.
+  expect_true(prosecnurapp:::.madm_falta_recordar_destino(list()))
+  expect_true(prosecnurapp:::.madm_falta_recordar_destino(
+    list(distribucion_sheets = list(spreadsheet_id = "   "))))
+  expect_false(prosecnurapp:::.madm_falta_recordar_destino(
+    list(distribucion_sheets = list(spreadsheet_id = "DIST123"))))
+
+  # Y lo que se guarda es lo que la lectura previa de publicar necesita: con el
+  # destino puesto, su motivo deja de ser `sin_destino`.
+  cfg <- monitoreo_aulas_distribucion_destino_set(
+    list(), "https://docs.google.com/spreadsheets/d/DIST123/edit")
+  expect_false(prosecnurapp:::.madm_falta_recordar_destino(cfg$aulas_universitarias))
+  expect_false(identical(
+    prosecnurapp:::.malp_adoptar_distribucion(
+      cfg$aulas_universitarias, list(), list())$motivo, "sin_destino"))
+})
+
+# --- La sincronización escribe en la pestaña de SU semana --------------------
+#
+# El defecto que cierra: la función tomaba `hojas_dist[[1]]` y ahí insertaba las
+# agendadas sin cita. Con «Semana 1» y «Semana 2» vivas, pedir la ventana del 14
+# al 20 metía las citas de la semana 2 en la hoja de la semana 1 — encima del
+# trabajo del coordinador, en la pestaña que los aplicadores ya no miran, y
+# devolviendo `ok` sin un aviso.
+
+test_that("la ventana elige la pestaña de su semana, no la primera", {
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular",
+         scheduled_date = "2026-09-07", scheduled_time = "10:00 am"),
+    list(operational_code = "CH 3", sample_role = "titular",
+         scheduled_date = "2026-09-16", scheduled_time = "10:00 am")
+  )
+  hojas <- c("Semana 1", "Semana 2", "Semana 3")
+  # El 07/09 es lunes de la semana 1; el 14/09 abre la 2.
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, "2026-09-14"), "Semana 2")
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, "2026-09-07"), "Semana 1")
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, "2026-09-21"), "Semana 3")
+  # Una semana cuya pestaña todavía no existe cae a la primera, que es el
+  # comportamiento de siempre: no se inventa una hoja al vuelo desde aquí.
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, "2026-10-05"), "Semana 1")
+  # Y sin ventana legible, igual: la primera.
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, ""), "Semana 1")
+  expect_identical(prosecnurapp:::.mads_hoja_de_la_ventana(character(0), plan, "2026-09-14"), "")
+})
+
+# --- EL GUARD DE LA CLASE: que la mitad que ESCRIBE también migre -------------
+#
+# `a8d761ee` enseñó al publicador a partir por semana y la mitad que escribe de
+# la sincronización se quedó atrás: seguía tomando `hojas_dist[[1]]`, así que
+# pedir la ventana del 14 al 20 con dos semanas vivas metía las citas de la
+# semana 2 en la hoja de la semana 1 —encima del trabajo del coordinador, en la
+# pestaña que los aplicadores ya no miran, y devolviendo `ok` sin un aviso—.
+# `83d98403` lo arregló; el test de `.mads_hoja_de_la_ventana` cubre el
+# selector, y este cubre EL RECORRIDO ENTERO, que es donde la mitad se quedó.
+#
+# Con dos pestañas sembradas: la fila nueva de una cita del 16/09 tiene que caer
+# en «Semana 2» y «Semana 1» tiene que quedar intacta, byte a byte.
+
+test_that("con dos semanas vivas, la cita nueva se escribe en la pestaña de SU semana", {
+  mock <- .sheets_api_mock()
+  mock$seed("Semana 1", values = .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1", estado = "")
+  ))
+  mock$seed("Semana 2", values = .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "14/09", "09:30", "09:45", "10:00 a 10:30", "CH 9", estado = "")
+  ))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  antes_s1 <- mock$env$sheets[["Semana 1"]]$values
+
+  out <- monitoreo_aulas_sincronizar_distribucion(
+    "sheet_dist",
+    plan = list(
+      .madm_aula("CH 1", "2026-09-07", "10:00 am"),   # semana 1, ya publicada
+      .madm_aula("CH 9", "2026-09-14", "10:00 am"),   # semana 2, ya publicada
+      .madm_aula("CH 20", "2026-09-16", "11:00 am")   # semana 2, FALTA
+    ),
+    roster = "Ana Prueba", desde = "2026-09-14", hasta = "2026-09-20",
+    aplicar = TRUE
+  )
+
+  # El destino se eligió por la VENTANA, no por el orden de las pestañas.
+  expect_identical(out$hoja, "Semana 2")
+
+  # La semana 1 no se tocó: ni una fila, ni un valor.
+  expect_identical(mock$env$sheets[["Semana 1"]]$values, antes_s1)
+
+  # Y la cita que faltaba entró en la semana 2.
+  v2 <- mock$env$sheets[["Semana 2"]]$values
+  plano <- unlist(lapply(v2, function(f) as.character(unlist(f))), use.names = FALSE)
+  expect_true("CH 20" %in% trimws(plano))
+  expect_true("CH 9" %in% trimws(plano))
+  # Y NO se coló en la semana 1, que es el defecto que esto vigila.
+  plano1 <- unlist(lapply(mock$env$sheets[["Semana 1"]]$values,
+                          function(f) as.character(unlist(f))), use.names = FALSE)
+  expect_false("CH 20" %in% trimws(plano1))
+})
+
+# --- el recibo dice EN QUÉ pestaña se trabajó --------------------------------
+#
+# Desde `83d98403` el Sheets de los aplicadores lleva una pestaña por semana y
+# el destino de esta sincronización lo decide la ventana pedida. El recibo
+# contaba lo que se hizo y callaba dónde: el mismo botón puede escribir en
+# «Semana 1» o en «Semana 2» y la frase salía idéntica. Con esto, mirar la
+# semana equivocada se ve en la primera línea.
+test_that("la frase del recibo nombra la hoja destino, cambie algo o no", {
+  con_cambios <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, hoja = "Semana 2",
+    anadidas = list(list(curso_horario = "CH 35")),
+    estado = list(cambios = list(), conflictos = list()),
+    sin_aplicador = list()
+  ))
+  expect_match(con_cambios, "En «Semana 2»:", fixed = TRUE)
+  # Y al anteponer el destino la frase deja de empezar la oración.
+  expect_match(con_cambios, "En «Semana 2»: se añadieron", fixed = TRUE)
+
+  en_paz <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, hoja = "Semana 2", anadidas = list(),
+    estado = list(cambios = list(), conflictos = list()), sin_aplicador = list()
+  ))
+  expect_match(en_paz, "No hizo falta cambiar nada en «Semana 2».", fixed = TRUE)
+
+  # Sin hoja en el recibo la frase no inventa un destino ni se rompe.
+  sin_hoja <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, anadidas = list(),
+    estado = list(cambios = list(), conflictos = list()), sin_aplicador = list()
+  ))
+  expect_match(sin_hoja, "No hizo falta cambiar nada.", fixed = TRUE)
+  expect_false(grepl("«", sin_hoja, fixed = TRUE))
+})
+
+# --- un código mal escrito en la hoja no puede pasar mudo --------------------
+#
+# Medido en el operativo el 2026-09-12: la hoja de los aplicadores traía
+# «CH164» donde el plan tiene «CH 164». Comparados literales, esa fila nunca
+# encuentra su aula: no se le corrige el aula, no se le sincroniza el estado, y
+# el recibo no tenía por qué mencionarla. Se vio de casualidad, porque además
+# caía fuera de la ventana.
+#
+# Y son DOS noticias distintas. Un código que el plan no conoce de ninguna
+# forma es un dato inventado o de otro estudio; uno que existe con otra
+# escritura es una celda que se arregla en diez segundos. Decir «desconocido» a
+# los dos manda a buscar un aula que está ahí.
+
+test_that("un código con otra escritura se nombra, y se dice cómo va escrito", {
+  plan <- list(list(operational_code = "CH 164", sample_role = "titular"))
+  hoja <- .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00",
+                                "CH164"))
+  out <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07",
+                                       hasta = "2026-09-12", plan = plan)
+  raros <- Filter(function(d) identical(d$motivo, "codigo_con_otra_escritura"), out)
+  expect_length(raros, 1L)
+  expect_identical(raros[[1]]$curso_horario, "CH164")
+  # El valor es la escritura BUENA: es lo que hay que teclear en la celda.
+  expect_identical(raros[[1]]$valor, "CH 164")
+})
+
+test_that("un código que el plan no conoce se declara distinto", {
+  plan <- list(list(operational_code = "CH 164", sample_role = "titular"))
+  hoja <- .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00",
+                                "CH 900"))
+  out <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07",
+                                       hasta = "2026-09-12", plan = plan)
+  motivos <- vapply(out, function(d) d$motivo, character(1))
+  expect_true("codigo_desconocido" %in% motivos)
+  expect_false("codigo_con_otra_escritura" %in% motivos)
+})
+
+test_that("el que está bien escrito no se toca, y sin plan no se juzga el código", {
+  plan <- list(list(operational_code = "CH 164", sample_role = "titular"))
+  hoja <- .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00",
+                                "CH 164"))
+  out <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07",
+                                       hasta = "2026-09-12", plan = plan)
+  motivos <- vapply(out, function(d) d$motivo, character(1))
+  expect_false(any(grepl("^codigo_", motivos)))
+
+  # Sin plan la función no puede juzgar el código y NO lo inventa: seguiría
+  # mirando sólo la fecha, como siempre.
+  sin_plan <- monitoreo_aulas_filas_dudosas(
+    .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00",
+                          "CH164")),
+    desde = "2026-09-07", hasta = "2026-09-12")
+  expect_false(any(grepl("^codigo_", vapply(sin_plan, function(d) d$motivo, character(1)))))
+})
+
+test_that("una fecha ESCRITA que no se puede leer se declara, no desaparece", {
+  # Gonzalo, 2026-09-15: «se han empezado a agendar nuevas aplicaciones entre
+  # refuerzo, en reemplazos disponible y en aulas extra y al actualizar no se
+  # agregan las filas a distribución de aplicadores». Medido sobre el operativo:
+  # EXTRA 17 tiene «Confirmará por correo» en la celda de fecha, y esa aula caía
+  # por el MISMO `next` que las que no tienen fecha ninguna. Alguien la agendó a
+  # medias y el recibo no lo decía: indistinguible de «no está agendada», que es
+  # justo lo que esta función existe para no hacer.
+  hoja <- .madm_hoja()
+  plan <- list(
+    .madm_aula("EXTRA 17", "Confirmará por correo", "10:00 am"),
+    .madm_aula("CH 9", "", "10:00 am")
+  )
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  expect_length(out$faltantes, 0L)
+  motivos <- vapply(out$descartadas, function(d) d$motivo, character(1))
+  codigos <- vapply(out$descartadas, function(d) d$curso_horario, character(1))
+  expect_identical(motivos, "fecha_ilegible")
+  expect_identical(codigos, "EXTRA 17")
+  # El detalle trae lo que estaba escrito: sin eso hay que ir al Sheets a
+  # adivinar qué se tecleó.
+  expect_identical(out$descartadas[[1]]$detalle, "Confirmará por correo")
+  # Y la celda VACÍA sigue sin ser un descarte: es el estado normal de la mayor
+  # parte del plan y llenar el recibo con mil filas lo vuelve ilegible.
+  expect_false("CH 9" %in% codigos)
+})
+
+test_that("una hora con la nota del equipo detrás ya recibe su fila", {
+  # La otra mitad del mismo síntoma: cinco aulas del operativo escriben
+  # «2:30 pm (Aplicada sin agendar)» y se descartaban por «sin_hora».
+  hoja <- .madm_hoja()
+  plan <- list(.madm_aula("CH 91", "2026-09-10", "2:30 pm (Aplicada sin agendar)"))
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  expect_length(out$faltantes, 1L)
+  expect_identical(out$faltantes[[1]]$curso_horario, "CH 91")
+  expect_identical(out$faltantes[[1]]$recojo, "14:00")
+  expect_length(out$descartadas, 0L)
+})
+
+test_that("lo que el rango del reparto deja fuera se CUENTA y se dice", {
+  # Gonzalo, 2026-09-15: «el agendador ya agendó algunas para esta semana, ¿esas
+  # por qué no las muestra el excel cuando actualizo todo?». Medido sobre su
+  # proyecto: `reparto_rango` seguía en «2026-09-07 → 2026-09-12» —la semana
+  # ANTERIOR— y la ventana por defecto del sincronizador es ésa, así que todo lo
+  # agendado para la semana en curso salía por el `next` del rango y el recibo
+  # decía «0 aulas por añadir». No faltaba ninguna Y faltaban todas: el recibo
+  # no podía distinguirlo.
+  hoja <- .madm_hoja()
+  plan <- list(
+    .madm_aula("CH 1", "2026-09-10", "10:00 am"),   # dentro
+    .madm_aula("EXTRA 15", "2026-09-16", "9:45 am"),
+    .madm_aula("R 3.1", "2026-09-15", "8:00 pm"),
+    # Una futura NO agendada no es una omisión: es plan, y meterla en la cuenta
+    # convertiría el aviso en ruido permanente.
+    .madm_aula("CH 7", "2026-09-30", "10:00 am", estado = "sin_contactar")
+  )
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja,
+                                            desde = "2026-09-07", hasta = "2026-09-12")
+  expect_identical(vapply(out$faltantes, function(f) f$curso_horario, character(1)), "CH 1")
+  expect_identical(sort(unlist(out$fuera_de_ventana)), c("EXTRA 15", "R 3.1"))
+})
+
+test_that("el recibo nombra el rango que está dejando fuera las citas", {
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = FALSE, anadidas = list(),
+    fuera_de_ventana = list("EXTRA 15", "R 3.1"),
+    ventana = list(desde = "2026-09-07", hasta = "2026-09-12")))
+  expect_true(grepl("2 aulas agendadas quedaron fuera del rango", texto, fixed = TRUE))
+  # Con sus fechas: sin ellas hay que ir a buscar qué rango está puesto, que es
+  # justo el dato que falta cuando uno se pregunta por qué no aparece nada.
+  expect_true(grepl("07/09 → 12/09", texto, fixed = TRUE))
+  expect_true(grepl("actualiza su rango", texto, fixed = TRUE))
+})
+
+test_that("sin nada fuera del rango el recibo no inventa el aviso", {
+  # El contraejemplo: un aviso que sale siempre deja de leerse a la semana.
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, anadidas = list(),
+    fuera_de_ventana = list(),
+    ventana = list(desde = "2026-09-14", hasta = "2026-09-20")))
+  expect_false(grepl("fuera del rango", texto, fixed = TRUE))
+})
+
+# =============================================================================
+# La fila que declara no tener cita no puede haber perdido una
+# =============================================================================
+#
+# Gonzalo, 2026-09-22, sin entender el aviso y con razón: «en la distribución
+# también están las CH no confirmadas para que los aplicadores intenten agendar
+# sin cita». Esas filas existen PORQUE el aula no tiene acuerdo, así que
+# reportarlas como «ya no tienen su aula agendada ese día» es decirle que algo
+# que pidió a propósito es un problema.
+#
+# Medido ese día sobre la hoja del operativo: de 13 filas reportadas, CUATRO
+# eran de esta familia —CH 33, CH 42 y CH 3 marcadas REAGENDADA con su hora en
+# formato «(clase)», y CH 46 ya convertida a POR APLICAR SIN AGENDACIÓN—.
+#
+# Es la otra mitad del arreglo del 10/09, que añadió «APLICADA SIN AGENDACIÓN»
+# a los aplicados con este mismo razonamiento y dejó fuera «POR APLICAR SIN
+# AGENDACIÓN» por no haber rendido todavía: «¿ya rindió?» y «¿perdió su cita?»
+# son dos preguntas, y para la segunda da igual.
+
+test_that("las filas que declaran no tener cita no se reportan como desalineadas", {
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 13:00 (clase)",
+               "CH 1", estado = "POR APLICAR SIN AGENDACIÓN"),
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 13:00 (clase)",
+               "CH 2", estado = "REAGENDADA"),
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30",
+               "CH 3", estado = "RECHAZADA")
+  )
+  # Las tres aulas perdieron su agenda: es justo el caso que dispararía el aviso.
+  plan <- list(
+    .madm_aula("CH 1", "", "", estado = "en_contacto"),
+    .madm_aula("CH 2", "", "", estado = "en_contacto"),
+    .madm_aula("CH 3", "", "", estado = "rechazada")
+  )
+  expect_length(
+    monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07", hasta = "2026-09-12"),
+    0L)
+})
+
+test_that("el control: las MISMAS filas con POR APLICAR si salen", {
+  # Lo que prueba que el silencio de arriba lo produce el estado de la fila y no
+  # la ventana ni el plan.
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 13:00 (clase)",
+               "CH 1", estado = "POR APLICAR"),
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 13:00 (clase)",
+               "CH 2", estado = "POR APLICAR")
+  )
+  plan <- list(
+    .madm_aula("CH 1", "", "", estado = "en_contacto"),
+    .madm_aula("CH 2", "", "", estado = "en_contacto")
+  )
+  out <- monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(out, 2L)
+  expect_true(all(vapply(out, function(x) identical(x$motivo, "ya_no_agendada"), logical(1))))
+})
+
+test_that("tampoco se reportan como MOVIDAS: no tenian fecha que mover", {
+  # `aula_movida` es la otra rama del mismo chequeo y tenía el mismo agujero:
+  # CH 46 salió así el 22/09 estando ya convertida a «POR APLICAR SIN
+  # AGENDACIÓN».
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "08:00 a 10:00 (clase)",
+               "CH 1", estado = "POR APLICAR SIN AGENDACIÓN")
+  )
+  plan <- list(.madm_aula("CH 1", "2026-09-10", "10:00", estado = "agendada"))
+  expect_length(
+    monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07", hasta = "2026-09-12"),
+    0L)
+})

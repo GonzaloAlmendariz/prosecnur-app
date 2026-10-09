@@ -17,32 +17,119 @@
 # Los 20 campos de un bloque, en orden. El nombre canonico es el de la app; el
 # de la hoja se resuelve por texto normalizado, no por posicion, para que un
 # libro con una columna de mas no descuadre todo lo que viene detras.
+# La columna «MUESTRA» se retiro del bloque el 2026-08-31 (B8 del checklist del
+# operativo). Gonzalo, mirando el libro: «ni siquiera se por que la columna
+# muestra esta ahi cuando curso horario te esta dando todo». La ola (`wave`) es
+# del PLAN —viene de Calculo de muestra— y el libro no debe poder pisarla; un
+# libro viejo que aun la traiga se lee igual, porque el emparejado es por titulo
+# y lo desconocido se ignora. La «Base de control» CONSERVA su columna MUESTRA:
+# esa hoja tiene su propia spec (`carga_base_control.R`).
+#
+# **El orden es el v4 (B15, dictado del dueño 2026-09-01)**: identidad, despues
+# la zona de trabajo del agendador —«el nombre del docente, su numero, las
+# fechas del curso, y que pueda registrar cuando se va a hacer»— y al final el
+# contexto que «tiene que estar, pero no a la mano» (correo, matriculados). Los
+# generadores derivan las celdas de ESTA lista (`.calg_celdas_agenda`), asi que
+# reordenar aqui reordena la hoja entera sin contar columnas en ningun otro
+# sitio. Los lectores emparejan por titulo: un libro v3 con el orden viejo se
+# sigue leyendo igual.
 AULAS_AGENDADAS_BLOQUE <- list(
-  list(campo = "wave",             titulos = c("MUESTRA")),
+  # --- identidad ---
   list(campo = "operational_code", titulos = c("CURSO-HORARIO", "CURSO HORARIO")),
-  list(campo = "teacher",          titulos = c("NOMBRE DE DOCENTE")),
-  list(campo = "teacher_phone",    titulos = c("TELEFONO DE DOCENTE")),
-  list(campo = "teacher_email",    titulos = c("CORREO PUCP DOCENTE")),
   list(campo = "course_name",      titulos = c("NOMBRE DEL CURSO")),
-  list(campo = "faculty",          titulos = c("FACULTAD")),
-  list(campo = "level",            titulos = c("NIVEL DEL CURSO")),
+  # --- zona del agendador: lo que ve y lo que registra, en orden de uso ---
+  list(campo = "teacher",          titulos = c("NOMBRE DE DOCENTE")),
+  list(campo = "teacher_phone",    titulos = c("TELÉFONO DE DOCENTE", "TELEFONO DE DOCENTE")),
+  # La celda enseña las sesiones LEGIBLES por dia —«LUN 16:00-18:00 L101 ·
+  # MIE 17:00-20:00 A506»— cuando el plan trae `sesiones_legibles` (anotadas
+  # desde el catalogo DTI); sin ellas cae al `label` de siempre.
   list(campo = "label",            titulos = c("SESIONES Y AULA")),
-  list(campo = "enrolled_total",   titulos = c("MATRICULADOS TOTAL DTI")),
-  # Con tilde, que es como lo escribe el equipo en su Excel y como ya lo escribe
-  # la hoja de campo. La variante sin tilde queda de alias: se leyo asi durante
-  # todo 2025 y el equipo tiene esos libros. Sin unificar, la hoja de campo
-  # enseñaba «MATRICULADOS POBLACION» y «MATRICULADOS POBLACIÓN» a veinte
-  # columnas de distancia, que es el mismo dato escrito de dos formas.
-  list(campo = "eligible_n",       titulos = c("MATRICULADOS POBLACIÓN", "MATRICULADOS POBLACION")),
   list(campo = "contact_medium",   titulos = c("MEDIO DE CONTACTO")),
   list(campo = "contact_date",     titulos = c("FECHA DE LLAMADA")),
-  list(campo = "contact_attempts", titulos = c("NUMERO DE INTENTOS")),
+  list(campo = "contact_attempts", titulos = c("NÚMERO DE INTENTOS", "NUMERO DE INTENTOS")),
+  # B23 (dictado 2026-09-01, con el libro en uso): «todos los CH tienen que
+  # tener una columna de estatus de llamada» — el resultado de CADA llamada,
+  # titulares incluidos. NO es STATUS MUESTRA: son ejes distintos (aquel dice
+  # donde esta el aula en el agendamiento; este, como termino la llamada).
+  # Sembrada VACIA en todas partes: el resultado lo teclea el equipo.
+  list(campo = "call_status",      titulos = c("STATUS DE LLAMADA")),
+  # B22 (dictado 2026-09-01): «a la izquierda de la columna del status» — si el
+  # aula ya recibio el correo del dia 1. A reemplazos y extras se les manda
+  # correo hoy y se les llama mañana segun necesidad; a los titulares se les
+  # llama a todos hoy, asi que su celda va VACIA (la siembra vive en
+  # `.calg_celda_agenda`). Columna uniforme en TODOS los bloques: arrastre,
+  # formato y validaciones la heredan por la spec.
+  list(campo = "email_received",   titulos = c("RECIBIÓ CORREO", "RECIBIO CORREO")),
   list(campo = "sample_status",    titulos = c("STATUS MUESTRA")),
-  list(campo = "scheduled_date",   titulos = c("FECHA DE APLICACION", "FECHA AGENDADA")),
-  list(campo = "scheduled_day",    titulos = c("DIA")),
+  # **Cual reserva se acabo usando** (dictado 2026-09-04: «debemos tener una
+  # columna adicional con algo asi como AULA UTILIZADA que le diga al usuario
+  # cual fue el reemplazo que usamos, al lado de status muestra»).
+  #
+  # Va PEGADA a STATUS MUESTRA porque se leen juntas: aquella dice donde esta
+  # el aula y esta, si salio del apuro, con quien. Es el complemento de los
+  # tres estados de aplicacion que terminan en preposicion (REEMPLAZADA POR,
+  # COMPLEMENTADA CON, REFORZADA CON).
+  #
+  # La escribe la APP, no la persona: sale de la decision operativa ya
+  # registrada en el plan (`replacement_for`, lo que
+  # `monitoreo_aulas_apply_replacement` anota al activar una reserva), y por eso
+  # NO entra en `AULAS_LIBRO_CAMPOS_DE_LA_PERSONA` y se tiñe del gris de «esto
+  # no lo toques». Vacia mientras no haya habido reemplazo, que es lo normal.
+  list(campo = "aula_utilizada",   titulos = c("AULA UTILIZADA")),
+  # B30 (dictado 2026-09-02): «se les va a agregar la columna de Lugar de
+  # aplicación y tiene que ir a la derecha de status muestra». Es el aula /
+  # pabellon CONFIRMADO finalmente —puede diferir del aula de la clase que
+  # enseña SESIONES Y AULA— y se llena A MANO: texto libre, sin desplegable y
+  # sin validacion dura; el formato «A206» lo pone la disciplina de entrada
+  # del equipo, no un validador. Sembrada VACIA en todos los roles y, una vez
+  # tecleada, NUTRE a las demas hojas y a la app (es campo propio del libro:
+  # `AULAS_LIBRO_CAMPOS_PROPIOS`).
+  list(campo = "scheduled_venue",  titulos = c("LUGAR DE APLICACIÓN", "LUGAR DE APLICACION")),
+  # «FECHA AGENDADA» como canonico (B15): en la hoja del agendador esa fecha es
+  # la agendada, y «FECHA DE APLICACIÓN» era justo la confusion que el renombre
+  # de la hoja de campo ya habia documentado. Las formas viejas quedan de alias:
+  # los libros vivos v3 las traen escritas.
+  list(campo = "scheduled_date",   titulos = c("FECHA AGENDADA", "FECHA DE APLICACIÓN", "FECHA DE APLICACION")),
+  list(campo = "scheduled_day",    titulos = c("DÍA", "DIA")),
   list(campo = "scheduled_time",   titulos = c("HORA")),
-  list(campo = "link",             titulos = c("ENLACE DE LA FICHA")),
-  list(campo = "notes",            titulos = c("OBSERVACIONES", "OBSERVACIONES SOBRE AULAS AGENDADAS"))
+  # EN QUE MOMENTO de la clase entra la aplicacion. Hasta 2025 esto vivia en
+  # OBSERVACIONES en prosa libre —«Puede realizarse en la mitad de clase de 8 a
+  # 8:15am», «seria ideal a las 9:30am»— y por eso nadie podia agregarlo: la
+  # agenda de campo no sabia si el aplicador entra al empezar la clase o al
+  # cerrarla, que es lo que decide si dos aulas de la misma franja chocan.
+  #
+  # Desplegable NO absoluto (B15): tres momentos tecleables en la hoja «Listas»
+  # (`AULAS_LIBRO_MOMENTO_CLASE`) y texto libre permitido. La hora exacta,
+  # cuando la pide, sigue yendo en HORA; este campo dice donde cae en la sesion.
+  list(campo = "scheduled_moment", titulos = c("MOMENTO DE LA CLASE", "MOMENTO")),
+  list(campo = "notes",            titulos = c("OBSERVACIONES", "OBSERVACIONES SOBRE AULAS AGENDADAS")),
+  # --- contexto: tiene que estar, pero no a la mano ---
+  list(campo = "teacher_email",    titulos = c("CORREO PUCP DOCENTE")),
+  list(campo = "faculty",          titulos = c("FACULTAD")),
+  # **La CARRERA, al lado de la facultad y no en su lugar** (Gonzalo, 2026-09-17:
+  # «en vez de facultad debe ser carrera; para este estilo donde la carrera es el
+  # estrato, no la facultad»; decisión tomada el 18/09 sobre las dos opciones).
+  #
+  # Se AÑADE en vez de reemplazar por una razón operativa, no estética: «Aulas
+  # Agendadas» es del EQUIPO y la app la respeta, así que cambiar el título de
+  # FACULTAD dejaría el documento vivo a medio migrar —el motor escribiría
+  # CARRERA en documentos nuevos y el suyo seguiría con FACULTAD sin corregirse
+  # nunca—, mientras que ensanchar es el camino ya probado en ese mismo
+  # documento: la columna de traslape lo llevó de 73 a 76 con cero celdas
+  # distintas y el formato intacto.
+  #
+  # Y **no lleva «FACULTAD» de alias**: el alias capturaría la columna de al lado
+  # y metería «CIENCIAS SOCIALES» dentro de `program`, que es exactamente lo que
+  # esta columna existe para no decir.
+  list(campo = "program",          titulos = c("CARRERA")),
+  list(campo = "level",            titulos = c("NIVEL DEL CURSO")),
+  list(campo = "enrolled_total",   titulos = c("MATRICULADOS TOTAL DTI")),
+  # «MATRICULADOS ELEGIBLES» (B17, dictado textual): «aqui no hablamos de
+  # poblacion; matriculados totales de la DTI y matriculados elegibles, que son
+  # los que cumplen los criterios». Las dos formas de POBLACION quedan de alias
+  # de lectura: todo 2025 y los libros vivos v3 las traen escritas.
+  list(campo = "eligible_n",       titulos = c("MATRICULADOS ELEGIBLES", "MATRICULADOS POBLACIÓN", "MATRICULADOS POBLACION")),
+  list(campo = "link",             titulos = c("ENLACE DE LA FICHA"))
 )
 
 AULAS_AGENDADAS_ANCHO_BLOQUE <- length(AULAS_AGENDADAS_BLOQUE)
@@ -95,10 +182,20 @@ AULAS_AGENDADAS_ANCHO_BLOQUE <- length(AULAS_AGENDADAS_BLOQUE)
   v <- .caa_txt(x)
   if (!nzchar(v)) return("")
   n <- suppressWarnings(as.numeric(v))
-  if (!length(n) || !is.finite(n) || n < 20000 || n > 60000) return(v)
-  # `%d` y no `%s`: un serial con decimales trae la hora, y la parte entera es
-  # el dia.
-  format(as.Date(floor(n), origin = "1899-12-30"), "%Y-%m-%d")
+  if (length(n) && is.finite(n) && n >= 20000 && n <= 60000) {
+    # `%d` y no `%s`: un serial con decimales trae la hora, y la parte entera
+    # es el dia.
+    return(format(as.Date(floor(n), origin = "1899-12-30"), "%Y-%m-%d"))
+  }
+  # La API de Sheets entrega el texto FORMATEADO de la celda («10/09/2026»),
+  # no el serial que Excel si trae; y aguas abajo el Plan del dia ordena y
+  # compara la fecha como texto ISO. dd/mm/yyyy se normaliza aqui — frontera
+  # unica — y cualquier otro texto («por confirmar») pasa sin tocarse.
+  f <- suppressWarnings(as.Date(v, format = "%d/%m/%Y"))
+  if (length(f) == 1L && !is.na(f) && grepl("^\\d{1,2}/\\d{1,2}/\\d{4}$", v)) {
+    return(format(f, "%Y-%m-%d"))
+  }
+  v
 }
 
 .caa_num <- function(x) {
@@ -243,6 +340,12 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         label = val("label"),
         course_name = val("course_name"),
         faculty = val("faculty"),
+        # **La carrera, que sin esta línea se leía del Excel y moría aquí.** Es
+        # la misma lista cerrada que ya se tragó `teacher_phone` —el dato con el
+        # que se agenda—, dos comentarios más abajo. El barrido de ida y vuelta
+        # la cazó en el acto: `program` salía en `perdidos` junto a los dos
+        # alias declarados.
+        program = val("program"),
         level = val("level"),
         teacher = val("teacher"),
         # La spec declara `teacher_phone` desde el principio y el generador lo
@@ -252,7 +355,6 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         teacher_phone = val("teacher_phone"),
         teacher_email = val("teacher_email"),
         schedule = val("label"),
-        wave = val("wave"),
         enrolled_total = num("enrolled_total"),
         eligible_n = num("eligible_n"),
         # Los dos ejes de estado viven separados: `sample_status` es el del
@@ -262,9 +364,24 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         contact_medium = val("contact_medium"),
         contact_date = fecha("contact_date"),
         contact_attempts = num("contact_attempts"),
+        # B23: el resultado de la llamada vuelve al plan — es lo que decide el
+        # siguiente movimiento del agendador sobre cada CH.
+        call_status = val("call_status"),
+        # B22: el «Sí» del dia 2 tiene que VOLVER — la llamada del dia
+        # siguiente se decide «en función de los que necesitemos» leyendo esto.
+        email_received = val("email_received"),
+        # B30: el lugar CONFIRMADO tambien VUELVE — es lo que nutre al plan,
+        # al Plan del dia y a la app; la fusion lo trata como propio del libro.
+        scheduled_venue = val("scheduled_venue"),
         scheduled_date = fecha("scheduled_date"),
         scheduled_day = val("scheduled_day"),
         scheduled_time = val("scheduled_time"),
+        # CUARTO sitio que enumera los campos del bloque: `AULAS_AGENDADAS_BLOQUE`
+        # da los titulos, las dos hojas del generador escriben los valores y esta
+        # lista los devuelve. Un campo que falte aqui se escribe en el Excel, se
+        # lee de vuelta y se descarta en silencio: el barrido de ida y vuelta de
+        # `test-carga-aulas-libro-roundtrip.R` es lo unico que lo caza.
+        scheduled_moment = val("scheduled_moment"),
         link = val("link"),
         replacement_note = val("notes"),
         sample_role = if (b == 1L) "titular" else "chain_reserve",

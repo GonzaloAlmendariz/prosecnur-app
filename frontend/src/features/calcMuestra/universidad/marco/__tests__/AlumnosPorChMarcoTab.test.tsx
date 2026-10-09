@@ -113,7 +113,7 @@ describe("AlumnosPorChMarcoTab", () => {
     // ADR 0057 · «frame» y «fallback en React» son vocabulario de implementación.
     // La garantía es la misma —React no inventa valores— dicha sin exigir saber
     // qué es un fallback.
-    expect(html).toContain("React no rellenará ningún valor por su cuenta");
+    expect(html).toContain("mientras tanto no se rellena ningún valor");
     expect(html).not.toContain("frame");
     expect(html).not.toContain("Confirmar decisión");
   });

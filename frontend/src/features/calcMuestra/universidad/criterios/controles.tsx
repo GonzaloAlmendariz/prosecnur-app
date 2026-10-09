@@ -77,6 +77,17 @@ function AccionesSet({ variable, onSel }: { variable: CriterioVariable; onSel: S
 export type AporteCategoria = {
   /** Alumnos únicos elegibles del marco con esta categoría. */
   elegibles: number | null;
+  /**
+   * Alumnos únicos elegibles TOTALES de la categoría, al margen del marco.
+   *
+   * `elegibles` cuenta sólo a los que sobreviven al marco completo, así que una
+   * categoría que hoy queda fuera muestra 0 — y ese 0 se lee como «aquí no hay
+   * alumnos» cuando lo que dice es «ninguno entra todavía». Medido en
+   * HSVG26DEF: «TEORICO OBLIGATORIO» de Arte y Diseño mostraba 0 elegibles
+   * teniendo 1.154, y se estuvo a punto de descartar la categoría por esa cifra.
+   * El motor ya publica el total en `contraste_total`; esto sólo lo trae.
+   */
+  elegiblesContraste?: number | null;
   /** Cursos-horario elegibles con esta categoría. */
   ch: number | null;
   /** Cursos-horario totales con esta categoría (contraste). */

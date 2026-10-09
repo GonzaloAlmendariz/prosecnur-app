@@ -2235,12 +2235,12 @@
 
 .pulso-carga-frame .pulso-acreditacion-batch-feedback.is-error,
 .pulso-carga-frame .pulso-acreditacion-batch-blockers li {
-  color: var(--pulso-danger);
+  color: var(--pulso-danger-fg);
   background: var(--pulso-danger-bg);
 }
 
 .pulso-carga-frame .pulso-acreditacion-batch-feedback.is-success {
-  color: var(--pulso-success);
+  color: var(--pulso-success-fg);
   background: var(--pulso-success-bg);
 }
 
@@ -2638,7 +2638,7 @@
   font-size: 11.5px;
 }
 
-.pulso-sav-review-privacy svg { flex: 0 0 auto; color: var(--pulso-success); }
+.pulso-sav-review-privacy svg { flex: 0 0 auto; color: var(--pulso-success-fg); }
 .pulso-sav-review-privacy strong { color: var(--pulso-text-muted); font-weight: var(--pulso-weight-semibold); }
 
 .pulso-sav-review-commandbar {
@@ -4466,11 +4466,11 @@
 }
 
 .pulso-carga-view-tab {
-  --carga-view-state: var(--pulso-info);
+  --carga-view-state: var(--pulso-info-fg);
 }
 
 .pulso-carga-view-tab.is-ready {
-  --carga-view-state: var(--pulso-success);
+  --carga-view-state: var(--pulso-success-fg);
 }
 
 .pulso-carga-view-tab.is-pending {
@@ -4651,7 +4651,7 @@
 
 .pulso-sm-logic-preview-row svg {
   margin-top: 2px;
-  color: var(--pulso-success);
+  color: var(--pulso-success-fg);
 }
 
 .pulso-sm-logic-preview.has-errors .pulso-sm-logic-preview-row svg {

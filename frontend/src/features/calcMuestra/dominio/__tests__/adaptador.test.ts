@@ -352,6 +352,42 @@ describe("helpers del frame para datosProyecto", () => {
     expect(embudoAulaDesdeFrame(frameCon({ ...PERFIL_BACKEND, poblacion_n: 0 }))).toBeNull();
   });
 
+  it("traslada el sello vacia_marco/aviso del motor sin recalcularlo", () => {
+    // El seam `vacia_marco` → `vaciaMarco` no tenía candado: si alguien renombra
+    // el campo del backend, nada se pone rojo y el aviso del criterio que vacía
+    // el marco desaparece en silencio — que es exactamente el defecto que este
+    // sello vino a reparar. Lo detectó el agente `verificador`.
+    const conCero = embudoAulaDesdeFrame(
+      frameCon({
+        ...PERFIL_BACKEND,
+        embudo_aula: [
+          { id: "total", label: "Curso-horario únicos", conteo: 3630, excluidos: 0 },
+          {
+            id: "course_level",
+            label: "+ Nivel del curso",
+            conteo: 0,
+            excluidos: 3630,
+            vacia_marco: true,
+            aviso: "«+ Nivel del curso» dejó el marco en 0: entraron 3 630 aulas.",
+          },
+          { id: "session_type", label: "+ Tipo de sesión", conteo: 0, excluidos: 0 },
+        ],
+      }),
+    )!;
+    const porId = new Map(conCero.map((p) => [p.id, p]));
+    expect(porId.get("course_level")!.vaciaMarco).toBe(true);
+    expect(porId.get("course_level")!.aviso).toContain("dejó el marco en 0");
+
+    // El que HEREDA el cero no lleva sello, y el front no se lo inventa a partir
+    // de `conteo === 0`: el veredicto es del motor, que es quien ve el antes.
+    expect(porId.get("session_type")!.vaciaMarco).toBeUndefined();
+    expect(porId.get("session_type")!.aviso).toBeUndefined();
+
+    // Frames viejos sin la clave: ausente, nunca `false` fabricado.
+    const viejo = embudoAulaDesdeFrame(frameCon(PERFIL_BACKEND))!;
+    expect(viejo.every((p) => p.vaciaMarco === undefined)).toBe(true);
+  });
+
   it("impactoOpcionalesDesdeFrame indexa por id y tolera la ausencia", () => {
     const conOpcionales: CalcMuestraAulasPerfil = {
       ...PERFIL_BACKEND,

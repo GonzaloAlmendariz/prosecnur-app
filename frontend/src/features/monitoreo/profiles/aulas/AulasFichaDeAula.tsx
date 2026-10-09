@@ -2,8 +2,12 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { X } from "../../../../vendor/lucide-react";
+import { aulasStatusLabel } from "./aulasPresentation";
+import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { dondeSeSaca } from "./dondeSeSaca";
 import { fichaDeAula } from "./fichaDeAula";
+import "./aulasFichaDeAula.css";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 
 /**
  * Un aula y todo lo suyo, en una sola lectura.
@@ -24,11 +28,21 @@ import { fichaDeAula } from "./fichaDeAula";
 // medición.
 const fmtOGuion = (n: number | null) => (n === null ? "—" : n.toLocaleString("es-PE"));
 
+/* Loop mejora-ui E6: la cifra de la ficha, con la ausencia en su volumen. Un
+   «—» venga de donde venga (fuente que no habló, o fila presente con el campo
+   vacío) susurra en tinta tenue; el número real conserva 17px/600. La regla
+   vive en aulasFichaDeAula.css. */
+const Cifra = ({ valor }: { valor: string }) => (
+  <dd className={valor === "—" ? "es-sin-dato" : undefined}>{valor}</dd>
+);
+
 type Fuentes = {
   agenda?: ReadonlyArray<Readonly<Record<string, unknown>>>;
   partes?: ReadonlyArray<Readonly<Record<string, unknown>>>;
   control?: ReadonlyArray<Readonly<Record<string, unknown>>>;
   brechas?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  /** `banco_extras.por_facultad`; sólo lo usa la salida, no la ficha. */
+  banco?: ReadonlyArray<{ faculty?: unknown; disponibles?: unknown }>;
 };
 
 export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
@@ -44,8 +58,12 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
   // brechas— se quedaban sin facultad y la salida no aparecía nunca.
   const ficha = useMemo(() => fichaDeAula(codigo, fuentes), [codigo, fuentes]);
   const salida = useMemo(
-    () => dondeSeSaca(ficha.facultad, (fuentes.agenda ?? []) as MonitoreoAulasPlanRow[]),
-    [ficha.facultad, fuentes.agenda],
+    () => dondeSeSaca(
+      ficha.facultad,
+      (fuentes.agenda ?? []) as MonitoreoAulasPlanRow[],
+      fuentes.banco ?? [],
+    ),
+    [ficha.facultad, fuentes.agenda, fuentes.banco],
   );
   if (!ficha.existe) {
     return (
@@ -76,20 +94,34 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
         </button>
       </div>
 
+      {/* La identidad de la cita —dónde, qué día, a qué hora— como fila de
+          chips del Sistema Pabellón (B33), en el orden del canon de Carga: el
+          mismo A206 con el mismo tono que en la Agenda. La facultad no se
+          repite aquí: la cabecera de arriba ya la dice junto al código (canon
+          B34 satisfecho en su peso). Sin ninguno de los tres, la fila no se
+          pinta. */}
+      {(ficha.lugar || ficha.hora || ficha.fecha) && (
+        <div className="aulas-chips-fila">
+          {ficha.lugar ? <ChipLugar lugar={ficha.lugar} /> : null}
+          {ficha.fecha ? <ChipDato>{ficha.fecha}</ChipDato> : null}
+          {ficha.hora ? <ChipHora>{ficha.hora}</ChipHora> : null}
+        </div>
+      )}
+
       <dl className="aulas-ficha-cifras">
         <div>
           <dt>Se esperaba</dt>
-          <dd>{fmtOGuion(ficha.esperado)}</dd>
+          <Cifra valor={fmtOGuion(ficha.esperado)} />
           <small>{ficha.elegibles === null ? "sin elegibles declarados" : `de ${fmtOGuion(ficha.elegibles)} elegibles`}</small>
         </div>
         <div>
           <dt>Llegó a plataforma</dt>
-          <dd>{fmtOGuion(ficha.validas)}</dd>
+          <Cifra valor={fmtOGuion(ficha.validas)} />
           <small>{ficha.brecha === null ? "sin brecha calculada" : `brecha ${fmtOGuion(ficha.brecha)}`}</small>
         </div>
         <div>
           <dt>Anotó el campo</dt>
-          <dd>{ficha.parte.hay ? fmtOGuion(ficha.parte.encuestas) : "—"}</dd>
+          <Cifra valor={ficha.parte.hay ? fmtOGuion(ficha.parte.encuestas) : "—"} />
           <small>
             {/* Un «— asistentes» se lee como una cifra rota. Cuando el parte
                 llegó pero ese campo viene vacío, se dice cuál falta. */}
@@ -103,16 +135,23 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
         </div>
         <div>
           <dt>Contó el libro</dt>
-          <dd>{ficha.control.hay ? fmtOGuion(ficha.control.enviadas) : "—"}</dd>
+          <Cifra valor={ficha.control.hay ? fmtOGuion(ficha.control.enviadas) : "—"} />
           <small>{ficha.control.hay ? "enviadas según el equipo" : "sin fila en el libro"}</small>
         </div>
       </dl>
 
-      {(ficha.estado || ficha.fecha || ficha.parte.aplicador) && (
+      {/* La fecha subió a la fila de chips: es identidad de la cita, no un
+          dato del pie. El estado pasa por `aulasStatusLabel` — decía la clave
+          del motor («agendada») en la única superficie del perfil que no
+          traducía. */}
+      {(ficha.estado || ficha.parte.aplicador) && (
         <p className="aulas-ficha-pie">
-          {ficha.estado ? <span>{ficha.estado}</span> : null}
-          {ficha.fecha ? <span>{ficha.fecha}</span> : null}
-          {ficha.parte.aplicador ? <span>{ficha.parte.aplicador}</span> : null}
+          {ficha.estado ? <span>{aulasStatusLabel(ficha.estado)}</span> : null}
+          {/* El nombre, escrito como se escribe un nombre (dictado
+              2026-09-04). Lo teclea el aplicador en la hoja de campo, así que
+              llega con las mayúsculas y los espacios que puso. */}
+          {ficha.parte.aplicador
+            ? <span>{nombreDeAplicador(ficha.parte.aplicador)}</span> : null}
         </p>
       )}
 
@@ -152,7 +191,20 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
               {salida.cadenasAgotadas > 0
                 ? `: sus ${fmtOGuion(salida.cadenasAgotadas)} cadenas con reemplazo ya las gastaron.`
                 : "; el diseño no le dio ninguna."}{" "}
-              Lo que quede tiene que salir del banco de extras.
+              {/* **Mandaba a la reserva adicional sin mirar si la hay.** Sobre
+                  HSVG 2026 la reserva adicional está en 3 facultades y las
+                  otras 12 la tienen vacía, así que la frase enviaba a un sitio
+                  sin nada justo a las que peor lo tienen. Ahora el bloque de
+                  la reserva adicional enumera las 15 con su cero, y esto puede
+                  decirlo. */}
+              {salida.reservaAdicionalLibre === null
+                ? "Lo que quede tiene que salir de la reserva adicional."
+                : salida.reservaAdicionalLibre > 0
+                  ? <>Lo que quede tiene que salir de su reserva adicional, que
+                      guarda <strong>{fmtOGuion(salida.reservaAdicionalLibre)}</strong>.</>
+                  : <>Y su reserva adicional está vacía: lo que falte no se
+                      resuelve llamando, se resuelve ampliando la muestra en
+                      Cálculo de muestra.</>}
             </>
           )}
         </p>

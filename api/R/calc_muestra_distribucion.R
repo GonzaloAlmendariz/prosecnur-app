@@ -503,8 +503,33 @@
       }
       ch_required <- .cm_dist_ch_required_one(ch_sample_n, divisor, tau)
       ch_base <- .cm_dist_exact_int(divisor_row$aulas_base)
-      if (is.na(ch_required) || is.na(ch_base) ||
-          !identical(ch_base, ch_required)) {
+      # Una base que se aparta de la formula es legitima SI declara por que.
+      #
+      # Esta regla exigia igualdad exacta con la formula, y el motor ya permite
+      # que la certificacion por facultad o una agregacion operativa suban una
+      # base concreta (`.CM_AULAS_BASE_ORIGENES`). Dos capas leyendo la misma
+      # regla con vocabularios distintos: medido en HSVG 2026 el 2026-08-27, el
+      # componente que cargaba las 174 aulas del diseno ejecutado salia
+      # `invalid` entero, con lo cual la pantalla no podia mostrar ninguna
+      # cifra y caia al otro componente, que decia 165.
+      #
+      # Se acepta el apartamiento con tres condiciones, y las tres importan:
+      #  - el origen esta declarado y no es la formula;
+      #  - `aulas_formula` conserva lo que la formula pedia y coincide con lo
+      #    que esta regla calcula, asi el apartamiento sigue siendo auditable;
+      #  - solo SUBE. Bajar una base por debajo de la formula no es una
+      #    decision operativa, es perder representatividad sin declararlo
+      #    (instruccion de Gonzalo, 2026-08-26: «no bajes ninguna, solo sube
+      #    donde haga falta»).
+      ch_origen <- calc_enum(divisor_row$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, "")
+      ch_formula <- .cm_dist_exact_int(divisor_row$aulas_formula)
+      aumento_declarado <- !is.na(ch_required) && !is.na(ch_base) &&
+        ch_origen %in% c("certificacion", "operativa") &&
+        identical(ch_formula, ch_required) &&
+        ch_base > ch_required
+      if (!aumento_declarado &&
+          (is.na(ch_required) || is.na(ch_base) ||
+           !identical(ch_base, ch_required))) {
         reasons <- .cm_dist_add_reason(
           reasons,
           "design_divisor_ch_required_mismatch",
@@ -515,7 +540,11 @@
             actual = ch_base,
             quota = ch_sample_n,
             divisor = divisor,
-            tau = tau
+            tau = tau,
+            # Sin estos dos, el aviso dice que no cuadra pero no que faltaba
+            # declarar el origen, que es lo unico que el usuario puede hacer.
+            origen = ch_origen,
+            formula = ch_formula
           )
         )
       }
@@ -1135,7 +1164,15 @@ calc_muestra_distribucion_construir <- function(component, frame) {
     reasons <- .cm_dist_add_reason(
       reasons,
       "source_frame_hash_missing",
-      "El resultado no conserva la firma de la decisión Alumnos/CH."
+      # Nombra el paso que falta, no el mecanismo que lo detecta.
+      #
+      # El texto anterior hablaba de que el resultado no conservaba «la firma»
+      # de la decision, y dejaba las cuatro tarjetas de la banda en «—» sin que
+      # nadie pudiera saber que hacer: «firma» es vocabulario del motor.
+      # Medido en el recorrido desde cero: la causa era simplemente que la
+      # decision de «Alumnos por CH» no estaba confirmada en Marco. Al
+      # confirmarla —P25— y recalcular, la banda publico.
+      "Falta confirmar Alumnos por CH en Marco: es la decision que fija cuantos alumnos aporta cada curso-horario."
     )
   }
   if (!nzchar(current_frame_hash)) {

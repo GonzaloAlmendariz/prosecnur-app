@@ -68,6 +68,8 @@ describe("las hojas que la página de aulas importa alcanzan lo que pinta", () =
     ...clasesDeclaradas(leer(monitoreoDir, "shell", "monitoreoShell.css")),
     ...clasesDeclaradas(leer(aqui, "aulasMonitoreo.css")),
     ...clasesDeclaradas(leer(aqui, "registroDeCampo.css")),
+    ...clasesDeclaradas(leer(aqui, "efectividadSeguimiento.css")),
+    ...clasesDeclaradas(leer(aqui, "avanceParaCliente.css")),
     ...clasesDeclaradas(leer(monitoreoDir, "..", "..", "app", "theme.css")),
     ...clasesDeclaradas(leer(monitoreoDir, "..", "..", "app", "tokens.css")),
   ]);

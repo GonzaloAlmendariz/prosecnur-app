@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { cssDelPerfilDeAulas } from "./fuenteDelPerfil";
 
 /**
  * Ninguna regla del perfil debe estilar una clase que ya no existe.
@@ -42,9 +43,28 @@ function fuentesDelFrontend(dir: string, acc: string[] = []): string[] {
 }
 
 describe("el CSS del perfil no estila clases que ya no existen", () => {
+  // **Centinela de no-mudez.** El escaneo recorre el árbol del frontend; si
+  // dejara de encontrar fuentes, la lista de clases huérfanas saldría vacía y
+  // el guard pasaría en verde sin haber leído nada.
+  it("el escaneo encuentra fuentes, o no está guardando nada", () => {
+    expect(fuentesDelFrontend(RAIZ).length).toBeGreaterThan(200);
+  });
+
+  // **Timeout explícito: éste no es un test de lógica, es un escaneo de disco.**
+  //
+  // Lee TODAS las hojas del perfil y TODOS sus componentes. Aislado tarda ~3 s,
+  // y el límite de 5 s de vitest está pensado para tests que no tocan I/O: en
+  // paralelo con los otros 170 archivos se pasaba, y el rojo decía «timed out»
+  // sobre un contrato que se cumple. Medido: añadir UN archivo de test al
+  // directorio bastaba para cruzarlo.
+  //
+  // No es subir el límite para tapar un fallo —el aserto no cambia—: es que el
+  // límite por defecto no aplica a lo que este test hace.
   it("cada clase propia que declara la hoja la usa algún componente", () => {
-    const css = ["aulasMonitoreo.css", "registroDeCampo.css"]
-      .map((f) => readFileSync(join(AQUI, f), "utf-8")).join("\n");
+    // TODAS las hojas del perfil, no una lista de cuatro nombres: la hoja
+    // madre se está partiendo y lo que se mude quedaría fuera de vigilancia sin
+    // que nada fallara. Ver `fuenteDelPerfil.ts`.
+    const css = cssDelPerfilDeAulas();
     const declaradas = new Set(
       [...css.matchAll(/\.((?:aulas|registro-campo)[a-z0-9-]*)/g)].map((m) => m[1]),
     );
@@ -62,5 +82,5 @@ describe("el CSS del perfil no estila clases que ya no existen", () => {
       return true;
     });
     expect(huerfanas.sort()).toEqual([]);
-  });
+  }, 30_000);
 });

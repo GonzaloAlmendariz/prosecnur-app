@@ -124,6 +124,8 @@ import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetc
 import { estadoVisual, readinessDeSalidas, recorteTabla } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { pct } from "../../core/formatoComun";
+import { leerDireccionDeSheets } from "../../fuentes/direccionDeFuente";
+import { pctDecimal } from "../../core/formatoComun";
 import {
   ACREDITACION_PHONE_ALERT_RULES,
   acreditacionQualityActionLabel,
@@ -213,6 +215,7 @@ import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./acreditacionTelefono.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { barridoDelResponsable, totalDeAsignadas } from "../barridoDelResponsable";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -325,7 +328,7 @@ function formatCaseLabel(value: number) {
 
 function pctFrom(value: number, total: number) {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return "S/D";
-  return `${((value / total) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return pctDecimal((value / total) * 100);
 }
 
 function num(value: unknown, fallback = 0) {
@@ -514,7 +517,7 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
     <div className="mon-acr-state-compact" aria-label={label}>
       <div className="mon-acr-state-compact-copy">
         <span>{label}</span>
-        <strong>{progress.toLocaleString("es-PE", { maximumFractionDigits: 0 })}%</strong>
+        <strong>{pct(progress)}</strong>
         <em>{fmt(summary.effective)} efectivas · {fmt(summary.unanswered)} sin respuesta · base {fmt(summary.universe)}</em>
       </div>
       <div className="mon-acr-state-compact-meter" aria-label={`Base reportada ${fmt(summary.universe)}`}>
@@ -5880,7 +5883,7 @@ function AcreditacionPhonePendingInsistence({
     };
   }).sort((a, b) => b.pending - a.pending || b.noAnswer - a.noAnswer || a.name.localeCompare(b.name, "es"));
 
-  const totalAssigned = rows.reduce((sum, row) => sum + (row.assigned ?? 0), 0);
+  const { valor: totalAssigned, sinDato: sinAsignadas } = totalDeAsignadas(rows);
   const totalPending = rows.reduce((sum, row) => sum + row.pending, 0);
   const totalNoAnswer = rows.reduce((sum, row) => sum + row.noAnswer, 0);
   const totalAttemptCases = rows.reduce((sum, row) => sum + row.buckets.reduce((inner, bucket) => inner + bucket.value, 0), 0);
@@ -5906,7 +5909,7 @@ function AcreditacionPhonePendingInsistence({
         <em>{formatMetric(rows.length)} responsables</em>
       </header>
       <div className="mon-phone-pending-workbench-summary">
-        <span><strong>{formatMetric(totalAssigned)}</strong><em>personas asignadas</em></span>
+        <span><strong>{totalAssigned == null ? "S/D" : formatMetric(totalAssigned)}</strong><em>personas asignadas{sinAsignadas ? ` · ${formatMetric(sinAsignadas)} sin dato` : ""}</em></span>
         <span className={totalPending ? "is-warning" : "is-ok"}><strong>{formatMetric(totalPending)}</strong><em>casos por barrer</em></span>
         <span><strong>{formatMetric(totalNoAnswer)}</strong><em>casos que no contestan</em></span>
         <span><strong>{avgAttempts == null ? "S/D" : avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>promedio de intentos</em></span>
@@ -5921,17 +5924,16 @@ function AcreditacionPhonePendingInsistence({
       </div>
       <div className="mon-phone-pending-workbench-list">
         {rows.map((row) => {
-          const assigned = Math.max(0, row.assigned ?? row.pending);
-          const swept = Math.max(0, row.swept ?? Math.max(0, assigned - row.pending));
-          const pendingPct = safePercentValue(row.pending, assigned) ?? 0;
-          const sweptPct = safePercentValue(swept, assigned) ?? 0;
+          const { asignadas: assigned, barridos: swept, pctPendiente, pctBarrido } = barridoDelResponsable(row);
+          const pendingPct = pctPendiente ?? 0;
+          const sweptPct = pctBarrido ?? 0;
           const attemptTotal = Math.max(1, row.noAnswer);
           return (
             <section key={row.key} className={`mon-phone-pending-person is-${row.pending ? "pending" : "clear"}`}>
               <header>
                 <div>
                   <strong>{row.name}</strong>
-                  <em>{formatMetric(assigned)} personas asignadas · {formatMetric(row.noAnswer)} casos sin respuesta telefónica</em>
+                  <em>{assigned == null ? "S/D" : formatMetric(assigned)} personas asignadas · {formatMetric(row.noAnswer)} casos sin respuesta telefónica</em>
                 </div>
                 <span className={row.pending ? "is-warning" : "is-ok"}>
                   <strong>{formatMetric(row.pending)}</strong>
@@ -5940,11 +5942,11 @@ function AcreditacionPhonePendingInsistence({
               </header>
               <div className="mon-phone-pending-track-block">
                 <div className="mon-phone-track-labels">
-                  <span><strong>{formatMetric(swept)}</strong><em>casos barridos</em></span>
+                  <span><strong>{swept == null ? "S/D" : formatMetric(swept)}</strong><em>casos barridos</em></span>
                   <span><strong>{formatMetric(row.pending)}</strong><em>casos por barrer</em></span>
                 </div>
-                <div className="mon-phone-pending-track" aria-label={`${row.name}: ${formatMetric(swept)} barridos y ${formatMetric(row.pending)} por barrer`}>
-                  {swept > 0 ? <i className="is-swept" style={{ "--phone-segment": `${Math.max(0, Math.min(100, sweptPct))}%` } as CSSProperties} /> : null}
+                <div className="mon-phone-pending-track" aria-label={`${row.name}: ${swept == null ? "S/D" : formatMetric(swept)} barridos y ${formatMetric(row.pending)} por barrer`}>
+                  {(swept ?? 0) > 0 ? <i className="is-swept" style={{ "--phone-segment": `${Math.max(0, Math.min(100, sweptPct))}%` } as CSSProperties} /> : null}
                   {row.pending > 0 ? <i className="is-pending" style={{ "--phone-segment": `${Math.max(0, Math.min(100, pendingPct))}%` } as CSSProperties} /> : null}
                   {!swept && !row.pending ? <i className="is-empty" style={{ "--phone-segment": "100%" } as CSSProperties} /> : null}
                 </div>
@@ -7557,6 +7559,13 @@ function AcreditacionSheetSourceEditor({
   const [spreadsheetId, setSpreadsheetId] = useState(firstSource?.sheet_binding?.spreadsheet_id ?? "");
   const [sheetName, setSheetName] = useState(firstSource?.sheet_binding?.sheet_name ?? "");
   const [sourceLabel, setSourceLabel] = useState(firstSource?.label || preset.sourceLabel);
+  // **La lectura que DECIDE si lo pegado es un Sheet**, y de la que salen las
+  // guardas de los botones. Antes decidían con `!spreadsheetId.trim()` —«hay
+  // texto»— y el motivo de rechazo, que este módulo ya redacta, no se calculaba
+  // ni se enseñaba: pegar cualquier cosa dejaba los botones activos y el error
+  // llegaba del backend sin decir qué arreglar. Gemelo del mismo agujero
+  // cerrado en el perfil telefónico (2026-09-09).
+  const lecturaDelSpreadsheet = leerDireccionDeSheets(spreadsheetId);
   const [range, setRange] = useState(firstSource?.sheet_binding?.range ?? "");
   const [inspection, setInspection] = useState<MonitoreoSheetsInspectResult | null>(null);
   const [busy, setBusy] = useState<"inspect" | "save" | null>(null);
@@ -7679,6 +7688,9 @@ function AcreditacionSheetSourceEditor({
             placeholder="https://docs.google.com/spreadsheets/d/..."
             disabled={Boolean(busy)}
           />
+          {spreadsheetId.trim() && !lecturaDelSpreadsheet.ok ? (
+            <small className="mon-acr-sheet-aviso">{lecturaDelSpreadsheet.mensaje}</small>
+          ) : null}
         </label>
         <label>
           <span>{preset.sheetLabel ?? "Pestaña"}</span>
@@ -7708,11 +7720,11 @@ function AcreditacionSheetSourceEditor({
           />
         </label>
         <div className="mon-acr-sheet-actions">
-          <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !spreadsheetId.trim()}>
+          <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !lecturaDelSpreadsheet.ok}>
             {busy === "inspect" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
             Leer pestañas
           </button>
-          <button type="button" onClick={() => { void saveSheet(); }} disabled={Boolean(busy) || !spreadsheetId.trim() || !sheetName.trim()}>
+          <button type="button" onClick={() => { void saveSheet(); }} disabled={Boolean(busy) || !lecturaDelSpreadsheet.ok || !sheetName.trim()}>
             {busy === "save" ? <Loader2 size={14} className="pulso-spin" /> : <CheckCircle2 size={14} />}
             {editingSourceId ? "Guardar ajuste" : "Registrar base"}
           </button>
@@ -13383,8 +13395,7 @@ function safePercentValue(value: number | null | undefined, total: number | null
 }
 
 function formatPercentLabel(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "S/D";
-  return `${value.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return pctDecimal(value);
 }
 
 function formatSignedPp(value: number | null | undefined) {
@@ -16503,7 +16514,7 @@ function formatReportCell(value: unknown, column: string) {
     const normalized = normalizeReportMatch(column);
     if (normalized.includes("avance") || String(column).includes("%") || normalized.includes("ratio")) {
       const pctValue = Math.abs(value) <= 10 ? value * 100 : value;
-      return `${pctValue.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+      return pctDecimal(pctValue);
     }
     return Number.isInteger(value) ? fmt(value) : value.toLocaleString("es-PE", { maximumFractionDigits: 1 });
   }
@@ -18378,7 +18389,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       >
         <span
           hidden
-          data-audit-ready={auditReady ? "monitoreo-acreditacion" : undefined}
+          data-audit-ready={auditReady ? "monitoreo-acreditacion" : "false"}
           data-audit-loading={seccionCargando ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />

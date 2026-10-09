@@ -1,0 +1,617 @@
+/* La cadena de reemplazos del perfil de aulas.
+ *
+ * Sale de `aulasMonitoreo.css` el 2026-08-29 (N1 del GOAL): esa hoja iba por
+ * 6.149 líneas y Gonzalo lo pidió por su nombre —«que no se genere un archivo
+ * gigante, sino que cada uno tenga el suyo»—. Este bloque era contiguo y sin un
+ * solo selector ajeno dentro, que es lo que lo hace el primer corte seguro.
+ *
+ * **EL ORDEN DE IMPORTACIÓN ES CARGA ÚTIL.** La hoja madre dice de sí misma que
+ * «se importa despues de profilePage.css para ganar en igualdad de
+ * especificidad», así que este fichero se importa INMEDIATAMENTE DESPUÉS de
+ * ella en `AulasMonitoreoPage.tsx` y no antes: adelantarlo lo pondría a perder
+ * los empates que hoy gana.
+ */
+
+/* Ventana modal, no popover anclado.
+ *
+ * Gonzalo: «debe ser un pop up que te limite scrollear hasta que o lo cierres o
+ * decidas… una ventana algo mas pequena que se abre encima, y limita y pone
+ * gris lo de atras». Montada en el flujo empujaba el formulario entero; anclada
+ * al boton dejaba hojear el fondo mientras se decide.
+ *
+ * El velo cubre el viewport y atenua lo de detras para que la ventana sea lo
+ * unico con lo que se puede interactuar. `position: fixed` sobre `body`, asi
+ * que ningun contenedor con overflow o stacking propio la recorta.
+ */
+.aulas-reemplazo-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 42%);
+  backdrop-filter: blur(2px);
+  animation: aulas-reemplazo-velo 140ms ease-out;
+}
+
+@keyframes aulas-reemplazo-velo {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aulas-reemplazo-fondo { animation: none; }
+}
+
+/* La lista scrollea DENTRO; el fondo no se mueve. El corte del final se
+ * difumina en vez de partir una fila por la mitad.
+ *
+ * La tecnica clasica de sombras de scroll —cuatro capas de `background`— no
+ * pinta nada aqui: las tarjetas de candidato son blanco OPACO y tapan el fondo
+ * del contenedor, comprobado midiendo su `backgroundColor`. La mascara si actua
+ * sobre lo ya pintado, tarjetas incluidas.
+ */
+/* La ventana nunca es mas alta que la pantalla, y lo que cede es la LISTA.
+ *
+ * Medida con el simulacro: 643 px de alto. La matriz de QA baja hasta 1024x600,
+ * donde eso no cabe y el velo la recortaria por arriba y por abajo a la vez
+ * —`place-items: center`—, dejando la cabecera y el boton de elegir fuera de
+ * pantalla sin forma de llegar a ellos. Con la cabecera, las solapas y el pie en
+ * `auto` y la lista en `minmax(0, 1fr)`, encoger la ventana encoge la lista, que
+ * ya scrollea. Lo que no puede desaparecer nunca es el marco.
+ */
+.aulas-reemplazo-fondo .aulas-reemplazo-popover {
+  /* Los 420 px venian de cuando esto colgaba de un boton y no podia tapar media
+   * pantalla. Como ventana centrada puede respirar, y hacia falta: con 420 el
+   * interior son 392 y la fila de tres solapas —«Su cadena», «Reservas al aire»,
+   * «Bolson extra», con sus contadores— pide 422. Se salia 30 px.
+   */
+  width: min(760px, 94vw);
+  /* `minmax(0, 1fr)` y no el `auto` implicito: un hijo de grid tampoco encoge
+   * por debajo de su contenido minimo salvo que se le permita, asi que la
+   * CABECERA se dimensionaba a su contenido —421 px dentro de una tarjeta cuyo
+   * interior son 392— y empujaba la × 16 px fuera del borde, sobre el velo.
+   * Culpar a la × era mirar el sintoma: sin esto, `min-width: 0` en el bloque
+   * de titulo no sirve de nada porque el que no encoge es el `header`.
+   */
+  grid-template-columns: minmax(0, 1fr);
+  /* El `max()` es un SUELO. Medido en un panel que reportaba `100vh` = 0: la
+   * ventana quedaba en 30 px, con la lista a cero y ningun candidato visible —
+   * inservible y sin decir por que. Un viewport degenerado no puede colapsar la
+   * unica salida que tiene el usuario.
+   */
+  max-height: max(320px, calc(100vh - 48px));
+  /* **Columna flexible, no grid de filas contadas.**
+   *
+   * Decia `grid-template-rows: auto auto auto minmax(0, 1fr)` — cuatro filas
+   * para los cuatro hijos que habia cuando se escribio. El duelo entro despues
+   * y son cinco: la fila `1fr`, pensada para la lista, le toco al PIE, y la
+   * lista cayo en una fila implicita. Con el `max-height` de arriba
+   * comprimiendo, el pie quedaba en **altura 0 dibujandose detras de la
+   * lista** — medido en vivo el 2026-09-11: `offsetHeight: 0` con
+   * `scrollHeight: 23`.
+   *
+   * Es la misma averia que ya esta documentada en `.mon-profile-content` de
+   * `aulasMonitoreo.css`, y el mismo remedio: en columna flexible cada bloque
+   * toma lo suyo y solo la lista crece, sin depender de cuantos hijos
+   * condicionales haya. Contar filas obliga a recontarlas cada vez que alguien
+   * añade un bloque, y nadie se acuerda. */
+  display: flex;
+  flex-direction: column;
+}
+
+.aulas-reemplazo-fondo .aulas-reemplazo-lista {
+  /* La lista es el unico bloque que crece y el unico que scrollea. */
+  flex: 1 1 auto;
+  min-height: 0;
+  /* SIN tope propio: lo gobierna la ventana.
+   *
+   * Con `max-height: min(52vh, 440px)` la lista scrolleaba SIEMPRE, tambien en
+   * pantallas donde los tres candidatos caben de sobra —el contenido son ~750 px
+   * y a 994 de alto la ventana admite 946—. Y como solo se enseñan tres, no hay
+   * ninguna razon para desplazar donde hay sitio: el corte difuminado del final
+   * se leia como si la ventana desbordara, que es justo lo contrario de lo que
+   * el difuminado pretende decir.
+   *
+   * Con `minmax(0, 1fr)` arriba y el `max-height` de la ventana, la lista toma
+   * lo que sobra: cabe entera cuando cabe, y scrollea solo cuando la pantalla
+   * obliga (1024x600).
+   */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
+}
+
+.aulas-reemplazo-popover {
+  /* Conserva su ancho declarado (`min(420px, 92vw)`). Con `auto` el panel se
+   * dimensiona al contenido y las tres columnas de la tabla de sexo lo dejaban
+   * estrecho y apretado; el `maxWidth={440}` del trigger le da sitio de sobra.
+   */
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Scrollea la LISTA, no el panel: así la cabecera y las tres solapas —con sus
+ * contadores— siguen a la vista mientras se baja por los candidatos. Con el
+ * panel entero desplazándose se pierde de vista en qué grupo se está mirando,
+ * que es la mitad de la decisión.
+ */
+.aulas-reemplazo-pop .aulas-reemplazo-lista {
+  max-height: min(46vh, 400px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* El corte del final se DIFUMINA en vez de partir una fila por la mitad.
+   *
+   * Primero intente la tecnica clasica de sombras de scroll —cuatro capas de
+   * `background`, dos `local` y dos `scroll`—: no pinta nada aqui, porque las
+   * tarjetas de candidato son blanco OPACO y tapan el fondo del contenedor. La
+   * mascara si actua sobre lo ya pintado, tarjetas incluidas.
+   *
+   * Se aplica siempre, tambien cuando la lista no desborda: ahi el ultimo
+   * candidato termina con un borde suave, que es un acabado normal de tarjeta.
+   * El caso que habia que evitar es el otro —«se parece 100 %» cortado a la
+   * mitad—, que se lee como render roto y no como que hay mas abajo.
+   */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
+}
+
+.aulas-reemplazo-popover {
+  display: grid;
+  gap: 10px;
+  width: min(420px, 92vw);
+  padding: 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);  /* mismo motivo que el handoff:
+     el 12 no está en la escala. NO verificado en la app —el popover no monta
+     sin reemplazos registrados— y se cambia por escala, no por comprobación. */
+  background: var(--pulso-surface);
+  box-shadow: 0 18px 48px rgb(15 23 42 / 18%);
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+}
+
+.aulas-reemplazo-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+.aulas-reemplazo-titulo { margin: 0; font-size: 14px; font-weight: var(--pulso-weight-semibold); }
+.aulas-reemplazo-sub { margin: 2px 0 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+/* El bloque de titulo cede, la × no.
+ *
+ * Un item flex no encoge por debajo de su ancho de contenido minimo salvo que
+ * se le permita, asi que el titulo largo —«EVALUACIÓN ECONÓMICA DE PROYECTOS DE
+ * EDIFICACIÓN · CIENCIAS E INGENIERIA / M / G2 · 28 elegibles»— empujaba a la ×
+ * **16 px fuera del borde derecho de la tarjeta**, colgando sobre el velo.
+ * Medido, no supuesto: tarjeta hasta 850, × hasta 866.
+ */
+.aulas-reemplazo-head > :first-child { min-width: 0; }
+
+.aulas-reemplazo-cerrar {
+  flex: 0 0 auto;
+  border: 0; background: none; cursor: pointer; padding: 0 4px;
+  color: var(--pulso-text-soft); font-size: 18px; line-height: 1;
+}
+
+.aulas-reemplazo-solapas { display: flex; gap: 4px; border-bottom: 1px solid var(--pulso-border); }
+/* Las solapas ceden antes que salirse.
+ *
+ * Aunque la ventana ya da el ancho, un rotulo mas largo —o una facultad con
+ * nombre kilometrico en otro estudio— volveria a desbordar. `min-width: 0` deja
+ * que el texto se recorte con puntos suspensivos; el CONTADOR nunca se recorta,
+ * porque es el dato por el que se mira la solapa.
+ */
+.aulas-reemplazo-solapas { min-width: 0; }
+
+.aulas-reemplazo-solapa {
+  display: flex; align-items: center; gap: 5px;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 6px 9px; border: 0; border-bottom: 2px solid transparent;
+  background: none; cursor: pointer;
+  color: var(--pulso-text-soft); font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-medium);
+}
+.aulas-reemplazo-solapa.es-activa { color: var(--pulso-text); border-bottom-color: var(--pulso-module-monitoreo, var(--pulso-text)); }
+.aulas-reemplazo-cuenta {
+  flex: 0 0 auto;
+  min-width: 16px; padding: 0 4px; border-radius: 8px;
+  background: var(--pulso-surface-muted); color: var(--pulso-text-soft);
+  font-size: var(--aulas-min); font-variant-numeric: tabular-nums; text-align: center;
+}
+
+.aulas-reemplazo-pie { margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+.aulas-reemplazo-lista { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.aulas-reemplazo-item {
+  display: grid; gap: 5px; padding: 9px 10px;
+  border: 1px solid var(--pulso-border); border-radius: 9px;
+  background: var(--pulso-surface-muted);
+}
+/* El primero se distingue por BORDE, no por relleno: un fondo saturado detras
+   de dos barras de color deja las barras sin contraste propio. */
+.aulas-reemplazo-item.es-mejor { border-color: var(--pulso-text-soft); background: var(--pulso-surface); }
+
+/* El carril de la barra: el relleno lo pinta cada medida con su color, y el
+   fondo es el mismo gris de borde en las dos para que se comparen. */
+.aulas-reemplazo-barra { display: block; height: 5px; border-radius: 3px; background: var(--pulso-border); overflow: hidden; }
+.aulas-reemplazo-barra i { display: block; height: 100%; border-radius: 3px; }
+.aulas-reemplazo-barra.es-parecido i { background: #002457; }
+.aulas-reemplazo-barra.es-ayuda i { background: var(--pulso-resultado-efectiva); }
+
+/* El ambar de `--pulso-resultado-parcial` da 3,71 de contraste a 10 px sobre el fondo
+   del item: por debajo del piso, y medido en pantalla. A este tamano el aviso
+   necesita tinta de texto; el ambar se queda en el rotulo, que es corto y va en
+   semibold, donde 3,71 con peso si se sostiene. */
+.aulas-reemplazo-concesiones span { color: #8a570d; font-weight: var(--pulso-weight-semibold); }
+
+.aulas-reemplazo-vacio { margin: 0; padding: 10px; border-radius: 9px; background: var(--pulso-surface-muted); color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* El reparto por sexo, en dos lecturas: a cuanta gente se entra (elegibles) y
+   cuantas encuestas salen (esperadas). Van en tabla y no en prosa porque se
+   comparan entre candidatos: la columna alinea, la frase no. */
+/* El archivo terminaba con este selector ABIERTO a fin de archivo (51 «{» vs
+   50 «}»): en dev el parser cierra el bloque solo y nadie lo nota, pero en el
+   bundle concatenado el bloque abierto se TRAGA los archivos siguientes y el
+   escritorio entero perdía el CSS del perfil. Cerrado con las declaraciones
+   coherentes con sus filas hermanas. */
+
+/* E24 — dos toques del loop de mejora (2026-09-03): el cero de la solapa
+   susurra (la doctrina de E8/E10: declarado, clickeable, sin gritar), y el
+   rótulo del medidor no se parte — «cierra brecha» caía en dos líneas contra
+   su barra y el par etiqueta-medida perdía la alineación. */
+.aulas-reemplazo-cuenta.es-cero {
+  color: var(--pulso-text-faint);
+  background: transparent;
+}
+
+/* ── La deuda contra la que se elige ──────────────────────────────────────
+   Gonzalo, 2026-09-10: «¿bajo qué concepto lo estamos haciendo, qué estamos
+   mejorando, y qué es lo que se tiene que mejorar en primer lugar?». Sin las
+   dos cifras aquí arriba, las dos varas de cada candidato son dos números y
+   «el que más ayuda» no dice a qué ayuda.
+
+   Van SEPARADAS y no sumadas: la facultad puede ir sobrada en un sexo y corta
+   en el otro, y ahí un relevo que traiga el sexo cubierto no arregla nada. */
+.aulas-reemplazo-deuda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 7px 0 0;
+  align-items: center;
+}
+.aulas-reemplazo-deuda span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+.aulas-reemplazo-deuda span.es-debe {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg) 34%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-danger-fg) 8%, transparent);
+}
+.aulas-reemplazo-deuda b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.aulas-reemplazo-deuda span.es-debe b { color: var(--pulso-danger-fg); }
+.aulas-reemplazo-deuda em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+
+/* ── El dilema, en dos cursos-horario ─────────────────────────────────────
+   Cuando el mejor por parecido y el mejor por ayuda son aulas distintas, se
+   enfrentan: qué gana cada una y qué concede. La «o» va sobre la línea en una
+   pastilla redonda — una columna de texto en medio se estrangula en cuanto el
+   popover se estrecha, y así se veía en el ensayo antes de arreglarlo. */
+.aulas-reemplazo-duelo {
+  position: relative;
+  margin: 10px 0 2px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+.aulas-reemplazo-duelo-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 8px 12px 7px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+.aulas-reemplazo-duelo-titulo h4 { margin: 0; font-size: 12.5px; font-weight: 600; }
+.aulas-reemplazo-duelo-titulo span { font-size: 11.5px; color: var(--pulso-text-faint); }
+
+.aulas-reemplazo-duelo-lados { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.aulas-reemplazo-duelo-lados > div {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 10px 13px;
+}
+.aulas-reemplazo-duelo-lados > div + div { border-left: 1px solid var(--pulso-border); }
+.aulas-reemplazo-duelo-lados .vara {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.aulas-reemplazo-duelo-lados .es-parecido .vara { color: var(--pulso-primary); }
+.aulas-reemplazo-duelo-lados .es-ayuda .vara { color: var(--module-accent, var(--pulso-primary)); }
+.aulas-reemplazo-duelo-lados b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.aulas-reemplazo-duelo-lados .gana { font-size: 12px; color: var(--pulso-text); line-height: 1.45; }
+.aulas-reemplazo-duelo-lados .concede { font-size: 11.5px; color: var(--pulso-text-faint); line-height: 1.4; }
+.aulas-reemplazo-duelo-lados strong { font-variant-numeric: tabular-nums; }
+
+.aulas-reemplazo-duelo-o {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 16px);
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .aulas-reemplazo-duelo-lados { grid-template-columns: 1fr; }
+  .aulas-reemplazo-duelo-lados > div + div { border-left: 0; border-top: 1px solid var(--pulso-border); }
+  .aulas-reemplazo-duelo-o { display: none; }
+}
+
+/* ── La tarjeta de candidato, con el lenguaje del ensayo ──────────────────
+   Gonzalo, 2026-09-10: «no se parece en absolutamente nada a la sofisticación
+   y el buen diseño que habías tenido en el artefacto».
+
+   Lo que cambia: la pieza llevaba una tabla de cuatro columnas para el sexo,
+   dos barras apiladas y un botón de ancho completo —forma de formulario—. Aquí
+   manda la COMPARACIÓN: puesto, identidad, y las dos varas a la derecha, que
+   es donde se decide. Tres candidatos se barren en vertical sin leer nada. */
+.aulas-reemplazo-fila {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1.15fr) minmax(210px, 0.85fr) 184px;
+  align-items: start;
+  gap: 12px;
+}
+
+.aulas-reemplazo-puesto {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-reemplazo-item:first-child .aulas-reemplazo-puesto {
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+}
+
+.aulas-reemplazo-quien { display: grid; gap: 4px; min-width: 0; }
+
+.aulas-reemplazo-codigo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-reemplazo-sello {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.aulas-reemplazo-curso {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.35;
+}
+.aulas-reemplazo-curso em { font-style: normal; color: var(--pulso-text-faint); }
+
+/* Lo que el candidato rinde: dos cifras que suman la tercera, en una línea.
+   Va en texto y no en chip porque es la frase con la que se decide, no una
+   seña del box; los chips de encima son la identidad, ésta es la consecuencia. */
+
+.aulas-reemplazo-concesiones {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-warn-fg);
+  line-height: 1.4;
+}
+.aulas-reemplazo-concesiones.es-limpia { color: var(--pulso-text-faint); }
+/* Sin vía de contacto. No descalifica al candidato —la decisión es de quien
+   llama— pero va en tono de advertencia porque cambia lo primero que hay que
+   hacer con él: buscarle otro teléfono antes de marcar. */
+.aulas-reemplazo-concesiones.es-sin-via {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Las dos varas, juntas y nunca sumadas. */
+.aulas-reemplazo-varas { display: grid; gap: 5px; }
+.aulas-reemplazo-vara {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 7px;
+}
+.aulas-reemplazo-vara em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+.aulas-reemplazo-vara i {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+.aulas-reemplazo-vara i b { display: block; height: 100%; border-radius: 3px; }
+.aulas-reemplazo-vara.es-parecido i b { background: var(--pulso-primary); }
+.aulas-reemplazo-vara.es-ayuda i b { background: var(--module-accent, var(--pulso-primary)); }
+.aulas-reemplazo-vara strong {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+/* El botón deja de ocupar todo el ancho: es una acción, no un formulario. */
+.aulas-reemplazo-elegir {
+  justify-self: start;
+  margin-top: 9px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.aulas-reemplazo-elegir:hover { filter: brightness(0.94); }
+
+@media (max-width: 640px) {
+  .aulas-reemplazo-fila { grid-template-columns: 26px minmax(0, 1fr); }
+  .aulas-reemplazo-varas { grid-column: 2; }
+}
+
+/* El coste de la decisión, bajo las dos varas: con qué se queda la facultad si
+   se toma este candidato. Va en el mismo carril que las medidas porque es su
+   consecuencia, no un dato más de identidad. */
+.aulas-reemplazo-resto {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+.aulas-reemplazo-resto b { font-weight: 600; color: var(--pulso-text-soft); }
+
+/* El plazo, en la cabecera y no en otra pantalla: un relevo agendado tarde no
+   llega a aplicarse antes del cierre. Va bajo la deuda porque es el tercer
+   dato con el que se decide —contra qué, con qué, y hasta cuándo—. */
+.aulas-reemplazo-plazo {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 5px 0 0;
+  font-size: var(--aulas-sec);
+  color: var(--pulso-text-soft);
+}
+.aulas-reemplazo-plazo b {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-warn-fg) 14%, transparent);
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+.aulas-reemplazo-plazo em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+
+/* Las tres varas de lo que un curso-horario puede dar: elegibles, lo que el
+   plan pidió y lo que dará al ritmo de hoy. Tabla y no prosa porque lo que se
+   hace con ellas es COMPARAR columnas —el sexo— y filas —la vara—, y en prosa
+   eso obliga a reconstruirlo de memoria en cada candidato. */
+.aulas-reemplazo-varas3 {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+}
+.aulas-reemplazo-varas3 thead th {
+  padding: 0 6px 4px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-regular);
+  text-align: right;
+}
+.aulas-reemplazo-varas3 thead th:first-child { text-align: left; }
+.aulas-reemplazo-varas3 tbody th {
+  padding: 3px 6px 3px 0;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+  white-space: nowrap;
+}
+/* De dónde sale la tasa del pronóstico: medida sobre este curso-horario o
+   prestada de su facultad. No son lo mismo y la fila lo dice. */
+.aulas-reemplazo-varas3 tbody th em {
+  display: block;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+.aulas-reemplazo-varas3 td {
+  padding: 3px 6px;
+  text-align: right;
+  color: var(--pulso-text-soft);
+}
+.aulas-reemplazo-varas3 td b { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+/* El techo va apagado —es el marco, no la decisión— y el pronóstico destacado,
+   que es la cifra con la que se elige. */
+.aulas-reemplazo-varas3 .es-techo th,
+.aulas-reemplazo-varas3 .es-techo td { color: var(--pulso-text-faint); }
+.aulas-reemplazo-varas3 .es-ritmo th,
+.aulas-reemplazo-varas3 .es-ritmo td { color: var(--pulso-text); }
+.aulas-reemplazo-varas3 .es-ritmo td b { color: var(--module-accent, var(--pulso-primary)); }
+.aulas-reemplazo-varas3 .es-plan { border-top: 1px solid var(--pulso-border); }
+
+@media (max-width: 820px) {
+  .aulas-reemplazo-fila { grid-template-columns: 26px minmax(0, 1fr); }
+  .aulas-reemplazo-varas3, .aulas-reemplazo-varas { grid-column: 2; }
+}
+
+/* La distancia entre lo que el plan pidió y lo que va a dar. Cuando coinciden
+   se dice en gris —el dato es que no hay nada que decidir—; cuando se separan,
+   esa distancia es la decisión y lleva tinta. */
+.aulas-reemplazo-desvio {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+.aulas-reemplazo-desvio b { font-weight: var(--pulso-weight-semibold); }
+.aulas-reemplazo-desvio.es-corto { color: var(--pulso-danger-fg); }
+.aulas-reemplazo-desvio.es-sobra { color: var(--pulso-success-fg); }
+
+/* La columna de la tasa: va antes de los sexos porque es la vara con la que se
+   calculó la fila, no un resultado más. En gris para que las cifras de gente
+   sigan mandando. */
+.aulas-reemplazo-varas3 td.es-tasa {
+  color: var(--pulso-text-faint);
+  text-align: right;
+  padding-right: 10px;
+}
+.aulas-reemplazo-varas3 .es-ritmo td.es-tasa { color: var(--pulso-text-soft); }

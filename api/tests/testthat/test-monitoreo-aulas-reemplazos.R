@@ -101,7 +101,7 @@ test_that("el aviso explica la consecuencia, no solo el hecho", {
   p2 <- monitoreo_aulas_activar_reemplazo(res$plan, "R 4.1", ahora = "2026-08-16T11:00:00Z")
   p3 <- monitoreo_aulas_activar_reemplazo(p2$plan, "R 4.2", ahora = "2026-08-16T12:00:00Z")
   texto <- monitoreo_aulas_activacion_texto(p3)
-  expect_match(texto, "se agoto")
+  expect_match(texto, "se agotó")
   # Lo que importa que se lea: la meta se queda sin cubrir.
   expect_match(texto, "sin cubrir")
 })
@@ -185,15 +185,15 @@ test_that("nunca tener reserva no es lo mismo que haberlas gastado", {
   sin_reserva <- monitoreo_aulas_activar_reemplazo(solo, "CH 9", ahora = "2026-08-16T10:00:00Z")
   texto <- monitoreo_aulas_activacion_texto(sin_reserva)
   expect_match(texto, "no tiene ninguna reserva en el plan")
-  expect_no_match(texto, "se agoto")
+  expect_no_match(texto, "se agotó")
 
   # Y el otro lado: con la cadena consumida, sí dice que se agotó y cuántas.
   p1 <- monitoreo_aulas_activar_reemplazo(.mrr_plan(), "CH 4", ahora = "2026-08-16T10:00:00Z")
   p2 <- monitoreo_aulas_activar_reemplazo(p1$plan, "R 4.1", ahora = "2026-08-16T11:00:00Z")
   p3 <- monitoreo_aulas_activar_reemplazo(p2$plan, "R 4.2", ahora = "2026-08-16T12:00:00Z")
   gastada <- monitoreo_aulas_activacion_texto(p3)
-  expect_match(gastada, "ya se agoto")
-  expect_match(gastada, "se habian usado 2")
+  expect_match(gastada, "ya se agotó")
+  expect_match(gastada, "se habían usado 2")
 })
 
 test_that("la activacion aguanta una cadena profunda de punta a punta", {
@@ -237,7 +237,7 @@ test_that("la activacion aguanta una cadena profunda de punta a punta", {
   fin <- monitoreo_aulas_activar_reemplazo(actual, "R 1.11", ahora = "2026-08-16T23:00:00Z")
   expect_true(fin$agotada)
   expect_identical(fin$reservas_usadas, 11L)
-  expect_match(monitoreo_aulas_activacion_texto(fin), "se habian usado 11")
+  expect_match(monitoreo_aulas_activacion_texto(fin), "se habían usado 11")
 })
 
 test_that("el orden derivado vuelve al campo, no se queda en la variable local", {
@@ -310,4 +310,227 @@ test_that("una reserva sin advertencia devuelve cadena vacia, no NULL ni NA", {
   res <- monitoreo_aulas_activar_reemplazo(plan, "CH 5", motivo = "aula_cerrada")
 
   expect_identical(res$advertencia_peso, "")
+})
+
+test_that("una reserva con el «-» del Excel se ve como disponible", {
+  # `-` es como el equipo escribe «todavia nada aqui» en STATUS MUESTRA: 1 810
+  # de 2 040 celdas en el estudio de 2025. Esta funcion tenia su propia lista de
+  # estados libres, con tres valores contra los cinco de la canonica
+  # `MONITOREO_AULAS_ESTADOS_DORMIDOS`, y `-` no estaba: con un libro asi habria
+  # respondido «no quedan reservas» teniendolas todas.
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", sample_status = "agendada"),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve", replacement_for = "CH 1",
+         replacement_order = 1, sample_status = "-"),
+    list(operational_code = "R 1.2", sample_role = "chain_reserve", replacement_for = "CH 1",
+         replacement_order = 2, sample_status = "planificada")
+  )
+  idx <- monitoreo_aulas_reservas_disponibles(plan, "CH 1")
+  expect_length(idx, 2L)
+  expect_equal(vapply(plan[idx], function(r) r$operational_code, character(1)),
+               c("R 1.1", "R 1.2"))
+})
+
+test_that("y una ya agendada sigue sin estarlo", {
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", sample_status = "agendada"),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve", replacement_for = "CH 1",
+         replacement_order = 1, sample_status = "agendada"),
+    list(operational_code = "R 1.2", sample_role = "chain_reserve", replacement_for = "CH 1",
+         replacement_order = 2, sample_status = "en_reserva")
+  )
+  idx <- monitoreo_aulas_reservas_disponibles(plan, "CH 1")
+  expect_length(idx, 1L)
+  expect_equal(plan[[idx]]$operational_code, "R 1.2")
+})
+
+# --- Activar un aula ELEGIDA, que puede no ser la que tocaba -----------------
+
+plan_eleccion <- function() list(
+  list(operational_code = "CH 1", sample_role = "titular", faculty = "ARQ", sample_status = "agendada"),
+  list(operational_code = "R 1.1", sample_role = "chain_reserve", replacement_for = "CH 1",
+       replacement_order = 1, faculty = "ARQ", sample_status = "en_reserva"),
+  # De otra cadena, ya libre
+  list(operational_code = "CH 2", sample_role = "titular", faculty = "ARQ", sample_status = "agendada"),
+  list(operational_code = "R 2.1", sample_role = "chain_reserve", replacement_for = "CH 2",
+       replacement_order = 1, faculty = "ARQ", sample_status = "en_reserva"),
+  # Del bolson, de su facultad y de otra
+  list(operational_code = "E-ARQ", sample_role = "extra_reserve_pool", faculty = "ARQ", sample_status = "en_reserva"),
+  list(operational_code = "E-DER", sample_role = "extra_reserve_pool", faculty = "DERECHO", sample_status = "en_reserva"),
+  # Ya comprometida
+  list(operational_code = "R 2.2", sample_role = "chain_reserve", replacement_for = "CH 2",
+       replacement_order = 2, faculty = "ARQ", sample_status = "agendada")
+)
+
+test_that("sin `elegida` sigue la cadena: el procedimiento manda por defecto", {
+  r <- monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", ahora = "2026-01-01T00:00:00Z")
+  expect_equal(r$activada, "R 1.1")
+  expect_equal(r$origen, "cadena")
+})
+
+test_that("con `elegida` de otra cadena, entra esa y el origen lo dice", {
+  r <- monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "R 2.1",
+                                         ahora = "2026-01-01T00:00:00Z")
+  expect_equal(r$activada, "R 2.1")
+  expect_equal(r$origen, "otra_cadena")
+  # El plan recuerda a QUIEN cubre, aunque su cadena fuera otra: sin esto el
+  # avance la seguiria atribuyendo a CH 2 y CH 1 quedaria sin cubrir.
+  act <- Filter(function(x) identical(x$operational_code, "R 2.1"), r$plan)[[1]]
+  expect_equal(act$activated_for, "CH 1")
+  expect_equal(act$activation_origin, "otra_cadena")
+  caida <- Filter(function(x) identical(x$operational_code, "CH 1"), r$plan)[[1]]
+  expect_equal(caida$replaced_by, "R 2.1")
+})
+
+test_that("con `elegida` del bolson, el origen es `extra`", {
+  r <- monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "E-ARQ",
+                                         ahora = "2026-01-01T00:00:00Z")
+  expect_equal(r$origen, "extra")
+})
+
+test_that("una elegida de OTRA FACULTAD se rechaza con su codigo", {
+  # «El bolson es siempre siempre siempre dentro de la misma facultad, jamas de
+  # otra.» Rechaza en vez de corregir: la UI necesita poder decir que pasa.
+  expect_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "E-DER"),
+    class = "api_error"
+  )
+})
+
+test_that("una elegida ya comprometida se rechaza", {
+  expect_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "R 2.2"),
+    class = "api_error"
+  )
+})
+
+test_that("un aula no puede reemplazarse a si misma", {
+  expect_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "CH 1"),
+    class = "api_error"
+  )
+})
+
+test_that("una elegida que no existe se rechaza", {
+  expect_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "NO EXISTE"),
+    class = "api_error"
+  )
+})
+
+# --- La facultad es frontera dura, y tambien cuando viene vacia --------------
+#
+# Gonzalo: «el bolson es siempre siempre siempre dentro de la misma facultad,
+# jamas de otra». `E_REEMPLAZO_OTRA_FACULTAD` existia sin una sola prueba.
+
+.mar_error <- function(expr) tryCatch(expr, api_error = function(e) e)
+
+test_that("un candidato de otra facultad no se activa", {
+  err <- .mar_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "E-DER",
+                                      ahora = "2026-01-01T00:00:00Z"))
+  expect_s3_class(err, "api_error")
+  expect_equal(err$code, "E_REEMPLAZO_OTRA_FACULTAD")
+  expect_equal(err$status, 409)
+})
+
+test_that("sin facultad declarada en el aula que cae, tampoco cruza", {
+  # El caso que se colaba: la guarda exigia que las DOS facultades fueran no
+  # vacias, asi que una fila sin facultad aceptaba cualquier candidato. El
+  # frontend lo ofrecia ademas, por el mismo agujero en `bolsonExtra()`.
+  plan <- plan_eleccion()
+  plan <- lapply(plan, function(u) {
+    if (identical(u$operational_code, "CH 1")) u$faculty <- ""
+    u
+  })
+  err <- .mar_error(
+    monitoreo_aulas_activar_reemplazo(plan, "CH 1", elegida = "E-DER",
+                                      ahora = "2026-01-01T00:00:00Z"))
+  expect_s3_class(err, "api_error")
+  expect_equal(err$code, "E_REEMPLAZO_OTRA_FACULTAD")
+  # Y el aviso dice la CAUSA, no solo el hecho: que no se puede comprobar, y
+  # cual de las dos no declara su facultad.
+  expect_match(conditionMessage(err), "no la declara")
+  expect_match(conditionMessage(err), "CH 1")
+})
+
+test_that("si el estudio no reparte por facultad, el reemplazo sigue pasando", {
+  # La otra cara del mismo cambio. Endurecer la guarda sin este caso dejaria sin
+  # reemplazos a los estudios que no usan facultades: ahi las dos son "" y son
+  # identicas, asi que pasa.
+  plan <- lapply(plan_eleccion(), function(u) { u$faculty <- ""; u })
+  r <- monitoreo_aulas_activar_reemplazo(plan, "CH 1", elegida = "E-ARQ",
+                                         ahora = "2026-01-01T00:00:00Z")
+  expect_equal(r$activada, "E-ARQ")
+})
+
+# ── La cadena se resuelve por el campo que habla el idioma de los codigos ────
+#
+# Medido el 2026-09-12: `.mar_titular_de()` leia `replacement_for`, que
+# `calc_muestra_aulas.R` y `monitoreo_aulas_apply_replacement()` escriben con el
+# `classroom_id` del titular —`arc232_0905`—, no con su codigo operativo. Sobre
+# HSVG2026, de los 202 `replacement_for` distintos CERO coincidian con un
+# titular. El efecto: activar un reemplazo contestaba «no quedan reservas»
+# teniendolas todas.
+#
+# `carga_aulas_libro_generar.R` ya tenia la leccion escrita en `.calg_titular()`;
+# lo que faltaba era aplicarla aqui. Dos capas leyendo la misma relacion por
+# campos distintos es la deriva que este test cierra.
+
+.mar_cadena_fixture <- function(reserva_extra) {
+  list(
+    list(classroom_id = "arc232_0905", operational_code = "CH 1",
+         sample_role = "titular", sample_status = "agendada"),
+    utils::modifyList(
+      list(classroom_id = "arc232_0906", operational_code = "R 1.1",
+           sample_role = "chain_reserve", sample_status = "sin_contactar",
+           replacement_order = 1),
+      reserva_extra)
+  )
+}
+
+test_that("la reserva se encuentra por titular_operational_code, como la escribe el libro", {
+  plan <- .mar_cadena_fixture(list(titular_operational_code = "CH 1"))
+  expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
+  # Y la activacion completa funciona por esa via, que es la que llega del libro.
+  out <- monitoreo_aulas_activar_reemplazo(plan, "CH 1", ahora = "2026-09-12T10:00:00Z")
+  expect_false(isTRUE(out$agotada))
+  expect_identical(out$activada, "R 1.1")
+})
+
+test_that("un replacement_for con el classroom_id interno ya no rompe la cadena", {
+  # La forma EXACTA que escriben los motores. Antes daba cero reservas; ahora el
+  # titular declarado manda y el `replacement_for` inservible no estorba.
+  plan <- .mar_cadena_fixture(list(titular_operational_code = "CH 1",
+                                   replacement_for = "arc232_0905"))
+  expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
+})
+
+test_that("un plan viejo que solo trae replacement_for operativo sigue resolviendose", {
+  # El respaldo: no se rompe lo que ya funcionaba.
+  plan <- .mar_cadena_fixture(list(replacement_for = "CH 1"))
+  expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
+})
+
+test_that("las reservas se reconocen tambien en la forma del LIBRO", {
+  # Clase 3 del catalogo, viva en el camino A. El plan de sesion guarda
+  # `sample_status` como lo escribe el libro —«SIN CONTACTAR», «EN RESERVA»— y
+  # `MONITOREO_AULAS_ESTADOS_DORMIDOS` habla snake_case. Medido antes del
+  # arreglo: la forma del libro devolvia 0 reservas y la normalizada 1.
+  for (estado in c("sin_contactar", "SIN CONTACTAR", "en_reserva", "EN RESERVA",
+                   "planificada", "PLANIFICADA", "-")) {
+    plan <- .mar_cadena_fixture(list(titular_operational_code = "CH 1",
+                                     sample_status = estado))
+    expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
+  }
+})
+
+test_that("una reserva COMPROMETIDA no se ofrece, venga como venga escrita", {
+  # La contracara: normalizar no puede volver disponible lo que esta en campo.
+  for (estado in c("agendada", "AGENDADA", "reagendada", "REAGENDADA",
+                   "en_contacto", "EN CONTACTO", "rechazo", "RECHAZO")) {
+    plan <- .mar_cadena_fixture(list(titular_operational_code = "CH 1",
+                                     sample_status = estado))
+    expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 0L)
+  }
 })

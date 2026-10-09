@@ -892,13 +892,9 @@ calc_muestra_aulas_criterios_radiografia <- function(
     }
   }
 
-  min_elig <- seleccion$minEligible
-  if (is.null(min_elig) || !is.finite(min_elig$threshold)) {
-    min_elig <- list(
-      threshold = max(1L, .cm_aulas_int(contexto$min_eligible_fallback, 1L)),
-      byFaculty = list()
-    )
-  }
+  min_elig <- .cm_criterios_min_elig_con_fallback(
+    seleccion$minEligible, contexto$min_eligible_fallback
+  )
   min_signal <- suppressWarnings(as.numeric(valores$eligible_n))
   fac_eval <- .cm_criterios_fac_key(facultades)
   min_actual <- .cm_criterios_eval_min_eligible(min_signal, fac_eval, min_elig)

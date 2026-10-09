@@ -1,0 +1,409 @@
+/* El resumen de Rendimiento y Efectividad. Hoja propia: `aulasMonitoreo.css`
+   está congelada a crecimiento y esto es superficie nueva.
+
+   La gramática es la de `aulasEstadoPorRol.css`, el panel de al lado: cifra
+   grande delante, rótulo debajo, barra que reparte al 100 % y leyenda con nota.
+   La primera versión era una frase corrida y un carril de catorce píxeles —«le
+   falta muchísimo formato», y era cierto—. */
+.mon-profile-page.is-aulas-flow .aulas-rye { min-width: 0; }
+
+/* El contraste a la izquierda y el reparto a la derecha: son la misma pregunta
+   en dos granos —el conjunto y sus partes—. */
+.mon-profile-page.is-aulas-flow .aulas-rye-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px 32px;
+}
+
+/* Apilado cuando no hay sitio: el carril necesita ancho para que el intervalo
+   no se vuelva una raya, y la leyenda para no partir sus notas. */
+@media (max-width: 1000px) {
+  .mon-profile-page.is-aulas-flow .aulas-rye-cuerpo { grid-template-columns: minmax(0, 1fr); }
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-contraste { min-width: 0; }
+
+/* **El rótulo que nombra el bloque.** «56,8 % → 57,3 %» no dice porcentaje DE
+   QUÉ, y sin denominador dos tasas son dos números: «francamente no se entiende
+   qué es cada cosa». Va arriba, en el idioma del operativo y no en el del
+   motor —«respuestas por cada 100 estudiantes elegibles», no «τ»—. */
+.mon-profile-page.is-aulas-flow .aulas-rye-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 8px;
+  margin: 0 0 8px;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  font-weight: 580;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-titulo em {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* --- las dos tasas ---------------------------------------------------------- */
+
+.mon-profile-page.is-aulas-flow .aulas-rye-par {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-tasa {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-tasa strong {
+  font-size: 21px;
+  line-height: 1.1;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* El diseño es la VARA: se lee en segundo plano para que el campo sea lo que se
+   mira. Los dos números son del mismo tamaño porque se comparan; lo que los
+   separa es el peso del color, no la escala. */
+.mon-profile-page.is-aulas-flow .aulas-rye-tasa.is-previsto strong { color: var(--pulso-text-soft); }
+.mon-profile-page.is-aulas-flow .aulas-rye-tasa.is-observado strong { color: var(--pulso-text); }
+
+.mon-profile-page.is-aulas-flow .aulas-rye-tasa em {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  line-height: 1.3;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-flecha {
+  color: var(--pulso-text-faint);
+  font-size: 15px;
+  align-self: center;
+}
+
+/* El contraste como chip, que es lo que se busca al abrir el panel. */
+.mon-profile-page.is-aulas-flow .aulas-rye-delta {
+  align-self: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aulas-rye-tono) 14%, transparent);
+  color: color-mix(in srgb, var(--aulas-rye-tono) 72%, var(--pulso-text));
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- la regla --------------------------------------------------------------- */
+
+/* Va de 0 a 100 % porque eso es lo que puede valer una tasa; comprimirla al
+   tramo con datos exageraría la distancia que este panel viene a medir. */
+.mon-profile-page.is-aulas-flow .aulas-rye-regla { margin: 14px 0 0; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-rye-carril {
+  position: relative;
+  height: 18px;
+  border-radius: 5px;
+  /* **El fondo se VE.** La primera versión pedía `--pulso-surface-sunken`, que
+     NO EXISTE: la variable no resolvía, el carril quedaba transparente sobre el
+     panel y en pantalla eran dos rayitas flotando en el aire. Sin regla visible
+     no hay escala, y sin escala dos marcas no dicen nada. */
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--pulso-border);
+}
+
+/* El IC 95 % de la observada: una ZONA, no un punto. Con pocos cursos-horario
+   aplicados ocupa media regla, y eso no es un problema de la facultad — es que
+   todavía no hay con qué estrecharlo. */
+.mon-profile-page.is-aulas-flow .aulas-rye-banda {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 13%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 38%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 38%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-marca {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+}
+
+/* El diseño es la vara: tenue, para que no compita con el campo. */
+.mon-profile-page.is-aulas-flow .aulas-rye-marca.is-previsto { background: var(--pulso-text-faint); }
+
+/* El operativo entero, cuando se mira una facultad: una marca a rayas, ni la
+   vara ni el campo de esta facultad — la referencia contra la que se juzga si
+   ésta va con el conjunto o se despega. */
+.mon-profile-page.is-aulas-flow .aulas-rye-marca.is-estudio {
+  width: 0;
+  border-left: 2px dashed var(--pulso-text-soft);
+}
+
+/* El campo es lo que se mira: sólido, más ancho y encima de todo. */
+.mon-profile-page.is-aulas-flow .aulas-rye-marca.is-observado {
+  width: 3px;
+  background: var(--pulso-text);
+}
+
+/* La escala nombra la unidad en su extremo derecho: es la segunda vez que se
+   dice de qué es el porcentaje, y la que se lee al mirar el dibujo. Nada flota
+   sobre las marcas — dos rótulos a 6,7 puntos se pisan, y este perfil ya tiene
+   un guard que caza justo eso. */
+.mon-profile-page.is-aulas-flow .aulas-rye-escala {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 5px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* --- el reparto por facultad ------------------------------------------------- */
+
+.mon-profile-page.is-aulas-flow .aulas-rye-reparto { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-rye-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 6px;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-cabeza strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-cabeza em {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-barra {
+  display: flex;
+  width: 100%;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-barra i { display: block; }
+
+.mon-profile-page.is-aulas-flow .aulas-rye-leyenda {
+  display: grid;
+  gap: 6px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-leyenda li {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 2px 7px;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-leyenda i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  align-self: center;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-leyenda strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La nota va bajo su etiqueta, en la segunda columna: es lo que distingue «por
+   debajo de su vara» de «sin vara todavía», que sin explicación se leen igual. */
+.mon-profile-page.is-aulas-flow .aulas-rye-leyenda em {
+  grid-column: 2;
+  color: var(--pulso-text-faint);
+  font-style: normal;
+  line-height: 1.35;
+}
+
+/* --- la base y el cierre ------------------------------------------------------ */
+
+.mon-profile-page.is-aulas-flow .aulas-rye-base {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.4;
+}
+
+/* El cierre es la conclusión del panel: se lee como frase, no como pie. */
+.mon-profile-page.is-aulas-flow .aulas-rye-cierre {
+  margin: 6px 0 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  line-height: 1.4;
+}
+
+/* Sólo lo que pide acción se tiñe. Que todas cierren no es una alarma verde: se
+   marca con el mismo gris del texto y una barra tenue que lo separa del pie. */
+.mon-profile-page.is-aulas-flow .aulas-rye-cierre.es-alerta {
+  color: var(--pulso-danger-fg);
+  font-weight: 560;
+}
+
+
+/* --- la proyección de una facultad -------------------------------------------- */
+
+/* Mide contra el TECHO de la proyección y la cuota, no contra la cuota: una
+   facultad que proyecta 499 sobre 363 rebasaría el carril y su barra se leería
+   igual que otra que apenas cierra. */
+.mon-profile-page.is-aulas-flow .aulas-rye-proy {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 14px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-proy i { position: absolute; top: 0; bottom: 0; }
+
+/* El intervalo de la proyección: lo que impide leer el central como promesa. */
+.mon-profile-page.is-aulas-flow .aulas-rye-proy .es-rango {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 13%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-proy .es-central {
+  width: 3px;
+  margin-left: -1px;
+  background: var(--pulso-text);
+}
+
+/* La cuota es la meta, no un resultado: se dibuja como vara, igual que la tasa
+   prevista en el carril de arriba. Misma gramática, mismo significado. */
+.mon-profile-page.is-aulas-flow .aulas-rye-proy .es-cuota {
+  width: 0;
+  margin-left: -1px;
+  border-left: 2px dashed var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-leyenda .es-marca-central {
+  width: 3px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+  justify-self: center;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-leyenda .es-marca-cuota {
+  width: 0;
+  height: 11px;
+  border-left: 2px dashed var(--pulso-text-faint);
+  border-radius: 0;
+  background: none;
+  justify-self: center;
+}
+
+/* --- las claves del carril ---------------------------------------------------- */
+
+/* **Cada marca, con su nombre y su cifra.** Sin esto el carril eran tres rayas y
+   una mancha rosa: quien lo mira no puede saber cuál es el diseño, cuál esta
+   facultad y cuál el operativo, ni qué mide la zona sombreada. La leyenda es lo
+   que convierte el dibujo en una lectura. */
+.mon-profile-page.is-aulas-flow .aulas-rye-claves {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 5px 16px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-claves li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 7px;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El margen de la medición lleva una frase larga: ocupa la fila entera. */
+.mon-profile-page.is-aulas-flow .aulas-rye-claves li.es-ancha {
+  grid-column: 1 / -1;
+  cursor: help;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-claves em {
+  color: var(--pulso-text-faint);
+  font-style: normal;
+  font-variant-numeric: normal;
+}
+
+/* Las muestras REPITEN el dibujo de su marca en el carril: una raya sólida es
+   una raya sólida y una discontinua, discontinua. Un cuadrado de color para las
+   tres obligaría a memorizar cuál era cuál. */
+.mon-profile-page.is-aulas-flow .aulas-rye-claves i {
+  align-self: center;
+  height: 12px;
+  justify-self: center;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-claves i.es-previsto {
+  width: 2px;
+  background: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-claves i.es-observado {
+  width: 3px;
+  background: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-claves i.es-estudio {
+  width: 0;
+  border-left: 2px dashed var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-claves i.es-banda {
+  width: 14px;
+  height: 11px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 13%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 38%, transparent);
+}

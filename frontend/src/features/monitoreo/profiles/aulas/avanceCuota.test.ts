@@ -1,16 +1,20 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it, test } from "vitest";
 
 import type {
   MonitoreoAulasAvanceCuota,
   MonitoreoAulasAvanceCuotaFacultad,
 } from "../../../../api/monitoreo";
-import { avanceCuota } from "./avanceCuota";
+import { avanceCuota, numeroONulo } from "./avanceCuota";
 
 function facultad(sobre: Partial<MonitoreoAulasAvanceCuotaFacultad> = {}): MonitoreoAulasAvanceCuotaFacultad {
   return {
     facultad: "Derecho",
     faculty_key: "derecho",
     cuota: 380,
+    // La τ que dimensionó esta facultad (ADR 0082). El motor la publica por
+    // fila desde que `tasa_esperada` dejó de alcanzar: queda en `null` justo
+    // cuando las τ difieren entre facultades, que es siempre en HSVG2026.
+    tau_prevista: 0.53,
     respuestas_validas: 182,
     brecha: 198,
     avance_pct: 47.9,
@@ -57,10 +61,17 @@ describe("avanceCuota", () => {
     expect(vista.filas.map((f) => f.facultad)).toEqual(["Gestión", "Derecho", "Arte"]);
     // El chip dice contra QUÉ se mide y con qué tasa; sin él la barra de este
     // panel y la de «Cuota sexo por facultad» parecen medir lo mismo.
-    expect(vista.procedencia.chip).toBe("cuota del diseño · τ 0,53");
+    // La letra griega no se publica: es la misma decisión que Cálculo de
+    // muestra ya tomó para esta cifra, y en porcentaje se entiende sin
+    // definición.
+    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad 53.0 %");
     expect(vista.procedencia.degradada).toBe(false);
     expect(vista.vacio).toBeNull();
-    expect(vista.total?.etiqueta).toBe("Cuota del diseño");
+    // La CANTIDAD se llama igual salga de donde salga; el chip de arriba dice
+    // de dónde. El otro caso lo comprueba con el denominador degradado.
+    expect(vista.total?.etiqueta).toBe("Cuota del estudio");
+    // Y quien no ve el chip lo oye: la procedencia entra en el aria.
+    expect(vista.total?.aria).toContain("cuota del diseño · tasa de efectividad 53.0 %");
   });
 
   test("degradado a obsoleta: el chip cambia de denominador y el motivo viaja", () => {
@@ -75,7 +86,11 @@ describe("avanceCuota", () => {
     expect(vista.procedencia.degradada).toBe(true);
     // El porqué no se pierde en la degradación: va al title/aria del chip.
     expect(vista.procedencia.detalle).toContain("se resorteó el 2026-04-12");
-    expect(vista.total?.etiqueta).toBe("Meta del plan");
+    // **La etiqueta NO cambia con la procedencia**, que es lo que la hacía
+    // duplicar al chip: en la misma cabecera decían «cuota del diseño» dos
+    // veces. Lo que cambia es el chip, y ahora también el aria.
+    expect(vista.total?.etiqueta).toBe("Cuota del estudio");
+    expect(vista.total?.aria).toContain("contra la meta del plan");
   });
 
   test("sin_diseno también degrada, sin exigir el estado obsoleta", () => {
@@ -130,7 +145,7 @@ describe("avanceCuota", () => {
     const hueco = vista.filas[0];
     // «faltan» diría que el equipo va lento; aquí no hay aulas de las que
     // recoger, y mandar gente a insistir no arregla un sorteo sin aulas.
-    expect(hueco.lectura).toBe("sin aulas sorteadas");
+    expect(hueco.lectura).toBe("sin cursos-horario sorteados");
     expect(hueco.lectura).not.toContain("faltan");
     // La brecha estructural sigue contada —son 60 de la cuota que el plan no
     // puede dar— y la explicación larga dice de quién es el hueco.
@@ -146,9 +161,18 @@ describe("avanceCuota", () => {
     }));
     // La cifra dice la verdad: capar el número escondería el sobremuestreo.
     expect(vista.total?.avance).toBe(137.5);
-    expect(vista.total?.avanceTexto).toBe("137,5");
+    // **Punto decimal: es la convención peruana, no un error de tipeo.**
+    // `es-PE` escribe `2,668` con coma de millar y `137.5` con punto decimal.
+    // Estas tres aserciones fijaban la coma española, que era lo que producía
+    // un formateador local ya retirado, y por eso Cuotas publicaba dos
+    // notaciones para la misma cifra.
+    expect(vista.total?.avanceTexto).toBe("137.5 %");
     expect(vista.filas[0].avance).toBe(137.5);
-    expect(vista.filas[0].lectura).toBe("cuota cumplida · 137,5%");
+    // El contrato anterior era `"cuota cumplida · 137.5 %"`, sin la fracción.
+    // Se cambió a pedido de Gonzalo (2026-09-08): un porcentaje se publica con
+    // la frecuencia que lo produce, y esta fila es justo la que lo necesita
+    // —522 de 380 explica por qué el avance pasa de 100—.
+    expect(vista.filas[0].lectura).toBe("cuota cumplida · 137.5 % (522 de 380)");
     // El ancho sí se capa: una barra al 137 % rompería el carril (C2).
     expect(vista.total?.relleno).toBe(100);
     expect(vista.filas[0].relleno).toBe(100);
@@ -179,7 +203,7 @@ describe("avanceCuota", () => {
     }));
     // Ocultarlas haría que esta cifra y la de Procesamiento parecieran
     // contradecirse: las respuestas existieron, sólo que aquí no cuentan.
-    expect(conMermas.total?.notas).toEqual(["12 fuera de universo", "3 sin aula del plan"]);
+    expect(conMermas.total?.notas).toEqual(["12 fuera de universo", "3 sin curso-horario del plan"]);
     expect(conMermas.filas[0].subtexto).toContain("5 fuera de universo");
     expect(conMermas.filas[0].subtexto).toContain("2 sin sexo");
 
@@ -195,7 +219,9 @@ describe("avanceCuota", () => {
     // La τ difiere por facultad: esconderla diría «aquí no hay tasa» cuando lo
     // cierto es «no hay UNA tasa».
     const vista = avanceCuota(bloque({ tasa_esperada: null }));
-    expect(vista.procedencia.chip).toBe("cuota del diseño · τ —");
+    // Sin una tasa única el motor deja NA para no promediar a escondidas; el
+    // chip lo dice en vez de pintar un guion.
+    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad sin valor único");
   });
 
   test("un sello sin verificar se declara en el chip, no se calla", () => {
@@ -206,7 +232,7 @@ describe("avanceCuota", () => {
       vigencia: "no_verificable",
       motivo: "El sello del diseño no se pudo verificar contra el marco.",
     }));
-    expect(vista.procedencia.chip).toBe("cuota del diseño · τ 0,53 (sello sin verificar)");
+    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad 53.0 % (sello sin verificar)");
     expect(vista.procedencia.detalle).toContain("no se pudo verificar");
   });
 
@@ -217,7 +243,175 @@ describe("avanceCuota", () => {
     // «0 faltan» es una resta que nadie preguntó; lo que se lee es que cerró.
     expect(vista.filas[0].cifra).toBeNull();
     expect(vista.filas[0].cumplida).toBe(true);
-    expect(vista.filas[0].lectura).toBe("cuota cumplida · 102,6%");
+    // Antes: `"cuota cumplida · 102.6 %"`. La fracción se le añadió con el
+    // resto de las filas; la parte que este test fija —que una fila cerrada no
+    // publica resta— sigue igual.
+    expect(vista.filas[0].lectura).toBe("cuota cumplida · 102.6 % (390 de 380)");
     expect(vista.cumplidas).toBe(1);
+  });
+});
+
+// La frontera del bloque `avance_cuota` para quien lo lea desde fuera: el JSON
+// de R serializa sus campos a veces como string, y `meta_operativa` llegó como
+// "NA" con «Todas las facultades» (A17, 2026-08-31). La regla es una sola:
+// número finito o `null`.
+describe("numeroONulo", () => {
+  test("el \"NA\" de R y lo vacío son null, no NaN", () => {
+    expect(numeroONulo("NA")).toBeNull();
+    expect(numeroONulo("")).toBeNull();
+    expect(numeroONulo(null)).toBeNull();
+    expect(numeroONulo(undefined)).toBeNull();
+    expect(numeroONulo("no es número")).toBeNull();
+    expect(numeroONulo(Number.NaN)).toBeNull();
+  });
+
+  test("un número de verdad pasa, venga como venga", () => {
+    expect(numeroONulo(3750)).toBe(3750);
+    expect(numeroONulo("3750")).toBe(3750);
+    expect(numeroONulo("0")).toBe(0);
+    expect(numeroONulo(0)).toBe(0);
+  });
+});
+
+describe("las bolsas del eje por persona llegan a la pantalla", () => {
+  /**
+   * **El motor las publicaba y ninguna pantalla las pintaba.** Comprobado con un
+   * grep sobre `src/` entero el 2026-09-17: nada consumía `sin_eje`,
+   * `duplicadas` ni `invariante`. Es el patrón del dato que muere camino a la
+   * UI, y el defecto era mío: las añadí al motor y ahí se quedaron.
+   */
+  const bloque = (total: Record<string, unknown>, eje?: Record<string, unknown>) => ({
+    schema: "monitoreo_aulas_avance_cuota_v1",
+    fuente: "design_targets", vigencia: "vigente", motivo: "",
+    tasa_esperada: 0.5, tasa_fuente: "tau_disenio",
+    eje: eje ?? null,
+    facultades: [{ facultad: "7", faculty_key: "7", cuota: 121, respuestas_validas: 10 }],
+    total: { cuota: 400, respuestas_validas: 10, brecha: 390, avance_pct: 2.5, ...total },
+  }) as never;
+
+  it("las nombra con el rótulo del eje, y sólo cuando hay algo", () => {
+    const con = avanceCuota(bloque({ sin_eje: 4, duplicadas: 2 },
+      { clave: "nivel", etiqueta: "Nivel", etiqueta_sin: "Sin nivel" }));
+    const notas = (con.total?.notas ?? []).join(" · ");
+    expect(notas).toContain("4 sin nivel");
+    // **Personas, no respuestas.** La cuota es de personas: llamarlo «respuestas
+    // duplicadas» haría pensar que sobran encuestas cuando lo que hay es alguien
+    // contado una sola vez a propósito.
+    // Y concuerda: «personas que respondió» no es una frase, y esta nota se lee
+    // en la pantalla más vista del perfil.
+    expect(notas).toContain("2 personas que respondieron dos veces");
+    expect(notas).not.toContain("respuestas duplicadas");
+    // Con el eje en facultad las dos valen 0 y no se pintan: «0 sin nivel» es
+    // ruido, y es el mismo trato que reciben sus hermanas.
+    const sin = avanceCuota(bloque({ sin_eje: 0, duplicadas: 0 }));
+    expect((sin.total?.notas ?? []).join(" · ")).not.toContain("sin nivel");
+  });
+
+  it("una sola persona repetida se dice en singular", () => {
+    const uno = avanceCuota(bloque({ duplicadas: 1 }));
+    expect((uno.total?.notas ?? []).join(" · ")).toContain("1 persona que respondió dos veces");
+  });
+
+  /**
+   * **Cuántas no entran en ninguna celda, que es lo que le falta a «Efectivas
+   * 58 de 400» para poder leerse.**
+   *
+   * Se SUMAN las cuatro bolsas del motor, no se resta `total − validas`: la
+   * resta da el mismo número mientras el invariante cuadre y un número
+   * inventado justo cuando no cuadra, que es cuando la cifra importa.
+   */
+  it("suma las cuatro bolsas y no las deriva de una resta", () => {
+    const v = avanceCuota(bloque({
+      respuestas_validas: 58, fuera_universo: 3, huerfanas: 1, sin_eje: 1, duplicadas: 1,
+      // El invariante NO cuadra a propósito: si el conteo saliera de
+      // `total − validas` este caso daría 6 por casualidad y el test pasaría
+      // con el bug puesto.
+      invariante: { ok: false, suma: 100, total: 64, solapadas: 0 },
+    }, { clave: "nivel", etiqueta: "Nivel", etiqueta_sin: "Sin nivel" }));
+    expect(v.total?.fueraDeCelda).toBe(6);
+    const cero = avanceCuota(bloque({}));
+    expect(cero.total?.fueraDeCelda).toBe(0);
+  });
+
+  it("el descuadre del invariante habla SÓLO cuando no cuadra", () => {
+    // Al revés que las notas: un «las partes suman» permanente es ruido, y un
+    // bloque cuyas partes no suman su total no se puede leer.
+    const cuadra = avanceCuota(bloque({ invariante: { ok: true, suma: 10, total: 10, solapadas: 0 } }));
+    expect(cuadra.total?.descuadre).toBeNull();
+    const no = avanceCuota(bloque({ invariante: { ok: false, suma: 8, total: 10, solapadas: 0 } }));
+    expect(no.total?.descuadre).toContain("8");
+    expect(no.total?.descuadre).toContain("10");
+    // Y el solape se nombra cuando existe: una respuesta en dos bolsas es otro
+    // defecto distinto de que falten.
+    const solape = avanceCuota(bloque({ invariante: { ok: false, suma: 12, total: 10, solapadas: 2 } }));
+    expect(solape.total?.descuadre).toContain("dos bolsas");
+  });
+
+  it("un bloque sin invariante no inventa un descuadre", () => {
+    // Un payload viejo no lo trae, y eso NO es un descuadre: es que no se midió.
+    expect(avanceCuota(bloque({})).total?.descuadre).toBeNull();
+  });
+});
+
+describe("un valor del eje que el diseño no traza", () => {
+  /**
+   * **El defecto de campo, medido el 2026-09-22 en CCSS Perfil 2026-II.**
+   *
+   * Nueve respuestas del día: siete personas de nivel 6 —celda del diseño— y
+   * dos de nivel 5, que el estudio no traza. Las dos resolvían su eje contra el
+   * padrón, así que no eran «sin nivel»; casaban con el plan, así que no eran
+   * huérfanas; y ninguna celda las leía. El motor ya las emite como fila propia
+   * con `estado: "fuera_del_diseno"`; aquí se comprueba que la pantalla las
+   * distingue de una facultad del plan sin cuota, que es otra cosa.
+   */
+  const conNivelFuera = (eje?: Record<string, unknown>) => avanceCuota({
+    schema: "monitoreo_aulas_avance_cuota_v1",
+    fuente: "design_targets", vigencia: "vigente", motivo: "",
+    tasa_esperada: 0.5, tasa_fuente: "tau_disenio",
+    eje: eje ?? { clave: "nivel", etiqueta: "Nivel", etiqueta_sin: "Sin nivel" },
+    facultades: [
+      { facultad: "6", faculty_key: "6", cuota: 119, respuestas_validas: 7,
+        brecha: 112, avance_pct: 5.9, fuente_fila: "diseno", estado: "ok" },
+      { facultad: "5", faculty_key: "5", cuota: null, respuestas_validas: 2,
+        brecha: null, avance_pct: null,
+        fuente_fila: "fuera_del_diseno", estado: "fuera_del_diseno" },
+    ],
+    total: { cuota: 400, respuestas_validas: 7, brecha: 393, avance_pct: 1.8, sin_celda: 2 },
+  } as never);
+
+  it("tiene fila propia y no se lee como una facultad del plan sin cuota", () => {
+    const v = conNivelFuera();
+    const fila = v.filas.find((f) => f.clave === "5");
+    expect(fila?.estado).toBe("fuera_del_diseno");
+    expect(fila?.lectura).toBe("fuera del diseño");
+    expect(fila?.subtexto).toContain("2 recogidas");
+    // La redacción de `sin_cuota` habla del PLAN, y el plan no dijo nada de
+    // este nivel: son dos vacíos distintos y el contrato pide clasificarlos.
+    expect(fila?.titulo).not.toContain("del plan");
+    expect(fila?.titulo).toContain("nivel");
+    // Sin denominador no se inventa un porcentaje, igual que sus hermanas.
+    expect(fila?.cuota).toBeNull();
+    expect(fila?.avance).toBeNull();
+  });
+
+  it("la cabecera lo dice con la palabra del eje y lo suma a lo que no cuenta", () => {
+    const v = conNivelFuera();
+    expect((v.total?.notas ?? []).join(" · ")).toContain("2 de un nivel que el diseño no mide");
+    // `fueraDeCelda` es lo que le falta a «7 de 400» para poder leerse: sin
+    // esta bolsa decía 0 con dos encuestas del día fuera de toda celda.
+    expect(v.total?.fueraDeCelda).toBe(2);
+  });
+
+  it("sin bolsa no se pinta la nota: un cero ahí es ruido", () => {
+    const v = avanceCuota({
+      schema: "monitoreo_aulas_avance_cuota_v1",
+      fuente: "design_targets", vigencia: "vigente", motivo: "",
+      tasa_esperada: 0.5, tasa_fuente: "tau_disenio",
+      eje: { clave: "facultad", etiqueta: "Facultad", etiqueta_sin: "Sin facultad" },
+      facultades: [{ facultad: "Derecho", faculty_key: "derecho", cuota: 10, respuestas_validas: 3 }],
+      total: { cuota: 10, respuestas_validas: 3, brecha: 7, avance_pct: 30, sin_celda: 0 },
+    } as never);
+    expect((v.total?.notas ?? []).join(" · ")).not.toContain("no mide");
+    expect(v.total?.fueraDeCelda).toBe(0);
   });
 });

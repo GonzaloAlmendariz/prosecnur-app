@@ -3,7 +3,8 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { embudoDelAula } from "./embudoDelAula";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
+
 
 /**
  * De cuántos estaban en el aula a cuántas respuestas quedaron.
@@ -18,14 +19,25 @@ import { fmt } from "./kpisDeAulas";
  * angosta cada uno.
  */
 
-export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRow> }) {
-  const e = useMemo(() => embudoDelAula(filas), [filas]);
+export function AulasEmbudoDelAula({ filas, plan = [] }: {
+  filas: ReadonlyArray<MonitoreoRow>;
+  /** El plan, para el escalón del padrón: el parte no trae los convocados. */
+  plan?: ReadonlyArray<MonitoreoRow>;
+}) {
+  const e = useMemo(() => embudoDelAula(filas, plan), [filas, plan]);
 
   if (!e.pasos.length) {
     return (
       // Vacío legítimo: sin partes no hay cadena que angostar, y decirlo evita
       // que un embudo en cero se lea como «se perdió todo».
-      <p className="mon-profile-muted">
+      //
+      // **Y declara lo mismo que la rama con datos**, igual que
+      // `AulasControlDelLibro`: sin `member`, el grupo `monitoring-aulas-consultas`
+      // se queda sin contenedor de datos declarado y el runner cae a los hijos
+      // directos del `section`, donde el encabezado del panel «Partes de campo»
+      // entra como si lo fuera → `capacity-drift` con 5 px. Medido en
+      // `consultas/parte` sobre el proyecto derivado.
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Todavía no hay partes de campo con asistentes declarados.
       </p>
     );
@@ -34,19 +46,35 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
   const ultimo = e.pasos[e.pasos.length - 1];
 
   return (
-    <div className="aulas-embudo">
-      <p className="aulas-cadenas-lectura">
-        De <strong>{fmt(e.asistentes)}</strong> personas en el aula quedaron{" "}
-        <strong>{fmt(ultimo.quedan)}</strong> respuestas · <strong>{ultimo.pct}%</strong>
-      </p>
-      <ol className="aulas-embudo-pasos">
+    <div className="aulas-embudo" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+      {/* **Sin los descuentos no hay cadena que leer.** Con los 152 partes sin
+          rechazos ni duplicados la frase decía «De 4.386 personas en el aula
+          quedaron 4.386 respuestas · 100 %», que afirma conversión total cuando
+          lo que pasa es que nadie anotó esos dos pasos. Se dice cuáles faltan
+          en vez de dibujar una cadena que no se midió. */}
+      {e.pasosSinDeclarar.length >= 2 ? (
+        <p className="aulas-cadenas-lectura">
+          <strong>{fmt(e.asistentes)}</strong> personas estaban en el aula. La
+          cadena hasta las efectivas no se puede leer: ningún parte declara{" "}
+          {e.pasosSinDeclarar.join(" ni ")}.
+        </p>
+      ) : (
+        <p className="aulas-cadenas-lectura">
+          De <strong>{fmt(e.asistentes)}</strong> personas en el aula quedaron{" "}
+          <strong>{fmt(ultimo.quedan)}</strong> respuestas · <strong>{pctPerfil(ultimo.pct)}</strong>
+          {e.pasosSinDeclarar.length ? (
+            <em>{" "}· sin contar {e.pasosSinDeclarar[0]}, que ningún parte declara</em>
+          ) : null}
+        </p>
+      )}
+      <ol className="aulas-embudo-pasos" role="list">
         {e.pasos.map((p) => (
           <li key={p.clave}>
             <span className="aulas-embudo-rotulo">{p.etiqueta}</span>
             <span
               className="aulas-embudo-carril"
               role="img"
-              aria-label={`${p.etiqueta}: quedan ${p.quedan}, ${p.pct}%`}
+              aria-label={`${p.etiqueta}: quedan ${p.quedan}, ${pctPerfil(p.pct)}`}
             >
               <i style={{ width: `${p.pct}%`, background: COLOR_RESULTADO.efectiva }} />
             </span>
@@ -65,7 +93,7 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
         // cuadre es suyo y esto sólo lo dice, con el signo, que es lo que
         // distingue «se les pasó contar» de «contaron de más».
         <p className="mon-profile-table-recorte">
-          El equipo declaró <strong>{fmt(e.declaradas)}</strong> efectivas,{" "}
+          El equipo declaró <strong>{fmt(e.declaradas)}</strong> encuestas aplicadas,{" "}
           {e.descuadre > 0 ? `${fmt(e.descuadre)} más` : `${fmt(Math.abs(e.descuadre))} menos`} de
           lo que implica esta cadena.
         </p>

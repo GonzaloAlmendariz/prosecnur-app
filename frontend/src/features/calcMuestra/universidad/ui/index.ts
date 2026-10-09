@@ -5,3 +5,4 @@ export { FlujoVertical, type FlujoEtapa } from "./FlujoVertical";
 export { PanelAvanzado } from "./PanelAvanzado";
 export { CifraMotor, CifraFila } from "./CifraMotor";
 export { MuestraFlowDiagram, type MuestraFlowDiagramProps, type MuestraFlowNodeKey } from "./MuestraFlowDiagram";
+export { ExplicacionPlegable, ExplicacionBloque } from "./ExplicacionPlegable";

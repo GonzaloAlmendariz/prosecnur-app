@@ -37,6 +37,13 @@ export type LadoDeCuota = {
   avance: number;
   cumple: boolean;
   /**
+   * Lo que se recogió DE MÁS sobre su propia meta; 0 mientras no se llega.
+   * Gonzalo (2026-09-08): «o si se llega a la meta se vuelve "sobran x"». No
+   * cubre lo que falta en otra celda —la cuota no se compensa, ADR 0079—: es
+   * exceso de trabajo en ese grupo, y por eso se nombra en vez de callarse.
+   */
+  sobran: number;
+  /**
    * Lo que le añadirían las aulas YA AGENDADAS, en puntos de su propia meta.
    * `null` cuando el estudio no publica agenda: no saber qué va a llegar no es
    * lo mismo que saber que no llega nada, y pintar cero acusaría de una
@@ -78,7 +85,23 @@ function lado(
   const meta = propias.reduce((s, f) => s + numero(f.target), 0);
   const observadas = propias.reduce((s, f) => s + numero(f.observed), 0);
   if (meta <= 0) return null;
-  const cumple = observadas >= meta;
+  // Celda a celda, como en el resto del módulo: pasarse en una no cubre otra.
+  const faltan = propias.reduce((s, f) => s + Math.max(0, numero(f.target) - numero(f.observed)), 0);
+  /**
+   * **Cumple quien no debe nada, no quien suma bastante.**
+   *
+   * Era `observadas >= meta`, que suma el lado entero y por tanto compensa unas
+   * filas con otras — la misma regla que daba tres facultades por «Cerradas»
+   * teniéndoles 17 mujeres pendientes, y que el ADR 0079 prohíbe.
+   *
+   * Hoy las dos expresiones dan lo mismo y por accidente: `quotas_sex_faculty`
+   * sale de un `merge` por `(fac_key, sex_key)`, así que hay exactamente una
+   * fila por facultad y sexo y no hay nada que compensar. Esa equivalencia es
+   * del grano del payload, no de la regla: el día que estas filas se abran por
+   * estrato o por nivel, `observadas >= meta` volvería a decir «cumplida» con
+   * gente faltando. Atarlo a `faltan` cuesta una línea y no depende del grano.
+   */
+  const cumple = faltan === 0;
   // Lo previsto se mide en puntos de SU meta y se recorta a lo que queda por
   // cubrir: una celda que ya cumplió no crece, y una sombra que se pasara de la
   // meta diria que el excedente sirve para algo, que es justo lo que no hace.
@@ -92,8 +115,8 @@ function lado(
     sexo,
     meta,
     observadas,
-    // Celda a celda, como en el resto del módulo: pasarse en una no cubre otra.
-    faltan: propias.reduce((s, f) => s + Math.max(0, numero(f.target) - numero(f.observed)), 0),
+    faltan,
+    sobran: Math.max(0, observadas - meta),
     avance: Math.round((1000 * observadas) / meta) / 10,
     cumple,
     previsto,
@@ -189,12 +212,19 @@ export function piramideDeCuota(
     // así que contar celdas en peligro daba siempre el mismo orden que sumar lo
     // que les falta. Lo destapó un mutante que sobrevivió: anular la primera
     // clave no movió ni un test.
+    // **De la facultad más pequeña a la más grande** (Gonzalo, 2026-09-08):
+    // «debería estar ordenado de facultad más pequeña a facultad más grande,
+    // además no se distingue bien».
+    //
+    // Contrato anterior, citado para quien lea un diff: ordenaba por lo que iba
+    // a faltar al acabar la agenda —la facultad en peligro arriba—. Esa es una
+    // pregunta de PREDICCIÓN, y la predicción salió de esta pestaña con el
+    // mismo dictado. Lo que queda es una comparación de magnitudes, y para
+    // comparar magnitudes el orden que se lee es el del tamaño: la escalera
+    // que forman las barras es en sí misma la información.
     .sort((a, b) => {
-      const faltaAlCerrar = (f: FilaDePiramide) =>
-        (f.izquierda?.faltanAlCerrar ?? 0) + (f.derecha?.faltanAlCerrar ?? 0);
-      return faltaAlCerrar(b) - faltaAlCerrar(a)
-        || b.faltan - a.faltan
-        || a.facultad.localeCompare(b.facultad, "es");
+      const meta = (f: FilaDePiramide) => (f.izquierda?.meta ?? 0) + (f.derecha?.meta ?? 0);
+      return meta(a) - meta(b) || a.facultad.localeCompare(b.facultad, "es");
     });
 
   return {

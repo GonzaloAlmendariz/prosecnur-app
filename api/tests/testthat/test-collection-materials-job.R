@@ -195,10 +195,26 @@ test_that("dos unidades de la misma facultad con el mismo label no se pisan", {
     # el plan viniera roto— y este test comprueba que no se activa cuando no
     # hace falta: un «(2)» sobre archivos que ya se distinguen haria dudar de
     # cual es cual.
-    "Fichas/Ingenieria/Titulares/MAT-01 - AULA 1.pdf",
-    "Fichas/Ingenieria/Titulares/MAT-02 - AULA 1.pdf",
+    #
+    # **SIN cajon de facultad, y no por descuido**: este fixture tiene una sola
+    # facultad, y desde el 2026-09-20 el cajon solo aparece cuando el paquete
+    # trae mas de una (ver `.cmj_separa_por_facultad()`). Con una, ese nivel no
+    # separa nada y repite el mismo nombre en cada ruta. Lo que este test vigila
+    # -que dos unidades con el mismo label no se pisen- no cambia.
+    "Fichas/Titulares/MAT-01 - AULA 1.pdf",
+    "Fichas/Titulares/MAT-02 - AULA 1.pdf",
     "accesos.tsv"
   ))
+})
+
+test_that("con DOS facultades el paquete sigue abriendo su cajon", {
+  # La contraparte del de arriba: sin ella, «una facultad no abre cajon» pasaria
+  # en verde tambien el dia que el cajon desapareciera para todos, y HSVG2026
+  # -quince facultades, en campo- reparte sus montones por ahi.
+  expect_true(prosecnurapp:::.cmj_separa_por_facultad(c("Ingenieria", "Letras")))
+  expect_equal(
+    prosecnurapp:::.cmj_carpeta_de_ficha("Ingenieria", "Titulares", TRUE),
+    file.path("Ingenieria", "Titulares"))
 })
 
 test_that("on_complete registra output y persiste un solo receipt sin resolved_access", {
@@ -266,4 +282,27 @@ test_that("worker maneja texto extremo sin overflow y conserva QR de URL larga",
   expected <- collection_qr_matrix(long_url)
   observed <- collection_qr_matrix_from_png(png_path, nrow(expected), dpi = 300)
   expect_identical(observed, expected)
+})
+
+test_that("el acolchado del codigo ordena la cadena sin reescribir el codigo", {
+  padd <- function(x, ancho) .cmj_codigo_ordenable(x, ancho)
+
+  # Para lo que existe: que `CH 10` no quede antes de `CH 5` en la carpeta.
+  expect_identical(padd("CH 5", 2L), "CH 05")
+  expect_identical(padd("R 5.3", 2L), "R 05.3")
+  expect_identical(padd("AULA_7", 2L), "AULA_07")
+
+  # RELLENA, nunca encoge: el codigo del aula viene del marco. Con dos unidades
+  # basta un digito, y eso convertia `MAT-01` en `MAT-1` -otro identificador.
+  expect_identical(padd("MAT-01", 1L), "MAT-01")
+  expect_identical(padd("MAT-01", 3L), "MAT-001")
+
+  # Un codigo academico compacto no es «prefijo + ordinal» y pasa entero. Antes
+  # `URB209_0601` salia como `URB 209_0601` (espacio inventado) y `1ARC66_0601`
+  # como `01ARC66_0601` (cero inventado): dos codigos que ya no existen.
+  expect_identical(padd("URB209_0601", 3L), "URB209_0601")
+  expect_identical(padd("1ARC66_0601", 3L), "1ARC66_0601")
+
+  expect_identical(padd("", 2L), "")
+  expect_identical(padd("SIN-NUMERO", 2L), "SIN-NUMERO")
 })

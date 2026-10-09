@@ -1,51 +1,90 @@
-const FIELD_LABELS: Record<string, string> = {
+import { segmentoDeEstrato } from "./etiquetaDeEstrato";
+
+export const FIELD_LABELS: Record<string, string> = {
   // Ciclo de contacto (L31): por que un aula no esta agendada todavia.
   contact_medium: "Medio de contacto",
   contact_date: "Fecha de llamada",
-  contact_attempts: "Número de intentos",
+  // «Intentos» y no «Número de intentos»: las celdas llevan UN dígito y la
+  // cabecera es la que fija el ancho, porque `.es-cifra` va con
+  // `white-space: nowrap`. Diecisiete caracteres de rótulo sobre celdas de uno
+  // se comían una columna entera de la tabla de agenda.
+  contact_attempts: "Intentos",
   scheduled_date: "Fecha agendada",
   scheduled_day: "Día",
   scheduled_time: "Hora",
+  // El momento acordado con el docente. Hasta 2025 vivia en OBSERVACIONES en
+  // prosa libre y por eso no se podia agregar ni leer desde la agenda.
+  scheduled_moment: "Momento de la clase",
+  // «LUGAR DE APLICACIÓN» del libro (dictado 2026-09-02): dónde se acordó
+  // aplicar, confirmado a mano por el equipo. Distinto de `venue`, que es
+  // donde se DICTA el curso según el catálogo.
+  scheduled_venue: "Lugar de aplicación",
+  // El RANGO horario declarado del curso —«MAR 14:00-16:00»—, distinto de
+  // `schedule` (cuando empieza) y de `scheduled_time` (cuando se agendo).
+  sesiones_dia_hora: "Sesiones",
+  // Su forma para humanos, con el salón —«MAR 14:00-16:00 · V303»—: la que
+  // anota el armador del cálculo y prefiere la hoja «SESIONES Y AULA» del
+  // libro (A23). Llega al plan desde a0250367; sin etiqueta, la tabla que la
+  // recoja enseñaría el nombre crudo del campo.
+  sesiones_legibles: "Sesiones y aula",
+  venue: "Salón",
   // Parte de campo (L32/L45): lo que el equipo anota en el aula.
   actual_room: "Aula real",
   // `CANTIDAD DE ASISTENTES` en el libro; el registro ya lo dice así.
   observed_students: "Cantidad de asistentes",
   applied_surveys: "Encuestas aplicadas",
   // `CANTIDAD DE EFECTIVAS`: el número que manda en el parte de campo.
-  effective_surveys: "Cantidad de efectivas",
+  // S14b (dictado 2026-09-07): «las efectivas las da la app no el aplicador».
+  // El conteo del parte son encuestas aplicadas; «efectivas» queda para la
+  // plataforma. La clave no cambia.
+  effective_surveys: "Encuestas aplicadas (parte)",
   // `CANTIDAD DE RECHAZOS`.
   refusals: "Cantidad de rechazos",
   // Las dos columnas de la resta, que el libro NO trae: las calcula el motor
   // con la identidad asistentes − rechazos − duplicados = efectivas.
-  esperado: "Efectivas que implican",
+  // «que implican» pedía un sujeto y no lo tenía. El motor lo dice: «`esperado`
+  // es la cuenta que implican los otros tres números» —asistentes, rechazos y
+  // duplicados—, que son las tres columnas de al lado en esta misma tabla.
+  esperado: "Efectivas que implica el parte",
   diferencia: "Diferencia",
   // `DUPLICADOS (YA RESPONDIERON)`, con el paréntesis del propio Excel.
   duplicates: "Duplicados (ya respondieron)",
-  application_status: "Estado de aplicación",
-  applied_at: "Aplicada el",
+  // **Cada uno nombra su fuente**, que es el criterio con que telefónico separó
+  // «Declaradas efectivas» de «Efectivas Kobo». Éste es la columna «STATUS DE
+  // APLICACIÓN» que el equipo escribe en el parte; `application_state`, más
+  // abajo, es el estado que el motor DERIVA del avance
+  // (`monitoreo_aulas_universitarias.R:1332`). Son dos cosas distintas y hasta
+  // ahora se distinguían sólo porque una decía «Status» y la otra «Estado»: un
+  // anglicismo haciendo de distinción, que no informa a nadie. Al traducirlo
+  // quedaron homónimas, y el censo del glosario —153 entradas— no tenía ninguna
+  // otra pareja.
+  application_status: "Estado declarado en el parte",
+  applied_at: "Aplicado el",
   // El parte trae la fecha y la hora SEPARADAS —son dos columnas de su hoja— y
   // ademas `applied_at`, que es la marca compuesta. Sin etiqueta propia,
   // `applied_date` llegaba a la tabla como jerga en cuanto se pidio mostrarla.
   applied_date: "Fecha de aplicación",
   applied_time: "Hora de aplicación",
-  applied_by: "Aplicada por",
-  field_note: "Nota de campo",
+  applied_by: "Aplicado por",
+  // B42: las familias de observación se nombran por su origen. El campo se
+  // llama `field_note` pero la familia es «lo que reportó el aplicador».
+  field_note: "Obs. de aplicación",
   // Por qué esta fila está en la cadena. Lo compone el motor a partir del campo
   // que corresponde al papel de la fila: la que cae lleva su motivo de
   // reemplazo y la que entra el de activación. Un solo rótulo porque es una
   // sola pregunta.
   motivo: "Motivo",
   // Activación de reemplazos (L5/L49).
-  activated_at: "Activada el",
+  activated_at: "Activado el",
   activation_reason: "Motivo de activación",
-  replaced_at: "Reemplazada el",
+  replaced_at: "Reemplazado el",
   // Composición de la muestra: el dato que el libro NO trae (L67).
   sex_top_1: "Sexo mayoritario",
   sex_top_1_n: "Estudiantes del sexo mayoritario",
   sex_top_2: "Sexo minoritario",
   sex_top_2_n: "Estudiantes del sexo minoritario",
   enrolled_total: "Matriculados total DTI",
-  size_group: "Tamaño de aula",
+  size_group: "Tamaño del curso-horario",
   modality: "Modalidad",
   session_type: "Tipo de sesión",
   // «Base de control» (L29): el control de calidad por aula. Ninguno de estos
@@ -75,14 +114,61 @@ const FIELD_LABELS: Record<string, string> = {
   // del campo con espacios, porque eso no es traducir, es disimular. «Meta de
   // efectivas» dice de dónde sale la cifra; «Efectivas esperadas» sólo repite
   // el identificador en castellano.
-  efectivas_esperadas: "Meta de efectivas del aula",
+  efectivas_esperadas: "Meta de efectivas del curso-horario",
+  // **Las dos varas del diseño, nombradas por su diferencia.** El motor publica
+  // dos esperados por aula y hasta el 2026-08-28 ninguno tenía etiqueta aquí, así
+  // que la tabla los mostraba con el identificador crudo. No son sinónimos:
+  // `tasa_efectividad_aula` ajusta por el tamaño del salón y `tasa_facultad` es
+  // el promedio con el que se dividió la cuota. Suman lo mismo por facultad y
+  // difieren curso-horario a curso-horario, de modo que la etiqueta tiene que
+  // decir cuál es. **Por eso el sujeto no se puede recortar**: «Tasa del
+  // curso-horario» frente a «Tasa de la facultad» es justo el contraste, igual
+  // que «Peso del curso-horario» frente a «Peso del estudiante».
+  tasa_efectividad_aula: "Tasa del curso-horario, por su tamaño",
+  tasa_facultad: "Tasa de la facultad",
+  // **Las mismas dos varas, leídas de la «Base de control».** El plan las
+  // publica como `tasa_facultad` / `tasa_efectividad_aula` y la hoja las escribe
+  // en su propia columna desde el 2026-09-07; son la misma cifra por dos
+  // caminos, así que el rótulo tiene que decir POR CUÁL viene — dos claves con
+  // la misma etiqueta se leen como un duplicado de la tabla.
+  tasa_facultad_ref: "Tasa de la facultad, según el libro",
+  tasa_aula_ref: "Tasa del curso-horario, según el libro",
+  esperadas_facultad: "Esperadas según la facultad",
+  brecha_facultad: "Diferencia contra la tasa de la facultad",
   efectivas_obtenidas: "Efectivas que llegaron",
+  // «Cortas y largas» era la partición por DURACIÓN de 2025; desde el
+  // 2026-09-07 la partición es la del criterio de validez. La etiqueta dice
+  // contra qué se compara, que es lo que la hace legible al lado de su pareja.
+  // Sin verbo colgando: «que no cuentan» deja al lector esperando el objeto.
+  // Se dice contra qué se comparan, que es lo que hace legible la pareja.
+  no_efectivas: "Recibidas que no son efectivas",
+  // Las del barrido del 2026-09-08. El contrato exige que el rótulo DIGA algo:
+  // rechaza los que son el nombre del campo con espacios, porque eso no es
+  // traducir, es disimular.
+  declared_surveys: "Encuestas que declaró el aplicador",
+  mujeres_esperadas_facultad: "Mujeres que espera la tasa de la facultad",
+  hombres_esperados_facultad: "Hombres que espera la tasa de la facultad",
+  duracion_media: "Cuánto duró la encuesta en promedio",
+  duracion_min: "La encuesta más rápida del salón",
+  duracion_max: "La encuesta más lenta del salón",
+  // Quien estaba en el aula y nunca abrió el enlace, separado de quien lo abrió
+  // y no pasó los filtros: son dos fallas distintas.
+  no_escanearon: "Estaban en el aula y no abrieron el enlace",
+  brecha_tasa_facultad: "Cuánto se aparta de la tasa de la facultad",
+  brecha_tasa_aula: "Cuánto se aparta de la tasa del curso-horario",
+  mujeres_brecha_facultad: "Mujeres de más o de menos según la facultad",
+  mujeres_brecha_aula: "Mujeres de más o de menos según el curso-horario",
+  hombres_brecha_facultad: "Hombres de más o de menos según la facultad",
+  hombres_brecha_aula: "Hombres de más o de menos según el curso-horario",
+  efectivas_vs_enviadas: "% de efectivas sobre lo recibido",
   efectivas_pct_esperado: "% de efectivas esperado",
   efectivas_pct_obtenido: "% de efectivas logrado",
   efectivas_brecha: "Efectivas: cuánto falta",
-  elegibles_esperados: "Elegibles del padrón",
-  mujeres_esperadas: "Mujeres que espera el aula",
-  hombres_esperados: "Hombres que espera el aula",
+  // La columna del libro se llama «ELEGIBLES: BASE DEL %»: es el padrón, y está
+  // ahí como denominador visible del porcentaje esperado. No es una meta.
+  elegibles_esperados: "Elegibles (base del %)",
+  mujeres_esperadas: "Mujeres que espera el curso-horario",
+  hombres_esperados: "Hombres que espera el curso-horario",
   last_response_day: "Último día de respuesta",
   non_respondents: "Asistentes que no respondieron",
   attendance_pct: "% Asistencia",
@@ -102,7 +188,7 @@ const FIELD_LABELS: Record<string, string> = {
   selection_run_id: "Corrida de selección",
   pi_final: "Probabilidad de selección",
   probability_source: "Origen de la probabilidad",
-  weight_classroom: "Peso del aula",
+  weight_classroom: "Peso del curso-horario",
   weight_student: "Peso del estudiante",
   nonresponse_policy: "Política de no respuesta",
   representativity_score: "Puntaje de representatividad",
@@ -125,17 +211,21 @@ const FIELD_LABELS: Record<string, string> = {
   en_juego: "En juego",
   // `STATUS MUESTRA` en «Aulas Agendadas»: AGENDADA · REAGENDADA · EN RESERVA n
   // · REEMPLAZADA. El rótulo es la columna.
-  sample_status: "Status de muestra",
+  sample_status: "Estado de muestra",
   // La columna que dice qué hacer, no qué pasa. Patrón 7 del catálogo: la tabla
-  // de Cálculo termina en «A coordinar» por la misma razón.
-  que_toca: "Qué toca",
+  // de Cálculo termina en «A coordinar» por la misma razón. «Qué toca» cayó en
+  // el mapa de jergas del dictado 2026-09-03 («¿qué significa toca?»).
+  que_toca: "Siguiente paso",
   // `MUESTRA` es como el Excel rotula la ola (M1, M2). Se usa su palabra
   // aunque «muestra» tambien nombre el diseño: es la que lee el equipo.
   wave: "Muestra",
   replacement_order: "Orden en la cadena",
   orden: "Orden",
   classroom_id: "ID de curso-horario",
-  label: "Sesiones y aula",
+  // «Sesiones y aula» pasó a `sesiones_legibles` (A23), que es quien de
+  // verdad la trae; `label` es la etiqueta-identificador del aula y el
+  // guard de rótulos no admite dos claves con el mismo nombre.
+  label: "Etiqueta",
   course_id: "ID de curso",
   course_name: "Nombre del curso",
   section: "Sección",
@@ -147,7 +237,10 @@ const FIELD_LABELS: Record<string, string> = {
   level: "Nivel del curso",
   stratum: "Estrato",
   eligible_n: "Matriculados población",
-  expected_valid: "Válidas esperadas",
+  // Es la META del diseño (`expected_valid`), no un conteo: el mismo nombre que
+  // el encabezado EFECTIVAS ESPERADAS de la Base de control. «Válidas esperadas»
+  // era un residuo del vocabulario que D-L12 retiró.
+  expected_valid: "Efectivas esperadas",
   link: "Enlace de la ficha",
   qr: "Código QR",
   word_link: "Ficha Word",
@@ -162,28 +255,54 @@ const FIELD_LABELS: Record<string, string> = {
   operational_status: "Estado operativo",
   replacement_for: "Reemplaza a",
   replacement_reason: "Motivo de reemplazo",
-  replacement_note: "Nota de reemplazo",
+  // B42: el nombre del campo es heredado del libro («OBSERVACIONES SOBRE
+  // AULAS AGENDADAS» viaja en `replacement_note`), pero la familia es lo
+  // anotado AL AGENDAR — llamarla «de reemplazo» confundía las tres familias
+  // que el dictado exige distinguir.
+  replacement_note: "Obs. de agendación",
   equivalence_level: "Nivel de equivalencia",
   chain_score: "Puntaje de cadena",
   chain_depth: "Profundidad de cadena",
   activation_weight_status: "Estado de ponderación",
   analysis_weight_warning: "Advertencia de ponderación",
   updated_at: "Actualizado",
-  responses_total: "Respuestas totales",
-  // NO se traduce a «efectivas» aunque suene parecido: las válidas las cuenta
-  // el sistema sobre lo que llegó de Kobo y las efectivas las cuenta el
-  // encuestador en el aula. Que no cuadren es justo lo que detecta el cuadre del
-  // parte (L33), así que llamarlas igual borraría la comparación.
-  respuestas_validas: "Respuestas válidas",
+  // «Atribuidas» y no «totales»: `responses_total` cuenta SOLO las respuestas
+  // que la plataforma atribuye a este curso-horario, y «Respuestas totales» era
+  // casi homónimo del KPI «Respuestas leídas» (`kpis.respuestas_total`), que
+  // cuenta TODAS las filas de la base, atribuidas o no. La suma de esta columna
+  // es ≤ ese KPI por construcción; con una palabra de diferencia se leían como
+  // la misma cuenta. El alcance va en `FIELD_TITLES`.
+  responses_total: "Respuestas atribuidas",
+  // «Efectivas» por D-L12: la respuesta que pasa los filtros se llama efectiva,
+  // no válida. La colisión con la cifra del parte no se resuelve reteniendo
+  // «válidas» sino por APELLIDO DE FUENTE — «efectivas del parte» allá, «de
+  // plataforma» acá —; el cuadre del parte (L33) compara fuentes, no nombres.
+  // Censo cuatro-cifras 2026-09-01, choque 6.
+  respuestas_validas: "Respuestas efectivas",
+  // El reparto por sexo de lo que rindió ese curso-horario. Se nombra «efectivas
+  // de mujeres» y no «mujeres» a secas: la cifra es de respuestas, no de gente
+  // que estaba en el aula, y esos dos números no coinciden nunca.
+  validas_mujeres: "Efectivas de mujeres",
+  validas_hombres: "Efectivas de hombres",
   filter_passed: "Filtros aprobados",
   filter_rejected: "Filtros rechazados",
-  brecha: "Brecha",
+  // **«Brecha» son RESPUESTAS**, y la palabra contaba dos cosas en el perfil:
+  // aquí, personas que faltan; en la banda de Avance, cursos-horario por debajo
+  // de su meta (esa tarjeta ya se llama «Cursos-horario bajo su meta»).
+  // Comprobado por aritmética en la tabla de estratos: 291 válidas + 147 de
+  // brecha = 438 de meta, y 291/438 es el 66.4 % que publica «% Avance de
+  // respuestas» en esa misma fila.
+  brecha: "Respuestas que faltan",
   // `STATUS DE APLICACIÓN` en «Aulas Aplicadas (Campo)».
-  application_state: "Status de aplicación",
+  application_state: "Estado según el avance",
   aulas: "Cursos-horario",
   aulas_aplicadas: "Cursos-horario aplicados",
-  avance_aulas_pct: "Avance de cursos-horario",
-  avance_respuestas_pct: "Avance de respuestas",
+  // Con su «%» delante, como las demás columnas de porcentaje. Al meterlas en
+  // `COLUMNAS_DE_PORCENTAJE` —donde tenían que estar— el contrato «todo campo de
+  // la lista lleva "%" o "vs" en su rótulo» las tumbó, y con razón: la columna
+  // enseñaba «88.2» y «17» sin decir de qué escala hablaba.
+  avance_aulas_pct: "% Avance de cursos-horario",
+  avance_respuestas_pct: "% Avance de respuestas",
   sex: "Sexo",
   target: "Meta",
   frame_n: "Universo",
@@ -210,7 +329,7 @@ const CHECK_LABELS: Record<string, string> = {
   // del estudio y no lo que la regla mira. El control ahora comprueba lo
   // contrario y serio: si la base arrastra correo, celular, documento o nombre.
   personal_identifiers: "Identificadores personales en la base",
-  unmapped_valid_responses: "Respuestas válidas sin curso-horario",
+  unmapped_valid_responses: "Respuestas efectivas sin curso-horario",
   // `duplicate_collectors` se retiró: en un estudio de aulas el mismo QR lo
   // escanean todos los alumnos, así que el colector se repite por diseño y ese
   // aviso saltaba siempre. Lo anómalo es la misma respuesta dos veces.
@@ -226,12 +345,24 @@ const CHECK_LABELS: Record<string, string> = {
   unnamed_control_columns: "Columnas sin nombre en la Base de control",
   // El rotulo nombra la CONSECUENCIA y no el mecanismo: «Estados no
   // reconocidos» obliga a abrir el detalle para saber si eso importa.
-  unknown_sample_status: "Aulas contadas como sin contactar sin estarlo",
+  unknown_sample_status: "Cursos-horario contados como sin contactar sin estarlo",
   effective_representativity: "Representatividad efectiva",
+  // **Se queda con su nombre, y es deliberado.** Se probó a generalizarlo a
+  // «Cuota por sexo y grupo» para un estudio cuya cuota no es por facultad, y
+  // sale peor: este mapa es estático —no ve el eje— así que generalizar aquí
+  // vuelve el rótulo más VAGO para el estudio donde el control sí es exacto.
+  // Lo específico de cada estudio lo dice el detalle, que el motor sí redacta
+  // con su eje: «el diseño no fija cuota por sexo: la cuota de este estudio es
+  // por nivel».
   sex_faculty_quota: "Cuota por sexo y facultad",
   // Qué se está contando como respuesta válida. Se resolvía en silencio, y
   // contar TODO o filtrar por una columna equivocada dan números muy distintos.
   valid_response_criterion: "Criterio de respuesta válida",
+  // La atribución de una respuesta a su curso-horario va por el enlace: dos
+  // aulas con el mismo reciben las respuestas por la misma puerta y no hay
+  // forma de separarlas después. El rótulo nombra la CONSECUENCIA —el enlace
+  // compartido— y no el mecanismo del truncamiento, que vive en el detalle.
+  shared_collector_link: "Cursos-horario que comparten enlace",
 };
 
 /**
@@ -260,20 +391,41 @@ export const STATUS_LABELS: Record<string, string> = {
    * Contrato de Superficie prohíbe, cometido dentro de la lista de validación.
    */
   sin_datos: "Sin comprobar",
-  planificada: "Planificada",
-  contactada: "Contactada",
-  agendada: "Agendada",
+  planificada: "Planificado",
+  contactada: "Contactado",
+  agendada: "Agendado",
   en_campo: "En campo",
-  aplicada: "Aplicada",
+  aplicada: "Aplicado",
   parcial: "Parcial",
   sin_acceso: "Sin acceso",
-  cancelada: "Cancelada",
+  cancelada: "Cancelado",
   reemplazo_pendiente: "Reemplazo pendiente",
-  reemplazada: "Reemplazada",
-  cerrada: "Cerrada",
+  reemplazada: "Reemplazado",
+  // B13b: el rechazo vive en el eje de MUESTRA y llega a las fichas cuando
+  // manda sobre el operativo (dictado 2026-09-03, CH 90).
+  rechazo: "Rechazo",
+  cerrada: "Cerrado",
   cerrando: "Cierre en curso",
   en_aplicacion: "En aplicación",
-  lista: "Lista",
+  /**
+   * **«Listo» era la única palabra de la escala que se leía como final.**
+   *
+   * El estado sale de `application_state` y significa que el curso-horario ya
+   * tiene cita y todavía no sale a campo: el motor lo pone cuando la fila está
+   * `agendada` o `contactada` (`monitoreo_aulas_universitarias.R`, ~1005). Su
+   * escala completa es pendiente → lista → en_aplicacion → cerrando.
+   *
+   * Con el rótulo viejo, la tabla «Avance por curso-horario» abría con doce
+   * filas que decían «0 de 27 respuestas · Listo». Quien la lee sin conocer el
+   * vocabulario entiende que esas aulas terminaron sin recoger nada, que es lo
+   * contrario de lo que pasa: aún no han salido. Un rótulo que promete un
+   * número distinto del que enseña la fila de al lado.
+   *
+   * «Por aplicar» ordena la escala sola —Pendiente, Por aplicar, En aplicación,
+   * Cierre en curso— y no colisiona con «Agendado», que en esa misma fila ya lo
+   * usa la columna `sample_status` con otro significado.
+   */
+  lista: "Por aplicar",
   pendiente: "Pendiente",
   cumplida: "Cumplida",
   en_riesgo: "En riesgo",
@@ -290,6 +442,14 @@ export const STATUS_LABELS: Record<string, string> = {
   // Sin rótulo, la columna Fuente mostraba el fallback «Design cuota sexo».
   design_cuota_sexo: "Cuota del diseño",
 };
+
+/** `F`/`M` de un aula, dicho en palabras. Lo que no reconoce lo deja pasar. */
+function sexoDeAula(value: string) {
+  const clave = value.trim().toLowerCase();
+  if (clave === "f") return "Mujeres";
+  if (clave === "m") return "Hombres";
+  return value;
+}
 
 function normalizedKey(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
@@ -308,6 +468,32 @@ function fallbackLabel(value: string) {
  * pasar por aquí devolvía «El tablero agrega por aula/collector/link» a la
  * pantalla, que es justo la jerga del motor que este helper existe para tapar.
  */
+/**
+ * El tipo de sesión del curso, sin el paréntesis del DTI.
+ *
+ * La base llega con `TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)`: el tipo
+ * principal y, entre paréntesis, la lista de subtipos que ese tipo agrupa en el
+ * catálogo. Esa lista es la misma para todas las aulas del tipo —no dice nada
+ * de ESTA aula—, y ocupa 45 caracteres en cada fila.
+ *
+ * Medido el 2026-08-24 sobre el plan de 193 titulares: **183 filas idénticas**
+ * con esa cadena y 10 con «TALLER». La columna ensanchaba la tabla hasta 1.425
+ * px en un contenedor de 1.153 y empujaba «Carrera», «Nivel del curso» y
+ * «Tamaño de aula» fuera de la vista.
+ *
+ * Queda el tipo, en capitalización normal. **El detalle no se pierde**: la
+ * tabla lo conserva en el `title` de la celda, que es donde vive lo que no
+ * cabe. Y un valor sin paréntesis se devuelve tal cual: si el DTI cambia el
+ * formato, se ve el crudo en vez de una traducción que se quedó vieja.
+ */
+export function tipoDeSesionLabel(value: unknown) {
+  const crudo = String(value ?? "").trim();
+  if (!crudo) return "";
+  const principal = crudo.replace(/\s*\(.*\)\s*$/, "").trim();
+  if (!principal) return crudo;
+  return principal.charAt(0) + principal.slice(1).toLowerCase();
+}
+
 export function presentDetail(value: unknown) {
   return String(value ?? "")
     .replaceAll("aula/collector/link", "curso-horario, origen y enlace")
@@ -336,27 +522,27 @@ export function presentDetail(value: unknown) {
  * select del registro, y la tabla que pinta esa misma columna no lo alcanzaba.
  */
 export const ESTADOS_OPERATIVOS: Array<{ value: string; label: string }> = [
-  { value: "planificada", label: "Planificada" },
-  { value: "contactada", label: "Contactada" },
-  { value: "agendada", label: "Agendada" },
+  { value: "planificada", label: "Planificado" },
+  { value: "contactada", label: "Contactado" },
+  { value: "agendada", label: "Agendado" },
   { value: "en_campo", label: "En campo" },
-  { value: "aplicada", label: "Aplicada" },
+  { value: "aplicada", label: "Aplicado" },
   { value: "parcial", label: "Parcial" },
   { value: "sin_acceso", label: "Sin acceso" },
-  { value: "cancelada", label: "Cancelada" },
+  { value: "cancelada", label: "Cancelado" },
   { value: "reemplazo_pendiente", label: "Reemplazo pendiente" },
-  { value: "reemplazada", label: "Reemplazada" },
-  { value: "cerrada", label: "Cerrada" },
+  { value: "reemplazada", label: "Reemplazado" },
+  { value: "cerrada", label: "Cerrado" },
 ];
 
 export const MOTIVOS_DE_REEMPLAZO: Array<{ value: string; label: string }> = [
   { value: "docente_no_autoriza", label: "El docente no autoriza" },
-  { value: "aula_no_existe", label: "El aula no existe" },
+  { value: "aula_no_existe", label: "El curso-horario no existe" },
   { value: "horario_cambio", label: "Cambió el horario" },
   { value: "virtual_no_presencial", label: "Es virtual, no presencial" },
   { value: "baja_asistencia", label: "Muy baja asistencia" },
   { value: "cruce_logistico", label: "Cruce logístico" },
-  { value: "aula_ya_aplicada", label: "El aula ya se aplicó" },
+  { value: "aula_ya_aplicada", label: "El curso-horario ya se aplicó" },
   { value: "incidencia_etica", label: "Incidencia ética" },
   { value: "otro", label: "Otro" },
 ];
@@ -373,6 +559,22 @@ export function aulasMotivoLabel(motivo: unknown) {
 
 export function aulasFieldLabel(field: string) {
   return FIELD_LABELS[field] ?? fallbackLabel(field);
+}
+
+/**
+ * El alcance de una columna cuando su rótulo solo no basta. Va al `title` de la
+ * cabecera —como resuelven sus definiciones las cabeceras de Rendimiento— y no
+ * al rótulo, que se mantiene corto. Solo se declara donde hay un casi homónimo
+ * que confundir; el resto de columnas no lleva title.
+ */
+const FIELD_TITLES: Record<string, string> = {
+  // El casi homónimo es el KPI «Respuestas leídas» (todas las filas de la base).
+  responses_total:
+    "Las respuestas que la plataforma atribuye a este curso-horario. No es el total de la base: ese es «Respuestas leídas», que cuenta también las no atribuidas.",
+};
+
+export function aulasFieldTitle(field: string): string | undefined {
+  return FIELD_TITLES[field];
 }
 
 export function aulasCheckLabel(check: unknown) {
@@ -446,7 +648,7 @@ const COLUMNAS_DE_CUENTA = new Set([
   "efectivas_esperadas",
 ]);
 
-const COLUMNAS_DE_PORCENTAJE = new Set([
+export const COLUMNAS_DE_PORCENTAJE = new Set([
   "sent_vs_total",
   "sent_vs_population",
   "short_vs_total",
@@ -459,6 +661,17 @@ const COLUMNAS_DE_PORCENTAJE = new Set([
   // que la lista decide es que la columna ES un porcentaje, no en qué escala
   // viene. Sin ella, «Avance» enseñaba «62.3» a secas.
   "progress_pct",
+  // **Las dos de la tabla de estratos, que se quedaron fuera.** Mismo síntoma
+  // exacto que describe la línea de arriba: en `avance/estratos` la columna
+  // enseñaba «88.2», «85.7» y, en la misma columna, «17» y «100» —sin símbolo y
+  // sin decimal—, porque un número que no se reconoce como porcentaje se pinta
+  // crudo. Medido con `HSVG2026_sem15_como_2025.pulso`.
+  //
+  // Es la lista cerrada que se traga lo que no reconoce: sus claves acaban en
+  // `_pct` igual que las demás y aun así no entraban. El test de abajo cierra la
+  // familia exigiendo que TODA clave `_pct` con etiqueta esté aquí.
+  "avance_aulas_pct",
+  "avance_respuestas_pct",
 ]);
 
 /**
@@ -483,8 +696,23 @@ export function escalaDeProporciones(
     const valores: number[] = [];
     for (const row of rows) {
       const n = Number(row[columna]);
-      if (Number.isFinite(n)) valores.push(Math.abs(n));
+      // **Los CEROS no votan.** Un cero vale igual en las dos escalas —0 % es 0
+      // tanto en 0-1 como en 0-100— así que no dice nada de cuál es, pero
+      // arrastra la mediana al suelo y con ella la decisión.
+      //
+      // Medido en `avance/estratos` el 2026-09-08: 73 estratos, casi ninguno con
+      // cursos-horario aplicados todavía, así que la mayoría de la columna era
+      // 0. La mediana daba 0, la columna se clasificaba como proporción y un
+      // 6,5 —que ya venía en 0-100— se publicaba como **650 %**. La misma
+      // columna enseñaba «2 430 %» y «3 510 %».
+      //
+      // Y falla justo al empezar el operativo, que es cuando más se mira el
+      // tablero: cuantas menos aulas aplicadas, más ceros y más seguro el error.
+      if (Number.isFinite(n) && n !== 0) valores.push(Math.abs(n));
     }
+    // Sin un solo valor distinto de cero la escala es indecidible, y da igual:
+    // 0 se pinta «0 %» en las dos. Se deja fuera de `enProporcion`, que es no
+    // multiplicar.
     if (!valores.length) continue;
     // La MEDIANA, no el máximo. Con el máximo, una sola fila que se pasa de su
     // meta —23 conseguidas de 21 pedidas, 1.095— no cambiaba nada, pero una que
@@ -514,7 +742,15 @@ function comoPorcentaje(value: unknown, hayQueEscalar: boolean) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "";
   const escalado = hayQueEscalar ? n * 100 : n;
-  return `${new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 }).format(escalado)} %`;
+  // **Un decimal SIEMPRE, como el resto del perfil.** Con sólo
+  // `maximumFractionDigits` la misma columna escribía «9.3 %» en una fila y
+  // «0 %» en la siguiente, porque `Intl` quita el decimal cuando es cero. Es el
+  // mismo defecto que se corrigió en los paneles el 2026-09-08 unificando todo
+  // a `pctPerfil`; aquí vivía la última copia, en la capa de presentación de las
+  // tablas.
+  return `${new Intl.NumberFormat("es-PE", {
+    minimumFractionDigits: 1, maximumFractionDigits: 1,
+  }).format(escalado)} %`;
 }
 
 function presentValue(field: string, value: unknown, enProporcion?: ReadonlySet<string>) {
@@ -527,6 +763,16 @@ function presentValue(field: string, value: unknown, enProporcion?: ReadonlySet<
     if (Number.isFinite(n)) return Math.ceil(n - 1e-9) === 0 ? 0 : Math.ceil(n - 1e-9);
   }
   if (typeof value === "boolean") return value ? "Sí" : "No";
+  if (field === "session_type" || field === "tipo_sesion") return tipoDeSesionLabel(value);
+  // `G2` bajo una columna llamada «Tamaño de aula» no dice el tamaño: los
+  // cortes viven en `calc_muestra_aulas.R` y quien lee la tabla no los tiene.
+  if (field === "size_group") return segmentoDeEstrato(String(value));
+  // Aquí SÍ va «Mujeres» y no «mayoría mujeres», al revés que en la clave del
+  // estrato: la columna ya se llama «Sexo mayoritario», así que el matiz lo
+  // pone el encabezado y repetirlo en cada celda diría «Sexo mayoritario:
+  // mayoría mujeres». Sin nombre de columna que lo sostenga —el estrato— hay
+  // que decirlo entero, porque esa F no son las mujeres de la cuota.
+  if (field === "sex_top_1" || field === "sex_top_2") return sexoDeAula(String(value));
   if (field === "check") return aulasCheckLabel(value);
   if (field === "detail") return presentDetail(value);
   if (field === "campo") return aulasFieldLabel(String(value));
@@ -573,4 +819,20 @@ export function summarizeAulasValidation(rows: Array<Record<string, unknown>>) {
   }).length;
   if (!count) return { label: "Sin alertas", count: 0, sinComprobar, evaluados };
   return { label: `${count} ${count === 1 ? "alerta" : "alertas"}`, count, sinComprobar, evaluados };
+}
+
+/**
+ * B77 (dictado 2026-09-03: «si lo vamos a poner en todo entonces debería ser
+ * capaz de filtrar en todas las secciones»): el corte por la facultad en
+ * foco, con UNA guardia — si ninguna fila declara `faculty`, la lista queda
+ * intacta: no se puede filtrar por una dimensión que el dato no tiene, y
+ * vaciar la vista sería mentirle al lector.
+ */
+export function soloFacultad<T extends Record<string, unknown>>(
+  rows: T[],
+  facultad?: string,
+): T[] {
+  if (!facultad) return rows;
+  if (!rows.some((r) => String(r["faculty"] ?? "").trim() !== "")) return rows;
+  return rows.filter((r) => String(r["faculty"] ?? "").trim() === facultad);
 }

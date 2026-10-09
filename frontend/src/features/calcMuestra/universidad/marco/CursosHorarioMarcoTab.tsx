@@ -28,6 +28,7 @@ import {
   normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
   normalizeCalcMuestraAulasParticularidades,
+  normalizeCalcMuestraSaludCriterios,
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
   type CalcMuestraWorkspace,
@@ -57,10 +58,15 @@ import {
 } from "../criterios/borradorCriterios";
 import type { FacultadRef } from "../criterios/facultades";
 import { FacultadesExcluidasCard } from "../criterios/FacultadesExcluidasCard";
+import { PresetCanonicoButton } from "../criterios/PresetCanonicoButton";
+import type { PresetCanonicoPlan } from "../criterios/presetCanonicoModel";
+import { SaludCriteriosCard } from "../criterios/SaludCriteriosCard";
+import { TeacherTypeOrden } from "../criterios/TeacherTypeOrden";
 import type { FacultadMinRef } from "../criterios/MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia, tasaAsistencia } from "../criterios/minElegiblesModel";
 import { senalAgrupamientoDti } from "../criterios/tipoSesionModel";
 import { MANUAL_EXCLUDED_ID, reactivarTodas, setAulaExcluida } from "../criterios/aulasFinalesModel";
+import { ExcluirEnBloqueCard } from "./ExcluirEnBloqueCard";
 import { rowsFrom } from "../../sharedCore";
 import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque, type RepartoCriterio } from "./FacultadDecisionBloque";
@@ -77,6 +83,8 @@ import { useCriteriosI18bSurface } from "./useCriteriosI18bSurface";
 import { aporteGlobalDeCard } from "./CriterioFacultadRadiografia";
 import type { CriterioFacultadEvidence } from "./CriterioFacultadRadiografia";
 import { useCascadePreview } from "./CriteriosEmbudoVivo";
+import { apiCalcMuestraCriteriosRehidratar } from "../../../../api/calcMuestraCriteriosI18b";
+import { apiJobStatus } from "../../../../api/jobs";
 import { construirMatrizCascada } from "./matrizCascadaModel";
 import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
@@ -103,9 +111,20 @@ export function CursosHorarioMarcoTab({
   reconstruyendo?: boolean;
   onNavigate?: (section: string, tab?: string) => void;
 }) {
+  /* Se incrementa al recuperar el recuento de estudiantes: el contexto cambia en
+     el servidor y el borrador no, así que hay que pedir el preview otra vez. */
+  const [recargaContexto, setRecargaContexto] = useState(0);
   const catalogo = useMemo(
     () => normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null),
     [aulasState?.frame?.criterios_catalogo],
+  );
+  /* Qué criterios de AULA no pueden evaluarse sobre el marco vigente. Su sitio
+     es esta pestaña —la que decide criterios de curso-horario—, no la del
+     estudiante: la tarjeta habla de columnas de aula sin señal. Llegó aquí al
+     retirarse el bloque de criterios generales, que era donde se renderizaba. */
+  const saludCriterios = useMemo(
+    () => normalizeCalcMuestraSaludCriterios(aulasState?.salud_criterios ?? null),
+    [aulasState?.salud_criterios],
   );
   const integridadFrame = useMemo(
     () => frameIntegrity(aulasState?.frame),
@@ -138,6 +157,14 @@ export function CursosHorarioMarcoTab({
     }
     return ids;
   }, [exploracion]);
+  // Claves de TODO el marco para el pegado en bloque: una lista real cruza
+  // facultades, asi que no puede salir de un bloque suelto.
+  const clavesDelMarco = useMemo<string[]>(
+    () => rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame)
+      .map((r) => String(r.classroom_id ?? r.label ?? ""))
+      .filter(Boolean),
+    [aulasState?.frame?.aula_frame],
+  );
   const aulaFrame = useMemo<MonitoreoRow[]>(
     () => rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame),
     [aulasState?.frame?.aula_frame],
@@ -170,6 +197,11 @@ export function CursosHorarioMarcoTab({
   );
   const sessionVariable = useMemo(() => aula.find((v) => v.id === "session_type") ?? null, [aula]);
   const rangeVariable = useMemo(() => aula.find((v) => v.kind === "range") ?? null, [aula]);
+  /* El tipo de docente, para su orden de jerarquía. No entra por `aulaToggle`
+     —eso son las categorías que se incluyen o excluyen— sino por el cierre
+     común: el orden decide qué docente representa al curso-horario, no quién
+     entra al marco. */
+  const teacherVariable = useMemo(() => aula.find((v) => v.id === "teacher_type") ?? null, [aula]);
   const variablesPorFacultadIds = useMemo(
     () => [
       ...aulaToggle.map((variable) => variable.id),
@@ -318,6 +350,10 @@ export function CursosHorarioMarcoTab({
     setBorrador((prev) => setAulaExcluida(prev, classroomId, excluida));
     marcarPendiente(MANUAL_EXCLUDED_ID);
   }
+  function excluirAulasEnBloque(siguiente: CriteriosSeleccionMarco) {
+    setBorrador(siguiente);
+    marcarPendiente(MANUAL_EXCLUDED_ID);
+  }
   function reactivarAulas(clavesTextKey: string[]) {
     setBorrador((prev) => reactivarTodas(prev, clavesTextKey));
     marcarPendiente(MANUAL_EXCLUDED_ID);
@@ -343,6 +379,20 @@ export function CursosHorarioMarcoTab({
     setBorrador(seleccion);
     setBorradorComposicion({});
     setPendientes(new Set());
+  }
+
+  /**
+   * Precarga del preset canónico (HST 2025) sobre el borrador de ESTA pestaña.
+   *
+   * Nada se confirma ni llega al marco: deja el borrador y las pendientes, y
+   * quien las cierra es `confirmarTodo` —o el confirmador de cada criterio—.
+   * Vive aquí porque el borrador es local: precargarlo en un componente y
+   * confirmarlo en otro es exactamente lo que dejaba las variables de curso
+   * atrapadas en «pendientes de confirmar» sin salida.
+   */
+  function precargarPreset(plan: PresetCanonicoPlan) {
+    setBorrador(plan.seleccion);
+    setPendientes(new Set(plan.pendientes));
   }
 
   /*
@@ -479,6 +529,7 @@ export function CursosHorarioMarcoTab({
       borrador,
       filtersPayload,
       previewEnabled: totalPendientes > 0 || marcoDesactualizado,
+      nonce: recargaContexto,
     },
     radiografiaV2?.frame_hash ?? null,
     radiografiaV2,
@@ -496,14 +547,6 @@ export function CursosHorarioMarcoTab({
     () => new Map(criterioCardsForScope(criteriosModel, "aula").map((card) => [card.cardId, card])),
     [criteriosModel],
   );
-  const criterioEvidence: CriterioFacultadEvidence | null = radiografiaV2 ? {
-    radiografia: radiografiaV2,
-    totals: i18b.totals,
-    cascade: i18b.cascade,
-    anchors: i18b.anchors,
-    previewRequest: i18b.previewRequest,
-    complete: i18b.status === "complete",
-  } : null;
 
   /*
    * G39 · La cascada que la superficie enseña es la viva, no sólo la ejecutada.
@@ -522,6 +565,50 @@ export function CursosHorarioMarcoTab({
   const cascadaViva = previewCascada?.status === "ready" ? previewCascada.data : i18b.cascade;
   /** El recorrido está vivo: lo que se ve ya incluye los criterios confirmados. */
   const previewVivo = previewCascada?.status === "ready";
+  /**
+   * …y sus pasos de ALUMNO también van con el borrador. `false` cuando el
+   * preview corre sobre un contexto rehidratado del marco guardado: el embudo
+   * de curso-horario es vivo, pero el efecto de un criterio de estudiante no se
+   * puede recalcular sin la tabla atómica, que no viaja en el `.pulso`.
+   */
+  const alumnosVivos = cascadaViva?.alumnos_vivos !== false;
+  /* Recuperar el recuento de estudiantes releyendo la base. El backend lo hace
+     en un job (~70 s medidos) y verifica lo releído contra el marco antes de
+     adoptarlo; aquí sólo se dispara y se espera. */
+  const [rehidratando, setRehidratando] = useState(false);
+  const [rehidratarError, setRehidratarError] = useState<string | null>(null);
+  async function recuperarRecuentoAlumnos() {
+    if (rehidratando) return;
+    setRehidratando(true);
+    setRehidratarError(null);
+    try {
+      const inicio = await apiCalcMuestraCriteriosRehidratar();
+      if (inicio.mode === "job") {
+        // El job vive fuera de React: se pregunta hasta que termina. Un fallo se
+        // dice; el recorrido de curso-horario sigue vivo mientras tanto.
+        for (;;) {
+          await new Promise((r) => setTimeout(r, 3000));
+          const estado = await apiJobStatus(inicio.jobId);
+          if (estado.status === "done") break;
+          if (estado.status === "error" || estado.status === "cancelled") {
+            setRehidratarError(
+              typeof estado.error === "string" && estado.error
+                ? estado.error
+                : "La relectura no pudo completarse.",
+            );
+            return;
+          }
+        }
+      }
+      // Con la tabla atómica en sesión, el siguiente preview ya trae los pasos
+      // de alumno vivos: se fuerza pidiéndolo de nuevo.
+      setRecargaContexto((n) => n + 1);
+    } catch (e) {
+      setRehidratarError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRehidratando(false);
+    }
+  }
   /** …y hay otro recálculo en camino, así que la cifra aún no es la del umbral. */
   const previewRecalculando = previewCascada?.status === "ready" &&
     previewCascada.recalculando === true;
@@ -539,6 +626,26 @@ export function CursosHorarioMarcoTab({
    */
   const previewBloqueado =
     previewCascada?.status === "stale" ? previewCascada.message : null;
+
+  /* La evidencia de cada tarjeta lleva la cascada VIVA, no la ejecutada: es la
+     que responde al borrador. Con la ejecutada, mover el mínimo propio de una
+     facultad cambiaba el criterio y dejaba «899 CH que cumplen · 62 quedan
+     fuera» clavado en las cifras del último marco construido. */
+  /* Los cursos-horario que el borrador descarta, por id. Los publica el motor
+     en la cascada viva: la lista no vuelve a evaluar criterios. */
+  const descartadasSet = useMemo(
+    () => new Set(cascadaViva?.descartadas ?? []),
+    [cascadaViva],
+  );
+
+  const criterioEvidence: CriterioFacultadEvidence | null = radiografiaV2 ? {
+    radiografia: radiografiaV2,
+    totals: i18b.totals,
+    cascade: cascadaViva,
+    anchors: i18b.anchors,
+    previewRequest: i18b.previewRequest,
+    complete: i18b.status === "complete",
+  } : null;
 
   /**
    * G11 · La celda que la matriz resalta.
@@ -839,7 +946,13 @@ export function CursosHorarioMarcoTab({
                * una decisión y no un reflejo.
                */
               ? previewVivo
-                ? "El recorrido ya refleja tus criterios. La población de estudiantes se recalcula al reconstruir."
+                ? alumnosVivos
+                  ? "El recorrido ya refleja tus criterios. La población de estudiantes se recalcula al reconstruir."
+                  /* Contexto rehidratado del marco guardado: los pasos de
+                     curso-horario son del borrador y los de alumno son los del
+                     marco construido. Decirlo es lo que impide que la pantalla
+                     tenga dos relojes y sólo uno a la vista. */
+                  : "El recorrido de cursos-horario ya refleja tus criterios. Los criterios de estudiante son los del último marco construido."
                 : "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
               : "El marco está al día con los criterios confirmados.";
 
@@ -872,6 +985,46 @@ export function CursosHorarioMarcoTab({
                 </button>
               </div>
             ) : null}
+            {/* El preset vive aquí desde que esta pestaña dejó de tener encima un
+                bloque de criterios «generales» (ver `UniversidadDesk`). Tiene que
+                estar en ESTE componente y no en otro: `precargarPreset` escribe
+                sobre el borrador local, y el único botón que puede confirmarlo
+                después es el `Confirmar cambios` de arriba, que lee ese mismo
+                borrador. Separarlos es lo que dejaba variables precargadas sin
+                forma de salir del borrador. */}
+            {/* El recuento de estudiantes se recupera releyendo la base. No se
+                hace solo: es ~1 min de CPU y sólo hace falta cuando se está
+                decidiendo un criterio de alumno, así que se ofrece y se explica
+                en vez de gastarlo por si acaso. */}
+            {ready && !alumnosVivos && marcoConstruido ? (
+              <button
+                type="button"
+                className="cmv2-crit-preset-btn"
+                onClick={() => void recuperarRecuentoAlumnos()}
+                disabled={rehidratando}
+                title={
+                  rehidratarError ??
+                  "Vuelve a leer la base con las fuentes que firma el marco para que los criterios de estudiante también respondan al borrador"
+                }
+              >
+                {rehidratando ? (
+                  <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
+                ) : (
+                  <RefreshCw size={14} aria-hidden="true" />
+                )}
+                {rehidratando
+                  ? "Releyendo la base…"
+                  : "Recuperar el recuento de estudiantes (~1 min)"}
+              </button>
+            ) : null}
+            {ready ? (
+              <PresetCanonicoButton
+                catalogo={catalogo}
+                seleccion={seleccion}
+                borradoresSinConfirmar={totalPendientes}
+                onPrecargar={precargarPreset}
+              />
+            ) : null}
             <button
               type="button"
               className="cmv2-crit-apply-btn"
@@ -895,20 +1048,35 @@ export function CursosHorarioMarcoTab({
                 ) : (
                   <RefreshCw size={15} aria-hidden="true" />
                 )}
-      {/* Las exclusiones gobiernan qué facultades aparecen en los bloques de
-          abajo: van PRIMERO (pedido textual de Gonzalo, 2026-08-20; antes
-          vivía en criterios de estudiante, donde no pertenecía). */}
-      <FacultadesExcluidasCard
-        config={config}
-        facultades={facRefs}
-        onPatch={patchAulasConfig}
-      />
                 Calcular población y cursos-horario elegibles
               </span>
             </button>
           </div>
         </div>
       )}
+
+      {/* Las exclusiones gobiernan qué facultades aparecen en los bloques de
+          abajo: van PRIMERO (pedido textual de Gonzalo, 2026-08-20; antes
+          vivía en criterios de estudiante, donde no pertenecía).
+          Estaba escrita DENTRO del `<span>` del botón de recalcular, es decir
+          dentro del propio `<button>`. Medido el 2026-08-25 sobre HSVG26DEF: la
+          tarjeta entera —15 controles interactivos— quedaba encerrada en una caja
+          de 772×36 px con `overflow:hidden`, el nombre accesible del botón pasaba
+          a ser «Facultades excluidas No participan del estudio…» en vez de la
+          acción, y cualquier click sobre una casilla disparaba el recálculo del
+          marco en vez de excluir la facultad. La tarjeta que debía ir primero era
+          la menos alcanzable de la pantalla. */}
+      <FacultadesExcluidasCard
+        config={config}
+        facultades={facRefs}
+        onPatch={patchAulasConfig}
+      />
+
+      {/* Va ANTES del estado vacío a propósito: cuando el catálogo no está, el
+          aviso de que un criterio no puede filtrar es justo lo que explica por
+          qué. Un criterio sin señal deja pasar a todos y eso NO es lo mismo que
+          uno que se midió y no recortó. */}
+      <SaludCriteriosCard salud={saludCriterios} />
 
       {!ready ? (
         <div className="cmv2-crit-empty">
@@ -987,6 +1155,11 @@ export function CursosHorarioMarcoTab({
                       comparar y escondían la decisión detrás de un click. Con el
                       selector, la facultad elegida se muestra entera: hay alto
                       de sobra para el mayor detalle y no queda nada plegado. */}
+                  <ExcluirEnBloqueCard
+                    seleccion={borrador}
+                    clavesDelMarco={clavesDelMarco}
+                    onExcluir={excluirAulasEnBloque}
+                  />
                   <label className="cmv2-chfp-selector">
                     <span>Facultad</span>
                     {/* F109 · El `<label>` que lo envuelve ya lo nombra, pero
@@ -1033,6 +1206,11 @@ export function CursosHorarioMarcoTab({
                       onMinimoFacultad={editarMinimoFacultad}
                       onToggleAula={editarExclusionAula}
                       onReactivarAulas={reactivarAulas}
+                      /* La lista final sale del `aula_frame` construido; si los
+                         criterios cambiaron, lo que enseña es anterior a ellos. */
+                      marcoDesactualizado={necesitaRecalculo}
+                      descartadasSet={descartadasSet}
+
                       /* G40 · La apertura ya no monta criterios comunes.
                           ADR 0057 los había traído aquí desde la sección
                           «transversales» para meterlos en el embudo, pero
@@ -1057,6 +1235,15 @@ export function CursosHorarioMarcoTab({
                           evidenciaComposicion={evidenciaComposicion}
                           recorteComposicion={recorteDe}
                           sinSenalComposicion={sinSenalDe}
+                          ordenJerarquia={
+                            teacherVariable ? (
+                              <TeacherTypeOrden
+                                variable={teacherVariable}
+                                orden={config.teacher_type_orden}
+                                onOrden={patchTeacherTypeOrden}
+                              />
+                            ) : null
+                          }
                         />
                       }
                     />

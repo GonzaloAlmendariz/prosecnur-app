@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { ESTADOS_DORMIDOS } from "./candidatosDeReemplazo";
 
 /**
  * Cuánta reserva lleva gastada el operativo.
@@ -15,10 +16,21 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
  *
  * **Misma definición que `monitoreo_aulas_reservas_disponibles()`** en
  * `api/R/monitoreo_aulas_reemplazos.R`: si las dos divergen, el gráfico dice que
- * quedan reservas que el motor ya no ofrece, o al revés. La cadena vacía cuenta
- * como libre porque un plan recién importado no trae estado.
+ * quedan reservas que el motor ya no ofrece, o al revés.
+ *
+ * **Y divergían.** El motor resuelve «libre» con
+ * `MONITOREO_AULAS_ESTADOS_DORMIDOS` —cinco valores— y aquí había una lista
+ * propia de tres: faltaban `"-"` y `"planificada"`, así que una reserva en
+ * cualquiera de esos dos estados el motor la ofrecía y el gráfico la daba por
+ * gastada. Hoy no se ve —este estudio no tiene ninguno de los dos en
+ * `sample_status`— pero `"-"` no es raro: es como el equipo escribe «todavía
+ * nada aquí», y en 2025 fueron **1.810 de 2.040 celdas**.
+ *
+ * Se importa la lista en vez de repetirla: ya está atada al motor por
+ * `estadosAtadosAlMotor.contract.test.ts`, y una cuarta copia sería una cuarta
+ * cosa que mantener sincronizada a mano.
  */
-const ESTADOS_LIBRES = new Set(["en_reserva", "sin_contactar", ""]);
+const ESTADOS_LIBRES = ESTADOS_DORMIDOS;
 
 export type TramoDeConsumo = {
   etiqueta: string;
@@ -41,6 +53,14 @@ function texto(valor: unknown): string {
  * distintos, CERO coincidían con un titular y ninguno existía siquiera como
  * fila, así que cada reserva formaba una cadena huérfana con un titular que no
  * existe. `titular_operational_code` sí mapea: 1 774 de 1 774.
+ *
+ * **Y no porque `replacement_for` venga siempre mal: porque viene INCONSISTENTE.**
+ * Medido el 2026-08-30 sobre el estudio de 1.424 filas, ese mismo campo trae
+ * códigos operativos —«CH 3», «CH 4»— y sus 174 valores distintos existen los
+ * 174 como fila, justo al revés que en el estudio de 2.615. Un campo que en un
+ * proyecto es `classroom_id` y en otro es código operativo no se puede usar
+ * como clave, y eso vale más que «viene mal»: `titular_operational_code`
+ * mapea en los dos.
  */
 function titularDe(fila: MonitoreoAulasPlanRow): string {
   return texto(fila.titular_operational_code)
@@ -52,11 +72,11 @@ function titularDe(fila: MonitoreoAulasPlanRow): string {
  *
  * @returns tramos 0 / 1 / 2 / 3+, más `sinReserva` —cadenas que el diseño
  *   muestral nunca dotó, que NO es lo mismo que una cadena agotada (L54)— y
- *   `reservasLibres`, que es lo que queda en el banco.
+ *   `reservasLibres`, que es lo que queda en la reserva adicional.
  */
 export function consumoDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
-  // Reservas del banco: sueltas, sin titular al que volver.
-  let enElBanco = 0;
+  // Reservas de la reserva adicional: sueltas, sin titular al que volver.
+  let enLaReservaAdicional = 0;
   const consumidas = new Map<string, number>();
   const disponibles = new Map<string, number>();
   const titulares = new Set<string>();
@@ -65,18 +85,19 @@ export function consumoDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
     const rol = texto(fila.sample_role);
     const cadena = titularDe(fila);
     if (!cadena) continue;
-    // El banco NO es una cadena. `extra_reserve_pool` son reservas sueltas que
-    // el diseño muestral dejó sin colgar de ningún titular: no tienen cadena a
-    // la que pertenecer y no son el titular de nada. Contadas como titulares,
-    // el estudio real HSVG2026 —639 filas de banco frente a 202 titulares—
-    // enseñaba **841 cadenas** donde hay 202, y la frase «N titulares no tienen
-    // ninguna reserva, así que sus metas quedan sin cubrir si caen» pasaba a
-    // hablar de 639 aulas que no tienen meta ni pueden caerse.
+    // La reserva adicional NO es una cadena. `extra_reserve_pool` son reservas
+    // sueltas que el diseño muestral dejó sin colgar de ningún titular: no
+    // tienen cadena a la que pertenecer y no son el titular de nada. Contadas
+    // como titulares, el estudio real HSVG2026 —639 filas de reserva adicional
+    // frente a 202 titulares— enseñaba **841 cadenas** donde hay 202, y la
+    // frase «N titulares no tienen ninguna reserva, así que sus metas quedan
+    // sin cubrir si caen» pasaba a hablar de 639 aulas que no tienen meta ni
+    // pueden caerse.
     //
-    // Van al banco, que es donde el propio panel ya las nombra: «10 todavía en
-    // el banco».
+    // Van a la reserva adicional, que es donde el propio panel ya las nombra:
+    // «10 todavía en la reserva adicional».
     if (rol === "extra_reserve_pool") {
-      enElBanco += 1;
+      enLaReservaAdicional += 1;
       continue;
     }
     if (rol !== "chain_reserve") {
@@ -119,16 +140,24 @@ export function consumoDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   return {
     tramos,
     sinReserva,
-    // Lo libre de las cadenas MÁS el banco suelto: las dos cosas son reserva
-    // que el operativo todavía no gastó, y separarlas en la cifra haría pensar
-    // que hay menos colchón del que hay.
-    reservasLibres: reservasLibres + enElBanco,
-    enElBanco,
+    // Lo libre de las cadenas MÁS la reserva adicional suelta: las dos cosas
+    // son reserva que el operativo todavía no gastó, y separarlas en la cifra
+    // haría pensar que hay menos colchón del que hay.
+    reservasLibres: reservasLibres + enLaReservaAdicional,
+    enLaReservaAdicional,
     reservasGastadas,
     cadenas: titulares.size - sinReserva,
     total: titulares.size,
   };
 }
+
+/**
+ * La clave de las filas cuyo valor del eje está vacío.
+ *
+ * Se exporta para que quien las pinte las reconozca y les ponga la palabra de
+ * SU eje («Sin facultad», «Sin nivel»): esta capa agrupa, no redacta.
+ */
+export const SIN_VALOR_DEL_EJE = "\u0000sin-valor";
 
 export type ColchonDeFacultad = {
   facultad: string;
@@ -167,13 +196,32 @@ export type ColchonDeFacultad = {
  * nunca. Su reparto por facultad, con composición por sexo, vive en su propia
  * pestaña (`monitoreo_aulas_banco_extras.R`).
  */
-export function colchonPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): ColchonDeFacultad[] {
+export function colchonPorFacultad(
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>,
+  /**
+   * **La columna por la que se agrupa, que la dice el EJE del estudio.**
+   *
+   * `faculty` por defecto, así que HSVG —15 facultades, en campo— no cambia un
+   * byte. Con la cuota por nivel, `level`: agrupando por facultad, CCSS cae a
+   * UNA fila («CIENCIAS SOCIALES») y el panel deja de decir dónde se rompe la
+   * reserva, que es su función entera.
+   *
+   * **`stratum` NO vale**, aunque parezca la columna natural: en el plan de
+   * HSVG2026 es `FACULTAD / SEXO / GRUPO` y tiene **76 valores** —medido sobre
+   * sus 1.392 aulas—, así que agrupar por ahí convertiría 15 filas en 76 en un
+   * estudio que está en campo. Que en CCSS `stratum` coincida con `level` es
+   * una coincidencia de ese diseño, no la regla.
+   */
+  columna: string = "faculty",
+): ColchonDeFacultad[] {
+  const valorDelEje = (fila: MonitoreoAulasPlanRow) =>
+    texto((fila as unknown as Record<string, unknown>)[columna]);
   const facultadDelTitular = new Map<string, string>();
   for (const fila of filas) {
     const rol = texto(fila.sample_role);
     if (rol === "chain_reserve" || rol === "extra_reserve_pool") continue;
     const cadena = titularDe(fila);
-    if (cadena) facultadDelTitular.set(cadena, texto(fila.faculty));
+    if (cadena) facultadDelTitular.set(cadena, valorDelEje(fila));
   }
 
   type Cuenta = { libres: number; total: number };
@@ -195,7 +243,10 @@ export function colchonPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>):
   for (const fila of filas) {
     const rol = texto(fila.sample_role);
     if (rol === "extra_reserve_pool") continue;
-    const propia = texto(fila.faculty) || "Sin facultad";
+    // El respaldo NO lleva la palabra del eje: quien lo pinta la pone, porque
+    // es el único que sabe cómo se dice «sin valor» en este estudio. Aquí sólo
+    // hace falta una clave estable que no se confunda con un valor real.
+    const propia = valorDelEje(fila) || SIN_VALOR_DEL_EJE;
     const cadena = titularDe(fila);
     if (!cadena) continue;
     if (rol !== "chain_reserve") {

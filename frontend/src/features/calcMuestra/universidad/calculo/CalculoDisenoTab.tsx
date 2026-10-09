@@ -63,7 +63,9 @@ export function CalculoDisenoTab({
 }) {
   const [draftTotal, setDraftTotal] = useState<ParamPatch>({});
   const [draftFaculty, setDraftFaculty] = useState<ParamPatch>({});
-  // p por facultad: override por id de estrato; vacío = usa la p global.
+  // p por facultad: override por id de estrato. Vacío NO es la p global: cae a
+  // la prevalencia de la facultad en el estudio de referencia (study.ts:457) y
+  // sólo si esa tabla no la trae, a la global.
   const [draftP, setDraftP] = useState<Record<string, number>>({});
 
   const total = totalComp.parametros;
@@ -153,6 +155,12 @@ export function CalculoDisenoTab({
     <div
       className="cmv2-calc-stack"
       // Declarada para que el gate visual pueda auditarla.
+      // Readiness declarada: la geometría ya estaba, pero el puente
+      // (`window.__pulsoNav.listo()`) busca `[data-audit-ready]` y sin él
+      // respondía `sin-marca-de-readiness`, así que el QA cortaba y nadie
+      // podía saber si la pestaña terminó de montar. `true` al montar: esta
+      // vista no carga nada por su cuenta, recibe sus datos por props.
+      data-audit-ready="true"
       data-qa-geometry-group="calc-muestra/calculo-diseno"
       data-qa-geometry-contract="intrinsic"
     >
@@ -170,7 +178,7 @@ export function CalculoDisenoTab({
             terms={[
               { symbol: "N", termino: "marco muestral", value: N > 0 ? fmtInt(N) : "—" },
               { symbol: "z", termino: "nivel de confianza", value: fmtDecimal(zT, 2) },
-              { symbol: "p", termino: "proporción esperada", value: fmtDecimal(pT, 2) },
+              { symbol: "p", termino: "p (proporción", value: fmtDecimal(pT, 2) },
               { symbol: "e", termino: "margen de error", value: `±${fmtDecimal(eT * 100, 1)}%` },
               { symbol: "deff", termino: "deff", value: fmtDecimal(deffT, 2) },
             ]}
@@ -187,7 +195,12 @@ export function CalculoDisenoTab({
       </section>
 
       <section className="cmv2-calc-supuestos-panel">
-        <div className="cmv2-calc-supuestos cmv2-uni-stagger">
+        {/* C1 (E12 · A5): los cuatro supuestos se apilan con alto propio. */}
+        <div
+          className="cmv2-calc-supuestos cmv2-uni-stagger"
+          data-qa-geometry-group="calc-muestra/calculo-supuestos"
+          data-qa-geometry-contract="intrinsic"
+        >
           <SupuestoFila
             id="confianza"
             titulo="Confianza y precisión"
@@ -291,7 +304,7 @@ export function CalculoDisenoTab({
               <>
                 <label className="cmv2-did-slider cmv2-calc-tau">
                   <div className="cmv2-did-slider-head">
-                    <span>Tasa de efectividad global (respaldo)</span>
+                    <span>Tasa global de respaldo</span>
                     <output>{Math.round(tau * 100)}%</output>
                   </div>
                   <input
@@ -327,9 +340,18 @@ export function CalculoDisenoTab({
             <strong>Parámetros por facultad</strong>
             <span className="cmv2-pill-soft">la Propuesta 2 calcula p por facultad</span>
           </div>
+          {/* **La nota decía que vacío usa la p global, y no es cierto.**
+              `study.ts:457` rellena `p_facultad` desde `UNIVERSITY_REFERENCE_SUCCESS_RATE`
+              —la prevalencia por facultad medida en el estudio de referencia— y sólo cae a la
+              global cuando esa tabla no tiene esa facultad. Verificado en un proyecto NUEVO con
+              las bases 2026: Arte y Diseño 0,5 · Artes Escénicas 0,5 · Contables 0,2 · Ciencias
+              e Ingeniería 0,2, que son los de la tabla y no la global.
+              Decir «vacío = 0,5» hacía leer como neutro un valor heredado de otro estudio. */}
           <p className="cmv2-calc-diseno-nota">
-            Opcional: sobrescribe la <code>p</code> esperada de una facultad concreta. Vacío = usa la p global
-            ({fmtDecimal(pF, 2)}). El motor calcula cada facultad como estrato propio con su margen y su p.
+            Opcional: sobrescribe la <code>p</code> esperada de una facultad concreta. Si la dejas vacía,
+            el motor usa la prevalencia que esa facultad tuvo en el estudio de referencia; y si no
+            aparece ahí, la p global ({fmtDecimal(pF, 2)}). Cada facultad se calcula como estrato propio
+            con su margen y su p.
           </p>
           <div className="cmv2-table-wrap">
             <table className="cmv2-table cmv2-table--university cmv2-calc-pfacultad-tabla">

@@ -205,3 +205,58 @@ Las mediciones de C1, C3 y C5 se regeneran con
 `HSTVG2026/medir_criterios_dimensionamiento.py`, que lee el reporte DTI 2026-2 y
 el libro del plan 1b. Las de §3 y §1 vienen de V4 y V8 en
 `validez-cadena-esperado-2026-08-20.md`.
+
+---
+
+## 7 · El número vigente son 179 titulares, y por qué no son las 190 del documento
+
+**Registrado el 2026-08-25 por decisión de Gonzalo**, que revisó la comparación y
+la dio por buena: «179 no está mal per se y es lo correcto, pero hay que
+registrarlo».
+
+Marco `260edb37ff26` · 2.471 CH elegibles · 21.920 estudiantes elegibles ·
+divisor P25 por facultad · τ = E × R(tamaño) × F(facultad).
+
+| facultad | app | doc | dif | τ app | τ implícito doc | brecha |
+|---|---:|---:|---:|---:|---:|---:|
+| Ciencias e Ingeniería | 39 | 40 | −1 | 0,528 | 0,508 | +0,020 |
+| EEGG Ciencias | 30 | 30 | 0 | 0,436 | 0,433 | +0,003 |
+| EEGG Letras | 24 | 26 | −2 | 0,458 | 0,418 | +0,040 |
+| Derecho | 17 | 16 | +1 | 0,563 | 0,567 | −0,004 |
+| Arte y Diseño | 12 | 14 | −2 | 0,590 | 0,500 | +0,090 |
+| Ciencias Sociales | 12 | 12 | 0 | 0,552 | 0,540 | +0,012 |
+| Arquitectura y Urbanismo | 10 | 11 | −1 | 0,562 | 0,484 | +0,078 |
+| Ciencias y Artes de la Comun. | 7 | 8 | −1 | 0,659 | 0,525 | +0,134 |
+| Gestión y Alta Dirección | 7 | 7 | 0 | 0,570 | 0,536 | +0,034 |
+| Artes Escénicas | 6 | 9 | −3 | 0,686 | 0,444 | +0,242 |
+| Psicología | 5 | 6 | −1 | 0,676 | 0,543 | +0,133 |
+| Educación | 3 | 3 | 0 | 0,621 | 0,500 | +0,121 |
+| Gastronomía, Hotelería y Turismo | 3 | 3 | 0 | 0,669 | 0,452 | +0,217 |
+| Ciencias Contables | 2 | 2 | 0 | 0,624 | 0,556 | +0,068 |
+| Letras y Ciencias Humanas | 2 | 3 | −1 | 0,712 | 0,444 | +0,268 |
+| **TOTAL** | **179** | **190** | **−11** | | | |
+
+`τ implícito doc = c_h / (m_doc · q_h)`, con el MISMO divisor que usa la app: es
+la efectividad que haría cuadrar el documento sin tocar nada más.
+
+**Las 11 aulas son τ, y sólo τ.** El marco y el divisor ya reproducen el
+documento —los N por facultad y los P25 coinciden—, así que la última columna
+explica la tabla entera: donde la brecha es ~0 las aulas salen **exactas** (EEGG
+Ciencias +0,003 → 30 = 30; Derecho −0,004; Ciencias Sociales +0,012; C. e
+Ingeniería +0,020 a una sola aula), y donde es grande faltan aulas (Artes
+Escénicas +0,242 → −3; Letras +0,268; Psicología y C. y Artes +0,13 → −1). Seis
+facultades cuadran al número.
+
+**Derecho +1 es redondeo, no discrepancia**: 363/(40 × 0,563) = 16,1 y el techo
+lo sube a 17, con los τ coincidiendo hasta el tercer decimal.
+
+**Por qué la app estima τ más alto.** El documento usó una efectividad casi
+plana; la app aplica la curva de rendimiento por tamaño más el multiplicador por
+facultad medido sobre 2025 (ADR 0080, decisión 4). La curva premia a las aulas
+chicas, y las tres mayores brechas son justo las tres facultades de aulas más
+pequeñas: Gastronomía (q = 15,5), Artes Escénicas (16) y Letras (17,25). Como el
+motor cree que esas aulas rinden más, pide menos.
+
+Queda **abierta** una pregunta que no bloquea: cuánto de las 11 sale del
+multiplicador por facultad y cuánto de la curva por tamaño. Se responde con una
+corrida de multiplicador neutro (F = 1).

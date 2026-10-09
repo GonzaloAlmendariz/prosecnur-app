@@ -165,7 +165,7 @@ export function AulasControles({ filas, plan = [] }: {
   }, [plan]);
 
   if (!controles.length) {
-    return <p className="mon-profile-muted">No hay controles de validación para este corte.</p>;
+    return <p data-qa-geometry-capacity="owned" data-qa-geometry-member="true" className="mon-profile-muted">No hay controles de validación para este corte.</p>;
   }
 
   return (
@@ -174,7 +174,11 @@ export function AulasControles({ filas, plan = [] }: {
     // son suyos.
     <div className="aulas-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-controles-lectura">
-        <strong>{revisar}</strong> piden revisión · <strong>{advertencias}</strong>{" "}
+        {/* Concuerda, como sus dos vecinas. Con un solo control en rojo la
+            lectura decía «1 piden revisión» mientras al lado escribía bien «1
+            advertencia» y «1 correcto»: el ternario estaba en dos de las tres. */}
+        <strong>{revisar}</strong> {revisar === 1 ? "pide" : "piden"} revisión ·{" "}
+        <strong>{advertencias}</strong>{" "}
         {advertencias === 1 ? "advertencia" : "advertencias"} ·{" "}
         <strong>{correctos}</strong> {correctos === 1 ? "correcto" : "correctos"}
         {/* **Tres números, no dos.** El Contrato de Superficie lo pide para el

@@ -27,6 +27,34 @@ describe("la pirámide de cuota", () => {
     expect(facultades[0].derecha?.avance).toBe(75);
   });
 
+  /**
+   * **Un lado no cumple por compensación, aunque hoy no tenga con qué.**
+   *
+   * `quotas_sex_faculty` sale de un `merge` por `(fac_key, sex_key)`, así que
+   * hoy hay una fila por facultad y sexo y `observadas >= meta` daba lo mismo
+   * que `faltan === 0`. Ese empate es del grano del payload, no de la regla: si
+   * estas filas se abrieran alguna vez por estrato o por nivel, sumar el lado
+   * volvería a declarar «cumplida» una celda con gente faltando —que es
+   * exactamente lo que el ADR 0079 prohíbe y lo que la tabla del cliente ya
+   * hizo una vez con 17 mujeres pendientes en Arquitectura—.
+   *
+   * El invariante lo detecta; una salvedad escrita en un comentario, no.
+   */
+  it("no da por cumplido un lado que suma bastante debiendo en una de sus filas", () => {
+    // 60 de 40 en una y 10 de 30 en la otra: el lado suma 70 sobre 70 y aun así
+    // le faltan 20 personas donde hacen falta.
+    const { facultades } = piramideDeCuota([
+      celda("Derecho", "F", 40, 60),
+      celda("Derecho", "F", 30, 10),
+      celda("Derecho", "M", 50, 50),
+    ]);
+    const lado = facultades[0].izquierda?.sexo === "F"
+      ? facultades[0].izquierda
+      : facultades[0].derecha;
+    expect(lado?.faltan).toBe(20);
+    expect(lado?.cumple).toBe(false);
+  });
+
   it("el lado con más celdas declaradas va a la izquierda", () => {
     // El orden no puede depender del alfabeto ni de cómo devolvió las filas el
     // motor: con «Hombre»/«Mujer» el alfabeto pondría a los hombres primero.
@@ -63,15 +91,41 @@ describe("la pirámide de cuota", () => {
     expect(otros).toEqual(["Otro"]);
   });
 
-  it("ordena por lo que falta en toda la facultad", () => {
+  /**
+   * **De la facultad más pequeña a la más grande** (Gonzalo, 2026-09-08):
+   * «debería estar ordenado de facultad más pequeña a facultad más grande».
+   *
+   * Contrato anterior, citado para quien lea un diff: ordenaba por lo que iba a
+   * faltar al acabar la agenda, o sea por urgencia proyectada. La predicción
+   * salió de esta pestaña con el mismo dictado, y lo que queda es una
+   * comparación de magnitudes: para eso el orden que se lee es el del tamaño,
+   * porque la escalera que forman las barras es en sí misma la información.
+   */
+  it("ordena de la facultad más pequeña a la más grande", () => {
     const { facultades } = piramideDeCuota([
       celda("Poco", "F", 10, 8),
       celda("Poco", "M", 10, 9),
       celda("Mucho", "F", 400, 100),
       celda("Mucho", "M", 100, 90),
     ]);
-    expect(facultades.map((f) => f.facultad)).toEqual(["Mucho", "Poco"]);
-    expect(facultades[0].faltan).toBe(310);
+    // 20 personas contra 500: la pequeña abre y la grande cierra, aunque a la
+    // grande le falten 310 y a la pequeña 3.
+    expect(facultades.map((f) => f.facultad)).toEqual(["Poco", "Mucho"]);
+    expect(facultades[1].faltan).toBe(310);
+  });
+
+  it("lo que se recogió de más se nombra: «sobran», no un cumple mudo", () => {
+    const { facultades } = piramideDeCuota([
+      celda("Pasada", "F", 100, 130),
+      celda("Pasada", "M", 100, 100),
+    ]);
+    const [fila] = facultades;
+    // Pasarse en una celda no cubre lo que falta en otra (ADR 0079), así que el
+    // exceso se declara en vez de callarse: son 30 encuestas de trabajo que
+    // este grupo no necesitaba.
+    expect(fila.izquierda?.sobran).toBe(30);
+    expect(fila.derecha?.sobran).toBe(0);
+    expect(fila.derecha?.cumple).toBe(true);
   });
 
   it("una celda sin meta no entra", () => {
@@ -164,31 +218,34 @@ describe("la pirámide predice, no sólo describe", () => {
     expect(lado.faltanAlCerrar).toBeGreaterThan(0);
   });
 
-  it("primero las facultades a las que más les va a faltar", () => {
-    // Ordenar por lo que falta pone arriba a la facultad más grande —la que más
-    // debe por tamaño—, no a la que está en peligro.
+  /**
+   * **El orden ya no depende de la proyección** (Gonzalo, 2026-09-08). La
+   * urgencia proyectada ordenaba la pirámide; desde que la predicción salió de
+   * esta pestaña, ordena el tamaño de la meta y nada más. La consecuencia que
+   * este test fija: pasar o no pasar previsiones NO cambia el orden.
+   */
+  it("el orden es el mismo con proyección y sin ella: manda el tamaño", () => {
     const filas = [
       celda("Grande", "Mujer", 500, 100), celda("Grande", "Hombre", 500, 100),
       celda("Peligro", "Mujer", 60, 10), celda("Peligro", "Hombre", 60, 10),
     ];
-    const { facultades } = piramideDeCuota(filas, previstas([
+    const conProyeccion = piramideDeCuota(filas, previstas([
       ["Grande", "Mujer", 400, true, "2026-08-24", 0],
       ["Grande", "Hombre", 400, true, "2026-08-24", 0],
       ["Peligro", "Mujer", 5, false, null, 45],
       ["Peligro", "Hombre", 5, false, null, 45],
     ]));
-    expect(facultades.map((f) => f.facultad)).toEqual(["Peligro", "Grande"]);
-    // Y «Grande» debe MUCHO más que «Peligro»: es justo lo que el orden viejo
-    // ponía primero.
-    expect(facultades[1].faltan).toBeGreaterThan(facultades[0].faltan);
+    const sinProyeccion = piramideDeCuota(filas);
+    // 120 personas contra 1 000: la pequeña abre en los dos casos.
+    expect(conProyeccion.facultades.map((f) => f.facultad)).toEqual(["Peligro", "Grande"]);
+    expect(sinProyeccion.facultades.map((f) => f.facultad)).toEqual(["Peligro", "Grande"]);
   });
 
-  it("sin proyección el orden es el de antes: por lo que falta", () => {
-    // Un estudio sin agenda no puede cambiar de aspecto por este cambio.
+  it("de la más pequeña a la más grande, aunque la grande vaya peor", () => {
     const { facultades } = piramideDeCuota([
       celda("Poca", "Mujer", 60, 50), celda("Mucha", "Mujer", 500, 100),
     ]);
-    expect(facultades.map((f) => f.facultad)).toEqual(["Mucha", "Poca"]);
+    expect(facultades.map((f) => f.facultad)).toEqual(["Poca", "Mucha"]);
   });
 });
 
@@ -198,11 +255,11 @@ describe("celdasPrevistas indexa por facultad y sexo", () => {
     // de Arte.
     const mapa = celdasPrevistas([
       { facultad: "Derecho", esperadoPorAula: 20, aulasAgendadas: 2, dias: [], reparto: "observada",
-        alcanzaTodo: false, corte: "", cuotas: [
+        alcanzaTodo: false, corte: "", esperadasPorDisenoTotal: null, aulasConDiseno: 0, cuotas: [
           { sexo: "Mujer", meta: 100, observadas: 10, faltan: 90, esperadasDeLaAgenda: 40,
             alcanza: false, fechaDeCruce: null, faltanAlCerrarAgenda: 50 }] },
       { facultad: "Arte", esperadoPorAula: 20, aulasAgendadas: 0, dias: [], reparto: "observada",
-        alcanzaTodo: true, corte: "", cuotas: [
+        alcanzaTodo: true, corte: "", esperadasPorDisenoTotal: null, aulasConDiseno: 0, cuotas: [
           { sexo: "Mujer", meta: 10, observadas: 10, faltan: 0, esperadasDeLaAgenda: 0,
             alcanza: true, fechaDeCruce: null, faltanAlCerrarAgenda: 0 }] },
     ]);

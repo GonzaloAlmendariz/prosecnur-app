@@ -201,11 +201,11 @@ graficar_barras_categoricas <- function(
     promedio_label            = "Promedio",
     promedio_decimales        = 1,
     promedio_maximo           = NULL,
-    color_titulo              = "#CA5651",
-    color_subtitulo           = "#081F5C",
-    color_nota_pie            = "#081F5C",
-    color_ejes                = "#081F5C",
-    color_texto_barras        = "#081F5C",
+    color_titulo              = .std_color("coral"),
+    color_subtitulo           = .std_color("azul"),
+    color_nota_pie            = .std_color("azul"),
+    color_ejes                = .std_color("azul"),
+    color_texto_barras        = .std_color("azul"),
     size_titulo               = 16,
     size_subtitulo            = 12,
     size_nota_pie             = 12,
@@ -214,6 +214,14 @@ graficar_barras_categoricas <- function(
     font_family               = "Arial",
     textos_negrita            = c("titulo", "valores", "ejes"),
     grosor_barras             = 0.76,
+    # ADR 0092 (F2.2): el recetario dibuja las categorías en barras horizontales
+    # (`graficador_barras_horizontales.R`). "vertical" conserva las columnas previas.
+    # ADR 0093: en el recetario la pregunta categórica va en columnas (lámina 68); F2.2 la había puesto
+    # horizontal por defecto. Las barras horizontales son de las agrupadas (lámina 73).
+    orientacion               = c("vertical", "horizontal"),
+    # Tamaño (pt) de rótulos y cifras de la horizontal; NULL = 12 pt de la
+    # lámina. El Word lo baja al rótulo de su recetario (.word_ajustar_el).
+    size_rotulos_h            = NULL,
     limite_y                  = NULL,
     expand_y                  = 0.14,
     mostrar_eje_y             = FALSE,
@@ -243,6 +251,7 @@ graficar_barras_categoricas <- function(
   normalizar_etiquetas <- match.arg(normalizar_etiquetas)
   formato_valor <- match.arg(formato_valor)
   exportar <- match.arg(exportar)
+  orientacion <- match.arg(orientacion)
 
   max_categorias <- suppressWarnings(as.integer(max_categorias)[1])
   if (!is.finite(max_categorias) || max_categorias <= 0) max_categorias <- 10L
@@ -345,6 +354,7 @@ graficar_barras_categoricas <- function(
   # pueden llegar cortos, sin nombres o como el deparse de un vector; se sanean
   # y rellenan con el helper compartido a un palette limpio keyed por categoria,
   # para que scale_fill_manual nunca reciba basura ("Unknown colour name").
+  paleta_propia <- .barras_h_paleta_propia(colores_categorias, paleta_colores, df$categoria)
   if (!is.null(colores_categorias) && length(colores_categorias)) {
     colores_categorias <- .graficos_mk_palette(unique(df$categoria), pal_user = colores_categorias)
   } else if (!is.null(paleta_colores) && length(paleta_colores)) {
@@ -394,6 +404,35 @@ graficar_barras_categoricas <- function(
     ggplot2::scale_y_continuous(
       labels = function(z) .barras_categoricas_format_num(z, decimales)
     )
+  }
+
+  # ADR 0093: lo que afirma la categórica, para la lámina nativa. La cifra es siempre el porcentaje del
+  # motor (sin la frecuencia: el recetario la escribe aparte, «N estudiantes»).
+  espec_categorica <- tryCatch(preparar_categorica(
+    df$categoria, df$pct %||% df$valor,
+    .barras_categoricas_etiquetas_pct(df$pct %||% df$valor, decimales, metodo_redondeo), df$n
+  ), error = function(e) { message("[espec categorica] ", conditionMessage(e)); NULL })
+  # La nota del gráfico («Base: 176 respuestas») vivía sólo en el caption del ggplot; la lámina nativa la necesita.
+  if (!is.null(espec_categorica)) espec_categorica$nota <- label_note
+
+  if (identical(orientacion, "horizontal")) {
+    p <- .graficar_categoricas_horizontal(df, paleta_propia = paleta_propia, ancho = ancho, alto = alto,
+                                          font_family = font_family, nota = label_note, color_fondo = color_fondo,
+                                          titulo = titulo, subtitulo = subtitulo, textos_negrita = textos_negrita,
+                                          color_titulo = color_titulo, color_subtitulo = color_subtitulo,
+                                          size_titulo = size_titulo, size_subtitulo = size_subtitulo,
+                                          size_pt = size_rotulos_h %||% .BARRAS_H_PT)
+    attr(p, "pulso_barras_categoricas_data") <- df
+    attr(p, "pulso_barras_categoricas_promedio") <- promedio
+    attr(p, "pulso_barras_categoricas_max_categorias") <- max_categorias
+    attr(p, "pulso_espec") <- espec_categorica
+    if (identical(exportar, "png")) {
+      if (is.null(path_salida) || !nzchar(path_salida)) {
+        stop("`path_salida` es obligatorio cuando `exportar = 'png'`.", call. = FALSE)
+      }
+      ggplot2::ggsave(path_salida, p, width = ancho, height = alto, dpi = dpi, bg = color_fondo)
+    }
+    return(p)
   }
 
   p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$x, y = .data$valor, fill = .data$categoria)) +
@@ -448,6 +487,7 @@ graficar_barras_categoricas <- function(
   attr(p, "pulso_barras_categoricas_data") <- df
   attr(p, "pulso_barras_categoricas_promedio") <- promedio
   attr(p, "pulso_barras_categoricas_max_categorias") <- max_categorias
+  attr(p, "pulso_espec") <- espec_categorica
 
   if (identical(exportar, "png")) {
     if (is.null(path_salida) || !nzchar(path_salida)) {

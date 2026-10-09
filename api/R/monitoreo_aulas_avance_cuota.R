@@ -67,6 +67,16 @@
   k
 }
 
+# La misma cosa para el eje que el estudio declare. Se deja `.maac_fac_key()`
+# intacta —la usan otras familias que SÍ hablan de facultad— y este hermano
+# recibe el eje para saber cómo se llama su centinela.
+.maac_eje_key <- function(x, eje = NULL) {
+  k <- monitoreo_aulas_eje_key(x)
+  clave <- .monitoreo_scalar((eje %||% list())[["clave"]], "facultad")
+  k[!nzchar(k)] <- paste0("sin_", clave)
+  k
+}
+
 # --- sexo: clave canónica y etiqueta de display ------------------------------
 
 # Mapa valor -> clave {"F","M",""}. Los booleanos `.mabe_es_mujer()` /
@@ -176,10 +186,26 @@
   if (is.data.frame(plan_df) && nrow(plan_df) && n) {
     aulas <- .maac_chr_col(plan_df, "classroom_id")
     unidades <- .maac_chr_col(plan_df, "collection_unit_id")
+    # Tercera clave, igual que el numerador: el QR de 2026 viaja el codigo
+    # operativo y un plan sin handoff solo tiene curso-horario en
+    # `classroom_id`.
+    codigos <- .maac_chr_col(plan_df, "operational_code")
+    # Mismo espacio canonico que el numerador del tablero: un identificador
+    # tecleado (`ch1`, `R6_1`) pertenece a la misma fila que su QR. Ver
+    # `.monitoreo_aulas_clave_colector()`; con claves en colision se compara
+    # literal, como siempre.
+    if (.monitoreo_aulas_claves_sin_colision(c(aulas, unidades, codigos))) {
+      aulas <- .monitoreo_aulas_clave_colector(aulas)
+      unidades <- .monitoreo_aulas_clave_colector(unidades)
+      codigos <- .monitoreo_aulas_clave_colector(codigos)
+      response_classroom <- .monitoreo_aulas_clave_colector(response_classroom)
+    }
     idx_aula <- which(nzchar(aulas) & !duplicated(aulas))
     mapa <- stats::setNames(idx_aula, aulas[idx_aula])
     idx_unidad <- which(nzchar(unidades) & !duplicated(unidades) & !(unidades %in% names(mapa)))
     mapa <- c(mapa, stats::setNames(idx_unidad, unidades[idx_unidad]))
+    idx_codigo <- which(nzchar(codigos) & !duplicated(codigos) & !(codigos %in% names(mapa)))
+    mapa <- c(mapa, stats::setNames(idx_codigo, codigos[idx_codigo]))
     con_id <- nzchar(response_classroom)
     if (any(con_id) && length(mapa)) {
       fila[con_id] <- unname(mapa[response_classroom[con_id]])
@@ -214,42 +240,79 @@
 # cuando el bloque degrada a la meta del plan.
 .monitoreo_aulas_avance_cuota <- function(plan_df, tracked_df, responses, cfg,
                                           valid_response = logical(0),
-                                          response_classroom = character(0)) {
+                                          response_classroom = character(0),
+                                          celdas_sexo = NULL,
+                                          # El padrón que traduce un código de
+                                          # alumno a su nivel. Sólo lo usa un eje
+                                          # con `atribucion = "persona"`; su
+                                          # ausencia NO se suple, se declara en
+                                          # el aviso del satélite.
+                                          padron = NULL) {
   vig <- .monitoreo_aulas_avance_vigencia(cfg)
   atr <- .maac_atribucion(plan_df, valid_response, response_classroom)
   total_validas <- as.integer(sum(atr$valid))
 
-  sex_col <- .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
-  sexo_key <- if (nzchar(sex_col)) .maac_sexo_key(.monitoreo_aulas_values(responses, sex_col, "")) else character(0)
+  sex_col <- monitoreo_aulas_columna_sexo(responses, cfg)
+  sexo_key <- if (nzchar(sex_col)) monitoreo_aulas_sexo_key(.monitoreo_aulas_values(responses, sex_col, ""), cfg) else character(0)
   if (length(sexo_key) != nrow(atr)) sexo_key <- rep("", nrow(atr))
 
-  fk_resp <- .maac_fac_key(atr$facultad)
-  atribuida <- atr$valid & atr$matched
-  cuenta <- atribuida & !atr$fuera
+  # **A qué celda va cada respuesta lo decide el EJE, no este bloque.**
+  #
+  # La cuenta vivía aquí: la clave era `.maac_fac_key(atr$facultad)` y el
+  # numerador `válida & con aula & dentro de universo`. Con el eje declarable eso
+  # deja de valer para un estudio cuyas metas son por NIVEL: el aula no sabe el
+  # nivel de cada alumno —el marco lo colapsó a su moda— así que el valor sale de
+  # la persona, y con él aparecen dos bolsas que antes no existían (`sin_eje` y
+  # `duplicadas`). La regla, su orden normativo y su invariante viven en
+  # `monitoreo_aulas_eje_atribucion.R`; aquí sólo se consume.
+  #
+  # **Con el eje en facultad esto es idéntico byte a byte**: el satélite lee el
+  # valor de la fila del plan, no deduplica, y su `cuenta` es literalmente la
+  # máscara de antes. Su prueba es de identidad, no de plausibilidad.
+  eje <- monitoreo_aulas_eje(cfg)
+  eje_atr <- monitoreo_aulas_eje_atribucion(
+    atr, plan_df = plan_df, responses = responses, cfg = cfg, eje = eje,
+    padron = padron)
+  fk_resp <- eje_atr$clave
+  cuenta <- eje_atr$cuenta
   contar <- function(mask) {
     if (!any(mask)) return(integer(0))
     tabla <- table(fk_resp[mask])
     stats::setNames(as.integer(tabla), names(tabla))
   }
   num_k <- contar(cuenta)
-  fuera_k <- contar(atribuida & atr$fuera)
+  fuera_k <- contar(eje_atr$fuera)
   sin_sexo_k <- contar(cuenta & sexo_key == "")
-  huerfanas <- as.integer(total_validas - sum(atribuida))
+  # Las tres bolsas del bloque. `fuera_universo` y `huerfanas` conservan su
+  # significado —son del AULA y no cambian con el eje, que es la cláusula que
+  # hace que el ADR 0088 aplique el 0079 en vez de contradecirlo—; `sin_eje` y
+  # `duplicadas` sólo existen cuando el eje se resuelve por persona.
+  huerfanas <- as.integer(sum(eje_atr$huerfana))
+  sin_eje_k <- contar(eje_atr$sin_eje)
+  duplicadas_k <- contar(eje_atr$duplicada)
 
-  fac_plan <- .maac_chr_col(plan_df, "faculty")
-  fk_plan <- .maac_fac_key(fac_plan)
+  # La columna del eje en el plan y en las seguidas, por alias: ninguna capa
+  # debería saber si mira `faculty` o `level`.
+  col_plan <- monitoreo_aulas_columna_eje(plan_df, eje)
+  val_plan <- if (nzchar(col_plan)) .maac_chr_col(plan_df, col_plan) else character(0)
+  if (!length(val_plan)) val_plan <- rep("", if (is.data.frame(plan_df)) nrow(plan_df) else 0L)
+  fk_plan <- .maac_eje_key(val_plan, eje)
   primeras <- !duplicated(fk_plan)
-  labels_plan <- stats::setNames(fac_plan[primeras], fk_plan[primeras])
+  labels_plan <- stats::setNames(val_plan[primeras], fk_plan[primeras])
   claves_plan <- fk_plan[primeras]
 
-  fk_tracked <- .maac_fac_key(.maac_chr_col(tracked_df, "faculty"))
+  col_tracked <- monitoreo_aulas_columna_eje(tracked_df, eje)
+  val_tracked <- if (nzchar(col_tracked)) .maac_chr_col(tracked_df, col_tracked) else character(0)
+  fk_tracked <- .maac_eje_key(val_tracked, eje)
   ev <- .maac_num_col(tracked_df, "expected_valid")
   ev[!is.finite(ev) | ev < 0] <- 0
   denom_plan <- if (length(fk_tracked)) tapply(ev, fk_tracked, sum) else numeric(0)
 
+  centinela <- paste0("sin_", .monitoreo_scalar(eje$clave, "facultad"))
+  etiqueta_sin <- .monitoreo_scalar(eje$etiqueta_sin, "Sin facultad")
   etiqueta_plan <- function(k) {
     lbl <- .maac_toma_chr(labels_plan, k)
-    if (nzchar(lbl)) lbl else if (identical(k, "sin_facultad")) "Sin facultad" else k
+    if (nzchar(lbl)) lbl else if (identical(k, centinela)) etiqueta_sin else k
   }
 
   filas <- list()
@@ -269,6 +332,12 @@
         },
         faculty_key = k,
         cuota = if (con_cuota) cuota else NA_real_,
+        # La τ que dimensionó ESTA facultad. El agregado `tasa_esperada` queda
+        # en NA cuando las τ difieren —el motor se niega a promediar quince
+        # tasas que el diseño trazó por separado— y eso es justo cuando hace
+        # falta: en HSVG2026 van de 0,409 a 0,800. Por fila no hay promedio que
+        # esconder. Consumidor: el seguimiento de τ del ADR 0082.
+        tau_prevista = .monitoreo_num(f$tau, NA_real_),
         respuestas_validas = .maac_toma_int(num_k, k),
         # Una facultad del diseño sin cuota legible no gana denominador
         # inventado: se declara `sin_cuota` igual que una fuera del diseño.
@@ -280,19 +349,52 @@
         respuestas_sin_sexo = .maac_toma_int(sin_sexo_k, k)
       )
     }
-    # Facultades del plan que el diseño no trazó: sus respuestas se publican
-    # pero NO entran al % global — inventarles denominador sería peor.
-    for (k in claves_plan) {
+    # Valores del plan que el diseño no trazó: sus respuestas se publican pero
+    # NO entran al % global — inventarles denominador sería peor.
+    #
+    # **Y sólo cuando el eje se atribuye por AULA.** Con `atribucion = "persona"`
+    # la columna del plan no habla de la población del eje: es una propiedad del
+    # aula —su nivel MODAL, que el marco calculó para dimensionar— y ninguna
+    # respuesta puede caer ahí, porque el valor lo pone el padrón.
+    #
+    # Medido armando el simulacro de CCSS Perfil 2026-II: el diseño declara los
+    # niveles 6 a 9 y el plan trae además aulas de nivel modal 5 y 10, así que la
+    # tabla salía con **seis filas y no cuatro**, dos de ellas con cuota `NA` y
+    # cero respuestas para siempre. Dos filas vacías que nunca se llenan se leen
+    # como un hueco del operativo, y no lo son.
+    for (k in if (identical(.monitoreo_scalar(eje$atribucion, "aula"), "aula")) claves_plan else character(0)) {
       if (k %in% vistas) next
       filas[[length(filas) + 1L]] <- list(
         facultad = etiqueta_plan(k), faculty_key = k, cuota = NA_real_,
+        # El diseño no trazó esta facultad: no le supuso τ tampoco.
+        tau_prevista = NA_real_,
         respuestas_validas = .maac_toma_int(num_k, k),
         fuente_fila = "sin_cuota", estado = "sin_cuota",
         fuera_universo = .maac_toma_int(fuera_k, k),
         respuestas_sin_sexo = .maac_toma_int(sin_sexo_k, k)
       )
     }
+    # **Un diseño que declara sus celdas declara su total.**
+    #
+    # Se leía SOLO `total_cuota` del bloque, y un `design_targets` que no lo
+    # trae dejaba el total en NA teniendo sus celdas con cuota. Medido el
+    # 2026-09-21 sobre CCSS Perfil 2026-II: cuatro celdas por nivel —119, 122,
+    # 97 y 62— y el KPI de cabecera publicando «S/D · el estudio no declara
+    # cuota del diseño» encima de una tabla que sumaba 400. El titular negaba
+    # lo que su propio detalle afirmaba, que es la peor forma de un vacío: no
+    # se lee como «falta un dato», se lee como «no hay meta».
+    #
+    # El respaldo es la MISMA cuenta que hace el constructor canónico
+    # (`monitoreo_aulas_metas_diseno()`: `round(sum(cuotas[is.finite(cuotas)]))`),
+    # así que no se inventa una cifra: se recompone la que el bloque ya trae
+    # repartida. Sin ninguna celda con cuota sigue siendo NA — ahí sí no hay
+    # meta que afirmar.
     cuota_total <- .monitoreo_num(vig$dt$total_cuota, NA_real_)
+    if (!is.finite(cuota_total)) {
+      cuotas_celdas <- vapply(filas, function(x) .monitoreo_num(x$cuota, NA_real_), numeric(1))
+      cuotas_celdas <- cuotas_celdas[is.finite(cuotas_celdas)]
+      if (length(cuotas_celdas)) cuota_total <- round(sum(cuotas_celdas))
+    }
     num_total <- sum(vapply(filas, function(x) {
       if (is.finite(x$cuota %||% NA_real_)) as.numeric(x$respuestas_validas) else 0
     }, numeric(1)))
@@ -301,6 +403,10 @@
       filas[[length(filas) + 1L]] <- list(
         facultad = etiqueta_plan(k), faculty_key = k,
         cuota = .maac_toma_num(denom_plan, k, 0),
+        # Con el denominador del plan no hay τ del diseño vigente que publicar:
+        # declararla aquí sería atribuirle al diseño una cifra que el bloque
+        # acaba de declarar no vigente.
+        tau_prevista = NA_real_,
         respuestas_validas = .maac_toma_int(num_k, k),
         fuente_fila = "plan", estado = "ok",
         fuera_universo = .maac_toma_int(fuera_k, k),
@@ -311,10 +417,82 @@
     num_total <- sum(vapply(filas, function(x) as.numeric(x$respuestas_validas), numeric(1)))
   }
 
+  # **Un valor de eje que el diseño no traza tiene fila, no silencio.**
+  #
+  # `num_k` tabula TODAS las claves con `cuenta`; arriba sólo se leen las que el
+  # diseño declara. Lo que sobra no caía en ninguna bolsa: ni celda, ni
+  # `sin_eje` —resolvió—, ni `fuera_universo` —el aula existía—, ni huérfana
+  # —casó con el plan—. Salía del bloque sin aparecer en ningún número.
+  #
+  # Medido el 2026-09-22, primer día de campo de CCSS Perfil 2026-II: nueve
+  # respuestas de CH 45, siete de nivel 6 y dos de nivel 5. La cabecera decía
+  # `respuestas_validas = 7`, el invariante `en_celdas = 9` y `ok = TRUE`. Dos
+  # de las nueve del día, invisibles, con el bloque afirmando que cuadraba.
+  #
+  # Y no es un caso de borde que se cierre solo: el eje se movió a la PERSONA
+  # justamente porque un aula de nivel 6 tiene alumnos de 5, 6 y 7. Pasará cada
+  # día de campo, y la fila lo dice con la palabra que corresponde — «el diseño
+  # no mide este nivel» — en vez de dejar que el coordinador busque una fuga.
+  #
+  # Es lo contrario de la fila derivada del PLAN que este bloque se niega a
+  # emitir unas líneas más arriba: aquélla nace de una propiedad del aula y
+  # nunca se llena; ésta nace de respuestas que ya existen y por construcción
+  # nunca está vacía.
+  claves_con_celda <- vapply(filas, function(x) {
+    .monitoreo_scalar(x$faculty_key, "")
+  }, character(1))
+  sin_celda_k <- num_k[!(names(num_k) %in% claves_con_celda)]
+  # La etiqueta sale del VALOR observado, no del plan: el plan no conoce esta
+  # clave —si la conociera, tendría celda— y `etiqueta_plan()` caería al código.
+  etiqueta_observada <- function(k) {
+    v <- eje_atr$valor[eje_atr$cuenta & eje_atr$clave %in% k]
+    v <- v[nzchar(v)]
+    if (length(v)) v[1] else etiqueta_plan(k)
+  }
+  for (k in names(sin_celda_k)) {
+    filas[[length(filas) + 1L]] <- list(
+      facultad = etiqueta_observada(k), faculty_key = k, cuota = NA_real_,
+      tau_prevista = NA_real_,
+      respuestas_validas = .maac_toma_int(num_k, k),
+      fuente_fila = "fuera_del_diseno", estado = "fuera_del_diseno",
+      fuera_universo = .maac_toma_int(fuera_k, k),
+      respuestas_sin_sexo = .maac_toma_int(sin_sexo_k, k)
+    )
+  }
+
+  # **La brecha es la SUMA DE LAS CELDAS, no la resta del total.**
+  #
+  # Un hombre de mas no cubre a una mujer que falta. La doctrina ya estaba
+  # escrita y aplicada en `avance_por_facultad`
+  # (`monitoreo_aulas_universitarias.R` ~1936, con el caso observado de
+  # GASTRONOMIA) y NUNCA se propago hasta aqui: las dos estructuras viajan en el
+  # mismo payload y se pintan en la misma seccion de Avance con reglas
+  # distintas.
+  #
+  # Medido sobre HSVG2026 «como 2025»: `avance_por_facultad` publicaba 17, 4 y 3
+  # de brecha para ARQUITECTURA, CIENCIAS E INGENIERIA y EDUCACION, mientras
+  # `avance_cuota` publicaba CERO para las tres y su panel las contaba entre las
+  # «cumplidas» — Arquitectura con 126 de 125 y diecisiete mujeres pendientes.
+  #
+  # `NULL` o sin celdas para esa facultad cae a la resta simple, igual que hace
+  # el vecino: una facultad sin desglose de sexo no tiene celdas que sumar, y
+  # fabricarle una brecha de cero seria peor que la resta.
+  # A4: las celdas de sexo de cada facultad; la regla de la brecha (ADR 0079)
+  # vive en `monitoreo_aulas_brecha_facultad()`, compartida con el libro.
+  celdas_de <- local({
+    if (!length(celdas_sexo)) return(function(k) list())
+    keys <- vapply(celdas_sexo, function(c) {
+      .cm_criterios_fac_key(.monitoreo_scalar(c$faculty, ""))
+    }, character(1))
+    function(k) celdas_sexo[keys == k]
+  })
+
   filas <- lapply(filas, function(x) {
     cuota <- x$cuota
     if (is.finite(cuota)) {
-      x$brecha <- max(0, cuota - x$respuestas_validas)
+      x$brecha <- monitoreo_aulas_brecha_facultad(
+        cuota, x$respuestas_validas, celdas_de(.monitoreo_scalar(x$faculty_key, ""))
+      )
       # `> 0` y no `>= 0`: una cuota en cero no es una meta cumplida, es una
       # meta sin denominador — NA y no Inf. El avance por encima de 100 se
       # publica SIN cap: pasarse de la cuota es un hecho, no un error.
@@ -323,9 +501,9 @@
       x$brecha <- NA_real_
       x$avance_pct <- NA_real_
     }
-    x[c("facultad", "faculty_key", "cuota", "respuestas_validas", "brecha",
-        "avance_pct", "fuente_fila", "estado", "fuera_universo",
-        "respuestas_sin_sexo")]
+    x[c("facultad", "faculty_key", "cuota", "tau_prevista",
+        "respuestas_validas", "brecha", "avance_pct", "fuente_fila", "estado",
+        "fuera_universo", "respuestas_sin_sexo")]
   })
   if (!identical(vig$fuente, "design_targets") && length(filas) > 1L) {
     # Con denominador del plan, el orden es el de `avance_por_facultad`: la que
@@ -338,23 +516,180 @@
   total <- list(
     cuota = if (is.finite(cuota_total)) cuota_total else NA_real_,
     respuestas_validas = as.integer(num_total),
-    brecha = if (is.finite(cuota_total)) max(0, cuota_total - num_total) else NA_real_,
+    # **Las partes suman el total.** Restar el total por su lado publicaba
+    # «cero faltan» arriba con 17, 4 y 3 en tres filas de abajo: quien suma la
+    # columna no llega nunca a la cifra de la cabecera.
+    brecha = if (is.finite(cuota_total)) {
+      b <- vapply(filas, function(x) .monitoreo_num(x$brecha, NA_real_), numeric(1))
+      if (all(is.na(b))) max(0, cuota_total - num_total) else sum(b, na.rm = TRUE)
+    } else NA_real_,
     avance_pct = if (is.finite(cuota_total) && cuota_total > 0) {
       round(100 * num_total / cuota_total, 1)
     } else NA_real_,
-    fuera_universo = as.integer(sum(atribuida & atr$fuera)),
-    # Invariante: total_validas - sum(atribuidas). Las huérfanas nunca entran a
-    # ninguna facultad; se declaran aquí, no se descartan.
-    huerfanas = huerfanas
+    fuera_universo = as.integer(sum(eje_atr$fuera)),
+    # Las huérfanas nunca entran a ninguna celda; se declaran aquí, no se
+    # descartan.
+    huerfanas = huerfanas,
+    # **Las dos bolsas que el eje por persona añade, y su invariante.**
+    #
+    # `sin_eje` son válidas que pasaron el paso del aula y cuya PERSONA no
+    # resuelve —sin código, ilegible, o no está en el padrón—: el estudio decidió
+    # que sin cruce no hay nivel y no cuentan para ninguna celda. `duplicadas`
+    # son segundas respuestas de la misma persona dentro de su celda; se marcan y
+    # se publican, porque la cuota es de personas y una cifra que baja sin
+    # explicación es peor que una cifra con su nota.
+    #
+    # Con el eje en facultad las dos son **0** y el invariante se reduce al de
+    # siempre. Se publican igual: un cero declarado dice «esto se midió», y su
+    # ausencia obligaría al lector a adivinar si la bolsa no existe o está vacía.
+    sin_eje = as.integer(sum(eje_atr$sin_eje)),
+    duplicadas = as.integer(sum(eje_atr$duplicada)),
+    # La quinta bolsa: resolvieron a un valor de eje que el diseño no traza.
+    # Tienen su fila arriba; el agregado va aquí para que la cabecera pueda
+    # decirlo sin recorrer la tabla, y para que el invariante lo compruebe.
+    sin_celda = as.integer(sum(sin_celda_k)),
+    # `respuestas_validas = Σ celdas + sin_celda + duplicados + sin_eje +
+    # fuera_universo + huerfanas`, comprobado por la misma función que lo
+    # comprueban sus pruebas: un invariante que sólo se verifica en el test se
+    # queda en el test.
+    #
+    # **Y se comprueba contra lo PUBLICADO**, no contra la máscara del
+    # satélite. `en_celdas` decía «tiene valor de eje»; las celdas impresas
+    # pueden ser menos, y esa diferencia era justo la que nadie veía.
+    invariante = monitoreo_aulas_eje_invariante(
+      eje_atr, total_validas,
+      publicadas = sum(vapply(filas, function(x) {
+        # Las filas fuera del diseño NO entran aquí: son la parte `sin_celda`
+        # del invariante, y contarlas en las dos dejaría a `sin_celda` en cero
+        # mientras la cabecera publica su conteo. Dos nombres para la misma
+        # cifra que no coinciden es peor que no publicarla.
+        if (identical(.monitoreo_scalar(x$estado, ""), "fuera_del_diseno")) 0
+        else as.numeric(.monitoreo_num(x$respuestas_validas, 0))
+      }, numeric(1)))
+    )
   )
 
   list(
     schema = "monitoreo_aulas_avance_cuota_v1",
     fuente = vig$fuente,
+    # **La disposición de los casos, aula por aula.** El bloque ya publicaba las
+    # bolsas AGREGADAS —`sin_eje`, `duplicadas`, `sin_celda`…— y con ellas no se
+    # puede contestar «en qué aula se queda la efectividad». Sale de las MISMAS
+    # máscaras, sin volver a emparejar nada: ver `monitoreo_aulas_casos_por_aula.R`.
+    # Lo consumen «Rendimiento por facultad» y la hoja «Control de nivel».
+    casos = monitoreo_aulas_casos_por_aula(
+      eje_atr, atr, plan_df,
+      claves_del_diseno = vapply(filas, function(x) {
+        .monitoreo_scalar(x$faculty_key, "")
+      }, character(1))[
+        vapply(filas, function(x) {
+          !identical(.monitoreo_scalar(x$estado, ""), "fuera_del_diseno")
+        }, logical(1))
+      ]),
     vigencia = vig$vigencia,
     motivo = vig$motivo,
+    # **De qué son estas celdas.** El bloque publica `facultades` con su
+    # `facultad` y su `faculty_key` —nombres del contrato congelado (ADR 0079),
+    # que no se renombran— y con el eje declarable esos valores pueden ser
+    # niveles. Sin esta declaración, el mismo payload significa dos cosas
+    # distintas y el consumidor tiene que adivinar cuál: un contrato viejo sin
+    # `eje` se lee como `facultad`, que es lo que es.
+    eje = monitoreo_aulas_eje_declaracion(eje),
+    # **Por qué el eje no puede resolver, cuando no puede.** El satélite lo
+    # diagnostica y lo escribía en un atributo que NADIE leía: ni este motor, ni
+    # el payload, ni la pantalla. Un aviso escrito, correcto y sin consumidor no
+    # avisa — así que con el eje por persona y sin la variable del código
+    # declarada, el coordinador vería todas las respuestas en la bolsa «sin
+    # nivel» y ninguna palabra sobre la causa.
+    #
+    # Va en campo propio y NO en `motivo`, que es de la vigencia de las metas:
+    # son dos degradaciones distintas y pueden darse a la vez.
+    aviso_eje = .monitoreo_scalar(attr(eje_atr, "aviso"), ""),
+    # **Sexo y carrera, descriptivos y en su propio bloque.** No entran a las
+    # celdas ni a la brecha: la cuota es por el eje (decisión 2 del plan). Se
+    # calculan aquí —en el MOTOR— porque el payload del estado recorta
+    # `quotas$category_profiles` y un panel que la lea desde React vería
+    # `undefined` en un estudio real.
+    # **A quien entró en una CELDA del diseño, no a quien tiene eje.** `cuenta`
+    # incluye a los de un valor que el diseño no mide —niveles 5 y 10 en CCSS
+    # Perfil 2026-II, la bolsa `sin_celda`—, y el denominador es la población de
+    # las celdas: describía 412 personas contra 800 que no las contienen.
+    # Gonzalo, 2026-09-28: la composición es la de las 324 que cuentan.
+    composicion = monitoreo_aulas_composicion_referencial(
+      cfg, resueltas = attr(eje_atr, "resueltas"),
+      cuenta = eje_atr$cuenta & (eje_atr$clave %in% claves_con_celda),
+      cruce_configurado = identical(.monitoreo_scalar(eje$atribucion, "aula"), "persona") &&
+        !nzchar(.maea_aviso_de_config(padron, cfg))),
+    # **El cruce por código, repartido por carrera.** Se calcula aquí porque
+    # aquí está resuelta la persona de cada respuesta; el tablero lo iza al
+    # primer nivel para Validación. Cruzar otra vez en el consumidor daría dos
+    # lecturas de la misma respuesta.
+    cruce_por_carrera = monitoreo_aulas_cruce_por_carrera(
+      attr(eje_atr, "resueltas"),
+      elegible = eje_atr$cuenta | eje_atr$duplicada | eje_atr$sin_eje,
+      poblacion = monitoreo_aulas_padron_resumen(padron %||% list())$por_carrera,
+      cfg = cfg, responses = responses,
+      # El código operativo del curso-horario al que se atribuyó cada respuesta.
+      # Sale de la MISMA atribución que cuenta —`atr$fila`— y no de un segundo
+      # emparejamiento: dos lecturas de la misma respuesta es el defecto que
+      # este bloque lleva el día corrigiendo.
+      aulas = {
+        cod <- .maac_chr_col(plan_df, "operational_code")
+        if (length(cod) && is.data.frame(atr) && nrow(atr)) {
+          v <- rep("", nrow(atr))
+          ok <- !is.na(atr$fila)
+          if (any(ok)) v[ok] <- cod[atr$fila[ok]]
+          v
+        } else NULL
+      },
+      # Quién aceptó participar. Sin esto, un rechazo sale como «no declaró su
+      # código», que manda a revisar el formulario cuando no hay nada que
+      # revisar: quien no consiente no llega a esa pregunta.
+      consentimiento = monitoreo_aulas_consentimiento(responses, cfg),
+      # **Por qué cuenta o no cuenta cada respuesta.** Gonzalo, 2026-09-22:
+      # «que la tabla incluya las no efectivas con su estado» —después de
+      # declarar que un rechazo no es efectiva y ver que desaparecía de ella—.
+      #
+      # El vocabulario es el del embudo que el panel de Respuestas publica, y
+      # el orden de las ramas es el del propio embudo: una descartada ya no se
+      # juzga por el criterio, y una que no pasa el criterio no llega a tener
+      # aula. Invertirlo daría a la misma respuesta dos estados según por dónde
+      # se mire.
+      estados = local({
+        n <- if (is.data.frame(responses)) nrow(responses) else 0L
+        if (!n) character(0) else {
+          fuera <- tryCatch(.monitoreo_aulas_descartada(responses, cfg),
+                            error = function(e) rep(FALSE, n))
+          ok <- if (length(valid_response) == n) valid_response %in% TRUE else rep(TRUE, n)
+          consiente <- tryCatch(monitoreo_aulas_consentimiento(responses, cfg),
+                                error = function(e) rep("", n))
+          con_aula <- if (is.data.frame(atr) && nrow(atr) == n) atr$matched %in% TRUE else rep(TRUE, n)
+          out <- rep("efectiva", n)
+          out[ok & !con_aula] <- "huerfana"
+          # El rechazo antes que el criterio genérico: dice algo que «no pasa el
+          # criterio» no dice, y es lo que se mira para saber si hay algo que
+          # arreglar (no lo hay).
+          out[!ok] <- "no_criterio"
+          out[!ok & consiente == "rechaza"] <- "rechaza"
+          out[fuera %in% TRUE] <- "fuera_operativo"
+          out
+        }
+      })),
     tasa_esperada = if (length(vig$facultades)) .monitoreo_num(vig$dt$tasa_esperada, NA_real_) else NA_real_,
     tasa_fuente = if (length(vig$facultades)) .monitoreo_scalar(vig$dt$tasa_fuente, "") else "",
+    # **La meta y su sobremuestra, que el diseño calcula y no llegaban.**
+    #
+    # El operativo compara el avance contra DOS cifras: la meta -lo que hay que
+    # conseguir- y la sobremuestra -hasta dónde se compró aforo-. La segunda
+    # vivía en `componente$resultado` del estudio y moría ahí, así que la tabla
+    # de cuotas sólo podía comparar contra la primera y lo declaraba en su pie.
+    #
+    # Viajan por el mismo bloque que las metas por facultad y con su misma
+    # vigencia: si el sello no cuadra, no se publican, porque una sobremuestra
+    # de otro sorteo es peor que ninguna.
+    meta_diseno = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_diseno, NA_real_) else NA_real_,
+    sobremuestra = if (length(vig$facultades)) .monitoreo_num(vig$dt$sobremuestra, NA_real_) else NA_real_,
+    meta_operativa = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_operativa, NA_real_) else NA_real_,
     total = total,
     facultades = filas
   )
@@ -483,12 +818,49 @@
   # fuera de universo.
   facultad <- .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom)
   if (length(facultad) != nrow(atr)) facultad <- rep("", nrow(atr))
-  sex_col <- .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
+  sex_col <- monitoreo_aulas_columna_sexo(responses, cfg)
   sexo_raw <- if (nzchar(sex_col)) .monitoreo_aulas_values(responses, sex_col, "") else character(0)
   if (length(sexo_raw) != nrow(atr)) sexo_raw <- rep("", nrow(atr))
-  sexo_key <- .maac_sexo_key(sexo_raw)
+  sexo_key <- monitoreo_aulas_sexo_key(sexo_raw, cfg)
 
   keep <- atr$valid & nzchar(facultad) & sexo_key %in% c("F", "M") & !(atr$matched & atr$fuera)
+
+  # **La columna esta y ninguno de sus valores se reconoce.**
+  #
+  # `.maac_sexo_key()` acepta palabras —«f/fem…/mujer…», «m/masc…/hombre…»— pero
+  # una base de Kobo trae lo que el XLSForm guarda como NOMBRE de la opcion, y
+  # el instrumento de HSVG2026 usa `1` = Mujer y `2` = Hombre. Con codigos,
+  # `sexo_key` sale vacia en TODAS las filas, las treinta celdas quedan a cero y
+  # nada falla: la pantalla dice «0 de 30 celdas» y «cuota por recoger 2.500»
+  # con mil quinientas respuestas ya atribuidas a su aula.
+  #
+  # No se adivina que `1` es mujer —otro estudio puede numerarlo al reves y eso
+  # seria inventar el dato—: se dice la CAUSA, con los valores que llegaron, para
+  # que quien lo lea sepa que hay que declarar la equivalencia y no salga a
+  # revisar el enlace del recopilador.
+  #
+  # Desde el 2026-09-07 esa equivalencia SE PUEDE declarar
+  # (`sex_female_values` / `sex_male_values` del mapping) y el aviso lo dice: el
+  # aviso que nombra la causa pero no dónde arreglarla deja al lector igual de
+  # atascado. En HSVG2026 costó que las treinta celdas de cuota salieran en cero
+  # y que la brecha de cada facultad fuera su cuota entera —528 con 27 ya
+  # conseguidas— porque la brecha se suma de las celdas.
+  aviso_sexo <- ""
+  if (nzchar(sex_col) && any(atr$valid) && !any(keep & sexo_key %in% c("F", "M"))) {
+    crudos <- unique(trimws(sexo_raw[atr$valid]))
+    crudos <- crudos[nzchar(crudos)]
+    if (length(crudos)) {
+      muestra <- paste(utils::head(sort(crudos), 4L), collapse = ", ")
+      aviso_sexo <- sprintf(
+        paste0("La columna «%s» trae valores que no se reconocen como sexo (%s%s). ",
+               "Una base sin decodificar trae el código de la opción, no la etiqueta. ",
+               "Declara en Fuentes qué valores son mujer y cuáles hombre; mientras ",
+               "tanto ninguna respuesta cae en su grupo de facultad y sexo, y la ",
+               "brecha de cada facultad sale como su cuota entera."),
+        sex_col, muestra, if (length(crudos) > 4L) ", …" else ""
+      )
+    }
+  }
   observed <- if (any(keep)) {
     stats::aggregate(
       rep(1L, sum(keep)),
@@ -533,6 +905,10 @@
   out$sex_key <- NULL
   if ("warning" %in% names(out)) {
     out$warning[is.na(out$warning)] <- ""
+    # El aviso del sexo va en TODAS las filas: el fallo no es de una celda, es
+    # de la columna entera, y ponerlo solo en la primera lo escondería en cuanto
+    # alguien ordene la tabla por otra cosa.
+    if (nzchar(aviso_sexo)) out$warning <- aviso_sexo
     if (!any(nzchar(out$warning))) out$warning <- NULL
   }
   primeras <- intersect(
@@ -541,4 +917,46 @@
   )
   out <- out[, c(primeras, setdiff(names(out), primeras)), drop = FALSE]
   .monitoreo_aulas_records(out, max_rows = 240L)
+}
+
+#' Las celdas del EJE, con la forma de las celdas de sexo.
+#'
+#' El proyector de las tres lecturas (`monitoreo_aulas_avance_sexo_facultad()`)
+#' pide celdas `list(faculty, sex, target, observed)`. Cuando el estudio declara
+#' cuota por sexo, se las da `.monitoreo_aulas_cuotas_sexo_celdas()`. Cuando NO
+#' —la meta es sólo por el eje— no había nada que proyectar y el panel se
+#' quedaba vacío teniendo la cuota del estudio en el payload.
+#'
+#' Aquí se arman a partir de las filas que `avance_cuota` ya publicó: **un grano
+#' menos fino, no otra cuenta.** Nada se recalcula, y por eso las cifras del
+#' panel no pueden discrepar de las de la tabla.
+#'
+#' Sólo entran las filas CON cuota finita: una fila `sin_cuota` no tiene contra
+#' qué proyectarse, y darle un techo sería inventarle una meta.
+#'
+#' @param avance_cuota el bloque ya calculado.
+#' @return lista de celdas, con `grano = "eje"` para que la UI sepa que no hay
+#'   dimensión de sexo —que es distinto de no conocerla— y no rotule
+#'   «Sin sexo declarado» donde no hay sexo que declarar.
+#' @keywords internal
+.monitoreo_aulas_celdas_del_eje <- function(avance_cuota = list()) {
+  filas <- (avance_cuota %||% list())[["facultades"]] %||% list()
+  out <- list()
+  for (f in filas) {
+    if (!is.list(f)) next
+    cuota <- suppressWarnings(as.numeric(f[["cuota"]] %||% NA_real_))[1]
+    if (!is.finite(cuota) || cuota <= 0) next
+    valor <- .monitoreo_scalar(f[["facultad"]] %||% "", "")
+    if (!nzchar(valor)) next
+    out[[length(out) + 1L]] <- list(
+      faculty = valor,
+      # Vacío y no "F"/"M": esta celda NO tiene dimensión de sexo. El proyector
+      # lo tolera (`toupper("")` es "") y `grano` lo declara para la UI.
+      sex = "",
+      grano = "eje",
+      target = cuota,
+      observed = suppressWarnings(as.numeric(f[["respuestas_validas"]] %||% 0))[1]
+    )
+  }
+  out
 }

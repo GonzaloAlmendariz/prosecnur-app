@@ -1,0 +1,765 @@
+# El formato de «Avance de campo» en Google Sheets — unidad B19 (v4-app).
+#
+# Dictado de Gonzalo (2026-09-01, textual): «tiene una estructura muy, muy fea;
+# no se ven bien las tablas, no se organiza bien, no se entiende cómo se
+# organiza; se ve como toda esa información, no como una tabla».
+#
+# Cada bloque del modelo (meta, facultades, aplicadores, diario) sale como
+# TABLA: banda de título propia y cabecera de columnas formateada. Las filas
+# se DERIVAN del contenido del renderer (`aulas_libro_hoja_avance`), jamás de
+# números mágicos: un modelo sin cuotas no trae bloque de facultades y las
+# bandas de los demás siguen a SU contenido, esté donde esté.
+#
+# Vive en archivo propio y NO en monitoreo_aulas_sheets_formato.R: ese archivo
+# lo trabaja la oleada autor-libro-v4 en paralelo (regla de ownership de la
+# oleada v4-app). `.malp_formato_requests` — el adaptador que el motor invoca
+# en su batch-2 con los rows realmente publicados — integra estas requests
+# DESPUÉS de las genéricas de la hoja.
+#
+# La paleta no se inventa: navy #002457 con blanco en negrita es la cabecera
+# del xlsx (`carga_aulas_libro_formato.R` / estilo `cabecera` de indicadores),
+# y el par #E7EEF9/#1B4B8F es el azul de la casa que el semáforo del libro ya
+# usa («EN RESERVA», monitoreo_aulas_sheets_formato.R).
+
+# Los títulos de bloque y las cabeceras NO se escriben aquí: son los del
+# vocabulario compartido (`carga_aulas_libro_avance_columnas.R`), que es el
+# mismo que usan el renderer del Sheets y el writer del xlsx. Repetirlos era la
+# tercera copia de la misma lista, y la tercera copia es la que se queda vieja.
+# **Y es una FUNCIÓN, no una constante.** Con el eje declarable el título lleva
+# la palabra del eje («Avance por nivel»), así que reconocerlos exige TODAS sus
+# grafías —`.calae_titulos_posibles()`—, y esa lista se deriva del catálogo de
+# ejes, que colaciona después de este archivo. Una constante evaluada al cargar
+# no lo encontraría; y sin la lista completa, un bloque escrito con otro eje
+# pierde su banda, deja de delimitar su tabla y pasa por nota, sin fallar.
+.maaf_titulos_bloque <- function() c(.calae_titulos_posibles(), .calaco_titulos_posibles())
+
+# La primera celda de cada cabecera, para las heurísticas de nota y de ancho.
+# La IDENTIFICACIÓN de una tabla, en cambio, compara la fila ENTERA
+# (`.calac_tabla_de_cabecera`): cuatro de las cinco empiezan por «Facultad» y la
+# primera celda no las distingue.
+.maaf_CABECERAS_TABLA <- unique(vapply(AULAS_AVANCE_CABECERAS,
+                                       function(x) x[[1L]], character(1)))
+
+# V2 (2026-09-08): toda fila cuya primera celda diga «Total» es un cierre y se
+# viste igual. Hoy sólo la fila «Total» de la tabla por facultad.
+.maaf_FILA_TOTAL <- "Total"
+
+# --- El SEMÁFORO en Sheets, con la misma clasificación que el xlsx -----------
+#
+# Dictado de Gonzalo (2026-09-08): diferencia positiva en escalas de verde,
+# negativa en escalas de rojo; celda que llegó a la meta en verde y a la
+# sobremuestra en azul o celeste. Los tonos son los del xlsx
+# (`.CAI_VERDE_META`, `.CAI_CELESTE_SOBRE`, `.CAI_ESCALA_DIF`) para que la misma
+# hoja no se lea de dos colores según dónde se abra.
+.MAAF_VERDE_FONDO <- "#D6EBD6"
+.MAAF_VERDE_TINTA <- "#1E6F3C"
+.MAAF_CELESTE_FONDO <- "#D8E7F8"
+.MAAF_CELESTE_TINTA <- "#1B4B8F"
+.MAAF_ROJO_ESCALA <- "#E9A8A8"
+# El extremo vacío de un AVANCE: gris muy claro, no rojo. Ver
+# `AULAS_AVANCE_AVANCES` — un avance bajo el día 2 no es malo, es el día 2.
+.MAAF_NEUTRO_ESCALA <- "#EFF2F6"
+.MAAF_BLANCO_ESCALA <- "#FFFFFF"
+.MAAF_VERDE_ESCALA <- "#A9D5A9"
+
+# Una banda de UNA fila a lo ancho del rectángulo publicado: fondo, tinta en
+# negrita. `repeatCell` con fields acotado a userEnteredFormat — no toca
+# values ni dataValidation. Los opcionales dan la jerarquía tipográfica
+# (tamaño, itálica, peso) y `wrap` deja que una cabecera larga baje de línea
+# en su columna en vez de cortarse; los defaults reproducen la banda clásica,
+# así que los llamadores existentes no cambian de salida.
+.maaf_banda <- function(sheet_id, fila, n_cols, fondo, tinta,
+                        size = NULL, italic = FALSE, bold = TRUE, wrap = FALSE) {
+  texto <- list(
+    bold = isTRUE(bold),
+    foregroundColor = .monitoreo_sheets_rgb(tinta)
+  )
+  if (!is.null(size)) texto$fontSize <- as.integer(size)
+  if (isTRUE(italic)) texto$italic <- TRUE
+  formato <- list(
+    backgroundColor = .monitoreo_sheets_rgb(fondo),
+    textFormat = texto
+  )
+  campos <- "userEnteredFormat(backgroundColor,textFormat)"
+  if (isTRUE(wrap)) {
+    formato$wrapStrategy <- "WRAP"
+    formato$verticalAlignment <- "MIDDLE"
+    campos <- "userEnteredFormat(backgroundColor,textFormat,wrapStrategy,verticalAlignment)"
+  }
+  list(repeatCell = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(fila - 1L), endRowIndex = as.integer(fila),
+      startColumnIndex = 0L, endColumnIndex = as.integer(n_cols)
+    ),
+    cell = list(userEnteredFormat = formato),
+    fields = campos
+  ))
+}
+
+# El alto en píxeles de UNA fila (updateDimensionProperties ROWS): el aire de
+# los títulos, que a alto por defecto se ven apretados contra su banda.
+# El alto de una fila normal en Sheets. Es el valor por defecto del producto:
+# reasentarlo devuelve la fila a su estado, no la encoge.
+.MAAF_ALTO_NORMAL <- 21L
+# Y el de un título de bloque, que lleva banda y negrita. Es el mismo que usa la
+# hoja «Control de nivel» para sus bandas: dos hojas del mismo libro no se ven
+# distintas por una constante.
+.MAAF_ALTO_TITULO <- 28L
+
+.maaf_alto_fila <- function(sheet_id, fila, pixeles) {
+  list(updateDimensionProperties = list(
+    range = list(
+      sheetId = sheet_id, dimension = "ROWS",
+      startIndex = as.integer(fila - 1L), endIndex = as.integer(fila)
+    ),
+    properties = list(pixelSize = as.integer(pixeles)),
+    fields = "pixelSize"
+  ))
+}
+
+# Centrado horizontal de un rango de columnas a toda la altura publicada
+# (horas, conteos): fields acotado al alineamiento — no pisa bandas ni values.
+.maaf_centrar <- function(sheet_id, desde_col, hasta_col, n_filas) {
+  list(repeatCell = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = 0L, endRowIndex = as.integer(n_filas),
+      startColumnIndex = as.integer(desde_col), endColumnIndex = as.integer(hasta_col)
+    ),
+    cell = list(userEnteredFormat = list(horizontalAlignment = "CENTER")),
+    fields = "userEnteredFormat(horizontalAlignment)"
+  ))
+}
+
+# Las requests de banda, cabecera, formato de número y color de «Avance de
+# campo», derivadas fila a fila del contenido publicado: título de bloque =
+# banda navy; fila de nombres de tabla = cabecera azul clara; y, dentro de cada
+# tabla reconocida, el numFmt y las reglas de color que su vocabulario declara.
+# Lo que no es ni lo uno ni lo otro (notas, vacíos declarados) no se tiñe.
+.maaf_requests <- function(sheet_id, rows) {
+  rows <- rows %||% list()
+  if (!length(rows)) return(list())
+  n_cols <- max(1L, max(vapply(rows, function(row) length(row %||% list()), integer(1))))
+  m <- .maaf_celdas(rows, n_cols)
+  requests <- list()
+  for (i in seq_along(rows)) {
+    celdas <- m[i, ]
+    primera <- celdas[[1L]]
+    if (primera %in% .maaf_titulos_bloque()) {
+      requests[[length(requests) + 1L]] <-
+        .maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF")
+    } else if (nzchar(.calac_tabla_de_cabecera(celdas))) {
+      # S1: la cabecera baja de línea en su columna («Faltantes mujeres
+      # sobremuestra» no cabe en la suya) en vez de cortarse.
+      requests[[length(requests) + 1L]] <-
+        .maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE)
+      # **Y la fila crece lo que la cabecera necesita.** `WRAP` reparte el texto
+      # en líneas pero NO estira la fila: con el alto por defecto la tercera
+      # línea se corta y «Tasa de rendimiento de la facultad esperada» salía
+      # publicada como «Tasa de / rendimiento de la». Se vio en el Sheets del
+      # 2026-09-08. El alto se deriva del ancho que esta misma hoja pide para
+      # cada columna, así que sigue al contenido y no a una constante.
+      requests[[length(requests) + 1L]] <-
+        .maaf_alto_fila(sheet_id, i, .maaf_alto_de_cabecera(celdas, .maaf_anchos_px(m)))
+    } else if (identical(primera, .maaf_FILA_TOTAL)) {
+      requests[[length(requests) + 1L]] <-
+        .maaf_banda(sheet_id, i, n_cols, "#F3F5F9", "#002457")
+    }
+  }
+  # S1: anchos por columna y cifras a la derecha, derivados del contenido.
+  # Van DESPUÉS del ancho único de la capa genérica, que así queda pisado.
+  c(requests,
+    .maaf_ancho_requests(sheet_id, m), .maaf_alinear_requests(sheet_id, m),
+    .maaf_nota_requests(sheet_id, m),
+    .maaf_numero_requests(sheet_id, rows, m),
+    .maaf_alinear_tablas(sheet_id, rows, m),
+    .maaf_separador_bloques(sheet_id, m),
+    .maaf_color_requests(sheet_id, rows, m))
+}
+
+# El alto en píxeles que necesita una fila de cabecera: la columna que más
+# líneas pida manda. ~7,2 px por carácter (el mismo factor que `.maaf_anchos_px`)
+# y 17 px por línea, con un mínimo que deja respirar a una cabecera de una línea.
+.maaf_alto_de_cabecera <- function(celdas, anchos_px) {
+  n <- min(length(celdas), length(anchos_px))
+  if (!n) return(30L)
+  # `ceiling()` devuelve double, así que el vapply se declara numeric: pedirle
+  # integer revienta con «values must be type 'integer'».
+  lineas <- vapply(seq_len(n), function(j) {
+    caben <- max(4, floor((anchos_px[[j]] - 14) / 7.2))
+    max(1, ceiling(nchar(celdas[[j]], type = "chars") / caben))
+  }, numeric(1))
+  as.integer(min(120L, max(30L, max(lineas) * 17L + 10L)))
+}
+
+# --- Las tablas publicadas, localizadas por su cabecera ----------------------
+#
+# Todo lo que sigue se ancla en la CABECERA COMPLETA de cada tabla y en el
+# NOMBRE de cada columna; nunca en una fila o una columna contada. Un índice
+# fijo es una dependencia invisible con el orden: quien inserta una columna no
+# tiene forma de saber que existe, y así salió publicado un techo de 188 aulas
+# pintado como «18800,0 %».
+# La cabecera PUBLICADA de una tabla localizada, sin sus celdas vacías de cola.
+#
+# **Se lee de la hoja y no de `AULAS_AVANCE_CABECERAS`**, y ésa es la corrección
+# que el recorte por declaración obligó a hacer: desde que las columnas se
+# derivan de lo que el estudio declara, la constante puede tener veintitrés
+# rótulos donde la hoja publica cinco. Recorrer la constante indexaba la matriz
+# de la hoja fuera de rango —«subscript out of bounds» al publicar— y, con
+# «Cobertura», que ni siquiera está en esa constante, dejaba la cabecera en
+# `NULL` y la tabla entera sin formato.
+.maaf_cabecera_de <- function(tabla, m) {
+  fila <- trimws(as.character(m[tabla$cabecera, ]))
+  fila[seq_len(max(0L, max(c(0L, which(nzchar(fila))))))]
+}
+
+.maaf_tablas <- function(m) {
+  n_filas <- nrow(m)
+  out <- list()
+  i <- 1L
+  while (i <= n_filas) {
+    clave <- .calac_tabla_de_cabecera(m[i, ])
+    if (!nzchar(clave)) { i <- i + 1L; next }
+    j <- i
+    while (j < n_filas) {
+      siguiente <- m[j + 1L, ]
+      if (siguiente[[1L]] %in% .maaf_titulos_bloque()) break
+      if (sum(nzchar(siguiente)) < 2L) break
+      j <- j + 1L
+    }
+    if (j > i) {
+      out[[length(out) + 1L]] <- list(clave = clave, cabecera = i,
+                                      desde = i + 1L, hasta = j)
+    }
+    i <- j + 1L
+  }
+  out
+}
+
+# Los valores numéricos publicados, como matriz: el texto («—», los rótulos)
+# queda en NA. Sirve para fijar el cero de la escala de diferencias, que si se
+# deja en automático Sheets lo pone en la mediana y entonces «peor de lo
+# esperado» puede salir verde.
+.maaf_numeros <- function(rows, n_cols) {
+  vals <- lapply(rows, function(row) {
+    celdas <- unname(as.list(row %||% list()))
+    v <- vapply(celdas, function(x) {
+      if (is.numeric(x) && length(x) == 1L && is.finite(x)) as.numeric(x) else NA_real_
+    }, numeric(1))
+    c(v, rep(NA_real_, max(0L, n_cols - length(v))))[seq_len(n_cols)]
+  })
+  matrix(unlist(vals, use.names = FALSE), ncol = n_cols, byrow = TRUE)
+}
+
+# El rango de una COLUMNA de datos de una tabla, o de una FILA cuando la tabla
+# está traspuesta («Avance general»: una fila por concepto).
+.maaf_rango <- function(sheet_id, tabla, k, traspuesta, n_cols_tabla) {
+  if (isTRUE(traspuesta)) {
+    list(sheetId = sheet_id,
+         startRowIndex = as.integer(tabla$desde + k - 2L),
+         endRowIndex = as.integer(tabla$desde + k - 1L),
+         startColumnIndex = 1L, endColumnIndex = as.integer(n_cols_tabla))
+  } else {
+    list(sheetId = sheet_id,
+         startRowIndex = as.integer(tabla$desde - 1L),
+         endRowIndex = as.integer(tabla$hasta),
+         startColumnIndex = as.integer(k - 1L), endColumnIndex = as.integer(k))
+  }
+}
+
+# El numFmt de cada columna (o fila): porcentaje donde el vocabulario declara
+# una proporción, miles donde hay un conteo. **El rótulo NO lleva «(%)»**:
+# Gonzalo, 2026-09-08, «el (%) significa que va en porcentaje, no que les pongas
+# "(%)" al título». Por eso el porcentaje tiene que vivir en la celda, y por eso
+# la celda tiene que ser un número.
+.maaf_numero_requests <- function(sheet_id, rows, m) {
+  requests <- list()
+  num <- .maaf_numeros(rows, ncol(m))
+  for (tabla in .maaf_tablas(m)) {
+    cabecera <- .maaf_cabecera_de(tabla, m)
+    traspuesta <- identical(tabla$clave, "general")
+    n_cols_tabla <- length(cabecera)
+    if (!n_cols_tabla) next
+    rotulos <- if (traspuesta) m[tabla$desde:tabla$hasta, 1L] else cabecera
+    for (k in seq_along(rotulos)) {
+      if (!traspuesta && k == 1L) next
+      rango <- .maaf_rango(sheet_id, tabla, k, traspuesta, n_cols_tabla)
+      # **El formato se REASIENTA siempre, venga o no una cifra.**
+      #
+      # Antes se saltaba la columna sin ningún número —«una columna sin cifra es
+      # de texto»— y eso la dejaba con el formato que tuviera esa celda en la
+      # publicación ANTERIOR. Con las tablas derivándose por estudio y con
+      # bloques nuevos que las mueven de fila, la celda de debajo casi nunca es
+      # la misma: el 2026-09-22 salió «Casos fuera del universo 27» pintado
+      # «2700,0 %» y la tasa esperada 0,6651 pintada «1». Los valores estaban
+      # bien y la hoja mentía igual.
+      #
+      # Es la misma doctrina que el reset de pestaña: lo que no se reasienta,
+      # se hereda.
+      naturaleza <- .calac_naturaleza(rotulos[[k]], tabla$clave)
+      # Un rótulo que el vocabulario no declara NO se formatea a ojo: se deja
+      # como está y el test de naturalezas lo caza antes de publicar.
+      if (!nzchar(naturaleza)) next
+      patron <- if (identical(naturaleza, "proporcion")) {
+        list(type = "PERCENT", pattern = "0.0%")
+      } else if (identical(naturaleza, "texto")) {
+        list(type = "TEXT", pattern = "@")
+      } else {
+        list(type = "NUMBER", pattern = "#,##0")
+      }
+      requests[[length(requests) + 1L]] <- list(repeatCell = list(
+        range = rango,
+        cell = list(userEnteredFormat = list(numberFormat = patron)),
+        fields = "userEnteredFormat.numberFormat"
+      ))
+    }
+  }
+  requests
+}
+
+# La alineación DENTRO de cada tabla, que la heurística global no puede dar.
+#
+# `.maaf_columnas_cifra()` mira la columna de la hoja ENTERA y exige que todas
+# sus celdas de datos sean cifras. Con cinco tablas apiladas eso ya no se cumple
+# casi nunca: la columna B lleva la cifra de «Avance general» y de la tabla por
+# facultad, pero también el NOMBRE del aplicador. Antes del 2026-09-08 sólo una
+# tabla tenía texto fuera de la columna A y la heurística bastaba.
+#
+# Aquí cada tabla decide por su cuenta y por columna: la que trae números en sus
+# filas de datos se alinea a la derecha, en el rango de ESA tabla. Va después de
+# la pasada global, así que la pisa donde discrepan.
+.maaf_alinear_tablas <- function(sheet_id, rows, m) {
+  requests <- list()
+  num <- .maaf_numeros(rows, ncol(m))
+  for (tabla in .maaf_tablas(m)) {
+    # De la hoja y no de la constante: la tabla publicada puede ser más
+    # estrecha que su vocabulario (`.maaf_cabecera_de()`).
+    n_cols_tabla <- length(.maaf_cabecera_de(tabla, m))
+    if (n_cols_tabla < 2L) next
+    traspuesta <- identical(tabla$clave, "general")
+    columnas <- if (traspuesta) 2:n_cols_tabla else seq_len(n_cols_tabla)[-1L]
+    for (k in columnas) {
+      if (!any(is.finite(num[tabla$desde:tabla$hasta, k]))) next
+      requests[[length(requests) + 1L]] <- list(repeatCell = list(
+        range = list(
+          sheetId = sheet_id,
+          startRowIndex = as.integer(tabla$desde - 1L),
+          endRowIndex = as.integer(tabla$hasta),
+          startColumnIndex = as.integer(k - 1L), endColumnIndex = as.integer(k)
+        ),
+        cell = list(userEnteredFormat = list(horizontalAlignment = "RIGHT")),
+        fields = "userEnteredFormat(horizontalAlignment)"
+      ))
+    }
+  }
+  requests
+}
+
+.maaf_regla_booleana <- function(rango, tipo, valor, fondo, tinta) {
+  list(addConditionalFormatRule = list(
+    index = 0L,
+    rule = list(
+      ranges = list(rango),
+      booleanRule = list(
+        condition = list(type = tipo,
+                         values = list(list(userEnteredValue = as.character(valor)))),
+        format = list(
+          backgroundColor = .monitoreo_sheets_rgb(fondo),
+          textFormat = list(foregroundColor = .monitoreo_sheets_rgb(tinta))
+        )
+      )
+    )
+  ))
+}
+
+# La escala de una DIFERENCIA, **sin un solo número con separador decimal**.
+#
+# La primera versión fijaba los extremos con `type = "NUMBER"` y el valor en
+# texto («-0.3348»), y salió publicada con topes de ±3 348: Sheets parsea el
+# valor de un punto de interpolación CON EL IDIOMA DEL DOCUMENTO, y en un
+# documento en español el punto es separador de miles, así que «0.3348» se leyó
+# como 3 348. La regla quedaba viva pero inútil — con un rango de ±3 348, cero
+# coma algo se pinta blanco siempre—. Es la misma trampa que ya está anotada
+# para USER_ENTERED en `monitoreo_aulas_libro_arrastre.R`, y sólo se ve leyendo
+# el documento después de publicar.
+#
+# Aquí los extremos son MIN y MAX —que no llevan valor— y el único número que
+# viaja es el «0» del punto medio, que se lee igual en cualquier idioma. De
+# paso la escala se ajusta al rango real de la columna en vez de a un tope
+# calculado.
+#
+# Cuando la columna no cruza el cero no hay punto medio que poner: media escala
+# —blanco a verde si todo va a favor, rojo a blanco si todo va en contra—, que
+# es lo que la API acepta y lo que el dato dice.
+.maaf_regla_escala <- function(rango, valores) {
+  v <- valores[is.finite(valores)]
+  if (!length(v)) return(NULL)
+  punto <- function(color, tipo, valor = NULL) {
+    out <- list(color = .monitoreo_sheets_rgb(color), type = tipo)
+    if (!is.null(valor)) out$value <- valor
+    out
+  }
+  gradiente <- if (min(v) < 0 && max(v) > 0) {
+    list(
+      minpoint = punto(.MAAF_ROJO_ESCALA, "MIN"),
+      midpoint = punto(.MAAF_BLANCO_ESCALA, "NUMBER", "0"),
+      maxpoint = punto(.MAAF_VERDE_ESCALA, "MAX")
+    )
+  } else if (max(v) <= 0) {
+    list(
+      minpoint = punto(.MAAF_ROJO_ESCALA, "MIN"),
+      maxpoint = punto(.MAAF_BLANCO_ESCALA, "MAX")
+    )
+  } else {
+    list(
+      minpoint = punto(.MAAF_BLANCO_ESCALA, "MIN"),
+      maxpoint = punto(.MAAF_VERDE_ESCALA, "MAX")
+    )
+  }
+  list(addConditionalFormatRule = list(
+    index = 0L,
+    rule = list(ranges = list(rango), gradientRule = gradiente)
+  ))
+}
+
+# La escala de un AVANCE: de vacío a lleno, sin rojo. Los dos extremos son
+# NUMBER con «0» y «1» —enteros sin separador decimal, que se leen igual en
+# cualquier idioma del documento— porque aquí la escala NO se ajusta al rango de
+# los datos: 0 y 100 % son la vara, y con MIN/MAX un avance del 3 % saldría
+# verde por ser el mayor de una columna que va toda por debajo.
+.maaf_regla_deposito <- function(rango) {
+  punto <- function(color, valor) list(
+    color = .monitoreo_sheets_rgb(color), type = "NUMBER", value = valor
+  )
+  list(addConditionalFormatRule = list(
+    index = 0L,
+    rule = list(ranges = list(rango), gradientRule = list(
+      minpoint = punto(.MAAF_NEUTRO_ESCALA, "0"),
+      maxpoint = punto(.MAAF_VERDE_ESCALA, "1")
+    ))
+  ))
+}
+
+# El color que sigue al valor. Cinco reglas, todas nombradas por rótulo:
+#
+#   · una DIFERENCIA se pinta en escala con el blanco clavado en el cero, así
+#     que el verde es siempre «mejor de lo esperado» y el rojo siempre peor;
+#   · unos FALTANTES en cero significan que esa celda ya cubrió su meta: verde
+#     contra la muestra, celeste contra la sobremuestra;
+#   · un AVANCE que llega al 100 % es lo mismo dicho en proporción.
+#
+# El tono es claro a propósito: el color ayuda a barrer la tabla, pero el dato
+# es el número y un fondo saturado lo tapa.
+.maaf_color_requests <- function(sheet_id, rows, m) {
+  requests <- list()
+  num <- .maaf_numeros(rows, ncol(m))
+  for (tabla in .maaf_tablas(m)) {
+    cabecera <- .maaf_cabecera_de(tabla, m)
+    traspuesta <- identical(tabla$clave, "general")
+    n_cols_tabla <- length(cabecera)
+    if (!n_cols_tabla) next
+    rotulos <- if (traspuesta) m[tabla$desde:tabla$hasta, 1L] else cabecera
+    for (k in seq_along(rotulos)) {
+      if (!traspuesta && k == 1L) next
+      r <- trimws(rotulos[[k]])
+      rango <- .maaf_rango(sheet_id, tabla, k, traspuesta, n_cols_tabla)
+      valores <- if (traspuesta) {
+        num[tabla$desde + k - 1L, seq_len(n_cols_tabla)][-1L]
+      } else {
+        num[tabla$desde:tabla$hasta, k]
+      }
+      valores <- valores[is.finite(valores)]
+      if (r %in% AULAS_AVANCE_DIFERENCIAS) {
+        regla <- .maaf_regla_escala(rango, valores)
+        if (!is.null(regla)) requests[[length(requests) + 1L]] <- regla
+      } else if (r %in% AULAS_AVANCE_FALTAN_MUESTRA) {
+        requests[[length(requests) + 1L]] <- .maaf_regla_booleana(
+          rango, "NUMBER_EQ", 0, .MAAF_VERDE_FONDO, .MAAF_VERDE_TINTA)
+      } else if (r %in% AULAS_AVANCE_FALTAN_SOBREMUESTRA) {
+        requests[[length(requests) + 1L]] <- .maaf_regla_booleana(
+          rango, "NUMBER_EQ", 0, .MAAF_CELESTE_FONDO, .MAAF_CELESTE_TINTA)
+      } else if (r %in% AULAS_AVANCE_AVANCES) {
+        # **Un depósito que se llena, no un veredicto.** Gris claro en el 0,
+        # verde en el 100 %, y celeste al pasarse. Gonzalo pidió primero
+        # «rojo hasta verde y luego celeste» y se corrigió él mismo: «rojo da a
+        # entender que es algo malo cuando puede ser sólo que recién esté
+        # empezando». El rojo se queda donde sí hay veredicto, que son las
+        # diferencias contra lo esperado.
+        #
+        # El orden importa: cada request entra en el índice 0, así que la que se
+        # emite ÚLTIMA queda primera y Sheets aplica la primera que casa. La
+        # escala va antes y el celeste después, para que el celeste gane.
+        requests[[length(requests) + 1L]] <- .maaf_regla_deposito(rango)
+        requests[[length(requests) + 1L]] <- .maaf_regla_booleana(
+          rango, "NUMBER_GREATER_THAN_EQ", 1, .MAAF_CELESTE_FONDO, .MAAF_CELESTE_TINTA)
+      }
+    }
+  }
+  requests
+}
+
+# --- S1 (loop estética-aulas-sheets, 2026-09-07): la hoja se lee como tabla ---
+#
+# Medido antes: la capa genérica (`monitoreo_aulas_sheets_formato_requests`)
+# congela título y columna A —eso se conserva— y fija UN ancho de 150 px para
+# las doce columnas; con eso «Aulas que llegaron a SU meta» se corta y las
+# cifras, que viajan como texto, quedan pegadas a la izquierda igual que un
+# rótulo. Aquí cada columna pide el ancho que su contenido necesita, la
+# cabecera de tabla baja de línea en vez de ensanchar la columna, y las
+# columnas cuyas celdas de datos son cifras se alinean a la derecha. Todo se
+# deriva de los rows publicados; ninguna posición viene de un número mágico.
+
+# Una celda más larga que esto es una nota, no un rótulo: no manda ancho.
+.maaf_NOTA_MIN_CHARS <- 60L
+
+# S2: una fila es NOTA cuando trae UNA sola celda con contenido, en la columna
+# A, que no es título de bloque ni cabecera y pasa de este largo (los rótulos
+# de la hoja no llegan a 30; «Al 07/09/2026» tampoco).
+.maaf_NOTA_DETECTAR_CHARS <- 40L
+
+# Cabecera de tabla: baja de línea, así que aporta a lo más esto al ancho.
+.maaf_CABECERA_MAX_CHARS <- 14L
+
+# ¿La celda es un VALOR que se lee alineado a la derecha: cifra (entera,
+# decimal, porcentaje), fecha u hora ISO, o un vacío declarado? Medido con el
+# libro real del 07/09: el bloque de meta trae una marca `2026-09-07T20:41:36Z`
+# en la columna de cifras, y sin esta cláusula esa sola celda dejaba el bloque
+# entero pegado a la izquierda.
+.maaf_es_cifra <- function(x) {
+  x <- trimws(as.character(x))
+  !nzchar(x) | x %in% c("\u2014", "-", "n/d", "s/d") |
+    grepl("^[-+]?[0-9]+([.,][0-9]+)?\\s*%?$", x) |
+    grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2})?Z?)?$", x) |
+    grepl("^[0-9]{1,2}:[0-9]{2}$", x)
+}
+
+# Los rows como matriz de caracteres n_filas x n_cols, rellenando a la
+# derecha: la API devuelve filas dentadas y el renderer también las produce.
+.maaf_celdas <- function(rows, n_cols) {
+  padded <- lapply(rows, function(row) {
+    celdas <- trimws(as.character(unlist(row %||% list(), use.names = FALSE)))
+    celdas[is.na(celdas)] <- ""
+    c(celdas, rep("", max(0L, n_cols - length(celdas))))[seq_len(n_cols)]
+  })
+  matrix(unlist(padded, use.names = FALSE), ncol = n_cols, byrow = TRUE)
+}
+
+# Una fila de DATOS: ni título de bloque, ni cabecera de tabla, ni portada,
+# ni nota (esas traen una sola celda con contenido).
+.maaf_es_fila_de_datos <- function(celdas_fila) {
+  primera <- celdas_fila[[1L]]
+  !(primera %in% .maaf_titulos_bloque()) && !(primera %in% .maaf_CABECERAS_TABLA) &&
+    sum(nzchar(celdas_fila)) >= 2L
+}
+
+# El ancho en píxeles de cada columna: ~7,2 px por carácter más el aire de la
+# celda, entre 90 y 320. Las notas no cuentan; las cabeceras cuentan hasta
+# `.maaf_CABECERA_MAX_CHARS` porque bajan de línea.
+.maaf_anchos_px <- function(m) {
+  es_cabecera <- m[, 1L] %in% .maaf_CABECERAS_TABLA
+  vapply(seq_len(ncol(m)), function(j) {
+    n <- nchar(m[, j], type = "chars")
+    n[n > .maaf_NOTA_MIN_CHARS] <- 0L
+    n[es_cabecera] <- pmin(n[es_cabecera], .maaf_CABECERA_MAX_CHARS)
+    as.integer(min(320L, max(90L, round(max(0L, n) * 7.2) + 20L)))
+  }, integer(1))
+}
+
+# --- los bloques por sexo, para que quince columnas no se lean como un muro ---
+#
+# Dictado de Gonzalo (2026-09-08, sobre el rendimiento por facultad): «hay que
+# intercalar bien el orden de las columnas para que sea fácilmente comparable».
+# Las columnas quedaron intercaladas —cada meta pegada a lo suyo— y entonces
+# apareció el otro problema: en «Avance por facultad» son veinte columnas
+# seguidas del mismo ancho y en «Rendimiento por facultad» diecinueve, todas
+# cifras, y el ojo no encuentra dónde acaba el total y empieza el bloque de
+# hombres. La cabecera lo dice, pero hay que leerla entera cada vez.
+#
+# Un separador vertical en el borde donde CAMBIA el bloque, corrido de la
+# cabecera a la última fila de la tabla. No pinta ni una celda: sólo dibuja la
+# junta, así que no puede pelearse con las escalas de color ni con el numFmt.
+
+# El gris de las notas del libro. Peor contraste contra los rellenos de las
+# escalas: 3,03 : 1, frente al 1,26 : 1 del azulado que llevaba antes.
+.MAAF_SEPARADOR_BLOQUE <- "#5B6472"
+
+# A qué bloque pertenece una columna, por su RÓTULO. `total` es el defecto: lo
+# que no dice sexo habla del conjunto.
+.maaf_bloque_de_columna <- function(rotulo) {
+  r <- tolower(trimws(as.character(rotulo %||% "")))
+  if (!nzchar(r)) return("total")
+  if (grepl("hombre", r, fixed = TRUE)) return("hombres")
+  if (grepl("mujer", r, fixed = TRUE)) return("mujeres")
+  "total"
+}
+
+# Un borde izquierdo en cada columna donde el bloque cambia respecto de la
+# anterior. La primera columna nunca: ahí no hay junta.
+#
+# **El tono se eligió midiendo, no a ojo.** El primero fue un gris azulado
+# (#8FA6C4) que se lee bien sobre blanco (2,49 : 1) y DESAPARECE sobre los
+# rellenos de las escalas: 1,26 : 1 contra el rojo (#E9A8A8) y 1,52 : 1 contra
+# el verde (#A9D5A9). O sea, se perdía justo en las columnas de diferencia, que
+# son las que llevan color y las que marcan el final de un bloque. El gris de
+# las notas del libro da 3,03 : 1 en su peor caso y ya está en la paleta, así
+# que no se inventa un color nuevo para esto.
+.maaf_separador_bloques <- function(sheet_id, m) {
+  requests <- list()
+  for (t in .maaf_tablas(m)) {
+    cab <- m[t$cabecera, ]
+    n <- length(.maaf_cabecera_de(t, m))
+    if (n < 2L) next
+    bloques <- vapply(seq_len(min(n, length(cab))), function(j) {
+      .maaf_bloque_de_columna(cab[[j]])
+    }, character(1))
+    if (length(bloques) < 2L) next
+    cortes <- which(bloques[-1L] != bloques[-length(bloques)]) + 1L
+    for (j in cortes) {
+      requests[[length(requests) + 1L]] <- list(updateBorders = list(
+        range = list(
+          sheetId = sheet_id,
+          startRowIndex = as.integer(t$cabecera - 1L), endRowIndex = as.integer(t$hasta),
+          startColumnIndex = as.integer(j - 1L), endColumnIndex = as.integer(j)
+        ),
+        left = list(style = "SOLID", width = 1L,
+                    color = .monitoreo_sheets_rgb(.MAAF_SEPARADOR_BLOQUE))
+      ))
+    }
+  }
+  requests
+}
+
+# Una request de ancho por tramo de columnas contiguas con el mismo ancho.
+.maaf_ancho_requests <- function(sheet_id, m) {
+  px <- .maaf_anchos_px(m)
+  requests <- list()
+  ini <- 1L
+  for (j in seq_along(px)) {
+    if (j == length(px) || px[j + 1L] != px[j]) {
+      requests[[length(requests) + 1L]] <- .mafs_dim_request(sheet_id, ini - 1L, j, px[j])
+      ini <- j + 1L
+    }
+  }
+  requests
+}
+
+# Qué columnas son de cifras: todas sus celdas de datos con contenido son
+# cifras. La columna A nunca: son los rótulos.
+.maaf_columnas_cifra <- function(m) {
+  de_datos <- vapply(seq_len(nrow(m)), function(i) .maaf_es_fila_de_datos(m[i, ]), logical(1))
+  datos <- m[de_datos, , drop = FALSE]
+  vapply(seq_len(ncol(m)), function(j) {
+    if (j == 1L || !nrow(datos)) return(FALSE)
+    v <- datos[, j]
+    v <- v[nzchar(v)]
+    length(v) > 0L && all(.maaf_es_cifra(v))
+  }, logical(1))
+}
+
+# Alineación a la derecha de un rectángulo, con fields acotado: no pisa
+# bandas ni values.
+.maaf_derecha <- function(sheet_id, desde_col, hasta_col, desde_fila, n_filas) {
+  list(repeatCell = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(desde_fila), endRowIndex = as.integer(n_filas),
+      startColumnIndex = as.integer(desde_col), endColumnIndex = as.integer(hasta_col)
+    ),
+    cell = list(userEnteredFormat = list(horizontalAlignment = "RIGHT")),
+    fields = "userEnteredFormat(horizontalAlignment)"
+  ))
+}
+
+# Una request por tramo de columnas de cifras contiguas, desde la fila 3 (las
+# dos de portada son texto) hasta el final publicado.
+.maaf_alinear_requests <- function(sheet_id, m) {
+  cifra <- .maaf_columnas_cifra(m)
+  n_filas <- nrow(m)
+  desde_fila <- min(2L, n_filas)
+  requests <- list()
+  j <- 1L
+  while (j <= length(cifra)) {
+    if (!cifra[j]) { j <- j + 1L; next }
+    k <- j
+    while (k < length(cifra) && cifra[k + 1L]) k <- k + 1L
+    requests[[length(requests) + 1L]] <- .maaf_derecha(sheet_id, j - 1L, k, desde_fila, n_filas)
+    j <- k + 1L
+  }
+  requests
+}
+
+# --- S2: las notas no se derraman -------------------------------------------
+#
+# Medido en el libro real del 07/09: una línea suelta —hoy el titular de «Avance
+# general» y el vacío declarado de una tabla sin filas— viaja en UNA celda de
+# la columna A; en Sheets se derrama hasta la primera celda ocupada y
+# sobresalen de su tabla. Aquí cada nota se fusiona a lo ancho publicado, baja
+# de línea, se lee desde arriba y su fila crece lo que el texto necesita. El
+# reset de pestaña del motor (`.monitoreo_sheets_reset_tab_requests`) deshace
+# los merges viejos antes de reformatear, así que una republicación con otra
+# geometría no hereda fusiones corridas.
+
+.maaf_es_nota <- function(celdas_fila) {
+  con_texto <- which(nzchar(celdas_fila))
+  if (length(con_texto) != 1L || con_texto != 1L) return(FALSE)
+  primera <- celdas_fila[[1L]]
+  !(primera %in% .maaf_titulos_bloque()) && !(primera %in% .maaf_CABECERAS_TABLA) &&
+    nchar(primera, type = "chars") > .maaf_NOTA_DETECTAR_CHARS
+}
+
+.maaf_nota_requests <- function(sheet_id, m) {
+  n_filas <- nrow(m)
+  n_cols <- ncol(m)
+  if (!n_filas) return(list())
+  # Los caracteres por línea salen de los anchos que esta misma hoja pide
+  # (~7,2 px por carácter); así el alto sigue al ancho real, no a una constante.
+  chars_por_linea <- max(20L, as.integer(floor(sum(.maaf_anchos_px(m)) / 7.2)))
+  requests <- list()
+  for (i in seq_len(n_filas)) {
+    if (!.maaf_es_nota(m[i, ])) next
+    rango <- list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(i - 1L), endRowIndex = as.integer(i),
+      startColumnIndex = 0L, endColumnIndex = as.integer(n_cols)
+    )
+    requests[[length(requests) + 1L]] <- list(mergeCells = list(range = rango, mergeType = "MERGE_ALL"))
+    requests[[length(requests) + 1L]] <- list(repeatCell = list(
+      range = rango,
+      cell = list(userEnteredFormat = list(
+        wrapStrategy = "WRAP",
+        verticalAlignment = "TOP",
+        textFormat = list(foregroundColor = .monitoreo_sheets_rgb("#5B6472"))
+      )),
+      fields = "userEnteredFormat(wrapStrategy,verticalAlignment,textFormat)"
+    ))
+    lineas <- max(1L, ceiling(nchar(m[i, 1L], type = "chars") / chars_por_linea))
+    requests[[length(requests) + 1L]] <- .maaf_alto_fila(sheet_id, i, 21L * lineas + 4L)
+  }
+  # **Y el alto de las demás filas se REASIENTA al de una fila normal.**
+  #
+  # Lo que no se reasienta, se hereda: Google conserva el alto de la fila aunque
+  # su contenido cambie. Al retirarse las notas didácticas y moverse los bloques,
+  # las filas 17, 27, 30 y 31 de «Avance de campo» quedaron a cuatro veces lo
+  # normal y VACÍAS — el alto de la nota que ya no está.
+  #
+  # Se excluyen las que sí piden alto propio y lo piden en otra pasada: los
+  # títulos de bloque, las cabeceras de tabla (que bajan de línea) y las notas de
+  # arriba. Pisarlas aquí las aplastaría.
+  altos <- vapply(requests, function(r) {
+    d <- r$updateDimensionProperties
+    if (is.null(d)) NA_integer_ else as.integer(d$range$startIndex + 1L)
+  }, integer(1))
+  propios <- altos[!is.na(altos)]
+  for (i in seq_len(n_filas)) {
+    if (i %in% propios) next
+    # Las cabeceras de tabla piden su alto en otra pasada —bajan de línea— y
+    # pisarlas aquí las aplastaría.
+    if (nzchar(.calac_tabla_de_cabecera(m[i, ]))) next
+    # El título de bloque también se reasienta: es una de las filas que quedaron
+    # a cuatro veces lo normal por heredar el alto de la nota que tenía debajo.
+    alto <- if (m[i, 1L] %in% .maaf_titulos_bloque()) .MAAF_ALTO_TITULO else .MAAF_ALTO_NORMAL
+    requests[[length(requests) + 1L]] <- .maaf_alto_fila(sheet_id, i, alto)
+  }
+  requests
+}

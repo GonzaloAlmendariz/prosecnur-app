@@ -365,6 +365,7 @@ formulario_word_render <- function(model, output_file) {
   # pagina, para paridad con el PDF. officer los soporta via prop_section.
   doc <- .form_word_apply_furniture(doc)
   print(doc, target = output_file)
+  .docx_conformar(output_file)   # XML conforme al esquema de Word (docx_conformar.R)
   invisible(output_file)
 }
 

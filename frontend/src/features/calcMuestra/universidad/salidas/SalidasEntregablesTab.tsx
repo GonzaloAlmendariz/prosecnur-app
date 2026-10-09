@@ -22,12 +22,15 @@ import {
   Table2,
 } from "lucide-react";
 import type {
+  CalcMuestraAulasState,
+  CalcMuestraEstudio,
   CalcMuestraWorkspace,
   CalcMuestraWorkspacePublicationConfig,
 } from "../../../../api/client";
 import { Popover } from "../../../../components/Popover";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import { ReporteMetodologicoCard } from "../../didactica/ReporteMetodologicoCard";
+import { SustentoCoberturaCard } from "./SustentoCoberturaCard";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { DEFAULT_UNIVERSITY_PUBLICATION_CONFIG } from "../shared/constants";
 import { PanelAvanzado } from "../ui";
@@ -201,12 +204,18 @@ export function SalidasEntregablesTab({
   onWorkspace,
   reporte,
   paquete,
+  estudio,
+  aulasState,
 }: {
   model: ClassroomLabModel;
   workspace: CalcMuestraWorkspace;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   reporte: SalidasReporteProps;
   paquete?: SalidasPaqueteDefensaProps;
+  /** Para la cobertura del sustento: aquí es donde alguien pide el documento,
+   *  así que aquí tiene que poder ver si estaría completo. */
+  estudio?: CalcMuestraEstudio | null;
+  aulasState?: CalcMuestraAulasState | null;
 }) {
   const config = { ...DEFAULT_UNIVERSITY_PUBLICATION_CONFIG, ...(workspace.publication_config ?? {}) };
   const { selectionReady, replacementReady } = model;
@@ -229,10 +238,17 @@ export function SalidasEntregablesTab({
     <div
       className="cmv2-sal-stack"
       // Declarada para que el gate visual pueda auditarla.
+      // Y la readiness con ella: sin `[data-audit-ready]` el puente responde
+      // `sin-marca-de-readiness` y la pestaña queda SIN MEDIR, que no es lo
+      // mismo que conforme. `true` al montar: los entregables se piden desde
+      // aquí, la vista no espera nada para pintarse.
+      data-audit-ready="true"
       data-qa-geometry-group="calc-muestra/salidas-entregables"
       data-qa-geometry-contract="intrinsic"
     >
       <ReporteMetodologicoCard {...reporteCard} />
+      {/* Antes de generar nada, qué capítulos tendría el sustento. */}
+      <SustentoCoberturaCard estudio={estudio} workspace={workspace} aulasState={aulasState} />
       {Boolean(reporteStale) && reporte.disponible && (
         <AvisoModulo tone="warn" role="status" compact title="Desactualizado:">
           el estudio cambió después de generarlo. La descarga sigue disponible; vuelve a generar el

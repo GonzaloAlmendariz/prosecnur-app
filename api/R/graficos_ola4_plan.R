@@ -420,10 +420,18 @@ p_barras_divergentes <- function(vars = NULL,
     )
   }
 
+  # Los códigos del instrumento de cada nivel (cuando la escala tiene firma): la lámina nativa reconoce por
+  # ellos las opciones especiales 90-99 aunque su etiqueta no lo diga (ADR 0093, punto 2).
+  codigos <- if (length(opciones_e1)) {
+    et <- vapply(opciones_e1, function(x) as.character(x$etiqueta)[1], character(1))
+    cd <- vapply(opciones_e1, function(x) as.character(x$codigo)[1], character(1))
+    stats::setNames(unname(cd[match(niveles, et)]), cols)
+  } else NULL
   list(
     data = out,
     cols_porcentaje = cols,
     etiquetas_grupos = stats::setNames(niveles, cols),
+    codigos_grupos = codigos,
     reparto = reparto_visible
   )
 }
@@ -454,6 +462,7 @@ p_barras_divergentes <- function(vars = NULL,
     var_categoria = "categoria",
     cols_porcentaje = tabla$cols_porcentaje,
     etiquetas_grupos = tabla$etiquetas_grupos,
+    codigos_grupos = tabla$codigos_grupos,
     reparto = tabla$reparto,
     escala_valor = "proporcion_1",
     titulo = el$title_slide %||% NULL

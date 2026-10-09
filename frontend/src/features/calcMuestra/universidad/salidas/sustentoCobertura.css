@@ -1,0 +1,24 @@
+/* La medida de lectura es la de la casa: 760 px, la misma que `.cmv2-subhead
+   small`. En `ch` sobre 11,5 px daba ~420 px —bastante más estrecha que el
+   resto del escritorio— y dejaba la tarjeta medio vacía a la derecha. */
+/* Los once capítulos del sustento. Tres estados con significados distintos:
+   listo, pendiente por trabajo, y externo —que no se resuelve trabajando acá y
+   por eso no se pinta como si faltara poco. */
+.cmv2-sustento-resumen { max-width: 760px; margin: 0 0 var(--pulso-space-2); font-size: 11.5px; line-height: 1.5; }
+.cmv2-sustento-lista { display: grid; gap: 2px; margin: 0 0 var(--pulso-space-2); padding: 0; list-style: none; }
+.cmv2-sustento-lista li {
+  display: grid; grid-template-columns: 18px minmax(0, 22ch) 1fr; align-items: baseline;
+  gap: 8px; padding: 3px 6px; border-radius: var(--pulso-radius-chip);
+}
+.cmv2-sustento-lista li[data-estado="listo"] .cmv2-sustento-marca { color: var(--pulso-success-fg); }
+.cmv2-sustento-lista li[data-estado="pendiente"] { background: var(--pulso-surface-2); }
+.cmv2-sustento-lista li[data-estado="pendiente"] .cmv2-sustento-marca { color: var(--pulso-text-faint); }
+.cmv2-sustento-lista li[data-estado="externo"] { background: var(--pulso-warn-bg); }
+.cmv2-sustento-lista li[data-estado="externo"] .cmv2-sustento-marca { color: var(--pulso-warn-fg); }
+.cmv2-sustento-marca { display: inline-flex; align-items: center; }
+.cmv2-sustento-titulo { min-width: 0; }
+.cmv2-sustento-detalle { min-width: 0; color: var(--pulso-text-muted); font-size: 11px; }
+.cmv2-sustento-nota { display: inline-flex; align-items: center; gap: 5px; max-width: 760px; color: var(--pulso-text-muted); font-size: 12px; }
+
+/* Idem: la nota de cierre no arrastra margen inferior. */
+.cmv2-sustento > :last-child { margin-bottom: 0; }

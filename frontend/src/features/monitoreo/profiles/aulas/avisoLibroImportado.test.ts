@@ -9,9 +9,9 @@ const completo = {
 };
 
 describe("avisoLibroImportado", () => {
-  it("dice qué entró: aulas, cadena y los dos registros", () => {
+  it("dice qué entró: cursos-horario, cadena y los dos registros", () => {
     expect(avisoLibroImportado(completo).texto).toBe(
-      "Entraron 269 aulas (170 titulares y 26 reservas), 152 partes de campo y 152 filas de control.",
+      "Entraron 269 cursos-horario (170 titulares y 26 reservas), 152 partes de campo y 152 filas de control.",
     );
   });
 
@@ -33,7 +33,7 @@ describe("avisoLibroImportado", () => {
   it("las hojas ausentes siguen anunciándose, junto a lo que sí entró", () => {
     const { texto } = avisoLibroImportado({ ...completo, hojas_ausentes: ["Base de control"] });
     // El control: antes esto era lo ÚNICO que se decía.
-    expect(texto).toContain("Entraron 269 aulas");
+    expect(texto).toContain("Entraron 269 cursos-horario");
     expect(texto).toContain("no traía Base de control");
   });
 
@@ -46,7 +46,7 @@ describe("avisoLibroImportado", () => {
       resumen: { unidades: 269, titulares: 170, reservas: 26, contactadas: 0,
                  partes_de_campo: 0, filas_de_control: 0 },
     });
-    expect(texto).toBe("Entraron 269 aulas (170 titulares y 26 reservas).");
+    expect(texto).toBe("Entraron 269 cursos-horario (170 titulares y 26 reservas).");
   });
 
   it("una importación limpia NO se anuncia con el tono de las que piden mirar", () => {

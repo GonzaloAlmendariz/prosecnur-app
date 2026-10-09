@@ -146,6 +146,12 @@ function classroomComparisonObjectiveSnapshot(rawObjective: unknown): Record<str
   };
 }
 
+/** El objetivo que el config declara, o `null` si no declara ninguno. */
+function nAulasDeclarado(config: CalcMuestraWorkspaceAulasConfig): number | null {
+  const n = safeNumber(config.n_aulas, 0);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
 /**
  * Espejo sin el método elegido: el comparador corre todos los métodos, pero
  * estas decisiones sí cambian sus sorteos o diagnósticos. La forma coincide
@@ -159,7 +165,12 @@ export function classroomComparisonSelectorSnapshot(
   return {
     schema: CLASSROOM_COMPARISON_SELECTOR_SCHEMA,
     seed: Math.round(safeNumber(config.semilla, 20260619)),
-    n_aulas: Math.max(1, Math.round(safeNumber(config.n_aulas, 30))),
+    // Sin objetivo declarado NO se fabrica uno. Escribir 30 aqui hacia que el
+    // chequeo de frescura comparase contra un numero que nadie eligio: sobre
+    // HSVG2026 el aviso decia «n_aulas (corrida 30 · vigente 165)» y ese 30 era
+    // este default, no un valor guardado. Un aviso que nombra una cifra
+    // fabricada manda a buscar donde no hay nada.
+    n_aulas: nAulasDeclarado(config),
     replacement_waves: Math.max(0, Math.round(safeNumber(config.bolsas_reemplazo, 0))),
     strata_cols: config.estratos_selector,
     balance_vars: config.balance_vars ?? [],
@@ -221,14 +232,30 @@ export function classroomRunMatchesAlumnosPorChDecision(
     JSON.stringify(stableComparisonValue(run));
 }
 
+/**
+ * Campos del selector que NO deciden si la comparación sigue vigente: el
+ * presupuesto de simulación. «Comparar» corre una pasada por método
+ * (`CM_CORRIDAS_COMPARACION = 0`, c45fba61b) y R guarda 0; «Medir
+ * estabilidad» corre 500. Con esos campos en la firma, sólo la estabilidad
+ * dejaba una comparación vigente y el botón «Comparar» nunca bastaba para
+ * sortear: la UI exigía la evidencia de estabilidad por accidente (E15 AD1,
+ * medido sobre hsvg2026: workspace sim/mc 500 vs corrida 0). La estabilidad
+ * sigue siendo evidencia propia en Simulación; no condiciona la vigencia.
+ */
+const CAMPOS_FUERA_DE_VIGENCIA = new Set(["simulation_runs", "monte_carlo_n"]);
+
+function sinCamposFueraDeVigencia(selector: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(selector).filter(([clave]) => !CAMPOS_FUERA_DE_VIGENCIA.has(clave)));
+}
+
 export function classroomComparisonMatchesConfig(
   comparison: CalcMuestraAulasMethodComparison | null | undefined,
   config: CalcMuestraWorkspaceAulasConfig,
 ): boolean {
   const selector = comparison?.selector;
   if (!selector || selector.schema !== CLASSROOM_COMPARISON_SELECTOR_SCHEMA) return false;
-  return JSON.stringify(stableComparisonValue(selector)) ===
-    JSON.stringify(stableComparisonValue(classroomComparisonSelectorSnapshot(config)));
+  return JSON.stringify(stableComparisonValue(sinCamposFueraDeVigencia(selector as unknown as Record<string, unknown>))) ===
+    JSON.stringify(stableComparisonValue(sinCamposFueraDeVigencia(classroomComparisonSelectorSnapshot(config))));
 }
 
 /**
@@ -247,11 +274,11 @@ export function classroomComparisonConfigDiff(
   if (selector.schema !== CLASSROOM_COMPARISON_SELECTOR_SCHEMA) {
     return [`schema (corrida ${String(selector.schema ?? "—")} · vigente ${CLASSROOM_COMPARISON_SELECTOR_SCHEMA})`];
   }
-  const esperado = classroomComparisonSelectorSnapshot(config);
-  const corrida = selector as unknown as Record<string, unknown>;
+  const esperado = sinCamposFueraDeVigencia(classroomComparisonSelectorSnapshot(config));
+  const corrida = sinCamposFueraDeVigencia(selector as unknown as Record<string, unknown>);
   const compacto = (value: unknown): string => {
     const stable = stableComparisonValue(value);
-    if (stable === undefined || stable === null || stable === "") return "—";
+    if (stable === undefined || stable === null || stable === "") return "sin declarar";
     const texto = typeof stable === "object" ? JSON.stringify(stable) : String(stable);
     return texto.length > 48 ? `${texto.slice(0, 45)}…` : texto;
   };
@@ -339,9 +366,39 @@ export function resolveClassroomArtifactStatus({
     classroomComparisonMatchesConfig(comparison, handoff.config);
   const selectionRunId = String(selection?.selection_run_id ?? "").trim();
   const replacementSelectionRunId = String(replacement?.selection_run_id ?? "").trim();
+  // LA SELECCIÓN EJECUTADA MANDA AGUAS ABAJO, NO EL NÚMERO QUE PIDIÓ LA FÓRMULA.
+  //
+  // Gonzalo, decidiéndolo: «si la selección de aulas finalmente indica ciento
+  // setenta y cuatro, entonces es ciento setenta y cuatro las titulares de
+  // monitoreo… lo que declare el cálculo de muestra es finalmente lo que el
+  // monitoreo y la generación de recopiladores utiliza en todas sus mediciones».
+  //
+  // Es el mismo principio del ADR 0066 —la π que se publica es la del mecanismo
+  // que realmente sorteó, no la del diseño nominal— aplicado al conteo: el
+  // dimensionamiento es un paso intermedio y la selección es el entregable.
+  //
+  // Antes esto exigía además `classroomSelectorTarget(selection) ===
+  // handoff.currentAulasTarget`. Medido sobre HSVG26ULT el 2026-08-26: de las
+  // siete condiciones sólo fallaba ésa —la selección se corrió para 174 y la
+  // fórmula pedía 165— y con ella caía el pase a Monitoreo entero, mostrando
+  // «pendiente» en sus cuatro filas y «completa la selección» sobre una
+  // selección completa. Un ajuste operativo deliberado se leía como
+  // obsolescencia, y la propia app ya reconoce esos ajustes en su tabla de
+  // coincidencia («ejecutado tras ajuste manual de agenda»).
+  //
+  // Lo que SÍ sigue exigiéndose es la IDENTIDAD: mismo marco (`frame_hash`),
+  // corrida vigente y `selection_run_id` presente. Eso es lo que prueba que la
+  // selección es de este estudio; la cantidad no lo prueba ni lo desmiente.
   const selectionReady = classroomSelectionReady(aulasState) && handoff.currentAulasTarget > 0 &&
-    frameReady && handoff.runIsCurrent && Boolean(selectionRunId) &&
-    classroomSelectorTarget(selection) === handoff.currentAulasTarget && matchesFrame(selection);
+    frameReady && handoff.runIsCurrent && Boolean(selectionRunId) && matchesFrame(selection);
+  // La divergencia NO se calla: se publica para que la superficie pueda decir
+  // «se sortearon 174 donde la fórmula pedía 165» en vez de dejar creer que
+  // coinciden. Anti-silencio: aceptar la selección no es esconder el desvío.
+  const selectionTarget = classroomSelectorTarget(selection);
+  const selectionTargetDiff = selectionReady && selectionTarget > 0 &&
+    selectionTarget !== handoff.currentAulasTarget
+    ? { seleccionadas: selectionTarget, pedidas: handoff.currentAulasTarget }
+    : null;
   const replacementReady = classroomReplacementReady(aulasState) && selectionReady &&
     Boolean(selectionRunId) && replacementSelectionRunId === selectionRunId && matchesFrame(replacement);
   return {
@@ -359,6 +416,13 @@ export function resolveClassroomArtifactStatus({
       ? []
       : classroomComparisonConfigDiff(comparison, handoff.config),
     selectionReady,
+    /**
+     * `{seleccionadas, pedidas}` cuando la selección ejecutada tiene otro
+     * número de aulas que el que pidió la fórmula; `null` cuando coinciden.
+     * La selección manda igual —ADR 0066 aplicado al conteo—, pero la
+     * diferencia se declara.
+     */
+    selectionTargetDiff,
     replacementReady,
   };
 }

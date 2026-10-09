@@ -48,10 +48,14 @@
   if (is.null(m)) m <- preset_args$metrica
   if (is.null(m)) m <- "mean"
 
-  if (!is.character(m) || length(m) != 1L || !(m %in% .NUMERICO_METRICAS)) {
-    m <- "mean"
+  # H41: los alias en espanol se respetan («mediana» no cae a la media); lo que no se reconoce cae a la media con aviso.
+  if (!is.character(m) || length(m) != 1L) return("mean")
+  r <- tryCatch(.plan_metrica_numerica(m), error = function(e) NULL)
+  if (is.null(r) || !(r %in% .NUMERICO_METRICAS)) {
+    warning(sprintf("Métrica «%s» no reconocida en p_numerico: se usa la media.", m), call. = FALSE)
+    r <- "mean"
   }
-  m
+  r
 }
 
 #' Etiqueta de leyenda que corresponde a cada metrica
@@ -209,6 +213,42 @@
   attr(p, "pulso_numerico_colores")        <- args$colores_series
   attr(p, "pulso_numerico_n_sobre_barras") <- isTRUE(args$mostrar_n_sobre_barras)
   attr(p, "pulso_numerico_etiquetas_valor") <- attr(p, "pulso_barras_numericas_labels")
+  # ADR 0093 (N4): lo que afirma la lámina «Indicador numérico» (lámina 80): una columna por grupo, en el orden
+  # del instrumento, con su cifra y su número de casos. La cifra va con punto decimal como en el recetario
+  # («20.5») y con el redondeo de la casa; no se toma de las etiquetas del gráfico, que usan
+  # `separador_decimales` (coma por defecto) y no garantizan el orden de los grupos.
+  # `.numerico_agregar` ya entrega `pct` en 0-100 (verificador de N4: se multiplicaba otra vez por 100). Los
+  # decimales son los del gráfico (1 por defecto; 0 en N por default editorial) y el formato declarado por el
+  # analista («S/ %s», «%s%%» en pct) se aplica igual que en el gráfico, con coma de millares como es-PE.
+  valor <- suppressWarnings(as.numeric(df_wide[[nombre_serie]]))
+  dec <- suppressWarnings(as.integer(args$decimales %||% 1L)[1])
+  if (!is.finite(dec) || dec < 0L) dec <- 1L
+  num <- ifelse(is.finite(valor), formatC(.pulso_round_half_up(valor, dec), format = "f", digits = dec, big.mark = ","), "")
+  fmt <- args$formato_etiqueta
+  cifras <- if (is.character(fmt) && length(fmt) == 1L && grepl("%s", fmt, fixed = TRUE)) sprintf(fmt, num) else num
+  o <- if (is.factor(df_wide$categoria)) order(as.integer(df_wide$categoria)) else seq_along(valor)
+  attr(p, "pulso_espec") <- list(version = "numerico/1", tipo = "numerico", metrica = metrica, etiqueta = etiqueta,
+                                 rotulos = as.character(df_wide$categoria)[o], valores = valor[o], cifras = cifras[o],
+                                 n = suppressWarnings(as.numeric(df_wide$N))[o])
 
   p
+}
+
+#' Variable numerica cruda para metricas (H38)
+#'
+#' El resolvedor de referencias redirige `x` a `x_recod` cuando existe (para graficos de categorias es lo correcto).
+#' Para metricas numericas (p_numerico, p_boxplot, p_media_rango) se vuelve a la columna pedida si existe y es
+#' numerica: si no, se promediaban los codigos de los rangos.
+#' @keywords internal
+.ctx_var_numerica_cruda <- function(ctx) {
+  pedida <- ctx$var_requested
+  if (is.null(pedida) || identical(pedida, ctx$var) || !(pedida %in% names(ctx$data))) return(ctx)
+  x <- ctx$data[[pedida]]
+  if (is.factor(x)) x <- as.character(x)
+  num <- suppressWarnings(as.numeric(x))
+  presentes <- !is.na(x) & nzchar(trimws(as.character(x)))
+  if (!any(presentes) || mean(is.finite(num[presentes])) < 0.9) return(ctx)
+  ctx$var <- pedida
+  ctx$recod_redirected <- FALSE
+  ctx
 }
