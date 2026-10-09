@@ -24,3 +24,14 @@ test_that("en la ruta real una escala apilada sin colores sale con la Likert del
                                                  etiquetas_grupos = setNames(rot, paste0("p", 1:5))))
   expect_identical(toupper(attr(p, "pulso_espec")$categorias$color), toupper(unname(.std_paleta("likert"))))
 })
+
+test_that("detecta escalas reales de los proyectos de referencia: neutro «Regular», especial «No utilicé» y pasos numéricos (verificador de N8.10-14)", {
+  pdm <- c("Muy insatisfecho/a", "Insatisfecho/a", "Neutral / Regular", "Satisfecho/a", "Muy satisfecho/a", "No utilicé ese espacio")
+  p <- .graficos_mk_palette(pdm)
+  expect_identical(unname(p[1:5]), unname(.std_paleta("likert_neutro"))[1:5])
+  expect_identical(unname(p[6]), unname(.std_paleta("likert"))[5])                  # «No utilicé» va gris
+  hs <- c("1 Muy insatisfecho", "2", "3", "4", "5 Muy satisfecho")
+  expect_identical(unname(.graficos_mk_palette(hs)), unname(.std_paleta("likert_neutro"))[1:5])
+  expect_null(.graficos_paleta_likert(c("1", "2", "3", "4")))                        # sólo números: no se adivina
+  expect_null(.graficos_paleta_likert(c("Regular", "Bueno", "Excelente")))           # sin polo negativo
+})
