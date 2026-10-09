@@ -15,7 +15,7 @@
 .word_estilo_id <- function(doc, nombre) {
   si <- officer::styles_info(doc)
   id <- si$style_id[tolower(si$style_name) == tolower(nombre)]
-  if (length(id)) id[1] else gsub("[^A-Za-z0-9]", "", .ade_sin_tildes(nombre))
+  if (length(id)) id[1] else gsub("[^A-Za-z0-9]", "", chartr("áéíóúñÁÉÍÓÚÑ", "aeiounAEIOUN", nombre))
 }
 
 #' Aplica los estilos del recetario al documento
