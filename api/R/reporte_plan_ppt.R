@@ -8230,7 +8230,7 @@ reporte_ppt_plan <- function(
         render_meta[[length(render_meta) + 1]] <- list(
           kind = "technical_table",
           title = as.character(title_slide)[1],
-          nrow = nrow(table_data)
+          nrow = nrow(table_data), table = table_data, base = if (is.character(base_txt)) as.character(base_txt)[1] else NULL   # el Word la dibuja (N8.10)
         )
       }
 

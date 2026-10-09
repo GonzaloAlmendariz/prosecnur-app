@@ -77,3 +77,15 @@
   doc <- flextable::body_add_flextable(doc, ft, align = "left")
   officer::body_add_par(doc, "")
 }
+
+#' Tabla técnica del plan en el Word (página 50: «Ficha técnica del estudio»): la tabla del slot con el formato de la casa,
+#' su rótulo numerado y la base debajo. Toma la entrada `technical_table` de `render_meta` (título, filas y base).
+#' @keywords internal
+.word_tabla_tecnica <- function(doc, n, entry) {
+  tbl <- entry$table
+  if (!is.data.frame(tbl) || ncol(tbl) < 2L || !nrow(tbl)) return(doc)
+  tbl[] <- lapply(tbl, function(x) ifelse(is.na(x), "", as.character(x)))
+  # Primera columna angosta (el aspecto) y el resto repartido, como la ficha del recetario.
+  anchos <- if (ncol(tbl) == 2L) c(1.9, 4.4) else c(2.4, rep(1, ncol(tbl) - 1L))
+  .word_tabla(doc, n, entry$title %||% "", .word_ft_base(tbl, anchos), base = entry$base %||% "Fuente: PULSO PUCP 2026.")
+}

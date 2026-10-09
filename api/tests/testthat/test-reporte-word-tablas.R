@@ -29,3 +29,14 @@ test_that("la franja escribe cada cifra grande con su rótulo y un filete entre 
   expect_match(x, "1,184", fixed = TRUE); expect_match(x, "edad mediana", fixed = TRUE)
   expect_match(x, 'w:val="48"', fixed = TRUE)                                           # 24 pt = 48 medios puntos
 })
+
+test_that("la tabla técnica del plan llega al Word con sus filas y su base (antes render_meta sólo traía título y nrow)", {
+  e <- list(kind = "technical_table", title = "Ficha técnica del estudio",
+            table = data.frame(Aspecto = c("Técnica", "Actores"), Detalle = c("Encuesta en línea", NA)), base = "Fuente: PULSO PUCP 2026.")
+  x <- .wt_xml(.word_tabla_tecnica(.word_documento_nuevo(), 7, e))
+  expect_match(x, "Encuesta en línea", fixed = TRUE); expect_match(x, "SEQ Tabla", fixed = TRUE)
+  expect_false(grepl(">NA<", x, fixed = TRUE))
+  expect_identical(.word_tabla_tecnica(officer::read_docx(), 1, list(table = NULL)) |> class(), class(officer::read_docx()))
+  src <- paste(readLines(test_path("..", "..", "R", "reporte_plan_ppt.R"), warn = FALSE), collapse = "\n")
+  expect_match(src, 'kind = "technical_table",\\s*title = [^\\n]*\\s*nrow = nrow\\(table_data\\), table = table_data', perl = TRUE)          # render_meta lleva las filas
+})
