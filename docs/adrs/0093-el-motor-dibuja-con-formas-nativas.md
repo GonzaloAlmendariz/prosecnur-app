@@ -52,26 +52,35 @@ Word reusa el `ggplot` del PPT (`reporte_plan_ppt.R:4069-4084`), así que quedar
    - **Renderers**: el PPT dibuja la especificación con formas nativas, portando las piezas del recetario
      PPT. El Word la dibuja con `ggplot`, portando la geometría del recetario Word (6.27 in, Arial, piso de
      8 pt, fondo transparente, 300 dpi, rótulo, base y lectura como párrafos con estilo).
-2. **Las cifras son del motor; el recetario es referencia geométrica, no numérica.** La especificación es un
-   esquema versionado que el motor llena con su metodología y que ningún renderer recalcula:
-   - por segmento, tres valores separados: la **cifra** rotulada (`pct_units` con `metodo_redondeo` y
-     `decimales` ya resueltos, `graficador_barras_apiladas.R:1670-1675`), el **ancho** dibujado (`.valor_plot`
-     después de aplanar los que rotulan 0, repartir la masa, el cierre exacto y el reaplanado P53, `:1688-1787`)
-     y si se **dibuja**. El renderer usa el ancho, nunca la cifra, para la geometría;
-   - el **denominador** explícito: la exclusión de `excluir_opciones` (SIN INF, NS/NR, códigos 90-99) es la
-     misma para segmentos, Top Two Box, N por barra y base del pie (`reporte_plan_ppt.R:3615-3620, 4892-4895`);
-   - el **Top Two Box** con la regla del motor: half-up de la suma de las proporciones de las categorías
-     declaradas por etiqueta (`:2765-2828`), no la suma de cifras redondeadas ni la suma por posición. Puede no
-     coincidir con la suma visible de los segmentos, y eso se documenta. Bottom Two Box igual; un box sobre una
-     escala igual o menor a su tamaño se apaga con motivo (`:2642-2700`);
-   - el **orden de origen** de filas, segmentos y leyenda (`:1719-1722, 1792-1795`); la fila Total como fila
-     marcada (ΣpN/ΣN); la N por barra ya decidida contra la base (`graficador_n_por_barra.R`); las letras de
-     significancia sólo donde hay cifra (`sufijos_etiqueta`); las notas anexadas en su orden
-     (`graficos_calculos_gobernados.R:161-171`); los códigos 90-99 se muestran sólo si están presentes.
+2. **El motor replica el recetario, también en sus cifras.** Gonzalo, 2026-10-08: «Debe ser 100% fiel al
+   recetario, el motor ahora debe replicar le recetario, precisamrnte para eso lo hicimos». Donde el recetario
+   declara una regla, esa regla manda sobre la que el motor tenía:
+   - **redondeo**: el de las láminas 20 y 21 del recetario: «Redondeo estándar» (cada cifra por separado,
+     desde 0.5 sube; es el `estandar` half-up del motor) y «Redondeo del resto mayor» (`reparto`). El
+     `round()` al par que usa el código del recetario es un desliz de implementación: rige lo que la lámina
+     declara;
+   - **Top Two Box**: lámina 19, «la suma de los dos valores superiores de la escala», con el ejemplo
+     «90% = 35% + 55%». Es la **suma de las cifras rotuladas** de las dos categorías superiores, para que el
+     lector pueda sumarla. Las «dos superiores» son las categorías sustantivas declaradas por etiqueta
+     (`top2box_labels`, emparejadas sin mayúsculas ni tildes); nunca SIN INF ni los códigos 90-99. Bottom Two
+     Box igual con las dos inferiores. Un box sobre una escala igual o menor a su tamaño se apaga con motivo
+     (`graficador_barras_apiladas.R:2642-2700`). Cambia respecto del motor anterior, que redondeaba la suma
+     exacta y podía diferir en un punto de la suma visible;
+   - **SIN INF** va como último segmento gris de la barra y dentro de la base (láminas 216 y 221). Excluirlo
+     sigue siendo una decisión explícita del analista (`excluir_opciones`), y entonces se excluye en
+     segmentos, box, N y base a la vez;
+   - **orden**: una batería de un solo público se ordena por Top Two Box de mayor a menor (lámina 221);
+     empates por el orden declarado, la fila Total primera y nunca se parte un bloque de actores. Con
+     actores, el orden declarado. El analista puede pedir el orden declarado;
+   - **anchos**: cada segmento mide su cifra rotulada sobre la suma de las cifras de su fila, como
+     `barra_apilada()` del recetario; un segmento que se rotula 0 % no se dibuja.
 
-   El gate del par compara la geometría. Cada diferencia numérica atribuible al recetario (redondeo al par de
-   `round()`, SIN INF dentro de la base, box por posición `pct[3]+pct[4]`, orden por Top Two Box) se registra
-   y **no se copia**.
+   La especificación es un esquema versionado que el motor llena **con estas reglas** y que ningún renderer
+   recalcula: por segmento la cifra, el ancho y si se dibuja; el denominador explícito; el box y su motivo si
+   se apaga; el orden de origen y el aplicado; la fila Total marcada (ΣpN/ΣN); la N por barra decidida contra
+   la base (`graficador_n_por_barra.R`); las letras de significancia sólo donde hay cifra
+   (`sufijos_etiqueta`); las notas en su orden (`graficos_calculos_gobernados.R:161-171`); los códigos 90-99
+   sólo si están presentes. Donde el recetario no declara regla, rige la del motor.
 3. **Migración por tipo de gráfico, con respaldo.** Mientras un tipo no tenga pieza nativa, sigue saliendo como
    imagen y la lámina lo avisa. Un tipo pasa a nativo sólo cuando su par recetario|motor coincide.
 4. **El gate es visual.** Cada tipo se cierra con el par recetario|motor (misma pregunta, mismos datos),
@@ -86,10 +95,9 @@ Word reusa el `ggplot` del PPT (`reporte_plan_ppt.R:4069-4084`), así que quedar
    - las opciones propias de ggplot (`canvas_*`, `grosor_barras` como fracción, `legend_*_npc`,
      `size_texto_barras` en mm, `debug_ph_*`; `.PRESETS_META`, `graficos_metadata.R:1991-3548`) dejan de
      mostrarse para los tipos nativos;
-   - lo que el analista sí decide queda y alimenta la especificación: el orden (por defecto el declarado;
-     ordenar por Top Two Box es una opción suya, con la clave sin redondear, empates por el orden declarado y
-     la fila Total primera), qué categorías suman el Top Two Box, qué hacer con SIN INF, si va Bottom Two Box
-     o fila Total, textos y antetítulo;
+   - lo que el analista sí decide queda y alimenta la especificación: pedir el orden declarado en lugar del
+     orden por Top Two Box, qué categorías suman el Top Two Box, excluir SIN INF, si va Bottom Two Box o fila
+     Total, textos y antetítulo. Por defecto, todo como en el recetario;
    - la micro-maqueta de respaldo (`SlidePreview.tsx:539-660`) se dibuja desde las ranuras y la especificación.
 6. **La partición en «(cont.)» no recalcula ni reordena.** Las premisas son atómicas (un bloque de actores no
    se parte); primero el mínimo de láminas y luego el corte más parejo, sin partes de una sola premisa si hay
@@ -156,9 +164,8 @@ Prototipo en el scratchpad de la sesión del 2026-10-08 (piezas `bloque_likert`,
 `titulo` y `pie` del recetario portadas con tokens del estándar, alimentadas con `acrconta_mazo.pulso` y el
 redondeo del motor `.pulso_pct_unidades`). Contra las láminas 216, 221 y 222 del recetario difiere en
 1.2 %, 1.3 % y 1.5 % de los píxeles a 70 ppp (bordes de letra y de segmento), y reproduce la partición en
-«(cont.)». **El prototipo copió dos reglas del recetario que contradicen el punto 2** —el Top Two Box como
-suma de cifras redondeadas y el orden por Top Two Box por defecto—: prueba la técnica, no la metodología, y
-N1 las corrige. El mismo dato en el motor actual (láminas 37 y 38 del catálogo) es otra
+«(cont.)», el Top Two Box como suma de las cifras rotuladas y el orden por Top Two Box. Su única desviación
+del punto 2: dibujó los anchos con la proporción exacta en vez de la cifra rotulada, y N1 lo alinea. El mismo dato en el motor actual (láminas 37 y 38 del catálogo) es otra
 composición. Con el banco `scripts/qa_pares_recetario.R` (fracción de píxeles distintos, 70 ppp, tolerancia
 de color 8 %):
 
@@ -187,15 +194,17 @@ La cifra acompaña; el veredicto sale de mirar los pares.
 | N8 | Word: renderer ggplot propio con la geometría del recetario Word, alimentado por la especificación | pares contra `propuesta-word.docx` |
 | N9 | Editor: ranuras en lugar del selector de lienzo, opciones nativas, migración de proyectos con aviso | QA visual de `/graficos` en la matriz de viewports |
 
-**Invariantes de la especificación (gate de N1, sin renderizar):** (1) en cada fila la suma de anchos es 1 y
-los segmentos que rotulan 0 sin el interruptor tienen ancho 0 y no se dibujan; (2) con `reparto` la suma de
-cifras es 100·10^dec y con `estandar` cada cifra es el half-up de su porcentaje; (3) Top Two Box =
-half-up(Σp), con un caso donde la suma de lo redondeado difiere; (4) un box sobre una escala igual o menor a
-su tamaño se apaga, y ninguno incluye 90-99 ni SIN INF; (5) con `excluir_opciones` la base, la N, los
-segmentos y el box usan el mismo denominador; (6) el orden por defecto es el declarado y el orden por Top Two
-Box respeta empates y deja la fila Total primera; (7) partir conserva el multiconjunto de filas y la base; (8)
-fila Total = ΣpN/ΣN, sin fila con N = 0 o NA; (9) filas que suman 0 dan anchos 0, no NaN; (10) las letras
-sólo aparecen donde hay cifra.
+**Invariantes de la especificación (gate de N1, sin renderizar):** (1) en cada fila los anchos son cifra/Σcifras,
+suman 1, y un segmento que se rotula 0 % tiene ancho 0 y no se dibuja; (2) con `estandar` cada cifra es el
+half-up de su porcentaje (lámina 20) y con `reparto` la suma de cifras es 100·10^dec (lámina 21); (3) Top Two
+Box = suma de las cifras rotuladas de las dos categorías superiores declaradas (lámina 19), con un caso donde
+difiere del redondeo de la suma exacta; (4) un box sobre una escala igual o menor a su tamaño se apaga, y
+ninguno incluye 90-99 ni SIN INF; (5) SIN INF es el último segmento y entra en la base salvo exclusión
+explícita, y con `excluir_opciones` la base, la N, los segmentos y el box usan el mismo denominador; (6) una
+batería de un público sale ordenada por Top Two Box, empates por el orden declarado, Total primera; con actores
+o con orden declarado pedido, el declarado; (7) partir conserva el multiconjunto de filas y la base; (8) fila
+Total = ΣpN/ΣN, sin fila con N = 0 o NA; (9) filas que suman 0 dan anchos 0, no NaN; (10) las letras sólo
+aparecen donde hay cifra.
 
 Los gráficos sin tipo en el motor (metas, significancia, matriz de conteos, peso, llaves) entran después de N7,
 cada uno con revisión metodológica.
