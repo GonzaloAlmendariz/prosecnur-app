@@ -246,7 +246,9 @@ graficar_dumbbell <- function(
   # orden por brecha, las filas van de la diferencia mayor a la menor con su signo.
   espec_pesas <- tryCatch({
     dec_p <- suppressWarnings(as.integer(valores_decimales)[1]); if (!is.finite(dec_p) || dec_p < 0) dec_p <- 0L
-    r2 <- res; r2$.eje <- as.character(r2$.eje); r2$.dif <- r2$.a - r2$.b
+    # La diferencia se resta entre las cifras que se leen (20 % y 18 % dan +2, no +3), como la serie de dos.
+    r2 <- res; r2$.eje <- as.character(r2$.eje)
+    r2$.dif <- .pulso_round_half_up(r2$.a, dec_p) - .pulso_round_half_up(r2$.b, dec_p)
     r2 <- switch(orden, brecha = r2[order(-r2$.dif), , drop = FALSE], valor = r2[order(-r2$.a), , drop = FALSE],
                  r2[match(ejes, r2$.eje), , drop = FALSE])
     # Los casos van en la fila cuando son los mismos para los dos grupos de esa fila (la fila es un público) y no

@@ -17,7 +17,7 @@ doc <- officer::read_pptx("api/inst/plantillas/plantilla_16_9.pptx")
 
 # 79: histograma de la edad (el recetario dibuja de 16 a 32 años).
 x <- edad[is.finite(edad) & edad >= 16 & edad <= 32]
-o <- .lam_laminas_histograma(doc, attr(.histograma_recetario(x, modo = "conteo"), "pulso_espec"), "Edad de los estudiantes",
+o <- .lam_laminas_histograma(doc, attr(.histograma_recetario(x, modo = "conteo", unidad = "años"), "pulso_espec"), "Edad de los estudiantes",
                              ante = "Histograma", base = "Base: 172 estudiantes que declararon su edad", folio = 79)
 # 80: edad promedio por ciclo, con la espec que sella el motor.
 ok <- is.finite(edad) & !is.na(ciclo)

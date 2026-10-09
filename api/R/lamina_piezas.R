@@ -39,8 +39,6 @@
   invisible(lz)
 }
 
-#' Rectángulo de relleno sólido (`caja()` del recetario)
-#' @keywords internal
 #' Línea recta de un punto a otro (la pendiente de la serie de dos mediciones, recetario_m3c.R:61)
 #'
 #' Una forma `line` con su caja de (x1, y1) a (x2, y2): si sube hacia la derecha se voltea en vertical.
@@ -59,6 +57,8 @@
   .lam_registrar(lz, xml, l, t, w, h)
 }
 
+#' Rectángulo de relleno sólido (`caja()` del recetario)
+#' @keywords internal
 .lam_caja <- function(lz, l, t, w, h, fill, nombre = "caja", geom = c("rect", "triangle", "ellipse"), borde = NULL, borde_pt = 0.75) {
   geom <- match.arg(geom)
   hex <- .lam_hex(fill); hex_borde <- .lam_hex(borde %||% fill); w_borde <- if (is.null(borde)) 3175L else as.integer(round(borde_pt * 12700))

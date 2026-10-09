@@ -62,3 +62,13 @@ preparar_boxplot <- function(categoria, valor) {
        textos_diferencia = paste0(ifelse(d1 > 0, "+", ""), .pulso_fmt_half_up(d1, dec), " pts"),
        eje = c(lo = lim[1], hi = lim[2], paso = if (diff(lim) > 40) 20 else 10))
 }
+
+#' Unidad de una variable numérica a partir de su etiqueta: «años» si habla de edad o de años; si no, ninguna
+#'
+#' El recetario escribe «Mediana: 22 años» sobre la edad; antes la unidad estaba fija en «años» y un histograma
+#' de cualquier otra cosa decía «Mediana: 0 años» (verificador de N4).
+#' @keywords internal
+.unidad_de_etiqueta <- function(etiqueta) {
+  e <- tolower(paste(as.character(etiqueta %||% ""), collapse = " "))
+  if (grepl("\\bedad\\b|\\baños\\b|\\bano(s)?\\b|cuántos años|cuantos anos", e, perl = TRUE)) "años" else ""
+}

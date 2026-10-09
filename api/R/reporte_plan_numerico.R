@@ -217,10 +217,15 @@
   # del instrumento, con su cifra y su número de casos. La cifra va con punto decimal como en el recetario
   # («20.5») y con el redondeo de la casa; no se toma de las etiquetas del gráfico, que usan
   # `separador_decimales` (coma por defecto) y no garantizan el orden de los grupos.
+  # `.numerico_agregar` ya entrega `pct` en 0-100 (verificador de N4: se multiplicaba otra vez por 100). Los
+  # decimales son los del gráfico (1 por defecto; 0 en N por default editorial) y el formato declarado por el
+  # analista («S/ %s», «%s%%» en pct) se aplica igual que en el gráfico, con coma de millares como es-PE.
   valor <- suppressWarnings(as.numeric(df_wide[[nombre_serie]]))
-  dec <- suppressWarnings(as.integer(args$decimales %||% if (metrica %in% c("mean", "median")) 1L else 0L)[1])
+  dec <- suppressWarnings(as.integer(args$decimales %||% 1L)[1])
   if (!is.finite(dec) || dec < 0L) dec <- 1L
-  cifras <- paste0(.pulso_fmt_half_up(if (identical(metrica, "pct")) valor * 100 else valor, dec), if (identical(metrica, "pct")) "%" else "")
+  num <- ifelse(is.finite(valor), formatC(.pulso_round_half_up(valor, dec), format = "f", digits = dec, big.mark = ","), "")
+  fmt <- args$formato_etiqueta
+  cifras <- if (is.character(fmt) && length(fmt) == 1L && grepl("%s", fmt, fixed = TRUE)) sprintf(fmt, num) else num
   o <- if (is.factor(df_wide$categoria)) order(as.integer(df_wide$categoria)) else seq_along(valor)
   attr(p, "pulso_espec") <- list(version = "numerico/1", tipo = "numerico", metrica = metrica, etiqueta = etiqueta,
                                  rotulos = as.character(df_wide$categoria)[o], valores = valor[o], cifras = cifras[o],

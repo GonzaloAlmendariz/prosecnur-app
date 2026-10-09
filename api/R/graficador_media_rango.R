@@ -452,7 +452,8 @@ graficar_media_rango <- function(
   espec_media_rango <- if (identical(modo, "score")) tryCatch(list(
     version = "media_rango/1", tipo = "media_rango", tipo_rango = tipo_rango,
     rotulos = trimws(gsub("\\s*\n\\s*", " ", as.character(sum_df$categoria))), n = as.numeric(sum_df$n),
-    media = as.numeric(sum_df$media_raw), cifras = paste0(.fmt_num(sum_df$media_raw), chip_sufijo),
+    media = as.numeric(sum_df$media_raw),
+    cifras = paste0(formatC(.pulso_round_half_up(sum_df$media_raw, chip_decimales), format = "f", digits = chip_decimales, big.mark = ","), chip_sufijo),
     inf = as.numeric(sum_df$rango_inf_raw), sup = as.numeric(sum_df$rango_sup_raw)
   ), error = function(e) NULL) else NULL
 
