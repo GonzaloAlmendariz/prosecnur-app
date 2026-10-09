@@ -36,13 +36,17 @@ test_that("por la ruta real la nube sale en la lámina del recetario y el títul
                choices = data.frame(list_name = character(0), name = character(0), label = character(0)), orders_list = NULL)
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, mensajes_progreso = FALSE, path_ppt = out,
-    plan = list(a = p_slide_1_grafico(grafico = p_nube_palabras(var = "op"), titulo = "Lo que mejorarían")))))
+    plan = list(a = p_slide_1_grafico(grafico = p_nube_palabras(var = "op"), titulo = "Lo que mejorarían",
+                                      base = "Base: 60 egresados.", pie = "Respuestas codificadas.")))))
   n <- length(officer::read_pptx(out)); xml <- .mc_xml(out, n)
   expect_identical(.mc_txt(xml, "Titulo lamina"), "Lo que mejorarían")
   todo <- xml2::xml_text(xml2::xml_find_all(xml, "//a:t"))
   expect_equal(sum(todo == "Lo que mejorarían"), 1L)                                     # una sola vez: el título nativo
   expect_true(any(grepl("tutorías|académica", todo)))                                    # las palabras conservan sus tildes
-  expect_match(paste(.mc_txt(xml, "Base lamina"), collapse = " "), "El tamaño crece con las menciones")   # la lectura de la 98
+  expect_identical(.mc_txt(xml, "Base lamina"), "Base: 60 egresados. Respuestas codificadas. El tamaño crece con las menciones")   # la lectura de la 98, sin dobles puntos
+  # El espaciado medido (2.1 pt o más en seis semillas, 40 de 40): con 1.6 se pegaban palabras.
+  capa <- Filter(function(l) inherits(l$geom, "GeomTextWordcloud"), graficar_nube_palabras(dat, "op")$layers)
+  if (requireNamespace("ggwordcloud", quietly = TRUE)) { expect_length(capa, 1L); expect_gte(capa[[1]]$geom_params$grid_margin, 2.4) }
 })
 
 test_that("el título y la nota del ggplot no se repiten en el dibujo y el subtítulo pasa a rótulo nativo, como en la 88", {
