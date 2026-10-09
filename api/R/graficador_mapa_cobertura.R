@@ -14,16 +14,19 @@
   alerta = "Alerta"
 )
 
-.mapa_status_colors <- c(
-  no_intervenido = "#E8EBEF",
-  # comparacion conserva el teal institucional ACNUR (paridad con las series
-  # de barras, P9); era EFECTIVA la que chocaba con ese teal (#00B398 vs
-  # #00A98F, indistinguibles — B-H30) y pasa al verde de exito de la casa.
-  comparacion = "#00A98F",
-  intervencion = "#0072BC",
-  efectiva = "#2E7D32",
-  alerta = "#EF4A60"
-)
+#' Colores de estado del recetario para la ruta anterior, los mismos que la lámina nativa (ADR 0093, N6)
+#'
+#' «Intervención» no significa lo mismo en los dos alcances: en la vista general es el grupo (azul fuerte, como la
+#' 103) y en el distrito, la zona que estuvo en la ruta sin cobertura efectiva (azul medio, como la 105). Antes la
+#' ruta anterior pintaba verde, azul y teal y el mismo mazo decía «efectiva» en dos colores.
+#' @keywords internal
+.mapa_paleta <- function(scope = "district") {
+  general <- identical(scope, "overview_koica")
+  cols <- c(no_intervenido = .std_color("mapa_fuera"), comparacion = .std_color("mapa_medio"),
+            intervencion = if (general) .std_color("mapa_aplicada") else .std_color("mapa_medio"),
+            efectiva = .std_color("mapa_aplicada"), alerta = .std_color("coral"))
+  cols[.mapa_status_levels]
+}
 
 .mapa_ring_df <- function(ring, group, zona, status, ubigeo, distrito) {
   if (is.null(ring) || !length(ring)) return(data.frame())
@@ -158,7 +161,7 @@
     plot <- plot + ggplot2::geom_polygon(
       data = neutral_zones,
       ggplot2::aes(.data$x, .data$y, group = .data$group),
-      fill = .mapa_status_colors[["no_intervenido"]],
+      fill = .std_color("mapa_fuera"),
       color = "#FFFFFF",
       linewidth = 0.08,
       alpha = 0.46
@@ -180,7 +183,7 @@
       plot <- plot + ggplot2::geom_polygon(
         data = neutral_blocks,
         ggplot2::aes(.data$x, .data$y, group = .data$group),
-        fill = .mapa_status_colors[["no_intervenido"]],
+        fill = .std_color("mapa_fuera"),
         color = "#FFFFFF",
         linewidth = 0.04,
         alpha = 0.32
@@ -208,7 +211,7 @@
   }
   plot +
     ggplot2::scale_fill_manual(
-      values = setNames(.mapa_status_colors, unname(.mapa_status_labels[.mapa_status_levels])),
+      values = setNames(unname(.mapa_paleta("overview_koica")), unname(.mapa_status_labels[.mapa_status_levels])),
       drop = TRUE,
       guide = "none"
     ) +
@@ -240,7 +243,7 @@
   key$label <- gsub("\\n", " ", key$label, fixed = FALSE)
   pair_centers <- seq(0.78, 0.26, length.out = length(pair_levels))
   key$y <- pair_centers[key$.pair] - (key$.status - 1) * 0.08
-  key$color <- unname(.mapa_status_colors[key$status])
+  key$color <- unname(.mapa_paleta("overview_koica")[key$status])
   headers <- data.frame(
     pair_label = pair_levels,
     y = pair_centers + 0.10,
@@ -446,7 +449,7 @@ graficar_mapa_cobertura_territorial <- function(contexto = list(),
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
     ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
     ggplot2::coord_equal(expand = FALSE, clip = "off") +
-    ggplot2::scale_fill_manual(values = setNames(.mapa_status_colors, unname(.mapa_status_labels[.mapa_status_levels])), drop = TRUE) +
+    ggplot2::scale_fill_manual(values = setNames(unname(.mapa_paleta(scope)), unname(.mapa_status_labels[.mapa_status_levels])), drop = TRUE) +
     ggplot2::labs(title = titulo, subtitle = subtitle, caption = caption, fill = NULL) +
     ggplot2::theme_void(base_family = "Arial") +
     ggplot2::theme(

@@ -485,7 +485,7 @@
   })
 }
 
-.graficos_lima_district_context <- function() {
+.graficos_lima_district_context <- function(incluir_callao = FALSE) {
   candidates <- c(
     system.file("hojas_ruta", "cartografia", "lima_district_coverage.json", package = "prosecnurapp"),
     file.path(.app_api_dir(), "inst", "hojas_ruta", "cartografia", "lima_district_coverage.json"),
@@ -499,7 +499,8 @@
   out <- lapply(features, function(feature) {
     props <- feature$properties %||% list()
     ubigeo <- .graficos_ubigeo6(props$ubigeo)
-    if (!startsWith(ubigeo, "1501")) return(NULL)
+    # Lima Metropolitana (1501) y, para el fondo de los mapas del recetario, también el Callao (0701).
+    if (!startsWith(ubigeo, "1501") && !(isTRUE(incluir_callao) && startsWith(ubigeo, "0701"))) return(NULL)
     rings <- .graficos_geojson_rings_payload(feature$geometry)
     if (!length(rings)) return(NULL)
     list(

@@ -8,7 +8,10 @@
 # panel —la cifra de zonas con su detalle, o la lista de distritos por grupo—, la
 # narrativa de la lámina y la leyenda, cuyo pie coincide con el del mapa dibujado.
 
-.LAM_MAPA <- list(ancho_distrito = 7.4, ancho_general = 6.2, aire = 0.8, cifra_pt = 36, texto_pt = 12.5)
+.LAM_MAPA <- list(ancho_distrito = 7.4, ancho_general = 6.2, aire = 0.8, cifra_pt = 36, texto_pt = 12.5,
+                  # La 105 con su recuadro (recetario_m3e.R:222-242): recuadro de 2.6 × 3.0 bajo su rótulo, 0.3 de aire,
+                  # el mapa de 6.3 y 0.6 hasta el panel, con el filete a 0.3 del panel.
+                  recuadro_w = 2.6, recuadro_h = 3.0, recuadro_aire = 0.3, ancho_con_recuadro = 6.3, aire_con_recuadro = 0.6)
 
 #' El ggplot del mapa, desde la espec
 #' @keywords internal
@@ -53,17 +56,28 @@
 #' @keywords internal
 .lam_mapa_geo <- function(espec, texto = NULL) {
   R <- .LAM_MAPA; g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
-  wm <- if (identical(espec$forma, "general")) R$ancho_general else R$ancho_distrito
-  r <- .lam_mapa_rect(espec, ml, yt, wm, yf - yt - 0.1)
-  xr <- ml + wm + R$aire; wr <- W - g_("margen_der") - xr
+  con_recuadro <- identical(espec$forma, "distrito") && !is.null(espec$ubicacion)
+  if (con_recuadro) {
+    rec <- .lam_mapa_rect(espec$ubicacion, ml, yt + 0.4, R$recuadro_w, R$recuadro_h)
+    xm <- ml + R$recuadro_w + R$recuadro_aire; wm <- R$ancho_con_recuadro
+    r <- .lam_mapa_rect(espec, xm, yt, wm, yf - yt - 0.1)
+    xr <- xm + wm + R$aire_con_recuadro; x_filete <- xr - 0.3
+  } else {
+    rec <- NULL; wm <- if (identical(espec$forma, "general")) R$ancho_general else R$ancho_distrito
+    r <- .lam_mapa_rect(espec, ml, yt, wm, yf - yt - 0.1)
+    xr <- ml + wm + R$aire; x_filete <- xr - 0.4
+  }
+  wr <- W - g_("margen_der") - xr
   y_ley <- r$y + r$h - (0.32 + length(espec$leyenda$rotulos) * 0.3)
-  fin_panel <- if (identical(espec$forma, "general")) {
-    # Cada bloque: encabezado 0.42, filas de 0.34 y el total de 0.35; entre bloques, 0.35 de aire.
-    yt + sum(vapply(espec$grupos, function(gk) 0.42 + nrow(gk$filas) * 0.34 + 0.35, 0)) + 0.35 * (length(espec$grupos) - 1L)
-  } else yt + 1.45
+  # Cada bloque de la lista: encabezado 0.42, filas de 0.34 y el total de 0.35; entre bloques, 0.35 de aire. Si con
+  # una narrativa arriba no cabe hasta la leyenda, la lista se compacta (encabezado 0.38, filas de 0.28, aire 0.25).
+  lista <- function(enc, fila, aire) yt + sum(vapply(espec$grupos, function(gk) enc + nrow(gk$filas) * fila + 0.35, 0)) + aire * (length(espec$grupos) - 1L)
+  paso <- list(enc = 0.42, fila = 0.34, aire = 0.35)
+  if (identical(espec$forma, "general") && lista(0.42, 0.34, 0.35) > y_ley - 0.15) paso <- list(enc = 0.38, fila = 0.28, aire = 0.25)
+  fin_panel <- if (identical(espec$forma, "general")) lista(paso$enc, paso$fila, paso$aire) else yt + 1.45
   h_texto <- if (!is.null(texto) && nzchar(texto)) .lam_alto_tinta(texto, wr + 0.1, R$texto_pt) else 0
-  list(ml = ml, yt = yt, yf = yf, wm = wm, r = r, xr = xr, wr = wr, y_ley = y_ley, fin_panel = fin_panel, h_texto = h_texto,
-       y_texto = fin_panel + 0.2)
+  list(ml = ml, yt = yt, yf = yf, wm = wm, r = r, rec = rec, xr = xr, x_filete = x_filete, wr = wr, y_ley = y_ley,
+       fin_panel = fin_panel, h_texto = h_texto, y_texto = fin_panel + 0.2, paso = paso)
 }
 
 #' Lámina del mapa de cobertura (103 la general; 105 y 106 la de distrito)
@@ -78,8 +92,13 @@
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   doc <- officer::ph_with(doc, rvg::dml(ggobj = .lam_mapa_gg(espec), bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
                           location = officer::ph_location(left = G$r$x, top = G$r$y, width = G$r$w, height = G$r$h, newlabel = "prosecnur:grafico:mapa"))
+  if (!is.null(G$rec)) {
+    doc <- officer::ph_with(doc, rvg::dml(ggobj = .lam_mapa_gg(espec$ubicacion), bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
+                            location = officer::ph_location(left = G$rec$x, top = G$rec$y, width = G$rec$w, height = G$rec$h, newlabel = "prosecnur:grafico:mapa:ubicacion"))
+  }
   lz <- .lam_lienzo()
-  .lam_separador_v(lz, G$xr - 0.4, G$yt, G$yf - 0.1)
+  if (!is.null(G$rec)) .lam_txt(lz, "Ubicación en Lima", G$ml, G$yt, .LAM_MAPA$recuadro_w, 0.3, 11, suave, bold = TRUE, align = "center", nombre = "mapa:ubicacion_rotulo")
+  .lam_separador_v(lz, G$x_filete, G$yt, G$yf - 0.1)
   if (identical(espec$forma, "general")) {
     yk <- G$yt
     for (gk in espec$grupos) {
@@ -88,15 +107,15 @@
       we <- max(1.1, .lam_ancho_tinta(espec$encabezado, 10, TRUE) + 0.25)   # en una línea: «Zonas efectivas» se partía
       .lam_txt(lz, espec$encabezado, fin - we, yk + 0.04, we, 0.28, 10, suave, bold = TRUE, align = "right", nombre = "mapa:encabezado")
       for (j in seq_len(nrow(gk$filas))) {
-        yj <- yk + 0.42 + (j - 1) * 0.34
+        yj <- yk + G$paso$enc + (j - 1) * G$paso$fila
         .lam_txt(lz, gk$filas$distrito[j], G$xr + 0.3, yj, G$wr - 1.4, 0.3, 12.5, azul, nombre = "mapa:distrito")
         .lam_txt(lz, format(gk$filas$valor[j], big.mark = ","), fin - 1.1, yj, 1.1, 0.3, .std_pt("cifra"), azul, bold = TRUE, align = "right", nombre = "mapa:valor")
       }
-      yt_ <- yk + 0.42 + nrow(gk$filas) * 0.34
+      yt_ <- yk + G$paso$enc + nrow(gk$filas) * G$paso$fila
       .lam_separador_h(lz, G$xr + 0.3, fin, yt_ + 0.02)
       .lam_txt(lz, "Total", G$xr + 0.3, yt_ + 0.05, 1.5, 0.3, 12.5, azul, bold = TRUE, nombre = "mapa:total")
       .lam_txt(lz, format(gk$total, big.mark = ","), fin - 1.1, yt_ + 0.05, 1.1, 0.3, .std_pt("cifra"), azul, bold = TRUE, align = "right", nombre = "mapa:total_valor")
-      yk <- yt_ + 0.4 + 0.3
+      yk <- yt_ + 0.35 + G$paso$aire
     }
   } else {
     c0 <- espec$cifra

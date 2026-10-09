@@ -45,7 +45,7 @@
     if (is.null(pol)) next
     cr <- tryCatch(suppressWarnings(sf::st_crop(pol, sf::st_bbox(unlist(caja[c("xmin", "ymin", "xmax", "ymax")])))), error = function(e) NULL)
     if (is.null(cr) || !length(cr) || all(sf::st_is_empty(cr))) next
-    cr <- tryCatch(sf::st_collection_extract(cr, "POLYGON"), error = function(e) cr)
+    cr <- tryCatch(suppressWarnings(sf::st_collection_extract(cr, "POLYGON")), error = function(e) cr)
     co <- tryCatch(sf::st_coordinates(sf::st_cast(cr, "POLYGON")), error = function(e) NULL)
     if (is.null(co) || !nrow(co)) next
     co <- co[co[, "L1"] == 1, , drop = FALSE]
@@ -76,8 +76,11 @@
     dx <- diff(range(df$x)) * m; dy <- diff(range(df$y)) * m
     c(xmin = min(df$x) - dx, xmax = max(df$x) + dx, ymin = min(df$y) - dy, ymax = max(df$y) + dy)
   }
+  # Lima y Callao enteros de fondo, como el recetario (su capa LIMA no filtra el Callao); si la cartografía no está,
+  # los límites que traiga el contexto.
+  fondo <- tryCatch(.graficos_lima_district_context(incluir_callao = TRUE), error = function(e) list())
   if (identical(scope, "overview_koica")) {
-    lima <- .mapa_collection_polygons(contexto$lima_boundary %||% list(), contexto)
+    lima <- .mapa_collection_polygons(if (length(fondo)) fondo else (contexto$lima_boundary %||% list()), contexto)
     if (!nrow(lima) || !nrow(resumen) || !all(c("ubigeo", "grupo") %in% names(resumen))) return(NULL)
     grupo_de <- stats::setNames(as.character(resumen$grupo), as.character(resumen$ubigeo))
     g <- grupo_de[as.character(lima$ubigeo)]
@@ -105,9 +108,19 @@
   zonas <- unique(data.frame(zona = poly$zona, ubigeo = poly$ubigeo, estado = estado, stringsAsFactors = FALSE))
   efectivas <- if (nrow(resumen) && "zonas_efectivas" %in% names(resumen)) sum(num(resumen$zonas_efectivas)) else sum(zonas$estado == "efectiva")
   ruta <- if (nrow(resumen) && "zonas_ruta" %in% names(resumen)) sum(num(resumen$zonas_ruta)) else sum(zonas$estado %in% c("efectiva", "intervencion"))
-  list(version = "mapa/1", tipo = "mapa", forma = "distrito",
-       capas = list(list(datos = .mapa_recortar(poly, caja_de(poly, 0.02)), borde = .std_color("mapa_borde"), grosor = 0.15)),
-       caja = caja_de(poly, 0.02),
+  # El recuadro «Ubicación en Lima» de la 105: Lima y Callao en gris y el distrito en azul.
+  ubigeo <- .mapa_chr1(contexto$ubigeo %||% (if (nrow(resumen) && "ubigeo" %in% names(resumen)) resumen$ubigeo[1] else ""), "")
+  ubicacion <- NULL
+  if (length(fondo) && nzchar(ubigeo)) {
+    lim <- .mapa_collection_polygons(fondo, contexto)
+    if (nrow(lim) && ubigeo %in% lim$ubigeo) {
+      lim$fill <- ifelse(lim$ubigeo == ubigeo, .std_color("azul"), .std_color("mapa_fuera"))
+      ubicacion <- list(capas = list(list(datos = lim, borde = "#FFFFFF", grosor = 0.2)), caja = caja_de(lim, 0))
+    }
+  }
+  list(version = "mapa/1", tipo = "mapa", forma = "distrito", ubicacion = ubicacion,
+       capas = list(list(datos = .mapa_recortar(poly, caja_de(poly, 0)), borde = .std_color("mapa_borde"), grosor = 0.15)),
+       caja = caja_de(poly, 0),
        cifra = list(valor = format(efectivas, big.mark = ","), rotulo = if (efectivas == 1) "zona con cobertura efectiva" else "zonas con cobertura efectiva",
                     detalle = if (ruta > 0) sprintf("de %s zonas en la ruta", format(ruta, big.mark = ",")) else sprintf("de %d zonas del distrito", nrow(zonas))),
        leyenda = list(titulo = "Zonas", rotulos = unname(.MAPA_ROTULOS_ZONA[orden]), colores = .mapa_color_estado(orden)))
