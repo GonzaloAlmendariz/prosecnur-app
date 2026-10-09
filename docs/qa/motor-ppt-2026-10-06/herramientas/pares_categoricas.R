@@ -3,7 +3,7 @@
 #
 # Uso (desde la raíz del repo):
 #   OUT=/ruta/categoricas.pptx Rscript docs/qa/motor-ppt-2026-10-06/herramientas/pares_categoricas.R
-#   printf "recetario,motor,nombre\n68,1,c068\n73,2,c073\n" > mapa.csv
+#   printf "recetario,motor,nombre\n68,1,c068\n73,2,c073\n74,3,d074\n" > mapa.csv
 #   Rscript scripts/qa_pares_recetario.R /ruta/categoricas.pptx mapa.csv /ruta/pares
 Sys.setlocale("LC_ALL", "en_US.UTF-8")
 suppressMessages(pkgload::load_all("api", quiet = TRUE))
@@ -17,7 +17,7 @@ freq <- function(base, v) {
   cc <- ch[!is.na(ch$list_name) & ch$list_name == row$list_name, ]
   d <- as.character(src$data_sources[[base]][[v]]); d <- d[!is.na(d) & d != ""]
   n <- as.integer(table(factor(d, levels = cc$name)))
-  list(labels = cc[[lc(ch)]], n = n, pct = n / length(d))
+  list(labels = cc[[lc(ch)]], n = n, pct = n / length(d), valid = length(d))
 }
 f <- freq("estudiantes", "p6")
 e <- preparar_categorica(f$labels, f$pct, .pulso_fmt_pct_unidades(.pulso_pct_unidades(f$pct, 0, "estandar"), 0), f$n)
@@ -41,4 +41,9 @@ e73 <- preparar_categorica(lab73, pc73 / 100, paste0(pc73, "%"))
 o <- .lam_laminas_categorica(o$doc, e73, "Qué podría mejorar la carrera", ante = "Ranking en barras",
                              base = "Base: 131 egresados. La opción más marcada va en azul oscuro. «Otros» y «No sabe» van al final",
                              folio = 73, forma = "barras", encabezado = "% de encuestados que marcó cada opción")
+# 74: dicotomía partida a todo el ancho (recetario_graficos2.R:20-25), egresados p11.
+f74 <- freq("egresados", "p11")
+e74 <- preparar_categorica(f74$labels, f74$pct, .pulso_fmt_pct_unidades(.pulso_pct_unidades(f74$pct, 0, "estandar"), 0), f74$n)
+o <- .lam_laminas_dicotomia(o$doc, e74, "Situación laboral del egresado", ante = "Dicotómica", pregunta = "¿Está trabajando actualmente?",
+                            publico = paste(f74$valid, "egresados"), base = paste("Base:", f74$valid, "egresados"), folio = 74)
 print(o$doc, target = OUT); cat("OK\n")

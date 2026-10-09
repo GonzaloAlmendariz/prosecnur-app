@@ -80,3 +80,74 @@
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
+
+#' Dicotomía partida (recetario_piezas.R:38-49): cifra grande en cada extremo, rótulos debajo y la barra
+#'
+#' La primera categoría va en azul y la segunda en celeste; la barra mide las cifras rotuladas.
+#' @keywords internal
+.lam_dicotomia <- function(lz, x, y, w, rotulos, cifras, largos, n = NULL, size = 22, g = 0.34,
+                           cols = .std_paleta("dicotomica")) {
+  size <- round(size * 0.85)   # C14 y C19 del recetario: las cifras de la dicotomía, un poco más chicas
+  azul <- .std_color("azul"); medio <- .std_color("azul_medio")
+  dico <- identical(toupper(cols), toupper(.std_paleta("dicotomica")))
+  et <- function(k) if (is.null(n) || !is.finite(n[k])) rotulos[k] else sprintf("%s (%d)", rotulos[k], as.integer(n[k]))
+  .lam_txt(lz, cifras[1], x, y, 1.6, size * 1.3 / 72, size, if (dico) azul else medio, bold = TRUE, nombre = "dicotomia:cifra")
+  .lam_txt(lz, cifras[2], x + w - 1.6, y, 1.6, size * 1.3 / 72, size, if (dico) medio else azul, bold = TRUE, align = "right",
+           nombre = "dicotomia:cifra")
+  yl <- y + size * 1.25 / 72; yb <- yl + 0.32
+  .lam_txt(lz, et(1), x, yl, w / 2, 0.26, 10.5, azul, nombre = "dicotomia:rotulo")
+  .lam_txt(lz, et(2), x + w / 2, yl, w / 2, 0.26, 10.5, azul, align = "right", nombre = "dicotomia:rotulo")
+  w1 <- w * largos[1] / sum(largos[1:2])
+  .lam_caja(lz, x + w1, yb, w - w1, g, cols[2], nombre = "dicotomia:segmento")
+  .lam_caja(lz, x, yb, w1 + 0.004, g, cols[1], nombre = "dicotomia:segmento")
+  invisible(yb + g)
+}
+
+#' ¿La especificación es una dicotomía? Dos categorías dibujadas que reparten el 100 % de una sola fila
+#'
+#' Categórica: exactamente dos categorías cuyos porcentajes suman 100 (con selección múltiple la barra
+#' partida contradiría a sus cifras). Escala: una sola fila y exactamente dos categorías dibujadas.
+#' @keywords internal
+.lam_es_dicotomia <- function(espec) {
+  if (is.null(espec)) return(FALSE)
+  if (identical(espec$tipo, "categorica")) {
+    return(length(espec$largos) == 2L && abs(sum(espec$valores) - 1) < 0.02)
+  }
+  if (identical(espec$tipo, "escala") && NROW(espec$filas) == 1L && is.null(espec$box2$cifras) && isFALSE(any(espec$filas$es_total))) {
+    k <- which(espec$dibujar[1, ]); return(length(k) == 2L && !any(espec$categorias$especial[k] %in% TRUE))
+  }
+  FALSE
+}
+
+#' Las piezas de una dicotomía (rótulos, cifras, largos, n) desde cualquiera de las dos especificaciones
+#' @keywords internal
+.lam_dicotomia_datos <- function(espec) {
+  if (identical(espec$tipo, "categorica")) {
+    return(list(rotulos = espec$rotulos, cifras = espec$cifras, largos = espec$largos, n = espec$n))
+  }
+  k <- which(espec$dibujar[1, ])
+  # La especificación de escala no guarda la frecuencia de cada categoría: los rótulos van sin «(n)».
+  list(rotulos = espec$categorias$rotulo[k], cifras = unname(espec$cifras[1, k]), largos = unname(espec$anchos[1, k]), n = NULL)
+}
+
+#' Lámina de una dicotomía a todo el ancho (lámina 74 del recetario, recetario_graficos2.R:20-25)
+#'
+#' La pregunta encabeza el panel con su público («176 egresados») y la barra partida va debajo, con cifras
+#' de 40 pt y 0.7 in de grosor.
+#' @keywords internal
+.lam_laminas_dicotomia <- function(doc, espec, titulo, ante = NULL, pregunta = NULL, publico = NULL, base = NULL,
+                                   folio = NULL, sub = NULL, layout = "Graficos2", master = "Office Theme",
+                                   por_lamina = function(doc) doc) {
+  force(folio)
+  g_ <- .std_geom; ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); yt <- g_("zona_datos_y0")
+  d <- .lam_dicotomia_datos(espec)
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
+  lz <- .lam_lienzo()
+  y <- yt + 1.1
+  if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3, ancho, pregunta, publico)
+  .lam_dicotomia(lz, ml, y, ancho, d$rotulos, d$cifras, d$largos, d$n, size = 40, g = 0.7)
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:dicotomia")
+  doc <- .lam_pie(doc, base, folio)
+  list(doc = por_lamina(doc), partes = 1L)
+}

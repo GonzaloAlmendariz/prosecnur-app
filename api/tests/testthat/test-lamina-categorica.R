@@ -79,3 +79,52 @@ test_that("en la ruta real p_barras_agrupadas de una serie sale nativa en barras
   negrita <- xml2::xml_attr(xml2::xml_find_first(rot, ".//a:rPr"), "b")
   expect_identical(xml2::xml_text(rot)[negrita == "1"], "Alimentos")   # la mayor, en negrita
 })
+
+test_that("la dicotomía se reconoce en las dos especificaciones y sólo cuando reparte el 100 % en dos", {
+  expect_true(.lam_es_dicotomia(preparar_categorica(c("Sí", "No"), c(.62, .38), c("62%", "38%"), c(109, 67))))
+  expect_false(.lam_es_dicotomia(preparar_categorica(c("A", "B"), c(.62, .58), c("62%", "58%"))))          # múltiple
+  expect_false(.lam_es_dicotomia(preparar_categorica(c("A", "B", "C"), c(.5, .3, .2), c("50%", "30%", "20%"))))
+  df <- data.frame(cat = "p11", n = 176, Si = .62, No = .38)
+  e <- preparar_escala(df, var_categoria = "cat", var_n = "n", cols_porcentaje = c("Si", "No"), etiquetas_grupos = c("Sí", "No"))
+  expect_true(.lam_es_dicotomia(e))
+  d <- .lam_dicotomia_datos(e)
+  expect_identical(d$cifras, c("62%", "38%")); expect_equal(d$largos, c(.62, .38))
+  df2 <- rbind(df, data.frame(cat = "p12", n = 176, Si = .5, No = .5))
+  expect_false(.lam_es_dicotomia(preparar_escala(df2, var_categoria = "cat", var_n = "n", cols_porcentaje = c("Si", "No"),
+                                                 etiquetas_grupos = c("Sí", "No"))))
+})
+
+test_that("la lámina de dicotomía tiene la geometría de la 74: barra de 0.7 in partida por la cifra rotulada", {
+  e <- preparar_categorica(c("Sí", "No"), c(.98, .02), c("98%", "2%"), c(172, 4))
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  o <- .lam_laminas_dicotomia(doc, e, "Situación laboral del egresado", ante = "Dicotómica", pregunta = "¿Está trabajando actualmente?",
+                              publico = "176 egresados", base = "Base: 176 egresados", folio = 74)
+  expect_identical(o$partes, 1L)
+  out <- tempfile(fileext = ".pptx"); print(o$doc, target = out)
+  xml <- xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", length(o$doc))))
+  txt <- function(n) xml2::xml_text(xml2::xml_find_all(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)))
+  expect_identical(txt("dicotomia:cifra"), c("98%", "2%"))
+  expect_identical(txt("dicotomia:rotulo"), c("Sí (172)", "No (4)"))
+  expect_identical(txt("panel:pregunta"), "¿Está trabajando actualmente?")
+  expect_identical(txt("panel:base"), "176 egresados")
+  ext <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='dicotomia:segmento']]/p:spPr/a:xfrm/a:ext")
+  cx <- as.numeric(xml2::xml_attr(ext, "cx")) / 914400; cy <- as.numeric(xml2::xml_attr(ext, "cy")) / 914400
+  expect_equal(cy, c(0.7, 0.7), tolerance = 1e-3)
+  ancho <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
+  expect_equal(max(cx), ancho * .98 + 0.004, tolerance = 1e-3)   # el Sí mide su 98 % rotulado
+})
+
+test_that("en la ruta real una categórica de dos opciones que suman 100 sale como dicotomía partida", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg")
+  dat <- data.frame(p1 = rep(c("1", "2"), c(172, 4)), stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = "p1", type = "select_one sn", list_name = "sn", label = "¿Está trabajando actualmente?", stringsAsFactors = FALSE),
+               choices = data.frame(list_name = "sn", name = c("1", "2"), label = c("Sí", "No"), stringsAsFactors = FALSE), orders_list = NULL)
+  plan <- list(b = p_slide_1_grafico(grafico = p_barras_categoricas("p1"), titulo = "Situación laboral"))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
+  xml <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  expect_false(inherits(xml2::xml_find_first(xml, "//p:grpSp[p:nvGrpSpPr/p:cNvPr[@name='prosecnur:grafico:dicotomia']]"), "xml_missing"))
+  txt <- function(n) xml2::xml_text(xml2::xml_find_all(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)))
+  expect_identical(txt("dicotomia:cifra"), c("98%", "2%"))
+  expect_identical(txt("panel:pregunta"), "¿Está trabajando actualmente?")
+})
