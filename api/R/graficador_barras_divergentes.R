@@ -155,7 +155,8 @@ graficar_barras_divergentes <- function(
     size_nota_pie = 8,
     textos_negrita = NULL,
     font_family = "Arial",
-    reparto = NULL
+    reparto = NULL,
+    codigos_grupos = NULL
 ) {
   escala_valor <- match.arg(escala_valor)
   leyenda_posicion <- match.arg(leyenda_posicion)
@@ -194,7 +195,7 @@ graficar_barras_divergentes <- function(
 
   espec_div <- tryCatch(.espec_divergentes(data, var_categoria, cols_porcentaje, etiquetas, particion, escala_valor,
                                            valores_decimales, colores_grupos, incluir_neutro = incluir_neutro,
-                                           reparto_explicito = !is.null(reparto)), error = function(e) NULL)
+                                           reparto_explicito = !is.null(reparto), codigos = codigos_grupos), error = function(e) NULL)
   items <- as.character(data[[var_categoria]])
   filas <- list()
   for (i in seq_along(items)) {

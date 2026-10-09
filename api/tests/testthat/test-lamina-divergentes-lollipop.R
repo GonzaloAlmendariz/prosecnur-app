@@ -101,7 +101,7 @@ test_that("los colores siguen el significado y el centro es el nivel más suave,
   expect_identical(ei$categorias$color[ei$categorias$col == "e"], lk[4])
 })
 
-test_that("con dos especiales la divergente va por la ruta anterior y las cifras chicas no se encima (hallazgos 4 y 9)", {
+test_that("con dos especiales la divergente va por la ruta anterior y las cifras chicas no se encima ni suben (hallazgos 4 y 9)", {
   d <- data.frame(it = "x", a = .01, b = .01, c = .4, d = .38, e = .1, f = .1)
   et <- c(a = "TD", b = "D", c = "A", d = "TA", e = "No sabe", f = "No responde")
   e <- attr(graficar_barras_divergentes(d, "it", names(et), et, escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = FALSE), "pulso_espec")
@@ -109,9 +109,13 @@ test_that("con dos especiales la divergente va por la ruta anterior y las cifras
   e1 <- attr(graficar_barras_divergentes(d[, 1:6], "it", names(et)[1:5], et[1:5], escala_valor = "proporcion_1", n_negativas = 2, incluir_neutro = FALSE), "pulso_espec")
   o <- .lam_laminas_divergentes(.dl_doc(), e1, "Chicas", folio = 1)
   xml <- .dl_xml(o$doc)
-  cif <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='divergentes:cifra']]/p:spPr/a:xfrm/a:off")
-  ys <- as.numeric(xml2::xml_attr(cif, "y")) / 914400
-  expect_true(length(unique(round(ys, 3))) >= 2L)                                              # la segunda chica sube un escalón
+  cif <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='divergentes:cifra']]")
+  txt <- xml2::xml_text(cif); off <- xml2::xml_find_first(cif, "./p:spPr/a:xfrm/a:off")
+  xs <- as.numeric(xml2::xml_attr(off, "x")) / 914400; ys <- as.numeric(xml2::xml_attr(off, "y")) / 914400
+  ch <- which(txt == "1%")                                                                     # las dos cifras chicas vecinas
+  expect_length(unique(round(ys[ch], 3)), 1L)                                                  # a la misma altura (no suben)
+  centros <- xs[ch] + 0.3
+  expect_true(abs(diff(centros)) >= .lam_ancho_tinta("1%", 10.5, TRUE) + 0.05)                 # y separadas: no se encima
 })
 
 test_that("el ranking conserva la nota de recorte y el resaltado del analista (hallazgo 10)", {
@@ -121,4 +125,13 @@ test_that("el ranking conserva la nota de recorte y el resaltado del analista (h
   o <- .lam_laminas_lollipop(.dl_doc(), e, "Ranking", folio = 1)
   col <- xml2::xml_attr(xml2::xml_find_all(.dl_xml(o$doc), "//p:sp[p:nvSpPr/p:cNvPr[@name='lollipop:punto']]//a:solidFill/a:srgbClr"), "val")
   expect_true(.lam_hex(.std_color("coral")) %in% col)
+})
+
+test_that("una opción especial reconocida sólo por su código (99) queda fuera del Top Two Box por la ruta real", {
+  d <- data.frame(it = "x", niv_1 = .12, niv_2 = .17, niv_3 = .35, niv_4 = .25, niv_5 = .11)
+  et <- c(niv_1 = "TD", niv_2 = "D", niv_3 = "A", niv_4 = "TA", niv_5 = "Desconoce")
+  e <- attr(graficar_barras_divergentes(d, "it", names(et), et, escala_valor = "proporcion_1",
+                                        reparto = list(negativas = c("niv_1", "niv_2"), neutro = character(0), positivas = c("niv_3", "niv_4", "niv_5")),
+                                        codigos_grupos = c(niv_1 = "1", niv_2 = "2", niv_3 = "3", niv_4 = "4", niv_5 = "99")), "pulso_espec")
+  expect_identical(e$categorias$lado[5], "sin_inf"); expect_identical(e$cifras_pos, "60%")     # antes 71 % con «Desconoce»
 })
