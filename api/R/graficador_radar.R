@@ -180,7 +180,9 @@ graficar_radar <- function(
 
     mostrar_tela    = TRUE,
     mostrar_radios  = FALSE,
-    mostrar_niveles = FALSE,
+    # ADR 0092 (F2.7d): las cifras de los anillos van por defecto, sobre la
+    # diagonal entre los dos primeros ejes (recetario_m3c.R:75-92).
+    mostrar_niveles = TRUE,
 
     wrap_ejes = 24,
     eje_label_mult = 1.06,
@@ -794,7 +796,12 @@ graficar_radar <- function(
   # Límites radiales (escala real 0-1). Se definen antes de la geometría para
   # poder mapear el polígono al rango visual completo cuando hay piso > 0.
   if (is.null(limites)) {
-    r_lim <- c(0, 1)
+    # ADR 0092 (F2.7d): con valores altos el eje arranca en el múltiplo de 5
+    # bajo el mínimo, como el radar del recetario (lo = 80 con datos de 84 a
+    # 98); desde 0 las series quedaban amontonadas contra el borde.
+    v_min <- suppressWarnings(min(df0$.valor, na.rm = TRUE))
+    piso <- if (is.finite(v_min) && v_min >= 0.5) max(0, floor((v_min - 0.03) / 0.05) * 0.05) else 0
+    r_lim <- c(piso, 1)
   } else {
     r_lim <- suppressWarnings(as.numeric(limites))
     if (length(r_lim) != 2 || any(!is.finite(r_lim))) r_lim <- c(0, 1)
@@ -850,7 +857,12 @@ graficar_radar <- function(
   # ---------------------------------------------------------------------------
   # 3) Límites radiales
   # ---------------------------------------------------------------------------
-  rings <- unique(seq(r_lim[1], r_lim[2], length.out = cortes_grilla))
+  # Con un eje acercado (30 puntos o menos), un anillo cada 5 puntos.
+  rings <- if (r_lim[1] > 0 && diff(r_lim) <= 0.3 + 1e-9) {
+    unique(round(seq(r_lim[1], r_lim[2], by = 0.05), 4))
+  } else {
+    unique(seq(r_lim[1], r_lim[2], length.out = cortes_grilla))
+  }
   rings_plot <- .map_r_to_plot(rings)
   ring_max_plot <- suppressWarnings(max(rings_plot, na.rm = TRUE))
   if (!is.finite(ring_max_plot) || ring_max_plot <= 0) ring_max_plot <- 1
@@ -874,7 +886,18 @@ graficar_radar <- function(
   }
 
   level_lab <- NULL
-  if (isTRUE(mostrar_niveles)) level_lab <- tibble::tibble(.nivel = rings, x = rings_plot * radar_scale, y = 0)
+  if (isTRUE(mostrar_niveles)) {
+    # Sobre la diagonal entre los dos primeros ejes, en el punto medio del lado
+    # de cada anillo: no pisa el rótulo del eje de arriba (recetario_m3c.R:86-87).
+    ang_n <- theta0 - pi / K
+    lados <- cos(pi / K)
+    sin_centro <- if (r_lim[1] > 0) rings > r_lim[1] + 1e-9 else rings > 1e-9
+    level_lab <- tibble::tibble(
+      .nivel = rings[sin_centro],
+      x = rings_plot[sin_centro] * radar_scale * lados * cos(ang_n) + 0.02,
+      y = rings_plot[sin_centro] * radar_scale * lados * sin(ang_n)
+    )
+  }
 
   max_label_lines <- max(
     1L,
@@ -1122,13 +1145,14 @@ graficar_radar <- function(
   }
 
   if (isTRUE(mostrar_niveles) && !is.null(level_lab)) {
-    p <- p + ggplot2::geom_text(
+    p <- p + ggplot2::geom_label(
       data = level_lab,
       ggplot2::aes(x = .data$x, y = .data$y, label = .pulso_fmt_pct_half_up(.data$.nivel, 0)),
-      size = 3,
-      color = "grey40",
+      size = 10 / ggplot2::.pt,
+      colour = .std_color("texto_suave"), fill = "white", label.size = 0,
+      label.padding = grid::unit(0.06, "lines"), family = font_family,
       fontface = if ("niveles" %in% textos_negrita) "bold" else "plain",
-      vjust = -0.2
+      hjust = 0, vjust = 0.5
     )
   }
 
@@ -2063,14 +2087,16 @@ graficar_radar <- function(
       )
 
       if (isTRUE(mostrar_niveles) && !is.null(level_lab)) {
+        # Mismo estilo que fuera del PPT, sin el fondo de `geom_label` (rvg y las
+        # formas rellenas ya dieron problemas en este archivo).
         p_ppt <- p_ppt + ggplot2::geom_text(
           data = level_lab,
           ggplot2::aes(x = .data$x, y = .data$y, label = .pulso_fmt_pct_half_up(.data$.nivel, 0)),
-          size = 3,
-          color = "grey40",
+          size = 10 / ggplot2::.pt,
+          colour = .std_color("texto_suave"),
           family = font_family,
           fontface = if ("niveles" %in% textos_negrita) "bold" else "plain",
-          vjust = -0.2
+          hjust = 0, vjust = 0.5
         )
       }
 
