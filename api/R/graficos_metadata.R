@@ -2752,7 +2752,7 @@
       list(name = "max_palabras", label = "Máximo de palabras", tipo_input = "number", grupo = "filtro", default = 40),
       list(name = "min_chars", label = "Mínimo de caracteres", tipo_input = "number", grupo = "filtro", default = 3),
       list(name = "colores_palabras", label = "Colores de palabras", tipo_input = "series_colors", grupo = "estilo",
-           descripcion = "Paleta cíclica para colorear los términos."),
+           descripcion = "Paleta cíclica para colorear los términos. Vacía, la nube usa el degradado de azul por menciones del recetario."),
       list(name = "size_titulo", label = "Tamaño título", tipo_input = "number", grupo = "estilo", default = 16),
       list(name = "size_subtitulo", label = "Tamaño subtítulo", tipo_input = "number", grupo = "estilo", default = 12),
       list(name = "size_nota_pie", label = "Tamaño nota al pie", tipo_input = "number", grupo = "estilo", default = 10)
@@ -3869,14 +3869,8 @@
     color_titulo             = .PULSO_PPT_COLORS$rojo,
     color_subtitulo          = .PULSO_PPT_COLORS$azul,
     color_nota_pie           = .PULSO_PPT_COLORS$azul,
-    colores_palabras         = c(
-      .PULSO_PPT_COLORS$azul,
-      .PULSO_PPT_COLORS$rojo,
-      .PULSO_PPT_COLORS$verde,
-      .PULSO_PPT_COLORS$amarillo,
-      .PULSO_PPT_COLORS$azul_secundario,
-      .PULSO_PPT_COLORS$morado
-    )
+    # Sin paleta de fábrica: la nube usa el degradado del recetario por menciones (graficador_nube_palabras.R).
+    colores_palabras         = NULL
   ),
 
   barras_numericas = list(
