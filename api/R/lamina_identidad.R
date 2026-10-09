@@ -27,8 +27,9 @@
     meta <- slide$meta %||% list(); titulo <- as.character(slide$slots$title %||% slide$title %||% "")[1]
     if (identical(meta$nivel, "subcapitulo")) {
       n_sub <<- n_sub + 1L
-      base <- if (is.na(cap_numero)) "0" else cap_numero
-      list(nivel = "subcapitulo", numero = as.character(meta$numero %||% paste0(base, ".", n_sub)),
+      # Sin capítulo antes, el subcapítulo se numera solo («1», no «0.1»; verificador de N7).
+      num <- if (is.na(cap_numero)) as.character(n_sub) else paste0(cap_numero, ".", n_sub)
+      list(nivel = "subcapitulo", numero = as.character(meta$numero %||% num),
            capitulo = cap_titulo, capitulo_numero = cap_numero, rotulo = as.character(meta$rotulo %||% "Capítulo")[1])
     } else {
       n_cap <<- n_cap + 1L; n_sub <<- 0L

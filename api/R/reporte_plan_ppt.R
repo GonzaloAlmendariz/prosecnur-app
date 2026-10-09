@@ -9056,7 +9056,7 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_br, pBR)
       }
 
-      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_composicion_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, base = slots$base %||% .base_auto_de_elementos(els = list(el_ul, el_ur, el_bl, el_br), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_composicion_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, base = if (isTRUE((slide$meta %||% list())$suppress_base_placeholder)) NULL else slots$base, solo_base_declarada = TRUE)
       if (!isTRUE(solo_lista) && !.lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
