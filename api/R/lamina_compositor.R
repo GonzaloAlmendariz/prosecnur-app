@@ -196,7 +196,7 @@
     # Una sola fuente para la unidad (la etiqueta del instrumento): el histograma reescribe su mediana con ella, y
     # sobre la edad la caja y media y rango llevan el encabezado del eje del recetario («Edad, en años»).
     if (identical(espec$tipo, "histograma") && nzchar(unidad_valor) && is.finite(espec$mediana %||% NA_real_)) {
-      espec$texto_mediana <- sprintf("Mediana: %s %s", format(round(espec$mediana, 1), trim = TRUE), unidad_valor)
+      espec$texto_mediana <- sprintf("Mediana: %s %s", .cifra_mediana(espec$mediana, espec$enteros %||% FALSE), unidad_valor)
     }
     encabezado_eje <- if (identical(unidad_valor, "años")) "Edad, en años" else NULL
     comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),

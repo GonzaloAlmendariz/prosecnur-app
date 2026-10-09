@@ -242,3 +242,27 @@ cada uno con revisión metodológica.
   Siguen valiendo mientras el graficador ggplot exista para el Word y para los tipos de N6.
 - La vista previa del editor no cambia de mecanismo: ya es el pptx real rasterizado.
 - El Word deja de depender del ggplot del PPT (`reporte_plan_ppt.R:4069-4084`) en N8.
+
+## Enmienda 2026-10-09 — brecha y mediana como el recetario (N8.8)
+
+Gonzalo, 2026-10-09: «Todo eso guiate dle recetario porfavor, es la fuente de verdad». Revisado por
+`guardian-contratos` (compatible, sin migración) y `revisor-metodologico` (aprobado con los supuestos de abajo).
+
+- **Brecha del dumbbell = primera fuente menos segunda** (`recetario_word_graficos.R:149`, `sprintf("%+d pts", a - b)`;
+  página 29 de la propuesta Word: 98 − 92 = +6). Antes el ggplot restaba segunda menos primera
+  (`graficador_dumbbell.R`) mientras las pesas nativas ya restaban a − b: el mismo gráfico salía con signo opuesto
+  en el Word y en el PPT. Ahora las dos rutas restan entre las cifras ya redondeadas (20.4 y 18.5 se leen 20 y 19 y
+  dan +1), ordenan por la diferencia con su signo (la mayor arriba) y escriben el cero como «+0 pts».
+- **Significado del orden de las fuentes**: la primera es el grupo principal y, en antes/después, la medición MÁS
+  RECIENTE (el recetario declara «2026» antes que «2021»). Un `p_dumbbell` ya guardado con `[ola1, ola2]` cambia de
+  signo sin migración: no se persiste ningún signo, sólo el par ordenado. El texto del editor
+  (`graficos_metadata.R`, `p_dumbbell`) lo dice y la nota de versión debe decirlo.
+- **Mediana**: el texto se TRUNCA hacia cero (`as.integer` del recetario PPT, `recetario.R:631`, `recetario_m3b.R:41`)
+  cuando todos los datos son enteros; con datos decimales va con un decimal. La posición del triángulo y de la barra
+  sigue en el valor real. Un solo helper, `.cifra_mediana()`, para el histograma, la reescritura con unidad del
+  compositor y la columna del diagrama de caja. El recetario Word no trunca (`format(md)`), pero su único ejemplo es
+  una mediana entera: se aplica la regla del PPT a los dos formatos.
+- No cambian: la serie de dos mediciones (posterior menos anterior), el comparativo de dimensiones (valor absoluto)
+  ni el indicador numérico con métrica mediana (va por sus decimales).
+- Riesgos declarados, no resueltos aquí: los códigos especiales numéricos (99, −1) entran a la mediana si la limpieza
+  no los quitó; la mediana del histograma es muestral (sin pesos) aunque el dumbbell pondere.

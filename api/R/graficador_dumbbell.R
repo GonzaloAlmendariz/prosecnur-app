@@ -134,15 +134,17 @@ graficar_dumbbell <- function(
     .b = unname(vb[ejes]),
     stringsAsFactors = FALSE
   )
-  # Segunda base menos primera: la primera es la referencia (regla del motor,
-  # test-graficos-ola4-metodologia.R), y en antes/después da el cambio. Entre
-  # dos públicos el signo es convención —el recetario la escribe en azul neutro,
-  # «no es mejor ni peor»— y el orden de las bases lo decide el analista.
-  res$.brecha <- res$.b - res$.a
+  # Primera base menos segunda, como el recetario (recetario_word_graficos.R:149, «%+d pts» con a − b; página 29:
+  # 98 − 92 = +6) y como las pesas nativas de abajo: la primera es el grupo principal y, en antes/después, la
+  # medición MÁS RECIENTE («2026» antes que «2021»). Se resta entre las cifras que se leen (20.4 y 18.5 se leen 20 y
+  # 19 y dan +1), para que el Word y el PPT digan lo mismo. Gonzalo, 2026-10-09: «Todo eso guiate dle recetario».
+  dec_b <- suppressWarnings(as.integer(valores_decimales)[1]); if (!is.finite(dec_b) || dec_b < 0) dec_b <- 0L
+  res$.brecha <- .pulso_round_half_up(res$.a, dec_b) - .pulso_round_half_up(res$.b, dec_b)
 
+  # ggplot pinta el primer nivel abajo: orden ascendente deja arriba la brecha mayor con su signo (como las pesas).
   orden_ejes <- switch(
     orden,
-    brecha = res$.eje[order(abs(res$.brecha))],
+    brecha = res$.eje[order(res$.brecha)],
     valor  = res$.eje[order(res$.a)],
     res$.eje
   )
@@ -206,11 +208,11 @@ graficar_dumbbell <- function(
   }
 
   if (isTRUE(mostrar_brecha)) {
-    br <- res[abs(res$.brecha) >= umbral_brecha_pct, , drop = FALSE]
+    br <- res[!is.na(res$.brecha) & abs(res$.brecha) >= umbral_brecha_pct, , drop = FALSE]
     if (nrow(br)) {
       br$.lab <- paste0(
-        ifelse(br$.brecha > 0, "+", ""),
-        .pulso_fmt_half_up(br$.brecha, 0), " ", etiqueta_brecha
+        ifelse(br$.brecha >= 0, "+", ""),          # el recetario escribe «+0 pts» (sprintf("%+d"))
+        .pulso_fmt_half_up(br$.brecha, dec_b), " ", etiqueta_brecha
       )
       p <- p + ggplot2::geom_text(
         data = br,

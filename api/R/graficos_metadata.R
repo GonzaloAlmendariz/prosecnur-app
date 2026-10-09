@@ -1584,7 +1584,7 @@
   # =========================================================================
   p_dumbbell = list(
     titulo_humano = "Brecha entre dos bases",
-    descripcion   = "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = segunda − primera.",
+    descripcion   = "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = primera − segunda; la primera es el grupo principal (en antes/después, la medición más reciente).",
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
     blueprint     = "dumbbell",
@@ -1596,13 +1596,13 @@
       list(name = "orden", label = "Orden de las filas", tipo_input = "choice", grupo = "estilo",
            default = "brecha",
            choices = list(
-             list(value = "brecha", label = "Por tamaño de la brecha", hint = "La lectura de ranking: la diferencia más grande arriba."),
+             list(value = "brecha", label = "Por brecha", hint = "La lectura de ranking: la diferencia mayor, con su signo, arriba."),
              list(value = "valor", label = "Por valor de la primera base"),
              list(value = "declarado", label = "Orden declarado")
            )),
       list(name = "mostrar_brecha", label = "Mostrar la brecha", tipo_input = "bool", grupo = "valores",
            default = TRUE,
-           descripcion = "Escribe al margen comparación − referencia, es decir, segunda fuente menos primera."),
+           descripcion = "Escribe al margen la primera fuente menos la segunda (+6 pts si la primera está 6 puntos arriba). En antes/después declara primero la medición más reciente."),
       list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 50, step = 1,
            descripcion = "Sólo se rotulan las brechas de al menos este tamaño.")

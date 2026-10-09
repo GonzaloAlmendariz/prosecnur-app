@@ -116,7 +116,7 @@
       "id": "p_dumbbell",
       "nombre": "Brecha entre dos bases",
       "cat": "comparison",
-      "desc": "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = segunda − primera.",
+      "desc": "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = primera − segunda; la primera es el grupo principal (en antes/después, la medición más reciente).",
       "nargs": 9,
       "_row": "p_dumbbell"
     },
