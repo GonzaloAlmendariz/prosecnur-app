@@ -39,3 +39,27 @@ test_that("el encabezado interior lleva el título corto, el capítulo a la dere
   expect_match(hdr, "1. Perfil", fixed = TRUE); expect_match(hdr, "Informe", fixed = TRUE)
   expect_match(ftr, "PAGE", fixed = TRUE)
 })
+
+test_that("el informe conformado en modo revista lleva es-PE, viudas, sangría francesa en «Referencia» y updateFields", {
+  doc <- officer::body_add_par(.word_documento_nuevo(), "Autor, A. (2026). Un título largo de referencia.", style = "Referencia")
+  out <- tempfile(fileext = ".docx"); print(doc, target = out)
+  .docx_conformar(out, revista = TRUE)
+  st <- xml2::read_xml(unz(out, "word/styles.xml")); se <- xml2::read_xml(unz(out, "word/settings.xml"))
+  ns <- c(w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+  a <- function(x, xp, at) xml2::xml_attr(xml2::xml_find_first(x, xp, ns), at, ns = ns)
+  expect_identical(a(st, "//w:docDefaults/w:rPrDefault/w:rPr/w:lang", "w:val"), "es-PE")
+  expect_false(inherits(xml2::xml_find_first(st, "//w:docDefaults/w:pPrDefault/w:pPr/w:widowControl", ns), "xml_missing"))
+  ind <- xml2::xml_find_first(st, "//w:style[w:name[@w:val='Referencia']]/w:pPr/w:ind", ns)
+  expect_identical(c(xml2::xml_attr(ind, "w:left", ns = ns), xml2::xml_attr(ind, "w:hanging", ns = ns)), c("567", "567"))
+  expect_true(is.na(xml2::xml_attr(ind, "w:firstLine", ns = ns)))
+  expect_identical(a(se, "/w:settings/w:updateFields", "w:val"), "true")
+  expect_length(xml2::xml_find_all(se, "/w:settings/w:autoHyphenation", ns), 0L)
+  # Sin revista no se toca: los formularios y las fichas no llevan campos que actualizar.
+  out2 <- tempfile(fileext = ".docx"); print(officer::body_add_par(.word_documento_nuevo(), "x"), target = out2); .docx_conformar(out2)
+  expect_length(xml2::xml_find_all(xml2::read_xml(unz(out2, "word/settings.xml")), "/w:settings/w:updateFields", ns), 0L)
+  # El validador OOXML del skill docx, cuando está en la máquina (no en CI).
+  val <- Sys.glob(file.path(Sys.getenv("HOME"), "Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/*/*/skills/docx/scripts/office/validate.py"))
+  skip_if(!length(val) || !nzchar(Sys.which("python3")), "sin validate.py local")
+  res <- suppressWarnings(system2("python3", c(shQuote(val[1]), shQuote(out)), stdout = TRUE, stderr = TRUE))
+  expect_true(any(grepl("PASSED", res)), info = paste(res, collapse = "\n"))
+})

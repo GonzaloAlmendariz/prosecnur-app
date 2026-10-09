@@ -58,9 +58,39 @@
   invisible(nodo)
 }
 
-.docx_conformar_parte <- function(path_xml) {
+#' Diagramado de revista del informe (N8.2, lo que hacía `herramientas/word_nativo.py:49-83`)
+#'
+#' En styles.xml: idioma es-PE (la ortografía de Word), control de viudas y huérfanas, y sangría francesa de 567 twips
+#' en «Referencia» (officer deja firstLine = 0, que anula la colgante). En settings.xml: `updateFields`, para que Word
+#' llene los índices y los rótulos SEQ al abrir, y sin separación silábica automática (en un Word sin el componente de
+#' español mostraba «Word hyphenation feature is not available»; Gonzalo, 2026-10-08).
+#' @keywords internal
+.docx_revista <- function(doc, parte, ns) {
+  w <- function(nodo, nombre) { h <- xml2::xml_find_first(nodo, paste0("w:", nombre), ns); if (inherits(h, "xml_missing")) xml2::xml_add_child(nodo, paste0("w:", nombre)) else h }
+  if (identical(parte, "styles.xml")) {
+    dd <- xml2::xml_find_first(doc, "/w:styles/w:docDefaults", ns)
+    if (!inherits(dd, "xml_missing")) {
+      rpr <- w(w(dd, "rPrDefault"), "rPr"); xml2::xml_set_attr(w(rpr, "lang"), "w:val", "es-PE", ns)
+      w(w(w(dd, "pPrDefault"), "pPr"), "widowControl")
+    }
+    for (st in xml2::xml_find_all(doc, "//w:style[w:name[@w:val='Referencia']]", ns)) {
+      ind <- w(w(st, "pPr"), "ind")
+      for (k in c("w:firstLine", "w:start", "w:end")) xml2::xml_set_attr(ind, k, NULL, ns)
+      xml2::xml_set_attr(ind, "w:left", "567", ns); xml2::xml_set_attr(ind, "w:hanging", "567", ns)
+    }
+  }
+  if (identical(parte, "settings.xml")) {
+    raiz <- xml2::xml_find_first(doc, "/w:settings", ns)
+    xml2::xml_set_attr(w(raiz, "updateFields"), "w:val", "true", ns)
+    xml2::xml_remove(xml2::xml_find_all(doc, "/w:settings/w:autoHyphenation", ns))
+  }
+  invisible(doc)
+}
+
+.docx_conformar_parte <- function(path_xml, revista = FALSE) {
   doc <- xml2::read_xml(path_xml)
   ns <- c(w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+  if (isTRUE(revista)) .docx_revista(doc, basename(path_xml), ns)
   for (tag in names(.DOCX_ORDEN)) {
     nodos <- if (identical(tag, "settings")) xml2::xml_find_all(doc, "/w:settings", ns) else xml2::xml_find_all(doc, sprintf("//w:%s", tag), ns)
     for (n in nodos) .docx_ordenar_hijos(n, .DOCX_ORDEN[[tag]])
@@ -84,14 +114,16 @@
   invisible(path_xml)
 }
 
-.docx_conformar <- function(path_docx) {
+# `revista = TRUE` suma el diagramado del informe del recetario (`.docx_revista`): sólo el informe, no los formularios
+# ni las fichas, que no llevan campos que actualizar.
+.docx_conformar <- function(path_docx, revista = FALSE) {
   if (!length(path_docx) || !nzchar(path_docx) || !file.exists(path_docx)) return(invisible(path_docx))
   tmp <- tempfile("docx_conformar_")
   dir.create(tmp)
   on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
   utils::unzip(path_docx, exdir = tmp)
   partes <- list.files(file.path(tmp, "word"), pattern = "^(document|styles|settings|header[0-9]*|footer[0-9]*)\\.xml$", full.names = TRUE)
-  for (p in partes) .docx_conformar_parte(p)
+  for (p in partes) .docx_conformar_parte(p, revista = revista)
   # Partes de la plantilla de officer que ninguna relación usa: se retiran con su Override.
   rels_path <- file.path(tmp, "word", "_rels", "document.xml.rels")
   rels <- if (file.exists(rels_path)) paste(readLines(rels_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n") else ""
