@@ -120,3 +120,18 @@
     flextable::align(j = 1, align = "left") |> flextable::align(j = 2, align = "right") |> flextable::valign(valign = "center") |> flextable::padding(padding = 0)
   officer::block_list(ft)
 }
+
+#' Contraportada del informe (`contraportada()`, página 81): el logo de PULSO PUCP de 1 in al centro y el contacto debajo
+#' en una línea de 8.5 pt. El contacto es el mismo de la lámina de cierre del PPT (`.lam_cierre_contacto`): el plan puede
+#' reemplazar cada dato y uno vacío se omite. La sección anterior cierra con su salto de página.
+#' @param contacto Lista con `correo`, `direccion`, `web` (lo que no venga usa el de PULSO PUCP).
+#' @keywords internal
+.word_contraportada <- function(doc, contacto = list()) {
+  for (k in 1:14) doc <- officer::body_add_par(doc, "")
+  logo <- .word_logo("pulso")
+  doc <- officer::body_add_fpar(doc, officer::fpar(officer::external_img(logo, width = 1.0 * .word_png_aspecto(logo), height = 1.0),
+                                                   fp_p = officer::fp_par(text.align = "center")))
+  datos <- .lam_cierre_contacto(contacto)$dato
+  if (!length(datos)) return(doc)
+  .word_parr(doc, list(paste(datos, collapse = "     "), 8.5, .std_word("colores", "suave")), align = "center", antes = 24)
+}
