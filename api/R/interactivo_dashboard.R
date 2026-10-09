@@ -682,8 +682,7 @@
 
   df[[var_cruce]] <- as.character(df[[var_cruce]])
 
-  fila_cruce <- survey[survey$name == var_cruce, , drop = FALSE]
-  list_cruce <- if (nrow(fila_cruce)) fila_cruce$list_name[1] else NA_character_
+  list_cruce <- .get_list_name_safe(survey, var_cruce)
 
   if (!is.null(choices) &&
       all(c("list_name", "name") %in% names(choices)) &&
@@ -1353,7 +1352,7 @@ reporte_interactivo <- function(
     if (v %in% c(vf, vh, vd)) return(TRUE)
 
     if (!is.null(instrumento$survey) && all(c("name", "type") %in% names(instrumento$survey))) {
-      fila <- instrumento$survey[instrumento$survey$name == v, , drop = FALSE]
+      fila <- instrumento$survey[which(instrumento$survey$name == v), , drop = FALSE]
       if (nrow(fila)) {
         tp <- tolower(as.character(fila$type[1]))
         if (tp %in% c("start", "end", "deviceid", "subscriberid", "simserial",

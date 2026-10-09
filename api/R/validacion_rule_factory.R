@@ -395,7 +395,7 @@ relevant_a_r_y_humano <- function(rel_raw, survey, choices, meta){
       opt_rx <- regex_escape(opt)
       pat <- paste0("(^|\\s)", opt_rx, "(\\s|$)")
       expr_r <- paste0('grepl("', pat, '", ', var, ', perl = TRUE)')
-      lt <- survey$type[survey$name == var]
+      lt <- survey$type[which(survey$name == var)]
       ln <- if (length(lt) && !is.na(lt[1])) sub("^select_(one|multiple)\\s+","", tolower(trimws(lt[1]))) else ""
       var_lab <- lab_pregunta(survey, meta, var)
       opt_lab <- lab_choice(choices, meta, paste0("select_one ", ln), opt)
