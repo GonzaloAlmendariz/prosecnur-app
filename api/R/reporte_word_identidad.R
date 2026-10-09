@@ -91,3 +91,16 @@
   doc <- .word_estilos(officer::read_docx())
   officer::body_set_default_section(doc, .word_props_pagina(type = "nextPage"))
 }
+
+#' Cierra la sección en curso como un capítulo: encabezado con el título corto del informe y el capítulo, folio al pie
+#'
+#' El recetario escribe el encabezado de cada capítulo en vez de usar STYLEREF: Word mostraba «Error! Use the Home tab
+#' to apply heading 1» con el campo, que LibreOffice sí resolvía (recetario_word_identidad.R:44-58). Cada capítulo es una
+#' sección que empieza en página nueva.
+#' @param primera Encabezado de la primera página de la sección (la portada lleva ahí los logos), o `NULL`.
+#' @keywords internal
+.word_cerrar_capitulo <- function(doc, capitulo, titulo_corto, primera = NULL) {
+  officer::body_end_block_section(doc, officer::block_section(.word_props_pagina(
+    .word_cabecera(capitulo, titulo_corto), .word_pie(),
+    header_first = primera, footer_first = if (!is.null(primera)) .word_vacio())))
+}
