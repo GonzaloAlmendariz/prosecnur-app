@@ -179,7 +179,8 @@ barra_apilada <- function(doc, x, y, w, pct, cols, h) {
   }
 }
 # Barras de una serie (perfil, selección múltiple): etiqueta, barra y cifra.
-barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala = NULL, color = TK$navy, comp = NULL, sin_ceros = TRUE, realzar = TRUE, destacar = NULL) {
+barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala = NULL, color = TK$navy, comp = NULL, sin_ceros = TRUE, realzar = TRUE, destacar = NULL,
+                     marcas = FALSE) {   # marcas: 0-25-50-75-100 % bajo las barras con escala = 100 (Gonzalo, 2026-10-09: «A,bas y en ambos recetarios»)
   if (sin_ceros) { k0 <- pct > 0 | (!is.null(comp) && FALSE); if (!is.null(comp)) k0 <- pct > 0 | comp > 0
     labels <- labels[k0]; pct <- pct[k0]; if (!is.null(comp)) comp <- comp[k0] }
   resid <- grepl("^(Otro|Otros|No sabe|Ninguna|Prefiero no)", labels, ignore.case = TRUE)   # residuales al final
@@ -205,6 +206,8 @@ barras_h <- function(doc, x, y, w, labels, pct, wlab, g, fila, size = 12, escala
     txt(doc, paste0(pct[k], "%"), x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, 0.8, 0.3, size, TK$navy, bold = TRUE)
     yy <- yy + fila
   }
+  if (isTRUE(marcas)) { for (t in seq(0, 100, 25)) txt(doc, paste0(t, "%"), x + wlab + 0.12 + wbar * t / escala - 0.3, yy + 0.02, 0.6, 0.26, 9, "#A6A6A6", align = "center")
+    yy <- yy + 0.28 }
   zona(sprintf("barras, g = %s cm", cm(g)), x + wlab + 0.12, y, wbar, length(labels) * fila)
   invisible(yy)
 }
