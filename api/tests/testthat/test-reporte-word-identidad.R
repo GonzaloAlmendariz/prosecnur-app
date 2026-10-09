@@ -63,3 +63,27 @@ test_that("el informe conformado en modo revista lleva es-PE, viudas, sangría f
   res <- suppressWarnings(system2("python3", c(shQuote(val[1]), shQuote(out)), stdout = TRUE, stderr = TRUE))
   expect_true(any(grepl("PASSED", res)), info = paste(res, collapse = "\n"))
 })
+
+test_that("cada capítulo cierra su sección con su propio encabezado escrito y el folio, y la última va sin encabezado", {
+  doc <- .word_documento_nuevo()
+  doc <- officer::body_add_par(doc, "Capítulo uno", style = "heading 1")
+  doc <- .word_cerrar_capitulo(doc, "1. Perfil del encuestado", "Informe de prueba")
+  doc <- officer::body_add_par(doc, "Capítulo dos", style = "heading 1")
+  doc <- .word_cerrar_capitulo(doc, "2. Satisfacción", "Informe de prueba")
+  doc <- officer::body_add_par(doc, "Contraportada")
+  out <- tempfile(fileext = ".docx"); print(doc, target = out); .docx_conformar(out, revista = TRUE)
+  x <- xml2::read_xml(unz(out, "word/document.xml")); ns <- c(w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+  expect_length(xml2::xml_find_all(x, "//w:sectPr", ns), 3L)
+  ns2 <- c(ns, r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
+  tipos <- xml2::xml_attr(xml2::xml_find_all(x, "//w:sectPr/w:type", ns2), "w:val", ns = ns2)
+  expect_true(length(tipos) >= 2L && all(tipos == "nextPage"))
+  rels <- xml2::read_xml(unz(out, "word/_rels/document.xml.rels")); xml2::xml_ns_strip(rels)
+  texto_cab <- function(sp) {
+    rid <- xml2::xml_attr(xml2::xml_find_first(sp, "w:headerReference[@w:type='default']", ns2), "r:id", ns = ns2)
+    destino <- xml2::xml_attr(xml2::xml_find_first(rels, sprintf("//Relationship[@Id='%s']", rid)), "Target")
+    paste(xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, file.path("word", destino))), "//w:t", ns2)), collapse = "")
+  }
+  cabs <- vapply(xml2::xml_find_all(x, "//w:sectPr", ns2), texto_cab, "")
+  expect_match(cabs[1], "1. Perfil del encuestado", fixed = TRUE); expect_match(cabs[2], "2. Satisfacción", fixed = TRUE)
+  expect_false(grepl("Perfil|Satisfacci", cabs[3]))   # la última sección (la contraportada) no lleva capítulo
+})
