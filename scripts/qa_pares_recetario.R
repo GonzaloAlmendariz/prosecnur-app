@@ -22,8 +22,10 @@ dir.create(salida, recursive = TRUE, showWarnings = FALSE)
 salida <- normalizePath(salida)
 stopifnot(all(c("recetario", "motor") %in% names(mapa)))
 
-a_pdf <- function(pptx, destino) {
-  if (file.exists(destino) && file.mtime(destino) >= file.mtime(pptx)) return(destino)
+a_pdf <- function(pptx, destino, cache = TRUE) {
+  # Sólo el recetario se cachea: es siempre el mismo archivo. El del motor se regenera siempre, porque otro mazo
+  # más viejo pasado a la misma carpeta reutilizaba un motor.pdf ajeno (trampa medida por el verificador de N2).
+  if (isTRUE(cache) && file.exists(destino) && file.mtime(destino) >= file.mtime(pptx)) return(destino)
   tmp <- tempfile("pares_"); dir.create(tmp)
   file.copy(pptx, file.path(tmp, "x.pptx"))
   system2("soffice", c("--headless", "--convert-to", "pdf", "--outdir", tmp, file.path(tmp, "x.pptx")), stdout = FALSE, stderr = FALSE)
@@ -38,13 +40,13 @@ pagina <- function(pdf, n, destino) {
 }
 
 pdf_rec <- a_pdf(recetario, file.path(salida, "recetario.pdf"))
-pdf_mot <- a_pdf(mazo, file.path(salida, "motor.pdf"))
+pdf_mot <- a_pdf(mazo, file.path(salida, "motor.pdf"), cache = FALSE)
 filas <- vector("list", nrow(mapa))
 for (i in seq_len(nrow(mapa))) {
   r <- mapa$recetario[[i]]; m <- mapa$motor[[i]]
   nombre <- if ("nombre" %in% names(mapa) && nzchar(mapa$nombre[[i]])) mapa$nombre[[i]] else sprintf("r%03d_m%03d", r, m)
   pr <- pagina(pdf_rec, r, file.path(salida, sprintf("_r%03d.png", r)))
-  pm <- pagina(pdf_mot, m, file.path(salida, sprintf("_m%03d.png", m)))
+  pm <- pagina(pdf_mot, m, file.path(salida, sprintf("_m%03d.png", m)))   # se reescribe en cada corrida
   par <- file.path(salida, paste0("par_", nombre, ".png"))
   system2("magick", c(pr, pm, "+append", par))
   ae <- suppressWarnings(system2("magick", c("compare", "-metric", "AE", "-fuzz", "8%", pr, pm, "null:"), stdout = TRUE, stderr = TRUE))

@@ -123,16 +123,16 @@
 #' reordena.
 #' @return Lista de grupos de premisas, uno por lámina.
 #' @keywords internal
-.lam_escala_partir <- function(premisas, disponible = .lam_escala_alto_util()) {
+.lam_escala_partir <- function(premisas, disponible = .lam_escala_alto_util(), alto_fn = .lam_escala_alto) {
   n <- length(premisas)
-  if (n <= 1L || .lam_escala_alto(premisas) <= disponible) return(list(premisas))
-  cabe <- function(ix) all(vapply(split(premisas, ix), .lam_escala_alto, 0) <= disponible)
+  if (n <= 1L || alto_fn(premisas) <= disponible) return(list(premisas))
+  cabe <- function(ix) all(vapply(split(premisas, ix), alto_fn, 0) <= disponible)
   for (k in 2:n) {
     mejor <- NULL; mejor_v <- Inf
     for (cs in utils::combn(n - 1, k - 1, simplify = FALSE)) {
       ix <- findInterval(seq_len(n), cs + 1) + 1
       if (!cabe(ix)) next
-      altos <- vapply(split(premisas, ix), .lam_escala_alto, 0)
+      altos <- vapply(split(premisas, ix), alto_fn, 0)
       if (max(altos) - min(altos) < mejor_v) { mejor_v <- max(altos) - min(altos); mejor <- ix }
     }
     if (!is.null(mejor)) return(unname(split(premisas, mejor)))
@@ -158,15 +158,6 @@
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
-  # Con fila Total o Bottom Two Box el recetario compone filas bajo una pregunta (lámina 77).
-  if (.lam_escala_en_filas(espec)) {
-    filas <- unlist(lapply(premisas, function(p) vapply(p$filas, function(f) f$i, 0L)))
-    .lam_filas_box(lz, espec, filas, x = g_("margen_izq"), y = g_("zona_datos_y0") + 0.1,
-                   w = g_("ancho") - g_("margen_izq") - g_("margen_der"), pregunta = espec$pregunta)
-    ley <- espec$leyenda
-    .lam_leyenda(lz, g_("leyenda_y") - 0.05, espec$categorias$rotulo[ley], espec$categorias$color[ley], centrar_en = g_("ancho") / 2)
-    return(invisible(lz))
-  }
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
   ttb_col <- !is.null(espec$box$unidades)
@@ -285,3 +276,77 @@
 #' ¿El bloque va en filas con Total o Bottom Two Box en vez del bloque de premisas?
 #' @keywords internal
 .lam_escala_en_filas <- function(espec) any(espec$filas$es_total) || !is.null(espec$box2$unidades)
+
+# ---- planificación del modo de filas: bloques, alto y partición --------------------------------------
+
+#' Geometría de una parte en filas: grosor por el número de filas, aire para las cifras chicas
+#' @keywords internal
+.lam_filas_geo <- function(espec, filas) {
+  g_ <- .std_geom; w <- g_("ancho") - g_("margen_izq") - g_("margen_der"); wlab <- 1.8
+  ncol <- sum(!is.null(espec$box$unidades), !is.null(espec$box2$unidades))
+  wb <- w - wlab - 0.12 - ncol * 1.25 - (if (ncol) 0.15 else 0)
+  g <- .std_grosor(length(filas), "escala_apilada")
+  chica <- any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE))
+  list(g = g, fila = g + (if (chica) .std_geom("aire_cifra_chica") else 0.2))
+}
+
+#' Alto de una parte hecha de bloques (pregunta opcional, cabecera de columnas, filas y aire de la Total)
+#' @keywords internal
+.lam_filas_alto <- function(espec, bloques) {
+  filas <- unlist(lapply(bloques, `[[`, "filas"))
+  geo <- .lam_filas_geo(espec, filas)
+  sum(vapply(bloques, function(b) {
+    (if (!is.null(b$pregunta) && nzchar(b$pregunta)) 0.42 else 0) + 0.3 + length(b$filas) * geo$fila +
+      0.22 * sum(espec$filas$es_total[b$filas])
+  }, 0)) + 0.2 * (length(bloques) - 1L)
+}
+.lam_filas_disponible <- function() (.std_geom("leyenda_y") - 0.15) - (.std_geom("zona_datos_y0") + 0.1)
+
+#' Partes en filas: un bloque por premisa (con su título) o uno solo bajo la pregunta
+#'
+#' Si no cabe, se parte por bloques enteros (un bloque de actores no se separa) y, si un bloque solo no
+#' cabe, por filas, repitiendo la fila Total en cada parte: es la referencia de los grupos que resume.
+#' La letra no encoge.
+#' @return Lista de partes; cada parte, una lista de bloques `list(pregunta, filas)`.
+#' @keywords internal
+.lam_filas_planear <- function(espec, premisas, disponible = .lam_filas_disponible()) {
+  con_grupos <- !all(is.na(espec$filas$grupo_id))
+  ids <- function(p) vapply(p$filas, function(f) f$i, 0L)
+  bloques <- if (con_grupos) {
+    lapply(premisas, function(p) list(pregunta = p$texto, filas = ids(p)))
+  } else {
+    list(list(pregunta = espec$pregunta, filas = unlist(lapply(premisas, ids))))
+  }
+  alto <- function(bs) .lam_filas_alto(espec, bs)
+  partes <- if (length(bloques) > 1L) .lam_escala_partir(bloques, disponible, alto_fn = alto) else list(bloques)
+  out <- list()
+  for (parte in partes) {
+    if (alto(parte) <= disponible || length(parte) > 1L) { out[[length(out) + 1L]] <- parte; next }
+    b <- parte[[1]]; tot <- b$filas[espec$filas$es_total[b$filas]]; resto <- setdiff(b$filas, tot)
+    hecho <- FALSE
+    for (k in 2:max(2L, length(resto))) {
+      trozos <- split(resto, ceiling(seq_along(resto) / ceiling(length(resto) / k)))
+      cand <- lapply(trozos, function(tr) list(list(pregunta = b$pregunta, filas = c(tot, tr))))
+      if (all(vapply(cand, alto, 0) <= disponible)) { out <- c(out, unname(cand)); hecho <- TRUE; break }
+    }
+    if (!hecho) out <- c(out, lapply(resto, function(r) list(list(pregunta = b$pregunta, filas = c(tot, r)))))
+  }
+  out
+}
+
+#' Dibuja una parte en filas: sus bloques uno bajo otro y la leyenda de la lámina
+#' @keywords internal
+.lam_bloque_filas <- function(lz, espec, bloques) {
+  g_ <- .std_geom
+  geo <- .lam_filas_geo(espec, unlist(lapply(bloques, `[[`, "filas")))
+  x <- g_("margen_izq"); w <- g_("ancho") - x - g_("margen_der"); y <- g_("zona_datos_y0") + 0.1
+  for (k in seq_along(bloques)) {
+    if (k > 1L) .lam_caja(lz, x, y - 0.1, w, 0.008, .std_color("filete"), nombre = "filete")
+    y <- .lam_filas_box(lz, espec, bloques[[k]]$filas, x = x, y = y, w = w, pregunta = bloques[[k]]$pregunta,
+                        g = geo$g, fila = geo$fila) + 0.2
+  }
+  ley <- espec$leyenda
+  .lam_leyenda(lz, g_("leyenda_y") - 0.05, espec$categorias$rotulo[ley], espec$categorias$color[ley], centrar_en = g_("ancho") / 2)
+  invisible(lz)
+}
+

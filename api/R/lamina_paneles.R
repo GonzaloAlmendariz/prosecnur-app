@@ -103,6 +103,7 @@
                                   layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   g_ <- .std_geom; ml <- g_("margen_izq"); w <- g_("ancho") - ml - g_("margen_der")
+  geo <- .lam_vertical_geo(especs)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante)
   lz <- .lam_lienzo()
@@ -110,11 +111,30 @@
   for (k in seq_along(especs)) {
     if (k > 1) y <- y + 0.2
     .lam_panel_titulo(lz, ml, y, w, preguntas[[k]])
-    y <- .lam_likert_panel(lz, especs[[k]], ml, y + 0.4, w, especs[[k]]$orden$aplicado, g = 0.4, fila = 0.72, wlab = 1.6)
+    y <- .lam_likert_panel(lz, especs[[k]], ml, y + 0.4, w, especs[[k]]$orden$aplicado, g = geo$g, fila = geo$fila, wlab = 1.6)
   }
   e1 <- especs[[1]]; ley <- e1$leyenda
   .lam_leyenda(lz, y + 0.02, e1$categorias$rotulo[ley], e1$categorias$color[ley], centrar_en = g_("ancho") / 2)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:paneles")
   doc <- .lam_pie(doc, base, folio)
   por_lamina(doc)
+}
+
+#' Geometría de la lámina apilada: la del recetario (barra 0.4, fila 0.72; con cifras chicas la fila crece
+#' hasta tener su aire y la barra no cambia) si cabe sobre la base; si no, la fila se acorta a lo que cabe y
+#' la barra cede, nunca bajo 0.24 in
+#' @return `list(g, fila, cabe)`.
+#' @keywords internal
+.lam_vertical_geo <- function(especs) {
+  g_ <- .std_geom
+  n <- sum(vapply(especs, function(e) length(e$orden$aplicado), 0L))
+  # por bloque: pregunta (0.4) y cabecera del panel (0.3); 0.2 entre bloques; la leyenda (0.32) antes de la base
+  disp <- (g_("base_y") - 0.1 - 0.32) - (g_("zona_datos_y0") - 0.05) - length(especs) * 0.7 - 0.2 * (length(especs) - 1L)
+  w <- g_("ancho") - g_("margen_izq") - g_("margen_der")
+  wb <- w - 1.6 - 0.12 - (if (any(vapply(especs, function(e) !is.null(e$box$unidades), TRUE))) 1.1 else 0)
+  chica <- any(vapply(especs, function(e) any(vapply(e$orden$aplicado, function(i) .lam_tiene_peq(.lam_escala_seg(e, i), wb), TRUE)), TRUE))
+  aire <- if (chica) g_("aire_cifra_chica") else 0.32
+  if (n * max(0.72, 0.4 + aire) <= disp) return(list(g = 0.4, fila = 0.72, cabe = TRUE))   # el recetario tal cual
+  fila <- disp / max(1L, n); g <- fila - aire
+  list(g = max(0.24, g), fila = max(fila, 0.24 + aire), cabe = g >= 0.24)
 }

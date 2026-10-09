@@ -87,6 +87,51 @@ test_that("en la ruta real p_slide_2_graficos_vertical sale nativa, apilada, con
   y <- as.numeric(xml2::xml_attr(xml2::xml_find_first(preg, "p:spPr/a:xfrm/a:off"), "y"))
   x <- as.numeric(xml2::xml_attr(xml2::xml_find_first(preg, "p:spPr/a:xfrm/a:off"), "x"))
   expect_length(preg, 2L)
+  expect_identical(xml2::xml_text(preg), c("Pregunta uno", "Pregunta dos"))   # verificador de N2: no salían vacías
   expect_equal(x[1], x[2])            # apilados: misma columna
   expect_gt(y[2], y[1])
+})
+
+test_that("la lámina apilada acorta la fila para caber sobre la base; si ni con la barra mínima cabe, va por la ruta anterior", {
+  # Verificador de N2: con tres públicos por panel la fila fija de 0.72 sacaba la leyenda de la lámina.
+  e3 <- .espec_si_no(c(90, 80, 70)); e2 <- .espec_si_no(c(60, 50))
+  expect_true(isTRUE(.lam_vertical_geo(list(e3, e2))$cabe))
+  doc <- .lam_laminas_vertical(.doc_pan(), list(e3, e2), list("Pregunta A", "Pregunta B"), "Cinco barras", base = "Base", folio = 1)
+  x <- doc$slide$get_slide(doc$cursor)$get()
+  sp <- xml2::xml_find_all(x, "//p:grpSp[p:nvGrpSpPr/p:cNvPr[@name='prosecnur:grafico:paneles']]/p:sp")
+  fondo <- max((as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, "p:spPr/a:xfrm/a:off"), "y")) +
+                as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, "p:spPr/a:xfrm/a:ext"), "cy"))) / 914400)
+  expect_lte(fondo, .std_geom("base_y") - 0.05)
+  # tres y tres: no cabe ni con la barra de 0.24 in → la compuerta deja la lámina en la ruta anterior
+  pa <- ggplot2::ggplot(); attr(pa, "pulso_espec") <- e3
+  pb <- ggplot2::ggplot(); attr(pb, "pulso_espec") <- .espec_si_no(c(60, 50, 40))
+  expect_false(.lam_compositor_aplica_paneles(list(pa, pb), tipo = "p_slide_2_graficos_vertical"))
+  # y la geometría de dos columnas no decide por la apilada
+  expect_true(.lam_compositor_aplica_paneles(list(pa, pb), tipo = "p_slide_2_graficos"))
+})
+
+test_that("dentro de los paneles la batería de afirmaciones se ordena por Top Two Box y un cruce no", {
+  niv <- c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA")
+  bat <- function() {
+    d <- data.frame(item = c("x", "y", "z"), rotulo = c("Uno", "Dos", "Tres"), N = 100,
+                    t1 = c(.3, .1, .2), t2 = c(.2, .1, .2), t3 = c(.3, .4, .3), t4 = c(.2, .4, .3))
+    preparar_escala(d, "item", "N", paste0("t", 1:4), niv, var_etiqueta_categoria = "rotulo",
+                    barra_extra_preset = "top2box", top2box_labels = c("A", "TA"))
+  }
+  ps <- lapply(1:2, function(k) { p <- ggplot2::ggplot(); attr(p, "pulso_espec") <- bat(); p })
+  slide <- list(slots = list(base = "Base"), meta = list())
+  sin_base <- function(...) NULL; sin_nota <- function(...) NULL
+  orden_de <- function(els) {
+    doc <- .lam_slide_paneles_nativa(.doc_pan(), ps, els, slide, "Paneles", presets = list(), layout = "Graficos2",
+                                     master = "Office Theme", antetitulo = NULL, base_auto = sin_base, nota_de = sin_nota)
+    x <- doc$slide$get_slide(doc$cursor)$get()
+    sp <- xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:rotulo']]")
+    xs <- as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, "p:spPr/a:xfrm/a:off"), "x"))
+    ys <- as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, "p:spPr/a:xfrm/a:off"), "y"))
+    t <- xml2::xml_text(sp)[xs == min(xs)]; t[order(ys[xs == min(xs)])]
+  }
+  bateria <- list(.element_type = "barras_multiapiladas", modo = "var", var = NULL)
+  expect_identical(orden_de(list(bateria, bateria)), c("Dos", "Tres", "Uno"))     # 80, 60, 50
+  cruce <- list(.element_type = "barras_apiladas", var = NULL)
+  expect_identical(orden_de(list(cruce, cruce)), c("Uno", "Dos", "Tres"))
 })
