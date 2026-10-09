@@ -41,7 +41,7 @@
   azul <- .std_color("azul"); tenue <- .std_color("tenue")
   for (k in seq_along(et)) {
     es_max <- isTRUE(espec$realce) && v[k] == max(v)
-    h <- .lam_alto_txt(et[k], wlab, size)
+    h <- .lam_alto_tinta(et[k], wlab, size)   # tinta medida: la estimación por carácter subía el rótulo de una línea
     .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, azul, bold = es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, if (isTRUE(espec$realce) && !es_max) tenue else azul, nombre = "barra")

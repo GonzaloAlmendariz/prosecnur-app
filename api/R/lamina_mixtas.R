@@ -97,7 +97,9 @@
     tope <- min(2.6, w * 0.45)
     size <- if (max(.lam_ancho_tinta(espec$rotulos, 12)) + 0.3 > tope) 11 else 12
     wlab <- min(tope, max(1.2, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
-    altos <- vapply(espec$rotulos, function(r) .lam_alto_txt(r, wlab, size), 0)
+    # Alto con la tinta medida: la estimación por carácter partía en dos «Secretario(a) académico(a)», que en la
+    # lámina 193 del recetario cabe en una línea, y mandaba la cuadrícula entera a la ruta anterior.
+    altos <- vapply(espec$rotulos, function(r) .lam_alto_tinta(r, wlab, size), 0)
     return(list(tipo = "barras", y0 = y0, fila = fila, g = g, wlab = wlab, size = size,
                 cabe = length(espec$largos) >= 1L && fila >= 0.3 && all(altos <= fila + 0.02)))
   }
