@@ -140,9 +140,24 @@
   }
   espec <- attr(p, "pulso_espec")
   base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])
+  texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  if (.lam_es_dicotomia(espec)) {
+    # Dos categorías que reparten el 100 % de un público: la dicotomía partida a todo el ancho (lámina 74). La
+    # pregunta encabeza el panel cuando la lámina tiene su propio título; si no, el título ya es la pregunta.
+    pregunta <- if (!is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
+      tryCatch(texto(titulo_de_var(el_plot$var)), error = function(e) NULL)
+    }
+    n_pub <- if (identical(espec$tipo, "categorica")) sum(espec$n) else espec$filas$n[1]
+    publico <- if (is.finite(n_pub) && nzchar(base_var) && grepl("$", el_plot$var %||% "", fixed = TRUE)) {
+      paste(format(round(n_pub), big.mark = ",", trim = TRUE), base_var)
+    }
+    return(.lam_laminas_dicotomia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), pregunta = pregunta,
+                                  publico = publico, base = paste(c(texto(base), texto(pie)), collapse = ". "),
+                                  folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,
+                                  por_lamina = por_lamina)$doc)
+  }
   if (identical(espec$tipo, "categorica")) {
     # La pregunta categórica va en columnas (lámina 68); «N estudiantes» nombra al público de la base.
-    texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
     # La agrupada de una serie va en barras horizontales (lámina 73); en selección múltiple (los porcentajes
     # suman más de 100) lleva el encabezado del recetario.
