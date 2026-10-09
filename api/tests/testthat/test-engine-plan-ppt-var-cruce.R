@@ -3155,6 +3155,10 @@ test_that("reporte_ppt_plan usa frecuencias solo en barras agrupadas", {
   expect_false(grepl("40% (2)", slide2_xml, fixed = TRUE))
   expect_false(grepl("60% (3)", slide2_xml, fixed = TRUE))
 
-  expect_true(grepl("40% (2)", slide3_xml, fixed = TRUE))
-  expect_true(grepl("60% (3)", slide3_xml, fixed = TRUE))
+  # Dos categorías que suman 100 salen como dicotomía partida (lámina 74, ADR 0093): la frecuencia pedida con
+  # mostrar_n_en_etiquetas va en el rótulo («Nada util (2)») y la cifra queda limpia.
+  expect_true(grepl("40%", slide3_xml, fixed = TRUE))
+  expect_true(grepl("60%", slide3_xml, fixed = TRUE))
+  expect_true(grepl("(2)", slide3_xml, fixed = TRUE))
+  expect_true(grepl("(3)", slide3_xml, fixed = TRUE))
 })

@@ -42,46 +42,97 @@
     NULL)
 }
 
+#' Filas de una leyenda acotada a un panel: una si cabe a lo ancho del panel, dos si no
+#' @keywords internal
+.lam_leyenda_filas <- function(labels, w) {
+  ws <- 0.22 + .lam_ancho_tinta(labels, .std_pt("leyenda"))
+  if (sum(ws) + 0.3 * (length(ws) - 1) <= w) return(list(seq_along(labels)))
+  k <- ceiling(length(labels) / 2)
+  list(seq_len(k), setdiff(seq_along(labels), seq_len(k)))
+}
+
+#' Leyenda de un panel: centrada bajo sus barras y sin salir del panel (no cruza el filete vecino)
+#' @keywords internal
+.lam_leyenda_panel <- function(lz, y, labels, cols, centro, x0, x1) {
+  size <- .std_pt("leyenda")
+  for (r in .lam_leyenda_filas(labels, x1 - x0)) {
+    wk <- .lam_ancho_tinta(labels[r], size); ws <- 0.22 + wk; gap <- 0.3
+    tot <- sum(ws) + gap * (length(ws) - 1)
+    if (tot > x1 - x0 && length(ws) > 1) { gap <- max(0.15, (x1 - x0 - sum(ws)) / (length(ws) - 1)); tot <- sum(ws) + gap * (length(ws) - 1) }
+    x <- min(max(centro - tot / 2, x0), x1 - tot)
+    for (k in seq_along(r)) {
+      .lam_caja(lz, x, y + 0.07, 0.15, 0.15, cols[r[k]], nombre = "leyenda:cuadro")
+      .lam_txt(lz, labels[r[k]], x + 0.12, y, wk[k] + 0.3, 0.3, size, .std_color("azul"), nombre = "leyenda:texto")
+      x <- x + ws[k] + gap
+    }
+    y <- y + 0.3
+  }
+  invisible(y)
+}
+
+#' Geometría de un panel mixto: lo que dibuja y con qué medidas, y si cabe
+#'
+#' El renderer y la compuerta leen la misma geometría: una pregunta que se parte en varias líneas baja el
+#' gráfico, los rótulos que se parten deben caber en su fila y la leyenda de la escala, en el panel.
+#' @keywords internal
+.lam_panel_geo <- function(espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE) {
+  alto <- h >= 3.5; fin <- y + h
+  dy <- if (!is.null(pregunta) && nzchar(pregunta)) 0.22 * (.lam_lineas(pregunta, w, 13, TRUE) - 1) else 0
+  con_pub <- !is.null(publico) && nzchar(publico)
+  if (identical(espec$tipo, "categorica") && .lam_dicotomia_cabe(espec, w - 0.8, con_n = FALSE)) {
+    # barras_h del recetario: dos categorías se leen como dicotomía, al ancho de las barras del panel vecino (C23),
+    # con los rótulos sin su frecuencia (recetario_m2b.R, cuarta celda de la cuadrícula).
+    return(list(tipo = "dicotomia", y0 = y + 0.65 + dy, cabe = h - 0.65 - dy >= 1.4))
+  }
+  if (identical(espec$tipo, "categorica")) {
+    n <- max(1L, length(espec$largos)); y0 <- y + (if (alto) 0.75 else 0.58) + dy
+    fila <- min(if (alto) 0.95 else if (h < 2.5) 0.42 else 0.5, (fin - y0) * (if (alto) 0.95 else 0.9) / n)   # 0.42: la cuadrícula de 2 x 2
+    g <- min(.std_grosor(n, "categorias"), fila * 0.7)
+    tope <- min(2.6, w * 0.45)
+    size <- if (max(.lam_ancho_tinta(espec$rotulos, 12)) + 0.3 > tope) 11 else 12
+    wlab <- min(tope, max(1.2, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
+    altos <- vapply(espec$rotulos, function(r) .lam_alto_txt(r, wlab, size), 0)
+    return(list(tipo = "barras", y0 = y0, fila = fila, g = g, wlab = wlab, size = size,
+                cabe = length(espec$largos) >= 1L && fila >= 0.3 && all(altos <= fila + 0.02)))
+  }
+  if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 1L || .lam_escala_en_filas(espec)) return(list(tipo = "escala", cabe = FALSE))
+  # Escala: el likert compacto (likert_panel). El recetario lo pone 0.45 in bajo la pregunta con público y, sin
+  # él, 0.35 en el panel ancho y 0.2 en los de media columna; la fila mide 0.85, 0.66 o 0.5 in según haya una,
+  # dos o tres o más filas, y la barra el 58 % de la fila (0.5, 0.38 y 0.3 in en recetario_m2b.R).
+  filas <- espec$orden$aplicado %||% seq_len(NROW(espec$filas))
+  n <- length(filas); y0 <- y + (if (con_pub) 0.45 else if (w > 7) 0.35 else 0.2) + dy
+  rot <- espec$filas$rotulo[filas]
+  wlab <- min(1.6, max(1.2, max(.lam_ancho_tinta(rot, 11, TRUE)) + 0.25))
+  size_lab <- if (n >= 3L) 10.5 else 11
+  ttb <- if (!is.null(espec$box$unidades)) .std_geom("columna_top_two_box") + 0.1 else 0
+  ley <- espec$leyenda; n_ley <- if (isTRUE(leyenda)) length(.lam_leyenda_filas(espec$categorias$rotulo[ley], w)) else 0L
+  disp <- fin - (y0 + 0.3) - (if (isTRUE(leyenda)) 0.15 + 0.3 * n_ley else 0.35)
+  fila <- min(c(0.85, 0.66, 0.5)[min(n, 3L)], disp / n); g <- max(0.24, round(fila * 0.58, 2))
+  altos <- vapply(rot, function(r) .lam_alto_txt(r, wlab, size_lab, TRUE), 0)
+  list(tipo = "escala", filas = filas, y0 = y0, fila = fila, g = g, wlab = wlab, size_lab = size_lab, ttb = ttb,
+       cabe = fila >= 0.4 && all(altos <= fila + 0.05))
+}
+
 #' Un panel de lámina mixta: pregunta, público y el gráfico que afirma su especificación
 #'
 #' @param leyenda Si `FALSE`, la escala no dibuja su leyenda (la pone la lámina, compartida).
 #' @return El `y` donde terminó lo dibujado (para colocar una leyenda compartida debajo).
 #' @keywords internal
 .lam_panel_mixto <- function(lz, espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE) {
-  alto <- h >= 3.5
   if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, x, y, w, pregunta, publico)
-  fin <- y + h
-  if (identical(espec$tipo, "categorica") && .lam_es_dicotomia(espec)) {
-    # barras_h del recetario: dos categorías se leen como dicotomía, al ancho de las barras del panel vecino (C23).
+  geo <- .lam_panel_geo(espec, x, y, w, h, pregunta, publico, leyenda)
+  if (identical(geo$tipo, "dicotomia")) {
     d <- .lam_dicotomia_datos(espec)
-    return(.lam_dicotomia(lz, x, y + 0.65, w - 0.8, d$rotulos, d$cifras, d$largos, d$n, size = 22, g = 0.34))
+    return(.lam_dicotomia(lz, x, geo$y0, w - 0.8, d$rotulos, d$cifras, d$largos, NULL, size = 22, g = 0.34))
   }
-  if (identical(espec$tipo, "categorica")) {
-    n <- max(1L, length(espec$largos)); y0 <- y + (if (alto) 0.75 else 0.58)
-    fila <- min(if (alto) 0.95 else if (h < 2.5) 0.42 else 0.5, (fin - y0) * (if (alto) 0.95 else 0.9) / n)   # 0.42: la cuadrícula de 2 x 2
-    g <- min(.std_grosor(n, "categorias"), fila * 0.7)
-    tope <- min(2.6, w * 0.45)
-    tinta <- max(.lam_ancho_tinta(espec$rotulos, 12)) + 0.3
-    size <- if (tinta > tope) 11 else 12
-    wlab <- min(tope, max(1.2, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
-    return(.lam_barras_h(lz, espec, x, y0, w, wlab = wlab, g = g, fila = fila, size = size))
+  if (identical(geo$tipo, "barras")) {
+    return(.lam_barras_h(lz, espec, x, geo$y0, w, wlab = geo$wlab, g = geo$g, fila = geo$fila, size = geo$size))
   }
-  # Escala: el likert compacto (likert_panel) con la leyenda centrada bajo sus barras. El recetario lo pone
-  # 0.45 in bajo la pregunta con público y 0.25 sin él; la fila mide 0.85, 0.66 o 0.5 in según haya una, dos o
-  # tres o más filas, y la barra el 58 % de la fila (0.5, 0.38 y 0.3 in en recetario_m2b.R).
-  filas <- espec$orden$aplicado %||% seq_len(NROW(espec$filas))
-  n <- length(filas); y0 <- y + (if (!is.null(publico) && nzchar(publico)) 0.45 else 0.25)
-  disp <- fin - (y0 + 0.3) - (if (isTRUE(leyenda)) 0.45 else 0.35)
-  fila <- min(c(0.85, 0.66, 0.5)[min(n, 3L)], disp / n); g <- max(0.24, round(fila * 0.58, 2))
-  rot <- espec$filas$rotulo[filas]
-  wlab <- min(1.6, max(1.2, max(.lam_ancho_tinta(rot, 11, TRUE)) + 0.25))
-  size_lab <- if (n >= 3L) 10.5 else 11
-  yy <- .lam_likert_panel(lz, espec, x, y0, w, filas, g = g, fila = fila, wlab = wlab, size_lab = size_lab)
+  yy <- .lam_likert_panel(lz, espec, x, geo$y0, w, geo$filas, g = geo$g, fila = geo$fila, wlab = geo$wlab, size_lab = geo$size_lab)
   if (isTRUE(leyenda)) {
-    ttb <- if (!is.null(espec$box$unidades)) .std_geom("columna_top_two_box") + 0.1 else 0
-    xb <- x + wlab + 0.12; wb <- w - wlab - 0.12 - ttb
+    xb <- x + geo$wlab + 0.12; wb <- w - geo$wlab - 0.12 - geo$ttb
     ley <- espec$leyenda
-    .lam_leyenda(lz, yy - 0.02 + 0.05, espec$categorias$rotulo[ley], espec$categorias$color[ley], centrar_en = xb + wb / 2)
+    yy <- .lam_leyenda_panel(lz, yy + 0.03, espec$categorias$rotulo[ley], espec$categorias$color[ley], centro = xb + wb / 2, x0 = x, x1 = x + w)
   }
   invisible(yy)
 }
@@ -103,13 +154,7 @@
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   P <- geo$paneles
-  # Leyenda compartida: paneles de escala con la misma escala que comparten fila (mismo y).
-  es_escala <- vapply(especs, function(e) identical(e$tipo, "escala"), TRUE)
-  compartida <- rep(FALSE, length(P))
-  for (y in unique(vapply(P, `[[`, 0, "y"))) {
-    k <- which(vapply(P, `[[`, 0, "y") == y & es_escala)
-    if (length(k) >= 2L && .lam_paneles_misma_escala(especs[k])) compartida[k] <- TRUE
-  }
+  compartida <- .lam_mixta_compartida(especs, P)
   fines <- numeric(length(P))
   for (k in seq_along(P)) {
     p <- P[[k]]
@@ -129,30 +174,56 @@
   list(doc = por_lamina(doc), partes = 1L)
 }
 
-#' ¿El gráfico cabe en su panel con la geometría del recetario?
-#'
-#' Una categórica necesita filas de al menos 0.3 in (la barra de 0.26 y su aire) y una escala de al menos
-#' 0.4 in; una escala con fila Total o Bottom Two Box no va en un panel (es pieza de la lámina de un gráfico).
+#' ¿Qué paneles comparten leyenda? Paneles de escala con la misma escala en la misma fila (mismo y)
 #' @keywords internal
-.lam_mixta_cabe <- function(espec, p) {
-  if (identical(espec$tipo, "categorica")) {
-    if (.lam_es_dicotomia(espec)) return(p$h >= 1.4)
-    off <- if (p$h >= 3.5) 0.75 else 0.58
-    return(length(espec$largos) >= 1L && (p$h - off) * 0.9 / length(espec$largos) >= 0.3)
+.lam_mixta_compartida <- function(especs, P) {
+  es_escala <- vapply(especs, function(e) identical(e$tipo, "escala"), TRUE)
+  compartida <- rep(FALSE, length(P))
+  for (y in unique(vapply(P, `[[`, 0, "y"))) {
+    k <- which(vapply(P, `[[`, 0, "y") == y & es_escala)
+    if (length(k) >= 2L && .lam_paneles_misma_escala(especs[k])) compartida[k] <- TRUE
   }
-  if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 1L || .lam_escala_en_filas(espec)) return(FALSE)
-  (p$h - 0.45 - 0.3 - 0.45) / NROW(espec$filas) >= 0.4
+  compartida
+}
+
+#' Pregunta y público de cada panel
+#'
+#' La pregunta sale del título del gráfico o de la etiqueta de su variable; el público («178 respuestas») son
+#' los que respondieron (no las marcas de una selección múltiple) y se nombra sólo en un panel de un público.
+#' @keywords internal
+.lam_mixta_encabezados <- function(especs, els = NULL, titulo_de_var = NULL) {
+  texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  preguntas <- lapply(seq_along(especs), function(k) {
+    el <- if (length(els) >= k) els[[k]] else NULL
+    if (is.null(el)) return(NULL)
+    texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
+      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(titulo_de_var(el$var), error = function(e) NULL))) %||% ""
+  })
+  publicos <- lapply(especs, function(e) {
+    n <- .espec_n_base(e)
+    if (is.finite(n) && n > 0) paste(format(round(n), big.mark = ",", trim = TRUE), "respuestas") else NULL
+  })
+  list(preguntas = preguntas, publicos = publicos)
+}
+
+#' ¿El gráfico cabe en su panel con la geometría del recetario? (la misma que dibuja `.lam_panel_mixto`)
+#' @keywords internal
+.lam_mixta_cabe <- function(espec, p, pregunta = NULL, publico = NULL, leyenda = TRUE) {
+  isTRUE(.lam_panel_geo(espec, p$x, p$y, p$w, p$h, pregunta, publico, leyenda)$cabe)
 }
 
 #' ¿La lámina mixta se compone con piezas nativas? Cada ranura trae su especificación y cabe en su panel
 #' @keywords internal
-.lam_compositor_aplica_mixta <- function(ps, slide = NULL, tipo) {
+.lam_compositor_aplica_mixta <- function(ps, slide = NULL, tipo, els = NULL, titulo_de_var = NULL) {
   if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
   geo <- .lam_mixta_geo(tipo)
   if (is.null(geo) || length(ps) != length(geo$paneles)) return(FALSE)
   especs <- lapply(ps, function(p) if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL)
   if (any(vapply(especs, is.null, TRUE))) return(FALSE)
-  all(vapply(seq_along(especs), function(k) .lam_mixta_cabe(especs[[k]], geo$paneles[[k]]), TRUE))
+  enc <- .lam_mixta_encabezados(especs, els, titulo_de_var)
+  compartida <- .lam_mixta_compartida(especs, geo$paneles)
+  all(vapply(seq_along(especs), function(k) .lam_mixta_cabe(especs[[k]], geo$paneles[[k]], enc$preguntas[[k]], enc$publicos[[k]],
+                                                           leyenda = !compartida[k]), TRUE))
 }
 
 #' Una lámina mixta del plan, en nativo (enganche de la composición y de `paneles_4`)
@@ -165,23 +236,21 @@
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   slots <- slide$slots %||% list()
   base <- texto(base) %||% (if (is.character(slots$base)) texto(slots$base) else if (inherits(slots$base, "ppt_element_text")) texto(slots$base$text))
-  if (is.null(base)) {
-    bases <- unique(unlist(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL))))
-    base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
-  }
-  preguntas <- lapply(els, function(el) {
-    texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
-      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(titulo_de_var(el$var), error = function(e) NULL))) %||% ""
-  })
   especs <- lapply(seq_along(rendered), function(k) {
     e <- attr(rendered[[k]], "pulso_espec")
     if (identical(els[[k]]$.element_type, "barras_multiapiladas") && identical(els[[k]]$modo %||% "var", "var")) e <- .espec_ordenar_por_box(e)
     e
   })
-  publicos <- lapply(especs, function(e) {
-    n <- if (identical(e$tipo, "categorica")) sum(e$n) else if (NROW(e$filas) == 1L) e$filas$n[1] else NA_real_
-    if (is.finite(n) && n > 0) paste(format(round(n), big.mark = ",", trim = TRUE), "respuestas") else NULL
-  })
-  .lam_laminas_mixta(doc, especs, tipo, preguntas, publicos, titulo = texto(slots$title %||% slide$title) %||% "",
+  if (is.null(base)) {
+    # Las notas de los gráficos: la de la ruta de composición (nota_pie) o la que trae la espec (caption del ggplot).
+    bases <- unique(unlist(c(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL)), lapply(especs, function(e) texto(e$nota)))))
+    # «Base: 200» y «Base: 200 respuestas» nombran la misma base: se escribe una vez, la más explícita.
+    if (length(bases) > 1L) {
+      bases <- bases[order(-nchar(bases))]; bases <- bases[!duplicated(gsub("[^0-9]", "", bases))]
+    }
+    base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
+  }
+  enc <- .lam_mixta_encabezados(especs, els, titulo_de_var)
+  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, titulo = texto(slots$title %||% slide$title) %||% "",
                      ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)$doc
 }

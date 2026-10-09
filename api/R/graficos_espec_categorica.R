@@ -8,7 +8,7 @@
 # - las categorías residuales («Otros», «No sabe», «Ninguna», «Prefiero no») van al
 #   final aunque el instrumento las ponga antes;
 # - una categoría que se rotula 0 % no se dibuja (`sin_ceros`);
-# - con más de dos categorías y un máximo único, la mayor se realza;
+# - con más de dos categorías y un máximo único (en la cifra rotulada), la mayor se realza;
 # - la cifra es la del motor (su redondeo, `.barras_categoricas_etiquetas_pct`), y la barra o columna mide
 #   esa cifra rotulada, como en el recetario (el largo cuenta lo mismo que se lee).
 #
@@ -43,5 +43,6 @@ preparar_categorica <- function(rotulos, valores, cifras, n = NULL, residuales_a
   largo <- ifelse(is.finite(rotulada), rotulada, v)
   list(version = .ESPEC_CATEGORICA_VERSION, tipo = "categorica",
        rotulos = rotulos[idx], valores = v, largos = largo, cifras = cifras[idx], n = n[idx],
-       realce = length(v) > 2L && sum(v == max(v)) == 1L)
+       # El máximo se decide sobre lo que se lee: dos categorías que rotulan 12 % empatan aunque una valga 0.1204.
+       realce = length(largo) > 2L && sum(abs(largo - max(largo)) < 1e-9) == 1L)
 }

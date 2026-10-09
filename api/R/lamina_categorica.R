@@ -23,7 +23,8 @@
       .lam_txt(lz, sprintf("%s %s", format(as.integer(espec$n[k]), big.mark = ","), unidad_n), xk - 0.4, ybase - hk - 0.68,
                wcol + 0.8, 0.26, .std_pt("n"), tenue, align = "center", nombre = "n")
     }
-    .lam_txt(lz, espec$rotulos[k], xk - 0.4, ybase + 0.1, wcol + 0.8, 0.3, 12, azul, bold = TRUE, align = "center", nombre = "rotulo")
+    .lam_txt(lz, espec$rotulos[k], xk - 0.4, ybase + 0.1, wcol + 0.8, max(0.3, .lam_alto_txt(espec$rotulos[k], wcol + 0.8, 12, TRUE)), 12,
+             azul, bold = TRUE, align = "center", nombre = "rotulo")
   }
   invisible(lz)
 }
@@ -34,7 +35,9 @@
 .lam_barras_h <- function(lz, espec, x, y, w, wlab, g, fila, size = 12, escala = NULL) {
   v <- espec$largos; et <- espec$rotulos
   escala <- escala %||% (max(v) * 1.12)
-  wbar <- w - wlab - 0.8; yy <- y
+  # La cifra lleva su propia columna: 0.8 in, o lo que mida si trae «(n)» o letras (no se parte en dos líneas).
+  wcif <- max(0.8, max(.lam_ancho_txt(espec$cifras, size, TRUE)) + 0.12)
+  wbar <- w - wlab - wcif; yy <- y
   azul <- .std_color("azul"); tenue <- .std_color("tenue")
   for (k in seq_along(et)) {
     es_max <- isTRUE(espec$realce) && v[k] == max(v)
@@ -42,10 +45,41 @@
     .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, azul, bold = es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, if (isTRUE(espec$realce) && !es_max) tenue else azul, nombre = "barra")
-    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, 0.8, 0.3, size, azul, bold = TRUE, nombre = "cifra")
+    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = TRUE, nombre = "cifra")
     yy <- yy + fila
   }
   invisible(yy)
+}
+
+#' Geometría de las barras de la lámina 73 para una especificación
+#' @keywords internal
+.lam_barras_geo <- function(espec) {
+  g_ <- .std_geom; yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
+  n <- max(1L, length(espec$largos))
+  size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
+  fila <- min(0.62, (yf - yt - 0.45) / n); g <- min(0.42, fila * 0.62)
+  wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
+  list(size = size, fila = fila, g = g, wlab = wlab)
+}
+
+#' ¿En qué forma cabe la categórica? Columnas (lámina 68), barras (lámina 73) o ninguna (`NA`)
+#'
+#' Las columnas exigen que cada rótulo quepa en dos líneas bajo su columna; si no, la pregunta va en barras,
+#' como hace el recetario con los rótulos largos. Las barras exigen que cada rótulo quepa en su fila. Si
+#' tampoco, la lámina sigue por la ruta anterior.
+#' @keywords internal
+.lam_categorica_forma <- function(espec, preferida = c("columnas", "barras")) {
+  preferida <- match.arg(preferida)
+  k <- length(espec$largos); if (!k) return(NA_character_)
+  g_ <- .std_geom; ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")
+  wbox <- (ancho - 1.2) / k * 0.56 + 0.8
+  cols_ok <- k <= 10L && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, wbox, 12, TRUE) <= 0.62, TRUE))
+  geo <- .lam_barras_geo(espec)
+  barras_ok <- geo$fila >= 0.26 && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, geo$wlab, geo$size) <= geo$fila + 0.02, TRUE))
+  if (identical(preferida, "columnas") && cols_ok) return("columnas")
+  if (barras_ok) return("barras")
+  if (cols_ok) return("columnas")
+  NA_character_
 }
 
 #' Lámina de una categórica, en columnas (pregunta categórica) o en barras (una serie)
@@ -66,11 +100,7 @@
   if (identical(forma, "columnas")) {
     .lam_columnas(lz, espec, x0 = ml + 0.6, ybase = 6.05, wv = ancho - 1.2, unidad_n = unidad_n)
   } else {
-    n <- max(1L, length(espec$largos))
-    largos <- any(nchar(espec$rotulos) > 45)
-    size <- if (largos) 11 else 12
-    fila <- min(0.62, (yf - yt - 0.45) / n); g <- min(0.42, fila * 0.62)
-    wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
+    geo <- .lam_barras_geo(espec); size <- geo$size; fila <- geo$fila; g <- geo$g; wlab <- geo$wlab
     if (!is.null(encabezado) && nzchar(encabezado)) {
       .lam_txt(lz, encabezado, ml + wlab + 0.25, yt - 0.25, 4, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "encabezado")
     }
@@ -113,8 +143,12 @@
   if (identical(espec$tipo, "categorica")) {
     return(length(espec$largos) == 2L && abs(sum(espec$valores) - 1) < 0.02)
   }
-  if (identical(espec$tipo, "escala") && NROW(espec$filas) == 1L && is.null(espec$box2$cifras) && isFALSE(any(espec$filas$es_total))) {
-    k <- which(espec$dibujar[1, ]); return(length(k) == 2L && !any(espec$categorias$especial[k] %in% TRUE))
+  # Escala: la escala misma tiene dos categorías (Sí/No), no una de cuatro con dos en cero; y sin Top Two Box,
+  # que es pieza de la escala (verificador de N3).
+  if (identical(espec$tipo, "escala") && NROW(espec$filas) == 1L && is.null(espec$box2$cifras) && is.null(espec$box$unidades) &&
+      isFALSE(any(espec$filas$es_total))) {
+    propias <- which(!(espec$categorias$especial %in% TRUE)); k <- which(espec$dibujar[1, ])
+    return(length(propias) == 2L && identical(sort(unname(k)), sort(propias)))
   }
   FALSE
 }
@@ -123,7 +157,8 @@
 #' @keywords internal
 .lam_dicotomia_datos <- function(espec) {
   if (identical(espec$tipo, "categorica")) {
-    return(list(rotulos = espec$rotulos, cifras = espec$cifras, largos = espec$largos, n = espec$n))
+    # La frecuencia va en el rótulo («Sí (172)»): si la cifra la trae («62% (124)», mostrar_n_en_etiquetas), se quita.
+    return(list(rotulos = espec$rotulos, cifras = sub("\\s*\\([^)]*\\)\\s*$", "", espec$cifras), largos = espec$largos, n = espec$n))
   }
   k <- which(espec$dibujar[1, ])
   # La especificación de escala no guarda la frecuencia de cada categoría: los rótulos van sin «(n)».
@@ -150,4 +185,27 @@
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:dicotomia")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' Casos de la base de una categórica: los que respondieron, no la suma de marcas
+#'
+#' En selección múltiple las frecuencias suman marcas; la base se recupera de cualquier categoría con
+#' frecuencia y porcentaje (n / proporción).
+#' @keywords internal
+.espec_n_base <- function(espec) {
+  if (identical(espec$tipo, "escala")) return(if (NROW(espec$filas) == 1L) espec$filas$n[1] else NA_real_)
+  n <- suppressWarnings(as.numeric(espec$n)); v <- suppressWarnings(as.numeric(espec$valores))
+  ok <- is.finite(n) & is.finite(v) & v > 0
+  if (!any(ok)) return(NA_real_)
+  if (sum(v) <= 1.02) return(sum(n[ok]))
+  round(stats::median(n[ok] / v[ok]))
+}
+
+#' ¿La dicotomía cabe en un ancho? Es dicotomía y cada rótulo (con su «(n)») entra en una línea en su mitad
+#' @keywords internal
+.lam_dicotomia_cabe <- function(espec, w, con_n = TRUE) {
+  if (!.lam_es_dicotomia(espec)) return(FALSE)
+  d <- .lam_dicotomia_datos(espec)
+  et <- if (isTRUE(con_n) && !is.null(d$n) && all(is.finite(d$n))) sprintf("%s (%d)", d$rotulos, as.integer(d$n)) else d$rotulos
+  all(.lam_ancho_txt(et, 10.5) <= w / 2 - 0.1)
 }

@@ -89,7 +89,10 @@
   if (is.null(espec)) return(FALSE)
   if (identical(espec$tipo, "categorica")) {
     # N3: la categórica de una serie (columnas, lámina 68) es nativa cuando tiene categorías que dibujar.
-    return(length(espec$largos) >= 1L && !identical((slide$meta %||% list())$motor_nativo, FALSE))
+    # Va nativa si cabe en columnas o en barras; si no cabe en ninguna, sigue la ruta anterior (verificador de N3).
+    if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
+    return(.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")) ||
+             !is.na(.lam_categorica_forma(espec)))
   }
   if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 1L) return(FALSE)
   if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
@@ -141,13 +144,15 @@
   espec <- attr(p, "pulso_espec")
   base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
-  if (.lam_es_dicotomia(espec)) {
+  # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
+  if (!isTRUE(sin_base) && is.null(texto(base)) && is.null(texto(pie))) base <- texto(espec$nota)
+  if (.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der"))) {
     # Dos categorías que reparten el 100 % de un público: la dicotomía partida a todo el ancho (lámina 74). La
     # pregunta encabeza el panel cuando la lámina tiene su propio título; si no, el título ya es la pregunta.
     pregunta <- if (!is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
       tryCatch(texto(titulo_de_var(el_plot$var)), error = function(e) NULL)
     }
-    n_pub <- if (identical(espec$tipo, "categorica")) sum(espec$n) else espec$filas$n[1]
+    n_pub <- .espec_n_base(espec)
     publico <- if (is.finite(n_pub) && nzchar(base_var) && grepl("$", el_plot$var %||% "", fixed = TRUE)) {
       paste(format(round(n_pub), big.mark = ",", trim = TRUE), base_var)
     }
@@ -161,7 +166,7 @@
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
     # La agrupada de una serie va en barras horizontales (lámina 73); en selección múltiple (los porcentajes
     # suman más de 100) lleva el encabezado del recetario.
-    forma <- if (identical(el_plot$.element_type, "barras_agrupadas")) "barras" else "columnas"
+    forma <- .lam_categorica_forma(espec, if (identical(el_plot$.element_type, "barras_agrupadas")) "barras" else "columnas")
     multiple <- sum(espec$valores) > 1.02
     return(.lam_laminas_categorica(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
