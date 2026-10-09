@@ -46,3 +46,13 @@ test_that("promedios, media y rango y caja leen sus especs y la mayor de los pro
   bb <- suppressWarnings(ggplot2::ggplot_build(gb))
   expect_true(any(vapply(bb$data, function(l) "y" %in% names(l) && any(l$y == 30), TRUE)))   # el atípico se dibuja
 })
+
+test_that("en el Word la mediana va SIN truncar como su recetario (caja «21.5», histograma «21.5 años»); el PPT sigue truncando", {
+  e <- attr(.histograma_recetario(c(20, 21, 22, 23), modo = "conteo", unidad = "años"), "pulso_espec")
+  expect_identical(e$texto_mediana, "Mediana: 21 años")                                  # la espec (PPT) trunca
+  expect_identical(.word_texto_mediana(e), "Mediana: 21.5 años")                        # el Word no
+  expect_true("Mediana: 21.5 años" %in% .wn_textos(.word_g_hist(e)))
+  b <- preparar_boxplot(rep("A", 4), c(20, 21, 22, 23))
+  expect_true("21.5" %in% .wn_textos(.word_g_boxplot(b)))
+  expect_identical(.word_texto_mediana(list(texto_mediana = "Mediana: 22", mediana = 22)), "Mediana: 22")
+})

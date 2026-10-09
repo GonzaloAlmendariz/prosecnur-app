@@ -44,6 +44,17 @@
   g
 }
 
+#' El texto de la mediana como lo escribe el recetario WORD: sin truncar (`format(md)`, recetario_word_graficos.R:320; caja
+#' `paste0(med)`, :239). La espec trae el texto del PPT, que trunca con datos enteros (recetario.R:631): aquí se rehace la
+#' cifra desde el valor real y se conserva la unidad. Gonzalo, 2026-10-09: «El recetairo es la fuente de verdad» —cada
+#' formato el suyo.
+#' @keywords internal
+.word_texto_mediana <- function(espec) {
+  t <- as.character(espec$texto_mediana %||% "Mediana:")[1]
+  if (!is.finite(espec$mediana %||% NA_real_)) return(t)
+  sub("^(Mediana:) [^ ]+", paste("\\1", .cifra_mediana(espec$mediana, FALSE)), t)
+}
+
 #' Histograma (`g_hist()`): una columna por valor con su frecuencia encima, el valor debajo y la mediana como triángulo
 #' coral bajo su valor; el texto de la mediana arriba a la derecha (ya truncado por la espec)
 #' @keywords internal
@@ -57,7 +68,7 @@
                        size = .word_pt(8.5), fontface = "bold", colour = navy, family = "Arial") +
     ggplot2::geom_text(ggplot2::aes(x = .data$k, y = -mx * 0.07, label = .data$rot), size = .word_pt(8.5), colour = navy, family = "Arial") +
     ggplot2::annotate("point", x = espec$x_mediana + 1, y = -mx * 0.17, shape = 17, size = 2.6, colour = T$coral) +
-    ggplot2::annotate("text", x = max(k) + 0.5, y = mx * 1.12, label = espec$texto_mediana, hjust = 1, size = .word_pt(9), fontface = "bold",
+    ggplot2::annotate("text", x = max(k) + 0.5, y = mx * 1.12, label = .word_texto_mediana(espec), hjust = 1, size = .word_pt(9), fontface = "bold",
                       colour = T$coral, family = "Arial") +
     ggplot2::scale_y_continuous(limits = c(-mx * 0.22, mx * 1.16), expand = c(0, 0)) + ggplot2::scale_x_continuous(expand = c(0.01, 0)) + .word_tema()
   attr(g, "alto") <- 2.5 - 0.22; g          # el recetario la inserta a 2.5 in con el pie (recetario_word.R:357)
@@ -105,7 +116,7 @@
     ggplot2::geom_segment(ggplot2::aes(x = .data$x, xend = .data$x, y = .data$bigote_inf, yend = .data$bigote_sup), colour = navy, linewidth = 0.4) +
     ggplot2::geom_rect(ggplot2::aes(xmin = .data$x - 0.25, xmax = .data$x + 0.25, ymin = .data$q1, ymax = .data$q3), fill = "#D6DEEE", colour = navy, linewidth = 0.4) +
     ggplot2::geom_segment(ggplot2::aes(x = .data$x - 0.25, xend = .data$x + 0.25, y = .data$mediana, yend = .data$mediana), colour = navy, linewidth = 0.8) +
-    ggplot2::annotate("text", x = G$x + 0.33, y = G$mediana, label = .cifra_mediana(G$mediana, espec$enteros %||% FALSE), hjust = 0, size = .word_pt(8.5),
+    ggplot2::annotate("text", x = G$x + 0.33, y = G$mediana, label = .cifra_mediana(G$mediana, FALSE), hjust = 0, size = .word_pt(8.5),
                       fontface = "bold", colour = navy, family = "Arial") +
     ggplot2::scale_x_continuous(breaks = G$x, labels = G$rotulo, expand = ggplot2::expansion(add = 0.6)) + .word_tema() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(size = 8.5, colour = navy, face = "bold", family = "Arial"),
