@@ -43,3 +43,16 @@ test_that("un rótulo que cabe en una línea con la tinta medida no manda el pan
   P <- .lam_mixta_geo("paneles_4")$paneles[[1]]
   expect_true(.lam_mixta_cabe(e, P, "Cargo", "120 respuestas"))
 })
+
+test_that("la lámina de población sólo lleva la base que declaró el analista: cada panel ya nombra su público", {
+  els <- function() list(p_barras_categoricas("cargo"), p_barras_categoricas("anios"), p_barras_categoricas("sexo"), p_barras_categoricas("grado"))
+  e <- els()
+  lam <- .pb_lams(list(a = p_slide_4_graficos_poblacion(e[[1]], e[[2]], e[[3]], e[[4]], titulo = "Sin base"),
+                       b = p_slide_4_graficos_poblacion(e[[1]], e[[2]], e[[3]], e[[4]], titulo = "Con base", base = "Base: 120 autoridades"),
+                       c = p_slide_4_graficos_poblacion(e[[1]], e[[2]], e[[3]], e[[4]], titulo = "Oculta", base = "Base: 120 autoridades",
+                                                        meta = list(suppress_base_placeholder = TRUE))))
+  base_de <- function(x) paste(xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='Base lamina']]")), collapse = "")
+  expect_identical(base_de(lam[[1]]), "")
+  expect_identical(base_de(lam[[2]]), "Base: 120 autoridades")
+  expect_identical(base_de(lam[[3]]), "")
+})

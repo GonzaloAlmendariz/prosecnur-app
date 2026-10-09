@@ -92,7 +92,10 @@ test_that("los saltos de línea se miden por párrafo y se dibujan como saltos; 
   lam <- .nr_mazo(list(a = p_slide_1_grafico_narrativo(p_barras_categoricas("anio"), titulo = "Tres", texto = "Uno.\n**Dos.**\nTres."),
                        b = p_slide_1_grafico_narrativo(p_barras_categoricas("anio"), titulo = "Cuatro", texto = "Uno.\nDos.\nTres.\nCuatro.")))
   expect_true("prosecnur:narrativa" %in% .nr_nombres(lam[[1]]))
-  expect_length(xml2::xml_find_all(lam[[1]], "//p:sp[p:nvSpPr/p:cNvPr[@name='narrativa:texto']]//a:br"), 2L)
+  sp <- xml2::xml_find_all(lam[[1]], "//p:sp[p:nvSpPr/p:cNvPr[@name='narrativa:texto']]")
+  expect_length(xml2::xml_find_all(sp, ".//a:br"), 2L)
+  expect_length(xml2::xml_find_all(sp, ".//a:r//a:r"), 0L)                                   # ningún run dentro de otro
+  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(sp, ".//a:t")), collapse = "|"), "Uno.|Dos.|Tres.")
   expect_false("prosecnur:narrativa" %in% .nr_nombres(lam[[2]]))
 })
 
@@ -136,4 +139,13 @@ test_that("sin texto, la lámina narrativa es la de un gráfico también en la p
   txt <- lapply(1:2, function(k) xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))),
                                                                      "//p:sp[not(p:nvSpPr/p:cNvPr[@name='Folio lamina'])]//a:t")))   # el folio es la posición
   expect_identical(txt[[2]], txt[[1]])
+})
+
+test_that("una narrativa con etiqueta lleva la etiqueta en su línea y el texto sin duplicar", {
+  lam <- .nr_mazo(list(a = p_slide_1_grafico_narrativo(p_barras_categoricas("anio"), titulo = "T", etiqueta = "Hallazgo clave",
+                                                       texto = "El **27%** obtuvo su título en 2025.")))
+  sp <- xml2::xml_find_all(lam[[1]], "//p:sp[p:nvSpPr/p:cNvPr[@name='narrativa:texto']]")
+  expect_length(xml2::xml_find_all(sp, ".//a:r//a:r"), 0L)
+  expect_identical(paste(xml2::xml_text(xml2::xml_find_all(sp, ".//a:t")), collapse = ""), "Hallazgo claveEl 27% obtuvo su título en 2025.")
+  expect_length(xml2::xml_find_all(sp, ".//a:br"), 1L)
 })

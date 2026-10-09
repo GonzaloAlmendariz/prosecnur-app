@@ -100,19 +100,19 @@
 #' @keywords internal
 .lam_txt_tramos <- function(lz, tramos, l, t, w, h, size = 12, color = .std_color("azul"), nombre = "texto") {
   fuente <- .std_pt("fuente")
-  runs <- vapply(tramos, function(tr) paste0(
-    '<a:r><a:rPr lang="es-PE" sz="', round(size * 100), '" b="', if (isTRUE(tr[[2]])) 1 else 0, '" i="0" dirty="0">',
+  rpr <- function(negrita) paste0(
+    '<a:rPr lang="es-PE" sz="', round(size * 100), '" b="', if (isTRUE(negrita)) 1 else 0, '" i="0" dirty="0">',
     '<a:solidFill><a:srgbClr val="', .lam_hex(color), '"/></a:solidFill>',
-    '<a:latin typeface="', fuente, '"/><a:ea typeface="', fuente, '"/><a:cs typeface="', fuente, '"/></a:rPr>',
-    '<a:t>', .lam_xml_esc(tr[[1]]), '</a:t></a:r>'), "")
-  # Un salto de línea dentro de un tramo es un salto de verdad (<a:br/>), con el formato de su tramo.
-  runs <- vapply(seq_along(tramos), function(k) {
-    t <- tramos[[k]][[1]]
-    if (!grepl("\n", t, fixed = TRUE)) return(runs[k])
-    partes <- strsplit(t, "\n", fixed = TRUE)[[1]]; if (endsWith(t, "\n")) partes <- c(partes, "")   # «Uno.\n» guarda su salto
-    rpr <- sub("^<a:r>(<a:rPr.*?</a:rPr>).*$", "\\1", runs[k], perl = TRUE)
-    pedazos <- vapply(partes, function(t) paste0("<a:r>", rpr, "<a:t>", .lam_xml_esc(t), "</a:t></a:r>"), "")
-    paste(pedazos, collapse = paste0("<a:br>", sub("^<a:rPr", "<a:rPr", rpr), "</a:br>"))
+    '<a:latin typeface="', fuente, '"/><a:ea typeface="', fuente, '"/><a:cs typeface="', fuente, '"/></a:rPr>')
+  # Un salto de línea dentro de un tramo es un salto de verdad (<a:br>), con el formato de su tramo; el formato se arma
+  # directo y no se recorta con un regex (que no cruzaba el «\n» y anidaba un run dentro de otro: verificador de N7).
+  runs <- vapply(tramos, function(tr) {
+    texto <- as.character(tr[[1]]); negrita <- isTRUE(tr[[2]])
+    partes <- strsplit(texto, "\n", fixed = TRUE)[[1]]
+    if (!length(partes)) partes <- ""
+    if (endsWith(texto, "\n")) partes <- c(partes, "")                       # «Uno.\n» guarda su salto
+    pedazos <- vapply(partes, function(x) if (!nzchar(x)) "" else paste0("<a:r>", rpr(negrita), "<a:t>", .lam_xml_esc(x), "</a:t></a:r>"), "", USE.NAMES = FALSE)
+    paste(pedazos, collapse = paste0("<a:br>", rpr(negrita), "</a:br>"))
   }, "")
   xml <- paste0(
     '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>',

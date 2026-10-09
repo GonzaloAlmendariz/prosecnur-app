@@ -240,16 +240,19 @@
 #' («178 respuestas») se nombra cuando el panel es de un solo público. La base de la lámina reúne las notas
 #' al pie de los gráficos si la lámina no trae la suya.
 #' @keywords internal
-.lam_composicion_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var = NULL, base = NULL) {
+.lam_composicion_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var = NULL, base = NULL, solo_base_declarada = FALSE) {
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   slots <- slide$slots %||% list()
-  base <- texto(base) %||% (if (is.character(slots$base)) texto(slots$base) else if (inherits(slots$base, "ppt_element_text")) texto(slots$base$text))
+  base <- if (isTRUE(solo_base_declarada)) texto(base) else
+    texto(base) %||% (if (is.character(slots$base)) texto(slots$base) else if (inherits(slots$base, "ppt_element_text")) texto(slots$base$text))
   especs <- lapply(seq_along(rendered), function(k) {
     e <- attr(rendered[[k]], "pulso_espec")
     if (identical(els[[k]]$.element_type, "barras_multiapiladas") && identical(els[[k]]$modo %||% "var", "var")) e <- .espec_ordenar_por_box(e)
     e
   })
-  if (is.null(base)) {
+  # Población (base por gráfico, reporte_plan_base_por_grafico.R): cada panel ya nombra su público y la lámina sólo
+  # lleva la base que el analista declaró; juntar las notas de los cuatro paneles volvía a darles un denominador común.
+  if (is.null(base) && !isTRUE(solo_base_declarada)) {
     # Las notas de los gráficos: la de la ruta de composición (nota_pie) o la que trae la espec (caption del ggplot).
     bases <- unique(unlist(c(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL)), lapply(especs, function(e) texto(e$nota)))))
     bases <- .lam_bases_sin_repetir(bases)

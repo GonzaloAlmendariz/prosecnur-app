@@ -19,6 +19,7 @@ test_that("los separadores se numeran por su orden: capítulos 1, 2… y subcap�
   expect_null(n[[3]])
   expect_identical(vapply(n[-3], `[[`, "", "numero"), c("1", "1.1", "2", "2.1", "2.2", "IV"))
   expect_identical(n[[5]]$capitulo, "B"); expect_identical(n[[7]]$rotulo, "Parte")
+  expect_identical(.lam_secciones_numeradas(list(p_slide_seccion("S", meta = list(nivel = "subcapitulo"))))[[1]]$numero, "1")
 })
 
 test_that("el capítulo sale con su rótulo, el filete coral, el título y el subtítulo del recetario (66)", {
