@@ -77,7 +77,8 @@ g_apilada <- function(filas, rot, cols, ttb = TRUE, n_txt = "", ancho_lab = 1.3,
 alto_apilada <- function(nf) if (ESTILO == "fiel") 0.62 + 0.3 * nf + 0.42 else 0.7 + 0.36 * nf + 0.5   # fiel: 3 actores en ~1,95 in como los entregados
 
 # Barras horizontales de una variable (perfil, opción múltiple, ordinales). Residuales al final.
-g_barras <- function(labels, pct, n_txt = "", destacar = ESTILO == "moderna", con_n = NULL, resid = grepl("^Otro|^No sabe|^Ninguna|^Prefiero", labels), extra = NULL) {
+g_barras <- function(labels, pct, n_txt = "", destacar = ESTILO == "moderna", con_n = NULL, resid = grepl("^Otro|^No sabe|^Ninguna|^Prefiero", labels), extra = NULL,
+                     escala_100 = FALSE, marcas = FALSE) {   # escala_100 / marcas: las dos variantes de las agrupadas (Gonzalo, 2026-10-09)
   o <- seq_along(labels); d <- data.frame(l = stringr::str_wrap(labels, 40), p = pct, r = resid)[o, ]; d <- rbind(d[!d$r, ], d[d$r, ])
   psb <- posiciones(d$l, minimo = 1); d$y <- psb$y; mx <- which.max(ifelse(d$r, -1, d$p))
   d$col <- if (destacar) ifelse(d$r, WTK$gris, ifelse(seq_len(nrow(d)) == mx, WTK$navy, WTK$tenue)) else ifelse(d$r, WTK$gris, WTK$azul_si)
@@ -85,16 +86,17 @@ g_barras <- function(labels, pct, n_txt = "", destacar = ESTILO == "moderna", co
   if (!is.null(extra)) d$et <- paste0(d$et, ifelse(nzchar(extra[c(which(!resid), which(resid))]), paste0("   ", extra[c(which(!resid), which(resid))]), ""))
   # Fiel como los Word entregados (AMDT, Educación): eje de 0% a 100%, cifra blanca centrada dentro de la barra y afuera sólo si no cabe.
   eje <- ESTILO == "fiel" && is.null(con_n)
-  esc <- if (eje) 100 else max(d$p) * (if (is.null(con_n)) 1.18 else 1.34)
+  esc <- if (eje) 100 else if (escala_100) 100 * (if (is.null(con_n)) 1.12 else 1.34) else max(d$p) * (if (is.null(con_n)) 1.18 else 1.34)
+  marcas <- marcas && (eje || escala_100)
   d$dentro <- eje & d$p >= 9
   gb <- ggplot(d) + geom_rect(aes(xmin = 0, xmax = p, ymin = y - 0.32, ymax = y + 0.32, fill = col)) + scale_fill_identity() +
     geom_text(data = d[!d$dentro, ], aes(x = p + esc * 0.015, y = y, label = et), hjust = 0, size = PT(9), fontface = "bold", colour = WTK$navy_w, family = "Arial") +
     geom_text(data = d[d$dentro, ], aes(x = p / 2, y = y, label = et), size = PT(9), fontface = "bold", colour = "#FFFFFF", family = "Arial") +
-    (if (eje) annotate("text", x = seq(0, 100, 25), y = 0.15, label = paste0(seq(0, 100, 25), "%"), size = PT(7.5), colour = "#A6A6A6", family = "Arial")) +
+    (if (eje || marcas) annotate("text", x = seq(0, 100, 25), y = 0.15, label = paste0(seq(0, 100, 25), "%"), size = PT(7.5), colour = "#A6A6A6", family = "Arial")) +
     geom_text(aes(x = -esc * 0.02, y = y, label = l, fontface = ifelse(destacar & seq_len(nrow(d)) == mx, "bold", "plain")), hjust = 1, size = PT(9), colour = WTK$navy_w, family = "Arial", lineheight = 0.9) +
-    scale_x_continuous(limits = c(xmin_para(d$l, 9, esc), esc), expand = c(0, 0)) + scale_y_continuous(limits = c(if (eje) -0.1 else 0.4, psb$tot + 0.6), expand = c(0, 0)) +
+    scale_x_continuous(limits = c(xmin_para(d$l, 9, esc), esc), expand = c(0, 0)) + scale_y_continuous(limits = c(if (eje || marcas) -0.1 else 0.4, psb$tot + 0.6), expand = c(0, 0)) +
     labs(caption = fuente_pie(n_txt)) + tema_w()
-  attr(gb, "alto") <- alto_barras(psb$tot) + (if (eje) 0.15 else 0); gb
+  attr(gb, "alto") <- alto_barras(psb$tot) + (if (eje || marcas) 0.15 else 0); gb
 }
 alto_barras <- function(n) if (ESTILO == "fiel") 0.4 + 0.24 * n + 0.28 else 0.45 + 0.27 * n + 0.3
 
