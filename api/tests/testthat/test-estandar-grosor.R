@@ -143,3 +143,27 @@ test_that("con el grosor del estándar, la guía de la cifra que sube toca el te
     untrace(".grosor_reemplazar_ancho_col", where = asNamespace("prosecnurapp"))
   }
 })
+
+test_that("la guía de una cifra chica es un codo, no una diagonal (Gonzalo 2026-10-08)", {
+  skip_if_not_installed("cowplot")
+  # «en algunos porcetajes pequenos se hacia una linea recta en diagonal en vez de la linea progeiosnal del
+  # recetarios»: dos cifras chicas vecinas se separan y la de la derecha se corre; su guía sube vertical
+  # desde el segmento y sigue horizontal hasta quedar bajo la cifra.
+  d <- data.frame(categoria = "Fila", N = 200L, t1 = 0.02, t2 = 0.01, t3 = 0.47, t4 = 0.50)
+  trace(".grosor_reemplazar_ancho_col", exit = quote(assign("p_codo", returnValue(), envir = globalenv())),
+        print = FALSE, where = asNamespace("prosecnurapp"))
+  on.exit(untrace(".grosor_reemplazar_ancho_col", where = asNamespace("prosecnurapp")), add = TRUE)
+  suppressMessages(suppressWarnings(graficar_barras_apiladas(
+    data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = paste0("t", 1:4),
+    etiquetas_grupos = c(t1 = "TD", t2 = "D", t3 = "A", t4 = "TA"), exportar = "rplot", usar_canvas = TRUE,
+    ancho = 12.5, alto = 4.6)))
+  p <- get("p_codo", envir = globalenv())
+  seg <- Filter(function(l) inherits(l$geom, "GeomSegment"), p$layers)
+  expect_length(seg, 2L)
+  b <- lapply(seg, function(l) ggplot2::layer_data(p, which(vapply(p$layers, identical, logical(1), l))))
+  verticales <- vapply(b, function(x) all(abs(x$x - x$xend) < 1e-9), logical(1))
+  horizontales <- vapply(b, function(x) all(abs(x$y - x$yend) < 1e-9), logical(1))
+  expect_true(any(verticales)); expect_true(any(horizontales))
+  # ninguna diagonal: cada tramo es vertical u horizontal
+  expect_true(all(verticales | horizontales))
+})
