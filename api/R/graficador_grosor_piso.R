@@ -894,11 +894,21 @@
 #' @return Fracción para `geom_col(width = )`, o `NA` si falta un dato.
 #' @keywords internal
 .grosor_fraccion_estandar <- function(n_filas, alto_fila_in, tipo = "escala_apilada",
-                                      tope = .GROSOR_TOPE_FRACCION) {
+                                      tope = .GROSOR_TOPE_FRACCION, paso_in = NA_real_) {
   a <- suppressWarnings(as.numeric(alto_fila_in)[1])
   if (!is.finite(a) || is.na(a) || a <= 0) return(NA_real_)
-  min(tope, .std_grosor(n_filas, tipo) / a)
+  g <- .std_grosor(n_filas, tipo)
+  # Con cifras que suben, el recetario (recetario.R:283-288) da a la fila el aire
+  # de `aire_cifra_chica` si cabe; si no cabe, la barra cede, pero no por debajo
+  # de 0.24 in.
+  p <- suppressWarnings(as.numeric(paso_in)[1])
+  if (is.finite(p) && p > 0) g <- min(g, max(.GROSOR_PISO_CON_CHICAS_IN, p - .std_aire_chica()))
+  min(tope, g / a)
 }
+
+# Piso de la barra cuando sus cifras chicas suben y el aire no cabe entero
+# (recetario.R:288: `g <- max(0.24, fila - 0.36)`).
+.GROSOR_PISO_CON_CHICAS_IN <- 0.24
 
 
 #' Cambia el ancho de las capas `geom_col` de un ggplot ya armado

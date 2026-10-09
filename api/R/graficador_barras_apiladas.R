@@ -1216,7 +1216,7 @@ graficar_barras_apiladas <- function(
     etiquetas_peq_sesgo_derecha = 0.5,
     etiquetas_peq_confinadas = FALSE,
     etiquetas_peq_margen_interno = 0,
-    etiquetas_arriba_si_no_caben = FALSE,
+    etiquetas_arriba_si_no_caben = TRUE,
     # Paso entre filas forzado desde fuera. Lo usa `multilista` para que todos
     # sus bloques compartan paso: sin esto cada uno lo calcula con SUS
     # categorias y las barras salen de distinto grosor en la misma lamina.
@@ -1814,6 +1814,15 @@ graficar_barras_apiladas <- function(
   }
 
   usar_y_numerico <- isTRUE(usar_canvas)
+  # ADR 0092 (F2.3): el aire para las cifras que suben se reserva sólo si alguna
+  # va a subir. Antes toda fila crecía 1.72 veces con la opción encendida, hubiera
+  # o no cifras chicas, y desde cinco filas la barra adelgazaba a 0.19-0.43 in.
+  arriba_layout <- isTRUE(etiquetas_arriba_si_no_caben) &&
+    .apiladas_hay_cifras_chicas(df_long$.valor_plot, ancho)
+  # Subir sólo es posible sobre el lienzo (eje Y numérico). Sin lienzo, la opción
+  # encendida saltaba el reparto que separa las cifras de adentro y las dejaba
+  # encimadas: ahí rige el reparto de siempre.
+  arriba_efectivo <- isTRUE(usar_canvas) && arriba_layout
   min_filas_layout <- min_filas_canvas
   if (usar_y_numerico && n_categorias == 1L) {
     min_filas_layout <- max(min_filas_layout, 2L)
@@ -1822,7 +1831,7 @@ graficar_barras_apiladas <- function(
   if (usar_y_numerico) {
     gap_grupos_eff <- if (isTRUE(usar_grupos_canvas)) suppressWarnings(as.numeric(canvas_gap_grupos)) else 0
     if (!is.finite(gap_grupos_eff) || is.na(gap_grupos_eff) || gap_grupos_eff < 0) gap_grupos_eff <- 0
-    row_step_eff <- if (isTRUE(etiquetas_arriba_si_no_caben)) 1.72 else 1
+    row_step_eff <- if (arriba_layout) 1.72 else 1
     # El hueco entre bloques se mide contra la fila BASE, no contra la inflada.
     #
     # `row_step_eff` crece hasta 3,2× cuando hay pocas categorías con etiquetas
@@ -1834,7 +1843,7 @@ graficar_barras_apiladas <- function(
     row_step_gap <- row_step_eff
     row_step_eff <- .apiladas_row_step(
       n_categorias, max_lineas_eje_y_est,
-      etiquetas_arriba = isTRUE(etiquetas_arriba_si_no_caben)
+      etiquetas_arriba = arriba_layout
     )
     # Un paso impuesto desde fuera gana, pero nunca por debajo del que este
     # bloque necesita para su propio texto: se toma el mayor.
@@ -1944,7 +1953,7 @@ graficar_barras_apiladas <- function(
   # ---------------------------------------------------------------------------
   y_axis_extra_top <- 0
   y_axis_extra_bottom <- 0
-  if (usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben)) {
+  if (usar_y_numerico && arriba_layout) {
     offset_top_labels <- suppressWarnings(as.numeric(etiquetas_arriba_offset)[1])
     if (!is.finite(offset_top_labels) || is.na(offset_top_labels) || offset_top_labels <= 0) {
       offset_top_labels <- 0.13
@@ -2111,7 +2120,7 @@ graficar_barras_apiladas <- function(
         ) |>
         dplyr::filter(.mostrar, is.finite(x_center))
 
-      if (!isTRUE(etiquetas_arriba_si_no_caben) && nrow(df_lab) > 1L) {
+      if (!arriba_efectivo && nrow(df_lab) > 1L) {
         idx_por_cat_borde <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
         for (idx in idx_por_cat_borde) {
           idx_izq <- idx[df_lab$.label_fuera[idx] & df_lab$x_center[idx] <= 0.5]
@@ -2192,7 +2201,7 @@ graficar_barras_apiladas <- function(
       df_lab <- .posicionar_labels_arriba_si_no_caben_apiladas(
         df_lab,
         var_categoria = var_categoria,
-        usar_y_numerico = usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben),
+        usar_y_numerico = arriba_efectivo,
         grosor_eff = grosor_eff,
         fit_padding = fit_padding,
         etiquetas_peq_padding = etiquetas_peq_padding,
@@ -2205,10 +2214,15 @@ graficar_barras_apiladas <- function(
       arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
       df_lab_arriba <- df_lab[arriba_idx, , drop = FALSE]
       df_lab_dentro <- df_lab[!arriba_idx, , drop = FALSE]
-      df_lab_dentro <- if (isTRUE(etiquetas_arriba_si_no_caben)) {
-        .centrar_labels_interiores_segmento_apiladas(
-          df_lab_dentro,
-          color_texto_barras = color_texto_barras
+      df_lab_dentro <- if (arriba_efectivo) {
+        # Contraste igual que en la otra rama: centrar devuelve el color fijo y
+        # dejaba cifras blancas sobre el amarillo y el verde claro (ADR 0092, F2.3).
+        .aplicar_contraste_labels_apiladas(
+          .centrar_labels_interiores_segmento_apiladas(
+            df_lab_dentro,
+            color_texto_barras = color_texto_barras
+          ),
+          color_texto_barras, colores_efectivos
         )
       } else {
         .finalizar_labels_interiores_apiladas(
@@ -2302,7 +2316,7 @@ graficar_barras_apiladas <- function(
         ) |>
         dplyr::filter(.tamano_etq != "ninguna", is.finite(x_center))
 
-      if (!isTRUE(etiquetas_arriba_si_no_caben) && nrow(df_lab) > 1L) {
+      if (!arriba_efectivo && nrow(df_lab) > 1L) {
         idx_por_cat_borde <- split(seq_len(nrow(df_lab)), as.character(df_lab[[var_categoria]]))
         for (idx in idx_por_cat_borde) {
           idx_izq <- idx[df_lab$.label_fuera[idx] & df_lab$x_center[idx] <= 0.5]
@@ -2415,7 +2429,7 @@ graficar_barras_apiladas <- function(
       df_lab <- .posicionar_labels_arriba_si_no_caben_apiladas(
         df_lab,
         var_categoria = var_categoria,
-        usar_y_numerico = usar_y_numerico && isTRUE(etiquetas_arriba_si_no_caben),
+        usar_y_numerico = arriba_efectivo,
         grosor_eff = grosor_eff,
         fit_padding = fit_padding,
         etiquetas_peq_padding = etiquetas_peq_padding,
@@ -2428,10 +2442,15 @@ graficar_barras_apiladas <- function(
       arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
       df_lab_arriba <- df_lab[arriba_idx, , drop = FALSE]
       df_lab_dentro <- df_lab[!arriba_idx, , drop = FALSE]
-      df_lab_dentro <- if (isTRUE(etiquetas_arriba_si_no_caben)) {
-        .centrar_labels_interiores_segmento_apiladas(
-          df_lab_dentro,
-          color_texto_barras = color_texto_barras
+      df_lab_dentro <- if (arriba_efectivo) {
+        # Contraste igual que en la otra rama: centrar devuelve el color fijo y
+        # dejaba cifras blancas sobre el amarillo y el verde claro (ADR 0092, F2.3).
+        .aplicar_contraste_labels_apiladas(
+          .centrar_labels_interiores_segmento_apiladas(
+            df_lab_dentro,
+            color_texto_barras = color_texto_barras
+          ),
+          color_texto_barras, colores_efectivos
         )
       } else {
         .finalizar_labels_interiores_apiladas(
@@ -3297,7 +3316,8 @@ graficar_barras_apiladas <- function(
     y_rng_std <- ggplot2::ggplot_build(p_bars_panel)$layout$panel_params[[1]]$y.range
     den_std <- if (is.numeric(y_rng_std) && length(y_rng_std) == 2L) diff(y_rng_std) else NA_real_
     fila_in <- h_bars_area * suppressWarnings(as.numeric(alto)[1]) / den_std
-    g_std <- .grosor_fraccion_estandar(n_categorias, fila_in, "escala_apilada")
+    paso_in <- if (arriba_layout) fila_in * row_step_eff else NA_real_
+    g_std <- .grosor_fraccion_estandar(n_categorias, fila_in, "escala_apilada", paso_in = paso_in)
     if (is.finite(g_std)) {
       grosor_eff <- g_std
       p_bars_panel <- .grosor_reemplazar_ancho_col(p_bars_panel, grosor_eff)
