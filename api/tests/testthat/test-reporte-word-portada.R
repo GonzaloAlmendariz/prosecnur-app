@@ -25,3 +25,14 @@ test_that("los índices son campos TOC de Word: contenido de títulos 1-2, gráf
   expect_match(x, '\\c "Tabla"', fixed = TRUE)
   expect_false(grepl('\\c "Tabla"', .wp_xml(.word_indices(.word_documento_nuevo(), con_tablas = FALSE)), fixed = TRUE))
 })
+
+test_that("la primera página lleva los dos logos del estándar en su encabezado, con su proporción", {
+  expect_true(file.exists(.word_logo("pucp"))); expect_true(file.exists(.word_logo("pulso")))
+  expect_equal(.word_png_aspecto(.word_logo("pucp")), 562 / 186, tolerance = 1e-6)
+  doc <- .word_portada(.word_documento_nuevo(), .wp_meta, "A")
+  doc <- .word_cerrar_capitulo(doc, "", "Informe", primera = .word_logos())
+  f <- tempfile(fileext = ".docx"); print(doc, target = f); d <- tempfile(); utils::unzip(f, exdir = d)
+  cab <- list.files(file.path(d, "word"), pattern = "^header.*\\.xml$", full.names = TRUE)
+  con_imagen <- vapply(cab, function(x) sum(gregexpr("<pic:pic", paste(readLines(x, warn = FALSE), collapse = ""), fixed = TRUE)[[1]] > 0), 0)
+  expect_true(any(con_imagen == 2))                                                        # un encabezado con los dos logos
+})

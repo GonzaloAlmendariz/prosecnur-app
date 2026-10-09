@@ -90,3 +90,33 @@
   .word_parr(doc, list("Los índices son campos de Word: se actualizan con clic derecho > Actualizar campos, o seleccionando todo y presionando F9.",
                        8.5, .std_word("colores", "suave"), FALSE, TRUE), antes = 8)
 }
+
+#' Ruta de un logo del estándar (recortados de la plantilla: image1 = PUCP, image8 = PULSO PUCP, como `logo_tinta()`)
+#' @keywords internal
+.word_logo <- function(nombre = c("pucp", "pulso")) {
+  nombre <- match.arg(nombre)
+  # Al lado del JSON del estándar: `.std_ruta()` ya resuelve el paquete instalado, load_all y la raíz del repo.
+  file.path(dirname(.std_ruta()), "logos", paste0("logo_", nombre, ".png"))
+}
+
+#' Ancho sobre alto de un PNG, leído de su cabecera (sin magick ni png)
+#' @keywords internal
+.word_png_aspecto <- function(f) {
+  con <- file(f, "rb"); on.exit(close(con)); b <- readBin(con, "raw", 24L)
+  ent <- function(x) sum(as.integer(x) * 256^(3:0))
+  ent(b[17:20]) / ent(b[21:24])
+}
+
+#' Logos de la primera página (`logos_ft()`): PUCP a la izquierda y PULSO PUCP a la derecha, 0.5 in de alto, para el
+#' encabezado de la portada (`.word_cerrar_capitulo(primera = .word_logos())`)
+#' @keywords internal
+.word_logos <- function(h = 0.5) {
+  # Rutas con nombres que no sean columnas: compose() evalúa `value` dentro de los datos de la tabla (columnas a y b).
+  logo_izq <- .word_logo("pucp"); logo_der <- .word_logo("pulso"); w <- .std_word("pagina", "ancho_util") / 2
+  ft <- flextable::flextable(data.frame(a = "", b = "")) |> flextable::delete_part("header") |> flextable::border_remove() |>
+    flextable::width(j = 1, width = w) |> flextable::width(j = 2, width = w) |>
+    flextable::compose(j = 1, value = flextable::as_paragraph(flextable::as_image(src = logo_izq, width = h * .word_png_aspecto(logo_izq), height = h))) |>
+    flextable::compose(j = 2, value = flextable::as_paragraph(flextable::as_image(src = logo_der, width = h * .word_png_aspecto(logo_der), height = h))) |>
+    flextable::align(j = 1, align = "left") |> flextable::align(j = 2, align = "right") |> flextable::valign(valign = "center") |> flextable::padding(padding = 0)
+  officer::block_list(ft)
+}
