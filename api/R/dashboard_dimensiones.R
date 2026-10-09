@@ -94,7 +94,7 @@
     if (!(v %in% names(s$rp_dim))) return(FALSE)
     surv <- s$rp_inst$survey %||% NULL
     if (!is.null(surv) && all(c("name", "type") %in% names(surv))) {
-      tipo <- tolower(as.character(surv$type[surv$name == v][1] %||% ""))
+      tipo <- .inst_tipo_var(surv, v)
       if (grepl("^select_one\\b", tipo) || grepl("^select_multiple\\b", tipo)) return(TRUE)
     }
     x <- trimws(as.character(s$rp_dim[[v]]))
