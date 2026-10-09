@@ -187,7 +187,9 @@
 #' Alto de un texto con las líneas contadas sobre el ancho real de su tinta (systemfonts), no por carácter
 #' @keywords internal
 .lam_alto_tinta <- function(s, w, size, bold = FALSE) {
-  vapply(s, function(x) max(1, ceiling(.lam_ancho_tinta(x, size, bold) / (w - 0.1))), 0) * size * 1.2 / 72 + 0.1
+  # Líneas cortadas por palabras (`.lam_lineas_tinta`): dividir el ancho total no ve lo que se pierde al final de cada
+  # línea y en la frontera daba una línea menos (verificador de N7, ronda 11).
+  stats::setNames(.lam_lineas_tinta(s, w, size, bold) * size * 1.2 / 72 + 0.1, if (is.null(names(s))) s else names(s))
 }
 
 .lam_lum <- function(hex) {
