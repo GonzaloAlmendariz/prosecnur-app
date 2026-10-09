@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  LIKERT_RECETARIO,
   PULSO_PUCP_COLORS,
   ROJO_FUERA_DE_RAMPA,
   SUGERIDAS_PALETAS,
@@ -29,9 +30,13 @@ describe("paletas sugeridas", () => {
     }
   });
 
-  it("la rampa de cuatro pasos es la del entregable aprobado", () => {
+  it("la rampa de cuatro pasos es la Likert del recetario, la misma que el motor pone por defecto (Gonzalo, 2026-10-09)", () => {
     const r = SUGERIDAS_PALETAS[4].find((p) => p.ordinal);
-    expect(r?.colors).toEqual(["#F4B183", "#EFD25E", "#B0D597", "#85BB85"]);
+    expect(r?.colors).toEqual(["#F4B183", "#FFD965", "#ADD493", "#70AD47"]);
+    const r5 = SUGERIDAS_PALETAS[5].find((p) => p.ordinal);
+    expect(r5?.colors).toEqual(["#F4B183", "#FFD965", "#ADD493", "#70AD47", "#BFBFBF"]);
+    const r6 = SUGERIDAS_PALETAS[6].find((p) => p.ordinal);
+    expect(r6?.colors[2]).toBe(LIKERT_RECETARIO.neutro);
   });
 
   it("las categóricas conservan el rojo institucional", () => {
