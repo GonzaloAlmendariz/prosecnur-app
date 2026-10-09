@@ -1527,23 +1527,67 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # `horizontal` = la etiqueta cabe (hasta 2 lineas) en col_w -> texto derecho
 # (Si/No, "Muy satisfecho"); si no, `rotated` (categorias largas estilo
 # Polarizacion). ~118 char/npc calibra el ancho a la tipografia del header.
+# Parte las palabras que no entran en `chars` antes de envolver por palabras. El
+# wrap normal respeta la palabra entera, asi que una sola palabra mas ancha que
+# su columna se sale y se monta sobre la columna vecina (escala de 7 puntos con
+# "Fuertemente" sobre una columna de 8 caracteres).
+.form_pdf_break_long_words <- function(text, chars) {
+  chars <- max(2L, as.integer(chars))
+  words <- unlist(strsplit(.form_pdf_clean_text(text), "\\s+"))
+  words <- words[nzchar(words)]
+  if (!length(words)) return("")
+  out <- vapply(words, function(w) {
+    if (nchar(w, type = "width") <= chars) return(w)
+    pieces <- character(0)
+    while (nchar(w, type = "width") > chars) {
+      pieces <- c(pieces, substr(w, 1L, chars))
+      w <- substr(w, chars + 1L, nchar(w))
+    }
+    paste(c(pieces, w), collapse = " ")
+  }, character(1))
+  paste(out, collapse = " ")
+}
+
 .form_pdf_matrix_cat_header_geom <- function(cat_labels, sp_label, has_special, col_w, total_cols) {
   all_labels <- c(cat_labels, if (has_special) sp_label else character(0))
   all_labels <- all_labels[nzchar(all_labels)]
   if (!length(all_labels)) all_labels <- ""
   max_chars <- max(1L, max(nchar(all_labels, type = "width")))
-  col_chars <- max(1L, floor(col_w * 118))
+  base_fs <- if (total_cols >= 6L) 5.6 else 6.2
+  # La calibracion 118 char/npc esta tomada del cuerpo (~6.5 pt); con un cuerpo
+  # menor entran proporcionalmente mas caracteres en el mismo ancho.
+  chars_at <- function(fs) max(1L, floor(col_w * 118 * (6.5 / fs)))
+  # Manda la palabra mas larga: si no entra en la columna, el rotulo invade a su
+  # vecino. Se baja el cuerpo hasta que entre, con piso legible; lo que aun no
+  # entre se parte al dibujar.
+  longest_word <- max(1L, max(vapply(all_labels, function(l) {
+    w <- unlist(strsplit(.form_pdf_clean_text(l), "[[:space:]/-]+"))
+    w <- w[nzchar(w)]
+    if (!length(w)) 0L else max(nchar(w, type = "width"))
+  }, integer(1))))
+  fs <- base_fs
+  while (fs > 4.6 && longest_word > chars_at(fs)) fs <- fs - 0.2
+  col_chars <- chars_at(fs)
+  # Si ni al cuerpo minimo entra la palabra mas larga, partirla deja un rotulo
+  # ilegible ("Fuerteme / nte en / desacuer / do"). En ese caso el rotulo se
+  # escribe rotado, que es como caben las escalas largas de 7 puntos.
+  if (longest_word > col_chars) {
+    return(list(layout = "rotated",
+                height = min(0.135, max_chars * 0.0046 + 0.014),
+                col_chars = col_chars,
+                cat_fs = min(base_fs, 5.8)))
+  }
   # Categorias SIEMPRE horizontal con wrap (hasta 4 lineas), como la referencia
   # ("Totalmente en desacuerdo" partido en varias lineas sobre su columna). Solo
   # se rota si aun envolviendo excede 4 lineas (label absurdamente largo).
   hdr_lines <- max(1L, max(vapply(all_labels, function(l)
-    length(.form_pdf_wrap(l, col_chars)), integer(1))))
+    length(.form_pdf_wrap(.form_pdf_break_long_words(l, col_chars), col_chars)), integer(1))))
   if (hdr_lines <= 4L) {
     list(layout = "horizontal", height = hdr_lines * 0.011 + 0.010,
-         col_chars = col_chars, cat_fs = if (total_cols >= 6L) 5.6 else 6.2)
+         col_chars = col_chars, cat_fs = fs)
   } else {
     list(layout = "rotated", height = min(0.115, max_chars * 0.0044 + 0.013),
-         col_chars = col_chars, cat_fs = if (total_cols >= 6L) 5.6 else 6.0)
+         col_chars = col_chars, cat_fs = min(fs, if (total_cols >= 6L) 5.6 else 6.0))
   }
 }
 
@@ -1628,13 +1672,13 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     if (identical(geom$layout, "horizontal")) {
       hy <- y - header_h / 2
       for (k in seq_len(n_scale)) {
-        grid::grid.text(paste(.form_pdf_wrap(cat_labels[k], geom$col_chars), collapse = "\n"),
+        grid::grid.text(paste(.form_pdf_wrap(.form_pdf_break_long_words(cat_labels[k], geom$col_chars), geom$col_chars), collapse = "\n"),
                         x = grid::unit(scale_x0 + (k - 0.5) * col_w, "npc"),
                         y = grid::unit(hy, "npc"), just = c("center", "center"),
                         gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$navy, lineheight = 0.95))
       }
       if (has_special) {
-        grid::grid.text(paste(.form_pdf_wrap(sp_label, geom$col_chars), collapse = "\n"),
+        grid::grid.text(paste(.form_pdf_wrap(.form_pdf_break_long_words(sp_label, geom$col_chars), geom$col_chars), collapse = "\n"),
                         x = grid::unit(scale_x0 + scale_w + col_w / 2, "npc"),
                         y = grid::unit(hy, "npc"), just = c("center", "center"),
                         gp = grid::gpar(fontsize = cat_fs, fontface = "bold", col = tk$soft, lineheight = 0.95))

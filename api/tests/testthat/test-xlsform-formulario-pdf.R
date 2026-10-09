@@ -1073,3 +1073,38 @@ test_that("OPS sample renders in one and two columns with matrices", {
     expect_gt(result$summary$n_matrices, 0)
   }
 })
+
+test_that("la cabecera por categorias nunca deja un rotulo mas ancho que su columna", {
+  # Escala de 7 puntos con rotulos largos: el wrap por palabras no parte
+  # "Fuertemente", asi que sobre una columna angosta se dibujaba encima de la
+  # vecina. El invariante es que ninguna palabra dibujada exceda col_chars, sea
+  # bajando el cuerpo, sea rotando el rotulo.
+  largos <- c("Fuertemente en desacuerdo", "En desacuerdo", "Ligeramente en desacuerdo",
+              "Ni de acuerdo ni en desacuerdo", "Ligeramente de acuerdo", "De acuerdo",
+              "Fuertemente de acuerdo")
+  for (cw in c(0.045, 0.05, 0.06, 0.074, 0.09)) {
+    geom <- .form_pdf_matrix_cat_header_geom(largos, "", FALSE, col_w = cw, total_cols = 7L)
+    expect_true(geom$layout %in% c("horizontal", "rotated"))
+    expect_gt(geom$height, 0)
+    if (identical(geom$layout, "horizontal")) {
+      for (l in largos) {
+        palabras <- unlist(strsplit(.form_pdf_break_long_words(l, geom$col_chars), "[[:space:]]+"))
+        expect_true(all(nchar(palabras, type = "width") <= geom$col_chars))
+      }
+    }
+  }
+
+  # Una columna demasiado angosta para el cuerpo minimo se resuelve rotando.
+  angosta <- .form_pdf_matrix_cat_header_geom(largos, "", FALSE, col_w = 0.045, total_cols = 7L)
+  expect_identical(angosta$layout, "rotated")
+
+  # Rotulos cortos en columnas holgadas: siguen en horizontal.
+  cortos <- c("Nunca", "Casi nunca", "Casi siempre", "Siempre")
+  expect_identical(
+    .form_pdf_matrix_cat_header_geom(cortos, "", FALSE, col_w = 0.12, total_cols = 4L)$layout,
+    "horizontal"
+  )
+
+  # La particion solo toca lo que no entra.
+  expect_identical(.form_pdf_break_long_words("En desacuerdo", 20L), "En desacuerdo")
+})
