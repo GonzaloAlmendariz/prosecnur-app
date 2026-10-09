@@ -179,8 +179,8 @@ test_that("la brecha rotulada es la diferencia real", {
   p <- graficar_dumbbell(.df_brecha(), mostrar_brecha = TRUE)
   txt <- .capas(p, "GeomText")
   labs <- unlist(lapply(txt, function(l) as.character(l$data$.lab)))
-  expect_true("-27 pp" %in% labs)   # Salud: 45 - 72
-  expect_true("-18 pp" %in% labs)   # Educacion: 62 - 80
+  expect_true("-27 pts" %in% labs)   # Salud: 45 - 72
+  expect_true("-18 pts" %in% labs)   # Educacion: 62 - 80
 })
 
 test_that("el umbral silencia las brechas chicas", {
@@ -188,8 +188,8 @@ test_that("el umbral silencia las brechas chicas", {
   p <- graficar_dumbbell(.df_brecha(), mostrar_brecha = TRUE, umbral_brecha_pct = 26)
   txt <- .capas(p, "GeomText")
   labs <- unlist(lapply(txt, function(l) as.character(l$data$.lab)))
-  expect_true("-27 pp" %in% labs)
-  expect_false("-18 pp" %in% labs)
+  expect_true("-27 pts" %in% labs)
+  expect_false("-18 pts" %in% labs)
 })
 
 # --- Lollipop ---------------------------------------------------------------
