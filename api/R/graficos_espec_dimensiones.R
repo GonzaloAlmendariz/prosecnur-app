@@ -18,7 +18,7 @@
 #'   `valores_crudos` (sin redondear: deciden el tramo de color),
 #'   `col_total` (índice de la columna Total o `NA`), `bloques` (encabezados de grupos de columnas) y `rango`.
 #' @keywords internal
-preparar_heatmap_dim <- function(payload, titulo_cruce = NULL, rotulo_total = "Total") {
+preparar_heatmap_dim <- function(payload, titulo_cruce = NULL, rotulo_total = "Total", n_respondieron = NULL) {
   sc <- as.data.frame(payload$score_heat, stringsAsFactors = FALSE)
   sc <- sc[!(sc$tipo %in% "total_cruce") & !(sc$axis_label %in% "Total cruce"), , drop = FALSE]
   if (!nrow(sc)) return(NULL)
@@ -31,8 +31,15 @@ preparar_heatmap_dim <- function(payload, titulo_cruce = NULL, rotulo_total = "T
     i <- match(sc$axis_label[k], filas); j <- match(sc$grupo[k], cols)
     if (!is.na(i) && !is.na(j)) crudo[i, j] <- suppressWarnings(as.numeric(sc$score_raw[k]))
   }
+  if (!any(is.finite(crudo))) return(NULL)   # sin una sola cifra no hay mapa: la lámina sigue por la ruta anterior
   v <- crudo; v[] <- .pulso_round_half_up(as.vector(crudo), 0)
-  n <- vapply(cols, function(g) { b <- suppressWarnings(as.numeric(sc$base[sc$grupo == g])); b <- b[is.finite(b)]; if (length(b)) max(b) else NA_real_ }, 0)
+  # Casos por columna: los que respondieron la batería (recetario_m3d.R, «base real: quienes respondieron, no el
+  # total del grupo»), si se conocen; si no, la base del grupo. Una columna sin ninguna cifra no lleva n.
+  n <- vapply(cols, function(g) {
+    if (!is.null(n_respondieron) && g %in% names(n_respondieron)) return(as.numeric(n_respondieron[[g]]))
+    b <- suppressWarnings(as.numeric(sc$base[sc$grupo == g])); b <- b[is.finite(b)]; if (length(b)) max(b) else NA_real_
+  }, 0)
+  n[!apply(is.finite(crudo), 2, any)] <- NA_real_
   col_total <- match("Total", cols)
   rot <- cols; if (!is.na(col_total)) rot[col_total] <- rotulo_total
   bloques <- if (!is.null(titulo_cruce) && nzchar(titulo_cruce)) {
@@ -51,12 +58,13 @@ preparar_heatmap_dim <- function(payload, titulo_cruce = NULL, rotulo_total = "T
 #' Del mismo payload que el mapa de calor: las dos primeras columnas que no son el Total. La diferencia se
 #' calcula entre cifras redondeadas y se escribe sin signo («3 pts»), como el recetario.
 #' @keywords internal
-preparar_comparativo_dim <- function(payload) {
-  h <- preparar_heatmap_dim(payload)
+preparar_comparativo_dim <- function(payload, n_respondieron = NULL) {
+  h <- preparar_heatmap_dim(payload, n_respondieron = n_respondieron)
   if (is.null(h)) return(NULL)
   g <- setdiff(seq_len(ncol(h$valores)), h$col_total)
   if (length(g) != 2L) return(NULL)
   V <- h$valores[, g, drop = FALSE]
+  if (any(!is.finite(V))) return(NULL)   # un grupo sin cifra no se compara (antes la diferencia decía «NA»)
   d <- V[, 2] - V[, 1]
   list(version = "comparativo_dim/1", tipo = "comparativo_dim", filas = h$filas, grupos = h$columnas$rotulo[g], n = h$columnas$n[g],
        valores = V, valores_crudos = h$valores_crudos[, g, drop = FALSE],
@@ -75,16 +83,49 @@ preparar_comparativo_dim <- function(payload) {
 .espec_dim_adjuntar <- function(p, args, tipo = c("heatmap", "comparativo")) {
   tipo <- match.arg(tipo)
   if (is.null(p)) return(p)
+  # Lo que la lámina del recetario no dibuja (brechas declaradas, el Total pedido en el comparativo) se queda en la
+  # ruta anterior en vez de perderse en silencio (verificador de N5).
+  if (isTRUE(args$brecha_filas) || isTRUE(args$brecha_cols)) return(p)
+  if (identical(tipo, "comparativo") && isTRUE(args$incluir_total)) return(p)
   espec <- tryCatch({
     ctx <- .dim_build_context(args$data, instrumento = args$instrumento)
+    # Mismos argumentos que el graficador: `incluir_total` NULL lo resuelve el payload con el default del config.
     payload <- .dim_build_payload(ctx, modo = args$modo %||% "general", objetivo = args$objetivo, cruce = args$cruce,
-                                  incluir_total = if (identical(tipo, "heatmap")) args$incluir_total %||% TRUE else TRUE,
+                                  incluir_total = if (identical(tipo, "heatmap")) args$incluir_total else TRUE,
                                   filtros = args$filtros %||% list(), iter_var = args$iter_var, iter_level = args$iter_level)
+    n_resp <- if (!length(args$filtros %||% list()) && is.null(args$iter_var)) .dim_n_respondieron(args, payload) else NULL
     titulo_cruce <- if (!is.null(args$cruce)) {
       lbl <- attr(args$data[[args$cruce]], "label", exact = TRUE); if (is.null(lbl) || !nzchar(lbl)) NULL else as.character(lbl)[1]
     }
-    if (identical(tipo, "heatmap")) preparar_heatmap_dim(payload, titulo_cruce = titulo_cruce) else preparar_comparativo_dim(payload)
+    if (identical(tipo, "heatmap")) preparar_heatmap_dim(payload, titulo_cruce = titulo_cruce, n_respondieron = n_resp) else
+      preparar_comparativo_dim(payload, n_respondieron = n_resp)
   }, error = function(e) NULL)
   if (!is.null(espec)) attr(p, "pulso_espec") <- espec
   p
+}
+
+#' Cuántos respondieron la batería en cada grupo del cruce (y en el Total)
+#'
+#' Responde quien tiene al menos un eje del mapa con dato. Los grupos se nombran con la etiqueta del instrumento,
+#' como en el payload. Sin cruce o sin poder emparejar las etiquetas devuelve `NULL` (se usa la base del grupo).
+#' @keywords internal
+.dim_n_respondieron <- function(args, payload) {
+  d <- args$data; sc <- as.data.frame(payload$score_heat, stringsAsFactors = FALSE)
+  ejes <- unique(sc$axis_var[!(sc$tipo %in% "total_cruce")]); ejes <- ejes[ejes %in% names(d)]
+  if (!length(ejes)) return(NULL)
+  resp <- rowSums(!is.na(as.data.frame(d)[, ejes, drop = FALSE])) > 0
+  out <- c(Total = sum(resp))
+  cruce <- args$cruce
+  if (is.null(cruce) || !cruce %in% names(d)) return(out)
+  x <- as.character(d[[cruce]])
+  sv <- args$instrumento$survey; ch <- args$instrumento$choices
+  ln <- if (is.data.frame(sv) && "list_name" %in% names(sv)) sv$list_name[which(sv$name == cruce)][1] else NA
+  lc <- if (is.data.frame(ch)) grep("^label", names(ch))[1] else NA
+  if (!is.na(ln) && !is.na(lc)) {
+    cc <- ch[!is.na(ch$list_name) & ch$list_name == ln, , drop = FALSE]
+    m <- stats::setNames(as.character(cc[[lc]]), as.character(cc$name)); x <- ifelse(x %in% names(m), unname(m[x]), x)
+  }
+  grupos <- setdiff(unique(as.character(sc$grupo)), "Total")
+  if (!all(grupos %in% x)) return(out)
+  c(out, vapply(grupos, function(g) sum(resp & x == g, na.rm = TRUE), 0))
 }

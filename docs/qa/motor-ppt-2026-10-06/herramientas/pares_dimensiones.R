@@ -24,7 +24,7 @@ print(e$valores); print(e$rango)
 doc <- officer::read_pptx("api/inst/plantillas/plantilla_16_9.pptx")
 o <- .lam_laminas_heatmap_dim(doc, e, "Competencias del perfil de egreso por grupo", ante = "Mapa de calor por dimensión", folio = 92,
   sub = "Varios grupos en pocas dimensiones, con la diferencia de cada grupo frente al total", rotulo_escala = "Top Two Box",
-  base = "Base: 109 estudiantes que respondieron la batería de competencias. * Menos de 15 casos. Debajo de cada cifra, la diferencia con el total en puntos")
+  base = "Base: 109 estudiantes que respondieron la batería de competencias")   # el asterisco y la diferencia los agrega el renderer
 sc2 <- sc[sc$grupo %in% c("Total", "Masculino", "Femenino"), ]
 e94 <- preparar_comparativo_dim(list(score_heat = sc2, axis_order_heat = rownames(Md), group_order_natural = c("Total", "Masculino", "Femenino")))
 print(e94$textos_diferencia)
