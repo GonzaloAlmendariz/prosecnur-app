@@ -81,3 +81,60 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
   if (con_lectura) doc <- .word_lectura(doc, lectura)
   doc
 }
+
+# ---- Alto por filas, fondo transparente y piso de 8 pt (N8.5; recetario_word_graficos.R:14-16, 31-35, 77, 99) --------
+
+#' Filas efectivas de una figura: cada rótulo pesa según sus líneas (0.55 + 0.34 por línea, con mínimo 1)
+#' @param envolver Caracteres por línea con que se parte el rótulo.
+#' @keywords internal
+.word_filas <- function(rotulos, envolver = 22, minimo = 1) {
+  rotulos <- as.character(rotulos)
+  if (!length(rotulos)) return(0)
+  nl <- vapply(rotulos, function(r) length(strwrap(r, width = envolver)) %||% 1L, 1L)
+  sum(pmax(minimo, 0.55 + 0.34 * pmax(1L, nl)))
+}
+
+#' Alto de la figura en el documento: apilada 1.2 + 0.36 por fila, barras 0.75 + 0.27, menos los 0.22 in del pie que
+#' ya no va dentro de la imagen; los tipos de alto fijo, su medida del recetario
+#' @keywords internal
+.word_alto_figura <- function(tipo, filas = 1) {
+  ap <- .std_word("figura", "alto_apilada"); ba <- .std_word("figura", "alto_barras")
+  fijos <- c(dicotomia = 1.5, columnas = 2.3, torta = 2.6, dona = 2.9, histograma = 2.5, numerico = 2.2, media_rango = 2.2, boxplot = 2.4,
+             lollipop = 2.8, serie = 2.4, radar = 3.4, mapa = 4.2, nube = 2.7)
+  alto <- switch(tipo,
+    escala = ap$base + ap$por_fila * filas,
+    barras = , categorica = ba$base + ba$por_fila * filas,
+    divergentes = 0.9 + 0.3 * filas,
+    pesas = 1.0 + 0.27 * filas,
+    heatmap_dim = , heatmap_criterios = min(3.9, 0.8 + 0.3 * filas),
+    unname(fijos[tipo]) %||% NA_real_)
+  if (!is.finite(alto)) alto <- 2.95
+  alto - 0.22
+}
+
+#' Ningún texto de la figura bajo 8 pt (la letra mínima del Word del recetario)
+#' @keywords internal
+.word_piso_texto <- function(p, minimo = .std_word("tipografia", "grafico_minimo")) {
+  if (!inherits(p, "ggplot")) return(p)
+  piso <- minimo / ggplot2::.pt
+  for (i in seq_along(p$layers)) {
+    ly <- p$layers[[i]]
+    if (inherits(ly$geom, c("GeomText", "GeomLabel")) && is.numeric(ly$aes_params$size) && ly$aes_params$size < piso) p$layers[[i]]$aes_params$size <- piso
+  }
+  th <- ggplot2::theme_get() + p$theme
+  for (nm in names(th)) {
+    el <- th[[nm]]
+    if (inherits(el, "element_text") && is.numeric(el$size) && !inherits(el$size, "rel") && el$size < minimo) {
+      p <- p + do.call(ggplot2::theme, stats::setNames(list(ggplot2::element_text(size = minimo)), nm))
+    }
+  }
+  p
+}
+
+#' Dibuja la figura en PNG de 300 dpi con fondo transparente, sin el pie (la base va en su párrafo)
+#' @keywords internal
+.word_png <- function(p, alto, ancho = .std_word("pagina", "ancho_util"), archivo = tempfile(fileext = ".png")) {
+  if (inherits(p, "ggplot")) p <- .word_piso_texto(p + ggplot2::labs(caption = NULL))
+  ggplot2::ggsave(archivo, p, width = ancho, height = alto, dpi = .std_word("figura", "dpi"), bg = "transparent")
+  archivo
+}

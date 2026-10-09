@@ -104,3 +104,19 @@ test_that("la figura lleva el rótulo con SEQ, la imagen pegada a la base y la l
   negritas <- xml2::xml_text(xml2::xml_find_all(x, "//w:p[last()]/w:r[w:rPr/w:b]", ns))
   expect_identical(negritas, c("72 %", "8 pts", "2025"))
 })
+
+test_that("el alto de la figura sigue las filas del recetario y ningún texto baja de 8 pt", {
+  expect_equal(.word_alto_figura("escala", 1), 1.34); expect_equal(.word_alto_figura("escala", 3), 2.06)
+  expect_equal(.word_alto_figura("barras", 4), 1.61)
+  expect_equal(.word_filas(c("Docentes", "Estudiantes")), 2)
+  expect_gt(.word_filas("Un rótulo bastante largo que se parte en dos líneas"), 1)
+  p <- ggplot2::ggplot(data.frame(x = 1, y = 1, l = "a"), ggplot2::aes(x, y, label = l)) + ggplot2::geom_text(size = 2) +
+    ggplot2::theme(axis.text = ggplot2::element_text(size = 6))
+  q <- .word_piso_texto(p)
+  expect_equal(q$layers[[1]]$aes_params$size, 8 / ggplot2::.pt)
+  expect_equal(q$theme$axis.text$size, 8)
+  png <- .word_png(p, alto = 1.34)
+  expect_true(file.exists(png))
+  img <- png::readPNG(png); expect_identical(dim(img)[3], 4L)   # canal alfa: fondo transparente
+  expect_equal(dim(img)[2], round(6.27 * 300), tolerance = 2)
+})
