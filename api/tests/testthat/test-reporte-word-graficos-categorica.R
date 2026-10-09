@@ -65,3 +65,15 @@ test_that("en la ruta real las barras agrupadas llegan al Word de 0 a 100 % y co
   expect_equal(rango(), 112)                                  # 100 % con aire para la cifra
   expect_lt(rango(usar_eje_libre = TRUE), 100)                # eje libre: al máximo (45 %) con aire
 })
+
+test_that("las marcas 0-100 % son opcionales: apagadas por defecto, encendidas con marcas_eje y nunca con el eje libre (Gonzalo, 2026-10-09)", {
+  d <- data.frame(categoria = c("A", "B"), N = c(45, 30), pct = c(.45, .30), stringsAsFactors = FALSE)
+  esp <- function(...) attr(suppressWarnings(graficar_barras_agrupadas(data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct",
+                                                                        etiquetas_series = c(pct = "Total"), ...)), "pulso_espec")
+  sin <- .wc_textos(.word_g_barras(esp()))
+  expect_false("50%" %in% sin)
+  con <- .word_g_barras(esp(marcas_eje = TRUE))
+  expect_true(all(c("0%", "25%", "50%", "75%", "100%") %in% .wc_textos(con)))
+  expect_gt(attr(con, "alto"), attr(.word_g_barras(esp()), "alto"))
+  expect_false(isTRUE(esp(marcas_eje = TRUE, usar_eje_libre = TRUE)$marcas_eje))
+})

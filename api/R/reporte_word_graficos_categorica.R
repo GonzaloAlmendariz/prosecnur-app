@@ -48,6 +48,7 @@
   resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
   ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
   col <- if (isTRUE(espec$realce)) ifelse(resid, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue)) else ifelse(resid, T$gris, T$navy)
+  marcas <- isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)
   esc <- if (isTRUE(espec$escala_completa)) max(100, max(p)) * 1.12 else max(p) * (if (any(grepl("\\(", espec$cifras))) 1.34 else 1.18)
   d <- data.frame(l = l, p = p, y = ps$y, col = col, et = espec$cifras, negrita = isTRUE(espec$realce) & seq_along(p) == mx, stringsAsFactors = FALSE)
   g <- ggplot2::ggplot(d) +
@@ -56,8 +57,12 @@
     ggplot2::geom_text(ggplot2::aes(x = -esc * 0.02, y = .data$y, label = .data$l, fontface = ifelse(.data$negrita, "bold", "plain")), hjust = 1, size = .word_pt(9),
                        colour = navy, family = "Arial", lineheight = 0.9) +
     ggplot2::scale_x_continuous(limits = c(.word_xmin(l, 9, esc), esc), expand = c(0, 0)) +
-    ggplot2::scale_y_continuous(limits = c(0.4, ps$tot + 0.6), expand = c(0, 0)) + .word_tema()
-  attr(g, "filas") <- ps$tot; attr(g, "alto") <- .word_alto_figura("barras", ps$tot)
+    ggplot2::scale_y_continuous(limits = c(if (marcas) -0.1 else 0.4, ps$tot + 0.6), expand = c(0, 0)) + .word_tema()
+  # Marcas 0-25-50-75-100 % bajo las barras, como la variante «fiel» de g_barras (RG:91): opcionales con la escala de 0 a
+  # 100 % (Gonzalo, 2026-10-09: «Opcional brindar ambas opciones»).
+  if (marcas) g <- g + ggplot2::annotate("text", x = seq(0, 100, 25), y = 0.15, label = paste0(seq(0, 100, 25), "%"), size = .word_pt(7.5),
+                                         colour = "#A6A6A6", family = "Arial")
+  attr(g, "filas") <- ps$tot; attr(g, "alto") <- .word_alto_figura("barras", ps$tot) + (if (marcas) 0.15 else 0)
   g
 }
 
