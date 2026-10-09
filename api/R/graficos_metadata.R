@@ -2197,8 +2197,9 @@
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
            descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
-           default = "segmento",
+           default = "tenue",
            choices = list(
+             list(value = "tenue", label = "Gris tenue (recetario)"),
              list(value = "segmento", label = "Color del segmento"),
              list(value = "azul_pulso", label = "Azul Pulso")
            ),
@@ -2398,8 +2399,9 @@
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro"),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro"),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
-           default = "segmento",
+           default = "tenue",
            choices = list(
+             list(value = "tenue", label = "Gris tenue (recetario)"),
              list(value = "segmento", label = "Color del segmento"),
              list(value = "azul_pulso", label = "Azul Pulso")
            )),
@@ -3676,7 +3678,7 @@
     # dentro de su segmento (o se oculta bajo el umbral).
     etiquetas_arriba_si_no_caben = TRUE,  # ADR 0092: las cifras chicas suben con guía
     etiquetas_arriba_offset = 0.17,
-    color_conectores_etiquetas = "segmento",
+    color_conectores_etiquetas = "tenue",
     posicion_conector_etiquetas = "centro",
     linewidth_conectores_etiquetas = 0.42,
     desplazamiento_max_etiquetas_peq = 0.09,
@@ -3732,7 +3734,7 @@
     # B45: opt-in, igual que en apiladas.
     etiquetas_arriba_si_no_caben = TRUE,  # ADR 0092: las cifras chicas suben con guía
     etiquetas_arriba_offset = 0.17,
-    color_conectores_etiquetas = "segmento",
+    color_conectores_etiquetas = "tenue",
     posicion_conector_etiquetas = "centro",
     linewidth_conectores_etiquetas = 0.42,
     desplazamiento_max_etiquetas_peq = 0.09,
@@ -4631,7 +4633,7 @@
     ),
     color_conectores_etiquetas = list(
       label = "Color de la línea guía",
-      descripcion = "Define si la línea guía usa el color del segmento o el azul Pulso.",
+      descripcion = "Por defecto, el gris tenue del recetario; también puede usar el color del segmento o el azul Pulso.",
       efecto = "Solo afecta las líneas que conectan porcentajes superiores con la barra."
     ),
     posicion_conector_etiquetas = list(

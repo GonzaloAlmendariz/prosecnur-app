@@ -825,7 +825,7 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(apiladas_args$color_conectores_etiquetas$grupo, "valores")
   expect_equal(
     vapply(apiladas_args$color_conectores_etiquetas$choices, `[[`, character(1), "value"),
-    c("segmento", "azul_pulso")
+    c("tenue", "segmento", "azul_pulso")   # ADR 0093: la guía gris del recetario es la primera
   )
   expect_equal(apiladas_args$posicion_conector_etiquetas$label, "Salida de la línea guía")
   expect_equal(apiladas_args$posicion_conector_etiquetas$grupo, "valores")
@@ -846,7 +846,7 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(multi_args$color_conectores_etiquetas$grupo, "valores")
   expect_equal(
     vapply(multi_args$color_conectores_etiquetas$choices, `[[`, character(1), "value"),
-    c("segmento", "azul_pulso")
+    c("tenue", "segmento", "azul_pulso")
   )
   expect_equal(multi_args$posicion_conector_etiquetas$label, "Salida de la línea guía")
   expect_equal(multi_args$posicion_conector_etiquetas$grupo, "valores")
@@ -907,8 +907,9 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   # segmento (Gonzalo, 2026-10-08); reemplaza a B45, que la dejaba como opción.
   expect_true(isTRUE(.PRESETS_DEFAULT_PULSO$barras_apiladas$etiquetas_arriba_si_no_caben))
   expect_true(isTRUE(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_arriba_si_no_caben))
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_conectores_etiquetas, "segmento")
-  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_conectores_etiquetas, "segmento")
+  # ADR 0093: la guía de la cifra chica es gris tenue, como en el recetario.
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_conectores_etiquetas, "tenue")
+  expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_conectores_etiquetas, "tenue")
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$posicion_conector_etiquetas, "centro")
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$posicion_conector_etiquetas, "centro")
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$linewidth_conectores_etiquetas, 0.42)
