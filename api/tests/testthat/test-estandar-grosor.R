@@ -3,9 +3,12 @@
 # Línea base del 2026-10-08 en la ranura estándar: 3 de 12 alturas cumplían, y
 # con 1 a 4 filas las barras medían 0.83 a 1.07 in donde el recetario pide 0.44 a 0.50.
 
-.apilada_estandar <- function(n, grosor_estandar = TRUE) {
+.apilada_estandar <- function(n, grosor_estandar = TRUE, chicas = FALSE) {
   set.seed(n)
-  p <- matrix(stats::runif(n * 5, 0.05, 1), n)
+  # Sin cifras chicas (todos los segmentos >= 12 %) rige la tabla tal cual; con
+  # chicas, la fila reserva el aire para las que suben (F2.3).
+  p <- if (chicas) matrix(stats::runif(n * 5, 0.05, 1), n) else matrix(stats::runif(n * 5, 0.8, 1), n)
+  if (chicas) p[, 1] <- 0.02
   p <- p / rowSums(p)
   d <- data.frame(categoria = sprintf("Afirmación %02d", seq_len(n)), N = 200L,
                   t1 = p[, 1], t2 = p[, 2], t3 = p[, 3], t4 = p[, 4], t5 = p[, 5])
@@ -26,6 +29,17 @@ test_that("el grosor dibujado sale de la tabla del estándar en todo el rango de
     # fracción (las barras no se tocan) y la barra puede quedar unas milésimas abajo.
     expect_lte(abs(lay$grosor_in - .std_grosor(n, "escala_apilada")), 0.03, label = paste(n, "filas"))
   }
+})
+
+test_that("con cifras chicas la fila gana aire si cabe y si no la barra cede hasta 0.24 in", {
+  skip_if_not_installed("cowplot")
+  # pocas filas: el aire cabe y la barra conserva el grosor de la tabla
+  lay3 <- attr(.apilada_estandar(3, chicas = TRUE), "pulso_barras_apiladas_layout")
+  expect_lte(abs(lay3$grosor_in - .std_grosor(3, "escala_apilada")), 0.03)
+  # ocho filas en 4.6 in: el aire no cabe y la barra cede, pero no bajo el piso
+  lay8 <- attr(.apilada_estandar(8, chicas = TRUE), "pulso_barras_apiladas_layout")
+  expect_lt(lay8$grosor_in, .std_grosor(8, "escala_apilada"))
+  expect_gte(lay8$grosor_in, 0.24 - 0.01)
 })
 
 test_that("con grosor_estandar = FALSE vuelve la fracción de fila previa", {

@@ -30,6 +30,16 @@
   )
 }
 
+#' Claves por tipo de gráfico que fija el estándar
+#'
+#' Reglas del recetario que no son de `base` sino de un tipo: en las apiladas,
+#' la cifra que no cabe en su segmento sube con guía (`reglas.cifras_chicas`).
+#' @keywords internal
+.std_claves_tipo <- function() {
+  arriba <- list(etiquetas_arriba_si_no_caben = list(valor = TRUE, token = "reglas.cifras_chicas"))
+  list(barras_apiladas = arriba, multi_apiladas = arriba)
+}
+
 #' Impone el estándar sobre `presets$base` (y `base$args` si existe)
 #'
 #' @param presets Presets del proyecto o del body del render.
@@ -42,9 +52,9 @@
   claves <- tryCatch(.std_claves_base(), error = function(e) NULL)
   if (is.null(claves)) return(presets)
   base <- presets$base
-  if (!is.list(base)) return(presets)
+  if (!is.list(base)) base <- NULL
   cambios <- character(0)
-  for (nm in names(claves)) {
+  for (nm in if (is.null(base)) character(0) else names(claves)) {
     nuevo <- claves[[nm]]$valor
     for (donde in c("base", "args")) {
       holder <- if (identical(donde, "base")) base else base$args
@@ -59,7 +69,24 @@
       if (identical(donde, "base")) base[[nm]] <- nuevo else base$args[[nm]] <- nuevo
     }
   }
-  presets$base <- base
+  if (!is.null(base)) presets$base <- base
+  # Lo mismo, tipo por tipo, para las reglas que no son de `base`.
+  for (tipo in names(.std_claves_tipo())) {
+    entrada <- presets[[tipo]]
+    if (!is.list(entrada)) next
+    for (nm in names(.std_claves_tipo()[[tipo]])) {
+      nuevo <- .std_claves_tipo()[[tipo]][[nm]]$valor
+      for (donde in c("tipo", "args")) {
+        holder <- if (identical(donde, "tipo")) entrada else entrada$args
+        if (!is.list(holder) || is.null(holder[[nm]])) next
+        if (!identical(as.character(holder[[nm]])[1], as.character(nuevo))) {
+          cambios <- c(cambios, sprintf("%s de %s %s → %s", nm, tipo, as.character(holder[[nm]])[1], as.character(nuevo)))
+        }
+        if (identical(donde, "tipo")) entrada[[nm]] <- nuevo else entrada$args[[nm]] <- nuevo
+      }
+    }
+    presets[[tipo]] <- entrada
+  }
   cambios <- unique(cambios)
   if (isTRUE(avisar) && length(cambios)) {
     .pulso_aviso(

@@ -45,3 +45,13 @@ test_that("la migración del normalizador y la del render dejan la base en el es
   expect_equal(e$base$size_nota_pie, .std_pt("base"))
   expect_equal(e$base$size_leyenda, .std_pt("leyenda"))
 })
+
+test_that("la regla de cifras chicas se impone por tipo y se avisa", {
+  v <- list(barras_apiladas = list(args = list(etiquetas_arriba_si_no_caben = FALSE)),
+            multi_apiladas = list(etiquetas_arriba_si_no_caben = FALSE))
+  expect_message(p <- .std_imponer_base(v, avisar = TRUE), "etiquetas_arriba_si_no_caben de barras_apiladas FALSE → TRUE")
+  expect_true(p$barras_apiladas$args$etiquetas_arriba_si_no_caben)
+  expect_true(p$multi_apiladas$etiquetas_arriba_si_no_caben)
+  # sin base, la imposición por tipo no inventa una base
+  expect_null(p$base)
+})

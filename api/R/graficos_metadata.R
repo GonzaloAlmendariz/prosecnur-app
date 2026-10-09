@@ -2192,8 +2192,8 @@
            default = TRUE,
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro",
-           default = FALSE,
-           descripcion = "Opción: si una barra tiene un porcentaje que no entra bien, coloca todos sus porcentajes encima conectados con una línea guía. Por defecto la etiqueta vive dentro de su segmento."),
+           default = TRUE,
+           descripcion = "Si un porcentaje no entra en su segmento, sube encima de la barra con una línea guía y la fila gana aire, como en el recetario (ADR 0092). Apagado, la cifra queda dentro y puede caer sobre el segmento vecino."),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
            descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
@@ -3674,7 +3674,7 @@
     # B45 (pedido directo): sacar la etiqueta chica ARRIBA de la barra con
     # flecha es una opcion, no el default — por defecto la etiqueta vive
     # dentro de su segmento (o se oculta bajo el umbral).
-    etiquetas_arriba_si_no_caben = FALSE,
+    etiquetas_arriba_si_no_caben = TRUE,  # ADR 0092: las cifras chicas suben con guía
     etiquetas_arriba_offset = 0.17,
     color_conectores_etiquetas = "segmento",
     posicion_conector_etiquetas = "centro",
@@ -3730,7 +3730,7 @@
     size_leyenda             = 12,
     size_barra_extra         = 16,
     # B45: opt-in, igual que en apiladas.
-    etiquetas_arriba_si_no_caben = FALSE,
+    etiquetas_arriba_si_no_caben = TRUE,  # ADR 0092: las cifras chicas suben con guía
     etiquetas_arriba_offset = 0.17,
     color_conectores_etiquetas = "segmento",
     posicion_conector_etiquetas = "centro",

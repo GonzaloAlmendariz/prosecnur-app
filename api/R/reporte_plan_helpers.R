@@ -2850,8 +2850,10 @@ p_reset <- function(
     # El umbral automático de 0.15 se retira: ocultaba los porcentajes del 1 %
     # al 15 % en las baterías largas sin que nadie lo pidiera ni lo dijera.
     # Ahora es el interruptor `ocultar_etiquetas_pequenas`, apagado por defecto.
+    # ADR 0092 (F2.3): en el recetario la cifra que no cabe sube con guía y la
+    # fila gana el aire; antes aquí se apagaba y la cifra caía sobre el vecino.
     if (is.null(el$overrides$etiquetas_arriba_si_no_caben)) {
-      el$overrides$etiquetas_arriba_si_no_caben <- FALSE
+      el$overrides$etiquetas_arriba_si_no_caben <- TRUE
     }
   }
   if (width < 7.25 && etype %in% c("barras_apiladas", "barras_multiapiladas")) {

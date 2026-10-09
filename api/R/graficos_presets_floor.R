@@ -41,9 +41,11 @@
 #'   opcion apagada de fabrica (`formato_valor`, `mostrar_frecuencia`).
 #' - `3`: ADR 0092 — el suelo sigue al estandar de los recetarios; la base de
 #'   la lamina baja de 14 a 10 pt (`size_nota_pie`).
+#' - `4`: ADR 0092 (F2.3) — las cifras chicas de las apiladas suben con guia
+#'   (`etiquetas_arriba_si_no_caben = TRUE`), como en el recetario.
 #'
 #' @keywords internal
-.PRESETS_FLOOR_VERSION <- 3L
+.PRESETS_FLOOR_VERSION <- 4L
 
 #' Sello del suelo editorial vigente
 #'

@@ -1429,11 +1429,10 @@
 # decision del analista y se respeta. Se aplica en el normalizador, la unica
 # costura por la que pasan el GET de config y el config efectivo del export.
 .GRAFICOS_MIGRACIONES_DEFAULTS <- list(
-  list(tipo = "barras_apiladas", arg = "ancho_max_eje_y", de = 22, a = 34),
-  # B45: la etiqueta chica fuera de la barra con flecha paso a opt-in; el
-  # TRUE fosilizado era el default que la UI copiaba sola.
-  list(tipo = "barras_apiladas", arg = "etiquetas_arriba_si_no_caben", de = TRUE, a = FALSE),
-  list(tipo = "multi_apiladas", arg = "etiquetas_arriba_si_no_caben", de = TRUE, a = FALSE)
+  list(tipo = "barras_apiladas", arg = "ancho_max_eje_y", de = 22, a = 34)
+  # B45 (la cifra chica arriba como opt-in) se retiro con el ADR 0092 (F2.3):
+  # el recetario sube las cifras chicas con guia y `estandar_presets.R` lo
+  # impone; migrar TRUE a FALSE aqui lo desharia en cada normalizacion.
 )
 
 .graficos_migrar_defaults_fosiles <- function(presets) {
