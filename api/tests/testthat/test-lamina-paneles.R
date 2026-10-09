@@ -63,3 +63,30 @@ test_that("en la ruta real p_slide_2_graficos con dos apiladas sale nativa y con
   preg <- xml2::xml_text(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:pregunta']]"))
   expect_identical(preg, c("Pregunta uno", "Pregunta dos"))
 })
+
+test_that("en la ruta real p_slide_2_graficos_vertical sale nativa, apilada, con el antetítulo de su sección (lámina 142)", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg")
+  niveles <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo")
+  dat <- data.frame(p1 = rep(niveles, c(4, 10, 40, 46)), p2 = rep(niveles, c(10, 20, 30, 40)), stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = c("p1", "p2"), type = "select_one esc", list_name = "esc", label = c("Pregunta uno", "Pregunta dos"),
+                                   stringsAsFactors = FALSE),
+               choices = data.frame(list_name = "esc", name = niveles, label = niveles, stringsAsFactors = FALSE), orders_list = NULL)
+  plan <- list(s = p_slide_seccion(titulo = "Servicios"),
+               v = p_slide_2_graficos_vertical(superior = p_barras_apiladas("p1"), inferior = p_barras_apiladas("p2"), titulo = "Tutoría"))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan,
+    presets = p_presets(barras_apiladas = .PRESETS_DEFAULT_PULSO$barras_apiladas), path_ppt = out, mensajes_progreso = FALSE)))
+  doc <- officer::read_pptx(out)
+  xml <- xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", length(doc))))
+  g <- xml2::xml_find_first(xml, "//p:grpSp[p:nvGrpSpPr/p:cNvPr[@name='prosecnur:grafico:paneles']]")
+  expect_false(inherits(g, "xml_missing"))
+  txt <- function(n) xml2::xml_text(xml2::xml_find_all(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)))
+  expect_identical(txt("Antetitulo lamina"), "SERVICIOS")
+  expect_identical(txt("Folio lamina"), as.character(length(doc)))
+  preg <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:pregunta']]")
+  y <- as.numeric(xml2::xml_attr(xml2::xml_find_first(preg, "p:spPr/a:xfrm/a:off"), "y"))
+  x <- as.numeric(xml2::xml_attr(xml2::xml_find_first(preg, "p:spPr/a:xfrm/a:off"), "x"))
+  expect_length(preg, 2L)
+  expect_equal(x[1], x[2])            # apilados: misma columna
+  expect_gt(y[2], y[1])
+})

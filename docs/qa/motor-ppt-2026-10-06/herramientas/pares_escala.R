@@ -29,7 +29,7 @@ e216 <- espec(fila("estudiantes", "p16_6"))
 # 216: un público con actor «Estudiantes»
 e216$filas$grupo_id <- "Estudiantes"; e216$filas$grupo_titulo <- e216$filas$rotulo; e216$filas$rotulo <- "Estudiantes"
 o <- .lam_laminas_escala(doc, e216, "Gestión y desarrollo del cuerpo académico", ante = "Cuerpo académico", base = "Base: 172 estudiantes", folio = 216)
-e221 <- espec(do.call(rbind, lapply(sprintf("p30_%d", 1:11), function(v) fila("docentes", v))))
+e221 <- espec(do.call(rbind, lapply(sprintf("p30_%d", 1:11), function(v) fila("docentes", v))), orden = "auto")   # batería: por Top Two Box
 o <- .lam_laminas_escala(o$doc, e221, "Competencias del perfil de egreso", ante = "Características del perfil de egreso", base = "Base: 51 docentes", folio = 221)
 partes_221 <- o$partes
 # 217: tres premisas, dos con docentes y egresados (actores) y una de administrativos (base chica: «x de y»).
