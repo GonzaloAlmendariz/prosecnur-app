@@ -28,16 +28,23 @@
   list(y = tot - (cumsum(esp) - esp / 2) + 0.5, tot = tot)
 }
 
-.word_recortar <- function(x, n) { x <- as.character(x); ifelse(nchar(x) > n, paste0(trimws(substr(x, 1L, n - 3L), "right"), "..."), x) }
+# Rótulo largo: nunca se corta. Se ensancha el envoltorio desde `desde` hasta `hasta` caracteres buscando que ninguno pase de
+# `lineas`; `.word_xmin` abre la columna de rótulos a ese ancho (tope 3.3 in). Si aun al ancho máximo no entra, crece en
+# líneas y la fila crece con él (`.word_posiciones`). Gonzalo (2026-10-09): el rótulo grande gana espacio, no se trunca.
+.word_envolver_holgado <- function(x, desde, hasta = 52L, lineas = 3L) {
+  for (w in seq.int(desde, max(desde, hasta), by = 2L)) {
+    l <- .word_envolver(x, w)
+    if (max(vapply(strsplit(l, "\n"), length, 1L)) <= lineas) return(l)
+  }
+  .word_envolver(x, max(desde, hasta))
+}
 .word_envolver <- function(x, ancho)vapply(as.character(x), function(r) paste(strwrap(r, width = ancho), collapse = "\n"), "", USE.NAMES = FALSE)
 
 #' Barras horizontales de una categórica o una agrupada de una serie
 #' @keywords internal
 .word_g_barras <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
-  # Rótulo largo: se corta a 70 caracteres con «...» antes de envolver, como el ranking en barras del recetario
-  # (recetario_word.R:377, página 29); sin el corte, una opción de 120 caracteres ocupa cinco líneas y desfasa las filas.
-  l <- .word_envolver(.word_recortar(espec$rotulos, 70), 40); p <- espec$largos * 100
+  l <- .word_envolver_holgado(espec$rotulos, 40); p <- espec$largos * 100
   resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
   ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
   col <- if (isTRUE(espec$realce)) ifelse(resid, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue)) else ifelse(resid, T$gris, T$navy)
@@ -76,7 +83,7 @@
 #' @keywords internal
 .word_g_lollipop <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
-  w <- .word_envolver(espec$rotulos, 45); p <- espec$largos * 100; o <- order(p)
+  w <- .word_envolver_holgado(espec$rotulos, 45); p <- espec$largos * 100; o <- order(p)
   d <- data.frame(l = factor(w[o], levels = unique(w[o])), p = p[o], et = espec$cifras[o]); top <- nrow(d)
   g <- ggplot2::ggplot(d, ggplot2::aes(y = .data$l)) +
     ggplot2::geom_segment(ggplot2::aes(x = 0, xend = .data$p, yend = .data$l), colour = T$tenue, linewidth = 0.9) +
@@ -91,7 +98,7 @@
 #' @keywords internal
 .word_g_divergente <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
-  it <- .word_envolver(espec$filas, 42); pd <- .word_posiciones(it); C <- espec$categorias
+  it <- .word_envolver_holgado(espec$filas, 42); pd <- .word_posiciones(it); C <- espec$categorias
   d <- do.call(rbind, lapply(seq_along(espec$filas), function(i) {
     u <- espec$unidades[i, ]; filas <- list()
     x <- 0; for (j in espec$orden_neg) { filas[[length(filas) + 1L]] <- data.frame(j = j, x0 = -x - u[j], x1 = -x); x <- x + u[j] }

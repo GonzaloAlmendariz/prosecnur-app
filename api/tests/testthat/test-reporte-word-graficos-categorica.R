@@ -41,14 +41,18 @@ test_that("las divergentes ponen el desacuerdo a la izquierda, el acuerdo a la d
   expect_true(all(r$xmin[r$fill %in% esp$categorias$color[esp$categorias$lado == "pos"]] >= 0))
 })
 
-test_that("las barras cortan el rótulo largo a 70 caracteres con «...», como el ranking en barras del recetario (p. 29)", {
+test_that("un rótulo largo nunca se corta: la columna se ensancha hasta tres líneas y, si no basta, la fila crece (Gonzalo, 2026-10-09)", {
   largo <- "Integración de herramientas digitales para diseño, simulación, software especializado, análisis de datos e inteligencia artificial"
   e <- preparar_categorica(c(largo, "Corta"), c(.29, .15), c("29%", "15%"))
   tx <- .wc_textos(.word_g_barras(e))
-  esperado <- .word_envolver(paste0(substr(largo, 1, 67), "..."), 40)
-  expect_true(esperado %in% tx)
-  expect_true("Corta" %in% tx)
-  expect_identical(.word_recortar(c(strrep("a", 70), strrep("a", 71)), 70), c(strrep("a", 70), paste0(strrep("a", 67), "...")))
+  rot <- tx[grepl("^Integración", tx)]
+  expect_length(rot, 1L)
+  expect_identical(gsub("\n", " ", rot), largo)                          # el texto entero, sin «...»
+  expect_lte(length(strsplit(rot, "\n")[[1]]), 3L)
+  expect_false(any(grepl("\\.\\.\\.", tx)))
+  expect_identical(.word_envolver_holgado("Corta", 40), "Corta")          # lo corto no se toca
+  enorme <- strrep("palabra ", 40)                                         # ni al ancho máximo cabe en tres: crece en líneas, no se corta
+  expect_identical(gsub("\n", " ", .word_envolver_holgado(enorme, 40)), trimws(enorme))
 })
 
 test_that("en la ruta real las barras agrupadas llegan al Word de 0 a 100 % y con eje libre al máximo (Gonzalo, 2026-10-09)", {
