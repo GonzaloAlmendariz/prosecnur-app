@@ -16,7 +16,7 @@ test_that("la espec del radar trae ejes, series, piso, anillos y las cifras de l
   d <- .rd_datos(); d$valor[d$eje == "Finanzas" & d$grupo == "Egresados"] <- 92.5
   e <- .rd_espec(d, titulo_tabla = "Competencia")
   expect_identical(e$tipo, "radar"); expect_identical(e$ejes, .rd_comp); expect_identical(e$grupos, c("Docentes", "Estudiantes", "Egresados"))
-  expect_equal(e$lo, 85); expect_equal(e$anillos, c(90, 95, 100))              # múltiplo de 5 bajo el mínimo (91 - 3)
+  expect_equal(e$lo, 80); expect_equal(e$anillos, c(85, 90, 95, 100))          # como la 90: decena bajo el mínimo menos 3
   expect_identical(e$cifras["Finanzas", "Egresados"], "93%")                     # el 0.5 sube
   expect_identical(e$encabezado, "Competencia"); expect_true(e$con_tabla)
   expect_identical(.rd_espec()$encabezado, "Indicador")                          # el «Top 2 Box» de fábrica no nombra la columna
@@ -90,4 +90,30 @@ test_that("el radar de públicos con tabla avisa a la lámina que lleva tabla, c
   g <- suppressWarnings(suppressMessages(.render_radar_publicos(el)))
   e <- attr(g, "pulso_espec")
   expect_identical(e$tipo, "radar"); expect_true(e$con_tabla); expect_identical(e$encabezado, "Tema")
+})
+
+test_that("una serie entera en el piso se dibuja sin tumbar R y la serie única «Total» deja su marca sin leyenda", {
+  d <- .rd_datos(); d$valor[d$grupo == "Egresados"] <- 0                        # un grupo sin respuestas
+  e <- .rd_espec(d)
+  gg <- .lam_radar_gg(e)
+  expect_false(any(vapply(gg$layers, function(l) inherits(l$geom, "GeomPolygon"), TRUE)))    # sin polígonos degenerados
+  o <- .lam_laminas_radar(.rd_doc(), e, "Con un grupo vacío", folio = 1)
+  xml <- .rd_xml(o$doc)                                                         # antes: segfault en C_polygon
+  expect_true("prosecnur:grafico:radar" %in% xml2::xml_attr(xml2::xml_find_all(xml, "//p:cNvPr"), "name"))
+  t1 <- data.frame(eje = .rd_comp, grupo = "Total", valor = c(98, 96, 92, 96, 94, 92))
+  o1 <- .lam_laminas_radar(.rd_doc(), .rd_espec(t1), "Total", folio = 1)
+  x1 <- .rd_xml(o1$doc); nm <- xml2::xml_attr(xml2::xml_find_all(x1, "//p:cNvPr"), "name")
+  expect_true("prosecnur:grafico:radar" %in% nm); expect_false("leyenda:texto" %in% nm)
+})
+
+test_that("el radar de públicos con tabla lleva a la lámina los decimales del analista", {
+  fuente <- function(v) list(data = data.frame(id = seq_along(v), p1 = v, stringsAsFactors = FALSE),
+                             inst = list(survey = data.frame(type = c("integer", "select_one lst"), name = c("id", "p1"), label = c("id", "X")),
+                                         choices = data.frame(list_name = "lst", name = as.character(1:4), label = c("Muy mal", "Mal", "Bien", "Muy bien"))))
+  partes <- list(docentes = fuente(c("3", "4", "4", "1", "3", "3", "2")), estudiantes = fuente(c("3", "1", "2", "4", "4", "4")))
+  data_sources <- lapply(partes, `[[`, "data"); instrument_sources <- lapply(partes, `[[`, "inst")
+  ejes <- list(A = list("docentes$p1", "estudiantes$p1"), B = list("docentes$p1", "estudiantes$p1"), C = list("docentes$p1", "estudiantes$p1"))
+  el <- p_radar_publicos(vars = ejes, corte = "3,4", mostrar_tabla = TRUE, decimales = 1)
+  e <- attr(suppressWarnings(suppressMessages(.render_radar_publicos(el))), "pulso_espec")
+  expect_match(e$cifras[1, 1], "^[0-9]+\\.[0-9]%$")                            # 71.4 %, no 71 %
 })

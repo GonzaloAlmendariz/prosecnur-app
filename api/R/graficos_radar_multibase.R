@@ -858,6 +858,16 @@ p_radar_publicos <- function(
   if (identical(espec$tipo, "radar")) {
     espec$con_tabla <- TRUE
     espec$encabezado <- .radar_mb_nombres_tabla(tabla, titulo_tema, encabezados)[1]
+    # Las cifras son las de esta tabla: los decimales del analista y «—» donde no hay dato (verificador de N6).
+    dec_t <- suppressWarnings(as.integer(attr(tabla, "decimales") %||% 0L)[1]); if (!is.finite(dec_t)) dec_t <- 0L
+    for (k in seq_along(espec$grupos)) {
+      g <- espec$grupos[k]
+      # La tabla nombra sus columnas por la fuente cruda («docentes») y el radar, capitalizada («Docentes»).
+      j <- match(tolower(g), tolower(names(tabla))); if (is.na(j)) j <- k + 1L
+      if (j > ncol(tabla)) next
+      v <- tabla[[j]][match(espec$ejes, as.character(tabla[[1]]))]
+      espec$cifras[, g] <- ifelse(is.na(v), "\u2014", .pulso_fmt_pct_half_up(espec$valores[, g], dec_t))
+    }
     attr(grafico, "pulso_espec") <- espec
   }
   if (!requireNamespace("gridExtra", quietly = TRUE) ||

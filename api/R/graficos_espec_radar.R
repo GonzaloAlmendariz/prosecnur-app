@@ -3,8 +3,9 @@
 # =============================================================================
 #
 # El radar de la lámina 90 del recetario (recetario_m3c.R:75-93): los ejes en el
-# sentido del reloj desde arriba, el eje desde el piso de los datos (múltiplo de 5
-# bajo el mínimo, `lo = 80` con datos de 84 a 98), anillos cada 5 puntos y, al
+# sentido del reloj desde arriba, el eje desde el piso de los datos (la decena bajo
+# el mínimo menos 3 puntos: `lo = 80` con los datos de la 90, de 91 a 98), anillos
+# cada 5 puntos y, al
 # lado, la tabla con las mismas cifras redondeadas que se leen en el radar.
 #
 # La espec la arma `graficar_radar()` con lo que ya resolvió (ejes, series, piso y
