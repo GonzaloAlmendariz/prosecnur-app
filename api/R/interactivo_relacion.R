@@ -724,8 +724,7 @@ relacion_tab_server <- function(
           all(c("list_name", "name") %in% names(instrumento$choices)) &&
           !is.null(names(pal))) {
 
-        fila <- surv[surv$name == var, , drop = FALSE]
-        list_var <- if (nrow(fila)) fila$list_name[1] else NA_character_
+        list_var <- .get_list_name_safe(surv, var)
 
         label_col <- if ("label" %in% names(instrumento$choices)) {
           "label"
@@ -1359,7 +1358,7 @@ relacion_tab_server <- function(
       if (!(v %in% names(data))) return(FALSE)
       surv <- instrumento$survey %||% NULL
       if (!is.null(surv) && all(c("name", "type") %in% names(surv))) {
-        tipo <- tolower(as.character(surv$type[surv$name == v][1] %||% ""))
+        tipo <- .inst_tipo_var(surv, v)
         if (grepl("^select_one\\b", tipo) || grepl("^select_multiple\\b", tipo)) return(TRUE)
       }
       if (length(.choice_map_rel(v))) return(TRUE)

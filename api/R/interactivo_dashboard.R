@@ -472,8 +472,7 @@
     return(pal2)
   }
 
-  fila <- surv[surv$name == var, , drop = FALSE]
-  list_var <- if (nrow(fila)) fila$list_name[1] else NA_character_
+  list_var <- .get_list_name_safe(surv, var)
 
   label_col <- .get_label_col_safe(instrumento$choices)
 
