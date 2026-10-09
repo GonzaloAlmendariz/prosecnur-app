@@ -10,7 +10,7 @@ ejemplos de 3.2 «Un gráfico». El gate de N7 del ADR 0093 son los pares 121-16
 |---|---|---|---|---|
 | 1 | `p_slide_2_graficos_narrativo` (ficha 135, ejemplo 136) | 5 láminas en acnur_pdm; lo genera el plan automático (`graficos_plan_coverage.R:1463`) | sí (7a30a4ed0: diseño `graficos_2` de las mixtas + franja) | ◐ en verificación |
 | 2 | `p_slide_1_grafico_narrativo` (123/124; 76, 99, 225) | plan automático en 4 sitios | sí (7a30a4ed0: franja coral + zona de datos bajada) | ◐ en verificación |
-| 3 | `p_slide_4_graficos_poblacion` (fuera de los 22; recetario 210, 193, 194) | 6 en acrconta_mazo | no | ☐ |
+| 3 | `p_slide_4_graficos_poblacion` (fuera de los 22; recetario 210, 193, 194) | 6 en acrconta_mazo | sí (4696165c7: disposición `paneles_4` de las mixtas; la 210 trae histograma, que en panel no existe → ruta anterior) | ◐ por verificar |
 | 4 | Identidad: `p_slide_seccion` (13 en el mazo real; separador B 4/66/116/207/254), portada (23), índice (31-50), objetivo (26), Top Two Box (19), redondeo (20 y 21: el recetario hace dos láminas), ficha técnica (29), contraportada (65, no existe en el motor) | mazo real | no | ☐ |
 | 5 | `p_slide_texto` (129/130) | plan automático, metadata | no | ☐ |
 | 6 | `p_slide_grafico_texto_derecha` (125/126; 240, 249) | recetario ×3, metadata | no | ☐ |
