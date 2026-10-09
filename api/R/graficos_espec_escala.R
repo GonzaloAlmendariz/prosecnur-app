@@ -82,7 +82,7 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   filas <- data.frame(
     id = as.character(df[[var_categoria]]), rotulo = rot_fila,
     grupo_id = if (!is.null(var_grupo_id)) as.character(df[[var_grupo_id]]) else NA_character_,
-    grupo_titulo = if (!is.null(var_grupo_titulo)) as.character(df[[var_grupo_titulo]]) else NA_character_,
+    grupo_titulo = if (!is.null(var_grupo_titulo)) trimws(gsub("\\s*\n\\s*", " ", as.character(df[[var_grupo_titulo]]))) else NA_character_,
     n = suppressWarnings(as.numeric(df[[var_n]])), es_total = es_total, stringsAsFactors = FALSE
   )
   origen <- seq_len(nrow(filas)); if (isTRUE(invertir_barras)) origen <- rev(origen)

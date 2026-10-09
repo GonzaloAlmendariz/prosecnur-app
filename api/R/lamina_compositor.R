@@ -82,13 +82,11 @@
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (is.null(espec) || !identical(espec$tipo, "escala") || NROW(espec$filas) < 1L) return(FALSE)
   if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
-  # Alcance de N1: lo que el recetario resuelve con piezas que N2 todavía no porta queda en la ruta
-  # anterior en vez de perderse (verificador de N1): la columna Bottom Two Box, la fila Total con su
-  # filete y los bloques con actores (una afirmación con varias barras).
+  # Lo que el recetario resuelve con piezas aún no portadas queda en la ruta anterior en vez de perderse
+  # (verificador de N1): la columna Bottom Two Box y la fila Total con su filete. Los bloques con actores
+  # ya son nativos (N2, par de la lámina 217).
   if (!is.null(espec$box2$unidades)) return(FALSE)
   if (any(espec$filas$es_total)) return(FALSE)
-  grupos <- espec$filas$grupo_id[!is.na(espec$filas$grupo_id)]
-  if (length(grupos) && any(table(grupos) > 1L)) return(FALSE)
   TRUE
 }
 
