@@ -7439,7 +7439,7 @@ reporte_ppt_plan <- function(
   rendered   <- list()
   render_meta <- list()
 
-  ANTETITULOS <- .lam_antetitulos(plan)   # ADR 0093: capítulo vigente de cada lámina
+  ANTETITULOS <- .lam_antetitulos(plan); SECCIONES <- .lam_secciones_numeradas(plan)   # ADR 0093: capítulo vigente y número de cada separador
   for (i in seq_along(plan)) {
     slide <- plan[[i]]
     if (!inherits(slide, "ppt_slide")) {
@@ -8317,12 +8317,12 @@ reporte_ppt_plan <- function(
 
     # ---- SECTION -------------------------------------------------------------
     if (identical(stype, "section")) {
-
       contract <- PPT_CONTRACT$section
       title    <- slide$title %||% ""
       subtitle <- slide$subtitle %||% NULL
 
-      if (!isTRUE(solo_lista)) {
+      if (!isTRUE(solo_lista) && !identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_seccion_cabe(title, SECCIONES[[i]])) doc <- .lam_laminas_seccion(doc, title, subtitle, SECCIONES[[i]], contract$layout, PPT_CONTRACT$slide_1$layout, master, function(d) .ppt_add_partner_section_logo(d, presets$base$args %||% list()))$doc
+      if (!isTRUE(solo_lista) && (identical((slide$meta %||% list())$motor_nativo, FALSE) || !.lam_seccion_cabe(title, SECCIONES[[i]]))) {
         doc <- .add_slide_strict(doc, contract$layout)
         doc <- .ph_with_strict(doc, title, contract$slots$title)
         # subtitle no tiene placeholder real en Section Header;
