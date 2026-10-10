@@ -185,10 +185,10 @@ destacar cifras», «Quiero dejar un mensaje».
 | Cerrar | Cierre | 61–65 | cinco variantes |
 
 **Tipos de gráfico** (ejemplos reales en el recetario; recorta sólo el área del gráfico para las miniaturas):
-barras de categorías (68), columnas (82), torta (69), dona (70), dicotómica (76), ranking en barras (73), ranking con puntos
-(72), escala con Top Two Box (78), escala por actor (79), escala con Top y Bottom Two Box (97), divergentes (71), mapa de calor
-(85), histograma (81), diagrama de caja (83), media y rango (84), puntos comparativos (87), pesas / brecha (88), serie en el
-tiempo (89), radar (98), tabla de dimensiones (94), mapa (105), nube de palabras (100, **sale por la ruta anterior**). Agrupa
+barras de categorías (68), columnas (68 y 232; la 82 es el indicador numérico), torta (69), dona (70), dicotómica (76), ranking en barras (73), ranking con puntos
+(72), escala con Top Two Box (78), escala por actor (184–188), escala con Top y Bottom Two Box (79), divergentes (71), mapa de calor
+(94–95), histograma (81), diagrama de caja (83), media y rango (84), puntos comparativos (87), pesas / brecha (88), serie en el
+tiempo (89), radar (98), tabla de dimensiones (197), mapa (105), nube de palabras (100, **sale por la ruta anterior**). Agrupa
 por familia (categorías, escalas, números, comparar, dimensiones, territorio, texto).
 
 ### 3.4 Los ajustes de una lámina y de un gráfico (el inspector)
@@ -309,3 +309,7 @@ trabajan en el mismo árbol). Commits en español, conventional commits.
    y verifica que todas cargaron).
 5. Presenta a Gonzalo: un resumen corto, la tabla de lo que se va y lo que entra, lo que requiere backend, y las preguntas
    que de verdad sean suyas. No declares el diseño aprobado: lo aprueba él.
+
+
+> Corrección 2026-10-10: cinco páginas de la lista de tipos de gráfico estaban mal; corregidas contra las 274 páginas
+> del recetario (ver `inventario-iconos-recetario-2026-10-10.md`).
