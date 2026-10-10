@@ -201,3 +201,21 @@ test_that("un perfil compartido que cuelga a LibreOffice (timeout) se descarta p
   expect_identical(llamadas, 1L)                      # tras un timeout no se reintenta (no duplicar la espera)
   expect_false(dir.exists(compartido))                # pero el perfil se descarta
 })
+
+test_that("con el motor nativo apagado, una lámina de gráfico sale «ruta_anterior» aunque lleve ranuras prosecnur:*", {
+  set.seed(7); n <- 60
+  df <- data.frame(a = sample(c("1", "2"), n, TRUE), b = sample(c("1", "2"), n, TRUE), c = sample(c("1", "2"), n, TRUE), d = sample(c("1", "2"), n, TRUE))
+  inst <- list(survey = data.frame(name = c("a", "b", "c", "d"), type = rep("select_one si_no", 4), list_name = rep("si_no", 4),
+                                   label = c("Pregunta A", "Pregunta B", "Pregunta C", "Pregunta D")),
+               choices = data.frame(list_name = c("si_no", "si_no"), name = c("1", "2"), label = c("Sí", "No")), orders_list = NULL)
+  estados <- function(meta) {
+    s1 <- p_slide_1_grafico(p_barras_categoricas("a"), titulo = "Una", meta = meta)
+    s4 <- p_slide_4_graficos_poblacion(p_barras_categoricas("a"), p_barras_categoricas("b"), p_barras_categoricas("c"),
+                                       p_barras_categoricas("d"), titulo = "Cuatro", meta = meta)
+    out <- tempfile(fileext = ".pptx")
+    suppressMessages(reporte_ppt_plan(data = df, instrumento = inst, plan = p_plan(slides = list(s1, s4)), path_ppt = out, mensajes_progreso = FALSE))
+    vapply(.pptx_slide_paths(out), function(x) .pptx_lamina_estado(.pptx_leer_parte(out, x)), "", USE.NAMES = FALSE)
+  }
+  expect_identical(estados(list()), c("nativa", "nativa"))
+  expect_identical(estados(list(motor_nativo = FALSE)), c("ruta_anterior", "ruta_anterior"))
+})
