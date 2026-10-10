@@ -189,3 +189,15 @@ test_that("una imagen pegada en una ranura del motor es ruta anterior, no nativa
   expect_identical(.pptx_lamina_estado(paste0(titulo, nativo, pic)), "nativa")
   expect_identical(.pptx_lamina_estado(titulo), "estructura")
 })
+
+test_that("un perfil compartido que cuelga a LibreOffice (timeout) se descarta para la siguiente vista previa", {
+  raiz <- tempfile("raiz"); compartido <- file.path(raiz, "prosecnur-lo-perfil"); dir.create(file.path(compartido, "user"), recursive = TRUE)
+  local_mocked_bindings(.soffice_cmd = function() "soffice-falso",
+                        .preview_perfil_tomar = function(out_dir, raiz_ = raiz) list(dir = compartido, compartido = TRUE, liberar = function() invisible(NULL)))
+  llamadas <- 0L
+  local_mocked_bindings(system2 = function(...) { llamadas <<- llamadas + 1L; Sys.sleep(1.1); stop("timeout") }, .package = "base")
+  f <- tempfile(fileext = ".pptx"); file.create(f)
+  expect_null(.pptx_to_pdf_soffice(f, tempfile("pv"), timeout = 1))
+  expect_identical(llamadas, 1L)                      # tras un timeout no se reintenta (no duplicar la espera)
+  expect_false(dir.exists(compartido))                # pero el perfil se descarta
+})

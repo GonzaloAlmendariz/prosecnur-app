@@ -2419,12 +2419,15 @@
     list(pdf = if (length(pdfs)) pdfs[[1]] else NULL, segundos = as.numeric(difftime(Sys.time(), t0, units = "secs")))
   }
   r <- convertir()
-  # Un perfil compartido dañado haría fallar todas las vistas previas de la sesión (verificador de 9bce4f10e): si falla
-  # rápido (no por timeout), se borra y se reintenta una vez con uno nuevo.
-  if (is.null(r$pdf) && isTRUE(perfil$compartido) && r$segundos < timeout) {
-    unlink(perfil$dir, recursive = TRUE)
-    dir.create(perfil$dir, recursive = TRUE, showWarnings = FALSE)
-    r <- convertir()
+  # Un perfil compartido dañado haría fallar todas las vistas previas de la sesión (verificadores de 9bce4f10e y
+  # ebe1c1699): si la conversión falla, el perfil se borra siempre —también tras un timeout, que es como se manifiesta un
+  # perfil que cuelga a soffice— para que la siguiente arranque con uno nuevo; sólo se reintenta aquí si falló rápido.
+  if (is.null(r$pdf) && isTRUE(perfil$compartido)) {
+    unlink(perfil$dir, recursive = TRUE, force = TRUE)
+    if (r$segundos < timeout) {
+      dir.create(perfil$dir, recursive = TRUE, showWarnings = FALSE)
+      r <- convertir()
+    }
   }
   r$pdf
 }
