@@ -29,7 +29,12 @@ documento Word completo.
 4. **Didáctico, no calcado.** Los tipos se explican con composiciones propias dibujadas desde las ranuras del estándar
    (SVG vivos, con los gráficos de la lámina actual acomodados en la composición candidata), agrupados por lo que el
    analista quiere mostrar. El ejemplo real del recetario queda como respaldo en el detalle, nunca como ficha de medidas
-   confundida con un tipo.
+   confundida con un tipo. Todo lo dibujado sigue las reglas del estándar (`estandar_pulso.json`, `ppt.reglas`): antetítulo
+   gris de 10 pt y título coral de 24 pt sobre la barra navy; cifras «31%» sin espacio, en azul y en negrita dentro de la
+   barra; la cifra chica sube con guía y las contiguas se escalonan (lámina 15); premisas y actores en azul con su «n
+   respuestas» en gris; columna «Top Two Box» verde con «x de y»; la categoría mayor en azul y las demás en el tono de
+   apoyo; SIN INF gris al final; coral sólo en títulos y en el filete de la narrativa. En Word las cifras llevan espacio
+   («31 %») y el rótulo «Gráfico N.» va en negrita en una línea, como dice la propuesta Word.
 5. **Honesto con el tiempo.** La vista previa tarda 4–7 s por lámina: hay estados «regenerando» y «desactualizada», y
    el Word se muestra como «última versión exportada», no en vivo.
 6. **La estructura es un documento.** Capítulo → subcapítulo → lámina, con separadores, numeración automática y el
