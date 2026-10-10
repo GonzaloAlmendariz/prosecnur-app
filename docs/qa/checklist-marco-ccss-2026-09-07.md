@@ -1,6 +1,11 @@
 # Checklist — bases de CCSS Perfil listas para reproducir el marco de HSVG2026
 
-**Fecha:** 2026-09-07 · **Pedido:** armar dos bases (alumnos y cursos-horario) desde
+Tipo: Checklist de pedido
+Estado: En curso
+Fecha: 2026-09-07
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
+**Pedido:** armar dos bases (alumnos y cursos-horario) desde
 la extracción 212139, cruzadas con la 207915, para comprobar si aplicándoles las
 condiciones de HSVG2026 se llega al mismo marco previo a la selección.
 

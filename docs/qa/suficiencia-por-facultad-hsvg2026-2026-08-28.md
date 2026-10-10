@@ -1,6 +1,11 @@
 # Suficiencia por facultad — HSVG 2026 sobre ULT2, con lo aprendido de 2025
 
-Fecha: 2026-08-28 · Sorteo vigente: **ULT2** (`sel_aulas_20260827160944_f5c12730`,
+Tipo: Análisis de suficiencia
+Estado: Vigente
+Fecha: 2026-08-28
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
+Sorteo vigente: **ULT2** (`sel_aulas_20260827160944_f5c12730`,
 semilla 202, sellado 27/08 21:10) · Fuentes: `HSVG26ULT2.pulso`,
 `Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx`,
 `HSVG2026_comparacion_ULT1_vs_ULT2_27_08_26.xlsx`.

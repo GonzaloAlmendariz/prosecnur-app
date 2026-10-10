@@ -1,6 +1,12 @@
 # Checklist — Avance con las dos metas, por sexo, en el Sheets y en la app
 
-**Fecha:** 2026-09-08 · **Origen:** conversación guiada tras detener el loop
+Tipo: Checklist de conversación guiada
+Estado: Histórico
+Consolidado en: [Checklist — Correcciones Parte 1](checklist-avance-correcciones-parte1-2026-09-08.md)
+Fecha: 2026-09-08
+Autoridad: Decisiones textuales de Gonzalo; no reemplaza un ADR
+
+**Origen:** conversación guiada tras detener el loop
 (`docs/qa/checklist-loop-estetica-sheets-app-2026-09-07.md`). Gonzalo: «vamos
 cerrando lo pendiente y nos centramos en cosas puntuales que quiero ver contigo y
 me preguntes cómo se vería o entendería mejor. Me interesa que veamos avance,

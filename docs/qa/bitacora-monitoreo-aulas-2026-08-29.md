@@ -1,5 +1,11 @@
 # Bitácora del trabajo en Monitoreo de aulas
 
+Tipo: Bitácora de trabajo
+Estado: Histórico
+Consolidado en: [Loop definido de Monitoreo de aulas](checklist-loop-definido-aulas-2026-08-28.md)
+Fecha: 2026-08-29
+Autoridad: Registro de iteraciones; no reemplaza un ADR
+
 **Por qué existe.** Gonzalo, 2026-08-29: «no te estás planteando un plan de
 acción ni nada, qué es lo que vas a hacer, en qué pasos, qué es lo que ya vas
 haciendo, qué encontraste; no estás registrando qué has hecho en cada iteración

@@ -1,5 +1,10 @@
 # Checklist — «Avance de campo» reestructurada en cinco tablas (2026-09-08)
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-08
+Autoridad: Dictado de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 Dictado de Gonzalo, con el Sheets del operativo delante y el segundo día de
 campo corriendo. **La hoja pasa de cuatro bloques a CINCO tablas dictadas
 columna a columna**, y por primera vez sus cifras tienen que ser NÚMEROS y no

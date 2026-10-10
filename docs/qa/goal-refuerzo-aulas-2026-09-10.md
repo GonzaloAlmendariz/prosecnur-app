@@ -1,5 +1,10 @@
 # GOAL · Refuerzo y complemento en Monitoreo › Cursos-horario
 
+Tipo: Registro de goal loop
+Estado: En curso
+Fecha: 2026-09-10
+Autoridad: Encargo de Gonzalo; objetivo de trabajo, no certifica por sí solo el estado del módulo
+
 Registro duradero del loop indefinido abierto por Gonzalo el 2026-09-10. El
 encargo vivo (`ENCARGO_LOOP.md` del scratchpad) apunta aquí y sólo conserva el
 tablero, la vara y lo que está en curso.

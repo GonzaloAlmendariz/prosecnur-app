@@ -1,5 +1,10 @@
 # Loop DEFINIDO — Monitoreo de aulas cierra lo que el simulacro destapó
 
+Tipo: Checklist de loop definido
+Estado: En curso
+Fecha: 2026-08-28
+Autoridad: Condición de término declarada; sólo Gonzalo la da por terminada
+
 **Abierto** 2026-08-28 · **Sustituye** al loop indefinido de investigación /
 creatividad / implementación, que ya entregó lo suyo: el diagnóstico está hecho
 y lo que queda es construirlo.

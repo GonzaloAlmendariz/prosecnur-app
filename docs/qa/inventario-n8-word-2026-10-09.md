@@ -1,5 +1,10 @@
 # N8 — Word completo: inventario y hitos (2026-10-09)
 
+Tipo: Inventario y hitos
+Estado: En curso
+Fecha: 2026-10-09
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 La norma es `docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx`: 81 páginas A4 y 12 secciones, con 96 campos
 `SEQ Gráfico`, 11 `SEQ Tabla` y 3 TOC (`\o "1-2"`, `\c "Gráfico"` y `\c "Tabla"`). La generan los archivos de
 `docs/qa/motor-ppt-2026-10-06/herramientas/`:

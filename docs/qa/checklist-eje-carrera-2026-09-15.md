@@ -1,6 +1,11 @@
 # Checklist — el eje carrera como capacidad de la app
 
-**Fecha:** 2026-09-15 · **Pedido:** «Todo este mecanismo específico para una
+Tipo: Checklist de capacidad
+Estado: En curso
+Fecha: 2026-09-15
+Autoridad: Pedido de Gonzalo; la decisión de diseño vive en el ADR 0085
+
+**Pedido:** «Todo este mecanismo específico para una
 facultad con una serie de carreras lo debería tener también habilitado la app.»
 
 **Decisión de diseño:** [ADR 0085](../adrs/0085-la-carrera-del-estudiante-es-un-eje-declarable.md)

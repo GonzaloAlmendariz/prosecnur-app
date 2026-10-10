@@ -1,6 +1,11 @@
 # Censo completo de Monitoreo › Cursos-horario › Avance
 
-**Fecha:** 2026-09-08 · **Pedido de:** Gonzalo · **Estado:** censo cerrado, veredictos sin aprobar
+Tipo: Censo QA de superficie
+Estado: En curso
+Fecha: 2026-09-08
+Autoridad: Pedido de Gonzalo; veredictos sin aprobar. Evidencia de QA; no reemplaza un ADR
+
+**Pedido de:** Gonzalo · **Estado:** censo cerrado, veredictos sin aprobar
 
 > «Mantén las seis, pero haz un censo completo de absolutamente todo lo que
 > tenemos, valida qué va en qué pestaña, y qué tablas son realmente relevantes y

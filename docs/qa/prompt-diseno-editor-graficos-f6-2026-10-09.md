@@ -1,7 +1,9 @@
 # Prompt para una sesión de diseño: el editor de Gráficos remasterizado (F6)
 
 Tipo: Encargo de diseño (prompt)
-Estado: Listo para usar
+Estado: Histórico
+Consolidado en: [Dirección de diseño del editor de Gráficos (F6.0)](direccion-diseno-editor-graficos-f6-2026-10-09.md)
+Uso: listo para usar como prompt; la sesión de diseño que lo ejecutó produjo la dirección aprobada.
 Fecha: 2026-10-09
 Autoridad: Lo pidió Gonzalo; los hechos citados están medidos en `docs/qa/inventario-f6-editor-2026-10-09.md`
 

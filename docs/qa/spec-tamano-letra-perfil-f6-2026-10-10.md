@@ -1,6 +1,11 @@
 # Tamaño de letra por perfil de cliente (K13, F6)
 
-Tipo: Especificación (sesión de diseño del editor, 2026-10-10). Gonzalo eligió la opción 2 (tamaño de letra por perfil
+Tipo: Especificación (sesión de diseño del editor, 2026-10-10)
+Estado: Vigente
+Fecha: 2026-10-10
+Autoridad: opción 2 elegida por Gonzalo (K13); el recetario manda
+
+Gonzalo eligió la opción 2 (tamaño de letra por perfil
 de cliente) y pidió que fuera más específica. Principio vigente: el recetario manda; el perfil sólo desplaza sus
 valores en pasos con nombre.
 

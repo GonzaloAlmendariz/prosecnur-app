@@ -1,5 +1,10 @@
 # Checklist · El libro de campo dice de dónde viene cada dato (dictado 2026-09-04)
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-04
+Autoridad: Dictado de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 Superficie: la hoja **«Aulas Aplicadas (Campo)»** del libro operativo y del
 Google Sheets, más el vocabulario de estados de la cadena.
 

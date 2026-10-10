@@ -1,6 +1,11 @@
 # Auditoría del motor de selección de aulas
 
-Fecha: 2026-08-28. Proyecto medido: `HSVG26ULT2.pulso` (segundo sorteo, semilla
+Tipo: Auditoría QA del motor
+Estado: Vigente
+Fecha: 2026-08-28
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
+Proyecto medido: `HSVG26ULT2.pulso` (segundo sorteo, semilla
 202, 174 titulares sobre un marco de 1.392 cursos-horario).
 
 Esta auditoría empezó por una pregunta sobre la matriz de selección: por qué

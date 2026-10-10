@@ -1,5 +1,10 @@
 # Checklist — motor de aulas y sus indicadores
 
+Tipo: Checklist del motor de aulas
+Estado: En curso
+Fecha: 2026-08-24
+Autoridad: Encargo de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 **Encargo (textual):** «Integremos estas construcciones al checklist actual que tenemos porque
 integrar todo es ultra importante […] y también agregar que el monitoreo debe reportar todos
 estos indicadores de forma responsable.»

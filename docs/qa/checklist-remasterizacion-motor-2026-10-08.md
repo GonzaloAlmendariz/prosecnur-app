@@ -55,5 +55,5 @@ Plan anterior (F0-F7):
 | F3 | Lámina PPT: plantilla `plantilla_pulso_2026.pptx`, antetítulo, pregunta fuera de la imagen, 22 tipos, láminas de identidad | ☐ |
 | F4 | Word completo: `reporte_word_documento.R` e identidad, estilos, SEQ, índices, secciones, «Cómo leer» | ◐ N8.0-N8.14 ☑; N8.15 en re-verificación |
 | F5 | Migración de planes y `.pulso`, con avisos | ☐ |
-| F6 | Editor: selector de 22 tipos, distribución del espacio estable, vista previa fiel, «Estilo global» reducido. **F6.0 (dirección de diseño) aprobada por Gonzalo el 2026-10-09**: `direccion-diseno-editor-graficos-f6-2026-10-09.md` + maqueta en `tmp/f6-diseno/maqueta/` (57 capturas en `tmp/f6-diseno/capturas/`). Siguen F6.0b (backend de la vista previa) y F6.1–F6.5 | ◐ F6.0 ☑ |
+| F6 | Editor: selector de 22 tipos, distribución del espacio estable, vista previa fiel, «Estilo global» reducido. **F6.0 (dirección de diseño) aprobada por Gonzalo el 2026-10-09**: `direccion-diseno-editor-graficos-f6-2026-10-09.md` + maqueta local en `f6-diseno/maqueta/` (57 capturas en `f6-diseno/capturas/`; carpeta local, no versionada). Siguen F6.0b (backend de la vista previa) y F6.1–F6.5 | ◐ F6.0 ☑ |
 | F7 | Cierre integral con proyectos de referencia, verificador y notas | ☐ |

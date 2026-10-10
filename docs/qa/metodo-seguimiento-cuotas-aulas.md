@@ -1,5 +1,10 @@
 # Seguimiento de cuotas en cursos-horario — método y motores
 
+Tipo: Método (seguimiento de cuotas)
+Estado: Vigente
+Fecha: 2026-10-09
+Autoridad: Destilado del campo de HSVG2026; no reemplaza un ADR
+
 Cómo se mide el avance de un operativo de aulas, con qué motor sale cada cifra
 y qué trampas ya nos costaron un ciclo. Destilado del campo de HSVG2026
 (07/09 → 01/10/2026); las cifras citadas son de ese estudio y sirven de orden

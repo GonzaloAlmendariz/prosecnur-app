@@ -1,5 +1,10 @@
 # Checklist — monitoreo de aulas, dictado de Gonzalo del 2026-09-10
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-10
+Autoridad: Dictado de Gonzalo; sólo él lo da por terminado
+
 Nueve indicaciones de un mismo dictado. Cada una con **dónde vive** y su estado.
 Sólo Gonzalo lo da por terminado.
 

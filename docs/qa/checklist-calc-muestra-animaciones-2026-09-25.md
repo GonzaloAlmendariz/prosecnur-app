@@ -1,6 +1,10 @@
 # Checklist — Animaciones de aulas llevadas a Muestra general y Acreditación (E16)
 
-Tipo: Checklist vivo · Fecha: 2026-09-25 · Etapa E16 del loop de Cálculo de muestra
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-09-25
+Autoridad: Pedido de Gonzalo. Evidencia de QA; no reemplaza un ADR
+Etapa E16 del loop de Cálculo de muestra
 
 Pedido de Gonzalo (textual): «Sigue mejoranod ls estetica, fijte en las
 animaciones de aulas y aprende de ellas».

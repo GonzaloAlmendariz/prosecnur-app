@@ -1,6 +1,10 @@
 # Checklist — Cierre del loop de Cálculo de muestra (egresados, aulas, deuda de E11)
 
-Tipo: Checklist vivo · Fecha: 2026-09-24 · Etapas E12–E14 del loop
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-09-24
+Autoridad: Pedido de Gonzalo. Evidencia de QA; no reemplaza un ADR
+Etapas E12–E14 del loop
 
 Pedido de Gonzalo (textual): «Validos todo», en respuesta a los tres caminos
 que quedaron abiertos al cerrar E11: egresados con la regla por precisión,

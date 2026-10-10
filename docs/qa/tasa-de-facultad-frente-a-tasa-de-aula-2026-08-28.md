@@ -1,6 +1,11 @@
 # La tasa de la facultad frente a la tasa del aula
 
-Fecha: 2026-08-28. Medido sobre `HSVG26ULT2.pulso`, segundo sorteo de HSVG
+Tipo: Análisis metodológico
+Estado: Vigente
+Fecha: 2026-08-28
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
+Medido sobre `HSVG26ULT2.pulso`, segundo sorteo de HSVG
 PUCP 2026: 174 aulas titulares sobre un marco de 1.392 cursos-horario.
 
 El estudio calcula cuántas encuestas espera de un aula con dos tasas distintas,

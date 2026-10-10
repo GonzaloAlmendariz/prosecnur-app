@@ -1,5 +1,10 @@
 # Checklist — CCSS Perfil 2026-II: composición por nivel, Sheets y UI listos (2026-09-23)
 
+Tipo: Checklist de pedido
+Estado: En curso
+Fecha: 2026-09-23
+Autoridad: Pedido de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 Pedido de Gonzalo, 2026-09-23 (tras el avance del 22/09):
 
 > «la app no sabe cuántos alumnos de cada nivel hay en las aulas agendadas», pero

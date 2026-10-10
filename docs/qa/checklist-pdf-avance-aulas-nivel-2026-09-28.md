@@ -1,5 +1,10 @@
 # Checklist — PDF de avance para cliente en estudios de aulas con metas por nivel
 
+Tipo: Checklist de encargo
+Estado: En curso
+Fecha: 2026-09-28
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 Origen: encargo `CCSSPerfil/5. Campo/ENCARGO_pdf_avance_cliente_aulas_nivel.md`
 (2026-09-28). Estudio real: CCSS Perfil 2026-II, corte 25/09 18:00.
 

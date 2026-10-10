@@ -1,5 +1,10 @@
 # Checklist · Asignación de aplicadores (dictados del 2026-09-04)
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-04
+Autoridad: Dictado de Gonzalo; sólo él lo da por terminado
+
 Superficie: Monitoreo › cursos-horario › Modelo › Carga › **Asignación**
 (`AulasAsignacionDeAplicadores.tsx`, motor `monitoreo_aulas_reparto.R`).
 

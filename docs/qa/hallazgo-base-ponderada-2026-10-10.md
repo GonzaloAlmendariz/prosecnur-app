@@ -1,7 +1,8 @@
 # Hallazgo: con peso del estudio, la «Base» del informe es la suma de pesos
 
 Tipo: Hallazgo metodológico (revisor-metodologico, solo lectura)
-Estado: Esperando decisión de Gonzalo (S1–S5)
+Estado: Vigente
+Decisión pendiente: esperando a Gonzalo (S1–S5)
 Fecha: 2026-10-10
 Autoridad: Evidencia de lectura de código y mediciones; no reemplaza un ADR
 

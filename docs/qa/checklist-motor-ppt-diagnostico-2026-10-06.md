@@ -1,5 +1,10 @@
 # Checklist: diagnóstico del motor de PPT (2026-10-06)
 
+Tipo: Checklist de diagnóstico y plan
+Estado: En curso
+Fecha: 2026-10-06
+Autoridad: Pedido de Gonzalo; sólo él da por terminado este checklist
+
 Todos los entregables de este trabajo están ordenados en [`motor-ppt-2026-10-06/`](motor-ppt-2026-10-06/README.md); empieza por su README.
 
 Pedido: entender por qué el motor de PPT no llega al nivel de las presentaciones
@@ -22,7 +27,7 @@ checklist.
   [`detector_encimado.py`](motor-ppt-2026-10-06/herramientas/detector_encimado.py).
 - **Verificador existente**: `verificar_mazo()` sobre el mismo archivo.
 - **Referencia**: `Lima.pptx` de la capacitación, exportado por PowerPoint.
-- Los PNG de trabajo quedan en `tmp/motor-ppt-diag-2026-10-06/` (no versionado).
+- Los PNG de trabajo quedan en `motor-ppt-diag-2026-10-06/` (carpeta local bajo `tmp`, no versionada).
 
 Tipos de defecto: **diseño** (falta un sistema de piezas), **adaptación** (el
 contenido real rompe un diseño fijo) y **verificación** (nadie lo mira).
@@ -32,7 +37,7 @@ contenido real rompe un diseño fijo) y **verificación** (nadie lo mira).
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
 | I1 | Diagnóstico y plan, no implementación; no tocar el motor | Este documento | ☑ Cumplida: cero cambios en `api/R/` |
-| I2 | Generar un mazo real con un proyecto de referencia y pasarlo a PNG | `generar_mazo.R`, `tmp/` | ☑ |
+| I2 | Generar un mazo real con un proyecto de referencia y pasarlo a PNG | `generar_mazo.R`, carpeta local `tmp` | ☑ |
 | I3 | Contrastar lámina por lámina con los cuatro principios | Tabla de hallazgos | ☑ |
 | I4 | Revisar el XML por los tres defectos de pptxgenjs y lo que LibreOffice no ve | H19 a H21 | ☑ |
 | I5 | Plan por prioridad con costo y beneficio (kit, adaptación, gate, officer o pptxgenjs) | Sección Plan | ☑ Propuesto |
@@ -120,7 +125,7 @@ Láminas numeradas según el PDF (71 páginas).
 | H23 | El prototipo de detector por XML encuentra en segundos las láminas 9, 26, 60, 61 y 69, las mismas que se vieron a ojo. En la maqueta da falsos positivos: dos cajas que se cruzan no implican tinta que se pisa | `detector_encimado.py` (prototipo, fuera del motor) | verificación | P3 | ☑ Prototipo. Para el gate hay que medir el ancho de tinta con systemfonts, como ya hace `graficador_ancho_texto.R` |
 | H24 | La vista previa de la UI rasteriza con LibreOffice: el analista nunca ve lo que verá PowerPoint | `router_graficos.R:2520-2552` | verificación | P3 | Diagnosticado |
 | H26 | `verificar_mazo()` marca 39 incumplimientos de «R4 rojo en la rampa», porque su vara es el aprobado de 2021 con rampa naranja. Pero la paleta del mazo, con `CA5651`, está validada (I10). Las dos reglas no pueden mandar a la vez | `graficos_verificar_mazo.R` (regla R4); paleta del proyecto | verificación | P3 | ☑ Resuelto por evidencia: el informe entregado (VF 02-09) usa `F4B183` naranja en el extremo negativo y `CA5651` sólo en títulos; R4 tenía razón y el mazo generado no. El recetario usa la paleta del VF |
-| H33 | El PPT de la propuesta abre en PowerPoint con el aviso «Repaired», también **antes** del saneo: lo provoca algo que escribe officer, no `sanear_ph.py`. La versión saneada no tiene elementos fuera de orden ni identificadores duplicados, y el contenido se ve completo | officer (por aislar: lámina 1, lámina 2, tabla de flextable) | verificación | P3 | ◐ Pendiente. Variantes listas en `tmp/motor-ppt-diag-2026-10-06/v5/`; falta abrirlas en PowerPoint y saber si el mazo del motor también lo provoca |
+| H33 | El PPT de la propuesta abre en PowerPoint con el aviso «Repaired», también **antes** del saneo: lo provoca algo que escribe officer, no `sanear_ph.py`. La versión saneada no tiene elementos fuera de orden ni identificadores duplicados, y el contenido se ve completo | officer (por aislar: lámina 1, lámina 2, tabla de flextable) | verificación | P3 | ◐ Pendiente. Variantes listas en `motor-ppt-diag-2026-10-06/v5/` (carpeta local); falta abrirlas en PowerPoint y saber si el mazo del motor también lo provoca |
 | H34 | El radar con tabla sólo emite su tabla nativa en la lámina de un gráfico; en cualquier otra lámina la tabla desaparece sin aviso | `reporte_plan_ppt.R:8429-8458` es el único que llama a `.tabla_nativa_geom`; `reporte_plan_tabla_nativa.R:62-70` | diseño y verificación | P2 | Diagnosticado |
 | H35 | Las láminas de composición (cifras, 2+1, 1+2, fila, 1 arriba, corona, tira) dibujan todo gráfico con ancho fijo de 5,2 in, mida lo que mida el hueco | `reporte_slides_composicion.R:66-69`; los contratos no traen `loc` (`reporte_plan_helpers.R:1157-1181`) | adaptación | P4 | Diagnosticado |
 | H36 | No existe regla de compatibilidad lámina por gráfico: ni el motor ni la UI (`GraficadorPicker.tsx:95-105`, `:778-793`) impiden un radar con tabla en dos paneles o una tabla en población de 6 | `.validate_plan` sólo revisa clase (`reporte_plan_helpers.R:1844-1887`) | verificación | P3 | Diagnosticado; matriz en la sección D del Word |

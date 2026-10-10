@@ -1,6 +1,10 @@
 # Checklist — Paridad estética y de accesibilidad de Muestra general y Acreditación con aulas
 
-Tipo: Checklist vivo · Fecha: 2026-09-24 · Etapa E11 del loop de Cálculo de muestra
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-09-24
+Autoridad: Pedido de Gonzalo. Evidencia de QA; no reemplaza un ADR
+Etapa E11 del loop de Cálculo de muestra
 
 Pedido de Gonzalo (textual): «Pero ademas le falta muchas mejoras esteticas y
 de accesibilidad a la UI que ya tiene aulas pero no los demas caminos».

@@ -1,5 +1,10 @@
 # Facultades en riesgo + la facultad declarada que no se pierde — 2026-09-18
 
+Tipo: Checklist de pedido
+Estado: En curso
+Fecha: 2026-09-18
+Autoridad: Pedido de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 Pedido de Gonzalo, textual:
 
 > «Sí, hazla. Y ademas recuperar la infor sobre su facultad declaradsa y

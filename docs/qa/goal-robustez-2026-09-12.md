@@ -1,5 +1,10 @@
 # Robustez — la noche del 2026-09-11 al 12
 
+Tipo: Diario de robustez
+Estado: Vigente
+Fecha: 2026-09-12
+Autoridad: Evidencia de QA; no reemplaza un ADR; el marco es `goal-robustez-app-2026-09-12.md`
+
 > **Hay DOS documentos de robustez con fecha del 12/09 y es a propósito.**
 > `goal-robustez-app-2026-09-12.md` es el MARCO: el catálogo de clases de
 > defecto, con el listón de que una clase sólo está cerrada con un guard que la

@@ -1,5 +1,10 @@
 # Guía de visualización de resultados de encuesta para informes en PowerPoint
 
+Tipo: Guía de investigación
+Estado: Vigente
+Fecha: 2026-10-06
+Autoridad: Investigación con fuentes; respaldo de las recetas, no reemplaza un ADR
+
 Base para rediseñar las recetas de gráficos de los informes PULSO PUCP (acreditación y opinión). Fecha: 2026-10-06.
 
 Cómo leer esta guía:

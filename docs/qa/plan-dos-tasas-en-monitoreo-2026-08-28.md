@@ -1,6 +1,11 @@
 # Plan: las dos tasas en Monitoreo, del pronóstico a la decisión
 
-Estado: **mapeo, sin ejecutar.** Este documento no propone tocar nada todavía.
+Tipo: Plan (mapeo)
+Estado: Vigente
+Fecha: 2026-08-28
+Autoridad: Mapeo sin ejecutar; no reemplaza un ADR
+
+**Mapeo, sin ejecutar.** Este documento no propone tocar nada todavía.
 
 Sale de tres preguntas: si Monitoreo distingue las dos tasas, si el esperado de
 un aula debe ser un número o un rango, y si lo que importa es el aula o el

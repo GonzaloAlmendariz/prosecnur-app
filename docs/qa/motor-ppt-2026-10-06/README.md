@@ -1,5 +1,10 @@
 # Motor PPT: diagnóstico, catálogo y recetario (2026-10-06)
 
+Tipo: Índice de entregables
+Estado: Vigente
+Fecha: 2026-10-06
+Autoridad: Índice; el estado vivo está en el checklist del diagnóstico
+
 Trabajo para que los mazos de Prosecnur salgan bien sin retoques. El estado vivo
 (hallazgos, decisiones, pendientes) está en el checklist:
 [`../checklist-motor-ppt-diagnostico-2026-10-06.md`](../checklist-motor-ppt-diagnostico-2026-10-06.md).

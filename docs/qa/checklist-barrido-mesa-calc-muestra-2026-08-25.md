@@ -1,5 +1,10 @@
 # Barrido de la mesa de Cálculo de muestra contra el Contrato de Superficie
 
+Tipo: Barrido QA contra el Contrato de Superficie
+Estado: En curso
+Fecha: 2026-08-25
+Autoridad: Encargo de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 **Encargo de Gonzalo, 2026-08-25**: «haz el barrido completo de la mesa».
 
 ## Por qué existe este documento

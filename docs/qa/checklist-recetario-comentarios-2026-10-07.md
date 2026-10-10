@@ -1,5 +1,10 @@
 # Checklist: comentarios de Gonzalo al recetario PPT moderno (2026-10-07)
 
+Tipo: Checklist de comentarios
+Estado: En curso
+Fecha: 2026-10-07
+Autoridad: Comentarios de Gonzalo al recetario. Evidencia de QA; no reemplaza un ADR
+
 Fuente: comentarios de PowerPoint en `4-recetario/recetario-moderna  -  Repaired.pptx` (41 comentarios en 38 láminas;
 respaldo en el scratchpad de la sesión). Números de lámina del mazo de 161. Texto citado tal como lo escribió Gonzalo.
 Herramientas: `docs/qa/motor-ppt-2026-10-06/herramientas/`. Estados: ☐ pendiente · ◐ en curso · ☑ hecho · ⊘ bloqueado.

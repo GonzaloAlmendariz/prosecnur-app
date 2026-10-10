@@ -1,5 +1,10 @@
 # Checklist — la ficha de campo sale con sus datos (2026-08-27)
 
+Tipo: Checklist de pedido
+Estado: En curso
+Fecha: 2026-08-27
+Autoridad: Pedido de Gonzalo; sólo él lo da por terminado
+
 Pedido de Gonzalo: **la ficha de campo (`ficha_campo_qr_a4_v1`) es el estándar y
 hay que replicarla**, pero le preocupa que *pabellón y aula*, *curso*, *horario
 del curso* y *docente* salgan en blanco «cuando toda esa información se tiene».

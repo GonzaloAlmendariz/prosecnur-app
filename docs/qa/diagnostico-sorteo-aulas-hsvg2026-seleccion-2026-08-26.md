@@ -1,6 +1,11 @@
 # Diagnóstico del sorteo de aulas — HSVG PUCP 2026-2
 
-**Fecha**: 2026-08-26 · **Proyecto**: `HSVG26ULT.pulso` (universo 5.269
+Tipo: Diagnóstico QA
+Estado: En curso
+Fecha: 2026-08-26
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
+**Proyecto**: `HSVG26ULT.pulso` (universo 5.269
 cursos-horario, marco incluido 1.512 tras la exclusión DAA) · **Estado**: sorteo elegido y validado
 
 Documento vivo. Registra el recorrido completo del diagnóstico, incluidas las

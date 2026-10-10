@@ -1,6 +1,11 @@
 # Contrato — orden de categorías por gráfico (D8, F6)
 
-Fecha: 2026-10-10. Estado: **aprobado por el lead** (81075745a, con el cambio de §4 sobre residuales en
+Tipo: Contrato de datos (D8, F6)
+Estado: Vigente
+Fecha: 2026-10-10
+Autoridad: Decisión D8 de Gonzalo; aprobado por el lead
+
+Aprobación: **aprobado por el lead** (81075745a, con el cambio de §4 sobre residuales en
 `personalizado`).
 Decisión de Gonzalo (textual, D8): «ambas opciones deben ser posibles e incluso debe permitir orden personalizado».
 Principio vigente: «el recetario siempre manda». Por eso el orden por defecto es el que dibuja el recetario para ese dato.

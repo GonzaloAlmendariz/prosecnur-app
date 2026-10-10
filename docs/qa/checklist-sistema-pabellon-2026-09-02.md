@@ -1,7 +1,14 @@
 # Checklist — Sistema Pabellón a todo Monitoreo de aulas (B33)
 
-Estado: **en curso** · Abierto: 2026-09-02 · Encargo delegado de B33
-(`checklist-operativo-aulas-2026-08-31.md`); el cierre total lo da Gonzalo.
+Tipo: Checklist de encargo delegado
+Estado: Histórico
+Consolidado en: [Pendientes al cierre del loop de mejora visual](pendientes-cierre-loop-2026-09-03.md)
+Fecha: 2026-09-02
+Autoridad: Encargo B33; el cierre total lo da Gonzalo
+
+Estado al abrir: **en curso** · Abierto: 2026-09-02 · Encargo delegado de B33
+(`checklist-operativo-aulas-2026-08-31.md`); el cierre total lo da Gonzalo. B33 quedó CONFORME por Gonzalo según el
+acta de cierre del 2026-09-03.
 
 Dictado (2026-09-02, textual): «Me encanta lo que has hecho añadiendo cuadros
 jerárquicos, boxes de colores distinguibles — eso debe tener un nombre y debe
