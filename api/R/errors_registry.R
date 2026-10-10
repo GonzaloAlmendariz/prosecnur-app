@@ -230,6 +230,8 @@ errores_registrados <- function() {
     "E_BAD_FUENTE",                                          "router_validacion.R",               "400",
     "E_BAD_HF_TOKEN",                                        "dashboard_publish.R",               "400",
     "E_BAD_HF_USERNAME",                                     "dashboard_publish.R",               "400",
+    "E_BAD_ICONO_COLOR",                                     "lamina_iconos.R",                   "400",
+    "E_BAD_ICONO_CONTEXTO",                                  "router_graficos.R",                 "400",
     "E_BAD_INCLUDE_IMAGES",                                  "router_graficos.R",                 "400",
     "E_BAD_JSON",                                            "router_codificacion.R",             "400",
     "E_BAD_OVERRIDES",                                       "router_graficos.R",                 "400",

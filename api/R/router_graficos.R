@@ -3533,6 +3533,20 @@ mount_graficos <- function(pr) {
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt_all")
     })) |>
+    plumber::pr_get("/api/graficos/iconos-recetario", wrap_endpoint(function(req, res, color = "navy", nombres = NULL) {
+      # Biblioteca de íconos del recetario (F6.0b.5, lamina_iconos.R): nombres por color y las imágenes pedidas.
+      sel <- if (is.null(nombres) || !nzchar(nombres)) NULL else strsplit(nombres, ",", fixed = TRUE)[[1]]
+      cat <- .lam_iconos_catalogo()
+      list(ok = TRUE, colores = cat$colores, iconos = .lam_iconos_data_uri(as.character(color)[1], sel))
+    })) |>
+    plumber::pr_post("/api/graficos/iconos-recetario/elegir", wrap_endpoint(function(req, res) {
+      # Qué ícono elige el motor para cada texto y por qué (capítulos del índice, actores del objetivo, filas de la ficha).
+      crudo <- .graficos_body_sin_simplificar(req, c("contexto", "textos")) %||% list()
+      contexto <- as.character(unlist(crudo$contexto) %||% "capitulo")[1]
+      if (!contexto %in% names(.LAM_ICONOS_REGLAS)) stop_api(400, "E_BAD_ICONO_CONTEXTO", "«contexto» debe ser capitulo, actor o ficha.")
+      textos <- as.character(unlist(crudo$textos) %||% character(0))
+      list(ok = TRUE, contexto = contexto, elecciones = lapply(textos, function(t) c(list(texto = t), .lam_icono_elegir(t, contexto))))
+    })) |>
     plumber::pr_post("/api/graficos/word/visor", wrap_endpoint(function(req, res, file_id = NULL) {
       # Páginas y mapa de capítulos del último Word exportado (F6.0b.4, reporte_word_visor.R). Por job: ~15 s.
       sid <- session_header(req)
