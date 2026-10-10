@@ -439,17 +439,25 @@ job_snapshot <- function(j) {
 .pulso_avisos_ordenar <- function(avisos, maximo = 8L) {
   # Sólo se agrupan los dos tipos que se saben resumir (partes y títulos); otro «Lámina N ·» va con los demás y no se
   # descarta en silencio (verificador de K12b).
-  de_lamina <- grepl("^Lámina [0-9]+ · ", avisos) &
+  de_lamina <- grepl("^Lámina [0-9]+( de «[^»]+»)? · ", avisos) &
     (grepl("salió en [0-9]+ partes", avisos) | grepl("el título ocupa", avisos, fixed = TRUE))
   otros <- utils::head(avisos[!de_lamina], maximo)
   lam <- avisos[de_lamina]
   if (!length(lam) || length(otros) + length(lam) <= maximo) return(c(otros, lam))
-  num <- function(x) sub("^Lámina ([0-9]+) · .*$", "\\1", x)
+  # Números de lámina; en /ppt-all, agrupados por base («docentes» 3, 9; «estudiantes» 3), porque cada base numera
+  # su propio PPTX.
+  num <- function(x) {
+    n <- sub("^Lámina ([0-9]+).*$", "\\1", x)
+    b <- ifelse(grepl("^Lámina [0-9]+ de «", x), sub("^Lámina [0-9]+ de «([^»]+)» · .*$", "\\1", x), "")
+    if (all(b == "")) return(paste(n, collapse = ", "))
+    paste(vapply(unique(b), function(k) trimws(sprintf("%s %s", if (nzchar(k)) sprintf("«%s»", k) else "", paste(n[b == k], collapse = ", "))), ""),
+          collapse = "; ")
+  }
   partes <- lam[grepl("salió en [0-9]+ partes", lam)]
   titulos <- lam[grepl("el título ocupa", lam, fixed = TRUE)]
   c(otros,
     if (length(partes)) sprintf("%d %s en varias partes: %s.", length(partes),
-                                if (length(partes) == 1L) "lámina salió" else "láminas salieron", paste(num(partes), collapse = ", ")),
+                                if (length(partes) == 1L) "lámina salió" else "láminas salieron", num(partes)),
     if (length(titulos)) sprintf("%d %s de dos líneas: %s.", length(titulos),
-                                 if (length(titulos) == 1L) "título pasa" else "títulos pasan", paste(num(titulos), collapse = ", ")))
+                                 if (length(titulos) == 1L) "título pasa" else "títulos pasan", num(titulos)))
 }

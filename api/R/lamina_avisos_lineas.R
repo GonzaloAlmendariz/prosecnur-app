@@ -100,7 +100,9 @@
     # distingue un aviso de otro, y `.pulso_avisos_de_job` no los colapsa. Sin archivo (Word), su lugar en el plan del
     # usuario.
     numero <- if (is.null(doc) || anyNA(inicio)) pos_usuario[[g]] else inicio[idx[1]] + 1L + as.integer(getOption("prosecnur.lam_folio_desplazo", 0L))
-    nombre <- sprintf("Lámina %d · %s", as.integer(numero), .lam_aviso_nombre(titulo))
+    # En /ppt-all cada base sale en su PPTX con su numeración: el aviso dice de cuál (`.lam_avisos_con_base`).
+    base <- getOption("prosecnur.lam_avisos_base")
+    nombre <- sprintf("Lámina %d%s · %s", as.integer(numero), if (is.null(base)) "" else sprintf(" de «%s»", base), .lam_aviso_nombre(titulo))
     lineas <- max(0L, unlist(lapply(notas, `[[`, "lineas")))
     if (k > 1L) {
       cuerpo <- if (lineas >= 1L) sprintf("las premisas ocupan hasta %s; salió en %d partes", .lam_aviso_lineas_txt(lineas), k) else
@@ -112,6 +114,14 @@
     if (tl > 2L) .pulso_aviso(sprintf("%s: el título ocupa %s", nombre, .lam_aviso_lineas_txt(tl)))
   }
   invisible(doc)
+}
+
+#' Evalúa `expr` (el mazo de una base en /ppt-all) con su base marcada para los avisos de líneas
+#' @keywords internal
+.lam_avisos_con_base <- function(base, expr) {
+  viejo <- options(prosecnur.lam_avisos_base = as.character(base)[1])
+  on.exit(options(viejo), add = TRUE)
+  expr
 }
 
 #' Título declarado de una lámina del plan (para el aviso cuando ningún compositor lo anotó)
