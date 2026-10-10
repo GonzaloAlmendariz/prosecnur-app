@@ -2,7 +2,7 @@
 // Sólo lectura en esta parte: seleccionar escribe `foco=l-NN`. Insertar, reordenar y arrastrar llegan en la parte 2;
 // mientras tanto siguen en el Editor anterior.
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ChevronRight, PanelLeftClose, Search } from "../../../vendor/lucide-react";
 import { IconoTipo } from "../iconos/IconoTipo";
 import {
@@ -19,6 +19,8 @@ import "./estructuraInforme.css";
 export type MarcaValidacion = "error" | "warning";
 
 type Props = {
+  /** Barra de acciones de la lámina activa (se monta bajo la búsqueda). */
+  acciones?: ReactNode;
   estructura: Estructura;
   posicionActiva: number | null;
   onSeleccionar: (posicion: number) => void;
@@ -26,7 +28,7 @@ type Props = {
   validacion: Record<string, MarcaValidacion>;
 };
 
-export function EstructuraInforme({ estructura, posicionActiva, onSeleccionar, validacion }: Props) {
+export function EstructuraInforme({ acciones, estructura, posicionActiva, onSeleccionar, validacion }: Props) {
   const consulta = useLaminasUi((s) => s.consulta);
   const setConsulta = useLaminasUi((s) => s.setConsulta);
   const cerrados = useLaminasUi((s) => s.cerrados);
@@ -99,6 +101,7 @@ export function EstructuraInforme({ estructura, posicionActiva, onSeleccionar, v
           />
         </label>
       </div>
+      {acciones}
       <nav ref={cuerpoRef} className="pulso-f6-estructura-cuerpo" aria-label="Láminas del informe" data-qa-scroll-owner="estructura">
         {estructura.laminas.length === 0 ? (
           <p className="pulso-f6-vacio-col">El informe todavía no tiene láminas. Agrégalas desde el Editor anterior.</p>

@@ -27,6 +27,12 @@ type LaminasUiStore = {
   /** Plegar la Estructura deja a la lámina el ancho de esa columna (la tira sigue navegando). */
   estructuraVisible: boolean;
   alternarEstructura: () => void;
+  /**
+   * «Insertar después de esta lámina» abre la biblioteca de láminas del editor, que agrega al final. Mientras la
+   * biblioteca está abierta, lo que se inserte se acomoda detrás de `despuesDe` (y en cadena, si se insertan varias).
+   */
+  insercion: { despuesDe: string; previos: string[]; vioPanel: boolean } | null;
+  setInsercion: (i: { despuesDe: string; previos: string[]; vioPanel: boolean } | null) => void;
   setZoom: (z: ZoomVisor) => void;
   alternarTira: () => void;
   registrarMiniatura: (slideId: string, png: string) => void;
@@ -48,6 +54,8 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
   zoom: "ajustar",
   tiraVisible: true,
   estructuraVisible: true,
+  insercion: null,
+  setInsercion: (insercion) => set({ insercion }),
   alternarEstructura: () => set((s) => ({ estructuraVisible: !s.estructuraVisible })),
   setZoom: (zoom) => set({ zoom }),
   alternarTira: () => set((s) => ({ tiraVisible: !s.tiraVisible })),

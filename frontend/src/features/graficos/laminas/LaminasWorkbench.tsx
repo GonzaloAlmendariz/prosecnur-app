@@ -2,7 +2,7 @@
 // Dirección: `/graficos?pestana=laminas&foco=l-07[:g2]&panel=inspector`. `foco` es la fuente de verdad de la lámina
 // seleccionada; se refleja en `usePlanStore.select` para que el Editor anterior abra en la misma lámina.
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../../../lib/SessionContext";
 import { conNivel } from "../../../lib/navegacion/direccion";
@@ -21,6 +21,11 @@ import { PanelAvisos } from "./PanelAvisos";
 import { agruparAvisos } from "./resumenInforme";
 import { construirEstructura, focoDeLamina, parsearFocoLamina } from "./modeloEstructura";
 import { useLaminasUi } from "./laminasStore";
+import { reconciliarSeleccion, vecinaAlEliminar } from "./seleccionLamina";
+import { AccionesLamina } from "./AccionesLamina";
+import { useGraficosLibraries } from "../GraficosLibrariesHost";
+import { PANEL_BIBLIOTECA_SLIDES } from "../panelesGraficos";
+import { toast } from "../../../components/toasterStore";
 import { usePreviewLamina } from "./usePreviewLamina";
 import "./laminasWorkbench.css";
 
@@ -44,16 +49,30 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const setParte = useLaminasUi((s) => s.setParte);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
   const estructuraVisible = useLaminasUi((s) => s.estructuraVisible);
+  const insercion = useLaminasUi((s) => s.insercion);
+  const setInsercion = useLaminasUi((s) => s.setInsercion);
+  const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
+  const moveSlide = usePlanStore((s) => s.moveSlide);
+  const moveSlideTo = usePlanStore((s) => s.moveSlideTo);
+  const removeSlide = usePlanStore((s) => s.removeSlide);
+  const undo = usePlanStore((s) => s.undo);
+  const { openSlidesLibrary } = useGraficosLibraries();
 
   const estructura = useMemo(() => construirEstructura(slides), [slides]);
   const direccion = useSeccion("procesamiento");
   const foco = useMemo(() => parsearFocoLamina(direccion.foco), [direccion.foco]);
   const total = estructura.laminas.length;
-  const posicionSeleccionada = useMemo(() => {
-    if (foco && foco.posicion <= total) return foco.posicion;
-    const porStore = estructura.laminas.find((l) => l.id === selectedSlideId);
-    return porStore?.posicion ?? (total > 0 ? 1 : null);
-  }, [foco, total, estructura, selectedSlideId]);
+  const ids = useMemo(() => slides.map((x) => x.id), [slides]);
+  // `foco` (URL) contra `selectedSlideId` (plan): ver seleccionLamina.ts. El foco visto la vez anterior dice si lo que
+  // cambió fue la URL (manda ella) o el plan (manda la lámina seleccionada y el foco la sigue).
+  const focoVisto = useRef<string | null | undefined>(undefined);
+  const reconciliacion = reconciliarSeleccion({
+    ids,
+    focoPos: foco?.posicion ?? null,
+    focoCambio: focoVisto.current !== direccion.foco,
+    selectedId: selectedSlideId,
+  });
+  const posicionSeleccionada = reconciliacion.posicion;
   const lamina = posicionSeleccionada ? estructura.laminas[posicionSeleccionada - 1] : null;
   const slide = lamina ? slides[lamina.posicion - 1] ?? null : null;
   const ranura = foco && foco.posicion === posicionSeleccionada ? foco.ranura : null;
@@ -62,16 +81,30 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     navigate({ pathname: location.pathname, search: conNivel(location.search, "foco", valor) }, { replace: true });
   }, [location.pathname, location.search, navigate]);
 
-  // La URL siempre dice qué lámina se ve: sin `foco` (o uno fuera de rango) se escribe el resuelto.
   useEffect(() => {
-    if (!posicionSeleccionada) return;
-    if (!foco || foco.posicion !== posicionSeleccionada) escribirFoco(focoDeLamina(posicionSeleccionada));
-  }, [foco, posicionSeleccionada, escribirFoco]);
+    focoVisto.current = direccion.foco;
+    if (reconciliacion.seleccionar) select(reconciliacion.seleccionar);
+    if (reconciliacion.escribirFoco && reconciliacion.posicion) escribirFoco(focoDeLamina(reconciliacion.posicion));
+  });
 
-  // El editor anterior abre en la misma lámina.
+  // Lo que la biblioteca inserta (al final del plan) se acomoda detrás de la lámina desde la que se pidió.
   useEffect(() => {
-    if (slide && slide.id !== selectedSlideId) select(slide.id);
-  }, [slide, selectedSlideId, select]);
+    if (!insercion) return;
+    const bibliotecaAbierta = direccion.panel === PANEL_BIBLIOTECA_SLIDES.id;
+    const nuevos = ids.filter((id) => !insercion.previos.includes(id));
+    if (nuevos.length) {
+      let despues = insercion.despuesDe;
+      for (const id of nuevos) {
+        const destino = usePlanStore.getState().plan.slides.findIndex((x) => x.id === despues) + 1;
+        if (destino > 0) moveSlideTo(id, destino);
+        despues = id;
+      }
+      setInsercion({ despuesDe: despues, previos: usePlanStore.getState().plan.slides.map((x) => x.id), vioPanel: insercion.vioPanel || bibliotecaAbierta });
+      return;
+    }
+    if (bibliotecaAbierta && !insercion.vioPanel) setInsercion({ ...insercion, vioPanel: true });
+    else if (!bibliotecaAbierta && insercion.vioPanel) setInsercion(null);
+  }, [insercion, ids, direccion.panel, moveSlideTo, setInsercion]);
 
   // Cada lámina empieza en su primera parte.
   useEffect(() => { setParte(1); }, [slide?.id, setParte]);
@@ -118,6 +151,27 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
       data-qa-surface="graficos/f6-laminas"
     >
       <EstructuraInforme
+        acciones={(
+          <AccionesLamina
+            posicion={lamina.posicion}
+            total={total}
+            onInsertar={() => {
+              setInsercion({ despuesDe: slide.id, previos: ids, vioPanel: false });
+              openSlidesLibrary();
+            }}
+            onDuplicar={() => duplicateSlide(slide.id)}
+            onMover={(dir) => moveSlide(slide.id, dir)}
+            onEliminar={() => {
+              const vecina = vecinaAlEliminar(ids, slide.id);
+              removeSlide(slide.id);
+              if (vecina) select(vecina);
+              toast.aviso(`Lámina ${lamina.posicion} eliminada`, {
+                detalle: lamina.titulo,
+                accion: { label: "Deshacer", onSelect: undo },
+              });
+            }}
+          />
+        )}
         estructura={estructura}
         posicionActiva={posicionSeleccionada}
         onSeleccionar={irA}
