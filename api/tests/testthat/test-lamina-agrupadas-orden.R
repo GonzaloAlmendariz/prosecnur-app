@@ -129,3 +129,68 @@ test_that("la cifra queda pegada a su categoría con categorías sin casos, con 
   expect_identical(unname(pares[c("Sí, siempre", "A veces", "Nunca", "Otros", "No sabe / no responde")]),
                    c(pct("1"), pct("2"), pct("3"), pct("5"), pct("99")))
 })
+
+# Residuales del recetario (`.CATEGORIAS_RESIDUALES`: «Otro…», «No sabe…», «Ninguna…», «Ninguno», «Prefiero no…») al final con
+# el preset de la casa, en el ggplot, la espec y la lámina nativa a la vez (graficos_espec_categorica.R:7-8). `otros_al_final`
+# sólo reconocía una lista exacta («Otros», «No sabe / no responde»…) y «Ninguno» se quedaba donde lo ponía el instrumento.
+.ao_pres_casa <- function() .build_presets(.enriquecer_presets(list(), NULL))
+.ao_lamina_casa <- function(cod, n, orden = NULL, ...) {
+  f <- list(df = data.frame(q = rep(names(n), n), stringsAsFactors = FALSE), inst = .ao_inst(list(q = cod), c(q = "Pregunta")))
+  ov <- if (is.null(orden)) list() else list(orden_barras = orden)
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = f$df, instrumento = f$inst, presets = .ao_pres_casa(), path_ppt = out, mensajes_progreso = FALSE,
+    plan = list(a = p_slide_1_grafico(p_barras_agrupadas("q", mostrar_ceros = FALSE, overrides = ov, ...), titulo = "Residuales")))))
+  .pptx_leer_parte(out, .pptx_slide_paths(out)[[1]])
+}
+.ao_graf_casa <- function(cats, n, orden = "instrumento", orientacion = "horizontal") {
+  a <- .ao_pres_casa()$barras_agrupadas$args
+  d <- data.frame(cat = cats, n = n, pct = n / sum(n), stringsAsFactors = FALSE)
+  args <- utils::modifyList(a[intersect(names(a), names(formals(graficar_barras_agrupadas)))],
+                            list(data = d, var_categoria = "cat", var_n = "n", cols_porcentaje = "pct", etiquetas_series = c(pct = "Total"),
+                                 orden_barras = orden, orientacion = orientacion, usar_canvas = FALSE))
+  suppressMessages(suppressWarnings(do.call(graficar_barras_agrupadas, args)))
+}
+
+test_that("con el preset de la casa «Ninguno» y «Ninguna de las anteriores» van al final en el ggplot, la espec y la lámina, con su cifra", {
+  # «Ninguno» en medio del instrumento.
+  cats <- c("Uno", "Ninguno", "Dos", "Tres"); n <- c(30, 10, 40, 20)
+  g <- .ao_graf_casa(cats, n)
+  expect_identical(.ao_lectura_gg(g, "horizontal"), c("Uno", "Dos", "Tres", "Ninguno"))
+  expect_identical(attr(g, "pulso_espec")$rotulos, c("Uno", "Dos", "Tres", "Ninguno"))
+  # «Ninguna de las anteriores» como la mayor, ordenado de mayor a menor: igual al final.
+  cats2 <- c("Uno", "Dos", "Ninguna de las anteriores", "Tres"); n2 <- c(30, 10, 45, 15)
+  g2 <- .ao_graf_casa(cats2, n2, orden = "mayor_menor")
+  expect_identical(.ao_lectura_gg(g2, "horizontal"), c("Uno", "Tres", "Dos", "Ninguna de las anteriores"))
+  expect_identical(attr(g2, "pulso_espec")$rotulos, c("Uno", "Tres", "Dos", "Ninguna de las anteriores"))
+  expect_identical(attr(g2, "pulso_espec")$cifras, c("30%", "15%", "10%", "45%"))
+  # Por la ruta real, con el orden del motor entre residuales: los del instrumento («Ninguno», «Otro…») y NS/NR al final.
+  cod <- c(`1` = "Siempre", `2` = "Ninguno", `3` = "Nunca", `4` = "Otro (especifique)", `99` = "No sabe / no responde")
+  nn <- c(`1` = 30, `2` = 25, `3` = 20, `4` = 15, `99` = 10)
+  x <- .ao_lamina_casa(cod, nn)
+  expect_identical(.pptx_lamina_estado(x), "nativa")
+  rot <- .ao_rotulos(x)
+  expect_identical(rot[1:2], c("Siempre", "Nunca"))
+  expect_true(all(grepl(.CATEGORIAS_RESIDUALES, rot[-(1:2)], ignore.case = TRUE)))
+  expect_identical(tail(rot, 1), "No sabe / no responde")
+  pares <- .ao_pares(x)
+  esperado <- setNames(paste0(round(100 * nn / sum(nn)), "%"), cod)
+  esperado <- esperado[names(esperado) %in% names(pares)]
+  expect_identical(pares[names(esperado)], esperado)
+  x2 <- .ao_lamina_casa(c(a = "Uno", b = "Dos", c = "Ninguna de las anteriores", d = "Tres"), c(a = 30, b = 10, c = 45, d = 15), orden = "mayor_menor")
+  expect_identical(.ao_rotulos(x2), c("Uno", "Tres", "Dos", "Ninguna de las anteriores"))
+  expect_identical(.ao_pares(x2)[["Ninguna de las anteriores"]], "45%")
+})
+
+test_that("contrato de la espec vertical: hoy no la consume nadie (la lámina va por la ruta anterior)", {
+  cod <- c(`1` = "Siempre", `2` = "A veces", `3` = "Nunca")
+  x <- .ao_lamina_casa(cod, c(`1` = 30, `2` = 25, `3` = 45))
+  expect_identical(.pptx_lamina_estado(x), "nativa")                                     # control: horizontal sí es nativa
+  f <- list(df = data.frame(q = rep(names(cod), c(30, 25, 45)), stringsAsFactors = FALSE), inst = .ao_inst(list(q = cod), c(q = "Pregunta")))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = f$df, instrumento = f$inst, presets = .ao_pres_casa(), path_ppt = out, mensajes_progreso = FALSE,
+    plan = list(a = p_slide_1_grafico(p_barras_agrupadas("q", overrides = list(orientacion = "vertical", usar_canvas = FALSE)), titulo = "Vertical")))))
+  expect_identical(.pptx_lamina_estado(.pptx_leer_parte(out, .pptx_slide_paths(out)[[1]])), "ruta_anterior")
+  # Si algún día se consume, debe leerse como el ggplot vertical: de izquierda a derecha.
+  g <- .ao_graf_casa(unname(cod), c(30, 25, 45), orientacion = "vertical")
+  expect_identical(attr(g, "pulso_espec")$rotulos, .ao_lectura_gg(g, "vertical"))
+})

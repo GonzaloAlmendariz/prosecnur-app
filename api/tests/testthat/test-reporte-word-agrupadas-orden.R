@@ -49,3 +49,37 @@ test_that("la dicotomía del Word pone a la izquierda la categoría que el ggplo
   }
   expect_match(.wo_lectura_gg(.wo_graf(c("Sí", "No"), c(124, 76), TRUE))[1], "^Sí")      # preset de la casa: Sí a la izquierda
 })
+
+test_that("con el preset de la casa el Word manda «Ninguno» y «Ninguna de las anteriores» al final, con su cifra", {
+  a <- .build_presets(.enriquecer_presets(list(), NULL))$barras_agrupadas$args
+  graf <- function(cats, n, orden) {
+    d <- data.frame(cat = cats, n = n, pct = n / sum(n), stringsAsFactors = FALSE)
+    args <- utils::modifyList(a[intersect(names(a), names(formals(graficar_barras_agrupadas)))],
+                              list(data = d, var_categoria = "cat", var_n = "n", cols_porcentaje = "pct", etiquetas_series = c(pct = "Total"),
+                                   orden_barras = orden, usar_canvas = FALSE))
+    suppressMessages(suppressWarnings(do.call(graficar_barras_agrupadas, args)))
+  }
+  w <- .wo_word_barras(graf(c("Uno", "Ninguno", "Dos", "Tres"), c(30, 10, 40, 20), "instrumento"))
+  expect_identical(names(w), c("Uno", "Dos", "Tres", "Ninguno"))
+  expect_identical(unname(w), c("30%", "40%", "20%", "10%"))
+  w2 <- .wo_word_barras(graf(c("Uno", "Dos", "Ninguna de las anteriores", "Tres"), c(30, 10, 45, 15), "mayor_menor"))
+  expect_identical(names(w2), c("Uno", "Tres", "Dos", "Ninguna de las anteriores"))
+  expect_identical(unname(w2), c("30%", "15%", "10%", "45%"))
+})
+
+test_that("contrato de la espec vertical en el Word: hoy va por el marco (no la consume el renderer de categóricas)", {
+  cod <- c(`1` = "Siempre", `2` = "A veces", `3` = "Nunca")
+  df <- data.frame(q = rep(names(cod), c(30, 25, 45)), stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = "q", type = "select_one lq", list_name = "lq", label = "Frecuencia", stringsAsFactors = FALSE),
+               choices = data.frame(list_name = "lq", name = names(cod), label = unname(cod), stringsAsFactors = FALSE),
+               orders_list = list(q = list(names = names(cod), labels = unname(cod))))
+  renderers <- character(0)
+  orig <- .word_grafico
+  testthat::local_mocked_bindings(.word_grafico = function(g, ...) { w <- orig(g, ...); renderers <<- c(renderers, attr(w, "renderer")); w })
+  out <- tempfile(fileext = ".docx")
+  suppressMessages(suppressWarnings(reporte_word_plan(data = df, instrumento = inst, path_docx = out, presets_ppt = .build_presets(.enriquecer_presets(list(), NULL)),
+    plan = list(a = p_slide_1_grafico(p_barras_agrupadas("q", overrides = list(orientacion = "vertical", usar_canvas = FALSE)), titulo = "Vertical")),
+    mensajes_progreso = FALSE)))
+  expect_true(file.exists(out))
+  expect_identical(unique(renderers), "marco")
+})
