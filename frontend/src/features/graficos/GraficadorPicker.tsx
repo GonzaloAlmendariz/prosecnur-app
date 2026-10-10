@@ -122,7 +122,8 @@ export default function GraficadorPicker({
     fallbackFocusRef,
   });
 
-  const inventory = registry?.graficadores ?? [];
+  // Lo que el registro saca del selector (`en_selector = FALSE`, p. ej. FODA) no se ofrece.
+  const inventory = (registry?.graficadores ?? []).filter((g) => g.en_selector !== false);
 
   const familyCounts = useMemo(() => {
     const counts = Object.fromEntries(
