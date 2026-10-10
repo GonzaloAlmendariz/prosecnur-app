@@ -126,9 +126,12 @@
     wlab <- min(tope, max(1.2, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
     # Alto con la tinta medida: la estimación por carácter partía en dos «Secretario(a) académico(a)», que en la
     # lámina 193 del recetario cabe en una línea, y mandaba la cuadrícula entera a la ruta anterior.
+    # Lo que debe caber en la fila es la tinta del rótulo (el cuadro menos sus 0.1 in de márgenes internos, que
+    # `.lam_barras_h` centra en la fila): la lámina 162 deja «Departamento de Ciencias Contables» en dos líneas de
+    # 11 pt dentro de una fila de 0.42 in. Medir el cuadro entero mandaba esa cuadrícula a la ruta anterior.
     altos <- vapply(espec$rotulos, function(r) .lam_alto_tinta(r, wlab, size), 0)
     return(list(tipo = "barras", y0 = y0, fila = fila, g = g, wlab = wlab, size = size,
-                cabe = length(espec$largos) >= 1L && fila >= 0.3 && all(altos <= fila + 0.02)))
+                cabe = length(espec$largos) >= 1L && fila >= 0.3 && all(altos - 0.1 <= fila - 0.02)))
   }
   if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 1L || .lam_escala_en_filas(espec)) return(list(tipo = "escala", cabe = FALSE))
   # Escala: el likert compacto (likert_panel). El recetario lo pone 0.45 in bajo la pregunta con público y, sin
