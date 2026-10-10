@@ -4,8 +4,10 @@
 #
 # «Sí, bórralos, porque en el recetario tampoco están ya»: `p_slide_2/3/4_graficos_poblacion` (el ícono del público
 # en medio de los gráficos) salen del selector y los planes que los usan se migran al tipo vigente equivalente. Es el
-# único punto de la migración: lo llama `.graficos_normalize_config()`, la costura por la que pasan el GET de la
-# config, el import, el share y la config efectiva del export. Idempotente: una lámina ya migrada no tiene tipo viejo.
+# único punto de la migración: lo llaman `.normalize_plan()` (el plan del body de /ppt y /word, el preflight del
+# consolidado) y `.graficos_normalize_config()` (el GET de la config, el import, el share y la config efectiva del
+# export); el GET además la guarda en la sesión (graficos_migrar_poblacion_sesion.R). Idempotente: una lámina ya
+# migrada no tiene tipo viejo.
 #
 # Cada gráfico pasa a la ranura nueva de la MISMA posición (el orden de `.slide_slots()` de cada tipo, sin el ícono);
 # título, base, pie, etiqueta, meta y cualquier otra clave del payload se conservan, y la meta gana `base_por_grafico`
@@ -34,9 +36,10 @@
 
 #' Migra una lámina de población antigua; cualquier otra vuelve intacta
 #'
+#' @param posicion Número de la lámina en el plan (el aviso la nombra así: los ids son internos).
 #' @return `list(slide, migrada, aviso)`.
 #' @keywords internal
-.graficos_migrar_slide_poblacion <- function(s) {
+.graficos_migrar_slide_poblacion <- function(s, posicion = NA_integer_) {
   tipo <- if (is.list(s)) s$tipo else NULL
   if (!is.character(tipo) || length(tipo) != 1L || !tipo %in% names(.GRAFICOS_POBLACION_ANTIGUA)) {
     return(list(slide = s, migrada = FALSE, aviso = NULL))
@@ -57,27 +60,70 @@
   nuevo$meta <- utils::modifyList(if (is.list(payload$meta)) payload$meta else list(), list(base_por_grafico = TRUE))
   s$tipo <- destino
   s$payload <- nuevo
-  titulo <- payload$titulo
-  rotulo <- if (is.character(titulo) && length(titulo) && !is.na(titulo[1]) && nzchar(trimws(titulo[1]))) sprintf("«%s»", trimws(titulo[1])) else "sin título"
-  aviso <- sprintf(paste("Lámina %s (%s): «%s» ya no está en el recetario y pasa a «%s» con sus %d gráfico(s), título y base;",
-                         "el ícono del centro sale."),
-                   rotulo, as.character(s$id %||% "?")[1], .SLIDES_META[[tipo]]$titulo_humano, .SLIDES_META[[destino]]$titulo_humano, graficos)
-  list(slide = s, migrada = TRUE, aviso = aviso)
+  list(slide = s, migrada = TRUE, titulo = .graficos_poblacion_rotulo(payload$titulo),
+       aviso = sprintf(paste("La lámina %s, %s, era «%s», que ya no está en el recetario: pasa a «%s» con %s, su título y la",
+                             "base de cada gráfico. El ícono del centro se quita."),
+                       if (is.na(posicion)) "?" else as.character(posicion), .graficos_poblacion_rotulo(payload$titulo),
+                       .SLIDES_META[[tipo]]$titulo_humano, .SLIDES_META[[destino]]$titulo_humano,
+                       if (graficos == 1L) "su gráfico" else sprintf("sus %d gráficos", graficos)))
+}
+
+#' El título de una lámina como lo lee el usuario: «Perfil del docente», o «sin título»
+#' @keywords internal
+.graficos_poblacion_rotulo <- function(titulo) {
+  if (is.character(titulo) && length(titulo) && !is.na(titulo[1]) && nzchar(trimws(titulo[1]))) sprintf("«%s»", trimws(titulo[1])) else "sin título"
 }
 
 #' Migra las láminas de población antigua de un plan al tipo vigente
 #'
+#' No escribe al stderr: el aviso viaja con el plan (`.graficos_avisos_migracion()`) y quien tiene un canal hacia el
+#' usuario lo entrega —el GET de la config (graficos_migrar_poblacion_sesion.R) y el resultado de los jobs /ppt y /word
+#' (`.graficos_avisos_job()`)—. Antes iba al stderr del servidor, seis veces por normalización, y nadie lo leía.
+#'
 #' @param plan Plan de la config (`list(slides = ...)`).
-#' @param avisar Si `TRUE`, un `[PULSO-AVISO]` por lámina migrada.
+#' @param avisar Si `TRUE`, el plan devuelto lleva sus avisos en `attr(, "avisos_migracion")`; si `FALSE`, sin ese
+#'   atributo (el plan normalizado se hashea en el preflight del consolidado). Un plan ya vigente nunca lo lleva.
 #' @return El plan, con las láminas viejas migradas y el resto intacto.
 #' @keywords internal
 .graficos_migrar_poblacion_antigua <- function(plan, avisar = TRUE) {
-  if (!is.list(plan) || !is.list(plan$slides) || !length(plan$slides)) return(plan)
+  if (!is.list(plan)) return(plan)
+  attr(plan, "avisos_migracion") <- NULL
+  if (!is.list(plan$slides) || !length(plan$slides)) return(plan)
+  avisos <- character(); titulos <- character()
   for (i in seq_along(plan$slides)) {
-    r <- .graficos_migrar_slide_poblacion(plan$slides[[i]])
+    r <- .graficos_migrar_slide_poblacion(plan$slides[[i]], posicion = i)
     if (!isTRUE(r$migrada)) next
     plan$slides[[i]] <- r$slide
-    if (isTRUE(avisar)) .pulso_aviso(r$aviso)
+    avisos <- c(avisos, r$aviso); titulos <- c(titulos, r$titulo)
   }
+  if (isTRUE(avisar) && length(avisos)) attr(plan, "avisos_migracion") <- .graficos_avisos_migracion_resumen(avisos, titulos)
   plan
+}
+
+#' Los avisos de migración: uno por lámina si son dos o menos; si son más, una sola línea con sus títulos
+#'
+#' Un mazo con seis poblaciones antiguas llenaba la lista de avisos del job (tope de ocho) y sacaba de ella a los
+#' demás, que es lo que ya pasó con los de líneas de lámina (verificador de K12b).
+#' @keywords internal
+.graficos_avisos_migracion_resumen <- function(avisos, titulos) {
+  if (length(avisos) <= 2L) return(avisos)
+  sprintf(paste("%d láminas usaban un tipo de población que ya no está en el recetario y pasan a su tipo vigente con sus",
+                "gráficos, su título y la base de cada gráfico; el ícono del centro se quita: %s."),
+          length(avisos), paste(titulos, collapse = ", "))
+}
+
+#' Los avisos de migración que trae un plan (vacío si no migró nada)
+#' @keywords internal
+.graficos_avisos_migracion <- function(plan) {
+  av <- if (is.list(plan)) attr(plan, "avisos_migracion", exact = TRUE) else NULL
+  if (is.character(av)) av else character()
+}
+
+#' Los avisos de un job de Gráficos: primero los de la migración del plan que recibió, luego los del worker
+#'
+#' La migración ocurre en el proceso principal (el plan del body pasa por `.normalize_plan(avisar = TRUE)`), no en el
+#' worker: su aviso no está en el `.err` del job y se suma aquí, con el mismo orden y tope que los demás.
+#' @keywords internal
+.graficos_avisos_job <- function(sid, job_id, plan = NULL) {
+  .pulso_avisos_ordenar(unique(c(.graficos_avisos_migracion(plan), .pulso_avisos_de_job(sid, job_id, maximo = Inf))))
 }

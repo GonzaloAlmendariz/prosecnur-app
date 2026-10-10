@@ -56,17 +56,21 @@ test_that("la migración lleva cada población antigua a su tipo vigente, gráfi
   expect_identical(s$`s-p2`$id, "s-p2")
   # El ícono del centro es justo lo que sale: el tipo vigente no tiene ranura de ícono.
   expect_null(s$`s-p4`$payload$icono)
-  # Un aviso por lámina migrada, que nombra la lámina y los dos tipos.
-  expect_length(r$avisos, 3L)
-  expect_match(r$avisos[3], "PERFIL DEL DOCENTE", fixed = TRUE)
-  expect_match(r$avisos[3], "Cuatro gráficos", fixed = TRUE)
+  # Los avisos viajan con el plan, no al stderr (test-graficos-migrar-poblacion-avisos.R): con tres láminas migradas,
+  # una línea que nombra las tres.
+  expect_length(r$avisos, 0L)
+  av <- .graficos_avisos_migracion(r$valor)
+  expect_length(av, 1L)
+  expect_match(av, "«PERFIL DEL DOCENTE»", fixed = TRUE)
+  expect_match(av, "^3 láminas")
 })
 
 test_that("la migración es idempotente: la segunda pasada no cambia nada ni avisa", {
-  una <- suppressMessages(.graficos_migrar_poblacion_antigua(.mp_plan()))
+  una <- .graficos_migrar_poblacion_antigua(.mp_plan(), avisar = FALSE)
   r <- .mp_avisos(.graficos_migrar_poblacion_antigua(una))
   expect_identical(r$valor, una)
   expect_length(r$avisos, 0L)
+  expect_length(.graficos_avisos_migracion(r$valor), 0L)
 })
 
 test_that("dos gráficos con texto declarado van a la de narrativa para no perder el texto", {
