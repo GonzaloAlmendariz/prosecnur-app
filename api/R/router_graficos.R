@@ -344,8 +344,8 @@
     # renderizar el resto sí. La lámina sale sin ícono y el aviso dice cuál
     # falta, que es exactamente lo que el analista necesita para reponerlo.
     .pulso_aviso(sprintf(
-      paste0("El icono '%s' no esta disponible y esa lamina se genero sin el. ",
-             "Vuelve a subirlo en Configuracion global > Iconos si lo necesitas."),
+      paste0("El ícono '%s' no está disponible y esa lámina se generó sin él. ",
+             "Vuelve a subirlo en Configuración global > Íconos si lo necesitas."),
       ref
     ))
     return(NULL)
@@ -375,8 +375,8 @@
     # ícono» mientras el motor abortaba justo en ese caso: los dos no podían
     # tener razón. Ahora la UI la tiene.
     .pulso_aviso(sprintf(
-      paste0("La lamina '%s' necesita un icono y no habia ninguno disponible: ",
-             "se uso el integrado. Elige un PNG en Configuracion global > Iconos."),
+      paste0("La lámina '%s' necesita un ícono y no había ninguno disponible: ",
+             "se usó el integrado. Elige un PNG en Configuración global > Íconos."),
       tipo
     ))
     payload$icono <- tryCatch(

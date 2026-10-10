@@ -35,7 +35,7 @@ test_that("el silencio es por aritmética, no por haber callado los avisos", {
   # arriba pasaría igual con los avisos apagados de raíz.
   expect_message(
     graficar(c("p1", "p2", "p3"), barra_extra_preset = "top2box"),
-    "no hay categorias declaradas"
+    "no hay categorías declaradas"
   )
 })
 

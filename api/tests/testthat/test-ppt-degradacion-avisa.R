@@ -68,7 +68,7 @@ test_that("el caption que no se pudo calcular avisa antes de salir sin él", {
     )
   )
   expect_length(avisos, 1L)
-  expect_true(grepl("sin caption", avisos[[1]], fixed = TRUE))
+  expect_true(grepl("sin rótulo de base", avisos[[1]], fixed = TRUE))
 })
 
 test_that("un render que sale bien no inventa avisos", {

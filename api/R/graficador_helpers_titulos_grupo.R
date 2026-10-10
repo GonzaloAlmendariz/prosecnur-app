@@ -305,9 +305,9 @@
   # bloque prueba sus candidatos. Habra que memoizar tambien la cuenta de lineas
   # por `(texto, pt)`.
   .pulso_aviso(sprintf(
-    paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
-           "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
-           "Configuracion global > Estilo > Multi-apiladas —aplica a TODAS las ",
+    paste0("Enunciado recortado a %d línea(s): «%s». El bloque tiene %d fila(s) ",
+           "y el texto necesita %d líneas. Ensancha «Columna de grupo» en ",
+           "Configuración global > Estilo > Multi-apiladas —aplica a TODAS las ",
            "multi-apiladas— o acorta el enunciado."),
     cupo, entero, n_filas, length(strsplit(titulo, "\n", fixed = TRUE)[[1]])
   ))

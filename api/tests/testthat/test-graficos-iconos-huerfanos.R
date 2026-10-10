@@ -32,7 +32,7 @@ test_that("un icono que no esta en disco degrada en vez de matar el export", {
   res <- NULL
   avisos <- .avisos_de(res <- .graficos_rebuild_icon("id-que-no-existe", icon_registry = list()))
   expect_null(res)
-  expect_true(any(grepl("no esta disponible", avisos)))
+  expect_true(any(grepl("no está disponible", avisos)))
 })
 
 test_that("el aviso nombra el icono que falta, para poder reponerlo", {
@@ -57,7 +57,7 @@ test_that("una lamina que EXIGE icono cae al integrado y no aborta", {
       list(icono = NULL), fn, "p_slide_objetivo_icono", icon_registry = list()
     )
   )
-  expect_true(any(grepl("se uso el integrado", avisos)))
+  expect_true(any(grepl("se usó el integrado", avisos)))
   expect_false(is.null(payload$icono))
 })
 
@@ -107,7 +107,7 @@ test_that("al abrir, el catalogo pierde los iconos sin PNG y conserva los buenos
   s <- .iconos_state(bueno, roto)
   out <- NULL
   avisos <- .avisos_de(out <- .pulso_podar_iconos_huerfanos(s))
-  expect_true(any(grepl("no traian su PNG", avisos)))
+  expect_true(any(grepl("no traían su PNG", avisos)))
 
   ids <- vapply(out$graficos_config$iconos, function(x) x$id, character(1))
   expect_equal(ids, "i-ok")

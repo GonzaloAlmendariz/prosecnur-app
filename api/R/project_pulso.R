@@ -2348,9 +2348,9 @@
 
   if (podados > 0L) {
     .pulso_aviso(sprintf(
-      paste0("%d icono(s) del proyecto no traian su PNG y se retiraron del catalogo. ",
-             "Las laminas que los usaban se generan sin icono; vuelve a subirlos ",
-             "en Configuracion global > Iconos."),
+      paste0("%d ícono(s) del proyecto no traían su PNG y se retiraron del catálogo. ",
+             "Las láminas que los usaban se generan sin ícono; vuelve a subirlos ",
+             "en Configuración global > Íconos."),
       podados
     ))
   }
