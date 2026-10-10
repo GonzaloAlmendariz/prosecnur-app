@@ -86,9 +86,11 @@
 # última fila, que queda 0.06 in bajo la barra (`.lam_bloque_escala`), así que aquí van 0.27.
 .LAM_MULTILISTA_GAP <- 0.27
 # Del título del bloque a su primera fila: con columna Top Two Box su rótulo cabe en medio (p144: título 1.60,
-# rótulo 1.95, barra 2.53, es decir 0.93 del título a la barra; aquí 0.317 + 0.41 + 0.18 = 0.91); sin ella, sólo
-# el aire del texto.
-.LAM_MULTILISTA_AIRE_TTB <- 0.41
+# rótulo 1.95, barra 2.53, con una cifra chica encima: 0.93 del título a la barra). Aquí, con cifras chicas,
+# 0.317 + 0.35 + 0.24 = 0.907; sin ellas, 0.317 + 0.35 + 0.18 = 0.847. El rótulo Top Two Box lo ubica
+# `.lam_bloque_escala` 0.45 sobre la franja y queda 0.08 más arriba que en la p144. Sin la columna, sólo el aire
+# del texto.
+.LAM_MULTILISTA_AIRE_TTB <- 0.35
 .LAM_MULTILISTA_AIRE <- 0.1
 # Alto de la leyenda bajo un bloque (el cuadro baja 0.07 y el texto mide 0.3, más el aire hasta el bloque que sigue).
 .LAM_MULTILISTA_LEYENDA <- 0.5
@@ -122,20 +124,37 @@
     (if (isTRUE(compartida)) 0 else .LAM_MULTILISTA_LEYENDA)
 }
 
-#' Alto de las filas de un bloque, con el aire de sus cifras chicas
-#'
-#' Si una cifra no cabe en su segmento sube con una guía y la fila gana aire (regla `cifras_chicas` del estándar).
-#' Como en la escala simple, ese aire no cuenta para partir —sólo se da si cabe—, pero `.lam_bloque_escala` lo
-#' mide contra su franja, así que la franja tiene que traerlo: sin él la barra adelgazaba y el bloque salía más
-#' delgado que su vecino.
+#' ¿Alguna barra del bloque tiene una cifra que no cabe en su segmento (sube con guía)?
 #' @keywords internal
-.lam_multilista_alto_filas <- function(it, nb) {
+.lam_multilista_peq <- function(it) {
   L <- .std_geom("likert")
-  wp <- .lam_escala_ancho_prem(it$premisas); geo <- .lam_escala_geo(it$premisas, wp, nb)
   WB <- if (!is.null(it$espec$box$unidades)) L$ancho_barra else .std_geom("ancho") - .std_geom("margen_der") - L$x_barra - 0.3
-  peq <- any(vapply(it$premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(it$espec, fl$i), WB), TRUE)), TRUE))
-  filas <- sum(vapply(it$premisas, function(p) length(p$filas), 0))
-  .lam_escala_alto(it$premisas, nb) + (if (peq) filas * max(0, 0.34 - (geo$fila - geo$g)) else 0)
+  any(vapply(it$premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(it$espec, fl$i), WB), TRUE)), TRUE))
+}
+
+#' Grosor y aire de las filas: una sola decisión para toda la lámina
+#'
+#' La regla de cifras chicas del estándar (`.lam_bloque_escala`: la fila gana aire si cabe; si no, la barra cede lo
+#' justo para que la cifra suba con su guía) se decidía bloque a bloque, y en una misma lámina salían barras de 0.32 y
+#' de 0.44 in (verificador de 3409b0aa8). Aquí se decide una vez con el bloque más exigente —basta uno con cifras
+#' chicas— y vale para todos: mismo grosor, mismo paso de fila.
+#' @return Lista con `natural` (alto de las filas de cada bloque, sin estirar), `aire0` (aire por fila sin estirar,
+#'   0 si no cabe) y la función `decidir(f)` que da `aire` y `grosor` para el factor de estiramiento `f`.
+#' @keywords internal
+.lam_multilista_grosor <- function(items, nb, disp, fijo) {
+  g0 <- .std_grosor(nb, "escala_apilada"); fila0 <- g0 + 0.24
+  peq <- any(vapply(items, .lam_multilista_peq, TRUE))
+  sin_aire <- vapply(items, function(it) .lam_escala_alto(it$premisas, nb), 0)
+  filas <- vapply(items, function(it) sum(vapply(it$premisas, function(p) length(p$filas), 0)), 0)
+  aire0 <- if (peq) max(0, 0.34 - (fila0 - g0)) else 0
+  con_aire <- sin_aire + filas * aire0
+  if (aire0 > 0 && fijo + sum(con_aire) > disp) aire0 <- 0   # sólo si cabe, como en la escala simple
+  list(natural = if (aire0 > 0) con_aire else sin_aire, aire0 = aire0,
+       decidir = function(f) {
+         aire <- if (aire0 > 0) max(0, 0.34 - (fila0 * f - g0)) else 0
+         fila <- fila0 * f + aire
+         list(aire = aire, grosor = if (peq && fila - g0 < 0.36) max(0.24, fila - 0.36) else g0)
+       })
 }
 
 .lam_multilista_filas <- function(items) sum(vapply(items, function(it) sum(vapply(it$premisas, function(p) length(p$filas), 0)), 0))
@@ -220,12 +239,13 @@
   nb <- .lam_multilista_filas(items)
   cromo <- vapply(items, .lam_multilista_cromo, 0, compartida = compartida)
   fijo <- sum(cromo) + .LAM_MULTILISTA_GAP * (length(items) - 1L)
-  natural <- vapply(items, .lam_multilista_alto_filas, 0, nb = nb)
-  if (fijo + sum(natural) > disp) natural <- vapply(items, function(it) .lam_escala_alto(it$premisas, nb), 0)
+  dec <- .lam_multilista_grosor(items, nb, disp, fijo)
+  natural <- dec$natural
   # Pocas filas: se reparte el alto con el mismo factor en todos los bloques, con el tope de la escala simple
   # (`.lam_bloque_escala`: hasta el doble, al 93 % de lo disponible). El grosor no cambia.
   total <- fijo + sum(natural)
   f <- if (total < 0.88 * disp && sum(natural) > 0) max(1, min(2.0, 0.93 * (disp - fijo) / sum(natural))) else 1
+  gr <- dec$decidir(f)
   w <- .lam_multilista_ancho(); y <- g_("zona_datos_y0")
   for (k in seq_along(items)) {
     it <- items[[k]]
@@ -241,7 +261,7 @@
     }
     y <- y + (if (!is.null(it$espec$box$unidades)) .LAM_MULTILISTA_AIRE_TTB else .LAM_MULTILISTA_AIRE)
     fin <- .lam_bloque_escala(lz, it$espec, it$premisas, solo = FALSE, y0 = y, y1 = y + natural[k] * f + 1e-6,
-                              leyenda = !compartida, estirar = f, nb = nb)
+                              leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire, grosor = gr$grosor)
     y <- fin + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
   }
   if (compartida) {
