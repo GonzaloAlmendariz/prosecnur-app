@@ -33,8 +33,9 @@ documento Word completo.
    gris de 10 pt y título coral de 24 pt sobre la barra navy; cifras «31%» sin espacio, en azul y en negrita dentro de la
    barra; la cifra chica sube con guía y las contiguas se escalonan (lámina 15); premisas y actores en azul con su «n
    respuestas» en gris; columna «Top Two Box» verde con «x de y»; la categoría mayor en azul y las demás en el tono de
-   apoyo; SIN INF gris al final; coral sólo en títulos y en el filete de la narrativa. En Word las cifras llevan espacio
-   («31 %») y el rótulo «Gráfico N.» va en negrita en una línea, como dice la propuesta Word.
+   apoyo; SIN INF gris al final; coral sólo en títulos y en el filete de la narrativa. En Word las cifras también van
+   sin espacio («35%»); el rótulo es «Gráfico N» en negrita y, en la línea siguiente, el título en cursiva; la base y la
+   fuente van centradas bajo la figura, como están dibujadas en la propuesta Word (página 9).
 5. **Honesto con el tiempo.** La vista previa tarda 4–7 s por lámina: hay estados «regenerando» y «desactualizada», y
    el Word se muestra como «última versión exportada», no en vivo.
 6. **La estructura es un documento.** Capítulo → subcapítulo → lámina, con separadores, numeración automática y el
