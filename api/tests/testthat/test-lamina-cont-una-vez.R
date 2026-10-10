@@ -34,3 +34,12 @@ test_that("la primera pieza partida lleva «(cont.)» sólo desde la segunda par
   o <- .lam_laminas_escala(doc, .lcu_bateria(11), "BIENESTAR UNIVERSITARIO", base = "Base: 51")
   expect_identical(.lcu_titulos(o$doc), c("BIENESTAR UNIVERSITARIO", "BIENESTAR UNIVERSITARIO (cont.)"))
 })
+
+test_that("una multilista ya titulada «(cont.)» que se vuelve a partir no repite «(cont.)»", {
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  ml <- list(bloques = list(list(espec = .lcu_bateria(11), titulo = "Tutoría"), list(espec = .lcu_bateria(12), titulo = "Biblioteca")))
+  o <- .lam_laminas_multilista(doc, ml, "SERVICIOS (cont.)", base = "Base: 51")
+  t <- .lcu_titulos(o$doc)
+  expect_gt(length(t), 1L)
+  expect_identical(unique(t), "SERVICIOS (cont.)")
+})
