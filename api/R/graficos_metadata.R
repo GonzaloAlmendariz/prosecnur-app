@@ -1241,7 +1241,7 @@
       list(name = "top2box",       label = "Mostrar Top 2",  tipo_input = "bool",          grupo = "filtro",
            descripcion = "Combina las dos mejores categorías (ej. 'Muy de acuerdo' + 'De acuerdo') en una barra extra."),
       list(name = "top2box_labels",label = "Etiquetas Top 2",tipo_input = "codigos_list",  grupo = "filtro",
-           descripcion = "Qué etiquetas cuentan como Top 2. Si está vacío, se toman las dos últimas de la escala."),
+           descripcion = "Las dos categorías de la escala que suman el Top Two Box. Sin ellas, el gráfico omite la columna y lo avisa: no se deducen del orden."),
       list(name = "wrap_y",        label = "Ancho etiquetas Y", tipo_input = "number",    grupo = "avanzado",
            descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y. Recomendado: 30-80.")
     ), .args_graf_comunes())
