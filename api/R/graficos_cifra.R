@@ -32,6 +32,7 @@
 .cifra_desde_datos <- function(data, var, modo = c("porcentaje", "n", "mediana", "media"), categoria = NULL,
                                instrumento = NULL, rotulo, detalle = NULL, unidad = NULL, decimales = NULL, icono = NULL) {
   modo <- match.arg(modo)
+  valor_word <- NULL
   if (!is.data.frame(data) || !var %in% names(data)) .plan_spec_abort(sprintf("La cifra pide «%s», que no está en la base.", var))
   x <- data[[var]]
   if (inherits(x, "haven_labelled")) x <- as.vector(x)
@@ -64,13 +65,19 @@
       if (!any(is.finite(num))) .plan_spec_abort(sprintf("«%s» no es numérica: no tiene %s.", var, modo))
       ok <- is.finite(num); num <- num[ok]; wv <- wv[ok]
       v <- if (modo == "media") sum(num * wv) / sum(wv) else .cifra_mediana_ponderada(num, wv)
-      # La mediana se escribe como la del resto del motor (`.cifra_mediana`: un decimal sólo si no es entera, sin
-      # truncar) para que la cifra y el histograma de la misma pregunta digan lo mismo (verificador de F6.0b).
-      txt_v <- if (!is.null(decimales)) .pulso_fmt_half_up(v, decimales) else if (modo == "mediana") .cifra_mediana(v, enteros = FALSE) else .pulso_fmt_half_up(v, 1L)
-      trimws(paste(txt_v, unidad %||% ""))
+      # Cada formato escribe la mediana como su histograma (recetario: «cada formato el suyo»): el PPT trunca si los
+      # datos son enteros (`.cifra_mediana`, como graficador_histograma_recetario.R) y el Word no (`valor_word`), para
+      # que la cifra y el histograma de la misma pregunta digan lo mismo en cada entregable (verificador de F6.0b).
+      if (modo == "mediana" && is.null(decimales)) {
+        valor_word <- trimws(paste(.cifra_mediana(v, enteros = FALSE), unidad %||% ""))
+        trimws(paste(.cifra_mediana(v, enteros = .datos_enteros(num)), unidad %||% ""))
+      } else {
+        txt_v <- if (!is.null(decimales)) .pulso_fmt_half_up(v, decimales) else .pulso_fmt_half_up(v, 1L)
+        trimws(paste(txt_v, unidad %||% ""))
+      }
     })
   if (is.null(detalle) && modo != "n") detalle <- if (isTRUE(pesos$ponderado)) "Con el peso del estudio" else sprintf("Base: %s respuestas", format(n, big.mark = ","))
-  list(valor = valor, rotulo = rotulo, detalle = detalle %||% "", icono = icono %||% "", base = n)
+  list(valor = valor, valor_word = valor_word %||% valor, rotulo = rotulo, detalle = detalle %||% "", icono = icono %||% "", base = n)
 }
 
 #' Cifra destacada calculada desde una pregunta (elemento de plan para las ranuras de cifra)
@@ -89,12 +96,13 @@
 #' @param filtros Filtros nombrados, como en los demás gráficos.
 #' @param overrides,base Como en los demás elementos del plan (ajustes por gráfico y base declarada).
 #' @export
-p_cifra <- function(var, modo = c("porcentaje", "n", "mediana", "media"), categoria = NULL, rotulo, detalle = NULL,
+p_cifra <- function(var, modo = c("porcentaje", "n", "mediana", "media"), categoria = NULL, rotulo = NULL, detalle = NULL,
                     unidad = NULL, decimales = NULL, icono = NULL, filtros = list(), overrides = list(), base = list()) {
   modo <- match.arg(modo)
   var <- .puntos_comparativos_ref(var, "var")
+  # Sin rótulo la cifra no queda en blanco: al renderizar se arma uno desde la pregunta y se avisa (verificador de F6.0b:
+  # el editor permitía dejarlo vacío y la lámina salía en blanco sin aviso).
   rotulo <- .ppt_norm_text1(rotulo, blank = NULL)
-  if (is.null(rotulo)) .plan_spec_abort("p_cifra(): `rotulo` dice qué es la cifra; no puede ir vacío.")
   if (identical(modo, "porcentaje") && (is.null(categoria) || !nzchar(as.character(categoria)[1]))) {
     .plan_spec_abort("p_cifra(): para un porcentaje indica `categoria`.")
   }
@@ -104,6 +112,21 @@ p_cifra <- function(var, modo = c("porcentaje", "n", "mediana", "media"), catego
              overrides = overrides, base = base)
   class(el) <- c("ppt_element", "list")
   el
+}
+
+#' Rótulo por defecto de una cifra sin rótulo: lo arma desde la etiqueta de la pregunta (o de la categoría)
+#' @keywords internal
+.cifra_rotulo_auto <- function(var, modo, categoria = NULL, inst = NULL) {
+  etiqueta <- tryCatch({
+    s <- inst$survey; l <- s$label[match(var, s$name)]
+    if (length(l) && !is.na(l) && nzchar(l)) as.character(l) else var
+  }, error = function(e) var)
+  etq_cat <- if (!is.null(categoria) && !is.null(inst)) {
+    m <- tryCatch(.explorar_map_choices(var, inst), error = function(e) NULL)
+    if (length(m) && categoria %in% names(m)) unname(m[[categoria]]) else categoria
+  } else categoria
+  switch(modo, n = "respuestas", mediana = paste("mediana:", etiqueta), media = paste("media:", etiqueta),
+         porcentaje = sprintf("respondió «%s»", etq_cat %||% ""))
 }
 
 #' Base y variable de una referencia «base$variable» entre las fuentes del render
@@ -123,7 +146,9 @@ p_cifra <- function(var, modo = c("porcentaje", "n", "mediana", "media"), catego
   if (!length(data_sources)) stop("cifra: el render no expone las fuentes del estudio.", call. = FALSE)
   f <- .cifra_fuente(el$var, data_sources, inst_sources)
   d <- .apply_named_filters(f$data, filters = el$filtros %||% list(), arg_name = "filtros", mode = "strict")
-  it <- .cifra_desde_datos(d, f$var, el$modo, categoria = el$categoria, instrumento = f$inst, rotulo = el$rotulo,
+  rotulo <- el$rotulo %||% .cifra_rotulo_auto(f$var, el$modo, el$categoria, f$inst)
+  if (is.null(el$rotulo)) .pulso_aviso(sprintf("La cifra de «%s» no tiene rótulo: se usó «%s». Escríbelo en el editor para que diga qué es.", f$var, rotulo))
+  it <- .cifra_desde_datos(d, f$var, el$modo, categoria = el$categoria, instrumento = f$inst, rotulo = rotulo,
                            detalle = el$detalle, unidad = el$unidad, decimales = el$decimales, icono = el$icono)
   graficar_cifra(it)
 }

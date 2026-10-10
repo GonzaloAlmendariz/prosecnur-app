@@ -153,7 +153,7 @@
       while (j < length(render_meta) && identical(render_meta[[j + 1L]]$kind %||% "chart", "chart") &&
              !is.null(attr(render_meta[[j + 1L]]$plot_word, "pulso_cifra"))) j <- j + 1L
       items <- lapply(render_meta[i:j], function(x) attr(x$plot_word, "pulso_cifra"))
-      doc <- .word_franja(doc, vapply(items, `[[`, "", "valor"), vapply(items, `[[`, "", "rotulo"))
+      doc <- .word_franja(doc, vapply(items, function(it) it$valor_word %||% it$valor, ""), vapply(items, `[[`, "", "rotulo"))
       saltar <- c(saltar, seq.int(i, j)); next
     }
     # Un dibujo sin título ni espec (la lámina de objetivo con íconos del PPT) no es una figura del informe Word.

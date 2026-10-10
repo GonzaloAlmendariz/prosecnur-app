@@ -46,6 +46,10 @@ test_that("p_cifra es un elemento de plan que entra en las ranuras de cifra de l
   el <- p_cifra("titulo", "porcentaje", categoria = "1", rotulo = "de los egresados tiene el título", icono = "graduation-cap")
   expect_s3_class(el, "ppt_element"); expect_identical(el$.element_type, "cifra")
   expect_error(p_cifra("titulo", "porcentaje", rotulo = "x"), "indica `categoria`")
+  sin <- p_cifra("titulo", "n")                                                   # sin rótulo: no es un error ni una lámina en blanco
+  data_sources <- .base; instrument_sources <- .inst
+  expect_message(p0 <- .render_cifra(sin), "no tiene rótulo")
+  expect_identical(attr(p0, "pulso_cifra")$rotulo, "respuestas")
   data_sources <- .base; instrument_sources <- .inst
   p <- .render_cifra(el)
   expect_s3_class(p, "ggplot")
@@ -78,8 +82,10 @@ test_that("la lámina 22 con cifras sale nativa: banda de cifras con sus valores
   expect_match(x, 'sz="4400"', fixed = TRUE)                                  # tres cifras: 44 pt, como la 171 del recetario
 })
 
-test_that("la mediana es la misma que muestra el resto del informe (stats::median), también con n par", {
-  expect_identical(.cifra_desde_datos(data.frame(edad = c(22, 23, 24, 25, 23, 24)), "edad", "mediana", rotulo = "x")$valor, "23.5")
+test_that("la mediana es la de cada formato: el PPT trunca datos enteros como su histograma y el Word no", {
+  c1 <- .cifra_desde_datos(data.frame(edad = c(22, 23, 24, 25, 23, 24)), "edad", "mediana", rotulo = "x")
+  expect_identical(c1$valor, "23"); expect_identical(c1$valor_word, "23.5")
+  expect_identical(.cifra_desde_datos(data.frame(edad = c(22.5, 23, 24, 25, 23, 24)), "edad", "mediana", rotulo = "x")$valor, "23.5")
   expect_equal(.cifra_mediana_ponderada(c(22, 23, 24, 25, 23, 24), rep(2, 6)), stats::median(c(22, 23, 24, 25, 23, 24)))
 })
 
