@@ -180,12 +180,42 @@ y comparación con la captura homóloga de `tmp/f6-diseno/capturas/`. Verde por 
 | 5.9 | Avisos del plan completo | Opcional: `POST /api/graficos/plan/avisos` |
 | 5.10 | Visor Word | Hecho (`/word/visor`, `/word` con `opciones_documento`) |
 
-## 6. Íconos por tipo (requisito nuevo de Gonzalo, 2026-10-10)
+## 6. Íconos por tipo (requisito de Gonzalo, 2026-10-10) — rebanada F6.1b
 
 «Que cada tipo de lámina y cada tipo de gráfico tenga además de los gráficos que ya muestra un ícono profesional y pulido
-[…] para que sea fácilmente distinguible en contextos donde se quiere mostrar con poco espacio.» Pendiente de diseño
-detallado por arquitecto-integracion (rejilla, trazo, composición derivada de ranuras, dónde aparece, componente único y
-test de contrato tipo → ícono). Entra como rebanada propia, con el marcador temporal declarado en F6.1.
+[…] para que sea fácilmente distinguible en contextos donde se quiere mostrar con poco espacio.»
+
+- **Inventario**: 33 tipos de lámina en `.SLIDES_META` (22 con ranuras en `estandar_pulso.json`, 11 de estructura sin
+  ranuras) y 26 graficadores en `.GRAFICADORES_META`. Hoy `SlideTypeIcon.tsx` cubre 16/33 (nueve tipos comparten el mismo
+  `LayoutGrid` de lucide) y `GraficadorTypeIcon.tsx` 15/26 (con dos tipos que ya no existen: `p_barras`,
+  `p_dim_radar_tabla`). Sirven de base de estilo, no de arquitectura.
+- **Dibujo**: `viewBox 0 0 24 24` mostrado a 16/20/24; trazo 1,5 redondeado; marco de lámina 16:9 con `rx` 1,5, bloques
+  `rx` 0,75; ningún rasgo menor a 1,5 unidades; todo en `currentColor` (lleno .28, apoyo .45) y **un solo acento**
+  `var(--icono-acento, currentColor)` que el contexto enciende con `--module-accent` (fila seleccionada, cabecera del
+  inspector). Sin hex ni colores del recetario. La marca «ruta anterior» nunca va dentro del ícono.
+- **Método híbrido**: las 22 láminas con ranuras se generan desde el estándar (`scripts/generar-ranuras-iconos.mjs` →
+  `iconos/ranurasEstandar.generated.ts`, medianil fijo de 1); encima, rasgos a mano (círculo de población, banda de
+  cifras), porque `corona` y `2mas1` tienen las mismas ranuras. Las 11 de estructura (portada, índice, separador,
+  objetivo, ficha técnica, Top Two Box, redondeo, cierre, población 2/3/4) se dibujan a mano en el mismo marco. Los 26
+  gráficos son esqueletos del tipo con la categoría mayor en acento.
+- **Dónde**: fila de Estructura 20 px; cabecera del inspector 24; tarjeta de gráfico 20; barra del visor, tira,
+  Vista general, menús, selectores y avisos 16. Distinto de `ComposicionLamina`/`GlifoGrafico` (≥64 px).
+- **Componente**: `features/graficos/iconos/IconoTipo.tsx` — `IconoTipo({ clase: "lamina" | "grafico", tipo, size?:
+  16 | 20 | 24, titulo?, ranuraActiva?, className? })` y `tieneIcono(clase, tipo)`; con `titulo` → `role="img"` +
+  `<title>`, sin él → `aria-hidden`; tipo desconocido → marco con ranura punteada, nunca lucide. Archivos:
+  `iconosLamina.tsx`, `rasgosLamina.tsx`, `iconosGrafico.tsx`, `iconoTipo.css`. `SlideTypeIcon` y `GraficadorTypeIcon`
+  pasan a envoltorios que delegan (se borran en F6.5).
+- **Contrato** `iconos/iconosTipo.contract.test.ts`: falla si falta o sobra un ícono respecto de `graficos_metadata.R`,
+  si lo generado se desvió del estándar, si dos íconos de la misma clase son geométricamente iguales, si aparece un color
+  fuera de regla o un rasgo menor a 1,5.
+- **Rebanada**: en F6.1 un marcador con la API definitiva (`data-icono-provisional="true"`); en F6.1b los 59 íconos, el
+  contrato y un pliego 16/20/24 sobre superficie normal y sobre `--module-accent-soft` **aprobado por Gonzalo** antes de
+  dibujarlos todos. Riesgo: densidad de 5 y 6 gráficos a 16 px.
+- **Bocetos**: seis SVG de ejemplo (cuatro gráficos, corona, separador, barras categóricas, dumbbell, divergentes) en el
+  informe del arquitecto; se convierten en el pliego para que Gonzalo juzgue el estilo.
+
+**Riesgo de navegación señalado por el arquitecto**: `foco=l-<posición>` apunta a otra lámina tras reordenar; decidir
+id estable antes de F6.3.
 
 ## 7. Auditoría del editor actual (auditor-ui, 2026-10-10)
 
