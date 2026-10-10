@@ -363,6 +363,7 @@ function normalizeSlideMetadata(value: unknown): SlideMetadata {
       ? { slot_specs: normalizeSlideSlotSpecs(slide.slot_specs) }
       : {}),
     slots: normalizedStrings(slide.slots),
+    ...(hasOwn(slide, "en_selector") ? { en_selector: slide.en_selector !== false } : {}),
     args: Array.isArray(slide.args) ? slide.args.map(normalizeArgMetadata) : [],
     args_extra: normalizedStrings(slide.args_extra),
   };
@@ -400,6 +401,7 @@ function normalizeGraficadorMetadata(value: unknown): GraficadorMetadata {
       ? { data_requirement: isGraficadorDataRequirement(rawDataRequirement) ? rawDataRequirement : "unknown" }
       : {}),
     ...(hasOwn(graf, "preset_key") ? { preset_key: safeText(graf.preset_key).trim() } : {}),
+    ...(hasOwn(graf, "en_selector") ? { en_selector: graf.en_selector !== false } : {}),
     args: Array.isArray(graf.args) ? graf.args.map(normalizeArgMetadata) : [],
     args_extra: normalizedStrings(graf.args_extra),
   };

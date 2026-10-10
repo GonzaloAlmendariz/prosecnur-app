@@ -311,6 +311,8 @@ export type SlideMetadata = {
   // manda; sólo ausente permite compatibilidad con `slots` legacy.
   slot_specs?: SlideSlotSpec[];
   slots: string[];
+  /** FALSE: no se ofrece al insertar (p. ej. láminas de población antiguas); los planes que ya la usan la editan. */
+  en_selector?: boolean;
   args: ArgMetadata[];
   // args del formals() de la función R que no están en el catálogo curado
   // (el backend los usa con defaults; el frontend normalmente no los expone)
@@ -328,6 +330,8 @@ export type GraficadorMetadata = {
   requisito?: string;
   feature_kind?: string;
   available?: boolean;
+  /** FALSE: no se ofrece en el selector de gráficos (p. ej. FODA); los planes que ya lo usan lo conservan. */
+  en_selector?: boolean;
   disabled_reason?: string;
   // Contrato machine-readable de disponibilidad y autoría. Son opcionales en
   // el tipo porque un backend legacy puede omitirlos; el normalizador y los
@@ -895,7 +899,8 @@ export type PreviewSlideResponse = {
 export type PreviewSlideParte = {
   indice: number;
   titulo: string;
-  estado: "nativa" | "estructura" | "ruta_anterior" | "sin_grafico";
+  /** «marco»: el gráfico se dibuja aparte (nube de palabras, serie de 3+ mediciones) y la lámina lleva título y pie del recetario. */
+  estado: "nativa" | "estructura" | "ruta_anterior" | "sin_grafico" | "marco";
   continuacion: boolean;
 };
 

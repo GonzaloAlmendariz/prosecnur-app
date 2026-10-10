@@ -142,7 +142,8 @@ export function SlidePicker({
     fallbackFocusRef,
   });
 
-  const inventory = registry?.slides;
+  // Lo que el registro saca del selector (`en_selector = FALSE`) no se ofrece al insertar.
+  const inventory = useMemo(() => registry?.slides.filter((x) => x.en_selector !== false), [registry]);
   const compositionIdentity = useMemo(
     () => ({
       ...slideCompositionIdentityFromScopeRules(scopeRules),
