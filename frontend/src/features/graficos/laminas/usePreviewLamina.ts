@@ -66,7 +66,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
       setEstado(e);
       if (e.estado === "lista") {
         const l = leerLaminaVisor(e.respuesta);
-        registrarResumen(id, { estado: estadoDeLamina(l), partes: l.partes.length, avisos: l.avisos.length });
+        registrarResumen(id, { estado: estadoDeLamina(l), partes: l.partes.length, avisos: l.avisos.length, avisosTexto: l.avisos });
         const primera = l.partes[0]?.imagen;
         if (primera) registrarMiniatura(id, primera);
       }

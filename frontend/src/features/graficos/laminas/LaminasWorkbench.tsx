@@ -8,7 +8,7 @@ import { useSession } from "../../../lib/SessionContext";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
-import { PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
+import { PANEL_AVISOS_INFORME, PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
 import { parseGraficosReportScope } from "../reportScope";
 import { leerSlideMeta } from "../slideMeta";
 import { usePlanStore } from "../store";
@@ -17,6 +17,8 @@ import { EstructuraInforme, type MarcaValidacion } from "./EstructuraInforme";
 import { InspectorLamina } from "./InspectorLamina";
 import { VisorLamina } from "./VisorLamina";
 import { TiraMiniaturas } from "./TiraMiniaturas";
+import { PanelAvisos } from "./PanelAvisos";
+import { agruparAvisos } from "./resumenInforme";
 import { construirEstructura, focoDeLamina, parsearFocoLamina } from "./modeloEstructura";
 import { useLaminasUi } from "./laminasStore";
 import { usePreviewLamina } from "./usePreviewLamina";
@@ -36,6 +38,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const select = usePlanStore((s) => s.select);
   const { issues } = usePlanValidator();
   const inspector = usePanelDireccionable(PANEL_INSPECTOR_LAMINA);
+  const avisos = usePanelDireccionable(PANEL_AVISOS_INFORME);
+  const resumenes = useLaminasUi((s) => s.resumenes);
   const parte = useLaminasUi((s) => s.parte);
   const setParte = useLaminasUi((s) => s.setParte);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
@@ -90,6 +94,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     return m;
   }, [issues]);
 
+  const grupos = useMemo(() => agruparAvisos(issues, resumenes, slides.map((x) => x.id)), [issues, resumenes, slides]);
+
   if (!lamina || !slide) {
     return (
       <div className="pulso-f6-laminas-host">
@@ -142,6 +148,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
           onIrEditorAnterior={onIrEditorAnterior}
         />
       </div>
+      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} />}
       {inspector.abierto && (
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={inspector.cerrar} />
       )}

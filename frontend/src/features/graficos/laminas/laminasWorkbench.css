@@ -247,10 +247,3 @@
 @media (prefers-reduced-motion: reduce) {
   .pulso-f6-boton { transition: none; }
 }
-
-/* En la pestaña Láminas, los controles de modo del editor anterior (Timeline · Canvas · Cómodo y su lámina activa)
-   no gobiernan nada: se ocultan para que la barra quepa a 1024 sin cortar «Exportar». La barra propia de la pestaña
-   reemplaza a la del editor anterior en la parte 2 de F6.1. */
-.pulso-graficos-frame:has(.pulso-f6-laminas) .pulso-gv2-command-cluster--mode {
-  display: none;
-}

@@ -1,6 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { AlertCircle, AlertTriangle, AlignJustify, ArrowRight, Check, CheckCircle2, ChevronDown, Database, Download, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, Ruler, SlidersHorizontal, Upload, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, Download, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, Ruler, SlidersHorizontal, Upload, X } from "lucide-react";
 import {
   apiGraficosConfigGet,
   apiGraficosConfigExport,
@@ -8,7 +7,6 @@ import {
   apiGraficosShareExport,
   apiGraficosShareImport,
   apiGraficosShareInspect,
-  apiSaveFileAs,
   downloadUrl,
   type GraficosShareInspectResult,
 } from "../../api/client";
@@ -22,7 +20,7 @@ import { PlanCoverageBadge } from "./PlanCoverageBadge";
 import { SuggestedPlanButton } from "./SuggestedPlanButton";
 import { usePlanValidator } from "./usePlanValidator";
 import { EstiloGlobalDialog } from "./v2/shell/EstiloGlobalDialog";
-import { useProjectShell } from "../project/ProjectShell";
+import { ExportarInformeMenu } from "./ExportarInformeMenu";
 import { useSession } from "../../lib/SessionContext";
 import { modoMultibaseDelPlan } from "./modoMultibase";
 import type { GraficosReportScope } from "./reportScope";
@@ -565,7 +563,6 @@ export function GraficosHeader({
   const hydrate = usePlanStore((s) => s.hydrate);
   const [estiloOpen, setEstiloOpen] = useState(false);
   const [jsonMenuOpen, setJsonMenuOpen] = useState(false);
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [jsonSections, setJsonSections] = useState<Record<GraficosJsonSectionId, boolean>>(DEFAULT_JSON_SECTIONS);
   const [jsonImportMode, setJsonImportMode] = useState<"merge" | "replace">("merge");
   const [jsonBusy, setJsonBusy] = useState<"export" | "import" | null>(null);
@@ -578,10 +575,6 @@ export function GraficosHeader({
   const jsonFileRef = useRef<HTMLInputElement>(null);
   const shareFileRef = useRef<HTMLInputElement>(null);
   const shareMenuRef = useRef<HTMLDivElement>(null);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
-  const { project } = useProjectShell();
-  const savedRef = useRef<Record<string, true>>({});
-  const [saveStatus, setSaveStatus] = useState("");
   const styleTriggerItems = [
     { key: "ppt", label: "Base PPT", tone: "base" },
     ...(nModos > 0 ? [{ key: "modos", label: `${nModos} estilo${nModos === 1 ? "" : "s"}`, tone: "mode" }] : []),
@@ -596,23 +589,6 @@ export function GraficosHeader({
   const canExportFinal = canExport && validator.canExport;
   const isSharedReport = reportScope === "consolidated";
   const prepBlocked = !isSharedReport && !prepReady;
-  const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(!isSharedReport && docxFileId));
-
-  useEffect(() => {
-    if (!exportMenuOpen) return;
-    function onDocMouseDown(e: MouseEvent) {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) setExportMenuOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setExportMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onDocMouseDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocMouseDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [exportMenuOpen]);
 
   useEffect(() => {
     if (!jsonMenuOpen) return;
@@ -770,44 +746,6 @@ export function GraficosHeader({
     resetPlan();
   }
 
-  useEffect(() => {
-    const candidate = [
-      { fileId: pptFileId, filename: pptFilename ?? "reporte.pptx" },
-      { fileId: docxFileId, filename: docxFilename ?? "reporte.docx" },
-    ].find((item) => item.fileId && !savedRef.current[item.fileId]);
-    if (!candidate?.fileId || exportBusy || !window.prosecnurApi) return;
-    const fileId = candidate.fileId;
-    const filename = candidate.filename;
-    savedRef.current[fileId] = true;
-    const ext = filename.split(".").pop() || "*";
-    const defaultPath = project.status.path
-      ? (() => {
-          const sep = project.status.path!.includes("\\") ? "\\" : "/";
-          return `${project.status.path!.replace(/[/\\][^/\\]+$/, "")}${sep}${filename}`;
-        })()
-      : undefined;
-    let cancelled = false;
-    async function saveGeneratedReport() {
-      try {
-        const target = await window.prosecnurApi!.saveEntregableDialog({
-          defaultName: filename,
-          defaultPath,
-          filters: [{ name: ext.toUpperCase(), extensions: [ext] }, { name: "Todos", extensions: ["*"] }],
-        });
-        if (!target || cancelled) return;
-        const saved = await apiSaveFileAs(fileId, target, { overwrite: true });
-        if (!cancelled) setSaveStatus(`Guardado como ${saved.filename}`);
-      } catch (e) {
-        if (!cancelled) {
-          delete savedRef.current[fileId];
-          setSaveStatus((e as Error).message);
-        }
-      }
-    }
-    void saveGeneratedReport();
-    return () => { cancelled = true; };
-  }, [pptFileId, docxFileId, pptFilename, docxFilename, exportBusy, project.status.path]);
-
   return (
     <div className={`pulso-gv2-command-header${prepBlocked ? " is-prep-blocked" : ""}`}>
       <ContextBar
@@ -852,7 +790,6 @@ export function GraficosHeader({
             type="button"
             onClick={() => {
               setJsonMenuOpen(false);
-              setExportMenuOpen(false);
               setEstiloOpen(true);
             }}
             className={`pulso-gv2-estilo-trigger pulso-gv2-pill-button ${estiloOpen ? "is-open" : ""}`}
@@ -877,7 +814,6 @@ export function GraficosHeader({
             <button
               type="button"
               onClick={() => {
-                setExportMenuOpen(false);
                 setJsonMenuOpen((x) => !x);
               }}
               className="pulso-gv2-pill-button pulso-gv2-toolbar-action"
@@ -1101,115 +1037,19 @@ export function GraficosHeader({
             )}
           </div>
 
-          {prepBlocked ? (
-            <Link
-              to="/analitica"
-              className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-menu-trigger pulso-gv2-prepare-trigger"
-              title="Preparar la base en Analítica"
-            >
-              <Database size={13} />
-              <span>Preparar</span>
-              <ArrowRight size={13} />
-            </Link>
-          ) : (
-            <div className="pulso-gv2-export-menu" ref={exportMenuRef}>
-              <button
-                type="button"
-                className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-menu-trigger"
-                onClick={() => {
-                  setJsonMenuOpen(false);
-                  setExportMenuOpen((v) => !v);
-                }}
-                disabled={!canExportFinal && !pptFileId && (isSharedReport || !docxFileId)}
-                aria-haspopup="dialog"
-                aria-expanded={exportMenuOpen}
-                title={canExportFinal
-                  ? isSharedReport ? "Exportar el informe compartido en PowerPoint" : "Exportar el reporte en PowerPoint o Word"
-                  : "Revisa el estado del plan antes de exportar"}
-              >
-                {exportBusy ? <Loader2 size={13} className="pulso-spin" /> : <Download size={13} />}
-                <span>Exportar</span>
-                {generatedReports > 0 && <b>{generatedReports}</b>}
-                <ChevronDown size={13} />
-              </button>
-
-              {exportMenuOpen && (
-                <div className="pulso-gv2-export-menu-popover" role="dialog" aria-label="Exportar reporte">
-                  <div className="pulso-gv2-export-menu-head">
-                    <span className="pulso-gv2-export-menu-mark" aria-hidden="true">
-                      <Download size={15} />
-                    </span>
-                    <div>
-                      <strong>{isSharedReport ? "Exportar informe compartido" : "Exportar reporte"}</strong>
-                      <span>{isSharedReport ? "Genera el PPTX conjunto de todas las fuentes." : "Elige el archivo final que necesitas generar."}</span>
-                    </div>
-                  </div>
-
-                  {!canExportFinal && (
-                    <div className="pulso-gv2-export-menu-warning">
-                      Revisa el estado del plan antes de generar archivos.
-                    </div>
-                  )}
-
-                  <div className="pulso-gv2-export-menu-actions">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExportMenuOpen(false);
-                        onExportPpt();
-                      }}
-                      disabled={!canExportFinal || exportBusy}
-                    >
-                      <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
-                        {exportJobKind === "ppt" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
-                      </span>
-                      <span>
-                        <strong>PowerPoint</strong>
-                        <small>PPTX editable</small>
-                      </span>
-                    </button>
-                    {!isSharedReport && <button
-                      type="button"
-                      onClick={() => {
-                        setExportMenuOpen(false);
-                        onExportWord();
-                      }}
-                      disabled={!canExportFinal || exportBusy}
-                    >
-                      <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
-                        {exportJobKind === "word" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
-                      </span>
-                      <span>
-                        <strong>Word</strong>
-                        <small>DOCX narrativo</small>
-                      </span>
-                    </button>}
-                  </div>
-
-                  {(pptFileId || docxFileId || saveStatus) && (
-                    <div className="pulso-gv2-export-menu-files">
-                      {pptFileId && !exportBusy && (
-                        <a href={downloadUrl(pptFileId)}>
-                          <Download size={12} /> {pptFilename ?? "reporte.pptx"}
-                        </a>
-                      )}
-                      {!isSharedReport && docxFileId && !exportBusy && (
-                        <a href={downloadUrl(docxFileId)}>
-                          <Download size={12} /> {docxFilename ?? "reporte.docx"}
-                        </a>
-                      )}
-                      {saveStatus && (
-                        <span className={saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus) ? "is-error" : "is-ok"}>
-                          {!(saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus)) && <CheckCircle2 size={12} />}
-                          {saveStatus}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          <ExportarInformeMenu
+            onExportPpt={onExportPpt}
+            onExportWord={onExportWord}
+            pptFileId={pptFileId}
+            docxFileId={docxFileId}
+            pptFilename={pptFilename}
+            docxFilename={docxFilename}
+            exportBusy={exportBusy}
+            exportJobKind={exportJobKind}
+            canExportFinal={canExportFinal}
+            isSharedReport={isSharedReport}
+            prepBlocked={prepBlocked}
+          />
 
           <button
             type="button"
@@ -1431,7 +1271,9 @@ function ConstructorViewControls({ issueCount }: { issueCount: number }) {
   );
 }
 
-function DebugPhToggle() {
+/** Interruptor de las guías de la ruta anterior (`debug_ph`). En la pestaña Láminas vive en la barra del visor como
+ *  «Guías (beta)» hasta que lleguen las guías por capas (plan F6 §8, K11). */
+export function DebugPhToggle({ etiqueta = "Guías" }: { etiqueta?: string } = {}) {
   const debugPh = usePlanStore((s) => s.debugPh);
   const setDebugPh = usePlanStore((s) => s.setDebugPh);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -1482,7 +1324,7 @@ function DebugPhToggle() {
         title={active ? "Ocultar guías de layout" : "Mostrar guías de layout"}
       >
         <Ruler size={12} />
-        <span className="pulso-gv2-debug-border-label">Guías</span>
+        <span className="pulso-gv2-debug-border-label">{etiqueta}</span>
         <span className="pulso-gv2-debug-border-chip" aria-hidden="true" />
         <ChevronDown size={12} className="pulso-gv2-debug-border-chevron" aria-hidden="true" />
       </button>
