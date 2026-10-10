@@ -1,35 +1,31 @@
 import { describe, expect, test } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SlideTypeIcon, slideLayoutIconVariant } from "./SlideTypeIcon";
+import { SlideTypeIcon } from "./SlideTypeIcon";
 
-describe("slideLayoutIconVariant", () => {
-  test("distingue el lado real del texto en layouts de grafico", () => {
-    expect(slideLayoutIconVariant("p_slide_grafico_texto_izquierda")).toBe("grafico-texto-izquierda");
-    expect(slideLayoutIconVariant("p_slide_grafico_texto_derecha")).toBe("grafico-texto-derecha");
-    expect(slideLayoutIconVariant("p_slide_2_graficos_texto_izquierda")).toBe("dos-graficos-texto-izquierda");
-    expect(slideLayoutIconVariant("p_slide_2_graficos_texto_derecha")).toBe("dos-graficos-texto-derecha");
+const render = (props: Parameters<typeof SlideTypeIcon>[0]) => renderToStaticMarkup(createElement(SlideTypeIcon, props));
+
+describe("SlideTypeIcon (envoltorio de IconoTipo)", () => {
+  test.each([
+    "p_slide_grafico_texto_izquierda",
+    "p_slide_portada",
+    "p_slide_indice",
+    "p_slide_4_graficos_poblacion",
+  ])("delega %s en el sistema de íconos, sin lucide", (tipo) => {
+    const markup = render({ tipo, iconoUi: "FileText", size: 12 });
+    expect(markup).toContain('class="pulso-icono-tipo"');
+    expect(markup).toContain(`data-icono-tipo="${tipo}"`);
+    expect(markup).toContain('width="12"');
+    expect(markup).not.toContain("lucide-");
   });
 
-  test("deja el resto de slides en el fallback Lucide", () => {
-    expect(slideLayoutIconVariant("p_slide_portada")).toBeNull();
-    expect(slideLayoutIconVariant("p_slide_indice")).toBeNull();
+  test("distingue el lado del texto", () => {
+    const sinTipo = (m: string) => m.replace(/ data-icono-tipo="[^"]*"/, "");
+    expect(sinTipo(render({ tipo: "p_slide_grafico_texto_izquierda" })))
+      .not.toBe(sinTipo(render({ tipo: "p_slide_grafico_texto_derecha" })));
   });
 
-  test("usa pictogramas especificos para narrativa y poblacion", () => {
-    expect(slideLayoutIconVariant("p_slide_1_grafico_narrativo")).toBe("grafico-narrativa");
-    expect(slideLayoutIconVariant("p_slide_2_graficos_narrativo")).toBe("dos-graficos-narrativa");
-    expect(slideLayoutIconVariant("p_slide_4_graficos")).toBe("cuatro-graficos");
-    expect(slideLayoutIconVariant("p_slide_6_graficos_poblacion")).toBe("poblacion-6");
-  });
-
-  test("renderiza pictogramas SVG compactos para layouts conocidos", () => {
-    const markup = renderToStaticMarkup(createElement(SlideTypeIcon, {
-      tipo: "p_slide_2_graficos_texto_izquierda",
-      size: 23,
-    }));
-
-    expect(markup).toContain("<svg");
-    expect(markup).toContain('viewBox="0 0 24 24"');
+  test("un tipo fuera del registro conserva el lucide de su icono_ui", () => {
+    expect(render({ tipo: "p_slide_futuro", iconoUi: "FileText" })).toContain("lucide-");
   });
 });
