@@ -289,9 +289,10 @@
   items <- .lam_multilista_items(ml)
   compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec"))
   partes <- .lam_multilista_planear(items, compartida)
+  .lam_aviso_partes(titulo, lapply(items, `[[`, "premisas"), length(partes))  # K12b
   for (k in seq_along(partes)) {
     doc <- officer::add_slide(doc, layout = layout, master = master)
-    doc <- .lam_titulo(doc, paste0(titulo, if (k > 1) " (cont.)" else ""), ante = ante, sub = if (k == 1L) sub else NULL)
+    doc <- .lam_titulo(doc, paste0(titulo, if (k > 1) " (cont.)" else ""), ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)
     lz <- .lam_lienzo()
     .lam_multilista_bloques(lz, partes[[k]], compartida)
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:multilista")

@@ -9,8 +9,9 @@
 
 #' Título de la lámina: barra navy al borde, antetítulo en versalitas y título coral
 #' @keywords internal
-.lam_titulo <- function(doc, titulo, ante = NULL, sub = NULL) {
+.lam_titulo <- function(doc, titulo, ante = NULL, sub = NULL, avisar = TRUE) {
   g <- .std_geom; ml0 <- g("margen_izq_borde"); ml <- g("margen_izq"); yt <- g("titulo_y")
+  if (isTRUE(avisar)) .lam_aviso_titulo(titulo, 10.4)  # K12b: un título de más de dos líneas se avisa (lamina_avisos_lineas.R)
   lz <- .lam_lienzo()
   .lam_caja(lz, ml0, yt - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, .std_color("azul"), nombre = "titulo:barra")
   if (!is.null(ante) && nzchar(ante)) {
@@ -51,10 +52,11 @@
   # bloques y, si hace falta, por filas repitiendo la Total (verificador de N2).
   en_filas <- .lam_escala_en_filas(espec)
   partes <- if (en_filas) .lam_filas_planear(espec, premisas) else .lam_escala_partir(premisas)
+  .lam_aviso_partes(titulo, list(premisas), length(partes))
   for (k in seq_along(partes)) {
     doc <- officer::add_slide(doc, layout = layout, master = master)
-    # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122).
-    doc <- .lam_titulo(doc, paste0(titulo, if (k > 1) " (cont.)" else ""), ante = ante, sub = if (k == 1L) sub else NULL)
+    # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122); el aviso del título, una vez por lámina.
+    doc <- .lam_titulo(doc, paste0(titulo, if (k > 1) " (cont.)" else ""), ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)
     lz <- .lam_lienzo()
     if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L)
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:escala")
