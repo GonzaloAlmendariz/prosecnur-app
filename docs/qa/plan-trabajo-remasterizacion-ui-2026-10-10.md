@@ -122,13 +122,14 @@ Ledger: lecturas de avance sin denominador 5 → 0.
 | L28 ∥ | L28 | `PulsoTable` (react-table + react-virtual) con sticky, anchos declarados, densidad e inspector; primero las tres tablas territoriales y el Reporte UMP | `components/`, `TerritorialModelWorkbench.tsx`, `TerritorialFieldOccurrencesWorkbench.tsx` | frontend-react | 0 datos recortados en esas tablas |
 | L29 | L29 | `--pulso-type-*` por rol con piso de 10 px; `data-density`; `--cmv2-ease` aliasado; hex de Monitoreo por lotes 1:1; paleta de Plotly acotada (D7) | `tokens.css`, `monitoreo.css` (extracción), `profilePage.css`, `plotlyTheme.ts` | frontend-react + qa-visual-desktop | `font-size` < 10 px = 0; hex de Monitoreo < 2.000; tokens sin definir = 0 |
 
-### Vuelta 6 — Lo que se nota sin abrir un módulo (7 sesiones)
+### Vuelta 6 — Lo que se nota sin abrir un módulo (9 sesiones)
 
 | Unidad | Maqueta | Qué cambia | Dónde vive | Agente | Gate |
 |---|---|---|---|---|---|
 | L30 ∥ | L30 | `CommandPalette` ⌘K sobre el manifiesto y las acciones de la command bar; atajos globales con overlay «?»; tooltips del dock por foco | `components/`, `lib/atajos.ts`, `Layout.tsx` | frontend-react | saltar a cualquier pestaña por teclado |
 | L31 ∥ | L31 | Home vivo: cards suscritas a sesión y jobs, «hoy», siguiente acción, sin gradientes, sin jail a 1024 | `ProjectModulesContext.tsx`, `MissionControl.tsx`, `home-v2.css` | frontend-react | card de Procesamiento con barra de job en vivo |
-| L32 | L32 | Un solo blur; ventana en `--pulso-bg`; sombras a tokens; transición de sección y pestaña; press físico; `motion` fuera | `theme.css:633-651`, `nav-states.css`, `desktop/main.cjs:1866`, `package.json` | frontend-react + desktop-packaging | `backdrop-filter` en el header = 0 |
+| L32 | L32 | Materiales: un solo blur; header opaco con hairline; ventana en `--pulso-bg`; sombras a tokens | `theme.css:633-651`, `desktop/main.cjs:1866` | frontend-react + desktop-packaging | `backdrop-filter` en el header = 0 |
+| L37 ∥ | L37 | Sistema de movimiento: las 22 coreografías del catálogo (navegación, paneles, física, listas, carga, toast, scroll, barras), contrato de movimiento, reduced-motion global, `motion` fuera; las 27 transiciones de `width` de Cálculo a `scaleX` | `tokens.css`, `theme.css`, `nav-states.css`, `components/*`, `calcMuestra/**`, `scripts/` | frontend-react + autor-regresiones + qa-visual-desktop | contrato verde; 0 frames > 16 ms en sección y diálogo; captura con reduced-motion |
 | L33 | — | Desduplicar Telefónico ↔ Acreditación: primitivas puras a `monitoreo/core/`, chrome una sola vez (D8) | `profiles/telefonico/`, `profiles/acreditacion/` | frontend-react + autor-regresiones | duplicados 28 → 0 |
 
 ## 4. Dependencias que fijan el orden
@@ -179,5 +180,5 @@ actualiza al cerrar cada vuelta con la fecha, los commits y el ledger movido.
 | 3 Un solo chrome | L15, L16, L14b, L17, L18, L19, L36 (XL) | 19 | ☐ |
 | 4 Cifras y feedback | L20, L21, L22, L23, L25 | 7 | ☐ |
 | 5 Datos y densidad | L27, L28, L29 | 12 | ☐ |
-| 6 Shell | L30, L31, L32, L33 | 7 | ☐ |
-| **Total** | 36 unidades | **77** | |
+| 6 Shell | L30, L31, L32, L33, L37 | 9 | ☐ |
+| **Total** | 37 unidades | **79** | |
