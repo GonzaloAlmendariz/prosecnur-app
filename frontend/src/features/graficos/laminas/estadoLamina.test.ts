@@ -64,6 +64,8 @@ describe("estado y motivo", () => {
   });
   it("distingue la ruta anterior elegida de la impuesta", () => {
     expect(motivoDeEstado("ruta_anterior", true)).toMatch(/Elegiste/);
-    expect(motivoDeEstado("ruta_anterior", false)).toMatch(/no pudo/);
+    expect(motivoDeEstado("ruta_anterior", false, true)).toMatch(/Los avisos dicen por qué/);
+    // Sin avisos no se manda a leerlos.
+    expect(motivoDeEstado("ruta_anterior", false, false)).toMatch(/No dejó un aviso/);
   });
 });

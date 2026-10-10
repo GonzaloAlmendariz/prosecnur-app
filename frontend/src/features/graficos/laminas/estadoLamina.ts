@@ -99,8 +99,11 @@ export const ETIQUETA_ESTADO: Record<EstadoSalida, string> = {
   sin_grafico: "Sin gráfico",
 };
 
-/** Por qué sale así, en una línea. `motorNativoApagado` es la elección explícita del analista (`meta.motor_nativo`). */
-export function motivoDeEstado(estado: EstadoSalida | null, motorNativoApagado: boolean): string {
+/**
+ * Por qué sale así, en una línea. `motorNativoApagado` es la elección explícita del analista (`meta.motor_nativo`);
+ * `hayAvisos` evita mandar a leer avisos que no existen (el motor no siempre deja uno al caer a la ruta anterior).
+ */
+export function motivoDeEstado(estado: EstadoSalida | null, motorNativoApagado: boolean, hayAvisos = false): string {
   switch (estado) {
     case "nativa":
       return "El motor la dibuja con formas nativas de PowerPoint: se puede editar en el archivo.";
@@ -109,7 +112,9 @@ export function motivoDeEstado(estado: EstadoSalida | null, motorNativoApagado: 
     case "ruta_anterior":
       return motorNativoApagado
         ? "Elegiste la ruta anterior para esta lámina: el gráfico sale como imagen."
-        : "El motor no pudo dibujarla con formas nativas y usó la ruta anterior: el gráfico sale como imagen. Revisa los avisos.";
+        : hayAvisos
+          ? "El motor no la dibujó con formas nativas y usó la ruta anterior: el gráfico sale como imagen. Los avisos dicen por qué."
+          : "El motor no la dibujó con formas nativas y usó la ruta anterior: el gráfico sale como imagen. No dejó un aviso que diga por qué.";
     case "sin_grafico":
       return "La lámina no lleva gráfico: sólo texto o plantilla.";
     default:

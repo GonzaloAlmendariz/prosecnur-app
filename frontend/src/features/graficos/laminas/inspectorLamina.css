@@ -101,7 +101,7 @@
   min-width: 18px;
   padding: 0 var(--pulso-space-1);
   border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-3);
+  background: color-mix(in srgb, currentColor 14%, transparent);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -321,6 +321,12 @@ textarea.pulso-f6-input {
 .pulso-f6-ranura-cabeza:focus-visible {
   outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
   outline-offset: calc(-1 * var(--pulso-nav-focus-outline-width));
+}
+
+.pulso-f6-ranura-cabeza > svg,
+.pulso-f6-ranura-cabeza > [data-icono-provisional] {
+  flex: none;
+  color: var(--pulso-text-faint);
 }
 
 .pulso-f6-ranura-texto {

@@ -95,7 +95,7 @@ export function EstructuraInforme({ estructura, posicionActiva, onSeleccionar, v
         ) : nodos.length === 0 ? (
           <p className="pulso-f6-vacio-col">Ninguna lámina coincide con «{consulta.trim()}».</p>
         ) : (
-          <ul className="pulso-f6-arbol">
+          <ul className="pulso-f6-arbol" data-qa-geometry-group="graficos/f6-estructura-nodos" data-qa-geometry-contract="intrinsic">
             {nodos.map((nodo) => (
               <NodoArbol
                 key={nodo.id}
@@ -134,13 +134,15 @@ function NodoArbol({ nodo, abierto, onAlternar, fila }: {
         <span className="pulso-f6-nodo-cuenta" aria-label={`${contarLaminas(nodo)} láminas`}>{contarLaminas(nodo)}</span>
       </button>
       {abierto && (
-        <ul id={idHijos} className="pulso-f6-nodo-hijos">
-          {nodo.clase === "bloque" ? (
-            nodo.laminas.map((l) => fila(l, 0))
-          ) : (
-            <>
-              {fila(nodo.separador, 1)}
-              {nodo.laminas.map((l) => fila(l, 1))}
+        <div id={idHijos} className="pulso-f6-nodo-hijos">
+          {/* Filas de lámina: marco fijo de 44 px (C2), sea cual sea el título. */}
+          <ul className="pulso-f6-filas" data-qa-geometry-group="graficos/f6-estructura-filas" data-qa-geometry-contract="equal">
+            {nodo.clase === "bloque"
+              ? nodo.laminas.map((l) => fila(l, 0))
+              : [fila(nodo.separador, 1), ...nodo.laminas.map((l) => fila(l, 1))]}
+          </ul>
+          {nodo.clase === "capitulo" && nodo.subcapitulos.length > 0 && (
+            <ul className="pulso-f6-filas" data-qa-geometry-group="graficos/f6-estructura-subcapitulos" data-qa-geometry-contract="intrinsic">
               {nodo.subcapitulos.map((s) => (
                 <li key={s.id} className="pulso-f6-sub">
                   <div className="pulso-f6-sub-cabeza">
@@ -148,15 +150,15 @@ function NodoArbol({ nodo, abierto, onAlternar, fila }: {
                     <span className="pulso-f6-nodo-titulo">{s.titulo}</span>
                     <span className="pulso-f6-nodo-cuenta">{1 + s.laminas.length}</span>
                   </div>
-                  <ul className="pulso-f6-nodo-hijos">
+                  <ul className="pulso-f6-filas pulso-f6-sub-filas" data-qa-geometry-group="graficos/f6-estructura-filas-sub" data-qa-geometry-contract="equal">
                     {fila(s.separador, 2)}
                     {s.laminas.map((l) => fila(l, 2))}
                   </ul>
                 </li>
               ))}
-            </>
+            </ul>
           )}
-        </ul>
+        </div>
       )}
     </li>
   );
