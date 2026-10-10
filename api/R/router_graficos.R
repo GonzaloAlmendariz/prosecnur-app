@@ -3123,7 +3123,9 @@ mount_graficos <- function(pr) {
             size = cached$size,
             type = "pptx",
             images = if (include_images) cached$images %||% list() else list(),
-            slide_preview = if (isTRUE(render_slide_preview)) cached$slide_preview %||% NA else NA
+            slide_preview = if (isTRUE(render_slide_preview)) cached$slide_preview %||% NA else NA,
+            partes = cached$partes %||% list(n = 0L, partes = list()),
+            slide_previews = if (isTRUE(render_slide_preview)) cached$slide_previews %||% list() else list()
           ))
         }
       }
@@ -3270,25 +3272,23 @@ mount_graficos <- function(pr) {
       # slots, N PNGs. El frontend los puede mostrar lado a lado. Los
       # layouts puros (p_slide_portada, p_slide_indice) devuelven 0.
       images <- if (isTRUE(include_images)) .extract_pptx_images(out_path) else list()
-      slide_preview <- if (isTRUE(render_slide_preview)) {
-        renderer_status <- .preview_renderer_status()
-        if (isTRUE(renderer_status$available)) {
-          .render_pptx_slide_preview(
-            out_path,
-            preview_quality = preview_quality
-          )
-        } else {
-          NULL
-        }
+      # Partes «(cont.)» y estado nativa/ruta anterior de cada una (F6.0b, graficos_preview_lamina.R); se rasterizan
+      # todas con una sola conversión y la primera sigue siendo `slide_preview`.
+      partes <- .preview_partes(out_path)
+      slide_previews <- if (isTRUE(render_slide_preview) && isTRUE(.preview_renderer_status()$available)) {
+        .render_pptx_preview_partes(out_path, partes$n, preview_quality = preview_quality)
       } else {
-        NULL
+        list()
       }
+      slide_preview <- if (length(slide_previews)) slide_previews[[1]] else NULL
       meta <- .register_output_file(sid, "graficos_preview", out_path)
       preview_cache[[preview_cache_key]] <- list(
         file_id = meta$file_id,
         size = meta$size,
         images = images,
         slide_preview = slide_preview,
+        partes = partes,
+        slide_previews = slide_previews,
         cached_at = now
       )
       if (length(preview_cache) > 16L) {
@@ -3310,7 +3310,9 @@ mount_graficos <- function(pr) {
         size = meta$size,
         type = "pptx",
         images = images,
-        slide_preview = slide_preview %||% NA
+        slide_preview = slide_preview %||% NA,
+        partes = partes,
+        slide_previews = slide_previews
       )
     })) |>
     plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
