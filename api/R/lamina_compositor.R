@@ -332,10 +332,14 @@
   slots <- slide$slots %||% list()
   como_texto <- function(x) if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
   base <- como_texto(slots$base)
+  migrada <- .base_por_grafico_migrada(slide)
+  # Población migrada: el panel nativo no lleva la base de su gráfico, así que el pie nombra la de cada uno (la nota
+  # al pie que le puso `.base_por_grafico_si`), sin repetir la misma.
+  if (is.null(base) && migrada) base <- paste(.lam_bases_sin_repetir(unlist(lapply(els, function(el) el$overrides$nota_pie))), collapse = ". ")
   if (is.null(base)) base <- base_auto(els = els, sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
                                         formato = presets$base$args$formato %||% "Base: %s")
   nota <- como_texto(slots$right_text)
-  if (is.null(nota) || !nzchar(trimws(nota[1]))) {
+  if ((is.null(nota) || !nzchar(trimws(nota[1]))) && !migrada) {
     nota <- nota_de(ps[[1]], els[[1]]$overrides$nota_pie %||% els[[1]]$nota_pie %||%
                       nota_de(ps[[2]], els[[2]]$overrides$nota_pie %||% els[[2]]$nota_pie %||% NULL))
   }

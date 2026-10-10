@@ -4,167 +4,200 @@
     {
       "name": "p_slide_portada",
       "categoria": "estructural",
-      "estandar": null
+      "estandar": null,
+      "en_selector": true
     },
     {
       "name": "p_slide_indice",
       "categoria": "estructural",
-      "estandar": null
+      "estandar": null,
+      "en_selector": true
     },
     {
       "name": "p_slide_top_two_box",
       "categoria": "estructural",
-      "estandar": null
+      "estandar": null,
+      "en_selector": true
     },
     {
       "name": "p_slide_redondeo",
       "categoria": "estructural",
-      "estandar": null
+      "estandar": null,
+      "en_selector": true
     },
     {
       "name": "p_slide_seccion",
       "categoria": "estructural",
-      "estandar": null
+      "estandar": null,
+      "en_selector": true
     },
     {
       "name": "p_slide_objetivo_icono",
       "categoria": "estructural",
-      "estandar": null
+      "estandar": null,
+      "en_selector": true
     },
     {
       "name": "p_slide_texto",
       "categoria": "estructural",
-      "estandar": "p_slide_texto"
+      "estandar": "p_slide_texto",
+      "en_selector": true
     },
     {
       "name": "p_slide_tabla_tecnica",
       "categoria": "estructural",
-      "estandar": null
+      "estandar": null,
+      "en_selector": true
     },
     {
       "name": "p_slide_1_grafico",
       "categoria": "1grafico",
-      "estandar": "p_slide_1_grafico"
+      "estandar": "p_slide_1_grafico",
+      "en_selector": true
     },
     {
       "name": "p_slide_1_grafico_narrativo",
       "categoria": "1grafico",
-      "estandar": "p_slide_1_grafico_narrativo"
+      "estandar": "p_slide_1_grafico_narrativo",
+      "en_selector": true
     },
     {
       "name": "p_slide_grafico_texto_derecha",
       "categoria": "1grafico",
-      "estandar": "p_slide_grafico_texto_derecha"
+      "estandar": "p_slide_grafico_texto_derecha",
+      "en_selector": true
     },
     {
       "name": "p_slide_grafico_texto_izquierda",
       "categoria": "1grafico",
-      "estandar": "p_slide_grafico_texto_izquierda"
+      "estandar": "p_slide_grafico_texto_izquierda",
+      "en_selector": true
     },
     {
       "name": "p_slide_2_graficos",
       "categoria": "2graficos",
-      "estandar": "p_slide_2_graficos"
+      "estandar": "p_slide_2_graficos",
+      "en_selector": true
     },
     {
       "name": "p_slide_2_graficos_narrativo",
       "categoria": "2graficos",
-      "estandar": "p_slide_2_graficos_narrativo"
+      "estandar": "p_slide_2_graficos_narrativo",
+      "en_selector": true
     },
     {
       "name": "p_slide_2_graficos_texto_izquierda",
       "categoria": "2graficos",
-      "estandar": "p_slide_2_graficos_texto_izquierda"
+      "estandar": "p_slide_2_graficos_texto_izquierda",
+      "en_selector": true
     },
     {
       "name": "p_slide_2_graficos_texto_derecha",
       "categoria": "2graficos",
-      "estandar": "p_slide_2_graficos_texto_derecha"
+      "estandar": "p_slide_2_graficos_texto_derecha",
+      "en_selector": true
     },
     {
       "name": "p_slide_4_graficos",
       "categoria": "4graficos",
-      "estandar": "p_slide_4_graficos"
+      "estandar": "p_slide_4_graficos",
+      "en_selector": true
     },
     {
       "name": "p_slide_2_graficos_poblacion",
       "categoria": "poblacion",
-      "estandar": null
+      "estandar": null,
+      "en_selector": false
     },
     {
       "name": "p_slide_3_graficos_poblacion_tira",
       "categoria": "poblacion",
-      "estandar": "p_slide_3_graficos_poblacion_tira"
+      "estandar": "p_slide_3_graficos_poblacion_tira",
+      "en_selector": true
     },
     {
       "name": "p_slide_3_graficos_poblacion_corona",
       "categoria": "poblacion",
-      "estandar": "p_slide_3_graficos_poblacion_corona"
+      "estandar": "p_slide_3_graficos_poblacion_corona",
+      "en_selector": true
     },
     {
       "name": "p_slide_3_graficos_poblacion_cifras",
       "categoria": "poblacion",
-      "estandar": "p_slide_3_graficos_poblacion_cifras"
+      "estandar": "p_slide_3_graficos_poblacion_cifras",
+      "en_selector": true
     },
     {
       "name": "p_slide_cifras_y_graficos",
       "categoria": "2graficos",
-      "estandar": "p_slide_cifras_y_graficos"
+      "estandar": "p_slide_cifras_y_graficos",
+      "en_selector": true
     },
     {
       "name": "p_slide_3_graficos_2mas1",
       "categoria": "3graficos",
-      "estandar": "p_slide_3_graficos_2mas1"
+      "estandar": "p_slide_3_graficos_2mas1",
+      "en_selector": true
     },
     {
       "name": "p_slide_3_graficos_1mas2",
       "categoria": "3graficos",
-      "estandar": "p_slide_3_graficos_1mas2"
+      "estandar": "p_slide_3_graficos_1mas2",
+      "en_selector": true
     },
     {
       "name": "p_slide_3_graficos_fila",
       "categoria": "3graficos",
-      "estandar": "p_slide_3_graficos_fila"
+      "estandar": "p_slide_3_graficos_fila",
+      "en_selector": true
     },
     {
       "name": "p_slide_3_graficos_1arriba",
       "categoria": "3graficos",
-      "estandar": "p_slide_3_graficos_1arriba"
+      "estandar": "p_slide_3_graficos_1arriba",
+      "en_selector": true
     },
     {
       "name": "p_slide_2_graficos_vertical",
       "categoria": "2graficos",
-      "estandar": "p_slide_2_graficos_vertical"
+      "estandar": "p_slide_2_graficos_vertical",
+      "en_selector": true
     },
     {
       "name": "p_slide_2_graficos_asimetrico",
       "categoria": "2graficos",
-      "estandar": "p_slide_2_graficos_asimetrico"
+      "estandar": "p_slide_2_graficos_asimetrico",
+      "en_selector": true
     },
     {
       "name": "p_slide_3_graficos_poblacion",
       "categoria": "poblacion",
-      "estandar": null
+      "estandar": null,
+      "en_selector": false
     },
     {
       "name": "p_slide_4_graficos_poblacion",
       "categoria": "poblacion",
-      "estandar": null
+      "estandar": null,
+      "en_selector": false
     },
     {
       "name": "p_slide_5_graficos_poblacion",
       "categoria": "poblacion",
-      "estandar": "p_slide_5_graficos_poblacion"
+      "estandar": "p_slide_5_graficos_poblacion",
+      "en_selector": true
     },
     {
       "name": "p_slide_6_graficos_poblacion",
       "categoria": "poblacion",
-      "estandar": "p_slide_6_graficos_poblacion"
+      "estandar": "p_slide_6_graficos_poblacion",
+      "en_selector": true
     },
     {
       "name": "p_slide_cierre",
       "categoria": "estructural",
-      "estandar": null
+      "estandar": null,
+      "en_selector": true
     }
   ],
   "graficadores": [

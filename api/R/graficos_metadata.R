@@ -697,6 +697,7 @@
   # ---- Población (con ícono central) -------------------------------------
 
   p_slide_2_graficos_poblacion = list(
+    en_selector   = FALSE,   # Gonzalo, 2026-10-10: «bórralos, en el recetario tampoco están»; se migran (graficos_migrar_poblacion.R)
     titulo_humano = "Dos gráficos + ícono (población)",
     descripcion   = "Dos gráficos con un ícono grande al centro. Usado para láminas de perfil poblacional.",
     icono_ui      = "UsersRound",
@@ -876,6 +877,7 @@
   ),
 
   p_slide_3_graficos_poblacion = list(
+    en_selector   = FALSE,   # Gonzalo, 2026-10-10: «bórralos, en el recetario tampoco están»; se migran (graficos_migrar_poblacion.R)
     titulo_humano = "Tres gráficos + ícono (población)",
     descripcion   = paste(
       "Dos paneles apilados a la izquierda y uno alto a la derecha, que ocupa",
@@ -902,6 +904,7 @@
   ),
 
   p_slide_4_graficos_poblacion = list(
+    en_selector   = FALSE,   # Gonzalo, 2026-10-10: «bórralos, en el recetario tampoco están»; se migran (graficos_migrar_poblacion.R)
     titulo_humano = "Cuatro gráficos + ícono (población)",
     descripcion   = "Grid 2×2 con ícono central, típico para slides demográficas.",
     icono_ui      = "UsersRound",
@@ -5449,6 +5452,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       slot_specs    = slot_specs,
       slots         = lapply(slot_specs, function(spec) spec$name),
       estandar      = .graficos_estandar_de_slide(nm),   # K1: tipo del recetario o NA (graficos_estandar_api.R)
+      en_selector   = !identical(meta$en_selector, FALSE),  # FALSE: registrado y renderizable, fuera del selector
       args          = .normalize_args_for_ui(meta$args %||% list()),
       args_extra    = as.list(args_extra)
     )

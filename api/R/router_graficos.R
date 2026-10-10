@@ -1475,7 +1475,7 @@
   cfg$version <- "graficos/4"
 
   plan <- .graficos_pick_alias(src, "plan")
-  cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) plan else defaults$plan
+  cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_migrar_poblacion_antigua(plan) else defaults$plan
 
   presets <- .graficos_pick_alias(src, "presets")
   cfg$presets <- if (.graficos_is_obj(presets)) {

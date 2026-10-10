@@ -66,3 +66,17 @@
   )
   .base_por_grafico_inyectar(el, base)
 }
+
+#' ¿La lámina viene de una población antigua y conserva su base por gráfico?
+#'
+#' La migración de `p_slide_2/4_graficos_poblacion` (graficos_migrar_poblacion.R) marca `meta$base_por_grafico`: la
+#' población llevaba la base de cada gráfico como su nota al pie y sólo la base declarada al pie de la lámina. Sin la
+#' marca, el tipo vigente juntaba las bases en una sola al pie (o la perdía, por la ruta anterior, si eran distintas).
+#' @keywords internal
+.base_por_grafico_migrada <- function(slide) isTRUE((slide$meta %||% list())$base_por_grafico)
+
+#' `.base_por_grafico()` sólo en una lámina migrada de población; en las demás el elemento vuelve intacto
+#' @keywords internal
+.base_por_grafico_si <- function(el, slide, presets, componer) {
+  if (.base_por_grafico_migrada(slide)) .base_por_grafico(el, presets, componer) else el
+}
