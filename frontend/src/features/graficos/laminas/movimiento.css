@@ -1,0 +1,14 @@
+/* Tokens de movimiento de F6 (docs/qa/contrato-movimiento-f6-2026-10-10.md §1.2). Viven aquí y no en
+   app/tokens.css porque esa hoja está congelada a crecimiento (agentic/manifest.json). Se declaran en :root para que
+   alcancen también a lo que sale por portal. Curvas y duraciones base: las de tokens.css (--motion-ease-out,
+   --motion-ease-in-out, --motion-ease-drawer, --motion-dur-press/fast/base/panel). */
+
+:root {
+  --motion-dur-hover: 100ms;
+  --motion-dur-salida-corta: 80ms;
+  --motion-dur-salida-panel: 200ms;
+  --motion-delay-pendiente: 150ms;
+  --motion-scale-entrada: 0.97;
+  --motion-desplaza-panel: 12px;
+  --motion-blur-crossfade: 2px;
+}

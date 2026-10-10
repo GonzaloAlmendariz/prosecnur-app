@@ -12,6 +12,14 @@
   background: var(--pulso-surface);
   border-top: 1px solid var(--pulso-border);
   scrollbar-width: thin;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Aparición rara (se pliega desde la barra del visor): fundido sin stagger por miniatura (M25). */
+@starting-style {
+  .pulso-f6-tira {
+    opacity: 0;
+  }
 }
 
 .pulso-f6-tira-grupo {
@@ -53,11 +61,17 @@
   background: var(--pulso-surface-2);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color var(--motion-dur-press) var(--motion-ease-out);
+  /* La activa (outline) sigue a ←/→ y cambia en seco (M26); sólo transform para el :active global (M4). */
+  transition: transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
-.pulso-f6-miniatura:hover {
-  border-color: var(--pulso-border-strong);
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-miniatura:hover {
+    border-color: var(--pulso-border-strong);
+    transition:
+      border-color var(--motion-dur-hover) var(--motion-ease-out),
+      transform var(--motion-dur-press) var(--motion-ease-out);
+  }
 }
 
 .pulso-f6-miniatura.is-activa {
@@ -111,9 +125,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pulso-f6-miniatura { transition: none; }
-}
 
 /* En el marco compacto la tira se pliega: la Estructura ya lista las láminas y el lienzo conserva el alto. */
 @container pulso-f6-laminas (max-width: 1120px) {

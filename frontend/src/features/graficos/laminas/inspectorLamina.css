@@ -83,9 +83,15 @@
   color: var(--pulso-text-soft);
 }
 
-.pulso-f6-inspector-tab[aria-selected="false"]:hover {
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text);
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-inspector-tab[aria-selected="false"]:hover {
+    background: var(--pulso-surface-3);
+    color: var(--pulso-text);
+    transition:
+      background-color var(--motion-dur-hover) var(--motion-ease-out),
+      color var(--motion-dur-hover) var(--motion-ease-out),
+      transform var(--motion-dur-press) var(--motion-ease-out);
+  }
 }
 
 .pulso-f6-inspector-tab.is-activa {
@@ -296,6 +302,10 @@ textarea.pulso-f6-input {
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   min-width: 0;
+  /* Abrir la tarjeta es un clic (en ella o en su ranura sobre la lámina): el anillo entra con 120 ms (M8/M17). */
+  transition:
+    border-color var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-press) var(--motion-ease-out);
 }
 
 .pulso-f6-ranura.is-abierta {
@@ -325,6 +335,54 @@ textarea.pulso-f6-input {
   color: var(--pulso-text);
   text-align: left;
   cursor: pointer;
+  transition: none;
+}
+
+/* Cabeza ancha: sin el scale(.97) global, que movería la tarjeta entera (M5). */
+.pulso-f6-ranura-cabeza:active:not(:disabled) {
+  transform: none;
+}
+
+/* Un solo chevron que rota, como el del árbol (M17). */
+.pulso-f6-ranura-chevron {
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-ranura.is-abierta .pulso-f6-ranura-chevron {
+  transform: rotate(90deg);
+}
+
+/* El cuerpo de la tarjeta entra con fundido y 4 px; no se anima la altura (M17). */
+.pulso-f6-ranura-cuerpo-datos,
+.pulso-f6-ranura > .pulso-f6-vacio-col,
+.pulso-f6-ranura-cambiar {
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@starting-style {
+  .pulso-f6-ranura-cuerpo-datos,
+  .pulso-f6-ranura > .pulso-f6-vacio-col {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  .pulso-f6-ranura-cambiar {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-ranura-chevron,
+  .pulso-f6-ranura.is-abierta .pulso-f6-ranura-chevron {
+    transition: none;
+  }
+
+  .pulso-f6-ranura-cuerpo-datos,
+  .pulso-f6-ranura > .pulso-f6-vacio-col {
+    transform: none;
+  }
 }
 
 .pulso-f6-ranura-cabeza:focus-visible {

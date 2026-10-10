@@ -25,6 +25,7 @@ import { useLaminasUi } from "./laminasStore";
 import { reconciliarSeleccion, vecinaAlEliminar } from "./seleccionLamina";
 import { esLateral, resolverLateral, type Lateral } from "./lateralLaminas";
 import { useAnchoCompacto, useSideoverModal } from "./useSideoverModal";
+import { useReencajeLienzo } from "./useReencajeLienzo";
 import { AccionesLamina } from "./AccionesLamina";
 import { useGraficosLibraries } from "../GraficosLibrariesHost";
 import { PANEL_BIBLIOTECA_SLIDES } from "../panelesGraficos";
@@ -35,6 +36,7 @@ import { graficadorDisplayName } from "../graficadorDisplay";
 import { firstVariableRefFromGraph } from "../slideAutoTitle";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import type { GraficadorRef } from "../../../api/graficos";
+import "./movimiento.css";
 import "./laminasWorkbench.css";
 
 const panelDe = (l: Lateral) => (l === "estructura" ? PANEL_ESTRUCTURA_LAMINAS : PANEL_INSPECTOR_LAMINA);
@@ -178,6 +180,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const inspectorModal = compacto && lateral === "inspector";
   const cerrarInspector = useCallback(() => ponerLateral(null), [ponerLateral]);
   useSideoverModal({ activo: inspectorModal, contenedor: marcoInspectorRef, retorno: ajustesRef, onCerrar: cerrarInspector });
+  // El lienzo se re-encaja con FLIP cuando un lateral entra o sale (contrato de movimiento F6, M11).
+  useReencajeLienzo(hostRef, lateral ?? "");
 
   // Cmd/Ctrl+1 alterna la Estructura; Cmd/Ctrl+. los Ajustes.
   useEffect(() => {
