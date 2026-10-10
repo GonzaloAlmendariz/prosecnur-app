@@ -231,3 +231,52 @@ test_that("con LibreOffice utilizable la vista previa no usa el renderer de desa
   local_mocked_bindings(.soffice_cmd = function() "")
   expect_true(.preview_usar_artifact())
 })
+
+# K2 (plan F6 §5.8): el mini-plan de la vista previa numeraba toda lámina «1». El folio es el lugar de la lámina en el
+# plan (o el que mande el cliente, que conoce las «(cont.)» de un export ya hecho); el export no cambia.
+test_that("el folio de la vista previa es la posición de la lámina en el plan, o el que pide el cliente", {
+  plan <- list(list(id = "s1", tipo = "p_slide_portada"), list(id = "s2", tipo = "p_slide_seccion"),
+               list(id = "s3", tipo = "p_slide_1_grafico"), list(id = "s4", tipo = "p_slide_1_grafico"))
+  expect_identical(.preview_folio(plan, "s3"), 3L)
+  expect_identical(.preview_folio(plan, "s4"), 4L)
+  expect_identical(.preview_folio(plan, "s4", pedido = 9), 9L)            # el cliente sabe de las «(cont.)» anteriores
+  expect_identical(.preview_folio(plan, "s4", pedido = "12"), 12L)
+  expect_identical(.preview_folio(plan, "s4", pedido = 0), 4L)            # un folio inválido no manda
+  expect_identical(.preview_folio(plan, "s4", pedido = "x"), 4L)
+  expect_identical(.preview_folio(plan, "nadie"), 1L)                     # lámina nueva, aún no guardada en el plan
+  expect_identical(.preview_folio(list(), NULL), 1L)
+})
+
+test_that("la lámina de la vista previa lleva su folio real y sus «(cont.)» lo siguen; sin pedirlo, el export no cambia", {
+  set.seed(11); n <- 60
+  df <- data.frame(a = sample(c("1", "2", "3"), n, TRUE), stringsAsFactors = FALSE)
+  inst <- list(survey = data.frame(name = "a", type = "select_one t", list_name = "t", label = "Pregunta A", stringsAsFactors = FALSE),
+               choices = data.frame(list_name = rep("t", 3), name = c("1", "2", "3"), label = c("Uno", "Dos", "Tres"), stringsAsFactors = FALSE),
+               orders_list = NULL)
+  folios <- function(folio = NULL) {
+    out <- tempfile(fileext = ".pptx")
+    construir <- function() suppressMessages(reporte_ppt_plan(data = df, instrumento = inst, path_ppt = out, mensajes_progreso = FALSE,
+      plan = p_plan(slides = list(p_slide_1_grafico(p_barras_categoricas("a"), titulo = "Una")))))
+    if (is.null(folio)) construir() else .preview_con_folio(construir(), folio)
+    vapply(.pptx_slide_paths(out), function(x) {
+      xml <- xml2::read_xml(.pptx_leer_parte(out, x))
+      xml2::xml_text(xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='Folio lamina']]"))
+    }, "", USE.NAMES = FALSE)
+  }
+  expect_identical(folios(), "1")
+  expect_identical(folios(7L), "7")
+  expect_identical(folios(), "1")                                         # la opción no queda puesta
+  expect_identical(getOption("prosecnur.lam_folio_desplazo"), NULL)
+})
+
+test_that("las «(cont.)» de una lámina partida siguen al folio real (el motor pasa folio + k - 1 a cada parte)", {
+  doc <- officer::read_pptx()
+  lienzo <- function(doc, base, folio) .lam_pie(doc, base, folio)
+  d1 <- .preview_con_folio(lienzo(officer::add_slide(doc, layout = "Blank"), NULL, 1L), 5L)
+  d2 <- .preview_con_folio(lienzo(officer::add_slide(d1, layout = "Blank"), NULL, 2L), 5L)
+  out <- tempfile(fileext = ".pptx"); print(d2, target = out)
+  txt <- vapply(utils::tail(.pptx_slide_paths(out), 2), function(x) {
+    xml2::xml_text(xml2::xml_find_first(xml2::read_xml(.pptx_leer_parte(out, x)), "//p:sp[p:nvSpPr/p:cNvPr[@name='Folio lamina']]"))
+  }, "", USE.NAMES = FALSE)
+  expect_identical(txt, c("5", "6"))
+})

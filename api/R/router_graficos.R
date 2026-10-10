@@ -3083,6 +3083,8 @@ mount_graficos <- function(pr) {
       cfg <- .graficos_effective_config(sid, parsed$config %||% parsed$graficos_config)
       # El mini-plan no tiene el separador vigente: sin esto la lámina salía sin antetítulo (F6.0b.2, inventario parte C).
       slide <- .preview_con_antetitulo(slide, cfg$plan$slides %||% list())
+      # K2: el folio real de la lámina en el plan (o el que mande el cliente); el mini-plan la numeraba «1».
+      folio <- .preview_folio(cfg$plan$slides %||% list(), slide$id, parsed$folio)
       delivery <- .graficos_delivery_options(
         cfg,
         profile_id = parsed$profile_id %||% parsed$profileId,
@@ -3118,7 +3120,8 @@ mount_graficos <- function(pr) {
         preview_quality = preview_quality,
         include_images = include_images,
         render_slide_preview = render_slide_preview,
-        preview_partes = preview_partes
+        preview_partes = preview_partes,
+        folio = folio
       ), algo = "xxhash64")
       preview_cache <- s$graficos_preview_cache %||% list()
       if (!is.list(preview_cache)) preview_cache <- list()
@@ -3151,7 +3154,8 @@ mount_graficos <- function(pr) {
             slide_preview = if (isTRUE(render_slide_preview)) cached$slide_preview %||% NA else NA,
             partes = cached$partes %||% list(n = 0L, partes = list()),
             slide_previews = if (isTRUE(render_slide_preview)) cached$slide_previews %||% list() else list(),
-            avisos = cached$avisos %||% character(0)
+            avisos = cached$avisos %||% character(0),
+            folio = folio
           ))
         }
       }
@@ -3272,7 +3276,7 @@ mount_graficos <- function(pr) {
       # en vez de perderse en stderr (F6.0b.1; graficos_preview_lamina.R).
       avisos <- tryCatch({
         slide_r <- rebuild_slide(slide)
-        .preview_con_avisos(reporte_ppt_plan(
+        .preview_con_avisos(.preview_con_folio(reporte_ppt_plan(
           data = preview_sources$data_sources,
           instrumento = preview_sources$inst_sources,
           path_ppt = out_path,
@@ -3283,7 +3287,7 @@ mount_graficos <- function(pr) {
           template_id = delivery$template_id,
           auto_otros_slides = delivery$auto_otros_slides,
           mensajes_progreso = FALSE
-        ))$avisos
+        ), folio))$avisos
       }, error = function(e) {
         stop_api(400, "E_PREVIEW_FAILED",
                  sprintf("No se pudo generar el preview: %s", .graficos_base_error(sid, conditionMessage(e))))
@@ -3349,7 +3353,8 @@ mount_graficos <- function(pr) {
         slide_preview = slide_preview %||% NA,
         partes = partes,
         slide_previews = slide_previews,
-        avisos = avisos
+        avisos = avisos,
+        folio = folio
       )
     })) |>
     plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
