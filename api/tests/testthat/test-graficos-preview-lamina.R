@@ -100,3 +100,28 @@ test_that("la vista previa sale aunque la ruta tenga espacios y tildes (P1)", {
   expect_length(r, 1L)
   expect_match(r[[1]]$png_base64, "^data:image/png;base64,")
 })
+
+test_that("pdftools rasteriza sin pdftoppm (P2): lo que viaja en el instalador", {
+  skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
+  skip_if_not_installed("pdftools")
+  local_mocked_bindings(.artifact_renderer_configured = function() FALSE, .first_available_cmd = function(...) "")
+  r <- .render_pptx_preview_partes(.pl_mini_pptx(), 4L, max_partes = 4L)
+  expect_length(r, 4L)
+  expect_true(all(vapply(r, function(x) identical(x$renderer, "soffice+pdftools"), logical(1))))
+  expect_gt(r[[1]]$width, 500)
+})
+
+test_that("con LibreOffice y sin rasterizador, la vista previa no se declara disponible (P3)", {
+  local_mocked_bindings(
+    .artifact_renderer_configured = function() FALSE,
+    .soffice_cmd = function() "/opt/lo/soffice",
+    .preview_rasterizer_status = function() list(available = FALSE, id = NA_character_)
+  )
+  st <- .preview_renderer_status()
+  expect_false(st$available)
+  expect_match(st$message, "rasterizador", fixed = TRUE)
+  local_mocked_bindings(.preview_rasterizer_status = function() list(available = TRUE, id = "pdftools"))
+  st <- .preview_renderer_status()
+  expect_true(st$available)
+  expect_identical(st$rasterizer, "pdftools")
+})

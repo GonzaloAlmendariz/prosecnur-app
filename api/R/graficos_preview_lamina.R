@@ -161,3 +161,26 @@
   if (!startsWith(ruta, "/")) ruta <- paste0("/", ruta)
   paste0("file://", utils::URLencode(enc2utf8(ruta), reserved = FALSE))
 }
+
+#' Rasteriza una página de un PDF con pdftools
+#' @return Ruta del PNG escrito, o `NULL` si pdftools no está o falla.
+#' @keywords internal
+.pdf_page_to_png_pdftools <- function(pdf_path, out_dir, page = 1L, dpi = 220) {
+  if (!requireNamespace("pdftools", quietly = TRUE)) return(NULL)
+  png_path <- file.path(out_dir, sprintf("slide_preview_%03d.png", as.integer(page)))
+  ok <- tryCatch({
+    bitmap <- pdftools::pdf_render_page(pdf_path, page = as.integer(page), dpi = dpi, numeric = TRUE)
+    png::writePNG(bitmap, png_path)
+    file.exists(png_path)
+  }, error = function(e) FALSE)
+  if (isTRUE(ok)) png_path else NULL
+}
+
+#' Quién pasa el PDF de LibreOffice a PNG
+#' @return `list(available, id)`: «pdftools», «pdftoppm» o `NA`.
+#' @keywords internal
+.preview_rasterizer_status <- function() {
+  if (requireNamespace("pdftools", quietly = TRUE)) return(list(available = TRUE, id = "pdftools"))
+  if (nzchar(.first_available_cmd(c("pdftoppm")))) return(list(available = TRUE, id = "pdftoppm"))
+  list(available = FALSE, id = NA_character_)
+}
