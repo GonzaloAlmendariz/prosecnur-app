@@ -75,9 +75,10 @@
 .lam_corona_geo <- function() {
   r <- Filter(function(x) identical(x$tipo, "grafico"), .std_tipo_lamina("p_slide_3_graficos_poblacion_corona")$ranuras)
   if (length(r) != 3L) return(NULL)
-  P <- function(q, h = q$h) list(x = q$x, y = q$y, w = q$w, h = h)
+  # Cada panel lleva lo que la p160 dibuja dentro de él (lamina_corona.R).
+  P <- function(q, k, h = q$h) list(x = q$x, y = q$y, w = q$w, h = h, receta = .lam_corona_receta(k))
   sup_i <- r[[1]]; sup_d <- r[[2]]; inf <- r[[3]]
-  list(paneles = list(P(sup_i), P(sup_d), P(inf, .std_geom("contenido_y1") - inf$y)),
+  list(paneles = list(P(sup_i, 1L), P(sup_d, 2L), P(inf, 3L, .std_geom("contenido_y1") - inf$y)),
        filetes = list(list(tipo = "v", x = (sup_i$x + sup_i$w + sup_d$x) / 2, y0 = sup_i$y, y1 = sup_i$y + sup_i$h),
                       list(tipo = "h", x0 = inf$x, x1 = inf$x + inf$w, y = (sup_i$y + sup_i$h + inf$y) / 2)))
 }
@@ -123,32 +124,43 @@
 #'
 #' El renderer y la compuerta leen la misma geometría: una pregunta que se parte en varias líneas baja el
 #' gráfico, los rótulos que se parten deben caber en su fila y la leyenda de la escala, en el panel.
+#' @param receta Lo que una lámina del recetario fija a mano para este panel (hoy la corona, `.lam_corona_receta()`);
+#'   `NULL` para la regla compartida.
 #' @keywords internal
-.lam_panel_geo <- function(espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE) {
+.lam_panel_geo <- function(espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE, receta = NULL) {
   alto <- h >= 3.5; fin <- y + h
   # Líneas de la pregunta con el ancho real del texto (systemfonts): la estimación por carácter partía en dos
   # una pregunta que cabe en una (verificador de N3, lámina 152).
   dy <- if (!is.null(pregunta) && nzchar(pregunta)) 0.22 * (max(1, ceiling(.lam_ancho_tinta(pregunta, 13, TRUE) / (w - 0.1))) - 1) else 0
   con_pub <- !is.null(publico) && nzchar(publico)
-  if (identical(espec$tipo, "categorica") && .lam_dicotomia_cabe(espec, w - 0.8, con_n = FALSE)) {
+  rd <- receta$dicotomia
+  wd <- if (isTRUE(rd$ancho_pleno)) w else w - 0.8
+  if (identical(espec$tipo, "categorica") && .lam_dicotomia_cabe(espec, wd, con_n = FALSE)) {
     # barras_h del recetario: dos categorías se leen como dicotomía, al ancho de las barras del panel vecino (C23),
-    # con los rótulos sin su frecuencia (recetario_m2b.R, cuarta celda de la cuadrícula).
-    return(list(tipo = "dicotomia", y0 = y + 0.65 + dy, cabe = h - 0.65 - dy >= 1.4))
+    # con los rótulos sin su frecuencia (recetario_m2b.R, cuarta celda de la cuadrícula). La receta de una lámina
+    # (la corona, p160) puede pedirla a todo el panel y con la frecuencia, si cabe con ella.
+    con_n <- isTRUE(rd$con_n) && .lam_dicotomia_cabe(espec, wd, con_n = TRUE)
+    return(list(tipo = "dicotomia", y0 = y + 0.65 + dy, cabe = h - 0.65 - dy >= 1.4, w = wd, con_n = con_n,
+                size = rd$size %||% 22, g = rd$g %||% 0.34, receta = receta))
   }
   if (identical(espec$tipo, "categorica")) {
-    n <- max(1L, length(espec$largos)); y0 <- y + (if (alto) 0.75 else 0.58) + dy
-    fila <- min(if (alto) 0.95 else if (h < 2.5) 0.42 else 0.5, (fin - y0) * (if (alto) 0.95 else 0.9) / n)   # 0.42: la cuadrícula de 2 x 2
+    rb <- receta$barras
+    # La receta puede correr el bloque hacia adentro (la corona centra las barras de abajo, p160).
+    sang <- rb$sangria %||% 0; x <- x + sang; w <- w - 2 * sang
+    n <- max(1L, length(espec$largos)); y0 <- y + (rb$dy %||% (if (alto) 0.75 else 0.58)) + dy
+    tope_fila <- rb$fila %||% (if (alto) 0.95 else if (h < 2.5) 0.42 else 0.5)   # 0.42: la cuadrícula de 2 x 2
+    fila <- min(tope_fila, (fin - y0) * (if (alto) 0.95 else 0.9) / n)
     g <- min(.std_grosor(n, "categorias"), fila * 0.7)
     tope <- min(2.6, w * 0.45)
     size <- if (max(.lam_ancho_tinta(espec$rotulos, 12)) + 0.3 > tope) 11 else 12
-    wlab <- min(tope, max(1.2, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
+    wlab <- min(tope, max(rb$wlab %||% 1.2, max(.lam_ancho_tinta(espec$rotulos, size)) + 0.3))
     # Alto con la tinta medida: la estimación por carácter partía en dos «Secretario(a) académico(a)», que en la
     # lámina 193 del recetario cabe en una línea, y mandaba la cuadrícula entera a la ruta anterior.
     # Lo que debe caber en la fila es la tinta del rótulo (el cuadro menos sus 0.1 in de márgenes internos, que
     # `.lam_barras_h` centra en la fila): la lámina 162 deja «Departamento de Ciencias Contables» en dos líneas de
     # 11 pt dentro de una fila de 0.42 in. Medir el cuadro entero mandaba esa cuadrícula a la ruta anterior.
     altos <- vapply(espec$rotulos, function(r) .lam_alto_tinta(r, wlab, size), 0)
-    return(list(tipo = "barras", y0 = y0, fila = fila, g = g, wlab = wlab, size = size,
+    return(list(tipo = "barras", x = x, w = w, y0 = y0, fila = fila, g = g, wlab = wlab, size = size, receta = receta,
                 cabe = length(espec$largos) >= 1L && fila >= 0.3 && all(altos - 0.1 <= fila - 0.02)))
   }
   if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 1L || .lam_escala_en_filas(espec)) return(list(tipo = "escala", cabe = FALSE))
@@ -174,15 +186,15 @@
 #' @param leyenda Si `FALSE`, la escala no dibuja su leyenda (la pone la lámina, compartida).
 #' @return El `y` donde terminó lo dibujado (para colocar una leyenda compartida debajo).
 #' @keywords internal
-.lam_panel_mixto <- function(lz, espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE) {
+.lam_panel_mixto <- function(lz, espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE, receta = NULL) {
   if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, x, y, w, pregunta, publico)
-  geo <- .lam_panel_geo(espec, x, y, w, h, pregunta, publico, leyenda)
+  geo <- .lam_panel_geo(espec, x, y, w, h, pregunta, publico, leyenda, receta = receta)
   if (identical(geo$tipo, "dicotomia")) {
     d <- .lam_dicotomia_datos(espec)
-    return(.lam_dicotomia(lz, x, geo$y0, w - 0.8, d$rotulos, d$cifras, d$largos, NULL, size = 22, g = 0.34))
+    return(.lam_dicotomia(lz, x, geo$y0, geo$w, d$rotulos, d$cifras, d$largos, if (isTRUE(geo$con_n)) d$n, size = geo$size, g = geo$g))
   }
   if (identical(geo$tipo, "barras")) {
-    return(.lam_barras_h(lz, espec, x, geo$y0, w, wlab = geo$wlab, g = geo$g, fila = geo$fila, size = geo$size))
+    return(.lam_barras_h(lz, espec, geo$x, geo$y0, geo$w, wlab = geo$wlab, g = geo$g, fila = geo$fila, size = geo$size))
   }
   yy <- .lam_likert_panel(lz, espec, x, geo$y0, w, geo$filas, g = geo$g, fila = geo$fila, wlab = geo$wlab, size_lab = geo$size_lab)
   if (isTRUE(leyenda)) {
@@ -226,7 +238,7 @@
   for (k in setdiff(seq_along(P), cifras)) {
     p <- P[[k]]
     fines[k] <- .lam_panel_mixto(lz, especs[[k]], p$x, p$y, p$w, p$h, preguntas[[k]] %||% NULL,
-                                 (publicos %||% list())[k][[1]] %||% NULL, leyenda = !compartida[k])
+                                 (publicos %||% list())[k][[1]] %||% NULL, leyenda = !compartida[k], receta = p$receta)
   }
   if (any(compartida)) {
     e1 <- especs[[which(compartida)[1]]]; ley <- e1$leyenda
@@ -279,7 +291,7 @@
 #' @keywords internal
 .lam_mixta_cabe <- function(espec, p, pregunta = NULL, publico = NULL, leyenda = TRUE) {
   if (.lam_es_cifra(espec)) return(TRUE)
-  isTRUE(.lam_panel_geo(espec, p$x, p$y, p$w, p$h, pregunta, publico, leyenda)$cabe)
+  isTRUE(.lam_panel_geo(espec, p$x, p$y, p$w, p$h, pregunta, publico, leyenda, receta = p$receta)$cabe)
 }
 
 #' ¿La lámina mixta se compone con piezas nativas? Cada ranura trae su especificación y cabe en su panel
