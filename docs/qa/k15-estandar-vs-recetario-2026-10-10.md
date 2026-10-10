@@ -76,9 +76,14 @@ desde el exportador. Test: `api/tests/testthat/test-estandar-ranuras-recetario.R
 | 13 1+2 | nativo, `lamina_mixtas.R` (`graficos_3_1mas2`) | ya dibujaba lo de la p151; sólo el json estaba mal |
 | 14 1 arriba | nativo, `lamina_mixtas.R` (`graficos_3_1arriba`) | ya dibujaba lo de la p154; sólo el json estaba mal |
 | 18 cuatro | nativo, `lamina_mixtas.R` (`paneles_4`) | ya dibujaba lo de la p162; sólo el json estaba mal |
-| 21 cifras lateral | nativo, `lamina_mixtas.R` (`poblacion_3_cifras`) | **alineado** (0bf0344c2): columnas en 3.945/8.707 de 4.312 (antes 3.895/8.682 de 4.337), preguntas en 1.65/3.75 (antes 1.6/4.0), filetes en 3.6, 3.2, 3.715 y 8.487. Test: `test-lamina-cifras-lateral-recetario.R` |
-| 22 cifras en banda | nativo, `lamina_mixtas.R` (`cifras_y_graficos`) + banda `lamina_cifras.R` | **pendiente**: el motor pone los gráficos en 3.75 y el filete en 3.55; la p171, en 3.25 y 3.05. No se puede subir sin cambiar la banda de cifras: su valor mide 0.764 in (44 pt × 1.25) y la calle 0.45, contra 0.62 y 0.4 de la p171. La banda alcanza 3.114, por encima del filete de 3.05. La banda es compartida con las láminas de cifras (p174/p175), así que hace falta decidir si se ajusta para todas |
-| 3, 4, 8, 9, 11, 16, 19, 20 | ruta anterior: placeholders de los layouts de `plantilla_16_9.pptx` (`construir_plantilla_ppt.R`) | **pendiente, fuera de este glob**: el motor no lee el estándar para estos tipos. Las guías del visor y los íconos ya muestran lo dibujado; el render, todavía el layout de la plantilla. El desfase entre estándar y plantilla ya existía antes de K15 (el banco de conformidad mostraba Δ > 1 in) |
+| 21 cifras lateral | nativo, `lamina_mixtas.R` (`poblacion_3_cifras`) | **alineado** (0bf0344c2, 1bfbec8a4): columnas en 3.945/8.707 de 4.312, preguntas en 1.65/3.75, filetes en 3.6, 3.2, 3.715 y 8.487; cifras como la pieza `cifra()` (caja en 0.495 de 3.0, valor de 0.62 en 1.8 y 3.5). Tests a 0.02 in: `test-lamina-cifras-lateral-recetario.R` |
+| 22 cifras en banda | nativo, `lamina_mixtas.R` (`cifras_y_graficos`) + `lamina_cifras_pieza.R` | **alineado** (1bfbec8a4): cifras de 3.908 con calles de 0.4 a 32 pt (valor 0.62 en 1.6, rótulo en 2.22, detalle en 2.5), separadores de 1.65 a 2.8, filete en 3.05, gráficos en 3.25, sin filete entre ellos. Test: `test-lamina-cifras-banda-recetario.R` |
+| 3, 4, 8, 9, 11, 16, 19, 20 | ruta anterior: layouts de `plantilla_16_9.pptx` | **alineado** (0d48faed3): los placeholders se escriben desde el estándar (`plantilla_layouts_estandar.R`, `api/scripts/plantilla_layouts_desde_estandar.R`); test de conformidad `test-plantilla-layouts-estandar.R` (0.02 in y `type_idx` de officer). En cinco y seis gráficos, desempate de hasta 0.002 in en y para conservar el orden del contrato (`pic1` = arriba al centro). El ícono del público pasa a la cabecera (0.495, 0.18, 0.3), como en p158/p164/p166 |
+
+La banda de cifras: p169 y p171 (láminas de composición) dibujan la pieza `cifra()` de recetario_piezas.R:51; p174 y
+p175 (cifras solas) dibujan otra banda (caja corrida 0.1, calle de 0.45). Difieren, así que la geometría va por tipo
+desde el estándar: `ppt.geometria.cifra_pieza` y `tipos_lamina[].cifras` (`valor_pt`, `calle`). Las láminas de cifras
+solas no cambian, y lo fija un test.
 
 ## Verificación
 
@@ -93,12 +98,12 @@ desde el exportador. Test: `api/tests/testthat/test-estandar-ranuras-recetario.R
 
 ## Pendientes
 
-1. **Frontend**: `node scripts/generar-ranuras-iconos.mjs --check` falla. Hay que regenerar
-   `frontend/src/features/graficos/iconos/ranurasEstandar.generated.ts` (lo hace el agente frontend, no este glob).
-2. **Tipo 22**: falta la decisión sobre la banda de cifras (valor de 0.62 y calle de 0.4 como la p171, también en
-   p174/p175). Después se suben gráficos y filete a 3.25 y 3.05.
-3. **Ruta anterior** (3, 4, 8, 9, 11, 16, 19, 20 y el respaldo de 13, 14, 18, 21 y 22): los layouts de la plantilla
-   siguen la geometría vieja. Hay dos caminos: renderers nativos para esos tipos o layouts regenerados desde el
-   estándar. Ambos tocan `construir_plantilla_ppt.R` y la plantilla.
-4. **Fichas del recetario** (p159 y las de los tipos de esta tabla): siguen dibujando la geometría anterior. Corregirlas
-   es regenerar el recetario (`recetario_fichas.R`), que no se hizo aquí.
+1. ~~Frontend: regenerar `ranurasEstandar.generated.ts`~~. Lo hizo el lead; `--check` al día.
+2. **Respaldo de los nativos** (13, 14, 18, 21 y 22 cuando no caben en nativo): sus layouts (`graficos_3_1mas2`,
+   `graficos_3_1arriba`, `4_paneles`, `poblacion_3_cifras`, `cifras_y_graficos`) no entraron en la correspondencia de
+   `plantilla_layouts_estandar.R`. Se suman con una fila por placeholder.
+3. **Fichas del recetario** (p159 y las de los tipos de esta tabla): `recetario_fichas.R` es un capítulo de `recetario.R`,
+   que vuelve a escribir todo `recetario-moderna.pptx`. Sin decisión no se regenera. Para que la próxima regeneración
+   salga bien, `TIPOS` de `recetario_fichas.R` debe tomar los valores de `exportar_estandar.R` (K15).
+4. **Revisión visual**: en la tira, el ícono de cabecera queda pegado al inicio del título, como en el recetario
+   (mosaico en el scratchpad de la sesión).
