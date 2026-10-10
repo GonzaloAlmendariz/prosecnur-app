@@ -3385,7 +3385,7 @@ mount_graficos <- function(pr) {
         template_id = delivery$template_id
       )
       auto_otros_slides_arg <- delivery$auto_otros_slides
-      presets <- .enriquecer_presets(presets, cfg$debug_ph)
+      presets <- .enriquecer_presets(presets, NULL)  # D17: las guías de depuración nunca llegan al entregable
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
       # y el motor la maneja como single-base automáticamente.
@@ -3486,7 +3486,7 @@ mount_graficos <- function(pr) {
         )
         per_base[[base]] <- list(
           plan = plan_b,
-          presets = .enriquecer_presets(cfg$presets, cfg$debug_ph),
+          presets = .enriquecer_presets(cfg$presets, NULL),  # D17: las guías de depuración nunca llegan al entregable
           paletas = cfg$paletas %||% list(),
           icon_registry = .graficos_icon_registry(sid, cfg),
           template_pptx = .graficos_resolve_template_pptx(
@@ -3594,7 +3594,7 @@ mount_graficos <- function(pr) {
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       # Mismas invariantes que en /ppt.
       cfg <- .graficos_effective_config(sid, config)
-      presets <- .enriquecer_presets(presets, cfg$debug_ph)
+      presets <- .enriquecer_presets(presets, NULL)  # D17: las guías de depuración nunca llegan al entregable
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
       # y el motor la maneja como single-base automáticamente.

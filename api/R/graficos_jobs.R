@@ -132,18 +132,13 @@
 }
 
 # Las guías de layout (`config.debug_ph` de la UI, que `.enriquecer_presets()`
-# materializa como `debug_ph_bordes`) llegan al ENTREGABLE, no solo al preview.
-#
-# Antes se apagaban siempre en los tres workers de export. La intención era
-# evitar que un mazo saliera al cliente con marcos magenta, pero el efecto era
-# un interruptor que se declaraba activo —con su punto magenta en el header— y
-# no tenía efecto observable en ninguna superficie donde el analista mirara. Un
-# control que miente sobre lo que hace es peor que un mazo con guías: quien las
-# enciende las quiere justamente para revisar el mazo completo, y diagnosticar
-# el layout de 67 láminas de a una vista previa no es una herramienta.
-#
-# El analista sabe leer un PPT y ver que tiene guías, y el estado está a la
-# vista en el header mientras exporta. Se le trata como lo que es.
+# materializa como `debug_ph_bordes`) son una herramienta del EDITOR y no llegan
+# al entregable: decisión D17 de Gonzalo (2026-10-10, «que ignore las guías en la
+# salida»). Los endpoints de export (/ppt, /ppt-all, /word y el consolidado) llaman
+# a `.enriquecer_presets(..., NULL)`, que las fuerza a FALSE aunque la config las
+# tenga encendidas; la vista previa sí las respeta. Revisar el mazo completo con
+# guías se hará con la capa de guías del visor del editor (F6), no con marcas
+# horneadas en el PPT del cliente.
 
 # Worker del job `graficos.ppt` (POST /api/graficos/ppt): exporta el PPT
 # de la base activa. Los data/instrumento viajan por RDS (job_save_rds)
