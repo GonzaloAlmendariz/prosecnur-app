@@ -23,7 +23,7 @@ Secciones:
 4. Decisiones tomadas por el dueño
 5. El sistema de diseño objetivo: el kit, pieza por pieza
 6. La maqueta: cómo verla y qué muestra cada página
-7. Las 37 unidades, una por una
+7. Las 38 unidades, una por una
 8. El plan: vueltas, dependencias y gates
 9. Vara y ledger
 10. Trampas, riesgos y lo que no se verificó
@@ -236,6 +236,7 @@ onboarding (2,5).
 | K3 | Botón de texto sin subrayado, con caja al hover y separador fino entre vecinos; subrayado solo en prosa | señalado con captura («Ninguna · Todas») | regla del kit |
 | K4 | Una acción de navegación nombra su destino y usa la flecha de lucide; «Ir» y «→» tipeado no existen | señalado con captura («Ir →») | regla del kit |
 | L35 | El dock del header deja escapar «Agregar» con los ocho módulos | señalado con captura («el más se escapa del borde») | unidad nueva: el dock mide lo que sus módulos |
+| L38 | Monitoreo: un solo control de actualización, siete verbos, nada en la barra escribe fuera, ensayo antes de publicar | «los botones para actualizar la data tienen bastantes funciones distintas, algo confuso con botones blancos y rojos; una forma natural y orgánica de ordenarlo» (2026-10-10) | censo `censo-acciones-datos-monitoreo-2026-10-10.md` §5; D9–D12 esperan al dueño |
 | L36 | Formularios tiene dos secciones, Editor y Documento, y Documento es un editor fiel del cuestionario en Word | «una sección para el editor en plataforma y otra para su edición en Word… con la lógica completa que ya usamos, pestañas especializadas y un editor con officer profesional y sofisticado»; «lo mismo que el editor de láminas: una versión avanzada, elegante y sofisticada, no superficial» | unidad XL en seis fases con la arquitectura de F6 |
 | D1 | Formularios entra a `ModuleCommandBar` | recomendación aplicada salvo veto | métricas a la cabecera, acciones por rango, menú de overflow, excepción retirada |
 | D2 | Dashboard: chrome canónico en la administración; el artefacto publicado conserva su capa `dash-*` y pasa a secuencial navy | recomendación aplicada salvo veto | vuelta 3 |
@@ -419,11 +420,12 @@ maqueta.
 | L31 | Home vivo: bloque «hoy», cards con hecho y base, siguiente acción, job en curso | L31 |
 | L32 | Materiales: un blur, header opaco con hairline, ventana en `--pulso-bg`, seis sombras | L32 |
 | L36 | Formularios › Documento: páginas reales del cuestionario, bloque P5 seleccionado con inspector contextual, ajustes del documento, generación como job, pestaña Estándar | L36 |
+| L38 | Monitoreo › Fuentes con el control «Actualizar ▾» en la barra (popover con una fila por fuente, «Traer todo de nuevo», «Recalcular»), píldora de estado pendiente, una fila por fuente en la sección, el diálogo de ensayo de «Publicar al Sheets» con filas retiradas en rojo, la tabla de los siete verbos y la comparación «hoy» por perfil | L38 |
 | L37 | Laboratorio de movimiento: nueve demostraciones interactivas (módulo/sección/pestaña, diálogo/sideover/popover, press/hover/selección/switch, insertar/quitar/reordenar, skeleton/contenido/job, toast, «ir a» y cabecera pegajosa, tira con snap, barras), las reglas, lo medido hoy y un switch que simula «reducir movimiento» | L37 |
 
 ---
 
-## 7. Las 37 unidades, una por una
+## 7. Las 38 unidades, una por una
 
 Formato de cada unidad: **Hoy** (evidencia) · **Después** (maqueta y
 comportamiento) · **Alcance** (frontend, backend, tests) · **Gate** ·
@@ -833,6 +835,28 @@ Hoy: dos blurs apilados (`theme.css:633-651` y command bar), `backgroundColor`
 en `--pulso-bg`, sombras por los seis tokens. Alcance: `theme.css`,
 `desktop/main.cjs`. Gate: `backdrop-filter` en el header = 0. Esfuerzo: S.
 
+**L38 · Monitoreo: un verbo por dirección.**
+Hoy: ver el censo de acciones de datos de Monitoreo (§1 y §4): «Avance» y
+«Todo» con el tono del módulo como relleno, con efectos distintos por perfil;
+dos «Todo» en telefónico y acreditación; cuatro rótulos para una misma
+descarga en territorial; en aulas «Avance» no trae nada y «Traer respuestas»
+trae, publica y borra filas de un Sheets que editan 22 personas, sin
+confirmación; el único `is-danger` del módulo es una acción reversible.
+Después (maqueta L38): un solo control `Actualizar ▾` en el chrome de los
+cuatro perfiles con píldora de estado; diccionario de siete verbos; Publicar
+nunca en la barra y siempre con ensayo Revisar → Aplicar; `--danger` sólo
+para lo que borra o no se deshace; un sync a la vez y recibo visible; retiro
+de la franja «Sheets · Kobo · Todo», de los duplicados territoriales y del
+segundo «Traer respuestas». Alcance: `shell/MonitoreoModuleChrome.tsx`,
+`shell/ControlActualizar.tsx` (nuevo), `components/SourceSyncActions.tsx`,
+`profiles/*/sync/*`, `TerritorialSourceConsole.tsx`,
+`AulasOperationsPanel.tsx`, `AulasMonitoreoPage.tsx`, `router_monitoreo.R`
+(ensayo `aplicar:false`), `jobs.R` (dedupe). Tests: contrato de acciones
+(§5.5 del censo); testthat del ensayo sin red; prueba de render del bloqueo
+mutuo chrome ↔ filas. Gate: contrato verde; las cuatro pantallas densas del
+censo con un solo control; capturas en `acnur_pdm`, `acrconta`, `acnur_acg`
+y la copia de aulas. Depende de: L26, D9–D12. Esfuerzo: L.
+
 **L37 · Sistema de movimiento y fluidez.**
 Hoy: ver §5.4 y el censo de animaciones. Después (maqueta L37): las 22
 coreografías con sus tokens; transición de módulo y sección (firma de 6 px)
@@ -873,11 +897,11 @@ bajan. Esfuerzo: M.
 | 0 Fundaciones del kit | las piezas que todo lo demás consume | L1 ∥ L14, L26, L24, L2, L35 | 9 | frontend-react, autor-regresiones |
 | 1 Carga | importar con catálogo, job, cancelar y credenciales a un clic; wizard con stepper | L3 ∥ L4, L5, L9, L7, L8, L6 | 16 | frontend-react, backend-r, autor-regresiones |
 | 2 Verde por conformidad | el instrumento deja de aprobar lo que no vio; Formularios enlazable | L10 ∥ L11, L12, L13 | 7 | frontend-react, autor-regresiones |
-| 3 Un solo chrome | los ocho módulos iguales; Formularios con Editor y Documento | L15 ∥ L16, L14b, L17, L18, L19, D2, L36 (XL) | 19 | frontend-react, especialista-entregables, revisor-metodologico, qa-visual-desktop |
+| 3 Un solo chrome | los ocho módulos iguales; Formularios con Editor y Documento | L15 ∥ L16, L14b, L17, L18, L19, D2, L36 (XL), L38 | 22 | frontend-react, especialista-entregables, revisor-metodologico, qa-visual-desktop |
 | 4 Cifras y feedback | avance con base, criterios honestos, guardado verificable, tiempo en esperas, toasts | L20 ∥ L21, L22, L23, L25 | 7 | frontend-react, backend-r, revisor-metodologico |
 | 5 Datos y densidad | kit en Cálculo y Carga, tablas con inspector, tipografía y densidad, hex | L27 ∥ L28, L29 | 12 | frontend-react, qa-visual-desktop |
 | 6 Shell | ⌘K, Home vivo, materiales, sistema de movimiento, desduplicación | L30 ∥ L31, L32, L33, L37 | 9 | frontend-react, desktop-packaging, autor-regresiones, qa-visual-desktop |
-| **Total** | | 37 unidades | **79** | |
+| **Total** | | 38 unidades | **82** | |
 
 Dependencias que fijan el orden:
 
@@ -920,6 +944,7 @@ el GOAL.
 | V9 | Las esperas largas dicen cuánto falta | tiempo + skeleton | 0 |
 | V10 | Cualquier vista se alcanza desde el teclado | ⌘K + atajos | 0 |
 | V11 | La deuda de piel baja y no sube | hex, `font-size`, inline, tokens sin definir, congelados | 4.468 · 8.188 · 2.699 · 23 |
+| V13 | Las acciones de datos de Monitoreo son un diccionario | contrato de acciones verde; 0 `/sync` fuera del chrome y las filas; 0 escrituras externas sin ensayo | «Avance»/«Todo» ×4, 2 «Todo», 4 rótulos por descarga, 1 ensayo |
 | V12 | El movimiento es un sistema | contrato de movimiento verde; 0 layout animado; 0 literales en migrados; 0 frames largos | 233 keyframes · 34 layout · 1.112 ms literales · 13 presses |
 
 Ledger de apertura (2026-10-10): `role="dialog"` 61 · paneles 10/~50 ·
@@ -978,6 +1003,7 @@ de las 27 maquetas más allá de 1440×1000.
 - `goal-modernizacion-ui-2026-10-10.md` — vara, cola y bandeja; la fuente de
   verdad del estado de cada unidad.
 - `plan-trabajo-remasterizacion-ui-2026-10-10.md` — las vueltas con su gate.
+- `censo-acciones-datos-monitoreo-2026-10-10.md` — qué hace cada botón de actualización de Monitoreo hasta el endpoint, y el modelo «un verbo por dirección» (L38).
 - `censo-animaciones-2026-10-10.md` — el censo de movimiento, los principios, el catálogo M1–M22 y el antes/después.
 - `direccion-diseno-editor-graficos-f6-2026-10-09.md` — la arquitectura que
   Documento (L36) calca.
