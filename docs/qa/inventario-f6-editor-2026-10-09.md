@@ -213,4 +213,14 @@ hook `desktop/scripts/after-pack-mac.cjs` (ditto + `codesign --verify --deep --s
 Gatekeeper/cuarentena del LibreOffice anidado en un .app sin firmar (riesgo principal para distribuir). Efecto en CI: el job
 de macOS (best-effort) ahora descarga ~600 MB de TDF por corrida; la clave de caché no incluye el lock. En local,
 `build-dmg.sh` choca con los `.pulso` de `api/inst/reference_projects` en solo lectura (`xattr -cr`, problema previo).
-P7 (Windows) ☐ · P8 (`release.yml`) ☐ requiere aprobación · P9 ☐ · P10 ☐.
+**P7 ☑ `f073f9eb9`**: `packaging/windows/stage-preview-renderer.sh` (msiextract + gcab) llamado por
+`build-self-contained.sh` hacia `runtime/preview-renderer/LibreOffice`. Staging real en esta Mac (msitools 0.106): 3 min 50 s,
+árbol de 1.4 GB (1 489 503 KB aparentes) y 19 342 archivos (`program` 715 MB, `share` 722 MB); `soffice.exe`, `soffice.bin` y
+10 DLL del CRT en `program/`, todo PE x86-64. Hallazgo: el MSI no trae el CRT en `program/` (va a System32 por merge
+modules VC143) y `msiextract` deja en `System64` la variante arm64 (misma ruta que la amd64): se toma del CAB por clave
+`_amd64.`. Sondeo NSIS (zlib, como `installer.nsi`) sólo con el árbol: 480 MB → instalador estimado ~1.06 GB (antes 576 MB),
+bajo el tope de 2 GB. Ruta relativa más larga 111 caracteres. Sin probar: instalar en Windows limpio (usuario con espacio y
+tilde), arranque de `soffice.exe --headless --convert-to pdf`, fuentes del MSI (Carlito, Caladea, DejaVu…) que no se
+registran al extraer. **Efecto en CI**: desde `f073f9eb9` el job de Windows de `release.yml` falla cerrado en el staging
+porque no instala `msitools gcab`; stable queda sin Windows hasta P8. Pico de disco en el runner ~3.5 GB extra durante el
+staging. · P8 (`release.yml`) ☐ requiere aprobación · P9 ☐ · P10 ☐.
