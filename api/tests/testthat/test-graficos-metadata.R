@@ -269,7 +269,8 @@ source("setup-load-all.R")
 
 test_that("registry: cada slide y graficador expone el shape completo con nombres únicos y reales", {
   reg <- .graficos_registry_payload()
-  expect_setequal(names(reg), c("slides", "graficadores"))
+  # `familias_editor` (K4, plan F6 §5.2): el orden de las familias del selector «Tipo de gráfico».
+  expect_setequal(names(reg), c("slides", "graficadores", "familias_editor"))
   expect_length(reg$slides, 33L)
   expect_length(reg$graficadores, 26L)
 
