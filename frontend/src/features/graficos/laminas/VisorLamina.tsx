@@ -6,6 +6,7 @@ import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  Download,
   ChevronLeft,
   ChevronRight,
   History,
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
 } from "../../../vendor/lucide-react";
+import { downloadUrl } from "../../../api/core";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
@@ -125,6 +127,17 @@ export function VisorLamina({
             <AlertTriangle size={14} aria-hidden="true" />
             {l.avisos.length === 1 ? "1 aviso" : `${l.avisos.length} avisos`}
           </button>
+        )}
+        {l?.fileId && vista.fase === "lista" && (
+          <a
+            className="pulso-f6-icono-boton"
+            href={downloadUrl(l.fileId)}
+            download={`lamina-${lamina.posicion}.pptx`}
+            aria-label="Descargar esta lámina en PowerPoint"
+            title="Descargar esta lámina en PowerPoint"
+          >
+            <Download size={16} aria-hidden="true" />
+          </a>
         )}
         <label className="pulso-f6-zoom">
           <span className="pulso-sr-only">Zoom de la lámina</span>
