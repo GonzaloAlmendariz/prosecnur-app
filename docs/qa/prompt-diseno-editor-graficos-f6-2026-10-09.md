@@ -273,8 +273,8 @@ Medido el 2026-10-09 sobre una copia del proyecto acrconta (detalle en la Parte 
 - **Word**: no hay visor hoy. Generar el DOCX tarda ~200 s (por job); convertirlo a páginas, ~17 s. LibreOffice deja los
   índices (TOC) vacíos; Word los llena al abrir. El visor del Word se diseña como «la última versión exportada», con un
   botón para regenerarla y su progreso, no como algo en vivo.
-- En la app de escritorio, LibreOffice no viene incluido (decisión pendiente de Gonzalo: incluirlo o pedir que se instale).
-  Diseña el estado «sin renderer»: qué ve el analista y cómo lo resuelve.
+- En la app de escritorio, LibreOffice **irá incluido en el instalador** (decisión de Gonzalo, 2026-10-09: «se instala en el
+  instalador de escritorio»). Aun así diseña el estado «el renderer falló» (un error puntual), con su salida.
 
 ## 7. Entregables
 
