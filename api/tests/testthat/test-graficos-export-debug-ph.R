@@ -120,7 +120,9 @@ test_that("PPT y Word devuelven los avisos del motor, no solo el PPT", {
   for (i in registros) {
     bloque <- paste(cuerpo[i:min(i + 12L, length(cuerpo))], collapse = "\n")
     expect_true(
-      grepl("avisos = I(.pulso_avisos_de_job(j$sid, j$id))", bloque, fixed = TRUE),
+      # `.graficos_avisos_job()` suma la migración del plan a `.pulso_avisos_de_job()` (que siga leyéndolo lo fija
+      # test-graficos-avisos-en-todos-los-exports.R).
+      grepl("avisos = I(.graficos_avisos_job(j$sid, j$id, plan))", bloque, fixed = TRUE),
       info = sprintf("el on_complete de la linea %d no devuelve los avisos", i)
     )
   }

@@ -124,7 +124,7 @@
 
 #' Los avisos de un job de Gráficos: primero los de la migración del plan que recibió, luego los del worker
 #'
-#' La migración ocurre en el proceso principal (el plan del body pasa por `.normalize_plan(avisar = TRUE)`), no en el
+#' `plan` es el plan del body (`.normalize_plan(avisar = TRUE)`) o la sesión de `/ppt-all` (`.graficos_sesion_con_migracion`). La migración ocurre en el proceso principal, no en el
 #' worker: su aviso no está en el `.err` del job y se suma aquí, con el mismo orden y tope que los demás.
 #' @keywords internal
 .graficos_avisos_job <- function(sid, job_id, plan = NULL) {

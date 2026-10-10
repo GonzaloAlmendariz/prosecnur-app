@@ -181,3 +181,16 @@ test_that("import de una config con población antigua: la migra, la guarda y av
   r2 <- .mpa_endpoint("/api/graficos/config/import", list(plan = .graficos_migrar_poblacion_antigua(.mpa_plan(), avisar = FALSE)), new.env(), sid = sid)
   expect_length(as.character(unclass(r2$avisos)), 0L)
 })
+
+test_that("/ppt-all: la sesión migrada lleva los avisos de cada base al resultado del job, una vez", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "graficos_config_por_base", list(egresados = list(plan = .mpa_plan()), docentes = list(plan = .mpa_plan())))
+  s <- .graficos_sesion_con_migracion(sid)
+  for (b in c("egresados", "docentes")) expect_identical(.mpa_tipos(s$graficos_config_por_base[[b]]$plan), c("p_slide_portada", "p_slide_2_graficos", "p_slide_4_graficos"))
+  testthat::local_mocked_bindings(.pulso_avisos_de_job = function(sid, job_id, maximo = 8L) "Otro aviso", .package = "prosecnurapp")
+  av <- .graficos_avisos_job(sid, "j", s)
+  expect_identical(sum(grepl("^Base «egresados»", av)), 2L)
+  expect_true("Otro aviso" %in% av)
+  # Ya migrada: la segunda exportación (y el GET) no repiten el aviso.
+  expect_identical(.graficos_avisos_job(sid, "j", .graficos_sesion_con_migracion(sid)), "Otro aviso")
+})

@@ -66,3 +66,16 @@
   .graficos_config_set(sid, .graficos_normalize_config(parsed, sid = sid))
   avisos
 }
+
+#' La sesión después de migrar sus configs, con los avisos de la migración pegados
+#'
+#' Para `/api/graficos/ppt-all`, que exporta la config GUARDADA de cada base: migra y persiste como el GET
+#' (`.graficos_config_migrar_sesion`) y devuelve la sesión con `attr(, "avisos_migracion")`, que `.graficos_avisos_job()`
+#' suma al resultado del job. Si la sesión ya estaba migrada, sin avisos.
+#' @keywords internal
+.graficos_sesion_con_migracion <- function(sid) {
+  avisos <- .graficos_config_migrar_sesion(sid)
+  s <- session_get(sid)
+  attr(s, "avisos_migracion") <- if (length(avisos)) avisos else NULL
+  s
+}
