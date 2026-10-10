@@ -746,21 +746,16 @@
       if (nrow(paneles)) target <- paneles[which.max(paneles$cy), , drop = FALSE]
       if (is.null(target)) next
     } else if (identical(cal$modo, "icono")) {
-      cuadrados <- bodies[
-        bodies$offy < slide_dims$height * 0.72 &
-          bodies$cy >= 1 & bodies$cx <= 3 &
-          abs(bodies$cx - bodies$cy) <= 0.6,
-        , drop = FALSE
-      ]
-      if (nrow(cuadrados)) {
-        centrado <- abs(cuadrados$offx + cuadrados$cx / 2 - slide_dims$width / 2)
-        target <- cuadrados[which.min(centrado), , drop = FALSE]
-      }
+      # El ícono del público: un cajón cuadrado grande centrado entre los gráficos (layouts históricos) o, en los que
+      # siguen al recetario (K15: cinco y seis gráficos, p164/p166), el cuadrado chico de la cabecera.
+      target <- .ppt_cajon_icono(bodies, slide_dims)
     }
 
     if (is.null(target)) {
       spec$suppress <- TRUE
       spec$loc <- NULL
+      # Sin cajón, el ícono que el usuario eligió no sale: se dice (`.ppt_slot_suprimido`), no se calla.
+      if (identical(cal$modo, "icono")) spec$aviso_supresion <- .ppt_aviso_icono_suprimido(layout_name)
     } else {
       spec$suppress <- NULL
       spec$type_idx <- suppressWarnings(as.integer(target$type_idx[[1]]))
