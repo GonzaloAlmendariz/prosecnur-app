@@ -3537,9 +3537,9 @@ mount_graficos <- function(pr) {
       # Biblioteca de íconos del recetario (F6.0b.5, lamina_iconos.R): nombres por color y las imágenes pedidas.
       sel <- if (is.null(nombres) || !nzchar(nombres)) NULL else strsplit(nombres, ",", fixed = TRUE)[[1]]
       cat <- .lam_iconos_catalogo()
-      list(ok = TRUE, colores = cat$colores, iconos = .lam_iconos_data_uri(as.character(color)[1], sel))
+      list(ok = TRUE, colores = lapply(cat$colores, I), iconos = .lam_iconos_data_uri(as.character(color)[1], sel))
     })) |>
-    plumber::pr_post("/api/graficos/iconos-recetario/elegir", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/graficos/iconos-recetario/elegir", wrap_endpoint(function(req, res, contexto = NULL, textos = NULL) {
       # Qué ícono elige el motor para cada texto y por qué (capítulos del índice, actores del objetivo, filas de la ficha).
       crudo <- .graficos_body_sin_simplificar(req, c("contexto", "textos")) %||% list()
       contexto <- as.character(unlist(crudo$contexto) %||% "capitulo")[1]
@@ -3563,7 +3563,7 @@ mount_graficos <- function(pr) {
       )
       list(ok = TRUE, job_id = job_id)
     })) |>
-    plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
+    plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL, opciones_documento = NULL) {
       crudo <- .graficos_body_sin_simplificar(req, c("plan", "presets", "w_presets", "config", "opciones_documento"))
       if (is.list(crudo)) {
         plan <- crudo$plan %||% plan
