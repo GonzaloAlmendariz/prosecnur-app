@@ -119,10 +119,10 @@ test_that("la procedencia tiene TRES grados de certeza, no dos", {
   expect_identical(leida$caso, "C")
 })
 
-test_that("lo que la app dedujo y selló no se publica como declarado", {
-  # Con dos grados, sellar convertía ocho deducciones en «registrada» y les daba
-  # la certeza de una decisión. Lo advirtió la sesión vecina mirando este mismo
-  # diseño el 2026-09-18, y era cierto: se medía en HSVG2026.
+test_that("lo no declarado no se sella: la letra la pone quien elige el aula", {
+  # Gonzalo, 2026-10-10: una reserva que entra sin rechazo es B o C, y lo
+  # declara quien la elige; la app no la sella como `adicional_inferido`. Sin
+  # declaración queda como reconstruida, sin letra, que es lo único que consta.
   plan <- list(
     .ref_u("CH 30", operational_status = "aplicada", effective_surveys = 14),
     .ref_u("R 30.1", rol = "chain_reserve", titular_operational_code = "CH 30",
@@ -131,13 +131,13 @@ test_that("lo que la app dedujo y selló no se publica como declarado", {
   )
   sellado <- monitoreo_aulas_sellar_procedencia(plan, ahora = "2026-09-18T12:00:00Z",
                                                 hoy = as.Date("2026-09-18"))
-  expect_equal(sellado$selladas, 1)
+  expect_equal(sellado$selladas, 0)
+  expect_false(nzchar(sellado$plan[[2]]$activation_origin %||% ""))
   o <- monitoreo_aulas_refuerzos(sellado$plan, data.frame(), list(),
                                  hoy = as.Date("2026-09-18"))
   a <- Filter(function(x) identical(x$codigo, "R 30.1"), o$activadas)[[1]]
   expect_identical(a$clase, "adicional")
-  expect_identical(a$procedencia_fuente, "sellada")
-  expect_false(identical(a$procedencia_fuente, "declarada"))
+  expect_identical(a$procedencia_fuente, "reconstruida")
 })
 
 test_that("sellar es idempotente y no pisa lo que alguien declaró", {
@@ -160,7 +160,8 @@ test_that("sellar es idempotente y no pisa lo que alguien declaró", {
   )
   a <- monitoreo_aulas_sellar_procedencia(sin_marca, hoy = as.Date("2026-09-18"))
   b <- monitoreo_aulas_sellar_procedencia(a$plan, hoy = as.Date("2026-09-18"))
-  expect_equal(a$selladas, 1)
+  # Sin declaración no hay nada que sellar (2026-10-10), ni en la primera pasada.
+  expect_equal(a$selladas, 0)
   expect_equal(b$selladas, 0)
 })
 
@@ -186,13 +187,15 @@ test_that("el aula se encuentra por su classroom_id cuando no trae código opera
     .ref_u("CH 34", operational_status = "aplicada", effective_surveys = 14),
     utils::modifyList(
       .ref_u("R 34.1", rol = "chain_reserve", titular_operational_code = "CH 34",
-             replacement_order = 1, sample_status = "agendada",
+             replacement_order = 1, sample_status = "REFUERZO AGENDADO",
              scheduled_date = "2026-09-25"),
       list(operational_code = "", classroom_id = "AULA-34-1"))
   )
+  # Se sella lo DECLARADO (el equipo tecleó «REFUERZO AGENDADO»), y la fila se
+  # encuentra por su aula aunque no traiga código.
   o <- monitoreo_aulas_sellar_procedencia(plan, hoy = as.Date("2026-09-18"))
   expect_equal(o$selladas, 1)
-  expect_identical(o$plan[[2]]$activation_origin, prosecnurapp:::.MARF_ORIGEN_INFERIDO)
+  expect_identical(o$plan[[2]]$activation_origin, "refuerzo")
 })
 
 test_that("el techo se cuenta con las aulas que FUERON A CAMPO, no con el eslabón en juego", {

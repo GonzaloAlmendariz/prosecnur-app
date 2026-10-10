@@ -2,7 +2,7 @@
 tipo: pestana
 padres:
   - "[[Validación de cursos-horario]]"
-orden: 4
+orden: 5
 documentacion: parcial
 ruta_app: "/monitoreo?modo=aulas&seccion=calidad&pestana=abiertas"
 nodo: "monitoreo/aulas/calidad/abiertas"

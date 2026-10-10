@@ -2,7 +2,7 @@
 tipo: pestana
 padres:
   - "[[Consultas de cursos-horario]]"
-orden: 2
+orden: 3
 documentacion: parcial
 ruta_app: "/monitoreo?modo=aulas&seccion=consultas&pestana=brechas"
 nodo: "monitoreo/aulas/consultas/brechas"

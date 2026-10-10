@@ -110,6 +110,15 @@ decisiones D1–D13 resueltas por Gonzalo o anotadas como descartadas. Solo Gonz
 
 - Ninguno todavía. A los anota en su encargo, sección «Pedidos a B», y B los copia aquí al tomarlos.
 
+## Pedidos recibidos de la Fase 0
+
+- **Selector B/C al agendar una reserva sin rechazo** (regla de Gonzalo, 2026-10-10: «o es un adicional situación B o es
+  un refuerzo situación C; no debería inferirse»). Desde el commit `8b4d16b`, `POST /api/monitoreo/aulas/agenda` responde
+  422 `E_AULAS_RESERVA_SIN_CASO` si el pedido deja en juego una reserva cuyo titular no cayó sin `activation_origin`
+  (`complemento`/`refuerzo`, o `B`/`C`). Su único llamador de UI es `RegistroDeCampo.tsx` (`apiMonitoreoAulasAgenda`):
+  hoy muestra el error. Falta que la pantalla pregunte B o C y lo envíe en `activation_origin`, y añadir ese campo a
+  `MonitoreoAulasPlanRow` en `frontend/src/api/monitoreo.ts`.
+
 ## Reglas del loop
 
 - Máximo tres trabajadores y dos escritores por oleada; profundidad uno; todo cierra con `verificador`.

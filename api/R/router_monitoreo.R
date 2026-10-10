@@ -5313,6 +5313,11 @@ mount_monitoreo <- function(pr) {
         # produce el dato y nadie lo emite, asi que la cifra no llega.
         fusion = out$fusion,
         agenda_campos_ausentes = out$agenda_campos_ausentes,
+        # Mismo patrón: el importador los calcula y la sesión los guarda, pero la
+        # respuesta de la importación no los traía.
+        estados_desconocidos = out$estados_desconocidos,
+        codigos_sin_plan = out$codigos_sin_plan,
+        reservas_sin_cadena = out$reservas_sin_cadena,
         state = .monitoreo_state_payload(sid),
         saved_project = !is.null(saved_project)
       )
@@ -5511,6 +5516,11 @@ mount_monitoreo <- function(pr) {
         control_sin_nombre = out$control_sin_nombre,
         fusion = out$fusion,
         agenda_campos_ausentes = out$agenda_campos_ausentes,
+        # Mismo patrón: el importador los calcula y la sesión los guarda, pero la
+        # respuesta de la importación no los traía.
+        estados_desconocidos = out$estados_desconocidos,
+        codigos_sin_plan = out$codigos_sin_plan,
+        reservas_sin_cadena = out$reservas_sin_cadena,
         state = .monitoreo_state_payload(sid),
         saved_project = !is.null(saved_project)
       )
@@ -5609,7 +5619,8 @@ mount_monitoreo <- function(pr) {
       snapshot <- s$monitoreo_snapshot %||% NULL
       data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
       cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
-      updates <- parsed$updates %||% parsed$agenda %||% parsed$plan %||% parsed
+      updates <- .monitoreo_aulas_agenda_normalizar_caso(
+        parsed$updates %||% parsed$agenda %||% parsed$plan %||% parsed)
       plan <- tryCatch(
         monitoreo_aulas_update_agenda(cfg$aulas_universitarias$plan %||% list(), updates),
         # Un `api_error` del engine ya trae código y detalle propios: se re-lanza
@@ -5632,6 +5643,10 @@ mount_monitoreo <- function(pr) {
       # deducido (`adicional_inferido`), no como declarado, y SIN letra de
       # caso: consta que entró de más, no si fue para completar un
       # curso-horario (B) o para reforzar la facultad (C).
+      # Desde 2026-10-10 la letra no se deduce: una reserva sin rechazo que este
+      # pedido deja en juego tiene que venir declarada B o C (ver
+      # monitoreo_aulas_agenda_caso.R). El sellado sólo registra lo declarado.
+      plan <- .monitoreo_aulas_agenda_exigir_caso(plan, updates)
       plan <- monitoreo_aulas_sellar_procedencia(plan)$plan
       cfg$aulas_universitarias$enabled <- TRUE
       cfg$aulas_universitarias$plan <- plan
