@@ -11,13 +11,20 @@
   container-name: pulso-f6-laminas;
 }
 
+/* Estructura e Inspector se excluyen (decisión de Gonzalo, 2026-10-10): a lo sumo uno abierto y la lámina ocupa el
+   resto. Como ya no conviven, el Inspector es más ancho que en la parte 1 (360): --pulso-inspector-ancho, 400–440 px
+   según la ventana (432 a 1440). El grid salta a su plantilla en un frame: no se anima el layout (contrato de
+   movimiento F6); el panel que entra lleva el movimiento. Las clases is-sin-estructura / is-sin-inspector /
+   is-inspector-abierto son estables para el hook de re-encaje. */
 .pulso-f6-laminas {
+  --pulso-inspector-ancho: clamp(400px, 30vw, 440px);
+  --pulso-estructura-ancho: 280px;
   position: relative;
   flex: 1;
   min-height: 0;
   min-width: 0;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 360px;
+  grid-template-columns: var(--pulso-estructura-ancho) minmax(0, 1fr) 0px;
   grid-template-rows: minmax(0, 1fr);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
@@ -25,43 +32,23 @@
   overflow: hidden;
 }
 
-/* Columnas plegables en el marco ancho (Estructura e Inspector): la lámina gana su ancho y el lienzo se re-encaja. */
-.pulso-f6-laminas {
-  transition: grid-template-columns var(--motion-dur-fast) var(--motion-ease-out);
+.pulso-f6-laminas.is-sin-estructura.is-sin-inspector {
+  grid-template-columns: 0px minmax(0, 1fr) 0px;
 }
 
-@container pulso-f6-laminas (min-width: 1121px) {
-  .pulso-f6-laminas.is-sin-inspector {
-    grid-template-columns: 280px minmax(0, 1fr) 0px;
-  }
-
-  .pulso-f6-laminas.is-sin-inspector.is-sin-estructura {
-    grid-template-columns: 0px minmax(0, 1fr) 0px;
-  }
-
-  .pulso-f6-laminas.is-sin-inspector > .pulso-f6-inspector-marco {
-    visibility: hidden;
-    border-left: 0;
-    overflow: hidden;
-  }
+.pulso-f6-laminas.is-sin-estructura:not(.is-sin-inspector) {
+  grid-template-columns: 0px minmax(0, 1fr) var(--pulso-inspector-ancho);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pulso-f6-laminas { transition: none; }
-}
-
-.pulso-f6-laminas.is-sin-estructura {
-  grid-template-columns: 0px minmax(0, 1fr) 360px;
-}
-
-.pulso-f6-laminas.is-sin-estructura > .pulso-f6-estructura {
+.pulso-f6-laminas.is-sin-estructura > .pulso-f6-estructura,
+.pulso-f6-laminas.is-sin-inspector > .pulso-f6-inspector-marco {
   visibility: hidden;
   overflow: hidden;
-  border-right: 0;
+  border: 0;
 }
 
 .pulso-f6-laminas.is-vacia {
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: var(--pulso-estructura-ancho) minmax(0, 1fr);
 }
 
 .pulso-f6-inspector-marco {
@@ -70,6 +57,22 @@
   display: flex;
   border-left: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
+  outline: none;
+}
+
+/* El lateral que entra lleva el movimiento: su contenido aparece con un desplazamiento corto. */
+.pulso-f6-laminas:not(.is-sin-estructura) > .pulso-f6-estructura,
+.pulso-f6-laminas:not(.is-sin-inspector) > .pulso-f6-inspector-marco {
+  animation: pulso-f6-lateral-entra var(--motion-dur-base) var(--motion-ease-drawer);
+}
+
+.pulso-f6-laminas:not(.is-sin-inspector) > .pulso-f6-inspector-marco {
+  --pulso-f6-desde: 12px;
+}
+
+@keyframes pulso-f6-lateral-entra {
+  from { opacity: 0; transform: translateX(var(--pulso-f6-desde, -12px)); }
+  to { opacity: 1; transform: none; }
 }
 
 .pulso-f6-laminas .pulso-f6-solo-compacto {
@@ -87,33 +90,32 @@
 }
 
 @container pulso-f6-laminas (max-width: 1120px) {
-  .pulso-f6-laminas,
-  .pulso-f6-laminas.is-sin-estructura {
-    grid-template-columns: 232px minmax(0, 1fr);
+  .pulso-f6-laminas {
+    --pulso-estructura-ancho: 232px;
+    --pulso-inspector-ancho: min(420px, 45vw);
+    grid-template-columns: var(--pulso-estructura-ancho) minmax(0, 1fr);
   }
 
-  .pulso-f6-laminas.is-sin-estructura > .pulso-f6-estructura {
-    visibility: visible;
-    border-right: 1px solid var(--pulso-border);
+  .pulso-f6-laminas.is-sin-estructura,
+  .pulso-f6-laminas.is-sin-estructura.is-sin-inspector,
+  .pulso-f6-laminas.is-sin-estructura:not(.is-sin-inspector) {
+    grid-template-columns: 0px minmax(0, 1fr);
   }
 
+  /* El Inspector se superpone a la lámina como diálogo modal (foco atrapado, Escape, velo). */
   .pulso-f6-inspector-marco {
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
     z-index: 4;
-    width: min(360px, 92%);
+    width: min(var(--pulso-inspector-ancho), 92%);
     box-shadow: var(--pulso-shadow-popover);
-    transform: translateX(100%);
-    visibility: hidden;
-    transition: transform var(--motion-dur-panel) var(--motion-ease-drawer), visibility 0s linear var(--motion-dur-panel);
   }
 
-  .pulso-f6-laminas.is-inspector-abierto .pulso-f6-inspector-marco {
-    transform: none;
-    visibility: visible;
-    transition: transform var(--motion-dur-panel) var(--motion-ease-drawer);
+  .pulso-f6-laminas:not(.is-sin-inspector) > .pulso-f6-inspector-marco {
+    --pulso-f6-desde: 100%;
+    animation-duration: var(--motion-dur-panel);
   }
 
   .pulso-f6-laminas .pulso-f6-solo-compacto {
@@ -130,9 +132,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso-f6-inspector-marco,
-  .pulso-f6-laminas.is-inspector-abierto .pulso-f6-inspector-marco {
-    transition: none;
+  .pulso-f6-laminas > .pulso-f6-estructura,
+  .pulso-f6-laminas > .pulso-f6-inspector-marco {
+    animation: none !important;
   }
 }
 

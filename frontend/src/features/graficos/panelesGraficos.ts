@@ -12,7 +12,14 @@ export const PANEL_BIBLIOTECA_GRAFICADORES: PanelDeclarado = {
   clase: "dialogo",
 };
 
-/** Inspector de la pestaña Láminas: columna fija en el marco ancho, sideover en el compacto (F6.1). */
+/** Estructura del informe en la pestaña Láminas: lateral izquierdo, excluyente con el inspector (F6.1). */
+export const PANEL_ESTRUCTURA_LAMINAS: PanelDeclarado = {
+  id: "estructura",
+  label: "Estructura del informe",
+  clase: "sideover",
+};
+
+/** Inspector de la pestaña Láminas: lateral derecho (sideover en el compacto), excluyente con la Estructura (F6.1). */
 export const PANEL_INSPECTOR_LAMINA: PanelDeclarado = {
   id: "inspector",
   label: "Ajustes de la lámina",
@@ -29,6 +36,7 @@ export const PANEL_AVISOS_INFORME: PanelDeclarado = {
 export const PANELES_GRAFICOS = [
   PANEL_BIBLIOTECA_SLIDES,
   PANEL_BIBLIOTECA_GRAFICADORES,
+  PANEL_ESTRUCTURA_LAMINAS,
   PANEL_INSPECTOR_LAMINA,
   PANEL_AVISOS_INFORME,
 ] as const satisfies readonly PanelDeclarado[];
