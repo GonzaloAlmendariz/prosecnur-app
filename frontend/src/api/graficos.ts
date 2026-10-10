@@ -2,7 +2,8 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
-import { apiFetch, handle, headers } from "./core";
+import { apiFetch, getSession, handle, headers } from "./core";
+import { normalizarAvisosConfig, publicarAvisosConfig } from "./graficosAvisosConfig";
 import { normalizeGraficosConfigBundle } from "./graficosConfigNormalizer";
 import type { JobStart } from "./jobs";
 
@@ -525,10 +526,16 @@ export async function apiGraficosPptStyleProfiles() {
 
 // Config persistida del plan de gráficos. Patrón idéntico a /analitica/config.
 // Autosave debounced 2s vía `useGraficosAutosave`. Export/import como respaldo.
-export async function apiGraficosConfigGet() {
-  return handle<{ ok: true; config: unknown }>(
+// `avisos` llega una sola vez por sesión (migración de la población antigua): se publica en
+// graficosAvisosConfig para que la sonda de arranque no se lo trague antes de que exista la vista de Láminas.
+export async function apiGraficosConfigGet(): Promise<{ ok: true; config: unknown; avisos: string[] }> {
+  const sid = getSession();
+  const r = await handle<{ ok: true; config: unknown; avisos?: unknown }>(
     await apiFetch("/api/graficos/config", { headers: headers() })
   );
+  const avisos = normalizarAvisosConfig(r.avisos);
+  publicarAvisosConfig(sid, avisos);
+  return { ...r, avisos };
 }
 
 export async function apiGraficosConfigPut(config: unknown) {

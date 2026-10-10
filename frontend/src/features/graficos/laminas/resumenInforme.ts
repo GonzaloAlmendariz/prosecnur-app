@@ -20,9 +20,11 @@ export type GrupoAvisos = {
   revisar: ValidationIssue[];
   /** Avisos sellados del motor en las láminas ya vistas, por id de lámina. */
   motor: { slideId: string; avisos: string[] }[];
+  /** Lo que el backend cambió en el plan al abrirlo (p. ej. la población antigua migrada); llega una vez por sesión. */
+  plan: string[];
 };
 
-export function agruparAvisos(issues: readonly ValidationIssue[], resumenes: Readonly<Record<string, ResumenLamina>>, orden: readonly string[]): GrupoAvisos {
+export function agruparAvisos(issues: readonly ValidationIssue[], resumenes: Readonly<Record<string, ResumenLamina>>, orden: readonly string[], plan: readonly string[] = []): GrupoAvisos {
   const motor = orden
     .map((slideId) => ({ slideId, avisos: resumenes[slideId]?.avisosTexto ?? [] }))
     .filter((m) => m.avisos.length > 0);
@@ -30,9 +32,10 @@ export function agruparAvisos(issues: readonly ValidationIssue[], resumenes: Rea
     bloquean: issues.filter((i) => i.severity === "error"),
     revisar: issues.filter((i) => i.severity !== "error"),
     motor,
+    plan: [...plan],
   };
 }
 
 export function totalAvisos(g: GrupoAvisos): number {
-  return g.bloquean.length + g.revisar.length + g.motor.reduce((t, m) => t + m.avisos.length, 0);
+  return g.bloquean.length + g.revisar.length + g.motor.reduce((t, m) => t + m.avisos.length, 0) + g.plan.length;
 }

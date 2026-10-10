@@ -23,6 +23,8 @@ import {
 import { usePlanStore } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { SlidePicker } from "./v2/timeline/SlidePicker";
+// Registra el destino de los avisos del plan al abrirlo (migración de la población antigua) para toda la página.
+import "./avisosPlan";
 
 export type GraficadorLibraryTarget = {
   slideId: string;

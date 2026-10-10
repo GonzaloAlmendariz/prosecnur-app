@@ -32,6 +32,26 @@ describe("el panel de Avisos se cierra con Escape desde cualquier foco (D5)", ()
     soltar();
   });
 
+  it("con otra capa encima (el popover de Cobertura) el Escape es de ella: Avisos sigue abierto", () => {
+    for (const popoverPrimero of [true, false]) {
+      const documento = new EventTarget();
+      let avisos = true;
+      let popover = true;
+      let cierrePendiente = false;
+      // Como en React, el popover pide cerrarse en el evento y desaparece del DOM al re-renderizar, después.
+      const escucharPopover = () => documento.addEventListener("keydown", () => { if (popover) cierrePendiente = true; });
+      if (popoverPrimero) escucharPopover();
+      const soltar = escucharEscape(documento, () => { avisos = false; }, () => popover);
+      if (!popoverPrimero) escucharPopover();
+      documento.dispatchEvent(tecla("Escape"));
+      if (cierrePendiente) popover = false;
+      expect([popover, avisos]).toEqual([false, true]);
+      documento.dispatchEvent(tecla("Escape"));
+      expect(avisos).toBe(false);
+      soltar();
+    }
+  });
+
   it("al desmontar deja de escuchar", () => {
     const documento = new EventTarget();
     const cerrar = vi.fn();
