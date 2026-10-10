@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Top2BoxSelector } from "./Top2BoxSelector";
+import { categoriasDeEscala } from "./top2boxSeleccion";
 import type React from "react";
 import { createPortal } from "react-dom";
 import {
@@ -278,7 +280,7 @@ function CompareQuestions({ args, onArgs, variables, multi }: BuilderSectionProp
         multi={multi}
       />
       <ScaleInline refs={vars} variables={variables} multi={multi} />
-      <SettingsPanel args={args} onArgs={onArgs} />
+      <SettingsPanel args={args} onArgs={onArgs} refs={vars} variables={variables} multi={multi} />
     </BuilderSection>
   );
 }
@@ -295,7 +297,7 @@ function QuestionByGroups({ args, onArgs, variables, multi }: BuilderSectionProp
         <SingleVarSelect value={cruce} onChange={(v) => onArgs({ modo: "cruce", cruces: v })} variables={variables} multi={multi} />
       </FieldLabel>
       <ScaleInline refs={varRef ? [varRef] : []} variables={variables} multi={multi} />
-      <SettingsPanel args={args} onArgs={onArgs} />
+      <SettingsPanel args={args} onArgs={onArgs} refs={varRef ? [varRef] : []} variables={variables} multi={multi} />
     </BuilderSection>
   );
 }
@@ -323,7 +325,7 @@ function QuestionsByGroups({ args, onArgs, variables, multi }: BuilderSectionPro
         onChange={(next) => onArgs({ titulos_grupo: next })}
       />
       <ScaleInline refs={vars} variables={variables} multi={multi} />
-      <SettingsPanel args={args} onArgs={onArgs} />
+      <SettingsPanel args={args} onArgs={onArgs} refs={vars} variables={variables} multi={multi} />
     </BuilderSection>
   );
 }
@@ -342,7 +344,7 @@ function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSour
         onChange={(next) => onArgs({ modo: "var_cruce", vars: topicsToVars(next), titulos_grupo: topicsToTitles(next), cruces: null })}
       />
       <ScaleInline refs={topics.flatMap((t) => t.vars)} variables={variables} multi={multi} />
-      <SettingsPanel args={args} onArgs={onArgs} />
+      <SettingsPanel args={args} onArgs={onArgs} refs={topics.flatMap((t) => t.vars)} variables={variables} multi={multi} />
     </BuilderSection>
   );
 }
@@ -531,7 +533,7 @@ function BlockEditor({
           />
         )
       )}
-      <BlockSettings block={block} onChange={onChange} />
+      <BlockSettings block={block} onChange={onChange} refs={refsDeBloque(block)} variables={variables} multi={multi} />
     </div>
   );
 }
@@ -978,8 +980,11 @@ function TitlesEditor({
   );
 }
 
-function SettingsPanel({ args, onArgs }: { args: Record<string, unknown>; onArgs: (patch: Record<string, unknown>) => void }) {
+type Top2BoxScope = { refs: string[]; variables: VarWithSource[]; multi: boolean };
+
+function SettingsPanel({ args, onArgs, refs, variables, multi }: { args: Record<string, unknown>; onArgs: (patch: Record<string, unknown>) => void } & Top2BoxScope) {
   const labels = asStringArray(args.top2box_labels);
+  const categorias = categoriasDeEscala(refs, (ref) => findVar(ref, variables, multi));
   const overrides = asRecord(args.overrides);
   return (
     <details style={detailsStyle}>
@@ -1006,13 +1011,8 @@ function SettingsPanel({ args, onArgs }: { args: Record<string, unknown>; onArgs
           />
         </FieldLabel>
         <div style={{ gridColumn: "1 / -1" }}>
-          <FieldLabel label="Etiquetas Top 2" compact help="Opcional. Separalas con coma. Si queda vacio, se usan las dos ultimas categorias.">
-            <input
-              value={labels.join(", ")}
-              onChange={(e) => onArgs({ top2box_labels: splitList(e.target.value) })}
-              style={inputStyle}
-              placeholder="Muy de acuerdo, De acuerdo"
-            />
+          <FieldLabel label="Categorías del Top Two Box" compact help="Las dos categorías de la escala que suman el Top Two Box. Sin ellas, el gráfico no lleva esa columna.">
+            <Top2BoxSelector categorias={categorias} seleccion={labels} onChange={(next) => onArgs({ top2box_labels: next })} />
           </FieldLabel>
         </div>
       </div>
@@ -1020,8 +1020,9 @@ function SettingsPanel({ args, onArgs }: { args: Record<string, unknown>; onArgs
   );
 }
 
-function BlockSettings({ block, onChange }: { block: MultiBlock; onChange: (patch: MultiBlock) => void }) {
+function BlockSettings({ block, onChange, refs, variables, multi }: { block: MultiBlock; onChange: (patch: MultiBlock) => void } & Top2BoxScope) {
   const labels = asStringArray(block.top2box_labels);
+  const categorias = categoriasDeEscala(refs, (ref) => findVar(ref, variables, multi));
   return (
     <details style={detailsStyle}>
       <summary style={summaryStyle}>Ajustes de este bloque</summary>
@@ -1034,9 +1035,11 @@ function BlockSettings({ block, onChange }: { block: MultiBlock; onChange: (patc
           />
           Mostrar Top 2
         </label>
-        <FieldLabel label="Etiquetas Top 2" compact>
-          <input value={labels.join(", ")} onChange={(e) => onChange({ top2box_labels: splitList(e.target.value) })} style={inputStyle} />
-        </FieldLabel>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <FieldLabel label="Categorías del Top Two Box" compact>
+            <Top2BoxSelector categorias={categorias} seleccion={labels} onChange={(next) => onChange({ top2box_labels: next })} />
+          </FieldLabel>
+        </div>
       </div>
     </details>
   );
@@ -1213,6 +1216,13 @@ function findVar(ref: string, variables: VarWithSource[], multi: boolean): VarWi
   return variables.find((v) => v.name === parsed.name || `${v.source}$${v.name}` === ref);
 }
 
+/** Las preguntas de un bloque, sea cual sea su modo: una variable, varias o temas con una variable por fuente. */
+function refsDeBloque(block: MultiBlock): string[] {
+  if (typeof block.var === "string" && block.var) return [block.var];
+  if (isNamedVars(block.vars)) return Object.values(block.vars).flat();
+  return asStringArray(block.vars);
+}
+
 function asStringArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
   if (typeof value === "string" && value.trim()) return [value.trim()];
@@ -1288,9 +1298,6 @@ function isDefaultTopicTitle(title: string, index: number): boolean {
   return t === "" || t === `Tema ${index + 1}`;
 }
 
-function splitList(text: string): string[] {
-  return text.split(",").map((x) => x.trim()).filter(Boolean);
-}
 
 function slugKey(text: string): string {
   return text.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
