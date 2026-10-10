@@ -151,7 +151,8 @@
     if (!is.null(attr(p, "pulso_cifra"))) {
       j <- i
       while (j < length(render_meta) && identical(render_meta[[j + 1L]]$kind %||% "chart", "chart") &&
-             !is.null(attr(render_meta[[j + 1L]]$plot_word, "pulso_cifra"))) j <- j + 1L
+             !is.null(attr(render_meta[[j + 1L]]$plot_word, "pulso_cifra")) &&
+             identical(render_meta[[j + 1L]]$slide_i, e$slide_i)) j <- j + 1L   # una franja por lámina
       items <- lapply(render_meta[i:j], function(x) attr(x$plot_word, "pulso_cifra"))
       doc <- .word_franja(doc, vapply(items, function(it) it$valor_word %||% it$valor, ""), vapply(items, `[[`, "", "rotulo"))
       saltar <- c(saltar, seq.int(i, j)); next
