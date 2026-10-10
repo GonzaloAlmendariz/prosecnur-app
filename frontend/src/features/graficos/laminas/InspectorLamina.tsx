@@ -55,7 +55,7 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
     <aside id="pulso-f6-inspector" className="pulso-f6-inspector" aria-label="Ajustes de la lámina">
       <header className="pulso-f6-inspector-tipo">
         <span className="pulso-f6-inspector-icono">
-          <IconoTipo clase="lamina" tipo={slide.tipo} size={24} />
+          <IconoTipo clase="lamina" tipo={slide.tipo} size={24} className="pulso-icono-tipo--acento" />
         </span>
         <span className="pulso-f6-inspector-tipo-texto">
           <strong>{lamina.tipoLabel}</strong>

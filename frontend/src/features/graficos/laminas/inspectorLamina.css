@@ -324,7 +324,7 @@ textarea.pulso-f6-input {
 }
 
 .pulso-f6-ranura-cabeza > svg,
-.pulso-f6-ranura-cabeza > [data-icono-provisional] {
+.pulso-f6-ranura-cabeza > .pulso-icono-tipo {
   flex: none;
   color: var(--pulso-text-faint);
 }
