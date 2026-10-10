@@ -110,7 +110,7 @@ export function VisorLamina({
         <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} titulo={lamina.tipoLabel} className="pulso-f6-visor-tipo" />
         <p className="pulso-f6-visor-pos" aria-live="polite">
           <strong>Lámina {lamina.posicion} de {total}</strong>
-          {nPartes > 1 && <span className="pulso-f6-solo-ancho pulso-f6-rotulo-medio"> · parte {parteActiva} de {nPartes}</span>}
+          {nPartes > 1 && <span className="pulso-sr-only"> · parte {parteActiva} de {nPartes}</span>}
         </p>
         {estado && !cargando && (
           <span className={`pulso-f6-chip-estado is-${estado === "ruta_anterior" ? "ruta" : estado === "sin_grafico" ? "neutro" : "nativa"}`} title={motivoDeEstado(estado, motorNativoApagado, (l?.avisos.length ?? 0) > 0)}>
