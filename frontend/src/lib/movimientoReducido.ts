@@ -6,6 +6,8 @@
 // propiedad de una lista ajena sin reescribirla, así que el filtro se hace aquí: cada transición que arranca sobre una
 // propiedad que mueve algo se termina en el acto; las demás corren tal cual las declaró su regla.
 // Las animaciones por keyframes siguen cortándose en `theme.css`.
+// Límite: `transitionrun` llega después del primer cuadro, así que una entrada con @starting-style + transform pinta un
+// cuadro en su posición inicial. Esas entradas declaran su propio `@starting-style { transform: none }` bajo reduce.
 
 /** Propiedades cuya transición no desplaza nada: se conservan con su duración, retardo y curva. */
 const QUIETAS = /^(opacity|visibility|fill|stroke|box-shadow|filter|backdrop-filter|-webkit-backdrop-filter|.*-?color)$/;
@@ -36,7 +38,9 @@ export function instalarMovimientoReducido(win: Window = window): () => void {
     if (!consulta.matches || !transicionMueve(e.propertyName)) return;
     const el = e.target;
     if (!(el instanceof Element)) return;
-    const propias = el.getAnimations({ subtree: true }).filter((a): a is CSSTransition => a instanceof CSSTransition);
+    // Las del propio elemento; sólo si la transición es de un pseudo-elemento hace falta bajar al subárbol.
+    const animaciones = e.pseudoElement ? el.getAnimations({ subtree: true }) : el.getAnimations();
+    const propias = animaciones.filter((a): a is CSSTransition => a instanceof CSSTransition);
     terminarTransiciones(
       propias.map((a) => ({
         transitionProperty: a.transitionProperty,
