@@ -32,6 +32,23 @@ TIPOS <- list(
   list("Seis gráficos", "p_slide_6_graficos_poblacion", "poblacion_6", list(Gf(xS, y1, w3, h2), Gf(xS + w3 + 0.5, y1, w3, h2), Gf(xS + 2 * (w3 + 0.5), y1, w3, h2), Gf(xS, y2, w3, h2), Gf(xS + w3 + 0.5, y2, w3, h2), Gf(xS + 2 * (w3 + 0.5), y2, w3, h2)), famP, "Dicotómicas y barras de pocas categorías", "El máximo de gráficos en una lámina"),
   list("Cifras en columna lateral", "p_slide_3_graficos_poblacion_cifras", "poblacion_3_cifras", list(Cf(xS, y1, 3.0, h1), Gf(3.9, y1, 4.4, h2), Gf(3.9, y2, 4.4, h2), Gf(8.75, y1, xE - 8.75, h1)), famP, "Cifras destacadas, dicotómicas y barras", "Cuando el tamaño de la muestra y la edad se dicen en cifras"),
   list("Cifras en banda superior", "p_slide_cifras_y_graficos", "cifras_y_graficos", list(Cf(xS, y1, aw, 1.2), Gf(xS, 3.05, w2, 3.2), Gf(x2, 3.05, w2, 3.2)), fam2, "Cifras destacadas, escalas y barras", "Abrir un capítulo o resumir el estudio"))
+# K15 (Gonzalo, 2026-10-10: «sí, regenera las fichas del recetario»): el esquema de cada ficha toma las ranuras del estándar
+# (exportar_estandar.R → api/inst/estandar/estandar_pulso.json), que son las que dibujan las láminas de ejemplo. Las de arriba
+# quedan como respaldo para un tipo que el estándar no tenga.
+EST_RANURAS <- local({
+  est <- jsonlite::fromJSON("api/inst/estandar/estandar_pulso.json", simplifyVector = FALSE)
+  setNames(lapply(est$ppt$tipos_lamina, `[[`, "ranuras"), vapply(est$ppt$tipos_lamina, `[[`, "", "id"))
+})
+# Un tipo que ya calzaba (diferencia de redondeo, < 0.002 in: el estándar guarda tres decimales) conserva su ficha tal cual.
+for (k_ in seq_along(TIPOS)) {
+  r_ <- EST_RANURAS[[TIPOS[[k_]][[2]]]]
+  if (is.null(r_)) next
+  nuevo_ <- lapply(r_, function(z) zf(c(grafico = "g", texto = "t", cifras = "c")[[z$tipo]], z$x, z$y, z$w, z$h))
+  mide_ <- function(l) unlist(lapply(l, function(z) c(z$x, z$y, z$w, z$h)))
+  igual_ <- length(nuevo_) == length(TIPOS[[k_]][[4]]) && identical(vapply(nuevo_, `[[`, "", "tipo"), vapply(TIPOS[[k_]][[4]], `[[`, "", "tipo")) &&
+    max(abs(mide_(nuevo_) - mide_(TIPOS[[k_]][[4]]))) < 0.002
+  if (!igual_) TIPOS[[k_]][[4]] <- nuevo_
+}
 
 # Esquema de un tipo, fiel a la lámina nueva (X5, 2026-10-08: «los elementos salen de sus cuadrículas… estamos proponiendo nuevos estilos con borde
 # gris suave para gráficos»): fondo de la plantilla, logo real, barra y título, cada gráfico en un panel blanco con borde gris suave y barras de
