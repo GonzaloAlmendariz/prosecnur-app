@@ -63,6 +63,11 @@ describe("estado y motivo", () => {
     ] } });
     expect(estadoDeLamina(l)).toBe("ruta_anterior");
   });
+  it("«marco» es un estado propio: ni error ni ruta anterior", () => {
+    const l = leerLaminaVisor({ ...base, partes: { n: 1, partes: [{ indice: 1, titulo: "", estado: "marco", continuacion: false }] } });
+    expect(estadoDeLamina(l)).toBe("marco");
+    expect(motivoDeEstado("marco", false)).toMatch(/aparte/);
+  });
   it("distingue la ruta anterior elegida de la impuesta", () => {
     expect(motivoDeEstado("ruta_anterior", true)).toMatch(/Elegiste/);
     expect(motivoDeEstado("ruta_anterior", false, true)).toMatch(/Los avisos dicen por qué/);

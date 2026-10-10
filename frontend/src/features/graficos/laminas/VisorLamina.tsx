@@ -2,7 +2,7 @@
 // La imagen la rasteriza el motor del export (`preview-slide`, vía el coordinador). Ranuras seleccionables sobre la
 // imagen, guías, zoom y tira de miniaturas llegan en la parte 2.
 
-import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode, RefObject } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -12,7 +12,7 @@ import {
   History,
   ImageOff,
   Images,
-  PanelLeftOpen,
+  ListTree,
   Loader2,
   RefreshCw,
   SlidersHorizontal,
@@ -42,6 +42,9 @@ type Props = {
   onAbrirAjustes: () => void;
   ajustesAbiertos: boolean;
   onVerAvisos: () => void;
+  ajustesRef: RefObject<HTMLButtonElement>;
+  estructuraAbierta: boolean;
+  onAlternarEstructura: () => void;
   /** Tira de miniaturas, bajo el lienzo. */
   tira: ReactNode;
   ranuras: readonly RanuraSobreLamina[];
@@ -50,6 +53,8 @@ type Props = {
   onRanura: (k: number | null) => void;
 };
 
+const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
+
 const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
   { valor: "ajustar", label: "Ajustar", factor: 1 },
   { valor: "125", label: "125 %", factor: 1.25 },
@@ -57,15 +62,14 @@ const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
 ];
 
 export function VisorLamina({
-  lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, tira,
+  lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, ajustesRef, estructuraAbierta, onAlternarEstructura, tira,
   ranuras, ranuraActiva, nombreRanura, onRanura,
 }: Props) {
   const zoom = useLaminasUi((s) => s.zoom);
   const setZoom = useLaminasUi((s) => s.setZoom);
   const tiraVisible = useLaminasUi((s) => s.tiraVisible);
   const alternarTira = useLaminasUi((s) => s.alternarTira);
-  const estructuraVisible = useLaminasUi((s) => s.estructuraVisible);
-  const alternarEstructura = useLaminasUi((s) => s.alternarEstructura);
+
   const factor = ZOOMS.find((z) => z.valor === zoom)?.factor ?? 1;
   const l = vista.lamina;
   const nPartes = l?.partes.length ?? 1;
@@ -87,17 +91,16 @@ export function VisorLamina({
   return (
     <section className="pulso-f6-visor" aria-label="Visor de la lámina">
       <header className="pulso-f6-visor-barra">
-        {!estructuraVisible && (
-          <button
-            type="button"
-            className="pulso-f6-icono-boton pulso-f6-solo-ancho"
-            aria-label="Mostrar la estructura"
-            title="Mostrar la estructura"
-            onClick={alternarEstructura}
-          >
-            <PanelLeftOpen size={16} aria-hidden="true" />
-          </button>
-        )}
+        <button
+          type="button"
+          className={`pulso-f6-boton${estructuraAbierta ? " is-activo" : ""}`}
+          aria-pressed={estructuraAbierta}
+          title={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura (${MOD}1)`}
+          onClick={onAlternarEstructura}
+        >
+          <ListTree size={15} aria-hidden="true" />
+          <span className="pulso-f6-solo-ancho">Estructura</span>
+        </button>
         <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina anterior" disabled={lamina.posicion <= 1} onClick={() => onIr(lamina.posicion - 1)}>
           <ChevronLeft size={16} aria-hidden="true" />
         </button>
@@ -172,9 +175,10 @@ export function VisorLamina({
         </button>
         <button
           type="button"
+          ref={ajustesRef}
           className={`pulso-f6-boton${ajustesAbiertos ? " is-activo" : ""}`}
-          aria-expanded={ajustesAbiertos}
-          title={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes (${typeof navigator !== "undefined" && /Mac/.test(navigator.platform) ? "⌘" : "Ctrl+"}.)`}
+          aria-pressed={ajustesAbiertos}
+          title={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes (${MOD}.)`}
           aria-controls="pulso-f6-inspector"
           onClick={onAbrirAjustes}
         >

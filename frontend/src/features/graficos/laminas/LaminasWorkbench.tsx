@@ -8,7 +8,7 @@ import { useSession } from "../../../lib/SessionContext";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { searchConPanel, searchSinPanel, usePanelDireccionable } from "../../../lib/navegacion/paneles";
-import { PANEL_AVISOS_INFORME, PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
+import { PANEL_AVISOS_INFORME, PANEL_ESTRUCTURA_LAMINAS, PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
 import { parseGraficosReportScope } from "../reportScope";
 import { leerSlideMeta } from "../slideMeta";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
@@ -23,6 +23,8 @@ import { agruparAvisos } from "./resumenInforme";
 import { construirEstructura, focoDeLamina, parsearFocoLamina } from "./modeloEstructura";
 import { useLaminasUi } from "./laminasStore";
 import { reconciliarSeleccion, vecinaAlEliminar } from "./seleccionLamina";
+import { esLateral, resolverLateral, type Lateral } from "./lateralLaminas";
+import { useAnchoCompacto, useSideoverModal } from "./useSideoverModal";
 import { AccionesLamina } from "./AccionesLamina";
 import { useGraficosLibraries } from "../GraficosLibrariesHost";
 import { PANEL_BIBLIOTECA_SLIDES } from "../panelesGraficos";
@@ -34,6 +36,8 @@ import { firstVariableRefFromGraph } from "../slideAutoTitle";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import type { GraficadorRef } from "../../../api/graficos";
 import "./laminasWorkbench.css";
+
+const panelDe = (l: Lateral) => (l === "estructura" ? PANEL_ESTRUCTURA_LAMINAS : PANEL_INSPECTOR_LAMINA);
 
 type Props = {
   /** Lleva a la pestaña del editor anterior conservando la lámina. */
@@ -54,9 +58,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const parte = useLaminasUi((s) => s.parte);
   const setParte = useLaminasUi((s) => s.setParte);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
-  const estructuraVisible = useLaminasUi((s) => s.estructuraVisible);
-  const inspectorOculto = useLaminasUi((s) => s.inspectorOculto);
-  const setInspectorOculto = useLaminasUi((s) => s.setInspectorOculto);
+  const lateralPreferido = useLaminasUi((s) => s.lateral);
+  const setLateralPreferido = useLaminasUi((s) => s.setLateral);
   const insercion = useLaminasUi((s) => s.insercion);
   const setInsercion = useLaminasUi((s) => s.setInsercion);
   const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
@@ -137,42 +140,55 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     const variable = firstVariableRefFromGraph(v);
     return `${graficadorDisplayName(v.graficador, graficadoresById[v.graficador])}${variable ? ` · ${variable}` : ""}`;
   }, [slide, graficadoresById]);
+  // Estructura ⇄ Inspector (excluyentes): la URL dice cuál, la sesión lo recuerda. Ver lateralLaminas.ts.
+  const resolucion = resolverLateral(direccion.panel, lateralPreferido);
+  const lateral = resolucion.lateral;
+  useEffect(() => {
+    if (resolucion.actualizarPreferencia) setLateralPreferido(lateral);
+    if (resolucion.escribirEnUrl && lateral) {
+      navigate({ pathname: location.pathname, search: searchConPanel(location.search, panelDe(lateral)) }, { replace: true });
+    }
+  });
+  const searchConLateral = useCallback((search: string, l: Lateral | null) => (
+    l ? searchConPanel(search, panelDe(l)) : esLateral(direccion.panel) ? searchSinPanel(search, panelDe(direccion.panel)) : search
+  ), [direccion.panel]);
+  const ponerLateral = useCallback((l: Lateral | null) => {
+    setLateralPreferido(l);
+    navigate({ pathname: location.pathname, search: searchConLateral(location.search, l) }, { replace: true });
+  }, [location.pathname, location.search, navigate, searchConLateral, setLateralPreferido]);
+  const alternarLateral = useCallback((l: Lateral) => ponerLateral(lateral === l ? null : l), [lateral, ponerLateral]);
+
   // Una sola navegación: foco de la ranura y, si hace falta, el inspector abierto (dos `navigate` seguidos se pisan).
   const elegirRanura = useCallback((k: number | null) => {
     if (!lamina) return;
     let search = conNivel(location.search, "foco", focoDeLamina(lamina.posicion, k));
     if (k !== null) {
       setSeccion("graficos");
-      setInspectorOculto(false);
-      search = searchConPanel(search, PANEL_INSPECTOR_LAMINA);
+      setLateralPreferido("inspector");
+      search = searchConLateral(search, "inspector");
     }
     navigate({ pathname: location.pathname, search }, { replace: true });
-  }, [lamina, location.pathname, location.search, navigate, setSeccion, setInspectorOculto]);
+  }, [lamina, location.pathname, location.search, navigate, setSeccion, setLateralPreferido, searchConLateral]);
 
-  // El inspector se oculta y se muestra en cualquier ancho. `panel=inspector` en la URL lo abre siempre (enlazable);
-  // sin él, en el marco ancho manda la preferencia de la sesión.
-  const inspectorVisible = inspector.abierto || !inspectorOculto;
-  const abrirInspector = useCallback(() => { setInspectorOculto(false); inspector.abrir(); }, [inspector, setInspectorOculto]);
-  const cerrarInspector = useCallback(() => {
-    setInspectorOculto(true);
-    navigate({ pathname: location.pathname, search: searchSinPanel(location.search, PANEL_INSPECTOR_LAMINA) }, { replace: true });
-  }, [location.pathname, location.search, navigate, setInspectorOculto]);
   const hostRef = useRef<HTMLDivElement>(null);
-  // Mismo umbral que la container query de laminasWorkbench.css: bajo 1120 px el inspector es un sideover.
-  const esCompacto = () => (hostRef.current?.clientWidth ?? Number.POSITIVE_INFINITY) <= 1120;
-  const alternarInspector = useCallback(() => {
-    const visible = esCompacto() ? inspector.abierto : inspectorVisible;
-    if (visible) cerrarInspector(); else abrirInspector();
-  }, [inspector.abierto, inspectorVisible, cerrarInspector, abrirInspector]);
+  const marcoInspectorRef = useRef<HTMLDivElement>(null);
+  const ajustesRef = useRef<HTMLButtonElement>(null);
+  // Bajo 1120 px de contenedor (mismo umbral que el CSS) el inspector se superpone a la lámina: es un diálogo modal.
+  const compacto = useAnchoCompacto(hostRef, 1120);
+  const inspectorModal = compacto && lateral === "inspector";
+  const cerrarInspector = useCallback(() => ponerLateral(null), [ponerLateral]);
+  useSideoverModal({ activo: inspectorModal, contenedor: marcoInspectorRef, retorno: ajustesRef, onCerrar: cerrarInspector });
 
-  // Cmd/Ctrl + «.» muestra u oculta el inspector.
+  // Cmd/Ctrl+1 alterna la Estructura; Cmd/Ctrl+. los Ajustes.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === ".") { e.preventDefault(); alternarInspector(); }
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (e.key === ".") { e.preventDefault(); alternarLateral("inspector"); }
+      else if (e.key === "1") { e.preventDefault(); alternarLateral("estructura"); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [alternarInspector]);
+  }, [alternarLateral]);
 
   const validacion = useMemo(() => {
     const m: Record<string, MarcaValidacion> = {};
@@ -190,7 +206,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     return (
       <div className="pulso-f6-laminas-host">
       <div className="pulso-f6-laminas is-vacia" data-qa-surface="graficos/f6-laminas">
-        <EstructuraInforme estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
+        <EstructuraInforme onCerrar={() => undefined} estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
         <div className="pulso-f6-vacio-informe" role="status">
           <strong>El informe todavía no tiene láminas</strong>
           <p>Arma el plan desde el Editor anterior o con un plan sugerido; aquí verás cada lámina tal como sale.</p>
@@ -204,10 +220,11 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   return (
     <div className="pulso-f6-laminas-host" ref={hostRef}>
     <div
-      className={`pulso-f6-laminas${inspector.abierto ? " is-inspector-abierto" : ""}${estructuraVisible ? "" : " is-sin-estructura"}${inspectorVisible ? "" : " is-sin-inspector"}`}
+      className={`pulso-f6-laminas${lateral === "inspector" ? " is-inspector-abierto" : ""}${lateral === "estructura" ? "" : " is-sin-estructura"}${lateral === "inspector" ? "" : " is-sin-inspector"}`}
       data-qa-surface="graficos/f6-laminas"
     >
       <EstructuraInforme
+        onCerrar={() => ponerLateral(null)}
         acciones={(
           <AccionesLamina
             posicion={lamina.posicion}
@@ -243,16 +260,25 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         onParte={setParte}
         onIr={irA}
         motorNativoApagado={leerSlideMeta(slide).motor_nativo === false}
-        onAbrirAjustes={alternarInspector}
-        ajustesAbiertos={inspectorVisible}
-        onVerAvisos={() => { setSeccion("estado"); if (!inspector.abierto) inspector.abrir(); }}
+        onAbrirAjustes={() => alternarLateral("inspector")}
+        ajustesAbiertos={lateral === "inspector"}
+        ajustesRef={ajustesRef}
+        estructuraAbierta={lateral === "estructura"}
+        onAlternarEstructura={() => alternarLateral("estructura")}
+        onVerAvisos={() => { setSeccion("estado"); ponerLateral("inspector"); }}
         ranuras={ranuras}
         ranuraActiva={ranura}
         nombreRanura={nombreRanura}
         onRanura={elegirRanura}
         tira={<TiraMiniaturas estructura={estructura} posicionActiva={lamina.posicion} onIr={irA} />}
       />
-      <div className="pulso-f6-inspector-marco" {...inspector.props} onKeyDown={(e) => { if (e.key === "Escape" && inspector.abierto) cerrarInspector(); }}>
+      <div
+        ref={marcoInspectorRef}
+        className="pulso-f6-inspector-marco"
+        {...inspector.props}
+        {...(inspectorModal ? { role: "dialog", "aria-modal": true, "aria-labelledby": "pulso-f6-inspector-titulo" } : {})}
+        tabIndex={-1}
+      >
         <InspectorLamina
           slide={slide}
           lamina={lamina}
@@ -265,7 +291,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
       </div>
       <EditorAmplio />
       {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} />}
-      {inspector.abierto && (
+      {inspectorModal && (
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspector} />
       )}
     </div>

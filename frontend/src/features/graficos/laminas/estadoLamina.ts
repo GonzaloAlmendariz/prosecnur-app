@@ -36,7 +36,7 @@ export type LaminaVisor = {
 const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const comoLista = <T>(v: T | T[] | null | undefined): T[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
 
-const ESTADOS: ReadonlySet<string> = new Set(["nativa", "estructura", "ruta_anterior", "sin_grafico"]);
+const ESTADOS: ReadonlySet<string> = new Set(["nativa", "estructura", "ruta_anterior", "sin_grafico", "marco"]);
 
 export function leerLaminaVisor(r: PreviewSlideResponse): LaminaVisor {
   const imagenes = new Map<number, { png: string; w: number | null; h: number | null; renderer: string }>();
@@ -90,6 +90,7 @@ export function estadoDeLamina(lamina: LaminaVisor): EstadoSalida | null {
   const estados = lamina.partes.map((p) => p.estado).filter((e): e is EstadoSalida => !!e);
   if (estados.includes("ruta_anterior")) return "ruta_anterior";
   if (estados.includes("nativa")) return "nativa";
+  if (estados.includes("marco")) return "marco";
   if (estados.includes("estructura")) return "estructura";
   if (estados.includes("sin_grafico")) return "sin_grafico";
   return null;
@@ -100,6 +101,7 @@ export const ETIQUETA_ESTADO: Record<EstadoSalida, string> = {
   estructura: "Nativa",
   ruta_anterior: "Ruta anterior",
   sin_grafico: "Sin gráfico",
+  marco: "Marco",
 };
 
 /**
@@ -120,6 +122,8 @@ export function motivoDeEstado(estado: EstadoSalida | null, motorNativoApagado: 
           : "El motor no la dibujó con formas nativas y usó la ruta anterior: el gráfico sale como imagen. No dejó un aviso que diga por qué.";
     case "sin_grafico":
       return "La lámina no lleva gráfico: sólo texto o plantilla.";
+    case "marco":
+      return "El gráfico se dibuja aparte (nube de palabras, serie de varias mediciones) y la lámina lleva el título y el pie del recetario.";
     default:
       return "El motor no informó cómo salió esta lámina.";
   }

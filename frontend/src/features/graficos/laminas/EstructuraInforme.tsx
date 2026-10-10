@@ -19,6 +19,7 @@ import "./estructuraInforme.css";
 export type MarcaValidacion = "error" | "warning";
 
 type Props = {
+  onCerrar: () => void;
   /** Barra de acciones de la lámina activa (se monta bajo la búsqueda). */
   acciones?: ReactNode;
   estructura: Estructura;
@@ -28,14 +29,13 @@ type Props = {
   validacion: Record<string, MarcaValidacion>;
 };
 
-export function EstructuraInforme({ acciones, estructura, posicionActiva, onSeleccionar, validacion }: Props) {
+export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActiva, onSeleccionar, validacion }: Props) {
   const consulta = useLaminasUi((s) => s.consulta);
   const setConsulta = useLaminasUi((s) => s.setConsulta);
   const cerrados = useLaminasUi((s) => s.cerrados);
   const alternarNodo = useLaminasUi((s) => s.alternarNodo);
   const fijarCerrados = useLaminasUi((s) => s.fijarCerrados);
   const resumenes = useLaminasUi((s) => s.resumenes);
-  const alternarEstructura = useLaminasUi((s) => s.alternarEstructura);
   const busquedaRef = useRef<HTMLInputElement>(null);
   const cuerpoRef = useRef<HTMLElement>(null);
 
@@ -79,10 +79,10 @@ export function EstructuraInforme({ acciones, estructura, posicionActiva, onSele
         </button>
         <button
           type="button"
-          className="pulso-f6-icono-boton pulso-f6-solo-ancho"
+          className="pulso-f6-icono-boton"
           aria-label="Ocultar la estructura"
           title="Ocultar la estructura: la lámina gana su ancho"
-          onClick={alternarEstructura}
+          onClick={onCerrar}
         >
           <PanelLeftClose size={16} aria-hidden="true" />
         </button>
@@ -93,6 +93,7 @@ export function EstructuraInforme({ acciones, estructura, posicionActiva, onSele
           <span className="pulso-sr-only">Buscar lámina</span>
           <input
             ref={busquedaRef}
+            aria-label="Buscar lámina"
             type="search"
             value={consulta}
             placeholder="Buscar lámina…"

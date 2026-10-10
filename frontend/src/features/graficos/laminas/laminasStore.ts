@@ -4,6 +4,7 @@
 
 import { create } from "zustand";
 import type { EstadoSalida } from "./estadoLamina";
+import type { Lateral } from "./lateralLaminas";
 
 export type SeccionInspector = "contenido" | "composicion" | "graficos" | "estado";
 
@@ -25,11 +26,9 @@ type LaminasUiStore = {
   zoom: ZoomVisor;
   tiraVisible: boolean;
   /** Plegar la Estructura deja a la lámina el ancho de esa columna (la tira sigue navegando). */
-  estructuraVisible: boolean;
-  alternarEstructura: () => void;
-  /** Preferencia de la sesión: el inspector oculto en el marco ancho (la lámina gana su ancho). */
-  inspectorOculto: boolean;
-  setInspectorOculto: (v: boolean) => void;
+  /** Lateral abierto que se recuerda por sesión (Estructura e Inspector se excluyen); null = la lámina a todo lo ancho. */
+  lateral: Lateral | null;
+  setLateral: (l: Lateral | null) => void;
   /**
    * «Insertar después de esta lámina» abre la biblioteca de láminas del editor, que agrega al final. Mientras la
    * biblioteca está abierta, lo que se inserte se acomoda detrás de `despuesDe` (y en cadena, si se insertan varias).
@@ -59,14 +58,12 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
   miniaturas: {},
   zoom: "ajustar",
   tiraVisible: true,
-  estructuraVisible: true,
-  inspectorOculto: false,
-  setInspectorOculto: (inspectorOculto) => set({ inspectorOculto }),
+  lateral: "estructura",
+  setLateral: (lateral) => set({ lateral }),
   insercion: null,
   editorAmplio: null,
   setEditorAmplio: (editorAmplio) => set({ editorAmplio }),
   setInsercion: (insercion) => set({ insercion }),
-  alternarEstructura: () => set((s) => ({ estructuraVisible: !s.estructuraVisible })),
   setZoom: (zoom) => set({ zoom }),
   alternarTira: () => set((s) => ({ tiraVisible: !s.tiraVisible })),
   registrarMiniatura: (slideId, png) => set((s) => (s.miniaturas[slideId] === png ? s : { miniaturas: { ...s.miniaturas, [slideId]: png } })),

@@ -60,7 +60,7 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
           <IconoTipo clase="lamina" tipo={slide.tipo} size={24} className="pulso-icono-tipo--acento" />
         </span>
         <span className="pulso-f6-inspector-tipo-texto">
-          <strong>{lamina.tipoLabel}</strong>
+          <strong id="pulso-f6-inspector-titulo">{lamina.tipoLabel}</strong>
           <span>
             {slots.length > 0
               ? `${slots.length} ${slots.length === 1 ? "gráfico" : "gráficos"} · lámina ${lamina.posicion}`
@@ -204,7 +204,7 @@ function SeccionComposicion({ lamina }: { lamina: LaminaEnEstructura }) {
       <div className="pulso-f6-tarjeta">
         <span className="pulso-f6-tarjeta-icono" aria-hidden="true"><LayoutTemplate size={18} /></span>
         <div>
-          <strong>{lamina.tipoLabel}</strong>
+          <strong id="pulso-f6-inspector-titulo">{lamina.tipoLabel}</strong>
           <p>
             {lamina.ranuras > 0
               ? `${lamina.ranuras} ${lamina.ranuras === 1 ? "ranura de gráfico" : "ranuras de gráfico"}, ${lamina.ranurasLlenas} con gráfico.`
