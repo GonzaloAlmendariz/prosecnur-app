@@ -19,7 +19,7 @@ Autoridad: pedido textual de Gonzalo (2026-10-10 ~22:05), que define el orden y 
 |---|---|---|---|---|
 | **0. CI y calidad** | Quality en verde en `main` y la regla de mantenerlo verde | Sesión «Calidad» (corta) | [goal-ci-calidad-2026-10-10.md](goal-ci-calidad-2026-10-10.md) | Ya |
 | **A. Gráficos** | El editor nuevo de Gráficos (F6.1–F6.5) y todo lo pendiente de Procesamiento › Gráficos, motor incluido | Sesión «Gráficos» | [encargo-loop-f6-2026-10-10.md](encargo-loop-f6-2026-10-10.md) | Cuando la Fase 0 deje Quality verde |
-| **B. Revamp visual** | La remasterización completa de la UI (kit primero, luego las páginas) | Sesión «Revamp visual» | [goal-modernizacion-ui-2026-10-10.md](goal-modernizacion-ui-2026-10-10.md), [plan-trabajo-remasterizacion-ui-2026-10-10.md](plan-trabajo-remasterizacion-ui-2026-10-10.md), [remasterizacion-ui-2026-10-10.md](remasterizacion-ui-2026-10-10.md) | Cuando la Fase 0 deje Quality verde |
+| **B. Revamp visual** | La remasterización completa de la UI (kit primero, luego las páginas) | Sesión «Revamp visual» | [encargo-loop-revamp-visual-2026-10-10.md](encargo-loop-revamp-visual-2026-10-10.md) (abre aquí), y como rectores [goal-modernizacion-ui-2026-10-10.md](goal-modernizacion-ui-2026-10-10.md), [plan-trabajo-remasterizacion-ui-2026-10-10.md](plan-trabajo-remasterizacion-ui-2026-10-10.md), [remasterizacion-ui-2026-10-10.md](remasterizacion-ui-2026-10-10.md) | Cuando la Fase 0 deje Quality verde |
 
 A y B corren **en paralelo**, cada una con su sesión, su reloj, sus agentes y su propia rama. Ninguna sesión ejecuta
 trabajo de la otra.
