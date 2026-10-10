@@ -1580,6 +1580,37 @@
   ),
 
   # =========================================================================
+  # CIFRA DESTACADA (F6.0b.6; tipos 21 y 22 del recetario, láminas 172–175)
+  # =========================================================================
+  p_cifra = list(
+    titulo_humano = "Cifra destacada",
+    descripcion   = "Una cifra grande con su rótulo, calculada desde una pregunta: el porcentaje de una categoría, cuántos respondieron, la mediana o la media, con el peso del estudio. Va en las ranuras de cifra de las láminas «Cifras en banda superior» y «Cifras en columna lateral».",
+    icono_ui      = "Hash",
+    categoria     = "numeric",
+    blueprint     = "numeric",
+    args = c(list(
+      list(name = "var", label = "Pregunta", tipo_input = "variable", grupo = "datos",
+           descripcion = "La pregunta de la que sale la cifra."),
+      list(name = "modo", label = "Qué cifra", tipo_input = "choice", grupo = "datos", default = "porcentaje",
+           choices = list(
+             list(value = "porcentaje", label = "Porcentaje de una categoría", hint = "Sobre quienes respondieron, con el peso del estudio."),
+             list(value = "n", label = "Cuántos respondieron"),
+             list(value = "mediana", label = "Mediana"),
+             list(value = "media", label = "Media"))),
+      list(name = "categoria", label = "Categoría", tipo_input = "string", grupo = "datos",
+           descripcion = "Para un porcentaje: el código o la etiqueta de la categoría que se cuenta."),
+      list(name = "rotulo", label = "Rótulo", tipo_input = "string", grupo = "textos",
+           descripcion = "Qué es la cifra («de los egresados tiene el título»). Obligatorio."),
+      list(name = "detalle", label = "Detalle", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto gris bajo el rótulo. Vacío: el motor pone la base («56 de 178»)."),
+      list(name = "unidad", label = "Unidad", tipo_input = "string", grupo = "textos",
+           descripcion = "Para mediana o media («años»)."),
+      list(name = "icono", label = "Ícono", tipo_input = "string", grupo = "estilo",
+           descripcion = "Nombre de un ícono de la biblioteca del recetario (opcional).")
+    ), .args_graf_comunes())
+  ),
+
+  # =========================================================================
   # DUMBBELL (brecha entre dos bases)
   # =========================================================================
   p_dumbbell = list(
@@ -1975,6 +2006,7 @@
   p_barras_divergentes = "barras_divergentes",
   p_puntos_comparativos = "puntos_comparativos",
   p_mapa_resultado_distrital = "",
+  p_cifra = "",
   p_dumbbell = "dumbbell",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
