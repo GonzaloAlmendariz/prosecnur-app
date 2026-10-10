@@ -42,6 +42,10 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   selector con evidencia estadística, revamp de Aulas y ledger de iteraciones.
 - [Goal loop visual de toda la aplicación](goal-loop-visual-app-2026-07-30.md):
   órbita de los ocho módulos del proyecto y Enciclopedia como utilidad global.
+- [Remasterización de la UI — documento maestro (2026-10-10)](remasterizacion-ui-2026-10-10.md):
+  el punto de entrada único: diagnóstico, decisiones, el kit pieza por
+  pieza, la maqueta página por página, las 36 unidades detalladas, el plan,
+  la vara, el ledger y las trampas.
 - [Plan de trabajo — remasterización de la UI (2026-10-10)](plan-trabajo-remasterizacion-ui-2026-10-10.md):
   siete vueltas ordenadas por dependencia (el kit primero), cada unidad con
   su maqueta, archivos, agente y gate; 73 sesiones orientativas.
