@@ -15,8 +15,8 @@
 #' Margen izquierdo del eje según el rótulo más largo ya partido (`xmin_para()` del recetario)
 #' @keywords internal
 .word_xmin <- function(rotulos, pt, xmax, x0 = 0) {
-  lin <- unlist(strsplit(rotulos, "\n"))
-  L <- min(max(nchar(lin)) * max(7.5, pt * 0.95) * 0.5 / 72 + 0.15, 3.3)
+  lin <- unlist(strsplit(rotulos, "\n")); lin <- lin[!is.na(lin)]
+  L <- if (!length(lin)) 0.15 else min(max(nchar(lin)) * max(7.5, pt * 0.95) * 0.5 / 72 + 0.15, 3.3)   # sin rótulos, sin -Inf
   x0 - L * (xmax - x0) / (.std_word("pagina", "ancho_util") - 0.3 - L)
 }
 

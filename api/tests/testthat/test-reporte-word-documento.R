@@ -80,3 +80,20 @@ test_that("tipo oración en los casos del verificador: I+D+i, preguntas, numerac
   expect_identical(.word_oracion("¿Cuál es su género ?"), "¿Cuál es su género ?")        # ya en tipo oración
   expect_identical(.word_oracion("AÑO"), "AÑO")                                           # menos de 4 letras
 })
+
+test_that("un plan sin secciones lleva sus gráficos a «Resultados», después de «Cómo leer» (verificador de N8.15)", {
+  skip_if_not_installed("officer")
+  d <- data.frame(categoria = c("A", "B"), N = c(45, 30), pct = c(.45, .30), stringsAsFactors = FALSE)
+  p <- suppressWarnings(graficar_barras_agrupadas(data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct", etiquetas_series = c(pct = "Total")))
+  rm <- list(list(kind = "title_doc", title = "Estudio"), list(kind = "chart", title = "Sexo", plot_word = p))
+  f <- tempfile(fileext = ".docx")
+  expect_no_warning(.word_documento(rm, f, opciones = list(como_leer = TRUE)))
+  x <- paste(officer::docx_summary(officer::read_docx(f))$text, collapse = "\n")
+  pos <- function(t) regexpr(t, x, fixed = TRUE)[1]
+  expect_false(grepl("Introducción", x, fixed = TRUE))
+  expect_lt(pos("Cómo leer este informe"), pos("Resultados")); expect_lt(pos("Resultados"), pos("Sexo"))
+})
+
+test_that(".word_xmin sin rótulos no da -Inf", {
+  expect_true(is.finite(.word_xmin(character(0), 9, 100)))
+})
