@@ -61,9 +61,10 @@ source("setup-load-all.R")
            nombres(.presets_metadata_payload()$presets)))
 }
 
-test_that("los 24 graficadores del registro resuelven, ninguno se salta", {
+test_that("los 26 graficadores del registro resuelven, ninguno se salta", {
+  # 24 + p_cifra y p_mapa_resultado_distrital (F6), ambos con renderer graficar_* propio.
   gs <- .graficos_registry_payload()$graficadores
-  expect_length(gs, 24L)
+  expect_length(gs, 26L)
   for (g in gs) {
     fn <- tryCatch(getExportedValue("prosecnurapp", g$name), error = function(e) NULL)
     expect_true(is.function(fn), info = sprintf("%s no resuelve como el router lo resuelve", g$name))
