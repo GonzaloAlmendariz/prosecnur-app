@@ -1,7 +1,8 @@
 // Un lateral que se superpone a la lámina (inspector a 1024) es un diálogo modal (verificador de la parte 1):
 // al abrir, el foco entra; Tab no sale; Escape cierra desde cualquier punto y el foco vuelve a quien lo abrió.
+// Toda otra vía de cierre (la X, el velo) usa el `cerrar` que devuelve el hook, que también devuelve el foco (D2).
 
-import { useEffect, useState, type RefObject } from "react";
+import { useCallback, useEffect, useState, type RefObject } from "react";
 
 const ENFOCABLES = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
@@ -10,7 +11,12 @@ export function useSideoverModal({ activo, contenedor, retorno, onCerrar }: {
   contenedor: RefObject<HTMLElement>;
   retorno: RefObject<HTMLElement>;
   onCerrar: () => void;
-}) {
+}): () => void {
+  const cerrar = useCallback(() => {
+    onCerrar();
+    requestAnimationFrame(() => retorno.current?.focus());
+  }, [onCerrar, retorno]);
+
   useEffect(() => {
     if (!activo) return;
     const raiz = contenedor.current;
@@ -23,8 +29,7 @@ export function useSideoverModal({ activo, contenedor, retorno, onCerrar }: {
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        onCerrar();
-        requestAnimationFrame(() => retorno.current?.focus());
+        cerrar();
         return;
       }
       if (e.key !== "Tab") return;
@@ -39,7 +44,9 @@ export function useSideoverModal({ activo, contenedor, retorno, onCerrar }: {
     };
     document.addEventListener("keydown", onKey, true);
     return () => { cancelAnimationFrame(marco); document.removeEventListener("keydown", onKey, true); };
-  }, [activo, contenedor, retorno, onCerrar]);
+  }, [activo, contenedor, cerrar]);
+
+  return cerrar;
 }
 
 /** El contenedor mide menos que `umbral` (la misma frontera que la container query del CSS). */

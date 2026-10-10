@@ -179,7 +179,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const compacto = useAnchoCompacto(hostRef, 1120);
   const inspectorModal = compacto && lateral === "inspector";
   const cerrarInspector = useCallback(() => ponerLateral(null), [ponerLateral]);
-  useSideoverModal({ activo: inspectorModal, contenedor: marcoInspectorRef, retorno: ajustesRef, onCerrar: cerrarInspector });
+  // La X y el velo cierran por la misma vía que Escape: el foco vuelve a «Ajustes» (D2).
+  const cerrarInspectorConFoco = useSideoverModal({ activo: inspectorModal, contenedor: marcoInspectorRef, retorno: ajustesRef, onCerrar: cerrarInspector });
   // El lienzo se re-encaja con FLIP cuando un lateral entra o sale (contrato de movimiento F6, M11).
   useReencajeLienzo(hostRef, lateral ?? "");
 
@@ -245,7 +246,11 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
               if (vecina) select(vecina);
               toast.aviso(`Lámina ${lamina.posicion} eliminada`, {
                 detalle: lamina.titulo,
-                accion: { label: "Deshacer", onSelect: undo },
+                // Deshacer devuelve la selección a la lámina restaurada, no a la vecina que la sustituyó.
+                accion: { label: "Deshacer", onSelect: () => {
+                  undo();
+                  if (usePlanStore.getState().plan.slides.some((x) => x.id === slide.id)) select(slide.id);
+                } },
               });
             }}
           />
@@ -289,14 +294,14 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
           ranura={ranura}
           onRanura={(r) => escribirFoco(focoDeLamina(lamina.posicion, r))}
           visor={vista.lamina}
-          onCerrar={cerrarInspector}
+          onCerrar={cerrarInspectorConFoco}
           onIrEditorAnterior={onIrEditorAnterior}
         />
       </div>
       <EditorAmplio />
       {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} />}
       {inspectorModal && (
-        <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspector} />
+        <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspectorConFoco} />
       )}
     </div>
     </div>
