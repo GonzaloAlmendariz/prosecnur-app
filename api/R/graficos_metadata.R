@@ -1600,7 +1600,7 @@
       list(name = "categoria", label = "Categoría", tipo_input = "string", grupo = "datos",
            descripcion = "Para un porcentaje: el código o la etiqueta de la categoría que se cuenta."),
       list(name = "rotulo", label = "Rótulo", tipo_input = "string", grupo = "textos",
-           descripcion = "Qué es la cifra («de los egresados tiene el título»). Obligatorio."),
+           descripcion = "Qué es la cifra («de los egresados tiene el título»). Vacío: el motor arma uno desde la pregunta y lo avisa."),
       list(name = "detalle", label = "Detalle", tipo_input = "string", grupo = "textos",
            descripcion = "Texto gris bajo el rótulo. Vacío: el motor pone la base («56 de 178»)."),
       list(name = "unidad", label = "Unidad", tipo_input = "string", grupo = "textos",
