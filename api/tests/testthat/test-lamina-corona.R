@@ -95,11 +95,77 @@ test_that("una lámina corona generada sale nativa y calza con la p160 (toleranc
   b <- .cr_off(xml, "barra")
   expect_equal(sum(b$y < 4.0 & b$x > 6.757), 3L)
   expect_equal(sum(b$y > 4.0), 4L)
-  # Filas: la primera de cada panel cae donde la p160 (2.28 arriba, 4.82 abajo). El paso de las filas lo pone la regla
-  # compartida de los paneles mixtos (`.lam_panel_geo`: 90 % del alto, tope 0.5 in), no la ranura: abajo da 0.4365 in
-  # contra los 0.42 que la p160 fija a mano, y la cuarta fila queda 0.09 in más abajo (declarado, no se ajusta aquí).
+  # Filas: las de la p160, 0.42 in en los dos paneles (recetario_m2c.R:44 y :48, `fila = 0.42`).
   sup <- sort(b$y[b$y < 4.0]); inf <- sort(b$y[b$y > 4.0])
   .cerca(sup, c(2.28, 2.70, 3.12))
-  .cerca(inf[1], 4.82)
-  expect_lte(max(abs(inf - c(4.82, 5.24, 5.66, 6.08))), 0.1)
+  .cerca(inf, c(4.82, 5.24, 5.66, 6.08))
+  expect_equal(diff(inf), rep(0.42, 3), tolerance = 0.005)
+})
+
+# Lo que mide la p160 a lo ancho (python-pptx sobre recetario-moderna.pptx, pulgadas). El test de arriba medía sólo y;
+# el verificador encontró cuatro divergencias en x y en ancho que pasaban. Orden de las categorías fuera de aquí: la p160
+# las dibuja en el orden del instrumento y el motor por frecuencia (decisión D8 pendiente de Gonzalo).
+.P160_X <- list(
+  # Dicotomía de sexo (recetario_m2c.R:42, `dicotomia(ML, YT + 0.65, wc, ..., n, size = 24, g = 0.38)`): a todo el ancho
+  # del panel, con la frecuencia en el rótulo.
+  dico_cifra_x = c(0.495, 4.757), dico_cifra_w = 1.6, dico_cifra_y = 2.30,
+  dico_rotulo = c("Masculino (33)", "Femenino (19)"), dico_rotulo_x = c(0.495, 3.426), dico_rotulo_w = 2.931, dico_rotulo_y = 2.647,
+  dico_x0 = 0.495, dico_x1 = 6.357, dico_y = 2.967, dico_h = 0.38,
+  # Barras de grado (:44, `wlab = 1.4`) y de edad (:48, `barras_h(ML + 2.5, ..., ANCHO - 5, wlab = 1.9)`: el bloque
+  # centrado, no a todo el ancho).
+  sup_rotulo_x = 7.157, sup_rotulo_w = 1.4, sup_barra_x = 8.677, sup_barra_max = 3.269,
+  inf_rotulo_x = 2.995, inf_rotulo_w = 1.9, inf_barra_x = 5.015, inf_barra_max = 4.306
+)
+
+test_that("la corona calza con la p160 también a lo ancho: dicotomía con n a todo el panel y barras de abajo centradas", {
+  f <- .cr_fixture(); out <- tempfile(fileext = ".pptx")
+  plan <- list(a = p_slide_3_graficos_poblacion_corona(p_barras_categoricas("sexo"), p_barras_categoricas("grado"),
+                                                       p_barras_categoricas("edad"), titulo = "Perfil del docente"))
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = f$df, instrumento = f$inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
+  xml <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  E <- .P160_X
+
+  cif <- .cr_off(xml, "dicotomia:cifra"); cif <- cif[order(cif$x), ]
+  .cerca(cif$x, E$dico_cifra_x, "x de las cifras de la dicotomía")
+  .cerca(cif$w, rep(E$dico_cifra_w, 2), "ancho de las cifras")
+  .cerca(cif$y, rep(E$dico_cifra_y, 2), "y de las cifras")
+  rot <- .cr_off(xml, "dicotomia:rotulo"); rot <- rot[order(rot$x), ]
+  expect_identical(rot$texto, E$dico_rotulo)
+  .cerca(rot$x, E$dico_rotulo_x, "x de los rótulos de la dicotomía")
+  .cerca(rot$w, rep(E$dico_rotulo_w, 2), "ancho de los rótulos")
+  .cerca(rot$y, rep(E$dico_rotulo_y, 2), "y de los rótulos")
+  seg <- .cr_off(xml, "dicotomia:segmento")
+  .cerca(min(seg$x), E$dico_x0, "borde izquierdo de la dicotomía")
+  .cerca(max(seg$x + seg$w), E$dico_x1, "borde derecho de la dicotomía")
+  .cerca(seg$y, rep(E$dico_y, 2), "y de la barra partida")
+  .cerca(seg$h, rep(E$dico_h, 2), "grosor de la barra partida")
+
+  r <- .cr_off(xml, "rotulo"); b <- .cr_off(xml, "barra")
+  rs <- r[r$y < 4.0, ]; ri <- r[r$y > 4.0, ]; bs <- b[b$y < 4.0, ]; bi <- b[b$y > 4.0, ]
+  .cerca(rs$x, rep(E$sup_rotulo_x, nrow(rs)), "x de los rótulos de arriba a la derecha")
+  .cerca(rs$w, rep(E$sup_rotulo_w, nrow(rs)), "ancho de los rótulos de arriba a la derecha")
+  .cerca(bs$x, rep(E$sup_barra_x, nrow(bs)), "x de las barras de arriba a la derecha")
+  .cerca(max(bs$w), E$sup_barra_max, "barra más larga de arriba a la derecha")
+  .cerca(ri$x, rep(E$inf_rotulo_x, nrow(ri)), "x de los rótulos de abajo")
+  .cerca(ri$w, rep(E$inf_rotulo_w, nrow(ri)), "ancho de los rótulos de abajo")
+  .cerca(bi$x, rep(E$inf_barra_x, nrow(bi)), "x de las barras de abajo")
+  .cerca(max(bi$w), E$inf_barra_max, "barra más larga de abajo")
+  # Cada cifra va 0.04 in después de su barra (recetario.R:207).
+  cf <- .cr_off(xml, "cifra")
+  for (k in seq_len(nrow(b))) {
+    c_ <- cf[abs(cf$y - (b$y[k] + (b$h[k] - 0.3) / 2)) < 0.01, ]
+    expect_equal(nrow(c_), 1L)
+    .cerca(c_$x, b$x[k] + b$w[k] + 0.04, sprintf("cifra de la barra %d", k))
+  }
+})
+
+test_that("la receta de la corona no toca a las demás mixtas: la dicotomía de la cuadrícula sigue sin n y con margen", {
+  # recetario.R:190 (barras_h en moderna): la dicotomía que sale de una categórica de dos opciones va a w - 0.8, sin la
+  # frecuencia; la frecuencia en el rótulo es convención de la corona (p160).
+  esp <- list(tipo = "categorica", rotulos = c("Sí", "No"), cifras = c("60%", "40%"), largos = c(0.6, 0.4),
+              valores = c(0.6, 0.4), n = c(60, 40))
+  lz <- .lam_lienzo()
+  geo <- .lam_panel_geo(esp, 0.495, 1.65, 6.012, 2.2)
+  expect_identical(geo$tipo, "dicotomia")
+  expect_null(geo$receta)
 })
