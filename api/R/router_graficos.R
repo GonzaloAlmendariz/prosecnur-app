@@ -2387,9 +2387,9 @@
   pptx_path <- tryCatch(normalizePath(pptx_path, winslash = "/", mustWork = TRUE), error = function(e) pptx_path)
 
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  profile_dir <- file.path(out_dir, "lo-profile")
-  dir.create(profile_dir, recursive = TRUE, showWarnings = FALSE)
-  profile_uri <- .preview_profile_uri(profile_dir)
+  perfil <- .preview_perfil_tomar(out_dir)   # perfil de LibreOffice reutilizado: ~1 s menos por vista previa
+  on.exit(perfil$liberar(), add = TRUE)
+  profile_uri <- .preview_profile_uri(perfil$dir)
 
   ok <- tryCatch({
     system2(

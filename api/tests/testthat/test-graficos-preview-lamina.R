@@ -155,3 +155,15 @@ test_that("los avisos sellados del motor vuelven con la vista previa, sin repeti
   expect_equal(r$avisos, "La columna «top2box» se omite: faltan las categorías.")
   expect_equal(.preview_con_avisos(1)$avisos, character(0))
 })
+
+test_that("el perfil de LibreOffice se reutiliza entre conversiones y, si está tomado, la conversión usa uno propio", {
+  raiz <- tempfile("raiz"); dir.create(raiz)
+  a <- .preview_perfil_tomar(tempfile("o1"), raiz = raiz)
+  expect_true(a$compartido)
+  b <- .preview_perfil_tomar(o2 <- tempfile("o2"), raiz = raiz)
+  expect_false(b$compartido); expect_identical(b$dir, file.path(o2, "lo-profile")); expect_true(dir.exists(b$dir))
+  a$liberar()
+  c <- .preview_perfil_tomar(tempfile("o3"), raiz = raiz)
+  expect_true(c$compartido); expect_identical(c$dir, a$dir)
+  c$liberar()
+})

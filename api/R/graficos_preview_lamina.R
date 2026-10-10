@@ -146,6 +146,24 @@
   .con_indice(lapply(seq_len(n), function(i) .pdf_page_to_png(pdf_path, tmpdir, "soffice", page = i, dpi = dpi, timeout = timeout)))
 }
 
+#' Perfil de LibreOffice para una conversión: el de la sesión R si está libre, uno nuevo si no
+#'
+#' Crear el perfil desde cero cuesta ~1 s de cada conversión (medido 2026-10-10: 3.0 s con perfil nuevo, 1.95 s
+#' reutilizado, en una lámina). Dos soffice no pueden compartir perfil a la vez, así que el reutilizado se toma con un
+#' candado (`dir.create` es atómico) y, si otra conversión lo tiene, ésta usa uno propio dentro de `out_dir`.
+#' @keywords internal
+.preview_perfil_tomar <- function(out_dir, raiz = tempdir()) {
+  compartido <- file.path(raiz, "prosecnur-lo-perfil")
+  candado <- paste0(compartido, ".candado")
+  if (isTRUE(dir.create(candado, showWarnings = FALSE))) {
+    dir.create(compartido, recursive = TRUE, showWarnings = FALSE)
+    return(list(dir = compartido, compartido = TRUE, liberar = function() unlink(candado, recursive = TRUE)))
+  }
+  propio <- file.path(out_dir, "lo-profile")
+  dir.create(propio, recursive = TRUE, showWarnings = FALSE)
+  list(dir = propio, compartido = FALSE, liberar = function() invisible(NULL))
+}
+
 #' Un argumento de `system2` con comillas para el shell de la plataforma
 #'
 #' `system2` pone comillas al comando pero no a los argumentos: una ruta con espacios («C:/Users/Juan Pérez/…», lo normal
