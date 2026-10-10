@@ -10,7 +10,7 @@
 #
 # El motor elige el placeholder por `type_idx` de officer, que ordena por (y, x). Cada entrada declara el `type_idx` que
 # el contrato del motor espera (reporte_plan_helpers.R, reporte_plan_slides.R): en cinco y seis gráficos `pic1` es el
-# del centro de arriba y `pic4` el de la derecha de abajo, así que esos placeholders llevan un desempate de 0.001 in en y
+# del centro de arriba y `pic4` el de la derecha de abajo, así que esos placeholders llevan un desempate de hasta 0.002 in en y
 # para que el orden siga siendo ése sin tocar el contrato. El ícono del público va a la cabecera, donde lo dibuja el
 # recetario (p158, p164, p166: círculo de 0.3 en 0.495, 0.165), 0.015 más abajo para seguir siendo el segundo `body`.
 
