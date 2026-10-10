@@ -68,7 +68,11 @@ tipos <- list(
   tipo("p_slide_3_graficos_1arriba", "Tres gráficos, uno ancho arriba", "graficos_3_1arriba", list(G(xS, y1, aw, h2), G(xS, y2, w2, h2), G(x2, y2, w2, h2)), f3, "Una pregunta general y dos de detalle"),
   tipo("p_slide_3_graficos_fila", "Tres gráficos en fila", "graficos_3_fila", list(G(xS, y1, w3, h1), G(xS + w3 + 0.5, y1, w3, h1), G(xS + 2 * (w3 + 0.5), y1, w3, h1)), f3, "Tres variables de perfil"),
   tipo("p_slide_3_graficos_poblacion_tira", "Tres gráficos en tira", "poblacion_3_tira", list(G(xS, y1, aw, 1.4), G(xS, y1 + 1.6, aw, 1.4), G(xS, y1 + 3.2, aw, 1.4)), fam(1, 14, 12, 0.30), "Tres preguntas de sí o no del mismo público"),
-  tipo("p_slide_3_graficos_poblacion_corona", "Tres gráficos en corona", "poblacion_3_corona", list(G(xS, y1, w2, h2), G(xS, y2, w2, h2), G(x2, y1, w2, h1)), f3, "Perfil con una variable más larga"),
+  # Corona (decisión de Gonzalo, 2026-10-10: «manda el recetario»): las ranuras que dibuja la lámina 160
+  # (recetario_m2c.R, «Perfil del docente»): dos arriba lado a lado con 0.8 in de calle, filete vertical hasta 3.8,
+  # filete horizontal en 4.0 y el panel ancho de abajo desde 4.2 hasta su última fila (6.37). La ficha 159 aún las
+  # dibuja como dos apilados + uno alto.
+  tipo("p_slide_3_graficos_poblacion_corona", "Tres gráficos en corona", "poblacion_3_corona", list(G(xS, y1, (aw - 0.8) / 2, 2.15), G(xS + (aw - 0.8) / 2 + 0.8, y1, (aw - 0.8) / 2, 2.15), G(xS, y1 + 2.55, aw, 2.17)), f3, "Perfil con una variable más larga"),
   tipo("p_slide_4_graficos", "Cuatro gráficos", "4_paneles", list(G(xS, y1, w2, h2), G(x2, y1, w2, h2), G(xS, y2, w2, h2), G(x2, y2, w2, h2)), f3, "Cuatro variables de perfil del mismo público"),
   tipo("p_slide_5_graficos_poblacion", "Cinco gráficos", "poblacion_5", list(G(xS, y1, w3, h2), G(xS + w3 + 0.5, y1, w3, h2), G(xS + 2 * (w3 + 0.5), y1, w3, h2), G(xS, y2, w2, h2), G(x2, y2, w2, h2)), fP, "Perfil del egresado o del docente"),
   tipo("p_slide_6_graficos_poblacion", "Seis gráficos", "poblacion_6", list(G(xS, y1, w3, h2), G(xS + w3 + 0.5, y1, w3, h2), G(xS + 2 * (w3 + 0.5), y1, w3, h2), G(xS, y2, w3, h2), G(xS + w3 + 0.5, y2, w3, h2), G(xS + 2 * (w3 + 0.5), y2, w3, h2)), fP, "El máximo de gráficos en una lámina"),
