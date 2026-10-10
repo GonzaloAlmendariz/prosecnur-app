@@ -179,3 +179,27 @@ test_that("«1 línea» va en singular, dentro y fuera de un mazo", {
   r <- .al_mazo(.al_cruce(largas = FALSE))
   expect_match(grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE), "hasta 1 línea; salió", fixed = TRUE)
 })
+
+# Verificador de K12b (2.ª ronda): en el Word el número salía del plan ya partido («Lámina 16/18/20» en acrconta) y en
+# el plan del usuario son 16/17/18. Sin archivo, el número es la posición en el plan del usuario: cuenta láminas
+# lógicas y no cuenta las «Otros» que inserta el motor.
+test_that("en el Word dos láminas partidas por el plan avisan con su número en el plan del usuario", {
+  f <- .al_cruce(); f$plan$b <- f$plan$a
+  av <- .al_avisos(suppressWarnings(reporte_word_plan(data = f$data, instrumento = f$inst, plan = f$plan, path_docx = tempfile(fileext = ".docx"),
+    presets_ppt = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
+  sobre <- grep("BIENESTAR", av, value = TRUE, fixed = TRUE)
+  expect_identical(sub(" · .*$", "", sobre), c("Lámina 2", "Lámina 3"))
+})
+
+test_that("sin archivo, las láminas «Otros» que inserta el motor no corren el número", {
+  marca <- function(id) list(id = id, barras = 9L, techo = 8L, titulo = "T")
+  s <- function(titulo, part = NULL, otros = FALSE) {
+    x <- structure(list(title = titulo, meta = if (otros) list(auto_otros = TRUE) else list()), class = c("ppt_slide", "list"))
+    if (!is.null(part)) attr(x, "pulso_particion") <- marca(part)
+    x
+  }
+  plan <- list(s("Uno"), s("Otros", otros = TRUE), s("A", "pa"), s("A (cont.)", "pa"), s("B", "pb"), s("B (cont.)", "pb"))
+  correr <- function() { for (i in seq_along(plan)) .lam_avisos_paso(plan, i, NULL); .lam_avisos_cierre(plan, NULL) }
+  av <- .al_avisos(correr())
+  expect_identical(sub(" · .*$", "", av), c("Lámina 2", "Lámina 3"))
+})

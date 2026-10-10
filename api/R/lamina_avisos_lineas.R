@@ -74,7 +74,12 @@
   inicio <- e$inicio[seq_len(n)]
   salieron <- if (is.null(doc) || anyNA(inicio)) rep(1L, n) else diff(c(inicio, length(doc)))
   ids <- vapply(seq_len(n), function(i) as.character((attr(plan[[i]], "pulso_particion") %||% list(id = paste0("l", i)))$id)[1], "")
-  for (g in unique(ids)) {
+  # Posición de cada lámina lógica en el plan del usuario: las piezas de una partición cuentan una vez y las «Otros»
+  # que inserta el motor (`meta$auto_otros`) no cuentan (verificador de K12b: el Word decía 16/18/20 por 16/17/18).
+  grupos <- unique(ids)
+  insertada <- vapply(grupos, function(g) isTRUE((plan[[match(g, ids)]]$meta %||% list())$auto_otros), logical(1))
+  pos_usuario <- stats::setNames(cumsum(!insertada), grupos)
+  for (g in grupos) {
     idx <- which(ids == g)
     notas <- lapply(idx, function(i) e$notas[[as.character(i)]] %||% list())
     part <- attr(plan[[idx[1]]], "pulso_particion")
@@ -82,8 +87,9 @@
     titulo <- sub("\\s*\\((cont|CONT)\\.\\)\\s*$", "", as.character(titulo %||% "")[1])
     k <- sum(salieron[idx])
     # Número de la lámina donde empieza: con títulos repetidos («BIENESTAR UNIVERSITARIO» tres veces) es lo único que
-    # distingue un aviso de otro, y `.pulso_avisos_de_job` no los colapsa. Sin archivo (Word), su lugar en el plan.
-    numero <- if (is.null(doc) || anyNA(inicio)) idx[1] else inicio[idx[1]] + 1L + as.integer(getOption("prosecnur.lam_folio_desplazo", 0L))
+    # distingue un aviso de otro, y `.pulso_avisos_de_job` no los colapsa. Sin archivo (Word), su lugar en el plan del
+    # usuario.
+    numero <- if (is.null(doc) || anyNA(inicio)) pos_usuario[[g]] else inicio[idx[1]] + 1L + as.integer(getOption("prosecnur.lam_folio_desplazo", 0L))
     nombre <- sprintf("Lámina %d · %s", as.integer(numero), .lam_aviso_nombre(titulo))
     lineas <- max(0L, unlist(lapply(notas, `[[`, "lineas")))
     if (k > 1L) {
