@@ -2,12 +2,13 @@
 // la exportación (errores del validador del plan) de lo que conviene revisar y de lo que dijo el motor en las láminas
 // ya vistas. Cada aviso con lámina lleva a ella.
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { X } from "../../../vendor/lucide-react";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import type { ValidationIssue } from "../usePlanValidator";
 import type { EstructuraInforme } from "./modeloEstructura";
 import type { GrupoAvisos } from "./resumenInforme";
+import { destinoDelFoco, escucharEscape } from "./cierreConEscape";
 import "./panelAvisos.css";
 
 type Props = {
@@ -18,6 +19,22 @@ type Props = {
 };
 
 export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
+  // Quién lo abrió (la barra o el visor): al cerrar, el foco vuelve ahí; si ya no existe, a «N avisos» de la barra.
+  const disparadorRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const activo = document.activeElement;
+    disparadorRef.current = activo instanceof HTMLElement && activo !== document.body ? activo : null;
+  }, []);
+  const cerrarPanel = panel.cerrar;
+  const cerrar = useCallback(() => {
+    cerrarPanel();
+    requestAnimationFrame(() => {
+      destinoDelFoco(disparadorRef.current, document.querySelector<HTMLElement>(".pulso-f6-barra-avisos"))?.focus();
+    });
+  }, [cerrarPanel]);
+  // Escape en el documento: abrir el panel no le pasa el foco, así que un onKeyDown en su raíz no lo oía (D5).
+  useEffect(() => escucharEscape(document, cerrar), [cerrar]);
+
   const posicionDe = useMemo(() => new Map(estructura.laminas.map((l) => [l.id, l.posicion])), [estructura]);
   const ir = (slideId: string | undefined) => {
     const p = slideId ? posicionDe.get(slideId) : undefined;
@@ -39,12 +56,11 @@ export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
       className="pulso-f6-avisos-panel"
       aria-label="Avisos del informe"
       {...panel.props}
-      onKeyDown={(e) => { if (e.key === "Escape") panel.cerrar(); }}
     >
       <header className="pulso-f6-col-head">
         <h2>Avisos del informe</h2>
         <span className="pulso-f6-col-sp" />
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Cerrar avisos" onClick={panel.cerrar}>
+        <button type="button" className="pulso-f6-icono-boton" aria-label="Cerrar avisos" onClick={cerrar}>
           <X size={16} aria-hidden="true" />
         </button>
       </header>
