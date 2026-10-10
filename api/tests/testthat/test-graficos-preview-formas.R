@@ -183,3 +183,15 @@ test_that("un marcador sin caja propia hereda la del layout por type o por idx",
   sin <- .preview_formas_de_xml(lamina)
   expect_true(all(is.na(c(sin[[1]]$x, sin[[1]]$w))))
 })
+
+# Verificador de K11 (mutante M4): el umbral es UNA línea de exceso; 1.3 líneas ya es recortado.
+test_that("el umbral de recortado es una línea de exceso", {
+  expect_false(.pf_recortado("premisa", 4L, 0))
+  expect_false(.pf_recortado("premisa", 4L, 0.01))
+  expect_true(is.na(.pf_recortado("premisa", 4L, 0.5)))
+  expect_true(is.na(.pf_recortado("premisa", 4L, 0.99)))
+  expect_true(.pf_recortado("premisa", 4L, 1))
+  expect_true(.pf_recortado("premisa", 4L, 1.3))
+  expect_false(.pf_recortado("Titulo lamina", 2L, 1.3))                     # el título admite dos líneas
+  expect_true(.pf_recortado("Titulo lamina", 3L, 0.2))
+})
