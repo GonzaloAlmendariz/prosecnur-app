@@ -53,3 +53,18 @@ y «sí», «no» u otra opción («D3 sí, D7 descendente»). Lo que no dependa
 |---|---|---|
 | E1 | ¿El inspector abre por defecto en Gráficos o en Contenido? | Contenido. |
 | E2 | ¿La composición del índice y del cierre va también en Estilo del cliente? | Sí. |
+
+## Respuestas de Gonzalo (2026-10-10)
+
+Principio, textual: «el recetario siempre manda; si algo va a cambiar en el recetario, cambia en los defaults por
+defecto de la app; es como la constitución o como el libro de reglas de todos los defaults de la app».
+
+| Código | Respuesta textual | Qué se hace |
+|---|---|---|
+| A1 | «A1 sí, reinstala el paquete» | Hecho (R CMD INSTALL OK) |
+| K5 | «Sí, pero de manera profesional; quizás hasta más adelante podemos añadir más ejemplos con un recetario más pulido» | Empaquetar los ejemplos del recetario en la app con un formato extensible (catálogo por página, versionado), listo para crecer con un recetario más pulido |
+| K6 | «El de Pulso es por defecto, pero te da la opción de subir los tuyos propios también» | Logos de PULSO por defecto; el cliente puede subir los suyos (estilo del cliente con procedencia «Del recetario» / «Propio») |
+| Sello | «Vamos con lo que diga el recetario; el recetario es y seguirá siendo la fuente de verdad» | El sello «Del recetario» usa el azul del recetario (`--pulso-recetario-azul`), no el teal del módulo |
+| Tipografía | «No, el recetario siempre manda» | No se registra la excepción 12,5/11,5: se usan los tamaños de la escala vigente (12/11); los defaults salen del recetario y de la identidad, no de la maqueta |
+| Íconos | «Sí» | Pliego de muestras a 16/20/24 para aprobar antes de dibujar los 59 |
+| E2 | (sin respuesta) | Provisional: composición en el inspector de cada lámina |
