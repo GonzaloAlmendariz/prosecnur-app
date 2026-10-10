@@ -48,3 +48,21 @@
   }
   unique(avisos)
 }
+
+#' Importa una config de Gráficos: la normaliza, la guarda y devuelve los avisos de su migración
+#'
+#' El import migraba en silencio (`.graficos_normalize_config` no avisa) y guardaba la config ya vigente: el GET
+#' siguiente no tenía nada que migrar ni que avisar, y el usuario nunca sabía que sus láminas cambiaron de tipo. El
+#' aviso sale aquí, con el mismo texto que el del GET, en la respuesta del import.
+#'
+#' @param sid Sesión.
+#' @param parsed Cuerpo del import (la config o un sobre con `config`).
+#' @return Los avisos de la migración (vacío si el plan ya era vigente).
+#' @keywords internal
+.graficos_config_importar <- function(sid, parsed) {
+  src <- if (.graficos_is_obj(parsed) && .graficos_is_obj(parsed$config)) parsed$config else parsed
+  plan <- if (.graficos_is_obj(src)) .graficos_pick_alias(src, "plan") else NULL
+  avisos <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_avisos_migracion(.graficos_migrar_poblacion_antigua(plan)) else character()
+  .graficos_config_set(sid, .graficos_normalize_config(parsed, sid = sid))
+  avisos
+}
