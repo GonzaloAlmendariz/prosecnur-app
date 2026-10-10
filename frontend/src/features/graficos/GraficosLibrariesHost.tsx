@@ -23,8 +23,8 @@ import {
 import { usePlanStore } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { SlidePicker } from "./v2/timeline/SlidePicker";
-// Registra el destino de los avisos del plan al abrirlo (migración de la población antigua) para toda la página.
-import "./avisosPlan";
+// Destino de los avisos del plan al abrirlo (migración de la población antigua) y su toast mientras Gráficos está abierto.
+import { useAnuncioAvisosPlan } from "./avisosPlan";
 
 export type GraficadorLibraryTarget = {
   slideId: string;
@@ -77,6 +77,7 @@ export function slideAcceptsGraphSlot(
 }
 
 export function GraficosLibrariesHost({ children }: { children: ReactNode }) {
+  useAnuncioAvisosPlan();
   const slidesPanel = usePanelDireccionable(PANEL_BIBLIOTECA_SLIDES);
   const graficadoresPanel = usePanelDireccionable(PANEL_BIBLIOTECA_GRAFICADORES);
   const [graficadorTarget, setGraficadorTarget] = useState<GraficadorLibraryTarget | null>(null);
