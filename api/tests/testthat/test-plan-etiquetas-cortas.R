@@ -114,3 +114,32 @@ test_that("una lámina sin título toma la etiqueta corta como título en el PPT
   expect_true(any(grepl("Escucha a sus estudiantes", ps, fixed = TRUE)))
   expect_false(any(grepl("mecanismos efectivos", ps, fixed = TRUE)))
 })
+
+# Verificador de K12a (mutante M12a4): una clave calificada vale sólo para su base.
+test_that("la etiqueta corta calificada «docentes$p5» no se aplica a «estudiantes$p5»; la simple vale para ambas y la calificada gana", {
+  withr::local_options(prosecnur.plan_etiquetas_cortas = list(`docentes$p5` = "Corta docentes"))
+  expect_identical(.plan_etiquetas_cortas_vigentes("docentes"), list(p5 = "Corta docentes"))
+  expect_null(.plan_etiquetas_cortas_vigentes("estudiantes"))
+  expect_null(.plan_etiquetas_cortas_vigentes(NA))
+  withr::local_options(prosecnur.plan_etiquetas_cortas = list(p5 = "Simple", `docentes$p5` = "Corta docentes"))
+  expect_identical(.plan_etiquetas_cortas_vigentes("docentes")$p5, "Corta docentes")
+  expect_identical(.plan_etiquetas_cortas_vigentes("estudiantes")$p5, "Simple")
+})
+
+test_that("en un mazo de dos bases, la etiqueta calificada sólo cambia la lámina de su base", {
+  niv <- .ec_niv; set.seed(4)
+  df <- function(n) data.frame(p5 = sample(niv, n, TRUE), stringsAsFactors = FALSE)
+  ins <- function() list(survey = data.frame(name = "p5", type = "select_one esc", list_name = "esc", label = .ec_largo, stringsAsFactors = FALSE),
+                         choices = data.frame(list_name = "esc", name = niv, label = niv, stringsAsFactors = FALSE),
+                         orders_list = NULL, label_col_survey = "label", label_col_choices = "label", lang = "es")
+  ov <- list(etiquetas_vars = list(`docentes$p5` = "Corta docentes"))
+  plan <- list(a = p_slide_1_grafico(grafico = p_barras_apiladas("docentes$p5", overrides = ov), titulo = "Docentes"),
+               b = p_slide_1_grafico(grafico = p_barras_apiladas("estudiantes$p5", overrides = ov), titulo = "Estudiantes"))
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = list(docentes = df(60), estudiantes = df(150)), instrumento = list(docentes = ins(), estudiantes = ins()),
+    plan = plan, path_ppt = out, presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
+  txt <- .ec_textos_ppt(out)
+  expect_match(txt[1], "Corta docentes", fixed = TRUE)
+  expect_false(grepl("Corta docentes", txt[2], fixed = TRUE))
+  expect_match(gsub("\\s+", " ", txt[2]), "mecanismos efectivos", fixed = TRUE)
+})

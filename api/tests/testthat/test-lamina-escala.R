@@ -178,7 +178,8 @@ test_that("una fila Total con diez grupos y Bottom Two Box se parte, repite la T
   e <- preparar_escala(d, "item", "N", paste0("t", 1:5), .niv_esc, var_etiqueta_categoria = "actor",
                        colores_grupos = as.list(setNames(.std_paleta("likert"), .niv_esc)), barra_extra_preset = "top2box",
                        top2box_labels = .niv_esc[3:4], columna_bottom2box = TRUE, bottom2box_labels = .niv_esc[1:2], fila_total = TRUE)
-  o <- .lam_laminas_escala(.doc_vacio(), e, "Grupos", base = "Base", folio = 1)
+  # K12b: la partición se avisa (lamina_avisos_lineas.R); se espera aquí para que no escape a la salida del test.
+  expect_message(o <- .lam_laminas_escala(.doc_vacio(), e, "Grupos", base = "Base", folio = 1), "salió en 3 partes", fixed = TRUE)
   expect_gt(o$partes, 1L)
   n0 <- length(o$doc) - o$partes
   vistos <- character(0)

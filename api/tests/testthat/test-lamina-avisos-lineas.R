@@ -169,3 +169,13 @@ test_that("un job con muchas particiones conserva todos los demás avisos y agru
   writeLines(paste(.PULSO_AVISO_SELLO, c(part[1], otros[1], tit)), file.path(jobs, "K.err"))
   expect_identical(.pulso_avisos_de_job(sid, "K"), c(otros[1], part[1], tit))
 })
+
+# Verificador de K12b (mutante M12b3): una línea se dice en singular.
+test_that("«1 línea» va en singular, dentro y fuera de un mazo", {
+  corta <- list(list(list(texto = "Corta")))
+  expect_identical(.al_avisos(.lam_aviso_partes("Satisfacción", corta, 2L)), "“Satisfacción”: las premisas ocupan hasta 1 línea; salió en 2 partes")
+  expect_identical(.lam_aviso_lineas_txt(1L), "1 línea")
+  expect_identical(.lam_aviso_lineas_txt(2L), "2 líneas")
+  r <- .al_mazo(.al_cruce(largas = FALSE))
+  expect_match(grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE), "hasta 1 línea; salió", fixed = TRUE)
+})

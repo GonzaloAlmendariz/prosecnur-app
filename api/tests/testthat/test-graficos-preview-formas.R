@@ -164,3 +164,22 @@ test_that("un texto que excede su caja por menos de una línea da null; por más
   apretado <- .pf_caja_texto("premisa", 0.05 + n * alto_linea * 0.8 + 0.02, premisa, interlineado = 80000)
   expect_false(apretado$recortado)                                           # a 80 % de interlineado cabe
 })
+
+# Verificador de K11 (mutante M11b): un marcador sin `xfrm` propio toma la caja de su marcador en el layout, por `type`
+# o por `idx`; sin layout, la caja es null.
+test_that("un marcador sin caja propia hereda la del layout por type o por idx", {
+  ns <- 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"'
+  E <- function(i) format(round(i * 914400), scientific = FALSE)
+  sp <- function(id, nm, ph, caja = NULL) sprintf(
+    '<p:sp><p:nvSpPr><p:cNvPr id="%d" name="%s"/><p:cNvSpPr/><p:nvPr>%s</p:nvPr></p:nvSpPr><p:spPr>%s</p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1200"/><a:t>x</a:t></a:r></a:p></p:txBody></p:sp>',
+    id, nm, ph, if (is.null(caja)) "" else sprintf('<a:xfrm><a:off x="%s" y="%s"/><a:ext cx="%s" cy="%s"/></a:xfrm>', E(caja[1]), E(caja[2]), E(caja[3]), E(caja[4])))
+  arbol <- function(raiz, ...) sprintf('<%s %s><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>%s</p:spTree></p:cSld></%s>', raiz, ns, paste0(...), raiz)
+  lamina <- xml2::read_xml(arbol("p:sld", sp(2, "Title 1", '<p:ph type="title"/>'), sp(3, "Text Placeholder 13", '<p:ph type="body" idx="13"/>')))
+  layout <- xml2::read_xml(arbol("p:sldLayout", sp(2, "Title", '<p:ph type="title"/>', c(0.5, 0.25, 9, 0.75)),
+                                 sp(3, "Body12", '<p:ph type="body" idx="12"/>', c(7, 1, 5, 3)), sp(4, "Body13", '<p:ph type="body" idx="13"/>', c(0.6, 6.5, 5, 0.4))))
+  f <- setNames(.preview_formas_de_xml(lamina, layout = layout), c("titulo", "cuerpo"))
+  expect_equal(c(f$titulo$x, f$titulo$y, f$titulo$w, f$titulo$h), c(0.5, 0.25, 9, 0.75))
+  expect_equal(c(f$cuerpo$x, f$cuerpo$y, f$cuerpo$w, f$cuerpo$h), c(0.6, 6.5, 5, 0.4))     # por idx, no el primer body
+  sin <- .preview_formas_de_xml(lamina)
+  expect_true(all(is.na(c(sin[[1]]$x, sin[[1]]$w))))
+})
