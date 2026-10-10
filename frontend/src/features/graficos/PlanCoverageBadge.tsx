@@ -122,9 +122,18 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
         aria-expanded={open}
         aria-haspopup="dialog"
         title="Cobertura de variables del plan de gráficos"
+        aria-label={conNombre && summary && !error ? `Cobertura ${label} variables` : undefined}
       >
         {loading ? <Loader2 size={12} className="pulso-spin" /> : <BarChart3 size={12} />}
-        {conNombre && summary && !error ? `Cobertura ${label} variables` : label}
+        {conNombre && summary && !error ? (
+          // Los rótulos van aparte para que una barra estrecha los oculte y deje la cifra (D3): el nombre accesible
+          // sigue completo por aria-label.
+          <>
+            <span className="pulso-gv2-coverage-nombre">Cobertura </span>
+            {label}
+            <span className="pulso-gv2-coverage-nombre"> variables</span>
+          </>
+        ) : label}
       </button>
 
       {/* El popover va por portal: el toolbar tiene backdrop-filter y un

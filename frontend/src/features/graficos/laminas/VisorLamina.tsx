@@ -99,7 +99,7 @@ export function VisorLamina({
           onClick={onAlternarEstructura}
         >
           <ListTree size={15} aria-hidden="true" />
-          <span className="pulso-f6-solo-ancho">Estructura</span>
+          <span className="pulso-f6-solo-ancho pulso-f6-rotulo-estrecho">Estructura</span>
         </button>
         <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina anterior" disabled={lamina.posicion <= 1} onClick={() => onIr(lamina.posicion - 1)}>
           <ChevronLeft size={16} aria-hidden="true" />
@@ -110,12 +110,12 @@ export function VisorLamina({
         <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} titulo={lamina.tipoLabel} className="pulso-f6-visor-tipo" />
         <p className="pulso-f6-visor-pos" aria-live="polite">
           <strong>Lámina {lamina.posicion} de {total}</strong>
-          {nPartes > 1 && <span className="pulso-f6-solo-ancho"> · parte {parteActiva} de {nPartes}</span>}
+          {nPartes > 1 && <span className="pulso-f6-solo-ancho pulso-f6-rotulo-medio"> · parte {parteActiva} de {nPartes}</span>}
         </p>
         {estado && !cargando && (
           <span className={`pulso-f6-chip-estado is-${estado === "ruta_anterior" ? "ruta" : estado === "sin_grafico" ? "neutro" : "nativa"}`} title={motivoDeEstado(estado, motorNativoApagado, (l?.avisos.length ?? 0) > 0)}>
             {estado === "ruta_anterior" ? <History size={13} aria-hidden="true" /> : <CheckCircle2 size={13} aria-hidden="true" />}
-            {ETIQUETA_ESTADO[estado]}
+            <span className="pulso-f6-rotulo-estrecho">{ETIQUETA_ESTADO[estado]}</span>
             <span className="pulso-sr-only">: {motivoDeEstado(estado, motorNativoApagado, (l?.avisos.length ?? 0) > 0)}</span>
           </span>
         )}
@@ -138,9 +138,10 @@ export function VisorLamina({
         )}
         <span className="pulso-f6-col-sp" />
         {l && l.avisos.length > 0 && (
-          <button type="button" className="pulso-f6-boton" onClick={onVerAvisos}>
+          <button type="button" className="pulso-f6-boton pulso-f6-visor-avisos" onClick={onVerAvisos}>
             <AlertTriangle size={14} aria-hidden="true" />
-            {l.avisos.length === 1 ? "1 aviso" : `${l.avisos.length} avisos`}
+            {l.avisos.length}
+            <span className="pulso-f6-rotulo-medio">{l.avisos.length === 1 ? " aviso" : " avisos"}</span>
           </button>
         )}
         {l?.fileId && vista.fase === "lista" && (
