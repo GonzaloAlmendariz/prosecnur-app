@@ -68,3 +68,5 @@ defecto de la app; es como la constitución o como el libro de reglas de todos l
 | Tipografía | «No, el recetario siempre manda» | No se registra la excepción 12,5/11,5: se usan los tamaños de la escala vigente (12/11); los defaults salen del recetario y de la identidad, no de la maqueta |
 | Íconos | «Sí» | Pliego de muestras a 16/20/24 para aprobar antes de dibujar los 59 |
 | E2 | (sin respuesta) | Provisional: composición en el inspector de cada lámina |
+| FODA | «Sí, sácalo» | `p_dim_foda` no aparece en el recetario: sale del selector de tipos de gráfico; se sigue dibujando en planes que ya lo usan |
+| Variantes | «De acuerdo» | Un ícono por tipo del recetario (55), sin marcas por variante; las variantes se eligen en el inspector con miniaturas |
