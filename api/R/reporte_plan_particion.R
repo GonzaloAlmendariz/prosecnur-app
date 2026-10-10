@@ -306,19 +306,19 @@
             if (identical(slide$slots[[nm]], el)) { slot_nm <- nm; break }
           }
           if (!is.null(slot_nm)) {
+            # Las piezas llevan su lámina lógica: el aviso lo emite `.lam_avisos_cierre` (lamina_avisos_lineas.R)
+            # con las láminas que de verdad salieron, porque el compositor puede volver a partir cada pieza. Antes
+            # avisaba aquí «se partió en N» y el compositor otra vez con su cifra (verificador de K12b, acrconta).
+            marca <- list(id = sprintf("particion-%d", length(out) + 1L), barras = sum(tam), techo = techo,
+                          titulo = .lam_avisos_titulo_de(slide))
             for (k in seq_along(tandas)) {
               nueva <- slide
               nueva$slots[[slot_nm]] <- .particion_elemento(el, tandas[[k]])
               if (k > 1L) nueva <- .particion_marcar_titulo(nueva)
+              attr(nueva, "pulso_particion") <- marca
               out[[length(out) + 1L]] <- nueva
             }
             partido <- TRUE
-            .pulso_aviso(sprintf(
-              paste("Una lámina de escala se partió en %d: %d barras no caben",
-                    "legibles en una sola (el máximo es %d). Reduce públicos o",
-                    "premisas si prefieres tenerlas juntas."),
-              length(tandas), sum(tam), techo
-            ))
           }
         }
       }

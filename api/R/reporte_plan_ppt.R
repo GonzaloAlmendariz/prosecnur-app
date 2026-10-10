@@ -7441,7 +7441,7 @@ reporte_ppt_plan <- function(
 
   ANTETITULOS <- .lam_antetitulos(plan); SECCIONES <- .lam_secciones_numeradas(plan)   # ADR 0093: capítulo vigente y número de cada separador
   for (i in seq_along(plan)) {
-    slide <- plan[[i]]
+    slide <- .lam_avisos_paso(plan, i, doc)  # K12b: avisos de líneas por lámina lógica (lamina_avisos_lineas.R)
     if (!inherits(slide, "ppt_slide")) {
       .plan_input_abort("Cada slide debe tener clase `ppt_slide`.")
     }
@@ -9678,7 +9678,7 @@ reporte_ppt_plan <- function(
     .plan_input_abort("Tipo de slide no implementado: ", stype)
   }
 
-  log <- dplyr::bind_rows(log_rows)
+  log <- dplyr::bind_rows(log_rows); .lam_avisos_cierre(plan, doc)
 
   if (!isTRUE(solo_lista)) {
     print(doc, target = path_ppt)

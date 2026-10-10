@@ -84,3 +84,58 @@ test_that("una multilista que se parte avisa una vez con sus partes", {
   expect_length(linea, 1L)
   expect_match(linea, sprintf("^“Multilista larga”: las premisas ocupan hasta [0-9]+ líneas?; salió en %d partes$", k))
 })
+
+# Verificador de K12b (acrconta, BIENESTAR UNIVERSITARIO): el plan parte la escala por barras
+# (`.plan_particionar_escalas`) y el compositor vuelve a partir cada pieza; el aviso contaba sólo la partición del
+# compositor y se sumaba el aviso previo «se partió en N». Un solo aviso por lámina lógica, con las láminas reales.
+.al_niv4 <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo")
+.al_cruce <- function(largas = TRUE) {
+  mk <- function(seed, n) { set.seed(seed); as.data.frame(setNames(lapply(1:7, function(k) sample(.al_niv4, n, TRUE)), sprintf("p%d", 1:7)), stringsAsFactors = FALSE) }
+  ins <- function() list(survey = data.frame(name = sprintf("p%d", 1:7), type = "select_one esc", list_name = "esc",
+                                             label = if (largas) .al_larga(1:7) else sprintf("Premisa %d", 1:7), stringsAsFactors = FALSE),
+                         choices = data.frame(list_name = "esc", name = .al_niv4, label = .al_niv4, stringsAsFactors = FALSE),
+                         orders_list = NULL, label_col_survey = "label", label_col_choices = "label", lang = "es")
+  vars <- setNames(lapply(1:7, function(k) list(sprintf("docentes$p%d", k), sprintf("estudiantes$p%d", k))), sprintf("t%d", 1:7))
+  tg <- setNames(as.list(if (largas) .al_larga(1:7) else sprintf("Premisa %d", 1:7)), sprintf("t%d", 1:7))
+  list(data = list(docentes = mk(1, 60), estudiantes = mk(2, 150)), inst = list(docentes = ins(), estudiantes = ins()),
+       plan = list(x = p_slide_texto(titulo = "Antes", texto = "Una"), a = p_slide_1_grafico(titulo = "BIENESTAR UNIVERSITARIO",
+         grafico = p_barras_multiapiladas(modo = "var_cruce", vars = vars, titulos_grupo = tg, top2box = TRUE, top2box_labels = .al_niv4[3:4]))))
+}
+.al_mazo <- function(f) {
+  out <- tempfile(fileext = ".pptx")
+  av <- .al_avisos(suppressWarnings(reporte_ppt_plan(data = f$data, instrumento = f$inst, plan = f$plan, path_ppt = out,
+    presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
+  list(avisos = av, n = length(.pptx_slide_paths(out)) - 1L)                 # menos la lámina de texto
+}
+
+test_that("una escala partida por el plan y otra vez por el compositor avisa una vez con las láminas reales", {
+  r <- .al_mazo(.al_cruce())
+  expect_gt(r$n, 3L)                                                         # 3 piezas del plan, alguna partida otra vez
+  sobre <- grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE)
+  expect_length(sobre, 1L)
+  expect_match(sobre, sprintf("“BIENESTAR UNIVERSITARIO”: las premisas ocupan hasta [0-9]+ líneas; salió en %d partes \\(14 barras; el máximo legible por lámina es 7\\)$", r$n))
+  expect_false(any(grepl("se partió en", r$avisos, fixed = TRUE)))           # el aviso previo se fusiona
+})
+
+test_that("una escala partida sólo por el plan también avisa, con sus piezas", {
+  r <- .al_mazo(.al_cruce(largas = FALSE))
+  sobre <- grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE)
+  expect_length(sobre, 1L)
+  expect_match(sobre, sprintf("salió en %d partes \\(14 barras; el máximo legible por lámina es 7\\)$", r$n))
+})
+
+test_that("el Word avisa la partición del plan una vez, con sus figuras", {
+  f <- .al_cruce()
+  av <- .al_avisos(suppressWarnings(reporte_word_plan(data = f$data, instrumento = f$inst, plan = f$plan, path_docx = tempfile(fileext = ".docx"),
+    presets_ppt = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
+  sobre <- grep("BIENESTAR", av, value = TRUE, fixed = TRUE)
+  expect_length(sobre, 1L)
+  expect_match(sobre, "salió en 3 partes (14 barras; el máximo legible por lámina es 7)", fixed = TRUE)
+})
+
+test_that("un mazo que falla a mitad no deja el registro tomado: el compositor llamado solo vuelve a avisar", {
+  local({ .lam_avisos_paso(list(1, 2), 1L, NULL) })                          # el marco que lo abrió ya no existe
+  expect_false(.lam_avisos_activo())
+  av <- .al_avisos(.lam_laminas_escala(.al_doc(), .al_espec(11, .al_larga), "Tras un fallo", base = "Base: 51"))
+  expect_length(grep("Tras un fallo", av, fixed = TRUE), 1L)
+})
