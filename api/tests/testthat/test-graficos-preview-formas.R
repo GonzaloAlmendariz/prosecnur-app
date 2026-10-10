@@ -123,3 +123,44 @@ test_that("sin pedirlo la respuesta no cambia; una lámina de estructura no tien
   expect_identical(.preview_ranuras_estandar("p_slide_portada"), list())
   expect_identical(.preview_ranuras_estandar("no_existe"), list())
 })
+
+# Verificador de K11 (acrconta): 7 títulos de 2 líneas y 2 premisas se marcaban «recortado» y en el render no lo están.
+# El título del motor admite dos líneas (la misma regla que su aviso, K12b) y una medición que excede la caja por menos
+# de una línea no es confiable (la tinta medida y la composición real difieren en una línea): ahí `recortado` es null.
+.pf_caja_texto <- function(nombre, h, texto, sz = 1300, w = 3.3, interlineado = NULL) {
+  ln <- if (is.null(interlineado)) "" else sprintf('<a:lnSpc><a:spcPct val="%d"/></a:lnSpc>', interlineado)
+  xml <- paste0(
+    '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">',
+    '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>',
+    '<p:sp><p:nvSpPr><p:cNvPr id="2" name="', nombre, '"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>',
+    sprintf('<p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="%d" cy="%d"/></a:xfrm></p:spPr>', round(w * 914400), round(h * 914400)),
+    '<p:txBody><a:bodyPr wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720"><a:noAutofit/></a:bodyPr><a:lstStyle/>',
+    '<a:p><a:pPr>', ln, '</a:pPr><a:r><a:rPr sz="', sz, '" b="1"/><a:t>', texto, '</a:t></a:r></a:p></p:txBody></p:sp>',
+    '</p:spTree></p:cSld></p:sld>')
+  .preview_formas_de_xml(xml2::read_xml(xml))[[1]]
+}
+
+test_that("un título del motor de dos líneas no se marca recortado; de tres, sí (K11, verificador)", {
+  dos <- "Valoración de los estudiantes sobre el desempeño de los docentes del programa de estudios"
+  tres <- paste(dos, "en las competencias declaradas en el perfil de egreso y en los objetivos educacionales de la carrera")
+  t2 <- .pf_caja_texto("Titulo lamina", 0.5, dos, sz = 2400, w = 10.4)
+  expect_identical(t2$lineas, 2L)
+  expect_false(t2$recortado)
+  t3 <- .pf_caja_texto("Titulo lamina", 0.5, tres, sz = 2400, w = 10.4)
+  expect_gte(t3$lineas, 3L)
+  expect_true(t3$recortado)
+})
+
+test_that("un texto que excede su caja por menos de una línea da null; por más, TRUE; y el interlineado cuenta", {
+  premisa <- "El plan de estudios incorpora contenidos actualizados que responden a las necesidades del entorno profesional y social de la región"
+  n <- .lam_lineas_tinta(premisa, 3.3, 13, TRUE)
+  alto_linea <- 13 * 1.2 / 72
+  justa <- .pf_caja_texto("premisa", 0.05 + n * alto_linea, premisa)
+  expect_false(justa$recortado)
+  una_menos <- .pf_caja_texto("premisa", 0.05 + (n - 1) * alto_linea + 0.02, premisa)
+  expect_true(is.na(una_menos$recortado))                                   # como las premisas 15 y 81 de acrconta
+  dos_menos <- .pf_caja_texto("premisa", 0.05 + (n - 2.2) * alto_linea, premisa)
+  expect_true(dos_menos$recortado)
+  apretado <- .pf_caja_texto("premisa", 0.05 + n * alto_linea * 0.8 + 0.02, premisa, interlineado = 80000)
+  expect_false(apretado$recortado)                                           # a 80 % de interlineado cabe
+})
