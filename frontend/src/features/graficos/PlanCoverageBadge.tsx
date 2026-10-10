@@ -26,7 +26,8 @@ const STATUS_HINTS: Record<string, string> = {
   excluida_intencionalmente: "Variables graficables que el usuario decidió dejar fuera del plan.",
 };
 
-export function PlanCoverageBadge() {
+/** `conNombre` antepone «Cobertura» y nombra la unidad («283/286 variables»; el inventario cuenta variables graficables, no preguntas): la barra de Láminas no deja cifras sueltas. */
+export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean } = {}) {
   const { coverage, loading, error } = usePlanCoverage();
   const setCoverageExcluded = usePlanStore((s) => s.setCoverageExcluded);
   const [open, setOpen] = useState(false);
@@ -123,7 +124,7 @@ export function PlanCoverageBadge() {
         title="Cobertura de variables del plan de gráficos"
       >
         {loading ? <Loader2 size={12} className="pulso-spin" /> : <BarChart3 size={12} />}
-        {label}
+        {conNombre && summary && !error ? `Cobertura ${label} variables` : label}
       </button>
 
       {/* El popover va por portal: el toolbar tiene backdrop-filter y un

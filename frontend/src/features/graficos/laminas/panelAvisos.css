@@ -1,0 +1,80 @@
+/* Panel de avisos (sideover sobre la columna derecha, en cualquier ancho). Cuerpo con su propio scroll (C4). */
+
+.pulso-f6-avisos-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, 92%);
+  border-left: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.pulso-f6-avisos-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-3);
+}
+
+.pulso-f6-avisos-grupo h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0 0 var(--pulso-space-2);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-avisos-grupo h3 span {
+  min-width: 20px;
+  padding: 0 var(--pulso-space-1);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  font-size: 11px;
+  text-align: center;
+}
+
+.pulso-f6-avisos-grupo.is-bloquea h3 span {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-f6-avisos-grupo ul {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-avisos-grupo li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-avisos-grupo.is-bloquea li {
+  border-color: var(--pulso-danger-border);
+}
+
+.pulso-f6-avisos-grupo p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}

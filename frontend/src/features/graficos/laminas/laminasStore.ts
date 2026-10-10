@@ -7,7 +7,7 @@ import type { EstadoSalida } from "./estadoLamina";
 
 export type SeccionInspector = "contenido" | "composicion" | "graficos" | "estado";
 
-export type ResumenLamina = { estado: EstadoSalida | null; partes: number; avisos: number };
+export type ResumenLamina = { estado: EstadoSalida | null; partes: number; avisos: number; avisosTexto?: string[] };
 
 /** «ajustar» encaja la lámina entera en el lienzo; los demás la agrandan sobre ese ajuste y el lienzo se desplaza. */
 export type ZoomVisor = "ajustar" | "125" | "150";
@@ -64,7 +64,8 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
   fijarCerrados: (ids) => set({ cerrados: Object.fromEntries(ids.map((id) => [id, true as const])) }),
   registrarResumen: (slideId, r) => set((s) => {
     const prev = s.resumenes[slideId];
-    if (prev && prev.estado === r.estado && prev.partes === r.partes && prev.avisos === r.avisos) return s;
+    if (prev && prev.estado === r.estado && prev.partes === r.partes && prev.avisos === r.avisos
+      && (prev.avisosTexto ?? []).join("\n") === (r.avisosTexto ?? []).join("\n")) return s;
     return { resumenes: { ...s.resumenes, [slideId]: r } };
   }),
 }));

@@ -19,6 +19,7 @@ import {
 } from "../../../vendor/lucide-react";
 import { downloadUrl } from "../../../api/core";
 import { IconoTipo } from "../iconos/IconoTipo";
+import { DebugPhToggle } from "../GraficosHeader";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
@@ -141,6 +142,9 @@ export function VisorLamina({
             <Download size={16} aria-hidden="true" />
           </a>
         )}
+        <span className="pulso-f6-guias pulso-f6-solo-ancho">
+          <DebugPhToggle etiqueta="Guías (beta)" />
+        </span>
         <label className="pulso-f6-zoom">
           <span className="pulso-sr-only">Zoom de la lámina</span>
           <select value={zoom} onChange={(e) => setZoom(e.target.value as ZoomVisor)}>

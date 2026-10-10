@@ -38,6 +38,7 @@ import { GraficosLibrariesHost } from "./GraficosLibrariesHost";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ContextTabRail } from "../../components/ContextTabRail";
 import { LaminasWorkbench } from "./laminas/LaminasWorkbench";
+import { BarraLaminas } from "./laminas/BarraLaminas";
 import "./graficosPestanas.css";
 import { resolverPestanaGraficos, PESTANAS_GRAFICOS, type GraficosTabId } from "./pestanaGraficos";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
@@ -328,19 +329,36 @@ export default function GraficosPage() {
             </Alert>
           )}
 
-          <GraficosHeader
-            onExportPpt={() => onExport("ppt")}
-            onExportWord={() => onExport("word")}
-            pptFileId={pptFileId}
-            docxFileId={docxFileId}
-            pptFilename={pptFilename}
-            docxFilename={docxFilename}
-            exportBusy={!!busyValidating || !!exportJob}
-            exportJobKind={exportJob?.kind ?? null}
-            canExport={canExport}
-            prepReady={prepOk}
-            reportScope={reportScope}
-          />
+          {pestana === "laminas" && bodyState === "editor" ? (
+            <BarraLaminas
+              onExportPpt={() => onExport("ppt")}
+              onExportWord={() => onExport("word")}
+              pptFileId={pptFileId}
+              docxFileId={docxFileId}
+              pptFilename={pptFilename}
+              docxFilename={docxFilename}
+              exportBusy={!!busyValidating || !!exportJob}
+              exportJobKind={exportJob?.kind ?? null}
+              canExport={canExport}
+              isSharedReport={isSharedReport}
+              prepBlocked={!isSharedReport && !prepOk}
+              onIrEditorAnterior={() => irPestana("clasico")}
+            />
+          ) : (
+            <GraficosHeader
+              onExportPpt={() => onExport("ppt")}
+              onExportWord={() => onExport("word")}
+              pptFileId={pptFileId}
+              docxFileId={docxFileId}
+              pptFilename={pptFilename}
+              docxFilename={docxFilename}
+              exportBusy={!!busyValidating || !!exportJob}
+              exportJobKind={exportJob?.kind ?? null}
+              canExport={canExport}
+              prepReady={prepOk}
+              reportScope={reportScope}
+            />
+          )}
 
           {exportJob && (
             <JobProgress<ExportResult>
