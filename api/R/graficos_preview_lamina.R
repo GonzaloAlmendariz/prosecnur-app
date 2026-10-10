@@ -56,11 +56,16 @@
 #' @keywords internal
 .pptx_lamina_estado <- function(xml) {
   grupos <- regmatches(xml, gregexpr('name="prosecnur:[^"]+"', xml))[[1]]
+  # Una imagen pegada en una ranura (`ph_label = "prosecnur:slide_1:right"`, la ruta anterior) lleva el nombre de la
+  # ranura en su propio `<p:nvPicPr>`: ese nombre no es una forma nativa (hallazgo del autor de 3409b0aa8).
+  de_imagen <- regmatches(xml, gregexpr('<p:nvPicPr>\\s*<p:cNvPr[^>]*name="prosecnur:[^"]+"', xml, perl = TRUE))[[1]]
+  de_imagen <- sub('^.*name="(prosecnur:[^"]+)"$', 'name="\\1"', de_imagen)
+  for (d in de_imagen) grupos <- grupos[-match(d, grupos)]
   grupos <- sub('^name="prosecnur:([^"]+)"$', "\\1", grupos)
-  if (length(grupos)) {
+  if (length(grupos) || length(de_imagen)) {
     raiz <- sub(":.*$", "", grupos)
     es_grafico <- raiz == "grafico" | (grepl(":", grupos, fixed = TRUE) & !raiz %in% .PREVIEW_GRUPOS_ESTRUCTURA)
-    return(if (any(es_grafico)) "nativa" else "estructura")
+    return(if (any(es_grafico)) "nativa" else if (length(de_imagen)) "ruta_anterior" else "estructura")
   }
   if (grepl("<p:pic>", xml, fixed = TRUE) || grepl("<p:pic ", xml, fixed = TRUE)) return("ruta_anterior")
   "sin_grafico"
