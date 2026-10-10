@@ -39,37 +39,65 @@
   paste(readLines(con, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
 }
 
-#' Cómo salió una lámina: con formas nativas, por la ruta anterior (imagen) o sin gráfico
+#' Grupos del motor nativo que no son gráficos: encabezado, pie y láminas de estructura
+#' @keywords internal
+.PREVIEW_GRUPOS_ESTRUCTURA <- c("titulo", "pie", "narrativa", "top_two_box", "seccion", "redondeo", "portada",
+                                "objetivo", "indice", "ficha", "cierre")
+
+#' Cómo salió una lámina
 #'
-#' El motor nativo agrupa lo que dibuja en formas nombradas `prosecnur:*` (`prosecnur:titulo`, `prosecnur:grafico:escala`,
-#' `prosecnur:pie`). La ruta anterior pega el gráfico como imagen (`<p:pic>`) y no deja esos nombres. Una lámina sin
-#' ninguno de los dos (texto, una portada de la plantilla) no tiene gráfico que juzgar.
-#' @return «nativa», «ruta_anterior» o «sin_grafico».
+#' El motor nativo agrupa lo que dibuja en formas nombradas `prosecnur:*`. Un gráfico es `prosecnur:grafico:<tipo>` o una
+#' ranura de una lámina compuesta (`prosecnur:poblacion_4:up_left`, `prosecnur:slide_1:…`); el encabezado, el pie y las
+#' láminas de estructura (`prosecnur:titulo`, `prosecnur:objetivo`, `prosecnur:seccion`…) no son gráficos. La ruta anterior
+#' no deja esos nombres y pega imágenes (`<p:pic>`): así sale hoy el índice con argumentos de focos (inventario F6, A9).
+#' Verificador de 55ff0d1bf: la regla anterior llamaba «nativa» a la lámina de objetivo, que no tiene gráfico.
+#' @return «nativa» (gráfico con formas nativas), «estructura» (la dibujó el motor y no lleva gráfico), «ruta_anterior»
+#'   (sin formas del motor y con imágenes) o «sin_grafico» (ni formas del motor ni imágenes: texto o plantilla).
 #' @keywords internal
 .pptx_lamina_estado <- function(xml) {
-  if (grepl('name="prosecnur:', xml, fixed = TRUE)) return("nativa")
+  grupos <- regmatches(xml, gregexpr('name="prosecnur:[^"]+"', xml))[[1]]
+  grupos <- sub('^name="prosecnur:([^"]+)"$', "\\1", grupos)
+  if (length(grupos)) {
+    raiz <- sub(":.*$", "", grupos)
+    es_grafico <- raiz == "grafico" | (grepl(":", grupos, fixed = TRUE) & !raiz %in% .PREVIEW_GRUPOS_ESTRUCTURA)
+    return(if (any(es_grafico)) "nativa" else "estructura")
+  }
   if (grepl("<p:pic>", xml, fixed = TRUE) || grepl("<p:pic ", xml, fixed = TRUE)) return("ruta_anterior")
   "sin_grafico"
 }
 
-#' Título visible de una lámina (el primer texto del grupo de título, o el primer texto)
+#' Título visible de una lámina
+#'
+#' El motor escribe el título en la forma «Titulo lamina» (y el antetítulo en «Antetitulo lamina»); las láminas de
+#' estructura lo ponen en `<familia>:titulo` (`objetivo:titulo`). Si el título quedó vacío (la explicación del Top Two
+#' Box) vale el antetítulo; sin ninguna de esas formas, el primer texto de la lámina. Verificador de 55ff0d1bf: tomar «el
+#' texto más largo» devolvía el cuerpo del objetivo y el antetítulo de «Cómo leer».
 #' @keywords internal
 .pptx_lamina_titulo <- function(xml) {
-  bloque <- regmatches(xml, regexpr('name="prosecnur:titulo".*?</p:grpSp>', xml, perl = TRUE))
-  fuente <- if (length(bloque) && nzchar(bloque)) bloque else xml
-  textos <- regmatches(fuente, gregexpr("<a:t>([^<]*)</a:t>", fuente))[[1]]
-  textos <- trimws(sub("^<a:t>(.*)</a:t>$", "\\1", textos))
-  textos <- textos[nzchar(textos)]
-  if (!length(textos)) return("")
-  # El antetítulo va antes que el título en el grupo; el título es el texto más largo de los dos primeros.
-  candidatos <- utils::head(textos, 2L)
-  candidatos[[which.max(nchar(candidatos))]]
+  xml <- gsub("\n", " ", xml, fixed = TRUE)
+  .textos <- function(x) {
+    t <- regmatches(x, gregexpr("<a:t>([^<]*)</a:t>", x))[[1]]
+    t <- trimws(sub("^<a:t>(.*)</a:t>$", "\\1", t))
+    t[nzchar(t)]
+  }
+  .de_forma <- function(patron_nombre) {
+    formas <- regmatches(xml, gregexpr("<p:sp>.*?</p:sp>", xml, perl = TRUE))[[1]]
+    f <- formas[grepl(patron_nombre, formas, perl = TRUE)]
+    if (!length(f)) return("")
+    paste(.textos(f[[1]]), collapse = " ")
+  }
+  for (patron in c('name="Titulo lamina"', 'name="Antetitulo lamina"', 'name="[a-z_]+:titulo"')) {
+    t <- .de_forma(patron)
+    if (nzchar(t)) return(t)
+  }
+  t <- .textos(xml)
+  if (length(t)) t[[1]] else ""
 }
 
 #' Partes de la lámina que salió en el mini-PPTX de la vista previa
 #'
-#' @return `list(n, partes)`, con una entrada por lámina: `indice`, `titulo`, `estado` y `continuacion` (si su título
-#'   lleva «(cont.)»). `n = 0` si el archivo no se puede leer.
+#' @return `list(n, partes)`, con una entrada por lámina: `indice`, `titulo`, `estado` (ver `.pptx_lamina_estado`) y
+#'   `continuacion` (si su título lleva «(cont.)»). `n = 0` si el archivo no se puede leer.
 #' @keywords internal
 .preview_partes <- function(pptx_path) {
   slides <- .pptx_slide_paths(pptx_path)
@@ -82,28 +110,37 @@
   list(n = length(partes), partes = partes)
 }
 
-#' Rasteriza todas las partes del mini-PPTX (hasta `max_partes`)
+#' Rasteriza las partes del mini-PPTX (hasta `max_partes`)
 #'
-#' Con LibreOffice convierte una sola vez a PDF y rasteriza cada página; con el renderer de artefactos, lámina por
-#' lámina. La parte 1 es la misma que devolvía `.render_pptx_slide_preview`.
-#' @return Lista de payloads (`png_base64`, `width`, `height`, `renderer`), uno por parte rasterizada; vacía si no hay
-#'   renderer o falla.
+#' Con LibreOffice convierte una sola vez a PDF y rasteriza cada página; con el renderer de artefactos, lámina por lámina
+#' (un proceso por parte: ~10 s cada una, por eso el endpoint sólo pide todas cuando el cliente lo solicita). La parte 1 es
+#' la misma que devolvía `.render_pptx_slide_preview`.
+#' @return Lista alineada con las partes: el elemento k es el payload de la parte k (`png_base64`, `width`, `height`,
+#'   `renderer`, `indice`) o `NULL` si esa parte no se pudo rasterizar; vacía si no hay renderer. El atributo `truncado`
+#'   vale `TRUE` cuando había más partes que `max_partes`.
 #' @keywords internal
 .render_pptx_preview_partes <- function(pptx_path, n_partes, preview_quality = "quick", max_partes = 6L) {
   preview_quality <- if (identical(tolower(as.character(preview_quality %||% "quick")), "normal")) "normal" else "quick"
   dpi <- if (preview_quality == "quick") 160L else 220L
   timeout <- if (preview_quality == "quick") 12L else 30L
-  n <- min(as.integer(n_partes %||% 1L), as.integer(max_partes))
-  if (is.na(n) || n < 1L) n <- 1L
+  total <- suppressWarnings(as.integer(n_partes %||% 1L))
+  if (is.na(total) || total < 1L) total <- 1L
+  n <- min(total, as.integer(max_partes))
   tmpdir <- tempfile("pptx_preview_partes_")
   dir.create(tmpdir, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(tmpdir, recursive = TRUE, force = TRUE), add = TRUE)
+  .con_indice <- function(out) {
+    out <- lapply(seq_along(out), function(i) if (is.null(out[[i]])) NULL else c(out[[i]], list(indice = i)))
+    if (all(vapply(out, is.null, logical(1)))) out <- list()
+    attr(out, "truncado") <- total > n
+    out
+  }
 
   if (.artifact_renderer_configured()) {
     out <- lapply(seq_len(n), function(i) .render_pptx_slide_png_artifact(pptx_path, tmpdir, slide_index = i, timeout = timeout, scale = max(1, dpi / 96)))
-    if (!is.null(out[[1]])) return(Filter(Negate(is.null), out))
+    if (!is.null(out[[1]])) return(.con_indice(out))
   }
   pdf_path <- .pptx_to_pdf_soffice(pptx_path, tmpdir, timeout = timeout + 4L * (n - 1L))
-  if (is.null(pdf_path)) return(list())
-  Filter(Negate(is.null), lapply(seq_len(n), function(i) .pdf_page_to_png(pdf_path, tmpdir, "soffice", page = i, dpi = dpi, timeout = timeout)))
+  if (is.null(pdf_path)) return(.con_indice(list(NULL)))
+  .con_indice(lapply(seq_len(n), function(i) .pdf_page_to_png(pdf_path, tmpdir, "soffice", page = i, dpi = dpi, timeout = timeout)))
 }
