@@ -500,7 +500,7 @@ reporte_ppt_plan <- function(
       .plan_input_abort("Placeholder spec invalido (NULL o sin $type).")
     }
     # `suppress` lo marca .ppt_calibrar_pies_iconos: sin cajon real, se omite.
-    if (isTRUE(spec$suppress)) return(doc)
+    if (isTRUE(spec$suppress)) return(.ppt_slot_suprimido(doc, spec))
     type_idx <- spec$type_idx %||% NULL
     if (!is.null(type_idx)) {
       type_idx <- suppressWarnings(as.integer(type_idx))
