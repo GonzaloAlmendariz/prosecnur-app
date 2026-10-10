@@ -53,6 +53,7 @@ import {
 } from "./SlidePickerBlueprint";
 import { useLibraryDialogA11y } from "../../useLibraryDialogA11y";
 import "./slidePicker.css";
+import { enSelector } from "../../enSelector";
 
 type SlideLibraryCategory = "estructural" | "1g" | "2g" | "grid" | "poblacion" | "otro";
 
@@ -143,7 +144,7 @@ export function SlidePicker({
   });
 
   // Lo que el registro saca del selector (`en_selector = FALSE`) no se ofrece al insertar.
-  const inventory = useMemo(() => registry?.slides.filter((x) => x.en_selector !== false), [registry]);
+  const inventory = useMemo(() => (registry ? enSelector(registry.slides) : undefined), [registry]);
   const compositionIdentity = useMemo(
     () => ({
       ...slideCompositionIdentityFromScopeRules(scopeRules),
