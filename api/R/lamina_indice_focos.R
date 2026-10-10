@@ -22,10 +22,11 @@
 .LAM_INDICE_ICONOS_EQUIVALENTES <- c(`target-arrow` = "diana-flecha", bullseye = "target", `bar-chart-line-fill` = "chart-column",
                                      `circle-user-round` = "user-round")
 
-#' Ajustes del foco sin equivalente en el recetario (se avisan si traen valor)
+#' Ajustes del foco sin equivalente en el recetario (se avisan si traen valor; los lógicos, sólo si valen TRUE)
 #' @keywords internal
 .LAM_INDICE_FOCOS_SIN_EQUIVALENTE <- c("iconos_focos_fill", "iconos_focos_diametro_cm", "iconos_focos_icon_scale",
-                                       "iconos_focos_left_cm", "iconos_focos_top_cm")
+                                       "iconos_focos_left_cm", "iconos_focos_top_cm", "iconos_focos_objeto_unico",
+                                       "redibujar_focos")
 
 #' ¿El índice conserva la ruta anterior? Sólo si se eligió explícitamente el estilo de focos (`meta$composicion = "focos"`)
 #' @keywords internal
@@ -54,9 +55,12 @@
 #' @keywords internal
 .lam_icono_navy_desde <- function(ruta) {
   navy <- grDevices::col2rgb(.std_color("azul"))[, 1] / 255
-  out <- tempfile("indice_icono_", fileext = ".png")
+  # Un archivo por dibujo de origen, reutilizado: repintar el mismo ícono en cada exportación no acumula temporales en
+  # la sesión de Plumber (verificador de 8d6fc3d66).
+  out <- file.path(tempdir(), paste0("indice_icono_", unname(tools::md5sum(ruta)), ".png"))
+  if (file.exists(out)) return(out)
   if (grepl("\\.svg$", ruta, ignore.case = TRUE)) {
-    svg <- tempfile(fileext = ".svg"); hex <- .std_color("azul")
+    svg <- tempfile(fileext = ".svg"); on.exit(unlink(svg), add = TRUE); hex <- .std_color("azul")
     txt <- gsub("#FFFFFF|#FFF(?![0-9A-F])", hex, readLines(ruta, warn = FALSE), ignore.case = TRUE, perl = TRUE)
     writeLines(gsub("\"white\"", paste0("\"", hex, "\""), txt, ignore.case = TRUE), svg)
     rsvg::rsvg_png(svg, file = out, width = 512, height = 512)
@@ -74,15 +78,19 @@
 #' @return Vector de largo `length(secciones)` con nombres de la biblioteca o rutas a archivos.
 #' @keywords internal
 .lam_indice_iconos <- function(slots, meta = list(), secciones) {
-  caps <- as.character(secciones); n <- length(caps); estilo <- slots$estilo %||% list()
+  caps <- as.character(secciones); n <- length(caps); estilo <- slots[["estilo"]] %||% list()
   auto <- vapply(caps, .lam_icono_capitulo, "", USE.NAMES = FALSE)
   avisar <- function(...) message("[PULSO-AVISO] Índice: ", ...)
-  lleno <- function(x) !is.null(x) && length(x) && any(!is.na(unlist(x)) & nzchar(trimws(as.character(unlist(x)))))
-  sin_eq <- .LAM_INDICE_FOCOS_SIN_EQUIVALENTE[vapply(.LAM_INDICE_FOCOS_SIN_EQUIVALENTE, function(k) lleno(slots[[k]]), TRUE)]
+  lleno <- function(x) {
+    if (is.logical(x)) return(isTRUE(any(x)))
+    !is.null(x) && length(x) && any(!is.na(unlist(x)) & nzchar(trimws(as.character(unlist(x)))))
+  }
+  # `[[` y no `$`: `$` completa nombres parciales y `slots$iconos_focos` devolvía `iconos_focos_fill` (verificador de 8d6fc3d66).
+  sin_eq <- .LAM_INDICE_FOCOS_SIN_EQUIVALENTE[vapply(.LAM_INDICE_FOCOS_SIN_EQUIVALENTE, function(k) lleno(slots[[k]]) || lleno(estilo[[k]]), TRUE)]
   if (length(sin_eq)) avisar("el recetario no dibuja el foco (el ícono va sin círculo y su tamaño lo fija la lista); no se aplica ",
                              paste(sin_eq, collapse = ", "), ".")
-  if (identical(slots$mostrar_iconos_focos, FALSE) || identical(estilo$mostrar_iconos_focos, FALSE)) return(rep("", n))
-  editor <- .lam_indice_ranuras(meta$iconos); focos <- .lam_indice_ranuras(slots$iconos_focos %||% estilo$iconos_focos)
+  if (identical(slots[["mostrar_iconos_focos"]], FALSE) || identical(estilo[["mostrar_iconos_focos"]], FALSE)) return(rep("", n))
+  editor <- .lam_indice_ranuras(meta[["iconos"]]); focos <- .lam_indice_ranuras(slots[["iconos_focos"]] %||% estilo[["iconos_focos"]])
   pedido <- vapply(seq_len(n), function(k) { e <- editor[k] %||% ""; if (is.na(e) || !nzchar(e)) focos[k] %||% "" else e }, "")
   pedido[is.na(pedido)] <- ""
   sobran <- max(length(editor), length(focos)) - n

@@ -102,3 +102,24 @@ test_that("los nombres del catálogo anterior, como los manda la app (uno por l�
   expect_equal(round(255 * c(mean(navy[, , 1][opaco]), mean(navy[, , 2][opaco]), mean(navy[, , 3][opaco]))), c(8, 31, 92))
   expect_length(m$avisos, 0L)
 })
+
+test_that("un ajuste del foco sin `iconos_focos` no se lee como nombre de ícono (`$` parcial) y los lógicos sólo avisan si valen TRUE", {
+  caps <- c("Perfil del encuestado", "Cuerpo académico", "Infraestructura")
+  msgs <- character()
+  withCallingHandlers(ic <- .lam_indice_iconos(list(iconos_focos_fill = "#EFD25E", iconos_focos_objeto_unico = TRUE), list(), caps),
+                      message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") })
+  expect_false(any(grepl("#EFD25E|«TRUE»|no está en la biblioteca", msgs)))
+  expect_true(any(grepl("iconos_focos_fill", msgs)) && any(grepl("iconos_focos_objeto_unico", msgs)))
+  expect_identical(ic, vapply(caps, .lam_icono_capitulo, "", USE.NAMES = FALSE))
+  msgs <- character()
+  withCallingHandlers(.lam_indice_iconos(list(redibujar_focos = TRUE, iconos_focos_objeto_unico = FALSE), list(), caps),
+                      message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") })
+  expect_true(any(grepl("redibujar_focos", msgs))); expect_false(any(grepl("objeto_unico", msgs)))
+})
+
+test_that("repintar el mismo dibujo no deja temporales nuevos en la sesión", {
+  svg <- tempfile(fileext = ".svg"); writeLines('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="#FFFFFF"/></svg>', svg)
+  a <- .lam_icono_navy_desde(svg); antes <- list.files(tempdir())
+  b <- .lam_icono_navy_desde(svg)
+  expect_identical(a, b); expect_setequal(list.files(tempdir()), antes)
+})
