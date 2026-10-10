@@ -8971,7 +8971,7 @@ reporte_ppt_plan <- function(
         solo_lista = isTRUE(solo_lista)
       )
       doc <- res$doc
-      for (p in res$rendered) rendered[[length(rendered) + 1]] <- p
+      for (k in seq_along(res$rendered)) { p <- res$rendered[[k]]; rendered[[length(rendered) + 1]] <- p; if (isTRUE(build_render_meta)) .push_render_meta_for_element(unname(res$elementos)[[k]], p) }  # F6.0b: el Word recibe también las láminas de composición y de población de 3 (verificador: desaparecían sin aviso)
       next
     }
 
@@ -8985,7 +8985,7 @@ reporte_ppt_plan <- function(
         presets = presets, solo_lista = isTRUE(solo_lista)
       )
       doc <- res$doc
-      for (p in res$rendered) rendered[[length(rendered) + 1]] <- p
+      for (k in seq_along(res$rendered)) { p <- res$rendered[[k]]; rendered[[length(rendered) + 1]] <- p; if (isTRUE(build_render_meta)) .push_render_meta_for_element(unname(res$elementos)[[k]], p) }  # F6.0b: el Word recibe también las láminas de composición y de población de 3 (verificador: desaparecían sin aviso)
       next
     }
 

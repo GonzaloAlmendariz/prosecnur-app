@@ -106,3 +106,22 @@ test_that("la lámina 21 (cifras en columna lateral) sale nativa con sus dos cif
   expect_equal(lengths(regmatches(x, gregexpr('name="cifra:valor"', x, fixed = TRUE))), 2L)
   expect_match(x, 'sz="3400"', fixed = TRUE)
 })
+
+test_that("las láminas de composición (21 y 22) llegan al Word: sus cifras en franja y sus gráficos como figuras", {
+  set.seed(3); n <- 60
+  df <- data.frame(titulo = sample(c("1", "2"), n, TRUE), edad = sample(20:30, n, TRUE), sector = sample(c("1", "2", "3"), n, TRUE))
+  inst <- list(survey = data.frame(name = c("titulo", "edad", "sector"), type = c("select_one si_no", "integer", "select_one sec"),
+                                   list_name = c("si_no", NA, "sec"), label = c("¿Tiene título?", "Edad", "Sector")),
+               choices = data.frame(list_name = c("si_no", "si_no", "sec", "sec", "sec"), name = c("1", "2", "1", "2", "3"),
+                                    label = c("Sí", "No", "Privado", "Público", "Independiente")), orders_list = NULL)
+  s22 <- p_slide_cifras_y_graficos(
+    cifra_izquierda = p_cifra("titulo", "n", rotulo = "egresados encuestados"),
+    cifra_centro = p_cifra("edad", "mediana", unidad = "años", rotulo = "edad mediana"),
+    cifra_derecha = p_cifra("titulo", "porcentaje", categoria = "1", rotulo = "tiene el título"),
+    grafico_izquierda = p_barras_categoricas("titulo"), grafico_derecha = p_barras_categoricas("sector"), titulo = "El estudio en cifras")
+  rm <- suppressMessages(reporte_ppt_plan(data = df, instrumento = inst, plan = p_plan(slides = list(s22)), solo_lista = TRUE,
+                                          build_render_meta = TRUE, mensajes_progreso = FALSE))$render_meta
+  charts <- Filter(function(e) identical(e$kind %||% "chart", "chart"), rm)
+  expect_length(charts, 5L)                                                       # 3 cifras + 2 gráficos
+  expect_equal(sum(vapply(charts, function(e) !is.null(attr(e$plot_word, "pulso_cifra")), TRUE)), 3L)
+})
