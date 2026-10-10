@@ -123,3 +123,25 @@ test_that("repintar el mismo dibujo no deja temporales nuevos en la sesión", {
   b <- .lam_icono_navy_desde(svg)
   expect_identical(a, b); expect_setequal(list.files(tempdir()), antes)
 })
+
+test_that("con UNA sola clave parcial (`iconos_focos_fill` sin `iconos_focos`) no hay avisos de ícono inexistente (mutante del `$`)", {
+  caps <- c("Perfil del encuestado", "Cuerpo académico")
+  for (sl in list(list(iconos_focos_fill = "#EFD25E"), list(estilo = list(iconos_focos_fill = "#EFD25E")))) {
+    msgs <- character()
+    withCallingHandlers(.lam_indice_iconos(sl, list(), caps),
+                        message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") })
+    expect_false(any(grepl("no está en la biblioteca|#EFD25E»", msgs)))
+  }
+  expect_false(.lam_indice_focos(list(estilo = list(iconos_focos_fill = "#EFD25E"))))
+  expect_false(.lam_indice_focos(list(iconos_focos_objeto_unico = FALSE)))
+  expect_true(.lam_indice_focos(list(iconos_focos_objeto_unico = TRUE)))
+})
+
+test_that("la primera vez que se repinta un SVG no queda el SVG intermedio en tempdir()", {
+  svg <- tempfile(fileext = ".svg"); writeLines('<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><circle r="5" cx="6" cy="6" fill="white"/></svg>', svg)
+  destino <- file.path(tempdir(), paste0("indice_icono_", unname(tools::md5sum(svg)), ".png")); unlink(destino)
+  antes <- list.files(tempdir(), pattern = "\\.svg$")
+  out <- .lam_icono_navy_desde(svg)
+  expect_true(file.exists(out))
+  expect_setequal(list.files(tempdir(), pattern = "\\.svg$"), antes)
+})

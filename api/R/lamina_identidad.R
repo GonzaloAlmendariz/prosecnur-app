@@ -542,7 +542,10 @@
 #' @keywords internal
 .lam_indice_focos <- function(slots, meta = list()) {
   # Con contenido: la app manda `iconos_focos = ""` cuando no se eligieron íconos, y eso no es pedir focos.
-  lleno <- function(x) !is.null(x) && length(x) && any(nzchar(trimws(as.character(unlist(x)))) & !is.na(unlist(x)))
+  lleno <- function(x) {
+    if (is.logical(x)) return(isTRUE(any(x)))   # `objeto_unico = FALSE` no pide focos (misma lectura que .lam_indice_iconos)
+    !is.null(x) && length(x) && any(nzchar(trimws(as.character(unlist(x)))) & !is.na(unlist(x)))
+  }
   identical(tolower(as.character(meta$composicion %||% "")[1]), "focos") ||
     any(vapply(c("iconos_focos", "iconos_focos_fill", "iconos_focos_objeto_unico", "iconos_focos_diametro_cm", "iconos_focos_icon_scale",
                  "iconos_focos_left_cm", "iconos_focos_top_cm"), function(k) lleno(slots[[k]]), TRUE)) || isTRUE(slots[["redibujar_focos"]]) ||
