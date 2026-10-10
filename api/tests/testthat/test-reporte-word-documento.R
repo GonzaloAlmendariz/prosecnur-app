@@ -97,3 +97,21 @@ test_that("un plan sin secciones lleva sus gráficos a «Resultados», después 
 test_that(".word_xmin sin rótulos no da -Inf", {
   expect_true(is.finite(.word_xmin(character(0), 9, 100)))
 })
+
+test_that("las cifras destacadas seguidas van juntas en una franja del Word, no como figuras (F6.0b.6)", {
+  skip_if_not_installed("officer")
+  cif <- function(v, r) graficar_cifra(list(valor = v, rotulo = r, detalle = "", icono = ""))
+  d <- data.frame(categoria = c("A", "B"), N = c(45, 30), pct = c(.45, .30), stringsAsFactors = FALSE)
+  p <- suppressWarnings(graficar_barras_agrupadas(data = d, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct", etiquetas_series = c(pct = "Total")))
+  rm <- list(list(kind = "title_doc", title = "Estudio"),
+             list(kind = "section", title = "EL ESTUDIO EN CIFRAS", meta = list(word_heading_level = 1L)),
+             list(kind = "chart", title = "", plot_word = cif("178", "egresados encuestados")),
+             list(kind = "chart", title = "", plot_word = cif("24 años", "edad mediana")),
+             list(kind = "chart", title = "", plot_word = cif("30%", "tiene el título")),
+             list(kind = "chart", title = "Sexo", plot_word = p))
+  f <- tempfile(fileext = ".docx")
+  res <- .word_documento(rm, f, opciones = list(como_leer = FALSE))
+  x <- paste(officer::docx_summary(officer::read_docx(f))$text, collapse = "\n")
+  for (t in c("178", "24 años", "30%", "edad mediana")) expect_match(x, t, fixed = TRUE)
+  expect_equal(res$figuras, 1L)                                   # sólo «Sexo»: las tres cifras son una franja
+})

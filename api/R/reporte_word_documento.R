@@ -106,7 +106,9 @@
     cap_titulo <<- "Cómo leer este informe"
     doc
   }
+  saltar <- integer(0)
   for (i in seq_along(render_meta)) {
+    if (i %in% saltar) next
     e <- render_meta[[i]]; kind <- e$kind %||% "chart"
     if (isTRUE(mensajes)) message(sprintf("  Word %03d/%03d — %s", i, length(render_meta), kind))
     if (identical(kind, "title_doc")) next
@@ -145,6 +147,15 @@
       doc <- .word_apertura(doc, cap, "Resultados", variante = op$apertura)
     }
     p <- e$plot_word
+    # Cifras destacadas (F6.0b.6): las seguidas van juntas en una franja (`.word_franja`, RW:321), no como figuras.
+    if (!is.null(attr(p, "pulso_cifra"))) {
+      j <- i
+      while (j < length(render_meta) && identical(render_meta[[j + 1L]]$kind %||% "chart", "chart") &&
+             !is.null(attr(render_meta[[j + 1L]]$plot_word, "pulso_cifra"))) j <- j + 1L
+      items <- lapply(render_meta[i:j], function(x) attr(x$plot_word, "pulso_cifra"))
+      doc <- .word_franja(doc, vapply(items, `[[`, "", "valor"), vapply(items, `[[`, "", "rotulo"))
+      saltar <- c(saltar, seq.int(i, j)); next
+    }
     # Un dibujo sin título ni espec (la lámina de objetivo con íconos del PPT) no es una figura del informe Word.
     if (identical(e$etype, "ggplot_raw") && !nzchar(.word_txt1(e$title)) && is.null(attr(p, "pulso_espec"))) {
       avisar("Un dibujo sin título de la lámina ", i, " (íconos de identidad del PPT) no entra al Word como figura."); next }
