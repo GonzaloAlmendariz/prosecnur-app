@@ -121,7 +121,7 @@
   parsed[intersect(claves, names(parsed))]
 }
 
-.normalize_plan <- function(plan) {
+.normalize_plan <- function(plan, avisar = FALSE) {   # avisar: el plan lleva los avisos de su migración (graficos_migrar_poblacion.R)
   if (is.null(plan)) return(list(slides = list()))
   if (is.data.frame(plan)) plan <- as.list(plan)
   slides <- plan$slides %||% list()
@@ -142,7 +142,7 @@
     s
   })
   plan$slides <- slides
-  .graficos_migrar_poblacion_antigua(plan, avisar = FALSE)   # la población antigua sale del plan en todo camino que normaliza (graficos_migrar_poblacion.R)
+  .graficos_migrar_poblacion_antigua(plan, avisar = avisar)   # la población antigua sale del plan en todo camino que normaliza
 }
 
 .as_json_list <- function(x) {
@@ -1475,7 +1475,7 @@
   cfg$version <- "graficos/4"
 
   plan <- .graficos_pick_alias(src, "plan")
-  cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_migrar_poblacion_antigua(plan) else defaults$plan
+  cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_migrar_poblacion_antigua(plan, avisar = FALSE) else defaults$plan
 
   presets <- .graficos_pick_alias(src, "presets")
   cfg$presets <- if (.graficos_is_obj(presets)) {
@@ -2596,9 +2596,9 @@ mount_graficos <- function(pr) {
       # en su store al montar GraficosPage y escribe cambios vía autosave
       # contra POST /config (debounce 2s).
       sid <- session_header(req)
-      s <- session_get(sid)
-      cfg <- .graficos_normalize_config(.graficos_config_get(sid, s), sid = sid, include_legacy_aliases = TRUE)
-      list(ok = TRUE, config = cfg)
+      avisos <- .graficos_config_migrar_sesion(sid)   # persiste la migración de la población antigua y la avisa una vez
+      cfg <- .graficos_normalize_config(.graficos_config_get(sid), sid = sid, include_legacy_aliases = TRUE)
+      list(ok = TRUE, config = cfg, avisos = I(avisos))
     })) |>
     plumber::pr_post("/api/graficos/config", wrap_endpoint(function(req, res, ...) {
       # Recibe el estado completo (plan + presets + wPresets + selected)
@@ -3371,7 +3371,7 @@ mount_graficos <- function(pr) {
         config <- crudo$config %||% config
       }
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
-      plan <- .normalize_plan(plan)
+      plan <- .normalize_plan(plan, avisar = TRUE)   # su aviso de migración va al resultado del job (on_complete)
       validation <- .validar_plan_json(plan)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       # Enriquecer presets con canvas-always + debug_ph global antes de
@@ -3419,7 +3419,7 @@ mount_graficos <- function(pr) {
         args = list(
           rp_data_path = rp_data_path,
           rp_inst_path = rp_inst_path,
-          plan = plan,
+          plan = structure(plan, avisos_migracion = NULL),
           presets = presets,
           paletas = paletas_arg,
           slide_registry = slide_registry_arg,
@@ -3438,7 +3438,7 @@ mount_graficos <- function(pr) {
           # quien declaró 14 pt y vio 9,5 cree que se equivocó.
           list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
                size = meta$size, n_slides = j$result_data$n_slides,
-               avisos = I(.pulso_avisos_de_job(j$sid, j$id)))
+               avisos = I(.graficos_avisos_job(j$sid, j$id, plan)))
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt")
@@ -3592,7 +3592,7 @@ mount_graficos <- function(pr) {
       sid <- session_header(req)
       s <- .require_rp_data(sid)
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
-      plan <- .normalize_plan(plan)
+      plan <- .normalize_plan(plan, avisar = TRUE)   # su aviso de migración va al resultado del job (on_complete)
       validation <- .validar_plan_json(plan)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       # Mismas invariantes que en /ppt.
@@ -3619,7 +3619,7 @@ mount_graficos <- function(pr) {
       args_word <- list(
         rp_data_path = rp_data_path,
         rp_inst_path = rp_inst_path,
-        plan = plan,
+        plan = structure(plan, avisos_migracion = NULL),
         presets = presets,
         w_presets = w_presets,
         paletas = paletas_arg,
@@ -3645,7 +3645,7 @@ mount_graficos <- function(pr) {
           # mismas decisiones automaticas, pero solo el PPT las contaba. El
           # `onExportDone` del front ya es generico: con esto las pinta igual.
           list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, n_slides = j$result_data$n_slides,
-               avisos = I(.pulso_avisos_de_job(j$sid, j$id)))
+               avisos = I(.graficos_avisos_job(j$sid, j$id, plan)))
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.word")
