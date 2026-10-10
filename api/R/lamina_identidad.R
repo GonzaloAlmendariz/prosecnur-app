@@ -372,15 +372,7 @@
 
 #' Ícono de cada fila de la ficha, por lo que dice su criterio
 #' @keywords internal
-.lam_icono_ficha <- function(criterio) {
-  c0 <- .lam_clave(criterio)
-  reglas <- list(c("tipo|tecnica|metodolog|instrumento", "clipboard-list"), c("universo|poblacion|publico", "users"),
-                 c("muestreo|seleccion|diseno", "shuffle"), c("muestra|tamano|casos|respuestas", "hash"),
-                 c("campo|fecha|periodo|aplicacion", "calendar-days"), c("margen|error|confianza|precision", "gauge"),
-                 c("ambito|cobertura|territor|lugar|sede", "map-pin"))
-  for (r in reglas) if (grepl(r[1], c0)) return(r[2])
-  "info"
-}
+.lam_icono_ficha <- function(criterio) .lam_icono_elegir(criterio, "ficha")$icono
 
 #' La fila «Muestra» del recetario: el número de cada público en grande con su tasa de respuesta, si el detalle se deja
 #' leer así («172 estudiantes (96 %), 52 docentes (92 %)»); si no, `NULL` y la fila va como texto
@@ -465,13 +457,7 @@
 
 #' Ícono de cada actor del objetivo, por su nombre
 #' @keywords internal
-.lam_icono_actor <- function(actor) {
-  a <- .lam_clave(actor)
-  reglas <- list(c("estudiant|alumn", "graduation-cap"), c("docent|profesor", "presentation"), c("egresad|graduad", "briefcase"),
-                 c("administrativ|personal|autoridad", "building-2"), c("comite|consultiv", "users"), c("empleador|empresa", "briefcase-business"))
-  for (r in reglas) if (grepl(r[1], a)) return(r[2])
-  "users"
-}
+.lam_icono_actor <- function(actor) .lam_icono_elegir(actor, "actor")$icono
 
 #' Va sobre el layout general, como la moderna del recetario (el «Objetivos_Secciones» trae una línea punteada que cruza
 #' el texto) y sólo con la plantilla de PULSO: la de un cliente conserva su objetivo.
@@ -530,18 +516,7 @@
 
 #' Ícono navy de cada capítulo del índice, por su título (o el que se declare en `meta$iconos`)
 #' @keywords internal
-.lam_icono_capitulo <- function(titulo) {
-  t <- .lam_clave(titulo)
-  reglas <- list(c("egreso", "award"), c("perfil|encuestad|actores|muestra", "users"), c("politica", "scroll-text"),
-                 c("institucion", "building-2"), c("organizac|administrativ|financ", "network"), c("docente|academico|cuerpo", "presentation"),
-                 c("estudiante|graduad|laboral|insercion", "briefcase"), c("infraestructura|recurso|instalacion", "library"),
-                 c("curricul|plan de estudio|formacion", "book-open"), c("vinculacion|medio|sostenib", "handshake"),
-                 c("internacional", "globe"), c("investigacion|innovacion", "flask-conical"), c("integridad|transparencia|etica", "scale"),
-                 c("objetivo", "target"), c("metodolog|ficha", "clipboard-list"), c("resultado|hallazgo", "chart-column"),
-                 c("conclusi", "list-checks"), c("recomendaci", "lightbulb"))
-  for (r in reglas) if (grepl(r[1], t)) return(r[2])
-  "list-checks"
-}
+.lam_icono_capitulo <- function(titulo) .lam_icono_elegir(titulo, "capitulo")$icono
 
 #' Subcapítulos alineados con los capítulos: por nombre si la lista viene nombrada (como la arma el plan), si no por
 #' posición; un capítulo sin subcapítulos queda vacío

@@ -6,3 +6,7 @@ licencia ISC: https://lucide.dev/ y https://github.com/lucide-icons/lucide
 
 «diana-flecha» es el ícono propio del objetivo del recetario. Para sumar un ícono, se rasteriza con iconos.py y se copia
 aquí sólo el que una lámina usa.
+
+Desde F6.0b.5 (2026-10-10) viaja la biblioteca completa del recetario: 124 íconos en navy/ y blanco/, 21 en coral/ y 1 en
+verde/, para que el editor los ofrezca y el analista reemplace el que elige el motor. La elección automática y su motivo están
+en api/R/lamina_iconos.R (.lam_icono_elegir).
