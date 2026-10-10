@@ -12,7 +12,10 @@ XC <- ML; AC <- W - MR - ML
 geom <- list(unidad = "in", ancho = W, alto = H, margen_izq_borde = ML0, margen_izq = ML, margen_der = MR, titulo_y = 0.355,
              zona_datos_y0 = 1.65, zona_datos_y1 = 6.42, contenido_y1 = 6.72, leyenda_y = 6.42, base_y = 6.88,
              ancho_contenido = r3(AC), separacion_paneles = 0.5, columna_top_two_box = 1.0, aire_cifra_chica = 0.36,
-             likert = list(x_premisa = ML, ancho_premisa = 3.3, x_actor = 3.6, ancho_actor = 1.5, x_barra = 5.2, ancho_barra = 6.0, x_top_two_box = 11.4))
+             likert = list(x_premisa = ML, ancho_premisa = 3.3, x_actor = 3.6, ancho_actor = 1.5, x_barra = 5.2, ancho_barra = 6.0, x_top_two_box = 11.4),
+             # K15: la cifra de las láminas de composición es la pieza `cifra()` (recetario_piezas.R:51-56): valor de 0.62,
+             # rótulo debajo (0.3), detalle en +0.9 (0.26); ocupa 1.15 y sus separadores van de y + 0.05 a y + 1.2 (p171).
+             cifra_pieza = list(valor_h = 0.62, rotulo_dy = 0.62, rotulo_h = 0.3, detalle_dy = 0.9, detalle_h = 0.26, alto = 1.15, separador_dy = 0.05))
 tipografia_ppt <- list(unidad = "pt", titulo = 24, antetitulo = 10, pregunta = 13, cifra = 14, cifra_fuera = 12, leyenda = 12, actor = 12,
                        base = 10, n = 10, cuerpo = 14, narrativa = 15, cifra_destacada = 34, rotulo_top_two_box = 10, fuente = "Arial")
 colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_suave = "#5A6480", texto_tenue = "#8A93A8", filete = "#D5D9DF",
@@ -53,7 +56,7 @@ R <- function(tipo, x, y, w, h) list(tipo = tipo, x = r3(x), y = r3(y), w = r3(w
 G <- function(...) R("grafico", ...); Tx <- function(...) R("texto", ...); Ci <- function(...) R("cifras", ...)
 fam <- function(escala, cifra, rot, barra) list(escala = escala, cifra_pt = cifra, rotulo_pt = rot, barra_in = barra)
 f1 <- fam(1, 14, 12, 0.42); fT <- fam(0.6, 14, 12, 0.36); f2 <- fam(0.48, 13, 11.5, 0.34); f3 <- fam(0.4, 12, 11, 0.26); fP <- fam(0.3, 12, 10.5, 0.22)
-tipo <- function(id, nombre, layout, ranuras, familia, uso) list(id = id, nombre = nombre, layout = layout, ranuras = ranuras, familia = familia, uso = uso)
+tipo <- function(id, nombre, layout, ranuras, familia, uso, cifras = NULL) { t <- list(id = id, nombre = nombre, layout = layout, ranuras = ranuras, familia = familia, uso = uso); if (!is.null(cifras)) t$cifras <- cifras; t }
 tipos <- list(
   tipo("p_slide_1_grafico", "Un gráfico", "Graficos", list(G(xS, y1, aw, h1)), f1, "La lámina estándar: una pregunta, un gráfico"),
   tipo("p_slide_1_grafico_narrativo", "Un gráfico con narrativa", "1_Grafico_narrativo", list(Tx(xS, y1, aw, 0.8), G(xS, 2.6, aw, 3.7)), f1, "Una frase arriba dice lo que hay que retener"),
@@ -91,9 +94,9 @@ tipos <- list(
   # K15: p166: columnas de 3.908 con calle de 0.4; filete en 4.05 y la fila de abajo en 4.5
   tipo("p_slide_6_graficos_poblacion", "Seis gráficos", "poblacion_6", list(G(xS, y1, w3b, 4.05 - 0.2 - y1), G(xS + w3b + 0.4, y1, w3b, 4.05 - 0.2 - y1), G(xS + 2 * (w3b + 0.4), y1, w3b, 4.05 - 0.2 - y1), G(xS, 4.5, w3b, 6.25 - 4.5), G(xS + w3b + 0.4, 4.5, w3b, 6.25 - 4.5), G(xS + 2 * (w3b + 0.4), 4.5, w3b, 6.25 - 4.5)), fP, "El máximo de gráficos en una lámina"),
   # K15: p169: cifras de 3.0, filetes en 3.715 y 8.487, columnas de 4.312 desde 3.945 y 8.707; filete horizontal en 3.6
-  tipo("p_slide_3_graficos_poblacion_cifras", "Cifras en columna lateral", "poblacion_3_cifras", list(Ci(xS, y1, 3.0, h1), G(3.945, y1, wc21, 3.6 - 0.2 - y1), G(3.945, 3.75, wc21, 6.25 - 3.75), G(3.945 + wc21 + 0.45, y1, wc21, h1)), fP, "Tamaño de la muestra y edad en cifras"),
+  tipo("p_slide_3_graficos_poblacion_cifras", "Cifras en columna lateral", "poblacion_3_cifras", list(Ci(xS, y1, 3.0, h1), G(3.945, y1, wc21, 3.6 - 0.2 - y1), G(3.945, 3.75, wc21, 6.25 - 3.75), G(3.945 + wc21 + 0.45, y1, wc21, h1)), fP, "Tamaño de la muestra y edad en cifras", cifras = list(valor_pt = 34)),   # p169: cifra() con su tamaño por defecto
   # K15: p171: banda de cifras con filete en 3.05 y los gráficos desde 3.25
-  tipo("p_slide_cifras_y_graficos", "Cifras en banda superior", "cifras_y_graficos", list(Ci(xS, y1, aw, 1.2), G(xS, 3.25, w2, 6.25 - 3.25), G(x2, 3.25, w2, 6.25 - 3.25)), f2, "Abrir un capítulo o resumir el estudio"))
+  tipo("p_slide_cifras_y_graficos", "Cifras en banda superior", "cifras_y_graficos", list(Ci(xS, y1, aw, 1.2), G(xS, 3.25, w2, 6.25 - 3.25), G(x2, 3.25, w2, 6.25 - 3.25)), f2, "Abrir un capítulo o resumir el estudio", cifras = list(valor_pt = 32, calle = 0.4)))   # p171: cifra(size = 32), calles de 0.4
 
 # ---- Word (recetario_word_graficos.R y recetario_word_identidad.R)
 word <- list(

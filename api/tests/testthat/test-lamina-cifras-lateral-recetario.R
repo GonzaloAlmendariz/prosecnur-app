@@ -36,6 +36,14 @@ test_that("la lámina 21 nativa pone sus columnas, preguntas y filetes donde la 
   cerca(q$x, e[, 1], "x de las preguntas"); cerca(q$y, e[, 2], "y de las preguntas"); cerca(q$w, e[, 3], "ancho de las preguntas")
   s_ <- caja("separador"); v <- s_[s_$w < 0.05, ]; h <- s_[s_$h < 0.05, ]
   cerca(sort(v$x), .P169$filete_v, "filetes verticales")
+  # Las cifras son la pieza `cifra()` del recetario (recetario_piezas.R:51): caja de 3.0 desde 0.495 (no 0.395 de 3.1),
+  # valor de 0.62 en 1.8 y 3.5, rótulo debajo en 2.42 y 4.12, y el filete de la columna en 3.2.
+  v_ <- caja("cifra:valor"); r_ <- caja("cifra:rotulo")
+  cerca(v_$x, c(0.495, 0.495), "x de las cifras"); cerca(v_$w, c(3.0, 3.0), "ancho de las cifras")
+  cerca(sort(v_$y), c(1.8, 3.5), "y de las cifras"); cerca(v_$h, c(0.62, 0.62), "alto del valor")
+  cerca(sort(r_$y), c(2.42, 4.12), "y de los rótulos"); cerca(r_$x, c(0.495, 0.495), "x de los rótulos")
+  hc <- h[h$x < 1, ]
+  cerca(c(hc$x, hc$y, hc$w), c(0.495, 3.2, 3.0), "filete de la columna de cifras")
   hm <- h[h$x > 3, ]
   expect_equal(nrow(hm), 1L)
   cerca(c(hm$x, hm$y, hm$w), unname(.P169$filete_h_medio), "filete horizontal del medio")

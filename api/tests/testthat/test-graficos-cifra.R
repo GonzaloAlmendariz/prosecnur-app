@@ -79,7 +79,8 @@ test_that("la lámina 22 con cifras sale nativa: banda de cifras con sus valores
   valores <- regmatches(x, gregexpr('(?s)name="cifra:valor".*?<a:t>[^<]*</a:t>', x, perl = TRUE))[[1]]
   expect_length(valores, 3L)
   expect_match(valores[1], ">60<", fixed = TRUE)
-  expect_match(x, 'sz="4400"', fixed = TRUE)                                  # tres cifras: 44 pt, como la 171 del recetario
+  # K15: la p171 dibuja sus tres cifras a 32 pt (python-pptx; recetario_m2c.R:170, `cifra(..., size = 32)`), no a 44.
+  expect_match(x, 'sz="3200"', fixed = TRUE)
 })
 
 test_that("la mediana es la de cada formato: el PPT trunca datos enteros como su histograma y el Word no", {

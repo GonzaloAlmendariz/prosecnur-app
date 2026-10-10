@@ -27,6 +27,15 @@
         "x_barra": 5.2,
         "ancho_barra": 6,
         "x_top_two_box": 11.4
+      },
+      "cifra_pieza": {
+        "valor_h": 0.62,
+        "rotulo_dy": 0.62,
+        "rotulo_h": 0.3,
+        "detalle_dy": 0.9,
+        "detalle_h": 0.26,
+        "alto": 1.15,
+        "separador_dy": 0.05
       }
     },
     "tipografia": {
@@ -860,7 +869,10 @@
           "rotulo_pt": 10.5,
           "barra_in": 0.22
         },
-        "uso": "Tamaño de la muestra y edad en cifras"
+        "uso": "Tamaño de la muestra y edad en cifras",
+        "cifras": {
+          "valor_pt": 34
+        }
       },
       {
         "id": "p_slide_cifras_y_graficos",
@@ -895,7 +907,11 @@
           "rotulo_pt": 11.5,
           "barra_in": 0.34
         },
-        "uso": "Abrir un capítulo o resumir el estudio"
+        "uso": "Abrir un capítulo o resumir el estudio",
+        "cifras": {
+          "valor_pt": 32,
+          "calle": 0.4
+        }
       }
     ]
   },

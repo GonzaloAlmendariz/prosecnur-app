@@ -35,13 +35,19 @@ pulso_cifras <- function(items) {
 
 #' Dibuja una banda de cifras en el lienzo
 #'
+#' @param pieza Geometría de la pieza `cifra()` del recetario (`ppt.geometria.cifra_pieza`) para las láminas de
+#'   composición (p169, p171): caja desde el borde de su columna, valor de 0.62, rótulo y detalle a distancias fijas.
+#'   `NULL` para la banda de las láminas de cifras solas (p174/p175), que corre la caja 0.1 y mide el valor por su tamaño.
+#' @param calle Calle entre cifras; `NULL` para la de la banda (0.45, o 0.3 con cinco).
 #' @return `list(iconos, alto)`: los íconos a colocar después como imagen (`n`, `x`, `y`, `d`) y el alto que ocupó.
 #' @keywords internal
-.lam_cifras_banda <- function(lz, espec, x, y, w, size = NULL, con_icono = NULL) {
+.lam_cifras_banda <- function(lz, espec, x, y, w, size = NULL, con_icono = NULL, pieza = NULL, calle = NULL) {
   it <- espec$items; n <- length(it)
   size <- size %||% .lam_cifras_size(n)
   con_icono <- con_icono %||% any(vapply(it, function(i) nzchar(i$icono), logical(1)))
-  gap <- if (n >= 5) 0.3 else 0.45
+  # Con ícono, la banda de siempre: la pieza `cifra()` del recetario no lo lleva y no se descarta en silencio.
+  if (!is.null(pieza) && !isTRUE(con_icono)) return(.lam_cifras_pieza(lz, it, x, y, w, size, calle %||% 0.45, pieza))
+  gap <- calle %||% (if (n >= 5) 0.3 else 0.45)
   wc <- (w - gap * (n - 1)) / n
   hn <- size * 1.25 / 72
   hr <- max(vapply(it, function(i) min(.lam_alto_txt(i$rotulo, wc + 0.1, 12, TRUE), 2 * 12 * 1.2 / 72 + 0.1), 0))

@@ -40,11 +40,13 @@
       filetes = list(list(tipo = "h", x0 = ml, x1 = W - g_("margen_der"), y = yt + 2.4))),
     # Tipo 22 (lámina 171): banda de tres cifras arriba, filete, y dos gráficos lado a lado. Las cifras se dibujan juntas
     # con `.lam_cifras_banda` (sus propios separadores); los paneles 1–3 sólo dan la franja que ocupan.
+    # K15, lo dibujado en la p171: cifras de 3.908 con calles de 0.4 desde 1.6 (la pieza `cifra()`, lamina_cifras_pieza.R),
+    # filete en 3.05 y los gráficos desde 3.25, sin filete entre ellos.
     cifras_y_graficos = {
-      w3 <- (ancho - 2 * 0.45) / 3; yb <- yt + 2.1
-      list(paneles = list(P(ml, yt - 0.05, w3, 1.8), P(ml + w3 + 0.45, yt - 0.05, w3, 1.8), P(ml + 2 * (w3 + 0.45), yt - 0.05, w3, 1.8),
+      cf <- .std_tipo_lamina("p_slide_cifras_y_graficos")$cifras; ca <- cf$calle; w3 <- (ancho - 2 * ca) / 3; yb <- yt + 1.6
+      list(paneles = list(P(ml, yt - 0.05, w3, 1.8), P(ml + w3 + ca, yt - 0.05, w3, 1.8), P(ml + 2 * (w3 + ca), yt - 0.05, w3, 1.8),
                           P(ml, yb, col2, yf - yb), P(xr, yb, col2, yf - yb)),
-           filetes = list(list(tipo = "h", x0 = ml, x1 = W - g_("margen_der"), y = yt + 1.9), list(tipo = "v", x = xm, y0 = yb, y1 = yf)))
+           filetes = list(list(tipo = "h", x0 = ml, x1 = W - g_("margen_der"), y = yt + 1.4)), cifras = cf)
     },
     # Tipo 21 (lámina 169): columna lateral con dos cifras apiladas, dos gráficos en la columna del medio y uno alto a la
     # derecha. Ranuras en el orden de `.SLIDES_COMPOSICION$poblacion_3_cifras`.
@@ -57,7 +59,8 @@
       list(paneles = list(P(xc, yt, wr, 2.1), P(xd, yt, wr, yf - yt), P(ml, yt + 0.15, wl, 1.3),
                           P(xc, yt + 2.1, wr, yf - yt - 2.1), P(ml, yt + 1.85, wl, 1.3)),
            filetes = list(list(tipo = "h", x0 = ml, x1 = ml + wl, y = yt + 1.55), list(tipo = "v", x = ml + wl + gap3 / 2, y0 = yt, y1 = yf),
-                          list(tipo = "h", x0 = xc, x1 = xc + wr, y = yt + 1.95), list(tipo = "v", x = xc + wr + gap3 / 2, y0 = yt, y1 = yf)))
+                          list(tipo = "h", x0 = xc, x1 = xc + wr, y = yt + 1.95), list(tipo = "v", x = xc + wr + gap3 / 2, y0 = yt, y1 = yf)),
+           cifras = .std_tipo_lamina("p_slide_3_graficos_poblacion_cifras")$cifras)
     },
     # Tipo 17 (lámina 160): dos gráficos arriba lado a lado y uno ancho abajo. Las ranuras salen del estándar (fuente
     # única); el panel de abajo dibuja hasta el fin del contenido, como el de abajo de las demás mixtas, y los filetes
@@ -234,8 +237,10 @@
   for (y in unique(vapply(P[cifras], `[[`, 0, "y"))) {
     fila <- cifras[vapply(P[cifras], `[[`, 0, "y") == y]
     p1 <- P[[fila[1]]]; pn <- P[[fila[length(fila)]]]
+    # Las láminas de composición del recetario (21 y 22) dibujan la pieza `cifra()` con su tamaño y su calle (K15).
     b <- .lam_cifras_banda(lz, pulso_cifras(lapply(especs[fila], `[[`, "item")), p1$x, p1$y, pn$x + pn$w - p1$x,
-                           size = if (length(fila) == 1L) 34 else NULL)
+                           size = geo$cifras$valor_pt %||% (if (length(fila) == 1L) 34 else NULL),
+                           pieza = if (!is.null(geo$cifras)) .std_valor("ppt", "geometria", "cifra_pieza"), calle = geo$cifras$calle)
     iconos <- c(iconos, b$iconos); fines[fila] <- p1$y + b$alto
   }
   for (k in setdiff(seq_along(P), cifras)) {
