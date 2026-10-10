@@ -43,6 +43,7 @@ test_that("con ejes de una línea la tabla queda como el recetario (filas de 0.5
   expect_true(.lam_radar_cabe(e1))
   f <- .lam_radar_filas(e1)
   expect_equal(f$cabecera, 0.5); expect_equal(f$cuerpo, 0.5)
-  e3 <- .rt2_espec(); e3$ejes[1] <- "Aprendizaje autónomo, investigación formativa y producción académica"
+  e3 <- .rt2_espec(); e3$ejes[1] <- "Aprendizaje autónomo e investigación formativa"   # justo tres líneas (verificador de ce6c84c06)
+  expect_equal(.lam_radar_lineas(e3), 3L)
   expect_false(.lam_radar_cabe(e3))
 })
