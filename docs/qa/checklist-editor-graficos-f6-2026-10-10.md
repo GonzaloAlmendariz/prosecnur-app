@@ -31,7 +31,7 @@ Leyenda: ☑ hecho y verificado · ◐ hecho, en verificación o con pendientes 
 | 9 | Un ícono por tipo, variantes en el inspector | íconos + F6.2 | ◐ íconos ☑; variantes en F6.2 |
 | 10 | Aprovechar el espacio como Canva/PowerPoint | lienzo 16:9 (ab4a3a632): 95–97 % del eje | ☑ |
 | 11 | D17 guías fuera del entregable | exports sin guías (533c19935) | ☑ |
-| 12 | Guías con más capas: filtrar, espacios de cada sección, tamaño de letra | backend K11/K12 ◐ en verificación; frontend por capas (plan §8) ☐; K13 letra por perfil ☐ | ◐ |
+| 12 | Guías con más capas: filtrar, espacios de cada sección, tamaño de letra | backend K11/K12 ☑ verificado (avisos con su lámina real en PPT y Word); frontend por capas (plan §8) ☐; K13 letra por perfil ☐ | ◐ |
 | 13 | Población antigua fuera (manda el recetario) | selector ☑; migración ☑ verificada (bases idénticas en acrconta); aviso en pantalla ◐ frontend en curso; aviso al importar config ◐; borrar código con ADR ☐ | ◐ |
 | 14 | Corona según la p160 | 19098a732 + bb2fd2a00; verificada: 38 formas a ≤0,001 in de la p160 | ☑ (orden de categorías espera D8) |
 | 15 | Repensar los botones de la barra con el motor nuevo | barra propia + Exportar (562dae268) | ☑ |
@@ -48,7 +48,7 @@ Leyenda: ☑ hecho y verificado · ◐ hecho, en verificación o con pendientes 
 | Tema | Estado |
 |---|---|
 | «Lámina N de M» truncado a 1366×768 con Inspector; Escape cierra dos capas | ◐ frontend trabajando |
-| Avisos K11/K12: número de lámina en Word, tests faltantes, memoria, base en /ppt-all | ◐ 7 commits; verificador corriendo |
+| Avisos K11/K12: número de lámina en Word, tests faltantes, memoria, base en /ppt-all | ☑ aprobado; queda un test de contrato en rojo por la migración (entregables lo corrige) |
 | Migración de población + corona + «(cont.)» | ◐ backend aprobado en sustancia; falta mostrar el aviso en la UI, aviso al importar y «(cont.)» en multilista |
 
 ## Bloqueados por decisión de Gonzalo
