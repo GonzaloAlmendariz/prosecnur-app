@@ -68,7 +68,7 @@ test_that("varios bloques en la misma parte se sanean todos", {
 
 test_that("el contador ve cero en un pptx sano y no revienta si no existe", {
   expect_true(is.na(ppt_contar_fuentes_desordenadas(tempfile(fileext = ".pptx"))))
-  aprobado <- "/Users/gonzaloalmendariz/Documents/Pulso/ACRD CONTA/Informe Contabilidad 14-08.pptx"
+  aprobado <- "/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2026_PUCP_Acreditacion_Contabilidad/Informe Contabilidad 14-08.pptx"
   skip_if(!file.exists(aprobado), "el entregable aprobado no esta disponible")
   expect_equal(ppt_contar_fuentes_desordenadas(aprobado), 0L)
 })

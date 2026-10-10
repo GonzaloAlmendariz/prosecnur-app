@@ -72,7 +72,7 @@ test_that("preview de .sav se alinea al contrato pN del XLSForm", {
 
 test_that("caso local ACRD ING colapsa p17/p32 y queda compatible", {
   skip_if_not_installed("haven")
-  pulso <- "/Users/gonzaloalmendariz/Documents/Pulso/ACRD ING/Ingenieria.pulso"
+  pulso <- "/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2026_PUCP_Acreditacion_Ing_Civil/Ingenieria.pulso"
   skip_if_not(file.exists(pulso))
 
   td <- tempfile("pulso-acrd-ing-")

@@ -609,12 +609,12 @@ test_that("modo estilo_estatico renderiza slides con contrato semantico", {
 })
 
 test_that("modo estilo_estatico con PPT GIZ real genera plantilla renderizable", {
-  skip_if_not(file.exists("/Users/gonzaloalmendariz/Documents/Pulso/GIZ/Presentación BGT Realidades.pptx"))
+  skip_if_not(file.exists("/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2025_GIZ_Estudio_Institucional/Presentación BGT Realidades.pptx"))
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
   skip_if_not_installed("ggplot2")
 
-  giz_ref <- "/Users/gonzaloalmendariz/Documents/Pulso/GIZ/Presentación BGT Realidades.pptx"
+  giz_ref <- "/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2025_GIZ_Estudio_Institucional/Presentación BGT Realidades.pptx"
   base_pptx <- pkg_file("inst", "plantillas", "plantilla_16_9.pptx")
   out_tpl <- tempfile(fileext = ".pptx")
 
