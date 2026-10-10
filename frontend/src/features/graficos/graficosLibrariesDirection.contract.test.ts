@@ -90,7 +90,11 @@ describe("bibliotecas de Gráficos como paneles direccionables", () => {
     expect(host.match(/usePanelDireccionable\(/g)).toHaveLength(2);
     expect(host.match(/usePanelDireccionable\(PANEL_BIBLIOTECA_SLIDES\)/g)).toHaveLength(1);
     expect(host.match(/usePanelDireccionable\(PANEL_BIBLIOTECA_GRAFICADORES\)/g)).toHaveLength(1);
-    expect(page).toMatch(/<GraficosLibrariesHost>\s*<EditorShell\s*\/>/);
+    // Un solo host envuelve las dos pestañas del editor (F6: Láminas y el Editor anterior).
+    expect(page.match(/<GraficosLibrariesHost>/g)).toHaveLength(1);
+    const hostBody = page.slice(page.indexOf("<GraficosLibrariesHost>"), page.indexOf("</GraficosLibrariesHost>"));
+    expect(hostBody).toMatch(/<EditorShell\s*\/>/);
+    expect(hostBody).toMatch(/<LaminasWorkbench\b/);
     expect(slot).not.toMatch(/pickerOpen|GraficadorPicker|Dialog\./);
     expect(timeline).not.toMatch(/pickerOpen|<SlidePicker\b|Dialog\./);
     expect(slidePicker).toContain("{...panel.props}");

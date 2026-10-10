@@ -124,7 +124,7 @@ describe("manifiesto de navegación", () => {
     );
   });
 
-  it("expone las 32 pestañas de Muestra, 26 de Procesamiento y 4 de Dashboard", () => {
+  it("expone las 32 pestañas de Muestra, 28 de Procesamiento y 4 de Dashboard", () => {
     const muestra = nodosDe("calc-muestra").filter(
       (nodo) =>
         nodo.nivel === "pestana"
@@ -148,7 +148,7 @@ describe("manifiesto de navegación", () => {
     expect(
       nodoPorClave("calc-muestra/opinion-universitaria/aulas/aulas-relato"),
     ).not.toBeNull();
-    expect(procesamiento).toHaveLength(26);
+    expect(procesamiento).toHaveLength(28);
     expect(dashboard).toHaveLength(4);
   });
 

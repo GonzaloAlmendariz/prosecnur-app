@@ -11,7 +11,9 @@ import {
   GitCompare,
   GitMerge,
   Grid3X3,
+  History,
   Layers,
+  LayoutTemplate,
   ListChecks,
   ListOrdered,
   ListTree,
@@ -30,7 +32,8 @@ export type ProcesamientoSeccionId =
   | "carga"
   | "validacion"
   | "codificacion"
-  | "analitica";
+  | "analitica"
+  | "graficos";
 
 export type DisponibilidadPestanaProcesamiento = "siempre" | "condicional";
 
@@ -70,7 +73,9 @@ function pestana<const Key extends string>(
       ? "/validacion"
       : seccion === "codificacion"
         ? "/codificacion"
-        : "/analitica";
+        : seccion === "graficos"
+          ? "/graficos"
+          : "/analitica";
   return {
     id: key,
     key,
@@ -88,7 +93,7 @@ function pestana<const Key extends string>(
   };
 }
 
-/** Las 25 pestañas actuales de Carga, Validación, Codificación y Analítica. */
+/** Las pestañas actuales de Carga, Validación, Codificación, Analítica y Gráficos. */
 export const PROCESAMIENTO_PESTANAS = {
   carga: [
     pestana("carga", "plan", "Plan", "Organización de las bases", ClipboardCheck),
@@ -124,12 +129,20 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("analitica", "orden", "Orden de categorías", "Secuencia de respuestas ordinales", ListOrdered, { readinessPropia: true }),
     pestana("analitica", "dimensiones", "Dimensiones", "Índices y puntajes", Layers),
   ],
+  // F6 (remasterización del editor de Gráficos): «Láminas» es el editor nuevo y la pestaña por defecto; «Editor
+  // anterior» conserva el editor de siempre mientras F6 se completa por partes. Vista general, Word y Estilo del
+  // cliente entran aquí cuando existan, no antes.
+  graficos: [
+    pestana("graficos", "laminas", "Láminas", "La lámina tal como sale, con su estructura y ajustes", LayoutTemplate),
+    pestana("graficos", "clasico", "Editor anterior", "El editor de siempre, mientras se completa el nuevo", History),
+  ],
 } as const satisfies Record<ProcesamientoSeccionId, readonly PestanaProcesamiento[]>;
 
 export type CargaWorkspaceTab = typeof PROCESAMIENTO_PESTANAS.carga[number]["key"];
 export type ValidacionTabId = typeof PROCESAMIENTO_PESTANAS.validacion[number]["key"];
 export type CodificacionTabId = typeof PROCESAMIENTO_PESTANAS.codificacion[number]["key"];
 export type AnaliticaTabId = typeof PROCESAMIENTO_PESTANAS.analitica[number]["key"];
+export type GraficosTabId = typeof PROCESAMIENTO_PESTANAS.graficos[number]["key"];
 
 export function pestanasAnaliticaDisponibles({
   multibaseDisponible,

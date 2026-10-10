@@ -35,6 +35,12 @@ import {
   type SharedReportPreflightStatus,
 } from "./multibaseReportMenuModel";
 import { GraficosLibrariesHost } from "./GraficosLibrariesHost";
+import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
+import { ContextTabRail } from "../../components/ContextTabRail";
+import { LaminasWorkbench } from "./laminas/LaminasWorkbench";
+import "./graficosPestanas.css";
+import { resolverPestanaGraficos, PESTANAS_GRAFICOS, type GraficosTabId } from "./pestanaGraficos";
+import { useSeccion } from "../../lib/navegacion/useDireccion";
 
 type ExportResult = {
   ok: true; file_id: string; filename?: string; size: number; n_slides: number;
@@ -44,7 +50,12 @@ type ExportResult = {
 };
 export default function GraficosPage() {
   const location = useLocation();
+  const direccion = useSeccion("procesamiento");
   const reportScope = parseGraficosReportScope(location.search);
+  // F6: «Láminas» es la pestaña por defecto; el editor de siempre queda en «Editor anterior» mientras F6 se completa.
+  const pestana = resolverPestanaGraficos(direccion.pestana);
+  const { irA } = direccion;
+  const irPestana = useCallback((key: GraficosTabId) => irA("pestana", key), [irA]);
   const isSharedReport = reportScope === "consolidated";
   const { state, refresh } = useSession();
   const plan = usePlanStore((s) => s.plan);
@@ -262,6 +273,8 @@ export default function GraficosPage() {
       className="pulso-graficos-frame"
       headerMode="sr-only"
       bodyMode="fill"
+      layout="workbench"
+      scrollOwner="panels"
       auditReady={hydrated && (!isSharedReport || ["ready", "blocked"].includes(sharedPreflightStatus))
         ? isSharedReport ? "graficos-consolidado" : "graficos"
         : false}
@@ -409,7 +422,32 @@ export default function GraficosPage() {
         <LoadingBlock label={graficosBodyLoadingLabel(bodyState)} />
       ) : bodyState === "editor" ? (
         <GraficosLibrariesHost>
-          <EditorShell />
+          <AdaptiveSplitView
+            ariaLabel="Mesa de trabajo de gráficos"
+            railLabel="Pestañas de gráficos"
+            className="pulso-graficos-pestanas pulso-context-tab-layout"
+            rail={(
+              <ContextTabRail
+                ariaLabel="Pestañas de gráficos"
+                activeKey={pestana}
+                items={PESTANAS_GRAFICOS}
+                panelId="graficos-panel"
+                tabId={(key) => `graficos-tab-${key}`}
+                onChange={irPestana}
+              />
+            )}
+          >
+            <div
+              id="graficos-panel"
+              className="pulso-graficos-pestana"
+              role="tabpanel"
+              aria-labelledby={`graficos-tab-${pestana}`}
+            >
+              {pestana === "laminas"
+                ? <LaminasWorkbench onIrEditorAnterior={() => irPestana("clasico")} />
+                : <EditorShell />}
+            </div>
+          </AdaptiveSplitView>
         </GraficosLibrariesHost>
       ) : (
         <GraficosPrepBlocked />
