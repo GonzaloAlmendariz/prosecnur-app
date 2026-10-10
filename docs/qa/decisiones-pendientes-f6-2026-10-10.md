@@ -70,3 +70,5 @@ defecto de la app; es como la constitución o como el libro de reglas de todos l
 | E2 | (sin respuesta) | Provisional: composición en el inspector de cada lámina |
 | FODA | «Sí, sácalo» | `p_dim_foda` no aparece en el recetario: sale del selector de tipos de gráfico; se sigue dibujando en planes que ya lo usan |
 | Variantes | «De acuerdo» | Un ícono por tipo del recetario (55), sin marcas por variante; las variantes se eligen en el inspector con miniaturas |
+| Corona | «Manda el recetario» | `p_slide_3_graficos_poblacion_corona` toma las ranuras dibujadas en la p. 160 (dos gráficos arriba + uno ancho abajo); se corrige `estandar_pulso.json` y se regeneran los íconos |
+| Población antigua | «Sí, bórralos, porque en el recetario tampoco están ya» | `p_slide_2/3/4_graficos_poblacion` (ícono en medio de los gráficos): salen del selector; los planes existentes se migran al tipo vigente equivalente (2 gráficos, 3 en fila, 4 gráficos) con aviso; el código se borra después de la migración, con ADR (regla de borrados con doble confirmación) |
