@@ -328,8 +328,12 @@ async function runFixtureContext(viewport, options, callback) {
   }
 }
 
+// Estas bibliotecas se montan desde el editor clásico (`EditorShell`). La pestaña por defecto de Gráficos es
+// `laminas` (editor F6), así que la dirección pide la pestaña que se prueba en vez de heredar la de turno.
 function appUrl(search = "") {
-  return new URL(`graficos${search}`, stack.url).toString();
+  const url = new URL(`graficos${search}`, stack.url);
+  if (!url.searchParams.has("pestana")) url.searchParams.set("pestana", "clasico");
+  return url.toString();
 }
 
 async function openEditor(page, search = "") {
