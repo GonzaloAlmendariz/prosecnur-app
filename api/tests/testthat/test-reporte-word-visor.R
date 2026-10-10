@@ -47,3 +47,30 @@ test_that("un título de capítulo en dos líneas se lee entero", {
                           "x    Cuerpo\nCAPÍTULO 7\nCuerpo académico\nGráfico 50"))
   expect_equal(vapply(m$capitulos, `[[`, "", "titulo"), c("Estructura organizacional, administrativa y financiera", "Cuerpo académico"))
 })
+
+test_that("el visor toma el último Word exportado de la sesión y dice qué falta si no hay ninguno", {
+  a <- tempfile(fileext = ".docx"); b <- tempfile(fileext = ".docx"); file.create(a, b)
+  files <- list(
+    w1 = list(file_id = "w1", kind = "reporte_word", path = a, uploaded_at = "2026-10-09T10:00:00Z"),
+    p1 = list(file_id = "p1", kind = "reporte_ppt", path = a, uploaded_at = "2026-10-10T10:00:00Z"),
+    w2 = list(file_id = "w2", kind = "reporte_word", path = b, uploaded_at = "2026-10-10T09:00:00Z")
+  )
+  local_mocked_bindings(session_get = function(sid) list(files = files))
+  expect_identical(.graficos_word_para_visor("s")$file_id, "w2")
+  local_mocked_bindings(session_get = function(sid) list(files = files["p1"]))
+  e <- tryCatch(.graficos_word_para_visor("s"), error = function(e) e)
+  expect_match(conditionMessage(e), "Todavía no hay un Word exportado")
+})
+
+test_that("el worker del visor deja las páginas y la respuesta las entrega como imágenes con su mapa", {
+  skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
+  skip_if_not_installed("pdftools")
+  doc <- officer::read_docx()
+  doc <- officer::body_add_par(doc, "CAPÍTULO 1"); doc <- officer::body_add_par(doc, "Introducción")
+  f <- tempfile(fileext = ".docx"); print(doc, target = f)
+  r <- graficos_job_worker_word_visor(f, tempfile("visor_"), tempfile(fileext = ".rds"))
+  resp <- .graficos_word_visor_respuesta(r, list(file_id = "w1", original_name = "informe.docx", uploaded_at = "2026-10-10"))
+  expect_equal(resp$n, 1L)
+  expect_match(resp$paginas[[1]], "^data:image/png;base64,")
+  expect_equal(resp$mapa$capitulos[[1]]$titulo, "Introducción")
+})
