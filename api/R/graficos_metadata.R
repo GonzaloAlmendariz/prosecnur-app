@@ -1987,6 +1987,51 @@
   )
 )
 
+# Familia del selector «Tipo de gráfico» y salida de la lámina (K4, plan F6 §5.2; dirección F6 §4.4). La salida se
+# verificó contra el motor el 2026-10-10 (`.lam_compositor_aplica` y el clasificador de la vista previa) y la contrasta
+# test-graficos-metadata-editor.R: «nativa» = piezas del recetario (puede caer a la ruta anterior si no cabe, lo dice
+# la condición); «marco» = lámina del recetario con el dibujo ggplot adentro; «ruta_anterior» = sin pieza del recetario.
+.GRAFICOS_FAMILIAS_EDITOR <- c(categorias = "Categorías", escalas = "Escalas", numeros = "Números", comparar = "Comparar",
+                               dimensiones = "Dimensiones", territorio = "Territorio", texto = "Texto")
+.GRAFICOS_SALIDA_EDITOR <- list(
+  p_barras_agrupadas = list("categorias", "nativa", condicion = "Con «Dividir por» (dos o más series) sale por la ruta anterior."),
+  p_barras_categoricas = list("categorias", "nativa", condicion = "Si los rótulos no caben ni en columnas ni en barras, sale por la ruta anterior."),
+  p_barras_apiladas = list("escalas", "nativa"),
+  p_barras_multiapiladas = list("escalas", "nativa", condicion = "Los bloques que no caben se reparten en láminas «(cont.)»."),
+  p_nube_palabras = list("texto", "marco", motivo = "No hay pieza del recetario para la nube: la lámina es la del recetario y la nube va dibujada adentro."),
+  p_mapa_cobertura_territorial = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
+  p_pie = list("categorias", "nativa", condicion = "Sólo con dos o tres porciones; con más, sale por la ruta anterior."),
+  p_donut = list("categorias", "nativa", condicion = "Sólo con dos porciones y sus frecuencias; si no, sale por la ruta anterior."),
+  p_numerico = list("numeros", "nativa"),
+  p_histograma = list("numeros", "nativa", condicion = "Hasta 30 valores distintos; con más, sale por la ruta anterior."),
+  p_boxplot = list("numeros", "nativa"),
+  p_media_rango = list("numeros", "nativa"),
+  p_barras_divergentes = list("escalas", "nativa"),
+  p_puntos_comparativos = list("comparar", "ruta_anterior", motivo = "No hay pieza del recetario para los puntos comparativos."),
+  p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
+  p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
+  p_dumbbell = list("comparar", "nativa"),
+  p_lollipop = list("categorias", "nativa"),
+  p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones; con tres o más va en el marco del recetario con el dibujo adentro."),
+  p_radar = list("comparar", "nativa", condicion = "Si los ejes o la tabla no caben, sale por la ruta anterior."),
+  p_tabla = list("comparar", "ruta_anterior", motivo = "La lámina va por la ruta anterior; la tabla sí sale como tabla editable de PowerPoint."),
+  p_dim_radar = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para el radar de dimensiones."),
+  p_dim_heatmap = list("dimensiones", "nativa", condicion = "Con brechas declaradas sale por la ruta anterior."),
+  p_dim_comparativo_radarbar = list("dimensiones", "nativa", condicion = "Con brechas o con la columna Total sale por la ruta anterior."),
+  p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para la matriz FODA."),
+  p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior.")
+)
+stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
+.GRAFICADORES_META <- Map(function(meta, s) {
+  meta$familia_editor <- s[[1]]
+  meta$salida <- s[[2]]
+  meta$salida_nativa <- identical(s[[2]], "nativa")
+  # Sin `%||%`: este código corre al cargar el paquete, antes de helpers_calc_comunes.R.
+  meta$salida_motivo <- if (is.null(s$motivo)) "" else s$motivo
+  meta$salida_condicion <- if (is.null(s$condicion)) "" else s$condicion
+  meta
+}, .GRAFICADORES_META, .GRAFICOS_SALIDA_EDITOR[names(.GRAFICADORES_META)])
+
 # Contrato operativo aditivo del registry (`graficos/4`). Las claves de preset
 # nombran la familia que el motor consume realmente; vacío significa que el
 # graficador no tiene una familia de preset insertable deliberadamente.
@@ -5434,11 +5479,17 @@
       authoring_mode = operational$authoring_mode,
       data_requirement = operational$data_requirement,
       preset_key = operational$preset_key,
+      familia_editor = meta$familia_editor,       # K4: familia del selector y salida de la lámina (ver .GRAFICOS_SALIDA_EDITOR)
+      salida = meta$salida,
+      salida_nativa = meta$salida_nativa,
+      salida_motivo = meta$salida_motivo,
+      salida_condicion = meta$salida_condicion,
       available     = available,
       disabled_reason = disabled_reason,
       args          = .normalize_args_for_ui(meta$args %||% list()),
       args_extra    = as.list(args_extra)
     )
   })
-  list(slides = slides, graficadores = graficadores)
+  familias_editor <- lapply(names(.GRAFICOS_FAMILIAS_EDITOR), function(id) list(id = id, label = .GRAFICOS_FAMILIAS_EDITOR[[id]]))
+  list(slides = slides, graficadores = graficadores, familias_editor = familias_editor)
 }

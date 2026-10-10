@@ -64,3 +64,18 @@ test_that("GET /registry dice el tipo del estándar de cada lámina y null en la
   expect_null(por$p_slide_portada$estandar)
   expect_identical(lengths(regmatches(rawToChar(r$raw), gregexpr('"estandar":null', rawToChar(r$raw), fixed = TRUE))), 11L)
 })
+
+test_that("GET /registry publica familia del editor y salida de cada graficador, con las familias en orden (K4)", {
+  srv <- http_contract_server()
+  r <- http_get(srv, "/api/graficos/registry")
+  expect_identical(r$status, 200L)
+  expect_identical(vapply(r$json$familias_editor, `[[`, "", "id"),
+                   c("categorias", "escalas", "numeros", "comparar", "dimensiones", "territorio", "texto"))
+  g <- setNames(r$json$graficadores, vapply(r$json$graficadores, `[[`, "", "name"))
+  expect_identical(g$p_nube_palabras$familia_editor, "texto")
+  expect_false(g$p_nube_palabras$salida_nativa)
+  expect_identical(g$p_nube_palabras$salida, "marco")
+  expect_true(nzchar(g$p_nube_palabras$salida_motivo))
+  expect_true(isTRUE(g$p_barras_apiladas$salida_nativa))
+  expect_identical(g$p_barras_apiladas$salida_motivo, "")
+})
