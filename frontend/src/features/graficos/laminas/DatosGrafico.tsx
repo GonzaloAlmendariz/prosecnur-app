@@ -4,6 +4,7 @@
 // (bloques de multiapiladas, filtros) se edita en un panel ancho.
 
 import { useId } from "react";
+import { useLocation } from "react-router-dom";
 import { Filter, HelpCircle, Rows3 } from "../../../vendor/lucide-react";
 import type { GraficadorRef } from "../../../api/graficos";
 import { Switch } from "../../../components/Switch";
@@ -19,6 +20,10 @@ import {
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
+import { useGraficosReportScope } from "../reportScope";
+import { aplicaOrden, varCalificada } from "./ordenCategorias";
+import { useSession } from "../../../lib/SessionContext";
+import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import "./datosGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
@@ -29,7 +34,11 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const { graficadoresById } = useGraficosRegistry();
   const meta = graficadoresById[valor.graficador];
   const args = (valor.args ?? {}) as Record<string, unknown>;
-  const campos = camposDeDatos(meta?.args ?? [], args);
+  // Donde aplica el orden por gráfico (D8), su fila reemplaza al «Orden» anterior del registro.
+  const conOrden = aplicaOrden(valor.graficador);
+  const campos = camposDeDatos(meta?.args ?? [], args).filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)));
+  const scope = useGraficosReportScope(useLocation().search);
+  const baseActiva = useSession().state?.active_base;
   const set = (patch: Record<string, unknown>) => updateSlotArgs(slideId, slot, patch);
   const variable = typeof args.var === "string" ? args.var : "";
   const esMulti = valor.graficador === "p_barras_multiapiladas";
@@ -51,6 +60,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {campos.map((c) => (
         <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
       ))}
+      {conOrden && variable && (
+        <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva)} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
+      )}
       {variable && (
         <FilaTexto
           rotulo="Etiqueta corta"
@@ -71,6 +83,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     </div>
   );
 }
+
+const ORDEN_ANTERIOR = new Set(["orden_barras", "ordenar_categorias"]);
 
 function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
   if (!detalle) return null;
