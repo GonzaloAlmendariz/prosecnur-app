@@ -4796,6 +4796,7 @@
 
   @starting-style {
     .hojas-ruta-notice-popover,
+    .hojas-ruta-delivery-review .hojas-ruta-notice-popover,
     .hojas-ruta-inline-help .hojas-ruta-inline-help-popover,
     .hojas-ruta-sample-result-breakdown .hojas-ruta-inline-help .hojas-ruta-inline-help-popover {
       opacity: 0;

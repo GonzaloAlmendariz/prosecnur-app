@@ -200,6 +200,13 @@
     transform: scale(0.97) translateY(-4px);
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  @starting-style {
+    .dashboard-scope .dash-iter-popover {
+      transform: none;
+    }
+  }
+}
 @media (max-width: 900px) {
   .dashboard-scope .dash-iter-popover {
     left: 0;
