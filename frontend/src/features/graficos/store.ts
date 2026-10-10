@@ -629,7 +629,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
   // es estado visual; persistirlo igual para que al refrescar la pestaña
   // el usuario caiga en el mismo slide, pero no tiene sentido disparar
   // autosave ni contaminar el undo stack solo por hacer click en otro slide.
-  select: (id) => set({ selectedSlideId: id, dirty: true }),
+  // Cambiar de lámina no es una edición: no marca `dirty` ni dispara el autosave. La selección viaja con el próximo
+  // guardado real (F6.1; antes cada clic en el árbol escribía la config).
+  select: (id) => set({ selectedSlideId: id }),
 
   loadPlan: (plan) => set((state) => dirty(state, {
     plan, selectedSlideId: plan.slides[0]?.id ?? null,
