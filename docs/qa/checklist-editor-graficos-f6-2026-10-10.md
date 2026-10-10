@@ -55,8 +55,8 @@ Leyenda: ☑ hecho y verificado · ◐ hecho, en verificación o con pendientes 
 
 | Código | Pregunta | Estado |
 |---|---|---|
-| K15 | ¿Alinear `estandar_pulso.json` con las láminas de ejemplo del recetario en 12 tipos? | ⛔ |
-| D8 | Orden de categorías: frecuencia o instrumento (p160/p152) | ⛔ |
+| K15 | Alinear `estandar_pulso.json` con las láminas de ejemplo del recetario en 12 tipos — Gonzalo: «sí» | ☐ en cola (entregables) |
+| D8 | Orden de categorías — Gonzalo: frecuencia, instrumento y personalizado, los tres posibles | ☐ en cola (backend + Inspector) |
 | — | Etiquetas cortas por categoría de respuesta (sin contrato) | ⛔ |
 | — | «Masculino (33)» con n en el rótulo solo en la corona | ⛔ |
 | S1–S4 | Base ponderada vs n sin ponderar | ⛔ |
