@@ -95,3 +95,22 @@ test_that("la etiqueta corta llega también al Word: el rótulo de cada panel de
   expect_true("Grado" %in% trimws(con))
   expect_true(any(grepl("Departamento", con, fixed = TRUE)))
 })
+
+# Verificador de K12a: en una lámina SIN título, el PPT tomaba el título del instrumento y el Word el de la etiqueta
+# corta. El título que el motor deriva de la variable usa la etiqueta corta en los dos formatos.
+test_that("una lámina sin título toma la etiqueta corta como título en el PPT y en el Word", {
+  f <- .ec_fixture()
+  plan <- list(a = p_slide_1_grafico(grafico = p_barras_apiladas("p1", overrides = list(etiquetas_vars = list(p1 = "Escucha a sus estudiantes")))),
+               b = p_slide_1_grafico(grafico = p_barras_categoricas("grado", overrides = list(etiquetas_vars = list(grado = "Grado")))))
+  pres <- do.call(p_presets, .PRESETS_DEFAULT_PULSO)
+  ppt <- tempfile(fileext = ".pptx"); docx <- tempfile(fileext = ".docx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = f$df, instrumento = f$inst, plan = plan, presets = pres, path_ppt = ppt, mensajes_progreso = FALSE)))
+  suppressMessages(suppressWarnings(reporte_word_plan(data = f$df, instrumento = f$inst, plan = plan["a"], presets_ppt = pres, path_docx = docx, mensajes_progreso = FALSE)))
+  titulos <- vapply(.pptx_slide_paths(ppt), function(s) .pptx_lamina_titulo(.pptx_leer_parte(ppt, s)), "", USE.NAMES = FALSE)
+  expect_identical(toupper(titulos[1]), toupper("Escucha a sus estudiantes"))
+  expect_identical(toupper(titulos[2]), toupper("Grado"))
+  d <- tempfile(); utils::unzip(docx, exdir = d)
+  ps <- xml2::xml_text(xml2::xml_find_all(xml2::read_xml(file.path(d, "word/document.xml")), "//w:p"))
+  expect_true(any(grepl("Escucha a sus estudiantes", ps, fixed = TRUE)))
+  expect_false(any(grepl("mecanismos efectivos", ps, fixed = TRUE)))
+})
