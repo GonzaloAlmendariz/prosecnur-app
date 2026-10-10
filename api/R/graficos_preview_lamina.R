@@ -258,6 +258,35 @@
   slide
 }
 
+#' Folio que la lámina lleva en el informe (K2, plan F6 §5.8)
+#'
+#' El mini-plan de la vista previa tiene una sola lámina y el motor la numeraba «1». El folio es su lugar en el plan
+#' guardado; si el cliente manda uno (lo sabe por un export que ya contó las «(cont.)» anteriores), manda ése.
+#' @param plan_slides Láminas del plan guardado (`cfg$plan$slides`).
+#' @param slide_id Id de la lámina en el plan.
+#' @param pedido Folio pedido por el cliente (entero positivo); si no es válido, no cuenta.
+#' @return Entero positivo; `1L` si la lámina aún no está en el plan.
+#' @keywords internal
+.preview_folio <- function(plan_slides, slide_id, pedido = NULL) {
+  p <- suppressWarnings(as.integer(as.character(unlist(pedido))[1]))
+  if (length(p) && !is.na(p) && p >= 1L) return(p)
+  if (is.null(slide_id) || !length(plan_slides)) return(1L)
+  ids <- vapply(plan_slides, function(x) as.character(x$id %||% "")[1], character(1))
+  k <- match(as.character(slide_id)[1], ids)
+  if (is.na(k)) 1L else as.integer(k)
+}
+
+#' Evalúa `expr` (que arma el mini-PPTX) con la lámina corrida a su folio real
+#'
+#' El motor numera desde 1 dentro del mini-plan; `.lam_pie` suma el desplazamiento, así que las «(cont.)» siguen al
+#' folio real. La opción vuelve a su valor al salir: el export nunca la ve.
+#' @keywords internal
+.preview_con_folio <- function(expr, folio) {
+  viejo <- options(prosecnur.lam_folio_desplazo = as.integer(folio) - 1L)
+  on.exit(options(viejo), add = TRUE)
+  expr
+}
+
 #' Evalúa `expr` y recoge los avisos sellados del motor (`[PULSO-AVISO]`) que emite como mensajes
 #'
 #' Los demás mensajes siguen su curso; los sellados no se imprimen y vuelven, sin repetir, para que la vista previa diga

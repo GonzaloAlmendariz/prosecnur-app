@@ -79,3 +79,23 @@ test_that("GET /registry publica familia del editor y salida de cada graficador,
   expect_true(isTRUE(g$p_barras_apiladas$salida_nativa))
   expect_identical(g$p_barras_apiladas$salida_motivo, "")
 })
+
+test_that("POST /preview-slide numera la lámina con su lugar en el plan o con el folio que pide el cliente (K2)", {
+  srv <- http_contract_server()
+  base <- http_contract_upload_base(srv)
+  graf <- list(graficador = "p_barras_agrupadas", args = list(var = "region"))
+  plan <- list(slides = list(
+    list(id = "s1", tipo = "p_slide_portada", payload = list(titulo = "Estudio")),
+    list(id = "s2", tipo = "p_slide_seccion", payload = list(titulo = "Perfil")),
+    list(id = "s3", tipo = "p_slide_1_grafico", payload = list(titulo = "Región", grafico = graf))
+  ))
+  lamina <- plan$slides[[3]]
+  r <- http_post_json(srv, "/api/graficos/preview-slide", body = list(slide = lamina, config = list(plan = plan), include_images = FALSE),
+                      sid = base$sid)
+  expect_identical(r$status, 200L)
+  expect_identical(r$json$folio, 3L)
+  pedido <- http_post_json(srv, "/api/graficos/preview-slide",
+                           body = list(slide = lamina, config = list(plan = plan), include_images = FALSE, folio = 14), sid = base$sid)
+  expect_identical(pedido$status, 200L)
+  expect_identical(pedido$json$folio, 14L)
+})

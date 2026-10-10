@@ -25,6 +25,9 @@
 #' @keywords internal
 .lam_pie <- function(doc, base, folio) {
   g <- .std_geom; lz <- .lam_lienzo()
+  # La vista previa arma un mini-plan de una lámina y la corre a su lugar en el plan (K2, graficos_preview_lamina.R).
+  desplazo <- getOption("prosecnur.lam_folio_desplazo", 0L)
+  if (!is.null(folio) && desplazo != 0L) folio <- folio + desplazo
   if (!is.null(base) && nzchar(base)) .lam_txt(lz, base, g("margen_izq"), g("base_y"), 10.5, 0.4, .std_pt("base"), .std_color("azul"), bold = TRUE, nombre = "Base lamina")
   if (!is.null(folio)) .lam_txt(lz, as.character(folio), g("ancho") - g("margen_der") - 0.6, g("base_y"), 0.6, 0.3, .std_pt("base"),
                                 .std_color("texto_suave"), align = "right", nombre = "Folio lamina")
