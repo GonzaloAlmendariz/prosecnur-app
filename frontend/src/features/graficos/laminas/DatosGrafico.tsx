@@ -1,0 +1,163 @@
+// Datos de un gráfico en su tarjeta del inspector (F6.1, parte 2). Reemplaza al editor de ranura viejo incrustado:
+// una sola superficie con filas planas (rótulo y control en una línea), sólo los datos que la salida nativa lee
+// (lista blanca, argsDatosGrafico.ts), sin buscador de ajustes ni descripciones largas. Lo que no cabe en el inspector
+// (bloques de multiapiladas, filtros) se edita en un panel ancho.
+
+import { useId } from "react";
+import { Filter, HelpCircle, Rows3 } from "../../../vendor/lucide-react";
+import type { GraficadorRef } from "../../../api/graficos";
+import { Switch } from "../../../components/Switch";
+import { usePlanStore } from "../store";
+import { useGraficosRegistry } from "../useGraficosRegistry";
+import VariablePicker from "../VariablePicker";
+import {
+  camposDeDatos,
+  codigosATexto,
+  conEtiquetaCorta,
+  leerEtiquetaCorta,
+  textoACodigos,
+  type CampoDato,
+} from "./argsDatosGrafico";
+import { useLaminasUi } from "./laminasStore";
+import "./datosGrafico.css";
+
+type Props = { slideId: string; slot: string; valor: GraficadorRef };
+
+export function DatosGrafico({ slideId, slot, valor }: Props) {
+  const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
+  const abrirEditorAmplio = useLaminasUi((s) => s.setEditorAmplio);
+  const { graficadoresById } = useGraficosRegistry();
+  const meta = graficadoresById[valor.graficador];
+  const args = (valor.args ?? {}) as Record<string, unknown>;
+  const campos = camposDeDatos(meta?.args ?? [], args);
+  const set = (patch: Record<string, unknown>) => updateSlotArgs(slideId, slot, patch);
+  const variable = typeof args.var === "string" ? args.var : "";
+  const esMulti = valor.graficador === "p_barras_multiapiladas";
+  const nVars = Array.isArray(args.vars) ? args.vars.length : 0;
+  const filtros = Array.isArray(args.filtros) ? args.filtros.length : 0;
+  const admiteFiltros = (meta?.args ?? []).some((a) => a.name === "filtros");
+
+  return (
+    <div className="pulso-f6-datos" data-qa-geometry-group="graficos/f6-datos" data-qa-geometry-contract="intrinsic">
+      {esMulti && (
+        <div className="pulso-f6-dato">
+          <span className="pulso-f6-dato-rotulo">Bloques</span>
+          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })}>
+            <Rows3 size={14} aria-hidden="true" />
+            {nVars ? `${nVars} ${nVars === 1 ? "pregunta" : "preguntas"} · Editar…` : "Elegir preguntas…"}
+          </button>
+        </div>
+      )}
+      {campos.map((c) => (
+        <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
+      ))}
+      {variable && (
+        <FilaTexto
+          rotulo="Etiqueta corta"
+          ayuda="Rótulo de la pregunta en la lámina y el Word; vacío usa el del instrumento."
+          valor={leerEtiquetaCorta(args, variable)}
+          onCambio={(t) => set({ overrides: conEtiquetaCorta(args, variable, t) })}
+        />
+      )}
+      {admiteFiltros && (
+        <div className="pulso-f6-dato">
+          <span className="pulso-f6-dato-rotulo">Filtrar respuestas</span>
+          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "filtros", slideId, slot })}>
+            <Filter size={14} aria-hidden="true" />
+            {filtros ? `${filtros} ${filtros === 1 ? "regla" : "reglas"} · Editar…` : "Sin filtro · Agregar…"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
+  if (!detalle) return null;
+  return (
+    <span className="pulso-f6-dato-ayuda-icono" title={detalle} aria-label={`${rotulo}: ${detalle}`} role="img">
+      <HelpCircle size={13} aria-hidden="true" />
+    </span>
+  );
+}
+
+function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; onCambio: (v: unknown) => void }) {
+  const id = useId();
+  const { arg, rotulo, ayuda, detalle, control } = campo;
+  const etiqueta = (
+    <label className="pulso-f6-dato-rotulo" htmlFor={id}>
+      {rotulo}
+      <Ayuda rotulo={rotulo} detalle={detalle} />
+    </label>
+  );
+  if (control === "variable" || control === "variable_opcional") {
+    return (
+      <div className="pulso-f6-dato is-apilado">
+        {etiqueta}
+        <div id={id} className="pulso-f6-dato-control">
+          <VariablePicker
+            value={typeof valor === "string" ? valor : null}
+            onChange={(v) => onCambio(v ?? (control === "variable_opcional" ? null : ""))}
+            allowEmpty={control === "variable_opcional"}
+            placeholder={control === "variable_opcional" ? "Sin dividir" : "Elige una pregunta…"}
+          />
+        </div>
+        {ayuda && <span className="pulso-f6-dato-ayuda">{ayuda}</span>}
+      </div>
+    );
+  }
+  if (control === "interruptor") {
+    return (
+      <div className="pulso-f6-dato">
+        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} /></span>
+        <Switch checked={valor === true} ariaLabel={rotulo} onToggle={() => onCambio(!(valor === true))} />
+      </div>
+    );
+  }
+  if (control === "opciones") {
+    const opciones = arg.choices ?? [];
+    return (
+      <div className="pulso-f6-dato">
+        {etiqueta}
+        <select id={id} className="pulso-f6-input pulso-f6-dato-select" value={typeof valor === "string" ? valor : String(arg.default ?? "")}
+          onChange={(e) => onCambio(e.target.value)}>
+          {opciones.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+    );
+  }
+  if (control === "numero") {
+    return (
+      <div className="pulso-f6-dato">
+        {etiqueta}
+        <input id={id} type="number" className="pulso-f6-input pulso-f6-dato-numero"
+          value={typeof valor === "number" ? valor : ""}
+          placeholder={arg.default !== undefined && arg.default !== null ? String(arg.default) : ""}
+          min={arg.min} max={arg.max} step={arg.step ?? "any"}
+          onChange={(e) => onCambio(e.target.value === "" ? null : Number(e.target.value))} />
+      </div>
+    );
+  }
+  if (control === "codigos") {
+    return (
+      <div className="pulso-f6-dato is-apilado">
+        {etiqueta}
+        <input id={id} className="pulso-f6-input" value={codigosATexto(valor)} placeholder="Ninguna"
+          onChange={(e) => onCambio(textoACodigos(e.target.value))} />
+        {ayuda && <span className="pulso-f6-dato-ayuda">{ayuda}</span>}
+      </div>
+    );
+  }
+  return <FilaTexto rotulo={rotulo} ayuda={ayuda} valor={typeof valor === "string" ? valor : ""} onCambio={(t) => onCambio(t)} />;
+}
+
+function FilaTexto({ rotulo, ayuda, valor, onCambio }: { rotulo: string; ayuda: string | null; valor: string; onCambio: (t: string) => void }) {
+  const id = useId();
+  return (
+    <div className="pulso-f6-dato is-apilado">
+      <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}</label>
+      <input id={id} className="pulso-f6-input" value={valor} onChange={(e) => onCambio(e.target.value)} />
+      {ayuda && <span className="pulso-f6-dato-ayuda">{ayuda}</span>}
+    </div>
+  );
+}

@@ -27,11 +27,17 @@ type LaminasUiStore = {
   /** Plegar la Estructura deja a la lámina el ancho de esa columna (la tira sigue navegando). */
   estructuraVisible: boolean;
   alternarEstructura: () => void;
+  /** Preferencia de la sesión: el inspector oculto en el marco ancho (la lámina gana su ancho). */
+  inspectorOculto: boolean;
+  setInspectorOculto: (v: boolean) => void;
   /**
    * «Insertar después de esta lámina» abre la biblioteca de láminas del editor, que agrega al final. Mientras la
    * biblioteca está abierta, lo que se inserte se acomoda detrás de `despuesDe` (y en cadena, si se insertan varias).
    */
   insercion: { despuesDe: string; previos: string[]; vioPanel: boolean } | null;
+  /** Editor ancho abierto desde una tarjeta de gráfico (bloques de multiapiladas o filtros), sobre visor e inspector. */
+  editorAmplio: { tipo: "bloques" | "filtros"; slideId: string; slot: string } | null;
+  setEditorAmplio: (e: { tipo: "bloques" | "filtros"; slideId: string; slot: string } | null) => void;
   setInsercion: (i: { despuesDe: string; previos: string[]; vioPanel: boolean } | null) => void;
   setZoom: (z: ZoomVisor) => void;
   alternarTira: () => void;
@@ -54,7 +60,11 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
   zoom: "ajustar",
   tiraVisible: true,
   estructuraVisible: true,
+  inspectorOculto: false,
+  setInspectorOculto: (inspectorOculto) => set({ inspectorOculto }),
   insercion: null,
+  editorAmplio: null,
+  setEditorAmplio: (editorAmplio) => set({ editorAmplio }),
   setInsercion: (insercion) => set({ insercion }),
   alternarEstructura: () => set((s) => ({ estructuraVisible: !s.estructuraVisible })),
   setZoom: (zoom) => set({ zoom }),

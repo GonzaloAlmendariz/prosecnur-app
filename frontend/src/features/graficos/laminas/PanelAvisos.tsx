@@ -48,19 +48,19 @@ export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
           <X size={16} aria-hidden="true" />
         </button>
       </header>
-      <div className="pulso-f6-avisos-cuerpo">
+      <div className="pulso-f6-avisos-cuerpo" data-qa-geometry-group="graficos/f6-avisos-grupos" data-qa-geometry-contract="intrinsic">
         <section className="pulso-f6-avisos-grupo is-bloquea" aria-label="Bloquean la exportación">
           <h3>Bloquean la exportación <span>{grupos.bloquean.length}</span></h3>
-          {grupos.bloquean.length ? <ul>{grupos.bloquean.map(fila)}</ul> : <p>Nada bloquea la exportación.</p>}
+          {grupos.bloquean.length ? <ul data-qa-geometry-group="graficos/f6-avisos-bloquean" data-qa-geometry-contract="intrinsic">{grupos.bloquean.map(fila)}</ul> : <p>Nada bloquea la exportación.</p>}
         </section>
         <section className="pulso-f6-avisos-grupo" aria-label="Conviene revisar">
           <h3>Conviene revisar <span>{grupos.revisar.length}</span></h3>
-          {grupos.revisar.length ? <ul>{grupos.revisar.map(fila)}</ul> : <p>Sin advertencias del plan.</p>}
+          {grupos.revisar.length ? <ul data-qa-geometry-group="graficos/f6-avisos-revisar" data-qa-geometry-contract="intrinsic">{grupos.revisar.map(fila)}</ul> : <p>Sin advertencias del plan.</p>}
         </section>
         <section className="pulso-f6-avisos-grupo" aria-label="Avisos del motor">
           <h3>Avisos del motor <span>{grupos.motor.reduce((t, m) => t + m.avisos.length, 0)}</span></h3>
           {grupos.motor.length ? (
-            <ul>
+            <ul data-qa-geometry-group="graficos/f6-avisos-motor" data-qa-geometry-contract="intrinsic">
               {grupos.motor.flatMap((m) => m.avisos.map((a, k) => (
                 <li key={`${m.slideId}-${k}`}>
                   <span>{a}</span>

@@ -1,0 +1,23 @@
+/* Editor ancho (bloques, filtros): sideover sobre visor e inspector, cuerpo con su propio scroll (C4). */
+.pulso-f6-editor-amplio {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 94%);
+  border-left: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  outline: none;
+}
+
+.pulso-f6-editor-amplio-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
