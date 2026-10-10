@@ -6003,6 +6003,12 @@ export async function apiMonitoreoAulasImportarLibro(origen: { file_id: string }
     fusion?: { actualizadas: number; nuevas: number; intactas: number } | null;
     /** Campos del bloque de agenda que ningún título de la hoja bautiza. */
     agenda_campos_ausentes?: string[] | null;
+    /** Estatus de muestra que la app no sabe leer, con cuántas filas lo traen. */
+    estados_desconocidos?: Array<{ valor: string; filas: number }> | null;
+    /** Códigos de partes o control que el plan no reconoce: no cuentan como aplicados. */
+    codigos_sin_plan?: Array<{ codigo: string; filas: number }> | null;
+    /** Reservas que vuelven sin titular: con ellas el libro no se regenera. */
+    reservas_sin_cadena?: { reservas: number; sin_cadena: number; ejemplos: string[] } | null;
     state: MonitoreoState;
   }>(
     await apiFetch("/api/monitoreo/aulas/importar-libro", {
