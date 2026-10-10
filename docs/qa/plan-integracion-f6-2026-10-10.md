@@ -247,3 +247,25 @@ Top 10 riesgos de pérdida con la nueva UI (destino en §3 «Paridad»):
 
 Otros: accesibilidad de ranuras sobre imagen rasterizada y conflicto de ←/→ con inputs (`isEditable`); vacíos (C3);
 proyecto sin plan con «Armar desde…»; verificar que el editor no se monte en modo público.
+
+## 8. Guías del visor por capas (pedido de Gonzalo, 2026-10-10)
+
+Textual: «a las guías les faltan más cosas o poder filtrar, o agregar; se pueden agregar los espacios de cada sección o se
+puede mostrar el tamaño de la letra de cada elemento». D17: las guías ya no se hornean en el entregable (533c19935).
+
+Diseño: las guías dejan de ser marcas dibujadas por ggplot dentro de la imagen y pasan a ser una **capa del visor**,
+encima de la lámina, que funciona igual para láminas nativas y de ruta anterior:
+
+- **Backend (contrato nuevo K11)**: la vista previa devuelve, por parte, las formas de la lámina leídas del XML del PPTX:
+  nombre (`prosecnur:*`, ranura), rol (gráfico, texto, cifra, título, pie, ícono), caja x/y/w/h en pulgadas y cm,
+  tamaño de letra en pt (mínimo y máximo de sus párrafos) y si el texto está recortado; y las ranuras del estándar del
+  tipo (`/api/graficos/estandar`) para comparar contra el recetario.
+- **Frontend**: botón «Guías» en la barra del visor con capas activables y combinables:
+  1. **Cajas** de cada elemento, con su nombre al pasar el mouse;
+  2. **Espacios**: separaciones entre secciones y márgenes a los bordes, con su medida en cm;
+  3. **Tipografía**: el tamaño en pt de cada texto, en rojo si se aparta del recetario;
+  4. **Medidas**: ancho y alto de cada caja;
+  5. **Recetario**: las ranuras del estándar superpuestas, para ver desvíos;
+  y un filtro por rol (sólo gráficos, sólo textos…). Estado de las capas en el store del editor, no en la config del
+  proyecto.
+- Rebanada: después de F6.1b; requiere K11.
