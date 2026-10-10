@@ -1,0 +1,24 @@
+{
+  "_comentario": "LibreOffice que viaja en el instalador para la vista previa real de láminas (decisión de Gonzalo, 2026-10-09: «se instala en el instalador de escritorio»; docs/qa/inventario-f6-editor-2026-10-09.md, Parte D). Las URL apuntan a downloadarchive porque stable/ borra versiones viejas. La build 26.2.6.3 es la publicada como 26.2.6 estable (mismo tamaño en bytes, comprobado el 2026-10-09). sha256 null = aún no fijado: scripts/fetch-preview-renderer.mjs se niega a usar el archivo hasta fijarlo con --pin tras verificar la firma .asc de The Document Foundation.",
+  "producto": "LibreOffice",
+  "version": "26.2.6",
+  "licencia": "MPL-2.0 (con partes LGPL-3.0 y de terceros); ver packaging/third-party/LIBREOFFICE-NOTICE.md",
+  "fuente": "https://downloadarchive.documentfoundation.org/libreoffice/old/26.2.6.3/src/",
+  "plataformas": {
+    "mac-arm64": {
+      "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/26.2.6.3/mac/aarch64/LibreOffice_26.2.6.3_MacOS_aarch64.dmg",
+      "bytes": 297798926,
+      "sha256": null
+    },
+    "mac-x64": {
+      "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/26.2.6.3/mac/x86_64/LibreOffice_26.2.6.3_MacOS_x86-64.dmg",
+      "bytes": 308308875,
+      "sha256": null
+    },
+    "win-x64": {
+      "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/26.2.6.3/win/x86_64/LibreOffice_26.2.6.3_Win_x86-64.msi",
+      "bytes": 373252096,
+      "sha256": null
+    }
+  }
+}
