@@ -142,3 +142,16 @@ test_that("la vista previa hereda el antetítulo del separador vigente, como el 
   expect_equal(.preview_con_antetitulo(propio, plan)$payload$meta$antetitulo, "MÍO")        # lo fijado gana
   expect_null(.preview_con_antetitulo(list(id = "x", tipo = "p_slide_1_grafico", payload = list()), plan)$payload$meta)
 })
+
+test_that("los avisos sellados del motor vuelven con la vista previa, sin repetir, y los demás mensajes siguen (F6.0b.1)", {
+  r <- NULL
+  expect_message(r <- .preview_con_avisos({
+    .pulso_aviso("La columna «top2box» se omite: faltan las categorías.")
+    .pulso_aviso("La columna «top2box» se omite: faltan las categorías.")
+    message("progreso normal")
+    42
+  }), "progreso normal")
+  expect_equal(r$valor, 42)
+  expect_equal(r$avisos, "La columna «top2box» se omite: faltan las categorías.")
+  expect_equal(.preview_con_avisos(1)$avisos, character(0))
+})

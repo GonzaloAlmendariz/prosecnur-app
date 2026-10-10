@@ -3133,7 +3133,8 @@ mount_graficos <- function(pr) {
             images = if (include_images) cached$images %||% list() else list(),
             slide_preview = if (isTRUE(render_slide_preview)) cached$slide_preview %||% NA else NA,
             partes = cached$partes %||% list(n = 0L, partes = list()),
-            slide_previews = if (isTRUE(render_slide_preview)) cached$slide_previews %||% list() else list()
+            slide_previews = if (isTRUE(render_slide_preview)) cached$slide_previews %||% list() else list(),
+            avisos = cached$avisos %||% character(0)
           ))
         }
       }
@@ -3249,9 +3250,11 @@ mount_graficos <- function(pr) {
       # `data` e `instrumento` se pasan como listas nombradas (multi-base).
       # Cuando hay 1 sola base, el scoping devuelve
       # `list(<nombre> = df)` y el motor maneja ese caso como single-base.
-      tryCatch({
+      # Los [PULSO-AVISO] del motor (columna omitida, lámina que cae a la ruta anterior…) se devuelven con la vista previa
+      # en vez de perderse en stderr (F6.0b.1; graficos_preview_lamina.R).
+      avisos <- tryCatch({
         slide_r <- rebuild_slide(slide)
-        reporte_ppt_plan(
+        .preview_con_avisos(reporte_ppt_plan(
           data = preview_sources$data_sources,
           instrumento = preview_sources$inst_sources,
           path_ppt = out_path,
@@ -3262,7 +3265,7 @@ mount_graficos <- function(pr) {
           template_id = delivery$template_id,
           auto_otros_slides = delivery$auto_otros_slides,
           mensajes_progreso = FALSE
-        )
+        ))$avisos
       }, error = function(e) {
         stop_api(400, "E_PREVIEW_FAILED",
                  sprintf("No se pudo generar el preview: %s", .graficos_base_error(sid, conditionMessage(e))))
@@ -3303,6 +3306,7 @@ mount_graficos <- function(pr) {
         slide_preview = slide_preview,
         partes = partes,
         slide_previews = slide_previews,
+        avisos = avisos,
         cached_at = now
       )
       if (length(preview_cache) > 16L) {
@@ -3326,7 +3330,8 @@ mount_graficos <- function(pr) {
         images = images,
         slide_preview = slide_preview %||% NA,
         partes = partes,
-        slide_previews = slide_previews
+        slide_previews = slide_previews,
+        avisos = avisos
       )
     })) |>
     plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {

@@ -219,3 +219,21 @@
   slide$payload$meta <- meta
   slide
 }
+
+#' Evalúa `expr` y recoge los avisos sellados del motor (`[PULSO-AVISO]`) que emite como mensajes
+#'
+#' Los demás mensajes siguen su curso; los sellados no se imprimen y vuelven, sin repetir, para que la vista previa diga
+#' por qué una lámina salió distinta (una columna omitida, la ruta anterior).
+#' @return `list(valor, avisos)`.
+#' @keywords internal
+.preview_con_avisos <- function(expr) {
+  avisos <- character(0)
+  valor <- withCallingHandlers(expr, message = function(m) {
+    texto <- conditionMessage(m)
+    if (grepl(.PULSO_AVISO_SELLO, texto, fixed = TRUE)) {
+      avisos <<- c(avisos, trimws(sub(paste0(".*", gsub("([][])", "\\\\\\1", .PULSO_AVISO_SELLO)), "", texto)))
+      invokeRestart("muffleMessage")
+    }
+  })
+  list(valor = valor, avisos = unique(avisos[nzchar(avisos)]))
+}
