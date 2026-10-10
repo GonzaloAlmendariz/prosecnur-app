@@ -537,8 +537,8 @@
   })
 }
 
-#' ¿El plan pide el índice de focos? Sus ajustes (`iconos_focos…`) o `meta$composicion = "focos"` son una elección
-#' explícita de ese estilo, que conserva su ruta
+#' ¿El plan pide el índice de focos? Sus ajustes (`iconos_focos…`) o `meta$composicion = "focos"`. Desde F6.4 los ajustes
+#' se traducen a la composición nativa (`lamina_indice_focos.R`); sólo `composicion = "focos"` conserva la ruta anterior
 #' @keywords internal
 .lam_indice_focos <- function(slots, meta = list()) {
   # Con contenido: la app manda `iconos_focos = ""` cuando no se eligieron íconos, y eso no es pedir focos.
@@ -605,7 +605,7 @@
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:indice")
   for (ic in iconos_xy) {
-    ruta <- .lam_icono_ruta(ic$n, "navy")
+    ruta <- .lam_icono_ruta(ic$n, "navy") %||% (if (nzchar(ic$n) && file.exists(ic$n)) ic$n)   # o el archivo del usuario
     if (!is.null(ruta)) doc <- officer::ph_with(doc, officer::external_img(ruta, width = ic$d, height = ic$d),
                                                 location = officer::ph_location(left = ic$x, top = ic$y, width = ic$d, height = ic$d, newlabel = "indice:icono"))
   }
