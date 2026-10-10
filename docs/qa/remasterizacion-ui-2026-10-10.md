@@ -23,7 +23,7 @@ Secciones:
 4. Decisiones tomadas por el dueño
 5. El sistema de diseño objetivo: el kit, pieza por pieza
 6. La maqueta: cómo verla y qué muestra cada página
-7. Las 36 unidades, una por una
+7. Las 37 unidades, una por una
 8. El plan: vueltas, dependencias y gates
 9. Vara y ledger
 10. Trampas, riesgos y lo que no se verificó
@@ -322,7 +322,43 @@ duraciones, la jerarquía Prosecnur · PULSO PUCP.
   de 6 px; press físico en chips, tiles y cards; `motion` fuera de
   `package.json`; FLIP del Home de 460 a 420 ms.
 
-### 5.4 Patrones de estado y feedback
+### 5.4 El sistema de movimiento (L37; censo y catálogo en `censo-animaciones-2026-10-10.md`)
+
+Hoy, medido: 233 keyframes únicos (61 en `theme.css`), 54 loops infinitos, 34
+transiciones sobre `width`/`height`/`left`, 1.112 ms y 119 beziers literales,
+13 presses frente a 1.476 hovers de color, cero transición de sección y de
+pestaña, 9 de 14 «ir a» sin suavidad, 78 de 250 hojas con reduced-motion,
+`motion` instalado sin usar, FLIP del Home a 460 ms.
+
+Principios: solo `transform` y `opacity`; la frecuencia decide si anima (lo
+de cien veces al día no anima); entradas con `ease-out`, movimiento con
+`ease-in-out`, color con `ease`, constante con `linear`, nunca `ease-in`;
+bajo 300 ms con los cinco tokens; nada aparece de la nada (scale .96);
+popovers desde el disparador, modales desde el centro; interrumpible
+(transiciones, no keyframes); press .97 en todo lo presionable; scroll con un
+dueño, suave cuando lo pide el usuario e instantáneo por teclado, sombra en
+cabeceras pegajosas, snap en tiras; escalonado con tope (4 × 30 ms); loops
+solo en spinner y skeleton; reduced-motion global.
+
+Catálogo de 22 coreografías (M1–M22) con token y uso: módulo y sección
+(firma de 6 px, base 220 out), pestaña (fade 120; nada por teclado), diálogo
+(scale .96, 220, cierre 160), sideover (24 px, 280 drawer), popover y tooltip
+(160 desde el disparador; siguientes sin retardo), press (.97, 120), hover
+físico (2 px), selección (fill desde el centro), switch, insertar y quitar
+fila (`grid-template-rows`), reordenar (FLIP 220), skeleton → contenido
+(crossfade 160), shimmer (1,4 s), job (anillo por transición), toast (8 px,
+transición con `@starting-style`), «ir a» (`smooth`, `nearest`, 16 px),
+cabecera pegajosa con sombra, tira con `scroll-snap`, barras con `scaleX`
+(420, una vez), reduced motion.
+
+Contrato de movimiento (vitest): cero `transition` sobre layout; cero
+literales de ms y bezier fuera de `tokens.css` en archivos migrados; cero
+`infinite` fuera de spinner y skeleton; `animation-delay` ≤ 90 ms. Medición
+con Playwright: 0 frames largos al cambiar de sección y abrir un diálogo.
+La maqueta L37 es un laboratorio interactivo donde cada coreografía se siente
+con los tokens reales y un switch simula «reducir movimiento».
+
+### 5.5 Patrones de estado y feedback
 
 - **Readiness**: una marca por pestaña (`<modulo>/<seccion>/<pestana>`),
   publicada tras el render (Plotly `onReady`, mapas, fetch propio); el
@@ -381,12 +417,13 @@ maqueta.
 | L29 | La misma pestaña Metas en cómoda y compacta, y la escala tipográfica de ocho roles | L29 |
 | L30 | La paleta ⌘K sobre el Home atenuado: vistas, acciones del módulo, recientes, proyecto | L30 |
 | L31 | Home vivo: bloque «hoy», cards con hecho y base, siguiente acción, job en curso | L31 |
-| L32 | Materiales (un blur, ventana en `--pulso-bg`, seis sombras) y motion con hover y press reales | L32 |
+| L32 | Materiales: un blur, header opaco con hairline, ventana en `--pulso-bg`, seis sombras | L32 |
 | L36 | Formularios › Documento: páginas reales del cuestionario, bloque P5 seleccionado con inspector contextual, ajustes del documento, generación como job, pestaña Estándar | L36 |
+| L37 | Laboratorio de movimiento: nueve demostraciones interactivas (módulo/sección/pestaña, diálogo/sideover/popover, press/hover/selección/switch, insertar/quitar/reordenar, skeleton/contenido/job, toast, «ir a» y cabecera pegajosa, tira con snap, barras), las reglas, lo medido hoy y un switch que simula «reducir movimiento» | L37 |
 
 ---
 
-## 7. Las 36 unidades, una por una
+## 7. Las 37 unidades, una por una
 
 Formato de cada unidad: **Hoy** (evidencia) · **Después** (maqueta y
 comportamiento) · **Alcance** (frontend, backend, tests) · **Gate** ·
@@ -789,14 +826,29 @@ jobs, hecho con base, siguiente acción, sin gradientes, sin jail. Alcance:
 `home-v2.css`. Gate: card de Procesamiento con barra de job en vivo; matriz
 1024 limpia. Esfuerzo: M.
 
-**L32 · Materiales y motion.**
+**L32 · Materiales.**
 Hoy: dos blurs apilados (`theme.css:633-651` y command bar), `backgroundColor`
-`#f7f4ee` en `desktop/main.cjs:1866`, 1.586 sombras literales, sin transición
-de sección ni pestaña, `motion` instalado sin imports, FLIP a 460 ms. Después
-(maqueta L32): un blur, ventana en `--pulso-bg`, sombras por token, firma de
-6 px en sección y pestaña, press físico, `motion` fuera, FLIP a 420. Alcance:
-`theme.css`, `nav-states.css`, `desktop/main.cjs`, `package.json`. Gate:
-`backdrop-filter` en el header = 0. Esfuerzo: S.
+`#f7f4ee` en `desktop/main.cjs:1866`, 1.586 sombras literales. Después
+(maqueta L32): un blur en la command bar, header opaco con hairline, ventana
+en `--pulso-bg`, sombras por los seis tokens. Alcance: `theme.css`,
+`desktop/main.cjs`. Gate: `backdrop-filter` en el header = 0. Esfuerzo: S.
+
+**L37 · Sistema de movimiento y fluidez.**
+Hoy: ver §5.4 y el censo de animaciones. Después (maqueta L37): las 22
+coreografías con sus tokens; transición de módulo y sección (firma de 6 px)
+y de pestaña (fade 120, nada por teclado); `Dialog`, `Sideover` y popover
+con scale .96 y origen en el disparador; press .97 y elevación en todo lo
+presionable; listas con `grid-template-rows` y FLIP a 220; skeleton →
+contenido por crossfade; toast por transición; scroll con dueño, «ir a»
+suave con reserva e instantáneo por teclado, sombra en cabeceras pegajosas,
+snap en tiras; las 27 transiciones de `width` de Cálculo a `scaleX`; loops
+solo en spinner y skeleton; stagger con tope; reduced-motion global; `motion`
+fuera; FLIP del Home a 420. Alcance: `tokens.css`, `theme.css` (61 keyframes
+→ catálogo), `nav-states.css`, `components/*`, `calcMuestra/**`, `scripts/`
+(medición de frames), `package.json`. Tests: contrato de movimiento en
+vitest; Playwright mide frames largos. Gate: contrato verde; 0 frames > 16 ms
+en cambio de sección y apertura de diálogo; captura con reduced-motion
+emulado donde nada se mueve. Depende de: L1, L26. Esfuerzo: M.
 
 **L33 · Desduplicar Telefónico ↔ Acreditación (D8).**
 Hoy: 41 funciones homónimas, `AcreditacionModuleChromeConSync` dos veces, 28
@@ -824,8 +876,8 @@ bajan. Esfuerzo: M.
 | 3 Un solo chrome | los ocho módulos iguales; Formularios con Editor y Documento | L15 ∥ L16, L14b, L17, L18, L19, D2, L36 (XL) | 19 | frontend-react, especialista-entregables, revisor-metodologico, qa-visual-desktop |
 | 4 Cifras y feedback | avance con base, criterios honestos, guardado verificable, tiempo en esperas, toasts | L20 ∥ L21, L22, L23, L25 | 7 | frontend-react, backend-r, revisor-metodologico |
 | 5 Datos y densidad | kit en Cálculo y Carga, tablas con inspector, tipografía y densidad, hex | L27 ∥ L28, L29 | 12 | frontend-react, qa-visual-desktop |
-| 6 Shell | ⌘K, Home vivo, materiales y motion, desduplicación | L30 ∥ L31, L32, L33 | 7 | frontend-react, desktop-packaging, autor-regresiones |
-| **Total** | | 36 unidades | **77** | |
+| 6 Shell | ⌘K, Home vivo, materiales, sistema de movimiento, desduplicación | L30 ∥ L31, L32, L33, L37 | 9 | frontend-react, desktop-packaging, autor-regresiones, qa-visual-desktop |
+| **Total** | | 37 unidades | **79** | |
 
 Dependencias que fijan el orden:
 
@@ -868,6 +920,7 @@ el GOAL.
 | V9 | Las esperas largas dicen cuánto falta | tiempo + skeleton | 0 |
 | V10 | Cualquier vista se alcanza desde el teclado | ⌘K + atajos | 0 |
 | V11 | La deuda de piel baja y no sube | hex, `font-size`, inline, tokens sin definir, congelados | 4.468 · 8.188 · 2.699 · 23 |
+| V12 | El movimiento es un sistema | contrato de movimiento verde; 0 layout animado; 0 literales en migrados; 0 frames largos | 233 keyframes · 34 layout · 1.112 ms literales · 13 presses |
 
 Ledger de apertura (2026-10-10): `role="dialog"` 61 · paneles 10/~50 ·
 `JobProgress` en Carga 0/7 · INVALID 7 · cabeceras 12 · copias de pillbar 5 ·
@@ -925,6 +978,7 @@ de las 27 maquetas más allá de 1440×1000.
 - `goal-modernizacion-ui-2026-10-10.md` — vara, cola y bandeja; la fuente de
   verdad del estado de cada unidad.
 - `plan-trabajo-remasterizacion-ui-2026-10-10.md` — las vueltas con su gate.
+- `censo-animaciones-2026-10-10.md` — el censo de movimiento, los principios, el catálogo M1–M22 y el antes/después.
 - `direccion-diseno-editor-graficos-f6-2026-10-09.md` — la arquitectura que
   Documento (L36) calca.
 - `branding/direccion-creativa-v3.md`, `docs/adrs/0042-chrome-modulo-uniforme-topbar.md`,

@@ -46,6 +46,9 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   el punto de entrada único: diagnóstico, decisiones, el kit pieza por
   pieza, la maqueta página por página, las 36 unidades detalladas, el plan,
   la vara, el ledger y las trampas.
+- [Censo de animaciones y sistema de movimiento (2026-10-10)](censo-animaciones-2026-10-10.md):
+  233 keyframes sin sistema, 34 transiciones de layout, 13 presses; los
+  principios, el catálogo de 22 coreografías y el antes/después (L37).
 - [Plan de trabajo — remasterización de la UI (2026-10-10)](plan-trabajo-remasterizacion-ui-2026-10-10.md):
   siete vueltas ordenadas por dependencia (el kit primero), cada unidad con
   su maqueta, archivos, agente y gate; 73 sesiones orientativas.
