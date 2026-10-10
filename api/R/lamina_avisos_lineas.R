@@ -81,15 +81,19 @@
     titulo <- notas[[1]]$titulo %||% part$titulo %||% .lam_avisos_titulo_de(plan[[idx[1]]])
     titulo <- sub("\\s*\\((cont|CONT)\\.\\)\\s*$", "", as.character(titulo %||% "")[1])
     k <- sum(salieron[idx])
+    # Número de la lámina donde empieza: con títulos repetidos («BIENESTAR UNIVERSITARIO» tres veces) es lo único que
+    # distingue un aviso de otro, y `.pulso_avisos_de_job` no los colapsa. Sin archivo (Word), su lugar en el plan.
+    numero <- if (is.null(doc) || anyNA(inicio)) idx[1] else inicio[idx[1]] + 1L + as.integer(getOption("prosecnur.lam_folio_desplazo", 0L))
+    nombre <- sprintf("Lámina %d · %s", as.integer(numero), .lam_aviso_nombre(titulo))
     lineas <- max(0L, unlist(lapply(notas, `[[`, "lineas")))
     if (k > 1L) {
       cuerpo <- if (lineas >= 1L) sprintf("las premisas ocupan hasta %s; salió en %d partes", .lam_aviso_lineas_txt(lineas), k) else
         sprintf("salió en %d partes", k)
       if (!is.null(part)) cuerpo <- sprintf("%s (%d barras; el máximo legible por lámina es %d)", cuerpo, as.integer(part$barras), as.integer(part$techo))
-      .pulso_aviso(sprintf("%s: %s", .lam_aviso_nombre(titulo), cuerpo))
+      .pulso_aviso(sprintf("%s: %s", nombre, cuerpo))
     }
     tl <- notas[[1]]$titulo_lineas %||% 0L
-    if (tl > 2L) .pulso_aviso(sprintf("%s: el título ocupa %s", .lam_aviso_nombre(titulo), .lam_aviso_lineas_txt(tl)))
+    if (tl > 2L) .pulso_aviso(sprintf("%s: el título ocupa %s", nombre, .lam_aviso_lineas_txt(tl)))
   }
   invisible(doc)
 }

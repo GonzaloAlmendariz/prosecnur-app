@@ -425,5 +425,28 @@ job_snapshot <- function(j) {
 
   limpias <- trimws(sub(paste0(".*\\", .PULSO_AVISO_SELLO), "", lineas))
   limpias <- unique(limpias[nzchar(limpias)])
-  utils::head(limpias, maximo)
+  .pulso_avisos_ordenar(limpias, maximo)
+}
+
+#' Los avisos de un job, con los de líneas de lámina al final y agrupados si no caben
+#'
+#' Los avisos de partición y de títulos largos (`lamina_avisos_lineas.R`) empiezan con «Lámina N · » y pueden ser
+#' decenas en un mazo grande: con el tope de `maximo` sacaban de la lista a los demás (el del radar en acrconta,
+#' verificador de K12b). Los demás van primero, hasta `maximo`; los de lámina, uno por uno si caben y, si no, en dos
+#' líneas que dicen qué láminas («9 láminas salieron en varias partes: 18, 21, 24…»). Esas dos líneas de resumen se
+#' suman aunque la lista ya tenga `maximo`.
+#' @noRd
+.pulso_avisos_ordenar <- function(avisos, maximo = 8L) {
+  de_lamina <- grepl("^Lámina [0-9]+ · ", avisos)
+  otros <- utils::head(avisos[!de_lamina], maximo)
+  lam <- avisos[de_lamina]
+  if (!length(lam) || length(otros) + length(lam) <= maximo) return(c(otros, lam))
+  num <- function(x) sub("^Lámina ([0-9]+) · .*$", "\\1", x)
+  partes <- lam[grepl("salió en [0-9]+ partes", lam)]
+  titulos <- lam[grepl("el título ocupa", lam, fixed = TRUE)]
+  c(otros,
+    if (length(partes)) sprintf("%d %s en varias partes: %s.", length(partes),
+                                if (length(partes) == 1L) "lámina salió" else "láminas salieron", paste(num(partes), collapse = ", ")),
+    if (length(titulos)) sprintf("%d %s de dos líneas: %s.", length(titulos),
+                                 if (length(titulos) == 1L) "título pasa" else "títulos pasan", paste(num(titulos), collapse = ", ")))
 }
