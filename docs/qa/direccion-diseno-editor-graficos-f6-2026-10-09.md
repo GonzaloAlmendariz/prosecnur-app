@@ -134,6 +134,29 @@ o mover la frontera entre gráfico y texto en pasos de 0.5 in dentro de un rango
 que aceptar un `reparto` por lámina (`slide.meta.reparto`) y `estandar_pulso.json` tiene que declarar los repartos válidos
 de cada tipo; mientras no exista, la composición se elige entre los 22 tipos y nada más.
 
+### 4.3c Textos largos: rótulos del eje, premisas y títulos (pregunta de Gonzalo, 2026-10-10)
+
+El motor nativo no deja que un texto largo rompa la composición ni encoge la letra para que quepa. Lo que hace, medido en
+`lamina_piezas.R` y `lamina_escala.R`: mide el ancho de tinta con `systemfonts` y Arial (`.lam_lineas_tinta`, ADR 0093
+decisión 9), corta por palabras dentro del ancho que el estándar asigna a esa columna (premisas 3.3 in, rótulos de
+categoría la columna de su ranura, título 12.5 in) y **la fila gana el aire de sus líneas** («la barra no adelgaza por
+cifras chicas, la fila gana aire»). Si con eso el bloque ya no cabe en la zona de datos, **parte la lámina en «(cont.)»**
+sin reordenar; y si la composición no admite el bloque, las compuertas `*_cabe` cambian de pieza (columnas → barras) o
+caen a la ruta anterior con aviso. Un título de más de dos líneas dispara la misma compuerta que la portada
+(`.lam_lineas_tinta` con corte greedy): se avisa y se pide acortarlo.
+
+Lo que ve y decide el analista en el editor:
+
+| Situación | Qué muestra la app | Qué puede hacer |
+|---|---|---|
+| Premisa o rótulo de 3–4 líneas | La lámina real con la fila más alta; en Estado, «las premisas ocupan hasta 4 líneas: la lámina salió en 2 partes» | Escribir una **etiqueta corta** para esa categoría o premisa (campo por categoría en Datos; el instrumento no cambia), bajar el máximo de filas por parte, o pasar a una composición con más ancho para el texto (un gráfico en vez de dos) |
+| Título o pregunta de más de dos líneas | Aviso en Estado y en Contenido con el conteo de líneas y el ancho disponible | Acortar el título; la pregunta larga puede ir completa en la lectura o en la ranura de texto |
+| Rótulo de categoría muy largo en barras cortas (ranuras de 30–40 %) | La compuerta cambia columnas por barras y, si tampoco cabe, avisa | Etiqueta corta, «Otros» para las categorías chicas, o una composición con ranura más ancha |
+
+Las etiquetas cortas son contenido, no estilo: cambian la salida y por eso sí tienen control. **Requiere backend confirmar
+el canal**: la analítica ya conoce `labels_override` (`reporte_frecuencias.R`, `reporte_cruces.R`), pero hay que verificar
+que llegue a la especificación que dibuja el compositor; si no llega, se agrega como clave aditiva del plan.
+
 ### 4.4 Panel «Tipo de gráfico» (`panel=tipo-grafico`)
 
 Diálogo. Izquierda, familias: **Categorías · Escalas · Números · Comparar · Dimensiones · Territorio · Texto**. Centro,
@@ -253,7 +276,9 @@ Medido en la Parte C del inventario; cada punto se marca «requiere backend» en
 6. Pieza «Cifra» del motor (A19) antes de ofrecer «Destacar cifras» con datos reales.
 7. Repartos válidos por tipo en `estandar_pulso.json` y `slide.meta.reparto` en el compositor, si se quiere el ajuste
    fino de ranura de §4.3b (opcional; sin él, la composición es uno de los 22 tipos).
-8. LibreOffice y el paso PDF → PNG dentro del instalador (decisión del 2026-10-09); el estado «sin renderer» queda como
+8. Etiquetas cortas por categoría y premisa hasta la especificación del compositor (§4.3c): confirmar si
+   `labels_override` llega; si no, clave aditiva del plan.
+9. LibreOffice y el paso PDF → PNG dentro del instalador (decisión del 2026-10-09); el estado «sin renderer» queda como
    excepción.
 
 ## 9. Cómo ver la maqueta
