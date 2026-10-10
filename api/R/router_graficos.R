@@ -2389,36 +2389,44 @@
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   perfil <- .preview_perfil_tomar(out_dir)   # perfil de LibreOffice reutilizado: ~1 s menos por vista previa
   on.exit(perfil$liberar(), add = TRUE)
-  profile_uri <- .preview_profile_uri(perfil$dir)
-
-  ok <- tryCatch({
-    system2(
-      cmd,
-      c(
-        "--headless",
-        "--invisible",
-        "--nodefault",
-        "--nofirststartwizard",
-        "--nolockcheck",
-        "--norestore",
-        .preview_arg(paste0("-env:UserInstallation=", profile_uri)),
-        "--convert-to",
-        "pdf",
-        "--outdir",
-        .preview_arg(out_dir),
-        .preview_arg(pptx_path)
-      ),
-      stdout = TRUE,
-      stderr = TRUE,
-      timeout = timeout
-    )
-    TRUE
-  }, error = function(e) FALSE)
-  if (!isTRUE(ok)) return(NULL)
-
-  pdfs <- list.files(out_dir, pattern = "\\.pdf$", full.names = TRUE, ignore.case = TRUE)
-  if (!length(pdfs)) return(NULL)
-  pdfs[[1]]
+  convertir <- function() {
+    profile_uri <- .preview_profile_uri(perfil$dir)
+    t0 <- Sys.time()
+    ok <- tryCatch({
+      system2(
+        cmd,
+        c(
+          "--headless",
+          "--invisible",
+          "--nodefault",
+          "--nofirststartwizard",
+          "--nolockcheck",
+          "--norestore",
+          .preview_arg(paste0("-env:UserInstallation=", profile_uri)),
+          "--convert-to",
+          "pdf",
+          "--outdir",
+          .preview_arg(out_dir),
+          .preview_arg(pptx_path)
+        ),
+        stdout = TRUE,
+        stderr = TRUE,
+        timeout = timeout
+      )
+      TRUE
+    }, error = function(e) FALSE)
+    pdfs <- if (isTRUE(ok)) list.files(out_dir, pattern = "\\.pdf$", full.names = TRUE, ignore.case = TRUE) else character()
+    list(pdf = if (length(pdfs)) pdfs[[1]] else NULL, segundos = as.numeric(difftime(Sys.time(), t0, units = "secs")))
+  }
+  r <- convertir()
+  # Un perfil compartido dañado haría fallar todas las vistas previas de la sesión (verificador de 9bce4f10e): si falla
+  # rápido (no por timeout), se borra y se reintenta una vez con uno nuevo.
+  if (is.null(r$pdf) && isTRUE(perfil$compartido) && r$segundos < timeout) {
+    unlink(perfil$dir, recursive = TRUE)
+    dir.create(perfil$dir, recursive = TRUE, showWarnings = FALSE)
+    r <- convertir()
+  }
+  r$pdf
 }
 
 .render_pptx_slide_png_soffice <- function(pptx_path, out_dir, slide_index = 1L, timeout = 30, dpi = 220) {

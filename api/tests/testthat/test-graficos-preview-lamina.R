@@ -167,3 +167,15 @@ test_that("el perfil de LibreOffice se reutiliza entre conversiones y, si está 
   expect_true(c$compartido); expect_identical(c$dir, a$dir)
   c$liberar()
 })
+
+test_that("un perfil compartido de LibreOffice dañado se rehace y la conversión sale igual", {
+  skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
+  doc <- officer::read_pptx(); doc <- officer::add_slide(doc, layout = "Title and Content"); f <- tempfile(fileext = ".pptx"); print(doc, target = f)
+  raiz <- tempfile("raiz"); dir.create(file.path(raiz, "prosecnur-lo-perfil", "user"), recursive = TRUE)
+  for (x in c("registrymodifications.xcu", "basura.dat")) writeBin(as.raw(sample(0:255, 4096, TRUE)), file.path(raiz, "prosecnur-lo-perfil", "user", x))
+  local_mocked_bindings(.preview_perfil_tomar = function(out_dir, raiz_ = raiz) {
+    compartido <- file.path(raiz, "prosecnur-lo-perfil"); list(dir = compartido, compartido = TRUE, liberar = function() invisible(NULL)) })
+  orig <- base::system2
+  local_mocked_bindings(system2 = local({ n <- 0L; function(...) { n <<- n + 1L; if (n == 1L) stop("perfil dañado"); orig(...) } }), .package = "base")
+  expect_true(file.exists(.pptx_to_pdf_soffice(f, tempfile("pv"), timeout = 60L)))
+})
