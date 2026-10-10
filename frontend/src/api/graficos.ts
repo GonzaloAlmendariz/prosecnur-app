@@ -4,6 +4,7 @@
 
 import { apiFetch, getSession, handle, headers } from "./core";
 import { normalizarAvisosConfig, publicarAvisosConfig } from "./graficosAvisosConfig";
+import { normalizeGraficosCategorias, type GraficosCategorias } from "./graficosCategoriasNormalizer";
 import { normalizeGraficosConfigBundle } from "./graficosConfigNormalizer";
 import type { JobStart } from "./jobs";
 
@@ -1070,6 +1071,16 @@ export type VariablesBySource = {
   active_base?: string | null;
   processing_mode?: string | null;
 };
+
+export type { CategoriaGrafico, GraficosCategorias } from "./graficosCategoriasNormalizer";
+
+/** Categorías de una pregunta para el orden por gráfico (D8): código, etiqueta, frecuencia y el orden de cada modo. */
+export async function apiGraficosCategorias(variable: string, scope: "active" | "consolidated" = "active"): Promise<GraficosCategorias> {
+  const params = new URLSearchParams({ var: variable });
+  if (scope === "consolidated") params.set("scope", "consolidado");
+  const raw = await handle<unknown>(await apiFetch(`/api/graficos/categorias?${params.toString()}`, { headers: headers() }));
+  return normalizeGraficosCategorias(raw);
+}
 
 export async function apiGraficosVariables(scope: "active" | "consolidated" = "active") {
   const query = scope === "consolidated" ? "?scope=consolidado" : "";

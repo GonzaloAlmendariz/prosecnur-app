@@ -1,0 +1,75 @@
+/* Fila «Orden» de la tarjeta de un gráfico (D8). Superficie intrínseca: crece con sus categorías y el dueño del scroll
+   es el cuerpo del inspector (C4); nada se recorta, las etiquetas largas parten línea. */
+
+.pulso-f6-orden-cabeza,
+.pulso-f6-orden-invertir {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-f6-orden-estado {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-orden-estado.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-f6-orden-lista {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.pulso-f6-orden-item {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: 2px var(--pulso-space-1);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  font-size: 12px;
+  color: var(--pulso-text);
+  cursor: grab;
+}
+
+.pulso-f6-orden-item:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-orden-item.is-arrastrado {
+  opacity: 0.5;
+}
+
+.pulso-f6-orden-asa {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-orden-posicion {
+  min-width: 1.5em;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+  text-align: right;
+}
+
+.pulso-f6-orden-etiqueta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

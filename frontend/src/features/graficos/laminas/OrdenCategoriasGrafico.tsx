@@ -1,0 +1,163 @@
+// Fila «Orden» de la tarjeta de un gráfico categórico, agrupado, de torta o de dona (D8; contrato
+// docs/qa/contrato-orden-categorias-f6-2026-10-10.md). Recetario por defecto —y dice qué modo aplica—, Frecuencia,
+// Instrumento o Personalizado (lista arrastrable con ratón y con teclado; la clave es el código, se ve la etiqueta) e
+// «Invertir». Persiste en `args.orden_categorias` del gráfico.
+
+import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { AlertTriangle, ArrowDown, ArrowUp, GripVertical, Loader2, RefreshCw } from "../../../vendor/lucide-react";
+import { Switch } from "../../../components/Switch";
+import type { GraficosCategorias } from "../../../api/graficos";
+import {
+  leerOrden,
+  listaPersonalizada,
+  mover,
+  ordenAGuardar,
+  rotuloRecetario,
+  tieneOrdenHeredado,
+  type ModoOrden,
+  type OrdenCategorias,
+} from "./ordenCategorias";
+import { useCategoriasGrafico } from "./useCategoriasGrafico";
+import "./ordenCategorias.css";
+
+type Props = {
+  variable: string;
+  args: Readonly<Record<string, unknown>>;
+  scope: "active" | "consolidated";
+  onCambio: (orden: OrdenCategorias | null) => void;
+};
+
+export function OrdenCategoriasGrafico({ variable, args, scope, onCambio }: Props) {
+  const id = useId();
+  const estado = useCategoriasGrafico(variable, scope);
+  const orden = leerOrden(args);
+  const heredado = tieneOrdenHeredado(args);
+  const datos = estado.fase === "lista" ? estado.datos : null;
+
+  const guardar = (o: OrdenCategorias) => onCambio(ordenAGuardar(o));
+  const cambiarModo = (modo: ModoOrden) => {
+    if (modo === "personalizado" && datos) guardar({ ...orden, modo, lista: listaPersonalizada(orden.lista, datos) });
+    else guardar({ ...orden, modo });
+  };
+
+  return (
+    <div className="pulso-f6-dato is-apilado pulso-f6-orden" data-qa-geometry-group="graficos/f6-orden" data-qa-geometry-contract="intrinsic">
+      <div className="pulso-f6-orden-cabeza">
+        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-modo`}>Orden</label>
+        <select
+          id={`${id}-modo`}
+          className="pulso-f6-input pulso-f6-dato-select"
+          value={orden.modo}
+          onChange={(e) => cambiarModo(e.target.value as ModoOrden)}
+        >
+          <option value="recetario">{rotuloRecetario(datos, heredado)}</option>
+          <option value="frecuencia">Frecuencia</option>
+          <option value="instrumento">Instrumento</option>
+          <option value="personalizado" disabled={!datos}>Personalizado</option>
+        </select>
+      </div>
+      <div className="pulso-f6-orden-invertir">
+        <span className="pulso-f6-dato-rotulo" id={`${id}-inv`}>Invertir</span>
+        <Switch checked={orden.invertir} ariaLabel="Invertir el orden" onToggle={() => guardar({ ...orden, invertir: !orden.invertir })} />
+      </div>
+      {orden.modo === "recetario" && heredado && (
+        <span className="pulso-f6-dato-ayuda">Este gráfico trae un orden elegido antes; manda mientras no elijas otro modo.</span>
+      )}
+      <EstadoDatos estado={estado} />
+      {orden.modo === "personalizado" && datos && (
+        <ListaOrden datos={datos} lista={listaPersonalizada(orden.lista, datos)} onLista={(lista) => guardar({ ...orden, lista })} />
+      )}
+    </div>
+  );
+}
+
+function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafico> }) {
+  if (estado.fase === "cargando") {
+    return (
+      <span className="pulso-f6-orden-estado" role="status">
+        <Loader2 size={13} className="pulso-spin" aria-hidden="true" /> Leyendo las categorías de la pregunta…
+      </span>
+    );
+  }
+  if (estado.fase === "sin_lista") {
+    return <span className="pulso-f6-orden-estado" role="status">Esta pregunta no tiene lista de opciones: no hay categorías que ordenar.</span>;
+  }
+  if (estado.fase === "error") {
+    return (
+      <span className="pulso-f6-orden-estado is-error" role="alert">
+        <AlertTriangle size={13} aria-hidden="true" />
+        <span>No se pudieron leer las categorías: {estado.mensaje}</span>
+        <button type="button" className="pulso-f6-texto-boton" onClick={estado.reintentar}>
+          <RefreshCw size={12} aria-hidden="true" /> Reintentar
+        </button>
+      </span>
+    );
+  }
+  return null;
+}
+
+function ListaOrden({ datos, lista, onLista }: { datos: GraficosCategorias; lista: string[]; onLista: (l: string[]) => void }) {
+  const etiqueta = new Map(datos.categorias.map((c) => [c.codigo, c.etiqueta]));
+  const items = useRef(new Map<string, HTMLLIElement>());
+  const [arrastrado, setArrastrado] = useState<number | null>(null);
+  const [anuncio, setAnuncio] = useState("");
+  const ayudaId = useId();
+
+  const moverA = (desde: number, hasta: number, enfocar: boolean) => {
+    if (hasta < 0 || hasta >= lista.length || desde === hasta) return;
+    const codigo = lista[desde];
+    onLista(mover(lista, desde, hasta));
+    setAnuncio(`«${etiqueta.get(codigo) ?? codigo}» en la posición ${hasta + 1} de ${lista.length}.`);
+    if (enfocar) requestAnimationFrame(() => items.current.get(codigo)?.focus());
+  };
+  const onTecla = (i: number) => (e: KeyboardEvent<HTMLLIElement>) => {
+    if (e.target !== e.currentTarget || !e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    // Alt+↑/↓ es también «mover la lámina» del editor (useShortcutsV2): sobre una categoría mueve la categoría.
+    e.preventDefault();
+    e.stopPropagation();
+    moverA(i, e.key === "ArrowUp" ? i - 1 : i + 1, true);
+  };
+  const onDrop = (i: number) => (e: DragEvent<HTMLLIElement>) => {
+    e.preventDefault();
+    if (arrastrado !== null) moverA(arrastrado, i, false);
+    setArrastrado(null);
+  };
+
+  return (
+    <>
+      <span className="pulso-f6-dato-ayuda" id={ayudaId}>Arrastra o usa Alt + ↑/↓ sobre una categoría para moverla.</span>
+      <ol className="pulso-f6-orden-lista" aria-label="Orden personalizado de las categorías" aria-describedby={ayudaId}
+        data-qa-geometry-group="graficos/f6-orden-lista" data-qa-geometry-contract="intrinsic">
+        {lista.map((codigo, i) => {
+          const texto = etiqueta.get(codigo) ?? codigo;
+          return (
+            <li
+              key={codigo}
+              ref={(el) => { if (el) items.current.set(codigo, el); else items.current.delete(codigo); }}
+              className={`pulso-f6-orden-item${arrastrado === i ? " is-arrastrado" : ""}`}
+              tabIndex={0}
+              draggable
+              aria-label={`${i + 1}. ${texto}`}
+              onKeyDown={onTecla(i)}
+              onDragStart={(e) => { setArrastrado(i); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", codigo); }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+              onDrop={onDrop(i)}
+              onDragEnd={() => setArrastrado(null)}
+            >
+              <GripVertical size={14} aria-hidden="true" className="pulso-f6-orden-asa" />
+              <span className="pulso-f6-orden-posicion" aria-hidden="true">{i + 1}</span>
+              <span className="pulso-f6-orden-etiqueta">{texto}</span>
+              <button type="button" className="pulso-f6-icono-boton" aria-label={`Subir «${texto}»`} disabled={i === 0} onClick={() => moverA(i, i - 1, false)}>
+                <ArrowUp size={14} aria-hidden="true" />
+              </button>
+              <button type="button" className="pulso-f6-icono-boton" aria-label={`Bajar «${texto}»`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, false)}>
+                <ArrowDown size={14} aria-hidden="true" />
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      <span className="pulso-sr-only" aria-live="polite">{anuncio}</span>
+    </>
+  );
+}
