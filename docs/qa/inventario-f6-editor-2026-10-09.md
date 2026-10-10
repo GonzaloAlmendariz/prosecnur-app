@@ -145,3 +145,7 @@ scroll por columna (C4). Viewports 1440×1000 y 1024×600; a 1024 el inspector p
 5. F6.5: «Esta bien, el recetario tiene cosas que el motor debe ser capaz de hacer y mostrar».
 
 Hechos antes de construir: A4 (`6cf858893`, redondeo del Word deducido) y A23 (ayudas del Top Two Box).
+
+Gonzalo, 2026-10-09, textual: «Ademas que esto dbee ser una remasterizaic9 completa dle diseño para que sea vea mejor y seas
+intuitivo». F6 es un rediseño completo del editor, no una poda de controles sobre el diseño actual. Antes de F6.1 va **F6.0:
+dirección de diseño**, una maqueta del editor nuevo a 1440 y 1024 que Gonzalo aprueba antes de implementar.
