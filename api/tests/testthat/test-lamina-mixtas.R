@@ -142,7 +142,9 @@ test_that("una agrupada Sí/No con (n) sale como dicotomía con la frecuencia un
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   dat <- data.frame(qsn = rep(c("Sí", "No"), c(124, 76)), stringsAsFactors = FALSE)
   inst <- .vn_inst(list(qsn = "select_one sn"), list(sn = c("Sí", "No")))
-  plan <- list(a = p_slide_1_grafico(grafico = p_barras_agrupadas("qsn", overrides = list(mostrar_n_en_etiquetas = TRUE)), titulo = "Trabajo"))
+  # Con el preset de la casa (orden del instrumento e inversión para coord_flip): Sí a la izquierda, como en el gráfico.
+  plan <- list(a = p_slide_1_grafico(grafico = p_barras_agrupadas("qsn", overrides = list(mostrar_n_en_etiquetas = TRUE, orden_barras = "instrumento",
+                                                                                         invertir_barras = TRUE)), titulo = "Trabajo"))
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
   xml <- .vn_xml(out, 1)

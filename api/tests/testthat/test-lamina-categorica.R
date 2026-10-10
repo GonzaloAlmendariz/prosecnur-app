@@ -32,14 +32,21 @@ test_that("en la ruta real p_barras_categoricas sale nativa en columnas, con el 
   expect_false(any(grepl("NA", txt("Antetitulo lamina"))))
 })
 
-test_that("la agrupada de una serie adjunta su especificación en el orden del graficador; con dos series no", {
+test_that("la agrupada de una serie adjunta su especificación en el orden en que se lee el gráfico; con dos series no", {
   d <- data.frame(categoria = c("A", "B", "Otros", "C"), N = 100, s1 = c(.2, .5, .05, .25), s2 = c(.3, .3, .1, .3))
+  # Con la inversión del preset de la casa, de arriba hacia abajo: mayor a menor y «Otros» al final.
   g1 <- suppressWarnings(graficar_barras_agrupadas(d, "categoria", "N", "s1", c(s1 = "Serie"), orden_barras = "mayor_menor",
-                                                   exportar = "rplot", decimales = 0))
+                                                   invertir_barras = TRUE, exportar = "rplot", decimales = 0))
   e <- attr(g1, "pulso_espec")
   expect_identical(e$tipo, "categorica")
   expect_identical(e$rotulos, c("B", "C", "A", "Otros"))
   expect_identical(e$cifras, c("50%", "25%", "20%", "5%"))
+  # Sin invertir, coord_flip pone el primer nivel abajo y la espec lo sigue (paridad con la ruta ggplot; F6.1 decide).
+  g0 <- suppressWarnings(graficar_barras_agrupadas(d, "categoria", "N", "s1", c(s1 = "Serie"), orden_barras = "mayor_menor",
+                                                   exportar = "rplot", decimales = 0))
+  e0 <- attr(g0, "pulso_espec")
+  expect_identical(e0$rotulos, rev(ggplot2::ggplot_build(g0)$layout$panel_params[[1]]$y$get_labels()))
+  expect_identical(e0$cifras[match(c("A", "B", "Otros", "C"), e0$rotulos)], c("20%", "50%", "5%", "25%"))
   g2 <- suppressWarnings(graficar_barras_agrupadas(d, "categoria", "N", c("s1", "s2"), c(s1 = "Uno", s2 = "Dos"), exportar = "rplot"))
   expect_null(attr(g2, "pulso_espec"))
 })
@@ -67,7 +74,9 @@ test_that("en la ruta real p_barras_agrupadas de una serie sale nativa en barras
   dat <- data.frame(p1 = rep(niveles, c(40, 20, 30, 10)), stringsAsFactors = FALSE)
   inst <- list(survey = data.frame(name = "p1", type = "select_one gas", list_name = "gas", label = "Gasto", stringsAsFactors = FALSE),
                choices = data.frame(list_name = "gas", name = niveles, label = niveles, stringsAsFactors = FALSE), orders_list = NULL)
-  plan <- list(b = p_slide_1_grafico(grafico = p_barras_agrupadas("p1"), titulo = "Gasto"))
+  # Con la inversión del preset de la casa: el ggplot se lee de mayor a menor con la residual abajo y la nativa lo sigue
+  # (sin ella, coord_flip pone el primer nivel abajo y la nativa también; paridad, F6.1 decide).
+  plan <- list(b = p_slide_1_grafico(grafico = p_barras_agrupadas("p1", overrides = list(invertir_barras = TRUE)), titulo = "Gasto"))
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
   xml <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
