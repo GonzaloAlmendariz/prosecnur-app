@@ -107,3 +107,21 @@ test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice 
   expect_identical(.preview_partes(out)$partes[[1]]$estado, "ruta_anterior")
   expect_match(.GRAFICADORES_META$p_barras_agrupadas$salida_condicion, "Dividir por", fixed = TRUE)
 })
+
+# Gonzalo, 2026-10-10 («sí, sácalo»): la matriz FODA no aparece en ninguna página del recetario y sale del selector de
+# tipos de gráfico. Sale sólo del selector: el graficador y su render siguen, para que los planes que ya lo usan exporten.
+test_that("p_dim_foda sale del selector pero sigue registrado y renderizable; los demás quedan en el selector", {
+  m <- .GRAFICADORES_META
+  en <- vapply(m, function(x) x$en_selector, logical(1))
+  expect_identical(names(en)[!en], "p_dim_foda")
+  expect_true("p_dim_foda" %in% .graf_names())                            # el validador del plan lo sigue aceptando
+  expect_true(exists("p_dim_foda", mode = "function"))
+  reg <- .graficos_registry_payload()
+  g <- setNames(reg$graficadores, vapply(reg$graficadores, `[[`, "", "name"))
+  expect_false(g$p_dim_foda$en_selector)
+  expect_true(g$p_barras_apiladas$en_selector)
+  cat <- .graficos_tipos_catalogo()
+  gc <- setNames(cat$graficadores, vapply(cat$graficadores, `[[`, "", "name"))
+  expect_false(gc$p_dim_foda$en_selector)
+  expect_true(gc$p_radar$en_selector)
+})

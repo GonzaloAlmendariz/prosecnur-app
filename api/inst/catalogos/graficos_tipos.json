@@ -171,132 +171,158 @@
     {
       "name": "p_barras_agrupadas",
       "familia_editor": "categorias",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_barras_categoricas",
       "familia_editor": "categorias",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_barras_apiladas",
       "familia_editor": "escalas",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_barras_multiapiladas",
       "familia_editor": "escalas",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_nube_palabras",
       "familia_editor": "texto",
-      "salida": "marco"
+      "salida": "marco",
+      "en_selector": true
     },
     {
       "name": "p_mapa_cobertura_territorial",
       "familia_editor": "territorio",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_pie",
       "familia_editor": "categorias",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_donut",
       "familia_editor": "categorias",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_numerico",
       "familia_editor": "numeros",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_histograma",
       "familia_editor": "numeros",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_boxplot",
       "familia_editor": "numeros",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_media_rango",
       "familia_editor": "numeros",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_barras_divergentes",
       "familia_editor": "escalas",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_puntos_comparativos",
       "familia_editor": "comparar",
-      "salida": "ruta_anterior"
+      "salida": "ruta_anterior",
+      "en_selector": true
     },
     {
       "name": "p_mapa_resultado_distrital",
       "familia_editor": "territorio",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_cifra",
       "familia_editor": "numeros",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_dumbbell",
       "familia_editor": "comparar",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_lollipop",
       "familia_editor": "categorias",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_serie_temporal",
       "familia_editor": "comparar",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_radar",
       "familia_editor": "comparar",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_tabla",
       "familia_editor": "comparar",
-      "salida": "ruta_anterior"
+      "salida": "ruta_anterior",
+      "en_selector": true
     },
     {
       "name": "p_dim_radar",
       "familia_editor": "dimensiones",
-      "salida": "ruta_anterior"
+      "salida": "ruta_anterior",
+      "en_selector": true
     },
     {
       "name": "p_dim_heatmap",
       "familia_editor": "dimensiones",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_dim_comparativo_radarbar",
       "familia_editor": "dimensiones",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     },
     {
       "name": "p_dim_foda",
       "familia_editor": "dimensiones",
-      "salida": "ruta_anterior"
+      "salida": "ruta_anterior",
+      "en_selector": false
     },
     {
       "name": "p_dim_heatmap_criterios",
       "familia_editor": "dimensiones",
-      "salida": "nativa"
+      "salida": "nativa",
+      "en_selector": true
     }
   ]
 }

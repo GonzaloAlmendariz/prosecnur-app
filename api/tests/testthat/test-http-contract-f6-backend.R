@@ -78,6 +78,8 @@ test_that("GET /registry publica familia del editor y salida de cada graficador,
   expect_true(nzchar(g$p_nube_palabras$salida_motivo))
   expect_true(isTRUE(g$p_barras_apiladas$salida_nativa))
   expect_identical(g$p_barras_apiladas$salida_motivo, "")
+  expect_false(g$p_dim_foda$en_selector)                                  # fuera del selector, pero sigue en el registro
+  expect_true(g$p_barras_apiladas$en_selector)
 })
 
 test_that("POST /preview-slide numera la lámina con su lugar en el plan o con el folio que pide el cliente (K2)", {

@@ -17,7 +17,7 @@
   })
   graficadores <- lapply(names(.GRAFICADORES_META), function(nm) {
     m <- .GRAFICADORES_META[[nm]]
-    list(name = nm, familia_editor = m$familia_editor, salida = m$salida)
+    list(name = nm, familia_editor = m$familia_editor, salida = m$salida, en_selector = m$en_selector)
   })
   list(
     fuente = "Generado desde api/R/graficos_metadata.R por api/scripts/generar_graficos_tipos.R; no editar a mano.",
