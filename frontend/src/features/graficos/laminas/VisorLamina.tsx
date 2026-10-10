@@ -228,7 +228,23 @@ export function VisorLamina({
   );
 }
 
+/** Con tres partes o más los botones no caben junto a los controles de la barra (C4): un selector de ancho fijo. */
+const PARTES_EN_SELECTOR = 3;
+
 function BotonesPartes({ lamina, activa, onParte }: { lamina: LaminaVisor; activa: number; onParte: (p: number) => void }) {
+  const n = lamina.partes.length;
+  if (n >= PARTES_EN_SELECTOR) {
+    return (
+      <label className="pulso-f6-partes-selector">
+        <span className="pulso-sr-only">Parte de la lámina</span>
+        <select value={activa} onChange={(e) => onParte(Number(e.target.value))}>
+          {lamina.partes.map((p) => (
+            <option key={p.indice} value={p.indice}>{`Parte ${p.indice} de ${n}`}</option>
+          ))}
+        </select>
+      </label>
+    );
+  }
   return (
     <>
       {lamina.partes.map((p) => (
@@ -240,7 +256,7 @@ function BotonesPartes({ lamina, activa, onParte }: { lamina: LaminaVisor; activ
           aria-label={`Parte ${p.indice}${p.continuacion ? ", continuación" : ""}`}
           onClick={() => onParte(p.indice)}
         >
-          {p.indice}{p.continuacion ? " (cont.)" : ""}
+          {p.indice}{p.continuacion && <span className="pulso-f6-rotulo-estrecho"> (cont.)</span>}
         </button>
       ))}
     </>

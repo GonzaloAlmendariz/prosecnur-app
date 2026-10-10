@@ -388,13 +388,20 @@
   }
 }
 
+/* Partes en selector (3 o más): ancho fijo por su opción más larga («Parte 6 de 6»), sin crecer con la cuenta. */
+.pulso-f6-partes-selector {
+  flex: none;
+  display: inline-flex;
+}
+
 /* El zoom no cede ancho (D1): el label se encogía bajo su select y «Ajustes» lo tapaba a 1024. Cede la posición. */
 .pulso-f6-zoom {
   flex: none;
   display: inline-flex;
 }
 
-.pulso-f6-zoom select {
+.pulso-f6-zoom select,
+.pulso-f6-partes-selector select {
   flex: none;
   width: auto;
   height: var(--pulso-control-height-md);
@@ -408,7 +415,8 @@
   cursor: pointer;
 }
 
-.pulso-f6-zoom select:focus-visible {
+.pulso-f6-zoom select:focus-visible,
+.pulso-f6-partes-selector select:focus-visible {
   outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
   outline-offset: var(--pulso-nav-focus-offset);
 }
