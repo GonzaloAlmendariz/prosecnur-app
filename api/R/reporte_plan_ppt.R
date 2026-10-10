@@ -2403,7 +2403,7 @@ reporte_ppt_plan <- function(
       return(titulo_var(
         ctx$var,
         dic_vars        = ctx$survey,
-        labels_override = NULL,
+        labels_override = .plan_etiquetas_cortas_vigentes(ctx$source),  # K12a: overrides$etiquetas_vars del gráfico
         orders_list     = ctx$orders_list,
         df              = ctx$data
       ))
@@ -3310,7 +3310,7 @@ reporte_ppt_plan <- function(
     refs <- unique(refs[!is.na(refs) & nzchar(trimws(refs))])
     for (ref in refs) {
       src <- if (grepl("\\$", ref)) NULL else el$source %||% NULL
-      title <- tryCatch(.word_clean_inferred_title(.title_of_var(ref, source = src)), error = function(e) NULL)
+      title <- tryCatch(.word_clean_inferred_title(.plan_con_etiquetas_cortas(el, .title_of_var(ref, source = src))), error = function(e) NULL)
       if (!is.null(title)) return(title)
     }
 
@@ -4104,7 +4104,7 @@ reporte_ppt_plan <- function(
     }
     var_lbl <- NULL
     if (!is.null(el$var)) {
-      var_lbl <- tryCatch(.title_of_var(el$var), error = function(e) NULL)
+      var_lbl <- tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
     }
     if (!is.null(var_lbl) && nzchar(trimws(as.character(var_lbl)[1]))) {
       el$overrides$titulo <- as.character(var_lbl)[1]
@@ -8534,7 +8534,7 @@ reporte_ppt_plan <- function(
           if (!is.null(el$title_slide)) return(el)
           if (!is.null(el$overrides$titulo)) return(el)
           var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)))
-            tryCatch(.title_of_var(el$var), error = function(e) NULL)
+            tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
           else NULL
           el$title_slide <- var_lbl %||% fallback
           el
@@ -8742,7 +8742,7 @@ reporte_ppt_plan <- function(
           if (!is.null(el$title_slide)) return(el)
           if (!is.null(el$overrides$titulo)) return(el)
           var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)))
-            tryCatch(.title_of_var(el$var), error = function(e) NULL)
+            tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
           else NULL
           el$title_slide <- var_lbl %||% fallback
           el
@@ -8868,7 +8868,7 @@ reporte_ppt_plan <- function(
           if (!is.null(el$title_slide)) return(el)
           if (!is.null(el$overrides$titulo)) return(el)
           var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)))
-            tryCatch(.title_of_var(el$var), error = function(e) NULL)
+            tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
           else NULL
           el$title_slide <- var_lbl %||% fallback
           el
@@ -9041,7 +9041,7 @@ reporte_ppt_plan <- function(
           if (!is.null(el$title_slide)) return(el)
           if (!is.null(el$overrides$titulo)) return(el)
           var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)))
-            tryCatch(.title_of_var(el$var), error = function(e) NULL)
+            tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
           else NULL
           el$title_slide <- var_lbl %||% fallback
           el
