@@ -171,3 +171,34 @@ del plan, partes, indicador nativo, avisos, renderer garantizado). Se trata como
 instalador (`Internals/preview-renderer/`, que `.preview_renderer_roots` ya busca); la vista previa no depende de que el
 usuario lo instale. Falta además el paso PDF→PNG (hoy `pdftoppm` o `magick`, ninguno empaquetado): se resuelve en la misma
 pieza. Construir no autoriza firmar ni publicar.
+
+## Parte D — plan para empaquetar LibreOffice (diagnóstico del agente de empaquetado, 2026-10-09)
+
+Hallazgos que cambian el plan: (1) el respaldo `magick` no funciona sin `pdftools` (lo llama por dentro) y no está en
+`api/DESCRIPTION`, así que sin `pdftoppm` la rasterización devuelve NULL aunque soffice funcione; (2) `system2` no pone
+comillas: soffice falla con rutas con espacios (lo normal en Windows, `router_graficos.R` ~2306/2385/2387); (3) en macOS el
+backend encuentra el renderer sólo por el directorio de trabajo (`desktop/main.cjs` no pasa `PULSO_APP_ROOT` ni la ruta).
+
+LibreOffice 26.2.x oficial (TDF), fijado en `downloadarchive`: DMG arm64 284 MB, x64 294 MB, MSI Windows 356 MB; instalado
+~795 MB. MPL-2.0 + LGPL: avisos intactos, enlace al fuente, marca respetada. En macOS se copia entero (quitar archivos rompe
+la firma de TDF); en Windows un recorte es posible en una fase 2. Instaladores estimados: ~850–950 MB (Windows), ~800 MB (DMG).
+PDF→PNG con el paquete R `pdftools` (poppler estático en los binarios CRAN mac/win, ~24 MB).
+
+| # | Pieza | ¿Aprobación de Gonzalo? |
+|---|---|---|
+| P1 | Comillas en `system2` y URI del perfil codificada | No |
+| P2 | `pdftools` en Imports + `renv.lock`; `.pdf_page_to_png` sobre pdftools; quitar `magick`; `.pdf_page_count` | No (sí el cambio en `quality.yml`) |
+| P3 | `.preview_renderer_status` verifica también el rasterizador | No |
+| P4 | `main.cjs` pasa `PROSECNUR_PREVIEW_RENDERER_DIR` | No |
+| P5 | `packaging/preview-renderer.lock.json` + descarga verificada (SHA + firma) + aviso de licencia | No |
+| P6 | Staging macOS en `build-dmg.sh` + `extraResources` | No para construir; sí para distribuir |
+| P7 | Staging Windows con `msiextract` (+ VC++ runtime si hace falta) | No para construir |
+| P8 | `release.yml`: caché, `msitools`, verificación del payload | **Sí** |
+| P9 | Docs + ADR del renderer empaquetado | **Sí** |
+| P10 | Fase 2: recorte en Windows | **Sí** |
+
+Sin verificar: build real, `msiextract` arrancable, symlinks del `.app` anidado con electron-builder, notarización con código
+de otro Team ID.
+
+Hallazgo de paso: en el mazo exportado de acrconta, la lámina 4 (explicación del Top Two Box) sale con el título «N»
+(`pdftotext` lo confirma). Defecto del motor por investigar.
