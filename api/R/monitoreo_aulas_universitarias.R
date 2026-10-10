@@ -2210,7 +2210,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
                                       # que no lo necesita lo ignora; uno que sí
                                       # y no lo recibe lo DECLARA en su aviso, no
                                       # lo suple.
-                                      padron = NULL) {
+                                      padron = NULL,
+                                      # Corte de «cita vencida»: la hoja de riesgo
+                                      # pasa el suyo para que conteos y fechas
+                                      # hablen del mismo día.
+                                      hoy = Sys.Date()) {
   cfg <- monitoreo_aulas_normalize_config(config)
   # **El plan se normaliza UNA vez, no dos.**
   #
@@ -2255,7 +2259,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       efectividad_seguimiento = .monitoreo_aulas_efectividad_seguimiento(
         plan_df, plan_df, responses, cfg,
         .monitoreo_aulas_valid_response(responses, cfg),
-        .monitoreo_aulas_response_classroom(responses, cfg)
+        .monitoreo_aulas_response_classroom(responses, cfg),
+        hoy = hoy
       ),
       # Y las dos tasas por AULA tambien (C2): sin plan viaja vacio y con su
       # criterio declarado. La logica vive en monitoreo_aulas_dos_tasas.R.
@@ -2435,7 +2440,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # mismo numerador con el que se mide el cumplimiento.
   efectividad_seguimiento <- .monitoreo_aulas_efectividad_seguimiento(
     plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
-    avance_cuota = avance_cuota
+    avance_cuota = avance_cuota, hoy = hoy
   )
 
   # **Los refuerzos y el techo** (dictado 2026-09-18), calculados UNA vez.
