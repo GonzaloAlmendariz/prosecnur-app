@@ -225,3 +225,13 @@ test_that("un mazo que falla no deja entornos retenidos en el registro de avisos
   expect_false(any(retenidos))
   expect_false(.lam_avisos_activo())
 })
+
+# Verificador de K12b (2.ª ronda, punto 6): `.pulso_avisos_ordenar` agrupaba todo «Lámina N ·» y descartaba en
+# silencio los que no eran de partes ni de título. Sólo esos dos se agrupan; cualquier otro va con los demás.
+test_that("un aviso «Lámina N ·» que no es de partes ni de título no se pierde al agrupar", {
+  part <- sprintf("Lámina %d · “B”: salió en 3 partes", 1:9)
+  otro <- "Lámina 5 · “X”: el gráfico se degradó a «Sin datos»"
+  av <- .pulso_avisos_ordenar(c(part, otro), 8L)
+  expect_true(otro %in% av)
+  expect_true("9 láminas salieron en varias partes: 1, 2, 3, 4, 5, 6, 7, 8, 9." %in% av)
+})
