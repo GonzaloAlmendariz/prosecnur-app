@@ -47,8 +47,20 @@ La población (p160) queda cubierta por estas reglas: sus variables son ordinale
 por tipo de lámina. Sin verificar: en p162, «Departamento académico» (nominal) da el mismo orden por frecuencia que por
 instrumento, así que esa página no distingue los dos modos.
 
-**Ordinal efectivo.** Manda la marca de Analítica (`analitica_config…$ordinales`). Si no hay marca, decide la
-heurística. La ruta de Gráficos la recibe en `inst$listas_ordinales`, que estampa `.graficos_processing_sources`.
+**Ordinal efectivo.** Decide en este orden:
+1. La marca de Analítica, en los dos sentidos: una lista marcada «no ordinal» es nominal y una marcada ordinal es
+   ordinal. La ruta de Gráficos la recibe en `inst$listas_nominales` e `inst$listas_ordinales`, que estampa
+   `.graficos_apply_orden_categorias_sources`.
+2. Sin marca, la heurística compartida `.orden_categorias_ordinal_auto`.
+3. Si con eso no es ordinal, las **pistas de orden** de las etiquetas (`.goc_pistas_orden`):
+   - al menos la mitad lleva cifras (rangos, años, «Menos de 2 meses»);
+   - o hay dos o más grados académicos («Bachiller», «Magíster», «Doctor»);
+   - o hay dos o más ordinales en palabras («Quinto ciclo»);
+   - o hay dos o más palabras de gradación.
+
+   Motivo, medido en acrconta: la heurística compartida exige códigos crecientes y dejaba fuera los rangos de edad
+   recodificados antes del 11-08 (D5), los años de egreso y los grados. Con sólo esa heurística, 6 láminas de perfil
+   cambiaban de orden contra lo que dibuja el recetario (p160, p162). Con las pistas, 0.
 
 ## 3. Precedencia: quién decide el orden de un gráfico
 
