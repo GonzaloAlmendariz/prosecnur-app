@@ -29,7 +29,8 @@ test_that("la lámina 21 nativa pone sus columnas, preguntas y filetes donde la 
     data.frame(x = as.numeric(xml2::xml_attr(off, "x")) / 914400, y = as.numeric(xml2::xml_attr(off, "y")) / 914400,
                w = as.numeric(xml2::xml_attr(ext, "cx")) / 914400, h = as.numeric(xml2::xml_attr(ext, "cy")) / 914400)
   }
-  cerca <- function(a, e, lab) expect_lte(max(abs(a - e)), 0.05, label = lab)
+  # 0.02 in: con 0.05 sobrevivía la geometría vieja (columna en 3.895, `wl <- 2.95`; verificador de K15).
+  cerca <- function(a, e, lab) expect_lte(max(abs(a - e)), 0.02, label = lab)
   q <- caja("panel:pregunta"); q <- q[order(q$y, q$x), ]
   e <- .P169$pregunta[order(.P169$pregunta[, 2], .P169$pregunta[, 1]), ]
   cerca(q$x, e[, 1], "x de las preguntas"); cerca(q$y, e[, 2], "y de las preguntas"); cerca(q$w, e[, 3], "ancho de las preguntas")
