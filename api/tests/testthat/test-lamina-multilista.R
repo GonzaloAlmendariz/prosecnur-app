@@ -164,3 +164,66 @@ test_that("la compuerta no toma bloques sin espec de escala ni los que llevan fi
   expect_false(.lam_multilista_cabe(ml))
   expect_null(.lam_multilista_items(list(bloques = list())))
 })
+
+# Salto de cuestionario (revisor metodológico sobre 3409b0aa8): en una multilista SIN actores, una fila cuya N queda
+# bajo la base de su público tiene que decir su N en la lámina —la metodología del entregable lo promete y el Word la
+# da como «Base: 80»—. Se anota con el criterio de `.n_barra_procede` y el rótulo de la ruta anterior (`.n_barra_texto`,
+# «N = 80»); las filas que cuadran con la base no se anotan.
+
+.mlt_word_textos <- function(data) {
+  p_reset()
+  plan <- list(diapo_001 = p_slide_1_grafico(
+    titulo = "Satisfacción con la Unidad",
+    grafico = p_barras_multiapiladas(modo = "multilista", top2box = TRUE, top2box_labels = .mlt_niv[3:4], bloques = .mlt_bloques())
+  ))
+  path <- tempfile(fileext = ".docx")
+  suppressMessages(reporte_word_plan(data = data, instrumento = .mlt_inst(), plan = plan, path_docx = path,
+                                     presets_ppt = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE))
+  xml <- .pptx_leer_parte(path, "word/document.xml")
+  # Un párrafo por línea de texto: los runs de un mismo párrafo se juntan.
+  parrafos <- regmatches(xml, gregexpr("<w:p[ >].*?</w:p>", xml))[[1]]
+  trimws(vapply(parrafos, function(x) paste(sub("^<w:t[^>]*>", "", regmatches(x, gregexpr("<w:t[^>]*>[^<]*", x))[[1]]), collapse = ""), "", USE.NAMES = FALSE))
+}
+
+test_that("salto sin actores: la fila con menos respuestas que su público dice su N, la misma base del Word", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("cowplot")
+  d <- .mlt_datos(); d$a3[1:40] <- NA   # a3 con 80 respuestas; el resto de la lámina, con 120
+  out <- .mlt_generar(data = d)
+  xml <- .mlt_xml(out)
+  textos <- .mlt_textos(xml)
+  expect_true("prosecnur:grafico:multilista" %in% .mlt_nombres(xml))
+  expect_true("N = 80" %in% textos)
+  # Sólo esa fila: las que cuadran con su base (120) no se anotan.
+  expect_equal(sum(grepl("^N = ", textos)), 1L)
+  expect_false("N = 120" %in% textos)
+  # La anotación va con su premisa (la de a3).
+  nota <- regmatches(xml, gregexpr('name="premisa:n".*?</p:sp>', xml))[[1]]
+  expect_length(nota, 1L)
+  # El Word da esa misma base para la variable.
+  expect_true("Base: 80" %in% sub("\\s*respuestas$", "", .mlt_word_textos(d)))
+})
+
+test_that("sin salto no se anota ninguna N", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("cowplot")
+  textos <- .mlt_textos(.mlt_xml(.mlt_generar()))
+  expect_false(any(grepl("^N = ", textos)))
+})
+
+test_that("con actores la lámina no cambia: cada público ya nombra sus respuestas", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("cowplot")
+  d <- .mlt_datos()
+  data <- list(docentes = d, estudiantes = d)
+  data$estudiantes$a3[1:40] <- NA
+  inst <- list(docentes = .mlt_inst(), estudiantes = .mlt_inst())
+  bloques <- list(
+    list(modo = "var_cruce", vars = list(t1 = c("docentes$a2", "estudiantes$a2"), t2 = c("docentes$a3", "estudiantes$a3")),
+         titulo = "Servicios académicos")
+  )
+  out <- .mlt_generar(bloques = bloques, data = data, inst = inst)
+  textos <- unlist(lapply(seq_along(.pptx_slide_paths(out)), function(i) .mlt_textos(.mlt_xml(out, i))))
+  expect_false(any(grepl("^N = ", textos)))
+  expect_true("80 respuestas" %in% textos)
+})

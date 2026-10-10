@@ -4920,7 +4920,7 @@ reporte_ppt_plan <- function(
           preset_args_single = preset_args_single
         )
         if (is.null(p_block)) next
-        rendered[[length(rendered) + 1L]] <- .lam_multilista_marcar(p_block, block)
+        rendered[[length(rendered) + 1L]] <- .lam_multilista_marcar(p_block, block, .resolve_ref, .extract_ref_values)
         rel_heights <- c(rel_heights, rel_heights_plan[[idx_block]])
       }
 
@@ -4933,7 +4933,7 @@ reporte_ppt_plan <- function(
         ncol = 1,
         align = "v",
         rel_heights = rel_heights
-      ), rendered))
+      ), rendered, bases_publico))
     }
 
     # ============================================================

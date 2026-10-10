@@ -18,15 +18,45 @@
 
 # ---- marca del render ---------------------------------------------------------
 
-#' Marca el gráfico de un bloque con su título y subtítulo de bloque
+#' Marca el gráfico de un bloque con su título y subtítulo de bloque, y los públicos de sus variables
+#'
+#' `resolver` y `extraer` son `.resolve_ref` y `.extract_ref_values` del motor (closures de `reporte_ppt_plan`): el
+#' público de cada variable sale como sale la base por público de la lámina (`bases_publico`), que se calcula con
+#' ellas en la rama multilista.
 #' @keywords internal
-.lam_multilista_marcar <- function(p, block) {
+.lam_multilista_marcar <- function(p, block, resolver = NULL, extraer = NULL) {
+  fuentes <- character(0)
+  if (is.function(resolver) && is.function(extraer)) {
+    refs <- tryCatch(extraer(block$vars %||% character(0)), error = function(e) character(0))
+    fuentes <- vapply(refs, function(r) {
+      s <- tryCatch(resolver(r, arg_name = "var")$source, error = function(e) NULL)
+      if (is.null(s) || !length(s)) NA_character_ else as.character(s)[1]
+    }, character(1), USE.NAMES = FALSE)
+  }
   attr(p, "pulso_multilista_bloque") <- list(
     titulo = block$.multilista_block_title %||% NULL,
     subtitulo = block$.multilista_block_subtitle %||% NULL,
-    modo = block$modo %||% "var"
+    modo = block$modo %||% "var",
+    fuentes = fuentes
   )
   p
+}
+
+#' Filas de un bloque sin actores que llevan su N: las que quedan bajo la base de su público
+#'
+#' Salto de cuestionario. El criterio es `.n_barra_procede` (con su tolerancia) contra la base por público de toda la
+#' lámina (`bases_publico`, la misma que recibía el graficador en la ruta anterior). Sólo cuando todas las variables
+#' del bloque son de un mismo público: las filas de la espec no dicen de qué variable salen, así que con públicos
+#' mezclados no se puede saber la base de cada una y no se anota (una anotación de menos, nunca una equivocada).
+#' Con actores no se marca nada: cada barra ya nombra sus respuestas.
+#' @keywords internal
+.lam_multilista_nota_n <- function(espec, fuentes, bases_publico) {
+  f <- espec$filas
+  if (!NROW(f) || !all(is.na(f$grupo_id))) return(espec)
+  fuente <- unique(fuentes[!is.na(fuentes)])
+  if (length(fuente) != 1L || !length(bases_publico) || !fuente %in% names(bases_publico)) return(espec)
+  espec$filas$n_nota <- .n_barra_procede(f$n, bases_publico[[fuente]])
+  espec
 }
 
 #' Cuelga del `plot_grid` de la multilista la especificación de cada bloque
@@ -35,13 +65,14 @@
 #' láminas de paneles y mixtas leen `pulso_espec` de cada ranura y no saben
 #' dibujar una multilista, así que ahí sigue la ruta anterior.
 #' @keywords internal
-.lam_multilista_adjuntar <- function(grid, rendered) {
+.lam_multilista_adjuntar <- function(grid, rendered, bases_publico = NULL) {
   bloques <- lapply(rendered, function(p) {
     m <- attr(p, "pulso_multilista_bloque") %||% list()
     # Las filas van en el orden que fija la espec (`espec$orden$aplicado`), el mismo de la ruta anterior y del Word.
     # La multi-apiladas simple nativa reordena por Top Two Box (`.lam_slide_1_nativa`); aquí no, a la espera de la
     # revisión metodológica: reordenar un bloque cambiaría lo que ya se publicó.
     espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
+    if (!is.null(espec) && identical(espec$tipo, "escala")) espec <- .lam_multilista_nota_n(espec, m$fuentes, bases_publico)
     list(espec = espec, titulo = m$titulo, subtitulo = m$subtitulo)
   })
   attr(grid, "pulso_multilista") <- list(version = "multilista/1", bloques = bloques)
