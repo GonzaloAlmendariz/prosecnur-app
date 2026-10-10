@@ -184,11 +184,15 @@ caminos y ninguno es devolverle un deslizador al gráfico:
 
 - **Puntual y de una vez**: la salida es nativa, así que se edita en PowerPoint o Word sobre el archivo entregado. Es el
   beneficio directo del ADR 0093 y para un pedido aislado es la respuesta correcta.
-- **Para todos los informes de ese cliente**: una opción con nombre en Estilo del cliente, en Tipografía, «Tamaño de
-  letra: estándar · grande (+2 pt)», que el motor aplica a toda la jerarquía (título, pregunta, cifra, rótulo, leyenda,
-  base) y que respeta las reglas de composición: con letra más grande cabe menos, así que el compositor recalcula el
-  corte por palabras y la partición en «(cont.)». Se ve en la vista previa viva. **Requiere backend**: un factor
-  tipográfico del perfil que `.std_pt` lea; las láminas no cambian de geometría, cambian de contenido por parte.
+- **Para todos los informes de ese cliente** (elegida por Gonzalo el 2026-10-10): en Estilo del cliente › Tipografía,
+  «Tamaño de letra» con tres pasos con nombre, Estándar (recetario) · Grande (+2 pt) · Muy grande (+4 pt), que aplica a
+  toda la jerarquía y un «Afinar por elemento» con los mismos pasos por rol (títulos, preguntas y premisas, cifras,
+  rótulos y leyenda, base y notas) para pedidos concretos como «las cifras más grandes». Vive en el perfil del cliente,
+  no en el plan; un informe sólo puede fijar una excepción declarada. El motor lo aplica como factor por rol en
+  `.std_pt`, desplaza también los tamaños de familia por tipo de lámina, respeta el piso de 8 pt en Word y recalcula
+  corte por palabras y partición en «(cont.)»; `verificar_mazo` mide contra el estándar más el factor del perfil. El
+  analista lo ve en la vista previa viva, en el candado de cada lámina («cifra 16 pt = 14 + 2 del perfil») y en Estado
+  si la partición cambió. **Requiere backend** (§8.9); especificación completa enviada al MotorPPT.
 
 Lo que no se hace: tamaños por gráfico o por lámina. Un informe con letras de tres tamaños distintos es lo que el recetario
 vino a evitar.
