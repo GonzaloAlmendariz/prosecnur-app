@@ -108,6 +108,32 @@ candidata** («así quedaría»); nombre, cuántos gráficos y cuándo se usa. D
 ranuras dibujado desde `estandar_pulso.json` y una tabla con posición, tamaño, escala, cifra, rótulo y grosor de barra;
 la ficha del recetario es documentación y no se muestra como imagen), y el botón «Usar esta lámina». Si el tipo tiene menos ranuras que gráficos configurados, lo dice antes de aplicar.
 
+### 4.3b Dónde queda el «distribuidor de espacio» (pregunta de Gonzalo, 2026-10-10)
+
+El `ChartLayoutPopover` repartía el lienzo de ggplot con `canvas_w_*`, `canvas_h_*_in` y `alto_por_categoria` porque ggplot
+no sabía cuánto espacio necesitaba cada gráfico: el analista lo adivinaba a mano y el resultado dependía del pulso. Con el
+motor nativo esa adivinanza desaparece: la geometría la **calcula el compositor** desde los datos y el estándar (grosor de
+barra por número de filas, columna de premisas de 3.3 in, barra de 6 in, columna Top Two Box, partición en «(cont.)» cuando
+no cabe, leyenda centrada). Por eso el distribuidor libre se va (decisión 1) y el espacio se decide en **tres lugares
+distintos, todos discretos y con nombre**:
+
+| Decisión de espacio | Dónde vive en el editor | Quién la ejecuta |
+|---|---|---|
+| Cuántos gráficos y en qué reparto (1, 2 iguales, 65/35, 2 apilados, 3 en fila, 2+1, 1+2, 1 arriba, 4, 5, 6, con texto a un lado, con cifras) | Panel **¿Qué lámina?** y sección **Composición** del inspector: los 22 tipos son los repartos del recetario, con miniatura «así quedaría» | El compositor, con las ranuras de `estandar_pulso.json` |
+| Cuánto ocupa el gráfico **dentro** de su ranura (filas, grosor, columnas, partición) | No se edita: lo deriva el motor de los datos; el inspector lo muestra con candado y el visor con **Guías** | El compositor y `preparar_*` |
+| Qué entra en la lámina (y por tanto cuánto espacio pide) | Sección **Gráficos** del inspector: máximo de filas por parte, excluir categorías, máximo de categorías y «Otros», orden, longitud de la lectura | El analista |
+
+Cuando algo no cabe, el motor no encoge la letra ni aplasta la barra: **parte la lámina** y lo dice en Estado; el analista
+responde cambiando de composición o reduciendo lo que entra. Ese es el reemplazo del deslizador: una decisión visible con
+un nombre, no un arrastre.
+
+Queda una pieza opcional, acotada, que el ADR 0093 (decisión 5) permite: un **ajuste fino de ranura** en una sola unidad y
+con un paso de deshacer por gesto, por ejemplo elegir entre los repartos 48/48, 60/40 y 65/35 en una lámina de dos gráficos,
+o mover la frontera entre gráfico y texto en pasos de 0.5 in dentro de un rango que el estándar declare. Se diseña como
+**segmentos con nombre**, nunca como deslizador continuo, y vive en Composición. **Requiere backend**: el compositor tiene
+que aceptar un `reparto` por lámina (`slide.meta.reparto`) y `estandar_pulso.json` tiene que declarar los repartos válidos
+de cada tipo; mientras no exista, la composición se elige entre los 22 tipos y nada más.
+
 ### 4.4 Panel «Tipo de gráfico» (`panel=tipo-grafico`)
 
 Diálogo. Izquierda, familias: **Categorías · Escalas · Números · Comparar · Dimensiones · Territorio · Texto**. Centro,
@@ -225,7 +251,9 @@ Medido en la Parte C del inventario; cada punto se marca «requiere backend» en
    TOC rellenado o aviso.
 5. Empaquetar los 124 íconos y exponer la elección automática (palabra clave → ícono).
 6. Pieza «Cifra» del motor (A19) antes de ofrecer «Destacar cifras» con datos reales.
-7. LibreOffice y el paso PDF → PNG dentro del instalador (decisión del 2026-10-09); el estado «sin renderer» queda como
+7. Repartos válidos por tipo en `estandar_pulso.json` y `slide.meta.reparto` en el compositor, si se quiere el ajuste
+   fino de ranura de §4.3b (opcional; sin él, la composición es uno de los 22 tipos).
+8. LibreOffice y el paso PDF → PNG dentro del instalador (decisión del 2026-10-09); el estado «sin renderer» queda como
    excepción.
 
 ## 9. Cómo ver la maqueta
