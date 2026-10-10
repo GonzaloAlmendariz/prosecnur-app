@@ -46,6 +46,9 @@ reglas <- list(
 
 # ---- tipos de lámina (recetario_fichas.R:5-33), ranuras en pulgadas
 xS <- XC; xE <- W - MR; aw <- xE - xS; h1 <- 4.6; h2 <- 2.2; y1 <- 1.65; y2 <- 4.05; w2 <- (aw - 0.5) / 2; x2 <- xS + w2 + 0.5; w3 <- (aw - 1.0) / 3
+# K15: las láminas de cinco y seis gráficos (p164, p166) usan calles de 0.4 (columnas de 3.908); la de cifras lateral (p169),
+# columnas de 4.312 con calles de 0.45 tras la columna de cifras de 3.0 y su calle de 0.45.
+w3b <- (aw - 0.8) / 3; wc21 <- (xE - (xS + 3.0 + 0.45) - 0.45) / 2
 R <- function(tipo, x, y, w, h) list(tipo = tipo, x = r3(x), y = r3(y), w = r3(w), h = r3(h))
 G <- function(...) R("grafico", ...); Tx <- function(...) R("texto", ...); Ci <- function(...) R("cifras", ...)
 fam <- function(escala, cifra, rot, barra) list(escala = escala, cifra_pt = cifra, rotulo_pt = rot, barra_in = barra)
@@ -54,30 +57,43 @@ tipo <- function(id, nombre, layout, ranuras, familia, uso) list(id = id, nombre
 tipos <- list(
   tipo("p_slide_1_grafico", "Un gráfico", "Graficos", list(G(xS, y1, aw, h1)), f1, "La lámina estándar: una pregunta, un gráfico"),
   tipo("p_slide_1_grafico_narrativo", "Un gráfico con narrativa", "1_Grafico_narrativo", list(Tx(xS, y1, aw, 0.8), G(xS, 2.6, aw, 3.7)), f1, "Una frase arriba dice lo que hay que retener"),
-  tipo("p_slide_grafico_texto_derecha", "Gráfico con texto a la derecha", "right_grafico_texto", list(G(xS, y1, 7.6, h1), Tx(8.6, 1.9, xE - 8.6, 3.0)), fT, "El gráfico y su lectura al costado"),
-  tipo("p_slide_grafico_texto_izquierda", "Gráfico con texto a la izquierda", "left_grafico_texto", list(Tx(xS, 1.9, 4.2, 3.0), G(5.2, y1, xE - 5.2, h1)), fT, "Para alternar con la lámina vecina"),
+  # K15: p128 dibuja el gráfico hasta 9.095 y el texto desde su filete de acento en 9.55
+  tipo("p_slide_grafico_texto_derecha", "Gráfico con texto a la derecha", "right_grafico_texto", list(G(xS, y1, 8.6, h1), Tx(9.55, 2.45, xE - 9.55, 3.4)), fT, "El gráfico y su lectura al costado"),
+  # K15: p130: texto con filete en 0.495 (caja hasta 3.945); gráfico desde 4.55, pregunta en 1.75
+  tipo("p_slide_grafico_texto_izquierda", "Gráfico con texto a la izquierda", "left_grafico_texto", list(Tx(xS, 2.05, 3.45, 3.4), G(4.55, 1.75, 8.4, 6.25 - 1.75)), fT, "Para alternar con la lámina vecina"),
   tipo("p_slide_texto", "Texto", "Title and Content", list(Tx(xS, y1, aw, h1)), NULL, "Conclusiones o notas metodológicas breves"),
   tipo("p_slide_2_graficos", "Dos gráficos", "Graficos_2columnas", list(G(xS, y1, w2, h1), G(x2, y1, w2, h1)), f2, "Dos preguntas que se leen juntas"),
   tipo("p_slide_2_graficos_narrativo", "Dos gráficos con narrativa", "1_Graficos_2columnas_narrativo", list(Tx(xS, y1, aw, 0.8), G(xS, 2.6, w2, 3.7), G(x2, 2.6, w2, 3.7)), f2, "Dos gráficos con una idea común arriba"),
-  tipo("p_slide_2_graficos_texto_izquierda", "Dos gráficos con texto a la izquierda", "left_2graficos_texto", list(Tx(xS, 1.9, 3.5, 3.0), G(4.4, y1, 4.2, h1), G(8.85, y1, xE - 8.85, h1)), f3, "Perfiles breves con su lectura"),
-  tipo("p_slide_2_graficos_texto_derecha", "Dos gráficos con texto a la derecha", "right_2graficos_texto", list(G(xS, y1, 4.1, h1), G(4.85, y1, 4.1, h1), Tx(9.25, 1.9, xE - 9.25, 3.0)), f3, "Igual que la anterior, para alternar"),
+  # K15: p140 apila los dos gráficos a la derecha del texto (filete en 3.5)
+  tipo("p_slide_2_graficos_texto_izquierda", "Dos gráficos con texto a la izquierda", "left_2graficos_texto", list(Tx(xS, 2.05, 3.45, 3.6), G(4.55, 1.7, xE - 4.55, 3.5 - 0.2 - 1.7), G(4.55, 3.7, xE - 4.55, 6.25 - 3.7)), f3, "Perfiles breves con su lectura"),
+  # K15: p142 apila los dos gráficos a la izquierda del texto
+  tipo("p_slide_2_graficos_texto_derecha", "Dos gráficos con texto a la derecha", "right_2graficos_texto", list(G(xS, 1.7, 8.6, 3.8 - 0.2 - 1.7), G(xS, 3.8, 8.6, 6.25 - 3.8), Tx(9.55, 2.05, xE - 9.55, 3.4)), f3, "Igual que la anterior, para alternar"),
   tipo("p_slide_2_graficos_vertical", "Dos gráficos apilados", "graficos_2_vertical", list(G(xS, y1, aw, h2), G(xS, y2, aw, h2)), fam(1, 14, 12, 0.30), "Dos preguntas de escala que comparten leyenda"),
-  tipo("p_slide_2_graficos_asimetrico", "Gráfico principal y de apoyo", "graficos_2_asimetrico", list(G(xS, y1, 7.9, h1), G(8.85, y1, xE - 8.85, h1)), fam(0.65, 14, 12, 0.36), "Un gráfico manda y el otro lo resume"),
+  # K15: p146: principal de 8.4 y apoyo desde 9.35, preguntas en 1.6
+  tipo("p_slide_2_graficos_asimetrico", "Gráfico principal y de apoyo", "graficos_2_asimetrico", list(G(xS, 1.6, 8.4, 6.25 - 1.6), G(9.35, 1.6, xE - 9.35, 6.25 - 1.6)), fam(0.65, 14, 12, 0.36), "Un gráfico manda y el otro lo resume"),
   tipo("p_slide_3_graficos_2mas1", "Tres gráficos, dos apilados y uno alto", "graficos_3_2mas1", list(G(xS, y1, w2, h2), G(xS, y2, w2, h2), G(x2, y1, w2, h1)), f3, "Dos preguntas breves y una más larga"),
-  tipo("p_slide_3_graficos_1mas2", "Tres gráficos, uno alto y dos apilados", "graficos_3_1mas2", list(G(xS, y1, w2, h1), G(x2, y1, w2, h2), G(x2, y2, w2, h2)), f3, "La pregunta larga primero"),
-  tipo("p_slide_3_graficos_1arriba", "Tres gráficos, uno ancho arriba", "graficos_3_1arriba", list(G(xS, y1, aw, h2), G(xS, y2, w2, h2), G(x2, y2, w2, h2)), f3, "Una pregunta general y dos de detalle"),
+  # K15: p151: filete en 3.5 y el de abajo desde 3.7 (lo que ya dibuja el motor, lamina_mixtas.R)
+  tipo("p_slide_3_graficos_1mas2", "Tres gráficos, uno alto y dos apilados", "graficos_3_1mas2", list(G(xS, y1, w2, h1), G(x2, y1, w2, 3.5 - 0.2 - y1), G(x2, 3.7, w2, 6.25 - 3.7)), f3, "La pregunta larga primero"),
+  # K15: p154: el ancho desde 1.6, filete en 4.05 y los de abajo desde 4.2 (lo que ya dibuja el motor)
+  tipo("p_slide_3_graficos_1arriba", "Tres gráficos, uno ancho arriba", "graficos_3_1arriba", list(G(xS, 1.6, aw, 4.05 - 0.2 - 1.6), G(xS, 4.2, w2, 6.25 - 4.2), G(x2, 4.2, w2, 6.25 - 4.2)), f3, "Una pregunta general y dos de detalle"),
   tipo("p_slide_3_graficos_fila", "Tres gráficos en fila", "graficos_3_fila", list(G(xS, y1, w3, h1), G(xS + w3 + 0.5, y1, w3, h1), G(xS + 2 * (w3 + 0.5), y1, w3, h1)), f3, "Tres variables de perfil"),
-  tipo("p_slide_3_graficos_poblacion_tira", "Tres gráficos en tira", "poblacion_3_tira", list(G(xS, y1, aw, 1.4), G(xS, y1 + 1.6, aw, 1.4), G(xS, y1 + 3.2, aw, 1.4)), fam(1, 14, 12, 0.30), "Tres preguntas de sí o no del mismo público"),
+  # K15: p158: franjas cada 1.68 in con filetes en 3.03 y 4.71
+  tipo("p_slide_3_graficos_poblacion_tira", "Tres gráficos en tira", "poblacion_3_tira", list(G(xS, y1, aw, 3.03 - 0.2 - y1), G(xS, 3.33, aw, 4.71 - 0.2 - 3.33), G(xS, 5.01, aw, 6.25 - 5.01)), fam(1, 14, 12, 0.30), "Tres preguntas de sí o no del mismo público"),
   # Corona (decisión de Gonzalo, 2026-10-10: «manda el recetario»): las ranuras que dibuja la lámina 160
   # (recetario_m2c.R, «Perfil del docente»): dos arriba lado a lado con 0.8 in de calle, filete vertical hasta 3.8,
   # filete horizontal en 4.0 y el panel ancho de abajo desde 4.2 hasta su última fila (6.37). La ficha 159 aún las
   # dibuja como dos apilados + uno alto.
   tipo("p_slide_3_graficos_poblacion_corona", "Tres gráficos en corona", "poblacion_3_corona", list(G(xS, y1, (aw - 0.8) / 2, 2.15), G(xS + (aw - 0.8) / 2 + 0.8, y1, (aw - 0.8) / 2, 2.15), G(xS, y1 + 2.55, aw, 2.17)), f3, "Perfil con una variable más larga"),
-  tipo("p_slide_4_graficos", "Cuatro gráficos", "4_paneles", list(G(xS, y1, w2, h2), G(x2, y1, w2, h2), G(xS, y2, w2, h2), G(x2, y2, w2, h2)), f3, "Cuatro variables de perfil del mismo público"),
-  tipo("p_slide_5_graficos_poblacion", "Cinco gráficos", "poblacion_5", list(G(xS, y1, w3, h2), G(xS + w3 + 0.5, y1, w3, h2), G(xS + 2 * (w3 + 0.5), y1, w3, h2), G(xS, y2, w2, h2), G(x2, y2, w2, h2)), fP, "Perfil del egresado o del docente"),
-  tipo("p_slide_6_graficos_poblacion", "Seis gráficos", "poblacion_6", list(G(xS, y1, w3, h2), G(xS + w3 + 0.5, y1, w3, h2), G(xS + 2 * (w3 + 0.5), y1, w3, h2), G(xS, y2, w3, h2), G(xS + w3 + 0.5, y2, w3, h2), G(xS + 2 * (w3 + 0.5), y2, w3, h2)), fP, "El máximo de gráficos en una lámina"),
-  tipo("p_slide_3_graficos_poblacion_cifras", "Cifras en columna lateral", "poblacion_3_cifras", list(Ci(xS, y1, 3.0, h1), G(3.9, y1, 4.4, h2), G(3.9, y2, 4.4, h2), G(8.75, y1, xE - 8.75, h1)), fP, "Tamaño de la muestra y edad en cifras"),
-  tipo("p_slide_cifras_y_graficos", "Cifras en banda superior", "cifras_y_graficos", list(Ci(xS, y1, aw, 1.2), G(xS, 3.05, w2, 3.2), G(x2, 3.05, w2, 3.2)), f2, "Abrir un capítulo o resumir el estudio"))
+  # K15: p162: filete en 4.16 y la fila de abajo en 4.36 (lo que ya dibuja el motor nativo)
+  tipo("p_slide_4_graficos", "Cuatro gráficos", "4_paneles", list(G(xS, y1, w2, 4.16 - 0.2 - y1), G(x2, y1, w2, 4.16 - 0.2 - y1), G(xS, 4.36, w2, 6.25 - 4.36), G(x2, 4.36, w2, 6.25 - 4.36)), f3, "Cuatro variables de perfil del mismo público"),
+  # K15: p164: tres arriba de 3.908 con calle de 0.4; dos abajo de 5.862 con calle de 0.8 (como la corona), filete en 4.135
+  tipo("p_slide_5_graficos_poblacion", "Cinco gráficos", "poblacion_5", list(G(xS, y1, w3b, 4.135 - 0.2 - y1), G(xS + w3b + 0.4, y1, w3b, 4.135 - 0.2 - y1), G(xS + 2 * (w3b + 0.4), y1, w3b, 4.135 - 0.2 - y1), G(xS, 4.335, (aw - 0.8) / 2, 6.25 - 4.335), G(xS + (aw - 0.8) / 2 + 0.8, 4.335, (aw - 0.8) / 2, 6.25 - 4.335)), fP, "Perfil del egresado o del docente"),
+  # K15: p166: columnas de 3.908 con calle de 0.4; filete en 4.05 y la fila de abajo en 4.5
+  tipo("p_slide_6_graficos_poblacion", "Seis gráficos", "poblacion_6", list(G(xS, y1, w3b, 4.05 - 0.2 - y1), G(xS + w3b + 0.4, y1, w3b, 4.05 - 0.2 - y1), G(xS + 2 * (w3b + 0.4), y1, w3b, 4.05 - 0.2 - y1), G(xS, 4.5, w3b, 6.25 - 4.5), G(xS + w3b + 0.4, 4.5, w3b, 6.25 - 4.5), G(xS + 2 * (w3b + 0.4), 4.5, w3b, 6.25 - 4.5)), fP, "El máximo de gráficos en una lámina"),
+  # K15: p169: cifras de 3.0, filetes en 3.715 y 8.487, columnas de 4.312 desde 3.945 y 8.707; filete horizontal en 3.6
+  tipo("p_slide_3_graficos_poblacion_cifras", "Cifras en columna lateral", "poblacion_3_cifras", list(Ci(xS, y1, 3.0, h1), G(3.945, y1, wc21, 3.6 - 0.2 - y1), G(3.945, 3.75, wc21, 6.25 - 3.75), G(3.945 + wc21 + 0.45, y1, wc21, h1)), fP, "Tamaño de la muestra y edad en cifras"),
+  # K15: p171: banda de cifras con filete en 3.05 y los gráficos desde 3.25
+  tipo("p_slide_cifras_y_graficos", "Cifras en banda superior", "cifras_y_graficos", list(Ci(xS, y1, aw, 1.2), G(xS, 3.25, w2, 6.25 - 3.25), G(x2, 3.25, w2, 6.25 - 3.25)), f2, "Abrir un capítulo o resumir el estudio"))
 
 # ---- Word (recetario_word_graficos.R y recetario_word_identidad.R)
 word <- list(
