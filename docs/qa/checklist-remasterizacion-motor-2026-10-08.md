@@ -19,7 +19,7 @@ Vara y plan en [goal-remasterizacion-motor-2026-10-08.md](goal-remasterizacion-m
 | R6 | «que sea muy fino, muy cuidadoso, que respete las proporciones, que respete los estándares que ya están establecidos en los recetarios» | banco de conformidad F0, todas las fases | ☐ |
 | R7 | Estilos: «El recetario es el estándar»; perfiles de cliente sólo cambian logo y paleta | F1, `estandar_presets.R` impone tamaños y fuente; colores quedan al perfil | ◐ |
 | R8 | Proyectos: «Migran solos», con aviso de lo que no tenga equivalente | F5; adelantado en F1 para el estilo base (`[PULSO-AVISO]` con cada clave cambiada) | ◐ |
-| R9 | Word: «El documento completo» | F4 | ☐ |
+| R9 | Word: «El documento completo» | F4 | ◐ documento completo del recetario exportado por la app (N8.15, en re-verificación) |
 | R10 | Ritmo: «Loop con hitos y commits»; tick de 60 s («deja el loop a un minuto no 5») | loop | ☑ abierto |
 | R11 | «estas comaprandolo con el recetario?» · «deja de comparar solo de forma numérica, tienes que también comparar de forma visual» | `scripts/qa_pares_recetario.R`; gate visual por pares (ADR 0093, decisión 4) | ☑ banco; se aplica en cada fase |
 | R12 | «estamos cambiando fundamentalmente absolutamente toda la estructura de todos los graficadores que pasan de usar ggplot a … elementos nativos de PowerPoint… tómalo con la importancia que merece» | ADR 0093 (aceptado: «Lo apruebo»), fases N0-N9 | ◐ N0 ☑, N1 en curso |
@@ -53,7 +53,7 @@ Plan anterior (F0-F7):
 | F1 | Tokens en el motor: `estandar_tokens.R`, imposición del estándar sobre lo guardado (`estandar_presets.R`, base_pt 0 % → 100 %, conformidad 39 % → 45 %), colores de la casa y Likert del núcleo desde tokens en graficadores y láminas de identidad; contrato de colores. Tamaños de firma pasan a F2 (Word pasa los suyos). Verificador APROBADO 2026-10-08 | ☑ |
 | F2 | Graficadores conformes (grosor por filas, cifras chicas, Top/Bottom Two Box, leyendas, dicotómica, dumbbell, serie, histograma, radar, calor, mapas) y gráficos nuevos (metas, matriz, forest, cambio, peso, competencias) | ☐ |
 | F3 | Lámina PPT: plantilla `plantilla_pulso_2026.pptx`, antetítulo, pregunta fuera de la imagen, 22 tipos, láminas de identidad | ☐ |
-| F4 | Word completo: `reporte_word_documento.R` e identidad, estilos, SEQ, índices, secciones, «Cómo leer» | ☐ |
+| F4 | Word completo: `reporte_word_documento.R` e identidad, estilos, SEQ, índices, secciones, «Cómo leer» | ◐ N8.0-N8.14 ☑; N8.15 en re-verificación |
 | F5 | Migración de planes y `.pulso`, con avisos | ☐ |
 | F6 | Editor: selector de 22 tipos, distribución del espacio estable, vista previa fiel, «Estilo global» reducido | ☐ |
 | F7 | Cierre integral con proyectos de referencia, verificador y notas | ☐ |
