@@ -1424,7 +1424,7 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   n_top: "Cantidad de elementos principales que se muestran.",
   top_n: "Cantidad de elementos destacados en la vista.",
   top2box: "Muestra el porcentaje agregado de las dos categorías superiores de una escala ordinal.",
-  top2box_labels: "Define qué categorías cuentan como Top 2 cuando la escala no usa las dos últimas opciones.",
+  top2box_labels: "Las dos categorías de la escala que suman el Top Two Box. Sin ellas, el gráfico omite la columna y lo avisa.",
   tipo_rango: "Define el modo de clasificación por rangos.",
   debug_lw: "Controla marcadores de diagnóstico de layout.",
   debug_ph_bordes: "Muestra bordes de ayuda para validar espacios del gráfico.",
