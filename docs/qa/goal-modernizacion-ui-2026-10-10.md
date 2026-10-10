@@ -115,7 +115,7 @@ cambia; «gate» es la evidencia mínima para marcar ☑. Estados: ☐ sin empez
 | L31 | Home vivo: cards suscritas a `pulso:session-changed` y jobs; «siguiente acción» por módulo; bloque «hoy»; sin gradientes decorativos; sin scroll jail a 1024×600 | V7, V9 | `ProjectModulesContext.tsx`, `MissionControl.tsx`, `home-v2.css` | card de Procesamiento con barra de job en vivo; matriz 1024 limpia | M | ☐ |
 | L32 | Transición de sección y pestaña con la firma de 6 px; press físico en chips, tiles y cards; un solo blur en el chrome; `backgroundColor` de la ventana a `#f3f5f9`; retirar `motion` del `package.json` | V11 | `theme.css:633-651`, `nav-states.css`, `desktop/main.cjs:1866` | `backdrop-filter` en el header = 0; `motion` fuera | S | ☐ |
 | L33 | Desduplicar Telefónico ↔ Acreditación: formateadores puros a `monitoreo/core/`, chrome `AcreditacionModuleChromeConSync` una sola vez (sin fusionar semántica de familia) | V11 | `profiles/telefonico/`, `profiles/acreditacion/` | 28 duplicados → 0; los dos page-files bajan | M | ☐ |
-| L34 | Tema oscuro: capa de roles semánticos y `data-theme="dark"` | — | `tokens.css`, `theme.css` | solo cuando hex fuera de tokens < 500 | L+ | ⛔ espera D6 y L29 |
+| L34 | Tema oscuro | — | — | — | — | **descartado** por el dueño (2026-10-10): la app es de tema único; no se vuelve a proponer |
 
 ## Espera al dueño
 
@@ -126,7 +126,7 @@ revisa por el loop.
 |---|---|---|---|---|
 | D1 | **Formularios**: qué se recoge de su banda (selector, tres métricas, dos chips, toggle, «Más vistas», avisos, seis acciones) para entrar a `ModuleCommandBar` | `lib/modules.ts:356-365` declara la excepción como «decisión de producto, no de layout»; `ModuleCommandBar` ya degrada por `rank` y recoge chips al menú sin perderlos | la excepción está amparada en un ADR y la propia nota dice que decidir qué se recoge es de producto | A: command bar con rangos (métricas rank 2, acciones secundarias rank 3 al menú); la excepción se retira |
 | D2 | **Dashboard** (P7 del plan de rebranding): capa `dash-*`, rail `dash-tab-nav`, donut arcoíris | `docs/ui-layout-grammar.md:310` y `plan-rebranding.md` P7 dicen «decide el usuario»; es superficie que ve el cliente | está marcada como gate humano en dos documentos | el chrome de administración migra (rail + command bar); el artefacto publicado conserva su capa `dash-*` y pasa a secuencial navy |
-| D6 | **Tema oscuro**: cuándo | dirección v3: diferido hasta bajar hex; hoy ~5.000 fuera de tokens | la dirección lo difiere explícitamente | después de L29, nunca a medias |
+| D6 | **Tema oscuro** | — | **Resuelta (2026-10-10): descartado.** Prosecnur es de tema único; no se promete ni se maqueta | — |
 | D3 | Contrato geométrico «mismo alto, ancho intrínseco» | decisión 8 del loop anterior, reevaluada en su iteración 18 | la recomendación ya cambió una vez (B → A) | A: tercer contrato `banda`; lo ejecuto en L12 salvo veto |
 | D4 | Marco del vacío del kit | decisión 9 del loop anterior; `states.css:107-111` | es vocabulario del kit | B: el marco es de la superficie; renombrar la variante; lo ejecuto en L24 salvo veto |
 | D5 | Nombre de la cifra hero del Marco | decisión 10; ya rotulada «Elegibles por curso-horario» | es vocabulario metodológico | A: conservar hero con ese nombre; nada que ejecutar |
