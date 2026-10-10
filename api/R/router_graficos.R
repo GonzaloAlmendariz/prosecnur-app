@@ -3069,6 +3069,9 @@ mount_graficos <- function(pr) {
         .graficos_preview_bool_option(parsed, "preview_partes", FALSE),
         error = function(e) stop_api(400, "E_BAD_PREVIEW_PARTES", conditionMessage(e))
       )
+      # K11: las formas de cada parte y las ranuras del estándar, para las guías del visor (graficos_preview_formas.R).
+      preview_formas <- tryCatch(.graficos_preview_bool_option(parsed, "preview_formas", FALSE),
+                                 error = function(e) stop_api(400, "E_BAD_PREVIEW_FORMAS", conditionMessage(e)))
 
       # Validación mínima: tiene tipo y payload.
       tipo <- as.character(slide$tipo %||% "")
@@ -3145,7 +3148,7 @@ mount_graficos <- function(pr) {
         )
         if (!is.null(cached_meta) && file.exists(cached_meta$path)) {
           session_set(sid, "graficos_preview_cache", preview_cache)
-          return(list(
+          return(.preview_con_formas(list(
             ok = TRUE,
             file_id = cached$file_id,
             size = cached$size,
@@ -3156,7 +3159,7 @@ mount_graficos <- function(pr) {
             slide_previews = if (isTRUE(render_slide_preview)) cached$slide_previews %||% list() else list(),
             avisos = cached$avisos %||% character(0),
             folio = folio
-          ))
+          ), cached_meta$path, tipo, preview_formas))
         }
       }
 
@@ -3344,7 +3347,7 @@ mount_graficos <- function(pr) {
         preview_cache <- preview_cache[order_idx][seq_len(min(length(order_idx), 16L))]
       }
       session_set(sid, "graficos_preview_cache", preview_cache)
-      list(
+      .preview_con_formas(list(
         ok = TRUE,
         file_id = meta$file_id,
         size = meta$size,
@@ -3355,7 +3358,7 @@ mount_graficos <- function(pr) {
         slide_previews = slide_previews,
         avisos = avisos,
         folio = folio
-      )
+      ), out_path, tipo, preview_formas)
     })) |>
     plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
       sid <- session_header(req)

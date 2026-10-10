@@ -236,6 +236,7 @@ errores_registrados <- function() {
     "E_BAD_JSON",                                            "router_codificacion.R",             "400",
     "E_BAD_OVERRIDES",                                       "router_graficos.R",                 "400",
     "E_BAD_PNG",                                             "router_graficos.R",                 "400",
+    "E_BAD_PREVIEW_FORMAS",                                  "router_graficos.R",                 "400",
     "E_BAD_PREVIEW_PARTES",                                  "router_graficos.R",                 "400",
     "E_BAD_PREVIEW_QUALITY",                                 "router_graficos.R",                 "400",
     "E_BAD_RECETARIO_EJEMPLO",                               "graficos_recetario_ejemplos.R",     "400",
