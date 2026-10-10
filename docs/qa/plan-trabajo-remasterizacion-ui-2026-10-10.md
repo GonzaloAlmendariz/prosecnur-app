@@ -20,7 +20,7 @@ sesión y en `launch.json`, entrada «Maqueta remasterización UI (8933)»).
 | Tema oscuro | **descartado** (D6) | no hay unidad ni prerrequisito de hex para él |
 | Todo booleano es un switch; el checkbox no existe en el kit | decidido | `PulsoSwitch` entra en la vuelta 0; la migración de inputs lo usa |
 | Botón de ícono con caja en reposo; botón de texto sin subrayado; acción de navegación que nombra el destino con la flecha de lucide | decidido | reglas del kit de la vuelta 0, con contrato de test |
-| Formularios tiene dos secciones: Editor y **Documento** (Word con officer) | decidido (L36) | entra en la vuelta 3 con backend propio |
+| Formularios tiene dos secciones: Editor y **Documento**, y Documento es un editor **fiel** como el de láminas (estándar, visor de páginas reales, bloques seleccionables, versiones), no una exportación con opciones | decidido (L36, 2026-10-10) | vuelta 3, en seis fases DOC.0–DOC.5 con dirección aprobada antes de construir, como F6 |
 | D1 Formularios con `ModuleCommandBar` (rangos, menú de overflow, excepción retirada) | recomendación aplicada, salvo veto | vuelta 3 |
 | D2 Dashboard: chrome canónico en la administración; el artefacto conserva su capa | recomendación aplicada, salvo veto | vuelta 3 |
 | D3 contrato `banda`, D4 el marco es de la superficie, D7 Plotly acotada, D8 extraer primitivas puras Tel↔Acr | recomendación aplicada, salvo veto | vueltas 2, 0, 5 y 6 |
@@ -88,7 +88,7 @@ Entregable visible: importar desde SurveyMonkey o Kobo con catálogo, progreso, 
 
 Ledger: capturas INVALID 7 → 0; `useState` de navegación 42 → < 30.
 
-### Vuelta 3 — Un solo chrome en los ocho módulos (15 sesiones)
+### Vuelta 3 — Un solo chrome en los ocho módulos (19 sesiones)
 
 | Unidad | Maqueta | Qué cambia | Dónde vive | Agente | Gate |
 |---|---|---|---|---|---|
@@ -98,7 +98,7 @@ Ledger: capturas INVALID 7 → 0; `useState` de navegación 42 → < 30.
 | L17 | L17 | Formularios con `ModuleCommandBar` (D1); Cálculo y Gráficos sin `toolbar=`; `PageFrame` con `layout`/`scrollOwner` en Dashboard, Aulas, Gráficos, Formularios | `XlsformEditorPage.tsx:3109`, `CalcMuestraPage.tsx:2290`, `GraficosPage.tsx:281`, `DashboardPage.tsx`, `AulasMonitoreoPage.tsx` | frontend-react | `toolbar=` = 0; excepción retirada del manifiesto |
 | L18 | L18 | Monitoreo territorial sin bandas repetidas; Cálculo colapsa los KPIs en «—» | `TerritorialMonitoreoPage.tsx`, `profilePage.css` (extracción), `motor/ResumenDiseno.tsx` | frontend-react | contenido propio antes de 300 px en todas las pestañas |
 | L19 | L19 | Sub-barras sin dirección enlazadas o retiradas (consultas y reportes de Acr/Tel, manzanas y fase de Hojas, estructura de Carga, mes/semana de Bitácora) | ver censo §10 hallazgo 10 | frontend-react | `useState` de navegación = 0 |
-| L36 | L36 | **Formularios › Documento**: sección nueva con seis pestañas (portada, preguntas, lógica impresa, estilos, vista previa, versiones), inspector del documento con el kit, generación como job y versiones ligadas al instrumento; motor officer propio sobre `docx_conformar.R` y las plantillas del estándar Pulso, alimentado por toda la lógica del XLSForm | `features/xlsformEditor/documento/` (nuevo), `lib/modules.ts`, `router_xlsform_editor.R:1607` → `xlsform_documento_*.R` | especialista-entregables (motor) + frontend-react (sección) + revisor-metodologico (qué se imprime de la lógica) | `expect_report_artifacts_registered` + golden del `.docx`; captura de las seis pestañas con `acnur_pdm` |
+| L36 | L36 | **Formularios › Documento como editor fiel** (arquitectura del editor de láminas F6): DOC.0 dirección y recetario del cuestionario → DOC.1 estándar `cuestionario` leído por el motor (`reporte_formulario_word.R` deja sus hex propios) → DOC.2 visor de páginas reales por job (reutiliza `reporte_word_visor.R`) con estados «regenerando» y «desactualizada» → DOC.3 bloques seleccionables con inspector contextual → DOC.4 opciones en el `.pulso` y versiones por instrumento → DOC.5 golden del `.docx` y comparación visual | `features/xlsformEditor/documento/` (calcado de `graficos/laminas/`), `lib/modules.ts`, `estandar_pulso.json`, `cuestionario_word_*.R`, `router_xlsform_editor.R:1607` | especialista-entregables (motor y estándar) + frontend-react (sección) + revisor-metodologico (qué lógica se imprime) + qa-visual-desktop | dirección DOC.0 aprobada por el dueño; seis pestañas capturadas con `acnur_pdm`; golden del `.docx`; páginas PNG contra la maqueta; XL = 8 sesiones |
 
 Entregable visible: los ocho módulos con el mismo chrome; Formularios con Editor y Documento. Ledger: copias de `SectionPillbar` 5 → 0; módulos sin rail 3 → 0; `toolbar=` 3 → 0.
 
@@ -162,6 +162,8 @@ V3 ──► V5 (las tablas territoriales se migran con el chrome ya estable)
 | La readiness nueva aprueba skeletons | L11 antes que cualquier skeleton en producción; test de que `Skeleton` no publica la marca |
 | Migrar 696 inputs rompe formularios que nadie ve | contrato por archivo migrado + captura por pestaña, nunca migración masiva sin matriz |
 | El Word de L36 diverge del Kobo | un solo modelo: el motor lee el XLSForm vivo; revisor-metodologico decide qué lógica se imprime y cómo |
+| El visor de L36 muestra lo que LibreOffice pinta, no lo que Word pinta | misma trampa documentada en el PPT (`vert`/`vert270`, placeholders): el golden del `.docx` manda sobre el PNG; QA abre el `.docx` real en Word en los cortes |
+| Documento se construye «superficial» por prisa | DOC.0 (dirección y recetario) se aprueba antes de tocar código, como se hizo con F6 (tres rondas contra el recetario) |
 | Fixtures que no cubren Recopiladores, Bitácora ni Dashboard | `--sembrar` donde exista; fixture nuevo para Recopiladores (plan entregado) antes de la vuelta 3 |
 
 ## 7. Estado
@@ -174,8 +176,8 @@ actualiza al cerrar cada vuelta con la fecha, los commits y el ledger movido.
 | 0 Fundaciones del kit | L1, L14, L26, L24, L2, L35 | 9 | ☐ |
 | 1 Carga | L3, L4, L5, L9, L7, L8, L6 | 16 | ☐ |
 | 2 Verde por conformidad | L10, L11, L12, L13 | 7 | ☐ |
-| 3 Un solo chrome | L15, L16, L14b, L17, L18, L19, L36 | 15 | ☐ |
+| 3 Un solo chrome | L15, L16, L14b, L17, L18, L19, L36 (XL) | 19 | ☐ |
 | 4 Cifras y feedback | L20, L21, L22, L23, L25 | 7 | ☐ |
 | 5 Datos y densidad | L27, L28, L29 | 12 | ☐ |
 | 6 Shell | L30, L31, L32, L33 | 7 | ☐ |
-| **Total** | 36 unidades | **73** | |
+| **Total** | 36 unidades | **77** | |
