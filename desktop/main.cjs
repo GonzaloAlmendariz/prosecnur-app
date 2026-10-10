@@ -8,6 +8,7 @@ const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
 const { createCloseGuard, createStdioMirror } = require("./lifecycle.cjs");
+const { resolvePreviewRendererDir } = require("./preview-renderer.cjs");
 const { createHfPublishBroker } = require("./hf-publish-broker.cjs");
 const {
   buildContentSecurityPolicy,
@@ -1043,6 +1044,11 @@ function firstExistingPath(candidates) {
 }
 
 function configurePptxPreviewRenderer(root) {
+  // LibreOffice empaquetado (decisión de Gonzalo, 2026-10-09): el backend lo recibe por ruta, no por el cwd.
+  const rendererDir = resolvePreviewRendererDir(root, process.env, fs.existsSync);
+  if (rendererDir && !process.env.PROSECNUR_PREVIEW_RENDERER_DIR) {
+    process.env.PROSECNUR_PREVIEW_RENDERER_DIR = rendererDir;
+  }
   const moduleRel = path.join("@oai", "artifact-tool", "dist", "artifact_tool.mjs");
   const artifactModule = firstExistingPath([
     process.env.PROSECNUR_ARTIFACT_TOOL_MODULE,
@@ -1071,7 +1077,7 @@ function configurePptxPreviewRenderer(root) {
 
   writeLog(
     `[pptx-preview] artifact-tool=${artifactModule || "not-found"}; ` +
-    `node=${process.env.PROSECNUR_NODE || "system"}; desktop_automation=false\n`
+    `node=${process.env.PROSECNUR_NODE || "system"}; libreoffice=${rendererDir || "not-bundled"}; desktop_automation=false\n`
   );
 }
 

@@ -54,6 +54,7 @@
     "files": [
       "main.cjs",
       "lifecycle.cjs",
+      "preview-renderer.cjs",
       "security.cjs",
       "hf-publish-broker.cjs",
       "preload.cjs",
