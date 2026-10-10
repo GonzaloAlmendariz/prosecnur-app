@@ -166,3 +166,8 @@ Gonzalo: «comprueba que la app pueda realmente mostrar la lamina tal cual como 
 
 Consecuencia para F6: la maqueta se puede construir, pero la lámina real al centro exige primero una pieza de backend (contexto
 del plan, partes, indicador nativo, avisos, renderer garantizado). Se trata como **F6.0b**, antes de la UI.
+
+**Decisión de Gonzalo (2026-10-09), textual:** «se instala en el instalador de escritorio». LibreOffice viaja dentro del
+instalador (`Internals/preview-renderer/`, que `.preview_renderer_roots` ya busca); la vista previa no depende de que el
+usuario lo instale. Falta además el paso PDF→PNG (hoy `pdftoppm` o `magick`, ninguno empaquetado): se resuelve en la misma
+pieza. Construir no autoriza firmar ni publicar.
