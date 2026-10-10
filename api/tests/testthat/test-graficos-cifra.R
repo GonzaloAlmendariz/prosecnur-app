@@ -82,3 +82,21 @@ test_that("la mediana es la misma que muestra el resto del informe (stats::media
   expect_identical(.cifra_desde_datos(data.frame(edad = c(22, 23, 24, 25, 23, 24)), "edad", "mediana", rotulo = "x")$valor, "23.5")
   expect_equal(.cifra_mediana_ponderada(c(22, 23, 24, 25, 23, 24), rep(2, 6)), stats::median(c(22, 23, 24, 25, 23, 24)))
 })
+
+test_that("la lámina 21 (cifras en columna lateral) sale nativa con sus dos cifras a 34 pt (lámina 169 del recetario)", {
+  set.seed(2); n <- 80
+  df <- data.frame(sexo = sample(c("1", "2"), n, TRUE), edad = sample(19:30, n, TRUE), rango = sample(c("1", "2", "3"), n, TRUE), ciclo = sample(c("5", "6", "7"), n, TRUE))
+  inst <- list(survey = data.frame(name = c("sexo", "edad", "rango", "ciclo"), type = c("select_one sx", "integer", "select_one rg", "select_one cc"),
+                                   list_name = c("sx", NA, "rg", "cc"), label = c("Sexo", "Edad", "Rango de edades", "Nivel curricular")),
+               choices = data.frame(list_name = c("sx", "sx", "rg", "rg", "rg", "cc", "cc", "cc"), name = c("1", "2", "1", "2", "3", "5", "6", "7"),
+                                    label = c("Masculino", "Femenino", "De 19 a 22", "De 23 a 26", "De 27 a 30", "Quinto", "Sexto", "Séptimo")), orders_list = NULL)
+  s <- p_slide_3_graficos_poblacion_cifras(superior_izquierda = p_barras_categoricas("sexo"), derecha = p_barras_categoricas("ciclo"),
+    cifra_superior = p_cifra("sexo", "n", rotulo = "estudiantes"), inferior_izquierda = p_barras_categoricas("rango"),
+    cifra_inferior = p_cifra("edad", "mediana", unidad = "años", rotulo = "edad mediana"), titulo = "Perfil del estudiante en cifras")
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(reporte_ppt_plan(data = df, instrumento = inst, plan = p_plan(slides = list(s)), path_ppt = out, mensajes_progreso = FALSE))
+  expect_identical(.preview_partes(out)$partes[[1]]$estado, "nativa")
+  x <- .pptx_leer_parte(out, .pptx_slide_paths(out)[1])
+  expect_equal(lengths(regmatches(x, gregexpr('name="cifra:valor"', x, fixed = TRUE))), 2L)
+  expect_match(x, 'sz="3400"', fixed = TRUE)
+})
