@@ -13,7 +13,8 @@
 .graficos_tipos_catalogo <- function() {
   slides <- lapply(names(.SLIDES_META), function(nm) {
     e <- .graficos_estandar_de_slide(nm)
-    list(name = nm, categoria = as.character(.SLIDES_META[[nm]]$categoria), estandar = if (is.list(e)) e$id else NA)
+    list(name = nm, categoria = as.character(.SLIDES_META[[nm]]$categoria), estandar = if (is.list(e)) e$id else NA,
+         en_selector = !identical(.SLIDES_META[[nm]]$en_selector, FALSE))
   })
   graficadores <- lapply(names(.GRAFICADORES_META), function(nm) {
     m <- .GRAFICADORES_META[[nm]]

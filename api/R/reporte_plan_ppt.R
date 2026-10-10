@@ -8517,8 +8517,8 @@ reporte_ppt_plan <- function(
 
       el_left  <- .element_adapt_to_plot_slot(el_left, contract$slots$left)
       el_right <- .element_adapt_to_plot_slot(el_right, contract$slots$right)
-      el_left  <- .inject_var_titulo(el_left)
-      el_right <- .inject_var_titulo(el_right)
+      el_left  <- .base_por_grafico_si(.inject_var_titulo(el_left), slide, presets, .base_auto_from_element)
+      el_right <- .base_por_grafico_si(.inject_var_titulo(el_right), slide, presets, .base_auto_from_element)
       pL <- .render_element(el_left, ancho_slot = 6.1)
       pR <- .render_element(el_right, ancho_slot = 6.1)
 
@@ -8558,7 +8558,7 @@ reporte_ppt_plan <- function(
 
         # BASE auto desde left si no se declara
         base_txt <- slots$base %||% NULL
-        if (is.null(base_txt)) {
+        if (is.null(base_txt) && !.base_por_grafico_migrada(slide)) {
           base_txt <- .base_auto_de_elementos(
             els        = list(el_left, el_right),
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
@@ -8569,7 +8569,7 @@ reporte_ppt_plan <- function(
         doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
 
         rt_txt <- slots$right_text %||% NULL
-        if (is.null(rt_txt) || !nzchar(trimws(as.character(rt_txt)[1]))) {
+        if ((is.null(rt_txt) || !nzchar(trimws(as.character(rt_txt)[1]))) && !.base_por_grafico_migrada(slide)) {
           rt_txt <- .ppt_note_from(
             pL,
             el_left$overrides$nota_pie %||%
@@ -8842,10 +8842,10 @@ reporte_ppt_plan <- function(
       if (!inherits(el_bl, "ppt_element")) el_bl <- .plan_elemento_degradado("paneles_4: `bottom_left` debe ser `ppt_element`.")
       if (!inherits(el_br, "ppt_element")) el_br <- .plan_elemento_degradado("paneles_4: `bottom_right` debe ser `ppt_element`.")
 
-      el_ul <- .inject_var_titulo(el_ul)
-      el_ur <- .inject_var_titulo(el_ur)
-      el_bl <- .inject_var_titulo(el_bl)
-      el_br <- .inject_var_titulo(el_br)
+      el_ul <- .base_por_grafico_si(.inject_var_titulo(el_ul), slide, presets, .base_auto_from_element)
+      el_ur <- .base_por_grafico_si(.inject_var_titulo(el_ur), slide, presets, .base_auto_from_element)
+      el_bl <- .base_por_grafico_si(.inject_var_titulo(el_bl), slide, presets, .base_auto_from_element)
+      el_br <- .base_por_grafico_si(.inject_var_titulo(el_br), slide, presets, .base_auto_from_element)
       # Sin `alto_slot`: el cajon de ESTE layout no esta medido. El 2.565 que
       # sale en `poblacion_4` es de aquella plantilla, no de esta.
       pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 6.1)
@@ -8882,7 +8882,7 @@ reporte_ppt_plan <- function(
         .push_render_meta_for_element(el_bl, pBL)
         .push_render_meta_for_element(el_br, pBR)
       }
-      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_composicion_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, base = slots$base %||% .base_auto_de_elementos(els = list(el_ul, el_ur, el_bl, el_br), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
+      if (!isTRUE(solo_lista) && .lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) doc <- .lam_composicion_mixta(doc, "paneles_4", list(pUL, pUR, pBL, pBR), list(el_ul, el_ur, el_bl, el_br), .lam_con_antetitulo(slide, ANTETITULOS[[i]]), .title_of_var, base = if (.base_por_grafico_migrada(slide)) slots$base else slots$base %||% .base_auto_de_elementos(els = list(el_ul, el_ur, el_bl, el_br), sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"), solo_base_declarada = .base_por_grafico_migrada(slide))
       if (!isTRUE(solo_lista) && !.lam_compositor_aplica_mixta(list(pUL, pUR, pBL, pBR), slide, "paneles_4", list(el_ul, el_ur, el_bl, el_br), .title_of_var)) {
 
         doc <- .add_slide_strict(doc, contract$layout)
@@ -8899,7 +8899,7 @@ reporte_ppt_plan <- function(
         doc <- .ph_with_strict(doc, .dml_o_tabla(pBR), contract$slots$bottom_right)
 
         base_txt <- slots$base %||% NULL
-        if (is.null(base_txt)) {
+        if (is.null(base_txt) && !.base_por_grafico_migrada(slide)) {
           base_txt <- .base_auto_de_elementos(
             els        = list(el_ul, el_ur, el_bl, el_br),
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
@@ -8910,7 +8910,7 @@ reporte_ppt_plan <- function(
         doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
 
         ft <- slots$footer %||% NULL
-        if (is.null(ft) || !nzchar(trimws(as.character(ft)[1]))) {
+        if ((is.null(ft) || !nzchar(trimws(as.character(ft)[1]))) && !.base_por_grafico_migrada(slide)) {
           ft <- .ppt_note_from(
             pUL,
             el_ul$overrides$nota_pie %||%
