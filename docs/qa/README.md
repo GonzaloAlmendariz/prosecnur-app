@@ -42,6 +42,9 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   selector con evidencia estadística, revamp de Aulas y ledger de iteraciones.
 - [Goal loop visual de toda la aplicación](goal-loop-visual-app-2026-07-30.md):
   órbita de los ocho módulos del proyecto y Enciclopedia como utilidad global.
+- [GOAL — La app se siente de una sola generación (2026-10-10)](goal-modernizacion-ui-2026-10-10.md):
+  vara, cola en seis oleadas, decisiones que esperan al dueño, ledger y
+  trampas; el plan de acción del censo.
 - [Censo de la UI — estado, deuda y techo de modernización (2026-10-10)](censo-ui-2026-10-10.md):
   mapa módulo → modo → sección → pestaña → panel, madurez por módulo, la
   quinta dimensión (diálogos y flujos de Carga), cumplimiento de la v3,
