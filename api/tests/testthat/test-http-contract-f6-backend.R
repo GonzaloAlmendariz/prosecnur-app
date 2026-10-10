@@ -38,3 +38,29 @@ test_that("POST /word acepta opciones_documento en el body y rechaza una portada
   expect_identical(bien$status, 200L)
   expect_true(is.character(bien$json$job_id) && nzchar(bien$json$job_id))
 })
+
+test_that("GET /estandar entrega los 22 tipos de lámina con ranuras en pulgadas, colores y paletas (K1)", {
+  srv <- http_contract_server()
+  r <- http_get(srv, "/api/graficos/estandar")
+  expect_identical(r$status, 200L)
+  expect_length(r$json$tipos_lamina, 22L)
+  t1 <- r$json$tipos_lamina[[1]]
+  expect_identical(t1$id, "p_slide_1_grafico")
+  expect_identical(t1$nombre, "Un gráfico")
+  expect_true(nzchar(t1$uso))
+  expect_identical(t1$ranuras[[1]]$rol, "grafico")
+  expect_equal(t1$ranuras[[1]]$w, 12.523)
+  expect_identical(r$json$colores$coral, "#CA5651")
+  expect_identical(r$json$unidad, "in")
+  expect_match(rawToChar(r$raw), '"ranuras":[{"rol":"grafico"', fixed = TRUE)   # arreglo aunque haya una sola ranura
+})
+
+test_that("GET /registry dice el tipo del estándar de cada lámina y null en las de estructura (K1)", {
+  srv <- http_contract_server()
+  r <- http_get(srv, "/api/graficos/registry")
+  expect_identical(r$status, 200L)
+  por <- setNames(r$json$slides, vapply(r$json$slides, `[[`, "", "name"))
+  expect_identical(por$p_slide_3_graficos_poblacion_corona$estandar$nombre, .std_tipo_lamina("p_slide_3_graficos_poblacion_corona")$nombre)
+  expect_null(por$p_slide_portada$estandar)
+  expect_identical(lengths(regmatches(rawToChar(r$raw), gregexpr('"estandar":null', rawToChar(r$raw), fixed = TRUE))), 11L)
+})

@@ -5400,6 +5400,7 @@
       ),
       slot_specs    = slot_specs,
       slots         = lapply(slot_specs, function(spec) spec$name),
+      estandar      = .graficos_estandar_de_slide(nm),   # K1: tipo del recetario o NA (graficos_estandar_api.R)
       args          = .normalize_args_for_ui(meta$args %||% list()),
       args_extra    = as.list(args_extra)
     )

@@ -86,6 +86,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_monitoreo_aulas_distribucion(pr)
     pr <- mount_graficos(pr)
     pr <- mount_graficos_consolidado(pr)
+    pr <- mount_graficos_estandar(pr)
     pr <- mount_dashboard(pr)
   }
 
