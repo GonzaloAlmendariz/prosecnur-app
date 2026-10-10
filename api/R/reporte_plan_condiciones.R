@@ -98,7 +98,7 @@
 #' @keywords internal
 .plan_render_element_degradable <- function(impl, el) {
   tryCatch(
-    impl(el),
+    .plan_con_etiquetas_cortas(el, impl(el)),  # K12a: la etiqueta corta del gráfico vale mientras se dibuja
     pulso_slide_render_error = function(cnd) {
       msg <- paste0("Lamina degradada a canvas 'Sin datos': ", conditionMessage(cnd))
       # El `warning()` es el rastro del log; el `.pulso_aviso()` es lo que llega

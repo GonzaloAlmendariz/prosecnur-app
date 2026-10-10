@@ -147,3 +147,26 @@ test_that("POST /preview-slide con preview_formas entrega las formas de cada par
   expect_identical(malo$status, 400L)
   expect_identical(malo$json$error$code %||% malo$json$code, "E_BAD_PREVIEW_FORMAS")
 })
+
+test_that("POST /preview-slide lleva la etiqueta corta de args.overrides.etiquetas_vars a la lámina nativa (K12a)", {
+  srv <- http_contract_server()
+  base <- http_contract_upload_base(srv)
+  texto_lamina <- function(etiquetas) {
+    args <- list(var = "claridad")
+    if (!is.null(etiquetas)) args$overrides <- list(etiquetas_vars = etiquetas)
+    lamina <- list(id = "s1", tipo = "p_slide_1_grafico",
+                   payload = list(titulo = "Claridad", grafico = list(graficador = "p_barras_apiladas", args = args)))
+    r <- http_post_json(srv, "/api/graficos/preview-slide", body = list(slide = lamina, include_images = FALSE), sid = base$sid)
+    expect_identical(r$status, 200L)
+    expect_identical(r$json$partes$partes[[1]]$estado, "nativa")
+    dl <- http_get(srv, sprintf("/api/files/%s/download", r$json$file_id), sid = base$sid)
+    f <- tempfile(fileext = ".pptx"); writeBin(dl$raw, f)
+    xml <- xml2::read_xml(.pptx_leer_parte(f, .pptx_slide_paths(f)[[1]]))
+    paste(xml2::xml_text(xml2::xml_find_all(xml, "//a:t")), collapse = " | ")
+  }
+  sin <- texto_lamina(NULL)
+  expect_match(sin, "Claridad de la informacion", fixed = TRUE)
+  con <- texto_lamina(list(claridad = "Información clara"))
+  expect_match(con, "Información clara", fixed = TRUE)
+  expect_false(grepl("Claridad de la informacion", con, fixed = TRUE))
+})

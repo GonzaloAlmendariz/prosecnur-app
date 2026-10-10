@@ -247,7 +247,7 @@
     el <- if (length(els) >= k) els[[k]] else NULL
     if (is.null(el) || .lam_es_cifra(especs[[k]])) return(NULL)
     texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
-      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(titulo_de_var(el$var), error = function(e) NULL))) %||% ""
+      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(.plan_titulo_corto(titulo_de_var, el), error = function(e) NULL))) %||% ""
   })
   publicos <- lapply(especs, function(e) {
     if (.lam_es_cifra(e)) return(NULL)

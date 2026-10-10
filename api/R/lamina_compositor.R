@@ -201,7 +201,7 @@
     # Los gráficos de números (láminas 79-87): el público de la base nombra los casos («22 estudiantes»).
     unidad <- if (grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) base_var else "respuestas"
     # La unidad del valor («años») sale de la etiqueta de la variable, no de una constante.
-    etiqueta_var <- if (is.function(titulo_de_var) && !is.null(el_plot$var)) tryCatch(titulo_de_var(el_plot$var), error = function(e) NULL)
+    etiqueta_var <- if (is.function(titulo_de_var) && !is.null(el_plot$var)) tryCatch(.plan_titulo_corto(titulo_de_var, el_plot), error = function(e) NULL)
     unidad_valor <- .unidad_de_etiqueta(etiqueta_var %||% "")
     # Una sola fuente para la unidad (la etiqueta del instrumento): el histograma reescribe su mediana con ella, y
     # sobre la edad la caja y media y rango llevan el encabezado del eje del recetario («Edad, en años»).
@@ -259,7 +259,7 @@
     # Dos categorías que reparten el 100 % de un público: la dicotomía partida a todo el ancho (lámina 74). La
     # pregunta encabeza el panel cuando la lámina tiene su propio título; si no, el título ya es la pregunta.
     pregunta <- if (!is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
-      tryCatch(texto(titulo_de_var(el_plot$var)), error = function(e) NULL)
+      tryCatch(texto(.plan_titulo_corto(titulo_de_var, el_plot)), error = function(e) NULL)
     }
     n_pub <- .espec_n_base(espec)
     publico <- if (is.finite(n_pub) && nzchar(base_var) && grepl("$", el_plot$var %||% "", fixed = TRUE)) {
@@ -290,7 +290,7 @@
   # Con fila Total o Bottom Two Box la pregunta encabeza el bloque (lámina 77) cuando la lámina tiene su
   # propio título; si no lo tiene, su título ya es la pregunta y no se repite.
   if (.lam_escala_en_filas(espec) && !is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
-    espec$pregunta <- tryCatch(as.character(titulo_de_var(el_plot$var))[1], error = function(e) NULL)
+    espec$pregunta <- tryCatch(as.character(.plan_titulo_corto(titulo_de_var, el_plot))[1], error = function(e) NULL)
   }
   # Una afirmación de un solo público: el recetario la encabeza con la pregunta y nombra al público junto a
   # la barra («Estudiantes · 172 respuestas», lámina 216). El público es la base de la variable
@@ -341,7 +341,7 @@
   base_txt <- paste(c(texto(base), texto(nota)), collapse = ". ")
   preguntas <- lapply(els, function(el) {
     texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
-      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(titulo_de_var(el$var), error = function(e) NULL))) %||% ""
+      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(.plan_titulo_corto(titulo_de_var, el), error = function(e) NULL))) %||% ""
   })
   especs <- lapply(seq_along(ps), function(k) {
     e <- attr(ps[[k]], "pulso_espec")
@@ -378,7 +378,7 @@
   }
   preguntas <- lapply(els, function(el) {
     texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
-      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(titulo_de_var(el$var), error = function(e) NULL))) %||% ""
+      (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(.plan_titulo_corto(titulo_de_var, el), error = function(e) NULL))) %||% ""
   })
   especs <- lapply(seq_along(rendered), function(k) {
     e <- attr(rendered[[k]], "pulso_espec")
