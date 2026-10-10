@@ -121,3 +121,29 @@ test_that("GET /recetario/ejemplo entrega la lámina de ejemplo por tipo o pági
   expect_identical(idx$status, 200L)
   expect_length(idx$json$ejemplos, 44L)
 })
+
+test_that("POST /preview-slide con preview_formas entrega las formas de cada parte y las ranuras del estándar; sin él, nada cambia (K11)", {
+  srv <- http_contract_server()
+  base <- http_contract_upload_base(srv)
+  lamina <- list(id = "s1", tipo = "p_slide_1_grafico",
+                 payload = list(titulo = "Región", grafico = list(graficador = "p_barras_agrupadas", args = list(var = "region"))))
+  cuerpo <- list(slide = lamina, config = list(plan = list(slides = list(lamina))), include_images = FALSE)
+  sin <- http_post_json(srv, "/api/graficos/preview-slide", body = cuerpo, sid = base$sid)
+  expect_identical(sin$status, 200L)
+  expect_null(sin$json$ranuras_estandar)
+  expect_null(sin$json$partes$partes[[1]]$formas)
+  con <- http_post_json(srv, "/api/graficos/preview-slide", body = c(cuerpo, list(preview_formas = TRUE)), sid = base$sid)
+  expect_identical(con$status, 200L)
+  formas <- con$json$partes$partes[[1]]$formas
+  expect_true(length(formas) > 3L)
+  por <- setNames(formas, vapply(formas, `[[`, "", "nombre"))
+  expect_identical(por[["Titulo lamina"]]$rol, "titulo")
+  expect_true(is.numeric(por[["Titulo lamina"]]$x) && is.numeric(por[["Titulo lamina"]]$pt_max))
+  expect_true(any(vapply(formas, function(f) identical(f$rol, "grafico"), logical(1))))
+  expect_true(all(c("nombre", "rol", "x", "y", "w", "h", "pt_min", "pt_max", "lineas", "recortado", "grupo") %in% names(formas[[1]])))
+  expect_identical(con$json$ranuras_estandar[[1]]$rol, "grafico")
+  expect_match(rawToChar(con$raw), '"grupo":null', fixed = TRUE)                    # ausente es null, no {}
+  malo <- http_post_json(srv, "/api/graficos/preview-slide", body = c(cuerpo, list(preview_formas = "si")), sid = base$sid)
+  expect_identical(malo$status, 400L)
+  expect_identical(malo$json$error$code %||% malo$json$code, "E_BAD_PREVIEW_FORMAS")
+})
