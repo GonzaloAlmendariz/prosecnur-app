@@ -55,3 +55,25 @@ test_that("p_cifra es un elemento de plan que entra en las ranuras de cifra de l
                                  grafico_izquierda = el, grafico_derecha = el, titulo = "El estudio en cifras")
   expect_identical(s$slots$cifra_centro$modo, "n")
 })
+
+test_that("la lámina 22 con cifras sale nativa: banda de cifras con sus valores y los dos gráficos en paneles", {
+  set.seed(1); n <- 60
+  df <- data.frame(titulo = sample(c("1", "2"), n, TRUE), edad = sample(20:30, n, TRUE), sector = sample(c("1", "2", "3"), n, TRUE))
+  inst <- list(survey = data.frame(name = c("titulo", "edad", "sector"), type = c("select_one si_no", "integer", "select_one sec"),
+                                   list_name = c("si_no", NA, "sec"), label = c("¿Tiene título?", "Edad", "Sector")),
+               choices = data.frame(list_name = c("si_no", "si_no", "sec", "sec", "sec"), name = c("1", "2", "1", "2", "3"),
+                                    label = c("Sí", "No", "Privado", "Público", "Independiente")), orders_list = NULL)
+  s <- p_slide_cifras_y_graficos(
+    cifra_izquierda = p_cifra("titulo", "n", rotulo = "egresados encuestados"),
+    cifra_centro = p_cifra("edad", "mediana", unidad = "años", rotulo = "edad mediana"),
+    cifra_derecha = p_cifra("titulo", "porcentaje", categoria = "1", rotulo = "tiene el título"),
+    grafico_izquierda = p_barras_categoricas("titulo"), grafico_derecha = p_barras_categoricas("sector"), titulo = "El estudio en cifras")
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(reporte_ppt_plan(data = df, instrumento = inst, plan = p_plan(slides = list(s)), path_ppt = out, mensajes_progreso = FALSE))
+  expect_identical(.preview_partes(out)$partes[[1]]$estado, "nativa")
+  x <- .pptx_leer_parte(out, .pptx_slide_paths(out)[1])
+  valores <- regmatches(x, gregexpr('(?s)name="cifra:valor".*?<a:t>[^<]*</a:t>', x, perl = TRUE))[[1]]
+  expect_length(valores, 3L)
+  expect_match(valores[1], ">60<", fixed = TRUE)
+  expect_match(x, 'sz="4400"', fixed = TRUE)                                  # tres cifras: 44 pt, como la 171 del recetario
+})

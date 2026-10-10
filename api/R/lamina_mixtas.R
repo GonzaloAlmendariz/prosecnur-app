@@ -38,6 +38,14 @@
     graficos_3_1arriba = list(
       paneles = list(P(ml, yt - 0.05, ancho, 2.45), P(ml, yt + 2.55, col2, yf - yt - 2.55), P(xr, yt + 2.55, col2, yf - yt - 2.55)),
       filetes = list(list(tipo = "h", x0 = ml, x1 = W - g_("margen_der"), y = yt + 2.4))),
+    # Tipo 22 (lámina 171): banda de tres cifras arriba, filete, y dos gráficos lado a lado. Las cifras se dibujan juntas
+    # con `.lam_cifras_banda` (sus propios separadores); los paneles 1–3 sólo dan la franja que ocupan.
+    cifras_y_graficos = {
+      w3 <- (ancho - 2 * 0.45) / 3; yb <- yt + 2.1
+      list(paneles = list(P(ml, yt - 0.05, w3, 1.8), P(ml + w3 + 0.45, yt - 0.05, w3, 1.8), P(ml + 2 * (w3 + 0.45), yt - 0.05, w3, 1.8),
+                          P(ml, yb, col2, yf - yb), P(xr, yb, col2, yf - yb)),
+           filetes = list(list(tipo = "h", x0 = ml, x1 = W - g_("margen_der"), y = yt + 1.9), list(tipo = "v", x = xm, y0 = yb, y1 = yf)))
+    },
     paneles_4 = {
       h2 <- (yf - yt - 0.35) / 2
       list(paneles = list(P(ml, yt, col2, h2), P(xr, yt, col2, h2), P(ml, yt + h2 + 0.35, col2, h2), P(xr, yt + h2 + 0.35, col2, h2)),
@@ -45,6 +53,15 @@
     },
     NULL)
 }
+
+#' La especificación que trae un gráfico renderizado: la de un gráfico (`pulso_espec`) o la de una cifra destacada
+#' (`pulso_cifra`, F6.0b.6), que el panel dibuja con la banda de cifras
+#' @keywords internal
+.lam_espec_de <- function(p) {
+  if (!inherits(p, "ggplot")) return(NULL)
+  attr(p, "pulso_espec") %||% (if (!is.null(attr(p, "pulso_cifra"))) list(tipo = "cifra", item = attr(p, "pulso_cifra")))
+}
+.lam_es_cifra <- function(e) is.list(e) && identical(e$tipo, "cifra")
 
 #' Filas de una leyenda acotada a un panel: una si cabe a lo ancho del panel, dos si no
 #' @keywords internal
@@ -164,7 +181,15 @@
   P <- geo$paneles
   compartida <- .lam_mixta_compartida(especs, P)
   fines <- numeric(length(P))
-  for (k in seq_along(P)) {
+  cifras <- which(vapply(especs, .lam_es_cifra, TRUE))
+  iconos <- list()
+  if (length(cifras)) {
+    # Las cifras de la banda van juntas para que sus detalles caigan a la misma altura y lleven sus separadores.
+    p1 <- P[[cifras[1]]]; pn <- P[[cifras[length(cifras)]]]
+    b <- .lam_cifras_banda(lz, pulso_cifras(lapply(especs[cifras], `[[`, "item")), p1$x, p1$y, pn$x + pn$w - p1$x)
+    iconos <- b$iconos; fines[cifras] <- p1$y + b$alto
+  }
+  for (k in setdiff(seq_along(P), cifras)) {
     p <- P[[k]]
     fines[k] <- .lam_panel_mixto(lz, especs[[k]], p$x, p$y, p$w, p$h, preguntas[[k]] %||% NULL,
                                  (publicos %||% list())[k][[1]] %||% NULL, leyenda = !compartida[k])
@@ -178,6 +203,7 @@
     if (identical(f$tipo, "v")) .lam_separador_v(lz, f$x, f$y0, f$y1) else .lam_separador_h(lz, f$x0, f$x1, f$y)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mixta")
+  doc <- .lam_cifras_iconos(doc, iconos)
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
@@ -203,11 +229,12 @@
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   preguntas <- lapply(seq_along(especs), function(k) {
     el <- if (length(els) >= k) els[[k]] else NULL
-    if (is.null(el)) return(NULL)
+    if (is.null(el) || .lam_es_cifra(especs[[k]])) return(NULL)
     texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
       (if (is.function(titulo_de_var) && !is.null(el$var)) texto(tryCatch(titulo_de_var(el$var), error = function(e) NULL))) %||% ""
   })
   publicos <- lapply(especs, function(e) {
+    if (.lam_es_cifra(e)) return(NULL)
     n <- .espec_n_base(e)
     if (is.finite(n) && n > 0) paste(format(round(n), big.mark = ",", trim = TRUE), "respuestas") else NULL
   })
@@ -217,6 +244,7 @@
 #' ¿El gráfico cabe en su panel con la geometría del recetario? (la misma que dibuja `.lam_panel_mixto`)
 #' @keywords internal
 .lam_mixta_cabe <- function(espec, p, pregunta = NULL, publico = NULL, leyenda = TRUE) {
+  if (.lam_es_cifra(espec)) return(TRUE)
   isTRUE(.lam_panel_geo(espec, p$x, p$y, p$w, p$h, pregunta, publico, leyenda)$cabe)
 }
 
@@ -226,8 +254,9 @@
   if (identical((slide$meta %||% list())$motor_nativo, FALSE)) return(FALSE)
   geo <- .lam_mixta_geo(tipo)
   if (is.null(geo) || length(ps) != length(geo$paneles)) return(FALSE)
-  especs <- lapply(ps, function(p) if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL)
+  especs <- lapply(ps, .lam_espec_de)
   if (any(vapply(especs, is.null, TRUE))) return(FALSE)
+  if (sum(vapply(especs, .lam_es_cifra, TRUE)) > 5L) return(FALSE)
   enc <- .lam_mixta_encabezados(especs, els, titulo_de_var)
   compartida <- .lam_mixta_compartida(especs, geo$paneles)
   all(vapply(seq_along(especs), function(k) .lam_mixta_cabe(especs[[k]], geo$paneles[[k]], enc$preguntas[[k]], enc$publicos[[k]],
@@ -246,7 +275,7 @@
   base <- if (isTRUE(solo_base_declarada)) texto(base) else
     texto(base) %||% (if (is.character(slots$base)) texto(slots$base) else if (inherits(slots$base, "ppt_element_text")) texto(slots$base$text))
   especs <- lapply(seq_along(rendered), function(k) {
-    e <- attr(rendered[[k]], "pulso_espec")
+    e <- .lam_espec_de(rendered[[k]])
     if (identical(els[[k]]$.element_type, "barras_multiapiladas") && identical(els[[k]]$modo %||% "var", "var")) e <- .espec_ordenar_por_box(e)
     e
   })
