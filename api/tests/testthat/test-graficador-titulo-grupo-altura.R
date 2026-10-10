@@ -73,8 +73,8 @@ test_that("el recorte avisa, con el enunciado entero y cuanto falto", {
   expect_true(grepl("La Unidad facilita los medios necesarios para que los docentes cumplan su labor",
                     aviso, fixed = TRUE))
   # Y dice cuanto falto: 3 lineas de cupo contra las 4 que necesita.
-  expect_true(grepl("3 linea", aviso, fixed = TRUE))
-  expect_true(grepl("4 lineas", aviso, fixed = TRUE))
+  expect_true(grepl("recortado a 3 línea(s)", aviso, fixed = TRUE))
+  expect_true(grepl("necesita 4 líneas", aviso, fixed = TRUE))
 })
 
 test_that("lo que cabe no avisa", {
