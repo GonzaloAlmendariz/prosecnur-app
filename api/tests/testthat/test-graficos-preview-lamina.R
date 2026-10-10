@@ -59,7 +59,7 @@ test_that("el orden es el de la presentación aunque los archivos de lámina est
 
 test_that("se rasterizan todas las partes, no sólo la primera", {
   skip_if_not(isTRUE(.preview_renderer_status()$available), "sin renderer de vista previa")
-  skip_if_not(nzchar(Sys.which("pdftoppm")) || requireNamespace("magick", quietly = TRUE) || .artifact_renderer_configured(),
+  skip_if_not(nzchar(Sys.which("pdftoppm")) || requireNamespace("pdftools", quietly = TRUE) || .artifact_renderer_configured(),
               "sin rasterizador de PDF")
   f <- .pl_mini_pptx()
   r <- .render_pptx_preview_partes(f, 4L)

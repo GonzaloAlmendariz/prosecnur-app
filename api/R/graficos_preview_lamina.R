@@ -116,7 +116,8 @@
 #' (un proceso por parte: ~10 s cada una, por eso el endpoint sólo pide todas cuando el cliente lo solicita). La parte 1 es
 #' la misma que devolvía `.render_pptx_slide_preview`.
 #' @return Lista alineada con las partes: el elemento k es el payload de la parte k (`png_base64`, `width`, `height`,
-#'   `renderer`, `indice`) o `NULL` si esa parte no se pudo rasterizar; vacía si no hay renderer. El atributo `truncado`
+#'   `renderer`, `indice`) o `NULL` si esa parte no se pudo rasterizar (la API lo serializa como `{}`: un objeto sin
+#'   `indice` es un hueco); vacía si no hay renderer. El atributo `truncado`
 #'   vale `TRUE` cuando había más partes que `max_partes`.
 #' @keywords internal
 .render_pptx_preview_partes <- function(pptx_path, n_partes, preview_quality = "quick", max_partes = 6L) {
