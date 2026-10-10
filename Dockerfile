@@ -54,6 +54,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpng-dev \
         libtiff-dev \
         libjpeg-dev \
+        libpoppler-cpp-dev \
         libxt6 \
         zlib1g-dev \
         ca-certificates \

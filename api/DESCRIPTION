@@ -58,6 +58,7 @@ Imports:
     htmltools,
     kableExtra,
     png,
+    pdftools,
     jpeg,
     qpdf,
     qrcode,
