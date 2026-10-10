@@ -140,8 +140,9 @@ lista.
 
 Es un endpoint nuevo: ninguno de los existentes entrega código, etiqueta y frecuencia por pregunta.
 
-`GET /api/graficos/categorias?var=<referencia>&scope=<|consolidado>`, con `X-Session-Id`. `var` acepta `p7` o
-`docentes$p7`.
+`GET /api/graficos/categorias?var=<referencia>&scope=<|consolidado>`, con el header `X-Pulso-Session`. `var` acepta `p7` o
+`docentes$p7`; una referencia sin base se resuelve contra la **base activa** de la sesión (en el consolidado,
+contra la primera). El frontend debería mandar siempre la calificada (`base$var`).
 
 ```json
 {
