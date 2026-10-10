@@ -142,7 +142,7 @@
     s
   })
   plan$slides <- slides
-  plan
+  .graficos_migrar_poblacion_antigua(plan, avisar = FALSE)   # la población antigua sale del plan en todo camino que normaliza (graficos_migrar_poblacion.R)
 }
 
 .as_json_list <- function(x) {
