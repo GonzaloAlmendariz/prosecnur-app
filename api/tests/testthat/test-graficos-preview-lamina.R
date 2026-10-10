@@ -125,3 +125,20 @@ test_that("con LibreOffice y sin rasterizador, la vista previa no se declara dis
   expect_true(st$available)
   expect_identical(st$rasterizer, "pdftools")
 })
+
+test_that("la vista previa hereda el antetítulo del separador vigente, como el export (F6.0b.2)", {
+  plan <- list(
+    list(id = "s1", tipo = "p_slide_portada", payload = list(titulo = "Estudio")),
+    list(id = "s2", tipo = "p_slide_seccion", payload = list(titulo = "PERFIL DEL ENCUESTADO")),
+    list(id = "s3", tipo = "p_slide_1_grafico", payload = list(titulo = "Sexo")),
+    list(id = "s4", tipo = "p_slide_seccion", payload = list(titulo = "CARACTERISTICA INSTITUCIONALES")),
+    list(id = "s5", tipo = "p_slide_1_grafico", payload = list(titulo = "Misión"))
+  )
+  expect_equal(.preview_con_antetitulo(plan[[5]], plan)$payload$meta$antetitulo, "CARACTERISTICA INSTITUCIONALES")
+  expect_equal(.preview_con_antetitulo(plan[[3]], plan)$payload$meta$antetitulo, "PERFIL DEL ENCUESTADO")
+  expect_null(.preview_con_antetitulo(plan[[1]], plan)$payload$meta)                       # antes de cualquier separador
+  expect_null(.preview_con_antetitulo(plan[[4]], plan)$payload$meta)                       # el separador no se hereda a sí mismo
+  propio <- list(id = "s5", tipo = "p_slide_1_grafico", payload = list(titulo = "Misión", meta = list(antetitulo = "MÍO")))
+  expect_equal(.preview_con_antetitulo(propio, plan)$payload$meta$antetitulo, "MÍO")        # lo fijado gana
+  expect_null(.preview_con_antetitulo(list(id = "x", tipo = "p_slide_1_grafico", payload = list()), plan)$payload$meta)
+})
