@@ -37,9 +37,9 @@ test_that("con peso del estudio el porcentaje y la media van ponderados, y el de
   attr(b, "var_peso") <- "w"
   c1 <- .cifra_desde_datos(b, "titulo", "porcentaje", categoria = "1", rotulo = "x")
   expect_identical(c1$valor, "50%")                                            # 3 de 6 por peso; sin peso sería 25%
-  expect_match(c1$detalle, "peso del estudio", fixed = TRUE)
+  expect_identical(c1$detalle, "Con el peso del estudio")                         # sin una segunda base en la lámina
   expect_identical(.cifra_desde_datos(b, "edad", "media", rotulo = "x")$valor, "25.0")
-  expect_identical(.cifra_desde_datos(b, "edad", "mediana", rotulo = "x")$valor, "20")
+  expect_identical(.cifra_desde_datos(b, "edad", "mediana", rotulo = "x")$valor, "25")       # punto medio exacto: promedia 20 y 30
 })
 
 test_that("p_cifra es un elemento de plan que entra en las ranuras de cifra de la lámina 22 y se renderiza con datos", {
@@ -76,4 +76,9 @@ test_that("la lámina 22 con cifras sale nativa: banda de cifras con sus valores
   expect_length(valores, 3L)
   expect_match(valores[1], ">60<", fixed = TRUE)
   expect_match(x, 'sz="4400"', fixed = TRUE)                                  # tres cifras: 44 pt, como la 171 del recetario
+})
+
+test_that("la mediana es la misma que muestra el resto del informe (stats::median), también con n par", {
+  expect_identical(.cifra_desde_datos(data.frame(edad = c(22, 23, 24, 25, 23, 24)), "edad", "mediana", rotulo = "x")$valor, "23.5")
+  expect_equal(.cifra_mediana_ponderada(c(22, 23, 24, 25, 23, 24), rep(2, 6)), stats::median(c(22, 23, 24, 25, 23, 24)))
 })
