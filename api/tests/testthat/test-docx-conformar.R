@@ -41,8 +41,11 @@ test_that("corrige el docx mínimo de officer y flextable sin cambiar su texto",
   print(doc, target = path)
   antes <- officer::docx_summary(officer::read_docx(path))$text
 
-  # el defecto existe antes del posproceso
-  expect_true(grepl("</w:trPr>body1", .docx_xml(path, "word/document.xml"), fixed = TRUE))
+  # el defecto existe antes del posproceso con el officer que lo escribe (0.7.1, ver cabecera); el lock fija 0.7.6,
+  # que ya no lo emite, y ahí lo que se exige es lo de abajo: que el posproceso deje el archivo conforme
+  if (utils::packageVersion("officer") <= "0.7.1") {
+    expect_true(grepl("</w:trPr>body1", .docx_xml(path, "word/document.xml"), fixed = TRUE))
+  }
 
   .docx_conformar(path)
   .docx_conforme(path)
