@@ -258,4 +258,6 @@ test_that("en una lámina multilista todas las barras tienen el mismo grosor y c
   expect_lte(abs(f$y[f$nombre == "bloque:titulo"][1] - 1.60), tol)
   expect_lte(abs(min(seg$y) - 2.53), tol)
   expect_lte(abs(min(f$y[f$nombre == "leyenda:texto"]) - 6.26), tol)
+  # El rótulo «Top Two Box» del bloque 1 (p144: 1.95), sin mover la primera barra.
+  expect_lte(abs(min(f$y[f$nombre == "box:rotulo"]) - 1.95), tol)
 })

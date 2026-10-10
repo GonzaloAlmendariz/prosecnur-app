@@ -87,10 +87,15 @@
 .LAM_MULTILISTA_GAP <- 0.27
 # Del título del bloque a su primera fila: con columna Top Two Box su rótulo cabe en medio (p144: título 1.60,
 # rótulo 1.95, barra 2.53, con una cifra chica encima: 0.93 del título a la barra). Aquí, con cifras chicas,
-# 0.317 + 0.35 + 0.24 = 0.907; sin ellas, 0.317 + 0.35 + 0.18 = 0.847. El rótulo Top Two Box lo ubica
-# `.lam_bloque_escala` 0.45 sobre la franja y queda 0.08 más arriba que en la p144. Sin la columna, sólo el aire
-# del texto.
+# 0.317 + 0.35 + 0.24 = 0.907; sin ellas, 0.317 + 0.35 + 0.18 = 0.847. Sin la columna, sólo el aire del texto.
 .LAM_MULTILISTA_AIRE_TTB <- 0.35
+# El rótulo Top Two Box, sobre la franja del bloque: la p144 lo pone en 1.95 con el título en 1.60 (0.35 bajo el
+# título). Aquí la franja empieza en 1.65 + 0.317 + 0.35 = 2.317 y el rótulo va 0.37 sobre ella: 1.947. La escala
+# simple lo deja 0.45 sobre su franja.
+.LAM_MULTILISTA_ROTULO_TTB <- 0.37
+# Grosor de barra (ficha p143: 0.30 in; ejemplo p144: 0.40 in): manda el token por filas de la lámina
+# (`.std_grosor`) y la regla de cifras chicas, decididos una vez por lámina en `.lam_multilista_grosor`. El título
+# del primer bloque arranca en `zona_datos_y0` (1.65 in; p144: 1.60).
 .LAM_MULTILISTA_AIRE <- 0.1
 # Alto de la leyenda bajo un bloque (el cuadro baja 0.07 y el texto mide 0.3, más el aire hasta el bloque que sigue).
 .LAM_MULTILISTA_LEYENDA <- 0.5
@@ -261,7 +266,8 @@
     }
     y <- y + (if (!is.null(it$espec$box$unidades)) .LAM_MULTILISTA_AIRE_TTB else .LAM_MULTILISTA_AIRE)
     fin <- .lam_bloque_escala(lz, it$espec, it$premisas, solo = FALSE, y0 = y, y1 = y + natural[k] * f + 1e-6,
-                              leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire, grosor = gr$grosor)
+                              leyenda = !compartida, estirar = f, nb = nb, aire = gr$aire, grosor = gr$grosor,
+                              rotulo_sobre = .LAM_MULTILISTA_ROTULO_TTB)
     y <- fin + (if (compartida) 0 else .LAM_MULTILISTA_LEYENDA) + .LAM_MULTILISTA_GAP
   }
   if (compartida) {

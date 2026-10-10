@@ -171,10 +171,12 @@
 #' @param aire,grosor Aire extra por fila y grosor de barra decididos una vez por lámina por quien compone varios
 #'   bloques (multilista), para que todos salgan iguales. `NULL`: el bloque aplica la regla de cifras chicas por su
 #'   cuenta, como siempre.
+#' @param rotulo_sobre Distancia del rótulo «Top Two Box» sobre la franja; la multilista lo acerca para caer en la
+#'   p144 del recetario. `NULL`: 0.45, la de siempre.
 #' @return Invisible, la `y` donde termina el bloque (sin la leyenda).
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
-                               estirar = NULL, nb = NULL, aire = NULL, grosor = NULL) {
+                               estirar = NULL, nb = NULL, aire = NULL, grosor = NULL, rotulo_sobre = NULL) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
@@ -229,7 +231,7 @@
     if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36)
   }
   y <- if (is.null(estirar)) y0 + max(0, (y1 - y0 - tot - 0.5) / 2) else y0
-  if (ttb_col) .lam_txt(lz, rot_box, L$x_top_two_box, y - 0.45, 1.5, 0.26, .std_pt("rotulo_top_two_box"), verde, bold = TRUE, align = "center", nombre = "box:rotulo")
+  if (ttb_col) .lam_txt(lz, rot_box, L$x_top_two_box, y - (rotulo_sobre %||% 0.45), 1.5, 0.26, .std_pt("rotulo_top_two_box"), verde, bold = TRUE, align = "center", nombre = "box:rotulo")
   ytop <- y
   for (i in seq_along(premisas)) {
     p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE); hn <- .lam_premisa_alto(p, wp)
