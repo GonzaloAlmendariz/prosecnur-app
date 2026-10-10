@@ -48,6 +48,10 @@ Rama `claude/gracious-ptolemy-d7avd8`; entran a `main` con la Fase 0. Revísalos
 - `scripts/tests/ui-quick-check-graficos-libraries-mounted.test.mjs`: como la pestaña por defecto es `laminas`, el contrato
   de las bibliotecas pide `pestana=clasico`. Cuando A10 retire el Editor anterior, este contrato debe migrar a Láminas.
 - `test-graficador-titulo-grupo-altura.R`: compara el aviso de recorte con su redacción acentuada («línea(s)», «líneas»).
+- `api/R/lamina_piezas.R`: `.lam_ancho_tinta()` devuelve `numeric(0)` con un vector vacío (el systemfonts del lock abortaba
+  y la lámina 104 sin distritos no podía decir su vacío).
+- `test-docx-conformar.R`: la precondición «el docx crudo trae texto suelto en `<w:tr>`» se exige sólo con officer ≤ 0.7.1;
+  el lock fija 0.7.6, que ya no lo emite. El contrato de `.docx_conformar` sigue entero.
 
 ## Traspaso a la nube (léelo primero)
 
