@@ -3452,7 +3452,7 @@ mount_graficos <- function(pr) {
       # selector de bases en el editor. Es opcional: solo aplica a
       # proyectos multi-base independientes con >= 2 bases con datos.
       sid <- session_header(req)
-      s <- session_get(sid)
+      s <- .graficos_sesion_con_migracion(sid)   # migra y guarda la config de cada base; su aviso va al resultado del job
       if (!isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE))) {
         stop_api(409, "E_NOT_MULTIBASE",
                  "Este proyecto no es multi-base independiente. Usa 'Exportar' normal.")
@@ -3544,7 +3544,7 @@ mount_graficos <- function(pr) {
             # del job y éste no, que es justo donde una lámina degradada se
             # esconde mejor —el mazo de todas las bases—. Sin esto, el aviso de
             # «lámina degradada a canvas Sin datos» moría en el stderr.
-            avisos = I(.pulso_avisos_de_job(j$sid, j$id))
+            avisos = I(.graficos_avisos_job(j$sid, j$id, s))
           )
         }
       )

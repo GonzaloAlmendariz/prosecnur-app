@@ -40,12 +40,25 @@ test_that("los tres exports de gráficos cosechan los avisos del job", {
   bloques <- .bloques_de_job(.router_graficos())
   expect_true(all(c("graficos.ppt", "graficos.ppt_all", "graficos.word") %in% names(bloques)))
 
+  # Desde el R4 de la migración de población (2026-10-10) los tres cosechan por `.graficos_avisos_job()`, que suma los
+  # avisos de la migración del plan a los del `.err` del job. El contrato exige ese cosechador en cada bloque y, abajo,
+  # que el cosechador siga leyendo el `.err`: un export que no exponga `avisos` sigue fallando aquí.
   for (kind in c("graficos.ppt", "graficos.ppt_all", "graficos.word")) {
     expect_true(
-      grepl(".pulso_avisos_de_job", bloques[[kind]], fixed = TRUE),
+      grepl("avisos = I(.graficos_avisos_job(j$sid, j$id", bloques[[kind]], fixed = TRUE),
       info = sprintf("el job %s no expone `avisos`: sus degradaciones se pierden", kind)
     )
   }
+})
+
+test_that("el cosechador de los exports lee los avisos del job y los ordena como los demás", {
+  cuerpo <- paste(deparse(body(.graficos_avisos_job)), collapse = "\n")
+  expect_true(grepl(".pulso_avisos_de_job(sid, job_id", cuerpo, fixed = TRUE))
+  expect_true(grepl(".pulso_avisos_ordenar(", cuerpo, fixed = TRUE))
+  # Y de verdad: un aviso del `.err` llega al resultado.
+  testthat::local_mocked_bindings(.pulso_avisos_de_job = function(sid, job_id, maximo = 8L) "Lámina degradada a canvas Sin datos",
+                                  .package = "prosecnurapp")
+  expect_identical(.graficos_avisos_job("s", "j"), "Lámina degradada a canvas Sin datos")
 })
 
 test_that("el troceo por job distingue de verdad un bloque de otro", {
