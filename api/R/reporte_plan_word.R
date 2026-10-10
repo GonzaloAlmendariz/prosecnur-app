@@ -145,6 +145,17 @@ w_presets <- function(
   out
 }
 
+#' Método de redondeo que declara el «Cómo leer» del Word recetario
+#'
+#' El que pidan las opciones del documento; si no piden ninguno, el que usa el informe, deducido igual que la lámina de
+#' redondeo del PPT (`.lam_redondeo_metodo`): antes el Word decía siempre «estándar» aunque las barras cerraran en 100
+#' con el resto mayor (inventario F6, A4).
+#' @return «estandar», «resto_mayor» o «ambos».
+#' @keywords internal
+.word_redondeo_documento <- function(opciones = list(), presets = list()) {
+  .lam_redondeo_metodo(list(metodo = (opciones %||% list())$redondeo), presets %||% list())
+}
+
 .apply_word_chart_presets <- function(presets_ppt, presets_word) {
   `%||%` <- function(x, y) if (!is.null(x)) x else y
   presets_ppt <- presets_ppt %||% list()
@@ -306,6 +317,7 @@ reporte_word_plan <- function(
 
   # ADR 0093 (N8.15): el documento del recetario, desde la misma render_meta. El clásico sigue debajo.
   if (identical(estilo_documento, "recetario") && !isTRUE(solo_lista)) {
+    opciones_documento$redondeo <- .word_redondeo_documento(opciones_documento, presets_ppt_word)
     res <- .word_documento(render_meta, path_docx, fuente = fuente, opciones = opciones_documento, mensajes = mensajes_progreso)
     if (isTRUE(mensajes_progreso)) message("DOCX generado en: ", normalizePath(path_docx, winslash = "/"))
     return(invisible(list(doc = NULL, plan = ppt_result$plan, log = NULL, figuras = res$figuras, tablas = res$tablas, avisos = res$avisos)))
