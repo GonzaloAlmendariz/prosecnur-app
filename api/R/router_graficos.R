@@ -1397,6 +1397,7 @@
     "canvas_viewport", "canvasViewport", "scope_rules", "scopeRules",
     "profile_id", "profileId", "template_id", "templateId",
     "auto_otros_slides", "autoOtrosSlides",
+    "documento_word", "documentoWord",
     "_unknown"
   )
   if (!.graficos_is_obj(x)) return(list())
@@ -1531,6 +1532,10 @@
   } else {
     defaults$auto_otros_slides
   }
+
+  # Opciones del documento Word del recetario (F6.0b.4): se validan al exportar (.graficos_opciones_documento).
+  documento_word <- .graficos_pick_alias(src, "documento_word", "documentoWord")
+  if (.graficos_is_obj(documento_word)) cfg$documento_word <- documento_word
 
   scope_rules <- .graficos_pick_alias(src, "scope_rules", "scopeRules")
   cfg$scope_rules <- if (.graficos_is_obj(scope_rules)) scope_rules else list(
@@ -3529,7 +3534,7 @@ mount_graficos <- function(pr) {
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt_all")
     })) |>
     plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
-      crudo <- .graficos_body_sin_simplificar(req, c("plan", "presets", "w_presets", "config"))
+      crudo <- .graficos_body_sin_simplificar(req, c("plan", "presets", "w_presets", "config", "opciones_documento"))
       if (is.list(crudo)) {
         plan <- crudo$plan %||% plan
         presets <- crudo$presets %||% presets
@@ -3559,24 +3564,31 @@ mount_graficos <- function(pr) {
       graficador_registry_arg <- .graf_names()
       icon_registry_arg <- .graficos_icon_registry(sid, cfg)
       paletas_arg <- cfg$paletas %||% list()
+      # Portada, apertura, «Cómo leer», contacto y datos de portada del recetario (F6.0b.4, graficos_documento_word.R).
+      opciones_documento <- .graficos_opciones_documento(
+        if (is.list(crudo)) crudo$opciones_documento %||% cfg$documento_word else cfg$documento_word
+      )
+      args_word <- list(
+        rp_data_path = rp_data_path,
+        rp_inst_path = rp_inst_path,
+        plan = plan,
+        presets = presets,
+        w_presets = w_presets,
+        paletas = paletas_arg,
+        slide_registry = slide_registry_arg,
+        graficador_registry = graficador_registry_arg,
+        icon_registry = icon_registry_arg,
+        active_base = active_base_arg
+      )
+      # Sólo viaja si hay opciones: un worker instalado sin este argumento sigue funcionando mientras no se usen.
+      if (length(opciones_documento)) args_word$opciones_documento <- opciones_documento
 
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.word",
         # Worker top-level en graficos_jobs.R (ver comentario en /ppt).
         func = graficos_job_worker_word,
-        args = list(
-          rp_data_path = rp_data_path,
-          rp_inst_path = rp_inst_path,
-          plan = plan,
-          presets = presets,
-          w_presets = w_presets,
-          paletas = paletas_arg,
-          slide_registry = slide_registry_arg,
-          graficador_registry = graficador_registry_arg,
-          icon_registry = icon_registry_arg,
-          active_base = active_base_arg
-        ),
+        args = args_word,
         result_filename = .graficos_export_filename(sid, "reporte_word", "docx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_word", j$result_path)

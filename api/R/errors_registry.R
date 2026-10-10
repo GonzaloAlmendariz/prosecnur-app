@@ -223,6 +223,7 @@ errores_registrados <- function() {
     "E_AUTO_NAME_EXHAUSTED",                                 "session_store.R",                   "500",
     "E_BAD_BASE64",                                          "router_graficos.R",                 "400",
     "E_BAD_DATA_EXT",                                        "router_sistema.R",                  "400",
+    "E_BAD_DOCUMENTO_WORD",                                  "graficos_documento_word.R",         "400",
     "E_BAD_EDITOR_SOURCE",                                   "router_xlsform_editor.R",           "indirecto",
     "E_BAD_FILE",                                            "router_monitoreo.R",                "400",
     "E_BAD_FILE_TYPE",                                       "router_monitoreo.R",                "400",

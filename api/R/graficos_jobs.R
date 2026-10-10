@@ -254,10 +254,12 @@ attr(graficos_job_worker_ppt_all, "prosecnur_job_function_name") <- "graficos_jo
 graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, w_presets,
                                      paletas, slide_registry, graficador_registry,
                                      icon_registry, active_base,
-                                     result_path, progress_path = NULL) {
+                                     result_path, progress_path = NULL, opciones_documento = list()) {
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
+  fuente_documento <- opciones_documento$fuente
+  opciones_documento$fuente <- NULL
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
@@ -274,7 +276,9 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
       presets_word = .build_w_presets(w_presets),
       plan = p_plan(slides = slides_r),
       env_diapos = palette_env,
-      mensajes_progreso = FALSE
+      mensajes_progreso = FALSE,
+      fuente = fuente_documento,
+      opciones_documento = opciones_documento %||% list()
     ),
     error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
   )
