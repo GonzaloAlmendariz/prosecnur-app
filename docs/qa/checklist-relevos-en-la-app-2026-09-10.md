@@ -1,5 +1,10 @@
 # Llevar el diseño de «Relevos de aula» a la app — 2026-09-10
 
+Tipo: Checklist de traslado de diseño
+Estado: En curso
+Fecha: 2026-09-10
+Autoridad: El artefacto manda en el diseño; la app manda en el dato
+
 Gonzalo, tras ver el artefacto: «la app puede tener ciertas cosas, pero el
 diseño que tú has generado del artefacto es un diseño muy, muy, muy bueno, y es
 el que tiene que tener».

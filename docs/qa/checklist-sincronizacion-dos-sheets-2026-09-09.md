@@ -1,5 +1,10 @@
 # Checklist — que el operativo se actualice solo con dos clics (2026-09-09)
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-09
+Autoridad: Dictado de Gonzalo; sólo él lo da por terminado
+
 La tanda de indicaciones de Gonzalo del 9 de setiembre, jornada 3 del operativo
 HSVG2026. Un ítem por indicación, cada uno con **dónde vive** y su estado. Sólo
 él lo da por terminado.

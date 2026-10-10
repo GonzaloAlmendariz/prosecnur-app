@@ -1,12 +1,13 @@
 # Dirección de diseño — el editor de Gráficos remasterizado (F6.0)
 
 Tipo: Dirección de diseño (propuesta)
-Estado: **Aprobada por Gonzalo el 2026-10-09** («Lo apruebo»), tras tres rondas de corrección contra el recetario; las
+Estado: Vigente
+Aprobación: **Aprobada por Gonzalo el 2026-10-09** («Lo apruebo»), tras tres rondas de corrección contra el recetario; las
 preguntas de §10 siguen abiertas y se resuelven al arrancar F6.1
 Fecha: 2026-10-09
 Autoridad: Los hechos del motor están medidos en `inventario-f6-editor-2026-10-09.md`; las decisiones de Gonzalo
-citadas ahí mandan sobre este documento. La maqueta vive en `tmp/f6-diseno/maqueta/` (no versionada) y sus capturas en
-`tmp/f6-diseno/capturas/`.
+citadas ahí mandan sobre este documento. La maqueta vive en `f6-diseno/maqueta/` (carpeta local bajo `tmp`, no versionada) y sus capturas en
+`f6-diseno/capturas/`.
 
 ## 1. Problema
 
@@ -304,12 +305,12 @@ Medido en la Parte C del inventario; cada punto se marca «requiere backend» en
 ## 9. Cómo ver la maqueta
 
 ```bash
-cd tmp/f6-diseno/maqueta && python3 -m http.server 8932 --bind 127.0.0.1
+cd <carpeta local f6-diseno/maqueta> && python3 -m http.server 8932 --bind 127.0.0.1
 ```
 
 Abre `http://127.0.0.1:8932`. La barra superior cambia el viewport (1440 / 1024) y el estado (normal, cargando,
 desactualizada, error, sin renderer, sin informe, muchas láminas); la dirección canónica se ve a la derecha y en el hash.
-Las capturas de `tmp/f6-diseno/capturas/` se regeneran con `node tmp/f6-diseno/capturar.mjs` (usa el Playwright de
+Las capturas de `f6-diseno/capturas/` se regeneran con el script `f6-diseno/capturar.mjs` de la misma carpeta local (usa el Playwright de
 `frontend/`). Los assets (`assets/`) salen del PDF del recetario y de la propuesta Word convertidos con LibreOffice; no se
 versionan.
 

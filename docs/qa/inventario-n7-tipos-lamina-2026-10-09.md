@@ -1,6 +1,11 @@
 # Inventario N7 — 22 tipos de lámina e identidad (ADR 0093)
 
-Fecha: 2026-10-09. Fuente: exploración del repo (recetario `recetario_estructura.json` + `reordenar.py`, cruzado con los
+Tipo: Inventario QA (N7)
+Estado: En curso
+Fecha: 2026-10-09
+Autoridad: Gate de N7 del ADR 0093. Evidencia de QA; no reemplaza un ADR
+
+Fuente: exploración del repo (recetario `recetario_estructura.json` + `reordenar.py`, cruzado con los
 títulos de `recetario-moderna.pptx`, 272 láminas). La identidad es el **capítulo 1 (láminas 4-65)**; las 122-128 son
 ejemplos de 3.2 «Un gráfico». El gate de N7 del ADR 0093 son los pares 121-169 y 19-65.
 

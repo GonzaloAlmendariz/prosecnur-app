@@ -1,5 +1,10 @@
 # Avance, superficie por superficie, contra su norte
 
+Tipo: Auditoría QA de superficie
+Estado: En curso
+Fecha: 2026-08-29
+Autoridad: Norte dictado por Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 **Abierta** 2026-08-29 · **Sobre** `HSVG2026_sem15_campo_malo.pulso` (1.424 aulas
 de plan, 1.595 respuestas, 152 aulas aplicadas).
 

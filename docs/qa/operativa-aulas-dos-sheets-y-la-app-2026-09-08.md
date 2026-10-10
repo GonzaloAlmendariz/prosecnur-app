@@ -1,5 +1,10 @@
 # Cómo encajan los dos Sheets y la app — HSVG2026
 
+Tipo: Mapa operativo
+Estado: Vigente
+Fecha: 2026-09-08
+Autoridad: Regla dictada por Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 Escrito el 2026-09-08, al cierre del día 2 de campo, con las tres piezas ya
 funcionando. Es el mapa que faltaba: quién es dueño de qué, en qué dirección
 viaja cada dato y en qué orden se sincroniza.

@@ -1,5 +1,10 @@
 # «Avance por facultad» — dictado de Gonzalo del 2026-09-15
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-15
+Autoridad: Dictado de Gonzalo y sus dos decisiones previas. Evidencia de QA; no reemplaza un ADR
+
 > «En el excel publicable es mejor que en avance por facultad efectivas no
 > ocupe tanto ancho y que la columna de aulas aplicadas esté a su derecha y
 > también la de aulas planificadas para que podamos ver si se están aplicando

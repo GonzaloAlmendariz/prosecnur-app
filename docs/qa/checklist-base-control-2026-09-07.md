@@ -1,5 +1,10 @@
 # Base de control — lo que Gonzalo pidió el 2026-09-07 (tarde)
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-07
+Autoridad: Pedido de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 Dos mensajes, sobre el libro ya publicado a media jornada del primer día de
 campo:
 

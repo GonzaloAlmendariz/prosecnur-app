@@ -1,6 +1,10 @@
 # Checklist — Aulas como patrón para Muestra general y Acreditación (E15)
 
-Tipo: Checklist vivo · Fecha: 2026-09-24 · Etapa E15 del loop de Cálculo de muestra
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-09-24
+Autoridad: Pedido de Gonzalo. Evidencia de QA; no reemplaza un ADR
+Etapa E15 del loop de Cálculo de muestra
 
 Pedido de Gonzalo (textual): «Creo que de todas forma amerita un segunda
 revision con captura, de todas las tabs y subtabs de aulas y que lo uses como

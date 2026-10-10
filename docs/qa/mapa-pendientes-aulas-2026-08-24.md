@@ -1,5 +1,10 @@
 # Mapa de lo pendiente — cursos-horario, 2026-08-24
 
+Tipo: Mapa de pendientes (relevo)
+Estado: Vigente
+Fecha: 2026-08-24
+Autoridad: Las decisiones son de Gonzalo; no es un plan con fechas
+
 Cierre del loop de mejora sobre **cálculo de muestra → procesamiento →
 recopiladores (QR) → monitoreo**. Esto es el relevo: lo que queda, dónde vive y
 qué está medido.

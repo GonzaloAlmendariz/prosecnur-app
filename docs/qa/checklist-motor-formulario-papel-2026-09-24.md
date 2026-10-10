@@ -1,6 +1,11 @@
 # Checklist — llevar el instrumento artesanal al motor de formulario en papel
 
-**Fecha:** 2026-09-24 · **Origen:** el instrumento de *Ser Adolescente en el Perú* (12-2026)
+Tipo: Checklist de traslado al motor
+Estado: En curso
+Fecha: 2026-09-24
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
+**Origen:** el instrumento de *Ser Adolescente en el Perú* (12-2026)
 se diagramó a mano fuera de la app durante tres semanas, y el resultado es más limpio que lo
 que produce hoy `reporte_formulario_word.R` / `reporte_formulario_pdf.R`. Este documento
 traslada lo aprendido, incluidos los errores que costaron horas, para que el motor lo genere

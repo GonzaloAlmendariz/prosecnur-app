@@ -1,7 +1,12 @@
 # Checklist — «Correcciones Parte 1»: Avance de cursos-horario, de la app y del Sheets
 
-**Fecha:** 2026-09-08 · **Origen:** dictado de Gonzalo en
-`/Users/gonzaloalmendariz/Documents/Pulso/HSTVG2026/Corecciones Parte 1.docx`
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-08
+Autoridad: Dictado de Gonzalo («Correcciones Parte 1»). Evidencia de QA; no reemplaza un ADR
+
+**Origen:** dictado de Gonzalo en
+`~/Documents/Pulso/HSTVG2026/Corecciones Parte 1.docx`
 (ocho puntos con capturas) más dos quejas de la conversación: «el .pulso no se
 actualiza a pesar de que aprieto el botón de actualizar» y «no lee efectivas ni
 nada». Gonzalo: «no te detengas hasta que esté todo solucionado».

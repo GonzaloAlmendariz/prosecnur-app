@@ -1,5 +1,10 @@
 # Checklist — registro académico y lectura no técnica de Monitoreo de aulas
 
+Tipo: Checklist de encargo
+Estado: En curso
+Fecha: 2026-08-29
+Autoridad: Encargo de Gonzalo; sólo él lo da por terminado
+
 Encargo de Gonzalo el 2026-08-29, al reanudar el loop. Nueve indicaciones. Se
 dibuja **entero** cada vez que se menciona; sólo él lo da por terminado.
 

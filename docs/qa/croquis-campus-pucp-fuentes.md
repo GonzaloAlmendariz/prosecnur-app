@@ -1,5 +1,10 @@
 # Croquis del campus PUCP — fuentes del mapeo letra → posición (B32)
 
+Tipo: Registro de fuentes
+Estado: Vigente
+Fecha: 2026-09-02
+Autoridad: Respalda las coordenadas de `api/R/collection_render_croquis.R`; no reemplaza un ADR
+
 Fecha de consulta: 2026-09-02. Este documento respalda las coordenadas
 embebidas en `api/R/collection_render_croquis.R`. El croquis es un **dibujo
 estilizado propio** (SVG/grid nuestro, plan view con norte arriba); el mapa

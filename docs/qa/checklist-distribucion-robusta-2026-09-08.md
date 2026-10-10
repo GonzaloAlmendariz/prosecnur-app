@@ -1,5 +1,10 @@
 # Checklist — el ciclo de la distribución, sin scripts míos
 
+Tipo: Checklist de pedido
+Estado: En curso
+Fecha: 2026-09-08
+Autoridad: Pedido de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 Pedido de Gonzalo (2026-09-08): **«Dejemos todo el proceso robusto para tapar el
 agujero»**, dicho después de que `publicar-distribucion` resultara capaz de
 borrar de un request los 33 cambios de aplicador y las tres reagendaciones que

@@ -1,7 +1,10 @@
 # Encargo del loop F6 — motor nativo del recetario y editor nuevo de Gráficos
 
-Tipo: Encargo de loop indefinido · Estado: vigente (traspaso a sesión en la nube) · Fecha: 2026-10-10 · Autoridad: pedidos
-textuales de Gonzalo en la sesión local del loop N8/F6.
+Tipo: Encargo de loop indefinido
+Estado: Vigente
+Fecha: 2026-10-10
+Autoridad: pedidos textuales de Gonzalo en la sesión local del loop N8/F6.
+Situación: traspaso a sesión en la nube.
 
 ## Traspaso a la nube (léelo primero)
 
@@ -11,12 +14,12 @@ textuales de Gonzalo en la sesión local del loop N8/F6.
   reescríbelo cada turno (skill `/preparar-loop-indefinido`). Este archivo versionado se actualiza al cerrar cada etapa.
 - Reloj: `sleep 180` con run_in_background, description «TICK DEL LOOP F6 — retoma <ruta del encargo>». Cadencia de Gonzalo:
   180 s («aquí cambia el reloj a 3 minutos para que supervises de forma más pausada lo que hacen»). Un solo TICK.
-- Lo que NO existe en la nube: los puertos locales 8787/8821/5173 de Gonzalo y `tmp/n8/` (copia de trabajo, scripts y el
+- Lo que NO existe en la nube: los puertos locales 8787/8821/5173 de Gonzalo y la carpeta local `n8/` bajo `tmp` (copia de trabajo, scripts y el
   encargo histórico). Proyecto equivalente versionado: `api/inst/reference_projects/acrconta_mazo/` (anonimizado). Trabaja
   siempre sobre una COPIA de ese `.pulso`. Para QA visual levanta tu propia pila (backend con load_all + Vite con cacheDir
   privado) y ciérrala al terminar.
 - Los ids de agentes citados abajo eran de la sesión local; en la nube se lanzan agentes nuevos con el mismo encargo.
-- Las rutas de evidencia `/private/tmp/...scratchpad/...` eran locales y no viajan: el veredicto de cada verificador está
+- Las rutas de evidencia del scratchpad de la sesión local eran locales y no viajan: el veredicto de cada verificador está
   resumido aquí con sus cifras.
 
 ## Primer paso en la nube
@@ -31,10 +34,10 @@ textuales de Gonzalo en la sesión local del loop N8/F6.
 
 RELOJ EN PAUSA (2026-10-10 ~20:55, pedido de Gonzalo: «pausamos el reloj y definimos todo lo pendiente para el siguiente reloj»).
 AL REANUDAR (solo cuando Gonzalo lo pida): relanzar `sleep 180` con run_in_background y description
-«TICK DEL LOOP N8 Word — retoma tmp/n8/ENCARGO_LOOP.md». Cadencia elegida por Gonzalo: 180 s — «aquí cambia el reloj a 3
+«TICK DEL LOOP N8 Word — retoma <`ENCARGO_LOOP.md` de la carpeta local `n8/`>». Cadencia elegida por Gonzalo: 180 s — «aquí cambia el reloj a 3
 minutos para que supervises de forma más pausada lo que hacen»; solo él la cambia. Un solo TICK. Nunca ScheduleWakeup ni
 CronCreate. Al cerrar CADA turno: reescribir este archivo y relanzar el ticker ANTES de redactar el cierre.
-Histórico completo (591 líneas, todo lo anterior a este corte): tmp/n8/ENCARGO_LOOP_historico_hasta_2026-10-10.md.
+Histórico completo (591 líneas, todo lo anterior a este corte): `ENCARGO_LOOP_historico_hasta_2026-10-10.md` en la carpeta local `n8/`.
 
 LOOP N8/F6 — motor nativo PPT/Word del recetario + editor nuevo de Gráficos, en ~/repos/Pulso/prosecnur-app (main). Encargo de Gonzalo.
 
@@ -108,7 +111,7 @@ B-m Homologar `transition-duration: 1ms !important` de home-v2, validacion-v2, c
 - «Masculino (33)» (n junto al rótulo) solo en la dicotomía de la corona, como la p160 — ¿aceptable para entregables a cliente?
 - ¿plantilla_acnur_16_9.pptx también se alinea al estándar? (solo se tocó plantilla_16_9).
 - S1–S4 base ponderada (docs/qa/hallazgo-base-ponderada-2026-10-10.md).
-- A2 reemplazar el fixture acrconta_mazo por la versión con Top Two Box (tmp/n8/fixture/). A3 release Windows: P8 o revertir
+- A2 reemplazar el fixture acrconta_mazo por la versión con Top Two Box (carpeta local `n8/fixture/`). A3 release Windows: P8 o revertir
   f073f9eb9 antes de push.
 - D1–D7, D9–D16 y E2 de decisiones-pendientes-f6 (D8 y D17 ya respondidas).
 - PUSH: hay ~2 459 commits locales sin push en main (de varias sesiones). Construir no autoriza pushear; requiere su pedido y
@@ -123,7 +126,7 @@ B-m Homologar `transition-duration: 1ms !important` de home-v2, validacion-v2, c
 - 5173 = Vite de Gonzalo contra 8821 (HMR: el frontend se ve al día). NO reiniciar 5173/8821 sin pedirlo; NUNCA tocar 8787.
 - Verificadores/agentes: Vite propio con cacheDir PRIVADO desde el primer arranque; backend propio con copia de launch.R SIN
   bloque de reinstalación; nunca R CMD INSTALL; evaluar sobre git archive.
-- Copia de trabajo: tmp/n8/app/acrconta_mazo_trabajo.pulso.
+- Copia de trabajo: `app/acrconta_mazo_trabajo.pulso` en la carpeta local `n8/`.
 
 ZONAS PROHIBIDAS E HIGIENE: no trabajar en ~/Documents/Pulso/prosecnur-app; no usar ni commitear
 «recetario-moderna  -  Repaired.pptx»; commit SOLO por nombre (otras sesiones editan .claude/launch.json, 3 tests R

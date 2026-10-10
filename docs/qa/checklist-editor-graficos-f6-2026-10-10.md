@@ -1,6 +1,9 @@
 # Checklist — editor de Gráficos F6 (nueva UI de Láminas y motor nativo)
 
-Tipo: Checklist vivo · Estado: en curso · Fecha: 2026-10-10 · Autoridad: pedidos de Gonzalo en la sesión del loop N8/F6
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-10-10
+Autoridad: pedidos de Gonzalo en la sesión del loop N8/F6
 Dirección aprobada: `docs/qa/direccion-diseno-editor-graficos-f6-2026-10-09.md` · Plan: `docs/qa/plan-integracion-f6-2026-10-10.md`
 Decisiones: `docs/qa/decisiones-pendientes-f6-2026-10-10.md`. Solo Gonzalo da un ítem por terminado.
 
@@ -22,7 +25,7 @@ Leyenda: ☑ hecho y verificado · ◐ hecho, en verificación o con pendientes 
 |---|---|---|---|
 | 1 | Construir la UI nueva aprobada | frontend `features/graficos/laminas/` | ◐ F6.1 |
 | 2 | Agentes en paralelo: riesgos de perder funciones + integración profesional | plan §7 (auditoría) y §1–§4 | ☑ |
-| 3 | Reloj del loop cada 3 min | `tmp/n8/ENCARGO_LOOP.md` | ☑ |
+| 3 | Reloj del loop cada 3 min | `n8/ENCARGO_LOOP.md` (carpeta local bajo `tmp`, no versionada) | ☑ |
 | 4 | Ícono profesional por tipo de lámina y de gráfico | `graficos/iconos/` (b332b1d2a), 55 íconos | ☑ |
 | 5 | K5 ejemplos del recetario en la app | `api/inst/recetario/ejemplos` (9b5bd146a) | ☑ |
 | 6 | K6 logos: PULSO por defecto y subir los propios | Estilo del cliente (F6.4) | ☐ |

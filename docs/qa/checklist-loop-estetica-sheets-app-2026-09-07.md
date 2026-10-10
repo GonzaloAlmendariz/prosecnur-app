@@ -1,5 +1,11 @@
 # Checklist — loop indefinido de mejora estética y técnica: app de aulas y Sheets del operativo
 
+Tipo: Checklist de loop indefinido
+Estado: Histórico
+Consolidado en: [Checklist — Avance con las dos metas](checklist-avance-dos-metas-2026-09-08.md)
+Fecha: 2026-09-07
+Autoridad: Pedido de Gonzalo; sólo él cierra el loop (lo detuvo el 2026-09-08)
+
 **Fecha de apertura:** 2026-09-07, 16:40 · **Pedido de Gonzalo (textual):** «genera el
 /loop indefinido para mejorar a nivel estético y técnico de la app y el sheets».
 **Cómo ver lo que el loop aplica:** en el panel del navegador de Claude, la pestaña

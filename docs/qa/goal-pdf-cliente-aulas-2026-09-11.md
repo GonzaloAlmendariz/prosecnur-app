@@ -1,5 +1,10 @@
 # El PDF de avance a cliente de cursos-horario — 2026-09-11
 
+Tipo: Registro de goal (reglas del PDF de cliente)
+Estado: Vigente
+Fecha: 2026-09-11
+Autoridad: Dictado de Gonzalo en treinta iteraciones. Evidencia de QA; no reemplaza un ADR
+
 Qué se construyó, con qué reglas, y qué NO hay que volver a hacer. Lo dictó
 Gonzalo en una sesión de treinta iteraciones mirando el documento renderizado.
 

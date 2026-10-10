@@ -1,6 +1,11 @@
 # Decisiones pendientes de Gonzalo — loop F6 (motor nativo y editor de Gráficos)
 
-Fecha: 2026-10-10. Estado: esperando respuesta. Cada fila trae la recomendación del lead; basta contestar con el código
+Tipo: Registro de decisiones pendientes
+Estado: En curso
+Fecha: 2026-10-10
+Autoridad: Recomendaciones del lead; decide Gonzalo
+
+Esperando respuesta. Cada fila trae la recomendación del lead; basta contestar con el código
 y «sí», «no» u otra opción («D3 sí, D7 descendente»). Lo que no dependa de estas respuestas ya está hecho y verificado.
 
 ## Bloque A — operación (desbloquean el uso en la app)
@@ -8,7 +13,7 @@ y «sí», «no» u otra opción («D3 sí, D7 descendente»). Lo que no dependa
 | Código | Pregunta | Recomendación | Qué bloquea |
 |---|---|---|---|
 | A1 | ¿Reinstalo el paquete R (`R CMD INSTALL`)? Los jobs de la app usan el paquete instalado (0.8.0) y no ven nada de lo hecho hoy. | Sí, con la app cerrada o sin exportaciones en curso. | Que la app exporte con el motor nuevo; el Word con `documento_word` falla hasta reinstalar. |
-| A2 | ¿Reemplazo el fixture `acrconta_mazo` por la versión con Top Two Box declarado (`tmp/n8/fixture/`)? | Sí. | 22 escalas sin Top Two Box en el mazo de referencia. |
+| A2 | ¿Reemplazo el fixture `acrconta_mazo` por la versión con Top Two Box declarado (carpeta local `n8/fixture/`)? | Sí. | 22 escalas sin Top Two Box en el mazo de referencia. |
 | A3 | Release de Windows: ¿P8 (añadir `msitools` y `gcab` en `release.yml`) o revertir `f073f9eb9` antes de pushear? | P8. | Sin uno de los dos, `build-windows` falla y stable no publica. |
 
 ## Bloque B — base y metodología (docs/qa/hallazgo-base-ponderada-2026-10-10.md)

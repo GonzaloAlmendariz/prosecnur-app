@@ -1,5 +1,10 @@
 # Pendientes al cierre del loop de mejora visual — 2026-09-03
 
+Tipo: Acta de cierre de loop
+Estado: Vigente
+Fecha: 2026-09-03
+Autoridad: Cierre dictado por Gonzalo; la fila madre de cada pendiente sigue en `checklist-operativo-aulas-2026-08-31.md`
+
 Acta del cierre dictado por Gonzalo («vamos cerrando el loop viendo todo lo
 pendiente y faltante» + «lo demás queda pendiente pero anótalo y explica cada
 uno en detalle»). El loop entregó B63–B81 completos (13 commits, `5178aa87` →

@@ -1,5 +1,10 @@
 # Censo de las cuatro cifras — A9-B7 (2026-09-01)
 
+Tipo: Censo QA (insumo de diseño de B7)
+Estado: Vigente
+Fecha: 2026-09-01
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 Generado por el barrido read-only del loop nocturno. Fuente de la unidad: `checklist-tres-fuentes-monitoreo-2026-08-27.md` fila B7. Este doc es el insumo de diseño de B7; el checklist vivo apunta aquí.
 
 # Censo A9‑B7 — las cuatro cifras de «cuántas encuestas hay»

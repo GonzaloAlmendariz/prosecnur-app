@@ -1,6 +1,12 @@
 # Traspaso — Avance con las dos metas, por sexo, en el Sheets y en la app
 
-**Fecha:** 2026-09-08, ~10:15 · **De:** sesión `87ed0566` (la del loop de estética,
+Tipo: Traspaso de sesión
+Estado: Histórico
+Consolidado en: [Checklist — Correcciones Parte 1](checklist-avance-correcciones-parte1-2026-09-08.md)
+Fecha: 2026-09-08
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
+**Hora:** ~10:15 · **De:** sesión `87ed0566` (la del loop de estética,
 detenido) · **Para:** la sesión que continúe. Gonzalo: «una vez que cierres eso
 dejamos un mensaje para enviárselo a otra sesión y cerramos esta».
 

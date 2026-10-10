@@ -1,5 +1,10 @@
 # Checklist — consistenciar el operativo de aulas (dictado 2026-09-12)
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-12
+Autoridad: Dictado de Gonzalo; sólo él lo da por terminado
+
 Dictado de Gonzalo, textual en lo que decide cada ítem: «me gustaría que todo
 esté bastante consistenciado». Nueve indicaciones. Se marca conforme se cierran
 y **sólo él lo da por terminado**. Cada vez que se mencione, se dibuja entero.

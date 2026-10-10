@@ -1,5 +1,10 @@
 # Un ancho fijo acaba cortando un dato
 
+Tipo: Lección de QA (regla de trabajo)
+Estado: Vigente
+Fecha: 2026-09-09
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 Escrito el 2026-09-09, después de encontrar el mismo defecto **cinco veces** en
 el libro de aulas y de descartar, con la medición delante, el detector que
 parecía la solución obvia.

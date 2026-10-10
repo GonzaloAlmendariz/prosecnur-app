@@ -1,5 +1,10 @@
 # GOAL — Robustez: que la app no falle al usarse
 
+Tipo: GOAL (marco de robustez)
+Estado: En curso
+Fecha: 2026-09-12
+Autoridad: Encargo de Gonzalo; una clase sólo se cierra con un guard probado matando un mutante
+
 > **Hay DOS documentos de robustez con fecha del 12/09 y es a propósito.**
 > Éste es el **MARCO**: el catálogo de clases de defecto y el listón —una clase
 > sólo está cerrada con un guard que la caza, probado matando un mutante, y un

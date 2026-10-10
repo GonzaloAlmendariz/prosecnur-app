@@ -1,6 +1,10 @@
 # GOAL — Remasterización de los motores de PPT y Word, y su editor, sobre los recetarios (2026-10-08)
 
-- **Estado**: En curso (loop indefinido, tick de 300 s, elegido por Gonzalo)
+- **Tipo**: GOAL (loop de convergencia)
+- **Estado**: En curso
+- **Cadencia**: loop indefinido, tick de 300 s, elegido por Gonzalo
+- **Fecha**: 2026-10-08
+- **Autoridad**: vara textual de Gonzalo y ADR 0092; objetivo de trabajo, no certifica por sí solo el estado del motor
 - **ADR**: [0092](../adrs/0092-el-recetario-es-el-estandar-del-motor.md)
 - **Checklist**: [checklist-remasterizacion-motor-2026-10-08.md](checklist-remasterizacion-motor-2026-10-08.md)
 

@@ -1,12 +1,17 @@
 # Inventario conciliado de íconos: recetario ↔ motor (F6.1b)
 
-Fecha: 2026-10-10. Fuente que manda: `docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx` (274 láminas;
+Tipo: Inventario QA conciliado (F6.1b)
+Estado: Vigente
+Fecha: 2026-10-10
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
+Fuente que manda: `docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx` (274 láminas;
 nunca el «… - Repaired.pptx»). Páginas = posición de la lámina en ese pptx, igual al PDF exportado con LibreOffice
-(`tmp/f6-iconos/recetario-pdf/rm.pdf`, 274 páginas).
+(`f6-iconos/recetario-pdf/rm.pdf` en la carpeta local, 274 páginas).
 
 Cómo se verificó:
 
-- Texto, antetítulo y layout de las 274 láminas: `tmp/f6-iconos/recetario-indice.txt` (python-pptx).
+- Texto, antetítulo y layout de las 274 láminas: `f6-iconos/recetario-indice.txt` en la carpeta local (python-pptx).
 - Las 274 páginas se rasterizaron; las 68–117, 120–166, 168–197, 19–65 y 210–229 se miraron en hojas de contacto.
 - Cada lámina se atribuyó al motor leyendo su `MOTOR_ACT` en los generadores (`docs/qa/motor-ppt-2026-10-06/herramientas/recetario*.R`,
   rama `ESTILO == "moderna"`). La clave «sección:n» de cada lámina se ubicó con `recetario_estructura.json`, el mismo orden que

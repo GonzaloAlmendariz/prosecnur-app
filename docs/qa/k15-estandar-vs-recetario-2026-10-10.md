@@ -1,5 +1,10 @@
 # K15 — estándar contra lo dibujado en el recetario (2026-10-10)
 
+Tipo: Medición QA (estándar contra recetario)
+Estado: Vigente
+Fecha: 2026-10-10
+Autoridad: Decisión K15 de Gonzalo («sí»). Evidencia de QA; no reemplaza un ADR
+
 Decisión de Gonzalo (2026-10-10): «sí». Las ranuras de `api/inst/estandar/estandar_pulso.json` pasan a ser las que dibujan
 las láminas de ejemplo de `docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx` (nunca la copia «Repaired»).
 Cuando el recetario se contradice, manda lo dibujado: las fichas «TIPO DE LÁMINA n DE 22» (de `recetario_fichas.R`, la
@@ -92,7 +97,7 @@ solas no cambian, y lo fija un test.
 - En verde también: `test-lamina-cifras-lateral-recetario.R`, `test-graficos-cifra.R`, `test-lamina-mixtas.R`,
   `test-lamina-corona.R`, `test-graficos-estandar-api.R`, `test-graficos-preview-formas.R`, `test-lamina-paneles.R`,
   `test-estandar-grosor.R` y `test-graficos-recetario-ejemplos.R`.
-- acrconta (copia de `tmp/n8/app/acrconta_mazo_trabajo.pulso`, el mismo flujo antes de K15, en 5da1e20c1, y después, en
+- acrconta (copia local de `n8/app/acrconta_mazo_trabajo.pulso`, el mismo flujo antes de K15, en 5da1e20c1, y después, en
   0bf0344c2): 93 láminas y **0 distintas** al comparar el XML de cada lámina sin ids. El mazo no usa los tipos 21 ni 22,
   y su tipo 4 nativo ya dibujaba lo de la p162.
 

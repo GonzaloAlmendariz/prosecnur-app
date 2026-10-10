@@ -1,8 +1,11 @@
 # Plan de integración F6 — editor de Procesamiento › Gráficos
 
 Tipo: Plan de construcción (arquitecto-integracion, solo lectura, 2026-10-10)
-Estado: Vigente para F6.1–F6.5. Autoridad: `direccion-diseno-editor-graficos-f6-2026-10-09.md` (aprobada por Gonzalo) manda
-sobre este plan; aquí sólo se decide cómo se construye. Decisiones provisionales de §10: el inspector abre en Contenido;
+Estado: Vigente
+Fecha: 2026-10-10
+Autoridad: `direccion-diseno-editor-graficos-f6-2026-10-09.md` (aprobada por Gonzalo) manda
+sobre este plan; aquí sólo se decide cómo se construye.
+Alcance: vigente para F6.1–F6.5. Decisiones provisionales de §10: el inspector abre en Contenido;
 la composición de índice/cierre vive en el inspector (y también como valor por defecto en Estilo si Gonzalo dice sí a E2);
 «Destacar cifras» visible.
 
@@ -149,7 +152,7 @@ que nombren `pulso-gv2-*`.
 
 Gate común por rebanada: `tsc -b`, `vitest run src/features/graficos`, `make gate-front AREA=graficos`, `--audit`,
 `ui-quick-check --ir procesamiento/graficos/<pestaña>` a 1440×1000 y 1024×600 con `--require-geometry --fail-on-issues`
-y comparación con la captura homóloga de `tmp/f6-diseno/capturas/`. Verde por conformidad.
+y comparación con la captura homóloga de `f6-diseno/capturas/` (carpeta local, no versionada). Verde por conformidad.
 
 - **F6.1 Láminas (núcleo)**: pestañas y `clasico`; rejilla; Estructura (leer, seleccionar, buscar, duplicar, eliminar,
   mover, insertar); Visor (vista previa real, partes, estados, ranuras, guías, teclado); Inspector (Contenido y Estado

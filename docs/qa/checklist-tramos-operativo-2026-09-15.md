@@ -1,5 +1,10 @@
 # Tramos del operativo — dictado de Gonzalo del 2026-09-15
 
+Tipo: Checklist de dictado
+Estado: En curso
+Fecha: 2026-09-15
+Autoridad: Dictado de Gonzalo. Evidencia de QA; no reemplaza un ADR
+
 > «Debería tener un mecanismo para poder ir recordando la aplicación de semana
 > a semana y actualizándolas a lo que el excel diga también, y cuando se cree
 > una nueva semana de aplicación la app ya las sabe.»

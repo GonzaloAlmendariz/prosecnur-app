@@ -1,5 +1,10 @@
 # Traspaso — operativo de aulas HSVG2026, cierre del día 1
 
+Tipo: Traspaso de sesión
+Estado: Vigente
+Fecha: 2026-09-07
+Autoridad: Evidencia de QA; no reemplaza un ADR
+
 Escrito el 2026-09-07 al cerrar la primera jornada de campo, para la sesión que
 siga. Lo que está cerrado va con su commit; lo que queda va con lo que ya se
 midió, para no volver a medirlo.

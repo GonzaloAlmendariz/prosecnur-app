@@ -1,6 +1,8 @@
 # GOAL — Monitoreo de aulas, genuinamente profesional
 
 Tipo: GOAL abierto · **solo Gonzalo lo cierra**
+Estado: En curso
+Fecha: 2026-08-28
 Abierto: 2026-08-28
 Autoridad: encargo directo del dueño; es un loop de convergencia, no una lista
 que se agota.

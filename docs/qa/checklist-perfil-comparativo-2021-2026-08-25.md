@@ -1,5 +1,10 @@
 # Checklist — perfil comparable 2021 vs 2026 (ACRD CONTA)
 
+Tipo: Checklist de pedido
+Estado: En curso
+Fecha: 2026-08-25
+Autoridad: Decidido con Gonzalo el 2026-08-25. Evidencia de QA; no reemplaza un ADR
+
 **Pedido**: hacer comparables las variables de perfil contra el 2021, con el 2021 en barras grises.
 **Fuente del 2021**: `ACRD CONTA/Matriz-2.xlsx`, hojas `* comparativo` (porcentajes ya calculados; no hay microdatos 2021).
 **Proyecto**: `ACRD CONTA/v5_Conta 14-08 equivalencias.pulso` (66 láminas; perfil en las 6 láminas `p_slide_4_graficos_poblacion`).

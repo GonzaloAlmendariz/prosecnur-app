@@ -1,5 +1,10 @@
 # Contrato de movimiento F6 — editor de Gráficos, pestaña Láminas (2026-10-10)
 
+Tipo: Contrato de movimiento (especificación)
+Estado: Vigente
+Fecha: 2026-10-10
+Autoridad: Pedido de Gonzalo; deriva del plan de integración F6 y de la dirección de diseño aprobada
+
 Pedido de Gonzalo: «necesitamos un especialista en animaciones que se asegure que los elementos que agregamos,
 modificamos o cambiamos tengan animaciones elegantes, dinámicas y profesionales».
 
