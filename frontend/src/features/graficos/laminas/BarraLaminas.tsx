@@ -16,6 +16,7 @@ import { usePlanStore } from "../store";
 import { SuggestedPlanButton } from "../SuggestedPlanButton";
 import { usePlanValidator } from "../usePlanValidator";
 import { useLaminasUi } from "./laminasStore";
+import { useAvisosPlanSesion } from "../avisosPlan";
 import { agruparAvisos, rotuloLaminasYPartes, totalAvisos } from "./resumenInforme";
 import "./movimiento.css";
 import "./barraLaminas.css";
@@ -48,7 +49,8 @@ export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Pro
     return typeof t === "string" && t.trim() ? t.trim() : "Informe";
   }, [slides]);
   const modo = modoMultibaseDelPlan(state?.estudio_processing_mode, state?.n_bases, state?.active_base);
-  const grupos = useMemo(() => agruparAvisos(validator.issues, resumenes, ids), [validator.issues, resumenes, ids]);
+  const avisosPlan = useAvisosPlanSesion();
+  const grupos = useMemo(() => agruparAvisos(validator.issues, resumenes, ids, avisosPlan), [validator.issues, resumenes, ids, avisosPlan]);
   const nAvisos = totalAvisos(grupos);
 
   return (

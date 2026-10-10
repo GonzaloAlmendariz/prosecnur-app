@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../../../lib/SessionContext";
+import { useAvisosPlanSesion } from "../avisosPlan";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { searchConPanel, searchSinPanel, usePanelDireccionable } from "../../../lib/navegacion/paneles";
@@ -48,6 +49,8 @@ type Props = {
 
 export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const { state } = useSession();
+  // Lo que el backend cambió en el plan al abrirlo (población antigua migrada) va al canal de Avisos (ver avisosPlan.ts).
+  const avisosPlan = useAvisosPlanSesion();
   const location = useLocation();
   const navigate = useNavigate();
   const slides = usePlanStore((s) => s.plan.slides);
@@ -205,7 +208,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     return m;
   }, [issues]);
 
-  const grupos = useMemo(() => agruparAvisos(issues, resumenes, slides.map((x) => x.id)), [issues, resumenes, slides]);
+  const grupos = useMemo(() => agruparAvisos(issues, resumenes, slides.map((x) => x.id), avisosPlan), [issues, resumenes, slides, avisosPlan]);
 
   if (!lamina || !slide) {
     return (

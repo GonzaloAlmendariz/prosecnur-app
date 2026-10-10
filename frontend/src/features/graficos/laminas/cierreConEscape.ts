@@ -4,10 +4,14 @@
 type ObjetivoTeclado = Pick<EventTarget, "addEventListener" | "removeEventListener">;
 type Enfocable = { focus: () => void; isConnected?: boolean };
 
-/** Escucha Escape en `documento` mientras el panel vive; un Escape ya atendido (defaultPrevented) no cierra. */
-export function escucharEscape(documento: ObjetivoTeclado, cerrar: () => void): () => void {
+/**
+ * Escucha Escape en `documento` mientras el panel vive. Un Escape cierra sólo la capa superior: no cierra si otra capa
+ * ya lo atendió (defaultPrevented) ni si hay una capa abierta por encima (`hayCapaEncima`, p. ej. el popover de
+ * Cobertura), que se cierra con su propio Escape.
+ */
+export function escucharEscape(documento: ObjetivoTeclado, cerrar: () => void, hayCapaEncima: () => boolean = () => false): () => void {
   const onKey = (e: Event) => {
-    if ((e as KeyboardEvent).key !== "Escape" || e.defaultPrevented) return;
+    if ((e as KeyboardEvent).key !== "Escape" || e.defaultPrevented || hayCapaEncima()) return;
     e.preventDefault();
     cerrar();
   };
@@ -19,4 +23,15 @@ export function escucharEscape(documento: ObjetivoTeclado, cerrar: () => void): 
 export function destinoDelFoco(disparador: Enfocable | null, respaldo: Enfocable | null): Enfocable | null {
   if (disparador && disparador.isConnected !== false) return disparador;
   return respaldo;
+}
+
+const CAPAS = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
+
+/** Hay otra capa visible (diálogo, menú, lista) fuera de `propio`: esa está encima y el Escape es suyo. */
+export function capaVisibleFuera(documento: Pick<Document, "querySelectorAll">, propio: Element | null): boolean {
+  for (const el of documento.querySelectorAll(CAPAS)) {
+    if (propio && (propio.contains(el) || el.contains(propio))) continue;
+    if (typeof el.checkVisibility === "function" ? el.checkVisibility({ visibilityProperty: true, opacityProperty: false }) : el.getClientRects().length > 0) return true;
+  }
+  return false;
 }

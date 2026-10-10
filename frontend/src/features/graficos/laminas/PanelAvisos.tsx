@@ -8,7 +8,7 @@ import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import type { ValidationIssue } from "../usePlanValidator";
 import type { EstructuraInforme } from "./modeloEstructura";
 import type { GrupoAvisos } from "./resumenInforme";
-import { destinoDelFoco, escucharEscape } from "./cierreConEscape";
+import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "./cierreConEscape";
 import "./panelAvisos.css";
 
 type Props = {
@@ -33,7 +33,8 @@ export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
     });
   }, [cerrarPanel]);
   // Escape en el documento: abrir el panel no le pasa el foco, así que un onKeyDown en su raíz no lo oía (D5).
-  useEffect(() => escucharEscape(document, cerrar), [cerrar]);
+  const raizRef = useRef<HTMLElement>(null);
+  useEffect(() => escucharEscape(document, cerrar, () => capaVisibleFuera(document, raizRef.current)), [cerrar]);
 
   const posicionDe = useMemo(() => new Map(estructura.laminas.map((l) => [l.id, l.posicion])), [estructura]);
   const ir = (slideId: string | undefined) => {
@@ -53,6 +54,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
 
   return (
     <aside
+      ref={raizRef}
       className="pulso-f6-avisos-panel"
       aria-label="Avisos del informe"
       {...panel.props}
@@ -65,6 +67,14 @@ export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
         </button>
       </header>
       <div className="pulso-f6-avisos-cuerpo" data-qa-geometry-group="graficos/f6-avisos-grupos" data-qa-geometry-contract="intrinsic">
+        {grupos.plan.length > 0 && (
+          <section className="pulso-f6-avisos-grupo" aria-label="Cambios al abrir el plan">
+            <h3>Cambios al abrir el plan <span>{grupos.plan.length}</span></h3>
+            <ul data-qa-geometry-group="graficos/f6-avisos-plan" data-qa-geometry-contract="intrinsic">
+              {grupos.plan.map((a) => <li key={a}><span>{a}</span></li>)}
+            </ul>
+          </section>
+        )}
         <section className="pulso-f6-avisos-grupo is-bloquea" aria-label="Bloquean la exportación">
           <h3>Bloquean la exportación <span>{grupos.bloquean.length}</span></h3>
           {grupos.bloquean.length ? <ul data-qa-geometry-group="graficos/f6-avisos-bloquean" data-qa-geometry-contract="intrinsic">{grupos.bloquean.map(fila)}</ul> : <p>Nada bloquea la exportación.</p>}
