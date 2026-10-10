@@ -2,7 +2,7 @@
 tipo: pestana
 padres:
   - "[[Consultas de cursos-horario]]"
-orden: 1
+orden: 2
 documentacion: parcial
 ruta_app: "/monitoreo?modo=aulas&seccion=consultas&pestana=reemplazos"
 nodo: "monitoreo/aulas/consultas/reemplazos"
