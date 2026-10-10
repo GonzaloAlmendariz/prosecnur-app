@@ -545,8 +545,8 @@
   lleno <- function(x) !is.null(x) && length(x) && any(nzchar(trimws(as.character(unlist(x)))) & !is.na(unlist(x)))
   identical(tolower(as.character(meta$composicion %||% "")[1]), "focos") ||
     any(vapply(c("iconos_focos", "iconos_focos_fill", "iconos_focos_objeto_unico", "iconos_focos_diametro_cm", "iconos_focos_icon_scale",
-                 "iconos_focos_left_cm", "iconos_focos_top_cm"), function(k) lleno(slots[[k]]), TRUE)) || isTRUE(slots$redibujar_focos) ||
-    isTRUE((slots$estilo %||% list())$redibujar_focos) || lleno((slots$estilo %||% list())$iconos_focos)
+                 "iconos_focos_left_cm", "iconos_focos_top_cm"), function(k) lleno(slots[[k]]), TRUE)) || isTRUE(slots[["redibujar_focos"]]) ||
+    isTRUE((slots[["estilo"]] %||% list())[["redibujar_focos"]]) || lleno((slots[["estilo"]] %||% list())[["iconos_focos"]])
 }
 
 #' Geometría de la lista del índice (la del recetario por número de capítulos, con o sin subcapítulos)
