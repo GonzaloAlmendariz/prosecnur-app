@@ -94,7 +94,7 @@
     r <- .graficos_migrar_slide_poblacion(plan$slides[[i]], posicion = i)
     if (!isTRUE(r$migrada)) next
     plan$slides[[i]] <- r$slide
-    avisos <- c(avisos, r$aviso); titulos <- c(titulos, r$titulo)
+    avisos <- c(avisos, r$aviso); titulos <- c(titulos, sprintf("%d %s", i, r$titulo))   # número y título: varias se llaman igual
   }
   if (isTRUE(avisar) && length(avisos)) attr(plan, "avisos_migracion") <- .graficos_avisos_migracion_resumen(avisos, titulos)
   plan
@@ -108,7 +108,7 @@
 .graficos_avisos_migracion_resumen <- function(avisos, titulos) {
   if (length(avisos) <= 2L) return(avisos)
   sprintf(paste("%d láminas usaban un tipo de población que ya no está en el recetario y pasan a su tipo vigente con sus",
-                "gráficos, su título y la base de cada gráfico; el ícono del centro se quita: %s."),
+                "gráficos, su título y la base de cada gráfico; el ícono del centro se quita. Láminas: %s."),
           length(avisos), paste(titulos, collapse = ", "))
 }
 
