@@ -85,6 +85,9 @@
 #' no pidió la ruta anterior (`meta$motor_nativo = FALSE`).
 #' @keywords internal
 .lam_compositor_aplica <- function(p, slide = NULL) {
+  # Multilista: varios bloques de escala apilados (lamina_multilista.R), si cada bloque es nativo y cabe.
+  ml <- attr(p, "pulso_multilista")
+  if (!is.null(ml)) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_multilista_cabe(ml)))
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (is.null(espec)) return(FALSE)
   # N4: los gráficos de números son nativos cuando traen su especificación con grupos que dibujar.
@@ -163,6 +166,10 @@
   pie <- if (isTRUE(sin_pie)) NULL else como_texto(slots$footer)
   if (!isTRUE(sin_pie) && (is.null(pie) || !nzchar(trimws(as.character(pie)[1])))) {
     pie <- nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL)
+  }
+  if (!is.null(attr(p, "pulso_multilista"))) {
+    return(.lam_multilista_slide_1(doc, p, titulo, subtitulo, base, pie, antetitulo, layout = layout, master = master,
+                                   por_lamina = por_lamina)$doc)
   }
   espec <- attr(p, "pulso_espec")
   base_var <- sub("\\$.*$", "", as.character(el_plot$var %||% "")[1])

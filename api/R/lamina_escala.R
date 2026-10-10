@@ -99,8 +99,9 @@
   L <- .std_geom("likert")
   if (.lam_escala_sin_actor(premisas)) L$x_barra - L$x_premisa - 0.25 else L$ancho_premisa
 }
-.lam_escala_geo <- function(premisas, wp) {
-  nb <- sum(vapply(premisas, function(p) length(p$filas), 0))
+.lam_escala_geo <- function(premisas, wp, nb = NULL) {
+  # `nb`: filas de la lámina entera cuando varios bloques la comparten (multilista); el grosor es por lámina.
+  nb <- nb %||% sum(vapply(premisas, function(p) length(p$filas), 0))
   g <- .std_grosor(nb, "escala_apilada"); fila <- g + 0.24
   multi <- any(vapply(premisas, function(p) length(p$filas) > 1, TRUE))
   manda <- any(vapply(premisas, function(p) .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE) > length(p$filas) * fila, TRUE))
@@ -108,8 +109,8 @@
 }
 #' Alto que ocupa un bloque de premisas
 #' @keywords internal
-.lam_escala_alto <- function(premisas) {
-  wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp)
+.lam_escala_alto <- function(premisas, nb = NULL) {
+  wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
   sum(vapply(premisas, function(p) max(.lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE), length(p$filas) * geo$fila), 0)) +
     geo$gap * (length(premisas) - 1)
 }
@@ -155,8 +156,15 @@
 #' @param solo `TRUE` si el bloque es la lámina entera (sin partición): con una
 #'   sola premisa y un solo público, la afirmación encabeza y la barra ocupa el
 #'   ancho, como la lámina 216 del recetario.
+#' @param y0,y1 Franja vertical del bloque; por defecto, la zona de datos de la lámina.
+#' @param leyenda `FALSE` cuando la leyenda la dibuja quien compone (una compartida por varios bloques).
+#' @param estirar Factor fijo de aire por fila que decide quien compone varios bloques (multilista); con él el
+#'   bloque empieza en `y0` sin centrarse. `NULL`: el bloque reparte su propio alto, como siempre.
+#' @param nb Filas de la lámina entera para el grosor (multilista); `NULL`: las del bloque.
+#' @return Invisible, la `y` donde termina el bloque (sin la leyenda).
 #' @keywords internal
-.lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE) {
+.lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
+                               estirar = NULL, nb = NULL) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
@@ -164,7 +172,7 @@
   rot_box <- espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX
   ley <- espec$leyenda; labels <- espec$categorias$rotulo[ley]; cols <- espec$categorias$color[ley]
   respuestas <- function(n) paste(format(as.integer(n), big.mark = ","), "respuestas")
-  y0 <- Y_DATOS + 0.1; y1 <- Y_LEY - 0.15
+  y0 <- y0 %||% (Y_DATOS + 0.1); y1 <- y1 %||% (Y_LEY - 0.15)
 
   if (isTRUE(solo) && length(premisas) == 1L && length(premisas[[1]]$filas) == 1L) {
     p <- premisas[[1]]; fl <- p$filas[[1]]; g <- 0.72
@@ -181,27 +189,30 @@
       .lam_txt(lz, espec$box$cifras[fl$i], L$x_top_two_box - 0.1, yb + g / 2 - 0.3, 1.6, 0.6, 28, verde, bold = TRUE, align = "center", nombre = "box:cifra")
     }
     .lam_leyenda(lz, yb + g + 0.55, labels, cols, centrar_en = xb + wb / 2)
-    return(invisible(lz))
+    return(invisible(yb + g))
   }
 
   hay_chica <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) isTRUE(fl$valid < 30), TRUE)), TRUE))
-  wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp)
+  wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
   g <- geo$g; fila <- geo$fila; gap <- geo$gap
   WB <- if (ttb_col) L$ancho_barra else W - MR - L$x_barra - 0.3
   altos_de <- function() vapply(premisas, function(p) max(.lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE), length(p$filas) * fila), 0)
   altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
-  disp <- y1 - y0 - 0.7
-  if (tot < 0.88 * disp) {   # pocas filas: se reparte el alto, el grosor no cambia
+  disp <- y1 - y0 - (if (isTRUE(leyenda)) 0.7 else 0)
+  if (!is.null(estirar)) {   # el aire lo reparte quien compone varios bloques: el mismo factor en todos
+    fila <- fila * estirar; gap <- gap * estirar
+    altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
+  } else if (tot < 0.88 * disp) {   # pocas filas: se reparte el alto, el grosor no cambia
     f_ <- min(2.0, 0.93 * disp / tot); fila <- fila * f_; gap <- gap * f_
     altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
   }
   nb <- sum(vapply(premisas, function(p) length(p$filas), 0)); extra <- max(0, 0.34 - (fila - g))
-  if (extra > 0 && tot + nb * extra <= disp + 0.3) {   # aire para las cifras chicas, sólo si cabe
+  if (extra > 0 && tot + nb * extra <= disp + (if (is.null(estirar)) 0.3 else 0)) {   # aire para las cifras chicas, sólo si cabe
     fila <- fila + extra; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
   }
   peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
   if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36)
-  y <- y0 + max(0, (y1 - y0 - tot - 0.5) / 2)
+  y <- if (is.null(estirar)) y0 + max(0, (y1 - y0 - tot - 0.5) / 2) else y0
   if (ttb_col) .lam_txt(lz, rot_box, L$x_top_two_box, y - 0.45, 1.5, 0.26, .std_pt("rotulo_top_two_box"), verde, bold = TRUE, align = "center", nombre = "box:rotulo")
   ytop <- y
   for (i in seq_along(premisas)) {
@@ -223,8 +234,8 @@
     y <- y + a + gap
   }
   fin_bloque <- if (ttb_col) L$x_top_two_box + 0.75 else L$x_barra + WB
-  .lam_leyenda(lz, min(Y_LEY, ytop + tot + 0.3), labels, cols, centrar_en = (L$x_premisa + fin_bloque) / 2)
-  invisible(lz)
+  if (isTRUE(leyenda)) .lam_leyenda(lz, min(Y_LEY, ytop + tot + 0.3), labels, cols, centrar_en = (L$x_premisa + fin_bloque) / 2)
+  invisible(ytop + tot)
 }
 
 # ---- filas con Total y Bottom Two Box (recetario: propuestas_rescatables.R:23-47, lámina 77) ----------
