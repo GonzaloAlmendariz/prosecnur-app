@@ -1,6 +1,7 @@
 # Contrato — orden de categorías por gráfico (D8, F6)
 
-Fecha: 2026-10-10. Estado: **congelado para revisión del lead**. El frontend no debe consumirlo hasta que el lead lo apruebe.
+Fecha: 2026-10-10. Estado: **aprobado por el lead** (81075745a, con el cambio de §4 sobre residuales en
+`personalizado`).
 Decisión de Gonzalo (textual, D8): «ambas opciones deben ser posibles e incluso debe permitir orden personalizado».
 Principio vigente: «el recetario siempre manda». Por eso el orden por defecto es el que dibuja el recetario para ese dato.
 
@@ -40,7 +41,7 @@ aviso. El orden de las filas (D1, Top Two Box) es otra cosa (§4).
 | Dos categorías (dicotomía) | Instrumento | p69/p70 (Sí, No); p160/p164 (Masculino, Femenino) |
 | Nominal de más de dos categorías | Frecuencia, de mayor a menor | p152 «Sector en el que trabaja» (Privado 46 %, Público 27 %, …, Otro al final) |
 | Opción múltiple (ranking) | Frecuencia, de mayor a menor | p73 «Qué podría mejorar la carrera» |
-| Residuales («Otro», «Otros», «No sabe», «Ninguna», «Ninguno», «Prefiero no») | **Siempre al final**, en todos los modos | p152 (Otro), p162 («Otro (especifique)» al final aunque el instrumento lo ponga segundo) |
+| Residuales («Otro», «Otros», «No sabe», «Ninguna», «Ninguno», «Prefiero no») | **Siempre al final** en los modos automáticos; en `personalizado` manda la lista (§4) | p152 (Otro), p162 («Otro (especifique)» al final aunque el instrumento lo ponga segundo) |
 
 La población (p160) queda cubierta por estas reglas: sus variables son ordinales o dicotomías. No hay una regla aparte
 por tipo de lámina. Sin verificar: en p162, «Departamento académico» (nominal) da el mismo orden por frecuencia que por
@@ -73,15 +74,21 @@ y denominadores no cambian; sólo cambia el orden. Se mide en acrconta y se repo
 |---|---|---|
 | `instrumento` | El de `orders_list[[var]]`, que ya incluye el orden por lista de Analítica | El inverso |
 | `frecuencia` | Mayor a menor; los empates quedan en orden del instrumento | Menor a mayor |
-| `personalizado` | Los códigos de `lista` en su orden. Luego las categorías del instrumento que no están en la lista, en orden del instrumento | El inverso de esa secuencia |
+| `personalizado` | Los códigos de `lista` en su orden (residuales incluidos, donde los ponga). Luego las no listadas en orden del instrumento y, al final, las residuales no listadas | La parte listada al revés; las no listadas, detrás como siempre |
 | `recetario` | El modo que le toca al dato (§2) | El inverso de ese modo |
 
-- **Residuales:** después de resolver el modo (e `invertir`), las categorías residuales van al final en su orden
-  relativo. Esto vale también en `personalizado`. Por la decisión del lead (D15 «siempre al final»), el analista no puede
-  poner «Otro» primero. La regla de reconocimiento es la vigente (`.CATEGORIAS_RESIDUALES`); D15 decidirá si se cierra.
+«Antes de los residuales» en esta tabla vale para `recetario`, `frecuencia` e `instrumento`.
+
+- **Residuales:** en `recetario`, `frecuencia` e `instrumento`, después de resolver el modo (e `invertir`), las
+  categorías residuales van al final en su orden relativo. En `personalizado` **manda el analista**: un residual va donde
+  la `lista` lo ponga. Sólo un residual que no está en la `lista` va al final de todo, después de las demás no listadas.
+  `invertir` en `personalizado` invierte la parte listada (residuales listados incluidos); las no listadas siguen detrás,
+  igual que sin `invertir`. La regla de reconocimiento es la
+  vigente (`.CATEGORIAS_RESIDUALES`); D15 decidirá si se cierra (decisión del lead: D15 trata del reconocimiento, no de
+  prohibir mover «Otro»).
 - **Personalizado incompleto:**
-  - Una categoría del instrumento que falta en `lista` (nueva, o que el analista no listó) va al final, antes de los
-    residuales, en orden del instrumento. Avisa: «“<pregunta>”: N categorías no estaban en el orden personalizado y van
+  - Una categoría del instrumento que falta en `lista` (nueva, o que el analista no listó) va al final, en orden del
+    instrumento; si además es residual, va después de las demás no listadas. Avisa: «“<pregunta>”: N categorías no estaban en el orden personalizado y van
     al final: <etiquetas>».
   - Un código de `lista` que ya no está en el instrumento se ignora y avisa: «“<pregunta>”: el orden personalizado nombra
     códigos que la pregunta no tiene: <códigos>».
@@ -104,7 +111,8 @@ El graficador arma una sola espec (`pulso_espec`). De ella leen la lámina nativ
 (`reporte_word_plan` reusa `reporte_ppt_plan(solo_lista = TRUE)`). Por eso el orden es el mismo en los tres.
 
 Sin verificar: con `frecuencia` en la **ruta anterior** de las categóricas, el ggplot no fuerza los residuales al final
-(sólo lo hace la espec). La lámina nativa y el Word sí lo hacen.
+(sólo lo hace la espec). La lámina nativa y el Word sí lo hacen. En `personalizado` la espec no mueve residuales: respeta la
+lista.
 
 ## 6. Persistencia
 
@@ -149,7 +157,8 @@ Es un endpoint nuevo: ninguno de los existentes entrega código, etiqueta y frec
 - Cada modo en una categórica nominal, verificado en el XML de la lámina nativa.
 - `recetario` por tipo de dato: ordinal, dicotomía y nominal de más de dos.
 - `personalizado` con una categoría faltante y con un código que ya no existe, con sus avisos.
-- Residuales al final en todos los modos, también con `invertir`.
+- Residuales al final en los modos automáticos, también con `invertir`; en `personalizado`, donde los ponga la lista,
+  y los no listados al final de todo.
 - Precedencia frente al orden heredado y al preset global distinto del de fábrica.
 - Word igual a PPT: la espec del Word con el mismo orden.
 - Escala: la clave se ignora con aviso.
