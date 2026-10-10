@@ -737,7 +737,7 @@ graficos_consolidado_start <- function(sid, config = NULL, presets = NULL, expec
     profile_id = delivery$profile_id,
     template_id = delivery$template_id
   )
-  enriched_presets <- .enriquecer_presets(presets %||% preflight$config$presets %||% list(), preflight$config$debug_ph)
+  enriched_presets <- .enriquecer_presets(presets %||% preflight$config$presets %||% list(), NULL)  # D17: sin guías en el entregable
   # El preflight puede ser costoso. Releer justo antes de materializar la
   # receta impide encolar una revision que cambio durante esa validacion.
   assert_draft_revision()
