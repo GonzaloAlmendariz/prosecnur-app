@@ -93,10 +93,12 @@ test_that("la salida declarada coincide con cómo sale la lámina en el motor re
   # La ruta anterior escribe el título en mayúsculas («P_TABLA»): se casa sin distinguir caja.
   estado <- setNames(vapply(partes, `[[`, "", "estado"), tolower(vapply(partes, `[[`, "", "titulo")))
   expect_setequal(names(estado), names(casos))                          # una lámina por caso, sin «(cont.)»
+  # La salida completa, no sólo «nativa o no»: «marco» (la lámina del recetario con el dibujo ggplot adentro) se distingue
+  # de la ruta anterior y de una lámina de estructura (verificador de contratos, P2).
   for (nm in names(casos)) {
-    declarada <- .GRAFICADORES_META[[nm]]$salida_nativa
-    expect_identical(estado[[nm]] == "nativa", declarada, info = sprintf("%s salió «%s»", nm, estado[[nm]]))
+    expect_identical(estado[[nm]], .GRAFICADORES_META[[nm]]$salida, info = sprintf("%s salió «%s»", nm, estado[[nm]]))
   }
+  expect_identical(estado[["p_nube_palabras"]], "marco")
 })
 
 test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice su condición", {

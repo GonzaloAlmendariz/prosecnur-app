@@ -51,8 +51,12 @@
 #' láminas de estructura (`prosecnur:titulo`, `prosecnur:objetivo`, `prosecnur:seccion`…) no son gráficos. La ruta anterior
 #' no deja esos nombres y pega imágenes (`<p:pic>`): así sale hoy el índice con argumentos de focos (inventario F6, A9).
 #' Verificador de 55ff0d1bf: la regla anterior llamaba «nativa» a la lámina de objetivo, que no tiene gráfico.
-#' @return «nativa» (gráfico con formas nativas), «estructura» (la dibujó el motor y no lleva gráfico), «ruta_anterior»
-#'   (sin formas del motor y con imágenes) o «sin_grafico» (ni formas del motor ni imágenes: texto o plantilla).
+#' «Marco» (verificador de contratos, P2): la lámina del recetario —título y pie del motor— con un dibujo que no es del
+#' motor (el ggplot de la nube o de la serie de tres o más mediciones, pegado como DrawingML por `.lam_laminas_ggplot`).
+#' El rótulo nativo que esa lámina pone sobre el dibujo (`prosecnur:grafico:marco`) no lo vuelve nativa.
+#' @return «nativa» (gráfico con formas nativas), «marco» (lámina del recetario con el dibujo ggplot adentro),
+#'   «estructura» (la dibujó el motor y no lleva gráfico), «ruta_anterior» (sin formas del motor y con imágenes) o
+#'   «sin_grafico» (ni formas del motor ni imágenes: texto o plantilla).
 #' @keywords internal
 .pptx_lamina_estado <- function(xml) {
   grupos <- regmatches(xml, gregexpr('name="prosecnur:[^"]+"', xml))[[1]]
@@ -68,10 +72,22 @@
     # (`slide_1:plot`, `poblacion_4:up_left`) la nombra la ruta anterior al pegar su dibujo DML o su imagen: no es nativa
     # (verificador de 87d9fcbb0: con motor_nativo = FALSE la escala, la multilista y la población de 4 salían «nativa»).
     ranura <- raiz != "grafico" & grepl(":", grupos, fixed = TRUE) & !raiz %in% .PREVIEW_GRUPOS_ESTRUCTURA
-    return(if (any(raiz == "grafico")) "nativa" else if (any(ranura) || length(de_imagen)) "ruta_anterior" else "estructura")
+    if (any(raiz == "grafico" & grupos != "grafico:marco")) return("nativa")
+    if (any(ranura) || length(de_imagen)) return("ruta_anterior")
+    return(if (.pptx_lamina_es_marco(xml, grupos)) "marco" else "estructura")
   }
   if (grepl("<p:pic>", xml, fixed = TRUE) || grepl("<p:pic ", xml, fixed = TRUE)) return("ruta_anterior")
   "sin_grafico"
+}
+
+#' ¿Es la lámina del recetario con un dibujo ajeno al motor? Sólo título, pie (y el rótulo del marco) del motor, más un
+#' grupo, marco gráfico o imagen sin nombre `prosecnur:*` (el grupo de rvg trae atributos `xmlns:` en su etiqueta)
+#' @keywords internal
+.pptx_lamina_es_marco <- function(xml, grupos) {
+  if (!"titulo" %in% grupos || !all(grupos %in% c("titulo", "pie", "grafico:marco"))) return(FALSE)
+  nombres <- regmatches(xml, gregexpr('<p:(grpSp|graphicFrame|pic)(\\s[^>]*)?>\\s*<p:nv(GrpSp|GraphicFrame|Pic)Pr>\\s*<p:cNvPr[^>]*name="[^"]*"', xml,
+                                      perl = TRUE))[[1]]
+  any(!grepl('name="prosecnur:', nombres, fixed = TRUE))
 }
 
 #' Título visible de una lámina

@@ -100,6 +100,23 @@ test_that("POST /preview-slide numera la lámina con su lugar en el plan o con e
                            body = list(slide = lamina, config = list(plan = plan), include_images = FALSE, folio = 14), sid = base$sid)
   expect_identical(pedido$status, 200L)
   expect_identical(pedido$json$folio, 14L)
+  # El folio PINTADO en el mini-PPTX, no sólo el del JSON: sin el desplazamiento (`.preview_con_folio`) la lámina dice
+  # «1» aunque el JSON diga 3 (M4); sin el folio en la llave de la caché, pedir 14 devolvía la imagen ya pintada con 3 (M3).
+  pintado <- function(r) {
+    dl <- http_get(srv, sprintf("/api/files/%s/download", r$json$file_id), sid = base$sid)
+    f <- tempfile(fileext = ".pptx"); writeBin(dl$raw, f)
+    n <- xml2::xml_find_first(xml2::read_xml(.pptx_leer_parte(f, .pptx_slide_paths(f)[[1]])),
+                              "//p:sp[p:nvSpPr/p:cNvPr[@name='Folio lamina']]")
+    if (inherits(n, "xml_missing")) NA_character_ else xml2::xml_text(n)
+  }
+  expect_identical(pintado(r), "3")
+  expect_identical(pintado(pedido), "14")
+  expect_false(identical(pedido$json$file_id, r$json$file_id))
+  # La caché sí sirve el mismo folio: repetir el pedido de 14 devuelve el mismo archivo, pintado con 14.
+  otra_vez <- http_post_json(srv, "/api/graficos/preview-slide",
+                             body = list(slide = lamina, config = list(plan = plan), include_images = FALSE, folio = 14), sid = base$sid)
+  expect_identical(otra_vez$json$file_id, pedido$json$file_id)
+  expect_identical(pintado(otra_vez), "14")
 })
 
 test_that("GET /recetario/ejemplo entrega la lámina de ejemplo por tipo o página, y 404/400 con su código (K5)", {

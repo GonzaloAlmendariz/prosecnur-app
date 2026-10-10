@@ -190,6 +190,22 @@ test_that("una imagen pegada en una ranura del motor es ruta anterior, no nativa
   expect_identical(.pptx_lamina_estado(titulo), "estructura")
 })
 
+test_that("la lámina del recetario con un dibujo ggplot adentro es «marco», no estructura ni nativa (P2)", {
+  titulo <- '<p:grpSp><p:nvGrpSpPr><p:cNvPr id="2" name="prosecnur:titulo"/></p:nvGrpSpPr></p:grpSp>'
+  pie <- '<p:grpSp><p:nvGrpSpPr><p:cNvPr id="3" name="prosecnur:pie"/></p:nvGrpSpPr></p:grpSp>'
+  dibujo <- '<p:grpSp><p:nvGrpSpPr><p:cNvPr id="4" name=""/></p:nvGrpSpPr></p:grpSp>'                      # rvg::dml
+  rotulo <- '<p:grpSp><p:nvGrpSpPr><p:cNvPr id="5" name="prosecnur:grafico:marco"/></p:nvGrpSpPr></p:grpSp>'   # serie: el indicador
+  expect_identical(.pptx_lamina_estado(paste0(titulo, dibujo, pie)), "marco")
+  expect_identical(.pptx_lamina_estado(paste0(titulo, rotulo, dibujo, pie)), "marco")
+  expect_identical(.pptx_lamina_estado(paste0(titulo, pie)), "estructura")                            # sin dibujo
+  nativo <- '<p:grpSp><p:nvGrpSpPr><p:cNvPr id="6" name="prosecnur:grafico:escala"/></p:nvGrpSpPr></p:grpSp>'
+  expect_identical(.pptx_lamina_estado(paste0(titulo, nativo, dibujo, pie)), "nativa")
+  objetivo <- '<p:grpSp><p:nvGrpSpPr><p:cNvPr id="7" name="prosecnur:objetivo"/></p:nvGrpSpPr></p:grpSp>'
+  expect_identical(.pptx_lamina_estado(paste0(titulo, objetivo, dibujo, pie)), "estructura")       # estructura con figuras
+  ranura <- '<p:pic><p:nvPicPr><p:cNvPr id="8" name="prosecnur:slide_1:right"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr></p:pic>'
+  expect_identical(.pptx_lamina_estado(paste0(titulo, ranura, pie)), "ruta_anterior")
+})
+
 test_that("un perfil compartido que cuelga a LibreOffice (timeout) se descarta para la siguiente vista previa", {
   raiz <- tempfile("raiz"); compartido <- file.path(raiz, "prosecnur-lo-perfil"); dir.create(file.path(compartido, "user"), recursive = TRUE)
   local_mocked_bindings(.soffice_cmd = function() "soffice-falso",
