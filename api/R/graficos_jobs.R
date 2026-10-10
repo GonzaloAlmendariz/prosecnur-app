@@ -216,7 +216,7 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
     palette_env <- .graficos_palette_env(info$paletas, parent = parent.frame())
     out_path <- file.path(stage, info$filename)
     tryCatch(
-      reporte_ppt_plan(
+      .lam_avisos_con_base(base, reporte_ppt_plan(  # los avisos de líneas dicen de qué base es cada lámina (K12b)
         data = stats::setNames(list(all_data[[base]]), base),
         instrumento = stats::setNames(list(all_inst[[base]]), base),
         path_ppt = out_path,
@@ -227,7 +227,7 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
         template_id = info$template_id,
         auto_otros_slides = isTRUE(info$auto_otros_slides),
         mensajes_progreso = FALSE
-      ),
+      )),
       error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
     )
     results[[i]] <- list(nombre = base, filename = info$filename,

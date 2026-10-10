@@ -235,3 +235,11 @@ test_that("un aviso «Lámina N ·» que no es de partes ni de título no se pie
   expect_true(otro %in% av)
   expect_true("9 láminas salieron en varias partes: 1, 2, 3, 4, 5, 6, 7, 8, 9." %in% av)
 })
+
+test_that("el resumen de un job multibase dice a qué base pertenece cada número", {
+  part <- c(sprintf("Lámina %d de «docentes» · “B”: salió en 2 partes", c(3, 9, 12)), sprintf("Lámina %d de «estudiantes» · “B”: salió en 2 partes", c(3, 7)),
+            sprintf("Lámina %d de «estudiantes» · “T”: el título ocupa 3 líneas", 4))
+  av <- .pulso_avisos_ordenar(c(part, sprintf("Otro aviso %d", 1:5)), 8L)
+  expect_true("5 láminas salieron en varias partes: «docentes» 3, 9, 12; «estudiantes» 3, 7." %in% av)
+  expect_true("1 título pasa de dos líneas: «estudiantes» 4." %in% av)
+})

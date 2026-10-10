@@ -384,3 +384,35 @@ test_that("workers PPT propagan template_id explícito hasta reporte_ppt_plan", 
 
   expect_identical(seen, c("acnur_16_9", "acnur_16_9", "generic_16_9"))
 })
+
+# Verificador de K12b (2.ª ronda, punto 7): en /ppt-all cada base sale en su propio PPTX con su propia numeración; un
+# aviso «Lámina 2 · …» no decía de qué base era. El worker marca la base y el aviso la nombra.
+test_that("graficos_job_worker_ppt_all nombra la base en los avisos de líneas", {
+  skip_if_not_installed("officer")
+  td <- tempfile("gjobs_ppt_all_avisos_"); dir.create(td); on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
+  largo <- paste("Valoración de los estudiantes sobre el desempeño de los docentes del programa en las competencias",
+                 "declaradas en el perfil de egreso y en los objetivos educacionales de la carrera profesional")
+  bases <- c("docentes", "estudiantes"); vars <- c(docentes = "p_sat", estudiantes = "q_sat")
+  all_data <- list(); all_inst <- list(); per_base <- list()
+  for (base in bases) {
+    all_data[[base]] <- .gjobs_data(vars[[base]])
+    all_inst[[base]] <- .gjobs_inst(vars[[base]], list_name = paste0("yesno_", base))
+    plan <- .gjobs_plan(vars[[base]]); plan$slides[[2]]$payload$titulo <- largo
+    per_base[[base]] <- list(plan = plan, presets = NULL, paletas = list(), icon_registry = list(),
+                             template_pptx = .graficos_resolve_template_pptx(config = list()), template_id = NULL,
+                             auto_otros_slides = FALSE, filename = sprintf("reporte_%s.pptx", base))
+  }
+  for (x in c("data", "inst", "per_base")) saveRDS(list(data = all_data, inst = all_inst, per_base = per_base)[[x]], file.path(td, paste0(x, ".rds")))
+  avisos <- character()
+  withCallingHandlers(
+    graficos_job_worker_ppt_all(rp_data_path = file.path(td, "data.rds"), rp_inst_path = file.path(td, "inst.rds"),
+                                per_base_path = file.path(td, "per_base.rds"), bases = bases, slide_registry = .gjobs_slide_registry(),
+                                graficador_registry = .graf_names(), result_path = file.path(td, "todas.zip"), progress_path = file.path(td, "p.json")),
+    message = function(m) { t <- conditionMessage(m); if (grepl(.PULSO_AVISO_SELLO, t, fixed = TRUE)) avisos <<- c(avisos, trimws(sub(".*\\[PULSO-AVISO\\]", "", t))); invokeRestart("muffleMessage") },
+    warning = function(w) invokeRestart("muffleWarning"))
+  titulo <- grep("el título ocupa", avisos, value = TRUE, fixed = TRUE)
+  expect_length(titulo, 2L)
+  expect_match(titulo[1], "^Lámina 2 de «docentes» · ")
+  expect_match(titulo[2], "^Lámina 2 de «estudiantes» · ")
+  expect_identical(getOption("prosecnur.lam_avisos_base"), NULL)                     # no queda puesta
+})
