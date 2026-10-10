@@ -42,6 +42,10 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   selector con evidencia estadística, revamp de Aulas y ledger de iteraciones.
 - [Goal loop visual de toda la aplicación](goal-loop-visual-app-2026-07-30.md):
   órbita de los ocho módulos del proyecto y Enciclopedia como utilidad global.
+- [Censo de la UI — estado, deuda y techo de modernización (2026-10-10)](censo-ui-2026-10-10.md):
+  mapa módulo → modo → sección → pestaña → panel, madurez por módulo, la
+  quinta dimensión (diálogos y flujos de Carga), cumplimiento de la v3,
+  diagnóstico de modernidad y techo por capas.
 - [Plan de mejoras de julio de 2026](plan-mejoras-2026-07.md): priorización
   operativa de deuda y calidad.
 - [Roadmap del motor de Gráficos](roadmap-motor-graficos-2026-08-08.md): deuda
