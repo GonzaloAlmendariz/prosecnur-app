@@ -41,3 +41,17 @@ test_that("con peso del estudio el porcentaje y la media van ponderados, y el de
   expect_identical(.cifra_desde_datos(b, "edad", "media", rotulo = "x")$valor, "25.0")
   expect_identical(.cifra_desde_datos(b, "edad", "mediana", rotulo = "x")$valor, "20")
 })
+
+test_that("p_cifra es un elemento de plan que entra en las ranuras de cifra de la lámina 22 y se renderiza con datos", {
+  el <- p_cifra("titulo", "porcentaje", categoria = "1", rotulo = "de los egresados tiene el título", icono = "graduation-cap")
+  expect_s3_class(el, "ppt_element"); expect_identical(el$.element_type, "cifra")
+  expect_error(p_cifra("titulo", "porcentaje", rotulo = "x"), "indica `categoria`")
+  data_sources <- .base; instrument_sources <- .inst
+  p <- .render_cifra(el)
+  expect_s3_class(p, "ggplot")
+  expect_identical(attr(p, "pulso_cifra")$valor, "33%")
+  s <- p_slide_cifras_y_graficos(cifra_izquierda = el, cifra_centro = p_cifra("titulo", "n", rotulo = "egresados encuestados"),
+                                 cifra_derecha = p_cifra("edad", "mediana", unidad = "años", rotulo = "edad mediana"),
+                                 grafico_izquierda = el, grafico_derecha = el, titulo = "El estudio en cifras")
+  expect_identical(s$slots$cifra_centro$modo, "n")
+})

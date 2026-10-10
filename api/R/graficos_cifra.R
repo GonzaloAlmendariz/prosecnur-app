@@ -61,3 +61,72 @@
   if (is.null(detalle) && modo != "n") detalle <- sprintf("Base: %s respuestas", format(n, big.mark = ","))
   list(valor = valor, rotulo = rotulo, detalle = detalle %||% "", icono = icono %||% "", base = n)
 }
+
+#' Cifra destacada calculada desde una pregunta (elemento de plan para las ranuras de cifra)
+#'
+#' Va en las ranuras `cifra_*` de `p_slide_cifras_y_graficos()` (tipo 22 del recetario) y de las láminas de población con
+#' cifras (tipo 21). El valor se calcula al renderizar, con el peso del estudio (`.cifra_desde_datos`).
+#'
+#' @param var Pregunta («base$variable» en un informe multibase).
+#' @param modo «porcentaje», «n», «mediana» o «media».
+#' @param categoria Para «porcentaje»: código o etiqueta de la categoría.
+#' @param rotulo Texto bajo la cifra («de los egresados tiene el título»).
+#' @param detalle Texto gris debajo; vacío lo arma el motor con la base.
+#' @param unidad Sufijo para mediana o media («años»).
+#' @param decimales Decimales del valor.
+#' @param icono Ícono del recetario (opcional).
+#' @param filtros Filtros nombrados, como en los demás gráficos.
+#' @export
+p_cifra <- function(var, modo = c("porcentaje", "n", "mediana", "media"), categoria = NULL, rotulo, detalle = NULL,
+                    unidad = NULL, decimales = NULL, icono = NULL, filtros = list(), overrides = list(), base = list()) {
+  modo <- match.arg(modo)
+  var <- .puntos_comparativos_ref(var, "var")
+  rotulo <- .ppt_norm_text1(rotulo, blank = NULL)
+  if (is.null(rotulo)) .plan_spec_abort("p_cifra(): `rotulo` dice qué es la cifra; no puede ir vacío.")
+  if (identical(modo, "porcentaje") && (is.null(categoria) || !nzchar(as.character(categoria)[1]))) {
+    .plan_spec_abort("p_cifra(): para un porcentaje indica `categoria`.")
+  }
+  el <- list(.element_type = "cifra", var = var, modo = modo, categoria = if (is.null(categoria)) NULL else as.character(categoria)[1],
+             rotulo = rotulo, detalle = .ppt_norm_text1(detalle, blank = NULL), unidad = .ppt_norm_text1(unidad, blank = NULL),
+             decimales = decimales, icono = .ppt_norm_text1(icono, blank = NULL), filtros = .ppt_norm_filters(filtros),
+             overrides = overrides, base = base)
+  class(el) <- c("ppt_element", "list")
+  el
+}
+
+#' Base y variable de una referencia «base$variable» entre las fuentes del render
+#' @keywords internal
+.cifra_fuente <- function(ref, data_sources, inst_sources) {
+  if (is.data.frame(data_sources)) return(list(data = data_sources, inst = inst_sources, var = sub("^.*\\$", "", ref)))
+  base <- if (grepl("$", ref, fixed = TRUE)) sub("\\$.*$", "", ref) else names(data_sources)[1]
+  if (!base %in% names(data_sources)) stop(sprintf("cifra: la base «%s» no está en el informe.", base), call. = FALSE)
+  list(data = data_sources[[base]], inst = inst_sources[[base]], var = sub("^.*\\$", "", ref))
+}
+
+#' Ruta de respaldo: la cifra como gráfico (la lámina nativa la dibuja con `.lam_cifras_banda`)
+#' @keywords internal
+.render_cifra <- function(el, preset_args = list()) {
+  data_sources <- dynGet("data_sources", ifnotfound = NULL)
+  inst_sources <- dynGet("instrument_sources", ifnotfound = NULL)
+  if (!length(data_sources)) stop("cifra: el render no expone las fuentes del estudio.", call. = FALSE)
+  f <- .cifra_fuente(el$var, data_sources, inst_sources)
+  d <- .apply_named_filters(f$data, filters = el$filtros %||% list(), arg_name = "filtros", mode = "strict")
+  it <- .cifra_desde_datos(d, f$var, el$modo, categoria = el$categoria, instrumento = f$inst, rotulo = el$rotulo,
+                           detalle = el$detalle, unidad = el$unidad, decimales = el$decimales, icono = el$icono)
+  graficar_cifra(it)
+}
+
+#' La cifra como gráfico de respaldo: valor, rótulo y detalle con los tamaños y colores del recetario
+#' @param item Ítem de `pulso_cifras()` (o de `.cifra_desde_datos`).
+#' @export
+graficar_cifra <- function(item) {
+  pt <- ggplot2::.pt
+  p <- ggplot2::ggplot() +
+    ggplot2::annotate("text", x = 0, y = 0.78, label = item$valor, hjust = 0, vjust = 1, size = 40 / pt, fontface = "bold", colour = .std_color("azul")) +
+    ggplot2::annotate("text", x = 0, y = 0.38, label = item$rotulo, hjust = 0, vjust = 1, size = 12 / pt, fontface = "bold", colour = .std_color("azul")) +
+    ggplot2::annotate("text", x = 0, y = 0.18, label = item$detalle %||% "", hjust = 0, vjust = 1, size = 10 / pt, colour = .std_color("texto_suave")) +
+    ggplot2::scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) + ggplot2::scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+    ggplot2::theme_void()
+  attr(p, "pulso_cifra") <- item
+  p
+}
