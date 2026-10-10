@@ -56,3 +56,28 @@ test_that("la lámina de cifras sola sigue con su banda (p174/p175): caja corrid
   expect_equal(unname(valor[3] - valor[1]), 3.974, tolerance = 0.005)
   expect_gt(b$alto, 1.3)
 })
+
+test_that("la banda de las cifras solas calza con la p174 en valor, rótulo y detalle (0.02 in)", {
+  # p174 (python-pptx): banda en y 1.85 con íconos; valor en 2.6 (0.764 de alto), rótulo en 3.364 (0.5, dos líneas en la
+  # del medio) y detalle en 3.914; cajas de 3.974 en 0.395, 4.719 y 9.044. El verificador encontró que el rótulo podía
+  # moverse sin que nada fallara (MA_rotulo).
+  it <- list(list(valor = "98 %", rotulo = "de los docentes conoce la misión", detalle = "Estudiantes 77 %, egresados 78 %", icono = "users"),
+             list(valor = "53 %", rotulo = "de los estudiantes reconoce la tutoría académica que ofrece la Unidad",
+                  detalle = "Entre los docentes, 83 %", icono = "users"),
+             list(valor = "95 %", rotulo = "valora las competencias técnicas", detalle = "Top Two Box de los estudiantes", icono = "users"))
+  lz <- .lam_lienzo()
+  .lam_cifras_banda(lz, pulso_cifras(it), 0.495, 1.85, 12.523)
+  formas <- unlist(lz$formas)
+  cajas <- function(nombre) {
+    k <- which(grepl(sprintf('name="%s"', nombre), formas, fixed = TRUE))
+    d <- do.call(rbind, lapply(lz$cajas[k], function(b) c(x = b[[1]], y = b[[2]], w = b[[3]] - b[[1]], h = b[[4]] - b[[2]])))
+    d[order(d[, "x"]), , drop = FALSE]
+  }
+  cerca <- function(a, e, lab) expect_lte(max(abs(a - e)), 0.02, label = lab)
+  v <- cajas("cifra:valor"); r <- cajas("cifra:rotulo"); d <- cajas("cifra:detalle")
+  cerca(v[, "x"], c(0.395, 4.719, 9.044), "x de los valores"); cerca(v[, "y"], rep(2.6, 3), "y de los valores")
+  cerca(v[, "h"], rep(0.764, 3), "alto de los valores")
+  cerca(r[, "x"], c(0.395, 4.719, 9.044), "x de los rótulos"); cerca(r[, "y"], rep(3.364, 3), "y de los rótulos")
+  cerca(r[, "h"], rep(0.5, 3), "alto de los rótulos")
+  cerca(d[, "x"], c(0.395, 4.719, 9.044), "x de los detalles"); cerca(d[, "y"], rep(3.914, 3), "y de los detalles")
+})
