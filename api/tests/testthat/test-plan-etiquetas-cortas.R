@@ -143,3 +143,16 @@ test_that("en un mazo de dos bases, la etiqueta calificada sólo cambia la lámi
   expect_false(grepl("Corta docentes", txt[2], fixed = TRUE))
   expect_match(gsub("\\s+", " ", txt[2]), "mecanismos efectivos", fixed = TRUE)
 })
+
+# Verificador de K12a (mutante M6): las ramas «dos gráficos con texto» (text_r2, text_l2) también derivan el título
+# del primer gráfico con su etiqueta corta.
+test_that("una lámina de dos gráficos con texto, sin título, toma la etiqueta corta del primer gráfico", {
+  f <- .ec_fixture(); ov <- list(etiquetas_vars = list(sexo = "Sexo corto"))
+  for (fn in list(p_slide_2_graficos_texto_derecha, p_slide_2_graficos_texto_izquierda)) {
+    plan <- list(b = fn(p_barras_categoricas("sexo", overrides = ov), p_barras_categoricas("grado"), texto = "Un texto"))
+    ppt <- tempfile(fileext = ".pptx")
+    suppressMessages(suppressWarnings(reporte_ppt_plan(data = f$df, instrumento = f$inst, plan = plan, presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO),
+                                                       path_ppt = ppt, mensajes_progreso = FALSE)))
+    expect_identical(toupper(.pptx_lamina_titulo(.pptx_leer_parte(ppt, .pptx_slide_paths(ppt)[[1]]))), "SEXO CORTO")
+  }
+})
