@@ -43,6 +43,9 @@ export function crearCoordinadorPreviewLamina(cargar: CargaPreview, opciones: { 
   let programada: unknown;
   let enCurso: AbortController | undefined;
   let turno = 0;
+  // Quien espera una solicitud que se reemplaza o se cancela no se queda colgado: su promesa termina (verificador).
+  let terminarPendiente: (() => void) | undefined;
+  const soltarPendiente = () => { const t = terminarPendiente; terminarPendiente = undefined; t?.(); };
 
   return {
     /** Pide la vista previa de `clave`; `avisar` recibe cada cambio de estado. Devuelve cuando termina o se reemplaza. */
@@ -55,9 +58,13 @@ export function crearCoordinadorPreviewLamina(cargar: CargaPreview, opciones: { 
       if (programada !== undefined) t.cancelar(programada);
       enCurso?.abort();
       enCurso = undefined;
+      soltarPendiente();
       const anterior = ultima?.respuesta;
       avisar({ estado: "esperando", anterior });
-      return new Promise<void>((terminar) => {
+      return new Promise<void>((resolver) => {
+        let hecho = false;
+        const terminar = () => { if (!hecho) { hecho = true; if (terminarPendiente === terminar) terminarPendiente = undefined; resolver(); } };
+        terminarPendiente = terminar;
         programada = t.programar(async () => {
           programada = undefined;
           if (mio !== turno) return terminar();
@@ -86,6 +93,7 @@ export function crearCoordinadorPreviewLamina(cargar: CargaPreview, opciones: { 
       programada = undefined;
       enCurso?.abort();
       enCurso = undefined;
+      soltarPendiente();
     },
   };
 }

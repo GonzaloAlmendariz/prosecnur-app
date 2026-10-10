@@ -68,4 +68,15 @@ describe("vista previa de la lámina: debounce, cancelación y desactualizada (F
     expect(ultimo).toMatchObject({ estado: "error", mensaje: "E_PREVIEW_FAILED" });
     expect(estaDesactualizada(ultimo)).toBe(true);
   });
+
+  it("una solicitud reemplazada o cancelada termina su promesa en vez de quedar colgada", async () => {
+    const tm = temporizadorManual();
+    const c = crearCoordinadorPreviewLamina(async (clave) => resp(clave), { temporizador: tm.t });
+    const reemplazada = c.solicitar("a", () => {});
+    c.solicitar("b", () => {});
+    await expect(reemplazada).resolves.toBeUndefined();
+    const cancelada = c.solicitar("c", () => {});
+    c.cancelar();
+    await expect(cancelada).resolves.toBeUndefined();
+  });
 });

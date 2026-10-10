@@ -3,7 +3,8 @@
 # El editor muestra «la última versión exportada» del Word: sus páginas como imágenes y un esquema que lleva a cada
 # capítulo y sección. El DOCX se convierte una vez a PDF con LibreOffice, cada página se rasteriza con pdftools y el texto
 # de cada página da el mapa: el encabezado corrido nombra el capítulo vigente, «CAPÍTULO n» marca dónde empieza y las
-# secciones van numeradas («2.4. Cifras muy pequeñas»). Medido sobre acrconta (2026-10-09): 59 páginas.
+# secciones van numeradas («2.4. Cifras muy pequeñas»). Reconoce las dos aperturas: «CAPÍTULO n» (A) y el número grande
+# (B, la de fábrica).
 #
 # LibreOffice no rellena los campos TOC (Word sí, al abrir): el visor lo avisa en vez de mostrar un índice vacío como si
 # fuera el entregable.
@@ -22,6 +23,14 @@
   for (p in seq_len(n)) {
     l <- lineas[[p]]
     k <- grep("^CAP[IÍ]TULO\\s+([0-9]+)$", l)
+    if (!length(k) && length(l) >= 3L) {
+      # Apertura B (la de fábrica): el número grande solo en su línea y el título debajo, que es el mismo capítulo que
+      # nombra el encabezado corrido. Sin esa coincidencia un número suelto es el folio, no un capítulo (verificador:
+      # con la apertura B el mapa salía con 0 capítulos).
+      enc <- utils::tail(strsplit(l[1], "\\s{2,}")[[1]], 1)
+      cand <- which(grepl("^[0-9]{1,2}$", l) & c(utils::tail(l, -1), "") == enc)
+      if (length(cand)) { k <- cand[1]; l[k] <- paste("CAPÍTULO", l[k]) }
+    }
     if (length(k) && k[1] < length(l)) {
       # Un título largo ocupa dos líneas: la segunda se une si la primera queda colgando («…administrativa y») o si la
       # siguiente empieza en minúscula.
@@ -90,7 +99,11 @@ attr(graficos_job_worker_word_visor, "prosecnur_job_function_name") <- "graficos
 #' @keywords internal
 .graficos_word_para_visor <- function(sid, file_id = NULL) {
   s <- session_get(sid)
-  if (!is.null(file_id) && nzchar(as.character(file_id)[1])) return(get_file(sid, as.character(file_id)[1]))
+  if (!is.null(file_id) && nzchar(as.character(file_id)[1])) {
+    m <- get_file(sid, as.character(file_id)[1])
+    if (!identical(m$kind, "reporte_word")) stop_api(400, "E_NO_WORD_EXPORTADO", "Ese archivo no es un Word exportado por el informe.")
+    return(m)
+  }
   words <- Filter(function(m) identical(m$kind, "reporte_word") && file.exists(m$path %||% ""), s$files %||% list())
   if (!length(words)) {
     stop_api(404, "E_NO_WORD_EXPORTADO", "Todavía no hay un Word exportado en este proyecto: expórtalo para verlo aquí.")

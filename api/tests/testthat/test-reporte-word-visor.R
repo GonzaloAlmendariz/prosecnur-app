@@ -74,3 +74,14 @@ test_that("el worker del visor deja las páginas y la respuesta las entrega como
   expect_match(resp$paginas[[1]], "^data:image/png;base64,")
   expect_equal(resp$mapa$capitulos[[1]]$titulo, "Introducción")
 })
+
+test_that("con la apertura B (número grande, la de fábrica) también se mapean los capítulos, y el folio no cuenta", {
+  b <- c("Estudio\nInforme",
+         "Contabilidad 2026    Introducción\n1\nIntroducción\nEl objetivo del estudio\n3",
+         "Contabilidad 2026    Introducción\nTexto del capítulo\n4",
+         "Contabilidad 2026    Perfil del encuestado\n2\nPerfil del encuestado\n2.1. Egresados\n5")
+  m <- .word_visor_mapa(b)
+  expect_equal(vapply(m$capitulos, `[[`, "", "numero"), c("1", "2"))
+  expect_equal(vapply(m$capitulos, `[[`, "", "titulo"), c("Introducción", "Perfil del encuestado"))
+  expect_equal(vapply(m$capitulos, `[[`, integer(1), "desde"), c(2L, 4L))
+})
