@@ -594,6 +594,9 @@
     # Analítica. Antes se caía a la global cuando la base no tenía entrada
     # propia, que es la misma fuga que el ADR corrige del lado de las etiquetas.
     cfg <- .analitica_cfg_para_base(sid, nm, s = s)
+    # D8: las listas que Analítica declara ordinales deciden el orden «recetario» de cada gráfico (graficos_orden_categorias.R).
+    inst_sources[[nm]]$listas_ordinales <- tryCatch(.orden_categorias_ordinal_set(inst_sources[[nm]], cfg), error = function(e) NULL)
+    inst_sources[[nm]]$listas_nominales <- tryCatch({ o <- .orden_categorias_ordinales_from_cfg(cfg); names(o)[!o] }, error = function(e) NULL)
     orden_cfg <- .orden_categorias_from_cfg(cfg)
     if (!length(orden_cfg)) next
     inst <- .apply_orden_categorias(inst_sources[[nm]], orden_cfg)
@@ -1151,6 +1154,7 @@
 
     for (slot_name in graf_slots) {
       slot <- .as_json_list(payload[[slot_name]])
+      warns <- c(warns, .graficos_orden_cat_avisos_slot(slot, sprintf("%s (%s)", tag, slot_name)))   # D8
       graf_name <- as.character(slot$graficador %||% "")
       if (!nzchar(graf_name)) {
         warns <- c(warns, sprintf("%s (%s): slot '%s' sin graficador", tag, tipo, slot_name))

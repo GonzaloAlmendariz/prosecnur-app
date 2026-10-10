@@ -1887,7 +1887,8 @@ p_slide_6_graficos_poblacion <- function(
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
-p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL) {
+p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL,
+                               orden_categorias = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -1918,6 +1919,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
     cruces        = cruces,
     mostrar_ceros = mostrar_ceros,
     excluir_opciones = excluir_opciones,
+    orden_categorias = .graficos_orden_cat_normalizar(orden_categorias),   # D8 (graficos_orden_categorias.R)
     overrides     = overrides,
     base          = base,
     filtros       = filtros
@@ -1957,6 +1959,7 @@ p_barras_categoricas <- function(
     excluir_opciones = NULL,
     max_categorias = NULL,
     mostrar_promedio = NULL,
+    orden_categorias = NULL,
     ...
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
@@ -1983,6 +1986,7 @@ p_barras_categoricas <- function(
     title_slide   = titulo,
     mostrar_ceros = mostrar_ceros,
     excluir_opciones = excluir_opciones,
+    orden_categorias = .graficos_orden_cat_normalizar(orden_categorias),   # D8 (graficos_orden_categorias.R)
     overrides     = overrides,
     base          = base,
     filtros       = filtros
@@ -2392,7 +2396,7 @@ p_barras_multiapiladas <- function(
 #' @family reporte
 #' @export
 p_pie <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
-                  overrides = list(), base = list(), filtros = list()) {
+                  overrides = list(), base = list(), filtros = list(), orden_categorias = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2416,6 +2420,7 @@ p_pie <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
     .element_type = "pie",
     var           = var,
     title_slide   = titulo,
+    orden_categorias = .graficos_orden_cat_normalizar(orden_categorias),   # D8 (graficos_orden_categorias.R)
     overrides     = overrides,
     base          = base,
     filtros       = filtros
@@ -2429,7 +2434,7 @@ p_pie <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
 #' @family reporte
 #' @export
 p_donut <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
-                  overrides = list(), base = list(), filtros = list()) {
+                  overrides = list(), base = list(), filtros = list(), orden_categorias = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2453,6 +2458,7 @@ p_donut <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
     .element_type = "donut",
     var           = var,
     title_slide   = titulo,
+    orden_categorias = .graficos_orden_cat_normalizar(orden_categorias),   # D8 (graficos_orden_categorias.R)
     overrides     = overrides,
     base          = base,
     filtros       = filtros
