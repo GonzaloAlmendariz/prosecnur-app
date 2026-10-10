@@ -81,7 +81,7 @@ test_that("con la apertura B (número grande, la de fábrica) también se mapean
          "Contabilidad 2026    Introducción\nTexto del capítulo\n4",
          "Contabilidad 2026    Perfil del encuestado\n2\nPerfil del encuestado\n2.1. Egresados\n5")
   m <- .word_visor_mapa(b)
-  expect_equal(vapply(m$capitulos, `[[`, "", "numero"), c("1", "2"))
-  expect_equal(vapply(m$capitulos, `[[`, "", "titulo"), c("Introducción", "Perfil del encuestado"))
-  expect_equal(vapply(m$capitulos, `[[`, integer(1), "desde"), c(2L, 4L))
+  expect_equal(vapply(m$capitulos, `[[`, "", "numero"), c("1", "2", "3"))
+  expect_equal(vapply(m$capitulos, `[[`, "", "titulo"), c("Introducción", "Perfil del encuestado", "Estructura organizacional, administrativa y financiera"))
+  expect_equal(vapply(m$capitulos, `[[`, integer(1), "desde"), c(2L, 4L, 5L))
 })
