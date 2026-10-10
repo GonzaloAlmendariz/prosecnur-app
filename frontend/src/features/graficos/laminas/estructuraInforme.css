@@ -259,3 +259,26 @@
     transition: none;
   }
 }
+
+.pulso-f6-acciones-lamina {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-1) var(--pulso-space-2) var(--pulso-space-1) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-acciones-rotulo {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.pulso-f6-icono-boton.is-peligro:hover:not(:disabled) {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
