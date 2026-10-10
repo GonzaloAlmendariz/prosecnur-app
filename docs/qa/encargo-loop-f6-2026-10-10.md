@@ -1,10 +1,40 @@
-# Encargo del loop F6 — motor nativo del recetario y editor nuevo de Gráficos
+# Meta A — Gráficos: el editor nuevo y todo lo pendiente de Procesamiento › Gráficos (encargo del loop F6)
 
 Tipo: Encargo de loop indefinido
 Estado: Vigente
 Fecha: 2026-10-10
 Autoridad: pedidos textuales de Gonzalo en la sesión local del loop N8/F6.
 Situación: traspaso a sesión en la nube.
+
+## Meta A: vara, alcance y orden (léelo antes que el resto)
+
+Esta es una de las dos metas a largo plazo que fijó Gonzalo el 2026-10-10 (ver
+[plan-traspaso-tres-sesiones-2026-10-10.md](plan-traspaso-tres-sesiones-2026-10-10.md)). **No empieza hasta que la Fase 0
+deje Quality en verde** ([goal-ci-calidad-2026-10-10.md](goal-ci-calidad-2026-10-10.md)). Trabaja en la rama
+`meta-a-graficos` y entra a `main` por PR con Quality verde. Es dueña de `frontend/src/features/graficos/**` y del motor
+(graficos, láminas, reporte_plan, Word, plantillas, recetario); el kit compartido y el resto de la UI son de la Meta B.
+
+**Vara de cierre:** la pestaña Láminas reemplaza al Editor anterior sin perder ninguna función (paridad 1–22 con evidencia y
+los 10 riesgos de la auditoría, §7 del plan de integración), F6.1–F6.5 cerradas con verificador, el Editor anterior
+retirado con ADR y confirmación de Gonzalo, y los pendientes del motor de esta lista cerrados o decididos. Solo Gonzalo da
+la meta por terminada.
+
+**Tablero de la meta (dibújalo entero cada vez):**
+
+| # | Unidad | Estado |
+|---|---|---|
+| A0 | Inventario de cierre: contrastar las 43 capacidades del editor actual y los 10 riesgos (plan de integración §7) contra lo construido; cada una con destino en la UI nueva o decisión de retiro | ☐ primero |
+| A1 | F6.1 Láminas: corregir el rechazo del verificador frontend-3 (abajo, «Primer paso») y F-a | ◐ |
+| A2 | F6.2 Selectores de tipo y variantes (F-b), Top/Bottom Two Box y «En el Word» en la tarjeta (F-d) | ☐ |
+| A3 | Guías del visor por capas (F-c) | ☐ |
+| A4 | Rendimiento y escala: vista previa asíncrona (B-b), miniaturas en lote K7 (B-a), render solo de la lámina activa, caché por hash | ☐ |
+| A5 | F6.3 Vista general: clasificador, capítulos e índice, cobertura, «Armar desde…» (planes sugeridos y equivalencias), `auto_otros_slides`, biblioteca de íconos (F-e) | ☐ |
+| A6 | F6.4 Word y Estilo del cliente: opciones del Word, logos K6 (B-d), tamaño de letra por perfil K13 (B-c), args que hoy viven en el «Estilo global» (`formato`, `sufijo_auto`, `nota_redondeo`, cálculos por familia, paletas por lista) (F-f) | ☐ |
+| A7 | Informe consolidado y multibase en Láminas (`reportScope=consolidated`, `/ppt-all` real, B-j) | ☐ |
+| A8 | Motor: restos de K15 (B-f), textos de avisos sin jerga (B-g), memoria (B-h), corona «docentes» (B-k), leyenda de la torta invertida en PPT nativo, test del router de categorías (B-n) | ☐ |
+| A9 | Decisiones de Gonzalo que tocan el motor: base ponderada S1–S4, etiquetas cortas por categoría, «Masculino (33)», plantilla ACNUR, D1–D7 y D9–D16, E2 | ⛔ |
+| A10 | F6.5 Paridad y retiro: checklist 1–22 con evidencia, matriz de viewports, revisor metodológico, ADR, confirmación de Gonzalo; luego borrar el Editor anterior y el código de población antigua (B-i), con doble confirmación (F-g) | ☐ |
+| A11 | Adoptar el kit de la Meta B cuando lo publique (primitivos, tokens, movimiento L37, `GraficosPage.tsx` L17) (F-h) | ☐ |
 
 ## Traspaso a la nube (léelo primero)
 
