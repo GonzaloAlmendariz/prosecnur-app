@@ -110,7 +110,7 @@ pestaña Estilo ofrece «Buscar entre 61 ajustes» del graficador; la lámina na
 lámina son fichas de texto en el timeline, sin selector visual de los 22 tipos ni biblioteca de íconos; a 1024 px la barra de
 herramientas pierde etiquetas.
 
-## Propuesta de dirección (pendiente de aprobación de Gonzalo)
+## Propuesta de dirección (aprobada por Gonzalo, 2026-10-09)
 
 Problema: el editor sigue siendo el de la era ggplot —61 ajustes de estilo que la salida nativa no lee, la lámina real
 escondida tras un botón, 12 tipos del recetario no insertables y el Word sin una sola opción—. Tarea primaria: armar un informe
@@ -133,3 +133,15 @@ la lámina nativa 16:9 siempre visible al centro, inspector a la derecha— con 
 **Contenido · Composición · Datos · Ruta anterior**; escala `--pulso-space-*` (4/8/12/16/24) sin literales; miniaturas de tipo
 y de variante en grupo `equal` 16:9 (C2); íconos en grupo `equal` cuadrado; vacíos dentro de su caja (C3); un solo dueño de
 scroll por columna (C4). Viewports 1440×1000 y 1024×600; a 1024 el inspector pasa a sideover.
+
+### Decisiones de Gonzalo (2026-10-09), textuales, una por parte
+
+1. F6.1: «Cuanod buscamos remasterizar, es una remasterizaiocn completa y fiel, se van». Los controles sin efecto nativo
+   **salen del editor**, no van a un desplegable «Ruta anterior». La ruta anterior usa sus valores por defecto.
+2. F6.2: «Debee hacer todo lo que el recetairo dice que hace». El documento Word expone todo lo que el recetario Word hace.
+3. F6.3: «Si, e suna gran oportunidad para ahora hacerlos bien». Los 33 tipos desde el registro, bien hechos.
+4. F6.4: «Bien, en especial para lanimas que lo usan como el de los iconos del indice». Los 124 íconos se empaquetan; el
+   índice es el primer consumidor.
+5. F6.5: «Esta bien, el recetario tiene cosas que el motor debe ser capaz de hacer y mostrar».
+
+Hechos antes de construir: A4 (`6cf858893`, redondeo del Word deducido) y A23 (ayudas del Top Two Box).
