@@ -9,6 +9,13 @@
   background: var(--pulso-bg);
 }
 
+/* El visor es su propio contenedor: la barra se compacta por SU ancho (Estructura o Inspector abiertos), no por el de la
+   página (D1). Ningún control cede ancho; cede la posición, y los rótulos se ocultan sólo a la vista (siguen en el
+   nombre accesible). */
+.pulso-f6-visor {
+  container: pulso-f6-visor / inline-size;
+}
+
 .pulso-f6-visor-barra {
   flex: none;
   display: flex;
@@ -340,7 +347,50 @@
   }
 }
 
+/* Por debajo de 1120 px de visor se ocultan a la vista el rótulo de las guías y la palabra «avisos»; por debajo de
+   820, el del estado y el de Estructura, y el ícono del tipo (lo repiten la Estructura y el Inspector). */
+@container pulso-f6-visor (max-width: 1120px) {
+  .pulso-f6-visor .pulso-f6-rotulo-medio,
+  .pulso-f6-guias .pulso-gv2-debug-border-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+@container pulso-f6-visor (max-width: 820px) {
+  .pulso-f6-visor-barra > .pulso-f6-visor-tipo {
+    display: none;
+  }
+
+  .pulso-f6-visor .pulso-f6-rotulo-estrecho {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+.pulso-f6-guias {
+  flex: none;
+}
+
+/* El zoom no cede ancho (D1): el label se encogía bajo su select y «Ajustes» lo tapaba a 1024. Cede la posición. */
+.pulso-f6-zoom {
+  flex: none;
+  display: inline-flex;
+}
+
 .pulso-f6-zoom select {
+  flex: none;
+  width: auto;
   height: var(--pulso-control-height-md);
   padding: 0 var(--pulso-space-2);
   border: 1px solid var(--pulso-border-strong);

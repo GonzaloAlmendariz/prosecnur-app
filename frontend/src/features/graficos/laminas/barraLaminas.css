@@ -218,6 +218,27 @@
   .pulso-f6-mas-menu .pulso-f6-solo-compacto-barra {
     display: flex;
   }
+
+  /* La cobertura sigue en la barra como cifra (C4, D3): sólo caen sus rótulos; el nombre accesible no cambia. */
+  .pulso-f6-barra-cobertura .pulso-gv2-coverage-nombre {
+    display: none;
+  }
+}
+
+.pulso-f6-barra-cobertura {
+  flex: none;
+  display: inline-flex;
+}
+
+/* El Editor anterior reduce el disparador a un icono sin cifra bajo 1040 px de ventana (font-size 0 con !important);
+   en la barra de Láminas la cifra se queda, con el mismo cuerpo que a lo ancho. */
+.pulso-graficos-frame .pulso-f6-barra-cobertura .pulso-gv2-coverage-trigger {
+  width: auto !important;
+  min-width: 0 !important;
+  padding-inline: 8px !important;
+  gap: 5px !important;
+  font-size: 10.5px !important;
+  white-space: nowrap;
 }
 
 /* El botón Exportar conserva su rótulo en la barra de Láminas a cualquier ancho (la barra presupuesta su espacio). */

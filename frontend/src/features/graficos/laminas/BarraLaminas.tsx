@@ -90,7 +90,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Pro
           <AlertTriangle size={14} aria-hidden="true" />
           {nAvisos === 1 ? "1 aviso" : `${nAvisos} avisos`}
         </button>
-        <span className="pulso-f6-barra-ancho"><PlanCoverageBadge conNombre /></span>
+        <span className="pulso-f6-barra-cobertura"><PlanCoverageBadge conNombre /></span>
         <SuggestedPlanButton />
         <ExportarInformeMenu {...exportar} canExportFinal={canExport && validator.canExport} />
         <MenuMas
