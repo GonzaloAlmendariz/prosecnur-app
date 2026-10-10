@@ -32,6 +32,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
   const paletas = usePlanStore((s) => s.paletas);
   const overrides = usePlanStore((s) => s.overridesReusables);
   const registrarResumen = useLaminasUi((s) => s.registrarResumen);
+  const registrarMiniatura = useLaminasUi((s) => s.registrarMiniatura);
   const coordinadores = useRef(new Map<string, Coordinador>());
   const [estado, setEstado] = useState<EstadoPreviewLamina>({ estado: "inactiva" });
   const [intento, setIntento] = useState(0);
@@ -51,6 +52,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
       coord = crearCoordinadorPreviewLamina((_clave, { signal }) =>
         apiGraficosPreviewSlide(usePlanStore.getState().plan.slides.find((s) => s.id === id) ?? slide, buildGraficosConfigFromStore(), {
           include_images: false,
+          preview_quality: calidadParaPantalla(),
           render_slide_preview: true,
           preview_partes: true,
           ...(scope === "consolidated" ? { scope: "consolidated" as const } : {}),
@@ -65,6 +67,8 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
       if (e.estado === "lista") {
         const l = leerLaminaVisor(e.respuesta);
         registrarResumen(id, { estado: estadoDeLamina(l), partes: l.partes.length, avisos: l.avisos.length });
+        const primera = l.partes[0]?.imagen;
+        if (primera) registrarMiniatura(id, primera);
       }
     });
     const actual = coord;
@@ -84,4 +88,15 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
     error: estado.estado === "error" ? estado.mensaje : null,
     reintentar: () => setIntento((n) => n + 1),
   };
+}
+
+/**
+ * «quick» rasteriza a 160 dpi (≈2130 px de ancho para 13,33 pulgadas) y «normal» a 220 (≈2930 px). La lámina más
+ * grande que dibuja el visor mide su ancho en CSS por la densidad de la pantalla; si eso supera lo que da «quick»,
+ * se pide «normal» para que no se vea borrosa.
+ */
+export function calidadParaPantalla(anchoVentana = typeof window === "undefined" ? 1440 : window.innerWidth,
+  densidad = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1): "quick" | "normal" {
+  // El visor nunca pasa de ~70 % del ancho de la ventana (zoom 150 % incluido se desplaza, no se re-rasteriza).
+  return anchoVentana * 0.7 * densidad > 2130 ? "normal" : "quick";
 }

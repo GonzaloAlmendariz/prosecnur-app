@@ -25,6 +25,15 @@
   overflow: hidden;
 }
 
+/* Estructura plegada (sólo en el marco ancho): la columna desaparece y la lámina gana su ancho. */
+.pulso-f6-laminas.is-sin-estructura {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.pulso-f6-laminas.is-sin-estructura > .pulso-f6-estructura {
+  display: none;
+}
+
 .pulso-f6-laminas.is-vacia {
   grid-template-columns: 280px minmax(0, 1fr);
 }
@@ -52,8 +61,13 @@
 }
 
 @container pulso-f6-laminas (max-width: 1120px) {
-  .pulso-f6-laminas {
+  .pulso-f6-laminas,
+  .pulso-f6-laminas.is-sin-estructura {
     grid-template-columns: 232px minmax(0, 1fr);
+  }
+
+  .pulso-f6-laminas.is-sin-estructura > .pulso-f6-estructura {
+    display: flex;
   }
 
   .pulso-f6-inspector-marco {

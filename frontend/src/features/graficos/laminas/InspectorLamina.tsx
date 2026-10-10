@@ -269,6 +269,13 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
           );
         })}
       </ul>
+      <p className="pulso-f6-candado">
+        <Lock size={14} aria-hidden="true" />
+        <span>
+          Lo fija el recetario: lo que ocupa cada gráfico en su ranura. Si no cabe, el motor parte la lámina en
+          «(cont.)» y lo dice en Estado.
+        </span>
+      </p>
       <p className="pulso-f6-pendiente">
         <History size={14} aria-hidden="true" />
         <span>

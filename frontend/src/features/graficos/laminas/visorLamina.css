@@ -69,13 +69,17 @@
   color: var(--pulso-text-soft);
 }
 
+/* El lienzo encaja la hoja 16:9 en AMBAS dimensiones (contain) con un margen de --pulso-space-4: la lámina crece hasta
+   el borde que limite. Con zoom, la hoja crece sobre ese ajuste y el lienzo se desplaza (`safe` mantiene alcanzable el
+   borde izquierdo y el superior). */
 .pulso-f6-lienzo {
   position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
-  place-items: center;
-  padding: var(--pulso-space-4) var(--pulso-space-6);
+  align-items: safe center;
+  justify-items: safe center;
+  padding: var(--pulso-space-4);
   overflow: auto;
   container-type: size;
 }
@@ -89,7 +93,8 @@
 .pulso-f6-hoja {
   position: relative;
   margin: 0;
-  width: min(100cqw, calc(100cqh * 16 / 9));
+  width: calc(min(100cqw, 100cqh * 16 / 9) * var(--pulso-f6-zoom, 1));
+  flex: none;
   aspect-ratio: 16 / 9;
   background: var(--pulso-surface);
   border-radius: calc(var(--pulso-radius) / 2);
@@ -265,6 +270,7 @@
 }
 
 .pulso-f6-partes-barra {
+  display: inline-flex;
   flex: none;
   align-items: center;
   gap: var(--pulso-space-1);
@@ -274,8 +280,26 @@
   .pulso-f6-laminas .pulso-f6-solo-ancho {
     display: none;
   }
+}
 
-  .pulso-f6-lienzo {
-    padding: var(--pulso-space-3);
-  }
+.pulso-f6-zoom select {
+  height: var(--pulso-control-height-md);
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pulso-f6-zoom select:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-icono-boton.is-activo {
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
 }
