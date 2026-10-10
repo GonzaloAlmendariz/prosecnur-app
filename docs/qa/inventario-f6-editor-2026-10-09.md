@@ -149,3 +149,20 @@ Hechos antes de construir: A4 (`6cf858893`, redondeo del Word deducido) y A23 (a
 Gonzalo, 2026-10-09, textual: «Ademas que esto dbee ser una remasterizaic9 completa dle diseño para que sea vea mejor y seas
 intuitivo». F6 es un rediseño completo del editor, no una poda de controles sobre el diseño actual. Antes de F6.1 va **F6.0:
 dirección de diseño**, una maqueta del editor nuevo a 1440 y 1024 que Gonzalo aprueba antes de implementar.
+
+## Parte C — ¿la app puede mostrar la lámina tal cual? (medido, 2026-10-09)
+
+Gonzalo: «comprueba que la app pueda realmente mostrar la lamina tal cual como lo publicitas». Medido con Plumber propio en
+:8799 sobre una copia de `acrconta_mazo.pulso`, llamando a `POST /api/graficos/preview-slide` por HTTP.
+
+| Lo que promete la maqueta | Hoy | Evidencia | Qué falta |
+|---|---|---|---|
+| La lámina real al centro | Parcial | Mismo motor del export (`reporte_ppt_plan`, `router_graficos.R:3243`) sobre un mini-PPTX, rasterizado; sólo bajo demanda en una burbuja (`SlidePreview.tsx:283`). Frente al export: portada y lámina de 4 gráficos 0 px distintos; la escala 13, 3.707 px (falta el antetítulo heredado del separador y el folio dice «1») | Pasar antetítulo y folio del plan al mini-plan; unificar el `rebuild_slide` del preview (`:3133-3228`) con `.graficos_rebuild_slide_json` del export (`:423-505`); panel central fijo |
+| Se regenera al cambiar | Parcial | Regenera por hash con la burbuja abierta. 4–7 s por lámina con soffice (un proceso por llamada, ~3 s fijos); 11–15 s con artifact-tool; caché 5 min | Debounce, cancelación y estado «desactualizada»; soffice persistente para bajar a 1–2 s |
+| Partes «(cont.)» | No | El mini-PPTX de la 13 trae 2 láminas; se rasteriza sólo la 1 (`slide_index = 1L`, `:2449`); la respuesta no cuenta partes | Rasterizar las N páginas del PDF (`.pdf_page_to_png` ya acepta `page`) y devolver `partes` |
+| Indicador nativa / ruta anterior | No | La decisión vive en `.lam_compositor_aplica*` (`lamina_compositor.R:88-122`) y no se registra; los [PULSO-AVISO] se pierden | Registrar `motor_nativo` por lámina (o deducirlo del XML: grupos `prosecnur:*` frente a `<p:pic>`) y capturar los avisos |
+| Visor del Word | No | Sin endpoint ni UI. DOCX→PDF 10 s (60 págs), PNG 6,6 s; generar el DOCX ~200 s; SEQ resueltos, **TOC vacío** en LibreOffice, PDF sin marcadores | Job DOCX→PDF→PNG, mapa de capítulos por `pdftotext`, visor paginado; rellenar el TOC o avisar |
+| Renderer en la app de escritorio | No | LibreOffice, pdftoppm y `magick` no se empaquetan (`desktop/package.json:69-98`); `.preview_renderer_status` dice disponible con sólo ver soffice; sin renderer cae en silencio a una aproximación | Detectar bien y avisar en la UI; o empaquetar LibreOffice + Poppler (300–600 MB, firma) |
+
+Consecuencia para F6: la maqueta se puede construir, pero la lámina real al centro exige primero una pieza de backend (contexto
+del plan, partes, indicador nativo, avisos, renderer garantizado). Se trata como **F6.0b**, antes de la UI.
