@@ -10,5 +10,14 @@ mount_graficos_estandar <- function(pr) {
     plumber::pr_get("/api/graficos/estandar", wrap_endpoint(function(req, res) {
       # K1: tipos de lámina con sus ranuras en pulgadas, colores y paletas del recetario, tal cual del estándar.
       .graficos_estandar_payload()
+    })) |>
+    plumber::pr_get("/api/graficos/recetario/ejemplos", wrap_endpoint(function(req, res) {
+      # K5: qué tipos y páginas traen ejemplo del recetario (sin las imágenes).
+      .recetario_ejemplos_indice()
+    })) |>
+    plumber::pr_get("/api/graficos/recetario/ejemplo", wrap_endpoint(function(req, res, tipo = NULL, pagina = NULL, clase = NULL,
+                                                                              recetario = NULL) {
+      # K5: la lámina de ejemplo del recetario por tipo o por página, como imagen embebida con su procedencia.
+      .recetario_ejemplo_payload(tipo = tipo, pagina = pagina, clase = clase, recetario = recetario)
     }))
 }
