@@ -2231,22 +2231,28 @@
 
   soffice <- .soffice_cmd()
   soffice_available <- nzchar(soffice)
+  # soffice sólo convierte a PDF: sin quien pase el PDF a PNG la vista previa sale vacía (plan de empaquetado, P3).
+  rasterizer <- .preview_rasterizer_status()
+  soffice_usable <- soffice_available && isTRUE(rasterizer$available)
 
   renderer <- if (artifact_available) {
     "artifact-tool"
-  } else if (soffice_available) {
+  } else if (soffice_usable) {
     "soffice"
   } else {
     NA_character_
   }
 
   list(
-    available = isTRUE(artifact_available || soffice_available),
+    available = isTRUE(artifact_available || soffice_usable),
+    rasterizer = rasterizer$id,
     renderer = renderer,
     platform = Sys.info()[["sysname"]] %||% NA_character_,
     desktop_automation = FALSE,
-    message = if (artifact_available || soffice_available) {
+    message = if (artifact_available || soffice_usable) {
       "Renderer headless disponible para preview inline."
+    } else if (soffice_available) {
+      "Se encontró LibreOffice, pero falta el rasterizador de PDF (pdftools o pdftoppm): la vista previa saldría vacía."
     } else {
       "No se encontro renderer headless. Configura LibreOffice/soffice o un renderer interno de desarrollo."
     },
@@ -2298,6 +2304,11 @@
   timeout <- suppressWarnings(as.integer(timeout %||% 20L))
   if (is.na(timeout) || timeout < 1L) timeout <- 20L
 
+  # pdftools (poppler estático en sus binarios de CRAN) rasteriza dentro del proceso y viaja en el instalador;
+  # pdftoppm queda como respaldo de desarrollo (plan de empaquetado, P2; graficos_preview_lamina.R).
+  png_pdftools <- .pdf_page_to_png_pdftools(pdf_path, out_dir, page = page, dpi = dpi)
+  if (!is.null(png_pdftools)) return(.png_preview_payload(png_pdftools, paste0(renderer, "+pdftools")))
+
   pdftoppm <- .first_available_cmd(c("pdftoppm"))
   if (nzchar(pdftoppm)) {
     prefix <- file.path(out_dir, sprintf("slide_preview_%03d", page))
@@ -2321,17 +2332,6 @@
       file.exists(png_path)
     }, error = function(e) FALSE)
     if (isTRUE(ok)) return(.png_preview_payload(png_path, paste0(renderer, "+pdftoppm")))
-  }
-
-  if (requireNamespace("magick", quietly = TRUE)) {
-    png_path <- file.path(out_dir, sprintf("slide_preview_%03d.png", page))
-    ok <- tryCatch({
-      img <- magick::image_read_pdf(pdf_path, density = dpi)
-      if (length(img) < page) return(FALSE)
-      magick::image_write(img[page], path = png_path, format = "png")
-      file.exists(png_path)
-    }, error = function(e) FALSE)
-    if (isTRUE(ok)) return(.png_preview_payload(png_path, paste0(renderer, "+magick")))
   }
 
   NULL
