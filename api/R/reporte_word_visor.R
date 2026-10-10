@@ -28,7 +28,9 @@
       # nombra el encabezado corrido. Sin esa coincidencia un número suelto es el folio, no un capítulo (verificador:
       # con la apertura B el mapa salía con 0 capítulos).
       enc <- utils::tail(strsplit(l[1], "\\s{2,}")[[1]], 1)
-      cand <- which(grepl("^[0-9]{1,2}$", l) & c(utils::tail(l, -1), "") == enc)
+      sig <- c(utils::tail(l, -1), "")
+      # El título largo se parte en dos líneas: basta con que el encabezado empiece por la primera.
+      cand <- which(grepl("^[0-9]{1,2}$", l) & nchar(sig) >= 3L & startsWith(enc, sig))
       if (length(cand)) { k <- cand[1]; l[k] <- paste("CAPÍTULO", l[k]) }
     }
     if (length(k) && k[1] < length(l)) {
