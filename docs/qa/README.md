@@ -46,6 +46,9 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   el punto de entrada único: diagnóstico, decisiones, el kit pieza por
   pieza, la maqueta página por página, las 36 unidades detalladas, el plan,
   la vara, el ledger y las trampas.
+- [Censo de acciones de datos en Monitoreo (2026-10-10)](censo-acciones-datos-monitoreo-2026-10-10.md):
+  qué hace cada botón de actualización en los cuatro perfiles hasta el
+  endpoint, y el modelo «un verbo por dirección» (L38).
 - [Censo de animaciones y sistema de movimiento (2026-10-10)](censo-animaciones-2026-10-10.md):
   233 keyframes sin sistema, 34 transiciones de layout, 13 presses; los
   principios, el catálogo de 22 coreografías y el antes/después (L37).

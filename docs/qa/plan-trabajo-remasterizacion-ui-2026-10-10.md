@@ -88,7 +88,7 @@ Entregable visible: importar desde SurveyMonkey o Kobo con catálogo, progreso, 
 
 Ledger: capturas INVALID 7 → 0; `useState` de navegación 42 → < 30.
 
-### Vuelta 3 — Un solo chrome en los ocho módulos (19 sesiones)
+### Vuelta 3 — Un solo chrome en los ocho módulos (22 sesiones)
 
 | Unidad | Maqueta | Qué cambia | Dónde vive | Agente | Gate |
 |---|---|---|---|---|---|
@@ -99,6 +99,7 @@ Ledger: capturas INVALID 7 → 0; `useState` de navegación 42 → < 30.
 | L18 | L18 | Monitoreo territorial sin bandas repetidas; Cálculo colapsa los KPIs en «—» | `TerritorialMonitoreoPage.tsx`, `profilePage.css` (extracción), `motor/ResumenDiseno.tsx` | frontend-react | contenido propio antes de 300 px en todas las pestañas |
 | L19 | L19 | Sub-barras sin dirección enlazadas o retiradas (consultas y reportes de Acr/Tel, manzanas y fase de Hojas, estructura de Carga, mes/semana de Bitácora) | ver censo §10 hallazgo 10 | frontend-react | `useState` de navegación = 0 |
 | L36 | L36 | **Formularios › Documento como editor fiel** (arquitectura del editor de láminas F6): DOC.0 dirección y recetario del cuestionario → DOC.1 estándar `cuestionario` leído por el motor (`reporte_formulario_word.R` deja sus hex propios) → DOC.2 visor de páginas reales por job (reutiliza `reporte_word_visor.R`) con estados «regenerando» y «desactualizada» → DOC.3 bloques seleccionables con inspector contextual → DOC.4 opciones en el `.pulso` y versiones por instrumento → DOC.5 golden del `.docx` y comparación visual | `features/xlsformEditor/documento/` (calcado de `graficos/laminas/`), `lib/modules.ts`, `estandar_pulso.json`, `cuestionario_word_*.R`, `router_xlsform_editor.R:1607` | especialista-entregables (motor y estándar) + frontend-react (sección) + revisor-metodologico (qué lógica se imprime) + qa-visual-desktop | dirección DOC.0 aprobada por el dueño; seis pestañas capturadas con `acnur_pdm`; golden del `.docx`; páginas PNG contra la maqueta; XL = 8 sesiones |
+| L38 | L38 | **Monitoreo: un verbo por dirección**: `ControlActualizar` en el chrome de los cuatro perfiles (cuerpo + menú + píldora de estado), diccionario de siete verbos, Publicar siempre con ensayo (`aplicar:false` en `/aulas/publicar-libro` y `/aulas/publicar-marcas` desde la UI), dedupe de jobs, recibo visible, retiro de la franja y de los duplicados; `--danger` sólo en la lista cerrada; contrato vitest | `shell/MonitoreoModuleChrome.tsx`, `shell/ControlActualizar.tsx`, `components/SourceSyncActions.tsx`, `profiles/*/sync/*`, `TerritorialSourceConsole.tsx`, `AulasOperationsPanel.tsx`, `AulasMonitoreoPage.tsx`, `router_monitoreo.R`, `jobs.R` | frontend-react + backend-r + autor-regresiones (3 sesiones) | contrato de acciones verde; las cuatro pantallas de §4.4 del censo con un solo control; testthat del ensayo sin red; depende de L26 (kit) y de D9–D12 |
 
 Entregable visible: los ocho módulos con el mismo chrome; Formularios con Editor y Documento. Ledger: copias de `SectionPillbar` 5 → 0; módulos sin rail 3 → 0; `toolbar=` 3 → 0.
 
@@ -181,4 +182,4 @@ actualiza al cerrar cada vuelta con la fecha, los commits y el ledger movido.
 | 4 Cifras y feedback | L20, L21, L22, L23, L25 | 7 | ☐ |
 | 5 Datos y densidad | L27, L28, L29 | 12 | ☐ |
 | 6 Shell | L30, L31, L32, L33, L37 | 9 | ☐ |
-| **Total** | 37 unidades | **79** | |
+| **Total** | 38 unidades | **82** | |
