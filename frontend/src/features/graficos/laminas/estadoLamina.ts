@@ -29,6 +29,8 @@ export type LaminaVisor = {
   renderer: string | null;
   /** No hubo imagen: sin renderer o falló la rasterización; el PPTX sí se generó. */
   sinImagen: boolean;
+  /** El mini-PPTX de esta lámina, descargable. */
+  fileId: string | null;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
@@ -79,6 +81,7 @@ export function leerLaminaVisor(r: PreviewSlideResponse): LaminaVisor {
     truncado: r.partes?.truncado === true,
     renderer,
     sinImagen: imagenes.size === 0,
+    fileId: typeof r.file_id === "string" && r.file_id ? r.file_id : null,
   };
 }
 

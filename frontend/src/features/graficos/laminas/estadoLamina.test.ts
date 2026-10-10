@@ -24,6 +24,7 @@ describe("leerLaminaVisor", () => {
     expect(l.avisos).toEqual(["Se omitió una columna"]);
     expect(l.renderer).toBe("soffice+pdftools");
     expect(l.sinImagen).toBe(false);
+    expect(l.fileId).toBe("f");
   });
 
   it("acepta escalares de auto_unbox y huecos vacíos", () => {
