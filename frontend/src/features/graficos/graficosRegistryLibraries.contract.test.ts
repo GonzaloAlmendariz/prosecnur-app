@@ -16,6 +16,7 @@ import {
 import { canInsertGraficador } from "./GraficadorPicker";
 import { slideAcceptsGraphSlot } from "./GraficosLibrariesHost";
 import { normalizeGraficosRegistry } from "./metadataSanitizers";
+import { enSelector } from "./enSelector";
 import { SlideLayoutViewer } from "./SlidePreview";
 import { resolveSlideCompositionMap } from "./slideCompositionModel";
 import {
@@ -45,6 +46,8 @@ const EXPECTED_SLIDES = [
   ["p_slide_2_graficos_texto_izquierda", "Dos gráficos + texto izquierda", "2graficos", "2g", "twoTextLeft", "left_2graficos_texto", ["grafico_1", "grafico_2"]],
   ["p_slide_2_graficos_texto_derecha", "Dos gráficos + texto derecha", "2graficos", "2g", "twoTextRight", "right_2graficos_texto", ["grafico_1", "grafico_2"]],
   ["p_slide_4_graficos", "Cuatro gráficos", "4graficos", "grid", "grid4", "4_paneles", ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"]],
+  // Población antigua: sigue en el registro (los planes que la usan se dibujan) pero el selector no la ofrece
+  // (`en_selector = FALSE`; ver «la población antigua sale del selector» abajo).
   ["p_slide_2_graficos_poblacion", "Dos gráficos + ícono (población)", "poblacion", "poblacion", "population2", "poblacion_2", ["izquierda", "derecha"]],
   ["p_slide_4_graficos_poblacion", "Cuatro gráficos + ícono (población)", "poblacion", "poblacion", "population4", "poblacion_4", ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"]],
   ["p_slide_5_graficos_poblacion", "Cinco gráficos + ícono", "poblacion", "poblacion", "population5", "poblacion_5", ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2"]],
@@ -218,6 +221,40 @@ describe("bibliotecas gobernadas por el registry L6", () => {
       expect(slide.slot_specs?.every((slot) => slot.label.trim().length > 0)).toBe(true);
       expect(slide.slot_specs?.every((slot) => slot.role === "chart" || slot.role === "icon")).toBe(true);
       expect(isInsertableSlideType(slide.name)).toBe(true);
+    }
+  });
+
+  it("la población antigua sale del selector y sigue resolviéndose para los planes que la usan", () => {
+    // El catálogo generado del backend es quien dice qué sale del selector; la fixture congelada lo antecede.
+    const catalogo = JSON.parse(fs.readFileSync(
+      path.resolve(featureDir, "../../../../api/inst/catalogos/graficos_tipos.json"),
+      "utf8",
+    )) as { slides: Array<{ name: string; en_selector: boolean }> };
+    const retiradas = catalogo.slides.filter((x) => !x.en_selector).map((x) => x.name);
+    expect(retiradas).toEqual(expect.arrayContaining([
+      "p_slide_2_graficos_poblacion",
+      "p_slide_3_graficos_poblacion",
+      "p_slide_4_graficos_poblacion",
+    ]));
+
+    const enCatalogo = new Map(catalogo.slides.map((x) => [x.name, x.en_selector]));
+    const registry = matrixRegistry();
+    const conBandera = registry.slides.map((slide) => (
+      enCatalogo.has(slide.name) ? { ...slide, en_selector: enCatalogo.get(slide.name) } : slide
+    ));
+    const ofrecidas = enSelector(conBandera).map((slide) => slide.name);
+    expect(ofrecidas).not.toContain("p_slide_2_graficos_poblacion");
+    expect(ofrecidas).not.toContain("p_slide_4_graficos_poblacion");
+    // La población vigente se sigue ofreciendo.
+    expect(ofrecidas).toEqual(expect.arrayContaining(["p_slide_5_graficos_poblacion", "p_slide_6_graficos_poblacion"]));
+    expect(ofrecidas).toHaveLength(registry.slides.length - 2);
+
+    // Ocultar no es borrar: un plan con la lámina antigua la sigue resolviendo y dibujando.
+    for (const name of ["p_slide_2_graficos_poblacion", "p_slide_4_graficos_poblacion"]) {
+      const slide = conBandera.find((x) => x.name === name);
+      expect(slide).toBeDefined();
+      expect(isInsertableSlideType(name)).toBe(true);
+      expect(buildSlideLibraryModel(slide!).blueprint.graphSlots.length).toBeGreaterThan(0);
     }
   });
 

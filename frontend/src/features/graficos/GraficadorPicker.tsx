@@ -34,6 +34,7 @@ import { resolveGraficadorContract } from "./slidePreviewModel";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useLibraryDialogA11y } from "./useLibraryDialogA11y";
 import "./graficadorPicker.css";
+import { enSelector } from "./enSelector";
 
 type GraficadorFamily =
   | "all"
@@ -123,7 +124,7 @@ export default function GraficadorPicker({
   });
 
   // Lo que el registro saca del selector (`en_selector = FALSE`, p. ej. FODA) no se ofrece.
-  const inventory = (registry?.graficadores ?? []).filter((g) => g.en_selector !== false);
+  const inventory = enSelector(registry?.graficadores ?? []);
 
   const familyCounts = useMemo(() => {
     const counts = Object.fromEntries(
