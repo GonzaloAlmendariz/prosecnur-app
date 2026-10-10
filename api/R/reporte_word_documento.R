@@ -137,7 +137,13 @@
       next
     }
     if (!identical(kind, "chart")) next
-    doc <- abrir_intro(doc)
+    # Un gráfico es un resultado: si todavía no hay capítulo de resultados (plan sin secciones, o gráficos antes de la
+    # primera), primero va «Cómo leer» y después un capítulo «Resultados» (verificador de N8.15).
+    if (is.null(cap_titulo) || cap_titulo %in% c("Introducción", "Cómo leer este informe")) {
+      doc <- poner_como_leer(doc); doc <- cerrar(doc)
+      cap <- cap + 1L; sec <- 0L; cap_titulo <- "Resultados"
+      doc <- .word_apertura(doc, cap, "Resultados", variante = op$apertura)
+    }
     p <- e$plot_word
     # Un dibujo sin título ni espec (la lámina de objetivo con íconos del PPT) no es una figura del informe Word.
     if (identical(e$etype, "ggplot_raw") && !nzchar(.word_txt1(e$title)) && is.null(attr(p, "pulso_espec"))) {
