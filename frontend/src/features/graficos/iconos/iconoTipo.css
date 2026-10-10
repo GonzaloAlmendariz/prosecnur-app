@@ -1,0 +1,25 @@
+/* Íconos por tipo de lámina y de gráfico (F6.1b). Caja fija size×size; el dibujo hereda `color` del contexto. */
+
+.pulso-icono-tipo {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  overflow: visible;
+}
+
+/* Acento único: en reposo es el color del texto; el contexto lo enciende con el acento del módulo. */
+.pulso-icono-tipo__acento {
+  color: var(--icono-acento, currentColor);
+}
+
+.pulso-icono-tipo--acento,
+[aria-current]:not([aria-current="false"]) .pulso-icono-tipo,
+[aria-selected="true"] .pulso-icono-tipo {
+  --icono-acento: var(--module-accent);
+}
+
+@media (forced-colors: active) {
+  .pulso-icono-tipo__acento {
+    color: CanvasText;
+  }
+}
