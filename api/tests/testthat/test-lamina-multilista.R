@@ -227,3 +227,35 @@ test_that("con actores la lámina no cambia: cada público ya nombra sus respues
   expect_false(any(grepl("^N = ", textos)))
   expect_true("80 respuestas" %in% textos)
 })
+
+# Verificador de 3409b0aa8: en una misma lámina los bloques salían con grosores distintos (0.32 y 0.44 in) porque la
+# regla de cifras chicas se decidía bloque a bloque. El grosor y el aire se deciden una vez por lámina, y la lámina
+# 2×2 cae en las posiciones del ejemplo p144 del recetario (título del bloque 1.60, primera barra 2.53, leyenda 6.26),
+# con la tolerancia de 0.05 in del contrato.
+
+.mlt_formas <- function(xml) {
+  x <- gsub("[\r\n]+", " ", gsub(">\\s+<", "><", xml))
+  sps <- regmatches(x, gregexpr("<p:sp>.*?</p:sp>", x))[[1]]
+  geo <- t(vapply(sps, function(s) {
+    m <- regmatches(s, regexec('<a:off x="(-?[0-9]+)" y="(-?[0-9]+)"/><a:ext cx="([0-9]+)" cy="([0-9]+)"', s))[[1]]
+    if (length(m) < 5) rep(NA_real_, 4) else as.numeric(m[2:5]) / 914400
+  }, numeric(4), USE.NAMES = FALSE))
+  data.frame(nombre = sub('.*?name="([^"]*)".*', "\\1", sps), x = geo[, 1], y = geo[, 2], w = geo[, 3], h = geo[, 4],
+             stringsAsFactors = FALSE)
+}
+
+test_that("en una lámina multilista todas las barras tienen el mismo grosor y caen en las medidas de la p144", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("cowplot")
+  out <- .mlt_generar()
+  expect_equal(.preview_partes(out)$n, 1L)
+  f <- .mlt_formas(.mlt_xml(out))
+  seg <- f[f$nombre == "segmento", ]
+  # Un bloque tiene una cifra chica (5 %) y el otro no: el grosor tiene que ser el mismo en los dos.
+  expect_true(any(f$nombre == "cifra_fuera"))
+  expect_lt(diff(range(seg$h)), 1e-3)
+  tol <- 0.05 + 1e-6
+  expect_lte(abs(f$y[f$nombre == "bloque:titulo"][1] - 1.60), tol)
+  expect_lte(abs(min(seg$y) - 2.53), tol)
+  expect_lte(abs(min(f$y[f$nombre == "leyenda:texto"]) - 6.26), tol)
+})

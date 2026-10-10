@@ -168,10 +168,13 @@
 #' @param estirar Factor fijo de aire por fila que decide quien compone varios bloques (multilista); con él el
 #'   bloque empieza en `y0` sin centrarse. `NULL`: el bloque reparte su propio alto, como siempre.
 #' @param nb Filas de la lámina entera para el grosor (multilista); `NULL`: las del bloque.
+#' @param aire,grosor Aire extra por fila y grosor de barra decididos una vez por lámina por quien compone varios
+#'   bloques (multilista), para que todos salgan iguales. `NULL`: el bloque aplica la regla de cifras chicas por su
+#'   cuenta, como siempre.
 #' @return Invisible, la `y` donde termina el bloque (sin la leyenda).
 #' @keywords internal
 .lam_bloque_escala <- function(lz, espec, premisas, solo = TRUE, y0 = NULL, y1 = NULL, leyenda = TRUE,
-                               estirar = NULL, nb = NULL) {
+                               estirar = NULL, nb = NULL, aire = NULL, grosor = NULL) {
   g_ <- .std_geom; L <- g_("likert"); azul <- .std_color("azul"); verde <- .std_color("verde_top_two_box")
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
@@ -214,11 +217,17 @@
     altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
   }
   nb <- sum(vapply(premisas, function(p) length(p$filas), 0)); extra <- max(0, 0.34 - (fila - g))
-  if (extra > 0 && tot + nb * extra <= disp + (if (is.null(estirar)) 0.3 else 0)) {   # aire para las cifras chicas, sólo si cabe
+  if (!is.null(aire)) {   # lo decidió la lámina (multilista)
+    if (aire > 0) { fila <- fila + aire; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) }
+  } else if (extra > 0 && tot + nb * extra <= disp + (if (is.null(estirar)) 0.3 else 0)) {   # aire para las cifras chicas, sólo si cabe
     fila <- fila + extra; altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
   }
-  peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
-  if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36)
+  if (!is.null(grosor)) {
+    g <- grosor
+  } else {
+    peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
+    if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36)
+  }
   y <- if (is.null(estirar)) y0 + max(0, (y1 - y0 - tot - 0.5) / 2) else y0
   if (ttb_col) .lam_txt(lz, rot_box, L$x_top_two_box, y - 0.45, 1.5, 0.26, .std_pt("rotulo_top_two_box"), verde, bold = TRUE, align = "center", nombre = "box:rotulo")
   ytop <- y
