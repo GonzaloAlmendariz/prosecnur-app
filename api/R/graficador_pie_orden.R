@@ -22,7 +22,7 @@
 #' @return Índices con el orden a aplicar.
 #' @keywords internal
 .pie_orden_categorias <- function(categorias, orden_manual = NULL,
-                                  modo = "ninguno", pct = NULL) {
+                                  modo = "ninguno", pct = NULL, residuales_al_final = FALSE) {
   n <- length(categorias)
   if (!n) return(integer(0))
   idx <- seq_len(n)
@@ -39,7 +39,12 @@
 
   v <- suppressWarnings(as.numeric(pct))
   if (length(v) != n || anyNA(v)) return(idx)
-  if (identical(modo, "desc")) return(order(-v, idx))
-  if (identical(modo, "asc"))  return(order(v, idx))
-  idx
+  o <- if (identical(modo, "desc")) order(-v, idx) else if (identical(modo, "asc")) order(v, idx) else return(idx)
+  # D8: por frecuencia los residuales («Otros», «No sabe»…) van al final, como en las categóricas y en p152. Sólo si se
+  # pide: el «desc» heredado de un .pulso no cambia de orden por esto.
+  if (isTRUE(residuales_al_final)) {
+    res <- grepl(.CATEGORIAS_RESIDUALES, as.character(categorias)[o], ignore.case = TRUE)
+    if (any(res) && !all(res)) o <- c(o[!res], o[res])
+  }
+  o
 }

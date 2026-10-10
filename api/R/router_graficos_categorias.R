@@ -16,6 +16,7 @@ mount_graficos_categorias <- function(pr) {
       if (!.graficos_sources_usable(sources$data_sources, sources$inst_sources)) {
         stop_api(409, "E_NO_VALID_RP_DATA", "La fuente procesada para Gráficos no está disponible o quedó incompleta.")
       }
-      .graficos_categorias_payload(sources, var)
+      # Una `var` sin base (`p7`) se resuelve contra la base activa; en el consolidado no hay activa: la primera.
+      .graficos_categorias_payload(sources, var, base_activa = if (consolidado) NULL else .graficos_active_base_name(sid))
     }))
 }
