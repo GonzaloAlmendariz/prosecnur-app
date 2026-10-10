@@ -3533,6 +3533,22 @@ mount_graficos <- function(pr) {
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt_all")
     })) |>
+    plumber::pr_post("/api/graficos/word/visor", wrap_endpoint(function(req, res, file_id = NULL) {
+      # Páginas y mapa de capítulos del último Word exportado (F6.0b.4, reporte_word_visor.R). Por job: ~15 s.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      word <- .graficos_word_para_visor(sid, file_id)
+      out_dir <- file.path(s$dir, "downloads", paste0("word_visor_", word$file_id))
+      job_id <- job_submit(
+        sid = sid,
+        kind = "graficos.word_visor",
+        func = graficos_job_worker_word_visor,
+        args = list(docx_path = word$path, out_dir = out_dir),
+        result_filename = paste0("word_visor_", word$file_id, ".rds"),
+        on_complete = function(j) .graficos_word_visor_respuesta(j$result_data, word)
+      )
+      list(ok = TRUE, job_id = job_id)
+    })) |>
     plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
       crudo <- .graficos_body_sin_simplificar(req, c("plan", "presets", "w_presets", "config", "opciones_documento"))
       if (is.list(crudo)) {

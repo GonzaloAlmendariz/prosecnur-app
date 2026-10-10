@@ -604,6 +604,7 @@ errores_registrados <- function() {
     "E_NO_TITULAR_IDS",                                      "router_hojas_ruta.R",               "400",
     "E_NO_UBIGEO",                                           "router_hojas_ruta.R",               "400",
     "E_NO_VALID_RP_DATA",                                    "router_graficos.R",                 "409",
+    "E_NO_WORD_EXPORTADO",                                   "reporte_word_visor.R",              "404",
     "E_NO_XLSFORM",                                          "carga_estructura_base.R",           "409",
     "E_NO_ZIP",                                              "project_pulso.R",                   "500",
     "E_NOT_AN_XLSFORM",                                      "router_xlsform_editor.R",           "400",

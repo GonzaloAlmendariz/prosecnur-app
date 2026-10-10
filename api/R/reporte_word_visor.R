@@ -69,3 +69,39 @@
   }, character(1))
   list(n = n, archivos = archivos, mapa = .word_visor_mapa(pdftools::pdf_text(pdf)))
 }
+
+#' Worker del job `graficos.word_visor`: páginas y mapa del último Word exportado
+#'
+#' Corre en `callr` (resuelve contra el paquete instalado). Deja las páginas en `out_dir` y devuelve el mapa; el endpoint
+#' arma la respuesta con las imágenes.
+#' @keywords internal
+graficos_job_worker_word_visor <- function(docx_path, out_dir, result_path, progress_path = NULL) {
+  report <- job_progress_writer(progress_path)
+  report("loading", percent = 5, message = "Convirtiendo el Word a páginas...")
+  v <- .word_visor_paginas(docx_path, out_dir)
+  if (is.null(v)) stop("No se pudo convertir el Word: faltan LibreOffice o pdftools.", call. = FALSE)
+  report("export", percent = 95, message = "Preparando el visor...")
+  saveRDS(v, result_path)
+  list(n = v$n, archivos = v$archivos, mapa = v$mapa)
+}
+attr(graficos_job_worker_word_visor, "prosecnur_job_function_name") <- "graficos_job_worker_word_visor"
+
+#' El Word exportado que muestra el visor: el pedido por `file_id` o el último exportado en la sesión
+#' @keywords internal
+.graficos_word_para_visor <- function(sid, file_id = NULL) {
+  s <- session_get(sid)
+  if (!is.null(file_id) && nzchar(as.character(file_id)[1])) return(get_file(sid, as.character(file_id)[1]))
+  words <- Filter(function(m) identical(m$kind, "reporte_word") && file.exists(m$path %||% ""), s$files %||% list())
+  if (!length(words)) {
+    stop_api(404, "E_NO_WORD_EXPORTADO", "Todavía no hay un Word exportado en este proyecto: expórtalo para verlo aquí.")
+  }
+  words[[order(vapply(words, function(m) as.character(m$uploaded_at %||% ""), character(1)), decreasing = TRUE)[1]]]
+}
+
+#' Respuesta del visor: páginas como data URI y el mapa
+#' @keywords internal
+.graficos_word_visor_respuesta <- function(resultado, word_meta) {
+  paginas <- lapply(resultado$archivos, function(f) paste0("data:image/png;base64,", jsonlite::base64_enc(readBin(f, "raw", file.info(f)$size))))
+  list(ok = TRUE, file_id = word_meta$file_id, filename = word_meta$original_name, exportado = word_meta$uploaded_at,
+       n = resultado$n, paginas = I(unlist(paginas)), mapa = resultado$mapa)
+}
