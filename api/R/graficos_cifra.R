@@ -2,7 +2,8 @@
 #
 # «Destacar cifras» tiene que salir con datos reales: el analista elige una pregunta y qué cifra quiere de ella —el
 # porcentaje que eligió una categoría, cuántos respondieron, la mediana o la media— y el motor la calcula con la misma
-# regla que el resto del informe (sobre quienes respondieron; redondeo al entero desde 0.5). El resultado es un ítem de
+# regla que el resto del informe: sobre quienes respondieron, con el peso del estudio si lo hay (`attr(data, "var_peso")`
+# o una columna `peso`, como `.puntos_comparativos_pesos`) y redondeo al entero desde 0.5. El resultado es un ítem de
 # `pulso_cifras()` listo para la banda (lamina_cifras.R).
 
 #' Una cifra destacada desde una variable
@@ -24,7 +25,9 @@
   if (!is.data.frame(data) || !var %in% names(data)) .plan_spec_abort(sprintf("La cifra pide «%s», que no está en la base.", var))
   x <- data[[var]]
   if (inherits(x, "haven_labelled")) x <- as.vector(x)
-  validos <- !is.na(x) & !(is.character(x) & !nzchar(trimws(x)))
+  pesos <- .puntos_comparativos_pesos(data, declaracion = attr(data, "var_peso", exact = TRUE))
+  w <- pesos$valores
+  validos <- !is.na(x) & !(is.character(x) & !nzchar(trimws(x))) & is.finite(w) & w > 0
   n <- sum(validos)
   if (n == 0L) .plan_spec_abort(sprintf("«%s» no tiene respuestas válidas: no hay cifra que destacar.", var))
   valor <- switch(modo,
@@ -38,14 +41,20 @@
         if (length(casa)) cat_ <- casa[1]
       }
       k <- sum(codigos == cat_)
-      if (is.null(detalle)) detalle <- sprintf("%s de %s", format(k, big.mark = ","), format(n, big.mark = ","))
-      paste0(.pulso_fmt_half_up(100 * k / n, decimales %||% 0L), "%")
+      wv <- w[validos]
+      if (is.null(detalle)) detalle <- if (isTRUE(pesos$ponderado)) sprintf("Base: %s respuestas, con el peso del estudio", format(n, big.mark = ","))
+                                       else sprintf("%s de %s", format(k, big.mark = ","), format(n, big.mark = ","))
+      paste0(.pulso_fmt_half_up(100 * sum(wv[codigos == cat_]) / sum(wv), decimales %||% 0L), "%")
     },
     n = format(n, big.mark = ","),
     mediana = , media = {
-      num <- suppressWarnings(as.numeric(as.character(x[validos])))
+      num <- suppressWarnings(as.numeric(as.character(x[validos]))); wv <- w[validos]
       if (!any(is.finite(num))) .plan_spec_abort(sprintf("«%s» no es numérica: no tiene %s.", var, modo))
-      v <- if (modo == "mediana") stats::median(num, na.rm = TRUE) else mean(num, na.rm = TRUE)
+      ok <- is.finite(num); num <- num[ok]; wv <- wv[ok]
+      v <- if (modo == "media") sum(num * wv) / sum(wv) else {
+        o <- order(num); acum <- cumsum(wv[o]) / sum(wv)
+        num[o][which(acum >= 0.5)[1]]                                   # mediana ponderada (sin pesos: la mediana inferior)
+      }
       d <- decimales %||% (if (modo == "media") 1L else 0L)
       trimws(paste(.pulso_fmt_half_up(v, d), unidad %||% ""))
     })
