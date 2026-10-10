@@ -158,6 +158,8 @@
 #' Ancho de tinta en pulgadas (systemfonts, Arial)
 #' @keywords internal
 .lam_ancho_tinta <- function(s, size, bold = FALSE) {
+  # Sin textos no hay tinta que medir: systemfonts no admite un vector vacío (o NULL) y abortaba la lámina vacía.
+  if (!length(s)) return(numeric(0))
   systemfonts::string_width(s, family = .std_pt("fuente"), size = size, res = 72, bold = bold) / 72
 }
 .lam_ancho_txt <- function(s, size, bold = FALSE) nchar(s) * size * (if (bold) 0.56 else 0.52) / 72
