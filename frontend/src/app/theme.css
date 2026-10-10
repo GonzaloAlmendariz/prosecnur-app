@@ -183,14 +183,14 @@ html, body, #root {
 }
 
 /* Movimiento reducido = sin desplazamientos, con fundidos y cambios de color suaves (decisión de Gonzalo,
-   2026-10-10). Las transiciones conservan su duración pero sólo sobre propiedades que no mueven nada; las
-   animaciones por keyframes (que suelen desplazar) se cortan. */
+   2026-10-10). Aquí sólo se cortan las animaciones por keyframes (que suelen desplazar). Las transiciones NO se
+   reescriben: cambiar transition-property desalinea por posición las duraciones de cada regla; las que mueven algo
+   las termina lib/movimientoReducido.ts por propiedad, y el resto corre tal cual se declaró. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    transition-property: opacity, color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, box-shadow, filter !important;
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
   }
