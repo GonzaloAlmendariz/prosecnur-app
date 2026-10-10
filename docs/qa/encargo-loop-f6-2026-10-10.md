@@ -36,6 +36,19 @@ la meta por terminada.
 | A10 | F6.5 Paridad y retiro: checklist 1–22 con evidencia, matriz de viewports, revisor metodológico, ADR, confirmación de Gonzalo; luego borrar el Editor anterior y el código de población antigua (B-i), con doble confirmación (F-g) | ☐ |
 | A11 | Adoptar el kit de la Meta B cuando lo publique (primitivos, tokens, movimiento L37, `GraficosPage.tsx` L17) (F-h) | ☐ |
 
+## Avisos de la Fase 0 (cambios hechos en zona de A para dejar Quality verde)
+
+Rama `claude/gracious-ptolemy-d7avd8`; entran a `main` con la Fase 0. Revísalos al traer `main` a `meta-a-graficos`.
+
+- `api/R/graficos_mapa_manzanas.R`: la variable local `en_zona` pasa a `zona_aplicada` (engañaba al contrato
+  `estadosAtadosAlMotor` de Monitoreo territorial, que busca la palabra en `api/R`). Sin cambio de comportamiento.
+- `api/R/graficos_metadata.R`: `p_cifra` ya no cataloga el `titulo` común; ni `p_cifra()` ni `graficar_cifra()` lo
+  reciben y era un control muerto. `test-graficos-deriva-catalogo-ui.R` cuenta ahora 26 graficadores (suma `p_cifra` y
+  `p_mapa_resultado_distrital`). Si A decide que la cifra sí lleva título, hay que añadirlo a ambas capas y al catálogo.
+- `scripts/tests/ui-quick-check-graficos-libraries-mounted.test.mjs`: como la pestaña por defecto es `laminas`, el contrato
+  de las bibliotecas pide `pestana=clasico`. Cuando A10 retire el Editor anterior, este contrato debe migrar a Láminas.
+- `test-graficador-titulo-grupo-altura.R`: compara el aviso de recorte con su redacción acentuada («línea(s)», «líneas»).
+
 ## Traspaso a la nube (léelo primero)
 
 - Gonzalo, textual (2026-10-10 ~21:25): «quiero hacer commit y push hasta aquí para que una sesión en la nube continúe con el
