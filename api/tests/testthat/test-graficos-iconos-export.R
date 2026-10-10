@@ -69,7 +69,7 @@ test_that("slides que requieren icono caen al integrado con aviso accionable", {
   out <- NULL
   avisos <- .iconos_export_avisos(out <- .graficos_rebuild_slide_json(slide))
   expect_false(is.null(out))
-  expect_true(any(grepl("Configuracion global > Iconos", avisos, fixed = TRUE)))
+  expect_true(any(grepl("Configuración global > Íconos", avisos, fixed = TRUE)))
 })
 
 test_that("slides de poblacion convierten iconos del catalogo a ppt_element", {

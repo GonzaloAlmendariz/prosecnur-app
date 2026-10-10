@@ -499,7 +499,7 @@ test_that("sin declarar sus categorias el box se omite, aunque la escala alcance
       usar_canvas = TRUE, exportar = "png", path_salida = path,
       ancho = 13.33, alto = 5.2, dpi = 72
     ),
-    "Configuracion global"
+    "Configuración global"
   )
 })
 

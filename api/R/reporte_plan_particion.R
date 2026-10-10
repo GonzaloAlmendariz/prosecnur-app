@@ -314,8 +314,8 @@
             }
             partido <- TRUE
             .pulso_aviso(sprintf(
-              paste("Una lamina de escala se partio en %d: %d barras no caben",
-                    "legibles en una sola (el maximo es %d). Reduce publicos o",
+              paste("Una lámina de escala se partió en %d: %d barras no caben",
+                    "legibles en una sola (el máximo es %d). Reduce públicos o",
                     "premisas si prefieres tenerlas juntas."),
               length(tandas), sum(tam), techo
             ))

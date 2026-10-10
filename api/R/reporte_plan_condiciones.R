@@ -152,12 +152,12 @@
     impl(el, sufijo_auto = sufijo_auto, formato = formato),
     error = function(cnd) {
       .pulso_aviso(
-        "No se pudo calcular la base del elemento; la lamina sale sin caption: ",
+        "No se pudo calcular la base del elemento; la lámina sale sin rótulo de base: ",
         conditionMessage(cnd)
       )
       warning(
         paste0(
-          "No se pudo calcular la base del elemento; la lamina sale sin caption: ",
+          "No se pudo calcular la base del elemento; la lámina sale sin rótulo de base: ",
           conditionMessage(cnd)
         ),
         call. = FALSE
