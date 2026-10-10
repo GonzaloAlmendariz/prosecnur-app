@@ -1162,6 +1162,18 @@
       "Repository": "CRAN",
       "Source": "Repository"
     },
+    "pdftools": {
+      "Package": "pdftools",
+      "Version": "3.9.0",
+      "Imports": "Rcpp (>= 0.12.12), qpdf",
+      "LinkingTo": "Rcpp",
+      "Suggests": "png, webp, tesseract, testthat",
+      "License": "MIT + file LICENSE",
+      "MD5sum": "96a8e71e35efd65e0abb4323b2e21698",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
     "pillar": {
       "Package": "pillar",
       "Version": "1.11.1",

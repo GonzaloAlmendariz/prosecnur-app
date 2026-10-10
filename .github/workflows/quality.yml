@@ -161,6 +161,7 @@ jobs:
             libgeos-dev \
             libharfbuzz-dev \
             libjpeg-dev \
+            libpoppler-cpp-dev \
             libpng-dev \
             libproj-dev \
             libqpdf-dev \
