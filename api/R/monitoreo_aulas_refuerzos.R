@@ -746,7 +746,11 @@ monitoreo_aulas_sellar_procedencia <- function(plan = list(), ahora = NULL,
     # trabajo, y sellar una letra que no consta sería inventarla. La excepción
     # es «REFUERZO AGENDADO»: ahí la letra SÍ consta, la tecleó el equipo.
     declarado <- identical(pr$fuente, "declarada") && identical(pr$clase, "refuerzo")
-    if (!identical(pr$clase, "adicional") && !declarado) next
+    # Desde 2026-10-10 (Gonzalo) lo no declarado NO se sella: B o C los declara
+    # quien elige el aula, y `/aulas/agenda` ya no deja entrar una reserva sin
+    # rechazo que no traiga su letra. Lo sellado antes como `adicional_inferido`
+    # se sigue leyendo como tal, sin tocarlo.
+    if (!declarado) next
     # Las DOS claves en orden, no una u otra: el normalizador INVENTA un
     # `operational_code` cuando la fila no lo trae —una reserva sin código sale
     # como `R 2.1`—, así que un fallback por «está vacío» no se dispara nunca y

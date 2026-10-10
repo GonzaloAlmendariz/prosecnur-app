@@ -5619,7 +5619,8 @@ mount_monitoreo <- function(pr) {
       snapshot <- s$monitoreo_snapshot %||% NULL
       data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
       cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
-      updates <- parsed$updates %||% parsed$agenda %||% parsed$plan %||% parsed
+      updates <- .monitoreo_aulas_agenda_normalizar_caso(
+        parsed$updates %||% parsed$agenda %||% parsed$plan %||% parsed)
       plan <- tryCatch(
         monitoreo_aulas_update_agenda(cfg$aulas_universitarias$plan %||% list(), updates),
         # Un `api_error` del engine ya trae código y detalle propios: se re-lanza
@@ -5642,6 +5643,10 @@ mount_monitoreo <- function(pr) {
       # deducido (`adicional_inferido`), no como declarado, y SIN letra de
       # caso: consta que entró de más, no si fue para completar un
       # curso-horario (B) o para reforzar la facultad (C).
+      # Desde 2026-10-10 la letra no se deduce: una reserva sin rechazo que este
+      # pedido deja en juego tiene que venir declarada B o C (ver
+      # monitoreo_aulas_agenda_caso.R). El sellado sólo registra lo declarado.
+      plan <- .monitoreo_aulas_agenda_exigir_caso(plan, updates)
       plan <- monitoreo_aulas_sellar_procedencia(plan)$plan
       cfg$aulas_universitarias$enabled <- TRUE
       cfg$aulas_universitarias$plan <- plan
