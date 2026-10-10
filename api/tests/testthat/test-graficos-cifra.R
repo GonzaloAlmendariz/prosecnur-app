@@ -159,3 +159,33 @@ test_that("una cifra sobre una variable que falta da un solo aviso: el de la var
   expect_s3_class(e, "error"); expect_match(conditionMessage(e), "sueldo")
   expect_false(any(grepl("rótulo", msgs)))
 })
+
+test_that("una lámina de 5 con cifras fuera del índice 5 no se junta en el Word con la cifra de la lámina siguiente", {
+  set.seed(5); n <- 50
+  df <- data.frame(a = sample(c("1", "2"), n, TRUE), edad = sample(20:30, n, TRUE))
+  inst <- list(survey = data.frame(name = c("a", "edad"), type = c("select_one si_no", "integer"), list_name = c("si_no", NA),
+                                   label = c("Pregunta A", "Edad")),
+               choices = data.frame(list_name = c("si_no", "si_no"), name = c("1", "2"), label = c("Sí", "No")), orders_list = NULL)
+  cf <- function(r) p_cifra("a", "n", rotulo = r)
+  s5 <- p_slide_5_graficos_poblacion(cf("uno"), cf("dos"), cf("tres"), cf("cuatro"), cf("cinco"), titulo = "Cinco")
+  plan <- p_plan(slides = list(p_slide_seccion("A"), p_slide_seccion("B"), p_slide_seccion("C"), s5, p_slide_1_grafico(cf("seis"))))
+  rm <- suppressMessages(reporte_ppt_plan(data = df, instrumento = inst, plan = plan, solo_lista = TRUE, build_render_meta = TRUE,
+                                          mensajes_progreso = FALSE))$render_meta
+  cifras <- Filter(function(e) !is.null(attr(e$plot_word, "pulso_cifra")), rm)
+  expect_equal(vapply(cifras, function(e) e$slide_i, integer(1)), c(rep(4L, 5), 5L))
+  llamadas <- list()
+  local_mocked_bindings(.word_franja = function(doc, valores, rotulos) { llamadas[[length(llamadas) + 1L]] <<- rotulos; doc })
+  suppressMessages(.word_documento(rm, tempfile(fileext = ".docx")))
+  expect_length(llamadas, 2L)                                                     # el orden dentro de la lámina es el de su layout
+  expect_setequal(llamadas[[1]], c("uno", "dos", "tres", "cuatro", "cinco")); expect_identical(llamadas[[2]], "seis")
+})
+
+test_that("una cifra sin número de lámina no se junta con la siguiente", {
+  cif <- function(r, sl) list(kind = "chart", etype = "cifra", title = r, slide_i = sl,
+                              plot_word = graficar_cifra(list(valor = "1", valor_word = "1", rotulo = r)))
+  rm <- list(list(kind = "section", title = "Resultados"), cif("a", NULL), cif("b", NULL))
+  llamadas <- list()
+  local_mocked_bindings(.word_franja = function(doc, valores, rotulos) { llamadas[[length(llamadas) + 1L]] <<- rotulos; doc })
+  suppressMessages(.word_documento(rm, tempfile(fileext = ".docx")))
+  expect_identical(llamadas, list("a", "b"))
+})

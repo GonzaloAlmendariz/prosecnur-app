@@ -9559,11 +9559,11 @@ reporte_ppt_plan <- function(
       title_slide <- slots$title %||% slide$title %||% NULL
 
       pics <- lapply(1:5, function(i) slots[[paste0("pic", i)]] %||% NULL)
-      for (i in 1:5) if (!inherits(pics[[i]], "ppt_element")) pics[[i]] <- .plan_elemento_degradado("poblacion_5: `pic", i, "` debe ser `ppt_element`.")
+      for (k in 1:5) if (!inherits(pics[[k]], "ppt_element")) pics[[k]] <- .plan_elemento_degradado("poblacion_5: `pic", k, "` debe ser `ppt_element`.")  # k, no i: i es la lámina
 
       pics <- lapply(pics, .base_por_grafico, presets, .base_auto_from_element)
       plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic), ancho_slot = 3.95))
-      for (i in 1:5) if (is.null(plots[[i]])) plots[[i]] <- .plan_canvas_render_nulo("poblacion_5: no se pudo renderizar pic", i, ".")
+      for (k in 1:5) if (is.null(plots[[k]])) plots[[k]] <- .plan_canvas_render_nulo("poblacion_5: no se pudo renderizar pic", k, ".")
 
       rendered <- c(rendered, plots)
 
@@ -9601,11 +9601,11 @@ reporte_ppt_plan <- function(
         }
 
         # 5 pics
-        for (i in 1:5) {
+        for (k in 1:5) {
           doc <- .ph_with_strict(
             doc,
-            .dml_o_tabla(plots[[i]]),
-            contract$slots[[paste0("pic", i)]]
+            .dml_o_tabla(plots[[k]]),
+            contract$slots[[paste0("pic", k)]]
           )
         }
       }
@@ -9622,11 +9622,11 @@ reporte_ppt_plan <- function(
       title_slide <- slots$title %||% slide$title %||% NULL
 
       pics <- lapply(1:6, function(i) slots[[paste0("pic", i)]] %||% NULL)
-      for (i in 1:6) if (!inherits(pics[[i]], "ppt_element")) pics[[i]] <- .plan_elemento_degradado("poblacion_6: `pic", i, "` debe ser `ppt_element`.")
+      for (k in 1:6) if (!inherits(pics[[k]], "ppt_element")) pics[[k]] <- .plan_elemento_degradado("poblacion_6: `pic", k, "` debe ser `ppt_element`.")  # k, no i: i es la lámina
 
       pics <- lapply(pics, .base_por_grafico, presets, .base_auto_from_element)
       plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic), ancho_slot = 3.95))
-      for (i in 1:6) if (is.null(plots[[i]])) plots[[i]] <- .plan_canvas_render_nulo("poblacion_6: no se pudo renderizar pic", i, ".")
+      for (k in 1:6) if (is.null(plots[[k]])) plots[[k]] <- .plan_canvas_render_nulo("poblacion_6: no se pudo renderizar pic", k, ".")
 
       rendered <- c(rendered, plots)
 
@@ -9663,11 +9663,11 @@ reporte_ppt_plan <- function(
           doc <- .ph_with_strict(doc, as.character(ft)[1], contract$slots$footer)
         }
 
-        for (i in 1:6) {
+        for (k in 1:6) {
           doc <- .ph_with_strict(
             doc,
-            .dml_o_tabla(plots[[i]]),
-            contract$slots[[paste0("pic", i)]]
+            .dml_o_tabla(plots[[k]]),
+            contract$slots[[paste0("pic", k)]]
           )
         }
       }
