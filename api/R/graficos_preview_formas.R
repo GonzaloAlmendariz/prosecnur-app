@@ -172,7 +172,11 @@
       tam <- c(tam, if (length(sz) && !is.na(sz)) sz else defecto)
       negrita <- negrita || identical(xml2::xml_attr(rpr, "b"), "1")
     }
-    list(texto = texto, tam = tam, negrita = negrita)
+    # Interlineado real del párrafo: porcentaje (`spcPct`, 100000 = sencillo) o puntos fijos (`spcPts`).
+    pct <- suppressWarnings(as.numeric(xml2::xml_attr(xml2::xml_find_first(p, "a:pPr/a:lnSpc/a:spcPct", ns), "val"))) / 100000
+    pts <- suppressWarnings(as.numeric(xml2::xml_attr(xml2::xml_find_first(p, "a:pPr/a:lnSpc/a:spcPts", ns), "val"))) / 100
+    list(texto = texto, tam = tam, negrita = negrita, interlineado = if (length(pct) && !is.na(pct)) pct else 1,
+         interlineado_pt = if (length(pts) && !is.na(pts)) pts else NA_real_)
   })
 }
 
@@ -215,10 +219,32 @@
   if (autoajuste || (marcador && sin_ajuste_explicito) || caja[4] <= 0) return(out)
   # El inset de arriba empuja el texto; el de abajo es aire que la tinta puede ocupar sin salirse de la caja (una cifra
   # de 14 pt en su caja de 0.30 in del motor no se recorta). La última línea ocupa el alto de la fuente (Arial, ~1.12
-  # em), no el paso de 1.2 entre líneas: así una cifra de 19 pt en los 0.34 in de la dicotomía no sale «recortada».
-  alto <- ins("tIns", 0.05) + (sum(lin * pt_par * 1.2) - 0.08 * pt_par[length(pt_par)]) / 72
-  out$recortado <- alto > caja[4] + 0.01
+  # em), no el paso entre líneas: así una cifra de 19 pt en los 0.34 in de la dicotomía no sale «recortada». El paso es
+  # el interlineado real del párrafo (1.2 em a sencillo, como `.lam_alto_tinta`).
+  paso <- vapply(seq_along(pars), function(k) {
+    p <- pars[[k]]; if (!is.na(p$interlineado_pt)) p$interlineado_pt else pt_par[k] * 1.2 * p$interlineado
+  }, numeric(1))
+  alto <- ins("tIns", 0.05) + (sum(lin * paso) - 0.08 * pt_par[length(pt_par)]) / 72
+  exceso <- (alto - caja[4]) / (paso[which.max(paso)] / 72)               # en líneas
+  out$recortado <- .pf_recortado(xml2::xml_attr(xml2::xml_find_first(h, "./*[1]/p:cNvPr", ns), "name"), out$lineas, exceso)
   out
+}
+
+#' ¿El texto se sale de su caja? Sólo se afirma cuando la medición es confiable
+#'
+#' Verificador de K11 sobre acrconta: 7 títulos de dos líneas y dos premisas se marcaban y el render no los recorta.
+#' - El título del motor (`Titulo lamina`) admite dos líneas: así lo compone el recetario y así lo avisa
+#'   `.lam_aviso_titulo`. Se recorta desde la tercera.
+#' - En otro texto, la tinta medida (`.lam_lineas_tinta`) y la composición real pueden diferir en una línea: si lo que
+#'   sobra es menos de una línea no se sabe (`NA`, la API escribe `null`); si cabe, `FALSE`; si sobra una línea o más,
+#'   `TRUE`.
+#' @param exceso Lo que el texto pasa del alto de su caja, en líneas (negativo si cabe).
+#' @keywords internal
+.pf_recortado <- function(nombre, lineas, exceso) {
+  if (identical(nombre, "Titulo lamina")) return(lineas > 2L)
+  if (exceso <= 0.01) return(FALSE)
+  if (exceso < 1) return(NA)
+  TRUE
 }
 
 # ---- rol --------------------------------------------------------------------
