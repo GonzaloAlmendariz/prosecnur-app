@@ -330,7 +330,9 @@ textarea.pulso-f6-input {
 }
 
 .pulso-f6-ranura-texto {
+  flex: 1;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
 }
 
