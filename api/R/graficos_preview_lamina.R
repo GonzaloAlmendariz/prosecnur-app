@@ -145,7 +145,7 @@
     out
   }
 
-  if (.artifact_renderer_configured()) {
+  if (.preview_usar_artifact()) {
     out <- lapply(seq_len(n), function(i) .render_pptx_slide_png_artifact(pptx_path, tmpdir, slide_index = i, timeout = timeout, scale = max(1, dpi / 96)))
     if (!is.null(out[[1]])) return(.con_indice(out))
   }
@@ -170,6 +170,18 @@
   propio <- file.path(out_dir, "lo-profile")
   dir.create(propio, recursive = TRUE, showWarnings = FALSE)
   list(dir = propio, compartido = FALSE, liberar = function() invisible(NULL))
+}
+
+#' ¿La vista previa usa el renderer de desarrollo (artifact-tool)?
+#'
+#' Sólo si no hay LibreOffice utilizable o si se pide con `PROSECNUR_PREFER_ARTIFACT_RENDERER`. Antes tenía prioridad
+#' siempre que estuviera instalado: en una máquina de desarrollo la vista previa iba por él (17,4 s medidos por la
+#' auditoría del editor, contra 1,9 s de LibreOffice en caliente) y no por el renderer que lleva el instalador.
+#' @keywords internal
+.preview_usar_artifact <- function() {
+  if (!.artifact_renderer_configured()) return(FALSE)
+  if (tolower(Sys.getenv("PROSECNUR_PREFER_ARTIFACT_RENDERER", unset = "")) %in% c("1", "true", "yes")) return(TRUE)
+  !(nzchar(.soffice_cmd()) && isTRUE(.preview_rasterizer_status()$available))
 }
 
 #' Un argumento de `system2` con comillas para el shell de la plataforma
