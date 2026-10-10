@@ -917,12 +917,16 @@ graficar_barras_agrupadas <- function(
 		    }
 		  }
   }
+	  # Orden de lectura (instrumento, frecuencia o manual): el que lleva la espec de la lámina nativa, que dibuja de arriba
+	  # hacia abajo. `invertir_barras` sólo compensa a `coord_flip`, que pone el primer nivel abajo: si la espec tomaba los
+	  # niveles ya invertidos, la lámina nativa salía al revés que el gráfico, el instrumento y el recetario (p. 162).
+	  cat_lvls_lectura <- cat_lvls
 	  if (invertir_barras) cat_lvls <- rev(cat_lvls)
   df_long[[var_categoria]] <- factor(cat_chr, levels = cat_lvls)
   # ADR 0093: con una sola serie, lo que afirma el gráfico para la lámina nativa (barras_h del recetario,
-  # lámina 73), en el orden que el graficador ya decidió. Las cifras se reemplazan por las rotuladas en «3) Etiquetas %».
+  # lámina 73), en el orden de lectura que el graficador ya decidió. Las cifras se reemplazan por las rotuladas en «3) Etiquetas %».
   espec_agrupada <- if (length(cols_porcentaje) == 1L) tryCatch({
-    d1 <- df_long[order(match(cat_chr, cat_lvls)), , drop = FALSE]
+    d1 <- df_long[order(match(cat_chr, cat_lvls_lectura)), , drop = FALSE]
     v1 <- suppressWarnings(as.numeric(d1$.valor_plot)); v1[!is.finite(v1)] <- 0
     preparar_categorica(as.character(d1[[var_categoria]]), v1, .pulso_fmt_pct_half_up(v1, 0),
                         if (".n_label_val" %in% names(d1)) d1$.n_label_val else NULL)
@@ -1244,7 +1248,7 @@ graficar_barras_agrupadas <- function(
       cifra_lab <- paste0(.pulso_fmt_half_up(pct_round, dec), "%")
       cifra_lab[es_entero] <- paste0(.pulso_fmt_half_up(pct_round[es_entero], 0), "%")
       cifra_lab[nzchar(df_lab$lab)] <- df_lab$lab[nzchar(df_lab$lab)]
-      o_lab <- order(as.integer(df_lab[[var_categoria]]))
+      o_lab <- order(match(as.character(df_lab[[var_categoria]]), cat_lvls_lectura))
       espec_agrupada <- tryCatch(
         preparar_categorica(as.character(df_lab[[var_categoria]])[o_lab], df_lab$.valor_plot[o_lab], cifra_lab[o_lab],
                             if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL),
