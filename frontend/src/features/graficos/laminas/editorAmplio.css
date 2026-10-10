@@ -12,6 +12,25 @@
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-popover);
   outline: none;
+  transition:
+    transform var(--motion-dur-panel) var(--motion-ease-drawer),
+    opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Panel ancho (760 px): aparece en su sitio con un desplazamiento corto, no viaja la pantalla entera (M15). */
+@starting-style {
+  .pulso-f6-editor-amplio {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @starting-style {
+    .pulso-f6-editor-amplio {
+      transform: none;
+    }
+  }
 }
 
 .pulso-f6-editor-amplio-cuerpo {

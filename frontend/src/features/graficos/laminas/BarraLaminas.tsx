@@ -17,6 +17,7 @@ import { SuggestedPlanButton } from "../SuggestedPlanButton";
 import { usePlanValidator } from "../usePlanValidator";
 import { useLaminasUi } from "./laminasStore";
 import { agruparAvisos, rotuloLaminasYPartes, totalAvisos } from "./resumenInforme";
+import "./movimiento.css";
 import "./barraLaminas.css";
 
 type Props = Omit<ExportarInformeMenuProps, "canExportFinal"> & {

@@ -107,6 +107,44 @@
   box-shadow: var(--pulso-shadow-popover);
 }
 
+/* Menú Más ▾ y popover Exportar ▾: nacen de su disparador (arriba a la derecha), scale .97 + fundido (M16). Se
+   desmontan al cerrar, así que la salida es seca. El popover de Exportar vive en v2/styles/editor-v2.css; aquí sólo
+   se le da movimiento dentro de la barra de Láminas. */
+.pulso-f6-mas-menu,
+.pulso-f6-barra .pulso-gv2-export-menu-popover {
+  transform-origin: top right;
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@starting-style {
+  .pulso-f6-mas-menu {
+    opacity: 0;
+    transform: scale(var(--motion-scale-entrada));
+  }
+
+  /* editor-v2.css:25353 deja el popover estático con `opacity: 1 !important; transform: none !important` (se le
+     quitó el backdrop-filter que hacía parpadear su fundido). Una transición gana a un !important; el estado de
+     partida necesita el suyo, con más especificidad, para ganarle. */
+  .pulso-graficos-frame .pulso-f6-barra .pulso-gv2-export-menu-popover {
+    opacity: 0 !important;
+    transform: scale(var(--motion-scale-entrada)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-mas-menu {
+    transform: none;
+  }
+
+  @starting-style {
+    .pulso-graficos-frame .pulso-f6-barra .pulso-gv2-export-menu-popover {
+      transform: none !important;
+    }
+  }
+}
+
 .pulso-f6-mas-menu button {
   display: flex;
   align-items: flex-start;
@@ -124,10 +162,22 @@
   cursor: pointer;
 }
 
-.pulso-f6-mas-menu button:hover:not(:disabled),
+.pulso-f6-mas-menu button {
+  transition: transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
 .pulso-f6-mas-menu button:focus-visible {
   background: var(--pulso-surface-3);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-mas-menu button:hover:not(:disabled) {
+    background: var(--pulso-surface-3);
+    transition:
+      background-color var(--motion-dur-hover) var(--motion-ease-out),
+      transform var(--motion-dur-press) var(--motion-ease-out);
+  }
 }
 
 .pulso-f6-mas-menu button:disabled {

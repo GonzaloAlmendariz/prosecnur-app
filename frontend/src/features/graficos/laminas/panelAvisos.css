@@ -12,6 +12,25 @@
   border-left: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-popover);
+  transition:
+    transform var(--motion-dur-panel) var(--motion-ease-drawer),
+    opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Cajón: entra desde su borde (M14). Se desmonta al cerrar: salida seca. */
+@starting-style {
+  .pulso-f6-avisos-panel {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @starting-style {
+    .pulso-f6-avisos-panel {
+      transform: none;
+      opacity: 0;
+    }
+  }
 }
 
 .pulso-f6-avisos-cuerpo {

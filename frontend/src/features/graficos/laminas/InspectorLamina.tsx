@@ -3,7 +3,7 @@
 // no construye se declara como tal y apunta al Editor anterior, que sigue accesible mientras se completa F6.
 
 import { useId, useMemo, useRef } from "react";
-import { ChevronDown, ChevronRight, History, LayoutTemplate, Lock, X } from "../../../vendor/lucide-react";
+import { ChevronRight, History, LayoutTemplate, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Switch } from "../../../components/Switch";
@@ -260,7 +260,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
                   aria-expanded={abierta}
                   onClick={() => onRanura(abierta && slots.length > 1 ? null : k)}
                 >
-                  {abierta ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
+                  <ChevronRight size={14} aria-hidden="true" className="pulso-f6-ranura-chevron" />
                   {tecnico && <IconoTipo clase="grafico" tipo={tecnico} size={20} />}
                   <span className="pulso-f6-ranura-texto">
                     <strong>{rotulo}</strong>

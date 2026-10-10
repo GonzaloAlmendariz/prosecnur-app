@@ -77,8 +77,15 @@
   cursor: pointer;
 }
 
-.pulso-f6-nodo-cabeza:hover {
-  background: var(--pulso-surface-3);
+/* Superficies anchas: el :active global (scale .97) desalinearía la fila; el feedback es el fondo (M5). */
+.pulso-f6-nodo-cabeza,
+.pulso-f6-lamina {
+  transition: none; /* anula la transición global de button: la selección cambia en seco */
+}
+
+.pulso-f6-nodo-cabeza:active:not(:disabled),
+.pulso-f6-lamina:active:not(:disabled) {
+  transform: none;
 }
 
 .pulso-f6-nodo-chevron {
@@ -124,6 +131,20 @@
   color: var(--pulso-text-faint);
 }
 
+.pulso-f6-nodo-hijos {
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Al expandir un nodo, sus hijos entran como un solo bloque: fundido y 4 px; sin animar la altura y sin stagger (M18). */
+@starting-style {
+  .pulso-f6-nodo-hijos {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
 .pulso-f6-nodo.is-capitulo > .pulso-f6-nodo-hijos {
   margin-left: var(--pulso-space-3);
   padding-left: var(--pulso-space-1);
@@ -160,11 +181,20 @@
   color: var(--pulso-text);
   text-align: left;
   cursor: pointer;
-  transition: background-color var(--motion-dur-press) var(--motion-ease-out);
 }
 
-.pulso-f6-lamina:hover {
-  background: var(--pulso-surface-3);
+/* La fila activa sigue a ←/→: su fondo cambia en seco (M2). Sólo el hover con puntero fino entra con 100 ms (M3). */
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-lamina:hover,
+  .pulso-f6-nodo-cabeza:hover {
+    background: var(--pulso-surface-3);
+    transition: background-color var(--motion-dur-hover) var(--motion-ease-out);
+  }
+
+  .pulso-f6-icono-boton.is-peligro:hover:not(:disabled) {
+    background: var(--pulso-danger-bg);
+    color: var(--pulso-danger-fg);
+  }
 }
 
 .pulso-f6-lamina.is-activa {
@@ -254,9 +284,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso-f6-nodo-chevron,
-  .pulso-f6-lamina {
+  .pulso-f6-nodo-chevron {
     transition: none;
+  }
+
+  .pulso-f6-nodo-hijos {
+    transform: none;
   }
 }
 
@@ -278,7 +311,3 @@
   white-space: nowrap;
 }
 
-.pulso-f6-icono-boton.is-peligro:hover:not(:disabled) {
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}

@@ -113,7 +113,10 @@
 
 .pulso-f6-hoja.is-desactualizada img {
   opacity: 0.55;
-  filter: saturate(0.6);
+  filter: blur(var(--motion-blur-crossfade)) saturate(0.6);
+  /* Sólo a la ida y con retraso: si el motor responde en <150 ms no hay parpadeo; al llegar la imagen nueva el
+     desenfoque se suelta sin retraso y enmascara el cambio de src (M21). */
+  transition-delay: var(--motion-delay-pendiente);
 }
 
 .pulso-f6-hoja-estado {
@@ -123,6 +126,30 @@
   place-items: center;
   padding: var(--pulso-space-4);
   background: var(--pulso-surface-2);
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Estados de la vista previa (M20/M24): la tarjeta entra con fundido y scale .97; «Generando» espera 150 ms para no
+   asomar en respuestas rápidas; el error entra sin espera. */
+.pulso-f6-hoja-estado .pulso-f6-tarjeta-estado {
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out) var(--motion-delay-pendiente),
+    transform var(--motion-dur-fast) var(--motion-ease-out) var(--motion-delay-pendiente);
+}
+
+.pulso-f6-hoja-estado .pulso-f6-tarjeta-estado.is-error {
+  transition-delay: 0s;
+}
+
+@starting-style {
+  .pulso-f6-hoja-estado {
+    opacity: 0;
+  }
+
+  .pulso-f6-hoja-estado .pulso-f6-tarjeta-estado {
+    opacity: 0;
+    transform: scale(var(--motion-scale-entrada));
+  }
 }
 
 .pulso-f6-tarjeta-estado {
@@ -180,13 +207,13 @@
   height: 100%;
   border-radius: var(--pulso-radius-chip);
   background: var(--module-accent);
-  animation: pulso-f6-progreso 2.4s var(--motion-ease-in-out) infinite;
+  /* Indeterminada: una pieza fija que cruza la pista; sólo transform (M22). */
+  animation: pulso-f6-progreso 1.4s var(--motion-ease-in-out) infinite;
 }
 
 @keyframes pulso-f6-progreso {
-  0% { width: 8%; }
-  50% { width: 72%; }
-  100% { width: 96%; }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
 }
 
 .pulso-f6-lienzo-aviso {
@@ -204,6 +231,21 @@
   border-radius: var(--pulso-radius);
   font-size: 12px;
   box-shadow: var(--pulso-shadow-low);
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* El chip informativo espera 150 ms (no asoma en regeneraciones rápidas); el de error entra de inmediato (M23). */
+.pulso-f6-lienzo-aviso.is-info {
+  transition-delay: var(--motion-delay-pendiente);
+}
+
+@starting-style {
+  .pulso-f6-lienzo-aviso {
+    opacity: 0;
+    transform: translate(-50%, -4px);
+  }
 }
 
 .pulso-f6-lienzo-aviso.is-info {
@@ -250,6 +292,17 @@
   color: var(--pulso-text);
   font-size: 12px;
   cursor: pointer;
+  /* La parte activa sigue a ↑/↓ y cambia en seco; sólo el :active global interpola (M1/M4). */
+  transition: transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-parte:not(.is-activa):hover {
+    background: var(--pulso-surface-3);
+    transition:
+      background-color var(--motion-dur-hover) var(--motion-ease-out),
+      transform var(--motion-dur-press) var(--motion-ease-out);
+  }
 }
 
 .pulso-f6-parte.is-activa {
@@ -265,8 +318,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso-f6-hoja img { transition: none; }
-  .pulso-f6-progreso i { animation: none; width: 60%; }
+  .pulso-f6-hoja.is-desactualizada img { filter: saturate(0.6); }
+  .pulso-f6-progreso i { animation: none; width: 60%; transform: none; }
+
+  @starting-style {
+    .pulso-f6-hoja-estado .pulso-f6-tarjeta-estado { transform: none; }
+    .pulso-f6-lienzo-aviso { transform: translateX(-50%); }
+  }
 }
 
 .pulso-f6-partes-barra {
@@ -321,12 +379,22 @@
   border-radius: calc(var(--pulso-radius) / 2);
   background: transparent;
   cursor: pointer;
-  transition: border-color var(--motion-dur-press) var(--motion-ease-out), background-color var(--motion-dur-press) var(--motion-ease-out);
+  /* Activa por clic: el anillo entra con 120 ms (M8). Sin el scale(.97) global: el marco se despegaría del dibujo (M5). */
+  transition:
+    border-color var(--motion-dur-press) var(--motion-ease-out),
+    background-color var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-press) var(--motion-ease-out);
 }
 
-.pulso-f6-ranura-zona:hover {
-  border-color: var(--module-accent-border);
-  background: color-mix(in srgb, var(--module-accent) 4%, transparent);
+.pulso-f6-ranura-zona:active {
+  transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-ranura-zona:hover {
+    border-color: var(--module-accent-border);
+    background: color-mix(in srgb, var(--module-accent) 4%, transparent);
+  }
 }
 
 .pulso-f6-ranura-zona.is-activa {
@@ -344,7 +412,16 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  display: none;
+  display: block;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(2px);
+  pointer-events: none;
+  /* De display:none a un fundido corto: 120 ms al aparecer, 80 al irse (M7). */
+  transition:
+    opacity var(--motion-dur-salida-corta) var(--motion-ease-out),
+    transform var(--motion-dur-salida-corta) var(--motion-ease-out),
+    visibility 0s linear var(--motion-dur-salida-corta);
   padding: 0 var(--pulso-space-2);
   border-radius: calc(var(--pulso-radius) / 2);
   background: var(--module-accent);
@@ -358,9 +435,15 @@
 .pulso-f6-ranura-zona:hover .pulso-f6-ranura-etiqueta,
 .pulso-f6-ranura-zona.is-activa .pulso-f6-ranura-etiqueta,
 .pulso-f6-ranura-zona:focus-visible .pulso-f6-ranura-etiqueta {
-  display: block;
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--motion-dur-press) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    visibility 0s;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso-f6-ranura-zona { transition: none; }
+  .pulso-f6-ranura-etiqueta { transform: none; }
 }
