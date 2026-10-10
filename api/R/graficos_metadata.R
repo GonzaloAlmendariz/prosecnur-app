@@ -2018,7 +2018,9 @@
   p_dim_radar = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para el radar de dimensiones."),
   p_dim_heatmap = list("dimensiones", "nativa", condicion = "Con brechas declaradas sale por la ruta anterior."),
   p_dim_comparativo_radarbar = list("dimensiones", "nativa", condicion = "Con brechas o con la columna Total sale por la ruta anterior."),
-  p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para la matriz FODA."),
+  # Fuera del selector (Gonzalo, 2026-10-10: «sí, sácalo»): no está en el recetario. Sigue registrado y renderizable
+  # para los planes que ya lo usan.
+  p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza del recetario para la matriz FODA.", en_selector = FALSE),
   p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior.")
 )
 stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
@@ -2026,6 +2028,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   meta$familia_editor <- s[[1]]
   meta$salida <- s[[2]]
   meta$salida_nativa <- identical(s[[2]], "nativa")
+  meta$en_selector <- !identical(s$en_selector, FALSE)
   # Sin `%||%`: este código corre al cargar el paquete, antes de helpers_calc_comunes.R.
   meta$salida_motivo <- if (is.null(s$motivo)) "" else s$motivo
   meta$salida_condicion <- if (is.null(s$condicion)) "" else s$condicion
@@ -5484,6 +5487,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       salida_nativa = meta$salida_nativa,
       salida_motivo = meta$salida_motivo,
       salida_condicion = meta$salida_condicion,
+      en_selector = meta$en_selector,             # FALSE: registrado y renderizable, pero no se ofrece en el selector
       available     = available,
       disabled_reason = disabled_reason,
       args          = .normalize_args_for_ui(meta$args %||% list()),
