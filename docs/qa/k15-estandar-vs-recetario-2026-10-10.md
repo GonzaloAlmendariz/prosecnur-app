@@ -102,8 +102,10 @@ solas no cambian, y lo fija un test.
 2. **Respaldo de los nativos** (13, 14, 18, 21 y 22 cuando no caben en nativo): sus layouts (`graficos_3_1mas2`,
    `graficos_3_1arriba`, `4_paneles`, `poblacion_3_cifras`, `cifras_y_graficos`) no entraron en la correspondencia de
    `plantilla_layouts_estandar.R`. Se suman con una fila por placeholder.
-3. **Fichas del recetario** (p159 y las de los tipos de esta tabla): `recetario_fichas.R` es un capítulo de `recetario.R`,
-   que vuelve a escribir todo `recetario-moderna.pptx`. Sin decisión no se regenera. Para que la próxima regeneración
-   salga bien, `TIPOS` de `recetario_fichas.R` debe tomar los valores de `exportar_estandar.R` (K15).
+3. ~~Fichas del recetario~~: hecho en a8fff99fe por decisión de Gonzalo («sí, regenera las fichas del recetario»).
+   `TIPOS` lee las ranuras del estándar. Cambian sólo el catálogo (p120, p121) y 14 fichas; ninguna lámina de ejemplo.
+   Quedan sin regenerar `recetario-moderna-guias.pptx` y `recetario-fiel.pptx`. El catálogo de ejemplos
+   (`api/inst/recetario/ejemplos/catalogo.json`) guarda el sha256 del recetario anterior; los WebP no cambian porque
+   ninguna página de ejemplo se movió.
 4. **Revisión visual**: en la tira, el ícono de cabecera queda pegado al inicio del título, como en el recetario
    (mosaico en el scratchpad de la sesión).
