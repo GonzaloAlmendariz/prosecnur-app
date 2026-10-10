@@ -6,6 +6,16 @@
 # o una columna `peso`, como `.puntos_comparativos_pesos`) y redondeo al entero desde 0.5. El resultado es un ítem de
 # `pulso_cifras()` listo para la banda (lamina_cifras.R).
 
+#' Mediana ponderada que, con pesos iguales, es exactamente `stats::median` (promedia en el punto medio exacto)
+#' @keywords internal
+.cifra_mediana_ponderada <- function(x, w) {
+  if (!length(x)) return(NA_real_)
+  if (length(unique(w)) <= 1L) return(stats::median(x))
+  o <- order(x); x <- x[o]; acum <- cumsum(w[o]) / sum(w)
+  k <- which(acum >= 0.5 - 1e-12)[1]
+  if (abs(acum[k] - 0.5) < 1e-12 && k < length(x)) (x[k] + x[k + 1L]) / 2 else x[k]
+}
+
 #' Una cifra destacada desde una variable
 #'
 #' @param data Data frame de la base.
@@ -42,7 +52,9 @@
       }
       k <- sum(codigos == cat_)
       wv <- w[validos]
-      if (is.null(detalle)) detalle <- if (isTRUE(pesos$ponderado)) sprintf("Base: %s respuestas, con el peso del estudio", format(n, big.mark = ","))
+      # Con peso no se repite una base en el detalle: la lámina ya declara la suya al pie y serían dos bases distintas
+      # para la misma lámina (casos frente a suma de pesos; verificador de F6.0b).
+      if (is.null(detalle)) detalle <- if (isTRUE(pesos$ponderado)) "Con el peso del estudio"
                                        else sprintf("%s de %s", format(k, big.mark = ","), format(n, big.mark = ","))
       paste0(.pulso_fmt_half_up(100 * sum(wv[codigos == cat_]) / sum(wv), decimales %||% 0L), "%")
     },
@@ -51,14 +63,13 @@
       num <- suppressWarnings(as.numeric(as.character(x[validos]))); wv <- w[validos]
       if (!any(is.finite(num))) .plan_spec_abort(sprintf("«%s» no es numérica: no tiene %s.", var, modo))
       ok <- is.finite(num); num <- num[ok]; wv <- wv[ok]
-      v <- if (modo == "media") sum(num * wv) / sum(wv) else {
-        o <- order(num); acum <- cumsum(wv[o]) / sum(wv)
-        num[o][which(acum >= 0.5)[1]]                                   # mediana ponderada (sin pesos: la mediana inferior)
-      }
-      d <- decimales %||% (if (modo == "media") 1L else 0L)
-      trimws(paste(.pulso_fmt_half_up(v, d), unidad %||% ""))
+      v <- if (modo == "media") sum(num * wv) / sum(wv) else .cifra_mediana_ponderada(num, wv)
+      # La mediana se escribe como la del resto del motor (`.cifra_mediana`: un decimal sólo si no es entera, sin
+      # truncar) para que la cifra y el histograma de la misma pregunta digan lo mismo (verificador de F6.0b).
+      txt_v <- if (!is.null(decimales)) .pulso_fmt_half_up(v, decimales) else if (modo == "mediana") .cifra_mediana(v, enteros = FALSE) else .pulso_fmt_half_up(v, 1L)
+      trimws(paste(txt_v, unidad %||% ""))
     })
-  if (is.null(detalle) && modo != "n") detalle <- sprintf("Base: %s respuestas", format(n, big.mark = ","))
+  if (is.null(detalle) && modo != "n") detalle <- if (isTRUE(pesos$ponderado)) "Con el peso del estudio" else sprintf("Base: %s respuestas", format(n, big.mark = ","))
   list(valor = valor, rotulo = rotulo, detalle = detalle %||% "", icono = icono %||% "", base = n)
 }
 
@@ -76,6 +87,7 @@
 #' @param decimales Decimales del valor.
 #' @param icono Ícono del recetario (opcional).
 #' @param filtros Filtros nombrados, como en los demás gráficos.
+#' @param overrides,base Como en los demás elementos del plan (ajustes por gráfico y base declarada).
 #' @export
 p_cifra <- function(var, modo = c("porcentaje", "n", "mediana", "media"), categoria = NULL, rotulo, detalle = NULL,
                     unidad = NULL, decimales = NULL, icono = NULL, filtros = list(), overrides = list(), base = list()) {
