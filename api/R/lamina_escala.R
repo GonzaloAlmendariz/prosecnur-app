@@ -26,7 +26,11 @@
     ii <- idx[claves == k]
     texto <- if (con_actor) (f$grupo_titulo[ii[1]] %||% f$grupo_id[ii[1]]) else f$rotulo[ii[1]]
     filas <- lapply(ii, function(i) list(i = i, actor = if (con_actor) f$rotulo[i] else "", valid = f$n[i]))
-    out[[length(out) + 1L]] <- list(texto = texto, filas = filas)
+    # Sin actores, una fila marcada con `n_nota` (salto de cuestionario, lo decide quien compone: hoy la multilista)
+    # lleva su N bajo la premisa con el rótulo de la ruta anterior, «N = 80». Con actores cada barra ya dice sus
+    # respuestas.
+    nota <- if (!con_actor && isTRUE(f$n_nota[ii[1]])) .n_barra_texto(f$n[ii[1]]) else NULL
+    out[[length(out) + 1L]] <- list(texto = texto, filas = filas, nota = nota)
   }
   out
 }
@@ -99,19 +103,22 @@
   L <- .std_geom("likert")
   if (.lam_escala_sin_actor(premisas)) L$x_barra - L$x_premisa - 0.25 else L$ancho_premisa
 }
+#' Alto del texto de una premisa, con la línea de su N si la lleva
+#' @keywords internal
+.lam_premisa_alto <- function(p, wp) .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE) + (if (is.null(p$nota)) 0 else 0.26)
 .lam_escala_geo <- function(premisas, wp, nb = NULL) {
   # `nb`: filas de la lámina entera cuando varios bloques la comparten (multilista); el grosor es por lámina.
   nb <- nb %||% sum(vapply(premisas, function(p) length(p$filas), 0))
   g <- .std_grosor(nb, "escala_apilada"); fila <- g + 0.24
   multi <- any(vapply(premisas, function(p) length(p$filas) > 1, TRUE))
-  manda <- any(vapply(premisas, function(p) .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE) > length(p$filas) * fila, TRUE))
+  manda <- any(vapply(premisas, function(p) .lam_premisa_alto(p, wp) > length(p$filas) * fila, TRUE))
   list(g = g, fila = fila, gap = if (multi || manda) 0.26 else 0.08)
 }
 #' Alto que ocupa un bloque de premisas
 #' @keywords internal
 .lam_escala_alto <- function(premisas, nb = NULL) {
   wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
-  sum(vapply(premisas, function(p) max(.lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE), length(p$filas) * geo$fila), 0)) +
+  sum(vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * geo$fila), 0)) +
     geo$gap * (length(premisas) - 1)
 }
 .lam_escala_alto_util <- function() (.std_geom("zona_datos_y1") - 0.15) - (.std_geom("zona_datos_y0") + 0.1)
@@ -196,7 +203,7 @@
   wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
   g <- geo$g; fila <- geo$fila; gap <- geo$gap
   WB <- if (ttb_col) L$ancho_barra else W - MR - L$x_barra - 0.3
-  altos_de <- function() vapply(premisas, function(p) max(.lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE), length(p$filas) * fila), 0)
+  altos_de <- function() vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * fila), 0)
   altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
   disp <- y1 - y0 - (if (isTRUE(leyenda)) 0.7 else 0)
   if (!is.null(estirar)) {   # el aire lo reparte quien compone varios bloques: el mismo factor en todos
@@ -216,9 +223,11 @@
   if (ttb_col) .lam_txt(lz, rot_box, L$x_top_two_box, y - 0.45, 1.5, 0.26, .std_pt("rotulo_top_two_box"), verde, bold = TRUE, align = "center", nombre = "box:rotulo")
   ytop <- y
   for (i in seq_along(premisas)) {
-    p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE)
+    p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE); hn <- .lam_premisa_alto(p, wp)
     if (i > 1) .lam_caja(lz, ML, y - gap / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
-    .lam_txt(lz, p$texto, L$x_premisa, y + (a - hp) / 2, wp, hp, .std_pt("pregunta"), azul, bold = TRUE, nombre = "premisa")
+    .lam_txt(lz, p$texto, L$x_premisa, y + (a - hn) / 2, wp, hp, .std_pt("pregunta"), azul, bold = TRUE, nombre = "premisa")
+    if (!is.null(p$nota)) .lam_txt(lz, p$nota, L$x_premisa, y + (a - hn) / 2 + hp - 0.04, wp, 0.26, .std_pt("n"), .std_color("texto_tenue"),
+                                   nombre = "premisa:n")
     yf <- y + (a - length(p$filas) * fila) / 2
     for (fl in p$filas) {
       yb <- yf + (fila - g) / 2 + 0.06
