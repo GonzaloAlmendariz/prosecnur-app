@@ -166,7 +166,7 @@ R25 sí interpola porque no declara `transition` propia, pero lo hace con el `ea
 
 | Ítem | Estado | Dónde vive | Nota |
 |---|---|---|---|
-| Regla global `prefers-reduced-motion` (`theme.css:185-194`) pone **toda** transición y animación a 1 ms con `!important` | **Bloqueado** (decisión de lead / app entera) | `frontend/src/app/theme.css` | Contradice «menos movimiento, no cero»: ahoga también opacidad y color. Opciones: (a) aceptar el cero en toda la app; (b) cambiar la regla global por `transition-property: opacity, color, background-color, border-color` + `animation: none`. F6 no puede hacer (b) sola sin `!important` de mayor especificidad. Hasta decidir, las reglas RM locales se escriben como si (b) existiera (no hacen daño con (a)). |
+| Regla global `prefers-reduced-motion` (`theme.css:185-194`) pone **toda** transición y animación a 1 ms con `!important` | **Resuelto** (Gonzalo, 2026-10-10: opción (b); commit b9534665b) | `frontend/src/app/theme.css` | Contradice «menos movimiento, no cero»: ahoga también opacidad y color. Opciones: (a) aceptar el cero en toda la app; (b) cambiar la regla global por `transition-property: opacity, color, background-color, border-color` + `animation: none`. F6 no puede hacer (b) sola sin `!important` de mayor especificidad. Hasta decidir, las reglas RM locales se escriben como si (b) existiera (no hacen daño con (a)). |
 | Nota «el árbol y las partes animan altura» (dirección §5) | Reemplazada por M17/M18 | `docs/qa/direccion-diseno-editor-graficos-f6-2026-10-09.md` §5 | Altura = layout por frame; se usa `opacity + translateY(-4px)`. |
 | Salidas de componentes que se desmontan (`{cond && …}`) | Aceptado: salida 0 | M13–M18, M20, M23 | Para salida animada habría que mantenerlos montados con `transition-behavior: allow-discrete` + `display:none`. Sólo vale la pena en Avisos y Editor amplio si Gonzalo lo pide. |
 | Hook FLIP del lienzo (M11) | Pendiente fase 2 | `laminas/useReencajeLienzo.ts` (nuevo) | Fallback documentado en M11 si mide con jank. |
@@ -178,3 +178,33 @@ R25 sí interpola porque no declara `transition` propia, pero lo hace con el `ea
 - Performance panel: el toggle de paneles no debe mostrar `Layout` por frame durante los 220 ms (sólo al inicio).
 - `prefers-reduced-motion` emulado: ningún desplazamiento ni escala; opacidad según la decisión bloqueada de §4.
 - `make gate-front AREA=graficos` (contratos `tokensDefinidos`, `cssConcatenable`).
+
+## 6. Implementación (fase 2, 2026-10-10)
+
+Commits: b9534665b (regla global de movimiento reducido) y c1d7570e7 (Láminas). Tokens nuevos en
+`frontend/src/features/graficos/laminas/movimiento.css` (`:root`), porque `app/tokens.css` está congelado a
+crecimiento: `--motion-dur-hover` 100, `--motion-dur-salida-corta` 80, `--motion-dur-salida-panel` 200,
+`--motion-delay-pendiente` 150, `--motion-scale-entrada` .97, `--motion-desplaza-panel` 12px,
+`--motion-blur-crossfade` 2px. `--motion-dur-salida` y `--motion-scale-press` no se crearon porque nada los usaba.
+
+| Ítem | Estado | Dónde vive | Medido (rAF, 1440 y 1024) |
+|---|---|---|---|
+| M1/M2/M26/M27/M29–M31: navegación y selección secas | Hecho | `estructuraInforme.css`, `tiraMiniaturas.css`, `visorLamina.css` (`transition: none` / sólo transform) | ←/→ y 6 × → seguidas: 0 frames con movimiento |
+| M3/M6: hover mínimo bajo `(hover:hover) and (pointer:fine)` | Hecho | todas las hojas de `laminas/` | `.pulso-f6-boton`: `background-color 0.1s`, `transform 0.12s` |
+| M4/M5: `:active` interpola; superficies anchas sin scale | Hecho | transiciones locales con transform; `transform: none` en fila, nodo, ranura, cabeza de tarjeta, velo | — |
+| M7: etiqueta de ranura con fundido (120 / 80 ms) | Hecho | `visorLamina.css` (visibility diferida, `aria-hidden` intacto) | y 2→0, o 0→1 en ≈110 ms |
+| M8/M17: anillo de tarjeta 120 ms; chevron único que rota; cuerpo con fundido y 4 px | Hecho | `inspectorLamina.css`, `InspectorLamina.tsx:263` | cuerpo y −4→0, o 0→1 en ≈150 ms |
+| M9/M10: lateral que entra 220 ms drawer, el que sale en seco | Hecho (lo había dejado el frontend con keyframe; se tokenizó el desplazamiento) | `laminasWorkbench.css` | Estructura x −12→0, Inspector x 12→0, o 0→1 |
+| M11: re-encaje FLIP del lienzo | Hecho, con **curva drawer** en vez de in-out | `useReencajeLienzo.ts` (+ test) | 1440: s 1,17→1, x 356→0 en ≈260 ms; 1024: x 116→0. Con in-out la hoja quedaba quieta los primeros ~100 ms mientras el panel ya se movía: se cambió a la curva del panel |
+| M12/M13: cajón a 1024 (entra 280, sale 200) y velo con fundido | Hecho | `laminasWorkbench.css` | entra x 420→0; sale x 0→420 en ≈200 ms; velo o 0→1 |
+| M14/M15: Avisos y Editor amplio | Hecho (entrada; salida seca al desmontar) | `panelAvisos.css`, `editorAmplio.css` | Avisos x 380→0 en ≈330 ms |
+| M16: Más ▾ y Exportar ▾ desde su disparador | Hecho | `barraLaminas.css` (Exportar con `!important` en `@starting-style` para ganarle al de `editor-v2.css:25353`) | s .97→1, o 0→1 en ≈160 ms |
+| M18: hijos del árbol con fundido, sin altura ni stagger | Hecho | `estructuraInforme.css` | — |
+| M20/M21/M23/M24: estados de vista previa | Hecho | `visorLamina.css` | «Generando» capturado; la imagen desactualizada (blur) no se provocó en la captura |
+| M22: barra indeterminada por transform, 1,4 s | Hecho | `visorLamina.css` | animationName `pulso-f6-progreso` |
+| M25: la tira aparece con fundido | Hecho | `tiraMiniaturas.css` | — |
+| Movimiento reducido | Hecho | `theme.css` + reglas locales | ningún transform; sólo opacidad (hoja .85→1, laterales, menús, avisos) |
+
+Evidencia (scratchpad de la sesión, no versionada): video `recorrido.webm` y secuencias a 0/60/120/260 ms por
+acción, en 1440×1000, 1024×600 y 1440×1000 con `reducedMotion: reduce`, sobre una copia de
+`api/inst/reference_projects/acrconta_mazo` abierta en 5173 con una sesión propia.
