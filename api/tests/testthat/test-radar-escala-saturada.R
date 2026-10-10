@@ -87,6 +87,6 @@ test_that("el aviso dice la causa y como quitarlo", {
     testthat::test_path("..", "..", "R", "graficador_radar.R"),
     warn = FALSE
   ), collapse = " ")
-  expect_true(grepl("saldrian todos al 100", f, fixed = TRUE))
+  expect_true(grepl("saldrían todos al 100", f, fixed = TRUE))
   expect_true(grepl("proporcion_100", f, fixed = TRUE))
 })
