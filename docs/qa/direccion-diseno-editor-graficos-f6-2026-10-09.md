@@ -103,8 +103,9 @@ un tema · Describir a un público · Destacar cifras · Dejar un mensaje**, má
 (portada, índice, objetivo, ficha técnica, cómo leer, separador, cierre). Centro, tarjetas pares con la **composición
 dibujada en vivo desde las ranuras del estándar** y, si hay lámina actual, **sus gráficos acomodados en la composición
 candidata** («así quedaría»); nombre, cuántos gráficos y cuándo se usa. Derecha, el detalle: composición en grande,
-«Admite», escala de la cifra, pestañas **Ejemplo** (la lámina real del recetario) y **Medidas** (la ficha), y el botón
-«Usar esta lámina». Si el tipo tiene menos ranuras que gráficos configurados, lo dice antes de aplicar.
+«Admite», escala de la cifra, pestañas **Ejemplo** (la lámina real del recetario) y **Medidas** (un plano acotado de las
+ranuras dibujado desde `estandar_pulso.json` y una tabla con posición, tamaño, escala, cifra, rótulo y grosor de barra;
+la ficha del recetario es documentación y no se muestra como imagen), y el botón «Usar esta lámina». Si el tipo tiene menos ranuras que gráficos configurados, lo dice antes de aplicar.
 
 ### 4.4 Panel «Tipo de gráfico» (`panel=tipo-grafico`)
 
