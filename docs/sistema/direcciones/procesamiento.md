@@ -6,11 +6,11 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `procesamiento` · ruta `/procesamiento` · 32 direcciones.
+Módulo `procesamiento` · ruta `/procesamiento` · 34 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `procesamiento` | modulo | Procesamiento | sí | 0b8ec51c | sí | — |
+| `procesamiento` | modulo | Procesamiento | sí | 4327ae0d | sí | — |
 | `procesamiento/carga` | seccion | Carga | sí | 54b0fe12 | sí | — |
 | `procesamiento/carga/plan` | pestana | Plan | sí | 15be26db | sí | — |
 | `procesamiento/carga/fuentes` | pestana | Fuentes | sí | 2af0cc2d | sí | — |
@@ -41,4 +41,6 @@ Módulo `procesamiento` · ruta `/procesamiento` · 32 direcciones.
 | `procesamiento/analitica/cruces` | pestana | Cruces | sí | ad686bdb | sí | — |
 | `procesamiento/analitica/orden` | pestana | Orden de categorías | sí | d37b6f2e | sí | — |
 | `procesamiento/analitica/dimensiones` | pestana | Dimensiones | sí | be5ac96f | sí | — |
-| `procesamiento/graficos` | seccion | Gráficos | sí | e98c13cd | sí | — |
+| `procesamiento/graficos` | seccion | Gráficos | sí | 5118d425 | sí | — |
+| `procesamiento/graficos/laminas` | pestana | Láminas | sí | f8f35675 | sí | — |
+| `procesamiento/graficos/clasico` | pestana | Editor anterior | sí | f4fb3f22 | sí | — |

@@ -118,8 +118,15 @@ jobs:
       - name: Desktop audit
         run: pnpm -C desktop audit --audit-level=high
 
-  backend-r:
-    name: Backend R (lock + R CMD check + testthat)
+  # El backend R va en tres jobs. Antes era uno solo de ~90 min: 40 de ellos
+  # recompilando la librería R en cada run, porque `actions/cache` sólo guarda
+  # en su post-step si el job termina en verde, y con la suite en rojo la
+  # caché no se escribía nunca. Ahora la librería se restaura y se GUARDA en
+  # `backend-r-deps` en cuanto queda instalada, pase lo que pase después; el
+  # check y los tests la consumen en paralelo, y los tests se reparten en
+  # cuatro shards.
+  backend-r-deps:
+    name: Backend R (lock + librería exacta)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -176,14 +183,78 @@ jobs:
             poppler-utils \
             qpdf
 
-      - name: Cache exact R library
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - name: Restore exact R library
+        id: r-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ env.R_LIBS_USER }}
           key: r-library-${{ runner.os }}-${{ env.R_VERSION }}-${{ hashFiles('api/renv.lock') }}
 
       - name: Restore and verify exact R dependencies
         run: Rscript launcher/install-r-deps.R
+
+      # Se guarda aquí, no en un post-step: así una suite roja no condena al
+      # run siguiente a recompilar la librería entera.
+      - name: Save exact R library
+        if: steps.r-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: r-library-${{ runner.os }}-${{ env.R_VERSION }}-${{ hashFiles('api/renv.lock') }}
+
+  backend-r:
+    name: Backend R (load_all + R CMD check)
+    needs: backend-r-deps
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # El contexto `runner` no existe a nivel de job: declarar aquí
+      # `env: R_LIBS_USER: ${{ runner.temp }}/…` invalida el workflow entero y
+      # GitHub lo rechaza sin crear un solo job. Se exporta desde un step, que
+      # es donde $RUNNER_TEMP sí está resuelto, y queda visible para el resto.
+      - name: Configure R library path
+        run: echo "R_LIBS_USER=${RUNNER_TEMP}/prosecnur-r-library" >> "$GITHUB_ENV"
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+        with:
+          r-version: ${{ env.R_VERSION }}
+
+      - name: Install R system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libfribidi-dev \
+            libgdal-dev \
+            libgeos-dev \
+            libharfbuzz-dev \
+            libjpeg-dev \
+            libpoppler-cpp-dev \
+            libpng-dev \
+            libproj-dev \
+            libqpdf-dev \
+            librsvg2-dev \
+            libsodium-dev \
+            libssl-dev \
+            libtiff-dev \
+            libudunits2-dev \
+            libuv1-dev \
+            libxml2-dev \
+            libxt6 \
+            poppler-utils \
+            qpdf
+
+      - name: Restore exact R library
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: r-library-${{ runner.os }}-${{ env.R_VERSION }}-${{ hashFiles('api/renv.lock') }}
+          fail-on-cache-miss: true
 
       - name: R load_all
         run: Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); pkgload::load_all('api', quiet = TRUE)"
@@ -201,6 +272,66 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/r-check"
           R CMD check --no-manual --no-build-vignettes --output="${RUNNER_TEMP}/r-check" "$package_tarball"
 
+  backend-r-tests:
+    name: Backend R tests (shard ${{ matrix.shard }}/4)
+    needs: backend-r-deps
+    runs-on: ubuntu-24.04
+    strategy:
+      # Un shard rojo no cancela a los otros: el run tiene que mostrar TODOS
+      # los rojos de una vez, no el primero.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # El contexto `runner` no existe a nivel de job: declarar aquí
+      # `env: R_LIBS_USER: ${{ runner.temp }}/…` invalida el workflow entero y
+      # GitHub lo rechaza sin crear un solo job. Se exporta desde un step, que
+      # es donde $RUNNER_TEMP sí está resuelto, y queda visible para el resto.
+      - name: Configure R library path
+        run: echo "R_LIBS_USER=${RUNNER_TEMP}/prosecnur-r-library" >> "$GITHUB_ENV"
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+        with:
+          r-version: ${{ env.R_VERSION }}
+
+      - name: Install R system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libfribidi-dev \
+            libgdal-dev \
+            libgeos-dev \
+            libharfbuzz-dev \
+            libjpeg-dev \
+            libpoppler-cpp-dev \
+            libpng-dev \
+            libproj-dev \
+            libqpdf-dev \
+            librsvg2-dev \
+            libsodium-dev \
+            libssl-dev \
+            libtiff-dev \
+            libudunits2-dev \
+            libuv1-dev \
+            libxml2-dev \
+            libxt6 \
+            poppler-utils \
+            qpdf
+
+      - name: Restore exact R library
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: r-library-${{ runner.os }}-${{ env.R_VERSION }}-${{ hashFiles('api/renv.lock') }}
+          fail-on-cache-miss: true
+
       # Los workers callr de jobs deserializan closures contra el paquete
       # INSTALADO (trampa conocida: jobs.R re-resuelve por nombre en el
       # namespace instalado). Sin este paso, los tests de contrato HTTP que
@@ -211,8 +342,15 @@ jobs:
           mkdir -p "$R_LIB"
           R CMD INSTALL --no-docs --no-multiarch --library="$R_LIB" api
 
+      # Cada shard corre los archivos test-*.R cuyo índice (orden alfabético)
+      # cae en su resto módulo 4. TESTTHAT_MAX_FAILS=Inf: testthat se detenía
+      # a los 10 fallos y escondía el resto.
       - name: R tests
-        run: Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); pkgload::load_all('api', quiet = TRUE); testthat::test_dir('api/tests/testthat', reporter = 'summary')"
+        env:
+          SHARD: ${{ matrix.shard }}
+          TESTTHAT_MAX_FAILS: Inf
+        run: |
+          Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); pkgload::load_all('api', quiet = TRUE); f <- sort(list.files('api/tests/testthat', pattern = '^test-.*[.]R$')); k <- as.integer(Sys.getenv('SHARD')); f <- f[(seq_along(f) - 1L) %% 4L == (k - 1L)]; cat(sprintf('shard %d: %d archivos\n', k, length(f))); testthat::test_dir('api/tests/testthat', filter = paste0('^(', paste(gsub('^test-|[.]R$', '', f), collapse = '|'), ')$'), reporter = 'summary')"
 
   # Los contratos del inspector visual arrancan Chromium de verdad
   # (ui-quick-check.mjs hace chromium.launch() con el @playwright/test del

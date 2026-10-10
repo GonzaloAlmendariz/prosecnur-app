@@ -6,11 +6,11 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `monitoreo` · ruta `/monitoreo` · 111 direcciones.
+Módulo `monitoreo` · ruta `/monitoreo` · 113 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `monitoreo` | modulo | Monitoreo de campo | sí | 35727d31 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo` | modulo | Monitoreo de campo | sí | ce720181 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/acreditacion` | modo | Acreditación | sí | 9836d3a0 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/acreditacion/fuentes` | seccion | Fuentes | sí | b99ffc5a | sí | [0045-monitoreo-actores-modelo-telefonia-explicita](../../adrs/0045-monitoreo-actores-modelo-telefonia-explicita.md) |
 | `monitoreo/acreditacion/fuentes/actores` | pestana | Actores | sí | 84e6e4d6 | sí | — |
@@ -97,27 +97,29 @@ Módulo `monitoreo` · ruta `/monitoreo` · 111 direcciones.
 | `monitoreo/territorial/ocurrencias/ump` | pestana | UMP | sí | 95a3d1c5 | sí | — |
 | `monitoreo/territorial/ocurrencias/alerts` | pestana | Alertas | sí | cdeb9918 | sí | — |
 | `monitoreo/territorial/ocurrencias/rhythm` | pestana | Ritmo | sí | 03e91859 | sí | — |
-| `monitoreo/aulas` | modo | Cursos-horario | sí | d180e271 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo/aulas` | modo | Cursos-horario | sí | 05f54267 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/aulas/fuentes` | seccion | Fuentes | sí | e9621c44 | sí | — |
 | `monitoreo/aulas/modelo` | seccion | Agenda de cursos-horario | sí | 50043d56 | sí | — |
 | `monitoreo/aulas/modelo/agenda` | pestana | Agenda | sí | 81fc4871 | sí | — |
 | `monitoreo/aulas/modelo/facultad` | pestana | Por facultad | sí | 01c3741d | sí | — |
 | `monitoreo/aulas/modelo/contacto` | pestana | Contacto | sí | 6fde84e8 | sí | — |
 | `monitoreo/aulas/modelo/carga` | pestana | Carga | sí | d5c60440 | sí | — |
-| `monitoreo/aulas/avance` | seccion | Avance | sí | 244b6aa2 | sí | — |
-| `monitoreo/aulas/avance/cuotas` | pestana | Cuotas | sí | ad957ac4 | sí | — |
+| `monitoreo/aulas/avance` | seccion | Avance | sí | 18f61d02 | sí | — |
 | `monitoreo/aulas/avance/resumen` | pestana | Resumen | sí | 5087ac28 | sí | — |
-| `monitoreo/aulas/avance/estratos` | pestana | Estratos | sí | a5e236b5 | sí | — |
+| `monitoreo/aulas/avance/cuotas` | pestana | Metas | sí | 9c4b9460 | sí | — |
 | `monitoreo/aulas/avance/rendimiento` | pestana | Rendimiento | sí | 47e77bcd | sí | — |
 | `monitoreo/aulas/avance/efectividad` | pestana | Efectividad | sí | 83561eda | sí | — |
 | `monitoreo/aulas/avance/salidas` | pestana | Salidas | sí | 615799e8 | sí | — |
-| `monitoreo/aulas/calidad` | seccion | Validación | sí | 0cec608c | sí | — |
+| `monitoreo/aulas/calidad` | seccion | Validación | sí | f7ae684d | sí | — |
 | `monitoreo/aulas/calidad/registro` | pestana | Registro de campo | sí | 40ef5ffd | sí | — |
 | `monitoreo/aulas/calidad/controles` | pestana | Controles | sí | 99f1d90d | sí | — |
 | `monitoreo/aulas/calidad/base` | pestana | Base de control | sí | 69d95401 | sí | — |
+| `monitoreo/aulas/calidad/alumnos` | pestana | Cruce de alumnos | sí | b5223514 | sí | — |
 | `monitoreo/aulas/calidad/abiertas` | pestana | Respuestas abiertas | sí | 917ec883 | sí | — |
-| `monitoreo/aulas/consultas` | seccion | Consultas | sí | 8727763a | sí | — |
+| `monitoreo/aulas/consultas` | seccion | Consultas | sí | 5e3bbf07 | sí | — |
+| `monitoreo/aulas/consultas/ficha` | pestana | Buscar por código | sí | d3c8d6ec | sí | — |
 | `monitoreo/aulas/consultas/reemplazos` | pestana | Reemplazos | sí | bb6eb840 | sí | — |
 | `monitoreo/aulas/consultas/brechas` | pestana | Brechas | sí | ea07ee08 | sí | — |
 | `monitoreo/aulas/consultas/parte` | pestana | Parte de campo | sí | 82c2f195 | sí | — |
 | `monitoreo/aulas/consultas/extras` | pestana | Extras | sí | 512fde41 | sí | — |
+| `monitoreo/aulas/consultas/refuerzos` | pestana | Refuerzos | sí | c99e180e | sí | — |

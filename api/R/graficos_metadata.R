@@ -1610,7 +1610,9 @@
            descripcion = "Para mediana o media («años»)."),
       list(name = "icono", label = "Ícono", tipo_input = "string", grupo = "estilo",
            descripcion = "Nombre de un ícono de la biblioteca del recetario (opcional).")
-    ), .args_graf_comunes())
+    # Una cifra no lleva título: lo que la nombra es su rótulo. El `titulo` común no lo recibe p_cifra() ni
+    # graficar_cifra(), así que ofrecerlo era un control que se movía sin efecto.
+    ), Filter(function(a) !identical(a$name, "titulo"), .args_graf_comunes()))
   ),
 
   # =========================================================================

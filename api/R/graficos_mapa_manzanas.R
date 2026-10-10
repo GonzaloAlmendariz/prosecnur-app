@@ -41,8 +41,8 @@
   azul <- .std_color("azul"); medio <- .std_color("mapa_medio")
   filas <- list()
   for (k in seq_along(feats)) {
-    f <- feats[[k]]; aplicada <- f$id %in% mz$aplicadas; en_zona <- .mapa_chr1(f$zona, "") %in% zonas_ap
-    fill <- if (aplicada) azul else if (en_zona) medio else "#FFFFFF"
+    f <- feats[[k]]; aplicada <- f$id %in% mz$aplicadas; zona_aplicada <- .mapa_chr1(f$zona, "") %in% zonas_ap
+    fill <- if (aplicada) azul else if (zona_aplicada) medio else "#FFFFFF"
     anillos <- .graficos_rings_payload(f$rings)
     for (j in seq_along(anillos)) {
       filas[[length(filas) + 1L]] <- .mapa_ring_df(anillos[[j]], group = paste(f$id, j, sep = "-"), zona = .mapa_chr1(f$zona, ""),

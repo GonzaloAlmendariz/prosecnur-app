@@ -321,7 +321,7 @@ monitoreo_aulas_riesgo_facultades <- function(plan = list(), responses = NULL,
   # riesgo no pueda calcularse; lo que no puede es salir sin decir por qué
   # falta, así que el motivo viaja en vez de perderse.
   d <- dashboard %||% tryCatch(
-    monitoreo_aulas_dashboard(plan, responses, cfg),
+    monitoreo_aulas_dashboard(plan, responses, cfg, hoy = hoy),
     error = function(e) NULL)
   if (is.null(d)) {
     return(vacio(paste(

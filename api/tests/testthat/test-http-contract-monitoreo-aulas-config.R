@@ -123,7 +123,11 @@ test_that("declarar otra variable de facultad sigue pisando la anterior", {
 # directo y perdieron el morado de `refuerzo_por_contactar` al pasar a
 # `agendada`, sin dejar constancia. Gonzalo: «el sheets los marcó de morados y
 # muchos se agendaron, entonces ya no estuvieron marcados como refuerzo».
-test_that("al agendar por HTTP, queda constancia de que el aula entró de más", {
+test_that("al agendar por HTTP, una reserva sin rechazo exige declarar B o C", {
+  # Gonzalo, 2026-10-10: «si se usa una reserva por motivos de no rechazo,
+  # entonces o es un adicional situación B o es un refuerzo situación C; no
+  # debería inferirse». Sin letra el agendamiento no entra; con letra entra y
+  # queda constancia de cuándo se decidió.
   srv <- http_contract_server()
   sid <- http_post_json(srv, "/api/session", body = list(fresh = TRUE))$json$session_id
 
@@ -132,7 +136,7 @@ test_that("al agendar por HTTP, queda constancia de que el aula entró de más",
          classroom_id = "CH 40", collection_unit_id = "CH 40", sample_role = "titular",
          faculty = "DERECHO", eligible_n = 40, sample_status = "en_contacto",
          # El titular CONCRETÓ: si no, activar su reserva sería un caso A
-         # —reemplazo— y no habría nada «de más» que sellar.
+         # —reemplazo— y no habría letra que declarar.
          operational_status = "aplicada", effective_surveys = 18),
     list(operational_code = "R 40.1", titular_operational_code = "CH 40",
          classroom_id = "R 40.1", collection_unit_id = "R 40.1",
@@ -142,17 +146,26 @@ test_that("al agendar por HTTP, queda constancia de que el aula entró de más",
   puesto <- http_post_json(srv, "/api/monitoreo/aulas/config", sid = sid,
                            body = list(config = list(plan = plan)))
   expect_identical(puesto$status, 200L)
+  # Cita futura respecto del día en que corre: el endpoint decide «agendada»
+  # contra la fecha del sistema, y una fecha fija caduca y pasa a vencida.
+  fecha <- format(Sys.Date() + 7L)
 
-  # Se agenda la reserva aunque su titular ya recogió 18: entra de más.
+  sin_letra <- http_post_json(srv, "/api/monitoreo/aulas/agenda", sid = sid,
+                              body = list(updates = list(list(
+                                operational_code = "R 40.1", sample_status = "agendada",
+                                scheduled_date = fecha))))
+  expect_identical(sin_letra$status, 422L)
+  expect_identical(sin_letra$json$error$code, "E_AULAS_RESERVA_SIN_CASO")
+
   r <- http_post_json(srv, "/api/monitoreo/aulas/agenda", sid = sid,
                       body = list(updates = list(list(
                         operational_code = "R 40.1", sample_status = "agendada",
-                        scheduled_date = "2026-10-02"))))
+                        scheduled_date = fecha, activation_origin = "C"))))
   expect_identical(r$status, 200L)
   fila <- Filter(function(u) identical(as.character(u$operational_code), "R 40.1"),
                  r$json$agenda)
   expect_length(fila, 1L)
-  expect_identical(as.character(fila[[1]]$activation_origin), "adicional_inferido")
+  expect_identical(as.character(fila[[1]]$activation_origin), "refuerzo")
   expect_true(nzchar(as.character(fila[[1]]$activated_at %||% "")))
   # Y el titular, que no se activó, sigue sin sello.
   tit <- Filter(function(u) identical(as.character(u$operational_code), "CH 40"),

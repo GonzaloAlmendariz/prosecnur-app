@@ -6,11 +6,11 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `calc-muestra` · ruta `/calc-muestra` · 53 direcciones.
+Módulo `calc-muestra` · ruta `/calc-muestra` · 67 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | c4796529 | sí | — |
+| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 5c577c9a | sí | — |
 | `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | e4f6ff99 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | e87026e8 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-estudio` | pestana | Estudio | sí | fe3098c2 | sí | — |
@@ -31,7 +31,7 @@ Módulo `calc-muestra` · ruta `/calc-muestra` · 53 direcciones.
 | `calc-muestra/opinion-universitaria/calculo/calculo-propuestas` | pestana | Propuestas | sí | 19f0c7d7 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-ch-facultad` | pestana | Cursos-horario requeridos | sí | d2750258 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-distribucion` | pestana | Distribución | sí | 70d96f11 | sí | — |
-| `calc-muestra/opinion-universitaria/calculo/calculo-certeza` | pestana | ¿Alcanza? | sí | 328efacd | **no** | — |
+| `calc-muestra/opinion-universitaria/calculo/calculo-certeza` | pestana | ¿Alcanza? | sí | 328efacd | sí | — |
 | `calc-muestra/opinion-universitaria/aulas` | seccion | Selección | sí | f71ab2a2 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/objetivo` | pestana | Objetivo de muestra | sí | f9575405 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/metodo` | pestana | Comparar métodos | sí | 18b9eef5 | sí | — |
@@ -42,22 +42,36 @@ Módulo `calc-muestra` · ruta `/calc-muestra` · 53 direcciones.
 | `calc-muestra/opinion-universitaria/aulas/reemplazos` | pestana | Reemplazos por curso-horario | sí | fe9330a1 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/aulas-relato` | pestana | Relato | sí | d83fad2b | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/auditoria` | pestana | Sustento técnico | sí | 60e11b53 | sí | — |
-| `calc-muestra/opinion-universitaria/aulas/aulas-rerandomizacion` | pestana | ¿Este sorteo o otro? | sí | f8419b2f | **no** | — |
+| `calc-muestra/opinion-universitaria/aulas/aulas-rerandomizacion` | pestana | ¿Este sorteo o otro? | sí | f8419b2f | sí | — |
 | `calc-muestra/opinion-universitaria/salidas` | seccion | Entrega | sí | 91056226 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-coincidencia` | pestana | Coincidencia | sí | 4d2bd16f | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-guia` | pestana | Cierre | sí | a3a21ce5 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-resultados` | pestana | Tablas | sí | c7a193de | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-entregables` | pestana | Entregables | sí | c1249bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-monitoreo` | pestana | Pase a Monitoreo | sí | a28cb348 | sí | — |
-| `calc-muestra/marco-disponible` | modo | Muestra general | sí | 6e56b696 | sí | — |
-| `calc-muestra/marco-disponible/marco` | seccion | Marco | sí | 404a402f | sí | — |
-| `calc-muestra/marco-disponible/metodo` | seccion | Método | sí | 76fa6750 | sí | — |
-| `calc-muestra/marco-disponible/seleccion` | seccion | Selección | sí | 1b02f894 | sí | — |
+| `calc-muestra/marco-disponible` | modo | Muestra general | sí | ccea92c4 | sí | — |
+| `calc-muestra/marco-disponible/marco` | seccion | Marco | sí | 47c0859f | sí | — |
+| `calc-muestra/marco-disponible/marco/marco-forma` | pestana | Forma del marco | sí | 02d6a244 | sí | — |
+| `calc-muestra/marco-disponible/marco/marco-archivo` | pestana | Archivo del marco | sí | 23a343a5 | sí | — |
+| `calc-muestra/marco-disponible/marco/marco-ficha` | pestana | Ficha del estudio | sí | a55920a3 | sí | — |
+| `calc-muestra/marco-disponible/metodo` | seccion | Método | sí | a26eca56 | sí | — |
+| `calc-muestra/marco-disponible/metodo/metodo-tecnica` | pestana | Técnica | sí | cc6f7a42 | sí | — |
+| `calc-muestra/marco-disponible/metodo/metodo-parametros` | pestana | Parámetros | sí | 1e769abc | sí | — |
+| `calc-muestra/marco-disponible/metodo/metodo-memoria` | pestana | Cálculo del n | sí | a8472667 | sí | — |
+| `calc-muestra/marco-disponible/metodo/metodo-estratos` | pestana | Estratos | sí | f22535d7 | sí | — |
+| `calc-muestra/marco-disponible/seleccion` | seccion | Selección | sí | 819ece7c | sí | — |
+| `calc-muestra/marco-disponible/seleccion/seleccion-sorteo` | pestana | Selección aleatoria | sí | 456a3d11 | sí | — |
+| `calc-muestra/marco-disponible/seleccion/seleccion-corrida` | pestana | Resumen | sí | 3209a2ac | sí | — |
+| `calc-muestra/marco-disponible/seleccion/seleccion-unidades` | pestana | Unidades | sí | 4a76e5c1 | sí | — |
 | `calc-muestra/marco-disponible/resultados` | seccion | Resultados | sí | 04327303 | sí | — |
-| `calc-muestra/acreditacion` | modo | Acreditación | sí | 94b63400 | sí | — |
+| `calc-muestra/acreditacion` | modo | Acreditación | sí | d51f6b09 | sí | — |
 | `calc-muestra/acreditacion/actores` | seccion | Actores | sí | c5c3a05a | sí | — |
 | `calc-muestra/acreditacion/contexto` | seccion | Contexto | sí | ce43b9b4 | sí | — |
-| `calc-muestra/acreditacion/seleccion` | seccion | Selección | sí | 967dd433 | sí | — |
+| `calc-muestra/acreditacion/seleccion` | seccion | Selección | sí | 3d66530e | sí | — |
+| `calc-muestra/acreditacion/seleccion/seleccion-marco` | pestana | Archivo del marco | sí | 5023a7b3 | sí | — |
+| `calc-muestra/acreditacion/seleccion/seleccion-sorteo` | pestana | Selección aleatoria | sí | e4e3bc29 | sí | — |
+| `calc-muestra/acreditacion/seleccion/seleccion-corrida` | pestana | Resumen | sí | 667570fe | sí | — |
+| `calc-muestra/acreditacion/seleccion/seleccion-unidades` | pestana | Unidades | sí | fbec675b | sí | — |
 | `calc-muestra/acreditacion/resultados` | seccion | Resultados | sí | 0e8f0ee6 | sí | — |
 | `calc-muestra/territorial-handoff` | modo | Territorial | sí | 9f96447d | sí | — |
 | `calc-muestra/territorial-handoff/hojas-ruta` | seccion | Diseño de rutas | sí | 2fc52a47 | sí | — |

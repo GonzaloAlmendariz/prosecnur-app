@@ -112,6 +112,7 @@ errores_registrados <- function() {
     "E_AULA_NO_ENCONTRADA",                                  "monitoreo_aulas_reemplazos.R",      "404",
     "E_AULA_SIN_CODIGO",                                     "router_monitoreo.R",                "400",
     "E_REFUERZO_TIPO",                                       "monitoreo_aulas_refuerzo.R",        "400",
+    "E_AULAS_RESERVA_SIN_CASO",                              "monitoreo_aulas_agenda_caso.R",     "422",
     "E_REFUERZO_YA_MARCADO",                                 "monitoreo_aulas_refuerzo.R",        "409",
     "E_REFUERZO_NO_DISPONIBLE",                              "monitoreo_aulas_refuerzo.R",        "409",
     "E_REFUERZO_YA_EN_MARCHA",                               "monitoreo_aulas_refuerzo.R",        "409",
