@@ -2638,9 +2638,8 @@ mount_graficos <- function(pr) {
         jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
-      cfg <- .graficos_normalize_config(parsed, sid = sid)
-      .graficos_config_set(sid, cfg)
-      list(ok = TRUE, imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+      avisos <- .graficos_config_importar(sid, parsed)   # normaliza, guarda y devuelve el aviso de la migración (el GET ya no lo verá)
+      list(ok = TRUE, imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), avisos = I(avisos))
     })) |>
     plumber::pr_post("/api/graficos/share/export", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

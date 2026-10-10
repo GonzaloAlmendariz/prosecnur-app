@@ -164,3 +164,20 @@ test_that("abrir, ver Gráficos, guardar y reabrir: el .pulso queda con los tipo
                    c("p_slide_portada", "p_slide_2_graficos", "p_slide_4_graficos"))
   expect_length(as.character(unclass(.mpa_get_config(r$session_id)$avisos)), 0L)
 })
+
+test_that("import de una config con población antigua: la migra, la guarda y avisa en su respuesta (el GET ya no lo hará)", {
+  skip_if_not_installed("plumber")
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  r <- .mpa_stderr(.mpa_endpoint("/api/graficos/config/import", list(config = list(plan = .mpa_plan())), new.env(), sid = sid))
+  expect_true(isTRUE(r$valor$ok))
+  expect_length(r$sellos, 0L)
+  av <- as.character(unclass(r$valor$avisos))
+  expect_length(av, 2L)
+  # El mismo texto que el GET.
+  expect_identical(av, .graficos_avisos_migracion(.graficos_migrar_poblacion_antigua(.mpa_plan())))
+  expect_identical(.mpa_tipos(session_get(sid)$graficos_config$plan), c("p_slide_portada", "p_slide_2_graficos", "p_slide_4_graficos"))
+  expect_length(as.character(unclass(.mpa_get_config(sid)$avisos)), 0L)
+  # Una config ya vigente se importa sin avisos.
+  r2 <- .mpa_endpoint("/api/graficos/config/import", list(plan = .graficos_migrar_poblacion_antigua(.mpa_plan(), avisar = FALSE)), new.env(), sid = sid)
+  expect_length(as.character(unclass(r2$avisos)), 0L)
+})
