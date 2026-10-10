@@ -177,7 +177,12 @@ graficar_barras_categoricas <- function(
     max_categorias            = 10,
     agrupar_resto_en_otros    = FALSE,
     etiqueta_otros            = "Otros",
-    orden_barras              = c("instrumento", "mayor_menor", "menor_mayor"),
+    orden_barras              = c("instrumento", "mayor_menor", "menor_mayor", "manual"),
+    # D8: orden declarado por etiqueta (lo arma `.plan_orden_categorias` desde los códigos del contrato
+    # `orden_categorias`); las no listadas van al final en su orden. `residuales_al_final = FALSE` deja los residuales
+    # donde los puso ese orden (modo «personalizado»: manda el analista).
+    orden_categorias_manual   = NULL,
+    residuales_al_final       = TRUE,
     normalizar_etiquetas      = c("ninguna", "mayuscula_inicial"),
     colores_categorias        = NULL,
     paleta_colores            = NULL,
@@ -294,10 +299,16 @@ graficar_barras_categoricas <- function(
   df <- df[is.finite(df$valor), , drop = FALSE]
   if (!nrow(df)) stop("No hay valores numericos validos para graficar.", call. = FALSE)
 
-  if (identical(orden_barras, "mayor_menor")) {
-    df <- df[order(df$valor, decreasing = TRUE), , drop = FALSE]
-  } else if (identical(orden_barras, "menor_mayor")) {
-    df <- df[order(df$valor, decreasing = FALSE), , drop = FALSE]
+  om <- .barras_categoricas_normalizar(.orden_manual_etiquetas(orden_categorias_manual), normalizar_etiquetas)
+  if (.orden_manual_manda(om, orden_barras, c("mayor_menor", "menor_mayor"))) {
+    df <- df[order(match(df$categoria, om, nomatch = length(om) + 1L), seq_len(nrow(df))), , drop = FALSE]
+  } else if (orden_barras %in% c("mayor_menor", "menor_mayor")) {
+    df <- df[order(if (identical(orden_barras, "mayor_menor")) -df$valor else df$valor, seq_len(nrow(df))), , drop = FALSE]
+    # D8: por frecuencia los residuales van al final también en el ggplot (la espec ya lo hacía), como en p152.
+    if (isTRUE(residuales_al_final)) {
+      res <- grepl(.CATEGORIAS_RESIDUALES, df$categoria, ignore.case = TRUE)
+      if (any(res) && !all(res)) df <- df[c(which(!res), which(res)), , drop = FALSE]
+    }
   }
 
   if (nrow(df) > max_categorias) {
@@ -410,7 +421,8 @@ graficar_barras_categoricas <- function(
   # motor (sin la frecuencia: el recetario la escribe aparte, «N estudiantes»).
   espec_categorica <- tryCatch(preparar_categorica(
     df$categoria, df$pct %||% df$valor,
-    .barras_categoricas_etiquetas_pct(df$pct %||% df$valor, decimales, metodo_redondeo), df$n
+    .barras_categoricas_etiquetas_pct(df$pct %||% df$valor, decimales, metodo_redondeo), df$n,
+    residuales_al_final = isTRUE(residuales_al_final)
   ), error = function(e) { message("[espec categorica] ", conditionMessage(e)); NULL })
   # La nota del gráfico («Base: 176 respuestas») vivía sólo en el caption del ggplot; la lámina nativa la necesita.
   if (!is.null(espec_categorica)) espec_categorica$nota <- label_note

@@ -7361,7 +7361,7 @@ reporte_ppt_plan <- function(
 
   # Ver `reporte_plan_particion.R`: una escala con demasiadas barras adelgaza
   # hasta ser ilegible, y la unica salida es una lamina de mas.
-  plan <- .plan_particionar_escalas(plan, .slide_plot_elements)
+  plan <- .plan_particionar_escalas(.plan_orden_categorias(plan, instrument_sources, presets, default_source), .slide_plot_elements)  # D8
 
   if (!length(plan)) .plan_input_abort("No hay diapositivas...")
 

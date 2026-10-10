@@ -187,3 +187,37 @@ test_that("POST /preview-slide lleva la etiqueta corta de args.overrides.etiquet
   expect_match(con, "Información clara", fixed = TRUE)
   expect_false(grepl("Claridad de la informacion", con, fixed = TRUE))
 })
+
+test_that("GET /categorias entrega código, etiqueta y frecuencia, con sus E_*; /preview-slide respeta orden_categorias (D8)", {
+  srv <- http_contract_server()
+  base <- http_contract_upload_base(srv)
+  r <- http_get(srv, "/api/graficos/categorias?var=region", sid = base$sid)
+  expect_identical(r$status, 200L)
+  expect_identical(vapply(r$json$categorias, `[[`, "", "codigo"), c("norte", "sur"))
+  expect_identical(vapply(r$json$categorias, `[[`, "", "etiqueta"), c("Norte", "Sur"))
+  expect_identical(vapply(r$json$categorias, function(x) as.integer(x$n), 0L), c(4L, 4L))
+  expect_identical(r$json$modo_recetario, "instrumento")                     # dos categorías
+  expect_identical(unlist(r$json$orden$instrumento), c("norte", "sur"))
+  expect_match(rawToChar(r$raw), '"recetario":["', fixed = TRUE)            # arreglo aunque tenga pocas
+  sin <- http_get(srv, "/api/graficos/categorias", sid = base$sid)
+  expect_identical(sin$status, 400L); expect_identical(sin$json$error$code %||% sin$json$code, "E_BAD_CATEGORIAS_VAR")
+  no <- http_get(srv, "/api/graficos/categorias?var=nadie", sid = base$sid)
+  expect_identical(no$status, 404L); expect_identical(no$json$error$code %||% no$json$code, "E_CATEGORIAS_VAR_NO_EXISTE")
+  num <- http_get(srv, "/api/graficos/categorias?var=edad", sid = base$sid)
+  expect_identical(num$status, 409L); expect_identical(num$json$error$code %||% num$json$code, "E_CATEGORIAS_SIN_LISTA")
+
+  rotulos <- function(oc) {
+    args <- list(var = "region"); if (!is.null(oc)) args$orden_categorias <- oc
+    lamina <- list(id = "s1", tipo = "p_slide_1_grafico", payload = list(titulo = "Región", grafico = list(graficador = "p_barras_categoricas", args = args)))
+    p <- http_post_json(srv, "/api/graficos/preview-slide", body = list(slide = lamina, include_images = FALSE), sid = base$sid)
+    expect_identical(p$status, 200L)
+    dl <- http_get(srv, sprintf("/api/files/%s/download", p$json$file_id), sid = base$sid)
+    f <- tempfile(fileext = ".pptx"); writeBin(dl$raw, f)
+    xml <- xml2::read_xml(.pptx_leer_parte(f, .pptx_slide_paths(f)[[1]]))
+    # Dos categorías: la lámina sale como dicotomía y sus rótulos se llaman `dicotomia:rotulo` («Norte (4)»).
+    t <- xml2::xml_text(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='rotulo' or @name='dicotomia:rotulo']]"))
+    trimws(sub("\\s*\\(.*$", "", t))
+  }
+  expect_identical(rotulos(NULL), c("Norte", "Sur"))
+  expect_identical(rotulos(list(modo = "personalizado", lista = list("sur", "norte"))), c("Sur", "Norte"))
+})
