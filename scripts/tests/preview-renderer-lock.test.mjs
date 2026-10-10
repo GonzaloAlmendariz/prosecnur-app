@@ -25,5 +25,5 @@ test('sin sha256 fijado la descarga no se acepta, y un sha distinto tampoco', ()
   assert.equal(verificar({ sha256: null }, f).ok, false)
   assert.equal(verificar({ sha256: '0'.repeat(64) }, f).ok, false)
   assert.equal(verificar({ sha256: sha256DeArchivo(f) }, f).ok, true)
-  assert.ok(problemasDelLock(leerLock(), { exigirSha: true }).length > 0)   // hoy los sha están sin fijar: el build lo sabe
+  assert.deepEqual(problemasDelLock(leerLock(), { exigirSha: true }), [])   // fijados tras verificar la firma de TDF
 })
