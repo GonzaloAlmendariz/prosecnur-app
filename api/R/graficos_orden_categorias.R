@@ -184,7 +184,9 @@
   ov <- el$overrides %||% list()
   if (!is.null(ov[[arg]]) || length(.orden_manual_etiquetas(ov$orden_categorias_manual))) return(TRUE)
   pa <- ((presets %||% list())[[tipo]] %||% list())$args[[arg]]
-  fab <- (.PRESETS_DEFAULT_PULSO[[tipo]] %||% list())[[arg]]
+  # El de fábrica, con la misma herencia que aplica `reporte_ppt_plan` (la dona hereda del pie): sin ella, el «ninguno»
+  # que la dona recibe del pie parecía un orden elegido y apagaba el recetario (verificador de D8).
+  fab <- (.PRESETS_DEFAULT_PULSO[[tipo]] %||% list())[[arg]] %||% if (identical(tipo, "donut")) .PRESETS_DEFAULT_PULSO$pie[[arg]] else NULL
   !is.null(pa) && !identical(as.character(pa)[1], as.character(fab %||% "")[1])
 }
 
@@ -213,6 +215,8 @@
   el$overrides$residuales_al_final <- NULL
   if (identical(modo, "frecuencia")) {
     el$overrides[[arg]] <- if (circular) (if (oc$invertir) "asc" else "desc") else (if (oc$invertir) "menor_mayor" else "mayor_menor")
+    # Torta y dona ordenan por valor en el graficador: los residuales van al final sólo si se le pide (contrato §4).
+    if (circular) el$overrides$residuales_al_final <- TRUE
     return(el)
   }
   ord <- .goc_orden_codigos(cats, modo, oc$lista, oc$invertir)
@@ -254,7 +258,12 @@
       if (!inherits(el, "ppt_element") || !(el$.element_type %||% "") %in% .GOC_TIPOS) next
       ctx <- tryCatch(.goc_resolver_ref(el$var, inst_sources, default_source), error = function(e) NULL)
       if (is.null(ctx)) next
-      slide$slots[[nm]] <- tryCatch(.goc_traducir(el, ctx, presets), error = function(e) el)
+      # Un fallo al resolver el orden no corta el mazo: el gráfico sale con el orden que traía y el analista lo sabe por el
+      # aviso (un export completo con un orden que no pidió es mejor que ninguno; el aviso le dice cuál y por qué).
+      slide$slots[[nm]] <- tryCatch(.goc_traducir(el, ctx, presets), error = function(e) {
+        .pulso_aviso(sprintf("“%s”: no se pudo aplicar el orden de categorías (%s); sale en el orden que traía.", ctx$var, conditionMessage(e)))
+        el
+      })
     }
     slide
   })
@@ -281,12 +290,16 @@
 #' Respuesta de `GET /api/graficos/categorias` (contrato §7)
 #'
 #' @param sources `list(data_sources, inst_sources)` de la ruta de Gráficos.
-#' @param ref Referencia de la variable (`p7` o `docentes$p7`).
+#' @param ref Referencia de la variable (`p7` o `docentes$p7`). El frontend debería mandar la calificada.
+#' @param base_activa Base de una referencia sin calificar: la activa de la sesión (verificador de D8: resolvía contra
+#'   la primera base y en acrconta `p7` devolvía docentes con estudiantes activa). Sin ella, la primera.
 #' @keywords internal
-.graficos_categorias_payload <- function(sources, ref) {
+.graficos_categorias_payload <- function(sources, ref, base_activa = NULL) {
   ref <- trimws(as.character(ref %||% "")[1])
   if (is.na(ref) || !nzchar(ref)) stop_api(400, "E_BAD_CATEGORIAS_VAR", "Falta `var`: la variable cuyas categorías se piden.")
-  ctx <- .goc_resolver_ref(ref, sources$inst_sources, names(sources$inst_sources)[1])
+  por_defecto <- if (!is.null(base_activa) && nzchar(base_activa) && base_activa %in% names(sources$inst_sources)) base_activa else
+    names(sources$inst_sources)[1]
+  ctx <- .goc_resolver_ref(ref, sources$inst_sources, por_defecto)
   data <- sources$data_sources[[ctx$base]]
   if (is.null(ctx$inst) || (!ctx$var %in% names(data %||% list()) && is.na(.goc_survey(ctx$inst, ctx$var)$tipo))) {
     stop_api(404, "E_CATEGORIAS_VAR_NO_EXISTE", sprintf("La variable «%s» no está en la base «%s».", ctx$var, ctx$base %||% ""))

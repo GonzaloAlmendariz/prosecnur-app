@@ -144,6 +144,8 @@ graficar_pie <- function(
     # `ordenar_categorias`: los modos automáticos dependen de los datos, así que
     # la leyenda cambia de orden entre láminas sin que nadie lo decida.
     orden_categorias_manual = NULL,
+    # D8: con `desc`/`asc`, los residuales al final (lo pide `.plan_orden_categorias` en «frecuencia»).
+    residuales_al_final = FALSE,
     top_k              = NULL,
     etiqueta_otros     = "Otros",
 
@@ -334,7 +336,7 @@ graficar_pie <- function(
   # Orden. La regla vive en `.pie_orden_categorias()` para poder verificarla sin
   # renderizar: el manual manda, y los automáticos dependen del dato.
   df <- df[.pie_orden_categorias(df$categoria, orden_categorias_manual,
-                                 ordenar_categorias, df$pct), , drop = FALSE]
+                                 ordenar_categorias, df$pct, residuales_al_final = residuales_al_final), , drop = FALSE]
 
   df$categoria <- factor(df$categoria, levels = df$categoria)
   # ADR 0093 (N6): lo que afirma la torta o la dona para la lámina nativa (láminas 69 y 70): las porciones en su
