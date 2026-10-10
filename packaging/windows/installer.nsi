@@ -232,6 +232,7 @@ Section "Archivos del programa" SecFiles
   Delete "$INSTDIR\LEEME_PRIMERO.md"
   Delete "$INSTDIR\README_DESARROLLO.md"
   Delete "$INSTDIR\LICENSE"
+  Delete "$INSTDIR\LIBREOFFICE-NOTICE.md"
   Delete "$INSTDIR\Uninstall.exe"
 
   SetOutPath "$INSTDIR"
@@ -390,6 +391,7 @@ Section "Uninstall"
   Delete "$INSTDIR\LEEME_PRIMERO.md"
   Delete "$INSTDIR\README_DESARROLLO.md"
   Delete "$INSTDIR\LICENSE"
+  Delete "$INSTDIR\LIBREOFFICE-NOTICE.md"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
 

@@ -133,14 +133,31 @@ unzip -q "$CACHE_DIR/electron/$ELECTRON_ZIP" -d "$STAGING/runtime/electron"
 cp "$CACHE_DIR/r-installer/$R_INSTALLER" "$STAGING/runtime/r-installer/$R_INSTALLER"
 bash "$COPY_TREE" "$CACHE_DIR/r-packages" "$STAGING/runtime/r-packages" ".DS_Store"
 
+# LibreOffice para la vista previa real de láminas (P7). Se stagea directo en
+# runtime/preview-renderer, donde lo buscan desktop/preview-renderer.cjs y
+# .preview_renderer_roots (api/R/router_graficos.R). MSI de TDF verificado por
+# sha256, extraído con msiextract y con el CRT x64 de Visual C++ en program/.
+echo "[Prosecnur] Stageando LibreOffice (vista previa de láminas)..."
+PREVIEW_RENDERER_DIR="$STAGING/runtime/preview-renderer"
+PROSECNUR_PREVIEW_RENDERER_CACHE="${PROSECNUR_PREVIEW_RENDERER_CACHE:-$CACHE_DIR/preview-renderer}" \
+  bash packaging/windows/stage-preview-renderer.sh "$PREVIEW_RENDERER_DIR"
+
 cp packaging/windows/Prosecnur.bat "$STAGING/Prosecnur.bat"
 cp "$ASSETS_DIR/prosecnur.ico" "$STAGING/assets/prosecnur.ico"
 cp LICENSE "$STAGING/LICENSE"
+cp packaging/third-party/LIBREOFFICE-NOTICE.md "$STAGING/LIBREOFFICE-NOTICE.md"
 cp README.md "$STAGING/README_DESARROLLO.md"
 cp packaging/LEEME_PRIMERO.md "$STAGING/LEEME_PRIMERO.md"
 
 # Sincroniza la version en desktop/package.json del bundle (no toca el repo).
 node -e "const fs=require('fs'); const p='$STAGING/Internals/desktop/package.json'; const j=JSON.parse(fs.readFileSync(p)); j.version='$APP_VERSION'; fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');"
+
+# Sin soffice.exe el instalador saldría con la vista previa rota: fail-closed.
+if [ ! -s "$STAGING/runtime/preview-renderer/LibreOffice/program/soffice.exe" ] ||
+   [ ! -s "$STAGING/LIBREOFFICE-NOTICE.md" ]; then
+  echo "[Prosecnur] ERROR: el bundle no lleva runtime/preview-renderer/LibreOffice/program/soffice.exe o LIBREOFFICE-NOTICE.md." >&2
+  exit 1
+fi
 
 mv "$STAGING" "$OUT_DIR"
 rm -rf "$DIST_ROOT/.windows-staging"
