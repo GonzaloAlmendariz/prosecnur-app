@@ -50,7 +50,7 @@
       "buildResources": "../packaging/macos/build-resources"
     },
     "beforePack": "scripts/clean-mac-xattrs.cjs",
-    "afterPack": "scripts/clean-mac-xattrs.cjs",
+    "afterPack": "scripts/after-pack-mac.cjs",
     "files": [
       "main.cjs",
       "lifecycle.cjs",
@@ -96,6 +96,10 @@
       {
         "from": "../LICENSE",
         "to": "LICENSE"
+      },
+      {
+        "from": "../packaging/third-party/LIBREOFFICE-NOTICE.md",
+        "to": "LIBREOFFICE-NOTICE.md"
       }
     ],
     "mac": {

@@ -10,7 +10,12 @@
 #   4. Descarga los .tgz binarios de mac para todas las dependencias R.
 #   5. Stagea packaging/macos/r-mac-runtime/ con el .pkg + paquetes + script
 #      offline. electron-builder lo copia a Internals/r-mac-runtime/ del .app.
-#   6. Ejecuta `electron-builder --mac --<arch>` para arm64 y x64. Cada
+#   6. Stagea LibreOffice.app (vista previa real de láminas, P6) con
+#      packaging/macos/stage-preview-renderer.sh: DMG de TDF verificado por
+#      sha256, copia con ditto, lipo y codesign --verify --deep --strict.
+#      desktop/scripts/after-pack-mac.cjs lo copia a
+#      Internals/preview-renderer/ del .app conservando la firma de TDF.
+#   7. Ejecuta `electron-builder --mac --<arch>` para arm64 y x64. Cada
 #      invocacion produce un .dmg independiente (uno arm64, uno x64) y un
 #      latest-mac.yml combinado para el auto-updater.
 #
@@ -33,6 +38,7 @@ DIST_ROOT="$ROOT/dist.nosync"
 CACHE_DIR="$DIST_ROOT/mac-cache"
 BUILD_RES="$ROOT/packaging/macos/build-resources"
 RUNTIME_DIR="$ROOT/packaging/macos/r-mac-runtime"
+PREVIEW_STAGE_DIR="$ROOT/packaging/macos/preview-renderer"
 # Icono del Dock: appicon canónico con retícula macOS (marca al 82.4% del
 # lienzo). El full-bleed de packaging/windows/brand/icon.svg queda solo para
 # el .ico de Windows, donde el borde a borde es lo correcto.
@@ -156,6 +162,11 @@ build_for_arch() {
   cp "$pkgs_cache/manifest.csv" "$RUNTIME_DIR/r-packages/manifest.csv"
   cp packaging/macos/install-r-deps-offline.R "$RUNTIME_DIR/install-r-deps-offline.R"
 
+  # 5c'. LibreOffice para la vista previa real de láminas. No entra en la
+  # limpieza de xattrs de abajo: lo que firmó TDF no se toca.
+  rm -rf "$PREVIEW_STAGE_DIR"
+  bash "$ROOT/packaging/macos/stage-preview-renderer.sh" "$arch_eb" "$PREVIEW_STAGE_DIR/$arch_eb"
+
   echo "[Prosecnur] Limpiando atributos extendidos macOS..."
   clean_macos_xattrs \
     "$ROOT/desktop/node_modules/electron/dist" \
@@ -169,7 +180,16 @@ build_for_arch() {
   # localmente sin subir nada; el `gh release create` aparte se encarga de eso.
   echo "[Prosecnur] Corriendo electron-builder --mac --$arch_eb..."
   (cd "$ROOT/desktop" && pnpm exec electron-builder --mac --"$arch_eb" --publish=never)
+
+  # ~800MB por arch: no se acumulan los dos stagings en disco.
+  rm -rf "$PREVIEW_STAGE_DIR"
 }
+
+# Los stagings se borran también si el build aborta a medio camino.
+cleanup_stages() {
+  rm -rf "$RUNTIME_DIR" "$PREVIEW_STAGE_DIR"
+}
+trap cleanup_stages EXIT
 
 # ----- 6. ejecutar builds por arch ------------------------------------------
 for arch in $ARCHS; do
@@ -177,7 +197,7 @@ for arch in $ARCHS; do
 done
 
 # ----- 7. limpiar runtime stage --------------------------------------------
-rm -rf "$RUNTIME_DIR"
+cleanup_stages
 
 echo ""
 echo "DMGs listos en:"
