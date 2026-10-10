@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L19 · Monitoreo acreditación › Consultas › Estado de la base: las consultas son pestañas del rail</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L19", titulo: "Monitoreo acreditación › Consultas › Estado de la base: las cuatro consultas son pestañas del rail con dirección",
+  hoy: "../hoy/acreditacion-actores.png",
+  nota: "Hoy: las cuatro consultas y los reportes de Salidas son sub-barras role=tab dentro de la pestaña; no tienen ?pestana= y el runner captura siempre la misma.",
+  modulo: "monitoreo",
+  proyecto: { nombre: "acrconta", estado: "guardado", fecha: "23/7/2026" },
+  secciones: [
+    { id: "fuentes", label: "Fuentes" }, { id: "modelo", label: "Modelo" }, { id: "consultas", label: "Consultas" },
+    { id: "telefono", label: "Teléfono" }, { id: "avance", label: "Avance" },
+  ],
+  seccionActiva: "consultas",
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Modo</span><b>Acreditación</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Activas</span><b>13/13</b></span></span>',
+  herramientas: '<span class="pg-tools"><span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,277</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Sincronizado</span><b>23/07</b></span></span><span class="mq-seg" role="radiogroup" aria-label="Alcance de la base"><button type="button" class="is-on">Avance</button><button type="button">Todo</button></span></span>',
+  acciones: [{ label: "Traer respuestas", icon: "refresh-cw", kind: "primary" }],
+  pestanas: [
+    { id: "registros", label: "Registros en plataforma", detail: "Lo que llegó de SurveyMonkey y Sheets", icon: "database" },
+    { id: "base", label: "Estado de la base", detail: "Persona por persona, con su cruce", icon: "contact-round" },
+    { id: "cruces", label: "Cruces efectivos", detail: "Encuestas que casaron con el padrón", icon: "git-merge" },
+    { id: "subsanacion", label: "Subsanación", detail: "Casos por corregir en campo", icon: "shield-check" },
+    { id: "salidas", label: "Salidas", detail: "Reportes GS cliente e interno", icon: "download" },
+  ],
+  pestanaActiva: "base",
+  railFooter: '<span class="pg-corte" title="Corte de acreditación · 23/07/26, 18:09">23/07<br>18:09</span>',
+  cabecera: { compacta: true, eyebrow: "Consultas · acreditación", titulo: "Estado de la base", estado: { kind: "listo", label: "Sincronizada" },
+    control: '<label class="pg-ctl mq-callout"><span class="mq-note" data-n="2" style="top:50%; right:100%; transform:translateY(-50%); margin-right:12px; width:max-content;">los reportes GS dejan de ser sub-barra: control de sección que escribe ?pestana=salidas&amp;foco=cliente</span><span class="pg-ctl-label">Reporte</span><select class="mq-select is-sm" aria-label="Reporte de Salidas"><option>Cliente</option><option>Interno</option></select></label>',
+    chips: [{ label: "<b>188</b> cruzaron", tone: "ok" }, { label: "<b>9</b> por revisar", tone: "warn" }, { label: "<b>322</b> sin encuesta" }] },
+};
+</script>
+<style>
+  .pg-tools { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; white-space: nowrap; }
+  .pg-tools .mq-seg button { padding: 0 10px; }
+  .pg-corte { display: inline-block; padding: 5px 0; border-radius: 10px; border: 1px solid var(--pulso-primary-border); background: var(--pulso-primary-soft); color: var(--pulso-primary); font-weight: 800; font-size: 10px; line-height: 1.25; width: 40px; font-variant-numeric: tabular-nums; }
+  .pg-ctl { display: inline-flex; align-items: center; gap: 8px; }
+  .pg-ctl-label { font-size: 11px; font-weight: 700; color: var(--pulso-text-soft); text-transform: uppercase; letter-spacing: .5px; }
+  .pg-ctl .mq-select { width: 120px; }
+  /* la sub-barra de hoy, tachada */
+  .pg-ausente { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border: 1px dashed var(--pulso-border-strong); border-radius: 10px; color: var(--pulso-text-faint); font-size: 12px; background: repeating-linear-gradient(135deg, transparent 0 8px, var(--pulso-surface-3) 8px 9px); }
+  .pg-ausente-tabs { position: relative; display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--pulso-surface-3); border: 1px solid var(--pulso-border); opacity: .7; }
+  .pg-ausente-tabs span { height: 24px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; font-weight: 700; font-size: 11.5px; color: var(--pulso-text-faint); white-space: nowrap; }
+  .pg-ausente-tabs span.is-on { background: var(--pulso-surface); color: var(--pulso-text-soft); }
+  .pg-ausente-tabs::after { content: ""; position: absolute; left: 6px; right: 6px; top: 50%; height: 2px; background: var(--pulso-danger-fg); transform: rotate(-1.5deg); }
+  .pg-ausente .pg-flecha { display: inline-flex; align-items: center; gap: 6px; color: var(--pulso-text-soft); font-weight: 600; }
+  /* filtros por estado */
+  .pg-filtros { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+  .pg-filtros .mq-seg button .mq-pill-badge { background: var(--pulso-surface); }
+  .pg-filtros .mq-seg button.is-on .mq-pill-badge { background: color-mix(in srgb, var(--pulso-surface) 22%, transparent); color: var(--pulso-surface); }
+  .pg-filtros .mq-input-group { width: 260px; }
+  .pg-filtros .mq-select { width: 170px; }
+  /* cruce por actor */
+  .pg-actor { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; gap: 4px 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); }
+  .pg-actor-base { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .pg-actor-base small { font-size: 11px; color: var(--pulso-text-soft); line-height: 1.3; }
+  .pg-actor-ini { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--pulso-primary-soft); color: var(--pulso-primary); font-weight: 800; font-size: 11px; }
+  .pg-actor-copy { min-width: 0; }
+  .pg-actor-copy strong { font-size: 12.5px; }
+  .pg-bar { display: flex; height: 6px; border-radius: 999px; overflow: hidden; background: var(--pulso-surface-3); }
+  .pg-bar i { display: block; height: 100%; }
+  .pg-bar .is-ok { background: var(--pulso-success-fg); }
+  .pg-bar .is-warn { background: var(--pulso-warn-accent); }
+  .pg-bar .is-off { background: var(--pulso-resultado-pendiente); }
+  .pg-actor-n { text-align: right; line-height: 1; }
+  .pg-actor-n b { display: block; font-size: 16px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--pulso-success-fg); }
+  .pg-actor-n small { display: block; margin-top: 3px; font-size: 10px; color: var(--pulso-text-faint); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; white-space: nowrap; }
+  .pg-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--pulso-text-soft); }
+  .pg-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  /* tabla */
+  .pg-tabla-wrap { max-height: 400px; }
+  .pg-tabla .pg-persona { display: inline-flex; align-items: center; gap: 8px; }
+  .pg-tabla .pg-persona i { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--pulso-surface-3); color: var(--pulso-text-soft); font-style: normal; font-size: 9.5px; font-weight: 800; flex: 0 0 auto; }
+  .pg-tabla td.pg-llave { color: var(--pulso-text-soft); }
+  .pg-tabla td.pg-llave code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--pulso-text); }
+  .pg-tabla .pg-dim { color: var(--pulso-text-faint); }
+  .pg-pie { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-pie .pulso-button { min-width: 0; }
+</style>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack" style="gap:10px">
+
+    <!-- 1 · lo que ya no vive aquí: la sub-barra de consultas -->
+    <div class="pg-ausente mq-callout">
+      <span class="mq-note" data-n="1" style="top:50%; left:640px; transform:translateY(-50%);">esta sub-barra role=tab sin dirección ya no vive aquí: sus cuatro consultas son el rail (?pestana=base)</span>
+      <i data-icon="ban" data-size="14"></i>
+      <span class="pg-ausente-tabs" aria-hidden="true"><span>Registros en plataforma</span><span class="is-on">Estado de la base</span><span>Cruces efectivos</span><span>Subsanación</span></span>
+      <span class="mq-spacer"></span>
+      <span class="pg-flecha"><i data-icon="arrow-left" data-size="14"></i> rail de pestañas</span>
+    </div>
+
+    <!-- 2 · filtros por estado -->
+    <div class="pg-filtros">
+      <div class="mq-seg" role="radiogroup" aria-label="Filtrar por estado del cruce">
+        <button type="button" class="is-on">Todos <span class="mq-pill-badge">519</span></button>
+        <button type="button"><i data-icon="check" data-size="13"></i> Cruzaron <span class="mq-pill-badge">188</span></button>
+        <button type="button"><i data-icon="git-compare" data-size="13"></i> Ambiguos <span class="mq-pill-badge">7</span></button>
+        <button type="button"><i data-icon="copy" data-size="13"></i> Duplicados <span class="mq-pill-badge">2</span></button>
+        <button type="button"><i data-icon="circle-slash" data-size="13"></i> Sin encuesta <span class="mq-pill-badge">322</span></button>
+      </div>
+      <select class="mq-select is-sm" aria-label="Filtrar por actor"><option>Todos los actores</option><option>Administrativos</option><option>Docentes</option><option>Egresados</option><option>Estudiantes</option></select>
+      <div class="mq-input-group"><input class="mq-input is-sm" placeholder="Buscar por código o llave"><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Buscar"><i data-icon="search" data-size="14"></i></button></div>
+      <span class="mq-spacer"></span>
+      <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="file-spreadsheet" data-size="14"></i> Exportar a Excel</button>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: 320px minmax(0,1fr); align-items:start">
+      <!-- 3 · cruce por actor -->
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="3" style="bottom:-16px; left:14px;">cada cifra con su padrón; las barras suman 519</span>
+        <div class="mq-panel-head"><i data-icon="users" data-size="16"></i><h3>Cruce por actor</h3><span class="mq-spacer"></span><span class="mq-muted">519 en padrón</span></div>
+        <div class="mq-stack" style="gap:8px">
+          <div class="pg-actor"><span class="pg-actor-ini">DO</span><div class="pg-actor-copy"><strong>Docentes</strong></div><div class="pg-actor-n"><b>54</b><small>cruzaron</small></div><div class="pg-actor-base"><div class="pg-bar" aria-hidden="true"><i class="is-ok" style="width:76%"></i><i class="is-warn" style="width:4.2%"></i><i class="is-off" style="width:19.8%"></i></div><small>71 en padrón · 2 ambiguos · 1 duplicado · 14 sin encuesta</small></div></div>
+          <div class="pg-actor"><span class="pg-actor-ini">ES</span><div class="pg-actor-copy"><strong>Estudiantes</strong></div><div class="pg-actor-n"><b>98</b><small>cruzaron</small></div><div class="pg-actor-base"><div class="pg-bar" aria-hidden="true"><i class="is-ok" style="width:27.8%"></i><i class="is-warn" style="width:1.7%"></i><i class="is-off" style="width:70.5%"></i></div><small>353 en padrón · 5 ambiguos · 1 duplicado · 249 sin encuesta</small></div></div>
+          <div class="pg-actor"><span class="pg-actor-ini">EG</span><div class="pg-actor-copy"><strong>Egresados</strong></div><div class="pg-actor-n"><b>21</b><small>cruzaron</small></div><div class="pg-actor-base"><div class="pg-bar" aria-hidden="true"><i class="is-ok" style="width:34.4%"></i><i class="is-off" style="width:65.6%"></i></div><small>61 en padrón · 40 sin encuesta</small></div></div>
+          <div class="pg-actor"><span class="pg-actor-ini">AD</span><div class="pg-actor-copy"><strong>Administrativos</strong></div><div class="pg-actor-n"><b>15</b><small>cruzaron</small></div><div class="pg-actor-base"><div class="pg-bar" aria-hidden="true"><i class="is-ok" style="width:44.1%"></i><i class="is-off" style="width:55.9%"></i></div><small>34 en padrón · 19 sin encuesta</small></div></div>
+        </div>
+        <div class="pg-legend" style="margin-top:10px"><span><i style="background:var(--pulso-success-fg)"></i>cruzaron</span><span><i style="background:var(--pulso-warn-accent)"></i>por revisar</span><span><i style="background:var(--pulso-resultado-pendiente)"></i>sin encuesta</span></div>
+        <p class="mq-faint" style="margin:10px 0 0; font-size:11.5px">Unidad: la persona del padrón. Las 1,277 encuestas se cuentan en <b>Cruces efectivos</b>.</p>
+      </section>
+
+      <!-- 4 · persona por persona -->
+      <section class="mq-panel mq-callout" style="padding:0; overflow:hidden">
+        <span class="mq-note" data-n="4" style="top:10px; right:14px;">cabecera sticky; la tabla es la dueña del scroll (C4)</span>
+        <div class="mq-table-wrap pg-tabla-wrap" style="border:0; border-radius:12px 12px 0 0">
+          <table class="mq-table pg-tabla" data-density="compact" aria-label="Estado de la base, persona por persona">
+            <colgroup><col style="width:120px"><col style="width:160px"><col style="width:90px"><col style="width:120px"><col><col style="width:130px"></colgroup>
+            <thead><tr><th>Actor</th><th>Persona</th><th>Código</th><th>Estado</th><th>Llave de cruce</th><th class="num">Última encuesta</th></tr></thead>
+            <tbody>
+              <tr><td>Docentes</td><td><span class="pg-persona"><i>DO</i>Docente 014</span></td><td class="mono">DOC-014</td><td><span class="mq-chip is-ok">cruzó</span></td><td class="pg-llave">correo institucional · <code>d014@…edu.pe</code></td><td class="num">22/07/26 16:40</td></tr>
+              <tr><td>Docentes</td><td><span class="pg-persona"><i>DO</i>Docente 015</span></td><td class="mono">DOC-015</td><td><span class="mq-chip is-ok">cruzó</span></td><td class="pg-llave">correo institucional · <code>d015@…edu.pe</code></td><td class="num">22/07/26 11:05</td></tr>
+              <tr><td>Docentes</td><td><span class="pg-persona"><i>DO</i>Docente 019</span></td><td class="mono">DOC-019</td><td><span class="mq-chip is-warn">ambiguo</span></td><td class="pg-llave">2 encuestas con el mismo correo · <code>d019@…edu.pe</code></td><td class="num">21/07/26 09:12</td></tr>
+              <tr><td>Docentes</td><td><span class="pg-persona"><i>DO</i>Docente 023</span></td><td class="mono">DOC-023</td><td><span class="mq-chip">sin encuesta</span></td><td class="pg-llave pg-dim">sin llave que casar</td><td class="num pg-dim">sin fecha</td></tr>
+              <tr><td>Docentes</td><td><span class="pg-persona"><i>DO</i>Docente 031</span></td><td class="mono">DOC-031</td><td><span class="mq-chip is-danger">duplicado</span></td><td class="pg-llave">DNI repetido en el padrón · <code>•••••412</code></td><td class="num">20/07/26 18:31</td></tr>
+              <tr><td>Estudiantes</td><td><span class="pg-persona"><i>ES</i>Estudiante 207</span></td><td class="mono">EST-207</td><td><span class="mq-chip is-ok">cruzó</span></td><td class="pg-llave">código PUCP · <code>2019••••</code></td><td class="num">23/07/26 08:55</td></tr>
+              <tr><td>Estudiantes</td><td><span class="pg-persona"><i>ES</i>Estudiante 208</span></td><td class="mono">EST-208</td><td><span class="mq-chip is-ok">cruzó</span></td><td class="pg-llave">código PUCP · <code>2019••••</code></td><td class="num">23/07/26 08:51</td></tr>
+              <tr><td>Estudiantes</td><td><span class="pg-persona"><i>ES</i>Estudiante 211</span></td><td class="mono">EST-211</td><td><span class="mq-chip">sin encuesta</span></td><td class="pg-llave pg-dim">sin llave que casar</td><td class="num pg-dim">sin fecha</td></tr>
+              <tr><td>Estudiantes</td><td><span class="pg-persona"><i>ES</i>Estudiante 214</span></td><td class="mono">EST-214</td><td><span class="mq-chip is-warn">ambiguo</span></td><td class="pg-llave">código con un dígito distinto · <code>2020•••7</code></td><td class="num">22/07/26 19:20</td></tr>
+              <tr><td>Estudiantes</td><td><span class="pg-persona"><i>ES</i>Estudiante 219</span></td><td class="mono">EST-219</td><td><span class="mq-chip">sin encuesta</span></td><td class="pg-llave pg-dim">sin llave que casar</td><td class="num pg-dim">sin fecha</td></tr>
+              <tr><td>Estudiantes</td><td><span class="pg-persona"><i>ES</i>Estudiante 220</span></td><td class="mono">EST-220</td><td><span class="mq-chip is-ok">cruzó</span></td><td class="pg-llave">código PUCP · <code>2021••••</code></td><td class="num">22/07/26 17:02</td></tr>
+              <tr><td>Egresados</td><td><span class="pg-persona"><i>EG</i>Egresado 031</span></td><td class="mono">EGR-031</td><td><span class="mq-chip is-ok">cruzó</span></td><td class="pg-llave">correo personal · <code>eg031@…</code></td><td class="num">19/07/26 21:14</td></tr>
+              <tr><td>Egresados</td><td><span class="pg-persona"><i>EG</i>Egresado 032</span></td><td class="mono">EGR-032</td><td><span class="mq-chip">sin encuesta</span></td><td class="pg-llave pg-dim">barrido telefónico pendiente</td><td class="num pg-dim">sin fecha</td></tr>
+              <tr><td>Egresados</td><td><span class="pg-persona"><i>EG</i>Egresado 040</span></td><td class="mono">EGR-040</td><td><span class="mq-chip is-ok">cruzó</span></td><td class="pg-llave">barrido telefónico · <code>intento 2</code></td><td class="num">21/07/26 12:48</td></tr>
+              <tr><td>Administrativos</td><td><span class="pg-persona"><i>AD</i>Administrativo 008</span></td><td class="mono">ADM-008</td><td><span class="mq-chip is-ok">cruzó</span></td><td class="pg-llave">correo institucional · <code>a008@…edu.pe</code></td><td class="num">22/07/26 10:30</td></tr>
+              <tr><td>Administrativos</td><td><span class="pg-persona"><i>AD</i>Administrativo 012</span></td><td class="mono">ADM-012</td><td><span class="mq-chip">sin encuesta</span></td><td class="pg-llave pg-dim">sin llave que casar</td><td class="num pg-dim">sin fecha</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pg-pie" style="padding:8px 12px; border-top:1px solid var(--pulso-border)">
+          <span>Filas 1 a 16 de 519 · ordenadas por actor y código</span>
+          <span class="mq-spacer"></span>
+          <button class="mq-link is-quiet" type="button" disabled style="opacity:.5"><i data-icon="arrow-left" data-size="14"></i> Anterior</button>
+          <button class="mq-link" type="button">Siguiente <i data-icon="arrow-right" data-size="14"></i></button>
+        </div>
+      </section>
+    </div>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Las cuatro consultas son pestañas del rail</b>, no una sub-barra <code>role=tab</code> dentro de la pestaña: <code>/monitoreo?modo=acreditacion&amp;seccion=consultas&amp;pestana=base</code> abre esta vista y el runner captura cuatro archivos distintos (hoy: una sola marca de readiness para las 6 pestañas y el mismo PNG N veces).</li>
+        <li><b>Los reportes GS de Salidas</b> (otra sub-barra) pasan a <code>?pestana=salidas&amp;foco=cliente</code>: el selector «Reporte» es un control de sección en la cabecera, no un segundo nivel de pestañas. Mismo patrón para Teléfono y para manzanas y fase en Hojas de ruta.</li>
+        <li><b>La cabecera compacta de acreditación</b> (40 px) es la que se conserva: nombre, badge de estado y tres chips con base; el contenido empieza a 190 px.</li>
+        <li><b>Un solo estado por persona</b>: los filtros, las barras por actor y la tabla leen el mismo conteo (519 = 188 + 7 + 2 + 322). Hoy la sub-barra, los chips del modelo y la tabla se calculan por separado.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+</body>
+</html>

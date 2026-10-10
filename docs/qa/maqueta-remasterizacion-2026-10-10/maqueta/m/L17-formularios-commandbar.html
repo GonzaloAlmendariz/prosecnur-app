@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>D1/L17 · Formularios con ModuleCommandBar</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "D1 · L17", titulo: "Formularios monta ModuleCommandBar: qué se recoge de la banda de hoy y a dónde va cada pieza; la excepción del ADR 0042 se retira",
+  hoy: "../hoy/formularios.png",
+  nota: "Hoy: toolbar propia de dos filas (selector, tres métricas, dos chips, Constructor/Hojas/Más vistas, toggle Kobo/Prosecnur y cuatro exportaciones) amparada en una excepción del manifiesto.",
+  modulo: "editor-xlsform",
+  proyecto: { nombre: "acnur_pdm", estado: "guardado", fecha: "1/8/2026" },
+  secciones: [{ id: "editor", label: "Editor" }, { id: "documento", label: "Documento" }],
+  seccionActiva: "editor",
+  contexto: '<button type="button" class="mq-ctx pg-selector" aria-haspopup="listbox" aria-expanded="false" title="Cambiar de formulario"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Formulario · 3 en el estudio</span><b>PDM Espacios de protección 2026</b></span><i data-icon="chevron-down" data-size="14"></i></button>',
+  chips: [{ label: "1 aviso", tone: "warn", detail: "Zona operativa no tiene etiqueta en español" }, { label: "Guardado 14:02", tone: "success", detail: "Autoguardado en el proyecto" }],
+  acciones: [{ label: "Documento", icon: "file-text", kind: "secondary" }, { label: "Exportar .xlsx", icon: "download", kind: "primary" }],
+  menu: true,
+  pestanas: [
+    { id: "constructor", label: "Constructor", detail: "Preguntas, foco e inspector", icon: "square-pen" },
+    { id: "hojas", label: "Hojas", detail: "survey · choices · settings", icon: "table-2" },
+    { id: "probar", label: "Probar formulario", detail: "Recorrido con saltos", icon: "play" },
+    { id: "resumen", label: "Resumen", detail: "Ficha del instrumento", icon: "file-text" },
+    { id: "logica", label: "Mapa de lógica", detail: "Lienzo de relevancias y saltos", icon: "git-branch" },
+    { id: "filtros", label: "Filtros de opciones", detail: "choice_filter por lista", icon: "sliders-horizontal" },
+    { id: "listas", label: "Listas", detail: "9 listas de opciones", icon: "list-ordered" },
+  ],
+  pestanaActiva: "constructor",
+  cabecera: { eyebrow: "Formularios", titulo: "Constructor", detalle: "Outline, pregunta en foco e inspector del instrumento", chips: [{ label: "<b>27</b> piezas" }, { label: "<b>9</b> listas" }, { label: "<b>4</b> secciones" }] },
+};
+  window.onMaquetaMontada = function () {
+    var f = document.querySelector(".pg-q.is-foco"); if (f) f.scrollIntoView({ block: "center" });
+    function fija(n, texto, el, dx, dy, anclaDerecha) {
+      if (!el) return; var r = el.getBoundingClientRect();
+      var b = document.createElement("span"); b.className = "mq-note"; b.setAttribute("data-n", n); b.textContent = texto;
+      b.style.position = "fixed"; b.style.zIndex = "1800"; b.style.whiteSpace = "nowrap";
+      b.style.top = (r.bottom + dy) + "px";
+      if (anclaDerecha) b.style.right = (window.innerWidth - r.right + dx) + "px"; else b.style.left = (r.left + dx) + "px";
+      document.body.appendChild(b);
+    }
+    var ctx = document.querySelector('[data-zone="contexto"] .mq-ctx');
+    var chip = document.querySelector('.pulso-chrome-status-chip');
+    var menuBtn = document.querySelector('[aria-label="Más acciones"]');
+    fija("1", "contexto = selector de formulario", ctx, 0, 4, false);
+    fija("2", "chips de estado con tono y acciones por rank", chip, 0, 4, true);
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", "true");
+    var m = document.getElementById("pg-menu-abierto");
+    if (m) m.innerHTML = '<div class="pg-menu-grupo">Exportar</div>'
+        + '<button type="button" role="menuitem">' + MQ.icon("download", 14) + '<span>Kobo / ODK <small>.xlsx compatible</small></span><kbd>rank 3</kbd></button>'
+        + '<button type="button" role="menuitem">' + MQ.icon("download", 14) + '<span>Prosecnur <small>.xlsx con hojas propias</small></span><kbd>rank 3</kbd></button>'
+        + '<button type="button" role="menuitem">' + MQ.icon("settings-2", 14) + '<span>Configurar PDF…</span><kbd>rank 4</kbd></button>'
+        + '<div class="pg-menu-grupo">Formulario</div>'
+        + '<button type="button" role="menuitem">' + MQ.icon("plus", 14) + '<span>Nuevo formulario…</span><kbd>rank 3</kbd></button>'
+        + '<button type="button" role="menuitem">' + MQ.icon("cloud-upload", 14) + '<span>Traducir desde SurveyMonkey…</span><kbd>rank 3</kbd></button>'
+        + '<button type="button" role="menuitem">' + MQ.icon("upload", 14) + '<span>Importar .xlsx…</span><kbd>rank 3</kbd></button>';
+  };
+</script>
+<style>
+  .pg-editor { display: grid; grid-template-columns: 262px minmax(0, 1fr) 312px; gap: 12px; height: 470px; min-height: 400px; align-items: stretch; }
+  .pg-col .mq-note { align-self: flex-start; }
+  .pg-prev { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 8px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface-2); font-size: 12px; color: var(--pulso-text-soft); }
+  .pg-prev strong { color: var(--pulso-text); }
+  .pg-prev .pg-q-ico { width: 22px; height: 22px; }
+  .pg-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface); }
+  .pg-col-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--pulso-border); }
+  .pg-col-head h3 { margin: 0; font-size: 13px; font-weight: 800; }
+  .pg-col-head .pulso-section-eyebrow { font-size: 10px; }
+  .pg-col-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .pg-col-body > * { flex: 0 0 auto; }
+  /* outline */
+  .pg-q { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 9px; border: 1px solid transparent; font-size: 12px; }
+  .pg-q:hover { background: var(--pulso-surface-2); }
+  .pg-q.is-foco { background: var(--pulso-primary-soft); border-color: var(--pulso-primary-border); }
+  .pg-q .pg-q-ico { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--pulso-surface-3); color: var(--pulso-text-soft); font-size: 11px; font-weight: 800; }
+  .pg-q.is-seccion .pg-q-ico { background: var(--pulso-primary); color: var(--pulso-nav-selected-fg); }
+  .pg-q strong { display: block; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-q span { display: block; font-size: 10.5px; color: var(--pulso-text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-q code { font-size: 10px; }
+  .pg-q .pg-req { color: var(--pulso-warn-fg); font-size: 11px; }
+  .pg-q.is-sangria { margin-left: 12px; }
+  /* vista de trabajo */
+  .pg-tarjeta { border: 1px solid var(--pulso-primary); border-radius: 12px; padding: 14px 16px; box-shadow: 0 0 0 3px var(--pulso-primary-focus); display: flex; flex-direction: column; gap: 10px; }
+  .pg-tarjeta h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
+  .pg-tarjeta .pg-pista { margin: 0; font-size: 12.5px; color: var(--pulso-text-soft); font-style: italic; }
+  .pg-opciones { display: grid; gap: 6px; }
+  .pg-opcion { display: grid; grid-template-columns: 18px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 7px 10px; border: 1px solid var(--pulso-border); border-radius: 9px; font-size: 12.5px; }
+  .pg-opcion i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--pulso-border-strong); display: block; }
+  .pg-opcion code { font-size: 10.5px; color: var(--pulso-text-faint); }
+  .pg-resumen { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+  .pg-res { padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 9px; background: var(--pulso-surface-2); font-size: 11.5px; }
+  .pg-res .pulso-section-eyebrow { font-size: 9.5px; display: block; }
+  .pg-res b { display: block; font-size: 12px; margin: 2px 0; }
+  .pg-res span { color: var(--pulso-text-soft); }
+  .pg-sig { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px dashed var(--pulso-border-strong); border-radius: 9px; font-size: 12px; color: var(--pulso-text-soft); }
+  /* inspector */
+  .pg-insp-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--pulso-surface-3); border: 1px solid var(--pulso-border); }
+  .pg-insp-tabs button { flex: 1; height: 26px; border: 0; border-radius: 7px; background: transparent; font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
+  .pg-insp-tabs button.is-on { background: var(--pulso-surface); color: var(--pulso-primary); box-shadow: var(--pulso-shadow-low); }
+  .pg-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pg-switch-row > label { font-size: 11.5px; font-weight: 700; }
+  .pg-switch-row small { display: block; font-weight: 500; color: var(--pulso-text-faint); font-size: 11px; }
+  .pg-fin { height: 56px; }
+  .pg-selector { cursor: pointer; }
+  .pg-selector .mq-i { color: var(--pulso-text-soft); display: inline-grid; }
+  .pg-menu { width: 100%; padding: 6px; border-radius: 12px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); box-shadow: var(--pulso-shadow-med, 0 12px 32px rgba(0,36,87,.16)); display: grid; gap: 2px; }
+  .pg-menu-grupo { padding: 8px 10px 4px; font-size: 10px; letter-spacing: .6px; text-transform: uppercase; color: var(--pulso-text-faint); font-weight: 700; }
+  .pg-menu button { display: grid; grid-template-columns: 18px minmax(0,1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; font-size: 12.5px; color: var(--pulso-text); }
+  .pg-menu button:hover { background: var(--pulso-surface-2); }
+  .pg-menu button small { display: block; font-size: 10.5px; color: var(--pulso-text-faint); }
+  .pg-menu kbd { font-family: inherit; font-size: 10px; color: var(--pulso-text-faint); border: 1px solid var(--pulso-border); border-radius: 5px; padding: 1px 5px; }
+  .pg-mapa .mq-table td { white-space: normal; }
+  .pg-mapa .mq-table td:first-child { font-weight: 700; }
+  .pg-destino { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; }
+  .pg-destino .mq-i { color: var(--pulso-primary); display: inline-grid; }
+</style>
+</head>
+<body>
+<div id="contenido" data-audit-ready="editor-xlsform/formularios/constructor">
+  <div class="mq-stack">
+    <div class="pg-editor">
+      <!-- outline -->
+      <section class="pg-col mq-callout" aria-label="Estructura del formulario">
+        <div class="pg-col-head"><div><span class="pulso-section-eyebrow">Outline maestro</span><h3>Estructura</h3></div><span class="mq-spacer"></span><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Añadir pieza"><i data-icon="plus" data-size="14"></i></button></div>
+        <div class="pg-col-body">
+          <input class="mq-input is-sm" placeholder="Buscar en 27 piezas" aria-label="Buscar pieza">
+          <div class="pg-q"><span class="pg-q-ico"><i data-icon="settings-2" data-size="12"></i></span><div><strong>Ajustes del formulario</strong><span>Título, id y versión</span></div></div>
+          <div class="pg-q"><span class="pg-q-ico"><i data-icon="wand-sparkles" data-size="12"></i></span><div><strong>Inicio</strong><span>Inicio (auto) · <code>start</code></span></div></div>
+          <div class="pg-q"><span class="pg-q-ico"><i data-icon="wand-sparkles" data-size="12"></i></span><div><strong>Fin</strong><span>Fin (auto) · <code>end</code></span></div></div>
+          <div class="pg-q is-seccion"><span class="pg-q-ico"><i data-icon="folder" data-size="12"></i></span><div><strong>Identificación</strong><span>Sección · <code>identificacion</code> · 8 preguntas</span></div></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico">T</span><div><strong>ID de respuesta</strong><span>Texto corto · <code>response_id</code></span></div><span class="pg-req" title="Obligatoria">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico">T</span><div><strong>Enumerador</strong><span>Texto corto · <code>enumerador</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico"><i data-icon="calendar-days" data-size="12"></i></span><div><strong>Fecha de entrevista</strong><span>Fecha · <code>fecha</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><div><strong>Región</strong><span>Selección única · <code>region</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><div><strong>Distrito</strong><span>Selección única · <code>distrito</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico">T</span><div><strong>Zona operativa</strong><span>Texto corto · <code>zona</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico">#</span><div><strong>Edad</strong><span>Número entero · <code>edad</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria is-foco" aria-current="true"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><div><strong>Sexo</strong><span>Selección única · <code>sexo</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><div><strong>Consentimiento</strong><span>Selección única · <code>consentimiento</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-seccion"><span class="pg-q-ico"><i data-icon="folder" data-size="12"></i></span><div><strong>Espacio de protección</strong><span>Sección · <code>espacio</code> · 14 preguntas</span></div></div>
+        </div>
+      </section>
+
+      <!-- vista de trabajo -->
+      <section class="pg-col mq-callout" aria-label="Vista de trabajo">
+        <div class="pg-col-head">
+          <div><span class="pulso-section-eyebrow">Vista de trabajo</span><h3>Pregunta 11 de 27 · Identificación</h3></div>
+          <span class="mq-spacer"></span>
+          <div class="mq-seg"><button type="button" class="is-on"><i data-icon="eye" data-size="13"></i> En foco</button><button type="button"><i data-icon="list-tree" data-size="13"></i> Formulario completo</button></div>
+          <button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Subir"><i data-icon="chevron-down" data-size="14" style="transform:rotate(180deg)"></i></button>
+          <button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Bajar"><i data-icon="chevron-down" data-size="14"></i></button>
+          <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button" style="color:var(--pulso-danger-fg)"><i data-icon="trash-2" data-size="14"></i> Eliminar</button>
+        </div>
+        <div class="pg-col-body" style="gap:12px">
+          <div class="pg-prev"><span class="pg-q-ico">#</span><span><strong>Edad</strong> · número entero · <code>edad</code> · obligatoria · entre 0 y 120</span><span class="mq-kbd">↑</span></div>
+          <article class="pg-tarjeta" aria-label="Pregunta en foco">
+            <div class="mq-row"><span class="mq-chip is-accent"><i data-icon="circle-dot" data-size="11"></i> selección única · <code>sexo</code></span><span class="mq-chip">#11</span><span class="mq-chip is-warn">obligatoria</span><span class="mq-spacer"></span><span class="mq-faint" style="font-size:11px">lista <code>sexo</code> · 3 opciones</span></div>
+            <h2>Sexo de la persona entrevistada</h2>
+            <p class="pg-pista">Marca lo que la persona declara; no lo infieras.</p>
+            <div class="pg-opciones" role="radiogroup" aria-label="Opciones de sexo">
+              <div class="pg-opcion"><i></i><span>Mujer</span><code>1 · mujer</code></div>
+              <div class="pg-opcion"><i></i><span>Hombre</span><code>2 · hombre</code></div>
+              <div class="pg-opcion"><i></i><span>Prefiere no responder</span><code>99 · no_responde</code></div>
+            </div>
+            <div class="mq-row" style="font-size:11.5px; color:var(--pulso-text-soft)"><i data-icon="git-branch" data-size="13"></i> Visible si <code>${consentimiento} = 'si'</code><span class="mq-spacer"></span><button class="mq-link" type="button">Editar opciones en Listas</button></div>
+          </article>
+          <div>
+            <div class="mq-row" style="margin-bottom:6px"><span class="pulso-section-eyebrow">Resumen rápido</span><span class="mq-spacer"></span><span class="mq-faint" style="font-size:11px">En la sección Identificación</span></div>
+            <div class="pg-resumen">
+              <div class="pg-res"><span class="pulso-section-eyebrow">Respuesta</span><b>Una opción de 3</b><span>Lista <code>sexo</code></span></div>
+              <div class="pg-res"><span class="pulso-section-eyebrow">Obligatoriedad</span><b>Obligatoria</b><span>No puede quedar vacía</span></div>
+              <div class="pg-res"><span class="pulso-section-eyebrow">Visibilidad</span><b>Condicional</b><span>Depende de consentimiento</span></div>
+              <div class="pg-res"><span class="pulso-section-eyebrow">Validación</span><b>Sin restricción</b><span>Acepta cualquier opción</span></div>
+            </div>
+          </div>
+          <div class="pg-prev"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><span><strong>Consentimiento</strong> · selección única · <code>consentimiento</code> · obligatoria · lista <code>si_no</code> · termina el formulario si «No»</span><span class="mq-kbd">↓</span></div>
+          <div class="pg-sig" style="border-style:solid; border-color:var(--pulso-warn-border); background:var(--pulso-warn-bg); color:var(--pulso-warn-fg)"><span class="pg-q-ico" style="background:transparent; color:inherit"><i data-icon="triangle-alert" data-size="14"></i></span><span>1 aviso en este formulario: <b>Zona operativa</b> no tiene etiqueta en español.</span><button class="mq-link" type="button" style="color:inherit">Ver la pregunta <i data-icon="arrow-right" data-size="13"></i></button></div>
+        </div>
+      </section>
+
+      <!-- inspector -->
+      <aside class="pg-col mq-callout" aria-label="Inspector">
+        <div class="pg-col-head"><div><span class="pulso-section-eyebrow">Inspector</span><h3>Sexo</h3></div><span class="mq-spacer"></span><span class="mq-chip is-ok"><i data-icon="check" data-size="11"></i> guardado</span></div>
+        <div class="pg-col-body" style="gap:12px">
+          <div class="pg-insp-tabs" role="tablist" aria-label="Secciones del inspector"><button type="button" role="tab" aria-selected="true" class="is-on">Contenido</button><button type="button" role="tab" aria-selected="false">Respuesta</button><button type="button" role="tab" aria-selected="false">Reglas</button><button type="button" role="tab" aria-selected="false">Datos</button></div>
+          <div class="mq-field">
+            <label>Tipo</label>
+            <select class="mq-select is-sm"><option>Selección única (select_one)</option><option>Selección múltiple</option><option>Texto corto</option><option>Número entero</option><option>Fecha</option></select>
+          </div>
+          <div class="mq-field">
+            <label>Nombre <small>columna en la base</small></label>
+            <input class="mq-input is-sm" value="sexo" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+            <span class="mq-field-hint">Sin espacios ni tildes. Es el nombre de la variable.</span>
+          </div>
+          <div class="mq-field">
+            <label>Etiqueta <small>lo que ve el encuestador</small></label>
+            <input class="mq-input is-sm" value="Sexo de la persona entrevistada">
+          </div>
+          <div class="mq-field">
+            <label>Lista de opciones</label>
+            <select class="mq-select is-sm"><option>sexo · 3 opciones</option><option>region · 3</option><option>distrito · 14</option><option>si_no · 2</option><option>Nueva lista…</option></select>
+          </div>
+          <div class="pg-switch-row">
+            <label for="sw-obl">Obligatoria<small>No puede quedar sin respuesta</small></label>
+            <button class="pulso-switch" id="sw-obl" type="button" role="switch" aria-checked="true"><span class="pulso-switch-thumb"></span></button>
+          </div>
+          <div class="mq-field">
+            <label>Relevancia <small>se muestra si</small></label>
+            <input class="mq-input is-sm" value="${consentimiento} = 'si'" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+            <span class="mq-field-hint">Expresión XLSForm. <button class="mq-link" type="button">Ver en el mapa de lógica</button></span>
+          </div>
+          <div class="mq-field">
+            <label>Restricción <small>opcional</small></label>
+            <input class="mq-input is-sm" placeholder=". != ''">
+          </div>
+          <div class="mq-field">
+            <label>Pista de apoyo <small>debajo de la pregunta</small></label>
+            <input class="mq-input is-sm" value="Marca lo que la persona declara; no lo infieras.">
+          </div>
+          <div class="mq-field">
+            <label>Apariencia</label>
+            <select class="mq-select is-sm"><option>Lista vertical (por defecto)</option><option>minimal</option><option>quick</option><option>columns</option></select>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: minmax(0,1fr) 312px; align-items: start;">
+    <section class="mq-panel mq-callout pg-mapa">
+      <div class="mq-panel-head"><i data-icon="git-compare" data-size="16"></i><h3>De la banda de hoy al chrome v3</h3><span class="mq-muted">Cada pieza tiene un destino.</span><span class="mq-spacer"></span><span class="mq-note" data-n="4" style="position:static; white-space:nowrap;">las tres métricas (27 · 9 · 4) van a la cabecera, no al chrome</span></div>
+      <div class="mq-table-wrap">
+        <table class="mq-table" data-density="compact" aria-label="Destino de cada pieza de la banda de hoy">
+          <colgroup><col style="width:24%"><col style="width:30%"><col style="width:10%"><col style="width:36%"></colgroup>
+          <thead><tr><th>Pieza de la banda de hoy</th><th>Destino</th><th>Rank</th><th>Por qué</th></tr></thead>
+          <tbody>
+            <tr><td>Selector de formulario</td><td><span class="pg-destino"><i data-icon="command" data-size="13"></i> Command bar · zona contexto</span></td><td>fijo</td><td>Es el contexto de todo el módulo, como «Base activa» en Procesamiento.</td></tr>
+            <tr><td>27 piezas · 9 listas · 4 secciones</td><td><span class="pg-destino"><i data-icon="layout-dashboard" data-size="13"></i> Cabecera de pestaña · chips</span></td><td>sin rank</td><td>Son hechos de la vista, no del chrome; cambian con la pestaña.</td></tr>
+            <tr><td>«Desde XLSForm» · «Guardado ahora»</td><td><span class="pg-destino"><i data-icon="circle-check" data-size="13"></i> Chip de estado «Guardado 14:02»</span></td><td>2</td><td>Un solo chip con hora; el origen va al Resumen.</td></tr>
+            <tr><td>«Sin avisos» / «1 aviso»</td><td><span class="pg-destino"><i data-icon="triangle-alert" data-size="13"></i> Chip de estado con tono warn</span></td><td>2</td><td>Al pulsarlo abre el aviso; hoy es un rótulo verde fijo.</td></tr>
+            <tr><td>Constructor · Hojas · Más vistas</td><td><span class="pg-destino"><i data-icon="panel-right" data-size="13"></i> Rail de pestañas (L13)</span></td><td>sin rank</td><td>Navegación de pestaña: no vive en la command bar.</td></tr>
+            <tr><td>Exportar .xlsx</td><td><span class="pg-destino"><i data-icon="download" data-size="13"></i> Acción primaria</span></td><td>1</td><td>La acción más frecuente del módulo; única primaria.</td></tr>
+            <tr><td>Documento</td><td><span class="pg-destino"><i data-icon="file-text" data-size="13"></i> Acción secundaria</span></td><td>2</td><td>Segunda salida habitual; a 1024 px baja al menú.</td></tr>
+            <tr><td>Kobo / ODK · Prosecnur (toggle)</td><td><span class="pg-destino"><i data-icon="ellipsis" data-size="13"></i> Menú ⋯ › Exportar</span></td><td>3</td><td>Un dialecto de exportación no es una sección: dos entradas del menú.</td></tr>
+            <tr><td>Nuevo formulario · Importar · Configurar PDF</td><td><span class="pg-destino"><i data-icon="ellipsis" data-size="13"></i> Menú ⋯ › Formulario / Exportar</span></td><td>3–4</td><td>Ocasionales; el menú recoge por rank sin perder nada.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="mq-panel mq-callout" style="padding:10px 12px;">
+      <div class="mq-panel-head" style="margin-bottom:6px"><i data-icon="ellipsis" data-size="16"></i><h3>Menú ⋯ · 6 entradas</h3></div>
+      <div class="mq-row" style="margin-bottom:8px"><span class="mq-note" data-n="3" style="position:static;">abierto: lo que no cabe baja por rank; nada se pierde</span></div>
+      <div class="pg-menu" id="pg-menu-abierto" role="menu" aria-label="Más acciones"></div>
+      <p class="mq-faint" style="margin:8px 0 0; font-size:11px;">A 1024×600 «Documento» (rank 2) también entra aquí; «Exportar .xlsx» (rank 1) nunca.</p>
+    </section>
+    </div>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy (decisión D1, recomendación A)</b>
+      <ol>
+        <li><b>Formularios monta `ModuleCommandBar`</b> como los demás módulos: contexto (selector de formulario) · una sola píldora de sección · chips de estado · acciones por rank · menú ⋯. La excepción `chromeExcepcion` del manifiesto (`lib/modules.ts:356-365`) se retira y el test de contrato deja de tolerarla.</li>
+        <li><b>Las tres métricas bajan a la cabecera de pestaña</b> (27 piezas · 9 listas · 4 secciones): son hechos de la vista y cambian con ella; el chrome sólo lleva estado (aviso, guardado).</li>
+        <li><b>Las acciones se ordenan por rank</b>: Exportar .xlsx (1) primaria, Documento (2) secundaria, y el resto (Kobo/ODK, Prosecnur, Nuevo, Traducir, Importar, Configurar PDF) al menú ⋯; a viewports compactos la barra degrada sola y nada se pierde.</li>
+        <li><b>Constructor / Hojas / Más vistas salen de la barra</b>: son pestañas del rail (L13) con dirección propia, y el toggle Kobo/Prosecnur deja de ser un «modo» para ser dos entradas de exportación.</li>
+      </ol>
+    </div>
+    <div class="pg-fin" aria-hidden="true"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L21 · Validación › Criterios de revisión: sugerencias con cifra y base, continuidad desactivada sola</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L21", titulo: "Validación › Criterios de revisión: cada sugerencia trae su cifra y su base; la de continuidad se apaga sola",
+  hoy: "../hoy/validacion-explorar.png",
+  nota: "Hoy: la pestaña sugiere «Continuidad · faltan 1.970.691 envíos en la secuencia» sobre 1.283 casos: lee el _id del servidor como si fuera un correlativo.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "validacion",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><b>Monitoreo territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,283</b></span></span>',
+  pestanas: [
+    { id: "explorar", label: "Explorar", detail: "Distribuciones y señales de revisión", icon: "compass" },
+    { id: "instrumento", label: "Instrumento", detail: "Preguntas, listas y lógica", icon: "list-tree" },
+    { id: "reglas_custom", label: "Criterios de revisión", detail: "Casos que se señalan antes de limpiar", icon: "shield-check" },
+    { id: "limpieza", label: "Limpieza", detail: "Cierre de la base depurada", icon: "wand-sparkles" },
+  ],
+  pestanaActiva: "reglas_custom",
+  cabecera: { eyebrow: "Validación · pestaña 3 de 4", titulo: "Criterios de revisión", detalle: "Señala los casos que hay que mirar antes de cerrar la base", estado: { kind: "parcial", label: "Sin criterios" },
+    chips: [{ label: "<b>5</b> sugerencias", tone: "accent" }, { label: "<b>69</b> casos señalados", tone: "warn" }, { label: "<b>1,283</b> casos" }] },
+};
+</script>
+<style>
+  .pg-sug { display: grid; grid-template-columns: 34px minmax(0,1fr) 150px auto; gap: 12px; align-items: center; padding: 7px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); }
+  .pg-sug-ico { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--pulso-primary-soft); color: var(--pulso-primary); border: 1px solid var(--pulso-primary-border); }
+  .pg-sug-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .pg-sug-copy strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-sug-copy span { font-size: 11.5px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-sug-copy code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--pulso-text); }
+  .pg-sug-n { text-align: right; line-height: 1; white-space: nowrap; }
+  .pg-sug-n b { font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.3px; }
+  .pg-sug-n small { display: block; margin-top: 4px; font-size: 10.5px; color: var(--pulso-text-soft); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pg-sug-acts { display: inline-flex; gap: 6px; align-items: center; }
+  .pg-sug.is-off { background: var(--pulso-surface-2); border-style: dashed; color: var(--pulso-text-faint); }
+  .pg-sug.is-off .pg-sug-ico { background: var(--pulso-surface-3); color: var(--pulso-text-faint); border-color: var(--pulso-border); }
+  .pg-sug.is-off .pg-sug-copy strong { color: var(--pulso-text-soft); text-decoration: line-through; text-decoration-color: var(--pulso-danger-fg); }
+  .pg-sug.is-off .pg-sug-copy span { white-space: normal; font-size: 11px; line-height: 1.3; }
+  .pg-sug.is-off .pg-sug-copy code { color: var(--pulso-text-soft); }
+  .pg-sug.is-off .pg-sug-n b { color: var(--pulso-text-faint); font-size: 14px; }
+  .pg-sug.is-off .pulso-button, .pg-sug.is-off .mq-link { opacity: .55; }
+  .pg-regla { font-size: 11px; color: var(--pulso-text-faint); display: flex; align-items: center; gap: 6px; }
+  .pg-vacio { padding: 28px 14px 18px; }
+  .pg-vacio p { margin: 2px 0 0; font-size: 12px; }
+  .pg-form { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--pulso-primary-border); border-radius: 10px; background: var(--pulso-surface); }
+  .pg-form-head { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; }
+  .pg-form-head .mq-chip { margin-left: auto; }
+  .pg-cond { display: grid; grid-template-columns: minmax(0,1fr) 72px; gap: 8px; }
+  .pg-prev { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: var(--pulso-surface-2); font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-prev b { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack" style="gap:12px">
+
+    <!-- KPIs con base -->
+    <div class="mq-kpis" style="--n:4">
+      <div class="mq-kpi"><span class="pulso-section-eyebrow">Casos en la base</span><b>1,283</b><small>Monitoreo territorial · antes de limpieza</small></div>
+      <div class="mq-kpi is-accent"><span class="pulso-section-eyebrow">Sugerencias</span><b>5</b><small>de 6 heurísticas · 1 no aplica</small></div>
+      <div class="mq-kpi"><span class="pulso-section-eyebrow">Criterios creados</span><b>0</b><small>ninguno señala casos todavía</small></div>
+      <div class="mq-kpi is-warn"><span class="pulso-section-eyebrow">Casos señalados</span><b>69</b><small>5.4 % de 1,283 · si creas las 5 sugerencias</small></div>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); align-items:start">
+      <!-- sugerencias -->
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="1" style="top:-12px; left:230px;">cifra, porcentaje y base; «Ver casos» abre Explorar con el filtro puesto</span>
+        <div class="mq-panel-head"><i data-icon="sparkles" data-size="16"></i><h3>Criterios sugeridos</h3><span class="mq-spacer"></span><span class="mq-chip is-accent">base activa · 10/10/26 09:41</span></div>
+        <div class="mq-stack" style="gap:8px">
+          <div class="pg-sug">
+            <span class="pg-sug-ico"><i data-icon="copy" data-size="16"></i></span>
+            <div class="pg-sug-copy"><strong>Duplicados por teléfono</strong><span>Mismo <code>phone_contact</code> en más de una entrevista completa</span></div>
+            <div class="pg-sug-n"><b>3</b><small>0.2 % de 1,283</small></div>
+            <div class="pg-sug-acts"><button class="mq-link" type="button"><i data-icon="eye" data-size="14"></i> Ver casos</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plus" data-size="14"></i> Crear criterio</button></div>
+          </div>
+          <div class="pg-sug">
+            <span class="pg-sug-ico"><i data-icon="timer" data-size="16"></i></span>
+            <div class="pg-sug-copy"><strong>Entrevistas muy cortas</strong><span><code>duracion_total</code> menor a 6 min · mediana de la base 18 min</span></div>
+            <div class="pg-sug-n"><b>55</b><small>4.3 % de 1,283</small></div>
+            <div class="pg-sug-acts"><button class="mq-link" type="button"><i data-icon="eye" data-size="14"></i> Ver casos</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plus" data-size="14"></i> Crear criterio</button></div>
+          </div>
+          <div class="pg-sug">
+            <span class="pg-sug-ico"><i data-icon="map-pin" data-size="16"></i></span>
+            <div class="pg-sug-copy"><strong>GPS fuera del distrito declarado</strong><span><code>gps_inicio</code> cae fuera del polígono de <code>M5_district</code></span></div>
+            <div class="pg-sug-n"><b>8</b><small>0.6 % de 1,283</small></div>
+            <div class="pg-sug-acts"><button class="mq-link" type="button"><i data-icon="eye" data-size="14"></i> Ver casos</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plus" data-size="14"></i> Crear criterio</button></div>
+          </div>
+          <div class="pg-sug">
+            <span class="pg-sug-ico"><i data-icon="hash" data-size="16"></i></span>
+            <div class="pg-sug-copy"><strong>Edad fuera de rango</strong><span><code>E1_age</code> menor a 18 o mayor a 99 · el consentimiento exige 18 o más</span></div>
+            <div class="pg-sug-n"><b>2</b><small>0.2 % de 1,283</small></div>
+            <div class="pg-sug-acts"><button class="mq-link" type="button"><i data-icon="eye" data-size="14"></i> Ver casos</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plus" data-size="14"></i> Crear criterio</button></div>
+          </div>
+          <div class="pg-sug">
+            <span class="pg-sug-ico"><i data-icon="users" data-size="16"></i></span>
+            <div class="pg-sug-copy"><strong>Enumerador con tasa de rechazo atípica</strong><span><code>enumerator_id</code> 07 · 31 % de rechazos frente a 9 % del equipo</span></div>
+            <div class="pg-sug-n"><b>1</b><small>de 26 enumeradores</small></div>
+            <div class="pg-sug-acts"><button class="mq-link" type="button"><i data-icon="eye" data-size="14"></i> Ver casos</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plus" data-size="14"></i> Crear criterio</button></div>
+          </div>
+          <div class="pg-sug is-off mq-callout" aria-disabled="true">
+            <span class="mq-note" data-n="2" style="bottom:-42px; left:12px;">hoy: «faltan 1.970.691 envíos en la secuencia» sobre 1.283 casos; la heurística se apaga cuando el salto supera 10 veces el N</span>
+            <span class="pg-sug-ico"><i data-icon="list-ordered" data-size="16"></i></span>
+            <div class="pg-sug-copy"><strong>Continuidad de la secuencia de envíos</strong><span>No aplica: <code>_id</code> es un identificador de servidor, no una secuencia. Salto 1,970,691 sobre 1,283.</span></div>
+            <div class="pg-sug-n"><b>no aplica</b><small>heurística desactivada</small></div>
+            <div class="pg-sug-acts"><button class="mq-link" type="button" disabled><i data-icon="eye" data-size="14"></i> Ver casos</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button" disabled><i data-icon="plus" data-size="14"></i> Crear criterio</button></div>
+          </div>
+        </div>
+        <div class="pg-regla" style="margin-top:46px"><i data-icon="info" data-size="13"></i> Una sugerencia solo se muestra si señala al menos un caso y su base es la de la pestaña. Los 69 casos señalados pueden solaparse entre sugerencias.</div>
+      </section>
+
+      <!-- criterios creados + formulario -->
+      <section class="mq-panel">
+        <div class="mq-panel-head"><i data-icon="shield-check" data-size="16"></i><h3>Criterios creados</h3><span class="mq-spacer"></span><span class="mq-chip">0 criterios</span></div>
+        <div class="mq-stack" style="gap:10px">
+          <div class="mq-empty pg-vacio mq-callout">
+            <span class="mq-note" data-n="3" style="top:-12px; left:12px;">vacío enmarcado en su panel (C3), con la salida escrita</span>
+            <i data-icon="shield-check" data-size="20" style="color:var(--pulso-text-faint)"></i>
+            <strong>0 criterios</strong>
+            <p>Crea uno desde una sugerencia o desde cero. Cada criterio señala casos; no los borra hasta Limpieza.</p>
+          </div>
+
+          <form class="pg-form mq-callout" onsubmit="return false">
+            <span class="mq-note" data-n="4" style="bottom:-12px; left:12px;">campos del kit de inputs (L26)</span>
+            <div class="pg-form-head"><i data-icon="plus" data-size="14"></i> Nuevo criterio <span class="mq-chip is-accent">desde «Entrevistas muy cortas»</span></div>
+            <div class="mq-grid c2" style="gap:10px">
+            <div class="mq-field">
+              <label for="cr-nombre">Nombre</label>
+              <input id="cr-nombre" class="mq-input is-sm" value="Entrevista menor a 6 minutos">
+            </div>
+            <div class="mq-field">
+              <label for="cr-var">Variable</label>
+              <select id="cr-var" class="mq-select is-sm"><option>duracion_total · Duración total (min)</option><option>duracion_core_seg · Bloque central (seg)</option><option>phone_contact · Teléfono de contacto</option><option>gps_inicio · Coordenadas de inicio</option><option>E1_age · Edad</option><option>enumerator_id · Enumerador</option></select>
+            </div>
+            <div class="mq-field">
+              <label>Condición</label>
+              <div class="pg-cond">
+                <select class="mq-select is-sm" aria-label="Operador"><option>es menor que</option><option>es mayor que</option><option>está entre</option><option>es igual a</option><option>está vacío</option><option>se repite en otra entrevista</option></select>
+                <input class="mq-input is-sm" value="6" aria-label="Valor" inputmode="decimal">
+              </div>
+            </div>
+            <div class="mq-field">
+              <label for="cr-trat">Tratamiento</label>
+              <select id="cr-trat" class="mq-select is-sm"><option>Señalar para revisión manual</option><option>Excluir de la base depurada</option><option>Marcar como sospechoso y conservar</option></select>
+            </div>
+            </div>
+            <label class="mq-switch is-sm" style="white-space:nowrap">
+              <input type="checkbox" role="switch" checked>
+              <span class="mq-switch-track"><i></i></span>
+              <span class="mq-switch-label"><b>Alcance:</b> todas las bases del estudio <span class="mq-faint" style="font-size:11px">· apagado: solo esta base</span></span>
+            </label>
+            <div class="pg-prev"><i data-icon="eye" data-size="14"></i> Vista previa: <b>55 casos</b> cumplen la condición · 4.3 % de 1,283</div>
+            <div class="mq-row">
+              <span class="mq-spacer"></span>
+              <button class="mq-link is-quiet" type="button">Cancelar</button>
+              <button class="pulso-button pulso-button--primary pulso-button--sm" type="submit"><i data-icon="check" data-size="14"></i> Crear criterio</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Cada sugerencia lleva cifra, porcentaje y base</b> («55 · 4.3 % de 1,283») y dos salidas: «Ver casos» abre Explorar con el filtro puesto y «Crear criterio» precarga el formulario. Hoy la sugerencia es una frase sin base ni acción.</li>
+        <li><b>La heurística de continuidad se desactiva sola</b> cuando el salto supera 10 veces el N de la base: <code>_id</code> de Kobo es un identificador de servidor, no un correlativo. Queda visible en gris y con el motivo escrito para que no parezca que falta (C5).</li>
+        <li><b>El vacío de «Criterios creados» vive dentro de su panel</b>, con el conteo y la salida escrita; el formulario usa los campos del kit (L26) y muestra una vista previa con la cifra antes de crear.</li>
+        <li>Los KPIs de arriba leen la misma base que la lista: 1,283 casos, 5 sugerencias, 0 criterios, 69 señalados (3 + 55 + 8 + 2 + 1).</li>
+      </ol>
+    </div>
+  </div>
+</div>
+</body>
+</html>

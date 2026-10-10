@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L32 · Shell › Materiales y motion: lo que cambia en el chrome</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L32", titulo: "Shell › Materiales y motion: un solo blur, la ventana en --pulso-bg y la firma de 6 px para sección y pestaña",
+  hoy: "../hoy/home.png",
+  nota: "Hoy: header y command bar apilan dos backdrop-filter; la ventana de Electron nace crema fuera de paleta; 1,108 ms y 119 beziers literales; motion instalado con 0 imports; FLIP del Home a 460 ms.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "carga",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><b>Monitoreo territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,283</b></span></span>',
+  sinRail: true,
+  cabecera: { eyebrow: "Shell", titulo: "Materiales y motion", detalle: "Lo que cambia en el chrome: un material por capa, cinco duraciones y cinco curvas", icon: "sparkles",
+    chips: [{ label: "<b>1</b> blur", tone: "ok" }, { label: "<b>6</b> sombras" }, { label: "<b>5 + 5</b> tokens de motion" }] },
+};
+</script>
+<style>
+  .pg-stack { display: flex; flex-direction: column; gap: var(--pulso-space-3); }
+  .pg-stack > .mq-panel { padding: 8px 14px 10px; }
+  .pg-stack > .mq-notas { margin: 0; }
+  .pg-panel-h { display: flex; align-items: center; gap: var(--pulso-space-2); margin-bottom: 6px; }
+  .pg-panel-h h3 { margin: 0; font-size: 13.5px; font-weight: var(--pulso-weight-heavy); }
+  .pg-panel-h .mq-muted { font-size: 11.5px; }
+  .pg-panel-h .mq-spacer { flex: 1; }
+
+  /* ---- 1 · materiales: tres escenarios sobre el mismo fondo cargado ---- */
+  .pg-mat { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--pulso-space-3); }
+  .pg-mat figure { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .pg-mat figcaption { display: flex; align-items: baseline; gap: 6px; font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-mat figcaption b { color: var(--pulso-text); font-size: 12px; }
+  .pg-mat figcaption code { font-size: 10px; color: var(--pulso-text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-stage { position: relative; height: 104px; border-radius: var(--pulso-radius); overflow: hidden; border: 1px solid var(--pulso-border); background: var(--pulso-bg); }
+  .pg-stage-bg { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 44px 12px 0; }
+  .pg-stage-bg i { display: block; border-radius: 6px; height: 120px; opacity: .85; }
+  .pg-stage-bg i:nth-child(1) { background: var(--pulso-module-processing); }
+  .pg-stage-bg i:nth-child(2) { background: var(--pulso-module-sample); }
+  .pg-stage-bg i:nth-child(3) { background: var(--pulso-module-routes); }
+  .pg-stage-bg i:nth-child(4) { background: var(--pulso-module-monitoring); }
+  .pg-stage-bg i:nth-child(5) { background: var(--pulso-module-collectors); }
+  .pg-stage-bg i:nth-child(6) { background: var(--pulso-module-editor); }
+  .pg-mini-header { position: absolute; left: 0; right: 0; top: 0; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 11px; font-weight: var(--pulso-weight-heavy); color: var(--pulso-primary); }
+  .pg-mini-header .pg-dot { width: 16px; height: 16px; border-radius: 5px; background: var(--pulso-primary); }
+  .pg-mini-header .pg-chip { margin-left: auto; height: 18px; padding: 0 8px; border-radius: var(--pulso-radius-chip); border: 1px solid var(--pulso-border); background: var(--pulso-surface); font-size: 9.5px; color: var(--pulso-text-soft); display: inline-flex; align-items: center; }
+  .pg-mini-cmd { position: absolute; left: 10px; right: 10px; top: 40px; height: 32px; border-radius: 12px; display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 10.5px; font-weight: var(--pulso-weight-bold); color: var(--pulso-text-soft); }
+  .pg-mini-cmd .pg-pill { height: 20px; padding: 0 9px; border-radius: var(--pulso-radius-chip); display: inline-flex; align-items: center; }
+  .pg-mini-cmd .pg-pill.is-on { background: var(--pulso-primary); color: var(--pulso-surface); }
+  .pg-mini-cmd .pg-tag { margin-left: auto; font-size: 9.5px; font-weight: var(--pulso-weight-bold); letter-spacing: .4px; text-transform: uppercase; }
+  /* hoy: dos blurs apilados (los dos leen el fondo) */
+  .pg-stage.is-hoy .pg-mini-header { background: var(--pulso-material-bg-chrome); backdrop-filter: saturate(1.2) blur(18px); -webkit-backdrop-filter: saturate(1.2) blur(18px); border-bottom: 1px solid var(--pulso-material-border); }
+  .pg-stage.is-hoy .pg-mini-cmd { background: var(--pulso-material-bg); backdrop-filter: saturate(1.2) blur(16px); -webkit-backdrop-filter: saturate(1.2) blur(16px); border: 1px solid var(--pulso-material-border); box-shadow: var(--pulso-material-shadow); }
+  /* propuesta: header frío y opaco con hairline; un solo material en la command bar */
+  .pg-stage.is-nuevo .pg-mini-header { background: var(--pulso-surface); border-bottom: 1px solid var(--pulso-border); }
+  .pg-stage.is-nuevo .pg-mini-cmd { background: var(--pulso-material-bg-chrome); backdrop-filter: saturate(1.1) blur(16px); -webkit-backdrop-filter: saturate(1.1) blur(16px); border: 1px solid var(--pulso-material-border); box-shadow: var(--pulso-material-shadow); }
+  .pg-stage.is-nuevo .pg-tag { color: var(--pulso-success-fg); }
+  .pg-stage.is-hoy .pg-tag { color: var(--pulso-danger-fg); }
+  /* ventana de Electron: el color que pinta antes de que React monte */
+  .pg-win { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+  .pg-win > div { position: relative; padding: 10px; }
+  .pg-win .is-crema { background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface)); }
+  .pg-win .is-bg { background: var(--pulso-bg); }
+  .pg-win .pg-app { position: absolute; left: 10px; right: 10px; top: 34px; bottom: 0; border-radius: 10px 10px 0 0; background: var(--pulso-surface); border: 1px solid var(--pulso-border); border-bottom: 0; box-shadow: var(--pulso-shadow-low); }
+  .pg-win .pg-app::before { content: ""; position: absolute; left: 10px; right: 10px; top: 10px; height: 6px; border-radius: 3px; background: var(--pulso-surface-3); }
+  .pg-win .pg-app::after { content: ""; position: absolute; left: 10px; width: 40%; top: 24px; height: 6px; border-radius: 3px; background: var(--pulso-surface-3); }
+  .pg-win small { position: absolute; top: 9px; left: 10px; right: 10px; font-size: 10px; font-weight: var(--pulso-weight-bold); letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-win .is-crema small { color: var(--pulso-warn-fg); }
+  .pg-win .is-bg small { color: var(--pulso-success-fg); }
+  .pg-win .pg-flash { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; font-size: 10px; font-weight: var(--pulso-weight-heavy); padding: 3px 8px; border-radius: var(--pulso-radius-chip); background: var(--pulso-surface); border: 1px solid var(--pulso-border-strong); color: var(--pulso-text-soft); white-space: nowrap; }
+
+  /* sombras tokenizadas */
+  .pg-shadows { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: var(--pulso-space-3); padding: 8px 12px 6px; border-radius: var(--pulso-radius); background: var(--pulso-surface-3); border: 1px solid var(--pulso-border); margin-top: var(--pulso-space-3); }
+  .pg-shadow { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 0; }
+  .pg-shadow i { display: block; width: 100%; height: 24px; border-radius: 9px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); }
+  .pg-shadow b { font-size: 10.5px; font-weight: var(--pulso-weight-heavy); letter-spacing: .3px; }
+  .pg-shadow b code { font-weight: var(--pulso-weight-semibold); color: var(--pulso-primary); }
+  .pg-shadow small { font-size: 10.5px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+  /* ---- 2 · motion: hover y press reales por CSS, transición por JS ---- */
+  .pg-motion { display: grid; grid-template-columns: minmax(0,1fr) 468px; gap: var(--pulso-space-3); align-items: start; }
+  .pg-tira { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--pulso-space-3); }
+  .pg-demo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 84px; padding: 8px; border: 1px dashed var(--pulso-border-strong); border-radius: var(--pulso-radius); background: var(--pulso-surface-2); text-align: center; }
+  .pg-demo small { font-size: 10.5px; color: var(--pulso-text-soft); line-height: 1.3; }
+  .pg-demo small code { color: var(--pulso-primary); font-weight: var(--pulso-weight-bold); }
+  .pg-m-pill { position: relative; isolation: isolate; height: 30px; padding: 0 14px; border-radius: var(--pulso-radius-chip); border: 1px solid var(--pulso-border); background: var(--pulso-surface); font-weight: var(--pulso-weight-bold); font-size: 12.5px; color: var(--pulso-text-soft); display: inline-flex; align-items: center; overflow: hidden; transition: color var(--motion-dur-fast) var(--motion-ease-out); }
+  .pg-m-pill::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--pulso-primary-soft); transform: scaleX(.94); opacity: 0; transform-origin: center; transition: transform var(--motion-dur-fast) var(--motion-ease-out), opacity var(--motion-dur-fast) var(--motion-ease-out); }
+  .pg-m-pill:hover { color: var(--pulso-primary); border-color: var(--pulso-primary-border); }
+  .pg-m-pill:hover::before { transform: scaleX(1); opacity: 1; }
+  .pg-m-btn { transition: transform var(--motion-dur-press) var(--motion-ease-out), box-shadow var(--motion-dur-press) var(--motion-ease-out); }
+  .pg-m-btn:active { transform: scale(.98); }
+  .pg-m-tile { width: 36px; height: 36px; border-radius: var(--pulso-nav-item-radius); border: 1px solid var(--pulso-border); background: var(--pulso-surface); color: var(--pulso-primary); display: grid; place-items: center; box-shadow: var(--pulso-shadow-low); transition: transform var(--motion-dur-fast) var(--motion-ease-out), box-shadow var(--motion-dur-fast) var(--motion-ease-out), background var(--motion-dur-fast) var(--motion-ease-out); }
+  .pg-m-tile:hover { transform: translateY(-1px); box-shadow: var(--pulso-shadow-raised); background: var(--pulso-primary-soft); }
+  .pg-m-tile:active { transform: scale(.96); transition-duration: var(--motion-dur-press); }
+  .pg-m-card { width: 100%; padding: 8px 10px; border-radius: var(--pulso-radius); border: 1px solid var(--pulso-border); background: var(--pulso-surface); box-shadow: var(--pulso-shadow-low); text-align: left; font-size: 11.5px; transition: transform var(--motion-dur-base) var(--motion-ease-out), box-shadow var(--motion-dur-base) var(--motion-ease-out); }
+  .pg-m-card:hover { transform: translateY(-2px); box-shadow: var(--pulso-shadow-med); }
+  .pg-m-card b { display: block; font-size: 12px; }
+  .pg-m-card span { color: var(--pulso-text-soft); }
+
+  .pg-trans { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0,1fr) minmax(0,1fr); gap: var(--pulso-space-3); align-items: stretch; padding: 8px; border: 1px dashed var(--pulso-border-strong); border-radius: var(--pulso-radius); background: var(--pulso-surface-2); }
+  .pg-trans-ctl { display: flex; flex-direction: column; justify-content: center; gap: 6px; width: 150px; }
+  .pg-trans-ctl small { font-size: 10.5px; color: var(--pulso-text-soft); line-height: 1.3; }
+  .pg-trans-ctl small code { color: var(--pulso-primary); font-weight: var(--pulso-weight-bold); }
+  .pg-scene { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: var(--pulso-radius); background: var(--pulso-surface); border: 1px solid var(--pulso-border); min-width: 0; overflow: hidden; }
+  .pg-scene .pulso-section-eyebrow { font-size: 9.5px; }
+  .pg-scene-nav { display: flex; gap: 4px; }
+  .pg-scene-nav i { height: 16px; width: 44px; border-radius: 999px; background: var(--pulso-surface-3); }
+  .pg-scene-nav i.is-on { background: var(--pulso-primary); }
+  .pg-scene-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .pg-scene.is-rail .pg-scene-wrap { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 6px; }
+  .pg-scene-rail { display: flex; flex-direction: column; gap: 4px; }
+  .pg-scene-rail i { width: 22px; height: 18px; border-radius: 6px; background: var(--pulso-surface-3); }
+  .pg-scene-rail i.is-on { background: var(--pulso-primary); }
+  .pg-scene-body i { display: block; height: 24px; border-radius: 6px; background: var(--pulso-surface-3); border: 1px solid var(--pulso-border); }
+  .pg-scene-body i:first-child { background: var(--pulso-primary-soft); border-color: var(--pulso-primary-border); }
+  .pg-enter { opacity: 0; transform: translate3d(0, 6px, 0); }
+  .pg-enter.is-play { animation: pg-enter var(--motion-dur-base) var(--motion-ease-out) both; }
+  @keyframes pg-enter { from { opacity: 0; transform: translate3d(0, 6px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+  .pg-enter.is-done { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .pg-enter, .pg-enter.is-play { animation: none; opacity: 1; transform: none; }
+    .pg-m-pill::before, .pg-m-tile, .pg-m-card, .pg-m-btn { transition: none; }
+  }
+
+  .pg-tokens .mq-table th { padding: 5px 10px; font-size: 9.5px; }
+  .pg-tokens .mq-table td { padding: 2px 10px; font-size: 11px; }
+  .pg-tokens .mq-table td code { font-size: 10.5px; color: var(--pulso-primary); font-weight: var(--pulso-weight-bold); }
+  .pg-tokens .mq-table td.pg-val { font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); }
+  .pg-tokens .mq-table tr.pg-grupo td { background: var(--pulso-surface-2); font-size: 9.5px; font-weight: var(--pulso-weight-heavy); letter-spacing: .4px; text-transform: uppercase; color: var(--pulso-text-soft); padding: 2px 10px; }
+  .pg-tokens .mq-table-wrap { border-radius: var(--pulso-radius); }
+</style>
+</head>
+<body>
+<div id="contenido">
+  <div class="pg-stack">
+
+    <!-- 1 · materiales -->
+    <section class="mq-panel mq-callout">
+      <span class="mq-note" data-n="1" style="top:-11px; left:540px;">un solo blur: el de la command bar; header opaco con hairline</span>
+      <span class="mq-note" data-n="2" style="top:-11px; right:14px;">la ventana nace en --pulso-bg (hoy #f7f4ee, crema)</span>
+      <div class="pg-panel-h"><i data-icon="layers-2" data-size="15"></i><h3>Materiales</h3><span class="mq-muted">Mismo fondo cargado debajo de los tres: lo que cambia es qué capa lo lee.</span></div>
+      <div class="pg-mat">
+        <figure>
+          <div class="pg-stage is-hoy" aria-label="Hoy: dos blurs apilados">
+            <div class="pg-stage-bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="pg-mini-header"><span class="pg-dot"></span>Prosecnur<span class="pg-chip">acnur_acg</span></div>
+            <div class="pg-mini-cmd"><span class="pg-pill is-on">Carga</span><span class="pg-pill">Validación</span><span class="pg-pill">Codificación</span><span class="pg-tag">blur sobre blur</span></div>
+          </div>
+          <figcaption><b>Hoy</b> <code>backdrop-filter ×2: header (18) y command bar (16)</code></figcaption>
+        </figure>
+        <figure>
+          <div class="pg-stage is-nuevo" aria-label="Propuesta: un solo material en la command bar">
+            <div class="pg-stage-bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="pg-mini-header"><span class="pg-dot"></span>Prosecnur<span class="pg-chip">acnur_acg</span></div>
+            <div class="pg-mini-cmd"><span class="pg-pill is-on">Carga</span><span class="pg-pill">Validación</span><span class="pg-pill">Codificación</span><span class="pg-tag">un material</span></div>
+          </div>
+          <figcaption><b>Propuesta</b> <code>header --pulso-surface + --pulso-border · command bar --pulso-material-*</code></figcaption>
+        </figure>
+        <figure>
+          <div class="pg-stage" aria-label="Color de fondo de la ventana de Electron">
+            <div class="pg-win">
+              <div class="is-crema"><small>hoy · crema fuera de paleta</small><div class="pg-app"></div></div>
+              <div class="is-bg"><small>propuesta · --pulso-bg</small><div class="pg-app"></div></div>
+              <span class="pg-flash">primer frame antes de React</span>
+            </div>
+          </div>
+          <figcaption><b>Ventana</b> <code>backgroundColor en desktop/main.cjs: el flash de arranque</code></figcaption>
+        </figure>
+      </div>
+      <div class="pg-shadows" aria-label="Las seis sombras tokenizadas">
+        <div class="pg-shadow"><i style="box-shadow: var(--pulso-shadow-low)"></i><b><code>--pulso-shadow-low</code></b><small>card y panel en reposo</small></div>
+        <div class="pg-shadow"><i style="box-shadow: var(--pulso-shadow-soft)"></i><b><code>--pulso-shadow-soft</code></b><small>command bar, inspector</small></div>
+        <div class="pg-shadow"><i style="box-shadow: var(--pulso-shadow-med)"></i><b><code>--pulso-shadow-med</code></b><small>card al hover, sideover</small></div>
+        <div class="pg-shadow"><i style="box-shadow: var(--pulso-shadow-high)"></i><b><code>--pulso-shadow-high</code></b><small>diálogo</small></div>
+        <div class="pg-shadow"><i style="box-shadow: var(--pulso-shadow-raised)"></i><b><code>--pulso-shadow-raised</code></b><small>tile elevado, menú</small></div>
+        <div class="pg-shadow"><i style="box-shadow: var(--pulso-shadow-popover)"></i><b><code>--pulso-shadow-popover</code></b><small>popover, paleta de comandos</small></div>
+      </div>
+    </section>
+
+    <!-- 2 · motion -->
+    <section class="mq-panel mq-callout">
+      <span class="mq-note" data-n="3" style="top:-11px; left:160px;">1,108 ms y 119 beziers literales → 5 duraciones y 5 curvas</span>
+      <span class="mq-note" data-n="4" style="bottom:-14px; right:14px;">motion fuera de package.json: CSS y un FLIP propio</span>
+      <div class="pg-panel-h"><i data-icon="zap" data-size="15"></i><h3>Motion</h3><span class="mq-muted">Pasa el mouse y presiona: hover y press son CSS real; las transiciones se disparan con «Reproducir».</span></div>
+      <div class="pg-motion">
+        <div class="pg-tira">
+          <div class="pg-demo"><button type="button" class="pg-m-pill">Validación</button><small>píldora de sección<br>fill crece desde el centro · <code>scaleX .94→1</code> · <code>dur-fast</code></small></div>
+          <div class="pg-demo"><button type="button" class="pulso-button pulso-button--primary pulso-button--sm pg-m-btn"><i data-icon="check" data-size="14"></i> Aplicar</button><small>botón<br>press <code>scale(.98)</code> · <code>dur-press</code></small></div>
+          <div class="pg-demo"><button type="button" class="pg-m-tile" aria-label="Procesamiento"><i data-icon="workflow" data-size="16"></i></button><small>tile del dock<br>elevación <code>shadow-raised</code> · <code>dur-fast</code></small></div>
+          <div class="pg-demo"><div class="pg-m-card" tabindex="0"><b>Monitoreo</b><span>1,283 de 1,200 válidas</span></div><small>card<br>hover 2 px · <code>shadow-med</code> · <code>dur-base</code></small></div>
+
+          <div class="pg-trans mq-callout">
+            <span class="mq-note" data-n="5" style="bottom:-11px; right:12px;">FLIP del Home a 420 (hoy 460, sobre el tope)</span>
+            <div class="pg-trans-ctl">
+              <button type="button" class="pulso-button pulso-button--secondary pulso-button--sm" id="pg-play"><i data-icon="play" data-size="14"></i> Reproducir</button>
+              <small>sección y pestaña comparten la firma: <code>translate3d(0,6px,0)</code> + fade · <code>dur-base</code> · <code>ease-out</code></small>
+            </div>
+            <div class="pg-scene">
+              <span class="pulso-section-eyebrow">Cambio de sección</span>
+              <div class="pg-scene-nav" aria-hidden="true"><i></i><i class="is-on"></i><i></i><i></i></div>
+              <div class="pg-scene-body pg-enter is-done" aria-hidden="true"><i></i><i></i><i></i></div>
+            </div>
+            <div class="pg-scene is-rail">
+              <span class="pulso-section-eyebrow">Cambio de pestaña</span>
+              <div class="pg-scene-wrap" aria-hidden="true">
+                <div class="pg-scene-rail"><i></i><i class="is-on"></i><i></i></div>
+                <div class="pg-scene-body pg-enter is-done"><i></i><i></i><i></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pg-tokens">
+                    <div class="mq-table-wrap">
+            <table class="mq-table" data-density="compact" aria-label="Tokens de motion y dónde se usan">
+              <colgroup><col style="width:168px"><col style="width:112px"><col></colgroup>
+              <thead><tr><th>Token</th><th>Valor</th><th>Dónde se usa</th></tr></thead>
+              <tbody>
+                <tr class="pg-grupo"><td colspan="3">Duraciones</td></tr>
+                <tr><td><code>--motion-dur-press</code></td><td class="pg-val">120 ms</td><td>press de botón, chip, tile y switch</td></tr>
+                <tr><td><code>--motion-dur-fast</code></td><td class="pg-val">160 ms</td><td>hover, fill de píldora, borde de input</td></tr>
+                <tr><td><code>--motion-dur-base</code></td><td class="pg-val">220 ms</td><td>sección, pestaña, card, toast</td></tr>
+                <tr><td><code>--motion-dur-panel</code></td><td class="pg-val">280 ms</td><td>sideover, popover, inspector</td></tr>
+                <tr><td><code>--motion-dur-slow</code></td><td class="pg-val">420 ms</td><td>FLIP del Home, diálogo grande (tope)</td></tr>
+                <tr class="pg-grupo"><td colspan="3">Curvas</td></tr>
+                <tr><td><code>--motion-ease-out</code></td><td class="pg-val">.23, 1, .32, 1</td><td>entradas: hover, fill, sección y pestaña</td></tr>
+                <tr><td><code>--motion-ease-in-out</code></td><td class="pg-val">.77, 0, .175, 1</td><td>salidas simétricas, colapsar</td></tr>
+                <tr><td><code>--motion-ease-standard</code></td><td class="pg-val">.2, 0, 0, 1</td><td>color, fondo, borde (alias de --cmv2-ease)</td></tr>
+                <tr><td><code>--motion-ease-drawer</code></td><td class="pg-val">.32, .72, 0, 1</td><td>sideover y paneles laterales</td></tr>
+                <tr><td><code>--motion-ease-productive</code></td><td class="pg-val">.16, 1, .3, 1</td><td>FLIP del Home, reordenar listas</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Un solo blur</b>: header opaco con hairline <code>--pulso-border</code>; la command bar conserva el material <code>--pulso-material-*</code>. Gate: <code>backdrop-filter</code> en el header = 0.</li>
+        <li><b>La ventana nace en <code>--pulso-bg</code></b> (<code>desktop/main.cjs</code>): el primer frame deja de ser crema fuera de paleta.</li>
+        <li><b>Cinco duraciones y cinco curvas</b>: 1,108 ms y 119 beziers literales a tokens; sección y pestaña con la firma de 6 px; FLIP del Home de 460 a 420; <code>motion</code> fuera de <code>package.json</code>.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+<script>
+  window.onMaquetaMontada = function () {
+    var btn = document.getElementById("pg-play");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".pg-enter").forEach(function (el, i) {
+        el.classList.remove("is-play", "is-done");
+        void el.offsetWidth;
+        el.classList.add("is-play");
+        el.addEventListener("animationend", function () { el.classList.add("is-done"); }, { once: true });
+      });
+    });
+  };
+</script>
+</body>
+</html>

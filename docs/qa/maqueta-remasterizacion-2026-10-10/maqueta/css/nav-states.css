@@ -1,0 +1,277 @@
+/* =============================================================================
+ * Estados de navegación — dueño único
+ * -----------------------------------------------------------------------------
+ * Un item de navegación (píldora de sección, fila de rail, pestaña, chip) tiene
+ * cuatro estados y aquí viven los cuatro: hover, seleccionado, foco y
+ * deshabilitado. Antes vivían en 26 archivos con 145 reglas, y el resultado era
+ * el que reportó el usuario: la caja que aparece al pasar el mouse cambiaba de
+ * forma entre secciones —nueve radios distintos para el mismo tipo de item— y
+ * la pestaña en la que estabas no reaccionaba al mouse.
+ *
+ * CÓMO GANA ESTE ARCHIVO
+ * No por especificidad. Se midió: hay 378 reglas de estado de navegación en el
+ * repo y la más específica llega a (0,8,0), con 38 por encima de (0,5,0). Un
+ * piso de especificidad que las venciera a todas exigiría repetir el atributo
+ * nueve veces, y se rompería con la primera cadena responsive nueva.
+ *
+ * Gana por borrado, y el interruptor es el atributo. `[data-nav-item]` no lo
+ * lleva hoy ningún elemento: mientras un módulo no lo emita, este archivo no
+ * hace absolutamente nada. Cuando un módulo migra, en el MISMO commit emite el
+ * atributo y borra sus reglas de estado — así no hay ventana en la que dos
+ * sistemas se peleen, y no hace falta que este archivo sea más específico que
+ * lo que ya no existe.
+ *
+ * Lo que impide la regresión no es la cascada, es el detector
+ * (components/ModuleChrome.contract.test.ts): prohíbe que un archivo distinto
+ * de este vuelva a declarar hover/activo/foco de un item de navegación.
+ *
+ * CONTRATO QUE EMITE EL COMPONENTE
+ *   data-nav-item                    en el elemento clickeable (a / button)
+ *   data-nav-state="selected"        solo en el activo
+ *   data-nav-shape="pill" | "row"    pill = radio de chip; row = radio de rail
+ *
+ * DÓNDE VIVE CADA TOKEN
+ * La geometría (`--pulso-nav-item-height`, `-radius`, anchos) en theme.css, que
+ * no depende del contexto. Los colores derivados del acento, acá sobre el propio
+ * item: declararlos en `:root` los resolvería contra `:root`, donde no hay
+ * `--module-accent`, y todos los módulos heredarían el navy global.
+ * ========================================================================== */
+
+[data-nav-item] {
+  /* La indirección de acento se declara ACÁ, sobre el item, y no en `:root`.
+   * Motivo, que costó una verificación en Chrome: `var(--module-accent)` dentro
+   * de una custom property se sustituye en el elemento donde se DECLARA. En
+   * `:root` no hay `--module-accent`, así que caía al navy global y todos los
+   * módulos heredaban ese valor ya resuelto. Sobre el item —que vive dentro del
+   * frame del módulo— resuelve al acento correcto. Mismo patrón que ya usaba
+   * `.pulso-gliding-tab-list` para su indicador. */
+  --pulso-nav-accent: var(--module-accent, var(--pulso-primary));
+  --pulso-nav-hover-bg: color-mix(in srgb, var(--pulso-nav-accent) 10%, var(--pulso-surface));
+  --pulso-nav-hover-fg: var(--pulso-nav-accent);
+  --pulso-nav-hover-border: color-mix(in srgb, var(--pulso-nav-accent) 28%, var(--pulso-border));
+  --pulso-nav-selected-border: var(--pulso-nav-accent);
+  /* En las píldoras horizontales el activo lo pinta un indicador deslizante que
+   * vive detrás del item, de modo que el hover debe ser un velo. Los items `row`
+   * verticales ocultan ese indicador y especializan este token más abajo con un
+   * relleno opaco: ahí el propio botón es el dueño de la superficie activa. */
+  --pulso-nav-selected-hover-bg: color-mix(in srgb, #ffffff 20%, transparent);
+  --pulso-nav-selected-hover-fg: var(--pulso-nav-selected-fg);
+  --pulso-nav-focus-outline-color: color-mix(in srgb, var(--pulso-nav-accent) 62%, transparent);
+
+  border-radius: var(--pulso-nav-item-radius);
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+[data-nav-item][data-nav-shape="pill"] {
+  border-radius: var(--pulso-radius-chip);
+}
+
+/* ── Reposo del rail ─────────────────────────────────────────────────────────
+ * Esta es la diferencia que quedaba entre los sidebars, y era la queja literal:
+ * «Procesamiento tiene una vista mucho más profesional». Medido en Chrome, con
+ * la geometría ya unificada en 40×40 y radio 10, el item en reposo era:
+ *
+ *   Procesamiento   fondo blanco al 74%, borde visible, sombra de relieve
+ *   Monitoreo       fondo transparente, borde transparente, sin sombra
+ *
+ * Es decir: en Procesamiento cada destino es una tarjeta y se ve antes de tocarla;
+ * en Monitoreo el item no existía hasta el hover. No era un problema de hover
+ * —ese ya estaba unificado—, era que el reposo no tenía material.
+ *
+ * Gana Procesamiento porque es el que el usuario señaló como referencia. Los
+ * valores salen de su computado real, reescritos sobre tokens para que la próxima
+ * variación no pueda nacer de un literal nuevo: sin esto, el material vuelve a
+ * divergir en la primera cadena responsive que alguien agregue.
+ *
+ * Solo `row`. Las píldoras horizontales de sección viven sobre la banda, que ya
+ * es una superficie elevada: darles tarjeta propia sería relieve sobre relieve.
+ *
+ * Monitoreo ya reservaba el píxel del borde en transparente, así que esto no
+ * mueve el layout de nadie: se verificó que el item sigue midiendo 40×40. */
+[data-nav-item][data-nav-shape="row"] {
+  /* Un velo transparente dejaría el icono blanco sobre la superficie blanca:
+   * es exactamente el “hover que despinta” de los sidebars verticales. Esta
+   * mezcla conserva el acento como superficie opaca y lo aclara lo suficiente
+   * para que el hover se perciba sin perder contraste. */
+  --pulso-nav-selected-hover-bg: color-mix(
+    in srgb,
+    var(--pulso-nav-accent) 86%,
+    var(--pulso-surface)
+  );
+  /* Estos valores NO son una interpretación: son el material del rail de
+   * Procesamiento, que es el estándar declarado. Cuando ese rail se migró al
+   * atributo se comparó su computado antes y después, y la primera versión de
+   * este bloque —un color plano al 86%— le cambiaba el fondo, le borraba el
+   * degradado y le movía el borde. El estándar manda sobre la aproximación.
+   *
+   * El degradado es lo que le da el relieve de tarjeta: un color plano se ve
+   * chato al lado del mismo item con luz de arriba abajo. */
+  --pulso-nav-rest-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 253, 0.78)),
+    rgba(255, 255, 255, 0.74);
+  /* El borde lleva un 34% del borde de acento del módulo: es lo que le da el
+   * tinte y lo que hace que el mismo rail se sienta de Procesamiento o de
+   * Monitoreo sin cambiar de forma. Con el gris neutro a secas el item se veía
+   * correcto pero desafiliado. `--pulso-primary-border` ya lo reasigna cada frame
+   * de módulo, así que la fórmula es una y el resultado es el de cada uno. */
+  --pulso-nav-rest-border: color-mix(in srgb, var(--pulso-primary-border) 34%, var(--pulso-border));
+  --pulso-nav-rest-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+[data-nav-item][data-nav-shape="row"]:not([data-nav-state="selected"]):not(:disabled):not([aria-disabled="true"]) {
+  background: var(--pulso-nav-rest-bg);
+  border-color: var(--pulso-nav-rest-border);
+  box-shadow: var(--pulso-nav-rest-shadow);
+}
+
+/* ── Hover ───────────────────────────────────────────────────────────────────
+ * Bajo `hover: hover` a propósito: en trackpad y touch el navegador emula el
+ * hover y lo deja pegado al último item tocado. Hoy la mitad de las reglas del
+ * repo tiene esta guarda y la otra mitad no, así que el comportamiento tampoco
+ * era uniforme entre módulos. Acá o la tienen todas, o ninguna. */
+@media (hover: hover) and (pointer: fine) {
+  [data-nav-item]:hover:not(:disabled):not([aria-disabled="true"]):not([data-nav-state="selected"]) {
+    color: var(--pulso-nav-hover-fg);
+    border-color: var(--pulso-nav-hover-border);
+  }
+
+  /* El fondo lo pinta el item… salvo la píldora de sección, que tiene su propio
+   * velo hijo (`.pulso-phase-pill-circle`) para poder animar el fill creciendo
+   * desde el centro, que es la micro-interacción que pide la dirección v3.
+   *
+   * Sin esta exclusión se pintan LAS DOS capas y el tinte sale del doble de
+   * intensidad. Medido en Chrome sobre una sección no activa: fondo del item más
+   * velo al 13% encima. El color sigue saliendo de un solo token —el velo lee
+   * `--pulso-nav-hover-bg` por herencia— así que no hay dos fuentes de verdad,
+   * solo dos formas de aplicarlo. */
+  [data-nav-item]:not([data-nav-shape="pill"]):hover:not(:disabled):not([aria-disabled="true"]):not([data-nav-state="selected"]) {
+    background: var(--pulso-nav-hover-bg);
+  }
+
+  /* Hover SOBRE el activo. Es la queja literal del usuario, y estaba prohibido
+   * por CSS: catorce reglas lo suprimían con `:not(.is-active)` y una más lo
+   * hacía imposible forzando `background: transparent !important` en todo item
+   * con `aria-selected`.
+   *
+   * `background` y `color` van SIEMPRE en el mismo bloque, y el color es el mismo
+   * blanco del activo. En píldoras se aplica el velo heredado; en filas se aplica
+   * la mezcla opaca declarada por `data-nav-shape="row"`. */
+  [data-nav-item][data-nav-state="selected"]:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--pulso-nav-selected-hover-bg);
+    color: var(--pulso-nav-selected-hover-fg);
+    border-color: var(--pulso-nav-selected-border);
+  }
+}
+
+/* ── Foco ────────────────────────────────────────────────────────────────────
+ * `outline`, nunca `box-shadow`. El anillo global es una sombra a (0,1,0) y
+ * cualquier `.is-active` que use `box-shadow` para su relieve —las píldoras de
+ * sección, por ejemplo— lo borra sin querer. Ninguna regla `.is-active` del
+ * repo declara `outline`, así que por acá el anillo sobrevive al activo, y
+ * además se tiñe con el acento del módulo en vez del navy global. */
+[data-nav-item]:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-nav-focus-outline-color);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+/* ── Deshabilitado ───────────────────────────────────────────────────────────
+ * Atenúa con COLOR, nunca con `opacity`, y el atributo se repite para ganarle a
+ * las reglas que ya atenuaban por su cuenta sin tener que recurrir a `!important`.
+ *
+ * Motivo, medido en Hojas de ruta: sobre la misma píldora se apilaban tres
+ * atenuaciones —`button:where(:disabled)` al 0.55, `.pulso-phase-pill.is-disabled`
+ * con su gris propio MÁS opacity 0.65, y esta regla al 0.55—. Como la opacidad se
+ * multiplica y el color de partida ya era claro, las etapas bloqueadas quedaban a
+ * 1.17 de contraste contra la banda: prácticamente invisibles. El usuario lo
+ * reportó como «está blanco».
+ *
+ * Con `--pulso-text-faint` el resultado es ~3:1, que se lee y a la vez se
+ * distingue sin ambigüedad de una etapa disponible. Estas píldoras informan el
+ * recorrido completo del módulo —qué falta para llegar a Entrega—, así que
+ * ilegibles no cumplen su función. */
+[data-nav-item][data-nav-item]:disabled,
+[data-nav-item][data-nav-item][aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 1;
+  color: var(--pulso-text-faint);
+  border-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-nav-item] {
+    transition: none;
+  }
+}
+
+/* ── Burbuja del rail comprimido — dueño único ──────────────────────────────
+ * Cuando el rail de pestañas está en modo ícono, el nombre del destino vive en
+ * una burbuja flotante. Estaba replicada en tres archivos y había divergido en
+ * nueve propiedades: el desplazamiento (8 contra 12px), el ancho mínimo (122
+ * contra 132), el máximo (220 contra 236), el padding, el peso tipográfico
+ * (heavy contra bold), la interlínea (1.22 contra 1.26), la duración (150 contra
+ * 140ms), el `overflow-wrap` que una no tenía, y —la peor— TRES fuentes
+ * distintas para el color del borde: el módulo de procesamiento, el acento de
+ * Fichas QR y el primario global al 30% en vez del 52%.
+ *
+ * Acá el borde sale de `--pulso-nav-accent`, así que sigue al módulo solo, sin
+ * que cada archivo tenga que nombrar su propio acento.
+ *
+ * Este bloque define CÓMO se ve y arranca oculta. CUÁNDO aparece lo sigue
+ * decidiendo cada módulo, porque depende de si su rail está comprimido y eso lo
+ * sabe su propio media query. Lo que se borró de cada archivo es la geometría
+ * duplicada, no la condición.
+ * ------------------------------------------------------------------------- */
+
+[data-rail-tooltip] {
+  /* Su propia indirección: un item con burbuja no siempre lleva
+   * `data-nav-item`, y sin esto el `color-mix` del borde quedaría inválido. */
+  --pulso-nav-accent: var(--module-accent, var(--pulso-primary));
+}
+
+[data-rail-tooltip]::before {
+  content: "";
+  position: absolute;
+  left: calc(100% + var(--pulso-rail-bubble-offset));
+  top: 50%;
+  z-index: var(--pulso-z-flyout);
+  display: none;
+  width: max-content;
+  min-width: 122px;
+  max-width: 220px;
+  min-height: 0;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-nav-accent) 52%, var(--pulso-border));
+  border-radius: var(--pulso-rail-bubble-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 253, 0.96)),
+    var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.22;
+  text-align: left;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  box-shadow: var(--pulso-shadow-popover);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    visibility 0s linear var(--motion-dur-fast);
+}
+
+/* La burbuja arranca en `display: none` y CADA módulo la revela con
+ * `display: block` desde su propio media query, porque solo él sabe si su rail
+ * está comprimido. Acá no hay regla de hover a propósito: sin `display` sería CSS
+ * muerto, y con `display` la burbuja aparecería también cuando el rail está
+ * expandido y el nombre ya se lee — dos veces el mismo texto.
+ *
+ * Lo que se unificó es la apariencia, que es lo que divergía. El «cuándo» sigue
+ * siendo del módulo, y eso es correcto. */

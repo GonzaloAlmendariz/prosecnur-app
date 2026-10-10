@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L36 · Formularios › Documento: el cuestionario como Word profesional</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<style>
+  .pg-wrap { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 14px; height: 100%; min-height: 0; }
+  .pg-canvas { background: var(--pulso-bg-deep); border: 1px solid var(--pulso-border); border-radius: 12px; padding: 18px; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .pg-page { width: 620px; min-height: 820px; background: var(--pulso-surface); box-shadow: 0 10px 30px rgba(0,36,87,.14), 0 1px 2px rgba(0,36,87,.08); padding: 44px 52px 40px; font-family: Georgia, "Times New Roman", serif; color: var(--pulso-text); position: relative; }
+  .pg-page-n { position: absolute; bottom: 16px; right: 52px; font-size: 10px; color: var(--pulso-text-faint); font-family: -apple-system, system-ui, sans-serif; }
+  .pg-doc-head { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 12px; border-bottom: 2px solid var(--pulso-primary); padding-bottom: 10px; margin-bottom: 14px; }
+  .pg-doc-head .pg-mark { display: inline-flex; align-items: center; gap: 8px; font-family: -apple-system, system-ui, sans-serif; font-weight: 800; font-size: 12px; color: var(--pulso-primary); }
+  .pg-doc-title { font-size: 17px; font-weight: 700; margin: 6px 0 2px; }
+  .pg-doc-sub { font-size: 11px; color: var(--pulso-text-soft); font-family: -apple-system, system-ui, sans-serif; }
+  .pg-code { border: 1.5px solid var(--pulso-text); padding: 6px 10px; font-family: ui-monospace, Menlo, monospace; font-size: 11px; text-align: center; }
+  .pg-code b { display: block; font-size: 16px; letter-spacing: 3px; }
+  .pg-instr { font-size: 11px; line-height: 1.5; background: var(--pulso-surface-3); padding: 8px 10px; border-left: 3px solid var(--pulso-primary); margin-bottom: 14px; font-family: -apple-system, system-ui, sans-serif; }
+  .pg-sec { font-family: -apple-system, system-ui, sans-serif; font-size: 10.5px; letter-spacing: .8px; text-transform: uppercase; font-weight: 800; color: var(--pulso-primary); border-bottom: 1px solid var(--pulso-border-strong); margin: 14px 0 8px; padding-bottom: 3px; }
+  .pg-q { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 6px; margin: 0 0 10px; font-size: 12px; line-height: 1.4; }
+  .pg-q .pg-qn { font-weight: 700; }
+  .pg-q .pg-qt { font-weight: 700; }
+  .pg-q .pg-opts { display: grid; grid-template-columns: repeat(var(--c, 1), minmax(0,1fr)); gap: 3px 14px; margin-top: 4px; font-size: 11.5px; }
+  .pg-q .pg-opt::before { content: "☐"; margin-right: 6px; font-size: 13px; }
+  .pg-q .pg-cd { color: var(--pulso-text-faint); font-size: 10px; font-family: ui-monospace, Menlo, monospace; margin-left: 4px; }
+  .pg-q .pg-skip { font-family: -apple-system, system-ui, sans-serif; font-size: 10.5px; color: var(--pulso-primary); margin-top: 3px; font-style: italic; }
+  .pg-q .pg-skip::before { content: "→ "; }
+  .pg-q .pg-boxes { display: inline-flex; gap: 3px; margin-top: 3px; }
+  .pg-q .pg-boxes i { width: 18px; height: 20px; border: 1.2px solid var(--pulso-text); display: inline-block; }
+  .pg-q .pg-lines { margin-top: 5px; height: 40px; background: repeating-linear-gradient(to bottom, transparent 0 17px, var(--pulso-border-strong) 17px 18px); }
+  .pg-scale { display: grid; grid-template-columns: minmax(0,1fr) repeat(5, 48px); gap: 2px; font-size: 10.5px; align-items: center; margin-top: 4px; font-family: -apple-system, system-ui, sans-serif; }
+  .pg-scale > div { text-align: center; }
+  .pg-scale .pg-row-l { text-align: left; font-family: Georgia, serif; font-size: 11.5px; }
+  .pg-scale .pg-cell::before { content: "☐"; font-size: 13px; }
+  .pg-scale .pg-th { font-size: 8.5px; line-height: 1.15; color: var(--pulso-text-soft); }
+  .pg-enum { font-family: -apple-system, system-ui, sans-serif; font-size: 10px; color: var(--pulso-text-soft); border: 1px dashed var(--pulso-border-strong); padding: 5px 8px; margin: 8px 0 0; }
+  .pg-insp .mq-switch-label { white-space: normal; line-height: 1.25; }
+  .pg-insp .mq-panel-head h3 { max-width: 150px; }
+  .pg-sel { position: relative; outline: 2px solid var(--pulso-primary); outline-offset: 6px; border-radius: 4px; background: var(--pulso-primary-soft); }
+  .pg-sel-tag { position: absolute; top: -22px; left: -2px; font-family: -apple-system, system-ui, sans-serif; font-size: 10px; font-weight: 800; color: #fff; background: var(--pulso-primary); padding: 2px 7px; border-radius: 6px; }
+  .pg-q:hover { outline: 1px dashed var(--pulso-primary-border); outline-offset: 6px; border-radius: 4px; cursor: pointer; }
+  .pg-lock { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--pulso-text-faint); }
+  .pg-insp { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: auto; }
+  .pg-gen { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--pulso-success-border); background: var(--pulso-success-bg); border-radius: 10px; font-size: 12px; }
+  .pg-gen b { display: block; color: var(--pulso-success-fg); }
+  .pg-feed { display: grid; gap: 6px; font-size: 12px; }
+  .pg-feed div { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--pulso-border); }
+  .pg-feed b { font-variant-numeric: tabular-nums; }
+</style>
+<script>
+window.MAQUETA = {
+  codigo: "L36", titulo: "Formularios › Documento: el cuestionario como Word profesional, generado con officer desde la misma lógica del instrumento",
+  hoy: "../hoy/formularios.png",
+  nota: "Hoy el Word del cuestionario es un botón de la toolbar más un diálogo de papel, con colores propios fuera del estándar; no hay visor, ni bloques, ni versiones.",
+  modulo: "editor-xlsform",
+  proyecto: { nombre: "acnur_pdm", estado: "guardado", fecha: "1/8/2026" },
+  contexto: '<button type="button" class="mq-ctx" aria-haspopup="listbox" title="Cambiar de formulario"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Formulario · 3 en el estudio</span><b>PDM Espacios de protección 2026</b></span><i data-icon="chevron-down" data-size="14"></i></button>',
+  secciones: [{ id: "editor", label: "Editor", done: true }, { id: "documento", label: "Documento" }],
+  seccionActiva: "documento",
+  chips: [{ label: "Documento al día 14:02", tone: "success", detail: "Regenerado con la última versión del instrumento" }],
+  acciones: [{ label: "Regenerar", icon: "refresh-cw", kind: "secondary" }, { label: "Descargar .docx", icon: "download", kind: "primary" }],
+  menu: true,
+  pestanas: [
+    { id: "portada", label: "Portada e identidad", detail: "Título, logos, código y presentación", icon: "file-text" },
+    { id: "preguntas", label: "Preguntas", detail: "Cómo se imprime cada tipo", icon: "list-checks" },
+    { id: "logica", label: "Lógica impresa", detail: "Saltos y filtros como instrucciones", icon: "git-branch" },
+    { id: "estilos", label: "Estilos", detail: "Tipografía, numeración y encabezados", icon: "type" },
+    { id: "estandar", label: "Estándar", detail: "Lo que fija el recetario del cuestionario", icon: "lock" },
+    { id: "vista", label: "Vista previa", detail: "Páginas tal como salen", icon: "eye" },
+    { id: "versiones", label: "Versiones", detail: "Cada Word generado, con su instrumento", icon: "history" },
+  ],
+  pestanaActiva: "vista",
+  cabecera: { eyebrow: "Documento", titulo: "Vista previa", detalle: "Páginas reales del Word (LibreOffice → PNG), como el visor de Gráficos; cada cambio del Editor las regenera", estado: { kind: "listo", label: "al día" },
+    control: '<span class="mq-seg" role="radiogroup" aria-label="Formato"><button type="button" class="is-on">A4</button><button type="button">Carta</button></span>',
+    chips: [{ label: "<b>14</b> páginas" }, { label: "<b>27</b> preguntas" }, { label: "<b>4</b> saltos impresos", tone: "accent" }, { label: "<b>9</b> listas" }] },
+};
+</script>
+</head>
+<body>
+<div id="contenido">
+  <div class="pg-wrap">
+    <div class="pg-canvas mq-callout">
+      <span class="mq-note" data-n="1" style="top:8px; left:18px;">el Word se dibuja con officer desde el XLSForm vivo: misma lógica, mismas listas, mismos saltos</span>
+      <div class="pg-page">
+        <div class="pg-doc-head">
+          <div>
+            <span class="pg-mark"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15.4" fill="#002457"/><rect x="12" y="30" width="7" height="18" rx="3.5" fill="#fff"/><rect x="23" y="22" width="7" height="26" rx="3.5" fill="#fff"/><rect x="34" y="28" width="7" height="20" rx="3.5" fill="#fff"/><rect x="45" y="16" width="7" height="32" rx="3.5" fill="#fff"/></svg> PULSO PUCP · ACNUR Perú</span>
+            <div class="pg-doc-title">Monitoreo posdistribución · Espacios de protección 2026</div>
+            <div class="pg-doc-sub">Cuestionario de campo · versión 3 del 1 de agosto de 2026 · uso del encuestador</div>
+          </div>
+          <div class="pg-code">Código de encuesta<b>__ __ __ __</b></div>
+        </div>
+        <div class="pg-instr"><b>Presentación.</b> Buenos días / tardes. Mi nombre es ___ y trabajo para PULSO PUCP. Estamos haciendo un estudio para ACNUR sobre los espacios de protección. La entrevista dura 18 minutos y sus respuestas son confidenciales.</div>
+        <div class="pg-sec">A · Identificación</div>
+        <div class="pg-q"><span class="pg-qn">P1</span><div><span class="pg-qt">¿Acepta participar en la entrevista?</span><span class="pg-cd">consentimiento</span>
+          <div class="pg-opts" style="--c:2"><span class="pg-opt">Sí <span class="pg-cd">1</span></span><span class="pg-opt">No <span class="pg-cd">2</span></span></div>
+          <div class="pg-skip">Si responde «No», agradezca y termine la entrevista.</div></div></div>
+        <div class="pg-q"><span class="pg-qn">P2</span><div><span class="pg-qt">Región donde se realiza la entrevista</span><span class="pg-cd">region</span>
+          <div class="pg-opts" style="--c:3"><span class="pg-opt">Lima <span class="pg-cd">1</span></span><span class="pg-opt">Tumbes <span class="pg-cd">2</span></span><span class="pg-opt">Tacna <span class="pg-cd">3</span></span></div></div></div>
+        <div class="pg-q"><span class="pg-qn">P3</span><div><span class="pg-qt">¿Cuál es su edad en años cumplidos?</span><span class="pg-cd">edad · 18 a 99</span>
+          <div class="pg-boxes"><i></i><i></i></div></div></div>
+        <div class="pg-q"><span class="pg-qn">P4</span><div><span class="pg-qt">Sexo de la persona entrevistada</span><span class="pg-cd">sexo</span>
+          <div class="pg-opts" style="--c:3"><span class="pg-opt">Mujer <span class="pg-cd">1</span></span><span class="pg-opt">Hombre <span class="pg-cd">2</span></span><span class="pg-opt">Prefiere no responder <span class="pg-cd">99</span></span></div></div></div>
+        <div class="pg-sec">B · Acceso al espacio de protección</div>
+        <div class="pg-q pg-sel" data-foco="p-02:P5"><span class="pg-sel-tag">P5 · seleccionada · foco=p-02:P5</span><span class="pg-qn">P5</span><div><span class="pg-qt">¿Cuánto tiempo le tomó llegar al espacio de protección?</span><span class="pg-cd">tiempo_llegada</span>
+          <div class="pg-opts" style="--c:2"><span class="pg-opt">Hasta 15 minutos <span class="pg-cd">1</span></span><span class="pg-opt">De 15 a 30 minutos <span class="pg-cd">2</span></span><span class="pg-opt">De 30 minutos a 1 hora <span class="pg-cd">3</span></span><span class="pg-opt">Más de 1 hora <span class="pg-cd">4</span></span></div>
+          <div class="pg-skip">Si responde «Más de 1 hora», pase a la P7.</div></div></div>
+        <div class="pg-q"><span class="pg-qn">P6</span><div><span class="pg-qt">Pensando en su última visita, ¿qué tan de acuerdo está con las siguientes afirmaciones?</span><span class="pg-cd">matriz_acuerdo</span>
+          <div class="pg-scale"><div></div><div class="pg-th">Muy en desacuerdo</div><div class="pg-th">En desacuerdo</div><div class="pg-th">Ni de acuerdo ni en desacuerdo</div><div class="pg-th">De acuerdo</div><div class="pg-th">Muy de acuerdo</div>
+            <div class="pg-row-l">Me atendieron con respeto</div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div>
+            <div class="pg-row-l">Recibí la información que necesitaba</div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div>
+            <div class="pg-row-l">El horario me resultó conveniente</div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div><div class="pg-cell"></div></div></div></div>
+        <div class="pg-q"><span class="pg-qn">P7</span><div><span class="pg-qt">¿Qué cambiaría del espacio de protección? Anote textualmente.</span><span class="pg-cd">cambio_abierta</span>
+          <div class="pg-lines"></div></div></div>
+        <div class="pg-enum">Para el encuestador: P6 solo si P5 ≠ 4 · registre la hora de fin en la P27 · las notas en cursiva no se leen en voz alta.</div>
+        <span class="pg-page-n">Página 2 de 14 · PDM Espacios de protección 2026 · v3</span>
+      </div>
+      <div class="pg-page" style="min-height:360px; opacity:.85">
+        <div class="pg-sec">C · Servicios recibidos</div>
+        <div class="pg-q"><span class="pg-qn">P8</span><div><span class="pg-qt">¿Qué servicios recibió en su última visita? Marque todos los que apliquen.</span><span class="pg-cd">servicios · respuesta múltiple</span>
+          <div class="pg-opts" style="--c:2"><span class="pg-opt">Asesoría legal <span class="pg-cd">1</span></span><span class="pg-opt">Apoyo psicosocial <span class="pg-cd">2</span></span><span class="pg-opt">Información sobre trámites <span class="pg-cd">3</span></span><span class="pg-opt">Derivación a salud <span class="pg-cd">4</span></span><span class="pg-opt">Otro, especifique <span class="pg-cd">96</span></span><span class="pg-opt">Ninguno <span class="pg-cd">99</span></span></div></div></div>
+        <span class="pg-page-n">Página 3 de 14</span>
+      </div>
+    </div>
+
+    <aside class="pg-insp">
+      <section class="mq-panel mq-callout" style="margin:0; border-color: var(--pulso-primary-border);">
+        <span class="mq-note" data-n="5" style="top:10px; right:12px; max-width:190px;">inspector contextual del bloque seleccionado en la página, como en láminas</span>
+        <div class="mq-panel-head"><i data-icon="mouse-pointer-click" data-size="16"></i><h3>Bloque · P5</h3></div>
+        <div class="mq-stack" style="gap:9px">
+          <div class="mq-row"><span class="mq-chip is-accent">selección única</span><span class="mq-chip">4 opciones</span><span class="mq-chip is-warn">salto a P7</span></div>
+          <div class="mq-grid c2">
+            <div class="mq-field"><label>Opciones en</label><select class="mq-select is-sm"><option>2 columnas</option><option>1 columna</option><option>En línea</option></select></div>
+            <div class="mq-field"><label>Casilla</label><select class="mq-select is-sm"><option>☐ cuadrada</option><option>○ redonda</option><option>Paréntesis</option></select></div>
+          </div>
+          <div class="mq-field"><label>Instrucción de salto <small>se genera de la lógica; editable</small></label><input class="mq-input is-sm" value="Si responde «Más de 1 hora», pase a la P7."></div>
+          <div class="mq-field"><label>Nota al encuestador <small>opcional</small></label><input class="mq-input is-sm" placeholder="No leer las opciones en voz alta"></div>
+          <div class="mq-row"><span class="pg-lock"><i data-icon="lock" data-size="12"></i> Tipografía, numeración y espaciado los fija el estándar</span><span class="mq-spacer"></span><button class="mq-link" type="button">Ver en el Editor <i data-icon="arrow-right" data-size="13"></i></button></div>
+        </div>
+      </section>
+      <section class="mq-panel mq-callout" style="margin:0">
+        <span class="mq-note" data-n="2" style="top:10px; right:12px; max-width:190px;">ajustes del documento con el kit; todo persiste en el .pulso</span>
+        <div class="mq-panel-head"><i data-icon="settings-2" data-size="16"></i><h3>Ajustes del documento</h3></div>
+        <div class="mq-stack" style="gap:10px">
+          <div class="mq-field"><label>Plantilla</label><select class="mq-select is-sm"><option>PULSO · cuestionario de campo</option><option>PULSO · cuestionario autoaplicado</option><option>Cliente · ACNUR</option></select><span class="mq-field-hint">Plantillas officer del estándar Pulso, las mismas del motor de Word de Gráficos.</span></div>
+          <div class="mq-grid c2">
+            <div class="mq-field"><label>Numeración</label><select class="mq-select is-sm"><option>P1, P2, P3…</option><option>1.1, 1.2 por sección</option><option>Sin numerar</option></select></div>
+            <div class="mq-field"><label>Columnas de opciones</label><select class="mq-select is-sm"><option>Automático por largo</option><option>1</option><option>2</option><option>3</option></select></div>
+          </div>
+          <label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Mostrar códigos de respuesta <b class="mq-faint">para digitación</b></span></label>
+          <label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Imprimir saltos como instrucciones</span></label>
+          <label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Notas para el encuestador al pie de cada sección</span></label>
+          <label class="mq-switch"><input type="checkbox" role="switch"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir preguntas ocultas y calculadas</span></label>
+          <div class="mq-field"><label>Idioma de las etiquetas</label><select class="mq-select is-sm"><option>Español (label::es)</option><option>Inglés (label::en)</option><option>Bilingüe</option></select></div>
+        </div>
+      </section>
+
+      <section class="mq-panel mq-callout" style="margin:0">
+        <span class="mq-note" data-n="3" style="top:10px; right:12px; max-width:190px;">generación como job: fase, tiempo y versión del instrumento</span>
+        <div class="mq-panel-head"><i data-icon="timer" data-size="16"></i><h3>Generación</h3></div>
+        <div class="pg-gen"><i data-icon="circle-check" data-size="18" style="color:var(--pulso-success-fg)"></i><div><b>Al día con el instrumento v3</b>Regenerado hoy 14:02 en 1.8 s · officer 0.6 · 14 páginas · 412 KB</div></div>
+        <div class="mq-row" style="margin-top:10px; gap:6px"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="refresh-cw" data-size="14"></i> Regenerar</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="external-link" data-size="14"></i> Abrir en Word</button><button class="pulso-button pulso-button--primary pulso-button--sm" type="button"><i data-icon="download" data-size="14"></i> .docx</button></div>
+      </section>
+
+      <section class="mq-panel mq-callout" style="margin:0">
+        <span class="mq-note" data-n="4" style="top:10px; right:12px; max-width:190px;">nada se reescribe a mano: el Word lee el mismo modelo que Kobo</span>
+        <div class="mq-panel-head"><i data-icon="git-branch" data-size="16"></i><h3>Lo que alimenta el documento</h3></div>
+        <div class="pg-feed">
+          <div><span>Preguntas impresas</span><b>27 de 31</b></div>
+          <div><span>Listas de opciones</span><b>9</b></div>
+          <div><span>Saltos convertidos en instrucción</span><b>4</b></div>
+          <div><span>Filtros de opciones (choice filter)</span><b>2</b></div>
+          <div><span>Restricciones como nota al encuestador</span><b>3</b></div>
+          <div><span>Ocultas y calculadas (no se imprimen)</span><b>4</b></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+  <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+    <ol>
+      <li><b>Formularios pasa de una sección a dos</b>: Editor (plataforma: constructor, hojas, pruebas, lógica) y <b>Documento</b> (el cuestionario como Word). Hoy el Word es un botón «Documento» en la toolbar con un diálogo de papel; no hay dónde diseñarlo, revisarlo ni versionarlo.</li>
+      <li><b>Documento tiene sus pestañas especializadas</b> en el rail: Portada e identidad, Preguntas (patrón impreso por tipo: casillas, cajas de dígitos, matrices, líneas), Lógica impresa (saltos y filtros como instrucciones al encuestador), Estilos, Vista previa y Versiones.</li>
+      <li><b>Un solo modelo</b>: el Word lo dibuja officer desde el XLSForm vivo con toda su lógica; el endpoint `export-word` actual se convierte en el motor de la sección, sobre las plantillas del estándar Pulso que ya usa Gráficos. Cada cambio del Editor lo regenera como job (L5).</li>
+      <li><b>Editor fiel, no superficial</b>: la misma arquitectura que el editor de láminas F6: un recetario del cuestionario en `estandar_pulso.json` (clave `cuestionario`) que el motor lee y el visor respeta; páginas reales rasterizadas por job (LibreOffice → PNG, `reporte_word_visor.R` ya lo hace para el Word de Gráficos) con estados «regenerando» y «desactualizada»; bloques seleccionables sobre la página (`foco=p-02:P5`) con inspector contextual; lo que fija el estándar se ve con candado; opciones persistidas en el `.pulso` y versiones ligadas a la versión del instrumento.</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L16 · Hojas de ruta › Entrega con rail y command bar canónica</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<style>
+  .pg-bar { height: 8px; border-radius: 999px; background: var(--pulso-surface-3); overflow: hidden; }
+  .pg-bar i { display: block; height: 100%; background: var(--pulso-primary); width: var(--w); }
+  .pg-paquete { display: grid; gap: 8px; }
+  .pg-pq { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 9px 10px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); font-size: 12.5px; }
+  .pg-pq .mq-i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--pulso-primary-soft); color: var(--pulso-primary); }
+  .pg-pq.is-ok .mq-i { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
+  .pg-pq strong { display: block; }
+  .pg-pq span { color: var(--pulso-text-soft); font-size: 11.5px; }
+</style>
+<script>
+window.MAQUETA = {
+  codigo: "L16", titulo: "Hojas de ruta › Entrega › Cuotas: la barra densa pasa a command bar + cabecera, y las pestañas al rail",
+  hoy: "../hoy/hojas-entrega.png",
+  nota: "Hoy: secciones dentro de una barra con KPIs y toggles; Cuotas/Titulares/Reemplazos como píldoras inline; dos chips informativos truncados con elipsis.",
+  modulo: "hojas-ruta",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Marco</span><b>Lima Metropolitana y Callao</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Distritos</span><b>6</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Entrevistas</span><b>1,200</b></span></span>',
+  secciones: [{ id: "territorio", label: "Territorio", done: true }, { id: "poblacion", label: "Población", done: true }, { id: "muestra", label: "Muestra", done: true }, { id: "manzanas", label: "Manzanas", done: true }, { id: "entrega", label: "Entrega" }],
+  seccionActiva: "entrega",
+  herramientas: '<span class="mq-seg" role="radiogroup" aria-label="Fase"><button type="button">Piloto</button><button type="button" class="is-on">Campo real</button></span>',
+  chips: [{ label: "6 titulares", tone: "neutral" }, { label: "evita titulares", tone: "info", detail: "Los reemplazos no repiten manzanas titulares" }],
+  acciones: [{ label: "Generar paquete", icon: "archive", kind: "primary" }],
+  menu: true,
+  pestanas: [
+    { id: "cuotas", label: "Cuotas", detail: "13 perfiles · 1,200 entrevistas", icon: "chart-column" },
+    { id: "titulares", label: "Titulares", detail: "150 manzanas", icon: "map-pinned" },
+    { id: "reemplazos", label: "Reemplazos", detail: "150 manzanas", icon: "shuffle" },
+  ],
+  pestanaActiva: "cuotas",
+  cabecera: { eyebrow: "Entrega · paso 5 de 5", titulo: "Cuotas", detalle: "Metas por perfil y distrito que llevará cada hoja de ruta", estado: { kind: "listo", label: "Listo" },
+    chips: [{ label: "<b>1,200/1,200</b> asignadas", tone: "ok" }, { label: "<b>1,056</b> manzanas solo en cartografía oficial" }, { label: "<b>30</b> entrevistas del piloto guardadas" }] },
+};
+</script>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-grid" style="grid-template-columns: minmax(0,1fr) 320px; height:100%;">
+    <section class="mq-panel mq-callout" style="display:flex; flex-direction:column; min-height:0;">
+      <span class="mq-note" data-n="1" style="top:-10px; left:14px;">los chips informativos que hoy se truncan («1,056 manzanas sólo en… · 2 …») viven enteros en la cabecera</span>
+      <div class="mq-panel-head"><i data-icon="target" data-size="16"></i><h3>Cuotas por perfil y distrito</h3><span class="mq-spacer"></span>
+        <span class="mq-seg"><button type="button" class="is-on">Por perfil</button><button type="button">Por distrito</button><button type="button">Por UMP</button></span>
+        <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="download" data-size="14"></i> Excel</button></div>
+      <div class="mq-table-wrap" style="flex:1; min-height:0;">
+        <table class="mq-table">
+          <colgroup><col style="width:220px"><col style="width:120px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:100px"><col style="width:110px"><col></colgroup>
+          <thead><tr><th>Perfil de cuota</th><th>Sexo · edad</th><th class="num">Ate</th><th class="num">Chorrillos</th><th class="num">Los Olivos</th><th class="num">SJL</th><th class="num">SJM</th><th class="num">SMP</th><th>Total y avance</th></tr></thead>
+          <tbody>
+            <tr><td><b>Mujer 18–29</b></td><td>M · 18–29</td><td class="num">26</td><td class="num">26</td><td class="num">26</td><td class="num">26</td><td class="num">26</td><td class="num">26</td><td><div class="mq-row"><b style="width:40px">156</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr><td><b>Mujer 30–44</b></td><td>M · 30–44</td><td class="num">30</td><td class="num">30</td><td class="num">30</td><td class="num">30</td><td class="num">30</td><td class="num">30</td><td><div class="mq-row"><b style="width:40px">180</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr><td><b>Mujer 45–59</b></td><td>M · 45–59</td><td class="num">22</td><td class="num">22</td><td class="num">22</td><td class="num">22</td><td class="num">22</td><td class="num">22</td><td><div class="mq-row"><b style="width:40px">132</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr><td><b>Mujer 60+</b></td><td>M · 60+</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td><div class="mq-row"><b style="width:40px">120</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr><td><b>Hombre 18–29</b></td><td>H · 18–29</td><td class="num">26</td><td class="num">26</td><td class="num">26</td><td class="num">26</td><td class="num">26</td><td class="num">26</td><td><div class="mq-row"><b style="width:40px">156</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr><td><b>Hombre 30–44</b></td><td>H · 30–44</td><td class="num">30</td><td class="num">30</td><td class="num">30</td><td class="num">30</td><td class="num">30</td><td class="num">30</td><td><div class="mq-row"><b style="width:40px">180</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr><td><b>Hombre 45–59</b></td><td>H · 45–59</td><td class="num">22</td><td class="num">22</td><td class="num">22</td><td class="num">22</td><td class="num">22</td><td class="num">22</td><td><div class="mq-row"><b style="width:40px">132</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr><td><b>Hombre 60+</b></td><td>H · 60+</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td class="num">20</td><td><div class="mq-row"><b style="width:40px">120</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr><td><b>Venezolana/o 18+</b> <span class="mq-chip is-accent">cuota cruzada</span></td><td>— · 18+</td><td class="num">4</td><td class="num">4</td><td class="num">4</td><td class="num">4</td><td class="num">4</td><td class="num">4</td><td><div class="mq-row"><b style="width:40px">24</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+            <tr style="font-weight:800"><td>Total por distrito</td><td></td><td class="num">200</td><td class="num">200</td><td class="num">200</td><td class="num">200</td><td class="num">200</td><td class="num">200</td><td><div class="mq-row"><b style="width:40px">1,200</b><div class="pg-bar" style="flex:1;--w:100%"><i></i></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mq-row" style="margin-top:8px"><span class="mq-muted">13 perfiles · afijación igual por distrito · corrección por tasa de respuesta 2.8 %</span><span class="mq-spacer"></span><button class="mq-link" type="button">Ver diagnóstico del N</button></div>
+    </section>
+
+    <aside class="mq-stack">
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="2" style="top:-10px; right:14px;">4 chips en grid de 4 (hoy deja una celda vacía): aquí son filas pares</span>
+        <div class="mq-panel-head"><i data-icon="archive" data-size="16"></i><h3>Paquete de entrega</h3></div>
+        <div class="pg-paquete">
+          <div class="pg-pq is-ok"><span class="mq-i"><i data-icon="check" data-size="15"></i></span><div><strong>Cuotas por UMP</strong><span>150 hojas · listas</span></div><span class="mq-chip is-ok">listo</span></div>
+          <div class="pg-pq is-ok"><span class="mq-i"><i data-icon="check" data-size="15"></i></span><div><strong>Titulares</strong><span>150 manzanas · 6 distritos</span></div><span class="mq-chip is-ok">listo</span></div>
+          <div class="pg-pq is-ok"><span class="mq-i"><i data-icon="check" data-size="15"></i></span><div><strong>Reemplazos</strong><span>150 manzanas · evita titulares</span></div><span class="mq-chip is-ok">listo</span></div>
+          <div class="pg-pq"><span class="mq-i"><i data-icon="map" data-size="15"></i></span><div><strong>Croquis por UMP</strong><span>pendiente de generar · ~2 min</span></div><span class="mq-chip is-warn">pendiente</span></div>
+        </div>
+        <div class="mq-stack" style="margin-top:12px; gap:6px">
+          <button class="pulso-button pulso-button--primary pulso-button--md" type="button" style="justify-content:center"><i data-icon="archive" data-size="15"></i> Generar ZIP de campo</button>
+          <div class="mq-row" style="gap:6px"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button" style="flex:1;justify-content:center"><i data-icon="file-spreadsheet" data-size="14"></i> Excel</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button" style="flex:1;justify-content:center"><i data-icon="file-text" data-size="14"></i> PDF unificado</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button" style="flex:1;justify-content:center"><i data-icon="shuffle" data-size="14"></i> PDF aleatorio</button></div>
+        </div>
+      </section>
+      <section class="mq-panel">
+        <div class="mq-panel-head"><i data-icon="clock" data-size="16"></i><h3>Descargas anteriores</h3></div>
+        <div class="mq-stack" style="gap:6px; font-size:12.5px">
+          <div class="mq-row"><i data-icon="archive" data-size="14"></i><span>campo-real-2026-07-09.zip</span><span class="mq-spacer"></span><span class="mq-muted">9/07 · 14 MB</span></div>
+          <div class="mq-row"><i data-icon="archive" data-size="14"></i><span>piloto-2026-06-17.zip</span><span class="mq-spacer"></span><span class="mq-muted">17/06 · 3 MB</span></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+  <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+    <ol>
+      <li>La barra densa (KPIs Base/Distritos/Población/Manzanas + píldoras + Piloto/Campo + «Evita titulares») se reparte según la norma navegar/operar/identidad: contexto a la izquierda de la command bar, secciones al centro, operación (fase y chips) a la derecha.</li>
+      <li>Las píldoras inline Cuotas/Titulares/Reemplazos pasan al rail de 56 px con burbuja; la cabecera única dice en cuál estás y absorbe los chips que hoy se truncan.</li>
+      <li>Las secciones ya hechas llevan punto de «hecho»; la pestaña Entrega conserva «paso 5 de 5» porque aquí sí hay pipeline real.</li>
+      <li>El paquete de entrega es una lista de filas pares (C2) en vez de un grid de 4 con celda vacía; la tabla tiene anchos declarados y el total como fila fija.</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

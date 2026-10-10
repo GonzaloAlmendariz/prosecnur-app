@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L25 · Codificación › Preparar: resultado como toast con acción, no como banner permanente</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L25", titulo: "Codificación › Preparar justo después de «Aplicar codificación»: el resultado es un toast con acción",
+  hoy: "../hoy/codificacion-preparar.png",
+  nota: "Hoy: 49 «Alert» de resultado ocupan una banda permanente; cards de ancho distinto por sección con ~100 px de interior vacío.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "sucio", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "codificacion",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><b>Monitoreo territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,283</b></span></span>',
+  chips: [{ label: "2 sin decidir", tone: "warn", detail: "Dos variables marcadas sin decidir" }],
+  pestanas: [
+    { id: "organizar", label: "Preparar", detail: "Qué se codifica y con qué diccionario", icon: "layers" },
+    { id: "codificar", label: "Codificar", detail: "Respuestas abiertas por grupo", icon: "tags" },
+    { id: "matrices", label: "Matrices", detail: "Multirrespuesta y rangos", icon: "network" },
+    { id: "adaptar", label: "Adaptar", detail: "Base final y etiquetas", icon: "wand-sparkles" },
+  ],
+  pestanaActiva: "organizar",
+  cabecera: { eyebrow: "Codificación · pestaña 1 de 4", titulo: "Preparar", detalle: "Decide qué preguntas se codifican y con qué diccionario", estado: { kind: "listo", label: "Aplicada" },
+    chips: [{ label: "<b>30</b> preguntas" }, { label: "<b>27</b> emparejadas", tone: "ok" }, { label: "<b>2</b> sin decidir", tone: "warn" }, { label: "<b>13</b> grupos" }] },
+};
+</script>
+<style>
+  .pg-filtros { display: flex; align-items: center; gap: 8px; }
+  .pg-filtros .mq-input-group { width: 320px; }
+  .pg-sec { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 10px; background: var(--pulso-surface-2); border: 1px solid var(--pulso-border); font-size: 12px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; }
+  .pg-sec .mq-muted { font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: auto; }
+  .pg-qgrid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  .pg-q { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--pulso-border); border-left: 3px solid var(--pulso-primary); border-radius: 10px; background: var(--pulso-surface); min-width: 0; min-height: 140px; }
+  .pg-q.is-pendiente { border-left-color: var(--pulso-warn-accent); }
+  .pg-q.is-auto { border-left-color: var(--pulso-success-fg); }
+  .pg-q .pg-q-head { display: flex; align-items: center; gap: 6px; }
+  .pg-q .pg-q-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 700; color: var(--pulso-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-q .pg-q-label { font-size: 12.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 34px; }
+  .pg-q .pg-q-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+  .pg-q .pg-q-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--pulso-border); font-size: 12px; }
+  .pg-q .pg-q-foot .mq-check { font-size: 12px; }
+  .pg-q .pg-q-dic { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--pulso-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .pg-q .pg-q-dic i { color: var(--pulso-success-fg); }
+  .pg-bars { display: flex; gap: 2px; height: 16px; align-items: flex-end; }
+  .pg-bars i { flex: 1; background: var(--pulso-primary-soft); border-top: 2px solid var(--pulso-primary); border-radius: 2px 2px 0 0; }
+  .pg-antes { border-style: dashed; background: var(--pulso-surface-2); }
+  .pg-antes .mq-banner { position: relative; opacity: .75; }
+  .pg-antes .mq-banner::after { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 2px; background: var(--pulso-danger-fg); transform: rotate(-2deg); }
+  .pg-toast-acts { display: inline-flex; gap: 6px; }
+  .pg-toast { width: 540px; }
+  .pg-toast span { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack" style="gap:10px">
+    <!-- filtros y acción -->
+    <div class="pg-filtros">
+      <div class="mq-seg" role="radiogroup" aria-label="Filtrar preguntas">
+        <button type="button" class="is-on"><i data-icon="grid-3x3" data-size="13"></i> Todas <span class="mq-pill-badge">30</span></button>
+        <button type="button"><i data-icon="link-2" data-size="13"></i> Emparejadas <span class="mq-pill-badge">27</span></button>
+        <button type="button"><i data-icon="pencil" data-size="13"></i> Sin decidir <span class="mq-pill-badge">2</span></button>
+        <button type="button"><i data-icon="circle-check" data-size="13"></i> Codificadas <span class="mq-pill-badge">27</span></button>
+      </div>
+      <div class="mq-input-group"><input class="mq-input is-sm" placeholder="Buscar por nombre, etiqueta o sección"><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Buscar"><i data-icon="search" data-size="14"></i></button></div>
+      <span class="mq-spacer"></span>
+      <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="rotate-ccw" data-size="14"></i> Deshacer</button>
+      <button class="pulso-button pulso-button--primary pulso-button--sm" type="button" disabled><i data-icon="check" data-size="14"></i> Codificación aplicada</button>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: minmax(0,1fr) 300px; align-items:start">
+      <!-- grid de preguntas -->
+      <div class="mq-stack mq-callout" style="gap:10px">
+        <span class="mq-note" data-n="1" style="top:-11px; left:200px;">una variante, un ancho: 4 por fila en todas las secciones</span>
+        <div class="pg-sec"><i data-icon="chevron-down" data-size="14"></i> Sin sección <span class="mq-muted">2 preguntas · 2 codificadas</span></div>
+        <div class="pg-qgrid">
+          <article class="pg-q"><div class="pg-q-head"><span class="pg-q-name">consent</span><span class="mq-spacer"></span><span class="mq-chip is-ok">codificada</span></div><div class="pg-q-label">Si está de acuerdo con continuar con la encuesta, por favor, confirmar</div><div class="pg-q-meta"><span class="mq-chip">Opción única</span><span>1,283 resp. · 2 códigos</span></div><div class="pg-bars"><i style="height:100%"></i><i style="height:8%"></i></div><div class="pg-q-foot"><span class="pg-q-dic"><i data-icon="link-2" data-size="13"></i> dic_consent</span><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q is-pendiente"><div class="pg-q-head"><span class="pg-q-name">whynotconsent</span><span class="mq-spacer"></span><span class="mq-chip is-warn">sin decidir</span></div><div class="pg-q-label">Razón principal por la que decide no participar en la encuesta</div><div class="pg-q-meta"><span class="mq-chip">Opción única</span><span>0 resp. · sin dato</span></div><div class="pg-bars" aria-hidden="true"><i style="height:0"></i></div><div class="pg-q-foot"><button class="mq-link" type="button" style="font-size:12px">Emparejar con…</button><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q" style="visibility:hidden" aria-hidden="true"></article>
+          <article class="pg-q" style="visibility:hidden" aria-hidden="true"></article>
+        </div>
+
+        <div class="pg-sec"><i data-icon="chevron-down" data-size="14"></i> Datos generales <span class="mq-muted">5 preguntas · 5 codificadas</span></div>
+        <div class="pg-qgrid">
+          <article class="pg-q"><div class="pg-q-head"><span class="pg-q-name">M5_district</span><span class="mq-spacer"></span><span class="mq-chip is-ok">codificada</span></div><div class="pg-q-label">¿En qué distrito vive actualmente?</div><div class="pg-q-meta"><span class="mq-chip">Opción única</span><span>1,283 resp. · 6 códigos</span></div><div class="pg-bars"><i style="height:100%"></i><i style="height:72%"></i><i style="height:64%"></i><i style="height:50%"></i><i style="height:31%"></i><i style="height:22%"></i></div><div class="pg-q-foot"><span class="pg-q-dic"><i data-icon="link-2" data-size="13"></i> dic_distrito</span><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q is-auto"><div class="pg-q-head"><span class="pg-q-name">E1_age</span><span class="mq-spacer"></span><span class="mq-chip is-ok">auto</span></div><div class="pg-q-label">¿Cuál es su edad?</div><div class="pg-q-meta"><span class="mq-chip">Numérica</span><span>1,283 resp. · 73 únicas</span></div><div class="pg-bars"><i style="height:30%"></i><i style="height:80%"></i><i style="height:100%"></i><i style="height:70%"></i><i style="height:45%"></i><i style="height:20%"></i><i style="height:8%"></i></div><div class="pg-q-foot"><span class="pg-q-dic"><i data-icon="wand-sparkles" data-size="13"></i> rangos de edad (5)</span><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q"><div class="pg-q-head"><span class="pg-q-name">E2_sex</span><span class="mq-spacer"></span><span class="mq-chip is-ok">codificada</span></div><div class="pg-q-label">¿Cuál es su sexo?</div><div class="pg-q-meta"><span class="mq-chip">Opción única</span><span>1,283 resp. · 3 códigos</span></div><div class="pg-bars"><i style="height:100%"></i><i style="height:78%"></i><i style="height:4%"></i></div><div class="pg-q-foot"><span class="pg-q-dic"><i data-icon="link-2" data-size="13"></i> dic_sexo</span><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q"><div class="pg-q-head"><span class="pg-q-name">M3_edu</span><span class="mq-spacer"></span><span class="mq-chip is-ok">codificada</span></div><div class="pg-q-label">¿Cuál es el nivel educativo más alto que ha completado?</div><div class="pg-q-meta"><span class="mq-chip">Opción única</span><span>1,281 resp. · 7 códigos</span></div><div class="pg-bars"><i style="height:18%"></i><i style="height:42%"></i><i style="height:100%"></i><i style="height:66%"></i><i style="height:51%"></i><i style="height:22%"></i><i style="height:9%"></i></div><div class="pg-q-foot"><span class="pg-q-dic"><i data-icon="link-2" data-size="13"></i> dic_educacion</span><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q"><div class="pg-q-head"><span class="pg-q-name">M4_employment</span><span class="mq-spacer"></span><span class="mq-chip is-ok">codificada</span></div><div class="pg-q-label">¿Cuál describe mejor su situación laboral actual?</div><div class="pg-q-meta"><span class="mq-chip">Opción única</span><span>1,279 resp. · 8 códigos</span></div><div class="pg-bars"><i style="height:100%"></i><i style="height:58%"></i><i style="height:44%"></i><i style="height:30%"></i><i style="height:26%"></i><i style="height:16%"></i><i style="height:12%"></i><i style="height:6%"></i></div><div class="pg-q-foot"><span class="pg-q-dic"><i data-icon="link-2" data-size="13"></i> dic_empleo</span><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q is-pendiente"><div class="pg-q-head"><span class="pg-q-name">M4_employment_oth</span><span class="mq-spacer"></span><span class="mq-chip is-warn">sin decidir</span></div><div class="pg-q-label">Otra situación laboral (especifique)</div><div class="pg-q-meta"><span class="mq-chip">Texto</span><span>41 resp. · 39 únicas</span></div><div class="pg-bars" aria-hidden="true"><i style="height:0"></i></div><div class="pg-q-foot"><button class="mq-link" type="button" style="font-size:12px">Codificar en Codificar</button><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q"><div class="pg-q-head"><span class="pg-q-name">M1_nationality</span><span class="mq-spacer"></span><span class="mq-chip is-ok">codificada</span></div><div class="pg-q-label">¿Cuál es su nacionalidad?</div><div class="pg-q-meta"><span class="mq-chip">Opción única</span><span>1,283 resp. · 4 códigos</span></div><div class="pg-bars"><i style="height:100%"></i><i style="height:12%"></i><i style="height:6%"></i><i style="height:3%"></i></div><div class="pg-q-foot"><span class="pg-q-dic"><i data-icon="link-2" data-size="13"></i> dic_nacionalidad</span><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+          <article class="pg-q"><div class="pg-q-head"><span class="pg-q-name">M2_arrival_year</span><span class="mq-spacer"></span><span class="mq-chip is-ok">auto</span></div><div class="pg-q-label">¿En qué año llegó al Perú?</div><div class="pg-q-meta"><span class="mq-chip">Numérica</span><span>1,142 resp. · 11 únicas</span></div><div class="pg-bars"><i style="height:6%"></i><i style="height:14%"></i><i style="height:48%"></i><i style="height:100%"></i><i style="height:62%"></i><i style="height:30%"></i><i style="height:18%"></i></div><div class="pg-q-foot"><span class="pg-q-dic"><i data-icon="wand-sparkles" data-size="13"></i> periodos (4)</span><span class="mq-spacer"></span><label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Incluir</span></label></div></article>
+        </div>
+        <div class="pg-sec"><i data-icon="chevron-right" data-size="14"></i> Protección y convivencia <span class="mq-muted">12 preguntas · 11 codificadas · colapsada</span></div>
+        <div class="pg-sec"><i data-icon="chevron-right" data-size="14"></i> Medios de vida <span class="mq-muted">11 preguntas · 11 codificadas · colapsada</span></div>
+      </div>
+
+      <!-- lo que hoy ocupa espacio permanente -->
+      <div class="mq-stack" style="gap:10px">
+        <section class="mq-panel pg-antes mq-callout">
+          <span class="mq-note" data-n="2" style="top:-11px; left:12px;">esto ya no vive aquí</span>
+          <div class="mq-panel-head"><i data-icon="ban" data-size="15"></i><h3>Hoy: banner inline permanente</h3></div>
+          <div class="mq-banner is-ok"><i data-icon="circle-check" data-size="15"></i> Codificación aplicada: 27 respuestas en 13 grupos.</div>
+          <div class="mq-banner is-warn" style="margin-top:8px"><i data-icon="triangle-alert" data-size="15"></i> 1 variable marcada sin decidir. Si alguna no se va a codificar, regístralo con su motivo para que no parezca un olvido.</div>
+          <p class="mq-faint" style="margin:10px 0 0; font-size:11.5px">Dos <code>&lt;Alert&gt;</code> que no se cierran, no tienen acción y empujan el grid 90 px hacia abajo en cada visita.</p>
+        </section>
+        <div class="mq-notas mq-callout" style="margin:0"><span class="mq-note" data-n="3" style="top:-11px; left:12px;">el estado queda en la cabecera</span><b>Qué cambia respecto de hoy</b>
+          <ol>
+            <li><b>49 <code>&lt;Alert&gt;</code> de resultado pasan a <code>toast()</code> con acción</b> («Deshacer», «Ver base final»); se cierra solo a los 8 s o con Esc y no empuja el contenido.</li>
+            <li><b>El toast ya existe</b> (ADR 0047, <code>Toaster</code>) y se usa 7 veces; esta oleada migra al menos 20 usos.</li>
+            <li><b>Cards de una variante y un ancho</b> (4 por fila) con el interior usado. Hoy «Sin sección» pinta 2 por fila con ~100 px vacíos (C2).</li>
+            <li>«Sin decidir» deja de ser banda: chip en la cabecera, borde ámbar en la card y filtro en la barra. El <b>estado</b> vive en la cabecera; el <b>resultado del evento</b>, en el toast.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- toast con acción -->
+  <div class="mq-toast pg-toast mq-callout" role="status" aria-live="polite">
+    <span class="mq-note" data-n="4" style="top:-30px; left:0;">`toast()` con acción y cierre; se va solo, no empuja el grid</span>
+    <i data-icon="circle-check" data-size="18" class="mq-toast-ok"></i>
+    <div><strong>Codificación aplicada</strong><span>27 respuestas en 13 grupos · 2 variables sin decidir</span></div>
+    <span class="pg-toast-acts"><button class="mq-toast-act" type="button">Deshacer</button><button class="mq-toast-act" type="button">Ver base final</button></span>
+    <button class="mq-toast-x" type="button" aria-label="Cerrar aviso"><i data-icon="x" data-size="14"></i></button>
+  </div>
+</div>
+</body>
+</html>

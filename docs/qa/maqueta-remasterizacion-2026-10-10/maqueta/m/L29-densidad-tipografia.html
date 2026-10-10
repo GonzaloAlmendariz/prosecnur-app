@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L29 · Monitoreo › Avance › Metas: densidad y tipografía declarables</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L29", titulo: "Monitoreo › Avance › Metas: la misma pestaña en densidad cómoda y compacta, con la escala tipográfica por rol",
+  hoy: "../hoy/aulas-avance.png",
+  nota: "Hoy: 8,188 font-size en px y 0 por token; 108 declaraciones bajo 10 px; la densidad no es declarable (411 usos de space contra ~2,062 literales).",
+  modulo: "monitoreo",
+  proyecto: { nombre: "ccss2026_campo", estado: "guardado", fecha: "5/10/2026" },
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Modo</span><b>Cursos-horario</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Activas</span><b>1/1</b></span></span>',
+  secciones: [
+    { id: "fuentes", label: "Fuentes" }, { id: "agenda", label: "Agenda" }, { id: "validacion", label: "Validación" },
+    { id: "consultas", label: "Consultas" }, { id: "avance", label: "Avance", badge: "115 %" },
+  ],
+  seccionActiva: "avance",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Regenerado</span><b>5/10/26</b></span></span>',
+  chips: [{ label: "Sincronizado 5/10/26", tone: "success", detail: "Última sincronización con Kobo: 5/10/2026 15:04" }],
+  acciones: [{ label: "Traer respuestas", icon: "refresh-cw", kind: "primary" }],
+  pestanas: [
+    { id: "resumen", label: "Resumen", detail: "Cursos-horario aplicados, cuotas y brechas", icon: "chart-column" },
+    { id: "cuotas", label: "Metas", detail: "Avance por nivel y por carrera", icon: "target" },
+    { id: "rendimiento", label: "Rendimiento", detail: "Respuestas por curso-horario", icon: "trending-up" },
+    { id: "efectividad", label: "Efectividad", detail: "Cuáles cuentan y por qué", icon: "gauge" },
+    { id: "salidas", label: "Salidas", detail: "PDF y Excel de avance", icon: "download" },
+  ],
+  pestanaActiva: "cuotas",
+  railFooter: '<span class="pg-corte" title="Corte · 5/10/26 15:04">05/10<br>15:04</span>',
+  cabecera: { eyebrow: "Cursos-horario · Avance", titulo: "Metas", detalle: "Avance por nivel y por carrera contra la meta del plan",
+    control: '<div class="mq-seg" role="radiogroup" aria-label="Densidad de la interfaz"><button type="button" aria-checked="false" role="radio"><i data-icon="rows-3" data-size="13"></i> Cómoda</button><button type="button" class="is-on" role="radio" aria-checked="true"><i data-icon="list-ordered" data-size="13"></i> Compacta</button></div>',
+    chips: [{ label: "<b>459</b> cuentan" }, { label: "<b>400</b> meta" }, { label: "<b>115 %</b> avance", tone: "ok" }] },
+};
+</script>
+<style>
+  .pg-corte { display: inline-block; padding: 5px 0; border-radius: var(--pulso-radius); border: 1px solid var(--pulso-primary-border); background: var(--pulso-primary-soft); color: var(--pulso-primary); font-weight: var(--pulso-weight-heavy); font-size: 10px; line-height: 1.25; width: 40px; font-variant-numeric: tabular-nums; }
+  .pg-root { height: 100%; min-height: 0; }
+  .pg-fill { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 312px; grid-template-rows: minmax(0,1fr) auto; gap: var(--pulso-space-2) var(--pulso-space-3); height: 100%; min-height: 0; }
+  .pg-fill > .mq-notas { grid-column: 1 / -1; margin: 0; }
+
+  /* ---- la densidad es un atributo: reescribe espacio, alturas y tamaño base ---- */
+  .pg-demo { display: flex; flex-direction: column; min-height: 0; min-width: 0; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card); background: var(--pulso-surface); padding: var(--pg-pad); gap: var(--pg-gap); font-size: var(--pg-fs); }
+  .pg-demo[data-density="comoda"] { --pg-pad: var(--pulso-space-4); --pg-gap: var(--pulso-space-4); --pg-h: var(--pulso-control-height-lg); --pg-row: 36px; --pg-head-h: 40px; --pg-fs: 13px; --pg-kpi: 21px; --pg-cell-x: var(--pulso-space-3); }
+  .pg-demo[data-density="compacta"] { --pg-pad: var(--pulso-space-2); --pg-gap: var(--pulso-space-2); --pg-h: var(--pulso-control-height-sm); --pg-row: 30px; --pg-head-h: 24px; --pg-fs: 12px; --pg-kpi: 17px; --pg-cell-x: var(--pulso-space-2); }
+  .pg-demo[data-density="compacta"] .pg-card { padding: 6px var(--pulso-space-2); }
+  .pg-demo[data-density="compacta"] .pg-demo-tag { height: 24px; }
+  .pg-demo-tag { display: flex; align-items: center; gap: var(--pulso-space-2); height: var(--pg-h); padding: 0 var(--pulso-space-2); border-radius: var(--pulso-radius); background: var(--pulso-surface-3); border: 1px solid var(--pulso-border); flex: 0 0 auto; }
+  .pg-demo-tag b { font-size: 12px; font-weight: var(--pulso-weight-heavy); }
+  .pg-demo-tag code { font-size: 10.5px; color: var(--pulso-text-soft); background: var(--pulso-surface); border: 1px solid var(--pulso-border); border-radius: 5px; padding: 1px 5px; white-space: nowrap; }
+  .pg-demo-tag .mq-spacer { flex: 1; }
+  .pg-demo-tag .pg-geo { font-size: 10.5px; color: var(--pulso-text-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pg-head { display: flex; align-items: center; gap: var(--pulso-space-2); min-height: var(--pg-head-h); flex: 0 0 auto; }
+  .pg-head .pg-copy { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 1px; }
+  .pg-head h3 { margin: 0; font-size: 13.5px; font-weight: var(--pulso-weight-heavy); line-height: 1.2; }
+  .pg-head p { margin: 0; font-size: 11.5px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-demo[data-density="compacta"] .pg-head p { display: none; }
+  .pg-head .mq-select { width: auto; height: var(--pg-h); font-size: var(--pg-fs); flex: 0 0 auto; }
+  .pg-head .pulso-button { height: var(--pg-h); font-size: var(--pg-fs); padding-inline: var(--pulso-space-3); }
+  .pg-cards { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--pg-gap); flex: 0 0 auto; }
+  .pg-card { padding: var(--pg-cell-x); border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius); background: var(--pulso-surface-2); min-width: 0; }
+  .pg-card .pulso-section-eyebrow { font-size: 10px; display: block; white-space: nowrap; }
+  .pg-card b { display: block; font-size: var(--pg-kpi); font-weight: var(--pulso-weight-black); font-variant-numeric: tabular-nums; letter-spacing: -.3px; line-height: 1.1; margin-top: 1px; }
+  .pg-card b small { font-size: 11px; font-weight: var(--pulso-weight-semibold); color: var(--pulso-text-soft); letter-spacing: 0; margin-left: 3px; }
+  .pg-card span { display: block; font-size: 11px; color: var(--pulso-text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .pg-card.is-warn { background: var(--pulso-warn-bg); border-color: var(--pulso-warn-border); }
+  .pg-card.is-warn span { color: var(--pulso-warn-fg); }
+  .pg-list { flex: 1 1 auto; min-height: 0; overflow: auto; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius); background: var(--pulso-surface); }
+  .pg-list table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: var(--pg-fs); }
+  .pg-list th { position: sticky; top: 0; z-index: 2; height: var(--pg-row); padding: 0 var(--pg-cell-x); background: var(--pulso-header-row); color: var(--pulso-text-soft); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: var(--pulso-weight-bold); text-align: left; border-bottom: 1px solid var(--pulso-border); white-space: nowrap; }
+  .pg-list td { height: var(--pg-row); padding: 0 var(--pg-cell-x); border-bottom: 1px solid var(--pulso-border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  .pg-list tr:last-child td { border-bottom: 0; }
+  .pg-list .num { text-align: right; }
+  .pg-list td.num b { font-weight: var(--pulso-weight-bold); }
+  .pg-list td .pg-bar { display: inline-block; vertical-align: middle; width: 100%; height: 5px; border-radius: var(--pulso-radius-chip); background: var(--pulso-surface-3); overflow: hidden; }
+  .pg-list td .pg-bar i { display: block; height: 100%; width: calc(min(var(--p), 100) * 1%); background: var(--pulso-resultado-efectiva); }
+  .pg-list td .pg-bar.is-short i { background: var(--pulso-warn-accent); }
+  .pg-list td .pg-faltan { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-bold); }
+  .pg-list td .pg-cero { color: var(--pulso-text-faint); }
+
+  /* ---- escala tipográfica por rol ---- */
+  .pg-type { display: flex; flex-direction: column; min-height: 0; gap: var(--pulso-space-2); }
+  .pg-type .mq-panel { padding: var(--pulso-space-3) var(--pulso-space-4); }
+  .pg-roles { display: flex; flex-direction: column; }
+  .pg-role { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: var(--pulso-space-3); padding: 4px 0; border-bottom: 1px dashed var(--pulso-border); }
+  .pg-role:last-child { border-bottom: 0; }
+  .pg-role .pg-sample { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.15; color: var(--pulso-text); }
+  .pg-role .pg-meta { text-align: right; line-height: 1.2; }
+  .pg-role .pg-meta b { display: inline; font-size: 10.5px; font-weight: var(--pulso-weight-heavy); letter-spacing: .3px; text-transform: uppercase; color: var(--pulso-primary); margin-right: 5px; }
+  .pg-role .pg-meta code { font-size: 10px; color: var(--pulso-text-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pg-role .pg-meta small { display: block; font-size: 10px; color: var(--pulso-text-soft); white-space: nowrap; }
+  .pg-t-display { font-size: 28px; font-weight: var(--pulso-weight-black); letter-spacing: -.6px; }
+  .pg-t-kpi { font-size: 21px; font-weight: var(--pulso-weight-black); letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
+  .pg-t-title { font-size: 16px; font-weight: var(--pulso-weight-heavy); letter-spacing: -.2px; }
+  .pg-t-subtitle { font-size: 13px; font-weight: var(--pulso-weight-semibold); }
+  .pg-t-body { font-size: 13px; font-weight: var(--pulso-weight-regular); }
+  .pg-t-caption { font-size: 11.5px; font-weight: var(--pulso-weight-medium); color: var(--pulso-text-soft); }
+  .pg-t-eyebrow { font-size: 11px; font-weight: var(--pulso-weight-semibold); text-transform: uppercase; letter-spacing: .7px; color: var(--pulso-text-soft); }
+  .pg-t-micro { font-size: 10px; font-weight: var(--pulso-weight-bold); color: var(--pulso-text-soft); }
+  .pg-piso { display: flex; align-items: center; gap: var(--pulso-space-2); padding: 6px 10px; border-radius: var(--pulso-radius); background: var(--pulso-warn-bg); border: 1px solid var(--pulso-warn-border); color: var(--pulso-warn-fg); font-size: 11px; }
+  .pg-piso b { font-variant-numeric: tabular-nums; }
+  .pg-dens { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 3px var(--pulso-space-3); font-size: 11px; align-items: center; }
+  .pg-dens .pulso-section-eyebrow { font-size: 9.5px; }
+  .pg-dens code { font-size: 10px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .pg-dens b { font-variant-numeric: tabular-nums; text-align: right; }
+  .pg-dens .is-on { color: var(--pulso-primary); }
+</style>
+</head>
+<body>
+<div id="contenido" class="pg-root">
+  <div class="pg-fill">
+
+    <!-- cómoda -->
+    <section class="pg-demo mq-callout" data-density="comoda" aria-label="Metas en densidad cómoda">
+      <span class="mq-note" data-n="1" style="top:-11px; left:14px;">cómoda: alturas 36, space-4, fila 36; 6 carreras a la vista</span>
+      <div class="pg-demo-tag"><b>Cómoda</b><code>data-density="comoda"</code><span class="mq-spacer"></span><span class="pg-geo">control 36 · fila 36 · space-4 = 16</span></div>
+      <div class="pg-head">
+        <div class="pg-copy"><h3>Avance por nivel</h3><p>Cuentan para la muestra contra la meta de cada nivel</p></div>
+        <select class="mq-select" aria-label="Criterio"><option>Criterio: cuentan</option><option>Criterio: efectivas</option></select>
+      </div>
+      <div class="pg-cards">
+        <div class="pg-card"><span class="pulso-section-eyebrow">Nivel 6</span><b>131<small>/ 100</small></b><span>131 % · faltan 0</span></div>
+        <div class="pg-card"><span class="pulso-section-eyebrow">Nivel 7</span><b>118<small>/ 100</small></b><span>118 % · faltan 0</span></div>
+        <div class="pg-card"><span class="pulso-section-eyebrow">Nivel 8</span><b>112<small>/ 100</small></b><span>112 % · faltan 0</span></div>
+        <div class="pg-card is-warn"><span class="pulso-section-eyebrow">Nivel 9</span><b>98<small>/ 100</small></b><span>98 % · faltan 2</span></div>
+      </div>
+      <div class="pg-head">
+        <div class="pg-copy"><h3>Por carrera y turno <span class="mq-muted" style="font-weight:600;font-size:11.5px">· 12 filas · faltan 6</span></h3><p>581 pedidas por el plan · 635 efectivas</p></div>
+        <button class="pulso-button pulso-button--secondary" type="button"><i data-icon="download" data-size="14"></i> Excel</button>
+      </div>
+      <div class="pg-list">
+        <table aria-label="Avance por carrera y turno, cómoda">
+          <colgroup><col><col style="width:60px"><col style="width:74px"><col style="width:84px"><col style="width:62px"></colgroup>
+          <thead><tr><th>Carrera · turno</th><th class="num">Meta</th><th class="num">Efectivas</th><th>%</th><th class="num">Faltan</th></tr></thead>
+          <tbody>
+            <tr><td>Economía · mañana</td><td class="num">150</td><td class="num"><b>168</b></td><td><span class="pg-bar" style="--p:112"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Economía · tarde</td><td class="num">125</td><td class="num"><b>143</b></td><td><span class="pg-bar" style="--p:114"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Relaciones Internacionales · mañana</td><td class="num">70</td><td class="num"><b>82</b></td><td><span class="pg-bar" style="--p:117"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Relaciones Internacionales · tarde</td><td class="num">60</td><td class="num"><b>62</b></td><td><span class="pg-bar" style="--p:103"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Ciencia Política y Gobierno · mañana</td><td class="num">44</td><td class="num"><b>50</b></td><td><span class="pg-bar" style="--p:114"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Ciencia Política y Gobierno · tarde</td><td class="num">36</td><td class="num"><b>36</b></td><td><span class="pg-bar" style="--p:100"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Finanzas · mañana</td><td class="num">36</td><td class="num"><b>40</b></td><td><span class="pg-bar" style="--p:111"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Finanzas · tarde</td><td class="num">24</td><td class="num"><b>24</b></td><td><span class="pg-bar" style="--p:100"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Antropología · mañana</td><td class="num">12</td><td class="num"><b>11</b></td><td><span class="pg-bar is-short" style="--p:92"><i></i></span></td><td class="num"><span class="pg-faltan">1</span></td></tr>
+            <tr><td>Antropología · tarde</td><td class="num">8</td><td class="num"><b>7</b></td><td><span class="pg-bar is-short" style="--p:88"><i></i></span></td><td class="num"><span class="pg-faltan">1</span></td></tr>
+            <tr><td>Sociología · mañana</td><td class="num">10</td><td class="num"><b>8</b></td><td><span class="pg-bar is-short" style="--p:80"><i></i></span></td><td class="num"><span class="pg-faltan">2</span></td></tr>
+            <tr><td>Sociología · tarde</td><td class="num">6</td><td class="num"><b>4</b></td><td><span class="pg-bar is-short" style="--p:67"><i></i></span></td><td class="num"><span class="pg-faltan">2</span></td></tr>
+          </tbody>
+        </table>
+              </div>
+    </section>
+
+    <!-- compacta -->
+    <section class="pg-demo mq-callout" data-density="compacta" aria-label="Metas en densidad compacta">
+      <span class="mq-note" data-n="2" style="top:-11px; left:14px;">compacta: alturas 28, space-2, fila 30; las 12 a la vista</span>
+      <span class="mq-note" data-n="3" style="bottom:-11px; right:14px;">el control de la cabecera escribe data-density en :root</span>
+      <div class="pg-demo-tag"><b>Compacta</b><code>data-density="compacta"</code><span class="mq-spacer"></span><span class="pg-geo">control 28 · fila 30 · space-2 = 8</span></div>
+      <div class="pg-head">
+        <div class="pg-copy"><h3>Avance por nivel</h3><p>Cuentan para la muestra contra la meta de cada nivel</p></div>
+        <select class="mq-select" aria-label="Criterio"><option>Criterio: cuentan</option><option>Criterio: efectivas</option></select>
+      </div>
+      <div class="pg-cards">
+        <div class="pg-card"><span class="pulso-section-eyebrow">Nivel 6</span><b>131<small>/ 100</small></b><span>131 % · faltan 0</span></div>
+        <div class="pg-card"><span class="pulso-section-eyebrow">Nivel 7</span><b>118<small>/ 100</small></b><span>118 % · faltan 0</span></div>
+        <div class="pg-card"><span class="pulso-section-eyebrow">Nivel 8</span><b>112<small>/ 100</small></b><span>112 % · faltan 0</span></div>
+        <div class="pg-card is-warn"><span class="pulso-section-eyebrow">Nivel 9</span><b>98<small>/ 100</small></b><span>98 % · faltan 2</span></div>
+      </div>
+      <div class="pg-head">
+        <div class="pg-copy"><h3>Por carrera y turno <span class="mq-muted" style="font-weight:600;font-size:11.5px">· 12 filas · faltan 6</span></h3><p>581 pedidas por el plan · 635 efectivas</p></div>
+        <button class="pulso-button pulso-button--secondary" type="button"><i data-icon="download" data-size="14"></i> Excel</button>
+      </div>
+      <div class="pg-list">
+        <table aria-label="Avance por carrera y turno, compacta">
+          <colgroup><col><col style="width:54px"><col style="width:74px"><col style="width:80px"><col style="width:56px"></colgroup>
+          <thead><tr><th>Carrera · turno</th><th class="num">Meta</th><th class="num">Efectivas</th><th>%</th><th class="num">Faltan</th></tr></thead>
+          <tbody>
+            <tr><td>Economía · mañana</td><td class="num">150</td><td class="num"><b>168</b></td><td><span class="pg-bar" style="--p:112"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Economía · tarde</td><td class="num">125</td><td class="num"><b>143</b></td><td><span class="pg-bar" style="--p:114"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Relaciones Internacionales · mañana</td><td class="num">70</td><td class="num"><b>82</b></td><td><span class="pg-bar" style="--p:117"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Relaciones Internacionales · tarde</td><td class="num">60</td><td class="num"><b>62</b></td><td><span class="pg-bar" style="--p:103"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Ciencia Política y Gobierno · mañana</td><td class="num">44</td><td class="num"><b>50</b></td><td><span class="pg-bar" style="--p:114"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Ciencia Política y Gobierno · tarde</td><td class="num">36</td><td class="num"><b>36</b></td><td><span class="pg-bar" style="--p:100"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Finanzas · mañana</td><td class="num">36</td><td class="num"><b>40</b></td><td><span class="pg-bar" style="--p:111"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Finanzas · tarde</td><td class="num">24</td><td class="num"><b>24</b></td><td><span class="pg-bar" style="--p:100"><i></i></span></td><td class="num pg-cero">0</td></tr>
+            <tr><td>Antropología · mañana</td><td class="num">12</td><td class="num"><b>11</b></td><td><span class="pg-bar is-short" style="--p:92"><i></i></span></td><td class="num"><span class="pg-faltan">1</span></td></tr>
+            <tr><td>Antropología · tarde</td><td class="num">8</td><td class="num"><b>7</b></td><td><span class="pg-bar is-short" style="--p:88"><i></i></span></td><td class="num"><span class="pg-faltan">1</span></td></tr>
+            <tr><td>Sociología · mañana</td><td class="num">10</td><td class="num"><b>8</b></td><td><span class="pg-bar is-short" style="--p:80"><i></i></span></td><td class="num"><span class="pg-faltan">2</span></td></tr>
+            <tr><td>Sociología · tarde</td><td class="num">6</td><td class="num"><b>4</b></td><td><span class="pg-bar is-short" style="--p:67"><i></i></span></td><td class="num"><span class="pg-faltan">2</span></td></tr>
+          </tbody>
+        </table>
+              </div>
+    </section>
+
+    <!-- escala tipográfica -->
+    <div class="pg-type">
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="4" style="top:-14px; left:14px;">8 roles, cada uno a su tamaño real; piso 10 px</span>
+        <div class="mq-panel-head"><i data-icon="type" data-size="15"></i><h3>Escala tipográfica</h3><span class="mq-spacer"></span><code style="font-size:10.5px;color:var(--pulso-text-soft)">--pulso-type-*</code></div>
+        <div class="pg-roles">
+          <div class="pg-role"><span class="pg-sample pg-t-display">Prosecnur</span><span class="pg-meta"><b>display</b><code>28 / 900</code><small>solo hero del Home</small></span></div>
+          <div class="pg-role"><span class="pg-sample pg-t-kpi">1,283</span><span class="pg-meta"><b>kpi</b><code>21 / 900 tab.</code><small>cifras de tarjeta y cabecera</small></span></div>
+          <div class="pg-role"><span class="pg-sample pg-t-title">Avance por nivel</span><span class="pg-meta"><b>title</b><code>16 / 800</code><small>pestaña, diálogo, panel</small></span></div>
+          <div class="pg-role"><span class="pg-sample pg-t-subtitle">Por carrera y turno</span><span class="pg-meta"><b>subtitle</b><code>13 / 600</code><small>subtítulo, label de campo</small></span></div>
+          <div class="pg-role"><span class="pg-sample pg-t-body">Cuentan contra la meta.</span><span class="pg-meta"><b>body</b><code>13 / 400</code><small>texto base, celdas, inputs</small></span></div>
+          <div class="pg-role"><span class="pg-sample pg-t-caption">581 pedidas · 635 efectivas</span><span class="pg-meta"><b>caption</b><code>11.5 / 500</code><small>hint, pie, base de cifra</small></span></div>
+          <div class="pg-role"><span class="pg-sample pg-t-eyebrow">Avance · Metas</span><span class="pg-meta"><b>eyebrow</b><code>11 / 600 caps</code><small>eyebrow, th de tabla</small></span></div>
+          <div class="pg-role"><span class="pg-sample pg-t-micro">05/10 15:04</span><span class="pg-meta"><b>micro</b><code>10 / 700 · piso</code><small>chips, corte del rail</small></span></div>
+        </div>
+        <div class="pg-piso" style="margin-top:6px"><i data-icon="octagon-alert" data-size="13"></i><span>Hoy: <b>108</b> declaraciones por debajo de 10 px y <b>8,188</b> font-size literales; ninguna por token.</span></div>
+      </section>
+
+      <section class="mq-panel">
+        <div class="mq-panel-head" style="margin-bottom:6px"><i data-icon="rows-3" data-size="15"></i><h3>Qué reescribe la densidad</h3><span class="mq-spacer"></span><code style="font-size:10.5px;color:var(--pulso-text-soft);white-space:nowrap">[data-density]</code></div>
+        <div class="pg-dens">
+          <span class="pulso-section-eyebrow">Token</span><span class="pulso-section-eyebrow">Cómoda</span><span class="pulso-section-eyebrow">Compacta</span>
+          <code>--pulso-space-2 … 4</code><b>8 · 12 · 16</b><b class="is-on">6 · 8 · 12</b>
+          <code>--pulso-control-height-md</code><b>36</b><b class="is-on">28</b>
+          <code>--pulso-row-height</code><b>36</b><b class="is-on">30</b>
+          <code>--pulso-type-body</code><b>13</b><b class="is-on">12</b>
+          <code>--pulso-radius-card</code><b>14</b><b class="is-on">12</b>
+        </div>
+      </section>
+    </div>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>La densidad es un atributo</b>: <code>data-density</code> en <code>:root</code> reescribe <code>--pulso-space-*</code>, alturas de control y de fila; ningún componente decide su propio espacio. El control vive en la cabecera y se guarda por usuario.</li>
+        <li><b>Ocho roles tipográficos</b> <code>--pulso-type-*</code> con piso de 10 px y un contrato que falla ante un <code>font-size</code> literal nuevo. Hoy: 8,188 literales, 0 por token, 108 bajo el piso.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L28 · Ocurrencias › Reporte UMP con PulsoTable e inspector compartido</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L28", titulo: "Ocurrencias › Reporte UMP: PulsoTable con anchos declarados, cabecera pegada, 151 filas virtualizadas e inspector compartido",
+  hoy: "../hoy/territorial-reporte-ump.png",
+  nota: "Hoy: tabla de 6 columnas con dos líneas por celda y sin anchos declarados; sin inspector; el detalle de una UMP exige cambiar de pestaña.",
+  modulo: "monitoreo",
+  proyecto: { nombre: "acnur_acg", estado: "sucio", fecha: "24/7/2026" },
+  secciones: [
+    { id: "fuente", label: "Fuente" }, { id: "umps", label: "UMPs" }, { id: "validacion", label: "Validación" },
+    { id: "consultas", label: "Consultas" }, { id: "avance", label: "Avance", badge: "107 %" }, { id: "ocurrencias", label: "Ocurrencias" },
+  ],
+  seccionActiva: "ocurrencias",
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Modo</span><b>Territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Activas</span><b>2/2</b></span></span>',
+  herramientas: '<span class="pg-tools"><span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Regenerado</span><b>10/10/26</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,693</b></span></span><span class="mq-seg" role="radiogroup" aria-label="Alcance de la base"><button type="button" class="is-on">Avance</button><button type="button">Todo</button></span></span>',
+  chips: [{ label: "Sincronizado 10/10/26", tone: "success", detail: "Última sincronización con Kobo: 10/10/26" }],
+  pestanas: [
+    { id: "resumen", label: "Resumen", detail: "Ocurrencias por tipo", icon: "clipboard-list" },
+    { id: "responsables", label: "Responsables", detail: "Carga por encuestador", icon: "users" },
+    { id: "reporte-ump", label: "Reporte UMP", detail: "Estados y UMP", icon: "table-2" },
+    { id: "cadena", label: "Cadena", detail: "Titulares y reemplazos", icon: "git-branch" },
+    { id: "controles", label: "Controles", detail: "Supervisión en campo", icon: "shield-alert" },
+    { id: "agenda", label: "Agenda", detail: "Visitas programadas", icon: "calendar-days" },
+  ],
+  pestanaActiva: "reporte-ump",
+  railFooter: '<span class="pg-corte" title="Corte territorial · campo real 9/07/26, 7:24 a. m.">09/07<br>07:24</span>',
+  cabecera: { eyebrow: "Ocurrencias de campo", titulo: "Reporte UMP", detalle: "Estados y UMP", estado: { kind: "listo", label: "Sincronizado" },
+    chips: [{ label: "<b>151</b> UMP" }, { label: "<b>128</b> con reporte", tone: "ok" }, { label: "<b>23</b> sin reporte", tone: "warn" }, { label: "<b>1</b> por conciliar" }] },
+};
+</script>
+<style>
+  .pg-root { height: 100%; min-height: 0; }
+  .pg-tools { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; white-space: nowrap; }
+  .pg-corte { display: inline-block; padding: 5px 0; border-radius: 10px; border: 1px solid var(--pulso-primary-border); background: var(--pulso-primary-soft); color: var(--pulso-primary); font-weight: 800; font-size: 10px; line-height: 1.25; width: 40px; font-variant-numeric: tabular-nums; }
+  .pg-fill { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; }
+  .pg-toolbar { display: flex; align-items: center; gap: 8px; }
+  .pg-toolbar .mq-input-group { width: 300px; }
+  .pg-toolbar .mq-select.is-sm { width: 190px; }
+  .pg-toolbar .mq-seg button { height: 24px; padding: 0 10px; font-size: 11.5px; }
+  .pg-body { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 12px; flex: 1 1 auto; min-height: 0; }
+  .pg-tabla { display: flex; flex-direction: column; min-height: 0; padding-top: 18px; }
+  .pg-tabla .mq-table-wrap { flex: 1 1 auto; min-height: 0; }
+  .pg-tabla .mq-table th:first-child, .pg-tabla .mq-table td:first-child { padding-left: 14px; }
+  .pg-tabla .mq-table tr.is-selected td { font-weight: 600; }
+  .pg-tabla .mq-table td.num b { font-weight: 800; }
+  .pg-tabla .mq-table td .mq-chip { height: 18px; font-size: 10px; }
+  .pg-tabla .mq-table td.pg-resp { color: var(--pulso-text-soft); }
+  .pg-tabla .mq-table td.pg-resp.is-none { color: var(--pulso-warn-fg); font-weight: 600; }
+  .pg-tabla .mq-table tbody tr { cursor: pointer; }
+  .pg-tfoot { display: flex; align-items: center; gap: 10px; padding: 6px 2px 0; font-size: 11.5px; color: var(--pulso-text-faint); font-variant-numeric: tabular-nums; }
+  .pg-insp-kpis { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+  .pg-insp-kpis .mq-kpi { padding: 7px 8px; }
+  .pg-insp-kpis .mq-kpi .pulso-section-eyebrow { font-size: 9.5px; letter-spacing: .3px; }
+  .pg-root .mq-chip { white-space: nowrap; }
+  .mq-inspector .mq-notas { font-size: 11px; padding: 10px 12px; line-height: 1.45; }
+  .pg-insp-kpis .mq-kpi b { font-size: 18px; }
+  .pg-cadena { display: grid; gap: 4px; }
+  .pg-eslabon { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); font-size: 12px; }
+  .pg-eslabon i.pg-dot { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 10px; font-weight: 800; background: var(--pulso-surface-3); color: var(--pulso-text-soft); }
+  .pg-eslabon.is-titular i.pg-dot { background: var(--pulso-primary); color: var(--pulso-surface); }
+  .pg-eslabon .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+  .pg-eslabon small { display: block; color: var(--pulso-text-faint); font-size: 10.5px; }
+  .pg-insp-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div id="contenido" class="pg-root">
+  <div class="pg-fill">
+    <!-- toolbar de la tabla -->
+    <div class="pg-toolbar mq-callout">
+      <span class="mq-note" data-n="1" style="bottom:-26px; left:0;">toolbar: buscar, filtros declarados, densidad, exportar</span>
+      <div class="mq-input-group"><input class="mq-input is-sm" placeholder="Buscar UMP, distrito, responsable o fecha" aria-label="Buscar en la tabla"><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Buscar"><i data-icon="search" data-size="14"></i></button></div>
+      <div class="mq-seg" role="radiogroup" aria-label="Filtrar por reporte">
+        <button type="button" class="is-on">Todas <span class="mq-pill-badge">151</span></button>
+        <button type="button">Con reporte <span class="mq-pill-badge">128</span></button>
+        <button type="button">Sin reporte <span class="mq-pill-badge">23</span></button>
+      </div>
+      <select class="mq-select is-sm" aria-label="Distrito"><option>Todos los distritos (6)</option><option>Ate</option><option>Los Olivos</option><option>San Juan de Miraflores</option><option>San Martín de Porres</option><option>Villa El Salvador</option><option>Comas</option></select>
+      <span class="mq-spacer"></span>
+      <div class="mq-seg" role="radiogroup" aria-label="Densidad"><button type="button"><i data-icon="columns-3" data-size="12"></i> Cómoda</button><button type="button" class="is-on"><i data-icon="grip-vertical" data-size="12"></i> Compacta</button></div>
+      <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="download" data-size="14"></i> Exportar CSV</button>
+    </div>
+
+    <div class="pg-body">
+      <!-- tabla -->
+      <div class="pg-tabla mq-callout">
+        <span class="mq-note" data-n="2" style="top:2px; right:0;">anchos declarados, cabecera pegada, 0 datos recortados</span>
+        <div class="mq-table-wrap">
+          <table class="mq-table" data-density="compact" aria-label="Reporte por UMP">
+            <colgroup><col style="width:88px"><col style="width:168px"><col style="width:72px"><col style="width:84px"><col style="width:76px"><col style="width:90px"><col style="width:150px"><col style="width:104px"><col style="width:124px"></colgroup>
+            <thead><tr><th>UMP</th><th>Distrito</th><th>Zona</th><th class="num">Manzanas</th><th class="num">Válidas</th><th class="num">Pendientes</th><th>Responsable</th><th>Estado</th><th>Último reporte</th></tr></thead>
+            <tbody id="pg-rows"></tbody>
+          </table>
+        </div>
+        <div class="pg-tfoot"><span>151 UMP · 15 visibles · filas virtualizadas con <code>react-virtual</code></span><span class="mq-spacer"></span><span>Ordenado por UMP · clic en la cabecera para cambiar</span></div>
+      </div>
+
+      <!-- inspector -->
+      <aside class="mq-inspector mq-callout" aria-label="Detalle de la UMP seleccionada">
+        <span class="mq-note" data-n="3" style="top:-11px; left:12px;">inspector compartido: `?foco=ump-074`</span>
+        <div class="mq-inspector-head">
+          <div class="mq-row"><h3>UMP 074 · Los Olivos</h3><span class="mq-spacer"></span><span class="mq-chip is-warn">sin reporte</span></div>
+          <p>Zona 02700 · Mz 0380 · 8 manzanas · titular del plan</p>
+        </div>
+        <div class="mq-inspector-body">
+          <div class="pg-insp-kpis">
+            <div class="mq-kpi"><span class="pulso-section-eyebrow">Válidas</span><b>11</b><small>de 8 en cuota</small></div>
+            <div class="mq-kpi is-warn"><span class="pulso-section-eyebrow">Pendientes</span><b>0</b><small>cuota cubierta</small></div>
+            <div class="mq-kpi"><span class="pulso-section-eyebrow">No efectivas</span><b>3</b><small>no cuentan</small></div>
+          </div>
+          <div class="mq-inspector-group">
+            <span class="pulso-section-eyebrow">Responsable</span>
+            <div class="mq-row" style="gap:8px"><span class="mq-chip is-warn">sin responsable</span><span class="mq-muted" style="font-size:12px">asignado en ruta</span></div>
+          </div>
+          <div class="mq-inspector-group">
+            <span class="pulso-section-eyebrow">Cadena titular → reemplazo</span>
+            <div class="pg-cadena">
+              <div class="pg-eslabon is-titular"><i class="pg-dot">T</i><div><span class="mono">Mz 0380</span> · titular<small>8 de 8 válidas · activada 1/07</small></div><span class="mq-chip is-ok">cubierta</span></div>
+              <div class="pg-eslabon"><i class="pg-dot">R1</i><div><span class="mono">Mz 0381</span> · reemplazo 1<small>no activado</small></div><span class="mq-chip">reserva</span></div>
+            </div>
+          </div>
+          <div class="mq-inspector-group">
+            <span class="pulso-section-eyebrow">Reporte</span>
+            <dl class="mq-kv" style="margin:0">
+              <dt>Último reporte</dt><dd>sin reporte</dd>
+              <dt>Última válida</dt><dd>8/07/26 16:40</dd>
+              <dt>Conciliación</dt><dd><span class="mq-chip">no requiere</span></dd>
+            </dl>
+          </div>
+          <div class="pg-insp-acts">
+            <button class="pulso-button pulso-button--primary pulso-button--sm" type="button"><i data-icon="users" data-size="14"></i> Reasignar</button>
+            <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="map-pin" data-size="14"></i> Abrir en mapa</button>
+            <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="check-check" data-size="14"></i> Marcar conciliada</button>
+          </div>
+          <div class="mq-notas" style="margin:0"><b>Qué cambia respecto de hoy</b>
+            <ol>
+              <li><b>Cierra la decisión 3</b>: anchos declarados por columna, una línea por celda, numéricos a la derecha; gate: 0 datos recortados en las tres tablas territoriales y este Reporte UMP.</li>
+              <li><b>Cabecera pegada y virtualización</b> con <code>react-table</code> + <code>react-virtual</code> (instalados); 151 filas, 15 en pantalla.</li>
+              <li><b>Inspector compartido</b> (misma pieza que el sideover de L1), abierto por <code>?foco=</code>, no por <code>useState</code>.</li>
+            </ol>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    const distritos = [["Ate", 4200, 4700], ["Los Olivos", 800, 2700], ["San Juan de Miraflores", 1000, 1800], ["San Martín de Porres", 3000, 3600], ["Villa El Salvador", 5000, 5600], ["Comas", 6000, 6400]];
+    const responsables = ["M. Quispe", "R. Huamán", "L. Ccora", "A. Mamani", "J. Flores", "P. Rojas", "S. Condori", "D. Vilca"];
+    const rows = [];
+    let seed = 7;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    for (let i = 1; i <= 151; i++) {
+      const d = distritos[Math.floor((i - 1) / 25.2)] || distritos[5];
+      const zona = String(d[1] + Math.floor(rnd() * (d[2] - d[1]) / 100) * 100).padStart(5, "0");
+      const mz = String(Math.floor(rnd() * 600) + 10).padStart(4, "0");
+      const sinReporte = (i % 7 === 3) || i === 74;
+      const validas = 7 + Math.floor(rnd() * 5);
+      const pend = Math.max(0, 8 - validas);
+      const resp = sinReporte ? "" : responsables[i % responsables.length];
+      const fecha = sinReporte ? "" : `${1 + (i % 8)}/07/26 ${String(8 + (i % 10)).padStart(2, "0")}:${String((i * 7) % 60).padStart(2, "0")}`;
+      const estado = i === 151 ? ["por conciliar", ""] : sinReporte ? ["sin reporte", "is-warn"] : pend > 0 ? ["en cuota", ""] : ["completa", "is-ok"];
+      const sel = i === 74 ? ' class="is-selected" aria-selected="true"' : "";
+      rows.push(`<tr${sel}><td class="mono">UMP ${String(i).padStart(3, "0")}</td><td>${d[0]}</td><td class="mono">${zona}</td><td class="num">8</td><td class="num"><b>${validas}</b> / 8</td><td class="num">${pend}</td><td class="pg-resp${resp ? "" : " is-none"}">${resp || "Sin responsable"}</td><td><span class="mq-chip ${estado[1]}">${estado[0]}</span></td><td>${fecha || '<span class="mq-faint">—</span>'}</td></tr>`);
+    }
+    document.getElementById("pg-rows").innerHTML = rows.join("");
+  })();
+  </script>
+</div>
+</body>
+</html>

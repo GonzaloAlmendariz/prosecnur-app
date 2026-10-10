@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L15/L16 · Recopiladores con el chrome canónico</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<style>
+  .pg-canal { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); }
+  .pg-canal.is-on { border-color: var(--pulso-primary-border); background: var(--pulso-primary-soft); }
+  .pg-canal strong { display: block; font-size: 13px; }
+  .pg-canal span { font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-qr { width: 44px; height: 44px; border-radius: 6px; background: repeating-conic-gradient(var(--pulso-text) 0 25%, transparent 0 50%) 0 0 / 8px 8px; border: 2px solid var(--pulso-surface); outline: 1px solid var(--pulso-border); }
+</style>
+<script>
+window.MAQUETA = {
+  codigo: "L15 · L16", titulo: "Recopiladores: píldoras de sección sin numerar, rail de pestañas de 56 px y cabecera única",
+  hoy: "../hoy/recopiladores.png",
+  nota: "Hoy: stepper numerado «1 Plan · 2 Accesos · 3 Materiales · 4 Entrega», pestañas como píldoras inline, sin rail, 80 % del viewport sin marco.",
+  modulo: "recopiladores",
+  proyecto: { nombre: "HSVG26ULT2", estado: "guardado", fecha: "1/10/2026" },
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Plan de recolección</span><b>Sorteo del 15 de setiembre</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Unidades</span><b>193</b></span></span>',
+  secciones: [{ id: "plan", label: "Plan", done: true }, { id: "accesos", label: "Accesos" }, { id: "materiales", label: "Materiales" }, { id: "entrega", label: "Entrega" }],
+  seccionActiva: "accesos",
+  chips: [{ label: "accesos listos 193/193", tone: "success", detail: "Todas las unidades tienen enlace" }],
+  acciones: [{ label: "Actualizar", icon: "refresh-cw", kind: "secondary" }, { label: "Generar accesos", icon: "link-2", kind: "primary" }],
+  pestanas: [
+    { id: "canales", label: "Canales", detail: "Por dónde llega cada respuesta", icon: "link-2" },
+    { id: "vinculacion", label: "Vinculación", detail: "Unidad ↔ enlace, trazable", icon: "search" },
+  ],
+  pestanaActiva: "canales",
+  cabecera: { eyebrow: "Accesos", titulo: "Canales", detalle: "Un acceso trazable por unidad de aplicación, sin pedir códigos al encuestado",
+    chips: [{ label: "<b>193</b> unidades" }, { label: "<b>193</b> enlaces", tone: "ok" }, { label: "<b>2</b> canales" }, { label: "<b>0</b> sin enlace" }] },
+};
+</script>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-grid" style="grid-template-columns: 340px minmax(0,1fr); height: 100%;">
+    <div class="mq-stack">
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="1" style="top:-10px; left:14px;">píldoras de sección: links con aria-current, sin numerar</span>
+        <div class="mq-panel-head"><i data-icon="cable" data-size="16"></i><h3>Canales permitidos</h3></div>
+        <div class="mq-stack" style="gap:8px">
+          <label class="pg-canal is-on"><input class="mq-radio" type="radio" name="c" checked><div><strong>Kobo · enlace por curso-horario</strong><span>El aula va en la URL; el estudiante no teclea nada. Formulario «CCSS Perfil 2026».</span></div><span class="mq-chip is-ok">activo</span></label>
+          <label class="pg-canal"><input class="mq-radio" type="radio" name="c"><div><strong>QR impreso en la ficha</strong><span>Mismo enlace, en la hoja que lleva el aplicador.</span></div><span class="mq-chip is-ok">activo</span></label>
+          <label class="pg-canal"><input class="mq-radio" type="radio" name="c" disabled><div><strong>SurveyMonkey · colector por aula</strong><span>No disponible: el instrumento vive en Kobo.</span></div><span class="mq-chip">no aplica</span></label>
+        </div>
+        <div class="mq-field" style="margin-top:12px"><label>Parámetro de unidad en la URL</label><div class="mq-input-group"><input class="mq-input is-sm" value="collectorID"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button">Probar</button></div><span class="mq-field-hint">Debe existir como pregunta oculta en el formulario (hoy: sí, `collectorID`).</span></div>
+      </section>
+      <section class="mq-panel">
+        <div class="mq-panel-head"><i data-icon="qr-code" data-size="16"></i><h3>Vista rápida</h3><span class="mq-spacer"></span><span class="mq-muted">CH 0412 · Economía · lun 17:30</span></div>
+        <div class="mq-row"><div class="pg-qr"></div><div><div style="font-size:12.5px"><b>kf.kobotoolbox.org/x/…?collectorID=CH0412</b></div><div class="mq-muted">generado 22/09 · 0 respuestas por este enlace · aula agendada</div></div></div>
+        <div class="mq-row" style="margin-top:10px"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="copy" data-size="14"></i> Copiar enlace</button><button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="external-link" data-size="14"></i> Abrir</button></div>
+      </section>
+    </div>
+
+    <section class="mq-panel mq-callout" style="display:flex; flex-direction:column; min-height:0;">
+      <span class="mq-note" data-n="2" style="top:-10px; right:14px;">pestañas en el rail de 56 px, como Procesamiento y Monitoreo</span>
+      <div class="mq-panel-head"><i data-icon="list-checks" data-size="16"></i><h3>Accesos por unidad</h3>
+        <div class="mq-input-group" style="margin-left:10px; width:280px"><input class="mq-input is-sm" placeholder="Buscar CH, curso o facultad"></div>
+        <span class="mq-chip is-accent">Todos 193</span><span class="mq-chip">Agendados 118</span><span class="mq-chip">Con respuestas 58</span><span class="mq-chip is-warn">Reservas 85</span>
+        <span class="mq-spacer"></span><button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="download" data-size="14"></i> Excel</button></div>
+      <div class="mq-table-wrap" style="flex:1; min-height:0;">
+        <table class="mq-table" data-density="compact">
+          <colgroup><col style="width:88px"><col><col style="width:150px"><col style="width:110px"><col style="width:120px"><col style="width:120px"><col style="width:110px"><col style="width:64px"></colgroup>
+          <thead><tr><th>Unidad</th><th>Curso-horario</th><th>Facultad</th><th>Canal</th><th>Estado</th><th>Agenda</th><th class="num">Respuestas</th><th>QR</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">CH 0412</td><td>Microeconomía I · Z-203</td><td>Economía</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>lun 17:30</td><td class="num">0</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0127</td><td>Introducción a la Sociología · H-108</td><td>Ciencias Sociales</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>mar 09:00</td><td class="num">34</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0351</td><td>Cálculo 2 · J-301</td><td>Ciencias e Ingeniería</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>mar 11:00</td><td class="num">41</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0088</td><td>Derecho Constitucional · N-204</td><td>Derecho</td><td>Kobo + QR</td><td><span class="mq-chip is-warn">reserva</span></td><td>—</td><td class="num">0</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0290</td><td>Física 1 · J-102</td><td>Ciencias e Ingeniería</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>mié 15:00</td><td class="num">27</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0503</td><td>Psicología General · E-110</td><td>Psicología</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>mié 17:00</td><td class="num">19</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0144</td><td>Historia del Perú · H-301</td><td>Letras y Ciencias Humanas</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>jue 09:00</td><td class="num">38</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0067</td><td>Contabilidad Financiera · A-206</td><td>Gestión y Alta Dirección</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>jue 11:00</td><td class="num">22</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0229</td><td>Diseño Gráfico II · G-114</td><td>Arte y Diseño</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>jue 15:00</td><td class="num">12</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0391</td><td>Programación 1 · V-201</td><td>Ciencias e Ingeniería</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>vie 09:00</td><td class="num">45</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0015</td><td>Comunicación Oral · L-109</td><td>Estudios Generales Letras</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>vie 11:00</td><td class="num">31</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0172</td><td>Química General · J-205</td><td>Estudios Generales Ciencias</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>vie 15:00</td><td class="num">29</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0460</td><td>Educación Inicial · E-212</td><td>Educación</td><td>Kobo + QR</td><td><span class="mq-chip is-warn">reserva</span></td><td>—</td><td class="num">0</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+            <tr><td class="mono">CH 0318</td><td>Álgebra Lineal · J-110</td><td>Ciencias e Ingeniería</td><td>Kobo + QR</td><td><span class="mq-chip is-ok">listo</span></td><td>sáb 09:00</td><td class="num">16</td><td><i data-icon="qr-code" data-size="14"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mq-row" style="margin-top:8px"><span class="mq-muted">14 de 193 · desplázate para ver el resto</span><span class="mq-spacer"></span><span class="mq-muted">Datos ilustrativos a la escala real del estudio (193 cursos-horario sorteados)</span></div>
+    </section>
+  </div>
+  <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+    <ol>
+      <li>El stepper numerado «1 Plan · 2 Accesos · 3 Materiales · 4 Entrega» pasa a `SectionPillbar` (links, `aria-current`, punto de «hecho» en Plan); la numeración a mano desaparece porque `progreso: "none"`.</li>
+      <li>Canales / Vinculación viven en el rail de 56 px con burbuja, como en el resto de módulos; la cabecera única dice dónde estás y trae las cifras con su base.</li>
+      <li>El vacío por fixture («No hay un plan propio») deja de flotar a pantalla completa: aquí se muestra el estado poblado para juzgar la superficie; vacío, se enmarca en el mismo panel con su CTA «Entregar una selección desde Cálculo de muestra».</li>
+      <li>Es el feature con el código más limpio (0 hex, PulsoButton adoptado): solo cambia el chrome.</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

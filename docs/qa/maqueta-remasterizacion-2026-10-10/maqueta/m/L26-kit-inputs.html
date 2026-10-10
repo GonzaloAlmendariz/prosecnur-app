@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L26 · Analítica › Datos con el kit de inputs: tabla densa de variables</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L26", titulo: "Analítica › Datos con PulsoInput, PulsoSelect y PulsoField: 77 variables en una tabla densa, no en 77 cards",
+  hoy: "../hoy/analitica-datos.png",
+  nota: "Hoy: cada variable es una card de ~80 px con botón, input y «Restaurar»: 4–5 variables por viewport de 77; 696 «input» crudos en features.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "analitica",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><b>Monitoreo territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,283</b></span></span>',
+  chips: [{ label: "Datos listos", tone: "success", detail: "Etiquetas confirmadas" }],
+  acciones: [{ label: "Plantilla", icon: "download", kind: "secondary" }],
+  pestanas: [
+    { id: "datos", label: "Datos", detail: "Etiquetas y variables", icon: "clipboard-list" },
+    { id: "base_final", label: "Base final", detail: "Tabla depurada", icon: "table-2" },
+    { id: "codebook", label: "Codebook", detail: "Libro de códigos", icon: "book-open" },
+    { id: "bases", label: "Bases", detail: "Bases del estudio", icon: "database" },
+    { id: "ponderacion", label: "Ponderación", detail: "Pesos y calibración", icon: "scale" },
+    { id: "frecuencias", label: "Frecuencias", detail: "Distribuciones", icon: "chart-column" },
+    { id: "panel", label: "Base panel", detail: "Panel y olas", icon: "layout-dashboard" },
+    { id: "ficha", label: "Ficha técnica", detail: "Resumen metodológico", icon: "file-text" },
+    { id: "cruces", label: "Cruces", detail: "Tablas cruzadas", icon: "grid-3x3" },
+    { id: "orden", label: "Orden", detail: "Orden de categorías", icon: "list-ordered" },
+    { id: "dimensiones", label: "Dimensiones", detail: "Índices y escalas", icon: "columns-3" },
+    { id: "multibase", label: "Multibase", detail: "Bases combinadas", icon: "layers" },
+  ],
+  pestanaActiva: "datos",
+  cabecera: { eyebrow: "Analítica · pestaña 1 de 12", titulo: "Datos", detalle: "Etiquetas y variables que entran a reportes, bases y cruces", estado: { kind: "listo", label: "Listo" },
+    chips: [{ label: "<b>8</b> secciones" }, { label: "<b>77</b> variables" }, { label: "<b>77/77</b> incluidas", tone: "ok" }, { label: "<b>0</b> editadas" }] },
+};
+</script>
+<style>
+  .pg-root { height: 100%; min-height: 0; }
+  .pg-fill { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 12px; height: 100%; min-height: 0; }
+  .pg-left { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+  .pg-filtros { display: grid; grid-template-columns: 320px 220px auto minmax(0,1fr) auto; gap: 10px; align-items: end; }
+  .pg-switch { display: inline-flex; align-items: center; gap: 8px; height: 30px; font-size: 12.5px; }
+  .pg-switch i { position: relative; width: 32px; height: 18px; border-radius: 999px; background: var(--pulso-switch-track, var(--pulso-border-strong)); border: 1px solid var(--pulso-switch-border, var(--pulso-border-strong)); flex: 0 0 auto; }
+  .pg-switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--pulso-surface); box-shadow: var(--pulso-switch-knob-shadow, 0 1px 2px rgba(0,0,0,.2)); }
+  .pg-switch.is-on i { background: var(--pulso-primary); border-color: var(--pulso-primary); }
+  .pg-switch.is-on i::after { left: 16px; }
+  .pg-acciones { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-top: 14px; }
+  .pg-acciones .mq-chip { height: 24px; font-size: 11.5px; }
+  .pg-tabla { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .pg-tabla .mq-table-wrap { flex: 1 1 auto; min-height: 0; }
+  .pg-tabla .mq-table { table-layout: fixed; }
+  .pg-tabla .mq-table td { vertical-align: middle; }
+  .pg-tabla .mq-table td .mq-input.is-sm { height: 26px; font-size: 12px; padding: 0 8px; border-color: transparent; background: transparent; }
+  .pg-tabla .mq-table td .mq-input.is-sm:hover { border-color: var(--pulso-border-strong); background: var(--pulso-surface); }
+  .pg-tabla .mq-table td .mq-input.is-sm:focus { border-color: var(--pulso-primary); background: var(--pulso-surface); }
+  .pg-tabla .mq-table td .mq-input.is-sm.is-edited { border-color: var(--pulso-primary-border); background: var(--pulso-primary-soft); font-weight: 600; }
+  .pg-tabla .mq-table tr.pg-grupo td { background: var(--pulso-surface-2); font-size: 11px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; color: var(--pulso-text-soft); padding: 6px 10px; }
+  .pg-tabla .mq-table tr.pg-grupo td .mq-muted { font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: 8px; }
+  .pg-tabla .mq-table td.pg-dato { color: var(--pulso-text-soft); }
+  .pg-tabla .mq-table td.pg-dato b { color: var(--pulso-text); }
+  .pg-tabla .mq-table td .pg-rest { opacity: .35; }
+  .pg-tabla .mq-table tr:hover td .pg-rest, .pg-tabla .mq-table td .pg-rest.is-on { opacity: 1; }
+  .pg-tabla .mq-check input { width: 15px; height: 15px; }
+  .pg-kit { display: grid; gap: 10px; }
+  .pg-kit .mq-field { padding: 10px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface-2); }
+  .pg-kit .pg-kit-tag { font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--pulso-primary); font-weight: 800; }
+  .pg-right { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: auto; }
+</style>
+</head>
+<body>
+<div id="contenido" class="pg-root">
+  <div class="pg-fill">
+    <div class="pg-left">
+      <!-- filtros con el kit -->
+      <div class="pg-filtros mq-callout">
+        <span class="mq-note" data-n="1" style="top:-11px; right:0;">PulsoField = label + control + hint + error</span>
+        <div class="mq-field">
+          <label for="pg-buscar">Buscar variable</label>
+          <div class="mq-input-group"><input id="pg-buscar" class="mq-input is-sm" placeholder="nombre, etiqueta o tipo · 77 variables"><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Buscar"><i data-icon="search" data-size="14"></i></button></div>
+        </div>
+        <div class="mq-field">
+          <label for="pg-seccion">Sección</label>
+          <select id="pg-seccion" class="mq-select is-sm"><option>Todas las secciones (8)</option><option>General (26)</option><option>Datos generales (5)</option><option>Protección (12)</option><option>Medios de vida (11)</option></select>
+        </div>
+        <div class="mq-field">
+          <label>Mostrar</label>
+          <label class="mq-switch"><input id="pg-editadas" type="checkbox" role="switch"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Solo editadas</span></label>
+        </div>
+        <span></span>
+        <div class="mq-field"><label>&nbsp;</label><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="sparkles" data-size="14"></i> Detectar estructura</button></div>
+      </div>
+
+      <!-- barra de acciones -->
+      <div class="pg-acciones">
+        <span class="mq-chip is-ok">77/77 incluidas</span><span class="mq-chip">0 editadas</span><span class="mq-chip">8 secciones · 77 variables</span>
+        <span class="mq-muted">Ordena secciones y decide qué etiquetas entran a reportes, bases y cruces.</span>
+        <span class="mq-spacer"></span>
+        <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="refresh-cw" data-size="14"></i> Actualizar</button>
+        <button class="pulso-button pulso-button--primary pulso-button--sm" type="button"><i data-icon="check" data-size="14"></i> Confirmar etiquetas</button>
+      </div>
+
+      <!-- tabla densa -->
+      <div class="pg-tabla mq-callout">
+        <span class="mq-note" data-n="2" style="top:-11px; left:430px;">18 por viewport (hoy 4) · etiqueta editable inline</span>
+        <div class="mq-table-wrap">
+        <table class="mq-table" data-density="compact" aria-label="Variables de la base">
+          <colgroup><col style="width:60px"><col style="width:190px"><col style="width:150px"><col style="width:110px"><col><col style="width:88px"><col style="width:84px"></colgroup>
+          <thead><tr><th><label class="mq-switch is-sm"><input type="checkbox" role="switch" checked aria-label="Incluir todas"><span class="mq-switch-track"><i></i></span></label></th><th>Variable</th><th>Tipo</th><th class="num">Con dato</th><th>Etiqueta de pregunta</th><th>Opciones</th><th></th></tr></thead>
+          <tbody>
+            <tr class="pg-grupo"><td colspan="7"><i data-icon="eye" data-size="12"></i> General <span class="mq-muted">26/26 incluidas · visible en agrupadores</span></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir gps_inicio"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">gps_inicio</td><td>start-geopoint</td><td class="num pg-dato"><b>1,241</b> / 1,283</td><td><input class="mq-input is-sm" value="gps_inicio" aria-label="Etiqueta de gps_inicio"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir consent"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">consent</td><td>select_one</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm" value="Si está de acuerdo con continuar con la encuesta, por favor, confirmar" aria-label="Etiqueta de consent"></td><td><button class="mq-link" type="button">2 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir whynotconsent"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">whynotconsent <span class="mq-chip is-warn" style="height:16px; font-size:9.5px; padding:0 5px; margin-left:4px">0 datos</span></td><td>select_one</td><td class="num pg-dato"><b>0</b> / 1,283</td><td><input class="mq-input is-sm" value="Razón principal por la que decide no participar en la encuesta" aria-label="Etiqueta de whynotconsent"></td><td><button class="mq-link" type="button">13 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir gps_background"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">gps_background</td><td>background-geopoint</td><td class="num pg-dato"><b>1,243</b> / 1,283</td><td><input class="mq-input is-sm" value="gps_background" aria-label="Etiqueta de gps_background"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir _id"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">_id</td><td>data</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm" value="_id" aria-label="Etiqueta de _id"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir formhub_uuid"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">formhub_uuid</td><td>data</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm" value="formhub_uuid" aria-label="Etiqueta de formhub_uuid"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir start"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">start</td><td>datetime</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm is-edited" value="Inicio de la entrevista" aria-label="Etiqueta de start"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest is-on" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir end"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">end</td><td>datetime</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm is-edited" value="Fin de la entrevista" aria-label="Etiqueta de end"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest is-on" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir today"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">today</td><td>date</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm" value="today" aria-label="Etiqueta de today"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" aria-label="Incluir deviceid"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">deviceid</td><td>deviceid</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm" value="deviceid" aria-label="Etiqueta de deviceid"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr class="pg-grupo"><td colspan="7"><i data-icon="eye" data-size="12"></i> Datos generales <span class="mq-muted">5/5 incluidas</span></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir M5_district"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">M5_district</td><td>select_one</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm" value="¿En qué distrito vive actualmente?" aria-label="Etiqueta de M5_district"></td><td><button class="mq-link" type="button">6 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir E1_age"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">E1_age</td><td>integer</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Cuál es su edad?" aria-label="Etiqueta de E1_age"></td><td class="mq-muted">—</td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir E2_sex"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">E2_sex</td><td>select_one</td><td class="num pg-dato"><b>1,283</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Cuál es su sexo?" aria-label="Etiqueta de E2_sex"></td><td><button class="mq-link" type="button">3 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir M3_edu"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">M3_edu</td><td>select_one</td><td class="num pg-dato"><b>1,281</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Cuál es el nivel educativo más alto que ha completado?" aria-label="Etiqueta de M3_edu"></td><td><button class="mq-link" type="button">7 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir M4_employment"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">M4_employment</td><td>select_one</td><td class="num pg-dato"><b>1,279</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Cuál describe mejor su situación laboral actual?" aria-label="Etiqueta de M4_employment"></td><td><button class="mq-link" type="button">8 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr class="pg-grupo"><td colspan="7"><i data-icon="eye" data-size="12"></i> Protección y convivencia <span class="mq-muted">12/12 incluidas</span></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir P1_safety"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">P1_safety</td><td>select_one</td><td class="num pg-dato"><b>1,276</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Qué tan segura se siente en su barrio?" aria-label="Etiqueta de P1_safety"></td><td><button class="mq-link" type="button">5 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir P2_incident"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">P2_incident</td><td>select_multiple</td><td class="num pg-dato"><b>1,270</b> / 1,283</td><td><input class="mq-input is-sm" value="En los últimos 12 meses, ¿ha sufrido alguna de estas situaciones?" aria-label="Etiqueta de P2_incident"></td><td><button class="mq-link" type="button">9 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir P3_report"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">P3_report</td><td>select_one</td><td class="num pg-dato"><b>412</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Denunció el hecho ante alguna institución?" aria-label="Etiqueta de P3_report"></td><td><button class="mq-link" type="button">3 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir P4_trust"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">P4_trust</td><td>select_one</td><td class="num pg-dato"><b>1,268</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Cuánto confía en la policía de su distrito?" aria-label="Etiqueta de P4_trust"></td><td><button class="mq-link" type="button">5 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir P5_relations"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">P5_relations</td><td>select_one</td><td class="num pg-dato"><b>1,274</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Cómo describiría la relación con sus vecinos peruanos?" aria-label="Etiqueta de P5_relations"></td><td><button class="mq-link" type="button">5 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir P6_discrim"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">P6_discrim</td><td>select_multiple</td><td class="num pg-dato"><b>1,266</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Dónde ha sentido trato discriminatorio?" aria-label="Etiqueta de P6_discrim"></td><td><button class="mq-link" type="button">8 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir P7_services"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">P7_services</td><td>select_multiple</td><td class="num pg-dato"><b>1,259</b> / 1,283</td><td><input class="mq-input is-sm" value="¿A qué servicios ha accedido en el último año?" aria-label="Etiqueta de P7_services"></td><td><button class="mq-link" type="button">11 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir P8_barriers"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">P8_barriers</td><td>select_multiple</td><td class="num pg-dato"><b>1,201</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Qué le impidió acceder a esos servicios?" aria-label="Etiqueta de P8_barriers"></td><td><button class="mq-link" type="button">7 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr class="pg-grupo"><td colspan="7"><i data-icon="eye" data-size="12"></i> Medios de vida <span class="mq-muted">11/11 incluidas</span></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir L1_income"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">L1_income</td><td>select_one</td><td class="num pg-dato"><b>1,244</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Cuál fue el ingreso mensual de su hogar el mes pasado?" aria-label="Etiqueta de L1_income"></td><td><button class="mq-link" type="button">6 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir L2_source"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">L2_source</td><td>select_multiple</td><td class="num pg-dato"><b>1,262</b> / 1,283</td><td><input class="mq-input is-sm" value="¿Cuáles son las fuentes de ingreso de su hogar?" aria-label="Etiqueta de L2_source"></td><td><button class="mq-link" type="button">9 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+            <tr><td><label class="mq-switch"><input type="checkbox" role="switch" checked aria-label="Incluir L3_food"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label"></span></label></td><td class="mono">L3_food</td><td>select_one</td><td class="num pg-dato"><b>1,278</b> / 1,283</td><td><input class="mq-input is-sm" value="En la última semana, ¿cuántos días comió menos de lo necesario?" aria-label="Etiqueta de L3_food"></td><td><button class="mq-link" type="button">8 códigos</button></td><td><button class="mq-link pg-rest" type="button">Restaurar</button></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- columna derecha: anatomía del kit y notas -->
+    <div class="pg-right">
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="3" style="top:-11px; right:12px;">tres primitivas, un contrato</span>
+        <div class="mq-panel-head"><i data-icon="boxes" data-size="15"></i><h3>Kit de inputs</h3></div>
+        <div class="pg-kit">
+          <div class="mq-field"><span class="pg-kit-tag">PulsoField</span><label for="pg-k1">Etiqueta <small>opcional</small></label><input id="pg-k1" class="mq-input is-sm" placeholder="label + control + hint + error"><span class="mq-field-hint">Hint bajo el control; el error reemplaza al hint.</span></div>
+          <div class="mq-field is-error"><span class="pg-kit-tag">PulsoInput · error</span><label for="pg-k2">Meta</label><input id="pg-k2" class="mq-input is-sm" value="1,200 entrevistas" aria-invalid="true" aria-describedby="pg-k2e"><span id="pg-k2e" class="mq-field-error"><i data-icon="circle-alert" data-size="12"></i> Debe ser un número entero.</span></div>
+          <div class="mq-field"><span class="pg-kit-tag">PulsoSelect</span><label for="pg-k3">Tipo</label><select id="pg-k3" class="mq-select is-sm"><option>select_one</option><option>select_multiple</option><option>integer</option></select><span class="mq-field-hint">Radix Select: teclado, búsqueda por tecleo, portal con el acento del módulo.</span></div>
+        </div>
+      </section>
+      <div class="mq-notas" style="margin:0"><b>Qué cambia respecto de hoy</b>
+        <ol>
+          <li><b><code>PulsoInput</code>, <code>PulsoSelect</code>, <code>PulsoField</code></b> en <code>components/</code> con tests; contrato que prohíbe <code>&lt;input</code> crudo en archivos migrados. Hoy: 696 <code>&lt;input</code> y 227 <code>&lt;select</code> crudos.</li>
+          <li><b>Densidad</b>: la revisión masiva de 77 etiquetas es una tabla compacta con cabecera pegada y grupos por sección; la etiqueta se edita inline y «Restaurar» aparece solo en las editadas.</li>
+          <li><b>Altura por fila 30 px</b> (hoy ~80 px por card): 18 variables por viewport a 1440×1000 y 10 a 1024×600.</li>
+          <li>Los filtros son tres <code>PulsoField</code>: buscar, sección y «solo editadas»; la barra de acciones lleva el estado (77/77 · 0 editadas) y la acción primaria.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

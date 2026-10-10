@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L38 · Un verbo por dirección: el control de actualización de Monitoreo</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<style>
+  /* ---- el control de actualización (chrome) ---- */
+  .pg-tools { display: inline-flex; align-items: center; gap: 10px; }
+  .pg-upd { position: relative; display: inline-flex; align-items: stretch; }
+  .pg-upd-main, .pg-upd-caret { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 32px; border: 1px solid var(--pulso-primary); background: var(--pulso-primary); color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; overflow: hidden; transition: transform var(--motion-dur-press) var(--motion-ease-out), filter var(--motion-dur-fast) ease; }
+  .pg-upd-main { padding: 0 11px 0 10px; border-radius: 8px 0 0 8px; }
+  .pg-upd-caret { padding: 0 7px; border-radius: 0 8px 8px 0; border-left-color: rgba(255,255,255,.28); }
+  .pg-upd-main:hover, .pg-upd-caret:hover { filter: brightness(1.06); }
+  .pg-upd-main:active, .pg-upd-caret:active { transform: scale(.97); }
+  .pg-upd-main::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--p, 0%); background: rgba(255,255,255,.18); transition: width var(--motion-dur-base) linear; }
+  .pg-upd-main > * { position: relative; }
+  .pg-upd.is-busy .pg-upd-main { pointer-events: none; }
+  .pg-upd.is-busy .pg-upd-main .pg-upd-icon { animation: pg-spin 1s linear infinite; }
+  @keyframes pg-spin { to { transform: rotate(360deg); } }
+  .pg-upd-pct { font-variant-numeric: tabular-nums; font-size: 10.5px; background: rgba(255,255,255,.22); border-radius: 999px; padding: 1px 6px; }
+  /* píldora de estado */
+  .pg-estado { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 8px; border-radius: 999px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); font-size: 11.5px; font-weight: 700; color: var(--pulso-text); cursor: pointer; transition: background var(--motion-dur-fast) ease, transform var(--motion-dur-press) var(--motion-ease-out); }
+  .pg-estado:active { transform: scale(.97); }
+  .pg-estado i.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-success); }
+  .pg-estado.is-pendiente { border-color: color-mix(in srgb, var(--pulso-warning) 55%, var(--pulso-border)); background: color-mix(in srgb, var(--pulso-warning) 10%, var(--pulso-surface)); }
+  .pg-estado.is-pendiente i.dot { background: var(--pulso-warning); }
+  .pg-estado small { font-weight: 600; color: var(--pulso-text-soft); }
+  /* popover */
+  .pg-pop { position: absolute; top: calc(100% + 8px); right: 0; width: 520px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); border-radius: 14px; box-shadow: var(--pulso-shadow-popover); z-index: 50; transform-origin: top right; transform: scale(.96); opacity: 0; pointer-events: none; transition: transform var(--motion-dur-fast) var(--motion-ease-out), opacity var(--motion-dur-fast) var(--motion-ease-out); text-align: left; }
+  .pg-pop.is-on { transform: none; opacity: 1; pointer-events: auto; }
+  .pg-pop-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; }
+  .pg-pop-head h3 { margin: 0; font-size: 13px; font-weight: 800; }
+  .pg-pop-head p { margin: 0; font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-src { display: grid; grid-template-columns: 22px minmax(0,1fr) auto auto; gap: 10px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--pulso-border); font-size: 12px; }
+  .pg-src .pg-src-ico { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
+  .pg-src b { display: block; font-weight: 800; }
+  .pg-src small { color: var(--pulso-text-soft); font-size: 11px; }
+  .pg-src .num { font-variant-numeric: tabular-nums; text-align: right; color: var(--pulso-text-soft); font-size: 11px; }
+  .pg-src .acts { display: inline-flex; gap: 4px; }
+  .pg-item { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 9px 14px; border: 0; border-top: 1px solid var(--pulso-border); background: transparent; text-align: left; font: inherit; font-size: 12px; cursor: pointer; transition: background var(--motion-dur-fast) ease; }
+  .pg-item:hover { background: var(--pulso-surface-2); }
+  .pg-item[disabled] { opacity: .55; cursor: default; }
+  .pg-item b { font-weight: 800; }
+  .pg-item small { display: block; color: var(--pulso-text-soft); font-size: 11px; }
+  .pg-item kbd { font: inherit; font-size: 10.5px; color: var(--pulso-text-soft); }
+  .pg-pop-foot { display: flex; align-items: center; gap: 8px; padding: 8px 14px 10px; border-top: 1px solid var(--pulso-border); font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-pop-foot .pulso-button { margin-left: auto; }
+  /* ---- cuerpo ---- */
+  .pg-lab { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap: 12px; }
+  .pg-fila { display: grid; grid-template-columns: 26px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); font-size: 12px; }
+  .pg-fila .pg-src-ico { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
+  .pg-fila b { display: block; font-weight: 800; }
+  .pg-fila small { color: var(--pulso-text-soft); font-size: 11px; }
+  .pg-fila .acts { display: inline-flex; gap: 6px; align-items: center; }
+  .pg-dest { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; color: var(--pulso-text-soft); border: 1px dashed var(--pulso-border); border-radius: 999px; padding: 2px 8px; }
+  .pg-verbos td:first-child { font-weight: 800; white-space: nowrap; }
+  .pg-verbos .pulso-button { pointer-events: none; }
+  .pg-verbos td:nth-child(2) { white-space: normal; }
+  .pg-hoy { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .pg-hoy-card { border: 1px solid var(--pulso-border); border-radius: 10px; padding: 8px 10px; font-size: 11.5px; background: var(--pulso-surface-2); }
+  .pg-hoy-card b { display: block; font-size: 12px; }
+  .pg-hoy-btn { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 7px; font-size: 11px; font-weight: 900; margin: 4px 4px 0 0; }
+  .pg-hoy-btn.is-claro { border: 1px solid color-mix(in srgb, #9b1c3b 18%, transparent); color: #9b1c3b; background: #fff; }
+  .pg-hoy-btn.is-rojo { background: #9b1c3b; color: #fff; }
+  .pg-hoy-btn.is-navy { background: var(--pulso-primary); color: #fff; }
+  .pg-hoy-btn.is-plano { border: 1px solid var(--pulso-border); background: #fff; color: var(--pulso-text); }
+  /* ensayo */
+  .pg-ensayo td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pg-ensayo .mq-num-neg { font-weight: 800; }
+  .mq-scrim { position: fixed; inset: 0; background: rgba(11,23,48,.42); display: grid; place-items: center; z-index: 1600; opacity: 0; pointer-events: none; transition: opacity var(--motion-dur-base) var(--motion-ease-out); }
+  .mq-scrim.is-on { opacity: 1; pointer-events: auto; }
+  .mq-scrim .mq-dialog { transform: scale(.96); opacity: 0; transition: transform var(--motion-dur-base) var(--motion-ease-out), opacity var(--motion-dur-base) var(--motion-ease-out); }
+  .mq-scrim.is-on .mq-dialog { transform: none; opacity: 1; }
+</style>
+<script>
+window.MAQUETA = {
+  codigo: "L38", titulo: "Un verbo por dirección: un solo control de actualización en Monitoreo, igual en los cuatro perfiles",
+  hoy: "../hoy/acreditacion-actores.png",
+  nota: "Hoy: «Avance» y «Todo» con el tono del módulo, y hacen cosas distintas por perfil; en aulas «Traer respuestas» trae, publica y borra filas sin confirmación; en territorial cuatro rótulos hacen lo mismo.",
+  modulo: "monitoreo",
+  proyecto: { nombre: "acrconta", estado: "guardado", fecha: "23/7/2026" },
+  secciones: [{ id: "fuentes", label: "Fuentes" }, { id: "modelo", label: "Modelo" }, { id: "consultas", label: "Consultas" }, { id: "telefono", label: "Teléfono" }, { id: "avance", label: "Avance" }],
+  seccionActiva: "fuentes",
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Modo</span><b>Acreditación</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Fuentes</span><b>13/13</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,277</b></span></span>',
+  herramientas: '<span class="pg-tools">' +
+    '<button id="pg-estado" class="pg-estado is-pendiente" type="button" title="Cambiaste el filtro de efectiva a las 17:52; el tablero aún no lo refleja"><i class="dot"></i> Pendiente de recalcular <small>· desde 17:52</small></button>' +
+    '<span id="pg-upd" class="pg-upd">' +
+      '<button id="pg-upd-main" class="pg-upd-main" type="button" title="Trae lo nuevo de las 13 fuentes y recalcula; nunca escribe fuera. Primario del módulo, como en todos los módulos"><i class="pg-upd-icon" data-icon="refresh-cw" data-size="14"></i><span>Actualizar</span><span id="pg-upd-pct" class="pg-upd-pct" hidden>0 %</span></button>' +
+      '<button id="pg-upd-caret" class="pg-upd-caret" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Más formas de actualizar"><i data-icon="chevron-down" data-size="14"></i></button>' +
+      '<div id="pg-pop" class="pg-pop" role="menu">' +
+        '<div class="pg-pop-head"><i data-icon="refresh-cw" data-size="15"></i><div><h3>Actualizar</h3><p>Hacia adentro: trae y recalcula. Lo que escribe fuera vive en Publicar, con ensayo.</p></div></div>' +
+        '<div class="pg-src"><span class="pg-src-ico"><i data-icon="table-2" data-size="13"></i></span><div><b>Universo y barrido · 4 hojas</b><small>Google Sheets · leídas 10/10 07:24</small></div><span class="num">1,009 filas</span><span class="acts"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button">Traer nuevas</button><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" title="Traer todo de nuevo"><i data-icon="rotate-ccw" data-size="13"></i></button></span></div>' +
+        '<div class="pg-src"><span class="pg-src-ico"><i data-icon="list-checks" data-size="13"></i></span><div><b>Encuestas SurveyMonkey · 7</b><small>cursor 10/10 07:24 · recopiladores con nombre</small></div><span class="num">1,277 resp.</span><span class="acts"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button">Traer nuevas</button><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" title="Traer todo de nuevo"><i data-icon="rotate-ccw" data-size="13"></i></button></span></div>' +
+        '<div class="pg-src"><span class="pg-src-ico"><i data-icon="phone" data-size="13"></i></span><span style="grid-column: 2 / span 3"><b>Kobo telefónico · 2</b><small>cursor 10/10 07:24 · 418 llamadas</small></span></div>' +
+        '<button class="pg-item" type="button"><i data-icon="rotate-ccw" data-size="14"></i><span><b>Traer todo de nuevo</b><small>Vuelve a bajar las 1,277 respuestas y los nombres de recopiladores · ~3 min</small></span><kbd>⇧⌘R</kbd></button>' +
+        '<button id="pg-recalc" class="pg-item" type="button"><i data-icon="calculator" data-size="14"></i><span><b>Recalcular el tablero</b><small>Sin traer nada · pendiente desde que cambiaste el filtro de efectiva (17:52)</small></span><kbd>⌘R</kbd></button>' +
+        '<div class="pg-pop-foot"><i data-icon="shield-check" data-size="13"></i> Un sync a la vez; el recibo llega como aviso. <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="plug" data-size="13"></i> Conectar otra fuente</button></div>' +
+      '</div>' +
+    '</span></span>',
+  pestanas: [
+    { id: "actores", label: "Actores", detail: "Elenco del estudio", icon: "users" },
+    { id: "fuentes", label: "Fuentes y universo", detail: "Una fila por fuente", icon: "database" },
+    { id: "recopiladores", label: "Recopiladores", detail: "Alias y canal", icon: "list-checks" },
+  ],
+  pestanaActiva: "fuentes",
+  cabecera: { eyebrow: "Fuentes", titulo: "Fuentes y universo", detalle: "Una fila por fuente: qué es, cuándo se leyó y qué se puede hacer con ella",
+    chips: [{ label: "<b>13</b> fuentes" }, { label: "<b>13</b> activas", tone: "ok" }, { label: "<b>1,277</b> registros" }, { label: "pendiente de recalcular", tone: "warn" }] },
+};
+window.onMaquetaMontada = function () {
+  const $ = (s) => document.querySelector(s);
+  const pop = $("#pg-pop"), caret = $("#pg-upd-caret"), upd = $("#pg-upd"), main = $("#pg-upd-main"), pct = $("#pg-upd-pct"), estado = $("#pg-estado");
+  const toggle = (on) => { pop.classList.toggle("is-on", on); caret.setAttribute("aria-expanded", on ? "true" : "false"); };
+  caret.onclick = (e) => { e.stopPropagation(); toggle(!pop.classList.contains("is-on")); };
+  document.addEventListener("click", (e) => { if (!pop.contains(e.target)) toggle(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") toggle(false); });
+  const toast = (html) => { const t = $("#pg-toast"); t.innerHTML = html; t.classList.add("is-on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("is-on"), 3200); };
+  const alDia = () => { estado.className = "pg-estado"; estado.innerHTML = '<i class="dot"></i> Al día <small>· 07:31</small>'; estado.title = "Sincronizado y regenerado 10/10 07:31"; $("#pg-recalc").disabled = true; $("#pg-recalc small").textContent = "Sin traer nada · nada pendiente"; };
+  main.onclick = () => { toggle(false); upd.classList.add("is-busy"); pct.hidden = false; let p = 0; const id = setInterval(() => { p = Math.min(100, p + 7); main.style.setProperty("--p", p + "%"); pct.textContent = p + " %"; if (p >= 100) { clearInterval(id); setTimeout(() => { upd.classList.remove("is-busy"); pct.hidden = true; main.style.setProperty("--p", "0%"); alDia(); toast('<i data-icon="circle-check" data-size="14" style="color:#6ee7a8"></i><span><b>Actualizado</b> · 13 fuentes · 41 respuestas nuevas · tablero regenerado 07:31</span>'); replaceIcons($("#pg-toast")); }, 220); } }, 120); };
+  $("#pg-recalc").onclick = () => { toggle(false); alDia(); toast('<i data-icon="circle-check" data-size="14" style="color:#6ee7a8"></i><span><b>Tablero recalculado</b> · sin traer nada · 07:31</span>'); replaceIcons($("#pg-toast")); };
+  estado.onclick = () => { if (estado.classList.contains("is-pendiente")) $("#pg-recalc").click(); };
+  // ensayo de Publicar
+  $("#pg-b-pub").onclick = () => $("#pg-scrim").classList.add("is-on");
+  document.querySelectorAll("[data-cierra]").forEach((b) => (b.onclick = () => $("#pg-scrim").classList.remove("is-on")));
+  $("#pg-b-aplicar").onclick = () => { $("#pg-scrim").classList.remove("is-on"); toast('<i data-icon="cloud-upload" data-size="14" style="color:#9ecbff"></i><span><b>Publicado</b> en el Sheets del operativo · 4 hojas · 61 filas cambiadas · 14 retiradas</span><button class="mq-toast-act" type="button">Ver historial</button>'); replaceIcons($("#pg-toast")); };
+  function replaceIcons(root) { root.querySelectorAll("[data-icon]").forEach((el) => { if (window.icon) el.outerHTML = window.icon(el.dataset.icon, Number(el.dataset.size || 14)); }); }
+};
+</script>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack" style="gap:12px">
+    <div class="pg-lab">
+      <section class="mq-panel mq-callout" style="margin:0">
+        <span class="mq-note" data-n="1" style="top:-12px; left:12px;">arriba, en la barra: un solo control, «Actualizar ▾», y la píldora de estado; púlsalos</span>
+        <div class="mq-panel-head"><i data-icon="database" data-size="16"></i><h3>Una fila por fuente</h3><span class="mq-spacer"></span><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plug" data-size="13"></i> Conectar fuente</button></div>
+        <div class="mq-stack" style="gap:6px">
+          <div class="pg-fila"><span class="pg-src-ico"><i data-icon="table-2" data-size="14"></i></span><div><b>Universo · Estudiantes</b><small>Google Sheets · hoja «Universo» · leída 10/10 07:24 · 612 filas</small></div><div class="acts"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button">Traer nuevas</button><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" title="Traer todo de nuevo"><i data-icon="rotate-ccw" data-size="13"></i></button><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" title="Cambiar conexión"><i data-icon="plug" data-size="13"></i></button></div></div>
+          <div class="pg-fila"><span class="pg-src-ico"><i data-icon="list-checks" data-size="14"></i></span><div><b>Encuesta · Egresados 2026</b><small>SurveyMonkey · cursor 10/10 07:24 · 418 respuestas · 4 recopiladores con nombre</small></div><div class="acts"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button">Traer nuevas</button><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" title="Traer todo de nuevo"><i data-icon="rotate-ccw" data-size="13"></i></button><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" title="Cambiar conexión"><i data-icon="plug" data-size="13"></i></button></div></div>
+          <div class="pg-fila"><span class="pg-src-ico"><i data-icon="phone" data-size="14"></i></span><div><b>Barrido telefónico · Egresados</b><small>Kobo · cursor 10/10 07:24 · 418 llamadas · estados confirmados</small></div><div class="acts"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button">Traer nuevas</button><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" title="Releer ficha del formulario"><i data-icon="file-search" data-size="13"></i></button><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" title="Cambiar conexión"><i data-icon="plug" data-size="13"></i></button></div></div>
+          <div class="pg-fila" style="opacity:.7"><span class="pg-src-ico"><i data-icon="table-2" data-size="14"></i></span><div><b>Correo · Docentes</b><small>Google Sheets · sin conectar</small></div><div class="acts"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plug" data-size="13"></i> Conectar</button></div></div>
+        </div>
+        <div class="mq-panel-head" style="margin-top:14px"><i data-icon="cloud-upload" data-size="16"></i><h3>Hacia afuera, siempre con ensayo</h3></div>
+        <div class="mq-stack mq-callout" style="gap:6px">
+          <span class="mq-note" data-n="2" style="top:-14px; right:0;">Publicar nunca vive en la barra; el chip dice el destino; pulsa para ver el ensayo</span>
+          <div class="pg-fila"><span class="pg-src-ico"><i data-icon="cloud-upload" data-size="14"></i></span><div><b>Publicar al Sheets del operativo</b><small>Escribe las 4 hojas de la app; las del equipo no se tocan · última publicación 9/10 18:40</small></div><div class="acts"><span class="pg-dest"><i data-icon="table-2" data-size="11"></i> Sheets del operativo · 4 hojas</span><button id="pg-b-pub" class="pulso-button pulso-button--secondary pulso-button--sm" type="button">Revisar y publicar</button></div></div>
+          <div class="pg-fila"><span class="pg-src-ico"><i data-icon="file-input" data-size="14"></i></span><div><b>Leer libro llenado</b><small>Importa un .xlsx y lo fusiona en el plan, los partes y el control; no escribe fuera</small></div><div class="acts"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="file-input" data-size="13"></i> Leer…</button></div></div>
+          <div class="pg-fila"><span class="pg-src-ico"><i data-icon="download" data-size="14"></i></span><div><b>Generar libro</b><small>.xlsx con el plan, los partes y el control de la sesión</small></div><div class="acts"><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="download" data-size="13"></i> Generar</button></div></div>
+        </div>
+      </section>
+
+      <div class="mq-stack" style="gap:12px">
+        <section class="mq-panel mq-callout" style="margin:0">
+          <span class="mq-note" data-n="3" style="top:10px; right:12px; max-width:200px;">el diccionario: siete verbos, una dirección cada uno; el rojo sólo para lo que borra o no se deshace</span>
+          <div class="mq-panel-head"><i data-icon="book-open" data-size="16"></i><h3>Siete verbos</h3></div>
+          <table class="mq-table pg-verbos" style="font-size:11.5px"><thead><tr><th>Verbo</th><th>Dirección</th><th>Aspecto</th></tr></thead><tbody>
+            <tr><td>Actualizar</td><td>hacia adentro: trae lo nuevo y recalcula; nunca escribe fuera</td><td><span class="pulso-button pulso-button--primary pulso-button--sm"><i data-icon="refresh-cw" data-size="12"></i> Actualizar</span></td></tr>
+            <tr><td>Traer todo de nuevo</td><td>hacia adentro, completo; declara el costo</td><td><span class="pulso-button pulso-button--secondary pulso-button--sm"><i data-icon="rotate-ccw" data-size="12"></i> Traer todo</span></td></tr>
+            <tr><td>Recalcular</td><td>sin moverse; apaga «pendiente»</td><td><span class="pulso-button pulso-button--secondary pulso-button--sm"><i data-icon="calculator" data-size="12"></i> Recalcular</span></td></tr>
+            <tr><td>Conectar</td><td>configura una fuente; no mueve datos</td><td><span class="pulso-button pulso-button--secondary pulso-button--sm"><i data-icon="plug" data-size="12"></i> Conectar</span></td></tr>
+            <tr><td>Leer</td><td>de un archivo u hoja a la sesión; no escribe fuera</td><td><span class="pulso-button pulso-button--secondary pulso-button--sm"><i data-icon="file-input" data-size="12"></i> Leer</span></td></tr>
+            <tr><td>Publicar</td><td>hacia afuera; siempre Revisar → Aplicar</td><td><span class="pulso-button pulso-button--secondary pulso-button--sm"><i data-icon="cloud-upload" data-size="12"></i> Publicar</span> <span class="pg-dest">destino</span></td></tr>
+            <tr><td>Generar</td><td>a un archivo: PDF, Excel, ZIP</td><td><span class="pulso-button pulso-button--secondary pulso-button--sm"><i data-icon="download" data-size="12"></i> Generar</span></td></tr>
+            <tr><td>Anular · Retirar · Quitar</td><td>borra o no se deshace; diálogo con la cifra o toast «Deshacer»</td><td><span class="pulso-button pulso-button--danger pulso-button--sm"><i data-icon="trash-2" data-size="12"></i> Retirar 14 filas</span></td></tr>
+          </tbody></table>
+        </section>
+        <section class="mq-panel mq-callout" style="margin:0">
+          <span class="mq-note" data-n="4" style="top:10px; right:12px; max-width:210px;">hoy, medido: el mismo par de botones hace cosas distintas por perfil</span>
+          <div class="mq-panel-head"><i data-icon="gauge" data-size="16"></i><h3>Hoy, perfil por perfil</h3></div>
+          <div class="pg-hoy">
+            <div class="pg-hoy-card"><b>Telefónico</b><span class="pg-hoy-btn is-claro">Avance</span><span class="pg-hoy-btn is-rojo">Todo</span><br>+ franja <span class="pg-hoy-btn is-plano">Sheets</span><span class="pg-hoy-btn is-plano">Kobo</span><span class="pg-hoy-btn is-navy">Todo</span><br><small>«Avance» trae Kobo y relee Sheets; dos «Todo» idénticos</small></div>
+            <div class="pg-hoy-card"><b>Acreditación</b><span class="pg-hoy-btn is-claro">Avance</span><span class="pg-hoy-btn is-rojo">Todo</span><br>+ franja <span class="pg-hoy-btn is-plano">Sheets</span><span class="pg-hoy-btn is-plano">encuestas</span><span class="pg-hoy-btn is-navy">Todo</span><br><small>«Avance» no lee Sheets; «Marcar cierre» sin confirmación</small></div>
+            <div class="pg-hoy-card"><b>Territorial</b><span class="pg-hoy-btn is-claro">Avance</span><span class="pg-hoy-btn is-rojo">Todo</span><br>+ <span class="pg-hoy-btn is-plano">Actualizar Campo</span><span class="pg-hoy-btn is-plano">Sincronizar respuestas</span><span class="pg-hoy-btn is-plano">Sincronizar campo</span><br><small>cuatro rótulos, una descarga; «Todo» = una fuente de una fase</small></div>
+            <div class="pg-hoy-card"><b>Aulas</b><span class="pg-hoy-btn is-claro">Avance</span><span class="pg-hoy-btn is-rojo">Traer respuestas</span><br>+ panel <span class="pg-hoy-btn is-plano">Traer respuestas</span><span class="pg-hoy-btn is-plano">Publicar al Sheets</span><br><small>«Avance» no trae nada; «Traer respuestas» trae, publica y borra filas</small></div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Un solo control en la barra</b>, «Actualizar ▾», igual en los cuatro perfiles: el cuerpo trae lo nuevo y recalcula; el menú ofrece cada fuente, «Traer todo de nuevo» y «Recalcular». La píldora de estado dice <i>Al día</i>, <i>Pendiente de recalcular</i> (clic = recalcular), <i>Parcial</i> o <i>Falló</i>.</li>
+        <li><b>Desaparecen</b> «Avance», «Todo», «Traer respuestas», la franja «Sheets · Kobo · Todo» y los tres duplicados territoriales. Cada fuente es una fila con «Traer nuevas», «Traer todo de nuevo» y «Cambiar conexión».</li>
+        <li><b>Nada en la barra escribe fuera.</b> Publicar vive en su sección, con chip de destino y ensayo que enseña filas añadidas, cambiadas y borradas; si borra, el botón es rojo y nombra la cifra.</li>
+        <li><b>El primario sigue siendo el del módulo</b> (carmesí en Monitoreo, como en todos los módulos por ADR 0042). El rojo de peligro queda sólo para Anular, Retirar, Quitar, Marcar cierre y Aplicar con poda; mira «Retirar 14 filas» junto a «Actualizar»: hoy la pieza <code>--danger</code> apenas se distingue del tono, y eso es la decisión D13.</li>
+        <li><b>Un sync a la vez y recibo visible</b>: el chrome y las filas se bloquean entre sí, y el resultado llega como aviso, no a un estado que nadie pinta.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div id="pg-scrim" class="mq-scrim" role="presentation">
+    <div class="mq-dialog is-lg" role="dialog" aria-modal="true" aria-labelledby="pg-dlg-t">
+      <header class="mq-dialog-head">
+        <span class="mq-th-icon"><i data-icon="cloud-upload" data-size="18"></i></span>
+        <div><h2 id="pg-dlg-t">Publicar al Sheets del operativo</h2><p>Ensayo: esto es lo que cambiaría. Nada se ha escrito todavía.</p></div>
+        <button class="mq-dialog-close" type="button" aria-label="Cerrar (Esc)" data-cierra><i data-icon="x" data-size="16"></i></button>
+      </header>
+      <div class="mq-dialog-body">
+        <table class="mq-table pg-ensayo" style="font-size:12px"><thead><tr><th>Hoja</th><th>Quién la edita</th><th class="num">Añade</th><th class="num">Cambia</th><th class="num">Retira</th><th>Nota</th></tr></thead><tbody>
+          <tr><td>Base de control</td><td>la app</td><td class="num">0</td><td class="num">38</td><td class="num">0</td><td>—</td></tr>
+          <tr><td>Plan del día</td><td>la app</td><td class="num">12</td><td class="num">9</td><td class="num">0</td><td>—</td></tr>
+          <tr><td>Avance de campo</td><td>la app</td><td class="num">0</td><td class="num">14</td><td class="num">0</td><td class="mq-num-neg">encoge: 181 → 105 filas (la sesión se reconstruyó desde el Sheets)</td></tr>
+          <tr><td>Avance de agendación</td><td>la app</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>sin cambios</td></tr>
+          <tr><td>Semana 3 · aplicadores</td><td><b>el equipo</b></td><td class="num">0</td><td class="num">0</td><td class="num mq-num-neg">14</td><td class="mq-num-neg">retira aulas ya cerradas; 22 personas ven esta pestaña</td></tr>
+          <tr><td>Aulas Agendadas · Aulas Aplicadas</td><td><b>el equipo</b></td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>no se tocan</td></tr>
+        </tbody></table>
+        <label class="mq-switch" style="margin-top:12px"><input type="checkbox" role="switch"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Publicar Avance de campo aunque encoja</span></label>
+      </div>
+      <footer class="mq-dialog-foot">
+        <span class="mq-muted"><span class="mq-kbd">Esc</span> cancela; el recibo queda en el Historial</span>
+        <span class="mq-spacer"></span>
+        <button class="pulso-button pulso-button--ghost pulso-button--md" type="button" data-cierra>Cancelar</button>
+        <button id="pg-b-aplicar" class="pulso-button pulso-button--danger pulso-button--md" type="button"><i data-icon="cloud-upload" data-size="14"></i> Publicar y retirar 14 filas</button>
+      </footer>
+    </div>
+  </div>
+  <div id="pg-toast" class="mq-toast" style="position:fixed; display:flex; gap:10px; align-items:center; width:auto; max-width:620px; right:auto; left:50%; bottom:72px; animation:none; transform:translate(-50%, 8px); opacity:0; transition: transform var(--motion-dur-base) var(--motion-ease-out), opacity var(--motion-dur-base) var(--motion-ease-out); z-index:1700;"></div>
+  <style>#pg-toast.is-on { transform: translate(-50%, 0); opacity: 1; }</style>
+</div>
+</body>
+</html>

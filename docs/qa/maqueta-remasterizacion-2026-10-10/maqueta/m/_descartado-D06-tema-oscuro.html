@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>D6 · Vista previa del tema oscuro sobre Avance › Resumen</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "D6", titulo: "Tema oscuro (vista previa): la misma pantalla de L18 con los roles semánticos remapeados",
+  hoy: "../hoy/territorial-avance.png",
+  nota: "Hoy: ~4.468 hex fuera de tokens en CSS de features; la dirección v3 difiere el oscuro hasta bajar de 500.",
+  modulo: "monitoreo",
+  proyecto: { nombre: "acnur_acg", estado: "sucio", fecha: "24/7/2026" },
+  secciones: [
+    { id: "fuente", label: "Fuente" }, { id: "umps", label: "UMPs" }, { id: "validacion", label: "Validación" },
+    { id: "consultas", label: "Consultas" }, { id: "avance", label: "Avance", badge: "107 %" }, { id: "ocurrencias", label: "Ocurrencias" },
+  ],
+  seccionActiva: "avance",
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Modo</span><b>Territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Activas</span><b>2/2</b></span></span>',
+  herramientas: '<span class="pg-tools"><span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Regenerado</span><b>10/10/26</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,693</b></span></span><span class="mq-seg" role="radiogroup" aria-label="Alcance de la base"><button type="button" class="is-on">Avance</button><button type="button">Todo</button></span></span>',
+  chips: [{ label: "Sincronizado 10/10/26", tone: "success", detail: "Última sincronización con Kobo: 10/10/26" }],
+  pestanas: [
+    { id: "resumen", label: "Resumen", detail: "Distrito, manzana y ritmo", icon: "chart-column" },
+    { id: "distritos", label: "Distritos", detail: "Avance por distrito", icon: "map-pinned" },
+    { id: "ump", label: "Mapa y UMP", detail: "Cobertura por manzana", icon: "grid-3x3" },
+    { id: "ritmo", label: "Ritmo", detail: "Entrevistas por día", icon: "trending-up" },
+    { id: "salidas", label: "Salidas", detail: "PDF y Excel de avance", icon: "download" },
+  ],
+  pestanaActiva: "resumen",
+  railFooter: '<span class="pg-corte" title="Corte territorial · campo real 9/07/26, 7:24 a. m.">09/07<br>07:24</span>',
+  cabecera: { eyebrow: "Avance territorial", titulo: "Resumen", detalle: "Distrito, manzana y ritmo",
+    control: '<span class="mq-seg pg-theme-seg" role="radiogroup" aria-label="Tema"><button type="button"><i data-icon="sun" data-size="13"></i> Claro</button><button type="button" class="is-on"><i data-icon="moon" data-size="13"></i> Oscuro</button></span>',
+    chips: [{ label: "<b>2</b> fuentes" }, { label: "<b>1,693</b> recibidas" }, { label: "<b>1,283</b> válidas", tone: "ok" }, { label: "<b>1,200</b> meta" }] },
+};
+</script>
+<style>
+  .pg-theme-seg button { height: 26px; font-size: 11.5px; }
+  .pg-tools { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; white-space: nowrap; }
+  .pg-corte { display: inline-block; padding: 5px 0; border-radius: 10px; border: 1px solid var(--pulso-primary-border); background: var(--pulso-primary-soft); color: var(--pulso-primary); font-weight: 800; font-size: 10px; line-height: 1.25; width: 40px; font-variant-numeric: tabular-nums; }
+  .pg-estado { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px; align-items: start; }
+  .pg-estado .pg-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .pg-estado .pg-copy b { font-size: 24px; font-weight: 900; letter-spacing: -.5px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .pg-estado .pg-copy .mq-base { font-size: 12px; color: var(--pulso-text-soft); font-weight: 600; }
+  .pg-ring { --p: 100; width: 128px; height: 128px; border-radius: 50%; display: grid; place-items: center; position: relative; background: conic-gradient(var(--pulso-success-fg) calc(var(--p) * 1%), var(--pulso-surface-3) 0); }
+  .pg-ring::before { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--pulso-surface); }
+  .pg-ring > span { position: relative; text-align: center; line-height: 1; }
+  .pg-ring b { display: block; font-size: 26px; font-weight: 900; letter-spacing: -.6px; font-variant-numeric: tabular-nums; }
+  .pg-ring small { display: block; margin-top: 4px; font-size: 9.5px; letter-spacing: .6px; text-transform: uppercase; color: var(--pulso-text-soft); font-weight: 700; }
+  .pg-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--pulso-surface-3); }
+  .pg-bar i { display: block; height: 100%; }
+  .pg-bar .is-ok { background: var(--pulso-success-fg); }
+  .pg-bar .is-warn { background: var(--pulso-warn-accent); }
+  .pg-bar .is-off { background: var(--pulso-resultado-pendiente); }
+  .pg-bar .is-primary { background: var(--pulso-primary); }
+  .pg-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .pg-ump { display: grid; grid-template-columns: 48px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 6px 10px; border: 1px solid var(--pulso-border); border-radius: 9px; background: var(--pulso-surface); }
+  .pg-ump .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 700; }
+  .pg-ump .pg-ump-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .pg-ump .pg-ump-copy span { font-size: 11.5px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-ump .pg-mini { height: 4px; border-radius: 999px; background: var(--pulso-surface-3); overflow: hidden; }
+  .pg-ump .pg-mini i { display: block; height: 100%; width: calc(var(--p) * 1%); background: var(--pulso-warn-accent); }
+  .pg-ump .pg-faltan { text-align: right; line-height: 1; }
+  .pg-ump .pg-faltan small { display: block; font-size: 9.5px; letter-spacing: .5px; text-transform: uppercase; color: var(--pulso-text-faint); font-weight: 700; }
+  .pg-ump .pg-faltan b { font-size: 17px; font-weight: 900; color: var(--pulso-warn-accent); font-variant-numeric: tabular-nums; }
+  .pg-sub { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; margin-bottom: 8px; }
+  .pg-sub .mq-chip { margin-left: auto; }
+  .pg-empty-sm { padding: 14px 12px; border: 1px dashed var(--pulso-border-strong); border-radius: 10px; background: var(--pulso-surface-2); font-size: 12px; color: var(--pulso-text-soft); text-align: center; }
+  .pg-empty-sm strong { display: block; color: var(--pulso-text); font-size: 12.5px; margin-bottom: 2px; }
+  .pg-kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .pg-kpi { padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface-2); min-width: 0; }
+  .pg-kpi .pulso-section-eyebrow { font-size: 9.5px; display: block; }
+  .pg-kpi b { display: block; font-size: 16px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.3px; margin-top: 1px; }
+  .pg-kpi small { display: block; font-size: 11px; color: var(--pulso-text-faint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-ausente { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px dashed var(--pulso-border-strong); border-radius: 10px; color: var(--pulso-text-faint); font-size: 12px; background: repeating-linear-gradient(135deg, transparent 0 8px, var(--pulso-surface-3) 8px 9px); }
+  .pg-ausente s { opacity: .8; }
+</style>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack" style="gap:12px">
+
+    <!-- 1 · lo que ya no está en esta pestaña -->
+    <div class="pg-ausente mq-callout">
+      <span class="mq-note" data-n="1" style="top:-11px; right:12px;">mismo markup que L18: cambian los roles, no las reglas</span>
+      <i data-icon="ban" data-size="14"></i>
+      <span><s>FORMATO TERRITORIAL · Piloto 35 locales · Campo 1,693 de 1,697</s> · <s>CORTE TERRITORIAL · Campo real · 9/07/26, 7:24 a. m. · 6 distritos con avance</s></span>
+      <span class="mq-spacer"></span>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: 400px minmax(0,1fr);">
+      <!-- estado general del campo -->
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="2" style="top:-11px; left:14px;">los tonos de resultado suben de luminancia, mismo croma</span>
+        <div class="mq-panel-head"><i data-icon="target" data-size="16"></i><h3>Estado general del campo</h3><span class="mq-spacer"></span><span class="mq-chip is-ok">meta superada, +83</span></div>
+        <div class="pg-estado">
+          <div class="pg-copy">
+            <span class="pulso-section-eyebrow">Avance</span>
+            <b>1,283 de 1,200</b>
+            <span class="mq-base">válidas sobre la meta · criterio consent</span>
+            <div class="pg-bar" style="margin-top:8px" aria-hidden="true"><i class="is-ok" style="width:100%"></i></div>
+            <span class="pg-legend" style="margin-top:4px"><span><i style="background:var(--pulso-success-fg)"></i>1,283 válidas</span><span><i style="background:var(--pulso-surface-3); border:1px solid var(--pulso-border-strong)"></i>0 pendientes</span></span>
+          </div>
+          <div class="pg-ring" style="--p:100" role="img" aria-label="Avance 107 por ciento"><span><b>107 %</b><small>avance</small></span></div>
+        </div>
+        <div class="pg-kpi-grid" style="margin-top:12px">
+          <div class="pg-kpi"><span class="pulso-section-eyebrow">Objetivo</span><b>1,200</b><small>meta de Hojas de ruta</small></div>
+          <div class="pg-kpi"><span class="pulso-section-eyebrow">Pendientes</span><b>0</b><small>para llegar a la meta</small></div>
+          <div class="pg-kpi"><span class="pulso-section-eyebrow">Distritos</span><b>6</b><small>6 de 6 con avance</small></div>
+          <div class="pg-kpi"><span class="pulso-section-eyebrow">UMP</span><b>150</b><small>147 completas · 3 en cuota</small></div>
+        </div>
+      </section>
+
+      <!-- prioridades -->
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="3" style="top:-11px; right:12px;">el vacío enmarcado conserva su marco</span>
+        <div class="mq-panel-head"><i data-icon="triangle-alert" data-size="16"></i><h3>Prioridades de avance</h3><span class="mq-spacer"></span><span class="mq-muted">UMP de la hoja de ruta y distritos, ordenados por brecha</span></div>
+        <div class="mq-grid" style="grid-template-columns: 250px minmax(0,1fr);">
+          <div>
+            <div class="pg-sub">Distritos con brecha <span class="mq-chip">0</span></div>
+            <div class="pg-empty-sm"><strong>Sin distritos rezagados</strong>los 6 distritos superan su meta de válidas</div>
+            <div class="pg-sub" style="margin-top:14px">Ritmo de la semana <span class="mq-chip is-ok">+41 / día</span></div>
+            <div class="pg-empty-sm" style="text-align:left">Campo cerrado el 9/07. El ritmo final fue de 41 válidas por día en las últimas dos semanas; el detalle vive en <b>Ritmo</b>.</div>
+          </div>
+          <div>
+            <div class="pg-sub">UMP pendientes <span class="mq-chip is-warn">21</span></div>
+            <div class="mq-stack" style="gap:6px">
+              <div class="pg-ump"><span class="mono">UMP 7</span><div class="pg-ump-copy"><span>Ate · Zona 04200 · Sin responsable</span><div class="pg-mini" style="--p:0"><i></i></div></div><div class="pg-faltan"><small>faltan</small><b>8</b></div></div>
+              <div class="pg-ump"><span class="mono">UMP 70</span><div class="pg-ump-copy"><span>Los Olivos · Zona 02600 · Sin responsable</span><div class="pg-mini" style="--p:0"><i></i></div></div><div class="pg-faltan"><small>faltan</small><b>8</b></div></div>
+              <div class="pg-ump"><span class="mono">UMP 71</span><div class="pg-ump-copy"><span>Los Olivos · Zona 02600 · Sin responsable</span><div class="pg-mini" style="--p:0"><i></i></div></div><div class="pg-faltan"><small>faltan</small><b>8</b></div></div>
+              <div class="pg-ump"><span class="mono">UMP 74</span><div class="pg-ump-copy"><span>Los Olivos · Zona 02700 · Sin responsable</span><div class="pg-mini" style="--p:0"><i></i></div></div><div class="pg-faltan"><small>faltan</small><b>8</b></div></div>
+              <div class="pg-ump"><span class="mono">UMP 75</span><div class="pg-ump-copy"><span>Los Olivos · Zona 02700 · Sin responsable</span><div class="pg-mini" style="--p:0"><i></i></div></div><div class="pg-faltan"><small>faltan</small><b>8</b></div></div>
+            </div>
+            <div class="mq-row" style="margin-top:8px"><span class="mq-faint" style="font-size:11.5px">Los 5 de mayor brecha, de 21.</span><span class="mq-spacer"></span><button class="mq-link" type="button" style="font-size:12px">Ver las 21 en Mapa y UMP</button></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: 400px minmax(0,1fr);">
+      <!-- estado UMP -->
+      <section class="mq-panel">
+        <div class="mq-panel-head"><i data-icon="grid-3x3" data-size="16"></i><h3>Estado UMP · cuota operativa</h3><span class="mq-spacer"></span><span class="mq-muted">150 UMP</span></div>
+        <div class="pg-bar" aria-hidden="true"><i class="is-ok" style="width:98%"></i><i class="is-warn" style="width:2%"></i></div>
+        <div class="pg-legend" style="margin:6px 0 10px"><span><i style="background:var(--pulso-success-fg)"></i>147 completas · 98 %</span><span><i style="background:var(--pulso-warn-accent)"></i>3 cuota pendiente</span><span><i style="background:var(--pulso-resultado-pendiente)"></i>0 no iniciadas</span></div>
+        <div class="mq-kpis" style="--n:3; gap:8px">
+          <div class="mq-kpi"><span class="pulso-section-eyebrow">Completas</span><b>147</b><small>cuota cubierta</small></div>
+          <div class="mq-kpi is-warn"><span class="pulso-section-eyebrow">Pendientes</span><b>3</b><small>19 subsanadas</small></div>
+          <div class="mq-kpi"><span class="pulso-section-eyebrow">No iniciadas</span><b>0</b><small>de 150</small></div>
+        </div>
+      </section>
+
+      <!-- corte operativo -->
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="4" style="top:-11px; left:14px;">KPIs con tono usan los `-bg` remapeados</span>
+        <div class="mq-panel-head"><i data-icon="scale" data-size="16"></i><h3>Corte operativo</h3><span class="mq-spacer"></span><span class="mq-muted">Qué entra y qué queda separado</span></div>
+        <div class="pg-bar" aria-hidden="true"><i class="is-ok" style="width:77.3%"></i><i class="is-warn" style="width:18.6%"></i><i class="is-off" style="width:4.1%"></i></div>
+        <div class="mq-kpis" style="--n:3; gap:8px; margin-top:10px">
+          <div class="mq-kpi"><span class="pulso-section-eyebrow">Cuentan en avance</span><b>1,283</b><small>válidas actuales · criterio consent</small></div>
+          <div class="mq-kpi is-warn"><span class="pulso-section-eyebrow">En observación</span><b>308</b><small>no bloquea el avance</small></div>
+          <div class="mq-kpi"><span class="pulso-section-eyebrow">No cuentan</span><b>68</b><small>según criterio consent</small></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="mq-notas mq-callout"><span class="mq-note" data-n="5" style="top:-11px; right:12px;">toggle decorativo: D6 la decide el dueño</span><b>Qué muestra esta vista previa</b>
+      <ol>
+        <li><b>Solo roles, cero hex nuevos</b>: la hoja define <code>:root[data-theme="dark"]</code> remapeando surface, border, text, header-row y los <code>-bg/-fg/-border</code> de success, warn, danger e info. Paneles, KPIs, chips, rail y command bar se ven bien porque ya leían tokens.</li>
+        <li><b>Los ocho acentos de módulo suben de luminancia bajo el mismo techo de croma</b>: el rojo de Monitoreo sigue siendo el rojo de Monitoreo; solo gana luz para el contraste sobre fondo oscuro (ver dock y píldora activa).</li>
+        <li><b>Plotly y PDF no cambian</b>: los gráficos conservan la paleta Pulso clara dentro de un panel oscuro y los entregables siguen saliendo en claro.</li>
+        <li><b>Condición de entrada</b>: menos de 500 hex fuera de tokens en <code>features/</code> (hoy ~4.468, Monitoreo 3.115). Hasta entonces el oscuro se vería a medias: esta maqueta solo prueba que el chrome y el kit ya están listos.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -2,6 +2,55 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Maqueta remasterización UI (8933)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "docs/qa/maqueta-remasterizacion-2026-10-10/serve.mjs",
+        "8933"
+      ],
+      "port": 8933
+    },
+    {
+      "name": "Backend acrconta_mazo F6 (8821)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8821",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/repos/Pulso/prosecnur-app/tmp/n8/app/acrconta_mazo_trabajo.pulso"
+      },
+      "port": 8821
+    },
+    {
+      "name": "Backend F6 HEAD limpio (8821)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "/private/tmp/claude-501/-Users-gonzaloalmendariz-repos-Pulso-prosecnur-app/fb6f7096-32a3-4d2f-92bc-12d32a0382c6/scratchpad/f6head/launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8821",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/repos/Pulso/prosecnur-app/tmp/n8/app/acrconta_mazo_trabajo.pulso"
+      },
+      "port": 8821
+    },
+    {
+      "name": "Frontend (dev vs 8821)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8821"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
       "name": "Backend HSVG26ULT trabajo (8812)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
@@ -64,7 +113,7 @@
       "env": {
         "PULSO_PORT": "8806",
         "PULSO_OPEN_BROWSER": "false",
-        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalencias.pulso"
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2026_PUCP_Acreditacion_Contabilidad/V3_Conta 11-08 equivalencias.pulso"
       },
       "port": 8806
     },
@@ -91,7 +140,7 @@
       "env": {
         "PULSO_PORT": "8805",
         "PULSO_OPEN_BROWSER": "false",
-        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/ACRD CONTA/Conta 09-08 equivalencias.pulso"
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2026_PUCP_Acreditacion_Contabilidad/Conta 09-08 equivalencias.pulso"
       },
       "port": 8805
     },
@@ -362,7 +411,7 @@
       "env": {
         "PULSO_PORT": "8787",
         "PULSO_OPEN_BROWSER": "false",
-        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/HSTVG2026/HSVG26ULT.pulso"
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2026_PUCP_HSyVbG/HSVG26ULT.pulso"
       },
       "port": 8787
     },
@@ -375,9 +424,23 @@
       "env": {
         "PULSO_PORT": "8799",
         "PULSO_OPEN_BROWSER": "false",
-        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/HSTVG2026/HSVG26ULT.pulso"
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2026_PUCP_HSyVbG/HSVG26ULT.pulso"
       },
       "port": 8799
+    },
+    {
+      "name": "Maqueta F6 (8932)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8932",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "tmp/f6-diseno/maqueta"
+      ],
+      "port": 8932
     }
   ]
 }

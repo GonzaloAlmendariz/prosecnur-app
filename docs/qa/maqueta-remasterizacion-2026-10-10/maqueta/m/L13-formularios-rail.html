@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L13 · Formularios enlazable: rail de pestañas y constructor</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L13", titulo: "Formularios enlazable: Constructor, Hojas y las vistas de «Más vistas» como pestañas del rail con dirección propia",
+  hoy: "../hoy/formularios.png",
+  nota: "Hoy: toolbar de dos filas con Constructor/Hojas/«Más vistas» en useState; ninguna vista tiene dirección y el QA sólo ve la landing.",
+  modulo: "editor-xlsform",
+  proyecto: { nombre: "acnur_pdm", estado: "guardado", fecha: "1/8/2026" },
+  secciones: [{ id: "editor", label: "Editor" }, { id: "documento", label: "Documento" }],
+  seccionActiva: "editor",
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Formulario</span><b>PDM Espacios de protección 2026</b></span></span>',
+  acciones: [{ label: "Exportar .xlsx", icon: "download", kind: "primary" }],
+  menu: true,
+  pestanas: [
+    { id: "constructor", label: "Constructor", detail: "Preguntas, foco e inspector", icon: "square-pen" },
+    { id: "hojas", label: "Hojas", detail: "survey · choices · settings", icon: "table-2" },
+    { id: "probar", label: "Probar formulario", detail: "Recorrido con saltos", icon: "play" },
+    { id: "resumen", label: "Resumen", detail: "Ficha del instrumento", icon: "file-text" },
+    { id: "logica", label: "Mapa de lógica", detail: "Lienzo de relevancias y saltos", icon: "git-branch" },
+    { id: "filtros", label: "Filtros de opciones", detail: "choice_filter por lista", icon: "sliders-horizontal" },
+    { id: "listas", label: "Listas", detail: "9 listas de opciones", icon: "list-ordered" },
+  ],
+  pestanaActiva: "constructor",
+  cabecera: { eyebrow: "Formularios", titulo: "Constructor", detalle: "Outline, pregunta en foco e inspector del instrumento", chips: [{ label: "<b>27</b> piezas" }, { label: "<b>9</b> listas" }, { label: "<b>1</b> aviso", tone: "warn" }] },
+};
+  window.onMaquetaMontada = function () { var f = document.querySelector(".pg-q.is-foco"); if (f) f.scrollIntoView({ block: "center" }); };
+</script>
+<style>
+  .pg-editor { display: grid; grid-template-columns: 262px minmax(0, 1fr) 312px; gap: 12px; height: calc(100vh - 300px); min-height: 520px; align-items: stretch; }
+  .pg-col .mq-note { align-self: flex-start; }
+  .pg-prev { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 8px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface-2); font-size: 12px; color: var(--pulso-text-soft); }
+  .pg-prev strong { color: var(--pulso-text); }
+  .pg-prev .pg-q-ico { width: 22px; height: 22px; }
+  .pg-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface); }
+  .pg-col-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--pulso-border); }
+  .pg-col-head h3 { margin: 0; font-size: 13px; font-weight: 800; }
+  .pg-col-head .pulso-section-eyebrow { font-size: 10px; }
+  .pg-col-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .pg-col-body > * { flex: 0 0 auto; }
+  /* outline */
+  .pg-q { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 9px; border: 1px solid transparent; font-size: 12px; }
+  .pg-q:hover { background: var(--pulso-surface-2); }
+  .pg-q.is-foco { background: var(--pulso-primary-soft); border-color: var(--pulso-primary-border); }
+  .pg-q .pg-q-ico { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--pulso-surface-3); color: var(--pulso-text-soft); font-size: 11px; font-weight: 800; }
+  .pg-q.is-seccion .pg-q-ico { background: var(--pulso-primary); color: var(--pulso-nav-selected-fg); }
+  .pg-q strong { display: block; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-q span { display: block; font-size: 10.5px; color: var(--pulso-text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-q code { font-size: 10px; }
+  .pg-q .pg-req { color: var(--pulso-warn-fg); font-size: 11px; }
+  .pg-q.is-sangria { margin-left: 12px; }
+  /* vista de trabajo */
+  .pg-tarjeta { border: 1px solid var(--pulso-primary); border-radius: 12px; padding: 14px 16px; box-shadow: 0 0 0 3px var(--pulso-primary-focus); display: flex; flex-direction: column; gap: 10px; }
+  .pg-tarjeta h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
+  .pg-tarjeta .pg-pista { margin: 0; font-size: 12.5px; color: var(--pulso-text-soft); font-style: italic; }
+  .pg-opciones { display: grid; gap: 6px; }
+  .pg-opcion { display: grid; grid-template-columns: 18px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 7px 10px; border: 1px solid var(--pulso-border); border-radius: 9px; font-size: 12.5px; }
+  .pg-opcion i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--pulso-border-strong); display: block; }
+  .pg-opcion code { font-size: 10.5px; color: var(--pulso-text-faint); }
+  .pg-resumen { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+  .pg-res { padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 9px; background: var(--pulso-surface-2); font-size: 11.5px; }
+  .pg-res .pulso-section-eyebrow { font-size: 9.5px; display: block; }
+  .pg-res b { display: block; font-size: 12px; margin: 2px 0; }
+  .pg-res span { color: var(--pulso-text-soft); }
+  .pg-sig { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px dashed var(--pulso-border-strong); border-radius: 9px; font-size: 12px; color: var(--pulso-text-soft); }
+  /* inspector */
+  .pg-insp-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--pulso-surface-3); border: 1px solid var(--pulso-border); }
+  .pg-insp-tabs button { flex: 1; height: 26px; border: 0; border-radius: 7px; background: transparent; font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
+  .pg-insp-tabs button.is-on { background: var(--pulso-surface); color: var(--pulso-primary); box-shadow: var(--pulso-shadow-low); }
+  .pg-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pg-switch-row > label { font-size: 11.5px; font-weight: 700; }
+  .pg-switch-row small { display: block; font-weight: 500; color: var(--pulso-text-faint); font-size: 11px; }
+  .pg-fin { height: 56px; }
+</style>
+</head>
+<body>
+<div id="contenido" data-audit-ready="editor-xlsform/formularios/constructor">
+  <div class="mq-stack">
+    <div class="pg-editor">
+      <!-- outline -->
+      <section class="pg-col mq-callout" aria-label="Estructura del formulario">
+        <div class="pg-col-head"><div><span class="pulso-section-eyebrow">Outline maestro</span><h3>Estructura</h3></div><span class="mq-spacer"></span><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Añadir pieza"><i data-icon="plus" data-size="14"></i></button></div>
+        <div class="pg-col-body">
+          <span class="mq-note" data-n="2" style="position:static;">«Más vistas» desaparece: las siete vistas son pestañas del rail</span>
+          <input class="mq-input is-sm" placeholder="Buscar en 27 piezas" aria-label="Buscar pieza">
+          <div class="pg-q"><span class="pg-q-ico"><i data-icon="settings-2" data-size="12"></i></span><div><strong>Ajustes del formulario</strong><span>Título, id y versión</span></div></div>
+          <div class="pg-q"><span class="pg-q-ico"><i data-icon="wand-sparkles" data-size="12"></i></span><div><strong>Inicio</strong><span>Inicio (auto) · <code>start</code></span></div></div>
+          <div class="pg-q"><span class="pg-q-ico"><i data-icon="wand-sparkles" data-size="12"></i></span><div><strong>Fin</strong><span>Fin (auto) · <code>end</code></span></div></div>
+          <div class="pg-q is-seccion"><span class="pg-q-ico"><i data-icon="folder" data-size="12"></i></span><div><strong>Identificación</strong><span>Sección · <code>identificacion</code> · 8 preguntas</span></div></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico">T</span><div><strong>ID de respuesta</strong><span>Texto corto · <code>response_id</code></span></div><span class="pg-req" title="Obligatoria">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico">T</span><div><strong>Enumerador</strong><span>Texto corto · <code>enumerador</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico"><i data-icon="calendar-days" data-size="12"></i></span><div><strong>Fecha de entrevista</strong><span>Fecha · <code>fecha</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><div><strong>Región</strong><span>Selección única · <code>region</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><div><strong>Distrito</strong><span>Selección única · <code>distrito</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico">T</span><div><strong>Zona operativa</strong><span>Texto corto · <code>zona</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico">#</span><div><strong>Edad</strong><span>Número entero · <code>edad</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria is-foco" aria-current="true"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><div><strong>Sexo</strong><span>Selección única · <code>sexo</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-sangria"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><div><strong>Consentimiento</strong><span>Selección única · <code>consentimiento</code></span></div><span class="pg-req">★</span></div>
+          <div class="pg-q is-seccion"><span class="pg-q-ico"><i data-icon="folder" data-size="12"></i></span><div><strong>Espacio de protección</strong><span>Sección · <code>espacio</code> · 14 preguntas</span></div></div>
+        </div>
+      </section>
+
+      <!-- vista de trabajo -->
+      <section class="pg-col mq-callout" aria-label="Vista de trabajo">
+        <div class="pg-col-head">
+          <div><span class="pulso-section-eyebrow">Vista de trabajo</span><h3>Pregunta 11 de 27 · Identificación</h3></div>
+          <span class="mq-spacer"></span>
+          <div class="mq-seg"><button type="button" class="is-on"><i data-icon="eye" data-size="13"></i> En foco</button><button type="button"><i data-icon="list-tree" data-size="13"></i> Formulario completo</button></div>
+          <button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Subir"><i data-icon="chevron-down" data-size="14" style="transform:rotate(180deg)"></i></button>
+          <button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Bajar"><i data-icon="chevron-down" data-size="14"></i></button>
+          <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button" style="color:var(--pulso-danger-fg)"><i data-icon="trash-2" data-size="14"></i> Eliminar</button>
+        </div>
+        <div class="pg-col-body" style="gap:12px">
+          <div class="mq-row"><span class="mq-note" data-n="1" style="position:static;">cada vista es `?pestana=`: `?pestana=constructor&foco=sexo` abre esto</span></div>
+          <div class="pg-prev"><span class="pg-q-ico">#</span><span><strong>Edad</strong> · número entero · <code>edad</code> · obligatoria · entre 0 y 120</span><span class="mq-kbd">↑</span></div>
+          <article class="pg-tarjeta" aria-label="Pregunta en foco">
+            <div class="mq-row"><span class="mq-chip is-accent"><i data-icon="circle-dot" data-size="11"></i> selección única · <code>sexo</code></span><span class="mq-chip">#11</span><span class="mq-chip is-warn">obligatoria</span><span class="mq-spacer"></span><span class="mq-faint" style="font-size:11px">lista <code>sexo</code> · 3 opciones</span></div>
+            <h2>Sexo de la persona entrevistada</h2>
+            <p class="pg-pista">Marca lo que la persona declara; no lo infieras.</p>
+            <div class="pg-opciones" role="radiogroup" aria-label="Opciones de sexo">
+              <div class="pg-opcion"><i></i><span>Mujer</span><code>1 · mujer</code></div>
+              <div class="pg-opcion"><i></i><span>Hombre</span><code>2 · hombre</code></div>
+              <div class="pg-opcion"><i></i><span>Prefiere no responder</span><code>99 · no_responde</code></div>
+            </div>
+            <div class="mq-row" style="font-size:11.5px; color:var(--pulso-text-soft)"><i data-icon="git-branch" data-size="13"></i> Visible si <code>${consentimiento} = 'si'</code><span class="mq-spacer"></span><button class="mq-link" type="button">Editar opciones en Listas</button></div>
+          </article>
+          <div>
+            <div class="mq-row" style="margin-bottom:6px"><span class="pulso-section-eyebrow">Resumen rápido</span><span class="mq-spacer"></span><span class="mq-faint" style="font-size:11px">En la sección Identificación</span></div>
+            <div class="pg-resumen">
+              <div class="pg-res"><span class="pulso-section-eyebrow">Respuesta</span><b>Una opción de 3</b><span>Lista <code>sexo</code></span></div>
+              <div class="pg-res"><span class="pulso-section-eyebrow">Obligatoriedad</span><b>Obligatoria</b><span>No puede quedar vacía</span></div>
+              <div class="pg-res"><span class="pulso-section-eyebrow">Visibilidad</span><b>Condicional</b><span>Depende de consentimiento</span></div>
+              <div class="pg-res"><span class="pulso-section-eyebrow">Validación</span><b>Sin restricción</b><span>Acepta cualquier opción</span></div>
+            </div>
+          </div>
+          <div class="pg-prev"><span class="pg-q-ico"><i data-icon="circle-dot" data-size="12"></i></span><span><strong>Consentimiento</strong> · selección única · <code>consentimiento</code> · obligatoria · lista <code>si_no</code> · termina el formulario si «No»</span><span class="mq-kbd">↓</span></div>
+          <div class="pg-sig" style="border-style:solid; border-color:var(--pulso-warn-border); background:var(--pulso-warn-bg); color:var(--pulso-warn-fg)"><span class="pg-q-ico" style="background:transparent; color:inherit"><i data-icon="triangle-alert" data-size="14"></i></span><span>1 aviso en este formulario: <b>Zona operativa</b> no tiene etiqueta en español.</span><button class="mq-link" type="button" style="color:inherit">Ver la pregunta <i data-icon="arrow-right" data-size="13"></i></button></div>
+        </div>
+      </section>
+
+      <!-- inspector -->
+      <aside class="pg-col mq-callout" aria-label="Inspector">
+        <div class="pg-col-head"><div><span class="pulso-section-eyebrow">Inspector</span><h3>Sexo</h3></div><span class="mq-spacer"></span><span class="mq-chip is-ok"><i data-icon="check" data-size="11"></i> guardado</span></div>
+        <div class="pg-col-body" style="gap:12px">
+          <span class="mq-note" data-n="4" style="position:static;">inspector con el kit `PulsoField` (L26)</span>
+          <div class="pg-insp-tabs" role="tablist" aria-label="Secciones del inspector"><button type="button" role="tab" aria-selected="true" class="is-on">Contenido</button><button type="button" role="tab" aria-selected="false">Respuesta</button><button type="button" role="tab" aria-selected="false">Reglas</button><button type="button" role="tab" aria-selected="false">Datos</button></div>
+          <div class="mq-field">
+            <label>Tipo</label>
+            <select class="mq-select is-sm"><option>Selección única (select_one)</option><option>Selección múltiple</option><option>Texto corto</option><option>Número entero</option><option>Fecha</option></select>
+          </div>
+          <div class="mq-field">
+            <label>Nombre <small>columna en la base</small></label>
+            <input class="mq-input is-sm" value="sexo" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+            <span class="mq-field-hint">Sin espacios ni tildes. Es el nombre de la variable.</span>
+          </div>
+          <div class="mq-field">
+            <label>Etiqueta <small>lo que ve el encuestador</small></label>
+            <input class="mq-input is-sm" value="Sexo de la persona entrevistada">
+          </div>
+          <div class="mq-field">
+            <label>Lista de opciones</label>
+            <select class="mq-select is-sm"><option>sexo · 3 opciones</option><option>region · 3</option><option>distrito · 14</option><option>si_no · 2</option><option>Nueva lista…</option></select>
+          </div>
+          <div class="pg-switch-row">
+            <label for="sw-obl">Obligatoria<small>No puede quedar sin respuesta</small></label>
+            <button class="pulso-switch" id="sw-obl" type="button" role="switch" aria-checked="true"><span class="pulso-switch-thumb"></span></button>
+          </div>
+          <div class="mq-field">
+            <label>Relevancia <small>se muestra si</small></label>
+            <input class="mq-input is-sm" value="${consentimiento} = 'si'" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+            <span class="mq-field-hint">Expresión XLSForm. <button class="mq-link" type="button">Ver en el mapa de lógica</button></span>
+          </div>
+          <div class="mq-field">
+            <label>Restricción <small>opcional</small></label>
+            <input class="mq-input is-sm" placeholder=". != ''">
+          </div>
+          <div class="mq-field">
+            <label>Pista de apoyo <small>debajo de la pregunta</small></label>
+            <input class="mq-input is-sm" value="Marca lo que la persona declara; no lo infieras.">
+          </div>
+          <div class="mq-field">
+            <label>Apariencia</label>
+            <select class="mq-select is-sm"><option>Lista vertical (por defecto)</option><option>minimal</option><option>quick</option><option>columns</option></select>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="mq-notas mq-callout"><b>Qué cambia respecto de hoy</b>
+      <span class="mq-note" data-n="3" style="top:-12px; right:14px;">la vista Hojas deja de vivir en `useState`; importar un formulario no te saca de ella (N8)</span>
+      <ol>
+        <li><b>Cada vista es una pestaña del rail con dirección propia</b>: Constructor, Hojas, Probar formulario, Resumen, Mapa de lógica, Filtros de opciones y Listas se abren por <code>?pestana=</code>; <code>foco=</code> identifica la pregunta. La matriz de Formularios pasa de 1 a 7 direcciones únicas.</li>
+        <li><b>«Más vistas» desaparece</b>: era un menú que escondía cinco vistas sin dirección detrás de un <code>useState</code>; el rail de 56 px es el mismo de los demás módulos.</li>
+        <li><b>Hojas deja de vivir en estado local</b>: importar un formulario o cambiar de módulo ya no te devuelve al Constructor (N8); el estado de la vista está en la dirección.</li>
+        <li><b>El inspector usa el kit</b> (<code>PulsoField</code>, <code>PulsoSelect</code>, <code>PulsoSwitch</code>, L26): tipo, nombre, etiqueta, lista, obligatoria, relevancia y restricción con label, hint y error compartidos.</li>
+      </ol>
+    </div>
+    <div class="pg-fin" aria-hidden="true"></div>
+  </div>
+</div>
+</body>
+</html>
