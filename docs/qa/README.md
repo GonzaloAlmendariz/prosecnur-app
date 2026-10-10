@@ -67,6 +67,8 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Inventario conciliado de íconos (F6.1b)](inventario-iconos-recetario-2026-10-10.md): íconos del recetario frente a los del motor, lámina por lámina.
 - [K15 — estándar contra lo dibujado en el recetario](k15-estandar-vs-recetario-2026-10-10.md): ranuras del estándar medidas sobre las láminas de ejemplo.
 - [Hallazgo: con peso, la «Base» del informe es la suma de pesos](hallazgo-base-ponderada-2026-10-10.md): hallazgo metodológico con decisiones S1–S5 pendientes.
+- [Meta B — encargo del loop del revamp visual](encargo-loop-revamp-visual-2026-10-10.md):
+  lo que la sesión «Revamp visual» abre el primer día: rectores, tablero B0–B9, decisiones cerradas, traspaso a la nube, primer paso y pedidos a la Meta A.
 - [Plan de traspaso en tres sesiones](plan-traspaso-tres-sesiones-2026-10-10.md): Fase 0 calidad, Meta A Gráficos y Meta B revamp visual, con dueños de archivos y reglas de integración.
 - [GOAL — Fase 0: Quality en verde](goal-ci-calidad-2026-10-10.md): tablero de los gates rojos del traspaso.
 - [Meta A — Gráficos (encargo del loop F6)](encargo-loop-f6-2026-10-10.md): vara, tablero A0–A11, colas, decisiones y operación.
