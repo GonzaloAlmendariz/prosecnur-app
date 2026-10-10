@@ -1,29 +1,30 @@
 ---
-tipo: pestana
-padres:
-  - "[[Avance de cursos-horario]]"
+padres: []
 orden: 3
 documentacion: parcial
 ruta_app: "/monitoreo?modo=aulas&seccion=avance&pestana=estratos"
-nodo: "monitoreo/aulas/avance/estratos"
-verificado_contra: ""
+historica: true
 tags:
-  - Pestaña
+  - Archivo/Historica
 fuentes:
   - "frontend/src/lib/navegacion/catalogos/monitoreo.ts"
-  - "frontend/src/features/monitoreo/profiles/aulas/avanceCuota.ts"
+  - "frontend/src/features/monitoreo/profiles/aulas/AulasPestanaEstratos.tsx"
   - "api/R/monitoreo_aulas_avance_cuota.R"
 ---
 
 # Estratos
 
-> Muestra el avance y la brecha que le falta a cada estrato del diseño.
+> **Pestaña retirada el 2026-09-09.** Mostraba el avance y la brecha de cada estrato del diseño dentro de Avance de cursos-horario.
 
-## Objetivo
+## Por qué ya no existe
 
-Ver qué estrato va retrasado antes de que el retraso se vuelva irrecuperable.
+El catálogo de navegación (`frontend/src/lib/navegacion/catalogos/monitoreo.ts`, bloque `aulas › avance`) la retiró por decisión de Gonzalo: el avance del operativo no se lee partiendo las facultades por su composición por sexo, que era el eje de esta pestaña. Avance quedó como Resumen → Metas → Rendimiento → Efectividad → Salidas.
 
-## Cómo se usa
+Sus dos paneles legítimos —cómo se repartió el sorteo y cuánto se movió la composición— son del diseño muestral, no del avance; si vuelven, será en Cálculo de muestra. El componente `AulasPestanaEstratos` sigue en el árbol, sin montar, y la dirección `pestana=estratos` ya no resuelve en el contrato.
 
-1. Lee el avance por estrato contra la cuota que el diseño le asignó.
-2. La brecha se mide contra la cuota del diseño, no contra la suma de metas por aula (ADR 0079).
+## Lo que documentaba
+
+1. El avance por estrato contra la cuota que el diseño le asignó.
+2. La brecha medida contra la cuota del diseño, no contra la suma de metas por aula (ADR 0079).
+
+La lectura de avance contra la cuota vive hoy en la pestaña Metas (`monitoreo/aulas/avance/cuotas`).
