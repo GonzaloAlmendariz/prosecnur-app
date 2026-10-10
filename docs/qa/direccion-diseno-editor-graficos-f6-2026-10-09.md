@@ -179,6 +179,20 @@ propia), **Tipografía**, **Cifras y redondeo** (estándar / resto mayor, decima
 (valores por defecto). Derecha, **vista previa viva**: una lámina y una página de Word dibujadas con el estilo elegido.
 Cada grupo distingue «Del recetario» (sello) de «Propio de este cliente»; «Volver al recetario» siempre visible.
 
+**Pedidos particulares de un cliente** (pregunta de Gonzalo, 2026-10-10: «¿y si me pide las letras más grandes?»). Hay dos
+caminos y ninguno es devolverle un deslizador al gráfico:
+
+- **Puntual y de una vez**: la salida es nativa, así que se edita en PowerPoint o Word sobre el archivo entregado. Es el
+  beneficio directo del ADR 0093 y para un pedido aislado es la respuesta correcta.
+- **Para todos los informes de ese cliente**: una opción con nombre en Estilo del cliente, en Tipografía, «Tamaño de
+  letra: estándar · grande (+2 pt)», que el motor aplica a toda la jerarquía (título, pregunta, cifra, rótulo, leyenda,
+  base) y que respeta las reglas de composición: con letra más grande cabe menos, así que el compositor recalcula el
+  corte por palabras y la partición en «(cont.)». Se ve en la vista previa viva. **Requiere backend**: un factor
+  tipográfico del perfil que `.std_pt` lea; las láminas no cambian de geometría, cambian de contenido por parte.
+
+Lo que no se hace: tamaños por gráfico o por lámina. Un informe con letras de tres tamaños distintos es lo que el recetario
+vino a evitar.
+
 ### 4.7 Pestaña Documento Word
 
 Cabecera: «Última versión exportada · hoy 21:14 · 60 páginas» y «Regenerar» con progreso (≈3 min). Izquierda, esquema de
@@ -278,7 +292,9 @@ Medido en la Parte C del inventario; cada punto se marca «requiere backend» en
    fino de ranura de §4.3b (opcional; sin él, la composición es uno de los 22 tipos).
 8. Etiquetas cortas por categoría y premisa hasta la especificación del compositor (§4.3c): confirmar si
    `labels_override` llega; si no, clave aditiva del plan.
-9. LibreOffice y el paso PDF → PNG dentro del instalador (decisión del 2026-10-09); el estado «sin renderer» queda como
+9. Factor tipográfico del perfil de cliente («estándar · grande») leído por `.std_pt`, con recálculo de corte y
+   partición (§4.6).
+10. LibreOffice y el paso PDF → PNG dentro del instalador (decisión del 2026-10-09); el estado «sin renderer» queda como
    excepción.
 
 ## 9. Cómo ver la maqueta
