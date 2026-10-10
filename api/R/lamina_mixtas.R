@@ -49,12 +49,15 @@
     # Tipo 21 (lámina 169): columna lateral con dos cifras apiladas, dos gráficos en la columna del medio y uno alto a la
     # derecha. Ranuras en el orden de `.SLIDES_COMPOSICION$poblacion_3_cifras`.
     poblacion_3_cifras = {
-      wl <- 2.95; gap3 <- 0.45; xc <- ml + wl + gap3; wr <- (ancho - wl - 2 * gap3) / 2; xd <- xc + wr + gap3
-      # El panel de arriba lleva la dicotomía, que pide 2.05 in con su pregunta y su público (`.lam_panel_geo`).
-      list(paneles = list(P(xc, yt - 0.05, wr, 2.15), P(xd, yt - 0.05, wr, yf - yt + 0.05), P(ml, yt + 0.1, wl, 1.3),
-                          P(xc, yt + 2.35, wr, yf - yt - 2.35), P(ml, yt + 1.8, wl, 1.3)),
-           filetes = list(list(tipo = "h", x0 = ml, x1 = ml + wl, y = yt + 1.5), list(tipo = "v", x = ml + wl + gap3 / 2, y0 = yt - 0.05, y1 = yf),
-                          list(tipo = "h", x0 = xc, x1 = xc + wr, y = yt + 2.2), list(tipo = "v", x = xc + wr + gap3 / 2, y0 = yt - 0.05, y1 = yf)))
+      # K15, lo dibujado en la p169: columna de cifras de 3.0 (cifras en 1.8 y 3.5, filete en 3.2), calles de 0.45 con su
+      # filete al medio (3.715 y 8.487), columnas de 4.312 desde 3.945 y 8.707; arriba al medio la pregunta en 1.65 y el
+      # filete en 3.6, y la de abajo en 3.75. El panel de arriba mide hasta la pregunta de abajo (2.1): la dicotomía pide
+      # 2.05 con su pregunta y su público (`.lam_panel_geo`) y el filete de 3.6 queda bajo su barra (3.19 en la p169).
+      wl <- 3.0; gap3 <- 0.45; xc <- ml + wl + gap3; wr <- (ancho - wl - 2 * gap3) / 2; xd <- xc + wr + gap3
+      list(paneles = list(P(xc, yt, wr, 2.1), P(xd, yt, wr, yf - yt), P(ml, yt + 0.15, wl, 1.3),
+                          P(xc, yt + 2.1, wr, yf - yt - 2.1), P(ml, yt + 1.85, wl, 1.3)),
+           filetes = list(list(tipo = "h", x0 = ml, x1 = ml + wl, y = yt + 1.55), list(tipo = "v", x = ml + wl + gap3 / 2, y0 = yt, y1 = yf),
+                          list(tipo = "h", x0 = xc, x1 = xc + wr, y = yt + 1.95), list(tipo = "v", x = xc + wr + gap3 / 2, y0 = yt, y1 = yf)))
     },
     # Tipo 17 (lámina 160): dos gráficos arriba lado a lado y uno ancho abajo. Las ranuras salen del estándar (fuente
     # única); el panel de abajo dibuja hasta el fin del contenido, como el de abajo de las demás mixtas, y los filetes
