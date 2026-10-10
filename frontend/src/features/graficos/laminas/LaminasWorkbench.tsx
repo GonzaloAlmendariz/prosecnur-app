@@ -184,6 +184,12 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const cerrarInspector = useCallback(() => ponerLateral(null), [ponerLateral]);
   // La X y el velo cierran por la misma vía que Escape: el foco vuelve a «Ajustes» (D2).
   const cerrarInspectorConFoco = useSideoverModal({ activo: inspectorModal, contenedor: marcoInspectorRef, retorno: ajustesRef, onCerrar: cerrarInspector });
+  // Avisos e Inspector comparten el slot `panel`: abrir Avisos con el Inspector modal encima lo cierra (si no, Avisos
+  // quedaba sobre él con el foco atrapado abajo) y el foco pasa a Avisos.
+  const avisosDesdeModal = avisos.abierto && inspectorModal;
+  useEffect(() => {
+    if (avisosDesdeModal) setLateralPreferido(null);
+  }, [avisosDesdeModal, setLateralPreferido]);
   // El lienzo se re-encaja con FLIP cuando un lateral entra o sale (contrato de movimiento F6, M11).
   useReencajeLienzo(hostRef, lateral ?? "");
 
@@ -302,7 +308,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         />
       </div>
       <EditorAmplio />
-      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} />}
+      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={inspectorModal} />}
       {inspectorModal && (
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspectorConFoco} />
       )}

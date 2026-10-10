@@ -9,6 +9,7 @@ import type { ValidationIssue } from "../usePlanValidator";
 import type { EstructuraInforme } from "./modeloEstructura";
 import type { GrupoAvisos } from "./resumenInforme";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "./cierreConEscape";
+import { useAvisosPlan } from "../avisosPlan";
 import "./panelAvisos.css";
 
 type Props = {
@@ -16,14 +17,21 @@ type Props = {
   grupos: GrupoAvisos;
   estructura: EstructuraInforme;
   onIr: (posicion: number) => void;
+  /** Se abrió desde una capa que se cierra al abrirlo (el Inspector modal): el foco entra al panel. */
+  enfocarAlAbrir?: boolean;
 };
 
-export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
+export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = false }: Props) {
   // Quién lo abrió (la barra o el visor): al cerrar, el foco vuelve ahí; si ya no existe, a «N avisos» de la barra.
   const disparadorRef = useRef<HTMLElement | null>(null);
+  const cerrarRef = useRef<HTMLButtonElement>(null);
+  const enfocarInicial = useRef(enfocarAlAbrir);
   useEffect(() => {
     const activo = document.activeElement;
     disparadorRef.current = activo instanceof HTMLElement && activo !== document.body ? activo : null;
+    if (!enfocarInicial.current) return;
+    const marco = requestAnimationFrame(() => cerrarRef.current?.focus());
+    return () => cancelAnimationFrame(marco);
   }, []);
   const cerrarPanel = panel.cerrar;
   const cerrar = useCallback(() => {
@@ -35,6 +43,11 @@ export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
   // Escape en el documento: abrir el panel no le pasa el foco, así que un onKeyDown en su raíz no lo oía (D5).
   const raizRef = useRef<HTMLElement>(null);
   useEffect(() => escucharEscape(document, cerrar, () => capaVisibleFuera(document, raizRef.current)), [cerrar]);
+
+  // Abrir el panel con los cambios del plan a la vista los da por vistos: el toast de Gráficos ya no vuelve.
+  const marcarVistos = useAvisosPlan((s) => s.marcarVisto);
+  const hayPlan = grupos.plan.length > 0;
+  useEffect(() => { if (hayPlan) marcarVistos(); }, [hayPlan, marcarVistos]);
 
   const posicionDe = useMemo(() => new Map(estructura.laminas.map((l) => [l.id, l.posicion])), [estructura]);
   const ir = (slideId: string | undefined) => {
@@ -62,7 +75,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr }: Props) {
       <header className="pulso-f6-col-head">
         <h2>Avisos del informe</h2>
         <span className="pulso-f6-col-sp" />
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Cerrar avisos" onClick={cerrar}>
+        <button type="button" ref={cerrarRef} className="pulso-f6-icono-boton" aria-label="Cerrar avisos" onClick={cerrar}>
           <X size={16} aria-hidden="true" />
         </button>
       </header>
