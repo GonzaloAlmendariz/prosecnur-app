@@ -182,12 +182,15 @@ html, body, #root {
   color: var(--pulso-text);
 }
 
+/* Movimiento reducido = sin desplazamientos, con fundidos y cambios de color suaves (decisión de Gonzalo,
+   2026-10-10). Las transiciones conservan su duración pero sólo sobre propiedades que no mueven nada; las
+   animaciones por keyframes (que suelen desplazar) se cortan. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    transition-duration: 1ms !important;
+    transition-property: opacity, color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, box-shadow, filter !important;
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
   }
