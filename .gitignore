@@ -98,6 +98,10 @@ packaging/macos/r-mac-runtime/
 # (~800MB cada uno). Lo genera packaging/macos/stage-preview-renderer.sh y
 # build-dmg.sh lo borra al terminar; nunca se versiona.
 packaging/macos/preview-renderer/
+# Idem Windows (P7): packaging/windows/stage-preview-renderer.sh sin destino
+# explícito (~1.4GB extraído del MSI) y su directorio de trabajo hermano.
+packaging/windows/preview-renderer/
+packaging/windows/preview-renderer.work.*/
 
 # .icns generado a partir de packaging/windows/brand/icon.svg.
 packaging/macos/build-resources/icon.icns
