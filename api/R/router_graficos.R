@@ -485,6 +485,7 @@
   }
 
   payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
+  payload <- .graficos_payload_con_meta(payload)
 
   allowed_args <- names(formals(fn))
   payload <- payload[names(payload) %in% allowed_args]
@@ -1068,6 +1069,7 @@
     }
   }
   payload <- .graficos_normalize_payload_icon(payload, fn, tipo)
+  payload <- .graficos_payload_con_meta(payload)
   allowed_args <- names(formals(fn))
   payload <- payload[names(payload) %in% allowed_args]
   payload <- payload[!vapply(payload, function(v) {
@@ -3227,6 +3229,7 @@ mount_graficos <- function(pr) {
         }
         fn <- getExportedValue("prosecnurapp", tipo0)
         payload <- .graficos_normalize_payload_icon(payload, fn, tipo0, icon_registry = icon_registry)
+        payload <- .graficos_payload_con_meta(payload)
         allowed_args <- names(formals(fn))
         payload <- payload[names(payload) %in% allowed_args]
         payload <- payload[!vapply(payload, function(v) {
