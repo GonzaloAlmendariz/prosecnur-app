@@ -8400,10 +8400,10 @@ reporte_ppt_plan <- function(
       # Resolver titulo del slide si no viene
       if (is.null(title_slide)) {
         title_slide <- el_plot$title_slide %||% {
-          if (!is.null(el_plot$var)) .title_of_var(el_plot$var) else {
+          if (!is.null(el_plot$var)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(el_plot$var)) else {
             v1 <- el_plot$vars %||% NULL
             first_ref <- if (!is.null(v1) && length(v1)) .extract_ref_values(v1)[1] else NULL
-            if (!is.null(first_ref) && nzchar(first_ref)) .title_of_var(first_ref) else NULL
+            if (!is.null(first_ref) && nzchar(first_ref)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(first_ref)) else NULL
           }
         }
       }
@@ -8629,10 +8629,10 @@ reporte_ppt_plan <- function(
 
       if (is.null(title_slide)) {
         title_slide <- el_plot$title_slide %||% {
-          if (!is.null(el_plot$var)) .title_of_var(el_plot$var) else {
+          if (!is.null(el_plot$var)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(el_plot$var)) else {
             v1 <- el_plot$vars %||% NULL
             first_ref <- if (!is.null(v1) && length(v1)) .extract_ref_values(v1)[1] else NULL
-            if (!is.null(first_ref) && nzchar(first_ref)) .title_of_var(first_ref) else NULL
+            if (!is.null(first_ref) && nzchar(first_ref)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(first_ref)) else NULL
           }
         }
       }
@@ -8755,7 +8755,7 @@ reporte_ppt_plan <- function(
 
       if (is.null(title_slide)) {
         title_slide <- el_left$title_slide %||% {
-          if (!is.null(el_left$var)) .title_of_var(el_left$var) else NULL
+          if (!is.null(el_left$var)) .plan_con_etiquetas_cortas(el_left, .title_of_var(el_left$var)) else NULL
         }
       }
 
@@ -9146,10 +9146,10 @@ reporte_ppt_plan <- function(
       # inferir titulo si no viene
       if (is.null(title_slide)) {
         title_slide <- el_plot$title_slide %||% {
-          if (!is.null(el_plot$var)) .title_of_var(el_plot$var) else {
+          if (!is.null(el_plot$var)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(el_plot$var)) else {
             v1 <- el_plot$vars %||% NULL
             first_ref <- if (!is.null(v1) && length(v1)) .extract_ref_values(v1)[1] else NULL
-            if (!is.null(first_ref) && nzchar(first_ref)) .title_of_var(first_ref) else NULL
+            if (!is.null(first_ref) && nzchar(first_ref)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(first_ref)) else NULL
           }
         }
       }
@@ -9240,10 +9240,10 @@ reporte_ppt_plan <- function(
 
       if (is.null(title_slide)) {
         title_slide <- el_plot$title_slide %||% {
-          if (!is.null(el_plot$var)) .title_of_var(el_plot$var) else {
+          if (!is.null(el_plot$var)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(el_plot$var)) else {
             v1 <- el_plot$vars %||% NULL
             first_ref <- if (!is.null(v1) && length(v1)) .extract_ref_values(v1)[1] else NULL
-            if (!is.null(first_ref) && nzchar(first_ref)) .title_of_var(first_ref) else NULL
+            if (!is.null(first_ref) && nzchar(first_ref)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(first_ref)) else NULL
           }
         }
       }
@@ -9334,7 +9334,7 @@ reporte_ppt_plan <- function(
 
       # inferir titulo si no viene
       if (is.null(title_slide)) {
-        title_slide <- el1$title_slide %||% if (!is.null(el1$var)) .title_of_var(el1$var) else NULL
+        title_slide <- el1$title_slide %||% if (!is.null(el1$var)) .plan_con_etiquetas_cortas(el1, .title_of_var(el1$var)) else NULL
       }
 
       if (!isTRUE(solo_lista)) {
@@ -9418,7 +9418,7 @@ reporte_ppt_plan <- function(
       }
 
       if (is.null(title_slide)) {
-        title_slide <- el1$title_slide %||% if (!is.null(el1$var)) .title_of_var(el1$var) else NULL
+        title_slide <- el1$title_slide %||% if (!is.null(el1$var)) .plan_con_etiquetas_cortas(el1, .title_of_var(el1$var)) else NULL
       }
 
       if (!isTRUE(solo_lista)) {
