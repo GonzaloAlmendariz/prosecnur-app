@@ -909,7 +909,12 @@ graficar_barras_agrupadas <- function(
 	    cat_lvls <- ord_df$categoria
 	  }
 		  if (isTRUE(otros_al_final) && length(cat_lvls) > 1L) {
-		    idx_final <- .is_final_label(cat_lvls)
+		    # Además de la lista exacta, los residuales del recetario (`.CATEGORIAS_RESIDUALES`: «Ninguno», «Ninguna de las
+		    # anteriores», «Otro (especifique)», «Prefiero no decir»…) van al final, como en graficos_espec_categorica.R:7-8:
+		    # así el ggplot, la lámina nativa y el Word los ponen en el mismo sitio. Sólo para ordenar: lo que se agrupa en
+		    # «Otros» sigue decidiéndolo `.is_final_label`.
+		    idx_final <- .is_final_label(cat_lvls) |
+		      grepl(.CATEGORIAS_RESIDUALES, trimws(gsub("\\s*\n\\s*", " ", cat_lvls)), ignore.case = TRUE)
 		    if (any(idx_final)) {
 		      lvls_final <- cat_lvls[idx_final]
 		      lvls_final <- lvls_final[order(match(lvls_final, cat_lvls_instrumento), na.last = TRUE)]
