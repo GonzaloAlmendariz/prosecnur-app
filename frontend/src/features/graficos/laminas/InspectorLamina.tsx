@@ -112,6 +112,7 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
 }
 
 function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide; lamina: LaminaEnEstructura; onIrEditorAnterior: () => void }) {
+  // Campos de texto de alto propio (una línea, varias líneas, con o sin ayuda): grupo intrínseco.
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const { slidesById } = useGraficosRegistry();
   const meta = leerSlideMeta(slide);
@@ -125,7 +126,7 @@ function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide;
   const idAnte = useId();
 
   return (
-    <div className="pulso-f6-pila">
+    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-contenido-campos" data-qa-geometry-contract="intrinsic">
       {slide.tipo !== "p_slide_seccion" ? (
         <div className="pulso-f6-campo">
           <label htmlFor={idAnte}>Antetítulo</label>
@@ -197,7 +198,7 @@ function CampoTexto({ campo, valor, placeholder, onCambio }: {
 
 function SeccionComposicion({ lamina }: { lamina: LaminaEnEstructura }) {
   return (
-    <div className="pulso-f6-pila">
+    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-composicion" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-tarjeta">
         <span className="pulso-f6-tarjeta-icono" aria-hidden="true"><LayoutTemplate size={18} /></span>
         <div>
@@ -235,7 +236,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
   }
   const payload = slide.payload as Record<string, unknown>;
   return (
-    <div className="pulso-f6-pila">
+    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-graficos" data-qa-geometry-contract="intrinsic">
       <ul className="pulso-f6-ranuras" data-qa-geometry-group="graficos/f6-ranuras" data-qa-geometry-contract="intrinsic">
         {slots.map((slot, i) => {
           const k = i + 1;
@@ -286,11 +287,11 @@ function SeccionEstado({ slide, visor }: { slide: Slide; visor: LaminaVisor | nu
   const estado = visor ? estadoDeLamina(visor) : null;
   const idRuta = useId();
   return (
-    <div className="pulso-f6-pila">
+    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-estado" data-qa-geometry-contract="intrinsic">
       <div className={`pulso-f6-tarjeta is-${estado === "ruta_anterior" ? "ruta" : estado ? "nativa" : "neutra"}`}>
         <div>
           <strong>{estado ? `Sale ${estado === "ruta_anterior" ? "por la ruta anterior" : ETIQUETA_ESTADO[estado].toLowerCase()}` : "Todavía sin vista previa"}</strong>
-          <p>{estado ? motivoDeEstado(estado, apagado) : "Cómo sale la lámina se sabe cuando el motor genera su vista."}</p>
+          <p>{estado ? motivoDeEstado(estado, apagado, (visor?.avisos.length ?? 0) > 0) : "Cómo sale la lámina se sabe cuando el motor genera su vista."}</p>
         </div>
       </div>
       {visor && visor.partes.length > 1 && (
@@ -302,6 +303,7 @@ function SeccionEstado({ slide, visor }: { slide: Slide; visor: LaminaVisor | nu
           ))}
         </ul>
       )}
+      {visor?.renderer && <p className="pulso-f6-ayuda" data-renderer={visor.renderer}>Vista previa generada con {visor.renderer}.</p>}
       <section aria-label="Avisos del motor">
         <h3 className="pulso-f6-subtitulo">Avisos del motor</h3>
         {visor && visor.avisos.length > 0 ? (

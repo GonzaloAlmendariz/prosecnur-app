@@ -67,10 +67,10 @@ export function VisorLamina({
           {nPartes > 1 && <span> · parte {parteActiva} de {nPartes}</span>}
         </p>
         {estado && !cargando && (
-          <span className={`pulso-f6-chip-estado is-${estado === "ruta_anterior" ? "ruta" : estado === "sin_grafico" ? "neutro" : "nativa"}`} title={motivoDeEstado(estado, motorNativoApagado)}>
+          <span className={`pulso-f6-chip-estado is-${estado === "ruta_anterior" ? "ruta" : estado === "sin_grafico" ? "neutro" : "nativa"}`} title={motivoDeEstado(estado, motorNativoApagado, (l?.avisos.length ?? 0) > 0)}>
             {estado === "ruta_anterior" ? <History size={13} aria-hidden="true" /> : <CheckCircle2 size={13} aria-hidden="true" />}
             {ETIQUETA_ESTADO[estado]}
-            <span className="pulso-sr-only">: {motivoDeEstado(estado, motorNativoApagado)}</span>
+            <span className="pulso-sr-only">: {motivoDeEstado(estado, motorNativoApagado, (l?.avisos.length ?? 0) > 0)}</span>
           </span>
         )}
         {cargando && prepOk && (
@@ -80,7 +80,7 @@ export function VisorLamina({
           </span>
         )}
         {nPartes > 1 && l && (
-          <span className="pulso-f6-partes-barra pulso-f6-solo-compacto" role="group" aria-label="Partes de la lámina">
+          <span className="pulso-f6-partes-barra pulso-f6-solo-compacto" role="group" aria-label="Partes de la lámina" data-qa-geometry-group="graficos/f6-partes-barra" data-qa-geometry-contract="intrinsic">
             <BotonesPartes lamina={l} activa={parteActiva} onParte={onParte} />
           </span>
         )}
@@ -135,7 +135,7 @@ export function VisorLamina({
       </div>
 
       {nPartes > 1 && l && (
-        <div className="pulso-f6-partes pulso-f6-solo-ancho" role="group" aria-label="Partes de la lámina">
+        <div className="pulso-f6-partes pulso-f6-solo-ancho" role="group" aria-label="Partes de la lámina" data-qa-geometry-group="graficos/f6-partes" data-qa-geometry-contract="intrinsic">
           <span className="pulso-f6-partes-rotulo">Esta lámina sale en {nPartes} partes:</span>
           <BotonesPartes lamina={l} activa={parteActiva} onParte={onParte} />
           {l.truncado && <span className="pulso-f6-partes-rotulo">La vista muestra las primeras {nPartes}.</span>}

@@ -230,10 +230,15 @@
   color: var(--pulso-text-faint);
 }
 
+/* Alto por contenido: la línea mide lo que el texto y el relleno completa el control md (28 px). El marco es el del
+   texto (contrato intrinsic), sin interior vacío. */
 .pulso-f6-parte {
-  height: var(--pulso-control-height-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 40px;
-  padding: 0 var(--pulso-space-3);
+  padding: calc((var(--pulso-control-height-md) - 1.2em) / 2) var(--pulso-space-3);
+  line-height: 1.2;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
