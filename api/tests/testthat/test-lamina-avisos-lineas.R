@@ -214,3 +214,14 @@ test_that("en la vista previa el número del aviso suma el desplazamiento de fol
     path_ppt = tempfile(fileext = ".pptx"), presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
   expect_match(grep("BIENESTAR", sin, value = TRUE, fixed = TRUE), "^Lámina 2 · ")
 })
+
+# Verificador de K12b: el registro guardaba el marco de `reporte_ppt_plan` (`e$marco`) y, si el mazo fallaba, retenía
+# sus 222 objetos —datos incluidos— hasta el mazo siguiente. El registro no guarda entornos: se cierra solo al salir.
+test_that("un mazo que falla no deja entornos retenidos en el registro de avisos", {
+  e <- .lam_avisos_estado
+  falla <- function() { datos <- data.frame(x = seq_len(1e5)); .lam_avisos_paso(list(1, 2), 1L, NULL); stop("se cayó") }
+  expect_error(falla(), "se cayó")
+  retenidos <- vapply(ls(e, all.names = TRUE), function(k) is.environment(get(k, envir = e)), logical(1))
+  expect_false(any(retenidos))
+  expect_false(.lam_avisos_activo())
+})

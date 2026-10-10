@@ -29,11 +29,14 @@
 
 #' ¿Hay un mazo en curso que recoja los avisos de líneas?
 #' @keywords internal
-.lam_avisos_activo <- function() {
-  # Sólo mientras vive el `reporte_ppt_plan` que lo abrió: un mazo que falla a mitad no deja el registro tomado para
-  # el siguiente compositor que se llame solo.
-  marco <- .lam_avisos_estado$marco
-  !is.null(.lam_avisos_estado$actual) && !is.null(marco) && any(vapply(sys.frames(), identical, logical(1), marco))
+.lam_avisos_activo <- function() !is.null(.lam_avisos_estado$actual)
+
+#' Suelta el registro abierto por el mazo `token` (lo llama la salida de `reporte_ppt_plan`, normal o por error)
+#' @keywords internal
+.lam_avisos_soltar <- function(token) {
+  e <- .lam_avisos_estado
+  if (identical(e$token, token)) { e$actual <- NULL; e$token <- NULL; e$notas <- list(); e$inicio <- integer() }
+  invisible(NULL)
 }
 
 #' Anota en la lámina del plan en curso lo que midió un compositor (se queda el máximo)
@@ -54,7 +57,14 @@
 #' @keywords internal
 .lam_avisos_paso <- function(plan, i, doc) {
   e <- .lam_avisos_estado
-  if (i == 1L) { e$inicio <- integer(); e$notas <- list(); e$marco <- parent.frame() }
+  if (i == 1L) {
+    e$inicio <- integer(); e$notas <- list()
+    # El registro se suelta cuando sale el `reporte_ppt_plan` que lo abrió, también si falla a mitad. No se guarda su
+    # marco: retenía sus objetos —datos incluidos— hasta el mazo siguiente (verificador de K12b). La salida se
+    # registra en ese marco con `on.exit(add = TRUE)`, como `withr::defer`, sin sumar dependencias.
+    e$token <- token <- paste0("mazo-", format(Sys.time(), "%OS6"), "-", sample.int(.Machine$integer.max, 1L))
+    do.call(base::on.exit, list(bquote(.lam_avisos_soltar(.(token))), add = TRUE, after = TRUE), envir = parent.frame())
+  }
   e$inicio[i] <- if (is.null(doc)) NA_integer_ else length(doc)
   e$actual <- i
   plan[[i]]
@@ -69,7 +79,7 @@
 .lam_avisos_cierre <- function(plan, doc) {
   e <- .lam_avisos_estado
   if (!.lam_avisos_activo() || !length(plan)) { e$actual <- NULL; return(invisible(doc)) }
-  on.exit({ e$actual <- NULL; e$marco <- NULL; e$notas <- list(); e$inicio <- integer() }, add = TRUE)
+  on.exit(.lam_avisos_soltar(e$token), add = TRUE)
   n <- length(plan)
   inicio <- e$inicio[seq_len(n)]
   salieron <- if (is.null(doc) || anyNA(inicio)) rep(1L, n) else diff(c(inicio, length(doc)))
