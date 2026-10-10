@@ -1,0 +1,302 @@
+{
+  "fuente": "Generado desde api/R/graficos_metadata.R por api/scripts/generar_graficos_tipos.R; no editar a mano.",
+  "slides": [
+    {
+      "name": "p_slide_portada",
+      "categoria": "estructural",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_indice",
+      "categoria": "estructural",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_top_two_box",
+      "categoria": "estructural",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_redondeo",
+      "categoria": "estructural",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_seccion",
+      "categoria": "estructural",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_objetivo_icono",
+      "categoria": "estructural",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_texto",
+      "categoria": "estructural",
+      "estandar": "p_slide_texto"
+    },
+    {
+      "name": "p_slide_tabla_tecnica",
+      "categoria": "estructural",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_1_grafico",
+      "categoria": "1grafico",
+      "estandar": "p_slide_1_grafico"
+    },
+    {
+      "name": "p_slide_1_grafico_narrativo",
+      "categoria": "1grafico",
+      "estandar": "p_slide_1_grafico_narrativo"
+    },
+    {
+      "name": "p_slide_grafico_texto_derecha",
+      "categoria": "1grafico",
+      "estandar": "p_slide_grafico_texto_derecha"
+    },
+    {
+      "name": "p_slide_grafico_texto_izquierda",
+      "categoria": "1grafico",
+      "estandar": "p_slide_grafico_texto_izquierda"
+    },
+    {
+      "name": "p_slide_2_graficos",
+      "categoria": "2graficos",
+      "estandar": "p_slide_2_graficos"
+    },
+    {
+      "name": "p_slide_2_graficos_narrativo",
+      "categoria": "2graficos",
+      "estandar": "p_slide_2_graficos_narrativo"
+    },
+    {
+      "name": "p_slide_2_graficos_texto_izquierda",
+      "categoria": "2graficos",
+      "estandar": "p_slide_2_graficos_texto_izquierda"
+    },
+    {
+      "name": "p_slide_2_graficos_texto_derecha",
+      "categoria": "2graficos",
+      "estandar": "p_slide_2_graficos_texto_derecha"
+    },
+    {
+      "name": "p_slide_4_graficos",
+      "categoria": "4graficos",
+      "estandar": "p_slide_4_graficos"
+    },
+    {
+      "name": "p_slide_2_graficos_poblacion",
+      "categoria": "poblacion",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_3_graficos_poblacion_tira",
+      "categoria": "poblacion",
+      "estandar": "p_slide_3_graficos_poblacion_tira"
+    },
+    {
+      "name": "p_slide_3_graficos_poblacion_corona",
+      "categoria": "poblacion",
+      "estandar": "p_slide_3_graficos_poblacion_corona"
+    },
+    {
+      "name": "p_slide_3_graficos_poblacion_cifras",
+      "categoria": "poblacion",
+      "estandar": "p_slide_3_graficos_poblacion_cifras"
+    },
+    {
+      "name": "p_slide_cifras_y_graficos",
+      "categoria": "2graficos",
+      "estandar": "p_slide_cifras_y_graficos"
+    },
+    {
+      "name": "p_slide_3_graficos_2mas1",
+      "categoria": "3graficos",
+      "estandar": "p_slide_3_graficos_2mas1"
+    },
+    {
+      "name": "p_slide_3_graficos_1mas2",
+      "categoria": "3graficos",
+      "estandar": "p_slide_3_graficos_1mas2"
+    },
+    {
+      "name": "p_slide_3_graficos_fila",
+      "categoria": "3graficos",
+      "estandar": "p_slide_3_graficos_fila"
+    },
+    {
+      "name": "p_slide_3_graficos_1arriba",
+      "categoria": "3graficos",
+      "estandar": "p_slide_3_graficos_1arriba"
+    },
+    {
+      "name": "p_slide_2_graficos_vertical",
+      "categoria": "2graficos",
+      "estandar": "p_slide_2_graficos_vertical"
+    },
+    {
+      "name": "p_slide_2_graficos_asimetrico",
+      "categoria": "2graficos",
+      "estandar": "p_slide_2_graficos_asimetrico"
+    },
+    {
+      "name": "p_slide_3_graficos_poblacion",
+      "categoria": "poblacion",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_4_graficos_poblacion",
+      "categoria": "poblacion",
+      "estandar": null
+    },
+    {
+      "name": "p_slide_5_graficos_poblacion",
+      "categoria": "poblacion",
+      "estandar": "p_slide_5_graficos_poblacion"
+    },
+    {
+      "name": "p_slide_6_graficos_poblacion",
+      "categoria": "poblacion",
+      "estandar": "p_slide_6_graficos_poblacion"
+    },
+    {
+      "name": "p_slide_cierre",
+      "categoria": "estructural",
+      "estandar": null
+    }
+  ],
+  "graficadores": [
+    {
+      "name": "p_barras_agrupadas",
+      "familia_editor": "categorias",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_barras_categoricas",
+      "familia_editor": "categorias",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_barras_apiladas",
+      "familia_editor": "escalas",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_barras_multiapiladas",
+      "familia_editor": "escalas",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_nube_palabras",
+      "familia_editor": "texto",
+      "salida": "marco"
+    },
+    {
+      "name": "p_mapa_cobertura_territorial",
+      "familia_editor": "territorio",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_pie",
+      "familia_editor": "categorias",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_donut",
+      "familia_editor": "categorias",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_numerico",
+      "familia_editor": "numeros",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_histograma",
+      "familia_editor": "numeros",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_boxplot",
+      "familia_editor": "numeros",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_media_rango",
+      "familia_editor": "numeros",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_barras_divergentes",
+      "familia_editor": "escalas",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_puntos_comparativos",
+      "familia_editor": "comparar",
+      "salida": "ruta_anterior"
+    },
+    {
+      "name": "p_mapa_resultado_distrital",
+      "familia_editor": "territorio",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_cifra",
+      "familia_editor": "numeros",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_dumbbell",
+      "familia_editor": "comparar",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_lollipop",
+      "familia_editor": "categorias",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_serie_temporal",
+      "familia_editor": "comparar",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_radar",
+      "familia_editor": "comparar",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_tabla",
+      "familia_editor": "comparar",
+      "salida": "ruta_anterior"
+    },
+    {
+      "name": "p_dim_radar",
+      "familia_editor": "dimensiones",
+      "salida": "ruta_anterior"
+    },
+    {
+      "name": "p_dim_heatmap",
+      "familia_editor": "dimensiones",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_dim_comparativo_radarbar",
+      "familia_editor": "dimensiones",
+      "salida": "nativa"
+    },
+    {
+      "name": "p_dim_foda",
+      "familia_editor": "dimensiones",
+      "salida": "ruta_anterior"
+    },
+    {
+      "name": "p_dim_heatmap_criterios",
+      "familia_editor": "dimensiones",
+      "salida": "nativa"
+    }
+  ]
+}
