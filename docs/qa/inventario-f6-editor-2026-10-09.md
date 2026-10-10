@@ -1,0 +1,135 @@
+# Inventario F6 — el editor de Gráficos frente a los motores nativos (2026-10-09)
+
+Tipo: Inventario QA fechado
+Estado: En curso
+Fecha: 2026-10-09
+Autoridad: Evidencia de lectura de código; no reemplaza contratos ejecutables ni ADR aceptados
+
+Gonzalo, 2026-10-09: «Estamos en una de las etapas mas fundamentales de el loop. La remasterizacion de la UI, Recuerda que
+ahora ambos motores usanos elementos nativos y ya no ggplot y que el recetario tiene muchas funciones elementos nuebos, una
+biblioteca de icnos. Y demas y el UI tiene que estar a la altura». Checklist: [checklist-remasterizacion-motor-2026-10-08.md](checklist-remasterizacion-motor-2026-10-08.md)
+(R2, R3, R4, R14, R16, F6). ADR [0093](../adrs/0093-el-motor-dibuja-con-formas-nativas.md).
+
+## Parte B — controles del editor sin efecto en la salida nativa
+
+Método: args reales de `.GRAFICADORES_META` y `.PRESETS_META` (`api/R/graficos_metadata.R`) contra lo que leen la
+`pulso_espec`, las láminas (`api/R/lamina_*.R`) y los renderers Word (`api/R/reporte_word_graficos_*.R`). Lectura de código,
+sin renders.
+
+**Hecho general.** Ninguna lámina nativa ni renderer Word lee `size_*`, `color_*` (salvo la paleta de series), `font_family`,
+`canvas_*`, `legend_*`, `grosor_*`, `alto_por_categoria`, `textos_negrita`, `umbral_*` ni `debug_ph_*`: tipografía, geometría y
+partición salen de `.std_pt`, `.std_color`, `.std_geom` y `.std_word`. Esos args sólo actúan en la ruta anterior (ggplot):
+gráfico sin espec, `*_cabe()` en FALSE, `meta$motor_nativo = FALSE`, o tipo sin renderer Word (nube, serie temporal, heatmap
+de criterios). Ningún control lleva marca de «sin efecto nativo» ni avisa (ADR 0092 punto 3 prometía «se migran o se avisan»).
+
+| Graficador | Con efecto nativo | Sólo ggplot | Impuestos |
+|---|---|---|---|
+| barras_apiladas / multi_apiladas | var(s), cruces, excluir_opciones, significancia; decimales, metodo_redondeo, categorías en cero, invertir, barra extra top2/top3/bottom2 y sus labels, paleta | textos_negrita, tendencias y umbrales del box, títulos de grupo, mostrar_valores, colores y tamaños de texto, conectores, wrap/ancho de eje, leyenda, canvas_*, alto_por_categoria, grosor. **multilista** no es nativo (cowplot) | etiquetas_arriba_si_no_caben, size_barra_extra, size_titulo_extra, color_barra_extra, color_conectores_etiquetas |
+| barras_agrupadas | Sólo sin cruce: var, excluir, max_categorias, otros, orden, invertir, decimales, n, significancia; usar_eje_libre y marcas_eje **sin control en la UI** | mostrar_ceros, otros_al_final, umbrales, ancho/lineheight de eje, colores_series, leyenda, barra extra, tamaños, grosor, canvas_*. **Con cruce no hay espec** | — |
+| barras_categoricas | var, excluir, max_categorias, otros, orden, decimales, redondeo | formato_valor, colores, promedio, ejes, grid, tamaños | — |
+| divergentes | var(s), direccion_escala, n_negativas, neutro, excluir; decimales, paleta | mostrar_saldo, umbral, grosor, tamaños, leyenda, ejes | — |
+| pie / dona | var, top_k, otros; tipo_pie, orden, decimales, redondeo, nota | etiquetas, leyenda, tamaños, donut_hole, canvas_* | — |
+| dumbbell | corte, orden, mostrar_brecha; etiqueta_brecha, decimales, paleta | umbral_brecha_pct, tamaños, colores, leyenda, ejes | — |
+| histograma | Nativo sólo sin grupo/bins/ancho_bin, enteros y rango ≤ 40: modo, decimales, limite_superior | el resto (límites, bins vacíos, etiquetas de cima, colores, leyenda, ejes) | — |
+| boxplot | var, cruce; `cortes_chip` saca la lámina del nativo | chip_decimales, semáforo, outliers, leyenda | — |
+| media_rango | Sólo modo score: var, cruce, chip_decimales, tipo_rango | ref_label, semáforo, **cortes_chip se pierden en silencio** | — |
+| radar | modo, var(s), cruce, corte, top_n, eje_min/limites, tabla y su título/encabezados, decimales, paleta | grilla, niveles, radios, relleno, ejes, línea, leyenda, estilo de tabla | — |
+| dim_heatmap | modo, objetivo, cruce, total, filtros; brechas sacan la lámina del nativo | etiquetas de brecha, total_x, n_cruce, semáforo, ejes, tamaños | — |
+| dim_radar | sin espec: todo ggplot | — | — |
+| mapa | scope, ubigeo, unit, coverage_mode, mostrar_manzanas | — | — |
+| base (estilo común) | formato, sufijo_auto, nota_redondeo | tamaños y colores de título/subtítulo/ejes/nota; las láminas estructurales nativas usan el estándar | size_nota_pie, size_titulo_slide, size_leyenda, size_texto_barras, font_family |
+
+Args que la espec lee y **no tienen control**: `fila_total`, `columna_bottom2box`, `orden_escala`, `invertir_segmentos`
+(apiladas); `usar_eje_libre`, `marcas_eje` (agrupadas).
+
+**Word.** El job llama a `reporte_word_plan` sin `estilo_documento` ni `opciones_documento`: siempre recetario con portada A y
+apertura B. `.word_documento` no recibe `presets_word`; el recetario ignora `image`, `title_style`, `base_style`,
+`intro_style`, `section_style`, `subsection_style`, `figure_numbering`, `pagebreak_*` y `toc` (sólo los lee el clásico) y
+ninguno tiene control en el frontend. Sí llegan `chart_options.ocultar_etiqueta_si_titulo` y los `chart_presets` con efecto
+nativo. Riesgo: `DEFAULT_WORD_PRESETS.barras_apiladas` (`frontend/src/api/graficosConfigNormalizer.ts:5`) trae
+`mostrar_barra_extra: false` y `barra_extra_preset: "ninguno"`, que apagan el Top Two Box en Word salvo que el PPT lo pida.
+
+**ChartLayoutPopover (R3).** `frontend/src/features/graficos/ChartLayoutPopover.tsx` (montado en PresetsEditor,
+WordPresetsEditor, OverridesEditor y GraficadorForm) edita sólo canvas_*, alto_por_categoria, tabla_ph_*, leyenda, título y
+pie: nada de eso lo lee la salida nativa. Sólo sirve en la ruta anterior. Lectura del inventario: retirarlo o limitarlo a la
+ruta anterior, no repararlo.
+
+**No determinado.** `mostrar_media` del boxplot nativo; `estilo` y `mostrar_valores` del radar en la lámina 90; equivalente
+nativo de la columna «Base / N» o «Total»; serie_temporal, lollipop, puntos_comparativos y mapa_resultado no inventariados a
+fondo.
+
+## Parte A — capacidades del motor sin control en el editor
+
+Tres problemas de fondo, antes que la lista:
+
+1. **El frontend no tiene canal para `slide.meta`.** `Slide` (`frontend/src/api/graficos.ts:154`) sólo trae
+   `{id, tipo, payload, origen}`; los args `tipo_input:"meta"` caen en `DedicatedSurfaceNotice` (`ArgField.tsx:458`). Ahí viven
+   `variante`, `composicion`, `iconos`, `actores`, `metodo`, `antetitulo`, `nivel`, `numero`, `rotulo` y `motor_nativo`.
+2. **El job de Word no pasa las opciones del documento** (`router_graficos.R:3507`, `graficos_jobs.R:255-283`): portada,
+   apertura, «Cómo leer», redondeo, contacto, `meta_portada`, `titulo_corto` y `fuente` quedan siempre por defecto.
+3. **El editor no distingue nativo de respaldo.** La vista previa rasteriza sólo la lámina 1 (`slide_index = 1L`); las
+   «(cont.)» no se ven y la caída a la ruta anterior (`*_cabe` en falso, brechas o Total en dimensiones, portada de 3+ líneas)
+   no se avisa.
+
+| # | Capacidad | Dónde vive | Control hoy | Exposición propuesta |
+|---|---|---|---|---|
+| 1 | 12 de 33 tipos de lámina no insertables (redondeo, 2 vertical/asimétrico, 3 gráficos ×4, población ×4, cifras y gráficos) | `reporte_plan_slides.R`; `estandar_pulso.json` `ppt.tipos_lamina` | `SlideType`/`SLIDE_LABELS`/`DEFAULT_PAYLOADS` conocen 21; `SlidePicker.tsx:889` «requiere una versión más reciente» | Selector armado desde registro + ranuras del estándar, con miniatura |
+| 2 | Blueprint kinds desconocidos (closing, population3*, kpi_band, grid3_*, grid2_*) | `graficos_metadata.R:729-982` | `metadataSanitizers.ts:78` los vuelve `neutral`; el cierre usa la maqueta de título | Kinds y maquetas desde las ranuras |
+| 3 | Opciones del documento Word (portada A/B/C, apertura B/A, Cómo leer, redondeo, contacto, meta_portada, titulo_corto, estilo, fuente) | `reporte_plan_word.R:265`; `.word_documento` | Ninguno | Sección «Documento Word» en Estilo global → `opciones_documento` hasta el worker |
+| 4 | Redondeo del «Cómo leer» Word no sigue al informe | `reporte_word_documento.R:104` («estandar» fijo); PPT sí deduce (`.lam_redondeo_metodo`) | — | Deducirlo como el PPT. **Defecto metodológico**, no sólo de editor |
+| 5 | Orden declarado vs por Top Two Box | `preparar_escala(orden=)`, `orden_escala`; multiapiladas «var» se reordenan siempre | Ninguno | «Orden de filas: Top Two Box (recetario) / instrumento» |
+| 6 | Bottom Two Box junto al Top Two Box | `columna_bottom2box` | `bottom2box_labels` en lista libre | Interruptor + selector de dos chips; Word sólo lo explica si existe `box2` |
+| 7 | Fila Total (ΣpN/ΣN) | `fila_total` | Ninguno | Interruptor en escalas |
+| 8 | Variantes de portada (centrada, izquierda, banda) | `meta$variante`, `.lam_portada_variante` | Ninguno; descripciones de subtítulo/subtexto viejas | Composición con miniaturas + aviso si el título no cabe |
+| 9 | Índice: arcos/facetas/círculos/bloques e íconos por capítulo | `meta$composicion`, `meta$iconos` | `IndiceBuilder` edita `iconos_focos`; **llenar uno fuerza la ruta anterior** | Composición, íconos de la biblioteca, retirar focos |
+| 10 | Cierre 61-65 | `variante` y contacto en `slots` | Insertable con maqueta incorrecta; su contacto no llega a la contraportada Word | Maqueta propia y contacto → `opciones_documento$contacto` |
+| 11 | Antetítulo por lámina | `meta$antetitulo` | Ninguno | Campo con el heredado como marcador |
+| 12 | Separador: nivel, número, rótulo | `meta$nivel/numero/rotulo`; Word usa `word_heading_level` | Ninguno; la ayuda dice «subtítulo sólo Word» (falso) | Selector capítulo/subcapítulo; unificar clave |
+| 13 | Lámina de redondeo y su método | `p_slide_redondeo`, `meta$metodo` | No insertable | Insertable, método heredado de Cálculos |
+| 14 | Explicación del Top Two Box | `.lam_laminas_top_two_box` (3-5 puntos) | Muestra 8 args de estilo que el nativo ignora | Ocultarlos; chips |
+| 15 | Objetivo con actores | `meta$actores`, `**negrita**` | Pide ícono PNG y banda lateral que el nativo no usa | Lista de actores |
+| 16 | Marcas 0-25-50-75-100 % y eje libre | `marcas_eje`, `usar_eje_libre` | Ninguno | Interruptor |
+| 17 | Biblioteca de íconos del recetario | 124 Lucide navy/blanco, 21 coral, 1 verde (`herramientas/iconos/`); el paquete trae 22 navy y 18 blancos; elección automática por palabra clave | `IconosEditor.tsx` sólo sube PNG propios | Catálogo navegable, elección automática visible y reemplazable; empaquetar los 124 |
+| 18 | Lectura bajo figura y secciones en la apertura Word | `.word_figura(lectura=)`, `.word_apertura(secciones=)` sin llamador | — | La narrativa de la lámina alimenta la «Lectura» |
+| 19 | Franja de cifras / cifra destacada | `.word_franja` sin llamador; no hay graficador de cifra | — | Primero motor, después pieza «Cifra» |
+| 20 | ~90 args del motor anterior visibles en tipos nativos | `.PRESETS_META` | `ChartLayoutEditor`; Estilo global con 8 pestañas | Ocultar por tipo nativo y avisar |
+| 21 | Paletas del estándar faltantes (dicotómica, actores, categórica, calor, mapa; Likert 5 con neutro) | `estandar_pulso.json` `ppt.paletas` | Sólo `LIKERT_RECETARIO` (sin `likert_neutro`) | Agregarlas, marcadas «del recetario» |
+| 22 | `motor_nativo = FALSE` por lámina | `slide$meta$motor_nativo` | Ninguno | Avanzado «Usar la ruta anterior» + indicador |
+| 23 | Ayuda del Top Two Box desactualizada | `graficos_metadata.R:1244`, `ArgField.tsx:1427` | Promete «las dos últimas» | Corregir |
+| 24 | Fila «Muestra» de la ficha técnica | `.lam_ficha_muestra` | Sin pista del formato | Ejemplo «172 estudiantes (96 %)» |
+
+**No determinado.** Si el normalizador conserva `payload.meta`; si `ArgField` escribe defaults del registro (bastaría
+`iconos_focos_objeto_unico = TRUE` para mandar el índice a la ruta anterior sin que nadie lo toque); estado nativo exacto
+de los 33 tipos; si el recetario PPT tiene lámina de Bottom Two Box.
+
+## Línea base visual
+
+Capturas antes del rediseño: 1440×1000 y 1024×600 sobre una copia de corrida de `acrconta_mazo` (`ui-quick-check`,
+`--require-geometry`): 132 avisos `overflow-y`, 22 grupos de superficies sin declarar (C1), 0 errores de página o API. La
+pestaña Estilo ofrece «Buscar entre 61 ajustes» del graficador; la lámina nativa sólo se ve con «Ver lámina»; los tipos de
+lámina son fichas de texto en el timeline, sin selector visual de los 22 tipos ni biblioteca de íconos; a 1024 px la barra de
+herramientas pierde etiquetas.
+
+## Propuesta de dirección (pendiente de aprobación de Gonzalo)
+
+Problema: el editor sigue siendo el de la era ggplot —61 ajustes de estilo que la salida nativa no lee, la lámina real
+escondida tras un botón, 12 tipos del recetario no insertables y el Word sin una sola opción—. Tarea primaria: armar un informe
+viendo la lámina que va a salir y decidiendo sólo lo que el motor de verdad usa. Se conserva: navegación v3 (Procesamiento ›
+Gráficos, top bar), timeline de láminas, tono del módulo, `PageFrame workbench`. Criterio de éxito: todo control visible
+cambia la salida; toda capacidad del recetario tiene un control; la lámina nativa se ve siempre.
+
+Partes, una por tick con par en pantalla y verificador:
+
+| Parte | Qué | Ítems |
+|---|---|---|
+| F6.1 Verdad del editor | Indicador nativo/respaldo por lámina; controles sin efecto nativo bajo un desplegable «Ruta anterior» (no se borran: siguen sirviendo al respaldo); ayudas corregidas; `DEFAULT_WORD_PRESETS` sin apagar el Top Two Box; ChartLayoutPopover limitado a la ruta anterior | B, A20, A22, A23 |
+| F6.2 Canal `meta` y Documento Word | `Slide.meta` de punta a punta; sección «Documento Word» en Estilo global que viaja como `opciones_documento`; redondeo deducido | A3, A4, A10, A18 |
+| F6.3 Láminas desde el registro | Selector visual de los 33 tipos con miniatura desde las ranuras del estándar; variantes de portada, índice, cierre, separador; antetítulo; objetivo con actores | A1, A2, A8, A9, A11-A15, A24 |
+| F6.4 Biblioteca de íconos | Empaquetar los 124; catálogo navegable; la elección automática se ve y se reemplaza | A17 |
+| F6.5 Controles de escala y paletas | Orden, Bottom Two Box con chips, Fila Total, marcas del eje, paletas del estándar | A5-A7, A16, A21, N9b |
+
+Contrato de armonía (govern-visual-harmony, modo Direct, v1): tres columnas del workbench —timeline a 240 px (rail), lienzo con
+la lámina nativa 16:9 siempre visible al centro, inspector a la derecha— con el inspector en secciones fijas
+**Contenido · Composición · Datos · Ruta anterior**; escala `--pulso-space-*` (4/8/12/16/24) sin literales; miniaturas de tipo
+y de variante en grupo `equal` 16:9 (C2); íconos en grupo `equal` cuadrado; vacíos dentro de su caja (C3); un solo dueño de
+scroll por columna (C4). Viewports 1440×1000 y 1024×600; a 1024 el inspector pasa a sideover.
