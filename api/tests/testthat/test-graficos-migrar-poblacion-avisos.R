@@ -58,6 +58,8 @@ test_that("muchas láminas migradas se dicen en una línea con sus títulos", {
   expect_length(av, 1L)
   expect_match(av, "^5 láminas")
   expect_match(av, "«Perfil 3»", fixed = TRUE)
+  # Con su número: en acrconta tres láminas se llaman «PERFIL DEL EGRESADO».
+  expect_match(av, "Láminas: 2 «Dos», 3 «PERFIL DEL DOCENTE», 4 «Perfil 1», 5 «Perfil 2», 6 «Perfil 3».", fixed = TRUE)
 })
 
 # --- canal del job --------------------------------------------------------------------------------------------------
