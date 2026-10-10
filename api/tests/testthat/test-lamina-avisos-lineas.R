@@ -203,3 +203,14 @@ test_that("sin archivo, las láminas «Otros» que inserta el motor no corren el
   av <- .al_avisos(correr())
   expect_identical(sub(" · .*$", "", av), c("Lámina 2", "Lámina 3"))
 })
+
+# Verificador de K12b (mutante M2): en la vista previa el número del aviso sigue al folio real de la lámina (K2).
+test_that("en la vista previa el número del aviso suma el desplazamiento de folio", {
+  f <- .al_cruce()
+  av <- .al_avisos(.preview_con_folio(suppressWarnings(reporte_ppt_plan(data = f$data, instrumento = f$inst, plan = f$plan,
+    path_ppt = tempfile(fileext = ".pptx"), presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)), 7L))
+  expect_match(grep("BIENESTAR", av, value = TRUE, fixed = TRUE), "^Lámina 8 · ")      # la de texto es la 7
+  sin <- .al_avisos(suppressWarnings(reporte_ppt_plan(data = f$data, instrumento = f$inst, plan = f$plan,
+    path_ppt = tempfile(fileext = ".pptx"), presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
+  expect_match(grep("BIENESTAR", sin, value = TRUE, fixed = TRUE), "^Lámina 2 · ")
+})
