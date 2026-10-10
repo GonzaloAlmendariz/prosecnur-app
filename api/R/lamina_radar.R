@@ -66,9 +66,32 @@
   min(R$fila, disp / (length(espec$ejes) + 1))
 }
 
+#' Líneas que pide el eje más largo en la primera columna de la tabla (13 pt en negrita)
+#'
+#' Una, si todos caben en el ancho útil de la columna (como en la tabla del recetario); si no, las del corte por palabras.
+#' @keywords internal
+.lam_radar_lineas <- function(espec) {
+  R <- .LAM_RADAR
+  if (all(.lam_ancho_tinta(espec$ejes, 13, TRUE) <= R$col1 - 0.2)) return(1L)
+  max(.lam_lineas_tinta(espec$ejes, R$col1, 13, TRUE))
+}
+
+#' Altos de la tabla: encabezado y filas del cuerpo
+#'
+#' Con ejes de una línea, las filas del recetario (`.lam_radar_fila`). Si un eje pide dos líneas en la primera columna, el
+#' encabezado queda en 0.5 in y cada fila del cuerpo toma el alto de dos líneas de 13 pt con el relleno de 6 pt de la
+#' celda (lámina 69 de acrconta_mazo, «Aprendizaje autónomo e investigación»): la tabla conserva su posición, columnas y
+#' cuerpos de letra.
+#' @keywords internal
+.lam_radar_filas <- function(espec) {
+  R <- .LAM_RADAR; n <- .lam_radar_lineas(espec)
+  if (n <= 1L) { f <- .lam_radar_fila(espec); return(list(cabecera = f, cuerpo = f, lineas = n)) }
+  list(cabecera = R$fila, cuerpo = max(R$fila, round(n * 13 * 1.2 / 72 + 2 * 6 / 72, 2)), lineas = n)
+}
+
 #' La tabla del recetario (`tabla_ttb`): encabezado azul con filete, primera columna en negrita y cebra
 #' @keywords internal
-.lam_tabla_ttb <- function(doc, d, x, y, ws, rowh) {
+.lam_tabla_ttb <- function(doc, d, x, y, ws, rowh, rowh_cuerpo = rowh) {
   azul <- .std_color("azul"); fuente <- .std_pt("fuente")
   ft <- flextable::flextable(d)
   ft <- flextable::font(ft, fontname = fuente, part = "all")
@@ -80,9 +103,10 @@
   ft <- flextable::hline_bottom(ft, border = officer::fp_border(color = azul, width = 1.25), part = "header")
   ft <- flextable::hline_bottom(ft, border = officer::fp_border(color = .std_color("filete"), width = 0.75), part = "body")
   ft <- flextable::padding(ft, padding = 6, part = "all"); ft <- flextable::width(ft, width = ws)
-  ft <- flextable::height(ft, height = rowh, part = "header"); ft <- flextable::height(ft, height = rowh, part = "body")
+  ft <- flextable::height(ft, height = rowh, part = "header"); ft <- flextable::height(ft, height = rowh_cuerpo, part = "body")
   ft <- flextable::hrule(ft, rule = "exact", part = "header"); ft <- flextable::hrule(ft, rule = "exact", part = "body")
-  officer::ph_with(doc, ft, location = officer::ph_location(left = x, top = y, width = sum(ws), height = rowh * (nrow(d) + 1)))
+  officer::ph_with(doc, ft, location = officer::ph_location(left = x, top = y, width = sum(ws),
+                                                         height = if (identical(rowh_cuerpo, rowh)) rowh * (nrow(d) + 1) else rowh + rowh_cuerpo * nrow(d)))
 }
 
 #' Lámina del radar con tabla (90)
@@ -106,7 +130,8 @@
   if (isTRUE(espec$con_tabla)) {
     d <- data.frame(espec$ejes, espec$cifras, check.names = FALSE, stringsAsFactors = FALSE)
     names(d) <- c(espec$encabezado, espec$grupos)
-    doc <- .lam_tabla_ttb(doc, d, R$x_tabla, yt + R$dy_tabla, .lam_radar_anchos(espec), .lam_radar_fila(espec))
+    f <- .lam_radar_filas(espec)
+    doc <- .lam_tabla_ttb(doc, d, R$x_tabla, yt + R$dy_tabla, .lam_radar_anchos(espec), f$cabecera, f$cuerpo)
   }
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
@@ -117,7 +142,8 @@
 #' De 3 a 8 ejes, cada rótulo de lado (12 pt) entre su punta y la tabla o el margen —el recetario deja «Costos y
 #' presupuestos» llegar justo al borde de la tabla— y el de arriba y el de abajo en el ancho del radar; con
 #' tabla, sus columnas caben a la derecha, los ejes caben en una línea de la primera columna y las filas no bajan de
-#' 0.4 in; sin tabla, hasta seis series. Lo que no cabe sigue por la ruta anterior.
+#' 0.4 in —o, si un eje pide dos líneas, la tabla con filas de dos líneas termina sobre el pie del contenido—; sin
+#' tabla, hasta seis series. Lo que no cabe sigue por la ruta anterior.
 #' @keywords internal
 .lam_radar_cabe <- function(espec) {
   R <- .LAM_RADAR; K <- length(espec$ejes); k <- length(espec$grupos)
@@ -133,6 +159,9 @@
   if (any(tinta[de_lado] > disp[de_lado]) || any(tinta[!de_lado] > R$ancho - 1)) return(FALSE)
   if (!isTRUE(espec$con_tabla)) return(TRUE)
   fin <- .std_geom("ancho") - .std_geom("margen_der")
-  R$x_tabla + sum(.lam_radar_anchos(espec)) <= fin + 0.01 && .lam_radar_fila(espec) >= R$fila_min &&
-    all(.lam_ancho_tinta(espec$ejes, 13, TRUE) <= R$col1 - 0.2)
+  if (R$x_tabla + sum(.lam_radar_anchos(espec)) > fin + 0.01) return(FALSE)
+  f <- .lam_radar_filas(espec)
+  if (f$lineas <= 1L) return(f$cuerpo >= R$fila_min)
+  # Ejes de dos líneas: la tabla con sus filas más altas termina sobre el pie del contenido (tres líneas, no).
+  f$lineas <= 2L && .std_geom("zona_datos_y0") + R$dy_tabla + f$cabecera + f$cuerpo * K <= .std_geom("contenido_y1") + 0.01
 }
