@@ -3047,6 +3047,11 @@ mount_graficos <- function(pr) {
         .graficos_preview_bool_option(parsed, "render_slide_preview", FALSE),
         error = function(e) stop_api(400, "E_BAD_RENDER_SLIDE_PREVIEW", conditionMessage(e))
       )
+      # Todas las partes «(cont.)» sólo si el cliente las pide: con el renderer de artefactos cada parte cuesta ~10 s.
+      preview_partes <- tryCatch(
+        .graficos_preview_bool_option(parsed, "preview_partes", FALSE),
+        error = function(e) stop_api(400, "E_BAD_PREVIEW_PARTES", conditionMessage(e))
+      )
 
       # Validación mínima: tiene tipo y payload.
       tipo <- as.character(slide$tipo %||% "")
@@ -3093,7 +3098,8 @@ mount_graficos <- function(pr) {
         ),
         preview_quality = preview_quality,
         include_images = include_images,
-        render_slide_preview = render_slide_preview
+        render_slide_preview = render_slide_preview,
+        preview_partes = preview_partes
       ), algo = "xxhash64")
       preview_cache <- s$graficos_preview_cache %||% list()
       if (!is.list(preview_cache)) preview_cache <- list()
@@ -3276,11 +3282,17 @@ mount_graficos <- function(pr) {
       # todas con una sola conversión y la primera sigue siendo `slide_preview`.
       partes <- .preview_partes(out_path)
       slide_previews <- if (isTRUE(render_slide_preview) && isTRUE(.preview_renderer_status()$available)) {
-        .render_pptx_preview_partes(out_path, partes$n, preview_quality = preview_quality)
+        .render_pptx_preview_partes(out_path, partes$n, preview_quality = preview_quality,
+                                    max_partes = if (isTRUE(preview_partes)) 6L else 1L)
       } else {
         list()
       }
-      slide_preview <- if (length(slide_previews)) slide_previews[[1]] else NULL
+      partes$truncado <- isTRUE(attr(slide_previews, "truncado"))
+      slide_preview <- if (length(slide_previews) && !is.null(slide_previews[[1]])) {
+        slide_previews[[1]][setdiff(names(slide_previews[[1]]), "indice")]
+      } else {
+        NULL
+      }
       meta <- .register_output_file(sid, "graficos_preview", out_path)
       preview_cache[[preview_cache_key]] <- list(
         file_id = meta$file_id,
