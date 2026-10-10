@@ -2,7 +2,7 @@
 // La imagen la rasteriza el motor del export (`preview-slide`, vía el coordinador). Ranuras seleccionables sobre la
 // imagen, guías, zoom y tira de miniaturas llegan en la parte 2.
 
-import type { KeyboardEvent, ReactNode } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -10,6 +10,8 @@ import {
   ChevronRight,
   History,
   ImageOff,
+  Images,
+  PanelLeftOpen,
   Loader2,
   RefreshCw,
   SlidersHorizontal,
@@ -17,6 +19,7 @@ import {
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
+import { useLaminasUi, type ZoomVisor } from "./laminasStore";
 import "./visorLamina.css";
 
 type Props = {
@@ -33,11 +36,26 @@ type Props = {
   onAbrirAjustes: () => void;
   ajustesAbiertos: boolean;
   onVerAvisos: () => void;
+  /** Tira de miniaturas, bajo el lienzo. */
+  tira: ReactNode;
 };
 
+const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
+  { valor: "ajustar", label: "Ajustar", factor: 1 },
+  { valor: "125", label: "125 %", factor: 1.25 },
+  { valor: "150", label: "150 %", factor: 1.5 },
+];
+
 export function VisorLamina({
-  lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos,
+  lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, tira,
 }: Props) {
+  const zoom = useLaminasUi((s) => s.zoom);
+  const setZoom = useLaminasUi((s) => s.setZoom);
+  const tiraVisible = useLaminasUi((s) => s.tiraVisible);
+  const alternarTira = useLaminasUi((s) => s.alternarTira);
+  const estructuraVisible = useLaminasUi((s) => s.estructuraVisible);
+  const alternarEstructura = useLaminasUi((s) => s.alternarEstructura);
+  const factor = ZOOMS.find((z) => z.valor === zoom)?.factor ?? 1;
   const l = vista.lamina;
   const nPartes = l?.partes.length ?? 1;
   const parteActiva = Math.min(parte, nPartes);
@@ -56,6 +74,17 @@ export function VisorLamina({
   return (
     <section className="pulso-f6-visor" aria-label="Visor de la lámina">
       <header className="pulso-f6-visor-barra">
+        {!estructuraVisible && (
+          <button
+            type="button"
+            className="pulso-f6-icono-boton pulso-f6-solo-ancho"
+            aria-label="Mostrar la estructura"
+            title="Mostrar la estructura"
+            onClick={alternarEstructura}
+          >
+            <PanelLeftOpen size={16} aria-hidden="true" />
+          </button>
+        )}
         <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina anterior" disabled={lamina.posicion <= 1} onClick={() => onIr(lamina.posicion - 1)}>
           <ChevronLeft size={16} aria-hidden="true" />
         </button>
@@ -64,7 +93,7 @@ export function VisorLamina({
         </button>
         <p className="pulso-f6-visor-pos" aria-live="polite">
           <strong>Lámina {lamina.posicion} de {total}</strong>
-          {nPartes > 1 && <span> · parte {parteActiva} de {nPartes}</span>}
+          {nPartes > 1 && <span className="pulso-f6-solo-ancho"> · parte {parteActiva} de {nPartes}</span>}
         </p>
         {estado && !cargando && (
           <span className={`pulso-f6-chip-estado is-${estado === "ruta_anterior" ? "ruta" : estado === "sin_grafico" ? "neutro" : "nativa"}`} title={motivoDeEstado(estado, motorNativoApagado, (l?.avisos.length ?? 0) > 0)}>
@@ -80,7 +109,13 @@ export function VisorLamina({
           </span>
         )}
         {nPartes > 1 && l && (
-          <span className="pulso-f6-partes-barra pulso-f6-solo-compacto" role="group" aria-label="Partes de la lámina" data-qa-geometry-group="graficos/f6-partes-barra" data-qa-geometry-contract="intrinsic">
+          <span
+            className="pulso-f6-partes-barra"
+            role="group"
+            aria-label={`Partes de la lámina${l.truncado ? `; la vista muestra las primeras ${nPartes}` : ""}`}
+            data-qa-geometry-group="graficos/f6-partes-barra"
+            data-qa-geometry-contract="intrinsic"
+          >
             <BotonesPartes lamina={l} activa={parteActiva} onParte={onParte} />
           </span>
         )}
@@ -91,6 +126,22 @@ export function VisorLamina({
             {l.avisos.length === 1 ? "1 aviso" : `${l.avisos.length} avisos`}
           </button>
         )}
+        <label className="pulso-f6-zoom">
+          <span className="pulso-sr-only">Zoom de la lámina</span>
+          <select value={zoom} onChange={(e) => setZoom(e.target.value as ZoomVisor)}>
+            {ZOOMS.map((z) => <option key={z.valor} value={z.valor}>{z.label}</option>)}
+          </select>
+        </label>
+        <button
+          type="button"
+          className={`pulso-f6-icono-boton pulso-f6-solo-ancho${tiraVisible ? " is-activo" : ""}`}
+          aria-pressed={tiraVisible}
+          aria-label="Miniaturas"
+          title={tiraVisible ? "Ocultar miniaturas" : "Mostrar miniaturas"}
+          onClick={alternarTira}
+        >
+          <Images size={16} aria-hidden="true" />
+        </button>
         <button
           type="button"
           className="pulso-f6-boton pulso-f6-solo-compacto"
@@ -104,7 +155,8 @@ export function VisorLamina({
       </header>
 
       <div
-        className="pulso-f6-lienzo"
+        className={`pulso-f6-lienzo${factor > 1 ? " is-zoom" : ""}`}
+        style={{ "--pulso-f6-zoom": factor } as CSSProperties}
         tabIndex={0}
         onKeyDown={onTecla}
         aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. Flechas izquierda y derecha cambian de lámina${nPartes > 1 ? "; arriba y abajo, de parte" : ""}.`}
@@ -134,13 +186,7 @@ export function VisorLamina({
         )}
       </div>
 
-      {nPartes > 1 && l && (
-        <div className="pulso-f6-partes pulso-f6-solo-ancho" role="group" aria-label="Partes de la lámina" data-qa-geometry-group="graficos/f6-partes" data-qa-geometry-contract="intrinsic">
-          <span className="pulso-f6-partes-rotulo">Esta lámina sale en {nPartes} partes:</span>
-          <BotonesPartes lamina={l} activa={parteActiva} onParte={onParte} />
-          {l.truncado && <span className="pulso-f6-partes-rotulo">La vista muestra las primeras {nPartes}.</span>}
-        </div>
-      )}
+      {tiraVisible && tira}
     </section>
   );
 }

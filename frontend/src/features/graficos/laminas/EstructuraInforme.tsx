@@ -3,7 +3,7 @@
 // mientras tanto siguen en el Editor anterior.
 
 import { useEffect, useMemo, useRef } from "react";
-import { ChevronRight, Search } from "../../../vendor/lucide-react";
+import { ChevronRight, PanelLeftClose, Search } from "../../../vendor/lucide-react";
 import { IconoTipo } from "../iconos/IconoTipo";
 import {
   contarLaminas,
@@ -33,6 +33,7 @@ export function EstructuraInforme({ estructura, posicionActiva, onSeleccionar, v
   const alternarNodo = useLaminasUi((s) => s.alternarNodo);
   const fijarCerrados = useLaminasUi((s) => s.fijarCerrados);
   const resumenes = useLaminasUi((s) => s.resumenes);
+  const alternarEstructura = useLaminasUi((s) => s.alternarEstructura);
   const busquedaRef = useRef<HTMLInputElement>(null);
   const cuerpoRef = useRef<HTMLElement>(null);
 
@@ -73,6 +74,15 @@ export function EstructuraInforme({ estructura, posicionActiva, onSeleccionar, v
           disabled={!plegables.length}
         >
           {todoCerrado ? "Abrir todo" : "Cerrar todo"}
+        </button>
+        <button
+          type="button"
+          className="pulso-f6-icono-boton pulso-f6-solo-ancho"
+          aria-label="Ocultar la estructura"
+          title="Ocultar la estructura: la lámina gana su ancho"
+          onClick={alternarEstructura}
+        >
+          <PanelLeftClose size={16} aria-hidden="true" />
         </button>
       </header>
       <div className="pulso-f6-estructura-busca">

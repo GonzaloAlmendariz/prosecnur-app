@@ -16,6 +16,7 @@ import { usePlanValidator } from "../usePlanValidator";
 import { EstructuraInforme, type MarcaValidacion } from "./EstructuraInforme";
 import { InspectorLamina } from "./InspectorLamina";
 import { VisorLamina } from "./VisorLamina";
+import { TiraMiniaturas } from "./TiraMiniaturas";
 import { construirEstructura, focoDeLamina, parsearFocoLamina } from "./modeloEstructura";
 import { useLaminasUi } from "./laminasStore";
 import { usePreviewLamina } from "./usePreviewLamina";
@@ -38,6 +39,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const parte = useLaminasUi((s) => s.parte);
   const setParte = useLaminasUi((s) => s.setParte);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
+  const estructuraVisible = useLaminasUi((s) => s.estructuraVisible);
 
   const estructura = useMemo(() => construirEstructura(slides), [slides]);
   const direccion = useSeccion("procesamiento");
@@ -105,7 +107,10 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
 
   return (
     <div className="pulso-f6-laminas-host">
-    <div className={`pulso-f6-laminas${inspector.abierto ? " is-inspector-abierto" : ""}`} data-qa-surface="graficos/f6-laminas">
+    <div
+      className={`pulso-f6-laminas${inspector.abierto ? " is-inspector-abierto" : ""}${estructuraVisible ? "" : " is-sin-estructura"}`}
+      data-qa-surface="graficos/f6-laminas"
+    >
       <EstructuraInforme
         estructura={estructura}
         posicionActiva={posicionSeleccionada}
@@ -124,6 +129,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         onAbrirAjustes={inspector.alternar}
         ajustesAbiertos={inspector.abierto}
         onVerAvisos={() => { setSeccion("estado"); if (!inspector.abierto) inspector.abrir(); }}
+        tira={<TiraMiniaturas estructura={estructura} posicionActiva={lamina.posicion} onIr={irA} />}
       />
       <div className="pulso-f6-inspector-marco" {...inspector.props} onKeyDown={(e) => { if (e.key === "Escape" && inspector.abierto) inspector.cerrar(); }}>
         <InspectorLamina
