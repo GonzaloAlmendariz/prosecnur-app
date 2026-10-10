@@ -194,3 +194,36 @@ test_that("/ppt-all: la sesión migrada lleva los avisos de cada base al resulta
   # Ya migrada: la segunda exportación (y el GET) no repiten el aviso.
   expect_identical(.graficos_avisos_job(sid, "j", .graficos_sesion_con_migracion(sid)), "Otro aviso")
 })
+
+test_that("/ppt-all por el router: migra y guarda la config de cada base y el job devuelve el aviso (no sólo el helper)", {
+  skip_if_not_installed("plumber")
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "graficos_config_por_base", list(egresados = list(plan = .mpa_plan()), docentes = list(plan = .mpa_plan())))
+  captura <- new.env()
+  testthat::local_mocked_bindings(
+    session_header = function(req) sid,
+    estudio_is_independent_siblings = function(sid) TRUE,
+    estudio_data_sources = function(sid) list(egresados = data.frame(a = 1), docentes = data.frame(a = 1)),
+    estudio_inst_sources = function(sid) list(egresados = list(), docentes = list()),
+    .validar_plan_json = function(plan) list(ok = TRUE, errors = character()),
+    .graficos_icon_registry = function(...) list(),
+    .graficos_resolve_template_pptx = function(...) NA_character_,
+    .export_filename = function(...) "x",
+    job_save_rds = function(...) tempfile(),
+    job_submit = function(sid, kind, func, args, ..., on_complete = NULL) { captura$on_complete <- on_complete; "job-all" },
+    .pulso_avisos_de_job = function(sid, job_id, maximo = 8L) character(),
+    .register_output_file = function(...) list(file_id = "f", original_name = "x", size = 1),
+    .graficos_status_set = function(...) invisible(TRUE),
+    .package = "prosecnurapp"
+  )
+  pr <- mount_graficos(plumber::pr())
+  endpoints <- unlist(pr$endpoints, recursive = FALSE)
+  ep <- endpoints[[which(vapply(endpoints, function(e) identical(e$path, "/api/graficos/ppt-all"), TRUE))]]
+  req <- new.env(parent = emptyenv()); res <- new.env(parent = emptyenv()); res$status <- 200L; res$setHeader <- function(...) invisible(NULL)
+  r <- ep$getFunc()(req, res)
+  expect_identical(r$job_id, "job-all")
+  cfgs <- session_get(sid)$graficos_config_por_base
+  for (b in c("egresados", "docentes")) expect_identical(.mpa_tipos(cfgs[[b]]$plan), c("p_slide_portada", "p_slide_2_graficos", "p_slide_4_graficos"))
+  av <- as.character(unclass(captura$on_complete(list(sid = sid, id = "job-all", result_path = tempfile(), result_data = list(bases = list())))$avisos))
+  expect_identical(sum(grepl("ya no está en el recetario", av, fixed = TRUE)), 4L)
+})
