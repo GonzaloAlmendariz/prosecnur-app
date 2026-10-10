@@ -49,3 +49,16 @@
   if (length(meta)) out$meta_portada <- meta
   out
 }
+
+#' Campos de la config que el autosave del editor todavía no transporta y que no debe borrar
+#'
+#' El autosave manda el estado completo del editor y el backend lo guarda tal cual; `documento_word` (opciones del
+#' documento Word, F6.0b.4) aún no viaja desde el frontend, así que cada autosave lo borraba (plan de integración F6,
+#' contrato K3). Si la config entrante no lo trae, se conserva el de la config guardada.
+#' @keywords internal
+.graficos_conservar_campos_backend <- function(cfg, previa) {
+  if (is.null(cfg[["documento_word"]]) && is.list(previa) && !is.null(previa[["documento_word"]])) {
+    cfg[["documento_word"]] <- previa[["documento_word"]]
+  }
+  cfg
+}

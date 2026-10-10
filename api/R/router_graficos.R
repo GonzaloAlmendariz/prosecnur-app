@@ -2613,6 +2613,7 @@ mount_graficos <- function(pr) {
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
       cfg <- .graficos_normalize_config(parsed$config %||% parsed, sid = sid)
+      cfg <- .graficos_conservar_campos_backend(cfg, .graficos_config_get(sid))
       .graficos_config_set(sid, cfg)
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>

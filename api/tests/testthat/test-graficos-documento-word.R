@@ -34,3 +34,11 @@ test_that("el worker de Word acepta las opciones y un worker sin ellas sigue fun
   expect_true("opciones_documento" %in% names(f))
   expect_identical(eval(f$opciones_documento), list())
 })
+
+test_that("el autosave que no trae documento_word no borra las opciones guardadas", {
+  previa <- list(plan = list(slides = list()), documento_word = list(portada = "C"))
+  expect_identical(.graficos_conservar_campos_backend(list(plan = list()), previa)$documento_word, list(portada = "C"))
+  expect_identical(.graficos_conservar_campos_backend(list(documento_word = list(portada = "A")), previa)$documento_word,
+                   list(portada = "A"))
+  expect_null(.graficos_conservar_campos_backend(list(plan = list()), list())$documento_word)
+})
