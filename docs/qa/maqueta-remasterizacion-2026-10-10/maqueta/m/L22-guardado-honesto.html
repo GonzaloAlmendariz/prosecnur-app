@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L22 · Indicador de guardado honesto: el chip dice qué cambió y leer nunca ensucia</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L22", titulo: "Indicador de guardado honesto: «sin guardar» solo tras una mutación, y el chip cuenta cuáles",
+  hoy: "../hoy/carga-fuentes.png",
+  nota: "Hoy: visitar Carga › Fuentes o Analítica › Base final pone el proyecto en «sin guardar» sin que el usuario edite nada (dirty por lectura).",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "sucio", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "carga",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><b>Monitoreo territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,281</b></span></span>',
+  pestanas: [
+    { id: "plan", label: "Plan", detail: "Organización de las bases", icon: "clipboard-check" },
+    { id: "fuentes", label: "Fuentes", detail: "Formulario y respuestas", icon: "plug-zap" },
+    { id: "revision", label: "Revisión", detail: "Incidencias de carga", icon: "shield-alert" },
+    { id: "estructura", label: "Estructura", detail: "Variables y códigos", icon: "list-checks" },
+    { id: "datos", label: "Datos", detail: "Respuestas en tabla", icon: "table-2" },
+  ],
+  pestanaActiva: "fuentes",
+  cabecera: { eyebrow: "Carga · pestaña 2 de 5", titulo: "Fuentes", detalle: "Formulario y respuestas de cada base", estado: { kind: "listo", label: "Listo" },
+    chips: [{ label: "<b>Bases separadas</b> definido en Plan" }, { label: "<b>1/1</b> materializada", tone: "ok" }] },
+};
+// La nota sobre el chip del header se cuelga del indicador que dibuja el motor.
+window.onMaquetaMontada = function () {
+  var ind = document.querySelector(".pulso-project-indicator");
+  if (!ind) return;
+  ind.classList.add("mq-callout");
+  var chip = ind.querySelector(".mq-project-chip");
+  if (chip) { chip.setAttribute("aria-haspopup", "dialog"); chip.setAttribute("aria-expanded", "true"); chip.setAttribute("aria-controls", "cambios"); chip.classList.add("pg-chip-abierto"); }
+  var n = document.createElement("span");
+  n.className = "mq-note"; n.setAttribute("data-n", "1");
+  n.style.cssText = "top:50%; right:100%; transform:translateY(-50%); margin-right:12px; width:max-content;";
+  n.textContent = "sucio por dos mutaciones reales; el chip se abre con click y dice cuáles";
+  ind.appendChild(n);
+  // el sideover arranca bajo el header, para que el chip siga a la vista
+  var header = document.querySelector(".pulso-app-header");
+  var top = header ? Math.round(header.getBoundingClientRect().bottom) : 0;
+  document.querySelectorAll(".pg-bajo-header").forEach(function (el) { el.style.top = top + "px"; });
+};
+</script>
+<style>
+  .pg-chip-abierto { box-shadow: 0 0 0 3px var(--pulso-primary-focus); }
+  .pg-izq { max-width: 790px; }
+  .pg-base { display: grid; grid-template-columns: 28px minmax(0,1fr); gap: 12px; align-items: start; padding: 12px; border: 1px solid var(--pulso-success-border); border-radius: 12px; background: var(--pulso-surface); }
+  .pg-base .mq-lane-n { background: var(--pulso-success-fg); color: var(--pulso-surface); }
+  .pg-hist { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 8px 12px; align-items: center; font-size: 12px; }
+  .pg-hist time { font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); white-space: nowrap; }
+  .pg-hist .mq-chip { justify-self: end; }
+  /* sideover de cambios */
+  .pg-bajo-header { top: 76px; }
+  .mq-scrim.pg-bajo-header { place-items: start end; padding: 0; backdrop-filter: none; background: color-mix(in srgb, var(--pulso-text) 14%, transparent); }
+  .pg-side { width: min(500px, 92vw); }
+  .pg-side-body { padding: 14px 18px; overflow: auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; }
+  .pg-side-body h3 { margin: 4px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--pulso-text-faint); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .pg-side-body h3 .mq-chip { text-transform: none; letter-spacing: 0; }
+  .pg-mut { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 12px; align-items: start; padding: 10px 12px; border: 1px solid var(--pulso-warn-border); border-radius: 10px; background: var(--pulso-warn-bg); }
+  .pg-mut-ico { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--pulso-surface); color: var(--pulso-warn-fg); border: 1px solid var(--pulso-warn-border); }
+  .pg-mut-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .pg-mut-copy strong { font-size: 13px; }
+  .pg-mut-copy strong code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+  .pg-mut-copy span { font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-mut-copy .pg-delta { font-variant-numeric: tabular-nums; }
+  .pg-mut .mq-link { align-self: center; }
+  .pg-no { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 8px 10px; align-items: center; padding: 10px 12px; border: 1px dashed var(--pulso-border-strong); border-radius: 10px; background: var(--pulso-surface-2); font-size: 12px; color: var(--pulso-text-soft); }
+  .pg-no .mq-i { color: var(--pulso-success-fg); }
+  .pg-no b { color: var(--pulso-text); }
+  .pg-ultimo { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--pulso-text-soft); padding: 8px 10px; border-radius: 8px; background: var(--pulso-surface-2); }
+  .pg-ultimo b { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+  .pg-antes { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px dashed var(--pulso-border-strong); border-radius: 10px; color: var(--pulso-text-faint); font-size: 12px; background: repeating-linear-gradient(135deg, transparent 0 8px, var(--pulso-surface-3) 8px 9px); }
+  .pg-antes s { text-decoration-color: var(--pulso-danger-fg); }
+</style>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack pg-izq" style="gap:12px">
+    <div class="mq-row">
+      <div class="mq-seg" role="radiogroup" aria-label="Origen de la base">
+        <button type="button" class="is-on"><i data-icon="upload" data-size="14"></i> Manual</button>
+        <button type="button"><i data-icon="cloud-upload" data-size="14"></i> Plataforma</button>
+        <button type="button"><i data-icon="activity" data-size="14"></i> Monitoreo</button>
+      </div>
+      <span class="mq-muted">Cada entrada se materializa como una base separada.</span>
+    </div>
+
+    <!-- lo que hoy pasa al entrar aquí -->
+    <div class="pg-antes mq-callout">
+      <span class="mq-note" data-n="2" style="top:50%; right:12px; transform:translateY(-50%);">leer esta pestaña ya no toca project_dirty</span>
+      <i data-icon="ban" data-size="14"></i>
+      <span>Hoy: <s>al montar Fuentes se reescribe la estrategia y el proyecto pasa a «sin guardar»</s></span>
+    </div>
+
+    <section class="mq-panel">
+      <div class="mq-panel-head"><i data-icon="database" data-size="16"></i><h3>Bases de este estudio</h3><span class="mq-spacer"></span><span class="mq-muted">1 materializada · 0 en curso</span></div>
+      <div class="mq-lanes">
+        <div class="pg-base">
+          <div class="mq-lane-n"><i data-icon="check" data-size="14"></i></div>
+          <div>
+            <div class="mq-row"><strong>Monitoreo territorial</strong><span class="mq-chip is-ok">lista</span><span class="mq-chip is-warn">depurada · 1,281</span><span class="mq-spacer"></span>
+              <button class="mq-link" type="button"><i data-icon="download" data-size="14"></i> Descargar</button>
+              <button class="mq-link" type="button"><i data-icon="refresh-cw" data-size="14"></i> Actualizar</button>
+              <button class="pulso-button pulso-button--icon pulso-button--sm" type="button" data-intent="remove" aria-label="Retirar base"><i data-icon="trash-2" data-size="14"></i></button></div>
+            <div class="mq-muted" style="margin-top:4px">Formulario cargado · 1,283 registros cargados · 1,281 en la base depurada · 141 columnas · .xlsx</div>
+          </div>
+        </div>
+        <div class="mq-lane">
+          <div class="mq-lane-n">2</div>
+          <div>
+            <div class="mq-row"><strong>Nueva entrada</strong><span class="mq-chip">sin archivos</span></div>
+            <div class="mq-grid" style="grid-template-columns: minmax(0,1fr) auto auto auto; gap:8px; margin-top:8px; align-items:end">
+              <div class="mq-field"><label for="nb">Nombre de la base <small>opcional</small></label><input id="nb" class="mq-input is-sm" placeholder="base_2"></div>
+              <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="file-text" data-size="14"></i> Formulario XLSForm</button>
+              <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="database" data-size="14"></i> Respuestas</button>
+              <button class="pulso-button pulso-button--primary pulso-button--sm" type="button" disabled><i data-icon="plus" data-size="14"></i> Crear esta base</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mq-panel">
+      <div class="mq-panel-head"><i data-icon="history" data-size="16"></i><h3>Guardados de hoy</h3><span class="mq-spacer"></span><span class="mq-muted">acnur_acg.pulso · 4.8 MB</span></div>
+      <div class="pg-hist">
+        <time>10:12</time><span>Guardado manual tras cerrar la base depurada</span><span class="mq-chip is-ok">en disco</span>
+        <time>09:41</time><span>Guardado manual tras aplicar la codificación</span><span class="mq-chip is-ok">en disco</span>
+        <time>08:55</time><span>Guardado al abrir el proyecto (sin cambios)</span><span class="mq-chip">omitido</span>
+      </div>
+    </section>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>«Sin guardar» solo tras una mutación</b> del estado que viaja en el <code>.pulso</code>: editar una etiqueta, promover la base depurada, cambiar el plan. Abrir una pestaña, recalcular un cache o leer la base no tocan <code>project_dirty</code> (hoy lo hacen Fuentes, Codificar y Base final).</li>
+        <li><b>El chip del header se abre con click</b> y es un panel direccionable (<code>?panel=guardado</code>) que lista cada mutación con su origen, su delta y su hora; «Guardar ahora» escribe el <code>.pulso</code> y «Descartar cambios» vuelve al último guardado.</li>
+        <li><b>La lista de mutaciones la escribe el backend</b> junto con <code>project_dirty</code>: el frontend no decide qué ensucia. Lo que no cuenta como cambio queda escrito en el mismo panel para que el indicador sea verificable.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- panel de cambios: sideover bajo el header, para que el chip siga a la vista -->
+  <div class="mq-scrim pg-bajo-header" role="presentation"></div>
+  <aside class="mq-sideover pg-side pg-bajo-header mq-callout" id="cambios" role="dialog" aria-modal="true" aria-labelledby="cb-t" aria-describedby="cb-d">
+    <header class="mq-dialog-head">
+      <span class="mq-th-icon"><i data-icon="save" data-size="18"></i></span>
+      <div><h2 id="cb-t">Qué cambió desde el último guardado</h2><p id="cb-d">Último guardado hoy 10:12 · 2 mutaciones después</p></div>
+      <button class="pulso-button pulso-button--icon pulso-button--md" type="button" aria-label="Cerrar (Esc)"><i data-icon="x" data-size="16"></i></button>
+    </header>
+    <div class="pg-side-body">
+      <h3>Mutaciones <span class="mq-chip is-warn">2</span></h3>
+      <div class="mq-stack mq-callout" style="gap:8px">
+        <span class="mq-note" data-n="3" style="bottom:-30px; right:12px;">cada mutación con origen, delta y hora; «Abrir en…» lleva a esa dirección</span>
+        <div class="pg-mut">
+          <span class="pg-mut-ico"><i data-icon="pencil" data-size="16"></i></span>
+          <div class="pg-mut-copy"><strong>Etiqueta de <code>E1_age</code> editada</strong><span class="pg-delta">«Edad» → «Edad en años cumplidos»</span><span>Analítica › Datos · hace 4 min</span></div>
+          <button class="mq-link" type="button">Abrir en Analítica <i data-icon="arrow-right" data-size="13"></i></button>
+        </div>
+        <div class="pg-mut">
+          <span class="pg-mut-ico"><i data-icon="git-merge" data-size="16"></i></span>
+          <div class="pg-mut-copy"><strong>Base depurada promovida</strong><span class="pg-delta">1,283 → 1,281 registros · 2 excluidos por criterio</span><span>Validación › Cierre · hace 12 min</span></div>
+          <button class="mq-link" type="button">Abrir en Validación <i data-icon="arrow-right" data-size="13"></i></button>
+        </div>
+      </div>
+
+      <h3 style="margin-top:24px">Lo que no cuenta como cambio</h3>
+      <div class="pg-no mq-callout">
+        <span class="mq-note" data-n="4" style="bottom:-20px; right:12px;">escrito en el panel: el indicador es verificable</span>
+        <i data-icon="check" data-size="15"></i><span><b>Abrir una pestaña</b> · Fuentes, Codificar y Base final hoy ensuciaban al montar</span>
+        <i data-icon="check" data-size="15"></i><span><b>Recalcular un cache</b> · tablas, gráficos y resúmenes derivables</span>
+        <i data-icon="check" data-size="15"></i><span><b>Leer la base</b> · explorar, filtrar, descargar</span>
+      </div>
+
+      <div class="pg-ultimo" style="margin-top:12px"><i data-icon="clock" data-size="14"></i><span>Último guardado <b>hoy 10:12</b> · acnur_acg.pulso · 4.8 MB · <b>Ctrl+S</b> guarda desde cualquier módulo</span></div>
+    </div>
+    <footer class="mq-dialog-foot mq-callout">
+      <span class="mq-note" data-n="5" style="top:-14px; right:12px;">Guardar escribe el .pulso; Descartar vuelve a las 10:12</span>
+      <button class="mq-link is-quiet" type="button"><i data-icon="undo-2" data-size="14"></i> Descartar cambios</button>
+      <span class="mq-spacer"></span>
+      <button class="pulso-button pulso-button--primary pulso-button--md" type="button"><i data-icon="save" data-size="15"></i> Guardar ahora</button>
+    </footer>
+  </aside>
+</div>
+</body>
+</html>

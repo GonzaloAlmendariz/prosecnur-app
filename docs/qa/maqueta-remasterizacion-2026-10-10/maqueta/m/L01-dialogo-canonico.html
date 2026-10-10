@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L1/L8 · Diálogo canónico (aplicado a «Traducir encuesta de SurveyMonkey»)</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L1 · L8", titulo: "Un solo diálogo para toda la app, enlazable y con foco; aquí sobre «Traducir encuesta de SurveyMonkey»",
+  hoy: "../hoy/dialogo-sm-editor.png",
+  nota: "Hoy: 61 diálogos artesanales; este abre con «No pude conectar» en rojo y un token residual, y el foco no vuelve al disparador.",
+  modulo: "editor-xlsform",
+  proyecto: { nombre: "acnur_pdm", estado: "guardado", fecha: "1/8/2026" },
+  secciones: [{ id: "editor", label: "Editor" }, { id: "documento", label: "Documento" }],
+  seccionActiva: "editor",
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Formulario</span><b>PDM Espacios de protección 2026</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Preguntas</span><b>27</b></span></span>',
+  chips: [{ label: "1 aviso", tone: "warn", detail: "Una pregunta sin etiqueta" }],
+  acciones: [{ label: "Nuevo formulario", icon: "plus", kind: "secondary" }, { label: "Exportar .xlsx", icon: "download", kind: "primary" }],
+  menu: true,
+  pestanas: [
+    { id: "constructor", label: "Constructor", detail: "Preguntas y lógica", icon: "square-pen" },
+    { id: "hojas", label: "Hojas", detail: "survey · choices · settings", icon: "table-2" },
+    { id: "simulador", label: "Probar formulario", detail: "Recorrido con saltos", icon: "play" },
+    { id: "resumen", label: "Resumen", detail: "Ficha del instrumento", icon: "file-text" },
+    { id: "logica", label: "Mapa de lógica", detail: "Lienzo de saltos", icon: "git-branch" },
+  ],
+  pestanaActiva: "constructor",
+  cabecera: { eyebrow: "Formularios", titulo: "Constructor", detalle: "Outline, foco e inspector del instrumento", chips: [{ label: "<b>27</b> piezas" }, { label: "<b>9</b> listas" }, { label: "<b>1</b> aviso", tone: "warn" }] },
+};
+</script>
+</head>
+<body>
+<div id="contenido">
+  <!-- fondo: el editor en reposo, atenuado por el scrim -->
+  <div class="mq-grid" style="grid-template-columns: 260px minmax(0,1fr) 300px; height: 100%;">
+    <div class="mq-panel"><div class="mq-panel-head"><h3>Estructura</h3></div><div class="mq-stack" style="gap:6px"><div class="mq-sk is-row"></div><div class="mq-sk is-row"></div><div class="mq-sk is-row"></div><div class="mq-sk is-row"></div></div></div>
+    <div class="mq-panel"><div class="mq-panel-head"><h3>Vista de trabajo</h3></div><div class="mq-stack" style="gap:8px"><div class="mq-sk is-title"></div><div class="mq-sk is-text"></div><div class="mq-sk is-text" style="width:70%"></div><div class="mq-sk is-row"></div></div></div>
+    <div class="mq-panel"><div class="mq-panel-head"><h3>Inspector</h3></div><div class="mq-stack" style="gap:8px"><div class="mq-sk is-text"></div><div class="mq-sk is-row"></div><div class="mq-sk is-text" style="width:60%"></div></div></div>
+  </div>
+
+  <!-- diálogo canónico -->
+  <div class="mq-scrim" role="presentation">
+    <div class="mq-dialog is-lg mq-callout" role="dialog" aria-modal="true" aria-labelledby="dlg-t" aria-describedby="dlg-d">
+      <span class="mq-note" data-n="1" style="top:-12px; left:18px;">`?panel=importar-surveymonkey` · Radix: trap, Escape, foco al disparador</span>
+      <header class="mq-dialog-head">
+        <span class="mq-th-icon"><i data-icon="cloud-upload" data-size="18"></i></span>
+        <div><h2 id="dlg-t">Traducir encuesta de SurveyMonkey</h2><p id="dlg-d">Crea un borrador XLSForm editable desde la definición original.</p></div>
+        <button class="mq-dialog-close" type="button" aria-label="Cerrar (Esc)"><i data-icon="x" data-size="16"></i></button>
+      </header>
+      <div class="mq-dialog-body">
+        <ol class="mq-steps" aria-label="Pasos">
+          <li class="mq-step is-current"><i>1</i> Conectar</li>
+          <li class="mq-step"><i>2</i> Elegir encuesta</li>
+          <li class="mq-step"><i>3</i> Revisar secciones</li>
+          <li class="mq-step"><i>4</i> Lógica</li>
+        </ol>
+        <div class="mq-grid c2 mq-callout">
+          <span class="mq-note" data-n="2" style="top:-14px; right:0;">estado inicial vacío y reproducible: no se conecta solo, no muestra tokens</span>
+          <div class="mq-field">
+            <label>Perfil de conexión</label>
+            <select class="mq-select"><option>PULSO PUCP · token cifrado en este equipo</option><option>Añadir perfil…</option></select>
+            <span class="mq-field-hint">Se usa al pulsar «Probar conexión». <button class="mq-link" type="button">Administrar conexiones</button></span>
+          </div>
+          <div class="mq-field">
+            <label>Encuesta <small>enlace o id</small></label>
+            <input class="mq-input" placeholder="https://www.surveymonkey.com/r/… o 512998114">
+            <span class="mq-field-hint">O búscala en el catálogo tras conectar.</span>
+          </div>
+        </div>
+        <div class="mq-row">
+          <button class="pulso-button pulso-button--secondary pulso-button--md" type="button"><i data-icon="plug-zap" data-size="15"></i> Probar conexión</button>
+          <button class="pulso-button pulso-button--secondary pulso-button--md" type="button" disabled><i data-icon="search" data-size="15"></i> Buscar mis encuestas</button>
+          <span class="mq-spacer"></span>
+          <span class="mq-muted">Conexión: <span class="mq-chip">sin probar</span></span>
+        </div>
+        <div class="mq-banner"><i data-icon="info" data-size="15"></i> Trae tipos de pregunta, secciones, orden, opciones, obligatoriedad y validaciones. Las respuestas <code>.sav</code> se adaptan después al XLSForm normalizado.</div>
+      </div>
+      <footer class="mq-dialog-foot">
+        <span class="mq-muted"><span class="mq-kbd">Esc</span> cierra y devuelve el foco al botón «Nuevo formulario»</span>
+        <span class="mq-spacer"></span>
+        <button class="pulso-button pulso-button--ghost pulso-button--md" type="button">Cancelar</button>
+        <button class="pulso-button pulso-button--primary pulso-button--md" type="button" disabled>Siguiente <i data-icon="chevron-right" data-size="15"></i></button>
+      </footer>
+    </div>
+  </div>
+
+  <div class="mq-notas" style="position:fixed; left:18px; bottom:64px; width:430px; z-index:1700;"><b>Anatomía del diálogo canónico (`components/Dialog.tsx`)</b>
+    <ol>
+      <li>Cabecera con tile de ícono, título, subtítulo y cierre; cuerpo con scroll propio; pie con la acción primaria a la derecha y la ayuda de teclado a la izquierda.</li>
+      <li>Un documento largo se parte en pasos (stepper), no en tres pantallas de scroll dentro del modal.</li>
+      <li>Sobre Radix Dialog: focus trap, `aria-modal`, Escape, restauración del foco al disparador. Se abre por `?panel=` y el QA lo captura.</li>
+      <li>El portal re-inyecta el acento del módulo (`moduleChromeVars`): aquí el violeta de Formularios.</li>
+      <li>La misma pieza sirve de <b>sideover</b> (panel lateral) para conexiones, inspectores y avisos.</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

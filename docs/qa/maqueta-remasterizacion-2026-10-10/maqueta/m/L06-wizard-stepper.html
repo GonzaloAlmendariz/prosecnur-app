@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L6 · Carga › Fuentes › multibase independiente como wizard con stepper</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L6", titulo: "Multibase independiente (SurveyMonkey hermanas + Kobo) como recorrido de seis pasos con estado en el store",
+  hoy: "../hoy/carga-fuentes.png",
+  nota: "Hoy: ~2.260 líneas de BasesPanel con siete subpaneles apilados en scroll, sin stepper, doce spinners y tres window.confirm.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_pdm", estado: "sucio", fecha: "1/8/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "carga",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Formulario</span><b>PDM Espacios de protección 2026</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Bases</span><b>0 de 4</b></span></span>',
+  pestanas: [
+    { id: "plan", label: "Plan", detail: "Organización de las bases", icon: "clipboard-check" },
+    { id: "fuentes", label: "Fuentes", detail: "Formulario y respuestas", icon: "plug-zap" },
+    { id: "revision", label: "Revisión", detail: "Incidencias de carga", icon: "shield-alert" },
+    { id: "estructura", label: "Estructura", detail: "Variables y códigos", icon: "list-checks" },
+    { id: "datos", label: "Datos", detail: "Respuestas en tabla", icon: "table-2" },
+  ],
+  pestanaActiva: "fuentes",
+  cabecera: { eyebrow: "Carga · pestaña 2 de 5", titulo: "Fuentes", detalle: "Multibase independiente: encuestas hermanas de SurveyMonkey y una de Kobo", estado: { kind: "parcial", label: "En curso" },
+    chips: [{ label: "<b>Independiente</b> definido en Plan" }, { label: "<b>0/4</b> materializadas", tone: "warn" }] },
+};
+</script>
+<style>
+  .pg-wizard { display: flex; flex-direction: column; gap: 12px; }
+  .pg-steps-bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface-2); }
+  .pg-steps-bar .mq-steps { flex: 1 1 auto; flex-wrap: nowrap; }
+  .pg-steps-bar .mq-step { white-space: nowrap; }
+  .pg-steps-bar .mq-step + .mq-step::before { width: 22px; margin: 0 8px; }
+  .pg-steps-bar .mq-step.is-done i { font-size: 0; }
+  .pg-steps-bar .mq-step.is-done i::after { content: "✓"; font-size: 11px; }
+  .pg-paso { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; align-items: start; }
+  .pg-tabla .mq-table th:first-child, .pg-tabla .mq-table td:first-child { padding-left: 14px; }
+  .pg-tabla .mq-table td { white-space: normal; overflow: visible; }
+  .pg-tabla .mq-select.is-sm, .pg-tabla .mq-input.is-sm { height: 30px; font-size: 11.5px; padding: 0 6px; }
+  .pg-prev .mq-table td, .pg-prev .mq-table th { padding: 5px 10px; font-size: 11.5px; }
+  .pg-enc { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .pg-enc strong { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-enc span { font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-fuente { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--pulso-text-soft); white-space: nowrap; }
+  .pg-fechas { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center; }
+  .pg-fechas small { color: var(--pulso-text-faint); font-size: 11px; }
+  .pg-quitar { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); color: var(--pulso-text-soft); }
+  .pg-confirm { position: absolute; z-index: 20; right: 46px; top: 100%; margin-top: -6px; width: 300px; padding: 10px 12px; border-radius: 10px; background: var(--pulso-surface); border: 1px solid var(--pulso-border-strong); box-shadow: var(--pulso-shadow-med, 0 8px 24px rgba(0,36,87,.14)); font-size: 12px; display: grid; gap: 8px; }
+  .pg-confirm .mq-row { justify-content: flex-end; }
+  .pg-pasos-hechos { display: grid; gap: 6px; }
+  .pg-hecho { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 9px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); font-size: 12px; }
+  .pg-hecho i { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font-style: normal; font-size: 10.5px; font-weight: 800; border: 1.5px solid var(--pulso-border-strong); color: var(--pulso-text-soft); }
+  .pg-hecho.is-done { border-color: var(--pulso-success-border); background: var(--pulso-success-bg); }
+  .pg-hecho.is-done i { background: var(--pulso-success-fg); border-color: var(--pulso-success-fg); color: var(--pulso-nav-selected-fg); }
+  .pg-hecho.is-now { border-color: var(--pulso-primary-border); background: var(--pulso-primary-soft); font-weight: 700; }
+  .pg-hecho.is-now i { background: var(--pulso-primary); border-color: var(--pulso-primary); color: var(--pulso-nav-selected-fg); }
+  .pg-hecho.is-next { color: var(--pulso-text-faint); }
+  .pg-hecho time { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+  .pg-hecho .mq-chip { height: 18px; font-size: 10px; }
+  .pg-pie { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface-2); }
+  .pg-fin { height: 56px; }
+  .pg-paso aside .mq-kpi .pulso-section-eyebrow { font-size: 9.5px; letter-spacing: .4px; }
+</style>
+</head>
+<body>
+<div id="contenido" data-audit-ready="carga/fuentes">
+  <div class="pg-wizard">
+    <!-- stepper -->
+    <div class="pg-steps-bar mq-callout">
+      <span class="mq-note" data-n="1" style="top:-12px; right:14px;">stepper con `StageStepper` (hoy sin consumidores) · `?pestana=fuentes&foco=paso-3`</span>
+      <ol class="mq-steps" aria-label="Pasos del recorrido">
+        <li class="mq-step is-done"><i>1</i> Perfil</li>
+        <li class="mq-step is-done"><i>2</i> Catálogo y selección</li>
+        <li class="mq-step is-current" aria-current="step"><i>3</i> Alcance por encuesta</li>
+        <li class="mq-step"><i>4</i> Auditar</li>
+        <li class="mq-step"><i>5</i> Importar</li>
+        <li class="mq-step"><i>6</i> Decisiones de lógica</li>
+      </ol>
+    </div>
+
+    <div class="pg-paso">
+      <!-- paso 3: alcance por encuesta -->
+      <section class="mq-panel mq-callout pg-tabla" style="padding:0; overflow:visible;">
+        <span class="mq-note" data-n="2" style="top:-12px; left:300px;">una fila por encuesta: colectores, rango y canal con el kit de campos (hoy: siete subpaneles apilados)</span>
+        <div class="mq-panel-head" style="padding:14px 16px 0; margin-bottom:10px;">
+          <i data-icon="sliders-horizontal" data-size="16"></i><h3>Alcance por encuesta</h3>
+          <span class="mq-muted">Acota qué respuestas entran a cada base antes de auditarlas.</span>
+          <span class="mq-spacer"></span>
+          <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="copy" data-size="14"></i> Aplicar el rango a todas</button>
+        </div>
+        <div class="mq-table-wrap" style="border-left:0; border-right:0; border-radius:0; overflow:visible;">
+          <table class="mq-table" aria-label="Encuestas seleccionadas">
+            <colgroup><col style="width:31%"><col style="width:14%"><col style="width:26%"><col style="width:14%"><col style="width:9%"><col style="width:6%"></colgroup>
+            <thead><tr><th>Encuesta</th><th>Colectores</th><th>Rango de fechas</th><th>Canal</th><th class="num">Resp.</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="pg-enc"><strong>Lima · PDM Espacios de protección 2026</strong><span class="pg-fuente"><i data-icon="cloud-upload" data-size="12"></i> SurveyMonkey · 512 998 114 · activa</span></div></td>
+                <td><select class="mq-select is-sm" aria-label="Colectores de Lima"><option>Web 1 · 1,142</option><option>Todos los colectores</option></select></td>
+                <td><div class="pg-fechas"><input class="mq-input is-sm" type="date" value="2026-06-01" aria-label="Desde"><small>a</small><input class="mq-input is-sm" type="date" value="2026-07-31" aria-label="Hasta"></div></td>
+                <td><select class="mq-select is-sm" aria-label="Canal de Lima"><option>Presencial</option><option>Telefónico</option><option>Autoaplicado</option></select></td>
+                <td class="num"><b>1,142</b></td>
+                <td><button class="pulso-button pulso-button--icon pulso-button--sm" data-intent="remove" type="button" aria-label="Quitar Lima del plan"><i data-icon="x" data-size="14"></i></button></td>
+              </tr>
+              <tr>
+                <td><div class="pg-enc"><strong>Tumbes · PDM Espacios de protección 2026</strong><span class="pg-fuente"><i data-icon="cloud-upload" data-size="12"></i> SurveyMonkey · 512 998 115 · activa</span></div></td>
+                <td><select class="mq-select is-sm" aria-label="Colectores de Tumbes"><option>Web 2 · 684</option><option>Todos los colectores</option></select></td>
+                <td><div class="pg-fechas"><input class="mq-input is-sm" type="date" value="2026-06-01" aria-label="Desde"><small>a</small><input class="mq-input is-sm" type="date" value="2026-07-31" aria-label="Hasta"></div></td>
+                <td><select class="mq-select is-sm" aria-label="Canal de Tumbes"><option>Presencial</option><option>Telefónico</option><option>Autoaplicado</option></select></td>
+                <td class="num"><b>684</b></td>
+                <td><button class="pulso-button pulso-button--icon pulso-button--sm" data-intent="remove" type="button" aria-label="Quitar Tumbes del plan"><i data-icon="x" data-size="14"></i></button></td>
+              </tr>
+              <tr class="is-selected mq-callout">
+                <td><div class="pg-enc"><strong>Tacna · PDM Espacios de protección 2026</strong><span class="pg-fuente"><i data-icon="cloud-upload" data-size="12"></i> SurveyMonkey · 512 998 116 · activa</span></div></td>
+                <td><select class="mq-select is-sm" aria-label="Colectores de Tacna"><option>Web 3 · 512</option><option>Todos los colectores</option></select></td>
+                <td><div class="pg-fechas"><input class="mq-input is-sm" type="date" value="2026-06-08" aria-label="Desde"><small>a</small><input class="mq-input is-sm" type="date" value="2026-07-31" aria-label="Hasta"></div></td>
+                <td><select class="mq-select is-sm" aria-label="Canal de Tacna"><option>Telefónico</option><option>Presencial</option><option>Autoaplicado</option></select></td>
+                <td class="num"><b>512</b></td>
+                <td style="position:relative; overflow:visible;">
+                  <button class="pulso-button pulso-button--icon pulso-button--sm" data-intent="remove" type="button" aria-label="Quitar Tacna del plan" aria-expanded="true" style="border-color:var(--pulso-primary); color:var(--pulso-primary);"><i data-icon="x" data-size="14"></i></button>
+                  <div class="pg-confirm mq-callout" role="dialog" aria-label="Confirmar: quitar Tacna del plan">
+                    <span class="mq-note" data-n="4" style="top:-12px; left:10px;">confirmación en popover con foco; `window.confirm` desaparece</span>
+                    <strong>¿Quitar Tacna del plan?</strong>
+                    <span class="mq-muted">Sus 512 respuestas no se importan. Puedes volver a elegirla en el paso 2.</span>
+                    <div class="mq-row"><button class="pulso-button pulso-button--ghost pulso-button--sm" type="button">Cancelar</button><button class="pulso-button pulso-button--secondary pulso-button--sm" type="button" style="color:var(--pulso-danger-fg); border-color:var(--pulso-danger-border);">Quitar</button></div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><div class="pg-enc"><strong>Arequipa · PDM Espacios de protección 2026</strong><span class="pg-fuente"><i data-icon="globe" data-size="12"></i> Kobo EU · aXk9 · 2 versiones</span></div></td>
+                <td><span class="mq-faint" style="font-size:11.5px">Kobo no usa colectores</span></td>
+                <td><div class="pg-fechas"><input class="mq-input is-sm" type="date" value="2026-06-15" aria-label="Desde"><small>a</small><input class="mq-input is-sm" type="date" value="2026-07-31" aria-label="Hasta"></div></td>
+                <td><select class="mq-select is-sm" aria-label="Canal de Arequipa"><option>Telefónico</option><option>Presencial</option><option>Autoaplicado</option></select></td>
+                <td class="num"><b>388</b></td>
+                <td><button class="pulso-button pulso-button--icon pulso-button--sm" data-intent="remove" type="button" aria-label="Quitar Arequipa del plan"><i data-icon="x" data-size="14"></i></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mq-stack" style="padding:12px 16px 14px; gap:10px;">
+          <div class="mq-banner"><i data-icon="info" data-size="15"></i> El rango se aplica a la fecha de envío de cada respuesta. Kobo trae sus dos versiones del formulario: la diferencia se resuelve en el paso 6, no aquí.</div>
+          <div class="mq-row">
+            <label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Excluir respuestas incompletas (SurveyMonkey: <code>partial</code>)</span></label>
+            <label class="mq-switch"><input type="checkbox" role="switch"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Excluir pruebas marcadas por el equipo</span></label>
+            <span class="mq-spacer"></span>
+            <span class="mq-muted">Recalculado hace 4 s</span>
+          </div>
+          <div class="pg-prev">
+            <div class="mq-row" style="margin-bottom:6px"><span class="pulso-section-eyebrow">Vista previa · Tacna · 4 de 512 filas con el rango aplicado</span><span class="mq-spacer"></span><span class="mq-chip is-accent">telefónico</span></div>
+            <div class="mq-table-wrap">
+              <table class="mq-table" data-density="compact" aria-label="Vista previa de Tacna">
+                <thead><tr><th style="width:14%">Enviada</th><th style="width:12%">Colector</th><th style="width:22%">sede_ppl</th><th style="width:10%">sexo</th><th class="num" style="width:8%">edad</th><th style="width:16%">consentimiento</th><th style="width:18%">tiempo_llegada</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">09/06 10:14</td><td>Enlace web 3</td><td>Espacio de protección Tacna</td><td>Mujer</td><td class="num">34</td><td>Sí</td><td>Hasta 15 minutos</td></tr>
+                  <tr><td class="mono">09/06 10:41</td><td>Enlace web 3</td><td>Espacio de protección Tacna</td><td>Hombre</td><td class="num">27</td><td>Sí</td><td>De 15 a 30 minutos</td></tr>
+                  <tr><td class="mono">09/06 11:03</td><td>Enlace web 3</td><td>Espacio de protección Tacna</td><td>Mujer</td><td class="num">41</td><td>Sí</td><td>De 30 minutos a 1 hora</td></tr>
+                  <tr><td class="mono">10/06 09:52</td><td>Enlace web 3</td><td>Espacio de protección Tacna</td><td>Mujer</td><td class="num">22</td><td>Sí</td><td>Hasta 15 minutos</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- resumen del plan -->
+      <aside class="mq-stack" style="gap:12px">
+        <section class="mq-panel mq-callout">
+          <div class="mq-panel-head"><i data-icon="clipboard-check" data-size="16"></i><h3>Resumen del plan</h3><span class="mq-spacer"></span><span class="mq-note" data-n="3" style="position:static; white-space:nowrap;">vivo · job anterior ☑</span></div>
+          <div class="mq-kpis" style="--n:3">
+            <div class="mq-kpi"><span class="pulso-section-eyebrow">Encuestas</span><b>4</b><small>3 SM · 1 Kobo</small></div>
+            <div class="mq-kpi"><span class="pulso-section-eyebrow">Colectores</span><b>3</b><small>uno por sede</small></div>
+            <div class="mq-kpi is-accent"><span class="pulso-section-eyebrow">Respuestas</span><b>2,726</b><small>con el rango</small></div>
+          </div>
+          <div class="pg-pasos-hechos" style="margin-top:12px">
+            <div class="pg-hecho is-done"><i>1</i><span>Perfil <b>PULSO PUCP</b> · token cifrado</span><time>ayer</time></div>
+            <div class="pg-hecho is-done"><i>2</i><span>Catálogo leído · 80 encuestas · 4 elegidas</span><span class="mq-chip is-ok"><i data-icon="check" data-size="11"></i> job 0:06</span></div>
+            <div class="pg-hecho is-now"><i>3</i><span>Alcance por encuesta</span><time>ahora</time></div>
+            <div class="pg-hecho is-next"><i>4</i><span>Auditar: columnas, listas y versiones</span><span class="mq-chip">job</span></div>
+            <div class="pg-hecho is-next"><i>5</i><span>Importar · una base por encuesta</span><span class="mq-chip">4 jobs</span></div>
+            <div class="pg-hecho is-next"><i>6</i><span>Decisiones de lógica · 2 versiones Kobo</span><time></time></div>
+          </div>
+        </section>
+        <section class="mq-panel">
+          <div class="mq-panel-head"><i data-icon="database" data-size="16"></i><h3>Bases que resultan</h3><span class="mq-spacer"></span><span class="mq-muted">0 de 4</span></div>
+          <div class="mq-stack" style="gap:6px; font-size:12px;">
+            <div class="mq-row"><span class="mq-lane-n" style="width:22px;height:22px;font-size:11px">1</span><span>pdm_lima</span><span class="mq-spacer"></span><span class="mq-chip">pendiente</span></div>
+            <div class="mq-row"><span class="mq-lane-n" style="width:22px;height:22px;font-size:11px">2</span><span>pdm_tumbes</span><span class="mq-spacer"></span><span class="mq-chip">pendiente</span></div>
+            <div class="mq-row"><span class="mq-lane-n" style="width:22px;height:22px;font-size:11px">3</span><span>pdm_tacna</span><span class="mq-spacer"></span><span class="mq-chip">pendiente</span></div>
+            <div class="mq-row"><span class="mq-lane-n" style="width:22px;height:22px;font-size:11px">4</span><span>pdm_arequipa</span><span class="mq-spacer"></span><span class="mq-chip">pendiente</span></div>
+          </div>
+          <p class="mq-faint" style="margin:10px 0 0; font-size:11.5px;">Los nombres se ajustan en el paso 5. Cada base conserva su formulario y sus respuestas.</p>
+        </section>
+      </aside>
+    </div>
+
+    <!-- pie del paso -->
+    <div class="pg-pie mq-callout">
+      <button class="pulso-button pulso-button--ghost pulso-button--md" type="button"><i data-icon="arrow-left" data-size="15"></i> Atrás</button>
+      <span class="mq-muted" style="white-space:nowrap">Paso 3 de 6 · <span class="mq-kbd">Esc</span> guarda y sale</span>
+      <span class="mq-chip is-accent" title="Lo que elegiste se conserva si cambias de pestaña o de módulo"><i data-icon="save" data-size="12"></i> guardado en el estudio</span>
+      <span class="mq-note" data-n="5" style="position:static; white-space:nowrap;">cada paso que trabaja es un job con progreso y cancelar</span>
+      <span class="mq-spacer"></span>
+      <button class="pulso-button pulso-button--secondary pulso-button--md" type="button"><i data-icon="eye" data-size="15"></i> Previsualizar 20 filas</button>
+      <button class="pulso-button pulso-button--primary pulso-button--md" type="button">Auditar alcance <i data-icon="chevron-right" data-size="15"></i></button>
+    </div>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Un recorrido con seis pasos y un stepper</b> (`StageStepper`, hoy sin consumidores) en vez de siete subpaneles apilados en scroll dentro de `BasesPanel.tsx`: el usuario ya no descubre el orden; el wizard sale a `carga/independiente/` y `SurveyMonkeyMultibaseWizard.tsx` (muerto) se borra.</li>
+        <li><b>Alcance por encuesta en una tabla con el kit</b>: colectores, rango y canal por fila con `PulsoSelect`/`PulsoInput`; Kobo entra como una fila más, no por «sugerencias».</li>
+        <li><b>El estado vive en el store y sobrevive</b> al cambio de pestaña o de módulo: selección, auditoría y plan se conservan y se persisten en el `.pulso`; «Esc» guarda y sale.</li>
+        <li><b>Las confirmaciones son popovers con foco</b>, no `window.confirm` nativo (hoy tres); los pasos que trabajan (catálogo, auditoría, importación) corren como jobs con anillo, tiempo y cancelar, y el resumen marca ☑ el que terminó.</li>
+      </ol>
+    </div>
+    <div class="pg-fin" aria-hidden="true"></div>
+  </div>
+</div>
+</body>
+</html>

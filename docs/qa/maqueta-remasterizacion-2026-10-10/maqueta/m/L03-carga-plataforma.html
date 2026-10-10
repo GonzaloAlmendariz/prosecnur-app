@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L3/L5 · Carga › Fuentes › Plataforma con catálogo y job</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L3 · L5", titulo: "Carga › Fuentes › Plataforma: catálogo, importación como job y cancelar",
+  hoy: "../hoy/carga-plataforma.png",
+  nota: "Hoy: con «bases separadas» no hay disparador de SurveyMonkey ni Kobo; el banner promete un botón que no existe.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "carga",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><b>Monitoreo territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,283</b></span></span>',
+  pestanas: [
+    { id: "plan", label: "Plan", detail: "Organización de las bases", icon: "clipboard-check" },
+    { id: "fuentes", label: "Fuentes", detail: "Formulario y respuestas", icon: "plug-zap" },
+    { id: "revision", label: "Revisión", detail: "Incidencias de carga", icon: "shield-alert" },
+    { id: "estructura", label: "Estructura", detail: "Variables y códigos", icon: "list-checks" },
+    { id: "datos", label: "Datos", detail: "Respuestas en tabla", icon: "table-2" },
+  ],
+  pestanaActiva: "fuentes",
+  cabecera: { eyebrow: "Carga · pestaña 2 de 5", titulo: "Fuentes", detalle: "Formulario y respuestas de cada base", estado: { kind: "listo", label: "Listo" },
+    chips: [{ label: "<b>Bases separadas</b> definido en Plan" }, { label: "<b>1/1</b> materializada", tone: "ok" }] },
+};
+</script>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack">
+    <div class="mq-row">
+      <div class="mq-seg" role="radiogroup" aria-label="Origen de la base">
+        <button type="button"><i data-icon="upload" data-size="14"></i> Manual</button>
+        <button type="button" class="is-on"><i data-icon="cloud-upload" data-size="14"></i> Plataforma</button>
+        <button type="button"><i data-icon="activity" data-size="14"></i> Monitoreo</button>
+      </div>
+      <span class="mq-muted">Cada entrada se materializa como una base separada. Si una importación falla, las demás no cambian.</span>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);">
+      <!-- catálogo -->
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="1" style="top:-10px; right:14px;">disparador que hoy no existe en «separadas»</span>
+        <div class="mq-panel-head">
+          <i data-icon="cloud-upload" data-size="16"></i><h3>Catálogo de SurveyMonkey</h3>
+          <div class="mq-seg" style="margin-left:8px"><button type="button" class="is-on">SurveyMonkey</button><button type="button">Kobo</button></div>
+          <span class="mq-spacer"></span>
+          <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="refresh-cw" data-size="14"></i> Actualizar</button>
+        </div>
+        <div class="mq-stack">
+          <div class="mq-grid c2">
+            <div class="mq-field">
+              <label>Perfil de conexión</label>
+              <select class="mq-select is-sm"><option>PULSO PUCP · token activo · cifrado en este equipo</option><option>Añadir perfil…</option></select>
+              <span class="mq-field-hint mq-callout">Último uso: ayer 17:42 · <button class="mq-link" type="button">Conexiones</button> abre el panel de credenciales y vuelve aquí
+                <span class="mq-note" data-n="2" style="top:-26px; left:220px;">credenciales a un clic (L7)</span></span>
+            </div>
+            <div class="mq-field">
+              <label>Buscar encuesta</label>
+              <div class="mq-input-group"><input class="mq-input is-sm" placeholder="Nombre o id · 80 encuestas en 36 meses"><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Filtrar"><i data-icon="sliders-horizontal" data-size="14"></i></button></div>
+            </div>
+          </div>
+          <div class="mq-catalog" role="radiogroup" aria-label="Encuestas disponibles">
+            <label class="mq-cat-row is-selected"><input class="mq-radio" type="radio" name="sv" checked><div><strong>Encuesta de Percepción de la Comunidad de Acogida 2026</strong><span>id 512 998 114 · modificada 09 jul 2026 · 1,900 respuestas · 3 colectores</span></div><span class="mq-chip is-accent">última importada</span><span class="mq-chip is-ok">activa</span></label>
+            <label class="mq-cat-row"><input class="mq-radio" type="radio" name="sv"><div><strong>PDM Medios de Vida 2026 — ronda 2</strong><span>id 512 771 002 · modificada 02 jul 2026 · 426 respuestas · 1 colector</span></div><span></span><span class="mq-chip is-ok">activa</span></label>
+            <label class="mq-cat-row"><input class="mq-radio" type="radio" name="sv"><div><strong>Acreditación Contabilidad — Docentes</strong><span>id 511 348 220 · modificada 14 ago 2026 · 188 respuestas · 2 colectores</span></div><span></span><span class="mq-chip">cerrada</span></label>
+            <label class="mq-cat-row"><input class="mq-radio" type="radio" name="sv"><div><strong>Acreditación Contabilidad — Estudiantes</strong><span>id 511 348 221 · modificada 14 ago 2026 · 327 respuestas · 2 colectores</span></div><span></span><span class="mq-chip">cerrada</span></label>
+            <label class="mq-cat-row"><input class="mq-radio" type="radio" name="sv"><div><strong>Perfil del estudiante CCSS 2026 — piloto</strong><span>id 513 001 870 · modificada 22 sep 2026 · 61 respuestas</span></div><span></span><span class="mq-chip is-warn">piloto</span></label>
+          </div>
+          <div class="mq-row">
+            <label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Traer también el formulario (estructura, opciones y lógica)</span></label>
+            <span class="mq-spacer"></span>
+            <button class="pulso-button pulso-button--secondary pulso-button--md" type="button"><i data-icon="eye" data-size="15"></i> Previsualizar</button>
+            <button class="pulso-button pulso-button--primary pulso-button--md" type="button"><i data-icon="download" data-size="15"></i> Importar como base separada</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- job -->
+      <div class="mq-stack">
+        <section class="mq-panel mq-callout">
+          <span class="mq-note" data-n="3" style="top:-10px; right:14px;">job con progreso, fases y cancelar (hoy: string «busy» y un spinner)</span>
+          <div class="mq-panel-head"><i data-icon="timer" data-size="16"></i><h3>Importación en curso</h3><span class="mq-spacer"></span><span class="mq-chip is-accent">en segundo plano</span></div>
+          <div class="mq-job" style="--p: 62">
+            <div class="mq-job-ring"></div>
+            <div class="mq-job-copy">
+              <strong>Encuesta de Percepción de la Comunidad de Acogida 2026</strong>
+              <span>Descargando respuestas · 1,183 de 1,900 · 0:48 transcurridos · ~0:35 restantes</span>
+              <div class="mq-job-bar"><i></i></div>
+              <div class="mq-job-fases"><span class="is-done">✓ Conectar</span><span class="is-now">Descargar respuestas</span><span>Normalizar contra el XLSForm</span><span>Materializar base</span></div>
+            </div>
+            <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="x" data-size="14"></i> Cancelar</button>
+          </div>
+          <p class="mq-faint" style="margin:10px 0 0; font-size:12px;">Puedes cambiar de pestaña o de módulo: la importación sigue y te avisamos al terminar.</p>
+        </section>
+
+        <section class="mq-panel">
+          <div class="mq-panel-head"><i data-icon="database" data-size="16"></i><h3>Bases de este estudio</h3><span class="mq-spacer"></span><span class="mq-muted">1 materializada · 1 en curso</span></div>
+          <div class="mq-lanes">
+            <div class="mq-lane is-done">
+              <div class="mq-lane-n"><i data-icon="check" data-size="14"></i></div>
+              <div>
+                <div class="mq-row"><strong>Monitoreo territorial</strong><span class="mq-chip is-ok">lista</span><span class="mq-spacer"></span>
+                  <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="download" data-size="14"></i> Descargar</button>
+                  <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="refresh-cw" data-size="14"></i> Actualizar</button>
+                  <button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Retirar"><i data-icon="trash-2" data-size="14"></i></button></div>
+                <div class="mq-muted" style="margin-top:4px">Formulario cargado · 1,283 registros · 141 columnas · .xlsx · validada / revisión</div>
+              </div>
+            </div>
+            <div class="mq-lane">
+              <div class="mq-lane-n">2</div>
+              <div>
+                <div class="mq-row"><strong>Percepción comunidad de acogida</strong><span class="mq-chip is-accent">importando · 62 %</span></div>
+                <div class="mq-muted" style="margin-top:4px">SurveyMonkey · 1,900 respuestas · se materializa al terminar el job</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Un solo importador de plataforma</b> para base única y multibase: catálogo con búsqueda, perfil y última importación recordada por proyecto (hoy viven en `useState` y el catálogo se pierde al cambiar de pestaña).</li>
+        <li><b>Credenciales a un clic</b>: el enlace «Conexiones» abre el panel direccionable `?panel=configuracion&foco=conexiones` como sideover y vuelve al mismo paso.</li>
+        <li><b>La importación es un job visible</b>: anillo, fases, tiempo y cancelar, reutilizando `JobProgress` que ya existe y hoy no usa ningún flujo de Carga. El usuario puede irse: la base aparece en «Bases de este estudio» al terminar.</li>
+        <li>La cabecera de pestaña es la única propuesta (L14) y absorbe lo que hoy son tres bandas apiladas: «Pestaña 2 de 5», «Definido en Plan» y «Varias bases».</li>
+      </ol>
+    </div>
+  </div>
+</div>
+</body>
+</html>

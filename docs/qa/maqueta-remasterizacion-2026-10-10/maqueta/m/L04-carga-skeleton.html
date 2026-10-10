@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L4 · Carga › Fuentes durante la hidratación</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L4", titulo: "Carga › Fuentes mientras llega la base: skeleton con la silueta real y readiness retenida",
+  hoy: "../hoy/carga-fuentes-pendiente.png",
+  nota: "Hoy: durante ~8 s la pestaña dice «Pendiente · 0/1 base» con dropzones vacíos en un proyecto de 1,283 registros, y el gate la aprueba.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "carga",
+  herramientas: '<span class="mq-ctx" aria-busy="true"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><span class="mq-sk is-text" style="width:132px; height:11px; margin-top:3px"></span></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><span class="mq-sk is-text" style="width:40px; height:11px; margin-top:3px"></span></span></span>',
+  pestanas: [
+    { id: "plan", label: "Plan", detail: "Organización de las bases", icon: "clipboard-check" },
+    { id: "fuentes", label: "Fuentes", detail: "Formulario y respuestas", icon: "plug-zap" },
+    { id: "revision", label: "Revisión", detail: "Incidencias de carga", icon: "shield-alert" },
+    { id: "estructura", label: "Estructura", detail: "Variables y códigos", icon: "list-checks" },
+    { id: "datos", label: "Datos", detail: "Respuestas en tabla", icon: "table-2" },
+  ],
+  pestanaActiva: "fuentes",
+  cabecera: { eyebrow: "Carga · pestaña 2 de 5", titulo: "Fuentes", detalle: "Formulario y respuestas de cada base", estado: { kind: "cargando", label: "Leyendo" },
+    chips: [{ label: '<span class="mq-sk is-text" style="width:150px; height:11px"></span>' }, { label: '<span class="mq-sk is-text" style="width:92px; height:11px"></span>' }] },
+};
+</script>
+<style>
+  /* Propuesta L4: todo lo propio de esta página lleva el prefijo .pg- */
+  .pg-hidratando { white-space: nowrap; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+  .pg-hidratando .mq-i { color: var(--pulso-primary); animation: pg-gira 1.1s linear infinite; display: inline-grid; }
+  @keyframes pg-gira { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .pg-hidratando .mq-i { animation: none; } }
+  .pg-seg-sk { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--pulso-surface-3); border: 1px solid var(--pulso-border); }
+  .pg-seg-sk .mq-sk { height: 28px; border-radius: 999px; }
+  .pg-lane-sk { border-color: var(--pulso-border); }
+  .pg-lane-sk .mq-lane-n { background: var(--pulso-surface-3); color: transparent; }
+  .pg-attr { white-space: nowrap; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 600; border: 1px solid var(--pulso-border-strong); background: var(--pulso-surface); color: var(--pulso-text-soft); }
+  .pg-attr.is-false { border-color: var(--pulso-warn-border); background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
+  .pg-attr.is-falso-positivo { border-color: var(--pulso-danger-border); background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
+  .pg-attr.is-ok { border-color: var(--pulso-success-border); background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
+  /* línea de tiempo hoy vs propuesta */
+  .pg-tl { display: grid; grid-template-columns: 96px minmax(0, 1fr); max-width: 980px; gap: 8px 14px; align-items: center; }
+  .pg-tl-label { font-size: 11.5px; font-weight: 700; color: var(--pulso-text-soft); }
+  .pg-tl-track { position: relative; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; height: 30px; }
+  .pg-tl-track > span { display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; border-radius: 6px; border: 1px solid var(--pulso-border); background: var(--pulso-surface-2); color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; }
+  .pg-tl-track > span.is-falso { background: var(--pulso-danger-bg); border-color: var(--pulso-danger-border); color: var(--pulso-danger-fg); }
+  .pg-tl-track > span.is-sk { background: var(--pulso-surface-3); border-style: dashed; }
+  .pg-tl-track > span.is-ok { background: var(--pulso-success-bg); border-color: var(--pulso-success-border); color: var(--pulso-success-fg); }
+  .pg-tl-eje { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; font-size: 10px; color: var(--pulso-text-faint); font-variant-numeric: tabular-nums; }
+  .pg-tl-eje > span { text-align: left; }
+  .pg-fin { height: 56px; }
+  .mq-row > .mq-note { white-space: nowrap; flex: 0 0 auto; }
+</style>
+</head>
+<body>
+<div id="contenido" data-audit-ready="false" aria-busy="true">
+  <div class="mq-stack">
+    <!-- fila de carriles: el segmented reserva su sitio, no se puede elegir todavía -->
+    <div class="mq-row mq-callout">
+      <div class="pg-seg-sk" role="radiogroup" aria-label="Origen de la base" aria-disabled="true">
+        <span class="mq-sk" style="width:92px"></span><span class="mq-sk" style="width:108px"></span><span class="mq-sk" style="width:104px"></span>
+      </div>
+      <span class="pg-hidratando"><i data-icon="loader-circle" data-size="14"></i> Leyendo las bases del estudio · <b>0:03</b></span>
+      <span class="mq-note" data-n="2" style="position:static;">tiempo en línea, sin spinner</span>
+      <span class="mq-spacer"></span>
+      <span class="mq-note" data-n="1" style="position:static;">título y chips en silueta; nada dice «Pendiente»</span>
+      <span class="pg-attr is-false" title="La vista no publica readiness hasta hidratar la base">data-audit-ready="false"</span>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);">
+      <!-- carril de bases: la silueta de la base materializada y de la fila de alta -->
+      <section class="mq-panel mq-callout">
+        <span class="mq-note" data-n="3" style="top:-10px; right:14px;">el carril reserva el alto real de la base (hoy: dos dropzones vacíos)</span>
+        <div class="mq-panel-head"><i data-icon="database" data-size="16"></i><h3>Bases de este estudio</h3></div>
+        <div class="mq-lanes">
+          <div class="mq-lane pg-lane-sk" aria-hidden="true">
+            <div class="mq-lane-n">1</div>
+            <div class="mq-stack" style="gap:8px">
+              <div class="mq-row"><span class="mq-sk is-text" style="width:168px; height:14px"></span><span class="mq-sk is-text" style="width:48px; height:20px; border-radius:999px"></span><span class="mq-spacer"></span><span class="mq-sk is-text" style="width:88px; height:28px; border-radius:8px"></span><span class="mq-sk is-text" style="width:92px; height:28px; border-radius:8px"></span><span class="mq-sk is-text" style="width:28px; height:28px; border-radius:8px"></span></div>
+              <div class="mq-row"><span class="mq-sk is-text" style="width:110px"></span><span class="mq-sk is-text" style="width:92px"></span><span class="mq-sk is-text" style="width:84px"></span><span class="mq-sk is-text" style="width:36px"></span><span class="mq-sk is-text" style="width:118px"></span></div>
+              <div class="mq-grid c2" style="gap:10px"><span class="mq-sk is-row" style="height:44px"></span><span class="mq-sk is-row" style="height:44px"></span></div>
+            </div>
+          </div>
+          <div class="mq-lane pg-lane-sk" aria-hidden="true">
+            <div class="mq-lane-n">2</div>
+            <div class="mq-grid" style="grid-template-columns: 220px minmax(0,1fr) minmax(0,1fr) 128px; gap: 10px; align-items: center;">
+              <div class="mq-stack" style="gap:5px"><span class="mq-sk is-text" style="width:120px; height:10px"></span><span class="mq-sk is-row" style="height:30px"></span></div>
+              <span class="mq-sk is-row" style="height:46px"></span>
+              <span class="mq-sk is-row" style="height:46px"></span>
+              <span class="mq-sk is-row" style="height:36px"></span>
+            </div>
+          </div>
+        </div>
+        <p class="mq-faint" style="margin:10px 0 0; font-size:12px;">Cada carril se materializa por separado. Si una carga falla, las demás no cambian.</p>
+      </section>
+
+      <!-- columna derecha: ficha de la base activa y siguiente paso, también en silueta -->
+      <div class="mq-stack">
+        <section class="mq-panel">
+          <div class="mq-panel-head"><i data-icon="file-spreadsheet" data-size="16"></i><h3>Formulario y respuestas de la base activa</h3><span class="mq-spacer"></span><span class="mq-sk is-text" style="width:52px; height:20px; border-radius:999px"></span></div>
+          <div class="mq-kpis" style="--n:3" aria-hidden="true">
+            <div class="mq-kpi"><span class="pulso-section-eyebrow">Registros</span><span class="mq-sk is-text" style="width:64px; height:20px; margin-top:6px"></span><span class="mq-sk is-text" style="width:90px; height:10px; margin-top:8px"></span></div>
+            <div class="mq-kpi"><span class="pulso-section-eyebrow">Columnas</span><span class="mq-sk is-text" style="width:44px; height:20px; margin-top:6px"></span><span class="mq-sk is-text" style="width:104px; height:10px; margin-top:8px"></span></div>
+            <div class="mq-kpi"><span class="pulso-section-eyebrow">Formulario</span><span class="mq-sk is-text" style="width:76px; height:20px; margin-top:6px"></span><span class="mq-sk is-text" style="width:70px; height:10px; margin-top:8px"></span></div>
+          </div>
+          <div class="mq-stack" style="gap:8px; margin-top:12px" aria-hidden="true">
+            <div class="mq-row"><span class="mq-sk is-text" style="width:96px"></span><span class="mq-spacer"></span><span class="mq-sk is-text" style="width:160px"></span></div>
+            <div class="mq-row"><span class="mq-sk is-text" style="width:120px"></span><span class="mq-spacer"></span><span class="mq-sk is-text" style="width:128px"></span></div>
+            <div class="mq-row"><span class="mq-sk is-text" style="width:84px"></span><span class="mq-spacer"></span><span class="mq-sk is-text" style="width:196px"></span></div>
+          </div>
+        </section>
+
+        <section class="mq-panel" aria-hidden="true">
+          <div class="mq-panel-head"><i data-icon="arrow-right" data-size="16"></i><h3>Siguiente paso</h3><span class="mq-spacer"></span><span class="mq-sk is-text" style="width:96px"></span></div>
+          <div class="mq-row"><span class="mq-sk is-text" style="width:260px; height:12px"></span><span class="mq-spacer"></span><span class="mq-sk is-row" style="width:132px; height:30px"></span></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="mq-panel mq-callout">
+      <span class="mq-note" data-n="4" style="top:-10px; right:14px;">readiness sólo con la base hidratada; el skeleton no declara <code>data-audit-ready</code></span>
+      <div class="mq-panel-head"><i data-icon="gauge" data-size="16"></i><h3>Qué ve el instrumento</h3></div>
+      <div class="pg-tl">
+        <span class="pg-tl-label">Hoy</span>
+        <div class="pg-tl-track" aria-label="Hoy: ocho segundos de estado falso con readiness verde">
+          <span class="is-falso" style="grid-column: span 8">Pendiente · 0/1 base · <code>data-audit-ready="true"</code></span>
+          <span class="is-ok" style="grid-column: span 2">Listo · 1/1</span>
+        </div>
+        <span class="pg-tl-label">Propuesta</span>
+        <div class="pg-tl-track" aria-label="Propuesta: skeleton no auditable y luego la marca de la pestaña">
+          <span class="is-sk" style="grid-column: span 3">skeleton · <code>false</code></span>
+          <span class="is-ok" style="grid-column: span 7">Listo · 1/1 · <code>data-audit-ready="carga/fuentes"</code></span>
+        </div>
+        <span></span>
+        <div class="pg-tl-eje"><span>0 s</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></div>
+      </div>
+      <p class="mq-faint" style="margin:10px 0 0; font-size:12px;">La marca se publica cuando <code>bases</code> llegó de la sesión, no cuando el componente montó. Si el runner captura antes, la corrida sale <b>INVALID</b>, no PASS.</p>
+    </section>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Nada miente durante la hidratación</b>: el título «Fuentes» y el eyebrow salen del manifiesto y se pintan de inmediato; estado, chips, contexto de la command bar y carril reservan su silueta con <code>Skeleton</code> (L24) en vez de mostrar «Pendiente · 0/1 base» y dropzones vacíos sobre un proyecto con 1,283 registros.</li>
+        <li><b>El tiempo es visible y discreto</b>: «Leyendo las bases del estudio · 0:03» en línea con los carriles, sin spinner centrado ni banda de ayuda.</li>
+        <li><b>La silueta es la real</b>: la base materializada ocupa el alto que tendrá (nombre, chip, tres acciones, fila de metadatos) y la fila de alta el suyo; al llegar los datos no hay salto de layout.</li>
+        <li><b>Readiness honesta</b>: la vista no publica <code>data-audit-ready</code> hasta que la base está hidratada; cuando la publica, el valor es la dirección de la pestaña (<code>carga/fuentes</code>). Una captura durante el skeleton cuenta como INVALID para el gate, nunca como PASS.</li>
+      </ol>
+    </div>
+    <div class="pg-fin" aria-hidden="true"></div>
+  </div>
+</div>
+</body>
+</html>

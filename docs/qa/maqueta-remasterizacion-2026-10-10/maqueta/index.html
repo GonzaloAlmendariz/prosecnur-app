@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Maqueta de remasterización de la UI — Prosecnur</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/remaster.css">
+<style>
+  body { overflow: auto !important; background: var(--pulso-bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: var(--pulso-text); }
+  .mq-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .mq-hdr .pulso-brand-wordmark { font-weight: 800; font-size: 18px; color: var(--pulso-primary); }
+  .mq-legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--pulso-text-soft); margin-bottom: 8px; }
+  .mq-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+<main class="mq-index">
+  <div class="mq-hdr">
+    <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15.4" fill="#002457"/><rect x="12" y="30" width="7" height="18" rx="3.5" fill="#fff"/><rect x="23" y="22" width="7" height="26" rx="3.5" fill="#fff"/><rect x="34" y="28" width="7" height="20" rx="3.5" fill="#fff"/><rect x="45" y="16" width="7" height="32" rx="3.5" fill="#fff"/></svg>
+    <span class="pulso-brand-wordmark">Prosecnur</span>
+    <span class="mq-chip is-accent">maqueta de remasterización · 2026-10-10</span>
+  </div>
+  <h1>Cada propuesta del plan, dibujada</h1>
+  <p class="lead">Una maqueta por unidad de la cola del GOAL <code>docs/qa/goal-modernizacion-ui-2026-10-10.md</code>. Cada página pinta el <b>después</b> con el CSS real del shell (tokens, command bar, rail, botones) y deja el <b>hoy</b> a un clic: la captura real del censo. Las burbujas numeradas señalan qué cambia; el bloque oscuro al pie lo explica. Nada de esto está implementado: es para decidir mirando.</p>
+  <div class="mq-legend"><span><i class="dot" style="background:#0F766E"></i> Procesamiento</span><span><i class="dot" style="background:#A0464E"></i> Monitoreo</span><span><i class="dot" style="background:#7260AE"></i> Cálculo de muestra</span><span><i class="dot" style="background:#7172C1"></i> Formularios</span><span><i class="dot" style="background:#AC563B"></i> Hojas de ruta</span><span><i class="dot" style="background:#106E8C"></i> Recopiladores</span><span><i class="dot" style="background:#4A6EB6"></i> Dashboard</span><span><i class="dot" style="background:#A16207"></i> Bitácora</span><span><i class="dot" style="background:#002457"></i> Shell / Home</span></div>
+
+  <h2><i>1</i> Lo que abre ventanas y Carga</h2>
+  <div class="mq-cards" id="o1"></div>
+  <h2><i>2</i> Verde por conformidad (instrumento)</h2>
+  <div class="mq-cards" id="o2"></div>
+  <h2><i>3</i> Un solo chrome en los ocho módulos</h2>
+  <div class="mq-cards" id="o3"></div>
+  <h2><i>4</i> Cifras honestas y feedback</h2>
+  <div class="mq-cards" id="o4"></div>
+  <h2><i>5</i> El kit por debajo del chrome</h2>
+  <div class="mq-cards" id="o5"></div>
+  <h2><i>6</i> Lo que se nota sin abrir un módulo</h2>
+  <div class="mq-cards" id="o6"></div>
+</main>
+<script>
+const M = [
+  { o: 1, code: "L1 · L8", t: "Diálogo canónico, enlazable y con foco", d: "Una sola primitiva (Radix) con cabecera, pasos, pie y Escape; aquí sobre «Traducir encuesta de SurveyMonkey», que hoy abre con error y token residual.", href: "m/L01-dialogo-canonico.html", hoy: "hoy/dialogo-sm-editor.png", tags: ["Formularios", "kit"] },
+  { o: 1, code: "L3 · L5", t: "Carga › Plataforma: catálogo + job cancelable", d: "El disparador de SurveyMonkey/Kobo que hoy no existe en «bases separadas», con importación como job visible y credenciales a un clic.", href: "m/L03-carga-plataforma.html", hoy: "hoy/carga-plataforma.png", tags: ["Procesamiento", "Carga"] },
+  { o: 1, code: "L4", t: "Carga › Fuentes: hidratación honesta", d: "Skeleton con la silueta de la base mientras llega, en vez de «Pendiente · 0/1 base» durante ocho segundos con readiness verde.", href: "m/L04-carga-skeleton.html", hoy: "hoy/carga-fuentes-pendiente.png", tags: ["Procesamiento", "estados"] },
+  { o: 1, code: "L6", t: "Wizard independiente con stepper", d: "Los siete subpaneles apilados de BasesPanel como un recorrido con pasos, estado en el store y jobs por paso.", href: "m/L06-wizard-stepper.html", hoy: "hoy/carga-fuentes.png", tags: ["Procesamiento", "Carga"] },
+  { o: 1, code: "L7", t: "Credenciales en el sitio del error", d: "Sideover de conexiones abierto desde el strip de token, que vuelve al mismo paso al cerrar.", href: "m/L07-credenciales-sideover.html", hoy: "hoy/carga-plataforma.png", tags: ["Procesamiento", "panel"] },
+  { o: 2, code: "L10 · L11", t: "Readiness por pestaña y de render", d: "Cómo se ve una pestaña que todavía no terminó: skeleton declarado, no spinner aprobado. Diagrama del contrato.", href: "m/L10-readiness.html", hoy: "hoy/carga-fuentes-pendiente.png", tags: ["instrumento"] },
+  { o: 2, code: "L13", t: "Formularios enlazable", d: "Constructor, Hojas y las vistas de «Más vistas» como pestañas del rail con dirección propia.", href: "m/L13-formularios-rail.html", hoy: "hoy/formularios.png", tags: ["Formularios"] },
+  { o: 3, code: "L14", t: "Una sola cabecera de pestaña", d: "Las doce variantes de hoy y la única propuesta, con su versión compacta y la que lleva el control de sección.", href: "m/L14-cabecera-unica.html", hoy: "hoy/territorial-fuente.png", tags: ["chrome"] },
+  { o: 3, code: "L15 · L16", t: "Recopiladores con el chrome canónico", d: "Píldoras de sección sin numerar y rail de pestañas de 56 px en vez del stepper y las píldoras inline.", href: "m/L15-recopiladores.html", hoy: "hoy/recopiladores.png", tags: ["Recopiladores"] },
+  { o: 3, code: "L16", t: "Hojas de ruta › Entrega con rail", d: "Las pestañas Cuotas/Titulares/Reemplazos en el rail; la barra densa de KPIs pasa a la command bar y a la cabecera.", href: "m/L16-hojas-entrega.html", hoy: "hoy/hojas-entrega.png", tags: ["Hojas de ruta"] },
+  { o: 3, code: "D1 · L17", t: "Formularios con ModuleCommandBar", d: "Qué se recoge de su banda: métricas en la cabecera, acciones secundarias al menú, excepción retirada.", href: "m/L17-formularios-commandbar.html", hoy: "hoy/formularios.png", tags: ["Formularios", "decisión D1"] },
+  { o: 3, code: "D2", t: "Dashboard: chrome de administración canónico", d: "Rail y command bar en la administración; el artefacto publicado conserva su capa propia.", href: "m/D02-dashboard-admin.html", hoy: "hoy/dashboard.png", tags: ["Dashboard", "decisión D2"] },
+  { o: 3, code: "L18", t: "Monitoreo territorial sin bandas repetidas", d: "El contenido empieza a 250 px como en aulas: la banda Piloto/Campo y la card de fuente viven solo en Fuente.", href: "m/L18-territorial-bandas.html", hoy: "hoy/territorial-fuente.png", tags: ["Monitoreo"] },
+  { o: 4, code: "L20", t: "Una sola lectura de avance con su base", d: "Home y Monitoreo dicen la misma cifra o rotulan su denominador; la card del Home no cambia con el warm start.", href: "m/L20-avance-con-base.html", hoy: "hoy/home.png", tags: ["Home", "Monitoreo"] },
+  { o: 4, code: "L23", t: "Warm start con tiempo", d: "«2:40 transcurridos · ~1:10 restantes · preparando avance» y skeleton de la vista destino, en vez de un porcentaje mudo.", href: "m/L23-warmstart.html", hoy: "hoy/territorial-avance.png", tags: ["Monitoreo", "estados"] },
+  { o: 4, code: "L25", t: "Toasts con acción", d: "Resultados que hoy son banners inline pasan a toasts con «Deshacer» o «Ver».", href: "m/L25-toast.html", hoy: "hoy/codificacion-preparar.png", tags: ["estados"] },
+  { o: 5, code: "L26 · L27", t: "Kit de inputs aplicado a Analítica › Datos", d: "PulsoField/Input/Select en una lista densa: 12 variables por viewport donde hoy caben 4.", href: "m/L26-kit-inputs.html", hoy: "hoy/analitica-datos.png", tags: ["Procesamiento", "kit"] },
+  { o: 5, code: "L28", t: "PulsoTable + inspector", d: "Reporte UMP con cabecera sticky, anchos declarados, densidad y fila seleccionada que abre el inspector.", href: "m/L28-tabla-inspector.html", hoy: "hoy/territorial-reporte-ump.png", tags: ["Monitoreo", "kit"] },
+  { o: 6, code: "L30", t: "Paleta de comandos ⌘K", d: "Saltar a cualquiera de las 186 pestañas o ejecutar una acción de la command bar desde el teclado.", href: "m/L30-paleta.html", hoy: "hoy/home.png", tags: ["shell"] },
+  { o: 6, code: "L31", t: "Home vivo", d: "Cards que se mueven solas: job en curso, «hoy» de Monitoreo, siguiente acción por módulo; sin gradientes.", href: "m/L31-home-vivo.html", hoy: "hoy/home.png", tags: ["Home"] },
+  { o: 2, code: "L19", t: "Sub-barras de pestañas al rail", d: "Las consultas de Acreditación dejan de ser una barra dentro de la pestaña: son pestañas del rail con dirección propia; los reportes de Salidas, un control de sección.", href: "m/L19-subbarras-rail.html", hoy: "hoy/acreditacion-actores.png", tags: ["Monitoreo", "chrome"] },
+  { o: 4, code: "L21", t: "Criterios de revisión honestos", d: "Cada sugerencia trae su cifra y su base; la heurística de continuidad se desactiva sola en vez de publicar «faltan 1.970.691 envíos».", href: "m/L21-criterios-honestos.html", hoy: "hoy/validacion-explorar.png", tags: ["Procesamiento", "C5"] },
+  { o: 4, code: "L22", t: "«Sin guardar» que dice qué cambió", d: "El chip del header se abre y lista las mutaciones reales; leer una pestaña nunca ensucia el proyecto.", href: "m/L22-guardado-honesto.html", hoy: "hoy/carga-fuentes.png", tags: ["shell", "C5"] },
+  { o: 5, code: "L27", t: "Kit de inputs en Cálculo de muestra", d: "Criterios del estudiante con PulsoField y una cadena de filtros que dice cuánto resta cada paso.", href: "m/L27-kit-calc-muestra.html", hoy: "hoy/calc-poblacion.png", tags: ["Cálculo de muestra", "kit"] },
+  { o: 5, code: "L29", t: "Densidad y tipografía declarables", d: "Cómoda y compacta sobre la misma pestaña, y la escala tipográfica de ocho roles con su piso de 10 px.", href: "m/L29-densidad-tipografia.html", hoy: "hoy/aulas-avance.png", tags: ["Monitoreo", "tokens"] },
+  { o: 6, code: "L32", t: "Materiales y motion", d: "Un solo blur en el chrome, hairlines, las seis sombras y la firma de movimiento con hover real.", href: "m/L32-materiales-motion.html", hoy: "hoy/home.png", tags: ["shell", "motion"] },
+  { o: 3, code: "L36", t: "Formularios › Documento: el cuestionario como Word", d: "Formularios gana una segunda sección: el cuestionario en Word generado con officer desde la misma lógica, con pestañas de portada, preguntas, lógica impresa, estilos, vista previa y versiones.", href: "m/L36-formularios-documento.html", hoy: "hoy/formularios.png", tags: ["Formularios", "entregable"] },
+  { o: 6, code: "L37", t: "Sistema de movimiento (laboratorio)", d: "Las 22 coreografías para sentirlas: navegación, paneles, press y hover, listas, carga, toast, scroll y barras, con un switch que simula «reducir movimiento».", href: "m/L37-movimiento.html", hoy: "hoy/home.png", tags: ["shell", "motion"] },
+  { o: 3, code: "L38", t: "Monitoreo: un verbo por dirección", d: "Un solo control «Actualizar ▾» en la barra de los cuatro perfiles, una fila por fuente, Publicar con ensayo y el diccionario de siete verbos.", href: "m/L38-actualizar-monitoreo.html", hoy: "hoy/acreditacion-actores.png", tags: ["monitoreo", "chrome", "acciones"] },
+];
+for (const m of M) {
+  const card = document.createElement("a");
+  card.className = "mq-card"; card.href = m.href;
+  const despues = m.href.replace("m/", "despues/").replace(".html", ".png");
+  card.innerHTML = `<span class="mq-card-code">${m.code}</span><h3>${m.t}</h3><p>${m.d}</p><div class="mq-card-pair"><figure><figcaption>Hoy</figcaption><img class="mq-card-img" src="${m.hoy}" alt="" loading="lazy"></figure><figure><figcaption>Después</figcaption><img class="mq-card-img" src="${despues}?v=${Date.now()}" alt="" loading="lazy" onerror="this.closest('figure').classList.add('is-pendiente'); this.replaceWith(Object.assign(document.createElement('div'),{className:'mq-card-img mq-empty',textContent:'en construcción'}))"></figure></div><div class="mq-card-foot">${m.tags.map(t => `<span class="mq-chip">${t}</span>`).join("")}</div>`;
+  document.getElementById("o" + m.o).appendChild(card);
+}
+</script>
+</body>
+</html>

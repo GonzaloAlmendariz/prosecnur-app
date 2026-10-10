@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L10/L11 · Contrato de readiness: el mismo panel en tres estados</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L10 · L11", titulo: "Readiness por pestaña y de render: el mismo panel de Analítica en tres estados y el contrato en cuatro reglas",
+  hoy: "../hoy/analitica-datos.png",
+  nota: "Hoy: seis capturas con spinner o skeleton salieron con ok=true; la marca dice que montó, no que terminó.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "analitica",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><b>Monitoreo territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,283</b></span></span>',
+  sinRail: true,
+  cabecera: { icon: "gauge", eyebrow: "Instrumento · contrato de readiness", titulo: "Analítica › Base panel, tres veces", detalle: "Lo que el runner captura hoy, lo que capturaría con la propuesta y cómo se ve cuando la marca es verdad",
+    chips: [{ label: "<b>6</b> capturas INVALID en el censo", tone: "warn" }, { label: "<b>4</b> reglas" }] },
+};
+</script>
+<style>
+  .pg-tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+  .pg-caso { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 14px; border: 1px solid var(--pulso-border); background: var(--pulso-surface-2); min-width: 0; }
+  .pg-caso-head { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 8px 10px; align-items: center; }
+  .pg-caso-head .pg-letra { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; font-weight: 900; font-size: 12px; background: var(--pulso-surface-3); color: var(--pulso-text-soft); border: 1px solid var(--pulso-border); }
+  .pg-caso-head h3 { margin: 0; font-size: 13.5px; font-weight: 800; }
+  .pg-caso-head p { margin: 0; grid-column: 2; font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-caso.is-hoy { border-color: var(--pulso-danger-border); }
+  .pg-caso.is-hoy .pg-letra { background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); border-color: var(--pulso-danger-border); }
+  .pg-caso.is-listo { border-color: var(--pulso-success-border); }
+  .pg-caso.is-listo .pg-letra { background: var(--pulso-success-bg); color: var(--pulso-success-fg); border-color: var(--pulso-success-border); }
+  .pg-caso.is-prop .pg-letra { background: var(--pulso-primary-soft); color: var(--pulso-primary); border-color: var(--pulso-primary-border); }
+  .pg-attr { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 600; border: 1px solid var(--pulso-border-strong); background: var(--pulso-surface); color: var(--pulso-text-soft); white-space: nowrap; }
+  .pg-attr.is-falso { border-color: var(--pulso-danger-border); background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
+  .pg-attr.is-false { border-color: var(--pulso-warn-border); background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
+  .pg-attr.is-ok { border-color: var(--pulso-success-border); background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
+  .pg-veredicto { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; }
+  /* el panel «Base panel» reproducido tres veces */
+  .pg-panel { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface); padding: 12px; gap: 10px; }
+  .pg-panel-head { display: flex; align-items: center; gap: 8px; }
+  .pg-panel-head h4 { margin: 0; font-size: 13px; font-weight: 800; }
+  .pg-panel-head .mq-chip { margin-left: auto; }
+  .pg-filtros { display: grid; grid-template-columns: minmax(0,1fr) 136px; gap: 8px; }
+  .pg-spinner { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 200px; color: var(--pulso-text-soft); font-size: 12.5px; }
+  .pg-spinner .mq-i { color: var(--pulso-primary); animation: pg-gira 1.1s linear infinite; display: inline-grid; }
+  @keyframes pg-gira { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .pg-spinner .mq-i { animation: none; } }
+  .pg-sk-tabla { display: grid; gap: 6px; }
+  .pg-sk-tabla .pg-sk-fila { display: grid; grid-template-columns: 1.6fr 1fr .7fr .7fr; gap: 8px; }
+  .pg-sk-tabla .pg-sk-fila.is-head .mq-sk { height: 10px; }
+  .pg-sk-tabla .mq-sk { height: 14px; }
+  .pg-tabla .mq-table td, .pg-tabla .mq-table th { padding: 6px 10px; font-size: 11.5px; }
+  .pg-tabla .mq-table th { font-size: 10px; }
+  .pg-tabla .mq-table .mono { font-size: 11px; }
+  .pg-reglas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .pg-regla { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); }
+  .pg-regla i { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--pulso-primary); color: var(--pulso-nav-selected-fg); font-style: normal; font-weight: 900; font-size: 12px; }
+  .pg-regla strong { display: block; font-size: 12.5px; margin-bottom: 3px; }
+  .pg-regla p { margin: 0; font-size: 11.5px; color: var(--pulso-text-soft); line-height: 1.4; }
+  .pg-regla code { font-size: 10.5px; }
+  .pg-fin { height: 56px; }
+</style>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack">
+    <div class="pg-tres">
+      <!-- (a) hoy -->
+      <section class="pg-caso is-hoy mq-callout">
+        <div class="pg-caso-head">
+          <span class="pg-letra">a</span><h3>Hoy</h3>
+          <p>Captura real del censo: Analítica › Base panel con el spinner, mientras el puente decía «lista».</p>
+        </div>
+        <span class="mq-note" data-n="1" style="position:static; align-self:flex-start;">hoy: la marca dice que montó, no que terminó; el runner aprueba un spinner</span>
+        <div class="mq-row"><span class="pg-attr is-falso">data-audit-ready="true"</span><span class="mq-chip is-danger">falso</span></div>
+        <div class="pg-panel" data-audit-ready="true">
+          <div class="pg-panel-head"><i data-icon="database" data-size="15"></i><h4>Base panel</h4><span class="mq-chip is-ok">lista</span></div>
+          <div class="pg-filtros"><input class="mq-input is-sm" placeholder="Buscar variable" disabled><select class="mq-select is-sm" disabled><option>Todas</option></select></div>
+          <div class="pg-spinner"><i data-icon="loader-circle" data-size="22"></i>Buscando identificador…</div>
+        </div>
+        <div class="pg-veredicto" style="color:var(--pulso-danger-fg)"><i data-icon="circle-x" data-size="14"></i> El gate la dio por PASS. Seis capturas así en el censo.</div>
+      </section>
+
+      <!-- (b) propuesta -->
+      <section class="pg-caso is-prop mq-callout">
+        <div class="pg-caso-head">
+          <span class="pg-letra">b</span><h3>Propuesta, mientras llega</h3>
+          <p>La misma pestaña durante el fetch: silueta de la tabla, chip honesto y readiness retenida.</p>
+        </div>
+        <span class="mq-note" data-n="2" style="position:static; align-self:flex-start;">propuesta: skeleton con la silueta y marca en `false`; el runner espera o declara INVALID</span>
+        <div class="mq-row"><span class="pg-attr is-false">data-audit-ready="false"</span><span class="mq-chip is-warn">cargando · no auditable</span></div>
+        <div class="pg-panel" data-audit-ready="false" aria-busy="true">
+          <div class="pg-panel-head"><i data-icon="database" data-size="15"></i><h4>Base panel</h4><span class="mq-chip is-warn">cargando · 0:02</span></div>
+          <div class="pg-filtros"><span class="mq-sk is-row" style="height:30px"></span><span class="mq-sk is-row" style="height:30px"></span></div>
+          <div class="pg-sk-tabla" aria-hidden="true">
+            <div class="pg-sk-fila is-head"><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span></div>
+            <div class="pg-sk-fila"><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span></div>
+            <div class="pg-sk-fila"><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span></div>
+            <div class="pg-sk-fila"><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span></div>
+            <div class="pg-sk-fila"><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span></div>
+            <div class="pg-sk-fila"><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span></div>
+            <div class="pg-sk-fila"><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span></div>
+            <div class="pg-sk-fila"><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span><span class="mq-sk"></span></div>
+          </div>
+          <span class="mq-faint" style="font-size:11.5px">Buscando el identificador entre 141 columnas · 0:02</span>
+        </div>
+        <div class="pg-veredicto" style="color:var(--pulso-warn-fg)"><i data-icon="hourglass" data-size="14"></i> El runner espera la marca; si vence el tiempo, INVALID, nunca PASS.</div>
+      </section>
+
+      <!-- (c) listo -->
+      <section class="pg-caso is-listo mq-callout">
+        <div class="pg-caso-head">
+          <span class="pg-letra">c</span><h3>Propuesta, listo</h3>
+          <p>La tabla pintada con datos de la sesión; la marca se publica después del fetch y del render.</p>
+        </div>
+        <span class="mq-note" data-n="3" style="position:static; align-self:flex-start;">listo: la marca lleva la dirección de la pestaña, no un booleano</span>
+        <div class="mq-row"><span class="pg-attr is-ok">data-audit-ready="analitica/panel"</span><span class="mq-chip is-ok">auditable</span></div>
+        <div class="pg-panel pg-tabla" data-audit-ready="analitica/panel">
+          <div class="pg-panel-head"><i data-icon="database" data-size="15"></i><h4>Base panel</h4><span class="mq-chip is-ok">1,283 casos · 141 variables</span></div>
+          <div class="pg-filtros"><input class="mq-input is-sm" placeholder="Buscar variable"><select class="mq-select is-sm"><option>Identificación</option><option>Todas</option></select></div>
+          <div class="mq-table-wrap">
+            <table class="mq-table" data-density="compact" aria-label="Variables de la base panel">
+              <colgroup><col style="width:44%"><col style="width:26%"><col style="width:15%"><col style="width:15%"></colgroup>
+              <thead><tr><th>Variable</th><th>Tipo</th><th class="num">Válidos</th><th class="num">Vacíos</th></tr></thead>
+              <tbody>
+                <tr class="is-selected"><td><span class="mono">response_id</span> · identificador</td><td>texto único</td><td class="num">1,283</td><td class="num">0</td></tr>
+                <tr><td><span class="mono">enumerador</span></td><td>texto corto</td><td class="num">1,283</td><td class="num">0</td></tr>
+                <tr><td><span class="mono">fecha</span></td><td>fecha</td><td class="num">1,283</td><td class="num">0</td></tr>
+                <tr><td><span class="mono">region</span></td><td>sel. única · 3</td><td class="num">1,283</td><td class="num">0</td></tr>
+                <tr><td><span class="mono">distrito</span></td><td>sel. única · 14</td><td class="num">1,281</td><td class="num">2</td></tr>
+                <tr><td><span class="mono">zona</span></td><td>texto corto</td><td class="num">1,279</td><td class="num">4</td></tr>
+                <tr><td><span class="mono">edad</span></td><td>entero</td><td class="num">1,283</td><td class="num">0</td></tr>
+                <tr><td><span class="mono">sexo</span></td><td>sel. única · 3</td><td class="num">1,283</td><td class="num">0</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <span class="mq-faint" style="font-size:11.5px">Identificador: <code>response_id</code> · 8 de 141 variables en «Identificación»</span>
+        </div>
+        <div class="pg-veredicto" style="color:var(--pulso-success-fg)"><i data-icon="circle-check" data-size="14"></i> PASS por conformidad: geometría declarada y marca verdadera.</div>
+      </section>
+    </div>
+
+    <!-- el contrato en cuatro reglas -->
+    <section class="mq-panel mq-callout" style="background:var(--pulso-surface-2)">
+      <span class="mq-note" data-n="4" style="top:-12px; right:14px;">cuatro reglas que el instrumento ejecuta, no un consejo</span>
+      <div class="mq-panel-head"><i data-icon="shield-alert" data-size="16"></i><h3>El contrato en cuatro reglas</h3><span class="mq-muted">Se cumple al construir la vista; `ui-quick-check` lo verifica en cada corrida.</span></div>
+      <div class="pg-reglas">
+        <div class="pg-regla"><i>1</i><div><strong>Marca por pestaña</strong><p>El valor es la dirección: <code>analitica/panel</code>, no <code>true</code>. Cambiar de pestaña cambia la marca; una pestaña que no existe en ese perfil no «hereda» la del vecino.</p></div></div>
+        <div class="pg-regla"><i>2</i><div><strong>Se publica tras <code>onReady</code></strong><p>Después del fetch propio y del render: Plotly, mapas y tablas virtuales avisan; <code>ModuleWarmupBoundary</code> espera la marca compuesta (todas en verdad, no una).</p></div></div>
+        <div class="pg-regla"><i>3</i><div><strong>Capturar un spinner es INVALID</strong><p>Si la vista tiene <code>aria-busy</code>, skeleton o marca en <code>false</code> al vencer el tiempo, la celda sale INVALID. Verde por conformidad, no por ausencia.</p></div></div>
+        <div class="pg-regla"><i>4</i><div><strong><code>md5</code> distinto por pestaña</strong><p>N direcciones producen N archivos distintos. Dos capturas iguales byte a byte delatan una dirección muda que aterrizó en la sección por defecto.</p></div></div>
+      </div>
+    </section>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Readiness de render, no de montaje</b> (L11): la marca se publica cuando el componente terminó de pedir y de pintar; hoy la publica el montaje y el runner aprueba spinners y skeletons (seis capturas INVALID en el censo, más Base panel y Ficha técnica con el puente diciendo «lista»).</li>
+        <li><b>Readiness por pestaña</b> (L10): Acreditación, Telefónico, Territorial y Analítica adoptan el patrón <code>&lt;modulo&gt;/&lt;seccion&gt;/&lt;pestana&gt;</code> de Recopiladores; la matriz exige md5 distinto por pestaña y cero duplicados.</li>
+        <li><b>El skeleton es parte del contrato</b> (L24): reserva la silueta de la vista destino, lleva <code>aria-busy</code> y no declara readiness; el chip «cargando · 0:02» dice qué se espera y cuánto va.</li>
+        <li><b>El instrumento deja de aprobar lo que no vio</b>: <code>--require-geometry</code> más la marca compuesta convierten en INVALID lo que hoy sale PASS; y un INVALID significa «no le diste tiempo», no «está roto».</li>
+      </ol>
+    </div>
+    <div class="pg-fin" aria-hidden="true"></div>
+  </div>
+</div>
+</body>
+</html>

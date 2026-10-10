@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L20 · Una sola lectura de avance con su base rotulada</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L20", titulo: "Avance › Resumen centrado en la cifra: un KPI maestro con su base y la misma lectura en Home, badge y pestañas",
+  hoy: "../hoy/home.png",
+  nota: "Hoy: Home 85.7 %, Fuente S/D, UMPs 116 %, Validación 107 %, Cobertura 141 % para el mismo estudio, sin rótulo de denominador.",
+  modulo: "monitoreo",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [
+    { id: "fuente", label: "Fuente" }, { id: "umps", label: "UMPs" }, { id: "validacion", label: "Validación" },
+    { id: "consultas", label: "Consultas" }, { id: "avance", label: "Avance", badge: "107 %" }, { id: "ocurrencias", label: "Ocurrencias" },
+  ],
+  seccionActiva: "avance",
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Modo</span><b>Territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Activas</span><b>2/2</b></span></span>',
+  herramientas: '<span class="pg-tools"><span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Regenerado</span><b>10/10/26</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,693</b></span></span><span class="mq-seg" role="radiogroup" aria-label="Alcance de la base"><button type="button" class="is-on">Avance</button><button type="button">Todo</button></span></span>',
+  chips: [{ label: "Sincronizado 10/10/26", tone: "success", detail: "Última sincronización con Kobo: 10/10/26" }],
+  pestanas: [
+    { id: "resumen", label: "Resumen", detail: "Distrito, manzana y ritmo", icon: "chart-column" },
+    { id: "distritos", label: "Distritos", detail: "Avance por distrito", icon: "map-pinned" },
+    { id: "ump", label: "Mapa y UMP", detail: "Cobertura por manzana", icon: "grid-3x3" },
+    { id: "ritmo", label: "Ritmo", detail: "Entrevistas por día", icon: "trending-up" },
+    { id: "salidas", label: "Salidas", detail: "PDF y Excel de avance", icon: "download" },
+  ],
+  pestanaActiva: "resumen",
+  railFooter: '<span class="pg-corte" title="Corte territorial · campo real 9/07/26, 7:24 a. m.">09/07<br>07:24</span>',
+  cabecera: { eyebrow: "Avance territorial", titulo: "Resumen", detalle: "Distrito, manzana y ritmo",
+    control: '<div class="pg-master mq-callout"><span class="mq-note" data-n="1" style="top:50%; right:100%; transform:translateY(-50%); margin-right:12px;">un KPI maestro, no cinco: la cabecera lo publica con su base</span><span class="pg-master-n">107 %</span><span class="pg-master-copy"><b>Avance</b><span>1,283 válidas de 1,200 meta · criterio consent · corte 9/07 07:24</span></span></div>' },
+};
+</script>
+<style>
+  .pg-tools { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; white-space: nowrap; }
+  .pg-corte { display: inline-block; padding: 5px 0; border-radius: 10px; border: 1px solid var(--pulso-primary-border); background: var(--pulso-primary-soft); color: var(--pulso-primary); font-weight: 800; font-size: 10px; line-height: 1.25; width: 40px; font-variant-numeric: tabular-nums; }
+  .pg-master { display: inline-flex; align-items: center; gap: 12px; padding: 6px 14px 6px 10px; border-radius: 12px; border: 1px solid var(--pulso-success-border); background: var(--pulso-success-bg); }
+  .pg-master-n { font-size: 26px; font-weight: 900; letter-spacing: -.7px; font-variant-numeric: tabular-nums; color: var(--pulso-success-fg); line-height: 1; }
+  .pg-master-copy { display: flex; flex-direction: column; gap: 1px; line-height: 1.2; }
+  .pg-master-copy b { font-size: 12px; }
+  .pg-master-copy span { font-size: 11.5px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pg-home-card-wrap { display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 12px; align-items: start; }
+  .pg-home-card-wrap .mq-home-card { min-height: 0; }
+  .pg-table-lecturas { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; table-layout: fixed; }
+  .pg-table-lecturas th { background: var(--pulso-header-row); color: var(--pulso-text-soft); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--pulso-border); white-space: nowrap; }
+  .pg-table-lecturas td { padding: 7px 10px; border-bottom: 1px solid var(--pulso-border); font-variant-numeric: tabular-nums; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-table-lecturas td.num, .pg-table-lecturas th.num { text-align: right; }
+  .pg-table-lecturas tr:last-child td { border-bottom: 0; }
+  .pg-table-lecturas .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+  .pg-table-lecturas .pg-hoy { color: var(--pulso-danger-fg); font-weight: 800; }
+  .pg-table-lecturas .pg-hoy.is-ok { color: var(--pulso-success-fg); }
+  .pg-table-lecturas .pg-def { color: var(--pulso-text-soft); font-size: 11.5px; white-space: normal; line-height: 1.3; }
+  .pg-mini-ring { --p: 100; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; position: relative; background: conic-gradient(var(--pulso-success-fg) calc(var(--p) * 1%), var(--pulso-surface-3) 0); flex: 0 0 auto; }
+  .pg-mini-ring::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--pulso-surface); }
+  .pg-mini-ring b { position: relative; font-size: 10.5px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .pg-def-box { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px 12px; align-items: start; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--pulso-border); background: var(--pulso-surface-2); font-size: 12px; }
+  .pg-def-box dt { font-weight: 800; white-space: nowrap; }
+  .pg-def-box dd { margin: 0; color: var(--pulso-text-soft); }
+  .pg-def-box code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; padding: 1px 5px; border-radius: 5px; background: var(--pulso-surface-3); color: var(--pulso-text); }
+  .pg-base-before { opacity: .55; }
+</style>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack" style="gap:12px">
+
+    <div class="pg-home-card-wrap">
+      <!-- réplica de la card del Home de Monitoreo -->
+      <div class="mq-callout">
+        <span class="mq-note" data-n="2" style="top:-11px; left:12px;">la card del Home dice lo mismo que el badge: lee el corte guardado, no el warm start</span>
+        <article class="mq-home-card" style="--module-accent: var(--pulso-module-monitoring)">
+          <div class="mq-hc-head"><span class="mq-hc-icon"><i data-icon="activity" data-size="16"></i></span><span class="mq-hc-title">Monitoreo</span><span class="mq-spacer"></span><span class="mq-chip is-warn">21 UMP pendientes</span></div>
+          <div class="mq-hc-fact"><b>1,283</b> de 1,200 válidas · <b>107 %</b></div>
+          <div class="mq-hc-base">criterio consent · corte 9/07 07:24 · 6 distritos · 150 UMP</div>
+          <div class="mq-hc-next"><i data-icon="arrow-right" data-size="14"></i> Continuar en Avance › Mapa y UMP</div>
+          <div class="mq-hc-meta"><span><b>Territorial</b> tipo</span><span><b>1,693</b> recibidas</span><span><b>308</b> en observación</span></div>
+        </article>
+        <p class="mq-faint" style="margin:8px 2px 0; font-size:11.5px">Hoy a 1440 dice 85.7 % y a 1024 dice 106.9 %: la cifra depende del momento del warm start en que se lee.</p>
+      </div>
+
+      <!-- las cinco cifras con su base -->
+      <section class="mq-panel mq-callout" style="padding:0; overflow:hidden">
+        <span class="mq-note" data-n="3" style="top:-11px; right:12px;">cinco superficies, cuatro numeradores, un denominador</span>
+        <div class="mq-panel-head" style="padding:12px 16px 0; margin-bottom:8px"><i data-icon="scale" data-size="16"></i><h3>Las cinco cifras, con su base</h3><span class="mq-muted">· mismo estudio, mismo corte 9/07 07:24</span><span class="mq-spacer"></span></div>
+        <table class="pg-table-lecturas">
+          <colgroup><col style="width:196px"><col style="width:80px"><col style="width:216px"><col style="width:96px"><col><col style="width:140px"></colgroup>
+          <thead><tr><th>Superficie</th><th class="num">Hoy dice</th><th>Numerador que usa</th><th class="num">Denominador</th><th>Propuesta</th><th class="num">Queda</th></tr></thead>
+          <tbody>
+            <tr><td><b>Home</b> · card de Monitoreo</td><td class="num pg-hoy">85.7 %</td><td class="mono">1,028 validadas</td><td class="num">1,200 meta</td><td class="pg-def">válidas por consent al corte guardado</td><td class="num pg-hoy is-ok">107 %</td></tr>
+            <tr><td><b>Badge de sección</b> · Avance</td><td class="num pg-hoy is-ok">107 %</td><td class="mono">1,283 válidas</td><td class="num">1,200 meta</td><td class="pg-def">se mantiene; es la definición de referencia</td><td class="num pg-hoy is-ok">107 %</td></tr>
+            <tr><td><b>UMPs</b> · cabecera</td><td class="num pg-hoy">116 %</td><td class="mono">1,393 recibidas válidas</td><td class="num">1,200 meta</td><td class="pg-def">rotular «1,393 pasan filtro de 1,200» o usar válidas</td><td class="num pg-hoy is-ok">107 %</td></tr>
+            <tr><td><b>Cobertura</b> · Mapa y UMP</td><td class="num pg-hoy">141 %</td><td class="mono">1,693 recibidas / manzana</td><td class="num">1,200 meta</td><td class="pg-def">rotular «recibidas / meta» como cobertura, no como avance</td><td class="num pg-hoy is-ok">141 % cobertura</td></tr>
+            <tr><td><b>Validación</b> · resumen</td><td class="num pg-hoy is-ok">107 %</td><td class="mono">1,283 válidas</td><td class="num">1,200 meta</td><td class="pg-def">se mantiene; mismo selector que el badge</td><td class="num pg-hoy is-ok">107 %</td></tr>
+            <tr><td><b>Fuente</b> · chips</td><td class="num pg-hoy">S/D</td><td class="mono">1,404 pasan filtro</td><td class="num">sin meta</td><td class="pg-def">«1,404 pasan filtro · meta 1,200 declarada en Hojas de ruta»</td><td class="num pg-hoy is-ok">117 % filtro</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- propuesta: rótulo de denominador obligatorio -->
+    <section class="mq-panel mq-callout">
+      <span class="mq-note" data-n="4" style="top:-11px; right:12px;">`.mq-kpi .mq-base`: el denominador es obligatorio</span>
+      <div class="mq-panel-head"><i data-icon="check-check" data-size="16"></i><h3>Propuesta: un rótulo de denominador bajo cada cifra y una sola definición de «válida»</h3><span class="mq-spacer"></span></div>
+      <div class="mq-kpis" style="--n:5; gap:10px">
+        <div class="mq-kpi is-accent"><span class="pulso-section-eyebrow">Home · Monitoreo</span><b>107 %</b><span class="mq-base">1,283 válidas / 1,200 meta</span><small>corte guardado 9/07 07:24</small></div>
+        <div class="mq-kpi"><span class="pulso-section-eyebrow">Badge · Avance</span><b>107 %</b><span class="mq-base">1,283 válidas / 1,200 meta</span><small>criterio consent</small></div>
+        <div class="mq-kpi"><span class="pulso-section-eyebrow">UMPs</span><b>107 %</b><span class="mq-base">1,283 válidas / 1,200 meta</span><small>1,393 pasan filtro · se rotulan aparte</small></div>
+        <div class="mq-kpi"><span class="pulso-section-eyebrow">Cobertura · Mapa y UMP</span><b>141 %</b><span class="mq-base">1,693 recibidas / 1,200 meta</span><small>cobertura, no avance</small></div>
+        <div class="mq-kpi"><span class="pulso-section-eyebrow">Validación</span><b>107 %</b><span class="mq-base">1,283 válidas / 1,200 meta</span><small>mismo selector que el badge</small></div>
+      </div>
+      <div class="mq-grid" style="grid-template-columns: minmax(0,1fr) minmax(0,1fr); margin-top:12px">
+        <dl class="pg-def-box" style="margin:0">
+          <dt>válida</dt><dd>registro recibido que pasa el criterio declarado del estudio (<code>consent = 1</code>) y no está en observación. Hoy: <span class="pg-base-before">cuatro selectores distintos en Home, chrome, UMPs y Cobertura</span>.</dd>
+          <dt>meta</dt><dd>1,200 entrevistas, declarada una vez en Hojas de ruta › Muestra; ninguna superficie vuelve a calcularla.</dd>
+          <dt>corte</dt><dd>9/07/26 07:24, guardado en el <code>.pulso</code>; Home lo lee de ahí y no del cache que el warm start regenera.</dd>
+        </dl>
+        <div class="mq-stack" style="gap:8px">
+          <div class="mq-row" style="gap:12px"><span class="pg-mini-ring" style="--p:100" aria-hidden="true"><b>107</b></span><div><b style="font-size:12.5px">Cómo se lee una cifra con base</b><div class="mq-muted" style="font-size:12px">La cifra grande dice cuánto; la línea de abajo dice de qué sobre qué. Si dos superficies muestran números distintos, es porque sus rótulos son distintos, no porque una esté mal.</div></div></div>
+          <div class="mq-banner"><i data-icon="info" data-size="15"></i> Contrato de verificación: captura de Home y de las cinco superficies con la misma cifra o con rótulos de base distintos. Un 107 % y un 116 % sin base no pasan.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Una sola lectura o rótulos distintos.</b> El 107 % sale de un selector compartido (válidas por consent / meta declarada) que alimentan Home, el badge de Avance, UMPs y Validación. Cobertura sigue siendo 141 % porque mide otra cosa, y lo dice.</li>
+        <li><b>La card del Home no cambia con el warm start.</b> Hoy pasa de 85.7 % a 106.9 % según cuándo se lea; en la propuesta lee el último corte guardado en el <code>.pulso</code> y muestra «regenerando» como estado, no como otra cifra.</li>
+        <li><b>El rótulo de denominador es obligatorio</b> en <code>.mq-kpi</code>: un KPI sin <code>.mq-base</code> no compila en el kit. Fuente deja de decir «S/D» cuando la meta existe en Hojas de ruta.</li>
+        <li>La cabecera de la pestaña publica un solo KPI maestro con su base; los demás paneles (anillo, corte operativo, UMP) derivan de él y no repiten el porcentaje. Dónde vive: <code>moduleCardModel.ts</code>, <code>MonitoreoModuleChrome.tsx</code> y el avance territorial.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+</body>
+</html>

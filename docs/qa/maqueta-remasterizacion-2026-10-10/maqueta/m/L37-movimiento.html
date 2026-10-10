@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L37 · Sistema de movimiento: las coreografías, para sentirlas</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<style>
+  .pg-lab { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+  .pg-demo { border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 196px; }
+  .pg-demo-head { display: flex; align-items: center; gap: 8px; }
+  .pg-demo-head h3 { margin: 0; font-size: 13px; font-weight: 800; }
+  .pg-demo-head .mq-chip { margin-left: auto; font-family: ui-monospace, Menlo, monospace; font-size: 10px; }
+  .pg-stage { position: relative; flex: 1; min-height: 96px; border-radius: 10px; background: var(--pulso-surface-2); border: 1px dashed var(--pulso-border); overflow: hidden; display: grid; place-items: center; }
+  .pg-foot { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--pulso-text-soft); }
+  .pg-foot code { font-size: 10.5px; }
+  /* M1–M3 superficie */
+  .pg-surf { width: 80%; height: 64px; border-radius: 10px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); box-shadow: var(--pulso-shadow-low); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  .pg-surf.is-enter { animation: pg-enter var(--motion-dur-base) var(--motion-ease-out); }
+  .pg-surf.is-enter-tab { animation: pg-fade var(--motion-dur-press) var(--motion-ease-out); }
+  @keyframes pg-enter { from { opacity: 0; transform: translate3d(0, 6px, 0); } to { opacity: 1; transform: none; } }
+  @keyframes pg-fade { from { opacity: 0; } to { opacity: 1; } }
+  /* M4 diálogo · M5 sideover · M6 popover: transiciones interrumpibles */
+  .pg-ov { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, #0b1730 40%, transparent); opacity: 0; pointer-events: none; transition: opacity var(--motion-dur-base) var(--motion-ease-out); }
+  .pg-ov.is-on { opacity: 1; pointer-events: auto; }
+  .pg-dlg { width: 68%; padding: 12px; border-radius: 12px; background: var(--pulso-surface); box-shadow: var(--pulso-shadow-popover); transform: scale(.96); opacity: 0; transition: transform var(--motion-dur-base) var(--motion-ease-out), opacity var(--motion-dur-base) var(--motion-ease-out); font-size: 12px; }
+  .pg-ov.is-on .pg-dlg { transform: none; opacity: 1; }
+  .pg-ov:not(.is-on) .pg-dlg { transition-duration: var(--motion-dur-fast); }
+  .pg-side { position: absolute; top: 0; right: 0; bottom: 0; width: 56%; padding: 12px; background: var(--pulso-surface); border-left: 1px solid var(--pulso-border); box-shadow: -12px 0 30px rgba(0,36,87,.14); transform: translateX(24px); opacity: 0; transition: transform var(--motion-dur-panel) var(--motion-ease-drawer), opacity var(--motion-dur-panel) var(--motion-ease-drawer); font-size: 12px; }
+  .pg-side.is-on { transform: none; opacity: 1; }
+  .pg-side:not(.is-on) { transition-duration: var(--motion-dur-base); }
+  .pg-pop-wrap { position: relative; }
+  .pg-pop { position: absolute; top: calc(100% + 8px); left: 0; width: 180px; padding: 8px 10px; border-radius: 10px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); box-shadow: var(--pulso-shadow-popover); font-size: 11.5px; transform-origin: top left; transform: scale(.96); opacity: 0; pointer-events: none; transition: transform var(--motion-dur-fast) var(--motion-ease-out), opacity var(--motion-dur-fast) var(--motion-ease-out); }
+  .pg-pop.is-on { transform: none; opacity: 1; pointer-events: auto; }
+  /* M7–M10 física */
+  .pg-press { transition: transform var(--motion-dur-press) var(--motion-ease-out), box-shadow var(--motion-dur-fast) var(--motion-ease-out), background var(--motion-dur-fast) ease; }
+  .pg-press:active { transform: scale(.97); }
+  .pg-lift { transition: transform var(--motion-dur-fast) var(--motion-ease-out), box-shadow var(--motion-dur-fast) var(--motion-ease-out); box-shadow: var(--pulso-shadow-low); }
+  .pg-lift:hover { transform: translateY(-2px); box-shadow: var(--pulso-shadow-med); }
+  .pg-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 8px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); font-size: 12px; }
+  .pg-row:active { transform: scale(.985); }
+  /* M11–M13 listas */
+  .pg-list { display: flex; flex-direction: column; gap: 6px; width: 90%; }
+  .pg-item { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--motion-dur-base) var(--motion-ease-out), opacity var(--motion-dur-base) var(--motion-ease-out); opacity: 1; }
+  .pg-item.is-hidden { grid-template-rows: 0fr; opacity: 0; transition-duration: var(--motion-dur-fast); }
+  .pg-item > div { overflow: hidden; }
+  .pg-item .pg-row { margin: 0; }
+  /* M14–M16 carga */
+  .pg-xf { position: relative; width: 86%; height: 70px; }
+  .pg-xf > * { position: absolute; inset: 0; transition: opacity var(--motion-dur-fast) var(--motion-ease-out); }
+  .pg-xf .pg-xf-content { opacity: 0; }
+  .pg-xf.is-ready .pg-xf-content { opacity: 1; }
+  .pg-xf.is-ready .pg-xf-sk { opacity: 0; }
+  .pg-ring { width: 56px; height: 56px; border-radius: 50%; background: conic-gradient(var(--pulso-primary) calc(var(--p) * 1%), color-mix(in srgb, var(--pulso-primary) 16%, transparent) 0); -webkit-mask: radial-gradient(circle 18px, transparent 17px, #000 18px); mask: radial-gradient(circle 18px, transparent 17px, #000 18px); transition: --p var(--motion-dur-base) linear; }
+  @property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
+  /* M17 toast */
+  .pg-toast { position: absolute; left: 50%; bottom: 10px; transform: translate(-50%, 8px); opacity: 0; width: 86%; padding: 8px 10px; border-radius: 10px; background: #0b1730; color: #fff; font-size: 11.5px; display: flex; gap: 8px; align-items: center; transition: transform var(--motion-dur-base) var(--motion-ease-out), opacity var(--motion-dur-base) var(--motion-ease-out); }
+  .pg-toast.is-on { transform: translate(-50%, 0); opacity: 1; }
+  .pg-toast:not(.is-on) { transition-duration: var(--motion-dur-fast); }
+  /* M18–M20 scroll */
+  .pg-scroll { width: 100%; height: 120px; overflow: auto; overscroll-behavior: contain; border-radius: 10px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); scroll-behavior: smooth; }
+  .pg-scroll .pg-sticky { position: sticky; top: 0; background: var(--pulso-header-row); padding: 6px 10px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--pulso-text-soft); z-index: 1; }
+  .pg-scroll .pg-sticky::after { content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px; background: linear-gradient(rgba(0,36,87,.10), transparent); opacity: 0; transition: opacity var(--motion-dur-fast) ease; }
+  .pg-scroll.is-scrolled .pg-sticky::after { opacity: 1; }
+  .pg-scroll .pg-line { padding: 6px 10px; font-size: 12px; border-bottom: 1px solid var(--pulso-border); scroll-margin-top: 36px; }
+  .pg-scroll .pg-line.is-target { background: var(--pulso-primary-soft); }
+  .pg-snap { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px; width: 100%; scrollbar-width: none; }
+  .pg-snap > div { flex: 0 0 72px; height: 48px; border-radius: 8px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); scroll-snap-align: start; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  /* M21 barras */
+  .pg-bars { display: grid; gap: 6px; width: 86%; }
+  .pg-bar { height: 10px; border-radius: 999px; background: var(--pulso-surface-3); overflow: hidden; }
+  .pg-bar i { display: block; height: 100%; width: 100%; background: var(--pulso-primary); transform-origin: left; transform: scaleX(0); transition: transform 420ms var(--motion-ease-out); }
+  .pg-bars.is-on .pg-bar i { transform: scaleX(var(--w)); }
+  /* reduced motion */
+  [data-reduced-motion] .pg-demo *, [data-reduced-motion] .pg-demo *::before, [data-reduced-motion] .pg-demo *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+  [data-reduced-motion] .pg-scroll { scroll-behavior: auto; }
+  .pg-tabla { font-size: 11.5px; }
+  .pg-tabla td:first-child { font-weight: 700; white-space: nowrap; }
+</style>
+<script>
+window.MAQUETA = {
+  codigo: "L37", titulo: "Sistema de movimiento: cada coreografía con sus tokens, para sentirla antes de implementarla",
+  hoy: "../hoy/home.png",
+  nota: "Hoy: 233 keyframes únicos, 54 loops, 34 transiciones de layout, 13 presses frente a 1.476 hovers de color, cortes en seco al cambiar de sección y de pestaña, 9 de 14 «ir a» que saltan.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "carga",
+  sinRail: true,
+  cabecera: { eyebrow: "Shell", titulo: "Sistema de movimiento", detalle: "Veintidós coreografías, cinco duraciones, cinco curvas; solo transform y opacity",
+    control: '<label class="mq-switch"><input id="pg-rm" type="checkbox" role="switch"><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Simular «reducir movimiento»</span></label>',
+    chips: [{ label: "<b>5</b> duraciones" }, { label: "<b>5</b> curvas" }, { label: "<b>22</b> coreografías" }, { label: "<b>0</b> layout animado", tone: "ok" }] },
+};
+window.onMaquetaMontada = function () {
+  const $ = (s, r) => (r || document).querySelector(s);
+  document.getElementById("pg-rm").addEventListener("change", (e) => { document.documentElement.toggleAttribute("data-reduced-motion", e.target.checked); });
+  // M1–M3
+  const surf = $("#pg-surf"); const replay = (cls) => { surf.classList.remove("is-enter", "is-enter-tab"); void surf.offsetWidth; surf.classList.add(cls); };
+  $("#pg-b-mod").onclick = () => { surf.textContent = "Módulo: Monitoreo"; replay("is-enter"); };
+  $("#pg-b-sec").onclick = () => { surf.textContent = "Sección: Validación"; replay("is-enter"); };
+  $("#pg-b-tab").onclick = () => { surf.textContent = "Pestaña: Explorar"; replay("is-enter-tab"); };
+  // M4–M6
+  $("#pg-b-dlg").onclick = () => $("#pg-ov").classList.toggle("is-on"); $("#pg-dlg-x").onclick = () => $("#pg-ov").classList.remove("is-on");
+  $("#pg-b-side").onclick = () => $("#pg-side").classList.toggle("is-on");
+  $("#pg-b-pop").onclick = () => $("#pg-pop").classList.toggle("is-on");
+  // M11–M13
+  const list = $("#pg-list"); let n = 3;
+  $("#pg-b-add").onclick = () => { n++; const el = document.createElement("div"); el.className = "pg-item is-hidden"; el.innerHTML = `<div><div class="pg-row"><span>Fila ${n} · insertada</span><button class="pulso-button pulso-button--icon pulso-button--sm" data-intent="remove" type="button" aria-label="Quitar">${icon("x", 13)}</button></div></div>`; list.appendChild(el); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove("is-hidden"))); };
+  list.addEventListener("click", (e) => { const b = e.target.closest("[data-intent=remove]"); if (!b) return; const it = b.closest(".pg-item"); it.classList.add("is-hidden"); it.addEventListener("transitionend", () => it.remove(), { once: true }); });
+  $("#pg-b-flip").onclick = () => { const items = [...list.children]; const first = items.map((el) => el.getBoundingClientRect().top); list.prepend(list.lastElementChild); [...list.children].forEach((el) => { const i = items.indexOf(el); const dy = first[i] - el.getBoundingClientRect().top; if (!dy) return; el.style.transition = "none"; el.style.transform = `translateY(${dy}px)`; requestAnimationFrame(() => { el.style.transition = "transform var(--motion-dur-base) var(--motion-ease-in-out)"; el.style.transform = ""; }); }); };
+  // M14–M16
+  $("#pg-b-xf").onclick = () => { const x = $("#pg-xf"); x.classList.remove("is-ready"); setTimeout(() => x.classList.add("is-ready"), 900); };
+  let p = 62; $("#pg-b-ring").onclick = () => { p = p >= 100 ? 18 : Math.min(100, p + 19); $("#pg-ring").style.setProperty("--p", p); $("#pg-ring-t").textContent = p + " %"; };
+  // M17
+  $("#pg-b-toast").onclick = () => { const t = $("#pg-toast"); t.classList.add("is-on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("is-on"), 2200); };
+  // M18–M19
+  const sc = $("#pg-scroll"); sc.addEventListener("scroll", () => sc.classList.toggle("is-scrolled", sc.scrollTop > 2));
+  $("#pg-b-goto").onclick = () => { const t = $("#pg-target"); t.scrollIntoView({ behavior: document.documentElement.hasAttribute("data-reduced-motion") ? "auto" : "smooth", block: "nearest" }); t.classList.add("is-target"); };
+  // M21
+  $("#pg-b-bars").onclick = () => { const b = $("#pg-bars"); b.classList.remove("is-on"); void b.offsetWidth; b.classList.add("is-on"); };
+};
+</script>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack" style="gap:12px">
+    <div class="pg-lab mq-callout">
+      <span class="mq-note" data-n="1" style="top:-12px; left:0;">cada tarjeta es una coreografía real con los tokens de tokens.css; pulsa, pasa el mouse, desplaza</span>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="workflow" data-size="15"></i><h3>M1–M3 · Módulo, sección, pestaña</h3><span class="mq-chip">base 220 · out</span></div>
+        <div class="pg-stage"><div id="pg-surf" class="pg-surf">Superficie</div></div>
+        <div class="mq-row" style="gap:6px"><button id="pg-b-mod" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Cambiar módulo</button><button id="pg-b-sec" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Sección</button><button id="pg-b-tab" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Pestaña</button></div>
+        <div class="pg-foot">6 px de desplazamiento + fade; la pestaña solo fade 120; por teclado, nada.</div></section>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="maximize-2" data-size="15"></i><h3>M4–M6 · Diálogo, sideover, popover</h3><span class="mq-chip">220 out · 280 drawer · 160 out</span></div>
+        <div class="pg-stage">
+          <div class="pg-pop-wrap"><button id="pg-b-pop" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Popover <i data-icon="chevron-down" data-size="13"></i></button><div id="pg-pop" class="pg-pop">Nace del disparador (<code>transform-origin</code>), scale .96 → 1.</div></div>
+          <div id="pg-ov" class="pg-ov"><div class="pg-dlg"><b>Diálogo</b> · scale .96 → 1, centrado; la salida dura 160. <div class="mq-row" style="margin-top:8px"><span class="mq-spacer"></span><button id="pg-dlg-x" class="pulso-button pulso-button--primary pulso-button--sm pg-press" type="button">Cerrar</button></div></div></div>
+          <div id="pg-side" class="pg-side"><b>Sideover</b><br>translateX 24 → 0 con la curva drawer; cierre 220.</div>
+        </div>
+        <div class="mq-row" style="gap:6px"><button id="pg-b-dlg" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Diálogo</button><button id="pg-b-side" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Sideover</button></div>
+        <div class="pg-foot">Transiciones, no keyframes: se pueden interrumpir a medio camino.</div></section>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="mouse-pointer-click" data-size="15"></i><h3>M7–M10 · Press, hover, selección, switch</h3><span class="mq-chip">press 120 · fast 160</span></div>
+        <div class="pg-stage" style="gap:8px; grid-template-columns: 1fr 1fr; padding: 10px;">
+          <button class="pulso-button pulso-button--primary pulso-button--md pg-press" type="button">Pulsa: scale .97</button>
+          <div class="mq-panel pg-lift" style="margin:0; padding:10px 12px; font-size:12px; cursor:pointer;">Card: sube 2 px</div>
+          <div class="mq-seg" role="radiogroup"><button type="button" class="is-on">Cómoda</button><button type="button">Compacta</button></div>
+          <label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Switch</span></label>
+        </div>
+        <div class="pg-foot">Hoy: 13 presses y 3 hovers con transform en toda la app.</div></section>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="rows-3" data-size="15"></i><h3>M11–M13 · Insertar, quitar, reordenar</h3><span class="mq-chip">220 out · 160 · FLIP 220 in-out</span></div>
+        <div class="pg-stage" style="align-items:start; padding:8px;"><div id="pg-list" class="pg-list">
+          <div class="pg-item"><div><div class="pg-row"><span>Fila 1 · Monitoreo territorial</span><button class="pulso-button pulso-button--icon pulso-button--sm" data-intent="remove" type="button" aria-label="Quitar"><i data-icon="x" data-size="13"></i></button></div></div></div>
+          <div class="pg-item"><div><div class="pg-row"><span>Fila 2 · Percepción comunidad</span><button class="pulso-button pulso-button--icon pulso-button--sm" data-intent="remove" type="button" aria-label="Quitar"><i data-icon="x" data-size="13"></i></button></div></div></div>
+          <div class="pg-item"><div><div class="pg-row"><span>Fila 3 · PDM Medios de vida</span><button class="pulso-button pulso-button--icon pulso-button--sm" data-intent="remove" type="button" aria-label="Quitar"><i data-icon="x" data-size="13"></i></button></div></div></div>
+        </div></div>
+        <div class="mq-row" style="gap:6px"><button id="pg-b-add" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button"><i data-icon="plus" data-size="13"></i> Insertar</button><button id="pg-b-flip" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button"><i data-icon="shuffle" data-size="13"></i> Reordenar</button></div>
+        <div class="pg-foot">El alto se anima con <code>grid-template-rows 0fr → 1fr</code>, nunca con <code>height</code>.</div></section>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="loader-circle" data-size="15"></i><h3>M14–M16 · Skeleton, contenido, job</h3><span class="mq-chip">fast 160 · 1.4 s linear · 220 linear</span></div>
+        <div class="pg-stage" style="grid-template-columns: 1fr auto; gap: 12px; padding: 10px;">
+          <div id="pg-xf" class="pg-xf is-ready"><div class="pg-xf-sk mq-stack" style="gap:6px"><div class="mq-sk is-title"></div><div class="mq-sk is-text"></div><div class="mq-sk is-text" style="width:60%"></div></div><div class="pg-xf-content" style="font-size:12px"><b>1,283 válidas de 1,200</b><br>criterio consent · corte 9/07 07:24<br><span class="mq-muted">6 distritos · 150 UMP</span></div></div>
+          <div style="display:grid; place-items:center; gap:4px"><div id="pg-ring" class="pg-ring" style="--p:62"></div><b id="pg-ring-t" style="font-size:12px; font-variant-numeric: tabular-nums">62 %</b></div>
+        </div>
+        <div class="mq-row" style="gap:6px"><button id="pg-b-xf" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Cargar de nuevo</button><button id="pg-b-ring" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Avanzar el job</button></div>
+        <div class="pg-foot">Skeleton con la silueta; crossfade al contenido; el anillo transiciona, no salta.</div></section>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="bell" data-size="15"></i><h3>M17 · Toast</h3><span class="mq-chip">220 out · sale 160</span></div>
+        <div class="pg-stage"><span class="mq-muted" style="font-size:12px">Entra desde abajo 8 px; otro toast mientras sale retargetea.</span><div id="pg-toast" class="pg-toast"><i data-icon="circle-check" data-size="14" style="color:#6ee7a8"></i><span>Codificación aplicada</span><span class="mq-spacer"></span><button class="mq-toast-act" type="button" style="height:24px">Deshacer</button></div></div>
+        <div class="mq-row"><button id="pg-b-toast" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Mostrar toast</button></div>
+        <div class="pg-foot"><code>transition</code> + <code>@starting-style</code>, no <code>@keyframes</code>.</div></section>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="move-horizontal" data-size="15"></i><h3>M18–M19 · Ir a, cabecera pegajosa</h3><span class="mq-chip">smooth · nearest · 16 px</span></div>
+        <div class="pg-stage" style="padding:8px; align-items:start;"><div id="pg-scroll" class="pg-scroll"><div class="pg-sticky">Cursos-horario · 14</div>
+          <div class="pg-line">CH 0412 · Microeconomía I</div><div class="pg-line">CH 0127 · Introducción a la Sociología</div><div class="pg-line">CH 0351 · Cálculo 2</div><div class="pg-line">CH 0088 · Derecho Constitucional</div><div class="pg-line">CH 0290 · Física 1</div><div class="pg-line">CH 0503 · Psicología General</div><div class="pg-line">CH 0144 · Historia del Perú</div><div class="pg-line">CH 0067 · Contabilidad Financiera</div><div id="pg-target" class="pg-line">CH 0229 · Diseño Gráfico II · <b>objetivo</b></div><div class="pg-line">CH 0391 · Programación 1</div><div class="pg-line">CH 0015 · Comunicación Oral</div><div class="pg-line">CH 0172 · Química General</div></div></div>
+        <div class="mq-row"><button id="pg-b-goto" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Ir a CH 0229</button></div>
+        <div class="pg-foot">La cabecera gana sombra cuando hay contenido debajo; «ir a» deja 16 px de reserva.</div></section>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="columns-3" data-size="15"></i><h3>M20 · Tira con ajuste</h3><span class="mq-chip">scroll-snap x</span></div>
+        <div class="pg-stage" style="padding:8px"><div class="pg-snap"><div>L 01</div><div>L 02</div><div>L 03</div><div>L 04</div><div>L 05</div><div>L 06</div><div>L 07</div><div>L 08</div><div>L 09</div><div>L 10</div></div></div>
+        <div class="pg-foot">Miniaturas de láminas y páginas del Word: desplaza y verás el ajuste.</div></section>
+      <section class="pg-demo"><div class="pg-demo-head"><i data-icon="chart-column" data-size="15"></i><h3>M21 · Barras (primer render)</h3><span class="mq-chip">420 out · una vez</span></div>
+        <div class="pg-stage" style="padding:10px"><div id="pg-bars" class="pg-bars is-on"><div class="pg-bar"><i style="--w:.86"></i></div><div class="pg-bar"><i style="--w:.62"></i></div><div class="pg-bar"><i style="--w:.44"></i></div><div class="pg-bar"><i style="--w:.21"></i></div></div></div>
+        <div class="mq-row"><button id="pg-b-bars" class="pulso-button pulso-button--secondary pulso-button--sm pg-press" type="button">Volver a dibujar</button></div>
+        <div class="pg-foot"><code>scaleX</code> desde la izquierda; hoy 27 barras animan <code>width</code>.</div></section>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: minmax(0,1.3fr) minmax(0,1fr);">
+      <section class="mq-panel mq-callout" style="margin:0">
+        <span class="mq-note" data-n="2" style="top:10px; right:12px; max-width:220px;">el vocabulario: 22 coreografías con nombre, token y dónde van; un keyframe nuevo exige entrar aquí</span>
+        <div class="mq-panel-head"><i data-icon="list-checks" data-size="16"></i><h3>Las reglas</h3></div>
+        <table class="mq-table pg-tabla"><thead><tr><th>Regla</th><th>Qué significa</th></tr></thead><tbody>
+          <tr><td>Solo transform y opacity</td><td>Nunca width, height, top, left; el alto con grid-template-rows 0fr → 1fr.</td></tr>
+          <tr><td>La frecuencia decide</td><td>Lo de cien veces al día (⌘K, pestaña por teclado, tooltips siguientes) no anima.</td></tr>
+          <tr><td>Curvas</td><td>Entradas out; movimiento en pantalla in-out; color ease; constante linear. Nunca ease-in.</td></tr>
+          <tr><td>Bajo 300 ms</td><td>press 120 · fast 160 · base 220 · panel 280 · slow 420; la salida dura ¾ de la entrada.</td></tr>
+          <tr><td>Nada aparece de la nada</td><td>scale .96 + opacity; popovers desde el disparador; modales desde el centro.</td></tr>
+          <tr><td>Interrumpible</td><td>Transiciones, no keyframes, para lo que se dispara rápido.</td></tr>
+          <tr><td>Press en todo</td><td>scale .97 en botón, chip, tile, fila, card.</td></tr>
+          <tr><td>Scroll con dueño</td><td>overscroll contain; «ir a» suave con reserva, instantáneo por teclado; sombra en la cabecera pegajosa; snap en tiras.</td></tr>
+          <tr><td>Escalonado con tope</td><td>Máximo 4 × 30 ms.</td></tr>
+          <tr><td>Loops</td><td>Solo spinner y skeleton; confeti y pulsos fuera del shell.</td></tr>
+          <tr><td>Reducir movimiento</td><td>Todo a cambio inmediato (pruébalo con el switch de la cabecera).</td></tr>
+        </tbody></table>
+      </section>
+      <section class="mq-panel mq-callout" style="margin:0">
+        <span class="mq-note" data-n="3" style="top:10px; right:12px; max-width:200px;">lo medido hoy, que el contrato de movimiento vigila</span>
+        <div class="mq-panel-head"><i data-icon="gauge" data-size="16"></i><h3>Hoy, medido</h3></div>
+        <table class="mq-table pg-tabla"><thead><tr><th>Qué</th><th class="num">Hoy</th><th class="num">Vara</th></tr></thead><tbody>
+          <tr><td>Keyframes únicos</td><td class="num">233</td><td class="num">≈ 22</td></tr>
+          <tr><td>Loops infinitos</td><td class="num">54</td><td class="num">spinner + skeleton</td></tr>
+          <tr><td>Transiciones de layout (width, height, left)</td><td class="num">34</td><td class="num">0</td></tr>
+          <tr><td>ms literales · por token</td><td class="num">1.112 · 1.767</td><td class="num">0 · todos</td></tr>
+          <tr><td>cubic-bezier literales</td><td class="num">119</td><td class="num">0</td></tr>
+          <tr><td>Entradas con ease-in-out</td><td class="num">8</td><td class="num">0</td></tr>
+          <tr><td>:active con transform</td><td class="num">13</td><td class="num">todo lo presionable</td></tr>
+          <tr><td>scrollIntoView sin smooth</td><td class="num">9 de 14</td><td class="num">0</td></tr>
+          <tr><td>Hojas con reduced-motion</td><td class="num">78 de 250</td><td class="num">regla global</td></tr>
+          <tr><td>Transición de sección · pestaña</td><td class="num">0 · 0</td><td class="num">M2 · M3</td></tr>
+          <tr><td>FLIP del Home</td><td class="num">460 ms</td><td class="num">420</td></tr>
+        </tbody></table>
+      </section>
+    </div>
+    <div class="mq-notas"><b>Qué cambia respecto de hoy</b>
+      <ol>
+        <li><b>Un vocabulario de 22 coreografías</b> con token y dónde se usan sustituye a 233 keyframes sin sistema; las entradas van con <code>ease-out</code>, lo interrumpible con transiciones.</li>
+        <li><b>Continuidad al navegar</b>: módulo y sección con la firma de 6 px; pestaña con fade de 120; nada por teclado.</li>
+        <li><b>Física en lo que se toca</b>: press .97 y elevación de 2 px en todo lo presionable; selección con fill desde el centro.</li>
+        <li><b>Desplazamiento profesional</b>: un dueño, «ir a» suave con reserva, sombra en la cabecera pegajosa, snap en las tiras; cero layout animado.</li>
+        <li><b>Contrato de movimiento</b> en vitest y medición de frames largos en Playwright; <code>prefers-reduced-motion</code> global.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L7 · Conexiones como sideover abierto desde Carga › Plataforma</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L7", titulo: "Credenciales en el sitio del error: el strip de token abre Conexiones como sideover y vuelve al mismo paso",
+  hoy: "../hoy/carga-plataforma.png",
+  nota: "Hoy: sin token, el error dice que no hay y la solución está en Home › Configuración, sin enlace ni vuelta.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  secciones: [{ id: "carga", label: "Carga" }, { id: "validacion", label: "Validación" }, { id: "codificacion", label: "Codificación" }, { id: "analitica", label: "Analítica" }, { id: "graficos", label: "Gráficos" }],
+  seccionActiva: "carga",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Base activa</span><b>Monitoreo territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,283</b></span></span>',
+  pestanas: [
+    { id: "plan", label: "Plan", detail: "Organización de las bases", icon: "clipboard-check" },
+    { id: "fuentes", label: "Fuentes", detail: "Formulario y respuestas", icon: "plug-zap" },
+    { id: "revision", label: "Revisión", detail: "Incidencias de carga", icon: "shield-alert" },
+    { id: "estructura", label: "Estructura", detail: "Variables y códigos", icon: "list-checks" },
+    { id: "datos", label: "Datos", detail: "Respuestas en tabla", icon: "table-2" },
+  ],
+  pestanaActiva: "fuentes",
+  cabecera: { eyebrow: "Carga · pestaña 2 de 5", titulo: "Fuentes", detalle: "Formulario y respuestas de cada base", estado: { kind: "listo", label: "Listo" },
+    chips: [{ label: "<b>Bases separadas</b> definido en Plan" }, { label: "<b>1/1</b> materializada", tone: "ok" }] },
+};
+</script>
+<style>
+  /* fondo: la pantalla de L3 en reposo detrás del scrim */
+  .pg-fondo { display: flex; flex-direction: column; gap: 12px; }
+  .pg-strip { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 16px 12px 10px; border-radius: 10px; border: 1px solid var(--pulso-danger-border); background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); font-size: 12.5px; }
+  .pg-strip strong { display: block; }
+  .pg-strip span { font-size: 11.5px; opacity: .9; }
+  .pg-perfil { display: grid; grid-template-columns: 36px minmax(0,1fr) auto; gap: 12px; align-items: start; padding: 12px; border: 1px solid var(--pulso-border); border-radius: 12px; background: var(--pulso-surface); }
+  .pg-perfil.is-foco { border-color: var(--pulso-primary); box-shadow: 0 0 0 3px var(--pulso-primary-focus); }
+  .pg-perfil-logo { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--pulso-surface-3); color: var(--pulso-text-soft); border: 1px solid var(--pulso-border); }
+  .pg-perfil h4 { margin: 0; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pg-perfil-meta { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 3px 10px; margin-top: 6px; font-size: 11.5px; }
+  .pg-perfil-meta dt { color: var(--pulso-text-faint); }
+  .pg-perfil-meta dd { margin: 0; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+  .pg-perfil-meta code { font-size: 11px; }
+  .pg-perfil-acciones { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .pg-perfil-acciones .pulso-button { justify-content: center; }
+  .pg-token { display: flex; gap: 8px; align-items: center; }
+  .pg-token .mq-input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1px; }
+  .pg-sideover-body { padding: 14px 18px; overflow: auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; }
+  .pg-sideover-body h3 { margin: 4px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--pulso-text-faint); font-weight: 700; }
+  .pg-vuelta { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: var(--pulso-primary-soft); border: 1px solid var(--pulso-primary-border); font-size: 12px; }
+  .pg-vuelta strong { display: block; color: var(--pulso-primary); }
+  .pg-fin { height: 56px; }
+</style>
+</head>
+<body>
+<div id="contenido" data-audit-ready="carga/fuentes">
+  <!-- fondo: Carga › Fuentes › Plataforma (L3) con el strip de token en error -->
+  <div class="pg-fondo" aria-hidden="true">
+    <div class="mq-row">
+      <div class="mq-seg" role="radiogroup" aria-label="Origen de la base">
+        <button type="button"><i data-icon="upload" data-size="14"></i> Manual</button>
+        <button type="button" class="is-on"><i data-icon="cloud-upload" data-size="14"></i> Plataforma</button>
+        <button type="button"><i data-icon="activity" data-size="14"></i> Monitoreo</button>
+      </div>
+      <span class="mq-muted">Cada entrada se materializa como una base separada. Si una importación falla, las demás no cambian.</span>
+    </div>
+    <div class="mq-grid" style="grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);">
+      <section class="mq-panel mq-callout">
+        <div class="mq-panel-head">
+          <i data-icon="cloud-upload" data-size="16"></i><h3>Catálogo de SurveyMonkey</h3>
+          <div class="mq-seg" style="margin-left:8px"><button type="button" class="is-on">SurveyMonkey</button><button type="button">Kobo</button></div>
+          <span class="mq-spacer"></span>
+          <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="refresh-cw" data-size="14"></i> Actualizar</button>
+        </div>
+        <div class="mq-stack">
+          <div class="pg-strip mq-callout" role="alert">
+            <span class="mq-note" data-n="1" style="top:-14px; left:10px; white-space:nowrap;">la credencial se pide donde ocurre el error</span>
+            <i data-icon="key-round" data-size="18"></i>
+            <div><strong>No pude leer el catálogo: el token de PULSO PUCP venció el 08 oct.</strong><span>Reemplázalo en Conexiones; al cerrar vuelves a este catálogo con la encuesta seleccionada.</span></div>
+            <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button" aria-haspopup="dialog" aria-expanded="true" aria-controls="conexiones"><i data-icon="key-round" data-size="14"></i> Abrir Conexiones</button>
+          </div>
+          <div class="mq-grid c2">
+            <div class="mq-field">
+              <label>Perfil de conexión</label>
+              <select class="mq-select is-sm"><option>PULSO PUCP · token vencido</option><option>Añadir perfil…</option></select>
+            </div>
+            <div class="mq-field">
+              <label>Buscar encuesta</label>
+              <div class="mq-input-group"><input class="mq-input is-sm" placeholder="Nombre o id · 80 encuestas en 36 meses" disabled><button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Filtrar" disabled><i data-icon="sliders-horizontal" data-size="14"></i></button></div>
+            </div>
+          </div>
+          <div class="mq-catalog" role="radiogroup" aria-label="Encuestas disponibles">
+            <label class="mq-cat-row is-selected"><input class="mq-radio" type="radio" name="sv" checked><div><strong>Encuesta de Percepción de la Comunidad de Acogida 2026</strong><span>id 512 998 114 · modificada 09 jul 2026 · 1,900 respuestas · 3 colectores</span></div><span class="mq-chip is-accent">última importada</span><span class="mq-chip is-ok">activa</span></label>
+            <label class="mq-cat-row"><input class="mq-radio" type="radio" name="sv"><div><strong>PDM Medios de Vida 2026 · ronda 2</strong><span>id 512 771 002 · modificada 02 jul 2026 · 426 respuestas · 1 colector</span></div><span></span><span class="mq-chip is-ok">activa</span></label>
+            <label class="mq-cat-row"><input class="mq-radio" type="radio" name="sv"><div><strong>Acreditación Contabilidad · Docentes</strong><span>id 511 348 220 · modificada 14 ago 2026 · 188 respuestas · 2 colectores</span></div><span></span><span class="mq-chip">cerrada</span></label>
+            <label class="mq-cat-row"><input class="mq-radio" type="radio" name="sv"><div><strong>Acreditación Contabilidad · Estudiantes</strong><span>id 511 348 221 · modificada 14 ago 2026 · 327 respuestas · 2 colectores</span></div><span></span><span class="mq-chip">cerrada</span></label>
+            <label class="mq-cat-row"><input class="mq-radio" type="radio" name="sv"><div><strong>Perfil del estudiante CCSS 2026 · piloto</strong><span>id 513 001 870 · modificada 22 sep 2026 · 61 respuestas</span></div><span></span><span class="mq-chip is-warn">piloto</span></label>
+          </div>
+          <div class="mq-row">
+            <label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Traer también el formulario (estructura, opciones y lógica)</span></label>
+            <span class="mq-spacer"></span>
+            <button class="pulso-button pulso-button--secondary pulso-button--md" type="button" disabled><i data-icon="eye" data-size="15"></i> Previsualizar</button>
+            <button class="pulso-button pulso-button--primary pulso-button--md" type="button" disabled><i data-icon="download" data-size="15"></i> Importar como base separada</button>
+          </div>
+        </div>
+      </section>
+      <div class="mq-stack">
+        <section class="mq-panel">
+          <div class="mq-panel-head"><i data-icon="database" data-size="16"></i><h3>Bases de este estudio</h3><span class="mq-spacer"></span><span class="mq-muted">1 materializada</span></div>
+          <div class="mq-lanes">
+            <div class="mq-lane is-done">
+              <div class="mq-lane-n"><i data-icon="check" data-size="14"></i></div>
+              <div>
+                <div class="mq-row"><strong>Monitoreo territorial</strong><span class="mq-chip is-ok">lista</span><span class="mq-spacer"></span>
+                  <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="download" data-size="14"></i> Descargar</button>
+                  <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="refresh-cw" data-size="14"></i> Actualizar</button>
+                  <button class="pulso-button pulso-button--icon pulso-button--sm" type="button" aria-label="Retirar"><i data-icon="trash-2" data-size="14"></i></button></div>
+                <div class="mq-muted" style="margin-top:4px">Formulario cargado · 1,283 registros · 141 columnas · .xlsx · validada / revisión</div>
+              </div>
+            </div>
+            <div class="mq-lane">
+              <div class="mq-lane-n">2</div>
+              <div>
+                <div class="mq-row"><strong>Percepción comunidad de acogida</strong><span class="mq-chip is-warn">esperando credencial</span></div>
+                <div class="mq-muted" style="margin-top:4px">SurveyMonkey · 1,900 respuestas · se importa al reemplazar el token</div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="mq-panel">
+          <div class="mq-panel-head"><i data-icon="timer" data-size="16"></i><h3>Importaciones</h3><span class="mq-spacer"></span><span class="mq-muted">ninguna en curso</span></div>
+          <div class="mq-empty" style="padding:18px"><strong>Nada corriendo</strong><span>Cuando importes una encuesta, aquí verás el progreso, las fases y el botón de cancelar.</span></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- scrim + sideover canónico -->
+  <div class="mq-scrim" role="presentation" style="display:block;"></div>
+  <aside class="mq-sideover mq-callout" id="conexiones" role="dialog" aria-modal="true" aria-labelledby="cx-t" aria-describedby="cx-d">
+    <span class="mq-note" data-n="2" style="top:20px; left:-378px;">`?panel=configuracion&foco=conexiones` · misma pieza que el diálogo (L1): trap, Escape, foco al strip</span>
+    <header class="mq-dialog-head">
+      <span class="mq-th-icon"><i data-icon="key-round" data-size="18"></i></span>
+      <div><h2 id="cx-t">Conexiones</h2><p id="cx-d">Credenciales de plataforma de este equipo. No viajan en el <code>.pulso</code>.</p></div>
+      <button class="mq-dialog-close" type="button" aria-label="Cerrar (Esc)"><i data-icon="x" data-size="16"></i></button>
+    </header>
+    <div class="pg-sideover-body">
+      <div class="pg-vuelta mq-callout">
+        <span class="mq-note" data-n="3" style="bottom:-12px; right:10px;">la vuelta está escrita: a qué paso y con qué selección</span>
+        <i data-icon="corner-down-left" data-size="16" style="color:var(--pulso-primary)"></i>
+        <div><strong>Al cerrar vuelves a Carga › Fuentes › Plataforma</strong>con «Encuesta de Percepción de la Comunidad de Acogida 2026» seleccionada y el catálogo recargado.</div>
+      </div>
+
+      <h3>Perfiles de este equipo</h3>
+      <div class="pg-perfil is-foco mq-callout">
+        <span class="mq-note" data-n="4" style="top:-12px; right:10px;">nunca un token en claro: sólo los 4 últimos y el estado</span>
+        <span class="pg-perfil-logo"><i data-icon="cloud-upload" data-size="18"></i></span>
+        <div>
+          <h4>SurveyMonkey · PULSO PUCP <span class="mq-chip is-danger">token vencido</span> <span class="mq-chip is-ok"><i data-icon="lock" data-size="11"></i> cifrado</span></h4>
+          <dl class="pg-perfil-meta">
+            <dt>Token</dt><dd><code>••••••••••••3f9c</code> · venció 08 oct 2026</dd>
+            <dt>Último uso</dt><dd>ayer 17:42 · Carga › Plataforma · acnur_acg</dd>
+            <dt>Lo usan</dt><dd>Carga, Formularios (traducir), Monitoreo telefónico</dd>
+          </dl>
+        </div>
+        <div class="pg-perfil-acciones">
+          <button class="pulso-button pulso-button--primary pulso-button--sm" type="button"><i data-icon="refresh-cw" data-size="14"></i> Reemplazar token</button>
+          <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plug-zap" data-size="14"></i> Probar</button>
+          <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="trash-2" data-size="14"></i> Quitar</button>
+        </div>
+      </div>
+
+      <div class="pg-perfil">
+        <span class="pg-perfil-logo"><i data-icon="globe" data-size="18"></i></span>
+        <div>
+          <h4>Kobo EU · eu.kobotoolbox.org <span class="mq-chip is-warn">sin token</span></h4>
+          <dl class="pg-perfil-meta">
+            <dt>Token</dt><dd>no configurado</dd>
+            <dt>Lo necesita</dt><dd>Monitoreo territorial para traer respuestas por <code>collectorID</code></dd>
+          </dl>
+        </div>
+        <div class="pg-perfil-acciones">
+          <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plus" data-size="14"></i> Añadir token</button>
+        </div>
+      </div>
+
+      <div class="pg-perfil">
+        <span class="pg-perfil-logo"><i data-icon="file-spreadsheet" data-size="18"></i></span>
+        <div>
+          <h4>Google Sheets · cuenta de servicio <span class="mq-chip is-ok">activa</span> <span class="mq-chip is-ok"><i data-icon="lock" data-size="11"></i> cifrada</span></h4>
+          <dl class="pg-perfil-meta">
+            <dt>Cuenta</dt><dd><code>pulso-sheets@…iam.gserviceaccount.com</code></dd>
+            <dt>Último uso</dt><dd>02 oct 2026 · Hojas de ruta › Entrega · hsvg2026</dd>
+          </dl>
+        </div>
+        <div class="pg-perfil-acciones">
+          <button class="pulso-button pulso-button--secondary pulso-button--sm" type="button"><i data-icon="plug-zap" data-size="14"></i> Probar</button>
+          <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="refresh-cw" data-size="14"></i> Reemplazar llave</button>
+          <button class="pulso-button pulso-button--ghost pulso-button--sm" type="button"><i data-icon="trash-2" data-size="14"></i> Quitar</button>
+        </div>
+      </div>
+
+      <h3>Reemplazar el token de PULSO PUCP</h3>
+      <div class="mq-field">
+        <label>Nuevo token <small>SurveyMonkey › Mis apps › Access token</small></label>
+        <div class="pg-token">
+          <input class="mq-input" type="password" value="9kQ2mX7vL3pR8sT1wY5zA0bC4dE6fG" aria-label="Nuevo token" autocomplete="off">
+          <button class="pulso-button pulso-button--icon pulso-button--md" type="button" aria-label="Mostrar mientras mantengo pulsado" title="Mostrar mientras mantienes pulsado"><i data-icon="eye" data-size="15"></i></button>
+        </div>
+        <span class="mq-field-hint">Se valida contra la API antes de guardarse. El anterior se descarta al confirmar.</span>
+      </div>
+      <label class="mq-switch"><input type="checkbox" role="switch" checked><span class="mq-switch-track"><i></i></span><span class="mq-switch-label">Recordar en este equipo (cifrado con la identidad de la máquina)</span></label>
+      <span class="mq-field-hint" style="margin-top:-6px">Sin esta casilla el token vive sólo en esta sesión y se pide de nuevo al reabrir la app.</span>
+      <div class="mq-row">
+        <button class="pulso-button pulso-button--secondary pulso-button--md" type="button"><i data-icon="plug-zap" data-size="15"></i> Probar y guardar</button>
+        <span class="mq-muted">Conexión: <span class="mq-chip">sin probar</span></span>
+      </div>
+
+      <h3>Últimos intentos</h3>
+      <dl class="pg-perfil-meta" style="margin-top:0; grid-template-columns: auto auto minmax(0,1fr);">
+        <dt>hoy 09:12</dt><dd><span class="mq-chip is-danger">401</span></dd><dd>SurveyMonkey · token vencido · Carga › Plataforma</dd>
+        <dt>ayer 17:42</dt><dd><span class="mq-chip is-ok">ok</span></dd><dd>SurveyMonkey · catálogo de 80 encuestas en 0:06</dd>
+        <dt>02 oct 14:05</dt><dd><span class="mq-chip is-ok">ok</span></dd><dd>Google Sheets · libro de entrega publicado · hsvg2026</dd>
+      </dl>
+    </div>
+    <footer class="mq-dialog-foot">
+      <span class="mq-muted"><span class="mq-kbd">Esc</span> cierra y devuelve el foco a «Abrir Conexiones»</span>
+      <span class="mq-spacer"></span>
+      <button class="pulso-button pulso-button--primary pulso-button--md" type="button"><i data-icon="corner-down-left" data-size="15"></i> Listo, volver a Carga</button>
+    </footer>
+  </aside>
+
+  <div class="mq-notas" style="position:fixed; left:88px; bottom:64px; width:560px; z-index:1700;"><b>Qué cambia respecto de hoy</b>
+    <ol>
+      <li><b>Direccionable</b>: el panel es `?panel=configuracion&foco=conexiones`, montado con `Sideover` sobre la misma primitiva del diálogo canónico (L1): focus trap, `aria-modal`, Escape y foco de vuelta al disparador. El QA lo abre por dirección.</li>
+      <li><b>La credencial se pide donde ocurre el error</b>: el strip de token enlaza al panel y el panel dice a qué paso vuelve y con qué selección; hoy la solución está en Home › Configuración, sin enlace y sin vuelta.</li>
+      <li><b>Sin tokens en claro</b>: se muestran los cuatro últimos caracteres, el estado y el último uso; el campo nuevo es de contraseña y «mostrar» exige mantener pulsado.</li>
+      <li><b>«Recordar en este equipo»</b> es explícito y cifrado con la identidad de la máquina; nada entra al `.pulso` (ADR 0005). El último perfil y la última encuesta sí se recuerdan por proyecto.</li>
+    </ol>
+  </div>
+  <div class="pg-fin" aria-hidden="true"></div>
+</div>
+</body>
+</html>

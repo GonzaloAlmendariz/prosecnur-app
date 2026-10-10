@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L30 · Paleta de comandos ⌘K sobre el Home</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "L30", titulo: "Paleta de comandos ⌘K: vistas del manifiesto, acciones de la command bar activa, recientes y proyecto",
+  hoy: "../hoy/home.png",
+  nota: "Hoy: no hay paleta ni registro de atajos; llegar a Avance › Mapa y UMP son cuatro clics y un warm start.",
+  modulo: "procesamiento",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  sinRail: true, sinCommandBar: true,
+};
+</script>
+<style>
+  .pg-home-body .mq-main { background: transparent; border: 0; box-shadow: none; }
+  .pg-home-body .mq-content { padding: 0; }
+  .pg-home { padding: 10px 24px 0; gap: 12px; }
+  .pg-home .mq-home-card { min-height: 160px; padding: 12px 14px; gap: 6px; }
+  .pg-home .mq-home-card .mq-hc-fact b { font-size: 18px; }
+  .pg-home .mq-home-card .mq-hc-fact small { display: block; font-size: 12px; color: var(--pulso-text-soft); }
+  .pg-home .mq-home-card .mq-hc-head .mq-chip { margin-left: auto; height: 18px; font-size: 10px; }
+  .pg-home-grid-3 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+  .pg-palette .mq-palette-list { max-height: 560px; }
+  .pg-palette .mq-palette-input .mq-kbd { margin-left: auto; }
+  .pg-palette .mq-palette-input input::selection { background: var(--pulso-primary-soft); }
+  .pg-pi-ret { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--pulso-text-faint); }
+  .pg-pi-ret .mq-kbd { font-size: 10px; }
+  .pg-palette .mq-palette-item strong { font-weight: 600; }
+  .pg-palette .mq-palette-item mark { background: transparent; color: var(--pulso-primary); font-weight: 800; }
+  .pg-palette .mq-palette-item.is-active mark { color: var(--pulso-primary); }
+  .pg-palette .mq-palette-foot span { display: inline-flex; align-items: center; gap: 5px; }
+  .pg-palette-wrap { position: fixed; inset: 0; z-index: 1500; display: grid; place-items: start center; padding-top: 9vh; }
+  .pg-palette-wrap .mq-palette { margin-top: 0; }
+  .pg-palette-pos { width: min(640px, 100%); }
+  .pg-palette .mq-note, .pg-palette-pos .mq-note { text-transform: none; letter-spacing: 0; }
+</style>
+</head>
+<body class="pg-home-body">
+<div id="contenido">
+  <!-- detrás: el Home atenuado -->
+  <div class="mq-home pg-home" aria-hidden="true">
+    <section class="mq-home-hoy">
+      <div><h2>Hoy, viernes 10 de octubre</h2><p>Corte de Monitoreo a las 07:24 · 2 cursos-horario agendados · entrega del informe PDM en 6 días · importación SurveyMonkey 62 %</p></div>
+      <button class="pulso-button pulso-button--primary pulso-button--md" type="button"><i data-icon="refresh-cw" data-size="15"></i> Traer respuestas</button>
+    </section>
+    <div class="mq-home-grid">
+      <article class="mq-home-card" style="--module-accent: var(--pulso-module-workplan)"><div class="mq-hc-head"><span class="mq-hc-icon"><i data-icon="clipboard-list" data-size="16"></i></span><span class="mq-hc-title">Bitácora</span><span class="mq-chip">por iniciar</span></div><div class="mq-hc-fact"><b>Sin actividad</b><small>0 registros · cronograma sin fechas</small></div><div class="mq-hc-next"><i data-icon="arrow-right" data-size="14"></i> Registrar el corte de hoy</div></article>
+      <article class="mq-home-card" style="--module-accent: var(--pulso-module-sample)"><div class="mq-hc-head"><span class="mq-hc-icon"><i data-icon="calculator" data-size="16"></i></span><span class="mq-hc-title">Cálculo de muestra</span></div><div class="mq-hc-fact"><b>Sin cálculo</b><small>la meta de 1,200 viene de Hojas de ruta</small></div><div class="mq-hc-next"><i data-icon="arrow-right" data-size="14"></i> Declarar el diseño</div></article>
+      <article class="mq-home-card" style="--module-accent: var(--pulso-module-editor)"><div class="mq-hc-head"><span class="mq-hc-icon"><i data-icon="square-pen" data-size="16"></i></span><span class="mq-hc-title">Formularios</span><span class="mq-chip is-ok">en edición</span></div><div class="mq-hc-fact"><b>66</b> preguntas<small>7 secciones · 13 catálogos · Kobo</small></div><div class="mq-hc-next"><i data-icon="arrow-right" data-size="14"></i> Probar formulario</div></article>
+      <article class="mq-home-card" style="--module-accent: var(--pulso-module-routes)"><div class="mq-hc-head"><span class="mq-hc-icon"><i data-icon="map-pinned" data-size="16"></i></span><span class="mq-hc-title">Hojas de ruta</span><span class="mq-chip is-accent">campo</span></div><div class="mq-hc-fact"><b>1,200</b> entrevistas<small>6 distritos · 150 manzanas titulares</small></div><div class="mq-hc-next"><i data-icon="arrow-right" data-size="14"></i> Revisar reemplazos (3)</div></article>
+    </div>
+    <div class="pg-home-grid-3">
+      <article class="mq-home-card" style="--module-accent: var(--pulso-module-monitoring)"><div class="mq-hc-head"><span class="mq-hc-icon"><i data-icon="activity" data-size="16"></i></span><span class="mq-hc-title">Monitoreo</span><span class="mq-chip is-warn">21 UMP pendientes</span></div><div class="mq-hc-fact"><b>1,283</b> de 1,200 válidas · <b>107 %</b><small>criterio consent · corte 9/07 07:24</small></div><div class="mq-hc-next"><i data-icon="arrow-right" data-size="14"></i> Continuar en Avance › Mapa y UMP</div></article>
+      <article class="mq-home-card" style="--module-accent: var(--pulso-module-processing)"><div class="mq-hc-head"><span class="mq-hc-icon"><i data-icon="network" data-size="16"></i></span><span class="mq-hc-title">Procesamiento</span><span class="mq-chip is-accent">importando</span></div><div class="mq-hc-fact"><b>1</b> base · 1,283 registros<small>100 variables · sigue: Validación</small></div><div class="mq-hc-job" style="--p:62"><small>Importando SurveyMonkey · 62 % · ~0:35</small><div class="mq-job-bar"><i></i></div></div></article>
+      <article class="mq-home-card" style="--module-accent: var(--pulso-module-dashboard)"><div class="mq-hc-head"><span class="mq-hc-icon"><i data-icon="layout-dashboard" data-size="16"></i></span><span class="mq-hc-title">Dashboard</span></div><div class="mq-hc-fact"><b>0/3</b> etapas<small>Datos · Curación · Publicación</small></div><div class="mq-hc-next"><i data-icon="arrow-right" data-size="14"></i> Cargar fuente</div></article>
+    </div>
+  </div>
+
+  <!-- paleta -->
+  <div class="mq-scrim" role="presentation"></div>
+  <div class="pg-palette-wrap">
+    <div class="pg-palette-pos mq-callout">
+    <span class="mq-note" data-n="1" style="top:-13px; left:14px;">⌘K desde cualquier vista; navega por dirección, no es un sexto nivel</span>
+    <span class="mq-note" data-n="4" style="bottom:-13px; right:12px;">registro global de atajos: «?» abre la hoja de ayuda</span>
+    <div class="mq-palette pg-palette" role="dialog" aria-modal="true" aria-label="Paleta de comandos">
+      <div class="mq-palette-input">
+        <i data-icon="command" data-size="18"></i>
+        <input type="text" value="avance ump" aria-label="Ir a… o hacer…" placeholder="Ir a… o hacer…" autofocus>
+        <span class="mq-kbd">Esc</span>
+      </div>
+      <div class="mq-palette-list" role="listbox" aria-label="Resultados">
+        <div class="mq-palette-group mq-callout">Vistas<span class="mq-note" data-n="2" style="top:0; right:6px;">alimentada por `__pulsoNav.manifiesto`: 186 pestañas y 10 paneles</span></div>
+        <div class="mq-palette-item is-active" role="option" aria-selected="true"><span class="mq-pi-icon"><i data-icon="grid-3x3" data-size="14"></i></span><div><strong>Monitoreo › Territorial › <mark>Avance</mark> › Mapa y <mark>UMP</mark></strong><div class="mq-pi-path">/monitoreo?modo=territorial&amp;seccion=avance&amp;pestana=ump · warm start ~3:48</div></div><span class="pg-pi-ret"><span class="mq-kbd">⏎</span> ir</span></div>
+        <div class="mq-palette-item" role="option"><span class="mq-pi-icon"><i data-icon="table-2" data-size="14"></i></span><div><strong>Monitoreo › Territorial › Ocurrencias › Reporte <mark>UMP</mark></strong><div class="mq-pi-path">/monitoreo?modo=territorial&amp;seccion=ocurrencias&amp;pestana=reporte-ump</div></div><span></span></div>
+        <div class="mq-palette-item" role="option"><span class="mq-pi-icon"><i data-icon="map-pinned" data-size="14"></i></span><div><strong>Hojas de ruta › Manzanas</strong><div class="mq-pi-path">/hojas-ruta?seccion=manzanas · 150 <mark>UMP</mark> titulares</div></div><span></span></div>
+        <div class="mq-palette-group mq-callout">Acciones del módulo<span class="mq-note" data-n="3" style="top:0; right:6px;">las acciones declarativas de la command bar activa</span></div>
+        <div class="mq-palette-item" role="option"><span class="mq-pi-icon"><i data-icon="refresh-cw" data-size="14"></i></span><div><strong>Traer respuestas</strong><div class="mq-pi-path">Monitoreo › sincroniza Kobo · última vez 10/10/26</div></div><span class="pg-pi-ret"><span class="mq-kbd">⌘</span><span class="mq-kbd">R</span></span></div>
+        <div class="mq-palette-item" role="option"><span class="mq-pi-icon"><i data-icon="file-spreadsheet" data-size="14"></i></span><div><strong>Publicar a Sheets</strong><div class="mq-pi-path">Monitoreo › distribución de aplicadores · requiere conexión</div></div><span></span></div>
+        <div class="mq-palette-group">Recientes</div>
+        <div class="mq-palette-item" role="option"><span class="mq-pi-icon"><i data-icon="plug-zap" data-size="14"></i></span><div><strong>Carga › Fuentes</strong><div class="mq-pi-path">/procesamiento?seccion=carga&amp;pestana=fuentes · hace 12 min</div></div><span></span></div>
+        <div class="mq-palette-item" role="option"><span class="mq-pi-icon"><i data-icon="clipboard-list" data-size="14"></i></span><div><strong>Analítica › Datos</strong><div class="mq-pi-path">/procesamiento?seccion=analitica&amp;pestana=datos · ayer</div></div><span></span></div>
+        <div class="mq-palette-group">Proyecto</div>
+        <div class="mq-palette-item" role="option"><span class="mq-pi-icon"><i data-icon="save" data-size="14"></i></span><div><strong>Guardar</strong><div class="mq-pi-path">acnur_acg.pulso · guardado 24/7/2026</div></div><span class="pg-pi-ret"><span class="mq-kbd">⌘</span><span class="mq-kbd">S</span></span></div>
+        <div class="mq-palette-item" role="option"><span class="mq-pi-icon"><i data-icon="folder" data-size="14"></i></span><div><strong>Abrir reciente…</strong><div class="mq-pi-path">acnur_pdm · hsvg2026 · acrconta</div></div><span class="pg-pi-ret"><span class="mq-kbd">⌘</span><span class="mq-kbd">O</span></span></div>
+      </div>
+      <div class="mq-palette-foot mq-callout">
+        <span><span class="mq-kbd">↑</span><span class="mq-kbd">↓</span> navegar</span>
+        <span><span class="mq-kbd">⏎</span> ir</span>
+        <span><span class="mq-kbd">⌘</span><span class="mq-kbd">1</span>…<span class="mq-kbd">8</span> módulos</span>
+        <span><span class="mq-kbd">?</span> ayuda</span>
+        <span class="mq-spacer"></span>
+        <span>9 resultados para «avance ump»</span>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="mq-notas" style="position:fixed; left:18px; bottom:64px; width:430px; z-index:1700;"><b>Qué cambia respecto de hoy</b>
+    <ol>
+      <li><b><code>CommandPalette</code> ⌘K</b> sobre <code>__pulsoNav.manifiesto</code> (186 pestañas, 10 paneles) más las acciones declarativas de la command bar activa; mismo motor que <code>__pulsoNav.ir()</code>.</li>
+      <li><b>Navega por dirección</b>: cada resultado es una dirección canónica (módulo, modo, sección, pestaña, panel); no es un sexto nivel ni duplica la navegación.</li>
+      <li><b>Registro global de atajos</b> en <code>lib/atajos.ts</code>: ⌘1..8 cambia de módulo, «?» muestra la hoja; los tooltips del dock aparecen con foco de teclado.</li>
+      <li>Verificación: saltar a <code>monitoreo/territorial/avance/ump</code> desde cualquier vista solo con teclado.</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>L14 · Una sola cabecera de pestaña</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<style>
+  .pg-hoy { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  .pg-hoy-item { border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface-2); padding: 10px 12px; min-height: 92px; display: flex; flex-direction: column; gap: 4px; }
+  .pg-hoy-item .mq-faint { font-size: 10.5px; }
+  .pg-hoy-item .pg-h { font-weight: 800; font-size: 12.5px; }
+  .pg-hoy-item .pg-px { margin-top: auto; font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+  .pg-hoy-item[data-mod="procesamiento"] { border-left: 3px solid var(--pulso-module-processing); }
+  .pg-hoy-item[data-mod="monitoreo"] { border-left: 3px solid var(--pulso-module-monitoring); }
+  .pg-hoy-item[data-mod="calc"] { border-left: 3px solid var(--pulso-module-sample); }
+  .pg-hoy-item[data-mod="otro"] { border-left: 3px solid var(--pulso-border-strong); }
+  .pg-demo { border: 1px solid var(--pulso-border); border-radius: 14px; background: var(--pulso-surface); overflow: hidden; }
+  .pg-demo .mq-tab-heading { border-bottom: 1px solid var(--pulso-border); }
+  .pg-demo-body { padding: 10px 18px 12px; display: flex; gap: 8px; }
+  .pg-variantes { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .pg-variantes h4 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--pulso-text-soft); }
+  .pg-anat { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 14px; align-items: start; }
+  .pg-anat ol { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; }
+</style>
+<script>
+window.MAQUETA = {
+  codigo: "L14", titulo: "Una sola cabecera de pestaña para los ocho módulos (hoy hay doce)",
+  hoy: "../hoy/territorial-fuente.png",
+  nota: "Hoy: doce patrones; en Monitoreo conviven cuatro. La v3 exige «identificación persistente de la pestaña activa» y solo un módulo la cumple.",
+  modulo: "monitoreo",
+  proyecto: { nombre: "acnur_acg", estado: "guardado", fecha: "24/7/2026" },
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Modo</span><b>Territorial</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Activas</span><b>2/2</b></span></span>',
+  secciones: [{ id: "fuente", label: "Fuente" }, { id: "umps", label: "UMPs" }, { id: "validacion", label: "Validación" }, { id: "consultas", label: "Consultas" }, { id: "avance", label: "Avance", badge: "107 %" }, { id: "ocurrencias", label: "Ocurrencias" }],
+  seccionActiva: "avance",
+  herramientas: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Registros</span><b>1,693</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Sincronizado</span><b>10/10/2026</b></span></span>',
+  acciones: [{ label: "Traer respuestas", icon: "refresh-cw", kind: "primary" }],
+  pestanas: [
+    { id: "resumen", label: "Resumen", detail: "Estado del campo y corte", icon: "chart-column" },
+    { id: "distritos", label: "Distritos", detail: "Cobertura y cuotas", icon: "map-pinned" },
+    { id: "ump", label: "Mapa y UMP", detail: "Ritmo por manzana", icon: "route" },
+    { id: "ritmo", label: "Ritmo diario", detail: "Tendencia del corte", icon: "calendar-range" },
+    { id: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: "download" },
+  ],
+  pestanaActiva: "resumen",
+  railFooter: "09/07<br>07:24",
+  cabecera: { eyebrow: "Avance territorial", titulo: "Resumen", detalle: "Estado del campo, prioridades y corte operativo", estado: { kind: "listo", label: "Listo" },
+    chips: [{ label: "<b>2</b> fuentes" }, { label: "<b>1,693</b> recibidas" }, { label: "<b>1,283</b> válidas", tone: "ok" }, { label: "<b>1,200</b> meta" }] },
+};
+</script>
+</head>
+<body>
+<div id="contenido">
+  <div class="mq-stack" style="gap:16px">
+    <section class="mq-callout">
+      <span class="mq-note" data-n="1" style="top:-8px; right:0;">la cabecera de arriba ES la propuesta, montada por el mismo componente en todos los módulos</span>
+      <div class="mq-row" style="margin-bottom:8px"><h3 style="margin:0;font-size:13.5px">Hoy: doce maneras de decir «estás en esta pestaña»</h3><span class="mq-muted">altura que consume cada una en el primer viewport a 1440×1000</span></div>
+      <div class="pg-hoy">
+        <div class="pg-hoy-item" data-mod="procesamiento"><span class="mq-faint">Carga</span><span class="pg-h">PESTAÑA 2 DE 5 · Fuentes · Listo</span><span class="mq-muted">tarjeta verde con subtítulo</span><span class="pg-px">66 px</span></div>
+        <div class="pg-hoy-item" data-mod="procesamiento"><span class="mq-faint">Validación</span><span class="pg-h">VISTA ACTUAL · Explorar respuestas</span><span class="mq-muted">eyebrow + título</span><span class="pg-px">54 px</span></div>
+        <div class="pg-hoy-item" data-mod="procesamiento"><span class="mq-faint">Codificación</span><span class="pg-h">(sin título) · chips Todas 30 · Emparejadas 1…</span><span class="mq-muted">la pestaña arranca con filtros</span><span class="pg-px">48 px</span></div>
+        <div class="pg-hoy-item" data-mod="procesamiento"><span class="mq-faint">Analítica</span><span class="pg-h">Datos · Etiquetas y variables</span><span class="mq-muted">título + píldoras de estado a la derecha</span><span class="pg-px">58 px</span></div>
+        <div class="pg-hoy-item" data-mod="monitoreo"><span class="mq-faint">Monitoreo territorial</span><span class="pg-h">TERRITORIAL · FLUJO ACTUAL / Avance territorial / Resumen</span><span class="mq-muted">breadcrumb + banda Piloto/Campo + card de fuente</span><span class="pg-px">≈260 px</span></div>
+        <div class="pg-hoy-item" data-mod="monitoreo"><span class="mq-faint">Monitoreo aulas · telefónico</span><span class="pg-h">CURSOS-HORARIO / Avance / Resumen / subtítulo</span><span class="mq-muted">tres líneas, informativa</span><span class="pg-px">84 px</span></div>
+        <div class="pg-hoy-item" data-mod="monitoreo"><span class="mq-faint">Monitoreo acreditación</span><span class="pg-h">Actores · Parcial · 3 KPIs-chip</span><span class="mq-muted">mínima: nombre + badge</span><span class="pg-px">40 px</span></div>
+        <div class="pg-hoy-item" data-mod="calc"><span class="mq-faint">Cálculo de muestra</span><span class="pg-h">▣ Población · elegibles y estructura</span><span class="mq-muted">ícono + título + subtítulo en una fila</span><span class="pg-px">44 px</span></div>
+        <div class="pg-hoy-item" data-mod="otro"><span class="mq-faint">Gráficos</span><span class="pg-h">(toolbar) 0 slides · 1 error · 0/23 · Estilo…</span><span class="mq-muted">sin título de pestaña</span><span class="pg-px">46 px</span></div>
+        <div class="pg-hoy-item" data-mod="otro"><span class="mq-faint">Dashboard</span><span class="pg-h">DATOS cargados · DIMENSIONES pendientes</span><span class="mq-muted">barra de estado + píldoras centradas</span><span class="pg-px">56 px</span></div>
+        <div class="pg-hoy-item" data-mod="otro"><span class="mq-faint">Formularios</span><span class="pg-h">(toolbar de dos filas) selector · Constructor/Hojas · acciones</span><span class="mq-muted">sin título de pestaña</span><span class="pg-px">92 px</span></div>
+        <div class="pg-hoy-item" data-mod="otro"><span class="mq-faint">Bitácora · Hojas de ruta · Recopiladores</span><span class="pg-h">ENTRADAS sin entradas · píldoras inline · stepper 1 2 3 4</span><span class="mq-muted">la pestaña se dibuja como control ad hoc</span><span class="pg-px">48–60 px</span></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="mq-row" style="margin-bottom:8px"><h3 style="margin:0;font-size:13.5px">Propuesta: <code>TabHeading</code>, tres variantes del mismo componente</h3></div>
+      <div class="pg-variantes">
+        <div>
+          <h4>Estándar (62 px)</h4>
+          <div class="pg-demo">
+            <header class="mq-tab-heading"><span class="mq-th-icon"><i data-icon="plug-zap" data-size="17"></i></span><div class="mq-th-copy"><span class="pulso-section-eyebrow">Carga · pestaña 2 de 5</span><h2>Fuentes <em class="mq-th-estado" data-estado="listo">Listo</em></h2><p>Formulario y respuestas de cada base</p></div><div class="mq-th-chips"><span class="mq-th-chip"><b>1/1</b> materializada</span></div></header>
+            <div class="pg-demo-body"><div class="mq-sk is-row" style="flex:1"></div></div>
+          </div>
+        </div>
+        <div>
+          <h4>Compacta (40 px) · acreditación</h4>
+          <div class="pg-demo">
+            <header class="mq-tab-heading" data-compacta><span class="mq-th-icon" style="width:26px;height:26px"><i data-icon="users" data-size="14"></i></span><div class="mq-th-copy"><h2 style="font-size:14px">Actores <em class="mq-th-estado" data-estado="parcial">Parcial</em></h2></div><div class="mq-th-chips"><span class="mq-th-chip"><b>4</b> actores</span><span class="mq-th-chip"><b>7</b> encuestas</span><span class="mq-th-chip is-ok"><b>13/13</b> fuentes</span></div></header>
+            <div class="pg-demo-body"><div class="mq-sk is-row" style="flex:1"></div></div>
+          </div>
+        </div>
+        <div>
+          <h4>Con control de sección · aulas</h4>
+          <div class="pg-demo">
+            <header class="mq-tab-heading"><span class="mq-th-icon"><i data-icon="chart-column" data-size="17"></i></span><div class="mq-th-copy"><span class="pulso-section-eyebrow">Cursos-horario · Avance</span><h2>Rendimiento</h2><p>Qué rinde más, por facultad</p></div><div class="mq-th-control"><select class="mq-select is-sm" style="width:190px"><option>Todas las facultades</option><option>Ciencias Sociales</option></select></div><div class="mq-th-chips"><span class="mq-th-chip is-ok"><b>635</b> efectivas</span></div></header>
+            <div class="pg-demo-body"><div class="mq-sk is-row" style="flex:1"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pg-anat">
+      <div class="mq-panel mq-callout">
+        <span class="mq-note" data-n="2" style="top:-10px; left:14px;">anatomía</span>
+        <ol>
+          <li><b>Tile de ícono</b> con el acento del módulo: el mismo ícono que la pestaña activa del rail, para cerrar el vínculo rail → cabecera.</li>
+          <li><b>Eyebrow</b> = sección (y número «pestaña n de m» solo donde hay pipeline real).</li>
+          <li><b>Título</b> = nombre de la pestaña activa, 16/800. Al lado, el estado de readiness con palabras (Listo · Parcial · Bloqueado), nunca un punto sobre el ícono.</li>
+          <li><b>Detalle</b> = el `detail` del catálogo. Se omite si repite el título (regla ya medida en Telefónico › Fuentes).</li>
+          <li><b>Control de sección</b> (opcional): lo que manda sobre toda la sección vive aquí y no se mueve con el scroll.</li>
+          <li><b>Chips de contexto</b> a la derecha: cifras con su base, tabulares; se recogen al menú cuando no caben (misma escalera que la command bar).</li>
+        </ol>
+      </div>
+      <div class="mq-notas" style="margin:0"><b>Qué cambia</b>
+        <ol>
+          <li>Doce patrones → <b>un componente</b> (`components/TabHeading.tsx`) montado por toda página con rail; `MonitoreoWorkbenchHead` y `CargaWorkspaceHeader` se retiran.</li>
+          <li>Las bandas que hoy cuelgan bajo la cabecera («Formato territorial», «Definido en Plan», «VARIAS BASES») se funden en sus chips o bajan a la pestaña que las usa.</li>
+          <li>Coste del primer viewport: de 40–260 px a 40–62 px en todos los módulos.</li>
+          <li>Cumple la norma v3 «identificación persistente de la pestaña activa» que hoy solo cumple Monitoreo.</li>
+        </ol>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

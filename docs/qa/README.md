@@ -79,6 +79,10 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   el punto de entrada único: diagnóstico, decisiones, el kit pieza por
   pieza, la maqueta página por página, las 36 unidades detalladas, el plan,
   la vara, el ledger y las trampas.
+- [Estado del CI en el traspaso (2026-10-10)](estado-ci-traspaso-2026-10-10.md):
+  gate por gate del pre-flight antes de subir 2.463 commits; qué está rojo,
+  por qué, y dónde vive el trabajo que se traspasa. La maqueta de la
+  remasterización vive en `maqueta-remasterizacion-2026-10-10/`.
 - [Censo de acciones de datos en Monitoreo (2026-10-10)](censo-acciones-datos-monitoreo-2026-10-10.md):
   qué hace cada botón de actualización en los cuatro perfiles hasta el
   endpoint, y el modelo «un verbo por dirección» (L38).

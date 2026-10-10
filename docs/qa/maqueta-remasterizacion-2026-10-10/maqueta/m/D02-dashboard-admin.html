@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>D2 · Dashboard: chrome de administración canónico y artefacto con identidad propia</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/theme-extract.css">
+<link rel="stylesheet" href="../css/nav-states.css">
+<link rel="stylesheet" href="../css/chrome.css">
+<link rel="stylesheet" href="../css/ContextTabRail.css">
+<link rel="stylesheet" href="../css/states.css">
+<link rel="stylesheet" href="../css/remaster.css">
+<script src="../js/icons.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+window.MAQUETA = {
+  codigo: "D2", titulo: "Dashboard › administración con el chrome v3 (command bar + rail); el artefacto publicado conserva su capa dash-* y pasa a secuencial navy",
+  hoy: "../hoy/dashboard.png",
+  nota: "Hoy: barra propia (Deploy · Vista previa · Personalizar · Datos), píldoras centradas sin rail, donut arcoíris y «Resumen» abriendo en variables de control.",
+  modulo: "dashboard",
+  proyecto: { nombre: "acnur_pdm", estado: "guardado", fecha: "1/8/2026" },
+  secciones: [{ id: "datos", label: "Datos", done: true }, { id: "curacion", label: "Curación", done: true }, { id: "vista-previa", label: "Vista previa" }, { id: "publicacion", label: "Publicación" }],
+  seccionActiva: "vista-previa",
+  contexto: '<span class="mq-ctx"><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Tablero</span><b>acnur_pdm</b></span><span class="mq-ctx-sep"></span><span class="mq-ctx-kpi"><span class="pulso-section-eyebrow">Entrevistas</span><b>426</b></span></span>',
+  chips: [{ label: "Dimensiones pendientes", tone: "warn", detail: "Genera dimensiones en Analítica › Dimensiones" }, { label: "Construido 13:48", tone: "success", detail: "Última construcción del tablero" }],
+  acciones: [{ label: "Personalizar", icon: "sliders-horizontal", kind: "secondary" }, { label: "Publicar", icon: "upload", kind: "primary" }],
+  menu: true,
+  pestanas: [
+    { id: "resumen", label: "Resumen", detail: "Perfil y lecturas por sección", icon: "layout-dashboard" },
+    { id: "relaciones", label: "Relaciones", detail: "Cruces entre variables", icon: "git-compare" },
+    { id: "base", label: "Base de datos", detail: "Tabla de respuestas", icon: "database" },
+    { id: "dimensiones", label: "Dimensiones", detail: "Pendiente: genera dimensiones en Analítica", icon: "layers" },
+  ],
+  pestanaActiva: "resumen",
+  cabecera: { eyebrow: "Vista previa · pestaña 1 de 4", titulo: "Resumen", detalle: "Así lo verá el cliente al publicarse; el artefacto conserva su identidad",
+    control: '<div class="mq-seg" role="radiogroup" aria-label="Formato de vista previa"><button type="button" class="is-on"><i data-icon="monitor" data-size="13"></i> Escritorio</button><button type="button"><i data-icon="columns-3" data-size="13"></i> Móvil</button></div>',
+    chips: [{ label: "<b>N</b> 426" }, { label: "<b>3</b> sedes" }, { label: "<b>27</b> preguntas" }, { label: "<b>Dimensiones</b> pendientes", tone: "warn" }] },
+};
+</script>
+<style>
+  /* Paleta de datos de la identidad (secuencial navy). Son los únicos hex de esta página
+     porque viven en el artefacto publicado, que conserva su capa dash-*. */
+  .pg-dash { --dash-s1: #DBE8FF; --dash-s2: #7AA2F8; --dash-s3: #2457D6; --dash-s4: #002457; }
+  .pg-marco { position: relative; border: 2px dashed var(--pulso-border-strong); border-radius: 14px; padding: 18px 14px 14px; background: var(--pulso-surface-2); }
+  .pg-marco-rotulo { position: absolute; top: -11px; left: 14px; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 10px; border-radius: 999px; background: var(--pulso-surface); border: 1px solid var(--pulso-border-strong); font-size: 11px; font-weight: 700; color: var(--pulso-text-soft); }
+  .pg-dash { border-radius: 12px; background: var(--pulso-surface); border: 1px solid var(--pulso-border); overflow: hidden; }
+  .pg-dash-head { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 14px; padding: 12px 16px; background: var(--dash-s4); color: var(--pulso-nav-selected-fg); }
+  .pg-dash-head .pg-dash-marca { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: rgba(255,255,255,.14); font-weight: 900; font-size: 12px; letter-spacing: .5px; }
+  .pg-dash-head h3 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -.2px; }
+  .pg-dash-head p { margin: 2px 0 0; font-size: 11.5px; opacity: .78; }
+  .pg-dash-nav { display: flex; gap: 4px; }
+  .pg-dash-nav span { padding: 5px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,.78); }
+  .pg-dash-nav span.is-on { background: rgba(255,255,255,.16); color: var(--pulso-nav-selected-fg); }
+  .pg-dash-body { padding: 14px 16px; display: grid; grid-template-columns: 280px minmax(0,1fr); gap: 14px; }
+  .pg-dash-kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; grid-column: 1 / -1; }
+  .pg-dash-kpi { padding: 10px 12px; border-radius: 10px; background: var(--dash-s1); min-width: 0; }
+  .pg-dash-kpi small { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--dash-s4); opacity: .8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-dash-kpi b { display: block; font-size: 22px; font-weight: 900; letter-spacing: -.4px; color: var(--dash-s4); font-variant-numeric: tabular-nums; line-height: 1.1; margin-top: 2px; }
+  .pg-dash-kpi span { font-size: 11px; color: var(--dash-s3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .pg-dash-card { border: 1px solid var(--pulso-border); border-radius: 10px; padding: 12px; min-width: 0; }
+  .pg-dash-card h4 { margin: 0 0 8px; font-size: 12.5px; font-weight: 800; color: var(--dash-s4); line-height: 1.3; }
+  .pg-donut { display: grid; grid-template-columns: 112px minmax(0,1fr); gap: 12px; align-items: center; }
+  .pg-donut-ring { width: 112px; height: 112px; border-radius: 50%; background: conic-gradient(var(--g)); -webkit-mask: radial-gradient(circle 36px, transparent 35px, currentColor 36px); mask: radial-gradient(circle 36px, transparent 35px, currentColor 36px); }
+  .pg-leyenda { display: grid; gap: 5px; font-size: 11px; color: var(--pulso-text-soft); }
+  .pg-leyenda div { display: grid; grid-template-columns: 10px minmax(0,1fr) auto; gap: 6px; align-items: center; }
+  .pg-leyenda i { width: 10px; height: 10px; border-radius: 3px; display: block; }
+  .pg-leyenda b { font-variant-numeric: tabular-nums; color: var(--pulso-text); }
+  .pg-leyenda span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pg-donuts { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+  .pg-barra100 { display: flex; height: 26px; border-radius: 7px; overflow: hidden; }
+  .pg-barra100 span { display: grid; place-items: center; font-size: 11px; font-weight: 800; color: var(--pulso-nav-selected-fg); white-space: nowrap; }
+  .pg-barra100 span.is-claro { color: var(--dash-s4); }
+  .pg-bars { display: grid; gap: 8px; }
+  .pg-bar { display: grid; grid-template-columns: 64px minmax(0,1fr) 40px; gap: 10px; align-items: center; font-size: 11.5px; }
+  .pg-bar > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--pulso-text-soft); }
+  .pg-bar i { display: block; height: 14px; border-radius: 4px; background: var(--dash-s3); width: calc(var(--v) * 1%); }
+  .pg-bar b { text-align: right; font-variant-numeric: tabular-nums; }
+  .pg-perfil { display: flex; flex-direction: column; gap: 10px; padding-bottom: 22px; }
+  .pg-n { padding: 10px 12px; border-radius: 10px; background: var(--dash-s4); color: var(--pulso-nav-selected-fg); text-align: center; }
+  .pg-n b { display: block; font-size: 26px; font-weight: 900; letter-spacing: -.5px; }
+  .pg-n small { font-size: 11px; opacity: .8; }
+  .pg-fin { height: 56px; }
+</style>
+</head>
+<body>
+<div id="contenido" data-audit-ready="dashboard/vista-previa/resumen">
+  <div class="mq-stack">
+    <div class="pg-marco mq-callout">
+      <span class="pg-marco-rotulo"><i data-icon="lock" data-size="12"></i> Artefacto publicado · conserva su identidad propia (capa <code>dash-*</code>)</span>
+      <span class="mq-note" data-n="2" style="top:-12px; right:14px;">el artefacto no adopta el chrome: es lo que ve el cliente y tiene su propia capa</span>
+
+      <div class="pg-dash" aria-label="Vista previa del tablero del cliente">
+        <div class="pg-dash-head">
+          <span class="pg-dash-marca">PDM</span>
+          <div><h3>PDM Espacios de protección 2026 · ACNUR Perú</h3><p>Monitoreo posdistribución · Lima, Tumbes y Tacna · levantamiento junio–julio 2026</p></div>
+          <nav class="pg-dash-nav" aria-label="Secciones del tablero"><span class="is-on">Resumen</span><span>Relaciones</span><span>Base de datos</span></nav>
+        </div>
+        <div class="pg-dash-body">
+          <div class="pg-dash-kpis">
+            <div class="pg-dash-kpi"><small>Entrevistas válidas</small><b>426</b><span>de 426 registros · 100 % reales</span></div>
+            <div class="pg-dash-kpi"><small>Sedes</small><b>3</b><span>Lima 214 · Tumbes 131 · Tacna 81</span></div>
+            <div class="pg-dash-kpi"><small>Consentimiento</small><b>100 %</b><span>426 aceptaron continuar</span></div>
+            <div class="pg-dash-kpi"><small>Duración mediana</small><b>18 min</b><span>P25 13 · P75 26</span></div>
+          </div>
+
+          <aside class="pg-perfil mq-callout">
+            <span class="mq-note" data-n="3" style="bottom:-12px; left:8px;">el donut arcoíris pasa a la secuencial navy de la identidad</span>
+            <div class="pg-n"><small>Perfil de la muestra</small><b>N 426</b><small>entrevistas válidas</small></div>
+            <div class="pg-dash-card">
+              <h4>Sexo de la persona entrevistada</h4>
+              <div class="pg-barra100" aria-label="Sexo: 61 % mujeres, 38 % hombres, 1 % prefiere no responder">
+                <span style="width:61%; background:var(--dash-s3)">61 %</span><span style="width:38%; background:var(--dash-s2)">38 %</span><span class="is-claro" style="width:1%; background:var(--dash-s1)"></span>
+              </div>
+              <div class="pg-leyenda" style="margin-top:8px"><div><i style="background:var(--dash-s3)"></i><span>Mujer</span><b>260</b></div><div><i style="background:var(--dash-s2)"></i><span>Hombre</span><b>162</b></div><div><i style="background:var(--dash-s1)"></i><span>Prefiere no responder</span><b>4</b></div></div>
+            </div>
+            <div class="pg-dash-card">
+              <h4>Edad</h4>
+              <div class="pg-bars">
+                <div class="pg-bar"><span>18 a 29</span><i style="--v:38"></i><b>31 %</b></div>
+                <div class="pg-bar"><span>30 a 44</span><i style="--v:52"></i><b>42 %</b></div>
+                <div class="pg-bar"><span>45 a 59</span><i style="--v:24"></i><b>19 %</b></div>
+                <div class="pg-bar"><span>60 o más</span><i style="--v:10"></i><b>8 %</b></div>
+              </div>
+            </div>
+          </aside>
+
+          <div class="mq-stack" style="gap:10px">
+            <div class="mq-row">
+              <span class="mq-muted" style="font-size:12px; font-weight:700; color:var(--dash-s4)">Sección</span>
+              <select class="mq-select is-sm" style="width:320px" aria-label="Sección del formulario"><option>Acceso al espacio de protección</option><option>Detalles de la entrevista</option><option>Servicios recibidos</option><option>Satisfacción</option></select>
+              <span class="mq-spacer"></span>
+              <span class="mq-faint" style="font-size:11px">Abre en la primera sección con preguntas de contenido, no en las de control</span>
+            </div>
+            <div class="pg-donuts">
+              <div class="pg-dash-card">
+                <h4>¿Cuánto tiempo le tomó llegar al Espacio de Protección?</h4>
+                <div class="pg-donut">
+                  <div class="pg-donut-ring" role="img" aria-label="Tiempo de llegada" style="--g: var(--dash-s1) 0 34%, var(--dash-s2) 34% 70%, var(--dash-s3) 70% 91%, var(--dash-s4) 91% 100%"></div>
+                  <div class="pg-leyenda"><div><i style="background:var(--dash-s1)"></i><span>Hasta 15 minutos</span><b>34 %</b></div><div><i style="background:var(--dash-s2)"></i><span>De 15 a 30 minutos</span><b>36 %</b></div><div><i style="background:var(--dash-s3)"></i><span>De 30 min a 1 hora</span><b>21 %</b></div><div><i style="background:var(--dash-s4)"></i><span>Más de 1 hora</span><b>9 %</b></div></div>
+                </div>
+              </div>
+              <div class="pg-dash-card">
+                <h4>¿Qué medio de transporte utilizó para llegar?</h4>
+                <div class="pg-donut">
+                  <div class="pg-donut-ring" role="img" aria-label="Medio de transporte" style="--g: var(--dash-s1) 0 18%, var(--dash-s2) 18% 47%, var(--dash-s3) 47% 86%, var(--dash-s4) 86% 100%"></div>
+                  <div class="pg-leyenda"><div><i style="background:var(--dash-s1)"></i><span>A pie</span><b>18 %</b></div><div><i style="background:var(--dash-s2)"></i><span>Mototaxi</span><b>29 %</b></div><div><i style="background:var(--dash-s3)"></i><span>Transporte público</span><b>39 %</b></div><div><i style="background:var(--dash-s4)"></i><span>Otro</span><b>14 %</b></div></div>
+                </div>
+              </div>
+              <div class="pg-dash-card">
+                <h4>¿Con qué frecuencia visita el Espacio de Protección?</h4>
+                <div class="pg-donut">
+                  <div class="pg-donut-ring" role="img" aria-label="Frecuencia de visita" style="--g: var(--dash-s1) 0 12%, var(--dash-s2) 12% 41%, var(--dash-s3) 41% 79%, var(--dash-s4) 79% 100%"></div>
+                  <div class="pg-leyenda"><div><i style="background:var(--dash-s1)"></i><span>Primera vez</span><b>12 %</b></div><div><i style="background:var(--dash-s2)"></i><span>Mensual</span><b>29 %</b></div><div><i style="background:var(--dash-s3)"></i><span>Semanal</span><b>38 %</b></div><div><i style="background:var(--dash-s4)"></i><span>Varias veces por semana</span><b>21 %</b></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="pg-dash-card">
+              <h4>¿Recibió la información que necesitaba en su visita?</h4>
+              <div class="pg-barra100" aria-label="Información recibida: 72 % sí completa, 21 % parcial, 7 % no">
+                <span style="width:72%; background:var(--dash-s4)">Sí, completa · 72 %</span><span style="width:21%; background:var(--dash-s2)">Parcial · 21 %</span><span class="is-claro" style="width:7%; background:var(--dash-s1)">7 %</span>
+              </div>
+              <div class="mq-row" style="margin-top:8px; font-size:11px; color:var(--pulso-text-soft)"><span>n = 426 · una respuesta por entrevista</span><span class="mq-spacer"></span><span>Lima 74 % · Tumbes 69 % · Tacna 71 %</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mq-grid" style="grid-template-columns: minmax(0,1fr) minmax(0,1fr);">
+      <section class="mq-panel mq-callout">
+        <div class="mq-panel-head"><i data-icon="layout-dashboard" data-size="16"></i><h3>Lo que migra al chrome canónico</h3><span class="mq-spacer"></span><span class="mq-note" data-n="1" style="position:static; white-space:nowrap;">la administración usa el chrome v3: command bar + rail</span></div>
+        <dl class="mq-kv" style="font-size:12px">
+          <dt>Datos · cargados / Dimensiones · pendientes</dt><dd>contexto + chip de estado</dd>
+          <dt>Deploy</dt><dd>«Publicar», acción primaria</dd>
+          <dt>Vista previa · Personalizar · Datos</dt><dd>sección «Vista previa», acción secundaria, sección «Datos»</dd>
+          <dt>Resumen · Relaciones · Base de datos · Dimensiones</dt><dd>rail de pestañas de 56 px (L16)</dd>
+          <dt>Menú ⋯</dt><dd>Exportar HTML, Duplicar tablero, Eliminar</dd>
+        </dl>
+      </section>
+      <section class="mq-panel mq-callout">
+        <div class="mq-panel-head"><i data-icon="layers" data-size="16"></i><h3>Lo que el artefacto conserva</h3><span class="mq-spacer"></span><span class="mq-note" data-n="4" style="position:static; white-space:nowrap;">Dimensiones sigue en el rail, con estado honesto</span></div>
+        <dl class="mq-kv" style="font-size:12px">
+          <dt>Capa <code>dash-*</code> y su tipografía</dt><dd>sin cambios</dd>
+          <dt>Cabecera navy con marca del estudio</dt><dd>sin cambios</dd>
+          <dt>Paleta de datos</dt><dd>categórica arcoíris → secuencial navy</dd>
+          <dt>«Resumen» abre en</dt><dd>primera sección de contenido</dd>
+          <dt>Build</dt><dd>code-split; plotly fuera del bundle principal</dd>
+        </dl>
+      </section>
+    </div>
+
+    <div class="mq-notas"><b>Qué cambia respecto de hoy (decisión D2, recomendación del loop)</b>
+      <ol>
+        <li><b>La administración del Dashboard usa el chrome v3</b>: command bar con contexto «Tablero · acnur_pdm», píldoras Datos / Curación / Vista previa / Publicación, acciones «Personalizar» y «Publicar», y rail de pestañas Resumen / Relaciones / Base de datos / Dimensiones (L16). La barra propia «Deploy · Vista previa · Personalizar · Datos» y las píldoras centradas sin rail se retiran.</li>
+        <li><b>El artefacto publicado conserva su capa <code>dash-*</code></b>: es lo que ve el cliente, vive dentro de un marco rotulado en la vista previa y no adopta el chrome de administración.</li>
+        <li><b>El donut arcoíris pasa a la secuencial navy</b> de la identidad (DBE8FF → 7AA2F8 → 2457D6 → 002457), que es la única paleta de datos autorizada; barras 100 % y KPIs usan los mismos cuatro tonos.</li>
+        <li><b>Dimensiones sigue en el rail con estado honesto</b> («pendiente: genera dimensiones en Analítica») y «Resumen» abre en la primera sección con preguntas de contenido, no en «Detalles de la entrevista».</li>
+      </ol>
+    </div>
+    <div class="pg-fin" aria-hidden="true"></div>
+  </div>
+</div>
+</body>
+</html>
