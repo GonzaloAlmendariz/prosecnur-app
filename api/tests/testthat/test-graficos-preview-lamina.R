@@ -83,3 +83,20 @@ test_that("una parte que falla deja su hueco: la k-ésima imagen sigue siendo la
   expect_null(r[[2]])
   expect_equal(r[[3]]$indice, 3L)
 })
+
+test_that("la URI del perfil codifica espacios y tildes y conserva las barras", {
+  expect_equal(.preview_profile_uri("/tmp/Juan Pérez/lo-profile"), "file:///tmp/Juan%20P%C3%A9rez/lo-profile")
+  expect_match(.preview_profile_uri("C:/Users/Ana María/x"), "^file:///C:/Users/Ana%20Mar%C3%ADa/x$")
+  expect_equal(.preview_arg("a b"), if (.Platform$OS.type == "windows") "\"a b\"" else "'a b'")
+})
+
+test_that("la vista previa sale aunque la ruta tenga espacios y tildes (P1)", {
+  skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
+  skip_if_not(nzchar(Sys.which("pdftoppm")), "sin pdftoppm")
+  local_mocked_bindings(.artifact_renderer_configured = function() FALSE)
+  dir <- file.path(tempdir(), "Juan Pérez con espacio"); dir.create(dir, showWarnings = FALSE)
+  f <- file.path(dir, "lámina de prueba.pptx"); file.copy(.pl_mini_pptx(), f, overwrite = TRUE)
+  r <- .render_pptx_preview_partes(f, 1L)
+  expect_length(r, 1L)
+  expect_match(r[[1]]$png_base64, "^data:image/png;base64,")
+})

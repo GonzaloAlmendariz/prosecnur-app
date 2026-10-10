@@ -2311,8 +2311,8 @@
           "-f", as.character(page),
           "-l", as.character(page),
           "-r", as.character(dpi),
-          pdf_path,
-          prefix
+          .preview_arg(pdf_path),
+          .preview_arg(prefix)
         ),
         stdout = TRUE,
         stderr = TRUE,
@@ -2351,13 +2351,13 @@
   png_path <- file.path(out_dir, sprintf("slide_preview_%03d.png", slide_index))
 
   args <- c(
-    script,
-    "--pptx", pptx_path,
-    "--output", png_path,
+    .preview_arg(script),
+    "--pptx", .preview_arg(pptx_path),
+    "--output", .preview_arg(png_path),
     "--slide-index", as.character(slide_index),
     "--scale", as.character(scale)
   )
-  args <- c(args, "--module", module)
+  args <- c(args, "--module", .preview_arg(module))
 
   ok <- tryCatch({
     system2(
@@ -2382,7 +2382,7 @@
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   profile_dir <- file.path(out_dir, "lo-profile")
   dir.create(profile_dir, recursive = TRUE, showWarnings = FALSE)
-  profile_uri <- paste0("file:///", normalizePath(profile_dir, winslash = "/", mustWork = FALSE))
+  profile_uri <- .preview_profile_uri(profile_dir)
 
   ok <- tryCatch({
     system2(
@@ -2394,12 +2394,12 @@
         "--nofirststartwizard",
         "--nolockcheck",
         "--norestore",
-        paste0("-env:UserInstallation=", profile_uri),
+        .preview_arg(paste0("-env:UserInstallation=", profile_uri)),
         "--convert-to",
         "pdf",
         "--outdir",
-        out_dir,
-        pptx_path
+        .preview_arg(out_dir),
+        .preview_arg(pptx_path)
       ),
       stdout = TRUE,
       stderr = TRUE,

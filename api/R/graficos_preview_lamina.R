@@ -144,3 +144,20 @@
   if (is.null(pdf_path)) return(.con_indice(list(NULL)))
   .con_indice(lapply(seq_len(n), function(i) .pdf_page_to_png(pdf_path, tmpdir, "soffice", page = i, dpi = dpi, timeout = timeout)))
 }
+
+#' Un argumento de `system2` con comillas para el shell de la plataforma
+#'
+#' `system2` pone comillas al comando pero no a los argumentos: una ruta con espacios («C:/Users/Juan Pérez/…», lo normal
+#' en Windows) partía la llamada a soffice o a pdftoppm y la vista previa salía vacía sin aviso (plan de empaquetado, P1).
+#' @keywords internal
+.preview_arg <- function(x) shQuote(x, type = if (identical(.Platform$OS.type, "windows")) "cmd" else "sh")
+
+#' URI `file://` del perfil propio de LibreOffice, con la ruta codificada
+#'
+#' Espacios y tildes van como `%XX` (UTF-8); `/` y `:` se conservan. Una ruta de Windows («C:/…») lleva la barra inicial.
+#' @keywords internal
+.preview_profile_uri <- function(dir) {
+  ruta <- normalizePath(dir, winslash = "/", mustWork = FALSE)
+  if (!startsWith(ruta, "/")) ruta <- paste0("/", ruta)
+  paste0("file://", utils::URLencode(enc2utf8(ruta), reserved = FALSE))
+}
