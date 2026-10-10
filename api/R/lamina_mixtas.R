@@ -56,12 +56,30 @@
            filetes = list(list(tipo = "h", x0 = ml, x1 = ml + wl, y = yt + 1.5), list(tipo = "v", x = ml + wl + gap3 / 2, y0 = yt - 0.05, y1 = yf),
                           list(tipo = "h", x0 = xc, x1 = xc + wr, y = yt + 2.2), list(tipo = "v", x = xc + wr + gap3 / 2, y0 = yt - 0.05, y1 = yf)))
     },
+    # Tipo 17 (lámina 160): dos gráficos arriba lado a lado y uno ancho abajo. Las ranuras salen del estándar (fuente
+    # única); el panel de abajo dibuja hasta el fin del contenido, como el de abajo de las demás mixtas, y los filetes
+    # van al medio de cada calle.
+    poblacion_3_corona = .lam_corona_geo(),
     paneles_4 = {
       h2 <- (yf - yt - 0.35) / 2
       list(paneles = list(P(ml, yt, col2, h2), P(xr, yt, col2, h2), P(ml, yt + h2 + 0.35, col2, h2), P(xr, yt + h2 + 0.35, col2, h2)),
            filetes = list(list(tipo = "v", x = xm, y0 = yt, y1 = yf), list(tipo = "h", x0 = ml, x1 = W - g_("margen_der"), y = yt + h2 + 0.15)))
     },
     NULL)
+}
+
+#' Rectángulos de la corona, leídos de `ppt.tipos_lamina` (p_slide_3_graficos_poblacion_corona)
+#'
+#' @return Como `.lam_mixta_geo()`: `paneles` (superior izquierda, superior derecha, inferior) y `filetes`.
+#' @keywords internal
+.lam_corona_geo <- function() {
+  r <- Filter(function(x) identical(x$tipo, "grafico"), .std_tipo_lamina("p_slide_3_graficos_poblacion_corona")$ranuras)
+  if (length(r) != 3L) return(NULL)
+  P <- function(q, h = q$h) list(x = q$x, y = q$y, w = q$w, h = h)
+  sup_i <- r[[1]]; sup_d <- r[[2]]; inf <- r[[3]]
+  list(paneles = list(P(sup_i), P(sup_d), P(inf, .std_geom("contenido_y1") - inf$y)),
+       filetes = list(list(tipo = "v", x = (sup_i$x + sup_i$w + sup_d$x) / 2, y0 = sup_i$y, y1 = sup_i$y + sup_i$h),
+                      list(tipo = "h", x0 = inf$x, x1 = inf$x + inf$w, y = (sup_i$y + sup_i$h + inf$y) / 2)))
 }
 
 #' La especificación que trae un gráfico renderizado: la de un gráfico (`pulso_espec`) o la de una cifra destacada

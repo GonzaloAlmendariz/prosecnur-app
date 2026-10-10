@@ -127,9 +127,9 @@ export const RANURAS_ESTANDAR: Readonly<Record<string, { nombre: string; ranuras
   "p_slide_3_graficos_poblacion_corona": {
     nombre: "Tres gráficos en corona",
     ranuras: [
-      { tipo: "grafico", x: 0.495, y: 1.65, w: 6.012, h: 2.2 },
-      { tipo: "grafico", x: 0.495, y: 4.05, w: 6.012, h: 2.2 },
-      { tipo: "grafico", x: 7.007, y: 1.65, w: 6.012, h: 4.6 },
+      { tipo: "grafico", x: 0.495, y: 1.65, w: 5.862, h: 2.15 },
+      { tipo: "grafico", x: 7.157, y: 1.65, w: 5.862, h: 2.15 },
+      { tipo: "grafico", x: 0.495, y: 4.2, w: 12.523, h: 2.17 },
     ],
   },
   "p_slide_4_graficos": {
