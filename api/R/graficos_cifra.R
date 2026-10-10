@@ -147,9 +147,10 @@ p_cifra <- function(var, modo = c("porcentaje", "n", "mediana", "media"), catego
   f <- .cifra_fuente(el$var, data_sources, inst_sources)
   d <- .apply_named_filters(f$data, filters = el$filtros %||% list(), arg_name = "filtros", mode = "strict")
   rotulo <- el$rotulo %||% .cifra_rotulo_auto(f$var, el$modo, el$categoria, f$inst)
-  if (is.null(el$rotulo)) .pulso_aviso(sprintf("La cifra de «%s» no tiene rótulo: se usó «%s». Escríbelo en el editor para que diga qué es.", f$var, rotulo))
   it <- .cifra_desde_datos(d, f$var, el$modo, categoria = el$categoria, instrumento = f$inst, rotulo = rotulo,
                            detalle = el$detalle, unidad = el$unidad, decimales = el$decimales, icono = el$icono)
+  # Después del cálculo: si la variable falta, el único aviso es el de la variable, no también el del rótulo.
+  if (is.null(el$rotulo)) .pulso_aviso(sprintf("La cifra de «%s» no tiene rótulo: se usó «%s». Escríbelo en el editor para que diga qué es.", f$var, rotulo))
   graficar_cifra(it)
 }
 

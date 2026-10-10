@@ -4086,7 +4086,7 @@ reporte_ppt_plan <- function(
       base      = base,
       note      = word_note,
       base_multi_source = .is_multi_source_element(el),
-      etype     = etype
+      etype     = etype, slide_i = i   # la franja de cifras del Word no cruza láminas
     )
     invisible(NULL)
   }

@@ -125,3 +125,37 @@ test_that("las láminas de composición (21 y 22) llegan al Word: sus cifras en 
   expect_length(charts, 5L)                                                       # 3 cifras + 2 gráficos
   expect_equal(sum(vapply(charts, function(e) !is.null(attr(e$plot_word, "pulso_cifra")), TRUE)), 3L)
 })
+
+test_that("la lámina de población de 3 también llega al Word y cada entrada sabe de qué lámina viene", {
+  set.seed(4); n <- 50
+  df <- data.frame(a = sample(c("1", "2"), n, TRUE), b = sample(c("1", "2"), n, TRUE), c = sample(c("1", "2"), n, TRUE))
+  inst <- list(survey = data.frame(name = c("a", "b", "c"), type = rep("select_one si_no", 3), list_name = rep("si_no", 3),
+                                   label = c("Pregunta A", "Pregunta B", "Pregunta C")),
+               choices = data.frame(list_name = c("si_no", "si_no"), name = c("1", "2"), label = c("Sí", "No")), orders_list = NULL)
+  s <- p_slide_3_graficos_poblacion(p_barras_categoricas("a"), p_barras_categoricas("b"), p_barras_categoricas("c"), titulo = "Perfil")
+  rm <- suppressMessages(reporte_ppt_plan(data = df, instrumento = inst, plan = p_plan(slides = list(p_slide_seccion("Uno"), s)),
+                                          solo_lista = TRUE, build_render_meta = TRUE, mensajes_progreso = FALSE))$render_meta
+  charts <- Filter(function(e) identical(e$kind %||% "chart", "chart"), rm)
+  expect_length(charts, 3L)
+  expect_true(all(vapply(charts, function(e) identical(e$slide_i, 2L), TRUE)))
+})
+
+test_that("la franja del Word junta las cifras seguidas de una misma lámina, nunca las de dos láminas", {
+  cif <- function(v, r, sl) list(kind = "chart", etype = "cifra", title = r, slide_i = sl,
+                                 plot_word = graficar_cifra(list(valor = v, valor_word = v, rotulo = r)))
+  rm <- list(list(kind = "section", title = "Resultados"), cif("24", "edad mediana", 1L), cif("49%", "mujeres", 1L),
+             cif("24", "edad mediana", 2L), cif("80", "encuestados", 2L))
+  llamadas <- list()
+  local_mocked_bindings(.word_franja = function(doc, valores, rotulos) { llamadas[[length(llamadas) + 1L]] <<- valores; doc })
+  suppressMessages(.word_documento(rm, tempfile(fileext = ".docx")))
+  expect_identical(llamadas, list(c("24", "49%"), c("24", "80")))
+})
+
+test_that("una cifra sobre una variable que falta da un solo aviso: el de la variable, no también el del rótulo", {
+  data_sources <- list(base = data.frame(edad = 1:5))
+  msgs <- character()
+  e <- withCallingHandlers(tryCatch(.render_cifra(list(var = "sueldo", modo = "mediana")), error = function(e) e),
+                           message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") })
+  expect_s3_class(e, "error"); expect_match(conditionMessage(e), "sueldo")
+  expect_false(any(grepl("rótulo", msgs)))
+})
