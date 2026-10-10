@@ -195,7 +195,10 @@ test_that("reporte_ppt_plan aplica controles de focos desde slots del editor", {
         iconos_focos_icon_scale = 0.72,
         iconos_focos_left_cm = "0.1, 0.2, 0.3, 0.4, 0.5",
         iconos_focos_top_cm = "0.1, 0.2, 0.3, 0.4, 0.5"
-      )
+      ),
+      # Desde 8d6fc3d66 los focos sin composición van al índice nativo («círculos»); este test cubre la ruta de
+      # bombillas, que sólo se conserva con la composición «focos» explícita.
+      meta = list(composicion = "focos")
     ),
     class = "ppt_slide"
   )
