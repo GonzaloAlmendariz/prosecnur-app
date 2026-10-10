@@ -202,3 +202,15 @@ de otro Team ID.
 
 Hallazgo de paso: en el mazo exportado de acrconta, la lámina 4 (explicación del Top Two Box) sale con el título «N»
 (`pdftotext` lo confirma). Defecto del motor por investigar.
+
+### Estado de las piezas (2026-10-10)
+
+P1 ☑ `260d1db75` · P2 ☑ `aa3ef3b04` + `390a3dbc0` (pdftools declarado) · P3 ☑ `aa3ef3b04` · P4 ☑ `49725a24c` · P5 ☑ `b86a9ee95`
++ `8bcd31299` (sha256 fijados tras firma GPG de TDF) · **P6 ☑ `ebb13ff35`**: `packaging/macos/stage-preview-renderer.sh` +
+hook `desktop/scripts/after-pack-mac.cjs` (ditto + `codesign --verify --deep --strict`, falla cerrado sin staging). Build
+`--dir` arm64 local: soffice dentro de `Contents/Resources/Internals/preview-renderer/LibreOffice.app`, firma de TDF válida
+(TeamIdentifier 7P5S3ZLCN7), 25 symlinks conservados, .app de 422 MB → 1.2 GB. Sin probar: DMG final, x64 completo,
+Gatekeeper/cuarentena del LibreOffice anidado en un .app sin firmar (riesgo principal para distribuir). Efecto en CI: el job
+de macOS (best-effort) ahora descarga ~600 MB de TDF por corrida; la clave de caché no incluye el lock. En local,
+`build-dmg.sh` choca con los `.pulso` de `api/inst/reference_projects` en solo lectura (`xattr -cr`, problema previo).
+P7 (Windows) ☐ · P8 (`release.yml`) ☐ requiere aprobación · P9 ☐ · P10 ☐.
