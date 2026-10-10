@@ -5313,6 +5313,11 @@ mount_monitoreo <- function(pr) {
         # produce el dato y nadie lo emite, asi que la cifra no llega.
         fusion = out$fusion,
         agenda_campos_ausentes = out$agenda_campos_ausentes,
+        # Mismo patrón: el importador los calcula y la sesión los guarda, pero la
+        # respuesta de la importación no los traía.
+        estados_desconocidos = out$estados_desconocidos,
+        codigos_sin_plan = out$codigos_sin_plan,
+        reservas_sin_cadena = out$reservas_sin_cadena,
         state = .monitoreo_state_payload(sid),
         saved_project = !is.null(saved_project)
       )
@@ -5511,6 +5516,11 @@ mount_monitoreo <- function(pr) {
         control_sin_nombre = out$control_sin_nombre,
         fusion = out$fusion,
         agenda_campos_ausentes = out$agenda_campos_ausentes,
+        # Mismo patrón: el importador los calcula y la sesión los guarda, pero la
+        # respuesta de la importación no los traía.
+        estados_desconocidos = out$estados_desconocidos,
+        codigos_sin_plan = out$codigos_sin_plan,
+        reservas_sin_cadena = out$reservas_sin_cadena,
         state = .monitoreo_state_payload(sid),
         saved_project = !is.null(saved_project)
       )
