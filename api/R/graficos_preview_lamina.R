@@ -185,3 +185,37 @@
   if (nzchar(.first_available_cmd(c("pdftoppm")))) return(list(available = TRUE, id = "pdftoppm"))
   list(available = FALSE, id = NA_character_)
 }
+
+#' Antetítulo que la lámina hereda en el informe
+#'
+#' En el export el antetítulo es el título del último separador (`p_slide_seccion`) antes de la lámina
+#' (`.lam_antetitulos`). La vista previa arma un mini-plan de una sola lámina y lo perdía: la escala 13 de acrconta
+#' difería del export en 3.707 px por eso (inventario F6, parte C).
+#' @param plan_slides Láminas del plan guardado (`cfg$plan$slides`), en el formato del editor (`id`, `tipo`, `payload`).
+#' @return El título del separador vigente para la lámina `slide_id`, o `NULL` si no la encuentra o no hay separador.
+#' @keywords internal
+.preview_antetitulo_vigente <- function(plan_slides, slide_id) {
+  if (is.null(slide_id) || !nzchar(as.character(slide_id)[1])) return(NULL)
+  vigente <- NULL
+  for (x in plan_slides) {
+    if (identical(as.character(x$tipo %||% "")[1], "p_slide_seccion")) {
+      t <- as.character((x$payload %||% list())$titulo %||% "")[1]
+      vigente <- if (!is.na(t) && nzchar(trimws(t))) t else vigente
+    }
+    if (identical(as.character(x$id %||% "")[1], as.character(slide_id)[1])) return(vigente)
+  }
+  NULL
+}
+
+#' La lámina de la vista previa con el antetítulo que hereda, salvo que ya fije uno o sea un separador
+#' @keywords internal
+.preview_con_antetitulo <- function(slide, plan_slides) {
+  if (identical(as.character(slide$tipo %||% "")[1], "p_slide_seccion")) return(slide)
+  meta <- (slide$payload %||% list())$meta %||% list()
+  if (!is.null(meta$antetitulo)) return(slide)
+  ante <- .preview_antetitulo_vigente(plan_slides, slide$id)
+  if (is.null(ante)) return(slide)
+  meta$antetitulo <- ante
+  slide$payload$meta <- meta
+  slide
+}

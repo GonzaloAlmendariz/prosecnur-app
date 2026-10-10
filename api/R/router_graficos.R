@@ -3064,6 +3064,8 @@ mount_graficos <- function(pr) {
       # Enriquecemos con usar_canvas=TRUE + debug_ph (invariantes globales
       # que el backend aplica antes de cada export).
       cfg <- .graficos_effective_config(sid, parsed$config %||% parsed$graficos_config)
+      # El mini-plan no tiene el separador vigente: sin esto la lámina salía sin antetítulo (F6.0b.2, inventario parte C).
+      slide <- .preview_con_antetitulo(slide, cfg$plan$slides %||% list())
       delivery <- .graficos_delivery_options(
         cfg,
         profile_id = parsed$profile_id %||% parsed$profileId,
