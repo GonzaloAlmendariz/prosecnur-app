@@ -179,3 +179,13 @@ test_that("un perfil compartido de LibreOffice dañado se rehace y la conversió
   local_mocked_bindings(system2 = local({ n <- 0L; function(...) { n <<- n + 1L; if (n == 1L) stop("perfil dañado"); orig(...) } }), .package = "base")
   expect_true(file.exists(.pptx_to_pdf_soffice(f, tempfile("pv"), timeout = 60L)))
 })
+
+test_that("una imagen pegada en una ranura del motor es ruta anterior, no nativa", {
+  pic <- '<p:pic><p:nvPicPr><p:cNvPr id="4" name="prosecnur:slide_1:right"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill/></p:pic>'
+  titulo <- '<p:sp><p:nvSpPr><p:cNvPr id="2" name="prosecnur:titulo"/></p:nvSpPr></p:sp>'
+  expect_identical(.pptx_lamina_estado(paste0(titulo, pic)), "ruta_anterior")
+  expect_identical(.pptx_lamina_estado(pic), "ruta_anterior")
+  nativo <- '<p:grpSp><p:nvGrpSpPr><p:cNvPr id="5" name="prosecnur:grafico:escala"/></p:nvGrpSpPr></p:grpSp>'
+  expect_identical(.pptx_lamina_estado(paste0(titulo, nativo, pic)), "nativa")
+  expect_identical(.pptx_lamina_estado(titulo), "estructura")
+})
