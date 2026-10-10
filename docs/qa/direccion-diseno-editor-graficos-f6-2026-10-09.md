@@ -1,7 +1,8 @@
 # Dirección de diseño — el editor de Gráficos remasterizado (F6.0)
 
 Tipo: Dirección de diseño (propuesta)
-Estado: Propuesta para aprobación de Gonzalo; no aprobada
+Estado: **Aprobada por Gonzalo el 2026-10-09** («Lo apruebo»), tras tres rondas de corrección contra el recetario; las
+preguntas de §10 siguen abiertas y se resuelven al arrancar F6.1
 Fecha: 2026-10-09
 Autoridad: Los hechos del motor están medidos en `inventario-f6-editor-2026-10-09.md`; las decisiones de Gonzalo
 citadas ahí mandan sobre este documento. La maqueta vive en `tmp/f6-diseno/maqueta/` (no versionada) y sus capturas en
