@@ -46,6 +46,16 @@
                           P(ml, yb, col2, yf - yb), P(xr, yb, col2, yf - yb)),
            filetes = list(list(tipo = "h", x0 = ml, x1 = W - g_("margen_der"), y = yt + 1.9), list(tipo = "v", x = xm, y0 = yb, y1 = yf)))
     },
+    # Tipo 21 (lámina 169): columna lateral con dos cifras apiladas, dos gráficos en la columna del medio y uno alto a la
+    # derecha. Ranuras en el orden de `.SLIDES_COMPOSICION$poblacion_3_cifras`.
+    poblacion_3_cifras = {
+      wl <- 2.95; gap3 <- 0.45; xc <- ml + wl + gap3; wr <- (ancho - wl - 2 * gap3) / 2; xd <- xc + wr + gap3
+      # El panel de arriba lleva la dicotomía, que pide 2.05 in con su pregunta y su público (`.lam_panel_geo`).
+      list(paneles = list(P(xc, yt - 0.05, wr, 2.15), P(xd, yt - 0.05, wr, yf - yt + 0.05), P(ml, yt + 0.1, wl, 1.3),
+                          P(xc, yt + 2.35, wr, yf - yt - 2.35), P(ml, yt + 1.8, wl, 1.3)),
+           filetes = list(list(tipo = "h", x0 = ml, x1 = ml + wl, y = yt + 1.5), list(tipo = "v", x = ml + wl + gap3 / 2, y0 = yt - 0.05, y1 = yf),
+                          list(tipo = "h", x0 = xc, x1 = xc + wr, y = yt + 2.2), list(tipo = "v", x = xc + wr + gap3 / 2, y0 = yt - 0.05, y1 = yf)))
+    },
     paneles_4 = {
       h2 <- (yf - yt - 0.35) / 2
       list(paneles = list(P(ml, yt, col2, h2), P(xr, yt, col2, h2), P(ml, yt + h2 + 0.35, col2, h2), P(xr, yt + h2 + 0.35, col2, h2)),
@@ -183,11 +193,14 @@
   fines <- numeric(length(P))
   cifras <- which(vapply(especs, .lam_es_cifra, TRUE))
   iconos <- list()
-  if (length(cifras)) {
-    # Las cifras de la banda van juntas para que sus detalles caigan a la misma altura y lleven sus separadores.
-    p1 <- P[[cifras[1]]]; pn <- P[[cifras[length(cifras)]]]
-    b <- .lam_cifras_banda(lz, pulso_cifras(lapply(especs[cifras], `[[`, "item")), p1$x, p1$y, pn$x + pn$w - p1$x)
-    iconos <- b$iconos; fines[cifras] <- p1$y + b$alto
+  # Las cifras de una misma fila van juntas en una banda (detalles a la misma altura y sus separadores); una cifra sola en
+  # su fila (la columna lateral del tipo 21) se dibuja a 34 pt, como `cifra()` del recetario.
+  for (y in unique(vapply(P[cifras], `[[`, 0, "y"))) {
+    fila <- cifras[vapply(P[cifras], `[[`, 0, "y") == y]
+    p1 <- P[[fila[1]]]; pn <- P[[fila[length(fila)]]]
+    b <- .lam_cifras_banda(lz, pulso_cifras(lapply(especs[fila], `[[`, "item")), p1$x, p1$y, pn$x + pn$w - p1$x,
+                           size = if (length(fila) == 1L) 34 else NULL)
+    iconos <- c(iconos, b$iconos); fines[fila] <- p1$y + b$alto
   }
   for (k in setdiff(seq_along(P), cifras)) {
     p <- P[[k]]
