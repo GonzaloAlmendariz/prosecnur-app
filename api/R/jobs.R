@@ -437,7 +437,10 @@ job_snapshot <- function(j) {
 #' suman aunque la lista ya tenga `maximo`.
 #' @noRd
 .pulso_avisos_ordenar <- function(avisos, maximo = 8L) {
-  de_lamina <- grepl("^Lámina [0-9]+ · ", avisos)
+  # Sólo se agrupan los dos tipos que se saben resumir (partes y títulos); otro «Lámina N ·» va con los demás y no se
+  # descarta en silencio (verificador de K12b).
+  de_lamina <- grepl("^Lámina [0-9]+ · ", avisos) &
+    (grepl("salió en [0-9]+ partes", avisos) | grepl("el título ocupa", avisos, fixed = TRUE))
   otros <- utils::head(avisos[!de_lamina], maximo)
   lam <- avisos[de_lamina]
   if (!length(lam) || length(otros) + length(lam) <= maximo) return(c(otros, lam))
