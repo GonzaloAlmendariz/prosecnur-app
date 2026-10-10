@@ -24,9 +24,20 @@ Situación: traspaso a sesión en la nube.
 
 ## Primer paso en la nube
 
-1. Si este archivo no registra el veredicto del «verificador frontend-3» (commits a092e711e selector de partes ≥3,
-   f61bd60e3 capas Avisos/Inspector + aviso en sessionStorage, c2a599513 control «Orden» D8), lanza un verificador nuevo
-   sobre esos tres commits: estaba corriendo en la sesión local al traspasar.
+1. Veredicto del «verificador frontend-3» (a092e711e, f61bd60e3, c2a599513), llegado al traspasar: RECHAZADO por un
+   bloqueante. F1 (selector de partes ≥3: 0 cortes, k=1..6, 1024–1710), F3 (aviso de migración persistente, toast solo en
+   Gráficos) y F4 (control «Orden»: PPT y Word exportados salen con el orden elegido, sobrevive a guardar/reabrir) en verde;
+   tsc limpio, gate-front graficos 825 pass, src/api+src/lib 487 pass. Corregir con un writer frontend:
+   - BLOQUEANTE (C2/C4, 1024×600): abrir Avisos desde el Inspector modal corre el visor 250 px a la izquierda y queda así
+     tras Escape: el `focus()` de «Cerrar avisos» (enfocarAlAbrir, PanelAvisos.tsx) desplaza `.pulso-f6-laminas`
+     (scrollLeft=250). Usar `focus({preventScroll:true})` o equivalente; cierre: visor en x66 y scrollLeft 0 tras abrir y
+     tras Escape.
+   - OrdenCategoriasGrafico.tsx (ListaOrden): al llevar una categoría al borde con Subir/Bajar, el botón queda disabled y el
+     foco cae a BODY → mover el foco al ítem o al botón opuesto.
+   - Backend, previo: en el PPT nativo la leyenda de la torta se lee al revés de las porciones (también Masculino/Femenino);
+     choca con «residual al final» (en Word se lee bien).
+   - Probar a mano en Electron el teclado del popup nativo del selector de partes (headless no lo ejercita).
+   Luego verificador nuevo sobre la corrección. Además: F-a (Personalizado + Invertir WYSIWYG).
 2. Cierra los pendientes chicos de K15 y D8 (B-n abajo) y sigue con la cola en el orden F-a → F-b (F6.2) → B-a (K7) → F-e
    (F6.3) → B-c/B-d (K13/K6) → F-f (F6.4) → F-g (F6.5), siempre con verificador independiente al cierre de cada unidad.
 
