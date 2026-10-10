@@ -872,6 +872,8 @@ export type PreviewSlideOptions = {
   preview_quality?: "quick" | "normal";
   include_images?: boolean;
   render_slide_preview?: boolean;
+  /** Rasterizar todas las partes «(cont.)», no sólo la primera. */
+  preview_partes?: boolean;
   scope?: "consolidated";
 };
 
@@ -882,7 +884,22 @@ export type PreviewSlideResponse = {
   type: "pptx";
   images: PreviewImage[];      // vacío si el slide no tiene gráficos (ej. portada)
   slide_preview?: SlideRenderedPreview | null;
+  /** Partes «(cont.)» que salieron y cómo salió cada una (F6.0b, `graficos_preview_lamina.R`). */
+  partes?: PreviewSlidePartes;
+  /** Todas las partes rasterizadas cuando se pide `preview_partes`; un hueco llega como objeto sin `indice`. */
+  slide_previews?: Array<(SlideRenderedPreview & { indice?: number }) | Record<string, never>>;
+  /** Avisos del motor para esta lámina (columna omitida, lámina partida…). */
+  avisos?: string[] | string;
 };
+
+export type PreviewSlideParte = {
+  indice: number;
+  titulo: string;
+  estado: "nativa" | "estructura" | "ruta_anterior" | "sin_grafico";
+  continuacion: boolean;
+};
+
+export type PreviewSlidePartes = { n: number; partes: PreviewSlideParte[]; truncado?: boolean };
 
 export type GraficosPreviewRendererStatus = {
   ok: true;
@@ -982,13 +999,15 @@ export type GraficosSlideLayoutMatrixOptions = {
 export async function apiGraficosPreviewSlide(
   slide: Slide,
   config?: unknown,
-  options?: PreviewSlideOptions
+  options?: PreviewSlideOptions,
+  request?: { signal?: AbortSignal }
 ) {
   return handle<PreviewSlideResponse>(
     await apiFetch("/api/graficos/preview-slide", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ slide, config, ...options }),
+      signal: request?.signal,
     })
   );
 }
