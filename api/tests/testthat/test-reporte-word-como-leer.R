@@ -32,3 +32,13 @@ test_that("una figura sin base no se pega a lo que sigue (encadenaba el capítul
   img <- regmatches(x, regexpr("<w:p>(?:(?!</w:p>).)*<w:drawing>", x, perl = TRUE))
   expect_false(grepl("keepNext", img, fixed = TRUE))
 })
+
+test_that("el Word recetario declara el redondeo que usa el informe, no siempre el estándar (inventario F6, A4)", {
+  pre <- function(...) { m <- list(...); lapply(m, function(x) list(args = list(metodo_redondeo = x))) }
+  expect_identical(.word_redondeo_documento(list(), pre(barras_apiladas = "reparto")), "resto_mayor")
+  expect_identical(.word_redondeo_documento(list(), pre(barras_apiladas = "reparto", pie = "estandar")), "ambos")
+  expect_identical(.word_redondeo_documento(list(), list()), "estandar")
+  expect_identical(.word_redondeo_documento(list(redondeo = "estandar"), pre(barras_apiladas = "reparto")), "estandar")   # lo pedido gana
+  x <- .wl_xml(.word_como_leer(.word_documento_nuevo(), redondeo = "ambos"))
+  expect_match(x, "Unos gráficos redondean cada cifra por separado", fixed = TRUE)
+})

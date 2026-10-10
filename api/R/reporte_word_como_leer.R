@@ -55,11 +55,11 @@
 
 #' Capítulo «Cómo leer este informe»
 #'
-#' @param redondeo `"estandar"` o `"resto_mayor"`: el método que usa el informe (el recuadro final lo dice).
+#' @param redondeo `"estandar"`, `"resto_mayor"` o `"ambos"`: el método que usa el informe (el recuadro final lo dice).
 #' @param con_bottom Si el informe muestra el Bottom Two Box.
 #' @param figura,tabla Contadores de numeración: el capítulo devuelve los siguientes en `attr(doc, "siguientes")`.
 #' @keywords internal
-.word_como_leer <- function(doc, numero = 2, redondeo = c("estandar", "resto_mayor"), con_bottom = TRUE, figura = 1L, tabla = 1L, variante_apertura = "B") {
+.word_como_leer <- function(doc, numero = 2, redondeo = c("estandar", "resto_mayor", "ambos"), con_bottom = TRUE, figura = 1L, tabla = 1L, variante_apertura = "B") {
   redondeo <- match.arg(redondeo); coral <- .std_word("colores", "acento")
   doc <- .word_apertura(doc, numero, "Cómo leer este informe", paste(
     "Las páginas que explican al lector cómo leer las cifras del informe: el Top Two Box", if (con_bottom) "y el Bottom Two Box," else ",",
@@ -129,6 +129,7 @@
     "Top Two Box es la suma de las dos respuestas de acuerdo de la escala.",
     "Con menos de 30 casos, junto al porcentaje va el número de personas entre paréntesis.",
     if (identical(redondeo, "resto_mayor")) "Las cifras se redondean al entero con el método del resto mayor, de modo que cada barra suma 100%."
+    else if (identical(redondeo, "ambos")) "Unos gráficos redondean cada cifra por separado (una barra puede sumar 99% o 101%) y otros con el método del resto mayor (cada barra suma 100%)."
     else "Las cifras se redondean al entero por separado (desde 0.5 sube), así que una barra puede sumar 99% o 101%."))
   attr(doc, "siguientes") <- c(figura = figura, tabla = tabla)
   doc
