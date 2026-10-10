@@ -114,6 +114,9 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     else if (!bibliotecaAbierta && insercion.vioPanel) setInsercion(null);
   }, [insercion, ids, direccion.panel, moveSlideTo, setInsercion]);
 
+  // Un enlace a una ranura (`foco=l-NN:gK`) abre la sección Gráficos con su tarjeta.
+  useEffect(() => { if (ranura !== null) setSeccion("graficos"); }, [ranura, setSeccion]);
+
   // Cada lámina empieza en su primera parte.
   useEffect(() => { setParte(1); }, [slide?.id, setParte]);
 

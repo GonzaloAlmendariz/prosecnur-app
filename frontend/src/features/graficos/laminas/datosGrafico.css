@@ -79,3 +79,23 @@
   padding: 0 var(--pulso-space-3) var(--pulso-space-2);
   border-top: 1px solid var(--pulso-border);
 }
+
+/* La pregunta elegida se lee entera: el selector de variable deja de recortar su texto dentro de la tarjeta. */
+.pulso-f6-dato-control .pulso-gv2-variable-trigger {
+  height: auto;
+  min-height: var(--pulso-control-height-lg);
+  align-items: flex-start;
+}
+
+.pulso-f6-dato-control .pulso-gv2-variable-trigger-copy,
+.pulso-f6-dato-control .pulso-gv2-variable-trigger-copy * {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-ranura.is-abierta .pulso-f6-ranura-texto span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
