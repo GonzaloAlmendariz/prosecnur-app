@@ -745,6 +745,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconDashboard,
         to: "/graficos",
         layoutPolicy: "viewport",
+        tabs: PROCESAMIENTO_PESTANAS.graficos,
       },
     ],
   },

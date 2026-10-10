@@ -1,0 +1,242 @@
+/* Workbench de la pestaña Láminas (F6.1). Contrato de armonía F6 §5: 280 / 1fr / 360 en el marco ancho;
+   232 / 1fr con el inspector como sideover (`panel=inspector`) en el compacto. Un dueño de scroll por columna (C4).
+   El umbral es del CONTENEDOR, no del viewport: a 1024 px el área útil ronda 960 px. */
+
+.pulso-f6-laminas-host {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  container-type: inline-size;
+  container-name: pulso-f6-laminas;
+}
+
+.pulso-f6-laminas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 360px;
+  grid-template-rows: minmax(0, 1fr);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.pulso-f6-laminas.is-vacia {
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.pulso-f6-inspector-marco {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  border-left: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-laminas .pulso-f6-solo-compacto {
+  display: none;
+}
+
+.pulso-f6-velo {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--pulso-text) 18%, transparent);
+  cursor: default;
+}
+
+@container pulso-f6-laminas (max-width: 1120px) {
+  .pulso-f6-laminas {
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+
+  .pulso-f6-inspector-marco {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4;
+    width: min(360px, 92%);
+    box-shadow: var(--pulso-shadow-popover);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform var(--motion-dur-panel) var(--motion-ease-drawer), visibility 0s linear var(--motion-dur-panel);
+  }
+
+  .pulso-f6-laminas.is-inspector-abierto .pulso-f6-inspector-marco {
+    transform: none;
+    visibility: visible;
+    transition: transform var(--motion-dur-panel) var(--motion-ease-drawer);
+  }
+
+  .pulso-f6-laminas .pulso-f6-solo-compacto {
+    display: inline-flex;
+  }
+
+  .pulso-f6-laminas .pulso-f6-velo.pulso-f6-solo-compacto {
+    display: block;
+  }
+
+  .pulso-f6-estructura .pulso-f6-col-meta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-inspector-marco,
+  .pulso-f6-laminas.is-inspector-abierto .pulso-f6-inspector-marco {
+    transition: none;
+  }
+}
+
+/* Piezas compartidas por las tres columnas. */
+.pulso-f6-col-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  height: 40px;
+  min-width: 0;
+  padding: 0 var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  overflow: hidden;
+}
+
+.pulso-f6-col-head h2 {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-col-meta {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.pulso-f6-col-sp {
+  flex: 1;
+  min-width: 0;
+}
+
+.pulso-f6-texto-boton {
+  flex: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--module-accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-f6-texto-boton:hover {
+  text-decoration: underline;
+}
+
+.pulso-f6-texto-boton:disabled {
+  color: var(--pulso-text-faint);
+  cursor: default;
+  text-decoration: none;
+}
+
+.pulso-f6-boton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  height: var(--pulso-control-height-md);
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-f6-boton:hover {
+  background: var(--pulso-surface-3);
+}
+
+.pulso-f6-icono-boton {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: var(--pulso-control-height-md);
+  height: var(--pulso-control-height-md);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-f6-icono-boton:hover:not(:disabled) {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-icono-boton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pulso-f6-boton:focus-visible,
+.pulso-f6-icono-boton:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-vacio-col {
+  margin: var(--pulso-space-4) var(--pulso-space-2);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-vacio-informe {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-6);
+  background: var(--pulso-bg);
+  text-align: center;
+}
+
+.pulso-f6-vacio-informe strong {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-vacio-informe p {
+  max-width: 420px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-boton { transition: none; }
+}
+
+/* En la pestaña Láminas, los controles de modo del editor anterior (Timeline · Canvas · Cómodo y su lámina activa)
+   no gobiernan nada: se ocultan para que la barra quepa a 1024 sin cortar «Exportar». La barra propia de la pestaña
+   reemplaza a la del editor anterior en la parte 2 de F6.1. */
+.pulso-graficos-frame:has(.pulso-f6-laminas) .pulso-gv2-command-cluster--mode {
+  display: none;
+}

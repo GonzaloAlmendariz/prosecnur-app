@@ -88,8 +88,8 @@ describe("catálogos canónicos de pestañas", () => {
     ]);
   });
 
-  it("fija las 26 pestañas de Procesamiento con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(26);
+  it("fija las 28 pestañas de Procesamiento con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(28);
     expect(firma(PROCESAMIENTO_PESTANAS.carga)).toEqual([
       "plan:Plan",
       "fuentes:Fuentes",
@@ -124,6 +124,11 @@ describe("catálogos canónicos de pestañas", () => {
       "cruces:Cruces",
       "orden:Orden de categorías",
       "dimensiones:Dimensiones",
+    ]);
+    // F6: «Láminas» (editor nuevo, por defecto) y el editor de siempre mientras F6 se completa.
+    expect(firma(PROCESAMIENTO_PESTANAS.graficos)).toEqual([
+      "laminas:Láminas",
+      "clasico:Editor anterior",
     ]);
   });
 

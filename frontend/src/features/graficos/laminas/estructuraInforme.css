@@ -1,0 +1,260 @@
+/* Estructura del informe (F6.1). Contrato de armonía F6 §5: columna 280 px (232 compacta), cabecera 40 px,
+   filas de lámina de 44 px con marco fijo, un solo dueño de scroll (el cuerpo del árbol). */
+
+.pulso-f6-estructura {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--pulso-surface);
+  border-right: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-estructura-busca {
+  flex: none;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-busca {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  height: var(--pulso-control-height-md);
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-busca:focus-within {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-busca input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+.pulso-f6-estructura-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--pulso-space-1) var(--pulso-space-2) var(--pulso-space-6);
+}
+
+.pulso-f6-arbol,
+.pulso-f6-nodo-hijos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pulso-f6-nodo + .pulso-f6-nodo {
+  margin-top: var(--pulso-space-1);
+}
+
+.pulso-f6-nodo-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--pulso-space-2) 0 var(--pulso-space-1);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-f6-nodo-cabeza:hover {
+  background: var(--pulso-surface-3);
+}
+
+.pulso-f6-nodo-chevron {
+  flex: none;
+  color: var(--pulso-text-faint);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-nodo.is-abierto > .pulso-f6-nodo-cabeza .pulso-f6-nodo-chevron {
+  transform: rotate(90deg);
+}
+
+.pulso-f6-nodo-titulo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-nodo.is-bloque > .pulso-f6-nodo-cabeza .pulso-f6-nodo-titulo {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-num {
+  flex: none;
+  min-width: 18px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-nodo-cuenta {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-nodo.is-capitulo > .pulso-f6-nodo-hijos {
+  margin-left: var(--pulso-space-3);
+  padding-left: var(--pulso-space-1);
+  border-left: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-sub-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: 28px;
+  padding: 0 var(--pulso-space-2);
+}
+
+.pulso-f6-sub > .pulso-f6-nodo-hijos {
+  margin-left: var(--pulso-space-2);
+  padding-left: var(--pulso-space-1);
+  border-left: 1px solid var(--pulso-border);
+}
+
+/* Fila de lámina: marco fijo de 44 px pase lo que pase con el título (C2). */
+.pulso-f6-lamina {
+  display: grid;
+  grid-template-columns: 20px 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  height: 44px;
+  margin: 1px 0;
+  padding: 0 var(--pulso-space-2) 0 var(--pulso-space-1);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-f6-lamina:hover {
+  background: var(--pulso-surface-3);
+}
+
+.pulso-f6-lamina.is-activa {
+  background: var(--module-accent-soft);
+  box-shadow: inset 2px 0 0 var(--module-accent);
+}
+
+.pulso-f6-lamina:focus-visible,
+.pulso-f6-nodo-cabeza:focus-visible,
+.pulso-f6-texto-boton:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: calc(-1 * var(--pulso-nav-focus-outline-width));
+}
+
+.pulso-f6-lamina-pos {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+  text-align: right;
+}
+
+.pulso-f6-lamina-tipo {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-lamina.is-activa .pulso-f6-lamina-tipo {
+  color: var(--module-accent);
+}
+
+
+.pulso-f6-lamina-texto {
+  display: grid;
+  min-width: 0;
+}
+
+.pulso-f6-lamina-titulo,
+.pulso-f6-lamina-detalle {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-lamina-titulo {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-lamina-detalle {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-lamina-partes {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  padding: 0 var(--pulso-space-1);
+  border: 1px solid var(--pulso-border);
+  border-radius: calc(var(--pulso-radius) / 2);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-lamina:not(:has(.pulso-f6-lamina-partes)) {
+  grid-template-columns: 20px 28px minmax(0, 1fr) auto;
+}
+
+.pulso-f6-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--pulso-radius-chip);
+  flex: none;
+}
+
+.pulso-f6-punto.is-nativa { background: var(--pulso-success-fg); }
+.pulso-f6-punto.is-ruta-anterior { background: var(--pulso-warn-fg); }
+.pulso-f6-punto.is-aviso { background: var(--pulso-warn-accent); }
+.pulso-f6-punto.is-error { background: var(--pulso-danger-fg); }
+.pulso-f6-punto.is-sin-grafico { background: var(--pulso-border-strong); }
+.pulso-f6-punto.is-sin-ver { border: 1.5px solid var(--pulso-border-strong); background: transparent; }
+
+.pulso-f6-lamina.is-sangria-2 {
+  padding-left: var(--pulso-space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-nodo-chevron,
+  .pulso-f6-lamina {
+    transition: none;
+  }
+}

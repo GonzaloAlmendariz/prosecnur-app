@@ -12,7 +12,15 @@ export const PANEL_BIBLIOTECA_GRAFICADORES: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/** Inspector de la pestaña Láminas: columna fija en el marco ancho, sideover en el compacto (F6.1). */
+export const PANEL_INSPECTOR_LAMINA: PanelDeclarado = {
+  id: "inspector",
+  label: "Ajustes de la lámina",
+  clase: "sideover",
+};
+
 export const PANELES_GRAFICOS = [
   PANEL_BIBLIOTECA_SLIDES,
   PANEL_BIBLIOTECA_GRAFICADORES,
+  PANEL_INSPECTOR_LAMINA,
 ] as const satisfies readonly PanelDeclarado[];

@@ -1,0 +1,28 @@
+/* Pestañas de Procesamiento › Gráficos (F6): rail icon-only + panel. El panel llena el alto de la página y cede el
+   scroll a sus columnas (No Scroll Jail: un dueño por columna, nunca el panel entero). */
+
+.pulso-graficos-pestanas {
+  flex: 1;
+  min-height: 0;
+}
+
+.pulso-page-frame--scroll-panels .pulso-adaptive-main.pulso-graficos-pestana {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+  background: transparent;
+}
+
+.pulso-graficos-pestana > .pulso-f6-laminas-host {
+  flex: 1;
+  min-height: 0;
+}
+
+/* El editor anterior conserva el ajuste que tenía como hijo directo del cuerpo de la página. */
+.pulso-graficos-frame .pulso-graficos-pestana > .pulso-gv2-shell {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
