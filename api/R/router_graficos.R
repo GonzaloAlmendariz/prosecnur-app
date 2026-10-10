@@ -2242,10 +2242,12 @@
   rasterizer <- .preview_rasterizer_status()
   soffice_usable <- soffice_available && isTRUE(rasterizer$available)
 
-  renderer <- if (artifact_available) {
+  renderer <- if (artifact_available && .preview_usar_artifact()) {
     "artifact-tool"
   } else if (soffice_usable) {
     "soffice"
+  } else if (artifact_available) {
+    "artifact-tool"
   } else {
     NA_character_
   }
@@ -2446,14 +2448,10 @@
 }
 
 .render_pptx_slide_png <- function(pptx_path, out_dir, slide_index = 1L, timeout = 30, dpi = 220) {
-  out <- .render_pptx_slide_png_artifact(
-    pptx_path,
-    out_dir,
-    slide_index = slide_index,
-    timeout = timeout,
-    scale = max(1, dpi / 96)
-  )
-  if (!is.null(out)) return(out)
+  if (.preview_usar_artifact()) {
+    out <- .render_pptx_slide_png_artifact(pptx_path, out_dir, slide_index = slide_index, timeout = timeout, scale = max(1, dpi / 96))
+    if (!is.null(out)) return(out)
+  }
   .render_pptx_slide_png_soffice(pptx_path, out_dir, slide_index = slide_index, timeout = timeout, dpi = dpi)
 }
 

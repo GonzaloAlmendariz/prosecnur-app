@@ -219,3 +219,15 @@ test_that("con el motor nativo apagado, una lámina de gráfico sale «ruta_ante
   expect_identical(estados(list()), c("nativa", "nativa"))
   expect_identical(estados(list(motor_nativo = FALSE)), c("ruta_anterior", "ruta_anterior"))
 })
+
+test_that("con LibreOffice utilizable la vista previa no usa el renderer de desarrollo, salvo que se pida", {
+  local_mocked_bindings(.artifact_renderer_configured = function() TRUE, .soffice_cmd = function() "/x/soffice",
+                        .preview_rasterizer_status = function() list(available = TRUE, id = "pdftools"))
+  withr::local_envvar(PROSECNUR_PREFER_ARTIFACT_RENDERER = "")
+  expect_false(.preview_usar_artifact())
+  withr::local_envvar(PROSECNUR_PREFER_ARTIFACT_RENDERER = "1")
+  expect_true(.preview_usar_artifact())
+  withr::local_envvar(PROSECNUR_PREFER_ARTIFACT_RENDERER = "")
+  local_mocked_bindings(.soffice_cmd = function() "")
+  expect_true(.preview_usar_artifact())
+})
