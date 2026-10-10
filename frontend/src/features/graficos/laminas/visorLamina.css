@@ -303,3 +303,7 @@
   background: var(--module-accent-soft);
   color: var(--module-accent);
 }
+
+.pulso-f6-visor-tipo {
+  color: var(--pulso-text-faint);
+}

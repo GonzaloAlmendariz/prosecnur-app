@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
 } from "../../../vendor/lucide-react";
 import { downloadUrl } from "../../../api/core";
+import { IconoTipo } from "../iconos/IconoTipo";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
@@ -93,6 +94,7 @@ export function VisorLamina({
         <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina siguiente" disabled={lamina.posicion >= total} onClick={() => onIr(lamina.posicion + 1)}>
           <ChevronRight size={16} aria-hidden="true" />
         </button>
+        <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} titulo={lamina.tipoLabel} className="pulso-f6-visor-tipo" />
         <p className="pulso-f6-visor-pos" aria-live="polite">
           <strong>Lámina {lamina.posicion} de {total}</strong>
           {nPartes > 1 && <span className="pulso-f6-solo-ancho"> · parte {parteActiva} de {nPartes}</span>}
