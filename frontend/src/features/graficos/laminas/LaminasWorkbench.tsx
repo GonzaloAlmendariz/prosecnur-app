@@ -7,17 +7,18 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../../../lib/SessionContext";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
-import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
+import { searchConPanel, searchSinPanel, usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { PANEL_AVISOS_INFORME, PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
 import { parseGraficosReportScope } from "../reportScope";
 import { leerSlideMeta } from "../slideMeta";
-import { usePlanStore } from "../store";
+import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { usePlanValidator } from "../usePlanValidator";
 import { EstructuraInforme, type MarcaValidacion } from "./EstructuraInforme";
 import { InspectorLamina } from "./InspectorLamina";
 import { VisorLamina } from "./VisorLamina";
 import { TiraMiniaturas } from "./TiraMiniaturas";
 import { PanelAvisos } from "./PanelAvisos";
+import { EditorAmplio } from "./EditorAmplio";
 import { agruparAvisos } from "./resumenInforme";
 import { construirEstructura, focoDeLamina, parsearFocoLamina } from "./modeloEstructura";
 import { useLaminasUi } from "./laminasStore";
@@ -27,6 +28,11 @@ import { useGraficosLibraries } from "../GraficosLibrariesHost";
 import { PANEL_BIBLIOTECA_SLIDES } from "../panelesGraficos";
 import { toast } from "../../../components/toasterStore";
 import { usePreviewLamina } from "./usePreviewLamina";
+import { useRanurasLamina } from "./useRanurasLamina";
+import { graficadorDisplayName } from "../graficadorDisplay";
+import { firstVariableRefFromGraph } from "../slideAutoTitle";
+import { useGraficosRegistry } from "../useGraficosRegistry";
+import type { GraficadorRef } from "../../../api/graficos";
 import "./laminasWorkbench.css";
 
 type Props = {
@@ -49,6 +55,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const setParte = useLaminasUi((s) => s.setParte);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
   const estructuraVisible = useLaminasUi((s) => s.estructuraVisible);
+  const inspectorOculto = useLaminasUi((s) => s.inspectorOculto);
+  const setInspectorOculto = useLaminasUi((s) => s.setInspectorOculto);
   const insercion = useLaminasUi((s) => s.insercion);
   const setInsercion = useLaminasUi((s) => s.setInsercion);
   const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
@@ -116,6 +124,52 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
 
   const prepOk = !!state?.analitica_prep_ok || parseGraficosReportScope(location.search) === "consolidated";
   const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk);
+  const ranuras = useRanurasLamina(slide);
+  const { graficadoresById } = useGraficosRegistry();
+  const nombreRanura = useCallback((k: number) => {
+    if (!slide) return "";
+    const slot = (SLIDE_GRAF_SLOTS[slide.tipo] ?? [])[k - 1];
+    const v = slot ? (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | undefined : undefined;
+    if (!v?.graficador) return "sin gráfico";
+    const variable = firstVariableRefFromGraph(v);
+    return `${graficadorDisplayName(v.graficador, graficadoresById[v.graficador])}${variable ? ` · ${variable}` : ""}`;
+  }, [slide, graficadoresById]);
+  // Una sola navegación: foco de la ranura y, si hace falta, el inspector abierto (dos `navigate` seguidos se pisan).
+  const elegirRanura = useCallback((k: number | null) => {
+    if (!lamina) return;
+    let search = conNivel(location.search, "foco", focoDeLamina(lamina.posicion, k));
+    if (k !== null) {
+      setSeccion("graficos");
+      setInspectorOculto(false);
+      search = searchConPanel(search, PANEL_INSPECTOR_LAMINA);
+    }
+    navigate({ pathname: location.pathname, search }, { replace: true });
+  }, [lamina, location.pathname, location.search, navigate, setSeccion, setInspectorOculto]);
+
+  // El inspector se oculta y se muestra en cualquier ancho. `panel=inspector` en la URL lo abre siempre (enlazable);
+  // sin él, en el marco ancho manda la preferencia de la sesión.
+  const inspectorVisible = inspector.abierto || !inspectorOculto;
+  const abrirInspector = useCallback(() => { setInspectorOculto(false); inspector.abrir(); }, [inspector, setInspectorOculto]);
+  const cerrarInspector = useCallback(() => {
+    setInspectorOculto(true);
+    navigate({ pathname: location.pathname, search: searchSinPanel(location.search, PANEL_INSPECTOR_LAMINA) }, { replace: true });
+  }, [location.pathname, location.search, navigate, setInspectorOculto]);
+  const hostRef = useRef<HTMLDivElement>(null);
+  // Mismo umbral que la container query de laminasWorkbench.css: bajo 1120 px el inspector es un sideover.
+  const esCompacto = () => (hostRef.current?.clientWidth ?? Number.POSITIVE_INFINITY) <= 1120;
+  const alternarInspector = useCallback(() => {
+    const visible = esCompacto() ? inspector.abierto : inspectorVisible;
+    if (visible) cerrarInspector(); else abrirInspector();
+  }, [inspector.abierto, inspectorVisible, cerrarInspector, abrirInspector]);
+
+  // Cmd/Ctrl + «.» muestra u oculta el inspector.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === ".") { e.preventDefault(); alternarInspector(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [alternarInspector]);
 
   const validacion = useMemo(() => {
     const m: Record<string, MarcaValidacion> = {};
@@ -145,9 +199,9 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   }
 
   return (
-    <div className="pulso-f6-laminas-host">
+    <div className="pulso-f6-laminas-host" ref={hostRef}>
     <div
-      className={`pulso-f6-laminas${inspector.abierto ? " is-inspector-abierto" : ""}${estructuraVisible ? "" : " is-sin-estructura"}`}
+      className={`pulso-f6-laminas${inspector.abierto ? " is-inspector-abierto" : ""}${estructuraVisible ? "" : " is-sin-estructura"}${inspectorVisible ? "" : " is-sin-inspector"}`}
       data-qa-surface="graficos/f6-laminas"
     >
       <EstructuraInforme
@@ -186,25 +240,30 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         onParte={setParte}
         onIr={irA}
         motorNativoApagado={leerSlideMeta(slide).motor_nativo === false}
-        onAbrirAjustes={inspector.alternar}
-        ajustesAbiertos={inspector.abierto}
+        onAbrirAjustes={alternarInspector}
+        ajustesAbiertos={inspectorVisible}
         onVerAvisos={() => { setSeccion("estado"); if (!inspector.abierto) inspector.abrir(); }}
+        ranuras={ranuras}
+        ranuraActiva={ranura}
+        nombreRanura={nombreRanura}
+        onRanura={elegirRanura}
         tira={<TiraMiniaturas estructura={estructura} posicionActiva={lamina.posicion} onIr={irA} />}
       />
-      <div className="pulso-f6-inspector-marco" {...inspector.props} onKeyDown={(e) => { if (e.key === "Escape" && inspector.abierto) inspector.cerrar(); }}>
+      <div className="pulso-f6-inspector-marco" {...inspector.props} onKeyDown={(e) => { if (e.key === "Escape" && inspector.abierto) cerrarInspector(); }}>
         <InspectorLamina
           slide={slide}
           lamina={lamina}
           ranura={ranura}
           onRanura={(r) => escribirFoco(focoDeLamina(lamina.posicion, r))}
           visor={vista.lamina}
-          onCerrar={inspector.cerrar}
+          onCerrar={cerrarInspector}
           onIrEditorAnterior={onIrEditorAnterior}
         />
       </div>
+      <EditorAmplio />
       {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} />}
       {inspector.abierto && (
-        <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={inspector.cerrar} />
+        <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspector} />
       )}
     </div>
     </div>

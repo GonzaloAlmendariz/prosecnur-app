@@ -1,0 +1,81 @@
+/* Datos de un gráfico (F6.1, parte 2): filas planas dentro de la tarjeta, sin cajas internas. Rótulo y control en
+   una línea; los controles anchos (pregunta, códigos, textos) apilan rótulo arriba. Nada desborda: todo con
+   min-width: 0 y overflow-wrap. */
+
+.pulso-f6-datos {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.pulso-f6-dato {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-dato:first-child {
+  border-top: 0;
+}
+
+.pulso-f6-dato.is-apilado {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pulso-f6-dato-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-dato-ayuda-icono {
+  display: inline-grid;
+  color: var(--pulso-text-faint);
+  cursor: help;
+}
+
+.pulso-f6-dato-ayuda {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-dato-control {
+  min-width: 0;
+}
+
+.pulso-f6-dato-select {
+  width: auto;
+  max-width: 220px;
+}
+
+.pulso-f6-dato-numero {
+  width: 88px;
+}
+
+.pulso-f6-dato-accion {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+/* Tarjeta de gráfico expandida: UNA superficie (cabecera + filas). */
+.pulso-f6-ranura-cambiar {
+  flex: none;
+  margin-left: auto;
+}
+
+.pulso-f6-ranura-cuerpo-datos {
+  padding: 0 var(--pulso-space-3) var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}

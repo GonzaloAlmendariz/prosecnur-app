@@ -24,6 +24,8 @@ import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
 import { useLaminasUi, type ZoomVisor } from "./laminasStore";
+import { RanurasSobreLamina } from "./RanurasSobreLamina";
+import type { RanuraSobreLamina } from "./ranurasLamina";
 import "./visorLamina.css";
 
 type Props = {
@@ -42,6 +44,10 @@ type Props = {
   onVerAvisos: () => void;
   /** Tira de miniaturas, bajo el lienzo. */
   tira: ReactNode;
+  ranuras: readonly RanuraSobreLamina[];
+  ranuraActiva: number | null;
+  nombreRanura: (k: number) => string;
+  onRanura: (k: number | null) => void;
 };
 
 const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
@@ -52,6 +58,7 @@ const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
 
 export function VisorLamina({
   lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, tira,
+  ranuras, ranuraActiva, nombreRanura, onRanura,
 }: Props) {
   const zoom = useLaminasUi((s) => s.zoom);
   const setZoom = useLaminasUi((s) => s.setZoom);
@@ -68,11 +75,13 @@ export function VisorLamina({
   const cargando = vista.fase === "esperando" || vista.fase === "cargando";
 
   const onTecla = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === "Escape" && ranuraActiva !== null) { e.preventDefault(); onRanura(null); return; }
     if (e.target !== e.currentTarget) return;
     if (e.key === "ArrowLeft" && lamina.posicion > 1) { e.preventDefault(); onIr(lamina.posicion - 1); }
     else if (e.key === "ArrowRight" && lamina.posicion < total) { e.preventDefault(); onIr(lamina.posicion + 1); }
     else if (e.key === "ArrowUp" && parteActiva > 1) { e.preventDefault(); onParte(parteActiva - 1); }
     else if (e.key === "ArrowDown" && parteActiva < nPartes) { e.preventDefault(); onParte(parteActiva + 1); }
+    else if (e.key === "Escape" && ranuraActiva !== null) { e.preventDefault(); onRanura(null); }
   };
 
   return (
@@ -163,8 +172,9 @@ export function VisorLamina({
         </button>
         <button
           type="button"
-          className="pulso-f6-boton pulso-f6-solo-compacto"
+          className={`pulso-f6-boton${ajustesAbiertos ? " is-activo" : ""}`}
           aria-expanded={ajustesAbiertos}
+          title={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes (${typeof navigator !== "undefined" && /Mac/.test(navigator.platform) ? "⌘" : "Ctrl+"}.)`}
           aria-controls="pulso-f6-inspector"
           onClick={onAbrirAjustes}
         >
@@ -188,6 +198,9 @@ export function VisorLamina({
               draggable={false}
             />
           ) : null}
+          {actual?.imagen && !cargando && (
+            <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} />
+          )}
           <EstadoSobreHoja vista={vista} prepOk={prepOk} hayImagen={!!actual?.imagen} />
         </figure>
         {cargando && actual?.imagen && (

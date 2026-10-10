@@ -142,8 +142,12 @@
 }
 
 .pulso-f6-mas-menu button > span {
+  flex: 1;
+  min-width: 0;
   display: grid;
   text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pulso-f6-mas-menu small {

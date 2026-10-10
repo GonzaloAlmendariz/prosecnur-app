@@ -25,13 +25,39 @@
   overflow: hidden;
 }
 
-/* Estructura plegada (sólo en el marco ancho): la columna desaparece y la lámina gana su ancho. */
+/* Columnas plegables en el marco ancho (Estructura e Inspector): la lámina gana su ancho y el lienzo se re-encaja. */
+.pulso-f6-laminas {
+  transition: grid-template-columns var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@container pulso-f6-laminas (min-width: 1121px) {
+  .pulso-f6-laminas.is-sin-inspector {
+    grid-template-columns: 280px minmax(0, 1fr) 0px;
+  }
+
+  .pulso-f6-laminas.is-sin-inspector.is-sin-estructura {
+    grid-template-columns: 0px minmax(0, 1fr) 0px;
+  }
+
+  .pulso-f6-laminas.is-sin-inspector > .pulso-f6-inspector-marco {
+    visibility: hidden;
+    border-left: 0;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-laminas { transition: none; }
+}
+
 .pulso-f6-laminas.is-sin-estructura {
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: 0px minmax(0, 1fr) 360px;
 }
 
 .pulso-f6-laminas.is-sin-estructura > .pulso-f6-estructura {
-  display: none;
+  visibility: hidden;
+  overflow: hidden;
+  border-right: 0;
 }
 
 .pulso-f6-laminas.is-vacia {
@@ -67,7 +93,8 @@
   }
 
   .pulso-f6-laminas.is-sin-estructura > .pulso-f6-estructura {
-    display: flex;
+    visibility: visible;
+    border-right: 1px solid var(--pulso-border);
   }
 
   .pulso-f6-inspector-marco {
@@ -246,4 +273,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pulso-f6-boton { transition: none; }
+}
+
+.pulso-f6-boton.is-activo {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
 }

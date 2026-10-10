@@ -2,12 +2,14 @@
 // reales: Contenido (abre por defecto, decisión provisional §10) · Composición · Gráficos · Estado. Lo que esta parte
 // no construye se declara como tal y apunta al Editor anterior, que sigue accesible mientras se completa F6.
 
-import { useId, useMemo } from "react";
+import { useId, useMemo, useRef } from "react";
 import { ChevronDown, ChevronRight, History, LayoutTemplate, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Switch } from "../../../components/Switch";
-import GraficadorSlot, { getSlotLabel } from "../GraficadorSlot";
+import { getSlotLabel } from "../GraficadorSlot";
+import { useGraficosLibraries } from "../GraficosLibrariesHost";
+import { DatosGrafico } from "./DatosGrafico";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { conSlideMeta, leerSlideMeta } from "../slideMeta";
 import { IconoTipo } from "../iconos/IconoTipo";
@@ -65,7 +67,7 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
               : `Lámina ${lamina.posicion}`}
           </span>
         </span>
-        <button type="button" className="pulso-f6-icono-boton pulso-f6-solo-compacto" aria-label="Cerrar ajustes" onClick={onCerrar}>
+        <button type="button" className="pulso-f6-icono-boton" aria-label="Ocultar los ajustes" title="Ocultar los ajustes: la lámina gana su ancho" onClick={onCerrar}>
           <X size={16} aria-hidden="true" />
         </button>
       </header>
@@ -229,6 +231,9 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
   onIrEditorAnterior: () => void;
 }) {
   const { graficadoresById } = useGraficosRegistry();
+  const { openGraficadoresLibrary } = useGraficosLibraries();
+  // Una sola tarjeta abierta a la vez: un solo botón «Cambiar» al que devolver el foco al cerrar la biblioteca.
+  const cambiarRef = useRef<HTMLButtonElement>(null);
   if (slots.length === 0) {
     return (
       <p className="pulso-f6-vacio-col">Esta lámina no lleva gráficos: su contenido se edita en Contenido.</p>
@@ -245,25 +250,41 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
           const nombre = tecnico ? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
           const variable = firstVariableRefFromGraph(valor);
           const abierta = ranura === k || (slots.length === 1 && ranura === null);
+          const rotulo = `Gráfico ${k}${slots.length > 1 ? ` · ${getSlotLabel(slot)}` : ""}`;
           return (
             <li key={slot} className={`pulso-f6-ranura${abierta ? " is-abierta" : ""}`}>
-              <button
-                type="button"
-                className="pulso-f6-ranura-cabeza"
-                aria-expanded={abierta}
-                onClick={() => onRanura(abierta && slots.length > 1 ? null : k)}
-              >
-                {abierta ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
-                {tecnico && <IconoTipo clase="grafico" tipo={tecnico} size={20} />}
-                <span className="pulso-f6-ranura-texto">
-                  <strong>Gráfico {k}{slots.length > 1 ? ` · ${getSlotLabel(slot)}` : ""}</strong>
-                  <span>{nombre}{variable ? ` · ${variable}` : ""}</span>
-                </span>
-              </button>
-              {abierta && (
-                <div className="pulso-f6-ranura-cuerpo">
-                  <GraficadorSlot slideId={slide.id} slotName={slot} value={valor as never} mode="data" />
+              <div className="pulso-f6-ranura-fila">
+                <button
+                  type="button"
+                  className="pulso-f6-ranura-cabeza"
+                  aria-expanded={abierta}
+                  onClick={() => onRanura(abierta && slots.length > 1 ? null : k)}
+                >
+                  {abierta ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
+                  {tecnico && <IconoTipo clase="grafico" tipo={tecnico} size={20} />}
+                  <span className="pulso-f6-ranura-texto">
+                    <strong>{rotulo}</strong>
+                    <span>{nombre}{variable ? ` · ${variable}` : ""}</span>
+                  </span>
+                </button>
+                {abierta && (
+                  <button
+                    type="button"
+                    ref={cambiarRef}
+                    className="pulso-f6-boton pulso-f6-ranura-cambiar"
+                    onClick={() => openGraficadoresLibrary({ slideId: slide.id, slotName: slot, slotLabel: rotulo, returnFocusRef: cambiarRef })}
+                  >
+                    {tecnico ? "Cambiar" : "Elegir"}
+                  </button>
+                )}
+              </div>
+              {abierta && tecnico && valor && (
+                <div className="pulso-f6-ranura-cuerpo-datos">
+                  <DatosGrafico slideId={slide.id} slot={slot} valor={valor} />
                 </div>
+              )}
+              {abierta && !tecnico && (
+                <p className="pulso-f6-vacio-col">Esta ranura está vacía: elige el gráfico que va aquí.</p>
               )}
             </li>
           );
@@ -279,9 +300,8 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
       <p className="pulso-f6-pendiente">
         <History size={14} aria-hidden="true" />
         <span>
-          Los filtros por gráfico y los bloques de multiapiladas siguen en el{" "}
-          <button type="button" className="pulso-f6-texto-boton" onClick={onIrEditorAnterior}>Editor anterior</button>. Los
-          ajustes de estilo que la salida nativa no lee ya no se muestran aquí.
+          El Top Two Box de las escalas y las opciones del Word siguen en el{" "}
+          <button type="button" className="pulso-f6-texto-boton" onClick={onIrEditorAnterior}>Editor anterior</button>.
         </span>
       </p>
     </div>

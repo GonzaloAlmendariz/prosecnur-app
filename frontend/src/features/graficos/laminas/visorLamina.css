@@ -307,3 +307,60 @@
 .pulso-f6-visor-tipo {
   color: var(--pulso-text-faint);
 }
+
+/* Ranuras seleccionables sobre la imagen: invisibles en reposo, marco del acento al pasar o al estar activas. */
+.pulso-f6-ranuras-capa {
+  position: absolute;
+  inset: 0;
+}
+
+.pulso-f6-ranura-zona {
+  position: absolute;
+  padding: 0;
+  border: 1.5px solid transparent;
+  border-radius: calc(var(--pulso-radius) / 2);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-press) var(--motion-ease-out), background-color var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-f6-ranura-zona:hover {
+  border-color: var(--module-accent-border);
+  background: color-mix(in srgb, var(--module-accent) 4%, transparent);
+}
+
+.pulso-f6-ranura-zona.is-activa {
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 5%, transparent);
+  box-shadow: 0 0 0 3px var(--module-accent-soft);
+}
+
+.pulso-f6-ranura-zona:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 0;
+}
+
+.pulso-f6-ranura-etiqueta {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: none;
+  padding: 0 var(--pulso-space-2);
+  border-radius: calc(var(--pulso-radius) / 2);
+  background: var(--module-accent);
+  color: var(--pulso-nav-selected-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.pulso-f6-ranura-zona:hover .pulso-f6-ranura-etiqueta,
+.pulso-f6-ranura-zona.is-activa .pulso-f6-ranura-etiqueta,
+.pulso-f6-ranura-zona:focus-visible .pulso-f6-ranura-etiqueta {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-ranura-zona { transition: none; }
+}
