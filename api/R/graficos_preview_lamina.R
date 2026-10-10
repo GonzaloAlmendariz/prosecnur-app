@@ -64,8 +64,11 @@
   grupos <- sub('^name="prosecnur:([^"]+)"$', "\\1", grupos)
   if (length(grupos) || length(de_imagen)) {
     raiz <- sub(":.*$", "", grupos)
-    es_grafico <- raiz == "grafico" | (grepl(":", grupos, fixed = TRUE) & !raiz %in% .PREVIEW_GRUPOS_ESTRUCTURA)
-    return(if (any(es_grafico)) "nativa" else if (length(de_imagen)) "ruta_anterior" else "estructura")
+    # Sólo el motor nativo agrupa sus gráficos como `prosecnur:grafico:*`. Una ranura `prosecnur:<tipo>:<ranura>`
+    # (`slide_1:plot`, `poblacion_4:up_left`) la nombra la ruta anterior al pegar su dibujo DML o su imagen: no es nativa
+    # (verificador de 87d9fcbb0: con motor_nativo = FALSE la escala, la multilista y la población de 4 salían «nativa»).
+    ranura <- raiz != "grafico" & grepl(":", grupos, fixed = TRUE) & !raiz %in% .PREVIEW_GRUPOS_ESTRUCTURA
+    return(if (any(raiz == "grafico")) "nativa" else if (any(ranura) || length(de_imagen)) "ruta_anterior" else "estructura")
   }
   if (grepl("<p:pic>", xml, fixed = TRUE) || grepl("<p:pic ", xml, fixed = TRUE)) return("ruta_anterior")
   "sin_grafico"
