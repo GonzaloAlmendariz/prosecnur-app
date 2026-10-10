@@ -36,7 +36,10 @@
 
 #' Migra una lámina de población antigua; cualquier otra vuelve intacta
 #'
-#' @param posicion Número de la lámina en el plan (el aviso la nombra así: los ids son internos).
+#' @param posicion Número de la lámina en el plan del usuario (el aviso la nombra así: los ids son internos). Es la
+#'   misma numeración que el aviso de líneas usa sin archivo (lamina_avisos_lineas.R, 244c759c6): la migración ocurre
+#'   sobre la config, antes de partir láminas o insertar «Otros», así que no hay piezas que contar dos veces. Puede no
+#'   coincidir con el folio del mazo si una lámina anterior se parte en «(cont.)».
 #' @return `list(slide, migrada, aviso)`.
 #' @keywords internal
 .graficos_migrar_slide_poblacion <- function(s, posicion = NA_integer_) {
