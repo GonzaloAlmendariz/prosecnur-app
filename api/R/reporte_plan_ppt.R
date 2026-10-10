@@ -4920,7 +4920,7 @@ reporte_ppt_plan <- function(
           preset_args_single = preset_args_single
         )
         if (is.null(p_block)) next
-        rendered[[length(rendered) + 1L]] <- p_block
+        rendered[[length(rendered) + 1L]] <- .lam_multilista_marcar(p_block, block)
         rel_heights <- c(rel_heights, rel_heights_plan[[idx_block]])
       }
 
@@ -4928,12 +4928,12 @@ reporte_ppt_plan <- function(
         return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
       }
 
-      return(cowplot::plot_grid(
+      return(.lam_multilista_adjuntar(cowplot::plot_grid(
         plotlist = rendered,
         ncol = 1,
         align = "v",
         rel_heights = rel_heights
-      ))
+      ), rendered))
     }
 
     # ============================================================
