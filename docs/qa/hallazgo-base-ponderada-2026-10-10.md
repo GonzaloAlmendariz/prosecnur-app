@@ -61,5 +61,7 @@ pasa de «Base: 47» a «Base: 44».
 - S2. ¿La ponderación se declara una vez por documento («Cómo leer» y ficha técnica), no en cada lámina? (recomendado: sí)
 - S3. ¿El umbral de bases chicas usa n sin ponderar? (recomendado: sí)
 - S4. ¿Se renombra el sello «Base ponderada (n_eff = X)» a «Resultados ponderados (n efectivo = X)»? (recomendado: sí)
-- S5. Pendiente de verificar: si `payload$base_universe` (dimensiones) y el n de `preparar_escala` vienen ponderados en todos
-  los caminos.
+- S5. Verificado en parte (2026-10-10): `base_universe` de dimensiones **es suma de pesos**
+  (`indicador_dimensiones_shared.R:1287-1288`, `sum(w)` con `.dim_safe_weights`). El n de `preparar_escala` es la columna
+  `var_n` que le pasa el graficador (`graficos_espec_escala.R:88`), calculada aguas arriba con las tablas de frecuencia; por
+  eso hereda el `n` ponderado de `freq_table_spss`. Falta confirmarlo por cada camino (multiapiladas por bloque, cruces).
