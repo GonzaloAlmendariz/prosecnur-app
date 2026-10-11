@@ -37,6 +37,11 @@
   color: var(--pulso-danger-fg);
 }
 
+/* Columna encendida sin categorías: el motor la omite y la tarjeta lo dice (C5); mismo tono que «Elige las dos…». */
+.pulso-f6-twobox-estado.is-pendiente {
+  color: var(--pulso-warn-fg);
+}
+
 .pulso-f6-twobox-nota {
   grid-column: 1 / -1;
 }

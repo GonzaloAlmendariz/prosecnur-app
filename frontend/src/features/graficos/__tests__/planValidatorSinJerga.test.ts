@@ -248,6 +248,27 @@ describe("paleta: se nombra por la pregunta, no por la lista interna", () => {
     expect(nombrePaleta("lst_p31", vars)).toBe("La paleta de «Confianza en la institución» (y 2 preguntas más)");
     expect(nombrePaleta("lst_p31", [])).toBe("Una paleta de colores que ya no usa ninguna pregunta");
   });
+
+  test("pregunta sin etiqueta: nunca el nombre interno de la variable ni de la lista", () => {
+    const sinTitulo = [
+      { name: "conf_inst_p31", label: "", list_name: "lst_p31" },
+      { name: "conf_gob_p32", label: "  <br/> ", list_name: "lst_p31" },
+    ];
+    expect(nombrePaleta("lst_p31", sinTitulo.slice(0, 1))).toBe("La paleta de una pregunta sin título");
+    expect(nombrePaleta("lst_p31", sinTitulo)).toBe("La paleta de 2 preguntas sin título");
+    // Con una pregunta con título, las sin título cuentan entre «las demás».
+    const mezcla = [...sinTitulo, { name: "p33", label: "Confianza en la prensa", list_name: "lst_p31" }];
+    expect(nombrePaleta("lst_p31", mezcla)).toBe("La paleta de «Confianza en la prensa» (y 2 preguntas más)");
+    for (const vars of [sinTitulo.slice(0, 1), sinTitulo, mezcla]) {
+      const texto = nombrePaleta("lst_p31", vars);
+      expect(texto).not.toMatch(/conf_inst_p31|conf_gob_p32|lst_p31/);
+      expect(texto).not.toMatch(/\w_\w/);
+    }
+    // Y en el aviso que arma el validador.
+    const r = validarPlan(entrada({ variables: [{ name: "p31_conf", label: "", tipo: "select_one", seccion: "", list_name: "lst_p31", source: "docentes" }] }));
+    const aviso = r.warnings.find((w) => w.code === "paleta-monocromatica");
+    expect(aviso?.message).toBe("La paleta de una pregunta sin título: los colores son muy parecidos entre sí. En barras apiladas cuesta distinguir las categorías.");
+  });
 });
 
 describe("salud del plan: sin «export» en inglés", () => {
