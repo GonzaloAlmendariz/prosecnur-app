@@ -293,6 +293,9 @@
   # propio título; si no lo tiene, su título ya es la pregunta y no se repite.
   if (.lam_escala_modo_filas(espec) && !is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
     espec$pregunta <- tryCatch(as.character(.plan_titulo_corto(titulo_de_var, el_plot))[1], error = function(e) NULL)
+    # La apilada sola en filas (Bottom Two Box con la premisa corta, decisión «2c»): si la pregunta es su único
+    # rótulo, no se escribe dos veces.
+    if (NROW(espec$filas) == 1L && identical(trimws(espec$pregunta %||% ""), trimws(as.character(espec$filas$rotulo[1])))) espec$pregunta <- NULL
   }
   # Una afirmación de un solo público: el recetario la encabeza con la pregunta y nombra al público junto a
   # la barra («Estudiantes · 172 respuestas», lámina 216). El público es la base de la variable

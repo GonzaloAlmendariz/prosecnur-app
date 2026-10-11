@@ -81,3 +81,18 @@ test_that("cada posición de leyenda del catálogo renderiza; el viejo arriba ca
   expect_identical(.radar_leyenda_posicion_compat("arriba"), "abajo")
   expect_no_error(.rec_mensajes(.rec_pinta(c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4), leyenda_posicion = "arriba")))
 })
+
+test_that("un plan viejo con la leyenda «arriba» se dibuja abajo, sin aviso nuevo (decisión «12»)", {
+  valores <- c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4)
+  sellados <- function(m) m[startsWith(m, .PULSO_AVISO_SELLO)]
+  arriba <- .rec_mensajes(.rec_pinta(valores, leyenda_posicion = "arriba"))
+  abajo <- .rec_mensajes(.rec_pinta(valores, leyenda_posicion = "abajo"))
+  derecha <- .rec_mensajes(.rec_pinta(valores, leyenda_posicion = "derecha"))
+  # La posición la decide el motor: la de «arriba» es la de «abajo», y el test distingue (derecha no lo es).
+  expect_identical(arriba$valor$theme$legend.position, "bottom")
+  expect_identical(arriba$valor$theme$legend.position, abajo$valor$theme$legend.position)
+  expect_false(identical(derecha$valor$theme$legend.position, abajo$valor$theme$legend.position))
+  # Normalizar un valor viejo no es un aviso para el analista: los mismos avisos sellados que con «abajo».
+  expect_identical(sellados(arriba$mensajes), sellados(abajo$mensajes))
+  expect_identical(sellados(arriba$mensajes), character(0))
+})
