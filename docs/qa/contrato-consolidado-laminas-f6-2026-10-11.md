@@ -106,3 +106,5 @@ Reemplazar/Fusionar/Sincronizar graban `equivalencias_revision`; aviso de desfas
 heurística por etiqueta (`.graficos_multisource_comparison_candidates`): **se retira de la siembra** porque el ADR 0062
 prohíbe inferir equivalencias por etiqueta; sin matriz declarada, el compartido se siembra sin láminas comparativas y lo
 avisa. Si Gonzalo prefiere conservarla como respaldo avisado, se reabre aquí.
+
+**Resuelta por ADR 0096** (D1 / decisión 27). Contrato de implementación (endpoints, globs por capa, tests rojos R1–R13 y F1–F8 con mutantes, códigos `E_GRAFICOS_PLAN_SCOPE` y `E_GRAFICOS_CONSOLIDADO_NO_APLICA`): ver el ADR y la revisión de guardian-contratos del 2026-10-11.
