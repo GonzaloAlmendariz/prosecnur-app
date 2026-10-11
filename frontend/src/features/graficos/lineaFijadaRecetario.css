@@ -1,0 +1,79 @@
+/* Candado «Lo fija el recetario» del editor de ajustes Word: una línea cerrada, sin control, con el valor que sale. */
+
+.pulso-gv2-fijado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: 10px;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-3);
+}
+
+.pulso-gv2-fijado .pulso-gv2-field-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-gv2-fijado-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-gv2-fijado-sello {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-gv2-fijado-sello svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-gv2-fijado-valor {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-gv2-fijado-valor.is-sin-efecto {
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-gv2-fijado-motivo {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-gv2-fijado-nota {
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-warn-fg);
+  overflow-wrap: anywhere;
+}
+
+.pulso-gv2-fijados-grupo .pulso-gv2-arg-group-label {
+  margin: 0;
+  font: inherit;
+}
