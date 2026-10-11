@@ -6,10 +6,19 @@
 // se muestra (va en el título del «?»).
 
 import type { ArgMetadata } from "../../../api/graficos";
+import { argAplica } from "../argDependencias";
 
-export type ControlDato = "variable" | "variable_opcional" | "interruptor" | "numero" | "opciones" | "texto" | "codigos";
+export type ControlDato = "variable" | "variable_opcional" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base";
 
-type Entrada = { rotulo: string; ayuda?: string; control?: ControlDato; /** Sólo con este arg activo. */ siActivo?: string };
+type Entrada = {
+  rotulo: string;
+  ayuda?: string;
+  control?: ControlDato;
+  /** Sólo con este arg activo. */
+  siActivo?: string;
+  /** Su `depende` tiene que cumplirse con un valor ya elegido: con el modo sin elegir no se muestra (lo multibase). */
+  estricto?: boolean;
+};
 
 /** Orden de aparición = orden de las claves. */
 const LISTA_BLANCA: Record<string, Entrada> = {
@@ -19,6 +28,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie." },
   corte: { rotulo: "Corte" },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
+  // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
+  tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },
   objetivo: { rotulo: "Objetivo" },
   metrica: { rotulo: "Métrica" },
   categoria: { rotulo: "Categoría" },
@@ -45,6 +56,7 @@ const CONTROL_POR_TIPO: Partial<Record<ArgMetadata["tipo_input"], ControlDato>> 
   choice: "opciones",
   string: "texto",
   codigos_list: "codigos",
+  base_labels: "nombres_base",
 };
 
 export type CampoDato = {
@@ -56,7 +68,12 @@ export type CampoDato = {
   control: ControlDato;
 };
 
-/** Los campos de datos de un graficador, en el orden de la lista blanca; respeta `siActivo` con los valores actuales. */
+/**
+ * Los campos de datos de un graficador, en el orden de la lista blanca; respeta `siActivo` y el `depende` del registro
+ * con los valores actuales (los campos de otro modo se esconden, como en el Editor anterior). `base_config` («Base del
+ * gráfico») no está en la lista: el catálogo no la sirve a la UI (`.normalize_args_for_ui`) y el pie de base sale del
+ * cálculo automático de la lámina.
+ */
 export function camposDeDatos(args: readonly ArgMetadata[], valores: Readonly<Record<string, unknown>>): CampoDato[] {
   const porNombre = new Map(args.map((a) => [a.name, a]));
   const salida: CampoDato[] = [];
@@ -66,9 +83,20 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Readonly<Re
     const control = e.control ?? CONTROL_POR_TIPO[arg.tipo_input];
     if (!control) continue;
     if (e.siActivo && valores[e.siActivo] !== true) continue;
+    if (!argAplica(arg, valores)) continue;
+    if (e.estricto && !dependenciaElegida(arg, valores)) continue;
     salida.push({ arg, rotulo: e.rotulo, ayuda: e.ayuda ?? null, detalle: arg.descripcion ?? "", control });
   }
   return salida;
+}
+
+/** El `depende` del arg se cumple con un valor ya elegido (sin `depende`, siempre). */
+function dependenciaElegida(arg: ArgMetadata, valores: Readonly<Record<string, unknown>>): boolean {
+  const dep = arg.depende;
+  if (!dep) return true;
+  const actual = valores[dep.arg];
+  const texto = Array.isArray(actual) ? actual[0] : actual;
+  return typeof texto === "string" && dep.valores.includes(texto);
 }
 
 /** «88, 99» ⇄ ["88","99"]. */
