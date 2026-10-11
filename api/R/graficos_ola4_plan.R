@@ -525,6 +525,8 @@ p_barras_divergentes <- function(vars = NULL,
 #' Brecha entre dos bases, tema por tema
 #'
 #' Declara lo mismo que `p_radar(modo = "publicos")` y lo dibuja como brecha.
+#' @param etiqueta_brecha Unidad junto a la diferencia («+6 pts»). `NULL` hereda
+#'   el preset o el motor («pts», como el recetario).
 #' @export
 p_dumbbell <- function(vars,
                        corte,
@@ -535,7 +537,8 @@ p_dumbbell <- function(vars,
                        titulo = NULL,
                        overrides = list(),
                        base = list(),
-                       filtros = list()) {
+                       filtros = list(),
+                       etiqueta_brecha = NULL) {
   orden <- match.arg(orden)
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_dumbbell(): `vars` debe ser una lista nombrada no vacia.")
@@ -582,6 +585,7 @@ p_dumbbell <- function(vars,
   ov$orden <- orden
   ov$mostrar_brecha <- isTRUE(mostrar_brecha)
   ov$umbral_brecha_pct <- suppressWarnings(as.numeric(umbral_brecha_pct)[1])
+  ov <- .ppt_slot_override(ov, "etiqueta_brecha", etiqueta_brecha, "texto")
 
   el <- list(
     .element_type = "dumbbell",

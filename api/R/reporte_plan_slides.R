@@ -1878,17 +1878,52 @@ p_slide_6_graficos_poblacion <- function(
   unique(x)
 }
 
+# C40: un arg del slot que no es formal del constructor se cae en `.clean_rebuild_args()` (router_graficos.R) y el
+# graficador no lo recibe nunca. El constructor lo declara formal y lo deja en `overrides`, que es lo que el render
+# mezcla sobre el preset; un override explícito manda sobre el formal (mismo criterio que `p_barras_categoricas()`).
+# `NULL` (o texto en blanco) no escribe nada: rige el preset del proyecto o el suelo de la casa.
+.ppt_slot_override <- function(overrides, nm, valor, tipo = c("numero", "bool", "texto", "opcion"),
+                               opciones = NULL, min = -Inf) {
+  tipo <- match.arg(tipo)
+  if (is.null(valor) || !is.null(overrides[[nm]])) return(overrides)
+  uno <- length(valor) == 1L && !is.na(valor[1])
+  valido <- switch(tipo,
+    numero = uno && is.numeric(valor) && is.finite(valor) && valor >= min,
+    bool = uno && is.logical(valor),
+    texto = uno && is.character(valor),
+    opcion = uno && is.character(valor) && valor %in% opciones
+  )
+  if (!isTRUE(valido)) {
+    esperado <- switch(tipo,
+      numero = if (is.finite(min)) sprintf("un numero >= %s", format(min)) else "un numero finito",
+      bool = "TRUE o FALSE", texto = "character(1)",
+      opcion = paste0("uno de: ", paste(opciones, collapse = ", "))
+    )
+    .plan_spec_abort("`", nm, "` debe ser NULL o ", esperado, ".")
+  }
+  if (identical(tipo, "texto")) {
+    valor <- trimws(valor)
+    if (!nzchar(valor)) return(overrides)
+  }
+  overrides[[nm]] <- if (identical(tipo, "numero")) as.numeric(valor) else valor
+  overrides
+}
+
 #' @title Barras agrupadas (1 variable)
 #' @param filtros Lista nombrada de filtros por igualdad/inclusion,
 #'   por ejemplo `list(region = "Lima", sexo = c("Mujer", "Otro"))`.
 #' @param mostrar_ceros Si `TRUE`, conserva opciones del instrumento con
 #'   `n = 0`; si `FALSE`/`NULL`, se grafican solo categorias con casos.
+#' @param max_categorias,agrupar_resto_en_otros,etiqueta_otros Recorte del
+#'   excedente en «Otros» (C40); viajan en `overrides` al graficador. `NULL`
+#'   hereda el preset (12, `TRUE`, «Otros»).
 #' @examples
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
 p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL, excluir_opciones = NULL,
-                               orden_categorias = NULL) {
+                               orden_categorias = NULL, max_categorias = NULL, agrupar_resto_en_otros = NULL,
+                               etiqueta_otros = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -1911,6 +1946,9 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
   }
   filtros <- .ppt_norm_filters(filtros)
   excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
+  overrides <- .ppt_slot_override(overrides, "max_categorias", max_categorias, "numero", min = 1)
+  overrides <- .ppt_slot_override(overrides, "agrupar_resto_en_otros", agrupar_resto_en_otros, "bool")
+  overrides <- .ppt_slot_override(overrides, "etiqueta_otros", etiqueta_otros, "texto")
 
   el <- list(
     .element_type = "barras_agrupadas",
@@ -1998,11 +2036,15 @@ p_barras_categoricas <- function(
 #' @title Barras apiladas (1 variable)
 #' @param filtros Lista nombrada de filtros por igualdad/inclusion,
 #'   por ejemplo `list(region = "Lima", sexo = c("Mujer", "Otro"))`.
+#' @param mostrar_categorias_en_cero Si `TRUE`, dibuja las opciones sustantivas
+#'   sin casos; las especiales (90-99, SIN INF) ausentes nunca (C40 D2). `NULL`
+#'   hereda el preset.
 #' @examples
 #' p_barras_apiladas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
-p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL) {
+p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL,
+                              mostrar_categorias_en_cero = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2021,6 +2063,7 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
   excluir_opciones <- .ppt_norm_chr_vec_arg(excluir_opciones, "excluir_opciones")
+  overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
 
   el <- list(
     .element_type = "barras_apiladas",
@@ -2075,7 +2118,8 @@ p_barras_multiapiladas <- function(
     prefijo_grupos = NULL,
     overrides = list(),
     base = list(),
-    filtros = list()
+    filtros = list(),
+    mostrar_categorias_en_cero = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2168,6 +2212,8 @@ p_barras_multiapiladas <- function(
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser una lista.")
   if (!is.list(base)) .plan_spec_abort("`base` debe ser una lista.")
   filtros <- .ppt_norm_filters(filtros)
+  # C40: en multilista cada bloque hereda estos overrides (y puede pisarlos con los suyos).
+  overrides <- .ppt_slot_override(overrides, "mostrar_categorias_en_cero", mostrar_categorias_en_cero, "bool")
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
@@ -2615,6 +2661,9 @@ p_numerico <- function(
 #' @param ... Argumentos adicionales de conveniencia para `graficar_histograma()`
 #'   (por ejemplo, `ancho_bin`, `bins`, `mostrar_frecuencia`). Se incorporan
 #'   como `overrides`.
+#' @param limite_superior Tope del eje: lo que lo supera se junta en la última
+#'   barra, rotulada «N+» (C40). Formal y no sólo `...`: el slot de Láminas
+#'   descarta lo que no es formal.
 #'
 #' @return Objeto `"ppt_element"`.
 #' @family reporte
@@ -2627,6 +2676,7 @@ p_histograma <- function(
     overrides = list(),
     base = list(),
     filtros = list(),
+    limite_superior = NULL,
     ...
 ) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
@@ -2649,6 +2699,7 @@ p_histograma <- function(
     modo <- match.arg(modo, c("porcentaje_total", "porcentaje_bin", "conteo"))
     overrides$modo <- overrides$modo %||% modo
   }
+  overrides <- .ppt_slot_override(overrides, "limite_superior", limite_superior, "numero")
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
   filtros <- .ppt_norm_filters(filtros)
 
@@ -2788,9 +2839,14 @@ p_boxplot <- function(
 }
 
 #' @title Media + rango por categorias
+#' @param decimales_promedio Decimales de «Media N» (0, 1 o 2); llega al
+#'   graficador como `chip_decimales`. Es el nombre que declara el registro.
+#' @param tipo_rango `"minmax"`, `"iqr"`, `"p10_p90"` o `"custom"`. `NULL`
+#'   hereda el preset; el suelo de la casa es `"minmax"`, lo que dibuja la
+#'   lámina 82 del recetario («Rango … (mínimo a máximo)», recetario_m3b.R).
+#'   El motor desnudo (`graficar_media_rango()`) sigue cayendo a `"iqr"`.
 #' @param ... Argumentos adicionales de conveniencia para `graficar_media_rango()`
-#'   (por ejemplo, `tipo_rango`, `limites_y`, `mostrar_chip`). Se incorporan
-#'   como `overrides`.
+#'   (por ejemplo, `limites_y`, `mostrar_chip`). Se incorporan como `overrides`.
 #'
 #' @return Objeto `"ppt_element"`.
 #' @family reporte
@@ -2808,6 +2864,7 @@ p_media_rango <- function(
     overrides = list(),
     base = list(),
     filtros = list(),
+    tipo_rango = NULL,
     ...
 ) {
   modo_semaforo <- .dim_normalize_semaforo_modo(modo_semaforo)
@@ -2878,6 +2935,10 @@ p_media_rango <- function(
   if (!is.null(mostrar_ref_label) && is.null(overrides$mostrar_ref_label)) {
     overrides$mostrar_ref_label <- isTRUE(mostrar_ref_label)
   }
+  # `min_max` es el valor viejo del registro: se lee, nunca se escribe (graficador_media_rango.R).
+  if (identical(tipo_rango, "min_max")) tipo_rango <- "minmax"
+  overrides <- .ppt_slot_override(overrides, "tipo_rango", tipo_rango, "opcion",
+                                  opciones = c("minmax", "iqr", "p10_p90", "custom"))
   if (!is.null(cortes_chip) && is.null(overrides$cortes_chip)) {
     overrides$cortes_chip <- cortes_chip
   }

@@ -1020,6 +1020,15 @@
 # GRAFICADORES
 # ===========================================================================
 
+# Las cuatro opciones de `tipo_rango` de `graficar_media_rango()`, compartidas por el graficador y el preset (C40).
+# `custom` usa `probs_rango` (sin él, 25 y 75: el mismo dibujo que el 50 % central).
+.MEDIA_RANGO_TIPOS_RANGO <- list(
+  list(value = "minmax",  label = "Mínimo a máximo", hint = "Lo que dibuja el recetario."),
+  list(value = "iqr",     label = "50 % central (P25–P75)"),
+  list(value = "p10_p90", label = "Percentiles 10 a 90"),
+  list(value = "custom",  label = "Percentiles a medida", hint = "Los fija «probs_rango»; sin ellos, P25–P75.")
+)
+
 .GRAFICADORES_META <- list(
 
   # ---- Básicos ------------------------------------------------------------
@@ -1065,6 +1074,9 @@
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
+      # C40: `max_categorias`, `agrupar_resto_en_otros` y `etiqueta_otros` son formales de `p_barras_agrupadas()` (antes
+      # se caían en `.clean_rebuild_args` y la tarjeta prometía un recorte que la lámina no hacía). Defaults = los de la
+      # casa (`.PRESETS_DEFAULT_PULSO$barras_agrupadas`).
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
            default = 12,
            descripcion = "Si hay más categorías, conserva las principales y agrupa el resto como Otros solo en el gráfico."),
@@ -1199,7 +1211,11 @@
            default = 0.05, min = 0.001, max = 0.2, step = 0.005,
            descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
-           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles.")
+           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
+      # C40: formal de `p_barras_apiladas()`; mismo default que el preset `barras_apiladas`.
+      list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %. Las respuestas especiales (90–99, sin información) sin casos nunca se muestran.")
     ), .args_graf_comunes())
   ),
 
@@ -1246,7 +1262,11 @@
       list(name = "top2box_labels",label = "Etiquetas Top 2",tipo_input = "codigos_list",  grupo = "filtro",
            descripcion = "Las dos categorías de la escala que suman el Top Two Box. Sin ellas, el gráfico omite la columna y lo avisa: no se deducen del orden."),
       list(name = "wrap_y",        label = "Ancho etiquetas Y", tipo_input = "number",    grupo = "avanzado",
-           descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y. Recomendado: 30-80.")
+           descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y. Recomendado: 30-80."),
+      # C40: formal de `p_barras_multiapiladas()`; en «Combinar bloques» cada bloque lo hereda. Default = preset `multi_apiladas`.
+      list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %. Las respuestas especiales (90–99, sin información) sin casos nunca se muestran.")
     ), .args_graf_comunes())
   ),
 
@@ -1372,6 +1392,9 @@
            descripcion = "Tamaño de cada intervalo. Ejemplo: 2 para edades 25-26, 27-28."),
       list(name = "bins", label = "Número de intervalos", tipo_input = "number", grupo = "datos",
            descripcion = "Se usa si no defines un ancho fijo de intervalo."),
+      # C40: formal de `p_histograma()` (antes sólo en el preset; el slot lo descartaba). Sin default: vacío = sin tope.
+      list(name = "limite_superior", label = "Límite superior", tipo_input = "number", grupo = "datos",
+           descripcion = "Tope del eje. Los valores que lo superan se juntan en la última barra, rotulada con «+» (por ejemplo «60+»). Vacío: sin tope."),
       list(name = "mostrar_bins_vacios", label = "Mostrar intervalos vacíos", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
@@ -1471,7 +1494,17 @@
     args = c(list(
       list(name = "var",                label = "Variable numérica", tipo_input = "variable",     grupo = "datos"),
       list(name = "cruce",              label = "Dividir por",       tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "chip_decimales",     label = "Decimales",         tipo_input = "number",       grupo = "filtro"),
+      # C40: el formal de `p_media_rango()` es `decimales_promedio` (lo traduce a `chip_decimales` del graficador); con
+      # el nombre del graficador el slot lo descartaba en `.clean_rebuild_args`. Default 1 = graficador y recetario.
+      list(name = "decimales_promedio", label = "Decimales",         tipo_input = "number",       grupo = "filtro",
+           default = 1, min = 0, max = 2, step = 1,
+           descripcion = "Decimales de la media que se escribe junto a cada grupo («Media 21,4»)."),
+      # C40: un solo default, el del recetario (la lámina 82 dibuja mínimo a máximo, recetario_m3b.R:48-66); el suelo de
+      # la casa (`.PRESETS_DEFAULT_PULSO$media_rango`) lo pone en el render. La leyenda de la lámina declara el rango.
+      list(name = "tipo_rango",         label = "Qué abarca la barra", tipo_input = "choice",     grupo = "datos",
+           default = "minmax",
+           choices = .MEDIA_RANGO_TIPOS_RANGO,
+           descripcion = "La barra de cada grupo va del mínimo al máximo, cubre el 50 % central o los percentiles 10 a 90. La leyenda de la lámina lo dice."),
       list(name = "mostrar_ref_label",  label = "Mostrar referencia",tipo_input = "bool",         grupo = "filtro",
            descripcion = "Muestra una línea o etiqueta con el promedio global como referencia."),
       list(name = "cortes_chip",        label = "Cortes del semáforo", tipo_input = "codigos_list", grupo = "semaforo"),
@@ -1641,7 +1674,11 @@
            descripcion = "Escribe al margen la primera fuente menos la segunda (+6 pts si la primera está 6 puntos arriba). En antes/después declara primero la medición más reciente."),
       list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 50, step = 1, unidad = "pp",
-           descripcion = "Sólo se rotulan las brechas de al menos este tamaño.")
+           descripcion = "Sólo se rotulan las brechas de al menos este tamaño."),
+      # C40: formal de `p_dumbbell()`; «pts» = motor (`graficar_dumbbell()`) y recetario.
+      list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
+           default = "pts",
+           descripcion = "Se escribe junto a la diferencia: «+6 pts».")
     ), .args_graf_comunes())
   ),
 
@@ -3341,9 +3378,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = "#C7D2E0"),
       list(name = "size_valores", label = "Tamaño de las cifras", tipo_input = "number", grupo = "valores",
            default = 3.0, min = 1.5, max = 8, step = 0.1),
+      # «pts» y no «pp»: es lo que escriben el motor (`graficar_dumbbell()`) y el recetario (C40).
       list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
-           default = "pp",
-           descripcion = "Se escribe junto a la diferencia. Por defecto puntos porcentuales."),
+           default = "pts",
+           descripcion = "Se escribe junto a la diferencia: «+6 pts»."),
       list(name = "mostrar_leyenda", label = "Mostrar leyenda", tipo_input = "bool", grupo = "estilo",
            default = TRUE),
       list(name = "leyenda_posicion", label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
@@ -3586,10 +3624,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Decimales de la media que se muestra en el chip de cada categoría."),
       list(name = "mostrar_rango",        label = "Mostrar rango",         tipo_input = "bool",   grupo = "estilo", default = TRUE),
       list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
-           choices = list(
-             list(value = "iqr",     label = "IQR (P25-P75)"),
-             list(value = "minmax", label = "Min-Max")
-           )),
+           default = "minmax",
+           choices = .MEDIA_RANGO_TIPOS_RANGO),
       list(name = "mostrar_ref_label",    label = "Mostrar línea/etiqueta de referencia", tipo_input = "bool", grupo = "estilo",
            default = TRUE,
            descripcion = "Añade una línea o texto con el promedio global como referencia visual."),
@@ -4152,6 +4188,11 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
     pos_titulo               = "centro",
     size_titulo              = 14
+  ),
+
+  # C40: la lámina 82 del recetario dibuja mínimo a máximo; sin este suelo el plan caía al «iqr» del motor desnudo.
+  media_rango = list(
+    tipo_rango               = "minmax"
   ),
 
   radar_tabla = list(
