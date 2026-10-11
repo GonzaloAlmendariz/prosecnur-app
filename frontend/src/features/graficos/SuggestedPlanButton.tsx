@@ -155,6 +155,12 @@ export function SuggestedPlanButton() {
   const cerrarPanel = panel.cerrar;
   const cerrar = useRef(cerrarPanel);
   cerrar.current = cerrarPanel;
+  /** Cerrar desde un control del diálogo (aplicar, «Cerrar», ✕): el foco vuelve al disparador, nunca a `<body>` (C4). */
+  function cerrarDevolviendoFoco() {
+    panel.cerrar();
+    enfocarSinDesplazar(disparadorRef.current);
+  }
+
   useEffect(() => {
     if (!open) return;
     function onDocMouseDown(e: MouseEvent) {
@@ -248,7 +254,7 @@ export function SuggestedPlanButton() {
       identidad: identidadDelPlan(result, profileId),
       ...(otros !== null && aceptarOtros ? { autoOtrosSlides: otros } : {}),
     });
-    panel.cerrar();
+    cerrarDevolviendoFoco();
   }
 
   function replacePlan() {
@@ -326,7 +332,7 @@ export function SuggestedPlanButton() {
               <strong>Armar desde un plan sugerido</strong>
               <span>{motivo ?? "Elige un plan base y previsualízalo antes de aplicarlo al plan actual."}</span>
             </div>
-            <button type="button" onClick={panel.cerrar} aria-label="Cerrar">
+            <button type="button" onClick={cerrarDevolviendoFoco} aria-label="Cerrar">
               <X size={13} />
             </button>
           </div>
@@ -615,7 +621,7 @@ export function SuggestedPlanButton() {
                     <RefreshCw size={12} /> Actualizar diapositivas equivalentes
                   </button>
                 )}
-                <button type="button" onClick={panel.cerrar}>
+                <button type="button" onClick={cerrarDevolviendoFoco}>
                   Cancelar
                 </button>
               </div>

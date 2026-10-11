@@ -24601,12 +24601,8 @@
   overflow: hidden;
 }
 
-.pulso-gv2-estilo-body :where(
-  .pulso-gv2-presets-sidebar,
-  .pulso-gv2-word-sidebar,
-  .pulso-gv2-overrides-sidebar,
-  .pulso-gv2-paletas-sidebar
-) {
+/* Sin las sidebars de Base PPT/Word: ellas son su propio dueño de scroll (overflow-y: auto); ver graficos/estiloSidebarsScroll.test.ts. */
+.pulso-gv2-estilo-body :where(.pulso-gv2-overrides-sidebar, .pulso-gv2-paletas-sidebar) {
   align-self: stretch;
   max-height: none;
   min-height: 0;

@@ -89,9 +89,50 @@ function textoDeValor(valor: WordFijadoValor, meta: ArgMetadata | undefined, uni
   return etiquetaDeChoice(meta, t) ?? t;
 }
 
+/**
+ * Rótulos de los ajustes que el recetario fija en la escala Word (`api/R/reporte_word_escala_fijados.R`). Muchos no son
+ * args del preset y llegan sin metadatos: sin esta tabla el grupo «Lo fija el recetario» mostraba el identificador
+ * humanizado («Size Leyenda», «Barra Extra Semaforo»), que no se lee (C5).
+ */
+export const ROTULOS_FIJADOS_WORD: Readonly<Record<string, string>> = {
+  size_leyenda: "Tamaño de la leyenda",
+  legend_key_cm: "Tamaño del cuadro de la leyenda",
+  leyenda_posicion: "Posición de la leyenda",
+  mostrar_leyenda: "Mostrar la leyenda",
+  legend_n_por_fila: "Elementos de la leyenda por fila",
+  size_texto_barras: "Tamaño del texto en barras",
+  size_texto_barras_peq: "Tamaño del texto en barras pequeñas",
+  color_texto_barras: "Color del texto en barras",
+  color_texto_barras_fuera: "Color del texto fuera de la barra",
+  mostrar_valores: "Mostrar los valores",
+  mostrar_n_en_etiquetas: "Mostrar la frecuencia en las etiquetas",
+  textos_negrita: "Textos en negrita",
+  umbral_ocultar_etiqueta: "Umbral para ocultar la etiqueta",
+  umbral_mostrar_etiqueta: "Umbral para mostrar la etiqueta dentro",
+  umbral_etiqueta_normal: "Umbral de la etiqueta normal",
+  size_ejes: "Tamaño de los ejes",
+  ancho_max_eje_y: "Ancho máximo del rótulo de fila",
+  size_barra_extra: "Tamaño de la cifra de la barra extra",
+  size_titulo_extra: "Tamaño del título de la barra extra",
+  color_barra_extra: "Color de la barra extra",
+  titulo_barra_extra: "Título de la barra extra",
+  prefijo_barra_extra: "Prefijo de la barra extra",
+  barra_extra_semaforo: "Semáforo de la barra extra",
+  barra_extra_umbral_alto: "Umbral alto del semáforo de la barra extra",
+  barra_extra_umbral_medio: "Umbral medio del semáforo de la barra extra",
+  grosor_barras: "Grosor de las barras",
+  grosor_modo: "Modo de grosor de las barras",
+  grosor_barras_mult: "Multiplicador del grosor de las barras",
+  alto_por_categoria: "Alto por categoría",
+};
+
+/** Rótulo del catálogo si el arg lo trae; si no, el de la tabla de fijados del Word; el identificador sólo como último recurso. */
 export function rotuloDeArg(arg: string, meta: ArgMetadata | undefined): string {
   const label = typeof meta?.label === "string" ? meta.label.trim() : "";
-  return label || humanizeIdentifier(arg, "Ajuste");
+  if (label) return label;
+  return Object.prototype.hasOwnProperty.call(ROTULOS_FIJADOS_WORD, arg)
+    ? ROTULOS_FIJADOS_WORD[arg]
+    : humanizeIdentifier(arg, "Ajuste");
 }
 
 // Un ajuste fijado que no es arg del preset no trae metadatos: con unidad declarada, la escala sale de su nombre + esa
