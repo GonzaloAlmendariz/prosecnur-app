@@ -36,6 +36,33 @@ la meta por terminada.
 | A10 | F6.5 Paridad y retiro: checklist 1–22 con evidencia, matriz de viewports, revisor metodológico, ADR, confirmación de Gonzalo; luego borrar el Editor anterior y el código de población antigua (B-i), con doble confirmación (F-g) | ☐ |
 | A11 | Adoptar el kit de la Meta B cuando lo publique (primitivos, tokens, movimiento L37, `GraficosPage.tsx` L17) (F-h) | ☐ |
 
+## Estado en la nube (2026-10-12, rama claude/meta-a-graficos-loop-f6-a0rabk)
+
+Sesión en la nube, loop con reloj de 180 s. Horas para Gonzalo en hora de Perú («Hora peruana porfavor»). Entorno: R 4.3.3
+de apt con las versiones de `api/renv.lock` instaladas desde `github.com/cran`; usar `LC_ALL=C.UTF-8 LANG=C.UTF-8
+R_LD_LIBRARY_PATH=/usr/lib/R/lib` y `Rscript scripts/gate-area.R` (el Makefile fuerza `en_US.UTF-8`, que no existe aquí).
+
+| # | Unidad | Estado |
+|---|---|---|
+| A0 | Inventario de cierre | ◐ `docs/qa/inventario-cierre-a0-2026-10-11.md` (55 capacidades; las 43 originales no estaban versionadas); faltan decisiones de Gonzalo |
+| A1 | F6.1 Láminas | ◐ f78beb6 (Avisos sin desplazar el visor) y 1f2b70c (F-a WYSIWYG) aprobados con pendientes por verificador |
+| A2 | F6.2 selectores, Two Box, «En el Word» | ◐ d0fa0b6 rechazado → 38871c3 aprobado con pendientes · F-d f4959bb rechazado → d73371c, b31862d, ec69e43, 78c789c, b2c8f61 en verificación · f1b7034 (Top Two Box por defecto en el Word, como el recetario) bloqueado por decisión: el proyecto guarda una copia del default Word |
+| A3 | Guías por capas | ☐ |
+| A4 | Rendimiento | ◐ backend 8804e22 → b215f91 → 668d69c → 00907e6 → 6e6c504 (cuatro revisiones metodológicas; aprobado con supuestos; contrato `contrato-miniaturas-preview-f6-2026-10-11.md`) · frontend ec3434a rechazado visual → 1c8adf4 en QA visual |
+| A5 | F6.3 Vista general | ☐ |
+| A6 | F6.4 Word y Estilo | ☐ (+ pedidos de motor: título solo Word, «Lectura» bajo la figura) |
+| A7 | Consolidado | ☐ (la vista previa consolidada ya usa la config y la metodología del export) |
+| A8 | Motor | ◐ B-n a34edd3 aprobado con pendientes · B-g 29ab4a4 + 51c0ebd en verificación · Bottom en multiapiladas 78c789c · abiertos: bug `porcentaje_100` del radar con tabla (graficos_metadata.R:3444), «Base: N» junto a «Sin datos», tema vacío sin aviso, Top Two Box de equivalencias en el Word, leyenda «SIN INF» |
+| A9 | Decisiones de Gonzalo | ⛔ A3 (f073f9eb9 no existe), rama, cadencia, A0, default Word guardado en el proyecto, forma de la batería con Bottom (lámina 97 vs 221/222), jsdom para tests de componente, `avisos` en /api/graficos/categorias, «modificado» en ajustes Word, contrato del aviso de íconos |
+| A10 | Paridad y retiro | ☐ |
+| A11 | Kit de la Meta B | ☐ |
+
+### Pedidos a B
+
+- `GraficosPage.tsx:419` (archivo con L17 de B): el botón dice «Ir al slide "{label}"»; con el rótulo nuevo debe decir «Ir a la {label}» o «Ir a la lámina».
+- Tokens `--pulso-recetario-*` (plan §2.2): hoy `ComposicionLamina` los nombra una vez como `--composicion-tinta` / `--composicion-titulo`.
+- jsdom + `@testing-library/react` como devDependencies del frontend (tests de componente; `package.json` compartido), si Gonzalo lo aprueba.
+
 ## Avisos de la Fase 0 (cambios hechos en zona de A para dejar Quality verde)
 
 Rama `claude/gracious-ptolemy-d7avd8`; entran a `main` con la Fase 0. Revísalos al traer `main` a `meta-a-graficos`.
