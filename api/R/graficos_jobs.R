@@ -249,12 +249,21 @@ attr(graficos_job_worker_ppt_all, "prosecnur_job_function_name") <- "graficos_jo
 graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, w_presets,
                                      paletas, slide_registry, graficador_registry,
                                      icon_registry, active_base,
-                                     result_path, progress_path = NULL, opciones_documento = list()) {
+                                     result_path, progress_path = NULL, opciones_documento = list(),
+                                     estilo_cliente = list()) {
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
   fuente_documento <- opciones_documento$fuente
   opciones_documento$fuente <- NULL
+  # Estilo del cliente (A6 R3, graficos_estilo_cliente.R): llega ya resuelto a rutas y desplazamientos, y sólo si hay algo.
+  # Los logos van a la portada y la contraportada; la letra K13 se fija como opción y se repone al salir.
+  if (length(estilo_cliente)) {
+    for (aviso in estilo_cliente$avisos %||% character(0)) .pulso_aviso(aviso)
+    if (length(estilo_cliente$logos)) opciones_documento$logos <- estilo_cliente$logos
+    letra_previa <- .graficos_estilo_cliente_aplicar_letra(estilo_cliente$letra)
+    on.exit(options(letra_previa), add = TRUE)
+  }
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(

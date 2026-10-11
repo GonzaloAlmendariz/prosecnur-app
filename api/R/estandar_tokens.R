@@ -69,8 +69,21 @@
 }
 
 #' Tamaño tipográfico PPT en puntos (`titulo`, `base`, `leyenda`, `cifra`...)
+#'
+#' Más el desplazamiento del perfil de letra del cliente (K13, graficos_estilo_cliente.R), que sólo fija el worker del
+#' export con `on.exit`: sin la opción, el valor del recetario tal cual.
 #' @keywords internal
-.std_pt <- function(nombre) .std_valor("ppt", "tipografia", nombre)
+.std_pt <- function(nombre) .std_letra_desplazada(.std_valor("ppt", "tipografia", nombre), "ppt", nombre)
+
+# Suma el desplazamiento K13 de `getOption("prosecnur.letra_desplazo")[[medio]][[nombre]]` a un tamaño numérico. En el
+# Word, las figuras nunca bajan del piso del estándar (`grafico_minimo`, 8 pt).
+.std_letra_desplazada <- function(v, medio, nombre) {
+  d <- (getOption("prosecnur.letra_desplazo") %||% list())[[medio]]
+  if (!is.numeric(v) || !length(d) || !nombre %in% names(d)) return(v)
+  v <- v + d[[nombre]]
+  if (identical(medio, "word") && startsWith(nombre, "grafico_")) v <- max(v, .std_valor("word", "tipografia", "grafico_minimo"))
+  v
+}
 
 #' Medida de la geometría de la lámina PPT, en pulgadas
 #' @keywords internal
@@ -116,4 +129,7 @@
 
 #' Valor del bloque Word (`pagina`, `tipografia`, `colores`, `figura`)
 #' @keywords internal
-.std_word <- function(seccion, nombre) .std_valor("word", seccion, nombre)
+.std_word <- function(seccion, nombre) {
+  v <- .std_valor("word", seccion, nombre)
+  if (identical(seccion, "tipografia")) .std_letra_desplazada(v, "word", nombre) else v
+}

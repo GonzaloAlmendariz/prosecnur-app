@@ -1249,7 +1249,13 @@
   configs[[candidates[[1]]]]
 }
 
+# El estilo del cliente se pone según su ámbito (proyecto o base) encima de la config guardada (graficos_estilo_cliente.R).
 .graficos_config_get <- function(sid, s = NULL) {
+  s <- s %||% session_get(sid, required = FALSE)
+  .graficos_estilo_cliente_en_config(sid, s, .graficos_config_get_guardada(sid, s), .graficos_scoped_base(sid))
+}
+
+.graficos_config_get_guardada <- function(sid, s = NULL) {
   # Tambien al LEER, y no solo al guardar: un `.pulso` anterior al ADR 0074 trae
   # su bag entero —253 valores medidos, 218 de ellos el default congelado— y
   # merece el mismo trato sin obligar a una migracion. El primer guardado ya lo
@@ -1295,6 +1301,10 @@
 
 .graficos_config_get_for_base <- function(sid, base_name, s = NULL) {
   s <- s %||% session_get(sid, required = FALSE)
+  .graficos_estilo_cliente_en_config(sid, s, .graficos_config_get_for_base_guardada(sid, base_name, s), base_name)
+}
+
+.graficos_config_get_for_base_guardada <- function(sid, base_name, s = NULL) {
   if (is.null(s)) return(.graficos_default_config(sid))
   active <- as.character(base_name %||% "")[1]
   if (is.na(active) || !nzchar(active)) return(s$graficos_config %||% .graficos_default_config(sid))
@@ -1322,6 +1332,7 @@
     cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
   }
   cfg <- .graficos_config_word_solo_decisiones(cfg)   # ADR 0094: w_presets y documento_word, igual
+  cfg <- .graficos_estilo_cliente_al_guardar(sid, cfg)  # y estilo_cliente, donde diga su ámbito
   active <- .graficos_scoped_base(sid)
   if (nzchar(active)) {
     s <- session_get(sid)
@@ -1411,7 +1422,8 @@
     "canvas_viewport", "canvasViewport", "scope_rules", "scopeRules",
     "profile_id", "profileId", "template_id", "templateId",
     "auto_otros_slides", "autoOtrosSlides",
-    "documento_word", "documentoWord",
+    "documento_word", "documentoWord", "estilo_cliente", "estiloCliente",
+    "equivalencias_revision", "equivalenciasRevision",
     "_unknown"
   )
   if (!.graficos_is_obj(x)) return(list())
@@ -1547,9 +1559,18 @@
     defaults$auto_otros_slides
   }
 
+  # Sello ADR 0063 de la revisión de equivalencias de la que salió el mazo: campo de primera clase, en la raíz. Un
+  # proyecto guardado antes lo trae en `_unknown`; de ahí se rescata para que el primer autosave no lo pise.
+  rev <- .graficos_pick_alias(src, "equivalencias_revision", "equivalenciasRevision")
+  if (is.null(rev) || identical(rev, "")) rev <- (if (.graficos_is_obj(src$`_unknown`)) src$`_unknown`$equivalencias_revision) %||% rev
+  cfg$equivalencias_revision <- if (is.character(rev) && length(rev) == 1L && !is.na(rev)) rev else ""
+
   # Opciones del documento Word del recetario (F6.0b.4): se validan al exportar (.graficos_opciones_documento).
   documento_word <- .graficos_pick_alias(src, "documento_word", "documentoWord")
   if (.graficos_is_obj(documento_word)) cfg$documento_word <- documento_word
+  # Estilo del cliente (A6 R3): sólo si viene —ausente, el guardado conserva el que hay—, con el default repuesto debajo.
+  estilo_cliente <- .graficos_pick_alias(src, "estilo_cliente", "estiloCliente")
+  if (.graficos_is_obj(estilo_cliente)) cfg$estilo_cliente <- .graficos_estilo_cliente_con_defaults(estilo_cliente, cfg$profile_id)
 
   scope_rules <- .graficos_pick_alias(src, "scope_rules", "scopeRules")
   cfg$scope_rules <- if (.graficos_is_obj(scope_rules)) scope_rules else list(
@@ -1569,6 +1590,7 @@
     bundle_unknown <- .graficos_unknown_fields(envelope)
     if (length(bundle_unknown) > 0L) unknown$`__bundle` <- bundle_unknown
   }
+  unknown$equivalencias_revision <- NULL; unknown$equivalenciasRevision <- NULL   # ya rescatado a la raíz
   if (length(unknown) > 0L) cfg$`_unknown` <- unknown
 
   if (isTRUE(include_legacy_aliases)) {
@@ -2651,7 +2673,8 @@ mount_graficos <- function(pr) {
       avisos <- .graficos_config_migrar_sesion(sid)   # persiste la migración de la población antigua y la avisa una vez
       cfg <- .graficos_normalize_config(.graficos_config_get(sid), sid = sid, include_legacy_aliases = TRUE)
       # `defaults` (ADR 0094, decisión 5a): aditivo y no persistido; «Modificado» compara contra él.
-      list(ok = TRUE, config = cfg, defaults = .graficos_config_defaults_publicos(), avisos = I(avisos))
+      defaults <- c(.graficos_config_defaults_publicos(), list(estilo_cliente = .graficos_estilo_cliente_defaults_publicos(sid, cfg$profile_id)))
+      list(ok = TRUE, config = cfg, defaults = defaults, avisos = I(avisos))
     })) |>
     plumber::pr_post("/api/graficos/config", wrap_endpoint(function(req, res, ...) {
       # Recibe el estado completo (plan + presets + wPresets + selected)
@@ -2665,6 +2688,7 @@ mount_graficos <- function(pr) {
         jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
+      .graficos_estilo_cliente_validar_body(parsed, sid)   # 400 E_BAD_ESTILO_CLIENTE: el normalizador es tolerante
       cfg <- .graficos_normalize_config(parsed$config %||% parsed, sid = sid)
       cfg <- .graficos_conservar_campos_backend(cfg, .graficos_config_get(sid))
       .graficos_config_set(sid, cfg)
@@ -3341,6 +3365,8 @@ mount_graficos <- function(pr) {
       )
       # Sólo viaja si hay opciones: un worker instalado sin este argumento sigue funcionando mientras no se usen.
       if (length(opciones_documento)) args_word$opciones_documento <- opciones_documento
+      estilo_cliente <- .graficos_estilo_cliente_resolver(sid, cfg)   # logos (rutas) y letra K13; igual, sólo si hay
+      if (length(estilo_cliente)) args_word$estilo_cliente <- estilo_cliente
 
       job_id <- job_submit(
         sid = sid,
