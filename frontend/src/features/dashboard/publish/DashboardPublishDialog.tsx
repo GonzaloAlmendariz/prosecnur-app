@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ExternalLink, Loader2, Rocket } from "lucide-react";
+import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
 import { Dialog } from "../../../components/Dialog";
 import { PulsoButton } from "../../../components/PulsoButton";
 import {
@@ -20,6 +21,9 @@ import { sanitizeConfig, useDashboardStore } from "../store";
 type Props = {
   defaultTitle: string;
   lastDeploy?: DashboardLastDeploy;
+  /** Panel declarado (`?panel=publicar`): la dirección abre y cierra el diálogo. */
+  panel: PanelDeclarado;
+  /** Cierra el panel (Cancelar); el cierre por Escape o la X lo hace el propio `Dialog`. */
   onClose: () => void;
 };
 
@@ -35,7 +39,7 @@ function slugifySpace(value: string) {
     .slice(0, 64);
 }
 
-export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Props) {
+export function DashboardPublishDialog({ defaultTitle, lastDeploy, panel, onClose }: Props) {
   const [username, setUsername] = useState(lastDeploy?.hf_username ?? "");
   const [token, setToken] = useState("");
   const [tokenName, setTokenName] = useState(PULSO_HF_DEFAULT_TOKEN_ALIAS);
@@ -179,10 +183,7 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
 
   return (
     <Dialog
-      open
-      onOpenChange={(abierto) => {
-        if (!abierto) onClose();
-      }}
+      panel={panel}
       size="md"
       flush
       portalScope=".dashboard-scope"

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { ReconciliacionExtra, ReconciliacionInfo } from "../../api/client";
 import {
+  reconciliacionAplica,
   dialogTitle,
   fillLabel,
   initialIncluidas,
@@ -97,5 +98,15 @@ describe("dialogTitle", () => {
   test("singular / plural", () => {
     expect(dialogTitle(1)).toBe("Encontramos 1 variable que no está en tu formulario");
     expect(dialogTitle(3)).toBe("Encontramos 3 variables que no están en tu formulario");
+  });
+});
+
+describe("reconciliacionAplica", () => {
+  test("no abre la reconciliación sin variables extra (n_extra=0)", () => {
+    expect(reconciliacionAplica({ ...info([]), n_extra: 0 })).toBe(false);
+    expect(reconciliacionAplica(null)).toBe(false);
+  });
+  test("abre con al menos una variable extra", () => {
+    expect(reconciliacionAplica({ ...info([]), n_extra: 1 })).toBe(true);
   });
 });

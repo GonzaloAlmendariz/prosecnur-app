@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
   Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
@@ -49,6 +50,8 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { PANEL_CARGA_RECONCILIACION } from "../../lib/navegacion/manifiesto";
+import { searchConPanel, usePanelCondicionado, usePanelDireccionable } from "../../lib/navegacion/paneles";
 import "./carga-v2.css";
 import "./carga-sources.css";
 import { PageFrame } from "../../components/PageFrame";
@@ -59,7 +62,7 @@ import { BasesPanel } from "./BasesPanel";
 import { InstrumentRevisionBindingNotice } from "./InstrumentRevisionBindingNotice";
 import { EsquemaBaseSelector } from "./EsquemaBaseSelector";
 import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
-import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
+import { reconciliacionAplica, summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
 import { defaultEsquemaBase } from "./esquemaBaseModel";
@@ -271,7 +274,11 @@ export default function CargaPage() {
   // adaptación de `reconciliation`, sin mantener un segundo motor de decisión.
   const [cargaReview, setCargaReview] = useState<CargaReviewPayload | null>(null);
   const [cargaReviewSummary, setCargaReviewSummary] = useState<CargaReviewSummaryPayload | null>(null);
-  const [reconDialogOpen, setReconDialogOpen] = useState(false);
+  const recon = usePanelDireccionable(PANEL_CARGA_RECONCILIACION);
+  // Si la revisión de la pestaña Revisión ya respondió (con review, sin datos
+  // o con error): hasta entonces un `?panel=reconciliacion` espera.
+  const [reviewResuelta, setReviewResuelta] = useState(false);
+  const navigate = useNavigate();
   const planningSeedRef = useRef("");
   const reconInfo = cargaReview ? reviewReconciliationInfo(cargaReview) : null;
 
@@ -546,7 +553,7 @@ export default function CargaPage() {
       const review = await apiCargaReview(selectedCargaBase);
       setCargaReview(review);
       if (openIfExtra && review.reconciliation.n_pendientes > 0) {
-        setReconDialogOpen(true);
+        recon.abrir();
       }
     } catch {
       setCargaReview(null);
@@ -809,21 +816,27 @@ export default function CargaPage() {
     if (!isMultiBase) {
       if (!state?.instrumento_parsed || !state?.data_previewed) {
         setCargaReview(null);
+        setReviewResuelta(true);
         return;
       }
     }
     if (isMultiBase && !topologyBases.some((base) => base.nombre === selectedCargaBase)) {
       setCargaReview(null);
+      setReviewResuelta(true);
       return;
     }
     let cancelled = false;
     setCargaReview(null);
+    setReviewResuelta(false);
     apiCargaReview(selectedCargaBase)
       .then((review) => {
         if (!cancelled) setCargaReview(review);
       })
       .catch(() => {
         if (!cancelled) setCargaReview(null);
+      })
+      .finally(() => {
+        if (!cancelled) setReviewResuelta(true);
       });
     return () => { cancelled = true; };
   }, [activeCargaTab, cargaBaseSignature, isMultiBase, selectedCargaBase, state?.data_previewed, state?.instrumento_parsed]);
@@ -846,6 +859,21 @@ export default function CargaPage() {
       });
     return () => { cancelled = true; };
   }, [activeCargaTab, cargaBaseSignature, isMultiBase]);
+
+  // La reconciliación vive en Revisión, la única pestaña que pide la revisión
+  // de la base. Un `?panel=reconciliacion` sobre otra pestaña se reescribe a
+  // su dirección canónica (`pestana=revision&panel=reconciliacion`).
+  useEffect(() => {
+    if (!recon.abierto || activeCargaTab === "revision") return;
+    const [pathname, search = ""] = cargaDireccion.hrefDe("pestana", "revision").split("?");
+    navigate({ pathname, search: searchConPanel(search, PANEL_CARGA_RECONCILIACION) }, { replace: true });
+  }, [recon.abierto, activeCargaTab, cargaDireccion, navigate]);
+  // Sin variables extra no hay nada que reconciliar: el diálogo no se abre y
+  // el param se borra, para que la URL no prometa un panel que no se ve.
+  const verReconciliacion = usePanelCondicionado(recon, {
+    resuelto: activeCargaTab === "revision" && reviewResuelta,
+    aplica: reconciliacionAplica(reconInfo),
+  });
 
   function goCargaWorkspaceTab(next: CargaWorkspaceTab, replace = false) {
     cargaDireccion.irA("pestana", next === "plan" ? null : next, { replace });
@@ -886,7 +914,7 @@ export default function CargaPage() {
     setAutoOpenAddBase(false);
     setSelectedCargaBase("");
     setCargaReview(null);
-    setReconDialogOpen(false);
+    if (recon.abierto) recon.cerrar();
     setForceMultiBase(false);
     setPreferredMultiStrategy(undefined);
     setTopologyIntent(null);
@@ -1188,7 +1216,7 @@ export default function CargaPage() {
         </div>
       )}
 
-      {activeCargaTab === "revision" && reconInfo && reconInfo.n_extra > 0 && (
+      {activeCargaTab === "revision" && reconInfo && reconciliacionAplica(reconInfo) && (
         <div className="pulso-recon-panel" data-audit-ready="true">
           <span className="pulso-recon-panel-icon" aria-hidden="true">
             <FileWarning size={16} />
@@ -1202,7 +1230,7 @@ export default function CargaPage() {
           <button
             type="button"
             className="pulso-recon-panel-button"
-            onClick={() => setReconDialogOpen(true)}
+            onClick={recon.abrir}
           >
             <ArrowRightLeft size={14} aria-hidden="true" />
             Revisar variables extra
@@ -1210,11 +1238,13 @@ export default function CargaPage() {
         </div>
       )}
 
-      {reconDialogOpen && reconInfo && (
+      {verReconciliacion && reconInfo && (
         <ReconciliacionExtraDialog
           info={reconInfo}
           onSave={onSaveReconciliacion}
-          onClose={() => setReconDialogOpen(false)}
+          panel={PANEL_CARGA_RECONCILIACION}
+          onClose={recon.cerrar}
+          returnFocusTo=".pulso-recon-panel-button"
         />
       )}
 

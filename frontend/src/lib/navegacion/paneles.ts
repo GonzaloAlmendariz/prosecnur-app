@@ -172,3 +172,42 @@ export function usePanelDireccionable(
     props: { "data-pulso-panel": panel.id },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Paneles condicionados: la dirección reproduce lo que se ve
+// ---------------------------------------------------------------------------
+//
+// Hay paneles que solo existen si el dato lo permite (la reconciliación de
+// Carga sin variables extra, los diálogos de edición del Dashboard sin fuente
+// o en vista previa). Un `?panel=` que pide uno de esos y no abre nada deja una
+// URL que miente: dice «panel abierto» sobre una pantalla sin panel. La regla
+// es borrar el param en cuanto se sabe que no aplica, y no antes: mientras el
+// dato carga, el panel espera.
+
+export type ResolucionPanel = "cerrado" | "esperar" | "abrir" | "borrar";
+
+/** Qué hacer con un panel pedido cuyo contenido depende de un dato. */
+export function resolverPanelCondicionado(
+  abierto: boolean,
+  estado: { resuelto: boolean; aplica: boolean },
+): ResolucionPanel {
+  if (!abierto) return "cerrado";
+  if (!estado.resuelto) return "esperar";
+  return estado.aplica ? "abrir" : "borrar";
+}
+
+/**
+ * Borra de la dirección un panel pedido que no aplica. Devuelve si el panel
+ * debe pintarse ahora (`abrir`).
+ */
+export function usePanelCondicionado(
+  control: Pick<ControlPanel, "abierto" | "cerrar">,
+  estado: { resuelto: boolean; aplica: boolean },
+): boolean {
+  const resolucion = resolverPanelCondicionado(control.abierto, estado);
+  const { cerrar } = control;
+  useEffect(() => {
+    if (resolucion === "borrar") cerrar();
+  }, [resolucion, cerrar]);
+  return resolucion === "abrir";
+}

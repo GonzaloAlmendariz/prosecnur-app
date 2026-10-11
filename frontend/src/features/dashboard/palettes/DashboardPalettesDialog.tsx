@@ -5,6 +5,7 @@ import {
   apiDashboardPaletasListas,
   type DashboardChoiceList,
 } from "../../../api/client";
+import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
 import { Dialog, type RetornoDeFoco } from "../../../components/Dialog";
 import { EmptyState } from "../shared/EmptyState";
 import { useDashboardStore } from "../store";
@@ -90,10 +91,11 @@ const PRESETS = [
 ];
 
 export function DashboardPalettesDialog({
-  onClose,
+  panel,
   returnFocusTo,
 }: {
-  onClose: () => void;
+  /** Panel declarado (`?panel=paletas`): la dirección abre y cierra el diálogo. */
+  panel: PanelDeclarado;
   /** Foco de vuelta si el disparador se desmontó (ítem del menú «Más acciones»). */
   returnFocusTo?: RetornoDeFoco;
 }) {
@@ -156,10 +158,7 @@ export function DashboardPalettesDialog({
 
   return (
     <Dialog
-      open
-      onOpenChange={(abierto) => {
-        if (!abierto) onClose();
-      }}
+      panel={panel}
       size="lg"
       alto="fijo"
       flush

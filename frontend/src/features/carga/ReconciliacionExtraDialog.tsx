@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, Check, Database, EyeOff, Info, Loader2 } from "../../vendor/lucide-react";
-import { Dialog } from "../../components/Dialog";
+import { Dialog, type RetornoDeFoco } from "../../components/Dialog";
+import type { PanelDeclarado } from "../../lib/navegacion/paneles";
 import { PulsoButton } from "../../components/PulsoButton";
 import type { ReconciliacionInfo } from "../../api/client";
 import {
@@ -20,11 +21,21 @@ import {
 export function ReconciliacionExtraDialog({
   info,
   onSave,
+  panel,
   onClose,
+  returnFocusTo,
 }: {
   info: ReconciliacionInfo;
   onSave: (incluidas: string[]) => Promise<ReconciliacionInfo>;
+  /** Panel declarado (`?panel=reconciliacion`): la dirección abre y cierra el diálogo. */
+  panel: PanelDeclarado;
+  /** Cierra el panel tras guardar o con Cancelar. */
   onClose: () => void;
+  /**
+   * Destino del foco al cerrar si lo enfocado al abrir ya no existe: abierto
+   * por enlace no hay disparador y el foco caía en `body`.
+   */
+  returnFocusTo?: RetornoDeFoco;
 }) {
   const [incluidas, setIncluidas] = useState<string[]>(() => initialIncluidas(info));
   const [saving, setSaving] = useState(false);
@@ -52,10 +63,8 @@ export function ReconciliacionExtraDialog({
 
   return (
     <Dialog
-      open
-      onOpenChange={(abierto) => {
-        if (!abierto) onClose();
-      }}
+      panel={panel}
+      returnFocusTo={returnFocusTo}
       size="md"
       alto="fijo"
       tono="aviso"
