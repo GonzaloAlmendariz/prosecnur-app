@@ -591,7 +591,11 @@ test_that("el envoltorio por gráfico silencia las señales de sus bloques y re-
   contar <- function(el, n_senales) {
     n <- 0L
     withCallingHandlers(
-      .plan_con_sin_datos_por_grafico(el, { for (i in seq_len(n_senales)) .pulso_senal_sin_datos(NULL); "ok" }),
+      .plan_con_sin_datos_por_grafico(el, {
+        for (i in seq_len(n_senales)) .pulso_senal_sin_datos(NULL)
+        # Lo que devuelve el motor: la grilla de la multilista lleva sus bloques dibujados.
+        if (length(el$bloques)) structure("ok", pulso_multilista = list(bloques = el$bloques)) else "ok"
+      }),
       pulso_grafico_sin_datos = function(c) n <<- n + 1L)
     n
   }
@@ -630,4 +634,89 @@ test_that("H24: la poda LRU corre y conserva las entradas usadas más recienteme
   r1 <- .mini_resolver(.mt_ctx(slide = .mt_slide("uno")), raiz, .mt_opts(render = FALSE))
   expect_identical(.mini_cache_podar(raiz), 3L)                                 # h1, h4 y h5 ceden ante la nueva
   expect_identical(basename(list.dirs(raiz, recursive = FALSE)), r1$hash)
+})
+
+# ---- Cuarta revisión: cierre menor ------------------------------------------------------------------------------------
+
+test_that("L: dos multilistas vacías en una lámina → vacios = 2", {
+  f <- .mt_temas(); f$df$p1 <- NA_character_; f$df$p2 <- NA_character_
+  r <- .mt_ver(list(id = "l", tipo = "p_slide_2_graficos", payload = list(titulo = "T",
+                    izquierda = .mt_multilista(c("p1", "p2")), derecha = .mt_multilista(c("p2", "p1")))), f)
+  expect_identical(r$pedidos, 2L)
+  expect_identical(r$vacios, 2L)
+  expect_identical(r$estado, "sin_datos")
+})
+
+test_that("B/K: un filtro de BLOQUE que deja 0 casos se informa como sin_respuestas_validas (n0 sólo mira filtros del gráfico, §2.4)", {
+  bloques <- function(filtro_en) list(graficador = "p_barras_multiapiladas", args = list(modo = "multilista", bloques = lapply(
+    c("p1", "p2"), function(v) c(list(modo = "var", vars = list(v)), if (v %in% filtro_en) list(filtros = list(region = "oeste"))))))
+  # B: sólo un bloque filtrado a 0: la multilista dibuja el otro.
+  b <- .mt_ver(list(id = "b", tipo = "p_slide_1_grafico", payload = list(titulo = "T", grafico = bloques("p2"))), .mt_temas())
+  expect_identical(b$vacios, 0L)
+  # K: los dos bloques filtrados a 0: vacía, con el motivo del canvas (no n0).
+  k <- .mt_ver(list(id = "k", tipo = "p_slide_1_grafico", payload = list(titulo = "T", grafico = bloques(c("p1", "p2")))), .mt_temas())
+  expect_identical(k, list(estado = "sin_datos", pedidos = 1L, vacios = 1L, motivo = "sin_respuestas_validas"))
+})
+
+test_that("las señales de los bloques no llegan a un oyente externo: 1 con todos vacíos, 0 con datos parciales", {
+  oir <- function(slide, fuentes) {
+    n <- 0L
+    raiz <- withr::local_tempdir()
+    withCallingHandlers(suppressWarnings(.mini_resolver(.mt_ctx(slide = slide, fuentes = fuentes), raiz, .mt_opts(render = FALSE))),
+                        pulso_grafico_sin_datos = function(c) n <<- n + 1L)
+    n
+  }
+  vacia <- .mt_temas(); vacia$df$p1 <- NA_character_; vacia$df$p2 <- NA_character_
+  parcial <- .mt_temas(); parcial$df$p2 <- NA_character_
+  lam <- list(id = "o", tipo = "p_slide_1_grafico", payload = list(titulo = "T", grafico = .mt_multilista(c("p1", "p2"))))
+  expect_identical(oir(lam, vacia), 1L)
+  expect_identical(oir(lam, parcial), 0L)
+})
+
+test_that("un error de render después de señales de bloques cuenta una vez, como degradado", {
+  motivos <- character(0)
+  out <- suppressWarnings(withCallingHandlers(
+    .plan_render_element_degradable(function(el) { .pulso_senal_sin_datos(NULL); .slide_abort_render("se rompió") },
+                                    list(bloques = list(1, 2))),
+    pulso_lamina_degradada = function(c) motivos <<- c(motivos, c$motivo)))
+  expect_identical(motivos, "error_render")
+  r <- .mini_resumen_graficos(1L, NA_character_, degradados = 1L, sin_respuestas = 0L)
+  expect_identical(r$graficos_vacios, 1L)
+  expect_identical(r$graficos_motivos, "degradado")
+})
+
+test_that("un bloque que el motor salta (NULL) no cuenta como parte: el otro vacío deja el gráfico vacío", {
+  oir <- function(impl) {
+    n <- 0L
+    withCallingHandlers(.plan_con_sin_datos_por_grafico(list(bloques = list(1, 2)), impl()),
+                        pulso_grafico_sin_datos = function(c) n <<- n + 1L)
+    n
+  }
+  # Grilla con UN bloque dibujado (el otro devolvió NULL y se saltó) y ese bloque vacío.
+  una_vacia <- function() { .pulso_senal_sin_datos(NULL); structure(list(), pulso_multilista = list(bloques = list(list()))) }
+  expect_identical(oir(una_vacia), 1L)
+  # Dos bloques dibujados y uno solo vacío: dibuja datos.
+  dos_una_vacia <- function() { .pulso_senal_sin_datos(NULL); structure(list(), pulso_multilista = list(bloques = list(list(), list()))) }
+  expect_identical(oir(dos_una_vacia), 0L)
+  # Ningún bloque dibujado: el canvas vacío final es una sola parte.
+  ninguno <- function() .pulso_senal_sin_datos(list())
+  expect_identical(oir(ninguno), 1L)
+  expect_identical(.plan_partes_dibujadas(list()), 1L)
+})
+
+test_that("P2: multilista con un bloque de var vacía: la vista previa es lo que dibuja el export (vacía) y lo dice", {
+  f <- .mt_temas()
+  ml <- list(graficador = "p_barras_multiapiladas", args = list(modo = "multilista", bloques = list(
+    list(modo = "var", vars = list(" ")), list(modo = "var", vars = list("p1")))))
+  lamina <- list(id = "p2", tipo = "p_slide_1_grafico", payload = list(titulo = "T", grafico = ml))
+  r <- .mt_ver(lamina, f)
+  expect_identical(r, list(estado = "sin_datos", pedidos = 1L, vacios = 1L, motivo = "borrador_incompleto"))
+  # El export (rebuild del job `/ppt`) tampoco dibuja el bloque con datos: también deja el gráfico en blanco.
+  out <- withr::local_tempfile(fileext = ".pptx")
+  suppressWarnings(suppressMessages(reporte_ppt_plan(data = list(principal = f$df), instrumento = list(principal = f$inst),
+    plan = p_plan(slides = list(.graficos_rebuild_slide_json(lamina))), path_ppt = out, mensajes_progreso = FALSE)))
+  expect_false(grepl("%", .mt_texto_pptx(out), fixed = TRUE))
+  raiz <- withr::local_tempdir()
+  previa <- suppressWarnings(.mini_resolver(.mt_ctx(slide = lamina, fuentes = f), raiz, .mt_opts(render = FALSE)))
+  expect_identical(.mt_texto_pptx(previa$pptx), .mt_texto_pptx(out))
 })
