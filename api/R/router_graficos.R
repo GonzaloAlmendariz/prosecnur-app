@@ -1128,9 +1128,9 @@
 }
 
 .build_w_presets <- function(w_json) {
-  if (is.null(w_json) || length(w_json) == 0) return(NULL)
-  args <- as.list(w_json)
-  do.call(get("w_presets", mode = "function", inherits = TRUE), args)
+  # ADR 0094. El embudo del job de Word: repone el default vigente bajo las decisiones (y migra fósiles), mezcla las
+  # sublistas de estilo sobre los formals y filtra con aviso lo que `w_presets()` no acepta, en vez de abortar.
+  do.call(get("w_presets", mode = "function", inherits = TRUE), .graficos_w_presets_args(w_json))
 }
 
 .validar_plan_json <- function(plan_json) {
@@ -1188,7 +1188,7 @@
     version = "graficos/4",
     plan = list(slides = list()),
     presets = user_presets %||% .PRESETS_DEFAULT_PULSO,
-    w_presets = .WORD_PRESETS_DEFAULT_PULSO,
+    w_presets = .graficos_w_presets_default(),
     selected_slide_id = NULL,
     paletas = list(),
     iconos = list(),
@@ -1264,7 +1264,10 @@
     if (is.list(cfg) && !is.null(cfg$presets)) {
       cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
     }
-    cfg
+    # ADR 0094: lo mismo para el Word (fósiles G1/G2 incluidos) y, de lo guardado, se descarta con aviso lo inválido.
+    # Sin escribir de vuelta: abrir no marca el proyecto como modificado; el primer guardado deja el diff en disco.
+    if (is.list(cfg) && !is.null(cfg$documento_word)) cfg$documento_word <- .graficos_documento_word_validos(cfg$documento_word)
+    .graficos_config_word_solo_decisiones(cfg)
   }
   s <- s %||% session_get(sid, required = FALSE)
   if (is.null(s)) return(.graficos_default_config(sid))
@@ -1318,6 +1321,7 @@
   if (is.list(cfg) && !is.null(cfg$presets)) {
     cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
   }
+  cfg <- .graficos_config_word_solo_decisiones(cfg)   # ADR 0094: w_presets y documento_word, igual
   active <- .graficos_scoped_base(sid)
   if (nzchar(active)) {
     s <- session_get(sid)
@@ -1496,7 +1500,7 @@
 
   w_presets <- .graficos_pick_alias(src, "w_presets", "wPresets")
   cfg$w_presets <- if (.graficos_is_obj(w_presets)) {
-    .graficos_deep_merge(defaults$w_presets, w_presets)
+    .graficos_w_presets_con_defaults(w_presets, defaults$w_presets)   # ADR 0094: repone y migra fósiles
   } else {
     defaults$w_presets
   }
@@ -2646,7 +2650,8 @@ mount_graficos <- function(pr) {
       sid <- session_header(req)
       avisos <- .graficos_config_migrar_sesion(sid)   # persiste la migración de la población antigua y la avisa una vez
       cfg <- .graficos_normalize_config(.graficos_config_get(sid), sid = sid, include_legacy_aliases = TRUE)
-      list(ok = TRUE, config = cfg, avisos = I(avisos))
+      # `defaults` (ADR 0094, decisión 5a): aditivo y no persistido; «Modificado» compara contra él.
+      list(ok = TRUE, config = cfg, defaults = .graficos_config_defaults_publicos(), avisos = I(avisos))
     })) |>
     plumber::pr_post("/api/graficos/config", wrap_endpoint(function(req, res, ...) {
       # Recibe el estado completo (plan + presets + wPresets + selected)
@@ -3319,9 +3324,9 @@ mount_graficos <- function(pr) {
       icon_registry_arg <- .graficos_icon_registry(sid, cfg)
       paletas_arg <- cfg$paletas %||% list()
       # Portada, apertura, «Cómo leer», contacto y datos de portada del recetario (F6.0b.4, graficos_documento_word.R).
-      opciones_documento <- .graficos_opciones_documento(
-        if (is.list(crudo)) crudo$opciones_documento %||% cfg$documento_word else cfg$documento_word
-      )
+      # ADR 0094: lo guardado (lector tolerante) con el body encima, por clave; el body inválido sigue siendo 400.
+      opciones_documento <- .graficos_documento_word_mezclar(cfg$documento_word, if (is.list(crudo)) crudo$opciones_documento)
+      w_presets <- .graficos_deep_merge(cfg$w_presets, w_presets)   # default -> fósiles -> diff guardado -> body
       args_word <- list(
         rp_data_path = rp_data_path,
         rp_inst_path = rp_inst_path,

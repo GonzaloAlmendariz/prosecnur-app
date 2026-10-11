@@ -127,7 +127,8 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   fresh$graficos_consolidado_draft <- list(
     schema = .GRAFICOS_CONSOLIDADO_DRAFT_SCHEMA,
     revision = expected_revision + 1L,
-    config = .graficos_consolidado_portable_config(config, fresh$files %||% list())
+    # ADR 0094: el borrador guarda las decisiones del Word como el resto de portadores de config.
+    config = .graficos_consolidado_portable_config(.graficos_config_word_solo_decisiones(config), fresh$files %||% list())
   )
   fresh <- .mark_project_dirty(fresh)
   .session_env[[sid]] <- fresh

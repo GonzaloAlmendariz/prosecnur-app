@@ -117,3 +117,22 @@ Deriva vecina fuera de alcance: `equivalencias_revision`, `profile_id`, `templat
    (`.graficos_resolve_template_pptx`), sin crecer `reporte_plan_ppt.R`.
 4. Token del sello «Del recetario» (`--pulso-recetario-*`) no existe y `tokens.css`/`theme.css` están congelados →
    pedido a la Meta B.
+
+## 6. Decisiones de R1 (backend, 2026-10-11, validadas por el lead)
+
+- `redondeo` no entra en el diff ni en `defaults`: `reporte_word_plan` lo deduce del informe (`reporte_plan_word.R:371`),
+  así que un valor elegido es siempre decisión. En `documento_word` sólo `portada` y `apertura` tienen default fijo;
+  `como_leer:"auto"` ≡ ausente.
+- `image` no se mezcla sobre su formal (`w_presets()` ya repone campo por campo; `test-graficos-argumentos-ui.R:735`); sí
+  se mezclan los `*_style`, `figure_numbering`, `toc` y `chart_options`.
+- El diff de `w_presets` es contra `.WORD_PRESETS_DEFAULT_PULSO` (`chart_options` + `chart_presets`); lo sin default
+  declarado se conserva tal cual.
+- En `/word`, una clave presente en el body manda (también para volver al default); `contacto` y `meta_portada` se
+  reemplazan como unidad.
+- `graficos_consolidado$config` (receta congelada de `graficos_consolidado_start`) NO lleva diff: es una foto de
+  procedencia y debe reproducir el informe tal como se armó. `graficos_consolidado_draft_get` aún no limpia al leer y
+  `draft_set` no aplica el diff de `presets` (ADR 0074): pendientes de R3.
+- Fósiles medidos: G1 (25 claves, espejo del front previo a f1b7034) en `acnur_acg`, `acnur_pdm`, `acrconta`; G2 (G1 +
+  `size_texto_barras_peq`, `size_barra_extra`, `size_titulo_extra`, 28 claves) en `acrconta_mazo`. Con los cuatro el diff
+  da `list()` y el Word sale con leyenda de 8 pt y Top Two Box.
+
