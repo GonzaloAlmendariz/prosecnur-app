@@ -117,13 +117,13 @@ export function instalarAtajosLaminas(objetivo: Escucha, acciones: () => Accione
   return () => objetivo.removeEventListener("keydown", fn, FASE_ATAJOS.captura);
 }
 
-/** Enfoca el buscador de la Estructura; si aún no está montado (la Estructura se acaba de abrir), lo reintenta. */
-export function enfocarBusquedaEstructura(intentos = 6): void {
+/** Enfoca el buscador de la Estructura y reintenta hasta que el foco quede de verdad en él: recién abierta, la
+ *  Estructura puede no estar montada o seguir con `visibility:hidden`, y ahí `focus()` no surte efecto (QA qa-f6-4). */
+export function enfocarBusquedaEstructura(intentos = 30): void {
   const input = document.getElementById(ID_BUSQUEDA_ESTRUCTURA);
   if (input instanceof HTMLInputElement) {
     input.focus();
-    input.select();
-    return;
+    if (document.activeElement === input) { input.select(); return; }
   }
   if (intentos > 0) requestAnimationFrame(() => enfocarBusquedaEstructura(intentos - 1));
 }
