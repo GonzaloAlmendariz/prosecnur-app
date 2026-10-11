@@ -24,6 +24,7 @@ import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, mensajeSinImagen, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
 import { useLaminasUi, type ZoomVisor } from "./laminasStore";
+import { useMiniaturasLoteStore } from "./miniaturas/miniaturasStore";
 import { RanurasSobreLamina } from "./RanurasSobreLamina";
 import { ATRIBUTO_LIENZO } from "./selectores/focoAlCerrar";
 import type { RanuraSobreLamina } from "./ranurasLamina";
@@ -86,6 +87,9 @@ export function VisorLamina({
   const actual = l?.partes[parteActiva - 1] ?? null;
   const estado = actual?.estado ?? (l ? estadoDeLamina(l) : null);
   const cargando = vista.fase === "esperando" || vista.fase === "cargando";
+  // Mientras el motor genera la vista grande, la miniatura ya dibujada de esta lámina se muestra al instante.
+  const miniatura = useMiniaturasLoteStore((s) => s.entradas[lamina.id]?.src ?? null);
+  const provisional = !actual?.imagen && cargando ? miniatura : null;
   const hojaRef = useRef<HTMLElement>(null);
   const capas = useGuiasUi((s) => s.capas);
   const rolesOcultos = useGuiasUi((s) => s.rolesOcultos);
@@ -213,7 +217,8 @@ export function VisorLamina({
         {...{ [ATRIBUTO_LIENZO]: lamina.posicion }}
         aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. Flechas izquierda y derecha cambian de lámina${nPartes > 1 ? "; arriba y abajo, de parte" : ""}.`}
       >
-        <figure ref={hojaRef} className={`pulso-f6-hoja${cargando && actual?.imagen ? " is-desactualizada" : ""}`}>
+        <figure ref={hojaRef} className={`pulso-f6-hoja${cargando && (actual?.imagen || provisional) ? " is-desactualizada" : ""}`}>
+          {provisional && <img src={provisional} alt={`Lámina ${lamina.posicion}: ${lamina.titulo} (vista rápida)`} draggable={false} />}
           {actual?.imagen ? (
             <img
               src={actual.imagen}
@@ -226,8 +231,14 @@ export function VisorLamina({
           )}
           {/* Las guías son del visor: nunca entran al entregable (D17). Se ocultan mientras la imagen se regenera. */}
           {actual?.imagen && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
-          <EstadoSobreHoja vista={vista} prepOk={prepOk} hayImagen={!!actual?.imagen} />
+          <EstadoSobreHoja vista={vista} prepOk={prepOk} hayImagen={!!actual?.imagen || !!provisional} />
         </figure>
+        {provisional && (
+          <p className="pulso-f6-lienzo-aviso is-info" role="status">
+            <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
+            Vista rápida: el motor está generando la versión nítida.
+          </p>
+        )}
         {cargando && actual?.imagen && (
           <p className="pulso-f6-lienzo-aviso is-info" role="status">
             <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
