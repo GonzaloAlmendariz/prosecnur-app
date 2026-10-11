@@ -1,6 +1,6 @@
 # ADR 0094 — Las fuentes de una base se emparejan por pregunta, con la clave de las equivalencias
 
-- **Estado**: Propuesto — pendiente de revisión de `guardian-contratos` y `revisor-metodologico`
+- **Estado**: Aceptado — revisado por `guardian-contratos` y `revisor-metodologico` (2026-10-11); ratificado por Gonzalo («Hazlo todo», 2026-10-11)
 - **Ámbito**: Procesamiento › Carga — bases SurveyMonkey que juntan varias encuestas (fuentes adicionales,
   «Agregar a <base>», refresh multi-fuente, snapshot crudo regenerado)
 - **Fecha**: 2026-10-11
