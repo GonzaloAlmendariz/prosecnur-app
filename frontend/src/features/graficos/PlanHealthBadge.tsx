@@ -53,7 +53,7 @@ export function PlanHealthBadge() {
       ? "Plan con avisos"
       : "Plan listo";
   const detail = errors.length > 0
-    ? "Corrige los slides señalados antes de generar PPTX o Word."
+    ? "Corrige las láminas señaladas antes de generar el PowerPoint o el Word."
     : warnings.length > 0
       ? "El export está habilitado, pero conviene revisar estas señales."
       : "Sin errores ni avisos detectados.";
@@ -127,7 +127,7 @@ export function PlanHealthBadge() {
               {errors.length > 0 && (
                 <IssueGroup
                   title={`Errores (${errors.length})`}
-                  hint="Bloquean el export. Abre el slide indicado y corrige el campo faltante."
+                  hint="Bloquean la exportación. Abre la lámina indicada y corrige lo que falta."
                   issues={errors}
                   severity="error"
                   onJump={handleJumpTo}
@@ -176,12 +176,12 @@ function IssueGroup({
                 onClick={() => onJump(issue)}
                 disabled={!jumpable}
                 className={`pulso-gv2-health-row${jumpable ? " is-jumpable" : ""}`}
-                aria-label={jumpable ? `${issue.message}. Ir al slide relacionado.` : issue.message}
+                aria-label={jumpable ? `${issue.message} Ir a la lámina.` : issue.message}
               >
                 <span className="pulso-gv2-health-row-marker" aria-hidden="true" />
                 <span className="pulso-gv2-health-row-copy">
                   <span>{issue.message}</span>
-                  <small>{jumpable ? "Abrir slide relacionado" : "Revisión global del plan"}</small>
+                  <small>{jumpable ? "Ir a la lámina" : "Revisión global del plan"}</small>
                 </span>
                 {jumpable && <ChevronRight size={13} strokeWidth={2.2} aria-hidden="true" />}
               </button>
