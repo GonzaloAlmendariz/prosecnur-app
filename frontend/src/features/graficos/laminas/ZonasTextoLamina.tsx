@@ -13,10 +13,27 @@ const ZONAS: { campo: CampoTextoLamina; etiqueta: string; x: number; y: number; 
   { campo: "base", etiqueta: "Base", x: 0.037, y: 0.912, w: 0.79, h: 0.05 },
 ];
 
-export function ZonasTextoLamina({ onTexto, sinAntetitulo = false }: { onTexto: (campo: CampoTextoLamina) => void; sinAntetitulo?: boolean }) {
+/**
+ * Qué textos de la lámina se pueden tocar: sólo los que su tipo tiene. Portada, índice, separadores y láminas de ayuda
+ * no llevan antetítulo ni base (y algunas tampoco un título editable): no se les ofrece un botón que no lleva a nada.
+ */
+export function camposTextoDe(tipo: string, args: readonly { name: string }[] | undefined, conGraficos: boolean): ReadonlySet<CampoTextoLamina> {
+  // Portada, índice, separadores y láminas de ayuda tienen su propio diseño: sus textos se editan en Contenido, sin zonas
+  // sobre la lámina (la cabecera estándar no está donde ellas ponen el título).
+  if (!conGraficos) return new Set();
+  const nombres = new Set((args ?? []).map((a) => a.name));
+  const campos = new Set<CampoTextoLamina>();
+  if (nombres.has("titulo")) campos.add("titulo");
+  if (conGraficos && tipo !== "p_slide_seccion") campos.add("antetitulo");
+  if (conGraficos && (nombres.has("base") || nombres.has("nota") || nombres.has("pie"))) campos.add("base");
+  return campos;
+}
+
+export function ZonasTextoLamina({ onTexto, campos }: { onTexto: (campo: CampoTextoLamina) => void; campos: ReadonlySet<CampoTextoLamina> }) {
+  if (!campos.size) return null;
   return (
     <div className="pulso-f6-textos-capa" role="group" aria-label="Textos de la lámina">
-      {ZONAS.filter((z) => !(sinAntetitulo && z.campo === "antetitulo")).map((z) => (
+      {ZONAS.filter((z) => campos.has(z.campo)).map((z) => (
         <button
           key={z.campo}
           type="button"

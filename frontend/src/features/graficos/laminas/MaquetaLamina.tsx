@@ -16,7 +16,7 @@ import { useVariables } from "../useVariables";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { ranurasDeMaqueta } from "./modeloMaqueta";
 import { varianteDe } from "./selectores/tiposLamina";
-import type { CampoTextoLamina } from "./ZonasTextoLamina";
+import { camposTextoDe, type CampoTextoLamina } from "./ZonasTextoLamina";
 import "./maquetaLamina.css";
 
 type Props = {
@@ -30,20 +30,23 @@ type Props = {
 
 export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar, onTexto }: Props) {
   const { variables } = useVariables();
-  const { graficadoresById } = useGraficosRegistry();
+  const { graficadoresById, slidesById } = useGraficosRegistry();
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const estructura = composicionDe(slide.tipo, slots).fuente === "estructura";
   const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables), [slide, variables]);
   const antetitulo = lamina.antetituloHeredado;
+  const campos = camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, !estructura);
 
   if (estructura) {
     // Portada, índice, separadores: su dibujo de estructura; el título sigue siendo editable con un clic.
     return (
       <div className="pulso-f6-maqueta is-estructura" data-maqueta-tipo={slide.tipo}>
         <ComposicionLamina tipo={slide.tipo} slots={slots} variante={varianteDe(slide)} />
-        <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-titulo-estructura" onClick={() => onTexto("titulo")}>
-          <span className="pulso-f6-maqueta-titulo">{lamina.titulo}</span>
-        </button>
+        {campos.has("titulo") && (
+          <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-titulo-estructura" onClick={() => onTexto("titulo")} aria-label="Editar título">
+            <span className="pulso-f6-maqueta-titulo">{lamina.titulo}</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -51,14 +54,18 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   return (
     <div className="pulso-f6-maqueta" data-maqueta-tipo={slide.tipo}>
       <div className="pulso-f6-maqueta-cabecera">
-        {slide.tipo !== "p_slide_seccion" && (
+        {campos.has("antetitulo") && (
           <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-ante" onClick={() => onTexto("antetitulo")} aria-label="Editar antetítulo">
             {antetitulo || <span className="is-vacio">Antetítulo</span>}
           </button>
         )}
-        <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-titulo" onClick={() => onTexto("titulo")} aria-label="Editar título">
-          {lamina.titulo}
-        </button>
+        {campos.has("titulo") ? (
+          <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-titulo" onClick={() => onTexto("titulo")} aria-label="Editar título">
+            {lamina.titulo}
+          </button>
+        ) : (
+          <span className="pulso-f6-maqueta-titulo">{lamina.titulo}</span>
+        )}
       </div>
 
       {ranuras.map((r, i) => {
@@ -106,9 +113,11 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         );
       })}
 
-      <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-pie" onClick={() => onTexto("base")} aria-label="Editar base">
-        Base y nota al pie
-      </button>
+      {campos.has("base") && (
+        <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-pie" onClick={() => onTexto("base")} aria-label="Editar base">
+          Base y nota al pie
+        </button>
+      )}
     </div>
   );
 }

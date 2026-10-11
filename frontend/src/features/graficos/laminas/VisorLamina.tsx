@@ -22,7 +22,10 @@ import { downloadUrl } from "../../../api/core";
 import { IconoTipo } from "../iconos/IconoTipo";
 import type { PreviewFormas, Slide } from "../../../api/graficos";
 import { MaquetaLamina } from "./MaquetaLamina";
-import { ZonasTextoLamina, type CampoTextoLamina } from "./ZonasTextoLamina";
+import { camposTextoDe, ZonasTextoLamina, type CampoTextoLamina } from "./ZonasTextoLamina";
+import { useGraficosRegistry } from "../useGraficosRegistry";
+import { composicionDe } from "../iconos/composicion";
+import { SLIDE_GRAF_SLOTS } from "../store";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, mensajeSinImagen, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
@@ -101,6 +104,11 @@ export function VisorLamina({
   const imagenLote = useMiniaturasLoteStore((s) => s.entradas[lamina.id]?.imagen ?? null);
   const real = actual?.imagen ?? null;
   const src = real ?? imagenLote;
+  const { slidesById } = useGraficosRegistry();
+  const camposTexto = useMemo(
+    () => camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, composicionDe(slide.tipo, SLIDE_GRAF_SLOTS[slide.tipo] ?? []).fuente !== "estructura"),
+    [slide.tipo, slidesById],
+  );
   const hojaRef = useRef<HTMLElement>(null);
   const capas = useGuiasUi((s) => s.capas);
   const rolesOcultos = useGuiasUi((s) => s.rolesOcultos);
@@ -250,7 +258,7 @@ export function VisorLamina({
           ) : (
             <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto} />
           )}
-          {src && <ZonasTextoLamina onTexto={onTexto} sinAntetitulo={slide.tipo === "p_slide_seccion"} />}
+          {src && <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} />}
           {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico} />}
           {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
           {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
