@@ -202,6 +202,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Contrato A5 rebanada 2b — Vista general](contrato-vista-general-2b-f6-2026-10-11.md): «Otros» automáticos, índice, «Armar desde…» y E2.
 - [Contrato — base sin ponderar en Gráficos](contrato-base-sin-ponderar-graficos-f6-2026-10-11.md): S1–S4, n_casos junto a n, S4 y n efectivo.
 - [Revisión C40 — argumentos sin control en Láminas](revision-c40-args-sin-control-f6-2026-10-11.md): veredictos por argumento, defectos D1 (denominador con `top_n`) y D2 (90–99 con ceros), tests de guarda.
+- [Estudio — paletas por lista en el PPT nativo y el Word](estudio-paletas-por-lista-f6-2026-10-11.md): qué familias honran la paleta por lista, listas que no calzan con el recetario y qué falta.
 - [Paridad para el retiro del Editor anterior (A10)](paridad-retiro-editor-anterior-f6-2026-10-11.md): huecos, prerrequisitos del borrado y decisiones 28–33.
 
 ## Reemplazados
