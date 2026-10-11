@@ -195,7 +195,7 @@
         label = "Título",
         tipo_input = "string",
         grupo = "textos",
-        descripcion = "Título visible del índice. Si se deja vacío y no se definen secciones, se usa el layout de índice de la plantilla."
+        descripcion = "Título visible del índice. Sin capítulos propios, el índice toma los capítulos del informe."
       ),
       list(
         name = "secciones",

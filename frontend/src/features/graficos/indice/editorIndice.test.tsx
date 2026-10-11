@@ -105,7 +105,7 @@ describe("W2-8 Contenido del índice", () => {
   it("un índice sin capítulos contiene su vacío y deshabilita «Tomar» con motivo si el informe no tiene capítulos", () => {
     const vacio: Slide = { id: "iv", tipo: "p_slide_indice", payload: {} };
     const html = pintarVista(leerIndice(vacio.payload), [vacio]);
-    expect(html).toContain("El índice no tiene capítulos");
+    expect(html).toContain("Sin capítulos propios");
     expect(html).toMatch(/aria-disabled="true"[^>]*aria-describedby/);
     expect(html).toContain("todavía no tiene separadores de capítulo");
   });

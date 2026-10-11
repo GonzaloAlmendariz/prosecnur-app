@@ -113,3 +113,15 @@
     auto[k]
   }, "")
 }
+
+#' Capítulos del informe (separadores de nivel capítulo, en orden) para un índice que no declara los suyos
+#'
+#' Sin esto, un índice vacío caía a la lámina de la plantilla (cinco bombillas fijas), que no es del recetario.
+#' @keywords internal
+.lam_indice_capitulos_del_plan <- function(plan) {
+  caps <- vapply(plan %||% list(), function(slide) {
+    if (!identical(slide$.slide_type, "section") || identical((slide$meta %||% list())$nivel, "subcapitulo")) return(NA_character_)
+    trimws(as.character(slide$slots$title %||% slide$title %||% "")[1])
+  }, character(1))
+  caps[!is.na(caps) & nzchar(caps)]
+}

@@ -7141,7 +7141,7 @@ reporte_ppt_plan <- function(
       }
 
       title_raw <- slots$title %||% slide$title %||% NULL
-      secciones <- .indice_clean_vec(slots$secciones %||% NULL)
+      secciones <- .indice_clean_vec(slots$secciones %||% NULL); if (!length(secciones) && !length(slots$subindices %||% NULL)) secciones <- .lam_indice_capitulos_del_plan(plan)
       subtemas <- .indice_clean_vec(slots$subtemas %||% NULL)
       subindices_df <- .indice_subindices_df(
         subindices = slots$subindices %||% NULL,
