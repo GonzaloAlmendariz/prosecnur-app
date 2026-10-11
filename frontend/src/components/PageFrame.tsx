@@ -45,6 +45,12 @@ type PageFrameProps = {
   className?: string;
   resetScrollKey?: unknown;
   density?: "normal" | "compact";
+  /**
+   * Readiness para el QA visual. Un string es la marca de lista; `false` se
+   * escribe como `data-audit-ready="false"` (todavía carga) y gana sobre las
+   * marcas de los hijos, porque el runtime lee la primera en orden de árbol.
+   * Omitirlo deja que la decida una marca descendiente.
+   */
   auditReady?: string | false;
 };
 
@@ -126,7 +132,7 @@ export function PageFrame({
   }, [resetScrollKey]);
 
   return (
-    <section className={classes} data-audit-ready={auditReady || undefined}>
+    <section className={classes} data-audit-ready={auditReady === false ? "false" : auditReady || undefined}>
       {headerMode === "sr-only" ? (
         <header ref={headerRef} className="pulso-sr-only">
           <h1>{title}</h1>

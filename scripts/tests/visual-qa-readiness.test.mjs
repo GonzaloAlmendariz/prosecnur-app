@@ -44,13 +44,35 @@ const clickPageHtml = `<!doctype html>
   </body>
 </html>`;
 
+// Un frame que todavía carga escribe "false" y envuelve a un hijo que ya dice
+// "true": la espera por defecto tiene que obedecer al frame, no al hijo.
+const nestedPageHtml = `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Nested readiness fixture</title>
+  </head>
+  <body>
+    <section id="frame" data-audit-ready="false">
+      <div data-audit-ready="true">Panel hijo</div>
+    </section>
+    <script>
+      window.setTimeout(() => {
+        document.querySelector("#frame").dataset.auditReady = "carga-revision";
+      }, 650);
+    </script>
+  </body>
+</html>`;
+
 async function startFixtureServer() {
   const server = createServer((request, response) => {
     response.writeHead(200, {
       "content-type": "text/html; charset=utf-8",
       connection: "close",
     });
-    response.end(request.url === "/click" ? clickPageHtml : pageHtml);
+    response.end(
+      request.url === "/click" ? clickPageHtml : request.url === "/nested" ? nestedPageHtml : pageHtml,
+    );
   });
 
   server.listen(0, "127.0.0.1");
@@ -213,6 +235,24 @@ test("visual-qa treats wait-selector readiness as a strict contract", async (t) 
         waitSelectorMisses: 0,
         ready: ["destino"],
       },
+      childDiagnostic(result),
+    );
+  });
+
+  await t.test("default: a loading frame wins over a ready descendant", async () => {
+    const out = path.join(tempRoot, "nested");
+    const result = await runVisualQa({
+      url: new URL("/nested", fixture.url).toString(),
+      out,
+      waitSelector: "[data-audit-ready]",
+      timeoutMs: 2000,
+    });
+    assert.equal(result.signal, null, childDiagnostic(result));
+
+    const report = await readReport(out);
+    assert.deepEqual(
+      { exitStatus: result.status, waitSelectorMisses: report.summary.waitSelectorMisses ?? 0, ready: report.viewports[0].ready },
+      { exitStatus: 0, waitSelectorMisses: 0, ready: ["carga-revision", "true"] },
       childDiagnostic(result),
     );
   });
