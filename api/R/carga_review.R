@@ -192,6 +192,36 @@
   )
 }
 
+# Fuentes de una base SurveyMonkey que junta varias encuestas (ADR 0094).
+# Cada fuente distinta de la principal se emparejó por pregunta con la base:
+# lo que quedó sin par (preguntas de la fuente que no entraron, preguntas de la
+# base vacías para esas filas, opciones que quedaron vacías) se declara aquí, y
+# también la fuente entera que quedó fuera por ser otro instrumento.
+# Advierte, no bloquea. NULL cuando la base no junta encuestas.
+.carga_review_fuentes <- function(base) {
+  fuentes <- (base %||% list())$sm_alineacion_fuentes %||% list()
+  if (!length(fuentes)) return(NULL)
+  filas <- function(x) lapply(x %||% list(), function(f) list(
+    variable = as.character(f$variable %||% "")[1],
+    etiqueta = as.character(f$etiqueta %||% "")[1]
+  ))
+  list(fuentes = unname(lapply(fuentes, function(f) list(
+    survey_id = as.character(f$survey_id %||% "")[1],
+    titulo = as.character(f$titulo %||% "")[1],
+    n_emparejadas = as.integer(f$n_emparejadas %||% 0L)[1],
+    n_preguntas_base = as.integer(f$n_preguntas_base %||% 0L)[1],
+    reordenada = isTRUE(f$reordenada),
+    instrumento_distinto = isTRUE(f$instrumento_distinto),
+    excluida = isTRUE(f$excluida),
+    n_filas_excluidas = as.integer(f$n_filas_excluidas %||% 0L)[1],
+    sin_par_fuente = filas(f$sin_par_fuente),
+    sin_par_base = filas(f$sin_par_base),
+    n_opciones_sin_par = as.integer(sum(vapply(f$opciones_sin_par %||% list(), function(o) {
+      as.integer(o$n %||% 0L)[1]
+    }, integer(1))))
+  ))))
+}
+
 .carga_review_payload <- function(sid, base_nombre = NULL) {
   pair <- .carga_normalized_data_for_export(sid, base_nombre = base_nombre)
   s <- session_get(sid)
@@ -218,6 +248,10 @@
   orden_editor <- if (nzchar(as.character(pair$base_nombre %||% "")[1])) {
     .carga_review_orden_editor(s$estudio$bases[[pair$base_nombre]])
   } else NULL
+  # Fuentes emparejadas por pregunta (ADR 0094). Tampoco entra en `ready`.
+  fuentes <- if (nzchar(as.character(pair$base_nombre %||% "")[1])) {
+    .carga_review_fuentes(s$estudio$bases[[pair$base_nombre]])
+  } else NULL
 
   list(
     base_nombre = pair$base_nombre,
@@ -226,6 +260,7 @@
     reconciliation = reconciliation,
     procedencia = procedencia,
     orden_editor = orden_editor,
+    fuentes = fuentes,
     ready = isTRUE(compatibility$ok) &&
       !isTRUE(choice_mapping$requires_confirmation) &&
       !isTRUE(choice_mapping$pending) &&

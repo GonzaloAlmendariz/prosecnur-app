@@ -1,0 +1,513 @@
+# =============================================================================
+# Fuentes de una base SurveyMonkey emparejadas por pregunta (ADR 0094)
+#
+# Una base puede juntar varias encuestas (canales de un mismo público,
+# campañas sucesivas). Antes cada pregunta de la fuente caía en la variable
+# `p<posición>` de la base: una encuesta hermana con una pregunta insertada
+# corría toda la numeración y la edad recibía el código de otra pregunta, sin
+# aviso.
+#
+# Aquí vive la capa que va ENTRE la traducción del proveedor
+# (`sm_api_xlsform`, `.sm_mb_question_specs`) y la normalización
+# (`normalize_data_for_xlsform`), que no cambian:
+#
+#   1. La fuente se empareja con la base pregunta por pregunta con la clave de
+#      las equivalencias (`.equiv_claves_de_base`, ADR 0062: etiqueta
+#      normalizada @@ firma de escala ## ordinal), calculada sobre los XLSForm
+#      que la plataforma GENERA para cada encuesta (antes de adoptar el orden
+#      del editor). Nunca por posición, nunca por similitud.
+#   2. Cada fuente se codifica contra su propio instrumento, se renombra a las
+#      variables de la base y se recodifica POR ETIQUETA a los códigos de la
+#      base (que pueden haber adoptado el orden del editor).
+#   3. Lo que no tiene par se declara: la pregunta de la fuente sin par no
+#      entra, la de la base sin par queda vacía para esas filas y la opción sin
+#      par queda NA. Todo se cuenta y se persiste en
+#      `s$estudio$bases[[b]]$sm_alineacion_fuentes`.
+#   4. Si la fuente calza menos del 80 % de las preguntas de la base, es otro
+#      instrumento: el refresh se bloquea y pide base separada + Equivalencias.
+#
+# Alinear no crea, une ni elimina filas: sólo decide en qué columna cae cada
+# respuesta. La fuente principal (mismo `survey_id` que la base) no pasa por
+# aquí y sigue el camino de siempre.
+# =============================================================================
+
+.SM_MB_COBERTURA_MINIMA <- 0.8
+
+.SM_MB_MENSAJE_OTRO_INSTRUMENTO <- paste(
+  "Impórtala como base separada y relaciónala con esta en la pestaña",
+  "Equivalencias de Carga."
+)
+
+# --- Instrumentos generados ---------------------------------------------------
+
+# XLSForm que la plataforma genera para una encuesta, leído como lo lee una
+# base. Sin orden del editor ni lógica: es la forma sobre la que se calcula la
+# clave, para que la firma de escala compare las listas tal como SM las publica.
+.sm_mb_inst_generado <- function(details) {
+  model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+  path <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(path), add = TRUE)
+  .sm_mb_write_xlsform_model(model, path)
+  reporte_instrumento(path = path)
+}
+
+# Instrumento para comparar dos tablas de preguntas. La tabla trae los details
+# de los que salió (`.sm_mb_question_table`), así que se usa el XLSForm
+# generado: la misma regla que codifica. Una tabla armada a mano (sin details)
+# se describe con sus propias columnas; misma clave, misma alineación.
+.sm_mb_inst_de_tabla <- function(tbl) {
+  details <- attr(tbl, "sm_details", exact = TRUE)
+  if (!is.null(details)) return(.sm_mb_inst_generado(details))
+  survey <- list()
+  choices <- list()
+  split_sig <- function(x) {
+    x <- .sm_mb_scalar(x, "")
+    if (!nzchar(x)) character(0) else strsplit(x, " || ", fixed = TRUE)[[1]]
+  }
+  for (i in seq_len(NROW(tbl))) {
+    pos <- as.integer(tbl$pos[i])
+    heading <- .sm_mb_scalar(tbl$heading[i], "")
+    opciones <- split_sig(tbl$choice_signature[i] %||% "")
+    filas <- split_sig(tbl$row_signature[i] %||% "")
+    lista <- paste0("lst_p", pos)
+    tipo_sel <- if (identical(.sm_mb_scalar(tbl$family[i], ""), "multiple_choice")) "select_multiple" else "select_one"
+    tipo <- if (length(opciones)) paste(tipo_sel, lista) else "text"
+    if (length(opciones)) {
+      choices[[length(choices) + 1L]] <- data.frame(
+        list_name = lista, name = as.character(seq_along(opciones)), label = opciones,
+        stringsAsFactors = FALSE
+      )
+    }
+    if (length(filas)) {
+      survey[[length(survey) + 1L]] <- data.frame(
+        type = tipo, name = paste0("p", pos, "_", seq_along(filas)), label = filas,
+        stringsAsFactors = FALSE
+      )
+    } else {
+      survey[[length(survey) + 1L]] <- data.frame(
+        type = tipo, name = paste0("p", pos), label = heading, stringsAsFactors = FALSE
+      )
+    }
+  }
+  vacio_s <- data.frame(type = character(0), name = character(0), label = character(0), stringsAsFactors = FALSE)
+  vacio_c <- data.frame(list_name = character(0), name = character(0), label = character(0), stringsAsFactors = FALSE)
+  list(
+    survey = if (length(survey)) do.call(rbind, survey) else vacio_s,
+    choices = if (length(choices)) do.call(rbind, choices) else vacio_c
+  )
+}
+
+# --- Alineación ---------------------------------------------------------------
+
+# Preguntas de un instrumento con su clave. El `_other` de una pregunta no es
+# una pregunta: viaja con su padre (su etiqueta «Otro (especifique)» se repite
+# en todo el formulario y emparejarlo por clave lo cruzaría de pregunta).
+.sm_mb_alin_preguntas <- function(inst) {
+  claves <- .equiv_claves_de_base(inst)
+  nombres <- names(claves)
+  if (!length(nombres)) return(claves)
+  es_other <- grepl("_other$", nombres) & sub("_other$", "", nombres) %in% nombres
+  claves[!es_other]
+}
+
+.sm_mb_alin_tabla <- function(variables, claves) {
+  variables <- as.character(variables %||% character(0))
+  data.frame(
+    variable = variables,
+    etiqueta = vapply(variables, function(v) as.character(claves[[v]]$etiqueta %||% "")[1], character(1),
+                      USE.NAMES = FALSE),
+    stringsAsFactors = FALSE
+  )
+}
+
+.sm_mb_alinear_fuente <- function(inst_base, inst_fuente) {
+  pb <- .sm_mb_alin_preguntas(inst_base)
+  pf <- .sm_mb_alin_preguntas(inst_fuente)
+  kb <- vapply(pb, function(x) as.character(x$clave), character(1))
+  kf <- vapply(pf, function(x) as.character(x$clave), character(1))
+  hit <- match(kf, kb)
+  emparejadas <- !is.na(hit)
+  mapa <- stats::setNames(names(kb)[hit[emparejadas]], names(kf)[emparejadas])
+  preguntas_movidas <- sum(names(mapa) != unname(mapa))
+
+  # El `_other` sigue al padre. Si la base no tiene dónde guardarlo, el texto
+  # no entra y se declara como pregunta sin par: nada se descarta en silencio.
+  others_sin_par <- character(0)
+  for (f in names(mapa)) {
+    fo <- paste0(f, "_other")
+    if (!.sm_mb_var_exists(inst_fuente, fo)) next
+    bo <- paste0(mapa[[f]], "_other")
+    if (.sm_mb_var_exists(inst_base, bo)) mapa[[fo]] <- bo else others_sin_par <- c(others_sin_par, fo)
+  }
+
+  sin_par_fuente <- .sm_mb_alin_tabla(names(kf)[!emparejadas], pf)
+  if (length(others_sin_par)) {
+    claves_f <- .equiv_claves_de_base(inst_fuente)
+    sin_par_fuente <- rbind(sin_par_fuente, .sm_mb_alin_tabla(others_sin_par, claves_f))
+  }
+  sin_par_base <- .sm_mb_alin_tabla(setdiff(names(kb), unname(mapa)), pb)
+  n_base <- length(kb)
+  n_emparejadas <- as.integer(sum(emparejadas))
+  cobertura <- if (n_base > 0L) n_emparejadas / n_base else 0
+  list(
+    mapa = mapa,
+    sin_par_fuente = sin_par_fuente,
+    sin_par_base = sin_par_base,
+    reordenada = preguntas_movidas > 0L,
+    n_reordenadas = as.integer(preguntas_movidas),
+    n_emparejadas = n_emparejadas,
+    n_preguntas_base = as.integer(n_base),
+    cobertura = cobertura,
+    instrumento_distinto = cobertura < .SM_MB_COBERTURA_MINIMA
+  )
+}
+
+# --- Codificación de una fuente ------------------------------------------------
+
+# Código de la fuente -> etiqueta -> código de la base, para una variable.
+.sm_mb_alin_lookup <- function(inst_fuente, var_f, inst_base, var_b) {
+  cf <- .sm_mb_choices_for_var(inst_fuente, var_f)
+  cb <- .sm_mb_choices_for_var(inst_base, var_b)
+  if (!nrow(cf) || !nrow(cb)) return(NULL)
+  etiqueta_f <- stats::setNames(.sm_mb_norm(cf$label), as.character(cf$name))
+  lab_b <- .sm_mb_norm(cb$label)
+  codigo_b <- as.character(cb$name)
+  keep <- !duplicated(lab_b)
+  por_etiqueta <- stats::setNames(codigo_b[keep], lab_b[keep])
+  stats::setNames(unname(por_etiqueta[etiqueta_f]), names(etiqueta_f))
+}
+
+.sm_mb_alin_sumar <- function(x, var, n) {
+  x[[var]] <- as.integer((if (var %in% names(x)) x[[var]] else 0L) + n)
+  x
+}
+
+# Recodifica un vector de la fuente a los códigos de la base. Devuelve los
+# valores y cuántas respuestas traían una opción sin par (quedan NA; en una
+# múltiple se pierde sólo esa opción).
+.sm_mb_alin_recodificar <- function(values, lookup, multiple = FALSE) {
+  values <- as.character(values)
+  sin_par <- 0L
+  out <- values
+  for (i in seq_along(values)) {
+    v <- values[i]
+    if (is.na(v) || !nzchar(trimws(v))) next
+    tokens <- if (multiple) strsplit(trimws(v), "\\s+")[[1]] else trimws(v)
+    nuevos <- unname(lookup[tokens])
+    if (any(is.na(nuevos))) sin_par <- sin_par + 1L
+    nuevos <- nuevos[!is.na(nuevos)]
+    out[i] <- if (length(nuevos)) paste(nuevos, collapse = " ") else NA_character_
+  }
+  list(values = out, sin_par = sin_par)
+}
+
+.sm_mb_alin_es_multiple <- function(inst, var) {
+  row <- .sm_mb_survey_row(inst, var)
+  !is.null(row) && identical(.sm_mb_type_base(row$type), "select_multiple")
+}
+
+# Renombra, descarta y recodifica la data de una fuente ya codificada contra su
+# propio instrumento. `mapa` es var_fuente -> var_base.
+.sm_mb_alin_aplicar <- function(df, al, inst_fuente, inst_base) {
+  mapa <- al$mapa
+  sin_par <- integer(0)
+  vars_fuente <- .sm_mb_expected_names(inst_fuente)
+
+  # Dummies de una múltiple (`p3/1`, `p3.1`): siguen al padre con el código
+  # de la base. El motor canónico produce tokens, pero una data que ya los
+  # traiga no puede quedar con la columna de otra pregunta.
+  dummy_renames <- character(0)
+  for (f in names(mapa)) {
+    if (!.sm_mb_alin_es_multiple(inst_fuente, f)) next
+    pat <- paste0("^", gsub("([.\\\\|()\\[\\]{}^$*+?])", "\\\\\\1", f, perl = TRUE), "([/.])(.+)$")
+    cols <- grep(pat, names(df), value = TRUE, perl = TRUE)
+    if (!length(cols)) next
+    lookup <- .sm_mb_alin_lookup(inst_fuente, f, inst_base, mapa[[f]]) %||% character(0)
+    for (col in cols) {
+      partes <- regmatches(col, regexec(pat, col, perl = TRUE))[[1]]
+      nuevo <- unname(lookup[partes[3]])
+      if (length(nuevo) && !is.na(nuevo)) {
+        dummy_renames[[col]] <- paste0(mapa[[f]], partes[2], nuevo)
+      } else {
+        marcadas <- sum(suppressWarnings(as.numeric(as.character(df[[col]]))) == 1, na.rm = TRUE)
+        sin_par <- .sm_mb_alin_sumar(sin_par, mapa[[f]], marcadas)
+        dummy_renames[[col]] <- ""
+      }
+    }
+  }
+
+  descartar <- c(setdiff(vars_fuente, names(mapa)), names(dummy_renames)[!nzchar(dummy_renames)])
+  df <- df[, setdiff(names(df), descartar), drop = FALSE]
+  renombres <- c(mapa, dummy_renames[nzchar(dummy_renames)])
+  idx <- match(names(df), names(renombres))
+  names(df)[!is.na(idx)] <- unname(renombres[idx[!is.na(idx)]])
+
+  for (f in names(mapa)) {
+    b <- mapa[[f]]
+    if (!(b %in% names(df))) next
+    lookup <- .sm_mb_alin_lookup(inst_fuente, f, inst_base, b)
+    if (is.null(lookup)) next
+    rec <- .sm_mb_alin_recodificar(df[[b]], lookup, multiple = .sm_mb_alin_es_multiple(inst_base, b))
+    df[[b]] <- rec$values
+    if (rec$sin_par > 0L) sin_par <- .sm_mb_alin_sumar(sin_par, b, rec$sin_par)
+  }
+  sin_par <- sin_par[!is.na(sin_par) & sin_par > 0L]
+
+  # Las preguntas de la base sin par quedan vacías para estas filas.
+  if (nrow(df)) {
+    for (nm in setdiff(.sm_mb_expected_names(inst_base), names(df))) df[[nm]] <- NA_character_
+  }
+  list(data = df, opciones_sin_par = sin_par)
+}
+
+# Único punto por el que pasa una encuesta distinta de la principal.
+#
+# - `inst_base`: instrumento de la base (sus códigos son los finales).
+# - `inst_clave_base`: XLSForm GENERADO de la encuesta principal, sobre el que
+#   se calcula la clave. Sin él se usa `inst_base` (vale cuando la base no
+#   adoptó otro orden de opciones).
+# - `consent_var` / `apply_consent_filter`: el consentimiento se evalúa
+#   DESPUÉS de alinear, sobre las variables y códigos de la base, igual que
+#   para la fuente principal.
+# - `...`: el resto de argumentos del motor canónico (pais, source_title,
+#   response_statuses, collector_ids, fechas…).
+.sm_mb_codificar_fuente <- function(details_fuente,
+                                    responses,
+                                    inst_base,
+                                    survey_id,
+                                    inst_clave_base = NULL,
+                                    consent_var = "",
+                                    apply_consent_filter = TRUE,
+                                    inst_fuente = NULL,
+                                    ...) {
+  inst_fuente <- inst_fuente %||% .sm_mb_inst_generado(details_fuente)
+  al <- .sm_mb_alinear_fuente(inst_clave_base %||% inst_base, inst_fuente)
+  df <- sm_multibase_api_responses_to_canonical_data(
+    details = details_fuente,
+    responses = responses,
+    inst = inst_fuente,
+    survey_id = survey_id,
+    consent_var = "",
+    apply_consent_filter = FALSE,
+    ...
+  )
+  response_filter <- attr(df, "sm_response_filter", exact = TRUE)
+  opciones_sin_par <- integer(0)
+  if (is.data.frame(df) && nrow(df)) {
+    aplicado <- .sm_mb_alin_aplicar(df, al, inst_fuente, inst_base)
+    df <- aplicado$data
+    opciones_sin_par <- aplicado$opciones_sin_par
+    if (isTRUE(apply_consent_filter)) {
+      df <- .sm_mb_filter_effective_consent_df(df, inst_base, response_filter, consent_var = consent_var)
+      response_filter <- attr(df, "sm_response_filter", exact = TRUE) %||% response_filter
+    }
+  }
+  attr(df, "sm_response_filter") <- response_filter
+  attr(df, "sm_alineacion") <- al
+  attr(df, "sm_opciones_sin_par") <- opciones_sin_par
+  df
+}
+
+# Despacho de los tres caminos que juntan encuestas: la fuente principal sigue
+# el motor canónico tal cual; cualquier otra encuesta pasa por la alineación.
+# Mismos argumentos que `sm_multibase_api_responses_to_canonical_data` más la
+# encuesta de la base y sus details (para la clave).
+.sm_mb_codificar_segun_fuente <- function(details,
+                                          responses,
+                                          inst,
+                                          survey_id,
+                                          base_survey_id,
+                                          details_base = NULL,
+                                          consent_var = "",
+                                          apply_consent_filter = TRUE,
+                                          ...) {
+  if (identical(.sm_mb_scalar(survey_id, ""), .sm_mb_scalar(base_survey_id, ""))) {
+    return(sm_multibase_api_responses_to_canonical_data(
+      details = details,
+      responses = responses,
+      inst = inst,
+      survey_id = survey_id,
+      consent_var = consent_var,
+      apply_consent_filter = apply_consent_filter,
+      ...
+    ))
+  }
+  inst_clave_base <- if (length(details_base)) .sm_mb_inst_generado(details_base) else NULL
+  .sm_mb_codificar_fuente(
+    details_fuente = details,
+    responses = responses,
+    inst_base = inst,
+    survey_id = survey_id,
+    inst_clave_base = inst_clave_base,
+    consent_var = consent_var,
+    apply_consent_filter = apply_consent_filter,
+    ...
+  )
+}
+
+# --- Persistencia -------------------------------------------------------------
+
+.sm_mb_alin_filas <- function(df) {
+  if (is.null(df) || !NROW(df)) return(list())
+  lapply(seq_len(NROW(df)), function(i) list(
+    variable = as.character(df$variable[i]),
+    etiqueta = as.character(df$etiqueta[i])
+  ))
+}
+
+# ¿La fuente es otro instrumento? Entonces no entra a la base (ADR 0094,
+# decisión 4): ni siquiera con sus preguntas emparejadas. Es un resultado que
+# se declara, no un error: la base se arma con las fuentes que sí calzan.
+.sm_mb_fuente_es_otro_instrumento <- function(df) {
+  isTRUE((attr(df, "sm_alineacion", exact = TRUE) %||% list())$instrumento_distinto)
+}
+
+# Resumen de la alineación de UNA fuente, con la forma persistida (contrato
+# del ítem 13). NULL si la data no pasó por la alineación (fuente principal).
+.sm_mb_alineacion_resumen <- function(df, survey_id, titulo = "") {
+  al <- attr(df, "sm_alineacion", exact = TRUE)
+  if (is.null(al)) return(NULL)
+  op <- attr(df, "sm_opciones_sin_par", exact = TRUE) %||% integer(0)
+  excluida <- .sm_mb_fuente_es_otro_instrumento(df)
+  list(
+    survey_id = .sm_mb_scalar(survey_id, ""),
+    titulo = .sm_mb_scalar(titulo, ""),
+    n_emparejadas = as.integer(al$n_emparejadas),
+    n_preguntas_base = as.integer(al$n_preguntas_base),
+    cobertura = as.numeric(al$cobertura),
+    reordenada = isTRUE(al$reordenada),
+    instrumento_distinto = isTRUE(al$instrumento_distinto),
+    excluida = excluida,
+    n_filas_excluidas = if (excluida) as.integer(NROW(df)) else 0L,
+    sin_par_fuente = .sm_mb_alin_filas(al$sin_par_fuente),
+    sin_par_base = .sm_mb_alin_filas(al$sin_par_base),
+    opciones_sin_par = lapply(names(op), function(v) list(variable = v, n = as.integer(op[[v]])))
+  )
+}
+
+# Guarda la alineación en la base. Sin fuentes alineadas la clave se borra:
+# describe la data vigente, no un import anterior.
+.sm_mb_guardar_alineacion <- function(sid, base_name, fuentes) {
+  s <- session_get(sid)
+  base <- s$estudio$bases[[base_name]]
+  if (is.null(base)) return(invisible(NULL))
+  fuentes <- Filter(Negate(is.null), fuentes %||% list())
+  nuevo <- if (length(fuentes)) unname(fuentes) else NULL
+  if (identical(base$sm_alineacion_fuentes, nuevo)) return(invisible(nuevo))
+  base$sm_alineacion_fuentes <- nuevo
+  s$estudio$bases[[base_name]] <- base
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(nuevo)
+}
+
+# --- Auditoría de estructura sobre pares alineados ----------------------------
+
+# Lo que hace incompatibles dos preguntas emparejadas. `n_rows` no está: las
+# filas de una matriz se emparejan una a una y las que sobran se declaran.
+.SM_MB_CAMPOS_DUROS <- c("family", "subtype", "required", "validation", "n_cols")
+
+# Compara una fuente contra la principal pregunta por pregunta, con la misma
+# alineación que codifica. `company_positions` se conserva por firma: el modo
+# «Unificar» (fuera del ADR 0094) usa `.sm_mb_compare_to_ref_posicional`.
+.sm_mb_compare_to_ref <- function(ref, cur, company_positions = integer(), ignorable_missing_positions = integer()) {
+  ignorables <- unique(suppressWarnings(as.integer(ignorable_missing_positions)))
+  ignorables <- ignorables[is.finite(ignorables)]
+  al <- .sm_mb_alinear_fuente(.sm_mb_inst_de_tabla(ref), .sm_mb_inst_de_tabla(cur))
+  heading_de <- function(tbl, pos) {
+    i <- which(as.integer(tbl$pos) == pos)[1]
+    if (is.na(i)) "" else .sm_mb_scalar(tbl$heading[i], "")
+  }
+  out <- list()
+
+  if (isTRUE(al$instrumento_distinto)) {
+    out[[length(out) + 1L]] <- list(
+      pos = NA_integer_, variable = "", severity = "blocking", kind = "different_instrument",
+      message = sprintf(
+        "Esta encuesta calza %d de %d preguntas de la base (%s%%): es otro instrumento, no una fuente de la misma base. %s",
+        al$n_emparejadas, al$n_preguntas_base, format(round(100 * al$cobertura)), .SM_MB_MENSAJE_OTRO_INSTRUMENTO
+      ),
+      accion = "base_separada_equivalencias",
+      n_emparejadas = al$n_emparejadas, n_preguntas_base = al$n_preguntas_base,
+      cobertura = al$cobertura, ref = "", current = ""
+    )
+  }
+
+  # Pares de preguntas (no de variables: una matriz aporta varias filas).
+  mapa <- al$mapa
+  mapa <- mapa[!grepl("_other$", names(mapa))]
+  pos_cur <- vapply(names(mapa), .sm_mb_question_pos_for_var, integer(1))
+  pos_ref <- vapply(unname(mapa), .sm_mb_question_pos_for_var, integer(1))
+  pares <- unique(data.frame(cur = unname(pos_cur), ref = unname(pos_ref)))
+  for (k in seq_len(nrow(pares))) {
+    i_ref <- which(as.integer(ref$pos) == pares$ref[k])[1]
+    i_cur <- which(as.integer(cur$pos) == pares$cur[k])[1]
+    if (is.na(i_ref) || is.na(i_cur)) next
+    campos <- intersect(.SM_MB_CAMPOS_DUROS, intersect(names(ref), names(cur)))
+    if (!length(campos)) next
+    if (any(as.character(unlist(ref[i_ref, campos])) != as.character(unlist(cur[i_cur, campos])))) {
+      out[[length(out) + 1L]] <- list(
+        pos = as.integer(pares$ref[k]), variable = paste0("p", pares$ref[k]), severity = "blocking",
+        kind = "structure", message = "Tipo, columnas o validacion no coinciden.",
+        ref = heading_de(ref, pares$ref[k]), current = heading_de(cur, pares$cur[k])
+      )
+    }
+  }
+
+  if (isTRUE(al$reordenada)) {
+    out[[length(out) + 1L]] <- list(
+      pos = NA_integer_, variable = "", severity = "info", kind = "question_order",
+      message = sprintf("%d preguntas emparejadas por texto, en otro orden.", al$n_reordenadas),
+      n_reordenadas = al$n_reordenadas, ref = "", current = ""
+    )
+  }
+
+  for (i in seq_len(NROW(al$sin_par_fuente))) {
+    var <- al$sin_par_fuente$variable[i]
+    pos <- .sm_mb_question_pos_for_var(var)
+    out[[length(out) + 1L]] <- list(
+      pos = pos, variable = var, severity = "review", kind = "unpaired_source",
+      message = "Pregunta de esta fuente sin par en la base: sus respuestas no entran a la base.",
+      ref = "", current = al$sin_par_fuente$etiqueta[i],
+      pregunta = if (is.na(pos)) "" else heading_de(cur, pos)
+    )
+  }
+
+  for (i in seq_len(NROW(al$sin_par_base))) {
+    var <- al$sin_par_base$variable[i]
+    pos <- .sm_mb_question_pos_for_var(var)
+    etiqueta <- al$sin_par_base$etiqueta[i]
+    if (!is.na(pos) && pos %in% ignorables) {
+      out[[length(out) + 1L]] <- list(
+        pos = pos, variable = var, severity = "review", kind = "metadata_optional",
+        message = "Campo administrativo/metadata ausente o distinto en esta fuente; no bloquea la fusion.",
+        ref = etiqueta, current = "", optional_metadata = TRUE
+      )
+      next
+    }
+    out[[length(out) + 1L]] <- list(
+      pos = pos, variable = var, severity = "review", kind = "unpaired_base",
+      message = "Pregunta de la base sin par en esta fuente: queda vacía para sus filas.",
+      ref = etiqueta, current = "",
+      pregunta = if (is.na(pos)) "" else heading_de(ref, pos)
+    )
+  }
+  out
+}
+
+# --- Refresh: bloqueo por otro instrumento ------------------------------------
+
+.sm_mb_estructura_otro_instrumento <- function(estructura) {
+  diffs <- (estructura %||% list())$diffs %||% list()
+  any(vapply(diffs, function(d) identical(.sm_mb_scalar(d$kind, ""), "different_instrument"), logical(1)))
+}
+
+# Motivo legible de una base que el diagnóstico no deja actualizar. Una fuente
+# que es otro instrumento dice qué hacer, no sólo que falló.
+.sm_mb_refresh_motivo_bloqueo <- function(estructura) {
+  if (!.sm_mb_estructura_otro_instrumento(estructura)) return("La base no paso el diagnostico.")
+  paste(
+    "Una de las encuestas de esta base es otro instrumento: calza menos del 80 % de sus preguntas.",
+    .SM_MB_MENSAJE_OTRO_INSTRUMENTO
+  )
+}

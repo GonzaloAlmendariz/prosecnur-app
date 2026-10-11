@@ -146,8 +146,11 @@ test_that("admin metadata missing in an additional source is not structural bloc
   ref <- make_tbl(c(substantive, admin))
   cur <- make_tbl(substantive)
 
-  blocked <- .sm_mb_compare_to_ref(ref, cur)
-  expect_equal(vapply(blocked, `[[`, character(1), "severity"), rep("blocking", 4))
+  # ADR 0094: una pregunta de la base sin par en la fuente es un aviso (queda
+  # vacía para esas filas), no un bloqueo. Comparar por posición la bloqueaba.
+  sin_par <- .sm_mb_compare_to_ref(ref, cur)
+  expect_equal(vapply(sin_par, `[[`, character(1), "severity"), rep("review", 4))
+  expect_equal(vapply(sin_par, `[[`, character(1), "kind"), rep("unpaired_base", 4))
 
   source_spec <- list()
   excluded_positions <- .sm_mb_excluded_positions_from_source(source_spec, ref)

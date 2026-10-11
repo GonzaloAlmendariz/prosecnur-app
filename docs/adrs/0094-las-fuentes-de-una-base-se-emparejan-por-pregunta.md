@@ -55,3 +55,7 @@ Medido con los datos reales (2026-10-11), juntando Egresados Telefónico a Egres
   par. Si son la misma pregunta, la vía es base separada + Equivalencias, que es donde se declara una
   equivalencia; la fuente adicional no la infiere.
 - El modo «Unificar bases compatibles» (instrumento guía con reconciliación propia) queda fuera de este ADR.
+- Pendiente: el conteo de filas nuevas del plan de refresh (`.sm_mb_fetch_filtered_response_refs`) sigue
+  filtrando el consentimiento de cada fuente por la posición de la variable; afecta al conteo, no a la data.
+- Límite de la clave: dos matrices con las mismas filas y la misma escala solo se distinguen por el ordinal;
+  si una fuente las trae en orden invertido, se emparejan cruzadas.

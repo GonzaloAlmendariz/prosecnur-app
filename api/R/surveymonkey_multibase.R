@@ -145,7 +145,8 @@
       stringsAsFactors = FALSE
     ))
   }
-  do.call(rbind, out)
+  # Los details viajan con la tabla: la auditoría alinea con el XLSForm generado (ADR 0094).
+  structure(do.call(rbind, out), sm_details = details)
 }
 
 .sm_mb_country_from_title <- function(title) {
@@ -591,7 +592,10 @@
   )
 }
 
-.sm_mb_compare_to_ref <- function(ref, cur, company_positions = integer(), ignorable_missing_positions = integer()) {
+# Comparador POSICIONAL del modo «Unificar bases compatibles» (fuera del ADR
+# 0094). Las fuentes de una base se comparan alineadas: `.sm_mb_compare_to_ref`
+# en surveymonkey_multibase_alineacion.R.
+.sm_mb_compare_to_ref_posicional <- function(ref, cur, company_positions = integer(), ignorable_missing_positions = integer()) {
   n <- max(nrow(ref), nrow(cur))
   out <- list()
   ignorable_missing_positions <- unique(suppressWarnings(as.integer(ignorable_missing_positions)))
@@ -763,7 +767,7 @@ sm_multibase_audit <- function(specs, token, canonical_inst = NULL) {
   ref <- tables[[ref_id]]
   diffs <- list()
   for (id in setdiff(names(tables), ref_id)) {
-    one <- .sm_mb_compare_to_ref(ref, tables[[id]], company_positions = company_positions)
+    one <- .sm_mb_compare_to_ref_posicional(ref, tables[[id]], company_positions = company_positions)
     if (length(one)) {
       for (item in one) {
         item$survey_id <- id
@@ -1473,7 +1477,8 @@ sm_multibase_collectors <- function(survey_id,
   hit <- which(labels_norm == .sm_mb_norm(label))[1]
   if (!is.na(hit)) return(as.character(choices$name[hit]))
   if (nzchar(fallback_code) && fallback_code %in% as.character(choices$name)) return(fallback_code)
-  if (nzchar(fallback_code)) return(fallback_code)
+  # Ni la etiqueta ni el código están en la lista: NA, nunca el código de otra lista (ADR 0094).
+  if (nzchar(fallback_code)) return(NA_character_)
   .sm_mb_scalar(label, "")
 }
 
@@ -2518,17 +2523,21 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
 
   source_dfs <- list()
   source_audits <- list()
+  alineacion <- list()
+  details_base <- Find(function(x) identical(.sm_mb_scalar(x$survey_id, ""), spec$survey_id), snapshot$sources %||% list())$details
   for (source in snapshot$sources %||% list()) {
     source_id <- .sm_mb_scalar(source$survey_id %||% (source$source_spec %||% list())$survey_id, spec$survey_id)
     source_spec <- source$source_spec %||% spec
     details <- source$details %||% list()
     responses <- source$responses %||% list()
     source_title <- .sm_mb_scalar(source$source_title %||% source_spec$source_title %||% source_spec$label, "")
-    source_df <- sm_multibase_api_responses_to_canonical_data(
+    source_df <- .sm_mb_codificar_segun_fuente(
       details = details,
       responses = responses,
       inst = rp_inst,
       survey_id = source_id,
+      base_survey_id = spec$survey_id,
+      details_base = details_base,
       pais = .sm_mb_scalar(source_spec$pais %||% spec$pais, ""),
       source_title = source_title,
       source_channel = .sm_mb_source_channel(source_spec, spec$source_channel %||% ""),
@@ -2541,6 +2550,8 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
       consent_var = "",
       apply_consent_filter = FALSE
     )
+    alineacion[[length(alineacion) + 1L]] <- .sm_mb_alineacion_resumen(source_df, source_id, source_title)
+    if (.sm_mb_fuente_es_otro_instrumento(source_df)) next
     decided <- .sm_mb_decision_apply_df(source_df, rp_inst, policy, source_label = source_title)
     source_dfs[[length(source_dfs) + 1L]] <- decided
     audit <- attr(decided, "sm_decision_audit", exact = TRUE) %||% list()
@@ -2561,7 +2572,8 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   if (nrow(data_df)) data_df <- normalize_data_for_xlsform(data_df, rp_inst)
   audit <- .sm_mb_decision_audit_total(source_audits)
   audit$policy <- policy
-  list(data = data_df, inst = rp_inst, policy = policy, audit = audit, snapshot = snapshot)
+  list(data = data_df, inst = rp_inst, policy = policy, audit = audit, snapshot = snapshot,
+       alineacion_fuentes = Filter(Negate(is.null), alineacion))
 }
 
 sm_multibase_decision_preview <- function(sid, base_name, policy = NULL) {
@@ -2580,6 +2592,7 @@ sm_multibase_decision_apply <- function(sid, base_name, policy = NULL,
                                         regenerate_data = TRUE,
                                         force_replace_adapted = FALSE) {
   built <- .sm_mb_build_effective_from_snapshot(sid, base_name, policy)
+  if (isTRUE(regenerate_data)) .sm_mb_guardar_alineacion(sid, base_name, built$alineacion_fuentes)
   s <- session_get(sid)
   session_before_decision_apply <- s
   base <- s$estudio$bases[[base_name]]
@@ -3475,6 +3488,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   no_new_known <- is.finite(new_rows) && new_rows <= 0L
   has_new <- is.finite(new_rows) && new_rows > 0L
   structure_ok <- isTRUE(structure$ok)
+  if (.sm_mb_estructura_otro_instrumento(structure)) return("blocked")
   if (!accepted_count && no_new_known) {
     return(if (structure_ok) "noop" else "noop_structure_warning")
   }
@@ -3523,6 +3537,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   source_dfs <- list()
   source_filters <- list()
   raw_snapshot_sources <- list()
+  alineacion <- list()
   source_specs <- spec$sources %||% list(spec)
   for (source_spec in source_specs) {
     source_id <- .sm_mb_scalar(source_spec$survey_id, spec$survey_id)
@@ -3548,11 +3563,13 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
       payload = payload,
       token = token
     )
-    one_df <- sm_multibase_api_responses_to_canonical_data(
+    one_df <- .sm_mb_codificar_segun_fuente(
       details = source_details,
       responses = payload$data,
       inst = rp_inst,
       survey_id = source_id,
+      base_survey_id = spec$survey_id,
+      details_base = details,
       pais = .sm_mb_scalar(source_spec$pais, spec$pais),
       source_title = source_title,
       source_channel = source_channel,
@@ -3574,6 +3591,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     one_filter$consent_var <- source_consent_var
     one_filter$validation_exclusion_profile <- validation_profile
     one_filter$excluded_validation_vars <- as.list(excluded_vars)
+    alineacion[[length(alineacion) + 1L]] <- .sm_mb_alineacion_resumen(one_df, source_id, source_title)
     source_dfs[[length(source_dfs) + 1L]] <- one_df
     source_filters[[length(source_filters) + 1L]] <- one_filter
   }
@@ -3588,7 +3606,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     decision_policy = .sm_mb_default_decision_policy(spec, rp_inst, .sm_mb_response_filter_total(source_filters)),
     source_kind = if (length(source_specs) > 1L) "surveymonkey_api_multi_source" else "surveymonkey_api",
     xlsform_logic_sync = logic_sync[setdiff(names(logic_sync), "model")],
-    choice_order_editor = orden_editor$resumen
+    choice_order_editor = orden_editor$resumen,
+    alineacion_fuentes = Filter(Negate(is.null), alineacion)
   )
 }
 
@@ -4164,6 +4183,7 @@ sm_multibase_import_independent <- function(sid,
     source_dfs <- list()
     source_filters <- list()
     raw_snapshot_sources <- list()
+    alineacion <- list()
     source_specs <- spec$sources %||% list(spec)
     for (source_spec in source_specs) {
       source_id <- .sm_mb_scalar(source_spec$survey_id, spec$survey_id)
@@ -4228,11 +4248,13 @@ sm_multibase_import_independent <- function(sid,
           payload = payload,
           token = token
         )
-        one_df <- sm_multibase_api_responses_to_canonical_data(
+        one_df <- .sm_mb_codificar_segun_fuente(
           details = source_details,
           responses = payload$data,
           inst = rp_inst,
           survey_id = source_id,
+          base_survey_id = spec$survey_id,
+          details_base = details,
           pais = source_pais,
           source_title = source_title,
           source_channel = source_channel,
@@ -4254,6 +4276,8 @@ sm_multibase_import_independent <- function(sid,
         one_filter$consent_var <- source_consent_var
         one_filter$validation_exclusion_profile <- source_validation_profile
         one_filter$excluded_validation_vars <- as.list(source_excluded_vars)
+        alineacion[[length(alineacion) + 1L]] <- .sm_mb_alineacion_resumen(one_df, source_id, source_title)
+        if (.sm_mb_fuente_es_otro_instrumento(one_df)) next
       }
       source_dfs[[length(source_dfs) + 1L]] <- one_df
       source_filters[[length(source_filters) + 1L]] <- one_filter
@@ -4296,6 +4320,7 @@ sm_multibase_import_independent <- function(sid,
       response_filter = response_filter %||% list(),
       decision_policy = decision_policy,
       raw_snapshot_sources = raw_snapshot_sources,
+      alineacion_fuentes = Filter(Negate(is.null), alineacion),
       canonical_logic_sync = canonical_sync,
       direct_logic_sync = direct_logic_sync,
       source_kind = if (length(source_specs) > 1L) {
@@ -4354,7 +4379,8 @@ sm_multibase_import_independent <- function(sid,
         surveymonkey_decision_policy = item$decision_policy,
         surveymonkey_decision_audit = item$response_filter,
         surveymonkey_source_spec = item$source_spec,
-        surveymonkey_logic_sync = item$direct_logic_sync %||% NULL
+        surveymonkey_logic_sync = item$direct_logic_sync %||% NULL,
+        sm_alineacion_fuentes = if (length(item$alineacion_fuentes)) unname(item$alineacion_fuentes) else NULL
       )
     )
     if (is.list(item$canonical_logic_sync) && length(item$canonical_logic_sync)) {
@@ -4692,7 +4718,7 @@ sm_multibase_refresh <- function(sid,
         base_name = base_name,
         ok = FALSE,
         skipped = TRUE,
-        reason = "La base no paso el diagnostico.",
+        reason = .sm_mb_refresh_motivo_bloqueo(row$structure),
         issues = row$issues %||% list(),
         structure = row$structure %||% list()
       )
@@ -4805,6 +4831,7 @@ sm_multibase_refresh <- function(sid,
       xlsform_logic_sync = snapshot$xlsform_logic_sync %||% NULL,
       choice_order_editor = snapshot$choice_order_editor
     )
+    .sm_mb_guardar_alineacion(sid, base_name, snapshot$alineacion_fuentes)
 
     codif_job <- NULL
     if (isTRUE(reapply_codificacion) && has_codif && exists(".codif_start_apply_job", mode = "function")) {

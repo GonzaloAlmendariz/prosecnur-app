@@ -72,12 +72,12 @@ Acreditación Arte y Diseño PUCP (Docentes, Administrativos, Estudiantes).
 
 **Persistencia** — `s$estudio$bases[[b]]$sm_alineacion_fuentes`: lista por fuente
 `{survey_id, titulo, n_emparejadas, n_preguntas_base, cobertura, reordenada, instrumento_distinto,
-sin_par_fuente: [{variable, etiqueta}], sin_par_base: [{variable, etiqueta}], opciones_sin_par:
+excluida, n_filas_excluidas, sin_par_fuente: [{variable, etiqueta}], sin_par_base: [{variable, etiqueta}], opciones_sin_par:
 [{variable, n}]}`. Solo fuentes distintas de la principal.
 
 **Revisión** — `.carga_review_payload()$fuentes` (NULL si la base no junta encuestas):
 `{fuentes: [{survey_id, titulo, n_emparejadas, n_preguntas_base, reordenada, instrumento_distinto,
-sin_par_fuente: [{variable, etiqueta}], sin_par_base: [{variable, etiqueta}], n_opciones_sin_par}]}`.
+excluida, n_filas_excluidas, sin_par_fuente: [{variable, etiqueta}], sin_par_base: [{variable, etiqueta}], n_opciones_sin_par}]}`.
 No entra en `ready`.
 
 **UI**:
