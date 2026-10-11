@@ -1,5 +1,10 @@
 # Checklist — readiness con marcas anidadas (2026-09-25)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-09-25
+Autoridad: Registro de alcance; el comportamiento vigente lo fijan `frontend/src/lib/navegacion/runtime.ts` (`evaluarMarcas`) y el contrato `readinessAnidada`
+
 Origen: E15 del loop de Cálculo de muestra, ítem AD6 de
 `checklist-calc-muestra-patron-aulas-2026-09-24.md`. `estadoListo()` leía sólo
 la PRIMERA `[data-audit-ready]` del documento; en `cursos-horario` esa es la de

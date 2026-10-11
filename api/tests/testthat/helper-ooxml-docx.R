@@ -121,6 +121,15 @@
   "w:sectPr: pgSz antes de type"
 )
 
+# Lo que QUEDA tras `.docx_conformar()` (api/R/docx_conformar.R), que reordena
+# pPr, tblPr y sectPr al orden del esquema: sólo el orden interno de rPr, que el
+# conformador no toca. Es lo que tiene que afirmarse sobre un .docx de la app.
+.OOXML_DESORDEN_TRAS_CONFORMAR <- c(
+  "w:rPr: i antes de b",
+  "w:rPr: u antes de strike",
+  "w:rPr: szCs antes de color"
+)
+
 # Partes del paquete que escribe el motor (document + mobiliario de cada
 # seccion). `word/styles.xml` y el resto vienen de la plantilla de officer y no
 # son responsabilidad de este motor.

@@ -1,5 +1,10 @@
 # GOAL — el motor produce el instrumento de Ser Adolescente, sin retoques
 
+Tipo: GOAL (loop de convergencia)
+Estado: En curso
+Fecha: 2026-09-24
+Autoridad: Dirección del loop del motor del formulario en papel; el comportamiento vigente lo fijan `reporte_formulario_pdf.R`, `reporte_formulario_word.R` y sus tests
+
 **Abierto:** 2026-09-24 · **Decisión de Gonzalo:** *réplica fiel, también en grises.*
 
 La calidad que se persigue: **que un XLSForm pase por el motor y salga un instrumento
