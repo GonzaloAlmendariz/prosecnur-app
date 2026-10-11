@@ -95,17 +95,42 @@
 #' Sello de un gráfico que el motor dibuja como «Sin datos para mostrar» (embudo `.blank_canvas` de reporte_plan_ppt.R)
 #'
 #' Cubre lo que no es una degradación por error: la tabla quedó vacía porque no hay respuestas válidas (variable toda NA,
-#' filtro con casos pero NA en la variable, `excluir_opciones` que cubre todo, pesos en cero) o `.tab_freq` falló y
-#' devolvió NULL. Señala `pulso_grafico_sin_datos`, que hereda de `pulso_lamina_degradada` con
+#' filtro con casos pero NA en la variable, `excluir_opciones` que cubre todo, pesos en cero) o porque los filtros dejaron
+#' 0 filas (`.tab_freq` devuelve NULL sólo en ese caso; los errores de `freq_table_spss` se propagan y degradan por
+#' `pulso_slide_render_error`). Señala `pulso_grafico_sin_datos`, que hereda de `pulso_lamina_degradada` con
 #' `motivo = "sin_respuestas_validas"`, y devuelve `x` intacto (la llamada envuelve una expresión existente para no crecer
 #' reporte_plan_ppt.R, congelado). Sin nadie escuchando no hace nada.
+#'
+#' La señal se emite dentro de un restart `pulso_silenciar_sin_datos`: `.plan_render_element_degradable` la silencia
+#' cuando viene de un BLOQUE (multilista llama a `.blank_canvas` por bloque) y re-señala una sola vez por gráfico, sólo si
+#' el gráfico entero quedó vacío.
 #' @keywords internal
 .pulso_senal_sin_datos <- function(x, mensaje = "Sin datos para mostrar") {
-  signalCondition(structure(
-    class = c("pulso_grafico_sin_datos", "pulso_lamina_degradada", "condition"),
-    list(message = as.character(mensaje %||% "")[1], motivo = "sin_respuestas_validas", call = NULL)
-  ))
+  withRestarts(
+    signalCondition(structure(
+      class = c("pulso_grafico_sin_datos", "pulso_lamina_degradada", "condition"),
+      list(message = as.character(mensaje %||% "")[1], motivo = "sin_respuestas_validas", call = NULL)
+    )),
+    pulso_silenciar_sin_datos = function() NULL
+  )
   x
+}
+
+#' Dibuja un elemento de primer nivel deduplicando sus señales `pulso_grafico_sin_datos`
+#'
+#' Un gráfico es una unidad: sus bloques (multilista: `el$bloques`) pueden caer cada uno al canvas vacío. Las señales de
+#' adentro se silencian y, si cubren todas las partes del gráfico (todos sus bloques, o el gráfico simple), se emite UNA
+#' sola al salir. Un gráfico con algún bloque con datos no cuenta como vacío.
+#' @keywords internal
+.plan_con_sin_datos_por_grafico <- function(el, expr) {
+  senales <- 0L
+  out <- withCallingHandlers(expr, pulso_grafico_sin_datos = function(cnd) {
+    senales <<- senales + 1L
+    invokeRestart("pulso_silenciar_sin_datos")
+  })
+  partes <- max(1L, length(if (is.list(el)) el$bloques else NULL))
+  if (senales >= partes) .pulso_senal_sin_datos(NULL)
+  out
 }
 
 #' Canvas minimo "Sin datos" para laminas degradadas. Mismo rol que la rama
@@ -131,7 +156,7 @@
 #' @keywords internal
 .plan_render_element_degradable <- function(impl, el) {
   tryCatch(
-    .plan_con_etiquetas_cortas(el, impl(el)),  # K12a: la etiqueta corta del gráfico vale mientras se dibuja
+    .plan_con_sin_datos_por_grafico(el, .plan_con_etiquetas_cortas(el, impl(el))),  # K12a: etiqueta corta mientras se dibuja
     pulso_slide_render_error = function(cnd) {
       msg <- paste0("Lamina degradada a canvas 'Sin datos': ", conditionMessage(cnd))
       # El `warning()` es el rastro del log; el `.pulso_aviso()` es lo que llega

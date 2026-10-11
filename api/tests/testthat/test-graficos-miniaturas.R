@@ -540,3 +540,94 @@ test_that("M-N2: un filtro sobre una columna que no está en la base es variable
   expect_identical(it$estado, "sin_datos")
   expect_identical(as.character(.mini_graficos_publico(.mini_entrada_leer(raiz, it$hash))$motivo), "variable_fuera_de_base")
 })
+
+# ---- Tercera revisión: el sello sin_datos cuenta gráficos, no bloques ---------------------------------------------------
+
+.mt_ver <- function(slide, fuentes) {
+  raiz <- withr::local_tempdir(.local_envir = parent.frame())
+  it <- suppressWarnings(.mini_lote_item(.mt_ctx(slide = slide, fuentes = fuentes), raiz, .mt_opts(render = FALSE)))
+  g <- .mini_graficos_publico(.mini_entrada_leer(raiz, it$hash))
+  list(estado = it$estado, pedidos = g$pedidos, vacios = g$vacios, motivo = as.character(g$motivo))
+}
+.mt_multilista <- function(vars, filtros = NULL) {
+  args <- list(modo = "multilista", bloques = lapply(vars, function(v) list(modo = "var", vars = list(v))))
+  if (!is.null(filtros)) args$filtros <- filtros
+  list(graficador = "p_barras_multiapiladas", args = args)
+}
+.mt_ok <- list(graficador = "p_barras_categoricas", args = list(var = "region"))
+
+test_that("A: una multilista con un bloque con datos y otro todo NA dibuja datos (vacios = 0)", {
+  f <- .mt_temas(); f$df$p2 <- NA_character_
+  r <- .mt_ver(list(id = "a", tipo = "p_slide_1_grafico", payload = list(titulo = "T", grafico = .mt_multilista(c("p1", "p2")))), f)
+  expect_false(identical(r$estado, "sin_datos"))
+  expect_identical(r$vacios, 0L)
+})
+
+test_that("G: OK + multilista cuyo filtro deja 0 casos en sus 2 bloques → vacios = 1 (una señal por gráfico)", {
+  r <- .mt_ver(list(id = "g", tipo = "p_slide_2_graficos", payload = list(titulo = "T", izquierda = .mt_ok,
+                    derecha = .mt_multilista(c("p1", "p2"), filtros = list(region = "oeste")))), .mt_temas())
+  expect_identical(r$pedidos, 2L)
+  expect_identical(r$vacios, 1L)
+  expect_identical(r$motivo, "n0")
+  expect_false(identical(r$estado, "sin_datos"))
+})
+
+test_that("H: OK + multilista de 3 bloques con 1 con datos → la multilista dibuja: vacios = 0, no sin_datos", {
+  f <- .mt_temas(); f$df$p2 <- NA_character_; f$df$p3 <- NA_character_
+  r <- .mt_ver(list(id = "h", tipo = "p_slide_2_graficos", payload = list(titulo = "T", izquierda = .mt_ok,
+                    derecha = .mt_multilista(c("p1", "p2", "p3")))), f)
+  expect_identical(r$pedidos, 2L)
+  expect_identical(r$vacios, 0L)
+  expect_false(identical(r$estado, "sin_datos"))
+})
+
+test_that("una multilista con TODOS sus bloques vacíos → sin_datos con vacios = 1", {
+  f <- .mt_temas(); f$df$p1 <- NA_character_; f$df$p2 <- NA_character_
+  r <- .mt_ver(list(id = "t", tipo = "p_slide_1_grafico", payload = list(titulo = "T", grafico = .mt_multilista(c("p1", "p2")))), f)
+  expect_identical(r, list(estado = "sin_datos", pedidos = 1L, vacios = 1L, motivo = "sin_respuestas_validas"))
+})
+
+test_that("el envoltorio por gráfico silencia las señales de sus bloques y re-señala una sola si todos quedaron vacíos", {
+  contar <- function(el, n_senales) {
+    n <- 0L
+    withCallingHandlers(
+      .plan_con_sin_datos_por_grafico(el, { for (i in seq_len(n_senales)) .pulso_senal_sin_datos(NULL); "ok" }),
+      pulso_grafico_sin_datos = function(c) n <<- n + 1L)
+    n
+  }
+  dos_bloques <- list(bloques = list(1, 2))
+  expect_identical(contar(dos_bloques, 1L), 0L)
+  expect_identical(contar(dos_bloques, 2L), 1L)
+  expect_identical(contar(dos_bloques, 3L), 1L)                                  # bloques vacíos + canvas final: una
+  expect_identical(contar(list(), 1L), 1L)
+  expect_identical(contar(list(), 0L), 0L)
+})
+
+test_that("H23: una entrada cuyo meta trae otra huella no es hit", {
+  raiz <- withr::local_tempdir()
+  ctx <- .mt_ctx()
+  .mini_resolver(ctx, raiz, .mt_opts(render = FALSE))
+  e <- .mini_entrada(raiz, ctx$hash)
+  meta <- readRDS(e$meta); meta$hash <- strrep("0", 64); saveRDS(meta, e$meta)
+  expect_null(.mini_entrada_leer(raiz, ctx$hash))
+  expect_identical(.mini_resolver(ctx, raiz, .mt_opts(render = FALSE))$cache$pptx, "miss")
+  expect_identical(readRDS(e$meta)$hash, ctx$hash)                               # el miss reescribe la entrada sana
+})
+
+test_that("H24: la poda LRU corre y conserva las entradas usadas más recientemente", {
+  raiz <- withr::local_tempdir()
+  ahora <- Sys.time()
+  for (k in 1:5) {
+    d <- file.path(raiz, sprintf("h%d", k)); dir.create(d)
+    Sys.setFileTime(d, ahora - (6 - k) * 60)                                     # h1 la más vieja, h5 la más nueva
+  }
+  Sys.setFileTime(file.path(raiz, "h1"), ahora - 1)                              # h1 se acaba de usar
+  expect_identical(.mini_cache_podar(raiz, max = 3L), 2L)
+  expect_setequal(basename(list.dirs(raiz, recursive = FALSE)), c("h1", "h4", "h5"))
+  expect_identical(.mini_cache_podar(raiz, max = 3L), 0L)
+  # Corre en el camino real: con el tope en 1, la vista previa síncrona deja una sola entrada en la caché de la sesión.
+  withr::local_options(pulso.miniaturas_cache_max = 1L)
+  r1 <- .mini_resolver(.mt_ctx(slide = .mt_slide("uno")), raiz, .mt_opts(render = FALSE))
+  expect_identical(.mini_cache_podar(raiz), 3L)                                 # h1, h4 y h5 ceden ante la nueva
+  expect_identical(basename(list.dirs(raiz, recursive = FALSE)), r1$hash)
+})
