@@ -29,7 +29,7 @@ import type { AporteCategoria } from "./controles";
 import { ControlUmbral } from "./ControlUmbral";
 import { ChevronDown } from "../../../../vendor/lucide-react";
 import { fmtInt } from "../../sharedCore";
-import { Switch } from "./Switch";
+import { Switch } from "../../../../components/Switch";
 import { usarPlegado } from "./usarPlegado";
 
 /**
@@ -370,6 +370,7 @@ export function CriterioComposicionCard({
               onChange={(prop) => onPatch({ min_faculty_prevalence_pct: prop })}
             />
             <Switch
+              className="cmv2-crit-switch"
               checked={paso1}
               ariaLabel="Exigir misma facultad del curso (paso 1 de la composición)"
               onToggle={() => onPatch({ require_faculty_prevalence: !paso1 })}
@@ -406,6 +407,7 @@ export function CriterioComposicionCard({
               onChange={(prop) => onPatch({ min_cycle_homogeneity_pct: prop })}
             />
             <Switch
+              className="cmv2-crit-switch"
               checked={paso2}
               ariaLabel="Exigir mismo nivel del curso (paso 2 del criterio 8)"
               onToggle={() => onPatch({ require_cycle_homogeneity: !paso2 })}
@@ -477,6 +479,7 @@ export function CriterioComposicionCard({
               onChange={(prop) => onPatch({ min_prevalence_pct: prop })}
             />
             <Switch
+              className="cmv2-crit-switch"
               checked={legacyOn}
               ariaLabel="Exigir prevalencia mínima de elegibles"
               onToggle={() => onPatch({ require_min_prevalence: !legacyOn })}
