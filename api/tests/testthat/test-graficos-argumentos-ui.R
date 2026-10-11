@@ -682,9 +682,10 @@ test_that("Word aplica el preset apilado institucional por defecto", {
   apiladas <- applied$barras_apiladas$args
 
   expect_equal(as.numeric(apiladas$grosor_barras_mult), 1.5)
-  expect_false(isTRUE(apiladas$mostrar_barra_extra))
-  expect_equal(as.numeric(apiladas$canvas_w_extra), 0)
-  expect_equal(as.numeric(apiladas$canvas_w_bars), 0.82)
+  # El recetario Word dibuja la Top Two Box en las escalas apiladas (propuesta-word.docx, gráficos 13/44/45/47).
+  expect_true(isTRUE(apiladas$mostrar_barra_extra))
+  expect_equal(as.numeric(apiladas$canvas_w_extra), 0.16)
+  expect_equal(as.numeric(apiladas$canvas_w_bars), 0.64)
   # B52/W-1: leyenda a 8 pt (6 era ilegible en 6.1in) y key 0.18; ademas la
   # etiqueta chica espeja a la normal para que el editorial 5.6 no gobierne.
   expect_equal(as.numeric(apiladas$legend_key_cm), 0.18)
@@ -740,9 +741,9 @@ test_that("config de graficos expone defaults Word aunque w_presets venga vacio"
 
   expect_equal(cfg$w_presets$chart_options$ocultar_etiqueta_si_titulo, TRUE)
   expect_equal(cfg$w_presets$chart_presets$barras_apiladas$legend_n_por_fila, 10)
-  expect_equal(cfg$w_presets$chart_presets$barras_apiladas$canvas_w_bars, 0.82)
+  expect_equal(cfg$w_presets$chart_presets$barras_apiladas$canvas_w_bars, 0.64)
   expect_equal(cfg$w_presets$chart_presets$barras_apiladas$legend_key_cm, 0.18)
-  expect_false(isTRUE(cfg$w_presets$chart_presets$barras_apiladas$mostrar_barra_extra))
+  expect_true(isTRUE(cfg$w_presets$chart_presets$barras_apiladas$mostrar_barra_extra))
 
   custom <- .graficos_normalize_config(list(
     w_presets = list(chart_presets = list(

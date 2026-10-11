@@ -2,20 +2,23 @@ type Dict = Record<string, unknown>;
 
 const DEFAULT_DEBUG_PH = { activo: false, color: "#FF00FF", lwd: 0.6 };
 const DEFAULT_CANVAS_VIEWPORT = { x: 0, y: 0, zoom: 1 };
+// Espejo de `.WORD_PRESETS_DEFAULT_PULSO` (api/R/reporte_plan_word.R): el bloque `barras_apiladas` debe coincidir
+// clave por clave con el de R (test-reporte-word-defaults-espejo.R). El recetario manda: las escalas apiladas del Word
+// llevan su columna Top Two Box (propuesta-word.docx, figuras 13, 44, 45 y 47).
 export const DEFAULT_WORD_PRESETS: Record<string, Record<string, unknown>> = {
   chart_options: { ocultar_etiqueta_si_titulo: true },
   chart_presets: {
     barras_apiladas: {
-      mostrar_barra_extra: false,
-      barra_extra_preset: "ninguno",
+      mostrar_barra_extra: true,
+      barra_extra_preset: "top2box",
       prefijo_barra_extra: "",
       titulo_barra_extra: "",
 
       canvas_w_etiquetas: 0.18,
       canvas_w_buf_etq_bars: 0,
-      canvas_w_bars: 0.82,
-      canvas_w_buf_bars_extra: 0,
-      canvas_w_extra: 0,
+      canvas_w_bars: 0.64,
+      canvas_w_buf_bars_extra: 0.02,
+      canvas_w_extra: 0.16,
 
       canvas_h_toprow_in: 0,
       canvas_h_legend_in: 0.42,
@@ -27,13 +30,16 @@ export const DEFAULT_WORD_PRESETS: Record<string, Record<string, unknown>> = {
       ancho_max_eje_y: 36,
       size_ejes: 7,
       size_texto_barras: 2.8,
+      size_texto_barras_peq: 2.8,
 
       leyenda_posicion: "abajo",
       mostrar_leyenda: true,
-      legend_key_cm: 0.15,
+      legend_key_cm: 0.18,
       legend_espaciado: 0,
       legend_n_por_fila: 10,
-      size_leyenda: 6,
+      size_leyenda: 8,
+      size_barra_extra: 9,
+      size_titulo_extra: 9,
       centro_cowplot: 0.5,
     },
   },
