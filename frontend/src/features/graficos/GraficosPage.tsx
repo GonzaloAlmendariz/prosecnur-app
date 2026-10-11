@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, BarChart2, CheckCircle2, Database, FileSpreadsheet } from "lucide-react";
 import {
@@ -39,9 +39,11 @@ import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ContextTabRail } from "../../components/ContextTabRail";
 import { LaminasWorkbench } from "./laminas/LaminasWorkbench";
 import { BarraLaminas } from "./laminas/BarraLaminas";
+import { lazyWithReload } from "../../lib/lazyWithReload";
 import "./graficosPestanas.css";
 import { resolverPestanaGraficos, PESTANAS_GRAFICOS, type GraficosTabId } from "./pestanaGraficos";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+const VistaGeneral = lazyWithReload(() => import("./vistaGeneral/VistaGeneral"), "graficos-vista-general");
 
 type ExportResult = {
   ok: true; file_id: string; filename?: string; size: number; n_slides: number;
@@ -463,7 +465,9 @@ export default function GraficosPage() {
             >
               {pestana === "laminas"
                 ? <LaminasWorkbench onIrEditorAnterior={() => irPestana("clasico")} />
-                : <EditorShell />}
+                : pestana === "vista-general"
+                  ? <Suspense fallback={<LoadingBlock label="Cargando la vista general…" />}><VistaGeneral /></Suspense>
+                  : <EditorShell />}
             </div>
           </AdaptiveSplitView>
         </GraficosLibrariesHost>

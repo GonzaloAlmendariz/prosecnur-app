@@ -1,0 +1,513 @@
+/* Vista general de Procesamiento › Gráficos (F6.3; dirección F6 §4.2, plan §2.3: tarjetas 176 × 99).
+   Barra fija arriba y un solo dueño de desplazamiento (el cuerpo con los capítulos, C4: No Scroll Jail). Tarjetas
+   iguales (C2): miniatura 16:9 de 176 × 99 más un pie de dos líneas; el vacío de una fila corta es de la fila (C3). */
+
+.pulso-graficos-pestana > .pulso-f6-vg {
+  flex: 1;
+  min-height: 0;
+}
+
+.pulso-f6-vg {
+  --pulso-f6-vg-ancho: 176px;
+  --pulso-f6-vg-alto: 99px;
+  --pulso-f6-vg-pie: 40px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+/* --- Barra: cobertura y acciones sobre la selección ------------------------------------------------------------ */
+
+.pulso-f6-vg-barra {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  min-height: 44px;
+  padding: var(--pulso-space-1) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-vg-cobertura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-f6-vg-titulo-vista {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-vg-dato {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-f6-vg-dato strong {
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-vg-dato.is-aviso strong {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-vg-acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-vg-seleccion {
+  margin-right: var(--pulso-space-2);
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.pulso-f6-vg-mover select {
+  height: var(--pulso-control-height-md);
+  max-width: 220px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.pulso-f6-vg-mover select:disabled,
+.pulso-f6-vg .pulso-f6-boton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pulso-f6-vg .is-peligro:not(:disabled) {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-f6-vg-mover select:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+/* --- Cuerpo: el único dueño del desplazamiento ----------------------------------------------------------------- */
+
+.pulso-f6-vg-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-6);
+  background: var(--pulso-bg);
+  scrollbar-gutter: stable;
+}
+
+.pulso-f6-vg-cuerpo.is-vacio {
+  display: grid;
+  place-items: center;
+}
+
+.pulso-f6-vg-vacio {
+  background: transparent;
+}
+
+.pulso-f6-vg-filas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+/* --- Fila de capítulo -------------------------------------------------------------------------------------------- */
+
+.pulso-f6-vg-fila {
+  position: relative;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-vg-fila.is-bloque {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-vg-fila.is-arrastrada {
+  opacity: 0.5;
+}
+
+/* Dónde caería el capítulo: una línea del acento sobre el borde de arriba o de abajo. */
+.pulso-f6-vg-fila.is-soltar-antes::before,
+.pulso-f6-vg-fila.is-soltar-despues::after {
+  content: "";
+  position: absolute;
+  left: var(--pulso-space-2);
+  right: var(--pulso-space-2);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--module-accent);
+  pointer-events: none;
+}
+
+.pulso-f6-vg-fila.is-soltar-antes::before { top: calc(-1 * var(--pulso-space-2)); }
+.pulso-f6-vg-fila.is-soltar-despues::after { bottom: calc(-1 * var(--pulso-space-2)); }
+
+.pulso-f6-vg-fila-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: 40px;
+  min-width: 0;
+}
+
+.pulso-f6-vg-asa {
+  cursor: grab;
+}
+
+.pulso-f6-vg-asa:active {
+  cursor: grabbing;
+}
+
+.pulso-f6-vg-asa-hueco {
+  flex: none;
+  width: var(--pulso-control-height-md);
+}
+
+.pulso-f6-vg-fila-titulo {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-vg-fila.is-bloque .pulso-f6-vg-fila-titulo {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-vg-fila-conteo {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-f6-vg-fila-acciones {
+  flex: none;
+  display: flex;
+  gap: 2px;
+}
+
+/* --- Tarjetas ---------------------------------------------------------------------------------------------------- */
+
+.pulso-f6-vg-tarjetas {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+  min-height: calc(var(--pulso-f6-vg-alto) + var(--pulso-f6-vg-pie));
+  margin: var(--pulso-space-1) 0 0;
+  padding: 0 0 0 calc(var(--pulso-control-height-md) + var(--pulso-space-2));
+  list-style: none;
+}
+
+/* Soltar en el hueco tras la última tarjeta: la línea va al final de la fila. */
+.pulso-f6-vg-tarjetas.is-soltar-fin::after {
+  content: "";
+  align-self: stretch;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--module-accent);
+}
+
+.pulso-f6-vg-tarjeta {
+  position: relative;
+  flex: none;
+  display: grid;
+  grid-template-rows: var(--pulso-f6-vg-alto) var(--pulso-f6-vg-pie);
+  width: var(--pulso-f6-vg-ancho);
+  border-radius: var(--pulso-radius);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-vg .pulso-f6-miniatura.pulso-f6-vg-lienzo {
+  width: var(--pulso-f6-vg-ancho);
+  height: var(--pulso-f6-vg-alto);
+  border-radius: var(--pulso-radius);
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-vg-tarjeta:hover .pulso-f6-vg-lienzo {
+    border-color: var(--pulso-border-strong);
+    box-shadow: var(--pulso-shadow-low);
+    transform: translateY(-1px);
+  }
+}
+
+.pulso-f6-vg-tarjeta:active .pulso-f6-vg-lienzo {
+  transform: scale(var(--motion-scale-entrada));
+}
+
+.pulso-f6-vg-tarjeta.is-separador .pulso-f6-vg-lienzo,
+.pulso-f6-vg-tarjeta.is-subcapitulo .pulso-f6-vg-lienzo {
+  border-color: var(--module-accent-border);
+}
+
+.pulso-f6-vg-tarjeta.is-seleccionada .pulso-f6-vg-lienzo {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-f6-vg-tarjeta:focus-visible .pulso-f6-vg-lienzo {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-vg-tarjeta.is-arrastrada {
+  opacity: 0.4;
+}
+
+/* Marca de elegida: un punto con visto en la esquina; aparece con una escala corta. */
+.pulso-f6-vg-check {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent);
+  box-shadow: 0 0 0 2px var(--pulso-surface);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-vg-check::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2.5px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--pulso-nav-selected-fg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.pulso-f6-vg-tarjeta.is-seleccionada .pulso-f6-vg-check {
+  opacity: 1;
+  transform: none;
+}
+
+.pulso-f6-vg-rol {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 0 var(--pulso-space-1);
+  border-radius: calc(var(--pulso-radius) / 3);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.5;
+}
+
+/* Dónde caería la lámina: una línea vertical del acento a un lado de la tarjeta. */
+.pulso-f6-vg-tarjeta.is-soltar-antes::before,
+.pulso-f6-vg-tarjeta.is-soltar-despues::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  height: var(--pulso-f6-vg-alto);
+  width: 3px;
+  border-radius: 2px;
+  background: var(--module-accent);
+  pointer-events: none;
+}
+
+.pulso-f6-vg-tarjeta.is-soltar-antes::before { left: calc(-1 * var(--pulso-space-2)); }
+.pulso-f6-vg-tarjeta.is-soltar-despues::after { right: calc(-1 * var(--pulso-space-2)); }
+
+.pulso-f6-vg-pie {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 20px 16px;
+  align-items: center;
+  column-gap: var(--pulso-space-1);
+  padding-top: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-vg-tipo {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-vg-tarjeta.is-seleccionada .pulso-f6-vg-tipo {
+  --icono-acento: var(--module-accent);
+}
+
+.pulso-f6-vg-titulo {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-vg-graficos {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-vg-mas,
+.pulso-f6-vg-vacias {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.pulso-f6-vg-vacias {
+  margin-left: var(--pulso-space-1);
+  color: var(--pulso-warn-fg);
+}
+
+/* --- Confirmar eliminar ------------------------------------------------------------------------------------------ */
+
+.pulso-f6-vg-confirmar-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 28%, transparent);
+  animation: pulso-f6-vg-velo var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-vg-confirmar {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: calc(var(--pulso-z-modal) + 1);
+  display: grid;
+  gap: var(--pulso-space-2);
+  width: min(420px, calc(100vw - 2 * var(--pulso-space-6)));
+  max-height: calc(100vh - 2 * var(--pulso-space-6));
+  overflow: auto;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  transform: translate(-50%, -50%);
+  animation: pulso-f6-vg-entra var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.pulso-f6-vg-confirmar-titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-vg-confirmar-texto {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-vg-confirmar-lista {
+  margin: 0;
+  padding-left: var(--pulso-space-4);
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+
+.pulso-f6-vg-confirmar-lista li {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-vg-confirmar-lista .is-resto {
+  list-style: none;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-vg-confirmar-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-2);
+}
+
+.pulso-f6-vg-confirmar .pulso-f6-boton.is-peligro {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+@keyframes pulso-f6-vg-velo {
+  from { opacity: 0; }
+}
+
+@keyframes pulso-f6-vg-entra {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(var(--motion-scale-entrada)); }
+}
+
+/* Movimiento reducido: sin escalas ni elevaciones; los cambios de estado quedan como fundidos cortos. El desplazamiento
+   del cuerpo sigue funcionando igual. */
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-vg .pulso-f6-miniatura.pulso-f6-vg-lienzo,
+  .pulso-f6-vg-check {
+    transition: opacity var(--motion-dur-fast) linear;
+  }
+
+  .pulso-f6-vg-tarjeta:hover .pulso-f6-vg-lienzo,
+  .pulso-f6-vg-tarjeta:active .pulso-f6-vg-lienzo,
+  .pulso-f6-vg-check {
+    transform: none;
+  }
+
+  .pulso-f6-vg-confirmar {
+    animation-name: pulso-f6-vg-velo;
+  }
+}
