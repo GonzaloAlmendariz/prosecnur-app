@@ -56,3 +56,10 @@ cuando la lista de opciones no es la misma que el recetario pone, porque a veces
 4. Opción desconocida: color neutro del recetario + aviso, en vez del respaldo posicional.
 5. Default sin paleta: la Likert del recetario, no la rampa `approval` con rojo.
 6. Decisión previa de diseño: las categóricas del recetario son monocromas a propósito (navy + realce, ADR 0093).
+
+## Decisiones de Gonzalo (2026-10-11, ~12:00 Perú)
+
+«De acuerdo, haz todo lo que recomiendas» → P1a, P2a, P3a y P4a adoptadas en el ADR 0097. Además: 5a (los tipos que
+salen por el motor anterior —puntos comparativos, tabla y radar por dimensiones— conservan sus controles en Láminas
+mientras no tengan versión nativa), 6a (se retira de la tarjeta la opción «personalizado» de `tipo_rango`) y 7a (el
+anonimizador no reemplaza el nombre del cliente en títulos o etiquetas, pero lo avisa en su reporte).
