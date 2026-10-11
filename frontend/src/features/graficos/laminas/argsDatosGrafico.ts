@@ -4,48 +4,155 @@
 // divide, qué entra y en qué orden, significancia). Todo lo de estilo ggplot queda fuera aunque el registro lo
 // declare. Cada entrada trae un rótulo corto y, si hace falta, una ayuda de una línea; el texto largo del registro no
 // se muestra (va en el título del «?»).
+//
+// C40 (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md): cada arg asignado se verificó contra su `tipo_input`,
+// `choices` y `default` en api/R/graficos_metadata.R y contra los formals de su constructor del plan — un arg que no es
+// formal se cae en `.clean_rebuild_args` (router_graficos.R) y un control suyo prometería algo que la lámina no dibuja
+// (C5). Las guardas van como ayuda visible junto al control; lo retirado no sale y su valor guardado no se toca.
 
 import type { ArgMetadata } from "../../../api/graficos";
 import { argAplica } from "../argDependencias";
 
 export type ControlDato = "variable" | "variable_opcional" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base";
 
+type Valores = Readonly<Record<string, unknown>>;
+
 type Entrada = {
   rotulo: string;
   ayuda?: string;
+  /** Texto del campo vacío (códigos y textos). */
+  placeholder?: string;
   control?: ControlDato;
-  /** Sólo con este arg activo. */
+  /** Sólo con este arg encendido; si no está guardado manda su `default` del registro. Sin ese arg en el registro, nunca. */
   siActivo?: string;
   /** Su `depende` tiene que cumplirse con un valor ya elegido: con el modo sin elegir no se muestra (lo multibase). */
   estricto?: boolean;
+  /** Sólo en estos graficadores: el mismo nombre significa otra cosa (o no tiene efecto nativo) en los demás. */
+  soloEn?: readonly string[];
+  /** Condición extra sobre los valores actuales (p. ej. cuántas mediciones tiene la serie). */
+  cuando?: (valores: Valores) => boolean;
 };
+
+// Guardas C40 (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md): el texto que la tarjeta muestra junto al control.
+export const AYUDA_CEROS = "Las respuestas especiales 90–99 sin casos nunca se muestran.";
+export const AYUDA_EJE_MIN =
+  "0 = automático. Un piso alto acerca las diferencias; si deja fuera un dato, el eje baja solo y la lámina lo avisa.";
+export const AYUDA_BRECHA = "Primera fuente menos la segunda, restando las cifras ya rotuladas.";
+export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como «Sin encuestas» y la lámina lo avisa.";
+export const AYUDA_CORTES = "Porcentajes entre 0 y 100, separados por comas. Vacío: 55, 65 y 75.";
+
+/** Mediciones (periodos) de una serie temporal: `orden_periodos` si se declaró; si no, las fuentes del primer tema. */
+export function medicionesDeSerie(valores: Valores): number {
+  const orden = valores.orden_periodos;
+  if (Array.isArray(orden) && orden.length) return new Set(orden.map(String)).size;
+  const vars = valores.vars;
+  if (!vars || typeof vars !== "object" || Array.isArray(vars)) return 0;
+  const primero = Object.values(vars as Record<string, unknown>)[0];
+  const refs = Array.isArray(primero) ? primero : typeof primero === "string" ? [primero] : [];
+  const fuentes = refs.map((r) => String(r).split("$")[0].trim()).filter(Boolean);
+  return new Set(fuentes).size;
+}
+
+/** Con dos mediciones la serie sale nativa y no lee sus cifras; con tres o más va en el marco del recetario, que sí. */
+const serieEnMarco = (v: Valores) => medicionesDeSerie(v) >= 3;
+const MEDIA_RANGO = ["p_media_rango"];
+const PIE = ["p_pie", "p_donut"];
 
 /** Orden de aparición = orden de las claves. */
 const LISTA_BLANCA: Record<string, Entrada> = {
   var: { rotulo: "Pregunta" },
   modo: { rotulo: "Modo" },
+  // Mapa de cobertura territorial: la lámina nativa lee los cuatro (p_mapa_cobertura_territorial, graficador_mapa_cobertura.R).
+  scope: { rotulo: "Alcance", soloEn: ["p_mapa_cobertura_territorial"] },
+  ubigeo: {
+    rotulo: "UBIGEO del distrito",
+    soloEn: ["p_mapa_cobertura_territorial"],
+    cuando: (v) => (v.scope ?? "district") === "district",
+  },
+  unit: { rotulo: "Unidad", soloEn: ["p_mapa_cobertura_territorial"] },
+  coverage_mode: { rotulo: "Cobertura", soloEn: ["p_mapa_cobertura_territorial"] },
   cruces: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie." },
   cruce: { rotulo: "Dividir por", ayuda: "Vacío: una sola serie." },
   corte: { rotulo: "Corte" },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
   tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },
+  mostrar_tabla: { rotulo: "Tabla al costado", estricto: true, soloEn: ["p_radar"] },
+  tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: "Vacío: «Tema».", estricto: true, soloEn: ["p_radar"] },
+  eje_min: { rotulo: "El eje arranca en (%)", ayuda: AYUDA_EJE_MIN, estricto: true, soloEn: ["p_radar"] },
   objetivo: { rotulo: "Objetivo" },
   metrica: { rotulo: "Métrica" },
   categoria: { rotulo: "Categoría" },
   direccion_escala: { rotulo: "Dirección de la escala" },
   n_negativas: { rotulo: "Categorías negativas" },
   incluir_neutro: { rotulo: "Incluir el punto medio" },
+  incluir_total: { rotulo: "Columna Total", soloEn: ["p_dim_heatmap"] },
   orden_barras: { rotulo: "Orden" },
+  orden: { rotulo: "Orden", soloEn: ["p_dumbbell", "p_lollipop"] },
+  orden_periodos: {
+    rotulo: "Orden de los periodos",
+    ayuda: "Nombres de las fuentes, todas y sin repetir. Vacío: el orden declarado.",
+    placeholder: "Orden declarado",
+    soloEn: ["p_serie_temporal"],
+  },
   max_categorias: { rotulo: "Máximo de categorías" },
   top_k: { rotulo: "Máximo de categorías" },
+  // Sólo el del ranking: en radar y tabla `top_n` espera la nota «Se muestran X de Y» del motor (C40, D1).
+  top_n: {
+    rotulo: "Máximo de categorías",
+    ayuda: "Recorte sólo visual: no cambia el denominador.",
+    placeholder: "Todas",
+    soloEn: ["p_lollipop"],
+  },
   agrupar_resto_en_otros: { rotulo: "Agrupar el resto en «Otros»", siActivo: undefined },
+  // Sólo donde es formal del constructor (p_pie/p_donut, reporte_plan_slides.R): en agrupadas el arg del slot no llega.
+  etiqueta_otros: {
+    rotulo: "Nombre de «Otros»",
+    placeholder: "Otros",
+    soloEn: PIE,
+    cuando: (v) => typeof v.top_k === "number" && Number.isFinite(v.top_k) && v.top_k >= 1,
+  },
+  mostrar_ceros: { rotulo: "Mostrar opciones sin casos", ayuda: AYUDA_CEROS },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },
   excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Códigos separados por comas." },
   mostrar_significancia: { rotulo: "Marcar diferencias significativas" },
   significancia_alpha: { rotulo: "Nivel de significancia", siActivo: "mostrar_significancia" },
-  valores_decimales: { rotulo: "Decimales" },
+  mostrar_brecha: { rotulo: "Mostrar la brecha", ayuda: AYUDA_BRECHA, soloEn: ["p_dumbbell"] },
+  mostrar_valores: { rotulo: "Mostrar cifras", soloEn: ["p_serie_temporal"], cuando: serieEnMarco },
+  max_series_con_cifras: {
+    rotulo: "Máximo de series con cifras",
+    ayuda: "Con más series las cifras se apagan solas para no pisarse.",
+    siActivo: "mostrar_valores",
+    soloEn: ["p_serie_temporal"],
+    cuando: serieEnMarco,
+  },
+  min_n: { rotulo: "Casos mínimos por distrito", ayuda: AYUDA_MIN_N, soloEn: ["p_mapa_resultado_distrital"] },
+  cortes: { rotulo: "Cortes de las clases (%)", ayuda: AYUDA_CORTES, placeholder: "55, 65, 75", soloEn: ["p_mapa_resultado_distrital"] },
+  // I-c: en la serie temporal los decimales son decisión del informe (Estilo del informe › Cálculos); sólo el radar.
+  valores_decimales: { rotulo: "Decimales", soloEn: ["p_radar"] },
 };
+
+/**
+ * RETIRADOS (C40, I-e): sin efecto en la lámina nativa, no salen en la tarjeta aunque el registro los declare. El valor
+ * guardado NO se toca: la tarjeta sólo escribe la clave del campo que se edita (`mergeSlotArgsPatch` conserva el resto).
+ */
+export const RETIRADOS: ReadonlySet<string> = new Set([
+  "invertir_leyenda", "tipo_pie", "umbral_brecha_pct", "tabla_ancho_tema", "tabla_proporcion", "sm_omit_na",
+  "umbral_rojo_pct", "mostrar_tabla_derecha", "modo_semaforo", "mostrar_ref_label", "mostrar_n_cruce_x", "radar_min_ejes",
+  "bins", "ancho_bin", "grupo", "mostrar_bins_vacios", "otros_al_final", "mostrar_saldo", "umbral_etiqueta_pct",
+  "mostrar_promedio", "formato_valor", "cortes_chip",
+]);
+/** Familias retiradas enteras: las brechas declaradas (`brecha_*`) y los args propios de la matriz FODA. */
+const RETIRADO_PREFIJO = ["brecha_"];
+const RETIRADO_EN: Readonly<Record<string, ReadonlySet<string>>> = {
+  p_dim_foda: new Set(["nivel", "modo_foda", "usar_pesos", "corte_score", "titulos_areas_foda", "incluir_total", "iter_var", "iter_level"]),
+  p_dim_comparativo_radarbar: new Set(["incluir_total"]),
+};
+
+export function esRetirado(name: string, graficador?: string): boolean {
+  if (RETIRADOS.has(name) || RETIRADO_PREFIJO.some((p) => name.startsWith(p))) return true;
+  return !!graficador && !!RETIRADO_EN[graficador]?.has(name);
+}
 
 /** Tipos de control que la tarjeta sabe dibujar en una línea. */
 const CONTROL_POR_TIPO: Partial<Record<ArgMetadata["tipo_input"], ControlDato>> = {
@@ -66,7 +173,13 @@ export type CampoDato = {
   /** Descripción larga del registro, para el título del «?». */
   detalle: string;
   control: ControlDato;
+  placeholder: string | null;
 };
+
+/** Valor efectivo de un interruptor: el guardado o, sin guardar, el `default` del registro (lo que el motor dibuja). */
+export function interruptorEncendido(arg: Pick<ArgMetadata, "default">, valor: unknown): boolean {
+  return (valor ?? arg.default) === true;
+}
 
 /**
  * Los campos de datos de un graficador, en el orden de la lista blanca; respeta `siActivo` y el `depende` del registro
@@ -74,24 +187,31 @@ export type CampoDato = {
  * gráfico») no está en la lista: el catálogo no la sirve a la UI (`.normalize_args_for_ui`) y el pie de base sale del
  * cálculo automático de la lámina.
  */
-export function camposDeDatos(args: readonly ArgMetadata[], valores: Readonly<Record<string, unknown>>): CampoDato[] {
+export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, graficador?: string): CampoDato[] {
   const porNombre = new Map(args.map((a) => [a.name, a]));
   const salida: CampoDato[] = [];
   for (const [name, e] of Object.entries(LISTA_BLANCA)) {
     const arg = porNombre.get(name);
-    if (!arg) continue;
+    if (!arg || esRetirado(name, graficador)) continue;
+    if (e.soloEn && !(graficador && e.soloEn.includes(graficador))) continue;
     const control = e.control ?? CONTROL_POR_TIPO[arg.tipo_input];
     if (!control) continue;
-    if (e.siActivo && valores[e.siActivo] !== true) continue;
+    if (e.siActivo) {
+      const ref = porNombre.get(e.siActivo);
+      if (!ref || !interruptorEncendido(ref, valores[e.siActivo])) continue;
+    }
+    if (e.cuando && !e.cuando(valores)) continue;
     if (!argAplica(arg, valores)) continue;
     if (e.estricto && !dependenciaElegida(arg, valores)) continue;
-    salida.push({ arg, rotulo: e.rotulo, ayuda: e.ayuda ?? null, detalle: arg.descripcion ?? "", control });
+    salida.push({
+      arg, rotulo: e.rotulo, ayuda: e.ayuda ?? null, detalle: arg.descripcion ?? "", control, placeholder: e.placeholder ?? null,
+    });
   }
   return salida;
 }
 
 /** El `depende` del arg se cumple con un valor ya elegido (sin `depende`, siempre). */
-function dependenciaElegida(arg: ArgMetadata, valores: Readonly<Record<string, unknown>>): boolean {
+function dependenciaElegida(arg: ArgMetadata, valores: Valores): boolean {
   const dep = arg.depende;
   if (!dep) return true;
   const actual = valores[dep.arg];
