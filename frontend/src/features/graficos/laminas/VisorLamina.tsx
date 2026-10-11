@@ -43,9 +43,9 @@ import "./visorLamina.css";
 type Props = {
   slide: Slide;
   lamina: LaminaEnEstructura;
-  /** Se pidió «Ver cómo queda» en esta lámina: corre la vista previa del motor. */
-  vistaPedida: boolean;
-  onPedirVista: () => void;
+  /** «Ver cómo queda» activo: el dibujo del motor en vez de la maqueta. */
+  verComoQueda: boolean;
+  onAlternarComoQueda: () => void;
   /** Clic en el antetítulo, el título o la base: abre ese campo en los ajustes. */
   onTexto: (campo: CampoTextoLamina) => void;
   total: number;
@@ -84,7 +84,7 @@ const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
 ];
 
 export function VisorLamina({
-  slide, vistaPedida, onPedirVista, onTexto,
+  slide, verComoQueda, onAlternarComoQueda, onTexto,
   lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, ajustesRef, estructuraAbierta, onAlternarEstructura, tira,
   ranuras, ranuraActiva, nombreRanura, onRanura, onCambiarGrafico, formas = null,
 }: Props) {
@@ -103,7 +103,8 @@ export function VisorLamina({
   // Sin vista previa pedida se muestra la imagen que el lote ya dibujó en segundo plano o, sin ella, la maqueta.
   const imagenLote = useMiniaturasLoteStore((s) => s.entradas[lamina.id]?.imagen ?? null);
   const real = actual?.imagen ?? null;
-  const src = real ?? imagenLote;
+  // En maqueta no se muestra ninguna imagen; en «cómo queda», la del motor o, mientras llega, la del lote.
+  const src = verComoQueda ? real ?? imagenLote : null;
   const { slidesById } = useGraficosRegistry();
   const camposTexto = useMemo(
     () => camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, composicionDe(slide.tipo, SLIDE_GRAF_SLOTS[slide.tipo] ?? []).fuente !== "estructura"),
@@ -195,18 +196,17 @@ export function VisorLamina({
             <Download size={16} aria-hidden="true" />
           </a>
         )}
-        {!real && (
-          <button
-            type="button"
-            className="pulso-f6-boton is-primario"
-            disabled={!prepOk || (vistaPedida && cargando)}
-            title={prepOk ? "Dibuja la lámina como saldrá en el PowerPoint" : "Prepara la base en Analítica para ver cómo queda"}
-            onClick={vistaPedida ? vista.reintentar : onPedirVista}
-          >
-            {vistaPedida && cargando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
-            Ver cómo queda
-          </button>
-        )}
+        <button
+          type="button"
+          className={`pulso-f6-boton${verComoQueda ? " is-activo" : ""}`}
+          aria-pressed={verComoQueda}
+          disabled={!prepOk && !verComoQueda}
+          title={prepOk ? (verComoQueda ? "Volver a la maqueta" : "Ver la lámina como saldrá en el PowerPoint") : "Prepara la base en Analítica para ver cómo queda"}
+          onClick={onAlternarComoQueda}
+        >
+          {verComoQueda && cargando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+          Ver cómo queda
+        </button>
         <span className="pulso-f6-guias">
           <BotonGuias modelo={guias} roles={rolesGuias} disponible={!!formas?.disponible} hayRanuras={(formas?.ranuras.length ?? 0) > 0} />
         </span>
