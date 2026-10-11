@@ -182,6 +182,8 @@ Se vuelve a medir al cierre de cada vuelta. Baja o no cierra la vuelta.
   solo se ven vacíos; Dashboard exige doble siembra; aulas no tiene fixture
   (copia de un estudio real, nunca commiteada).
 - **El fixture `hsvg2026` trae etiquetas corrompidas por el anonimizador** en Cálculo › Marco › aulas («JAVIER-HORARIO ÚNICOS», «ROSA DE SESIÓN», «CONDICIÓN DEL JAVIER», «MANUEL MANUAL DE CURSOS-HORARIO»; visto por la QA de L26, 2026-10-11): es C5 categoría 2 (deuda del fixture, `api/scripts/pulso_anonimizar.R`), no un defecto de la vista; no se juzga copy sobre esas etiquetas.
+- **Analítica › Datos publica readiness antes de pintar** (QA de L24, 2026-10-11): la marca `analitica-datos` dice listo mientras la vista muestra «Cargando revisión de datos… 0/0 incluidas» (`AnaliticaPage.tsx:119-128`). Es la trampa readiness ≠ render y entra en L11; hasta entonces toda captura de esa pestaña usa `--post-click-wait-selector .pulso-data-review-filtros`.
+- **El barrido de `geometry-undeclared` no ve dentro de los portales ni las colecciones de `<li>` sin clase** (QA de L1 y L26, 2026-10-11; `scripts/ui-quick-check.mjs` ~1890 y ~1898-1906): un verde del runner dentro de un diálogo o sobre una lista sin clases es verde por ausencia. Se corrige en L2.
 - **Los page-files congelados no pueden crecer**: todo lo de Monitoreo y
   `BasesPanel` se hace por extracción a archivo nuevo, nunca editando hacia
   arriba.
