@@ -131,11 +131,11 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   }, [escribirFoco, focoDePosicion, total]);
 
   const prepOk = !!state?.analitica_prep_ok || parseGraficosReportScope(location.search) === "consolidated";
-  // La vista previa del motor sólo corre en las láminas donde se pidió «Ver cómo queda»; si no, el visor muestra la
-  // imagen que el lote ya dibujó en segundo plano o, sin ella, la maqueta.
-  const pedirVista = useLaminasUi((s) => s.pedirVista);
-  const vistaPedida = useLaminasUi((s) => (slide ? !!s.vistasPedidas[slide.id] : false));
-  const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk && vistaPedida);
+  // Por defecto el visor muestra la maqueta (cambiar un título o un gráfico se ve al instante, sin dibujar nada); la vista
+  // previa del motor sólo corre con «Ver cómo queda» activo.
+  const verComoQueda = useLaminasUi((s) => s.verComoQueda);
+  const alternarComoQueda = useLaminasUi((s) => s.alternarComoQueda);
+  const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk && verComoQueda);
   const ranuras = useRanurasLamina(slide);
   const { graficadoresById } = useGraficosRegistry();
   const nombreRanura = useCallback((k: number) => {
@@ -311,8 +311,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
       />
       <VisorLamina
         slide={slide}
-        vistaPedida={vistaPedida}
-        onPedirVista={() => pedirVista(slide.id)}
+        verComoQueda={verComoQueda}
+        onAlternarComoQueda={alternarComoQueda}
         onTexto={(campo) => {
           // Como un clic en un gráfico abre su tarjeta: el texto abre su campo en Contenido, ya enfocado.
           setSeccion("contenido");
