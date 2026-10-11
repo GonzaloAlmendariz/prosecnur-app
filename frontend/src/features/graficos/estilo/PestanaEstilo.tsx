@@ -131,7 +131,7 @@ export default function PestanaEstilo() {
   return (
     <div className="pulso-f6-estilo" data-audit-ready={listo ? "graficos-estilo" : "false"} data-qa-surface="graficos/f6-estilo">
       <header className="pulso-f6-estilo-barra">
-        <h2 className="pulso-f6-estilo-titulo">Estilo del cliente</h2>
+        <h2 className="pulso-f6-estilo-titulo">Identidad</h2>
         <p className="pulso-f6-estilo-ayuda">
           Hoy se aplica al Word. El PPT tomará los logos más adelante, desde su plantilla.
         </p>

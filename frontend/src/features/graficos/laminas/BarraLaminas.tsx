@@ -261,7 +261,7 @@ function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, disparadorRef }: {
           </button>
           <button type="button" role="menuitem" onClick={item(onIrEstilo)}>
             <Palette size={14} aria-hidden="true" />
-            <span>Estilo del cliente<small>Su pestaña: logos y tamaño de letra del cliente</small></span>
+            <span>Identidad<small>Su pestaña: logos, letra e íconos</small></span>
           </button>
           {compartir.map((accion) => (
             <button key={accion.clave} type="button" role="menuitem" data-pulso-abre-panel={accion.panel.id} {...itemCompartir(accion)}>
