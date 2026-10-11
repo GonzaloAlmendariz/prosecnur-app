@@ -75,7 +75,7 @@ test_that("se rasterizan todas las partes, no sólo la primera", {
 test_that("una parte que falla deja su hueco: la k-ésima imagen sigue siendo la parte k", {
   local_mocked_bindings(
     .artifact_renderer_configured = function() FALSE,
-    .pptx_to_pdf_soffice = function(...) "x.pdf",
+    .pptx_to_pdf_soffice_info = function(...) list(pdf = "x.pdf", motivo = NA_character_, segundos = 1),
     .pdf_page_to_png = function(pdf_path, out_dir, renderer, page = 1L, ...) if (page == 2L) NULL else list(png_base64 = "data:image/png;base64,AA", width = 1L, height = 1L, renderer = "soffice")
   )
   r <- .render_pptx_preview_partes("x.pptx", 3L, max_partes = 3L)

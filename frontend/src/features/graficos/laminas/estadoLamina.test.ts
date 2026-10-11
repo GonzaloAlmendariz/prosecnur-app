@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PreviewSlideResponse } from "../../../api/graficos";
-import { estadoDeLamina, leerLaminaVisor, motivoDeEstado } from "./estadoLamina";
+import { estadoDeLamina, leerLaminaVisor, mensajeSinImagen, motivoDeEstado } from "./estadoLamina";
 
 const png = (n: number) => `data:image/png;base64,${n}`;
 const base = { ok: true as const, file_id: "f", size: 1, type: "pptx" as const, images: [] };
@@ -73,5 +73,43 @@ describe("estado y motivo", () => {
     expect(motivoDeEstado("ruta_anterior", false, true)).toMatch(/Los avisos dicen por qué/);
     // Sin avisos no se manda a leerlos.
     expect(motivoDeEstado("ruta_anterior", false, false)).toMatch(/No dejó un aviso/);
+  });
+});
+
+describe("vista previa sin imagen: el mensaje dice la causa (fix/graficos-preview-timeout)", () => {
+  const sinImagen = (motivo: unknown) => leerLaminaVisor({ ...base, slide_preview: null, motivo_sin_imagen: motivo } as unknown as PreviewSlideResponse);
+
+  it("un timeout de LibreOffice no se presenta como «este equipo no tiene LibreOffice»", () => {
+    const l = sinImagen("renderer_timeout");
+    expect(l.sinImagen).toBe(true);
+    expect(l.motivoSinImagen).toBe("renderer_timeout");
+    const m = mensajeSinImagen(l.motivoSinImagen);
+    expect(`${m.titulo} ${m.detalle}`).toMatch(/tardó demasiado/);
+    expect(`${m.titulo} ${m.detalle}`).not.toMatch(/no tiene LibreOffice/);
+    expect(m.reintentable).toBe(true);
+  });
+
+  it("sólo renderer_ausente dice que falta LibreOffice, y no ofrece reintentar", () => {
+    const m = mensajeSinImagen(sinImagen("renderer_ausente").motivoSinImagen);
+    expect(`${m.titulo} ${m.detalle}`).toMatch(/no tiene LibreOffice/);
+    expect(m.reintentable).toBe(false);
+  });
+
+  it("un motivo desconocido o ausente no se inventa como «sin LibreOffice»", () => {
+    for (const v of [undefined, null, "otra_cosa", 3, ["renderer_timeout", "x"]]) {
+      const l = sinImagen(v);
+      expect(l.motivoSinImagen).toBeNull();
+      const m = mensajeSinImagen(l.motivoSinImagen);
+      expect(`${m.titulo} ${m.detalle}`).not.toMatch(/no tiene LibreOffice/);
+      expect(m.reintentable).toBe(true);
+    }
+    // auto_unbox: un vector de largo 1 llega como arreglo de un elemento.
+    expect(sinImagen(["raster_fallido"]).motivoSinImagen).toBe("raster_fallido");
+  });
+
+  it("con imagen no hay motivo aunque el backend lo mande", () => {
+    const l = leerLaminaVisor({ ...base, slide_preview: { png_base64: png(1), width: 1, height: 1, renderer: "s" }, motivo_sin_imagen: "renderer_timeout" } as PreviewSlideResponse);
+    expect(l.sinImagen).toBe(false);
+    expect(l.motivoSinImagen).toBeNull();
   });
 });

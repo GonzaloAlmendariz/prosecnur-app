@@ -119,7 +119,11 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
     desactualizada: estaDesactualizada(estado),
     error: estado.estado === "error" ? estado.mensaje : null,
     progreso: estado.estado === "cargando" ? progreso : null,
-    reintentar: () => setIntento((n) => n + 1),
+    // Reintentar fuerza otra vuelta al backend: con la misma clave el coordinador devolvería la respuesta sin imagen.
+    reintentar: () => {
+      if (slide) coordinadores.current.get(slide.id)?.olvidar();
+      setIntento((n) => n + 1);
+    },
     formas,
   };
 }

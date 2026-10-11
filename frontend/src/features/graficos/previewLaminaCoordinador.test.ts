@@ -57,6 +57,19 @@ describe("vista previa de la lámina: debounce, cancelación y desactualizada (F
     expect(pedidas).toBe(1);
   });
 
+  it("olvidar() hace que la misma clave vuelva a pedirse (Reintentar tras una lámina sin imagen)", async () => {
+    let pedidas = 0;
+    const tm = temporizadorManual();
+    const c = crearCoordinadorPreviewLamina(async (clave) => (pedidas++, resp(clave)), { temporizador: tm.t });
+    const p = c.solicitar("k", () => {}); tm.correr(); await p;
+    c.olvidar();
+    const estados: EstadoPreviewLamina[] = [];
+    const p2 = c.solicitar("k", (e) => estados.push(e)); tm.correr(); await p2;
+    expect(pedidas).toBe(2);
+    expect(estados[0]).toMatchObject({ estado: "esperando" });
+    expect(estados.at(-1)).toMatchObject({ estado: "lista", clave: "k" });
+  });
+
   it("un error conserva la imagen anterior como desactualizada", async () => {
     const tm = temporizadorManual();
     let falla = false;

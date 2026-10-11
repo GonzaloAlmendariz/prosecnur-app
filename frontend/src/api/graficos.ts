@@ -927,7 +927,21 @@ export type PreviewSlideResponse = {
   avisos?: string[] | string;
   /** K11, sólo con `preview_formas`: las ranuras del estándar del tipo, en pulgadas. Leer con `normalizePreviewFormas`. */
   ranuras_estandar?: unknown;
+  /** Por qué no hay imagen (`graficos_preview_reintento.R`); null si la hay. Leer con `normalizeMotivoSinImagen`. */
+  motivo_sin_imagen?: unknown;
 };
+
+/** Por qué una vista previa salió sin imagen: sin LibreOffice, LibreOffice no terminó a tiempo (ni en el reintento),
+ *  falló la conversión o falló el paso del PDF a PNG. */
+export type MotivoSinImagen = "renderer_ausente" | "renderer_timeout" | "conversion_fallida" | "raster_fallido";
+
+const MOTIVOS_SIN_IMAGEN: ReadonlySet<string> = new Set(["renderer_ausente", "renderer_timeout", "conversion_fallida", "raster_fallido"]);
+
+/** Motivo tipado o null. auto_unbox puede mandarlo como arreglo de un elemento; un valor desconocido no se inventa. */
+export function normalizeMotivoSinImagen(v: unknown): MotivoSinImagen | null {
+  const x = Array.isArray(v) && v.length === 1 ? v[0] : v;
+  return typeof x === "string" && MOTIVOS_SIN_IMAGEN.has(x) ? (x as MotivoSinImagen) : null;
+}
 
 export type PreviewSlideParte = {
   indice: number;

@@ -21,7 +21,7 @@ import { downloadUrl } from "../../../api/core";
 import { IconoTipo } from "../iconos/IconoTipo";
 import type { PreviewFormas } from "../../../api/graficos";
 import type { LaminaEnEstructura } from "./modeloEstructura";
-import { estadoDeLamina, ETIQUETA_ESTADO, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
+import { estadoDeLamina, ETIQUETA_ESTADO, mensajeSinImagen, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
 import { useLaminasUi, type ZoomVisor } from "./laminasStore";
 import { RanurasSobreLamina } from "./RanurasSobreLamina";
@@ -303,10 +303,16 @@ function EstadoSobreHoja({ vista, prepOk, hayImagen }: { vista: VistaPreviaLamin
     );
   }
   if (vista.fase === "lista" && vista.lamina?.sinImagen) {
+    // La causa la dice el backend (`motivo_sin_imagen`): un LibreOffice lento no es un equipo sin LibreOffice.
+    const m = mensajeSinImagen(vista.lamina.motivoSinImagen);
     return (
-      <Tarjeta icono={<ImageOff size={20} aria-hidden="true" />} titulo="No hay con qué dibujar la vista previa">
-        El motor generó la lámina, pero este equipo no tiene LibreOffice para convertirla en imagen. La exportación a
-        PowerPoint no se ve afectada; la versión de escritorio lo trae incluido.
+      <Tarjeta icono={<ImageOff size={20} aria-hidden="true" />} titulo={m.titulo}>
+        {m.detalle}
+        {m.reintentable && (
+          <button type="button" className="pulso-f6-boton" onClick={vista.reintentar}>
+            <RefreshCw size={14} aria-hidden="true" /> Reintentar
+          </button>
+        )}
       </Tarjeta>
     );
   }

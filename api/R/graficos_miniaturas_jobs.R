@@ -24,7 +24,8 @@
 
 #' Resultado de una lámina del lote (lo que el worker escribe por lámina)
 #'
-#' Estados: `ok` (miniatura PNG lista), `sin_imagen` (PPTX y partes listos, sin renderer o raster fallido),
+#' Estados: `ok` (miniatura PNG lista), `sin_imagen` (PPTX y partes listos, sin renderer o raster fallido; el porqué va
+#' en `motivo_sin_imagen`),
 #' `sin_datos` (el motor armó la lámina pero todos los gráficos pedidos quedaron vacíos), `error` (el motor falló).
 #' @keywords internal
 .mini_lote_item <- function(ctx, raiz, opts, con_previews = FALSE) {
@@ -42,7 +43,12 @@
   pedidos <- as.integer(r$meta$graficos_pedidos %||% 0L)
   vacios <- as.integer(r$meta$graficos_vacios %||% 0L)
   estado <- if (pedidos > 0L && vacios >= pedidos) "sin_datos" else if (!is.na(png)) "ok" else "sin_imagen"
-  out <- c(base, list(estado = estado, cache = r$cache, png = png, pptx = r$pptx))
+  motivo <- NA_character_
+  if (identical(estado, "sin_imagen") && isTRUE(opts$render_slide_preview)) {
+    motivo <- .preview_motivo_publico(r$motivo_sin_imagen)
+    if (is.na(motivo)) motivo <- "raster_fallido"   # hubo raster, pero la miniatura no se pudo escribir
+  }
+  out <- c(base, list(estado = estado, cache = r$cache, png = png, pptx = r$pptx, motivo_sin_imagen = motivo))
   if (isTRUE(con_previews)) out$slide_previews <- r$slide_previews
   out
 }
@@ -144,6 +150,7 @@
     avisos = if (is.list(meta)) meta$avisos %||% character(0) else character(0),
     graficos = .mini_graficos_publico(meta),
     miniatura = miniatura,
+    motivo_sin_imagen = .preview_motivo_publico(item$motivo_sin_imagen),
     error = item$error %||% NA
   )
 }
@@ -176,7 +183,8 @@
     if (is.null(item)) {
       return(list(slide_id = lote$laminas[[k]]$slide_id, orden = k, hash = lote$laminas[[k]]$hash,
                   estado = "pendiente", cache = NA, folio = lote$laminas[[k]]$folio,
-                  partes = list(n = 0L, partes = list()), avisos = character(0), graficos = NA, miniatura = NA, error = NA))
+                  partes = list(n = 0L, partes = list()), avisos = character(0), graficos = NA, miniatura = NA,
+                  motivo_sin_imagen = NA_character_, error = NA))
     }
     .mini_item_publico(sid, lote$raiz, item)
   })
@@ -315,7 +323,8 @@
     lote <- .mini_lotes[[lote_id]]
     meta <- .mini_entrada_leer(lote$raiz, item$hash)
     r <- list(hash = item$hash, pptx = .mini_entrada(lote$raiz, item$hash)$pptx, meta = meta,
-              slide_previews = item$slide_previews %||% structure(list(), truncado = FALSE), cache = item$cache)
+              slide_previews = item$slide_previews %||% structure(list(), truncado = FALSE),
+              motivo_sin_imagen = item$motivo_sin_imagen, cache = item$cache)
     .graficos_preview_respuesta(sid, r, opts, item$tipo, item$folio)
   }
 }

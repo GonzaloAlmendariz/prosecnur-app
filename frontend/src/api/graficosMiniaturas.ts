@@ -9,7 +9,7 @@
 // pasa por un normalizador defensivo antes de llegar a la UI (patrón `normalizeGraficosShareInspect`).
 
 import { apiFetch, apiPath, getSession, handle, headers } from "./core";
-import type { PreviewSlideOptions, Slide } from "./graficos";
+import { normalizeMotivoSinImagen, type MotivoSinImagen, type PreviewSlideOptions, type Slide } from "./graficos";
 
 // ---------- Tipos ----------
 
@@ -61,6 +61,8 @@ export type MiniaturaLamina = {
   avisos: string[];
   error: { code: string; message: string } | null;
   graficos: MiniaturaGraficos | null;
+  /** Sólo en `sin_imagen`: por qué no hay miniatura (timeout de LibreOffice ≠ equipo sin LibreOffice). */
+  motivo_sin_imagen: MotivoSinImagen | null;
 };
 
 export type MiniaturasLote = {
@@ -143,17 +145,19 @@ function normalizarLamina(v: unknown, k: number): MiniaturaLamina | null {
   const error = estado === "error"
     ? { code: texto(e.code) || "E_MINIATURA_FALLIDA", message: texto(e.message) }
     : null;
+  const final: MiniaturaEstado = estado === "ok" && !miniatura ? "sin_imagen" : estado;
   return {
     slide_id: slideId,
     orden: entero(l.orden, k + 1),
     hash: textoONulo(l.hash),
     // Sin imagen no hay «ok»: degradar a sin_imagen para que la tira dibuje la composición.
-    estado: estado === "ok" && !miniatura ? "sin_imagen" : estado,
+    estado: final,
     folio: enteroONulo(l.folio),
     miniatura,
     avisos: arreglo(l.avisos).map(texto).filter(Boolean),
     error,
     graficos: normalizarGraficos(l.graficos),
+    motivo_sin_imagen: final === "sin_imagen" ? normalizeMotivoSinImagen(l.motivo_sin_imagen) : null,
   };
 }
 

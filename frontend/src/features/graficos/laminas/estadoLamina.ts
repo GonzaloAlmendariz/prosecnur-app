@@ -5,7 +5,7 @@
 // auto_unbox: una lista de un elemento puede llegar como escalar y una parte sin imagen como objeto vacío. Aquí se
 // normaliza una sola vez para que la UI no repita esas defensas.
 
-import type { PreviewSlideParte, PreviewSlideResponse } from "../../../api/graficos";
+import { normalizeMotivoSinImagen, type MotivoSinImagen, type PreviewSlideParte, type PreviewSlideResponse } from "../../../api/graficos";
 
 export type EstadoSalida = PreviewSlideParte["estado"];
 
@@ -29,6 +29,8 @@ export type LaminaVisor = {
   renderer: string | null;
   /** No hubo imagen: sin renderer o falló la rasterización; el PPTX sí se generó. */
   sinImagen: boolean;
+  /** Por qué no hubo imagen, si el backend lo dijo; null con imagen o sin motivo conocido. */
+  motivoSinImagen: MotivoSinImagen | null;
   /** El mini-PPTX de esta lámina, descargable. */
   fileId: string | null;
 };
@@ -81,6 +83,7 @@ export function leerLaminaVisor(r: PreviewSlideResponse): LaminaVisor {
     truncado: r.partes?.truncado === true,
     renderer,
     sinImagen: imagenes.size === 0,
+    motivoSinImagen: imagenes.size === 0 ? normalizeMotivoSinImagen(r.motivo_sin_imagen) : null,
     fileId: typeof r.file_id === "string" && r.file_id ? r.file_id : null,
   };
 }
@@ -126,5 +129,30 @@ export function motivoDeEstado(estado: EstadoSalida | null, motorNativoApagado: 
       return "El gráfico se dibuja aparte (nube de palabras, serie de varias mediciones) y la lámina lleva el título y el pie del recetario.";
     default:
       return "El motor no informó cómo salió esta lámina.";
+  }
+}
+
+export type MensajeSinImagen = { titulo: string; detalle: string; reintentable: boolean };
+
+/** Qué dice el visor cuando la lámina salió sin imagen: la causa, no una suposición. Sólo la falta de LibreOffice no se
+ *  arregla reintentando. */
+export function mensajeSinImagen(motivo: MotivoSinImagen | null): MensajeSinImagen {
+  switch (motivo) {
+    case "renderer_ausente":
+      return {
+        titulo: "No hay con qué dibujar la vista previa",
+        detalle: "Este equipo no tiene LibreOffice. La exportación a PowerPoint no se ve afectada.",
+        reintentable: false,
+      };
+    case "renderer_timeout":
+      return {
+        titulo: "LibreOffice tardó demasiado en dibujar esta lámina",
+        detalle: "El archivo de PowerPoint sí se generó.",
+        reintentable: true,
+      };
+    case "raster_fallido":
+      return { titulo: "No se pudo pasar la lámina a imagen", detalle: "El archivo de PowerPoint sí se generó.", reintentable: true };
+    default:
+      return { titulo: "LibreOffice no pudo dibujar esta lámina", detalle: "El archivo de PowerPoint sí se generó.", reintentable: true };
   }
 }
