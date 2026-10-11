@@ -287,3 +287,87 @@ test_that("¿Alcanza? usa 40 corridas por candidato si nadie pide otra cifra (Go
   expect_identical(as.integer(.cm_certeza_corridas(300L, 30L)), 300L)
   expect_identical(as.integer(.cm_certeza_corridas(300L, 600L)), 40L)
 })
+
+# --- La simulación conserva la estratificación del diseño -------------------
+#
+# El motor sortea POR `stratum`, así que si la certeza lo colapsa a la facultad
+# borra los demás ejes de `strata_cols` y deja de sortear como sortea el
+# estudio. Este marco lo hace visible: dos estratos con la MISMA masa de
+# elegibles (80 y 80) pero aulas de tamaños opuestos, ocho de 10 contra dos de
+# 40. Con la estratificación viva, un sorteo de 2 tiene que tomar una de cada
+# estrato y rendir SIEMPRE 50; colapsado, el PPS puede llevarse las dos grandes
+# (80) o dos chicas (20) y la cola se desploma.
+certeza_base_dos_estratos <- function(facultad = "FAC1") {
+  bloque <- function(prefijo, n_aulas, por_aula, sexo, desde) {
+    filas <- lapply(seq_len(n_aulas), function(i) {
+      ini <- desde + (i - 1L) * por_aula
+      data.frame(
+        student_id = paste0(prefijo, seq(ini, ini + por_aula - 1L)),
+        aula_id = sprintf("%s%02d", prefijo, i),
+        curso_id = paste0(prefijo, "C", i), curso = paste("Curso", prefijo, i),
+        horario = "L 8", facultad = facultad, programa = "P1",
+        sexo = sexo, edad = 20, condicion = "regular",
+        nivel = "pregrado", modalidad = "presencial",
+        stringsAsFactors = FALSE
+      )
+    })
+    do.call(rbind, filas)
+  }
+  rbind(
+    bloque("CH", 8L, 10L, "F", 1L),      # 8 aulas de 10 -> 80 elegibles
+    bloque("GR", 2L, 40L, "M", 1000L)    # 2 aulas de 40 -> 80 elegibles
+  )
+}
+
+certeza_cfg_dos_ejes <- function(seed = 4242L) {
+  calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = seed, n_aulas = 2L, replacement_waves = 0L,
+      selector_engine = "sistematico_pps",
+      # DOS ejes: si la certeza colapsa el stratum, el segundo se pierde.
+      strata_cols = list("faculty", "sex_top_1"),
+      monte_carlo_n = 0L, simulation_runs = 0L
+    )
+  ))
+}
+
+test_that("la certeza sortea respetando los estratos del diseno, no solo la facultad", {
+  cfg <- certeza_cfg_dos_ejes()
+  frame <- calc_muestra_aulas_construir(base_madre = certeza_base_dos_estratos(), config = cfg)
+  # Guarda contra el verde por fixture: los dos estratos tienen que existir y
+  # cargar la misma masa de elegibles, o el reparto no daria 1 y 1.
+  af <- frame$aula_frame
+  masa <- tapply(as.numeric(af$eligible_n), af$sex_top_1, sum)
+  expect_length(masa, 2L)
+  expect_equal(as.numeric(masa[["F"]]), as.numeric(masa[["M"]]))
+
+  fila <- certeza_fila(calc_muestra_aulas_certeza(
+    frame, cfg, certeza_estrato(cuota = 50, tau = 1, aulas_formula = 2L), corridas = 60L
+  ))
+  punto <- Filter(function(p) identical(p$aulas, 2L), fila$curva)[[1L]]
+
+  # Una de cada estrato en TODAS las corridas: 10 + 40 = 50 unicos, siempre.
+  expect_equal(punto$rendimiento_medio, 50)
+  expect_equal(punto$rendimiento_p05, 50)
+  expect_equal(punto$aulas_efectivas, 2)
+})
+
+test_that("el fixture separa las dos conductas: colapsado la cola se hunde", {
+  # Guarda contra el verde por coincidencia. Con el stratum colapsado a mano
+  # —lo que hacia la certeza antes— el mismo marco y las mismas semillas dan
+  # sorteos con dos aulas del mismo tamano, asi que el p05 cae por debajo de la
+  # media. Si esto no se cumpliera, el test de arriba no probaria nada.
+  cfg <- certeza_cfg_dos_ejes()
+  frame <- calc_muestra_aulas_construir(base_madre = certeza_base_dos_estratos(), config = cfg)
+  af <- .cm_aulas_prepare_frame(frame, cfg)
+  af$stratum <- rep("fac1", nrow(af))          # el colapso de antes
+  sel <- cfg$selector; sel$n_aulas <- 2L; sel$replacement_waves <- 0L
+  netos <- vapply(seq_len(60L), function(i) {
+    p <- .cm_aulas_select_once_dispatch(af, sel, "sistematico_pps", seed = 4242L + i * 7919L)
+    .cm_certeza_estudiantes_netos(p)$valor
+  }, numeric(1))
+
+  expect_gt(stats::var(netos), 0)              # colapsado: el rendimiento varia
+  expect_lt(min(netos), 50)                    # y hay corridas por debajo de 50
+})

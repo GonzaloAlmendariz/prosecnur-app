@@ -90,6 +90,82 @@ calc_muestra_aulas_sello_por_facultad <- function(cadenas_filas,
   out
 }
 
+# Cortes de tramo, los mismos que la calibración embebida usa para LEER
+# (`.cm_efectividad_rendimiento`). Se sella sobre los mismos bordes a propósito:
+# cambiar la curva y los cortes a la vez haría imposible atribuir el efecto.
+.CM_SELLO_TRAMOS_CORTES <- c(15, 25, 35, 50)
+
+# Aulas aplicadas mínimas POR TRAMO para publicar la curva. Mismo umbral que el
+# multiplicador por facultad: por debajo, la razón de sumas de un tramo es ruido.
+.cm_sello_tramo_k_minimo <- 12L
+
+#' Curva de rendimiento por tramo de tamaño, sellada desde el histórico.
+#'
+#' EL HUECO QUE CIERRA. `cfg$efectividad$rendimiento_tramos` lo LEE
+#' `.cm_efectividad_normalize_config` desde que se escribió, y de ahí sale
+#' `rendimiento_ref` y con él `tasa_efectividad_aula` y τ. Pero **nadie lo
+#' escribía**: barrido del repositorio el 2026-08-28, las únicas apariciones
+#' fuera de tests están en el lector. De las dos mitades del plan 1b se
+#' construyó una —el multiplicador por facultad— y ésta no. El ADR 0082 describe
+#' un sellado que nunca existió.
+#'
+#' QUÉ COSTABA. Sin sello rige la calibración embebida, que el propio archivo
+#' declara «de otra ola» en un sitio y atribuye a la base 2025 en otro. Medido
+#' sobre las 194 aulas aplicadas de 2025, la curva de ESA base es
+#' 0,8091 · 0,6422 · 0,5657 · 0,5005 · 0,4093 contra la embebida
+#' 0,80 · 0,69 · 0,56 · 0,55 · 0,44: los tramos densos están entre 7 % y 10 %
+#' altos y el esperado del estudio sale **6 % optimista**.
+#'
+#' TODO O NADA. Si a un tramo le falta respaldo no se sella ninguno. Sellar
+#' cuatro de cinco no dejaría un hueco visible: el lector exige `hasta`
+#' ascendentes y correría los bordes, reasignando en silencio las aulas del
+#' tramo ausente al vecino. Sin la curva completa rige la embebida, que al menos
+#' se declara como `calibracion_embebida`.
+#'
+#' SIN PIERNAS. Los escalones traen `efectivas` y `elegibles` y nada más, así
+#' que no hay con qué descomponer en asistencia × respuesta × validez. Se sella
+#' sólo la `tasa` y las piernas siguen en NA, que es lo que la superficie ya
+#' declara.
+#'
+#' @param cadenas_filas `referencia_asistencia$cadenas_reemplazo$filas`.
+#' @param cortes bordes superiores de los cuatro primeros tramos.
+#' @param k_minimo aulas aplicadas mínimas por tramo.
+#' @return lista de `{hasta, tasa}` ascendente, o vacía si no hay con qué.
+#' @keywords internal
+calc_muestra_aulas_sello_tramos <- function(cadenas_filas,
+                                            cortes = .CM_SELLO_TRAMOS_CORTES,
+                                            k_minimo = .cm_sello_tramo_k_minimo) {
+  if (!is.list(cadenas_filas) || !length(cadenas_filas)) return(list())
+  bordes <- c(sort(unique(suppressWarnings(as.numeric(cortes)))), Inf)
+  if (!length(bordes) || anyNA(bordes)) return(list())
+  acc <- lapply(seq_along(bordes), function(i) list(efectivas = 0, elegibles = 0, k = 0L))
+  for (cadena in cadenas_filas) {
+    if (!is.list(cadena)) next
+    for (escalon in (cadena$escalones %||% list())) {
+      if (!is.list(escalon) || !identical(escalon$estado, "aplicado")) next
+      efectivas <- .cm_aulas_num(escalon$efectivas, NA_real_)
+      elegibles <- .cm_aulas_num(escalon$elegibles, NA_real_)
+      if (!is.finite(efectivas) || !is.finite(elegibles) || elegibles <= 0) next
+      i <- which(elegibles <= bordes)[1L]
+      acc[[i]]$efectivas <- acc[[i]]$efectivas + efectivas
+      acc[[i]]$elegibles <- acc[[i]]$elegibles + elegibles
+      acc[[i]]$k <- acc[[i]]$k + 1L
+    }
+  }
+  out <- vector("list", length(bordes))
+  for (i in seq_along(bordes)) {
+    d <- acc[[i]]
+    if (d$k < k_minimo || d$elegibles <= 0) return(list())
+    tasa <- d$efectivas / d$elegibles
+    # Fuera de (0, 1] el lector rechazaría la entrada y correría los bordes; se
+    # prefiere no sellar a sellar una curva que el lector va a deformar.
+    if (!is.finite(tasa) || tasa <= 0 || tasa > 1) return(list())
+    out[[i]] <- list(hasta = if (is.finite(bordes[[i]])) bordes[[i]] else NA_real_,
+                     tasa = round(tasa, 4), k = d$k)
+  }
+  out
+}
+
 #' Sella la calibración por facultad dentro de la config del marco.
 #'
 #' Aditivo y conservador: si el estudio YA declara `efectividad$por_facultad`
@@ -133,6 +209,12 @@ calc_muestra_aulas_sellar_efectividad <- function(config, referencia = NULL) {
     list(facultad = e$facultad, tau = e$tau, k = e$k,
          suficiencia = e$suficiencia, aplicar = TRUE)
   }))
+  # La curva por tramo, con la misma regla conservadora: una declaración
+  # explícita del estudio manda sobre la derivada.
+  if (!length(ef$rendimiento_tramos %||% list())) {
+    tramos <- calc_muestra_aulas_sello_tramos(filas)
+    if (length(tramos)) ef$rendimiento_tramos <- tramos
+  }
   config$efectividad <- ef
   config
 }
@@ -157,12 +239,28 @@ calc_muestra_aulas_sellar_efectividad <- function(config, referencia = NULL) {
 #' (`calc_muestra_aulas_tasas_facultad`), que hasta ahora sólo consumían dos
 #' tarjetas de la UI. Esto lo conecta al cálculo sin recalcular nada.
 #'
-#' Aditivo: un estrato que YA declara su τ manda. Una facultad sin tasa
-#' publicada se queda en 0 y cae al global, que es el neutro declarado.
+#' SE REFRESCA, y hasta el 2026-08-28 no se refrescaba. La regla era «un estrato
+#' que YA declara su τ manda», y como esta función es el ÚNICO escritor de
+#' `e$tau` en el motor —verificado por barrido; el frontend sólo lo lee— ese
+#' «declarado» nunca era una declaración: era el valor que esta misma función
+#' había puesto en una corrida anterior. Resultado: la τ quedaba congelada en el
+#' marco con el que se calculó por primera vez y ninguna reconstrucción la
+#' movía. Medido en HSVG2026: sus quince τ salen exactas del marco de
+#' `HSVG26DEF.pulso` (1 632 aulas) mientras el marco vigente tiene 1 392 — 240
+#' aulas salieron por depuración de criterios y la tasa no se enteró.
+#'
+#' Ahora se recalcula siempre desde el marco vigente y se sella de dónde salió:
+#' `tau_origen = "marco"` y `tau_frame_hash`. La puerta para una declaración
+#' humana queda abierta y explícita —`tau_origen = "manual"` se respeta— en vez
+#' de deducirse de que el campo esté lleno, que es lo que fallaba.
+#'
+#' No altera ningún proyecto guardado: corre al recalcular. Y medido sobre
+#' HSVG2026 **no cambia el dimensionamiento** (165 aulas con la τ congelada y
+#' 165 con la refrescada): lo que arregla es la trazabilidad, no la cifra.
 #'
 #' @param estudio estudio con sus componentes.
 #' @param frame marco de aulas vigente.
-#' @return el estudio, con `tau` por estrato donde el marco lo publica.
+#' @return el estudio, con `tau` por estrato y su procedencia.
 #' @export
 calc_muestra_aulas_resolver_tau_estratos <- function(estudio, frame = NULL) {
   filas <- frame$tasas_efectividad_facultad %||% NULL
@@ -182,12 +280,16 @@ calc_muestra_aulas_resolver_tau_estratos <- function(estudio, frame = NULL) {
     if (!length(estratos)) next
     for (j in seq_along(estratos)) {
       e <- estratos[[j]]
-      declarado <- suppressWarnings(as.numeric(e$tau %||% 0)[1])
-      if (is.finite(declarado) && declarado > 0) next
+      # Sólo una declaración EXPLÍCITA frena el refresco. Que el campo esté
+      # lleno no alcanza: lo llenó esta misma función la vez anterior.
+      if (identical(.cm_aulas_scalar(e$tau_origen %||% "", ""), "manual")) next
       clave <- .cm_criterios_fac_key(e$label %||% e$estrato %||% "")
       tasa <- por_clave[[clave]]
       if (is.null(tasa)) next
       e$tau <- tasa
+      e$tau_origen <- "marco"
+      # De QUÉ marco, para que una τ vieja se pueda reconocer sin recalcularla.
+      e$tau_frame_hash <- .cm_aulas_scalar(frame$frame_hash %||% "", "")
       estratos[[j]] <- e
     }
     comps[[i]]$marco$estratos <- estratos

@@ -174,6 +174,61 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
   # suficiente un diseño que solo cierra agotando el respaldo.
   sim_selector$replacement_waves <- 0L
 
+  # POR QUE τ Y NO LA TASA DE CADA AULA, que el marco ya trae
+  #
+  # `tasa_efectividad_aula` (rendimiento del tramo x factor de la facultad)
+  # viaja en cada fila, y la certificacion de lo YA sorteado la usa —
+  # `calc_muestra_aulas_certificacion.R` suma `efectivas_esperadas`, metodo
+  # `suma_esperadas`—. Aca se usa τ, que sale de la MISMA columna pero no es lo
+  # mismo: τ es su media ponderada por elegibles sobre el marco ENTERO de la
+  # facultad (`calc_muestra_aulas_tasas_facultad`). Las dos coinciden solo si lo
+  # sorteado reproduce la mezcla de tamanos del marco.
+  #
+  # ADVERTENCIA, medida el 2026-08-28: CUAL DE LAS DOS CONVIENE DEPENDE DE UN
+  # DEFECTO QUE ESTA UNAS LINEAS MAS ARRIBA. `calc_muestra_aulas_certeza`
+  # sobreescribe `rows$stratum` con la clave de la facultad, y el motor sortea
+  # POR `stratum` (`.cm_aulas_select_once_engine` filtra `stratum == st`). El
+  # diseno de HSVG2026 estratifica por `faculty, sex_top_1, size_group`: al
+  # colapsarlo se pierden DOS de los tres ejes, entre ellos el de tamano. Esta
+  # simulacion no sortea como sortea el estudio.
+  #
+  # Medido sobre EE.GG. Letras con 20 aulas, mismas semillas:
+  #
+  #   colapsado (lo que corre hoy)  media 416,0  sd  8,99  P(cumple) 0,988
+  #   estratificado (el diseno)     media 369,5  sd  6,56  P(cumple) 0,000
+  #
+  # El colapso deja al PPS concentrarse en aulas grandes, que el diseno le
+  # prohibe. La seleccion REAL de esas 20 aulas rinde 378,6 — pegada al valor
+  # estratificado y lejos del colapsado. Es decir: la certeza publica un
+  # rendimiento que el diseno no puede producir.
+  #
+  # Y de ahi sale que la comparacion entre tasas se invierta segun el modelo:
+  #
+  #   con el colapso           las dos tasas casi empatan (total 174 vs 175)
+  #   con la estratificacion   τ pide 21 aulas en EE.GG. Letras (P=0,286 con 20)
+  #                            y la tasa por aula certifica con 20 (P=0,998)
+  #
+  # Porque estratificar por `size_group` FUERZA aulas chicas en la muestra, y
+  # las chicas rinden muy por encima de τ (0,80 contra el τ de 0,4188 de esa
+  # facultad). τ se las cobra a tasa de facultad; la tasa por aula no.
+  #
+  # POR ESO NO SE CAMBIA LA TASA AQUI TODAVIA: elegir entre τ y la tasa por aula
+  # sobre un simulador que no reproduce el diseno es optimizar el modelo
+  # equivocado. Primero la estratificacion, despues la tasa. Evidencia y cuadros:
+  # docs/qa/checklist-certeza-tasa-por-aula-2026-08-28.md.
+  #
+  # (El colapso es deliberado —lo pide el comentario de `.cm_certeza_evaluar`,
+  # para que `n_aulas` signifique el candidato y no una reparticion—. El costo
+  # no estaba medido; ahora lo esta.)
+  #
+  # OJO CON EL OTRO EXTREMO: la tasa YA TRAE PARTE DEL TRASLAPE. Los tramos son
+  # `efectivas/elegibles` de 2025 con denominador PADRON, que incluye a quienes
+  # ya habian respondido en otra aula: el sello publica `ya_medidas = 446` sobre
+  # `elegibles = 6 232`. Ese 7,2 % esta dentro de la tasa, asi que multiplicar
+  # los unicos netos por ella lo descuenta dos veces. Pero tampoco vale volver
+  # al padron bruto: 7,2 % no es el 11,4 % de traslape de 2026, y el factor por
+  # facultad va de x1,000 a x1,2115. Ninguna de las dos convenciones globales es
+  # correcta — se limpia la tasa y RECIEN se aplica a los unicos.
   rendimientos <- numeric(corridas)
   bases <- character(corridas)
   sorteadas <- integer(corridas)
@@ -394,9 +449,27 @@ calc_muestra_aulas_certeza <- function(frame, config = list(), estratos = list()
       next
     }
     rows <- aula_frame[idx, , drop = FALSE]
-    # Un solo estrato por corrida: la cuota del sorteo es el candidato, no una
-    # repartición proporcional dentro del subconjunto.
-    rows$stratum <- rep(estrato$key, nrow(rows))
+    # SE CONSERVA LA ESTRATIFICACIÓN DEL DISEÑO, y esto antes no era así.
+    #
+    # Hasta el 2026-08-28 aquí se hacía `rows$stratum <- estrato$key`, con el
+    # argumento de que así `n_aulas` significa «el candidato» y no una
+    # repartición. Pero el motor sortea POR `stratum`
+    # (`.cm_aulas_select_once_engine` filtra `stratum == st`), así que colapsarlo
+    # borraba los otros ejes de `strata_cols` —en HSVG2026, `sex_top_1` y
+    # `size_group`— y la simulación dejaba de sortear como sortea el estudio.
+    #
+    # Lo que costaba, medido con las mismas semillas sobre EE.GG. Letras con 20
+    # aulas: colapsado daba media 416,0 y P(cumple) 0,988; estratificado da 369,5
+    # y 0,000. La selección REAL de esas 20 aulas rinde 378,6 — pegada al
+    # estratificado y lejos del colapsado. La certeza publicaba un rendimiento
+    # que el diseño no puede producir, porque dejaba al PPS concentrarse en aulas
+    # grandes justo donde `size_group` se lo prohíbe.
+    #
+    # `n_aulas` sigue siendo el candidato: el subconjunto es de UNA facultad y
+    # `.cm_aulas_quota_estratos` reparte ese total entre los estratos presentes,
+    # sin `faculty_targets` porque `.cm_certeza_selector_sin_afijacion` los quita.
+    # Que el reparto devuelva el total pedido lo vigila `aulas_efectivas`, que ya
+    # viaja en cada punto de la curva.
     rownames(rows) <- NULL
 
     tau <- if (is.finite(estrato$tau)) estrato$tau else .CM_CERTEZA_TAU_FALLBACK

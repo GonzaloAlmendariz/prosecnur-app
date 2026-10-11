@@ -135,6 +135,45 @@
   acc
 }
 
+# Esperadas por sexo SUMANDO AULA POR AULA, no aplanando la tasa.
+#
+# La rama de facultad ya suma `efectivas_esperadas` (metodo `suma_esperadas`),
+# pero las celdas de sexo aplanaban esa misma tasa: tomaban `esperadas/elegibles`
+# de la facultad y la multiplicaban por los elegibles del sexo. Eso BORRA la
+# covarianza entre el tamano del aula y su composicion por sexo, que existe y
+# cambia de signo entre facultades — medido sobre el marco de HSVG2026:
+# Educacion -0,721, Arquitectura +0,377, Artes Escenicas -0,321.
+#
+# La tasa del aula sale de `tasa_efectividad_aula` y, si no viaja, se deriva de
+# `efectivas_esperadas / eligible_n`, que es la misma cifra por otra via. Sin
+# ninguna de las dos la fila queda NA y el llamador cae a la tasa plana
+# declarandolo, igual que hace la rama de facultad.
+.cm_certificacion_esperadas_sexo <- function(titulares, fac_keys, k) {
+  acc <- c(F = NA_real_, M = NA_real_)
+  filas <- titulares[fac_keys == k, , drop = FALSE]
+  if (!nrow(filas)) return(acc)
+  tasa <- suppressWarnings(as.numeric(filas$tasa_efectividad_aula %||% rep(NA_real_, nrow(filas))))
+  if (!all(is.finite(tasa))) {
+    esp <- suppressWarnings(as.numeric(filas$efectivas_esperadas %||% rep(NA_real_, nrow(filas))))
+    el <- suppressWarnings(as.numeric(filas$eligible_n %||% rep(NA_real_, nrow(filas))))
+    derivada <- ifelse(is.finite(esp) & is.finite(el) & el > 0, esp / el, NA_real_)
+    tasa[!is.finite(tasa)] <- derivada[!is.finite(tasa)]
+  }
+  # Parcial no sirve: mezclar aulas con tasa y aulas sin ella daria una suma que
+  # no es ni una vara ni la otra.
+  if (!all(is.finite(tasa))) return(acc)
+  acc[] <- 0
+  for (lado in c("sex_top_1", "sex_top_2")) {
+    col_n <- paste0(lado, "_n")
+    if (!lado %in% names(filas) || !col_n %in% names(filas)) next
+    sexo <- toupper(as.character(filas[[lado]]))
+    n <- suppressWarnings(as.numeric(filas[[col_n]]))
+    n[!is.finite(n)] <- 0
+    for (sx in c("F", "M")) acc[[sx]] <- acc[[sx]] + sum(n[sexo == sx] * tasa[sexo == sx])
+  }
+  acc
+}
+
 .cm_certificacion_tasa <- function(referencia_asistencia) {
   if (!is.list(referencia_asistencia)) return(NA_real_)
   d <- referencia_asistencia$diseno
@@ -297,13 +336,24 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
     cuotas_sx <- cuotas_sexo[[k]]
     if (is.list(cuotas_sx) && length(cuotas_sx) && estado %in% c("certificada", "no_cubre")) {
       eleg_sx <- .cm_certificacion_elegibles_sexo(titulares, titulares_fk, k)
+      # Aula por aula cuando se puede; la tasa plana queda de fallback DECLARADO,
+      # igual que en la rama de facultad.
+      esp_por_aula <- .cm_certificacion_esperadas_sexo(titulares, titulares_fk, k)
+      metodo_sexo <- if (all(is.finite(esp_por_aula))) "suma_esperadas" else "tasa_plana"
       for (sx in c("F", "M")) {
         cuota_sx <- suppressWarnings(as.numeric(cuotas_sx[[sx]] %||% NA))
         if (!is.finite(cuota_sx) || cuota_sx <= 0) next
         el_sx <- eleg_sx[[sx]]
-        esp_sx <- if (is.finite(tasa)) el_sx * tasa else NA_real_
+        esp_sx <- if (identical(metodo_sexo, "suma_esperadas")) {
+          esp_por_aula[[sx]]
+        } else if (is.finite(tasa)) {
+          el_sx * tasa
+        } else {
+          NA_real_
+        }
         sexo_filas[[length(sexo_filas) + 1L]] <- list(
           sexo = sx,
+          metodo = metodo_sexo,
           cuota = round(cuota_sx),
           elegibles = round(el_sx),
           # Promesa por celda: hacia ABAJO, igual que el aviso de la facultad.

@@ -118,6 +118,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Checklist — las 19 preguntas que Ulises marcó en el XLSForm de ACNUR V3](checklist-acnur-v3-preguntas-ausentes-2026-08-19.md): checklist qa fechado.
 - [Checklist — la cadena operativa de aulas, de punta a punta](checklist-cadena-operativa-aulas-2026-08-23.md): checklist qa fechado.
 - [Checklist — las siete decisiones de Gonzalo y la cola del loop de cobertura](checklist-decisiones-certeza-2026-08-27.md): checklist qa fechado.
+- [Checklist — la certeza de cobertura simula con τ y no con la tasa del aula](checklist-certeza-tasa-por-aula-2026-08-28.md): checklist qa fechado.
 - [Diagnóstico — el sorteo de aulas de HSVG 2026, medido contra el motor](diagnostico-sorteo-aulas-hsvg2026-2026-08-26.md): diagnóstico qa fechado.
 - [Diagnóstico del sorteo de aulas — HSVG PUCP 2026-2](diagnostico-sorteo-aulas-hsvg2026-seleccion-2026-08-26.md): diagnóstico qa fechado.
 - [Checklist — cadena de reemplazos, objetivo de profundidad y rendimiento P05](checklist-cadena-reemplazos-2026-08-16.md): checklist qa fechado.
