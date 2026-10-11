@@ -8,6 +8,7 @@ import {
 } from "../../vendor/lucide-react";
 import type { CargaReviewPayload, CargaReviewSummaryPayload } from "../../api/client";
 import { CargaReviewFuentesFindings } from "./CargaReviewFuentesFindings";
+import { FuentesEmparejamientoPanel } from "./FuentesEmparejamientoPanel";
 import { cargaReviewFuentesHallazgos } from "./cargaReviewFuentesModel";
 import { smListaAcotada } from "./smEstructuraFuente";
 import "./CargaReviewSummary.css";
@@ -298,6 +299,8 @@ export function CargaReviewSummary({
       )}
 
       {action && reviewReady && <div className="pulso-carga-review-action">{action}</div>}
+      {/* «Ver preguntas» de cada fuente; también lo abre un enlace guardado. */}
+      <FuentesEmparejamientoPanel baseNombre={review ? review.base_nombre : undefined} />
     </section>
   );
 }

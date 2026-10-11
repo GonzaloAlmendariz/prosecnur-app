@@ -1,5 +1,6 @@
 import { AlertTriangle, GitCompare } from "../../vendor/lucide-react";
 import type { CargaReviewFuentes } from "../../api/client";
+import { VerPreguntasFuenteBoton } from "./VerPreguntasFuenteBoton";
 import {
   cargaReviewFuentesHallazgos,
   type CargaReviewHallazgoFuente,
@@ -8,8 +9,13 @@ import {
 
 function FuenteFinding({ hallazgo }: { hallazgo: CargaReviewHallazgoFuente }) {
   const Icon = hallazgo.tono === "incompatible" ? AlertTriangle : GitCompare;
+  const surveyId = hallazgo.surveyId;
   return (
-    <li className={`is-${hallazgo.tono}`} data-carga-review-fuente={hallazgo.key}>
+    <li
+      className={`is-${hallazgo.tono}`}
+      data-carga-review-fuente={hallazgo.key}
+      data-ver-preguntas={surveyId ? "" : undefined}
+    >
       <Icon size={15} aria-hidden="true" />
       <span>
         <strong>{hallazgo.titulo}</strong>
@@ -17,6 +23,7 @@ function FuenteFinding({ hallazgo }: { hallazgo: CargaReviewHallazgoFuente }) {
           <small key={index} title={linea.completo}>{linea.texto}</small>
         ))}
       </span>
+      {surveyId && <VerPreguntasFuenteBoton surveyId={surveyId} titulo={hallazgo.fuenteNombre ?? hallazgo.titulo} />}
     </li>
   );
 }

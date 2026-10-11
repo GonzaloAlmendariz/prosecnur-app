@@ -1,0 +1,629 @@
+/* Panel «Cómo se emparejaron las preguntas» (ADR 0094, ítem 15).
+ *
+ * Solo tokens `--pulso-*`. El panel va en portal al `body`, fuera del frame de
+ * Procesamiento: el acento del módulo se declara aquí y no se da por heredado.
+ *
+ * Geometría (Contrato de Superficie):
+ * - C2: el sideover mide el alto de la ventana y un ancho fijo por viewport;
+ *   0, 3 o 120 filas no lo mueven. La variación se resuelve dentro.
+ * - C4: un único dueño de scroll, `.pulso-emparejamiento-cuerpo`. La cabecera
+ *   queda fuera de él (siempre visible) y la barra del filtro es sticky dentro.
+ */
+
+/* --- Disparador en la tarjeta de fuente (Carga › Revisión) ---------------- */
+
+/* `carga-v2.css` (congelado) pinta la tarjeta como grid de dos columnas; con el
+ * botón se agrega una tercera, así la tarjeta no crece en alto. */
+.pulso-carga-review-findings li[data-ver-preguntas] {
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+}
+
+.pulso-carga-ver-preguntas {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  align-self: start;
+  margin: -2px -2px 0 0;
+  padding: 2px 7px;
+  border: 1px solid var(--pulso-module-processing-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-module-processing);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-carga-ver-preguntas:hover {
+  background: var(--pulso-module-processing-soft);
+}
+
+.pulso-carga-ver-preguntas:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+/* --- Sideover ------------------------------------------------------------ */
+
+.pulso-emparejamiento-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 30%, transparent);
+  animation: pulso-emparejamiento-velo 140ms ease-out;
+}
+
+.pulso-emparejamiento {
+  --module-accent: var(--pulso-module-processing);
+  --module-accent-soft: var(--pulso-module-processing-soft);
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(1040px, calc(100vw - var(--pulso-space-9)));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--pulso-surface);
+  border-left: 1px solid var(--pulso-border-strong);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  animation: pulso-emparejamiento-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.pulso-emparejamiento:focus {
+  outline: none;
+}
+
+.pulso-emparejamiento-marco {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* --- Cabecera (fija) ----------------------------------------------------- */
+
+.pulso-emparejamiento-cabecera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-emparejamiento-titular {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-emparejamiento-titular h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-emparejamiento-titular h2:focus {
+  outline: none;
+}
+
+.pulso-emparejamiento-titular h2:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.pulso-emparejamiento-cerrar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-emparejamiento-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-emparejamiento-cerrar:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+}
+
+.pulso-emparejamiento-regla {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-emparejamiento-exclusion {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.4;
+}
+
+.pulso-emparejamiento-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-emparejamiento-selector select {
+  min-width: 220px;
+  max-width: 100%;
+  padding: 5px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+/* --- Cuerpo: único dueño de scroll -------------------------------------- */
+
+.pulso-emparejamiento-cuerpo {
+  --pulso-emparejamiento-barra-h: 52px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-6) var(--pulso-space-6);
+}
+
+/* --- Cifras -------------------------------------------------------------- */
+
+.pulso-emparejamiento-cifras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-emparejamiento-cifras ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-emparejamiento-cifras li {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--pulso-space-1);
+  min-height: 84px;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-emparejamiento-cifras li strong {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.pulso-emparejamiento-cifras li > span {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-1);
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-emparejamiento-cifras li > span svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.pulso-emparejamiento-cifras li.is-emparejada > span svg { color: var(--pulso-success-fg); }
+.pulso-emparejamiento-cifras li.is-otro_nombre > span svg { color: var(--pulso-info-fg); }
+.pulso-emparejamiento-cifras li.is-no_entro > span svg,
+.pulso-emparejamiento-cifras li.is-sin_respuesta > span svg,
+.pulso-emparejamiento-cifras li.is-ambigua > span svg { color: var(--pulso-warn-fg); }
+
+.pulso-emparejamiento-cifras li.is-no_entro:not(.is-cero),
+.pulso-emparejamiento-cifras li.is-sin_respuesta:not(.is-cero),
+.pulso-emparejamiento-cifras li.is-ambigua:not(.is-cero) {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-emparejamiento-cifras li.is-cero strong {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-emparejamiento-cifras p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+/* --- Leyenda (plegable) -------------------------------------------------- */
+
+.pulso-emparejamiento-leyenda {
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.pulso-emparejamiento-leyenda summary {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pulso-emparejamiento-leyenda summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-emparejamiento-leyenda summary:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-emparejamiento-leyenda-flecha {
+  margin-left: auto;
+  transition: transform 140ms ease;
+}
+
+.pulso-emparejamiento-leyenda[open] .pulso-emparejamiento-leyenda-flecha {
+  transform: rotate(180deg);
+}
+
+.pulso-emparejamiento-leyenda ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--pulso-space-3) var(--pulso-space-3);
+  display: grid;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-emparejamiento-leyenda li {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-3);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+}
+
+/* --- Barra del filtro (sticky dentro del cuerpo) ------------------------ */
+
+.pulso-emparejamiento-barra {
+  position: sticky;
+  /* El cuerpo tiene padding arriba; sin el negativo la barra se pegaría 16 px
+   * más abajo y las filas asomarían por encima al desplazarse. */
+  top: calc(-1 * var(--pulso-space-4));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-height: var(--pulso-emparejamiento-barra-h);
+  margin: 0 calc(-1 * var(--pulso-space-6));
+  padding: var(--pulso-space-2) var(--pulso-space-6);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.pulso-emparejamiento-filtro {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border-strong);
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+}
+
+.pulso-emparejamiento-filtro [data-gliding-key] {
+  padding: 5px var(--pulso-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  cursor: pointer;
+}
+
+/* El activo se pinta a sí mismo: no depende de que el indicador se haya
+ * medido para distinguirse. */
+.pulso-emparejamiento-filtro [data-gliding-key].is-active {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-module-processing);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-emparejamiento-filtro [data-gliding-key]:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 1px;
+}
+
+.pulso-emparejamiento-barra-conteo {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Tabla --------------------------------------------------------------- */
+
+.pulso-emparejamiento-tabla-wrap {
+  min-width: 0;
+}
+
+.pulso-emparejamiento-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.pulso-emparejamiento-col-var { width: 136px; }
+.pulso-emparejamiento-col-estado { width: 224px; }
+
+/* La cabecera queda bajo la barra del filtro al desplazarse. */
+.pulso-emparejamiento-tabla thead th {
+  position: sticky;
+  top: calc(var(--pulso-emparejamiento-barra-h) - var(--pulso-space-4));
+  z-index: 1;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  text-align: left;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulso-emparejamiento-seccion th {
+  padding: var(--pulso-space-4) var(--pulso-space-3) var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: left;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.02em;
+  color: var(--pulso-module-processing);
+}
+
+.pulso-emparejamiento-seccion th small {
+  margin-left: var(--pulso-space-2);
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-emparejamiento-tabla tbody tr:not(.pulso-emparejamiento-seccion) > * {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: top;
+}
+
+.pulso-emparejamiento-pregunta {
+  text-align: left;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1.45;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-emparejamiento-sin-texto {
+  color: var(--pulso-text-faint);
+  font-style: italic;
+}
+
+.pulso-emparejamiento-var {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-emparejamiento-var.is-distinto {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-emparejamiento-var.is-ausente {
+  border-style: dashed;
+  background: transparent;
+  color: var(--pulso-text-faint);
+}
+
+/* --- Insignias de estado (ícono + texto, nunca solo color) -------------- */
+
+.pulso-emparejamiento-insignia {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding: 2px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.pulso-emparejamiento-insignia svg {
+  flex: 0 0 auto;
+}
+
+.pulso-emparejamiento-insignia.is-emparejada {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-emparejamiento-insignia.is-otro_nombre {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.pulso-emparejamiento-insignia.is-no_entro,
+.pulso-emparejamiento-insignia.is-sin_respuesta,
+.pulso-emparejamiento-insignia.is-ambigua {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+/* --- Pie: ¿Y Equivalencias? --------------------------------------------- */
+
+.pulso-emparejamiento-equivalencias {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin-top: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-module-processing-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-module-processing-soft);
+}
+
+.pulso-emparejamiento-equivalencias strong {
+  font-size: 13px;
+  color: var(--pulso-text);
+}
+
+.pulso-emparejamiento-equivalencias p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-emparejamiento-equivalencias-motivo {
+  font-style: italic;
+}
+
+.pulso-emparejamiento-equivalencias-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  align-self: flex-start;
+  margin-top: var(--pulso-space-1);
+  color: var(--pulso-module-processing);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: none;
+}
+
+.pulso-emparejamiento-equivalencias-enlace:hover {
+  text-decoration: underline;
+}
+
+.pulso-emparejamiento-equivalencias-enlace:focus-visible {
+  outline: 2px solid var(--pulso-module-processing);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- Compacto ------------------------------------------------------------ */
+
+@media (max-width: 1180px) {
+  .pulso-emparejamiento-cifras ul {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  .pulso-emparejamiento-col-var { width: 116px; }
+}
+
+@media (max-height: 720px) {
+  .pulso-emparejamiento-cabecera {
+    padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-3);
+  }
+  .pulso-emparejamiento-titular h2 {
+    font-size: 18px;
+  }
+  .pulso-emparejamiento-cifras li {
+    min-height: 68px;
+    padding: var(--pulso-space-2) var(--pulso-space-3);
+  }
+  .pulso-emparejamiento-cifras li strong {
+    font-size: 24px;
+  }
+}
+
+@keyframes pulso-emparejamiento-velo {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulso-emparejamiento-entrada {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-emparejamiento-velo,
+  .pulso-emparejamiento {
+    animation: none;
+  }
+  .pulso-emparejamiento-leyenda-flecha {
+    transition: none;
+  }
+}

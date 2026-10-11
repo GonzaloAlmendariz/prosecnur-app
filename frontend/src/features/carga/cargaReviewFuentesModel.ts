@@ -23,6 +23,10 @@ export type CargaReviewHallazgoFuente = {
   tono: CargaReviewHallazgoTono;
   titulo: string;
   lineas: CargaReviewHallazgoLinea[];
+  /** Fuente a la que se refiere, para abrir su detalle por pregunta. Ausente en la principal. */
+  surveyId?: string;
+  /** Nombre de la fuente sin el resumen del titular. */
+  fuenteNombre?: string;
 };
 
 /** Cuántos nombres se muestran antes del «+N». */
@@ -50,6 +54,7 @@ function lineaDeNombres(
 function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReviewHallazgoFuente | null {
   const nombre = nombreFuente(fuente, index);
   const key = fuente.survey_id || `fuente-${index}`;
+  const surveyId = fuente.survey_id || undefined;
   const nEmp = fuente.n_emparejadas;
   const nTotal = fuente.n_preguntas_base;
   const coinciden = nTotal > 0 ? `${nEmp} de ${nTotal} preguntas` : "";
@@ -66,6 +71,8 @@ function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReview
     lineas.push({ texto: SM_ACCION_INSTRUMENTO_DISTINTO });
     return {
       key,
+      surveyId,
+      fuenteNombre: nombre,
       tono: "incompatible",
       titulo: fuente.excluida ? `${nombre} · no entró a la base` : `${nombre} · es otro instrumento`,
       lineas,
@@ -94,11 +101,11 @@ function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReview
         texto: `${nOpciones} ${plural(nOpciones, "respuesta quedó vacía", "respuestas quedaron vacías")} por una opción que no existe en la lista.`,
       });
     }
-    return { key, tono: "pending", titulo, lineas };
+    return { key, surveyId, fuenteNombre: nombre, tono: "pending", titulo, lineas };
   }
 
   if (fuente.reordenada) {
-    return { key, tono: "info", titulo: `${titulo}, en otro orden`, lineas: [] };
+    return { key, surveyId, fuenteNombre: nombre, tono: "info", titulo: `${titulo}, en otro orden`, lineas: [] };
   }
 
   return null;
