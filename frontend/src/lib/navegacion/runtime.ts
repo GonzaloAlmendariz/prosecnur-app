@@ -63,6 +63,9 @@ export function estadoListo(): EstadoListo {
   if (document.querySelector(SELECTOR_BOOT_GATE)) {
     return { listo: false, motivo: "sin-proyecto-abierto" };
   }
+  // Con marcas anidadas manda la más externa: `querySelector` devuelve la
+  // primera en orden de árbol, que es el ancestro. Por eso un frame que carga
+  // tiene que escribir "false" y no omitir la marca (ver PageFrame).
   const marca = document.querySelector(SELECTOR_READY);
   if (!marca) return { listo: false, motivo: "sin-marca-de-readiness" };
   const valor = marca.getAttribute("data-audit-ready") ?? "";

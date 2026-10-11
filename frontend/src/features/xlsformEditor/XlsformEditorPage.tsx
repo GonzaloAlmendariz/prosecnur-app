@@ -3104,7 +3104,7 @@ export default function XlsformEditorPage() {
       lead="Constructor visual, hojas técnicas y exportación XLSForm en un mismo workbench."
       className="pulso-xlsform-frame"
       headerMode="sr-only"
-      auditReady={workbook ? "xlsform-editor" : false}
+      auditReady={workbook ? "xlsform-editor" : undefined /* el hub: lo decide FormsLibrary */}
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${editorMode}`}
       toolbar={workbook ? (
         <div className="pulso-command-bar pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
