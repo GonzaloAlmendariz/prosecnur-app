@@ -2047,6 +2047,8 @@
   for (cfg_base in (s$graficos_config_por_base %||% list())) add_icon_fids(cfg_base)
   add_icon_fids((s$graficos_consolidado_draft %||% list())$config)
   add_icon_fids((s$graficos_consolidado %||% list())$config)
+  # Logos propios del cliente (A6 R3): inputs del estilo, en los mismos cuatro portadores.
+  out <- c(out, .graficos_estilo_cliente_fids(s))
   out <- c(out, .pulso_collect_calc_muestra_fids(s))
   # Monitoreo territorial: algunos insumos nacen dentro de Monitoreo, pero
   # luego son referencia canónica del proyecto. Si no viajan en el .pulso,
@@ -2460,6 +2462,9 @@
     }
   }
 
+  logo <- .graficos_estilo_cliente_nombre_de_ref(s, fid)
+  if (!is.null(logo)) return(logo)
+
   nombre <- as.character((meta %||% list())$original_name %||% "")[1]
   if (!is.na(nombre) && nzchar(nombre)) return(nombre)
   fid
@@ -2672,6 +2677,7 @@ load_pulso <- function(src_path) {
   # Va DESPUÉS de reescribir paths: antes, ningún archivo existiría todavía en
   # el tempdir nuevo y la poda se llevaría por delante el catálogo entero.
   s_saved <- .pulso_podar_iconos_huerfanos(s_saved)
+  s_saved <- .graficos_estilo_cliente_podar_huerfanos(s_saved)   # y los logos del cliente sin su PNG, igual
   # Migración ADR 0060/D4: un state.rds con referencia de asistencia vieja
   # puede traer tasas > 1 persistidas; se sanean al contrato nuevo (NA + marca
   # residual) para que el cliente fail-closed no vacíe el Histórico.

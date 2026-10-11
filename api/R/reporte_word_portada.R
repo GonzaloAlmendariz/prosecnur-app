@@ -107,12 +107,22 @@
   ent(b[17:20]) / ent(b[21:24])
 }
 
+#' Un logo propio del cliente si su ruta existe; si no, el del recetario (A6 R3: degrada, no aborta)
+#' @keywords internal
+.word_logo_o_recetario <- function(ruta, nombre) {
+  ruta <- as.character(ruta %||% "")[1]
+  if (!is.na(ruta) && nzchar(ruta) && file.exists(ruta)) ruta else .word_logo(nombre)
+}
+
 #' Logos de la primera página (`logos_ft()`): PUCP a la izquierda y PULSO PUCP a la derecha, 0.5 in de alto, para el
 #' encabezado de la portada (`.word_cerrar_capitulo(primera = .word_logos())`)
+#' @param logos Rutas de los logos propios del cliente (`portada_izquierda`, `portada_derecha`), ya resueltas por el
+#'   router (`.graficos_estilo_cliente_resolver`); el lugar que no venga lleva el del recetario.
 #' @keywords internal
-.word_logos <- function(h = 0.5) {
+.word_logos <- function(h = 0.5, logos = list()) {
   # Rutas con nombres que no sean columnas: compose() evalúa `value` dentro de los datos de la tabla (columnas a y b).
-  logo_izq <- .word_logo("pucp"); logo_der <- .word_logo("pulso"); w <- .std_word("pagina", "ancho_util") / 2
+  logo_izq <- .word_logo_o_recetario(logos$portada_izquierda, "pucp")
+  logo_der <- .word_logo_o_recetario(logos$portada_derecha, "pulso"); w <- .std_word("pagina", "ancho_util") / 2
   ft <- flextable::flextable(data.frame(a = "", b = "")) |> flextable::delete_part("header") |> flextable::border_remove() |>
     flextable::width(j = 1, width = w) |> flextable::width(j = 2, width = w) |>
     flextable::compose(j = 1, value = flextable::as_paragraph(flextable::as_image(src = logo_izq, width = h * .word_png_aspecto(logo_izq), height = h))) |>
@@ -125,10 +135,11 @@
 #' en una línea de 8.5 pt. El contacto es el mismo de la lámina de cierre del PPT (`.lam_cierre_contacto`): el plan puede
 #' reemplazar cada dato y uno vacío se omite. La sección anterior cierra con su salto de página.
 #' @param contacto Lista con `correo`, `direccion`, `web` (lo que no venga usa el de PULSO PUCP).
+#' @param logo Ruta del logo propio del cliente para la contraportada (o `NULL`: el de PULSO PUCP).
 #' @keywords internal
-.word_contraportada <- function(doc, contacto = list()) {
+.word_contraportada <- function(doc, contacto = list(), logo = NULL) {
   for (k in 1:14) doc <- officer::body_add_par(doc, "")
-  logo <- .word_logo("pulso")
+  logo <- .word_logo_o_recetario(logo, "pulso")
   doc <- officer::body_add_fpar(doc, officer::fpar(officer::external_img(logo, width = 1.0 * .word_png_aspecto(logo), height = 1.0),
                                                    fp_p = officer::fp_par(text.align = "center")))
   datos <- .lam_cierre_contacto(contacto)$dato

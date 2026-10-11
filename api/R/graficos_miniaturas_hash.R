@@ -8,7 +8,8 @@
 #   (c) la huella de los DATOS que el motor recibe: digest de cada `data_sources[[base]]` (pesos, filtros, recodificaciones,
 #       etiquetas, codificación aplicada y atributos como `instrumento_reporte`) y de cada `inst_sources[[base]]`;
 #   (d) presets ya enriquecidos (formato, sufijo_auto, nota_redondeo, cálculos por familia…), paletas, íconos (ruta y sha256
-#       de cada archivo), perfil/plantilla/auto_otros_slides y las opciones `prosecnur.*` que lee el motor;
+#       de cada archivo), perfil/plantilla/auto_otros_slides, las opciones `prosecnur.*` que lee el motor y, si lo hay, el
+#       estilo del cliente resuelto (`ctx$estilo_cliente`: letra K13 y sha256 de cada logo, graficos_estilo_cliente.R);
 #   (e) sha256 del .pptx de plantilla, de `inst/estandar/estandar_pulso.json` y de los logos del estándar;
 #   (f) versión del paquete (DESCRIPTION) y `.MINIATURAS_VERSION_CACHE`.
 # Lo que NO entra en la llave del PPTX (renderer, calidad, número de partes) es la llave de sus productos derivados
@@ -134,19 +135,23 @@
 .mini_grupos_huella <- function(ctx) {
   huella <- ctx$huella_fuentes %||% .mini_huella_fuentes(ctx$data_sources, ctx$inst_sources)
   iconos <- ctx$icon_registry %||% list()
+  d <- list(
+    presets = .mini_ordenar_conmutativo(ctx$presets_json %||% list()),
+    paletas = ctx$paletas %||% list(),
+    iconos = .mini_ordenar_conmutativo(lapply(iconos, function(p) list(ruta = as.character(p), sha256 = .mini_sha256_archivo(p)))),
+    profile_id = ctx$profile_id %||% "",
+    template_id = ctx$template_id %||% "",
+    auto_otros_slides = isTRUE(ctx$auto_otros_slides),
+    opciones = ctx$opciones_motor %||% list()
+  )
+  # Estilo del cliente resuelto (A6 R3): letra K13 y sha256 de cada logo. Sólo si hay: sin estilo, la huella no cambia.
+  estilo <- .graficos_estilo_cliente_huella(ctx$estilo_cliente)
+  if (length(estilo)) d$estilo_cliente <- estilo
   list(
     a = list(slide = ctx$slide, folio = as.integer(ctx$folio %||% 1L)),
     b = list(scope = ctx$scope, base = ctx$base %||% "", bases = as.character(ctx$bases %||% character())),
     c = huella,
-    d = list(
-      presets = .mini_ordenar_conmutativo(ctx$presets_json %||% list()),
-      paletas = ctx$paletas %||% list(),
-      iconos = .mini_ordenar_conmutativo(lapply(iconos, function(p) list(ruta = as.character(p), sha256 = .mini_sha256_archivo(p)))),
-      profile_id = ctx$profile_id %||% "",
-      template_id = ctx$template_id %||% "",
-      auto_otros_slides = isTRUE(ctx$auto_otros_slides),
-      opciones = ctx$opciones_motor %||% list()
-    ),
+    d = d,
     e = c(list(plantilla = .mini_sha256_archivo(ctx$template_pptx)), ctx$huella_estandar %||% .mini_huella_estandar()),
     f = list(paquete = ctx$version_paquete %||% .mini_version_paquete(), cache = .MINIATURAS_VERSION_CACHE)
   )

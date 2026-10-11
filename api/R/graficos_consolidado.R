@@ -12,6 +12,8 @@
 
 .graficos_consolidado_portable_config <- function(config, files = list()) {
   if (!is.list(config)) return(config)
+  # Logos del cliente (A6 R3): sólo por file_id, como los íconos.
+  if (!is.null(config$estilo_cliente)) config$estilo_cliente <- .graficos_estilo_cliente_portable(config$estilo_cliente, files)
   iconos <- config$iconos %||% list()
   if (!is.list(iconos) || !length(iconos)) return(config)
 
@@ -128,7 +130,9 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
     schema = .GRAFICOS_CONSOLIDADO_DRAFT_SCHEMA,
     revision = expected_revision + 1L,
     # ADR 0094: el borrador guarda las decisiones del Word como el resto de portadores de config.
-    config = .graficos_consolidado_portable_config(.graficos_config_word_solo_decisiones(config), fresh$files %||% list())
+    # Primero la forma portable (una ruta heredada pasa a file_id) y después el diff del estilo del cliente (A6 R3).
+    config = .graficos_estilo_cliente_config_solo_decisiones(
+      .graficos_consolidado_portable_config(.graficos_config_word_solo_decisiones(config), fresh$files %||% list()))
   )
   fresh <- .mark_project_dirty(fresh)
   .session_env[[sid]] <- fresh

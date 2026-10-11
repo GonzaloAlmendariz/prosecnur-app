@@ -63,7 +63,9 @@
 #' @param path_docx Archivo de salida.
 #' @param fuente Fuente que cierra cada base («Fuente: PULSO PUCP 2026.»).
 #' @param opciones Lista: `portada` («A», «B», «C»), `apertura` («B», «A»), `como_leer` (`NULL` = si hay escalas),
-#'   `redondeo` («estandar», «resto_mayor»), `contacto` (para la contraportada), `meta_portada` (ante, para, version...).
+#'   `redondeo` («estandar», «resto_mayor»), `contacto` (para la contraportada), `meta_portada` (ante, para, version...),
+#'   `logos` (rutas de los logos propios del cliente por lugar: `portada_izquierda`, `portada_derecha`, `contraportada`;
+#'   sólo las pone el worker desde `estilo_cliente`, nunca el body).
 #' @return Invisible: `list(path, figuras, tablas, avisos)`.
 #' @keywords internal
 .word_documento <- function(render_meta, path_docx, fuente = NULL, opciones = list(), mensajes = FALSE) {
@@ -93,7 +95,7 @@
   t1 <- if (length(tit)) tit[[1]] else list()
   meta <- utils::modifyList(list(titulo = titulo_informe, sub = .word_txt1(t1$subtitle), fecha = .word_txt1(t1$date)), op$meta_portada)
   doc <- .word_portada(doc, meta, op$portada)
-  doc <- .word_cerrar_capitulo(doc, "", titulo_corto, primera = .word_logos())
+  doc <- .word_cerrar_capitulo(doc, "", titulo_corto, primera = .word_logos(logos = op$logos %||% list()))
   doc <- .word_indices(doc, con_tablas = con_tablas)
   doc <- .word_cerrar_capitulo(doc, "Contenido", titulo_corto)
 
@@ -180,7 +182,7 @@
   }
   doc <- poner_como_leer(doc)      # un plan sin secciones igual lleva «Cómo leer» si tiene escalas
   doc <- cerrar(doc)
-  doc <- .word_contraportada(doc, op$contacto)
+  doc <- .word_contraportada(doc, op$contacto, logo = (op$logos %||% list())$contraportada)
   print(doc, target = path_docx)
   .docx_conformar(path_docx, revista = TRUE)
   invisible(list(path = path_docx, figuras = figura - 1L, tablas = tabla - 1L, avisos = avisos))
