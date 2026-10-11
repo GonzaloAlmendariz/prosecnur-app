@@ -145,7 +145,7 @@ lista.
 
 Es un endpoint nuevo: ninguno de los existentes entrega código, etiqueta y frecuencia por pregunta.
 
-`GET /api/graficos/categorias?var=<referencia>&scope=<|consolidado>`, con el header `X-Pulso-Session`. `var` acepta `p7` o
+`GET /api/graficos/categorias?var=<referencia>&scope=<|consolidado>[&graficador=<graficador>]`, con el header `X-Pulso-Session`. `var` acepta `p7` o
 `docentes$p7`; una referencia sin base se resuelve contra la **base activa** de la sesión (en el consolidado,
 contra la primera). El frontend debería mandar siempre la calificada (`base$var`).
 
@@ -153,6 +153,12 @@ contra la primera). El frontend debería mandar siempre la calificada (`base$var
 {
   "var": "p7", "base": "docentes", "pregunta": "Departamento académico al que pertenece:",
   "list_name": "lst_p7", "ordinal": false, "tipo": "select_one", "modo_recetario": "frecuencia",
+  "avisos": [
+    { "codigo": "categorias_sin_respuestas",
+      "texto": "“Departamento académico al que pertenece:”: una categoría del instrumento no tiene respuestas en esta base («Departamento de Economía»)." },
+    { "codigo": "residuales_al_final",
+      "texto": "“Departamento académico al que pertenece:”: «Otro (especifique)» se reconoce como respuesta residual y va al final en los órdenes automáticos." }
+  ],
   "categorias": [
     { "codigo": "1", "etiqueta": "Departamento de Ciencias Contables", "n": 46, "pct": 0.885, "residual": false },
     { "codigo": "0", "etiqueta": "Otro (especifique)", "n": 2, "pct": 0.038, "residual": true }
@@ -164,6 +170,21 @@ contra la primera). El frontend debería mandar siempre la calificada (`base$var
 - `categorias` va en orden del instrumento. `n` y `pct` son sin filtros de lámina: son la referencia para ordenar, no la
   cifra que se dibuja.
 - `orden.*` ya trae los residuales al final. Es lo que dibujaría cada modo sin `invertir`.
+- `avisos` (decisión 4 de Gonzalo, 2026-10-11) es un arreglo `[{codigo, texto}]`, **vacío** (`[]`) si no hay nada que
+  decir. Es lo que el motor de orden avisaría de esta pregunta sea cual sea el modo elegido; los arma
+  `.goc_avisos_pregunta` (graficos_orden_categorias.R) con las mismas frases que el motor y el validador del plan.
+  `codigo` es un slug estable —el frontend decide por él y no parsea `texto`—; `texto` es la frase al analista, sin
+  jerga (`.aviso_tiene_jerga() == FALSE`). En este orden, cuando aplican:
+  - `base_por_defecto`: la base activa no tiene datos listos y la referencia sin base se resolvió con la primera (mismo
+    texto que el aviso del motor).
+  - `escala_orden_ignorado`: sólo si se manda `graficador` y es una escala (`p_barras_apiladas`,
+    `p_barras_multiapiladas`): el orden no aplica (§1). Misma frase que el aviso de `/api/graficos/validar`.
+  - `codigos_fuera_de_lista`: hay códigos en los datos que la lista de opciones no tiene (un valor igual a una etiqueta
+    no cuenta); no entran en `categorias` ni en `orden.*`.
+  - `pregunta_sin_respuestas`: ninguna categoría tiene respuestas; el orden por frecuencia queda como el del instrumento.
+    Excluye a `categorias_sin_respuestas`.
+  - `categorias_sin_respuestas`: alguna categoría tiene `n = 0` (las mismas que hoy calcula el editor con `n === 0`).
+  - `residuales_al_final`: las categorías reconocidas como residuales, que los modos automáticos ponen al final.
 - **Errores:**
   - 400 `E_BAD_CATEGORIAS_VAR`: falta `var`.
   - 404 `E_CATEGORIAS_VAR_NO_EXISTE`: la variable no está en la base.
@@ -182,3 +203,5 @@ contra la primera). El frontend debería mandar siempre la calificada (`base$var
 - Escala: la clave se ignora con aviso.
 - Normalizador idempotente y ida y vuelta por `.normalize_plan` y `.pulso`.
 - Contrato HTTP de `/api/graficos/categorias` y de `/preview-slide` con `orden_categorias`.
+- `avisos` de `/api/graficos/categorias`: códigos estables, textos sin jerga, arreglo vacío serializado como `[]`, aviso
+  de escala con `graficador` y misma frase que el validador del plan (test-router-graficos-categorias.R).

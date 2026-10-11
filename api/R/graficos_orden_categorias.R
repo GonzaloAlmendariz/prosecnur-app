@@ -283,8 +283,85 @@
   if (is.null(oc)) return(character())
   graf <- as.character(slot$graficador %||% "")[1]
   c(if (!is.null(oc$modo_invalido)) sprintf("%s: el orden de categorías guardado no existe en esta versión; se usa el del recetario", tag),
-    if (graf %in% .GOC_ESCALAS && !identical(oc$modo, "recetario"))
-      sprintf("%s: el orden de categorías no aplica a una escala (%s); sus categorías van en el orden de la escala", tag, .aviso_tipo_grafico(graf)))
+    if (graf %in% .GOC_ESCALAS && !identical(oc$modo, "recetario")) sprintf("%s: %s", tag, .goc_texto_escala(graf)))
+}
+
+# ---- avisos de una pregunta (campo `avisos` de /api/graficos/categorias, contrato §7) ------------------------------
+#
+# Una sola fuente de texto: el validador del plan (escala) y el aviso de base por defecto usan estas mismas frases.
+
+#' Frase de una escala: el orden de categorías no aplica (contrato §1)
+#' @keywords internal
+.goc_texto_escala <- function(graficador) {
+  sprintf("el orden de categorías no aplica a una escala (%s); sus categorías van en el orden de la escala", .aviso_tipo_grafico(graficador))
+}
+
+#' Frase de la base por defecto: la activa no tiene datos listos y se usa otra
+#' @keywords internal
+.goc_texto_base_por_defecto <- function(activa, ref, base) {
+  sprintf("La base activa «%s» no tiene datos listos para Gráficos: las categorías de «%s» se muestran con la base «%s».",
+          activa, ref, base %||% "")
+}
+
+#' «A», «B», «C» y 2 más (las etiquetas y los códigos van entre comillas: son del analista, no jerga)
+#' @keywords internal
+.goc_rotulos <- function(x, max = 6L) {
+  x <- as.character(x)
+  r <- paste(sprintf("«%s»", utils::head(x, max)), collapse = ", ")
+  if (length(x) > max) r <- sprintf("%s y %d más", r, length(x) - max)
+  r
+}
+
+#' Códigos presentes en los datos que la lista de opciones no tiene
+#'
+#' Un valor que coincide con una etiqueta no cuenta (datos ya etiquetados). En opción múltiple se miran las respuestas
+#' separadas por espacio de la columna principal.
+#' @keywords internal
+.goc_codigos_fuera <- function(data, var, cats, tipo) {
+  if (!is.data.frame(data) || !var %in% names(data)) return(character())
+  v <- trimws(as.character(data[[var]]))
+  if (identical(tipo, "select_multiple")) v <- unlist(strsplit(v, "\\s+"), use.names = FALSE)
+  v <- unique(v[!is.na(v) & nzchar(v)])
+  fuera <- setdiff(v, c(cats$codigo, cats$etiqueta))
+  fuera[order(suppressWarnings(as.numeric(fuera)), fuera, method = "radix")]
+}
+
+#' Lo que el motor de orden avisaría de esta pregunta, sea cual sea el modo elegido
+#'
+#' @param base_aviso Texto de la base por defecto (`attr(, "aviso")` de `.goc_base_por_defecto`), o `NULL`.
+#' @param graficador Graficador del gráfico que pide las categorías, si lo manda; sólo decide el aviso de escala.
+#' @return Lista de `list(codigo, texto)`; vacía si no hay nada que decir.
+#' @keywords internal
+.goc_avisos_pregunta <- function(cats, n, data, var, tipo, pregunta, base_aviso = NULL, graficador = NULL) {
+  q <- sprintf("“%s”", pregunta)
+  av <- list()
+  add <- function(codigo, texto) av[[length(av) + 1L]] <<- list(codigo = codigo, texto = texto)
+  if (length(base_aviso) && nzchar(base_aviso[1])) add("base_por_defecto", base_aviso[1])
+  graf <- as.character(graficador %||% "")[1]
+  if (!is.na(graf) && graf %in% .GOC_ESCALAS) add("escala_orden_ignorado", sprintf("%s: %s.", q, .goc_texto_escala(graf)))
+  fuera <- .goc_codigos_fuera(data, var, cats, tipo)
+  if (length(fuera)) {
+    k <- length(fuera)
+    add("codigos_fuera_de_lista", sprintf("%s: %s en los datos no %s en la lista de opciones (%s) y no %s entre las categorías que se ordenan.",
+                                          q, if (k == 1L) "un código" else sprintf("%d códigos", k), if (k == 1L) "está" else "están",
+                                          .goc_rotulos(fuera), if (k == 1L) "entra" else "entran"))
+  }
+  n <- suppressWarnings(as.numeric(n)); n[!is.finite(n)] <- 0
+  if (length(n) && all(n == 0)) {
+    add("pregunta_sin_respuestas", sprintf("%s: la pregunta no tiene respuestas en esta base; el orden por frecuencia es el del instrumento.", q))
+  } else if (any(n == 0)) {
+    k <- sum(n == 0)
+    add("categorias_sin_respuestas", sprintf("%s: %s del instrumento no %s respuestas en esta base (%s).", q,
+                                             if (k == 1L) "una categoría" else sprintf("%d categorías", k), if (k == 1L) "tiene" else "tienen",
+                                             .goc_rotulos(cats$etiqueta[n == 0])))
+  }
+  if (any(cats$residual)) {
+    k <- sum(cats$residual)
+    add("residuales_al_final", sprintf("%s: %s se %s como %s y %s al final en los órdenes automáticos.", q, .goc_rotulos(cats$etiqueta[cats$residual]),
+                                       if (k == 1L) "reconoce" else "reconocen", if (k == 1L) "respuesta residual" else "respuestas residuales",
+                                       if (k == 1L) "va" else "van"))
+  }
+  av
 }
 
 # ---- endpoint -----------------------------------------------------------------
@@ -295,11 +372,13 @@
 #' @param ref Referencia de la variable (`p7` o `docentes$p7`). El frontend debería mandar la calificada.
 #' @param base_activa Base de una referencia sin calificar: la activa de la sesión (verificador de D8: resolvía contra
 #'   la primera base y en acrconta `p7` devolvía docentes con estudiantes activa). Sin ella, la primera.
+#' @param graficador Graficador del gráfico (opcional): con una escala, `avisos` dice que el orden no aplica.
 #' @keywords internal
-.graficos_categorias_payload <- function(sources, ref, base_activa = NULL) {
+.graficos_categorias_payload <- function(sources, ref, base_activa = NULL, graficador = NULL) {
   ref <- trimws(as.character(ref %||% "")[1])
   if (is.na(ref) || !nzchar(ref)) stop_api(400, "E_BAD_CATEGORIAS_VAR", "Falta `var`: la variable cuyas categorías se piden.")
-  ctx <- .goc_resolver_ref(ref, sources$inst_sources, .goc_base_por_defecto(sources$inst_sources, base_activa, ref))
+  base_def <- .goc_base_por_defecto(sources$inst_sources, base_activa, ref)
+  ctx <- .goc_resolver_ref(ref, sources$inst_sources, as.vector(base_def))
   data <- sources$data_sources[[ctx$base]]
   if (is.null(ctx$inst) || (!ctx$var %in% names(data %||% list()) && is.na(.goc_survey(ctx$inst, ctx$var)$tipo))) {
     stop_api(404, "E_CATEGORIAS_VAR_NO_EXISTE", sprintf("La variable «%s» no está en la base «%s».", ctx$var, ctx$base %||% ""))
@@ -314,6 +393,7 @@
   list(
     var = ctx$var, base = ctx$base, pregunta = .goc_pregunta(ctx$inst, ctx$var), list_name = sv$list_name,
     ordinal = ordinal, tipo = sv$tipo, modo_recetario = modo_rec,
+    avisos = .goc_avisos_pregunta(cats, n, data, ctx$var, sv$tipo, .goc_pregunta(ctx$inst, ctx$var), attr(base_def, "aviso"), graficador),
     categorias = lapply(seq_len(nrow(cats)), function(i) list(
       codigo = cats$codigo[i], etiqueta = cats$etiqueta[i], n = as.integer(n[i]),
       pct = if (total > 0) round(n[i] / total, 4) else NA_real_, residual = cats$residual[i])),
@@ -330,17 +410,17 @@
 #' Verificador de D8-2: si la base activa no estaba entre las fuentes de Gráficos se caía en silencio a la primera y el
 #' editor mostraba las categorías de otra base como si fueran de la activa. Sin base activa (consolidado, una sola base)
 #' la primera es lo esperado y no se avisa; una referencia calificada (`docentes$p7`) no usa la base por defecto.
+#' @return El nombre de la base; si cayó a la primera, con el texto del aviso en `attr(, "aviso")`.
 #' @keywords internal
 .goc_base_por_defecto <- function(inst_sources, base_activa, ref) {
   bases <- names(inst_sources)
   activa <- as.character(base_activa %||% "")[1]
   if (is.na(activa) || !nzchar(activa)) return(bases[1])
   if (activa %in% bases) return(activa)
-  if (!grepl("$", ref, fixed = TRUE)) {
-    .pulso_aviso(sprintf("La base activa «%s» no tiene datos listos para Gráficos: las categorías de «%s» se muestran con la base «%s».",
-                         activa, ref, bases[1] %||% ""))
-  }
-  bases[1]
+  if (grepl("$", ref, fixed = TRUE)) return(bases[1])
+  texto <- .goc_texto_base_por_defecto(activa, ref, bases[1])
+  .pulso_aviso(texto)
+  structure(bases[1], aviso = texto)   # el payload lo devuelve también en `avisos`
 }
 
 #' Frecuencia de cada código en la base (sin filtros de lámina)
