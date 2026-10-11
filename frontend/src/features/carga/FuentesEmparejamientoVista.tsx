@@ -25,6 +25,8 @@ import { EmparejamientoInsignia, FuentesEmparejamientoTabla, ICONO_ESTADO } from
 export type EmparejamientoCarga =
   | { tipo: "cargando" }
   | { tipo: "error"; mensaje: string }
+  /** El enlace nombra una fuente que ninguna base del estudio junta. */
+  | { tipo: "fuera-del-estudio" }
   | { tipo: "listo"; datos: CargaFuentesEmparejamiento };
 
 const OPCIONES_FILTRO: readonly { id: EmparejamientoFiltro; label: string }[] = [
@@ -225,6 +227,14 @@ export function FuentesEmparejamientoVista({
     cuerpo = <LoadingBlock label="Leyendo cómo se emparejaron las preguntas…" />;
   } else if (carga.tipo === "error") {
     cuerpo = <ErrorBlock label="No se pudo leer el emparejamiento de las preguntas" detail={carga.mensaje} />;
+  } else if (carga.tipo === "fuera-del-estudio") {
+    cuerpo = (
+      <EmptyState
+        icon={<SearchX size={20} />}
+        title="No se encontró esa fuente en este estudio"
+        hint="Ninguna base la junta. Ábrela desde «Ver preguntas» en la tarjeta de su fuente."
+      />
+    );
   } else if (!fuentes.length) {
     cuerpo = (
       <EmptyState

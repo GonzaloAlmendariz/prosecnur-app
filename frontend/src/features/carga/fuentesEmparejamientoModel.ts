@@ -11,6 +11,7 @@ import {
   type EmparejamientoFila,
   type EmparejamientoFuente,
 } from "../../api/cargaFuentes";
+import type { EstudioPayload } from "../../api/estudio";
 import { conNivel } from "../../lib/navegacion/direccion";
 import { panelAbiertoEn } from "../../lib/navegacion/paneles";
 import { CARGA_REVIEW_SIN_RESPUESTAS } from "./cargaReviewFuentesModel";
@@ -266,4 +267,32 @@ export function hrefSinFoco(href: string): string {
   const corte = href.indexOf("?");
   if (corte < 0) return href;
   return `${href.slice(0, corte)}${conNivel(href.slice(corte), "foco", null)}`;
+}
+
+/**
+ * La base que junta una fuente, buscada en las bases del estudio. Sirve a los
+ * enlaces anteriores a que la base viajara en el `foco` (`foco=<survey_id>`):
+ * sin esto se abrían contra la base que Revisión tuviera elegida y, si la
+ * fuente era de otra, el panel decía «Esta base no junta encuestas», un vacío
+ * falso. `null` si ninguna base la junta.
+ *
+ * Primero las bases primarias: una hija `kobo_repeat` hereda la fuente de su
+ * madre y no es donde se revisa.
+ */
+export function baseDeFuenteEnEstudio(
+  estudio: Pick<EstudioPayload, "bases"> | null | undefined,
+  surveyId: string,
+): string | null {
+  const id = surveyId.trim();
+  if (!estudio || !id) return null;
+  const bases = Object.entries(estudio.bases ?? {});
+  const ordenadas = [
+    ...bases.filter(([, b]) => b.source_kind !== "kobo_repeat" && !b.parent_base),
+    ...bases.filter(([, b]) => b.source_kind === "kobo_repeat" || Boolean(b.parent_base)),
+  ];
+  const junta = ordenadas.find(([, b]) =>
+    String(b.survey_id ?? "") === id
+    || (b.surveymonkey_sources ?? []).some((fuente) => String(fuente.survey_id ?? "") === id),
+  );
+  return junta ? junta[0] : null;
 }

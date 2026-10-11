@@ -15,6 +15,7 @@ import {
   type CargaWorkspaceTab,
 } from "./CargaWorkspaceModel";
 import "./CargaWorkspaceNavigation.css";
+import "./CargaWorkbenchBajo.css";
 
 export const CARGA_WORKSPACE_PANEL_ID = "carga-workspace-panel";
 

@@ -91,6 +91,12 @@ describe("FuentesEmparejamientoVista", () => {
     expect(html).toContain('title="Indique su código PUCP"');
   });
 
+  it("un enlace a una fuente que ninguna base junta lo dice, sin el vacío falso de «no junta encuestas»", () => {
+    const html = render({ tipo: "fuera-del-estudio" }, "999999999");
+    expect(html).toContain("No se encontró esa fuente en este estudio");
+    expect(html).not.toContain("Esta base no junta encuestas");
+  });
+
   it("«Todas» lista también las emparejadas", () => {
     const html = render(datos([MIXTA]), "tel", "todas");
     expect(filasDeTabla(html)).toBe(5);

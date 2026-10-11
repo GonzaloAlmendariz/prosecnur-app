@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { EmparejamientoFila, EmparejamientoFuente } from "../../api/cargaFuentes";
 import { parsearDireccion } from "../../lib/navegacion/direccion";
 import {
+  baseDeFuenteEnEstudio,
   EMPAREJAMIENTO_ESTADOS,
   agruparPorSeccion,
   baseDeLaDireccion,
@@ -172,5 +173,29 @@ describe("fuentesEmparejamientoModel", () => {
     expect(datoRespuestas(fuente({ n_filas_incorporadas: 1 }))).toBe("1 respuesta de esta fuente está en la base.");
     expect(datoRespuestas(fuente({ n_filas_incorporadas: null }))).toBeNull();
     expect(datoRespuestas(fuente({ estado: "excluida", n_filas_incorporadas: 0 }))).toBeNull();
+  });
+});
+
+describe("baseDeFuenteEnEstudio (enlaces con foco sin base)", () => {
+  const estudio = {
+    bases: {
+      docentes: { nombre: "docentes", survey_id: "528294399", surveymonkey_sources: [{ survey_id: "528294399" }] },
+      estudiantes: {
+        nombre: "estudiantes",
+        survey_id: "528294775",
+        surveymonkey_sources: [{ survey_id: "528294775" }, { survey_id: "423593924" }],
+      },
+    },
+  } as unknown as Parameters<typeof baseDeFuenteEnEstudio>[0];
+
+  it("encuentra la base que junta la fuente aunque no sea su fuente principal", () => {
+    expect(baseDeFuenteEnEstudio(estudio, "423593924")).toBe("estudiantes");
+    expect(baseDeFuenteEnEstudio(estudio, " 528294399 ")).toBe("docentes");
+  });
+
+  it("devuelve null si ninguna base la junta, en vez de caer en otra", () => {
+    expect(baseDeFuenteEnEstudio(estudio, "999999999")).toBeNull();
+    expect(baseDeFuenteEnEstudio(null, "423593924")).toBeNull();
+    expect(baseDeFuenteEnEstudio(estudio, "")).toBeNull();
   });
 });

@@ -11,9 +11,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 import { apiCargaFuentesEmparejamiento } from "../../api/cargaFuentes";
+import { apiEstudioGet } from "../../api/estudio";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 import {
+  baseDeFuenteEnEstudio,
   hrefSinFoco,
   leerFocoFuente,
   searchConEmparejamiento,
@@ -45,8 +47,16 @@ function PanelConDireccion({ baseNombre }: Props) {
   const focoFuente = leerFocoFuente(procesamiento.foco);
   // La fuente pedida, sin su base: es lo que identifica la fila en el payload.
   const foco = focoFuente?.surveyId ?? null;
-  // La base la decide la dirección; la de Revisión es el respaldo.
-  const base = focoFuente?.base ?? baseNombre;
+  // Un enlace anterior trae solo el `survey_id`. La base no se adivina con la
+  // que Revisión tenga elegida —si la fuente es de otra, el panel mostraba un
+  // vacío falso—: se busca en el estudio y se reescribe el foco completo.
+  const legado = Boolean(panel.abierto && focoFuente && !focoFuente.base);
+  const [legadoFallido, setLegadoFallido] = useState<
+    { foco: string; carga: Extract<EmparejamientoCarga, { tipo: "error" } | { tipo: "fuera-del-estudio" }> } | null
+  >(null);
+  const fallo = legado && legadoFallido && legadoFallido.foco === foco ? legadoFallido.carga : null;
+  // La base la decide la dirección; sin foco, la de Revisión.
+  const base = focoFuente?.base ?? (focoFuente ? undefined : baseNombre);
 
   const [carga, setCarga] = useState<EmparejamientoCarga>({ tipo: "cargando" });
   // El filtro elegido vale para la fuente en que se eligió; otra fuente vuelve
@@ -59,9 +69,40 @@ function PanelConDireccion({ baseNombre }: Props) {
   const ultimoFoco = useRef<string | null>(null);
   if (panel.abierto) ultimoFoco.current = foco;
 
-  const esperandoBase = base === undefined;
+  const esperandoBase = base === undefined && !fallo;
+
+  const searchActual = useRef(location.search);
+  searchActual.current = location.search;
   useEffect(() => {
-    if (!panel.abierto || esperandoBase) return;
+    if (!legado || !foco) return;
+    let vigente = true;
+    apiEstudioGet()
+      .then((estudio) => {
+        if (!vigente) return;
+        const encontrada = baseDeFuenteEnEstudio(estudio, foco);
+        if (encontrada) {
+          navigate(
+            { pathname: location.pathname, search: searchConEmparejamiento(searchActual.current, foco, encontrada) },
+            { replace: true },
+          );
+        } else {
+          setLegadoFallido({ foco, carga: { tipo: "fuera-del-estudio" } });
+        }
+      })
+      .catch((reason: unknown) => {
+        if (vigente) {
+          setLegadoFallido({
+            foco,
+            carga: { tipo: "error", mensaje: reason instanceof Error ? reason.message : String(reason) },
+          });
+        }
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [legado, foco, location.pathname, navigate]);
+  useEffect(() => {
+    if (!panel.abierto || esperandoBase || base === undefined) return;
     let vigente = true;
     setCarga({ tipo: "cargando" });
     apiCargaFuentesEmparejamiento(base)
@@ -96,7 +137,7 @@ function PanelConDireccion({ baseNombre }: Props) {
           ref={contenido}
           className="pulso-emparejamiento"
           {...panel.props}
-          data-audit-ready={carga.tipo === "cargando" || esperandoBase ? "false" : "true"}
+          data-audit-ready={fallo ? "true" : carga.tipo === "cargando" || esperandoBase ? "false" : "true"}
           onOpenAutoFocus={(event) => {
             // El foco va al título: se lee qué es el panel antes de llegar a
             // sus controles.
@@ -115,7 +156,7 @@ function PanelConDireccion({ baseNombre }: Props) {
           }}
         >
           <FuentesEmparejamientoVista
-            carga={esperandoBase ? { tipo: "cargando" } : carga}
+            carga={fallo ?? (esperandoBase ? { tipo: "cargando" } : carga)}
             foco={foco}
             filtro={filtro}
             onFiltro={(valor) => setFiltroElegido({ foco, filtro: valor })}
