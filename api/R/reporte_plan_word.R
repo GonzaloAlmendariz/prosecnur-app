@@ -124,6 +124,34 @@
   patch[setdiff(names(patch), c("mostrar_barra_extra", "barra_extra_preset"))]
 }
 
+#' La columna extra de un gráfico, decidida sólo para el Word
+#'
+#' Los `overrides` del gráfico mandan igual en la lámina y en el Word; las claves `word_*` son la excepción, y sólo las
+#' lee el camino del Word (`.word_ajustar_el`, `.word_preparar_block_multi`). `word_mostrar_barra_extra`:
+#' - `FALSE` apaga la columna en el Word aunque la lámina la lleve (por sus overrides, su preset o el default Word del
+#'   recetario);
+#' - `TRUE` la enciende en el Word aunque la lámina no la lleve; sin un preset de columna en los overrides (vacío o
+#'   `"ninguno"`), la columna es el Top Two Box del recetario (`"top2box"`), que sigue exigiendo sus categorías
+#'   declaradas (`.box_decidir`);
+#' - ausente (o no lógica) hereda lo de la lámina.
+#' La clave se consume aquí y no viaja al graficador. Llamar ANTES de `.word_conservar_barra_extra_pedida`, que con el
+#' `TRUE` resultante reserva su ancho en el lienzo del Word.
+#' @param ov `overrides` del elemento o bloque ya copiado para el Word.
+#' @return `ov` con `mostrar_barra_extra`/`barra_extra_preset` resueltos para el Word y sin `word_mostrar_barra_extra`.
+#' @keywords internal
+.word_barra_extra_solo_word <- function(ov) {
+  if (!is.list(ov) || is.null(ov$word_mostrar_barra_extra)) return(ov)
+  pedido <- ov$word_mostrar_barra_extra
+  ov$word_mostrar_barra_extra <- NULL
+  if (!is.logical(pedido) || length(pedido) != 1L || is.na(pedido)) return(ov)
+  ov$mostrar_barra_extra <- pedido
+  if (isTRUE(pedido)) {
+    preset <- trimws(as.character(ov$barra_extra_preset %||% "")[1])
+    if (is.na(preset) || !nzchar(preset) || identical(preset, "ninguno")) ov$barra_extra_preset <- "top2box"
+  }
+  ov
+}
+
 #' @title Definir presets para Word (imagen + estilos de párrafo)
 #' @family reporte
 #' @export

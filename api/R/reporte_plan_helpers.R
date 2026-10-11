@@ -3058,7 +3058,7 @@ p_reset <- function(
   # W-5 (B54): un pedido explicito de columna extra en la lamina sobrevive al
   # default Word; particion multiactor (0.30 etiquetas + 0.54 barras + 0.14).
   block_clean$overrides <- .word_conservar_barra_extra_pedida(
-    block_clean$overrides, w_extra = 0.14, w_bars = 0.54
+    .word_barra_extra_solo_word(block_clean$overrides), w_extra = 0.14, w_bars = 0.54
   )
   # W-6 (B54): panel proporcional al numero de actores del bloque.
   block_clean <- .word_escalar_panel_multi(block_clean)
@@ -3086,7 +3086,7 @@ p_reset <- function(
   if (etype %in% c("barras_apiladas", "barras_multiapiladas")) {
     # W-5 (B54): el pedido de columna extra de la lamina sobrevive al default
     # Word que la apaga (el default solo rige cuando nadie la pidio).
-    ov <- .word_conservar_barra_extra_pedida(ov)
+    ov <- .word_conservar_barra_extra_pedida(.word_barra_extra_solo_word(ov))
   }
   if (identical(etype, "media_rango")) {
     size_ejes_orig <- ov$size_ejes %||% 9

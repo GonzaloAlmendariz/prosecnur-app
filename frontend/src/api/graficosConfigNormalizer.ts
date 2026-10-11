@@ -42,6 +42,35 @@ export const DEFAULT_WORD_PRESETS: Record<string, Record<string, unknown>> = {
       size_titulo_extra: 9,
       centro_cowplot: 0.5,
     },
+
+    multi_apiladas: {
+      mostrar_barra_extra: false,
+
+      canvas_w_etiquetas: 0.3,
+      canvas_w_buf_etq_bars: 0.02,
+      canvas_w_bars: 0.6,
+      canvas_w_extra: 0.08,
+
+      canvas_h_toprow_in: 0,
+      canvas_h_legend_in: 0.42,
+      canvas_h_caption_in: 0.45,
+      alto_por_categoria: 0.55,
+
+      ancho_max_eje_y: 26,
+      size_ejes: 9,
+      size_titulos_grupo: 9,
+      size_texto_barras: 2.8,
+      size_texto_barras_peq: 2.8,
+      size_barra_extra: 9,
+      size_titulo_extra: 9,
+
+      leyenda_posicion: "abajo",
+      mostrar_leyenda: true,
+      legend_key_cm: 0.18,
+      legend_espaciado: 0,
+      legend_n_por_fila: 10,
+      size_leyenda: 8,
+    },
   },
 };
 
