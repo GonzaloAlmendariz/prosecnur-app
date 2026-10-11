@@ -172,7 +172,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .pulso-f6-mas-menu button:hover:not(:disabled) {
+  .pulso-f6-mas-menu button:hover:not(:disabled):not([aria-disabled="true"]) {
     background: var(--pulso-surface-3);
     transition:
       background-color var(--motion-dur-hover) var(--motion-ease-out),
@@ -183,6 +183,17 @@
 .pulso-f6-mas-menu button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* Plan portátil y secciones JSON en el informe compartido (decisión 20): siguen enfocables para que el motivo se lea,
+   así que el texto conserva contraste; sólo el icono y el cursor dicen que no se puede usar. */
+.pulso-f6-mas-menu button[aria-disabled="true"] {
+  cursor: not-allowed;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-mas-menu button[aria-disabled="true"] svg {
+  opacity: 0.45;
 }
 
 .pulso-f6-mas-menu button svg {

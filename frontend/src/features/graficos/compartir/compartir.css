@@ -1,0 +1,163 @@
+/* Diálogos «Plan portátil» y «Secciones JSON» del menú ⋯ de Láminas (decisión 10). El cuerpo reusa las piezas
+   `.pulso-gv2-share-*` del Editor anterior (editor-v2.css, congelado), por eso el portal se monta dentro de
+   `.pulso-graficos-frame`. Aquí sólo vive el marco: cabecera, cuerpo con su propio desplazamiento y pie de estado. */
+
+.pulso-f6-compartir-velo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 52%, transparent);
+}
+
+.pulso-f6-compartir-dialogo {
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  outline: none;
+}
+
+.pulso-f6-compartir-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-compartir-titulos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-f6-compartir-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-compartir-descripcion {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-compartir-cuerpo {
+  min-height: 0;
+  overflow: auto;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+/* La barra «Aplicar» es sticky al pie del cuerpo que desplaza: su ancla sigue al padding del cuerpo. */
+.pulso-f6-compartir-cuerpo .pulso-gv2-share-applybar {
+  bottom: calc(-1 * var(--pulso-space-3));
+}
+
+.pulso-f6-compartir-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: 36px;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  font-size: 12px;
+}
+
+.pulso-f6-compartir-estado,
+.pulso-f6-compartir-error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-compartir-estado {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-f6-compartir-error {
+  color: var(--pulso-danger-fg);
+}
+
+/* Motivo de una acción no disponible (informe compartido): texto visible y enlazado por aria-describedby. */
+.pulso-f6-compartir-motivo {
+  margin: var(--pulso-space-2) 0 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* Paso de confirmación antes de escribir. */
+.pulso-f6-compartir-confirmar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: start;
+  width: 100%;
+  margin-top: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-compartir-confirmar > svg {
+  margin-top: 2px;
+}
+
+.pulso-f6-compartir-confirmar-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-compartir-confirmar-texto strong {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-compartir-confirmar-texto small {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pulso-f6-compartir-confirmar-acciones {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulso-f6-compartir-dialogo {
+    transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+  }
+
+  @starting-style {
+    .pulso-f6-compartir-dialogo {
+      opacity: 0;
+    }
+  }
+}

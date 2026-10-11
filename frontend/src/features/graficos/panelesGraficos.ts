@@ -49,6 +49,20 @@ export const PANEL_ICONOS: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/** Plan portátil (C11) desde el menú ⋯ de Láminas: exportar, inspeccionar y aplicar el paquete (decisión 10). */
+export const PANEL_PLAN_PORTATIL: PanelDeclarado = {
+  id: "plan-portatil",
+  label: "Plan portátil",
+  clase: "dialogo",
+};
+
+/** Exportar o importar el plan por secciones en JSON (C12) desde el menú ⋯ de Láminas (decisión 10). */
+export const PANEL_SECCIONES_JSON: PanelDeclarado = {
+  id: "secciones-json",
+  label: "Exportar o importar secciones",
+  clase: "dialogo",
+};
+
 export const PANELES_GRAFICOS = [
   PANEL_BIBLIOTECA_SLIDES,
   PANEL_BIBLIOTECA_GRAFICADORES,
@@ -60,4 +74,6 @@ export const PANELES_GRAFICOS = [
   PANEL_GUIAS_LAMINA,
   PANEL_ARMAR_DESDE,
   PANEL_ICONOS,
+  PANEL_PLAN_PORTATIL,
+  PANEL_SECCIONES_JSON,
 ] as const satisfies readonly PanelDeclarado[];
