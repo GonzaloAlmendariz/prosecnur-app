@@ -150,12 +150,38 @@
 
 # ---- el bloque (recetario.R:238-317) ----------------------------------------
 
+# Umbral de base chica del estándar (`reglas$base_chica` de estandar_pulso.json: «con menos de 30 casos, todas las
+# filas del bloque dicen "x de y"», D12).
+.LAM_BASE_CHICA_N <- 30
+
+#' ¿La especificación tiene base chica? Una sola respuesta para la lámina entera, en filas o en bloque
+#'
+#' Se mira la especificación ENTERA, no la parte de una partición: si una fila tiene menos de 30 casos, todas las
+#' filas de todas sus láminas («(cont.)» incluida) dicen «x de y». Una fila sin casos (n = 0 o `NA`) no cuenta: no
+#' tiene base que señalar.
+#' TODO(base ponderada): `espec$filas$n` es hoy la suma de pesos cuando la base tiene peso, no el n sin ponderar;
+#' ver docs/qa/hallazgo-base-ponderada-2026-10-10.md (S1–S4, I1). Se resuelve aparte.
+#' @keywords internal
+.lam_base_chica <- function(espec) {
+  n <- suppressWarnings(as.numeric(espec$filas$n))
+  any(is.finite(n) & n > 0 & n < .LAM_BASE_CHICA_N)
+}
+
+#' «x de y» de una fila, o `NULL` si la fila no tiene base o casos que decir (nunca «NA de NA»)
+#' @keywords internal
+.lam_casos_texto <- function(caja, espec, i) {
+  x <- suppressWarnings(as.numeric(caja$casos[i])); y <- suppressWarnings(as.numeric(espec$filas$n[i]))
+  if (!length(x) || !length(y) || !is.finite(x) || !is.finite(y) || y <= 0) return(NULL)
+  sprintf("%d de %d", as.integer(round(x)), as.integer(round(y)))
+}
+
 .lam_etiqueta_box <- function(lz, espec, x, yb, g, i, con_n, caja = espec$box, color = .std_color("verde_top_two_box"),
                               w = 1.5, prefijo = "box") {
-  .lam_txt(lz, caja$cifras[i], x, yb + (g - 0.32) / 2 - (if (con_n) 0.1 else 0), w, 0.32, .std_pt("cifra"), color,
+  casos <- if (isTRUE(con_n)) .lam_casos_texto(caja, espec, i) else NULL
+  .lam_txt(lz, caja$cifras[i], x, yb + (g - 0.32) / 2 - (if (!is.null(casos)) 0.1 else 0), w, 0.32, .std_pt("cifra"), color,
            bold = TRUE, align = "center", nombre = paste0(prefijo, ":cifra"))
-  if (con_n) .lam_txt(lz, sprintf("%d de %d", as.integer(caja$casos[i]), as.integer(espec$filas$n[i])), x, yb + g / 2 + 0.06,
-                      w, 0.24, .std_pt("n"), .std_color("texto_tenue"), align = "center", nombre = paste0(prefijo, ":casos"))
+  if (!is.null(casos)) .lam_txt(lz, casos, x, yb + g / 2 + 0.06, w, 0.24, .std_pt("n"), .std_color("texto_tenue"), align = "center",
+                                nombre = paste0(prefijo, ":casos"))
 }
 
 #' Columnas de los box en el bloque de premisas: dónde va cada una y cuánto mide la barra
@@ -229,7 +255,7 @@
     return(invisible(yb + g))
   }
 
-  hay_chica <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) isTRUE(fl$valid < 30), TRUE)), TRUE))
+  hay_chica <- .lam_base_chica(espec)   # la especificación entera, no la parte (estándar `base_chica`)
   wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
   g <- geo$g; fila <- geo$fila; gap <- geo$gap
   WB <- if (ttb_col) cb$ancho_barra else W - MR - L$x_barra - 0.3
@@ -306,10 +332,13 @@
   g <- g %||% .std_grosor(length(filas), "escala_apilada")
   chica <- any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE))
   fila <- max(fila %||% 0, g + (if (chica) .std_geom("aire_cifra_chica") else 0.2))
+  base_chica <- .lam_base_chica(espec)   # la especificación entera: todas las filas dicen «x de y» (estándar `base_chica`)
+  con_respuestas <- isTRUE(espec$filas_respuestas)
   yh <- y
   if (!is.null(pregunta) && nzchar(pregunta)) {
-    .lam_txt(lz, pregunta, x - 0.1, y, w, 0.34, .std_pt("pregunta"), azul, bold = TRUE, nombre = "pregunta")
-    yh <- y + 0.42
+    # La caja crece con las líneas de la pregunta; la letra no encoge.
+    .lam_txt(lz, pregunta, x - 0.1, y, w, .lam_filas_pregunta_caja(pregunta, w), .std_pt("pregunta"), azul, bold = TRUE, nombre = "pregunta")
+    yh <- y + .lam_filas_pregunta_alto(pregunta, w)
   }
   for (k in seq_along(cols)) {
     xc <- xb + wb + 0.1 + (k - 1) * wcol
@@ -321,12 +350,23 @@
     es_tot <- isTRUE(espec$filas$es_total[i])
     paso <- .lam_filas_paso(espec, i, fila, wlab); yb <- yy + (paso - g) / 2
     lab <- espec$filas$rotulo[i]; hl <- .lam_alto_txt(lab, wlab, .std_pt("actor"), TRUE)
-    .lam_txt(lz, lab, x, yb + (g - hl) / 2, wlab, hl, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
+    if (con_respuestas) {   # el público y sus respuestas, como junto a la barra de la lámina 216
+      .lam_txt(lz, lab, x, yb + g / 2 - 0.25, wlab, 0.3, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
+      .lam_txt(lz, paste(format(as.integer(espec$filas$n[i]), big.mark = ","), "respuestas"), x, yb + g / 2, wlab, 0.26, .std_pt("n"),
+               .std_color("texto_tenue"), align = "right", nombre = "respuestas")
+    } else {
+      .lam_txt(lz, lab, x, yb + (g - hl) / 2, wlab, hl, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
+    }
     .lam_barra_apilada(lz, xb, yb, wb, .lam_escala_seg(espec, i), g)
     for (k in seq_along(cols)) {
       xc <- xb + wb + 0.1 + (k - 1) * wcol
-      .lam_txt(lz, cols[[k]]$b$cifras[i], xc, yb + (g - 0.3) / 2, wcol, 0.3, .std_pt("cifra"), cols[[k]]$color,
-               bold = TRUE, align = "center", nombre = if (k == 1) "box:cifra" else "box2:cifra")
+      if (base_chica) {   # la misma etiqueta que el bloque, en la columna de 1.25 in
+        .lam_etiqueta_box(lz, espec, xc, yb, g, i, con_n = TRUE, caja = cols[[k]]$b, color = cols[[k]]$color, w = wcol,
+                          prefijo = if (k == 1) "box" else "box2")
+      } else {
+        .lam_txt(lz, cols[[k]]$b$cifras[i], xc, yb + (g - 0.3) / 2, wcol, 0.3, .std_pt("cifra"), cols[[k]]$color,
+                 bold = TRUE, align = "center", nombre = if (k == 1) "box:cifra" else "box2:cifra")
+      }
     }
     if (es_tot) .lam_caja(lz, x, yb + g + 0.08, w, 0.008, .std_color("filete"), nombre = "filete:total")
     yy <- yy + paso + (if (es_tot) 0.22 else 0)
@@ -399,8 +439,23 @@
   wb <- w - wlab - 0.12 - ncol * 1.25 - (if (ncol) 0.15 else 0)
   g <- .std_grosor(length(filas), "escala_apilada")
   chica <- any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE))
+  # Con base chica el «x de y» baja 0.30 in del centro de la barra y la cifra de la fila siguiente sube 0.26 in del
+  # suyo: hace falta un paso de 0.56 in. La partición nunca deja más de siete filas por parte (ocho a 0.58 in no
+  # caben en `.lam_filas_disponible()`, 4.52 in), así que el paso mínimo es 0.38 + 0.2 = 0.58 in y alcanza; con la
+  # Total, seis filas (barra de 0.44 in) y su filete cae justo bajo los casos. No hace falta agrandar la fila.
   list(g = g, fila = g + (if (chica) .std_geom("aire_cifra_chica") else 0.2))
 }
+
+#' Caja de la pregunta de la forma en filas: una línea (0.34 in) o lo que pidan sus líneas a la letra del estándar
+#' @keywords internal
+.lam_filas_pregunta_caja <- function(pregunta, w) max(0.34, .lam_alto_tinta(pregunta, w, .std_pt("pregunta"), TRUE)[[1]])
+#' Alto que la pregunta le quita a la parte (caja y aire hasta las cabeceras de los box)
+#' @keywords internal
+.lam_filas_pregunta_alto <- function(pregunta, w) {
+  if (is.null(pregunta) || !nzchar(pregunta)) return(0)
+  max(0.42, .lam_filas_pregunta_caja(pregunta, w) + 0.08)
+}
+.lam_filas_ancho <- function() .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
 
 #' Alto de una parte hecha de bloques (pregunta opcional, cabecera de columnas, filas y aire de la Total)
 #' @keywords internal
@@ -408,7 +463,7 @@
   filas <- unlist(lapply(bloques, `[[`, "filas"))
   geo <- .lam_filas_geo(espec, filas)
   sum(vapply(bloques, function(b) {
-    (if (!is.null(b$pregunta) && nzchar(b$pregunta)) 0.42 else 0) + 0.3 +
+    .lam_filas_pregunta_alto(b$pregunta, .lam_filas_ancho()) + 0.3 +
       sum(vapply(b$filas, function(i) .lam_filas_paso(espec, i, geo$fila), 0)) +
       0.22 * sum(espec$filas$es_total[b$filas])
   }, 0)) + 0.2 * (length(bloques) - 1L)
