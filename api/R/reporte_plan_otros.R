@@ -12,7 +12,7 @@
 #
 # `reporte_plan_ppt.R` (congelado) sólo resuelve los datos de cada gráfico y llama
 # a `.otros_insertar_plan()` y a `.otros_laminas()`. Sigue opt-in
-# (`auto_otros_slides = FALSE` por defecto). El Word no la lleva.
+# (`auto_otros_slides = FALSE` por defecto). El Word la lleva como tabla de dos bloques: `reporte_word_otros.R`.
 
 .OTROS_MINIMO <- 5L          # H46: sólo con 5 o más respuestas en la pregunta
 .OTROS_FILAS <- 12L          # filas de una línea por columna (~24 por lámina)
@@ -161,7 +161,7 @@
       meta = list(auto_otros = TRUE, antetitulo = .OTROS_ANTETITULO, source = info$source, parent_var = info$parent_var,
                   text_var = info$text_var, kind = info$kind %||% "open_text_otros", chunk = i, chunks = length(paginas))
     )
-    slide$slots$otros <- list(items = pg, n_max = max(items$n), total = total)
+    slide$slots$otros <- list(items = pg, n_max = max(items$n), total = total, pregunta = pregunta)   # `pregunta`: el rótulo de la tabla del Word (reporte_word_otros.R)
     slide
   })
 }

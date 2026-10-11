@@ -3367,6 +3367,8 @@ mount_graficos <- function(pr) {
       if (length(opciones_documento)) args_word$opciones_documento <- opciones_documento
       estilo_cliente <- .graficos_estilo_cliente_resolver(sid, cfg)   # logos (rutas) y letra K13; igual, sólo si hay
       if (length(estilo_cliente)) args_word$estilo_cliente <- estilo_cliente
+      # Decisión 21: la tabla «Otros» del recetario Word sigue la misma opción del proyecto que el PPT; sólo viaja encendida.
+      if (isTRUE(.graficos_delivery_options(cfg)$auto_otros_slides)) args_word$auto_otros_slides <- TRUE
 
       job_id <- job_submit(
         sid = sid,

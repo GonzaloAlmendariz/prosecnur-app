@@ -84,7 +84,7 @@
   hay_bottom <- any(vapply(render_meta, function(e) {
     esp <- attr(e$plot_word, "pulso_espec"); is.list(esp) && !is.null(esp$box2)
   }, TRUE))
-  con_tablas <- any(vapply(render_meta, function(e) identical(e$kind, "technical_table"), TRUE))
+  con_tablas <- any(vapply(render_meta, function(e) isTRUE(e$kind %in% c("technical_table", "otros_tabla")), TRUE))
 
   # B55: los PNG de cada figura (y la copia que officer hace al insertarlos) viven en tempdir() hasta que print(doc)
   # empaqueta el docx; se borran al salir, también si algo falla antes.
@@ -150,6 +150,7 @@
       else avisar("La tabla técnica «", e$title %||% "", "» no trae filas y no entra al Word.")
       next
     }
+    if (identical(kind, "otros_tabla")) { doc <- .word_otros_tabla(doc, tabla, e); tabla <- tabla + 1L; next }   # decisión 21: reporte_word_otros.R
     if (!identical(kind, "chart")) next
     # Un gráfico es un resultado: si todavía no hay capítulo de resultados (plan sin secciones, o gráficos antes de la
     # primera), primero va «Cómo leer» y después un capítulo «Resultados» (verificador de N8.15).
