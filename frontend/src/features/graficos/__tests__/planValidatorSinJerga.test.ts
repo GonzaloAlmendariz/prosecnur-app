@@ -1,8 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import type { Slide, SlideMetadata } from "../../../api/graficos";
 import { humanizeGraficosExportError } from "../humanizeExportError";
 import { nombreTipoLamina, rotuloLamina, tituloDeLamina } from "../rotuloLamina";
-import { validarPlan, type EntradaValidarPlan } from "../usePlanValidator";
+import { nombrePaleta, validarPlan, type EntradaValidarPlan } from "../usePlanValidator";
 import type { VarWithSource } from "../useVariables";
 
 // Contrato de los avisos del validador del plan (B-g, parte frontend): hablan de la lámina por su número y su título,
@@ -18,7 +19,7 @@ function meta(titulo_humano: string, slots: string[], slot_specs?: SlideMetadata
 }
 
 const variables: VarWithSource[] = [
-  { name: "p1", label: "Satisfacción", tipo: "select_one", seccion: "", list_name: "acuerdo5", source: "docentes" },
+  { name: "p1", label: "Satisfacción", tipo: "select_one", seccion: "", list_name: "lst_p31", source: "docentes" },
   { name: "p2", label: "Edad", tipo: "select_one", seccion: "", list_name: "edad", source: "docentes" },
   { name: "p7", label: "Turno", tipo: "select_one", seccion: "", list_name: "turno", source: "docentes" },
   { name: "sexo", label: "Sexo", tipo: "select_one", seccion: "", list_name: "sexo", source: "docentes" },
@@ -39,7 +40,7 @@ function entrada(parcial: Partial<EntradaValidarPlan> = {}): EntradaValidarPlan 
     presets: { p_barras_simples: { ancho_barra: -3 } },
     wPresets: { chart_presets: { p_barras_simples: { ancho_barra: 50 } } },
     overridesReusables: [{ nombre: "Compacto", tipo_preset: "p_barras_simples", args: { ancho_barra: "x" } }],
-    paletas: { acuerdo5: { a: "#1E3A8A", b: "#1D4ED8", c: "#2563EB", d: "#3B82F6" } },
+    paletas: { lst_p31: { a: "#1E3A8A", b: "#1D4ED8", c: "#2563EB", d: "#3B82F6" } },
     iconos: [{ id: "icono_vigente" }],
     slidesById: {
       p_slide_portada: meta("Portada", []),
@@ -72,6 +73,9 @@ const JERGA: [string, RegExp][] = [
   ["«(slide …)»", /\(slide /i],
   ["voseo", /\b(Subí|Elegí|Revisá|Cargá|Probá|Volvé|Hacé|Usá|Tocá|Agregá|Seleccioná|Cambiá|Poné|Dejá|Mirá|Guardá|Configurá|Activá|Escribí|Abrí|Fijate|tenés|podés|querés)(?![\p{L}])/iu],
   ["«icono» sin tilde", /\bicono\b/i],
+  ["«export» en inglés", /\bexport\b/i],
+  ["envoltura de callr", /! in callr|Caused by error|callr/i],
+  ["list_name interno", /\blst_\w+/],
 ];
 
 function jergaEn(texto: string, ids: readonly string[]): string[] {
@@ -150,7 +154,7 @@ describe("textos reescritos del validador", () => {
 
   test("paleta monocromática", () => {
     expect(porCodigo("paleta-monocromatica")).toEqual([
-      "Paleta de «acuerdo5»: los colores son muy parecidos entre sí. En barras apiladas cuesta distinguir las categorías.",
+      "La paleta de «Satisfacción»: los colores son muy parecidos entre sí. En barras apiladas cuesta distinguir las categorías.",
     ]);
   });
 });
@@ -182,6 +186,9 @@ describe("errores de exportación humanizados: sin jerga", () => {
     "La slide 'p_slide_objetivo_icono' requiere un icono",
     "'icono' debe ser un ppt_element",
     "cannot open file 'x.png'",
+    "La lámina «Objetivo con ícono» requiere un ícono. Elige un PNG en Configuración global > Íconos.",
+    "! in callr subprocess. Caused by error: ! Base 'estudiantes': modo='var_cruce': cuando `vars` es lista, debe ser una lista nombrada.",
+    "! in callr subprocess. Caused by error: ! objeto `foo_bar` inesperado en p_slide_x(slide_ab12cd34ef56)",
   ];
 
   test.each(crudos)("%s", (crudo) => {
@@ -195,5 +202,61 @@ describe("errores de exportación humanizados: sin jerga", () => {
     const h = humanizeGraficosExportError("object 'p999' not found", plan);
     expect(h.message).toBe("La variable «p999» no existe en los datos cargados (usada en Lámina 2 · “Satisfacción con el curso”).");
     expect(h.slideRef).toEqual({ id: ID_LARGO, label: "Lámina 2 · “Satisfacción con el curso”" });
+  });
+});
+
+describe("errores de exportación: casos reescritos", () => {
+  const conGrupos = {
+    slides: [
+      ...slides,
+      { id: "slide_grupos_7777", tipo: "p_slide_1_grafico", payload: { titulo: "Comparación por tema", grafico: { graficador: "p_barras_multiapiladas", args: { modo: "var_cruce", vars: ["p1", "p2"], cruces: "sexo" } } } },
+    ],
+  } as unknown as Parameters<typeof humanizeGraficosExportError>[1];
+  const CALLR_EN_VIVO = "! in callr subprocess. Caused by error: ! Base 'estudiantes': modo='var_cruce': cuando `vars` es lista, debe ser una lista nombrada.";
+
+  test("grupos de preguntas sin tema (visto en vivo): lenguaje llano, lámina culpable y crudo aparte", () => {
+    const h = humanizeGraficosExportError(CALLR_EN_VIVO, conGrupos);
+    expect(h.message).toBe("Lámina 6 · “Comparación por tema”: un gráfico de la base «estudiantes» compara grupos de preguntas, pero los grupos quedaron sin el nombre de su tema.");
+    expect(h.slideRef?.id).toBe("slide_grupos_7777");
+    expect(h.detalle).toBe(CALLR_EN_VIVO);
+  });
+
+  test("lo que no se reconoce no se muestra crudo: va en `detalle`", () => {
+    const crudo = "! in callr subprocess. Caused by error: ! algo raro en `p_dim_x()`";
+    const h = humanizeGraficosExportError(`[E_INTERNAL] ${crudo}`, conGrupos);
+    expect(h.message).toBe("No se pudo generar el informe. Revisa la lámina indicada o vuelve a intentarlo; el detalle quedó en el registro.");
+    expect(h.message).not.toContain("callr");
+    expect(h.detalle).toBe(crudo);
+  });
+
+  test("ícono requerido: reconoce el texto actual del backend y el viejo", () => {
+    const nuevo = humanizeGraficosExportError("La lámina «Objetivo con ícono» requiere un ícono. Elige un PNG en Configuración global > Íconos.", conGrupos);
+    expect(nuevo.message).toBe("Una lámina «Objetivo con ícono» necesita un ícono.");
+    const viejo = humanizeGraficosExportError("La slide 'p_slide_objetivo_icono' requiere un icono", conGrupos);
+    expect(viejo.message).toBe("Una lámina «Objetivo con ícono» necesita un ícono.");
+  });
+});
+
+describe("paleta: se nombra por la pregunta, no por la lista interna", () => {
+  test("una, varias o ninguna pregunta", () => {
+    const vars = [
+      { name: "p31", label: "<b>Confianza</b> en la institución", list_name: "lst_p31" },
+      { name: "p32", label: "Confianza en el gobierno", list_name: "lst_p31" },
+      { name: "p33", label: "Confianza en la prensa", list_name: "lst_p31" },
+    ];
+    expect(nombrePaleta("lst_p31", vars.slice(0, 1))).toBe("La paleta de «Confianza en la institución»");
+    expect(nombrePaleta("lst_p31", vars)).toBe("La paleta de «Confianza en la institución» (y 2 preguntas más)");
+    expect(nombrePaleta("lst_p31", [])).toBe("Una paleta de colores que ya no usa ninguna pregunta");
+  });
+});
+
+describe("salud del plan: sin «export» en inglés", () => {
+  test("ningún texto visible de PlanHealthBadge dice «export»", () => {
+    const fuente = readFileSync(new URL("../PlanHealthBadge.tsx", import.meta.url), "utf8")
+      .replace(/^\s*\/\/.*$/gm, "")
+      .replace(/^import .*$/gm, "");
+    const literales = [...fuente.matchAll(/"([^"\n]*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2] ?? "");
+    const conExport = literales.filter((t) => /\bexport\b/i.test(t) || /\bslides?\b/i.test(t));
+    expect(conExport).toEqual([]);
   });
 });

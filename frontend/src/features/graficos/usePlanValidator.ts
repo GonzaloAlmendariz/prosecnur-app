@@ -226,12 +226,14 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
   }
 
   // 4) Paletas monocromáticas ---------------------------------------------
+  // La paleta se guarda por lista de respuestas (`lst_p31`), que es un nombre interno del formulario: el aviso la
+  // nombra por la pregunta que la usa; `listName` sigue aparte para el editor de paletas.
   for (const [listName, paleta] of Object.entries(paletas)) {
     if (isMonochromaticPalette(paleta)) {
       issues.push({
         severity: "warning",
         code: "paleta-monocromatica",
-        message: `Paleta de «${listName}»: los colores son muy parecidos entre sí. En barras apiladas cuesta distinguir las categorías.`,
+        message: `${nombrePaleta(listName, variables)}: los colores son muy parecidos entre sí. En barras apiladas cuesta distinguir las categorías.`,
         listName,
       });
     }
@@ -248,6 +250,20 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
 }
 
 // --- Helpers internos --------------------------------------------------
+
+/** «La paleta de «Satisfacción»» (y cuántas preguntas más la comparten), por la etiqueta visible de la pregunta. */
+export function nombrePaleta(listName: string, variables: readonly Pick<VarWithSource, "name" | "label" | "list_name">[]): string {
+  const etiquetas: string[] = [];
+  for (const v of variables) {
+    if (v.list_name !== listName) continue;
+    const etiqueta = (v.label || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim() || v.name;
+    if (etiqueta && !etiquetas.includes(etiqueta)) etiquetas.push(etiqueta);
+  }
+  if (!etiquetas.length) return "Una paleta de colores que ya no usa ninguna pregunta";
+  const primera = etiquetas[0].length > 80 ? `${etiquetas[0].slice(0, 79).trimEnd()}…` : etiquetas[0];
+  const resto = etiquetas.length - 1;
+  return `La paleta de «${primera}»${resto ? ` (y ${resto} ${resto === 1 ? "pregunta más" : "preguntas más"})` : ""}`;
+}
 
 function humanizeSlot(slot: string): string {
   const map: Record<string, string> = {

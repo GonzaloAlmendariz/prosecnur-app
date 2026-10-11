@@ -48,14 +48,14 @@ export function PlanHealthBadge() {
       ? `${warnings.length} aviso${warnings.length === 1 ? "" : "s"}`
       : "Plan listo";
   const headline = errors.length > 0
-    ? "Export bloqueado"
+    ? "Exportación bloqueada"
     : warnings.length > 0
       ? "Plan con avisos"
       : "Plan listo";
   const detail = errors.length > 0
     ? "Corrige las láminas señaladas antes de generar el PowerPoint o el Word."
     : warnings.length > 0
-      ? "El export está habilitado, pero conviene revisar estas señales."
+      ? "Se puede exportar, pero conviene revisar estas señales."
       : "Sin errores ni avisos detectados.";
   const pillLabel = total === 0
     ? "Limpio"
@@ -63,9 +63,9 @@ export function PlanHealthBadge() {
       ? `${total} temas`
       : label;
   const triggerTitle = !canExport
-    ? "El plan tiene errores que bloquean el export"
+    ? "El plan tiene errores que impiden exportar"
     : warnings.length > 0
-      ? "Validación del plan: export habilitado con avisos"
+      ? "Validación del plan: se puede exportar, con avisos"
       : "Validación del plan: listo para exportar";
 
   function handleJumpTo(issue: ValidationIssue) {
@@ -127,7 +127,7 @@ export function PlanHealthBadge() {
               {errors.length > 0 && (
                 <IssueGroup
                   title={`Errores (${errors.length})`}
-                  hint="Bloquean la exportación. Abre la lámina indicada y corrige lo que falta."
+                  hint="Impiden exportar. Abre la lámina indicada y corrige lo que falta."
                   issues={errors}
                   severity="error"
                   onJump={handleJumpTo}
@@ -136,7 +136,7 @@ export function PlanHealthBadge() {
               {warnings.length > 0 && (
                 <IssueGroup
                   title={`Avisos (${warnings.length})`}
-                  hint="No bloquean el export, pero conviene revisarlos."
+                  hint="No impiden exportar, pero conviene revisarlos."
                   issues={warnings}
                   severity="warning"
                   onJump={handleJumpTo}

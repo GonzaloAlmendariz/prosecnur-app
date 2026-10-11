@@ -23,11 +23,41 @@ export type HumanizedError = {
   message: string;
   hint?: string;
   slideRef?: { id: string; label: string };
+  /** El error tal como llegó del motor, para copiar o mandar a soporte; nunca es el texto principal. */
+  detalle?: string;
 };
 
 export function humanizeGraficosExportError(raw: string, plan: PlanJson): HumanizedError {
   // Quitar el prefijo legado "[E_CODE] " y el sufijo canónico " · E_CODE" del client.
-  const msg = raw.replace(/^\[[A-Z_]+\]\s*/, "").replace(/\s*·\s*(?:E_|HTTP_)[A-Z0-9_]+\s*$/, "");
+  const detalle = raw.replace(/^\[[A-Z_]+\]\s*/, "").replace(/\s*·\s*(?:E_|HTTP_)[A-Z0-9_]+\s*$/, "").trim();
+  return { ...humanizar(sinEnvolturaCallr(detalle), plan), ...(detalle ? { detalle } : {}) };
+}
+
+/**
+ * El worker `callr` envuelve el error real: «! in callr subprocess. Caused by error: ! Base 'x': …». Para reconocerlo
+ * hay que quedarse con la causa, sin los «!» de rlang.
+ */
+export function sinEnvolturaCallr(msg: string): string {
+  const causa = /Caused by error[^:]*:\s*([\s\S]*)$/i.exec(msg);
+  const texto = causa ? causa[1] : msg;
+  return texto.replace(/^\s*!\s*/gm, "").replace(/\s+/g, " ").trim();
+}
+
+function humanizar(msg: string, plan: PlanJson): HumanizedError {
+  // 0) Preguntas agrupadas por tema sin nombre de grupo ---------------------
+  // «Base 'estudiantes': modo='var_cruce': cuando `vars` es lista, debe ser una lista nombrada.» (también el radar en
+  // modo `box`): el gráfico compara grupos de preguntas y alguno quedó sin su tema.
+  const gruposSinNombre = /(?:Base ['"`]([^'"`]+)['"`]:\s*)?(?:[\w.]+\()?modo\s*=\s*['"`]?(\w+)['"`]?\)?:\s*cuando `?vars`? es lista, debe ser una lista nombrada/i.exec(msg);
+  if (gruposSinNombre) {
+    const base = gruposSinNombre[1] ? ` de la base «${gruposSinNombre[1]}»` : "";
+    const culprit = findSlideWithUnnamedGroups(plan, gruposSinNombre[2]);
+    const donde = culprit ? `${culprit.slideLabel}: un gráfico` : "Un gráfico";
+    return {
+      message: `${donde}${base} compara grupos de preguntas, pero los grupos quedaron sin el nombre de su tema.`,
+      hint: "Abre el gráfico y vuelve a armar los grupos de preguntas, poniéndole un tema a cada uno.",
+      slideRef: culprit ? { id: culprit.slideId, label: culprit.slideLabel } : undefined,
+    };
+  }
 
   // 1) argument "xxx" is missing ----------------------------------------
   const missingMatch = /argument "(\w+)" is missing, with no default/.exec(msg);
@@ -97,7 +127,9 @@ export function humanizeGraficosExportError(raw: string, plan: PlanJson): Humani
     };
   }
 
-  const iconRequiredMatch = /La slide ['"`]([^'"`]+)['"`] requiere un icono/i.exec(msg);
+  // El backend nombra la lámina por su tipo visible: «La lámina «Objetivo con ícono» requiere un ícono.»
+  // (router_graficos.R). Se acepta también la forma vieja «La slide 'p_slide_…' requiere un icono».
+  const iconRequiredMatch = /La (?:lámina|slide) [«'"`]([^»'"`]+)[»'"`] requiere un [ií]cono/i.exec(msg);
   if (iconRequiredMatch) {
     return {
       message: `Una lámina «${labelForSlideType(iconRequiredMatch[1])}» necesita un ícono.`,
@@ -120,11 +152,24 @@ export function humanizeGraficosExportError(raw: string, plan: PlanJson): Humani
     };
   }
 
-  // Fallback: mostrar el mensaje sin prefijo de código ------------------
+  // Fallback: nunca el error crudo como texto principal; va en `detalle` ----
   return {
-    message: msg,
-    hint: "Si el mensaje no es claro, el registro del servidor tiene el detalle completo.",
+    message: "No se pudo generar el informe. Revisa la lámina indicada o vuelve a intentarlo; el detalle quedó en el registro.",
+    hint: "Si se repite, copia el detalle técnico y envíalo a soporte.",
   };
+}
+
+function findSlideWithUnnamedGroups(plan: PlanJson, modo: string):
+  | { slideId: string; slideLabel: string }
+  | null {
+  for (const [indice, slide] of plan.slides.entries()) {
+    for (const v of Object.values(slide.payload as Record<string, unknown>)) {
+      if (isGraficadorRef(v) && v.args?.modo === modo && Array.isArray(v.args?.vars)) {
+        return { slideId: slide.id, slideLabel: rotuloLamina(slide, indice) };
+      }
+    }
+  }
+  return null;
 }
 
 function findSlideWithMissingArg(plan: PlanJson, argName: string):
@@ -179,6 +224,7 @@ function isGraficadorRef(v: unknown): v is GraficadorRef {
   return !!v && typeof v === "object" && "graficador" in (v as object);
 }
 
+/** El backend nuevo ya manda el nombre visible («Objetivo con ícono»); el viejo, el tipo interno `p_slide_*`. */
 function labelForSlideType(tipo: string): string {
-  return nombreTipoLamina(tipo);
+  return /^p_slide_/.test(tipo) ? nombreTipoLamina(tipo) : tipo;
 }
