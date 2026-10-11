@@ -52,32 +52,69 @@
   list(var = var, list_name = ln, recode = recode)
 }
 
-# Reescribe `${var} = 'x'`, `${var} != 'x'` y `selected(${var}, 'x')`. Devuelve
-# NULL si queda alguna referencia a ${var} que no sea de esas formas.
-.carga_sm_orden_reescribir_expr <- function(expr, var, recode) {
+# Reescribe la lógica que cita los códigos de `var` (checklist ítem 12). Formas
+# reconocidas, con comillas simples o dobles:
+#
+#   ${var} = 'x'   ${var} != 'x'   'x' = ${var}   'x' != ${var}
+#   selected(${var}, 'x')
+#
+# y, sin depender del código (se dejan tal cual): `count-selected(${var})`,
+# `string-length(${var})` y las comparaciones con la cadena vacía.
+#
+# `propia = TRUE` cuando la expresión es el constraint o el relevant de la
+# fila de `var`: ahí `.` es la propia variable y valen las mismas formas con
+# `.` (`selected(., 'x')`, `. = 'x'`, `count-selected(.)`…).
+#
+# Devuelve NULL si queda alguna referencia a la variable en una forma que no
+# es ninguna de esas (p. ej. `${var} > 2`, `${var} = 1` sin comillas, un
+# `choice_filter` que la compara con otra columna): nunca reescribe a ciegas.
+.carga_sm_orden_reescribir_expr <- function(expr, var, recode, propia = FALSE) {
   if (is.na(expr) || !nzchar(expr)) return(expr)
-  ref <- paste0("${", var, "}")
-  if (!grepl(ref, expr, fixed = TRUE)) return(expr)
   v <- gsub("([.\\\\|()\\[\\]{}^$*+?])", "\\\\\\1", var, perl = TRUE)
-  pat_cmp <- paste0("(\\$\\{", v, "\\}\\s*!?=\\s*)'([^']*)'")
-  pat_sel <- paste0("(selected\\(\\s*\\$\\{", v, "\\}\\s*,\\s*)'([^']*)'(\\s*\\))")
-  n_refs <- lengths(regmatches(expr, gregexpr(paste0("\\$\\{", v, "\\}"), expr)))
-  n_ok <- lengths(regmatches(expr, gregexpr(pat_cmp, expr, perl = TRUE))) +
-    lengths(regmatches(expr, gregexpr(pat_sel, expr, perl = TRUE)))
-  if (n_refs != n_ok) return(NULL)
-  sustituir <- function(x, pat, grupo) {
+  ref_var <- paste0("\\$\\{", v, "\\}")
+  # `.` suelto: ni decimal, ni `..`, ni ruta, ni dentro de un literal pegado.
+  ref_punto <- "(?<![\\w.}/'\"$])\\.(?![\\w./'\"])"
+  ref <- if (isTRUE(propia)) paste0("(?:", ref_var, "|", ref_punto, ")") else ref_var
+  hay_ref <- function(x) grepl(ref, x, perl = TRUE)
+  if (!hay_ref(expr)) return(expr)
+
+  lit <- "('[^']*'|\"[^\"]*\")"
+  # Conserva la comilla del literal; solo cambia el código de adentro.
+  recodificar <- function(literal) {
+    comilla <- substr(literal, 1L, 1L)
+    viejo <- substr(literal, 2L, nchar(literal) - 1L)
+    nuevo <- if (viejo %in% names(recode)) recode[[viejo]] else viejo
+    paste0(comilla, nuevo, comilla)
+  }
+  # Cada forma reconocida se aparta en un marcador para que la siguiente no la
+  # vuelva a leer y para contar después si quedó alguna referencia suelta.
+  apartados <- character(0)
+  apartar <- function(x, pat, construir) {
     m <- gregexpr(pat, x, perl = TRUE)
-    regmatches(x, m) <- list(vapply(regmatches(x, m)[[1]], function(trozo) {
+    if (m[[1]][1] == -1L) return(x)
+    trozos <- regmatches(x, m)[[1]]
+    marcas <- vapply(trozos, function(trozo) {
       partes <- regmatches(trozo, regexec(pat, trozo, perl = TRUE))[[1]]
-      viejo <- partes[grupo + 1L]
-      nuevo <- if (viejo %in% names(recode)) recode[[viejo]] else viejo
-      if (grupo == 2L && length(partes) == 3L) paste0(partes[2], "'", nuevo, "'")
-      else paste0(partes[2], "'", nuevo, "'", partes[4])
-    }, character(1)))
+      apartados[[length(apartados) + 1L]] <<- construir(partes)
+      paste0("\001", length(apartados), "\001")
+    }, character(1), USE.NAMES = FALSE)
+    regmatches(x, m) <- list(marcas)
     x
   }
-  expr <- sustituir(expr, pat_cmp, 2L)
-  sustituir(expr, pat_sel, 2L)
+  sel <- paste0("(selected\\(\\s*", ref, "\\s*,\\s*)", lit, "(\\s*\\))")
+  cmp <- paste0("(", ref, "\\s*!?=\\s*)", lit)
+  inv <- paste0(lit, "(\\s*!?=\\s*", ref, ")")
+  neutra <- paste0("(?:count-selected|string-length)\\(\\s*", ref, "\\s*\\)")
+
+  x <- apartar(expr, neutra, function(p) p[1])
+  x <- apartar(x, sel, function(p) paste0(p[2], recodificar(p[3]), p[4]))
+  x <- apartar(x, cmp, function(p) paste0(p[2], recodificar(p[3])))
+  x <- apartar(x, inv, function(p) paste0(recodificar(p[2]), p[3]))
+  if (hay_ref(x)) return(NULL)
+  for (i in rev(seq_along(apartados))) {
+    x <- gsub(paste0("\001", i, "\001"), apartados[[i]], x, fixed = TRUE)
+  }
+  x
 }
 
 # model: salida de `sm_api_xlsform`. maps: mapas del formulario del editor de
@@ -119,11 +156,16 @@
     usan <- as.character(survey$name)[grepl(paste0("^select_(one|multiple)\\s+", ln, "$"), trimws(as.character(survey$type)))]
     nuevo_survey <- survey
     ok <- TRUE
+    nombres <- as.character(nuevo_survey$name)
     for (cc in expr_cols) {
       col <- as.character(nuevo_survey[[cc]])
+      # `.` es la propia variable solo en su constraint o su relevant.
+      admite_punto <- cc %in% c("constraint", "relevant")
       for (v in usan) {
-        col <- vapply(col, function(e) {
-          out <- .carga_sm_orden_reescribir_expr(e, v, entrada$recode)
+        col <- vapply(seq_along(col), function(i) {
+          e <- col[[i]]
+          propia <- admite_punto && identical(nombres[[i]], v)
+          out <- .carga_sm_orden_reescribir_expr(e, v, entrada$recode, propia = propia)
           if (is.null(out)) { ok <<- FALSE; return(e) }
           out
         }, character(1), USE.NAMES = FALSE)

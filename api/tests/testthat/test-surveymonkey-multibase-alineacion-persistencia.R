@@ -840,10 +840,10 @@ test_that("import independiente: la fuente con el consentimiento redactado disti
   expect_equal(fue$n_excluidas_consentimiento, 1L)
 })
 
-# Supuesto de `.sm_mb_consent_yes`: acepta el código «1» como sí. Si el editor
-# reordena la lista del consentimiento (No = 1, Sí = 2), la fuente adicional no
-# se ve afectada (su consentimiento se evalúa con los códigos de la plataforma),
-# pero la principal sí: es preexistente y queda declarado en el checklist.
+# El «sí» del consentimiento lo decide la etiqueta de la opción en el
+# instrumento que codificó la respuesta, no el código «1» (checklist ítem 14):
+# con la lista reordenada en el editor (No = 1, Sí = 2) ni la fuente adicional
+# ni la principal descartan a quien consintió.
 test_that("consentimiento reordenado en el editor: la fuente adicional se evalúa con sus códigos", {
   ref <- .smp_ref()
   fuente <- .smp_fuente()
@@ -860,8 +860,7 @@ test_that("consentimiento reordenado en el editor: la fuente adicional se evalú
   expect_equal(unique(as.character(out[[consent]])), "2")
 })
 
-test_that("consentimiento reordenado en el editor: la fuente principal (preexistente, ver checklist)", {
-  skip("Preexistente (checklist codificación SM 2026-10-11): `.sm_mb_consent_yes` toma «1» como sí aunque el editor haya puesto «No» = 1.")
+test_that("consentimiento reordenado en el editor: la fuente principal conserva a quien consintió (ítem 14)", {
   ref <- .smp_ref()
   inst_clave <- .smp_inst(ref)
   consent <- .smp_var(inst_clave, "¿Desea continuar?")
@@ -1229,4 +1228,179 @@ test_that("decision_apply renueva la marca: un mapeo confirmado no recodifica do
   expect_equal(base2$sm_alineacion_fuentes, base$sm_alineacion_fuentes)
   expect_equal(base2$choice_order_editor$receta, base$choice_order_editor$receta)
   expect_length(base2$choice_order_editor$receta, 2L)
+})
+
+# =============================================================================
+# 10. El «sí» del consentimiento se decide por la etiqueta (checklist ítem 14)
+# =============================================================================
+
+.smp_mapas_consent_invertido <- function(inst_clave) {
+  consent <- .smp_var(inst_clave, "¿Desea continuar?")
+  list(list(variable = consent, type = "select_one", list_name = paste0("lst_", consent), mappings = list(
+    .smp_item("1", "Sí", "2"), .smp_item("2", "No", "1"))))
+}
+
+# Encuesta cuya PLATAFORMA trae «No» primero: su código 1 es «No».
+.smp_ref_no_primero <- function(survey_id = "REFN", etiquetas = c("No", "Sí, deseo continuar")) {
+  .smp_details(survey_id, "Egresados No primero", list(
+    .smp_single("a1", "¿Desea continuar?", etiquetas),
+    .smp_open("a2", "¿Cuántos años tiene?"),
+    .smp_single("a3", "¿Cuál es su género?", .SMP_GENEROS)
+  ))
+}
+
+test_that("etiquetas afirmativas: sí, acepto, de acuerdo, deseo continuar; nunca las que empiezan por «no»", {
+  si <- c("Sí", "si", "SI", "Acepto", "Sí, acepto", "De acuerdo", "Estoy de acuerdo",
+          "Sí, deseo continuar", "Autorizo", "Yes", "I agree", "Deseo continuar")
+  no <- c("No", "No acepto", "No deseo continuar", "No estoy de acuerdo", "Rechazo", "",
+          "1", "Prefiero no responder", "Sigo sin saber")
+  expect_true(all(.sm_consent_etiqueta_afirmativa(si)), info = paste(si[!.sm_consent_etiqueta_afirmativa(si)], collapse = ", "))
+  expect_false(any(.sm_consent_etiqueta_afirmativa(no)), info = paste(no[.sm_consent_etiqueta_afirmativa(no)], collapse = ", "))
+})
+
+test_that("principal reordenada: se queda quien dijo «Sí» (código 2), sale quien dijo «No», y se declara el criterio", {
+  ref <- .smp_ref()
+  inst_clave <- .smp_inst(ref)
+  consent <- .smp_var(inst_clave, "¿Desea continuar?")
+  inst <- .smp_inst(ref, .smp_mapas_consent_invertido(inst_clave))
+  responses <- list(
+    .smp_response(ref, "si1", list(a1 = "Sí", a2 = list(text = "28"))),
+    .smp_response(ref, "no1", list(a1 = "No"))
+  )
+  out <- sm_multibase_api_responses_to_canonical_data(details = ref, responses = responses, inst = inst, survey_id = "REF")
+  expect_equal(as.character(out$response_id), "si1")
+  expect_equal(as.character(out[[consent]]), "2")
+  filtro <- attr(out, "sm_response_filter", exact = TRUE)
+  expect_equal(filtro$consent_yes_criterio, "etiqueta")
+  expect_equal(unlist(filtro$consent_positive_values), "2")
+  expect_equal(filtro$consent_excluded_rows, 1L)
+})
+
+test_that("principal con «No» primero en la plataforma (sin editor): «Sí, deseo continuar» = 2 se conserva", {
+  ref <- .smp_ref_no_primero()
+  inst <- .smp_inst(ref)
+  responses <- list(
+    .smp_response(ref, "si1", list(a1 = "Sí, deseo continuar", a3 = "Femenino")),
+    .smp_response(ref, "no1", list(a1 = "No"))
+  )
+  out <- sm_multibase_api_responses_to_canonical_data(details = ref, responses = responses, inst = inst, survey_id = "REFN")
+  expect_equal(as.character(out$response_id), "si1")
+})
+
+test_that("fuente adicional con la lista del consentimiento invertida: se evalúa por etiqueta en su instrumento", {
+  ref <- .smp_ref()
+  fuente <- .smp_details("FUEN", "Egresados Telefónico No primero", list(
+    .smp_single("f1", "¿Desea continuar?", c("No", "Sí")),
+    .smp_open("f2", "¿Cuántos años tiene?"),
+    .smp_single("f3", "¿Cuál es su género?", .SMP_GENEROS, other = TRUE),
+    .smp_multiple("f4", "¿Qué servicios usa?", .SMP_SERVICIOS, other = TRUE),
+    .smp_matrix("f5", "Evalúe los servicios", c("Biblioteca", "Comedor"), c("Malo", "Bueno"))
+  ))
+  responses <- list(
+    .smp_response(fuente, "fs1", list(f1 = "Sí", f2 = list(text = "33"), f3 = "Masculino")),
+    .smp_response(fuente, "fn1", list(f1 = "No"))
+  )
+  inst_clave <- .smp_inst(ref)
+  inst_base <- .smp_inst(ref, .smp_mapas_consent_invertido(inst_clave))
+  out <- .sm_mb_codificar_fuente(details_fuente = fuente, responses = responses, inst_base = inst_base,
+                                 survey_id = "FUEN", inst_clave_base = inst_clave)
+  expect_equal(as.character(out$response_id), "fs1")
+  expect_equal(attr(out, "sm_consentimiento", exact = TRUE)$n_excluidas, 1L)
+  expect_equal(attr(out, "sm_response_filter", exact = TRUE)$consent_yes_criterio, "etiqueta")
+})
+
+test_that("fuente adicional vacía y fuente excluida no se ven afectadas por el criterio del consentimiento", {
+  ref <- .smp_ref()
+  inst_base <- .smp_inst(ref)
+  vacia <- .sm_mb_codificar_fuente(details_fuente = .smp_fuente(), responses = list(), inst_base = inst_base,
+                                   survey_id = "FUE")
+  expect_equal(NROW(vacia), 0L)
+  otra <- .sm_mb_codificar_fuente(details_fuente = .smp_otra(), responses = .smp_responses_otra(),
+                                  inst_base = inst_base, survey_id = "OTRA")
+  expect_true(.sm_mb_fuente_es_otro_instrumento(otra))
+})
+
+test_that("lista sin etiquetas: respaldo en el código «1» y lo declara", {
+  inst <- list(
+    survey = data.frame(type = c("select_one lst_c", "text"), name = c("p1", "p2"),
+                        label = c("¿Desea continuar con la encuesta?", "Edad"), stringsAsFactors = FALSE),
+    choices = data.frame(list_name = c("lst_c", "lst_c"), name = c("1", "2"), stringsAsFactors = FALSE)
+  )
+  df <- data.frame(response_id = c("a", "b", "c"), p1 = c("1", "2", "1"), p2 = c("20", "30", "40"),
+                   stringsAsFactors = FALSE)
+  out <- .sm_mb_filter_effective_consent_df(df, inst, response_filter = list(), consent_var = "p1")
+  expect_equal(out$response_id, c("a", "c"))
+  filtro <- attr(out, "sm_response_filter", exact = TRUE)
+  expect_equal(filtro$consent_yes_criterio, "respaldo_codigo_1")
+  expect_equal(filtro$consent_yes_motivo, "sin_etiquetas")
+
+  # Etiquetas sin ninguna afirmativa: también respaldo, con su motivo.
+  inst$choices$label <- c("Seguir", "Salir")
+  out2 <- .sm_mb_filter_effective_consent_df(df, inst, response_filter = list(), consent_var = "p1")
+  expect_equal(out2$response_id, c("a", "c"))
+  expect_equal(attr(out2, "sm_response_filter", exact = TRUE)$consent_yes_motivo, "sin_etiqueta_afirmativa")
+})
+
+test_that("una base sin consentimiento no cambia: ni filtro ni criterio", {
+  inst <- list(
+    survey = data.frame(type = c("select_one lst_g", "text"), name = c("p1", "p2"),
+                        label = c("¿Cuál es su género?", "Edad"), stringsAsFactors = FALSE),
+    choices = data.frame(list_name = c("lst_g", "lst_g"), name = c("1", "2"),
+                         label = c("Masculino", "Femenino"), stringsAsFactors = FALSE)
+  )
+  df <- data.frame(response_id = c("a", "b"), p1 = c("1", "2"), p2 = c("20", "30"),
+                   response_status = "completed", stringsAsFactors = FALSE)
+  out <- .sm_mb_filter_effective_consent_df(df, inst, response_filter = list(kept_rows = 2L))
+  expect_equal(out$response_id, c("a", "b"))
+  expect_identical(attr(out, "sm_response_filter", exact = TRUE), list(kept_rows = 2L))
+
+  policy <- .sm_mb_default_decision_policy(list(), inst)
+  expect_equal(policy$consent_var, "")
+  decided <- .sm_mb_decision_apply_df(df, inst, policy)
+  expect_equal(decided$decision_included, c("1", "1"))
+  expect_equal(attr(decided, "sm_decision_audit", exact = TRUE)$consent_yes_criterio, "")
+})
+
+test_that("la política de decisiones juzga el consentimiento reordenado por etiqueta, no por el «1» de sus valores", {
+  ref <- .smp_ref()
+  inst_clave <- .smp_inst(ref)
+  consent <- .smp_var(inst_clave, "¿Desea continuar?")
+  inst <- .smp_inst(ref, .smp_mapas_consent_invertido(inst_clave))
+  df <- data.frame(response_id = c("si", "no"), case_uid = c("REF:si", "REF:no"),
+                   response_status = "completed", stringsAsFactors = FALSE)
+  df[[consent]] <- c("2", "1")
+  policy <- .sm_mb_default_decision_policy(list(), inst)
+  policy$consent_var <- consent
+  expect_true("1" %in% unlist(policy$consent_yes_values))
+  decided <- .sm_mb_decision_apply_df(df, inst, policy)
+  # Devuelve solo las incluidas.
+  expect_equal(decided$response_id, "si")
+  expect_equal(decided$decision_class, "efectiva")
+  audit <- attr(decided, "sm_decision_audit", exact = TRUE)
+  expect_equal(audit$consent_yes_criterio, "etiqueta")
+  expect_equal(audit$completed_with_consent, 1L)
+})
+
+test_that("conteo de filas nuevas del refresh: consentimiento por etiqueta en cada fuente, sin red", {
+  ref <- .smp_ref_no_primero("REFN", c("No", "Sí"))
+  fuente <- .smp_details("FUEN", "Telefónico", list(
+    .smp_open("f0", "Indique su código PUCP"),
+    .smp_single("f1", "¿Desea continuar?", c("No", "Sí")),
+    .smp_open("f2", "¿Cuántos años tiene?")
+  ))
+  details <- list(REFN = ref, FUEN = fuente)
+  responses <- list(
+    REFN = list(.smp_response(ref, "r_si", list(a1 = "Sí")), .smp_response(ref, "r_no", list(a1 = "No"))),
+    FUEN = list(.smp_response(fuente, "f_si", list(f0 = list(text = "2015"), f1 = "Sí")),
+                .smp_response(fuente, "f_no", list(f1 = "No")))
+  )
+  restores <- .smp_network_mocks(function() details, function() responses)
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  spec <- list(survey_id = "REFN", response_statuses = list("completed"), sources = list(
+    list(survey_id = "REFN", response_statuses = list("completed")),
+    list(survey_id = "FUEN", response_statuses = list("completed"))
+  ))
+  refs <- .sm_mb_fetch_filtered_response_refs(spec, token = "smp-token-efimero", inst = .smp_inst(ref))
+  ids <- vapply(refs$responses, function(x) x$response_id, "")
+  expect_setequal(ids, c("r_si", "f_si"))
 })

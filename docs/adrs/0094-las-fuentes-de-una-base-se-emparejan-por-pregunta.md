@@ -92,8 +92,9 @@ Medido con los datos reales (2026-10-11), juntando la versión telefónica a la 
   par. Si son la misma pregunta, la vía es base separada + Equivalencias, que es donde se declara una
   equivalencia; la fuente adicional no la infiere.
 - El modo «Unificar bases compatibles» (instrumento guía con reconciliación propia) queda fuera de este ADR.
-- Pendiente: el conteo de filas nuevas del plan de refresh (`.sm_mb_fetch_filtered_response_refs`) sigue
-  filtrando el consentimiento de cada fuente por la posición de la variable; afecta al conteo, no a la data.
+- El conteo de filas nuevas del plan de refresh (`.sm_mb_fetch_filtered_response_refs`) evalúa el
+  consentimiento de cada fuente distinta de la principal en SU instrumento generado, como la data
+  (decisión 8), y ya no por la posición de la variable de la base (checklist, ítem 14).
 - Límite de la clave: dos matrices con las mismas filas y la misma escala solo se distinguen por el ordinal;
   si una fuente las trae en orden invertido, se emparejan cruzadas.
 
@@ -107,5 +108,11 @@ Medido con los datos reales (2026-10-11), juntando la versión telefónica a la 
 
 ## Notas
 
-- Preexistente, fuera de este ADR: `.sm_mb_consent_yes` toma «1» como sí; si el editor reordena la lista del
-  consentimiento, la encuesta principal descarta a quien consintió (checklist, ítem 14).
+- El «sí» del consentimiento se decide por la ETIQUETA de la opción en el instrumento que codificó la
+  respuesta (`api/R/surveymonkey_consentimiento.R`), no por el código «1»: con la lista reordenada en el
+  editor (No = 1) o con «No» primero en la plataforma, ni la principal ni una fuente adicional descartan a
+  quien consintió. Vale en el filtro de la data, en la política de decisiones (los códigos de la lista los
+  decide su etiqueta; las palabras de la política siguen valiendo para valores sin código) y en el conteo
+  del refresh. Si la lista no trae etiquetas, o ninguna es afirmativa, cae al código «1» y lo declara en el
+  filtro de respuestas (`consent_yes_criterio = "respaldo_codigo_1"`, `consent_yes_motivo`). El rechazo
+  (`rejection_values`) no cambia (checklist, ítem 14).

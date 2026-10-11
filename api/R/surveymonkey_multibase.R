@@ -1368,7 +1368,8 @@ sm_multibase_collectors <- function(survey_id,
     return(df)
   }
   before_values <- df[[consent_var]]
-  keep <- .sm_mb_consent_yes(before_values)
+  # El «sí» lo decide la etiqueta en el instrumento que codificó la data (ítem 14).
+  keep <- .sm_consent_si(before_values, .sm_consent_opciones_inst(inst, consent_var))
   out <- df[keep, , drop = FALSE]
   response_filter <- .sm_mb_filter_info_apply_consent(
     response_filter,
@@ -1376,6 +1377,7 @@ sm_multibase_collectors <- function(survey_id,
     after_values = out[[consent_var]],
     consent_var = consent_var
   )
+  response_filter <- .sm_consent_declarar(response_filter, attr(keep, "criterio"))
   if ("response_status" %in% names(out)) {
     response_filter$kept_status_counts <- .sm_mb_count_values(out$response_status)
   }
@@ -1427,12 +1429,17 @@ sm_multibase_collectors <- function(survey_id,
     inst = inst,
     consent_var = consent_var
   )
-  keep <- .sm_mb_consent_yes(values)
+  keep <- .sm_consent_si(values, .sm_consent_opciones_spec(.sm_consent_spec_var(details, consent_var)))
+  crit <- attr(keep, "criterio")
+  keep <- as.vector(keep)
   list(
     responses = responses[keep],
     filter = list(
       consent_var = consent_var,
       consent_required = TRUE,
+      consent_yes_criterio = crit$criterio,
+      consent_yes_motivo = crit$motivo,
+      consent_yes_codes = as.list(crit$codigos_si),
       consent_values_before = as.list(values),
       consent_values_after = as.list(values[keep]),
       original_consent_counts = .sm_mb_count_values(values),
@@ -2387,8 +2394,15 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   consent_var <- .sm_mb_scalar(policy$consent_var, "")
   consent_values <- if (nzchar(consent_var) && consent_var %in% names(df)) as.character(df[[consent_var]]) else rep("", nrow(df))
   consent_available <- nzchar(consent_var) && consent_var %in% names(df)
+  # Los códigos de la lista los decide su etiqueta en `inst` (ítem 14); las
+  # palabras de la política (si, acepto…) siguen valiendo para valores sin código.
+  consent_politica <- if (consent_available) {
+    .sm_consent_valores_politica(policy$consent_yes_values, .sm_consent_opciones_inst(inst, consent_var))
+  } else {
+    list(valores = character(0), criterio = list())
+  }
   consent_yes <- if (consent_available) {
-    .sm_mb_values_match(consent_values, policy$consent_yes_values %||% character())
+    .sm_mb_values_match(consent_values, consent_politica$valores)
   } else {
     rep(TRUE, nrow(df))
   }
@@ -2465,6 +2479,8 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
     answerable_required_max = as.integer(max(completion$answerable, na.rm = TRUE)),
     near_complete_cases = as.integer(sum(near_complete, na.rm = TRUE)),
     consent_var = consent_var,
+    consent_yes_criterio = .sm_mb_scalar(consent_politica$criterio$criterio, ""),
+    consent_yes_motivo = .sm_mb_scalar(consent_politica$criterio$motivo, ""),
     rejection_var = rejection_var,
     consent_available = isTRUE(consent_available),
     duplicate_key_vars = as.list(dup$key_vars),
@@ -3433,11 +3449,21 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     )
     filter_info <- attr(filtered, "sm_response_filter", exact = TRUE) %||% list()
     if (!is.null(source_details) && !is.null(inst)) {
+      # Una fuente distinta de la principal se juzga en SU instrumento generado,
+      # como en la data (ADR 0094, decisión 8): la variable de la base, por
+      # posición, puede ser otra pregunta en la fuente.
+      principal <- identical(source_id, .sm_mb_scalar(spec$survey_id, source_id))
+      inst_consent <- if (principal) inst else tryCatch(.sm_mb_inst_generado(source_details), error = function(e) NULL)
+      consent_var_fuente <- if (principal || is.null(inst_consent)) {
+        source_consent_var
+      } else {
+        .sm_mb_alin_consent_fuente(inst_consent, source_consent_var, character(0))
+      }
       consent <- .sm_mb_filter_raw_responses_by_consent(
         filtered,
         source_details,
-        inst,
-        consent_var = source_consent_var
+        inst_consent %||% inst,
+        consent_var = consent_var_fuente
       )
       filtered <- consent$responses
       if (isTRUE(consent$filter$consent_required)) {
@@ -3450,6 +3476,11 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
         filter_info$original_consent_counts <- consent$filter$original_consent_counts %||% list()
         filter_info$kept_consent_counts <- consent$filter$kept_consent_counts %||% list()
         filter_info$consent_excluded_rows <- consent$filter$consent_excluded_rows %||% 0L
+        filter_info$consent_yes_criterio <- consent$filter$consent_yes_criterio %||% ""
+        filter_info$consent_yes_motivo <- consent$filter$consent_yes_motivo %||% ""
+        if (identical(filter_info$consent_yes_criterio, .SM_CONSENT_CRITERIO_ETIQUETA)) {
+          filter_info$consent_positive_values <- consent$filter$consent_yes_codes %||% list()
+        }
         filter_info$kept_status_counts <- .sm_mb_response_count_map(filtered, "response_status")
       }
     }
