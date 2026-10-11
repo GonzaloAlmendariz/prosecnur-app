@@ -71,7 +71,7 @@
 .word_g_sino <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   p1 <- espec$largos[1] * 100; rot <- espec$rotulos[1:2]
-  n <- espec$n[1:2]; et <- ifelse(is.finite(n), sprintf("%s (%s)", rot, format(n, big.mark = ",", trim = TRUE)), rot)
+  n <- .espec_casos(espec)[1:2]; et <- ifelse(is.finite(n), sprintf("%s (%s)", rot, format(n, big.mark = ",", trim = TRUE)), rot)
   d <- data.frame(x0 = c(0, p1), x1 = c(p1, 100), k = factor(rot, levels = rot))
   g <- ggplot2::ggplot(d) + ggplot2::geom_rect(ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = 0, ymax = 1, fill = .data$k)) +
     ggplot2::scale_fill_manual(values = stats::setNames(c(T$navy, T$celeste), rot)) +

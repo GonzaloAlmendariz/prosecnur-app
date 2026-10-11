@@ -173,6 +173,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
     ),
     error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
   )
+  for (m in graficos_avisos_ponderacion_mazo(slides_r, readRDS(rp_data_path))) .pulso_aviso(m)   # D-b/D-c (S1–S4): en el job, no en la vista previa
   report("export", percent = 96, message = "Guardando PPTX...")
   list(path = result_path, n_slides = .graficos_laminas_entregadas(result_path, length(slides_r)))
 }
@@ -230,6 +231,7 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
       )),
       error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
     )
+    for (m in graficos_avisos_ponderacion_mazo(slides_r, stats::setNames(list(all_data[[base]]), base))) .pulso_aviso(sprintf("%s: %s", base, m))
     results[[i]] <- list(nombre = base, filename = info$filename,
                          n_slides = .graficos_laminas_entregadas(out_path, length(slides_r)))
   }
