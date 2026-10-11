@@ -25,14 +25,14 @@ describe("ListaColores", () => {
   });
   it("sin decisiones: todo «Del recetario» y ningún «Volver al recetario»", () => {
     const html = pintar({});
-    expect(html.match(/Del recetario/g)).toHaveLength(2);
-    expect(html).not.toContain("Volver al recetario");
+    expect(html.match(/Por defecto/g)).toHaveLength(2);
+    expect(html).not.toContain("Volver al color por defecto");
   });
   it("con una decisión: «Propio» y su botón con nombre propio (mutante: botón en todas las filas)", () => {
     const html = pintar({ Trato: "#101010" });
     expect(html.match(/is-propio/g)).toHaveLength(1);
-    expect(html.match(/aria-label="Volver al recetario en «Trato»"/g)).toHaveLength(1);
-    expect(html).not.toContain("Volver al recetario en «Acceso»");
+    expect(html.match(/aria-label="Volver al color por defecto en «Trato»"/g)).toHaveLength(1);
+    expect(html).not.toContain("Volver al color por defecto en «Acceso»");
     expect(html).toContain("#101010");
   });
   it("sin series el vacío vive en la fila (C3) y no dibuja muestras", () => {

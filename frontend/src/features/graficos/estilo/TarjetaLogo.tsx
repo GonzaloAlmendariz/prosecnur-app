@@ -59,7 +59,7 @@ export function TarjetaLogo({
           <img src={downloadUrl(logo.file_id)} alt={`Logo ${logo.nombre ?? "propio"} en ${titulo.toLowerCase()}`} />
         ) : (
           <p className="pulso-f6-estilo-logo-vacio">
-            {recetario?.nombre ? <>El recetario pone el logo de <strong>{recetario.nombre}</strong>.</> : "El recetario pone su logo."}
+            {recetario?.nombre ? <>Por defecto: <strong>{recetario.nombre}</strong>.</> : "Por defecto lleva el logo de la plantilla."}
           </p>
         )}
       </div>
@@ -99,7 +99,7 @@ export function TarjetaLogo({
           {subiendo ? "Subiendo…" : propio ? "Reemplazar PNG" : "Subir PNG"}
         </PulsoButton>
         {propio ? (
-          <PulsoButton variant="ghost" size="sm" onClick={onQuitar} aria-label={`Volver al logo del recetario en ${titulo.toLowerCase()}`}>
+          <PulsoButton variant="ghost" size="sm" onClick={onQuitar} aria-label={`Volver al logo por defecto en ${titulo.toLowerCase()}`}>
             <RotateCcw size={14} aria-hidden="true" />
             Volver al recetario
           </PulsoButton>

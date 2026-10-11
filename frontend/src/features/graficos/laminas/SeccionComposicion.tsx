@@ -80,7 +80,7 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
               <span>{o.label}</span>
               {o.detalle && <small>{o.detalle}</small>}
               {o.valor === variantes.defecto && (
-                <span className="pulso-f6-chip pulso-f6-sello-recetario" title="La que el motor usa si no eliges otra">Del recetario</span>
+                <span className="pulso-f6-chip pulso-f6-sello-recetario" title="La que se usa si no eliges otra">Por defecto</span>
               )}
             </label>
           ))}
@@ -89,20 +89,14 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
               <Lock size={14} aria-hidden="true" />
               <span>
                 {variante === "focos"
-                  ? "Sale con el estilo de focos de la ruta anterior, que el recetario no dibuja. Elige una composición para pasar al recetario."
-                  : "Sale con una composición que el recetario no ofrece. Elige una para fijarla."}
+                  ? "Usa un estilo antiguo. Elige una de estas composiciones."
+                  : "Usa una composición que ya no está disponible. Elige una de estas."}
               </span>
             </p>
           )}
         </fieldset>
       )}
 
-      {comp.fuente !== "estructura" && (
-        <p className="pulso-f6-candado">
-          <Lock size={14} aria-hidden="true" />
-          <span>Lo fija el recetario: dónde va cada ranura y lo que ocupa el gráfico adentro. Para otro reparto, cambia de lámina.</span>
-        </p>
-      )}
 
       <button type="button" className="pulso-f6-boton pulso-f6-composicion-cambiar" onClick={onCambiarLamina}>
         <LayoutTemplate size={15} aria-hidden="true" />

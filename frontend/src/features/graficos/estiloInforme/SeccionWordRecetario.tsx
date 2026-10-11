@@ -4,7 +4,6 @@
 // su maqueta de espacios: lo demás que guardaba no llega al Word del recetario.
 
 import { useId } from "react";
-import { LineaFijadaRecetario } from "../LineaFijadaRecetario";
 import { SelloProcedencia } from "../estilo/SelloProcedencia";
 import { CabeceraSeccion } from "./CabeceraSeccion";
 import type { BloqueFijado, OpcionWord } from "./modeloEstiloInforme";
@@ -32,13 +31,9 @@ export function SeccionWordRecetario({
         id={tituloId}
         titulo="Word"
         modificado={opcion.procedencia === "propio" && !motivoNoEditable}
-        etiquetaVolver="Volver a la opción del Word del recetario"
+        etiquetaVolver="Volver a la opción por defecto del Word"
         onVolver={() => onOpcion(opcion.porDefecto)}
       />
-      <p className="pulso-f6-informe-ayuda">
-        El Word sale del recetario. Aquí queda lo único que se decide; lo demás lo fija el recetario y se muestra con su
-        valor.
-      </p>
 
       <div className="pulso-f6-informe-nota">
         <input
@@ -57,22 +52,7 @@ export function SeccionWordRecetario({
       </div>
       {motivoNoEditable ? <p id={motivoId} className="pulso-f6-informe-motivo" role="note">{motivoNoEditable}</p> : null}
 
-      {estado ? (
-        <p className="pulso-f6-informe-estado" role="status">{estado}</p>
-      ) : bloques.length === 0 ? (
-        <p className="pulso-f6-informe-estado" role="status">El recetario no fija ajustes del Word en ningún tipo de gráfico.</p>
-      ) : (
-        <div className="pulso-f6-informe-fijados" data-qa-geometry-group="graficos/f6-estilo-informe-word-fijados" data-qa-geometry-contract="intrinsic">
-          {bloques.map((bloque) => (
-            <section key={bloque.preset} className="pulso-f6-informe-fijado-bloque" aria-label={`Lo fija el recetario en ${bloque.titulo}`} data-qa-geometry-member>
-              <h4 className="pulso-f6-informe-subtitulo">{bloque.titulo}</h4>
-              {bloque.lineas.map((l) => (
-                <LineaFijadaRecetario key={l.fijado.arg} fijado={l.fijado} meta={l.meta} guardado={l.guardado} />
-              ))}
-            </section>
-          ))}
-        </div>
-      )}
+      {estado ? <p className="pulso-f6-informe-estado" role="status">{estado}</p> : null}
     </section>
   );
 }

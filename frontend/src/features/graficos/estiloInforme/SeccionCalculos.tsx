@@ -101,8 +101,8 @@ function TablaCalculos({ filas, acciones, titulo }: { filas: readonly FilaCalcul
                         variant="icon"
                         size="sm"
                         onClick={() => acciones.onVolverFila(fila)}
-                        aria-label={`Volver al recetario en ${fila.titulo}`}
-                        title="Volver al recetario"
+                        aria-label={`Volver al valor por defecto en ${fila.titulo}`}
+                        title="Volver al valor por defecto"
                       >
                         <RotateCcw size={14} aria-hidden="true" />
                       </PulsoButton>
@@ -141,7 +141,7 @@ export function SeccionCalculos({
         id={tituloId}
         titulo="Cálculos"
         modificado={modificado}
-        etiquetaVolver="Volver a los cálculos del recetario"
+        etiquetaVolver="Volver a los cálculos por defecto"
         onVolver={acciones.onVolverTodo}
       />
       <p className="pulso-f6-informe-ayuda">

@@ -73,7 +73,7 @@ export const SUGERIDAS_PALETAS: PaletasPorCantidad = {
     { label: "Pulso frecuencias", description: "Azules y gris para frecuencias o distribución.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris] },
   ],
   4: [
-    { label: "Pulso aprobación", description: "La rampa de cuatro pasos del recetario.", ordinal: true, colors: [L.desacuerdoFuerte, L.desacuerdo, L.acuerdo, L.acuerdoFuerte] },
+    { label: "Pulso aprobación", description: "Rampa de cuatro pasos, de desacuerdo a acuerdo.", ordinal: true, colors: [L.desacuerdoFuerte, L.desacuerdo, L.acuerdo, L.acuerdoFuerte] },
     { label: "Pulso principal", description: "Cuatro categorías con fuerte presencia institucional.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo] },
     { label: "Pulso secundarios", description: "Soporte para categorías adicionales sin repetir principales.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario] },
   ],

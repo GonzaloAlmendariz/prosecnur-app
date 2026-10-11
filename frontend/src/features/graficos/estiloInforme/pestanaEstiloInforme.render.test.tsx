@@ -88,7 +88,7 @@ describe("PestanaEstiloInforme · markup", () => {
     expect(html).toContain('data-audit-ready="graficos-estilo-informe"');
     expect(html).toContain('data-qa-surface="graficos/f6-estilo-informe"');
     expect(html.match(/data-qa-scroll-owner=/g)).toHaveLength(1);
-    for (const grupo of ["f6-estilo-informe-secciones", "f6-estilo-informe-texto-base", "f6-estilo-informe-word-fijados"]) {
+    for (const grupo of ["f6-estilo-informe-secciones", "f6-estilo-informe-texto-base"]) {
       expect(html).toContain(`data-qa-geometry-group="graficos/${grupo}"`);
     }
     // Cinco secciones: texto de la base, cálculos, línea visual, paletas, Word.
@@ -103,27 +103,20 @@ describe("PestanaEstiloInforme · markup", () => {
     const html = pintar();
     expect(html).toContain('data-audit-ready="false"');
     // El vacío vive en su sección (C3): la tabla de cálculos cede su lugar a un estado.
-    expect(html).toContain("Cargando el catálogo del recetario");
+    expect(html).toContain("Cargando…");
   });
 
   it("sellos «Propio» donde hay decisión y «Del recetario» en lo demás", () => {
     const html = pintar();
     // Sufijo propio, método de apiladas propio, línea visual aplicada, paletas con color.
     expect(html.match(/pulso-f6-estilo-sello is-propio/g)).toHaveLength(4);
-    expect(html).toContain("Del recetario");
+    expect(html).toContain("Por defecto");
     expect(html).toContain("Base: 120 docentes");
-    expect(html).toContain('aria-label="Volver al recetario en sufijo del conteo"');
-    expect(html).toContain('aria-label="Volver al recetario en Barras apiladas"');
+    expect(html).toContain('aria-label="Volver al valor por defecto en sufijo del conteo"');
+    expect(html).toContain('aria-label="Volver al valor por defecto en Barras apiladas"');
     expect(html).toContain("1 lista con colores propios");
   });
 
-  it("el Word muestra el candado del recetario, no los ajustes que no llegan", () => {
-    const html = pintar();
-    expect(html).toContain("Lo fija el recetario");
-    expect(html).toContain('data-arg-state="fijado"');
-    expect(html).toContain("8 pt");
-    expect(html).not.toContain("pulso-gv2-word-presets"); // no envuelve WordPresetsEditor
-  });
 
   it("en el informe compartido sigue habilitada; sólo la opción del Word queda deshabilitada con su motivo", () => {
     const html = pintar("?pestana=estilo-informe&scope=consolidado");

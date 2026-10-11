@@ -115,7 +115,7 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
     label: "Composición de la portada",
     defecto: "centrada",
     opciones: [
-      { valor: "centrada", label: "Centrada", detalle: "Lámina 23 del recetario" },
+      { valor: "centrada", label: "Centrada", detalle: undefined },
       { valor: "izquierda", label: "Alineada a la izquierda", detalle: "Lámina 24" },
       { valor: "banda", label: "Banda al pie", detalle: "Lámina 25" },
     ],
@@ -126,7 +126,7 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
     label: "Ilustración del índice",
     defecto: "arcos",
     opciones: [
-      { valor: "arcos", label: "Arcos", detalle: "Lámina 31 del recetario" },
+      { valor: "arcos", label: "Arcos", detalle: undefined },
       { valor: "facetas", label: "Facetas" },
       { valor: "circulos", label: "Círculos" },
       { valor: "bloques", label: "Bloques" },
@@ -148,7 +148,7 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
     label: "Composición del cierre",
     defecto: "contraportada",
     opciones: [
-      { valor: "contraportada", label: "Contacto al pie", detalle: "Lámina 65 del recetario" },
+      { valor: "contraportada", label: "Contacto al pie", detalle: undefined },
       { valor: "banda_azul", label: "Banda azul al pie", detalle: "Lámina 61" },
       { valor: "banda_clara", label: "Banda clara al pie", detalle: "Lámina 62" },
       { valor: "contacto", label: "Contacto bajo el logo", detalle: "Lámina 63" },

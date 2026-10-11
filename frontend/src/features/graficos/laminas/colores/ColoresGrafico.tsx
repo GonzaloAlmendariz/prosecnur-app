@@ -80,8 +80,8 @@ function FilaColor({ fila, idDesc, onElegir }: { fila: ColorDeSerie; idDesc: str
         <button
           type="button"
           className="pulso-f6-icono-boton"
-          aria-label={`Volver al recetario en «${nombre}»`}
-          title="Volver al recetario"
+          aria-label={`Volver al color por defecto en «${nombre}»`}
+          title="Volver al valor por defecto"
           onClick={() => onElegir(nombre, null)}
         >
           <RotateCcw size={14} aria-hidden="true" />

@@ -123,12 +123,6 @@ export function DetalleTipoLamina(props: Props) {
         </fieldset>
       )}
 
-      {comp.fuente !== "estructura" && (
-        <p className="pulso-f6-nota">
-          <Lock size={14} aria-hidden="true" />
-          <span>Lo fija el recetario: dónde va cada ranura y lo que ocupa el gráfico adentro.</span>
-        </p>
-      )}
 
       {ranurasMedibles.length > 0 && (
         <details className="pulso-f6-medidas">

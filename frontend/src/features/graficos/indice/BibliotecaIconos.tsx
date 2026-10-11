@@ -150,7 +150,7 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
                 <span className="pulso-f6-icono-muestra"><AlertTriangle size={18} aria-hidden="true" /></span>
                 <span className="pulso-f6-icono-texto">
                   <strong>El actual: {actual}</strong>
-                  <small>No está en la biblioteca del recetario; el motor lo busca entre los anteriores o avisa.</small>
+                  <small>No está en la biblioteca de íconos.</small>
                 </span>
               </label>
             )}
@@ -166,7 +166,7 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
             </p>
           ) : iconos.nombres === null ? (
             <p className="pulso-f6-iconos-estado" role="status">
-              <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> Leyendo la biblioteca del recetario…
+              <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> Cargando íconos…
             </p>
           ) : filtrados.length === 0 ? (
             <p className="pulso-f6-iconos-estado" role="status">Ningún ícono se llama así. Prueba con otra palabra.</p>

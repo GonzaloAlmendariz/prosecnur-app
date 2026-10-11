@@ -100,11 +100,11 @@ export function estadoDeLamina(lamina: LaminaVisor): EstadoSalida | null {
 }
 
 export const ETIQUETA_ESTADO: Record<EstadoSalida, string> = {
-  nativa: "Nativa",
-  estructura: "Nativa",
-  ruta_anterior: "Ruta anterior",
+  nativa: "Editable",
+  estructura: "Editable",
+  ruta_anterior: "Como imagen",
   sin_grafico: "Sin gráfico",
-  marco: "Marco",
+  marco: "Editable",
 };
 
 /**
@@ -114,19 +114,19 @@ export const ETIQUETA_ESTADO: Record<EstadoSalida, string> = {
 export function motivoDeEstado(estado: EstadoSalida | null, motorNativoApagado: boolean, hayAvisos = false): string {
   switch (estado) {
     case "nativa":
-      return "El motor la dibuja con formas nativas de PowerPoint: se puede editar en el archivo.";
+      return "Se puede editar en PowerPoint.";
     case "estructura":
-      return "Lámina de estructura dibujada por el motor con formas nativas.";
+      return "Se puede editar en PowerPoint.";
     case "ruta_anterior":
       return motorNativoApagado
-        ? "Elegiste la ruta anterior para esta lámina: el gráfico sale como imagen."
+        ? "Elegiste insertar el gráfico como imagen: no se puede editar en PowerPoint."
         : hayAvisos
-          ? "El motor no la dibujó con formas nativas y usó la ruta anterior: el gráfico sale como imagen. Los avisos dicen por qué."
-          : "El motor no la dibujó con formas nativas y usó la ruta anterior: el gráfico sale como imagen. No dejó un aviso que diga por qué.";
+          ? "Este gráfico sale como imagen y no se puede editar en PowerPoint. Los avisos dicen por qué."
+          : "Este gráfico sale como imagen y no se puede editar en PowerPoint.";
     case "sin_grafico":
-      return "La lámina no lleva gráfico: sólo texto o plantilla.";
+      return "La lámina no lleva gráfico.";
     case "marco":
-      return "El gráfico se dibuja aparte (nube de palabras, serie de varias mediciones) y la lámina lleva el título y el pie del recetario.";
+      return "El gráfico va como imagen dentro de la lámina; el título y el pie se pueden editar.";
     default:
       return "El motor no informó cómo salió esta lámina.";
   }

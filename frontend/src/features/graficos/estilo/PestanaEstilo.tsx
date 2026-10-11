@@ -79,7 +79,7 @@ export default function PestanaEstilo() {
     let vigente = true;
     apiGraficosEstiloOpciones()
       .then((o) => { if (vigente) setOpciones(o); })
-      .catch((error: unknown) => { if (vigente) setOpciones(null, mensajeDe(error, "No se pudo leer el catálogo del recetario.")); });
+      .catch((error: unknown) => { if (vigente) setOpciones(null, mensajeDe(error, "No se pudo leer el estilo por defecto.")); });
     return () => { vigente = false; };
   }, [motivoNoDisponible, opciones, setOpciones]);
 
@@ -150,13 +150,13 @@ export default function PestanaEstilo() {
                 <h3 id="f6-estilo-logos-titulo">Logos</h3>
                 <MarcaModificado visible={logosModificados(decisiones)} />
                 {logosModificados(decisiones) ? (
-                  <PulsoButton variant="ghost" size="sm" onClick={() => cambiar(sinLogos)} aria-label="Volver a los logos del recetario">
+                  <PulsoButton variant="ghost" size="sm" onClick={() => cambiar(sinLogos)} aria-label="Volver a los logos por defecto">
                     <RotateCcw size={14} aria-hidden="true" />
                     Volver al recetario
                   </PulsoButton>
                 ) : null}
               </header>
-              <p className="pulso-f6-estilo-ayuda">Sólo PNG, hasta 5 MB. Si un lugar no tiene logo propio, el Word usa el del recetario.</p>
+              <p className="pulso-f6-estilo-ayuda">Sólo PNG, hasta 5 MB. Si un lugar no tiene logo propio, el Word usa el de por defecto.</p>
               <div className="pulso-f6-estilo-logos" data-qa-geometry-group="graficos/f6-estilo-logos" data-qa-geometry-contract="equal">
                 {ESTILO_LUGARES_LOGO.map((lugar) => (
                   <TarjetaLogo

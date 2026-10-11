@@ -25,7 +25,7 @@ export function SeccionLineaVisual({ aplicada }: { aplicada: string | null }) {
         Deshacer; lo que cambies después en Cálculos o Paletas manda sobre ella.
       </p>
       {sinLineas ? (
-        <p className="pulso-f6-informe-estado" role="status">El catálogo del recetario no trae líneas visuales.</p>
+        <p className="pulso-f6-informe-estado" role="status">No hay líneas visuales disponibles.</p>
       ) : (
         <div className="pulso-f6-informe-incrustado">
           <PptStyleProfilesPanel />

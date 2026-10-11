@@ -95,9 +95,9 @@ export default function PestanaEstiloInforme() {
 
   const cargando = cargandoCatalogo || cargandoDefaults;
   const estadoCatalogo = cargandoCatalogo
-    ? "Cargando el catálogo del recetario…"
+    ? "Cargando…"
     : errorCatalogo
-      ? `No se pudo leer el catálogo del recetario: ${errorCatalogo}`
+      ? `No se pudo leer el estilo por defecto: ${errorCatalogo}`
       : undefined;
   const estadoCalculos = estadoCatalogo ?? (filas.length === 0 ? "Ningún tipo de gráfico del catálogo rotula porcentajes." : undefined);
 

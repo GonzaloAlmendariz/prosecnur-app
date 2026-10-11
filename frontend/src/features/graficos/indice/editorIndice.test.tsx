@@ -124,15 +124,15 @@ describe("E2 en Composición: se marca la que exporta el motor, con el sello «D
     // Mutante «varianteDe sin la composición efectiva»: quedaría marcada «Arcos» y se exportaría «Círculos».
     const html = pintarComposicion({ secciones: "A", iconos_focos: "lightbulb" });
     expect(opcion(html, "Círculos")).toContain('checked=""');
-    expect(opcion(html, "Círculos")).toContain("Del recetario");
+    expect(opcion(html, "Círculos")).toContain("Por defecto");
     expect(opcion(html, "Arcos")).not.toContain('checked=""');
-    expect(opcion(html, "Arcos")).not.toContain("Del recetario");
+    expect(opcion(html, "Arcos")).not.toContain("Por defecto");
   });
 
   it("sin focos, «Arcos» es la del recetario; «focos» declarado se explica y no marca ninguna", () => {
-    expect(opcion(pintarComposicion({}), "Arcos")).toContain("Del recetario");
+    expect(opcion(pintarComposicion({}), "Arcos")).toContain("Por defecto");
     const focos = pintarComposicion({ meta: { composicion: "focos" } });
     expect(focos).not.toContain('checked=""');
-    expect(focos).toContain("estilo de focos de la ruta anterior");
+    expect(focos).toContain("Usa un estilo antiguo");
   });
 });

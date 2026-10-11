@@ -121,7 +121,7 @@ describe("variantes", () => {
 
   it("toma las etiquetas del registro cuando las declara", () => {
     const v = variantesDe("p_slide_cierre", [{ value: "contraportada", label: "Contacto al pie (65)" }]);
-    expect(v?.opciones).toEqual([{ valor: "contraportada", label: "Contacto al pie (65)", detalle: "Lámina 65 del recetario" }]);
+    expect(v?.opciones).toEqual([{ valor: "contraportada", label: "Contacto al pie (65)" }]);
   });
 
   it("toda variante declarada incluye la de por defecto y tiene un dibujo distinto de las demás", () => {

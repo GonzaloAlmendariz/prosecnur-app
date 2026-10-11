@@ -45,9 +45,9 @@ export function salidaDe(nombre: string): SalidaGrafico {
 }
 
 export const ETIQUETA_SALIDA: Record<SalidaGrafico, { corto: string; largo: string }> = {
-  nativa: { corto: "Nativa", largo: "Sale como gráfico editable de PowerPoint, dibujado por el recetario." },
-  marco: { corto: "En el marco", largo: "La lámina es la del recetario y el gráfico va dibujado adentro como imagen." },
-  ruta_anterior: { corto: "Ruta anterior", largo: "No hay pieza del recetario para este gráfico: sale como imagen por la ruta anterior." },
+  nativa: { corto: "Editable", largo: "Sale como gráfico editable de PowerPoint." },
+  marco: { corto: "Imagen", largo: "El gráfico va como imagen dentro de la lámina." },
+  ruta_anterior: { corto: "Imagen", largo: "Este gráfico sale como imagen y no se puede editar en PowerPoint." },
 };
 
 /** Lo que se ofrece en la familia: lo que el registro no retira del selector, en su orden. */
@@ -65,7 +65,7 @@ export function encajeEnRanura(graficador: string, slot: string | null): Encaje 
     return { cabe: false, nota: "Esta ranura es de cifra: recibe una cifra destacada, no un gráfico." };
   }
   if (!esSlotCifra(slot) && cifra) {
-    return { cabe: true, nota: "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior." };
+    return { cabe: true, nota: "Va en las ranuras de cifra; en una ranura de gráfico sale como imagen." };
   }
   return { cabe: true, nota: null };
 }

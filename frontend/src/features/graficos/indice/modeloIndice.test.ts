@@ -216,7 +216,7 @@ describe("W2-7 más de 13 capítulos: aviso de ruta anterior", () => {
     expect(avisosIndice(caps(...titulos(13))).map((a) => a.codigo)).not.toContain("demasiados_capitulos");
     const catorce = avisosIndice(caps(...titulos(14))).find((a) => a.codigo === "demasiados_capitulos");
     expect(catorce?.bloquea).toBe(false);
-    expect(catorce?.texto).toMatch(/ruta anterior/);
+    expect(catorce?.texto).toMatch(/diseño simplificado/);
     expect(serializarIndice(indice({}), caps(...titulos(14))).ok).toBe(true);
   });
 

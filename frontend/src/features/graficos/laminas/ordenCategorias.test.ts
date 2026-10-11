@@ -34,10 +34,10 @@ describe("orden de categorías por gráfico (D8)", () => {
   });
 
   it("la opción Recetario dice qué modo aplica, o que manda un orden anterior", () => {
-    expect(rotuloRecetario(datos, false)).toBe("Recetario · por frecuencia");
-    expect(rotuloRecetario({ ...datos, modo_recetario: "instrumento" }, false)).toBe("Recetario · como el instrumento");
-    expect(rotuloRecetario(null, false)).toBe("Recetario");
-    expect(rotuloRecetario(datos, true)).toBe("Recetario · orden elegido antes");
+    expect(rotuloRecetario(datos, false)).toBe("Por defecto · por frecuencia");
+    expect(rotuloRecetario({ ...datos, modo_recetario: "instrumento" }, false)).toBe("Por defecto · como el instrumento");
+    expect(rotuloRecetario(null, false)).toBe("Por defecto");
+    expect(rotuloRecetario(datos, true)).toBe("Por defecto · orden elegido antes");
     expect(tieneOrdenHeredado({ orden_barras: "mayor_menor" })).toBe(true);
     expect(tieneOrdenHeredado({ overrides: { orden_categorias_manual: [] } })).toBe(false);
   });

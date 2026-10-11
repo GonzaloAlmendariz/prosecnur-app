@@ -36,7 +36,7 @@ function CampoTexto({
         <label htmlFor={`${id}-input`} className="pulso-f6-informe-campo-etiqueta">{etiqueta}</label>
         <SelloProcedencia procedencia={campo.procedencia} />
         {campo.procedencia === "propio" ? (
-          <PulsoButton variant="icon" size="sm" onClick={onVolver} aria-label={`Volver al recetario en ${etiqueta.toLowerCase()}`} title="Volver al recetario">
+          <PulsoButton variant="icon" size="sm" onClick={onVolver} aria-label={`Volver al valor por defecto en ${etiqueta.toLowerCase()}`} title="Volver al valor por defecto">
             <RotateCcw size={14} aria-hidden="true" />
           </PulsoButton>
         ) : null}
@@ -57,7 +57,7 @@ function CampoTexto({
         }}
       />
       <p id={`${id}-ayuda`} className="pulso-f6-informe-ayuda">
-        {ayuda} El recetario pone {campo.porDefecto ? <strong>«{campo.porDefecto}»</strong> : "nada"}.
+        {ayuda} Por defecto: {campo.porDefecto ? <strong>«{campo.porDefecto}»</strong> : "nada"}.
       </p>
       {error ? <p id={`${id}-error`} className="pulso-f6-informe-error" role="alert">{error}</p> : null}
     </div>
@@ -82,7 +82,7 @@ export function SeccionTextoBase({
         id={tituloId}
         titulo="Texto de la base"
         modificado={texto.modificado}
-        etiquetaVolver="Volver al texto de la base del recetario"
+        etiquetaVolver="Volver al texto de la base por defecto"
         onVolver={onVolverTodo}
       />
       <p className="pulso-f6-informe-ayuda">El conteo que acompaña a cada gráfico. Vale para todas las láminas del informe.</p>
