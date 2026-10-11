@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { createPortal } from "react-dom";
 import {
   Plus,
-  X,
   Trash2,
   Cloud,
   Check,
@@ -12,14 +10,13 @@ import {
   ShieldCheck,
 } from "../../../vendor/lucide-react";
 import { IconConditionalLogic, IconChecklist } from "../../../lib/icons";
+import { Dialog, type RetornoDeFoco } from "../../../components/Dialog";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import {
   apiXlsformEditorImportSurveyMonkeyWithLogic,
   apiXlsformEditorSmFetchSurveyInfo,
   apiXlsformEditorSmListSurveys,
-  apiXlsformEditorSmCheckToken,
-  apiXlsformEditorSmTokenLoad,
-  apiXlsformEditorSmTokenSave,
-  apiXlsformEditorSmTokenClear,
   type SurveyMonkeyQuestion,
   type SurveyMonkeyListItem,
   type SurveyMonkeyTokenState,
@@ -31,7 +28,18 @@ import {
 } from "../../../api/client";
 import { compileVisualLogicRules, RuleWizard, type VisualLogicPage, type VisualLogicQuestion } from "./RuleWizard";
 import { XlsformTransferNotice } from "./XlsformTransferNotice";
+import { surveyMonkeyTokenUiState, useSurveyMonkeyToken } from "./useSurveyMonkeyToken";
+import { useFocoInicialDeSwitch } from "./useFocoInicialDeSwitch";
 import "../styles/xf-surveymonkey-dialog.css";
+
+export { surveyMonkeyTokenUiState } from "./useSurveyMonkeyToken";
+
+/**
+ * Destino del foco al cerrar cuando el disparador ya no existe: el ítem del
+ * menú «Nuevo formulario» se desmonta al abrir el diálogo, así que el foco
+ * vuelve al botón que abre ese menú (L8).
+ */
+export const SM_IMPORT_RETURN_FOCUS = ".pulso-xf-intake-trigger";
 
 // Modal de importación SurveyMonkey. El flujo principal usa solo la API:
 //   1. Conecta token + encuesta.
@@ -60,31 +68,6 @@ type PageEntry = {
   }>;
   questions: string[];
 };
-
-const EMPTY_SM_TOKEN_STATE: SurveyMonkeyTokenState = {
-  ok: true,
-  has_token: false,
-  masked_token: "",
-  persisted: false,
-  ephemeral: false,
-};
-
-export function surveyMonkeyTokenUiState(tokenState: SurveyMonkeyTokenState, currentInput: string) {
-  const hasInput = currentInput.trim().length > 0;
-  const hasStoredToken = tokenState.has_token;
-  return {
-    inputValue: currentInput,
-    hasUsableToken: hasInput || hasStoredToken,
-    displayMask: hasInput ? "nuevo token pendiente" : tokenState.masked_token,
-    storageLabel: hasInput
-      ? "se guardará al usarlo"
-      : tokenState.persisted
-        ? "cifrado en este equipo"
-        : tokenState.ephemeral
-          ? "solo esta sesión"
-          : "",
-  };
-}
 
 const newId = () => Math.random().toString(36).slice(2, 9);
 
@@ -276,6 +259,7 @@ export function ImportSurveyMonkeyDialog({
   fileId,
   onCancel,
   onComplete,
+  returnFocusTo = SM_IMPORT_RETURN_FOCUS,
 }: {
   fileId?: string | null;
   fileName: string;
@@ -286,9 +270,10 @@ export function ImportSurveyMonkeyDialog({
     surveyMonkeyChoiceOverrides?: Record<string, string[]>;
     surveyMonkeyChoiceCodeMaps?: ChoiceCodeMap[];
   }) => void;
+  /** Alternativa del foco al cerrar si el disparador se desmontó. */
+  returnFocusTo?: RetornoDeFoco;
 }) {
   const [apiQuestions, setApiQuestions] = useState<SurveyMonkeyQuestion[]>([]);
-  const [loading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pages, setPages] = useState<PageEntry[]>([]);
   const [wizardRules, setWizardRules] = useState<import("./RuleWizard").ConfirmedRule[]>([]);
@@ -302,8 +287,6 @@ export function ImportSurveyMonkeyDialog({
   const [submitting, setSubmitting] = useState(false);
   // Vía 3: auto-completar mapeo de páginas desde la API SurveyMonkey
   const [smSurveyId, setSmSurveyId] = useState("");
-  const [smToken, setSmToken] = useState<string>("");
-  const [smTokenState, setSmTokenState] = useState<SurveyMonkeyTokenState>(EMPTY_SM_TOKEN_STATE);
   const [smFetching, setSmFetching] = useState(false);
   const [smApiSuccess, setSmApiSuccess] = useState<string | null>(null);
   const [smApiError, setSmApiError] = useState<string | null>(null);
@@ -318,127 +301,26 @@ export function ImportSurveyMonkeyDialog({
     fetchedAt: string | null;
   } | null>(null);
   const [smListing, setSmListing] = useState(false);
-  const [smTokenStatus, setSmTokenStatus] = useState<SurveyMonkeyTokenInfo | null>(null);
-  const [smRememberToken, setSmRememberToken] = useState<boolean>(true);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewChecked, setReviewChecked] = useState(false);
   const [visualPending, setVisualPending] = useState(false);
-  const sheetRef = useRef<HTMLDivElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  function applySmTokenState(next: SurveyMonkeyTokenState) {
-    setSmTokenState(next);
-    if (next.has_token) setSmRememberToken(next.persisted);
-  }
+  // Abrir no consulta nada (L8): el token se resuelve en la primera acción.
+  const smTokenCtl = useSurveyMonkeyToken({
+    onError: setSmApiError,
+    onTokenInvalidated: () => {
+      setSmFetchedSurveyId(null);
+      setSmDefinition(null);
+      setSmSurveyMeta(null);
+    },
+  });
+  const ensureSmTokenReady = smTokenCtl.ensureReady;
 
-  // Cargar solo estado/máscara del token guardado. El backend nunca devuelve
-  // el secreto en texto plano.
-  useEffect(() => {
-    let cancelled = false;
-    apiXlsformEditorSmTokenLoad()
-      .then(async (r) => {
-        if (cancelled) return;
-        applySmTokenState(r);
-        if (r.has_token) {
-          // Auto-verificar contra GET /users/me para mostrar al usuario que
-          // su token sigue vivo (o avisarle si fue revocado).
-          try {
-            const info = await apiXlsformEditorSmCheckToken();
-            if (!cancelled) setSmTokenStatus(info);
-          } catch {
-            // ignore
-          }
-        }
-      })
-      .catch(() => {
-        // ignore: backend no disponible o error de I/O — el usuario podrá
-        // pegar el token manualmente.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function handleTokenChange(next: string) {
-    setSmToken(next);
-    setSmTokenStatus(null);
-    setSmFetchedSurveyId(null);
-    setSmDefinition(null);
-    setSmSurveyMeta(null);
-  }
-
-  async function ensureSmTokenReady(message: string): Promise<boolean> {
-    const tokenInput = smToken.trim();
-    if (tokenInput) {
-      try {
-        const state = await apiXlsformEditorSmTokenSave(tokenInput, { persist: smRememberToken });
-        applySmTokenState(state);
-        setSmToken("");
-        return state.has_token;
-      } catch (e) {
-        setSmApiError(String((e as Error)?.message ?? e));
-        return false;
-      }
-    }
-    if (smTokenState.has_token) return true;
-    setSmApiError(message);
-    return false;
-  }
-
-  async function handleTokenBlur() {
-    const tokenInput = smToken.trim();
-    if (!tokenInput) return;
-    try {
-      const state = await apiXlsformEditorSmTokenSave(tokenInput, { persist: smRememberToken });
-      applySmTokenState(state);
-      setSmToken("");
-    } catch {
-      // si falla guardar, el usuario puede volver a intentar; no es fatal.
-    }
-  }
-  async function handleRememberToggle(next: boolean) {
-    setSmRememberToken(next);
-    try {
-      const tokenInput = smToken.trim();
-      if (tokenInput) {
-        const state = await apiXlsformEditorSmTokenSave(tokenInput, { persist: next });
-        applySmTokenState(state);
-        setSmToken("");
-      } else if (next && smTokenState.ephemeral) {
-        setSmRememberToken(false);
-        setSmApiError("Para recordar este token en el equipo, vuelve a pegarlo y marca la casilla antes de usarlo.");
-      } else if (!next && smTokenState.has_token) {
-        applySmTokenState(await apiXlsformEditorSmTokenClear());
-      }
-    } catch {
-      // ignore
-    }
-  }
-  async function handleForgetToken() {
-    setSmToken("");
-    setSmTokenState(EMPTY_SM_TOKEN_STATE);
-    setSmTokenStatus(null);
+  function handleForgetToken() {
     setSmSurveyList(null);
-    setSmSurveyMeta(null);
     setSmApiSuccess(null);
     setSmApiError(null);
-    setSmFetchedSurveyId(null);
-    setSmDefinition(null);
-    try {
-      applySmTokenState(await apiXlsformEditorSmTokenClear());
-    } catch {
-      // ignore
-    }
-  }
-  async function verifyToken() {
-    if (!(await ensureSmTokenReady("Necesitas el token de la API para probar la conexión."))) return;
-    setSmTokenStatus(null);
-    try {
-      const info = await apiXlsformEditorSmCheckToken();
-      setSmTokenStatus(info);
-    } catch (e) {
-      setSmTokenStatus({ ok: false, error: String((e as Error)?.message ?? e) });
-    }
+    void smTokenCtl.forget();
   }
 
   async function listSurveysFromSm(forceRefresh = false) {
@@ -534,7 +416,9 @@ export function ImportSurveyMonkeyDialog({
     }
   }
 
-  const requestClose = useCallback(() => {
+  // Escape, Cancelar y la X pasan por la misma protección de descarte. El
+  // trap de foco, el bloqueo del fondo y el foco de vuelta los da el Dialog.
+  function requestClose() {
     const hasProgress = Boolean(
       smFetchedSurveyId
       || smSurveyId.trim()
@@ -545,43 +429,7 @@ export function ImportSurveyMonkeyDialog({
     if (!hasProgress || window.confirm("¿Cerrar y descartar lo configurado?")) {
       onCancel();
     }
-  }, [onCancel, pages.length, smFetchedSurveyId, smSurveyId, visualRules.length, wizardRules.length]);
-
-  // Un único sheet modal: Escape, Cancelar y la X pasan por la misma
-  // protección de descarte. El foco se limita al sheet y vuelve al disparador.
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        requestClose();
-        return;
-      }
-      if (e.key !== "Tab" || !sheetRef.current) return;
-      const focusable = Array.from(sheetRef.current.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
-      ));
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener("keydown", onKey);
-      previousFocus?.focus();
-    };
-  }, [requestClose]);
+  }
 
   const reglasText = [
     compileVisualLogicRules(visualRules),
@@ -662,80 +510,35 @@ export function ImportSurveyMonkeyDialog({
     setPages((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
 
-  const dialog = (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="sm-import-title"
-      style={{
-        position: "fixed",
-        inset: 0,
-        // Modal full-screen: debe cubrir también el chrome global del editor.
-        // Los menús del editor llegan a la capa 2300; este diálogo comparte
-        // esa capa y, al montarse después, queda como superficie activa.
-        zIndex: 2300,
-        background: "rgba(15, 23, 42, 0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-      }}
-    >
-      {/* Sin onClick={onCancel} en el backdrop — un click accidental no debe
-          tirar el progreso del usuario. Solo se cierra con la X o Escape. */}
-      <div
-        ref={sheetRef}
-        style={{
-          width: "min(980px, 100%)",
-          maxHeight: "90vh",
-          background: "white",
-          borderRadius: 12,
-          boxShadow: "var(--pulso-shadow-high)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <header
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--pulso-border, #e5e7eb)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <h2 id="sm-import-title" style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
-              Traducir encuesta de SurveyMonkey
-            </h2>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--pulso-muted, #6b7280)" }}>
-              Crea un borrador XLSForm editable desde la definición original
-              {apiQuestions.length ? ` · ${apiQuestions.length} preguntas` : null}
-            </p>
-          </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            onClick={requestClose}
-            aria-label="Cerrar importación de SurveyMonkey"
-            style={{
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: 4,
-              borderRadius: 4,
-            }}
-          >
-            <X size={20} />
-          </button>
-        </header>
+  const reviewBlocked = submitting || !smFetchedSurveyId || visualPending;
 
-        <div style={{ padding: 20, overflowY: "auto", flex: 1, minHeight: "var(--pulso-operational-min-dialog-body, 240px)", fontSize: 14 }}>
-          {loading ? (
-            <p style={{ color: "var(--pulso-muted, #6b7280)" }}>Preparando importador…</p>
-          ) : (
-            <>
+  return (
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) requestClose();
+      }}
+      size="lg"
+      alto="fijo"
+      icon={<Cloud size={16} aria-hidden="true" />}
+      title="Traducir encuesta de SurveyMonkey"
+      subtitle={`Crea un borrador XLSForm editable desde la definición original${apiQuestions.length ? ` · ${apiQuestions.length} preguntas` : ""}`}
+      closeLabel="Cerrar importación de SurveyMonkey"
+      // Un click accidental fuera no debe tirar el progreso del usuario.
+      closeOnOutside={false}
+      dismissible={!submitting}
+      returnFocusTo={returnFocusTo}
+      footer={reviewOpen ? undefined : (
+        <>
+          <PulsoButton variant="secondary" onClick={requestClose} disabled={submitting}>
+            Cancelar
+          </PulsoButton>
+          <PulsoButton variant="primary" onClick={openReview} disabled={reviewBlocked}>
+            {submitting ? "Preparando…" : "Revisar borrador"}
+          </PulsoButton>
+        </>
+      )}
+    >
               {error ? (
                 <div
                   role="alert"
@@ -783,8 +586,9 @@ export function ImportSurveyMonkeyDialog({
 
               <SmApiSection
                 surveyId={smSurveyId}
-                token={smToken}
-                tokenState={smTokenState}
+                token={smTokenCtl.token}
+                tokenState={smTokenCtl.tokenState}
+                tokenConsultado={smTokenCtl.consultado}
                 connectedSurveyId={smFetchedSurveyId}
                 fetching={smFetching}
                 listing={smListing}
@@ -792,17 +596,17 @@ export function ImportSurveyMonkeyDialog({
                 errorMessage={smApiError}
                 surveyList={smSurveyList}
                 surveyMeta={smSurveyMeta}
-                tokenStatus={smTokenStatus}
-                rememberToken={smRememberToken}
+                tokenStatus={smTokenCtl.tokenStatus}
+                rememberToken={smTokenCtl.rememberToken}
                 onSurveyIdChange={(next) => {
                   setSmSurveyId(next);
                   setSmFetchedSurveyId(null);
                   setSmDefinition(null);
                 }}
-                onTokenChange={handleTokenChange}
-                onTokenBlur={handleTokenBlur}
-                onRememberToggle={handleRememberToggle}
-                onVerifyToken={verifyToken}
+                onTokenChange={smTokenCtl.handleTokenChange}
+                onTokenBlur={smTokenCtl.handleTokenBlur}
+                onRememberToggle={smTokenCtl.handleRememberToggle}
+                onVerifyToken={smTokenCtl.verify}
                 onForgetToken={handleForgetToken}
                 onFetch={fetchFromSmApi}
                 onList={listSurveysFromSm}
@@ -823,6 +627,9 @@ export function ImportSurveyMonkeyDialog({
                   borderRadius: 10,
                   background: "#ffffff",
                   overflow: "hidden",
+                  // El cuerpo del Dialog es columna flex: con overflow oculto el
+                  // min-height cae a 0 y la sección se aplastaba (QA L8, C2/C4).
+                  flexShrink: 0,
                 }}
               >
                 <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--pulso-border, #e5e7eb)", background: "#f8fafc" }}>
@@ -883,64 +690,8 @@ export function ImportSurveyMonkeyDialog({
               </section>
                 </>
               )}
-            </>
-          )}
-        </div>
-
-        {!reviewOpen ? <footer
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--pulso-border, #e5e7eb)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 10,
-            background: "#f9fafb",
-          }}
-        >
-          <button
-            type="button"
-            onClick={requestClose}
-            disabled={submitting}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--pulso-border, #e5e7eb)",
-              borderRadius: 6,
-              padding: "8px 16px",
-              cursor: submitting ? "not-allowed" : "pointer",
-              fontSize: 13,
-            }}
-          >
-            Cancelar
-          </button>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              type="button"
-              onClick={openReview}
-              disabled={submitting || loading || !smFetchedSurveyId || visualPending}
-              style={{
-                background: smFetchedSurveyId && !visualPending ? "var(--pulso-module-editor)" : "var(--pulso-border-strong)",
-                color: "var(--pulso-surface-raised)",
-                border: "none",
-                borderRadius: 6,
-                padding: "8px 16px",
-                cursor: submitting || loading || !smFetchedSurveyId || visualPending ? "not-allowed" : "pointer",
-                opacity: submitting || loading || !smFetchedSurveyId || visualPending ? 0.65 : 1,
-                fontSize: 13,
-                fontWeight: 500,
-              }}
-            >
-              {submitting ? "Preparando…" : "Revisar borrador"}
-            </button>
-          </div>
-        </footer> : null}
-      </div>
-    </div>
+    </Dialog>
   );
-
-  // El PageFrame y la barra global crean contextos de apilado propios. El
-  // portal evita que el diálogo quede recortado o por debajo de ese chrome.
-  return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }
 
 export function FinalImportReviewModal({
@@ -972,6 +723,8 @@ export function FinalImportReviewModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  // El primer foco del resumen es la confirmación (antes, `autoFocus`).
+  const confirmRef = useFocoInicialDeSwitch<HTMLDivElement>();
   const totalRules = visualRuleCount + advancedRuleCount;
   const rows = [
     ["Survey ID", surveyId || "Sin Survey ID"],
@@ -1001,16 +754,14 @@ export function FinalImportReviewModal({
         ))}
       </div>
       <XlsformTransferNotice />
-      <label className="pulso-xf-sm-review-check">
-        <input
-          type="checkbox"
-          autoFocus
+      <div ref={confirmRef} className="pulso-xf-sm-review-check">
+        <PulsoSwitch
           checked={checked}
           disabled={submitting}
-          onChange={(event) => onCheckedChange(event.target.checked)}
+          onCheckedChange={onCheckedChange}
+          label="Revisé este resumen y quiero crear el borrador XLSForm."
         />
-        <span>Revisé este resumen y quiero crear el borrador XLSForm.</span>
-      </label>
+      </div>
       <footer style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
         <button type="button" onClick={onCancel} disabled={submitting}>
           Volver a revisar
@@ -1114,6 +865,7 @@ function SmApiSection({
   surveyId,
   token,
   tokenState,
+  tokenConsultado,
   connectedSurveyId,
   fetching,
   listing,
@@ -1135,6 +887,7 @@ function SmApiSection({
   surveyId: string;
   token: string;
   tokenState: SurveyMonkeyTokenState;
+  tokenConsultado: boolean;
   connectedSurveyId: string | null;
   fetching: boolean;
   listing: boolean;
@@ -1159,7 +912,7 @@ function SmApiSection({
   onFetch: () => void;
   onList: (forceRefresh?: boolean) => void;
 }) {
-  const tokenUi = surveyMonkeyTokenUiState(tokenState, token);
+  const tokenUi = surveyMonkeyTokenUiState(tokenState, token, tokenConsultado);
   const [expanded, setExpanded] = useState(true);
   const [surveyQuery, setSurveyQuery] = useState("");
   const isReady = Boolean(successMessage && connectedSurveyId);
@@ -1177,6 +930,7 @@ function SmApiSection({
         borderRadius: 8,
         background: isReady ? "#f0fdf4" : "#ffffff",
         overflow: "hidden",
+        flexShrink: 0,
       }}
     >
       <summary
@@ -1221,7 +975,7 @@ function SmApiSection({
             id="pulso-sm-api-token"
             type="password"
             value={token}
-            placeholder={tokenState.has_token ? "Token guardado en backend" : "Token de SurveyMonkey"}
+            placeholder={tokenState.has_token ? "Token guardado en backend" : tokenUi.pendingLookup ? "Pega tu token o usa el guardado en este equipo" : "Token de SurveyMonkey"}
             onChange={(e) => onTokenChange(e.target.value)}
             onBlur={onTokenBlur}
             disabled={fetching || listing}
@@ -1237,7 +991,7 @@ function SmApiSection({
           <button
             type="button"
             onClick={onVerifyToken}
-            disabled={!tokenUi.hasUsableToken || fetching || listing}
+            disabled={!tokenUi.canAttempt || fetching || listing}
             title="Comprueba que Prosecnur puede leer tus encuestas"
             style={{
               background: "transparent",
@@ -1245,8 +999,8 @@ function SmApiSection({
               borderRadius: 4,
               padding: "6px 12px",
               fontSize: 12,
-              cursor: !tokenUi.hasUsableToken ? "not-allowed" : "pointer",
-              opacity: !tokenUi.hasUsableToken ? 0.6 : 1,
+              cursor: !tokenUi.canAttempt ? "not-allowed" : "pointer",
+              opacity: !tokenUi.canAttempt ? 0.6 : 1,
             }}
           >
             Probar conexión
@@ -1254,7 +1008,7 @@ function SmApiSection({
           <button
             type="button"
             onClick={() => onList(false)}
-            disabled={listing || fetching || !tokenUi.hasUsableToken}
+            disabled={listing || fetching || !tokenUi.canAttempt}
             title="Muestra tus encuestas recientes para elegir una sin copiar IDs"
             style={{
               background: "transparent",
@@ -1262,8 +1016,8 @@ function SmApiSection({
               borderRadius: 4,
               padding: "6px 12px",
               fontSize: 12,
-              cursor: listing || fetching || !tokenUi.hasUsableToken ? "not-allowed" : "pointer",
-              opacity: listing || fetching || !tokenUi.hasUsableToken ? 0.6 : 1,
+              cursor: listing || fetching || !tokenUi.canAttempt ? "not-allowed" : "pointer",
+              opacity: listing || fetching || !tokenUi.canAttempt ? 0.6 : 1,
             }}
           >
             {listing ? "Buscando…" : "Buscar mis encuestas"}
@@ -1272,7 +1026,7 @@ function SmApiSection({
             <button
               type="button"
               onClick={() => onList(true)}
-              disabled={listing || fetching || !tokenUi.hasUsableToken}
+              disabled={listing || fetching || !tokenUi.canAttempt}
               title="Vuelve a consultar SurveyMonkey y reemplaza el catálogo local"
               style={{
                 background: "transparent",
@@ -1280,8 +1034,8 @@ function SmApiSection({
                 borderRadius: 4,
                 padding: "6px 12px",
                 fontSize: 12,
-                cursor: listing || fetching || !tokenUi.hasUsableToken ? "not-allowed" : "pointer",
-                opacity: listing || fetching || !tokenUi.hasUsableToken ? 0.6 : 1,
+                cursor: listing || fetching || !tokenUi.canAttempt ? "not-allowed" : "pointer",
+                opacity: listing || fetching || !tokenUi.canAttempt ? 0.6 : 1,
               }}
             >
               Actualizar lista
@@ -1290,16 +1044,13 @@ function SmApiSection({
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8, flexWrap: "wrap" }}>
-          <label style={{ fontSize: 11, color: "var(--pulso-muted, #6b7280)", display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={rememberToken}
-              onChange={(e) => onRememberToggle(e.target.checked)}
-              style={{ margin: 0 }}
-            />
-            Recordar en este equipo
-            <span title="Se guarda cifrado en disco local.">(cifrado)</span>
-          </label>
+          <PulsoSwitch
+            size="sm"
+            checked={rememberToken}
+            onCheckedChange={onRememberToggle}
+            label="Recordar en este equipo"
+            title="Se guarda cifrado en disco local."
+          />
           <TokenStatusBadge status={tokenStatus} />
         </div>
         {tokenUi.hasUsableToken ? (
@@ -1308,22 +1059,13 @@ function SmApiSection({
               Token activo <code style={{ fontFamily: "ui-monospace, monospace", background: "#f3f4f6", padding: "1px 4px", borderRadius: 3 }}>{tokenUi.displayMask}</code>
               {tokenUi.storageLabel ? ` · ${tokenUi.storageLabel}` : ""}
             </span>
-            <button
-              type="button"
+            <PulsoButton
+              variant="link"
               onClick={onForgetToken}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#dc2626",
-                cursor: "pointer",
-                fontSize: 11,
-                textDecoration: "underline",
-                padding: 0,
-              }}
               title="Borra el token guardado en backend para esta sesión y el archivo cifrado local"
             >
               Quitar
-            </button>
+            </PulsoButton>
           </div>
         ) : null}
 
@@ -1396,7 +1138,7 @@ function SmApiSection({
           <button
             type="button"
             onClick={onFetch}
-            disabled={fetching || !surveyId.trim() || !tokenUi.hasUsableToken}
+            disabled={fetching || !surveyId.trim() || !tokenUi.canAttempt}
             style={{
               background: "var(--pulso-module-editor)",
               color: "white",
@@ -1404,8 +1146,8 @@ function SmApiSection({
               borderRadius: 4,
               padding: "6px 12px",
               fontSize: 12,
-              cursor: fetching || !surveyId.trim() || !tokenUi.hasUsableToken ? "not-allowed" : "pointer",
-              opacity: fetching || !surveyId.trim() || !tokenUi.hasUsableToken ? 0.6 : 1,
+              cursor: fetching || !surveyId.trim() || !tokenUi.canAttempt ? "not-allowed" : "pointer",
+              opacity: fetching || !surveyId.trim() || !tokenUi.canAttempt ? 0.6 : 1,
             }}
           >
             {fetching ? "Conectando…" : "Usar esta encuesta"}

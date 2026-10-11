@@ -11,10 +11,14 @@
 //
 // Controlado por `localStorage.pulso.xlsformEditor.firstUseDone`. Tras
 // cerrar el último coachmark, el flag se setea y no vuelven a aparecer.
+//
+// El callout es un diálogo modal (L8): `aria-modal`, foco inicial en él, Tab
+// atrapado, Escape salta el tour y el foco vuelve a donde estaba.
 // =============================================================================
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useFocoDeCoachmark } from "./coachmarkFocus";
 
 const FIRST_USE_FLAG = "pulso.xlsformEditor.firstUseDone";
 
@@ -68,6 +72,8 @@ export function Coachmarks({ forceShow, onDone }: CoachmarksProps) {
   const [active, setActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const calloutRef = useRef<HTMLDivElement | null>(null);
+  const idBase = useId();
 
   // Decidir si arrancar el tour. Solo si flag NO seteado (o forzado).
   useEffect(() => {
@@ -128,14 +134,17 @@ export function Coachmarks({ forceShow, onDone }: CoachmarksProps) {
     onDone?.();
   };
 
-  if (!active || !targetRect) return null;
+  const visible = active && targetRect !== null;
+  useFocoDeCoachmark(visible, stepIndex, calloutRef, finish);
+
+  if (!visible) return null;
 
   const step = STEPS[stepIndex]!;
   const spotlightRect = computeSpotlightRect(targetRect);
   const calloutPos = computeCalloutPos(spotlightRect, step.placement);
 
   return createPortal(
-    <div className="pulso-coachmarks-overlay" role="dialog" aria-label={step.title}>
+    <div className="pulso-coachmarks-overlay">
       {/* Halo alrededor del target. El overlay no pinta fondo global:
           la sombra del spotlight crea el dimmer y deja el target limpio. */}
       <div
@@ -149,7 +158,13 @@ export function Coachmarks({ forceShow, onDone }: CoachmarksProps) {
       />
       {/* Callout */}
       <div
+        ref={calloutRef}
         className="pulso-coachmarks-callout"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${idBase}-title`}
+        aria-describedby={`${idBase}-body`}
+        tabIndex={-1}
         style={{ top: calloutPos.top, left: calloutPos.left }}
       >
         <header className="pulso-coachmarks-callout-header">
@@ -157,8 +172,8 @@ export function Coachmarks({ forceShow, onDone }: CoachmarksProps) {
             Paso {stepIndex + 1} de {STEPS.length}
           </span>
         </header>
-        <h4 className="pulso-coachmarks-callout-title">{step.title}</h4>
-        <p className="pulso-coachmarks-callout-body">{step.body}</p>
+        <h4 id={`${idBase}-title`} className="pulso-coachmarks-callout-title">{step.title}</h4>
+        <p id={`${idBase}-body`} className="pulso-coachmarks-callout-body">{step.body}</p>
         <div className="pulso-coachmarks-callout-actions">
           <button
             type="button"
