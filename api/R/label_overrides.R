@@ -59,6 +59,25 @@
   invisible(.label_overrides_env$active)
 }
 
+#' Republica en el slot ambiente el override de la sesión que hace el pedido.
+#'
+#' El slot es proceso-global, pero el override es del proyecto
+#' (`s$label_overrides`): si sólo se publicara al escribirlo, la sesión que lo
+#' escribió lo dejaría puesto para todas las demás del mismo servidor y una
+#' sesión sin override leería etiquetas ajenas en `/api/graficos/*` (que no
+#' pasa por `.load_rp_sources()`). Por eso `build_plumber_app()` llama a esto
+#' al inicio de cada pedido (hook `preroute`) y lo limpia al terminar: el slot
+#' queda con el override de ESA sesión, o vacío si no hay sesión u override.
+#' Plumber atiende un pedido a la vez, así que el slot por pedido es exacto.
+#' @param req Pedido de plumber (lee `X-Pulso-Session`).
+#' @noRd
+.label_overrides_activate_for_request <- function(req) {
+  sid <- session_header(req)
+  s <- session_get(sid, required = FALSE)
+  # `[[` exacto: `$` sobre la lista de sesión haría partial matching.
+  .label_overrides_activate(if (is.list(s)) s[["label_overrides"]] else NULL)
+}
+
 #' Override activo (o NULL). Lo consultan las funciones puras del chokepoint.
 #' @noRd
 .label_overrides_ambient <- function() {
