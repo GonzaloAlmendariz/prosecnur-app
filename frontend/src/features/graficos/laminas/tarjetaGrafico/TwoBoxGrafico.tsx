@@ -88,7 +88,7 @@ function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbr
   const args = (valor.args ?? {}) as Record<string, unknown>;
   const pregunta = preguntaDeEscala(valor.graficador, args);
   const estado = leerTwoBox(valor.graficador, args, presets);
-  const cats = useCategoriasGrafico(pregunta ? varCalificada(pregunta, baseActiva) : "", scope);
+  const cats = useCategoriasGrafico(pregunta ? varCalificada(pregunta, baseActiva, scope) : "", scope);
   if (!estado) return null;
   const enWord = leerTopEnWord(valor.graficador, args, presets, wPresets);
   const bottom = bottomDisponible(valor.graficador, args, presets, composicion);
