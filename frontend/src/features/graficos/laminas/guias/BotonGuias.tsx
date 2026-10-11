@@ -12,6 +12,7 @@ import { escucharEscape } from "../cierreConEscape";
 import { capasEncendidas, useGuiasUi } from "./guiasStore";
 import { CAPAS_GUIA, rotuloDeRol, type CapaGuia, type ModeloGuias } from "./modeloGuias";
 import { PANEL_GUIAS_LAMINA } from "./panelGuias";
+import { posicionPanelGuias, type PosicionPanel } from "./posicionPanelGuias";
 import "./guias.css";
 
 const CAPA: Record<CapaGuia, { rotulo: string; detalle: string; Icono: LucideIcon }> = {
@@ -32,8 +33,6 @@ type Props = {
   hayRanuras: boolean;
 };
 
-const ANCHO_PANEL = 320;
-const MARGEN = 10;
 const SALIDA_MS = 120;
 
 export function BotonGuias({ modelo, roles, disponible, hayRanuras }: Props) {
@@ -109,7 +108,7 @@ function PanelGuias({ id, abierto, propsPanel, ancla, enfocarAlAbrir, onCerrar, 
   const raizRef = useRef<HTMLDivElement>(null);
   const tituloId = `${id}-titulo`;
   const montado = useMontadoConSalida(abierto, SALIDA_MS);
-  const estilo = usePosicionBajo(ancla, montado);
+  const { estilo, anclado } = usePosicionBajo(ancla, montado);
 
   // Escape cierra y devuelve el foco al botón; un clic fuera (que no sea el botón) cierra sin moverlo.
   useEffect(() => {
@@ -149,6 +148,7 @@ function PanelGuias({ id, abierto, propsPanel, ancla, enfocarAlAbrir, onCerrar, 
       className="pulso-f6-guias-panel"
       data-state={abierto ? "open" : "closing"}
       style={estilo}
+      data-ancla={anclado ?? undefined}
       {...propsPanel}
     >
       <header className="pulso-f6-guias-panel-cabeza">
@@ -264,24 +264,27 @@ function useMontadoConSalida(abierto: boolean, ms: number): boolean {
   return abierto || montado;
 }
 
-/** Bajo el botón, alineado a su borde derecho y contenido en la ventana; el alto que queda es del cuerpo del panel. */
-function usePosicionBajo(ancla: RefObject<HTMLElement>, activo: boolean): CSSProperties {
+/** Bajo el botón (o, sin botón visible, bajo la barra del visor), contenido en la ventana (`posicionPanelGuias`). */
+function usePosicionBajo(ancla: RefObject<HTMLElement>, activo: boolean): { estilo: CSSProperties; anclado: PosicionPanel["anclado"] | null } {
   const [estilo, setEstilo] = useState<CSSProperties>({});
+  const [anclado, setAnclado] = useState<PosicionPanel["anclado"] | null>(null);
   useLayoutEffect(() => {
     if (!activo) return;
     const ubicar = () => {
-      const r = ancla.current?.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const visible = !!r && r.width > 0 && r.height > 0;
-      const top = visible ? r.bottom + 8 : 56;
-      const left = Math.min(Math.max((visible ? r.right : vw - MARGEN) - ANCHO_PANEL, MARGEN), Math.max(vw - ANCHO_PANEL - MARGEN, MARGEN));
-      setEstilo({ top: Math.round(top), left: Math.round(left), width: ANCHO_PANEL, maxHeight: Math.max(160, Math.round(vh - top - MARGEN)) });
+      const boton = ancla.current;
+      const visor = boton?.closest<HTMLElement>(".pulso-f6-visor") ?? null;
+      const { anclado, ...pos } = posicionPanelGuias(
+        boton?.getBoundingClientRect() ?? null,
+        visor?.getBoundingClientRect() ?? null,
+        { ancho: window.innerWidth, alto: window.innerHeight },
+      );
+      setEstilo(pos);
+      setAnclado(anclado);
     };
     ubicar();
     window.addEventListener("resize", ubicar);
     window.addEventListener("scroll", ubicar, true);
     return () => { window.removeEventListener("resize", ubicar); window.removeEventListener("scroll", ubicar, true); };
   }, [activo, ancla]);
-  return estilo;
+  return { estilo, anclado };
 }

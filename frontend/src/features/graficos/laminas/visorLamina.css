@@ -348,7 +348,9 @@
 
 /* Por debajo de 1120 px de visor se ocultan a la vista el rótulo «Guías» y la palabra «avisos» (el botón de guías
    queda en ícono y cuenta de capas); por debajo de 960, el del estado y el de Estructura, y el ícono del tipo (lo
-   repiten la Estructura y el Inspector); por debajo de 800, el botón de guías. */
+   repiten la Estructura y el Inspector); por debajo de 800, la palabra «Lámina» de la posición y el rótulo «Ajustes».
+   El botón de guías no se oculta nunca (QA A3, defecto 2): con capas encendidas pintadas sobre la hoja, su control
+   tiene que seguir a la vista; en el ancho chico queda en ícono y cuenta. */
 @container pulso-f6-visor (max-width: 1120px) {
   .pulso-f6-visor .pulso-f6-rotulo-medio {
     position: absolute;
@@ -383,8 +385,14 @@
 }
 
 @container pulso-f6-visor (max-width: 800px) {
-  .pulso-f6-visor-barra > .pulso-f6-guias {
-    display: none;
+  .pulso-f6-visor .pulso-f6-rotulo-angosto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 }
 
