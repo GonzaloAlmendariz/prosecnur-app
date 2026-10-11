@@ -54,6 +54,9 @@ export function CargaReviewSummary({
   // acá y no solo en Validación porque en este punto el campo puede seguir
   // abierto y todavía se puede corregir el proceso, no solo el dato.
   const procedencia = review?.procedencia ?? null;
+  // Tampoco bloquea: código y etiqueta siguen coherentes. Lo que importa son
+  // las omitidas, que no tienen los códigos del formulario del editor.
+  const ordenEditor = review?.orden_editor ?? null;
   const choiceMappingPending = pendingChoiceMapping || Boolean(review?.choice_mapping.pending);
   const hasDecision = choiceMappingPending || pendingExtraCount > 0;
   const selectedReviewReady = Boolean(review?.ready && allReady && !hasPartialCoverage);
@@ -171,8 +174,36 @@ export function CargaReviewSummary({
         </li>
       </ul>
 
-      {(incompatible || hasDecision || procedencia) && (
+      {(incompatible || hasDecision || procedencia || ordenEditor) && (
         <ul className="pulso-carga-review-findings" aria-label="Incidencias de la base revisada">
+          {ordenEditor && ordenEditor.omitidas.length > 0 && (
+            <li className="is-pending">
+              <AlertTriangle size={15} aria-hidden="true" />
+              <span>
+                <strong>
+                  {ordenEditor.omitidas.length === 1
+                    ? "1 pregunta no sigue el orden de opciones del editor"
+                    : `${ordenEditor.omitidas.length} preguntas no siguen el orden de opciones del editor`}
+                </strong>
+                <small>
+                  {ordenEditor.omitidas.map((o) => `${o.variable}: ${o.motivo}`).join(" · ")}
+                </small>
+              </span>
+            </li>
+          )}
+          {ordenEditor && ordenEditor.adoptadas.length > 0 && (
+            <li>
+              <FileSpreadsheet size={15} aria-hidden="true" />
+              <span>
+                <strong>
+                  {ordenEditor.adoptadas.length === 1
+                    ? "1 pregunta usa el orden de opciones del editor"
+                    : `${ordenEditor.adoptadas.length} preguntas usan el orden de opciones del editor`}
+                </strong>
+                <small>{ordenEditor.adoptadas.join(", ")}</small>
+              </span>
+            </li>
+          )}
           {procedencia && (
             <li className="is-pending">
               <FileSpreadsheet size={15} aria-hidden="true" />

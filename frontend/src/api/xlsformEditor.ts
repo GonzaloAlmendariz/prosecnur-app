@@ -1954,6 +1954,16 @@ export type CargaReviewProcedencia = {
   mensaje: string;
 };
 
+/**
+ * Orden de opciones del editor en un import SurveyMonkey por API: qué
+ * preguntas adoptaron los códigos del formulario del editor y cuáles no (con
+ * su motivo). Advierte, no bloquea. `null` cuando no hay nada que declarar.
+ */
+export type CargaReviewOrdenEditor = {
+  adoptadas: string[];
+  omitidas: Array<{ variable: string; motivo: string }>;
+};
+
 export type CargaReviewPayload = {
   ok: true;
   base_nombre: string | null;
@@ -1961,6 +1971,7 @@ export type CargaReviewPayload = {
   choice_mapping: CargaReviewChoiceMapping;
   reconciliation: CargaReviewReconciliation;
   procedencia: CargaReviewProcedencia | null;
+  orden_editor: CargaReviewOrdenEditor | null;
   ready: boolean;
 };
 
@@ -1978,6 +1989,20 @@ function normalizeCargaReviewProcedencia(raw: unknown): CargaReviewProcedencia |
     version_vigente: typeof r.version_vigente === "string" ? r.version_vigente : "",
     mensaje: typeof r.mensaje === "string" ? r.mensaje : "",
   };
+}
+
+function normalizeCargaReviewOrdenEditor(raw: unknown): CargaReviewOrdenEditor | null {
+  const r = reconRecord(raw);
+  const adoptadas = reviewStrings(r.adoptadas);
+  const omitidas = normalizeShareArray<unknown>(r.omitidas)
+    .map((entry) => reconRecord(entry))
+    .filter((entry) => typeof entry.variable === "string" && entry.variable.trim().length > 0)
+    .map((entry) => ({
+      variable: String(entry.variable).trim(),
+      motivo: typeof entry.motivo === "string" ? entry.motivo : "",
+    }));
+  if (!adoptadas.length && !omitidas.length) return null;
+  return { adoptadas, omitidas };
 }
 
 function reviewBoolean(value: unknown): boolean {
@@ -2102,6 +2127,7 @@ function normalizeCargaReviewPayload(raw: unknown): CargaReviewPayload {
     choice_mapping: choiceMapping,
     reconciliation,
     procedencia: normalizeCargaReviewProcedencia(root.procedencia),
+    orden_editor: normalizeCargaReviewOrdenEditor(root.orden_editor),
     ready: reviewBoolean(root.ready)
       && !incompatible
       && !choiceMapping.pending

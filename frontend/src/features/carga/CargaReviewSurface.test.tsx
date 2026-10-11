@@ -138,6 +138,7 @@ describe("superficie de Revisión en Carga", () => {
             reviewed: false,
           },
           procedencia: null,
+          orden_editor: null,
           ready: false,
         }}
         action={<a href="/validacion">Ir a Validación</a>}
@@ -198,6 +199,7 @@ describe("superficie de Revisión en Carga", () => {
         reviewed: true,
       },
       procedencia: null,
+      orden_editor: null,
       ready: true,
     };
     const common = {
@@ -299,6 +301,7 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
     },
     reconciliation: { extra: [], reviewed: true, n_extra: 0, n_incluidas: 0, n_excluidas: 0, n_pendientes: 0 },
     procedencia: null,
+    orden_editor: null,
     ready: true,
   };
 
@@ -331,6 +334,27 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
     expect(html).toContain("6 de 104 casos");
     // El aviso convive con el estado listo: advierte sobre cómo se recolectó,
     // no impide cargar.
+    expect(html).toContain("Sin bloqueos");
+  });
+
+  it("declara las preguntas que no siguieron el orden del editor, sin bloquear", () => {
+    const limpio = renderToStaticMarkup(<CargaReviewSummary {...baseProps} review={reviewLimpio} />);
+    expect(limpio).not.toContain("orden de opciones del editor");
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          orden_editor: {
+            adoptadas: ["p2"],
+            omitidas: [{ variable: "p1", motivo: "las etiquetas del mapa no calzan con las opciones de la encuesta" }],
+          },
+        }}
+      />,
+    );
+    expect(html).toContain("1 pregunta no sigue el orden de opciones del editor");
+    expect(html).toContain("p1: las etiquetas del mapa no calzan");
+    expect(html).toContain("1 pregunta usa el orden de opciones del editor");
     expect(html).toContain("Sin bloqueos");
   });
 });

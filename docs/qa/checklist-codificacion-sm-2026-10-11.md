@@ -1,7 +1,10 @@
 # Checklist — Códigos de respuesta en imports SurveyMonkey por API (2026-10-11)
 
-Tipo: Checklist
-Estado: Abierto
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-11
+Autoridad: Registro de alcance del pedido; el comportamiento vigente lo fijan `carga_sm_orden_editor.R`, `carga_platform_separate.R` y `test-carga-sm-orden-editor.R`
+
 Origen: traspaso `docs/qa/traspaso-codificacion-surveymonkey-2026-10-11.md` (rama `meta-b-revamp`)
 y revisión metodológica sobre `main` (`88ea0a8c9`, PR #10). Estudio en campo:
 Acreditación Arte y Diseño PUCP (Docentes, Administrativos, Estudiantes).
@@ -11,13 +14,15 @@ Acreditación Arte y Diseño PUCP (Docentes, Administrativos, Estudiantes).
 | 1 | Llevar N4 (mapas solo de la misma encuesta) y «bases separadas» a `main` | `carga_platform_separate.R`, `router_carga.R` | Hecho antes de esta sesión: PR #10 (`88ea0a8c9`) ya los trae |
 | 2 | Triple aplicación de mapas en base única (preview y `rp_data` invertidos) | `.carga_codigos_ya_aplicados` (`router_carga.R`), `project_pulso.R` | Hecho en PR #10; test l.906/l.923 de `test-carga-platform-jobs.R` |
 | 3 | Gate de Carga sobre `main` | `make gate-area AREA=carga …` | Verde: 1491 pass, 0 fallos (janitor instalado) |
-| 4 | **H2**: los mapas del editor se aplican contra el instrumento generado y no contra el del editor; una pregunta reordenada queda con la etiqueta equivocada | `.carga_sm_prepare_import` | En curso: el instrumento generado adopta códigos y orden del editor por etiqueta, sin recodificar después |
-| 5 | **H3**: `select_multiple` no recibe el reordenamiento (libros de códigos distintos en la misma base) | ídem | En curso: cubierto por el mismo arreglo (codificación por etiqueta) |
-| 6 | **H1**: la confirmación de Carga › Revisión quedó sin efecto tras PR #10 | `carga_review.R`, `CargaPage.tsx` | Se resuelve por diseño si el import ya no recodifica (nada que confirmar); verificar |
-| 7 | **H4**: la marca no registra qué mapas se aplicaron | metadata de la base | Pendiente: registrar las listas adoptadas del editor en la base |
+| 4 | **H2**: los mapas del editor se aplican contra el instrumento generado y no contra el del editor; una pregunta reordenada queda con la etiqueta equivocada | `carga_sm_orden_editor.R`, `.carga_sm_prepare_import` | Hecho (`198d429`): el instrumento adopta códigos y orden del editor por etiqueta antes de codificar; re-revisión metodológica aprobada con supuestos |
+| 5 | **H3**: `select_multiple` no recibe el reordenamiento | ídem | Hecho (`198d429`), test `"1 2","3","2"` |
+| 6 | **H1**: la confirmación de Carga › Revisión quedó sin efecto tras PR #10 | `carga_review.R`, `CargaReviewSummary.tsx` | Hecho: no hay recode que confirmar (`not_required` es correcto); Revisión declara adoptadas y omitidas con su motivo, sin bloquear |
+| 7 | **H4**: la base no registra qué se adoptó; los códigos pueden cambiar entre imports si se edita el orden | metadata de la base | Parcial: `choice_order_editor` en la base y en Revisión; el refresh conserva el orden. Falta la firma del orden y el aviso fuerte si cambia (ADR 0077) |
 | 8 | **H5**: handoff de Monitoreo hereda mapas sin procedencia | `carga_monitoreo_handoff_general.R:378/452` | Pendiente (baja, no toca SM) |
-| 9 | Prueba de punta a punta con las tres encuestas reales | script local, fuera del repo | Hecho para A/B/C (ver informe); repetir tras el arreglo |
+| 9 | Prueba de punta a punta con las encuestas reales | script local, fuera del repo | Hecho: Arte y Diseño (3 encuestas) e Ing. (9 encuestas) |
 | 10 | Usar el formulario del editor (con su lógica) como instrumento de la base | contrato de instrumento | Bloqueado: requiere decisión/ADR |
+| 11 | El refresh de SM («Traer respuestas») reconstruía el instrumento sin el orden del editor | `.sm_mb_prepare_refresh_snapshot` | Hecho: adopta el orden antes de la lógica compartida y renueva la marca |
+| 12 | Reescritura de lógica: formas no reconocidas (`'x' = ${v}`, comillas dobles, `count-selected`) omiten la lista; `selected(., 'x')` en constraints no se detecta | `carga_sm_orden_editor.R` | Pendiente (sin efecto hoy: el generador solo emite `${v} = 'x'`/`selected`) |
 
 ## Aprendido
 
@@ -30,3 +35,10 @@ Acreditación Arte y Diseño PUCP (Docentes, Administrativos, Estudiantes).
   coinciden con el conteo crudo de SM en archivo, preview, base `default`, Ver base, Analítica
   y reapertura. Las únicas diferencias de Estudiantes se explican: «Otro» con texto
   (7/19/15) y una respuesta sin consentimiento filtrada a propósito.
+- Ing. (nueve carreras, bases SAV bundle): en las 9 encuestas cada etiqueta tiene el mismo código
+  por API que en el instrumento ya trabajado de la base (0 diferencias). El import por API
+  coincide con el conteo crudo de SM salvo «Otro» con texto, el filtro de consentimiento y el
+  rótulo de escala («Totalmente de acuerdo<br>4» → «Totalmente de acuerdo»), sin cambiar conteos.
+- La re-revisión deja supuestos: biyección exacta por etiqueta (una etiqueta editada omite la
+  lista), matrices con el mapa en la variable madre no adoptan, y no cambiar el orden en el
+  editor una vez que hay trabajo sobre la base.
