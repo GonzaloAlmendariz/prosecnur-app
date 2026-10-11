@@ -35,7 +35,7 @@ como histórico de la primera órbita.
 
 | # | Afirmación comprobable | Cómo se mide | Hoy |
 |---|---|---|---|
-| V1 | Todo overlay es un panel declarado y enlazable | `grep -rc 'role="dialog"'` fuera de `components/Dialog.tsx` = 0; paneles en el manifiesto ≥ overlays reales | 61 `role="dialog"` en 56 archivos; 10 paneles declarados |
+| V1 | Todo overlay es un panel declarado y enlazable | `grep -rc 'role="dialog"'` fuera de las primitivas del kit (`components/Dialog.tsx`, `Sideover.tsx` y `Popover.tsx`, que es la primitiva de clase `popover` y conserva su `role="dialog"` no modal) = 0 (enmienda 2026-10-11: los globos informativos no modales, como `EscalaChip`, usan `Popover` y no cuentan como panel enlazable); paneles en el manifiesto ≥ overlays reales | 61 `role="dialog"` en 56 archivos; 10 paneles declarados |
 | V2 | Hay una sola primitiva de diálogo, con focus trap, Escape y restauración de foco | `Dialog.tsx`/`Sideover.tsx` sobre Radix; test de contrato que falla con un `role="dialog"` fuera de ellas | 0 primitiva; 3 mecanismos; ~30 wrappers |
 | V3 | Carga importa con progreso real y cancelable, y ofrece plataforma en toda estrategia | los 7 flujos usan `JobProgress`; disparador SM/Kobo visible con «bases separadas»; sin «Pendiente · 0/1» tras readiness | 0 de 7 con `JobProgress`; sin disparador en «separadas»; 8 s de estado falso |
 | V4 | Toda pestaña publica su propia readiness y solo cuando terminó de pintar | `data-audit-ready` único por pestaña en Monitoreo y Analítica; 0 capturas con spinner y `ok=true` en la matriz | una marca por página en Acr/Tel/Terr/Analítica; 7 INVALID en el censo |
