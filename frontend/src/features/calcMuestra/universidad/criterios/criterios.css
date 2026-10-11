@@ -2099,29 +2099,33 @@
   background: var(--pulso-bg);
 }
 
-.cmv2-facultades-excluidas-lista label {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
+/* Cada facultad es un PulsoSwitch chico (L27): encendido = participa. */
+.cmv2-facultades-excluidas-lista .pulso-switch-field {
+  flex: 1 1 auto;
+  align-items: flex-start;
   min-width: 0;
-  cursor: pointer;
+}
+
+.cmv2-facultades-excluidas-lista .pulso-switch {
+  margin-top: 1px;
 }
 
 /* El nombre de la facultad NO se recorta: es el dato con el que se decide, no
    una etiqueta larga. Llevaba `text-overflow: ellipsis` y, medido el
    2026-08-25 sobre las 15 facultades de HSVG26DEF a 1024 px, dos quedaban
    cortadas —«GASTRONOMÍA, HOTELERÍA Y TURISMO» pedía 298 px y tenía 254—, así
-   que la casilla de una facultad se marcaba sin poder leer cuál era. C4 del
-   Contrato de Superficie. Envuelve en dos líneas y la fila crece con ella. */
-.cmv2-facultades-excluidas-lista label > span {
+   que la facultad se marcaba sin poder leer cuál era. C4 del Contrato de
+   Superficie. Envuelve en dos líneas y la fila crece con ella. */
+.cmv2-facultades-excluidas-lista .pulso-switch-field-label {
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
   line-height: 1.35;
+  font-weight: var(--pulso-weight-medium);
 }
 
-/* La facultad excluida se tacha: el estado se lee sin buscar la casilla. */
-.cmv2-facultades-excluidas-lista > li[data-excluida] label > span {
+/* La facultad excluida se tacha: el estado se lee sin buscar el switch. */
+.cmv2-facultades-excluidas-lista > li[data-excluida] .pulso-switch-field-label {
   text-decoration: line-through;
   color: var(--pulso-text-muted);
 }
@@ -2480,18 +2484,21 @@
   overflow-wrap: anywhere;
 }
 
-.cmv2-facultades-excluidas-lista input[type="checkbox"] {
-  accent-color: var(--module-accent, var(--pulso-primary));
-  /* Tamaño y caja fijos: la casilla nativa encogía con el `flex` de la fila y
-     el nombre envolviendo la empujaba fuera de su línea. */
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin: 2px 0 0;
-}
-
 .cmv2-facultades-excluidas-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
   margin-top: 12px;
   padding-top: 9px;
   border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
+}
+
+/* «Ninguna | Todas»: links del kit con su altura de control (26 px); el
+   separador lo pone kit-buttons.css entre dos links hermanos. */
+.cmv2-facultades-excluidas-acciones {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
 }

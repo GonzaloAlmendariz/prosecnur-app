@@ -81,10 +81,39 @@ describe("tarjeta de facultades excluidas", () => {
     expect(pintar([])).toContain("Ninguna facultad excluida");
   });
 
-  it("marca la casilla de la facultad excluida", () => {
+  it("cada facultad es un switch encendido mientras participa (K1)", () => {
     const html = pintar(["ESCUELA DE POSGRADO"]);
     expect(html).toContain('data-excluida="true"');
-    expect(html).toContain("checked");
+    expect(html).not.toContain('type="checkbox"');
+    expect((html.match(/role="switch"/g) ?? []).length).toBe(FACULTADES.length);
+    // Apagado = excluida; encendido = participa.
+    expect(html).toMatch(/aria-checked="false"[^>]*aria-label="ESCUELA DE POSGRADO participa del estudio"/);
+    expect(html).toMatch(/aria-checked="true"[^>]*aria-label="DERECHO participa del estudio"/);
+  });
+
+  it("el título nombra lo que dice el switch encendido: las que participan", () => {
+    const html = pintar([]);
+    expect(html).toContain("Facultades que participan");
+    expect(html).toContain("Apaga una facultad para excluirla");
+    expect(html).not.toContain("<strong>Facultades excluidas</strong>");
+  });
+
+  it("el pie ofrece «Ninguna | Todas» como botones de texto fuera de la prosa (K3)", () => {
+    const html = pintar(["ESCUELA DE POSGRADO"]);
+    expect(html).toContain("pulso-button--link");
+    expect(html).toMatch(/>Ninguna<\/button>/);
+    expect(html).toMatch(/>Todas<\/button>/);
+    // Fuera de un <p>: la regla de prosa le quitaría la altura de control.
+    expect(html).not.toMatch(/<p class="cmv2-facultades-excluidas-pie"/);
+    expect(html).toContain('<div class="cmv2-facultades-excluidas-pie"');
+  });
+
+  it("«Todas» se desactiva sin exclusiones y «Ninguna» con todas fuera", () => {
+    expect(pintar([])).toMatch(/<button[^>]*disabled=""[^>]*>Todas<\/button>/);
+    expect(pintar([])).not.toMatch(/<button[^>]*disabled=""[^>]*>Ninguna<\/button>/);
+    const todas = pintar(FACULTADES.map((f) => f.label));
+    expect(todas).toMatch(/<button[^>]*disabled=""[^>]*>Ninguna<\/button>/);
+    expect(todas).not.toMatch(/<button[^>]*disabled=""[^>]*>Todas<\/button>/);
   });
 
   it("dice cuántas facultades quedan fuera", () => {
