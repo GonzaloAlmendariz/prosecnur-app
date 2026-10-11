@@ -29,7 +29,7 @@ export function SeccionWordRecetario({
     <section className="pulso-f6-informe-seccion" aria-labelledby={tituloId} data-qa-geometry-member data-seccion="word">
       <CabeceraSeccion
         id={tituloId}
-        titulo="Word"
+        titulo="Todo el documento"
         modificado={opcion.procedencia === "propio" && !motivoNoEditable}
         etiquetaVolver="Volver a la opción por defecto del Word"
         onVolver={() => onOpcion(opcion.porDefecto)}

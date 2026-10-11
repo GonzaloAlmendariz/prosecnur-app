@@ -46,6 +46,7 @@ import { conDisponibilidadEstilo } from "./estilo/disponibilidadEstilo";
 const VistaGeneral = lazyWithReload(() => import("./vistaGeneral/VistaGeneral"), "graficos-vista-general");
 const PestanaEstilo = lazyWithReload(() => import("./estilo/PestanaEstilo"), "graficos-estilo");
 const PestanaEstiloInforme = lazyWithReload(() => import("./estiloInforme/PestanaEstiloInforme"), "graficos-estilo-informe");
+const PestanaWord = lazyWithReload(() => import("./word/PestanaWord"), "graficos-word");
 
 type ExportResult = {
   ok: true; file_id: string; filename?: string; size: number; n_slides: number;
@@ -314,7 +315,7 @@ export default function GraficosPage() {
             </Alert>
           )}
 
-          {(pestana === "laminas" || pestana === "vista-general" || pestana === "estilo" || pestana === "estilo-informe") && bodyState === "editor" ? (
+          {pestana !== "clasico" && bodyState === "editor" ? (
             <BarraLaminas
               onExportPpt={() => onExport("ppt")}
               onExportWord={() => onExport("word")}
@@ -454,6 +455,8 @@ export default function GraficosPage() {
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del cliente…" /></div>}><PestanaEstilo /></Suspense>
                   : pestana === "estilo-informe"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del informe…" /></div>}><PestanaEstiloInforme /></Suspense>
+                  : pestana === "word"
+                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el Word…" /></div>}><PestanaWord /></Suspense>
                   : <EditorShell />}
             </div>
           </AdaptiveSplitView>
