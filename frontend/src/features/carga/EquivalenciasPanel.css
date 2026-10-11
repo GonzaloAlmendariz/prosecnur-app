@@ -501,41 +501,24 @@ button.pulso-equiv-input-diapo:hover,
 }
 
 button.pulso-equiv-chip-escala:hover,
-.pulso-equiv-chip-escala.is-abierto {
+.pulso-equiv-chip-escala[aria-expanded="true"] {
   border-color: var(--pulso-module-processing);
   color: var(--pulso-module-processing);
 }
 
-.pulso-equiv-chip-escala.is-abierto svg { transform: rotate(180deg); }
+.pulso-equiv-chip-escala[aria-expanded="true"] svg { transform: rotate(180deg); }
 .pulso-equiv-chip-escala svg { transition: transform 140ms ease; }
 
-/* `fixed` y no `absolute`: la tarjeta de diapositiva tiene `overflow-x: auto`
-   —su tabla es mas ancha que el contenedor— y recortaria cualquier hijo
-   posicionado dentro. z-index por encima del toolbar, que va en 1000 con
-   `transform` propio y tapa todo overlay por debajo. */
-.pulso-equiv-escala-globo {
-  position: fixed;
-  z-index: 1400;
+/* El globo es el Popover del kit (components/popover.css pone el portal,
+   `fixed`, la capa, el borde, la sombra y la entrada); aquí solo su medida. */
+.pulso-popover.pulso-equiv-escala-globo {
   width: 300px;
   max-height: 320px;
   overflow-y: auto;
   padding: var(--pulso-space-2);
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-panel, 0 10px 30px rgba(0, 0, 0, 0.14));
-  animation: pulso-equiv-globo-entra 140ms ease-out;
 }
 
-@keyframes pulso-equiv-globo-entra {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* Quien pide menos movimiento recibe el globo sin animacion, no una version
-   suavizada: el objetivo es que aparezca, no que viaje. */
 @media (prefers-reduced-motion: reduce) {
-  .pulso-equiv-escala-globo { animation: none; }
   .pulso-equiv-chip-escala svg { transition: none; }
 }
 

@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ExternalLink, Loader2, Rocket, X } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Rocket } from "lucide-react";
+import { Dialog } from "../../../components/Dialog";
+import { PulsoButton } from "../../../components/PulsoButton";
 import {
   apiDashboardConfigPut,
   apiDashboardPublish,
@@ -20,6 +22,8 @@ type Props = {
   lastDeploy?: DashboardLastDeploy;
   onClose: () => void;
 };
+
+const PUBLISH_FORM_ID = "dash-publish-form";
 
 function slugifySpace(value: string) {
   return value
@@ -174,25 +178,37 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
   }
 
   return (
-    <div className="dash-modal-backdrop" onClick={publishing ? undefined : onClose}>
-      <form
-        className="dash-modal dash-publish-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="dash-publish-title"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={handleSubmit}
-      >
-        <header className="dash-modal-head">
-          <div>
-            <h2 id="dash-publish-title">Publicar dashboard</h2>
-            <p>Sube el proyecto actual a un Hugging Face Space con Docker.</p>
-          </div>
-          <button type="button" className="dash-publish-close" onClick={onClose} disabled={publishing}>
-            <X size={16} />
-          </button>
-        </header>
-
+    <Dialog
+      open
+      onOpenChange={(abierto) => {
+        if (!abierto) onClose();
+      }}
+      size="md"
+      flush
+      portalScope=".dashboard-scope"
+      dismissible={!publishing}
+      className="dash-publish-dialog"
+      icon={<Rocket size={18} />}
+      title="Publicar dashboard"
+      subtitle="Sube el proyecto actual a un Hugging Face Space con Docker."
+      footer={
+        <>
+          <PulsoButton variant="secondary" onClick={onClose} disabled={publishing}>
+            Cerrar
+          </PulsoButton>
+          <PulsoButton
+            variant="primary"
+            type="submit"
+            form={PUBLISH_FORM_ID}
+            disabled={!canPublish || publishing || loadingSettings}
+          >
+            {publishing ? <Loader2 size={14} className="dash-admin-spin" /> : <Rocket size={14} />}
+            Publicar
+          </PulsoButton>
+        </>
+      }
+    >
+      <form id={PUBLISH_FORM_ID} className="dash-publish-form" onSubmit={handleSubmit}>
         <div className="dash-publish-grid">
           {savedTokens.length > 0 && (
             <label className="dash-publish-wide">
@@ -307,15 +323,7 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
             </button>
           </div>
         )}
-
-        <footer className="dash-publish-actions">
-          <button type="button" onClick={onClose} disabled={publishing}>Cerrar</button>
-          <button type="submit" className="dash-publish-primary" disabled={!canPublish || publishing || loadingSettings}>
-            {publishing ? <Loader2 size={14} className="dash-admin-spin" /> : <Rocket size={14} />}
-            Publicar
-          </button>
-        </footer>
       </form>
-    </div>
+    </Dialog>
   );
 }
