@@ -153,8 +153,8 @@ describe("ack de persistencia para composición", () => {
 
   it("enumera todos los call sites directos que mutan la configuración de Gráficos", () => {
     expect(directGraficosMutationCalls()).toEqual([
-      "GraficosHeader.tsx:apiGraficosConfigImport",
-      "GraficosHeader.tsx:apiGraficosShareImport",
+      "compartir/accionesCompartir.ts:apiGraficosConfigImport",
+      "compartir/accionesCompartir.ts:apiGraficosShareImport",
       "configSnapshot.ts:apiGraficosConfigPut",
       "useGraficosAutosave.ts:apiGraficosConfigPut",
       "useGraficosAutosave.ts:apiGraficosConsolidadoDraftPut",
@@ -209,36 +209,38 @@ describe("ack de persistencia para composición", () => {
   });
 
   it("los imports invalidan el sid inicial y sólo reackean el snapshot releído", () => {
-    const source = fs.readFileSync(path.join(featureDir, "GraficosHeader.tsx"), "utf8");
-    const packageApply = sourceSection(source, "async function packageApply()", "async function ioExport()");
-    const ioImport = sourceSection(source, "async function ioImport(file?: File)", "function onResetClick()");
+    // La lógica de importar salió del header a `compartir/accionesCompartir.ts` (C11/C12, decisión 10): la usan por
+    // igual la barra de Láminas y el Editor anterior.
+    const source = fs.readFileSync(path.join(featureDir, "compartir", "accionesCompartir.ts"), "utf8");
+    const rehidratar = sourceSection(source, "async function rehidratarDesdeBackend(", "// --- C12");
+    const packageApply = sourceSection(source, "export async function aplicarPlanPortatil(", "return `Plan aplicado");
+    const ioImport = sourceSection(source, "export async function aplicarImportacionJson(", "return rotuloSeccionesImportadas");
+
+    expectFragmentsInOrder(rehidratar, [
+      "deps.configGet()",
+      "normalizeGraficosConfig(cuerpoConfig(refreshed)",
+      "deps.hydrate(cfg as GraficosConfig)",
+      'acknowledgeSlideCompositionConfig(sid, "active", cfg)',
+    ]);
+    expect(rehidratar.match(/acknowledgeSlideCompositionConfig\(/g)).toHaveLength(1);
+    expect(rehidratar).not.toContain("getSession");
 
     expectFragmentsInOrder(packageApply, [
-      "const sid = getSession()",
+      "const sid = deps.getSession()",
       'invalidateSlideCompositionPersistenceAck(sid, "active")',
-      "apiGraficosShareImport(",
-      "apiGraficosConfigGet()",
-      "normalizeGraficosConfig(refreshed.config ?? refreshed",
-      "hydrate(cfg as never)",
-      'acknowledgeSlideCompositionConfig(sid, "active", cfg)',
-      "} catch",
+      "deps.shareImport(",
+      "rehidratarDesdeBackend(sid, deps)",
     ]);
     expect(packageApply.match(/getSession\(\)/g)).toHaveLength(1);
-    expect(packageApply.match(/acknowledgeSlideCompositionConfig\(/g)).toHaveLength(1);
 
     expectFragmentsInOrder(ioImport, [
-      "const sid = getSession()",
+      "const sid = deps.getSession()",
       'invalidateSlideCompositionPersistenceAck(sid, "active")',
-      "apiGraficosConfigImport(",
-      "apiGraficosConfigGet()",
-      "normalizeGraficosConfig(refreshed.config ?? refreshed",
-      "hydrate(cfg as never)",
-      'acknowledgeSlideCompositionConfig(sid, "active", cfg)',
-      "} catch",
+      "deps.configImport(",
+      "rehidratarDesdeBackend(sid, deps)",
     ]);
     expect(ioImport.match(/getSession\(\)/g)).toHaveLength(1);
-    expect(ioImport.match(/acknowledgeSlideCompositionConfig\(/g)).toHaveLength(1);
-    expect(ioImport).not.toContain("hydrate(synced as never)");
+    expect(ioImport).not.toContain("hydrate(sincronizado");
   });
   it("cablea el conflicto de revisión: el PUT pasa por la guarda, el autosave se detiene y la recarga hidrata (A7 H3)", () => {
     const source = fs.readFileSync(path.join(featureDir, "useGraficosAutosave.ts"), "utf8");
