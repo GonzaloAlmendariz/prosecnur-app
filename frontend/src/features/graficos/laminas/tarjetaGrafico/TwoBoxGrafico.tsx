@@ -1,6 +1,7 @@
 // Top Two Box y Bottom Two Box en la tarjeta de un gráfico de escala (F6.2, F-d; dirección F6 §7 A6/A14). Dos chips
 // por caja sobre las categorías de la escala (`Top2BoxSelector`), sin args de estilo; la Bottom Two Box va al lado del
-// Top Two Box. Lo que se guarda y por qué: `twoBox.ts`. Superficie intrínseca: crece con sus chips, el scroll es del
+// Top Two Box (en multilista y en láminas de varios gráficos, sólo para quitarla: aún no sale en la lámina nativa).
+// Lo que se guarda y por qué: `twoBox.ts`. Superficie intrínseca: crece con sus chips, el scroll es del
 // cuerpo del inspector (C4); el vacío (sin pregunta, sin escala, error) vive dentro de la sección (C3/C5).
 
 import { useId } from "react";
@@ -17,12 +18,15 @@ import { useCategoriasGrafico } from "../useCategoriasGrafico";
 import {
   bottomDisponible,
   categoriasElegibles,
+  composicionDeLamina,
   formaTwoBox,
   leerTwoBox,
   patchTwoBox,
   preguntaDeEscala,
+  type BottomDisponible,
   type Caja,
   type CambioTwoBox,
+  type Composicion,
 } from "./twoBox";
 import { NOTA_TOP_EN_WORD, leerTopEnWord, patchTopEnWord } from "./twoBoxWord";
 import "./tarjetaGrafico.css";
@@ -30,24 +34,51 @@ import "./tarjetaGrafico.css";
 type Props = { slideId: string; slot: string; valor: GraficadorRef; onAbrirBloques: () => void };
 
 export function TwoBoxGrafico({ slideId, slot, valor, onAbrirBloques }: Props) {
+  const tipoLamina = usePlanStore((s) => s.plan.slides.find((x) => x.id === slideId)?.tipo);
+  const presets = usePlanStore((s) => s.presets);
+  const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
+  const composicion = composicionDeLamina(tipoLamina);
   const args = (valor.args ?? {}) as Record<string, unknown>;
   const forma = formaTwoBox(valor.graficador, args);
   if (!forma) return null;
   if (forma === "por_bloque") {
+    const bottom = bottomDisponible(valor.graficador, args, presets, composicion);
     return (
-      <div className="pulso-f6-dato" data-qa="twobox-por-bloque">
-        <span className="pulso-f6-dato-rotulo">Top Two Box</span>
-        <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={onAbrirBloques}>
-          <Rows3 size={14} aria-hidden="true" />
-          Cada bloque el suyo · Editar…
-        </button>
+      <div className="pulso-f6-twobox" data-qa-geometry-group="graficos/f6-twobox" data-qa-geometry-contract="intrinsic" data-qa="twobox-por-bloque">
+        <div className="pulso-f6-dato">
+          <span className="pulso-f6-dato-rotulo">Top Two Box</span>
+          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={onAbrirBloques}>
+            <Rows3 size={14} aria-hidden="true" />
+            Cada bloque el suyo · Editar…
+          </button>
+        </div>
+        <FilaBottom
+          bottom={bottom}
+          onToggle={() => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, { caja: "bottom", activa: !bottom.activa }, composicion))}
+        />
       </div>
     );
   }
-  return <CajasDeEscala slideId={slideId} slot={slot} valor={valor} />;
+  return <CajasDeEscala slideId={slideId} slot={slot} valor={valor} composicion={composicion} />;
 }
 
-function CajasDeEscala({ slideId, slot, valor }: Omit<Props, "onAbrirBloques">) {
+/** «Bottom Two Box al lado»: el interruptor y, donde la lámina nativa aún no la dibuja, por qué no se enciende. */
+function FilaBottom({ bottom, id, onToggle }: { bottom: BottomDisponible; id?: string; onToggle: () => void }) {
+  return (
+    <div className="pulso-f6-dato" data-qa="twobox-bottom">
+      <span className="pulso-f6-dato-rotulo" id={id}>Bottom Two Box al lado</span>
+      <Switch
+        checked={bottom.activa}
+        disabled={!bottom.editable}
+        ariaLabel="Columna Bottom Two Box al lado del Top Two Box"
+        onToggle={onToggle}
+      />
+      {bottom.nota && <span className="pulso-f6-dato-ayuda pulso-f6-twobox-nota">{bottom.nota}</span>}
+    </div>
+  );
+}
+
+function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbrirBloques"> & { composicion: Composicion }) {
   const id = useId();
   const presets = usePlanStore((s) => s.presets);
   const wPresets = usePlanStore((s) => s.wPresets);
@@ -60,9 +91,9 @@ function CajasDeEscala({ slideId, slot, valor }: Omit<Props, "onAbrirBloques">) 
   const cats = useCategoriasGrafico(pregunta ? varCalificada(pregunta, baseActiva) : "", scope);
   if (!estado) return null;
   const enWord = leerTopEnWord(valor.graficador, args, presets, wPresets);
-  const bottom = bottomDisponible(valor.graficador, args, presets);
+  const bottom = bottomDisponible(valor.graficador, args, presets, composicion);
 
-  const cambiar = (c: CambioTwoBox) => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, c));
+  const cambiar = (c: CambioTwoBox) => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, c, composicion));
   const categorias = cats.fase === "lista" ? categoriasElegibles(cats.datos.categorias, args.excluir_opciones) : [];
 
   const escala = (caja: Caja, nombre: "Top Two Box" | "Bottom Two Box", clave: "top" | "bottom") => {
@@ -137,16 +168,7 @@ function CajasDeEscala({ slideId, slot, valor }: Omit<Props, "onAbrirBloques">) 
       )}
       {bottom.ofrecer && (
         <>
-          <div className="pulso-f6-dato" data-qa="twobox-bottom">
-            <span className="pulso-f6-dato-rotulo" id={`${id}-bottom`}>Bottom Two Box al lado</span>
-            <Switch
-              checked={estado.bottom.activa}
-              disabled={!bottom.editable}
-              ariaLabel="Columna Bottom Two Box al lado del Top Two Box"
-              onToggle={() => cambiar({ caja: "bottom", activa: !estado.bottom.activa })}
-            />
-            {bottom.nota && <span className="pulso-f6-dato-ayuda pulso-f6-twobox-nota">{bottom.nota}</span>}
-          </div>
+          <FilaBottom bottom={bottom} id={`${id}-bottom`} onToggle={() => cambiar({ caja: "bottom", activa: !estado.bottom.activa })} />
           {estado.bottom.activa && (
             <div className="pulso-f6-twobox-caja" role="group" aria-labelledby={`${id}-bottom`}>{escala(estado.bottom, "Bottom Two Box", "bottom")}</div>
           )}
