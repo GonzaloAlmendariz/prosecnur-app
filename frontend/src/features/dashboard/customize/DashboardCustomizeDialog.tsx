@@ -28,6 +28,7 @@ import {
   MAX_DASHBOARD_LOGOS,
   useDashboardStore,
 } from "../store";
+import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
 import { Dialog, type RetornoDeFoco } from "../../../components/Dialog";
 import { useDimSeccionesVars } from "../useDashboardData";
 import { DASHBOARD_PESTANAS } from "../../../lib/navegacion/catalogos/dashboard";
@@ -64,10 +65,11 @@ const THEME_PRESETS: ThemePreset[] = [
 ];
 
 export function DashboardCustomizeDialog({
-  onClose,
+  panel: panelDeclarado,
   returnFocusTo,
 }: {
-  onClose: () => void;
+  /** Panel declarado (`?panel=personalizar`): la dirección abre y cierra el diálogo. */
+  panel: PanelDeclarado;
   /** Foco de vuelta si el disparador se desmontó (ítem del menú «Más acciones»). */
   returnFocusTo?: RetornoDeFoco;
 }) {
@@ -230,10 +232,7 @@ export function DashboardCustomizeDialog({
 
   return (
     <Dialog
-      open
-      onOpenChange={(abierto) => {
-        if (!abierto) onClose();
-      }}
+      panel={panelDeclarado}
       size="lg"
       alto="fijo"
       flush

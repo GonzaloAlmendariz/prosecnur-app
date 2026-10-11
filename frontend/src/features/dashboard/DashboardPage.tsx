@@ -30,6 +30,12 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { DASHBOARD_PESTANAS } from "../../lib/navegacion/catalogos/dashboard";
+import {
+  PANEL_DASHBOARD_PALETAS,
+  PANEL_DASHBOARD_PERSONALIZAR,
+  PANEL_DASHBOARD_PUBLICAR,
+} from "../../lib/navegacion/manifiesto";
+import { usePanelCondicionado, usePanelDireccionable } from "../../lib/navegacion/paneles";
 
 type DashboardVisibleTab = typeof DASHBOARD_PESTANAS[number] & {
   available: boolean;
@@ -88,23 +94,16 @@ export default function DashboardPage({
   const setTabActiva = onPestana ?? setTabActivaStore;
   const setSeccionActiva = useDashboardStore((s) => s.setSeccionActiva);
   const [sourceOpen, setSourceOpen] = useState(false);
-  const [palettesOpen, setPalettesOpen] = useState(false);
-  const [customizeOpen, setCustomizeOpen] = useState(false);
-  const [publishOpen, setPublishOpen] = useState(false);
   // Modo "Vista previa": oculta el admin toolbar y los controles de
   // edición para que el editor pueda ver cómo se verá el dashboard
   // publicado. Solo de sesión, no se persiste.
   const [previewMode, setPreviewMode] = useState(false);
 
   // En vista previa cualquier diálogo abierto debe cerrarse — no son
-  // parte del producto final que vería el lector.
+  // parte del producto final que vería el lector. Los tres paneles
+  // direccionables los cierra `DashboardEditorChrome`.
   useEffect(() => {
-    if (previewMode) {
-      setSourceOpen(false);
-      setPalettesOpen(false);
-      setCustomizeOpen(false);
-      setPublishOpen(false);
-    }
+    if (previewMode) setSourceOpen(false);
   }, [previewMode]);
 
   // Atajo: Escape sale de vista previa cuando no hay diálogo abierto.
@@ -164,120 +163,30 @@ export default function DashboardPage({
       themeDefault={themeDefault ?? undefined}
       className={adminHidden || previewMode ? "dashboard-scope--reader" : "dashboard-scope--editor"}
     >
-      {adminHidden || previewMode ? (
-        previewMode && !adminHidden ? (
-          // En vista previa (editor) solo aparece un chip flotante para
-          // volver al modo edición. El deploy público nunca muestra
-          // controles de edición.
-          <button
-            type="button"
-            className="dash-preview-exit"
-            onClick={() => setPreviewMode(false)}
-            title="Salir de vista previa (Esc)"
-            aria-label="Salir de vista previa"
-          >
-            <EyeOff size={13} /> Salir de vista previa
-          </button>
-        ) : null
-      ) : (
-        <div className="dash-admin-toolbar-wrap dash-editor-commandbar-wrap">
-          {/* Capa de edición: interna, nunca visible en modo público. Adopta la
-              banda canónica de tres zonas —contexto | edición | salida— igual
-              que el resto de los módulos. La fila de secciones de más abajo NO
-              la adopta a propósito: esa sí la ve el cliente del estudio y su
-              aspecto es una decisión de marca aparte. */}
-          <ModuleCommandBar
-            modulo="dashboard"
-            ariaLabel="Edición del dashboard"
-            className="dash-admin-toolbar dash-editor-commandbar"
-            contexto={
-              // Sin `last_deploy` la zona quedaba vacía y toda la banda pesaba a
-              // la derecha. El estado de la fuente sí existe siempre y es lo que
-              // decide qué acciones están habilitadas, así que es el contexto
-              // honesto de este módulo mientras todavía no se publicó nada.
-              !config.last_deploy ? (
-                <ChromeIndicatorGroup ariaLabel="Estado del tablero">
-                  <ChromeIndicator
-                    label="Datos"
-                    value={manifest?.estado.tiene_data ? "cargados" : "sin cargar"}
-                    prioridad="alta"
-                  />
-                  <ChromeIndicator
-                    label="Dimensiones"
-                    value={manifest?.estado.tiene_dim ? "listas" : "pendientes"}
-                    prioridad="media"
-                  />
-                </ChromeIndicatorGroup>
-              ) : (
-                <ChromeIndicatorGroup ariaLabel="Estado de publicación">
-                  <ChromeIndicator
-                    label="Última publicación"
-                    prioridad="alta"
-                    detalle="Abrir Space en Hugging Face"
-                    value={
-                      <>
-                        <a
-                          href={config.last_deploy.url || config.last_deploy.app_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {config.last_deploy.repo_id}
-                        </a>
-                        {" — "}
-                        <RelativeTime iso={config.last_deploy.published_at} />
-                      </>
-                    }
-                  />
-                </ChromeIndicatorGroup>
-              )
-            }
-            acciones={[
-              {
-                id: "deploy",
-                label: config.last_deploy ? "Re-publicar" : "Deploy",
-                rank: 1,
-                kind: "primary",
-                onSelect: () => setPublishOpen(true),
-                disabled: !hasDashboardSource,
-                title: config.last_deploy
-                  ? `Re-publicar a ${config.last_deploy.repo_id}`
-                  : "Publicar el dashboard como Hugging Face Space",
-              },
-              {
-                id: "vista-previa",
-                label: "Vista previa",
-                rank: 2,
-                onSelect: () => setPreviewMode(true),
-                disabled: !hasDashboardSource,
-                title: "Ver el dashboard como se verá publicado",
-              },
-              {
-                id: "personalizar",
-                label: "Personalizar",
-                rank: 2,
-                onSelect: () => setCustomizeOpen(true),
-                disabled: !hasDashboardSource,
-                title: "Personalizar marca, pestañas y vistas",
-              },
-              {
-                id: "datos",
-                label: "Datos",
-                rank: 3,
-                onSelect: () => setSourceOpen((v) => !v),
-                disabled: !manifest,
-                title: "Cambiar XLSForm y data del dashboard",
-              },
-              {
-                id: "paletas",
-                label: "Paletas",
-                rank: 3,
-                onSelect: () => setPalettesOpen(true),
-                disabled: !hasDashboardSource,
-                title: "Paletas de colores por lista",
-              },
-            ]}
-          />
-        </div>
+      {previewMode && !adminHidden ? (
+        // En vista previa (editor) solo aparece un chip flotante para
+        // volver al modo edición. El deploy público nunca muestra
+        // controles de edición.
+        <button
+          type="button"
+          className="dash-preview-exit"
+          onClick={() => setPreviewMode(false)}
+          title="Salir de vista previa (Esc)"
+          aria-label="Salir de vista previa"
+        >
+          <EyeOff size={13} /> Salir de vista previa
+        </button>
+      ) : null}
+      {/* Fuera del modo público: el artefacto publicado corre sin Router y
+          los paneles direccionables necesitan la dirección. */}
+      {!adminHidden && (
+        <DashboardEditorChrome
+          previewMode={previewMode}
+          manifest={manifest}
+          manifestCargando={loading}
+          onPreview={() => setPreviewMode(true)}
+          onToggleSource={() => setSourceOpen((v) => !v)}
+        />
       )}
 
       {editorChromeVisible && (
@@ -372,26 +281,174 @@ export default function DashboardPage({
         </>
       )}
 
-      {palettesOpen && (
+    </ThemeProvider>
+  );
+}
+
+/**
+ * Capa de edición del Dashboard: la barra de mando y sus tres paneles
+ * direccionables (`?panel=paletas|personalizar|publicar`, L2).
+ *
+ * Es un componente aparte porque `usePanelDireccionable` necesita el Router y
+ * el artefacto público monta `DashboardPage` sin él; aquí solo se entra fuera
+ * del modo público.
+ */
+function DashboardEditorChrome({
+  previewMode,
+  manifest,
+  manifestCargando,
+  onPreview,
+  onToggleSource,
+}: {
+  previewMode: boolean;
+  manifest: ReturnType<typeof useDashboardManifest>["manifest"];
+  manifestCargando: boolean;
+  onPreview: () => void;
+  onToggleSource: () => void;
+}) {
+  const config = useDashboardStore((s) => s.config);
+  const hasDashboardSource = !!manifest?.estado.tiene_data;
+  const paletas = usePanelDireccionable(PANEL_DASHBOARD_PALETAS);
+  const personalizar = usePanelDireccionable(PANEL_DASHBOARD_PERSONALIZAR);
+  const publicar = usePanelDireccionable(PANEL_DASHBOARD_PUBLICAR);
+
+  // La vista previa es el producto final que ve el lector: ningún diálogo de
+  // edición se pinta, tampoco uno pedido por la dirección. Sin fuente cargada
+  // los tres disparadores están deshabilitados y un `?panel=` tampoco abre.
+  // En los dos casos el param se BORRA: la URL reproduce lo que se ve. Mientras
+  // el manifiesto carga por primera vez, el panel espera.
+  const estadoPaneles = {
+    resuelto: previewMode || manifest !== null || !manifestCargando,
+    aplica: !previewMode && hasDashboardSource,
+  };
+  const verPaletas = usePanelCondicionado(paletas, estadoPaneles);
+  const verPersonalizar = usePanelCondicionado(personalizar, estadoPaneles);
+  const verPublicar = usePanelCondicionado(publicar, estadoPaneles);
+
+  return (
+    <>
+      {!previewMode && (
+        <div className="dash-admin-toolbar-wrap dash-editor-commandbar-wrap">
+          {/* Capa de edición: interna, nunca visible en modo público. Adopta la
+              banda canónica de tres zonas —contexto | edición | salida— igual
+              que el resto de los módulos. La fila de secciones de más abajo NO
+              la adopta a propósito: esa sí la ve el cliente del estudio y su
+              aspecto es una decisión de marca aparte. */}
+          <ModuleCommandBar
+            modulo="dashboard"
+            ariaLabel="Edición del dashboard"
+            className="dash-admin-toolbar dash-editor-commandbar"
+            contexto={
+              // Sin `last_deploy` la zona quedaba vacía y toda la banda pesaba a
+              // la derecha. El estado de la fuente sí existe siempre y es lo que
+              // decide qué acciones están habilitadas, así que es el contexto
+              // honesto de este módulo mientras todavía no se publicó nada.
+              !config.last_deploy ? (
+                <ChromeIndicatorGroup ariaLabel="Estado del tablero">
+                  <ChromeIndicator
+                    label="Datos"
+                    value={manifest?.estado.tiene_data ? "cargados" : "sin cargar"}
+                    prioridad="alta"
+                  />
+                  <ChromeIndicator
+                    label="Dimensiones"
+                    value={manifest?.estado.tiene_dim ? "listas" : "pendientes"}
+                    prioridad="media"
+                  />
+                </ChromeIndicatorGroup>
+              ) : (
+                <ChromeIndicatorGroup ariaLabel="Estado de publicación">
+                  <ChromeIndicator
+                    label="Última publicación"
+                    prioridad="alta"
+                    detalle="Abrir Space en Hugging Face"
+                    value={
+                      <>
+                        <a
+                          href={config.last_deploy.url || config.last_deploy.app_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {config.last_deploy.repo_id}
+                        </a>
+                        {" — "}
+                        <RelativeTime iso={config.last_deploy.published_at} />
+                      </>
+                    }
+                  />
+                </ChromeIndicatorGroup>
+              )
+            }
+            acciones={[
+              {
+                id: "deploy",
+                label: config.last_deploy ? "Re-publicar" : "Deploy",
+                rank: 1,
+                kind: "primary",
+                onSelect: publicar.abrir,
+                disabled: !hasDashboardSource,
+                title: config.last_deploy
+                  ? `Re-publicar a ${config.last_deploy.repo_id}`
+                  : "Publicar el dashboard como Hugging Face Space",
+              },
+              {
+                id: "vista-previa",
+                label: "Vista previa",
+                rank: 2,
+                onSelect: onPreview,
+                disabled: !hasDashboardSource,
+                title: "Ver el dashboard como se verá publicado",
+              },
+              {
+                id: "personalizar",
+                label: "Personalizar",
+                rank: 2,
+                onSelect: personalizar.abrir,
+                disabled: !hasDashboardSource,
+                title: "Personalizar marca, pestañas y vistas",
+              },
+              {
+                id: "datos",
+                label: "Datos",
+                rank: 3,
+                onSelect: onToggleSource,
+                disabled: !manifest,
+                title: "Cambiar XLSForm y data del dashboard",
+              },
+              {
+                id: "paletas",
+                label: "Paletas",
+                rank: 3,
+                onSelect: paletas.abrir,
+                disabled: !hasDashboardSource,
+                title: "Paletas de colores por lista",
+              },
+            ]}
+          />
+        </div>
+      )}
+
+      {verPaletas && (
         <DashboardPalettesDialog
-          onClose={() => setPalettesOpen(false)}
+          panel={PANEL_DASHBOARD_PALETAS}
           returnFocusTo={DISPARADOR_MAS_ACCIONES}
         />
       )}
-      {customizeOpen && (
+      {verPersonalizar && (
         <DashboardCustomizeDialog
-          onClose={() => setCustomizeOpen(false)}
+          panel={PANEL_DASHBOARD_PERSONALIZAR}
           returnFocusTo={DISPARADOR_MAS_ACCIONES}
         />
       )}
-      {publishOpen && (
+      {verPublicar && (
         <DashboardPublishDialog
+          panel={PANEL_DASHBOARD_PUBLICAR}
           defaultTitle={config.titulo || "pulso-dashboard"}
           lastDeploy={config.last_deploy}
-          onClose={() => setPublishOpen(false)}
+          onClose={publicar.cerrar}
         />
       )}
-    </ThemeProvider>
+    </>
   );
 }
 

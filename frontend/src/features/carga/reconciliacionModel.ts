@@ -48,3 +48,10 @@ export function dialogTitle(nExtra: number): string {
   if (nExtra === 1) return "Encontramos 1 variable que no está en tu formulario";
   return `Encontramos ${nExtra} variables que no están en tu formulario`;
 }
+
+// ¿Hay algo que reconciliar? Sin variables extra el diálogo no se abre: con
+// cero filas pintaba «Encontramos 0 variables…», un cuerpo vacío y un
+// «Guardar» que enviaba una reconciliación vacía.
+export function reconciliacionAplica(info: ReconciliacionInfo | null | undefined): boolean {
+  return Boolean(info && info.n_extra > 0);
+}

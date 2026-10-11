@@ -69,6 +69,7 @@ function parseArgs(argv) {
     clickTabs: [],
     sembrar: [],
     direcciones: [],
+    paneles: [],
     name: "quick",
     routeProvided: false,
     viewportProvided: false,
@@ -115,6 +116,8 @@ function parseArgs(argv) {
       out.sembrar.push(next());
     } else if (arg === "--ir") {
       out.direcciones.push(next());
+    } else if (arg === "--panel") {
+      out.paneles.push(parsePanelId(next()));
     } else if (arg === "--name") {
       out.name = next();
     } else if (arg === "--matrix") {
@@ -155,6 +158,7 @@ function parseArgs(argv) {
   if (out.viewports.length === 0) out.viewports = [DEFAULT_VIEWPORT];
   out.routes = dedupe(out.routes);
   out.viewports = dedupeViewports(out.viewports);
+  out.paneles = dedupe(out.paneles);
 
   if (!VALID_PRESETS.has(out.layoutPreset)) {
     throw new Error(`Preset inválido: ${out.layoutPreset}. Usa: ${Array.from(VALID_PRESETS).join(", ")}.`);
@@ -200,6 +204,11 @@ Opciones:
   --route PATH              Ruta a capturar. Puede repetirse.
   --ir CLAVE                Navega a una dirección canónica (modulo/modo/seccion/pestana).
                             Preferente sobre --click-tab. Puede repetirse.
+  --panel ID                Abre el panel declarado con ?panel=ID (manifiesto, L2) sobre
+                            la vista ya lista, espera [data-pulso-panel="ID"] visible y
+                            captura y mide ESE estado. Puede repetirse: un panel por
+                            captura, sobre la misma página. Un id declarado pero
+                            «sin conectar» falla con ese diagnóstico.
   --viewport WIDTHxHEIGHT   Viewport a capturar. Puede repetirse.
   --matrix                  Usa /carga, /validacion, /codificacion, /analitica y la matriz desktop.
   --layout-preset NAME      auto, large, portable, portable-compact, compact o short.
@@ -249,6 +258,110 @@ exterior; visualIssues=0 no sustituye esa evidencia. Los inputs visibles y
 vacíos también miden su placeholder con la tipografía computada: si el texto no
 cabe en el ancho útil, el reporte emite placeholder-clipped.
 `);
+}
+
+/**
+ * Opciones de lanzamiento de Chromium, compartidas por el runner y sus tests.
+ * En la nube no hay headless_shell propio: `PW_CHROMIUM=/opt/pw-browsers/chromium`
+ * (nunca `playwright install`). Sin la variable, el Chromium de Playwright,
+ * que es el del CI.
+ */
+export function opcionesDeChromium(extra = {}) {
+  return {
+    headless: true,
+    ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}),
+    ...extra,
+  };
+}
+
+export function parsePanelId(value) {
+  const id = String(value || "").trim();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
+    throw new Error(`Panel inválido: "${value}". Usa el id ASCII del manifiesto, por ejemplo personalizar.`);
+  }
+  return id;
+}
+
+/**
+ * Search con `?panel=` puesto (o quitado con `id = null`), preservando todo lo
+ * demás. Es la misma regla de `searchConPanel`/`searchSinPanel` en
+ * `frontend/src/lib/navegacion/paneles.ts`: un panel por dirección.
+ */
+export function searchConPanelQa(search, id) {
+  const params = new URLSearchParams(String(search || "").replace(/^\?/, ""));
+  if (id) params.set("panel", id);
+  else params.delete("panel");
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+const selectorDePanel = (id) => `[data-pulso-panel="${id}"]`;
+
+/**
+ * Qué pasó con un `?panel=<id>` pedido, a partir de lo observado:
+ * - `abierto`: su raíz `[data-pulso-panel]` está visible.
+ * - `no-aplica`: la vista BORRÓ el param (regla L2: un panel condicionado cuyo
+ *   dato no lo permite —p. ej. reconciliación con 0 variables extra— no se abre
+ *   y no deja la URL mintiendo). Es C5 legítimo o del fixture, no un fallo.
+ * - `pendiente`: el param sigue en la URL y la raíz no apareció todavía.
+ */
+export function estadoDePanelPedido({ visible, panelEnUrl, id }) {
+  if (visible) return "abierto";
+  if (panelEnUrl !== id) return "no-aplica";
+  return "pendiente";
+}
+
+// Abre un panel por DIRECCIÓN: escribe `?panel=<id>` en la URL actual y avisa
+// al router con un `popstate` (BrowserRouter relee `window.location`). No
+// recarga: la sesión y el warm start ya pagados se conservan. Devuelve
+// `abierto` o `no-aplica`; cualquier otro desenlace es un error con motivo.
+async function abrirPanelPorDireccion(page, id, timeoutMs) {
+  await page.evaluate(({ search }) => {
+    const url = new URL(window.location.href);
+    url.search = search;
+    window.history.pushState(window.history.state, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate", { state: window.history.state }));
+  }, { search: searchConPanelQa(new URL(page.url()).search, id) });
+  const limite = Date.now() + timeoutMs;
+  let estado = "pendiente";
+  while (Date.now() < limite) {
+    const visible = await page.locator(selectorDePanel(id)).first().isVisible().catch(() => false);
+    const panelEnUrl = new URL(page.url()).searchParams.get("panel");
+    estado = estadoDePanelPedido({ visible, panelEnUrl, id });
+    if (estado !== "pendiente") break;
+    await page.waitForTimeout(250);
+  }
+  if (estado === "abierto") {
+    await cederRenderDeTransicion(page);
+    return estado;
+  }
+  if (estado === "no-aplica") {
+    console.log(`[ui-quick-check] panel "${id}": la vista borró ?panel=${id} — no aplica con este dato (C5: vacío legítimo o fixture). Se captura la vista sin panel.`);
+    await cederRenderDeTransicion(page);
+    return estado;
+  }
+  const paneles = await page.evaluate(() => window.__pulsoNav?.paneles?.() ?? null).catch(() => null);
+  const declarado = (paneles?.declarados ?? []).some((panel) => panel?.id === id);
+  const montado = (paneles?.montados ?? []).find((panel) => panel?.id === id);
+  const motivo = !paneles
+    ? "sin puente de navegación para diagnosticar"
+    : !declarado
+      ? "no está declarado en PANELES_POR_MODULO (manifiesto.ts)"
+      : montado
+        ? `está montado (abierto=${montado.abierto}) y el param sigue en la URL, pero su raíz no se hizo visible: el panel ni abre ni se borra (viola L2)`
+        : "está declarado pero ningún componente montado lo conecta en esta vista: «declarado, sin conectar» o vista equivocada";
+  throw new Error(`El panel "${id}" no se abrió con ?panel=${id}: ${motivo}.`);
+}
+
+async function cerrarPanelPorDireccion(page, id, timeoutMs) {
+  await page.evaluate(({ search }) => {
+    const url = new URL(window.location.href);
+    url.search = search;
+    window.history.pushState(window.history.state, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate", { state: window.history.state }));
+  }, { search: searchConPanelQa(new URL(page.url()).search, null) });
+  await page.locator(selectorDePanel(id)).first().waitFor({ state: "detached", timeout: timeoutMs }).catch(() => {});
+  await cederRenderDeTransicion(page);
 }
 
 function parseViewport(value) {
@@ -1129,8 +1242,7 @@ async function clickNamedControl(page, label, timeoutMs, { opcional = false } = 
 }
 
 async function runCaptures(opts, stack) {
-  // En la nube no hay headless_shell propio: PW_CHROMIUM=/opt/pw-browsers/chromium (nunca `playwright install`).
-  const browser = await chromium.launch({ headless: !opts.headed, ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
+  const browser = await chromium.launch(opcionesDeChromium({ headless: !opts.headed }));
   const results = [];
   const focusedWarmupModuleIds = opts.focusedWarmup ? warmupModuleIdsForRoutes(opts.routes) : [];
   try {
@@ -1254,38 +1366,61 @@ async function runCaptures(opts, stack) {
           });
         }
 
-        const shotBase = `${opts.name}-${safeSlug(route)}-${viewportName(viewport)}-${opts.layoutPreset}`;
-        const screenshot = path.join(opts.out, `${shotBase}.png`);
-        const fullScreenshot = opts.fullPage ? path.join(opts.out, `${shotBase}-full.png`) : null;
-        await capturarVistaAsentada(page, { screenshot, fullScreenshot });
+        // Sin `--panel` se captura la vista en reposo. Con `--panel`, cada id es
+        // un estado propio de la MISMA página: se abre por dirección, se captura
+        // y se mide con el overlay abierto, y se cierra antes del siguiente.
+        const estados = opts.paneles.length > 0 ? opts.paneles : [null];
+        for (const panelId of estados) {
+          let panelEstado = null;
+          if (panelId) {
+            panelEstado = await abrirPanelPorDireccion(page, panelId, opts.timeoutMs);
+            const panelReadiness = await esperarListo(page, opts.timeoutMs);
+            if (!panelReadiness?.listo) {
+              throw new Error(
+                `Con el panel "${panelId}" abierto la vista no alcanzó readiness: ${panelReadiness?.motivo || "estado desconocido"}.`
+                + pistaDeReadiness(panelReadiness, opts.timeoutMs),
+              );
+            }
+          }
+          const sufijoPanel = panelId ? `-panel-${panelId}${panelEstado === "no-aplica" ? "-no-aplica" : ""}` : "";
+          const shotBase = `${opts.name}-${safeSlug(route)}${sufijoPanel}-${viewportName(viewport)}-${opts.layoutPreset}`;
+          const screenshot = path.join(opts.out, `${shotBase}.png`);
+          const fullScreenshot = opts.fullPage ? path.join(opts.out, `${shotBase}-full.png`) : null;
+          await capturarVistaAsentada(page, { screenshot, fullScreenshot });
 
-        const dom = await inspectDom(page, {
-          projectMode: Boolean(opts.project),
-          geometryGroups: opts.geometryGroups,
-          geometryTolerance: opts.geometryTolerance,
-          requireGeometry: opts.requireGeometry,
-        });
-        // Después de medir la vista en reposo y con la captura ya tomada: abrir
-        // popovers cambia la pantalla, así que el barrido va al final para no
-        // contaminar el screenshot ni la geometría.
-        const popovers = opts.barrerPopovers
-          ? await barrerPopovers(page, { timeoutMs: opts.timeoutMs })
-          : [];
-        results.push({
-          popovers,
-          route,
-          viewport,
-          url: target,
-          screenshot,
-          fullScreenshot,
-          consoleMessages,
-          pageErrors,
-          apiErrors,
-          resourceErrors,
-          waitSelectorMatched,
-          postClickWaitSelectorMatched,
-          ...dom,
-        });
+          const dom = await inspectDom(page, {
+            projectMode: Boolean(opts.project),
+            geometryGroups: opts.geometryGroups,
+            geometryTolerance: opts.geometryTolerance,
+            requireGeometry: opts.requireGeometry,
+          });
+          // Después de medir la vista en reposo y con la captura ya tomada: abrir
+          // popovers cambia la pantalla, así que el barrido va al final para no
+          // contaminar el screenshot ni la geometría. Con un panel modal abierto
+          // el fondo es inerte: no se barre.
+          const popovers = opts.barrerPopovers && !panelId
+            ? await barrerPopovers(page, { timeoutMs: opts.timeoutMs })
+            : [];
+          results.push({
+            popovers,
+            route,
+            panel: panelId,
+            panelEstado,
+            viewport,
+            url: target,
+            urlFinal: page.url(),
+            screenshot,
+            fullScreenshot,
+            consoleMessages,
+            pageErrors,
+            apiErrors,
+            resourceErrors,
+            waitSelectorMatched,
+            postClickWaitSelectorMatched,
+            ...dom,
+          });
+          if (panelEstado === "abierto") await cerrarPanelPorDireccion(page, panelId, opts.timeoutMs);
+        }
         await page.close();
       }
       await context.close();
@@ -1789,6 +1924,21 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     const geometryAudits = [];
     const geometryIssues = [];
     const geometryCoverageMisses = [];
+    // Overlays abiertos (paneles declarados, diálogos modales, primitiva del
+    // kit). El barrido geométrico los toma como raíces propias y el reporte
+    // los enumera, para que «0 geometry-undeclared dentro del diálogo» se lea
+    // con cuántos diálogos y cuántos grupos declarados se midieron.
+    const SELECTOR_OVERLAYS_ABIERTOS = "[data-pulso-panel],[role='dialog'][aria-modal='true'],.pulso-overlay";
+    const overlaysAbiertos = Array.from(document.querySelectorAll(SELECTOR_OVERLAYS_ABIERTOS))
+      .filter((node) => isVisibleElement(node))
+      .filter((node, _i, todos) => !todos.some((otro) => otro !== node && otro.contains(node)))
+      .map((node) => ({
+        panel: node.getAttribute("data-pulso-panel"),
+        tag: node.tagName.toLowerCase(),
+        className: String(node.getAttribute("class") || "").slice(0, 120),
+        gruposDeclarados: node.querySelectorAll("[data-qa-geometry-group]").length
+          + (node.matches("[data-qa-geometry-group]") ? 1 : 0),
+      }));
     const auditedGroups = new Set();
     const declaredGeometryGroups = new Set();
     const geometrySpecs = [];
@@ -1858,6 +2008,8 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         "open", "is-open",
         "checked", "is-checked",
       ]);
+      const SELECTOR_RAICES_GEOMETRIA = `[data-audit-ready],${SELECTOR_OVERLAYS_ABIERTOS}`;
+      const CLASSLESS_COLLECTION_TAGS = new Set(["LI", "ARTICLE"]);
       const excludedGeometryContainer = [
         "nav",
         "table", "thead", "tbody", "tfoot", "tr",
@@ -1889,14 +2041,34 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
           : null;
         return display === "flex" && (parentDisplay === "flex" || parentDisplay === "inline-flex");
       };
-      const variantSignature = (member) => {
+      const classSignature = (member) => {
         const structuralClasses = Array.from(member.classList)
           .filter((className) => !geometryStateClasses.has(className))
           .sort();
         if (structuralClasses.length === 0) return null;
         return `${member.tagName.toLowerCase()}.${structuralClasses.join(".")}`;
       };
-      const geometryRoots = Array.from(document.querySelectorAll("[data-audit-ready]"))
+      // Sin clase, un ítem de colección (`<li>`, `<article>`) se firma por su
+      // tag y la firma de su primer hijo de bloque: `li>div.card`. Antes
+      // devolvía null y una lista de `<li>` sin clase era invisible (hallazgo
+      // de la QA de L26). Un ítem de prosa —solo texto, o que empieza en un
+      // hijo inline— sigue sin firma: no es una colección de marcos.
+      const variantSignature = (member) => {
+        const conClase = classSignature(member);
+        if (conClase) return conClase;
+        if (!CLASSLESS_COLLECTION_TAGS.has(member.tagName)) return null;
+        const primero = visibleChildren(member)[0];
+        if (!primero || primero instanceof SVGElement) return null;
+        if (inlineGeometryDisplays.has(window.getComputedStyle(primero).display)) return null;
+        if (primero.tagName === "SPAN" || primero.tagName === "A") return null;
+        const hijo = classSignature(primero) || primero.tagName.toLowerCase();
+        return `${member.tagName.toLowerCase()}>${hijo}`;
+      };
+      // Raíces del barrido: la vista auditada Y los overlays abiertos. Un
+      // diálogo en portal vive fuera de `[data-audit-ready]` (hallazgo H2 de
+      // la QA de L1): sin estas raíces, un verde dentro de un diálogo era
+      // verde por ausencia.
+      const geometryRoots = Array.from(document.querySelectorAll(SELECTOR_RAICES_GEOMETRIA))
         .filter((node) => isVisibleElement(node));
       const scannedParents = new Set();
 
@@ -1931,6 +2103,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
               selector: null,
               contract: null,
               reason: "colección visible de la misma variante sin contrato geométrico",
+              enOverlay: Boolean(parent.closest(SELECTOR_OVERLAYS_ABIERTOS)),
               parent: elementHint(parent),
               variant,
               count: members.length,
@@ -2251,6 +2424,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       geometryAudits,
       geometryIssues,
       geometryCoverageMisses,
+      overlaysAbiertos,
       layoutRects: {
         shell: rectFor(".pulso-shell"),
         pageFrame: rectFor(".pulso-page-frame"),
@@ -2446,6 +2620,7 @@ function summarize(results, opts) {
   const geometryAudits = results.flatMap((item) => item.geometryAudits || []);
   const geometryIssues = results.flatMap((item) => item.geometryIssues || []);
   const geometryCoverageMisses = results.flatMap((item) => item.geometryCoverageMisses || []);
+  const overlaysAbiertos = results.flatMap((item) => item.overlaysAbiertos || []);
   const globalOverflow = results.filter((item) => item.globalOverflowX);
   const pageErrors = results.flatMap((item) => item.pageErrors || []);
   const consoleErrors = results.flatMap((item) => (item.consoleMessages || []).filter((msg) => (
@@ -2508,6 +2683,15 @@ function summarize(results, opts) {
     geometryGroups: geometryAudits.length,
     geometryIssues: geometryIssues.length,
     geometryCoverageMisses: geometryCoverageMisses.length,
+    // Paneles pedidos con --panel y overlays efectivamente medidos: sin ellos un
+    // `geometryUndeclaredEnOverlay=0` no dice si había diálogo que medir.
+    paneles: results.filter((item) => item.panel).map((item) => `${item.panel}:${item.panelEstado}`),
+    // Pedidos que la vista borró por no aplicar (C5 a clasificar): no fallan el
+    // gate, pero un verde con un panel aquí NO midió ese diálogo.
+    panelesNoAplican: results.filter((item) => item.panelEstado === "no-aplica").map((item) => item.panel),
+    overlaysMedidos: overlaysAbiertos.length,
+    gruposEnOverlays: overlaysAbiertos.reduce((total, item) => total + (item.gruposDeclarados || 0), 0),
+    geometryUndeclaredEnOverlay: geometryCoverageMisses.filter((item) => item.enOverlay).length,
     globalOverflow: globalOverflow.length,
     pageErrors: pageErrors.length,
     consoleErrors: consoleErrors.length,
