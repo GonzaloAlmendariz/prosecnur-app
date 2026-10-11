@@ -12,9 +12,9 @@
 .pulso-f6-inspector-tipo {
   flex: none;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: var(--pulso-space-3);
+  gap: var(--pulso-space-2);
   padding: var(--pulso-space-3);
   border-bottom: 1px solid var(--pulso-border);
 }

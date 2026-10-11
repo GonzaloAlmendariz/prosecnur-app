@@ -318,6 +318,13 @@
   color: var(--pulso-text-soft);
 }
 
+.pulso-f6-vacio-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+}
+
 
 .pulso-f6-boton.is-activo {
   border-color: var(--module-accent-border);

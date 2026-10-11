@@ -1,4 +1,5 @@
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
+import { PANEL_TIPO_GRAFICO, PANEL_TIPO_LAMINA } from "./laminas/selectores/panelesSelectores";
 
 export const PANEL_BIBLIOTECA_SLIDES: PanelDeclarado = {
   id: "biblioteca-slides",
@@ -39,4 +40,6 @@ export const PANELES_GRAFICOS = [
   PANEL_ESTRUCTURA_LAMINAS,
   PANEL_INSPECTOR_LAMINA,
   PANEL_AVISOS_INFORME,
+  PANEL_TIPO_LAMINA,
+  PANEL_TIPO_GRAFICO,
 ] as const satisfies readonly PanelDeclarado[];

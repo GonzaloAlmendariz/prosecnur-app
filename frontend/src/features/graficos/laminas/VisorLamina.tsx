@@ -51,6 +51,8 @@ type Props = {
   ranuraActiva: number | null;
   nombreRanura: (k: number) => string;
   onRanura: (k: number | null) => void;
+  /** Doble clic en una ranura: abre «¿Qué gráfico?» para ella. */
+  onCambiarGrafico: (k: number) => void;
 };
 
 const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
@@ -63,7 +65,7 @@ const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
 
 export function VisorLamina({
   lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, ajustesRef, estructuraAbierta, onAlternarEstructura, tira,
-  ranuras, ranuraActiva, nombreRanura, onRanura,
+  ranuras, ranuraActiva, nombreRanura, onRanura, onCambiarGrafico,
 }: Props) {
   const zoom = useLaminasUi((s) => s.zoom);
   const setZoom = useLaminasUi((s) => s.setZoom);
@@ -204,7 +206,7 @@ export function VisorLamina({
             />
           ) : null}
           {actual?.imagen && !cargando && (
-            <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} />
+            <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico} />
           )}
           <EstadoSobreHoja vista={vista} prepOk={prepOk} hayImagen={!!actual?.imagen} />
         </figure>

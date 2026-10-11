@@ -1,15 +1,16 @@
 // Columna derecha de la pestaña Láminas (F6.1; dirección F6 §4.1 «Inspector»). Cuatro secciones fijas con tabs
 // reales: Contenido (abre por defecto, decisión provisional §10) · Composición · Gráficos · Estado. Lo que esta parte
 // no construye se declara como tal y apunta al Editor anterior, que sigue accesible mientras se completa F6.
+// «Cambiar» (cabecera y Composición) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2).
 
-import { useId, useMemo, useRef } from "react";
-import { ChevronRight, History, LayoutTemplate, Lock, X } from "../../../vendor/lucide-react";
+import { useId, useMemo } from "react";
+import { ChevronRight, History, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Switch } from "../../../components/Switch";
-import { getSlotLabel } from "../GraficadorSlot";
-import { useGraficosLibraries } from "../GraficosLibrariesHost";
 import { DatosGrafico } from "./DatosGrafico";
+import { SeccionComposicion } from "./SeccionComposicion";
+import { nombreSlot } from "./selectores/etiquetas";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { conSlideMeta, leerSlideMeta } from "../slideMeta";
 import { IconoTipo } from "../iconos/IconoTipo";
@@ -40,9 +41,15 @@ type Props = {
   visor: LaminaVisor | null;
   onCerrar: () => void;
   onIrEditorAnterior: () => void;
+  /** Abre «¿Qué lámina?» para cambiar el tipo de esta lámina. */
+  onCambiarLamina: () => void;
+  /** Abre «¿Qué gráfico?» para la ranura k (1-based). */
+  onCambiarGrafico: (k: number) => void;
 };
 
-export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerrar, onIrEditorAnterior }: Props) {
+export function InspectorLamina({
+  slide, lamina, ranura, onRanura, visor, onCerrar, onIrEditorAnterior, onCambiarLamina, onCambiarGrafico,
+}: Props) {
   const seccion = useLaminasUi((s) => s.seccionInspector);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
   const baseId = useId();
@@ -67,6 +74,9 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
               : `Lámina ${lamina.posicion}`}
           </span>
         </span>
+        <button type="button" className="pulso-f6-boton pulso-f6-inspector-cambiar" onClick={onCambiarLamina} aria-label={`Cambiar el tipo de la lámina ${lamina.posicion}`}>
+          Cambiar
+        </button>
         <button type="button" className="pulso-f6-icono-boton" aria-label="Ocultar los ajustes" title="Ocultar los ajustes: la lámina gana su ancho" onClick={onCerrar}>
           <X size={16} aria-hidden="true" />
         </button>
@@ -103,9 +113,9 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
         tabIndex={0}
       >
         {seccion === "contenido" && <SeccionContenido slide={slide} lamina={lamina} onIrEditorAnterior={onIrEditorAnterior} />}
-        {seccion === "composicion" && <SeccionComposicion lamina={lamina} />}
+        {seccion === "composicion" && <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />}
         {seccion === "graficos" && (
-          <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onIrEditorAnterior={onIrEditorAnterior} />
+          <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onIrEditorAnterior={onIrEditorAnterior} onCambiarGrafico={onCambiarGrafico} />
         )}
         {seccion === "estado" && <SeccionEstado slide={slide} visor={visor} />}
       </div>
@@ -198,42 +208,15 @@ function CampoTexto({ campo, valor, placeholder, onCambio }: {
   );
 }
 
-function SeccionComposicion({ lamina }: { lamina: LaminaEnEstructura }) {
-  return (
-    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-composicion" data-qa-geometry-contract="intrinsic">
-      <div className="pulso-f6-tarjeta">
-        <span className="pulso-f6-tarjeta-icono" aria-hidden="true"><LayoutTemplate size={18} /></span>
-        <div>
-          <strong id="pulso-f6-inspector-titulo">{lamina.tipoLabel}</strong>
-          <p>
-            {lamina.ranuras > 0
-              ? `${lamina.ranuras} ${lamina.ranuras === 1 ? "ranura de gráfico" : "ranuras de gráfico"}, ${lamina.ranurasLlenas} con gráfico.`
-              : "Lámina de estructura, sin ranuras de gráfico."}
-          </p>
-        </div>
-      </div>
-      <p className="pulso-f6-pendiente">
-        <LayoutTemplate size={14} aria-hidden="true" />
-        <span>
-          Cambiar el tipo de lámina y elegir sus variantes (portada, índice, cierre) llega con el selector de tipos de
-          lámina, en la siguiente parte del editor nuevo.
-        </span>
-      </p>
-    </div>
-  );
-}
-
-function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }: {
+function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior, onCambiarGrafico }: {
   slide: Slide;
   slots: string[];
   ranura: number | null;
   onRanura: (r: number | null) => void;
   onIrEditorAnterior: () => void;
+  onCambiarGrafico: (k: number) => void;
 }) {
-  const { graficadoresById } = useGraficosRegistry();
-  const { openGraficadoresLibrary } = useGraficosLibraries();
-  // Una sola tarjeta abierta a la vez: un solo botón «Cambiar» al que devolver el foco al cerrar la biblioteca.
-  const cambiarRef = useRef<HTMLButtonElement>(null);
+  const { graficadoresById, slidesById } = useGraficosRegistry();
   if (slots.length === 0) {
     return (
       <p className="pulso-f6-vacio-col">Esta lámina no lleva gráficos: su contenido se edita en Contenido.</p>
@@ -250,7 +233,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
           const nombre = tecnico ? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
           const variable = firstVariableRefFromGraph(valor);
           const abierta = ranura === k || (slots.length === 1 && ranura === null);
-          const rotulo = `Gráfico ${k}${slots.length > 1 ? ` · ${getSlotLabel(slot)}` : ""}`;
+          const rotulo = `Gráfico ${k}${slots.length > 1 ? ` · ${nombreSlot(slot, slidesById[slide.tipo])}` : ""}`;
           return (
             <li key={slot} className={`pulso-f6-ranura${abierta ? " is-abierta" : ""}`}>
               <div className="pulso-f6-ranura-fila">
@@ -270,9 +253,9 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
                 {abierta && (
                   <button
                     type="button"
-                    ref={cambiarRef}
                     className="pulso-f6-boton pulso-f6-ranura-cambiar"
-                    onClick={() => openGraficadoresLibrary({ slideId: slide.id, slotName: slot, slotLabel: rotulo, returnFocusRef: cambiarRef })}
+                    aria-label={`${tecnico ? "Cambiar" : "Elegir"} el ${rotulo.toLowerCase()}`}
+                    onClick={() => onCambiarGrafico(k)}
                   >
                     {tecnico ? "Cambiar" : "Elegir"}
                   </button>

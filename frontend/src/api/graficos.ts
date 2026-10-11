@@ -17,6 +17,8 @@ import type { JobStart } from "./jobs";
 
 // Nombres canónicos de los tipos de slide en prosecnur (en español).
 // Reemplaza los nombres viejos en inglés (p_slide_title, p_slide_1, etc.).
+// Los 33 tipos de `.SLIDES_META` (api/R/graficos_metadata.R), espejo de api/inst/catalogos/graficos_tipos.json.
+// `laminas/selectores/tiposLamina.test.ts` falla si el registro gana o pierde un tipo y este union no lo sigue.
 export type SlideType =
   // Estructurales (sin slots de gráfico)
   | "p_slide_portada"
@@ -26,6 +28,7 @@ export type SlideType =
   | "p_slide_texto"
   | "p_slide_tabla_tecnica"
   | "p_slide_top_two_box"
+  | "p_slide_redondeo"
   | "p_slide_cierre"
   // 1 gráfico
   | "p_slide_1_grafico"
@@ -37,13 +40,26 @@ export type SlideType =
   | "p_slide_2_graficos_narrativo"
   | "p_slide_2_graficos_texto_izquierda"
   | "p_slide_2_graficos_texto_derecha"
+  | "p_slide_2_graficos_vertical"
+  | "p_slide_2_graficos_asimetrico"
+  | "p_slide_cifras_y_graficos"
+  // 3 gráficos
+  | "p_slide_3_graficos_2mas1"
+  | "p_slide_3_graficos_1mas2"
+  | "p_slide_3_graficos_fila"
+  | "p_slide_3_graficos_1arriba"
   // Grid 4
   | "p_slide_4_graficos"
-  // Población (con ícono central)
-  | "p_slide_2_graficos_poblacion"
-  | "p_slide_4_graficos_poblacion"
+  // Población
+  | "p_slide_3_graficos_poblacion_tira"
+  | "p_slide_3_graficos_poblacion_corona"
+  | "p_slide_3_graficos_poblacion_cifras"
   | "p_slide_5_graficos_poblacion"
-  | "p_slide_6_graficos_poblacion";
+  | "p_slide_6_graficos_poblacion"
+  // Población antigua (fuera del selector; los planes que la usan la siguen editando)
+  | "p_slide_2_graficos_poblacion"
+  | "p_slide_3_graficos_poblacion"
+  | "p_slide_4_graficos_poblacion";
 
 export type SlideCategoria =
   | "estructural"

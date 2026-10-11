@@ -1,0 +1,148 @@
+/* Paleta de los glifos de gráfico (F6.2). Sólo tokens: el tono principal es el acento del contexto (el del módulo en
+   Procesamiento); el de apoyo y la escala son mezclas de ese acento con el papel; SIN INF y la tinta son neutros. Un
+   contexto puede reemplazar `--glifo-principal` (p. ej. una ranura activa). */
+
+/* `.pulso-glifo-anidado`: el mismo dibujo dentro de otro SVG (ranuras de ComposicionLamina), con la caja que le da su
+   `<svg>` padre; no hereda el ancho de la tarjeta. */
+.pulso-glifo,
+.pulso-glifo-anidado {
+  --glifo-principal: var(--module-accent, var(--pulso-module-processing));
+  --glifo-papel: var(--pulso-surface);
+  --glifo-apoyo: color-mix(in srgb, var(--glifo-principal) 38%, var(--glifo-papel));
+  --glifo-neutro: var(--pulso-border-strong);
+  --glifo-tinta: var(--pulso-text-faint);
+  --glifo-verde: var(--pulso-accent-green);
+}
+
+.pulso-glifo-anidado {
+  overflow: hidden;
+}
+
+.pulso-glifo {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.pulso-glifo__p { fill: var(--glifo-principal); }
+.pulso-glifo__a { fill: var(--glifo-apoyo); }
+.pulso-glifo__e1 { fill: var(--glifo-principal); }
+.pulso-glifo__e2 { fill: color-mix(in srgb, var(--glifo-principal) 68%, var(--glifo-papel)); }
+.pulso-glifo__e3 { fill: color-mix(in srgb, var(--glifo-principal) 42%, var(--glifo-papel)); }
+.pulso-glifo__e4 { fill: color-mix(in srgb, var(--glifo-principal) 22%, var(--glifo-papel)); }
+.pulso-glifo__n { fill: var(--glifo-neutro); }
+.pulso-glifo__v { fill: var(--glifo-verde); }
+
+.pulso-glifo__trazo-p { stroke: var(--glifo-principal); }
+.pulso-glifo__trazo-a { stroke: var(--glifo-apoyo); }
+.pulso-glifo__trazo-n { stroke: var(--glifo-neutro); }
+.pulso-glifo__trazo-e1,
+.pulso-glifo__trazo-e2,
+.pulso-glifo__trazo-e3,
+.pulso-glifo__trazo-e4,
+.pulso-glifo__trazo-v { stroke: var(--glifo-apoyo); }
+
+.pulso-glifo__rotulo {
+  fill: var(--glifo-tinta);
+  opacity: 0.45;
+}
+
+.pulso-glifo__valor {
+  fill: var(--glifo-tinta);
+  opacity: 0.85;
+}
+
+.pulso-glifo__eje {
+  fill: none;
+  stroke: var(--glifo-tinta);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.pulso-glifo__rejilla {
+  fill: none;
+  stroke: var(--glifo-neutro);
+  stroke-width: 0.8;
+}
+
+.pulso-glifo__corte {
+  fill: none;
+  stroke: var(--glifo-papel);
+  stroke-width: 2;
+}
+
+.pulso-glifo__contorno {
+  fill: none;
+  stroke: var(--glifo-tinta);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.pulso-glifo__territorio {
+  fill: var(--glifo-apoyo);
+  stroke: var(--glifo-tinta);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.pulso-glifo__area-p {
+  fill: color-mix(in srgb, var(--glifo-principal) 30%, transparent);
+  stroke: var(--glifo-principal);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.pulso-glifo__area-a {
+  fill: color-mix(in srgb, var(--glifo-apoyo) 45%, transparent);
+  stroke: var(--glifo-apoyo);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+/* Columna Top Two Box del recetario: verde, con la cifra «x de y» dentro. */
+.pulso-glifo__ttb {
+  fill: color-mix(in srgb, var(--glifo-verde) 14%, transparent);
+  stroke: var(--glifo-verde);
+  stroke-width: 1;
+}
+
+.pulso-glifo__valor.is-verde {
+  fill: var(--glifo-verde);
+  opacity: 1;
+}
+
+.pulso-glifo__marco-p {
+  fill: none;
+  stroke: var(--glifo-principal);
+  stroke-width: 1.2;
+}
+
+.pulso-glifo__cifra {
+  fill: var(--glifo-principal);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-glifo__desconocido {
+  fill: none;
+  stroke: var(--glifo-neutro);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+@media (forced-colors: active) {
+  .pulso-glifo__p,
+  .pulso-glifo__e1,
+  .pulso-glifo__cifra {
+    fill: CanvasText;
+  }
+
+  .pulso-glifo__a,
+  .pulso-glifo__e2,
+  .pulso-glifo__e3,
+  .pulso-glifo__e4,
+  .pulso-glifo__n {
+    fill: GrayText;
+  }
+}
