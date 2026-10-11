@@ -77,8 +77,11 @@
 
 # `pagina_fuente`: título de la página de origen en la fuente. Solo se conoce
 # para lo que no entró (las demás filas se describen con la página de la base).
-.cfe_fila <- function(seccion, etiqueta, variable_base, variable_fuente, estado, pagina_fuente = "") {
-  list(seccion = .cfe_chr(seccion), etiqueta = .cfe_chr(etiqueta),
+# `enunciado`: encabezado de la pregunta madre cuando la fila es de una matriz
+# ("" en las demás); en lo que no entró, el de la fuente.
+.cfe_fila <- function(seccion, etiqueta, variable_base, variable_fuente, estado, pagina_fuente = "",
+                      enunciado = "") {
+  list(seccion = .cfe_chr(seccion), enunciado = .cfe_chr(enunciado), etiqueta = .cfe_chr(etiqueta),
        variable_base = .cfe_chr(variable_base), variable_fuente = .cfe_chr(variable_fuente),
        estado = estado, pagina_fuente = .cfe_chr(pagina_fuente))
 }
@@ -89,13 +92,16 @@
   de_base <- list()
   for (p in f$pares %||% list()) {
     estado <- if (identical(.cfe_chr(p$base), .cfe_chr(p$fuente))) "emparejada" else "otro_nombre"
-    de_base[[length(de_base) + 1L]] <- .cfe_fila(p$seccion, p$etiqueta, p$base, p$fuente, estado)
+    de_base[[length(de_base) + 1L]] <- .cfe_fila(p$seccion, p$etiqueta, p$base, p$fuente, estado,
+                                                  enunciado = p$enunciado)
   }
   for (x in f$sin_par_base %||% list()) {
-    de_base[[length(de_base) + 1L]] <- .cfe_fila(x$seccion, x$etiqueta, x$variable, "", "sin_respuesta")
+    de_base[[length(de_base) + 1L]] <- .cfe_fila(x$seccion, x$etiqueta, x$variable, "", "sin_respuesta",
+                                                  enunciado = x$enunciado)
   }
   for (x in f$ambiguas %||% list()) {
-    de_base[[length(de_base) + 1L]] <- .cfe_fila(x$seccion, x$etiqueta, x$variable, "", "ambigua")
+    de_base[[length(de_base) + 1L]] <- .cfe_fila(x$seccion, x$etiqueta, x$variable, "", "ambigua",
+                                                  enunciado = x$enunciado)
   }
   if (length(de_base)) {
     vars <- vapply(de_base, function(r) r$variable_base, character(1))
@@ -105,7 +111,8 @@
     de_base <- de_base[order(pos, seq_along(pos))]
   }
   solo_fuente <- lapply(f$sin_par_fuente %||% list(), function(x) {
-    .cfe_fila(.CFE_SECCION_SOLO_FUENTE, x$etiqueta, "", x$variable, "no_entro", pagina_fuente = x$seccion)
+    .cfe_fila(.CFE_SECCION_SOLO_FUENTE, x$etiqueta, "", x$variable, "no_entro", pagina_fuente = x$seccion,
+              enunciado = x$enunciado)
   })
   unname(c(de_base, solo_fuente))
 }

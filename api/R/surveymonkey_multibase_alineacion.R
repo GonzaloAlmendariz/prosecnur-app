@@ -69,8 +69,39 @@
   .sm_mb_write_xlsform_model(model, path)
   inst <- reporte_instrumento(path = path)
   attr(inst, "sm_paginas") <- .sm_mb_paginas_por_variable(details, inst)
+  attr(inst, "sm_enunciados") <- .sm_mb_enunciados_por_variable(details, inst)
   if (usar_cache) assign(clave, inst, envir = cache)
   inst
+}
+
+# variable -> encabezado de su pregunta SM madre, solo para las filas de una
+# matriz (`family == "matrix"`): la fila sola («Servicio de salud») no dice qué
+# se preguntó. La variable se ubica por su posición de pregunta (`p<N>`, la
+# misma convención que `.sm_mb_question_pos_for_var`); las preguntas de
+# presentación no cuentan, igual que en `sm_api_xlsform`. Solo describe.
+.sm_mb_enunciados_por_variable <- function(details, inst) {
+  pages <- .sm_or((details %||% list())$pages, list())
+  sv <- (inst %||% list())$survey
+  if (!length(pages) || is.null(sv) || !NROW(sv) || !"name" %in% names(sv)) return(character(0))
+  preguntas <- list()
+  for (page in pages) {
+    for (q in .sm_or(page$questions, list())) {
+      if (identical(.sm_or(q$family, ""), "presentation")) next
+      preguntas[[length(preguntas) + 1L]] <- q
+    }
+  }
+  nombres <- unique(trimws(as.character(sv$name[!is.na(sv$name)])))
+  nombres <- nombres[nzchar(nombres)]
+  out <- character(0)
+  for (v in nombres) {
+    pos <- .sm_mb_question_pos_for_var(v)
+    if (is.na(pos) || pos < 1L || pos > length(preguntas)) next
+    q <- preguntas[[pos]]
+    if (!identical(.sm_or(q$family, ""), "matrix")) next
+    h <- .sm_api_question_heading(q)
+    if (!is.na(h) && nzchar(h)) out[[v]] <- h
+  }
+  out
 }
 
 # Título de cada página SurveyMonkey, limpio de HTML y espacios; «Página N» si
@@ -210,14 +241,19 @@
   out
 }
 
-.sm_mb_alin_tabla <- function(variables, claves, secciones = character(0)) {
+.sm_mb_alin_tabla <- function(variables, claves, secciones = character(0), enunciados = character(0)) {
   variables <- as.character(variables %||% character(0))
+  enunciados <- enunciados %||% character(0)
   data.frame(
     variable = variables,
     etiqueta = vapply(variables, function(v) as.character(claves[[v]]$etiqueta %||% "")[1], character(1),
                       USE.NAMES = FALSE),
     seccion = vapply(variables, function(v) {
       x <- if (v %in% names(secciones)) secciones[[v]] else ""
+      if (is.na(x)) "" else as.character(x)
+    }, character(1), USE.NAMES = FALSE),
+    enunciado = vapply(variables, function(v) {
+      x <- if (v %in% names(enunciados)) enunciados[[v]] else ""
       if (is.na(x)) "" else as.character(x)
     }, character(1), USE.NAMES = FALSE),
     stringsAsFactors = FALSE
@@ -227,16 +263,16 @@
 # Pares pregunta a pregunta que decidió la alineación (ítem 15), en el orden de
 # la base. Salen del MISMO `mapa` que se aplica a la data, antes de sumarle los
 # `_other` (que viajan con su pregunta y no son una pregunta).
-.sm_mb_alin_pares <- function(mapa, claves_base, secciones_base) {
+.sm_mb_alin_pares <- function(mapa, claves_base, secciones_base, enunciados_base = character(0)) {
   if (!length(mapa)) {
     return(data.frame(base = character(0), fuente = character(0), etiqueta = character(0),
-                      seccion = character(0), stringsAsFactors = FALSE))
+                      seccion = character(0), enunciado = character(0), stringsAsFactors = FALSE))
   }
   orden <- order(match(unname(mapa), names(claves_base)))
   base <- unname(mapa)[orden]
-  tabla <- .sm_mb_alin_tabla(base, claves_base, secciones_base)
+  tabla <- .sm_mb_alin_tabla(base, claves_base, secciones_base, enunciados_base)
   data.frame(base = base, fuente = names(mapa)[orden], etiqueta = tabla$etiqueta, seccion = tabla$seccion,
-             stringsAsFactors = FALSE)
+             enunciado = tabla$enunciado, stringsAsFactors = FALSE)
 }
 
 .sm_mb_alinear_fuente <- function(inst_base, inst_fuente) {
@@ -265,7 +301,9 @@
   preguntas_movidas <- sum(names(mapa) != unname(mapa))
   sec_b <- .sm_mb_alin_secciones(inst_base)
   sec_f <- .sm_mb_alin_secciones(inst_fuente)
-  pares <- .sm_mb_alin_pares(mapa, pb, sec_b)
+  en_b <- attr(inst_base, "sm_enunciados", exact = TRUE) %||% character(0)
+  en_f <- attr(inst_fuente, "sm_enunciados", exact = TRUE) %||% character(0)
+  pares <- .sm_mb_alin_pares(mapa, pb, sec_b, en_b)
 
   # El `_other` sigue al padre. Si la base no tiene dónde guardarlo, el texto
   # no entra y se declara como pregunta sin par: nada se descarta en silencio.
@@ -277,15 +315,15 @@
     if (.sm_mb_var_exists(inst_base, bo)) mapa[[fo]] <- bo else others_sin_par <- c(others_sin_par, fo)
   }
 
-  sin_par_fuente <- .sm_mb_alin_tabla(names(kf)[!emparejadas & !ambigua_f], pf, sec_f)
+  sin_par_fuente <- .sm_mb_alin_tabla(names(kf)[!emparejadas & !ambigua_f], pf, sec_f, en_f)
   if (length(others_sin_par)) {
     claves_f <- .equiv_claves_de_base(inst_fuente)
-    sin_par_fuente <- rbind(sin_par_fuente, .sm_mb_alin_tabla(others_sin_par, claves_f, sec_f))
+    sin_par_fuente <- rbind(sin_par_fuente, .sm_mb_alin_tabla(others_sin_par, claves_f, sec_f, en_f))
   }
-  sin_par_base <- .sm_mb_alin_tabla(setdiff(names(kb)[!ambigua_b], unname(mapa)), pb, sec_b)
+  sin_par_base <- .sm_mb_alin_tabla(setdiff(names(kb)[!ambigua_b], unname(mapa)), pb, sec_b, en_b)
   # Se listan en el espacio de la base: quedan vacías para esta fuente, y las
   # respuestas de sus gemelas en la fuente no entran.
-  ambiguas <- .sm_mb_alin_tabla(names(kb)[ambigua_b], pb, sec_b)
+  ambiguas <- .sm_mb_alin_tabla(names(kb)[ambigua_b], pb, sec_b, en_b)
   n_base <- length(kb)
   n_emparejadas <- as.integer(sum(emparejadas))
   cobertura <- if (n_base > 0L) n_emparejadas / n_base else 0
@@ -555,6 +593,7 @@
   lapply(seq_len(NROW(df)), function(i) {
     fila <- list(variable = as.character(df$variable[i]), etiqueta = as.character(df$etiqueta[i]))
     if (con_seccion) fila$seccion <- as.character(df$seccion[i])
+    if ("enunciado" %in% names(df)) fila$enunciado <- as.character(df$enunciado[i])
     fila
   })
 }
@@ -565,7 +604,8 @@
     base = as.character(df$base[i]),
     fuente = as.character(df$fuente[i]),
     etiqueta = as.character(df$etiqueta[i]),
-    seccion = as.character(df$seccion[i])
+    seccion = as.character(df$seccion[i]),
+    enunciado = as.character(df$enunciado[i] %||% "")
   ))
 }
 

@@ -34,6 +34,16 @@ source("setup-load-all.R")
 .cfe_open <- function(id, heading) {
   list(id = id, family = "open_ended", subtype = "single", headings = list(list(heading = heading)))
 }
+.cfe_matriz <- function(id, heading, filas, escala) {
+  list(
+    id = id, family = "matrix", subtype = "rating", headings = list(list(heading = heading)),
+    answers = list(
+      rows = lapply(seq_along(filas), function(i) list(id = paste0(id, "r", i), text = filas[[i]], position = i)),
+      choices = lapply(seq_along(escala), function(i) list(id = paste0(id, "c", i), text = escala[[i]], position = i))
+    )
+  )
+}
+.CFE_SATISFACCION <- "  <b>¿Qué tan</b>   satisfecho está con estos servicios? "
 .cfe_relleno <- function(prefijo, k) lapply(seq_len(k), function(i) .cfe_open(paste0(prefijo, i), paste("Comentario", i)))
 
 # Un nombre vacío en `paginas` es una página sin título (SM la deja en "").
@@ -56,6 +66,7 @@ source("setup-load-all.R")
     " " = c(
       list(.cfe_single("a4", "Biblioteca", c("Sí", "No")), .cfe_single("a5", "Biblioteca", c("Sí", "No"))),
       .cfe_relleno("ar", 10L),
+      list(.cfe_matriz("am", .CFE_SATISFACCION, c("Servicio de salud", "Comunicación visual"), c("Malo", "Bueno"))),
       list(.cfe_single("a16", "¿Cuál es su año de egreso?", c("2021", "2022")))
     )
   ))
@@ -71,7 +82,9 @@ source("setup-load-all.R")
       .cfe_open("f3", "¿Cuántos años tiene?"),
       .cfe_single("f4", "¿Cuál es su género?", c("Masculino", "Femenino"))
     ),
-    c(list(.cfe_single("f5", "Biblioteca", c("Sí", "No"))), .cfe_relleno("fr", 10L))
+    c(list(.cfe_single("f5", "Biblioteca", c("Sí", "No"))), .cfe_relleno("fr", 10L),
+      list(.cfe_matriz("fm", .CFE_SATISFACCION, c("Servicio de salud", "Comunicación visual"), c("Malo", "Bueno")),
+           .cfe_matriz("ft", "Califique la atención telefónica", c("Amabilidad", "Rapidez"), c("Malo", "Bueno"))))
   ), c("Datos del egresado", "")))
 }
 
@@ -178,7 +191,7 @@ test_that("cada fuente guarda sus pares con etiqueta y sección de la base, sin 
 
   pares <- fue$pares
   expect_true(length(pares) > 0L)
-  expect_true(all(vapply(pares, function(p) setequal(names(p), c("base", "fuente", "etiqueta", "seccion")), TRUE)))
+  expect_true(all(vapply(pares, function(p) setequal(names(p), c("base", "fuente", "etiqueta", "seccion", "enunciado")), TRUE)))
   # Mismo mapa que se aplicó: n_emparejadas preguntas, ninguna `_other`.
   expect_length(pares, fue$n_emparejadas)
   expect_false(any(grepl("_other$", vapply(pares, `[[`, "", "base"))))
@@ -195,6 +208,13 @@ test_that("cada fuente guarda sus pares con etiqueta y sección de la base, sin 
   egreso <- Find(function(x) identical(x$etiqueta, "¿Cuál es su año de egreso?"), fue$sin_par_base)
   expect_equal(egreso$seccion, "Página 2")
   expect_true(all(vapply(fue$ambiguas, function(x) identical(x$seccion, "Página 2"), TRUE)))
+  # `enunciado` persistido: el de la pregunta madre en filas de matriz, vacío en las demás.
+  salud <- Find(function(p) identical(p$etiqueta, "Servicio de salud"), pares)
+  expect_equal(salud$enunciado, "¿Qué tan satisfecho está con estos servicios?")
+  expect_equal(edad$enunciado, "")
+  rapidez <- Find(function(x) identical(x$etiqueta, "Rapidez"), fue$sin_par_fuente)
+  expect_equal(rapidez$enunciado, "Califique la atención telefónica")
+  expect_true(all(vapply(c(fue$sin_par_base, fue$ambiguas), function(x) identical(x$enunciado, ""), TRUE)))
   # Sin par y ambiguas también traen sección.
   expect_true(all(vapply(c(fue$sin_par_base, fue$ambiguas, fue$sin_par_fuente),
                          function(x) "seccion" %in% names(x), TRUE)))
@@ -235,7 +255,8 @@ test_that("el emparejamiento expone emparejada, otro nombre, sin respuesta, ambi
   expect_setequal(names(fue), c("survey_id", "titulo", "estado", "n_emparejadas", "n_preguntas_base",
                                 "n_filas_incorporadas", "n_filas_excluidas", "detalle_disponible", "filas"))
   expect_true(all(vapply(fue$filas, function(r) {
-    setequal(names(r), c("seccion", "etiqueta", "variable_base", "variable_fuente", "estado", "pagina_fuente"))
+    setequal(names(r), c("seccion", "enunciado", "etiqueta", "variable_base", "variable_fuente", "estado",
+                         "pagina_fuente"))
   }, TRUE)))
 
   estados <- .cfe_estados(fue)
@@ -256,11 +277,31 @@ test_that("el emparejamiento expone emparejada, otro nombre, sin respuesta, ambi
   expect_equal(.cfe_fila_de(fue, "¿Cuál es su año de egreso?")[[1]]$seccion, "Página 2")
   expect_equal(.cfe_fila_de(fue, "¿Cuántos años tiene?")[[1]]$pagina_fuente, "")
 
+  # Filas de matriz: llevan el enunciado de la pregunta madre, limpio; las
+  # demás preguntas lo llevan vacío. En lo que no entró, el de la fuente.
+  enunciado <- "¿Qué tan satisfecho está con estos servicios?"
+  for (fila in c("Servicio de salud", "Comunicación visual")) {
+    r <- .cfe_fila_de(fue, fila)[[1]]
+    expect_equal(r$enunciado, enunciado, info = fila)
+    expect_equal(r$estado, "emparejada", info = fila)
+  }
+  expect_equal(.cfe_fila_de(fue, "¿Cuántos años tiene?")[[1]]$enunciado, "")
+  expect_equal(.cfe_fila_de(fue, "Biblioteca")[[1]]$enunciado, "")
+  for (fila in c("Amabilidad", "Rapidez")) {
+    r <- .cfe_fila_de(fue, fila)[[1]]
+    expect_equal(r$estado, "no_entro", info = fila)
+    expect_equal(r$enunciado, "Califique la atención telefónica", info = fila)
+    expect_equal(r$pagina_fuente, "Página 2", info = fila)
+  }
+
   # Orden: lo de la base sigue su instrumento (el año de egreso es la última
   # pregunta de la base) y lo que solo existe en la fuente va al final.
   n <- length(estados)
   expect_equal(estados[n], "no_entro")
-  expect_equal(fue$filas[[n - 1L]]$etiqueta, "¿Cuál es su año de egreso?")
+  de_base <- which(vapply(fue$filas, function(r) nzchar(r$variable_base), TRUE))
+  expect_equal(fue$filas[[max(de_base)]]$etiqueta, "¿Cuál es su año de egreso?")
+  expect_true(all(estados[-de_base] == "no_entro"))
+  expect_true(max(de_base) < min(which(estados == "no_entro")))
   expect_equal(fue$filas[[1]]$etiqueta, "¿Desea continuar?")
   # Una fila por variable de la base, cada una una sola vez.
   vars_base <- vapply(Filter(function(r) nzchar(r$variable_base), fue$filas), `[[`, "", "variable_base")
