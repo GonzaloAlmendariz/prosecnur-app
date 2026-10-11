@@ -33,7 +33,7 @@ type PlanStoreState = ReturnType<typeof usePlanStore.getState>;
 
 /** Campos del store que forman la config persistida. */
 export type GraficosConfigSource = Pick<PlanStoreState,
-  | "plan" | "presets" | "wPresets" | "documentoWord" | "estiloCliente" | "selectedSlideId" | "paletas" | "iconos"
+  | "plan" | "presets" | "wPresets" | "documentoWord" | "estiloCliente" | "selectedSlideId" | "paletas" | "paletasVinculos" | "iconos"
   | "overridesReusables" | "debugPh" | "viewMode" | "inspectorTab" | "density" | "canvasViewport"
   | "equivalenciasRevision" | "autoOtrosSlides" | "scopeRules">;
 
@@ -52,6 +52,8 @@ export function buildGraficosConfig(state: GraficosConfigSource): GraficosConfig
     estilo_cliente: state.estiloCliente,
     selected_slide_id: state.selectedSlideId,
     paletas: state.paletas,
+    // ADR 0097: sólo decisiones; el normalizador la deja siempre presente (`{}` = sin vínculos).
+    paletas_vinculos: state.paletasVinculos,
     iconos: state.iconos,
     overrides_reusables: state.overridesReusables,
     debug_ph: state.debugPh,
@@ -88,6 +90,7 @@ export function graficosConfigSource(cfg: GraficosConfig): GraficosConfigSource 
     estiloCliente: normalizeEstiloCliente(cfg.estilo_cliente),
     selectedSlideId: cfg.selected_slide_id ?? null,
     paletas: cfg.paletas ?? {},
+    paletasVinculos: cfg.paletas_vinculos ?? {},
     iconos: cfg.iconos ?? [],
     overridesReusables: cfg.overrides_reusables ?? [],
     debugPh: { ...DEFAULT_DEBUG_PH, ...(cfg.debug_ph ?? {}) },

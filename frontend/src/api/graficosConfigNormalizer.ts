@@ -91,6 +91,9 @@ const KNOWN_KEYS = new Set([
   "selected_slide_id",
   "selectedSlideId",
   "paletas",
+  // ADR 0097: vínculos `list_name → clave de paleta`. Campo de primera clase: desde `_unknown` el store no los vería.
+  "paletas_vinculos",
+  "paletasVinculos",
   "iconos",
   "overrides_reusables",
   "overridesReusables",
@@ -285,6 +288,20 @@ function validViewport(x: unknown) {
   return isObj(x) && typeof x.x === "number" && typeof x.y === "number" && typeof x.zoom === "number";
 }
 
+/** `list_name → clave de paleta`, sólo decisiones (ADR 0097). Espejo de `vinculosDecisiones` (paletasResolver.ts). */
+export function normalizePaletasVinculos(raw: unknown): Record<string, string> {
+  if (!isObj(raw)) return {};
+  const out: Record<string, string> = {};
+  for (const [listName, clave] of Object.entries(raw)) {
+    const ln = listName.trim();
+    if (!ln || typeof clave !== "string") continue;
+    const c = clave.trim();
+    if (!c || c === ln) continue;
+    out[ln] = c;
+  }
+  return out;
+}
+
 export function normalizeGraficosConfig(input: unknown, options: { includeLegacyAliases?: boolean } = {}): Dict {
   const envelope = isObj(input) ? input : {};
   const source = isObj(envelope.config) ? envelope.config : envelope;
@@ -302,6 +319,7 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
   const wPresets = pick(source, "w_presets", ["wPresets"]);
   const selectedSlideId = pick(source, "selected_slide_id", ["selectedSlideId"]);
   const paletas = pick(source, "paletas");
+  const paletasVinculos = pick(source, "paletas_vinculos", ["paletasVinculos"]);
   const iconos = pick(source, "iconos");
   const overridesReusables = pick(source, "overrides_reusables", ["overridesReusables"]);
   const debugPh = pick(source, "debug_ph", ["debugPh"]);
@@ -331,6 +349,9 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
     estilo_cliente: normalizeEstiloCliente(estiloCliente),
     selected_slide_id: typeof selectedSlideId === "string" ? selectedSlideId : null,
     paletas: isObj(paletas) ? paletas : {},
+    // Siempre presente (aunque sea `{}`): quitar el último vínculo tiene que viajar, y una clave ausente conservaría lo
+    // guardado. Sólo decisiones (ADR 0097): texto no vacío y nunca una lista vinculada a su propio nombre.
+    paletas_vinculos: normalizePaletasVinculos(paletasVinculos),
     iconos: Array.isArray(iconos) ? iconos : [],
     overrides_reusables: Array.isArray(overridesReusables) ? overridesReusables : [],
     debug_ph: isObj(debugPh) ? { ...DEFAULT_DEBUG_PH, ...debugPh } : DEFAULT_DEBUG_PH,

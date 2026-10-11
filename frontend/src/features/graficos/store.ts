@@ -9,6 +9,7 @@ import {
 } from "../../api/graficosConfigNormalizer";
 import type { GraficosConfigDefaults } from "../../api/graficosConfigDefaults";
 import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEstilo";
+import { conVinculo, vinculosDecisiones } from "./paletasResolver";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -82,6 +83,8 @@ export type GraficosConfig = {
 
   // Bloque 2: configuración global de estilo
   paletas: Record<string, PaletaPorLista>;   // list_name → {label: hex}
+  /** ADR 0097: `list_name` del instrumento → clave de `paletas`. Sólo decisiones; ausente = sin vínculo. */
+  paletas_vinculos?: Record<string, string>;
   iconos: IconoConfig[];
   overrides_reusables: OverrideReusable[];
   debug_ph: DebugPh;
@@ -115,6 +118,7 @@ type Snapshot = {
   documentoWord: DocumentoWordOpciones;
   estiloCliente: EstiloCliente;
   paletas: Record<string, PaletaPorLista>;
+  paletasVinculos: Record<string, string>;
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
@@ -139,6 +143,8 @@ type PlanStore = {
   estiloCliente: EstiloCliente;
   selectedSlideId: string | null;
   paletas: Record<string, PaletaPorLista>;
+  /** ADR 0097: vínculos `list_name → clave de paleta` (sólo decisiones). */
+  paletasVinculos: Record<string, string>;
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
@@ -240,6 +246,8 @@ type PlanStore = {
   setColorEnPaleta: (listName: string, label: string, hex: string) => void;
   removePaleta: (listName: string) => void;
   removeColoresDePaleta: (listName: string, labels: string[]) => void;
+  /** ADR 0097: vincula una lista del instrumento a una paleta (`null` quita el vínculo). Un paso deshacible. */
+  setPaletaVinculo: (listName: string, clave: string | null) => void;
 
   addIcono: (icono: IconoConfig) => void;
   renameIcono: (id: string, nombre: string) => void;
@@ -382,6 +390,7 @@ function snapshotFromState(state: PlanStore): Snapshot {
     documentoWord: state.documentoWord,
     estiloCliente: state.estiloCliente,
     paletas: state.paletas,
+    paletasVinculos: state.paletasVinculos,
     iconos: state.iconos,
     overridesReusables: state.overridesReusables,
     debugPh: state.debugPh,
@@ -496,6 +505,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   estiloCliente: {},
   selectedSlideId: null,
   paletas: {},
+  paletasVinculos: {},
   iconos: [],
   overridesReusables: [],
   debugPh: DEFAULT_DEBUG_PH,
@@ -575,6 +585,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     estiloCliente: normalizeEstiloCliente(cfg.estilo_cliente),
     selectedSlideId: cfg.selected_slide_id ?? null,
     paletas: cfg.paletas ?? {},
+    paletasVinculos: vinculosDecisiones(cfg.paletas_vinculos),
     iconos: cfg.iconos ?? [],
     overridesReusables: cfg.overrides_reusables ?? [],
     debugPh: { ...DEFAULT_DEBUG_PH, ...(cfg.debug_ph ?? {}) },
@@ -765,7 +776,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     documentoWord: {},
     // Igual con el estilo del cliente: `{}` lo devuelve al recetario; el ámbito queda como estaba en el backend.
     estiloCliente: {},
-    paletas: {}, iconos: [], overridesReusables: [],
+    paletas: {}, paletasVinculos: {}, iconos: [], overridesReusables: [],
     debugPh: DEFAULT_DEBUG_PH,
     scopeRules: {},
     autoOtrosSlides: false,
@@ -812,6 +823,13 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (Object.keys(restante).length) next[listName] = restante;
       else delete next[listName];
       return dirty(state, { paletas: next });
+    }),
+
+  // Sólo decisiones: quitar borra la clave y volver a poner la misma no historiza (`conVinculo` devuelve el mismo objeto).
+  setPaletaVinculo: (listName, clave) =>
+    set((state) => {
+      const next = conVinculo(state.paletasVinculos, listName, clave);
+      return next === state.paletasVinculos ? state : dirty(state, { paletasVinculos: next });
     }),
 
   // ----- Iconos -----------------------------------------------------------

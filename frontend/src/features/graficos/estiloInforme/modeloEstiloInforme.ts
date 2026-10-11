@@ -11,6 +11,7 @@ import type { ArgMetadata, PresetMetadata } from "../../../api/graficos";
 import type { WordFijado } from "../../../api/graficosWordFijado";
 import { wordChartPresetsDecisiones } from "../../../api/graficosConfigDefaults";
 import type { Procedencia } from "../estilo/modeloEstilo";
+import { listasConColorDelInstrumento, paletaTieneColor, type MapaPaletas } from "../paletasResolver";
 
 export type { Procedencia };
 
@@ -252,9 +253,19 @@ export function notaRedondeo(presets: MapaPresets, defaults: MapaPresets, meta: 
 
 // --- Paletas (C51) y línea visual (C52) ----------------------------------------------------------------------------
 
-/** Listas con al menos un color propio. Sin colores, el motor usa la paleta del recetario. */
-export function listasConColor(paletas: Record<string, Record<string, string>>): number {
-  return Object.values(paletas).filter((p) => esRegistro(p) && Object.values(p).some((c) => typeof c === "string" && c.trim() !== "")).length;
+/**
+ * Listas del instrumento con colores propios: por su nombre o por un vínculo (ADR 0097). Una paleta «sin lista en este
+ * instrumento» (de un perfil u otro proyecto) no es una lista con color y no cuenta. Sin la lista de listas del
+ * instrumento (todavía cargando) no se puede distinguir una huérfana: se cuentan las claves con color, como antes.
+ */
+export function listasConColor(
+  paletas: Record<string, Record<string, string>>,
+  listasInstrumento?: readonly string[] | null,
+  vinculos: Record<string, string> = {},
+): number {
+  const limpias = Object.fromEntries(Object.entries(paletas).filter(([, p]) => esRegistro(p))) as MapaPaletas;
+  if (!listasInstrumento) return Object.values(limpias).filter((p) => paletaTieneColor(p)).length;
+  return listasConColorDelInstrumento(listasInstrumento, limpias, vinculos);
 }
 
 /** `profile_id` de la línea visual aplicada al plan (lo escribe `applyPptStyleProfile` en `scope_rules.global`). */

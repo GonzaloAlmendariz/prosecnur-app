@@ -52,6 +52,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   const wPresets = usePlanStore((s) => s.wPresets);
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const paletas = usePlanStore((s) => s.paletas);
+  const paletasVinculos = usePlanStore((s) => s.paletasVinculos);
   const iconos = usePlanStore((s) => s.iconos);
   const overridesReusables = usePlanStore((s) => s.overridesReusables);
   const debugPh = usePlanStore((s) => s.debugPh);
@@ -269,7 +270,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     };
   }, [
     plan, presets, wPresets, selectedSlideId,
-    paletas, iconos, overridesReusables, debugPh,
+    paletas, paletasVinculos, iconos, overridesReusables, debugPh,
     viewMode, inspectorTab, density, canvasViewport,
     scopeRules, autoOtrosSlides, documentoWord, equivalenciasRevision,
     reportScope,
