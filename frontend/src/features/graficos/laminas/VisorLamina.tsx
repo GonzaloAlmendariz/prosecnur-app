@@ -207,9 +207,12 @@ export function VisorLamina({
           {verComoQueda && cargando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
           Ver cómo queda
         </button>
-        <span className="pulso-f6-guias">
-          <BotonGuias modelo={guias} roles={rolesGuias} disponible={!!formas?.disponible} hayRanuras={(formas?.ranuras.length ?? 0) > 0} />
-        </span>
+        {/* Las guías miden el dibujo del motor: sólo existen en «Ver cómo queda», no sobre la maqueta. */}
+        {verComoQueda && (
+          <span className="pulso-f6-guias">
+            <BotonGuias modelo={guias} roles={rolesGuias} disponible={!!formas?.disponible && !cargando} hayRanuras={(formas?.ranuras.length ?? 0) > 0} />
+          </span>
+        )}
         <label className="pulso-f6-zoom">
           <span className="pulso-sr-only">Zoom de la lámina</span>
           <select value={zoom} onChange={(e) => setZoom(e.target.value as ZoomVisor)}>

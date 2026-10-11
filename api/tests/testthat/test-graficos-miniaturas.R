@@ -444,7 +444,7 @@ test_that("I-N1: la vista previa consolidada usa la config del borrador consolid
   fuentes <- list(data_sources = list(estudiantes = f$df), inst_sources = list(estudiantes = f$inst),
                   consolidado = TRUE, reglas_metodologia = list())
   comun <- .graficos_preview_comun("sid-x", list(), fuentes)
-  expect_identical(comun$presets_json, .enriquecer_presets(borrador$presets %||% list(), borrador$debug_ph))
+  expect_identical(comun$presets_json, .enriquecer_presets(borrador$presets %||% list(), NULL))
   expect_null(comun$presets_json$barras_categoricas$excluir_opciones)
   # La de la base activa SÍ la tiene: es la fuga que se cierra.
   expect_identical(.graficos_effective_config("sid-x", NULL)$presets$barras_categoricas$excluir_opciones, "sur")
@@ -719,4 +719,17 @@ test_that("P2: multilista con un bloque de var vacía: la vista previa es lo que
   raiz <- withr::local_tempdir()
   previa <- suppressWarnings(.mini_resolver(.mt_ctx(slide = lamina, fuentes = f), raiz, .mt_opts(render = FALSE)))
   expect_identical(.mt_texto_pptx(previa$pptx), .mt_texto_pptx(out))
+})
+
+test_that("la vista previa no hornea las guías heredadas aunque el proyecto las tenga encendidas", {
+  f <- .mt_fuentes()
+  cfg <- .graficos_default_config(NULL)
+  cfg$debug_ph <- list(activo = TRUE, color = "#FF00FF", lwd = 0.6)
+  local_mocked_bindings(
+    .graficos_config_get = function(sid, ...) cfg,
+    session_get = function(sid, ...) list(dir = tempdir(), files = list())
+  )
+  fuentes <- list(data_sources = list(estudiantes = f$df), inst_sources = list(estudiantes = f$inst), reglas_metodologia = list())
+  comun <- .graficos_preview_comun("sid-x", list(), fuentes)
+  expect_false(isTRUE(comun$presets_json$base$args$debug_ph_bordes))
 })
