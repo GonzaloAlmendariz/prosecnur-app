@@ -586,12 +586,15 @@
   .lam_txt(lz, as.character(titulo %||% "Índice")[1], xl - 0.1, 0.86, 4, 0.62, 30, coral, bold = TRUE, nombre = "Titulo lamina")
   if (!G$sub) {
     xi <- xl + G$dx; xt <- xi + G$di + 0.25
+    F <- .lam_indice_filas(caps, G) %||% list(fs = G$fs, lineas = rep(1, n), alto = rep(G$rh, n))
+    fs <- F$fs; y <- 1.75 + (6.95 - 1.75 - sum(F$alto)) / 2
     for (k in seq_len(n)) {
-      y <- G$ya + (k - 1) * G$rh
-      .lam_txt(lz, sprintf("%d", k), xl - 0.1, y + (G$rh - G$fs / 46) / 2 - 0.02, 0.8, G$fs / 46 + 0.08, G$fs, coral, bold = TRUE, nombre = "indice:numero")
-      iconos_xy[[k]] <- list(n = icos[k], x = xi, y = y + (G$rh - G$di) / 2, d = G$di)
-      .lam_txt(lz, caps[k], xt - 0.1, y + (G$rh - G$fs / 48) / 2 - 0.02, W - mr - xt + 0.1, G$fs / 48 + 0.08, G$fs, azul, bold = G$negrita, nombre = "indice:capitulo")
-      if (k < n) .lam_caja(lz, xl, y + G$rh - 0.003, W - mr - xl, 0.005, .std_color("filete"), nombre = "indice:filete")
+      rh <- F$alto[k]; ht <- F$lineas[k] * fs * 1.2 / 72 + 0.08
+      .lam_txt(lz, sprintf("%d", k), xl - 0.1, y + (rh - fs / 46) / 2 - 0.02, 0.8, fs / 46 + 0.08, fs, coral, bold = TRUE, nombre = "indice:numero")
+      iconos_xy[[k]] <- list(n = icos[k], x = xi, y = y + (rh - G$di) / 2, d = G$di)
+      .lam_txt(lz, caps[k], xt - 0.1, y + (rh - ht) / 2, W - mr - xt + 0.1, ht, fs, azul, bold = G$negrita, nombre = "indice:capitulo")
+      if (k < n) .lam_caja(lz, xl, y + rh - 0.003, W - mr - xl, 0.005, .std_color("filete"), nombre = "indice:filete")
+      y <- y + rh
     }
   } else {
     xi <- xl + G$dx; xt <- xi + G$di + 0.25; y <- G$y0
@@ -624,7 +627,7 @@
   subs <- .lam_indice_subs(caps, subindices)
   ns <- sum(lengths(subs)); G <- .lam_indice_geo(n, ns)
   W <- .std_geom("ancho"); mr <- .std_geom("margen_der"); xl <- 6.75
-  if (!G$sub) return(all(.lam_ancho_tinta(caps, G$fs, G$negrita) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.1))
+  if (!G$sub) return(!is.null(.lam_indice_filas(caps, G)))   # un capítulo largo pasa a dos líneas (lamina_indice_filas.R)
   G$hs >= 0.18 && all(.lam_ancho_tinta(caps, 15, TRUE) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.1) &&
     all(.lam_ancho_tinta(unlist(subs), 12) <= W - mr - (xl + G$dx + G$di + 0.25) - 0.5)
 }
