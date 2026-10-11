@@ -442,7 +442,19 @@ test_that("el segundo ciclo sin cambios no reescribe nada y cuesta pocos request
   # Y cuesta pocos requests: 5 lecturas de pestaña (las tres del libro + las
   # dos Extra de B14, que el pin de test-carga-aulas-desde-sheets.R OBLIGA a
   # pedir para que lo tecleado ahí no muera camino a la app) + el ciclo sin
-  # cambios del publicador (≤ 3, pineado en test-monitoreo-aulas-publicar-
-  # libro.R). Presupuesto subido 6→8 a conciencia el 2026-09-01 por eso.
-  expect_lte(length(segundas), 8L)
+  # cambios del publicador (≤ 5, pineado en test-monitoreo-aulas-publicar-
+  # libro.R). Presupuesto subido 6→8 a conciencia el 2026-09-01 por eso, y
+  # 8→10 al seguirle la serie al publicador: +1 el 2026-09-12 (el `batchUpdate`
+  # de formato a las hojas del equipo) y +1 el 2026-09-17 (el GET que cuenta
+  # sus reglas antes de limpiarlas, uno por documento).
+  expect_lte(length(segundas), 10L)
+  # Y ese `batchUpdate` que ahora viaja cada ciclo sólo puede pintar.
+  formato <- Filter(function(c) grepl(":batchUpdate", c$url, fixed = TRUE) &&
+                      !grepl("values:batchUpdate", c$url, fixed = TRUE), segundas)
+  for (llamada in formato) {
+    for (req in (llamada$body$requests %||% list())) {
+      expect_true(prosecnurapp:::.mafr_seguro(req))
+      expect_false(grepl("userEnteredValue", paste(unlist(req), collapse = " "), fixed = TRUE))
+    }
+  }
 })
