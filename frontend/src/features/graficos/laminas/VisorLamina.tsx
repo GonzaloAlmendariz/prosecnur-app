@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
+  Eye,
   ChevronLeft,
   ChevronRight,
   History,
@@ -19,7 +20,9 @@ import {
 } from "../../../vendor/lucide-react";
 import { downloadUrl } from "../../../api/core";
 import { IconoTipo } from "../iconos/IconoTipo";
-import type { PreviewFormas } from "../../../api/graficos";
+import type { PreviewFormas, Slide } from "../../../api/graficos";
+import { MaquetaLamina } from "./MaquetaLamina";
+import { ZonasTextoLamina, type CampoTextoLamina } from "./ZonasTextoLamina";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, mensajeSinImagen, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
@@ -35,7 +38,13 @@ import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
 import "./visorLamina.css";
 
 type Props = {
+  slide: Slide;
   lamina: LaminaEnEstructura;
+  /** Se pidió «Ver cómo queda» en esta lámina: corre la vista previa del motor. */
+  vistaPedida: boolean;
+  onPedirVista: () => void;
+  /** Clic en el antetítulo, el título o la base: abre ese campo en los ajustes. */
+  onTexto: (campo: CampoTextoLamina) => void;
   total: number;
   vista: VistaPreviaLamina;
   /** La vista previa necesita la base preparada en Analítica. */
@@ -72,6 +81,7 @@ const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
 ];
 
 export function VisorLamina({
+  slide, vistaPedida, onPedirVista, onTexto,
   lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, ajustesRef, estructuraAbierta, onAlternarEstructura, tira,
   ranuras, ranuraActiva, nombreRanura, onRanura, onCambiarGrafico, formas = null,
 }: Props) {
@@ -87,9 +97,10 @@ export function VisorLamina({
   const actual = l?.partes[parteActiva - 1] ?? null;
   const estado = actual?.estado ?? (l ? estadoDeLamina(l) : null);
   const cargando = vista.fase === "esperando" || vista.fase === "cargando";
-  // Mientras el motor genera la vista grande, la miniatura ya dibujada de esta lámina se muestra al instante.
-  const miniatura = useMiniaturasLoteStore((s) => s.entradas[lamina.id]?.src ?? null);
-  const provisional = !actual?.imagen && cargando ? miniatura : null;
+  // Sin vista previa pedida se muestra la imagen que el lote ya dibujó en segundo plano o, sin ella, la maqueta.
+  const imagenLote = useMiniaturasLoteStore((s) => s.entradas[lamina.id]?.imagen ?? null);
+  const real = actual?.imagen ?? null;
+  const src = real ?? imagenLote;
   const hojaRef = useRef<HTMLElement>(null);
   const capas = useGuiasUi((s) => s.capas);
   const rolesOcultos = useGuiasUi((s) => s.rolesOcultos);
@@ -176,6 +187,18 @@ export function VisorLamina({
             <Download size={16} aria-hidden="true" />
           </a>
         )}
+        {!real && (
+          <button
+            type="button"
+            className="pulso-f6-boton is-primario"
+            disabled={!prepOk || (vistaPedida && cargando)}
+            title={prepOk ? "Dibuja la lámina como saldrá en el PowerPoint" : "Prepara la base en Analítica para ver cómo queda"}
+            onClick={vistaPedida ? vista.reintentar : onPedirVista}
+          >
+            {vistaPedida && cargando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+            Ver cómo queda
+          </button>
+        )}
         <span className="pulso-f6-guias">
           <BotonGuias modelo={guias} roles={rolesGuias} disponible={!!formas?.disponible} hayRanuras={(formas?.ranuras.length ?? 0) > 0} />
         </span>
@@ -217,41 +240,44 @@ export function VisorLamina({
         {...{ [ATRIBUTO_LIENZO]: lamina.posicion }}
         aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. Flechas izquierda y derecha cambian de lámina${nPartes > 1 ? "; arriba y abajo, de parte" : ""}.`}
       >
-        <figure ref={hojaRef} className={`pulso-f6-hoja${cargando && (actual?.imagen || provisional) ? " is-desactualizada" : ""}`}>
-          {provisional && <img src={provisional} alt={`Lámina ${lamina.posicion}: ${lamina.titulo} (vista rápida)`} draggable={false} />}
-          {actual?.imagen ? (
+        <figure ref={hojaRef} className={`pulso-f6-hoja${cargando && real ? " is-desactualizada" : ""}`}>
+          {src ? (
             <img
-              src={actual.imagen}
+              src={src}
               alt={`Lámina ${lamina.posicion}: ${lamina.titulo}${nPartes > 1 ? `, parte ${parteActiva} de ${nPartes}` : ""}`}
               draggable={false}
             />
-          ) : null}
-          {actual?.imagen && !cargando && (
-            <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico} />
+          ) : (
+            <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto} />
           )}
-          {/* Las guías son del visor: nunca entran al entregable (D17). Se ocultan mientras la imagen se regenera. */}
-          {actual?.imagen && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
-          <EstadoSobreHoja vista={vista} prepOk={prepOk} hayImagen={!!actual?.imagen || !!provisional} />
+          {src && <ZonasTextoLamina onTexto={onTexto} sinAntetitulo={slide.tipo === "p_slide_seccion"} />}
+          {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico} />}
+          {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
+          {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
         </figure>
-        {provisional && (
+        {cargando && (
           <p className="pulso-f6-lienzo-aviso is-info" role="status">
             <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-            Vista rápida: el motor está generando la versión nítida.
+            Dibujando la lámina…
           </p>
         )}
-        {cargando && actual?.imagen && (
-          <p className="pulso-f6-lienzo-aviso is-info" role="status">
-            <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-            Cambiaste la lámina: lo que ves es la versión anterior mientras el motor la regenera.
-          </p>
-        )}
-        {vista.error && actual?.imagen && (
+        {vista.error && (
           <p className="pulso-f6-lienzo-aviso is-error" role="alert">
             <AlertTriangle size={14} aria-hidden="true" />
-            No se pudo regenerar; ves la versión anterior.
+            No se pudo dibujar la lámina.
             <button type="button" className="pulso-f6-texto-boton" onClick={vista.reintentar}>Reintentar</button>
           </p>
         )}
+        {vista.fase === "lista" && l?.sinImagen && (() => {
+          const m = mensajeSinImagen(l.motivoSinImagen);
+          return (
+            <p className="pulso-f6-lienzo-aviso is-error" role="alert">
+              <ImageOff size={14} aria-hidden="true" />
+              {m.titulo}.
+              {m.reintentable && <button type="button" className="pulso-f6-texto-boton" onClick={vista.reintentar}>Reintentar</button>}
+            </p>
+          );
+        })()}
       </div>
 
       {tiraVisible && tira}

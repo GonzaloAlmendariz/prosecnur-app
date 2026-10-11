@@ -58,6 +58,8 @@ export type MiniaturaLamina = {
   estado: MiniaturaEstado;
   folio: number | null;
   miniatura: MiniaturaImagen | null;
+  /** La lámina dibujada en tamaño completo (aditivo; null si no vino o no hay imagen). */
+  imagen: MiniaturaImagen | null;
   avisos: string[];
   error: { code: string; message: string } | null;
   graficos: MiniaturaGraficos | null;
@@ -154,6 +156,7 @@ function normalizarLamina(v: unknown, k: number): MiniaturaLamina | null {
     estado: final,
     folio: enteroONulo(l.folio),
     miniatura,
+    imagen: final === "sin_imagen" ? null : normalizarImagen(l.imagen),
     avisos: arreglo(l.avisos).map(texto).filter(Boolean),
     error,
     graficos: normalizarGraficos(l.graficos),

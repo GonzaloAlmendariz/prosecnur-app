@@ -26,6 +26,8 @@ export type EntradaMiniatura = {
   clave: string;
   /** Imagen lista (`ok`, o `sin_datos` con raster). */
   src: string | null;
+  /** La lámina en tamaño completo, para el visor (sin pedir otra vista previa). */
+  imagen?: string | null;
   /** Imagen previa de esta lámina, para no vaciar la caja mientras se rehace (C2). */
   anterior: string | null;
   /** Mensaje legible del error (sin código). */
@@ -118,7 +120,7 @@ export function fusionarLote(entradas: Entradas, lote: MiniaturasLote, vigente: 
   let sig: Entradas | null = null;
   const poner = (id: string, e: EntradaMiniatura) => {
     const prev = (sig ?? entradas)[id];
-    if (prev && prev.estado === e.estado && prev.src === e.src && prev.error === e.error && prev.clave === e.clave && prev.anterior === e.anterior
+    if (prev && prev.estado === e.estado && prev.src === e.src && prev.error === e.error && prev.clave === e.clave && prev.anterior === e.anterior && (prev.imagen ?? null) === (e.imagen ?? null)
       && (prev.vacios?.vacios ?? 0) === (e.vacios?.vacios ?? 0) && (prev.vacios?.pedidos ?? 0) === (e.vacios?.pedidos ?? 0)
       && (prev.vacios?.motivo ?? null) === (e.vacios?.motivo ?? null)) return;
     sig = sig ?? { ...entradas };
@@ -141,7 +143,8 @@ export function fusionarLote(entradas: Entradas, lote: MiniaturasLote, vigente: 
     } else {
       const g = l.graficos;
       const vacios = g && g.vacios > 0 ? { vacios: g.vacios, pedidos: g.pedidos, motivo: g.motivo } : null;
-      poner(l.slide_id, { estado: l.estado, clave, src: l.estado === "sin_imagen" ? null : imagen, anterior: null, error: null, vacios });
+      const grande = l.imagen && l.estado !== "sin_imagen" ? src(l.imagen.url) : null;
+      poner(l.slide_id, { estado: l.estado, clave, src: l.estado === "sin_imagen" ? null : imagen, imagen: grande, anterior: null, error: null, vacios });
     }
   }
   if (terminado) {

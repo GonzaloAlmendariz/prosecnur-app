@@ -1,0 +1,228 @@
+/* Maqueta de la lámina en el visor (MaquetaLamina.tsx) y zonas de texto sobre la imagen (ZonasTextoLamina.tsx).
+   Las medidas son fracciones de la lámina de 13,333 × 7,5 pulgadas; el texto escala con el ancho de la hoja (cqw). */
+
+.pulso-f6-maqueta {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+  background: var(--pulso-surface);
+  font-size: 1cqw;
+}
+
+.pulso-f6-maqueta.is-estructura > .pulso-composicion {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pulso-f6-maqueta-zona {
+  display: block;
+  margin: 0;
+  padding: 0.2em 0.4em;
+  border: 1.5px dashed transparent;
+  border-radius: calc(var(--pulso-radius) / 2);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-press) var(--motion-ease-out), background-color var(--motion-dur-press) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-maqueta-zona:hover {
+    border-color: var(--module-accent-border);
+    background: color-mix(in srgb, var(--module-accent) 4%, transparent);
+  }
+}
+
+.pulso-f6-maqueta-zona:focus-visible,
+.pulso-f6-maqueta-ranura:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 0;
+}
+
+.pulso-f6-maqueta-cabecera {
+  position: absolute;
+  top: 2.2%;
+  left: 3.1%;
+  right: 16%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15em;
+}
+
+.pulso-f6-maqueta-ante {
+  color: var(--pulso-text-muted);
+  font-size: 1.05em;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-f6-maqueta-ante .is-vacio {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-maqueta-titulo {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 2.3em;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulso-f6-maqueta-titulo-estructura {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  max-width: 60%;
+  transform: translateX(-10%);
+}
+
+.pulso-f6-maqueta-ranura {
+  position: absolute;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2.4em;
+  margin: 0;
+  padding: 1.2em 1.6em;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-press) var(--motion-ease-out), box-shadow var(--motion-dur-press) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button.pulso-f6-maqueta-ranura:hover {
+    border-color: var(--module-accent-border);
+  }
+}
+
+.pulso-f6-maqueta-ranura.is-activa {
+  border-color: var(--module-accent);
+  box-shadow: 0 0 0 3px var(--module-accent-soft);
+}
+
+.pulso-f6-maqueta-ranura.is-vacia {
+  border-style: dashed;
+  background: transparent;
+}
+
+.pulso-f6-maqueta-ranura.is-cifra {
+  cursor: default;
+}
+
+.pulso-f6-maqueta-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  color: var(--pulso-text-muted);
+  font-size: 1.1em;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-maqueta-num {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  border-radius: 999px;
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-size: 0.9em;
+}
+
+.pulso-f6-maqueta-pregunta {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 1.45em;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.pulso-f6-maqueta-mas {
+  color: var(--pulso-text-muted);
+  font-weight: 400;
+}
+
+.pulso-f6-maqueta-bases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+}
+
+.pulso-f6-maqueta-base {
+  padding: 0.2em 0.7em;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 1.05em;
+}
+
+.pulso-f6-maqueta-pie {
+  position: absolute;
+  left: 3.1%;
+  bottom: 4%;
+  color: var(--pulso-text-faint);
+  font-size: 1.05em;
+}
+
+/* Sobre la imagen: capas que cubren la hoja entera; sólo sus botones reciben el clic, para no taparse entre sí. */
+.pulso-f6-textos-capa,
+.pulso-f6-ranuras-capa {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pulso-f6-textos-capa .pulso-f6-ranura-zona,
+.pulso-f6-ranuras-capa .pulso-f6-ranura-zona {
+  pointer-events: auto;
+}
+
+.pulso-f6-maqueta-info {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6em;
+}
+
+/* El glifo del tipo de gráfico, como ilustración de la ranura: dice de un vistazo qué forma tendrá. */
+.pulso-f6-maqueta-glifo {
+  flex: 0 0 38%;
+  max-height: 88%;
+  color: var(--module-accent);
+  opacity: 0.85;
+}
+
+.pulso-f6-maqueta-ranura.is-angosta {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1em;
+}
+
+.pulso-f6-maqueta-ranura.is-angosta .pulso-f6-maqueta-glifo {
+  flex: 0 1 auto;
+  width: 60%;
+  max-height: 45%;
+  align-self: center;
+}
