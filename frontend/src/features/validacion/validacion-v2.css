@@ -454,82 +454,16 @@
   border-radius: 8px;
 }
 
+/* L27 · K1: el encendido de la tarjeta es un PulsoSwitch con el estado al
+   lado («Activo» / «Inactivo») en tono secundario. */
 .pulso-operational-switch {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  cursor: pointer;
+  flex: 0 0 auto;
 }
 
-.pulso-operational-switch input {
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  left: 50%;
-  width: 44px;
-  height: 24px;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-  transform: translateX(-50%);
-}
-
-/* Pista al switch maestro 44×24 (`.pulso-switch`, theme.css). */
-.pulso-operational-switch > span {
-  width: 44px;
-  height: 24px;
-  padding: 2px;
-  border-radius: var(--pulso-radius-chip);
-  border: 1px solid var(--pulso-switch-border);
-  background: var(--pulso-switch-track);
-  box-shadow: var(--pulso-switch-track-shadow);
-  flex-shrink: 0;
-  transition:
-    transform var(--motion-dur-press) var(--motion-ease-out),
-    background var(--motion-dur-fast) ease,
-    border-color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.pulso-operational-switch > span::after {
-  content: "";
-  display: block;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: var(--pulso-switch-knob-shadow);
-  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.pulso-operational-switch input:checked + span {
-  border-color: color-mix(in srgb, var(--pulso-primary) 84%, #fff 16%);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 88%, #fff 12%), var(--pulso-primary));
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.2),
-    0 1px 2px rgba(0, 36, 87, 0.12);
-}
-
-.pulso-operational-switch input:checked + span::after {
-  transform: translateX(20px);
-}
-
-.pulso-operational-switch:active > span {
-  transform: scale(0.97);
-}
-
-.pulso-operational-switch input:focus-visible + span {
-  box-shadow:
-    var(--pulso-switch-track-shadow),
-    0 0 0 4px var(--pulso-primary-ring);
-}
-
-.pulso-operational-switch b {
+.pulso-operational-switch .pulso-switch-field-label {
+  min-width: 52px;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .pulso-operational-card-body {
@@ -1443,6 +1377,8 @@
   flex-wrap: wrap;
 }
 
+/* L27 · K1: la píldora es el label que envuelve al PulsoSwitch chico del kit
+   (el foco lo pinta el switch); el texto dice el estado. */
 .pulso-regla-execution-toggle {
   position: relative;
   min-width: 0;
@@ -1471,36 +1407,14 @@
   color: var(--pulso-success-fg);
 }
 
-.pulso-regla-execution-toggle input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.pulso-regla-execution-toggle:focus-within {
-  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
-}
-
-.pulso-regla-execution-switch {
-  width: 30px;
-  height: 18px;
+/* L27 · K1: «Inclusivo» del rango, switch chico del kit con su texto al lado
+   dentro del label del FieldRow (no se anida otro label). */
+.pulso-regla-inclusivo {
   display: inline-flex;
   align-items: center;
-  padding: 2px;
-  border-radius: 999px;
-  background: #cfd7e6;
-  flex: 0 0 auto;
-  transition: background 120ms ease;
-}
-
-.pulso-regla-execution-toggle.is-on .pulso-regla-execution-switch {
-  background: var(--pulso-success-fg);
-}
-
-.pulso-regla-execution-toggle.is-on .pulso-regla-execution-switch span {
-  transform: translateX(12px);
+  gap: 8px;
+  font-size: 12px;
+  color: var(--pulso-text);
 }
 
 .pulso-regla-execution-copy {
@@ -2544,9 +2458,10 @@
   border: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
 }
-.pulso-rol-bloque-toggle {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; cursor: pointer;
+/* L27 · K1: el toggle del rol es un PulsoSwitch chico; el estado se lee en
+   su etiqueta («Declarado» / «Sin declarar») en tono secundario. */
+.pulso-rol-bloque-toggle .pulso-switch-field-label {
+  font-size: 11px; color: var(--pulso-text-soft);
 }
 
 .pulso-rol-sugerencias {

@@ -640,10 +640,75 @@
     box-shadow 150ms ease;
 }
 
-.cmv2-aulas-stack .cmv2-classroom-toggle input:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
-  outline-offset: 2px;
-  border-radius: 4px;
+/* Los parámetros del sorteo son intrínsecos (C1 `intrinsic`): cada campo mide
+   lo que pide su ayuda. Sin esto la fila los estiraba a la altura del vecino
+   con la ayuda más larga y el campo corto quedaba con hueco al pie (C3). */
+.cmv2-aulas-stack .cmv2-classroom-control-grid {
+  align-items: start;
+}
+
+/* L27: la modalidad son tres opciones excluyentes → segmentado del kit sobre
+   GlidingRadioGroup (teclado con flechas, indicador que se desliza). Tres
+   columnas iguales; el texto parte en dos líneas antes que recortarse. */
+.cmv2-aulas-modalidad {
+  --pulso-gliding-indicator-bg: linear-gradient(180deg, color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-surface) 12%), var(--cmv2-accent));
+  --pulso-gliding-indicator-shadow: 0 2px 8px color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 9px;
+  background: var(--cmv2-control-bg);
+}
+
+.cmv2-aulas-modalidad > button {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.2;
+  cursor: pointer;
+  transition: color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.cmv2-aulas-modalidad > button.is-active {
+  color: var(--pulso-surface);
+}
+
+.cmv2-aulas-modalidad > button:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-aulas-modalidad > button:not(.is-active):hover {
+    color: var(--pulso-text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-aulas-modalidad > button {
+    transition: none;
+  }
+}
+
+/* L27 · K1: las decisiones del sorteo (grupos de tamaño, docente único) son
+   pares: misma columna, misma altura, y se apilan cuando el ancho no da para
+   dos tarjetas legibles. El foco lo pinta el switch del kit. */
+.cmv2-classroom-toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cmv2-classroom-toggles > .cmv2-classroom-toggle {
+  margin-top: 0;
 }
 
 /* Tarjetas de método: borde acento con transición de 150ms y elevación al

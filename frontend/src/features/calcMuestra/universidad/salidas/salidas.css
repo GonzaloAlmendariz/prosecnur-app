@@ -647,106 +647,39 @@
   color: var(--cmv2-accent-fg);
 }
 
+/* L27 · K1: cada tabla del libro es un switch-chip del kit. Van en una grilla
+   de columnas iguales (contrato `equal`): el chip ocupa su celda entera, así
+   que la fila no se desalinea por el largo de cada rótulo. */
 .cmv2-sal-tablas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.cmv2-sal-tablas label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 26px;
-  padding: 5px 10px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 999px;
-  background: var(--cmv2-surface-tint);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text);
-  cursor: pointer;
-  transition:
-    border-color 150ms var(--motion-ease-out),
-    background-color 150ms var(--motion-ease-out),
-    color 150ms var(--motion-ease-out),
-    transform 160ms var(--motion-ease-out);
-}
-
-.cmv2-sal-tablas label:has(input:checked) {
-  border-color: var(--cmv2-accent-border);
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent-fg);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-sal-tablas label:not(:has(input:checked)):hover {
-    border-color: var(--cmv2-border-strong);
-  }
-}
-
-.cmv2-sal-tablas label:active {
-  transform: scale(var(--cmv2-press-scale, 0.97));
-}
-
-.cmv2-sal-tablas label:has(input:focus-visible) {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
-}
-
-.cmv2-sal-tablas input {
-  accent-color: var(--cmv2-accent);
-  margin: 0;
-}
-
-.cmv2-sal-campos {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 6px;
+}
+
+.cmv2-sal-tablas > .pulso-switch-field.is-chip {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+/* L27: los campos son PulsoField dentro de una PulsoFieldRow; aquí la fila
+   pasa de flex a grilla para que las celdas compartan columna. */
+.cmv2-sal-campos,
+.pulso-field-row.cmv2-sal-campos {
+  display: grid;
+  align-items: start;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 10px;
 }
 
-.cmv2-sal-campos--hojas {
+.cmv2-sal-campos--hojas,
+.pulso-field-row.cmv2-sal-campos--hojas {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
-/* --- Resultados: "Incluir en reporte" como chip ------------------------------
-   Mismo lenguaje que los chips de tablas del libro (Entregables): estado
-   marcado con acento, transición corta de color. */
-.cmv2-sal-stack .cmv2-report-check {
-  min-height: 26px;
-  padding: 4px 11px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 999px;
-  background: var(--cmv2-surface-tint);
-  cursor: pointer;
-  transition:
-    border-color 150ms var(--motion-ease-out),
-    background-color 150ms var(--motion-ease-out),
-    color 150ms var(--motion-ease-out),
-    transform 160ms var(--motion-ease-out);
-}
-
-.cmv2-sal-stack .cmv2-report-check:has(input:checked) {
-  border-color: var(--cmv2-accent-border);
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent-fg);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-sal-stack .cmv2-report-check:not(:has(input:checked)):hover {
-    border-color: var(--cmv2-border-strong);
-  }
-}
-
-.cmv2-sal-stack .cmv2-report-check:active {
-  transform: scale(var(--cmv2-press-scale, 0.97));
-}
-
-.cmv2-sal-stack .cmv2-report-check:has(input:focus-visible) {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
-}
-
-.cmv2-sal-stack .cmv2-report-check input {
-  accent-color: var(--cmv2-accent);
+/* --- Resultados: "Incluir en reporte" es un switch-chip del kit (L27) -------- */
+.cmv2-report-check {
+  flex: 0 0 auto;
 }
 
 /* --- Pase a Monitoreo: profundidad de reserva por celda ----------------------- */
@@ -1125,8 +1058,6 @@
   .cmv2-sal-historial-lista button,
   .cmv2-sal-historial-check,
   .cmv2-sal-paquete-lista li,
-  .cmv2-sal-tablas label,
-  .cmv2-sal-stack .cmv2-report-check,
   .pulso-segmented.cmv2-sal-pii-segment > button,
   .cmv2-sal-stack .cmv2-did-segment button {
     transition: none;
@@ -1134,8 +1065,6 @@
   }
 
   .cmv2-sal-historial-lista button:active,
-  .cmv2-sal-tablas label:active,
-  .cmv2-sal-stack .cmv2-report-check:active,
   .pulso-segmented.cmv2-sal-pii-segment > button:active,
   .cmv2-sal-stack .cmv2-did-segment button:active {
     transform: none;

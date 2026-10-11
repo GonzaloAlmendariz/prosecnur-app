@@ -2338,54 +2338,34 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
 }
 
+/* L27 · K1: una decisión del sorteo es un PulsoSwitch con su descripción
+   dentro de una tarjeta. La tarjeta solo se tiñe de acento cuando la decisión
+   está ENCENDIDA: apagada se lee como superficie neutra, no como aviso. El
+   foco y el teclado los lleva el switch del kit; la tarjeta no es un label. */
 .cmv2-classroom-toggle {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 8px;
-  align-items: flex-start;
   margin-top: 10px;
-  padding: 10px;
-  border: 1px solid var(--cmv2-accent-border);
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius);
-  background: var(--cmv2-accent-soft);
+  background: var(--cmv2-surface);
   color: var(--pulso-text);
-  cursor: pointer;
   transition:
     border-color var(--motion-dur-fast) var(--motion-ease-out),
-    background-color var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press) var(--motion-ease-out);
+    background-color var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-classroom-toggle:hover {
-    border-color: color-mix(in srgb, var(--cmv2-accent) 32%, var(--pulso-border));
-  }
+.cmv2-classroom-toggle:has(.pulso-switch[aria-checked="true"]) {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
 }
 
-.cmv2-classroom-toggle:active {
-  transform: scale(var(--cmv2-press-scale));
+.cmv2-classroom-toggle > .pulso-switch-field {
+  display: flex;
+  width: 100%;
 }
 
-/* Ring de foco cuando el checkbox interno recibe foco por teclado. */
-.cmv2-classroom-toggle:has(input:focus-visible) {
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-  border-color: color-mix(in srgb, var(--cmv2-accent) 42%, var(--pulso-border));
-}
-
-.cmv2-classroom-toggle:has(input:focus-visible) input {
-  outline: none;
-}
-
-.cmv2-classroom-toggle input {
-  width: 15px;
-  height: 15px;
-  margin: 1px 0 0;
-  accent-color: var(--cmv2-accent-fg);
-}
-
-.cmv2-classroom-toggle strong {
-  display: block;
-  color: var(--pulso-text);
+.cmv2-classroom-toggle .pulso-switch-field-label {
+  white-space: normal;
   font-size: 12px;
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
