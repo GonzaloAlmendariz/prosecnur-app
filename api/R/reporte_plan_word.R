@@ -344,7 +344,7 @@ reporte_word_plan <- function(
   # -------------------------------------------------------------------------
   # 1) Presets Word + capa compacta sobre presets PPT
   # -------------------------------------------------------------------------
-  presets_word <- presets_word %||% w_presets()
+  presets_word <- presets_word %||% w_presets(); .op_casos <- options(prosecnur.casos_junto = .casos_junto_de_presets(presets_ppt %||% list())); on.exit(options(.op_casos), add = TRUE)
   if (!inherits(presets_word, "word_presets"))
     stop("`presets_word` debe venir de `w_presets()`.", call. = FALSE)
 

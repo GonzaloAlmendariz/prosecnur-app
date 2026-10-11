@@ -178,7 +178,7 @@ reporte_ppt_plan <- function(
   # -----------------------
   # 0.1) Presets (tu contrato)
   # -----------------------
-  presets <- presets %||% list()
+  presets <- presets %||% list(); .op_casos <- options(prosecnur.casos_junto = .casos_junto_de_presets(presets)); on.exit(options(.op_casos), add = TRUE)   # graficos_casos_junto.R
   if (!is.null(presets$dim_radar_tabla)) {
     warning(
       "`presets$dim_radar_tabla` fue retirado del flujo PPT y sera ignorado. Use `dim_radar` o `dim_heatmap`.",
