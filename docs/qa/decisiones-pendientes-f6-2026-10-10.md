@@ -88,7 +88,7 @@ defecto de la app; es como la constitución o como el libro de reglas de todos l
 | 4 Avisos en categorías | «4 sí» | Campo `avisos` en la respuesta de `/api/graficos/categorias` (contrato §7 del orden de categorías) |
 | 5 «Modificado» en Word | «5a» | Se marca contra el default de la app, no contra lo último guardado |
 | 6 Aviso de íconos | «ok» | El aviso nombra el ícono por su nombre del catálogo; nunca muestra el id |
-| 7 A3 | «ok» | f073f9eb9 no existe en main: A3 se cierra sin trabajo |
+| 7 Pendiente heredado «A3 release Windows» | «ok» | f073f9eb9 no existe en main: el pendiente «P8 o revertir f073f9eb9 antes de push» del loop anterior se cierra sin trabajo. No afecta a la etapa A3 «Guías del visor por capas», que sigue pendiente |
 | 8 Rama | «ok» | Se sigue en `claude/meta-a-graficos-loop-f6-a0rabk` |
 | 9 Reloj | «ok» | Cadencia de 180 s se mantiene |
 | 10 Paridad A0 | «ok» | C1–C55 es la lista de paridad; C25 y C54 se retiran; C11 y C12 van al menú ⋯ de Láminas |
