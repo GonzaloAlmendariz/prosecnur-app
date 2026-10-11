@@ -27,6 +27,7 @@ import { useSession } from "../../../lib/SessionContext";
 import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
+import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
 import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
@@ -89,6 +90,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           </button>
         </div>
       )}
+      <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
       <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
       <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
     </div>
