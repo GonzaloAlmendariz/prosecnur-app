@@ -95,3 +95,18 @@ test_that("un pie viejo guardado con leyenda «ninguna» se dibuja sin leyenda e
   g <- expect_no_error(graficar_pie(df, var_categoria = "cat", var_pct = "pct", var_n = "n", leyenda_posicion = "ninguna"))
   expect_false(is.null(g))
 })
+
+test_that("el catálogo del radar no ofrece la leyenda «arriba»: sólo lo que graficar_radar dibuja (decisión «12»)", {
+  p <- Filter(function(x) identical(x$name, "radar_tabla"), .presets_metadata_payload()$presets)[[1]]
+  a <- Filter(function(x) identical(x$name, "leyenda_posicion"), p$args)
+  expect_length(a, 1L)
+  vals <- .ccm_valores(a[[1]])
+  expect_false("arriba" %in% vals)
+  expect_setequal(vals, eval(formals(graficar_radar)$leyenda_posicion))
+  # Ningún graficador del radar en el registro la vuelve a ofrecer.
+  for (g in Filter(function(x) grepl("radar", x$name), .graficos_registry_payload()$graficadores)) {
+    for (arg in Filter(function(x) identical(x$name, "leyenda_posicion") && length(x$choices), g$args)) {
+      expect_false("arriba" %in% .ccm_valores(arg), info = g$name)
+    }
+  }
+})

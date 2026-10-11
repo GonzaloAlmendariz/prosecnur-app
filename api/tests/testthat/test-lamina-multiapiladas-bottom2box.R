@@ -4,6 +4,8 @@
 # partición, el alto de cada premisa y el texto son los mismos que sin ella; la barra cede la columna de 1.25 in de la
 # lámina 97 del recetario. Se comprueba por la ruta real (`reporte_ppt_plan`) en la batería (`p_barras_multiapiladas`
 # modo var) y en «Dividir por» (`p_barras_apiladas` con `cruces`, que delega en multiapiladas modo cruce).
+# Desde la decisión «2c» eso vale para premisas largas; las cortas (como los niveles de un cruce) van en filas
+# (lámina 97): ver test-lamina-escala-forma-por-largo.R.
 
 .b2_niv <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF")
 .b2_premisas <- c(
@@ -93,22 +95,26 @@ test_that("con Bottom Two Box la batería se parte igual, cada premisa ocupa el 
   expect_identical(nrow(.b2_formas(sin[[1]], "box2:cifra")), 0L)
 })
 
-test_that("«Dividir por» (apiladas con cruces) con Bottom Two Box conserva las láminas y la geometría de sus filas", {
+test_that("«Dividir por» (apiladas con cruces) con Bottom Two Box: niveles cortos van en filas (97) con las mismas filas", {
+  # Decisión «2c»: los niveles del cruce son rótulos cortos, así que con Bottom Two Box la lámina va en filas (lámina 97)
+  # en vez del bloque; las filas, su orden y las láminas son las mismas que sin ella.
   el <- function(bottom) p_barras_apiladas("p2", cruces = "grupo",
                                            overrides = c(list(mostrar_barra_extra = TRUE, barra_extra_preset = "top2box"), .b2_over(bottom)))
   sin <- .b2_laminas(el(FALSE)); con <- .b2_laminas(el(TRUE))
   expect_identical(length(con), length(sin))
   for (k in seq_along(con)) {
     expect_identical(.pptx_lamina_estado(con[[k]]), "nativa")
-    for (nm in c("premisa", "actor")) {
-      fs <- .b2_formas(sin[[k]], nm); fc <- .b2_formas(con[[k]], nm)
-      expect_identical(fc$t, fs$t, info = paste(k, nm))
-      expect_equal(fc$y, fs$y, tolerance = 1e-6, info = paste(k, nm))
-      expect_true(.b2_sin_solape_vertical(fc), info = paste(k, nm))
-    }
-    expect_identical(nrow(.b2_formas(con[[k]], "box2:cifra")), nrow(.b2_formas(con[[k]], "box:cifra")))
+    fs <- .b2_formas(sin[[k]], "premisa"); fc <- .b2_formas(con[[k]], "actor")
+    expect_gt(nrow(fs), 0L)
+    expect_identical(fc$t[order(fc$y)], fs$t[order(fs$y)], info = k)            # mismas filas, mismo orden
+    expect_identical(nrow(.b2_formas(con[[k]], "premisa")), 0L)                  # es la forma en filas
+    expect_true(.b2_sin_solape_vertical(fc), info = k)
+    expect_identical(nrow(.b2_formas(con[[k]], "box2:cifra")), nrow(fc))
+    expect_identical(nrow(.b2_formas(con[[k]], "box:cifra")), nrow(fc))
+    # Top y Bottom Two Box: las mismas cifras de Top que sin Bottom, fila por fila.
+    tc <- .b2_formas(con[[k]], "box:cifra"); ts <- .b2_formas(sin[[k]], "box:cifra")
+    expect_identical(tc$t[order(tc$y)], ts$t[order(ts$y)], info = k)
   }
-  expect_gt(sum(vapply(con, function(x) nrow(.b2_formas(x, "box2:cifra")), 0L)), 0L)
 })
 
 test_that("con la fila Total el modo en filas no deja que un rótulo largo invada la fila vecina", {

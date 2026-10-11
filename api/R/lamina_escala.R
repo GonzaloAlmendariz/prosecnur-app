@@ -183,7 +183,7 @@
 #'
 #' @param solo `TRUE` si el bloque es la lámina entera (sin partición): con una
 #'   sola premisa y un solo público, la afirmación encabeza y la barra ocupa el
-#'   ancho, como la lámina 216 del recetario.
+#'   ancho, como la lámina 216 del recetario. Con Bottom Two Box no: va en el bloque de premisas (221/222).
 #' @param y0,y1 Franja vertical del bloque; por defecto, la zona de datos de la lámina.
 #' @param leyenda `FALSE` cuando la leyenda la dibuja quien compone (una compartida por varios bloques).
 #' @param estirar Factor fijo de aire por fila que decide quien compone varios bloques (multilista); con él el
@@ -207,7 +207,9 @@
   respuestas <- function(n) paste(format(as.integer(n), big.mark = ","), "respuestas")
   y0 <- y0 %||% (Y_DATOS + 0.1); y1 <- y1 %||% (Y_LEY - 0.15)
 
-  if (isTRUE(solo) && length(premisas) == 1L && length(premisas[[1]]$filas) == 1L) {
+  # Con Bottom Two Box la afirmación sola no encabeza: si es corta va en filas (lámina 97, `.lam_escala_modo_filas`) y
+  # si es larga, en el bloque de premisas (láminas 221/222), como la batería (decisión «2c»).
+  if (isTRUE(solo) && length(premisas) == 1L && length(premisas[[1]]$filas) == 1L && is.null(espec$box2$unidades)) {
     p <- premisas[[1]]; fl <- p$filas[[1]]; g <- 0.72
     wt <- W - ML - MR - 0.4; ht <- .lam_alto_txt(p$texto, wt, 20, TRUE)
     alto_grupo <- ht + 1.15 + g + 1.0
@@ -336,19 +338,47 @@
 #' @keywords internal
 .lam_escala_en_filas <- function(espec) any(espec$filas$es_total) || !is.null(espec$box2$unidades)
 
+# Líneas que admite el rótulo de una premisa en la columna de la forma en filas (decisión «2c» de Gonzalo)
+#
+# Se mide con `.lam_lineas_tinta` en la columna de rótulos de esa forma (`.LAM_ESCALA_FILAS_WLAB`, 1.8 in) y a la
+# letra del rótulo (`.std_pt("actor")`, 12 pt). Lo dibujado en el recetario fija el corte: en la lámina 97 la
+# premisa más larga, «Claridad de la información», compone dos líneas en esa columna y el cuadro del recetario le
+# da justo dos (0.5 in); las seis premisas de las láminas 221/222 componen de siete a trece líneas ahí (de tres a
+# siete en la columna de premisas de 3.3 in a 13 pt). Con tres líneas (0.7 in) el rótulo ya pasa el alto de una fila
+# de cuatro (0.64 in) y la estira (`.lam_filas_paso`): deja de ser la lámina 97.
+.LAM_ESCALA_FILAS_LINEAS_MAX <- 2L
+.LAM_ESCALA_FILAS_WLAB <- 1.8
+
+#' ¿Todas las premisas caben en la columna de rótulos de la forma en filas?
+#'
+#' Sólo sin actores: con ellos el rótulo de la fila es el público y la premisa encabeza su bloque; esa espec sigue
+#' en el bloque de premisas y actores como hasta ahora. Sin filas, `FALSE` (la misma conducta de antes).
+#' @keywords internal
+.lam_escala_premisas_cortas <- function(espec, umbral = .LAM_ESCALA_FILAS_LINEAS_MAX) {
+  f <- espec$filas
+  if (!NROW(f) || !all(is.na(f$grupo_id))) return(FALSE)
+  rot <- as.character(f$rotulo); rot[is.na(rot)] <- ""
+  all(.lam_lineas_tinta(rot, .LAM_ESCALA_FILAS_WLAB, .std_pt("actor"), TRUE) <= umbral)
+}
+
 #' ¿La lámina de un gráfico se compone en filas o en el bloque de premisas?
 #'
-#' En filas sólo con la fila Total, que el recetario separa con su filete bajo la pregunta (lámina 79). La Bottom
-#' Two Box no cambia la composición: va en el mismo bloque de premisas (o de actores) que sin ella, y la segunda
-#' columna sólo resta ancho a la barra (`.lam_escala_columnas_box`); la partición, los altos de fila, la línea de
-#' respuestas y los casos bajo la cifra son los mismos. Antes la Bottom Two Box mandaba la lámina a filas, cuya
-#' columna de rótulos de 1.8 in no mide el alto del texto: la lámina 24 de acrconta_mazo pasaba de dos láminas a
-#' una con siete premisas de cinco líneas encimadas (F-d).
+#' En filas con la fila Total, que el recetario separa con su filete bajo la pregunta (lámina 79). Con Bottom Two
+#' Box la forma depende del largo de las premisas (decisión «2c»): si todas caben en
+#' `.LAM_ESCALA_FILAS_LINEAS_MAX` líneas de la columna de rótulos de la forma en filas, van en filas con las dos
+#' columnas de box (lámina 97); si alguna es más larga, van en el bloque de premisas (láminas 221/222), donde la
+#' segunda columna sólo resta ancho a la barra (`.lam_escala_columnas_box`) y la partición, los altos de fila, la
+#' línea de respuestas y los casos bajo la cifra son los de sin ella. Esa columna de 1.8 in no mide el alto de una
+#' premisa larga: la lámina 24 de acrconta_mazo (siete premisas de cinco líneas) pasaba a una lámina encimada
+#' (F-d); con el umbral va al bloque y se parte. Sin Bottom Two Box nada cambia.
 #'
+#' Sólo decide la forma: las cifras, las bases y el orden de las filas son los de la especificación.
 #' `.lam_escala_en_filas()` sigue diciendo si la espec trae Total o Bottom Two Box: las láminas de varios bloques
 #' (multilista, mixtas, paneles) no dibujan la segunda columna y con ella toman la ruta anterior.
 #' @keywords internal
-.lam_escala_modo_filas <- function(espec) any(espec$filas$es_total %in% TRUE)
+.lam_escala_modo_filas <- function(espec) {
+  any(espec$filas$es_total %in% TRUE) || (!is.null(espec$box2$unidades) && .lam_escala_premisas_cortas(espec))
+}
 
 #' Alto que toma una fila en el modo en filas: el de la fila, o el de su rótulo si es más alto
 #'
