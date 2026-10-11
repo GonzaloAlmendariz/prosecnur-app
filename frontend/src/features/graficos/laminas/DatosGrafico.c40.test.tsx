@@ -3,7 +3,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { ArgMetadata, GraficadorRef } from "../../../api/graficos";
-import { AYUDA_BRECHA, AYUDA_CEROS, AYUDA_CORTES, AYUDA_EJE_MIN, AYUDA_MIN_N } from "./argsDatosGrafico";
+import {
+  AYUDA_BRECHA, AYUDA_CEROS, AYUDA_CORTES, AYUDA_EJE_MIN, AYUDA_LIMITE_SUPERIOR, AYUDA_MIN_N, AYUDA_TIPO_RANGO,
+} from "./argsDatosGrafico";
 import { DatosGrafico } from "./DatosGrafico";
 
 const a = (name: string, tipo_input: ArgMetadata["tipo_input"], extra: Partial<ArgMetadata> = {}): ArgMetadata =>
@@ -11,7 +13,14 @@ const a = (name: string, tipo_input: ArgMetadata["tipo_input"], extra: Partial<A
 
 const REGISTRO: Record<string, { args: ArgMetadata[] }> = {
   p_dumbbell: { args: [a("orden", "choice", { default: "brecha", choices: [{ value: "brecha", label: "Por brecha" }] }),
-    a("mostrar_brecha", "bool", { default: true }), a("umbral_brecha_pct", "number")] },
+    a("mostrar_brecha", "bool", { default: true }), a("umbral_brecha_pct", "number"), a("etiqueta_brecha", "string", { default: "pts" })] },
+  p_media_rango: { args: [a("decimales_promedio", "number", { default: 1, min: 0, max: 2, step: 1 }),
+    a("tipo_rango", "choice", { default: "minmax", choices: [
+      { value: "minmax", label: "Mínimo a máximo" }, { value: "iqr", label: "50 % central (P25–P75)" },
+      { value: "p10_p90", label: "Percentiles 10 a 90" }, { value: "custom", label: "Percentiles a medida" }] }),
+    a("chip_decimales", "number")] },
+  p_histograma: { args: [a("limite_superior", "number")] },
+  p_barras_apiladas: { args: [a("mostrar_categorias_en_cero", "bool", { default: false })] },
   p_barras_agrupadas: { args: [a("mostrar_ceros", "bool", { default: false }), a("invertir_leyenda", "bool")] },
   p_radar: { args: [a("modo", "choice", { choices: [{ value: "publicos", label: "Públicos" }] }),
     a("eje_min", "number", { default: 0, depende: { arg: "modo", valores: ["publicos"] } })] },
@@ -42,6 +51,25 @@ describe("DatosGrafico · C40", () => {
     expect(html).toMatch(/role="switch"[^>]*aria-checked="true"/);
     expect(pintar("p_dumbbell", { mostrar_brecha: false })).toMatch(/role="switch"[^>]*aria-checked="false"/);
     expect(html).not.toContain("umbral_brecha_pct");
+  });
+  it("texto: la unidad de la brecha con «pts» sólo mientras la brecha está encendida", () => {
+    expect(pintar("p_dumbbell")).toContain('placeholder="pts"');
+    expect(pintar("p_dumbbell", { mostrar_brecha: false })).not.toContain('placeholder="pts"');
+  });
+  it("media y rango: el select muestra «Mínimo a máximo» sin guardar y los decimales con su tope del registro", () => {
+    const html = pintar("p_media_rango");
+    expect(html).toMatch(/<option value="minmax" selected="">Mínimo a máximo<\/option>/);
+    expect(ayudaDe(html, AYUDA_TIPO_RANGO)).toBe(true);
+    expect(html).toMatch(/type="number"[^>]*placeholder="1"[^>]*min="0" max="2" step="1"/);
+    expect(pintar("p_media_rango", { tipo_rango: "iqr" })).toMatch(/<option value="iqr" selected="">/);
+  });
+  it("histograma: límite superior vacío = «Sin tope», con la guarda del «+»", () => {
+    const html = pintar("p_histograma");
+    expect(html).toContain('placeholder="Sin tope"');
+    expect(ayudaDe(html, AYUDA_LIMITE_SUPERIOR)).toBe(true);
+  });
+  it("apiladas: categorías en 0 % con la guarda de 90–99", () => {
+    expect(ayudaDe(pintar("p_barras_apiladas"), AYUDA_CEROS)).toBe(true);
   });
   it("mostrar_ceros lleva la guarda de 90–99 y un retirado guardado no aparece", () => {
     const html = pintar("p_barras_agrupadas", { invertir_leyenda: true });
