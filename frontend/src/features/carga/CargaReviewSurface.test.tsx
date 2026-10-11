@@ -87,10 +87,15 @@ describe("superficie de Revisión en Carga", () => {
     expect(reviewSource).toContain("cargaReview.choice_mapping.maps");
   });
 
-  it("impide que el resumen se encoja y oculte hallazgos en escritorios bajos", () => {
-    expect(styleSource).toMatch(
-      /@media \(max-height: 720px\)[\s\S]*?\.pulso-carga-frame \.pulso-carga-review-summary[\s\S]*?min-height: max-content/u,
+  it("impide que el resumen se encoja y oculte hallazgos a cualquier alto", () => {
+    // QA 2026-10-11: el mínimo intrínseco solo valía bajo 720 px y a 1366x768
+    // la tarjeta recortaba sus últimos hallazgos sin que nada desplazara.
+    const reglaGlobal = findingsStyleSource.replace(/@media[^{]*\{[\s\S]*?\}\s*\}/gu, "");
+    expect(reglaGlobal).toMatch(
+      /\.pulso-carga-frame \.pulso-carga-review-summary \{[^}]*align-self: start;[^}]*min-height: max-content;/u,
     );
+    expect(styleSource).not.toMatch(/\.pulso-carga-review-summary \{[^}]*min-height: max-content/u);
+    expect(findingsStyleSource).toMatch(/\.pulso-carga-review-findings \{[^}]*align-items: start;/u);
   });
 
   it("muestra la base revisada, la incompatibilidad y los extras pendientes sin ofrecer continuar", () => {
