@@ -12,6 +12,12 @@ import {
   warmupModulesComplete,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
+import {
+  SkeletonVista,
+  type SkeletonBanda,
+  type SkeletonRail,
+  type SkeletonVistaVariante,
+} from "../components/Skeleton";
 
 type ModuleWarmupProfile = {
   key: string;
@@ -242,16 +248,85 @@ async function waitForWarmupJob(jobId: string) {
   return tasks.length;
 }
 
+/**
+ * Silueta de la vista destino por perfil de warm start (L24). Medida contra la
+ * vista real (acnur_acg, 1440x1000 y 1024x600): marco, rail y cabecera calzan
+ * con Δ ≤ 2 px para que al montar no haya salto de layout.
+ *
+ * - `destino` elige la geometría fina en kit-skeleton.css (alto de cabecera,
+ *   gutters, padding del main de Monitoreo).
+ * - `banda` reserva la command bar propia del módulo (Monitoreo,
+ *   Recopiladores, Editor, Bitácora); Procesamiento la tiene en el shell.
+ * - `rail`: Procesamiento usa la pista de 40 px; Monitoreo y Cálculo de
+ *   muestra el ContextTabRail de 56.
+ */
+export type SiluetaDestino = {
+  variante: SkeletonVistaVariante;
+  destino: "procesamiento" | "monitoreo" | "seccion" | "formularios" | "bitacora" | "simple";
+  rail?: SkeletonRail;
+  banda?: SkeletonBanda;
+  cabecera?: boolean;
+};
+
+const PROCESAMIENTO: SiluetaDestino = { variante: "workbench", destino: "procesamiento", rail: "estrecho" };
+
+const SILUETA_POR_PERFIL: Record<string, SiluetaDestino> = {
+  carga: PROCESAMIENTO,
+  validacion: { ...PROCESAMIENTO, variante: "tabla" },
+  codificacion: PROCESAMIENTO,
+  analitica: PROCESAMIENTO,
+  graficos: PROCESAMIENTO,
+  procesamiento: PROCESAMIENTO,
+  "hojas-ruta": { variante: "workbench", destino: "simple" },
+  // Aterriza en Territorial › Fuente: command bar + rail de 56 + workbench.
+  monitoreo: { variante: "workbench", destino: "monitoreo", rail: "ancho", banda: "seccion" },
+  "calc-muestra": { variante: "workbench", destino: "simple", rail: "ancho" },
+  recopiladores: { variante: "tabla", destino: "seccion", banda: "seccion", cabecera: false },
+  dashboard: { variante: "tablero", destino: "simple" },
+  // Outline + inspector bajo una barra de comandos de dos filas.
+  "editor-xlsform": { variante: "workbench", destino: "formularios", banda: "comandos", cabecera: false },
+  // Módulo por retirar: solo reserva su banda.
+  bitacora: { variante: "documento", destino: "bitacora", banda: "seccion", cabecera: false },
+};
+
+const SILUETA_GENERICA: SiluetaDestino = { variante: "workbench", destino: "simple" };
+
+export function siluetaDePerfil(key: string | null | undefined): SiluetaDestino {
+  return (key && SILUETA_POR_PERFIL[key]) || SILUETA_GENERICA;
+}
+
+/** ¿La vista destino monta un rail de pestañas real? */
+export function perfilConRail(key: string | null | undefined): boolean {
+  return Boolean(siluetaDePerfil(key).rail);
+}
+
+/**
+ * Fallback de `Suspense` mientras baja el chunk de la ruta: la silueta del
+ * módulo destino, no un porcentaje fijo. Conserva `.pulso-module-warmup` en la
+ * raíz para que `estadoListo()` siga respondiendo «warm-start» y el runner
+ * espere la readiness real; el skeleton nunca escribe `data-audit-ready`.
+ */
 export function RouteLoadingFallback() {
   const location = useLocation();
   const profile = warmupProfileForPath(location.pathname);
   if (!profile) return null;
+  const module = moduleForProfile(profile);
+  const silueta = siluetaDePerfil(profile.key);
   return (
-    <ModuleWarmupScreen
-      profile={profile}
-      percent={8}
-      message={profile.messages[0] ?? "Preparando modulo"}
-    />
+    <section
+      className="pulso-module-warmup pulso-route-skeleton"
+      style={module ? moduleChromeVars(module) : undefined}
+      data-warmup-perfil={profile.key}
+      data-skeleton-destino={silueta.destino}
+    >
+      <SkeletonVista
+        variante={silueta.variante}
+        rail={silueta.rail}
+        banda={silueta.banda}
+        cabecera={silueta.cabecera ?? true}
+        etiqueta={profile.title}
+      />
+    </section>
   );
 }
 
@@ -405,6 +480,7 @@ function ModuleWarmupScreen({
       style={module ? moduleChromeVars(module) : undefined}
       role="status"
       aria-live="polite"
+      aria-busy="true"
     >
       <div className="pulso-module-warmup-mark" aria-hidden="true">
         <span />
@@ -429,6 +505,12 @@ function ModuleWarmupScreen({
         </div>
       </div>
       {error ? <small>{error}</small> : null}
+      <SkeletonVista
+        variante={siluetaDePerfil(profile.key).variante}
+        rail={siluetaDePerfil(profile.key).rail}
+        decorativo
+        className="pulso-skeleton-vista--destino"
+      />
     </section>
   );
 }
