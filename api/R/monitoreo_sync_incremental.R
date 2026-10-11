@@ -32,6 +32,13 @@
 #    una republicación completa (benigno). No se crean claves de sesión nuevas
 #    (test-session-schema.R queda intacto).
 #
+#    Y su límite, medido el 2026-09-21: ese estado describe lo que la app
+#    ESCRIBIÓ, no lo que el documento TIENE. Vaciar los valores de una pestaña
+#    no borra su metadata, así que el hash seguía coincidiendo y la publicación
+#    la saltaba dejándola en blanco con un recibo que decía «sin_cambios». El
+#    skip exige desde entonces prueba positiva de contenido vigente: ver la
+#    sección «Sonda de contenido vigente».
+#
 # Secretos: acá no se toca ningún token; los tokens siguen fluyendo por
 # secrets.R/connections y jamás se persisten en sesión, .pulso ni fixtures.
 
@@ -433,6 +440,125 @@
   }, logical(1)))
 }
 
+# --- Sonda de contenido vigente ---------------------------------------------
+#
+# **Un hash que coincide dice «la app escribió esto», no «esto sigue ahí».**
+#
+# Defecto medido el 2026-09-21 sobre el Sheets de aplicadores de CCSS Perfil
+# 2026-II: se limpiaron los VALORES de «Semana 1» y de «Semana 1 · por
+# agendar» (a mano, o con un `values:clear`), se republicó, y las dos salieron
+# `{"accion": "sin_cambios"}` con cero filas — el recibo leyéndose como «todo
+# en orden» encima de un documento en blanco. La developerMetadata sobrevive a
+# un borrado de valores, así que el hash seguía coincidiendo y el motor saltaba
+# la pestaña. Sólo se recuperaba borrando a mano la metadata de cada hoja.
+#
+# `gridProperties(rowCount, columnCount)` NO lo ve: un `values:clear` no
+# redimensiona la grilla, así que `dims_changed` seguía FALSE. La única señal
+# es el contenido, y por eso el skip pasa a exigir prueba POSITIVA de que la
+# pestaña aún sostiene lo que su estado declara. Verde por conformidad, no por
+# ausencia: una pestaña que no se pudo confirmar se reescribe.
+#
+# Se compara la CANTIDAD DE FILAS CON CONTENIDO, no celda a celda, y no por
+# comodidad: el remoto vuelve FORMATEADO («19,2 %» donde lo local es 0.1923) y
+# las columnas de arrastre vuelven COMPUTADAS, así que la igualdad byte a byte
+# diría «cambió» en cada publicación (la lección ya pagada en
+# `monitoreo_aulas_publicar_libro.R`, que por eso excluye «Avance de campo» de
+# su propia comparación). La extensión sí es inmune a ambas cosas y contesta
+# exactamente la pregunta que el defecto plantea: ¿sigue habiendo al menos las
+# filas que el estado declara?
+#
+# Presupuesto: la sonda es UN `values:batchGet` y sólo se paga cuando hay
+# pestañas que el hash dejaría sin escribir Y el llamador no trae ya su
+# lectura. Los dos publicadores de aulas ya leen el remoto por su cuenta (la
+# guarda de dueño del libro y la de la distribución) y lo prestan por
+# `remote_values`: para ellos la sonda cuesta cero requests. Quien no lo trae
+# —el tablero de monitoreo por `monitoreo_sheets_publish_tabs`— paga un request
+# por ciclo, que es la actualización deliberada del presupuesto de esta función
+# (antes 1 request con todo sin cambios; ahora 2).
+
+# Filas con al menos una celda no vacía. Mismo criterio a los dos lados de la
+# comparación: lo que la app escribió (rectángulo local) y lo que el documento
+# devuelve. `.malp_filas_con_contenido` delega acá para que la regla de dueño
+# del libro y esta sonda no puedan divergir.
+.monitoreo_sync_sheets_filas_con_contenido <- function(values) {
+  filas <- values %||% list()
+  sum(vapply(filas, function(row) {
+    celdas <- trimws(as.character(unlist(row %||% character(0), use.names = FALSE)))
+    celdas <- celdas[!is.na(celdas)]
+    any(nzchar(celdas))
+  }, logical(1)))
+}
+
+# Lectura de los values remotos de varias pestañas en UN request. Un nombre
+# presente en la salida significa «hay lectura para esta pestaña» (aunque sea
+# `list()`, que es una pestaña vacía); un nombre ausente significa «no se pudo
+# leer», que no es lo mismo y no se confunde con estar vacía.
+.monitoreo_sync_sheets_valores_remotos <- function(spreadsheet_id, pestanas) {
+  if (!length(pestanas)) return(list())
+  rangos <- vapply(pestanas, function(p) {
+    utils::URLencode(.monitoreo_sheets_quote_sheet(p), reserved = TRUE)
+  }, character(1))
+  payload <- .monitoreo_google_api(paste0(
+    .monitoreo_sheets_api_base(spreadsheet_id),
+    "/values:batchGet?",
+    paste0("ranges=", rangos, collapse = "&")
+  ))
+  vrs <- payload$valueRanges %||% list()
+  out <- list()
+  for (i in seq_along(pestanas)) {
+    if (i > length(vrs)) next
+    out[[pestanas[[i]]]] <- vrs[[i]]$values %||% list()
+  }
+  out
+}
+
+# Las pestañas de la publicación que el hash dejaría sin escribir pero cuyo
+# contenido remoto ya no sostiene lo que su estado declara. Devuelve sus
+# nombres.
+#
+# `remote_values` es la lectura que el llamador ya hizo (nombre presente =
+# lectura disponible); lo que falte se pide en UN request. Una pestaña cuyo
+# rectángulo local no lleva ninguna fila con contenido no se sonda: no hay nada
+# que confirmar y publicar vacío sobre vacío no arregla nada.
+.monitoreo_sync_sheets_pestanas_vaciadas <- function(spreadsheet_id, decisiones,
+                                                    remote_values = NULL) {
+  candidatas <- names(Filter(function(d) isTRUE(d$unchanged), decisiones))
+  esperadas <- vapply(candidatas, function(tab_name) {
+    .monitoreo_sync_sheets_filas_con_contenido(decisiones[[tab_name]]$padded)
+  }, integer(1))
+  candidatas <- candidatas[esperadas > 0L]
+  esperadas <- esperadas[esperadas > 0L]
+  if (!length(candidatas)) return(character(0))
+
+  prestadas <- if (is.list(remote_values)) remote_values else list()
+  faltantes <- setdiff(candidatas, names(prestadas))
+  leidas <- if (length(faltantes)) {
+    # Una sonda que no se pudo hacer no autoriza a saltar: el catch deja las
+    # pestañas sin lectura y abajo se reescriben.
+    tryCatch(
+      .monitoreo_sync_sheets_valores_remotos(spreadsheet_id, faltantes),
+      error = function(e) list()
+    )
+  } else {
+    list()
+  }
+
+  vaciadas <- character(0)
+  for (i in seq_along(candidatas)) {
+    tab_name <- candidatas[[i]]
+    disponible <- tab_name %in% names(prestadas) || tab_name %in% names(leidas)
+    presentes <- if (!disponible) {
+      NA_integer_
+    } else if (tab_name %in% names(prestadas)) {
+      .monitoreo_sync_sheets_filas_con_contenido(prestadas[[tab_name]])
+    } else {
+      .monitoreo_sync_sheets_filas_con_contenido(leidas[[tab_name]])
+    }
+    if (is.na(presentes) || presentes < esperadas[[i]]) vaciadas <- c(vaciadas, tab_name)
+  }
+  vaciadas
+}
+
 # Upsert del estado remoto de la pestaña (create si no existe, update si sí).
 .monitoreo_sync_sheets_tab_state_requests <- function(sheet_id, has_state, value) {
   key <- .monitoreo_sync_sheets_tab_state_key()
@@ -458,10 +584,18 @@
 
 # Implementación de `monitoreo_sheets_publish_tabs` (el engine delega acá).
 # Misma firma y mismo shape de retorno que la versión previa, más
-# `skipped_tabs`. Requests: antes ~3 + 2×N (clear+PUT por pestaña) + formato;
-# ahora: 1 GET de metadata, [addSheet si hay pestañas nuevas], 1 batch de
-# ownership/reset, 1 values:batchUpdate con TODAS las pestañas cambiadas y
-# 1 batch de formato/estado. Con todo sin cambios: 1 solo request.
+# `skipped_tabs` y `emptied_tabs`. Requests: antes ~3 + 2×N (clear+PUT por
+# pestaña) + formato; ahora: 1 GET de metadata, [addSheet si hay pestañas
+# nuevas], [1 values:batchGet de sonda si hay pestañas a saltar sin lectura
+# prestada], 1 batch de ownership/reset, 1 values:batchUpdate con TODAS las
+# pestañas cambiadas y 1 batch de formato/estado. Con todo sin cambios: 2
+# requests (metadata + sonda), o 1 si el llamador presta su lectura.
+#
+# `remote_values` (sonda de contenido vigente, 2026-09-21): lectura ya hecha
+# del remoto, `list(<pestaña> = values)`. Un nombre presente ahorra su request;
+# lo que falte se pide en UNO. Los dos publicadores de aulas lo prestan porque
+# ya leen el documento para sus guardas de dueño. Ver la sección «Sonda de
+# contenido vigente» para por qué el hash solo no basta.
 #
 # `format_requests` (B8/W2): quién produce las requests de formato del batch-2
 # — `function(sheet_id, tab_name, rows)`. Con NULL (todos los llamadores
@@ -470,7 +604,8 @@
 # reconoce sus filas y su regla de anchos emite una request POR COLUMNA (253 en
 # la agenda real). El contrato del batch-2 no cambia: el formato viaja DESPUÉS
 # de los values y solo para pestañas nuevas o con dimensiones cambiadas.
-.monitoreo_sync_sheets_publish_tabs <- function(spreadsheet_id, tabs, format_requests = NULL) {
+.monitoreo_sync_sheets_publish_tabs <- function(spreadsheet_id, tabs, format_requests = NULL,
+                                               remote_values = NULL) {
   formato_de <- if (is.function(format_requests)) {
     format_requests
   } else {
@@ -495,7 +630,14 @@
     tab_map <- .monitoreo_sheets_tab_map(meta)
   }
 
-  plan <- list()
+  # `decisiones`, no `plan`: en este árbol, escribir un campo sobre un elemento
+  # de `plan` significa una FILA DEL PLAN DE AULAS, y
+  # `test-monitoreo-aulas-campos-declarados.R` barre `api/R/*.R` buscando ese
+  # patrón para exigir que el normalizador lo declare. Esto es otra cosa: qué
+  # hacer con cada pestaña. Una palabra para dos cosas deja al guard señalando
+  # campos que no existen y al lector creyendo que son lo mismo. (El barrido lee
+  # líneas, comentarios incluidos, así que aquí el patrón se nombra en prosa.)
+  decisiones <- list()
   for (tab_name in tab_names) {
     tab <- tab_map[[tab_name]]
     if (is.null(tab) || is.na(tab$sheet_id)) {
@@ -511,7 +653,7 @@
     dims_changed <- is_new || !is.list(stored) ||
       !identical(as.integer(stored$row_count), as.integer(n_rows)) ||
       !identical(as.integer(stored$column_count), as.integer(n_cols))
-    plan[[tab_name]] <- list(
+    decisiones[[tab_name]] <- list(
       tab = tab,
       padded = padded,
       hash = hash,
@@ -524,7 +666,18 @@
     )
   }
 
-  changed <- Filter(function(p) !isTRUE(p$unchanged), plan)
+  # El hash coincide, pero ¿sigue ahí? Una pestaña vaciada a mano conserva su
+  # developerMetadata, así que sin esta comprobación se saltaría dejándola en
+  # blanco y el recibo diría «sin_cambios». Se reescribe CON formato: si lo que
+  # desapareció fueron filas enteras (y no sólo sus valores) también se fueron
+  # sus reglas, desplegables y colores, y la pestaña tiene que volver completa.
+  vaciadas <- .monitoreo_sync_sheets_pestanas_vaciadas(spreadsheet_id, decisiones, remote_values)
+  for (tab_name in vaciadas) {
+    decisiones[[tab_name]]$unchanged <- FALSE
+    decisiones[[tab_name]]$dims_changed <- TRUE
+  }
+
+  changed <- Filter(function(d) !isTRUE(d$unchanged), decisiones)
   skipped_tabs <- setdiff(tab_names, names(changed))
 
   # Batch 1: metadata de ownership faltante + reset (solo pestañas que van a
@@ -601,6 +754,9 @@
     controlled_tabs = as.list(tab_names),
     written_ranges = written_ranges,
     skipped_tabs = as.list(skipped_tabs),
+    # Las que el hash habría saltado y la sonda encontró sin su contenido: se
+    # reescribieron. Viaja al recibo para que un vaciado no quede sin nombre.
+    emptied_tabs = as.list(vaciadas),
     updated_at = .monitoreo_now_iso(),
     mode = "controlled_write"
   )
