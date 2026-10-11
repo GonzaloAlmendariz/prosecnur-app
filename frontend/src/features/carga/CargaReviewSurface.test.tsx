@@ -422,7 +422,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
     const html = renderToStaticMarkup(
       <CargaReviewSummary
         {...baseProps}
-        review={{ ...reviewLimpio, fuentes: { fuentes: [{ ...fuente, reordenada: true }] } }}
+        review={{ ...reviewLimpio, fuentes: { principal: null, fuentes: [{ ...fuente, reordenada: true }] } }}
       />,
     );
     const item = finding(html, "en otro orden");
@@ -439,6 +439,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
         review={{
           ...reviewLimpio,
           fuentes: {
+            principal: null,
             fuentes: [{
               ...fuente,
               sin_par_fuente: ["Cod Pulso", "Celular del egresado", "Enumerador", "DNI"]
@@ -464,7 +465,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
         {...baseProps}
         review={{
           ...reviewLimpio,
-          fuentes: { fuentes: [{ ...fuente, instrumento_distinto: true, excluida: true, n_emparejadas: 30, n_filas_excluidas: 48 }] },
+          fuentes: { principal: null, fuentes: [{ ...fuente, instrumento_distinto: true, excluida: true, n_emparejadas: 30, n_filas_excluidas: 48 }] },
         }}
       />,
     );

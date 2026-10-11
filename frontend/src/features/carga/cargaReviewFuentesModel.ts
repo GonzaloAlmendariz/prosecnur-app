@@ -110,12 +110,35 @@ const ORDEN_TONO: Record<CargaReviewHallazgoTono, number> = {
   info: 2,
 };
 
+/**
+ * Respuestas de la encuesta principal con una opción que no está en su lista:
+ * quedaron vacías en vez de tomar un código de otra lista (ADR 0094).
+ */
+function hallazgoPrincipal(fuentes: CargaReviewFuentes | null | undefined): CargaReviewHallazgoFuente | null {
+  const principal = fuentes?.principal;
+  if (!principal || principal.n_opciones_sin_par <= 0) return null;
+  const n = principal.n_opciones_sin_par;
+  const detalle = principal.opciones_sin_par.map((o) => `${o.variable} (${o.n})`);
+  const texto = `Por variable: ${smListaAcotada(detalle, CARGA_REVIEW_NOMBRES_VISIBLES)}`;
+  return {
+    key: "principal-opciones",
+    tono: "pending",
+    titulo: `${n} ${plural(n, "respuesta quedó vacía", "respuestas quedaron vacías")} por una opción que no existe en la lista`,
+    lineas: detalle.length
+      ? [detalle.length > CARGA_REVIEW_NOMBRES_VISIBLES ? { texto, completo: `Por variable: ${detalle.join(", ")}` } : { texto }]
+      : [],
+  };
+}
+
 /** Un hallazgo por fuente que tiene algo que decir; lo grave primero. */
 export function cargaReviewFuentesHallazgos(
   fuentes: CargaReviewFuentes | null | undefined,
 ): CargaReviewHallazgoFuente[] {
-  return (fuentes?.fuentes ?? [])
-    .map((fuente, index) => ({ hallazgo: hallazgoDeFuente(fuente, index), index }))
+  const principal = hallazgoPrincipal(fuentes);
+  return [
+    ...(principal ? [{ hallazgo: principal, index: -1 }] : []),
+    ...(fuentes?.fuentes ?? []).map((fuente, index) => ({ hallazgo: hallazgoDeFuente(fuente, index), index })),
+  ]
     .filter((entry): entry is { hallazgo: CargaReviewHallazgoFuente; index: number } => entry.hallazgo !== null)
     .sort((a, b) => ORDEN_TONO[a.hallazgo.tono] - ORDEN_TONO[b.hallazgo.tono] || a.index - b.index)
     .map((entry) => entry.hallazgo);
