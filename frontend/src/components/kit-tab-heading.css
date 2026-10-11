@@ -1,0 +1,232 @@
+/* TabHeading — cabecera única de pestaña (remasterización L14).
+   Vara: docs/qa/maqueta-remasterizacion-2026-10-10/maqueta/m/L14-cabecera-unica.html.
+
+   Una fila de cuatro zonas: tile · copy · control · chips. El alto lo fija la
+   VARIANTE (62 px estándar, 40 px compacta), no los datos: los chips no
+   envuelven, se recogen al menú desde TabHeading.tsx (C2). Por eso es flex y
+   no grid: una zona ausente no deja una pista vacía con su gap.
+
+   El acento sale de --module-accent, que declara el frame del módulo; fuera de
+   un módulo cae al primario. Solo tokens --pulso-*. */
+
+.pulso-tab-heading {
+  --pulso-tab-heading-accent: var(--module-accent, var(--pulso-primary));
+  --pulso-tab-heading-accent-soft: var(--module-accent-soft, var(--pulso-primary-soft));
+  --pulso-tab-heading-accent-border: var(--module-accent-border, var(--pulso-primary-border));
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  box-sizing: border-box;
+  /* 62 = 1 (borde) + 6 + 14 (eyebrow) + 20 (título) + 15 (detalle) + 6.
+     Con o sin detalle, el marco mide lo mismo (C2). */
+  min-block-size: 62px;
+  min-inline-size: 0;
+  padding: 6px 18px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.pulso-tab-heading[data-variante="compacta"] {
+  /* 5 px: con el botón del menú (28 px) la fila cabe en 40 (1 de borde + 5 + 28 + 5). */
+  min-block-size: 40px;
+  padding-block: 5px;
+  gap: 10px;
+}
+
+/* 1 · Tile: el mismo ícono que la pestaña activa del rail, con el acento. */
+.pulso-tab-heading-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 34px;
+  box-sizing: border-box;
+  border-radius: var(--pulso-radius);
+  border: 1px solid var(--pulso-tab-heading-accent-border);
+  background: var(--pulso-tab-heading-accent-soft);
+  color: var(--pulso-tab-heading-accent);
+}
+
+.pulso-tab-heading[data-variante="compacta"] .pulso-tab-heading-icon {
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: 8px;
+}
+
+/* 2 · Copy: eyebrow (sección) · título + estado · detalle. */
+.pulso-tab-heading-copy {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pulso-tab-heading-eyebrow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 14px;
+}
+
+.pulso-tab-heading-title {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-inline-size: 0;
+}
+
+.pulso-tab-heading-title h2 {
+  margin: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  line-height: 20px;
+  color: var(--pulso-text);
+}
+
+.pulso-tab-heading[data-variante="compacta"] .pulso-tab-heading-title h2 {
+  font-size: 14px;
+}
+
+/* El estado de readiness, dicho con palabras. Nunca un punto sobre el ícono. */
+.pulso-tab-heading-estado {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.pulso-tab-heading-estado[data-estado="parcial"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-tab-heading-estado[data-estado="bloqueado"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-tab-heading-detalle {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 15px;
+  color: var(--pulso-text-soft);
+}
+
+/* 3 · Control de sección: no encoge, no se mueve con el scroll. */
+.pulso-tab-heading-control {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-inline-size: 0;
+}
+
+/* 4 · Chips de contexto: una fila que no envuelve. Lo que no cabe va al menú. */
+.pulso-tab-heading-chips {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.pulso-tab-heading-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  block-size: 26px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-tab-heading-chip-valor {
+  color: var(--pulso-text);
+  font-weight: 800;
+}
+
+.pulso-tab-heading-chip-base {
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-tab-heading-chip[data-tono="ok"],
+.pulso-tab-heading-menu-item[data-tono="ok"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-tab-heading-chip[data-tono="warn"],
+.pulso-tab-heading-menu-item[data-tono="warn"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-tab-heading-chip[data-tono="accent"],
+.pulso-tab-heading-menu-item[data-tono="accent"] {
+  border-color: var(--pulso-tab-heading-accent-border);
+  background: var(--pulso-tab-heading-accent-soft);
+  color: var(--pulso-tab-heading-accent);
+}
+
+.pulso-tab-heading-chip[data-tono="ok"] .pulso-tab-heading-chip-valor,
+.pulso-tab-heading-chip[data-tono="warn"] .pulso-tab-heading-chip-valor,
+.pulso-tab-heading-chip[data-tono="accent"] .pulso-tab-heading-chip-valor,
+.pulso-tab-heading-chip[data-tono="ok"] .pulso-tab-heading-chip-base,
+.pulso-tab-heading-chip[data-tono="warn"] .pulso-tab-heading-chip-base,
+.pulso-tab-heading-chip[data-tono="accent"] .pulso-tab-heading-chip-base {
+  color: inherit;
+}
+
+/* Menú de chips recogidos: conserva cifra, base y tono. */
+.pulso-tab-heading-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+}
+
+.pulso-tab-heading-menu-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
