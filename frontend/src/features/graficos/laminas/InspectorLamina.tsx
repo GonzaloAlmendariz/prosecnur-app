@@ -283,7 +283,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior, o
       <p className="pulso-f6-pendiente">
         <History size={14} aria-hidden="true" />
         <span>
-          El Top Two Box de las escalas y las opciones del Word siguen en el{" "}
+          El estilo Word de todo el informe sigue en el{" "}
           <button type="button" className="pulso-f6-texto-boton" onClick={onIrEditorAnterior}>Editor anterior</button>.
         </span>
       </p>

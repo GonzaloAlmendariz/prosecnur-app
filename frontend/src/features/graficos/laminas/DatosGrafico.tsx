@@ -1,7 +1,8 @@
 // Datos de un gráfico en su tarjeta del inspector (F6.1, parte 2). Reemplaza al editor de ranura viejo incrustado:
 // una sola superficie con filas planas (rótulo y control en una línea), sólo los datos que la salida nativa lee
 // (lista blanca, argsDatosGrafico.ts), sin buscador de ajustes ni descripciones largas. Lo que no cabe en el inspector
-// (bloques de multiapiladas, filtros) se edita en un panel ancho.
+// (bloques de multiapiladas, filtros) se edita en un panel ancho. Cierran la tarjeta el Top/Bottom Two Box de las
+// escalas y «En el Word» (F6.2, F-d; tarjetaGrafico/).
 
 import { useId } from "react";
 import { useLocation } from "react-router-dom";
@@ -24,6 +25,8 @@ import { useGraficosReportScope } from "../reportScope";
 import { aplicaOrden, varCalificada } from "./ordenCategorias";
 import { useSession } from "../../../lib/SessionContext";
 import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
+import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
+import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import "./datosGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
@@ -80,6 +83,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           </button>
         </div>
       )}
+      <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
+      <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
     </div>
   );
 }
