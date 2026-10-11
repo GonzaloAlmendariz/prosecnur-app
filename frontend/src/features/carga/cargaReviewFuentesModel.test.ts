@@ -65,8 +65,11 @@ describe("normalizeCargaReviewFuentes", () => {
 });
 
 describe("cargaReviewFuentesHallazgos", () => {
-  it("una fuente sana y en orden no dice nada", () => {
-    expect(cargaReviewFuentesHallazgos({ principal: null, fuentes: [fuente({})] })).toEqual([]);
+  it("una fuente sana y en orden tiene su tarjeta neutra, para poder ver sus preguntas", () => {
+    const [h] = cargaReviewFuentesHallazgos({ principal: null, fuentes: [fuente({})] });
+    expect(h.tono).toBe("info");
+    expect(h.titulo).toBe("Telefónico · 73 de 74 preguntas emparejadas");
+    expect(h.lineas).toEqual([]);
     expect(cargaReviewFuentesHallazgos(null)).toEqual([]);
   });
 
