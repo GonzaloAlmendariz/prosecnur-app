@@ -55,7 +55,6 @@ import type {
   SurveyMonkeyDecisionAudit,
   SurveyMonkeyDecisionPolicy,
   SurveyMonkeyDecisionSourceAudit,
-  SurveyMonkeyMultibaseDiff,
   SurveyMonkeyMultibaseImportIndependentResult,
   SurveyMonkeyMultibaseListItem,
   SurveyMonkeyRefreshBasePlan,
@@ -74,6 +73,8 @@ import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
 import { SavBundleImportPanel } from "./SavBundleImportPanel";
 import { CargaManualBaseLanes } from "./CargaManualBaseLanes";
 import { useCargaStore } from "./store";
+import { SmEstructuraFuenteAccion } from "./SmEstructuraFuenteAccion";
+import { smDiffKindLabel, smDiffSeverityLabel, smRefreshAction, smRefreshStructureDetail } from "./smEstructuraFuente";
 import type {
   MultiBaseStrategy,
   SmExtraSourceDraft,
@@ -3432,75 +3433,9 @@ function smNumberRangeLabel(values: number[], singular: string, plural = `${sing
   return min === max ? `${max} ${noun}` : `${min}-${max} ${plural}`;
 }
 
-function smDiffKindLabel(kind: string) {
-  const labels: Record<string, string> = {
-    missing_or_extra: "Variables propias",
-    structure: "Estructura distinta",
-    options: "Opciones distintas",
-    wording: "Fraseo distinto",
-    company_list: "Lista de empresas",
-    company_logic: "Lógica de empresas",
-    metadata_optional: "Metadata opcional",
-  };
-  return labels[kind] ?? kind.replace(/_/g, " ");
-}
-
-function smRefreshAction(row: SurveyMonkeyRefreshBasePlan): string {
-  if (row.refresh_action) return row.refresh_action;
-  return row.updateable ? "update" : "blocked";
-}
-
 function smRefreshIsNoop(row: SurveyMonkeyRefreshBasePlan): boolean {
   const action = smRefreshAction(row);
   return action === "noop" || action === "noop_structure_warning";
-}
-
-function smRefreshStructureDetail(row: SurveyMonkeyRefreshBasePlan): { label: string; title: string } | null {
-  const diffs = row.structure?.diffs ?? [];
-  const blocking = diffs.filter((diff) => diff.severity === "blocking");
-  const warningOnly = smRefreshAction(row) === "noop_structure_warning" || row.structure_warning_only === true;
-  if (blocking.length) {
-    const vars = blocking
-      .map((diff) => diff.variable || `pos. ${diff.pos}`)
-      .filter(Boolean);
-    const visible = vars.slice(0, 4).join(", ");
-    return {
-      label: warningOnly
-        ? `Revisar si llegan nuevas: ${visible}${vars.length > 4 ? ` +${vars.length - 4}` : ""}`
-        : `Bloqueos en ${visible}${vars.length > 4 ? ` +${vars.length - 4}` : ""}`,
-      title: blocking
-        .map((diff) => `${diff.variable || `pos. ${diff.pos}`}: ${smDiffKindLabel(diff.kind)} - ${diff.message}`)
-        .join(" · "),
-    };
-  }
-  if (row.issues?.length) {
-    return {
-      label: row.issues.join(" · "),
-      title: row.issues.join(" · "),
-    };
-  }
-  const review = diffs.filter((diff) => diff.severity === "review");
-  if (review.length) {
-    const metadataReview = review.filter((diff) => diff.kind === "metadata_optional");
-    const substantiveReview = review.filter((diff) => diff.kind !== "metadata_optional");
-    const vars = (substantiveReview.length ? substantiveReview : metadataReview)
-      .map((diff) => diff.variable || `pos. ${diff.pos}`)
-      .filter(Boolean);
-    const metadataVars = metadataReview
-      .map((diff) => diff.variable || `pos. ${diff.pos}`)
-      .filter(Boolean);
-    const optionalMetadata = !substantiveReview.length && metadataReview.length > 0;
-    const metadataSuffix = metadataReview.length && substantiveReview.length
-      ? ` · metadata opcional ${metadataVars.slice(0, 3).join(", ")}${metadataVars.length > 3 ? ` +${metadataVars.length - 3}` : ""}`
-      : "";
-    return {
-      label: `${optionalMetadata ? "Metadata opcional" : "Revisar"} ${vars.slice(0, 3).join(", ")}${vars.length > 3 ? ` +${vars.length - 3}` : ""}${metadataSuffix}`,
-      title: review
-        .map((diff) => `${diff.variable || `pos. ${diff.pos}`}: ${smDiffKindLabel(diff.kind)} - ${diff.message}`)
-        .join(" · "),
-    };
-  }
-  return null;
 }
 
 function smRefreshRowStatusText(row: SurveyMonkeyRefreshBasePlan): string {
@@ -3529,12 +3464,6 @@ function smRefreshResultSourcesText(row: SurveyMonkeyRefreshResult["results"][nu
       return `${title}${channel ? ` (${channel})` : ""}: ${status || (source.refreshed ? "actualizada" : "no actualizada")}`;
     })
     .join(" · ");
-}
-
-function smDiffSeverityLabel(severity: SurveyMonkeyMultibaseDiff["severity"]) {
-  if (severity === "blocking") return "Estructura";
-  if (severity === "special") return "Especial";
-  return "Revisión";
 }
 
 function smSurveyAuditLabel(
@@ -5148,6 +5077,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                             : "Compatible"}
                         </span>
                         {structureDetail && <small title={structureDetail.title}>{structureDetail.label}</small>}
+                        <SmEstructuraFuenteAccion diffs={row.structure?.diffs} estudio={estudio} />
                       </div>
                       <div className="pulso-sm-family-data-cell">
                         <span className="pulso-sm-family-status is-neutral">
@@ -5765,9 +5695,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
                   <div>
                     <strong>
                       <span>{smDiffKindLabel(diff.kind)} · {smSurveyAuditLabel(diff.survey_id, audit, selectedInputs)}</span>
-                      <em>{smDiffSeverityLabel(diff.severity)}</em>
+                      <em>{smDiffSeverityLabel(diff.severity, diff.kind)}</em>
                     </strong>
                     <span>{diff.message}</span>
+                    <SmEstructuraFuenteAccion diffs={[diff]} estudio={estudio} />
                     <small>
                       <code>{diff.variable}</code>
                       {diff.ref && ` · guía: ${diff.ref}`}

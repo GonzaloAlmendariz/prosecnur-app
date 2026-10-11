@@ -7,6 +7,14 @@ import {
   ShieldCheck,
 } from "../../vendor/lucide-react";
 import type { CargaReviewPayload, CargaReviewSummaryPayload } from "../../api/client";
+import { CargaReviewFuentesFindings } from "./CargaReviewFuentesFindings";
+import { cargaReviewFuentesHallazgos } from "./cargaReviewFuentesModel";
+import { smListaAcotada } from "./smEstructuraFuente";
+import "./CargaReviewFindings.css";
+
+// Una lista larga no puede desbordar la tarjeta: los primeros y «+N».
+const OMITIDAS_VISIBLES = 3;
+const ADOPTADAS_VISIBLES = 8;
 
 function coverageMeta(count: number, total: number) {
   if (total <= 0) return "Sin bases";
@@ -57,6 +65,10 @@ export function CargaReviewSummary({
   // Tampoco bloquea: código y etiqueta siguen coherentes. Lo que importa son
   // las omitidas, que no tienen los códigos del formulario del editor.
   const ordenEditor = review?.orden_editor ?? null;
+  // ADR 0094: cómo se emparejó cada fuente de una base que junta encuestas.
+  // Avisa o informa; no entra en `ready`.
+  const fuentes = review?.fuentes ?? null;
+  const hasFuentesFindings = cargaReviewFuentesHallazgos(fuentes).length > 0;
   const choiceMappingPending = pendingChoiceMapping || Boolean(review?.choice_mapping.pending);
   const hasDecision = choiceMappingPending || pendingExtraCount > 0;
   const selectedReviewReady = Boolean(review?.ready && allReady && !hasPartialCoverage);
@@ -174,8 +186,13 @@ export function CargaReviewSummary({
         </li>
       </ul>
 
-      {(incompatible || hasDecision || procedencia || ordenEditor) && (
-        <ul className="pulso-carga-review-findings" aria-label="Incidencias de la base revisada">
+      {(incompatible || hasDecision || procedencia || ordenEditor || hasFuentesFindings) && (
+        <ul
+          className="pulso-carga-review-findings"
+          aria-label="Incidencias de la base revisada"
+          data-qa-geometry-group="carga-review-findings"
+          data-qa-geometry-contract="intrinsic"
+        >
           {ordenEditor && ordenEditor.omitidas.length > 0 && (
             <li className="is-pending">
               <AlertTriangle size={15} aria-hidden="true" />
@@ -185,22 +202,14 @@ export function CargaReviewSummary({
                     ? "1 pregunta no sigue el orden de opciones del editor"
                     : `${ordenEditor.omitidas.length} preguntas no siguen el orden de opciones del editor`}
                 </strong>
-                <small>
-                  {ordenEditor.omitidas.map((o) => `${o.variable}: ${o.motivo}`).join(" · ")}
+                <small
+                  title={ordenEditor.omitidas.length > OMITIDAS_VISIBLES
+                    ? ordenEditor.omitidas.map((o) => `${o.variable}: ${o.motivo}`).join(" · ")
+                    : undefined}
+                >
+                  {ordenEditor.omitidas.slice(0, OMITIDAS_VISIBLES).map((o) => `${o.variable}: ${o.motivo}`).join(" · ")}
+                  {ordenEditor.omitidas.length > OMITIDAS_VISIBLES ? ` +${ordenEditor.omitidas.length - OMITIDAS_VISIBLES}` : ""}
                 </small>
-              </span>
-            </li>
-          )}
-          {ordenEditor && ordenEditor.adoptadas.length > 0 && (
-            <li>
-              <FileSpreadsheet size={15} aria-hidden="true" />
-              <span>
-                <strong>
-                  {ordenEditor.adoptadas.length === 1
-                    ? "1 pregunta usa el orden de opciones del editor"
-                    : `${ordenEditor.adoptadas.length} preguntas usan el orden de opciones del editor`}
-                </strong>
-                <small>{ordenEditor.adoptadas.join(", ")}</small>
               </span>
             </li>
           )}
@@ -227,6 +236,7 @@ export function CargaReviewSummary({
               </span>
             </li>
           )}
+          <CargaReviewFuentesFindings fuentes={fuentes} tonos={["incompatible", "pending"]} />
           {pendingExtraCount > 0 && (
             <li className="is-pending">
               <Database size={15} aria-hidden="true" />
@@ -245,6 +255,23 @@ export function CargaReviewSummary({
               </span>
             </li>
           )}
+          {/* Datos neutros al final: informan, no piden nada. */}
+          {ordenEditor && ordenEditor.adoptadas.length > 0 && (
+            <li className="is-info">
+              <FileSpreadsheet size={15} aria-hidden="true" />
+              <span>
+                <strong>
+                  {ordenEditor.adoptadas.length === 1
+                    ? "1 pregunta usa el orden de opciones del editor"
+                    : `${ordenEditor.adoptadas.length} preguntas usan el orden de opciones del editor`}
+                </strong>
+                <small title={ordenEditor.adoptadas.length > ADOPTADAS_VISIBLES ? ordenEditor.adoptadas.join(", ") : undefined}>
+                  {smListaAcotada(ordenEditor.adoptadas, ADOPTADAS_VISIBLES)}
+                </small>
+              </span>
+            </li>
+          )}
+          <CargaReviewFuentesFindings fuentes={fuentes} tonos={["info"]} />
         </ul>
       )}
 
