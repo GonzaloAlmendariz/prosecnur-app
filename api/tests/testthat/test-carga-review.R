@@ -194,8 +194,10 @@ library(testthat)
     # que decir, pero la clave siempre viaja para que el front no adivine.
     # `orden_editor` (checklist codificación SM 2026-10-11): igual, NULL salvo
     # que un import por API haya adoptado u omitido el orden del editor.
+    # `fuentes` (ADR 0094): igual, NULL salvo que la base junte encuestas
+    # emparejadas por pregunta.
     c("base_nombre", "compatibility", "choice_mapping", "reconciliation",
-      "procedencia", "orden_editor", "ready")
+      "procedencia", "orden_editor", "fuentes", "ready")
   )
   expect_setequal(
     names(payload$reconciliation),
