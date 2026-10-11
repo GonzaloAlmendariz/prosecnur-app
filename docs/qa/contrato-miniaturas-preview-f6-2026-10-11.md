@@ -42,8 +42,9 @@ include_images?, render_slide_preview?, preview_partes?, preview_formas?}`. Mism
 `E_BAD_RENDER_SLIDE_PREVIEW`, `E_BAD_PREVIEW_PARTES`, `E_BAD_PREVIEW_FORMAS`, `E_BAD_SLIDE`, `E_PREVIEW_FAILED` (400).
 
 Respuesta: la misma forma de siempre — `ok, file_id, size, type="pptx", images, slide_preview, partes{n, partes[], truncado},
-slide_previews[], avisos[], folio` (+ `formas`/`ranuras_estandar` con `preview_formas`) — **más dos campos aditivos**:
-`hash` (huella sha256 de la lámina) y `cache = {pptx: "hit"|"miss", raster: "hit"|"miss"|"no_pedido"|"sin_renderer"}`.
+slide_previews[], avisos[], folio` (+ `formas`/`ranuras_estandar` con `preview_formas`) — **más tres campos aditivos**:
+`hash` (huella sha256 de la lámina), `cache = {pptx: "hit"|"miss", raster: "hit"|"miss"|"no_pedido"|"sin_renderer"}` y
+`graficos = {pedidos, vacios, motivo[]}` (ver §2.4).
 Pedir dos veces la misma lámina devuelve el mismo `file_id` (como hoy). Cambio de conducta deliberado: la caché ya no
 expira a los 300 s ni ignora los datos; una entrada vale mientras su huella no cambie.
 
@@ -96,8 +97,9 @@ Ambos devuelven la misma forma (el `result_data` es el estado final):
     "cache": {"pptx": "hit", "raster": "miss"},
     "partes": {"n": 2, "partes": [{"indice": 1, "titulo": "…", "estado": "nativa", "continuacion": false}, …]},
     "avisos": ["…"],
+    "graficos": {"pedidos": 4, "vacios": 1, "motivo": ["n0"]},
     "miniatura": {"file_id": "…", "url": "/api/files/<file_id>/download", "mime": "image/png",
-                  "width": 1600, "height": 900, "sha256": "…"},
+                  "width": 480, "height": 270, "sha256": "…"},
     "error": null}
  ]}
 ```
@@ -109,8 +111,26 @@ Ambos devuelven la misma forma (el `result_data` es el estado final):
 | `pendiente` | El worker aún no la resuelve (o el lote se canceló antes) | `null` |
 | `ok` | PPTX, partes y PNG de la parte 1 listos | objeto |
 | `sin_imagen` | PPTX y partes listos, pero no hay renderer o el raster falló (el front cae a `ComposicionLamina` SVG) | `null` |
-| `sin_datos` | El motor armó la lámina pero **todos** sus gráficos pedidos quedaron vacíos: refs requeridas vacías o degradados al canvas «Sin datos» (variable fuera de la base, filtro sin casos) | objeto o `null` |
+| `sin_datos` | El motor armó la lámina pero **todos** sus gráficos pedidos quedaron vacíos (`graficos.vacios == graficos.pedidos > 0`) | objeto o `null` |
 | `error` | El motor falló; `error = {code, message}` con `E_MINIATURA_FALLIDA` o `E_MINIATURA_TIPO_INVALIDO` | `null` |
+
+Campo aditivo `graficos` (también en `/preview-slide` y en el `result_data` de `/preview-slide-job`; `null` si la
+lámina está `pendiente` o en `error`): `pedidos` = gráficos con graficador en la lámina; `vacios` = cuántos no dibujan
+datos; `motivo` = arreglo (siempre arreglo, vacío si todos dibujan) con:
+
+| `motivo` | Cómo se detecta (estructurado, no por texto) |
+|---|---|
+| `borrador_incompleto` | Al reconstruir: falta una ref requerida o un argumento requerido (la lámina del editor está a medio armar) |
+| `variable_fuera_de_base` | Al reconstruir: alguna ref del gráfico no está en los datos de su base (`.graficos_consolidado_ref_context`) |
+| `n0` | Al reconstruir: los `filtros` del gráfico dejan 0 casos, filtrando con `.apply_named_filters_safe` (el mismo filtro del motor). El graficador dibuja «Sin datos para mostrar» sin avisar, por eso se diagnostica antes |
+| `degradado` | El motor señaló `pulso_lamina_degradada` (reporte_plan_condiciones.R) sin diagnóstico previo |
+
+Las degradaciones se cuentan por la condición `pulso_lamina_degradada` (`motivo`: `error_render`, `render_nulo`,
+`elemento_invalido`) que señalan `.plan_render_element_degradable`, `.plan_canvas_render_nulo` y
+`.plan_elemento_degradado`; el texto del aviso es para personas y puede cambiar. Una ref fuera de la base ya produce su
+propia señal: no se cuenta dos veces. Supuestos: refs sin base en un estudio multibase no se diagnostican (quedan como
+«dibuja» salvo que el motor degrade); `n0` mira filas tras filtros, no la base ponderada ni la base efectiva por
+`excluir_opciones`. Una lámina con 2 gráficos y 1 vacío es `ok` con `graficos.vacios = 1`.
 
 El 404 del lote es `E_MINIATURAS_LOTE_NO_EXISTE` (también si el lote es de otra sesión). Progreso del job:
 `{phase: "running", current: k-1, total: N, message: "Lámina <id> (k de N)"}` y `{phase: "done", percent: 100}`.
@@ -119,14 +139,22 @@ El 404 del lote es `E_MINIATURAS_LOTE_NO_EXISTE` (también si el lote es de otra
 
 **Regla de cierre (decidida por el lead): la caché no es transparente por suposición. La llave es la huella de TODO lo
 que el render lee**, que son exactamente los argumentos de `reporte_ppt_plan` más lo que el rebuild y el motor leen de
-afuera. sha256 sobre la forma canónica (listas nombradas con claves ordenadas en orden radix —independiente del locale—,
-textos en UTF-8; tablas tal cual) de seis grupos:
+afuera. sha256 sobre la forma canónica (textos en UTF-8, tablas y listas tal cual) de seis grupos.
+
+**Las claves NO se ordenan** (corrección B1 del revisor metodológico, 2026-10-11): el orden de una lista con nombres sí
+cambia el render — `vars` con nombres son los bloques de las multiapiladas `var_cruce` y del radar, en el orden de temas
+que arma el editor; los ejes del radar de equivalencias van en orden de filas. Una colisión sirve una lámina equivocada;
+un falso miss sólo cuesta un render. Único reordenamiento, por lista blanca de niveles probadamente conmutativos y nunca
+en la lámina: el primer nivel de `presets` (familias, consumidas por nombre en `.build_presets`) y del registro de íconos
+(buscado por id). Las paletas no se reordenan (`.graficos_palette_vector` conserva el orden de categorías).
+`.MINIATURAS_VERSION_CACHE` subió a «2» por este cambio.
 
 | Grupo | Qué entra | Test |
 |---|---|---|
 | (a) lámina | La lámina tal como entra al motor: `payload`, `args` de cada gráfico, `orden_categorias`, `filtros`, textos, antetítulo heredado del separador vigente, refs calificadas con la base activa, y el folio | texto, orden, filtro, folio |
 | (b) scope/base | `scope` (`active_base`/`consolidated`), base activa, conjunto **ordenado** de bases que recibe el motor | scope, base, orden de bases |
-| (c) datos | Digest (xxhash64) de cada `data_sources[[base]]` y de cada `inst_sources[[base]]` **tal como los recibe el motor** (después de recodificación, etiquetas curadas ADR 0061, orden de categorías, dummies, pesos y atributos como `instrumento_reporte`) | ponderación, etiqueta, atributo; HTTP: `label-overrides` invalida |
+| (a′) consolidado | En `scope = consolidated` la lámina entra a la huella ya pasada por la metodología del catálogo (`excluir_opciones`, `eligible_if` → `filtros`) y `.normalize_plan`, y las fuentes en el orden de las releases: lo mismo que dibuja el export (`.graficos_consolidado_marco` + `.graficos_consolidado_plan_entregable`, compartidos con `graficos_consolidado_preflight`). Los avisos metodológicos van a `avisos` | paridad vista previa = export |
+| (c) datos | Digest (xxhash64) de cada `data_sources[[base]]` y de cada `inst_sources[[base]]` **tal como los recibe el motor** (después de recodificación, etiquetas curadas ADR 0061, orden de categorías, dummies, pesos y atributos como `instrumento_reporte`) | ponderación, etiqueta, atributo; HTTP: `label-overrides`, ponderación y `orden_categorias` de `/api/analitica/config` invalidan |
 | (d) estilo | Presets ya enriquecidos (formato, sufijo_auto, nota_redondeo, cálculos por familia, `debug_ph`…), paletas, íconos (ruta + sha256 del archivo), `profile_id`, `template_id`, `auto_otros_slides`, opciones `prosecnur.*` vigentes (menos el desplazo de folio que fija la propia vista previa) | presets, paletas, ícono, plantilla, perfil, opción |
 | (e) archivos | sha256 del `.pptx` de plantilla resuelto, de `inst/estandar/estandar_pulso.json` y de cada logo de `inst/estandar/logos/` (por contenido: la ruta no entra) | contenido de plantilla y estándar |
 | (f) versión | Versión del paquete (DESCRIPTION) y `.MINIATURAS_VERSION_CACHE` (constante para invalidar a mano) | ambas |
@@ -147,7 +175,7 @@ proceso, así que reiniciar el backend la vacía; para invalidar en caliente se 
   preview_<huella>.pptx                              mini-PPTX (entrada)
   meta.rds                                           hash, slide_id, tipo, folio, partes, avisos, gráficos pedidos/vacíos, sha256 del PPTX
   raster_<calidad>_<max_partes>_<renderer>.rds       slide_previews (png_base64 por parte, atributo truncado)
-  miniatura_<calidad>_<renderer>.png                 parte 1 decodificada del raster (mismos bytes)
+  miniatura_<calidad>_<renderer>_w480.png            parte 1 del raster reducida a 480 px de ancho (promedio por bloques, determinista)
 ```
 
 - **Hit** = existen PPTX y `meta.rds` con la misma huella. Escritura atómica (tmp + rename): un job cancelado o un lector
@@ -185,6 +213,8 @@ proceso, así que reiniciar el backend la vacía; para invalidar en caliente se 
    `GET /miniaturas/<lote_id>` (no hace falta esperar al `done`): pintar cada `laminas[k]` por `slide_id` según `estado`;
    `miniatura.url` + `sid` (o header) para la imagen; `sha256`/`hash` sirven de llave de caché del navegador.
 3. `sin_imagen` → `ComposicionLamina` SVG; `sin_datos` → miniatura con marca «sin datos»; `error` → `error.message`.
+   `graficos.motivo` dice por qué (borrador a medio armar, variable fuera de la base, filtro sin casos); una lámina `ok`
+   con `graficos.vacios > 0` puede marcar sólo el gráfico vacío.
 4. Al editar una lámina, mandar el lote nuevo con `reemplazar = true` (cancela el anterior).
 
 ## 7. Mediciones (acrconta_mazo, 67 láminas, 4 bases)
@@ -229,3 +259,12 @@ fuera de esta unidad).
   PNG se saltan o toman la rama `sin_imagen`; con `R_LD_LIBRARY_PATH=/usr/lib/R/lib` todo rasteriza. Es del entorno, pero
   la misma combinación podría darse en un Linux de usuario: `.pptx_to_pdf_soffice` (router_graficos.R, fuera de esta
   unidad) podría limpiar `LD_LIBRARY_PATH` al lanzar soffice.
+
+## 9. Tamaño de la miniatura (pedido del frontend, 2026-10-11)
+
+La miniatura del lote ya no es el raster completo de la vista previa (2133×1200, ~128–257 KB) sino ese raster reducido a
+`.MINIATURA_ANCHO = 480` px (alto proporcional: 480×270), promediando bloques con `png` (sin dependencias nuevas). Se deriva
+una vez por huella y se sirve desde caché byte a byte; `width`/`height` son los reales del archivo. La vista previa de la
+lámina activa (`/preview-slide`, `slide_previews`) sigue con el raster completo. Medido en acrconta (6 láminas):
+20,4–40,3 KB por miniatura (6,1–6,4× menos), ~2,2 MB estimados para las 67 láminas contra ~17 MB; reducir cuesta
+0,38–0,49 s por lámina (1,36 s la primera, con carga en frío), una vez por huella y dentro del worker.

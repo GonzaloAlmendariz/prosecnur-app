@@ -75,6 +75,23 @@
   stop(cond)
 }
 
+#' Sello estructurado de una degradación a canvas «Sin datos»
+#'
+#' Además del `warning()` (log) y del `.pulso_aviso()` (texto para el analista), cada degradación señala una condición
+#' `pulso_lamina_degradada` con su `motivo`. Quien necesite contarlas (la vista previa y las miniaturas,
+#' graficos_miniaturas.R) la escucha con `withCallingHandlers()` en vez de leer el texto del aviso, que es para personas y
+#' puede cambiar. Sin nadie escuchando, `signalCondition()` no hace nada.
+#' @param motivo «error_render» (el renderer abortó con `pulso_slide_render_error`), «render_nulo» (devolvió NULL) o
+#'   «elemento_invalido» (el slot no era un `ppt_element`).
+#' @keywords internal
+.pulso_senal_degradado <- function(motivo, mensaje = "") {
+  signalCondition(structure(
+    class = c("pulso_lamina_degradada", "condition"),
+    list(message = as.character(mensaje)[1], motivo = as.character(motivo)[1], call = NULL)
+  ))
+  invisible(NULL)
+}
+
 #' Canvas minimo "Sin datos" para laminas degradadas. Mismo rol que la rama
 #' "Sin datos" natural de los graficadores: la lamina existe, el deck no muere.
 #' @keywords internal
@@ -107,6 +124,7 @@
       # `warning()` (ver jobs.R). Vara V4.
       warning(msg, call. = FALSE)
       .pulso_aviso(msg)
+      .pulso_senal_degradado("error_render", msg)
       .plan_canvas_sin_datos()
     }
   )
@@ -119,6 +137,7 @@
   msg <- paste0(paste0(...), " La lamina se degrada a canvas 'Sin datos'.")
   warning(msg, call. = FALSE)
   .pulso_aviso(msg)
+  .pulso_senal_degradado("render_nulo", msg)
   .plan_canvas_sin_datos()
 }
 
@@ -131,6 +150,7 @@
   msg <- paste0(paste0(...), " La lamina se degrada a canvas 'Sin datos'.")
   warning(msg, call. = FALSE)
   .pulso_aviso(msg)
+  .pulso_senal_degradado("elemento_invalido", msg)
   el <- list(
     .element_type = "canvas_degradado",
     mensaje_degradacion = msg,

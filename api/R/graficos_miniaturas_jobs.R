@@ -140,9 +140,20 @@
     folio = as.integer(item$folio %||% NA_integer_),
     partes = if (is.list(meta)) meta$partes else list(n = 0L, partes = list()),
     avisos = if (is.list(meta)) meta$avisos %||% character(0) else character(0),
+    graficos = .mini_graficos_publico(meta),
     miniatura = miniatura,
     error = item$error %||% NA
   )
+}
+
+#' Campo aditivo `graficos` de una lámina: cuántos gráficos pidió, cuántos quedaron vacíos y por qué
+#' @return `list(pedidos, vacios, motivo)`; `motivo` es un arreglo con «borrador_incompleto», «variable_fuera_de_base»,
+#'   «n0» y/o «degradado» (vacío si todos dibujan). `NA` si no hay meta (lámina pendiente o con error).
+#' @keywords internal
+.mini_graficos_publico <- function(meta) {
+  if (!is.list(meta)) return(NA)
+  list(pedidos = as.integer(meta$graficos_pedidos %||% 0L), vacios = as.integer(meta$graficos_vacios %||% 0L),
+       motivo = I(as.character(meta$graficos_motivos %||% character(0))))
 }
 
 #' Estado público de un lote: una entrada por lámina pedida, en el orden del pedido
@@ -163,7 +174,7 @@
     if (is.null(item)) {
       return(list(slide_id = lote$laminas[[k]]$slide_id, orden = k, hash = lote$laminas[[k]]$hash,
                   estado = "pendiente", cache = NA, folio = lote$laminas[[k]]$folio,
-                  partes = list(n = 0L, partes = list()), avisos = character(0), miniatura = NA, error = NA))
+                  partes = list(n = 0L, partes = list()), avisos = character(0), graficos = NA, miniatura = NA, error = NA))
     }
     .mini_item_publico(sid, lote$raiz, item)
   })

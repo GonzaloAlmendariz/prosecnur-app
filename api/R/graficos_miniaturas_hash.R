@@ -3,7 +3,7 @@
 # Contrato: docs/qa/contrato-miniaturas-preview-f6-2026-10-11.md. La caché NO es transparente por suposición: la llave es la
 # huella de TODO lo que el render lee, en seis grupos:
 #   (a) la lámina ya normalizada tal como entra al motor (payload, args de sus gráficos, orden_categorias, filtros, textos,
-#       antetítulo heredado y folio), con las claves ordenadas;
+#       antetítulo heredado y folio), SIN reordenar claves (el orden de `vars`/bloques/ejes es parte del render);
 #   (b) el scope (active_base / consolidated), la base activa y el conjunto ordenado de bases que recibe el motor;
 #   (c) la huella de los DATOS que el motor recibe: digest de cada `data_sources[[base]]` (pesos, filtros, recodificaciones,
 #       etiquetas, codificación aplicada y atributos como `instrumento_reporte`) y de cada `inst_sources[[base]]`;
@@ -16,19 +16,19 @@
 
 #' Versión manual de la caché de miniaturas: subirla invalida todas las entradas
 #' @keywords internal
-.MINIATURAS_VERSION_CACHE <- "1"
+.MINIATURAS_VERSION_CACHE <- "2"
 
-#' Forma canónica de un objeto para la huella: listas nombradas con claves ordenadas (radix, independiente del locale) y
-#' textos en UTF-8. Las tablas se dejan tal cual: su orden de columnas y filas es parte de lo que el motor lee.
+#' Forma canónica de un objeto para la huella: textos en UTF-8 y NADA más
+#'
+#' No se ordenan claves: el orden de una lista con nombres SÍ cambia el render en la lámina (`vars` con nombres son los
+#' bloques de las multiapiladas `var_cruce` y del radar, en el orden en que el editor los arma; los ejes del radar de
+#' equivalencias van en orden de filas). Una colisión de huella sirve una lámina equivocada; un falso miss sólo cuesta un
+#' render. El único reordenamiento permitido es el de `.mini_ordenar_conmutativo()`, por lista blanca y nunca en la lámina.
 #' @keywords internal
 .mini_canon <- function(x) {
   if (is.data.frame(x) || is.environment(x) || is.function(x)) return(x)
   if (is.list(x)) {
     if (length(x)) x[] <- lapply(x, .mini_canon)
-    nms <- names(x)
-    if (!is.null(nms) && length(x) && all(!is.na(nms) & nzchar(nms))) {
-      x <- x[order(nms, method = "radix")]
-    }
     return(x)
   }
   if (is.character(x)) {
@@ -37,6 +37,19 @@
     attributes(x) <- a
   }
   x
+}
+
+#' Ordena por nombre SÓLO el primer nivel de una lista de la lista blanca de niveles probadamente conmutativos
+#'
+#' Lista blanca (graficos_miniaturas_hash.R, grupo d): las familias de `presets` (`.build_presets` las consume por nombre
+#' con `do.call(p_presets, ...)` y `out[[key]]`) y el registro de íconos (se busca por id). Dentro de cada familia no se
+#' ordena nada. Las paletas NO están en la lista: `.graficos_palette_vector` conserva el orden de sus categorías.
+#' @keywords internal
+.mini_ordenar_conmutativo <- function(x) {
+  if (!is.list(x) || !length(x)) return(x)
+  nms <- names(x)
+  if (is.null(nms) || any(is.na(nms) | !nzchar(nms))) return(x)
+  x[order(nms, method = "radix")]
 }
 
 #' sha256 de la forma canónica de `x`
@@ -126,9 +139,9 @@
     b = list(scope = ctx$scope, base = ctx$base %||% "", bases = as.character(ctx$bases %||% character())),
     c = huella,
     d = list(
-      presets = ctx$presets_json %||% list(),
+      presets = .mini_ordenar_conmutativo(ctx$presets_json %||% list()),
       paletas = ctx$paletas %||% list(),
-      iconos = lapply(iconos, function(p) list(ruta = as.character(p), sha256 = .mini_sha256_archivo(p))),
+      iconos = .mini_ordenar_conmutativo(lapply(iconos, function(p) list(ruta = as.character(p), sha256 = .mini_sha256_archivo(p)))),
       profile_id = ctx$profile_id %||% "",
       template_id = ctx$template_id %||% "",
       auto_otros_slides = isTRUE(ctx$auto_otros_slides),

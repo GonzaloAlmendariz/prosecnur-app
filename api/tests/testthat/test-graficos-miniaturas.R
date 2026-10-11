@@ -1,6 +1,7 @@
 # Huella y caché de la vista previa de lámina (graficos_miniaturas*.R). Contrato:
 # docs/qa/contrato-miniaturas-preview-f6-2026-10-11.md. La llave es la huella de TODO lo que el render lee, en seis grupos
-# (a)–(f): cambiar uno de cada grupo cambia la huella; reordenar claves no. La caché no cambia el render: lo servido desde
+# (a)–(f): cambiar uno de cada grupo cambia la huella; reordenar claves sólo no la cambia en la lista blanca
+# conmutativa (familias de presets, íconos), nunca en la lámina. La caché no cambia el render: lo servido desde
 # caché es byte a byte lo recién renderizado.
 
 .mt_fuentes <- function(etiqueta_norte = "Norte", peso = 1) {
@@ -45,21 +46,65 @@
   }
 })
 
-test_that("la huella es estable y no depende del orden de las claves", {
+test_that("la huella es estable; reordenar claves sólo no la cambia en los niveles conmutativos de la lista blanca", {
   a <- .mt_ctx()
   b <- .mt_ctx()
   expect_identical(a$hash, b$hash)
   expect_match(a$hash, "^[0-9a-f]{64}$")
-
+  # Lista blanca: las familias de presets se consumen por nombre.
+  p1 <- .mt_ctx(presets_json = list(barras = list(formato = "pct"), general = list(nota_redondeo = "x")))
+  p2 <- .mt_ctx(presets_json = list(general = list(nota_redondeo = "x"), barras = list(formato = "pct")))
+  expect_identical(p1$hash, p2$hash)
+  # Fuera de la lista blanca (la lámina) el orden de claves es parte de la huella.
   s <- .mt_slide()
   s_rev <- list(payload = list(grafico = list(args = list(var = "region"), graficador = "p_barras_categoricas"),
                                titulo = "Región"),
                 tipo = s$tipo, id = s$id)
-  expect_identical(.mt_ctx(slide = s_rev)$hash, a$hash)
+  expect_false(identical(.mt_ctx(slide = s_rev)$hash, a$hash))
+})
 
-  p1 <- .mt_ctx(presets_json = list(barras = list(formato = "pct", sufijo_auto = TRUE), general = list(nota_redondeo = "x")))
-  p2 <- .mt_ctx(presets_json = list(general = list(nota_redondeo = "x"), barras = list(sufijo_auto = TRUE, formato = "pct")))
-  expect_identical(p1$hash, p2$hash)
+# Escala de tres preguntas por región: multiapiladas `var_cruce`, cuyos bloques son las claves de `vars`.
+.mt_temas <- function() {
+  set.seed(1); n <- 40
+  esc <- c("1", "2", "3")
+  df <- data.frame(region = sample(c("norte", "sur"), n, TRUE), p1 = sample(esc, n, TRUE), p2 = sample(esc, n, TRUE),
+                   p3 = sample(esc, n, TRUE), stringsAsFactors = FALSE)
+  inst <- list(
+    survey = data.frame(name = c("region", "p1", "p2", "p3"), type = c("select_one l_region", rep("select_one l_esc", 3)),
+                        list_name = c("l_region", rep("l_esc", 3)), label = c("Región", "Pregunta uno", "Pregunta dos", "Pregunta tres"),
+                        stringsAsFactors = FALSE),
+    choices = data.frame(list_name = c("l_region", "l_region", "l_esc", "l_esc", "l_esc"), name = c("norte", "sur", "1", "2", "3"),
+                         label = c("Norte", "Sur", "Malo", "Regular", "Bueno"), stringsAsFactors = FALSE))
+  list(df = df, inst = inst)
+}
+
+test_that("B1: reordenar los bloques de `vars` cambia la huella Y el PPTX (no hay colisión de caché)", {
+  f <- .mt_temas()
+  lamina <- function(vars) list(id = "m1", tipo = "p_slide_1_grafico", payload = list(titulo = "Temas", grafico = list(
+    graficador = "p_barras_multiapiladas", args = list(modo = "var_cruce", vars = vars, cruces = "region"))))
+  ctx <- function(vars) .mt_ctx(slide = lamina(vars), fuentes = f)
+  a <- ctx(list(tema_1 = list("p1"), tema_2 = list("p2", "p3")))
+  b <- ctx(list(tema_2 = list("p2", "p3"), tema_1 = list("p1")))
+  expect_false(identical(a$hash, b$hash))
+  raiz <- withr::local_tempdir()
+  ra <- .mini_resolver(a, raiz, .mt_opts(render = FALSE))
+  rb <- .mini_resolver(b, raiz, .mt_opts(render = FALSE))
+  expect_identical(rb$cache$pptx, "miss")
+  orden <- function(r) {
+    t <- .mt_texto_pptx(r$pptx)
+    regmatches(t, gregexpr("tema_[12]", t))[[1]]
+  }
+  expect_identical(orden(ra), c("tema_1", "tema_2"))
+  expect_identical(orden(rb), c("tema_2", "tema_1"))
+})
+
+test_that("B1: los ejes del radar (claves de `vars` en orden de filas) también son parte de la huella", {
+  f <- .mt_temas()
+  lamina <- function(vars) list(id = "r1", tipo = "p_slide_1_grafico", payload = list(titulo = "Radar", grafico = list(
+    graficador = "p_radar", args = list(vars = vars))))
+  a <- .mt_ctx(slide = lamina(list(`Eje A` = "p1", `Eje B` = "p2", `Eje C` = "p3")), fuentes = f)
+  b <- .mt_ctx(slide = lamina(list(`Eje C` = "p3", `Eje B` = "p2", `Eje A` = "p1")), fuentes = f)
+  expect_false(identical(a$hash, b$hash))
 })
 
 test_that("(a) la lámina: cambiar un texto, un arg, el orden de categorías, un filtro o el folio cambia la huella", {
@@ -187,9 +232,20 @@ test_that("la caché no cambia el render: el PNG servido desde caché es byte a 
   r2 <- .mini_resolver(ctx, raiz, .mt_opts())
   expect_identical(r2$cache, list(pptx = "hit", raster = "hit"))
   expect_identical(digest::digest(bytes(r2$slide_previews), algo = "sha256", serialize = FALSE), sha_render)
+  # La miniatura del lote es el raster reducido a 480 px: derivada de forma determinista y servida desde caché tal cual.
   png <- .mini_miniatura_png(raiz, ctx$hash, r2$slide_previews)
-  expect_identical(digest::digest(file = png, algo = "sha256"), sha_render)
+  sha_mini <- digest::digest(file = png, algo = "sha256")
+  expect_identical(sha_mini, digest::digest(.mini_reducir_png(bytes(r1$slide_previews)), algo = "sha256", serialize = FALSE))
+  dims <- .mini_png_dims(png)
+  expect_identical(unname(dims[["width"]]), 480L)
+  completo <- dim(png::readPNG(bytes(r1$slide_previews)))
+  expect_identical(unname(dims[["height"]]), as.integer(round(completo[[1]] * 480 / completo[[2]])))
   expect_identical(unname(.mini_png_dims(png)), rev(dim(png::readPNG(png))[1:2]))   # la cabecera dice lo mismo que decodificar
+  expect_lt(file.size(png), length(bytes(r1$slide_previews)) / 4)
+  expect_identical(.mini_miniatura_png(raiz, ctx$hash, r2$slide_previews), png)          # hit: el mismo archivo
+  expect_identical(digest::digest(file = png, algo = "sha256"), sha_mini)
+  # La vista previa de la lámina activa sigue con el raster completo.
+  expect_identical(digest::digest(bytes(.mini_resolver(ctx, raiz, .mt_opts())$slide_previews), algo = "sha256", serialize = FALSE), sha_render)
   # La miniatura (1 parte) reutiliza el raster de 6 partes de la vista previa de la lámina activa.
   raiz2 <- withr::local_tempdir()
   seis <- .mini_resolver(ctx, raiz2, list(preview_quality = "quick", render_slide_preview = TRUE, preview_partes = TRUE))
@@ -222,6 +278,104 @@ test_that("el resultado por lámina del lote: ok/sin_imagen, sin_datos y error c
   expect_identical(mala$error$code, "E_MINIATURA_TIPO_INVALIDO")
 })
 
+test_that("I1/M2: un filtro sin casos deja la lámina sin_datos con motivo n0", {
+  raiz <- withr::local_tempdir()
+  s <- .mt_slide(); s$payload$grafico$args$filtros <- list(region = "oeste")
+  item <- suppressWarnings(.mini_lote_item(.mt_ctx(slide = s), raiz, .mt_opts(render = FALSE)))
+  expect_identical(item$estado, "sin_datos")
+  meta <- .mini_entrada_leer(raiz, item$hash)
+  expect_identical(.mini_graficos_publico(meta)$vacios, 1L)
+  expect_identical(as.character(.mini_graficos_publico(meta)$motivo), "n0")
+  # Con un filtro que sí tiene casos, nada de n0.
+  s$payload$grafico$args$filtros <- list(region = "norte")
+  ok <- .mini_lote_item(.mt_ctx(slide = s), raiz, .mt_opts(render = FALSE))
+  expect_false(identical(ok$estado, "sin_datos"))
+  expect_identical(.mini_graficos_publico(.mini_entrada_leer(raiz, ok$hash))$vacios, 0L)
+})
+
+test_that("M2: el motivo distingue borrador incompleto, variable fuera de la base y n0", {
+  raiz <- withr::local_tempdir()
+  motivo <- function(slide) {
+    it <- suppressWarnings(.mini_lote_item(.mt_ctx(slide = slide), raiz, .mt_opts(render = FALSE)))
+    as.character(.mini_graficos_publico(.mini_entrada_leer(raiz, it$hash))$motivo)
+  }
+  expect_identical(motivo(.mt_slide(var = "")), "borrador_incompleto")
+  expect_identical(motivo(.mt_slide(var = "no_existe")), "variable_fuera_de_base")
+  s <- .mt_slide(); s$payload$grafico$args$filtros <- list(region = "oeste")
+  expect_identical(motivo(s), "n0")
+  expect_identical(motivo(.mt_slide()), character(0))
+})
+
+test_that("M1: una lámina de 2 gráficos con 1 vacío sale ok con vacios = 1", {
+  raiz <- withr::local_tempdir()
+  graf <- function(var) list(graficador = "p_barras_categoricas", args = list(var = var))
+  s <- list(id = "d1", tipo = "p_slide_2_graficos",
+            payload = list(titulo = "Dos", izquierda = graf("region"), derecha = graf("")))
+  item <- .mini_lote_item(.mt_ctx(slide = s), raiz, .mt_opts(render = FALSE))
+  expect_identical(item$estado, "sin_imagen")                     # sin raster pedido: no es sin_datos
+  g <- .mini_graficos_publico(.mini_entrada_leer(raiz, item$hash))
+  expect_identical(g$pedidos, 2L)
+  expect_identical(g$vacios, 1L)
+  expect_identical(as.character(g$motivo), "borrador_incompleto")
+  if (.mt_raster_disponible()) expect_identical(.mini_lote_item(.mt_ctx(slide = s), raiz, .mt_opts())$estado, "ok")
+})
+
+test_that("M3: cada degradación al canvas «Sin datos» señala pulso_lamina_degradada con su motivo (sello, no texto)", {
+  escuchar <- function(expr) {
+    motivos <- character(0)
+    suppressWarnings(suppressMessages(withCallingHandlers(expr, pulso_lamina_degradada = function(c) motivos <<- c(motivos, c$motivo))))
+    motivos
+  }
+  falla <- function(el) .slide_abort_render("se rompió")
+  expect_identical(escuchar(.plan_render_element_degradable(falla, list())), "error_render")
+  expect_identical(escuchar(.plan_canvas_render_nulo("El renderer devolvió NULL.")), "render_nulo")
+  expect_identical(escuchar(.plan_elemento_degradado("Slot mangleado.")), "elemento_invalido")
+  # Sin nadie escuchando la señal no hace nada.
+  expect_silent(.pulso_senal_degradado("error_render", "x"))
+  # El conteo de la vista previa usa el sello: cambiar el texto del aviso no lo rompe.
+  local_mocked_bindings(.pulso_aviso = function(...) invisible(TRUE))
+  raiz <- withr::local_tempdir()
+  it <- suppressWarnings(.mini_lote_item(.mt_ctx(slide = .mt_slide(var = "no_existe")), raiz, .mt_opts(render = FALSE)))
+  expect_identical(it$estado, "sin_datos")
+})
+
+test_that("I2: la vista previa consolidada usa el orden de releases y la metodología del export", {
+  f <- .mt_fuentes()
+  orden_pedido <- NULL
+  catalogo <- list(detected = TRUE, entries = list(
+    list(base = "estudiantes", pins = list(methodology = list(configured = TRUE,
+      ppt_plan_defaults = list(region = list(excluir_opciones = list("sur")))))),
+    list(base = "docentes", pins = list(methodology = list(configured = FALSE)))))
+  local_mocked_bindings(
+    .processing_release_catalog = function(s) catalogo,
+    .graficos_consolidado_sources = function(sid, source_order = NULL) {
+      orden_pedido <<- source_order
+      list(data_sources = list(estudiantes = f$df, docentes = f$df), inst_sources = list(estudiantes = f$inst, docentes = f$inst))
+    },
+    .graficos_sources_usable = function(...) TRUE,
+    session_get = function(sid, ...) list(dir = tempdir())
+  )
+  fuentes <- .graficos_preview_fuentes("sid-x", list(scope = "consolidated"))
+  expect_identical(orden_pedido, c("estudiantes", "docentes"))
+  slide <- list(id = "c1", tipo = "p_slide_1_grafico", payload = list(titulo = "Región", grafico = list(
+    graficador = "p_barras_agrupadas", args = list(var = "estudiantes$region"))))
+  comun <- list(plan_slides = list(slide), scope = "consolidated", base = "", data_sources = fuentes$data_sources,
+                inst_sources = fuentes$inst_sources, reglas_metodologia = fuentes$reglas_metodologia,
+                template_pptx = .graficos_resolve_template_pptx(), template_id = "generic_16_9")
+  ctx <- .graficos_preview_lamina_ctx(comun, slide)
+  # Paridad: la lámina de la vista previa es la del plan que dibuja el export (misma función, mismo resultado).
+  export <- .graficos_consolidado_plan_entregable(list(slides = list(slide)), .graficos_consolidado_methodology_rules(catalogo))
+  expect_identical(ctx$slide, export$plan$slides[[1]])
+  expect_identical(as.character(unlist(ctx$slide$payload$grafico$args$excluir_opciones)), "sur")
+  expect_identical(ctx$bases, c("estudiantes", "docentes"))
+  # Y el render lo respeta: «Sur» excluida no aparece en el mini-PPTX.
+  raiz <- withr::local_tempdir()
+  r <- .mini_resolver(ctx, raiz, .mt_opts(render = FALSE))
+  texto <- .mt_texto_pptx(r$pptx)
+  expect_match(texto, "Norte", fixed = TRUE)
+  expect_false(grepl("Sur", texto, fixed = TRUE))
+})
+
 test_that("el worker resuelve las láminas desde su entrada RDS, escribe cada resultado y reporta progreso", {
   raiz <- withr::local_tempdir()
   lote_dir <- withr::local_tempdir()
@@ -245,6 +399,17 @@ test_that("el worker resuelve las láminas desde su entrada RDS, escribe cada re
   expect_identical(as.integer(p$total), 2L)
   # El thunk del job no arrastra el namespace: se deserializa sin el paquete instalado.
   expect_identical(environment(.mini_job_thunk()), globalenv())
+})
+
+test_that(".mini_reducir_png promedia bloques y es determinista", {
+  img <- array(0, c(4, 8, 3)); img[, 1:4, ] <- 1                                # mitad izquierda blanca
+  b <- png::writePNG(img)
+  r <- .mini_reducir_png(b, ancho = 2L)
+  expect_identical(r, .mini_reducir_png(b, ancho = 2L))
+  out <- png::readPNG(r)
+  expect_identical(dim(out)[1:2], c(1L, 2L))
+  expect_equal(out[1, , 1], c(1, 0))
+  expect_identical(.mini_reducir_png(b, ancho = 16L), b)                        # más angosto que el ancho: tal cual
 })
 
 test_that(".pptx_leer_parte lee una parte de una sola línea sin salto final (officer, ruta anterior) y en UTF-8", {
