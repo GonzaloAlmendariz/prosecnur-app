@@ -414,3 +414,61 @@ test_that("una semana que ya vive en la pestaña heredada no se duplica", {
   expect_s3_class(err, "api_error")
   expect_match(conditionMessage(err), "Plan del día", fixed = TRUE)
 })
+
+# --- El recibo no dice «sin_cambios» sobre una hoja en blanco -----------------
+#
+# Medido el 2026-09-21 sobre este mismo Sheets, el de aplicadores de CCSS Perfil
+# 2026-II: se limpiaron los VALORES de «Semana 1» (a mano desde Sheets, que es
+# lo mismo que un `values:clear`), se republicó, y el recibo salió
+# `{"hoja": "Semana 1", "accion": "sin_cambios"}` con cero filas — leyéndose
+# como «todo en orden» encima de un documento en blanco. El motor comparaba su
+# hash contra la developerMetadata `prosecnur.tab_state`, que sobrevive al
+# borrado de valores, así que la pestaña coincidía consigo misma y se saltaba.
+# Sólo se recuperaba borrando esa metadata a mano hoja por hoja.
+
+test_that("una semana vaciada a mano se REPONE, y el recibo no la llama sin_cambios", {
+  skip_if_not_installed("digest")
+  mock <- .sheets_api_mock()
+  mock$seed("Semana 1", values = list())
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  primera <- monitoreo_aulas_publicar_distribucion(
+    "sheet_dist", plan = .mapd_plan(), disponibilidad = .mapd_disp())
+  expect_true(isTRUE(primera$ok))
+  filas_sembradas <- length(mock$env$sheets[["Semana 1"]]$values)
+  expect_gt(filas_sembradas, 1L)
+
+  estado_de <- function(hoja) {
+    md <- Filter(function(m) identical(m$metadataKey, "prosecnur.tab_state"),
+                 mock$env$sheets[[hoja]]$developerMetadata)
+    if (!length(md)) "" else md[[1]]$metadataValue
+  }
+  estado_antes <- estado_de("Semana 1")
+  expect_true(nzchar(estado_antes))
+
+  # El vaciado: los valores se van, la metadata se queda.
+  mock$env$sheets[["Semana 1"]]$values <- list()
+  expect_identical(estado_de("Semana 1"), estado_antes)
+
+  llamadas_antes <- length(mock$env$calls)
+  segunda <- monitoreo_aulas_publicar_distribucion(
+    "sheet_dist", plan = .mapd_plan(), disponibilidad = .mapd_disp())
+
+  accion <- vapply(segunda$hojas, function(h) h$accion, character(1))
+  names(accion) <- vapply(segunda$hojas, function(h) h$hoja, character(1))
+  expect_identical(unname(accion[["Semana 1"]]), "actualizada")
+  # Y el documento vuelve a tener sus filas: el arreglo se mide en el remoto,
+  # no en el recibo.
+  expect_equal(length(mock$env$sheets[["Semana 1"]]$values), filas_sembradas)
+
+  # La PREMISA del defecto, sujeta aquí para que este test no pueda pasar por
+  # la razón equivocada: el estado guardado quedó IGUAL, o sea que el hash de lo
+  # publicado coincidía y el motor de antes tenía todo para saltarse la hoja.
+  expect_identical(estado_de("Semana 1"), estado_antes)
+
+  # Y sin pagar un request extra: la lectura que esta función ya hace para su
+  # guarda de dueño se le presta al motor por `remote_values`.
+  nuevas <- mock$env$calls[(llamadas_antes + 1L):length(mock$env$calls)]
+  sondas <- Filter(function(c) grepl("/values:batchGet", c$url), nuevas)
+  expect_length(sondas, 0L)
+})

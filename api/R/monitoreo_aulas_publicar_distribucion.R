@@ -232,7 +232,14 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
     }
     list()
   }
-  pub <- .monitoreo_sync_sheets_publish_tabs(id, tabs, format_requests = formato)
+  # `remote_values`: lo que ya se leyó arriba, prestado al motor para que
+  # compruebe que las pestañas que su hash dejaría sin escribir siguen teniendo
+  # su contenido. Es el caso que se midió el 2026-09-21 —«Semana 1» vaciada a
+  # mano y republicada saliendo «sin_cambios» con cero filas— y aquí no cuesta
+  # ni un request: la lectura estaba hecha. Las hermanas «por agendar» no se
+  # leen en este ciclo, así que de ésas el motor hace su propia sonda.
+  pub <- .monitoreo_sync_sheets_publish_tabs(id, tabs, format_requests = formato,
+                                            remote_values = as.list(leidas))
   saltadas <- as.character(unlist(pub$skipped_tabs %||% list(), use.names = FALSE))
 
   hojas <- lapply(names(tabs), function(hoja) {
