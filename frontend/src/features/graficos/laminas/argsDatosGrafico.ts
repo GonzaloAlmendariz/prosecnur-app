@@ -32,7 +32,17 @@ type Entrada = {
   /** Condición extra sobre los valores actuales (p. ej. cuántas mediciones tiene la serie). */
   cuando?: (valores: Valores) => boolean;
   /** Guarda propia de un graficador: reemplaza `siActivo` y `cuando` ahí (el mismo arg se activa con otro control). */
-  porGraficador?: Readonly<Record<string, Pick<Entrada, "siActivo" | "cuando">>>;
+  porGraficador?: Readonly<Record<string, Pick<Entrada, "siActivo" | "cuando" | "defecto">>>;
+  /**
+   * Lo que el motor dibuja sin valor guardado cuando el registro no declara `default` (el formal del constructor). El
+   * campo lleva el arg con este `default`: el interruptor y el placeholder dicen lo mismo que la lámina.
+   */
+  defecto?: unknown;
+  /**
+   * Opciones del registro que la tarjeta ya no ofrece (6a), con el aviso que acompaña a un valor guardado con ellas: ese
+   * valor se conserva y se muestra como la opción actual, pero no se puede volver a elegir.
+   */
+  opcionesRetiradas?: Readonly<Record<string, string>>;
 };
 
 // Guardas C40 (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md): el texto que la tarjeta muestra junto al control.
@@ -44,6 +54,24 @@ export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como «Sin e
 export const AYUDA_CORTES = "Porcentajes entre 0 y 100, separados por comas. Vacío: 55, 65 y 75.";
 export const AYUDA_LIMITE_SUPERIOR = "Vacío: sin tope. Lo que lo supera va en la última barra, rotulada con «+» (p. ej. «60+»).";
 export const AYUDA_TIPO_RANGO = "La leyenda de la lámina dice qué abarca la barra.";
+// 6a (Gonzalo, 2026-10-11): «custom» depende de `probs_rango`, que no tiene control en la tarjeta.
+export const AVISO_RANGO_CUSTOM = "Personalizado: se dibuja con los percentiles guardados.";
+export const AYUDA_CORTE_SCORE = "Obligatorio en «Dispersión»: separa los puntajes altos de los bajos.";
+export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. Vacío: 60 y 80.";
+
+/**
+ * 5a (Gonzalo, 2026-10-11; docs/qa/estudio-paletas-por-lista-f6-2026-10-11.md): los graficadores cuya lámina NO es
+ * nativa —salida «ruta_anterior» o «marco» en `.GRAFICOS_SALIDA_EDITOR` (api/R/graficos_metadata.R), es decir
+ * `salida_nativa = FALSE`— conservan sus controles mientras no tengan versión nativa: en ellos el dibujo ggplot SÍ es la
+ * salida, así que lo RETIRADO («sin efecto en la lámina nativa») no se les oculta. Lista explícita porque el payload del
+ * registro que llega al front no trae `salida`; argsDatosGrafico.c40.test.ts la contrasta con el registro R y con el
+ * catálogo generado (api/inst/catalogos/graficos_tipos.json). Cuando uno gane versión nativa, sale de aquí.
+ */
+export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set([
+  "p_nube_palabras", "p_puntos_comparativos", "p_tabla", "p_dim_radar", "p_dim_foda",
+]);
+const TABLA = ["p_tabla"];
+const FODA = ["p_dim_foda"];
 
 /** Mediciones (periodos) de una serie temporal: `orden_periodos` si se declaró; si no, las fuentes del primer tema. */
 export function medicionesDeSerie(valores: Valores): number {
@@ -92,7 +120,14 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   direccion_escala: { rotulo: "Dirección de la escala" },
   n_negativas: { rotulo: "Categorías negativas" },
   incluir_neutro: { rotulo: "Incluir el punto medio" },
-  incluir_total: { rotulo: "Columna Total", soloEn: ["p_dim_heatmap"] },
+  // FODA (5a): formal `incluir_total = TRUE` de p_dim_foda (reporte_plan_slides.R); el registro no declara default.
+  incluir_total: { rotulo: "Columna Total", soloEn: ["p_dim_heatmap", ...FODA], porGraficador: { p_dim_foda: { defecto: true } } },
+  // Matriz FODA (5a, ruta anterior): formales de p_dim_foda; sin valor manda el primero de su `match.arg`.
+  nivel: { rotulo: "Nivel de análisis", soloEn: FODA, defecto: "subindices" },
+  modo_foda: { rotulo: "Disposición", soloEn: FODA, defecto: "matriz" },
+  corte_score: { rotulo: "Corte de puntaje", ayuda: AYUDA_CORTE_SCORE, soloEn: FODA, cuando: (v) => v.modo_foda === "dispersion" },
+  usar_pesos: { rotulo: "Aplicar pesos", soloEn: FODA, defecto: true },
+  cortes_chip: { rotulo: "Cortes del semáforo", ayuda: AYUDA_CORTES_CHIP, placeholder: "60, 80", soloEn: FODA },
   orden_barras: { rotulo: "Orden" },
   orden: { rotulo: "Orden", soloEn: ["p_dumbbell", "p_lollipop"] },
   orden_periodos: {
@@ -128,6 +163,10 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },
   excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Códigos separados por comas." },
+  // Tabla (5a, ruta anterior): formales de p_tabla (p_radar_split.R); `sm_omit_na = TRUE` sin default en el registro.
+  // `top_n` y `sm_omit_codes` siguen sin control: recortan antes del denominador (C40, D1).
+  sm_omit_na: { rotulo: "Omitir sin respuesta", soloEn: TABLA, defecto: true },
+  umbral_rojo_pct: { rotulo: "Resaltar en rojo bajo (%)", ayuda: "0 desactiva el resaltado.", soloEn: TABLA },
   mostrar_significancia: { rotulo: "Marcar diferencias significativas" },
   significancia_alpha: { rotulo: "Nivel de significancia", siActivo: "mostrar_significancia" },
   mostrar_brecha: { rotulo: "Mostrar la brecha", ayuda: AYUDA_BRECHA, soloEn: ["p_dumbbell"] },
@@ -135,7 +174,9 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   etiqueta_brecha: { rotulo: "Unidad de la brecha", placeholder: "pts", siActivo: "mostrar_brecha", soloEn: ["p_dumbbell"] },
   // Formales de p_media_rango (e93c51d): `decimales_promedio` es el que llega (el constructor lo pasa a `chip_decimales`).
   decimales_promedio: { rotulo: "Decimales de la media", soloEn: MEDIA_RANGO },
-  tipo_rango: { rotulo: "Qué abarca la barra", ayuda: AYUDA_TIPO_RANGO, soloEn: MEDIA_RANGO },
+  tipo_rango: {
+    rotulo: "Qué abarca la barra", ayuda: AYUDA_TIPO_RANGO, soloEn: MEDIA_RANGO, opcionesRetiradas: { custom: AVISO_RANGO_CUSTOM },
+  },
   // Formal de p_histograma (e93c51d); sin default en el registro: vacío = sin tope.
   limite_superior: { rotulo: "Límite superior", ayuda: AYUDA_LIMITE_SUPERIOR, placeholder: "Sin tope", soloEn: ["p_histograma"] },
   mostrar_valores: { rotulo: "Mostrar cifras", soloEn: ["p_serie_temporal"], cuando: serieEnMarco },
@@ -170,6 +211,8 @@ const RETIRADO_EN: Readonly<Record<string, ReadonlySet<string>>> = {
 };
 
 export function esRetirado(name: string, graficador?: string): boolean {
+  // 5a: en un graficador no nativo lo retirado sigue teniendo efecto (lo dibuja ggplot).
+  if (graficador && GRAFICADORES_NO_NATIVOS.has(graficador)) return false;
   if (RETIRADOS.has(name) || RETIRADO_PREFIJO.some((p) => name.startsWith(p))) return true;
   return !!graficador && !!RETIRADO_EN[graficador]?.has(name);
 }
@@ -194,6 +237,10 @@ export type CampoDato = {
   detalle: string;
   control: ControlDato;
   placeholder: string | null;
+  /** Opciones que la tarjeta ofrece (control «opciones»): las del registro menos las retiradas, salvo la guardada. */
+  opciones: NonNullable<ArgMetadata["choices"]>;
+  /** Aviso de un valor guardado que ya no se ofrece (6a). */
+  aviso: string | null;
 };
 
 /** Valor efectivo de un interruptor: el guardado o, sin guardar, el `default` del registro (lo que el motor dibuja). */
@@ -224,8 +271,15 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
     if (guarda.cuando && !guarda.cuando(valores)) continue;
     if (!argAplica(arg, valores)) continue;
     if (e.estricto && !dependenciaElegida(arg, valores)) continue;
+    const defecto = "defecto" in guarda ? guarda.defecto : e.defecto;
+    const conDefecto = defecto !== undefined && (arg.default === undefined || arg.default === null) ? { ...arg, default: defecto } : arg;
+    const guardado = valores[name];
+    const retiradas = e.opcionesRetiradas ?? {};
+    const opciones = (arg.choices ?? []).filter((o) => !Object.hasOwn(retiradas, o.value) || o.value === guardado);
+    const aviso = typeof guardado === "string" && Object.hasOwn(retiradas, guardado) ? retiradas[guardado] : null;
     salida.push({
-      arg, rotulo: e.rotulo, ayuda: e.ayuda ?? null, detalle: arg.descripcion ?? "", control, placeholder: e.placeholder ?? null,
+      arg: conDefecto, rotulo: e.rotulo, ayuda: e.ayuda ?? null, detalle: arg.descripcion ?? "", control,
+      placeholder: e.placeholder ?? null, opciones, aviso,
     });
   }
   return salida;

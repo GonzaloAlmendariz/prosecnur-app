@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ArgMetadata, GraficadorRef } from "../../../api/graficos";
 import {
   AYUDA_BRECHA, AYUDA_CEROS, AYUDA_CORTES, AYUDA_EJE_MIN, AYUDA_LIMITE_SUPERIOR, AYUDA_MIN_N, AYUDA_TIPO_RANGO,
+  AVISO_RANGO_CUSTOM,
 } from "./argsDatosGrafico";
 import { DatosGrafico } from "./DatosGrafico";
 
@@ -62,6 +63,15 @@ describe("DatosGrafico · C40", () => {
     expect(ayudaDe(html, AYUDA_TIPO_RANGO)).toBe(true);
     expect(html).toMatch(/type="number"[^>]*placeholder="1"[^>]*min="0" max="2" step="1"/);
     expect(pintar("p_media_rango", { tipo_rango: "iqr" })).toMatch(/<option value="iqr" selected="">/);
+  });
+  it("media y rango (6a): «custom» no se ofrece; guardado, se ve como actual con su aviso enlazado al select", () => {
+    expect(pintar("p_media_rango")).not.toContain('value="custom"');
+    expect(pintar("p_media_rango")).not.toContain(AVISO_RANGO_CUSTOM);
+    const html = pintar("p_media_rango", { tipo_rango: "custom" });
+    expect(html).toMatch(/<option value="custom" selected="">Percentiles a medida<\/option>/);
+    const aviso = html.match(/<span id="([^"]+)" class="pulso-f6-dato-ayuda" role="note">([^<]+)<\/span>/);
+    expect(aviso?.[2]).toBe(AVISO_RANGO_CUSTOM);
+    expect(html).toMatch(new RegExp(`<select[^>]*aria-describedby="[^"]*${aviso?.[1] ?? "x"}"`));
   });
   it("histograma: límite superior vacío = «Sin tope», con la guarda del «+»", () => {
     const html = pintar("p_histograma");
