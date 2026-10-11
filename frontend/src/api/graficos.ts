@@ -1183,12 +1183,20 @@ export type VariablesBySource = {
   processing_mode?: string | null;
 };
 
-export type { CategoriaGrafico, GraficosCategorias } from "./graficosCategoriasNormalizer";
+export type { AvisoCategorias, CategoriaGrafico, GraficosCategorias } from "./graficosCategoriasNormalizer";
 
-/** Categorías de una pregunta para el orden por gráfico (D8): código, etiqueta, frecuencia y el orden de cada modo. */
-export async function apiGraficosCategorias(variable: string, scope: "active" | "consolidated" = "active"): Promise<GraficosCategorias> {
+/**
+ * Categorías de una pregunta para el orden por gráfico (D8): código, etiqueta, frecuencia, el orden de cada modo y sus
+ * avisos. Con `graficador`, el backend avisa además si el orden no aplica a ese gráfico (escalas, contrato §7).
+ */
+export async function apiGraficosCategorias(
+  variable: string,
+  scope: "active" | "consolidated" = "active",
+  graficador?: string,
+): Promise<GraficosCategorias> {
   const params = new URLSearchParams({ var: variable });
   if (scope === "consolidated") params.set("scope", "consolidado");
+  if (graficador) params.set("graficador", graficador);
   const raw = await handle<unknown>(await apiFetch(`/api/graficos/categorias?${params.toString()}`, { headers: headers() }));
   return normalizeGraficosCategorias(raw);
 }

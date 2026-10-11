@@ -3,6 +3,8 @@ import { normalizeGraficosConfig } from "../../../api/graficosConfigNormalizer";
 import type { GraficosCategorias } from "../../../api/graficos";
 import { mergeSlotArgsPatch } from "../store";
 import { mergeWithDefaults } from "../useGraficosAutosave";
+import { claveCategorias } from "./useCategoriasGrafico";
+import { AVISO_BASE_POR_DEFECTO, AVISO_ESCALA_ORDEN_IGNORADO, leerAvisosOrden, sinPrefijoPregunta } from "./ordenCategorias";
 import { aplicaOrden, botonTrasMover, categoriasSinRespuestas, listaDesdeMostrado, ordenMostrado, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado } from "./ordenCategorias";
 
 const datos: GraficosCategorias = {
@@ -14,6 +16,7 @@ const datos: GraficosCategorias = {
     { codigo: "3", etiqueta: "C", n: 1, pct: 0.1, residual: false },
   ],
   orden: { recetario: ["1", "2", "3", "0"], instrumento: ["1", "2", "0", "3"], frecuencia: ["1", "2", "3", "0"] },
+  avisos: [],
 };
 
 describe("orden de categorías por gráfico (D8)", () => {
@@ -142,3 +145,31 @@ describe("categoriasSinRespuestas", () => {
   });
 });
 
+
+describe("avisos de la pregunta (decisión 4, §7)", () => {
+  const P = "¿Cuál es su edad?";
+  it("recorta el prefijo «“<pregunta>”: » sólo si coincide exacto", () => {
+    expect(sinPrefijoPregunta(`“${P}”: una categoría no tiene respuestas.`, P)).toBe("Una categoría no tiene respuestas.");
+    expect(sinPrefijoPregunta(`“${P}”: una categoría no tiene respuestas.`, "¿Cuál es su edad")).toBe(`“${P}”: una categoría no tiene respuestas.`);
+    expect(sinPrefijoPregunta(`“${P}”:una`, P)).toBe(`“${P}”:una`);
+    expect(sinPrefijoPregunta(`“${P}”: `, P)).toBe(`“${P}”: `);
+    expect(sinPrefijoPregunta("“”: x", "")).toBe("“”: x");
+    expect(sinPrefijoPregunta(`“${P}”: «Otro» va al final.`, P)).toBe("«Otro» va al final.");
+  });
+
+  it("separa la de escala, destaca base_por_defecto y conserva el orden y los códigos desconocidos", () => {
+    const r = leerAvisosOrden({ pregunta: P, avisos: [
+      { codigo: AVISO_BASE_POR_DEFECTO, texto: "las categorías son de otra base" },
+      { codigo: AVISO_ESCALA_ORDEN_IGNORADO, texto: "x" },
+      { codigo: "residuales_al_final", texto: "base_por_defecto escala_orden_ignorado" },
+      { codigo: "nuevo", texto: "y" },
+    ] });
+    expect(r.escala).toEqual({ codigo: AVISO_ESCALA_ORDEN_IGNORADO, texto: "x", destacada: false });
+    expect(r.notas.map((n) => [n.codigo, n.destacada])).toEqual([[AVISO_BASE_POR_DEFECTO, true], ["residuales_al_final", false], ["nuevo", false]]);
+    expect(leerAvisosOrden(null)).toEqual({ notas: [], escala: null });
+  });
+
+  it("la caché del hook distingue el graficador (el aviso de escala depende de él)", () => {
+    expect(claveCategorias("s", "active", "d$p7", "p_pie")).not.toBe(claveCategorias("s", "active", "d$p7", "p_barras_apiladas"));
+  });
+});

@@ -1,16 +1,18 @@
 // Fila «Orden» de la tarjeta de un gráfico categórico, agrupado, de torta o de dona (D8; contrato
 // docs/qa/contrato-orden-categorias-f6-2026-10-10.md). Recetario por defecto —y dice qué modo aplica—, Frecuencia,
 // Instrumento o Personalizado (lista arrastrable con ratón y con teclado; la clave es el código, se ve la etiqueta) e
-// «Invertir». Persiste en `args.orden_categorias` del gráfico.
+// «Invertir». Persiste en `args.orden_categorias` del gráfico. Encima de la lista, los avisos que el backend da de la
+// pregunta (decisión 4, §7): se ramifica por `codigo`, nunca por el texto.
 
 import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
-import { AlertTriangle, ArrowDown, ArrowUp, GripVertical, Loader2, RefreshCw } from "../../../vendor/lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, GripVertical, Info, Loader2, RefreshCw } from "../../../vendor/lucide-react";
 import { Switch } from "../../../components/Switch";
 import type { GraficosCategorias } from "../../../api/graficos";
 import {
   ATRIBUTO_ACCION_ORDEN,
   categoriasSinRespuestas,
   enfocarTrasMover,
+  leerAvisosOrden,
   leerOrden,
   listaDesdeMostrado,
   listaPersonalizada,
@@ -21,24 +23,30 @@ import {
   rotuloRecetario,
   tieneOrdenHeredado,
   type ModoOrden,
+  type NotaOrden,
   type OrdenCategorias,
 } from "./ordenCategorias";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import "./ordenCategorias.css";
 
 type Props = {
+  /** Calificada `base$var` (`varCalificada`). */
   variable: string;
+  /** Id del graficador: con él el backend avisa si el orden no aplica (escalas). */
+  graficador: string;
   args: Readonly<Record<string, unknown>>;
   scope: "active" | "consolidated";
   onCambio: (orden: OrdenCategorias | null) => void;
 };
 
-export function OrdenCategoriasGrafico({ variable, args, scope, onCambio }: Props) {
+export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCambio }: Props) {
   const id = useId();
-  const estado = useCategoriasGrafico(variable, scope);
+  const estado = useCategoriasGrafico(variable, scope, graficador);
   const orden = leerOrden(args);
   const heredado = tieneOrdenHeredado(args);
   const datos = estado.fase === "lista" ? estado.datos : null;
+  const { notas, escala } = leerAvisosOrden(datos);
+  const escalaId = `${id}-escala`;
 
   const guardar = (o: OrdenCategorias) => onCambio(ordenAGuardar(o));
   const cambiarModo = (modo: ModoOrden) => {
@@ -54,6 +62,8 @@ export function OrdenCategoriasGrafico({ variable, args, scope, onCambio }: Prop
           id={`${id}-modo`}
           className="pulso-f6-input pulso-f6-dato-select"
           value={orden.modo}
+          disabled={escala !== null}
+          aria-describedby={escala ? escalaId : undefined}
           onChange={(e) => cambiarModo(e.target.value as ModoOrden)}
         >
           <option value="recetario">{rotuloRecetario(datos, heredado)}</option>
@@ -62,15 +72,32 @@ export function OrdenCategoriasGrafico({ variable, args, scope, onCambio }: Prop
           <option value="personalizado" disabled={!datos}>Personalizado</option>
         </select>
       </div>
-      <div className="pulso-f6-orden-invertir">
+      {/* El Switch compartido no acepta aria-describedby: la nota se enlaza al grupo que lo contiene. */}
+      <div
+        className="pulso-f6-orden-invertir"
+        role="group"
+        aria-labelledby={`${id}-inv`}
+        aria-describedby={escala ? escalaId : undefined}
+      >
         <span className="pulso-f6-dato-rotulo" id={`${id}-inv`}>Invertir</span>
-        <Switch checked={orden.invertir} ariaLabel="Invertir el orden" onToggle={() => guardar({ ...orden, invertir: !orden.invertir })} />
+        <Switch
+          checked={orden.invertir}
+          ariaLabel="Invertir el orden"
+          disabled={escala !== null}
+          onToggle={() => guardar({ ...orden, invertir: !orden.invertir })}
+        />
       </div>
+      {escala && <NotaAviso nota={escala} id={escalaId} />}
       {orden.modo === "recetario" && heredado && (
         <span className="pulso-f6-dato-ayuda">Este gráfico trae un orden elegido antes; manda mientras no elijas otro modo.</span>
       )}
       <EstadoDatos estado={estado} />
-      {orden.modo === "personalizado" && datos && (
+      {notas.length > 0 && (
+        <ul className="pulso-f6-orden-avisos" aria-label="Avisos de la pregunta">
+          {notas.map((n, i) => <li key={`${n.codigo}-${i}`}><NotaAviso nota={n} /></li>)}
+        </ul>
+      )}
+      {orden.modo === "personalizado" && datos && !escala && (
         <ListaOrden
           datos={datos}
           lista={ordenMostrado(orden.lista, datos, orden.invertir)}
@@ -79,6 +106,16 @@ export function OrdenCategoriasGrafico({ variable, args, scope, onCambio }: Prop
         />
       )}
     </div>
+  );
+}
+
+function NotaAviso({ nota, id }: { nota: NotaOrden; id?: string }) {
+  const Icono = nota.destacada ? AlertTriangle : Info;
+  return (
+    <span id={id} className={`pulso-f6-orden-aviso${nota.destacada ? " is-destacado" : ""}`} data-aviso={nota.codigo}>
+      <Icono size={13} aria-hidden="true" className="pulso-f6-orden-aviso-icono" />
+      <span>{nota.texto}</span>
+    </span>
   );
 }
 
