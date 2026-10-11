@@ -49,7 +49,7 @@ import {
 import { useMotorStore } from "../../store";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
-import { frameIntegrity, marcoFueConstruido } from "../shared/frameIntegrity";
+import { frameIntegrity, marcaDeCriterios, marcoFueConstruido } from "../shared/frameIntegrity";
 import { filtrosLegacyPayload, normalizeUniversityAulasConfig } from "../shared/study";
 import {
   copiarVariableCriterio,
@@ -957,7 +957,7 @@ export function CursosHorarioMarcoTab({
               : "El marco está al día con los criterios confirmados.";
 
   return (
-    <div className="cmv2-chfp" data-audit-ready={ready && marcoPublicable ? "true" : "false"}>
+    <div className="cmv2-chfp" data-audit-ready={marcaDeCriterios(ready, integridadFrame.status)}>
       {avisaPrecedencia ? <AvisoPrecedenciaSuite /> : null}
       {onReconstruir && (
         <div

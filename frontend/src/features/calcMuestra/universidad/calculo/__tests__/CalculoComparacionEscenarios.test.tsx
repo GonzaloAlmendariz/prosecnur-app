@@ -218,7 +218,8 @@ describe("CalculoComparacionEscenarios", () => {
     p2.comparison_hash = "comparison-other";
     const html = render(p1, p2);
     expect(html).toContain('data-state="invalid"');
-    expect(html).toContain('data-audit-ready="false"');
+    // Fallar cerrado es no publicar cifras; la readiness clasifica el estado.
+    expect(html).toContain('data-audit-ready="vacio:comparacion-invalid"');
     expect(html).not.toContain("2.372");
     expect(html).not.toContain("5.932");
   });

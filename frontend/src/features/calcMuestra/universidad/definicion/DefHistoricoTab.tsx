@@ -42,7 +42,7 @@ export function DefHistoricoTab({
   return (
     <section
       className="cmv2-definition-stack"
-      data-audit-ready={referencia ? "true" : "false"}
+      data-audit-ready={referencia ? "true" : "vacio:sin-referencia-historica"}
       data-qa-geometry-group="calc-muestra/definicion-historico"
       data-qa-geometry-contract="intrinsic"
       aria-label="Base histórica de referencia"

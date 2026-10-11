@@ -116,7 +116,7 @@ export function CalculoCursosHorarioFacultadTab({
     return (
       <div
         className="cmv2-calc-stack"
-        data-audit-ready="false"
+        data-audit-ready={fijadasTotal > 0 ? "vacio:titulares-fijados-sin-recalcular" : "vacio:sin-resultado"}
         data-surface-group="calc-muestra-calculo"
         data-surface-contract="resultado-r-alumnos-por-ch"
         data-qa-geometry-group="calc-muestra/calculo-cursos-horario"
@@ -141,7 +141,10 @@ export function CalculoCursosHorarioFacultadTab({
   return (
     <div
       className="cmv2-calc-stack"
-      data-audit-ready={resultadoDesactualizado ? "false" : "true"}
+      // Desactualizado es terminal hasta que alguien recalcula: se clasifica,
+      // no se deja en `false`. Lo que falla cerrado es `data-frame-stale` y el
+      // botón de confirmar deshabilitado, no la readiness.
+      data-audit-ready={resultadoDesactualizado ? "vacio:resultado-desactualizado" : "true"}
       data-marco-stale={marcoDesactualizado || undefined}
       data-frame-stale={frameDesactualizado || undefined}
       data-surface-group="calc-muestra-calculo"

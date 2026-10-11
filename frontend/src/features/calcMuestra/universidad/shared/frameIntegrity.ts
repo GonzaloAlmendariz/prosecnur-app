@@ -200,3 +200,18 @@ export function notaEstadoDelMarco(
   if (status === "unverifiable") return "frame no verificable · reconstruye";
   return null;
 }
+
+/**
+ * `data-audit-ready` de las pestañas de criterios (estudiante y curso-horario).
+ *
+ * Sin catálogo o con un marco no publicable la pestaña ya resolvió qué mostrar:
+ * es un estado TERMINAL, no una carga. En `false` colgaba el QA visual desde
+ * que el contrato de readiness lee todas las marcas del documento (E15/AD6).
+ */
+export function marcaDeCriterios(
+  catalogoListo: boolean,
+  integridad: FrameIntegrityStatus,
+): string {
+  if (!catalogoListo) return "vacio:sin-catalogo-de-criterios";
+  return integridad === "consistent" ? "true" : `vacio:marco-${integridad}`;
+}

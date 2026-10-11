@@ -177,7 +177,7 @@ export default function CalidadDeCampo({
     // **Un panel del chrome no declara que la vista está lista.**
     //
     // Esto emitía `data-audit-ready="monitoreo-calidad-campo"`, y `estadoListo()`
-    // resuelve con `querySelector`, o sea con la PRIMERA marca del documento. En
+    // resolvía entonces con la PRIMERA marca del documento (hoy las lee todas). En
     // las secciones «avance» y «calidad» —las dos que montan este panel— la
     // marca de un panel del chrome quedaba disponible mientras la página seguía
     // cargando, así que un perfil que apaga su marca poniéndola en `undefined`

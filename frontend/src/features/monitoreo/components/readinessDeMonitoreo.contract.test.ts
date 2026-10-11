@@ -6,11 +6,12 @@ import { describe, expect, it } from "vitest";
 /**
  * La marca de readiness la publica la PÁGINA, nunca un panel del chrome.
  *
- * `estadoListo()` resuelve con `querySelector("[data-audit-ready]")`, o sea con
- * la primera marca del documento. Una segunda marca puesta por un panel que se
- * monta durante la carga responde «listo» por una vista que no es suya, y ahí
- * se cae la única defensa que tiene el QA visual contra capturar la pantalla de
- * carga.
+ * `estadoListo()` resolvía con la primera marca del documento; desde E15/AD6
+ * lee todas y bloquea con cualquier `false`. Pero una página que BORRA su
+ * marca mientras carga no publica ningún `false`, así que una marca fija de un
+ * panel que se monta en ese tramo sigue respondiendo «listo» por una vista que
+ * no es suya, y ahí se cae la única defensa que tiene el QA visual contra
+ * capturar la pantalla de carga.
  *
  * Pasó de verdad: `CalidadDeCampo` —que los CUATRO perfiles montan en las
  * secciones «avance» y «calidad»— publicaba `data-audit-ready` fija. Los tres

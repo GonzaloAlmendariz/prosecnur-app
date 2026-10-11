@@ -568,7 +568,10 @@ export function CriteriosRadiografiaCardDetalle({
       data-gates={card.gateIds.length}
       data-state={card.state}
       data-context={context}
-      data-audit-ready={card.state === "v2" && i18bComplete}
+      data-audit-ready={card.state === "v2" && i18bComplete
+        ? "true"
+        // Terminal: el estado de la tarjeta sale de props, no de una carga.
+        : `vacio:radiografia-${card.state === "v2" ? "i18b-incompleta" : card.state}`}
       data-qa-geometry-group="calc-muestra/criterios-radiografia-pasos"
       data-qa-geometry-contract="intrinsic"
     >
