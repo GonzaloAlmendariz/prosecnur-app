@@ -23,6 +23,7 @@ Acreditación Arte y Diseño PUCP (Docentes, Administrativos, Estudiantes).
 | 10 | Usar el formulario del editor (con su lógica) como instrumento de la base | contrato de instrumento | Bloqueado: requiere decisión/ADR |
 | 11 | El refresh de SM («Traer respuestas») reconstruía el instrumento sin el orden del editor | `.sm_mb_prepare_refresh_snapshot` | Hecho: adopta el orden antes de la lógica compartida y renueva la marca |
 | 12 | Reescritura de lógica: formas no reconocidas (`'x' = ${v}`, comillas dobles, `count-selected`) omiten la lista; `selected(., 'x')` en constraints no se detecta | `carga_sm_orden_editor.R` | Pendiente (sin efecto hoy: el generador solo emite `${v} = 'x'`/`selected`) |
+| 13 | **Base multi-fuente por API con encuestas hermanas de numeración distinta**: las respuestas se emparejan por nombre de posición (`pN`) y no por pregunta; las columnas se corren sin aviso | `sm_multibase_api_responses_to_canonical_data`, fuentes del refresh multi-fuente | Bloqueado: decisión de Gonzalo (guard que bloquee vs. emparejar por texto de pregunta). Reproducido con Contabilidad Egresados Personalizado + Telefónico: «género» recibe años de egreso |
 
 ## Aprendido
 
@@ -42,3 +43,8 @@ Acreditación Arte y Diseño PUCP (Docentes, Administrativos, Estudiantes).
 - La re-revisión deja supuestos: biyección exacta por etiqueta (una etiqueta editada omite la
   lista), matrices con el mapa en la variable madre no adoptan, y no cambiar el orden en el
   editor una vez que hay trabajo sobre la base.
+- Contabilidad (v6, bases por SAV con equivalencias): las 7 encuestas 2026, una por una,
+  coinciden con el conteo crudo de SM salvo consentimiento y «Otro» con texto. Las versiones
+  «Personalizado» tienen una pregunta extra al inicio (código PUCP): toda la numeración `pN` se
+  corre en uno respecto de Telefónico/Egresados/Docentes (34 de 42 y 32 de 40 nombres comunes
+  son otra pregunta). Comparar códigos por nombre entre esas encuestas da verde por ausencia.
