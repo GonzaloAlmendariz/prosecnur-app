@@ -42,7 +42,9 @@ test_that("en el PPT la leyenda sale como formas nativas a 12 pt", {
       data = x$dat, instrumento = x$inst, plan = x$plan,
       presets = p_presets(barras_apiladas = .PRESETS_DEFAULT_PULSO$barras_apiladas),
       path_ppt = out, mensajes_progreso = FALSE)))
-    xml <- paste(readLines(unz(out, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+    # Lectura binaria: officer escribe la ruta anterior en una sola línea sin salto final y readLines(unz()) la lee vacía
+    # en R 4.3.3 (mismo motivo que .pptx_leer_parte, 8804e22).
+    xml <- .pptx_leer_parte(out, "ppt/slides/slide1.xml")
     marca <- if (length(meta)) "prosecnur:leyenda:texto:" else 'name="leyenda:texto"'
     expect_match(xml, marca, fixed = TRUE)
     expect_match(xml, ">Totalmente de acuerdo<", fixed = TRUE)
