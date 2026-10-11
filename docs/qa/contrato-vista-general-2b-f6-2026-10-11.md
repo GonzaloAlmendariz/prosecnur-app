@@ -97,3 +97,26 @@ como partes extra; cambiar el interruptor invalida todas las miniaturas visibles
 - 23 (G5): sí.
 - 17 (G7): sin decisión cerrada; deshabilitado con motivo hasta estudiar la matriz de equivalencias de Procesamiento.
 
+## Anexo — la lámina de «Otros» del recetario (decisión 21), para el motor
+
+El recetario sí la dibuja: `recetario-moderna.pptx` página 203 (`ppt/slides/slide120.xml`, clave `m5:4`,
+`recetario_estructura.json:255-262`); fuente `docs/qa/motor-ppt-2026-10-06/herramientas/recetario_m5.R:85-100` («C6 Otros
+aparte»; etiqueta del motor: «auto_otros_slides: PROPUESTA (agrupar por texto normalizado, contar, ordenar y repartir en
+2 columnas. Sólo si hay 5 o más respuestas: H45, H46)»). Hallazgos H45 (P0, respuestas crudas pegadas), H46 (lámina con 1–2
+respuestas), H47 (espacio perdido en el título) en `checklist-motor-ppt-diagnostico-2026-10-06.md:140-142`.
+
+Forma del recetario: antetítulo «OTROS APARTE» (10 pt negrita) y título «Respuestas «Otros»: <pregunta>» (24 pt); pares
+(texto, n) agrupados por texto normalizado, ordenados por n descendente y alfabético; siempre dos columnas de ancho
+(ANCHO − 0.5)/2 llenadas por columna (ceiling(n/2) en la 1.ª); fila a paso 0.42 in con mini-barra
+0.5·n/max+0.04 × 0.2 (tinta si n > 1, tenue si n = 1), cuenta a +0.62 (12 pt negrita) y texto a +1.0 (12 pt); ~12 filas por
+columna (~24 ítems por lámina) y «(cont.)» sin achicar la letra; pie «Base: N respuestas en «Otros» en la pregunta …»
+(10 pt negrita) con N = suma de las cuentas; umbral: sólo con 5 o más respuestas. Word: tabla de dos bloques «Puesto | N.º»
+(`recetario_word.R:564-568`).
+
+Motor hoy (`reporte_plan_ppt.R`, CONGELADO): `.other_text_info_for_ref` (~2716-2776) crudo sin agrupar;
+`.grouped_otros_info_for_element` (~2858-2928); `.merge_otros_infos` (~3143-3163) sin fusionar duplicados;
+`.reporte_plan_insert_otros_slides` (~3165-3233) sin umbral; `.make_otros_slides` (~3093-3133, título «Otros: …» sin
+«(cont.)» ni antetítulo); paginación por líneas estimadas (~3047-3091); render (~7935-8034) en un solo run con «\n» (no
+parte línea en OOXML), 16 pt, base 12 pt sin negrita, sin mini-barra. Alinear: mover la composición a un archivo nuevo del
+motor nativo (p. ej. `api/R/lamina_otros.R`) para que el congelado sólo pierda líneas; default sigue apagado.
+
