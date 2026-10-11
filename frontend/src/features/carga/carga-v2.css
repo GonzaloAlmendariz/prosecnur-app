@@ -3448,105 +3448,7 @@
    panel revisitable. El diálogo se monta fuera del .pulso-carga-frame (a nivel
    de body via el overlay), por eso estas reglas no se anidan bajo el frame. */
 
-.pulso-recon-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: color-mix(in srgb, var(--pulso-text) 34%, transparent);
-  animation: cga-overlay-in var(--motion-dur-fast) ease both;
-}
-
-.pulso-recon-dialog {
-  display: flex;
-  flex-direction: column;
-  width: min(600px, 100%);
-  max-height: min(720px, calc(100vh - 48px));
-  border: 1px solid var(--pulso-border);
-  border-radius: 18px;
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-popover);
-  animation: cga-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
-  transform-origin: top center;
-}
-
-.pulso-recon-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.pulso-recon-head-icon {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: 10px;
-  color: var(--pulso-warn-fg);
-  background: var(--pulso-warn-bg);
-}
-
-.pulso-recon-head-copy {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.pulso-recon-kicker {
-  margin: 0 0 3px;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.pulso-recon-head h2 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 17px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.pulso-recon-close {
-  flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid var(--pulso-border);
-  border-radius: 9px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  cursor: pointer;
-  transition:
-    background var(--motion-dur-fast) ease,
-    color var(--motion-dur-fast) ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .pulso-recon-close:hover:not(:disabled) {
-    background: var(--pulso-surface-2);
-    color: var(--pulso-text);
-  }
-}
-
-.pulso-recon-close:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .pulso-recon-explain {
-  margin: 14px 20px 0;
   display: flex;
   align-items: flex-start;
   gap: 9px;
@@ -3570,10 +3472,9 @@
 }
 
 .pulso-recon-list {
-  margin: 12px 20px 4px;
+  margin: 0;
   padding: 0;
   list-style: none;
-  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -3653,7 +3554,6 @@
 }
 
 .pulso-recon-error {
-  margin: 8px 20px 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -3670,73 +3570,10 @@
   flex: 0 0 auto;
 }
 
-.pulso-recon-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 14px 20px 18px;
-  margin-top: auto;
-  border-top: 1px solid var(--pulso-border);
-}
-
 .pulso-recon-count {
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
-}
-
-.pulso-recon-buttons {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pulso-recon-secondary,
-.pulso-recon-primary {
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 16px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-  transition:
-    transform var(--motion-dur-press) var(--motion-ease-out),
-    background var(--motion-dur-fast) ease,
-    border-color var(--motion-dur-fast) ease;
-}
-
-.pulso-recon-secondary {
-  border: 1px solid var(--pulso-border);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-}
-
-.pulso-recon-primary {
-  border: 1px solid var(--pulso-primary);
-  background: var(--pulso-primary);
-  color: #fff;
-  box-shadow: 0 2px 8px var(--pulso-primary-soft);
-}
-
-.pulso-recon-secondary:active:not(:disabled),
-.pulso-recon-primary:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.pulso-recon-secondary:disabled,
-.pulso-recon-primary:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.pulso-recon-backdrop :focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
 
 /* Panel revisitable dentro de Carga — reutiliza el lenguaje de la tarjeta de

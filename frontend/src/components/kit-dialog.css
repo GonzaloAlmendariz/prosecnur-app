@@ -1,0 +1,297 @@
+/* Dialog y Sideover del kit (L1) — spec remasterización §5.2, maqueta L01.
+   Una sola anatomía para los dos: cabecera (tile + título + subtítulo +
+   cerrar), stepper opcional, cuerpo con scroll propio y pie con la ayuda de
+   teclado a la izquierda y las acciones a la derecha.
+
+   El acento sale de --module-accent, que Dialog.tsx re-inyecta en la raíz
+   del portal (moduleChromeVars) porque el portal vive fuera del frame del
+   módulo. Sin módulo cae al primario global. */
+
+.pulso-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--pulso-z-modal);
+  background: color-mix(in srgb, var(--pulso-text) 42%, transparent);
+  backdrop-filter: blur(6px) saturate(1.02);
+}
+
+.pulso-overlay {
+  --pulso-overlay-accent: var(--module-accent, var(--pulso-primary));
+  --pulso-overlay-accent-soft: var(--module-accent-soft, var(--pulso-primary-soft));
+  --pulso-overlay-accent-border: var(--module-accent-border, var(--pulso-primary-border));
+  position: fixed;
+  z-index: var(--pulso-z-modal);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-popover);
+  outline: none;
+}
+
+/* Dentro del portal, los componentes que leen el primario directo (focus
+   ring, PulsoButton primario) siguen al acento del módulo, igual que en su
+   frame (tokens.css, «Paleta de módulo — mecanismo único»). */
+.pulso-overlay[data-module] {
+  --pulso-primary: var(--module-accent);
+  --pulso-primary-soft: var(--module-accent-soft);
+  --pulso-primary-border: var(--module-accent-border);
+}
+
+/* ---------- Dialog: centrado, 480 / 720 / 980 ---------- */
+
+/* El marco recorta a su radio (overflow: clip): un cuerpo `flush` que pinta
+   su propio fondo hasta el borde —la columna izquierda de un maestro-detalle
+   sin pie— no puede dibujar esquinas cuadradas sobre el radio. `clip` no crea
+   un dueño de scroll: el único sigue siendo el cuerpo. */
+.pulso-dialog {
+  --pulso-dialog-tope: 680px;
+  inset: 0;
+  margin: auto;
+  width: min(720px, calc(100vw - var(--pulso-space-7)));
+  height: fit-content;
+  max-height: calc(100dvh - var(--pulso-space-9));
+  border-radius: var(--pulso-radius-panel);
+  overflow: clip;
+  transform-origin: center;
+}
+
+.pulso-dialog--sm {
+  --pulso-dialog-tope: 560px;
+  width: min(480px, calc(100vw - var(--pulso-space-7)));
+}
+
+.pulso-dialog--lg {
+  --pulso-dialog-tope: 820px;
+  width: min(980px, calc(100vw - var(--pulso-space-7)));
+}
+
+/* Alto fijo (C2): el marco lo dan el size y el viewport, nunca la cantidad de
+   ítems. Cabecera y pie fijos; el cuerpo crece hasta llenar y posee el vacío. */
+.pulso-dialog--alto-fijo {
+  height: min(var(--pulso-dialog-tope), calc(100dvh - var(--pulso-space-9)));
+}
+
+/* Un hijo único de un cuerpo flush (el layout maestro-detalle) ocupa todo el
+   alto del cuerpo: sus columnas son las que scrollean, no el cuerpo. */
+.pulso-dialog--alto-fijo .pulso-dialog__body--flush > :only-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pulso-dialog[data-state="open"] {
+  animation: pulso-dialog-in var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.pulso-dialog[data-state="closed"] {
+  animation: pulso-dialog-out var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@keyframes pulso-dialog-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pulso-dialog-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+/* ---------- Sideover: 520 px a la derecha ---------- */
+
+.pulso-sideover {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(520px, 92vw);
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+}
+
+.pulso-sideover[data-state="open"] {
+  animation: pulso-sideover-in var(--motion-dur-panel) var(--motion-ease-drawer);
+}
+
+.pulso-sideover[data-state="closed"] {
+  animation: pulso-sideover-out var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@keyframes pulso-sideover-in {
+  from { opacity: 0; transform: translateX(var(--pulso-space-6)); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pulso-sideover-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(var(--pulso-space-6)); }
+}
+
+.pulso-dialog-overlay[data-state="open"] {
+  animation: pulso-overlay-in var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.pulso-dialog-overlay[data-state="closed"] {
+  animation: pulso-overlay-out var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@keyframes pulso-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulso-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ---------- Anatomía ---------- */
+
+.pulso-dialog__head {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  flex: 0 0 auto;
+  padding: var(--pulso-space-4) 18px var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-dialog__tile {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--pulso-radius);
+  border: 1px solid var(--pulso-overlay-accent-border);
+  background: var(--pulso-overlay-accent-soft);
+  color: var(--pulso-overlay-accent);
+}
+
+.pulso-dialog__tile--aviso {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-dialog__tile--peligro {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-dialog__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-dialog__title {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 17px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: -0.2px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.pulso-dialog__subtitle {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.pulso-dialog__close {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+.pulso-dialog__stepper {
+  flex: 0 0 auto;
+  padding: var(--pulso-space-3) 18px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* El cuerpo es el ÚNICO dueño de scroll del overlay (No Scroll Jail): la
+   cabecera y el pie quedan fijos y el contenido largo se desplaza aquí. */
+.pulso-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--pulso-space-4) 18px;
+}
+
+.pulso-dialog__body--flush {
+  gap: 0;
+  padding: 0;
+}
+
+.pulso-dialog__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  padding: var(--pulso-space-3) 18px 14px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  border-radius: 0 0 var(--pulso-radius-panel) var(--pulso-radius-panel);
+}
+
+.pulso-sideover .pulso-dialog__foot {
+  border-radius: 0;
+}
+
+.pulso-dialog__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.pulso-dialog__status {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-dialog__status:not(:first-child) {
+  margin-left: var(--pulso-space-2);
+}
+
+.pulso-dialog__actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.pulso-dialog__kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 5px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-bold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-dialog[data-state],
+  .pulso-sideover[data-state],
+  .pulso-dialog-overlay[data-state] {
+    animation: none;
+  }
+}
