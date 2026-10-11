@@ -330,7 +330,18 @@ async function runViewport(opts, setup, viewport) {
     await page.waitForTimeout(350);
   }
   let waitSelectorMatched = true;
-  if (opts.waitSelector) {
+  if (opts.waitSelector === "[data-audit-ready]") {
+    // La espera por defecto aplica la regla del runtime: manda la marca más
+    // externa y "false" es «todavía carga». Un frame que carga ya escribe
+    // `data-audit-ready="false"`, así que esperar el atributo a secas
+    // capturaría la vista a medio cargar.
+    waitSelectorMatched = await page.waitForFunction(() => {
+      const marca = document.querySelector("[data-audit-ready]");
+      return Boolean(marca) && marca.getAttribute("data-audit-ready") !== "false";
+    }, null, { timeout: opts.timeoutMs })
+      .then(() => true)
+      .catch(() => false);
+  } else if (opts.waitSelector) {
     waitSelectorMatched = await page.locator(opts.waitSelector).first()
       .waitFor({ state: "attached", timeout: opts.timeoutMs })
       .then(() => true)
