@@ -13,8 +13,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
+  /* Sin borde ni radio propios: el marco es del workbench (encaje junto al rail, ver graficosPestanas.css). */
   background: var(--pulso-surface);
   overflow: hidden;
 }
@@ -24,14 +23,17 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
+  align-content: center;
   gap: var(--pulso-space-1) var(--pulso-space-4);
-  min-height: 44px;
-  padding: var(--pulso-space-2) var(--pulso-space-4);
-  border-bottom: 1px solid var(--pulso-border);
+  min-height: calc(var(--pulso-control-height-md) + 2 * var(--pulso-rail-bubble-offset));
+  padding: var(--pulso-rail-bubble-offset) var(--pulso-space-4);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
 }
 
 .pulso-f6-estilo-titulo {
   margin: 0;
+  /* La caja del título mide la fila de la barra: arranca a la altura del primer botón del rail en todas las pestañas. */
+  line-height: var(--pulso-control-height-md);
   font-size: 15px;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);

@@ -21,11 +21,11 @@
   display: flex;
   align-items: center;
   gap: var(--pulso-space-2);
-  height: 44px;
+  height: calc(var(--pulso-control-height-md) + 2 * var(--pulso-rail-bubble-offset));
   min-width: 0;
   padding: 0 var(--pulso-space-3);
   background: var(--pulso-surface);
-  border-bottom: 1px solid var(--pulso-border);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
   overflow: hidden;
 }
 
