@@ -141,7 +141,7 @@ revisa por el loop.
 | D10 | ¿«Marcar cierre» debe poder deshacerse desde la UI? | censo de acciones §6 | recomendación: sí, «Reabrir campo» con motivo | ☐ |
 | D11 | ¿«Actualizar» en territorial incluye la Hoja de ruta por defecto? | censo de acciones §6 | recomendación: sí, excluible por fuente en el menú | ☐ |
 | D12 | ¿Se retiran las tarjetas de fase de la consola territorial? | censo de acciones §6 | recomendación: sí, hoy no cambian la fase de la UI | ☐ |
-| D13 | El carmesí de Monitoreo choca con el color de peligro: ¿tono o pieza `--danger`? | censo de acciones §6 | recomendación: cambiar la pieza `--danger` para que se distinga del tono a simple vista | ☐ |
+| D13 | El carmesí de Monitoreo choca con el color de peligro: ¿tono o pieza `--danger`? | censo de acciones §6 | **Resuelta (2026-10-11, Gonzalo): «Cambiar --danger».** El tono `--pulso-module-monitoring` (#a0464e) no se mueve; la pieza `--danger` pasa a contorno rojo vivo con ícono y relleno sólido solo en el botón final de confirmación, en un rojo que se separa del carmesí. Se ejecuta en la Vuelta 0 (reglas de botón, L26) | ☑ |
 | D8 | Desduplicar Telefónico ↔ Acreditación | decisión de independencia vigente (no fusionar) | la independencia es decisión del dueño | extraer solo primitivas puras (L33); la semántica de familia no se toca |
 
 ## Ledger
