@@ -44,7 +44,7 @@ export const GRAFICOS_JSON_SECTIONS: readonly SeccionJson[] = [
   { id: "presets", label: "Estilo para PPT", help: "Bases visuales para PowerPoint." },
   { id: "w_presets", label: "Estilo para Word", help: "Formato de gráficos y tablas." },
   { id: "documento_word", label: "Documento Word", help: "Portada, apertura, redondeo y contacto." },
-  { id: "estilo_cliente", label: "Estilo del cliente", help: "Logos y letra; un logo sólo se aplica si ya está en el proyecto." },
+  { id: "estilo_cliente", label: "Identidad", help: "Logos y letra; un logo sólo se aplica si ya está en el proyecto." },
   { id: "paletas", label: "Colores", help: "Paletas de respuestas y categorías, con sus vínculos a listas." },
   { id: "iconos", label: "Íconos", help: "Recursos para láminas de población." },
   { id: "overrides_reusables", label: "Estilos reutilizables", help: "Ajustes guardados para varios gráficos." },

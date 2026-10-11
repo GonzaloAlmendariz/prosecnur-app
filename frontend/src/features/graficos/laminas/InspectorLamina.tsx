@@ -301,7 +301,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
         <History size={14} aria-hidden="true" />
         <span>
           Los logos y la letra del Word de todo el informe se fijan en la pestaña{" "}
-          <button type="button" className="pulso-f6-texto-boton" onClick={() => irA("pestana", "estilo")}>Estilo del cliente</button>.
+          <button type="button" className="pulso-f6-texto-boton" onClick={() => irA("pestana", "estilo")}>Identidad</button>.
         </span>
       </p>
     </div>

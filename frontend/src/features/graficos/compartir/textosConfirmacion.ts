@@ -35,7 +35,7 @@ export function textoAvisosImportacion(avisos: AvisosImportacion = {}): string {
     partes.push(`El archivo no trae ${lista(ausentes)}: ${ausentes.length === 1 ? "queda" : "quedan"} como está${ausentes.length === 1 ? "" : "n"}.`);
   }
   if (logos.length) {
-    partes.push(`${logos.length === 1 ? "El logo" : "Los logos"} ${lista(logos)} no ${logos.length === 1 ? "está" : "están"} en este proyecto y se ${logos.length === 1 ? "descarta" : "descartan"}: el archivo no lleva la imagen; súbela en Estilo del cliente.`);
+    partes.push(`${logos.length === 1 ? "El logo" : "Los logos"} ${lista(logos)} no ${logos.length === 1 ? "está" : "están"} en este proyecto y se ${logos.length === 1 ? "descarta" : "descartan"}: el archivo no lleva la imagen; súbela en Identidad.`);
   }
   return partes.join(" ");
 }

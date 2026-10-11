@@ -130,7 +130,7 @@ describe("catálogos canónicos de pestañas", () => {
     expect(firma(PROCESAMIENTO_PESTANAS.graficos)).toEqual([
       "laminas:Láminas",
       "vista-general:Vista general",
-      "estilo:Estilo del cliente",
+      "estilo:Identidad",
       "estilo-informe:Estilo del informe",
       "powerpoint:PowerPoint",
       "word:Word",
