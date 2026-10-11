@@ -48,6 +48,7 @@ export function atajosDePestana(pestana: GraficosTabId, mod: string): Atajo[] {
         AYUDA,
       ];
     case "estilo":
+    case "estilo-informe":
       return [...deshacer, AYUDA];
     case "clasico":
       return [

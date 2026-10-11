@@ -89,7 +89,7 @@ describe("catálogos canónicos de pestañas", () => {
   });
 
   it("fija las 28 pestañas de Procesamiento con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(30); // F6.4: Gráficos gana «Estilo del cliente». 29 → 30.
+    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(31); // F6.4 «Estilo del cliente» 29 → 30; A10 W-E «Estilo del informe» 30 → 31.
     expect(firma(PROCESAMIENTO_PESTANAS.carga)).toEqual([
       "plan:Plan",
       "fuentes:Fuentes",
@@ -131,6 +131,7 @@ describe("catálogos canónicos de pestañas", () => {
       "laminas:Láminas",
       "vista-general:Vista general",
       "estilo:Estilo del cliente",
+      "estilo-informe:Estilo del informe",
       "clasico:Editor anterior",
     ]);
   });

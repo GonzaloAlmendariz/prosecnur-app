@@ -19,6 +19,7 @@ import {
   ListOrdered,
   ListTree,
   Network,
+  Paintbrush,
   Palette,
   PieChart,
   PlugZap,
@@ -139,6 +140,9 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("graficos", "vista-general", "Vista general", "El informe por capítulos, para ordenarlo de un vistazo", LayoutGrid),
     // F6.4 (A6 R3): logos y tamaño de letra del cliente, guardados como decisiones sobre el recetario (ADR 0094).
     pestana("graficos", "estilo", "Estilo del cliente", "Logos y tamaño de letra del cliente, sobre el recetario", Palette),
+    // A10 W-E (decisión 28): texto de la base, cálculos, paletas, línea visual y la parte del Word que se decide. A
+    // diferencia de «Estilo del cliente», también en el informe compartido (cambia su PPT consolidado).
+    pestana("graficos", "estilo-informe", "Estilo del informe", "Texto de la base, cálculos, paletas y línea visual del informe", Paintbrush),
     pestana("graficos", "clasico", "Editor anterior", "El editor de siempre, mientras se completa el nuevo", History),
   ],
 } as const satisfies Record<ProcesamientoSeccionId, readonly PestanaProcesamiento[]>;
