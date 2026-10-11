@@ -206,6 +206,11 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
   purga <- monitoreo_aulas_padron_purgar(estado, motivo = "purga al exportar")
   estado <- purga$estado
 
+  # Los logos del cliente identifican al cliente: PNG neutro + nombre genérico
+  # (pulso_anonimizar_logos.R).
+  logos <- .pulso_anon_logos_neutralizar(estado, file.path(stage, "files"), sal = sal)
+  estado <- logos$estado
+
   saveRDS(.pulso_anon_lista_como_state(estado, envuelto$era_env), state_path)
 
   # Marca de procedencia en el manifest: un fixture publicado debe declarar que
@@ -242,6 +247,8 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
     # anonimizado no reproduce su propio marco.
     n_criterios_traducidos = criterios$traducidas,
     files_deduplicados = dedup$eliminados,
+    n_logos_neutralizados = logos$neutralizados,
+    logos_retirados = logos$retirados,
     gps_offset = offset
   )
 }
@@ -475,6 +482,9 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
         stringsAsFactors = FALSE
       )
     }
+    # Logos del cliente: sólo el PNG neutro del anonimizador puede viajar.
+    logos <- .pulso_anon_logos_hallazgos(envuelto$datos, file.path(stage, "files"))
+    if (nrow(logos)) hallazgos[[length(hallazgos) + 1L]] <- logos
   }
   for (p in list.files(file.path(stage, "files"), full.names = TRUE, recursive = TRUE)) {
     if (!.pulso_anon_es_xlsx(p)) next
