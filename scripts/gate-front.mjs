@@ -14,6 +14,7 @@
 // Sin argumento corre sólo los transversales. Devuelve código 1 si algo falla.
 
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 // Los que se corren SIEMPRE. Cada uno cae por un cambio hecho en otro sitio.
 const TRANSVERSALES = [
@@ -26,7 +27,11 @@ const TRANSVERSALES = [
 ];
 
 const area = process.argv[2] ?? "";
-const objetivos = area ? [`src/features/${area}`, ...TRANSVERSALES] : TRANSVERSALES;
+// El área es un feature (`monitoreo/profiles/aulas`) o, si no existe como tal,
+// una carpeta de `src/` (`components`, `lib`): el kit compartido también tiene gate.
+const FRONT = new URL("../frontend/", import.meta.url).pathname;
+const rutaArea = existsSync(`${FRONT}src/features/${area}`) ? `src/features/${area}` : `src/${area}`;
+const objetivos = area ? [rutaArea, ...TRANSVERSALES] : TRANSVERSALES;
 
 console.log(
   `Gate del frontend${area ? ` · área «${area}»` : ""}: ` +
