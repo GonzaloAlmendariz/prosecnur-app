@@ -72,3 +72,16 @@ Veredicto en 194c102: **A10 bloqueado** (✅ 40 · ◐ 13 · ☐ 13 · ⛔ 4); r
 - [ ] Latencia de vista previa medida; sin advertencia de claves duplicadas.
 - [ ] Modo público: Gráficos no se monta; `POST /graficos/estilo/logos` 403.
 - [ ] revisor-metodologico sobre C40, C45 y base sin ponderar; B-i con doble confirmación; confirmación de Gonzalo y verificador.
+
+## Respuesta de Gonzalo (2026-10-11, ~10:15 Perú)
+
+«Pata todas las decisiones de retiro, habilitar lo recomendado» → se adoptan las recomendaciones de 28–33:
+- 28: sección/pestaña propia «Estilo del informe» (presets, cálculos, paletas, línea visual, íconos), habilitada también en
+  el informe compartido.
+- 29: Base Word reducida a lo que decide el recetario, con candado; la pestaña Word con `documento_word` va después del retiro.
+- 30: claves persistidas de superficies retiradas pasan opacas (sin borrar ni migrar); el JSON por secciones suma
+  `estilo_cliente`, `documento_word`, `auto_otros_slides` y deja de ofrecer «Guías de edición» y «Vista de trabajo».
+- 31: argumentos de C40 sin control, revisión uno por uno con el revisor metodológico; se retiran los que el motor nativo no usa.
+- 32: argumentos del índice que hoy se pierden: fijados por el recetario con candado visible.
+- 33: el borrado de la población antigua (B-i) va en un ADR propio con doble confirmación.
+
