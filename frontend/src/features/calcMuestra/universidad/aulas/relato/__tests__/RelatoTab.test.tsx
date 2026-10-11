@@ -167,7 +167,7 @@ describe("RelatoTab — vacío gobernado (gate 5)", () => {
     const html = render(modeloSinSeleccion());
     expect(html).toContain('data-aulas-blocker="missing-selection"');
     expect(html).toContain("Ir a Selección");
-    expect(html).toContain('data-audit-ready="false"');
+    expect(html).toContain('data-audit-ready="vacio:relato-missing-selection"');
     // No monta el escenario a medias.
     expect(html).not.toContain("Escena 1 de 6");
   });

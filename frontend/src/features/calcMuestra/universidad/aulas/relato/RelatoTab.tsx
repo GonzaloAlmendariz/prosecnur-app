@@ -147,7 +147,10 @@ export function RelatoTab({
   const stageNotice = resolveAulasStageNotice(model, "relato");
   if (stageNotice || !relato) {
     return (
-      <div className="cmv2-aulas-stack cmv2-relato" data-audit-ready="false">
+      <div
+        className="cmv2-aulas-stack cmv2-relato"
+        data-audit-ready={stageNotice ? `vacio:relato-${stageNotice.kind}` : "vacio:relato-sin-escenas"}
+      >
         {stageNotice ? (
           <AulasStageNotice notice={stageNotice} onNavigate={onNavigate} />
         ) : (

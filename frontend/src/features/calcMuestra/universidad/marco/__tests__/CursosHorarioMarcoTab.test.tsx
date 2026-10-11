@@ -160,6 +160,6 @@ describe("CursosHorarioMarcoTab — vista integrada facultad-primaria", () => {
       />,
     );
     expect(html).toContain("Aún no hay catálogo de criterios de curso-horario");
-    expect(html).toContain('data-audit-ready="false"');
+    expect(html).toContain('data-audit-ready="vacio:sin-catalogo-de-criterios"');
   });
 });

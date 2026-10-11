@@ -78,7 +78,8 @@ test("readiness keeps polling while the navigation bridge is temporarily absent"
 test("static audit fixtures may use their marker without weakening app readiness", async () => {
   const source = await readFunctionSource("esperarListo", "clickNamedControl");
 
-  assert.match(source, /querySelector\("\[data-audit-ready\]"\)/);
+  // Todas las marcas, no la primera: E15/AD6 (ver ui-quick-check-readiness-anidada).
+  assert.match(source, /querySelectorAll\("\[data-audit-ready\]"\)/);
   assert.match(source, /querySelector\("\.pulso-shell"\)/);
   assert.match(
     source,

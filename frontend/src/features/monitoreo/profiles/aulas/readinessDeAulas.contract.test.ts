@@ -31,8 +31,8 @@ describe("readiness del perfil de aulas", () => {
   });
 
   it("sigue habiendo una sola marca en la página", () => {
-    // Dos marcas y `estadoListo()` lee la primera del documento, que puede ser
-    // la de un panel montado antes que la de la página.
+    // Una segunda marca fija de un panel respondería «listo» por la página en
+    // cualquier tramo en que la de la página no esté en `false`.
     expect(page.match(/data-audit-ready=/g)?.length).toBe(1);
   });
 });

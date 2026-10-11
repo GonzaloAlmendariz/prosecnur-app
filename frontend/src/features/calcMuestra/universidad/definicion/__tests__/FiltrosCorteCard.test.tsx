@@ -76,7 +76,7 @@ describe("FiltrosCorteCard", () => {
   it("un filtro incompleto no se puede confirmar y lo declara", () => {
     const html = render([filtro({ columna: "", confirmado: false })]);
     expect(html).toContain("Falta columna, condición o nombre");
-    expect(html).toContain('data-audit-ready="false"');
+    expect(html).toContain('data-audit-ready="vacio:filtros-sin-confirmar"');
   });
 
   it("una columna que ya no está en la hoja se conserva y se señala", () => {

@@ -447,8 +447,9 @@ describe("audit-ready route root contract", () => {
       + ':`analitica-${active}`',
     );
 
-    // El shell es ancestro del pane y `estadoListo()` lee la primera marca del
-    // DOM: si la sección publicara la del pane que carga aparte, taparía su gate.
+    // El shell es ancestro del pane. `estadoListo()` ya lee todas las marcas
+    // (E15/AD6), pero el pane no publica marca mientras carga: si la sección
+    // publicara la suya en ese tramo, sería la única y daría la vista por lista.
     expect(
       terminalReadinessKeys(["features/analitica/panes/OrdenCategoriasPane.tsx"], "analitica-"),
       "The pane that owns its readiness must publish an exact semantic key",

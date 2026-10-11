@@ -214,7 +214,7 @@ export function CalculoComparacionEscenarios({
   return (
     <section
       className="cmv2-compare"
-      data-audit-ready={ready ? "true" : "false"}
+      data-audit-ready={ready ? "true" : `vacio:comparacion-${state.kind}`}
       data-surface-group="calc-muestra-calculo"
       data-surface-contract="comparacion-p1-p2-r"
     >
