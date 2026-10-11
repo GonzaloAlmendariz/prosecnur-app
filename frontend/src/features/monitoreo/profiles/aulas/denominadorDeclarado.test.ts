@@ -61,21 +61,38 @@ describe("los gráficos vecinos de Resumen no se confunden entre sí", () => {
   // vive en la cabecera de `AulasEstadoChart` —«separa sin agendar de agendada
   // y aún sin empezar, que la cobertura mete en el mismo saco»— y no llegaba a
   // la pantalla.
+  //
+  // **La literal se actualizó, no el contrato.** Decía «cada una» —el femenino
+  // de «aula»— y hoy la pantalla dice «cada uno», porque la unidad que el
+  // subtítulo acaba de nombrar es el CURSO-HORARIO, masculino. Es el contrato
+  // de género del perfil (E17), que caza participios y al que estos dos
+  // pronombres se le escaparon; el propio `AulasPestanaResumen` lo deja dicho
+  // en línea. Los dos subtítulos siguen existiendo y siguen siendo distintos,
+  // que es lo único que este bloque vigila.
   const resumen = fs.readFileSync(path.join(aqui, "AulasPestanaResumen.tsx"), "utf8")
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 
   it("el de status dice que mira el punto del circuito", () => {
-    expect(resumen).toContain("en qué punto del circuito está cada una");
+    expect(resumen).toContain("en qué punto del circuito está cada uno");
   });
 
   it("y el de cobertura, cuánto lleva recogido", () => {
-    expect(resumen).toContain("cuánto lleva recogido cada una");
+    expect(resumen).toContain("cuánto lleva recogido cada uno");
   });
 
   it("y sus subtítulos ya no son idénticos", () => {
     // El guard que importa: si alguien vuelve a dejarlos iguales, esto salta.
-    const subtitulos = [...resumen.matchAll(/<span>\{contadorDeAulas\(aulaRows\.length\)\}([^<]*)<\/span>/g)]
+    //
+    // **Mira `contadorDelReparto`, que es el helper de los DOS gráficos.**
+    // Buscaba `contadorDeAulas`, que desde entonces quedó sólo en la tabla
+    // «Avance por curso-horario»: el regex capturaba una única cadena y un
+    // conjunto de uno siempre tiene el tamaño de su lista. El guard llevaba
+    // pasando sin comparar nada —verde por ausencia—, que es justo la forma
+    // en que un guard muere sin que nadie se entere.
+    const subtitulos = [...resumen.matchAll(/<span>\{contadorDelReparto\([^)]*\)\}([^<]*)<\/span>/g)]
       .map((m) => m[1].trim());
+    // Son dos, y si un día no lo son este bloque dejó de vigilar la pareja.
+    expect(subtitulos).toHaveLength(2);
     expect(new Set(subtitulos).size).toBe(subtitulos.length);
   });
 });

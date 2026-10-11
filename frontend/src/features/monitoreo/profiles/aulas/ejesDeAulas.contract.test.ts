@@ -30,7 +30,25 @@ describe("la escala de eje del perfil", () => {
   it("el perfil sigue teniendo gráficos de Plotly que vigilar", () => {
     // Si un día no queda ninguno, este guard dejaría de comprobar nada y hay
     // que enterarse por aquí.
-    expect(graficosPlotly().length).toBeGreaterThanOrEqual(3);
+    //
+    // **El tres era un censo, no un mínimo de diseño.** Cuando este contrato
+    // nació (`b133397a`) el perfil tenía exactamente tres Plotly —brecha por
+    // estrato, cobertura y estado de aplicación— y el umbral se escribió
+    // contándolos. Hoy queda uno, y eso es la dirección del perfil, no una
+    // pérdida: los otros dos no se retiraron ni se renombraron, se
+    // reescribieron a barras CSS conservando su semántica —mismos tramos,
+    // mismos colores, mismo orden— en `474b8149` (Estado de aplicación, E21) y
+    // `525eda16` (Cursos-horario por cobertura, E22), con el criterio que sentó
+    // el dictado del chart de sexo del 2026-09-03: sin crosshair ni drag
+    // muerto, la etiqueta y la cifra como texto real, el hover diseñable. Nueve
+    // componentes del perfil lo llevan ya escrito en su cabecera.
+    //
+    // Así que el umbral baja a uno y el guard sigue vivo por la misma razón por
+    // la que se escribió: mientras quede un solo Plotly hay una escala de eje
+    // que puede desalinearse, y el día que llegue a cero el aserto de abajo
+    // pasaría sobre una lista vacía sin comprobar nada. Ese día hay que borrar
+    // este archivo a conciencia, no dejarlo pasando en verde.
+    expect(graficosPlotly().length).toBeGreaterThanOrEqual(1);
   });
 
   it("todos pasan la fuente del perfil, ninguno se queda con el default", () => {

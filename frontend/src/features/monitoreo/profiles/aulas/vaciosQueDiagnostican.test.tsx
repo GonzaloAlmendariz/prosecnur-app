@@ -56,14 +56,37 @@ describe("un vacío nombra su causa, no la más grave", () => {
     // Dos reservas dormidas: hay plan, y aun así no hay a quién llamar. El
     // mensaje que había —«ninguno declara su ciclo de contacto»— mandaba a
     // rellenar un campo del libro que está perfectamente bien.
+    //
+    // **Una reserva dormida lleva su ROL, no sólo su estado.** El fixture
+    // declaraba `sample_status: "en reserva"` a secas, que es como se
+    // reconocía la dormida antes de reconciliar las dos lecturas del motor:
+    // hoy `colaDeContacto` exige `sample_role === "chain_reserve"` además de
+    // `sigueDormida`, porque —en sus palabras— «un titular jamás duerme por
+    // este eje». Sin el rol estas dos filas son titulares con un estado raro,
+    // y a un titular hay que llamarlo: el vacío no ocurría porque el producto
+    // hiciera lo correcto con el fixture equivocado.
     const todasDormidas = renderToStaticMarkup(
       <AulasColaDeContacto filas={[
-        { operational_code: "CH 1", sample_status: "en reserva" },
-        { operational_code: "CH 2", sample_status: "en reserva" },
+        { operational_code: "CH 1", sample_role: "chain_reserve", sample_status: "en reserva" },
+        { operational_code: "CH 2", sample_role: "chain_reserve", sample_status: "en reserva" },
       ] as unknown as MonitoreoAulasPlanRow[]} />);
     expect(todasDormidas).toContain("No queda ningún curso-horario a quien llamar");
     expect(todasDormidas).toContain("los 2 del plan están citados, en reserva o ya reemplazados");
     expect(todasDormidas).not.toContain("declara su ciclo");
+  });
+
+  it("y un titular con ese mismo estado sí entra a la cola: no duerme por este eje", () => {
+    // La otra mitad de la regla, que es la que el fixture de arriba probaba sin
+    // querer mientras le faltaba el rol. Mismo `sample_status` y ningún rol
+    // declarado —o sea, titular—: la cola tiene que mandarlo a llamar, y el
+    // vacío de «no queda a quién llamar» sería aquí una pérdida de trabajo.
+    const titularEnReserva = renderToStaticMarkup(
+      <AulasColaDeContacto filas={[
+        { operational_code: "CH 1", sample_status: "en reserva" },
+      ] as unknown as MonitoreoAulasPlanRow[]} />);
+    expect(titularEnReserva).toContain("Por contactar");
+    expect(titularEnReserva).toContain("CH 1");
+    expect(titularEnReserva).not.toContain("No queda ningún curso-horario a quien llamar");
   });
 });
 
