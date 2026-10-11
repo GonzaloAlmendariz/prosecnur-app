@@ -752,6 +752,9 @@
   }
 
   base <- bases[[requested]] %||% list()
+  # Archivo ya recodificado por un import de plataforma: reaplicar mapas al
+  # reconstruir rp_data invertiría categorías (`.carga_codigos_ya_aplicados`).
+  if (exists(".carga_codigos_ya_aplicados", mode = "function") && .carga_codigos_ya_aplicados(base)) return(list())
   nested <- base$choice_code_mapping %||% list()
   if (isTRUE(nested$confirmed) && length(nested$maps %||% list())) {
     return(nested$maps)

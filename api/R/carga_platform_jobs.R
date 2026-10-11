@@ -36,8 +36,10 @@
 
 .CARGA_PLATFORM_JOB_ACTIONS <- c(
   "surveymonkey_import",
+  "surveymonkey_import_separate",
   "kobo_import",
   "kobo_import_independent",
+  "kobo_import_separate",
   "kobo_refresh_independent",
   "sm_multibase_import",
   "sm_multibase_import_independent",
@@ -139,6 +141,8 @@
     surveymonkey_import = .carga_import_surveymonkey(sid, parsed),
     kobo_import = .carga_import_kobo(sid, parsed),
     kobo_import_independent = .carga_import_kobo_independent(sid, parsed),
+    surveymonkey_import_separate = .carga_import_surveymonkey_separate(sid, parsed),
+    kobo_import_separate = .carga_import_kobo_separate(sid, parsed),
     kobo_refresh_independent = .carga_refresh_kobo_independent(sid, parsed),
     sm_multibase_import = {
       token <- .connections_token_require("surveymonkey", sid)
@@ -244,15 +248,26 @@
   s <- session_get(sid)
   # El body async no debe re-disparar async dentro del worker.
   parsed$async <- NULL
-  state_path <- job_save_rds(sid, "carga_platform_state", s)
-  secrets_path <- job_save_rds(sid, "carga_platform_secrets", .carga_platform_session_secrets(sid))
-  parsed_path <- job_save_rds(sid, "carga_platform_body", parsed)
+  # Si una escritura o el spawn del worker fallan no hay job registrado ni
+  # on_cleanup: lo ya escrito (secretos incluidos) se borra aquí (ADR 0005).
+  input_paths <- character(0)
+  on_submit_error <- function(e) {
+    job_unlink_inputs(input_paths)
+    stop(e)
+  }
+  state_path <- tryCatch(job_save_rds(sid, "carga_platform_state", s), error = on_submit_error)
+  input_paths <- c(input_paths, state_path)
+  secrets_path <- tryCatch(job_save_rds(sid, "carga_platform_secrets", .carga_platform_session_secrets(sid)),
+                           error = on_submit_error)
+  input_paths <- c(input_paths, secrets_path)
+  parsed_path <- tryCatch(job_save_rds(sid, "carga_platform_body", parsed), error = on_submit_error)
+  input_paths <- c(input_paths, parsed_path)
   project_path_before <- as.character(s$project_path %||% "")
 
   runner <- carga_platform_job_runner
   attr(runner, "prosecnur_job_function_name") <- "carga_platform_job_runner"
   kind <- paste0("carga.platform.", action)
-  job_id <- job_submit(
+  job_id <- tryCatch(job_submit(
     sid = sid,
     kind = kind,
     func = runner,
@@ -265,16 +280,18 @@
     ),
     on_complete = function(j) {
       # Higiene primero: el RDS de secretos no debe sobrevivir al job.
-      tryCatch(unlink(secrets_path), error = function(e) NULL)
-      tryCatch(unlink(state_path), error = function(e) NULL)
-      tryCatch(unlink(parsed_path), error = function(e) NULL)
+      job_unlink_inputs(input_paths)
       .carga_platform_job_apply(
         j$sid,
         j$result_data,
         project_path_before = project_path_before
       )
-    }
-  )
+    },
+    # Cancelado, error del worker o kill al apagar: on_complete no corre, pero
+    # el snapshot de sesión y los secretos efímeros tampoco pueden quedar en
+    # jobs/inputs (ADR 0005). jobs.R lo invoca una sola vez en todo final.
+    on_cleanup = function(j) job_unlink_inputs(input_paths)
+  ), error = on_submit_error)
   list(ok = TRUE, async = TRUE, job_id = job_id, kind = kind)
 }
 
@@ -295,6 +312,11 @@ carga_platform_job_runner <- function(sid, action, state_path, parsed_path,
     readRDS(secrets_path)
   } else {
     list()
+  }
+  # Defensa en profundidad: ya en memoria del worker, el RDS de secretos sobra.
+  # El on_cleanup del hilo principal cubre el caso en que el worker muera antes.
+  if (!is.null(secrets_path) && nzchar(secrets_path)) {
+    tryCatch(unlink(secrets_path, force = TRUE), error = function(e) NULL)
   }
   for (name in names(secrets)) {
     prosecnur_session_secret_save(sid, name, secrets[[name]])

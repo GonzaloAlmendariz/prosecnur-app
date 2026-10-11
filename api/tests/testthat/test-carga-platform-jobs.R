@@ -257,11 +257,12 @@ test_that("submit devuelve el handle del job y el on_complete aplica el diff", {
   captured <- new.env(parent = emptyenv())
   restore <- .cpj_mock_binding("job_submit", function(sid, kind, func, args = list(),
                                                      result_filename = NULL, on_complete = NULL,
-                                                     libpath = NULL) {
+                                                     libpath = NULL, on_cleanup = NULL) {
     captured$kind <- kind
     captured$func <- func
     captured$args <- args
     captured$on_complete <- on_complete
+    captured$on_cleanup <- on_cleanup
     "job-cpj-fake"
   })
   on.exit(restore(), add = TRUE)
@@ -415,4 +416,539 @@ test_that("el dispatch multibase mapea el body igual que los endpoints síncrono
   expect_false(isTRUE(captured$independent$keep_missing_status))
   expect_equal(captured$independent$logic_rules, "P1 -> P2")
   expect_true(isTRUE(captured$independent$replace_existing_logic))
+})
+
+# ---------------------------------------------------------------------------
+# U-B0 · Higiene de insumos efímeros: cancelar o fallar NO deja el RDS de
+# secretos/estado en jobs/inputs (ADR 0005). Sin callr: el handle se registra en
+# `.jobs` con un rx falso y se ejerce el job_cancel/job_poll reales de jobs.R.
+# ---------------------------------------------------------------------------
+
+.cpj_inputs_left <- function(sid) {
+  dir <- file.path(session_get(sid)$dir, "jobs", "inputs")
+  if (!dir.exists(dir)) return(character(0))
+  list.files(dir, pattern = "^carga_platform_.*\\.rds$")
+}
+
+# Lanza un submit real de carga con job_submit interceptado y registra en
+# `.jobs` un handle con el rx dado (mismo shape que job_submit).
+.cpj_submit_with_fake_rx <- function(sid, rx, action = "kobo_import",
+                                     parsed = list(asset_uid = "a1", async = TRUE)) {
+  captured <- new.env(parent = emptyenv())
+  restore <- .cpj_mock_binding("job_submit", function(sid, kind, func, args = list(),
+                                                     result_filename = NULL, on_complete = NULL,
+                                                     libpath = NULL, on_cleanup = NULL) {
+    id <- paste0("cpj-fake-", uuid::UUIDgenerate())
+    .jobs[[id]] <- list(
+      id = id, sid = sid, kind = kind, rx = rx,
+      started_at = Sys.time(), finished_at = NULL, status = "running",
+      result_path = NULL, progress_path = NULL,
+      result_data = NULL, result_public = NULL,
+      on_complete = on_complete, on_cleanup = on_cleanup, cleaned = FALSE,
+      error = NULL
+    )
+    captured$args <- args
+    id
+  })
+  on.exit(restore(), add = TRUE)
+  handle <- .carga_platform_job_submit(sid, action, parsed)
+  list(job_id = handle$job_id, args = captured$args)
+}
+
+test_that("cancelar un import de plataforma borra los RDS de secretos, estado y body", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  prosecnur_session_secret_save(sid, "kobo_token", "cpj-secreto-que-no-debe-quedar")
+  on.exit(prosecnur_session_secret_clear(sid, "kobo_token"), add = TRUE)
+
+  killed <- new.env(parent = emptyenv())
+  killed$n <- 0L
+  rx <- list(
+    is_alive = function() killed$n == 0L,
+    kill = function() { killed$n <- killed$n + 1L; invisible(TRUE) }
+  )
+  sub <- .cpj_submit_with_fake_rx(sid, rx)
+  on.exit(rm(list = sub$job_id, envir = .jobs), add = TRUE)
+
+  # Antes de cancelar los insumos existen (y el de secretos trae el token).
+  expect_length(.cpj_inputs_left(sid), 3L)
+  expect_equal(readRDS(sub$args$secrets_path)$kobo_token, "cpj-secreto-que-no-debe-quedar")
+
+  expect_true(job_cancel(sub$job_id))
+  j <- job_get(sub$job_id)
+  expect_equal(j$status, "cancelled")
+  expect_equal(killed$n, 1L)
+  expect_true(isTRUE(j$cleaned))
+  expect_length(.cpj_inputs_left(sid), 0L)
+  expect_false(file.exists(sub$args$secrets_path))
+  expect_false(file.exists(sub$args$state_path))
+  expect_false(file.exists(sub$args$parsed_path))
+  # Cancelar no aplica on_complete: la sesión no recibió ningún diff.
+  expect_null(session_get(sid)$estudio)
+
+  # Idempotente: un segundo cancel no vuelve a correr el cleanup ni falla.
+  expect_true(job_cancel(sub$job_id))
+})
+
+test_that("si el spawn del worker falla, los RDS ya escritos se borran (no hay job ni on_cleanup)", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  prosecnur_session_secret_save(sid, "kobo_token", "cpj-secreto-spawn")
+  on.exit(prosecnur_session_secret_clear(sid, "kobo_token"), add = TRUE)
+
+  restore <- .cpj_mock_binding("job_submit", function(...) stop("callr: no se pudo lanzar el worker"))
+  on.exit(restore(), add = TRUE)
+
+  err <- tryCatch(
+    .carga_platform_job_submit(sid, "kobo_import", list(asset_uid = "a1", async = TRUE)),
+    error = function(e) e
+  )
+  expect_s3_class(err, "error")
+  expect_match(conditionMessage(err), "no se pudo lanzar")
+  expect_length(.cpj_inputs_left(sid), 0L)
+})
+
+test_that("un worker que muere con error también borra los RDS de insumos", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  rx <- list(
+    is_alive = function() FALSE,
+    get_result = function() stop("callr_error: el worker murió")
+  )
+  sub <- .cpj_submit_with_fake_rx(sid, rx, action = "sm_multibase_refresh",
+                                  parsed = list(bases = list(), async = TRUE))
+  on.exit(rm(list = sub$job_id, envir = .jobs), add = TRUE)
+  expect_length(.cpj_inputs_left(sid), 3L)
+
+  j <- job_poll(sub$job_id)
+  expect_equal(j$status, "error")
+  expect_match(j$error, "worker")
+  expect_length(.cpj_inputs_left(sid), 0L)
+})
+
+test_that("un error de dominio cosechado como done también borra los insumos", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  rx <- list(
+    is_alive = function() FALSE,
+    get_result = function() list(ok = FALSE, action = "kobo_import", error = list(
+      code = "E_KOBO_TOKEN", status = 400L, message = "Falta token Kobo guardado."
+    ))
+  )
+  sub <- .cpj_submit_with_fake_rx(sid, rx)
+  on.exit(rm(list = sub$job_id, envir = .jobs), add = TRUE)
+
+  j <- job_poll(sub$job_id)
+  expect_equal(j$status, "done")
+  expect_equal(j$result_public$error$code, "E_KOBO_TOKEN")
+  expect_length(.cpj_inputs_left(sid), 0L)
+})
+
+test_that("el runner borra el RDS de secretos apenas lo lee", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restore <- .cpj_mock_binding(".connections_token_require", function(provider, sid = NULL, profile_id = NULL, base_url = NULL) {
+    stop_api(400, "E_KOBO_TOKEN", "Falta token Kobo guardado.")
+  })
+  on.exit(restore(), add = TRUE)
+
+  secrets_path <- .cpj_write_rds(list(kobo_token = "cpj-efimero"))
+  carga_platform_job_runner(
+    sid = sid,
+    action = "kobo_import",
+    state_path = .cpj_write_rds(session_get(sid)),
+    parsed_path = .cpj_write_rds(list(asset_uid = "asset_x")),
+    secrets_path = secrets_path
+  )
+  expect_false(file.exists(secrets_path))
+})
+
+# ---------------------------------------------------------------------------
+# U-B0 · «Bases separadas»: surveymonkey_import_separate / kobo_import_separate
+# agregan una base NUEVA con estudio_add_base y nunca escriben `default`.
+# ---------------------------------------------------------------------------
+
+.cpj_sm_mocks <- function() {
+  list(
+    .cpj_mock_binding(".connections_token_require", function(provider, sid = NULL, profile_id = NULL, base_url = NULL) {
+      "cpj-sm-token"
+    }),
+    .cpj_mock_binding("sm_api_fetch_survey_details", function(survey_id, token, base_url = NULL, ...) {
+      list(id = survey_id, title = paste("Encuesta", survey_id))
+    }),
+    # El modelo XLSForm del mock Kobo sirve igual: mismo shape que sm_api_xlsform.
+    .cpj_mock_binding("sm_api_xlsform", function(details, style = NULL, lang = "es", ...) {
+      .carga_kobo_xlsform_model(.cpj_kobo_detail(details$id))
+    }),
+    .cpj_mock_binding("sm_api_fetch_all_responses_bulk", function(survey_id, token, base_url = NULL, ...) {
+      list(data = list(list(id = "r1"), list(id = "r2"), list(id = "r3")))
+    }),
+    .cpj_mock_binding("sm_multibase_api_responses_to_canonical_data", function(details, responses, inst, survey_id, ...) {
+      data.frame(
+        codigo_pulso = paste0(survey_id, "-", seq_along(responses)),
+        q1 = rep(c("Si", "No"), length.out = length(responses)),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+      )
+    })
+  )
+}
+
+test_that("kobo_import_separate agrega una base nueva y no toca `default` ni las hermanas", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- .cpj_kobo_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  # Base única previa (camino de siempre): queda como `default`.
+  .carga_import_kobo(sid, list(asset_uid = "asset_base", base_url = "https://kobo.unhcr.org"))
+  default_before <- session_get(sid)$estudio$bases$default
+  expect_false(is.null(default_before))
+
+  out <- .carga_platform_endpoint(sid, "kobo_import_separate", list(
+    asset_uid = "asset_dos",
+    base_url = "https://kobo.unhcr.org",
+    connection_profile_id = "kobo-perfil",
+    base_name = "segunda"
+  ))
+  expect_true(isTRUE(out$ok))
+  expect_equal(out$provider, "kobo")
+  expect_equal(out$strategy, "separate")
+  expect_equal(out$base_name, "segunda")
+  expect_equal(out$n_bases, 2L)
+  expect_equal(out$n_filas, 2L)
+  expect_true(nzchar(out$xlsform_file_id))
+  expect_true(nzchar(out$data_file_id))
+  expect_equal(out$base$nombre, "segunda")
+
+  s <- session_get(sid)
+  expect_setequal(names(s$estudio$bases), c("default", "segunda"))
+  # La hermana quedó intacta: mismos archivos, sigue activa.
+  expect_identical(s$estudio$bases$default$data_file_id, default_before$data_file_id)
+  expect_identical(s$estudio$bases$default$xlsform_file_id, default_before$xlsform_file_id)
+  expect_equal(out$active_base, "default")
+  expect_equal(as.character(s$estudio$processing_mode), "multibase")
+
+  meta <- s$estudio$bases$segunda
+  expect_equal(meta$data_file_id, out$data_file_id)
+  expect_equal(meta$source_kind, "kobo")
+  expect_equal(meta$survey_id, "asset_dos")
+  expect_equal(meta$asset_uid, "asset_dos")
+  expect_equal(meta$connection_profile_id, "kobo-perfil")
+  expect_equal(meta$base_url, "https://kobo.unhcr.org")
+  expect_true(nzchar(meta$imported_at))
+  expect_equal(meta$kobo_source_spec$asset_uid, "asset_dos")
+  expect_true(is.data.frame(s$rp_data_sources$segunda$data) || !is.null(s$rp_data_sources$segunda))
+  expect_true(isTRUE(s$project_dirty) || is.null(s$project_path))
+})
+
+test_that("kobo_import_separate en un estudio vacío deriva el nombre y fija la fuente analítica", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- .cpj_kobo_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  out <- .carga_import_kobo_separate(sid, list(asset_uid = "asset_a", base_url = "https://kobo.unhcr.org"))
+  expect_false("default" %in% names(session_get(sid)$estudio$bases))
+  expect_equal(out$n_bases, 1L)
+  expect_true(nzchar(out$base_name))
+  expect_equal(out$active_base, out$base_name)
+  expect_true(isTRUE(session_get(sid)$analitica_prep_ok))
+  expect_equal(session_get(sid)$analitica_fuente, paste0("estudio:", out$base_name))
+
+  # El mismo asset otra vez sin nombre explícito: se desambigua, no pisa.
+  out2 <- .carga_import_kobo_separate(sid, list(asset_uid = "asset_a", base_url = "https://kobo.unhcr.org"))
+  expect_false(identical(out2$base_name, out$base_name))
+  expect_equal(out2$n_bases, 2L)
+  expect_equal(out2$active_base, out$base_name)
+})
+
+test_that("kobo_import_separate rechaza estudio independiente, nombre duplicado e inválido", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- .cpj_kobo_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  .carga_import_kobo_separate(sid, list(asset_uid = "asset_a", base_name = "docentes"))
+  files_antes <- names(session_get(sid)$files)
+
+  dup <- tryCatch(
+    .carga_import_kobo_separate(sid, list(asset_uid = "asset_b", base_name = "docentes")),
+    api_error = function(e) e
+  )
+  expect_s3_class(dup, "api_error")
+  expect_equal(dup$code, "E_BASE_DUP")
+
+  bad <- tryCatch(
+    .carga_import_kobo_separate(sid, list(asset_uid = "asset_b", base_name = "dos palabras")),
+    api_error = function(e) e
+  )
+  expect_s3_class(bad, "api_error")
+  expect_equal(bad$code, "E_BASE_NOMBRE_INVALIDO")
+  # Rechazados antes del fetch: ningún upload huérfano en s$files.
+  expect_identical(names(session_get(sid)$files), files_antes)
+
+  missing <- tryCatch(
+    .carga_import_kobo_separate(sid, list(base_name = "x")),
+    api_error = function(e) e
+  )
+  expect_equal(missing$code, "E_KOBO_ASSET_REQUIRED")
+
+  estudio_set_processing_mode(sid, "independent_siblings")
+  conflict <- tryCatch(
+    .carga_import_kobo_separate(sid, list(asset_uid = "asset_c")),
+    api_error = function(e) e
+  )
+  expect_s3_class(conflict, "api_error")
+  expect_equal(conflict$code, "E_ESTUDIO_MODE_CONFLICT")
+  expect_equal(conflict$status, 409)
+  expect_equal(names(session_get(sid)$estudio$bases), "docentes")
+})
+
+test_that("surveymonkey_import_separate agrega una base con la metadata de origen", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- c(.cpj_kobo_mocks(), .cpj_sm_mocks())
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  .carga_import_kobo_separate(sid, list(asset_uid = "asset_a", base_name = "docentes"))
+
+  out <- .carga_platform_endpoint(sid, "surveymonkey_import_separate", list(
+    survey_id = "sm123",
+    connection_profile_id = "sm-perfil",
+    base_name = "estudiantes"
+  ))
+  expect_true(isTRUE(out$ok))
+  expect_equal(out$provider, "surveymonkey")
+  expect_equal(out$strategy, "separate")
+  expect_equal(out$base_name, "estudiantes")
+  expect_equal(out$n_filas, 3L)
+  expect_equal(out$n_bases, 2L)
+  expect_equal(out$active_base, "docentes")
+  expect_equal(out$source$survey_id, "sm123")
+
+  s <- session_get(sid)
+  expect_setequal(names(s$estudio$bases), c("docentes", "estudiantes"))
+  meta <- s$estudio$bases$estudiantes
+  expect_equal(meta$source_kind, "surveymonkey")
+  expect_equal(meta$survey_id, "sm123")
+  expect_equal(meta$connection_profile_id, "sm-perfil")
+  expect_equal(meta$base_url, "https://api.surveymonkey.com/v3")
+  expect_true(nzchar(meta$imported_at))
+  expect_equal(meta$response_filter$kind, "surveymonkey_api")
+  expect_equal(meta$surveymonkey_effective_data_file_id, out$data_file_id)
+  # El instrumento single-base de la sesión no se reescribió.
+  expect_null(s$instrumento)
+
+  missing <- tryCatch(
+    .carga_import_surveymonkey_separate(sid, list(base_name = "x")),
+    api_error = function(e) e
+  )
+  expect_equal(missing$code, "E_SM_SURVEY_REQUIRED")
+})
+
+test_that("las acciones separadas corren en el worker y result_data = respuesta síncrona", {
+  expect_true(all(c("surveymonkey_import_separate", "kobo_import_separate") %in% .CARGA_PLATFORM_JOB_ACTIONS))
+
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- .cpj_kobo_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  snapshot <- session_get(sid)
+  result <- carga_platform_job_runner(
+    sid = sid,
+    action = "kobo_import_separate",
+    state_path = .cpj_write_rds(snapshot),
+    parsed_path = .cpj_write_rds(list(asset_uid = "asset_w", base_name = "worker_base"))
+  )
+  expect_true(isTRUE(result$ok))
+  expect_true("estudio" %in% names(result$session_changes))
+
+  # Simula el proceso principal: sesión en el snapshot, apply del on_complete.
+  .session_env[[sid]] <- snapshot
+  public <- .carga_platform_job_apply(sid, result, project_path_before = "")
+  expect_identical(public, result$payload)
+  expect_equal(public$strategy, "separate")
+  expect_equal(public$base_name, "worker_base")
+  expect_equal(names(session_get(sid)$estudio$bases), "worker_base")
+})
+
+test_that("contrato HTTP: POST import-separate existe y pasa por el gate async", {
+  pr <- mount_carga(plumber::pr())
+  eps <- pr$endpoints[[1]]
+  paths <- vapply(eps, function(e) e$path, character(1))
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  for (provider in c("surveymonkey", "kobo")) {
+    path <- sprintf("/api/carga/platform/%s/import-separate", provider)
+    expect_true(path %in% paths, info = path)
+    ep <- eps[[which(paths == path)[1]]]
+    expect_equal(ep$verbs, "POST")
+
+    captured <- new.env(parent = emptyenv())
+    restore <- .cpj_mock_binding(".carga_platform_endpoint", function(sid, action, parsed) {
+      captured$sid <- sid
+      captured$action <- action
+      captured$parsed <- parsed
+      list(ok = TRUE, async = TRUE, job_id = "fake")
+    })
+    req <- list(
+      HTTP_X_PULSO_SESSION = sid,
+      bodyRaw = charToRaw('{"async":true,"base_name":"b1","asset_uid":"a","survey_id":"s"}')
+    )
+    out <- ep$getFunc()(req = req, res = plumber:::PlumberResponse$new())
+    restore()
+    expect_equal(out$job_id, "fake")
+    expect_equal(captured$sid, sid)
+    expect_equal(captured$action, sprintf("%s_import_separate", provider))
+    expect_true(isTRUE(captured$parsed$async))
+    expect_equal(captured$parsed$base_name, "b1")
+  }
+})
+
+# ---------------------------------------------------------------------------
+# N4 (revisión metodológica 2026-10-11): una base separada se normaliza solo
+# con mapas de códigos de SU instrumento. Heredar los del formulario activo
+# invertía Si↔No en silencio cuando dos encuestas comparten nombres.
+# ---------------------------------------------------------------------------
+
+.cpj_mapa_si_no_invertido <- function() {
+  list(list(variable = "q1", type = "select_one", list_name = "sino_otro", mappings = list(
+    list(source_code = "Si", xls_code = "No"),
+    list(source_code = "No", xls_code = "Si")
+  )))
+}
+
+.cpj_form_con_mapas <- function(survey_id) {
+  list(source = list(survey_id = survey_id),
+       workbook = list(surveyMonkeyLogic = list(choice_code_maps = .cpj_mapa_si_no_invertido())))
+}
+
+.cpj_q1_importado <- function(sid, out) {
+  f <- session_get(sid)$files[[out$data_file_id]]
+  readxl::read_excel(f$path)$q1
+}
+
+test_that("kobo_import_separate no hereda mapas de códigos del formulario activo", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- .cpj_kobo_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("otro"))
+  session_set(sid, "choice_code_maps_confirmed", list(confirmed = TRUE, maps = .cpj_mapa_si_no_invertido()))
+
+  out <- .carga_import_kobo_separate(sid, list(asset_uid = "asset_a"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No"))
+})
+
+test_that("surveymonkey_import_separate aplica mapas solo del formulario de la misma encuesta", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  # Formulario activo de OTRA encuesta (y mapas confirmados de sesión): no aplican.
+  sid <- session_create()
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
+  session_set(sid, "choice_code_maps_confirmed", list(confirmed = TRUE, maps = .cpj_mapa_si_no_invertido()))
+  out <- .carga_import_surveymonkey_separate(sid, list(survey_id = "sm_1"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No", "Si"))
+  session_delete(sid)
+
+  # El formulario de ESTA encuesta, aunque no sea el activo, sí aplica.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
+  session_set(sid, "xlsform_forms", list(f2 = .cpj_form_con_mapas("sm_1")))
+  out <- .carga_import_surveymonkey_separate(sid, list(survey_id = "sm_1"))
+  expect_equal(.cpj_q1_importado(sid, out), c("No", "Si", "No"))
+})
+
+test_that("base única: el import SM aplica solo mapas del formulario de la misma encuesta", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  sid <- session_create()
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
+  out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No", "Si"))
+  session_delete(sid)
+
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_1"))
+  out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
+  expect_equal(.cpj_q1_importado(sid, out), c("No", "Si", "No"))
+})
+
+test_that("base única: el import Kobo no hereda mapas del formulario activo", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- .cpj_kobo_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("otro"))
+
+  out <- .carga_import_kobo(sid, list(asset_uid = "asset_a"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No"))
+})
+
+# ---------------------------------------------------------------------------
+# Triple aplicación (traspaso 2026-10-11): el archivo de un import de
+# plataforma se guarda YA recodificado. La preview, el rp_data de la base,
+# «Ver base» y la reconstrucción al reabrir no pueden volver a aplicar los
+# mapas: con mapas que se cruzan (Si↔No) invertían las categorías.
+# ---------------------------------------------------------------------------
+
+.cpj_q1_chr <- function(x) as.character(unlist(lapply(x, function(v) as.character(v))))
+
+test_that("base única SM: la base default y «Ver base» no recodifican dos veces", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_1"))
+
+  out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
+  esperado <- c("No", "Si", "No")
+  expect_equal(.cpj_q1_importado(sid, out), esperado)
+  s <- session_get(sid)
+  expect_equal(.cpj_q1_chr(s$rp_data_sources$default$q1), esperado)
+  expect_equal(.cpj_q1_chr(.carga_normalized_data_for_export(sid, "default")$data$q1), esperado)
+  # Lo que se aplicó queda pendiente de confirmar en Carga › Revisión.
+  expect_true(length(s$choice_code_maps_pending$maps %||% list()) > 0L)
+})
+
+test_that("base única SM: confirmar el mapeo y reabrir el .pulso no invierte categorías", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_1"))
+  .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
+
+  estudio <- session_get(sid)$estudio
+  estudio$bases$default$choice_code_mapping <- list(
+    version = 1L, confirmed = TRUE, confirmed_at = "2026-10-11T00:00:00Z",
+    n_questions = 1L, maps = .cpj_mapa_si_no_invertido()
+  )
+  session_set(sid, "estudio", estudio)
+  esperado <- c("No", "Si", "No")
+  expect_equal(.cpj_q1_chr(.carga_normalized_data_for_export(sid, "default")$data$q1), esperado)
+
+  destino <- tempfile(fileext = ".pulso")
+  on.exit(unlink(destino), add = TRUE)
+  build_pulso(sid, destino, project_name = "cpj-triple")
+  reabierto <- load_pulso(destino)
+  on.exit(session_delete(reabierto$session_id), add = TRUE)
+  s2 <- session_get(reabierto$session_id)
+  expect_equal(.cpj_q1_chr(s2$rp_data_sources$default$q1), esperado)
+})
+
+test_that("si el archivo de la base cambia, la marca de códigos aplicados deja de valer", {
+  base <- list(data_file_id = "nuevo", choice_codes_applied_data_file_id = "viejo")
+  expect_false(.carga_codigos_ya_aplicados(base))
+  expect_true(.carga_codigos_ya_aplicados(list(data_file_id = "a", choice_codes_applied_data_file_id = "a")))
+  expect_false(.carga_codigos_ya_aplicados(list(data_file_id = "a")))
 })
