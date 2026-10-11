@@ -254,3 +254,37 @@ test_that("Carga › Revisión declara las preguntas que adoptaron el orden y la
   .carga_import_surveymonkey(sid2, list(survey_id = "sm_orden"))
   expect_null(.carga_review_payload(sid2, NULL)$orden_editor)
 })
+
+test_that("tras refrescar, la base nueva queda marcada y ninguna relectura le aplica mapas", {
+  restores <- .sor_mocks()
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .sor_form())
+  .carga_import_surveymonkey(sid, list(survey_id = "sm_orden"))
+  # Un mapeo confirmado en la base: si la marca no acompañara al archivo nuevo,
+  # las relecturas lo aplicarían sobre datos ya codificados.
+  estudio <- session_get(sid)$estudio
+  estudio$bases$default$choice_code_mapping <- list(confirmed = TRUE, maps = .sor_mapas_editor())
+  session_set(sid, "estudio", estudio)
+  antes <- session_get(sid)$estudio$bases$default$data_file_id
+
+  snap <- .sm_mb_prepare_refresh_snapshot(sid, "default", list(survey_id = "sm_orden"), "tok")
+  data_path <- tempfile(fileext = ".xlsx")
+  .carga_write_xlsx_sheet(snap$remote_df, data_path, "datos")
+  data_meta <- save_upload(sid, "data", "refresh.xlsx", readBin(data_path, "raw", n = file.info(data_path)$size))
+  inst_meta <- save_upload(sid, "xlsform", "refresh_xlsform.xlsx", readBin(snap$inst_path, "raw", n = file.info(snap$inst_path)$size))
+  .sm_mb_update_base_refresh_files(
+    sid, "default", inst_meta, data_meta, snap$rp_inst,
+    reporte_data(snap$remote_df, instrumento = snap$rp_inst), list(survey_id = "sm_orden"),
+    snap$response_filter, snap$source_kind,
+    choice_order_editor = snap$choice_order_editor
+  )
+
+  base <- session_get(sid)$estudio$bases$default
+  expect_false(identical(base$data_file_id, antes))
+  expect_true(.carga_codigos_ya_aplicados(base))
+  expect_null(.carga_editor_choice_code_maps(sid, "default"))
+  .sor_check(sid, base$xlsform_file_id,
+             as.data.frame(.carga_normalized_data_for_export(sid, "default")$data), "Ver base tras refrescar")
+})
