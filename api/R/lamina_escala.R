@@ -150,12 +150,33 @@
 
 # ---- el bloque (recetario.R:238-317) ----------------------------------------
 
-.lam_etiqueta_box <- function(lz, espec, x, yb, g, i, con_n) {
-  verde <- .std_color("verde_top_two_box")
-  .lam_txt(lz, espec$box$cifras[i], x, yb + (g - 0.32) / 2 - (if (con_n) 0.1 else 0), 1.5, 0.32, .std_pt("cifra"), verde,
-           bold = TRUE, align = "center", nombre = "box:cifra")
-  if (con_n) .lam_txt(lz, sprintf("%d de %d", as.integer(espec$box$casos[i]), as.integer(espec$filas$n[i])), x, yb + g / 2 + 0.06,
-                      1.5, 0.24, .std_pt("n"), .std_color("texto_tenue"), align = "center", nombre = "box:casos")
+.lam_etiqueta_box <- function(lz, espec, x, yb, g, i, con_n, caja = espec$box, color = .std_color("verde_top_two_box"),
+                              w = 1.5, prefijo = "box") {
+  .lam_txt(lz, caja$cifras[i], x, yb + (g - 0.32) / 2 - (if (con_n) 0.1 else 0), w, 0.32, .std_pt("cifra"), color,
+           bold = TRUE, align = "center", nombre = paste0(prefijo, ":cifra"))
+  if (con_n) .lam_txt(lz, sprintf("%d de %d", as.integer(caja$casos[i]), as.integer(espec$filas$n[i])), x, yb + g / 2 + 0.06,
+                      w, 0.24, .std_pt("n"), .std_color("texto_tenue"), align = "center", nombre = paste0(prefijo, ":casos"))
+}
+
+#' Columnas de los box en el bloque de premisas: dónde va cada una y cuánto mide la barra
+#'
+#' Sin Bottom Two Box, la Top Two Box ocupa la columna de 1.5 in en `x_top_two_box` (láminas 216, 221). Con ella,
+#' la Bottom Two Box toma esa columna y la Top Two Box se corre a su izquierda el paso de columna de la lámina 97
+#' del recetario (1.25 in, el mismo de `.lam_filas_box`); la barra cede ese ancho y nada más: la premisa, la
+#' partición y el alto de las filas no cambian (F-d, lámina 24 de acrconta_mazo).
+#' @return Lista con `ancho_barra`, `ancho_col` y `cols` (cada una con `caja`, `color`, `x`, `prefijo`, `rotulo`).
+#' @keywords internal
+.lam_escala_columnas_box <- function(espec) {
+  L <- .std_geom("likert")
+  ttb <- !is.null(espec$box$unidades); btb <- ttb && !is.null(espec$box2$unidades)
+  paso <- if (btb) 1.25 else 0; wcol <- if (btb) 1.25 else 1.5
+  centro <- function(dx) L$x_top_two_box + 0.75 - dx   # el centro de la columna de 1.5 in del estándar
+  cols <- list()
+  if (ttb) cols[[1]] <- list(caja = espec$box, color = .std_color("verde_top_two_box"), x = centro(paso) - wcol / 2,
+                             prefijo = "box", rotulo = espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
+  if (btb) cols[[2]] <- list(caja = espec$box2, color = .std_color("naranja_bottom_two_box_texto"), x = centro(0) - wcol / 2,
+                             prefijo = "box2", rotulo = espec$box2$rotulo %||% "Bottom Two Box")
+  list(ancho_barra = L$ancho_barra - paso, ancho_col = wcol, cols = cols)
 }
 
 #' Dibuja un bloque de escala en el lienzo
@@ -181,7 +202,7 @@
   W <- g_("ancho"); MR <- g_("margen_der"); ML <- g_("margen_izq")
   Y_DATOS <- g_("zona_datos_y0"); Y_LEY <- g_("leyenda_y"); Y_BASE <- g_("base_y")
   ttb_col <- !is.null(espec$box$unidades)
-  rot_box <- espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX
+  cb <- .lam_escala_columnas_box(espec); wcol <- cb$ancho_col; dx_btb <- L$ancho_barra - cb$ancho_barra
   ley <- espec$leyenda; labels <- espec$categorias$rotulo[ley]; cols <- espec$categorias$color[ley]
   respuestas <- function(n) paste(format(as.integer(n), big.mark = ","), "respuestas")
   y0 <- y0 %||% (Y_DATOS + 0.1); y1 <- y1 %||% (Y_LEY - 0.15)
@@ -192,13 +213,15 @@
     alto_grupo <- ht + 1.15 + g + 1.0
     yt <- Y_DATOS + max(0.3, (Y_BASE - 0.2 - Y_DATOS - alto_grupo) / 2)
     .lam_txt(lz, p$texto, L$x_premisa, yt, wt, ht, 20, azul, bold = TRUE, nombre = "pregunta")
-    yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - xb - 0.25
+    yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - dx_btb - xb - 0.25
     if (nzchar(fl$actor)) .lam_txt(lz, fl$actor, L$x_premisa, yb + g / 2 - 0.18, 1.6, 0.3, .std_pt("actor"), azul, bold = TRUE, nombre = "actor")
     .lam_txt(lz, respuestas(fl$valid), L$x_premisa, yb + g / 2 + 0.08, 1.7, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "respuestas")
     .lam_barra_apilada(lz, xb, yb, wb, .lam_escala_seg(espec, fl$i), g)
-    if (ttb_col) {
-      .lam_txt(lz, rot_box, L$x_top_two_box - 0.1, yb - 0.45, 1.6, 0.26, .std_pt("rotulo_top_two_box"), verde, bold = TRUE, align = "center", nombre = "box:rotulo")
-      .lam_txt(lz, espec$box$cifras[fl$i], L$x_top_two_box - 0.1, yb + g / 2 - 0.3, 1.6, 0.6, 28, verde, bold = TRUE, align = "center", nombre = "box:cifra")
+    for (cc in cb$cols) {
+      .lam_txt(lz, cc$rotulo, cc$x - 0.1, yb - 0.45, wcol + 0.1, 0.26, .std_pt("rotulo_top_two_box"), cc$color, bold = TRUE, align = "center",
+               nombre = paste0(cc$prefijo, ":rotulo"))
+      .lam_txt(lz, cc$caja$cifras[fl$i], cc$x - 0.1, yb + g / 2 - 0.3, wcol + 0.1, 0.6, 28, cc$color, bold = TRUE, align = "center",
+               nombre = paste0(cc$prefijo, ":cifra"))
     }
     .lam_leyenda(lz, yb + g + 0.55, labels, cols, centrar_en = xb + wb / 2)
     return(invisible(yb + g))
@@ -207,7 +230,7 @@
   hay_chica <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) isTRUE(fl$valid < 30), TRUE)), TRUE))
   wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
   g <- geo$g; fila <- geo$fila; gap <- geo$gap
-  WB <- if (ttb_col) L$ancho_barra else W - MR - L$x_barra - 0.3
+  WB <- if (ttb_col) cb$ancho_barra else W - MR - L$x_barra - 0.3
   altos_de <- function() vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * fila), 0)
   altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1)
   disp <- y1 - y0 - (if (isTRUE(leyenda)) 0.7 else 0)
@@ -231,7 +254,10 @@
     if (peq && fila - g < 0.36) g <- max(0.24, fila - 0.36)
   }
   y <- if (is.null(estirar)) y0 + max(0, (y1 - y0 - tot - 0.5) / 2) else y0
-  if (ttb_col) .lam_txt(lz, rot_box, L$x_top_two_box, y - (rotulo_sobre %||% 0.45), 1.5, 0.26, .std_pt("rotulo_top_two_box"), verde, bold = TRUE, align = "center", nombre = "box:rotulo")
+  # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
+  hr <- if (length(cb$cols) > 1L) 0.1 else 0
+  for (cc in cb$cols) .lam_txt(lz, cc$rotulo, cc$x - hr, y - (rotulo_sobre %||% 0.45), wcol + 2 * hr, 0.26, .std_pt("rotulo_top_two_box"), cc$color,
+                               bold = TRUE, align = "center", nombre = paste0(cc$prefijo, ":rotulo"))
   ytop <- y
   for (i in seq_along(premisas)) {
     p <- premisas[[i]]; a <- altos[i]; hp <- .lam_alto_txt(p$texto, wp, .std_pt("pregunta"), TRUE); hn <- .lam_premisa_alto(p, wp)
@@ -248,7 +274,8 @@
                  align = "right", nombre = "respuestas")
       }
       .lam_barra_apilada(lz, L$x_barra, yb, WB, .lam_escala_seg(espec, fl$i), g)
-      if (ttb_col) .lam_etiqueta_box(lz, espec, L$x_top_two_box, yb, g, fl$i, con_n = hay_chica)
+      for (cc in cb$cols) .lam_etiqueta_box(lz, espec, cc$x, yb, g, fl$i, con_n = hay_chica, caja = cc$caja, color = cc$color,
+                                            w = wcol, prefijo = cc$prefijo)
       yf <- yf + fila
     }
     y <- y + a + gap
@@ -289,7 +316,8 @@
   }
   yy <- yh + 0.3
   for (i in filas) {
-    es_tot <- isTRUE(espec$filas$es_total[i]); yb <- yy + (fila - g) / 2
+    es_tot <- isTRUE(espec$filas$es_total[i])
+    paso <- .lam_filas_paso(espec, i, fila, wlab); yb <- yy + (paso - g) / 2
     lab <- espec$filas$rotulo[i]; hl <- .lam_alto_txt(lab, wlab, .std_pt("actor"), TRUE)
     .lam_txt(lz, lab, x, yb + (g - hl) / 2, wlab, hl, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
     .lam_barra_apilada(lz, xb, yb, wb, .lam_escala_seg(espec, i), g)
@@ -299,7 +327,7 @@
                bold = TRUE, align = "center", nombre = if (k == 1) "box:cifra" else "box2:cifra")
     }
     if (es_tot) .lam_caja(lz, x, yb + g + 0.08, w, 0.008, .std_color("filete"), nombre = "filete:total")
-    yy <- yy + fila + (if (es_tot) 0.22 else 0)
+    yy <- yy + paso + (if (es_tot) 0.22 else 0)
   }
   invisible(yy)
 }
@@ -307,6 +335,29 @@
 #' ¿El bloque va en filas con Total o Bottom Two Box en vez del bloque de premisas?
 #' @keywords internal
 .lam_escala_en_filas <- function(espec) any(espec$filas$es_total) || !is.null(espec$box2$unidades)
+
+#' ¿La lámina de un gráfico se compone en filas o en el bloque de premisas?
+#'
+#' En filas sólo con la fila Total, que el recetario separa con su filete bajo la pregunta (lámina 79). La Bottom
+#' Two Box no cambia la composición: va en el mismo bloque de premisas (o de actores) que sin ella, y la segunda
+#' columna sólo resta ancho a la barra (`.lam_escala_columnas_box`); la partición, los altos de fila, la línea de
+#' respuestas y los casos bajo la cifra son los mismos. Antes la Bottom Two Box mandaba la lámina a filas, cuya
+#' columna de rótulos de 1.8 in no mide el alto del texto: la lámina 24 de acrconta_mazo pasaba de dos láminas a
+#' una con siete premisas de cinco líneas encimadas (F-d).
+#'
+#' `.lam_escala_en_filas()` sigue diciendo si la espec trae Total o Bottom Two Box: las láminas de varios bloques
+#' (multilista, mixtas, paneles) no dibujan la segunda columna y con ella toman la ruta anterior.
+#' @keywords internal
+.lam_escala_modo_filas <- function(espec) any(espec$filas$es_total %in% TRUE)
+
+#' Alto que toma una fila en el modo en filas: el de la fila, o el de su rótulo si es más alto
+#'
+#' El rótulo va en una columna de ancho fijo; si pide más líneas de las que caben en la fila, la fila crece en vez
+#' de dejar que el rótulo invada la de al lado.
+#' @keywords internal
+.lam_filas_paso <- function(espec, i, fila, wlab = 1.8) {
+  max(fila, .lam_alto_txt(espec$filas$rotulo[i], wlab, .std_pt("actor"), TRUE))
+}
 
 # ---- planificación del modo de filas: bloques, alto y partición --------------------------------------
 
@@ -327,7 +378,8 @@
   filas <- unlist(lapply(bloques, `[[`, "filas"))
   geo <- .lam_filas_geo(espec, filas)
   sum(vapply(bloques, function(b) {
-    (if (!is.null(b$pregunta) && nzchar(b$pregunta)) 0.42 else 0) + 0.3 + length(b$filas) * geo$fila +
+    (if (!is.null(b$pregunta) && nzchar(b$pregunta)) 0.42 else 0) + 0.3 +
+      sum(vapply(b$filas, function(i) .lam_filas_paso(espec, i, geo$fila), 0)) +
       0.22 * sum(espec$filas$es_total[b$filas])
   }, 0)) + 0.2 * (length(bloques) - 1L)
 }
