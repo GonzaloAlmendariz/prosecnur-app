@@ -126,6 +126,8 @@ export function VisorLamina({
           <span className="pulso-f6-chip-estado is-neutro" role="status">
             <Loader2 size={13} className="pulso-spin" aria-hidden="true" />
             {vista.desactualizada ? "Regenerando" : "Generando"}
+            {vista.progreso?.porcentaje != null ? ` · ${Math.round(vista.progreso.porcentaje)} %` : ""}
+            {vista.progreso?.mensaje ? <span className="pulso-sr-only">: {vista.progreso.mensaje}</span> : null}
           </span>
         )}
         {nPartes > 1 && l && (
