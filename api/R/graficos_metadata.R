@@ -3120,12 +3120,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "etiquetas_negrita",     label = "Etiquetas en negrita", tipo_input = "bool",   grupo = "estilo", default = TRUE),
 
       # --- Leyenda -------------------------------------------------------
+      # `graficar_pie()` solo acepta abajo o derecha; «Ocultar» (`ninguna`)
+      # reventaba su `match.arg` y se retiró del catálogo.
       list(name = "leyenda_posicion",      label = "Posición leyenda",     tipo_input = "choice", grupo = "estilo",
            default = "abajo",
            choices = list(
              list(value = "abajo",   label = "Abajo"),
-             list(value = "derecha", label = "Derecha"),
-             list(value = "ninguna", label = "Ocultar")
+             list(value = "derecha", label = "Derecha")
            )),
       list(name = "size_leyenda",         label = "Tamaño leyenda",        tipo_input = "number", grupo = "estilo", default = 11),
       list(name = "tamano_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
@@ -3440,8 +3441,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "escala_valor",         label = "Escala de valores",      tipo_input = "choice", grupo = "filtro",
            default = "proporcion_1",
            choices = list(
-             list(value = "proporcion_1",  label = "Proporción 0-1",  hint = "Los valores van de 0 a 1."),
-             list(value = "porcentaje_100",label = "Porcentaje 0-100",hint = "Los valores van de 0 a 100.")
+             # Solo lo que acepta `graficar_radar()`; el viejo `porcentaje_100`
+             # se normaliza en el motor (graficador_radar_compat.R).
+             list(value = "proporcion_1",   label = "Proporción (0 a 1)",   hint = "Los valores van de 0 a 1: 0,85 es el 85 %."),
+             list(value = "proporcion_100", label = "Porcentaje (0 a 100)", hint = "Los valores van de 0 a 100: 85 es el 85 %.")
            )),
       list(name = "limites",              label = "Límites del radar",     tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Mínimo y máximo, separados por coma. Ej: 0, 1 o 0, 100. Si vacío, se deduce de escala_valor."),
@@ -3466,11 +3469,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       # --- Leyenda -------------------------------------------------------
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo", default = TRUE),
+      # El radar dibuja la leyenda abajo o a la derecha; «Arriba» se ofrecía
+      # sin que el motor lo aceptara (el viejo `arriba` cae a abajo en el motor).
       list(name = "leyenda_posicion",     label = "Posición leyenda",      tipo_input = "choice", grupo = "estilo",
            default = "abajo",
            choices = list(
              list(value = "abajo",   label = "Abajo"),
-             list(value = "arriba",  label = "Arriba"),
+             list(value = "derecha", label = "Derecha"),
              list(value = "ninguna", label = "Ocultar")
            )),
       list(name = "legend_n_por_fila",    label = "Items por fila",        tipo_input = "number", grupo = "estilo", default = 3),
