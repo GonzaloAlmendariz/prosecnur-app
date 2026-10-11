@@ -184,3 +184,37 @@ test_that("cachea el instrumento por base sin tocar el cache single-base", {
   inst2 <- .carga_inst_estructura_por_base(st$sid, "post_distribution_monitoring")
   expect_true(.pulso_valid_inst_cache(inst2))
 })
+
+# El esquema que pide Carga › Revisión al montar es un GET: cachear el
+# instrumento leído del XLSForm (por base o single-base) es derivado y no puede
+# dejar el proyecto «sin guardar» (QA 2026-10-11, chip tras recargar).
+test_that("leer el esquema (por base y single-base) no ensucia un proyecto abierto", {
+  abrir_limpio <- function(sid) {
+    s <- session_get(sid)
+    s$project_path <- file.path(s$dir, "proyecto-abierto.pulso")
+    s$project_dirty <- FALSE
+    .session_env[[sid]] <- s
+  }
+
+  st <- .ceb_setup_study()
+  on.exit(session_delete(st$sid), add = TRUE)
+  abrir_limpio(st$sid)
+  .carga_estructura_instrumento_endpoint(
+    .ceb_req(st$sid), list(), base = "post_distribution_monitoring"
+  )
+  expect_true(.pulso_valid_inst_cache(
+    session_get(st$sid)$inst_estructura_por_base[["post_distribution_monitoring"]]
+  ))
+  expect_false(isTRUE(session_get(st$sid)$project_dirty), info = "esquema por base")
+
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  path <- tempfile("single_xlsform_", fileext = ".xlsx")
+  .carga_write_xlsform_model(.ceb_madre_xlsform_model(), path)
+  save_upload(sid, "xlsform", "single.xlsx",
+              readBin(path, "raw", n = file.info(path)$size))
+  abrir_limpio(sid)
+  .carga_estructura_instrumento_endpoint(.ceb_req(sid), list())
+  expect_true(.pulso_valid_inst_cache(session_get(sid)$inst_limpieza))
+  expect_false(isTRUE(session_get(sid)$project_dirty), info = "esquema single-base")
+})

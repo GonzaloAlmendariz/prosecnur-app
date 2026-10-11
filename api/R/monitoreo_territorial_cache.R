@@ -69,7 +69,8 @@
   cache <- .monitoreo_territorial_map_cache_get(sid)
   cache$phases[[phase]][[layer]] <- value
   cache$updated_at <- .monitoreo_now_iso()
-  session_set(sid, "monitoreo_territorial_map_cache", cache)
+  # Cache derivado: poblarlo (incluso desde un GET de estado) no ensucia el .pulso.
+  session_set_cache(sid, "monitoreo_territorial_map_cache", cache)
   invisible(cache)
 }
 
@@ -997,6 +998,40 @@
   result
 }
 
+# Cosecha del prewarm territorial: fusiona en la sesion viva los caches que el
+# worker construyo sobre su copia. Son caches derivados (session_set_cache): no
+# marcan `project_dirty`, asi que abrir un proyecto territorial no lo deja
+# «sin guardar» (QA 2026-10-11).
+.monitoreo_territorial_prewarm_on_complete <- function(j, phase = NULL) {
+  result <- j$result_data
+  if (!is.list(result)) return(result)
+  patch <- result$session_patch %||% list()
+  s_current <- session_get(j$sid)
+  incoming_report_cache <- patch$territorial_report_cache %||% NULL
+  if (is.list(incoming_report_cache)) {
+    snapshot_current <- .monitoreo_territorial_report_cache_merge(
+      s_current$monitoreo_snapshot %||% list(),
+      incoming_report_cache
+    )
+    session_set_cache(j$sid, "monitoreo_snapshot", snapshot_current)
+  }
+  incoming_map_cache <- patch$territorial_map_cache %||% NULL
+  if (is.list(incoming_map_cache)) {
+    merged_map_cache <- .monitoreo_territorial_map_cache_merge(
+      s_current$monitoreo_territorial_map_cache %||% list(),
+      incoming_map_cache,
+      phase = result$phase %||% phase
+    )
+    session_set_cache(j$sid, "monitoreo_territorial_map_cache", merged_map_cache)
+  }
+  public <- .monitoreo_territorial_prewarm_public_result(result)
+  public$state <- tryCatch(
+    .monitoreo_state_payload(j$sid, include_reports = FALSE),
+    error = function(e) public$state %||% NULL
+  )
+  public
+}
+
 .monitoreo_territorial_map_prepare_job <- function(session_path,
                                                    phase = NULL,
                                                    layers = NULL,
@@ -1064,8 +1099,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
         incoming_map_cache,
         phase = result$phase %||% NULL
       )
-      session_set(j$sid, "monitoreo_territorial_map_cache", merged_map_cache)
-      tryCatch(.monitoreo_mark_project_dirty_if_open(j$sid), error = function(e) NULL)
+      session_set_cache(j$sid, "monitoreo_territorial_map_cache", merged_map_cache)
     }
   }
   .monitoreo_territorial_map_prepare_public_result(result)

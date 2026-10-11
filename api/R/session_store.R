@@ -91,6 +91,18 @@ session_set <- function(sid, key, value) {
   invisible(value)
 }
 
+# Escribe un cache DERIVADO sin marcar `project_dirty`. Para caches que viajan
+# en el .pulso (reportes y mapa territoriales, instrumento leido del XLSForm)
+# pero que se recalculan de lo que ya esta guardado: poblarlos al abrir, en un GET o al
+# cosechar un worker de warmup no es una edicion del usuario. Una mutacion real
+# sigue yendo por session_set().
+session_set_cache <- function(sid, key, value) {
+  s <- session_get(sid)
+  s[key] <- list(value)
+  .session_env[[sid]] <- s
+  invisible(value)
+}
+
 # Publica varias claves top-level como una sola transaccion de sesion.
 #
 # El contrato de entrada es deliberadamente estricto porque una lista sin

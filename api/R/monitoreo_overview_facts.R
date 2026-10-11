@@ -283,8 +283,6 @@ monitoreo_snapshot_refresh_territorial_facts <- function(snapshot, dashboard) {
 monitoreo_snapshot_store_overview_facts <- function(sid, snapshot, dashboard, family, goals = NULL) {
   out <- monitoreo_snapshot_refresh_overview_facts(snapshot, dashboard, family, goals)
   if (!isTRUE(out$changed)) return(snapshot)
-  was_dirty <- isTRUE(session_get(sid, required = FALSE)$project_dirty)
-  session_set(sid, "monitoreo_snapshot", out$snapshot)
-  if (!isTRUE(was_dirty)) session_set(sid, "project_dirty", FALSE)
+  session_set_cache(sid, "monitoreo_snapshot", out$snapshot)
   out$snapshot
 }
