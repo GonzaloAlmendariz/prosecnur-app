@@ -1,6 +1,6 @@
 // «Colores por serie» en la tarjeta de un gráfico (C45, A10 W-D): una fila por serie con su muestra de color, el nombre
 // legible del color y su procedencia. Por defecto, el del recetario; elegir otro lo guarda como «Propio» y «Volver al
-// recetario» borra la clave (ADR 0094). Sólo en gráficos cuya lámina nativa lee el color (`coloresGrafico.ts`).
+// recetario» borra la clave (ADR 0094). Sólo en gráficos cuya lámina nativa lee el color (`coloresGraficoModel.ts`).
 // Superficie intrínseca: crece con sus series y el scroll es del cuerpo del inspector (C4); su vacío vive dentro (C3).
 
 import { useId } from "react";
@@ -9,7 +9,7 @@ import type { ArgMetadata, GraficadorRef } from "../../../../api/graficos";
 import { SelloProcedencia } from "../../estilo/SelloProcedencia";
 import { graficadorToPresetType } from "../../graficadorPresetMap";
 import { usePlanStore } from "../../store";
-import { coloresDelGrafico, coloresEfectivos, leerColores, nombreDeColor, patchColor, type ColorDeSerie } from "./coloresGrafico";
+import { coloresDelGrafico, coloresEfectivos, leerColores, nombreDeColor, patchColor, type ColorDeSerie } from "./coloresGraficoModel";
 import "../../estilo/estilo.css";
 import "./coloresGrafico.css";
 

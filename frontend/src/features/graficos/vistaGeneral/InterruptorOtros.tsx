@@ -9,7 +9,7 @@ import { useSession } from "../../../lib/SessionContext";
 import { modoMultibaseDelPlan } from "../modoMultibase";
 import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
-import { ayudaOtros, CHIP_OTROS, ROTULO_OTROS } from "./interruptorOtros";
+import { ayudaOtros, CHIP_OTROS, ROTULO_OTROS } from "./interruptorOtrosModel";
 
 export function InterruptorOtros() {
   const { state } = useSession();

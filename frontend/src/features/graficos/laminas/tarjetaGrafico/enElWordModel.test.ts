@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mergeSlotArgsPatch } from "../../store";
-import { admiteTitulo, aplicaRotuloWord, patchRotuloWord, repiteRotuloWord, tituloDeFigura, tituloWordPorDefecto } from "./enElWord";
+import { admiteTitulo, aplicaRotuloWord, patchRotuloWord, repiteRotuloWord, tituloDeFigura, tituloWordPorDefecto } from "./enElWordModel";
 
 describe("«En el Word»: rótulo de la barra (word_ocultar_etiqueta_categoria)", () => {
   it("aplica a apiladas sin cruce y a multiapiladas «Comparar preguntas»", () => {

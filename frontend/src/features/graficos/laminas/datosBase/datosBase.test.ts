@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ArgMetadata } from "../../../../api/graficos";
 import { camposDeDatos } from "../argsDatosGrafico";
 import { NOTA_BASE_COMPARTIDO, faltaBaseEnCompartido } from "./baseEnCompartido";
-import { patchNombreDeBase } from "./nombresPorBase";
+import { patchNombreDeBase } from "./nombresPorBaseModel";
 
 // Firma de p_radar en el registro (graficos_metadata.R): `tabla_encabezados` es `base_labels` y sólo aplica al modo
 // «Los públicos del estudio».

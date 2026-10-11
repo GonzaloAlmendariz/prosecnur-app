@@ -3,7 +3,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ListaColores } from "./ColoresGrafico";
-import { coloresEfectivos } from "./coloresGrafico";
+import { coloresEfectivos } from "./coloresGraficoModel";
 
 const pintar = (propios: Record<string, string>, nombres = ["Acceso", "Trato"]) =>
   renderToStaticMarkup(<ListaColores rotulo="Colores por serie" filas={coloresEfectivos(nombres, propios)} onElegir={() => undefined} />);
