@@ -88,22 +88,21 @@
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   box-shadow: var(--pulso-shadow-low);
 }
 
+/* La posición de cada rótulo la decide `colocarRotulos` (rotulosGuias.ts): uno por caja, sólo en cajas que superan el
+   umbral, dentro de la hoja y sin pisarse. Aquí no hay desplazamientos: el estilo trae left/top ya resueltos. */
 .pulso-f6-guia-rotulo.is-ranura {
-  position: absolute;
-  top: 2px;
-  right: 2px;
   border-color: var(--pulso-success-border);
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
 }
 
-/* Tipografía: en la esquina superior izquierda de la caja; Medidas: en la inferior derecha, hacia dentro. */
-.pulso-f6-guia-rotulo.is-pt {
+.pulso-f6-guia-rotulo {
   transform-origin: top left;
-  translate: 2px 2px;
 }
 
 .pulso-f6-guia-rotulo.is-pt.is-fuera {
@@ -112,15 +111,18 @@
   color: var(--pulso-danger-fg);
 }
 
-.pulso-f6-guia-recorte {
+.pulso-f6-guia-parte.is-recorte {
   color: var(--pulso-warn-fg);
 }
 
-.pulso-f6-guia-rotulo.is-medida {
-  translate: calc(-100% - 2px) calc(-100% - 2px);
-  transform-origin: bottom right;
+/* Medidas: en tono suave, sola o detrás del cuerpo en el rótulo combinado. */
+.pulso-f6-guia-parte.is-medida {
   color: var(--pulso-text-soft);
   font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-f6-guia-rotulo.is-fuera .pulso-f6-guia-parte.is-medida {
+  color: var(--pulso-danger-fg);
 }
 
 /* Cotas de Espacios: una línea con topes en los extremos y su medida al centro. */
@@ -177,10 +179,6 @@
 }
 
 .pulso-f6-guia-rotulo.is-cota {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
   border-color: var(--pulso-info-border);
   background: var(--pulso-info-bg);
   color: var(--pulso-info-fg);
@@ -213,6 +211,11 @@
 
 .pulso-f6-guia-nombre span {
   opacity: 0.85;
+}
+
+.pulso-f6-guia-nombre .pulso-f6-guia-nombre-dato {
+  font-variant-numeric: tabular-nums;
+  opacity: 1;
 }
 
 /* ---- panel de capas --------------------------------------------------- */

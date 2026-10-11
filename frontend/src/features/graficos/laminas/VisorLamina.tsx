@@ -124,7 +124,7 @@ export function VisorLamina({
         </button>
         <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} titulo={lamina.tipoLabel} className="pulso-f6-visor-tipo" />
         <p className="pulso-f6-visor-pos" aria-live="polite">
-          <strong>Lámina {lamina.posicion} de {total}</strong>
+          <strong><span className="pulso-f6-rotulo-angosto">Lámina </span>{lamina.posicion} de {total}</strong>
           {nPartes > 1 && <span className="pulso-sr-only"> · parte {parteActiva} de {nPartes}</span>}
         </p>
         {estado && !cargando && (
@@ -201,7 +201,7 @@ export function VisorLamina({
           onClick={onAbrirAjustes}
         >
           <SlidersHorizontal size={14} aria-hidden="true" />
-          Ajustes
+          <span className="pulso-f6-rotulo-angosto">Ajustes</span>
         </button>
       </header>
 
