@@ -3935,13 +3935,30 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
       )))))
     }
     if (grepl("/values:batchUpdate$", url)) {
+      # Se GUARDA lo escrito: el publicador comprueba con una sonda de values
+      # que la pestaña que su hash dejaría sin escribir sigue teniendo su
+      # contenido, y un mock que contesta «vacía» a todo la haría republicar.
+      for (entry in body$data %||% list()) {
+        titulo <- gsub("''", "'", sub("^'(.*)'$", "\\1", entry$range %||% ""))
+        if (!nzchar(titulo) || is.null(sheets[[titulo]])) next
+        sheets[[titulo]]$values <<- entry$values %||% list()
+      }
       return(list(totalUpdatedSheets = length(body$data %||% list())))
+    }
+    if (grepl("/values:batchGet", url)) {
+      crudos <- regmatches(url, gregexpr("ranges=[^&]+", url))[[1]]
+      return(list(valueRanges = lapply(crudos, function(r) {
+        titulo <- utils::URLdecode(sub("^ranges=", "", r))
+        titulo <- gsub("''", "'", sub("^'(.*)'$", "\\1", titulo))
+        list(range = titulo, values = sheets[[titulo]]$values %||% list())
+      })))
     }
     if (grepl(":batchUpdate$", url)) {
       for (request in body$requests %||% list()) {
         title <- request$addSheet$properties$title %||% ""
         if (nzchar(title)) {
-          sheets[[title]] <<- list(sheetId = sheet_id, title = title, developer_metadata = list())
+          sheets[[title]] <<- list(sheetId = sheet_id, title = title,
+                                   developer_metadata = list(), values = list())
           sheet_id <<- sheet_id + 1L
         }
         cdm <- request$createDeveloperMetadata$developerMetadata
@@ -4010,6 +4027,8 @@ test_that("Google Sheets publica solo pestanas Prosecnur controladas", {
   expect_true(any(vapply(format_requests, function(request) !is.null(request$setBasicFilter), logical(1))))
 
   # Republicar sin cambios: skip por hash — nada de addSheet, values ni formato.
+  # Son 2 requests: la metadata y la sonda que comprueba que las pestañas que el
+  # hash deja sin escribir siguen teniendo su contenido (el tope pineado es 3).
   first_calls <- length(calls)
   out2 <- monitoreo_sheets_publish_tabs("sheet_abc", payload)
   expect_true(out2$ok)

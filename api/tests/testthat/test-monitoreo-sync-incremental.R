@@ -303,7 +303,23 @@ test_that("recipients SM: los fallos de enrichment ya no se tragan (warning con 
       ))
     }
     if (grepl("/values:batchUpdate$", url)) {
+      # El mock GUARDA lo escrito: sin eso no puede contestar la sonda de
+      # contenido vigente y un fixture que contesta «vacía» a todo haría
+      # republicar siempre — verde sobre el bug que se quiere sujetar.
+      for (entry in body$data %||% list()) {
+        titulo <- gsub("''", "'", sub("^'(.*)'$", "\\1", entry$range %||% ""))
+        if (!nzchar(titulo) || is.null(env$sheets[[titulo]])) next
+        env$sheets[[titulo]]$values <- entry$values %||% list()
+      }
       return(list(totalUpdatedSheets = length(body$data %||% list())))
+    }
+    if (grepl("/values:batchGet", url)) {
+      crudos <- regmatches(url, gregexpr("ranges=[^&]+", url))[[1]]
+      return(list(valueRanges = lapply(crudos, function(r) {
+        titulo <- utils::URLdecode(sub("^ranges=", "", r))
+        titulo <- gsub("''", "'", sub("^'(.*)'$", "\\1", titulo))
+        list(range = titulo, values = env$sheets[[titulo]]$values %||% list())
+      })))
     }
     if (grepl(":batchUpdate$", url)) {
       apply_metadata <- function(sheet_id, key, value, update = FALSE) {
@@ -323,7 +339,8 @@ test_that("recipients SM: los fallos de enrichment ya no se tragan (warning con 
       for (request in body$requests %||% list()) {
         title <- request$addSheet$properties$title %||% ""
         if (nzchar(title)) {
-          env$sheets[[title]] <- list(sheetId = env$next_id, title = title, developerMetadata = list())
+          env$sheets[[title]] <- list(sheetId = env$next_id, title = title,
+                                      developerMetadata = list(), values = list())
           env$next_id <- env$next_id + 1L
         }
         cdm <- request$createDeveloperMetadata$developerMetadata
@@ -371,6 +388,10 @@ test_that("sheets: republicar 8 pestanas sin cambios hace <= 3 requests (skip po
   out2 <- monitoreo_sheets_publish_tabs("sheet_abc", payload)
   expect_true(out2$ok)
   second_calls <- length(mock$env$calls) - first_calls
+  # Presupuesto del ciclo sin cambios: metadata + sonda de contenido vigente =
+  # 2 requests (era 1 antes del 2026-09-21; el tope pineado sigue en 3). El
+  # llamador que ya leyó el remoto lo presta por `remote_values` y vuelve a 1.
+  expect_equal(second_calls, 2L)
   expect_lte(second_calls, 3L)
   expect_equal(length(out2$written_ranges), 0L)
   expect_setequal(unlist(out2$skipped_tabs), names(payload))
@@ -412,7 +433,9 @@ test_that("sheets: pestanas cambiadas van en UN solo values:batchUpdate; formato
   expect_false(any(vapply(all_requests, function(r) !is.null(r$repeatCell), logical(1))))
   expect_true(any(vapply(all_requests, function(r) !is.null(r$updateDeveloperMetadata), logical(1))))
 
-  # Total del ciclo con 2 cambiadas: metadata + values + estado = 3 requests.
+  # Total del ciclo con 2 cambiadas: metadata + sonda de las 6 que se saltan +
+  # values + estado = 4 requests.
+  expect_equal(length(new_calls), 4L)
   expect_lte(length(new_calls), 4L)
 })
 
@@ -436,6 +459,132 @@ test_that("sheets: crecer una pestana (dims cambiadas) si repone reset y formato
   expect_true(any(vapply(all_requests, function(r) {
     !is.null(r$updateSheetProperties$properties$gridProperties$frozenRowCount)
   }, logical(1))))
+})
+
+# --- D.1 Sonda de contenido vigente: el hash no prueba que la hoja siga ahí --
+#
+# Medido el 2026-09-21 sobre el Sheets de aplicadores de CCSS Perfil 2026-II: se
+# limpiaron los VALORES de «Semana 1» y «Semana 1 · por agendar», se republicó y
+# las dos salieron `sin_cambios` con cero filas. La developerMetadata
+# `prosecnur.tab_state` sobrevive a un borrado de valores, así que el hash
+# seguía coincidiendo. `gridProperties` no lo ve: un `values:clear` no
+# redimensiona la grilla. Sólo se recuperaba borrando la metadata a mano.
+
+test_that("sheets: una pestana vaciada con su estado intacto se REESCRIBE, no se salta", {
+  skip_if_not_installed("digest")
+  mock <- .msi_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  payload <- .msi_sheets_payload_8()
+  monitoreo_sheets_publish_tabs("sheet_abc", payload)
+
+  # El vaciado del defecto: los VALORES se van, la metadata se queda. Es
+  # exactamente lo que deja un `values:clear` o un borrar a mano desde Sheets.
+  estado_antes <- mock$env$sheets[["Resumen"]]$developerMetadata
+  mock$env$sheets[["Resumen"]]$values <- list()
+  expect_identical(mock$env$sheets[["Resumen"]]$developerMetadata, estado_antes)
+  expect_true(any(vapply(estado_antes, function(md) {
+    identical(md$metadataKey, "prosecnur.tab_state")
+  }, logical(1))))
+
+  first_calls <- length(mock$env$calls)
+  out <- monitoreo_sheets_publish_tabs("sheet_abc", payload)
+
+  # La vaciada se reescribe y las otras siete siguen saltándose: la sonda
+  # invalida el skip de la que perdió su contenido, no de todo el documento.
+  expect_false("Resumen" %in% unlist(out$skipped_tabs))
+  expect_setequal(unlist(out$emptied_tabs), "Resumen")
+  expect_setequal(unlist(out$skipped_tabs), setdiff(names(payload), "Resumen"))
+  expect_setequal(unlist(lapply(out$written_ranges, `[[`, "tab")), "Resumen")
+
+  nuevas <- mock$env$calls[(first_calls + 1L):length(mock$env$calls)]
+  urls <- vapply(nuevas, function(call) call$url, character(1))
+  values_calls <- nuevas[grepl("values:batchUpdate", urls, fixed = TRUE)]
+  expect_equal(length(values_calls), 1L)
+  expect_equal(length(values_calls[[1]]$body$data), 1L)
+  expect_identical(values_calls[[1]]$body$data[[1]]$range, "'Resumen'")
+
+  # Y el documento vuelve a tener sus filas: el arreglo se mide en el remoto,
+  # no en el recibo.
+  expect_equal(length(mock$env$sheets[["Resumen"]]$values), 2L)
+
+  # Vaciada y repuesta, el ciclo siguiente vuelve a saltarse las 8.
+  out3 <- monitoreo_sheets_publish_tabs("sheet_abc", payload)
+  expect_setequal(unlist(out3$skipped_tabs), names(payload))
+  expect_length(out3$emptied_tabs, 0L)
+})
+
+test_that("sheets: la pestana vaciada recupera tambien su formato", {
+  skip_if_not_installed("digest")
+  mock <- .msi_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  payload <- .msi_sheets_payload_8()
+  monitoreo_sheets_publish_tabs("sheet_abc", payload)
+  mock$env$sheets[["Alertas"]]$values <- list()
+  first_calls <- length(mock$env$calls)
+  monitoreo_sheets_publish_tabs("sheet_abc", payload)
+
+  # Si lo que desapareció fueron FILAS (y no sólo sus valores) se fueron con
+  # ellas sus reglas y desplegables: la pestaña se repone completa, como una
+  # nueva, y no sólo con sus valores encima de una hoja desnuda.
+  nuevas <- mock$env$calls[(first_calls + 1L):length(mock$env$calls)]
+  urls <- vapply(nuevas, function(call) call$url, character(1))
+  batch <- nuevas[grepl(":batchUpdate$", urls) & !grepl("values:batchUpdate", urls, fixed = TRUE)]
+  reqs <- unlist(lapply(batch, function(call) call$body$requests), recursive = FALSE)
+  expect_true(any(vapply(reqs, function(r) !is.null(r$updateCells), logical(1))))
+  expect_true(any(vapply(reqs, function(r) {
+    !is.null(r$updateSheetProperties$properties$gridProperties$frozenRowCount)
+  }, logical(1))))
+})
+
+test_that("sheets: una sonda que no se puede leer no autoriza a saltar", {
+  skip_if_not_installed("digest")
+  mock <- .msi_sheets_mock()
+  fallar <- FALSE
+  testthat::local_mocked_bindings(.monitoreo_google_api = function(url, method = "GET", body = NULL) {
+    if (fallar && grepl("/values:batchGet", url)) stop("503 backend error")
+    mock$handler(url, method = method, body = body)
+  })
+
+  payload <- .msi_sheets_payload_8()
+  monitoreo_sheets_publish_tabs("sheet_abc", payload)
+  fallar <- TRUE
+  out <- monitoreo_sheets_publish_tabs("sheet_abc", payload)
+
+  # No se pudo comprobar ⇒ se reescribe. Saltar sería declarar «sin cambios»
+  # sin haber mirado, que es el defecto con otro disfraz: verde por ausencia.
+  expect_length(out$skipped_tabs, 0L)
+  expect_setequal(unlist(out$emptied_tabs), names(payload))
+  expect_setequal(unlist(lapply(out$written_ranges, `[[`, "tab")), names(payload))
+})
+
+test_that("sheets: la lectura prestada evita la sonda y decide igual", {
+  skip_if_not_installed("digest")
+  mock <- .msi_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  payload <- .msi_sheets_payload_8()
+  monitoreo_sheets_publish_tabs("sheet_abc", payload)
+
+  # Quien ya leyó el remoto lo presta: cero requests de sonda y el ciclo sin
+  # cambios vuelve a costar UN request.
+  prestadas <- lapply(names(payload), function(tab) mock$env$sheets[[tab]]$values)
+  names(prestadas) <- names(payload)
+  first_calls <- length(mock$env$calls)
+  out <- prosecnurapp:::.monitoreo_sync_sheets_publish_tabs(
+    "sheet_abc", payload, remote_values = prestadas)
+  nuevas <- mock$env$calls[(first_calls + 1L):length(mock$env$calls)]
+  expect_false(any(grepl("/values:batchGet", vapply(nuevas, function(c) c$url, character(1)))))
+  expect_equal(length(nuevas), 1L)
+  expect_setequal(unlist(out$skipped_tabs), names(payload))
+
+  # Y una prestada vacía decide lo mismo que la sonda: se reescribe.
+  prestadas[["Portada"]] <- list()
+  out2 <- prosecnurapp:::.monitoreo_sync_sheets_publish_tabs(
+    "sheet_abc", payload, remote_values = prestadas)
+  expect_setequal(unlist(out2$emptied_tabs), "Portada")
+  expect_false("Portada" %in% unlist(out2$skipped_tabs))
 })
 
 # --- E. Transporte Kobo: timeout + retry ------------------------------------
