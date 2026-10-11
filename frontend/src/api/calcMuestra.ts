@@ -402,6 +402,19 @@ export type CalcMuestraEstrato = {
    */
   mediana_conglomerado?: number;
   tau: number;
+  /**
+   * De dónde salió `tau`. `marco` la derivó `calc_muestra_aulas_resolver_tau_estratos`
+   * del marco vigente y se REFRESCA en cada recálculo; `manual` la declaró una
+   * persona y el motor la respeta. Sin el campo, se refresca.
+   *
+   * Existe porque hasta el 2026-08-28 el motor deducía «declarada» de que el
+   * campo estuviera lleno, y como esa función es su único escritor, lo que
+   * frenaba el refresco era su propio valor anterior: la τ de HSVG2026 quedó
+   * congelada en un marco de 1 632 aulas mientras el vigente tenía 1 392.
+   */
+  tau_origen?: "" | "marco" | "manual";
+  /** Marco del que salió la τ derivada, para reconocerla vieja sin recalcularla. */
+  tau_frame_hash?: string;
 };
 
 export type CalcMuestraMatrizOperativaCelda = {

@@ -217,7 +217,14 @@
           v <- suppressWarnings(as.numeric(tr[[nm]])[1])
           if (is.finite(v) && v > 0) v else NULL
         }
+        # `k` es el respaldo del tramo —cuántas aulas del histórico lo
+        # sostienen— y viaja porque una curva sellada sin procedencia es
+        # indistinguible de una constante escrita a mano, que es justo lo que
+        # este sello existe para no ser. Opcional: un sello viejo sin `k`
+        # publica NA y la superficie lo declara.
+        kv <- suppressWarnings(as.integer(tr$k)[1])
         list(hasta = if (is.finite(hasta)) hasta else NA_real_, tasa = tasa,
+             k = if (length(kv) == 1L && !is.na(kv)) kv else NA_integer_,
              asistencia = pierna("asistencia"), respuesta = pierna("respuesta"),
              validez = pierna("validez"))
       })
