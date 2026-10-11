@@ -2809,7 +2809,7 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-processing-phase-row:has(.pulso-multibase-reports.is-open) {
-  z-index: 1600;
+  z-index: var(--pulso-z-flyout); /* menú abierto: sobre la barra (1000), bajo un modal o panel lateral (1500) */
 }
 
 .pulso-multibase-reports {
