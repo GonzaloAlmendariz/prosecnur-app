@@ -48,8 +48,9 @@ preparar_categorica <- function(rotulos, valores, cifras, n = NULL, residuales_a
   rotulada <- ifelse(grepl("%", cifras[idx], fixed = TRUE),
                      suppressWarnings(as.numeric(sub("\\s*%.*$", "", trimws(cifras[idx])))) / 100, NA_real_)
   largo <- ifelse(is.finite(rotulada), rotulada, v)
+  cifras <- .casos_junto_cifras(cifras, n_casos, n_base_casos, idx)   # «43% (12)» según el ajuste (graficos_casos_junto.R)
   list(version = .ESPEC_CATEGORICA_VERSION, tipo = "categorica",
-       rotulos = rotulos[idx], valores = v, largos = largo, cifras = cifras[idx], n = n[idx], n_casos = n_casos[idx],
+       rotulos = rotulos[idx], valores = v, largos = largo, cifras = cifras, n = n[idx], n_casos = n_casos[idx],
        n_base_casos = suppressWarnings(as.numeric(n_base_casos %||% NA_real_)[1]),
        # El máximo se decide sobre lo que se lee: dos categorías que rotulan 12 % empatan aunque una valga 0.1204.
        realce = length(largo) > 2L && sum(abs(largo - max(largo)) < 1e-9) == 1L)

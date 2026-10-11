@@ -104,6 +104,7 @@ test_that("la dicotomía se reconoce en las dos especificaciones y sólo cuando 
 })
 
 test_that("la lámina de dicotomía tiene la geometría de la 74: barra de 0.7 in partida por la cifra rotulada", {
+  withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))   # la dicotomía con «(n)» es el modo «siempre» del ajuste
   e <- preparar_categorica(c("Sí", "No"), c(.98, .02), c("98%", "2%"), c(172, 4))
   doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
   o <- .lam_laminas_dicotomia(doc, e, "Situación laboral del egresado", ante = "Dicotómica", pregunta = "¿Está trabajando actualmente?",

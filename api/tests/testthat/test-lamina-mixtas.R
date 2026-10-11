@@ -139,6 +139,7 @@ test_that("la categórica nativa conserva su base; rótulos largos van en barras
 })
 
 test_that("una agrupada Sí/No con (n) sale como dicotomía con la frecuencia una sola vez y la cifra limpia", {
+  withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))   # la dicotomía con «(n)» es el modo «siempre» del ajuste
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   dat <- data.frame(qsn = rep(c("Sí", "No"), c(124, 76)), stringsAsFactors = FALSE)
   inst <- .vn_inst(list(qsn = "select_one sn"), list(sn = c("Sí", "No")))

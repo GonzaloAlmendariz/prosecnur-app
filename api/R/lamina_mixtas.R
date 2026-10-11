@@ -145,7 +145,8 @@
     # barras_h del recetario: dos categorías se leen como dicotomía, al ancho de las barras del panel vecino (C23),
     # con los rótulos sin su frecuencia (recetario_m2b.R, cuarta celda de la cuadrícula). La receta de una lámina
     # (la corona, p160) puede pedirla a todo el panel y con la frecuencia, si cabe con ella.
-    con_n <- isTRUE(rd$con_n) && .lam_dicotomia_cabe(espec, wd, con_n = TRUE)
+    # Si los rótulos llevan «(n)» lo decide «Casos junto al porcentaje» (`.lam_dicotomia_datos`); aquí sólo si cabe.
+    con_n <- .lam_dicotomia_cabe(espec, wd, con_n = TRUE)
     return(list(tipo = "dicotomia", y0 = y + 0.65 + dy, cabe = h - 0.65 - dy >= 1.4, w = wd, con_n = con_n,
                 size = rd$size %||% 22, g = rd$g %||% 0.34, receta = receta))
   }

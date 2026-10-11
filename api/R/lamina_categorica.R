@@ -174,7 +174,8 @@
 .lam_dicotomia_datos <- function(espec) {
   if (identical(espec$tipo, "categorica")) {
     # La frecuencia va en el rótulo («Sí (172)»): si la cifra la trae («62% (124)», mostrar_n_en_etiquetas), se quita.
-    return(list(rotulos = espec$rotulos, cifras = sub("\\s*\\([^)]*\\)\\s*$", "", espec$cifras), largos = espec$largos, n = .espec_casos(espec),
+    return(list(rotulos = espec$rotulos, cifras = sub("\\s*\\([^)]*\\)\\s*$", "", espec$cifras), largos = espec$largos,
+                n = if (any(grepl("\\(", espec$cifras)) || .casos_junto_muestra(.espec_n_base(espec), espec$casos_junto)) .espec_casos(espec) else NULL,   # «(n)» pedido en el gráfico o por el ajuste
                 colores = .espec_colores_de(espec) %||% .std_paleta("dicotomica")))
   }
   k <- which(espec$dibujar[1, ])
