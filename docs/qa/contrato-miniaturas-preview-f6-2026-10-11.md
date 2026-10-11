@@ -122,15 +122,19 @@ datos; `motivo` = arreglo (siempre arreglo, vacío si todos dibujan) con:
 |---|---|
 | `borrador_incompleto` | Al reconstruir: falta una ref requerida o un argumento requerido (la lámina del editor está a medio armar) |
 | `variable_fuera_de_base` | Al reconstruir: alguna ref del gráfico no está en los datos de su base (`.graficos_consolidado_ref_context`) |
-| `n0` | Al reconstruir: los `filtros` del gráfico dejan 0 casos, filtrando con `.apply_named_filters_safe` (el mismo filtro del motor). El graficador dibuja «Sin datos para mostrar» sin avisar, por eso se diagnostica antes |
+| `variable_fuera_de_base` (filtro) | Al reconstruir: un `filtro` sobre una columna que no está en la base (`pulso_filter_missing_column` de `.apply_named_filters`; el motor la vuelve 0 filas con un warning) |
+| `n0` | Al reconstruir: los `filtros` del gráfico dejan 0 filas, filtrando con `.apply_named_filters` (el mismo filtro del motor) |
+| `sin_respuestas_validas` | El motor dibujó «Sin datos para mostrar» por el embudo `.blank_canvas` (reporte_plan_ppt.R), que señala `pulso_grafico_sin_datos`: variable toda NA, filtro con casos pero NA en la variable, `excluir_opciones` que cubre todo, pesos en 0, o `.tab_freq` que falló y devolvió NULL |
 | `degradado` | El motor señaló `pulso_lamina_degradada` (reporte_plan_condiciones.R) sin diagnóstico previo |
 
 Las degradaciones se cuentan por la condición `pulso_lamina_degradada` (`motivo`: `error_render`, `render_nulo`,
 `elemento_invalido`) que señalan `.plan_render_element_degradable`, `.plan_canvas_render_nulo` y
 `.plan_elemento_degradado`; el texto del aviso es para personas y puede cambiar. Una ref fuera de la base ya produce su
-propia señal: no se cuenta dos veces. Supuestos: refs sin base en un estudio multibase no se diagnostican (quedan como
-«dibuja» salvo que el motor degrade); `n0` mira filas tras filtros, no la base ponderada ni la base efectiva por
-`excluir_opciones`. Una lámina con 2 gráficos y 1 vacío es `ok` con `graficos.vacios = 1`.
+propia señal: no se cuenta dos veces. `pulso_grafico_sin_datos` hereda de `pulso_lamina_degradada` con `motivo = "sin_respuestas_validas"`; un `n0` o una
+variable fuera de la base diagnosticados no se cuentan otra vez cuando el canvas vacío también señala. Supuestos: refs
+sin base en un estudio multibase no se diagnostican en el rebuild (cuentan si el motor degrada o dibuja el canvas
+vacío); los graficadores de dimensiones (`.dim_blank_canvas` directo, graficador_dimensiones.R congelado) no pasan por
+`.blank_canvas` y su «Sin datos» no se detecta. Una lámina con 2 gráficos y 1 vacío es `ok` con `graficos.vacios = 1`.
 
 El 404 del lote es `E_MINIATURAS_LOTE_NO_EXISTE` (también si el lote es de otra sesión). Progreso del job:
 `{phase: "running", current: k-1, total: N, message: "Lámina <id> (k de N)"}` y `{phase: "done", percent: 100}`.
@@ -153,7 +157,7 @@ en la lámina: el primer nivel de `presets` (familias, consumidas por nombre en 
 |---|---|---|
 | (a) lámina | La lámina tal como entra al motor: `payload`, `args` de cada gráfico, `orden_categorias`, `filtros`, textos, antetítulo heredado del separador vigente, refs calificadas con la base activa, y el folio | texto, orden, filtro, folio |
 | (b) scope/base | `scope` (`active_base`/`consolidated`), base activa, conjunto **ordenado** de bases que recibe el motor | scope, base, orden de bases |
-| (a′) consolidado | En `scope = consolidated` la lámina entra a la huella ya pasada por la metodología del catálogo (`excluir_opciones`, `eligible_if` → `filtros`) y `.normalize_plan`, y las fuentes en el orden de las releases: lo mismo que dibuja el export (`.graficos_consolidado_marco` + `.graficos_consolidado_plan_entregable`, compartidos con `graficos_consolidado_preflight`). Los avisos metodológicos van a `avisos` | paridad vista previa = export |
+| (a′) consolidado | En `scope = consolidated` la lámina entra a la huella ya pasada por la metodología del catálogo (`excluir_opciones`, `eligible_if` → `filtros`) y `.normalize_plan`, y las fuentes en el orden de las releases: lo mismo que dibuja el export (`.graficos_consolidado_marco` + `.graficos_consolidado_plan_entregable`, compartidos con `graficos_consolidado_preflight`). La config es la del export: la que manda el cliente o el borrador consolidado (`graficos_consolidado_draft_get`), en forma portable, **nunca** mezclada con la de la base activa (`.graficos_preview_config_consolidada`). Los avisos metodológicos y los de denominador cero (`methodology_zero_denominator`, sólo de las reglas cuyas refs toca la lámina) van a `avisos` | paridad de presets y «Base: N» vista previa = export |
 | (c) datos | Digest (xxhash64) de cada `data_sources[[base]]` y de cada `inst_sources[[base]]` **tal como los recibe el motor** (después de recodificación, etiquetas curadas ADR 0061, orden de categorías, dummies, pesos y atributos como `instrumento_reporte`) | ponderación, etiqueta, atributo; HTTP: `label-overrides`, ponderación y `orden_categorias` de `/api/analitica/config` invalidan |
 | (d) estilo | Presets ya enriquecidos (formato, sufijo_auto, nota_redondeo, cálculos por familia, `debug_ph`…), paletas, íconos (ruta + sha256 del archivo), `profile_id`, `template_id`, `auto_otros_slides`, opciones `prosecnur.*` vigentes (menos el desplazo de folio que fija la propia vista previa) | presets, paletas, ícono, plantilla, perfil, opción |
 | (e) archivos | sha256 del `.pptx` de plantilla resuelto, de `inst/estandar/estandar_pulso.json` y de cada logo de `inst/estandar/logos/` (por contenido: la ruta no entra) | contenido de plantilla y estándar |

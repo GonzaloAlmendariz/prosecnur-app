@@ -91,7 +91,11 @@
 #' Se calcula una sola vez por pedido (un lote de 60 láminas no resuelve 60 veces las fuentes ni su huella).
 #' @keywords internal
 .graficos_preview_comun <- function(sid, parsed, fuentes) {
-  cfg <- .graficos_effective_config(sid, parsed$config %||% parsed$graficos_config)
+  cfg <- if (isTRUE(fuentes$consolidado)) {
+    .graficos_preview_config_consolidada(sid, parsed$config %||% parsed$graficos_config)
+  } else {
+    .graficos_effective_config(sid, parsed$config %||% parsed$graficos_config)
+  }
   delivery <- .graficos_delivery_options(
     cfg,
     profile_id = parsed$profile_id %||% parsed$profileId,
@@ -121,6 +125,24 @@
   )
 }
 
+#' Config de la vista previa consolidada: la misma que usa el export (`graficos_consolidado_start`)
+#'
+#' El export dibuja con la config que le llega o, si no, con el borrador consolidado, ambos en forma portable, y NUNCA con
+#' la config de la base activa: `.graficos_effective_config` haría deep-merge sobre ella y filtraría a la vista previa
+#' decisiones que el borrador no declara (p. ej. `presets.<familia>.excluir_opciones`).
+#' @keywords internal
+.graficos_preview_config_consolidada <- function(sid, override = NULL) {
+  override <- .as_json_list(override)
+  base <- if (is.list(override) && length(override)) {
+    if (.graficos_is_obj(override$config)) override$config else override
+  } else {
+    graficos_consolidado_draft_get(sid)$config
+  }
+  cfg <- .graficos_consolidado_portable_config(base, session_get(sid)$files %||% list())
+  cfg$multi_actor_comparisons <- TRUE
+  cfg
+}
+
 #' Contexto de una lámina dentro de un pedido: antetítulo heredado, folio real y refs calificadas con la base activa
 #' @keywords internal
 .graficos_preview_lamina_ctx <- function(comun, slide, folio_pedido = NULL) {
@@ -133,7 +155,15 @@
     # La lámina como la dibuja el export consolidado: metodología del catálogo + normalización del plan.
     entregable <- .graficos_consolidado_plan_entregable(list(slides = list(slide)), comun$reglas_metodologia)
     slide <- entregable$plan$slides[[1]]
-    avisos_previos <- as.character(unlist(entregable$warnings))
+    # Más el aviso de denominador cero que el preflight agrega, sólo de las reglas cuyas refs toca esta lámina.
+    refs <- unlist(lapply(slide$payload %||% list(), function(g) {
+      if (is.list(g) && !is.null(g$graficador)) .graficos_collect_refs_from_args(g$args %||% list()) else character(0)
+    }), use.names = FALSE)
+    reglas <- Filter(function(rule) rule$ref %in% refs, comun$reglas_metodologia %||% list())
+    avisos_previos <- unique(c(
+      as.character(unlist(entregable$warnings)),
+      .graficos_consolidado_denominator_warnings(list(data_sources = comun$data_sources), reglas)
+    ))
   }
   slide <- .graficos_calificar_refs_plan(list(slides = list(slide)), comun$base)$slides[[1]]
   ctx <- .mini_contexto(
@@ -256,6 +286,7 @@
   # Cada degradación al canvas «Sin datos» señala `pulso_lamina_degradada` (reporte_plan_condiciones.R): se cuentan por
   # la condición, no por el texto del aviso.
   degradados <- 0L
+  sin_respuestas <- 0L
   r <- .preview_con_avisos(.preview_con_folio(withCallingHandlers(reporte_ppt_plan(
     data = ctx$data_sources,
     instrumento = ctx$inst_sources,
@@ -268,9 +299,10 @@
     auto_otros_slides = ctx$auto_otros_slides,
     mensajes_progreso = FALSE
   ), pulso_lamina_degradada = function(cnd) {
-    degradados <<- degradados + 1L
+    # `pulso_grafico_sin_datos` (embudo `.blank_canvas`) hereda de esta clase con motivo «sin_respuestas_validas».
+    if (identical(cnd$motivo, "sin_respuestas_validas")) sin_respuestas <<- sin_respuestas + 1L else degradados <<- degradados + 1L
   }), ctx$folio))
-  c(list(avisos = r$avisos), .mini_resumen_graficos(conteo$pedidos %||% 0L, conteo$motivos, degradados))
+  c(list(avisos = r$avisos), .mini_resumen_graficos(conteo$pedidos %||% 0L, conteo$motivos, degradados, sin_respuestas))
 }
 
 #' Por qué un gráfico pedido no va a dibujar datos, diagnosticado sobre las fuentes que recibe el motor
@@ -301,8 +333,12 @@
   df <- ds[[ctxs[[1]]$source %||% ""]]
   if (!is.data.frame(df)) return(NA_character_)
   filtros <- if (is.list(el) && length(el$filtros)) el$filtros else (args$filtros %||% list())
-  n <- tryCatch(nrow(suppressWarnings(.apply_named_filters_safe(df, filters = filtros, arg_name = "filtros"))),
+  # Mismo filtro que el motor, pero distinguiendo la columna ausente (que `.apply_named_filters_safe` vuelve 0 filas con
+  # un warning): un filtro sobre una variable que no está en la base es «variable_fuera_de_base», no «n0».
+  n <- tryCatch(nrow(.apply_named_filters(df, filters = filtros, arg_name = "filtros")),
+                pulso_filter_missing_column = function(cnd) -1L,
                 error = function(e) NA_integer_)
+  if (identical(n, -1L)) return("variable_fuera_de_base")
   if (!is.na(n) && n == 0L) "n0" else NA_character_
 }
 
@@ -312,12 +348,18 @@
 #' degradaciones que el motor señaló sin diagnóstico previo (`degradado`). Una ref fuera de la base ya se degrada por sí
 #' misma: esas señales no se cuentan dos veces.
 #' @keywords internal
-.mini_resumen_graficos <- function(pedidos, motivos, degradados = 0L) {
+.mini_resumen_graficos <- function(pedidos, motivos, degradados = 0L, sin_respuestas = 0L) {
   motivos <- as.character(motivos %||% character(0))
   diagnosticados <- motivos[!is.na(motivos)]
-  extra <- max(0L, as.integer(degradados) - sum(diagnosticados == "variable_fuera_de_base"))
-  vacios <- min(as.integer(pedidos), length(diagnosticados) + extra)
-  lista <- unique(c(diagnosticados, if (extra > 0L) "degradado"))
+  # Las señales que ya explica un diagnóstico previo no se cuentan dos veces: una ref fuera de la base degrada
+  # (`pulso_lamina_degradada`) o cae al canvas vacío; un n = 0 cae al canvas vacío (`pulso_grafico_sin_datos`).
+  con_senal <- sum(diagnosticados %in% c("variable_fuera_de_base", "n0"))
+  extra_degradado <- max(0L, as.integer(degradados) - sum(diagnosticados == "variable_fuera_de_base"))
+  extra_total <- max(0L, as.integer(degradados) + as.integer(sin_respuestas) - con_senal)
+  extra_sin_respuestas <- max(0L, extra_total - extra_degradado)
+  vacios <- min(as.integer(pedidos), length(diagnosticados) + extra_total)
+  lista <- unique(c(diagnosticados, if (extra_degradado > 0L) "degradado",
+                    if (extra_sin_respuestas > 0L) "sin_respuestas_validas"))
   list(graficos_pedidos = as.integer(pedidos), graficos_vacios = as.integer(vacios), graficos_motivos = lista)
 }
 
