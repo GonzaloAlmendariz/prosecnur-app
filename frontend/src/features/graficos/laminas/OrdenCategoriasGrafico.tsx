@@ -9,7 +9,9 @@ import { Switch } from "../../../components/Switch";
 import type { GraficosCategorias } from "../../../api/graficos";
 import {
   leerOrden,
+  listaDesdeMostrado,
   listaPersonalizada,
+  ordenMostrado,
   botonTrasMover,
   mover,
   ordenAGuardar,
@@ -66,7 +68,12 @@ export function OrdenCategoriasGrafico({ variable, args, scope, onCambio }: Prop
       )}
       <EstadoDatos estado={estado} />
       {orden.modo === "personalizado" && datos && (
-        <ListaOrden datos={datos} lista={listaPersonalizada(orden.lista, datos)} onLista={(lista) => guardar({ ...orden, lista })} />
+        <ListaOrden
+          datos={datos}
+          lista={ordenMostrado(orden.lista, datos, orden.invertir)}
+          invertido={orden.invertir}
+          onLista={(mostrado) => guardar({ ...orden, lista: listaDesdeMostrado(mostrado, orden.invertir) })}
+        />
       )}
     </div>
   );
@@ -97,7 +104,7 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
   return null;
 }
 
-function ListaOrden({ datos, lista, onLista }: { datos: GraficosCategorias; lista: string[]; onLista: (l: string[]) => void }) {
+function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCategorias; lista: string[]; invertido: boolean; onLista: (l: string[]) => void }) {
   const etiqueta = new Map(datos.categorias.map((c) => [c.codigo, c.etiqueta]));
   const items = useRef(new Map<string, HTMLLIElement>());
   const [arrastrado, setArrastrado] = useState<number | null>(null);
@@ -136,7 +143,9 @@ function ListaOrden({ datos, lista, onLista }: { datos: GraficosCategorias; list
 
   return (
     <>
-      <span className="pulso-f6-dato-ayuda" id={ayudaId}>Arrastra o usa Alt + ↑/↓ sobre una categoría para moverla.</span>
+      <span className="pulso-f6-dato-ayuda" id={ayudaId}>
+        {invertido ? "Se muestra invertida, tal como se dibuja. " : ""}Arrastra o usa Alt + ↑/↓ sobre una categoría para moverla.
+      </span>
       <ol className="pulso-f6-orden-lista" aria-label="Orden personalizado de las categorías" aria-describedby={ayudaId}
         data-qa-geometry-group="graficos/f6-orden-lista" data-qa-geometry-contract="intrinsic">
         {lista.map((codigo, i) => {

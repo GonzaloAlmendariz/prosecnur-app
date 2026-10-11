@@ -3,7 +3,7 @@ import { normalizeGraficosConfig } from "../../../api/graficosConfigNormalizer";
 import type { GraficosCategorias } from "../../../api/graficos";
 import { mergeSlotArgsPatch } from "../store";
 import { mergeWithDefaults } from "../useGraficosAutosave";
-import { aplicaOrden, botonTrasMover, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado } from "./ordenCategorias";
+import { aplicaOrden, botonTrasMover, listaDesdeMostrado, ordenMostrado, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado } from "./ordenCategorias";
 
 const datos: GraficosCategorias = {
   var: "p7", base: "", pregunta: "", ordinal: false, tipo: "select_one", modo_recetario: "frecuencia",
@@ -78,5 +78,44 @@ describe("Subir/Bajar no tiran el foco a BODY al llegar al borde (verificador fr
   it("con una sola categoría no hay botón habilitado: el foco va al ítem", () => {
     expect(botonTrasMover("subir", 0, 1)).toBeNull();
     expect(botonTrasMover("bajar", 0, 1)).toBeNull();
+  });
+});
+
+// Lo que dibuja el motor en `personalizado` (contrato §4), escrito aparte para no probar la función contra sí misma:
+// la parte listada (al revés con `invertir`), luego las no listadas en orden del instrumento y al final sus residuales.
+function dibujado(lista: readonly string[], d: GraficosCategorias, invertir: boolean): string[] {
+  const existe = new Set(d.categorias.map((c) => c.codigo));
+  const listada = lista.filter((k) => existe.has(k));
+  const resto = d.orden.instrumento.filter((k) => !listada.includes(k));
+  const residual = new Set(d.categorias.filter((c) => c.residual).map((c) => c.codigo));
+  return [...(invertir ? [...listada].reverse() : listada), ...resto.filter((k) => !residual.has(k)), ...resto.filter((k) => residual.has(k))];
+}
+
+describe("Personalizado + Invertir: la lista se muestra en el orden en que se dibuja (F-a, WYSIWYG)", () => {
+  it("sin invertir, lo mostrado es lo dibujado", () => {
+    expect(ordenMostrado(["3", "1", "2", "0"], datos, false)).toEqual(dibujado(["3", "1", "2", "0"], datos, false));
+  });
+  it("con invertir, lo mostrado es la lista al revés, como se dibuja", () => {
+    expect(ordenMostrado(["3", "1", "2", "0"], datos, true)).toEqual(["0", "2", "1", "3"]);
+    expect(ordenMostrado(["3", "1", "2", "0"], datos, true)).toEqual(dibujado(["3", "1", "2", "0"], datos, true));
+  });
+  it("con invertir y lista incompleta, sólo se invierte la parte listada; las no listadas siguen detrás", () => {
+    expect(ordenMostrado(["3", "1"], datos, true)).toEqual(["1", "3", "2", "0"]);
+    expect(ordenMostrado(["3", "1"], datos, true)).toEqual(dibujado(["3", "1"], datos, true));
+  });
+  it("lo que el analista deja en pantalla es lo que se dibuja, con y sin invertir", () => {
+    for (const invertir of [false, true]) {
+      for (const guardada of [["3", "1", "2", "0"], ["3", "1"], ["0", "2"]]) {
+        const visto = ordenMostrado(guardada, datos, invertir);
+        for (let desde = 0; desde < visto.length; desde++) {
+          for (let hasta = 0; hasta < visto.length; hasta++) {
+            const movido = mover(visto, desde, hasta);
+            const aGuardar = listaDesdeMostrado(movido, invertir);
+            expect(dibujado(aGuardar, datos, invertir)).toEqual(movido);
+            expect(ordenMostrado(aGuardar, datos, invertir)).toEqual(movido);
+          }
+        }
+      }
+    }
   });
 });
