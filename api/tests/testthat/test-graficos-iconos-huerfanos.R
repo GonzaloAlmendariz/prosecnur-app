@@ -32,13 +32,19 @@ test_that("un icono que no esta en disco degrada en vez de matar el export", {
   res <- NULL
   avisos <- .avisos_de(res <- .graficos_rebuild_icon("id-que-no-existe", icon_registry = list()))
   expect_null(res)
-  expect_true(any(grepl("no está disponible", avisos)))
+  expect_true(any(grepl("ya no está en el catálogo de íconos", avisos, fixed = TRUE)))
 })
 
-test_that("el aviso nombra el icono que falta, para poder reponerlo", {
+test_that("el aviso nombra el icono que falta por su nombre del catálogo, nunca por su id", {
+  # A8 B-g: el id («318ecf24-…») no le dice nada al analista; el nombre con que lo subió, sí. Sin nombre conocido el
+  # aviso no lo nombra, y en un mazo dice en qué lámina falta (test-avisos-sin-jerga.R).
   skip_if_not_installed("ggplot2")
-  avisos <- .avisos_de(.graficos_rebuild_icon("318ecf24-perdido", icon_registry = list()))
-  expect_true(any(grepl("318ecf24-perdido", avisos, fixed = TRUE)))
+  registro <- structure(list(), nombres = c("318ecf24-perdido" = "Perfil"))
+  avisos <- .avisos_de(.graficos_rebuild_icon("318ecf24-perdido", icon_registry = registro))
+  expect_true(any(grepl("ícono «Perfil»", avisos, fixed = TRUE)))
+  expect_false(any(grepl("318ecf24", avisos, fixed = TRUE)))
+  sin_nombre <- .avisos_de(.graficos_rebuild_icon("318ecf24-perdido", icon_registry = list()))
+  expect_false(any(grepl("318ecf24", sin_nombre, fixed = TRUE)))
 })
 
 test_that("una lamina que EXIGE icono cae al integrado y no aborta", {

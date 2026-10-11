@@ -343,10 +343,11 @@
     # Reponerlo es imposible —el binario no está en ninguna parte— pero
     # renderizar el resto sí. La lámina sale sin ícono y el aviso dice cuál
     # falta, que es exactamente lo que el analista necesita para reponerlo.
-    .pulso_aviso(sprintf(
-      paste0("El ícono '%s' no está disponible y esa lámina se generó sin él. ",
-             "Vuelve a subirlo en Configuración global > Íconos si lo necesitas."),
-      ref
+    # Por su nombre del catálogo si se conoce; la referencia, nunca: es un id o una ruta temporal (graficos_avisos_texto.R).
+    nombre <- .aviso_nombre_icono(ref, icon_registry)
+    .pulso_aviso(.aviso_en_lamina(
+      sprintf("su ícono%s ya no está en el catálogo de íconos y sale sin él. Vuelve a subirlo en Configuración global > Íconos si lo necesitas.", nombre),
+      sin_contexto = sprintf("Un ícono%s elegido para una lámina ya no está en el catálogo de íconos y esa lámina sale sin él. Vuelve a subirlo en Configuración global > Íconos si lo necesitas.", nombre)
     ))
     return(NULL)
   }
@@ -374,10 +375,9 @@
     # El aviso de la UI decía «deja el campo en (ninguno) para exportar sin
     # ícono» mientras el motor abortaba justo en ese caso: los dos no podían
     # tener razón. Ahora la UI la tiene.
-    .pulso_aviso(sprintf(
-      paste0("La lámina '%s' necesita un ícono y no había ninguno disponible: ",
-             "se usó el integrado. Elige un PNG en Configuración global > Íconos."),
-      tipo
+    .pulso_aviso(.aviso_en_lamina(
+      "necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Configuración global > Íconos.",
+      sin_contexto = sprintf("Una lámina «%s» necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Configuración global > Íconos.", .aviso_tipo_lamina(tipo))
     ))
     payload$icono <- tryCatch(
       p_ggplot_raw(.graficos_builtin_icon_plot("builtin:users")),
@@ -386,8 +386,8 @@
     if (is.null(payload$icono)) {
       stop(
         sprintf(
-          "La slide '%s' requiere un icono. Selecciona un PNG en Configuracion global > Iconos.",
-          tipo
+          "La lámina «%s» requiere un ícono. Elige un PNG en Configuración global > Íconos.",
+          .aviso_tipo_lamina(tipo)
         ),
         call. = FALSE
       )
@@ -403,10 +403,13 @@
   out <- list()
   if (!is.list(iconos) || length(iconos) == 0L) return(out)
 
+  nombres <- character(0)   # id -> nombre del catálogo, también de los que perdieron su PNG: el aviso los nombra así
   for (ico in iconos) {
     ico <- as.list(ico)
     id <- .graficos_icon_ref(ico$id %||% "")
     file_id <- .graficos_icon_ref(ico$file_id %||% "")
+    nombre <- as.character(ico$nombre %||% "")[1]
+    if (!is.na(nombre) && nzchar(nombre)) nombres[setdiff(c(id, file_id), "")] <- nombre
     path <- ""
     if (nzchar(file_id)) {
       meta <- tryCatch(get_file(sid, file_id), error = function(e) NULL)
@@ -417,7 +420,7 @@
     if (nzchar(id)) out[[id]] <- path
     if (nzchar(file_id)) out[[file_id]] <- path
   }
-
+  if (length(nombres)) attr(out, "nombres") <- nombres
   out
 }
 
@@ -1132,14 +1135,14 @@
   errs <- character(0); warns <- character(0)
   plan_json <- .normalize_plan(plan_json)
   slides <- plan_json$slides
-  if (length(slides) == 0) errs <- c(errs, "El plan no tiene slides.")
+  if (length(slides) == 0) errs <- c(errs, "El plan no tiene láminas.")
   for (i in seq_along(slides)) {
     s <- as.list(slides[[i]])
     tipo <- as.character(s$tipo %||% "")
-    tag <- sprintf("slide[%d]", i)
-    if (!nzchar(tipo)) { errs <- c(errs, sprintf("%s: falta tipo", tag)); next }
+    tag <- .aviso_lamina(i, .aviso_titulo_payload(s))   # «Lámina 3 · “Título”», sin ids ni tipos internos
+    if (!nzchar(tipo)) { errs <- c(errs, sprintf("%s: no tiene tipo de lámina; elige uno en el editor", tag)); next }
     if (!(tipo %in% names(.SLIDE_REGISTRY))) {
-      errs <- c(errs, sprintf("%s: tipo desconocido '%s'", tag, tipo)); next
+      errs <- c(errs, sprintf("%s: es de %s; elige otro tipo en el editor", tag, .aviso_tipo_lamina(tipo))); next
     }
     payload <- .as_json_list(s$payload) %||% list()
     graf_slots <- .SLIDE_REGISTRY[[tipo]]$grafs
@@ -1150,18 +1153,19 @@
       lapply(graf_slots, function(nm) .as_json_list(payload[[nm]])),
       graf_slots
     )
-    warns <- c(warns, .plan_avisos_lamina(slots_lamina, tag))
+    warns <- c(warns, .plan_avisos_lamina(slots_lamina, tag, tipo))
 
     for (slot_name in graf_slots) {
       slot <- .as_json_list(payload[[slot_name]])
-      warns <- c(warns, .graficos_orden_cat_avisos_slot(slot, sprintf("%s (%s)", tag, slot_name)))   # D8
+      espacio <- .aviso_espacio(tipo, slot_name)
+      warns <- c(warns, .graficos_orden_cat_avisos_slot(slot, sprintf("%s (%s)", tag, espacio)))   # D8
       graf_name <- as.character(slot$graficador %||% "")
       if (!nzchar(graf_name)) {
-        warns <- c(warns, sprintf("%s (%s): slot '%s' sin graficador", tag, tipo, slot_name))
+        warns <- c(warns, sprintf("%s: el espacio «%s» está sin gráfico", tag, espacio))
       } else if (!(graf_name %in% .GRAFICADOR_REGISTRY)) {
         resolved_graf_name <- .graficos_resolve_graficador_name(graf_name)
         if (!(resolved_graf_name %in% .GRAFICADOR_REGISTRY)) {
-          errs <- c(errs, sprintf("%s: graficador desconocido '%s'", tag, graf_name))
+          errs <- c(errs, sprintf("%s: el espacio «%s» usa %s; elige otro en el editor", tag, espacio, .aviso_tipo_grafico(graf_name)))
         }
       }
     }

@@ -262,7 +262,7 @@
     m <- tolower(trimws(m))
     if (m %in% c("ambos", "los_dos")) return("ambos")
     if (!m %in% c("estandar", "estándar", "resto_mayor", "resto-mayor", "reparto", "hare")) {
-      .pulso_aviso(sprintf("La lámina de redondeo no reconoce el método «%s»; se usa el estándar. Usa «estandar», «resto_mayor» o «ambos».", m))
+      .pulso_aviso("La lámina «Explicación del redondeo» tiene un método de redondeo que no reconoce; muestra el redondeo estándar. Elige redondeo estándar, reparto a 100 % o ambos.")
     }
     return(if (identical(.pulso_pct_metodo(m), "reparto")) "resto_mayor" else "estandar")
   }

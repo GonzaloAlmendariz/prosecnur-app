@@ -269,9 +269,9 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
         ))
       } else if (length(exclusions)) {
         warnings <- c(warnings, sprintf(
-          "methodology_exclusion_not_applied: %s no admite exclusiones automaticas (%s).",
-          graph_type,
-          paste(vapply(matched, `[[`, character(1), "ref"), collapse = ", ")
+          "El gráfico «%s» no admite exclusiones automáticas: las opciones que la metodología excluye no se aplicaron a %s.",
+          .aviso_tipo_grafico(graph_type),
+          paste(vapply(vapply(matched, `[[`, character(1), "ref"), .aviso_variable, character(1)), collapse = ", ")
         ))
       }
 
@@ -284,22 +284,22 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
             args$filtros[[eligibility$variable]] <- eligibility$value
           } else {
             warnings <- c(warnings, sprintf(
-              "methodology_eligibility_conflict: %s ya tiene otro filtro para %s.",
-              matched[[1]]$ref,
+              "%s ya tiene otro filtro por «%s»: no se aplicó la regla de elegibilidad de la metodología.",
+              .aviso_variable(matched[[1]]$ref),
               eligibility$variable
             ))
           }
         } else if (nzchar(matched[[1]]$eligible_if)) {
           warnings <- c(warnings, sprintf(
-            "methodology_eligibility_unparsed: no se pudo aplicar '%s' a %s.",
+            "No se pudo interpretar la condición de elegibilidad «%s» de %s: el gráfico sale sin ese filtro.",
             matched[[1]]$eligible_if,
-            matched[[1]]$ref
+            .aviso_variable(matched[[1]]$ref)
           ))
         }
       } else if (any(vapply(matched, function(rule) nzchar(rule$eligible_if), logical(1)))) {
         warnings <- c(warnings, sprintf(
-          "methodology_eligibility_not_applied: el grafico combina referencias con reglas distintas (%s).",
-          paste(vapply(matched, `[[`, character(1), "ref"), collapse = ", ")
+          "Un gráfico combina variables con reglas de elegibilidad distintas (%s): no se aplicó ninguna.",
+          paste(vapply(vapply(matched, `[[`, character(1), "ref"), .aviso_variable, character(1)), collapse = ", ")
         ))
       }
       graph$args <- args
@@ -334,8 +334,8 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
     valid[is.na(valid)] <- FALSE
     if (!any(valid)) {
       warnings <- c(warnings, sprintf(
-        "methodology_zero_denominator: %s no tiene casos validos despues de elegibilidad y exclusiones; reportar NA.",
-        rule$ref
+        "%s no tiene casos válidos después de aplicar la elegibilidad y las exclusiones: se reporta como sin dato.",
+        .aviso_variable(rule$ref)
       ))
     }
   }
@@ -641,10 +641,10 @@ graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
   slides <- recipe$plan$slides %||% list()
   rebuilt <- vector("list", length(slides))
   for (i in seq_along(slides)) {
-    report("rebuild", current = i, total = length(slides), percent = 8 + round(42 * i / max(1, length(slides))), message = sprintf("Armando slide %s de %s...", i, length(slides)))
-    rebuilt[[i]] <- .pkg_fn(".graficos_rebuild_slide_json")(
+    report("rebuild", current = i, total = length(slides), percent = 8 + round(42 * i / max(1, length(slides))), message = sprintf("Armando lámina %s de %s...", i, length(slides)))
+    rebuilt[[i]] <- .pkg_fn(".aviso_con_lamina")(i, .pkg_fn(".aviso_titulo_payload")(slides[[i]]), .pkg_fn(".graficos_rebuild_slide_json")(
       slides[[i]], icon_registry = icon_registry
-    )
+    ))
   }
   report("render", percent = 58, message = "Renderizando el PPT consolidado...")
   palette_env <- .pkg_fn(".graficos_palette_env")(recipe$paletas %||% list(), parent = parent.frame())

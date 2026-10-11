@@ -660,14 +660,14 @@
     warnings <- character(0)
     if (length(plan$affected_slides %||% list()) > 0L) {
       warnings <- c(warnings, sprintf(
-        "%d slide%s se conservara%s con variables faltantes vacias.",
+        "%d lámina%s se conservará%s con las variables que faltan vacías.",
         length(plan$affected_slides %||% list()),
         if (length(plan$affected_slides %||% list()) == 1L) "" else "s",
         if (length(plan$affected_slides %||% list()) == 1L) "" else "n"
       ))
     }
     if (isTRUE(plan$blocking)) {
-      warnings <- c(warnings, "Ningun slide del paquete es aplicable a esta base.")
+      warnings <- c(warnings, "Ninguna lámina del paquete se puede aplicar a esta base.")
     }
     list(
       base_name = base,

@@ -730,10 +730,10 @@ graficar_radar <- function(
   max_val <- suppressWarnings(max(df0$.valor, na.rm = TRUE))
   if (identical(esc, "proporcion_1") && is.finite(max_val) && max_val > 1.5) {
     .pulso_aviso(sprintf(
-      paste0("El radar recibió valores de hasta %.1f declarados como ",
-             "proporción (0 a 1). Se leen como porcentaje: sin esto los %d ",
-             "vértices saldrían todos al 100 %%. Declara ",
-             "`escala_valor = \"proporcion_100\"` para quitar este aviso."),
+      paste0("El radar recibió valores de hasta %.1f con la escala de valores ",
+             "en proporción (0 a 1). Se leen como porcentaje: sin esto los %d ",
+             "vértices saldrían todos al 100 %%. Para quitar este aviso, ",
+             "declara la escala de valores como porcentaje (0 a 100)."),
       max_val, nrow(df0)
     ))
     esc <- "proporcion_100"

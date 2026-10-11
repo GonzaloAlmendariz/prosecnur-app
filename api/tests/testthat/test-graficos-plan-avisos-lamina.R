@@ -24,12 +24,15 @@ test_that("la lamina real del estudiante avisa de la variable repetida y del tit
     inferior_izquierda = panel("estudiantes$p3_recod", "Rango de edades"),
     inferior_derecha   = panel("estudiantes$p5")
   )
-  av <- .plan_avisos_lamina(slots, "slide[9]")
+  av <- .plan_avisos_lamina(slots, .aviso_lamina(9, "Perfil del estudiante"), "p_slide_4_graficos")
   expect_length(av, 2L)
   expect_true(any(grepl("dos veces", av, fixed = TRUE)))
-  expect_true(any(grepl("no tiene titulo", av, fixed = TRUE)))
-  # El aviso nombra el panel: sin eso hay que abrir los cuatro para encontrarlo.
-  expect_true(any(grepl("inferior_derecha", av, fixed = TRUE)))
+  expect_true(any(grepl("no tiene título y los demás sí", av, fixed = TRUE)))
+  # El aviso nombra el espacio como el selector: sin eso hay que abrir los cuatro para encontrarlo. Sin ids internos.
+  expect_true(any(grepl("«Inferior derecha»", av, fixed = TRUE)))
+  expect_false(any(grepl("inferior_derecha", av, fixed = TRUE)))
+  expect_true(all(startsWith(av, "Lámina 9 · “Perfil del estudiante”: ")))
+  expect_true(any(grepl("«p5» de la base «estudiantes»", av, fixed = TRUE)))
 })
 
 
@@ -41,8 +44,8 @@ test_that("un panel de otra base se avisa aunque tenga titulo", {
     inferior_derecha   = panel("docentes$p5", "Sexo del docente")
   )
   av <- .plan_avisos_lamina(slots, "slide[14]")
-  expect_true(any(grepl("base 'docentes'", av, fixed = TRUE)))
-  expect_true(any(grepl("es 'administrativos'", av, fixed = TRUE)))
+  expect_true(any(grepl("base «docentes»", av, fixed = TRUE)))
+  expect_true(any(grepl("la base «administrativos»", av, fixed = TRUE)))
 })
 
 
@@ -60,7 +63,7 @@ test_that("repetir se avisa una vez por variable, no una por panel", {
   )
   av <- .plan_avisos_lamina(slots, "slide[1]")
   expect_length(av, 1L)
-  expect_true(grepl("a, b, c", av[[1]], fixed = TRUE))
+  expect_true(grepl("«A», «B», «C»", av[[1]], fixed = TRUE))
 })
 
 
