@@ -15,12 +15,11 @@
 //   `.render_barras_apiladas` los mezcla al final (overrides mandan). Con «Dividir por» el render delega en la
 //   multiapilada modo «cruce» con los mismos overrides, y hereda también el preset `multi_apiladas`.
 // - Multiapiladas (var, cruce, var_cruce): el Top Two Box es `top2box` + `top2box_labels` del plan, el mismo par que
-//   escribe el constructor de bloques (`MultiApiladasBuilder` + `mergeMultiApiladasArgsPatch`, que fija
-//   `overrides.mostrar_barra_extra`). Las etiquetas sólo llegan al motor con `top2box = TRUE`
-//   (`.apply_top2box_alias`, reporte_plan_ppt.R). La Bottom Two Box va por overrides.
+//   escribe el constructor de bloques (`MultiApiladasBuilder`). Las etiquetas sólo llegan al motor con `top2box = TRUE`
+//   (`.apply_top2box_alias`, reporte_plan_ppt.R). La Bottom Two Box va por overrides, y por ahora sólo se deja quitar
+//   (`bottomDisponible`).
 // - Multiapiladas «multilista»: cada bloque declara su Top Two Box en el editor de bloques.
 
-import { mergeMultiApiladasArgsPatch } from "../../multiApiladasExtraBarModel";
 import { categoriasDeEscala } from "../../top2boxSeleccion";
 
 export type FormaTwoBox = "apiladas" | "multiapiladas" | "por_bloque";
@@ -134,22 +133,29 @@ export function patchTwoBox(graficador: string, args: Readonly<Registro>, preset
   const ov: Registro = { ...registro(args.overrides) };
 
   if (cambio.caja === "bottom") {
+    // Encender el Bottom Two Box en una multiapilada no se ofrece (`bottomDisponible`); quitarlo sí.
+    // Volver a un Bottom Two Box heredado sí se deja: es borrar el apagado del gráfico.
+    if ("activa" in cambio && cambio.activa && forma === "multiapiladas" && !h.bottom) return {};
     if ("activa" in cambio) apartar(ov, "columna_bottom2box", cambio.activa, h.bottom);
     else apartar(ov, "bottom2box_labels", [...cambio.etiquetas], h.bottomEtiquetas);
     return { overrides: cerrar(ov) };
   }
 
+  const hActiva = h.mostrar && h.preset === "top2box";
+
   if (forma === "apiladas") {
     if ("activa" in cambio) {
-      // `barra_extra_preset = "top2box"` se conserva al apagar: con `mostrar_barra_extra = TRUE` es también lo que lleva
-      // el Top Two Box al Word (twoBoxWord.ts), y volver a encender la columna lo recupera entero.
       delete ov.mostrar_barra_extra;
       if (cambio.activa) {
+        // Con otro preset heredado se fija el par completo: también es lo que lleva el Top Two Box al Word (twoBoxWord.ts).
         if (h.preset !== "top2box") ov.barra_extra_preset = "top2box";
         if (!h.mostrar || ov.barra_extra_preset === "top2box") ov.mostrar_barra_extra = true;
       } else {
-        if (ov.barra_extra_preset !== "top2box") delete ov.barra_extra_preset;
-        if (h.mostrar) ov.mostrar_barra_extra = false;
+        // Si lo heredado ya es apagado, apagar es volver a él: se borra también el preset que pidió encender. Si no, se
+        // pide `mostrar_barra_extra = FALSE` y `barra_extra_preset = "top2box"` se conserva: con él, volver a encender
+        // recupera entero el par que lleva el Top Two Box al Word.
+        if (hActiva) ov.mostrar_barra_extra = false;
+        else if (ov.barra_extra_preset === "top2box") delete ov.barra_extra_preset;
         // Sin columna en la lámina, tampoco la lleva el Word: `word_mostrar_barra_extra = TRUE` la encendería sólo allí.
         if (ov.word_mostrar_barra_extra === true) delete ov.word_mostrar_barra_extra;
       }
@@ -159,17 +165,58 @@ export function patchTwoBox(graficador: string, args: Readonly<Registro>, preset
     return { overrides: cerrar(ov) };
   }
 
-  // Multiapiladas: el mismo par que escribe el constructor de bloques, con su `overrides.mostrar_barra_extra`.
-  const actual: Registro = { ...args, overrides: ov };
-  if ("activa" in cambio) {
-    const next = mergeMultiApiladasArgsPatch(actual, { top2box: cambio.activa });
-    return { top2box: next.top2box, overrides: next.overrides };
+  // Multiapiladas: el par `top2box` + `top2box_labels` del plan, más lo mínimo en overrides para que la lámina dibuje lo
+  // pedido. No se delega en `mergeMultiApiladasArgsPatch`: el constructor fija siempre `overrides.mostrar_barra_extra`,
+  // aunque coincida con lo heredado, y la tarjeta sólo escribe lo que se aparta. Cada toque re-deriva estas claves de lo
+  // que se quiere dibujar, así que volver a lo heredado deja el patch vacío.
+  const estado = leerTwoBox(graficador, args, presets);
+  let activa = estado?.top.activa ?? hActiva;
+  let propias = etiquetas(args.top2box_labels);
+  if ("activa" in cambio) activa = cambio.activa;
+  else {
+    propias = mismaLista(cambio.etiquetas, h.top) ? [] : [...cambio.etiquetas];
+    // Las etiquetas sólo llegan al motor con `top2box = TRUE`: declararlas es encender la columna.
+    if (propias.length) activa = true;
   }
-  const lista = [...cambio.etiquetas];
-  if (!lista.length) return { top2box_labels: null };
-  // Las etiquetas sólo llegan al motor con `top2box = TRUE`: declararlas es encender la columna.
-  const next = mergeMultiApiladasArgsPatch(actual, { top2box: true, top2box_labels: lista });
-  return { top2box: true, top2box_labels: lista, overrides: next.overrides };
+  return { ...multiapiladas(ov, h, activa, propias), overrides: cerrar(ov) };
+}
+
+/** Escribe en `ov` y devuelve `top2box`/`top2box_labels` (null = borrar) para que el motor dibuje `activa`. */
+function multiapiladas(ov: Registro, h: Heredado, activa: boolean, propias: string[]): Registro {
+  const hActiva = h.mostrar && h.preset === "top2box";
+  // `.merge_args` pone el preset del informe y los overrides ENCIMA de lo que fija `top2box` (`.apply_top2box_alias`):
+  // si lo heredado no dibuja la columna, hace falta pedirla en overrides.
+  if (activa) {
+    if (h.mostrar) delete ov.mostrar_barra_extra;
+    else ov.mostrar_barra_extra = true;
+    if (h.preset === "top2box") delete ov.barra_extra_preset;
+    else ov.barra_extra_preset = "top2box";
+  } else {
+    if (hActiva) ov.mostrar_barra_extra = false;
+    else delete ov.mostrar_barra_extra;
+    if (ov.barra_extra_preset === "top2box" || ov.barra_extra_preset === h.preset) delete ov.barra_extra_preset;
+  }
+  const top2box = activa ? (propias.length > 0 || !hActiva ? true : null) : hActiva ? false : null;
+  return { top2box, top2box_labels: propias.length ? propias : null };
+}
+
+export type BottomDisponible = { ofrecer: boolean; editable: boolean; nota?: string };
+
+export const NOTA_BOTTOM_MULTIAPILADAS =
+  "En esta composición el Bottom Two Box todavía no se dibuja bien en la lámina; disponible en barras apiladas.";
+
+/**
+ * Si se ofrece «Bottom Two Box al lado». En las multiapiladas el motor todavía no lo dibuja bien (la lámina pierde su
+ * paginación y los rótulos de fila se solapan): no se ofrece encenderlo, pero si el gráfico ya lo tiene (o lo pide el
+ * estilo del informe) se muestra y se deja quitar y volver a poner.
+ */
+export function bottomDisponible(graficador: string, args: Readonly<Registro>, presets: Presets): BottomDisponible {
+  const estado = leerTwoBox(graficador, args, presets);
+  if (!estado?.top.activa) return { ofrecer: false, editable: false };
+  if (estado.forma === "apiladas") return { ofrecer: true, editable: true };
+  // Encender sólo se deja si es volver a lo que el estilo del informe ya pide (borrar el apagado del gráfico).
+  const heredaBottom = heredado(presetHeredado(estado.forma, args, presets)).bottom;
+  return { ofrecer: true, editable: estado.bottom.activa || heredaBottom, nota: NOTA_BOTTOM_MULTIAPILADAS };
 }
 
 /** Pregunta de la que salen las categorías de la escala (la primera de la multiapilada). */
