@@ -415,6 +415,20 @@ test_that("comparar una fuente con la matriz reordenada no bloquea y otro instru
   expect_match(bloqueo$message, "base separada", fixed = TRUE)
   expect_match(bloqueo$message, "Equivalencias", fixed = TRUE)
   expect_equal(bloqueo$accion, "base_separada_equivalencias")
+
+  # Los diffs de la fuente entera no viajan con pos NA: pos 0 y su título.
+  orden <- Find(function(d) identical(d$kind, "question_order"), diffs)
+  expect_identical(orden$pos, 0L)
+  expect_equal(orden$variable, "Egresados Telefónico")
+  expect_identical(bloqueo$pos, 0L)
+  expect_equal(bloqueo$variable, "Otra encuesta")
+  expect_false(any(vapply(c(diffs, otra), function(d) is.na(d$pos %||% NA_integer_), logical(1))))
+})
+
+test_that("el porcentaje del umbral se trunca: 43 de 54 no se muestra como 80 %", {
+  expect_equal(.sm_mb_cobertura_texto(43 / 54), "79.6")
+  expect_equal(.sm_mb_cobertura_texto(0.8), "80.0")
+  expect_equal(.sm_mb_cobertura_texto(0.5), "50.0")
 })
 
 # =============================================================================
@@ -437,7 +451,12 @@ test_that("import independiente: la base guarda la alineación de la fuente y Re
   fue <- .smp_fuente_de(base, "FUE")
   expect_setequal(names(fue), c("survey_id", "titulo", "n_emparejadas", "n_preguntas_base", "cobertura",
                                 "reordenada", "instrumento_distinto", "excluida", "n_filas_excluidas",
-                                "sin_par_fuente", "sin_par_base", "opciones_sin_par"))
+                                "n_filas_incorporadas", "consentimiento_sin_par", "n_excluidas_consentimiento",
+                                "sin_par_fuente", "sin_par_base", "ambiguas", "opciones_sin_par"))
+  expect_equal(fue$n_filas_incorporadas, 2L)
+  expect_false(isTRUE(fue$consentimiento_sin_par))
+  expect_equal(fue$n_excluidas_consentimiento, 0L)
+  expect_length(fue$ambiguas, 0L)
   expect_false(isTRUE(fue$excluida))
   expect_equal(fue$n_filas_excluidas, 0L)
   expect_equal(fue$titulo, "Telefónico")
@@ -462,7 +481,8 @@ test_that("import independiente: la base guarda la alineación de la fuente y Re
   rev_fue <- payload$fuentes$fuentes[[1]]
   expect_setequal(names(rev_fue), c("survey_id", "titulo", "n_emparejadas", "n_preguntas_base", "reordenada",
                                     "instrumento_distinto", "excluida", "n_filas_excluidas",
-                                    "sin_par_fuente", "sin_par_base", "n_opciones_sin_par"))
+                                    "n_filas_incorporadas", "consentimiento_sin_par", "n_excluidas_consentimiento",
+                                    "sin_par_fuente", "sin_par_base", "ambiguas", "n_opciones_sin_par"))
   expect_equal(rev_fue$survey_id, "FUE")
   expect_equal(rev_fue$n_opciones_sin_par, 0L)
   expect_setequal(vapply(rev_fue$sin_par_fuente, `[[`, "", "etiqueta"), c("Indique su código PUCP", "Enumerador"))
@@ -579,9 +599,8 @@ test_that("refresh multi-fuente: las filas nuevas de la fuente entran alineadas 
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
   base_name <- .smp_importar(sid)
-  s <- session_get(sid)
-  s$estudio$bases[[base_name]]$sm_alineacion_fuentes <- NULL
-  .session_env[[sid]] <- s
+  # Import con 1 fila de FUE: la alineación guardada declara 1 incorporada.
+  expect_equal(.smp_fuente_de(session_get(sid)$estudio$bases[[base_name]], "FUE")$n_filas_incorporadas, 1L)
 
   responses$FUE <- .smp_responses_fuente()
   out <- sm_multibase_refresh(sid, token = "smp-token-efimero", reapply_codificacion = FALSE)
@@ -590,8 +609,9 @@ test_that("refresh multi-fuente: las filas nuevas de la fuente entran alineadas 
   expect_false(isTRUE(res$skipped))
   expect_equal(res$n_new, 1L)
 
+  # El refresh reescribe la alineación con la data nueva.
   base <- session_get(sid)$estudio$bases[[base_name]]
-  expect_false(is.null(.smp_fuente_de(base, "FUE")))
+  expect_equal(.smp_fuente_de(base, "FUE")$n_filas_incorporadas, 2L)
   inst <- reporte_instrumento(path = get_file(sid, base$xlsform_file_id)$path)
   df <- .smp_base_data(sid, base_name)
   edad <- .smp_var(inst, "¿Cuántos años tiene?")
@@ -711,4 +731,502 @@ test_that("refresh por el worker con otro instrumento: el job termina bien y el 
   expect_true(isTRUE(res$skipped))
   expect_equal(run$public$plan$bases[[1]]$refresh_action, "blocked")
   expect_match(res$reason, "Equivalencias", fixed = TRUE)
+})
+
+# =============================================================================
+# 6. Consentimiento: se evalúa en la fuente, antes de alinear (H1)
+# =============================================================================
+
+.SMP_CONSENT_DISTINTO <- "Habiendo leído el consentimiento informado, ¿acepta participar en la encuesta?"
+
+.smp_fuente_consent_distinto <- function(survey_id = "FUEC") {
+  .smp_details(survey_id, "Egresados Telefónico", list(
+    .smp_single("f1", .SMP_CONSENT_DISTINTO, c("Sí", "No")),
+    .smp_open("f3", "¿Cuántos años tiene?"),
+    .smp_single("f4", "¿Cuál es su género?", .SMP_GENEROS, other = TRUE),
+    .smp_multiple("f5", "¿Qué servicios usa?", .SMP_SERVICIOS, other = TRUE),
+    .smp_matrix("f6", "Evalúe los servicios", c("Biblioteca", "Comedor"), c("Malo", "Bueno"))
+  ))
+}
+
+test_that("un consentimiento redactado distinto no descarta en silencio las filas de la fuente", {
+  ref <- .smp_ref()
+  fuente <- .smp_fuente_consent_distinto()
+  responses <- list(
+    .smp_response(fuente, "c1", list(f1 = "Sí", f3 = list(text = "31"), f4 = "Femenino")),
+    .smp_response(fuente, "c2", list(f1 = "Sí", f3 = list(text = "40"), f4 = "Masculino")),
+    .smp_response(fuente, "c3", list(f1 = "No"))
+  )
+  inst_base <- .smp_inst(ref)
+  out <- .sm_mb_codificar_fuente(details_fuente = fuente, responses = responses,
+                                 inst_base = inst_base, survey_id = "FUEC")
+  edad <- .smp_var(inst_base, "¿Cuántos años tiene?")
+  # Las dos filas con «Sí» entran; la de «No» se excluye EN LA FUENTE.
+  expect_setequal(as.character(out$response_id), c("c1", "c2"))
+  expect_setequal(as.character(out[[edad]]), c("31", "40"))
+  consentimiento <- attr(out, "sm_consentimiento", exact = TRUE)
+  expect_true(isTRUE(consentimiento$sin_par))
+  expect_equal(consentimiento$n_excluidas, 1L)
+
+  resumen <- .sm_mb_alineacion_resumen(out, "FUEC", "Telefónico")
+  expect_true(resumen$consentimiento_sin_par)
+  expect_equal(resumen$n_filas_incorporadas, 2L)
+  expect_equal(resumen$n_excluidas_consentimiento, 1L)
+})
+
+test_that("una fuente sin consentimiento reconocible entra entera y lo declara", {
+  ref <- .smp_ref()
+  fuente <- .smp_details("FUEN", "Sin consentimiento", list(
+    .smp_open("f3", "¿Cuántos años tiene?"),
+    .smp_single("f4", "¿Cuál es su género?", .SMP_GENEROS, other = TRUE),
+    .smp_multiple("f5", "¿Qué servicios usa?", .SMP_SERVICIOS, other = TRUE),
+    .smp_matrix("f6", "Evalúe los servicios", c("Biblioteca", "Comedor"), c("Malo", "Bueno"))
+  ))
+  responses <- list(.smp_response(fuente, "n1", list(f3 = list(text = "22"))),
+                    .smp_response(fuente, "n2", list(f3 = list(text = "23"))))
+  out <- .sm_mb_codificar_fuente(details_fuente = fuente, responses = responses,
+                                 inst_base = .smp_inst(ref), survey_id = "FUEN")
+  expect_equal(nrow(out), 2L)
+  resumen <- .sm_mb_alineacion_resumen(out, "FUEN", "Sin consentimiento")
+  expect_true(resumen$consentimiento_sin_par)
+  expect_equal(resumen$n_excluidas_consentimiento, 0L)
+})
+
+test_that("el consent_var configurado en la fuente vale en su propia posición", {
+  autoriza <- "Autorización de uso de datos"
+  ref <- .smp_details("REFA", "Base", list(
+    .smp_single("a1", autoriza, c("Sí", "No")),
+    .smp_open("a2", "¿Cuántos años tiene?"),
+    .smp_single("a3", "¿Cuál es su género?", .SMP_GENEROS)
+  ))
+  fuente <- .smp_details("FUEA", "Fuente", list(
+    .smp_open("f1", "¿Cuántos años tiene?"),
+    .smp_single("f2", autoriza, c("Sí", "No")),
+    .smp_single("f3", "¿Cuál es su género?", .SMP_GENEROS)
+  ))
+  responses <- list(
+    .smp_response(fuente, "k1", list(f1 = list(text = "30"), f2 = "Sí", f3 = "Femenino")),
+    .smp_response(fuente, "k2", list(f1 = list(text = "50"), f2 = "No", f3 = "Masculino"))
+  )
+  inst_base <- .smp_inst(ref)
+  # Configurado en el espacio de la fuente: su consentimiento es p2 (en la base, p1).
+  out <- .sm_mb_codificar_fuente(details_fuente = fuente, responses = responses, inst_base = inst_base,
+                                 survey_id = "FUEA", consent_var = "p2")
+  expect_equal(as.character(out$response_id), "k1")
+  expect_equal(as.character(out$p1), .smp_code(inst_base, "p1", "Sí"))
+  expect_equal(as.character(out$p2), "30")
+  expect_equal(attr(out, "sm_consentimiento", exact = TRUE)$variable_fuente, "p2")
+  expect_false(isTRUE(attr(out, "sm_consentimiento", exact = TRUE)$sin_par))
+})
+
+.smp_consent_import_fuente <- function() .smp_fuente_consent_distinto("FUE")
+
+test_that("import independiente: la fuente con el consentimiento redactado distinto aporta sus filas", {
+  details <- list(REF = .smp_ref(), FUE = .smp_consent_import_fuente())
+  responses <- list(REF = .smp_responses_ref(), FUE = list(
+    .smp_response(details$FUE, "c1", list(f1 = "Sí", f3 = list(text = "31"))),
+    .smp_response(details$FUE, "c2", list(f1 = "No"))
+  ))
+  restores <- .smp_network_mocks(function() details, function() responses)
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  base_name <- .smp_importar(sid)
+  df <- .smp_base_data(sid, base_name)
+  expect_setequal(as.character(df$response_id), c("rr1", "c1"))
+  fue <- .smp_fuente_de(session_get(sid)$estudio$bases[[base_name]], "FUE")
+  expect_true(fue$consentimiento_sin_par)
+  expect_equal(fue$n_filas_incorporadas, 1L)
+  expect_equal(fue$n_excluidas_consentimiento, 1L)
+})
+
+# Supuesto de `.sm_mb_consent_yes`: acepta el código «1» como sí. Si el editor
+# reordena la lista del consentimiento (No = 1, Sí = 2), la fuente adicional no
+# se ve afectada (su consentimiento se evalúa con los códigos de la plataforma),
+# pero la principal sí: es preexistente y queda declarado en el checklist.
+test_that("consentimiento reordenado en el editor: la fuente adicional se evalúa con sus códigos", {
+  ref <- .smp_ref()
+  fuente <- .smp_fuente()
+  inst_clave <- .smp_inst(ref)
+  consent <- .smp_var(inst_clave, "¿Desea continuar?")
+  mapas <- list(list(variable = consent, type = "select_one", list_name = paste0("lst_", consent), mappings = list(
+    .smp_item("1", "Sí", "2"), .smp_item("2", "No", "1"))))
+  inst_base <- .smp_inst(ref, mapas)
+  expect_equal(.smp_code(inst_base, consent, "Sí"), "2")
+
+  out <- .sm_mb_codificar_fuente(details_fuente = fuente, responses = .smp_responses_fuente(fuente),
+                                 inst_base = inst_base, survey_id = "FUE", inst_clave_base = inst_clave)
+  expect_equal(nrow(out), 2L)
+  expect_equal(unique(as.character(out[[consent]])), "2")
+})
+
+test_that("consentimiento reordenado en el editor: la fuente principal (preexistente, ver checklist)", {
+  skip("Preexistente (checklist codificación SM 2026-10-11): `.sm_mb_consent_yes` toma «1» como sí aunque el editor haya puesto «No» = 1.")
+  ref <- .smp_ref()
+  inst_clave <- .smp_inst(ref)
+  consent <- .smp_var(inst_clave, "¿Desea continuar?")
+  mapas <- list(list(variable = consent, type = "select_one", list_name = paste0("lst_", consent), mappings = list(
+    .smp_item("1", "Sí", "2"), .smp_item("2", "No", "1"))))
+  out <- sm_multibase_api_responses_to_canonical_data(details = ref, responses = .smp_responses_ref(ref),
+                                                       inst = .smp_inst(ref, mapas), survey_id = "REF")
+  expect_equal(nrow(out), 1L)
+})
+
+# =============================================================================
+# 7. Ambigüedad: una clave con distinto número de apariciones no se empareja (H2)
+# =============================================================================
+
+.smp_baterias <- function(survey_id, conoce = TRUE) {
+  qs <- list(.smp_single("b1", "¿Desea continuar?", c("Sí", "No")))
+  if (conoce) qs <- c(qs, list(.smp_matrix("b2", "¿Conoce estos servicios?", c("Biblioteca", "Comedor"), c("Sí", "No"))))
+  qs <- c(qs, list(.smp_matrix("b3", "¿Ha utilizado estos servicios?", c("Biblioteca", "Comedor"), c("Sí", "No"))))
+  .smp_details(survey_id, if (conoce) "Base" else "Sin «¿Conoce?»", qs)
+}
+
+test_that("una batería omitida en la fuente no cruza sus filas con la gemela por ordinal", {
+  base <- .smp_baterias("BAT")
+  fuente <- .smp_baterias("BATF", conoce = FALSE)
+  inst_base <- .smp_inst(base)
+  al <- .sm_mb_alinear_fuente(inst_base, .smp_inst(fuente))
+  expect_setequal(as.character(al$ambiguas$etiqueta), c("Biblioteca", "Comedor"))
+  expect_equal(NROW(al$ambiguas), 4L)
+  expect_equal(al$n_emparejadas, 1L)
+  expect_false(any(c("p2_1", "p2_2") %in% names(al$mapa)))
+
+  responses <- list(.smp_response(fuente, "u1", list(b1 = "Sí", b3 = list(filas = c(Biblioteca = "Sí", Comedor = "No")))))
+  out <- .sm_mb_codificar_fuente(details_fuente = fuente, responses = responses,
+                                 inst_base = inst_base, survey_id = "BATF")
+  # Ni «¿Conoce?» ni «¿Ha utilizado?» de la base reciben las respuestas de la fuente.
+  for (v in c("p2_1", "p2_2", "p3_1", "p3_2")) expect_true(is.na(out[[v]][1]), info = v)
+  resumen <- .sm_mb_alineacion_resumen(out, "BATF", "Sin «¿Conoce?»")
+  expect_length(resumen$ambiguas, 4L)
+
+  diffs <- .sm_mb_compare_to_ref(.sm_mb_question_table(base), .sm_mb_question_table(fuente))
+  expect_true("ambiguous" %in% vapply(diffs, function(d) d$kind, ""))
+})
+
+# =============================================================================
+# 8. Snapshot del refresh: una fuente que es otro instrumento se salta (M3)
+# =============================================================================
+
+test_that("el snapshot del refresh no suma las filas de una fuente que es otro instrumento", {
+  details <- list(REF = .smp_ref(), OTRA = .smp_otra())
+  responses <- list(REF = .smp_responses_ref(), OTRA = .smp_responses_otra())
+  restores <- .smp_network_mocks(function() details, function() responses)
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  spec <- .sm_mb_normalize_survey_specs(.smp_spec_independiente(c("REF", "OTRA")))[[1]]
+  snap <- .sm_mb_prepare_refresh_snapshot(sid, "egresados", spec, token = "smp-token-efimero")
+  expect_equal(as.character(snap$remote_df$response_id), "rr1")
+  otra <- Find(function(f) identical(f$survey_id, "OTRA"), snap$alineacion_fuentes)
+  expect_true(otra$excluida)
+  expect_equal(otra$n_filas_excluidas, 1L)
+})
+
+# =============================================================================
+# 9. Base multi-fuente armada por posición: el refresh se bloquea (H3)
+# =============================================================================
+
+test_that("una base multi-fuente sin alineación se bloquea con legacy_positional y regenerarla la realinea", {
+  details <- list(REF = .smp_ref(), FUE = .smp_fuente())
+  responses <- list(REF = .smp_responses_ref(), FUE = .smp_responses_fuente()[1])
+  restores <- .smp_network_mocks(function() details, function() responses)
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  base_name <- .smp_importar(sid)
+  # Simula la base armada por posición antes del ADR 0094.
+  s <- session_get(sid)
+  s$estudio$bases[[base_name]]$sm_alineacion_fuentes <- NULL
+  .session_env[[sid]] <- s
+  data_antes <- s$estudio$bases[[base_name]]$data_file_id
+  responses$FUE <- .smp_responses_fuente()
+
+  plan <- sm_multibase_refresh_plan(sid, token = "smp-token-efimero")
+  row <- plan$bases[[1]]
+  expect_equal(row$refresh_action, "blocked")
+  legacy <- Find(function(d) identical(d$kind, "legacy_positional"), row$structure$diffs)
+  expect_equal(legacy$severity, "blocking")
+  expect_identical(legacy$pos, 0L)
+  expect_match(legacy$message, "regenera la base desde SurveyMonkey", fixed = TRUE)
+
+  out <- sm_multibase_refresh(sid, token = "smp-token-efimero", reapply_codificacion = FALSE)
+  expect_match(out$results[[1]]$reason, "antes de emparejar por pregunta", fixed = TRUE)
+  expect_equal(session_get(sid)$estudio$bases[[base_name]]$data_file_id, data_antes)
+
+  # Regenerar desde el snapshot realinea todo y guarda la alineación.
+  sm_multibase_decision_apply(sid, base_name)
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  expect_false(is.null(.smp_fuente_de(base, "FUE")))
+  inst <- reporte_instrumento(path = get_file(sid, base$xlsform_file_id)$path)
+  df <- .smp_base_data(sid, base_name)
+  expect_equal(as.character(df[[.smp_var(inst, "¿Cuántos años tiene?")]][as.character(df$response_id) == "rf1"]), "30")
+  plan2 <- sm_multibase_refresh_plan(sid, token = "smp-token-efimero")
+  expect_false("legacy_positional" %in% vapply(plan2$bases[[1]]$structure$diffs, function(d) d$kind, ""))
+})
+
+# =============================================================================
+# 10. La alineación solo se escribe cuando la data de la base cambia (M1)
+# =============================================================================
+
+test_that("con keep_current el refresh no sobrescribe la alineación; sin él, sí", {
+  details <- list(REF = .smp_ref(), FUE = .smp_fuente())
+  responses <- list(REF = .smp_responses_ref(), FUE = .smp_responses_fuente())
+  restores <- .smp_network_mocks(function() details, function() responses)
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  base_name <- .smp_importar(sid)
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  guardada <- base$sm_alineacion_fuentes
+  otra <- list(fuentes = list(list(survey_id = "X", titulo = "otra")), principal = list())
+  actualizar <- function(keep_current) {
+    .sm_mb_update_base_refresh_files(
+      sid = sid, base_name = base_name,
+      inst_meta = get_file(sid, base$xlsform_file_id), data_meta = get_file(sid, base$data_file_id),
+      rp_inst = session_get(sid)$rp_inst_sources[[base_name]], rp_data = session_get(sid)$rp_data_sources[[base_name]],
+      spec = base$surveymonkey_source_spec, response_filter = base$response_filter,
+      source_kind = base$source_kind, keep_current = keep_current,
+      choice_order_editor = base$choice_order_editor, alineacion = otra
+    )
+    session_get(sid)$estudio$bases[[base_name]]$sm_alineacion_fuentes
+  }
+  expect_identical(actualizar(TRUE), guardada)
+  expect_equal(actualizar(FALSE)[[1]]$survey_id, "X")
+})
+
+test_that("decision_apply que no reemplaza la data (avance aguas abajo) no toca la alineación", {
+  details <- list(REF = .smp_ref(), FUE = .smp_fuente())
+  responses <- list(REF = .smp_responses_ref(), FUE = .smp_responses_fuente())
+  restores <- .smp_network_mocks(function() details, function() responses)
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  base_name <- .smp_importar(sid)
+  s <- session_get(sid)
+  s$estudio$bases[[base_name]]$sm_alineacion_fuentes <- list(list(survey_id = "centinela"))
+  s$estudio$bases[[base_name]]$status <- list(validacion = TRUE)
+  .session_env[[sid]] <- s
+  data_antes <- s$estudio$bases[[base_name]]$data_file_id
+
+  out <- sm_multibase_decision_apply(sid, base_name)
+  expect_false(isTRUE(out$replaced_active))
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  expect_equal(base$data_file_id, data_antes)
+  expect_equal(base$sm_alineacion_fuentes[[1]]$survey_id, "centinela")
+})
+
+# =============================================================================
+# 11. Opciones sin par de la fuente principal (M2)
+# =============================================================================
+
+test_that("la fuente principal cuenta las opciones que su lista no tiene y Revisión las muestra", {
+  ref <- .smp_ref()
+  inst <- .smp_inst(ref)
+  genero <- .smp_var(inst, "¿Cuál es su género?")
+  ln <- as.character(inst$survey$list_name[which(inst$survey$name == genero)])
+  inst$choices$label[which(inst$choices$list_name == ln & inst$choices$label == "Masculino")] <- "Hombre"
+  inst$choices$name[which(inst$choices$list_name == ln & inst$choices$label == "Hombre")] <- "9"
+  out <- sm_multibase_api_responses_to_canonical_data(details = ref, responses = .smp_responses_ref(ref),
+                                                       inst = inst, survey_id = "REF")
+  expect_true(is.na(out[[genero]][1]))
+  expect_equal(attr(out, "sm_opciones_sin_par", exact = TRUE)[[genero]], 1L)
+
+  alin <- .sm_mb_alin_registrar(.sm_mb_alin_nuevo(), out, "REF", "Personalizado", "REF")
+  base <- .sm_mb_alin_en_base(list(), alin)
+  expect_equal(base$sm_opciones_sin_par_principal, list(list(variable = genero, n = 1L)))
+  expect_null(base$sm_alineacion_fuentes)
+  revision <- .carga_review_fuentes(base)
+  expect_length(revision$fuentes, 0L)
+  expect_equal(revision$principal$n_opciones_sin_par, 1L)
+  expect_equal(revision$principal$opciones_sin_par[[1]]$variable, genero)
+})
+
+# =============================================================================
+# 12. Caché de instrumentos generados por operación (B5)
+# =============================================================================
+
+test_that("el instrumento generado se cachea por survey_id dentro de una operación", {
+  llamadas <- 0L
+  original <- get("sm_api_xlsform", envir = asNamespace("prosecnurapp"))
+  restore <- .smp_mock("sm_api_xlsform", function(...) {
+    llamadas <<- llamadas + 1L
+    original(...)
+  })
+  on.exit(restore(), add = TRUE)
+  cache <- .sm_mb_cache_operacion()
+  a <- .sm_mb_inst_generado(.smp_ref(), cache = cache)
+  b <- .sm_mb_inst_generado(.smp_ref(), cache = cache)
+  expect_identical(a, b)
+  expect_equal(llamadas, 1L)
+  .sm_mb_inst_generado(.smp_ref())
+  expect_equal(llamadas, 2L)
+})
+
+# =============================================================================
+# 13. Orden del editor: se fija al importar y el refresh reaplica la receta (A2)
+# =============================================================================
+
+.smp_editor_maps_en_sesion <- function(sid, survey_id, maps) {
+  session_set(sid, "xlsform_state", list(
+    source = list(survey_id = survey_id),
+    workbook = list(surveyMonkeyLogic = list(choice_code_maps = maps))
+  ))
+}
+
+.smp_codigo_base <- function(sid, base_name, label_var, label) {
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  inst <- reporte_instrumento(path = get_file(sid, base$xlsform_file_id)$path)
+  .smp_code(inst, .smp_var(inst, label_var), label)
+}
+
+.smp_refresh_con_fila_nueva <- function(sid, responses_env) {
+  responses_env$FUE <- .smp_responses_fuente()
+  sm_multibase_refresh(sid, token = "smp-token-efimero", reapply_codificacion = FALSE)
+}
+
+test_that("import independiente adopta el orden del editor y el refresh conserva esos códigos", {
+  details <- list(REF = .smp_ref(), FUE = .smp_fuente())
+  env <- new.env()
+  env$REF <- .smp_responses_ref(); env$FUE <- .smp_responses_fuente()[1]
+  restores <- .smp_network_mocks(function() details, function() as.list(env))
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .smp_editor_maps_en_sesion(sid, "REF", .smp_mapas_editor(.smp_inst(.smp_ref())))
+
+  base_name <- .smp_importar(sid)
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  expect_length(base$choice_order_editor$receta, 2L)
+  expect_equal(base$choice_codes_applied_data_file_id, base$data_file_id)
+  expect_equal(.smp_codigo_base(sid, base_name, "¿Cuál es su género?", "Femenino"), "1")
+  expect_equal(.smp_codigo_base(sid, base_name, "¿Qué servicios usa?", "Préstamo"), "3")
+
+  out <- .smp_refresh_con_fila_nueva(sid, env)
+  expect_false(isTRUE(out$results[[1]]$skipped))
+  expect_equal(.smp_codigo_base(sid, base_name, "¿Cuál es su género?", "Femenino"), "1")
+  expect_equal(.smp_codigo_base(sid, base_name, "¿Qué servicios usa?", "Préstamo"), "3")
+  expect_null(session_get(sid)$estudio$bases[[base_name]]$choice_order_editor$editor_distinto)
+})
+
+test_that("una base sin receta no adopta el editor en el refresh y declara que el editor difiere", {
+  details <- list(REF = .smp_ref(), FUE = .smp_fuente())
+  env <- new.env()
+  env$REF <- .smp_responses_ref(); env$FUE <- .smp_responses_fuente()[1]
+  restores <- .smp_network_mocks(function() details, function() as.list(env))
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  base_name <- .smp_importar(sid)
+  expect_length(session_get(sid)$estudio$bases[[base_name]]$choice_order_editor$receta, 0L)
+  expect_equal(.smp_codigo_base(sid, base_name, "¿Cuál es su género?", "Femenino"), "2")
+
+  .smp_editor_maps_en_sesion(sid, "REF", .smp_mapas_editor(.smp_inst(.smp_ref())))
+  out <- .smp_refresh_con_fila_nueva(sid, env)
+  expect_false(isTRUE(out$results[[1]]$skipped))
+  expect_equal(.smp_codigo_base(sid, base_name, "¿Cuál es su género?", "Femenino"), "2")
+  orden <- session_get(sid)$estudio$bases[[base_name]]$choice_order_editor
+  expect_true(isTRUE(orden$editor_distinto))
+  expect_equal(length(orden$editor_distinto_variables), 2L)
+})
+
+test_that("con receta guardada y el editor cambiado, el refresh conserva los códigos y lo declara", {
+  details <- list(REF = .smp_ref(), FUE = .smp_fuente())
+  env <- new.env()
+  env$REF <- .smp_responses_ref(); env$FUE <- .smp_responses_fuente()[1]
+  restores <- .smp_network_mocks(function() details, function() as.list(env))
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  inst_ref <- .smp_inst(.smp_ref())
+  .smp_editor_maps_en_sesion(sid, "REF", .smp_mapas_editor(inst_ref))
+  base_name <- .smp_importar(sid)
+
+  # El editor ahora pide otro orden para género (Masculino = 1).
+  genero <- .smp_var(inst_ref, "¿Cuál es su género?")
+  nuevos <- .smp_mapas_editor(inst_ref)
+  nuevos[[1]]$mappings <- list(.smp_item("1", "Masculino", "1"), .smp_item("2", "Femenino", "2"),
+                               .smp_item("3", "Otro (especifique)", "3"))
+  .smp_editor_maps_en_sesion(sid, "REF", nuevos)
+  .smp_refresh_con_fila_nueva(sid, env)
+
+  expect_equal(.smp_codigo_base(sid, base_name, "¿Cuál es su género?", "Femenino"), "1")
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  expect_true(isTRUE(base$choice_order_editor$editor_distinto))
+  expect_equal(unlist(base$choice_order_editor$editor_distinto_variables), genero)
+  revision <- .carga_review_orden_editor(base)
+  expect_equal(unlist(revision$editor_distinto), genero)
+})
+
+test_that("el import de base única y el de bases separadas adoptan el editor como hoy y guardan la receta", {
+  details <- list(REF = .smp_ref())
+  restores <- .smp_network_mocks(function() details, function() list(REF = .smp_responses_ref()))
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .smp_editor_maps_en_sesion(sid, "REF", .smp_mapas_editor(.smp_inst(.smp_ref())))
+
+  prep <- .carga_sm_prepare_import(sid, list(survey_id = "REF"))
+  expect_length(prep$choice_order_editor$adoptadas, 2L)
+  expect_length(prep$choice_order_editor$receta, 2L)
+  expect_equal(.smp_code(prep$rp_inst, .smp_var(prep$rp_inst, "¿Cuál es su género?"), "Femenino"), "1")
+
+  .carga_import_surveymonkey(sid, list(survey_id = "REF"))
+  base <- session_get(sid)$estudio$bases$default
+  expect_length(base$choice_order_editor$receta, 2L)
+  expect_equal(base$choice_codes_applied_data_file_id, base$data_file_id)
+})
+
+# =============================================================================
+# 14. decision_apply renueva la marca de códigos aplicados (A1) y round-trip .pulso (M4)
+# =============================================================================
+
+test_that("decision_apply renueva la marca: un mapeo confirmado no recodifica dos veces, tampoco al reabrir", {
+  details <- list(REF = .smp_ref(), FUE = .smp_fuente())
+  env <- new.env()
+  env$REF <- .smp_responses_ref(); env$FUE <- .smp_responses_fuente()[1]
+  restores <- .smp_network_mocks(function() details, function() as.list(env))
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  inst_ref <- .smp_inst(.smp_ref())
+  .smp_editor_maps_en_sesion(sid, "REF", .smp_mapas_editor(inst_ref))
+  base_name <- .smp_importar(sid)
+  .smp_refresh_con_fila_nueva(sid, env)
+
+  # Mapeo confirmado presente en la base: invierte Masculino/Femenino si se reaplicara.
+  genero <- .smp_var(inst_ref, "¿Cuál es su género?")
+  s <- session_get(sid)
+  s$estudio$bases[[base_name]]$choice_code_mapping <- list(
+    version = 1L, confirmed = TRUE, confirmed_at = "2026-10-11T00:00:00Z", n_questions = 1L,
+    maps = list(list(variable = genero, type = "select_one", list_name = paste0("lst_", genero), mappings = list(
+      .smp_item("1", "Femenino", "2"), .smp_item("2", "Masculino", "1"))))
+  )
+  .session_env[[sid]] <- s
+
+  sm_multibase_decision_apply(sid, base_name)
+  base <- session_get(sid)$estudio$bases[[base_name]]
+  expect_equal(base$choice_codes_applied_data_file_id, base$data_file_id)
+
+  archivo <- .smp_base_data(sid, base_name)
+  esperado <- as.character(archivo[[genero]])
+  relectura <- .carga_normalized_data_for_export(sid, base_name)$data
+  expect_equal(as.character(relectura[[genero]]), esperado)
+  # rr1 es Masculino: con el orden del editor, código 2.
+  expect_equal(esperado[as.character(archivo$response_id) == "rr1"], "2")
+
+  destino <- tempfile(fileext = ".pulso")
+  on.exit(unlink(destino), add = TRUE)
+  build_pulso(sid, destino, project_name = "smp-alineacion")
+  reabierto <- load_pulso(destino)
+  on.exit(session_delete(reabierto$session_id), add = TRUE)
+  s2 <- session_get(reabierto$session_id)
+  expect_equal(as.character(s2$rp_data_sources[[base_name]][[genero]]), esperado)
+
+  # M4: la alineación y la receta viajan en el .pulso.
+  base2 <- s2$estudio$bases[[base_name]]
+  expect_equal(base2$sm_alineacion_fuentes, base$sm_alineacion_fuentes)
+  expect_equal(base2$choice_order_editor$receta, base$choice_order_editor$receta)
+  expect_length(base2$choice_order_editor$receta, 2L)
 })

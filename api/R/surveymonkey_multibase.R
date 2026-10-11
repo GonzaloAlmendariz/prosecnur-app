@@ -1636,6 +1636,13 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   }
   company_vars <- as.character(company_vars %||% character(0))
   rows_out <- list()
+  # Opciones que no están en la lista de su variable: quedan NA y se cuentan.
+  opciones_sin_par <- integer(0)
+  codigo <- function(var, lc) {
+    code <- .sm_mb_code_for_label(inst, var, lc$label, lc$code)
+    if (length(code) && is.na(code)) opciones_sin_par <<- .sm_mb_alin_sumar(opciones_sin_par, var, 1L)
+    code
+  }
   for (resp in responses) {
     response_id <- .sm_mb_scalar(resp$id %||% resp$response_id, "")
     row <- list(
@@ -1668,7 +1675,7 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
             var <- .sm_mb_var_for_pos(inst, spec$pos, rpos)
             var <- .sm_mb_variant_var(var, spec$pos, variant_lookup)
             lc <- .sm_mb_answer_label_code(ans, spec)
-            code <- .sm_mb_code_for_label(inst, var, lc$label, lc$code)
+            code <- codigo(var, lc)
             row <- .sm_mb_set_value(row, var, code)
           } else if (identical(spec$family, "open_ended")) {
             rpos <- .sm_mb_row_pos_for_answer(spec, ans)
@@ -1688,8 +1695,8 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
               }
               next
             }
-            code <- .sm_mb_code_for_label(inst, parent, lc$label, lc$code)
-            if (nzchar(code)) multi_tokens[[parent]] <- unique(c(multi_tokens[[parent]] %||% character(0), code))
+            code <- codigo(parent, lc)
+            if (!is.na(code) && nzchar(code)) multi_tokens[[parent]] <- unique(c(multi_tokens[[parent]] %||% character(0), code))
             if (!is.null(ans$text) && nzchar(.sm_mb_trim(ans$text))) {
               other_var <- paste0(parent, "_other")
               if (.sm_mb_var_exists(inst, other_var)) {
@@ -1719,7 +1726,7 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
               code <- if (nzchar(other_code)) {
                 other_code
               } else {
-                .sm_mb_code_for_label(inst, parent, lc$label, lc$code)
+                codigo(parent, lc)
               }
               row <- .sm_mb_set_value(row, parent, code)
               if (nzchar(other_text) && .sm_mb_var_exists(inst, other_var)) {
@@ -1764,6 +1771,7 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   } else {
     attr(df, "sm_response_filter") <- response_filter
   }
+  attr(df, "sm_opciones_sin_par") <- opciones_sin_par
   df
 }
 
@@ -2523,7 +2531,8 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
 
   source_dfs <- list()
   source_audits <- list()
-  alineacion <- list()
+  alin <- .sm_mb_alin_nuevo()
+  cache <- .sm_mb_cache_operacion()
   details_base <- Find(function(x) identical(.sm_mb_scalar(x$survey_id, ""), spec$survey_id), snapshot$sources %||% list())$details
   for (source in snapshot$sources %||% list()) {
     source_id <- .sm_mb_scalar(source$survey_id %||% (source$source_spec %||% list())$survey_id, spec$survey_id)
@@ -2548,11 +2557,14 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
       date_modified_gte = "",
       date_modified_lte = "",
       consent_var = "",
-      apply_consent_filter = FALSE
+      apply_consent_filter = FALSE,
+      consent_var_base = .sm_mb_scalar(policy$consent_var, ""),
+      cache = cache
     )
-    alineacion[[length(alineacion) + 1L]] <- .sm_mb_alineacion_resumen(source_df, source_id, source_title)
+    alin <- .sm_mb_alin_registrar(alin, source_df, source_id, source_title, spec$survey_id)
     if (.sm_mb_fuente_es_otro_instrumento(source_df)) next
-    decided <- .sm_mb_decision_apply_df(source_df, rp_inst, policy, source_label = source_title)
+    decided <- .sm_mb_decision_apply_df(source_df, rp_inst, .sm_mb_politica_para_fuente(policy, source_df),
+                                        source_label = source_title)
     source_dfs[[length(source_dfs) + 1L]] <- decided
     audit <- attr(decided, "sm_decision_audit", exact = TRUE) %||% list()
     audit$survey_id <- source_id
@@ -2573,7 +2585,7 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   audit <- .sm_mb_decision_audit_total(source_audits)
   audit$policy <- policy
   list(data = data_df, inst = rp_inst, policy = policy, audit = audit, snapshot = snapshot,
-       alineacion_fuentes = Filter(Negate(is.null), alineacion))
+       alineacion = alin, alineacion_fuentes = alin$fuentes)
 }
 
 sm_multibase_decision_preview <- function(sid, base_name, policy = NULL) {
@@ -2592,7 +2604,6 @@ sm_multibase_decision_apply <- function(sid, base_name, policy = NULL,
                                         regenerate_data = TRUE,
                                         force_replace_adapted = FALSE) {
   built <- .sm_mb_build_effective_from_snapshot(sid, base_name, policy)
-  if (isTRUE(regenerate_data)) .sm_mb_guardar_alineacion(sid, base_name, built$alineacion_fuentes)
   s <- session_get(sid)
   session_before_decision_apply <- s
   base <- s$estudio$bases[[base_name]]
@@ -2612,6 +2623,10 @@ sm_multibase_decision_apply <- function(sid, base_name, policy = NULL,
     if ((!isTRUE(is_adapted) && !isTRUE(has_downstream_progress)) || isTRUE(force_replace_adapted)) {
       base$data_file_id <- generated_meta$file_id
       base$data_ext <- generated_meta$ext
+      # El archivo nuevo sale codificado contra el instrumento de la base: ningún
+      # mapa del editor debe volver a aplicarse al leerlo (`.carga_codigos_ya_aplicados`).
+      base$choice_codes_applied_data_file_id <- generated_meta$file_id
+      base <- .sm_mb_alin_en_base(base, built$alineacion)
       base$n_filas <- as.integer(nrow(built$data))
       base$n_columnas <- as.integer(ncol(built$data))
       s$rp_data_sources[[base_name]] <- rp_data
@@ -3332,6 +3347,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     ))))
   }
   ref_tbl <- .sm_mb_question_table(details[[ref_id]])
+  cache <- .sm_mb_cache_operacion()
   diffs <- list()
   for (sid in source_ids[-1]) {
     cur <- details[[sid]]
@@ -3345,7 +3361,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     cur_tbl <- .sm_mb_question_table(cur)
     source_spec <- source_spec_by_id[[sid]] %||% list(survey_id = sid)
     excluded_positions <- .sm_mb_excluded_positions_from_source(source_spec, ref_tbl)
-    one <- .sm_mb_compare_to_ref(ref_tbl, cur_tbl, ignorable_missing_positions = excluded_positions)
+    one <- .sm_mb_compare_to_ref(ref_tbl, cur_tbl, ignorable_missing_positions = excluded_positions, cache = cache)
     if (length(one)) {
       one <- lapply(one, function(d) {
         d$survey_id <- sid
@@ -3488,7 +3504,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   no_new_known <- is.finite(new_rows) && new_rows <= 0L
   has_new <- is.finite(new_rows) && new_rows > 0L
   structure_ok <- isTRUE(structure$ok)
-  if (.sm_mb_estructura_otro_instrumento(structure)) return("blocked")
+  if (.sm_mb_estructura_bloquea(structure)) return("blocked")
   if (!accepted_count && no_new_known) {
     return(if (structure_ok) "noop" else "noop_structure_warning")
   }
@@ -3524,7 +3540,13 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
   # Mismo orden de opciones que el import (`carga_sm_orden_editor.R`), antes de
   # la lógica compartida: refrescar no puede cambiarle los códigos a la base.
-  orden_editor <- .carga_sm_adoptar_orden_editor(xls_model, .carga_platform_choice_code_maps(sid, "surveymonkey", spec$survey_id))
+  # ADR 0094, decisión 7: se reaplica la receta guardada al importar, no el
+  # orden del editor de hoy (que solo se compara y se declara).
+  orden_editor <- .carga_sm_orden_reaplicar(
+    xls_model,
+    session_get(sid)$estudio$bases[[base_name]]$choice_order_editor,
+    .carga_platform_choice_code_maps(sid, "surveymonkey", spec$survey_id)
+  )
   xls_model <- orden_editor$model
   logic_sync <- .sm_mb_apply_shared_logic_to_model(sid, base_name, xls_model)
   xls_model <- logic_sync$model
@@ -3537,7 +3559,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   source_dfs <- list()
   source_filters <- list()
   raw_snapshot_sources <- list()
-  alineacion <- list()
+  alin <- .sm_mb_alin_nuevo()
+  cache <- .sm_mb_cache_operacion()
   source_specs <- spec$sources %||% list(spec)
   for (source_spec in source_specs) {
     source_id <- .sm_mb_scalar(source_spec$survey_id, spec$survey_id)
@@ -3570,6 +3593,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
       survey_id = source_id,
       base_survey_id = spec$survey_id,
       details_base = details,
+      cache = cache,
       pais = .sm_mb_scalar(source_spec$pais, spec$pais),
       source_title = source_title,
       source_channel = source_channel,
@@ -3591,7 +3615,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     one_filter$consent_var <- source_consent_var
     one_filter$validation_exclusion_profile <- validation_profile
     one_filter$excluded_validation_vars <- as.list(excluded_vars)
-    alineacion[[length(alineacion) + 1L]] <- .sm_mb_alineacion_resumen(one_df, source_id, source_title)
+    alin <- .sm_mb_alin_registrar(alin, one_df, source_id, source_title, spec$survey_id)
+    if (.sm_mb_fuente_es_otro_instrumento(one_df)) next
     source_dfs[[length(source_dfs) + 1L]] <- one_df
     source_filters[[length(source_filters) + 1L]] <- one_filter
   }
@@ -3607,7 +3632,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     source_kind = if (length(source_specs) > 1L) "surveymonkey_api_multi_source" else "surveymonkey_api",
     xlsform_logic_sync = logic_sync[setdiff(names(logic_sync), "model")],
     choice_order_editor = orden_editor$resumen,
-    alineacion_fuentes = Filter(Negate(is.null), alineacion)
+    alineacion = alin,
+    alineacion_fuentes = alin$fuentes
   )
 }
 
@@ -3615,6 +3641,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   details <- sm_api_fetch_survey_details(spec$survey_id, token)
   if (is.null(rp_inst)) {
     xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+    xls_model <- .carga_sm_orden_reaplicar(xls_model, session_get(sid)$estudio$bases[[base_name]]$choice_order_editor)$model
     downloads_dir <- file.path(session_get(sid)$dir, "downloads")
     dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
     inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_raw_xlsform.xlsx"))
@@ -3690,7 +3717,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
                                              decision_policy = NULL,
                                              decision_audit = NULL,
                                              xlsform_logic_sync = NULL,
-                                             choice_order_editor = NULL) {
+                                             choice_order_editor = NULL,
+                                             alineacion = NULL) {
   s <- session_get(sid)
   session_before_refresh <- s
   base <- s$estudio$bases[[base_name]]
@@ -3715,6 +3743,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
       base$choice_codes_applied_data_file_id <- data_meta$file_id
       base$choice_order_editor <- choice_order_editor
     }
+    # La alineación describe la data vigente: solo se reescribe con ella.
+    if (!is.null(alineacion)) base <- .sm_mb_alin_en_base(base, alineacion)
     s$rp_inst_sources[[base_name]] <- rp_inst
     s$rp_data_sources[[base_name]] <- rp_data
     base$n_filas <- nrow(rp_data)
@@ -4137,6 +4167,10 @@ sm_multibase_import_independent <- function(sid,
     planned_names <- c(planned_names, base_name)
 
     xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+    # ADR 0094, decisión 7: el orden de opciones del editor se fija al importar
+    # y queda como receta en la base; el refresh reaplica esa receta.
+    orden_editor <- .carga_sm_adoptar_y_recetar(xls_model, .carga_platform_choice_code_maps(sid, "surveymonkey", spec$survey_id))
+    xls_model <- orden_editor$model
     direct_logic_sync <- NULL
     specific_logic_rules <- .sm_mb_scalar(logic_rules_by_survey[[spec$survey_id]], "")
     specific_logic <- nzchar(trimws(specific_logic_rules))
@@ -4183,7 +4217,8 @@ sm_multibase_import_independent <- function(sid,
     source_dfs <- list()
     source_filters <- list()
     raw_snapshot_sources <- list()
-    alineacion <- list()
+    alin <- .sm_mb_alin_nuevo()
+    cache <- .sm_mb_cache_operacion()
     source_specs <- spec$sources %||% list(spec)
     for (source_spec in source_specs) {
       source_id <- .sm_mb_scalar(source_spec$survey_id, spec$survey_id)
@@ -4255,6 +4290,7 @@ sm_multibase_import_independent <- function(sid,
           survey_id = source_id,
           base_survey_id = spec$survey_id,
           details_base = details,
+          cache = cache,
           pais = source_pais,
           source_title = source_title,
           source_channel = source_channel,
@@ -4276,7 +4312,7 @@ sm_multibase_import_independent <- function(sid,
         one_filter$consent_var <- source_consent_var
         one_filter$validation_exclusion_profile <- source_validation_profile
         one_filter$excluded_validation_vars <- as.list(source_excluded_vars)
-        alineacion[[length(alineacion) + 1L]] <- .sm_mb_alineacion_resumen(one_df, source_id, source_title)
+        alin <- .sm_mb_alin_registrar(alin, one_df, source_id, source_title, spec$survey_id)
         if (.sm_mb_fuente_es_otro_instrumento(one_df)) next
       }
       source_dfs[[length(source_dfs) + 1L]] <- one_df
@@ -4320,7 +4356,8 @@ sm_multibase_import_independent <- function(sid,
       response_filter = response_filter %||% list(),
       decision_policy = decision_policy,
       raw_snapshot_sources = raw_snapshot_sources,
-      alineacion_fuentes = Filter(Negate(is.null), alineacion),
+      alineacion = alin,
+      choice_order_editor = orden_editor$resumen,
       canonical_logic_sync = canonical_sync,
       direct_logic_sync = direct_logic_sync,
       source_kind = if (length(source_specs) > 1L) {
@@ -4380,7 +4417,10 @@ sm_multibase_import_independent <- function(sid,
         surveymonkey_decision_audit = item$response_filter,
         surveymonkey_source_spec = item$source_spec,
         surveymonkey_logic_sync = item$direct_logic_sync %||% NULL,
-        sm_alineacion_fuentes = if (length(item$alineacion_fuentes)) unname(item$alineacion_fuentes) else NULL
+        sm_alineacion_fuentes = .sm_mb_alin_en_base(list(), item$alineacion)$sm_alineacion_fuentes,
+        sm_opciones_sin_par_principal = .sm_mb_alin_en_base(list(), item$alineacion)$sm_opciones_sin_par_principal,
+        choice_order_editor = item$choice_order_editor,
+        choice_codes_applied_data_file_id = data_meta$file_id
       )
     )
     if (is.list(item$canonical_logic_sync) && length(item$canonical_logic_sync)) {
@@ -4555,6 +4595,7 @@ sm_multibase_refresh_plan <- function(sid,
       n_review = 0L,
       diffs = list(list(severity = "blocking", kind = "structure_error", message = conditionMessage(e)))
     ))
+    structure <- .sm_mb_estructura_legacy(structure, base, spec_info$spec)
     counts <- tryCatch(.sm_mb_incremental_counts(sid, base_name, base, spec, token), error = function(e) list(
       current_rows = as.integer(base$n_filas %||% 0L),
       remote_rows = NA_integer_,
@@ -4829,9 +4870,9 @@ sm_multibase_refresh <- function(sid,
       decision_policy = snapshot$decision_policy %||% NULL,
       decision_audit = snapshot$response_filter %||% NULL,
       xlsform_logic_sync = snapshot$xlsform_logic_sync %||% NULL,
-      choice_order_editor = snapshot$choice_order_editor
+      choice_order_editor = snapshot$choice_order_editor,
+      alineacion = snapshot$alineacion
     )
-    .sm_mb_guardar_alineacion(sid, base_name, snapshot$alineacion_fuentes)
 
     codif_job <- NULL
     if (isTRUE(reapply_codificacion) && has_codif && exists(".codif_start_apply_job", mode = "function")) {
