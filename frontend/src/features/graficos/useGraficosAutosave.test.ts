@@ -240,4 +240,31 @@ describe("ack de persistencia para composición", () => {
     expect(ioImport.match(/acknowledgeSlideCompositionConfig\(/g)).toHaveLength(1);
     expect(ioImport).not.toContain("hydrate(synced as never)");
   });
+  it("cablea el conflicto de revisión: el PUT pasa por la guarda, el autosave se detiene y la recarga hidrata (A7 H3)", () => {
+    const source = fs.readFileSync(path.join(featureDir, "useGraficosAutosave.ts"), "utf8");
+    const persistir = sourceSection(source, "const persistConsolidated = useCallback(", "const saveConsolidatedNow");
+    const autosave = sourceSection(source, "// 2) Autosave debounced.", "const seedConsolidatedPlan");
+    const recarga = sourceSection(source, "registrarRecargaBorrador(crearRecargaBorrador({", "}));");
+
+    expectFragmentsInOrder(persistir, [
+      "guardarBorradorConRevision({",
+      "revision: draftRevision.current",
+      "guardar: (expectedRevision) =>",
+      "apiGraficosConsolidadoDraftPut(config, expectedRevision)",
+      "rememberRevision(saved.revision)",
+    ]);
+    // La revisión no se captura fuera de la guarda: en conflicto el PUT no llega a armarse.
+    expect(persistir).not.toMatch(/const expectedRevision\s*=/);
+    expect(autosave).toContain("if (!hydrated || !dirty || enConflicto) return;");
+    expect(autosave).toMatch(/dirty, hydrated, enConflicto, markClean/);
+    expectFragmentsInOrder(recarga, [
+      "leer: apiGraficosConsolidadoDraftGet",
+      "rememberRevision(r.revision)",
+      "hydrate(config)",
+      'registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated })',
+      'acknowledgeSlideCompositionConfig(getSession(), "consolidated", config)',
+    ]);
+    // Una hidratación correcta desde el backend sale del conflicto (cambio de sesión o de alcance).
+    expect(source.match(/hydrate\(config\);\n\s*limpiarConflictoBorrador\(\);/g)).toHaveLength(2);
+  });
 });

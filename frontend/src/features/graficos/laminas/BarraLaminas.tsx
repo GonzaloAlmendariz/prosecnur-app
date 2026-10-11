@@ -19,6 +19,7 @@ import { SuggestedPlanButton } from "../SuggestedPlanButton";
 import { usePlanValidator } from "../usePlanValidator";
 import { useLaminasUi } from "./laminasStore";
 import { useAvisosPlanSesion } from "../avisosPlan";
+import { ACCION_RECARGAR_BORRADOR, MENSAJE_CONFLICTO_BORRADOR, recargarBorradorCompartido, useConflictoBorrador } from "../conflictoBorrador";
 import { agruparAvisos, rotuloLaminasYPartes, totalAvisos } from "./resumenInforme";
 import "./movimiento.css";
 import "./barraLaminas.css";
@@ -44,6 +45,10 @@ export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Pro
   const resumenes = useLaminasUi((s) => s.resumenes);
   const validator = usePlanValidator();
   const avisosPanel = usePanelDireccionable(PANEL_AVISOS_INFORME);
+  // Conflicto de revisión del compartido (A7 H3). El aviso que se anuncia es el toast (`role="alert"`, persistente); la
+  // barra lo deja a mano aunque se cierre, sin volver a anunciarlo.
+  const enConflicto = useConflictoBorrador((s) => s.conflicto != null);
+  const recargando = useConflictoBorrador((s) => s.recargando);
 
   const ids = useMemo(() => slides.map((s) => s.id), [slides]);
   const titulo = useMemo(() => {
@@ -69,9 +74,20 @@ export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Pro
           </span>
         )}
         <span className="pulso-f6-barra-meta pulso-f6-barra-ancho">{rotuloLaminasYPartes(ids, resumenes)}</span>
-        <span className="pulso-f6-barra-ancho">
-          <SaveStatusIndicator state={!hydrated ? "loading" : dirty ? "dirty" : "saved"} savedLabel="Guardado" />
-        </span>
+        {enConflicto ? (
+          <span role="group" aria-label="Conflicto del informe compartido" className="pulso-f6-barra-grupo">
+            <SaveStatusIndicator state="error" />
+            <span className="pulso-sr-only">{MENSAJE_CONFLICTO_BORRADOR}</span>
+            <button type="button" className="pulso-f6-boton" title={MENSAJE_CONFLICTO_BORRADOR}
+              disabled={recargando} onClick={() => { void recargarBorradorCompartido(); }}>
+              {ACCION_RECARGAR_BORRADOR}
+            </button>
+          </span>
+        ) : (
+          <span className="pulso-f6-barra-ancho">
+            <SaveStatusIndicator state={!hydrated ? "loading" : dirty ? "dirty" : "saved"} savedLabel="Guardado" />
+          </span>
+        )}
       </div>
 
       <div className="pulso-f6-barra-acciones">
