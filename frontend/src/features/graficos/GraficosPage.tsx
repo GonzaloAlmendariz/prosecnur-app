@@ -466,7 +466,7 @@ export default function GraficosPage() {
               {pestana === "laminas"
                 ? <LaminasWorkbench onIrEditorAnterior={() => irPestana("clasico")} />
                 : pestana === "vista-general"
-                  ? <Suspense fallback={<LoadingBlock label="Cargando la vista general…" />}><VistaGeneral /></Suspense>
+                  ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la vista general…" /></div>}><VistaGeneral /></Suspense>
                   : <EditorShell />}
             </div>
           </AdaptiveSplitView>
