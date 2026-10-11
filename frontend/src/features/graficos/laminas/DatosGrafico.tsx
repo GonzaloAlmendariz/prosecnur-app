@@ -64,7 +64,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
       ))}
       {conOrden && variable && (
-        <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva)} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
+        <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
       )}
       {variable && (
         <FilaTexto

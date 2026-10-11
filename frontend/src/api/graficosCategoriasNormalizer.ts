@@ -5,6 +5,10 @@ export type ModoRecetario = "frecuencia" | "instrumento" | "personalizado";
 
 export type CategoriaGrafico = { codigo: string; etiqueta: string; n: number; pct: number | null; residual: boolean };
 
+/** Aviso de la pregunta (decisión 4, contrato §7). `codigo` es un slug estable; `texto` es la frase al analista y no se
+ *  parsea. */
+export type AvisoCategorias = { codigo: string; texto: string };
+
 export type GraficosCategorias = {
   var: string;
   base: string;
@@ -17,6 +21,8 @@ export type GraficosCategorias = {
   categorias: CategoriaGrafico[];
   /** Códigos en el orden que dibuja cada modo (sin invertir), residuales al final. */
   orden: { recetario: string[]; instrumento: string[]; frecuencia: string[] };
+  /** Lo que el motor de orden avisaría de esta pregunta; `[]` si nada. */
+  avisos: AvisoCategorias[];
 };
 
 const texto = (v: unknown): string => {
@@ -30,6 +36,21 @@ const numero = (v: unknown): number | null => {
   return typeof x === "number" && Number.isFinite(x) ? x : null;
 };
 const verdad = (v: unknown): boolean => (Array.isArray(v) ? v[0] : v) === true;
+
+/** Sólo un arreglo cuenta (ausente, `null` u objeto suelto → `[]`); una entrada sin `codigo` o `texto` string, no. */
+function leerAvisos(v: unknown): AvisoCategorias[] {
+  if (!Array.isArray(v)) return [];
+  const out: AvisoCategorias[] = [];
+  for (const a of v) {
+    if (!a || typeof a !== "object" || Array.isArray(a)) continue;
+    const o = a as Record<string, unknown>;
+    const codigo = Array.isArray(o.codigo) && o.codigo.length === 1 ? o.codigo[0] : o.codigo;
+    const texto = Array.isArray(o.texto) && o.texto.length === 1 ? o.texto[0] : o.texto;
+    if (typeof codigo !== "string" || !codigo || typeof texto !== "string" || !texto) continue;
+    out.push({ codigo, texto });
+  }
+  return out;
+}
 
 export function normalizeGraficosCategorias(raw: unknown): GraficosCategorias {
   const r = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
@@ -55,5 +76,6 @@ export function normalizeGraficosCategorias(raw: unknown): GraficosCategorias {
     modo_recetario: modo === "frecuencia" || modo === "instrumento" || modo === "personalizado" ? modo : null,
     categorias,
     orden: { recetario: soloExistentes(ord.recetario), instrumento: soloExistentes(ord.instrumento), frecuencia: soloExistentes(ord.frecuencia) },
+    avisos: leerAvisos(r.avisos),
   };
 }

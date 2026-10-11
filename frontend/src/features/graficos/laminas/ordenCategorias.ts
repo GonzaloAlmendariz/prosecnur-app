@@ -2,7 +2,7 @@
 // la fila «Orden» de la tarjeta del inspector: qué graficadores la llevan, cómo se lee y escribe
 // `args.orden_categorias` y qué lista muestra el modo personalizado.
 
-import type { GraficosCategorias } from "../../../api/graficos";
+import type { AvisoCategorias, GraficosCategorias } from "../../../api/graficos";
 
 export type ModoOrden = "recetario" | "frecuencia" | "instrumento" | "personalizado";
 export type OrdenCategorias = { modo: ModoOrden; lista: string[]; invertir: boolean };
@@ -90,10 +90,51 @@ export function ordenMostrado(lista: readonly string[], datos: GraficosCategoria
   return [...completa.slice(0, listados).reverse(), ...completa.slice(listados)];
 }
 
+/**
+ * Avisos de la pregunta (decisión 4; contrato §7). Se decide SÓLO por `codigo`; `texto` se muestra tal cual llega (ya
+ * pasó el detector de jerga), salvo el prefijo «“<pregunta>”: », que dentro de la tarjeta de esa misma pregunta se
+ * repite y se quita únicamente si coincide exacto.
+ */
+export const AVISO_BASE_POR_DEFECTO = "base_por_defecto";
+export const AVISO_ESCALA_ORDEN_IGNORADO = "escala_orden_ignorado";
+
+export type NotaOrden = { codigo: string; texto: string; destacada: boolean };
+export type AvisosOrden = {
+  /** Notas sobre la lista, en el orden en que llegan; sin la de escala, que va junto a los controles. */
+  notas: NotaOrden[];
+  /** El orden no aplica a este gráfico: el modo e «Invertir» quedan deshabilitados con esta nota a la vista. */
+  escala: NotaOrden | null;
+};
+
+/** Quita «“<pregunta>”: » del inicio sólo si coincide exacto; el resto empieza en mayúscula. */
+export function sinPrefijoPregunta(texto: string, pregunta: string): string {
+  const p = pregunta.trim();
+  if (!p) return texto;
+  const prefijo = `“${p}”: `;
+  if (!texto.startsWith(prefijo) || texto.length === prefijo.length) return texto;
+  const resto = texto.slice(prefijo.length);
+  return resto.charAt(0).toLocaleUpperCase("es") + resto.slice(1);
+}
+
+export function leerAvisosOrden(datos: Pick<GraficosCategorias, "avisos" | "pregunta"> | null): AvisosOrden {
+  const notas: NotaOrden[] = [];
+  let escala: NotaOrden | null = null;
+  const avisos: readonly AvisoCategorias[] = datos?.avisos ?? [];
+  for (const a of avisos) {
+    const nota: NotaOrden = { codigo: a.codigo, texto: sinPrefijoPregunta(a.texto, datos?.pregunta ?? ""), destacada: a.codigo === AVISO_BASE_POR_DEFECTO };
+    if (a.codigo === AVISO_ESCALA_ORDEN_IGNORADO) escala ??= nota;
+    else notas.push(nota);
+  }
+  return { notas, escala };
+}
+
 /** Lo que la lista dice de una categoría sin respuestas. */
 export const NO_SE_DIBUJA = "no se dibuja: 0 respuestas";
 
-/** Códigos sin respuestas: el gráfico no los dibuja, aunque la lista los ordene. */
+/**
+ * Códigos sin respuestas, para marcar cada fila (misma regla `n === 0` que el aviso `categorias_sin_respuestas` del
+ * backend, que es el que da el mensaje general): el gráfico no los dibuja, aunque la lista los ordene.
+ */
 export function categoriasSinRespuestas(datos: GraficosCategorias): Set<string> {
   return new Set(datos.categorias.filter((c) => c.n === 0).map((c) => c.codigo));
 }

@@ -85,3 +85,43 @@
   font-style: italic;
   color: var(--pulso-text-faint);
 }
+
+/* Avisos de la pregunta (decisión 4): notas sobrias encima de la lista; parten línea, nunca se recortan (C4). La de
+   «base por defecto» se destaca: las categorías que se ven son de otra base. */
+.pulso-f6-orden-avisos {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.pulso-f6-orden-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-orden-aviso-icono {
+  flex: none;
+  margin-top: 1px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-orden-aviso.is-destacado {
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-orden-aviso.is-destacado .pulso-f6-orden-aviso-icono {
+  color: var(--pulso-warn-accent);
+}

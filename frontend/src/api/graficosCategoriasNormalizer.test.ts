@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { normalizeGraficosCategorias } from "./graficosCategoriasNormalizer";
+
+const fetchMock = vi.hoisted(() => vi.fn());
+vi.mock("./core", async (original) => ({ ...(await original<typeof import("./core")>()), apiFetch: fetchMock, headers: () => ({}) }));
 
 describe("normalizeGraficosCategorias (GET /api/graficos/categorias, D8 §7)", () => {
   it("lee la respuesta del contrato", () => {
@@ -30,5 +33,48 @@ describe("normalizeGraficosCategorias (GET /api/graficos/categorias, D8 §7)", (
     expect(r.orden).toEqual({ recetario: ["3"], instrumento: ["3"], frecuencia: [] });
     expect(normalizeGraficosCategorias(null).categorias).toEqual([]);
     expect(normalizeGraficosCategorias({ categorias: [{ codigo: "1" }, { codigo: "1" }, "x"] }).categorias).toHaveLength(1);
+  });
+});
+
+describe("avisos de GET /api/graficos/categorias (decisión 4)", () => {
+  it("ausente, null o no-arreglo → []", () => {
+    for (const avisos of [undefined, null, {}, "x", { codigo: "base_por_defecto", texto: "t" }]) {
+      expect(normalizeGraficosCategorias({ avisos }).avisos).toEqual([]);
+    }
+  });
+
+  it("descarta entradas sin codigo o texto string y conserva el orden", () => {
+    const r = normalizeGraficosCategorias({ avisos: [
+      { codigo: "base_por_defecto", texto: "a" },
+      { codigo: 3, texto: "b" },
+      { codigo: "x", texto: null },
+      { codigo: "", texto: "c" },
+      { texto: "d" },
+      null, "e", ["f"],
+      { codigo: ["residuales_al_final"], texto: ["g"] },
+    ] });
+    expect(r.avisos).toEqual([{ codigo: "base_por_defecto", texto: "a" }, { codigo: "residuales_al_final", texto: "g" }]);
+  });
+});
+
+describe("apiGraficosCategorias", () => {
+  afterEach(() => fetchMock.mockReset());
+  const responder = () => fetchMock.mockResolvedValue(new Response(JSON.stringify({ var: "p7", avisos: [] }), { status: 200, headers: { "content-type": "application/json" } }));
+  const query = () => new URLSearchParams(String(fetchMock.mock.calls[0]?.[0] ?? "").split("?")[1] ?? "");
+
+  it("manda la var, el alcance y el graficador", async () => {
+    responder();
+    const { apiGraficosCategorias } = await import("./graficos");
+    await apiGraficosCategorias("docentes$p7", "consolidated", "p_barras_apiladas");
+    expect(query().get("var")).toBe("docentes$p7");
+    expect(query().get("scope")).toBe("consolidado");
+    expect(query().get("graficador")).toBe("p_barras_apiladas");
+  });
+
+  it("sin graficador no lo inventa", async () => {
+    responder();
+    const { apiGraficosCategorias } = await import("./graficos");
+    await apiGraficosCategorias("docentes$p7");
+    expect(query().has("graficador")).toBe(false);
   });
 });
