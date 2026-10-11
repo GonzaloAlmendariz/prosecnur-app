@@ -354,11 +354,10 @@
   levels <- levels[nzchar(levels)]
   if (!length(levels)) return(pal)
 
+  # ADR 0097 (P3a): una paleta sin nombres no dice de qué opción es cada color, y repartirla por posición le da a
+  # una opción el significado de otra. Se trata como si no hubiera paleta.
   pal_names <- .reporte_plan_clean_chr(names(pal))
-  if (!length(pal_names) || !any(nzchar(pal_names))) {
-    n <- min(length(levels), length(pal))
-    return(stats::setNames(unname(pal[seq_len(n)]), levels[seq_len(n)]))
-  }
+  if (!length(pal_names) || !any(nzchar(pal_names))) return(NULL)
 
   names(pal) <- pal_names
   pal <- pal[nzchar(names(pal))]
@@ -374,8 +373,9 @@
   # «SIN INF»: dos categorias indistinguibles en la lamina. Medido en `p52.pptx`:
   # 15 de 232 renders recibian `BFBFBF 70AD47 ADD493 FFD965 BFBFBF`.
   # `.reporte_plan_ascii_lower()` ya vivia en este archivo sin usarse aqui.
+  # ADR 0097: el respaldo normaliza como el resolvedor (sin caja, sin tildes y con los espacios colapsados).
   pal_norm <- pal
-  names(pal_norm) <- .reporte_plan_ascii_lower(names(pal))
+  names(pal_norm) <- .paleta_norm_etiqueta(names(pal))
   pal_norm <- pal_norm[nzchar(names(pal_norm))]
   pal_norm <- pal_norm[!duplicated(names(pal_norm))]
 
@@ -396,23 +396,22 @@
     hit <- pal[candidates]
     hit <- hit[!is.na(hit) & nzchar(trimws(hit))]
     if (!length(hit) && length(pal_norm)) {
-      hit <- pal_norm[.reporte_plan_ascii_lower(candidates)]
+      hit <- pal_norm[.paleta_norm_etiqueta(candidates)]
       hit <- hit[!is.na(hit) & nzchar(trimws(hit))]
     }
     if (length(hit)) out[level] <- unname(hit[1])
   }
 
+  # ADR 0097 (P3a): la opción que la paleta no nombra toma el gris residual del recetario y se avisa. Ya no hay
+  # respaldo posicional (duplicaba colores o daba a una opción el de otra) ni relleno con colores del motor.
   missing <- is.na(out) | !nzchar(trimws(out))
   if (any(missing)) {
-    fallback <- unname(pal)
-    n <- min(length(fallback), length(out))
-    if (n > 0L) {
-      positional <- stats::setNames(fallback[seq_len(n)], names(out)[seq_len(n)])
-      out[missing] <- positional[names(out)[missing]]
-    }
+    out[missing] <- .paleta_gris_residual()
+    lista <- attr(palette, "paleta_lista", exact = TRUE) %||% .reporte_plan_clean_chr(list_name)[1]
+    for (op in names(out)[missing]) .pulso_aviso(sprintf("La opción «%s» no tiene color en la paleta de «%s»", op, lista))
   }
 
-  out[!is.na(out) & nzchar(trimws(out))]
+  .paleta_heredar_attrs(out, palette)
 }
 
 #' @noRd
@@ -423,12 +422,6 @@
 
   main <- c("#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#BFBFBF",
             "#E4A34C", "#7594CC", "#9688D3", "#D8D8D8")
-  # Escala de acuerdo/satisfacción: el recorrido va de rojizo a verde, pasando
-  # por un durazno. El azul marino que ocupaba el extremo positivo no dice nada
-  # en un recorrido de valoración —es el color de la marca, no el de «lo mejor»—
-  # y rompía la lectura de un vistazo: el ojo busca el verde.
-  approval <- c("#CA5651", "#E4A34C", "#85BB85", "#4F8A3E", "#BFBFBF",
-                "#EFD25E", "#7594CC", "#9688D3", "#D8D8D8")
   # Dicotomía sin recorrido (Sí/No, Conoce/No conoce): dos tonos del mismo azul.
   # Rojo contra azul marca una como mala, y en «¿Conoce el reglamento?» el «No»
   # es un dato, no una falta.
@@ -442,9 +435,9 @@
   looks_like_scale <- all(grepl("^[0-9]+$", levels)) ||
     any(grepl(low_high_words, tolower(levels), perl = TRUE))
 
-  pal <- if (looks_like_scale && length(levels) >= 3L) {
-    approval
-  } else if (length(levels) == 2L) {
+  # ADR 0097 (P4a): una escala sin paleta toma la Likert del recetario, no la rampa que arrancaba en rojo.
+  if (looks_like_scale && length(levels) >= 3L) return(.paleta_likert_recetario(levels))
+  pal <- if (length(levels) == 2L) {
     dicotomia
   } else {
     main

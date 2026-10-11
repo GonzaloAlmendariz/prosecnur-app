@@ -156,7 +156,8 @@ test_that("una paleta con mas entradas que niveles sigue resolviendo por nombre"
   expect_equal(out[["Totalmente de acuerdo"]], "#70AD47")
 })
 
-test_that("sin nombres utiles la paleta sigue cayendo al reparto posicional", {
+test_that("sin nombres utiles la paleta ya no se reparte por posicion (ADR 0097, P3a)", {
+  # Una paleta sin nombres no dice de que opcion es cada color: se trata como si no hubiera paleta.
   out <- .reporte_plan_palette_for_levels(
     "lst_x",
     levels = c("A", "B"),
@@ -164,6 +165,5 @@ test_that("sin nombres utiles la paleta sigue cayendo al reparto posicional", {
     palette = c("#111111", "#222222")
   )
 
-  expect_equal(out[["A"]], "#111111")
-  expect_equal(out[["B"]], "#222222")
+  expect_null(out)
 })

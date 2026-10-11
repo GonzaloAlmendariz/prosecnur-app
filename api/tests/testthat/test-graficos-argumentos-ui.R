@@ -951,11 +951,9 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
   expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$histograma$mostrar_frecuencia))
 	  expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$tabla_header_fill, .PULSO_PPT_COLORS$azul)
 
-  # El recorrido de una escala de valoracion va de rojizo a verde, pasando por un
-  # durazno. Antes terminaba en azul marino: es el color de la marca, no el de
-  # «lo mejor», y rompia la lectura de un vistazo porque el ojo busca el verde.
+  # Una escala sin paleta toma la Likert del recetario (ADR 0097, P4a), no la rampa que arrancaba en rojo.
   fallback <- .reporte_plan_pulso_palette_for_levels(c("1", "2", "3", "4"))
-  expect_equal(unname(fallback), c("#CA5651", "#E4A34C", "#85BB85", "#4F8A3E"))
+  expect_equal(unname(fallback), unname(.std_paleta("likert"))[1:4])
 
   choices <- data.frame(
     list_name = rep("likert", 2),

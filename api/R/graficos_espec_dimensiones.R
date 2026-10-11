@@ -107,8 +107,20 @@ preparar_comparativo_dim <- function(payload, n_respondieron = NULL) {
   if (!is.null(espec) && exists("n_resp", inherits = FALSE) && !is.null(n_resp) && is.finite(n_resp[["Total"]] %||% NA_real_)) {
     espec$n_respondieron_total <- unname(n_resp[["Total"]])
   }
+  # ADR 0097: el comparativo pinta sus dos grupos con la paleta del usuario de la lista del cruce (`paletas_cruce`).
+  if (!is.null(espec) && identical(espec$tipo, "comparativo_dim")) espec <- .espec_dim_colores_cruce(espec, args)
   if (!is.null(espec)) attr(p, "pulso_espec") <- espec
   p
+}
+
+#' La espec del comparativo con `colores` por grupo si la paleta de la lista del cruce es del usuario
+#' @keywords internal
+.espec_dim_colores_cruce <- function(espec, args) {
+  cr <- as.character(args$cruce %||% "")[1]
+  if (is.na(cr) || !nzchar(cr)) return(espec)
+  pc <- (attr(args$data, "dimensiones_config", exact = TRUE) %||% list())$paletas_cruce %||% list()
+  pal <- pc[[cr]] %||% pc[[sub("^.*\\$", "", cr)]]
+  .espec_con_colores(espec, pal, rotulos = espec$grupos)
 }
 
 #' Cuántos respondieron la batería en cada grupo del cruce (y en el Total)

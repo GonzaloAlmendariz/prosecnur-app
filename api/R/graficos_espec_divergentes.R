@@ -56,20 +56,40 @@
   # Colores por significado (paleta likert del recetario): del extremo al centro en cada lado, gris para la especial.
   lk <- unname(.std_paleta("likert"))
   col <- rep(lk[5], length(cols_porcentaje))
-  if (!is.null(colores)) {
-    col <- rep_len(unname(colores), length(cols_porcentaje))
-  } else {
-    if (length(orden_neg)) col[orden_neg] <- grDevices::colorRampPalette(c(lk[2], lk[1]))(max(2L, length(orden_neg)))[seq_along(orden_neg)]
-    if (length(orden_pos)) col[orden_pos] <- grDevices::colorRampPalette(c(lk[3], lk[4]))(max(2L, length(orden_pos)))[seq_along(orden_pos)]
-    col[lado == "neu"] <- "#D9D9D9"
-    if (length(orden_neg) == 1L) col[orden_neg] <- lk[2]
-    if (length(orden_pos) == 1L) col[orden_pos] <- lk[3]
-  }
-  list(version = "divergentes/1", tipo = "divergentes",
+  if (length(orden_neg)) col[orden_neg] <- grDevices::colorRampPalette(c(lk[2], lk[1]))(max(2L, length(orden_neg)))[seq_along(orden_neg)]
+  if (length(orden_pos)) col[orden_pos] <- grDevices::colorRampPalette(c(lk[3], lk[4]))(max(2L, length(orden_pos)))[seq_along(orden_pos)]
+  col[lado == "neu"] <- "#D9D9D9"
+  if (length(orden_neg) == 1L) col[orden_neg] <- lk[2]
+  if (length(orden_pos) == 1L) col[orden_pos] <- lk[3]
+  # ADR 0097: una paleta pinta por ETIQUETA (o por columna), nunca por posición; una sin nombres no dice de qué
+  # opción es cada color y se ignora. La opción que no nombra sale gris residual con su aviso.
+  por_rotulo <- .espec_divergentes_colores(colores, cols_porcentaje, rot)
+  if (!is.null(por_rotulo)) col <- unname(por_rotulo)
+  espec <- list(version = "divergentes/1", tipo = "divergentes",
        filas = as.character(data[[var_categoria]])[o],
        categorias = data.frame(col = cols_porcentaje, rotulo = rot, color = col, lado = lado, stringsAsFactors = FALSE),
        orden_neg = orden_neg, orden_pos = orden_pos,
        unidades = U[o, , drop = FALSE], cifras = cifras[o, , drop = FALSE],
        total_neg = tn[o], total_pos = tp[o], cifras_neg = .pulso_fmt_pct_unidades(tn[o], dec), cifras_pos = .pulso_fmt_pct_unidades(tp[o], dec),
        decimales = dec)
+  if (!is.null(por_rotulo)) espec$colores <- por_rotulo
+  espec
+}
+
+#' Colores de las divergentes por rótulo (nombres = rótulo), desde una paleta con nombres de rótulo o de columna
+#'
+#' `NULL` sin paleta o con una sin nombres. Lo que la paleta no nombra sale gris residual y se avisa
+#' (`.reporte_plan_palette_for_levels`).
+#' @keywords internal
+.espec_divergentes_colores <- function(colores, cols, rotulos) {
+  if (is.null(colores) || !length(colores) || is.null(names(colores)) || !any(nzchar(names(colores)))) return(NULL)
+  pal <- stats::setNames(as.character(unlist(colores, use.names = FALSE)), names(unlist(colores)))
+  # Una paleta por columna (`pct_1`, ...) se lleva a rótulos antes de emparejar.
+  por_col <- names(pal) %in% cols
+  names(pal)[por_col] <- rotulos[match(names(pal)[por_col], cols)]
+  pal <- .paleta_heredar_attrs(pal, colores)
+  out <- .reporte_plan_palette_for_levels(attr(colores, "paleta_lista", exact = TRUE) %||% "", rotulos,
+                                          choices_use = attr(colores, "paleta_choices", exact = TRUE), palette = pal)
+  if (is.null(out)) return(NULL)
+  stats::setNames(as.character(unname(out[rotulos])), rotulos)
 }

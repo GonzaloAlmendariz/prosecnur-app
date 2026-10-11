@@ -2060,39 +2060,6 @@
   trimws(x)
 }
 
-# ---- paleta auto (paleta_<listname>) desde env_diapos -----------------------
-# (usa el mismo patrón que tu .paleta_auto() del exportador)
-.paleta_auto_local <- function(list_name, env) {
-  if (is.null(env) || !is.environment(env)) env <- parent.frame()
-  ln <- as.character(list_name)[1]
-  ln <- trimws(ln)
-  if (is.na(ln) || !nzchar(ln)) return(NULL)
-
-  .paleta_candidates <- function(x) {
-    x <- trimws(as.character(x))
-    x <- x[!is.na(x) & nzchar(x)]
-    if (!length(x)) return(character(0))
-    out <- x
-    if (grepl("s$", x[1])) out <- c(out, sub("s$", "", x[1]))
-    if (grepl("es$", x[1])) out <- c(out, sub("es$", "", x[1]))
-    out <- c(out, paste0(x[1], "s"), paste0(x[1], "es"))
-    out <- trimws(as.character(out))
-    unique(out[!is.na(out) & nzchar(out)])
-  }
-
-  obj_candidates <- paste0("paleta_", .paleta_candidates(ln))
-  hit <- obj_candidates[vapply(
-    obj_candidates,
-    function(obj_name) exists(obj_name, envir = env, inherits = TRUE),
-    logical(1)
-  )]
-  if (!length(hit)) return(NULL)
-
-  pal <- get(hit[1], envir = env, inherits = TRUE)
-  if (!is.atomic(pal) || is.null(names(pal))) return(NULL)
-  pal
-}
-
 # ---- list_name de una var (survey) ------------------------------------------
 .list_name_of_var_local <- function(v, survey) {
   if (!is.data.frame(survey)) return(NA_character_)
@@ -2147,7 +2114,8 @@
 
   # paleta por list_name del CRUCE
   ln_cruce <- .list_name_of_var_local(cruce, survey)
-  pal <- .paleta_auto_local(ln_cruce, env = env_paletas)
+  # Por nombre, vínculo o firma de las opciones del cruce (graficos_paleta_resolver.R, ADR 0097).
+  pal <- .paleta_resolver_colores(ln_cruce, estr_labels, env = if (is.environment(env_paletas)) env_paletas else parent.frame())
 
   # si paleta existe:
   # - idealmente nombres de paleta son labels (como sueles hacer en listas)

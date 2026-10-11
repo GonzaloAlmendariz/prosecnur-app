@@ -30,9 +30,12 @@
   .lam_registrar(lz, xml, l, t, d, d)
 }
 
-#' Colores de las porciones: la paleta dicotómica para dos, la de categorías para más
+#' Colores de las porciones: la paleta del usuario si la espec la trae (ADR 0097); si no, la dicotómica para dos y la
+#' de categorías para más
 #' @keywords internal
-.lam_colores_pie <- function(k) {
+.lam_colores_pie <- function(k, espec = NULL) {
+  propios <- if (!is.null(espec)) .espec_colores_de(espec)
+  if (length(propios) == k) return(propios)
   if (k <= 2L) return(unname(.std_paleta("dicotomica"))[seq_len(k)])
   rep_len(c(.std_color("azul"), .std_color("azul_medio"), .std_color("tenue"), .std_color("azul_rango"), .std_color("texto_tenue")), k)
 }
@@ -47,7 +50,7 @@
                                layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   g_ <- .std_geom; ml <- g_("margen_izq"); yt <- g_("zona_datos_y0")
-  azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k)
+  azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k, espec)
   # El disco ocupa el 79.5 % de su caja de 4.4 in, como el coord_polar del recetario.
   d <- 4.4; xp <- ml + 1.0; yp <- yt + 0.25; cx <- xp + d / 2; cy <- yp + d / 2; r <- d / 2 * 0.795
   doc <- officer::add_slide(doc, layout = layout, master = master)
@@ -61,7 +64,7 @@
     dentro <- 100 * f[i] >= 12
     rr <- if (dentro) r * 0.5 else r * 1.22   # dentro, a media distancia del centro; fuera, junto al borde
     tx <- cx + rr * sin(a); ty <- cy - rr * cos(a)
-    col_t <- if (dentro) (if (i == 1L) "#FFFFFF" else azul) else azul
+    col_t <- if (!dentro) azul else if (!is.null(espec$colores)) .lam_texto_sobre(cols[i]) else if (i == 1L) "#FFFFFF" else azul
     .lam_txt(lz, espec$cifras[i], tx - 0.4, ty - 0.15, 0.8, 0.3, if (dentro) .std_pt("cifra") else .std_pt("cifra_fuera"), col_t, bold = TRUE,
              align = "center", nombre = "torta:cifra")
   }
@@ -87,7 +90,7 @@
                               rotulo_centro = NULL, layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   g_ <- .std_geom; ml <- g_("margen_izq"); yt <- g_("zona_datos_y0")
-  azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k)
+  azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k, espec)
   d <- 4.0; xd <- ml + 1.2; yd <- yt + 0.35; cx <- xd + d / 2; cy <- yd + d / 2; r <- d / 2 * 0.79
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)

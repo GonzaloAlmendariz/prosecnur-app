@@ -13,11 +13,12 @@
   paso <- wv / n_; wcol <- paso * 0.56
   esc <- max(espec$largos) * 1.1
   azul <- .std_color("azul"); tenue <- .std_color("texto_tenue")
+  cols <- .espec_colores_de(espec)   # ADR 0097: la paleta del usuario, si la espec la trae; si no, navy
   .lam_caja(lz, x0 - 0.1, ybase, wv + 0.2, 0.012, tenue, nombre = "eje")
   for (k in seq_len(n_)) {
     hk <- if (esc > 0) hmax * espec$largos[k] / esc else 0
     xk <- x0 + (k - 1) * paso + (paso - wcol) / 2
-    if (hk > 0.004) .lam_caja(lz, xk, ybase - hk, wcol, hk, azul, nombre = "columna")
+    if (hk > 0.004) .lam_caja(lz, xk, ybase - hk, wcol, hk, if (is.null(cols)) azul else cols[k], nombre = "columna")
     .lam_txt(lz, espec$cifras[k], xk - 0.3, ybase - hk - 0.42, wcol + 0.6, 0.36, 16, azul, bold = TRUE, align = "center", nombre = "cifra")
     nk <- .espec_casos(espec)[k]   # casos sin ponderar (contrato base-sin-ponderar F6)
     if (is.finite(nk)) {
@@ -41,12 +42,14 @@
   wcif <- max(0.8, max(.lam_ancho_txt(espec$cifras, size, TRUE)) + 0.12)
   wbar <- w - wlab - wcif; yy <- y
   azul <- .std_color("azul"); tenue <- .std_color("tenue")
+  cols <- .espec_colores_de(espec, et)   # ADR 0097: con paleta del usuario cada barra lleva su color (y no hay tenue)
   for (k in seq_along(et)) {
     es_max <- isTRUE(espec$realce) && v[k] == max(v)
     h <- .lam_alto_tinta(et[k], wlab, size)   # tinta medida: la estimación por carácter subía el rótulo de una línea
     .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, azul, bold = es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
-    if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, if (isTRUE(espec$realce) && !es_max) tenue else azul, nombre = "barra")
+    fill <- if (!is.null(cols)) cols[k] else if (isTRUE(espec$realce) && !es_max) tenue else azul
+    if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
     .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = TRUE, nombre = "cifra")
     yy <- yy + fila
   }
@@ -164,16 +167,20 @@
   FALSE
 }
 
-#' Las piezas de una dicotomía (rótulos, cifras, largos, n) desde cualquiera de las dos especificaciones
+#' Las piezas de una dicotomía (rótulos, cifras, largos, n, colores) desde cualquiera de las dos especificaciones
+#'
+#' `colores` es la paleta del usuario por rótulo (ADR 0097) o la dicotómica del recetario si la espec no la trae.
 #' @keywords internal
 .lam_dicotomia_datos <- function(espec) {
   if (identical(espec$tipo, "categorica")) {
     # La frecuencia va en el rótulo («Sí (172)»): si la cifra la trae («62% (124)», mostrar_n_en_etiquetas), se quita.
-    return(list(rotulos = espec$rotulos, cifras = sub("\\s*\\([^)]*\\)\\s*$", "", espec$cifras), largos = espec$largos, n = .espec_casos(espec)))
+    return(list(rotulos = espec$rotulos, cifras = sub("\\s*\\([^)]*\\)\\s*$", "", espec$cifras), largos = espec$largos, n = .espec_casos(espec),
+                colores = .espec_colores_de(espec) %||% .std_paleta("dicotomica")))
   }
   k <- which(espec$dibujar[1, ])
   # La especificación de escala no guarda la frecuencia de cada categoría: los rótulos van sin «(n)».
-  list(rotulos = espec$categorias$rotulo[k], cifras = unname(espec$cifras[1, k]), largos = unname(espec$anchos[1, k]), n = NULL)
+  list(rotulos = espec$categorias$rotulo[k], cifras = unname(espec$cifras[1, k]), largos = unname(espec$anchos[1, k]), n = NULL,
+       colores = .espec_colores_de(espec, espec$categorias$rotulo[k]) %||% .std_paleta("dicotomica"))
 }
 
 #' Lámina de una dicotomía a todo el ancho (lámina 74 del recetario, recetario_graficos2.R:20-25)
@@ -192,7 +199,7 @@
   lz <- .lam_lienzo()
   y <- yt + 1.1
   if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3, ancho, pregunta, publico)
-  .lam_dicotomia(lz, ml, y, ancho, d$rotulos, d$cifras, d$largos, d$n, size = 40, g = 0.7)
+  .lam_dicotomia(lz, ml, y, ancho, d$rotulos, d$cifras, d$largos, d$n, size = 40, g = 0.7, cols = d$colores)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:dicotomia")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
@@ -236,7 +243,7 @@
   g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); mr <- g_("margen_der")
   yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   azul <- .std_color("azul"); tenue <- .std_color("texto_tenue")
-  lab <- espec$rotulos; pc <- espec$largos * 100; k <- length(lab)
+  lab <- espec$rotulos; pc <- espec$largos * 100; k <- length(lab); cols_u <- .espec_colores_de(espec, lab)
   wl <- 6.3; xs <- ml + wl + 0.25; ws <- W - mr - xs - 0.7; fl <- (yf - yt - 0.45) / k
   esc <- max(10, ceiling(max(pc) / 10) * 10)
   doc <- officer::add_slide(doc, layout = layout, master = master)
@@ -250,7 +257,8 @@
   for (i in seq_len(k)) {
     yc <- yt + 0.35 + (i - 0.5) * fl; xv <- xs + ws * pc[i] / esc
     # Las que el analista resalta van en coral (como la ruta anterior); las residuales, en gris.
-    col <- if (lab[i] %in% (espec$resaltar %||% character(0))) .std_color("coral") else
+    # Con paleta del usuario (ADR 0097) cada punto lleva el color de su opción; el resaltado sigue en coral.
+    col <- if (lab[i] %in% (espec$resaltar %||% character(0))) .std_color("coral") else if (!is.null(cols_u)) cols_u[i] else
       if (grepl(.CATEGORIAS_RESIDUALES, lab[i], ignore.case = TRUE)) tenue else azul
     hl <- .lam_alto_txt(lab[i], wl, 11)
     .lam_txt(lz, lab[i], ml, yc - hl / 2, wl, hl, 11, azul, align = "right", nombre = "lollipop:rotulo")

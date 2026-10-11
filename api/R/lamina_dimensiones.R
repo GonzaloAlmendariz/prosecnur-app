@@ -110,7 +110,8 @@
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   V <- espec$valores; nf <- nrow(V)
   xl <- ml + 3.1; xd <- W - mr - 2.3; wl <- xd - xl - 1.2; y0 <- yt + 0.75; bloque <- (yf - y0 - 0.35) / nf; gb <- 0.3
-  px <- function(v) xl + wl * v / 100; cols <- c(azul, .std_color("azul_medio"))
+  px <- function(v) xl + wl * v / 100
+  cols <- .espec_colores_de(espec, espec$grupos) %||% c(azul, .std_color("azul_medio"))   # ADR 0097: paleta del cruce
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
