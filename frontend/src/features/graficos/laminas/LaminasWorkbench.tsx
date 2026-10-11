@@ -131,7 +131,11 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   }, [escribirFoco, focoDePosicion, total]);
 
   const prepOk = !!state?.analitica_prep_ok || parseGraficosReportScope(location.search) === "consolidated";
-  const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk);
+  // La vista previa del motor sólo corre en las láminas donde se pidió «Ver cómo queda»; si no, el visor muestra la
+  // imagen que el lote ya dibujó en segundo plano o, sin ella, la maqueta.
+  const pedirVista = useLaminasUi((s) => s.pedirVista);
+  const vistaPedida = useLaminasUi((s) => (slide ? !!s.vistasPedidas[slide.id] : false));
+  const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk && vistaPedida);
   const ranuras = useRanurasLamina(slide);
   const { graficadoresById } = useGraficosRegistry();
   const nombreRanura = useCallback((k: number) => {
@@ -306,6 +310,21 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         validacion={validacion}
       />
       <VisorLamina
+        slide={slide}
+        vistaPedida={vistaPedida}
+        onPedirVista={() => pedirVista(slide.id)}
+        onTexto={(campo) => {
+          // Como un clic en un gráfico abre su tarjeta: el texto abre su campo en Contenido, ya enfocado.
+          setSeccion("contenido");
+          ponerLateral("inspector");
+          window.setTimeout(() => {
+            const nombres = campo === "base" ? ["base", "nota", "pie"] : [campo];
+            for (const n of nombres) {
+              const el = document.querySelector<HTMLElement>(`#pulso-f6-inspector [data-campo="${n}"]`);
+              if (el) { el.focus(); el.scrollIntoView({ block: "nearest" }); return; }
+            }
+          }, 60);
+        }}
         lamina={lamina}
         total={total}
         vista={vista}

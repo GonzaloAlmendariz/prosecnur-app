@@ -21,6 +21,9 @@ function Composicion({ slide }: { slide: Slide }) {
 type Props = { vista: VistaMiniatura; src: string | null; slide: Slide | undefined; lamina: LaminaEnEstructura };
 
 export function ContenidoMiniatura({ vista, src, slide, lamina }: Props) {
+  // La tira muestra el dibujo de la composición (tipo de lámina y glifo de cada gráfico), no la imagen reducida: a ese
+  // tamaño se lee mejor y no depende de que el motor haya dibujado nada. La imagen real vive en el visor.
+  if (slide && vista !== "error" && vista !== "sin_datos") return <Composicion slide={slide} />;
   if (vista === "imagen" || vista === "actualizando") {
     return <img src={src ?? undefined} alt="" draggable={false} className={vista === "actualizando" ? "is-actualizando" : undefined} />;
   }

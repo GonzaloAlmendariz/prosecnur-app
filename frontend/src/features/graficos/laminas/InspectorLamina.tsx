@@ -160,6 +160,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
           <label htmlFor={idAnte}>Antetítulo</label>
           <input
             id={idAnte}
+            data-campo="antetitulo"
             className="pulso-f6-input"
             value={meta.antetitulo ?? ""}
             placeholder={lamina.antetituloHeredado ?? "Sin antetítulo"}
@@ -220,10 +221,10 @@ function CampoTexto({ campo, valor, placeholder, ayuda = null, onCambio }: {
     <div className="pulso-f6-campo">
       <label htmlFor={id}>{campo.label}</label>
       {campo.multilinea ? (
-        <textarea id={id} className="pulso-f6-input" rows={3} value={valor} placeholder={placeholder}
+        <textarea id={id} data-campo={campo.name} className="pulso-f6-input" rows={3} value={valor} placeholder={placeholder}
           aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
       ) : (
-        <input id={id} className="pulso-f6-input" value={valor} placeholder={placeholder}
+        <input id={id} data-campo={campo.name} className="pulso-f6-input" value={valor} placeholder={placeholder}
           aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
       )}
       {textoAyuda && <span id={idAyuda} className="pulso-f6-ayuda">{textoAyuda}</span>}

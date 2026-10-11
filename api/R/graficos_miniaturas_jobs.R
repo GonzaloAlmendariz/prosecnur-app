@@ -39,7 +39,7 @@
     return(c(base, list(estado = "error", error = list(code = "E_MINIATURA_FALLIDA", message = conditionMessage(r)))))
   }
   q <- opts$preview_quality %||% "quick"
-  png <- if (isTRUE(opts$render_slide_preview)) .mini_miniatura_png(raiz, ctx$hash, r$slide_previews, quality = q) else NA_character_
+  png <- if (isTRUE(opts$render_slide_preview)) .mini_miniatura_png(raiz, ctx$hash, r$slide_previews, quality = q) else NA_character_; imagen <- if (isTRUE(opts$render_slide_preview)) .mini_imagen_png(raiz, ctx$hash, r$slide_previews, quality = q) else NA_character_
   pedidos <- as.integer(r$meta$graficos_pedidos %||% 0L)
   vacios <- as.integer(r$meta$graficos_vacios %||% 0L)
   estado <- if (pedidos > 0L && vacios >= pedidos) "sin_datos" else if (!is.na(png)) "ok" else "sin_imagen"
@@ -48,7 +48,7 @@
     motivo <- .preview_motivo_publico(r$motivo_sin_imagen)
     if (is.na(motivo)) motivo <- "raster_fallido"   # hubo raster, pero la miniatura no se pudo escribir
   }
-  out <- c(base, list(estado = estado, cache = r$cache, png = png, pptx = r$pptx, motivo_sin_imagen = motivo))
+  out <- c(base, list(estado = estado, cache = r$cache, png = png, imagen = imagen, pptx = r$pptx, motivo_sin_imagen = motivo))
   if (isTRUE(con_previews)) out$slide_previews <- r$slide_previews
   out
 }
@@ -150,6 +150,7 @@
     avisos = if (is.list(meta)) meta$avisos %||% character(0) else character(0),
     graficos = .mini_graficos_publico(meta),
     miniatura = miniatura,
+    imagen = .mini_imagen_publica(sid, item),
     motivo_sin_imagen = .preview_motivo_publico(item$motivo_sin_imagen),
     error = item$error %||% NA
   )

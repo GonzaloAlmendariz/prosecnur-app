@@ -37,6 +37,9 @@ type LaminasUiStore = {
   registrarMiniatura: (slideId: string, png: string) => void;
   setParte: (parte: number) => void;
   setSeccionInspector: (s: SeccionInspector) => void;
+  /** Láminas en las que se pidió «Ver cómo queda»: sólo ésas lanzan la vista previa del motor. */
+  vistasPedidas: Record<string, true>;
+  pedirVista: (slideId: string) => void;
   setConsulta: (q: string) => void;
   alternarNodo: (id: string) => void;
   fijarCerrados: (ids: string[]) => void;
@@ -61,6 +64,8 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
   registrarMiniatura: (slideId, png) => set((s) => (s.miniaturas[slideId] === png ? s : { miniaturas: { ...s.miniaturas, [slideId]: png } })),
   setParte: (parte) => set({ parte: Math.max(1, Math.floor(parte)) }),
   setSeccionInspector: (seccionInspector) => set({ seccionInspector }),
+  vistasPedidas: {},
+  pedirVista: (slideId) => set((s) => (s.vistasPedidas[slideId] ? s : { vistasPedidas: { ...s.vistasPedidas, [slideId]: true } })),
   setConsulta: (consulta) => set({ consulta }),
   alternarNodo: (id) => set((s) => {
     const cerrados = { ...s.cerrados };
