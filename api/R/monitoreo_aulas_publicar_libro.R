@@ -231,35 +231,22 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 
 # ¿La pestaña remota tiene contenido? Cualquier celda no vacía cuenta: la regla
 # de dueño es binaria a propósito (contenido = del equipo, da igual cuánto).
+# Delega en el motor: la sonda de contenido vigente del publicador usa el MISMO
+# criterio para decidir si una pestaña se vació, y dos definiciones del mismo
+# «tiene contenido» es la forma de que una hoja cuente como del equipo para una
+# capa y como vacía para la otra.
 .malp_filas_con_contenido <- function(values) {
-  filas <- values %||% list()
-  sum(vapply(filas, function(row) {
-    celdas <- trimws(as.character(unlist(row %||% character(0), use.names = FALSE)))
-    celdas <- celdas[!is.na(celdas)]
-    any(nzchar(celdas))
-  }, logical(1)))
+  .monitoreo_sync_sheets_filas_con_contenido(values)
 }
 
 # Sonda de contenido remoto: UN values:batchGet con todas las pestañas que
 # existen. Siempre por `.monitoreo_google_api` (es lo que el entorno de test
 # mockea y lo que refresca el token). Devuelve lista nombrada de values.
+# La implementación vive en el motor (`monitoreo_sync_incremental.R`) porque su
+# publicador la necesita para la sonda de contenido vigente; esta lectura se le
+# PRESTA por `remote_values` y así el libro no la paga dos veces.
 .malp_valores_remotos <- function(spreadsheet_id, pestanas) {
-  if (!length(pestanas)) return(list())
-  rangos <- vapply(pestanas, function(p) {
-    utils::URLencode(.monitoreo_sheets_quote_sheet(p), reserved = TRUE)
-  }, character(1))
-  payload <- .monitoreo_google_api(paste0(
-    .monitoreo_sheets_api_base(spreadsheet_id),
-    "/values:batchGet?",
-    paste0("ranges=", rangos, collapse = "&")
-  ))
-  vrs <- payload$valueRanges %||% list()
-  out <- list()
-  for (i in seq_along(pestanas)) {
-    vr <- if (i <= length(vrs)) vrs[[i]] else list()
-    out[[pestanas[[i]]]] <- vr$values %||% list()
-  }
-  out
+  .monitoreo_sync_sheets_valores_remotos(spreadsheet_id, pestanas)
 }
 
 # La reasserción de una hoja de la APP cuando el motor la saltó por hash. El
@@ -824,7 +811,11 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   formato_libro <- function(sheet_id, tab_name, rows) {
     .malp_formato_requests(sheet_id, tab_name, rows, con_daa = con_daa)
   }
-  pub <- .monitoreo_sync_sheets_publish_tabs(id, tabs, format_requests = formato_libro)
+  # `remote_values`: el motor comprueba con ESTA lectura que las pestañas que su
+  # hash dejaría sin escribir siguen teniendo contenido. Sin prestarla haría su
+  # propio values:batchGet — un segundo volcado de un libro de 253 columnas.
+  pub <- .monitoreo_sync_sheets_publish_tabs(id, tabs, format_requests = formato_libro,
+                                             remote_values = remotas)
   saltadas <- as.character(unlist(pub$skipped_tabs %||% list(), use.names = FALSE))
 
   for (hoja in names(tabs)) {
