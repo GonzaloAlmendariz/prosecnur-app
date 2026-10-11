@@ -154,3 +154,42 @@ direccionable (`panel=emparejamiento`, `foco=<survey_id>`, `usePanelDireccionabl
 - tabla agrupada por sección: Pregunta (texto completo) · En la base · En <fuente> · Estado
   (insignia con ícono y texto, nunca solo color);
 - pie: qué es Equivalencias y enlace cuando está disponible; si no, por qué no aparece.
+
+## Invariantes de los ítems 13 y 15 (contrato del lead)
+
+**dominio-prosecnur**
+
+- D1. «La misma pregunta» entre fuentes de UNA base se define solo con la clave exacta de ADR 0062
+  (`.equiv_claves_de_base`: etiqueta normalizada @@ firma de escala ## ordinal) sobre los XLSForm
+  generados por la plataforma; nunca por posición ni por similitud. Claves con conteo distinto entre
+  base y fuente son ambiguas y no se emparejan.
+- D2. El grano es la respuesta SurveyMonkey (`response_id`/`case_uid`). Alinear no crea, une ni elimina
+  filas: decide en qué columna cae cada respuesta. Única excepción: una fuente de otro instrumento no
+  entra entera, y se declara.
+- D3. Nada se recodifica ni se descarta en silencio: preguntas y opciones sin par, ambiguas,
+  consentimiento sin par y fuentes excluidas quedan contadas en la base y llegan a Revisión; una
+  opción sin par queda NA, nunca con el código de otra lista.
+- D4. El estado vive en `s$estudio$bases[[b]]`. La fuente principal (mismo `survey_id` que la base)
+  sigue el camino canónico sin cambios.
+- D5. Los códigos finales son los del instrumento de la base; su orden de opciones se fija al importar
+  (receta en `choice_order_editor`) y cada refresh lo reaplica.
+
+**integraciones-datos**
+
+- I1. Capas separadas: transporte (fetch SM) y traducción del proveedor (`sm_api_xlsform`,
+  `.sm_mb_question_specs`) no cambian; la alineación es una capa entre traducción y normalización;
+  `normalize_data_for_xlsform` corre después y conserva su metadata de auditoría.
+- I2. Tokens nunca en logs, fixtures, `.pulso` ni en lo que se persiste o expone. Tests sin red, con
+  mocks por binding.
+- I3. Fixtures sintéticos; ningún dato de cliente en el repo.
+- I4. Cada transformación nueva con test del caso feliz, de la fuente vacía y de la fuente excluida.
+
+**jobs-asincronos**
+
+- J1. El worker `callr` resuelve contra el paquete instalado: el código nuevo llega al worker al
+  instalar o publicar la versión (`/preparar-release`). Los agentes no instalan; los tests corren en
+  proceso con `load_all`.
+- J2. El resultado del worker llega a la sesión por el diff de claves de `carga_platform_jobs.R`;
+  lo que vive en `s$estudio` viaja entero.
+- J3. Un bloqueo de estructura es un resultado, no un error: nada de `stop` en el worker. Los secretos
+  efímeros siguen el flujo actual (`job_save_rds` y borrado al leerlos).
