@@ -167,7 +167,10 @@
   o <- if (identical(modo, "frecuencia")) {
     v <- suppressWarnings(as.numeric(n %||% rep(NA_real_, length(idx)))); v[!is.finite(v)] <- 0
     order(if (isTRUE(invertir)) v else -v, idx)
-  } else if (isTRUE(invertir)) rev(idx) else idx
+  } else {
+    base <- if (identical(modo, "instrumento")) .goc_orden_rangos(cats, idx) else idx   # rangos revueltos (graficos_orden_rangos.R)
+    if (isTRUE(invertir)) rev(base) else base
+  }
   list(codigos = cats$codigo[al_final(o)], no_listadas = character(), ausentes = character())
 }
 
