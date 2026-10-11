@@ -181,6 +181,7 @@ Se vuelve a medir al cierre de cada vuelta. Baja o no cierra la vuelta.
 - **Los fixtures no cubren los módulos aguas abajo**: Recopiladores y Gráficos
   solo se ven vacíos; Dashboard exige doble siembra; aulas no tiene fixture
   (copia de un estudio real, nunca commiteada).
+- **El fixture `hsvg2026` trae etiquetas corrompidas por el anonimizador** en Cálculo › Marco › aulas («JAVIER-HORARIO ÚNICOS», «ROSA DE SESIÓN», «CONDICIÓN DEL JAVIER», «MANUEL MANUAL DE CURSOS-HORARIO»; visto por la QA de L26, 2026-10-11): es C5 categoría 2 (deuda del fixture, `api/scripts/pulso_anonimizar.R`), no un defecto de la vista; no se juzga copy sobre esas etiquetas.
 - **Los page-files congelados no pueden crecer**: todo lo de Monitoreo y
   `BasesPanel` se hace por extracción a archivo nuevo, nunca editando hacia
   arriba.
