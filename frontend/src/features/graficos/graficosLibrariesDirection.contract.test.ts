@@ -54,7 +54,8 @@ describe("bibliotecas de Gráficos como paneles direccionables", () => {
       id: "biblioteca-graficadores",
       clase: "dialogo",
     });
-    expect(PANELES_POR_MODULO.procesamiento).toBe(PANELES_GRAFICOS);
+    // Procesamiento suma también los paneles de Carga; los de Gráficos siguen todos.
+    expect(PANELES_POR_MODULO.procesamiento).toEqual(expect.arrayContaining([...PANELES_GRAFICOS]));
   });
 
   it("abre uno solo y preserva todos los otros params al abrir o cerrar", () => {

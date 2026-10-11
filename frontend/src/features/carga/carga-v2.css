@@ -4378,14 +4378,8 @@
     grid-template-rows: auto auto;
   }
 
-  /* El resumen es un grid item con overflow recortado para conservar el
-     radio. Sin mínimo intrínseco, la fila flexible podía reducirlo a 125 px y
-     esconder los hallazgos. Al conservar su alto de contenido, el scroll
-     único del PageFrame recibe el excedente. */
-  .pulso-carga-frame .pulso-carga-review-summary {
-    align-self: start;
-    min-height: max-content;
-  }
+  /* El mínimo intrínseco del resumen vive en CargaReviewSummary.css y vale
+     para todo alto. */
 }
 
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */

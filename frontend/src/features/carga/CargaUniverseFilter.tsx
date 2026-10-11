@@ -28,9 +28,14 @@ type Props = {
   baseNombre?: string | null;
   disabled?: boolean;
   onApplied?: (state: CargaUniverseFilterState) => void;
+  /**
+   * Avisa cuándo empieza y termina de leer la configuración de `baseNombre`
+   * (`""` sin base nombrada). Revisión no se declara lista mientras tanto.
+   */
+  onLectura?: (baseNombre: string, leida: boolean) => void;
 };
 
-export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }: Props) {
+export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, onLectura }: Props) {
   const controlId = useId();
   const [state, setState] = useState<CargaUniverseFilterState | null>(null);
   const [draft, setDraft] = useState<CargaUniverseFilterConfig>(() => defaultUniverseFilterConfig());
@@ -43,6 +48,9 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
   const [sinBase, setSinBase] = useState(false);
   const loadSequence = useRef(0);
   const previewSequence = useRef(0);
+  // En una ref: el aviso no debe volver a disparar la lectura.
+  const onLecturaRef = useRef(onLectura);
+  onLecturaRef.current = onLectura;
 
   useEffect(() => {
     const requestId = ++loadSequence.current;
@@ -54,6 +62,8 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
     setObservedValues([]);
     setPreviewSummary(null);
     setDraft(defaultUniverseFilterConfig());
+    const base = baseNombre ?? "";
+    onLecturaRef.current?.(base, false);
     void apiCargaUniverseFilterGet(baseNombre)
       .then((result) => {
         if (requestId !== loadSequence.current) return;
@@ -72,7 +82,9 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied }:
         else setError(reason.message);
       })
       .finally(() => {
-        if (requestId === loadSequence.current) setLoading(false);
+        if (requestId !== loadSequence.current) return;
+        setLoading(false);
+        onLecturaRef.current?.(base, true);
       });
   }, [baseNombre]);
 

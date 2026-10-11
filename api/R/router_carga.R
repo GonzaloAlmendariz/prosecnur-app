@@ -1079,7 +1079,9 @@ estudio_init_default_base <- function(sid, choice_code_maps) {
     response_filter = prep$response_filter,
     surveymonkey_source_spec = source_spec,
     surveymonkey_effective_data_file_id = prep$data_meta$file_id,
-    choice_codes_applied_data_file_id = prep$data_meta$file_id
+    choice_codes_applied_data_file_id = prep$data_meta$file_id,
+    choice_order_editor = prep$choice_order_editor,
+    sm_opciones_sin_par_principal = prep$sm_opciones_sin_par_principal
   ), choice_code_maps_payload = prep$choice_code_maps_payload)
   c(list(
     ok = TRUE,

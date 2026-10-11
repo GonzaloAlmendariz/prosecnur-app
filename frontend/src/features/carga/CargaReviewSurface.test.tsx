@@ -12,6 +12,18 @@ const styleSource = fs.readFileSync(
   fileURLToPath(new URL("./carga-v2.css", import.meta.url)),
   "utf8",
 );
+const findingsStyleSource = fs.readFileSync(
+  fileURLToPath(new URL("./CargaReviewSummary.css", import.meta.url)),
+  "utf8",
+);
+const fuentesFindingsSource = fs.readFileSync(
+  fileURLToPath(new URL("./CargaReviewFuentesFindings.tsx", import.meta.url)),
+  "utf8",
+);
+const verPreguntasSource = fs.readFileSync(
+  fileURLToPath(new URL("./VerPreguntasFuenteBoton.tsx", import.meta.url)),
+  "utf8",
+);
 
 function reviewCheck(html: string, label: "Instrumento" | "Respuestas") {
   const item = html
@@ -83,10 +95,15 @@ describe("superficie de Revisión en Carga", () => {
     expect(reviewSource).toContain("cargaReview.choice_mapping.maps");
   });
 
-  it("impide que el resumen se encoja y oculte hallazgos en escritorios bajos", () => {
-    expect(styleSource).toMatch(
-      /@media \(max-height: 720px\)[\s\S]*?\.pulso-carga-frame \.pulso-carga-review-summary[\s\S]*?min-height: max-content/u,
+  it("impide que el resumen se encoja y oculte hallazgos a cualquier alto", () => {
+    // QA 2026-10-11: el mínimo intrínseco solo valía bajo 720 px y a 1366x768
+    // la tarjeta recortaba sus últimos hallazgos sin que nada desplazara.
+    const reglaGlobal = findingsStyleSource.replace(/@media[^{]*\{[\s\S]*?\}\s*\}/gu, "");
+    expect(reglaGlobal).toMatch(
+      /\.pulso-carga-frame \.pulso-carga-review-summary \{[^}]*align-self: start;[^}]*min-height: max-content;/u,
     );
+    expect(styleSource).not.toMatch(/\.pulso-carga-review-summary \{[^}]*min-height: max-content/u);
+    expect(findingsStyleSource).toMatch(/\.pulso-carga-review-findings \{[^}]*align-items: start;/u);
   });
 
   it("muestra la base revisada, la incompatibilidad y los extras pendientes sin ofrecer continuar", () => {
@@ -138,6 +155,8 @@ describe("superficie de Revisión en Carga", () => {
             reviewed: false,
           },
           procedencia: null,
+          orden_editor: null,
+          fuentes: null,
           ready: false,
         }}
         action={<a href="/validacion">Ir a Validación</a>}
@@ -198,6 +217,8 @@ describe("superficie de Revisión en Carga", () => {
         reviewed: true,
       },
       procedencia: null,
+      orden_editor: null,
+      fuentes: null,
       ready: true,
     };
     const common = {
@@ -299,6 +320,8 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
     },
     reconciliation: { extra: [], reviewed: true, n_extra: 0, n_incluidas: 0, n_excluidas: 0, n_pendientes: 0 },
     procedencia: null,
+    orden_editor: null,
+    fuentes: null,
     ready: true,
   };
 
@@ -332,5 +355,238 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
     // El aviso convive con el estado listo: advierte sobre cómo se recolectó,
     // no impide cargar.
     expect(html).toContain("Sin bloqueos");
+  });
+
+  it("declara las preguntas que no siguieron el orden del editor, sin bloquear", () => {
+    const limpio = renderToStaticMarkup(<CargaReviewSummary {...baseProps} review={reviewLimpio} />);
+    expect(limpio).not.toContain("orden de opciones del editor");
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          orden_editor: {
+            adoptadas: ["p2"],
+            omitidas: [{ variable: "p1", motivo: "las etiquetas del mapa no calzan con las opciones de la encuesta" }],
+            editor_distinto: [],
+          },
+        }}
+      />,
+    );
+    expect(html).toContain("1 pregunta no sigue el orden de opciones del editor");
+    expect(html).toContain("p1: las etiquetas del mapa no calzan");
+    expect(html).toContain("1 pregunta usa el orden de opciones del editor");
+    expect(html).toContain("Sin bloqueos");
+  });
+});
+
+describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", () => {
+  const baseProps = {
+    pendingChoiceMapping: false,
+    extraVariableCount: 0,
+    allReady: true,
+    isMultiBase: false,
+    bases: 1,
+    instrumentBaseCount: 1,
+    dataBaseCount: 1,
+  };
+  const reviewLimpio = {
+    ok: true as const,
+    base_nombre: "egresados",
+    compatibility: {
+      applied: true, ok: true, status: "ok", missing_columns: [], extra_columns: [],
+      matched_columns: 74, expected_columns: 74, n_missing: 0, n_extra: 0, message: "",
+    },
+    choice_mapping: {
+      status: "confirmed", pending: false, applied: true,
+      requires_confirmation: false, n_questions: 0, maps: [],
+    },
+    reconciliation: { extra: [], reviewed: true, n_extra: 0, n_incluidas: 0, n_excluidas: 0, n_pendientes: 0 },
+    procedencia: null,
+    orden_editor: null,
+    fuentes: null,
+    ready: true,
+  };
+  const fuente = {
+    survey_id: "s2",
+    titulo: "Telefónico",
+    n_emparejadas: 73,
+    n_preguntas_base: 74,
+    reordenada: false,
+    instrumento_distinto: false,
+    sin_par_fuente: [],
+    sin_par_base: [],
+    n_opciones_sin_par: 0,
+    excluida: false,
+    n_filas_excluidas: 0,
+    n_filas_incorporadas: 40,
+    ambiguas: [],
+    consentimiento_sin_par: false,
+    n_excluidas_consentimiento: 0,
+  };
+  const items = (html: string) => html.match(/<li\b[\s\S]*?<\/li>/gu) ?? [];
+  const finding = (html: string, text: string) => items(html).find((item) => item.includes(text)) ?? "";
+
+  it("una fuente solo reordenada es un dato neutro y no altera el estado listo", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{ ...reviewLimpio, fuentes: { principal: null, fuentes: [{ ...fuente, reordenada: true }] } }}
+      />,
+    );
+    const item = finding(html, "en otro orden");
+    expect(item).toContain('class="is-info"');
+    expect(item).toContain("Telefónico · 73 de 74 preguntas emparejadas, en otro orden");
+    expect(html).toContain('data-qa-geometry-group="carga-review-findings"');
+    expect(html).toContain("Sin bloqueos");
+  });
+
+  it("una fuente con preguntas sin par avisa, nombra las primeras y no bloquea", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          fuentes: {
+            principal: null,
+            fuentes: [{
+              ...fuente,
+              sin_par_fuente: ["Cod Pulso", "Celular del egresado", "Enumerador", "DNI"]
+                .map((etiqueta, i) => ({ variable: `q${i}`, etiqueta })),
+              sin_par_base: [{ variable: "p7", etiqueta: "Edad" }],
+            }],
+          },
+        }}
+      />,
+    );
+    const item = finding(html, "No entraron");
+    expect(item).toContain('class="is-pending"');
+    expect(item).toContain("Telefónico · 73 de 74 preguntas emparejadas");
+    expect(item).toContain("Sin respuesta en esta fuente: Edad");
+    expect(item).toContain("No entraron: Cod Pulso, Celular del egresado, Enumerador +1");
+    expect(item).not.toMatch(/survey_id|firma|ordinal/u);
+    expect(html).toContain("Sin bloqueos");
+  });
+
+  it("instrumento distinto se pinta como incompatibilidad y dice qué hacer", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          fuentes: { principal: null, fuentes: [{ ...fuente, instrumento_distinto: true, excluida: true, n_emparejadas: 30, n_filas_excluidas: 48 }] },
+        }}
+      />,
+    );
+    const item = finding(html, "no entró a la base");
+    expect(item).toContain('class="is-incompatible"');
+    expect(item).toContain("Telefónico · no entró a la base");
+    expect(item).toContain("Solo coinciden 30 de 74 preguntas con la base. 48 respuestas quedaron fuera.");
+    expect(item).toContain("Impórtala como base separada y relaciónala en Equivalencias.");
+    // No bloquea, pero el encabezado no dice «sin bloqueos» junto a una fuente fuera.
+    expect(html).toContain("Una fuente no entró a la base");
+    expect(html).toContain("Una fuente quedó fuera");
+    expect(html).not.toContain("Sin bloqueos");
+  });
+
+  it("el orden del editor adoptado es neutro, va después de los avisos y acota la lista", () => {
+    const adoptadas = Array.from({ length: 11 }, (_, i) => `p${i + 1}`);
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          orden_editor: { adoptadas, omitidas: [{ variable: "p20", motivo: "la etiqueta no calza" }], editor_distinto: [] },
+        }}
+      />,
+    );
+    const adoptado = finding(html, "usan el orden de opciones del editor");
+    expect(adoptado).toContain('class="is-info"');
+    expect(adoptado).not.toContain("is-pending");
+    expect(adoptado).toContain("p1, p2, p3, p4, p5, p6, p7, p8 +3");
+    const omitida = finding(html, "no sigue el orden de opciones del editor");
+    expect(omitida).toContain('class="is-pending"');
+    expect(html.indexOf("no sigue el orden")).toBeLessThan(html.indexOf("usan el orden"));
+  });
+
+  it("el dato neutro usa tokens neutros y el aviso sigue con los de advertencia", () => {
+    const info = findingsStyleSource.match(/\.pulso-carga-review-findings li\.is-info \{([^}]*)\}/u)?.[1] ?? "";
+    expect(info).toMatch(/border-color: var\(--pulso-border\)/u);
+    expect(info).not.toMatch(/--pulso-warn-|#[0-9a-f]{3,8}\b/iu);
+    const base = styleSource.match(/\.pulso-carga-review-findings li \{([^}]*)\}/u)?.[1] ?? "";
+    expect(base).toMatch(/--pulso-warn-bg/u);
+    expect(styleSource).not.toMatch(/\.pulso-carga-review-findings li\.is-pending \{/u);
+  });
+
+  it("avisa cuando el editor tiene hoy otro orden: la base conserva el del import", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{ ...reviewLimpio, orden_editor: { adoptadas: ["p5"], omitidas: [], editor_distinto: ["p5"] } }}
+      />,
+    );
+    const item = finding(html, "otro orden de opciones");
+    expect(item).toContain('class="is-pending"');
+    expect(item).toContain("La base conserva el orden con que se importó en p5.");
+  });
+
+  it("mientras lee la base elegida no afirma nada ni muestra los hallazgos de la anterior", () => {
+    const fuentes = { principal: null, fuentes: [{ ...fuente, reordenada: true }] };
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        isMultiBase
+        bases={3}
+        instrumentBaseCount={3}
+        dataBaseCount={3}
+        review={{ ...reviewLimpio, base_nombre: "docentes", fuentes }}
+        reviewSummary={{ n_bases: 3, n_ready: 3, n_blocked: 0, all_ready: true, bases: [] }}
+        action={<a href="/validacion">Ir a Validación</a>}
+        leyendo
+        baseSeleccionada="estudiantes"
+      />,
+    );
+    expect(html).toContain("Revisando la base");
+    expect(html).toContain("Base revisada: estudiantes");
+    expect(html).not.toContain("docentes");
+    expect(html).not.toMatch(/Sin bloqueos|sin incidencias|Listo|bases sin bloqueos/iu);
+    expect(html).not.toContain("carga-review-findings");
+    expect(html).not.toContain("Ir a Validación");
+    expect(html).toContain('aria-busy="true"');
+  });
+
+  it("C1: las tres comprobaciones declaran su grupo de geometría igual", () => {
+    const html = renderToStaticMarkup(<CargaReviewSummary {...baseProps} review={reviewLimpio} />);
+    expect(html).toMatch(
+      /<ul class="pulso-carga-review-checks"[^>]*data-qa-geometry-group="carga-review-checks"[^>]*data-qa-geometry-contract="equal"/u,
+    );
+  });
+
+  it("«Ver preguntas» abre la fuente de su base: el foco de la dirección la lleva", () => {
+    expect(fuentesFindingsSource).toMatch(/baseNombre=\{baseNombre\}/u);
+    expect(verPreguntasSource).toMatch(/searchConEmparejamiento\(location\.search, props\.surveyId, props\.baseNombre\)/u);
+  });
+
+  it("el selector de Revisión se llama «Base revisada», sin arrastrar la opción elegida", () => {
+    expect(pageSource).toMatch(
+      /<span id="pulso-carga-review-base-label">Base revisada<\/span>[\s\S]*?<select\s+aria-labelledby="pulso-carga-review-base-label"/u,
+    );
+  });
+
+  it("C3/C4: en escritorios bajos Revisión crece y el scroll es del PageFrame, ganando por especificidad", () => {
+    // Medido 2026-10-11 a 1024x600: workbench de 393 px con contenido de 543 px.
+    expect(findingsStyleSource).toMatch(
+      /@media \(max-height: 720px\) \{\s*:root \.pulso-carga-frame\.pulso-page-frame--scroll-panels \.pulso-page-frame-body > \.pulso-carga-workbench--revision \{[^}]*flex: 1 0 auto;[^}]*height: auto;/u,
+    );
+    expect(findingsStyleSource).toMatch(
+      /:root\[data-pulso-layout-mode="short"\] \.pulso-carga-frame\.pulso-page-frame--scroll-panels \.pulso-carga-workbench--revision \.pulso-carga-scrollarea \{[^}]*overflow: visible;/u,
+    );
+    expect(pageSource).toContain('activeCargaTab === "revision" ? " pulso-carga-workbench--revision" : ""');
+  });
+
+  it("la readiness de Revisión espera a la lectura de la base elegida y se escribe en false", () => {
+    expect(pageSource).toMatch(/activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\?\s*"false"/u);
+    expect(pageSource).toMatch(/revisionLeyendo: cargaDireccion\.pestana === "revision" && !revisionEstado\.datosLeidos/u);
+    expect(pageSource).toMatch(/leyendo=\{!revisionEstado\.datosLeidos\}/u);
   });
 });

@@ -159,6 +159,9 @@ arquitectura canónica.
 - [Checklist de `respondent_id` y decimales de Frecuencias](qa/checklist-respondent-id-decimales-2026-08-14.md):
   las tres barreras que dejaban el identificador de caso fuera de la BBDD y
   hasta dónde se decidió llevar la metadata de SurveyMonkey.
+- [Checklist de códigos de respuesta en imports SurveyMonkey por API](qa/checklist-codificacion-sm-2026-10-11.md):
+  por qué los mapas del editor invertían categorías al importar por API y cómo el
+  instrumento adopta el orden del editor antes de codificar.
 - [Checklist de los criterios de curso-horario y su nivel global](qa/checklist-criterios-ch-dos-niveles-2026-08-25.md):
   por qué la pestaña apilaba dos superficies de criterios, qué se midió antes de
   retirar la global y las capacidades que hubo que reubicar.

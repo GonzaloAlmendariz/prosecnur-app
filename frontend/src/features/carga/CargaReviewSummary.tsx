@@ -7,6 +7,15 @@ import {
   ShieldCheck,
 } from "../../vendor/lucide-react";
 import type { CargaReviewPayload, CargaReviewSummaryPayload } from "../../api/client";
+import { CargaReviewFuentesFindings } from "./CargaReviewFuentesFindings";
+import { FuentesEmparejamientoPanel } from "./FuentesEmparejamientoPanel";
+import { cargaReviewFuentesHallazgos } from "./cargaReviewFuentesModel";
+import { smListaAcotada } from "./smEstructuraFuente";
+import "./CargaReviewSummary.css";
+
+// Una lista larga no puede desbordar la tarjeta: los primeros y «+N».
+const OMITIDAS_VISIBLES = 3;
+const ADOPTADAS_VISIBLES = 8;
 
 function coverageMeta(count: number, total: number) {
   if (total <= 0) return "Sin bases";
@@ -25,6 +34,8 @@ export function CargaReviewSummary({
   review,
   reviewSummary,
   action,
+  leyendo = false,
+  baseSeleccionada,
 }: {
   instrumentBaseCount: number;
   dataBaseCount: number;
@@ -36,6 +47,14 @@ export function CargaReviewSummary({
   review?: CargaReviewPayload | null;
   reviewSummary?: CargaReviewSummaryPayload | null;
   action?: ReactNode;
+  /**
+   * La revisión de la base elegida todavía no llega (o la que hay es de otra
+   * base). La tarjeta no afirma nada: ni «Listo» ni «Sin bloqueos», ni los
+   * hallazgos de la base anterior.
+   */
+  leyendo?: boolean;
+  /** «Base revisada», para nombrarla mientras se lee. */
+  baseSeleccionada?: string;
 }) {
   const totalBases = isMultiBase ? Math.max(0, bases) : 1;
   const instrumentReady = totalBases > 0 && instrumentBaseCount >= totalBases;
@@ -54,6 +73,18 @@ export function CargaReviewSummary({
   // acá y no solo en Validación porque en este punto el campo puede seguir
   // abierto y todavía se puede corregir el proceso, no solo el dato.
   const procedencia = review?.procedencia ?? null;
+  // Tampoco bloquea: código y etiqueta siguen coherentes. Lo que importa son
+  // las omitidas, que no tienen los códigos del formulario del editor.
+  const ordenEditor = review?.orden_editor ?? null;
+  // ADR 0094: cómo se emparejó cada fuente de una base que junta encuestas.
+  // Avisa o informa; no entra en `ready`.
+  const fuentes = review?.fuentes ?? null;
+  const fuentesHallazgos = cargaReviewFuentesHallazgos(fuentes);
+  const hasFuentesFindings = fuentesHallazgos.length > 0;
+  // Una fuente de otro instrumento no entró a la base: no bloquea (la base quedó
+  // con las que sí calzan), pero el encabezado no puede decir «sin bloqueos» al
+  // lado de esa tarjeta.
+  const fuenteRechazada = fuentesHallazgos.some((hallazgo) => hallazgo.tono === "incompatible");
   const choiceMappingPending = pendingChoiceMapping || Boolean(review?.choice_mapping.pending);
   const hasDecision = choiceMappingPending || pendingExtraCount > 0;
   const selectedReviewReady = Boolean(review?.ready && allReady && !hasPartialCoverage);
@@ -62,12 +93,16 @@ export function CargaReviewSummary({
   // En multibase el resumen es la única autoridad de avance. El detalle puede
   // llegar antes o después y no debe volver a imponer un gate local obsoleto.
   const reviewReady = isMultiBase ? aggregateReady : selectedReviewReady;
-  const state = incompatible || hasDecision || hasPartialCoverage || aggregateIncomplete
+  const state = leyendo
+    ? "pending"
+    : incompatible || hasDecision || hasPartialCoverage || aggregateIncomplete || fuenteRechazada
     ? "attention"
     : reviewReady
       ? "ready"
       : "pending";
-  const title = incompatible
+  const title = leyendo
+    ? "Revisando la base"
+    : incompatible
     ? "Incompatible con el formulario"
     : hasDecision
     ? "Hay decisiones que revisar"
@@ -79,12 +114,16 @@ export function CargaReviewSummary({
         : "El estudio todavía tiene bases bloqueadas"
     : isMultiBase && !reviewSummary
       ? "Verificando todas las bases"
+    : fuenteRechazada
+      ? "Una fuente no entró a la base"
     : reviewReady
       ? isMultiBase ? "Estudio sin incidencias bloqueantes" : "Carga sin incidencias bloqueantes"
       : allReady
         ? "La revisión todavía no está lista"
         : "Completa los insumos antes de revisar";
-  const detail = incompatible
+  const detail = leyendo
+    ? "Leyendo el resultado de la revisión; el avance se muestra cuando termine."
+    : incompatible
     ? "La base no coincide con la estructura requerida por el instrumento."
     : choiceMappingPending
     ? "Confirma el mapeo de códigos detectado en las respuestas."
@@ -96,12 +135,18 @@ export function CargaReviewSummary({
         ? "Revisa las bases bloqueadas antes de continuar a Validación."
       : isMultiBase && !reviewSummary
         ? "La base elegida se describe abajo; el avance depende del estudio completo."
+      : fuenteRechazada
+        ? "La base quedó con las fuentes que sí calzan. Revisa la que quedó fuera."
       : reviewReady
         ? "Comprueba el universo aplicado y continúa a la auditoría de respuestas."
         : allReady
           ? "Espera el resultado autoritativo antes de continuar."
           : "La bandeja se habilita cuando el formulario y las respuestas están disponibles.";
-  const reviewScope = review?.base_nombre
+  const reviewScope = leyendo
+    ? baseSeleccionada
+      ? `Base revisada: ${baseSeleccionada}`
+      : "Base por revisar"
+    : review?.base_nombre
     ? `Base revisada: ${review.base_nombre}`
     : isMultiBase
       ? "Base por revisar"
@@ -112,6 +157,7 @@ export function CargaReviewSummary({
       className={`pulso-carga-review-summary is-${state}`}
       data-carga-surface="review"
       aria-labelledby="carga-review-title"
+      aria-busy={leyendo || undefined}
     >
       <header className="pulso-carga-review-head">
         <span className="pulso-carga-review-icon" aria-hidden="true">
@@ -130,7 +176,7 @@ export function CargaReviewSummary({
         </span>
       </header>
 
-      {isMultiBase && reviewSummary && (
+      {isMultiBase && reviewSummary && !leyendo && (
         <div
           className={`pulso-carga-review-study-status${reviewSummary.all_ready ? " is-ready" : " is-attention"}`}
           role="status"
@@ -145,7 +191,13 @@ export function CargaReviewSummary({
         </div>
       )}
 
-      <ul className="pulso-carga-review-checks" aria-label="Comprobaciones de carga">
+      {/* C1: tres comprobaciones pares; comparten marco aunque una diga más. */}
+      <ul
+        className="pulso-carga-review-checks"
+        aria-label="Comprobaciones de carga"
+        data-qa-geometry-group="carga-review-checks"
+        data-qa-geometry-contract="equal"
+      >
         <li className={instrumentReady ? "is-ready" : instrumentBaseCount > 0 ? "is-attention" : "is-pending"}>
           <FileSpreadsheet size={15} aria-hidden="true" />
           <span><strong>Instrumento</strong><small>{coverageMeta(instrumentBaseCount, totalBases)}</small></span>
@@ -154,15 +206,25 @@ export function CargaReviewSummary({
           <Database size={15} aria-hidden="true" />
           <span><strong>Respuestas</strong><small>{coverageMeta(dataBaseCount, totalBases)}</small></span>
         </li>
-        <li className={incompatible || hasDecision || aggregateIncomplete ? "is-attention" : reviewReady ? "is-ready" : "is-pending"}>
+        <li
+          className={leyendo
+            ? "is-pending"
+            : incompatible || hasDecision || aggregateIncomplete || fuenteRechazada
+              ? "is-attention"
+              : reviewReady ? "is-ready" : "is-pending"}
+        >
           <ShieldCheck size={15} aria-hidden="true" />
           <span>
             <strong>Incidencias</strong>
             <small>
-              {incompatible
+              {leyendo
+                ? "Revisando…"
+                : incompatible
                 ? "Estructura incompatible"
                 : hasDecision
                   ? "Requieren decisión"
+                  : fuenteRechazada
+                    ? "Una fuente quedó fuera"
                   : reviewReady
                     ? "Sin bloqueos"
                     : "En espera"}
@@ -171,8 +233,33 @@ export function CargaReviewSummary({
         </li>
       </ul>
 
-      {(incompatible || hasDecision || procedencia) && (
-        <ul className="pulso-carga-review-findings" aria-label="Incidencias de la base revisada">
+      {!leyendo && (incompatible || hasDecision || procedencia || ordenEditor || hasFuentesFindings) && (
+        <ul
+          className="pulso-carga-review-findings"
+          aria-label="Incidencias de la base revisada"
+          data-qa-geometry-group="carga-review-findings"
+          data-qa-geometry-contract="intrinsic"
+        >
+          {ordenEditor && ordenEditor.omitidas.length > 0 && (
+            <li className="is-pending">
+              <AlertTriangle size={15} aria-hidden="true" />
+              <span>
+                <strong>
+                  {ordenEditor.omitidas.length === 1
+                    ? "1 pregunta no sigue el orden de opciones del editor"
+                    : `${ordenEditor.omitidas.length} preguntas no siguen el orden de opciones del editor`}
+                </strong>
+                <small
+                  title={ordenEditor.omitidas.length > OMITIDAS_VISIBLES
+                    ? ordenEditor.omitidas.map((o) => `${o.variable}: ${o.motivo}`).join(" · ")
+                    : undefined}
+                >
+                  {ordenEditor.omitidas.slice(0, OMITIDAS_VISIBLES).map((o) => `${o.variable}: ${o.motivo}`).join(" · ")}
+                  {ordenEditor.omitidas.length > OMITIDAS_VISIBLES ? ` +${ordenEditor.omitidas.length - OMITIDAS_VISIBLES}` : ""}
+                </small>
+              </span>
+            </li>
+          )}
           {procedencia && (
             <li className="is-pending">
               <FileSpreadsheet size={15} aria-hidden="true" />
@@ -196,6 +283,7 @@ export function CargaReviewSummary({
               </span>
             </li>
           )}
+          <CargaReviewFuentesFindings fuentes={fuentes} tonos={["incompatible", "pending"]} baseNombre={review?.base_nombre ?? null} />
           {pendingExtraCount > 0 && (
             <li className="is-pending">
               <Database size={15} aria-hidden="true" />
@@ -214,10 +302,41 @@ export function CargaReviewSummary({
               </span>
             </li>
           )}
+          {/* Datos neutros al final: informan, no piden nada. */}
+          {ordenEditor && ordenEditor.editor_distinto.length > 0 && (
+            <li className="is-pending">
+              <AlertTriangle size={15} aria-hidden="true" />
+              <span>
+                <strong>El editor tiene hoy otro orden de opciones</strong>
+                <small title={ordenEditor.editor_distinto.join(", ")}>
+                  La base conserva el orden con que se importó en {smListaAcotada(ordenEditor.editor_distinto, ADOPTADAS_VISIBLES)}.
+                </small>
+              </span>
+            </li>
+          )}
+          {ordenEditor && ordenEditor.adoptadas.length > 0 && (
+            <li className="is-info">
+              <FileSpreadsheet size={15} aria-hidden="true" />
+              <span>
+                <strong>
+                  {ordenEditor.adoptadas.length === 1
+                    ? "1 pregunta usa el orden de opciones del editor"
+                    : `${ordenEditor.adoptadas.length} preguntas usan el orden de opciones del editor`}
+                </strong>
+                <small title={ordenEditor.adoptadas.length > ADOPTADAS_VISIBLES ? ordenEditor.adoptadas.join(", ") : undefined}>
+                  {smListaAcotada(ordenEditor.adoptadas, ADOPTADAS_VISIBLES)}
+                </small>
+              </span>
+            </li>
+          )}
+          <CargaReviewFuentesFindings fuentes={fuentes} tonos={["info"]} baseNombre={review?.base_nombre ?? null} />
         </ul>
       )}
 
-      {action && reviewReady && <div className="pulso-carga-review-action">{action}</div>}
+      {action && reviewReady && !leyendo && <div className="pulso-carga-review-action">{action}</div>}
+      {/* «Ver preguntas» de cada fuente; también lo abre un enlace guardado. */}
+      {/* La base de la dirección manda en el panel; esta es el respaldo. */}
+      <FuentesEmparejamientoPanel baseNombre={review && !leyendo ? review.base_nombre : undefined} />
     </section>
   );
 }

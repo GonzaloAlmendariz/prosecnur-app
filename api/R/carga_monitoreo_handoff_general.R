@@ -374,8 +374,11 @@
   # La data aplanada (con el blob del repeat y `_id`) alimenta la expansion a hijas.
   repeat_source_df <- if (has_repeats) .kobo_ensure_wide_index(aligned) else NULL
   data_df <- .dn_backfill_missing_columns(aligned, .dn_expected_data_names(rp_inst))
+  # Mapas del editor sólo con procedencia (H5): la fuente promovida es Kobo, que
+  # nunca los hereda; el motivo viaja en el resultado (`mapas_codigos`).
+  mapas <- .carga_handoff_choice_maps(sid, target)
   data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
-    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = mapas$maps)
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
@@ -449,7 +452,7 @@
         sid, data_df = repeat_source_df, rp_inst = rp_inst,
         parent_base_name = base_nombre, title = base_nombre,
         downloads_dir = downloads_dir,
-        choice_code_maps = .carga_editor_choice_code_maps(sid)
+        choice_code_maps = mapas$maps
       ),
       error = function(e) list()
     )
@@ -479,6 +482,8 @@
                 n_filas = as.integer(nrow(data_df)),
                 n_columnas = as.integer(ncol(data_df))),
     child_bases = child_bases,
+    mapas_codigos = .carga_handoff_mapas_payload(mapas),
+    mapas_omitidos = mapas$mapas_omitidos %||% NULL,
     would_mutate_pulso = TRUE
   )
 }

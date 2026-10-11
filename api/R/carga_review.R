@@ -171,6 +171,86 @@
   )
 }
 
+# Orden de opciones del editor en un import SurveyMonkey por API
+# (`carga_sm_orden_editor.R`). Las omitidas son el dato que importa: esas
+# preguntas quedaron con los códigos de la plataforma, no con los del
+# formulario del editor. `editor_distinto`: el editor pide HOY otro orden que el
+# fijado al importar (ADR 0094, decisión 7); la base no se recodifica, se avisa.
+# Advierte, no bloquea: código y etiqueta siguen coherentes. NULL cuando la
+# base no adoptó, omitió ni difiere en nada.
+.carga_review_orden_editor <- function(base) {
+  orden <- (base %||% list())$choice_order_editor %||% list()
+  adoptadas <- as.character(unlist(orden$adoptadas %||% list(), use.names = FALSE))
+  omitidas <- lapply(orden$omitidas %||% list(), function(o) list(
+    variable = as.character(o$variable %||% "")[1],
+    motivo = as.character(o$motivo %||% "")[1]
+  ))
+  distinto <- if (isTRUE(orden$editor_distinto)) {
+    as.character(unlist(orden$editor_distinto_variables %||% list(), use.names = FALSE))
+  } else {
+    character(0)
+  }
+  if (!length(adoptadas) && !length(omitidas) && !length(distinto)) return(NULL)
+  list(
+    adoptadas = as.list(adoptadas),
+    omitidas = omitidas,
+    n_adoptadas = length(adoptadas),
+    n_omitidas = length(omitidas),
+    editor_distinto = as.list(distinto)
+  )
+}
+
+.carga_review_filas <- function(x) lapply(x %||% list(), function(f) list(
+  variable = as.character(f$variable %||% "")[1],
+  etiqueta = as.character(f$etiqueta %||% "")[1]
+))
+
+.carga_review_opciones <- function(x) lapply(x %||% list(), function(o) list(
+  variable = as.character(o$variable %||% "")[1],
+  n = as.integer(o$n %||% 0L)[1]
+))
+
+.carga_review_n_opciones <- function(x) {
+  as.integer(sum(vapply(x %||% list(), function(o) as.integer(o$n %||% 0L)[1], integer(1))))
+}
+
+# Fuentes de una base SurveyMonkey que junta varias encuestas (ADR 0094).
+# Cada fuente distinta de la principal se emparejó por pregunta con la base:
+# lo que quedó sin par (preguntas de la fuente que no entraron, preguntas de la
+# base vacías para esas filas, preguntas ambiguas, opciones que quedaron
+# vacías, un consentimiento sin par) se declara aquí, y también la fuente
+# entera que quedó fuera por ser otro instrumento. `principal` declara las
+# opciones de la encuesta principal que no estaban en su lista (también en
+# bases de una sola encuesta). Advierte, no bloquea. NULL cuando no hay nada.
+.carga_review_fuentes <- function(base) {
+  fuentes <- (base %||% list())$sm_alineacion_fuentes %||% list()
+  principal <- (base %||% list())$sm_opciones_sin_par_principal %||% list()
+  if (!length(fuentes) && !length(principal)) return(NULL)
+  list(
+    fuentes = unname(lapply(fuentes, function(f) list(
+      survey_id = as.character(f$survey_id %||% "")[1],
+      titulo = as.character(f$titulo %||% "")[1],
+      n_emparejadas = as.integer(f$n_emparejadas %||% 0L)[1],
+      n_preguntas_base = as.integer(f$n_preguntas_base %||% 0L)[1],
+      reordenada = isTRUE(f$reordenada),
+      instrumento_distinto = isTRUE(f$instrumento_distinto),
+      excluida = isTRUE(f$excluida),
+      n_filas_excluidas = as.integer(f$n_filas_excluidas %||% 0L)[1],
+      n_filas_incorporadas = as.integer(f$n_filas_incorporadas %||% 0L)[1],
+      consentimiento_sin_par = isTRUE(f$consentimiento_sin_par),
+      n_excluidas_consentimiento = as.integer(f$n_excluidas_consentimiento %||% 0L)[1],
+      sin_par_fuente = .carga_review_filas(f$sin_par_fuente),
+      sin_par_base = .carga_review_filas(f$sin_par_base),
+      ambiguas = .carga_review_filas(f$ambiguas),
+      n_opciones_sin_par = .carga_review_n_opciones(f$opciones_sin_par)
+    ))),
+    principal = if (length(principal)) {
+      list(opciones_sin_par = .carga_review_opciones(principal),
+           n_opciones_sin_par = .carga_review_n_opciones(principal))
+    } else NULL
+  )
+}
+
 .carga_review_payload <- function(sid, base_nombre = NULL) {
   pair <- .carga_normalized_data_for_export(sid, base_nombre = base_nombre)
   s <- session_get(sid)
@@ -194,6 +274,13 @@
   # formulario antes de seguir encuestando. NO entra en `ready`: es una
   # advertencia sobre cómo se recolectó, no un impedimento para cargar.
   procedencia <- .carga_review_procedencia(pair$data)
+  orden_editor <- if (nzchar(as.character(pair$base_nombre %||% "")[1])) {
+    .carga_review_orden_editor(s$estudio$bases[[pair$base_nombre]])
+  } else NULL
+  # Fuentes emparejadas por pregunta (ADR 0094). Tampoco entra en `ready`.
+  fuentes <- if (nzchar(as.character(pair$base_nombre %||% "")[1])) {
+    .carga_review_fuentes(s$estudio$bases[[pair$base_nombre]])
+  } else NULL
 
   list(
     base_nombre = pair$base_nombre,
@@ -201,6 +288,8 @@
     choice_mapping = choice_mapping,
     reconciliation = reconciliation,
     procedencia = procedencia,
+    orden_editor = orden_editor,
+    fuentes = fuentes,
     ready = isTRUE(compatibility$ok) &&
       !isTRUE(choice_mapping$requires_confirmation) &&
       !isTRUE(choice_mapping$pending) &&
