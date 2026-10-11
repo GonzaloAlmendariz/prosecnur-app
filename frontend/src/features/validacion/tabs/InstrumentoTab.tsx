@@ -40,6 +40,7 @@ import {
   LoadingBlock,
 } from "../../../components/States";
 import { JobProgress } from "../../../components/JobProgress";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { relationalBaseKey, useValidacionStore } from "../store";
 import PlotlyView from "../components/PlotlyView";
 import ReglaDrillPanel from "../components/ReglaDrillPanel";
@@ -1026,9 +1027,15 @@ function VariableExclusionsPanel({
         </div>
       ) : (
         <div
+          data-qa-geometry-group="validacion/instrumento-exclusiones"
+          data-qa-geometry-contract="intrinsic"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
+            // C1 `intrinsic`: cada tarjeta mide lo que pide su etiqueta (1 o 2
+            // líneas, o el motivo abierto); sin estirarlas a la fila no queda
+            // hueco al pie (C3).
+            alignItems: "start",
             gap: 8,
             maxHeight: 260,
             overflow: "auto",
@@ -1041,32 +1048,32 @@ function VariableExclusionsPanel({
               <label
                 key={option.variable}
                 style={{
-                  minHeight: 74,
+                  // Sin minHeight: la tarjeta es intrínseca (C1) y no deja hueco al pie.
                   border: `1px solid ${checked ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
                   borderRadius: 8,
                   background: checked ? "var(--pulso-primary-soft)" : "white",
                   padding: "9px 10px",
                   display: "grid",
-                  gridTemplateColumns: "18px minmax(0, 1fr)",
+                  gridTemplateColumns: "30px minmax(0, 1fr)",
                   gap: 8,
                   alignItems: "flex-start",
                   cursor: disabled ? "not-allowed" : "pointer",
                   opacity: disabled ? 0.68 : 1,
                 }}
               >
-                <input
-                  type="checkbox"
+                <PulsoSwitch
+                  size="sm"
+                  ariaLabel={`Excluir ${option.variable}`}
                   checked={checked}
                   disabled={disabled}
-                  onChange={(event) => {
-                    if (event.target.checked) {
+                  onCheckedChange={(excluir) => {
+                    if (excluir) {
                       setMotivo("");
                       setPidiendo(option.variable);
                     } else {
                       onToggle(option.variable, false);
                     }
                   }}
-                  style={{ marginTop: 2 }}
                 />
                 <span style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
                   <span

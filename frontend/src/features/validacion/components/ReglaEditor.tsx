@@ -14,6 +14,7 @@ import type {
   ReglaCustomTipo,
   ReglaGateCondition,
 } from "../types";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { RuleNarrative } from "./v2";
 import type { VariableHoverData } from "./v2";
 import { draftCustomToRule } from "../customRuleNarrative";
@@ -421,14 +422,7 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
           className={`pulso-regla-execution-toggle${activa ? " is-on" : ""}`}
           title={activa ? "Incluido al ejecutar criterios." : "Omitido al ejecutar criterios."}
         >
-          <input
-            type="checkbox"
-            checked={activa}
-            onChange={(e) => setActiva(e.target.checked)}
-          />
-          <span className="pulso-regla-execution-switch" aria-hidden="true">
-            <span />
-          </span>
+          <PulsoSwitch size="sm" ariaLabel="Incluir en ejecución" checked={activa} onCheckedChange={setActiva} />
           <span className="pulso-regla-execution-copy">
             <strong>{activa ? "Incluido" : "Omitido"}</strong>
             <small>en ejecución</small>
@@ -872,6 +866,8 @@ function Step2({
         }}
       />
       <div
+        data-qa-geometry-group="validacion/regla-variables"
+        data-qa-geometry-contract="equal"
         style={{
           maxHeight: 260,
           overflowY: "auto",
@@ -894,11 +890,7 @@ function Step2({
                 background: checked ? "var(--pulso-primary-soft)" : "white",
               }}
             >
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggle(v.name)}
-              />
+              <PulsoSwitch size="sm" ariaLabel={`Usar ${v.name}`} checked={checked} onCheckedChange={() => toggle(v.name)} />
               <code style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", color: "var(--pulso-text)" }}>
                 {v.name}
               </code>
@@ -1074,14 +1066,15 @@ function Step3({
           </FieldRow>
           {tipo === "rango_num" && (
             <FieldRow label="Inclusivo (marca x < min o x > max)">
-              <label style={{ fontSize: 12 }}>
-                <input
-                  type="checkbox"
+              <span className="pulso-regla-inclusivo">
+                <PulsoSwitch
+                  size="sm"
+                  ariaLabel="Inclusivo: los límites están permitidos"
                   checked={(params.inclusive as boolean) ?? true}
-                  onChange={(e) => setParam("inclusive", e.target.checked)}
-                />{" "}
+                  onCheckedChange={(inclusive) => setParam("inclusive", inclusive)}
+                />
                 Inclusivo — los límites están permitidos.
-              </label>
+              </span>
             </FieldRow>
           )}
           {tipo === "rango_fecha" && (
@@ -1611,16 +1604,12 @@ function OptionChecklist({
           style={inputStyle}
         />
       )}
-      <div className="pulso-option-picker-list">
+      <div className="pulso-option-picker-list" data-qa-geometry-group="validacion/regla-opciones" data-qa-geometry-contract="equal">
         {filtered.map((option) => {
           const checked = selected.has(option.code);
           return (
             <label key={option.code} className={`pulso-option-picker-row${checked ? " is-selected" : ""}`}>
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggle(option.code)}
-              />
+              <PulsoSwitch size="sm" ariaLabel={option.label || option.code} checked={checked} onCheckedChange={() => toggle(option.code)} />
               <span>
                 <strong>{option.label || option.code}</strong>
                 {option.code !== option.label && <small>{option.code}</small>}
