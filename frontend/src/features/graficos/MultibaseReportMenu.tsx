@@ -10,6 +10,7 @@ import {
 import { JobProgress } from "../../components/JobProgress";
 import { useSession } from "../../lib/SessionContext";
 import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
+import { flushGraficosConfigIfHydrated } from "./configSnapshot";
 import {
   multibaseReportMenuPresentation,
   sharedReportPendingRequirements,
@@ -31,7 +32,44 @@ type ExportAllResult = {
   size: number;
   n_bases: number;
   bases: Array<{ nombre: string; filename: string; n_slides: number }>;
+  /** Arreglos y advertencias del motor, ya ordenados y con la base de cada lámina (`.graficos_avisos_job`). Ausente
+   *  en backends viejos. */
+  avisos?: string[];
 };
+
+/**
+ * El paquete por bases usa la config GUARDADA de cada base (`apiGraficosPptAll`), así que primero se guarda lo que el
+ * editor tenga pendiente. El flush respeta el alcance hidratado (A7-1 H1): con el informe compartido abierto guarda el
+ * borrador compartido y no toca la config de ninguna base. Si el guardado falla, el paquete no se lanza.
+ */
+export async function iniciarPaqueteBases(deps: {
+  flush: () => Promise<boolean>;
+  pptAll: () => Promise<{ job_id: string }>;
+}): Promise<string> {
+  await deps.flush();
+  const result = await deps.pptAll();
+  return result.job_id;
+}
+
+export function avisosDelPaquete(result: ExportResult | ExportAllResult): string[] {
+  const avisos = "avisos" in result && Array.isArray(result.avisos) ? result.avisos : [];
+  return avisos.filter((aviso): aviso is string => typeof aviso === "string" && aviso.trim() !== "");
+}
+
+export function AvisosPaqueteBases({ avisos }: { avisos: readonly string[] }) {
+  if (!avisos.length) return null;
+  return (
+    <div className="pulso-multibase-reports-preflight" data-tone="blocked" role="status">
+      <span aria-hidden="true"><AlertTriangle size={14} /></span>
+      <div>
+        <strong>{avisos.length === 1 ? "1 aviso del paquete" : `${avisos.length} avisos del paquete`}</strong>
+        <ul className="pulso-multibase-reports-blockers">
+          {avisos.map((aviso, indice) => <li key={`${indice}-${aviso}`}>{aviso}</li>)}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 type GroupJob = { kind: "ppt_all"; id: string };
 
@@ -44,7 +82,7 @@ export function MultibaseReportMenu() {
   const [preflightStatus, setPreflightStatus] = useState<SharedReportPreflightStatus>("idle");
   const [preflight, setPreflight] = useState<GraficosConsolidadoPreflight | null>(null);
   const [error, setError] = useState("");
-  const [allBases, setAllBases] = useState<{ fileId: string; filename: string } | null>(null);
+  const [allBases, setAllBases] = useState<{ fileId: string; filename: string; avisos: string[] } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const preflightRequestRef = useRef(0);
   const visible = processingBaseScopePresentation(
@@ -114,8 +152,8 @@ export function MultibaseReportMenu() {
     setError("");
     setStarting(true);
     try {
-      const result = await apiGraficosPptAll();
-      setJob({ kind: "ppt_all", id: result.job_id });
+      const jobId = await iniciarPaqueteBases({ flush: flushGraficosConfigIfHydrated, pptAll: apiGraficosPptAll });
+      setJob({ kind: "ppt_all", id: jobId });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo iniciar el paquete por bases.");
     } finally {
@@ -124,7 +162,11 @@ export function MultibaseReportMenu() {
   }
 
   function onDone(result: ExportResult | ExportAllResult) {
-    setAllBases({ fileId: result.file_id, filename: result.filename ?? "reportes_por_base.zip" });
+    setAllBases({
+      fileId: result.file_id,
+      filename: result.filename ?? "reportes_por_base.zip",
+      avisos: avisosDelPaquete(result),
+    });
     setJob(null);
     void refresh();
   }
@@ -210,9 +252,8 @@ export function MultibaseReportMenu() {
           {error && <div className="pulso-multibase-reports-error" role="alert">{error}</div>}
           {allBases && (
             <div className="pulso-multibase-reports-files">
-              {allBases && (
-                <a href={downloadUrl(allBases.fileId)}><Download size={12} /> {allBases.filename}</a>
-              )}
+              <a href={downloadUrl(allBases.fileId)}><Download size={12} /> {allBases.filename}</a>
+              <AvisosPaqueteBases avisos={allBases.avisos} />
             </div>
           )}
         </div>

@@ -4,6 +4,7 @@
 // no tiene superficie nueva (compartir, vaciar, estilo del cliente) va al menú ⋯ y abre el Editor anterior.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { AlertTriangle, History, Layers3, MoreHorizontal, Palette, Redo2, Undo2 } from "../../../vendor/lucide-react";
 import { SaveStatusIndicator } from "../../../components/SaveStatusIndicator";
 import { useSession } from "../../../lib/SessionContext";
@@ -12,6 +13,7 @@ import { ExportarInformeMenu, type ExportarInformeMenuProps } from "../ExportarI
 import { modoMultibaseDelPlan } from "../modoMultibase";
 import { PANEL_AVISOS_INFORME } from "../panelesGraficos";
 import { PlanCoverageBadge } from "../PlanCoverageBadge";
+import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
 import { SuggestedPlanButton } from "../SuggestedPlanButton";
 import { usePlanValidator } from "../usePlanValidator";
@@ -31,6 +33,7 @@ const MOD = esMac ? "⌘" : "Ctrl";
 
 export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Props) {
   const { state } = useSession();
+  const reportScope = useGraficosReportScope(useLocation().search);
   const slides = usePlanStore((s) => s.plan.slides);
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
@@ -48,7 +51,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Pro
     const t = portada?.payload?.titulo;
     return typeof t === "string" && t.trim() ? t.trim() : "Informe";
   }, [slides]);
-  const modo = modoMultibaseDelPlan(state?.estudio_processing_mode, state?.n_bases, state?.active_base);
+  const modo = modoMultibaseDelPlan(state?.estudio_processing_mode, state?.n_bases, state?.active_base, reportScope);
   const avisosPlan = useAvisosPlanSesion();
   const grupos = useMemo(() => agruparAvisos(validator.issues, resumenes, ids, avisosPlan), [validator.issues, resumenes, ids, avisosPlan]);
   const nAvisos = totalAvisos(grupos);
