@@ -3357,7 +3357,7 @@ reporte_ppt_plan <- function(
       survey        = ctx$survey,
       sm_vars_force = NULL,
       orders_list   = ctx$orders_list,
-      mostrar_todo  = TRUE
+      mostrar_todo  = TRUE, casos = TRUE
     )
   }
 
@@ -3443,20 +3443,14 @@ reporte_ppt_plan <- function(
     tab <- .tab_freq(var, filtros = filtros)
     if (is.null(tab) || !nrow(tab)) return(NULL)
 
-    N_total <- NA_real_
-    if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-      idx_tot <- which(tab$Opciones == "Total")
-      if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-    }
-
-    tab2 <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = FALSE)
-    tab2 <- .reporte_plan_filter_freq_options(tab2, excluir_opciones)
+    tab2 <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = FALSE), excluir_opciones)
     excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
     if (!nrow(tab2)) return(NULL)
+    # Base de lamina = casos sin ponderar (I1); la exclusion recalcula ambas cifras.
+    N_total <- .plan_base_de_tab(tab, tab2, .reporte_plan_is_select_multiple(var))$n_casos
     reducida <- (excluded_any || .reporte_plan_base_na_reducida(N_total, tryCatch(.filter_data(filtros, source = ctx_base$source), error = function(e) NULL))) && !.reporte_plan_is_select_multiple(var)
-    if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
-    if (!is.finite(N_total)) return(NULL)
+    if (!is.finite(N_total) || N_total <= 0) return(NULL)
 
     # B56/W-8: composicion (N + sufijo_auto + marca de criterio cuando la
     # exclusion redujo el denominador) delegada a reporte_plan_base_criterio.R.
@@ -3493,20 +3487,13 @@ reporte_ppt_plan <- function(
         tab <- .tab_freq(first_ref, filtros = filtros, source = src)
         if (is.null(tab) || !nrow(tab)) return(NULL)
 
-        N_total <- NA_real_
-        if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-          idx_tot <- which(tab$Opciones == "Total")
-          if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-        }
-
-        tab2 <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = FALSE)
-        tab2 <- .reporte_plan_filter_freq_options(tab2, excluir_src)
+        tab2 <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = FALSE), excluir_src)
         excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
         if (!nrow(tab2)) return(NULL)
+        N_total <- .plan_base_de_tab(tab, tab2, .reporte_plan_is_select_multiple(first_ref, source = src))$n_casos
         reducida <- (excluded_any || .reporte_plan_base_na_reducida(N_total, tryCatch(.filter_data(filtros, source = src), error = function(e) NULL))) && !.reporte_plan_is_select_multiple(first_ref, source = src)
-        if ((excluded_any && !.reporte_plan_is_select_multiple(first_ref, source = src)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
-        if (!is.finite(N_total)) return(NULL)
+        if (!is.finite(N_total) || N_total <= 0) return(NULL)
 
         N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
         return(sprintf(formato, .reporte_plan_base_marca_criterio(.fmt_base_part(N_pretty, src), reducida)))
@@ -3531,20 +3518,13 @@ reporte_ppt_plan <- function(
       tab <- .tab_freq(ref_src, filtros = filtros, source = src)
       if (is.null(tab) || !nrow(tab)) next
 
-      N_total <- NA_real_
-      if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-        idx_tot <- which(tab$Opciones == "Total")
-        if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-      }
-
-      tab2 <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = FALSE)
-      tab2 <- .reporte_plan_filter_freq_options(tab2, excluir_src)
+      tab2 <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = FALSE), excluir_src)
       excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
       if (!nrow(tab2)) next
+      N_total <- .plan_base_de_tab(tab, tab2, .reporte_plan_is_select_multiple(ref_src, source = src))$n_casos
       reducida <- (excluded_any || .reporte_plan_base_na_reducida(N_total, tryCatch(.filter_data(filtros, source = src), error = function(e) NULL))) && !.reporte_plan_is_select_multiple(ref_src, source = src)
-      if ((excluded_any && !.reporte_plan_is_select_multiple(ref_src, source = src)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
-      if (!is.finite(N_total)) next
+      if (!is.finite(N_total) || N_total <= 0) next
       alguna_reducida <- alguna_reducida || reducida
 
       N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
@@ -3737,13 +3717,13 @@ reporte_ppt_plan <- function(
 
         # En dimensiones, la base automatica debe reflejar el universo analizado
         # (post filtros/iteracion), incluso cuando `incluir_total = FALSE`.
-        N_total <- suppressWarnings(as.numeric(payload$base_universe)[1])
+        N_total <- suppressWarnings(as.numeric(payload$base_universe_casos %||% payload$base_universe)[1])  # casos (I1)
         if (!is.finite(N_total)) {
           sc <- payload$score_plot %||% data.frame()
           if (!nrow(sc) || !("base" %in% names(sc))) return(NULL)
 
           grupos <- as.character(sc$grupo %||% character(0))
-          bases <- suppressWarnings(as.numeric(sc$base))
+          bases <- suppressWarnings(as.numeric(sc$base_casos %||% sc$base))
           idx_total <- which(grupos == "Total")
           N_total <- if (length(idx_total)) bases[idx_total[1]] else suppressWarnings(max(bases, na.rm = TRUE))
         }
@@ -3752,7 +3732,7 @@ reporte_ppt_plan <- function(
           return(NULL)
         }
         w <- .dim_safe_weights(ctx_src$data, weight_col = ctx$weight_col)
-        N_total <- suppressWarnings(sum(as.numeric(w), na.rm = TRUE))
+        N_total <- .plan_casos_de_pesos(w)
         if (!is.finite(N_total) || is.na(N_total) || N_total <= 0) {
           N_total <- nrow(ctx_src$data)
         }
@@ -3766,7 +3746,7 @@ reporte_ppt_plan <- function(
 
         if (isTRUE(el$usar_pesos %||% TRUE)) {
           w <- .dim_safe_weights(df_foda, weight_col = ctx$weight_col)
-          N_total <- suppressWarnings(sum(as.numeric(w), na.rm = TRUE))
+          N_total <- .plan_casos_de_pesos(w)
         } else {
           N_total <- as.numeric(nrow(df_foda))
         }
@@ -4407,19 +4387,11 @@ reporte_ppt_plan <- function(
     tab <- .tab_freq(var, filtros = filtros)
     if (is.null(tab) || !nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
-    # N desde Total si existe
-    N_total <- NA_real_
-    if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-      idx_tot <- which(tab$Opciones == "Total")
-      if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-    }
-
-    tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = TRUE)
-    tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
-    excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+    tab_crudo <- tab  # N ponderado y N_casos: reporte_plan_base_casos.R
+    tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = TRUE), excluir_opciones)
 
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
-    if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+    base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(var)); N_total <- base_tab$n
     if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
 
     # paleta auto (paleta_<listname>) y orden institucional del instrumento
@@ -4476,6 +4448,7 @@ reporte_ppt_plan <- function(
       df_wide[[cols_pct[i]]] <- pct_exacto[i] / 100
       df_wide[[cols_n[i]]] <- suppressWarnings(as.numeric(tab$n[i]))
     }
+    df_wide <- .plan_fila_casos(df_wide, tab, as.character(tab$Opciones), base_tab$n_casos)
 
     etiquetas_grupos <- stats::setNames(etiquetas_opts, cols_pct)
 
@@ -4511,7 +4484,7 @@ reporte_ppt_plan <- function(
       overrides <- .collapse_y_label_space_word(overrides)
     }
 
-    args <- .merge_args(base_args, preset_args, overrides)
+    args <- .merge_args(.plan_args_casos(base_args), preset_args, overrides)
     args <- .reservar_pie_para_base_slide(args, word_render = isTRUE(el$.word_render))
     fun  <- graficar_barras_apiladas
     args <- .force_canvas_args(fun, args)
@@ -4827,7 +4800,7 @@ reporte_ppt_plan <- function(
           if (is.null(tb) || !all(c("Opciones", "n") %in% names(tb))) next
           it <- which(tb$Opciones == "Total")
           if (!length(it)) next
-          n_obs <- c(n_obs, suppressWarnings(as.numeric(tb$n[it[1]])))
+          n_obs <- c(n_obs, suppressWarnings(as.numeric(.plan_col_o_n(tb)[it[1]])))
           n_pub <- c(n_pub, as.character(ctx$source))
         }
       }
@@ -4958,7 +4931,7 @@ reporte_ppt_plan <- function(
       rows <- list()
       all_opts <- character(0)
       tabs_by_v <- list()
-      N_by_v <- numeric(0)
+      N_by_v <- numeric(0); Nc_by_v <- numeric(0)
       labels_by_v <- character(0)
 
       for (i in seq_along(vars)) {
@@ -4968,22 +4941,15 @@ reporte_ppt_plan <- function(
         if (is.null(tab) || !nrow(tab)) next
         tab <- .canonizar_freq_a_escala(tab, ctx_v, scale_spec)
 
-        N_total <- NA_real_
-        if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-          idx_tot <- which(tab$Opciones == "Total")
-          if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-        }
-
-        tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n)
-        tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
-        excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+        tab_crudo <- tab  # N ponderado y N_casos: reporte_plan_base_casos.R
+        tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n), excluir_opciones)
 
         if (!nrow(tab)) next
-        if ((excluded_any && !.reporte_plan_is_select_multiple(v)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+        base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(v)); N_total <- base_tab$n
         if (!is.finite(N_total) || N_total <= 0) next
 
         tabs_by_v[[v]] <- tab
-        N_by_v[v] <- N_total
+        N_by_v[v] <- N_total; Nc_by_v[v] <- base_tab$n_casos
         labels_by_v[v] <- as.character(.named_lookup(el$overrides$etiquetas_vars, v, .title_of_var(v)))[1]
         all_opts <- union(all_opts, as.character(tab$Opciones))
       }
@@ -5060,13 +5026,14 @@ reporte_ppt_plan <- function(
           row[[cols_pct[i]]] <- (pct_exacto[opt] %||% 0) / 100
           row[[cols_n[i]]] <- n_int[opt] %||% 0
         }
+        row <- .plan_fila_casos(row, tab, all_opts, unname(Nc_by_v[v]))
         rows[[length(rows) + 1]] <- row
       }
 
       if (!length(rows)) return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
       df_block <- dplyr::bind_rows(rows)
 
-      actor_caption <- .format_actor_base_caption_from_refs(names(N_by_v), N_by_v)
+      actor_caption <- .format_actor_base_caption_from_refs(names(Nc_by_v), Nc_by_v)
 
       base_args <- list(
         data             = df_block,
@@ -5092,7 +5059,7 @@ reporte_ppt_plan <- function(
         overrides <- .collapse_y_label_space_word(overrides)
       }
 
-      args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
+      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi, overrides)
       args <- .reservar_pie_para_base_slide(args, min_in = .PLAN_RESERVA_PIE_MULTI_IN, word_render = isTRUE(el$.word_render))
       args$ancho_max_eje_y <- wrap_y_eff  # sin re-wrap del graficador (H31)
       fun  <- graficar_barras_apiladas
@@ -5198,24 +5165,16 @@ reporte_ppt_plan <- function(
           survey        = ctx_var$survey,
           sm_vars_force = NULL,
           orders_list   = ctx_var$orders_list,
-          mostrar_todo  = TRUE
+          mostrar_todo  = TRUE, casos = TRUE
         )
 
         if (is.null(tab) || !nrow(tab)) next
 
-        # N desde Total si existe
-        N_total <- NA_real_
-        if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-          idx_tot <- which(tab$Opciones == "Total")
-          if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-        }
-
-        tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n)
-        tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
-        excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+        tab_crudo <- tab  # N ponderado y N_casos: reporte_plan_base_casos.R
+        tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n), excluir_opciones)
 
         if (!nrow(tab)) next
-        if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+        base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(var)); N_total <- base_tab$n
         if (!is.finite(N_total) || N_total <= 0) next
 
         # pct enteros a 100 dentro del grupo
@@ -5238,6 +5197,7 @@ reporte_ppt_plan <- function(
           row[[cols_pct[i]]] <- (pct_exacto[opt] %||% 0) / 100
           row[[cols_n[i]]] <- n_int[opt] %||% 0
         }
+        row <- .plan_fila_casos(row, tab, all_opts, base_tab$n_casos)
 
         rows[[length(rows) + 1]] <- row
       }
@@ -5296,7 +5256,7 @@ reporte_ppt_plan <- function(
         preset_args_single[[k]] <- NULL
       }
 
-      args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
+      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi, overrides)
       args <- .reservar_pie_para_base_slide(args, min_in = .PLAN_RESERVA_PIE_MULTI_IN, word_render = isTRUE(el$.word_render))
       args$ancho_max_eje_y <- wrap_y_eff  # idem modo var: sin re-wrap (H31)
       fun  <- graficar_barras_apiladas
@@ -5428,18 +5388,11 @@ reporte_ppt_plan <- function(
             if (is.null(tab) || !nrow(tab)) next
             tab <- .canonizar_freq_a_escala(tab, ctx_v, scale_spec)
 
-            N_total <- NA_real_
-            if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-              idx_tot <- which(tab$Opciones == "Total")
-              if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-            }
-
-            tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n)
-            tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
-            excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+            tab_crudo <- tab  # N ponderado y N_casos: reporte_plan_base_casos.R
+            tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n), excluir_opciones)
 
             if (!nrow(tab)) next
-            if ((excluded_any && !.reporte_plan_is_select_multiple(ref)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+            base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(ref)); N_total <- base_tab$n
             if (!is.finite(N_total) || N_total <= 0) next
 
             pct_exacto <- .calculos_pct_exacto(tab$n)
@@ -5466,6 +5419,7 @@ reporte_ppt_plan <- function(
               row[[cols_pct[k]]] <- (pct_exacto[opt] %||% 0) / 100
               row[[cols_n[k]]] <- n_int[opt] %||% 0
             }
+            row <- .plan_fila_casos(row, tab, all_opts, base_tab$n_casos)
 
             rows[[length(rows) + 1L]] <- row
             filas_var <- filas_var + 1L
@@ -5594,24 +5548,17 @@ reporte_ppt_plan <- function(
               survey        = ctx_v$survey,
               sm_vars_force = NULL,
               orders_list   = ctx_v$orders_list,
-              mostrar_todo  = TRUE
+              mostrar_todo  = TRUE, casos = TRUE
             )
 
             if (is.null(tab) || !nrow(tab)) next
             tab <- .canonizar_freq_a_escala(tab, ctx_v, scale_spec)
 
-            N_total <- NA_real_
-            if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-              idx_tot <- which(tab$Opciones == "Total")
-              if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-            }
-
-            tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n)
-            tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
-            excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+            tab_crudo <- tab  # N ponderado y N_casos: reporte_plan_base_casos.R
+            tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n), excluir_opciones)
 
             if (!nrow(tab)) next
-            if ((excluded_any && !.reporte_plan_is_select_multiple(ctx_v$var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+            base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(ctx_v$var)); N_total <- base_tab$n
             if (!is.finite(N_total) || N_total <= 0) next
 
             pct_exacto <- .calculos_pct_exacto(tab$n)
@@ -5638,6 +5585,7 @@ reporte_ppt_plan <- function(
               row[[cols_pct[k]]] <- (pct_exacto[opt] %||% 0) / 100
               row[[cols_n[k]]] <- n_int[opt] %||% 0
             }
+            row <- .plan_fila_casos(row, tab, all_opts, base_tab$n_casos)
 
             rows[[length(rows) + 1L]] <- row
             filas_var <- filas_var + 1L
@@ -5650,7 +5598,7 @@ reporte_ppt_plan <- function(
 
       actor_caption <- if (is.list(vars) && !is.character(vars) &&
                            any(grepl("$", .extract_ref_values(vars), fixed = TRUE))) {
-        .format_actor_base_caption(df_block$categoria, df_block$N)
+        .format_actor_base_caption(df_block$categoria, df_block$N_casos)
       } else {
         NULL
       }
@@ -5721,7 +5669,7 @@ reporte_ppt_plan <- function(
       )
       base_args <- .apply_top2box_alias(base_args)
 
-      args <- .merge_args(base_args, preset_args_single, preset_args_multi)
+      args <- .merge_args(.plan_args_casos(base_args), preset_args_single, preset_args_multi)
       if (isTRUE(usar_layout_multiactor)) {
         effective_args <- .merge_args(args, overrides)
         extra_preset <- as.character(effective_args$barra_extra_preset %||% "ninguno")[1]
@@ -5779,13 +5727,6 @@ reporte_ppt_plan <- function(
     tab <- .tab_freq(var, filtros = filtros)
     if (is.null(tab) || !nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
-    # N desde Total si existe
-    N_total <- NA_real_
-    if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-      idx_tot <- which(tab$Opciones == "Total")
-      if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-    }
-
     mostrar_ceros <- .should_show_zero_options(
       var,
       tab = tab,
@@ -5795,13 +5736,11 @@ reporte_ppt_plan <- function(
       word_render = isTRUE(el$.word_render)
     )
 
-    tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = mostrar_ceros)
-    tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
-    excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+    tab_crudo <- tab  # N ponderado y N_casos: reporte_plan_base_casos.R
+    tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = mostrar_ceros), excluir_opciones)
 
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
-
-    if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+    base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(var)); N_total <- base_tab$n
     if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
 
     # ----------------------------
@@ -5811,7 +5750,7 @@ reporte_ppt_plan <- function(
     df_long <- NULL
     etiquetas_series <- NULL
     cols_n <- NULL
-    group_totals <- numeric(0)
+    group_totals <- numeric(0); group_totals_casos <- numeric(0)
     colores_series <- NULL
     colores_categorias <- NULL
 
@@ -5821,7 +5760,8 @@ reporte_ppt_plan <- function(
         categoria = as.character(tab$Opciones),
         N         = N_total,
         n         = suppressWarnings(as.numeric(tab$n)),
-        pct       = as.numeric(tab$n) / N_total
+        pct       = as.numeric(tab$n) / N_total,
+        N_casos = base_tab$n_casos, n_casos = .plan_casos_por_opcion(tab, tab$Opciones)
       )
       etiquetas_series <- c(pct = "Porcentaje")
       cols_n <- c(pct = "n")
@@ -5857,7 +5797,7 @@ reporte_ppt_plan <- function(
 
       df_long <- tibble::tibble(
         categoria = as.character(tab$Opciones),
-        N = N_total
+        N = N_total, N_casos = base_tab$n_casos
       )
       etiquetas_series <- character(0)
       cols_n <- character(0)
@@ -5872,20 +5812,17 @@ reporte_ppt_plan <- function(
             survey = ctx_var$survey,
             sm_vars_force = NULL,
             orders_list = ctx_var$orders_list,
-            mostrar_todo = TRUE
+            mostrar_todo = TRUE, casos = TRUE
           )
         } else {
           NULL
         }
         if (is.null(group_tab) || !nrow(group_tab)) next
 
-        group_total <- NA_real_
-        if (all(c("Opciones", "n") %in% names(group_tab))) {
-          total_idx <- which(group_tab$Opciones == "Total")
-          if (length(total_idx)) group_total <- suppressWarnings(as.numeric(group_tab$n[total_idx[[1]]]))
-        }
-        group_tab <- .reporte_plan_prepare_freq_options(group_tab, incluir_sin_n = mostrar_ceros)
-        group_tab <- .reporte_plan_filter_freq_options(group_tab, excluir_opciones)
+        # Base del grupo = Total del grupo (sin recalcular por exclusion, como antes), ponderada y en casos.
+        group_crudo <- group_tab
+        group_tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(group_tab, incluir_sin_n = mostrar_ceros), excluir_opciones)
+        group_base <- .plan_base_de_tab(group_crudo, NULL); group_total <- group_base$n
         if (!is.finite(group_total) || group_total <= 0 || !nrow(group_tab)) next
 
         pct_col <- paste0("pct_", j)
@@ -5895,9 +5832,10 @@ reporte_ppt_plan <- function(
         group_n[!is.finite(group_n) | is.na(group_n)] <- 0
         df_long[[n_col]] <- group_n
         df_long[[pct_col]] <- group_n / group_total
+        df_long[[.plan_col_casos(n_col)]] <- .plan_casos_por_opcion(group_tab, df_long$categoria)
         etiquetas_series[[pct_col]] <- group_labels[[j]]
         cols_n[[pct_col]] <- n_col
-        group_totals[[pct_col]] <- group_total
+        group_totals[[pct_col]] <- group_total; group_totals_casos[[pct_col]] <- group_base$n_casos
       }
 
       if (!length(etiquetas_series)) return(.blank_canvas(preset_args, overrides))
@@ -5933,8 +5871,8 @@ reporte_ppt_plan <- function(
 
     base_caption <- if (isTRUE(base_por_grupo) && length(group_totals)) {
       .format_group_base_caption(
-        unname(etiquetas_series[names(group_totals)]),
-        unname(group_totals)
+        unname(etiquetas_series[names(group_totals_casos)]),
+        unname(group_totals_casos)
       )
     } else {
       NULL
@@ -6012,7 +5950,7 @@ reporte_ppt_plan <- function(
     overrides$mostrar_significancia <- NULL
     overrides$significancia_alpha <- NULL
 
-    args <- .merge_args(base_args, preset_args, overrides)
+    args <- .merge_args(.plan_args_casos(base_args), preset_args, overrides)
     args <- .reservar_pie_para_base_slide(args, word_render = isTRUE(el$.word_render))
     fun  <- graficar_barras_agrupadas
     args <- .force_canvas_args(fun, args)
@@ -6022,8 +5960,8 @@ reporte_ppt_plan <- function(
     attr(plot, "pulso_barras_series") <- unname(etiquetas_series)
     attr(plot, "pulso_barras_cruce") <- if (length(etiquetas_series) > 1L) cruce_ref else NULL
     attr(plot, "pulso_barras_bases") <- stats::setNames(
-      unname(group_totals),
-      unname(etiquetas_series[names(group_totals)])
+      unname(group_totals_casos),
+      unname(etiquetas_series[names(group_totals_casos)])
     )
     attr(plot, "pulso_barras_base_caption") <- base_caption
     # La nota viaja como atributo, igual que la base: por doctrina B36 el pie del
@@ -6049,12 +5987,6 @@ reporte_ppt_plan <- function(
     tab <- .tab_freq(var, filtros = filtros)
     if (is.null(tab) || !nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
-    N_total <- NA_real_
-    if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
-      idx_tot <- which(tab$Opciones == "Total")
-      if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
-    }
-
     mostrar_ceros <- .should_show_zero_options(
       var,
       tab = tab,
@@ -6064,18 +5996,17 @@ reporte_ppt_plan <- function(
       word_render = isTRUE(el$.word_render)
     )
 
-    tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = mostrar_ceros)
-    tab <- .reporte_plan_filter_freq_options(tab, excluir_opciones)
-    excluded_any <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+    tab_crudo <- tab  # N ponderado y N_casos: reporte_plan_base_casos.R
+    tab <- .reporte_plan_filter_freq_options(.reporte_plan_prepare_freq_options(tab, incluir_sin_n = mostrar_ceros), excluir_opciones)
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
-
-    if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+    base_tab <- .plan_base_de_tab(tab_crudo, tab, .reporte_plan_is_select_multiple(var)); N_total <- base_tab$n
     if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
 
     df_cat <- tibble::tibble(
       categoria = as.character(tab$Opciones),
       n = suppressWarnings(as.numeric(tab$n)),
-      pct = suppressWarnings(as.numeric(tab$n)) / N_total
+      pct = suppressWarnings(as.numeric(tab$n)) / N_total,
+      n_casos = .plan_casos_por_opcion(tab, tab$Opciones)
     )
 
     promedio_auto <- NULL
@@ -6117,7 +6048,7 @@ reporte_ppt_plan <- function(
       colores_categorias = colores_categorias,
       titulo = NULL,
       subtitulo = NULL,
-      nota_pie = .format_n_caption(N_total),
+      nota_pie = .format_n_caption(base_tab$n_casos),
       promedio = promedio_auto
     )
 
@@ -6127,7 +6058,7 @@ reporte_ppt_plan <- function(
     overrides$mostrar_ceros <- NULL
     overrides$excluir_opciones <- NULL
 
-    args <- .merge_args(base_args, preset_args, overrides)
+    args <- .merge_args(.plan_args_casos(base_args), preset_args, overrides)
     fun <- graficar_barras_categoricas
     args <- .keep_formals(fun, args)
 
@@ -6153,7 +6084,8 @@ reporte_ppt_plan <- function(
         n      = as.numeric(.data$n)
       ) |>
       dplyr::mutate(
-        pct = .data$n / sum(.data$n, na.rm = TRUE)  # proporcion 0-1
+        pct = .data$n / sum(.data$n, na.rm = TRUE),  # proporcion 0-1
+        n_casos = .plan_casos_por_opcion(tab, .data$opcion)
       )
 
     ln <- .list_name_of_var(var)
@@ -6172,11 +6104,11 @@ reporte_ppt_plan <- function(
       colores_categorias = colores_grupos,
       titulo         = NULL,
       subtitulo      = NULL,
-      nota_pie       = .format_n_caption(sum(df_long$n, na.rm = TRUE))
+      nota_pie       = .format_n_caption(sum(df_long$n_casos, na.rm = TRUE))
     )
 
     preset_args <- preset_args %||% list()
-    args <- .merge_args(base_args, preset_args, overrides)
+    args <- .merge_args(.plan_args_casos(base_args), preset_args, overrides)
 
     fun  <- graficar_pie
     args <- .force_canvas_args(fun, args)
@@ -8125,7 +8057,7 @@ reporte_ppt_plan <- function(
       style <- slide$style %||% list()
 
       title_slide <- slots$title %||% slide$title %||% NULL
-      table_data <- slots$table %||% NULL
+      table_data <- if (exists(".lam_ficha_con_ponderacion", mode = "function")) .lam_ficha_con_ponderacion(slots$table %||% NULL, data_sources) else slots$table %||% NULL  # S2: fila «Ponderación» (n efectivo), lamina_ficha_ponderacion.R
       base_txt <- slots$base %||% NULL
 
       if (is.null(contract$layout) || is.na(contract$layout) || !nzchar(contract$layout)) {
@@ -9707,7 +9639,7 @@ reporte_ppt_plan <- function(
     render_meta     = render_meta,
     slide_layout_contract = PPT_RESOLVED_CONTRACT,
     .render_element = .render_element,
-    log             = log
+    log             = log, ponderacion_avisos = .reporte_plan_pond_avisos_corrida(data_sources)  # D-c: fallback de ponderacion a nivel corrida
   ))
 }
 

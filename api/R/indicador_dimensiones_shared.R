@@ -1286,6 +1286,10 @@
 
   w <- .dim_safe_weights(df, ctx$weight_col)
   base_universe <- suppressWarnings(sum(w, na.rm = TRUE))
+  # Base sin ponderar (contrato base-sin-ponderar F6, I1): `base_casos` cuenta
+  # filas con peso > 0 y es la que se ESCRIBE en láminas y Word. `base` sigue
+  # ponderada porque ordena los grupos (S-e) y la leen dashboard e interactivo.
+  base_universe_casos <- as.numeric(sum(w > 0))
   groups <- list()
   hidden_main <- 0L
 
@@ -1294,7 +1298,8 @@
       key = "__total__",
       label = "Total",
       mask = rep(TRUE, nrow(df)),
-      base = sum(w, na.rm = TRUE)
+      base = sum(w, na.rm = TRUE),
+      base_casos = base_universe_casos
     )
   }
 
@@ -1312,11 +1317,13 @@
 
     for (i in seq_len(nrow(cats_main$rows))) {
       val <- as.character(cats_main$rows$value[i])
+      mask_val <- !is.na(xv) & xv == val
       groups[[length(groups) + 1L]] <- list(
         key = val,
         label = as.character(cats_main$rows$label[i]),
-        mask = !is.na(xv) & xv == val,
-        base = as.numeric(cats_main$rows$base[i])
+        mask = mask_val,
+        base = as.numeric(cats_main$rows$base[i]),
+        base_casos = as.numeric(sum(mask_val & w > 0))
       )
     }
   }
@@ -1326,7 +1333,8 @@
       key = "__total__",
       label = "Total",
       mask = rep(TRUE, nrow(df)),
-      base = sum(w, na.rm = TRUE)
+      base = sum(w, na.rm = TRUE),
+      base_casos = base_universe_casos
     )
   }
 
@@ -1356,6 +1364,7 @@
         tipo = "apertura",
         score_raw = as.numeric(mu),
         base = as.numeric(g$base),
+        base_casos = as.numeric(g$base_casos),
         stringsAsFactors = FALSE
       )
     }
@@ -1377,6 +1386,7 @@
       tipo = "total_cruce",
       score_raw = as.numeric(mu_total),
       base = as.numeric(g$base),
+      base_casos = as.numeric(g$base_casos),
       stringsAsFactors = FALSE
     )
   }
@@ -1422,6 +1432,7 @@
     score_plot = sc_plot,
     score_heat = sc_heat,
     base_universe = as.numeric(base_universe),
+    base_universe_casos = as.numeric(base_universe_casos),
     axis_order_plot = as.character(axis_labels),
     axis_order_heat = c("Total cruce", as.character(axis_labels)),
     mode = as.character(obj$mode %||% modo),

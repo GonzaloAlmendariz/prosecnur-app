@@ -34,10 +34,12 @@ preparar_heatmap_dim <- function(payload, titulo_cruce = NULL, rotulo_total = "T
   if (!any(is.finite(crudo))) return(NULL)   # sin una sola cifra no hay mapa: la lámina sigue por la ruta anterior
   v <- crudo; v[] <- .pulso_round_half_up(as.vector(crudo), 0)
   # Casos por columna: los que respondieron la batería (recetario_m3d.R, «base real: quienes respondieron, no el
-  # total del grupo»), si se conocen; si no, la base del grupo. Una columna sin ninguna cifra no lleva n.
+  # total del grupo»), si se conocen; si no, la base del grupo EN CASOS (`base_casos`, sin ponderar; `base` en
+  # payloads anteriores). Una columna sin ninguna cifra no lleva n.
+  base_col <- if ("base_casos" %in% names(sc)) sc$base_casos else sc$base
   n <- vapply(cols, function(g) {
     if (!is.null(n_respondieron) && g %in% names(n_respondieron)) return(as.numeric(n_respondieron[[g]]))
-    b <- suppressWarnings(as.numeric(sc$base[sc$grupo == g])); b <- b[is.finite(b)]; if (length(b)) max(b) else NA_real_
+    b <- suppressWarnings(as.numeric(base_col[sc$grupo == g])); b <- b[is.finite(b)]; if (length(b)) max(b) else NA_real_
   }, 0)
   n[!apply(is.finite(crudo), 2, any)] <- NA_real_
   col_total <- match("Total", cols)
@@ -94,7 +96,7 @@ preparar_comparativo_dim <- function(payload, n_respondieron = NULL) {
                                   incluir_total = if (identical(tipo, "heatmap")) args$incluir_total else TRUE,
                                   filtros = args$filtros %||% list(), iter_var = args$iter_var, iter_level = args$iter_level)
     # Con iteración el payload elige el nivel por su cuenta: ahí los casos quedan en la base del grupo.
-    n_resp <- if (is.null(args$iter_var)) .dim_n_respondieron(args, payload) else NULL
+    n_resp <- if (is.null(args$iter_var)) .dim_n_respondieron(args, payload, weight_col = ctx$weight_col) else NULL
     titulo_cruce <- if (!is.null(args$cruce)) {
       lbl <- attr(args$data[[args$cruce]], "label", exact = TRUE); if (is.null(lbl) || !nzchar(lbl)) NULL else as.character(lbl)[1]
     }
@@ -111,15 +113,18 @@ preparar_comparativo_dim <- function(payload, n_respondieron = NULL) {
 
 #' Cuántos respondieron la batería en cada grupo del cruce (y en el Total)
 #'
-#' Responde quien tiene al menos un eje del mapa con dato. Los grupos se nombran con la etiqueta del instrumento,
-#' como en el payload. Sin cruce o sin poder emparejar las etiquetas devuelve `NULL` (se usa la base del grupo).
+#' Responde quien tiene al menos un eje del mapa con dato y peso > 0 (la base es casos sin ponderar, contrato
+#' base-sin-ponderar F6: una fila con peso 0 o huérfana no suma a la media ponderada y tampoco a la base). Los grupos
+#' se nombran con la etiqueta del instrumento, como en el payload. Sin cruce o sin poder emparejar las etiquetas
+#' devuelve `NULL` (se usa la base del grupo).
+#' @param weight_col Columna de peso del contexto de dimensiones (`ctx$weight_col`); sin ella, peso 1.
 #' @keywords internal
-.dim_n_respondieron <- function(args, payload) {
+.dim_n_respondieron <- function(args, payload, weight_col = NULL) {
   d <- .dim_apply_filters(args$data, filters = args$filtros %||% list())   # los mismos filtros que el payload
   sc <- as.data.frame(payload$score_heat, stringsAsFactors = FALSE)
   ejes <- unique(sc$axis_var[!(sc$tipo %in% "total_cruce")]); ejes <- ejes[ejes %in% names(d)]
   if (!length(ejes)) return(NULL)
-  resp <- rowSums(!is.na(as.data.frame(d)[, ejes, drop = FALSE])) > 0
+  resp <- rowSums(!is.na(as.data.frame(d)[, ejes, drop = FALSE])) > 0 & .dim_safe_weights(d, weight_col) > 0
   out <- c(Total = sum(resp))
   cruce <- args$cruce
   if (is.null(cruce) || !cruce %in% names(d)) return(out)

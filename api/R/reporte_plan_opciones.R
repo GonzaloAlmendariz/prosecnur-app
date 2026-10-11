@@ -102,6 +102,14 @@
     n = n_vals[keep],
     stringsAsFactors = FALSE
   )
+  # Base sin ponderar: `n_casos` (freq_table_spss(casos = TRUE)) viaja con la
+  # opción; sin la columna la salida es la histórica.
+  con_casos <- "n_casos" %in% names(tab)
+  if (con_casos) {
+    nc_vals <- suppressWarnings(as.integer(tab$n_casos))
+    nc_vals[is.na(nc_vals)] <- 0L
+    out$n_casos <- nc_vals[keep]
+  }
   if (!nrow(out)) return(out)
 
   out$Opciones <- .reporte_plan_clean_other_label_es(out$Opciones)
@@ -110,11 +118,15 @@
 
   if (anyDuplicated(out$Opciones)) {
     keys <- unique(out$Opciones)
-    out <- data.frame(
+    dedup <- data.frame(
       Opciones = keys,
       n = vapply(keys, function(k) sum(out$n[out$Opciones == k], na.rm = TRUE), numeric(1)),
       stringsAsFactors = FALSE
     )
+    if (con_casos) {
+      dedup$n_casos <- vapply(keys, function(k) sum(out$n_casos[out$Opciones == k]), integer(1))
+    }
+    out <- dedup
   }
 
   out
@@ -532,6 +544,10 @@
   if (length(propios)) propios[[1]] else estados[[1]]
 }
 
+#' ¿Se sella cada nota de base de lámina con la ponderación? (S2: no.)
+#' @noRd
+.REPORTE_PLAN_SELLO_POR_LAMINA <- FALSE
+
 #' Anexa el sello de ponderación a una nota de base de lámina, si corresponde.
 #'
 #' Idempotente y conservadora:
@@ -543,8 +559,16 @@
 #'     no lo duplica.
 #' El texto del sello es el canónico de reporte_ponderacion_sello.R vía
 #' `p_base_nota_con_sello()` (reporte_plan_slides.R).
+#'
+#' APAGADO POR DEFECTO (S2, contrato base-sin-ponderar F6, 2026-10-11): la base
+#' de cada lámina pasa a ser casos sin ponderar y la ponderación se declara una
+#' sola vez, en la ficha técnica (n efectivo). Sellar cada pie repetía en 40
+#' láminas lo que la ficha dice una vez y contradecía la cifra de casos. El
+#' mecanismo se conserva para un llamador que lo pida con `sellar = TRUE`.
 #' @noRd
-.reporte_plan_nota_base_sellada <- function(nota, data_sources, source = NULL) {
+.reporte_plan_nota_base_sellada <- function(nota, data_sources, source = NULL,
+                                            sellar = .REPORTE_PLAN_SELLO_POR_LAMINA) {
+  if (!isTRUE(sellar)) return(nota)
   nota1 <- if (is.null(nota)) NA_character_ else as.character(nota)[1]
   if (is.na(nota1) || !nzchar(trimws(nota1))) return(nota)
   if (!grepl("\\bBase:", nota1)) return(nota)
@@ -556,6 +580,29 @@
   sello <- reporte_ponderacion_sello(estado)
   if (is.null(sello) || !nzchar(sello) || grepl(sello, nota1, fixed = TRUE)) return(nota)
   p_base_nota_con_sello(nota1, estado)
+}
+
+#' Avisos de ponderación de la CORRIDA (D-c, contrato base-sin-ponderar §8).
+#'
+#' Con el sello por lámina apagado (S2), el fallback «ponderación configurada no
+#' aplicada» ya no viaja en cada pie: sube al documento como advertencia de
+#' corrida. Devuelve un aviso por fuente cuyo estado es `no_aplicada` (con el
+#' nombre de la fuente cuando la corrida es multibase), o `character(0)` si la
+#' corrida no trae ponderación o la aplicó en todas sus bases. `reporte_ppt_plan()`
+#' lo expone como `$ponderacion_avisos`; el verificador del mazo / Word lo lee.
+#' @noRd
+.reporte_plan_pond_avisos_corrida <- function(data_sources) {
+  estados <- tryCatch(.reporte_plan_pond_estados(data_sources), error = function(e) list())
+  if (!length(estados)) return(character(0))
+  nms <- names(estados) %||% rep("", length(estados))
+  out <- character(0)
+  for (i in seq_along(estados)) {
+    e <- estados[[i]]
+    if (!is.list(e) || !identical(as.character(e$status %||% "")[1], "no_aplicada")) next
+    fuente <- if (length(estados) > 1L && nzchar(nms[i]) && !identical(nms[i], "default")) paste0(" (", nms[i], ")") else ""
+    out <- c(out, paste0(reporte_ponderacion_sello(e), fuente))
+  }
+  unique(out)
 }
 
 # ---- Puente de códigos especiales a excluir_opciones (Plan 2026-07, 5.6b) ----

@@ -291,8 +291,9 @@ test_that("bases ponderadas no dan falso positivo y marcan solo masa en NA", {
   expect_identical(.bc_bases(meta), "Base: 52")
 
   # (b) La no-respuesta CON masa ponderada reduce el denominador: 44 filas
-  # validas con masa 47 (40*1 + 4*1.75) contra un universo ponderado de 52
-  # (47 + 8*0.625): la nota muestra el N ponderado valido y lleva marca.
+  # validas con masa 47 (40*1 + 4*1.75) contra un universo de 52 casos. Desde
+  # el contrato base-sin-ponderar (I1/I7, 2026-10-11) la nota muestra los
+  # CASOS validos (44), no la masa ponderada (47): cambio deliberado.
   docentes_w_na <- data.frame(
     p1 = c(rep("4", 30), rep("3", 10), rep("1", 4), rep(NA_character_, 8)),
     peso = c(rep(1, 40), rep(1.75, 4), rep(0.625, 8)),
@@ -302,7 +303,7 @@ test_that("bases ponderadas no dan falso positivo y marcan solo masa en NA", {
     docentes_w_na, .bc_inst(.bc_survey_p1(), .bc_acuerdo_choices()),
     .bc_plan_var()
   )
-  expect_identical(.bc_bases(meta_na), "Base: 47")
+  expect_identical(.bc_bases(meta_na), "Base: 44")
 })
 
 test_that("la marca de criterio es idempotente y con paridad exacta", {
