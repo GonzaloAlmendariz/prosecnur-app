@@ -109,3 +109,78 @@ test_that("si la base activa no está entre las fuentes, cae en la primera y lo 
   expect_length(q$avisos, 0L)
   expect_identical(q$valor$base, "estudiantes")
 })
+
+# Decisión 4 de Gonzalo (contrato §7, campo `avisos`): lo que el motor de orden diría de la pregunta viaja en la
+# respuesta como `[{codigo, texto}]`, para que el editor no lo recalcule ni parsee texto.
+# «sector»: «Mixto» sin respuestas, «Otro (especifique)» residual y un «99» en los datos que la lista no tiene.
+.rgc_sesion_avisos <- function() {
+  testthat::skip_if_not_installed("openxlsx")
+  t <- data.frame(codigo = c("1", "2", "3", "0"), etiqueta = c("Público", "Privado", "Mixto", "Otro (especifique)"),
+                  n = c(10, 5, 0, 2), stringsAsFactors = FALSE)
+  b <- .rgc_base(t)
+  b$df <- data.frame(sector = c(b$df$sector, rep("99", 3)), stringsAsFactors = FALSE)
+  sid <- session_create()
+  session_set(sid, "estudio", list(bases = list(docentes = list(nombre = "docentes")), active_base = "docentes", processing_mode = "multibase"))
+  session_set(sid, "rp_data_sources", list(docentes = b$df))
+  session_set(sid, "rp_inst_sources", list(docentes = b$inst))
+  sid
+}
+
+.rgc_av_codigos <- function(body) vapply(body$avisos, function(a) as.character(unlist(a$codigo)), "")
+.rgc_av_textos <- function(body) vapply(body$avisos, function(a) as.character(unlist(a$texto)), "")
+
+test_that("avisos: códigos fuera de la lista, categorías sin respuestas y residuales, con código estable y sin jerga", {
+  sid <- .rgc_sesion_avisos(); on.exit(session_delete(sid), add = TRUE)
+  r <- .rgc_get(sid, "?var=docentes%24sector")
+  expect_identical(r$status, 200L)
+  expect_identical(.rgc_av_codigos(r$body), c("codigos_fuera_de_lista", "categorias_sin_respuestas", "residuales_al_final"))
+  tx <- .rgc_av_textos(r$body)
+  expect_match(tx[1], "un código en los datos no está en la lista de opciones («99»)", fixed = TRUE)
+  expect_match(tx[2], "una categoría del instrumento no tiene respuestas en esta base («Mixto»)", fixed = TRUE)
+  expect_match(tx[3], "«Otro (especifique)» se reconoce como respuesta residual y va al final", fixed = TRUE)
+  expect_true(all(startsWith(tx, "“Sector”: ")))
+  expect_false(any(.aviso_tiene_jerga(tx)))
+  expect_false(any(.aviso_tiene_voseo(tx)))
+  # Las categorías y el orden no cambian: el «99» no entra en la lista.
+  expect_identical(.rgc_codigos(r$body), c("1", "2", "3", "0"))
+})
+
+test_that("avisos: con un graficador de escala avisa que el orden no aplica, con la misma frase que el validador del plan", {
+  sid <- .rgc_sesion_avisos(); on.exit(session_delete(sid), add = TRUE)
+  r <- .rgc_get(sid, "?var=docentes%24sector&graficador=p_barras_apiladas")
+  expect_identical(.rgc_av_codigos(r$body)[1], "escala_orden_ignorado")
+  frase <- .goc_texto_escala("p_barras_apiladas")
+  expect_identical(.rgc_av_textos(r$body)[1], paste0("“Sector”: ", frase, "."))
+  slot <- .graficos_orden_cat_avisos_slot(list(graficador = "p_barras_apiladas", args = list(orden_categorias = list(modo = "frecuencia"))), "Lámina 1")
+  expect_identical(slot, paste0("Lámina 1: ", frase))
+  expect_false(.aviso_tiene_jerga(.rgc_av_textos(r$body)[1]))
+  # Un graficador que no es escala no agrega el aviso.
+  r2 <- .rgc_get(sid, "?var=docentes%24sector&graficador=p_barras_categoricas")
+  expect_false("escala_orden_ignorado" %in% .rgc_av_codigos(r2$body))
+})
+
+test_that("avisos: una pregunta sin nada que decir responde un arreglo vacío, no un objeto ni null", {
+  sid <- .rgc_sesion("estudiantes"); on.exit(session_delete(sid), add = TRUE)
+  testthat::skip_if_not_installed("plumber")
+  pr <- mount_graficos_categorias(plumber::pr())
+  vacio <- list(read = function(...) raw(0), rewind = function() invisible(0), read_lines = function(...) character())
+  req <- as.environment(list(REQUEST_METHOD = "GET", PATH_INFO = "/api/graficos/categorias", QUERY_STRING = "?var=sector",
+                             HTTP_X_PULSO_SESSION = sid, HEADERS = c(`x-pulso-session` = sid), rook.input = vacio))
+  cuerpo <- as.character(pr$call(req)$body)
+  expect_match(cuerpo, "\"avisos\":[]", fixed = TRUE)
+})
+
+test_that("avisos: la base por defecto viaja con el mismo texto que el aviso del motor, y una pregunta sin respuestas lo dice", {
+  testthat::skip_if_not_installed("openxlsx")
+  b <- lapply(.rgc_listas, .rgc_base)
+  src <- list(data_sources = lapply(b, `[[`, "df"), inst_sources = lapply(b, `[[`, "inst"))
+  r <- .rgc_avisos(.graficos_categorias_payload(src, "sector", base_activa = "egresados"))
+  # «Otro» de docentes es residual: el aviso de base va primero y el de residuales lo sigue.
+  expect_identical(vapply(r$valor$avisos, `[[`, "", "codigo"), c("base_por_defecto", "residuales_al_final"))
+  expect_identical(r$valor$avisos[[1]]$texto, r$avisos)
+  expect_length(.graficos_categorias_payload(src, "sector", base_activa = "estudiantes")$avisos, 0L)
+  src$data_sources$docentes <- data.frame(otra = 1:3)
+  p <- .graficos_categorias_payload(src, "docentes$sector")
+  expect_identical(vapply(p$avisos, `[[`, "", "codigo"), c("pregunta_sin_respuestas", "residuales_al_final"))
+  expect_false(any(.aviso_tiene_jerga(vapply(p$avisos, `[[`, "", "texto"))))
+})

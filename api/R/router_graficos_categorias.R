@@ -8,7 +8,7 @@
 
 mount_graficos_categorias <- function(pr) {
   pr |>
-    plumber::pr_get("/api/graficos/categorias", wrap_endpoint(function(req, res, var = NULL, scope = "") {
+    plumber::pr_get("/api/graficos/categorias", wrap_endpoint(function(req, res, var = NULL, scope = "", graficador = NULL) {
       sid <- session_header(req)
       session_get(sid)
       consolidado <- identical(tolower(trimws(as.character(scope %||% "")[1])), "consolidado")
@@ -17,6 +17,8 @@ mount_graficos_categorias <- function(pr) {
         stop_api(409, "E_NO_VALID_RP_DATA", "La fuente procesada para Gráficos no está disponible o quedó incompleta.")
       }
       # Una `var` sin base (`p7`) se resuelve contra la base activa; en el consolidado no hay activa: la primera.
-      .graficos_categorias_payload(sources, var, base_activa = if (consolidado) NULL else .graficos_active_base_name(sid))
+      # `graficador` (opcional) sólo decide el aviso de escala de `avisos`.
+      .graficos_categorias_payload(sources, var, base_activa = if (consolidado) NULL else .graficos_active_base_name(sid),
+                                   graficador = graficador)
     }))
 }
