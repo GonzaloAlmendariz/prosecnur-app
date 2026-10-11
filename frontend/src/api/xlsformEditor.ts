@@ -2003,8 +2003,16 @@ export type CargaReviewFuente = {
   n_excluidas_consentimiento: number;
 };
 
+/** Opciones de la encuesta principal que no estaban en su lista: quedaron vacías. */
+export type CargaReviewOpcionesPrincipal = {
+  opciones_sin_par: Array<{ variable: string; n: number }>;
+  n_opciones_sin_par: number;
+};
+
 export type CargaReviewFuentes = {
   fuentes: CargaReviewFuente[];
+  /** Puede venir sin fuentes: una base de una sola encuesta también lo declara. */
+  principal: CargaReviewOpcionesPrincipal | null;
 };
 
 export type CargaReviewPayload = {
@@ -2102,8 +2110,24 @@ export function normalizeCargaReviewFuentes(raw: unknown): CargaReviewFuentes | 
         n_excluidas_consentimiento: Math.max(0, reconNumber(reviewScalar(entry.n_excluidas_consentimiento))),
       };
     });
-  if (!fuentes.length) return null;
-  return { fuentes };
+  const principal = normalizeCargaReviewOpcionesPrincipal(r.principal);
+  if (!fuentes.length && !principal) return null;
+  return { fuentes, principal };
+}
+
+function normalizeCargaReviewOpcionesPrincipal(raw: unknown): CargaReviewOpcionesPrincipal | null {
+  const r = reconRecord(raw);
+  const opciones = normalizeShareArray<unknown>(r.opciones_sin_par)
+    .map((entry) => reconRecord(entry))
+    .map((entry) => ({
+      variable: reviewText(entry.variable),
+      n: Math.max(0, reconNumber(reviewScalar(entry.n))),
+    }))
+    .filter((entry) => entry.variable && entry.n > 0);
+  const total = Math.max(0, reconNumber(reviewScalar(r.n_opciones_sin_par)))
+    || opciones.reduce((acc, entry) => acc + entry.n, 0);
+  if (!total) return null;
+  return { opciones_sin_par: opciones, n_opciones_sin_par: total };
 }
 
 function reviewBoolean(value: unknown): boolean {
