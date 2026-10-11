@@ -7,6 +7,9 @@ import { normalizarAvisosConfig, publicarAvisosConfig } from "./graficosAvisosCo
 import { normalizeGraficosCategorias, type GraficosCategorias } from "./graficosCategoriasNormalizer";
 import { normalizeGraficosConfigBundle } from "./graficosConfigNormalizer";
 import type { JobStart } from "./jobs";
+import type { WordFijado } from "./graficosWordFijado";
+
+export type { WordFijado, WordFijadoValor } from "./graficosWordFijado";
 
 // ---------- Gráficos (PPT/Word) ----------
 //
@@ -423,6 +426,8 @@ export type PresetMetadata = {
   icono_ui: string;
   args: ArgMetadata[];
   calculos?: PresetCalculosMeta;
+  /** Ajustes del Word que fija el recetario (`normalizeWordFijado`). Ausente = el Word respeta todos los args. */
+  word_fijado?: WordFijado[];
 };
 
 export type PresetsRegistry = {

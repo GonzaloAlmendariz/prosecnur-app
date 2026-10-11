@@ -78,6 +78,7 @@ export function ArgGroup({
   onResetArg,
   headerAction,
   bodyIntro,
+  reemplazoDeArg,
 }: {
   grupo: ArgGrupo;
   args: ArgMetadata[];
@@ -99,6 +100,9 @@ export function ArgGroup({
   headerAction?: ReactNode;
   /** Contenido opcional antes de los campos (ej. editor visual del layout). */
   bodyIntro?: ReactNode;
+  /** Si devuelve un nodo, se pinta en lugar del ArgField de ese arg (ej. la línea cerrada «Lo fija el recetario» del
+   *  editor Word). `null`/`undefined` = el ArgField de siempre. */
+  reemplazoDeArg?: (meta: ArgMetadata) => ReactNode | null | undefined;
 }) {
   const normalizedGrupo = normalizeArgGroup(grupo);
   const meta = GRUPO_META[normalizedGrupo];
@@ -121,7 +125,7 @@ export function ArgGroup({
   if (flatten) {
     return (
       <div className="pulso-gv2-arg-body pulso-gv2-arg-body--flat">
-        {args.map((a) => (
+        {args.map((a) => reemplazoDeArg?.(a) ?? (
           <ArgField
             key={a.name}
             meta={a}
@@ -174,7 +178,7 @@ export function ArgGroup({
             {bodyIntro}
           </div>
         )}
-        {args.map((a) => (
+        {args.map((a) => reemplazoDeArg?.(a) ?? (
           <ArgField
             key={a.name}
             meta={a}

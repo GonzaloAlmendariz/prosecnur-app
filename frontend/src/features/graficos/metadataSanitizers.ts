@@ -20,6 +20,7 @@ import type {
   SlideSlotRole,
   SlideSlotSpec,
 } from "../../api/client";
+import { normalizeWordFijado } from "../../api/graficosWordFijado";
 import { safeText } from "./safeText";
 import { resolveGraficadorContract } from "./slidePreviewModel";
 
@@ -454,6 +455,7 @@ export function normalizePresetsRegistry(value: unknown): PresetsRegistry {
           const preset = asRecord(value) ?? {};
           const name = safeText(preset.name).trim();
           const calculos = normalizeCalculosMeta(preset.calculos);
+          const wordFijado = normalizeWordFijado(preset.word_fijado);
           return {
             name,
             titulo_humano: safeText(preset.titulo_humano, name).trim() || name,
@@ -461,6 +463,7 @@ export function normalizePresetsRegistry(value: unknown): PresetsRegistry {
             icono_ui: safeText(preset.icono_ui, "Sliders").trim() || "Sliders",
             args: Array.isArray(preset.args) ? preset.args.map(normalizeArgMetadata) : [],
             ...(calculos ? { calculos } : {}),
+            ...(wordFijado.length > 0 ? { word_fijado: wordFijado } : {}),
           };
         })
       : [],

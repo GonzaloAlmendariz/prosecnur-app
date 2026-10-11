@@ -9,6 +9,8 @@ import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 import { resolveActiveChartLayoutOrigin } from "./chartLayoutOrigin";
+import { GrupoFijadosRecetario, LineaFijadaRecetario } from "./LineaFijadaRecetario";
+import { decisionesSinFijados, fijadosPorArg, partirArgsPorFijado } from "./wordFijado";
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -41,9 +43,14 @@ export function WordPresetsEditor() {
   // valores no vacíos: con el default completo en el estado, todo tipo parecía ajustado.
   const referencia = resolveWordPresetsDefaults(configDefaults);
   const defaultChartPresets = wordChartPresets(referencia);
-  const decisiones = wordChartPresetsDecisiones(wPresets, referencia);
-  const hideDuplicateLabel = chartOptions.ocultar_etiqueta_si_titulo !== false;
+  const decisionesGuardadas = wordChartPresetsDecisiones(wPresets, referencia);
   const editablePresets = presets.filter((p) => p.name !== "base" && p.name !== "debug");
+  // Un ajuste que fija el recetario no llega al Word: aunque el proyecto guarde un valor viejo no es «Modificado» (5a).
+  const decisiones = decisionesSinFijados(
+    decisionesGuardadas,
+    Object.fromEntries(editablePresets.map((p) => [p.name, p.word_fijado])),
+  );
+  const hideDuplicateLabel = chartOptions.ocultar_etiqueta_si_titulo !== false;
   const meta = editablePresets.find((p) => p.name === selected) ?? editablePresets[0];
   if (!meta) return null;
 
@@ -53,6 +60,9 @@ export function WordPresetsEditor() {
   const hasSelectedChanges = selectedPatchCount > 0;
   const wordTunedCount = editablePresets.filter((p) => decisiones[p.name] !== undefined).length;
   const layoutOrigin = resolveActiveChartLayoutOrigin(selectedPatch);
+  const fijados = fijadosPorArg(meta.word_fijado);
+  const { editables: argsEditables, fijadosSueltos } = partirArgsPorFijado(meta.args, meta.word_fijado);
+  const decisionesDelTipo = decisionesGuardadas[meta.name] ?? {};
 
   function setChartOptions(nextOptions: Record<string, unknown>) {
     setWPresets({
@@ -228,13 +238,13 @@ export function WordPresetsEditor() {
           <WordSourceRail
             metaName={meta.name}
             metaLabel={meta.titulo_humano}
-            editableArgCount={meta.args.length}
+            editableArgCount={argsEditables.length}
             selectedPatchCount={selectedPatchCount}
             hasChanges={hasSelectedChanges}
           />
 
           <div className="pulso-gv2-word-args">
-            {gruposDeArgs.length === 0 ? (
+            {gruposDeArgs.length === 0 && fijadosSueltos.length === 0 ? (
               <div className="pulso-gv2-word-empty">
                 Este gráfico no tiene ajustes visuales disponibles para Word.
               </div>
@@ -249,10 +259,16 @@ export function WordPresetsEditor() {
                   onChangeArg={(name, val) => setPresetArg(meta.name, name, val)}
                   onResetArg={(name) => setPresetArg(meta.name, name, null)}
                   variables={[]}
-                  bodyIntro={normalizeArgGroup(grupo) === "espacio" && hasChartLayoutSpec(meta.name, meta.args) ? (
+                  reemplazoDeArg={(a) => {
+                    const fijado = fijados[a.name];
+                    return fijado ? (
+                      <LineaFijadaRecetario key={a.name} fijado={fijado} meta={a} guardado={decisionesDelTipo[a.name]} />
+                    ) : null;
+                  }}
+                  bodyIntro={normalizeArgGroup(grupo) === "espacio" && hasChartLayoutSpec(meta.name, argsEditables) ? (
                     <ChartLayoutEditor
                       presetType={meta.name}
-                      args={meta.args}
+                      args={argsEditables}
                       values={selectedPatch}
                       inheritedValues={inherited}
                       origin={layoutOrigin}
@@ -264,6 +280,7 @@ export function WordPresetsEditor() {
                 />
               ))
             )}
+            <GrupoFijadosRecetario fijados={fijadosSueltos} guardados={decisionesDelTipo} />
           </div>
         </section>
       </div>
