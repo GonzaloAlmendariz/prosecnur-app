@@ -76,6 +76,7 @@ import { useCargaStore, type CargaTopologyIntent, type MultiBaseStrategy } from 
 import {
   CARGA_WORKSPACE_TABS,
   resolveCargaWorkspaceTab,
+  equivalenciasDisponibles,
   type CargaWorkspaceContext,
   type CargaWorkspaceTab,
 } from "./CargaWorkspaceModel";
@@ -94,6 +95,13 @@ import {
 import { sourceInputCount, type ProcessingSourcesProfile } from "./CargaSourcesModel";
 import { CargaPlatformImportPanel } from "./CargaPlatformImportPanel";
 import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
+import {
+  CARGA_REVISION_SIN_LEER,
+  baseRevisadaElegida,
+  cargaRevisionEstadoLectura,
+  type CargaRevisionLectura,
+} from "./cargaRevisionLecturaModel";
+import { baseDeLaDireccion } from "./fuentesEmparejamientoModel";
 
 // Fase 1 — Carga de insumos.
 //
@@ -271,6 +279,9 @@ export default function CargaPage() {
   // adaptación de `reconciliation`, sin mantener un segundo motor de decisión.
   const [cargaReview, setCargaReview] = useState<CargaReviewPayload | null>(null);
   const [cargaReviewSummary, setCargaReviewSummary] = useState<CargaReviewSummaryPayload | null>(null);
+  // Para qué base terminó cada lectura de Revisión: sin ella la vista se
+  // declaraba lista y «Sin incidencias» mientras todavía leía.
+  const [revisionLectura, setRevisionLectura] = useState<CargaRevisionLectura>(CARGA_REVISION_SIN_LEER);
   const [reconDialogOpen, setReconDialogOpen] = useState(false);
   const planningSeedRef = useRef("");
   const reconInfo = cargaReview ? reviewReconciliationInfo(cargaReview) : null;
@@ -769,6 +780,23 @@ export default function CargaPage() {
     || cargaReview.choice_mapping.pending
     || cargaReview.reconciliation.n_pendientes > 0
   ));
+  const revisionEstado = cargaRevisionEstadoLectura({
+    isMultiBase,
+    baseSeleccionada: selectedCargaBase,
+    basesPrimarias: topologyBases.map((base) => base.nombre),
+    insumosListos: Boolean(state?.instrumento_parsed && state?.data_previewed),
+    // Con la misma condición con que cada rama monta el filtro de universo.
+    universoBase: isMultiBase
+      ? selectedCargaBase || null
+      : hasData && !pendingChoiceMapping ? "" : null,
+    lectura: revisionLectura,
+  });
+  function marcarLecturaUniverso(base: string, leida: boolean) {
+    setRevisionLectura((lectura) => ({ ...lectura, universo: leida ? base : null }));
+  }
+  // `foco=<base>:<survey_id>` del panel de emparejamiento: la base que nombra
+  // el enlace es la que Revisión debe mostrar.
+  const baseDelEnlace = baseDeLaDireccion(cargaDireccion.panel, cargaDireccion.foco);
   const workspaceContext: CargaWorkspaceContext = {
     hasInstrument: workspaceHasInstrument,
     hasData: workspaceHasData,
@@ -779,12 +807,16 @@ export default function CargaPage() {
     instrumentBaseCount: isMultiBase ? multiBaseInstrumentCount : undefined,
     dataBaseCount: isMultiBase ? multiBaseDataCount : undefined,
     // ADR 0062: la equivalencia entre públicos sólo significa algo cuando las
-    // bases NO comparten instrumento. Espejo del predicado que el backend usa
-    // para scopear la config de Analítica (ADR 0061).
-    basesSeparadas:
-      (declaredTopology === "separate" || declaredTopology === "independent")
-      && topologyBases.length > 1,
+    // bases NO comparten instrumento. Espejo del predicado del backend (ADR 0061).
+    basesSeparadas: equivalenciasDisponibles({
+      topologiaDeclarada: declaredTopology,
+      modoProcesamiento: state?.estudio_processing_mode,
+      basesPrimarias: topologyBases.length,
+    }),
     equivalenciasDeclaradas: equivalenciasFilas,
+    // Solo mientras se mira Revisión: en otras pestañas no se lee y la marca
+    // se quedaría en «Revisando…» para siempre.
+    revisionLeyendo: cargaDireccion.pestana === "revision" && !revisionEstado.datosLeidos,
   };
   const activeCargaTab = resolveCargaWorkspaceTab(cargaDireccion.pestana, workspaceContext);
   const cargaPlanActive = activeCargaTab === CARGA_WORKSPACE_TABS[0].key;
@@ -794,13 +826,14 @@ export default function CargaPage() {
   // en esta pestaña.
   useEffect(() => {
     if (activeCargaTab !== "revision" || !isMultiBase || topologyBases.length === 0) return;
-    const primaryNames = new Set(topologyBases.map((base) => base.nombre));
-    setSelectedCargaBase((current) => {
-      if (primaryNames.has(current)) return current;
-      if (estudio?.active_base && primaryNames.has(estudio.active_base)) return estudio.active_base;
-      return topologyBases[0]?.nombre ?? "";
-    });
-  }, [activeCargaTab, cargaBaseSignature, estudio?.active_base, isMultiBase]);
+    const basesPrimarias = topologyBases.map((base) => base.nombre);
+    setSelectedCargaBase((actual) => baseRevisadaElegida({
+      actual,
+      basesPrimarias,
+      baseDeLaDireccion: baseDelEnlace,
+      baseActiva: estudio?.active_base,
+    }));
+  }, [activeCargaTab, baseDelEnlace, cargaBaseSignature, estudio?.active_base, isMultiBase]);
 
   // La lectura depende de pestaña + base. No usa el endpoint legacy que resolvía
   // implícitamente contra `active_base` y podía guardar otra base distinta.
@@ -818,12 +851,17 @@ export default function CargaPage() {
     }
     let cancelled = false;
     setCargaReview(null);
+    setRevisionLectura((lectura) => ({ ...lectura, revision: null }));
     apiCargaReview(selectedCargaBase)
       .then((review) => {
         if (!cancelled) setCargaReview(review);
       })
       .catch(() => {
         if (!cancelled) setCargaReview(null);
+      })
+      .finally(() => {
+        // La base de esta corrida del efecto: un cambio posterior la cancela.
+        if (!cancelled) setRevisionLectura((lectura) => ({ ...lectura, revision: selectedCargaBase }));
       });
     return () => { cancelled = true; };
   }, [activeCargaTab, cargaBaseSignature, isMultiBase, selectedCargaBase, state?.data_previewed, state?.instrumento_parsed]);
@@ -837,12 +875,16 @@ export default function CargaPage() {
     }
     let cancelled = false;
     setCargaReviewSummary(null);
+    setRevisionLectura((lectura) => ({ ...lectura, resumen: false }));
     apiCargaReviewSummary()
       .then((summary) => {
         if (!cancelled) setCargaReviewSummary(summary);
       })
       .catch(() => {
         if (!cancelled) setCargaReviewSummary(null);
+      })
+      .finally(() => {
+        if (!cancelled) setRevisionLectura((lectura) => ({ ...lectura, resumen: true }));
       });
     return () => { cancelled = true; };
   }, [activeCargaTab, cargaBaseSignature, isMultiBase]);
@@ -1173,7 +1215,14 @@ export default function CargaPage() {
       bodyMode="fill"
       layout="workbench"
       scrollOwner="panels"
-      auditReady={isMultiBase && !estudio ? false : `carga-${activeCargaTab}`}
+      // La marca se escribe "false", no se omite: sin ella el runtime toma la
+      // primera marca descendiente (la del panel de variables extra dice
+      // "true") y daba Revisión por lista mientras todavía leía.
+      auditReady={
+        (isMultiBase && !estudio) || (activeCargaTab === "revision" && !revisionEstado.completa)
+          ? "false"
+          : `carga-${activeCargaTab}`
+      }
     >
       {(busy || error || handoffMessage) && (
         <div ref={feedbackRef} className="pulso-feedback-stack pulso-feedback-stack--upload">
@@ -1235,7 +1284,7 @@ export default function CargaPage() {
         <AdaptiveSplitView
           ariaLabel="Mesa de trabajo de varias bases"
           railLabel="Pestañas de carga"
-          className="pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout"
+          className={`pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout${activeCargaTab === "revision" ? " pulso-carga-workbench--revision" : ""}`}
           rail={(
             <CargaWorkspaceNavigation
               active={activeCargaTab}
@@ -1310,8 +1359,11 @@ export default function CargaPage() {
               <>
                 <div className="pulso-carga-review-toolbar">
                   <label className="pulso-carga-review-base-field">
-                    <span>Base revisada</span>
+                    <span id="pulso-carga-review-base-label">Base revisada</span>
+                    {/* Nombre por `aria-labelledby`: dentro del label, el nombre
+                        accesible arrastraba la opción elegida. */}
                     <select
+                      aria-labelledby="pulso-carga-review-base-label"
                       value={selectedCargaBase}
                       onChange={(event) => setSelectedCargaBase(event.target.value)}
                       disabled={!!busy}
@@ -1341,6 +1393,7 @@ export default function CargaPage() {
                   <CargaUniverseFilter
                     baseNombre={selectedCargaBase}
                     disabled={!!busy}
+                    onLectura={marcarLecturaUniverso}
                     onApplied={() => {
                       void apiEstudioGet()
                         .then(async (payload) => {
@@ -1364,6 +1417,8 @@ export default function CargaPage() {
                   review={cargaReview}
                   reviewSummary={cargaReviewSummary}
                   action={cargaReviewSummary?.all_ready && !busy && !error ? <ContinuarCTA /> : undefined}
+                  leyendo={!revisionEstado.datosLeidos}
+                  baseSeleccionada={selectedCargaBase}
                 />
               </>
             ) : activeCargaTab === "equivalencias" ? (
@@ -1743,6 +1798,7 @@ export default function CargaPage() {
               {hasData && !pendingChoiceMapping && (
                 <CargaUniverseFilter
                   disabled={!!busy}
+                  onLectura={marcarLecturaUniverso}
                   onApplied={() => {
                     void refresh()
                       .then(() => loadReconciliacion(false))
@@ -1760,6 +1816,7 @@ export default function CargaPage() {
                 bases={state?.n_bases ?? 0}
                 review={cargaReview}
                 action={cargaReview?.ready && allReady && !busy && !error ? <ContinuarCTA /> : undefined}
+                leyendo={!revisionEstado.datosLeidos}
               />
             </>
             ) : activeCargaTab === "equivalencias" ? (

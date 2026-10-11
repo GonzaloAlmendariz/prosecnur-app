@@ -54,3 +54,44 @@
 .pulso-carga-review-findings li.is-info > svg {
   color: var(--pulso-text-soft);
 }
+
+/*
+ * C3/C4 en escritorios bajos (alto <= 720 px o preset «short»): Revisión crece
+ * con su contenido y el único dueño del scroll es el cuerpo del PageFrame.
+ *
+ * `carga-v2.css` ya pide esa degradación para el workbench multibase, pero sus
+ * selectores (0,2,0) pierden contra los de `scroll-panels` del PageFrame
+ * (0,3,0), que fijan `height: 100%` y `flex: 1 1 auto`: el workbench quedaba
+ * con el alto restante (393 px a 1024x600) y `overflow: visible`, y la tarjeta
+ * de resumen se pintaba por debajo de su fondo y su rail, sobre la cuadrícula.
+ * Aquí se gana por especificidad, no por orden de carga, y solo en Revisión.
+ * `flex: 1 0 auto`: llena el alto disponible si el contenido es menor (sin
+ * franja vacía bajo el workbench) y nunca se encoge por debajo de él.
+ */
+@media (max-height: 720px) {
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--revision {
+    flex: 1 0 auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--revision > .pulso-adaptive-main,
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--revision .pulso-carga-scrollarea {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+}
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--revision {
+  flex: 1 0 auto;
+  height: auto;
+  min-height: 0;
+}
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--revision > .pulso-adaptive-main,
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--revision .pulso-carga-scrollarea {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}

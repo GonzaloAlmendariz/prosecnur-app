@@ -26,7 +26,7 @@ export function SmEstructuraFuenteAccion({
   estudio,
 }: {
   diffs: readonly Pick<SurveyMonkeyMultibaseDiff, "kind">[] | null | undefined;
-  estudio: Pick<EstudioPayload, "topology_declared" | "bases">;
+  estudio: Pick<EstudioPayload, "topology_declared" | "processing_mode" | "bases">;
 }) {
   const carga = useSeccion("procesamiento");
   // Una base armada por posición se corrige regenerándola; se dice antes que

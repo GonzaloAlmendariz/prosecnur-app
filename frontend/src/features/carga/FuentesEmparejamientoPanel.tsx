@@ -1,10 +1,11 @@
 // Panel lateral «Cómo se emparejaron las preguntas de <fuente>» (ADR 0094,
 // ítem 15 del checklist `codificacion-sm-2026-10-11`).
 //
-// Direccionable: `?panel=emparejamiento&foco=<survey_id>`. Lo abre «Ver
+// Direccionable: `?panel=emparejamiento&foco=<base>:<survey_id>`. Lo abre «Ver
 // preguntas» en cada tarjeta de fuente de Carga › Revisión, y también un enlace
-// guardado. El diálogo de Radix pone el foco dentro, cierra con Esc y atrapa el
-// tabulador; al cerrar, el foco vuelve al botón que lo abrió.
+// guardado: la base viaja en el foco, así que recargar abre la misma fuente de
+// la misma base. El diálogo de Radix pone el foco en el título, cierra con Esc y
+// atrapa el tabulador; al cerrar, el foco vuelve al botón que lo abrió.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -14,13 +15,12 @@ import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 import {
   hrefSinFoco,
+  leerFocoFuente,
   searchConEmparejamiento,
   searchSinEmparejamiento,
   type EmparejamientoFiltro,
 } from "./fuentesEmparejamientoModel";
 import {
-  EMPAREJAMIENTO_DESCRIPCION_ID,
-  EMPAREJAMIENTO_TITULO_ID,
   FuentesEmparejamientoVista,
   type EmparejamientoCarga,
 } from "./FuentesEmparejamientoVista";
@@ -29,8 +29,10 @@ import "./fuentesEmparejamiento.css";
 
 type Props = {
   /**
-   * Base cuyas fuentes se describen. `undefined` mientras Revisión no sabe
-   * todavía qué base mira: el panel espera en vez de pedir la base equivocada.
+   * Base que Revisión está mirando. Solo cuenta si el `foco` no nombra la suya
+   * (enlaces anteriores a que la base viajara en la dirección). `undefined`
+   * mientras Revisión no sabe todavía qué base mira: el panel espera en vez de
+   * pedir la base equivocada.
    */
   baseNombre: string | null | undefined;
 };
@@ -40,7 +42,11 @@ function PanelConDireccion({ baseNombre }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const procesamiento = useSeccion("procesamiento");
-  const foco = procesamiento.foco?.trim() || null;
+  const focoFuente = leerFocoFuente(procesamiento.foco);
+  // La fuente pedida, sin su base: es lo que identifica la fila en el payload.
+  const foco = focoFuente?.surveyId ?? null;
+  // La base la decide la dirección; la de Revisión es el respaldo.
+  const base = focoFuente?.base ?? baseNombre;
 
   const [carga, setCarga] = useState<EmparejamientoCarga>({ tipo: "cargando" });
   // El filtro elegido vale para la fuente en que se eligió; otra fuente vuelve
@@ -53,12 +59,12 @@ function PanelConDireccion({ baseNombre }: Props) {
   const ultimoFoco = useRef<string | null>(null);
   if (panel.abierto) ultimoFoco.current = foco;
 
-  const esperandoBase = baseNombre === undefined;
+  const esperandoBase = base === undefined;
   useEffect(() => {
     if (!panel.abierto || esperandoBase) return;
     let vigente = true;
     setCarga({ tipo: "cargando" });
-    apiCargaFuentesEmparejamiento(baseNombre)
+    apiCargaFuentesEmparejamiento(base)
       .then((datos) => {
         if (vigente) setCarga({ tipo: "listo", datos });
       })
@@ -68,7 +74,7 @@ function PanelConDireccion({ baseNombre }: Props) {
     return () => {
       vigente = false;
     };
-  }, [panel.abierto, esperandoBase, baseNombre]);
+  }, [panel.abierto, esperandoBase, base]);
 
   const escribir = useCallback(
     (search: string) => navigate({ pathname: location.pathname, search }, { replace: true }),
@@ -76,8 +82,8 @@ function PanelConDireccion({ baseNombre }: Props) {
   );
   const cerrar = useCallback(() => escribir(searchSinEmparejamiento(location.search)), [escribir, location.search]);
   const elegirFuente = useCallback(
-    (surveyId: string) => escribir(searchConEmparejamiento(location.search, surveyId)),
-    [escribir, location.search],
+    (surveyId: string) => escribir(searchConEmparejamiento(location.search, surveyId, base)),
+    [base, escribir, location.search],
   );
 
   const contenido = useRef<HTMLDivElement | null>(null);
@@ -90,9 +96,7 @@ function PanelConDireccion({ baseNombre }: Props) {
           ref={contenido}
           className="pulso-emparejamiento"
           {...panel.props}
-          data-audit-ready={carga.tipo === "cargando" ? "false" : "true"}
-          aria-labelledby={EMPAREJAMIENTO_TITULO_ID}
-          aria-describedby={EMPAREJAMIENTO_DESCRIPCION_ID}
+          data-audit-ready={carga.tipo === "cargando" || esperandoBase ? "false" : "true"}
           onOpenAutoFocus={(event) => {
             // El foco va al título: se lee qué es el panel antes de llegar a
             // sus controles.

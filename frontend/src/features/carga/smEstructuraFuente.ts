@@ -12,6 +12,7 @@ import type {
   SurveyMonkeyMultibaseDiff,
   SurveyMonkeyRefreshBasePlan,
 } from "../../api/client";
+import { equivalenciasDisponibles } from "./CargaWorkspaceModel";
 
 /** Qué hacer cuando una fuente resulta ser otro instrumento. */
 export const SM_ACCION_INSTRUMENTO_DISTINTO =
@@ -166,13 +167,15 @@ export function smRefreshStructureDetail(
  * pide.
  */
 export function equivalenciasDisponibleEnEstudio(
-  estudio: Pick<EstudioPayload, "topology_declared" | "bases"> | null | undefined,
+  estudio: Pick<EstudioPayload, "topology_declared" | "processing_mode" | "bases"> | null | undefined,
 ): boolean {
   if (!estudio) return false;
-  const topology = estudio.topology_declared ?? null;
-  if (topology !== "separate" && topology !== "independent") return false;
   const primarias = Object.values(estudio.bases ?? {}).filter(
     (base) => base.source_kind !== "kobo_repeat" && !base.parent_base,
   );
-  return primarias.length > 1;
+  return equivalenciasDisponibles({
+    topologiaDeclarada: estudio.topology_declared ?? null,
+    modoProcesamiento: estudio.processing_mode ?? null,
+    basesPrimarias: primarias.length,
+  });
 }

@@ -16,6 +16,14 @@ const findingsStyleSource = fs.readFileSync(
   fileURLToPath(new URL("./CargaReviewSummary.css", import.meta.url)),
   "utf8",
 );
+const fuentesFindingsSource = fs.readFileSync(
+  fileURLToPath(new URL("./CargaReviewFuentesFindings.tsx", import.meta.url)),
+  "utf8",
+);
+const verPreguntasSource = fs.readFileSync(
+  fileURLToPath(new URL("./VerPreguntasFuenteBoton.tsx", import.meta.url)),
+  "utf8",
+);
 
 function reviewCheck(html: string, label: "Instrumento" | "Respuestas") {
   const item = html
@@ -520,5 +528,65 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
     const item = finding(html, "otro orden de opciones");
     expect(item).toContain('class="is-pending"');
     expect(item).toContain("La base conserva el orden con que se importó en p5.");
+  });
+
+  it("mientras lee la base elegida no afirma nada ni muestra los hallazgos de la anterior", () => {
+    const fuentes = { principal: null, fuentes: [{ ...fuente, reordenada: true }] };
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        isMultiBase
+        bases={3}
+        instrumentBaseCount={3}
+        dataBaseCount={3}
+        review={{ ...reviewLimpio, base_nombre: "docentes", fuentes }}
+        reviewSummary={{ n_bases: 3, n_ready: 3, n_blocked: 0, all_ready: true, bases: [] }}
+        action={<a href="/validacion">Ir a Validación</a>}
+        leyendo
+        baseSeleccionada="estudiantes"
+      />,
+    );
+    expect(html).toContain("Revisando la base");
+    expect(html).toContain("Base revisada: estudiantes");
+    expect(html).not.toContain("docentes");
+    expect(html).not.toMatch(/Sin bloqueos|sin incidencias|Listo|bases sin bloqueos/iu);
+    expect(html).not.toContain("carga-review-findings");
+    expect(html).not.toContain("Ir a Validación");
+    expect(html).toContain('aria-busy="true"');
+  });
+
+  it("C1: las tres comprobaciones declaran su grupo de geometría igual", () => {
+    const html = renderToStaticMarkup(<CargaReviewSummary {...baseProps} review={reviewLimpio} />);
+    expect(html).toMatch(
+      /<ul class="pulso-carga-review-checks"[^>]*data-qa-geometry-group="carga-review-checks"[^>]*data-qa-geometry-contract="equal"/u,
+    );
+  });
+
+  it("«Ver preguntas» abre la fuente de su base: el foco de la dirección la lleva", () => {
+    expect(fuentesFindingsSource).toMatch(/baseNombre=\{baseNombre\}/u);
+    expect(verPreguntasSource).toMatch(/searchConEmparejamiento\(location\.search, props\.surveyId, props\.baseNombre\)/u);
+  });
+
+  it("el selector de Revisión se llama «Base revisada», sin arrastrar la opción elegida", () => {
+    expect(pageSource).toMatch(
+      /<span id="pulso-carga-review-base-label">Base revisada<\/span>[\s\S]*?<select\s+aria-labelledby="pulso-carga-review-base-label"/u,
+    );
+  });
+
+  it("C3/C4: en escritorios bajos Revisión crece y el scroll es del PageFrame, ganando por especificidad", () => {
+    // Medido 2026-10-11 a 1024x600: workbench de 393 px con contenido de 543 px.
+    expect(findingsStyleSource).toMatch(
+      /@media \(max-height: 720px\) \{\s*:root \.pulso-carga-frame\.pulso-page-frame--scroll-panels \.pulso-page-frame-body > \.pulso-carga-workbench--revision \{[^}]*flex: 1 0 auto;[^}]*height: auto;/u,
+    );
+    expect(findingsStyleSource).toMatch(
+      /:root\[data-pulso-layout-mode="short"\] \.pulso-carga-frame\.pulso-page-frame--scroll-panels \.pulso-carga-workbench--revision \.pulso-carga-scrollarea \{[^}]*overflow: visible;/u,
+    );
+    expect(pageSource).toContain('activeCargaTab === "revision" ? " pulso-carga-workbench--revision" : ""');
+  });
+
+  it("la readiness de Revisión espera a la lectura de la base elegida y se escribe en false", () => {
+    expect(pageSource).toMatch(/activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\?\s*"false"/u);
+    expect(pageSource).toMatch(/revisionLeyendo: cargaDireccion\.pestana === "revision" && !revisionEstado\.datosLeidos/u);
+    expect(pageSource).toMatch(/leyendo=\{!revisionEstado\.datosLeidos\}/u);
   });
 });

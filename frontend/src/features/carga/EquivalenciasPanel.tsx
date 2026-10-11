@@ -10,7 +10,7 @@
 // La superficie tiene dos entradas deliberadas y en este orden: generar la
 // plantilla poblada (la vía principal del ADR) y subir una ya escrita.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCheck,
@@ -92,6 +92,26 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   // el mazo. La tabla plana se conserva porque sigue siendo la mejor forma de
   // barrer 150 temas buscando uno.
   const [vista, setVista] = useState<"diapositivas" | "tabla">("diapositivas");
+  const archivoRef = useRef<HTMLInputElement>(null);
+  const observadorBarra = useRef<ResizeObserver | null>(null);
+
+  // La barra de vistas queda fija arriba del dueño de scroll y la cabecera de la
+  // Lista se pega justo debajo. Su alto se mide en vez de suponerse: la barra
+  // envuelve cuando no cabe y un `top` fijo dejaría la cabecera tapada. Ref de
+  // callback y no efecto: la barra aparece cuando llegan filas, en un render que
+  // ninguna dependencia del efecto distingue.
+  const barraRef = useCallback((barra: HTMLDivElement | null) => {
+    observadorBarra.current?.disconnect();
+    observadorBarra.current = null;
+    const seccion = barra?.closest<HTMLElement>(".pulso-equiv");
+    if (!barra || !seccion) return;
+    const aplicar = () =>
+      seccion.style.setProperty("--pulso-equiv-barra-alto", `${barra.offsetHeight}px`);
+    aplicar();
+    if (typeof ResizeObserver === "undefined") return;
+    observadorBarra.current = new ResizeObserver(aplicar);
+    observadorBarra.current.observe(barra);
+  }, []);
 
   // ADR 0064 regla 8: la agrupación se PROPONE. Se aplica al editor como una
   // edición más —visible en las tarjetas, revertible sin guardar— y sólo se
@@ -272,6 +292,12 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   // `align-content: start`, asi que estirar esta superficie fabricaria vacio
   // interior en vez de mostrar mas datos. El espacio de abajo pertenece al area
   // de scroll, igual que en sus hermanas.
+  //
+  // C4: el dueño del scroll es el de Carga (`.pulso-carga-scrollarea`, o el
+  // cuerpo del marco en escritorio bajo), no esta superficie. Con un scroll
+  // propio, la grilla de Carga la encogía al alto sobrante y a 1024x600 la
+  // región de datos mostraba 2 filas de 52. La barra de vistas, la cabecera de
+  // la Lista y el pie con Guardar se pegan a ese dueño.
   return (
     <section
       className="pulso-equiv"
@@ -279,7 +305,9 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       data-qa-geometry-group="carga-equivalencias"
       data-qa-geometry-contract="intrinsic"
     >
-      <header className="pulso-equiv-head">
+      {/* C1: los miembros son la cabecera y el cuerpo. El aviso y el error son
+          estado transitorio de la última acción, no secciones de la superficie. */}
+      <header className="pulso-equiv-head" data-qa-geometry-member>
         <div className="pulso-equiv-title">
           <GitCompare size={18} aria-hidden="true" />
           <div>
@@ -310,20 +338,36 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             <Sparkles size={14} aria-hidden="true" />
             Proponer emparejados
           </button>
-          <label className="pulso-secondary pulso-equiv-btn pulso-equiv-btn-file">
+          {/* Un `button` real y no un `label` vestido de botón: el label no
+              recibía el estilo de sus hermanos (16px/400, sin borde, 18 px de
+              alto). El botón es el control —nombre, foco visible y Enter/Espacio
+              nativos— y abre el selector de archivo, que queda fuera del orden
+              de tabulación para no duplicar la parada. */}
+          <button
+            type="button"
+            className="pulso-secondary pulso-equiv-btn"
+            onClick={() => archivoRef.current?.click()}
+            disabled={ocupado !== ""}
+            aria-controls="pulso-equiv-archivo"
+          >
             <Upload size={14} aria-hidden="true" />
             Subir matriz
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              disabled={ocupado !== ""}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) void onSubir(file);
-              }}
-            />
-          </label>
+          </button>
+          <input
+            ref={archivoRef}
+            id="pulso-equiv-archivo"
+            className="pulso-equiv-archivo"
+            type="file"
+            accept=".xlsx,.xls"
+            tabIndex={-1}
+            aria-label="Matriz de equivalencias (.xlsx)"
+            disabled={ocupado !== ""}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void onSubir(file);
+            }}
+          />
         </div>
       </header>
 
@@ -338,12 +382,13 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
           capacidad. No se deja aire suelto en el panel. */}
       <div
         className="pulso-equiv-cuerpo"
+        data-qa-geometry-member
         data-qa-geometry-capacity="owned"
         data-surface-contract="carga-equivalencias"
       >
         {filas.length > 0 ? (
           <>
-            <div className="pulso-equiv-vistas" role="group" aria-label="Forma de ver la declaración">
+            <div ref={barraRef} className="pulso-equiv-vistas" role="group" aria-label="Forma de ver la declaración">
               <button
                 type="button"
                 className={vista === "diapositivas" ? "is-active" : ""}

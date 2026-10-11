@@ -79,8 +79,8 @@ describe("FuentesEmparejamientoVista", () => {
     expect(html).not.toContain(">¿Cuál es su género?<");
     // El nombre distinto se resalta y el estado lleva texto.
     expect(html).toContain('<code class="pulso-emparejamiento-var is-distinto">p3</code>');
-    expect(html).toContain("Ambigua — no se emparejó");
-    expect(html).toContain("No entró a la base");
+    expect(html).toContain(">Ambigua<");
+    expect(html).toContain(">No entró<");
     // Cabeceras semánticas, con la columna nombrada por la fuente.
     expect(html).toContain('<th scope="col">Pregunta</th>');
     expect(html).toContain("En Egresados Telefónico");

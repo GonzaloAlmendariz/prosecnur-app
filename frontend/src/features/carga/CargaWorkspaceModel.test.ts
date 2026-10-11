@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cargaWorkspaceItems,
+  equivalenciasDisponibles,
   resolveCargaWorkspaceTab,
   type CargaWorkspaceContext,
   type CargaWorkspaceTab,
@@ -148,5 +149,21 @@ describe("Carga workspace model", () => {
     expect(resolveCargaWorkspaceTab("", advancedContext)).toBe("plan");
     expect(resolveCargaWorkspaceTab("insumos", advancedContext)).toBe("plan");
     expect(resolveCargaWorkspaceTab("base", advancedContext)).toBe("plan");
+  });
+});
+
+describe("disponibilidad de Equivalencias", () => {
+  it("espeja el predicado del backend: hermanos independientes siempre, si no topología separada con 2+ bases", () => {
+    expect(equivalenciasDisponibles({ topologiaDeclarada: null, modoProcesamiento: "independent_siblings", basesPrimarias: 3 })).toBe(true);
+    expect(equivalenciasDisponibles({ topologiaDeclarada: "separate", modoProcesamiento: "multibase", basesPrimarias: 2 })).toBe(true);
+    expect(equivalenciasDisponibles({ topologiaDeclarada: "independent", modoProcesamiento: null, basesPrimarias: 1 })).toBe(false);
+    expect(equivalenciasDisponibles({ topologiaDeclarada: "integrated", modoProcesamiento: "multibase", basesPrimarias: 3 })).toBe(false);
+    expect(equivalenciasDisponibles({ topologiaDeclarada: null, modoProcesamiento: "multibase", basesPrimarias: 3 })).toBe(false);
+  });
+
+  it("con la pestaña disponible, Equivalencias es la sexta y se ubica por su índice", () => {
+    const items = cargaWorkspaceItems({ ...EMPTY_CONTEXT, isMultiBase: true, baseCount: 3, basesSeparadas: true });
+    expect(items).toHaveLength(6);
+    expect(items.findIndex((item) => item.key === "equivalencias")).toBe(5);
   });
 });

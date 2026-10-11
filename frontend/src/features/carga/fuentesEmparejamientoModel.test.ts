@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { EmparejamientoFila, EmparejamientoFuente } from "../../api/cargaFuentes";
+import { parsearDireccion } from "../../lib/navegacion/direccion";
 import {
+  EMPAREJAMIENTO_ESTADOS,
   agruparPorSeccion,
+  baseDeLaDireccion,
+  focoDeFuente,
+  leerFocoFuente,
   avisoExclusion,
   bloquesPorEnunciado,
   datoRespuestas,
@@ -106,6 +111,40 @@ describe("fuentesEmparejamientoModel", () => {
     expect(hrefSinFoco("/procesamiento?seccion=carga&pestana=equivalencias&foco=123"))
       .toBe("/procesamiento?seccion=carga&pestana=equivalencias");
     expect(hrefSinFoco("/procesamiento")).toBe("/procesamiento");
+  });
+
+  it("el foco lleva la base: `<base>:<survey_id>`, cortado en el último «:»", () => {
+    expect(focoDeFuente("estudiantes", "423593924")).toBe("estudiantes:423593924");
+    expect(focoDeFuente(null, "423593924")).toBe("423593924");
+    expect(focoDeFuente("  ", "423593924")).toBe("423593924");
+    expect(leerFocoFuente("estudiantes:423593924")).toEqual({ base: "estudiantes", surveyId: "423593924" });
+    // Una base con «:» en el nombre no se parte mal: el survey_id nunca lo lleva.
+    expect(leerFocoFuente("Ola 2: egresados:77")).toEqual({ base: "Ola 2: egresados", surveyId: "77" });
+    // Enlaces anteriores, sin base: la fuente de la base que se esté revisando.
+    expect(leerFocoFuente("423593924")).toEqual({ base: null, surveyId: "423593924" });
+    expect(leerFocoFuente("estudiantes:")).toBeNull();
+    expect(leerFocoFuente("")).toBeNull();
+    expect(leerFocoFuente(null)).toBeNull();
+  });
+
+  it("recargar la dirección del panel devuelve la misma base y la misma fuente", () => {
+    const search = searchConEmparejamiento("?seccion=carga&pestana=revision", "423593924", "estudiantes");
+    expect(search).toBe("?seccion=carga&pestana=revision&panel=emparejamiento&foco=estudiantes%3A423593924");
+    // Lo que lee la app al recargar: la gramática compartida, sin params nuevos.
+    const direccion = parsearDireccion("/procesamiento", search);
+    expect(direccion?.panel).toBe("emparejamiento");
+    expect(direccion?.pestana).toBe("revision");
+    expect(baseDeLaDireccion(direccion?.panel, direccion?.foco)).toBe("estudiantes");
+    expect(leerFocoFuente(direccion?.foco)?.surveyId).toBe("423593924");
+    // Con otro panel abierto, el foco no habla de una base de Revisión.
+    expect(baseDeLaDireccion("avisos", "estudiantes:1")).toBeNull();
+    expect(baseDeLaDireccion("emparejamiento", "423593924")).toBeNull();
+  });
+
+  it("la insignia nombra el estado con las palabras de su cifra", () => {
+    expect(EMPAREJAMIENTO_ESTADOS.no_entro).toMatchObject({ insignia: "No entró", cifra: "No entraron" });
+    expect(EMPAREJAMIENTO_ESTADOS.ambigua).toMatchObject({ insignia: "Ambigua", cifra: "Ambiguas" });
+    expect(EMPAREJAMIENTO_ESTADOS.emparejada).toMatchObject({ insignia: "Emparejada", cifra: "Emparejadas" });
   });
 
   it("junta en un bloque las filas consecutivas de una misma matriz", () => {
