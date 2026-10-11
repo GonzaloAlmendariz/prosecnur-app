@@ -293,6 +293,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         nombreRanura={nombreRanura}
         onRanura={elegirRanura}
         onCambiarGrafico={abrirSelectorGrafico}
+        formas={vista.formas}
         tira={<TiraMiniaturas estructura={estructura} posicionActiva={lamina.posicion} onIr={irA} />}
       />
       <div

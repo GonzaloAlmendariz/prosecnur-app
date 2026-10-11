@@ -1,8 +1,8 @@
 // Centro de la pestaña Láminas: la lámina real que va a salir (F6.1; dirección F6 §4.1 «Visor», §4.8 estados).
 // La imagen la rasteriza el motor del export (`preview-slide`, vía el coordinador). Ranuras seleccionables sobre la
-// imagen, guías, zoom y tira de miniaturas llegan en la parte 2.
+// imagen, zoom y tira de miniaturas (parte 2); guías por capas encima de la hoja (plan F6 §8, `guias/`).
 
-import type { CSSProperties, KeyboardEvent, ReactNode, RefObject } from "react";
+import { useMemo, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -19,7 +19,7 @@ import {
 } from "../../../vendor/lucide-react";
 import { downloadUrl } from "../../../api/core";
 import { IconoTipo } from "../iconos/IconoTipo";
-import { DebugPhToggle } from "../GraficosHeader";
+import type { PreviewFormas } from "../../../api/graficos";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { estadoDeLamina, ETIQUETA_ESTADO, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { VistaPreviaLamina } from "./usePreviewLamina";
@@ -27,6 +27,10 @@ import { useLaminasUi, type ZoomVisor } from "./laminasStore";
 import { RanurasSobreLamina } from "./RanurasSobreLamina";
 import { ATRIBUTO_LIENZO } from "./selectores/focoAlCerrar";
 import type { RanuraSobreLamina } from "./ranurasLamina";
+import { BotonGuias } from "./guias/BotonGuias";
+import { GuiasSobreLamina } from "./guias/GuiasSobreLamina";
+import { useGuiasUi } from "./guias/guiasStore";
+import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
 import "./visorLamina.css";
 
 type Props = {
@@ -54,6 +58,8 @@ type Props = {
   onRanura: (k: number | null) => void;
   /** Doble clic en una ranura: abre «¿Qué gráfico?» para ella. */
   onCambiarGrafico: (k: number) => void;
+  /** Formas y ranuras del estándar de la vista previa (K11, `normalizePreviewFormas`); sin ellas las guías lo dicen. */
+  formas?: PreviewFormas | null;
 };
 
 const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
@@ -66,7 +72,7 @@ const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
 
 export function VisorLamina({
   lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, ajustesRef, estructuraAbierta, onAlternarEstructura, tira,
-  ranuras, ranuraActiva, nombreRanura, onRanura, onCambiarGrafico,
+  ranuras, ranuraActiva, nombreRanura, onRanura, onCambiarGrafico, formas = null,
 }: Props) {
   const zoom = useLaminasUi((s) => s.zoom);
   const setZoom = useLaminasUi((s) => s.setZoom);
@@ -80,6 +86,12 @@ export function VisorLamina({
   const actual = l?.partes[parteActiva - 1] ?? null;
   const estado = actual?.estado ?? (l ? estadoDeLamina(l) : null);
   const cargando = vista.fase === "esperando" || vista.fase === "cargando";
+  const hojaRef = useRef<HTMLElement>(null);
+  const capas = useGuiasUi((s) => s.capas);
+  const rolesOcultos = useGuiasUi((s) => s.rolesOcultos);
+  const resaltada = useGuiasUi((s) => s.resaltada);
+  const guias = useMemo(() => construirGuias(formas, parteActiva, capas, rolesOcultos), [formas, parteActiva, capas, rolesOcultos]);
+  const rolesGuias = useMemo(() => rolesPresentes(formas?.porParte[parteActiva] ?? [], formas?.ranuras ?? []), [formas, parteActiva]);
 
   const onTecla = (e: KeyboardEvent<HTMLElement>) => {
     if (e.key === "Escape" && ranuraActiva !== null) { e.preventDefault(); onRanura(null); return; }
@@ -160,8 +172,8 @@ export function VisorLamina({
             <Download size={16} aria-hidden="true" />
           </a>
         )}
-        <span className="pulso-f6-guias pulso-f6-solo-ancho">
-          <DebugPhToggle etiqueta="Guías (beta)" />
+        <span className="pulso-f6-guias">
+          <BotonGuias modelo={guias} roles={rolesGuias} disponible={!!formas?.disponible} hayRanuras={(formas?.ranuras.length ?? 0) > 0} />
         </span>
         <label className="pulso-f6-zoom">
           <span className="pulso-sr-only">Zoom de la lámina</span>
@@ -201,7 +213,7 @@ export function VisorLamina({
         {...{ [ATRIBUTO_LIENZO]: lamina.posicion }}
         aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. Flechas izquierda y derecha cambian de lámina${nPartes > 1 ? "; arriba y abajo, de parte" : ""}.`}
       >
-        <figure className={`pulso-f6-hoja${cargando && actual?.imagen ? " is-desactualizada" : ""}`}>
+        <figure ref={hojaRef} className={`pulso-f6-hoja${cargando && actual?.imagen ? " is-desactualizada" : ""}`}>
           {actual?.imagen ? (
             <img
               src={actual.imagen}
@@ -212,6 +224,8 @@ export function VisorLamina({
           {actual?.imagen && !cargando && (
             <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico} />
           )}
+          {/* Las guías son del visor: nunca entran al entregable (D17). Se ocultan mientras la imagen se regenera. */}
+          {actual?.imagen && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
           <EstadoSobreHoja vista={vista} prepOk={prepOk} hayImagen={!!actual?.imagen} />
         </figure>
         {cargando && actual?.imagen && (

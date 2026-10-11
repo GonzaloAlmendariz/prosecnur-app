@@ -346,12 +346,11 @@
   }
 }
 
-/* Por debajo de 1120 px de visor se ocultan a la vista el rótulo de las guías y la palabra «avisos»; por debajo de
-   960, el del estado y el de Estructura, y el ícono del tipo (lo repiten la Estructura y el Inspector); por debajo
-   de 800, el conmutador de guías (beta), como ya pasa con la página compacta. */
+/* Por debajo de 1120 px de visor se ocultan a la vista el rótulo «Guías» y la palabra «avisos» (el botón de guías
+   queda en ícono y cuenta de capas); por debajo de 960, el del estado y el de Estructura, y el ícono del tipo (lo
+   repiten la Estructura y el Inspector); por debajo de 800, el botón de guías. */
 @container pulso-f6-visor (max-width: 1120px) {
-  .pulso-f6-visor .pulso-f6-rotulo-medio,
-  .pulso-f6-guias .pulso-gv2-debug-border-label {
+  .pulso-f6-visor .pulso-f6-rotulo-medio {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -380,6 +379,7 @@
 
 .pulso-f6-guias {
   flex: none;
+  display: inline-flex;
 }
 
 @container pulso-f6-visor (max-width: 800px) {
