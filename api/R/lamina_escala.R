@@ -163,8 +163,9 @@
 #' 2.25 suman 45 y siguen siendo 20 personas, base chica; 40 con peso 0.5 suman 20 y no lo son.
 #' @keywords internal
 .lam_base_chica <- function(espec) {
-  n <- suppressWarnings(as.numeric(.espec_casos(espec$filas)))
-  any(is.finite(n) & n > 0 & n < .LAM_BASE_CHICA_N)
+  # El ajuste «Casos junto al porcentaje» del informe decide (graficos_casos_junto.R); el umbral por defecto sigue siendo
+  # `.LAM_BASE_CHICA_N`.
+  .casos_junto_muestra(.espec_casos(espec$filas), espec$casos_junto)
 }
 
 #' «x de y» de una fila, o `NULL` si la fila no tiene base o casos que decir (nunca «NA de NA»)
