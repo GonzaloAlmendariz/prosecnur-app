@@ -1,5 +1,5 @@
 // cargaFuentes.ts — cómo se emparejó cada pregunta de las fuentes de una base
-// (ADR 0094, ítem 15 del checklist `codificacion-sm-2026-10-11`).
+// (ADR 0099, ítem 15 del checklist `codificacion-sm-2026-10-11`).
 //
 // Una base SurveyMonkey puede juntar varias encuestas: los canales de un mismo
 // público. Cada fuente se empareja con la base pregunta por pregunta, con la

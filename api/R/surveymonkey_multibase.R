@@ -145,7 +145,7 @@
       stringsAsFactors = FALSE
     ))
   }
-  # Los details viajan con la tabla: la auditoría alinea con el XLSForm generado (ADR 0094).
+  # Los details viajan con la tabla: la auditoría alinea con el XLSForm generado (ADR 0099).
   structure(do.call(rbind, out), sm_details = details)
 }
 
@@ -593,7 +593,7 @@
 }
 
 # Comparador POSICIONAL del modo «Unificar bases compatibles» (fuera del ADR
-# 0094). Las fuentes de una base se comparan alineadas: `.sm_mb_compare_to_ref`
+# 0099). Las fuentes de una base se comparan alineadas: `.sm_mb_compare_to_ref`
 # en surveymonkey_multibase_alineacion.R.
 .sm_mb_compare_to_ref_posicional <- function(ref, cur, company_positions = integer(), ignorable_missing_positions = integer()) {
   n <- max(nrow(ref), nrow(cur))
@@ -1484,7 +1484,7 @@ sm_multibase_collectors <- function(survey_id,
   hit <- which(labels_norm == .sm_mb_norm(label))[1]
   if (!is.na(hit)) return(as.character(choices$name[hit]))
   if (nzchar(fallback_code) && fallback_code %in% as.character(choices$name)) return(fallback_code)
-  # Ni la etiqueta ni el código están en la lista: NA, nunca el código de otra lista (ADR 0094).
+  # Ni la etiqueta ni el código están en la lista: NA, nunca el código de otra lista (ADR 0099).
   if (nzchar(fallback_code)) return(NA_character_)
   .sm_mb_scalar(label, "")
 }
@@ -3450,7 +3450,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     filter_info <- attr(filtered, "sm_response_filter", exact = TRUE) %||% list()
     if (!is.null(source_details) && !is.null(inst)) {
       # Una fuente distinta de la principal se juzga en SU instrumento generado,
-      # como en la data (ADR 0094, decisión 8): la variable de la base, por
+      # como en la data (ADR 0099, decisión 8): la variable de la base, por
       # posición, puede ser otra pregunta en la fuente.
       principal <- identical(source_id, .sm_mb_scalar(spec$survey_id, source_id))
       inst_consent <- if (principal) inst else tryCatch(.sm_mb_inst_generado(source_details), error = function(e) NULL)
@@ -3571,7 +3571,7 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
   xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
   # Mismo orden de opciones que el import (`carga_sm_orden_editor.R`), antes de
   # la lógica compartida: refrescar no puede cambiarle los códigos a la base.
-  # ADR 0094, decisión 7: se reaplica la receta guardada al importar, no el
+  # ADR 0099, decisión 7: se reaplica la receta guardada al importar, no el
   # orden del editor de hoy (que solo se compara y se declara).
   orden_editor <- .carga_sm_orden_reaplicar(
     xls_model,
@@ -4198,7 +4198,7 @@ sm_multibase_import_independent <- function(sid,
     planned_names <- c(planned_names, base_name)
 
     xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
-    # ADR 0094, decisión 7: el orden de opciones del editor se fija al importar
+    # ADR 0099, decisión 7: el orden de opciones del editor se fija al importar
     # y queda como receta en la base; el refresh reaplica esa receta.
     orden_editor <- .carga_sm_adoptar_y_recetar(xls_model, .carga_platform_choice_code_maps(sid, "surveymonkey", spec$survey_id))
     xls_model <- orden_editor$model

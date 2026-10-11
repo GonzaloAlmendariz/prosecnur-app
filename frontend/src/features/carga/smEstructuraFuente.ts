@@ -1,5 +1,5 @@
 /**
- * Diagnóstico de estructura de una fuente SurveyMonkey (ADR 0094).
+ * Diagnóstico de estructura de una fuente SurveyMonkey (ADR 0099).
  *
  * Una fuente se empareja con la base pregunta por pregunta, con la misma clave
  * que usa Equivalencias (ADR 0062). Este módulo traduce lo que el motor
@@ -18,7 +18,7 @@ import { equivalenciasDisponibles } from "./CargaWorkspaceModel";
 export const SM_ACCION_INSTRUMENTO_DISTINTO =
   "Impórtala como base separada y relaciónala en Equivalencias.";
 
-/** Qué hacer con una base que juntó encuestas por posición, antes del ADR 0094. */
+/** Qué hacer con una base que juntó encuestas por posición, antes del ADR 0099. */
 export const SM_ACCION_BASE_POR_POSICION =
   "Regénerala desde SurveyMonkey para corregir las respuestas que ya estaban.";
 

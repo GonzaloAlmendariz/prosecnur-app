@@ -1,4 +1,4 @@
-# Fuentes de una base SurveyMonkey emparejadas por pregunta (ADR 0094, ítem 13):
+# Fuentes de una base SurveyMonkey emparejadas por pregunta (ADR 0099, ítem 13):
 # los tres caminos que juntan encuestas, la persistencia en la base, Carga ›
 # Revisión, el worker async y el bloqueo del refresh por otro instrumento.
 #
@@ -935,7 +935,7 @@ test_that("una base multi-fuente sin alineación se bloquea con legacy_positiona
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
   base_name <- .smp_importar(sid)
-  # Simula la base armada por posición antes del ADR 0094.
+  # Simula la base armada por posición antes del ADR 0099.
   s <- session_get(sid)
   s$estudio$bases[[base_name]]$sm_alineacion_fuentes <- NULL
   .session_env[[sid]] <- s

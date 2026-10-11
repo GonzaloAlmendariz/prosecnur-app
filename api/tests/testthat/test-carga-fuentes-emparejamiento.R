@@ -1,6 +1,6 @@
 source("setup-load-all.R")
 
-# Ítem 15 del checklist de codificación SM 2026-10-11 (ADR 0094): cómo se
+# Ítem 15 del checklist de codificación SM 2026-10-11 (ADR 0099): cómo se
 # emparejó cada pregunta de una fuente. El endpoint solo EXPONE lo que decidió la
 # alineación y quedó en `sm_alineacion_fuentes`; aquí corre la importación real
 # (`sm_api_xlsform` + motor canónico + alineación) con la red simulada.

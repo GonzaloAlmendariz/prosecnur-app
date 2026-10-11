@@ -1,5 +1,5 @@
 # =============================================================================
-# Fuentes de una base SurveyMonkey emparejadas por pregunta (ADR 0094)
+# Fuentes de una base SurveyMonkey emparejadas por pregunta (ADR 0099)
 #
 # Una base puede juntar varias encuestas (canales de un mismo público,
 # campañas sucesivas). Antes cada pregunta de la fuente caía en la variable
@@ -614,7 +614,7 @@
   lapply(names(op), function(v) list(variable = v, n = as.integer(op[[v]])))
 }
 
-# ¿La fuente es otro instrumento? Entonces no entra a la base (ADR 0094,
+# ¿La fuente es otro instrumento? Entonces no entra a la base (ADR 0099,
 # decisión 4): ni siquiera con sus preguntas emparejadas. Es un resultado que
 # se declara, no un error: la base se arma con las fuentes que sí calzan.
 .sm_mb_fuente_es_otro_instrumento <- function(df) {
@@ -684,7 +684,7 @@
 
 # Compara una fuente contra la principal pregunta por pregunta, con la misma
 # alineación que codifica. `company_positions` se conserva por firma: el modo
-# «Unificar» (fuera del ADR 0094) usa `.sm_mb_compare_to_ref_posicional`.
+# «Unificar» (fuera del ADR 0099) usa `.sm_mb_compare_to_ref_posicional`.
 .sm_mb_compare_to_ref <- function(ref, cur, company_positions = integer(),
                                   ignorable_missing_positions = integer(), cache = NULL) {
   ignorables <- unique(suppressWarnings(as.integer(ignorable_missing_positions)))
@@ -802,7 +802,7 @@
 }
 
 # Una base que junta varias encuestas y no tiene alineación guardada se armó
-# por posición, antes del ADR 0094. Sumarle filas alineadas la dejaría mezclada
+# por posición, antes del ADR 0099. Sumarle filas alineadas la dejaría mezclada
 # y declarada como alineada: el refresh se bloquea hasta regenerarla desde el
 # snapshot, que sí realinea todo. `spec_guardada` es la de la base, antes de
 # sumar campañas nuevas.

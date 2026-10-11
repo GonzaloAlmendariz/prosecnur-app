@@ -146,7 +146,7 @@ test_that("admin metadata missing in an additional source is not structural bloc
   ref <- make_tbl(c(substantive, admin))
   cur <- make_tbl(substantive)
 
-  # ADR 0094: una pregunta de la base sin par en la fuente es un aviso (queda
+  # ADR 0099: una pregunta de la base sin par en la fuente es un aviso (queda
   # vacía para esas filas), no un bloqueo. Comparar por posición la bloqueaba.
   sin_par <- .sm_mb_compare_to_ref(ref, cur)
   expect_equal(vapply(sin_par, `[[`, character(1), "severity"), rep("review", 4))

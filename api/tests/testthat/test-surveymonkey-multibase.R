@@ -121,7 +121,7 @@ test_that("comparador multibase trata empresa distinta como variante de categori
 
   company_positions <- .sm_mb_detect_company_positions(list(ref_tbl, cur_tbl))
   # Variantes de empresa por posición: es el modo «Unificar bases compatibles»,
-  # fuera del ADR 0094; las fuentes de una base se comparan alineadas.
+  # fuera del ADR 0099; las fuentes de una base se comparan alineadas.
   diffs <- .sm_mb_compare_to_ref_posicional(ref_tbl, cur_tbl, company_positions = company_positions)
 
   expect_equal(company_positions, 2L)

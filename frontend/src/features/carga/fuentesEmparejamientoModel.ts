@@ -1,5 +1,5 @@
 /**
- * Modelo del panel «Cómo se emparejaron las preguntas» (ADR 0094, ítem 15).
+ * Modelo del panel «Cómo se emparejaron las preguntas» (ADR 0099, ítem 15).
  *
  * Lógica pura: conteos, filtro, agrupación por sección y la dirección que abre
  * o cierra el panel. El componente solo pinta lo que este módulo decide.
