@@ -43,15 +43,23 @@ export function esRutaInexistente(e: unknown): boolean {
   return e instanceof ApiError && (e.code === "E_NOT_FOUND" || e.code === "HTTP_404");
 }
 
+/**
+ * Avance del job de vista previa. Un job de UNA lámina (`total ≤ 1`) no tiene avance intermedio: el worker escribe
+ * `current = 0, total = 1` (y `percent = 0`) durante todo el render, así que un porcentaje ahí sería un «0 %» fijo que
+ * miente. Sin unidades intermedias se informa sólo que está corriendo (`porcentaje: null`).
+ */
 export function progresoDeJob(p: JobProgress | Record<string, never> | null | undefined): ProgresoPreview {
   const prog = (p ?? {}) as JobProgress;
   const total = Number(prog.total);
   const actual = Number(prog.current);
   const pct = Number(prog.percent);
+  const mensaje = prog.phase === "done" ? "Listo" : "Dibujando la lámina";
+  if (Number.isFinite(total) && total <= 1) return { mensaje, porcentaje: null };
+  if (prog.phase === "done") return { mensaje, porcentaje: 100 };
   const porcentaje = Number.isFinite(pct)
     ? Math.max(0, Math.min(100, pct))
     : Number.isFinite(total) && total > 0 && Number.isFinite(actual) ? Math.max(0, Math.min(100, (actual / total) * 100)) : null;
-  return { mensaje: prog.phase === "done" ? "Listo" : "Dibujando la lámina", porcentaje };
+  return { mensaje, porcentaje };
 }
 
 const abortada = () => new DOMException("La vista previa se reemplazó por otra.", "AbortError");
@@ -112,7 +120,8 @@ export function crearCargaPreviewPorJob(deps: DepsPreviewPorJob) {
             rechazar(new Error("La vista previa terminó sin resultado. Reintenta."));
             return;
           }
-          onProgreso?.({ mensaje: "Listo", porcentaje: 100 });
+          // El job es de una lámina: un «100 %» entre el done y la imagen sería el mismo número que miente (ver arriba).
+          onProgreso?.({ mensaje: "Listo", porcentaje: null });
           resolver(datos as PreviewSlideResponse);
           return;
         }
