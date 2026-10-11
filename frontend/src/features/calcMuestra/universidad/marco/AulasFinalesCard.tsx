@@ -14,7 +14,7 @@ import type { CriteriosSeleccionMarco } from "../../../../api/client";
 import type { AulaFinal } from "../../dominio/criteriosImpacto";
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
-import { Switch } from "../criterios/Switch";
+import { Switch } from "../../../../components/Switch";
 import { aulaExcluida, contarExcluidas, reactivarTodas } from "../criterios/aulasFinalesModel";
 
 /** Búsqueda insensible a acentos y mayúsculas (curso o docente). */
@@ -219,6 +219,7 @@ export function AulasFinalesCard({
               return (
                 <li key={a.classroomKey} className="cmv2-aulas-finales-row" data-off={off || undefined}>
                   <Switch
+                    className="cmv2-crit-switch"
                     checked={!off}
                     ariaLabel={`${a.label} en el marco`}
                     onToggle={() => onToggle(a.classroomId, !off)}
