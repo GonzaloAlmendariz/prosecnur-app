@@ -3508,6 +3508,10 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
 .sm_mb_prepare_refresh_snapshot <- function(sid, base_name, spec, token) {
   details <- sm_api_fetch_survey_details(spec$survey_id, token)
   xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+  # Mismo orden de opciones que el import (`carga_sm_orden_editor.R`), antes de
+  # la lógica compartida: refrescar no puede cambiarle los códigos a la base.
+  orden_editor <- .carga_sm_adoptar_orden_editor(xls_model, .carga_platform_choice_code_maps(sid, "surveymonkey", spec$survey_id))
+  xls_model <- orden_editor$model
   logic_sync <- .sm_mb_apply_shared_logic_to_model(sid, base_name, xls_model)
   xls_model <- logic_sync$model
   downloads_dir <- file.path(session_get(sid)$dir, "downloads")
@@ -3583,7 +3587,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     raw_snapshot_sources = raw_snapshot_sources,
     decision_policy = .sm_mb_default_decision_policy(spec, rp_inst, .sm_mb_response_filter_total(source_filters)),
     source_kind = if (length(source_specs) > 1L) "surveymonkey_api_multi_source" else "surveymonkey_api",
-    xlsform_logic_sync = logic_sync[setdiff(names(logic_sync), "model")]
+    xlsform_logic_sync = logic_sync[setdiff(names(logic_sync), "model")],
+    choice_order_editor = orden_editor$resumen
   )
 }
 
@@ -3665,7 +3670,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
                                              raw_snapshot_file_id = "",
                                              decision_policy = NULL,
                                              decision_audit = NULL,
-                                             xlsform_logic_sync = NULL) {
+                                             xlsform_logic_sync = NULL,
+                                             choice_order_editor = NULL) {
   s <- session_get(sid)
   session_before_refresh <- s
   base <- s$estudio$bases[[base_name]]
@@ -3684,6 +3690,12 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     base$xlsform_file_id <- inst_meta$file_id
     base$data_file_id <- data_meta$file_id
     base$data_ext <- data_meta$ext
+    if (!is.null(choice_order_editor)) {
+      # El archivo nuevo sale codificado contra el instrumento: ninguna
+      # relectura debe aplicarle mapas (`.carga_codigos_ya_aplicados`).
+      base$choice_codes_applied_data_file_id <- data_meta$file_id
+      base$choice_order_editor <- choice_order_editor
+    }
     s$rp_inst_sources[[base_name]] <- rp_inst
     s$rp_data_sources[[base_name]] <- rp_data
     base$n_filas <- nrow(rp_data)
@@ -4790,7 +4802,8 @@ sm_multibase_refresh <- function(sid,
       raw_snapshot_file_id = raw_meta$file_id %||% "",
       decision_policy = snapshot$decision_policy %||% NULL,
       decision_audit = snapshot$response_filter %||% NULL,
-      xlsform_logic_sync = snapshot$xlsform_logic_sync %||% NULL
+      xlsform_logic_sync = snapshot$xlsform_logic_sync %||% NULL,
+      choice_order_editor = snapshot$choice_order_editor
     )
 
     codif_job <- NULL

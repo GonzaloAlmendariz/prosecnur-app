@@ -213,3 +213,44 @@ test_that("una lógica que usa los códigos de forma no reescribible deja la lis
   expect_equal(out$resumen$omitidas[[1]]$variable, "p1")
   expect_identical(out$model, model)
 })
+
+test_that("refrescar («Traer respuestas») conserva los códigos del editor y la marca de la base", {
+  restores <- .sor_mocks()
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .sor_form())
+  .carga_import_surveymonkey(sid, list(survey_id = "sm_orden"))
+
+  snap <- .sm_mb_prepare_refresh_snapshot(sid, "default", list(survey_id = "sm_orden"), "tok")
+  expect_equal(unlist(snap$choice_order_editor$adoptadas), c("p1", "p2"))
+  expect_equal(as.character(snap$remote_df$p1), c("3", "2", "1"))
+  ch <- as.data.frame(snap$rp_inst$choices)
+  lab_col <- intersect(c("label::es", "label"), names(ch))[1]
+  p1 <- ch[ch$list_name == "lst_p1", ]
+  expect_equal(as.character(p1[[lab_col]][match(c("3", "2", "1"), p1$name)]), .sor_esperado_p1)
+})
+
+test_that("Carga › Revisión declara las preguntas que adoptaron el orden y las que no, sin bloquear", {
+  restores <- .sor_mocks()
+  on.exit(lapply(rev(restores), function(r) r()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  maps <- .sor_mapas_editor()
+  maps[[1]]$mappings[[2]]$source_label <- "Jamás"
+  maps[[1]]$mappings[[2]]$xls_label <- "Jamás"
+  session_set(sid, "xlsform_state", .sor_form(maps = maps))
+  .carga_import_surveymonkey(sid, list(survey_id = "sm_orden"))
+
+  review <- .carga_review_payload(sid, NULL)
+  expect_equal(unlist(review$orden_editor$adoptadas), "p2")
+  expect_equal(review$orden_editor$omitidas[[1]]$variable, "p1")
+  expect_true(nzchar(review$orden_editor$omitidas[[1]]$motivo))
+  expect_false(isTRUE(review$choice_mapping$pending))
+
+  # Sin formulario de la misma encuesta no hay nada que declarar.
+  sid2 <- session_create()
+  on.exit(session_delete(sid2), add = TRUE)
+  .carga_import_surveymonkey(sid2, list(survey_id = "sm_orden"))
+  expect_null(.carga_review_payload(sid2, NULL)$orden_editor)
+})

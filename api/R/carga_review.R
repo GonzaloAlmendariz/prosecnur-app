@@ -171,6 +171,27 @@
   )
 }
 
+# Orden de opciones del editor en un import SurveyMonkey por API
+# (`carga_sm_orden_editor.R`). Las omitidas son el dato que importa: esas
+# preguntas quedaron con los códigos de la plataforma, no con los del
+# formulario del editor. Advierte, no bloquea: código y etiqueta siguen
+# coherentes. NULL cuando la base no adoptó ni omitió nada.
+.carga_review_orden_editor <- function(base) {
+  orden <- (base %||% list())$choice_order_editor %||% list()
+  adoptadas <- as.character(unlist(orden$adoptadas %||% list(), use.names = FALSE))
+  omitidas <- lapply(orden$omitidas %||% list(), function(o) list(
+    variable = as.character(o$variable %||% "")[1],
+    motivo = as.character(o$motivo %||% "")[1]
+  ))
+  if (!length(adoptadas) && !length(omitidas)) return(NULL)
+  list(
+    adoptadas = as.list(adoptadas),
+    omitidas = omitidas,
+    n_adoptadas = length(adoptadas),
+    n_omitidas = length(omitidas)
+  )
+}
+
 .carga_review_payload <- function(sid, base_nombre = NULL) {
   pair <- .carga_normalized_data_for_export(sid, base_nombre = base_nombre)
   s <- session_get(sid)
@@ -194,6 +215,9 @@
   # formulario antes de seguir encuestando. NO entra en `ready`: es una
   # advertencia sobre cómo se recolectó, no un impedimento para cargar.
   procedencia <- .carga_review_procedencia(pair$data)
+  orden_editor <- if (nzchar(as.character(pair$base_nombre %||% "")[1])) {
+    .carga_review_orden_editor(s$estudio$bases[[pair$base_nombre]])
+  } else NULL
 
   list(
     base_nombre = pair$base_nombre,
@@ -201,6 +225,7 @@
     choice_mapping = choice_mapping,
     reconciliation = reconciliation,
     procedencia = procedencia,
+    orden_editor = orden_editor,
     ready = isTRUE(compatibility$ok) &&
       !isTRUE(choice_mapping$requires_confirmation) &&
       !isTRUE(choice_mapping$pending) &&
