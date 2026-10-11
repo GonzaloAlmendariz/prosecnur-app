@@ -2978,7 +2978,7 @@ reporte_ppt_plan <- function(
     show <- if (explicit) {
       isTRUE(overrides$mostrar_ceros)
     } else if (isTRUE(word_render)) {
-      TRUE
+      TRUE   # Word enciende los ceros por defecto; alinearlo con PPT espera decisión de Gonzalo (C40, test 9)
     } else {
       isTRUE(preset_args$mostrar_ceros %||% FALSE)
     }
@@ -3042,13 +3042,13 @@ reporte_ppt_plan <- function(
     dsub <- .filter_data(filtros, source = ctx$source)
     if (!nrow(dsub)) return(NULL)
 
-    freq_table_spss(
+    .plan_freq_tabla(
       dsub,
       ctx$var,
       survey        = ctx$survey,
       sm_vars_force = NULL,
       orders_list   = ctx$orders_list,
-      mostrar_todo  = TRUE, casos = TRUE
+      mostrar_todo  = TRUE, casos = TRUE  # sin 90-99 ausentes: reporte_plan_ceros_especiales.R
     )
   }
 
@@ -4710,7 +4710,7 @@ reporte_ppt_plan <- function(
 
         row <- tibble::tibble(
           categoria = label_v,
-          N         = unname(N_by_v[v])
+          N         = unname(N_by_v[v]), .base = ctx_v$source
         )
         for (i in seq_along(all_opts)) {
           opt <- all_opts[i]
@@ -4850,11 +4850,11 @@ reporte_ppt_plan <- function(
         dsub <- dsrc[mask, , drop = FALSE]
         if (!nrow(dsub)) next
 
-        tab <- freq_table_spss(
+        tab <- .plan_freq_tabla(
           dsub,
           var,
           survey        = ctx_var$survey,
-          sm_vars_force = NULL,
+          sm_vars_force = NULL, referencia = dsrc,
           orders_list   = ctx_var$orders_list,
           mostrar_todo  = TRUE, casos = TRUE
         )
@@ -5233,11 +5233,11 @@ reporte_ppt_plan <- function(
             dsub <- dsrc[mask, , drop = FALSE]
             if (!nrow(dsub)) next
 
-            tab <- freq_table_spss(
+            tab <- .plan_freq_tabla(
               dsub,
               ctx_v$var,
               survey        = ctx_v$survey,
-              sm_vars_force = NULL,
+              sm_vars_force = NULL, referencia = dsrc,
               orders_list   = ctx_v$orders_list,
               mostrar_todo  = TRUE, casos = TRUE
             )
@@ -5497,11 +5497,11 @@ reporte_ppt_plan <- function(
         group_mask <- !is.na(cruce_values) & cruce_values == ordered_values[[j]]
         group_data <- df_cross[group_mask, , drop = FALSE]
         group_tab <- if (nrow(group_data)) {
-          freq_table_spss(
+          .plan_freq_tabla(
             group_data,
             ctx_var$var,
             survey = ctx_var$survey,
-            sm_vars_force = NULL,
+            sm_vars_force = NULL, referencia = df_cross,
             orders_list = ctx_var$orders_list,
             mostrar_todo = TRUE, casos = TRUE
           )
@@ -5739,7 +5739,7 @@ reporte_ppt_plan <- function(
       colores_categorias = colores_categorias,
       titulo = NULL,
       subtitulo = NULL,
-      nota_pie = .format_n_caption(base_tab$n_casos),
+      nota_pie = .format_n_caption(base_tab$n_casos), n_base_casos = base_tab$n_casos,
       promedio = promedio_auto
     )
 

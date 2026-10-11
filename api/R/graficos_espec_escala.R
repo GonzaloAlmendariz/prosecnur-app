@@ -120,19 +120,22 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
       if (!is.na(i) && !is.na(j) && unidades[i, j] > 0 && nzchar(suf)) cifras[i, j] <- paste(cifras[i, j], suf)
     }
   }
-  dibujar <- unidades > 0 | isTRUE(mostrar_categorias_en_cero)
+  # Categorías en cero (C40 D2): el sustantivo sin casos recibe su piso; una especial (SIN INF, 90-99) en cero no se
+  # dibuja ni ocupa ancho: los especiales sólo se muestran si están presentes (nucleo-metodologico regla 3).
+  cero_visible <- isTRUE(mostrar_categorias_en_cero) & !categorias$especial
+  dibujar <- unidades > 0 | matrix(cero_visible, nrow(unidades), ncol(unidades), byrow = TRUE)
   anchos <- t(vapply(seq_len(nrow(unidades)), function(i) {
     u <- as.numeric(unidades[i, ]); s <- sum(u)
     a <- if (s > 0) u / s else numeric(length(u))
     if (isTRUE(mostrar_categorias_en_cero)) {
-      a <- .barras_inflar_ceros(a, mostrar = TRUE, piso = piso_categoria_cero, cero_rotulado = u == 0)
+      a <- .barras_inflar_ceros(a, mostrar = TRUE, piso = piso_categoria_cero, cero_rotulado = u == 0 & cero_visible)
       if (sum(a) > 0) a <- a / sum(a)
     }
     a
   }, numeric(ncol(unidades))))
   if (ncol(unidades) == 1L) anchos <- t(anchos)
   dimnames(anchos) <- dimnames(unidades)
-  dibujar <- dibujar & (anchos > 0 | isTRUE(mostrar_categorias_en_cero))
+  dibujar <- dibujar & (anchos > 0 | matrix(cero_visible, nrow(anchos), ncol(anchos), byrow = TRUE))
 
   # ---- Top Two Box: suma de las cifras rotuladas (lámina 19) ------------------
   caja <- function(preset, labels, minimo, rotulo) {

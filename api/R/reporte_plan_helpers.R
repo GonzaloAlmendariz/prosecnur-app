@@ -2213,6 +2213,12 @@
   codes_row  <- .as_chr(cats$codes)
   labels_row <- .as_chr(cats$labels)
 
+  # Base (C40 D1): el denominador usa TODOS los códigos válidos de la pregunta; omit y top_n sólo deciden qué ejes
+  # se muestran. Recortar antes sacaría de la base a quien sólo eligió lo omitido e inflaría el %.
+  base_valida <- !(trimws(tolower(codes_row)) == "total" | trimws(tolower(labels_row)) == "total" |
+                     is.na(labels_row) | !nzchar(trimws(labels_row)))
+  codes_den  <- codes_row[base_valida]
+
   # 1) Omit manual (por codes / labels)
   if (!is.null(sm_omit_codes) || !is.null(sm_omit_labels)) {
 
@@ -2324,7 +2330,7 @@
     N_g <- denominador_validos(
       data       = data,
       var        = var,
-      codes      = codes_row,
+      codes      = codes_den,
       tp         = tp,
       mask       = mask_g,
       weight_col = "peso"
@@ -2365,7 +2371,7 @@
     N_g <- denominador_validos(
       data       = data,
       var        = var,
-      codes      = codes_row,
+      codes      = codes_den,
       tp         = tp,
       mask       = mask_g,
       weight_col = "peso"
