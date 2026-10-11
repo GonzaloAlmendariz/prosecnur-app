@@ -17,6 +17,7 @@ import type { GraficosReportScope } from "./reportScope";
 import { PlanPortatilContenido } from "./compartir/PlanPortatilContenido";
 import { SeccionesJsonContenido } from "./compartir/SeccionesJsonContenido";
 import { useCompartirPlan } from "./compartir/useCompartirPlan";
+import { useVaciarPlan } from "./compartir/useVaciarPlan";
 
 const jsonIoStyles: Record<string, CSSProperties> = {
   wrap: {
@@ -466,10 +467,10 @@ export function GraficosHeader({
   const nPaletas = usePlanStore((s) => Object.keys(s.paletas).length);
   const nIconos = usePlanStore((s) => s.iconos.length);
   const nModos = usePlanStore((s) => s.overridesReusables.length);
-  const resetPlan = usePlanStore((s) => s.reset);
   const [estiloOpen, setEstiloOpen] = useState(false);
   const [jsonMenuOpen, setJsonMenuOpen] = useState(false);
   const compartir = useCompartirPlan(reportScope);
+  const vaciar = useVaciarPlan(reportScope);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const styleTriggerItems = [
     { key: "ppt", label: "Base PPT", tone: "base" },
@@ -503,8 +504,7 @@ export function GraficosHeader({
   }, [jsonMenuOpen]);
 
   function onResetClick() {
-    if (!window.confirm("¿Vaciar el plan? Se elimina el orden actual de slides. Esta acción se guarda automáticamente.")) return;
-    resetPlan();
+    vaciar.vaciarSi((t) => window.confirm(`${t.titulo}\n\n${t.detalle}`));
   }
 
   return (
@@ -639,13 +639,14 @@ export function GraficosHeader({
           <button
             type="button"
             onClick={onResetClick}
-            disabled={nSlides === 0}
+            disabled={!vaciar.disponibilidad.habilitado}
             className="pulso-gv2-icon-button pulso-gv2-toolbar-reset"
             aria-label="Vaciar plan"
-            title="Vaciar plan"
+            title={vaciar.disponibilidad.habilitado ? "Vaciar plan" : vaciar.disponibilidad.motivo}
           >
             <RotateCcw size={12} />
           </button>
+          <span role="status" className="pulso-sr-only">{vaciar.mensaje}</span>
           </div>
 
           {compartir.estado.mensaje && (
