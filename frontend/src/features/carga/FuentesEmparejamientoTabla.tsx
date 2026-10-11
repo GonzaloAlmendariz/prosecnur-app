@@ -90,7 +90,7 @@ export function FuentesEmparejamientoTabla({
         <tr>
           <th scope="col">Pregunta</th>
           <th scope="col">En la base</th>
-          <th scope="col" title={`En ${fuenteNombre}`}>En {fuenteNombre}</th>
+          <th scope="col" title={`En ${fuenteNombre}`}>En la fuente</th>
           <th scope="col">Estado</th>
         </tr>
       </thead>
