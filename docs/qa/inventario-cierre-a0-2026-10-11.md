@@ -26,8 +26,8 @@ Rutas relativas a `frontend/src/features/graficos/`. Leyenda: ☑ existe en Lám
 | C8 | Plan sugerido + equivalencias | `SuggestedPlanButton.tsx:105,217` | ☑ reuso `BarraLaminas.tsx:96` | A5 «Armar desde…» |
 | C9 | Guías de edición | `GraficosHeader.tsx:787,1276-1430` | ◐ DebugPhToggle viejo como «Guías (beta)» `laminas/VisorLamina.tsx:22,158-160` | A3 |
 | C10 | Diálogo «Estilo global» (8 pestañas) | `v2/shell/EstiloGlobalDialog.tsx:25-90` | ☐ ⋯ manda al Editor anterior `BarraLaminas.tsx:139-142` | A6 (C48–C55) |
-| C11 | Plan portátil .zip | `GraficosHeader.tsx:624-684,844-947` | ☐ ⋯ manda al Editor anterior | ⛔ sin unidad: A1 o A9 |
-| C12 | Exportar/importar JSON por secciones | `GraficosHeader.tsx:40-53,686-742,949-1035` | ☐ igual | ⛔ sin unidad: A1 o A9 |
+| C11 | Plan portátil .zip | `GraficosHeader.tsx:624-684,844-947` | ☐ ⋯ manda al Editor anterior | A1 · menú ⋯ de Láminas (decisión 10, 2026-10-11) |
+| C12 | Exportar/importar JSON por secciones | `GraficosHeader.tsx:40-53,686-742,949-1035` | ☐ igual | A1 · menú ⋯ de Láminas (decisión 10, 2026-10-11) |
 | C13 | Exportar PPT/Word + guardar al lado | `ExportarInformeMenu.tsx:81` | ☑ `BarraLaminas.tsx:97` | — |
 | C14 | Vaciar plan | `GraficosHeader.tsx:744-747,1054-1063` | ☐ | A1 (ítem del ⋯) |
 | C15 | Bloqueo sin base preparada | `GraficosPage.tsx:285-289` | ☑ + `VisorLamina.tsx:268-273` | — |
@@ -40,7 +40,7 @@ Rutas relativas a `frontend/src/features/graficos/`. Leyenda: ☑ existe en Lám
 | C22 | Modal de atajos «?» | `ShortcutsModal.tsx:11-37` | ◐ lista atajos del clásico | A1 |
 | C23 | Resumen del plan | `TimelinePanelV2.tsx:124-150` | ☑ `EstructuraInforme.tsx:70`, `BarraLaminas.tsx:68` | — |
 | C24 | Búsqueda por título o tipo | `TimelinePanelV2.tsx:175` | ☑ `EstructuraInforme.tsx:91-103` | — |
-| C25 | Filtro por categoría | `v2/timeline/categoryOf.ts` | ☐ | ⛔ A5 o retirar |
+| C25 | Filtro por categoría | `v2/timeline/categoryOf.ts` | ☐ | RETIRADA (decisión 10, 2026-10-11) |
 | C26 | Reordenar arrastrando | `SlideCard.tsx:40,84` | ◐ solo subir/bajar `AccionesLamina.tsx:31-38` | A5 |
 | C27 | Duplicar/eliminar | `SlideCard.tsx:157,165` | ☑ `AccionesLamina.tsx:27-42`, toast Deshacer | — |
 | C28 | Marcas de error por lámina | `SlideCard.tsx:92` | ☑ `EstructuraInforme.tsx:215-227` | — |
@@ -69,7 +69,7 @@ Rutas relativas a `frontend/src/features/graficos/`. Leyenda: ☑ existe en Lám
 | C51 | Estilo › Color e identidad | `PaletasEditor.tsx` | ☐ | A6 |
 | C52 | Estilo › Líneas visuales | `PptStyleProfilesPanel.tsx` | ☐ | A6 + A9 (ACNUR) |
 | C53 | Estilo › Íconos propios | `IconosEditor.tsx` | ☐ | A5 + A6 (K6) |
-| C54 | Estilo › Estilos guardados | `OverridesEditor.tsx` | ☐ | ⛔ retirar (ggplot) — confirmar |
+| C54 | Estilo › Estilos guardados | `OverridesEditor.tsx` | ☐ | RETIRADA (decisión 10, 2026-10-11) |
 | C55 | Estilo › «Otros» automáticos | `ContenidoEditor.tsx:14-25` | ☐ | A5 |
 | R1 | Exportar, guardar, deshacer, duplicar, eliminar | C5, C13, C27 | ☑ | — |
 | R2 | Informe consolidado | C16 | ◐ | A7 |
