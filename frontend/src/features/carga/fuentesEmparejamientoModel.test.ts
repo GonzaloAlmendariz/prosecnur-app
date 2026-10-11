@@ -3,6 +3,8 @@ import type { EmparejamientoFila, EmparejamientoFuente } from "../../api/cargaFu
 import {
   agruparPorSeccion,
   avisoExclusion,
+  bloquesPorEnunciado,
+  datoRespuestas,
   conteosDeFuente,
   filtrarFilas,
   filtroInicial,
@@ -14,7 +16,7 @@ import {
 } from "./fuentesEmparejamientoModel";
 
 function fila(parcial: Partial<EmparejamientoFila>): EmparejamientoFila {
-  return { seccion: "Perfil", etiqueta: "Pregunta", variable_base: "p1", variable_fuente: "p1", estado: "emparejada", ...parcial };
+  return { seccion: "Perfil", enunciado: "", etiqueta: "Pregunta", variable_base: "p1", variable_fuente: "p1", estado: "emparejada", ...parcial };
 }
 
 function fuente(parcial: Partial<EmparejamientoFuente>): EmparejamientoFuente {
@@ -104,5 +106,32 @@ describe("fuentesEmparejamientoModel", () => {
     expect(hrefSinFoco("/procesamiento?seccion=carga&pestana=equivalencias&foco=123"))
       .toBe("/procesamiento?seccion=carga&pestana=equivalencias");
     expect(hrefSinFoco("/procesamiento")).toBe("/procesamiento");
+  });
+
+  it("junta en un bloque las filas consecutivas de una misma matriz", () => {
+    const madre = "¿Ha utilizado los siguientes servicios?";
+    const bloques = bloquesPorEnunciado([
+      fila({ etiqueta: "Edad" }),
+      fila({ enunciado: madre, etiqueta: "Servicio de salud" }),
+      fila({ enunciado: madre, etiqueta: "Comunicación visual" }),
+      fila({ etiqueta: "Género" }),
+      fila({ enunciado: madre, etiqueta: "Biblioteca" }),
+    ]);
+    expect(bloques.map((b) => [b.enunciado, b.filas.map((f) => f.etiqueta)])).toEqual([
+      ["", ["Edad"]],
+      [madre, ["Servicio de salud", "Comunicación visual"]],
+      ["", ["Género"]],
+      // Separada por otra pregunta: otro bloque, como en el instrumento.
+      [madre, ["Biblioteca"]],
+    ]);
+    expect(agruparPorSeccion([fila({ enunciado: madre }), fila({ enunciado: madre })])[0].bloques).toHaveLength(1);
+  });
+
+  it("el dato de respuestas del encabezado", () => {
+    expect(datoRespuestas(fuente({ n_filas_incorporadas: 0 }))).toBe("Todavía no tiene respuestas.");
+    expect(datoRespuestas(fuente({ n_filas_incorporadas: 52 }))).toBe("52 respuestas de esta fuente están en la base.");
+    expect(datoRespuestas(fuente({ n_filas_incorporadas: 1 }))).toBe("1 respuesta de esta fuente está en la base.");
+    expect(datoRespuestas(fuente({ n_filas_incorporadas: null }))).toBeNull();
+    expect(datoRespuestas(fuente({ estado: "excluida", n_filas_incorporadas: 0 }))).toBeNull();
   });
 });

@@ -7,7 +7,7 @@ import type { EmparejamientoFiltro } from "./fuentesEmparejamientoModel";
 
 // Fixture local del contrato `GET /api/carga/fuentes/emparejamiento` (ítem 15).
 function fila(parcial: Partial<EmparejamientoFila>): EmparejamientoFila {
-  return { seccion: "Perfil", etiqueta: "Pregunta", variable_base: "p1", variable_fuente: "p1", estado: "emparejada", ...parcial };
+  return { seccion: "Perfil", enunciado: "", etiqueta: "Pregunta", variable_base: "p1", variable_fuente: "p1", estado: "emparejada", ...parcial };
 }
 
 function fuente(parcial: Partial<EmparejamientoFuente>): EmparejamientoFuente {
@@ -165,5 +165,40 @@ describe("FuentesEmparejamientoVista", () => {
     for (const clase of ["pulso-emparejamiento-cabecera", "pulso-emparejamiento-cuerpo", "pulso-emparejamiento-barra"]) {
       expect(html).toContain(clase);
     }
+  });
+
+  it("matriz: el enunciado encabeza sus filas, que muestran solo su texto con sangría", () => {
+    const madre = "¿Ha utilizado los siguientes servicios de la facultad durante el último semestre?";
+    const html = render(datos([fuente({
+      filas: [
+        fila({ etiqueta: "Edad", variable_base: "p4", variable_fuente: "p3", estado: "otro_nombre" }),
+        fila({ seccion: "Servicios", enunciado: madre, etiqueta: "Servicio de salud", variable_base: "p11_1", variable_fuente: "p11_1" }),
+        fila({ seccion: "Servicios", enunciado: madre, etiqueta: "Comunicación visual", variable_base: "p11_2", variable_fuente: "p12_2", estado: "otro_nombre" }),
+      ],
+    })]), "tel", "todas");
+    // Una sola subcabecera, con el texto completo, como cabecera de su grupo de filas.
+    expect((html.match(/scope="rowgroup"/g) ?? []).length).toBe(1);
+    expect(html).toContain(`<th scope="rowgroup" colSpan="4" title="${madre}">${madre}</th>`);
+    // Cada fila de la matriz trae solo su texto y la marca de sangría.
+    expect((html.match(/is-en-matriz/g) ?? []).length).toBe(2);
+    expect(html).toMatch(/is-en-matriz"><th scope="row" class="pulso-emparejamiento-pregunta" title="Servicio de salud">Servicio de salud<\/th>/);
+    // La subcabecera va después de la sección y antes de sus filas.
+    expect(html.indexOf(madre)).toBeGreaterThan(html.indexOf(">Servicios<"));
+    expect(html.indexOf(madre)).toBeLessThan(html.indexOf(">Servicio de salud<"));
+  });
+
+  it("una fila sin enunciado se ve como siempre: sin subcabecera ni sangría", () => {
+    const html = render(datos([MIXTA]), "tel", "todas");
+    expect(html).not.toContain('scope="rowgroup"');
+    expect(html).not.toContain("is-en-matriz");
+  });
+
+  it("una fuente sin respuestas lo dice en el encabezado; con respuestas da el dato", () => {
+    const vacia = render(datos([fuente({ n_filas_incorporadas: 0, filas: MIXTA.filas })]));
+    expect(vacia).toContain("Todavía no tiene respuestas.");
+    expect(vacia.indexOf("Todavía no tiene respuestas.")).toBeLessThan(vacia.indexOf("pulso-emparejamiento-cuerpo"));
+    const llena = render(datos([MIXTA]));
+    expect(llena).toContain("52 respuestas de esta fuente están en la base.");
+    expect(llena).not.toContain("Todavía no tiene respuestas.");
   });
 });

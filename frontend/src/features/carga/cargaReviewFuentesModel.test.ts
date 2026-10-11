@@ -15,6 +15,7 @@ function fuente(partial: Partial<CargaReviewFuente>): CargaReviewFuente {
     n_opciones_sin_par: 0,
     excluida: false,
     n_filas_excluidas: 0,
+    n_filas_incorporadas: 40,
     ambiguas: [],
     consentimiento_sin_par: false,
     n_excluidas_consentimiento: 0,
@@ -57,10 +58,41 @@ describe("normalizeCargaReviewFuentes", () => {
       n_opciones_sin_par: 0,
       excluida: false,
       n_filas_excluidas: 0,
+      n_filas_incorporadas: null,
       ambiguas: [],
       consentimiento_sin_par: false,
       n_excluidas_consentimiento: 0,
     });
+  });
+
+  it("lee n_filas_incorporadas y distingue cero de ausente", () => {
+    const out = normalizeCargaReviewFuentes({
+      fuentes: [
+        { survey_id: "a", titulo: "A", n_filas_incorporadas: [0] },
+        { survey_id: "b", titulo: "B", n_filas_incorporadas: "52" },
+        { survey_id: "c", titulo: "C" },
+      ],
+    });
+    expect(out?.fuentes.map((f) => f.n_filas_incorporadas)).toEqual([0, 52, null]);
+  });
+});
+
+describe("fuente sin respuestas", () => {
+  it("una fuente incorporada con 0 respuestas lo dice en su tarjeta", () => {
+    const [limpia] = cargaReviewFuentesHallazgos({ principal: null, fuentes: [fuente({ n_filas_incorporadas: 0 })] });
+    expect(limpia.lineas.map((l) => l.texto)).toEqual(["Todavía no tiene respuestas."]);
+    const [conAvisos] = cargaReviewFuentesHallazgos({
+      principal: null,
+      fuentes: [fuente({ n_filas_incorporadas: 0, sin_par_base: [{ variable: "p7", etiqueta: "Edad" }] })],
+    });
+    expect(conAvisos.lineas.map((l) => l.texto)).toEqual(["Todavía no tiene respuestas.", "Sin respuesta en esta fuente: Edad"]);
+  });
+
+  it("no lo dice si tiene respuestas, si el dato falta o si la fuente quedó excluida", () => {
+    for (const parcial of [{ n_filas_incorporadas: 40 }, { n_filas_incorporadas: null }, { n_filas_incorporadas: 0, excluida: true }]) {
+      const [h] = cargaReviewFuentesHallazgos({ principal: null, fuentes: [fuente(parcial)] });
+      expect(h.lineas.map((l) => l.texto)).not.toContain("Todavía no tiene respuestas.");
+    }
   });
 });
 

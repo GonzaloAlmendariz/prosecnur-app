@@ -411,6 +411,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
     n_opciones_sin_par: 0,
     excluida: false,
     n_filas_excluidas: 0,
+    n_filas_incorporadas: 40,
     ambiguas: [],
     consentimiento_sin_par: false,
     n_excluidas_consentimiento: 0,

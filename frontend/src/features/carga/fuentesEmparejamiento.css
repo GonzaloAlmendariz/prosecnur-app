@@ -166,6 +166,23 @@
   line-height: 1.4;
 }
 
+.pulso-emparejamiento-respuestas {
+  margin: 0;
+  align-self: flex-start;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-emparejamiento-respuestas.is-sin-respuestas {
+  padding: 2px var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
 .pulso-emparejamiento-selector {
   display: inline-flex;
   align-items: center;
@@ -445,7 +462,36 @@
   color: var(--pulso-text-faint);
 }
 
-.pulso-emparejamiento-tabla tbody tr:not(.pulso-emparejamiento-seccion) > * {
+/* Matriz: el enunciado encabeza sus filas, en estilo secundario y entero; las
+ * filas muestran solo su texto, con sangría. */
+.pulso-emparejamiento-enunciado th {
+  padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-1);
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+/* Más específico que la regla general de celdas, que fija el padding. */
+.pulso-emparejamiento-tabla tbody tr.is-en-matriz:not(.pulso-emparejamiento-enunciado) > .pulso-emparejamiento-pregunta {
+  padding-left: calc(var(--pulso-space-3) + var(--pulso-space-5));
+  position: relative;
+}
+
+/* Guía vertical de la matriz: dice qué filas cuelgan del enunciado sin
+ * depender del color. */
+.pulso-emparejamiento-tabla tr.is-en-matriz > .pulso-emparejamiento-pregunta::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--pulso-space-3) + var(--pulso-space-2));
+  border-left: 2px solid var(--pulso-border-strong);
+}
+
+.pulso-emparejamiento-tabla tbody tr:not(.pulso-emparejamiento-seccion):not(.pulso-emparejamiento-enunciado) > * {
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border-bottom: 1px solid var(--pulso-border);
   vertical-align: top;

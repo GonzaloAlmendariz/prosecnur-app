@@ -1996,6 +1996,8 @@ export type CargaReviewFuente = {
   /** Otro instrumento: sus respuestas no entraron a la base (ADR 0094). */
   excluida: boolean;
   n_filas_excluidas: number;
+  /** Respuestas de la fuente que entraron a la base. `null` si el payload no lo trae. */
+  n_filas_incorporadas: number | null;
   /** Preguntas con la misma clave repetida distinto: no se emparejan. */
   ambiguas: CargaReviewPreguntaSinPar[];
   /** La fuente no tiene una pregunta de consentimiento que calce con la base. */
@@ -2105,6 +2107,10 @@ export function normalizeCargaReviewFuentes(raw: unknown): CargaReviewFuentes | 
         n_opciones_sin_par: Math.max(0, reconNumber(reviewScalar(entry.n_opciones_sin_par))),
         excluida: reviewBoolean(reviewScalar(entry.excluida)),
         n_filas_excluidas: Math.max(0, reconNumber(reviewScalar(entry.n_filas_excluidas))),
+        // Ausente no es cero: sin el dato no se puede decir que no tenga respuestas.
+        n_filas_incorporadas: reviewScalar(entry.n_filas_incorporadas) == null
+          ? null
+          : Math.max(0, reconNumber(reviewScalar(entry.n_filas_incorporadas))),
         ambiguas: normalizeCargaReviewSinPar(entry.ambiguas),
         consentimiento_sin_par: reviewBoolean(reviewScalar(entry.consentimiento_sin_par)),
         n_excluidas_consentimiento: Math.max(0, reconNumber(reviewScalar(entry.n_excluidas_consentimiento))),

@@ -50,6 +50,26 @@ function ChipVariable({ nombre, distinto, ausente }: { nombre: string; distinto?
   return <code className={distinto ? "pulso-emparejamiento-var is-distinto" : "pulso-emparejamiento-var"}>{nombre}</code>;
 }
 
+function FilaEmparejamiento({ fila, enMatriz }: { fila: EmparejamientoFila; enMatriz: boolean }) {
+  const distinto = nombreDifiere(fila);
+  return (
+    <tr className={`is-${fila.estado}${enMatriz ? " is-en-matriz" : ""}`}>
+      <th scope="row" className="pulso-emparejamiento-pregunta" title={fila.etiqueta || undefined}>
+        {fila.etiqueta || <span className="pulso-emparejamiento-sin-texto">Sin texto en el instrumento</span>}
+      </th>
+      <td>
+        <ChipVariable nombre={fila.variable_base} ausente="No existe en la base" />
+      </td>
+      <td>
+        <ChipVariable nombre={fila.variable_fuente} distinto={distinto} ausente="No existe en la fuente" />
+      </td>
+      <td>
+        <EmparejamientoInsignia estado={fila.estado} />
+      </td>
+    </tr>
+  );
+}
+
 export function FuentesEmparejamientoTabla({
   filas,
   fuenteNombre,
@@ -74,40 +94,40 @@ export function FuentesEmparejamientoTabla({
           <th scope="col">Estado</th>
         </tr>
       </thead>
-      {grupos.map((grupo) => (
-        <tbody key={grupo.seccion}>
-          <tr className="pulso-emparejamiento-seccion">
-            <th scope="colgroup" colSpan={4}>
-              <span>{grupo.seccion}</span>
-              <small>
-                {grupo.filas.length} {grupo.filas.length === 1 ? "pregunta" : "preguntas"}
-              </small>
-            </th>
-          </tr>
-          {grupo.filas.map((fila, index) => {
-            const distinto = nombreDifiere(fila);
-            return (
-              <tr
-                key={`${fila.variable_base}|${fila.variable_fuente}|${index}`}
-                className={`is-${fila.estado}`}
-              >
-                <th scope="row" className="pulso-emparejamiento-pregunta" title={fila.etiqueta || undefined}>
-                  {fila.etiqueta || <span className="pulso-emparejamiento-sin-texto">Sin texto en el instrumento</span>}
-                </th>
-                <td>
-                  <ChipVariable nombre={fila.variable_base} ausente="No existe en la base" />
-                </td>
-                <td>
-                  <ChipVariable nombre={fila.variable_fuente} distinto={distinto} ausente="No existe en la fuente" />
-                </td>
-                <td>
-                  <EmparejamientoInsignia estado={fila.estado} />
-                </td>
-              </tr>
-            );
-          })}
+      {grupos.map((grupo) => grupo.bloques.map((bloque, indiceBloque) => (
+        // Un `tbody` por bloque: el de una matriz lleva su enunciado como
+        // cabecera de grupo de filas, y el lector de pantalla lo asocia a cada
+        // fila sin repetirlo en el texto visible.
+        <tbody
+          key={`${grupo.seccion}|${indiceBloque}`}
+          className={bloque.enunciado ? "pulso-emparejamiento-matriz" : undefined}
+        >
+          {indiceBloque === 0 && (
+            <tr className="pulso-emparejamiento-seccion">
+              <th scope="colgroup" colSpan={4}>
+                <span>{grupo.seccion}</span>
+                <small>
+                  {grupo.filas.length} {grupo.filas.length === 1 ? "pregunta" : "preguntas"}
+                </small>
+              </th>
+            </tr>
+          )}
+          {bloque.enunciado && (
+            <tr className="pulso-emparejamiento-enunciado">
+              <th scope="rowgroup" colSpan={4} title={bloque.enunciado}>
+                {bloque.enunciado}
+              </th>
+            </tr>
+          )}
+          {bloque.filas.map((fila, index) => (
+            <FilaEmparejamiento
+              key={`${fila.variable_base}|${fila.variable_fuente}|${index}`}
+              fila={fila}
+              enMatriz={Boolean(bloque.enunciado)}
+            />
+          ))}
         </tbody>
-      ))}
+      )))}
     </table>
   );
 }

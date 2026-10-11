@@ -13,6 +13,7 @@ import {
   EMPAREJAMIENTO_ESTADOS,
   avisoExclusion,
   conteosDeFuente,
+  datoRespuestas,
   filtrarFilas,
   filtroInicial,
   fuenteEnFoco,
@@ -210,6 +211,7 @@ export function FuentesEmparejamientoVista({
   const fuente = fuenteEnFoco(datos, foco);
   const fuentes = datos?.fuentes ?? [];
   const exclusion = fuente ? avisoExclusion(fuente) : null;
+  const respuestas = fuente ? datoRespuestas(fuente) : null;
   const titulo = fuente
     ? `Cómo se emparejaron las preguntas de ${nombreDeFuente(fuente)}`
     : "Cómo se emparejaron las preguntas";
@@ -278,6 +280,13 @@ export function FuentesEmparejamientoVista({
           <p id={EMPAREJAMIENTO_DESCRIPCION_ID} className="pulso-emparejamiento-regla">
             Cada pregunta se empareja con la de la base por su texto y su escala, la misma regla que usa Equivalencias.
           </p>,
+        )}
+        {respuestas && (
+          <p
+            className={`pulso-emparejamiento-respuestas${fuente?.n_filas_incorporadas === 0 ? " is-sin-respuestas" : ""}`}
+          >
+            {respuestas}
+          </p>
         )}
         {mostrarSelector && (
           <SelectorFuente fuentes={fuentes} valor={fuente?.survey_id ?? ""} onElegir={onElegirFuente} />
