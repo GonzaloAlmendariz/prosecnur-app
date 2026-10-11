@@ -14,8 +14,19 @@ type Props = {
   onCambio: (filas: TechnicalRow[]) => void;
 };
 
+/** Filas tal como se editan: las que ya son `{criterio, detalle}` se leen sin recortar (si no, un espacio recién
+ *  tecleado se borraría en cada render); el texto viejo y otras formas pasan por `normalizeTechnicalRows`. */
+export function filasEditables(valor: unknown): TechnicalRow[] {
+  const esFila = (f: unknown): f is { criterio?: unknown; detalle?: unknown } =>
+    !!f && typeof f === "object" && !Array.isArray(f) && ("criterio" in f || "detalle" in f);
+  if (Array.isArray(valor) && valor.every(esFila)) {
+    return valor.map((f) => ({ criterio: String(f.criterio ?? ""), detalle: String(f.detalle ?? "") }));
+  }
+  return normalizeTechnicalRows(valor);
+}
+
 export function FilasFichaTecnica({ arg, valor, onCambio }: Props) {
-  const filas = normalizeTechnicalRows(valor);
+  const filas = filasEditables(valor);
   const lista = useRef<HTMLOListElement>(null);
   const botonAnadir = useRef<HTMLButtonElement>(null);
   const [anuncio, setAnuncio] = useState("");
