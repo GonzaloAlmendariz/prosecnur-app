@@ -1,5 +1,10 @@
 # Contrato A7 — Informe compartido (consolidado) y multibase en Láminas
 
+Tipo: Contrato de implementación
+Estado: Vigente
+Fecha: 2026-10-11
+Autoridad: ADR 0040; lead de la Meta A; D1–D4 deciden con Gonzalo
+
 Congelado por el lead el 2026-10-11 sobre la revisión de `guardian-contratos`. Marco: ADR 0040 (§6: el consolidado no
 reutiliza `/ppt-all`; §6.1: ninguna configuración por base se migra o copia implícitamente). Sin cambio de shape
 persistido ni ADR nuevo.

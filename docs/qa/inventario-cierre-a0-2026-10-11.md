@@ -1,6 +1,10 @@
 # A0 — Inventario de cierre del Editor anterior de Gráficos frente a Láminas
 
-Tipo: Inventario (solo lectura) · Estado: Vigente · Fecha: 2026-10-11 · Meta A, unidad A0
+Tipo: Inventario (solo lectura)
+Estado: Vigente
+Fecha: 2026-10-11
+Autoridad: Lista de paridad adoptada por Gonzalo (decisión 10)
+
 Fuente: lectura del código en `c97eb3a` (agente Explore, sin escribir). Encargo: `encargo-loop-f6-2026-10-10.md`.
 
 ## Advertencia de partida

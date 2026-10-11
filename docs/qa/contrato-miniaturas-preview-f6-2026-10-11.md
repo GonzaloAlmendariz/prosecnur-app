@@ -1,6 +1,11 @@
 # Contrato — miniaturas en lote y vista previa asíncrona de lámina (F6 §5.3 · riesgo 7)
 
-Fecha: 2026-10-11 · Unidad A4 backend (B-a K7 miniaturas en lote + B-b `/preview-slide` asíncrono).
+Tipo: Contrato de implementación
+Estado: Vigente
+Fecha: 2026-10-11
+Autoridad: Lead de la Meta A (unidad A4 backend)
+
+Unidad A4 backend (B-a K7 miniaturas en lote + B-b `/preview-slide` asíncrono).
 Plan de origen: `docs/qa/plan-integracion-f6-2026-10-10.md` §5.3 («Punto de estado y miniaturas de 60 láminas») y §7
 riesgo 7 («render sólo de la lámina activa, cola cancelable, caché por hash»).
 

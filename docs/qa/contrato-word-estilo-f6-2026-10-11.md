@@ -1,5 +1,10 @@
 # Contrato A6 — Word y Estilo del cliente (F6.4)
 
+Tipo: Contrato de implementación
+Estado: Vigente
+Fecha: 2026-10-11
+Autoridad: ADR 0094; decisiones 1a y 5a de Gonzalo; lead de la Meta A
+
 Congelado por el lead el 2026-10-11 sobre la revisión de `guardian-contratos`. Decisión de fondo: ADR 0094. Espec de
 producto: `docs/qa/plan-integracion-f6-2026-10-10.md` §4 F6.4 y §5 filas 5.4/5.5. Decisiones de Gonzalo: 1a, 5a, E2
 (`docs/qa/decisiones-pendientes-f6-2026-10-10.md`).
