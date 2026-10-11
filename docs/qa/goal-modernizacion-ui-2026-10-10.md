@@ -196,3 +196,4 @@ Se vuelve a medir al cierre de cada vuelta. Baja o no cierra la vuelta.
 | Vuelta | Fecha | Ítems | Números movidos | Commits |
 |---|---|---|---|---|
 | 0 | 2026-10-10 | apertura: censo + vara + cola | — | `c98206e35`, `480b7f369`, `56905391e` |
+| B0 | 2026-10-11 | Meta B abre en la nube (rama `meta-b-revamp` desde `c97eb3a`); D13 resuelta; capturas «después» regeneradas (30 PNG, 30 md5 distintos); punto de partida medido con grep sobre `frontend/src/**/*.tsx` sin tests: `role="dialog"` 62 · `<input` 688 · `type="checkbox"` 108 · `<select` 224 · `<button` 1.958 / `PulsoButton` 39 · `toolbar=` 4; Tel/Acr/BasesPanel 20.397/18.487/6.719; `make gate-front` transversales 273/273; `--audit` OK. Aulas: sin fixture | — | este commit |
