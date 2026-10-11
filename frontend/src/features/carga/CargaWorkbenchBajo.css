@@ -1,0 +1,67 @@
+/*
+ * Carga en escritorio bajo (alto <= 720 px o preset «short»).
+ *
+ * Ahí el dueño del scroll es el cuerpo del PageFrame (No Scroll Jail). Dos
+ * consecuencias que este archivo resuelve para todas las pestañas de Carga:
+ *
+ * 1. Las pestañas que crecen con su contenido (Fuentes, Equivalencias; Revisión
+ *    lo hace en `CargaReviewSummary.css`) necesitan que el workbench crezca con
+ *    ellas. La degradación de `carga-v2.css` (0,2,0) pierde contra los
+ *    selectores `scroll-panels` del PageFrame (0,3,0), que fijan `height: 100%`
+ *    y `flex: 1 1 auto`: el workbench se quedaba del alto de la ventana y el
+ *    contenido se pintaba por debajo de su fondo y de su rail. `flex: 1 0 auto`
+ *    llena el alto si el contenido es menor y nunca se encoge por debajo de él.
+ *
+ * 2. El rail de pestañas se iba con el scroll y dejaba una columna vacía. La
+ *    columna (`.pulso-adaptive-rail`, que pinta fondo y filete) sigue estirada
+ *    al alto del workbench; la navegación dentro de ella se pega arriba del
+ *    dueño. `overflow: clip` y no `hidden`: `hidden` hace de la columna un
+ *    contenedor de scroll y el sticky se pegaría a ella, que no se mueve.
+ */
+@media (max-height: 720px) {
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--crece {
+    flex: 1 0 auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--crece > .pulso-adaptive-main,
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--crece .pulso-carga-scrollarea {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  :root .pulso-carga-frame .pulso-carga-workbench.pulso-context-tab-layout > .pulso-adaptive-rail {
+    overflow: clip;
+  }
+
+  :root .pulso-carga-frame .pulso-carga-workbench > .pulso-adaptive-rail > .pulso-carga-workspace-navigation {
+    position: sticky;
+    top: 0;
+    height: auto;
+  }
+}
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--crece {
+  flex: 1 0 auto;
+  height: auto;
+  min-height: 0;
+}
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--crece > .pulso-adaptive-main,
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--crece .pulso-carga-scrollarea {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame .pulso-carga-workbench.pulso-context-tab-layout > .pulso-adaptive-rail {
+  overflow: clip;
+}
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame .pulso-carga-workbench > .pulso-adaptive-rail > .pulso-carga-workspace-navigation {
+  position: sticky;
+  top: 0;
+  height: auto;
+}

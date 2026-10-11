@@ -845,28 +845,36 @@ test_that("kobo_import_separate no hereda mapas de códigos del formulario activ
   expect_equal(.cpj_q1_importado(sid, out), c("Si", "No"))
 })
 
-test_that("surveymonkey_import_separate aplica mapas solo del formulario de la misma encuesta", {
-  restores <- .cpj_sm_mocks()
-  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
-
-  # Formulario activo de OTRA encuesta (y mapas confirmados de sesión): no aplican.
-  sid <- session_create()
-  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
-  session_set(sid, "choice_code_maps_confirmed", list(confirmed = TRUE, maps = .cpj_mapa_si_no_invertido()))
-  out <- .carga_import_surveymonkey_separate(sid, list(survey_id = "sm_1"))
-  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No", "Si"))
-  session_delete(sid)
-
-  # El formulario de ESTA encuesta, aunque no sea el activo, sí aplica.
+# Contrato vigente (checklist 2026-10-11, H2): el import por API codifica por
+# etiqueta contra el instrumento que registra y NUNCA recodifica después con
+# mapas. N4 sigue valiendo para la procedencia: solo el formulario de la MISMA
+# encuesta (activo o no) aporta su orden de opciones; el de otra no aporta nada.
+# La adopción real del orden se prueba en test-carga-sm-orden-editor.R.
+test_that("N4: solo el formulario de la misma encuesta aporta mapas, sea o no el activo", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
   session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
+  session_set(sid, "choice_code_maps_confirmed", list(confirmed = TRUE, maps = .cpj_mapa_si_no_invertido()))
+  expect_null(.carga_platform_choice_code_maps(sid, "surveymonkey", "sm_1"))
   session_set(sid, "xlsform_forms", list(f2 = .cpj_form_con_mapas("sm_1")))
-  out <- .carga_import_surveymonkey_separate(sid, list(survey_id = "sm_1"))
-  expect_equal(.cpj_q1_importado(sid, out), c("No", "Si", "No"))
+  expect_length(.carga_platform_choice_code_maps(sid, "surveymonkey", "sm_1"), 1L)
+  expect_null(.carga_platform_choice_code_maps(sid, "kobo", "sm_1"))
 })
 
-test_that("base única: el import SM aplica solo mapas del formulario de la misma encuesta", {
+test_that("surveymonkey_import_separate no recodifica después de codificar, venga de donde venga el mapa", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  for (survey_form in c("sm_otra", "sm_1")) {
+    sid <- session_create()
+    session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
+    session_set(sid, "xlsform_forms", list(f2 = .cpj_form_con_mapas(survey_form)))
+    out <- .carga_import_surveymonkey_separate(sid, list(survey_id = "sm_1"))
+    expect_equal(.cpj_q1_importado(sid, out), c("Si", "No", "Si"), info = survey_form)
+    session_delete(sid)
+  }
+})
+
+test_that("base única: el import SM no recodifica después de codificar y declara el mapa que no pudo adoptar", {
   restores <- .cpj_sm_mocks()
   on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
 
@@ -874,13 +882,17 @@ test_that("base única: el import SM aplica solo mapas del formulario de la mism
   session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
   out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
   expect_equal(.cpj_q1_importado(sid, out), c("Si", "No", "Si"))
+  expect_length(session_get(sid)$estudio$bases$default$choice_order_editor$omitidas %||% list(), 0L)
   session_delete(sid)
 
+  # El mapa del mock no trae etiquetas: no se puede emparejar y queda declarado.
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
   session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_1"))
   out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
-  expect_equal(.cpj_q1_importado(sid, out), c("No", "Si", "No"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No", "Si"))
+  omitidas <- session_get(sid)$estudio$bases$default$choice_order_editor$omitidas
+  expect_equal(vapply(omitidas, function(o) o$variable, ""), "q1")
 })
 
 test_that("base única: el import Kobo no hereda mapas del formulario activo", {
@@ -911,13 +923,13 @@ test_that("base única SM: la base default y «Ver base» no recodifican dos vec
   session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_1"))
 
   out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
-  esperado <- c("No", "Si", "No")
+  esperado <- c("Si", "No", "Si")
   expect_equal(.cpj_q1_importado(sid, out), esperado)
   s <- session_get(sid)
   expect_equal(.cpj_q1_chr(s$rp_data_sources$default$q1), esperado)
   expect_equal(.cpj_q1_chr(.carga_normalized_data_for_export(sid, "default")$data$q1), esperado)
-  # Lo que se aplicó queda pendiente de confirmar en Carga › Revisión.
-  expect_true(length(s$choice_code_maps_pending$maps %||% list()) > 0L)
+  # Nada se recodificó después de codificar: no hay mapeo que confirmar.
+  expect_length(s$choice_code_maps_pending$maps %||% list(), 0L)
 })
 
 test_that("base única SM: confirmar el mapeo y reabrir el .pulso no invierte categorías", {
@@ -934,7 +946,8 @@ test_that("base única SM: confirmar el mapeo y reabrir el .pulso no invierte ca
     n_questions = 1L, maps = .cpj_mapa_si_no_invertido()
   )
   session_set(sid, "estudio", estudio)
-  esperado <- c("No", "Si", "No")
+  # Un mapeo confirmado en la base no se reaplica sobre un archivo ya codificado.
+  esperado <- c("Si", "No", "Si")
   expect_equal(.cpj_q1_chr(.carga_normalized_data_for_export(sid, "default")$data$q1), esperado)
 
   destino <- tempfile(fileext = ".pulso")

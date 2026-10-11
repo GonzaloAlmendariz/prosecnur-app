@@ -2809,7 +2809,7 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-processing-phase-row:has(.pulso-multibase-reports.is-open) {
-  z-index: 1600;
+  z-index: var(--pulso-z-flyout); /* menú abierto: sobre la barra (1000), bajo un modal o panel lateral (1500) */
 }
 
 .pulso-multibase-reports {
@@ -2858,8 +2858,7 @@ a { color: var(--pulso-primary); }
   -webkit-backdrop-filter: blur(18px) saturate(1.12);
 }
 
-.pulso-multibase-reports-head,
-.pulso-multibase-report-option {
+.pulso-multibase-reports-head, .pulso-multibase-report-option {
   min-width: 0;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -2904,6 +2903,7 @@ a { color: var(--pulso-primary); }
 
 .pulso-multibase-report-option {
   width: 100%;
+  white-space: normal; /* el `button` base es nowrap: la descripción desbordaba 14 px del menú */
   padding: 9px;
   border: 1px solid var(--pulso-border);
   border-radius: 12px;

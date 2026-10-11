@@ -192,8 +192,12 @@ library(testthat)
     # `procedencia` entra con L11 del GOAL de validación extrínseca: avisa que
     # la base trae más de una versión del formulario. Es NULL cuando no hay nada
     # que decir, pero la clave siempre viaja para que el front no adivine.
+    # `orden_editor` (checklist codificación SM 2026-10-11): igual, NULL salvo
+    # que un import por API haya adoptado u omitido el orden del editor.
+    # `fuentes` (ADR 0094): igual, NULL salvo que la base junte encuestas
+    # emparejadas por pregunta.
     c("base_nombre", "compatibility", "choice_mapping", "reconciliation",
-      "procedencia", "ready")
+      "procedencia", "orden_editor", "fuentes", "ready")
   )
   expect_setequal(
     names(payload$reconciliation),

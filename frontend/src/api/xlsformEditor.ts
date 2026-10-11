@@ -1954,6 +1954,69 @@ export type CargaReviewProcedencia = {
   mensaje: string;
 };
 
+/**
+ * Orden de opciones del editor en un import SurveyMonkey por API: qué
+ * preguntas adoptaron los códigos del formulario del editor y cuáles no (con
+ * su motivo). Advierte, no bloquea. `null` cuando no hay nada que declarar.
+ */
+export type CargaReviewOrdenEditor = {
+  adoptadas: string[];
+  omitidas: Array<{ variable: string; motivo: string }>;
+  /**
+   * El orden de una base se fija al importarla (ADR 0094, decisión 7). Si el
+   * editor tiene hoy otro orden en estas variables, la base conserva el suyo.
+   */
+  editor_distinto: string[];
+};
+
+/**
+ * ADR 0094. Una base SurveyMonkey que junta varias encuestas empareja cada
+ * fuente con la base pregunta por pregunta (clave de Equivalencias). Por cada
+ * fuente distinta de la principal: cuánto calzó, si llegó en otro orden y qué
+ * quedó sin par. No entra en `ready`. `null` cuando la base no junta encuestas.
+ */
+export type CargaReviewPreguntaSinPar = {
+  variable: string;
+  etiqueta: string;
+};
+
+export type CargaReviewFuente = {
+  survey_id: string;
+  titulo: string;
+  n_emparejadas: number;
+  n_preguntas_base: number;
+  reordenada: boolean;
+  instrumento_distinto: boolean;
+  /** Preguntas de la fuente que no existen en la base: no entraron. */
+  sin_par_fuente: CargaReviewPreguntaSinPar[];
+  /** Preguntas de la base sin par en la fuente: vacías para sus filas. */
+  sin_par_base: CargaReviewPreguntaSinPar[];
+  /** Respuestas con una opción que no existe en la lista: quedaron vacías. */
+  n_opciones_sin_par: number;
+  /** Otro instrumento: sus respuestas no entraron a la base (ADR 0094). */
+  excluida: boolean;
+  n_filas_excluidas: number;
+  /** Respuestas de la fuente que entraron a la base. `null` si el payload no lo trae. */
+  n_filas_incorporadas: number | null;
+  /** Preguntas con la misma clave repetida distinto: no se emparejan. */
+  ambiguas: CargaReviewPreguntaSinPar[];
+  /** La fuente no tiene una pregunta de consentimiento que calce con la base. */
+  consentimiento_sin_par: boolean;
+  n_excluidas_consentimiento: number;
+};
+
+/** Opciones de la encuesta principal que no estaban en su lista: quedaron vacías. */
+export type CargaReviewOpcionesPrincipal = {
+  opciones_sin_par: Array<{ variable: string; n: number }>;
+  n_opciones_sin_par: number;
+};
+
+export type CargaReviewFuentes = {
+  fuentes: CargaReviewFuente[];
+  /** Puede venir sin fuentes: una base de una sola encuesta también lo declara. */
+  principal: CargaReviewOpcionesPrincipal | null;
+};
+
 export type CargaReviewPayload = {
   ok: true;
   base_nombre: string | null;
@@ -1961,6 +2024,8 @@ export type CargaReviewPayload = {
   choice_mapping: CargaReviewChoiceMapping;
   reconciliation: CargaReviewReconciliation;
   procedencia: CargaReviewProcedencia | null;
+  orden_editor: CargaReviewOrdenEditor | null;
+  fuentes: CargaReviewFuentes | null;
   ready: boolean;
 };
 
@@ -1978,6 +2043,97 @@ function normalizeCargaReviewProcedencia(raw: unknown): CargaReviewProcedencia |
     version_vigente: typeof r.version_vigente === "string" ? r.version_vigente : "",
     mensaje: typeof r.mensaje === "string" ? r.mensaje : "",
   };
+}
+
+function normalizeCargaReviewOrdenEditor(raw: unknown): CargaReviewOrdenEditor | null {
+  const r = reconRecord(raw);
+  const adoptadas = reviewStrings(r.adoptadas);
+  const omitidas = normalizeShareArray<unknown>(r.omitidas)
+    .map((entry) => reconRecord(entry))
+    .filter((entry) => typeof entry.variable === "string" && entry.variable.trim().length > 0)
+    .map((entry) => ({
+      variable: String(reviewScalar(entry.variable)).trim(),
+      motivo: String(reviewScalar(entry.motivo) ?? ""),
+    }));
+  const editorDistinto = reviewStrings(r.editor_distinto);
+  if (!adoptadas.length && !omitidas.length && !editorDistinto.length) return null;
+  return { adoptadas, omitidas, editor_distinto: editorDistinto };
+}
+
+// R puede entregar un escalar como vector de largo uno.
+function reviewScalar(value: unknown): unknown {
+  return Array.isArray(value) && value.length === 1 ? value[0] : value;
+}
+
+function reviewText(value: unknown): string {
+  const scalar = reviewScalar(value);
+  return typeof scalar === "string" ? scalar.trim() : "";
+}
+
+// Acepta filas (`[{variable, etiqueta}]`) o columnas (`{variable: [], etiqueta: []}`),
+// las dos formas en que un data.frame de R llega serializado.
+function normalizeCargaReviewSinPar(raw: unknown): CargaReviewPreguntaSinPar[] {
+  const filas = Array.isArray(raw)
+    ? raw
+    : (() => {
+        const columnas = reconRecord(raw);
+        const variables = normalizeShareArray<unknown>(columnas.variable);
+        const etiquetas = normalizeShareArray<unknown>(columnas.etiqueta);
+        return variables.map((variable, index) => ({ variable, etiqueta: etiquetas[index] }));
+      })();
+  return filas
+    .map((entry) => reconRecord(entry))
+    .map((entry) => ({ variable: reviewText(entry.variable), etiqueta: reviewText(entry.etiqueta) }))
+    .filter((entry) => entry.variable.length > 0 || entry.etiqueta.length > 0);
+}
+
+export function normalizeCargaReviewFuentes(raw: unknown): CargaReviewFuentes | null {
+  const r = reconRecord(raw);
+  const fuentes = normalizeShareArray<unknown>(r.fuentes)
+    .map((entry) => reconRecord(entry))
+    .filter((entry) => Object.keys(entry).length > 0)
+    .map((entry): CargaReviewFuente => {
+      const sinParFuente = normalizeCargaReviewSinPar(entry.sin_par_fuente);
+      const sinParBase = normalizeCargaReviewSinPar(entry.sin_par_base);
+      return {
+        survey_id: reviewText(entry.survey_id),
+        titulo: reviewText(entry.titulo),
+        n_emparejadas: Math.max(0, reconNumber(reviewScalar(entry.n_emparejadas))),
+        n_preguntas_base: Math.max(0, reconNumber(reviewScalar(entry.n_preguntas_base))),
+        reordenada: reviewBoolean(reviewScalar(entry.reordenada)),
+        instrumento_distinto: reviewBoolean(reviewScalar(entry.instrumento_distinto)),
+        sin_par_fuente: sinParFuente,
+        sin_par_base: sinParBase,
+        n_opciones_sin_par: Math.max(0, reconNumber(reviewScalar(entry.n_opciones_sin_par))),
+        excluida: reviewBoolean(reviewScalar(entry.excluida)),
+        n_filas_excluidas: Math.max(0, reconNumber(reviewScalar(entry.n_filas_excluidas))),
+        // Ausente no es cero: sin el dato no se puede decir que no tenga respuestas.
+        n_filas_incorporadas: reviewScalar(entry.n_filas_incorporadas) == null
+          ? null
+          : Math.max(0, reconNumber(reviewScalar(entry.n_filas_incorporadas))),
+        ambiguas: normalizeCargaReviewSinPar(entry.ambiguas),
+        consentimiento_sin_par: reviewBoolean(reviewScalar(entry.consentimiento_sin_par)),
+        n_excluidas_consentimiento: Math.max(0, reconNumber(reviewScalar(entry.n_excluidas_consentimiento))),
+      };
+    });
+  const principal = normalizeCargaReviewOpcionesPrincipal(r.principal);
+  if (!fuentes.length && !principal) return null;
+  return { fuentes, principal };
+}
+
+function normalizeCargaReviewOpcionesPrincipal(raw: unknown): CargaReviewOpcionesPrincipal | null {
+  const r = reconRecord(raw);
+  const opciones = normalizeShareArray<unknown>(r.opciones_sin_par)
+    .map((entry) => reconRecord(entry))
+    .map((entry) => ({
+      variable: reviewText(entry.variable),
+      n: Math.max(0, reconNumber(reviewScalar(entry.n))),
+    }))
+    .filter((entry) => entry.variable && entry.n > 0);
+  const total = Math.max(0, reconNumber(reviewScalar(r.n_opciones_sin_par)))
+    || opciones.reduce((acc, entry) => acc + entry.n, 0);
+  if (!total) return null;
+  return { opciones_sin_par: opciones, n_opciones_sin_par: total };
 }
 
 function reviewBoolean(value: unknown): boolean {
@@ -2102,6 +2258,8 @@ function normalizeCargaReviewPayload(raw: unknown): CargaReviewPayload {
     choice_mapping: choiceMapping,
     reconciliation,
     procedencia: normalizeCargaReviewProcedencia(root.procedencia),
+    orden_editor: normalizeCargaReviewOrdenEditor(root.orden_editor),
+    fuentes: normalizeCargaReviewFuentes(root.fuentes),
     ready: reviewBoolean(root.ready)
       && !incompatible
       && !choiceMapping.pending

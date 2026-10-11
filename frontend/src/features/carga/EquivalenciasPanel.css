@@ -3,10 +3,17 @@
    tono del módulo y sobreviva a un cambio de identidad sin retoques. */
 
 .pulso-equiv {
+  /* Contiene a los `pulso-sr-only` absolutos de las tablas: sin un ancestro
+     posicionado dentro del dueño de scroll, su caja estática inflaba el
+     `scrollHeight` de `.pulso-main` (overflow hidden), que el foco puede
+     desplazar. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
-  min-height: 0;
+  /* Sin `min-height: 0`: con él la grilla de Carga podía darle contribución
+     mínima 0 y recortarla al alto sobrante, con las filas desbordando visibles
+     fuera de su marco y la barra sticky soltándose a mitad de recorrido. */
 }
 
 .pulso-equiv-head {
@@ -60,19 +67,11 @@
   gap: var(--pulso-space-2);
 }
 
-/* El input de archivo va oculto DENTRO del label: el label es el control
-   alcanzable y conserva foco de teclado, que es lo que C4 exige. */
-.pulso-equiv-btn-file {
-  position: relative;
-  cursor: pointer;
-}
-
-.pulso-equiv-btn-file input[type="file"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  width: 100%;
-  cursor: pointer;
+/* El selector de archivo lo abre «Subir matriz», que es un `button` real con
+   el mismo estilo que sus hermanos. El input no es una segunda parada de
+   teclado. */
+.pulso-equiv-archivo {
+  display: none;
 }
 
 .pulso-equiv-error,
@@ -98,17 +97,21 @@
 
 /* C3: este contenedor es el dueño declarado de la capacidad. El vacío vive
    aquí dentro, con borde y material propios, y no como aire suelto en el
-   panel. */
+   panel.
+
+   C4: NO es dueño de scroll. Con `overflow: auto` su alto mínimo era ~0 y la
+   grilla de Carga lo encogía al sobrante: 729 px a 1710, 202 a 1024x600 —dos
+   filas de 52—, con el cuerpo del marco como segundo dueño encima. Ahora crece
+   con sus datos y el scroll es uno solo, el de Carga; barra, cabecera y pie se
+   pegan a él. */
 .pulso-equiv-cuerpo {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
-  min-height: 0;
   padding: var(--pulso-space-3);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);
-  overflow: auto;
 }
 
 .pulso-equiv-vacio {
@@ -219,24 +222,35 @@
   flex-direction: column;
   gap: var(--pulso-space-2);
   min-width: 0;
-  /* C4: la tabla es ancha por construccion (una columna por publico) y su
-     desplazamiento vive DENTRO de su contenedor, no en la pagina. */
-  overflow-x: auto;
+  /* Sin scroll propio: un `overflow-x: auto` aquí la volvía contenedor de
+     scroll en los dos ejes, se quedaba con 98 px de alto a 1024x600 y
+     desenganchaba la cabecera sticky del dueño real. El ancho lo resuelve
+     `table-layout: fixed`, que nunca desborda. */
 }
 
 .pulso-equiv-tabla {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
   width: 100%;
   font-size: 12px;
 }
 
+/* La cabecera de la Lista se pega bajo la barra de vistas, cuyo alto mide el
+   panel: 52 filas sin saber qué columna es cada público no se leen. */
 .pulso-equiv-tabla th {
+  position: sticky;
+  top: var(--pulso-equiv-barra-alto, 0px);
+  z-index: 2;
   text-align: left;
   font-weight: 600;
   color: var(--pulso-text-soft);
+  background: var(--pulso-surface);
   padding: var(--pulso-space-1) var(--pulso-space-2);
   border-bottom: 1px solid var(--pulso-border-strong);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pulso-equiv-tabla td {
@@ -249,10 +263,10 @@
   background: var(--pulso-info-bg);
 }
 
-.pulso-equiv-col-etiqueta { min-width: 260px; }
-.pulso-equiv-col-diapo { width: 68px; }
+.pulso-equiv-col-diapo { width: 84px; }
+.pulso-equiv-col-acciones { width: 72px; }
 .pulso-equiv-col-n {
-  width: 64px;
+  width: 72px;
   text-align: right;
   color: var(--pulso-text-faint);
   font-variant-numeric: tabular-nums;
@@ -286,6 +300,10 @@
 .pulso-equiv-tabla select {
   width: 100%;
   min-width: 0;
+  /* Lo que no cabe termina en «…» y el texto entero va en el `title`. */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
   font-size: 12px;
   padding: 3px 6px;
   border: 1px solid var(--pulso-border);
@@ -323,12 +341,22 @@ button.pulso-equiv-input-diapo:hover,
   gap: 2px;
 }
 
+/* Guardar no se busca al final de 52 filas: el pie se pega al borde inferior
+   del dueño de scroll y el material lo separa de las filas que pasan debajo. */
 .pulso-equiv-pie-editor {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--pulso-space-3);
   flex-wrap: wrap;
+  margin: 0 calc(-1 * var(--pulso-space-3)) calc(-1 * var(--pulso-space-3));
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+  border-radius: 0 0 var(--pulso-radius-panel) var(--pulso-radius-panel);
+  background: var(--pulso-surface);
   font-size: 12px;
   color: var(--pulso-text-faint);
 }
@@ -339,10 +367,22 @@ button.pulso-equiv-input-diapo:hover,
    se dice UNA vez en la cabecera de la tarjeta en lugar de repetirse por fila:
    es lo que permite leer las invariantes E1/E2 sin buscarlas. */
 
+/* La barra de vistas queda arriba del dueño de scroll: cambiar de vista,
+   agrupar y confirmar siguen a mano en la fila 40. Se extiende sobre el padding
+   del cuerpo para que las filas no asomen por los lados al pasar debajo. */
 .pulso-equiv-vistas {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--pulso-space-1);
+  margin: calc(-1 * var(--pulso-space-3)) calc(-1 * var(--pulso-space-3)) 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel) var(--pulso-radius-panel) 0 0;
+  background: var(--pulso-surface);
   font-size: 12px;
 }
 
@@ -384,9 +424,10 @@ button.pulso-equiv-input-diapo:hover,
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   min-width: 0;
-  /* C4: una diapositiva con cuatro publicos es ancha por construccion; su
-     desplazamiento vive dentro de la tarjeta y nunca en la pagina. */
-  overflow-x: auto;
+  /* Sin scroll propio: un `overflow-x: auto` la volvía contenedor de scroll y su
+     cabecera sticky se pegaba a la tarjeta (que no se mueve) en vez de al dueño
+     real; a media altura los públicos perdían su rótulo. La tabla cabe por
+     construcción —el Tema absorbe el sobrante y encoge con elipsis—. */
 }
 
 /* Lo que no tiene diapositiva no es una diapositiva mas: es trabajo pendiente, y se
@@ -703,6 +744,21 @@ button.pulso-equiv-chip-escala:hover,
   white-space: nowrap;
 }
 
+/* La cabecera de cada tarjeta se pega bajo la barra de vistas mientras su
+   tarjeta está a la vista, como en la Lista. El filete va en sombra: con
+   `border-collapse` el borde no viaja con la celda pegada. */
+.pulso-equiv-diapositiva-tabla thead th {
+  position: sticky;
+  top: var(--pulso-equiv-barra-alto, 0px);
+  z-index: 2;
+  background: var(--pulso-surface);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
+}
+
+.pulso-equiv-diapositiva.is-pendiente .pulso-equiv-diapositiva-tabla thead th {
+  background: var(--pulso-surface-2);
+}
+
 .pulso-equiv-diapositiva-tabla td {
   padding: 2px var(--pulso-space-2);
   border-bottom: 1px solid var(--pulso-border);
@@ -723,6 +779,7 @@ button.pulso-equiv-chip-escala:hover,
 .pulso-equiv-diapositiva-tabla select {
   width: 100%;
   min-width: 0;
+  text-overflow: ellipsis;
   font-size: 12px;
   padding: 2px 6px;
   border: 1px solid var(--pulso-border);
@@ -1099,4 +1156,21 @@ button.pulso-equiv-mover:hover,
   color: var(--pulso-button-accent-strong);
   background: var(--pulso-button-accent-soft);
   border-color: var(--pulso-button-accent-border);
+}
+
+/* Escritorio compacto (gramática: <=1320 de ancho o <=720 de alto). La
+   descripción repite lo que ya dice el encabezado de la pestaña, y a 1024x600
+   costaba dos líneas que le tocan a los datos. */
+@media (max-width: 1320px), (max-height: 720px) {
+  .pulso-equiv {
+    gap: var(--pulso-space-2);
+  }
+
+  .pulso-equiv-head {
+    align-items: center;
+  }
+
+  .pulso-equiv-title small {
+    display: none;
+  }
 }

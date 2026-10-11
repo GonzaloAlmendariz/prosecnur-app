@@ -1,0 +1,97 @@
+/*
+ * Carga › Revisión — geometría de la tarjeta de resumen y tonos de los hallazgos.
+ * Vive aparte porque `carga-v2.css` está congelado a crecimiento.
+ */
+
+/*
+ * C4: la tarjeta es un grid item con overflow recortado para conservar el
+ * radio. Sin mínimo intrínseco, la fila flexible del scrollarea la encogía y
+ * escondía los últimos hallazgos sin que nada desplazara (medido a 1366x768 y a
+ * cualquier alto con muchos hallazgos). Con su alto de contenido, el excedente
+ * va al scroll único del PageFrame. Antes esto solo valía bajo 720 px de alto.
+ */
+.pulso-carga-frame .pulso-carga-review-summary {
+  align-self: start;
+  min-height: max-content;
+}
+
+/*
+ * C1: con dos columnas, las comprobaciones van junto al encabezado (por eso
+ * llevan borde a la izquierda). El estado del estudio ocupa toda una fila y,
+ * por orden del DOM, las empujaba a una fila nueva y dejaba vacía la columna
+ * derecha. Bajo 1180 px la tarjeta tiene una sola columna y no aplica.
+ */
+@media (min-width: 1181px) {
+  .pulso-carga-review-summary > .pulso-carga-review-checks {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/*
+ * C2: cada hallazgo mide lo que dice; no se estira a la altura del más alto
+ * de su fila.
+ */
+.pulso-carga-review-findings {
+  align-items: start;
+}
+
+/*
+ * Tonos de los hallazgos que no son advertencia.
+ *
+ * `carga-v2.css` está congelado a crecimiento y pinta todo
+ * `.pulso-carga-review-findings li` con `--pulso-warn-*`. Un dato neutro (orden
+ * del editor adoptado, fuente emparejada en otro orden, ADR 0094) informa y no
+ * pide nada: no puede heredar el tono de advertencia. El selector con clase gana
+ * por especificidad, no por orden de carga.
+ */
+.pulso-carga-review-findings li.is-info {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-carga-review-findings li.is-info > svg {
+  color: var(--pulso-text-soft);
+}
+
+/*
+ * C3/C4 en escritorios bajos (alto <= 720 px o preset «short»): Revisión crece
+ * con su contenido y el único dueño del scroll es el cuerpo del PageFrame.
+ *
+ * `carga-v2.css` ya pide esa degradación para el workbench multibase, pero sus
+ * selectores (0,2,0) pierden contra los de `scroll-panels` del PageFrame
+ * (0,3,0), que fijan `height: 100%` y `flex: 1 1 auto`: el workbench quedaba
+ * con el alto restante (393 px a 1024x600) y `overflow: visible`, y la tarjeta
+ * de resumen se pintaba por debajo de su fondo y su rail, sobre la cuadrícula.
+ * Aquí se gana por especificidad, no por orden de carga, y solo en Revisión.
+ * `flex: 1 0 auto`: llena el alto disponible si el contenido es menor (sin
+ * franja vacía bajo el workbench) y nunca se encoge por debajo de él.
+ */
+@media (max-height: 720px) {
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--revision {
+    flex: 1 0 auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--revision > .pulso-adaptive-main,
+  :root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--revision .pulso-carga-scrollarea {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+}
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--revision {
+  flex: 1 0 auto;
+  height: auto;
+  min-height: 0;
+}
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--revision > .pulso-adaptive-main,
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-carga-workbench--revision .pulso-carga-scrollarea {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
