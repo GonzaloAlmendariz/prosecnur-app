@@ -13,6 +13,7 @@ import {
 } from "../../api/cargaFuentes";
 import { conNivel } from "../../lib/navegacion/direccion";
 import { panelAbiertoEn } from "../../lib/navegacion/paneles";
+import { CARGA_REVIEW_SIN_RESPUESTAS } from "./cargaReviewFuentesModel";
 import { PANEL_EMPAREJAMIENTO_FUENTE } from "./panelesCarga";
 
 export type EmparejamientoFiltro = "diferencias" | "todas";
@@ -97,10 +98,35 @@ export function nombreDifiere(fila: Pick<EmparejamientoFila, "variable_base" | "
   return Boolean(fila.variable_base && fila.variable_fuente && fila.variable_base !== fila.variable_fuente);
 }
 
+/**
+ * Filas consecutivas que comparten pregunta madre (una matriz). Con
+ * `enunciado = ""` el bloque es una pregunta suelta, o varias seguidas.
+ */
+export type EmparejamientoBloque = {
+  enunciado: string;
+  filas: EmparejamientoFila[];
+};
+
 export type EmparejamientoGrupo = {
   seccion: string;
   filas: EmparejamientoFila[];
+  bloques: EmparejamientoBloque[];
 };
+
+/**
+ * Corta las filas en bloques por `enunciado` consecutivo. Solo se juntan las
+ * filas contiguas: dos matrices con el mismo enunciado separadas por otra
+ * pregunta siguen siendo dos bloques, como en el instrumento.
+ */
+export function bloquesPorEnunciado(filas: readonly EmparejamientoFila[]): EmparejamientoBloque[] {
+  const bloques: EmparejamientoBloque[] = [];
+  for (const fila of filas) {
+    const ultimo = bloques[bloques.length - 1];
+    if (ultimo && ultimo.enunciado === fila.enunciado) ultimo.filas.push(fila);
+    else bloques.push({ enunciado: fila.enunciado, filas: [fila] });
+  }
+  return bloques;
+}
 
 /**
  * Agrupa por sección conservando el orden del instrumento: cada sección aparece
@@ -114,7 +140,11 @@ export function agruparPorSeccion(filas: readonly EmparejamientoFila[]): Emparej
     if (lista) lista.push(fila);
     else grupos.set(seccion, [fila]);
   }
-  const salida = [...grupos.entries()].map(([seccion, lista]) => ({ seccion, filas: lista }));
+  const salida = [...grupos.entries()].map(([seccion, lista]) => ({
+    seccion,
+    filas: lista,
+    bloques: bloquesPorEnunciado(lista),
+  }));
   return [
     ...salida.filter((grupo) => grupo.seccion !== EMPAREJAMIENTO_SECCION_SOLO_FUENTE),
     ...salida.filter((grupo) => grupo.seccion === EMPAREJAMIENTO_SECCION_SOLO_FUENTE),
@@ -143,6 +173,18 @@ export function avisoExclusion(fuente: Pick<EmparejamientoFuente, "estado" | "n_
     ? ` porque solo coinciden ${fuente.n_emparejadas} de ${fuente.n_preguntas_base} preguntas.`
     : ".";
   return `Esta fuente no entró a la base: ${fuera}${porque}`;
+}
+
+/**
+ * El dato de respuestas del encabezado. Una fuente incorporada sin ninguna
+ * todavía lo dice con la misma frase que su tarjeta en Revisión; una excluida
+ * ya lo dice en el aviso de exclusión; sin el dato, no se afirma nada.
+ */
+export function datoRespuestas(fuente: Pick<EmparejamientoFuente, "estado" | "n_filas_incorporadas">): string | null {
+  if (fuente.estado === "excluida" || fuente.n_filas_incorporadas === null) return null;
+  const n = fuente.n_filas_incorporadas;
+  if (n === 0) return CARGA_REVIEW_SIN_RESPUESTAS;
+  return `${n.toLocaleString("es-PE")} ${plural(n, "respuesta de esta fuente está", "respuestas de esta fuente están")} en la base.`;
 }
 
 /** La fuente pedida por `foco`; sin foco, la primera. */

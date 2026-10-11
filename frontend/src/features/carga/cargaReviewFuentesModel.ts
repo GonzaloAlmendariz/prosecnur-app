@@ -29,6 +29,8 @@ export type CargaReviewHallazgoFuente = {
   fuenteNombre?: string;
 };
 
+export const CARGA_REVIEW_SIN_RESPUESTAS = "Todavía no tiene respuestas.";
+
 /** Cuántos nombres se muestran antes del «+N». */
 export const CARGA_REVIEW_NOMBRES_VISIBLES = 3;
 
@@ -84,10 +86,15 @@ function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReview
   const nAmbiguas = fuente.ambiguas.length;
   const nOpciones = fuente.n_opciones_sin_par;
   const titulo = coinciden ? `${nombre} · ${coinciden} emparejadas` : nombre;
+  // Una fuente recién agregada puede no tener aún ninguna respuesta: se dice,
+  // para que «emparejadas» no se lea como datos que ya entraron.
+  const sinRespuestas: CargaReviewHallazgoLinea[] = fuente.n_filas_incorporadas === 0
+    ? [{ texto: CARGA_REVIEW_SIN_RESPUESTAS }]
+    : [];
 
   // Lo que se perdió o quedó vacío va en el detalle, una línea por cosa.
   if (nFuente || nBase || nAmbiguas || nOpciones || fuente.consentimiento_sin_par) {
-    const lineas: CargaReviewHallazgoLinea[] = [];
+    const lineas: CargaReviewHallazgoLinea[] = [...sinRespuestas];
     if (nFuente) lineas.push(lineaDeNombres(fuente.sin_par_fuente, "No entraron: "));
     if (nBase) lineas.push(lineaDeNombres(fuente.sin_par_base, "Sin respuesta en esta fuente: "));
     // Misma pregunta y escala repetidas un número distinto de veces: emparejar
@@ -112,7 +119,7 @@ function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReview
     fuenteNombre: nombre,
     tono: "info",
     titulo: fuente.reordenada ? `${titulo}, en otro orden` : titulo,
-    lineas: [],
+    lineas: sinRespuestas,
   };
 }
 

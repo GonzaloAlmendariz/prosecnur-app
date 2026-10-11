@@ -51,8 +51,8 @@ describe("normalizeCargaFuentesEmparejamiento", () => {
       }],
     });
     expect(out.fuentes[0].filas).toEqual([
-      { seccion: "A", etiqueta: "Pregunta uno", variable_base: "p1", variable_fuente: "p1", estado: "emparejada" },
-      { seccion: "Solo en la fuente", etiqueta: "Cod Pulso", variable_base: "", variable_fuente: "p2", estado: "no_entro" },
+      { seccion: "A", enunciado: "", etiqueta: "Pregunta uno", variable_base: "p1", variable_fuente: "p1", estado: "emparejada" },
+      { seccion: "Solo en la fuente", enunciado: "", etiqueta: "Cod Pulso", variable_base: "", variable_fuente: "p2", estado: "no_entro" },
     ]);
     // Sin la marca, el detalle cuenta como disponible porque trae filas.
     expect(out.fuentes[0].detalle_disponible).toBe(true);
@@ -71,7 +71,7 @@ describe("normalizeCargaFuentesEmparejamiento", () => {
       }],
     });
     expect(out.fuentes[0].filas).toEqual([
-      { seccion: "", etiqueta: "Con las dos", variable_base: "p1", variable_fuente: "q1", estado: "emparejada" },
+      { seccion: "", enunciado: "", etiqueta: "Con las dos", variable_base: "p1", variable_fuente: "q1", estado: "emparejada" },
     ]);
   });
 
@@ -98,6 +98,43 @@ describe("normalizeCargaFuentesEmparejamiento", () => {
       const out = normalizeCargaFuentesEmparejamiento(raw);
       expect(out).toEqual({ base_nombre: null, equivalencias: { disponible: false, motivo: "" }, fuentes: [] });
     }
+  });
+
+  it("lee el enunciado de las filas de matriz; si falta queda vacío", () => {
+    const out = normalizeCargaFuentesEmparejamiento({
+      fuentes: [{
+        survey_id: "1",
+        titulo: "X",
+        filas: {
+          seccion: ["Servicios", "Servicios", "Perfil"],
+          enunciado: [["¿Ha utilizado los siguientes servicios?"], "¿Ha utilizado los siguientes servicios?", null],
+          etiqueta: ["Servicio de salud", "Comunicación visual", "Edad"],
+          variable_base: ["p11_1", "p11_2", "p4"],
+          variable_fuente: ["p11_1", "p11_2", "p3"],
+          estado: ["emparejada", "emparejada", "otro_nombre"],
+        },
+      }],
+    });
+    expect(out.fuentes[0].filas.map((f) => f.enunciado)).toEqual([
+      "¿Ha utilizado los siguientes servicios?",
+      "¿Ha utilizado los siguientes servicios?",
+      "",
+    ]);
+    const sinCampo = normalizeCargaFuentesEmparejamiento({
+      fuentes: [{ survey_id: "1", titulo: "X", filas: [{ etiqueta: "Edad", variable_base: "p4", variable_fuente: "p4", estado: "emparejada" }] }],
+    });
+    expect(sinCampo.fuentes[0].filas[0].enunciado).toBe("");
+  });
+
+  it("n_filas_incorporadas distingue cero de ausente", () => {
+    const out = normalizeCargaFuentesEmparejamiento({
+      fuentes: [
+        { survey_id: "a", titulo: "A", n_filas_incorporadas: [0] },
+        { survey_id: "b", titulo: "B", n_filas_incorporadas: 52 },
+        { survey_id: "c", titulo: "C" },
+      ],
+    });
+    expect(out.fuentes.map((f) => f.n_filas_incorporadas)).toEqual([0, 52, null]);
   });
 
   it("una fuente sola que R desenrolló como objeto se acepta", () => {

@@ -28,6 +28,11 @@ export const EMPAREJAMIENTO_ESTADOS_FILA: readonly EmparejamientoEstadoFila[] = 
 
 export type EmparejamientoFila = {
   seccion: string;
+  /**
+   * La pregunta madre cuando la variable es una fila de matriz; `""` si no lo
+   * es o si el backend no lo manda.
+   */
+  enunciado: string;
   etiqueta: string;
   /** Vacía cuando la pregunta solo existe en la fuente (`no_entro`). */
   variable_base: string;
@@ -42,7 +47,8 @@ export type EmparejamientoFuente = {
   estado: "incorporada" | "excluida";
   n_emparejadas: number;
   n_preguntas_base: number;
-  n_filas_incorporadas: number;
+  /** Respuestas de la fuente que entraron a la base. `null` si el payload no lo trae. */
+  n_filas_incorporadas: number | null;
   n_filas_excluidas: number;
   /** `false` en bases importadas antes de que se guardara el detalle por pregunta. */
   detalle_disponible: boolean;
@@ -144,6 +150,7 @@ function normalizarFila(raw: Record<string, unknown>): EmparejamientoFila | null
   if (!etiqueta && !variableBase && !variableFuente) return null;
   return {
     seccion: texto(raw.seccion),
+    enunciado: texto(raw.enunciado),
     etiqueta,
     variable_base: variableBase,
     variable_fuente: variableFuente,
@@ -164,7 +171,8 @@ function normalizarFuente(raw: Record<string, unknown>): EmparejamientoFuente | 
     estado: texto(raw.estado) === "excluida" ? "excluida" : "incorporada",
     n_emparejadas: entero(raw.n_emparejadas),
     n_preguntas_base: entero(raw.n_preguntas_base),
-    n_filas_incorporadas: entero(raw.n_filas_incorporadas),
+    // Ausente no es cero: sin el dato no se puede decir que no tenga respuestas.
+    n_filas_incorporadas: escalar(raw.n_filas_incorporadas) == null ? null : entero(raw.n_filas_incorporadas),
     n_filas_excluidas: entero(raw.n_filas_excluidas),
     // Sin la marca, el detalle cuenta como disponible solo si trae filas.
     detalle_disponible: raw.detalle_disponible === undefined
