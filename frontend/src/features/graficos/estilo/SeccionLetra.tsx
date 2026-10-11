@@ -48,7 +48,7 @@ export function SeccionLetra({
         <h3 id="f6-estilo-letra-titulo">Tamaño de letra</h3>
         <MarcaModificado visible={modificada} />
         {modificada ? (
-          <PulsoButton variant="ghost" size="sm" onClick={onSinLetra} aria-label="Volver al tamaño de letra del recetario">
+          <PulsoButton variant="ghost" size="sm" onClick={onSinLetra} aria-label="Volver al tamaño de letra por defecto">
             <RotateCcw size={14} aria-hidden="true" />
             Volver al recetario
           </PulsoButton>
@@ -70,7 +70,7 @@ export function SeccionLetra({
               <input type="radio" name="f6-estilo-paso" value={id} checked={paso === id} onChange={() => onPaso(id)} />
               <span className="pulso-f6-estilo-opcion-texto">
                 <strong>{ETIQUETA_PASO[id]}</strong>
-                <span>{d === undefined ? " " : d === 0 ? "Como el recetario" : `+${d} pt`}</span>
+                <span>{d === undefined ? " " : d === 0 ? "Por defecto" : `+${d} pt`}</span>
               </span>
             </label>
           );
@@ -112,7 +112,7 @@ export function SeccionLetra({
               <p className="pulso-f6-estilo-rol-tamanos" aria-label={`Tamaños en el Word de ${ETIQUETA_ROL[rol].toLowerCase()}`}>
                 {tamanos.length > 0
                   ? tamanos.map((t) => <span key={t.token}><span className="pulso-f6-estilo-token">{t.etiqueta}</span> {t.texto}</span>)
-                  : <span className="pulso-f6-estilo-tenue">{opciones ? "Sin tamaños declarados en el Word." : "Cargando los tamaños del recetario…"}</span>}
+                  : <span className="pulso-f6-estilo-tenue">{opciones ? "Sin tamaños declarados en el Word." : "Cargando los tamaños…"}</span>}
               </p>
             </li>
           );

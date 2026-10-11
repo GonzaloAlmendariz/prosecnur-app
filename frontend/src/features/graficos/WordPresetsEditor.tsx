@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { CheckCircle2, Circle, FileText, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { resolveWordPresetsDefaults, wordChartPresetsDecisiones } from "../../api/graficosConfigDefaults";
@@ -9,7 +9,6 @@ import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 import { resolveActiveChartLayoutOrigin } from "./chartLayoutOrigin";
-import { GrupoFijadosRecetario, LineaFijadaRecetario } from "./LineaFijadaRecetario";
 import { decisionesSinFijados, fijadosPorArg, partirArgsPorFijado } from "./wordFijado";
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -260,10 +259,8 @@ export function WordPresetsEditor() {
                   onResetArg={(name) => setPresetArg(meta.name, name, null)}
                   variables={[]}
                   reemplazoDeArg={(a) => {
-                    const fijado = fijados[a.name];
-                    return fijado ? (
-                      <LineaFijadaRecetario key={a.name} fijado={fijado} meta={a} guardado={decisionesDelTipo[a.name]} />
-                    ) : null;
+                    // Un ajuste fijo no es una decisión del usuario: no se muestra.
+                    return fijados[a.name] ? <Fragment key={a.name} /> : null;
                   }}
                   bodyIntro={normalizeArgGroup(grupo) === "espacio" && hasChartLayoutSpec(meta.name, argsEditables) ? (
                     <ChartLayoutEditor
@@ -280,7 +277,6 @@ export function WordPresetsEditor() {
                 />
               ))
             )}
-            <GrupoFijadosRecetario fijados={fijadosSueltos} guardados={decisionesDelTipo} />
           </div>
         </section>
       </div>

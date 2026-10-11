@@ -67,7 +67,7 @@ function rotuloOrigen(r: ResolucionPaleta | null): string {
 
 /** Frase completa de dónde toma sus colores una lista (detalle). */
 function fraseOrigen(r: ResolucionPaleta | null, listName: string): string {
-  if (!r) return "Sin paleta: usa la del recetario.";
+  if (!r) return "Sin paleta: usa la de por defecto.";
   if (r.origen === "propia") {
     return r.clave === listName ? "Toma sus colores de su paleta propia." : `Toma sus colores de su paleta propia («${r.clave}»).`;
   }

@@ -69,9 +69,9 @@ describe("PestanaEstilo · markup", () => {
   it("sellos: Propio donde hay decisión, Del recetario en lo demás, y «Modificado» por sección", () => {
     const html = pintar();
     expect(html.match(/is-propio/g)).toHaveLength(2); // contraportada + rol cifras
-    expect(html).toContain("Del recetario");
+    expect(html).toContain("Por defecto");
     expect(html.match(/pulso-f6-estilo-modificado/g)).toHaveLength(2);
-    expect(html).toContain("El recetario pone el logo de <strong>PUCP</strong>");
+    expect(html).toContain("Por defecto: <strong>PUCP</strong>");
     expect(html).toContain("11,5 pt = 9,5 + 2");
   });
 
@@ -80,7 +80,7 @@ describe("PestanaEstilo · markup", () => {
     expect(html.match(/<button[^>]*>(?:(?!<\/button>).)*Subir PNG/g)?.length).toBe(2);
     expect(html).toContain("Reemplazar PNG");
     expect(html).toContain('accept="image/png,.png"');
-    expect(html).toContain('aria-label="Volver al logo del recetario en contraportada"');
+    expect(html).toContain('aria-label="Volver al logo por defecto en contraportada"');
     expect(html).toContain('type="radio" name="f6-estilo-ambito"');
     expect(html).toContain("Hoy se aplica al Word");
   });

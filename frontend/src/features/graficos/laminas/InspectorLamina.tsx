@@ -9,7 +9,6 @@ import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Switch } from "../../../components/Switch";
 import { EditorIndice } from "../indice/EditorIndice";
-import { FijadosIndice } from "../indice/FijadosIndice";
 import { ARGS_FIJADOS_INDICE } from "../indice/fijadosIndiceModel";
 import { useVariables } from "../useVariables";
 import { ContenidoEspecialLamina } from "./contenidoEspecial/ContenidoEspecialLamina";
@@ -108,7 +107,7 @@ export function InspectorLamina({
             {label}
             {key === "graficos" && slots.length > 0 && <span className="pulso-f6-cuenta">{slots.length}</span>}
             {key === "estado" && (estado === "ruta_anterior" || avisos > 0) && (
-              <span className="pulso-f6-marca-aviso" aria-label={estado === "ruta_anterior" ? "sale por la ruta anterior" : `${avisos} avisos`} />
+              <span className="pulso-f6-marca-aviso" aria-label={estado === "ruta_anterior" ? "sale como imagen" : `${avisos} avisos`} />
             )}
           </button>
         ))}
@@ -193,7 +192,6 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
       <ContenidoEspecialLamina slide={slide} especial={especial} />
 
       {esIndice && <EditorIndice slide={slide} />}
-      {esIndice && <FijadosIndice slide={slide} args={argsDelTipo ?? []} />}
 
       {contenido.pendientes.length > 0 && (
         <p className="pulso-f6-pendiente">
@@ -298,13 +296,6 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
           );
         })}
       </ul>
-      <p className="pulso-f6-candado">
-        <Lock size={14} aria-hidden="true" />
-        <span>
-          Lo fija el recetario: lo que ocupa cada gráfico en su ranura. Si no cabe, el motor parte la lámina en
-          «(cont.)» y lo dice en Estado.
-        </span>
-      </p>
       <p className="pulso-f6-pendiente">
         <History size={14} aria-hidden="true" />
         <span>
@@ -323,12 +314,14 @@ function SeccionEstado({ slide, visor }: { slide: Slide; visor: LaminaVisor | nu
   const idRuta = useId();
   return (
     <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-estado" data-qa-geometry-contract="intrinsic">
-      <div className={`pulso-f6-tarjeta is-${estado === "ruta_anterior" ? "ruta" : estado ? "nativa" : "neutra"}`}>
-        <div>
-          <strong>{estado ? `Sale ${estado === "ruta_anterior" ? "por la ruta anterior" : ETIQUETA_ESTADO[estado].toLowerCase()}` : "Todavía sin vista previa"}</strong>
-          <p>{estado ? motivoDeEstado(estado, apagado, (visor?.avisos.length ?? 0) > 0) : "Cómo sale la lámina se sabe cuando el motor genera su vista."}</p>
+      {estado === "ruta_anterior" && (
+        <div className="pulso-f6-tarjeta is-ruta">
+          <div>
+            <strong>Sale como imagen</strong>
+            <p>{motivoDeEstado(estado, apagado, (visor?.avisos.length ?? 0) > 0)}</p>
+          </div>
         </div>
-      </div>
+      )}
       {visor && visor.partes.length > 1 && (
         <ul className="pulso-f6-lista-partes">
           {visor.partes.map((p) => (
@@ -338,25 +331,24 @@ function SeccionEstado({ slide, visor }: { slide: Slide; visor: LaminaVisor | nu
           ))}
         </ul>
       )}
-      {visor?.renderer && <p className="pulso-f6-ayuda" data-renderer={visor.renderer}>Vista previa generada con {visor.renderer}.</p>}
-      <section aria-label="Avisos del motor">
-        <h3 className="pulso-f6-subtitulo">Avisos del motor</h3>
+      <section aria-label="Avisos">
+        <h3 className="pulso-f6-subtitulo">Avisos</h3>
         {visor && visor.avisos.length > 0 ? (
           <ul className="pulso-f6-avisos">
             {visor.avisos.map((a) => <li key={a}>{a}</li>)}
           </ul>
         ) : (
-          <p className="pulso-f6-ayuda">{visor ? "El motor no ajustó nada en esta lámina." : "Aparecen al generar la vista."}</p>
+          <p className="pulso-f6-ayuda">{visor ? "Sin avisos." : "Aparecen al generar la vista."}</p>
         )}
       </section>
       <div className="pulso-f6-fila-switch">
         <span id={idRuta}>
-          <strong>Usar la ruta anterior</strong>
-          <span className="pulso-f6-ayuda">Avanzado: el gráfico sale como imagen y deja de ser editable en PowerPoint.</span>
+          <strong>Insertar el gráfico como imagen</strong>
+          <span className="pulso-f6-ayuda">Deja de ser editable en PowerPoint.</span>
         </span>
         <Switch
           checked={apagado}
-          ariaLabel="Usar la ruta anterior en esta lámina"
+          ariaLabel="Insertar el gráfico como imagen en esta lámina"
           onToggle={() => updatePayload(slide.id, { meta: conSlideMeta(slide, { motor_nativo: apagado ? undefined : false }).payload.meta })}
         />
       </div>

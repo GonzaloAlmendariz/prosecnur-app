@@ -28,7 +28,7 @@ export function CabeceraSeccion({
       <MarcaModificado visible={modificado} />
       {extra}
       {modificado && onVolver ? (
-        <PulsoButton variant="ghost" size="sm" onClick={onVolver} aria-label={etiquetaVolver ?? "Volver al recetario"}>
+        <PulsoButton variant="ghost" size="sm" onClick={onVolver} aria-label={etiquetaVolver ?? "Volver al valor por defecto"}>
           <RotateCcw size={14} aria-hidden="true" />
           Volver al recetario
         </PulsoButton>

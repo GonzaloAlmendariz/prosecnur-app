@@ -6,7 +6,7 @@ import type { Procedencia } from "./modeloEstilo";
 export function SelloProcedencia({ procedencia }: { procedencia: Procedencia }) {
   return (
     <span className={`pulso-f6-estilo-sello is-${procedencia}`}>
-      {procedencia === "propio" ? "Propio" : "Del recetario"}
+      {procedencia === "propio" ? "Propio" : "Por defecto"}
     </span>
   );
 }

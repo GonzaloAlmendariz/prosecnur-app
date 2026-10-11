@@ -44,7 +44,7 @@ describe("encajeEnRanura", () => {
   it("una ranura de cifra recibe sólo cifras; una cifra en ranura de gráfico avisa la ruta anterior", () => {
     expect(encajeEnRanura("p_pie", "cifra_izquierda").cabe).toBe(false);
     expect(encajeEnRanura("p_cifra", "cifra_izquierda")).toEqual({ cabe: true, nota: null });
-    expect(encajeEnRanura("p_cifra", "grafico")).toMatchObject({ cabe: true, nota: expect.stringMatching(/ruta anterior/) });
+    expect(encajeEnRanura("p_cifra", "grafico")).toMatchObject({ cabe: true, nota: expect.stringMatching(/como imagen/) });
     expect(encajeEnRanura("p_pie", "izquierda")).toEqual({ cabe: true, nota: null });
   });
 });

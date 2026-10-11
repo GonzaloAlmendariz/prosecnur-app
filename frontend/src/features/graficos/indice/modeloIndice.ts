@@ -197,7 +197,7 @@ export function avisosIndice(indice: IndiceEditable): AvisoIndice[] {
   const n = indice.capitulos.filter((c) => c.titulo.trim()).length;
   if (n > MAX_CAPITULOS_RECETARIO) {
     avisos.push({ codigo: "demasiados_capitulos", bloquea: false,
-      texto: `El recetario dibuja hasta ${MAX_CAPITULOS_RECETARIO} capítulos; con ${n}, el índice sale por la ruta anterior.` });
+      texto: `El índice admite hasta ${MAX_CAPITULOS_RECETARIO} capítulos; con ${n}, sale con un diseño simplificado.` });
   }
   if (indice.huerfanos.length) {
     const h = indice.huerfanos.length;

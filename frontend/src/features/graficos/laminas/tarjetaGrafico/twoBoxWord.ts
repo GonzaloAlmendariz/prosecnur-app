@@ -112,7 +112,7 @@ export type MotivoTopEnWord = "fijado" | "quitado" | "word_lo_da" | "lamina_lo_n
 export const NOTA_TOP_EN_WORD: Readonly<Record<MotivoTopEnWord, string>> = {
   fijado: "Este gráfico la lleva al Word aunque lo heredado no la dé; la lámina no cambia. Apagarla vuelve a lo heredado.",
   quitado: "Este gráfico la quita sólo del Word; la lámina la conserva. Encenderla vuelve a lo heredado.",
-  word_lo_da: "El Word la lleva por defecto, como el recetario. Apagarla aquí la quita sólo del Word para este gráfico; la lámina la conserva.",
+  word_lo_da: "El Word la lleva por defecto. Apagarla aquí la quita sólo del Word para este gráfico; la lámina la conserva.",
   lamina_lo_necesita: "Este gráfico la enciende en la lámina y el Word la hereda. Apagarla aquí la quita sólo del Word; la lámina la conserva.",
   word_la_quita: "Lo que el Word hereda no la lleva (sus ajustes, o el informe la apagó). Encenderla aquí la lleva al Word sólo para este gráfico; la lámina no cambia.",
 };

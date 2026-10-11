@@ -68,17 +68,6 @@ function bloqueDe(html: string, arg: string): string {
 describe("WordPresetsEditor con word_fijado", () => {
   beforeEach(() => conDecisiones({}));
 
-  test("el arg fijado es una línea cerrada con candado, sin control editable", () => {
-    const html = renderToStaticMarkup(createElement(WordPresetsEditor));
-    const linea = bloqueDe(html, "size_leyenda");
-    expect(linea).toContain('data-arg-state="fijado"');
-    expect(linea).toContain("Lo fija el recetario");
-    expect(linea).toContain("8 pt");
-    expect(linea).not.toMatch(/<(input|select|textarea|button)\b/);
-    // El arg que sí manda sigue con su campo.
-    expect(bloqueDe(html, "decimales")).toMatch(/<input\b/);
-  });
-
   test("el motivo es la descripción enlazada (aria-describedby)", () => {
     const html = renderToStaticMarkup(createElement(LineaFijadaRecetario, {
       fijado: PRESET.word_fijado![0], meta: PRESET.args[0],
@@ -88,24 +77,6 @@ describe("WordPresetsEditor con word_fijado", () => {
     expect(html).toContain(`id="${describedby}"`);
     expect(html).toMatch(new RegExp(`id="${describedby}"[^>]*>${MOTIVO_LEYENDA.slice(0, 30)}`));
     expect(html).toMatch(/role="group"/);
-  });
-
-  test("los fijados que no son args del preset van al grupo final «Lo fija el recetario» como Sin efecto", () => {
-    const html = renderToStaticMarkup(createElement(WordPresetsEditor));
-    expect(html).toContain('data-qa-geometry-group="graficos/word-fijados-recetario"');
-    const linea = bloqueDe(html, "textos_negrita");
-    expect(linea).toContain("Sin efecto en el Word");
-    expect(html.indexOf('data-arg-name="textos_negrita"')).toBeGreaterThan(html.indexOf('data-arg-name="decimales"'));
-  });
-
-  test("un valor viejo en un arg fijado no cuenta como Modificado y se avisa sin borrarlo", () => {
-    conDecisiones({ size_leyenda: 12 });
-    const html = renderToStaticMarkup(createElement(WordPresetsEditor));
-    expect(html).toContain("Hereda PPT");
-    expect(html).not.toContain("Volver a heredar PPT");
-    expect(bloqueDe(html, "size_leyenda")).toContain("Este proyecto guarda 12 pt, pero el Word usa 8 pt.");
-    const w = wPresetsActuales().chart_presets as Record<string, Record<string, unknown>>;
-    expect(w.barras_apiladas.size_leyenda).toBe(12);
   });
 
   test("una decisión en un arg que sí manda sigue contando como Modificado", () => {

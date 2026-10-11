@@ -18,9 +18,9 @@ import "./guias.css";
 const CAPA: Record<CapaGuia, { rotulo: string; detalle: string; Icono: LucideIcon }> = {
   cajas: { rotulo: "Cajas", detalle: "El contorno de cada elemento; su nombre al pasar el mouse.", Icono: BoxSelect },
   espacios: { rotulo: "Espacios", detalle: "Separaciones entre secciones y márgenes a los bordes, en cm.", Icono: MoveHorizontal },
-  tipografia: { rotulo: "Tipografía", detalle: "El tamaño en pt de cada texto; en rojo si se aparta del recetario.", Icono: Type },
+  tipografia: { rotulo: "Tipografía", detalle: "El tamaño en pt de cada texto; en rojo si se aparta del estándar.", Icono: Type },
   medidas: { rotulo: "Medidas", detalle: "Ancho y alto de cada caja, en cm.", Icono: Ruler },
-  recetario: { rotulo: "Recetario", detalle: "Las ranuras del estándar de este tipo de lámina, superpuestas.", Icono: LayoutTemplate },
+  recetario: { rotulo: "Ranuras", detalle: "Dónde va cada elemento en este tipo de lámina.", Icono: LayoutTemplate },
 };
 
 type Props = {
@@ -64,7 +64,7 @@ export function BotonGuias({ modelo, roles, disponible, hayRanuras }: Props) {
         aria-expanded={panel.abierto}
         aria-controls={panel.abierto ? panelId : undefined}
         aria-label={`Guías de la lámina${encendidas ? `: ${encendidas} ${encendidas === 1 ? "capa encendida" : "capas encendidas"}` : ""}`}
-        title="Guías de la lámina: cajas, espacios, tipografía, medidas y recetario"
+        title="Guías de la lámina: cajas, espacios, tipografía, medidas y ranuras"
         onClick={alternar}
       >
         <Layers size={14} aria-hidden="true" />
@@ -223,7 +223,7 @@ function PanelGuias({ id, abierto, propsPanel, ancla, enfocarAlAbrir, onCerrar, 
                     <span className="pulso-f6-guias-elemento-nombre">{e.nombre}</span>
                     <span className="pulso-f6-guias-elemento-dato">
                       {rotuloDeRol(e.rol)} · {e.medidas}
-                      {e.pt && <> · <span className={e.ptFuera ? "is-fuera" : undefined}>{e.pt}{e.ptFuera ? " (fuera del recetario)" : ""}</span></>}
+                      {e.pt && <> · <span className={e.ptFuera ? "is-fuera" : undefined}>{e.pt}{e.ptFuera ? " (fuera del estándar)" : ""}</span></>}
                       {e.recortado && " · recortado"}
                     </span>
                   </button>
@@ -246,9 +246,9 @@ function EstadoGuias({ modelo, disponible, hayRanuras, recetario, tipografia }: 
   const { resumen } = modelo;
   if (!resumen.elementos) return <p>El motor no informó elementos medibles en esta parte, o el filtro los oculta todos.</p>;
   const lineas: string[] = [`${resumen.elementos} ${resumen.elementos === 1 ? "elemento" : "elementos"}, ${resumen.textos} con texto.`];
-  if (resumen.fueraDeRecetario) lineas.push(`${resumen.fueraDeRecetario} ${resumen.fueraDeRecetario === 1 ? "texto se aparta" : "textos se apartan"} del recetario.`);
+  if (resumen.fueraDeRecetario) lineas.push(`${resumen.fueraDeRecetario} ${resumen.fueraDeRecetario === 1 ? "texto se aparta" : "textos se apartan"} del tamaño estándar.`);
   if (resumen.recortados) lineas.push(`${resumen.recortados} ${resumen.recortados === 1 ? "texto no cabe" : "textos no caben"} en su caja.`);
-  if (tipografia && resumen.sinReferencia) lineas.push("El recetario todavía no informa el tamaño esperado de cada texto: los tamaños se muestran sin comparar.");
+  if (tipografia && resumen.sinReferencia) lineas.push("Los tamaños se muestran sin comparar con el estándar.");
   if (recetario && !hayRanuras) lineas.push("Este tipo de lámina no tiene ranuras en el estándar.");
   return <>{lineas.map((l) => <p key={l}>{l}</p>)}</>;
 }

@@ -237,7 +237,7 @@ export function composicionDeLamina(tipo: string | undefined): Composicion {
   return tipo && (/^p_slide_[2-9]_graficos/.test(tipo) || tipo === "p_slide_cifras_y_graficos") ? "varios" : "sola";
 }
 
-export const NOTA_BOTTOM_NO_NATIVO = "En esta composición el Bottom Two Box aún no sale en la lámina nativa.";
+export const NOTA_BOTTOM_NO_NATIVO = "En esta composición el Bottom Two Box todavía no sale en la lámina.";
 
 /**
  * ¿La lámina nativa dibuja la Bottom Two Box de este gráfico? Barras apiladas, siempre (como hasta ahora); la

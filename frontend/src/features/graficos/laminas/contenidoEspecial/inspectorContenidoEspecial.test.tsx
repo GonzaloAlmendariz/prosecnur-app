@@ -112,14 +112,4 @@ describe("Inspector › Contenido especial", () => {
     expect(html).toContain("Vacío, sale «Confianza en la institución»");
   });
 
-  it("decisión 32: el índice muestra con candado los ajustes de los focos, ninguno editable", () => {
-    const html = pintar({ id: "ix", tipo: "p_slide_indice", payload: { secciones: "Perfil", redibujar_focos: true } });
-    for (const arg of ["redibujar_focos", "mostrar_iconos_focos", "iconos_focos_fill", "iconos_focos_objeto_unico"]) {
-      expect(html).toContain(`data-arg-name="${arg}" data-arg-state="fijado"`);
-    }
-    expect(html).toContain("Lo fija el recetario");
-    expect(html).toContain("El proyecto guarda «Sí»");
-    // Fijado es fijado: ningún switch ni casilla para esos ajustes.
-    expect(html).not.toMatch(/role="switch"/);
-  });
 });

@@ -223,7 +223,7 @@ function FilaLamina({ lamina, activa, sangria, resumen, validacion, onSelecciona
 
 function puntoDeEstado(resumen: ResumenLamina | undefined, validacion: MarcaValidacion | undefined): { clase: string; texto: string } {
   if (validacion === "error") return { clase: "error", texto: "Tiene un problema que bloquea exportar" };
-  if (resumen?.estado === "ruta_anterior") return { clase: "ruta-anterior", texto: "Sale por la ruta anterior" };
+  if (resumen?.estado === "ruta_anterior") return { clase: "ruta-anterior", texto: "Sale como imagen" };
   if (validacion === "warning" || (resumen && resumen.avisos > 0)) return { clase: "aviso", texto: "Tiene avisos" };
   if (resumen?.estado) return { clase: resumen.estado === "sin_grafico" ? "sin-grafico" : "nativa", texto: ETIQUETA_ESTADO[resumen.estado] };
   return { clase: "sin-ver", texto: "Estado por conocer: se sabe al generar su vista" };
