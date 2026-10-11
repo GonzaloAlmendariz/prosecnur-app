@@ -3,7 +3,7 @@ import { normalizeGraficosConfig } from "../../../api/graficosConfigNormalizer";
 import type { GraficosCategorias } from "../../../api/graficos";
 import { mergeSlotArgsPatch } from "../store";
 import { mergeWithDefaults } from "../useGraficosAutosave";
-import { aplicaOrden, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado } from "./ordenCategorias";
+import { aplicaOrden, botonTrasMover, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado } from "./ordenCategorias";
 
 const datos: GraficosCategorias = {
   var: "p7", base: "", pregunta: "", ordinal: false, tipo: "select_one", modo_recetario: "frecuencia",
@@ -63,5 +63,20 @@ describe("orden de categorías por gráfico (D8)", () => {
     expect(leerOrden(vuelta)).toEqual({ modo: "personalizado", lista: ["3", "1", "2"], invertir: true });
     // Volver a recetario sin invertir borra la clave.
     expect(mergeSlotArgsPatch(vuelta, { orden_categorias: ordenAGuardar({ modo: "recetario", lista: [], invertir: false }) })).not.toHaveProperty("orden_categorias");
+  });
+});
+
+describe("Subir/Bajar no tiran el foco a BODY al llegar al borde (verificador frontend-3)", () => {
+  it("en medio de la lista el foco se queda en el botón pulsado", () => {
+    expect(botonTrasMover("subir", 1, 4)).toBe("subir");
+    expect(botonTrasMover("bajar", 2, 4)).toBe("bajar");
+  });
+  it("al llegar al borde, el botón pulsado queda disabled y el foco pasa al opuesto", () => {
+    expect(botonTrasMover("subir", 0, 4)).toBe("bajar");
+    expect(botonTrasMover("bajar", 3, 4)).toBe("subir");
+  });
+  it("con una sola categoría no hay botón habilitado: el foco va al ítem", () => {
+    expect(botonTrasMover("subir", 0, 1)).toBeNull();
+    expect(botonTrasMover("bajar", 0, 1)).toBeNull();
   });
 });

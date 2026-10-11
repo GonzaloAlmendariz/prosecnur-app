@@ -30,14 +30,15 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
     const activo = document.activeElement;
     disparadorRef.current = activo instanceof HTMLElement && activo !== document.body ? activo : null;
     if (!enfocarInicial.current) return;
-    const marco = requestAnimationFrame(() => cerrarRef.current?.focus());
+    // preventScroll: enfocar «Cerrar avisos» corría `.pulso-f6-laminas` 250 px a 1024×600 (C2/C4, verificador frontend-3).
+    const marco = requestAnimationFrame(() => cerrarRef.current?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(marco);
   }, []);
   const cerrarPanel = panel.cerrar;
   const cerrar = useCallback(() => {
     cerrarPanel();
     requestAnimationFrame(() => {
-      destinoDelFoco(disparadorRef.current, document.querySelector<HTMLElement>(".pulso-f6-barra-avisos"))?.focus();
+      destinoDelFoco(disparadorRef.current, document.querySelector<HTMLElement>(".pulso-f6-barra-avisos"))?.focus({ preventScroll: true });
     });
   }, [cerrarPanel]);
   // Escape en el documento: abrir el panel no le pasa el foco, así que un onKeyDown en su raíz no lo oía (D5).

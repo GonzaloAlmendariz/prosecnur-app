@@ -86,6 +86,17 @@ export function mover(lista: readonly string[], desde: number, hasta: number): s
  * La pregunta siempre calificada con su base (`base$var`): sin calificar, el backend resolvería la primera base. En un
  * plan multibase el gráfico ya la declara; si no, es la base activa.
  */
+/**
+ * Botón de la fila movida que recibe el foco tras Subir/Bajar: el mismo, salvo que la fila quedara en el borde y ese botón
+ * esté disabled —un disabled tira el foco a BODY—; entonces el opuesto. Con una sola categoría ninguno sirve: `null`.
+ */
+export function botonTrasMover(accion: "subir" | "bajar", posicion: number, total: number): "subir" | "bajar" | null {
+  const habilitado = (a: "subir" | "bajar") => (a === "subir" ? posicion > 0 : posicion < total - 1);
+  if (habilitado(accion)) return accion;
+  const opuesto = accion === "subir" ? "bajar" : "subir";
+  return habilitado(opuesto) ? opuesto : null;
+}
+
 export function varCalificada(variable: string, baseActiva: string | null | undefined): string {
   const v = variable.trim();
   const b = (baseActiva ?? "").trim();

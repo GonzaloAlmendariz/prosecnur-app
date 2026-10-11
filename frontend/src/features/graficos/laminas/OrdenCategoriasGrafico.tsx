@@ -10,6 +10,7 @@ import type { GraficosCategorias } from "../../../api/graficos";
 import {
   leerOrden,
   listaPersonalizada,
+  botonTrasMover,
   mover,
   ordenAGuardar,
   rotuloRecetario,
@@ -103,23 +104,33 @@ function ListaOrden({ datos, lista, onLista }: { datos: GraficosCategorias; list
   const [anuncio, setAnuncio] = useState("");
   const ayudaId = useId();
 
-  const moverA = (desde: number, hasta: number, enfocar: boolean) => {
+  // `enfocar`: «item» devuelve el foco a la categoría (Alt+↑/↓); «subir»/«bajar» lo deja en ese botón de la fila movida
+  // (o en el opuesto si quedó disabled en el borde, `botonTrasMover`): un disabled tiraba el foco a BODY.
+  const moverA = (desde: number, hasta: number, enfocar: "item" | "subir" | "bajar" | null) => {
     if (hasta < 0 || hasta >= lista.length || desde === hasta) return;
     const codigo = lista[desde];
     onLista(mover(lista, desde, hasta));
     setAnuncio(`«${etiqueta.get(codigo) ?? codigo}» en la posición ${hasta + 1} de ${lista.length}.`);
-    if (enfocar) requestAnimationFrame(() => items.current.get(codigo)?.focus());
+    if (!enfocar) return;
+    requestAnimationFrame(() => {
+      const item = items.current.get(codigo);
+      if (!item) return;
+      if (enfocar === "item") { item.focus(); return; }
+      const accion = botonTrasMover(enfocar, hasta, lista.length);
+      const boton = accion ? item.querySelector<HTMLButtonElement>(`button[data-orden-accion="${accion}"]`) : null;
+      (boton ?? item).focus();
+    });
   };
   const onTecla = (i: number) => (e: KeyboardEvent<HTMLLIElement>) => {
     if (e.target !== e.currentTarget || !e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
     // Alt+↑/↓ es también «mover la lámina» del editor (useShortcutsV2): sobre una categoría mueve la categoría.
     e.preventDefault();
     e.stopPropagation();
-    moverA(i, e.key === "ArrowUp" ? i - 1 : i + 1, true);
+    moverA(i, e.key === "ArrowUp" ? i - 1 : i + 1, "item");
   };
   const onDrop = (i: number) => (e: DragEvent<HTMLLIElement>) => {
     e.preventDefault();
-    if (arrastrado !== null) moverA(arrastrado, i, false);
+    if (arrastrado !== null) moverA(arrastrado, i, null);
     setArrastrado(null);
   };
 
@@ -147,10 +158,10 @@ function ListaOrden({ datos, lista, onLista }: { datos: GraficosCategorias; list
               <GripVertical size={14} aria-hidden="true" className="pulso-f6-orden-asa" />
               <span className="pulso-f6-orden-posicion" aria-hidden="true">{i + 1}</span>
               <span className="pulso-f6-orden-etiqueta">{texto}</span>
-              <button type="button" className="pulso-f6-icono-boton" aria-label={`Subir «${texto}»`} disabled={i === 0} onClick={() => moverA(i, i - 1, false)}>
+              <button type="button" className="pulso-f6-icono-boton" data-orden-accion="subir" aria-label={`Subir «${texto}»`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
                 <ArrowUp size={14} aria-hidden="true" />
               </button>
-              <button type="button" className="pulso-f6-icono-boton" aria-label={`Bajar «${texto}»`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, false)}>
+              <button type="button" className="pulso-f6-icono-boton" data-orden-accion="bajar" aria-label={`Bajar «${texto}»`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, "bajar")}>
                 <ArrowDown size={14} aria-hidden="true" />
               </button>
             </li>
