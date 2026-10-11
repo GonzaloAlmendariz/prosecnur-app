@@ -1,7 +1,7 @@
 # Contrato A5 rebanada 2b — Vista general: «Otros» automáticos, índice, «Armar desde…» y E2
 
 Tipo: Contrato de implementación
-Estado: Vigente (decisiones G1–G8 con recomendación; se ajusta si Gonzalo decide distinto)
+Estado: Vigente
 Fecha: 2026-10-11
 Autoridad: Lead de la Meta A; inventario de paridad `inventario-cierre-a0-2026-10-11.md` (C8, C37, C55, R5, R8, O4)
 
