@@ -56,6 +56,12 @@ describe("orden de categorías por gráfico (D8)", () => {
     expect(varCalificada("p7", null)).toBe("p7");
   });
 
+  it("en el informe compartido no califica con la base activa: la ref queda sin base (H9)", () => {
+    expect(varCalificada("p7", "docentes", "consolidated")).toBe("p7");
+    expect(varCalificada("egresados$p7", "docentes", "consolidated")).toBe("egresados$p7");
+    expect(varCalificada("p7", "docentes", "active")).toBe("docentes$p7");
+  });
+
   it("ida y vuelta: la clave sobrevive al parche, al guardado (JSON) y a la hidratación", () => {
     const orden = ordenAGuardar({ modo: "personalizado", lista: ["3", "1", "2"], invertir: true });
     const args = mergeSlotArgsPatch({ var: "p7", orden_barras: "instrumento" }, { orden_categorias: orden });

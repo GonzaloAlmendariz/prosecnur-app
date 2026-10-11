@@ -189,11 +189,13 @@ export function mover(lista: readonly string[], desde: number, hasta: number): s
 
 /**
  * La pregunta siempre calificada con su base (`base$var`): sin calificar, el backend resolvería la primera base. En un
- * plan multibase el gráfico ya la declara; si no, es la base activa.
+ * plan multibase el gráfico ya la declara; si no, es la base activa. En el informe compartido (`consolidated`) NO: la
+ * base activa no es la de ese informe y el preflight bloquea la ref sin base (`unqualified_multisource_reference`), así
+ * que queda sin calificar y la tarjeta pide elegirla (datosBase/baseEnCompartido.ts).
  */
-export function varCalificada(variable: string, baseActiva: string | null | undefined): string {
+export function varCalificada(variable: string, baseActiva: string | null | undefined, scope: "active" | "consolidated" = "active"): string {
   const v = variable.trim();
   const b = (baseActiva ?? "").trim();
-  if (!v || v.includes("$") || !b) return v;
+  if (!v || v.includes("$") || !b || scope === "consolidated") return v;
   return `${b}$${v}`;
 }

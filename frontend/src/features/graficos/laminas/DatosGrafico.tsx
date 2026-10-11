@@ -27,6 +27,9 @@ import { useSession } from "../../../lib/SessionContext";
 import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
+import { NombresPorBase } from "./datosBase/NombresPorBase";
+import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
+import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
 import "./datosGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
@@ -44,6 +47,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const baseActiva = useSession().state?.active_base;
   const set = (patch: Record<string, unknown>) => updateSlotArgs(slideId, slot, patch);
   const variable = typeof args.var === "string" ? args.var : "";
+  // En el informe compartido una pregunta sin base no se califica con la activa: se pide elegirla (H9).
+  const sinBaseCompartido = faltaBaseEnCompartido(variable, scope);
   const esMulti = valor.graficador === "p_barras_multiapiladas";
   const nVars = Array.isArray(args.vars) ? args.vars.length : 0;
   const filtros = Array.isArray(args.filtros) ? args.filtros.length : 0;
@@ -63,8 +68,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {campos.map((c) => (
         <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
       ))}
-      {conOrden && variable && (
-        <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
+      {sinBaseCompartido && <NotaBaseCompartido />}
+      {conOrden && variable && !sinBaseCompartido && (
+        <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
       )}
       {variable && (
         <FilaTexto
@@ -124,6 +130,9 @@ function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; on
         {ayuda && <span className="pulso-f6-dato-ayuda">{ayuda}</span>}
       </div>
     );
+  }
+  if (control === "nombres_base") {
+    return <NombresPorBase argName={arg.name} rotulo={rotulo} ayuda={ayuda} valor={valor} onCambio={(p) => onCambio(p[arg.name])} />;
   }
   if (control === "interruptor") {
     return (
