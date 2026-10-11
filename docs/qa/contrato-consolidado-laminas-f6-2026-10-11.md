@@ -95,3 +95,14 @@ Reemplazar/Fusionar/Sincronizar graban la revisión; aviso de desfase en Lámina
 como respaldo avisado o se retira. **B** deshabilitado indefinido (mantiene la violación del ADR 0062 en un entregable).
 **C** reusar `/plan/sugerido` sin scope (desaconsejada: H4, ADR 0040 §6.1).
 
+
+## Decisión de Gonzalo — pregunta 27 (2026-10-11, ~10:50 Perú)
+
+«Pregunta 27: De acuerdo» → se adopta la **opción A**: «Armar desde…» sigue deshabilitado con motivo en el informe
+compartido hasta que, con enmienda de los ADR 0063/0040, el consolidado siembre y proponga **desde la matriz de
+equivalencias** (`/plan/sugerido` con `scope:"consolidado"` reusando el generador, filtrado a las releases; firma de escala
+unificada en `.escala_firma`; revisión con `sugerida`, `estilo` y huella de listas; la siembra y
+Reemplazar/Fusionar/Sincronizar graban `equivalencias_revision`; aviso de desfase en Láminas). Lectura del lead sobre la
+heurística por etiqueta (`.graficos_multisource_comparison_candidates`): **se retira de la siembra** porque el ADR 0062
+prohíbe inferir equivalencias por etiqueta; sin matriz declarada, el compartido se siembra sin láminas comparativas y lo
+avisa. Si Gonzalo prefiere conservarla como respaldo avisado, se reabre aquí.
