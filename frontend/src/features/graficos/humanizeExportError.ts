@@ -1,4 +1,5 @@
 import type { GraficadorRef, PlanJson } from "../../api/graficos";
+import { ACCION_RECARGAR_BORRADOR, CODIGO_BORRADOR_STALE, MENSAJE_CONFLICTO_BORRADOR } from "./conflictoBorrador";
 import { nombreTipoLamina, rotuloLamina } from "./rotuloLamina";
 
 // Interpreta errores crudos de R/prosecnur al exportar PPT/Word y los
@@ -18,6 +19,7 @@ import { nombreTipoLamina, rotuloLamina } from "./rotuloLamina";
 //   - "non-numeric argument to binary operator" → variable no numérica
 //     usada en graficador que espera números (media, boxplot, etc.)
 //   - "Graficador no registrado: xxx" → paquete prosecnur desactualizado
+//   - E_GRAFICOS_CONSOLIDADO_DRAFT_STALE → otra pestaña o persona guardó el informe compartido (A7 H3)
 
 export type HumanizedError = {
   message: string;
@@ -30,6 +32,14 @@ export type HumanizedError = {
 export function humanizeGraficosExportError(raw: string, plan: PlanJson): HumanizedError {
   // Quitar el prefijo legado "[E_CODE] " y el sufijo canónico " · E_CODE" del client.
   const detalle = raw.replace(/^\[[A-Z_]+\]\s*/, "").replace(/\s*·\s*(?:E_|HTTP_)[A-Z0-9_]+\s*$/, "").trim();
+  // El código se mira en el crudo, antes de quitarle el sufijo: es la única marca segura del 409 de revisión vieja.
+  if (raw.includes(CODIGO_BORRADOR_STALE) || raw.includes(MENSAJE_CONFLICTO_BORRADOR)) {
+    return {
+      message: MENSAJE_CONFLICTO_BORRADOR,
+      hint: `Usa «${ACCION_RECARGAR_BORRADOR}» en el aviso y vuelve a exportar.`,
+      ...(detalle ? { detalle } : {}),
+    };
+  }
   return { ...humanizar(sinEnvolturaCallr(detalle), plan), ...(detalle ? { detalle } : {}) };
 }
 

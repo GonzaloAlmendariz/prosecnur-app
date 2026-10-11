@@ -13,6 +13,13 @@ import { buildGraficosConfig, buildGraficosConfigFromStore, graficosConfigFromRe
 import type { GraficosReportScope } from "./reportScope";
 import { registrarAlcanceHidratado } from "./alcanceHidratado";
 import {
+  crearRecargaBorrador,
+  guardarBorradorConRevision,
+  limpiarConflictoBorrador,
+  registrarRecargaBorrador,
+  useConflictoBorrador,
+} from "./conflictoBorrador";
+import {
   acknowledgeSlideCompositionConfig,
   invalidateSlideCompositionPersistenceAck,
   persistWithSlideCompositionAck,
@@ -58,6 +65,8 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   const equivalenciasRevision = usePlanStore((s) => s.equivalenciasRevision);
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
+  // Con conflicto de revisión (409 STALE, contrato A7 H3) el autosave se detiene: sólo recargar lo resuelve.
+  const enConflicto = useConflictoBorrador((s) => s.conflicto != null);
   const hydrate = usePlanStore((s) => s.hydrate);
   const markClean = usePlanStore((s) => s.markClean);
   const timer = useRef<number | null>(null);
@@ -76,15 +85,16 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     const previous = saveInFlight.current;
     const operation = (async () => {
       if (previous) await previous;
-      if (draftRevision.current == null) {
-        throw new Error("El borrador compartido aun no termino de cargar.");
-      }
-      const expectedRevision = draftRevision.current;
-      const saved = await persistWithSlideCompositionAck({
+      // En conflicto no sale ningún PUT con la revisión vieja; un STALE pone el informe en conflicto (A7 H3, D2).
+      const saved = await guardarBorradorConRevision({
+        revision: draftRevision.current,
         sid: getSession(),
-        scope: "consolidated",
-        config,
-        persist: () => apiGraficosConsolidadoDraftPut(config, expectedRevision),
+        guardar: (expectedRevision) => persistWithSlideCompositionAck({
+          sid: getSession(),
+          scope: "consolidated",
+          config,
+          persist: () => apiGraficosConsolidadoDraftPut(config, expectedRevision),
+        }),
       });
       rememberRevision(saved.revision);
       return saved.revision;
@@ -139,6 +149,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
             const config = mergeWithDefaults(r.config);
             rememberRevision(r.revision);
             hydrate(config);
+            limpiarConflictoBorrador();
             // El flush de guardar proyecto debe saber que esto es el borrador compartido (A7-1 H1).
             registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated });
             acknowledgeSlideCompositionConfig(getSession(), reportScope, config);
@@ -150,6 +161,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
           const config = mergeWithDefaults(r.config);
           usePlanStore.getState().setConfigDefaults(normalizeGraficosConfigDefaults(r));
           hydrate(config);
+          limpiarConflictoBorrador();
           // Reemplaza (olvida) un alcance compartido anterior: desde aquí el flush vuelve a escribir la base activa.
           registrarAlcanceHidratado({ scope: "active", sid: getSession() });
           acknowledgeSlideCompositionConfig(getSession(), reportScope, config);
@@ -204,9 +216,30 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportScope]);
 
+  // 1b) Recarga del borrador compartido ante un conflicto de revisión (A7 H3, D2). La pide el aviso; hidrata como la
+  // carga inicial (revisión, alcance y ack) y `crearRecargaBorrador` limpia «dirty» y el conflicto.
+  useEffect(() => {
+    // Sin desregistrar al desmontar: guardar el proyecto desde otro módulo también choca con el conflicto, y su aviso
+    // debe poder recargar. Hidratar la base activa limpia el conflicto y aquí se retira la recarga.
+    if (reportScope !== "consolidated") {
+      registrarRecargaBorrador(null);
+      return;
+    }
+    registrarRecargaBorrador(crearRecargaBorrador({
+      leer: apiGraficosConsolidadoDraftGet,
+      hidratar: (r) => {
+        const config = mergeWithDefaults(r.config);
+        rememberRevision(r.revision);
+        hydrate(config);
+        registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated });
+        acknowledgeSlideCompositionConfig(getSession(), "consolidated", config);
+      },
+    }));
+  }, [hydrate, persistConsolidated, rememberRevision, reportScope]);
+
   // 2) Autosave debounced.
   useEffect(() => {
-    if (!hydrated || !dirty) return;
+    if (!hydrated || !dirty || enConflicto) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
       // Se lee al disparar y no del cierre del efecto: el productor único ve el estado más reciente.
@@ -225,7 +258,8 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
         }
         markClean();
       } catch {
-        // Silencioso por ahora; el próximo cambio reintenta.
+        // Un STALE ya dejó el informe en conflicto con su aviso (`guardarBorradorConRevision`) y el efecto no vuelve a
+        // agendar; otro error (red) queda «dirty» y el próximo cambio reintenta.
       }
     }, DEBOUNCE_MS);
     return () => {
@@ -238,7 +272,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     scopeRules, autoOtrosSlides, documentoWord, equivalenciasRevision,
     reportScope,
     persistConsolidated,
-    dirty, hydrated, markClean,
+    dirty, hydrated, enConflicto, markClean,
   ]);
 
   // Aterriza el plan sugerido del preflight en el editor compartido. Hidrata
