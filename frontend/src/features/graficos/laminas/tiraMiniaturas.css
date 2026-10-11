@@ -4,8 +4,8 @@
 .pulso-f6-tira {
   flex: none;
   display: flex;
-  gap: var(--pulso-space-4);
-  height: 92px;
+  gap: var(--pulso-space-2);
+  height: 108px;
   padding: var(--pulso-space-2) var(--pulso-space-4);
   overflow-x: auto;
   overflow-y: hidden;
@@ -22,16 +22,55 @@
   }
 }
 
+/* Cada sección del informe es un bloque propio: su nombre entero arriba, cuántas láminas tiene, y la sección donde
+   está la lámina activa resaltada con el acento del módulo. */
 .pulso-f6-tira-grupo {
   flex: none;
   display: grid;
   grid-template-rows: auto 1fr;
   gap: var(--pulso-space-1);
   min-width: 0;
+  padding: 6px var(--pulso-space-2) var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-tira-grupo.is-actual {
+  border-color: var(--module-accent-border);
+  background: color-mix(in srgb, var(--module-accent) 5%, var(--pulso-surface));
+}
+
+.pulso-f6-tira-cabeza {
+  display: inline-flex;
+  width: max-content;
+  max-width: 340px;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-tira-cuenta {
+  flex: none;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 16px;
+  text-align: center;
+}
+
+.pulso-f6-tira-grupo.is-actual .pulso-f6-tira-rotulo {
+  color: var(--module-accent);
 }
 
 .pulso-f6-tira-rotulo {
-  max-width: 100%;
+  /* El nombre de la sección se lee entero (ensancha el bloque) hasta 300 px; más largo, con «…» y su título. */
+  min-width: 0;
+  max-width: 300px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
