@@ -1,17 +1,30 @@
 // Vista previa real de la lámina seleccionada (F6.1). No reimplementa debounce ni cancelación: usa
 // `crearCoordinadorPreviewLamina` (F6.0b.2), un coordinador por lámina para que «la imagen anterior» que se muestra
 // como desactualizada sea siempre de ESTA lámina y no de la que se miraba antes. Volver a una lámina sin cambios
-// responde al instante desde el coordinador.
+// responde al instante desde el coordinador. El render corre como job (`/preview-slide-job`, F6 §5.3): Plumber no queda
+// bloqueado y la vista muestra el progreso; si el backend no tiene la ruta, se cae al síncrono (`previewPorJob.ts`).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { apiGraficosPreviewSlide, type Slide } from "../../../api/graficos";
+import { apiGraficosPreviewSlideJob } from "../../../api/graficosMiniaturas";
+import { apiJobCancel } from "../../../api/jobs";
+import { iniciarJobPoll } from "../../../hooks/useJob";
 import { buildGraficosConfigFromStore } from "../configSnapshot";
 import { clavePreview, crearCoordinadorPreviewLamina, estaDesactualizada, type EstadoPreviewLamina } from "../previewLaminaCoordinador";
 import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
 import { estadoDeLamina, leerLaminaVisor, type LaminaVisor } from "./estadoLamina";
 import { useLaminasUi } from "./laminasStore";
+import { crearCargaPreviewPorJob, type ProgresoPreview } from "./miniaturas/previewPorJob";
+
+/** Una sola instancia por app: recuerda si el backend tiene la ruta del job. */
+const cargarPreview = crearCargaPreviewPorJob({
+  lanzar: apiGraficosPreviewSlideJob,
+  sincrono: apiGraficosPreviewSlide,
+  poll: (jobId, onUpdate) => iniciarJobPoll(jobId, onUpdate),
+  cancelar: apiJobCancel,
+});
 
 export type VistaPreviaLamina = {
   /** Fase del coordinador: inactiva, esperando (debounce), cargando, lista o error. */
@@ -20,6 +33,8 @@ export type VistaPreviaLamina = {
   lamina: LaminaVisor | null;
   desactualizada: boolean;
   error: string | null;
+  /** Progreso del job mientras la fase es «cargando»; null en las demás. */
+  progreso: ProgresoPreview | null;
   reintentar: () => void;
 };
 
@@ -36,6 +51,13 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
   const coordinadores = useRef(new Map<string, Coordinador>());
   const [estado, setEstado] = useState<EstadoPreviewLamina>({ estado: "inactiva" });
   const [intento, setIntento] = useState(0);
+  const [progreso, setProgreso] = useState<ProgresoPreview | null>(null);
+  // El progreso sólo se pinta si viene del coordinador de la lámina que se mira.
+  const activa = useRef<string | null>(null);
+  activa.current = slide && habilitada ? slide.id : null;
+  // El cargador vive con el coordinador de la lámina: lee el alcance vigente al disparar, no el de cuando se creó.
+  const alcance = useRef(scope);
+  alcance.current = scope;
 
   // Lo que define la imagen: la lámina, el antetítulo que hereda del plan y el estilo global.
   const clave = useMemo(
@@ -49,14 +71,19 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
     if (!coord) {
       const id = slide.id;
       // El cargador lee la lámina vigente del plan al disparar (después del debounce), no la de este render.
-      coord = crearCoordinadorPreviewLamina((_clave, { signal }) =>
-        apiGraficosPreviewSlide(usePlanStore.getState().plan.slides.find((s) => s.id === id) ?? slide, buildGraficosConfigFromStore(), {
+      coord = crearCoordinadorPreviewLamina((_clave, { signal }) => cargarPreview({
+        slide: usePlanStore.getState().plan.slides.find((s) => s.id === id) ?? slide,
+        config: buildGraficosConfigFromStore(),
+        options: {
           include_images: false,
           preview_quality: calidadParaPantalla(),
           render_slide_preview: true,
           preview_partes: true,
-          ...(scope === "consolidated" ? { scope: "consolidated" as const } : {}),
-        }, { signal }));
+          ...(alcance.current === "consolidated" ? { scope: "consolidated" as const } : {}),
+        },
+        signal,
+        onProgreso: (p) => { if (activa.current === id && !signal.aborted) setProgreso(p); },
+      }));
       coordinadores.current.set(slide.id, coord);
     }
     let vigente = true;
@@ -64,6 +91,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
     void coord.solicitar(clave, (e) => {
       if (!vigente) return;
       setEstado(e);
+      if (e.estado !== "cargando") setProgreso(null);
       if (e.estado === "lista") {
         const l = leerLaminaVisor(e.respuesta);
         registrarResumen(id, { estado: estadoDeLamina(l), partes: l.partes.length, avisos: l.avisos.length, avisosTexto: l.avisos });
@@ -86,6 +114,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
     lamina,
     desactualizada: estaDesactualizada(estado),
     error: estado.estado === "error" ? estado.mensaje : null,
+    progreso: estado.estado === "cargando" ? progreso : null,
     reintentar: () => setIntento((n) => n + 1),
   };
 }
