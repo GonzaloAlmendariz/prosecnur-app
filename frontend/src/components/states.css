@@ -104,6 +104,13 @@
   animation: pulso-states-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
+/* D4 (remasterización L24): el marco del vacío es de la SUPERFICIE que lo
+   contiene; esta variante no dibuja borde ni fondo, y por eso se llama
+   `--en-superficie`. `--panel` es el nombre viejo, que prometía un panel que
+   nunca se pintó: queda como ALIAS de transición porque EmptyState emite ambas
+   clases y dos hojas de feature aún seleccionan la vieja. Usos nuevos de
+   `--panel` los rechaza `estadosDelKit.contract.test.ts` (ratchet). */
+.pulso-empty-state--en-superficie,
 .pulso-empty-state--panel {
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-8) var(--pulso-space-5);
@@ -133,7 +140,7 @@
   animation: pulso-states-icon-in var(--motion-dur-base) var(--motion-ease-out) 40ms both;
 }
 
-.pulso-empty-state--panel .pulso-empty-state-icon {
+.pulso-empty-state--en-superficie .pulso-empty-state-icon {
   width: 42px;
   height: 42px;
   border-radius: 12px;
@@ -157,7 +164,7 @@
   line-height: 1.5;
 }
 
-.pulso-empty-state--panel .pulso-empty-state-hint {
+.pulso-empty-state--en-superficie .pulso-empty-state-hint {
   max-width: 320px;
 }
 
