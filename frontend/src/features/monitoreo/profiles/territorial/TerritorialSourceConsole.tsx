@@ -48,6 +48,7 @@ import type { MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import { cruceDeDistritos } from "./cruceDeDistritos";
 import { describirFilasDeFase } from "./filasDeFase";
 import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
+import "./buscadoresDeConciliacion.css";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
 type TerritorialSourceDeclaredUmpRow = NonNullable<MonitoreoTerritorialDashboard["ump_declared_summary"]>["rows"][number];

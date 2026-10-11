@@ -918,6 +918,16 @@ button.pulso-ghost-nav:disabled {
   color: var(--pulso-text);
 }
 
+/* **La cruz nativa de `type="search"` se apaga.** Este campo ya trae su propio
+   botón de limpiar —el `<X>` con `aria-label="Limpiar búsqueda"`—, y Chromium
+   dibuja además su `::-webkit-search-cancel-button` dentro del input: salían
+   DOS cruces pegadas. Se queda la de la casa, que es la que hereda el color y
+   el foco del campo. Mismo arreglo que en `senalesPorAula.css` (9c6d5d6f). */
+.pulso-cv2-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* ── Lista de respuestas únicas (origen) ──────────────────────────────────── */
 .pulso-cv2-resp-list {
   overflow-x: hidden;

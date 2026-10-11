@@ -1,0 +1,18 @@
+/* Buscadores de los lentes de conciliación (códigos Pulso y UMP).
+
+   El resto de su geometría vive en `territorialProfile.css`, junto al bloque
+   `.mon-territorial-reconciliation-review-lens-field`. Esta hoja existe aparte
+   porque esa hoja está **congelada a crecimiento** (`agentic/manifest.json`,
+   `policy.frozen_growth_files`) y una corrección de cuatro declaraciones no
+   justifica subir su línea base; el patrón de la casa para eso es una hoja
+   propia del componente, como `senalesPorAula.css` en el perfil de aulas. */
+
+/* **La cruz nativa de `type="search"` se apaga.** Los dos campos ya traen su
+   propio botón de limpiar —el `<XCircle>` de la tercera columna del grid—, y
+   Chromium dibuja además su `::-webkit-search-cancel-button` dentro del input:
+   salían DOS cruces pegadas. Se queda la de la casa, que es la que hereda el
+   color, el borde y el foco del campo. Mismo arreglo que 9c6d5d6f. */
+.mon-territorial-reconciliation-review-lens-field input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
