@@ -9,7 +9,9 @@ import {
   AYUDA_CEROS,
   AYUDA_CORTES,
   AYUDA_EJE_MIN,
+  AYUDA_LIMITE_SUPERIOR,
   AYUDA_MIN_N,
+  AYUDA_TIPO_RANGO,
   RETIRADOS,
   camposDeDatos,
   esRetirado,
@@ -32,6 +34,7 @@ const lollipop = [
 const dumbbell = [
   a("corte", "codigos_list"), a("corte_etiqueta", "string"), a("orden", "choice", { default: "brecha" }),
   a("mostrar_brecha", "bool", { default: true }), a("umbral_brecha_pct", "number", { default: 0 }),
+  a("etiqueta_brecha", "string", { default: "pts" }),
 ];
 const serie = [
   a("corte", "codigos_list"), a("corte_etiqueta", "string"), a("orden_periodos", "codigos_list"),
@@ -63,8 +66,21 @@ const distrital = [
 const dims = [a("modo", "choice"), a("objetivo", "string"), a("cruce", "variable_opt"), a("incluir_total", "bool"),
   a("brecha_filas", "bool"), a("brecha_cols", "bool"), a("brecha_cortes", "codigos_list"), a("mostrar_n_cruce_x", "bool"),
   a("modo_semaforo", "choice"), a("radar_min_ejes", "number"), a("iter_var", "variable_opt"), a("iter_level", "string")];
-const mediaRango = [a("var", "variable"), a("cruce", "variable_opt"), a("chip_decimales", "number"), a("mostrar_ref_label", "bool"),
+const TIPOS_RANGO = [
+  { value: "minmax", label: "Mínimo a máximo" }, { value: "iqr", label: "50 % central (P25–P75)" },
+  { value: "p10_p90", label: "Percentiles 10 a 90" }, { value: "custom", label: "Percentiles a medida" },
+];
+const mediaRango = [a("var", "variable"), a("cruce", "variable_opt"), a("decimales_promedio", "number", { default: 1 }),
+  a("tipo_rango", "choice", { default: "minmax", choices: TIPOS_RANGO }), a("mostrar_ref_label", "bool"),
   a("cortes_chip", "codigos_list"), a("modo_semaforo", "choice")];
+// p_boxplot todavía declara `chip_decimales`: sigue sin control (no es la firma de media y rango).
+const boxplot = [a("var", "variable"), a("cruce", "variable_opt"), a("chip_decimales", "number")];
+const ceros = { default: false };
+const apiladas = [a("var", "variable"), a("cruces", "variable_opt"), a("excluir_opciones", "codigos_list"),
+  a("mostrar_categorias_en_cero", "bool", ceros)];
+const multiapiladas = [a("vars", "codigos_list"), a("mostrar_categorias_en_cero", "bool", ceros)];
+const histograma = [a("var", "variable"), a("grupo", "variable_opt"), a("ancho_bin", "number"), a("bins", "number"),
+  a("limite_superior", "number"), a("mostrar_bins_vacios", "bool", { default: true })];
 const tresOlas = { vars: { Confianza: ["o1$p1", "o2$p1", "o3$p1"] } };
 const dosOlas = { vars: { Confianza: ["o1$p1", "o2$p1"] } };
 
@@ -74,8 +90,16 @@ describe("C40 · ASIGNAR", () => {
     expect(campo(lollipop, {}, "p_lollipop", "top_n")?.rotulo).toBe("Máximo de categorías");
   });
   it("dumbbell: orden y la brecha, con su guarda a la vista", () => {
-    expect(nombres(dumbbell, {}, "p_dumbbell")).toEqual(["corte", "corte_etiqueta", "orden", "mostrar_brecha"]);
+    expect(nombres(dumbbell, {}, "p_dumbbell")).toEqual(["corte", "corte_etiqueta", "orden", "mostrar_brecha", "etiqueta_brecha"]);
     expect(campo(dumbbell, {}, "p_dumbbell", "mostrar_brecha")?.ayuda).toBe(AYUDA_BRECHA);
+  });
+  it("dumbbell: la unidad de la brecha sólo con la brecha encendida (default TRUE) y con «pts» a la vista", () => {
+    expect(campo(dumbbell, {}, "p_dumbbell", "etiqueta_brecha")?.placeholder).toBe("pts");
+    expect(nombres(dumbbell, { mostrar_brecha: true }, "p_dumbbell")).toContain("etiqueta_brecha");
+    expect(nombres(dumbbell, { mostrar_brecha: false }, "p_dumbbell")).not.toContain("etiqueta_brecha");
+    const sinInterruptor = dumbbell.filter((x) => x.name !== "mostrar_brecha");
+    expect(nombres(sinInterruptor, {}, "p_dumbbell")).not.toContain("etiqueta_brecha");
+    expect(nombres(dumbbell, {}, "p_lollipop")).not.toContain("etiqueta_brecha");
   });
   it("serie: orden de periodos siempre; cifras y su máximo sólo con tres o más mediciones", () => {
     expect(nombres(serie, dosOlas, "p_serie_temporal")).toEqual(["corte", "corte_etiqueta", "orden_periodos"]);
@@ -118,15 +142,42 @@ describe("C40 · ASIGNAR", () => {
     expect(campo(agrupadas, {}, "p_barras_agrupadas", "mostrar_ceros")?.ayuda).toBe(AYUDA_CEROS);
     expect(AYUDA_CEROS).toBe("Las respuestas especiales 90–99 sin casos nunca se muestran.");
   });
-  it("etiqueta de «Otros»: sólo donde es formal (torta y dona) y sólo cuando hay agrupación", () => {
+  it("etiqueta de «Otros» en torta y dona: sólo con top_k", () => {
     expect(nombres(pie, {}, "p_pie")).not.toContain("etiqueta_otros");
     expect(nombres(pie, { top_k: 3 }, "p_pie")).toContain("etiqueta_otros");
     expect(nombres(pie, { top_k: 3 }, "p_donut")).toContain("etiqueta_otros");
-    // p_barras_agrupadas() no la declara como formal: el arg del slot no llegaría al motor (pendiente de registro).
-    expect(nombres(agrupadas, { agrupar_resto_en_otros: true }, "p_barras_agrupadas")).not.toContain("etiqueta_otros");
+    expect(nombres(pie, { top_k: 0 }, "p_donut")).not.toContain("etiqueta_otros");
   });
-  it("PENDIENTE: chip_decimales de media y rango no sale (el constructor lee decimales_promedio)", () => {
-    expect(nombres(mediaRango, {}, "p_media_rango")).not.toContain("chip_decimales");
+  it("agrupadas: máximo, agrupación y etiqueta de «Otros» (formales desde e93c51d); la etiqueta sigue a la agrupación", () => {
+    expect(nombres(agrupadas, {}, "p_barras_agrupadas")).toEqual(
+      ["var", "max_categorias", "agrupar_resto_en_otros", "etiqueta_otros", "mostrar_ceros"]);
+    expect(nombres(agrupadas, { agrupar_resto_en_otros: false }, "p_barras_agrupadas")).not.toContain("etiqueta_otros");
+    expect(campo(agrupadas, {}, "p_barras_agrupadas", "etiqueta_otros")?.placeholder).toBe("Otros");
+    // top_k no cuenta fuera de torta y dona: en agrupadas manda el interruptor.
+    expect(nombres(agrupadas, { agrupar_resto_en_otros: false, top_k: 3 }, "p_barras_agrupadas")).not.toContain("etiqueta_otros");
+    // Sin la guarda del graficador (ni interruptor ni top_k), nunca.
+    expect(nombres(pie, { top_k: 3 }, "p_barras_categoricas")).not.toContain("etiqueta_otros");
+  });
+  it("media y rango: decimales_promedio y tipo_rango (default «minmax», cuatro opciones); chip_decimales nunca", () => {
+    expect(nombres(mediaRango, {}, "p_media_rango")).toEqual(["var", "cruce", "decimales_promedio", "tipo_rango"]);
+    const tipo = campo(mediaRango, {}, "p_media_rango", "tipo_rango");
+    expect([tipo?.control, tipo?.ayuda, tipo?.arg.default, tipo?.arg.choices?.length]).toEqual(["opciones", AYUDA_TIPO_RANGO, "minmax", 4]);
+    expect(campo(mediaRango, {}, "p_media_rango", "decimales_promedio")?.control).toBe("numero");
+    expect(nombres(boxplot, {}, "p_boxplot")).toEqual(["var", "cruce"]);
+    expect(nombres(mediaRango, {}, "p_boxplot")).not.toContain("tipo_rango");
+  });
+  it("apiladas y multiapiladas: categorías en 0 % con la guarda de 90–99; en ningún otro graficador", () => {
+    expect(nombres(apiladas, {}, "p_barras_apiladas")).toEqual(["var", "cruces", "mostrar_categorias_en_cero", "excluir_opciones"]);
+    expect(campo(apiladas, {}, "p_barras_apiladas", "mostrar_categorias_en_cero")?.ayuda).toBe(AYUDA_CEROS);
+    expect(campo(multiapiladas, {}, "p_barras_multiapiladas", "mostrar_categorias_en_cero")?.ayuda).toBe(AYUDA_CEROS);
+    expect(nombres(apiladas, {}, "p_barras_agrupadas")).not.toContain("mostrar_categorias_en_cero");
+  });
+  it("histograma: límite superior, vacío = sin tope, con el rótulo «+» explicado", () => {
+    expect(nombres(histograma, {}, "p_histograma")).toEqual(["var", "limite_superior"]);
+    const lim = campo(histograma, {}, "p_histograma", "limite_superior");
+    expect([lim?.control, lim?.ayuda, lim?.placeholder]).toEqual(["numero", AYUDA_LIMITE_SUPERIOR, "Sin tope"]);
+    expect(AYUDA_LIMITE_SUPERIOR).toContain("«+»");
+    expect(nombres(histograma, {}, "p_numerico")).not.toContain("limite_superior");
   });
   it("PENDIENTE: iter_var/iter_level no salen (el pie de la lámina nativa no declara el subgrupo)", () => {
     expect(nombres(dims, {}, "p_dim_heatmap")).not.toContain("iter_var");
@@ -144,7 +195,7 @@ describe("C40 · RETIRAR", () => {
   it("las firmas reales tampoco los dejan pasar", () => {
     expect(nombres(radar, { modo: "publicos" }, "p_radar")).not.toEqual(expect.arrayContaining(["tabla_ancho_tema"]));
     expect(nombres(dims, {}, "p_dim_heatmap").filter((n) => esRetirado(n, "p_dim_heatmap"))).toEqual([]);
-    expect(nombres(mediaRango, {}, "p_media_rango")).toEqual(["var", "cruce"]);
+    expect(nombres(mediaRango, {}, "p_media_rango")).not.toEqual(expect.arrayContaining(["cortes_chip"]));
     expect(esRetirado("incluir_total", "p_dim_comparativo_radarbar")).toBe(true);
     expect(esRetirado("incluir_total", "p_dim_heatmap")).toBe(false);
   });

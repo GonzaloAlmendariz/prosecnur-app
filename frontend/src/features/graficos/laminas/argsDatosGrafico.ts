@@ -31,6 +31,8 @@ type Entrada = {
   soloEn?: readonly string[];
   /** Condición extra sobre los valores actuales (p. ej. cuántas mediciones tiene la serie). */
   cuando?: (valores: Valores) => boolean;
+  /** Guarda propia de un graficador: reemplaza `siActivo` y `cuando` ahí (el mismo arg se activa con otro control). */
+  porGraficador?: Readonly<Record<string, Pick<Entrada, "siActivo" | "cuando">>>;
 };
 
 // Guardas C40 (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md): el texto que la tarjeta muestra junto al control.
@@ -40,6 +42,8 @@ export const AYUDA_EJE_MIN =
 export const AYUDA_BRECHA = "Primera fuente menos la segunda, restando las cifras ya rotuladas.";
 export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como «Sin encuestas» y la lámina lo avisa.";
 export const AYUDA_CORTES = "Porcentajes entre 0 y 100, separados por comas. Vacío: 55, 65 y 75.";
+export const AYUDA_LIMITE_SUPERIOR = "Vacío: sin tope. Lo que lo supera va en la última barra, rotulada con «+» (p. ej. «60+»).";
+export const AYUDA_TIPO_RANGO = "La leyenda de la lámina dice qué abarca la barra.";
 
 /** Mediciones (periodos) de una serie temporal: `orden_periodos` si se declaró; si no, las fuentes del primer tema. */
 export function medicionesDeSerie(valores: Valores): number {
@@ -56,7 +60,9 @@ export function medicionesDeSerie(valores: Valores): number {
 /** Con dos mediciones la serie sale nativa y no lee sus cifras; con tres o más va en el marco del recetario, que sí. */
 const serieEnMarco = (v: Valores) => medicionesDeSerie(v) >= 3;
 const MEDIA_RANGO = ["p_media_rango"];
-const PIE = ["p_pie", "p_donut"];
+/** En torta y dona «Otros» aparece con `top_k`: no tienen `agrupar_resto_en_otros`. */
+const conTopK = (v: Valores) => typeof v.top_k === "number" && Number.isFinite(v.top_k) && v.top_k >= 1;
+const OTROS_POR_TOP_K = { siActivo: undefined, cuando: conTopK };
 
 /** Orden de aparición = orden de las claves. */
 const LISTA_BLANCA: Record<string, Entrada> = {
@@ -105,19 +111,33 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     soloEn: ["p_lollipop"],
   },
   agrupar_resto_en_otros: { rotulo: "Agrupar el resto en «Otros»", siActivo: undefined },
-  // Sólo donde es formal del constructor (p_pie/p_donut, reporte_plan_slides.R): en agrupadas el arg del slot no llega.
+  // Formal de p_barras_agrupadas (e93c51d), p_pie y p_donut (reporte_plan_slides.R). En agrupadas sale con la agrupación
+  // encendida (default TRUE del registro); en torta y dona, con `top_k`. Sin ninguna de las dos guardas, nunca.
   etiqueta_otros: {
     rotulo: "Nombre de «Otros»",
     placeholder: "Otros",
-    soloEn: PIE,
-    cuando: (v) => typeof v.top_k === "number" && Number.isFinite(v.top_k) && v.top_k >= 1,
+    siActivo: "agrupar_resto_en_otros",
+    porGraficador: { p_pie: OTROS_POR_TOP_K, p_donut: OTROS_POR_TOP_K },
   },
   mostrar_ceros: { rotulo: "Mostrar opciones sin casos", ayuda: AYUDA_CEROS },
+  // Formal de p_barras_apiladas y p_barras_multiapiladas (e93c51d); la misma guarda de 90–99 que `mostrar_ceros`.
+  mostrar_categorias_en_cero: {
+    rotulo: "Mostrar categorías en 0 %",
+    ayuda: AYUDA_CEROS,
+    soloEn: ["p_barras_apiladas", "p_barras_multiapiladas"],
+  },
   excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Códigos separados por comas (p. ej. 88, 99)." },
   excluir_grupos: { rotulo: "Excluir grupos", ayuda: "Códigos separados por comas." },
   mostrar_significancia: { rotulo: "Marcar diferencias significativas" },
   significancia_alpha: { rotulo: "Nivel de significancia", siActivo: "mostrar_significancia" },
   mostrar_brecha: { rotulo: "Mostrar la brecha", ayuda: AYUDA_BRECHA, soloEn: ["p_dumbbell"] },
+  // Formal de p_dumbbell (e93c51d): sólo se escribe junto a la brecha, así que sin brecha no hay qué rotular.
+  etiqueta_brecha: { rotulo: "Unidad de la brecha", placeholder: "pts", siActivo: "mostrar_brecha", soloEn: ["p_dumbbell"] },
+  // Formales de p_media_rango (e93c51d): `decimales_promedio` es el que llega (el constructor lo pasa a `chip_decimales`).
+  decimales_promedio: { rotulo: "Decimales de la media", soloEn: MEDIA_RANGO },
+  tipo_rango: { rotulo: "Qué abarca la barra", ayuda: AYUDA_TIPO_RANGO, soloEn: MEDIA_RANGO },
+  // Formal de p_histograma (e93c51d); sin default en el registro: vacío = sin tope.
+  limite_superior: { rotulo: "Límite superior", ayuda: AYUDA_LIMITE_SUPERIOR, placeholder: "Sin tope", soloEn: ["p_histograma"] },
   mostrar_valores: { rotulo: "Mostrar cifras", soloEn: ["p_serie_temporal"], cuando: serieEnMarco },
   max_series_con_cifras: {
     rotulo: "Máximo de series con cifras",
@@ -196,11 +216,12 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
     if (e.soloEn && !(graficador && e.soloEn.includes(graficador))) continue;
     const control = e.control ?? CONTROL_POR_TIPO[arg.tipo_input];
     if (!control) continue;
-    if (e.siActivo) {
-      const ref = porNombre.get(e.siActivo);
-      if (!ref || !interruptorEncendido(ref, valores[e.siActivo])) continue;
+    const guarda = (graficador && e.porGraficador?.[graficador]) || e;
+    if (guarda.siActivo) {
+      const ref = porNombre.get(guarda.siActivo);
+      if (!ref || !interruptorEncendido(ref, valores[guarda.siActivo])) continue;
     }
-    if (e.cuando && !e.cuando(valores)) continue;
+    if (guarda.cuando && !guarda.cuando(valores)) continue;
     if (!argAplica(arg, valores)) continue;
     if (e.estricto && !dependenciaElegida(arg, valores)) continue;
     salida.push({
