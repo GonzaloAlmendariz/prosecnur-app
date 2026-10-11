@@ -452,7 +452,7 @@ test_that("import independiente: la base guarda la alineación de la fuente y Re
   expect_setequal(names(fue), c("survey_id", "titulo", "n_emparejadas", "n_preguntas_base", "cobertura",
                                 "reordenada", "instrumento_distinto", "excluida", "n_filas_excluidas",
                                 "n_filas_incorporadas", "consentimiento_sin_par", "n_excluidas_consentimiento",
-                                "sin_par_fuente", "sin_par_base", "ambiguas", "opciones_sin_par"))
+                                "sin_par_fuente", "sin_par_base", "ambiguas", "pares", "opciones_sin_par"))
   expect_equal(fue$n_filas_incorporadas, 2L)
   expect_false(isTRUE(fue$consentimiento_sin_par))
   expect_equal(fue$n_excluidas_consentimiento, 0L)
