@@ -307,6 +307,9 @@ w_presets <- function(
 #'   (ADR 0093, N8.15; Gonzalo, R9: «El documento completo»). \code{"clasico"} conserva el Word anterior.
 #' @param opciones_documento Opciones del documento del recetario (ver \code{.word_documento}): portada, apertura,
 #'   como_leer, redondeo, contacto, meta_portada.
+#' @param auto_otros_slides Si \code{TRUE}, tras cada gráfico con respuestas «Otros» va su tabla de dos bloques del
+#'   recetario Word (decisión 21, \code{reporte_word_otros.R}); la misma opción del proyecto que el PPT, apagada por
+#'   defecto.
 #'
 #' @return Invisiblemente una lista con \code{doc}, \code{plan}, \code{log}. Con \code{estilo_documento = "recetario"},
 #'   \code{doc} y \code{log} son \code{NULL} y se suman \code{figuras}, \code{tablas} y \code{avisos}.
@@ -325,7 +328,8 @@ reporte_word_plan <- function(
     mensajes_progreso  = TRUE,
     solo_lista         = FALSE,
     estilo_documento   = c("recetario", "clasico"),
-    opciones_documento = list()
+    opciones_documento = list(),
+    auto_otros_slides  = FALSE
 ) {
   estilo_documento <- match.arg(estilo_documento)
 
@@ -360,11 +364,13 @@ reporte_word_plan <- function(
     strict_diapos      = strict_diapos,
     solo_lista         = TRUE,
     build_render_meta  = TRUE,
-    mensajes_progreso  = mensajes_progreso
+    mensajes_progreso  = mensajes_progreso,
+    auto_otros_slides  = auto_otros_slides
   )
 
   render_meta <- ppt_result$render_meta %||% list()
   if (!length(render_meta)) stop("El plan no produjo ningún elemento para Word.", call. = FALSE)
+  if (isTRUE(auto_otros_slides)) render_meta <- .word_otros_insertar(render_meta, ppt_result$plan, fuente = fuente)   # decisión 21
 
   # ADR 0093 (N8.15): el documento del recetario, desde la misma render_meta. El clásico sigue debajo.
   if (identical(estilo_documento, "recetario") && !isTRUE(solo_lista)) {

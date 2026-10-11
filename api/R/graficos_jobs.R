@@ -245,12 +245,13 @@ attr(graficos_job_worker_ppt_all, "prosecnur_job_function_name") <- "graficos_jo
 
 # Worker del job `graficos.word` (POST /api/graficos/word): mismo pipeline
 # que /ppt pero renderiza con reporte_word_plan (presets Word aparte y sin
-# plantilla PPTX ni slides automáticas de "otros").
+# plantilla PPTX). Con `auto_otros_slides`, la tabla «Otros» del recetario
+# Word va tras cada gráfico con abierta (decisión 21, reporte_word_otros.R).
 graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, w_presets,
                                      paletas, slide_registry, graficador_registry,
                                      icon_registry, active_base,
                                      result_path, progress_path = NULL, opciones_documento = list(),
-                                     estilo_cliente = list()) {
+                                     estilo_cliente = list(), auto_otros_slides = FALSE) {
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
@@ -282,7 +283,8 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
       env_diapos = palette_env,
       mensajes_progreso = FALSE,
       fuente = fuente_documento,
-      opciones_documento = opciones_documento %||% list()
+      opciones_documento = opciones_documento %||% list(),
+      auto_otros_slides = isTRUE(auto_otros_slides)
     ),
     error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
   )
