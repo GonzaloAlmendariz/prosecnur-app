@@ -105,6 +105,10 @@ const KNOWN_KEYS = new Set([
   "scopeRules",
   "auto_otros_slides",
   "autoOtrosSlides",
+  // ADR 0063: el sello de la declaración de equivalencias es campo de primera clase. Fuera de esta lista el normalizador
+  // lo copiaba también en `_unknown`, y una lectura que sólo lo trajera ahí lo perdía al hidratar.
+  "equivalencias_revision",
+  "equivalenciasRevision",
   // ADR 0094 / contrato A6 §0.4: las opciones del documento Word son campo de primera clase. Desde `_unknown` el store
   // las descartaba al hidratar y sólo las salvaba el backend (`.graficos_conservar_campos_backend`).
   "documento_word",
@@ -280,7 +284,15 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
   const envelope = isObj(input) ? input : {};
   const source = isObj(envelope.config) ? envelope.config : envelope;
 
-  const plan = pick(source, "plan");
+  const planLeido = pick(source, "plan");
+  // Un `plan.auto_otros_slides` (lo trae el plan sugerido del backend) no es parte del plan: sube a la raíz si ésta no
+  // lo dice y siempre sale de `plan`, para que no le gane al interruptor sin avisar (router_graficos.R lo prefiere).
+  const otrosDelPlan = isObj(planLeido) && typeof planLeido.auto_otros_slides === "boolean"
+    ? planLeido.auto_otros_slides
+    : undefined;
+  const plan = isObj(planLeido) && "auto_otros_slides" in planLeido
+    ? Object.fromEntries(Object.entries(planLeido).filter(([key]) => key !== "auto_otros_slides"))
+    : planLeido;
   const presets = pick(source, "presets");
   const wPresets = pick(source, "w_presets", ["wPresets"]);
   const selectedSlideId = pick(source, "selected_slide_id", ["selectedSlideId"]);
@@ -293,8 +305,12 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
   const density = pick(source, "density");
   const canvasViewport = pick(source, "canvas_viewport", ["canvasViewport"]);
   const scopeRules = pick(source, "scope_rules", ["scopeRules"]);
-  const equivalenciasRevision = pick(source, "equivalencias_revision", ["equivalenciasRevision"]);
-  const autoOtrosSlides = pick(source, "auto_otros_slides", ["autoOtrosSlides"]);
+  const unknownLeido = isObj(source._unknown) ? source._unknown : {};
+  // El GET del backend todavía puede traer el sello sólo dentro de `_unknown` (lo guardó un front que no lo conocía): se
+  // rescata de ahí cuando la raíz no lo trae.
+  const equivalenciasRevision = pick(source, "equivalencias_revision", ["equivalenciasRevision"]) ??
+    pick(unknownLeido, "equivalencias_revision", ["equivalenciasRevision"]);
+  const autoOtrosSlides = pick(source, "auto_otros_slides", ["autoOtrosSlides"]) ?? otrosDelPlan;
   const documentoWord = pick(source, "documento_word", ["documentoWord"]);
 
   const config: Dict = {
@@ -344,8 +360,12 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
         },
       };
 
-  const unknown = {
-    ...(isObj(source._unknown) ? source._unknown : {}),
+  // El sello rescatado deja de viajar como huésped: una sola copia, la de la raíz.
+  const restoUnknown = Object.fromEntries(
+    Object.entries(unknownLeido).filter(([key]) => key !== "equivalencias_revision" && key !== "equivalenciasRevision"),
+  );
+  const unknown: Dict = {
+    ...restoUnknown,
     ...unknownFields(source),
   };
   if (isObj(envelope.config)) {
