@@ -5,6 +5,11 @@
 // (`/api/graficos/consolidado/draft`). En ese alcance ninguna de las tres acciones haría lo que promete: exportar
 // entregaría el plan de la base activa en lugar del que se ve, e importar escribiría donde este informe no lee. Por
 // eso, aunque exportar no escribe nada, también se deshabilita: el archivo no sería el de este informe.
+//
+// Vaciar el plan (C14) es distinto: sólo reinicia el store del editor, y el autoguardado lo persiste donde ese store se
+// hidrató — la config de la base activa en una base, el borrador `graficos_consolidado_draft/v1` en el informe
+// compartido (`useGraficosAutosave`). En ningún alcance escribe donde el informe no lee, así que queda habilitado en los
+// dos; lo que cambia es qué dice que vacía (`textoConfirmarVaciar`). Que el plan ya esté vacío lo resuelve `vaciarPlan.ts`.
 
 import type { GraficosReportScope } from "../reportScope";
 
@@ -28,6 +33,8 @@ export type DisponibilidadCompartir = {
   seccionesJson: Disponibilidad;
   exportarJson: Disponibilidad;
   importarJson: Disponibilidad;
+  /** Vaciar el plan que se ve (C14): escribe en el mismo borrador que se está editando, en cualquier alcance. */
+  vaciarPlan: Disponibilidad;
 };
 
 const HABILITADO: Disponibilidad = { habilitado: true };
@@ -39,7 +46,10 @@ export function disponibilidadCompartir(scope: GraficosReportScope): Disponibili
       seccionesJson: { habilitado: false, motivo: MOTIVO_SECCIONES_JSON_CONSOLIDADO },
       exportarJson: { habilitado: false, motivo: MOTIVO_EXPORTAR_JSON_CONSOLIDADO },
       importarJson: { habilitado: false, motivo: MOTIVO_IMPORTAR_JSON_CONSOLIDADO },
+      vaciarPlan: HABILITADO,
     };
   }
-  return { planPortatil: HABILITADO, seccionesJson: HABILITADO, exportarJson: HABILITADO, importarJson: HABILITADO };
+  return {
+    planPortatil: HABILITADO, seccionesJson: HABILITADO, exportarJson: HABILITADO, importarJson: HABILITADO, vaciarPlan: HABILITADO,
+  };
 }

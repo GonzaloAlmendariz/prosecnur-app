@@ -1,16 +1,17 @@
-// Barra de la pestaña Láminas (F6.1, parte 2). Reemplaza allí a la barra del Editor anterior con sólo lo que cambia la
-// salida o la sigue: informe y alcance, láminas y partes, guardado, deshacer, avisos, cobertura, plan sugerido y
-// Exportar como primario único. Lo que era de la era ggplot (estilo global, guías como entregable) sale. El menú ⋯ lleva
-// el plan portátil (C11) y las secciones JSON (C12) en diálogos propios (decisión 10; lógica en `../compartir/`, la
-// misma que usa el Editor anterior), deshabilitados con motivo en el informe compartido (decisión 20); lo que todavía
-// no tiene superficie nueva (vaciar, estilo del cliente) abre el Editor anterior.
+// Barra de la pestaña Láminas (F6.1, parte 2): sólo lo que cambia la salida o la sigue — informe y alcance, láminas y
+// partes, guardado, deshacer, avisos, cobertura, plan sugerido y Exportar como primario único. Lo que era de la era
+// ggplot (estilo global, guías como entregable) sale. El menú ⋯ lleva el estilo del cliente (su pestaña), el plan
+// portátil (C11) y las secciones JSON (C12) en diálogos propios (decisión 10), y vaciar el plan (C14) con confirmación
+// en línea; la lógica vive una sola vez en `../compartir/`. En el informe compartido lo que escribe la base activa queda
+// deshabilitado con motivo (decisión 20); vaciar no, porque escribe en el borrador de ese informe.
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import { useLocation } from "react-router-dom";
-import { AlertTriangle, Archive, FileJson, History, Layers3, MoreHorizontal, Palette, Redo2, Undo2 } from "../../../vendor/lucide-react";
+import { AlertTriangle, Archive, FileJson, Layers3, MoreHorizontal, Palette, Redo2, RotateCcw, Undo2 } from "../../../vendor/lucide-react";
 import { SaveStatusIndicator } from "../../../components/SaveStatusIndicator";
 import { useSession } from "../../../lib/SessionContext";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
+import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { ExportarInformeMenu, type ExportarInformeMenuProps } from "../ExportarInformeMenu";
 import { modoMultibaseDelPlan } from "../modoMultibase";
 import { PANEL_AVISOS_INFORME, PANEL_PLAN_PORTATIL, PANEL_SECCIONES_JSON } from "../panelesGraficos";
@@ -19,6 +20,9 @@ import { itemsCompartirMenu, type ItemCompartirMenu } from "../compartir/menuCom
 import { PlanPortatilContenido } from "../compartir/PlanPortatilContenido";
 import { SeccionesJsonContenido } from "../compartir/SeccionesJsonContenido";
 import { useCompartirPlan } from "../compartir/useCompartirPlan";
+import { ConfirmacionVaciar } from "../compartir/ConfirmacionVaciar";
+import { itemVaciarMenu, type ItemVaciarMenu } from "../compartir/vaciarPlan";
+import { useVaciarPlan } from "../compartir/useVaciarPlan";
 import { PlanCoverageBadge } from "../PlanCoverageBadge";
 import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
@@ -33,13 +37,14 @@ import "./barraLaminas.css";
 
 type Props = Omit<ExportarInformeMenuProps, "canExportFinal"> & {
   canExport: boolean;
-  onIrEditorAnterior: () => void;
+  /** Sin uso en la barra desde C14: ningún ítem del menú ⋯ manda fuera de Láminas. Queda por compatibilidad del llamador. */
+  onIrEditorAnterior?: () => void;
 };
 
 const esMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 const MOD = esMac ? "⌘" : "Ctrl";
 
-export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Props) {
+export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...exportar }: Props) {
   const { state } = useSession();
   const reportScope = useGraficosReportScope(useLocation().search);
   const slides = usePlanStore((s) => s.plan.slides);
@@ -55,6 +60,8 @@ export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Pro
   const planPortatilPanel = usePanelDireccionable(PANEL_PLAN_PORTATIL);
   const seccionesJsonPanel = usePanelDireccionable(PANEL_SECCIONES_JSON);
   const compartir = useCompartirPlan(reportScope);
+  const vaciar = useVaciarPlan(reportScope);
+  const { irA } = useSeccion("procesamiento");
   const hostRef = useRef<HTMLDivElement>(null);
   const masRef = useRef<HTMLButtonElement>(null);
   // Los diálogos se montan dentro del marco de Gráficos: su cuerpo reusa los estilos del Editor anterior.
@@ -136,11 +143,14 @@ export function BarraLaminas({ canExport, onIrEditorAnterior, ...exportar }: Pro
             ...it,
             abrir: it.clave === "plan-portatil" ? planPortatilPanel.abrir : seccionesJsonPanel.abrir,
           }))}
-          onIrEditorAnterior={onIrEditorAnterior}
+          vaciar={{ ...itemVaciarMenu(vaciar.disponibilidad), abrir: vaciar.pedir }}
+          onIrEstilo={() => irA("pestana", "estilo")}
           disparadorRef={masRef}
         />
       </div>
     </div>
+    {vaciar.pendiente && <ConfirmacionVaciar control={vaciar} retornoRef={masRef} />}
+    <span role="status" className="pulso-sr-only">{vaciar.mensaje}</span>
     <DialogoCompartir
       abierto={planPortatilPanel.abierto}
       onCerrar={planPortatilPanel.cerrar}
@@ -187,12 +197,15 @@ export function indiceMenuTrasTecla(tecla: string, actual: number, total: number
   }
 }
 
-function MenuMas({ undo, redo, compartir, onIrEditorAnterior, disparadorRef }: {
+function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, disparadorRef }: {
   undo: { disabled: boolean; run: () => void };
   redo: { disabled: boolean; run: () => void };
   /** Plan portátil (C11) y secciones JSON (C12), cada uno con su panel. */
   compartir: AccionCompartirMenu[];
-  onIrEditorAnterior: () => void;
+  /** Vaciar el plan (C14): abre la confirmación en línea, no vacía. */
+  vaciar: ItemVaciarMenu & { abrir: () => void };
+  /** La pestaña «Estilo del cliente» de Procesamiento > Gráficos. */
+  onIrEstilo: () => void;
   disparadorRef: RefObject<HTMLButtonElement>;
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -220,7 +233,7 @@ function MenuMas({ undo, redo, compartir, onIrEditorAnterior, disparadorRef }: {
   }, [abierto, disparadorRef]);
   const item = (fn: () => void) => () => { setAbierto(false); fn(); };
   // Un ítem no disponible sigue enfocable (aria-disabled) para que su motivo se lea; activarlo no hace nada.
-  const itemCompartir = (accion: AccionCompartirMenu) => accion.habilitado
+  const itemCompartir = (accion: { habilitado: boolean; abrir: () => void }) => accion.habilitado
     ? { onClick: item(accion.abrir) }
     : { "aria-disabled": true as const, onClick: () => undefined };
   const navegar = (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -244,9 +257,9 @@ function MenuMas({ undo, redo, compartir, onIrEditorAnterior, disparadorRef }: {
           <button type="button" role="menuitem" className="pulso-f6-solo-compacto-barra" disabled={redo.disabled} onClick={item(redo.run)}>
             <Redo2 size={14} aria-hidden="true" /> Rehacer
           </button>
-          <button type="button" role="menuitem" onClick={item(onIrEditorAnterior)}>
+          <button type="button" role="menuitem" onClick={item(onIrEstilo)}>
             <Palette size={14} aria-hidden="true" />
-            <span>Estilo del cliente<small>Mientras llega su pestaña, en el Editor anterior</small></span>
+            <span>Estilo del cliente<small>Su pestaña: logos y tamaño de letra del cliente</small></span>
           </button>
           {compartir.map((accion) => (
             <button key={accion.clave} type="button" role="menuitem" data-pulso-abre-panel={accion.panel.id} {...itemCompartir(accion)}>
@@ -254,9 +267,9 @@ function MenuMas({ undo, redo, compartir, onIrEditorAnterior, disparadorRef }: {
               <span>{accion.etiqueta}<small>{accion.detalle}</small></span>
             </button>
           ))}
-          <button type="button" role="menuitem" onClick={item(onIrEditorAnterior)}>
-            <History size={14} aria-hidden="true" />
-            <span>Vaciar el plan<small>En el Editor anterior</small></span>
+          <button type="button" role="menuitem" className="pulso-f6-mas-peligro" {...itemCompartir(vaciar)}>
+            <RotateCcw size={14} aria-hidden="true" />
+            <span>{vaciar.etiqueta}<small>{vaciar.detalle}</small></span>
           </button>
         </div>
       )}

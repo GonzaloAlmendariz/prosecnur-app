@@ -256,3 +256,28 @@
 .pulso-f6-barra .pulso-gv2-export-menu-trigger > span {
   display: inline;
 }
+
+/* Confirmación de «Vaciar el plan» (C14): nace bajo el menú ⋯, a la derecha de la barra, sin empujar el lienzo. Su
+   marco es intrínseco (texto y dos acciones) y cabe en el ancho del contenedor; no tiene desplazamiento propio. */
+.pulso-f6-barra-host {
+  position: relative;
+}
+
+.pulso-f6-barra-vaciar {
+  position: absolute;
+  top: calc(100% + var(--pulso-space-1));
+  right: 0;
+  z-index: 30;
+  width: min(420px, 100%);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.pulso-f6-barra-vaciar .pulso-f6-compartir-confirmar {
+  margin-top: 0;
+}
+
+.pulso-f6-mas-menu button.pulso-f6-mas-peligro:not([aria-disabled="true"]) > svg {
+  color: var(--pulso-danger-fg);
+}

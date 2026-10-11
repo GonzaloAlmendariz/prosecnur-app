@@ -1,6 +1,9 @@
 // Textos del paso de confirmación antes de escribir (importar secciones o aplicar el plan portátil). Importar hidrata el
-// editor desde el backend y reinicia el historial, así que Deshacer no lo revierte: la confirmación lo dice.
+// editor desde el backend y reinicia el historial, así que Deshacer no lo revierte: la confirmación lo dice. Vaciar el
+// plan (C14) sí es un paso del historial del editor (`usePlanStore.reset` pasa por `dirty`): se revierte con Deshacer
+// mientras el informe no se vuelva a cargar, y la confirmación también lo dice.
 
+import type { GraficosReportScope } from "../reportScope";
 import type { ModoImportacionJson } from "./seccionesJson";
 
 export type TextoConfirmacion = { titulo: string; detalle: string; accion: string };
@@ -32,5 +35,20 @@ export function textoConfirmarPlan(nBases: number): TextoConfirmacion {
     titulo: `¿Aplicar el plan a ${bases}?`,
     detalle: `El plan de gráficos de ${nBases === 1 ? "esa base" : "esas bases"} se reemplaza por el del paquete; formulario y respuestas no cambian. ${NO_SE_DESHACE}`,
     accion: "Aplicar",
+  };
+}
+
+/** Deshacer revierte el vaciado mientras el historial siga en memoria: recargar o cambiar de base lo reinicia. */
+export const VACIAR_SE_DESHACE = "Se puede revertir con Deshacer mientras no recargues el informe ni cambies de base.";
+
+export function textoConfirmarVaciar(scope: GraficosReportScope, nLaminas: number): TextoConfirmacion {
+  const laminas = `${nLaminas} ${nLaminas === 1 ? "lámina" : "láminas"}`;
+  const donde = scope === "consolidated"
+    ? "del informe compartido; el plan de cada base no cambia"
+    : "del plan de esta base";
+  return {
+    titulo: scope === "consolidated" ? "¿Vaciar el informe compartido?" : "¿Vaciar el plan?",
+    detalle: `Se quitan ${nLaminas === 1 ? "la" : "las"} ${laminas} y vuelven a su valor inicial estilos, paletas e íconos ${donde}. ${VACIAR_SE_DESHACE}`,
+    accion: "Vaciar",
   };
 }
