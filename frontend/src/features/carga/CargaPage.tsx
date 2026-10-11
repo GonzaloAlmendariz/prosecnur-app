@@ -820,6 +820,9 @@ export default function CargaPage() {
   };
   const activeCargaTab = resolveCargaWorkspaceTab(cargaDireccion.pestana, workspaceContext);
   const cargaPlanActive = activeCargaTab === CARGA_WORKSPACE_TABS[0].key;
+  // Pestañas de lectura que crecen con su contenido en escritorio bajo
+  // (CargaWorkbenchBajo.css). Revisión lleva su propia regla.
+  const cargaWorkbenchCrece = activeCargaTab === "fuentes" || activeCargaTab === "equivalencias";
 
   // Revisión solo opera sobre bases primarias. Datos conserva su selector
   // completo (incluidos repeats); la normalización ocurre únicamente al entrar
@@ -1284,7 +1287,7 @@ export default function CargaPage() {
         <AdaptiveSplitView
           ariaLabel="Mesa de trabajo de varias bases"
           railLabel="Pestañas de carga"
-          className={`pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout${activeCargaTab === "revision" ? " pulso-carga-workbench--revision" : ""}`}
+          className={`pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout${activeCargaTab === "revision" ? " pulso-carga-workbench--revision" : ""}${cargaWorkbenchCrece ? " pulso-carga-workbench--crece" : ""}`}
           rail={(
             <CargaWorkspaceNavigation
               active={activeCargaTab}
@@ -1513,7 +1516,7 @@ export default function CargaPage() {
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de carga"
         railLabel="Pestañas de carga"
-        className="pulso-upload-section pulso-carga-workbench pulso-context-tab-layout"
+        className={`pulso-upload-section pulso-carga-workbench pulso-context-tab-layout${cargaWorkbenchCrece ? " pulso-carga-workbench--crece" : ""}`}
         rail={(
           <CargaWorkspaceNavigation
             active={activeCargaTab}

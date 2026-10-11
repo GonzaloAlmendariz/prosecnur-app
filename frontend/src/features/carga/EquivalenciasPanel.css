@@ -424,9 +424,10 @@ button.pulso-equiv-input-diapo:hover,
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   min-width: 0;
-  /* C4: una diapositiva con cuatro publicos es ancha por construccion; su
-     desplazamiento vive dentro de la tarjeta y nunca en la pagina. */
-  overflow-x: auto;
+  /* Sin scroll propio: un `overflow-x: auto` la volvía contenedor de scroll y su
+     cabecera sticky se pegaba a la tarjeta (que no se mueve) en vez de al dueño
+     real; a media altura los públicos perdían su rótulo. La tabla cabe por
+     construcción —el Tema absorbe el sobrante y encoge con elipsis—. */
 }
 
 /* Lo que no tiene diapositiva no es una diapositiva mas: es trabajo pendiente, y se
@@ -741,6 +742,21 @@ button.pulso-equiv-chip-escala:hover,
   padding: 2px var(--pulso-space-2);
   border-bottom: 1px solid var(--pulso-border);
   white-space: nowrap;
+}
+
+/* La cabecera de cada tarjeta se pega bajo la barra de vistas mientras su
+   tarjeta está a la vista, como en la Lista. El filete va en sombra: con
+   `border-collapse` el borde no viaja con la celda pegada. */
+.pulso-equiv-diapositiva-tabla thead th {
+  position: sticky;
+  top: var(--pulso-equiv-barra-alto, 0px);
+  z-index: 2;
+  background: var(--pulso-surface);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
+}
+
+.pulso-equiv-diapositiva.is-pendiente .pulso-equiv-diapositiva-tabla thead th {
+  background: var(--pulso-surface-2);
 }
 
 .pulso-equiv-diapositiva-tabla td {
@@ -1156,23 +1172,5 @@ button.pulso-equiv-mover:hover,
 
   .pulso-equiv-title small {
     display: none;
-  }
-}
-
-/* Escritorio bajo (<=720 de alto): Carga degrada su scroll al cuerpo del marco y
-   el workbench debe crecer con su contenido. Esa degradación (carga-v2.css,
-   `flex: 0 0 auto; height: auto`) pierde por especificidad contra
-   `.pulso-page-frame--scroll-panels .pulso-page-frame-body > :is(...)`, así que
-   el workbench se quedaba en el alto de la ventana y esta superficie, que crece
-   con sus datos, desbordaba visible fuera de su material. Acotado a la pestaña
-   que lo necesita; el defecto general es del layout de Carga. */
-@media (max-height: 720px) {
-  .pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--multibase:has(.pulso-equiv) {
-    flex: 0 0 auto;
-    height: auto;
-  }
-
-  .pulso-page-frame--scroll-panels .pulso-carga-workbench--multibase > .pulso-adaptive-main:has(.pulso-equiv) {
-    height: auto;
   }
 }
