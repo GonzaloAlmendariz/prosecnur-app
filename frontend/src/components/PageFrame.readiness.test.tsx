@@ -4,16 +4,22 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { estadoListo } from "../lib/navegacion/runtime";
 import { PageFrame } from "./PageFrame";
 
-// `document.querySelector` devuelve el primer elemento en orden de árbol, que
-// es el primer tag de apertura del HTML serializado. Este documento mínimo
-// reproduce exactamente esa regla sobre el marcado del frame, sin jsdom.
+// El runtime lee TODAS las marcas en orden de árbol (`querySelectorAll`), que es
+// el orden de los tags de apertura del HTML serializado. Este documento mínimo
+// reproduce esa regla sobre el marcado del frame, sin jsdom.
 function montarDocumento(markup: string) {
+  const valores = Array.from(markup.matchAll(/data-audit-ready="([^"]*)"/g), (m) => m[1]);
   vi.stubGlobal("document", {
-    querySelector(selector: string) {
-      if (selector !== "[data-audit-ready]") return null;
-      const match = /data-audit-ready="([^"]*)"/.exec(markup);
-      if (!match) return null;
-      return { getAttribute: () => match[1] };
+    querySelector: () => null,
+    querySelectorAll(selector: string) {
+      if (selector !== "[data-audit-ready]") return [];
+      return valores.map((valor) => ({
+        getAttribute: (nombre: string) => (nombre === "data-audit-ready" ? valor : null),
+        parentElement: null,
+        classList: { item: () => null },
+        tagName: "DIV",
+        id: "",
+      }));
     },
   });
 }
@@ -38,7 +44,7 @@ describe("PageFrame y la readiness de QA", () => {
     // panel de variables extra: Carga › Revisión salía «lista» leyendo.
     expect(markup).toContain('data-audit-ready="false"');
     montarDocumento(markup);
-    expect(estadoListo()).toEqual({ listo: false, motivo: "marca-en-false", marca: "false" });
+    expect(estadoListo()).toMatchObject({ listo: false, motivo: "marca-en-false", marca: "false" });
   });
 
   it("un frame listo gana sobre las marcas descendientes", () => {

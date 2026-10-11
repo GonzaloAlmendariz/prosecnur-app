@@ -127,6 +127,15 @@ describe("el puente y el runner aplican el mismo contrato", () => {
  * archivo aquí exige comprobar que el `false` es una carga, no un vacío.
  */
 const FALSE_TRANSITORIO: Record<string, string> = {
+  "components/PageFrame.tsx":
+    "`auditReady={false}` de la página: la página lo levanta al terminar su lectura (Carga › Revisión)",
+  "features/carga/FuentesEmparejamientoPanel.tsx":
+    "panel «Ver preguntas»: cargando el endpoint o resolviendo la base; en error publica true",
+  "features/graficos/GraficosPage.tsx":
+    "fallbacks de Suspense de las pestañas perezosas: los reemplaza el chunk al cargar",
+  "features/graficos/estilo/PestanaEstilo.tsx": "listo al llegar las opciones o su error",
+  "features/graficos/estiloInforme/PestanaEstiloInforme.tsx": "`cargando` de la lectura del estilo del informe",
+  "features/graficos/indice/BibliotecaIconos.tsx": "listo al llegar los nombres de íconos o su error",
   "features/calcMuestra/CalcMuestraPage.tsx":
     "`calc-muestra-hidratando`: la rehidratación del estado del proyecto",
   "features/calcMuestra/general/ArchivoMarcoGeneral.tsx":

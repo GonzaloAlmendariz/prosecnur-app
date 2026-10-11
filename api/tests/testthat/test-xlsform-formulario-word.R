@@ -257,26 +257,23 @@ test_that("item 10: el .docx del motor pasa el verificador OOXML", {
 
     # El inventario de desorden se afirma ENTERO, no solo "no hay nuevos": asi
     # el dia que officer corrija uno de estos, el test avisa de que la lista de
-    # excepciones quedo rancia en vez de seguir en verde por no mirar.
-    expect_setequal(rep$desorden, .OOXML_DESORDEN_OFFICER_071)
+    # excepciones quedo rancia en vez de seguir en verde por no mirar. El motor
+    # pasa por `.docx_conformar()`, que corrige todo salvo el orden de rPr.
+    expect_setequal(rep$desorden, .OOXML_DESORDEN_TRAS_CONFORMAR)
     expect_identical(rep$desorden_nuevo, character(0))
     expect_identical(unname(rep$comentarios), c(0L, 0L, 0L))
   }
 })
 
-test_that("item 10 (defecto conocido aguas arriba): officer 0.7.1 emite sectPr fuera de secuencia", {
+test_that("item 10: el sectPr que officer 0.7.1 emite fuera de secuencia sale conforme tras .docx_conformar()", {
   skip_if_not_installed("officer")
   skip_if_not_installed("flextable")
   skip_if_not_installed("xml2")
 
-  # ECMA-376 CT_SectPr pide `... type, pgSz, pgMar, ..., cols, ...`; officer
-  # 0.7.1 escribe `headerReference footerReference pgMar pgSz type cols`. Es un
-  # defecto de la libreria, no del motor: reordenar el XML en memoria rompe el
-  # post-proceso de officer (documentado en reporte_formulario_word.R). Se
-  # DECLARA aqui, con su version, en vez de dar verde por no mirarlo. El dia que
-  # officer lo arregle, este test cae y hay que quitar la excepcion.
-  expect_identical(as.character(utils::packageVersion("officer")), "0.7.1")
-
+  # officer 0.7.1 escribe `headerReference footerReference pgMar pgSz type cols`
+  # y ECMA-376 CT_SectPr pide `... type, pgSz, pgMar, ..., cols`. El defecto de
+  # la librería sigue, pero el motor ya no lo entrega: `.docx_conformar()`
+  # reordena el paquete después de escribirlo (docx_conformar.R).
   out <- .form_word_fixture_docx("auto")
   doc <- .form_word_document_xml(out)
   ns <- xml2::xml_ns(doc)
@@ -285,7 +282,7 @@ test_that("item 10 (defecto conocido aguas arriba): officer 0.7.1 emite sectPr f
     function(s) paste(xml2::xml_name(xml2::xml_children(s)), collapse = " "),
     character(1)
   ))
-  expect_identical(ordenes, "headerReference footerReference pgMar pgSz type cols")
+  expect_identical(ordenes, "headerReference footerReference type pgSz pgMar cols")
 })
 
 test_that("compatibilidad de `columns`: 1 y 2 no cambian la forma del .docx de hoy", {

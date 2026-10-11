@@ -156,6 +156,11 @@ arquitectura canónica.
   del formato del deck 2021 alcanza al analista sin escribir R.
 - [Validación contra el deck de acreditación 2021](qa/validacion-deck-acreditacion-2021.md):
   medición rasgo a rasgo de los cuatro tipos de lámina contra la vara de la casa.
+- [Checklist de readiness con marcas anidadas](qa/checklist-readiness-anidada-2026-09-25.md):
+  por qué la readiness lee todas las marcas y una superficie terminal publica
+  `vacio:<motivo>` en vez de quedarse en false.
+- [GOAL del formulario en papel (réplica de Ser Adolescente)](qa/goal-formulario-replica-ser-adolescente-2026-09-24.md):
+  loop para que el motor produzca el instrumento sin retoques a mano.
 - [Checklist de `respondent_id` y decimales de Frecuencias](qa/checklist-respondent-id-decimales-2026-08-14.md):
   las tres barreras que dejaban el identificador de caso fuera de la BBDD y
   hasta dónde se decidió llevar la metadata de SurveyMonkey.
