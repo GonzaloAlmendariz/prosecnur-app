@@ -276,10 +276,7 @@ test_that("la nota de base se sella por fuente y es idempotente y conservadora",
     mensajes_progreso = FALSE
   )
   on.exit(unlink(out_ppt), add = TRUE)
-  paste(
-    readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"),
-    collapse = "\n"
-  )
+  .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
 }
 
 test_that("render real: la lámina con ponderación aplicada sella la nota de base", {

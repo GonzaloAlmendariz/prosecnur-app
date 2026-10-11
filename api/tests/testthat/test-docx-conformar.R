@@ -5,7 +5,7 @@ source("setup-load-all.R")
 # propiedades fuera de orden, y Word puede ofrecer reparar el archivo.
 
 .docx_xml <- function(path, parte) {
-  paste(readLines(unz(path, parte), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  .leer_parte_zip(path, parte)
 }
 .docx_partes <- function(path) utils::unzip(path, list = TRUE)$Name
 .docx_en_orden <- function(path, parte, tag) {

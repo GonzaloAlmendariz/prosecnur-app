@@ -58,7 +58,7 @@ test_that("reporte_ppt_plan renderiza text_slide en PPT", {
   )
   expect_true(file.exists(out_ppt))
 
-  slide_xml <- readLines(unz(out_ppt, "ppt/slides/slide2.xml"), warn = FALSE, encoding = "UTF-8")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide2.xml")
   slide_xml <- paste(slide_xml, collapse = "\n")
   expect_match(slide_xml, "Diseño metodológico", fixed = TRUE)
   expect_false(grepl("DISEÑO METODOLÓGICO", slide_xml, fixed = TRUE))
@@ -105,7 +105,7 @@ test_that("p_slide_indice renderiza contenido editable en PPT", {
     )
   )
 
-  slide_xml <- readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   slide_xml <- paste(slide_xml, collapse = "\n")
   expect_match(slide_xml, "ÍNDICE", fixed = TRUE)
   expect_match(slide_xml, "Objetivo del estudio", fixed = TRUE)
@@ -222,7 +222,7 @@ test_that("reporte_ppt_plan aplica controles de focos desde slots del editor", {
     )
   )
 
-  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   xml <- xml2::read_xml(slide_xml)
   ns <- xml2::xml_ns(xml)
   pics <- xml2::xml_find_all(xml, ".//p:pic", ns = ns)
@@ -240,7 +240,7 @@ test_that("reporte_ppt_plan aplica controles de focos desde slots del editor", {
   expect_equal(round(widths_cm, 2), rep(2.18, 5))
   expect_equal(round(heights_cm, 2), rep(2.18, 5))
 
-  slide2_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide2.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide2_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide2.xml")
   xml2_slide <- xml2::read_xml(slide2_xml)
   ns2 <- xml2::xml_ns(xml2_slide)
   pics2 <- xml2::xml_find_all(xml2_slide, ".//p:pic", ns = ns2)
@@ -322,11 +322,7 @@ test_that("p_slide_indice soporta variantes de 3 a 6 apartados con subindices", 
   )
 
   for (item in expected) {
-    slide_xml <- readLines(
-      unz(out_ppt, sprintf("ppt/slides/slide%s.xml", item$slide)),
-      warn = FALSE,
-      encoding = "UTF-8"
-    )
+    slide_xml <- .leer_parte_zip(out_ppt, sprintf("ppt/slides/slide%s.xml", item$slide))
     slide_xml <- paste(slide_xml, collapse = "\n")
     expect_match(slide_xml, item$title, fixed = TRUE)
     expect_match(slide_xml, item$section, fixed = TRUE)
@@ -388,7 +384,7 @@ test_that("p_slide_top_two_box renderiza lamina explicativa en PPT", {
     )
   )
 
-  slide_xml <- readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   slide_xml <- paste(slide_xml, collapse = "\n")
   expect_match(slide_xml, "TOP TWO BOX", fixed = TRUE)
   expect_match(slide_xml, "lectura de datos", fixed = TRUE)
@@ -396,7 +392,7 @@ test_that("p_slide_top_two_box renderiza lamina explicativa en PPT", {
   ppt_files <- utils::unzip(out_ppt, list = TRUE)$Name
   svg_files <- ppt_files[grepl("^ppt/media/.*\\.svg$", ppt_files)]
   expect_length(svg_files, 1)
-  svg_txt <- paste(readLines(unz(out_ppt, svg_files[[1]]), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  svg_txt <- .leer_parte_zip(out_ppt, svg_files[[1]])
   expect_match(svg_txt, "#CA5651", fixed = TRUE)
   expect_match(svg_txt, "#ADD493", fixed = TRUE)
   expect_match(svg_txt, 'height="84.00"', fixed = TRUE)
@@ -408,7 +404,7 @@ test_that("p_slide_top_two_box renderiza lamina explicativa en PPT", {
   expect_false(grepl("marker-", svg_txt, fixed = TRUE))
   expect_true(any(grepl("^ppt/media/.*\\.svg$", ppt_files)))
   svg_file <- ppt_files[grepl("^ppt/media/.*\\.svg$", ppt_files)][[1]]
-  svg_xml <- paste(readLines(unz(out_ppt, svg_file), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  svg_xml <- .leer_parte_zip(out_ppt, svg_file)
   expect_match(svg_xml, "#CA5651", fixed = TRUE)
 
   out_ppt_slots <- tempfile(fileext = ".pptx")
@@ -450,7 +446,7 @@ test_that("p_slide_top_two_box renderiza lamina explicativa en PPT", {
   )
   ppt_files_slots <- utils::unzip(out_ppt_slots, list = TRUE)$Name
   svg_slots <- ppt_files_slots[grepl("^ppt/media/.*\\.svg$", ppt_files_slots)][[1]]
-  svg_slots_txt <- paste(readLines(unz(out_ppt_slots, svg_slots), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  svg_slots_txt <- .leer_parte_zip(out_ppt_slots, svg_slots)
   expect_match(svg_slots_txt, 'height="92.00"', fixed = TRUE)
   expect_match(svg_slots_txt, 'font-size="20.0"', fixed = TRUE)
   expect_match(svg_slots_txt, 'font-size="13.0"', fixed = TRUE)
@@ -496,7 +492,7 @@ test_that("technical_table respeta mayusculas y minusculas del titulo", {
     )
   )
 
-  slide_xml <- readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   slide_xml <- paste(slide_xml, collapse = "\n")
   expect_match(slide_xml, "Tabla técnica mixta", fixed = TRUE)
   expect_false(grepl("TABLA TÉCNICA MIXTA", slide_xml, fixed = TRUE))

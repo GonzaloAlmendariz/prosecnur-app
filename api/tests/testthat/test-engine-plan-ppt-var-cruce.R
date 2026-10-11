@@ -860,7 +860,7 @@ test_that("objetivos educacionales se numeran como OE por orden visible", {
     mensajes_progreso = FALSE
   )
 
-  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   expect_match(slide_xml, "OE 1: Formula soluciones de ingenieria", fixed = TRUE)
   expect_match(slide_xml, "OE 2: Gestiona proyectos con enfoque", fixed = TRUE)
 
@@ -935,7 +935,7 @@ test_that("objetivos educacionales continuan numeracion desde sufijo de variable
     mensajes_progreso = FALSE
   )
 
-  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   expect_match(slide_xml, "OE 4: Contribuye a la creacion de empresas", fixed = TRUE)
   expect_match(slide_xml, "OE 5: Reconoce responsabilidades eticas", fixed = TRUE)
   expect_false(grepl("OE 1: Contribuye a la creacion de empresas", slide_xml, fixed = TRUE))

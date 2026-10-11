@@ -123,10 +123,7 @@ test_that("un fallo de render por-lamina degrada ESA lamina y el deck sobrevive"
   expect_false(any(grepl("canvas", warns, fixed = TRUE)))
 
   # La lamina buena sigue rindiendo datos reales.
-  slide3 <- paste(
-    readLines(unz(out_ppt, "ppt/slides/slide3.xml"), warn = FALSE, encoding = "UTF-8"),
-    collapse = "\n"
-  )
+  slide3 <- .leer_parte_zip(out_ppt, "ppt/slides/slide3.xml")
   expect_match(slide3, "Sí|No")
 })
 
