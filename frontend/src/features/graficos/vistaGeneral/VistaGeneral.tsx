@@ -12,7 +12,8 @@ import { toast } from "../../../components/toasterStore";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { searchConNivel, useSeccion } from "../../../lib/navegacion/useDireccion";
 import { graficadorDisplayName } from "../graficadorDisplay";
-import { usePlanStore } from "../store";
+import { nuevoIdLamina, usePlanStore } from "../store";
+import { focoDeId, resolverFocoLamina } from "../focoLamina";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { enfocarSinDesplazar } from "../laminas/enfocarSinDesplazar";
 import { useLaminasUi } from "../laminas/laminasStore";
@@ -30,14 +31,13 @@ import {
   duplicarSlides,
   eliminarSlides,
   filaDeLamina,
-  focoEnLaminas,
   ladoDeSoltar,
+  marcaCapituloEnHueco,
   mismoOrden,
-  moverIds,
+  moverAlCapitulo,
+  destinosParaMover,
   ordenTrasSoltar,
-  ranuraAlFinalDeFila,
   reordenarSlides,
-  resolverFocoVistaGeneral,
   type FilaVistaGeneral,
 } from "./modeloVistaGeneral";
 import { objetivoDeAccion, reconciliarSeleccionVG, seleccionar, seleccionarTodo, SELECCION_VACIA } from "./seleccionVistaGeneral";
@@ -51,8 +51,6 @@ import "../laminas/estructuraInforme.css";
 import "../laminas/tiraMiniaturas.css";
 import "./vistaGeneral.css";
 
-// Mismo formato que los ids que da el store al duplicar (`s-` + 8 caracteres).
-const nuevoId = () => `s-${Math.random().toString(36).slice(2, 10)}`;
 const SIN_NOMBRES: string[] = [];
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 const sinMovimiento = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -85,7 +83,8 @@ export default function VistaGeneral() {
   const firma = ids.join("|");
   const capitulos = useMemo(() => filas.filter((f) => f.clase === "capitulo"), [filas]);
 
-  const focoId = resolverFocoVistaGeneral(direccion.foco, slides);
+  // La misma resolución que Láminas (`../focoLamina.ts`): id, `id:gK` o el heredado `l-NN`.
+  const focoId = resolverFocoLamina(direccion.foco, slides)?.id ?? null;
   const itinerante = focoId ?? ids[0] ?? null;
 
   const cuerpoRef = useRef<HTMLDivElement>(null);
@@ -170,16 +169,15 @@ export default function VistaGeneral() {
 
   const abrir = useCallback((id: string) => {
     const { slides: actuales, location: loc } = vivo.current;
-    const foco = focoEnLaminas(actuales, id);
-    if (!foco) return;
+    if (!actuales.some((s) => s.id === id)) return;
     select(id);
-    navigate({ pathname: loc.pathname, search: conNivel(searchConNivel(loc.search, "pestana", "laminas"), "foco", foco) });
+    navigate({ pathname: loc.pathname, search: conNivel(searchConNivel(loc.search, "pestana", "laminas"), "foco", focoDeId(id)) });
   }, [navigate, select]);
 
   const duplicar = useCallback((objetivo: string[]) => {
     if (!objetivo.length) return;
     const { slides: actuales } = vivo.current;
-    const { slides: nuevos, copias } = duplicarSlides(actuales, new Set(objetivo), nuevoId);
+    const { slides: nuevos, copias } = duplicarSlides(actuales, new Set(objetivo), nuevoIdLamina);
     aplicar(nuevos, copias[0] ?? null);
     const ui = useVistaGeneralUi.getState();
     ui.setSeleccion({ ids: copias, ancla: copias[0] ?? null });
@@ -226,17 +224,14 @@ export default function VistaGeneral() {
     useVistaGeneralUi.getState().anunciar(`Capítulo «${fila.titulo}» movido${numero ? `: ahora es el ${numero}` : ""}.`);
   }, [aplicar]);
 
+  // Un separador elegido mueve su capítulo entero, como el asa (ver `moverAlCapitulo`); el anuncio nombra el destino.
   const moverA = useCallback((filaId: string) => {
-    const { ids: orden, filas: actuales, seleccion: sel } = vivo.current;
-    const fila = actuales.find((f) => f.id === filaId);
-    if (!fila || !sel.ids.length) return;
-    const siguiente = moverIds(orden, new Set(sel.ids), ranuraAlFinalDeFila(orden, fila));
-    if (mismoOrden(orden, siguiente)) {
-      useVistaGeneralUi.getState().anunciar(`Las elegidas ya están al final de ${fila.rotulo}.`);
-      return;
-    }
-    reordenar(siguiente, sel.ids);
-  }, [reordenar]);
+    const { ids: orden, filas: actuales, seleccion: sel, slides: actualesSlides } = vivo.current;
+    const r = moverAlCapitulo(orden, actuales, sel.ids, filaId);
+    if (r.ok) aplicar(reordenarSlides(actualesSlides, r.orden));
+    useVistaGeneralUi.getState().anunciar(r.anuncio);
+  }, [aplicar]);
+  const destinosMover = useMemo(() => destinosParaMover(filas, seleccion.ids), [filas, seleccion.ids]);
 
   const manejadores = useMemo<ManejadoresTarjeta>(() => ({
     onClic: (id: string, e: MouseEvent<HTMLElement>) => {
@@ -344,6 +339,22 @@ export default function VistaGeneral() {
     ui.setMarca({ clase: "fin-fila", filaId });
   }, []);
 
+  // El hueco entre filas (gap del contenedor) también recibe un capítulo arrastrado: ver `marcaCapituloEnHueco`.
+  const onSobreHueco = useCallback((e: DragEvent<HTMLElement>) => {
+    const ui = useVistaGeneralUi.getState();
+    if (ui.arrastre?.clase !== "capitulo" || e.target !== e.currentTarget) return;
+    const rects = [...e.currentTarget.querySelectorAll<HTMLElement>(":scope > [data-vg-fila]")].map((el) => {
+      const r = el.getBoundingClientRect();
+      const id = el.dataset.vgFila ?? "";
+      return { id, clase: vivo.current.filas.find((f) => f.id === id)?.clase ?? "bloque", top: r.top, bottom: r.bottom };
+    });
+    const marca = marcaCapituloEnHueco(rects, e.clientY);
+    if (!marca || marca.filaId === ui.arrastre.filaId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    ui.setMarca(marca);
+  }, []);
+
   const onSobreFinFila = useCallback((filaId: string, e: DragEvent<HTMLElement>) => {
     const ui = useVistaGeneralUi.getState();
     if (ui.arrastre?.clase !== "laminas") return;
@@ -391,6 +402,7 @@ export default function VistaGeneral() {
         cobertura={cobertura}
         filas={filas}
         seleccionadas={seleccion.ids.length}
+        destinosHabilitados={destinosMover}
         onMoverA={moverA}
         onDuplicar={() => duplicar(seleccion.ids)}
         onEliminar={() => { retornoTrasConfirmar.current = itinerante; pedirEliminar(seleccion.ids); }}
@@ -404,7 +416,8 @@ export default function VistaGeneral() {
         aria-label="Láminas del informe por capítulo"
         role="region"
       >
-        <div className="pulso-f6-vg-filas" data-qa-geometry-group="graficos/f6-vg-filas" data-qa-geometry-contract="intrinsic">
+        <div className="pulso-f6-vg-filas" data-qa-geometry-group="graficos/f6-vg-filas" data-qa-geometry-contract="intrinsic"
+          onDragOver={onSobreHueco} onDrop={manejadores.onSoltar}>
           {filas.map((fila) => {
             if (fila.clase === "capitulo") indiceCapitulo += 1;
             const soltarCapitulo = marca?.clase === "capitulo" && marca.filaId === fila.id ? marca.lado : null;

@@ -4,13 +4,12 @@
 // plan al reordenar, duplicar o eliminar. El componente sólo aplica el resultado al store en UN paso deshacible.
 //
 // La dirección de una tarjeta es el id de su lámina (`foco=<slide.id>`), no su posición: tras reordenar, `l-07` es otra
-// lámina y el id sigue siendo la misma. `l-NN` se sigue leyendo (enlace copiado desde Láminas) y se traduce al id.
+// lámina y el id sigue siendo la misma. La resolución (id, `id:gK` o el heredado `l-NN`) es la de `../focoLamina.ts`, la
+// misma que usa Láminas.
 
 import type { Slide } from "../../../api/graficos";
 import { graficosDeLamina } from "../laminas/selectores/cambioTipoLamina";
 import {
-  focoDeLamina,
-  parsearFocoLamina,
   type EstructuraInforme,
   type LaminaEnEstructura,
   type NodoEstructura,
@@ -199,6 +198,29 @@ export function ladoDeSoltar(puntero: number, inicio: number, largo: number): "a
   return puntero < inicio + largo / 2 ? "antes" : "despues";
 }
 
+/**
+ * Arrastrando un capítulo con el puntero en el HUECO entre dos filas (el `gap` del contenedor, donde además se dibuja la
+ * línea de «soltar aquí»): ninguna fila recibe el evento y soltar ahí no contaba (QA, ~12 px muertos). Se resuelve contra
+ * la fila más cercana: antes de la de abajo si es capítulo, si no después de la de arriba. null si no hay capítulo cerca.
+ */
+export function marcaCapituloEnHueco(
+  filas: readonly { id: string; clase: FilaVistaGeneral["clase"]; top: number; bottom: number }[],
+  y: number,
+): Extract<MarcaSoltar, { clase: "capitulo" }> | null {
+  const abajoIdx = filas.findIndex((f) => f.top >= y);
+  const abajo = abajoIdx >= 0 ? filas[abajoIdx] : undefined;
+  const arriba = abajoIdx >= 0 ? filas[abajoIdx - 1] : filas[filas.length - 1];
+  const dAbajo = abajo ? abajo.top - y : Infinity;
+  const dArriba = arriba ? y - arriba.bottom : Infinity;
+  const candidatos: Extract<MarcaSoltar, { clase: "capitulo" }>[] = [];
+  const pref = dAbajo <= dArriba ? ["abajo", "arriba"] : ["arriba", "abajo"];
+  for (const lado of pref) {
+    if (lado === "abajo" && abajo?.clase === "capitulo") candidatos.push({ clase: "capitulo", filaId: abajo.id, lado: "antes" });
+    if (lado === "arriba" && arriba?.clase === "capitulo") candidatos.push({ clase: "capitulo", filaId: arriba.id, lado: "despues" });
+  }
+  return candidatos[0] ?? null;
+}
+
 /** El orden nuevo del plan al soltar, o null si soltar ahí no cambia nada o no tiene sentido. */
 export function ordenTrasSoltar(
   ids: readonly string[],
@@ -276,22 +298,91 @@ export function eliminarSlides(slides: readonly Slide[], elegidas: ReadonlySet<s
 }
 
 // ---------------------------------------------------------------------------
-// `foco`
+// «Mover al capítulo»
 // ---------------------------------------------------------------------------
 
-/** `foco=<id>` → esa lámina; `foco=l-07[:g2]` (enlace de Láminas) → la séptima de ahora. Otra cosa → null. */
-export function resolverFocoVistaGeneral(foco: string | null | undefined, slides: readonly Pick<Slide, "id">[]): string | null {
-  const valor = (foco ?? "").trim();
-  if (!valor) return null;
-  if (slides.some((s) => s.id === valor)) return valor;
-  const porPosicion = parsearFocoLamina(valor);
-  return porPosicion ? slides[porPosicion.posicion - 1]?.id ?? null : null;
+/**
+ * Lo que se mueve de verdad: un separador elegido arrastra su capítulo entero (como el asa de la fila) y un separador
+ * de subcapítulo, su subcapítulo. Sin esto el separador viajaba solo, quedaba como capítulo vacío tras el destino y sus
+ * láminas se fundían con el capítulo anterior (QA de la Vista general, F2).
+ */
+export function expandirSeleccion(filas: readonly FilaVistaGeneral[], elegidas: readonly string[]): {
+  ids: Set<string>;
+  /** Filas de capítulo que viajan enteras. */
+  capitulos: FilaVistaGeneral[];
+  /** Hay separadores (de capítulo o subcapítulo) en lo que se mueve. */
+  conSeparadores: boolean;
+} {
+  const elegidasSet = new Set(elegidas);
+  const ids = new Set<string>();
+  const capitulos: FilaVistaGeneral[] = [];
+  let conSeparadores = false;
+  for (const fila of filas) {
+    fila.tarjetas.forEach((t, i) => {
+      if (!elegidasSet.has(t.lamina.id)) return;
+      if (t.rol === "separador") {
+        conSeparadores = true;
+        if (!capitulos.includes(fila)) capitulos.push(fila);
+        fila.ids.forEach((id) => ids.add(id));
+        return;
+      }
+      ids.add(t.lamina.id);
+      if (t.rol !== "subcapitulo") return;
+      conSeparadores = true;
+      for (const sig of fila.tarjetas.slice(i + 1)) {
+        if (sig.rol !== "lamina") break;
+        ids.add(sig.lamina.id);
+      }
+    });
+  }
+  return { ids, capitulos, conSeparadores };
 }
 
-/** El `foco` que entiende la pestaña Láminas para abrir esta lámina ahora (su posición vigente). */
-export function focoEnLaminas(slides: readonly Pick<Slide, "id">[], id: string): string | null {
-  const i = slides.findIndex((s) => s.id === id);
-  return i < 0 ? null : focoDeLamina(i + 1);
+/** Destinos de «Mover al capítulo» para la selección: con separadores sólo valen capítulos que no viajan. */
+export function destinosParaMover(filas: readonly FilaVistaGeneral[], elegidas: readonly string[]): Set<string> {
+  const { capitulos, conSeparadores } = expandirSeleccion(filas, elegidas);
+  return new Set(filas.filter((f) => !conSeparadores || (f.clase === "capitulo" && !capitulos.includes(f))).map((f) => f.id));
+}
+
+export type ResultadoMoverA =
+  | { ok: true; orden: string[]; movidas: string[]; anuncio: string }
+  | { ok: false; anuncio: string };
+
+/**
+ * «Mover al capítulo»: lleva la selección (expandida, ver `expandirSeleccion`) al final de la fila destino. Con
+ * capítulos o subcapítulos en la selección el destino tiene que ser otro capítulo: al final de un bloque el separador se
+ * tragaría las láminas que vienen detrás. El anuncio nombra el destino, no lo que se movió.
+ */
+export function moverAlCapitulo(
+  ids: readonly string[],
+  filas: readonly FilaVistaGeneral[],
+  elegidas: readonly string[],
+  destinoId: string,
+): ResultadoMoverA {
+  const destino = filas.find((f) => f.id === destinoId);
+  if (!destino || !elegidas.length) return { ok: false, anuncio: "Elige láminas y un capítulo de destino." };
+  const { ids: mover, capitulos, conSeparadores } = expandirSeleccion(filas, elegidas);
+  if (conSeparadores && !destinosParaMover(filas, elegidas).has(destino.id)) {
+    return {
+      ok: false,
+      anuncio: capitulos.includes(destino)
+        ? `«${destino.titulo}» está entre lo que se mueve: elige otro capítulo.`
+        : `Un capítulo sólo se puede mover detrás de otro capítulo, no a «${destino.titulo}».`,
+    };
+  }
+  const orden = moverIds(ids, mover, ranuraAlFinalDeFila(ids, destino));
+  if (mismoOrden(ids, orden)) return { ok: false, anuncio: `Las elegidas ya están al final de «${destino.titulo}».` };
+  const movidas = ids.filter((id) => mover.has(id));
+  const sueltas = movidas.length - capitulos.reduce((n, c) => n + c.ids.length, 0);
+  const partes = [
+    ...(capitulos.length === 1 ? [`el capítulo «${capitulos[0].titulo}»`] : capitulos.length > 1 ? [`${capitulos.length} capítulos`] : []),
+    ...(sueltas > 0 ? [sueltas === 1 ? "1 lámina" : `${sueltas} láminas`] : []),
+  ];
+  const que = partes.join(" y ");
+  const anuncio = capitulos.length
+    ? `Movido ${que} detrás de «${destino.titulo}».`
+    : `${sueltas === 1 ? "1 lámina movida" : `${sueltas} láminas movidas`} al final de «${destino.titulo}».`;
+  return { ok: true, orden, movidas, anuncio: anuncio.charAt(0).toUpperCase() + anuncio.slice(1) };
 }
 
 /** En qué fila quedó una lámina (para anunciar adónde fue a parar tras moverla). */

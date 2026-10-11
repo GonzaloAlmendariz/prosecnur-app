@@ -81,16 +81,21 @@
   white-space: nowrap;
 }
 
+/* El chevron es el del select de la casa (theme.css): por eso aquí `background-color` y no el atajo `background`, y el
+   relleno derecho le deja su sitio. Un capítulo de nombre largo se corta con elipsis, no a mitad de letra. */
 .pulso-f6-vg-mover select {
   height: var(--pulso-control-height-md);
   max-width: 220px;
-  padding: 0 var(--pulso-space-2);
+  padding: 0 30px 0 var(--pulso-space-2);
   border: 1px solid var(--pulso-border-strong);
   border-radius: var(--pulso-radius);
-  background: var(--pulso-surface);
+  background-color: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
   font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pulso-f6-vg-mover select:disabled,
@@ -340,7 +345,9 @@
   bottom: 4px;
   padding: 0 var(--pulso-space-1);
   border-radius: calc(var(--pulso-radius) / 3);
-  background: var(--module-accent-soft);
+  /* Opaco: se lee también sobre una miniatura oscura (QA F6). */
+  background: var(--pulso-surface);
+  box-shadow: 0 0 0 1px var(--pulso-border);
   color: var(--module-accent);
   font-size: 10px;
   font-weight: var(--pulso-weight-bold);
