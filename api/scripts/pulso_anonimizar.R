@@ -79,6 +79,8 @@ reporte <- pulso_anonimizar_archivo(origen, destino, sal = sal, slug = slug)
 
 cat(sprintf("[anonimizar] tablas tocadas       : %d\n", reporte$n_tablas_tocadas))
 cat(sprintf("[anonimizar] nombres seudonimizados: %d\n", reporte$n_nombres_seudonimizados))
+cat(sprintf("[anonimizar] logos neutralizados  : %d (retirados sin PNG: %d)\n",
+            reporte$n_logos_neutralizados, length(reporte$logos_retirados)))
 for (t in reporte$tablas) {
   cat(sprintf("  - %s (%d filas)\n", t$ruta, t$filas))
   if (length(t$columnas_pii)) {
