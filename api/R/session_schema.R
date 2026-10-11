@@ -15,7 +15,8 @@
 #
 # Alcance del censo (reglas explícitas):
 # - El escáner AST (`.session_schema_escanear_claves`) cubre los setters de
-#   claves top-level con clave literal: `session_set()`, `.analitica_status_set()`
+#   claves top-level con clave literal: `session_set()`, `session_set_cache()`
+#   (misma escritura sin marcar project_dirty), `.analitica_status_set()`
 #   y `.graficos_status_set()` (los dos últimos delegan en session_set con la
 #   clave que reciben, así que el literal vive en el call site del wrapper).
 # - Claves con nombre construido (paste0/paste) se modelan por PATRÓN
@@ -42,7 +43,7 @@
 # nota (vacía si no hay nada que advertir).
 
 # Setters censables de claves top-level de sesión.
-.session_schema_setters <- c("session_set", ".analitica_status_set", ".graficos_status_set")
+.session_schema_setters <- c("session_set", "session_set_cache", ".analitica_status_set", ".graficos_status_set")
 
 # Escáner AST: devuelve data.frame(clave, archivo) con una fila por llamada a
 # un setter censable cuya clave es un string literal. Se camina el AST parseado
