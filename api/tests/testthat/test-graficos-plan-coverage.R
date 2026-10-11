@@ -438,7 +438,9 @@ test_that("cobertura territorial usa block_progress cuando route_blocks esta vac
   out
 }
 
-test_that("plan sugerido de acreditacion multibase agrega comparativos por actor", {
+test_that("plan sugerido de acreditacion multibase ya no empareja actores por etiqueta (ADR 0096)", {
+  # Antes armaba «Comparativo por actor» uniendo p_sat/q_sat por parecido de etiqueta; el ADR 0062 lo invalida y el
+  # ADR 0096 (decisión 7) lo retira de todo generador: los comparativos salen sólo de la matriz de equivalencias.
   sid <- .graficos_acreditacion_multibase_test_session()
   on.exit(session_delete(sid), add = TRUE)
 
@@ -447,114 +449,13 @@ test_that("plan sugerido de acreditacion multibase agrega comparativos por actor
   titles <- vapply(suggested$plan$slides, function(slide) {
     .graficos_scalar_chr(((slide %||% list())$payload %||% list())$titulo, "")
   }, character(1))
-  compare_refs <- unique(unlist(lapply(blocks, as.character), use.names = FALSE))
 
   expect_true(suggested$ok)
-  expect_true("Comparativo por actor" %in% titles)
-  expect_setequal(
-    blocks$satisfaccion_con_la_carrera,
-    c("estudiantes$p_sat", "docentes$p_sat", "administrativos$q_sat")
-  )
-  expect_setequal(
-    blocks$conoce_la_mision_institucional,
-    c("estudiantes$p_mision", "docentes$p_mision", "administrativos$q_mision")
-  )
-  expect_false(any(c("estudiantes$p_incompatible", "docentes$p_incompatible") %in% compare_refs))
+  expect_false("Comparativo por actor" %in% titles)
+  expect_length(blocks, 0L)
+  expect_false(exists(".graficos_multisource_comparison_slides", mode = "function"))
   expect_equal(length(suggested$coverage$sources), 3L)
   expect_null(suggested$report_inputs)
-})
-
-test_that("comparativos multibase fijan el canvas visual por escala sin fusionar candidatos", {
-  sid <- .graficos_acreditacion_multibase_test_session()
-  on.exit(session_delete(sid), add = TRUE)
-
-  suggested <- .graficos_suggested_plan(sid, config = list())
-  slides <- Filter(function(slide) {
-    grafico <- ((slide %||% list())$payload %||% list())$grafico %||% list()
-    identical(grafico$graficador, "p_barras_multiapiladas") &&
-      identical((grafico$args %||% list())$modo, "var_cruce")
-  }, suggested$plan$slides %||% list())
-  by_candidate <- stats::setNames(slides, vapply(slides, function(slide) {
-    vars <- (((slide %||% list())$payload %||% list())$grafico$args %||% list())$vars %||% list()
-    if (length(vars) == 1L && length(names(vars)) == 1L) names(vars)[[1]] else ""
-  }, character(1)))
-
-  expect_setequal(
-    names(by_candidate),
-    c("satisfaccion_con_la_carrera", "conoce_la_mision_institucional")
-  )
-  expect_equal(
-    lapply(by_candidate[c("satisfaccion_con_la_carrera", "conoce_la_mision_institucional")], function(slide) {
-      unname((((slide %||% list())$payload %||% list())$grafico$args %||% list())$vars[[1]])
-    }),
-    list(
-      satisfaccion_con_la_carrera = c("estudiantes$p_sat", "docentes$p_sat", "administrativos$q_sat"),
-      conoce_la_mision_institucional = c("estudiantes$p_mision", "docentes$p_mision", "administrativos$q_mision")
-    )
-  )
-
-  visual_contract <- function(slide) {
-    payload <- (slide %||% list())$payload %||% list()
-    args <- (payload$grafico %||% list())$args %||% list()
-    overrides <- args$overrides %||% list()
-    at_least <- function(value, minimum) {
-      is.numeric(value) && length(value) == 1L && !is.na(value) && value >= minimum
-    }
-    list(
-      tipo = slide$tipo %||% NULL,
-      texto = payload$texto %||% "",
-      titulo = args$titulo %||% NULL,
-      canvas_w_grupo = overrides$canvas_w_grupo %||% NULL,
-      canvas_w_buf_grupo_etq = overrides$canvas_w_buf_grupo_etq %||% NULL,
-      canvas_w_etiquetas = overrides$canvas_w_etiquetas %||% NULL,
-      canvas_w_buf_etq_bars = overrides$canvas_w_buf_etq_bars %||% NULL,
-      canvas_h_caption_in = overrides$canvas_h_caption_in %||% NULL,
-      nota_pie = overrides$nota_pie %||% NULL,
-      size_ejes_ok = at_least(overrides$size_ejes, 19),
-      size_texto_barras_ok = at_least(overrides$size_texto_barras, 7),
-      size_leyenda_ok = at_least(overrides$size_leyenda, 18),
-      top2box = args$top2box %||% NULL,
-      canvas_w_bars = overrides$canvas_w_bars %||% NULL,
-      canvas_w_buf_bars_extra = overrides$canvas_w_buf_bars_extra %||% NULL,
-      canvas_w_extra = overrides$canvas_w_extra %||% NULL,
-      mostrar_barra_extra = overrides$mostrar_barra_extra %||% NULL
-    )
-  }
-  common <- list(
-    tipo = "p_slide_1_grafico",
-    texto = "",
-    titulo = "",
-    canvas_w_grupo = 0,
-    canvas_w_buf_grupo_etq = 0,
-    canvas_w_etiquetas = 0.18,
-    canvas_w_buf_etq_bars = 0.02,
-    canvas_h_caption_in = 0,
-    nota_pie = "",
-    size_ejes_ok = TRUE,
-    size_texto_barras_ok = TRUE,
-    size_leyenda_ok = TRUE
-  )
-  expected <- list(
-    satisfaccion_con_la_carrera = c(common, list(
-      top2box = TRUE,
-      canvas_w_bars = 0.66,
-      canvas_w_buf_bars_extra = 0.02,
-      canvas_w_extra = 0.12,
-      mostrar_barra_extra = TRUE
-    )),
-    conoce_la_mision_institucional = c(common, list(
-      top2box = FALSE,
-      canvas_w_bars = 0.80,
-      canvas_w_buf_bars_extra = 0,
-      canvas_w_extra = 0,
-      mostrar_barra_extra = FALSE
-    ))
-  )
-
-  expect_equal(
-    lapply(by_candidate[names(expected)], visual_contract),
-    expected
-  )
 })
 
 test_that("plan sugerido permite desactivar comparativos multi-actor", {

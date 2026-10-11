@@ -12,6 +12,8 @@
 
 .graficos_consolidado_portable_config <- function(config, files = list()) {
   if (!is.list(config)) return(config)
+  # Logos del cliente (A6 R3): sólo por file_id, como los íconos.
+  if (!is.null(config$estilo_cliente)) config$estilo_cliente <- .graficos_estilo_cliente_portable(config$estilo_cliente, files)
   iconos <- config$iconos %||% list()
   if (!is.list(iconos) || !length(iconos)) return(config)
 
@@ -127,7 +129,10 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   fresh$graficos_consolidado_draft <- list(
     schema = .GRAFICOS_CONSOLIDADO_DRAFT_SCHEMA,
     revision = expected_revision + 1L,
-    config = .graficos_consolidado_portable_config(config, fresh$files %||% list())
+    # ADR 0094: el borrador guarda las decisiones del Word como el resto de portadores de config.
+    # Primero la forma portable (una ruta heredada pasa a file_id) y después el diff del estilo del cliente (A6 R3).
+    config = .graficos_estilo_cliente_config_solo_decisiones(
+      .graficos_consolidado_portable_config(.graficos_config_word_solo_decisiones(config), fresh$files %||% list()))
   )
   fresh <- .mark_project_dirty(fresh)
   .session_env[[sid]] <- fresh
@@ -210,6 +215,23 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   rules
 }
 
+# Marco con que el export consolidado dibuja: orden de las releases del catálogo y sus reglas metodológicas. Lo comparten
+# el preflight y la vista previa consolidada (graficos_miniaturas.R): misma base, mismo orden, mismos denominadores.
+.graficos_consolidado_marco <- function(sid) {
+  catalog <- .processing_release_catalog(session_get(sid))
+  list(
+    catalog = catalog,
+    source_order = vapply(catalog$entries %||% list(), `[[`, character(1), "base"),
+    rules = .graficos_consolidado_methodology_rules(catalog)
+  )
+}
+
+# El plan como lo dibuja el export consolidado: reglas metodológicas del catálogo y normalización.
+.graficos_consolidado_plan_entregable <- function(plan, rules) {
+  methodology <- .graficos_consolidado_apply_methodology(plan %||% list(), rules)
+  list(plan = .normalize_plan(methodology$plan %||% list()), warnings = methodology$warnings)
+}
+
 .graficos_consolidado_parse_eligibility <- function(expression) {
   expression <- .graficos_scalar_chr(expression, "")
   if (!nzchar(expression)) return(NULL)
@@ -252,9 +274,9 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
         ))
       } else if (length(exclusions)) {
         warnings <- c(warnings, sprintf(
-          "methodology_exclusion_not_applied: %s no admite exclusiones automaticas (%s).",
-          graph_type,
-          paste(vapply(matched, `[[`, character(1), "ref"), collapse = ", ")
+          "El gráfico «%s» no admite exclusiones automáticas: las opciones que la metodología excluye no se aplicaron a %s.",
+          .aviso_tipo_grafico(graph_type),
+          paste(vapply(vapply(matched, `[[`, character(1), "ref"), .aviso_variable, character(1)), collapse = ", ")
         ))
       }
 
@@ -267,22 +289,22 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
             args$filtros[[eligibility$variable]] <- eligibility$value
           } else {
             warnings <- c(warnings, sprintf(
-              "methodology_eligibility_conflict: %s ya tiene otro filtro para %s.",
-              matched[[1]]$ref,
+              "%s ya tiene otro filtro por «%s»: no se aplicó la regla de elegibilidad de la metodología.",
+              .aviso_variable(matched[[1]]$ref),
               eligibility$variable
             ))
           }
         } else if (nzchar(matched[[1]]$eligible_if)) {
           warnings <- c(warnings, sprintf(
-            "methodology_eligibility_unparsed: no se pudo aplicar '%s' a %s.",
+            "No se pudo interpretar la condición de elegibilidad «%s» de %s: el gráfico sale sin ese filtro.",
             matched[[1]]$eligible_if,
-            matched[[1]]$ref
+            .aviso_variable(matched[[1]]$ref)
           ))
         }
       } else if (any(vapply(matched, function(rule) nzchar(rule$eligible_if), logical(1)))) {
         warnings <- c(warnings, sprintf(
-          "methodology_eligibility_not_applied: el grafico combina referencias con reglas distintas (%s).",
-          paste(vapply(matched, `[[`, character(1), "ref"), collapse = ", ")
+          "Un gráfico combina variables con reglas de elegibilidad distintas (%s): no se aplicó ninguna.",
+          paste(vapply(vapply(matched, `[[`, character(1), "ref"), .aviso_variable, character(1)), collapse = ", ")
         ))
       }
       graph$args <- args
@@ -317,8 +339,8 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
     valid[is.na(valid)] <- FALSE
     if (!any(valid)) {
       warnings <- c(warnings, sprintf(
-        "methodology_zero_denominator: %s no tiene casos validos despues de elegibilidad y exclusiones; reportar NA.",
-        rule$ref
+        "%s no tiene casos válidos después de aplicar la elegibilidad y las exclusiones: se reporta como sin dato.",
+        .aviso_variable(rule$ref)
       ))
     }
   }
@@ -393,12 +415,21 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   list_name <- .graficos_list_name_for_row(ctx$survey, ctx$row_idx)
   choices <- (ctx$inst %||% list())$choices %||% (ctx$inst %||% list())$choices_raw %||% NULL
   levels <- .reporte_plan_choice_levels_for_list(list_name, choices)
-  signature <- if (nrow(levels)) {
-    paste(paste(levels$code, levels$label, sep = "="), collapse = "|")
-  } else {
-    ""
-  }
+  # ADR 0096 decisión 4: la misma regla que la matriz (`escala_firma.R`). La caja y
+  # los espacios de una opción no son otra escala; el código sigue literal.
+  signature <- if (nrow(levels)) .escala_firma(levels$code, levels$label) else ""
   list(list_name = list_name, signature = signature)
+}
+
+# Unidades de comparación de un gráfico multi-apiladas: el propio `var_cruce`, o
+# cada bloque `var_cruce` de un `multilista` (grano de bloque: un bloque de un
+# público no se compara con nada).
+.graficos_consolidado_comparison_units <- function(args) {
+  args <- args %||% list()
+  modo <- .graficos_scalar_chr(args$modo, "")
+  if (identical(modo, "var_cruce")) return(list(args))
+  if (!identical(modo, "multilista") || !is.list(args$bloques)) return(list())
+  Filter(function(b) is.list(b) && identical(.graficos_scalar_chr(b$modo, ""), "var_cruce"), args$bloques)
 }
 
 .graficos_consolidado_scale_blockers <- function(plan, source_names, sources) {
@@ -414,36 +445,35 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
       graph <- payload[[payload_idx]]
       if (!is.list(graph) ||
           !identical(.graficos_scalar_chr(graph$graficador, ""), "p_barras_multiapiladas")) next
-      args <- graph$args %||% list()
-      if (
-          !identical(.graficos_scalar_chr(args$modo, ""), "var_cruce")) next
-      refs <- .graficos_collect_refs_from_args(args)
-      parts <- lapply(refs, .graficos_ref_parts)
-      qualified <- vapply(parts, function(part) {
-        nzchar(part$source) && part$source %in% source_names
-      }, logical(1))
-      if (!length(refs) || !all(qualified)) next
-      if (length(unique(vapply(parts, `[[`, character(1), "source"))) < 2L) next
+      for (unit in .graficos_consolidado_comparison_units(graph$args)) {
+        refs <- .graficos_collect_refs_from_args(unit)
+        parts <- lapply(refs, .graficos_ref_parts)
+        qualified <- vapply(parts, function(part) {
+          nzchar(part$source) && part$source %in% source_names
+        }, logical(1))
+        if (!length(refs) || !all(qualified)) next
+        if (length(unique(vapply(parts, `[[`, character(1), "source"))) < 2L) next
 
-      contexts <- lapply(refs, .graficos_consolidado_ref_context, sources = sources)
-      if (!all(vapply(contexts, `[[`, logical(1), "exists"))) next
-      scales <- lapply(contexts, .graficos_consolidado_scale_spec)
-      signatures <- vapply(scales, `[[`, character(1), "signature")
-      if (all(nzchar(signatures)) && length(unique(signatures)) == 1L) next
+        contexts <- lapply(refs, .graficos_consolidado_ref_context, sources = sources)
+        if (!all(vapply(contexts, `[[`, logical(1), "exists"))) next
+        scales <- lapply(contexts, .graficos_consolidado_scale_spec)
+        signatures <- vapply(scales, `[[`, character(1), "signature")
+        if (all(nzchar(signatures)) && length(unique(signatures)) == 1L) next
 
-      blockers[[length(blockers) + 1L]] <- list(
-        code = "incompatible_comparison_scale",
-        message = "Las referencias de la comparacion deben compartir exactamente la misma escala codigo=etiqueta.",
-        slide_id = .graficos_scalar_chr(slide$id, sprintf("slide-%s", slide_idx)),
-        slide_index = as.integer(slide_idx),
-        slot = slot,
-        refs = as.list(refs),
-        scales = unname(lapply(seq_along(refs), function(i) list(
-          ref = refs[[i]],
-          list_name = scales[[i]]$list_name,
-          signature = signatures[[i]]
-        )))
-      )
+        blockers[[length(blockers) + 1L]] <- list(
+          code = "incompatible_comparison_scale",
+          message = "Las referencias de la comparacion deben compartir la misma escala (mismos codigos y etiquetas).",
+          slide_id = .graficos_scalar_chr(slide$id, sprintf("slide-%s", slide_idx)),
+          slide_index = as.integer(slide_idx),
+          slot = slot,
+          refs = as.list(refs),
+          scales = unname(lapply(seq_along(refs), function(i) list(
+            ref = refs[[i]],
+            list_name = scales[[i]]$list_name,
+            signature = signatures[[i]]
+          )))
+        )
+      }
     }
   }
   blockers
@@ -509,7 +539,7 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
     any(vapply(payload, function(value) {
       is.list(value) &&
         identical(.graficos_scalar_chr(value$graficador, ""), "p_barras_multiapiladas") &&
-        identical(.graficos_scalar_chr((value$args %||% list())$modo, ""), "var_cruce")
+        length(.graficos_consolidado_comparison_units(value$args)) > 0L
     }, logical(1)))
   }, logical(1))))
 }
@@ -560,17 +590,17 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
   cfg <- .graficos_consolidado_portable_config(config %||% list(), s$files %||% list())
   cfg$multi_actor_comparisons <- TRUE
   authored <- .graficos_config_has_slides(cfg)
+  # ADR 0096 decisión 3: con el borrador vacío el plan se deriva de la MISMA
+  # función que `/plan/sugerido` con `scope:"consolidado"` (matriz + láminas por
+  # fuente), así la siembra de Láminas, el job y la propuesta coinciden.
   suggested <- if (isTRUE(authored)) {
     list(plan = cfg$plan, warnings = list())
   } else {
-    .graficos_suggested_plan(sid, config = cfg)
+    .graficos_plan_sugerido_consolidado(sid, config = cfg, fuente = "", sources = sources)
   }
   methodology_rules <- .graficos_consolidado_methodology_rules(catalog)
-  methodology <- .graficos_consolidado_apply_methodology(
-    suggested$plan %||% list(),
-    methodology_rules
-  )
-  plan <- .normalize_plan(methodology$plan %||% list())
+  methodology <- .graficos_consolidado_plan_entregable(suggested$plan %||% list(), methodology_rules)
+  plan <- methodology$plan
   validation <- .validar_plan_json(plan)
   if (!isTRUE(validation$ok)) {
     blockers[[length(blockers) + 1L]] <- list(
@@ -604,6 +634,8 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
     input_fingerprint = input_fingerprint,
     n_slides = as.integer(length(plan$slides %||% list())),
     n_comparison_slides = .graficos_consolidado_comparison_slide_count(plan),
+    # Bloque aditivo (ADR 0096): revisión vigente de la matriz y avisos de la siembra.
+    equivalencias = .graficos_plan_consolidado_resumen(sid, plan, if (isTRUE(authored)) NULL else suggested),
     warnings = as.list(unique(c(
       unlist(suggested$warnings %||% list(), use.names = FALSE),
       methodology$warnings,
@@ -627,10 +659,10 @@ graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
   slides <- recipe$plan$slides %||% list()
   rebuilt <- vector("list", length(slides))
   for (i in seq_along(slides)) {
-    report("rebuild", current = i, total = length(slides), percent = 8 + round(42 * i / max(1, length(slides))), message = sprintf("Armando slide %s de %s...", i, length(slides)))
-    rebuilt[[i]] <- .pkg_fn(".graficos_rebuild_slide_json")(
+    report("rebuild", current = i, total = length(slides), percent = 8 + round(42 * i / max(1, length(slides))), message = sprintf("Armando la lámina %s de %s…", i, length(slides)))
+    rebuilt[[i]] <- .pkg_fn(".aviso_con_lamina")(i, .pkg_fn(".aviso_titulo_payload")(slides[[i]]), .pkg_fn(".graficos_rebuild_slide_json")(
       slides[[i]], icon_registry = icon_registry
-    )
+    ))
   }
   report("render", percent = 58, message = "Renderizando el PPT consolidado...")
   palette_env <- .pkg_fn(".graficos_palette_env")(recipe$paletas %||% list(), parent = parent.frame())

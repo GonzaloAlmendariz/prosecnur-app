@@ -30,10 +30,11 @@ NULL
 #' Avisos de una lamina con varios slots de grafico
 #'
 #' @param slots Lista nombrada slot -> lista del plan (con `$args`).
-#' @param tag Etiqueta para el mensaje, p. ej. `"slide[9]"`.
+#' @param tag Rótulo de la lámina para el mensaje (`.aviso_lamina()`, graficos_avisos_texto.R): «Lámina 9 · “Sexo”».
+#' @param tipo Tipo de la lámina, para nombrar cada espacio como el selector («Inferior derecha»).
 #' @return Vector de avisos, vacio si la lamina esta bien.
 #' @keywords internal
-.plan_avisos_lamina <- function(slots, tag = "slide") {
+.plan_avisos_lamina <- function(slots, tag = "Una lámina", tipo = NULL) {
   avisos <- character(0)
   slots <- slots[!vapply(slots, is.null, logical(1))]
   if (length(slots) < 2L) return(avisos)
@@ -47,15 +48,15 @@ NULL
   }, character(1))
   vars[is.na(vars)] <- ""
   titulos[is.na(titulos)] <- ""
+  espacios <- vapply(names(slots), function(nm) sprintf("«%s»", .aviso_espacio(tipo, nm)), character(1))
 
   # 1) La misma variable dos veces en la misma lamina.
   con_var <- vars[nzchar(vars)]
   repetidas <- unique(con_var[duplicated(con_var)])
   for (v in repetidas) {
-    donde <- names(slots)[vars == v]
     avisos <- c(avisos, sprintf(
-      "%s: '%s' se grafica dos veces en la misma lamina (%s)",
-      tag, v, paste(donde, collapse = ", ")
+      "%s: %s se grafica dos veces en la misma lámina (%s)",
+      tag, .aviso_variable(v), paste(espacios[vars == v], collapse = ", ")
     ))
   }
 
@@ -69,8 +70,8 @@ NULL
       b <- bases[[k]]
       if (!is.na(b) && !identical(b, mayoritaria)) {
         avisos <- c(avisos, sprintf(
-          "%s: el panel '%s' grafica la base '%s' y el resto de la lamina es '%s'",
-          tag, names(slots)[k], b, mayoritaria
+          "%s: el espacio %s grafica la base «%s» y el resto de la lámina, la base «%s»",
+          tag, espacios[[k]], b, mayoritaria
         ))
       }
     }
@@ -82,8 +83,8 @@ NULL
     for (k in seq_along(slots)) {
       if (!nzchar(titulos[[k]]) && nzchar(vars[[k]])) {
         avisos <- c(avisos, sprintf(
-          "%s: el panel '%s' no tiene titulo y los demas si",
-          tag, names(slots)[k]
+          "%s: el espacio %s no tiene título y los demás sí",
+          tag, espacios[[k]]
         ))
       }
     }

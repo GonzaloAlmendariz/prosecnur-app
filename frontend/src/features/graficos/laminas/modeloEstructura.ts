@@ -3,7 +3,7 @@
 // El plan es una lista plana de láminas. El analista lo piensa como documento: un bloque de apertura sin número, los
 // capítulos que abren los separadores (`p_slide_seccion`), sus subcapítulos (`meta.nivel = "subcapitulo"`) y un cierre.
 // Este módulo deriva ese árbol, la numeración (1, 1.1…) y el antetítulo que cada lámina hereda, sin tocar el plan.
-// La dirección de una lámina es su posición: `foco=l-07` es la séptima lámina del plan; `foco=l-07:g2`, su segunda ranura.
+// La dirección de una lámina es su id (`foco=<slide.id>[:gK]`), no su posición: ver `../focoLamina.ts`.
 
 import type { Slide, SlideType } from "../../../api/graficos";
 import { SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "../store";
@@ -11,7 +11,7 @@ import { leerSlideMeta } from "../slideMeta";
 
 export type LaminaEnEstructura = {
   id: string;
-  /** Posición 1-based en el plan; es la que nombra `foco=l-NN`. */
+  /** Posición 1-based en el plan (la que se ve y se anuncia; el `foco` nombra el id). */
   posicion: number;
   tipo: SlideType;
   /** Título visible: el que escribió el analista o, sin él, el nombre del tipo. */
@@ -52,7 +52,8 @@ export type EstructuraInforme = {
   laminas: LaminaEnEstructura[];
 };
 
-const COMO_LEER: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_top_two_box"]);
+// Láminas metodológicas del capítulo «Cómo leer este informe» del recetario (Top Two Box p19, redondeo p20–21).
+const COMO_LEER: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_top_two_box", "p_slide_redondeo"]);
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
@@ -79,17 +80,41 @@ function aLamina(slide: Slide, posicion: number, antetitulo: string | null): Lam
 
 const esSubcapitulo = (slide: Slide) => leerSlideMeta(slide).nivel === "subcapitulo";
 
-/** El árbol del informe a partir de las láminas del plan, en su orden. */
+type Bloque = Extract<NodoEstructura, { clase: "bloque" }>;
+type ClaseBloque = "apertura" | "como-leer" | "cierre";
+const TITULO_BLOQUE: Record<ClaseBloque, string> = { apertura: "Apertura", "como-leer": "Cómo leer este informe", cierre: "Cierre" };
+
+/**
+ * El árbol del informe a partir de las láminas del plan, en su orden.
+ *
+ * Invariante: cada nodo es un tramo CONTIGUO del plan y los nodos van en el orden del plan, así que recorrer los nodos
+ * (separador, láminas, subcapítulos) da exactamente el orden del plan. Antes los bloques se armaban por tipo —una lámina
+ * de apertura detrás de «Cómo leer» volvía a la fila Apertura— y el clasificador pintaba un orden que el plan no tenía
+ * (QA de la Vista general, F1). Por eso una lámina se suma al nodo abierto: el capítulo (o subcapítulo) vigente, el
+ * bloque «Cómo leer» o el «Cierre», que siguen abiertos hasta el próximo separador. Sólo antes de todo lo demás hay
+ * Apertura; una lámina de cierre corta el capítulo vigente.
+ */
 export function construirEstructura(slides: readonly Slide[]): EstructuraInforme {
   const nodos: NodoEstructura[] = [];
   const laminas: LaminaEnEstructura[] = [];
-  let apertura: Extract<NodoEstructura, { clase: "bloque" }> | null = null;
-  let comoLeer: Extract<NodoEstructura, { clase: "bloque" }> | null = null;
-  let cierre: Extract<NodoEstructura, { clase: "bloque" }> | null = null;
+  let bloque: { clase: ClaseBloque; nodo: Bloque } | null = null;
   let capitulo: Extract<NodoEstructura, { clase: "capitulo" }> | null = null;
   let sub: SubcapituloEstructura | null = null;
   let nCap = 0;
+  const vecesBloque: Record<ClaseBloque, number> = { apertura: 0, "como-leer": 0, cierre: 0 };
   let antetitulo: string | null = null;
+
+  const abrirBloque = (clase: ClaseBloque): Bloque => {
+    vecesBloque[clase] += 1;
+    const n = vecesBloque[clase];
+    const nodo: Bloque = { clase: "bloque", id: n === 1 ? `bloque-${clase}` : `bloque-${clase}-${n}`, titulo: TITULO_BLOQUE[clase], laminas: [] };
+    nodos.push(nodo);
+    bloque = { clase, nodo };
+    capitulo = null;
+    sub = null;
+    return nodo;
+  };
+  const enBloque = (clase: ClaseBloque): Bloque => (bloque && bloque.clase === clase ? bloque.nodo : abrirBloque(clase));
 
   slides.forEach((slide, i) => {
     const posicion = i + 1;
@@ -99,18 +124,20 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
       const lam = aLamina(slide, posicion, antetitulo);
       laminas.push(lam);
       if (esSubcapitulo(slide) && capitulo) {
+        const cap: Extract<NodoEstructura, { clase: "capitulo" }> = capitulo;
         sub = {
           id: `sub-${slide.id}`,
-          numero: `${capitulo.numero}.${capitulo.subcapitulos.length + 1}`,
+          numero: `${cap.numero}.${cap.subcapitulos.length + 1}`,
           titulo: lam.titulo,
           separador: lam,
           laminas: [],
         };
-        capitulo.subcapitulos.push(sub);
+        cap.subcapitulos.push(sub);
         return;
       }
       nCap += 1;
       sub = null;
+      bloque = null;
       capitulo = { clase: "capitulo", id: `cap-${slide.id}`, numero: String(nCap), titulo: lam.titulo, separador: lam, laminas: [], subcapitulos: [] };
       nodos.push(capitulo);
       return;
@@ -119,22 +146,19 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
     const lam = aLamina(slide, posicion, antetitulo);
     laminas.push(lam);
     if (slide.tipo === "p_slide_cierre") {
-      if (!cierre) { cierre = { clase: "bloque", id: "bloque-cierre", titulo: "Cierre", laminas: [] }; nodos.push(cierre); }
-      cierre.laminas.push(lam);
+      enBloque("cierre").laminas.push(lam);
       return;
     }
-    if (!capitulo) {
-      if (COMO_LEER.has(slide.tipo)) {
-        if (!comoLeer) { comoLeer = { clase: "bloque", id: "bloque-como-leer", titulo: "Cómo leer este informe", laminas: [] }; nodos.push(comoLeer); }
-        comoLeer.laminas.push(lam);
-      } else {
-        if (!apertura) { apertura = { clase: "bloque", id: "bloque-apertura", titulo: "Apertura", laminas: [] }; nodos.splice(0, 0, apertura); }
-        apertura.laminas.push(lam);
-      }
+    const cap = capitulo as Extract<NodoEstructura, { clase: "capitulo" }> | null;
+    if (cap) {
+      const s = sub as SubcapituloEstructura | null;
+      if (s) s.laminas.push(lam);
+      else cap.laminas.push(lam);
       return;
     }
-    if (sub) sub.laminas.push(lam);
-    else capitulo.laminas.push(lam);
+    const abierto = bloque as { clase: ClaseBloque; nodo: Bloque } | null;
+    if (abierto && abierto.clase !== "apertura") { abierto.nodo.laminas.push(lam); return; }
+    enBloque(COMO_LEER.has(slide.tipo) ? "como-leer" : "apertura").laminas.push(lam);
   });
 
   return { nodos, laminas };
@@ -144,27 +168,6 @@ export function construirEstructura(slides: readonly Slide[]): EstructuraInforme
 export function contarLaminas(nodo: NodoEstructura): number {
   if (nodo.clase === "bloque") return nodo.laminas.length;
   return 1 + nodo.laminas.length + nodo.subcapitulos.reduce((n, s) => n + 1 + s.laminas.length, 0);
-}
-
-// ---------------------------------------------------------------------------
-// `foco`: la lámina y, opcionalmente, su ranura
-// ---------------------------------------------------------------------------
-
-export type FocoLamina = { posicion: number; ranura: number | null };
-
-/** `l-07` → lámina 7; `l-07:g2` → lámina 7, ranura 2. Cualquier otra cosa → null. */
-export function parsearFocoLamina(foco: string | null | undefined): FocoLamina | null {
-  const m = /^l-(\d{1,4})(?::g(\d{1,2}))?$/.exec((foco ?? "").trim());
-  if (!m) return null;
-  const posicion = Number(m[1]);
-  if (!Number.isInteger(posicion) || posicion < 1) return null;
-  const ranura = m[2] ? Number(m[2]) : null;
-  return { posicion, ranura: ranura && ranura >= 1 ? ranura : null };
-}
-
-export function focoDeLamina(posicion: number, ranura?: number | null): string {
-  const base = `l-${String(posicion).padStart(2, "0")}`;
-  return ranura ? `${base}:g${ranura}` : base;
 }
 
 /** Filtra la estructura por texto (título o tipo); un capítulo queda si él o alguna de sus láminas coincide. */

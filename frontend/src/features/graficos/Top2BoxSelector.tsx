@@ -10,21 +10,24 @@ type Props = {
   categorias: string[];
   seleccion: string[];
   onChange: (seleccion: string[]) => void;
+  /** Qué caja se declara; el Bottom Two Box usa los mismos dos chips (dirección F6 §7, A6). */
+  nombre?: "Top Two Box" | "Bottom Two Box";
 };
 
-export function Top2BoxSelector({ categorias, seleccion, onChange }: Props) {
-  const estado = estadoTop2Box(seleccion, categorias);
+export function Top2BoxSelector({ categorias, seleccion, onChange, nombre = "Top Two Box" }: Props) {
+  const base = estadoTop2Box(seleccion, categorias);
+  const estado = nombre === "Top Two Box" ? base : { ...base, mensaje: base.mensaje.replace("Top Two Box", nombre) };
   const llena = seleccion.length >= TOP2BOX_CANTIDAD;
   if (!categorias.length) {
     return (
       <div style={vacioStyle} data-qa="top2box-vacio">
-        Elige preguntas que compartan una escala con categorías para declarar su Top Two Box.
+        Elige preguntas que compartan una escala con categorías para declarar su {nombre}.
       </div>
     );
   }
   return (
     <div style={cajaStyle} data-qa="top2box-selector">
-      <div role="group" aria-label="Categorías del Top Two Box" style={chipsStyle}>
+      <div role="group" aria-label={`Categorías del ${nombre}`} style={chipsStyle}>
         {categorias.map((c) => {
           const elegida = seleccion.includes(c);
           const bloqueada = !elegida && llena;

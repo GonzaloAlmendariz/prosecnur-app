@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ArgMetadata, GraficadorRef } from "../../api/client";
+import type { ArgMetadata, GraficadorMetadata, GraficadorRef, PresetMetadata, Slide, SlideMetadata } from "../../api/graficos";
 import { usePlanStore, PaletaPorLista } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { usePresetsMetadata } from "./usePresetsMetadata";
@@ -7,6 +7,7 @@ import { useVariables, type VarWithSource } from "./useVariables";
 import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./multiApiladasScale";
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
+import { nombreTipoLamina, rotuloLamina } from "./rotuloLamina";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -72,160 +73,202 @@ export function usePlanValidator(): ValidationSummary {
   const { presetsByName } = usePresetsMetadata();
   const { variables, multi } = useVariables();
 
-  return useMemo(() => {
-    const issues: ValidationIssue[] = [];
+  return useMemo(
+    () => validarPlan({ slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi }),
+    [slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi],
+  );
+}
 
-    // 1) Plan vacío ---------------------------------------------------------
-    if (slides.length === 0) {
-      issues.push({
-        severity: "error",
-        code: "plan-vacio",
-        message: "El plan no tiene slides. Añade al menos uno para poder exportar.",
-      });
-    }
+/** Lo que el validador lee del store, el registry y el instrumento. */
+export type EntradaValidarPlan = {
+  slides: readonly Slide[];
+  presets: Record<string, Record<string, unknown>>;
+  wPresets: Record<string, Record<string, unknown>>;
+  overridesReusables: readonly { nombre: string; tipo_preset: string; args: Record<string, unknown> }[];
+  paletas: Record<string, PaletaPorLista>;
+  iconos: readonly { id: string }[];
+  slidesById: Readonly<Record<string, Pick<SlideMetadata, "slots" | "titulo_humano" | "slot_specs"> | undefined>>;
+  graficadoresById: Readonly<Record<string, Pick<GraficadorMetadata, "args"> | undefined>>;
+  presetsByName: Readonly<Record<string, Pick<PresetMetadata, "args" | "titulo_humano"> | undefined>>;
+  variables: readonly VarWithSource[];
+  multi: boolean;
+};
 
-    // 2) Slots vacíos + variables desconocidas ------------------------------
-    // `varNames` es un set de refs canónicas: si hay multi-base, incluye
-    // el prefijo "docentes$sexo"; si es single-base, solo "sexo". El check
-    // en `checkVarRefs` normaliza la ref del graficador contra este set.
-    const varNames = new Set(
-      variables.flatMap((v) => multi ? [`${v.source}$${v.name}`] : [v.name, `${v.source}$${v.name}`]),
-    );
-    const iconIds = new Set(iconos.map((i) => i.id));
-    // Mismo criterio de resolución que `varNames`: en single-base la ref
-    // puede venir con o sin prefijo de fuente.
-    const varsByRef = new Map<string, VarWithSource>();
-    for (const v of variables) {
-      varsByRef.set(`${v.source}$${v.name}`, v);
-      if (!multi && !varsByRef.has(v.name)) varsByRef.set(v.name, v);
-    }
-    const resolveVar = (ref: string) => varsByRef.get(ref);
+// Los textos nombran la lámina como el backend (`rotuloLamina`: «Lámina 3 · “título”») y su tipo y espacio como el
+// selector; el id de la lámina viaja sólo en `slideId`, para «Ir a la lámina».
+export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
+  const { slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi } = entrada;
+  const issues: ValidationIssue[] = [];
 
-    // En qué bases vive cada nombre suelto. Con varias bases, una ref sin `$`
-    // no es necesariamente una variable perdida: casi siempre es una que se
-    // eligió cuando el estudio tenía una sola base.
-    const basesPorVariable = new Map<string, string[]>();
-    for (const v of variables) {
-      const previas = basesPorVariable.get(v.name) ?? [];
-      if (!previas.includes(v.source)) previas.push(v.source);
-      basesPorVariable.set(v.name, previas);
-    }
-    const basesDeVariableSuelta = (ref: string) =>
-      ref.includes("$") ? [] : (basesPorVariable.get(ref) ?? []);
+  // 1) Plan vacío ---------------------------------------------------------
+  if (slides.length === 0) {
+    issues.push({
+      severity: "error",
+      code: "plan-vacio",
+      message: "El informe no tiene láminas. Agrega al menos una para poder exportar.",
+    });
+  }
 
-    for (const slide of slides) {
-      const slideMeta = slidesById[slide.tipo];
-      if (!slideMeta) continue;
+  // 2) Slots vacíos + variables desconocidas ------------------------------
+  // `varNames` es un set de refs canónicas: si hay multi-base, incluye
+  // el prefijo "docentes$sexo"; si es single-base, solo "sexo". El check
+  // en `checkVarRefs` normaliza la ref del graficador contra este set.
+  const varNames = new Set(
+    variables.flatMap((v) => multi ? [`${v.source}$${v.name}`] : [v.name, `${v.source}$${v.name}`]),
+  );
+  const iconIds = new Set(iconos.map((i) => i.id));
+  // Mismo criterio de resolución que `varNames`: en single-base la ref
+  // puede venir con o sin prefijo de fuente.
+  const varsByRef = new Map<string, VarWithSource>();
+  for (const v of variables) {
+    varsByRef.set(`${v.source}$${v.name}`, v);
+    if (!multi && !varsByRef.has(v.name)) varsByRef.set(v.name, v);
+  }
+  const resolveVar = (ref: string) => varsByRef.get(ref);
 
-      // Slots de graficador vacíos
-      for (const slot of slideMeta.slots) {
-        if (slot === "icono") continue; // los íconos se validan aparte
-        const value = (slide.payload as Record<string, unknown>)[slot];
-        const graf = value as GraficadorRef | null | undefined;
-        if (!graf || !graf.graficador) {
-          issues.push({
-            severity: "warning",
-            code: "slot-empty",
-            message: `"${slideMeta.titulo_humano}" (slide ${shortId(slide.id)}): el slot "${humanizeSlot(slot)}" está sin gráfico.`,
-            slideId: slide.id,
-            slotName: slot,
-          });
-        } else {
-          issues.push(...checkNumericArgs(
-            graf.args ?? {},
-            graficadoresById[graf.graficador]?.args ?? [],
-            {
-              scope: `"${slideMeta.titulo_humano}" (${humanizeSlot(slot)})`,
-              slideId: slide.id,
-              slotName: slot,
-            },
-          ));
+  // En qué bases vive cada nombre suelto. Con varias bases, una ref sin `$`
+  // no es necesariamente una variable perdida: casi siempre es una que se
+  // eligió cuando el estudio tenía una sola base.
+  const basesPorVariable = new Map<string, string[]>();
+  for (const v of variables) {
+    const previas = basesPorVariable.get(v.name) ?? [];
+    if (!previas.includes(v.source)) previas.push(v.source);
+    basesPorVariable.set(v.name, previas);
+  }
+  const basesDeVariableSuelta = (ref: string) =>
+    ref.includes("$") ? [] : (basesPorVariable.get(ref) ?? []);
 
-          issues.push(...checkScaleCompat(graf, resolveVar, {
-            scope: `"${slideMeta.titulo_humano}" (${humanizeSlot(slot)})`,
-            slideId: slide.id,
-            slotName: slot,
-          }));
+  slides.forEach((slide, indice) => {
+    const slideMeta = slidesById[slide.tipo];
+    if (!slideMeta) return;
+    const lamina = `${rotuloLamina(slide, indice)} (${nombreTipoLamina(slide.tipo, slideMeta.titulo_humano)})`;
+    const nombreEspacio = (slot: string) =>
+      slideMeta.slot_specs?.find((spec) => spec.name === slot)?.label?.trim() || humanizeSlot(slot);
+    const enEspacio = (slot: string) => `${lamina}, espacio «${nombreEspacio(slot)}»`;
 
-          // Variable desconocida dentro del graficador. Con varias bases hay
-          // que separar dos cosas que se veían igual: la que no existe y la
-          // que existe pero no dice de qué base es.
-          checkVarRefs(graf, varNames).forEach((varName) => {
-            const aviso = avisoDeVariableNoResuelta(
-              varName,
-              multi ? basesDeVariableSuelta(varName) : [],
-            );
-            issues.push({
-              severity: aviso.severity,
-              code: aviso.code,
-              message: `"${slideMeta.titulo_humano}" (${humanizeSlot(slot)}): ${aviso.detalle}`,
-              slideId: slide.id,
-              slotName: slot,
-            });
-          });
-        }
-      }
-
-      // Slot `icono` si el slide lo acepta
-      if (slideMeta.slots.includes("icono")) {
-        const iconRef = (slide.payload as Record<string, unknown>).icono as string | null | undefined;
-        if (iconRef && !iconIds.has(iconRef)) {
-          issues.push({
-            severity: "warning",
-            code: "icon-unknown",
-            message: `"${slideMeta.titulo_humano}" (slide ${shortId(slide.id)}): el ícono referenciado ya no existe en el catálogo. Subí uno nuevo o elige otro.`,
-            slideId: slide.id,
-          });
-        }
-      }
-    }
-
-    // 3) Valores numéricos inválidos persistidos en presets, Word y modos ----
-    for (const [presetName, args] of Object.entries(presets)) {
-      issues.push(...checkNumericArgs(args, presetsByName[presetName]?.args ?? [], {
-        scope: `Preset "${presetName}"`,
-      }));
-    }
-
-    for (const override of overridesReusables) {
-      issues.push(...checkNumericArgs(override.args, presetsByName[override.tipo_preset]?.args ?? [], {
-        scope: `Modo "${override.nombre}"`,
-      }));
-    }
-
-    for (const [presetName, args] of Object.entries(wordChartPresets(wPresets))) {
-      issues.push(...checkNumericArgs(args, presetsByName[presetName]?.args ?? [], {
-        scope: `Word "${presetName}"`,
-      }));
-    }
-
-    // 4) Paletas monocromáticas ---------------------------------------------
-    for (const [listName, paleta] of Object.entries(paletas)) {
-      if (isMonochromaticPalette(paleta)) {
+    // Slots de graficador vacíos
+    for (const slot of slideMeta.slots) {
+      if (slot === "icono") continue; // los íconos se validan aparte
+      const value = (slide.payload as Record<string, unknown>)[slot];
+      const graf = value as GraficadorRef | null | undefined;
+      if (!graf || !graf.graficador) {
         issues.push({
           severity: "warning",
-          code: "paleta-monocromatica",
-          message: `Paleta de "${listName}": los colores son muy parecidos entre sí. En barras apiladas dificulta distinguir categorías.`,
-          listName,
+          code: "slot-empty",
+          message: `${lamina}: el espacio «${nombreEspacio(slot)}» no tiene gráfico.`,
+          slideId: slide.id,
+          slotName: slot,
+        });
+      } else {
+        issues.push(...checkNumericArgs(
+          graf.args ?? {},
+          graficadoresById[graf.graficador]?.args ?? [],
+          { scope: enEspacio(slot), slideId: slide.id, slotName: slot },
+        ));
+
+        issues.push(...checkScaleCompat(graf, resolveVar, {
+          scope: enEspacio(slot),
+          slideId: slide.id,
+          slotName: slot,
+        }));
+
+        // Variable desconocida dentro del graficador. Con varias bases hay
+        // que separar dos cosas que se veían igual: la que no existe y la
+        // que existe pero no dice de qué base es.
+        checkVarRefs(graf, varNames).forEach((varName) => {
+          const aviso = avisoDeVariableNoResuelta(
+            varName,
+            multi ? basesDeVariableSuelta(varName) : [],
+          );
+          issues.push({
+            severity: aviso.severity,
+            code: aviso.code,
+            message: `${enEspacio(slot)}: ${aviso.detalle}`,
+            slideId: slide.id,
+            slotName: slot,
+          });
         });
       }
     }
 
-    const errors = issues.filter((i) => i.severity === "error");
-    const warnings = issues.filter((i) => i.severity === "warning");
-    return {
-      issues,
-      errors,
-      warnings,
-      canExport: errors.length === 0,
-    };
-  }, [slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi]);
+    // Slot `icono` si el slide lo acepta
+    if (slideMeta.slots.includes("icono")) {
+      const iconRef = (slide.payload as Record<string, unknown>).icono as string | null | undefined;
+      if (iconRef && !iconIds.has(iconRef)) {
+        issues.push({
+          severity: "warning",
+          code: "icon-unknown",
+          message: `${lamina}: el ícono elegido ya no está en el catálogo. Sube uno nuevo o elige otro.`,
+          slideId: slide.id,
+        });
+      }
+    }
+  });
+
+  // 3) Valores numéricos inválidos persistidos en presets, Word y modos ----
+  const nombrePreset = (presetName: string) => `«${presetsByName[presetName]?.titulo_humano?.trim() || presetName}»`;
+  for (const [presetName, args] of Object.entries(presets)) {
+    issues.push(...checkNumericArgs(args, presetsByName[presetName]?.args ?? [], {
+      scope: `Ajustes por defecto de ${nombrePreset(presetName)}`,
+    }));
+  }
+
+  for (const override of overridesReusables) {
+    issues.push(...checkNumericArgs(override.args, presetsByName[override.tipo_preset]?.args ?? [], {
+      scope: `Modo «${override.nombre}»`,
+    }));
+  }
+
+  for (const [presetName, args] of Object.entries(wordChartPresets(wPresets))) {
+    issues.push(...checkNumericArgs(args, presetsByName[presetName]?.args ?? [], {
+      scope: `Ajustes de Word de ${nombrePreset(presetName)}`,
+    }));
+  }
+
+  // 4) Paletas monocromáticas ---------------------------------------------
+  // La paleta se guarda por lista de respuestas (`lst_p31`), que es un nombre interno del formulario: el aviso la
+  // nombra por la pregunta que la usa; `listName` sigue aparte para el editor de paletas.
+  for (const [listName, paleta] of Object.entries(paletas)) {
+    if (isMonochromaticPalette(paleta)) {
+      issues.push({
+        severity: "warning",
+        code: "paleta-monocromatica",
+        message: `${nombrePaleta(listName, variables)}: los colores son muy parecidos entre sí. En barras apiladas cuesta distinguir las categorías.`,
+        listName,
+      });
+    }
+  }
+
+  const errors = issues.filter((i) => i.severity === "error");
+  const warnings = issues.filter((i) => i.severity === "warning");
+  return {
+    issues,
+    errors,
+    warnings,
+    canExport: errors.length === 0,
+  };
 }
 
 // --- Helpers internos --------------------------------------------------
 
-function shortId(id: string): string {
-  return id.length > 8 ? id.slice(-6) : id;
+/** «La paleta de «Satisfacción»» (y cuántas preguntas más la comparten), por la etiqueta visible de la pregunta. */
+export function nombrePaleta(listName: string, variables: readonly Pick<VarWithSource, "name" | "label" | "list_name">[]): string {
+  const etiquetas: string[] = [];
+  // Preguntas sin etiqueta visible: se cuentan, pero su nombre interno (`conf_p31`) nunca se muestra.
+  const sinTitulo = new Set<string>();
+  for (const v of variables) {
+    if (v.list_name !== listName) continue;
+    const etiqueta = (v.label || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+    if (!etiqueta) sinTitulo.add(v.name);
+    else if (!etiquetas.includes(etiqueta)) etiquetas.push(etiqueta);
+  }
+  if (!etiquetas.length) {
+    if (!sinTitulo.size) return "Una paleta de colores que ya no usa ninguna pregunta";
+    return sinTitulo.size === 1 ? "La paleta de una pregunta sin título" : `La paleta de ${sinTitulo.size} preguntas sin título`;
+  }
+  const primera = etiquetas[0].length > 80 ? `${etiquetas[0].slice(0, 79).trimEnd()}…` : etiquetas[0];
+  const resto = etiquetas.length - 1 + sinTitulo.size;
+  return `La paleta de «${primera}»${resto ? ` (y ${resto} ${resto === 1 ? "pregunta más" : "preguntas más"})` : ""}`;
 }
 
 function humanizeSlot(slot: string): string {
@@ -256,27 +299,27 @@ export function avisoDeVariableNoResuelta(
     return {
       severity: "error",
       code: "var-sin-base",
-      detalle: `la variable "${varName}" no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
+      detalle: `la variable «${varName}» no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
     };
   }
   if (basesDondeExiste.length > 1) {
     return {
       severity: "error",
       code: "var-sin-base",
-      detalle: `la variable "${varName}" existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
+      detalle: `la variable «${varName}» existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
     };
   }
   return {
     severity: "warning",
     code: "var-unknown",
-    detalle: `la variable "${varName}" no está en el instrumento. ¿La renombraste o borraste?`,
+    detalle: `la variable «${varName}» no está en el instrumento. ¿La renombraste o la borraste?`,
   };
 }
 
 function listarBases(bases: string[]): string {
-  if (bases.length <= 1) return bases[0] ? `"${bases[0]}"` : "";
-  const entrecomilladas = bases.map((base) => `"${base}"`);
-  return `${entrecomilladas.slice(0, -1).join(", ")} y ${entrecomilladas[entrecomilladas.length - 1]}`;
+  if (bases.length <= 1) return bases[0] ? `la base «${bases[0]}»` : "";
+  const entrecomilladas = bases.map((base) => `«${base}»`);
+  return `las bases ${entrecomilladas.slice(0, -1).join(", ")} y ${entrecomilladas[entrecomilladas.length - 1]}`;
 }
 
 function checkVarRefs(graf: GraficadorRef, varNames: Set<string>): string[] {
@@ -338,12 +381,17 @@ function checkScaleCompat(
     issues.push({
       severity: "error",
       code: "scale-mismatch",
-      message: `${context.scope}: ${verdict.message}`,
+      message: `${context.scope}: ${enMinuscula(verdict.message)}`,
       slideId: context.slideId,
       slotName: context.slotName,
     });
   }
   return issues;
+}
+
+/** «Estas preguntas…» → «estas preguntas…», para ir detrás de «Lámina 3 · …: ». */
+function enMinuscula(texto: string): string {
+  return texto ? texto.charAt(0).toLocaleLowerCase("es") + texto.slice(1) : texto;
 }
 
 function checkNumericArgs(
@@ -366,7 +414,7 @@ function checkNumericArgs(
     issues.push({
       severity: "error",
       code: "numeric-invalid",
-      message: `${context.scope}: "${meta.label || argName}" tiene valor inválido "${String(value)}"; ${result.message}.${range ? ` ${range}` : ""}`,
+      message: `${context.scope}: el ajuste «${meta.label || argName}» tiene un valor inválido («${String(value)}»); ${result.message}.${range ? ` ${range}` : ""}`,
       slideId: context.slideId,
       slotName: context.slotName,
     });

@@ -547,3 +547,52 @@ test_that("con un solo publico el eje Y lleva la etiqueta declarada", {
   # La envoltura del eje sigue puesta: los dos overrides conviven.
   expect_true(is.numeric(args$overrides$wrap_y))
 })
+
+# ---------------------------------------------------------------------------
+# ADR 0096 decisión 5 — la revisión describe TODO lo que cambia el mazo.
+# ---------------------------------------------------------------------------
+#
+# Antes la huella ignoraba `sugerida` y `estilo` (los dos cambian el mazo: una fila
+# sugerida no entra; el estilo cambia el radar) y no veía las listas de opciones.
+# Ahora entran, con una huella de listas por variable declarada en su base, y el
+# valor lleva prefijo `r2:` para distinguirlo de las revisiones guardadas antes.
+
+.gpe_inst_r8 <- function(codigos = c("1", "2"), etiquetas = c("Malo", "Bueno")) {
+  list(
+    survey = data.frame(type = "select_one sat", name = "p1", label = "P", section = "Pag1",
+                        stringsAsFactors = FALSE),
+    choices = data.frame(list_name = "sat", name = codigos, label = etiquetas, stringsAsFactors = FALSE)
+  )
+}
+
+test_that("R8: la revisión r2: cambia con sugerida, estilo y la lista de opciones; no con la caja ni la fecha", {
+  fila <- list(diapositiva = "1", etiqueta_estandar = "A", variables = list(x = "p1", y = "p1"))
+  equiv <- list(filas = list(fila), importada_en = "2026-10-01T10:00:00Z")
+  inst <- list(x = .gpe_inst_r8(), y = .gpe_inst_r8())
+
+  r0 <- .equiv_declaracion_revision(equiv, inst)
+  expect_match(r0, "^r2:")
+  expect_identical(r0, .equiv_declaracion_revision(equiv, inst))
+
+  sugerida <- equiv; sugerida$filas[[1]]$sugerida <- TRUE
+  expect_false(identical(r0, .equiv_declaracion_revision(sugerida, inst)))
+
+  estilo <- equiv; estilo$filas[[1]]$estilo <- "auditoria"
+  expect_false(identical(r0, .equiv_declaracion_revision(estilo, inst)))
+
+  otro_codigo <- inst; otro_codigo$y <- .gpe_inst_r8(codigos = c("1", "3"))
+  expect_false(identical(r0, .equiv_declaracion_revision(equiv, otro_codigo)))
+
+  otra_etiqueta <- inst; otra_etiqueta$y <- .gpe_inst_r8(etiquetas = c("Malo", "Excelente"))
+  expect_false(identical(r0, .equiv_declaracion_revision(equiv, otra_etiqueta)))
+
+  # La caja de una opción no es otra escala (ADR 0064): no mueve la huella.
+  caja <- inst; caja$y <- .gpe_inst_r8(etiquetas = c("MALO", "  bueno "))
+  expect_identical(r0, .equiv_declaracion_revision(equiv, caja))
+
+  # Reimportar la misma matriz otro día no la desfasa.
+  otra_fecha <- equiv; otra_fecha$importada_en <- "2026-10-11T09:00:00Z"
+  expect_identical(r0, .equiv_declaracion_revision(otra_fecha, inst))
+
+  expect_identical(.equiv_declaracion_revision(list(filas = list()), inst), "")
+})

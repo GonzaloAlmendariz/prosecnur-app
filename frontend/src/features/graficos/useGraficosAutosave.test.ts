@@ -153,19 +153,28 @@ describe("ack de persistencia para composición", () => {
 
   it("enumera todos los call sites directos que mutan la configuración de Gráficos", () => {
     expect(directGraficosMutationCalls()).toEqual([
-      "GraficosHeader.tsx:apiGraficosConfigImport",
-      "GraficosHeader.tsx:apiGraficosShareImport",
+      "compartir/accionesCompartir.ts:apiGraficosConfigImport",
+      "compartir/accionesCompartir.ts:apiGraficosShareImport",
       "configSnapshot.ts:apiGraficosConfigPut",
       "useGraficosAutosave.ts:apiGraficosConfigPut",
       "useGraficosAutosave.ts:apiGraficosConsolidadoDraftPut",
     ]);
   });
 
-  it("el flush captura un config y sólo marca limpio después del PUT acreditado", () => {
+  it("el flush respeta el alcance hidratado: el compartido nunca va a /graficos/config (A7-1 H1)", () => {
+    // Antes este test exigía `scope: "active"` incondicional y fijaba el bug: guardar el proyecto con el borrador
+    // compartido hidratado copiaba ese plan sobre la config de la base activa (ADR 0040 §6.1). El comportamiento se
+    // prueba con la API mockeada en `configSnapshot.alcance.test.ts`; aquí se fija el orden del flush.
     const source = fs.readFileSync(path.join(featureDir, "configSnapshot.ts"), "utf8");
     const flush = source.slice(source.indexOf("export async function flushGraficosConfigIfHydrated"));
+    const consolidado = sourceSection(flush, 'if (alcance?.scope === "consolidated") {', "\n  }\n");
 
     expectFragmentsInOrder(flush, [
+      "const alcance = leerAlcanceHidratado()",
+      'if (alcance?.scope === "consolidated") {',
+      "await persistir(",
+      "markClean()",
+      "return true;",
       "const config = buildGraficosConfigFromStore()",
       "persistWithSlideCompositionAck({",
       "sid: getSession()",
@@ -174,39 +183,107 @@ describe("ack de persistencia para composición", () => {
       "persist: () => apiGraficosConfigPut(config)",
       "markClean()",
     ]);
-    expect(flush.match(/getSession\(\)/g)).toHaveLength(1);
+    expect(consolidado).not.toContain("apiGraficosConfigPut");
+    expect(consolidado).toContain("alcance.sid !== getSession()");
+  });
+
+  it("el autosave registra el alcance en las dos hidrataciones y en la siembra", () => {
+    const source = fs.readFileSync(path.join(featureDir, "useGraficosAutosave.ts"), "utf8");
+    const hidratar = sourceSection(source, "async function hydrateFromBackend(", "} catch {");
+    const [compartido, activa] = hidratar.split("const r = await apiGraficosConfigGet()");
+    const siembra = sourceSection(source, "const seedConsolidatedPlan = useCallback(", "return { saveConsolidatedNow");
+
+    expectFragmentsInOrder(compartido ?? "", [
+      "apiGraficosConsolidadoDraftGet()",
+      "hydrate(config)",
+      'registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated })',
+    ]);
+    expectFragmentsInOrder(activa ?? "", [
+      "hydrate(config)",
+      'registrarAlcanceHidratado({ scope: "active", sid: getSession() })',
+    ]);
+    expectFragmentsInOrder(siembra, [
+      "hydrate(buildGraficosConfig(",
+      'registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated })',
+    ]);
   });
 
   it("los imports invalidan el sid inicial y sólo reackean el snapshot releído", () => {
-    const source = fs.readFileSync(path.join(featureDir, "GraficosHeader.tsx"), "utf8");
-    const packageApply = sourceSection(source, "async function packageApply()", "async function ioExport()");
-    const ioImport = sourceSection(source, "async function ioImport(file?: File)", "function onResetClick()");
+    // La lógica de importar salió del header a `compartir/accionesCompartir.ts` (C11/C12, decisión 10): la usan por
+    // igual la barra de Láminas y el Editor anterior.
+    const source = fs.readFileSync(path.join(featureDir, "compartir", "accionesCompartir.ts"), "utf8");
+    const rehidratar = sourceSection(source, "async function rehidratarDesdeBackend(", "// --- C12");
+    const packageApply = sourceSection(source, "export async function aplicarPlanPortatil(", "return `Plan aplicado");
+    const ioImport = sourceSection(source, "export async function aplicarImportacionJson(", "return rotuloSeccionesImportadas");
+
+    expectFragmentsInOrder(rehidratar, [
+      "deps.configGet()",
+      "normalizeGraficosConfig(cuerpoConfig(refreshed)",
+      "deps.hydrate(cfg as GraficosConfig)",
+      'acknowledgeSlideCompositionConfig(sid, "active", cfg)',
+    ]);
+    expect(rehidratar.match(/acknowledgeSlideCompositionConfig\(/g)).toHaveLength(1);
+    expect(rehidratar).not.toContain("getSession");
 
     expectFragmentsInOrder(packageApply, [
-      "const sid = getSession()",
+      "const sid = deps.getSession()",
       'invalidateSlideCompositionPersistenceAck(sid, "active")',
-      "apiGraficosShareImport(",
-      "apiGraficosConfigGet()",
-      "normalizeGraficosConfig(refreshed.config ?? refreshed",
-      "hydrate(cfg as never)",
-      'acknowledgeSlideCompositionConfig(sid, "active", cfg)',
-      "} catch",
+      "deps.shareImport(",
+      "rehidratarDesdeBackend(sid, deps)",
     ]);
     expect(packageApply.match(/getSession\(\)/g)).toHaveLength(1);
-    expect(packageApply.match(/acknowledgeSlideCompositionConfig\(/g)).toHaveLength(1);
 
     expectFragmentsInOrder(ioImport, [
-      "const sid = getSession()",
+      "const sid = deps.getSession()",
       'invalidateSlideCompositionPersistenceAck(sid, "active")',
-      "apiGraficosConfigImport(",
-      "apiGraficosConfigGet()",
-      "normalizeGraficosConfig(refreshed.config ?? refreshed",
-      "hydrate(cfg as never)",
-      'acknowledgeSlideCompositionConfig(sid, "active", cfg)',
-      "} catch",
+      "deps.configImport(",
+      "rehidratarDesdeBackend(sid, deps)",
     ]);
     expect(ioImport.match(/getSession\(\)/g)).toHaveLength(1);
-    expect(ioImport.match(/acknowledgeSlideCompositionConfig\(/g)).toHaveLength(1);
-    expect(ioImport).not.toContain("hydrate(synced as never)");
+    expect(ioImport).not.toContain("hydrate(sincronizado");
+  });
+  it("cablea el conflicto de revisión: el PUT pasa por la guarda, el autosave se detiene y la recarga hidrata (A7 H3)", () => {
+    const source = fs.readFileSync(path.join(featureDir, "useGraficosAutosave.ts"), "utf8");
+    const persistir = sourceSection(source, "const persistConsolidated = useCallback(", "const saveConsolidatedNow");
+    const autosave = sourceSection(source, "// 2) Autosave debounced.", "const seedConsolidatedPlan");
+    const recarga = sourceSection(source, "registrarRecargaBorrador(crearRecargaBorrador({", "}));");
+
+    expectFragmentsInOrder(persistir, [
+      "guardarBorradorConRevision({",
+      "revision: draftRevision.current",
+      "guardar: (expectedRevision) =>",
+      "apiGraficosConsolidadoDraftPut(config, expectedRevision)",
+      "rememberRevision(saved.revision)",
+    ]);
+    // La revisión no se captura fuera de la guarda: en conflicto el PUT no llega a armarse.
+    expect(persistir).not.toMatch(/const expectedRevision\s*=/);
+    expect(autosave).toContain("if (!hydrated || !dirty || enConflicto) return;");
+    expect(autosave).toMatch(/dirty, hydrated, enConflicto, markClean/);
+    expectFragmentsInOrder(recarga, [
+      "leer: apiGraficosConsolidadoDraftGet",
+      "rememberRevision(r.revision)",
+      "hydrate(config)",
+      'registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated })',
+      'acknowledgeSlideCompositionConfig(getSession(), "consolidated", config)',
+    ]);
+    // Una hidratación correcta desde el backend sale del conflicto (cambio de sesión o de alcance).
+    expect(source.match(/hydrate\(config\);\n\s*limpiarConflictoBorrador\(\);/g)).toHaveLength(2);
+  });
+  // F4 (ADR 0096 decisión 6): la siembra graba `equivalencias_revision`. Antes `seedConsolidatedPlan(plan)` sólo
+  // hidrataba el plan y el aviso de desfase del compartido quedaba mudo. Mata: sembrar sin la revisión o fijarla con
+  // un setter que marque el borrador como sucio.
+  it("la siembra del compartido hidrata el plan junto con la revisión del preflight", () => {
+    const source = fs.readFileSync(path.join(featureDir, "useGraficosAutosave.ts"), "utf8");
+    const siembra = sourceSection(source, "const seedConsolidatedPlan = useCallback(", "return { saveConsolidatedNow");
+    expect(siembra).toMatch(/useCallback\(\(seededPlan: [^,]+,\s*revision/);
+    expectFragmentsInOrder(siembra, [
+      "hydrate(buildGraficosConfig(",
+      "plan: seededPlan",
+      "equivalenciasRevision: revision",
+    ]);
+    expect(siembra).not.toContain("setEquivalenciasRevision");
+
+    const page = fs.readFileSync(path.join(featureDir, "GraficosPage.tsx"), "utf8");
+    expect(page).toMatch(/seedConsolidatedPlan\(\s*suggested as GraficosConfig\["plan"\],\s*[^)]*equivalencias\??\.revision/);
   });
 });

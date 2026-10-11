@@ -1,0 +1,57 @@
+/* «Armar desde…» (contrato A5 2b). `editor-v2.css` está congelado: lo nuevo del popover vive aquí. */
+
+/* Informe compartido: el botón sigue en el orden de foco (`aria-disabled`), pero se ve inactivo. */
+.pulso-gv2-suggest-trigger.is-deshabilitado {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Propuesta del plan para «Otros»: casilla explícita, nunca un cambio silencioso del interruptor. */
+.pulso-f6-armar-otros {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pulso-f6-armar-otros input {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* CTA de los vacíos en el informe compartido: inactivo a la vista y con el motivo debajo, dentro del mismo vacío (C3). */
+.pulso-f6-boton.is-deshabilitado {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pulso-f6-armar-motivo {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+/* En la barra común (Láminas y Vista general) el botón vive a la derecha: el popover se alinea a su borde derecho para
+   no salirse de la ventana en el compacto (C4). */
+.pulso-f6-barra .pulso-gv2-suggest-popover {
+  left: auto;
+  right: 0;
+  /* La base resta 170 px al alto de la ventana, pero aquí el popover nace más abajo: su borde superior real queda a
+     176 px (chrome + pestañas + barra de 44 px + 8 px de separación; medido a 1024x600, QA Meta A) y su borde inferior
+     salía a 606 > 600. Se resta ese top más un margen de 24 px, de modo que el borde inferior queda dentro de la ventana;
+     lo que no cabe se desplaza dentro del propio popover (dueño de overflow: él, `overflow-y: auto` de la base). */
+  max-height: min(650px, calc(100dvh - 200px));
+  overscroll-behavior: contain;
+}
+
+/* El diálogo recibe el foco al abrirse (tabIndex -1): el anillo lo llevan sus controles, no el contenedor. */
+.pulso-gv2-suggest-popover:focus {
+  outline: none;
+}

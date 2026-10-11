@@ -55,7 +55,7 @@
   if (!NROW(f) || !all(is.na(f$grupo_id))) return(espec)
   fuente <- unique(fuentes[!is.na(fuentes)])
   if (length(fuente) != 1L || !length(bases_publico) || !fuente %in% names(bases_publico)) return(espec)
-  espec$filas$n_nota <- .n_barra_procede(f$n, bases_publico[[fuente]])
+  espec$filas$n_nota <- .n_barra_procede(.espec_casos(f), bases_publico[[fuente]])   # casos contra casos (F6)
   espec
 }
 

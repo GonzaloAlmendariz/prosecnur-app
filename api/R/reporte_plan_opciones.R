@@ -102,6 +102,14 @@
     n = n_vals[keep],
     stringsAsFactors = FALSE
   )
+  # Base sin ponderar: `n_casos` (freq_table_spss(casos = TRUE)) viaja con la
+  # opción; sin la columna la salida es la histórica.
+  con_casos <- "n_casos" %in% names(tab)
+  if (con_casos) {
+    nc_vals <- suppressWarnings(as.integer(tab$n_casos))
+    nc_vals[is.na(nc_vals)] <- 0L
+    out$n_casos <- nc_vals[keep]
+  }
   if (!nrow(out)) return(out)
 
   out$Opciones <- .reporte_plan_clean_other_label_es(out$Opciones)
@@ -110,11 +118,15 @@
 
   if (anyDuplicated(out$Opciones)) {
     keys <- unique(out$Opciones)
-    out <- data.frame(
+    dedup <- data.frame(
       Opciones = keys,
       n = vapply(keys, function(k) sum(out$n[out$Opciones == k], na.rm = TRUE), numeric(1)),
       stringsAsFactors = FALSE
     )
+    if (con_casos) {
+      dedup$n_casos <- vapply(keys, function(k) sum(out$n_casos[out$Opciones == k]), integer(1))
+    }
+    out <- dedup
   }
 
   out
@@ -342,11 +354,10 @@
   levels <- levels[nzchar(levels)]
   if (!length(levels)) return(pal)
 
+  # ADR 0097 (P3a): una paleta sin nombres no dice de qué opción es cada color, y repartirla por posición le da a
+  # una opción el significado de otra. Se trata como si no hubiera paleta.
   pal_names <- .reporte_plan_clean_chr(names(pal))
-  if (!length(pal_names) || !any(nzchar(pal_names))) {
-    n <- min(length(levels), length(pal))
-    return(stats::setNames(unname(pal[seq_len(n)]), levels[seq_len(n)]))
-  }
+  if (!length(pal_names) || !any(nzchar(pal_names))) return(NULL)
 
   names(pal) <- pal_names
   pal <- pal[nzchar(names(pal))]
@@ -362,8 +373,9 @@
   # «SIN INF»: dos categorias indistinguibles en la lamina. Medido en `p52.pptx`:
   # 15 de 232 renders recibian `BFBFBF 70AD47 ADD493 FFD965 BFBFBF`.
   # `.reporte_plan_ascii_lower()` ya vivia en este archivo sin usarse aqui.
+  # ADR 0097: el respaldo normaliza como el resolvedor (sin caja, sin tildes y con los espacios colapsados).
   pal_norm <- pal
-  names(pal_norm) <- .reporte_plan_ascii_lower(names(pal))
+  names(pal_norm) <- .paleta_norm_etiqueta(names(pal))
   pal_norm <- pal_norm[nzchar(names(pal_norm))]
   pal_norm <- pal_norm[!duplicated(names(pal_norm))]
 
@@ -384,23 +396,22 @@
     hit <- pal[candidates]
     hit <- hit[!is.na(hit) & nzchar(trimws(hit))]
     if (!length(hit) && length(pal_norm)) {
-      hit <- pal_norm[.reporte_plan_ascii_lower(candidates)]
+      hit <- pal_norm[.paleta_norm_etiqueta(candidates)]
       hit <- hit[!is.na(hit) & nzchar(trimws(hit))]
     }
     if (length(hit)) out[level] <- unname(hit[1])
   }
 
+  # ADR 0097 (P3a): la opción que la paleta no nombra toma el gris residual del recetario y se avisa. Ya no hay
+  # respaldo posicional (duplicaba colores o daba a una opción el de otra) ni relleno con colores del motor.
   missing <- is.na(out) | !nzchar(trimws(out))
   if (any(missing)) {
-    fallback <- unname(pal)
-    n <- min(length(fallback), length(out))
-    if (n > 0L) {
-      positional <- stats::setNames(fallback[seq_len(n)], names(out)[seq_len(n)])
-      out[missing] <- positional[names(out)[missing]]
-    }
+    out[missing] <- .paleta_gris_residual()
+    lista <- attr(palette, "paleta_lista", exact = TRUE) %||% .reporte_plan_clean_chr(list_name)[1]
+    for (op in names(out)[missing]) .pulso_aviso(sprintf("La opción «%s» no tiene color en la paleta de «%s»", op, lista))
   }
 
-  out[!is.na(out) & nzchar(trimws(out))]
+  .paleta_heredar_attrs(out, palette)
 }
 
 #' @noRd
@@ -411,12 +422,6 @@
 
   main <- c("#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#BFBFBF",
             "#E4A34C", "#7594CC", "#9688D3", "#D8D8D8")
-  # Escala de acuerdo/satisfacción: el recorrido va de rojizo a verde, pasando
-  # por un durazno. El azul marino que ocupaba el extremo positivo no dice nada
-  # en un recorrido de valoración —es el color de la marca, no el de «lo mejor»—
-  # y rompía la lectura de un vistazo: el ojo busca el verde.
-  approval <- c("#CA5651", "#E4A34C", "#85BB85", "#4F8A3E", "#BFBFBF",
-                "#EFD25E", "#7594CC", "#9688D3", "#D8D8D8")
   # Dicotomía sin recorrido (Sí/No, Conoce/No conoce): dos tonos del mismo azul.
   # Rojo contra azul marca una como mala, y en «¿Conoce el reglamento?» el «No»
   # es un dato, no una falta.
@@ -430,9 +435,9 @@
   looks_like_scale <- all(grepl("^[0-9]+$", levels)) ||
     any(grepl(low_high_words, tolower(levels), perl = TRUE))
 
-  pal <- if (looks_like_scale && length(levels) >= 3L) {
-    approval
-  } else if (length(levels) == 2L) {
+  # ADR 0097 (P4a): una escala sin paleta toma la Likert del recetario, no la rampa que arrancaba en rojo.
+  if (looks_like_scale && length(levels) >= 3L) return(.paleta_likert_recetario(levels))
+  pal <- if (length(levels) == 2L) {
     dicotomia
   } else {
     main
@@ -532,6 +537,10 @@
   if (length(propios)) propios[[1]] else estados[[1]]
 }
 
+#' ¿Se sella cada nota de base de lámina con la ponderación? (S2: no.)
+#' @noRd
+.REPORTE_PLAN_SELLO_POR_LAMINA <- FALSE
+
 #' Anexa el sello de ponderación a una nota de base de lámina, si corresponde.
 #'
 #' Idempotente y conservadora:
@@ -543,8 +552,16 @@
 #'     no lo duplica.
 #' El texto del sello es el canónico de reporte_ponderacion_sello.R vía
 #' `p_base_nota_con_sello()` (reporte_plan_slides.R).
+#'
+#' APAGADO POR DEFECTO (S2, contrato base-sin-ponderar F6, 2026-10-11): la base
+#' de cada lámina pasa a ser casos sin ponderar y la ponderación se declara una
+#' sola vez, en la ficha técnica (n efectivo). Sellar cada pie repetía en 40
+#' láminas lo que la ficha dice una vez y contradecía la cifra de casos. El
+#' mecanismo se conserva para un llamador que lo pida con `sellar = TRUE`.
 #' @noRd
-.reporte_plan_nota_base_sellada <- function(nota, data_sources, source = NULL) {
+.reporte_plan_nota_base_sellada <- function(nota, data_sources, source = NULL,
+                                            sellar = .REPORTE_PLAN_SELLO_POR_LAMINA) {
+  if (!isTRUE(sellar)) return(nota)
   nota1 <- if (is.null(nota)) NA_character_ else as.character(nota)[1]
   if (is.na(nota1) || !nzchar(trimws(nota1))) return(nota)
   if (!grepl("\\bBase:", nota1)) return(nota)
@@ -556,6 +573,29 @@
   sello <- reporte_ponderacion_sello(estado)
   if (is.null(sello) || !nzchar(sello) || grepl(sello, nota1, fixed = TRUE)) return(nota)
   p_base_nota_con_sello(nota1, estado)
+}
+
+#' Avisos de ponderación de la CORRIDA (D-c, contrato base-sin-ponderar §8).
+#'
+#' Con el sello por lámina apagado (S2), el fallback «ponderación configurada no
+#' aplicada» ya no viaja en cada pie: sube al documento como advertencia de
+#' corrida. Devuelve un aviso por fuente cuyo estado es `no_aplicada` (con el
+#' nombre de la fuente cuando la corrida es multibase), o `character(0)` si la
+#' corrida no trae ponderación o la aplicó en todas sus bases. `reporte_ppt_plan()`
+#' lo expone como `$ponderacion_avisos`; el verificador del mazo / Word lo lee.
+#' @noRd
+.reporte_plan_pond_avisos_corrida <- function(data_sources) {
+  estados <- tryCatch(.reporte_plan_pond_estados(data_sources), error = function(e) list())
+  if (!length(estados)) return(character(0))
+  nms <- names(estados) %||% rep("", length(estados))
+  out <- character(0)
+  for (i in seq_along(estados)) {
+    e <- estados[[i]]
+    if (!is.list(e) || !identical(as.character(e$status %||% "")[1], "no_aplicada")) next
+    fuente <- if (length(estados) > 1L && nzchar(nms[i]) && !identical(nms[i], "default")) paste0(" (", nms[i], ")") else ""
+    out <- c(out, paste0(reporte_ponderacion_sello(e), fuente))
+  }
+  unique(out)
 }
 
 # ---- Puente de códigos especiales a excluir_opciones (Plan 2026-07, 5.6b) ----

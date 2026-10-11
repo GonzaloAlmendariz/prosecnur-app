@@ -29,15 +29,9 @@ type LaminasUiStore = {
   /** Lateral abierto que se recuerda por sesión (Estructura e Inspector se excluyen); null = la lámina a todo lo ancho. */
   lateral: Lateral | null;
   setLateral: (l: Lateral | null) => void;
-  /**
-   * «Insertar después de esta lámina» abre la biblioteca de láminas del editor, que agrega al final. Mientras la
-   * biblioteca está abierta, lo que se inserte se acomoda detrás de `despuesDe` (y en cadena, si se insertan varias).
-   */
-  insercion: { despuesDe: string; previos: string[]; vioPanel: boolean } | null;
   /** Editor ancho abierto desde una tarjeta de gráfico (bloques de multiapiladas o filtros), sobre visor e inspector. */
   editorAmplio: { tipo: "bloques" | "filtros"; slideId: string; slot: string } | null;
   setEditorAmplio: (e: { tipo: "bloques" | "filtros"; slideId: string; slot: string } | null) => void;
-  setInsercion: (i: { despuesDe: string; previos: string[]; vioPanel: boolean } | null) => void;
   setZoom: (z: ZoomVisor) => void;
   alternarTira: () => void;
   registrarMiniatura: (slideId: string, png: string) => void;
@@ -60,10 +54,8 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
   tiraVisible: true,
   lateral: "estructura",
   setLateral: (lateral) => set({ lateral }),
-  insercion: null,
   editorAmplio: null,
   setEditorAmplio: (editorAmplio) => set({ editorAmplio }),
-  setInsercion: (insercion) => set({ insercion }),
   setZoom: (zoom) => set({ zoom }),
   alternarTira: () => set((s) => ({ tiraVisible: !s.tiraVisible })),
   registrarMiniatura: (slideId, png) => set((s) => (s.miniaturas[slideId] === png ? s : { miniaturas: { ...s.miniaturas, [slideId]: png } })),

@@ -1,5 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { BarChart3, Check, Download, GitMerge, LayoutTemplate, Loader2, Map, RefreshCw, Wand2, X } from "lucide-react";
+// «Armar desde un plan sugerido» (`panel=armar-desde`, popover direccionable; contrato A5 rebanada 2b). Vive en la barra
+// común de Láminas y Vista general y en la del Editor anterior. Aplicar es UN paso deshacible
+// (`usePlanStore.aplicarPlanSugerido`); en el informe compartido queda `aria-disabled` con su motivo y no pide nada al
+// backend (decisión 17 de Gonzalo, provisional). Las reglas puras viven en `armarDesde/aplicarPlanSugerido.ts`.
+
+import { useEffect, useId, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { BarChart3, Check, Download, GitMerge, LayoutTemplate, Loader2, Map, RefreshCw, Wand2, X } from "../../vendor/lucide-react";
 import {
   apiGraficosPlanSugerido,
   type GraficosSuggestedPlanResponse,
@@ -13,6 +19,20 @@ import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useOptionalProjectShell } from "../project/ProjectShell";
 import { buildSuggestedPlanRecipeMarkdown } from "./suggestedPlanRecipe";
 import { esEquivalente, sincronizarEquivalentes } from "./sincronizarEquivalentes";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { PANEL_ARMAR_DESDE } from "./panelesGraficos";
+import { useGraficosReportScope } from "./reportScope";
+import {
+  debePedirPropuesta,
+  identidadDelPlan,
+  motivoArmarDesdeDeshabilitado,
+  perfilResuelto,
+  propuestaOtros,
+  revisionAlAplicar,
+  type ModoAplicarPlan,
+} from "./armarDesde/aplicarPlanSugerido";
+import { enfocarSinDesplazar } from "./laminas/enfocarSinDesplazar";
+import "./armarDesde/armarDesde.css";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -92,20 +112,28 @@ function comparisonLabel(mode: string): string {
 export function SuggestedPlanButton() {
   const projectShell = useOptionalProjectShell();
   const currentPlan = usePlanStore((s) => s.plan);
-  const loadPlan = usePlanStore((s) => s.loadPlan);
-  const setEquivalenciasRevision = usePlanStore((s) => s.setEquivalenciasRevision);
-  const applyPptStyleProfile = usePlanStore((s) => s.applyPptStyleProfile);
-  const setScopeRules = usePlanStore((s) => s.setScopeRules);
+  const autoOtrosActual = usePlanStore((s) => s.autoOtrosSlides);
+  const aplicarPlanSugerido = usePlanStore((s) => s.aplicarPlanSugerido);
   const { profiles: styleProfiles } = usePptStyleProfiles();
   const { registry } = useGraficosRegistry();
-  const [open, setOpen] = useState(false);
+  // Abierto = la URL lo pide (`panel=armar-desde`): el enlace reproduce lo que se ve y cerrar borra el param.
+  const panel = usePanelDireccionable(PANEL_ARMAR_DESDE);
+  const open = panel.abierto;
+  // ADR 0096: en el informe compartido la propuesta se pide con su alcance (la siembra desde la matriz).
+  const alcance = useGraficosReportScope(useLocation().search);
+  const motivo = motivoArmarDesdeDeshabilitado(alcance);
+  const motivoId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
   const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus" | "equivalencias">("auto");
   const [acnurMode, setAcnurMode] = useState<"general" | "territorial">("general");
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("paired_district");
+  // Lo que el plan propone para «Otros» sólo se aplica si el analista lo acepta aquí (nunca sin avisar).
+  const [aceptarOtros, setAceptarOtros] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const disparadorRef = useRef<HTMLButtonElement>(null);
+  const dialogoRef = useRef<HTMLDivElement>(null);
   const territorialCoverageMeta = registry?.graficadores.find(
     (g) => g.feature_kind === "territorial_coverage" || g.requisito === "territorial_coverage",
   );
@@ -126,13 +154,24 @@ export function SuggestedPlanButton() {
     setResult(null);
   }, [projectIdentity]);
 
+  const cerrarPanel = panel.cerrar;
+  const cerrar = useRef(cerrarPanel);
+  cerrar.current = cerrarPanel;
+  /** Cerrar desde un control del diálogo (aplicar, «Cerrar», ✕): el foco vuelve al disparador, nunca a `<body>` (C4). */
+  function cerrarDevolviendoFoco() {
+    panel.cerrar();
+    enfocarSinDesplazar(disparadorRef.current);
+  }
+
   useEffect(() => {
     if (!open) return;
     function onDocMouseDown(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) cerrar.current();
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      cerrar.current();
+      enfocarSinDesplazar(disparadorRef.current);
     }
     document.addEventListener("mousedown", onDocMouseDown);
     document.addEventListener("keydown", onKey);
@@ -149,8 +188,20 @@ export function SuggestedPlanButton() {
     }
   }, [acnurMode, canIncludeCoverageMaps, territorialCoverageMeta]);
 
+  // Abrir (por clic o por enlace) pide la propuesta una vez, en la base activa y en el informe compartido.
+  const generar = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    if (debePedirPropuesta(open, motivo)) generar.current();
+  }, [open, motivo]);
+  // Abierto desde la barra, desde el CTA de un vacío o por enlace, el foco entra al diálogo (sin mover el scroll).
+  useEffect(() => {
+    if (!open) return;
+    const marco = requestAnimationFrame(() => enfocarSinDesplazar(dialogoRef.current));
+    return () => cancelAnimationFrame(marco);
+  }, [open]);
+
   async function generate() {
-    setOpen(true);
+    if (!debePedirPropuesta(true, motivo)) return;
     setBusy(true);
     setError("");
     try {
@@ -168,8 +219,9 @@ export function SuggestedPlanButton() {
               comparison_mode: acnurMode === "territorial" ? comparisonMode : "none",
             }
           : {}),
-      });
+      }, alcance);
       setResult(next);
+      setAceptarOtros(false);
     } catch (e) {
       setResult(null);
       const raw = (e as Error).message || "";
@@ -187,25 +239,35 @@ export function SuggestedPlanButton() {
     }
   }
 
+  generar.current = () => { void generate(); };
+
+  /**
+   * UN paso deshacible (contrato A5 2b): plan, sello de la declaración (ADR 0063, ver `revisionAlAplicar`), perfil de
+   * estilo, identidad en `scope_rules.global` y, si se aceptó, el «Otros» que propone el plan.
+   */
+  function aplicar(modo: ModoAplicarPlan, plan: PlanJson) {
+    if (!result) return;
+    const perfilId = perfilResuelto(result, profileId);
+    const otros = propuestaOtros(result, autoOtrosActual);
+    aplicarPlanSugerido({
+      plan,
+      revision: revisionAlAplicar(modo, result),
+      perfil: styleProfiles.find((p) => p.name === perfilId) ?? null,
+      identidad: identidadDelPlan(result, profileId),
+      ...(otros !== null && aceptarOtros ? { autoOtrosSlides: otros } : {}),
+    });
+    cerrarDevolviendoFoco();
+  }
+
   function replacePlan() {
     if (!result) return;
-    loadPlan(clonePlanWithFreshIds(result.plan));
-    // ADR 0063: se graba de qué revisión de la declaración salió el mazo. Sin
-    // esto el desfase posterior sólo se puede sospechar. Un plan que NO viene de
-    // la declaración la deja vacía a propósito: no hay nada que contrastar.
-    setEquivalenciasRevision(
-      result.fuente === "equivalencias" ? (result.revision ?? "") : "",
-    );
-    applySelectedStyleProfile();
-    setOpen(false);
+    aplicar("reemplazar", clonePlanWithFreshIds(result.plan));
   }
 
   function mergePlan() {
     if (!result) return;
     const suggested = clonePlanWithFreshIds(result.plan);
-    loadPlan({ slides: [...currentPlan.slides, ...suggested.slides] });
-    applySelectedStyleProfile();
-    setOpen(false);
+    aplicar("fusionar", { slides: [...currentPlan.slides, ...suggested.slides] });
   }
 
   /**
@@ -216,47 +278,20 @@ export function SuggestedPlanButton() {
    */
   function sincronizarPlan() {
     if (!result) return;
+    // ADR 0096: en el compartido la propuesta es compuesta (matriz + láminas por fuente); sólo entra el bloque de la
+    // matriz, si no las láminas por fuente quedarían marcadas como derivadas y duplicadas.
     const suggested = clonePlanWithFreshIds(result.plan);
-    const out = sincronizarEquivalentes(currentPlan, suggested.slides);
-    loadPlan(out.plan);
-    setEquivalenciasRevision(result.revision ?? "");
-    applySelectedStyleProfile();
-    setOpen(false);
+    const bloque = suggested.slides.filter(esEquivalente);
+    aplicar("sincronizar", sincronizarEquivalentes(currentPlan, bloque).plan);
   }
 
   const derivadasEnPlan = currentPlan.slides.filter(esEquivalente).length;
   const puedeSincronizar =
-    result?.fuente === "equivalencias" && (result?.plan.slides.length ?? 0) > 0;
+    (result?.fuente === "equivalencias" || result?.contiene_equivalencias === true)
+    && (result?.plan.slides.some(esEquivalente) ?? false);
   const ayudaSincronizar = derivadasEnPlan > 0
     ? `Reemplaza las ${derivadasEnPlan} diapositivas que salieron de la matriz y deja el resto del mazo intacto.`
     : "Añade las diapositivas de la matriz como un bloque propio, que podrás actualizar sin tocar el resto.";
-
-  function applySelectedStyleProfile() {
-    if (!result) return;
-    const resolvedProfileId = result.profile_id || (profileId === "auto" ? "" : profileId);
-    const profile = styleProfiles.find((p) => p.name === resolvedProfileId);
-    if (profile) applyPptStyleProfile(profile);
-
-    const identity: Record<string, unknown> = {};
-    if (resolvedProfileId) identity.profile_id = resolvedProfileId;
-    if (result.template_id) identity.template_id = result.template_id;
-    if (result.acnur_mode) identity.acnur_mode = result.acnur_mode;
-    if (result.report_scope) identity.report_scope = result.report_scope;
-    if (result.meta) identity.meta = result.meta;
-    if (!Object.keys(identity).length) return;
-
-    const currentScopeRules = usePlanStore.getState().scopeRules;
-    const currentGlobal = currentScopeRules.global;
-    setScopeRules({
-      ...currentScopeRules,
-      global: {
-        ...(currentGlobal && typeof currentGlobal === "object" && !Array.isArray(currentGlobal)
-          ? currentGlobal as Record<string, unknown>
-          : {}),
-        ...identity,
-      },
-    });
-  }
 
   function downloadRecipe() {
     if (!result?.report_inputs) return;
@@ -274,32 +309,41 @@ export function SuggestedPlanButton() {
   }
 
   const summary = result?.coverage?.summary;
+  const propuesta = result ? propuestaOtros(result, autoOtrosActual) : null;
 
   return (
     <div className="pulso-gv2-suggest-root" ref={rootRef}>
+      {/* `aria-disabled` y no `disabled` en el compartido: sigue en el orden de foco y su clic explica el motivo. */}
       <button
         type="button"
-        className="pulso-gv2-pill-button pulso-gv2-suggest-trigger"
-        onClick={generate}
+        ref={disparadorRef}
+        className={`pulso-gv2-pill-button pulso-gv2-suggest-trigger${motivo ? " is-deshabilitado" : ""}`}
+        onClick={panel.alternar}
         disabled={busy}
-        aria-label="Planes predeterminados de gráficos"
-        title="Planes predeterminados de gráficos"
+        aria-label={PANEL_ARMAR_DESDE.label}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        {...(motivo ? { "aria-disabled": true, "aria-describedby": motivoId } : {})}
+        title={motivo ?? PANEL_ARMAR_DESDE.label}
       >
         {busy ? <Loader2 size={13} className="pulso-spin" /> : <LayoutTemplate size={14} />}
-        <span className="pulso-gv2-suggest-trigger-label">Planes</span>
+        <span className="pulso-gv2-suggest-trigger-label">Armar desde…</span>
       </button>
+      {motivo && <span id={motivoId} className="pulso-sr-only">{motivo}</span>}
 
       {open && (
-        <div className="pulso-gv2-suggest-popover" role="dialog" aria-label="Plan de gráficos sugerido">
+        <div ref={dialogoRef} tabIndex={-1} className="pulso-gv2-suggest-popover" role="dialog" aria-label={PANEL_ARMAR_DESDE.label} {...panel.props}>
           <div className="pulso-gv2-suggest-head">
             <div>
-              <strong>Planes predeterminados</strong>
-              <span>Elige un plan base y previsualízalo antes de aplicarlo al plan actual.</span>
+              <strong>Armar desde un plan sugerido</strong>
+              <span>{motivo ?? "Elige un plan base y previsualízalo antes de aplicarlo al plan actual."}</span>
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar">
+            <button type="button" onClick={cerrarDevolviendoFoco} aria-label="Cerrar">
               <X size={13} />
             </button>
           </div>
+
+          {!motivo && (<>
 
           <div className="pulso-gv2-suggest-options" aria-label="Opciones del plan sugerido">
             <div className="pulso-gv2-suggest-profile" role="radiogroup" aria-label="Perfil de plantilla">
@@ -558,6 +602,16 @@ export function SuggestedPlanButton() {
                 )}
               </div>
 
+              {propuesta !== null && (
+                <label className="pulso-f6-armar-otros">
+                  <input type="checkbox" checked={aceptarOtros} onChange={(e) => setAceptarOtros(e.target.checked)} />
+                  <span>
+                    Este plan propone {propuesta ? "agregar" : "quitar"} las láminas de «Otros» en el PowerPoint
+                    (hoy están {autoOtrosActual ? "puestas" : "quitadas"}). Aplicarlo también.
+                  </span>
+                </label>
+              )}
+
               <div className="pulso-gv2-suggest-actions">
                 <button type="button" onClick={replacePlan} className="is-primary">
                   <Check size={12} /> Reemplazar plan actual
@@ -573,12 +627,13 @@ export function SuggestedPlanButton() {
                     <RefreshCw size={12} /> Actualizar diapositivas equivalentes
                   </button>
                 )}
-                <button type="button" onClick={() => setOpen(false)}>
+                <button type="button" onClick={cerrarDevolviendoFoco}>
                   Cancelar
                 </button>
               </div>
             </>
           )}
+          </>)}
         </div>
       )}
     </div>

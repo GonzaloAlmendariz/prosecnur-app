@@ -1,4 +1,6 @@
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
+import { PANEL_GUIAS_LAMINA } from "./laminas/guias/panelGuias";
+import { PANEL_TIPO_GRAFICO, PANEL_TIPO_LAMINA } from "./laminas/selectores/panelesSelectores";
 
 export const PANEL_BIBLIOTECA_SLIDES: PanelDeclarado = {
   id: "biblioteca-slides",
@@ -33,10 +35,45 @@ export const PANEL_AVISOS_INFORME: PanelDeclarado = {
   clase: "sideover",
 };
 
+/** «Armar desde…» (planes sugeridos, perfiles y sincronizar equivalencias): popover direccionable (A5 rebanada 2b). */
+export const PANEL_ARMAR_DESDE: PanelDeclarado = {
+  id: "armar-desde",
+  label: "Armar desde un plan sugerido",
+  clase: "popover",
+};
+
+/** Biblioteca de íconos de un capítulo del índice (A5 rebanada 2b). */
+export const PANEL_ICONOS: PanelDeclarado = {
+  id: "iconos",
+  label: "Íconos del índice",
+  clase: "dialogo",
+};
+
+/** Plan portátil (C11) desde el menú ⋯ de Láminas: exportar, inspeccionar y aplicar el paquete (decisión 10). */
+export const PANEL_PLAN_PORTATIL: PanelDeclarado = {
+  id: "plan-portatil",
+  label: "Plan portátil",
+  clase: "dialogo",
+};
+
+/** Exportar o importar el plan por secciones en JSON (C12) desde el menú ⋯ de Láminas (decisión 10). */
+export const PANEL_SECCIONES_JSON: PanelDeclarado = {
+  id: "secciones-json",
+  label: "Exportar o importar secciones",
+  clase: "dialogo",
+};
+
 export const PANELES_GRAFICOS = [
   PANEL_BIBLIOTECA_SLIDES,
   PANEL_BIBLIOTECA_GRAFICADORES,
   PANEL_ESTRUCTURA_LAMINAS,
   PANEL_INSPECTOR_LAMINA,
   PANEL_AVISOS_INFORME,
+  PANEL_TIPO_LAMINA,
+  PANEL_TIPO_GRAFICO,
+  PANEL_GUIAS_LAMINA,
+  PANEL_ARMAR_DESDE,
+  PANEL_ICONOS,
+  PANEL_PLAN_PORTATIL,
+  PANEL_SECCIONES_JSON,
 ] as const satisfies readonly PanelDeclarado[];

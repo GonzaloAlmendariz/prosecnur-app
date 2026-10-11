@@ -60,16 +60,19 @@
   "(respuestas válidas)"
 }
 
-#' Universo (ponderado) de una fuente ya filtrada: la vara contra la que se
-#' compara el Total válido de la frecuencia. Sin columna `peso` equivale a
-#' nrow(); con pesos replica el denominador que usa `freq_table_spss()`.
+#' Universo de una fuente ya filtrada: la vara contra la que se compara el
+#' Total válido de la frecuencia. Desde el contrato base-sin-ponderar (I7,
+#' 2026-10-11) la base de lámina es CASOS, así que el universo también: filas
+#' con peso > 0, el mismo criterio de `n_casos` en `freq_table_spss()`. Sin
+#' columna `peso` equivale a nrow(); con todos los pesos en cero cae a nrow()
+#' (no hay universo ponderable que comparar).
 #' @noRd
 .reporte_plan_base_universo <- function(dsub) {
   if (is.null(dsub) || !is.data.frame(dsub) || !nrow(dsub)) return(NA_real_)
   w <- tryCatch(.peso_vec(dsub), error = function(e) NULL)
   if (is.null(w) || length(w) != nrow(dsub)) return(as.numeric(nrow(dsub)))
-  s <- suppressWarnings(sum(as.numeric(w), na.rm = TRUE))
-  if (!is.finite(s) || s <= 0) as.numeric(nrow(dsub)) else s
+  s <- sum(suppressWarnings(as.numeric(w)) > 0, na.rm = TRUE)
+  if (s <= 0) as.numeric(nrow(dsub)) else as.numeric(s)
 }
 
 #' Tercera puerta de base reducida (además de exclusión y filtros): la
@@ -77,7 +80,8 @@
 #' remapean a NA, así que el Total de la frecuencia (válidos SPSS) ya llega
 #' menor que el universo de la fuente — el caso real Conta: 47 de 52 docentes
 #' sin `excluir_opciones` en el plan. Deterministo: Total válido < universo
-#' filtrado (tolerancia numérica para sumas ponderadas).
+#' filtrado. `N_total` llega en casos (`n_casos` del Total), igual que el
+#' universo; la tolerancia queda por compatibilidad con llamadores ponderados.
 #' @noRd
 .reporte_plan_base_na_reducida <- function(N_total, dsub) {
   n <- suppressWarnings(as.numeric(N_total)[1])

@@ -175,6 +175,8 @@ test_that("preview-slide califica refs peladas igual que el job antes del rebuil
     .graficos_palette_env = function(...) new.env(parent = emptyenv()),
     reporte_ppt_plan = function(...) {
       captura$plan <- list(...)$plan
+      # La vista previa ya no registra un PPTX que no existe (A4: E_PREVIEW_FAILED): el doble lo deja escrito.
+      file.create(list(...)$path_ppt)
       invisible(NULL)
     },
     .register_output_file = function(...) list(file_id = "preview-g2", size = 1),

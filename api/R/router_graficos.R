@@ -343,10 +343,12 @@
     # Reponerlo es imposible —el binario no está en ninguna parte— pero
     # renderizar el resto sí. La lámina sale sin ícono y el aviso dice cuál
     # falta, que es exactamente lo que el analista necesita para reponerlo.
-    .pulso_aviso(sprintf(
-      paste0("El ícono '%s' no está disponible y esa lámina se generó sin él. ",
-             "Vuelve a subirlo en Configuración global > Íconos si lo necesitas."),
-      ref
+    # Por su nombre del catálogo si se conoce; la referencia, nunca: es un id o una ruta temporal (graficos_avisos_texto.R).
+    nombre <- .aviso_nombre_icono(ref, icon_registry)
+    .aviso_detalle("ícono no disponible: ref=", ref, " ruta=", path)   # al `.err` del job; el aviso no lleva el id
+    .pulso_aviso(.aviso_en_lamina(
+      sprintf("su ícono%s ya no está en el catálogo de íconos y sale sin él. Vuelve a subirlo en Configuración global > Íconos si lo necesitas.", nombre),
+      sin_contexto = sprintf("Un ícono%s elegido para una lámina ya no está en el catálogo de íconos y esa lámina sale sin él. Vuelve a subirlo en Configuración global > Íconos si lo necesitas.", nombre)
     ))
     return(NULL)
   }
@@ -374,10 +376,10 @@
     # El aviso de la UI decía «deja el campo en (ninguno) para exportar sin
     # ícono» mientras el motor abortaba justo en ese caso: los dos no podían
     # tener razón. Ahora la UI la tiene.
-    .pulso_aviso(sprintf(
-      paste0("La lámina '%s' necesita un ícono y no había ninguno disponible: ",
-             "se usó el integrado. Elige un PNG en Configuración global > Íconos."),
-      tipo
+    .aviso_detalle("ícono requerido ausente en ", tipo, "; se usa builtin:users")
+    .pulso_aviso(.aviso_en_lamina(
+      "necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Configuración global > Íconos.",
+      sin_contexto = sprintf("Una lámina «%s» necesita un ícono y no había ninguno disponible: se usó el integrado. Elige un PNG en Configuración global > Íconos.", .aviso_tipo_lamina(tipo))
     ))
     payload$icono <- tryCatch(
       p_ggplot_raw(.graficos_builtin_icon_plot("builtin:users")),
@@ -386,8 +388,8 @@
     if (is.null(payload$icono)) {
       stop(
         sprintf(
-          "La slide '%s' requiere un icono. Selecciona un PNG en Configuracion global > Iconos.",
-          tipo
+          "La lámina «%s» requiere un ícono. Elige un PNG en Configuración global > Íconos.",
+          .aviso_tipo_lamina(tipo)
         ),
         call. = FALSE
       )
@@ -403,10 +405,13 @@
   out <- list()
   if (!is.list(iconos) || length(iconos) == 0L) return(out)
 
+  nombres <- character(0)   # id -> nombre del catálogo, también de los que perdieron su PNG: el aviso los nombra así
   for (ico in iconos) {
     ico <- as.list(ico)
     id <- .graficos_icon_ref(ico$id %||% "")
     file_id <- .graficos_icon_ref(ico$file_id %||% "")
+    nombre <- as.character(ico$nombre %||% "")[1]
+    if (!is.na(nombre) && nzchar(nombre)) nombres[setdiff(c(id, file_id), "")] <- nombre
     path <- ""
     if (nzchar(file_id)) {
       meta <- tryCatch(get_file(sid, file_id), error = function(e) NULL)
@@ -417,7 +422,7 @@
     if (nzchar(id)) out[[id]] <- path
     if (nzchar(file_id)) out[[file_id]] <- path
   }
-
+  if (length(nombres)) attr(out, "nombres") <- nombres
   out
 }
 
@@ -1123,23 +1128,23 @@
 }
 
 .build_w_presets <- function(w_json) {
-  if (is.null(w_json) || length(w_json) == 0) return(NULL)
-  args <- as.list(w_json)
-  do.call(get("w_presets", mode = "function", inherits = TRUE), args)
+  # ADR 0094. El embudo del job de Word: repone el default vigente bajo las decisiones (y migra fósiles), mezcla las
+  # sublistas de estilo sobre los formals y filtra con aviso lo que `w_presets()` no acepta, en vez de abortar.
+  do.call(get("w_presets", mode = "function", inherits = TRUE), .graficos_w_presets_args(w_json))
 }
 
 .validar_plan_json <- function(plan_json) {
   errs <- character(0); warns <- character(0)
   plan_json <- .normalize_plan(plan_json)
   slides <- plan_json$slides
-  if (length(slides) == 0) errs <- c(errs, "El plan no tiene slides.")
+  if (length(slides) == 0) errs <- c(errs, "El plan no tiene láminas.")
   for (i in seq_along(slides)) {
     s <- as.list(slides[[i]])
     tipo <- as.character(s$tipo %||% "")
-    tag <- sprintf("slide[%d]", i)
-    if (!nzchar(tipo)) { errs <- c(errs, sprintf("%s: falta tipo", tag)); next }
+    tag <- .aviso_lamina(i, .aviso_titulo_payload(s))   # «Lámina 3 · “Título”», sin ids ni tipos internos
+    if (!nzchar(tipo)) { errs <- c(errs, sprintf("%s: no tiene tipo de lámina; elige uno en el editor", tag)); next }
     if (!(tipo %in% names(.SLIDE_REGISTRY))) {
-      errs <- c(errs, sprintf("%s: tipo desconocido '%s'", tag, tipo)); next
+      errs <- c(errs, sprintf("%s: es de %s; elige otro tipo en el editor", tag, .aviso_tipo_lamina(tipo))); next
     }
     payload <- .as_json_list(s$payload) %||% list()
     graf_slots <- .SLIDE_REGISTRY[[tipo]]$grafs
@@ -1150,18 +1155,19 @@
       lapply(graf_slots, function(nm) .as_json_list(payload[[nm]])),
       graf_slots
     )
-    warns <- c(warns, .plan_avisos_lamina(slots_lamina, tag))
+    warns <- c(warns, .plan_avisos_lamina(slots_lamina, tag, tipo))
 
     for (slot_name in graf_slots) {
       slot <- .as_json_list(payload[[slot_name]])
-      warns <- c(warns, .graficos_orden_cat_avisos_slot(slot, sprintf("%s (%s)", tag, slot_name)))   # D8
+      espacio <- .aviso_espacio(tipo, slot_name)
+      warns <- c(warns, .graficos_orden_cat_avisos_slot(slot, sprintf("%s (%s)", tag, espacio)))   # D8
       graf_name <- as.character(slot$graficador %||% "")
       if (!nzchar(graf_name)) {
-        warns <- c(warns, sprintf("%s (%s): slot '%s' sin graficador", tag, tipo, slot_name))
+        warns <- c(warns, sprintf("%s: el espacio «%s» está sin gráfico", tag, espacio))
       } else if (!(graf_name %in% .GRAFICADOR_REGISTRY)) {
         resolved_graf_name <- .graficos_resolve_graficador_name(graf_name)
         if (!(resolved_graf_name %in% .GRAFICADOR_REGISTRY)) {
-          errs <- c(errs, sprintf("%s: graficador desconocido '%s'", tag, graf_name))
+          errs <- c(errs, sprintf("%s: el espacio «%s» usa %s; elige otro en el editor", tag, espacio, .aviso_tipo_grafico(graf_name)))
         }
       }
     }
@@ -1182,7 +1188,7 @@
     version = "graficos/4",
     plan = list(slides = list()),
     presets = user_presets %||% .PRESETS_DEFAULT_PULSO,
-    w_presets = .WORD_PRESETS_DEFAULT_PULSO,
+    w_presets = .graficos_w_presets_default(),
     selected_slide_id = NULL,
     paletas = list(),
     iconos = list(),
@@ -1243,7 +1249,13 @@
   configs[[candidates[[1]]]]
 }
 
+# El estilo del cliente se pone según su ámbito (proyecto o base) encima de la config guardada (graficos_estilo_cliente.R).
 .graficos_config_get <- function(sid, s = NULL) {
+  s <- s %||% session_get(sid, required = FALSE)
+  .graficos_estilo_cliente_en_config(sid, s, .graficos_config_get_guardada(sid, s), .graficos_scoped_base(sid))
+}
+
+.graficos_config_get_guardada <- function(sid, s = NULL) {
   # Tambien al LEER, y no solo al guardar: un `.pulso` anterior al ADR 0074 trae
   # su bag entero —253 valores medidos, 218 de ellos el default congelado— y
   # merece el mismo trato sin obligar a una migracion. El primer guardado ya lo
@@ -1258,7 +1270,10 @@
     if (is.list(cfg) && !is.null(cfg$presets)) {
       cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
     }
-    cfg
+    # ADR 0094: lo mismo para el Word (fósiles G1/G2 incluidos) y, de lo guardado, se descarta con aviso lo inválido.
+    # Sin escribir de vuelta: abrir no marca el proyecto como modificado; el primer guardado deja el diff en disco.
+    if (is.list(cfg) && !is.null(cfg$documento_word)) cfg$documento_word <- .graficos_documento_word_validos(cfg$documento_word)
+    .graficos_config_word_solo_decisiones(cfg)
   }
   s <- s %||% session_get(sid, required = FALSE)
   if (is.null(s)) return(.graficos_default_config(sid))
@@ -1286,6 +1301,10 @@
 
 .graficos_config_get_for_base <- function(sid, base_name, s = NULL) {
   s <- s %||% session_get(sid, required = FALSE)
+  .graficos_estilo_cliente_en_config(sid, s, .graficos_config_get_for_base_guardada(sid, base_name, s), base_name)
+}
+
+.graficos_config_get_for_base_guardada <- function(sid, base_name, s = NULL) {
   if (is.null(s)) return(.graficos_default_config(sid))
   active <- as.character(base_name %||% "")[1]
   if (is.na(active) || !nzchar(active)) return(s$graficos_config %||% .graficos_default_config(sid))
@@ -1312,6 +1331,8 @@
   if (is.list(cfg) && !is.null(cfg$presets)) {
     cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
   }
+  cfg <- .graficos_config_word_solo_decisiones(cfg)   # ADR 0094: w_presets y documento_word, igual
+  cfg <- .graficos_estilo_cliente_al_guardar(sid, cfg)  # y estilo_cliente, donde diga su ámbito
   active <- .graficos_scoped_base(sid)
   if (nzchar(active)) {
     s <- session_get(sid)
@@ -1395,13 +1416,14 @@
   known <- c(
     "ok", "version", "exported_at", "exportedAt", "imported_at", "importedAt",
     "config", "plan", "presets", "w_presets", "wPresets",
-    "selected_slide_id", "selectedSlideId", "paletas", "iconos",
+    "selected_slide_id", "selectedSlideId", "paletas", "paletas_vinculos", "paletasVinculos", "iconos",
     "overrides_reusables", "overridesReusables", "debug_ph", "debugPh",
     "view_mode", "viewMode", "inspector_tab", "inspectorTab", "density",
     "canvas_viewport", "canvasViewport", "scope_rules", "scopeRules",
     "profile_id", "profileId", "template_id", "templateId",
     "auto_otros_slides", "autoOtrosSlides",
-    "documento_word", "documentoWord",
+    "documento_word", "documentoWord", "estilo_cliente", "estiloCliente",
+    "equivalencias_revision", "equivalenciasRevision",
     "_unknown"
   )
   if (!.graficos_is_obj(x)) return(list())
@@ -1490,7 +1512,7 @@
 
   w_presets <- .graficos_pick_alias(src, "w_presets", "wPresets")
   cfg$w_presets <- if (.graficos_is_obj(w_presets)) {
-    .graficos_deep_merge(defaults$w_presets, w_presets)
+    .graficos_w_presets_con_defaults(w_presets, defaults$w_presets)   # ADR 0094: repone y migra fósiles
   } else {
     defaults$w_presets
   }
@@ -1504,6 +1526,11 @@
   } else {
     defaults$paletas
   }
+  # ADR 0097: vínculo lista del instrumento → paleta; sólo decisiones (ausente = sin vínculo). Viaja también como
+  # atributo de `paletas`, que es lo que reciben los workers, para que `.graficos_palette_env()` lo vea.
+  vinculos <- .graficos_normalize_paletas_vinculos(.graficos_pick_alias(src, "paletas_vinculos", "paletasVinculos"))
+  if (length(vinculos)) cfg$paletas_vinculos <- vinculos else cfg$paletas_vinculos <- NULL
+  attr(cfg$paletas, "paletas_vinculos") <- cfg$paletas_vinculos
 
   iconos <- .graficos_pick_alias(src, "iconos")
   cfg$iconos <- if (is.list(iconos) && is.null(names(iconos))) iconos else defaults$iconos
@@ -1537,9 +1564,18 @@
     defaults$auto_otros_slides
   }
 
+  # Sello ADR 0063 de la revisión de equivalencias de la que salió el mazo: campo de primera clase, en la raíz. Un
+  # proyecto guardado antes lo trae en `_unknown`; de ahí se rescata para que el primer autosave no lo pise.
+  rev <- .graficos_pick_alias(src, "equivalencias_revision", "equivalenciasRevision")
+  if (is.null(rev) || identical(rev, "")) rev <- (if (.graficos_is_obj(src$`_unknown`)) src$`_unknown`$equivalencias_revision) %||% rev
+  cfg$equivalencias_revision <- if (is.character(rev) && length(rev) == 1L && !is.na(rev)) rev else ""
+
   # Opciones del documento Word del recetario (F6.0b.4): se validan al exportar (.graficos_opciones_documento).
   documento_word <- .graficos_pick_alias(src, "documento_word", "documentoWord")
   if (.graficos_is_obj(documento_word)) cfg$documento_word <- documento_word
+  # Estilo del cliente (A6 R3): sólo si viene —ausente, el guardado conserva el que hay—, con el default repuesto debajo.
+  estilo_cliente <- .graficos_pick_alias(src, "estilo_cliente", "estiloCliente")
+  if (.graficos_is_obj(estilo_cliente)) cfg$estilo_cliente <- .graficos_estilo_cliente_con_defaults(estilo_cliente, cfg$profile_id)
 
   scope_rules <- .graficos_pick_alias(src, "scope_rules", "scopeRules")
   cfg$scope_rules <- if (.graficos_is_obj(scope_rules)) scope_rules else list(
@@ -1559,6 +1595,7 @@
     bundle_unknown <- .graficos_unknown_fields(envelope)
     if (length(bundle_unknown) > 0L) unknown$`__bundle` <- bundle_unknown
   }
+  unknown$equivalencias_revision <- NULL; unknown$equivalenciasRevision <- NULL   # ya rescatado a la raíz
   if (length(unknown) > 0L) cfg$`_unknown` <- unknown
 
   if (isTRUE(include_legacy_aliases)) {
@@ -1636,7 +1673,8 @@
   out[!duplicated(names(out))]
 }
 
-.graficos_palette_env <- function(paletas, parent = parent.frame()) {
+.graficos_palette_env <- function(paletas, parent = parent.frame(),
+                                  vinculos = attr(paletas, "paletas_vinculos", exact = TRUE)) {
   env <- new.env(parent = parent)
   if (!is.list(paletas) || !length(paletas)) return(env)
 
@@ -1647,6 +1685,9 @@
     if (is.null(pal) || !length(pal)) next
     assign(paste0("paleta_", ln), pal, envir = env)
   }
+  # ADR 0097: los vínculos y el origen (usuario o perfil) de cada paleta, para `.paleta_resolver()`.
+  assign(".paletas_vinculos", .graficos_normalize_paletas_vinculos(vinculos), envir = env)
+  assign(".paletas_origen", .paleta_origenes(paletas), envir = env)
 
   env
 }
@@ -2025,6 +2066,44 @@
     stop(sprintf("%s debe ser booleano.", name), call. = FALSE)
   }
   value
+}
+
+# Body de /preview-slide (y de /preview-slide-job), sin simplificar: jsonlite no rectangulariza la lámina.
+.graficos_preview_leer_body <- function(req) {
+  body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+  if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+  Encoding(body_raw) <- "UTF-8"
+  tryCatch(
+    jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+    error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+  )
+}
+
+# Lámina y opciones de la vista previa, validadas (mismos códigos E_* de siempre).
+.graficos_preview_opciones <- function(parsed) {
+  slide <- parsed$slide
+  if (is.null(slide)) stop_api(400, "E_NO_SLIDE", "Body debe incluir 'slide'.")
+  preview_quality <- tolower(as.character(parsed$preview_quality %||% "quick"))
+  if (!preview_quality %in% c("quick", "normal")) {
+    stop_api(400, "E_BAD_PREVIEW_QUALITY", "preview_quality debe ser 'quick' o 'normal'.")
+  }
+  opcion <- function(nombre, default, codigo) {
+    tryCatch(.graficos_preview_bool_option(parsed, nombre, default), error = function(e) stop_api(400, codigo, conditionMessage(e)))
+  }
+  opts <- list(
+    preview_quality = preview_quality,
+    include_images = opcion("include_images", TRUE, "E_BAD_INCLUDE_IMAGES"),
+    render_slide_preview = opcion("render_slide_preview", FALSE, "E_BAD_RENDER_SLIDE_PREVIEW"),
+    # Todas las partes «(cont.)» sólo si el cliente las pide: con el renderer de artefactos cada parte cuesta ~10 s.
+    preview_partes = opcion("preview_partes", FALSE, "E_BAD_PREVIEW_PARTES"),
+    # K11: las formas de cada parte y las ranuras del estándar, para las guías del visor (graficos_preview_formas.R).
+    preview_formas = opcion("preview_formas", FALSE, "E_BAD_PREVIEW_FORMAS")
+  )
+  tipo <- as.character(slide$tipo %||% "")
+  if (!nzchar(tipo) || !(tipo %in% .slide_names())) {
+    stop_api(400, "E_BAD_SLIDE", sprintf("Tipo de slide inválido: '%s'", tipo))
+  }
+  opts
 }
 
 .graficos_slide_layout_scope <- function(value = NULL) {
@@ -2602,7 +2681,9 @@ mount_graficos <- function(pr) {
       sid <- session_header(req)
       avisos <- .graficos_config_migrar_sesion(sid)   # persiste la migración de la población antigua y la avisa una vez
       cfg <- .graficos_normalize_config(.graficos_config_get(sid), sid = sid, include_legacy_aliases = TRUE)
-      list(ok = TRUE, config = cfg, avisos = I(avisos))
+      # `defaults` (ADR 0094, decisión 5a): aditivo y no persistido; «Modificado» compara contra él.
+      defaults <- c(.graficos_config_defaults_publicos(), list(estilo_cliente = .graficos_estilo_cliente_defaults_publicos(sid, cfg$profile_id)))
+      list(ok = TRUE, config = cfg, defaults = defaults, avisos = I(avisos))
     })) |>
     plumber::pr_post("/api/graficos/config", wrap_endpoint(function(req, res, ...) {
       # Recibe el estado completo (plan + presets + wPresets + selected)
@@ -2616,6 +2697,7 @@ mount_graficos <- function(pr) {
         jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
+      .graficos_estilo_cliente_validar_body(parsed, sid)   # 400 E_BAD_ESTILO_CLIENTE: el normalizador es tolerante
       cfg <- .graficos_normalize_config(parsed$config %||% parsed, sid = sid)
       cfg <- .graficos_conservar_campos_backend(cfg, .graficos_config_get(sid))
       .graficos_config_set(sid, cfg)
@@ -2937,7 +3019,9 @@ mount_graficos <- function(pr) {
       }
       # ADR 0063: la fuente decide el generador (perfiles o declaracion de
       # equivalencias); la eleccion vive en graficos_plan_equivalencias.R.
-      .graficos_plan_sugerido_por_fuente(sid, config = parsed$config %||% NULL)
+      # ADR 0096: `scope` en la raiz del cuerpo, igual que /plan/coverage.
+      .graficos_plan_sugerido_por_fuente(sid, config = parsed$config %||% NULL,
+                                         scope = parsed$scope %||% "")
     })) |>
     plumber::pr_get("/api/graficos/paletas-sugeridas", wrap_endpoint(function(req, res) {
       # Devuelve todas las listas de choices del instrumento con sus
@@ -3012,356 +3096,15 @@ mount_graficos <- function(pr) {
       .validar_plan_json(plan)
     })) |>
     plumber::pr_post("/api/graficos/preview-slide", wrap_endpoint(function(req, res, ...) {
-      # Genera un .pptx mini con UN solo slide, para que el analista vea
-      # cómo queda su slide específico sin tener que correr el reporte
-      # completo. Fiel al output final (usa el mismo pipeline de export)
-      # pero rápido (2-3s típico para 1 slide).
-      #
-      # Sincrónico (no callr) porque el tamaño es chico. Si en el futuro
-      # vemos timeouts con dimensiones/FODA, migramos a job_submit.
+      # Mini-PPTX de UNA lámina con el mismo motor del export, para ver la lámina sin correr el informe. Síncrono, con
+      # caché por huella (graficos_miniaturas.R): con la misma lámina, datos, estilo y plantilla no vuelve a renderizar.
+      # La variante que no bloquea plumber es POST /api/graficos/preview-slide-job (router_graficos_miniaturas.R).
       sid <- session_header(req)
-      s <- session_get(sid)
-
-      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
-      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
-      Encoding(body_raw) <- "UTF-8"
-      parsed <- tryCatch(
-        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
-        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
-      )
-      preview_scope <- tolower(trimws(as.character(parsed$scope %||% "")[1]))
-      consolidated_scope <- identical(preview_scope, "consolidated")
-      preview_sources <- if (isTRUE(consolidated_scope)) {
-        .graficos_consolidado_sources(sid)
-      } else {
-        .graficos_processing_sources(sid)
-      }
-      if (!.graficos_sources_usable(preview_sources$data_sources, preview_sources$inst_sources)) {
-        stop_api(
-          409,
-          "E_NO_VALID_RP_DATA",
-          if (isTRUE(consolidated_scope)) {
-            "Las fuentes procesadas del consolidado no estan disponibles o quedaron incompletas."
-          } else {
-            .graficos_base_error(
-              sid,
-              paste(
-                "La fuente procesada para Graficos no esta disponible o quedo incompleta.",
-                "Vuelve a aplicar la codificacion o recarga la base desde Fase 1."
-              )
-            )
-          }
-        )
-      }
-      slide <- parsed$slide
-      if (is.null(slide)) stop_api(400, "E_NO_SLIDE", "Body debe incluir 'slide'.")
-      preview_quality <- tolower(as.character(parsed$preview_quality %||% "quick"))
-      if (!preview_quality %in% c("quick", "normal")) {
-        stop_api(400, "E_BAD_PREVIEW_QUALITY", "preview_quality debe ser 'quick' o 'normal'.")
-      }
-      include_images <- tryCatch(
-        .graficos_preview_bool_option(parsed, "include_images", TRUE),
-        error = function(e) stop_api(400, "E_BAD_INCLUDE_IMAGES", conditionMessage(e))
-      )
-      render_slide_preview <- tryCatch(
-        .graficos_preview_bool_option(parsed, "render_slide_preview", FALSE),
-        error = function(e) stop_api(400, "E_BAD_RENDER_SLIDE_PREVIEW", conditionMessage(e))
-      )
-      # Todas las partes «(cont.)» sólo si el cliente las pide: con el renderer de artefactos cada parte cuesta ~10 s.
-      preview_partes <- tryCatch(
-        .graficos_preview_bool_option(parsed, "preview_partes", FALSE),
-        error = function(e) stop_api(400, "E_BAD_PREVIEW_PARTES", conditionMessage(e))
-      )
-      # K11: las formas de cada parte y las ranuras del estándar, para las guías del visor (graficos_preview_formas.R).
-      preview_formas <- tryCatch(.graficos_preview_bool_option(parsed, "preview_formas", FALSE),
-                                 error = function(e) stop_api(400, "E_BAD_PREVIEW_FORMAS", conditionMessage(e)))
-
-      # Validación mínima: tiene tipo y payload.
-      tipo <- as.character(slide$tipo %||% "")
-      if (!nzchar(tipo) || !(tipo %in% .slide_names())) {
-        stop_api(400, "E_BAD_SLIDE", sprintf("Tipo de slide inválido: '%s'", tipo))
-      }
-
-      # Presets desde la config del store (si los hay), para que el preview
-      # respete el estilo global ya configurado en Configuración Global.
-      # Enriquecemos con usar_canvas=TRUE + debug_ph (invariantes globales
-      # que el backend aplica antes de cada export).
-      cfg <- .graficos_effective_config(sid, parsed$config %||% parsed$graficos_config)
-      # El mini-plan no tiene el separador vigente: sin esto la lámina salía sin antetítulo (F6.0b.2, inventario parte C).
-      slide <- .preview_con_antetitulo(slide, cfg$plan$slides %||% list())
-      # K2: el folio real de la lámina en el plan (o el que mande el cliente); el mini-plan la numeraba «1».
-      folio <- .preview_folio(cfg$plan$slides %||% list(), slide$id, parsed$folio)
-      delivery <- .graficos_delivery_options(
-        cfg,
-        profile_id = parsed$profile_id %||% parsed$profileId,
-        template_id = parsed$template_id %||% parsed$templateId
-      )
-      template_pptx <- .graficos_resolve_template_pptx(
-        config = cfg,
-        profile_id = delivery$profile_id,
-        template_id = delivery$template_id
-      )
-      presets_json <- .enriquecer_presets(cfg$presets %||% list(), cfg$debug_ph)
-      icon_registry <- .graficos_icon_registry(sid, cfg)
-      palette_env <- .graficos_palette_env(cfg$paletas %||% list(), parent = parent.frame())
-      preview_cache_key <- digest::digest(list(
-        slide = slide,
-        scope = if (isTRUE(consolidated_scope)) "consolidated" else "active_base",
-        source_names = names(preview_sources$data_sources),
-        active_base = if (isTRUE(consolidated_scope)) "" else .graficos_active_base_name(sid),
-        template_id = delivery$template_id,
-        template_hash = if (!is.na(template_pptx) && file.exists(template_pptx)) {
-          digest::digest(file = template_pptx, algo = "xxhash64")
-        } else "",
-        auto_otros_slides = delivery$auto_otros_slides,
-        preset_hash = digest::digest(
-          list(
-            presets = cfg$presets %||% list(),
-            debug_ph = cfg$debug_ph %||% list(),
-            iconos = cfg$iconos %||% list(),
-            paletas = cfg$paletas %||% list()
-          ),
-          algo = "xxhash64"
-        ),
-        preview_quality = preview_quality,
-        include_images = include_images,
-        render_slide_preview = render_slide_preview,
-        preview_partes = preview_partes,
-        folio = folio
-      ), algo = "xxhash64")
-      preview_cache <- s$graficos_preview_cache %||% list()
-      if (!is.list(preview_cache)) preview_cache <- list()
-      now <- as.numeric(Sys.time())
-      if (length(preview_cache)) {
-        preview_cache <- preview_cache[vapply(
-          preview_cache,
-          function(v) {
-            is.list(v) &&
-              is.numeric(v$cached_at) &&
-              v$cached_at >= (now - 300)
-          },
-          logical(1)
-        )]
-      }
-      cached <- preview_cache[[preview_cache_key]] %||% NULL
-      if (is.list(cached) && is.numeric(cached$cached_at) && cached$cached_at >= now - 300) {
-        cached_meta <- tryCatch(
-          get_file(sid, cached$file_id),
-          error = function(e) NULL
-        )
-        if (!is.null(cached_meta) && file.exists(cached_meta$path)) {
-          session_set(sid, "graficos_preview_cache", preview_cache)
-          return(.preview_con_formas(list(
-            ok = TRUE,
-            file_id = cached$file_id,
-            size = cached$size,
-            type = "pptx",
-            images = if (include_images) cached$images %||% list() else list(),
-            slide_preview = if (isTRUE(render_slide_preview)) cached$slide_preview %||% NA else NA,
-            partes = cached$partes %||% list(n = 0L, partes = list()),
-            slide_previews = if (isTRUE(render_slide_preview)) cached$slide_previews %||% list() else list(),
-            avisos = cached$avisos %||% character(0),
-            folio = folio
-          ), cached_meta$path, tipo, preview_formas))
-        }
-      }
-
-      # Plan mini con un solo slide.
-      mini_plan <- .graficos_calificar_refs_plan(
-        list(slides = list(slide)),
-        if (isTRUE(consolidated_scope)) "" else .graficos_active_base_name(sid)
-      )
-      slide <- mini_plan$slides[[1]]
-
-      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
-      out_path <- file.path(s$dir, "downloads", sprintf("preview_%s.pptx", uuid::UUIDgenerate()))
-
-      # Construir slide con las mismas funciones que usa el worker de /ppt.
-      slide_registry <- setNames(
-        lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))),
-        .slide_names()
-      )
-      graficador_registry <- .graf_names()
-
-      promote_graph_title <- function(args, fn) {
-        args <- .graficos_normalize_rebuild_aliases(args, fn)
-        if (!("titulo" %in% names(args)) || !("overrides" %in% names(formals(fn)))) return(args)
-        title_value <- args$titulo
-        has_title <- !(
-          is.null(title_value) ||
-            length(title_value) == 0L ||
-            (length(title_value) == 1L && is.list(title_value) && is.null(title_value[[1]])) ||
-            (length(title_value) == 1L && is.atomic(title_value) && is.na(title_value)) ||
-            (length(title_value) == 1L && is.character(title_value) && !nzchar(trimws(title_value)))
-        )
-        if (!isTRUE(has_title)) return(args)
-        overrides <- as_list_shallow(args$overrides) %||% list()
-        override_title <- overrides$titulo %||% NULL
-        has_override_title <- !(
-          is.null(override_title) ||
-            length(override_title) == 0L ||
-            (length(override_title) == 1L && is.list(override_title) && is.null(override_title[[1]])) ||
-            (length(override_title) == 1L && is.atomic(override_title) && is.na(override_title)) ||
-            (length(override_title) == 1L && is.character(override_title) && !nzchar(trimws(override_title)))
-        )
-        if (!isTRUE(has_override_title)) overrides$titulo <- as.character(title_value)[1]
-        args$overrides <- overrides
-        args$titulo <- NULL
-        args
-      }
-      rebuild_graf <- function(g) {
-        if (is.null(g)) return(NULL)
-        # NA = lamina borrador rectangularizada (nzchar(NA) es TRUE): sin este
-        # guard el export completo moria con "Graficador no registrado: NA".
-        graf_ref <- as.character(g$graficador %||% NA_character_)[1]
-        if (is.na(graf_ref) || !nzchar(trimws(graf_ref))) return(NULL)
-        graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
-        if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
-        fn <- getExportedValue("prosecnurapp", graficador_name)
-        args <- .graficos_unwrap_scalar_refs(g$args %||% list())
-        args <- .graficos_drop_blank_optional_refs(args)
-        if (.graficos_args_missing_required_ref(args, graficador_name)) {
-          return(.graficos_blank_graph_element())
-        }
-        args <- promote_graph_title(args, fn)
-        args <- args[names(args) %in% names(formals(fn))]
-        args <- args[!vapply(args, function(v) {
-          is.null(v) ||
-            length(v) == 0L ||
-            (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
-            (length(v) == 1L && is.atomic(v) && is.na(v))
-        }, logical(1))]
-        if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
-        do.call(fn, args)
-      }
-      as_list_shallow <- function(x) {
-        if (is.null(x)) return(NULL)
-        if (is.list(x)) return(x)
-        as.list(x)
-      }
-      rebuild_slide <- function(s0) {
-        s0 <- as.list(s0)
-        tipo0 <- as.character(s0$tipo %||% "")
-        if (!nzchar(tipo0) || !(tipo0 %in% names(slide_registry))) {
-          stop(sprintf("Tipo de slide inválido: %s", tipo0))
-        }
-        payload <- as_list_shallow(s0$payload) %||% list()
-        payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
-        for (slot_name in slide_registry[[tipo0]]$grafs) {
-          if (!is.null(payload[[slot_name]])) {
-            payload[[slot_name]] <- rebuild_graf(as_list_shallow(payload[[slot_name]]))
-          }
-        }
-        fn <- getExportedValue("prosecnurapp", tipo0)
-        payload <- .graficos_normalize_payload_icon(payload, fn, tipo0, icon_registry = icon_registry)
-        payload <- .graficos_payload_con_meta(payload)
-        allowed_args <- names(formals(fn))
-        payload <- payload[names(payload) %in% allowed_args]
-        payload <- payload[!vapply(payload, function(v) {
-          is.null(v) ||
-            length(v) == 0L ||
-            (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
-            (length(v) == 1L && is.atomic(v) && is.na(v))
-        }, logical(1))]
-        payload <- .graficos_fill_blank_graf_slots(payload, fn, slide_registry[[tipo0]]$grafs)
-        do.call(fn, payload)
-      }
-
-      build_presets <- function(pj) {
-        if (is.null(pj) || length(pj) == 0) return(NULL)
-        .build_presets(pj)
-      }
-
-      # Ejecución del preview. Envuelvo en tryCatch para devolver un
-      # error legible si algún arg falta o invalida.
-      #
-      # `data` e `instrumento` se pasan como listas nombradas (multi-base).
-      # Cuando hay 1 sola base, el scoping devuelve
-      # `list(<nombre> = df)` y el motor maneja ese caso como single-base.
-      # Los [PULSO-AVISO] del motor (columna omitida, lámina que cae a la ruta anterior…) se devuelven con la vista previa
-      # en vez de perderse en stderr (F6.0b.1; graficos_preview_lamina.R).
-      avisos <- tryCatch({
-        slide_r <- rebuild_slide(slide)
-        .preview_con_avisos(.preview_con_folio(reporte_ppt_plan(
-          data = preview_sources$data_sources,
-          instrumento = preview_sources$inst_sources,
-          path_ppt = out_path,
-          presets = build_presets(presets_json),
-          plan = do.call(p_plan, list(slides = list(slide_r))),
-          env_diapos = palette_env,
-          template_pptx = template_pptx,
-          template_id = delivery$template_id,
-          auto_otros_slides = delivery$auto_otros_slides,
-          mensajes_progreso = FALSE
-        ), folio))$avisos
-      }, error = function(e) {
-        stop_api(400, "E_PREVIEW_FAILED",
-                 sprintf("No se pudo generar el preview: %s", .graficos_base_error(sid, conditionMessage(e))))
-      })
-
-      # Extraemos las imágenes PNG embebidas en el .pptx para devolverlas
-      # inline al frontend. Los graficadores de prosecnur con
-      # `usar_canvas=TRUE` (invariante global) renderizan cada slot como
-      # un PNG dentro de `ppt/media/` del .pptx. Leerlos es más barato que
-      # convertir el pptx a png con libreoffice/magick y no requiere
-      # dependencias externas — solo descomprimir un ZIP (el pkg `zip`
-      # ya es dep del launcher).
-      #
-      # Si hay 1 slot, `images` tiene 1 PNG (el del gráfico). Si hay N
-      # slots, N PNGs. El frontend los puede mostrar lado a lado. Los
-      # layouts puros (p_slide_portada, p_slide_indice) devuelven 0.
-      images <- if (isTRUE(include_images)) .extract_pptx_images(out_path) else list()
-      # Partes «(cont.)» y estado nativa/ruta anterior de cada una (F6.0b, graficos_preview_lamina.R); se rasterizan
-      # todas con una sola conversión y la primera sigue siendo `slide_preview`.
-      partes <- .preview_partes(out_path)
-      slide_previews <- if (isTRUE(render_slide_preview) && isTRUE(.preview_renderer_status()$available)) {
-        .render_pptx_preview_partes(out_path, partes$n, preview_quality = preview_quality,
-                                    max_partes = if (isTRUE(preview_partes)) 6L else 1L)
-      } else {
-        list()
-      }
-      partes$truncado <- isTRUE(attr(slide_previews, "truncado"))
-      slide_preview <- if (length(slide_previews) && !is.null(slide_previews[[1]])) {
-        slide_previews[[1]][setdiff(names(slide_previews[[1]]), "indice")]
-      } else {
-        NULL
-      }
-      meta <- .register_output_file(sid, "graficos_preview", out_path)
-      preview_cache[[preview_cache_key]] <- list(
-        file_id = meta$file_id,
-        size = meta$size,
-        images = images,
-        slide_preview = slide_preview,
-        partes = partes,
-        slide_previews = slide_previews,
-        avisos = avisos,
-        cached_at = now
-      )
-      if (length(preview_cache) > 16L) {
-        order_idx <- order(
-          vapply(
-            preview_cache,
-            function(v) if (is.list(v) && is.numeric(v$cached_at)) v$cached_at else 0,
-            numeric(1)
-          ),
-          decreasing = TRUE,
-          na.last = TRUE
-        )
-        preview_cache <- preview_cache[order_idx][seq_len(min(length(order_idx), 16L))]
-      }
-      session_set(sid, "graficos_preview_cache", preview_cache)
-      .preview_con_formas(list(
-        ok = TRUE,
-        file_id = meta$file_id,
-        size = meta$size,
-        type = "pptx",
-        images = images,
-        slide_preview = slide_preview %||% NA,
-        partes = partes,
-        slide_previews = slide_previews,
-        avisos = avisos,
-        folio = folio
-      ), out_path, tipo, preview_formas)
+      session_get(sid)
+      parsed <- .graficos_preview_leer_body(req)
+      fuentes <- .graficos_preview_fuentes(sid, parsed)
+      opts <- .graficos_preview_opciones(parsed)
+      .graficos_preview_sincrona(sid, parsed, fuentes, opts)
     })) |>
     plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
       sid <- session_header(req)
@@ -3616,9 +3359,9 @@ mount_graficos <- function(pr) {
       icon_registry_arg <- .graficos_icon_registry(sid, cfg)
       paletas_arg <- cfg$paletas %||% list()
       # Portada, apertura, «Cómo leer», contacto y datos de portada del recetario (F6.0b.4, graficos_documento_word.R).
-      opciones_documento <- .graficos_opciones_documento(
-        if (is.list(crudo)) crudo$opciones_documento %||% cfg$documento_word else cfg$documento_word
-      )
+      # ADR 0094: lo guardado (lector tolerante) con el body encima, por clave; el body inválido sigue siendo 400.
+      opciones_documento <- .graficos_documento_word_mezclar(cfg$documento_word, if (is.list(crudo)) crudo$opciones_documento)
+      w_presets <- .graficos_deep_merge(cfg$w_presets, w_presets)   # default -> fósiles -> diff guardado -> body
       args_word <- list(
         rp_data_path = rp_data_path,
         rp_inst_path = rp_inst_path,
@@ -3633,6 +3376,10 @@ mount_graficos <- function(pr) {
       )
       # Sólo viaja si hay opciones: un worker instalado sin este argumento sigue funcionando mientras no se usen.
       if (length(opciones_documento)) args_word$opciones_documento <- opciones_documento
+      estilo_cliente <- .graficos_estilo_cliente_resolver(sid, cfg)   # logos (rutas) y letra K13; igual, sólo si hay
+      if (length(estilo_cliente)) args_word$estilo_cliente <- estilo_cliente
+      # Decisión 21: la tabla «Otros» del recetario Word sigue la misma opción del proyecto que el PPT; sólo viaja encendida.
+      if (isTRUE(.graficos_delivery_options(cfg)$auto_otros_slides)) args_word$auto_otros_slides <- TRUE
 
       job_id <- job_submit(
         sid = sid,

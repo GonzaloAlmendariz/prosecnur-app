@@ -1,17 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, Download, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, Ruler, SlidersHorizontal, Upload, X } from "lucide-react";
-import {
-  apiGraficosConfigGet,
-  apiGraficosConfigExport,
-  apiGraficosConfigImport,
-  apiGraficosShareExport,
-  apiGraficosShareImport,
-  apiGraficosShareInspect,
-  downloadUrl,
-  type GraficosShareInspectResult,
-} from "../../api/client";
-import { getSession } from "../../api/core";
-import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
+import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, Ruler, SlidersHorizontal, X } from "lucide-react";
 import { ContextBar } from "../../components/ContextBar";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { DEFAULT_DEBUG_PH, usePlanStore } from "./store";
@@ -24,92 +12,12 @@ import { ExportarInformeMenu } from "./ExportarInformeMenu";
 import { useSession } from "../../lib/SessionContext";
 import { modoMultibaseDelPlan } from "./modoMultibase";
 import type { GraficosReportScope } from "./reportScope";
-import {
-  acknowledgeSlideCompositionConfig,
-  invalidateSlideCompositionPersistenceAck,
-} from "./slideCompositionPersistence";
-
-type GraficosJsonSectionId =
-  | "plan"
-  | "presets"
-  | "w_presets"
-  | "paletas"
-  | "iconos"
-  | "overrides_reusables"
-  | "debug_ph"
-  | "scope_rules"
-  | "ui_state";
-
-const GRAFICOS_JSON_SECTIONS: Array<{ id: GraficosJsonSectionId; label: string; help: string }> = [
-  { id: "plan", label: "Láminas", help: "Orden y contenido de cada lámina." },
-  { id: "presets", label: "Estilo para PPT", help: "Bases visuales para PowerPoint." },
-  { id: "w_presets", label: "Estilo para Word", help: "Formato de gráficos y tablas." },
-  { id: "paletas", label: "Colores", help: "Paletas de respuestas y categorías." },
-  { id: "iconos", label: "Íconos", help: "Recursos para láminas de población." },
-  { id: "overrides_reusables", label: "Estilos reutilizables", help: "Ajustes guardados para varios gráficos." },
-  { id: "debug_ph", label: "Guías de edición", help: "Marcas temporales de espacio." },
-  { id: "scope_rules", label: "Reglas por caso", help: "Ajustes por lista, gráfico o slide." },
-  { id: "ui_state", label: "Vista de trabajo", help: "Vista, pestaña y zoom del editor." },
-];
-
-const DEFAULT_JSON_SECTIONS = Object.fromEntries(
-  GRAFICOS_JSON_SECTIONS.map((section) => [section.id, true])
-) as Record<GraficosJsonSectionId, boolean>;
-
-function isRecord(x: unknown): x is Record<string, unknown> {
-  return !!x && typeof x === "object" && !Array.isArray(x);
-}
-
-function deepMerge<T extends Record<string, unknown>>(base: T, override: Record<string, unknown>): T {
-  const out: Record<string, unknown> = { ...base };
-  for (const [key, value] of Object.entries(override)) {
-    out[key] = isRecord(out[key]) && isRecord(value)
-      ? deepMerge(out[key] as Record<string, unknown>, value)
-      : value;
-  }
-  return out as T;
-}
-
-function pickGraficosConfigSections(
-  cfg: Record<string, unknown>,
-  sections: Record<GraficosJsonSectionId, boolean>,
-  mode: "merge" | "replace"
-) {
-  const out: Record<string, unknown> = {
-    version: "graficos/4",
-  };
-
-  if (sections.plan) out.plan = cfg.plan;
-  if (sections.presets) out.presets = cfg.presets;
-  if (sections.w_presets) out.w_presets = cfg.w_presets;
-  if (sections.paletas) out.paletas = cfg.paletas;
-  if (sections.iconos) out.iconos = cfg.iconos;
-  if (sections.overrides_reusables) out.overrides_reusables = cfg.overrides_reusables;
-  if (sections.debug_ph) out.debug_ph = cfg.debug_ph;
-  if (sections.scope_rules) out.scope_rules = cfg.scope_rules;
-  if (sections.ui_state) {
-    out.selected_slide_id = cfg.selected_slide_id;
-    out.view_mode = cfg.view_mode;
-    out.inspector_tab = cfg.inspector_tab;
-    out.density = cfg.density;
-    out.canvas_viewport = cfg.canvas_viewport;
-  }
-  if (cfg._unknown && mode === "replace") out._unknown = cfg._unknown;
-
-  return out;
-}
-
-function syncGlobalScopeRules(cfg: Record<string, unknown>, sections: Record<GraficosJsonSectionId, boolean>) {
-  if (!isRecord(cfg.scope_rules)) cfg.scope_rules = {};
-  const scopeRules = cfg.scope_rules as Record<string, unknown>;
-  const global = isRecord(scopeRules.global) ? { ...scopeRules.global } : {};
-  if (sections.presets) global.presets = cfg.presets;
-  if (sections.paletas) global.paletas = cfg.paletas;
-  if (sections.overrides_reusables) global.overrides_reusables = cfg.overrides_reusables;
-  if (sections.debug_ph) global.debug_ph = cfg.debug_ph;
-  scopeRules.global = global;
-  return cfg;
-}
+// Compartir (plan portátil C11 y secciones JSON C12): la lógica vive en `./compartir/`, la misma que usa el menú ⋯ de
+// la barra de Láminas. Este header sólo la monta en su popover.
+import { PlanPortatilContenido } from "./compartir/PlanPortatilContenido";
+import { SeccionesJsonContenido } from "./compartir/SeccionesJsonContenido";
+import { useCompartirPlan } from "./compartir/useCompartirPlan";
+import { useVaciarPlan } from "./compartir/useVaciarPlan";
 
 const jsonIoStyles: Record<string, CSSProperties> = {
   wrap: {
@@ -559,21 +467,10 @@ export function GraficosHeader({
   const nPaletas = usePlanStore((s) => Object.keys(s.paletas).length);
   const nIconos = usePlanStore((s) => s.iconos.length);
   const nModos = usePlanStore((s) => s.overridesReusables.length);
-  const resetPlan = usePlanStore((s) => s.reset);
-  const hydrate = usePlanStore((s) => s.hydrate);
   const [estiloOpen, setEstiloOpen] = useState(false);
   const [jsonMenuOpen, setJsonMenuOpen] = useState(false);
-  const [jsonSections, setJsonSections] = useState<Record<GraficosJsonSectionId, boolean>>(DEFAULT_JSON_SECTIONS);
-  const [jsonImportMode, setJsonImportMode] = useState<"merge" | "replace">("merge");
-  const [jsonBusy, setJsonBusy] = useState<"export" | "import" | null>(null);
-  const [shareBusy, setShareBusy] = useState<"export" | "inspect" | "apply" | null>(null);
-  const [sharePlan, setSharePlan] = useState<GraficosShareInspectResult | null>(null);
-  const [shareSelected, setShareSelected] = useState<Record<string, boolean>>({});
-  const [jsonAdvancedOpen, setJsonAdvancedOpen] = useState(false);
-  const [jsonMsg, setJsonMsg] = useState("");
-  const [jsonError, setJsonError] = useState("");
-  const jsonFileRef = useRef<HTMLInputElement>(null);
-  const shareFileRef = useRef<HTMLInputElement>(null);
+  const compartir = useCompartirPlan(reportScope);
+  const vaciar = useVaciarPlan(reportScope);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const styleTriggerItems = [
     { key: "ppt", label: "Base PPT", tone: "base" },
@@ -606,144 +503,8 @@ export function GraficosHeader({
     };
   }, [jsonMenuOpen]);
 
-  function selectedJsonSections() {
-    return GRAFICOS_JSON_SECTIONS.filter((section) => jsonSections[section.id]);
-  }
-
-  function setAllJsonSections(value: boolean) {
-    setJsonSections(Object.fromEntries(GRAFICOS_JSON_SECTIONS.map((section) => [section.id, value])) as Record<GraficosJsonSectionId, boolean>);
-  }
-
-  function selectedShareBases() {
-    if (!sharePlan) return [];
-    return sharePlan.bases
-      .filter((base) => !base.blocking && shareSelected[base.base_name])
-      .map((base) => base.base_name);
-  }
-
-  async function packageExport() {
-    setJsonError(""); setJsonMsg(""); setShareBusy("export");
-    try {
-      const result = await apiGraficosShareExport();
-      const a = document.createElement("a");
-      a.href = downloadUrl(result.file_id);
-      a.download = result.filename || "plan_graficos.pulso-graficos.zip";
-      a.click();
-      setJsonMsg("Paquete compartible exportado");
-    } catch (e) {
-      setJsonError((e as Error).message);
-    } finally {
-      setShareBusy(null);
-      setTimeout(() => setJsonMsg(""), 3000);
-    }
-  }
-
-  async function packageInspect(file?: File) {
-    if (!file) return;
-    setJsonError(""); setJsonMsg(""); setShareBusy("inspect");
-    try {
-      const plan = await apiGraficosShareInspect(file);
-      const selected = Object.fromEntries(plan.bases.map((base) => [base.base_name, Boolean(base.selected_default && !base.blocking)]));
-      setSharePlan(plan);
-      setShareSelected(selected);
-      setJsonMsg(`${plan.summary.n_compatible}/${plan.summary.n_bases} bases compatibles`);
-    } catch (e) {
-      setSharePlan(null);
-      setShareSelected({});
-      setJsonError((e as Error).message);
-    } finally {
-      setShareBusy(null);
-      if (shareFileRef.current) shareFileRef.current.value = "";
-      setTimeout(() => setJsonMsg(""), 3200);
-    }
-  }
-
-  async function packageApply() {
-    if (!sharePlan) return;
-    const bases = selectedShareBases();
-    if (!bases.length) {
-      setJsonError("Selecciona al menos una base compatible.");
-      return;
-    }
-    setJsonError(""); setJsonMsg(""); setShareBusy("apply");
-    try {
-      const sid = getSession();
-      invalidateSlideCompositionPersistenceAck(sid, "active");
-      await apiGraficosShareImport(sharePlan.package_file_id, bases);
-      const refreshed = await apiGraficosConfigGet();
-      const cfg = normalizeGraficosConfig(refreshed.config ?? refreshed, { includeLegacyAliases: true });
-      hydrate(cfg as never);
-      acknowledgeSlideCompositionConfig(sid, "active", cfg);
-      setJsonMsg(`Plan aplicado a ${bases.length} base${bases.length === 1 ? "" : "s"}`);
-    } catch (e) {
-      setJsonError((e as Error).message);
-    } finally {
-      setShareBusy(null);
-      setTimeout(() => setJsonMsg(""), 3600);
-    }
-  }
-
-  async function ioExport() {
-    setJsonError(""); setJsonMsg(""); setJsonBusy("export");
-    try {
-      const bundle = await apiGraficosConfigExport();
-      const cfg = normalizeGraficosConfig(bundle.config ?? bundle, { includeLegacyAliases: true });
-      const picked = pickGraficosConfigSections(cfg, jsonSections, "replace");
-      const payload = {
-        version: "graficos/4",
-        exported_at: new Date().toISOString(),
-        export_scope: selectedJsonSections().map((section) => section.id),
-        config: picked,
-      };
-      const text = JSON.stringify(payload, null, 2);
-      const blob = new Blob([text], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `pulso_graficos_${selectedJsonSections().length === GRAFICOS_JSON_SECTIONS.length ? "completo" : "parcial"}_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      setJsonMsg("JSON exportado");
-    } catch (e) {
-      setJsonError((e as Error).message);
-    } finally {
-      setJsonBusy(null);
-      setTimeout(() => setJsonMsg(""), 2600);
-    }
-  }
-
-  async function ioImport(file?: File) {
-    if (!file) return;
-    setJsonError(""); setJsonMsg(""); setJsonBusy("import");
-    try {
-      const parsed = JSON.parse(await file.text());
-      const incoming = normalizeGraficosConfig(parsed);
-      const currentBundle = await apiGraficosConfigExport();
-      const current = normalizeGraficosConfig(currentBundle.config ?? currentBundle);
-      const picked = pickGraficosConfigSections(incoming, jsonSections, jsonImportMode);
-      const next = jsonImportMode === "replace"
-        ? { ...current, ...picked }
-        : deepMerge(current, picked);
-      const synced = syncGlobalScopeRules(next, jsonSections);
-      const sid = getSession();
-      invalidateSlideCompositionPersistenceAck(sid, "active");
-      await apiGraficosConfigImport({ version: "graficos/4", config: synced });
-      const refreshed = await apiGraficosConfigGet();
-      const cfg = normalizeGraficosConfig(refreshed.config ?? refreshed, { includeLegacyAliases: true });
-      hydrate(cfg as never);
-      acknowledgeSlideCompositionConfig(sid, "active", cfg);
-      setJsonMsg(`${selectedJsonSections().length} sección${selectedJsonSections().length === 1 ? "" : "es"} importada${selectedJsonSections().length === 1 ? "" : "s"}`);
-    } catch (e) {
-      setJsonError(`JSON inválido: ${(e as Error).message}`);
-    } finally {
-      setJsonBusy(null);
-      if (jsonFileRef.current) jsonFileRef.current.value = "";
-      setTimeout(() => setJsonMsg(""), 3200);
-    }
-  }
-
   function onResetClick() {
-    if (!window.confirm("¿Vaciar el plan? Se elimina el orden actual de slides. Esta acción se guarda automáticamente.")) return;
-    resetPlan();
+    vaciar.vaciarSi((t) => window.confirm(`${t.titulo}\n\n${t.detalle}`));
   }
 
   return (
@@ -818,12 +579,12 @@ export function GraficosHeader({
               }}
               className="pulso-gv2-pill-button pulso-gv2-toolbar-action"
               aria-expanded={jsonMenuOpen}
-              aria-label={`Compartir plan. ${selectedJsonSections().length} de ${GRAFICOS_JSON_SECTIONS.length} secciones activas`}
+              aria-label={`Compartir plan. ${compartir.nSecciones} de ${compartir.totalSecciones} secciones activas`}
               title="Compartir o importar el plan editable"
             >
               <SlidersHorizontal size={12} />
               <span className="pulso-gv2-toolbar-label">Compartir</span>
-              <span style={jsonIoStyles.count}>{selectedJsonSections().length}/{GRAFICOS_JSON_SECTIONS.length}</span>
+              <span style={jsonIoStyles.count}>{compartir.nSecciones}/{compartir.totalSecciones}</span>
             </button>
 
             {jsonMenuOpen && (
@@ -841,198 +602,22 @@ export function GraficosHeader({
                   </button>
                 </div>
 
-                <div className="pulso-gv2-share-package">
-                  <div className="pulso-gv2-share-package-head">
-                    <div className="pulso-gv2-share-package-copy">
-                      <strong>Plan portátil</strong>
-                      <small>
-                        Comparte composición, estilos y ajustes. Al aplicar, solo actualiza Gráficos y luego puedes regenerar PPT/Word.
-                      </small>
-                    </div>
-                    <div className="pulso-gv2-share-package-actions">
-                      <button type="button" onClick={packageExport} disabled={shareBusy === "export"} className="pulso-gv2-share-action is-primary">
-                        {shareBusy === "export" ? <Loader2 size={12} className="pulso-spin" /> : <Download size={12} />}
-                        Exportar plan
-                      </button>
-                      <label className={`pulso-gv2-share-action is-secondary${shareBusy === "inspect" ? " is-busy" : ""}`}>
-                        {shareBusy === "inspect" ? <Loader2 size={12} className="pulso-spin" /> : <Upload size={12} />}
-                        Importar plan
-                        <input
-                          ref={shareFileRef}
-                          type="file"
-                          accept=".pulso-graficos.zip,.zip,application/zip"
-                          style={{ display: "none" }}
-                          onChange={(e) => void packageInspect(e.target.files?.[0])}
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {sharePlan && (
-                    <>
-                      <div className="pulso-gv2-share-inspect-summary">
-                        <span>
-                          {sharePlan.summary.n_compatible}/{sharePlan.summary.n_bases} bases compatibles · {sharePlan.manifest.n_slides} slides · {sharePlan.summary.n_warnings} advertencias
-                        </span>
-                        <span>{sharePlan.filename}</span>
-                      </div>
-
-                      <div className="pulso-gv2-share-plan-table">
-                        <div className="pulso-gv2-share-plan-row is-head">
-                          <span>Base</span>
-                          <span>Actualmente</span>
-                          <span>Después de aplicar</span>
-                          <span>Variables faltantes</span>
-                        </div>
-                        {sharePlan.bases.map((base, index) => {
-                          const missing = base.impact.missing_variables;
-                          const checked = Boolean(shareSelected[base.base_name] && !base.blocking);
-                          return (
-                            <label
-                              key={base.base_name}
-                              className={`pulso-gv2-share-plan-row${base.blocking ? " is-blocked" : ""}${index === sharePlan.bases.length - 1 ? " is-last" : ""}`}
-                            >
-                              <span>
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  disabled={base.blocking}
-                                  onChange={(e) => setShareSelected((prev) => ({ ...prev, [base.base_name]: e.target.checked }))}
-                                />{" "}
-                                <strong className="pulso-gv2-share-cell-title">{base.base_label || base.base_name}</strong>
-                                <small className="pulso-gv2-share-cell-muted">{base.base_name}</small>
-                              </span>
-                              <span>
-                                <strong className="pulso-gv2-share-cell-title">{base.current.n_slides} slides</strong>
-                                <small className="pulso-gv2-share-cell-muted">Formulario y respuestas se conservan</small>
-                              </span>
-                              <span>
-                                <strong className="pulso-gv2-share-cell-title">
-                                  {base.incoming.n_slides_applicable}/{base.incoming.n_slides_total} slides se conservarán
-                                </strong>
-                                <small className="pulso-gv2-share-cell-muted">
-                                  {missing.length > 0
-                                    ? "variables faltantes quedarán vacías"
-                                    : "sin omisiones"}
-                                </small>
-                              </span>
-                              <span>
-                                {missing.length === 0 ? (
-                                  <small className="pulso-gv2-share-cell-muted">Todas las variables del plan están disponibles.</small>
-                                ) : (
-                                  <small className="pulso-gv2-share-warning">
-                                    {missing.slice(0, 4).map((v) => `${v.code}: ${v.label}`).join(" · ")}
-                                    {missing.length > 4 ? ` · +${missing.length - 4}` : ""}
-                                  </small>
-                                )}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-
-                      <div className="pulso-gv2-share-applybar">
-                        <button
-                          type="button"
-                          onClick={packageApply}
-                          disabled={shareBusy === "apply" || selectedShareBases().length === 0}
-                          className="pulso-gv2-share-action is-primary"
-                        >
-                          {shareBusy === "apply" ? <Loader2 size={12} className="pulso-spin" /> : <Check size={12} />}
-                          Aplicar a {selectedShareBases().length} base{selectedShareBases().length === 1 ? "" : "s"} compatible{selectedShareBases().length === 1 ? "" : "s"}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <PlanPortatilContenido control={compartir} />
 
                 <button
                   type="button"
-                  onClick={() => setJsonAdvancedOpen((v) => !v)}
-                  className={`pulso-gv2-share-advanced-toggle${jsonAdvancedOpen ? " is-open" : ""}`}
-                  aria-expanded={jsonAdvancedOpen}
+                  onClick={() => compartir.alternarAvanzado()}
+                  className={`pulso-gv2-share-advanced-toggle${compartir.estado.avanzadoAbierto ? " is-open" : ""}`}
+                  aria-expanded={compartir.estado.avanzadoAbierto}
                 >
                   <span>
                     <strong>Selección avanzada</strong>
-                    <small>{selectedJsonSections().length} de {GRAFICOS_JSON_SECTIONS.length} componentes incluidos</small>
+                    <small>{compartir.nSecciones} de {compartir.totalSecciones} componentes incluidos</small>
                   </span>
                   <ChevronDown size={13} />
                 </button>
 
-                {jsonAdvancedOpen && (
-                  <div className="pulso-gv2-share-advanced-panel">
-                    <div className="pulso-gv2-share-section-head">
-                      <div>
-                        <strong>Componentes del plan</strong>
-                        <p>Elige qué viaja dentro del archivo editable.</p>
-                      </div>
-                      <div className="pulso-gv2-share-section-actions">
-                        <button type="button" onClick={() => setAllJsonSections(true)}>Todo</button>
-                        <button type="button" onClick={() => setAllJsonSections(false)}>Nada</button>
-                      </div>
-                    </div>
-
-                    <div className="pulso-gv2-share-advanced-body">
-                      <div className="pulso-gv2-share-section-grid">
-                        {GRAFICOS_JSON_SECTIONS.map((section) => (
-                          <label
-                            key={section.id}
-                            title={section.help}
-                            className={`pulso-gv2-share-option${jsonSections[section.id] ? " is-on" : ""}`}
-                          >
-                            <span className="pulso-gv2-share-option-copy">
-                              <strong>{section.label}</strong>
-                              <small>{section.help}</small>
-                            </span>
-                            <span className="pulso-gv2-share-switch" aria-hidden="true">
-                              <span />
-                            </span>
-                            <input
-                              type="checkbox"
-                              checked={jsonSections[section.id]}
-                              onChange={(e) => setJsonSections((prev) => ({ ...prev, [section.id]: e.target.checked }))}
-                              className="pulso-gv2-share-native-input"
-                            />
-                          </label>
-                        ))}
-                      </div>
-
-                      <div className="pulso-gv2-share-advanced-side">
-                        <div className="pulso-gv2-share-modebox">
-                          <span>Al importar</span>
-                          <label className={`pulso-gv2-share-radio${jsonImportMode === "merge" ? " is-selected" : ""}`}>
-                            <input type="radio" checked={jsonImportMode === "merge"} onChange={() => setJsonImportMode("merge")} />
-                            <i aria-hidden="true" />
-                            <strong>Combinar</strong>
-                            <small>Conserva lo existente y suma lo elegido.</small>
-                          </label>
-                          <label className={`pulso-gv2-share-radio${jsonImportMode === "replace" ? " is-selected" : ""}`}>
-                            <input type="radio" checked={jsonImportMode === "replace"} onChange={() => setJsonImportMode("replace")} />
-                            <i aria-hidden="true" />
-                            <strong>Reemplazar</strong>
-                            <small>Sustituye solo los componentes incluidos.</small>
-                          </label>
-                        </div>
-
-                        <div className="pulso-gv2-share-advanced-actions">
-                          <button type="button" onClick={ioExport} disabled={jsonBusy === "export" || selectedJsonSections().length === 0}>
-                            <Download size={12} /> {jsonBusy === "export" ? "Exportando…" : "Exportar componentes"}
-                          </button>
-                          <label className={jsonBusy === "import" ? "is-busy" : ""}>
-                            <Upload size={12} /> {jsonBusy === "import" ? "Importando…" : "Importar componentes"}
-                            <input
-                              ref={jsonFileRef}
-                              type="file"
-                              accept=".json,application/json"
-                              style={{ display: "none" }}
-                              onChange={(e) => void ioImport(e.target.files?.[0])}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {compartir.estado.avanzadoAbierto && <SeccionesJsonContenido control={compartir} />}
               </div>
             )}
           </div>
@@ -1054,20 +639,21 @@ export function GraficosHeader({
           <button
             type="button"
             onClick={onResetClick}
-            disabled={nSlides === 0}
+            disabled={!vaciar.disponibilidad.habilitado}
             className="pulso-gv2-icon-button pulso-gv2-toolbar-reset"
             aria-label="Vaciar plan"
-            title="Vaciar plan"
+            title={vaciar.disponibilidad.habilitado ? "Vaciar plan" : vaciar.disponibilidad.motivo}
           >
             <RotateCcw size={12} />
           </button>
+          <span role="status" className="pulso-sr-only">{vaciar.mensaje}</span>
           </div>
 
-          {jsonMsg && (
-            <span role="status" style={jsonIoStyles.msg}><Check size={11} /> {jsonMsg}</span>
+          {compartir.estado.mensaje && (
+            <span role="status" style={jsonIoStyles.msg}><Check size={11} /> {compartir.estado.mensaje}</span>
           )}
-          {jsonError && (
-            <span role="alert" style={jsonIoStyles.error}><AlertCircle size={11} /> {jsonError}</span>
+          {compartir.estado.error && (
+            <span role="alert" style={jsonIoStyles.error}><AlertCircle size={11} /> {compartir.estado.error}</span>
           )}
         </div>
       </ContextBar>

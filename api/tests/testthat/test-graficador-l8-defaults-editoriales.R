@@ -166,7 +166,7 @@ test_that("degradado_manual sin gradiente degrada con aviso en vez de matar la l
       modo_semaforo = "degradado_manual",
       usar_canvas = FALSE, exportar = "rplot"
     ),
-    "degradado_automatico"
+    "degradado autom[aá]tico"   # B-g: el aviso del boxplot habla sin jerga
   )
   expect_s3_class(p_bx, "ggplot")
 })

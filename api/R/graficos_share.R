@@ -270,8 +270,10 @@
 
   cfg <- .graficos_normalize_config(cfg, sid = sid, include_legacy_aliases = FALSE)
   assets_result <- .graficos_share_asset_entries(sid, cfg, stage)
-  cfg <- assets_result$config
-  assets <- assets_result$assets
+  # Los logos del cliente viajan en el paquete como los íconos (A6 R3, graficos_estilo_cliente.R).
+  logos_result <- .graficos_estilo_cliente_share_assets(sid, assets_result$config, stage)
+  cfg <- logos_result$config
+  assets <- c(assets_result$assets, logos_result$assets)
   vars <- .graficos_share_source_vars(sid)
   slides <- .normalize_plan(cfg$plan)$slides %||% list()
 
@@ -660,14 +662,14 @@
     warnings <- character(0)
     if (length(plan$affected_slides %||% list()) > 0L) {
       warnings <- c(warnings, sprintf(
-        "%d slide%s se conservara%s con variables faltantes vacias.",
+        "%d lámina%s se conservará%s con las variables que faltan vacías.",
         length(plan$affected_slides %||% list()),
         if (length(plan$affected_slides %||% list()) == 1L) "" else "s",
         if (length(plan$affected_slides %||% list()) == 1L) "" else "n"
       ))
     }
     if (isTRUE(plan$blocking)) {
-      warnings <- c(warnings, "Ningun slide del paquete es aplicable a esta base.")
+      warnings <- c(warnings, "Ninguna lámina del paquete se puede aplicar a esta base.")
     }
     list(
       base_name = base,
@@ -748,6 +750,11 @@
   dir.create(icons_dir, recursive = TRUE, showWarnings = FALSE)
   for (asset in assets) {
     asset <- as.list(asset)
+    if (identical(as.character(asset$kind %||% ""), "graficos_logo")) {
+      nuevo <- .graficos_estilo_cliente_share_materializar(sid, asset, pkg$stage)
+      if (!is.null(nuevo) && nzchar(as.character(asset$old_file_id %||% ""))) remap[[as.character(asset$old_file_id)]] <- nuevo
+      next
+    }
     if (!identical(as.character(asset$kind %||% ""), "graficos_icon")) next
     rel <- as.character(asset$path %||% "")
     old_file_id <- as.character(asset$old_file_id %||% "")
@@ -770,6 +777,7 @@
 
 .graficos_share_apply_asset_remap <- function(cfg, remap) {
   if (!length(remap)) return(cfg)
+  cfg <- .graficos_estilo_cliente_remapear(cfg, remap)
   iconos <- cfg$iconos %||% list()
   if (is.list(iconos) && length(iconos)) {
     cfg$iconos <- lapply(iconos, function(ico) {
@@ -801,7 +809,7 @@
   blocked <- selected_bases[vapply(selected_bases, function(b) isTRUE(rows_by_base[[b]]$blocking), logical(1))]
   if (length(blocked)) {
     stop_api(409, "E_GRAFICOS_SHARE_BLOCKED",
-             sprintf("Estas bases no tienen slides aplicables: %s", paste(blocked, collapse = ", ")))
+             sprintf("Estas bases no tienen láminas que se puedan aplicar: %s", paste(blocked, collapse = ", ")))
   }
 
   materialized <- .graficos_share_materialize_assets(sid, meta)

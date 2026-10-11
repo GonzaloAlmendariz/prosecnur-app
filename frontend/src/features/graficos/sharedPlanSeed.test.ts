@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { buildGraficosConfig, buildGraficosConfigFromStore } from "./configSnapshot";
 import { shouldSeedSharedPlan, type SharedPlanSeedInput } from "./sharedPlanSeed";
+import { usePlanStore } from "./store";
 
 function input(overrides: Partial<SharedPlanSeedInput> = {}): SharedPlanSeedInput {
   return {
@@ -57,5 +59,30 @@ describe("shouldSeedSharedPlan", () => {
     // usuario había vaciado. El hook ahora la invalida (null) antes de cada
     // carga, y `null` no siembra.
     expect(shouldSeedSharedPlan(input({ draftRevision: null }))).toBe(false);
+  });
+});
+
+// F4 (ADR 0096 decisión 6): la siembra graba la revisión de la matriz junto al plan, sin marcar el borrador como sucio,
+// y el primer guardado real la envía. Es la mecánica que usa `seedConsolidatedPlan(plan, revision)`: hidratar con la
+// revisión en la config, no un `setEquivalenciasRevision` posterior (que marcaría `dirty`).
+describe("siembra del compartido con la revisión de la matriz", () => {
+  it("hidratar el plan sembrado con su revisión deja dirty=false y el payload de guardado la lleva", () => {
+    usePlanStore.getState().hydrate(buildGraficosConfig({ ...usePlanStore.getState(), plan: { slides: [] }, equivalenciasRevision: "" }));
+    const sembrado = {
+      slides: [{ id: "s-equiv-1", tipo: "p_slide_1_grafico", origen: "equivalencias", payload: { titulo: "Satisfacción" } }],
+    } as Parameters<typeof buildGraficosConfig>[0]["plan"];
+
+    usePlanStore.getState().hydrate(buildGraficosConfig({
+      ...usePlanStore.getState(),
+      plan: sembrado,
+      selectedSlideId: null,
+      equivalenciasRevision: "r2:abc",
+    }));
+
+    const estado = usePlanStore.getState();
+    expect(estado.dirty).toBe(false);
+    expect(estado.equivalenciasRevision).toBe("r2:abc");
+    expect(estado.plan.slides.map((x) => x.origen)).toEqual(["equivalencias"]);
+    expect(buildGraficosConfigFromStore().equivalencias_revision).toBe("r2:abc");
   });
 });

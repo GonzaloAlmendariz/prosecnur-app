@@ -81,3 +81,32 @@ defecto de la app; es como la constitución o como el libro de reglas de todos l
 | K15 | «sí» (2026-10-10, ~18:47) | Alinear `estandar_pulso.json` y el motor con lo dibujado en las láminas de ejemplo del recetario en los 12 tipos con desfase (texto izq/der p140/p142, tipos 3, 4, 11, 13, 16, 18, 19, 20, 21, 22, ficha p159), con medición antes/después por tipo; se regeneran íconos si cambian ranuras |
 | D8 | «ambas opciones deben ser posibles e incluso debe permitir orden personalizado» | Orden de categorías por gráfico con tres modos: por frecuencia, como el instrumento y personalizado (lista arrastrable). Por defecto, el que dibuja el recetario para ese tipo (principio «el recetario manda»). Vale en PPT y Word; se integra con «invertir orden» (D9) |
 | Fichas | «sí, regenera las fichas del recetario» (2026-10-10, ~20:25) | `recetario_fichas.R` toma sus valores de `exportar_estandar.R` (K15) y se regenera `recetario-moderna.pptx`; diff visual por página antes/después. Se hace cuando termine el verificador de K15, que mide contra ese mismo archivo |
+| Lote de decisiones 2026-10-11 | «1a, 2c, 3 sí, 4 sí, 5a, 6-12 ok, 13 todo ok» (2026-10-11, ~05:50 Perú) | Ver las filas siguientes; numeración de la lista entregada en el chat de la Meta A |
+| 1 Default Word en el proyecto | «1a» | El `.pulso` guarda solo las diferencias contra `DEFAULT_WORD_PRESETS`; lo no tocado sigue al default de la app (si el recetario cambia, el proyecto lo hereda). Requiere ADR y revisión de `guardian-contratos` |
+| 2 Batería con Bottom Two Box | «2c» | Según el largo de las premisas: corta → filas (lámina 97 del recetario); larga → bloque de premisas (221/222). El umbral lo fija el motor y se documenta |
+| 3 Dependencias de prueba | «3 sí» | `jsdom` + `@testing-library/react` como devDependencies del frontend; `package.json` se comparte con la Meta B → se avisa en «Pedidos a B» |
+| 4 Avisos en categorías | «4 sí» | Campo `avisos` en la respuesta de `/api/graficos/categorias` (contrato §7 del orden de categorías) |
+| 5 «Modificado» en Word | «5a» | Se marca contra el default de la app, no contra lo último guardado |
+| 6 Aviso de íconos | «ok» | El aviso nombra el ícono por su nombre del catálogo; nunca muestra el id |
+| 7 Pendiente heredado «A3 release Windows» | «ok» | f073f9eb9 no existe en main: el pendiente «P8 o revertir f073f9eb9 antes de push» del loop anterior se cierra sin trabajo. No afecta a la etapa A3 «Guías del visor por capas», que sigue pendiente |
+| 8 Rama | «ok» | Se sigue en `claude/meta-a-graficos-loop-f6-a0rabk` |
+| 9 Reloj | «ok» | Cadencia de 180 s se mantiene |
+| 10 Paridad A0 | «ok» | C1–C55 es la lista de paridad; C25 y C54 se retiran; C11 y C12 van al menú ⋯ de Láminas |
+| 11 P2 | «ok» | Multilista con bloque sin variable: igual que el export |
+| 12 Radar «arriba» | «ok» | La leyenda arriba pasa abajo sin aviso (manda lo dibujado) |
+| 13 Heredadas | «13 todo ok» | Se adoptan todas las recomendaciones de este doc y de `hallazgo-base-ponderada-2026-10-10.md`: S1–S4, D1–D7, D9–D17 (D17: la salida ignora las guías de depuración), E1 (el inspector abre en Contenido), E2 (provisional en el inspector), etiquetas cortas por categoría, «Masculino (33)» y plantilla ACNUR. D6 y D9 con ADR |
+| Lote de decisiones 14–26 (2026-10-11) | «14.Por base o por proyecto, depende del usuario. 15. a 16. si, a. 17. Ahi hay que tenrr cuidado porque tmabien depende de la amtriz de equivalencias en procesamiento. 18.a 19. a 20. a. 21. a apagadas, pero si seria interesante tener ocmo un featuray mostrarlas porque el recetairo ya tiene una forma de hacerlo pero por defecto no. 22. a pero permtirle hacerle cambios si lo considera neecsario 23. a. 24. a pero es solo una opcion por defecto apagada. 25. no hacerlo automatico, avisar. 26. a» (~08:20 Perú) | Ver filas siguientes |
+| 14 Ámbito de `estilo_cliente` | «Por base o por proyecto, depende del usuario» | El usuario elige el ámbito (por base o por proyecto) en Estilo del cliente; A6 R3 lo modela como opción explícita, no como regla fija |
+| 15 Perfil de letra K13 | «a» | Por proyecto, con el default del perfil del catálogo; no se guarda entre proyectos |
+| 16 Logo propio en el PPT | «si, a» | Sí, en una rebanada posterior vía la plantilla, sin crecer `reporte_plan_ppt.R` |
+| 17 «Armar desde…» en consolidado | «hay que tener cuidado porque también depende de la matriz de equivalencias en procesamiento» | Sin decisión cerrada: sigue deshabilitado con motivo (provisional) hasta estudiar cómo la matriz de equivalencias de Procesamiento alimenta el plan compartido; ningún endpoint nuevo antes de ese estudio |
+| 18 Conflicto de revisión del borrador compartido | «a» | Recargar el borrador con aviso explícito |
+| 19 Evidencia de consolidado y `/ppt-all` | «a» | Corrida en vivo ahora sobre un proyecto temporal `independent_siblings` rehecho desde los `.sav` de acrconta_mazo, sin commitear; el séptimo proyecto de referencia queda como deuda |
+| 20 Compartir en consolidado | «a» | Deshabilitado con motivo |
+| 21 Láminas de «Otros» automáticas | «a apagadas, pero sí sería interesante tener como un feature y mostrarlas porque el recetario ya tiene una forma de hacerlo pero por defecto no» | Apagadas por defecto; el interruptor queda como feature visible y las láminas de «Otros» deben salir con la forma que dibuja el recetario (ubicar esa lámina en el recetario y alinear el motor) |
+| 22 Índice desde los capítulos | «a pero permitirle hacerle cambios si lo considera necesario» | Botón explícito «Tomar los capítulos del informe» + aviso de desfase; el analista puede editar el índice resultante |
+| 23 Migrar `iconos_focos` | «a» | Sí, con la composición explícita para que la salida no cambie |
+| 24 Fila Total por actores | «a pero es solo una opción por defecto apagada» | La fila Total es una opción apagada por defecto; cuando se enciende: misma base → suma de pesos, varias bases → casos sin ponderar |
+| 25 Declarar la ponderación sin el sello por lámina | «no hacerlo automático, avisar» | No se enciende nada solo: un entregable ponderado que no declara su ponderación (sin «Cómo leer» ni ficha) da una advertencia al exportar |
+| 26 Fallback «Base sin ponderar (ponderación configurada no aplicada)» | «a» | Pasa al nivel del documento con una advertencia de la corrida |
+

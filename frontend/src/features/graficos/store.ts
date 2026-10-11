@@ -1,6 +1,15 @@
 import { create } from "zustand";
 import type { GraficadorRef, PlanJson, PptStyleProfileMeta, Slide, SlideType } from "../../api/client";
-import { createDefaultWordPresets, normalizeWordPresets } from "../../api/graficosConfigNormalizer";
+import { scopeRulesConIdentidad, type PlanSugeridoAplicable } from "./armarDesde/aplicarPlanSugerido";
+import {
+  createDefaultWordPresets,
+  normalizeDocumentoWord,
+  normalizeWordPresets,
+  type DocumentoWordOpciones,
+} from "../../api/graficosConfigNormalizer";
+import type { GraficosConfigDefaults } from "../../api/graficosConfigDefaults";
+import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEstilo";
+import { conVinculo, vinculosDecisiones } from "./paletasResolver";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -66,10 +75,16 @@ export type GraficosConfig = {
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
   w_presets: Record<string, Record<string, unknown>>;
+  /** ADR 0094: opciones del documento Word (portada, apertura, …); sólo lo que el usuario decidió. */
+  documento_word?: DocumentoWordOpciones;
+  /** A6 R3: estilo del cliente (ámbito, logos, letra). Sólo las decisiones cuentan como «Propio». */
+  estilo_cliente?: EstiloCliente;
   selected_slide_id: string | null;
 
   // Bloque 2: configuración global de estilo
   paletas: Record<string, PaletaPorLista>;   // list_name → {label: hex}
+  /** ADR 0097: `list_name` del instrumento → clave de `paletas`. Sólo decisiones; ausente = sin vínculo. */
+  paletas_vinculos?: Record<string, string>;
   iconos: IconoConfig[];
   overrides_reusables: OverrideReusable[];
   debug_ph: DebugPh;
@@ -100,11 +115,18 @@ type Snapshot = {
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
   wPresets: Record<string, Record<string, unknown>>;
+  documentoWord: DocumentoWordOpciones;
+  estiloCliente: EstiloCliente;
   paletas: Record<string, PaletaPorLista>;
+  paletasVinculos: Record<string, string>;
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
   scopeRules: ScopeRulesConfig;
+  /** ADR 0063: el sello de la declaración viaja con el plan que salió de ella; deshacer el plan deshace el sello. */
+  equivalenciasRevision: string;
+  /** G6: el interruptor de «Otros» cambia la salida, así que se deshace con Ctrl/⌘+Z como cualquier edición. */
+  autoOtrosSlides: boolean;
 };
 
 // Tope del stack. 30 acciones cubre el flujo típico de edición (crear
@@ -117,8 +139,12 @@ type PlanStore = {
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
   wPresets: Record<string, Record<string, unknown>>;
+  documentoWord: DocumentoWordOpciones;
+  estiloCliente: EstiloCliente;
   selectedSlideId: string | null;
   paletas: Record<string, PaletaPorLista>;
+  /** ADR 0097: vínculos `list_name → clave de paleta` (sólo decisiones). */
+  paletasVinculos: Record<string, string>;
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
@@ -145,6 +171,11 @@ type PlanStore = {
    */
   autoOtrosSlides: boolean;
   setAutoOtrosSlides: (value: boolean) => void;
+  /**
+   * Aplica un plan sugerido en UN paso deshacible (contrato A5 2b): plan, sello de la declaración, perfil de estilo,
+   * identidad en `scope_rules.global` y, sólo si el analista lo aceptó, el «Otros» que propone el plan.
+   */
+  aplicarPlanSugerido: (entrada: PlanSugeridoAplicable) => void;
   hydrated: boolean;
   /**
    * La carga de la config reintenta con backoff (hasta 15 s) y hasta ahora lo
@@ -154,6 +185,18 @@ type PlanStore = {
    */
   hydrationRetrying: boolean;
   setHydrationRetrying: (retrying: boolean) => void;
+  /**
+   * Defaults que declara el backend en el GET de la config (ADR 0094 §6). No se persisten ni se historizan; `null`
+   * cuando el backend no los manda, y entonces «Modificado» compara contra el espejo local.
+   */
+  configDefaults: GraficosConfigDefaults | null;
+  setConfigDefaults: (defaults: GraficosConfigDefaults | null) => void;
+  /**
+   * `defaults.estilo_cliente` del GET (recetario + perfil + ámbito por defecto). Como `configDefaults`: ni se persiste
+   * ni se historiza; `null` hasta que la pestaña Estilo del cliente los pide, y entonces se compara contra el recetario.
+   */
+  estiloClienteDefaults: EstiloCliente | null;
+  setEstiloClienteDefaults: (defaults: EstiloCliente | null) => void;
   dirty: boolean;
 
   // --- Undo/redo ---
@@ -172,10 +215,17 @@ type PlanStore = {
   duplicateSlide: (id: string) => void;
   moveSlide: (id: string, direction: "up" | "down") => void;
   updateSlidePayload: (id: string, patch: Record<string, unknown>) => void;
+  /** Cambia el tipo de una lámina con el payload ya reacomodado (laminas/selectores/cambioTipoLamina.ts). */
+  setSlideTipo: (id: string, tipo: SlideType, payload: Record<string, unknown>) => void;
+  /** Inserta una lámina en `index` (0-based) con su payload, la selecciona y devuelve su id (un paso deshacible). */
+  insertSlideAt: (tipo: SlideType, payload: Record<string, unknown>, index: number) => string;
   setSlot: (id: string, slot: string, graf: GraficadorRef | null) => void;
   updateSlotArgs: (id: string, slot: string, patch: Record<string, unknown>) => void;
   setPresets: (presets: Record<string, Record<string, unknown>>) => void;
   setWPresets: (wPresets: Record<string, Record<string, unknown>>) => void;
+  setDocumentoWord: (documentoWord: DocumentoWordOpciones) => void;
+  /** Reemplaza el estilo del cliente (un paso deshacible). Las funciones de cambio viven en `estilo/modeloEstilo.ts`. */
+  setEstiloCliente: (estiloCliente: EstiloCliente) => void;
   applyPptStyleProfile: (profile: PptStyleProfileMeta) => void;
   // Merge granular de args en el preset `tipo`. Si `patch[arg] === null`
   // (o undefined después de merge), borra ese arg para que el backend
@@ -196,6 +246,8 @@ type PlanStore = {
   setColorEnPaleta: (listName: string, label: string, hex: string) => void;
   removePaleta: (listName: string) => void;
   removeColoresDePaleta: (listName: string, labels: string[]) => void;
+  /** ADR 0097: vincula una lista del instrumento a una paleta (`null` quita el vínculo). Un paso deshacible. */
+  setPaletaVinculo: (listName: string, clave: string | null) => void;
 
   addIcono: (icono: IconoConfig) => void;
   renameIcono: (id: string, nombre: string) => void;
@@ -245,6 +297,8 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_texto:          { titulo: "", texto: "", bullets: "", base: "" },
   p_slide_tabla_tecnica:  { titulo: "", filas: "", pie: "" },
   p_slide_top_two_box:    {},
+  // Sin título: el constructor trae el de la casa («CÓMO SE REDONDEAN LAS CIFRAS»).
+  p_slide_redondeo:       {},
   p_slide_cierre:         { variante: "contraportada" },
 
   // ---- 1 gráfico ------------------------------------------------------
@@ -258,6 +312,19 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_2_graficos_narrativo:    { titulo: "", izquierda: null, derecha: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_2_graficos_texto_izquierda: { titulo: "", grafico_1: null, grafico_2: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_2_graficos_texto_derecha:   { titulo: "", grafico_1: null, grafico_2: null, texto: "", base: "", pie: "", etiqueta: "" },
+  p_slide_2_graficos_vertical:        { titulo: "", base: "", superior: null, inferior: null },
+  p_slide_2_graficos_asimetrico:      { titulo: "", base: "", principal: null, apoyo: null },
+  p_slide_cifras_y_graficos: {
+    titulo: "", base: "",
+    cifra_izquierda: null, cifra_centro: null, cifra_derecha: null,
+    grafico_izquierda: null, grafico_derecha: null,
+  },
+
+  // ---- 3 gráficos -----------------------------------------------------
+  p_slide_3_graficos_2mas1:  { titulo: "", base: "", superior_izquierda: null, inferior_izquierda: null, derecha: null },
+  p_slide_3_graficos_1mas2:  { titulo: "", base: "", izquierda: null, superior_derecha: null, inferior_derecha: null },
+  p_slide_3_graficos_fila:   { titulo: "", base: "", izquierda: null, centro: null, derecha: null },
+  p_slide_3_graficos_1arriba: { titulo: "", base: "", superior: null, inferior_izquierda: null, inferior_derecha: null },
 
   // ---- Grids ----------------------------------------------------------
   p_slide_4_graficos: {
@@ -267,6 +334,19 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   },
 
   // ---- Población (con ícono central) ----------------------------------
+  p_slide_3_graficos_poblacion_tira: { titulo: "", base: "", icono: null, superior: null, medio: null, inferior: null },
+  p_slide_3_graficos_poblacion_corona: {
+    titulo: "", base: "", icono: null,
+    superior_izquierda: null, superior_derecha: null, inferior: null,
+  },
+  p_slide_3_graficos_poblacion_cifras: {
+    titulo: "", base: "", icono: null,
+    superior_izquierda: null, derecha: null, cifra_superior: null, inferior_izquierda: null, cifra_inferior: null,
+  },
+  p_slide_3_graficos_poblacion: {
+    titulo: "", base: "", icono: null,
+    superior_izquierda: null, inferior_izquierda: null, derecha: null,
+  },
   p_slide_2_graficos_poblacion: {
     titulo: "", base: "", pie: "", etiqueta: "",
     izquierda: null, derecha: null, icono: null,
@@ -291,7 +371,13 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   },
 };
 
-function newId() {
+/** Payload con el que nace una lámina de `tipo` (copia: se puede mutar). */
+export function payloadPorDefecto(tipo: SlideType): Record<string, unknown> {
+  return { ...DEFAULT_PAYLOADS[tipo] };
+}
+
+/** Id estable de una lámina nueva (`s-` + 8 caracteres): el que nombra `foco=<id>` (ver `focoLamina.ts`). */
+export function nuevoIdLamina(): string {
   return `s-${Math.random().toString(36).slice(2, 10)}`;
 }
 
@@ -301,11 +387,16 @@ function snapshotFromState(state: PlanStore): Snapshot {
     plan: state.plan,
     presets: state.presets,
     wPresets: state.wPresets,
+    documentoWord: state.documentoWord,
+    estiloCliente: state.estiloCliente,
     paletas: state.paletas,
+    paletasVinculos: state.paletasVinculos,
     iconos: state.iconos,
     overridesReusables: state.overridesReusables,
     debugPh: state.debugPh,
     scopeRules: state.scopeRules,
+    equivalenciasRevision: state.equivalenciasRevision,
+    autoOtrosSlides: state.autoOtrosSlides,
   };
 }
 
@@ -393,12 +484,28 @@ function mergeOverrides(current: OverrideReusable[], incoming: OverrideReusable[
   return order.map((id) => byId.get(id)).filter(Boolean) as OverrideReusable[];
 }
 
+/** Lo que un perfil de estilo PPT funde en el estado (mismo resultado en `applyPptStyleProfile` y al aplicar un plan). */
+function estiloDePerfil(state: PlanStore, profile: PptStyleProfileMeta) {
+  return {
+    presets: mergePresetMaps(state.presets, profile.presets ?? {}),
+    paletas: mergePaletas(state.paletas, profile.paletas ?? {}),
+    overridesReusables: mergeOverrides(
+      state.overridesReusables,
+      (profile.overrides_reusables ?? []) as OverrideReusable[],
+    ),
+    scopeRules: mergeDeepRecord(state.scopeRules, profile.scope_rules ?? {}) as ScopeRulesConfig,
+  };
+}
+
 export const usePlanStore = create<PlanStore>((set) => ({
   plan: { slides: [] },
   presets: {},
   wPresets: createDefaultWordPresets(),
+  documentoWord: {},
+  estiloCliente: {},
   selectedSlideId: null,
   paletas: {},
+  paletasVinculos: {},
   iconos: [],
   overridesReusables: [],
   debugPh: DEFAULT_DEBUG_PH,
@@ -412,10 +519,27 @@ export const usePlanStore = create<PlanStore>((set) => ({
   equivalenciasRevision: "",
   setEquivalenciasRevision: (revision) => set({ equivalenciasRevision: revision, dirty: true }),
   autoOtrosSlides: false,
-  setAutoOtrosSlides: (value) => set({ autoOtrosSlides: value, dirty: true }),
+  setAutoOtrosSlides: (value) => set((state) => (
+    state.autoOtrosSlides === value ? state : dirty(state, { autoOtrosSlides: value })
+  )),
+  aplicarPlanSugerido: ({ plan, revision, perfil, identidad, autoOtrosSlides }) => set((state) => {
+    const estilo = perfil ? estiloDePerfil(state, perfil) : null;
+    return dirty(state, {
+      plan,
+      selectedSlideId: plan.slides[0]?.id ?? null,
+      ...(estilo ?? {}),
+      scopeRules: scopeRulesConIdentidad(estilo?.scopeRules ?? state.scopeRules, identidad) as ScopeRulesConfig,
+      ...(revision !== undefined ? { equivalenciasRevision: revision } : {}),
+      ...(autoOtrosSlides !== undefined ? { autoOtrosSlides } : {}),
+    });
+  }),
   hydrated: false,
   hydrationRetrying: false,
   setHydrationRetrying: (retrying) => set({ hydrationRetrying: retrying }),
+  configDefaults: null,
+  setConfigDefaults: (configDefaults) => set({ configDefaults }),
+  estiloClienteDefaults: null,
+  setEstiloClienteDefaults: (estiloClienteDefaults) => set({ estiloClienteDefaults }),
   dirty: false,
 
   past: [],
@@ -457,8 +581,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
     plan: cfg.plan ?? { slides: [] },
     presets: cfg.presets ?? {},
     wPresets: normalizeWordPresets(cfg.w_presets),
+    documentoWord: normalizeDocumentoWord(cfg.documento_word),
+    estiloCliente: normalizeEstiloCliente(cfg.estilo_cliente),
     selectedSlideId: cfg.selected_slide_id ?? null,
     paletas: cfg.paletas ?? {},
+    paletasVinculos: vinculosDecisiones(cfg.paletas_vinculos),
     iconos: cfg.iconos ?? [],
     overridesReusables: cfg.overrides_reusables ?? [],
     debugPh: { ...DEFAULT_DEBUG_PH, ...(cfg.debug_ph ?? {}) },
@@ -481,7 +608,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   markClean: () => set({ dirty: false }),
 
   addSlide: (tipo) => {
-    const s: Slide = { id: newId(), tipo, payload: { ...DEFAULT_PAYLOADS[tipo] } };
+    const s: Slide = { id: nuevoIdLamina(), tipo, payload: { ...DEFAULT_PAYLOADS[tipo] } };
     set((state) => dirty(state, {
       plan: { slides: [...state.plan.slides, s] },
       selectedSlideId: s.id,
@@ -506,7 +633,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (i < 0) return state;
       const source = state.plan.slides[i];
       const copy: Slide = {
-        id: newId(),
+        id: nuevoIdLamina(),
         tipo: source.tipo,
         payload: JSON.parse(JSON.stringify(source.payload)),
       };
@@ -541,6 +668,22 @@ export const usePlanStore = create<PlanStore>((set) => ({
     }));
   },
 
+  setSlideTipo: (id, tipo, payload) => {
+    set((state) => dirty(state, {
+      plan: { slides: state.plan.slides.map((s) => (s.id === id ? { ...s, tipo, payload } : s)) },
+    }));
+  },
+
+  insertSlideAt: (tipo, payload, index) => {
+    const s: Slide = { id: nuevoIdLamina(), tipo, payload };
+    set((state) => {
+      const i = Math.max(0, Math.min(state.plan.slides.length, Math.floor(index)));
+      const slides = [...state.plan.slides.slice(0, i), s, ...state.plan.slides.slice(i)];
+      return dirty(state, { plan: { slides }, selectedSlideId: s.id });
+    });
+    return s.id;
+  },
+
   setSlot: (id, slot, graf) => {
     set((state) => dirty(state, {
       plan: {
@@ -572,20 +715,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setPresets: (presets) => set((state) => dirty(state, { presets })),
   setWPresets: (wPresets) => set((state) => dirty(state, { wPresets })),
+  setDocumentoWord: (documentoWord) => set((state) => dirty(state, { documentoWord: normalizeDocumentoWord(documentoWord) })),
+  setEstiloCliente: (estiloCliente) => set((state) => dirty(state, { estiloCliente: normalizeEstiloCliente(estiloCliente) })),
 
-  applyPptStyleProfile: (profile) =>
-    set((state) => dirty(state, {
-      presets: mergePresetMaps(state.presets, profile.presets ?? {}),
-      paletas: mergePaletas(state.paletas, profile.paletas ?? {}),
-      overridesReusables: mergeOverrides(
-        state.overridesReusables,
-        (profile.overrides_reusables ?? []) as OverrideReusable[],
-      ),
-      scopeRules: mergeDeepRecord(
-        state.scopeRules,
-        profile.scope_rules ?? {},
-      ) as ScopeRulesConfig,
-    })),
+  applyPptStyleProfile: (profile) => set((state) => dirty(state, estiloDePerfil(state, profile))),
 
   setPresetArg: (tipo, arg, value) => {
     set((state) => {
@@ -639,7 +772,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   reset: () => set((state) => dirty(state, {
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: createDefaultWordPresets(),
-    paletas: {}, iconos: [], overridesReusables: [],
+    // `{}` y no `undefined`: la clave debe viajar para que el backend borre lo guardado (contrato A6, vitest 4).
+    documentoWord: {},
+    // Igual con el estilo del cliente: `{}` lo devuelve al recetario; el ámbito queda como estaba en el backend.
+    estiloCliente: {},
+    paletas: {}, paletasVinculos: {}, iconos: [], overridesReusables: [],
     debugPh: DEFAULT_DEBUG_PH,
     scopeRules: {},
     autoOtrosSlides: false,
@@ -686,6 +823,13 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (Object.keys(restante).length) next[listName] = restante;
       else delete next[listName];
       return dirty(state, { paletas: next });
+    }),
+
+  // Sólo decisiones: quitar borra la clave y volver a poner la misma no historiza (`conVinculo` devuelve el mismo objeto).
+  setPaletaVinculo: (listName, clave) =>
+    set((state) => {
+      const next = conVinculo(state.paletasVinculos, listName, clave);
+      return next === state.paletasVinculos ? state : dirty(state, { paletasVinculos: next });
     }),
 
   // ----- Iconos -----------------------------------------------------------
@@ -780,6 +924,7 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_texto:                        "Bloque de texto",
   p_slide_tabla_tecnica:                "Tabla técnica",
   p_slide_top_two_box:                  "Explicación Top Two Box",
+  p_slide_redondeo:                     "Explicación del redondeo",
   p_slide_cierre:                       "Cierre",
   p_slide_1_grafico:                    "Un gráfico",
   p_slide_1_grafico_narrativo:          "Un gráfico + narrativa",
@@ -789,8 +934,19 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_2_graficos_narrativo:         "Dos gráficos + narrativa",
   p_slide_2_graficos_texto_izquierda:   "Dos gráficos + texto izquierda",
   p_slide_2_graficos_texto_derecha:     "Dos gráficos + texto derecha",
+  p_slide_2_graficos_vertical:          "Dos gráficos apilados",
+  p_slide_2_graficos_asimetrico:        "Dos gráficos: principal y apoyo",
+  p_slide_cifras_y_graficos:            "Banda de cifras + dos gráficos",
+  p_slide_3_graficos_2mas1:             "Tres gráficos: dos apilados + uno alto",
+  p_slide_3_graficos_1mas2:             "Tres gráficos: uno alto + dos apilados",
+  p_slide_3_graficos_fila:              "Tres gráficos en fila",
+  p_slide_3_graficos_1arriba:           "Tres gráficos: uno ancho arriba",
   p_slide_4_graficos:                   "Cuatro gráficos",
+  p_slide_3_graficos_poblacion_tira:    "Tres franjas + ícono (población)",
+  p_slide_3_graficos_poblacion_corona:  "Tres gráficos alrededor del ícono",
+  p_slide_3_graficos_poblacion_cifras:  "Tres gráficos + cifras + ícono",
   p_slide_2_graficos_poblacion:         "2 gráficos + ícono (población)",
+  p_slide_3_graficos_poblacion:         "3 gráficos + ícono (población)",
   p_slide_4_graficos_poblacion:         "4 gráficos + ícono (población)",
   p_slide_5_graficos_poblacion:         "5 gráficos + ícono (población)",
   p_slide_6_graficos_poblacion:         "6 gráficos + ícono (población)",
@@ -806,6 +962,7 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_texto:                        [],
   p_slide_tabla_tecnica:                [],
   p_slide_top_two_box:                  [],
+  p_slide_redondeo:                     [],
   p_slide_cierre:                       [],
   p_slide_1_grafico:                    ["grafico"],
   p_slide_1_grafico_narrativo:          ["grafico"],
@@ -815,8 +972,19 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_2_graficos_narrativo:         ["izquierda", "derecha"],
   p_slide_2_graficos_texto_izquierda:   ["grafico_1", "grafico_2"],
   p_slide_2_graficos_texto_derecha:     ["grafico_1", "grafico_2"],
+  p_slide_2_graficos_vertical:          ["superior", "inferior"],
+  p_slide_2_graficos_asimetrico:        ["principal", "apoyo"],
+  p_slide_cifras_y_graficos:            ["cifra_izquierda", "cifra_centro", "cifra_derecha", "grafico_izquierda", "grafico_derecha"],
+  p_slide_3_graficos_2mas1:             ["superior_izquierda", "inferior_izquierda", "derecha"],
+  p_slide_3_graficos_1mas2:             ["izquierda", "superior_derecha", "inferior_derecha"],
+  p_slide_3_graficos_fila:              ["izquierda", "centro", "derecha"],
+  p_slide_3_graficos_1arriba:           ["superior", "inferior_izquierda", "inferior_derecha"],
   p_slide_4_graficos:                   ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"],
+  p_slide_3_graficos_poblacion_tira:    ["superior", "medio", "inferior"],
+  p_slide_3_graficos_poblacion_corona:  ["superior_izquierda", "superior_derecha", "inferior"],
+  p_slide_3_graficos_poblacion_cifras:  ["superior_izquierda", "derecha", "cifra_superior", "inferior_izquierda", "cifra_inferior"],
   p_slide_2_graficos_poblacion:         ["izquierda", "derecha"],
+  p_slide_3_graficos_poblacion:         ["superior_izquierda", "inferior_izquierda", "derecha"],
   p_slide_4_graficos_poblacion:         ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"],
   p_slide_5_graficos_poblacion:         ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2"],
   p_slide_6_graficos_poblacion:         ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3"],

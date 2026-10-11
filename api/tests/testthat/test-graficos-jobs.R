@@ -122,22 +122,22 @@ test_that(".graficos_job_rebuild_slides reporta progreso con el vocabulario del 
 
   slides_r <- .graficos_job_rebuild_slides(
     plan, .gjobs_slide_registry(), .graf_names(), icon_registry = list(),
-    report = report, base_error = identity, item_label = "slide"
+    report = report, base_error = identity
   )
   expect_length(slides_r, 2L)
   expect_length(llamadas, 2L)
   expect_identical(llamadas[[1]]$phase, "rebuild")
-  expect_identical(llamadas[[1]]$message, "Armando slide 1 de 2...")
+  expect_identical(llamadas[[1]]$message, "Armando la lámina 1 de 2…")
   expect_equal(llamadas[[1]]$percent, 5)
-  expect_identical(llamadas[[2]]$message, "Armando slide 2 de 2...")
+  expect_identical(llamadas[[2]]$message, "Armando la lámina 2 de 2…")
 
-  # Word usa "seccion" (mismo string que el closure original de /word).
+  # Word dice «la sección» (B-g: sin «slide» ni tildes perdidas en el progreso visible).
   llamadas <- list()
   invisible(.graficos_job_rebuild_slides(
     plan, .gjobs_slide_registry(), .graf_names(), icon_registry = list(),
-    report = report, base_error = identity, item_label = "seccion"
+    report = report, base_error = identity, item_label = "la sección"
   ))
-  expect_identical(llamadas[[1]]$message, "Armando seccion 1 de 2...")
+  expect_identical(llamadas[[1]]$message, "Armando la sección 1 de 2…")
 
   # report = NULL (path multibase): no revienta y rearma igual.
   expect_length(

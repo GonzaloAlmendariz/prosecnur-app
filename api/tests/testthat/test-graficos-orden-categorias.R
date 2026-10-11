@@ -160,7 +160,8 @@ test_that("en una escala o con un modo desconocido, la validación del plan avis
   esc <- .graficos_orden_cat_avisos_slot(list(graficador = "p_barras_apiladas", args = list(var = "x", orden_categorias = list(modo = "frecuencia"))), "slide[1]")
   expect_match(esc, "no aplica a una escala", fixed = TRUE)
   mal <- .graficos_orden_cat_avisos_slot(list(graficador = "p_barras_categoricas", args = list(var = "x", orden_categorias = list(modo = "alfabetico"))), "slide[2]")
-  expect_match(mal, "«alfabetico» no existe", fixed = TRUE)
+  expect_match(mal, "el orden de categorías guardado no existe en esta versión", fixed = TRUE)
+  expect_false(grepl("alfabetico", mal, fixed = TRUE))   # sin el valor crudo (A8 B-g, test-avisos-sin-jerga.R)
   expect_length(.graficos_orden_cat_avisos_slot(list(graficador = "p_barras_categoricas", args = list(var = "x")), "s"), 0L)
   plan <- list(slides = list(list(tipo = "p_slide_1_grafico", payload = list(titulo = "T", grafico = list(graficador = "p_barras_apiladas",
     args = list(var = "x", orden_categorias = list(modo = "frecuencia")))))))

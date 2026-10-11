@@ -1380,6 +1380,13 @@ graficar_barras_apiladas <- function(
     # ADR 0092 (F2.5): fila «Total» ponderada por la base de cada actor, primera
     # y separada por un filete (graficador_fila_total.R).
     fila_total            = FALSE,
+    # D-a (graficador_fila_total.R): con la fila Total encendida, "varias" pesa cada fila por sus casos (filas de bases
+    # distintas) y "una" por su suma de pesos. NULL lo deduce de la columna `.base` si la tabla la trae.
+    fila_total_bases      = NULL,
+    # Contrato base-sin-ponderar F6: columnas de casos sin ponderar de la fila (`N_casos`) y de cada segmento (`nc_i`,
+    # nombradas por la columna de porcentaje). Lo que el gráfico CUENTA va en casos; sin ellas, `var_n` y `cols_n`.
+    var_n_casos           = NULL,
+    cols_n_casos          = NULL,
     # ADR 0093: orden de la especificación nativa. Por defecto el declarado: los niveles de un cruce
     # (ciclo, sexo) no se reordenan. La batería de afirmaciones la ordena el compositor (lámina 221).
     orden_escala          = c("declarado", "auto", "top_two_box"),
@@ -1589,12 +1596,22 @@ graficar_barras_apiladas <- function(
   color_titulos_grupo <- color_titulos_grupo %||% color_ejes
   size_titulos_grupo  <- size_titulos_grupo  %||% size_ejes
 
+  # Casos sin ponderar (contrato base-sin-ponderar F6): el porcentaje ya llega ponderado en `cols_porcentaje`; lo que
+  # el gráfico cuenta (N por barra, «(n)», la columna «N») va en casos. El `var_n` ponderado sólo pesa la fila Total.
+  var_n_pond <- var_n; cols_n_map_pond <- cols_n_map
+  var_n_casos <- .graficos_col_casos(data, var_n, var_n_casos)
+  cols_n_casos <- .graficos_cols_casos(data, cols_n_map, cols_n_casos)
+  bases_fila <- if (".base" %in% names(data)) unique(stats::na.omit(as.character(data$.base))) else character(0)
+  fila_total_bases <- fila_total_bases %||% (if (length(bases_fila) > 1L) "varias" else "una")
   fila_total_activa <- isTRUE(fila_total) && !is.null(var_n) && nrow(data) >= 2L && is.null(var_grupo_id)
   df <- if (fila_total_activa) {
-    .apiladas_fila_total(data, var_categoria, var_etiqueta_categoria, var_n, cols_porcentaje, cols_n)
+    .apiladas_fila_total(data, var_categoria, var_etiqueta_categoria, var_n, cols_porcentaje, c(cols_n, cols_n_casos),
+                         var_n_casos = var_n_casos, varias_bases = identical(fila_total_bases, "varias"))
   } else {
     data
   }
+  var_n <- var_n_casos
+  if (!is.null(cols_n_map)) cols_n_map <- cols_n_casos
   row_id_col <- ".pulso_tmp_row_id"
   while (row_id_col %in% names(df)) row_id_col <- paste0(row_id_col, "_")
   df[[row_id_col]] <- seq_len(nrow(df))
@@ -2636,12 +2653,12 @@ graficar_barras_apiladas <- function(
       # pidiendo lo mismo y ninguno accionable; el ruido tapaba los que si lo
       # son.
       if (identical(.box_dec$motivo, "sin_declaracion")) {
-        .pulso_aviso(sprintf(
-          paste0("La columna «%s» se omite: no hay categorías declaradas. Decláralas ",
+        .pulso_aviso(.aviso_en_lamina(sprintf(
+          paste0("la columna «%s» se omite: no hay categorías declaradas. Decláralas ",
                  "por nombre en Configuración global > Estilo > Multi-apiladas; el ",
                  "motor ya no las deduce del orden de la escala."),
-          barra_extra_preset
-        ))
+          c(top2box = "Top Two Box", top3box = "Top Three Box", bottom2box = "Bottom Two Box")[[barra_extra_preset]]
+        )))
       }
       barra_extra_preset <- "ninguno"
       mostrar_barra_extra <- FALSE
@@ -2815,7 +2832,7 @@ graficar_barras_apiladas <- function(
                             cols_porcentaje = cols_porcentaje, minimo = 3L)
     if (!isTRUE(btb_dec$dibujar)) {
       if (identical(btb_dec$motivo, "sin_declaracion")) {
-        .pulso_aviso("La columna «Bottom Two Box» se omite: no hay categorías declaradas (bottom2box_labels).")
+        .pulso_aviso(.aviso_en_lamina("la columna «Bottom Two Box» se omite: no hay categorías declaradas. Decláralas en «Categorías del Bottom 2 Box»."))
       }
       btb_activa <- FALSE
     }
@@ -2837,7 +2854,9 @@ graficar_barras_apiladas <- function(
   # (lámina 19 del recetario, «90% = 35% + 55%»), no el redondeo de la suma.
   # ---------------------------------------------------------------------------
   espec_escala <- tryCatch(preparar_escala(
-    data, var_categoria = var_categoria, var_n = var_n, cols_porcentaje = cols_porcentaje,
+    data, var_categoria = var_categoria, var_n = var_n_pond, cols_porcentaje = cols_porcentaje,
+    var_n_casos = var_n_casos, cols_n_casos = if (!identical(cols_n_casos, cols_n_map_pond)) cols_n_casos,
+    fila_total_bases = fila_total_bases,
     etiquetas_grupos = etiquetas_grupos, var_etiqueta_categoria = var_etiqueta_categoria,
     var_grupo_id = var_grupo_id, var_grupo_titulo = var_grupo_titulo, escala_valor = escala_valor,
     colores_grupos = colores_grupos, etiquetas_leyenda = etiquetas_leyenda, decimales = decimales,

@@ -10,6 +10,7 @@ import type { EstructuraInforme } from "./modeloEstructura";
 import type { GrupoAvisos } from "./resumenInforme";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "./cierreConEscape";
 import { useAvisosPlan } from "../avisosPlan";
+import { enfocarSinDesplazar } from "./enfocarSinDesplazar";
 import "./panelAvisos.css";
 
 type Props = {
@@ -30,14 +31,15 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
     const activo = document.activeElement;
     disparadorRef.current = activo instanceof HTMLElement && activo !== document.body ? activo : null;
     if (!enfocarInicial.current) return;
-    const marco = requestAnimationFrame(() => cerrarRef.current?.focus());
+    // preventScroll: enfocar «Cerrar avisos» corría `.pulso-f6-laminas` 250 px a 1024×600 (C2/C4, verificador frontend-3).
+    const marco = requestAnimationFrame(() => enfocarSinDesplazar(cerrarRef.current));
     return () => cancelAnimationFrame(marco);
   }, []);
   const cerrarPanel = panel.cerrar;
   const cerrar = useCallback(() => {
     cerrarPanel();
     requestAnimationFrame(() => {
-      destinoDelFoco(disparadorRef.current, document.querySelector<HTMLElement>(".pulso-f6-barra-avisos"))?.focus();
+      enfocarSinDesplazar(destinoDelFoco(disparadorRef.current, document.querySelector<HTMLElement>(".pulso-f6-barra-avisos")));
     });
   }, [cerrarPanel]);
   // Escape en el documento: abrir el panel no le pasa el foco, así que un onKeyDown en su raíz no lo oía (D5).
@@ -85,6 +87,14 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
             <h3>Cambios al abrir el plan <span>{grupos.plan.length}</span></h3>
             <ul data-qa-geometry-group="graficos/f6-avisos-plan" data-qa-geometry-contract="intrinsic">
               {grupos.plan.map((a) => <li key={a}><span>{a}</span></li>)}
+            </ul>
+          </section>
+        )}
+        {grupos.equivalencias.length > 0 && (
+          <section className="pulso-f6-avisos-grupo" aria-label="Equivalencias entre bases">
+            <h3>Equivalencias entre bases <span>{grupos.equivalencias.length}</span></h3>
+            <ul data-qa-geometry-group="graficos/f6-avisos-equivalencias" data-qa-geometry-contract="intrinsic">
+              {grupos.equivalencias.map((a) => <li key={a}><span>{a}</span></li>)}
             </ul>
           </section>
         )}

@@ -197,7 +197,8 @@
   geo <- .lam_panel_geo(espec, x, y, w, h, pregunta, publico, leyenda, receta = receta)
   if (identical(geo$tipo, "dicotomia")) {
     d <- .lam_dicotomia_datos(espec)
-    return(.lam_dicotomia(lz, x, geo$y0, geo$w, d$rotulos, d$cifras, d$largos, if (isTRUE(geo$con_n)) d$n, size = geo$size, g = geo$g))
+    return(.lam_dicotomia(lz, x, geo$y0, geo$w, d$rotulos, d$cifras, d$largos, if (isTRUE(geo$con_n)) d$n, size = geo$size, g = geo$g,
+                          cols = d$colores))   # ADR 0097: la paleta del usuario de la escala o la categórica
   }
   if (identical(geo$tipo, "barras")) {
     return(.lam_barras_h(lz, espec, geo$x, geo$y0, geo$w, wlab = geo$wlab, g = geo$g, fila = geo$fila, size = geo$size))

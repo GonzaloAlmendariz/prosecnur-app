@@ -172,7 +172,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .pulso-f6-mas-menu button:hover:not(:disabled) {
+  .pulso-f6-mas-menu button:hover:not(:disabled):not([aria-disabled="true"]) {
     background: var(--pulso-surface-3);
     transition:
       background-color var(--motion-dur-hover) var(--motion-ease-out),
@@ -183,6 +183,17 @@
 .pulso-f6-mas-menu button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* Plan portátil y secciones JSON en el informe compartido (decisión 20): siguen enfocables para que el motivo se lea,
+   así que el texto conserva contraste; sólo el icono y el cursor dicen que no se puede usar. */
+.pulso-f6-mas-menu button[aria-disabled="true"] {
+  cursor: not-allowed;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-mas-menu button[aria-disabled="true"] svg {
+  opacity: 0.45;
 }
 
 .pulso-f6-mas-menu button svg {
@@ -244,4 +255,29 @@
 /* El botón Exportar conserva su rótulo en la barra de Láminas a cualquier ancho (la barra presupuesta su espacio). */
 .pulso-f6-barra .pulso-gv2-export-menu-trigger > span {
   display: inline;
+}
+
+/* Confirmación de «Vaciar el plan» (C14): nace bajo el menú ⋯, a la derecha de la barra, sin empujar el lienzo. Su
+   marco es intrínseco (texto y dos acciones) y cabe en el ancho del contenedor; no tiene desplazamiento propio. */
+.pulso-f6-barra-host {
+  position: relative;
+}
+
+.pulso-f6-barra-vaciar {
+  position: absolute;
+  top: calc(100% + var(--pulso-space-1));
+  right: 0;
+  z-index: 30;
+  width: min(420px, 100%);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.pulso-f6-barra-vaciar .pulso-f6-compartir-confirmar {
+  margin-top: 0;
+}
+
+.pulso-f6-mas-menu button.pulso-f6-mas-peligro:not([aria-disabled="true"]) > svg {
+  color: var(--pulso-danger-fg);
 }

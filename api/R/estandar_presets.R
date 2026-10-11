@@ -72,7 +72,7 @@
       # estándar, y «no configurado» sigue siendo un estado que el motor distingue.
       if (is.null(viejo)) next
       if (!identical(as.character(viejo)[1], as.character(nuevo))) {
-        cambios <- c(cambios, sprintf("%s %s → %s", nm, as.character(viejo)[1], as.character(nuevo)))
+        cambios <- c(cambios, .std_cambio_txt(nm, viejo, nuevo))
       }
       if (identical(donde, "base")) base[[nm]] <- nuevo else base$args[[nm]] <- nuevo
     }
@@ -88,7 +88,7 @@
         holder <- if (identical(donde, "tipo")) entrada else entrada$args
         if (!is.list(holder) || is.null(holder[[nm]])) next
         if (!identical(as.character(holder[[nm]])[1], as.character(nuevo))) {
-          cambios <- c(cambios, sprintf("%s de %s %s → %s", nm, tipo, as.character(holder[[nm]])[1], as.character(nuevo)))
+          cambios <- c(cambios, .std_cambio_txt(nm, holder[[nm]], nuevo, tipo))
         }
         if (identical(donde, "tipo")) entrada[[nm]] <- nuevo else entrada$args[[nm]] <- nuevo
       }
@@ -105,11 +105,36 @@
   cambios <- unique(cambios)
   if (isTRUE(avisar) && length(cambios)) {
     .pulso_aviso(
-      "El estilo guardado en el proyecto se ajustó al estándar de los recetarios (ADR 0092): ",
+      "El estilo guardado en el proyecto se ajustó al estándar de los recetarios: ",
       paste(cambios, collapse = ", "), "."
     )
   }
   presets
+}
+
+#' Cómo se lee en un aviso una clave o familia del estándar: «tamaño del título», no `size_titulo_slide`
+#' @keywords internal
+.std_etiqueta_clave <- function(nm) {
+  etiquetas <- c(
+    size_nota_pie = "tamaño de la base", size_titulo_slide = "tamaño del título", size_leyenda = "tamaño de la leyenda",
+    size_texto_barras = "tamaño de las cifras", font_family = "fuente",
+    etiquetas_arriba_si_no_caben = "cifras que no caben en su barra", size_barra_extra = "cifras de la columna Top Two Box",
+    size_titulo_extra = "rótulo de la columna Top Two Box", color_barra_extra = "color de la columna Top Two Box",
+    color_conectores_etiquetas = "color de las guías de las cifras",
+    barras_apiladas = "barras apiladas", multi_apiladas = "multi-apiladas"
+  )
+  out <- unname(etiquetas[nm])
+  if (is.na(out)) gsub("_+", " ", nm) else out
+}
+
+#' Un cambio del estándar en el aviso: «tamaño de la base 14 → 10». Sin valores si son sí/no, un token de color o los
+#' milímetros de ggplot de las cifras: ahí se lee la regla, no el número.
+#' @keywords internal
+.std_cambio_txt <- function(nm, viejo, nuevo, tipo = NULL) {
+  v <- as.character(unlist(viejo))[1]; n <- as.character(unlist(nuevo))[1]
+  txt <- .std_etiqueta_clave(nm)
+  if (!is.logical(nuevo) && !nm %in% c("color_conectores_etiquetas", "size_texto_barras")) txt <- sprintf("%s %s → %s", txt, v, n)
+  if (is.null(tipo)) txt else sprintf("%s en %s", txt, .std_etiqueta_clave(tipo))
 }
 
 
@@ -136,10 +161,10 @@
     cambios <<- c(cambios, texto)
   }
   num <- function(v) suppressWarnings(as.numeric(unlist(v, use.names = FALSE)))
-  quitar("histograma", "bins", function(v) identical(num(v), 8), NULL, "bins de histograma 8 → una barra por valor")
-  quitar("radar_tabla", "limites", function(v) identical(num(v), c(0, 1)), NULL, "limites de radar_tabla 0–1 → eje desde el mínimo")
+  quitar("histograma", "bins", function(v) identical(num(v), 8), NULL, "histograma con una barra por valor")
+  quitar("radar_tabla", "limites", function(v) identical(num(v), c(0, 1)), NULL, "radar con tabla: eje desde el valor mínimo")
   quitar("radar_tabla", "mostrar_niveles", function(v) identical(as.logical(unlist(v))[1], FALSE), TRUE,
-         "mostrar_niveles de radar_tabla FALSE → TRUE")
+         "radar con tabla: niveles del eje visibles")
   list(presets = presets, cambios = cambios)
 }
 

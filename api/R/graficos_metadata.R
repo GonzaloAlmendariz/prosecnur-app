@@ -1020,6 +1020,15 @@
 # GRAFICADORES
 # ===========================================================================
 
+# Las cuatro opciones de `tipo_rango` de `graficar_media_rango()`, compartidas por el graficador y el preset (C40).
+# `custom` usa `probs_rango` (sin él, 25 y 75: el mismo dibujo que el 50 % central).
+.MEDIA_RANGO_TIPOS_RANGO <- list(
+  list(value = "minmax",  label = "Mínimo a máximo", hint = "Lo que dibuja el recetario."),
+  list(value = "iqr",     label = "50 % central (P25–P75)"),
+  list(value = "p10_p90", label = "Percentiles 10 a 90"),
+  list(value = "custom",  label = "Percentiles a medida", hint = "Los fija «probs_rango»; sin ellos, P25–P75.")
+)
+
 .GRAFICADORES_META <- list(
 
   # ---- Básicos ------------------------------------------------------------
@@ -1065,6 +1074,9 @@
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
+      # C40: `max_categorias`, `agrupar_resto_en_otros` y `etiqueta_otros` son formales de `p_barras_agrupadas()` (antes
+      # se caían en `.clean_rebuild_args` y la tarjeta prometía un recorte que la lámina no hacía). Defaults = los de la
+      # casa (`.PRESETS_DEFAULT_PULSO$barras_agrupadas`).
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
            default = 12,
            descripcion = "Si hay más categorías, conserva las principales y agrupa el resto como Otros solo en el gráfico."),
@@ -1199,7 +1211,11 @@
            default = 0.05, min = 0.001, max = 0.2, step = 0.005,
            descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
-           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles.")
+           descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
+      # C40: formal de `p_barras_apiladas()`; mismo default que el preset `barras_apiladas`.
+      list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %. Las respuestas especiales (90–99, sin información) sin casos nunca se muestran.")
     ), .args_graf_comunes())
   ),
 
@@ -1246,7 +1262,11 @@
       list(name = "top2box_labels",label = "Etiquetas Top 2",tipo_input = "codigos_list",  grupo = "filtro",
            descripcion = "Las dos categorías de la escala que suman el Top Two Box. Sin ellas, el gráfico omite la columna y lo avisa: no se deducen del orden."),
       list(name = "wrap_y",        label = "Ancho etiquetas Y", tipo_input = "number",    grupo = "avanzado",
-           descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y. Recomendado: 30-80.")
+           descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y. Recomendado: 30-80."),
+      # C40: formal de `p_barras_multiapiladas()`; en «Combinar bloques» cada bloque lo hereda. Default = preset `multi_apiladas`.
+      list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Enseña las opciones de la escala que nadie eligió, con un ancho mínimo y la cifra 0 %. Las respuestas especiales (90–99, sin información) sin casos nunca se muestran.")
     ), .args_graf_comunes())
   ),
 
@@ -1372,6 +1392,9 @@
            descripcion = "Tamaño de cada intervalo. Ejemplo: 2 para edades 25-26, 27-28."),
       list(name = "bins", label = "Número de intervalos", tipo_input = "number", grupo = "datos",
            descripcion = "Se usa si no defines un ancho fijo de intervalo."),
+      # C40: formal de `p_histograma()` (antes sólo en el preset; el slot lo descartaba). Sin default: vacío = sin tope.
+      list(name = "limite_superior", label = "Límite superior", tipo_input = "number", grupo = "datos",
+           descripcion = "Tope del eje. Los valores que lo superan se juntan en la última barra, rotulada con «+» (por ejemplo «60+»). Vacío: sin tope."),
       list(name = "mostrar_bins_vacios", label = "Mostrar intervalos vacíos", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
@@ -1471,7 +1494,17 @@
     args = c(list(
       list(name = "var",                label = "Variable numérica", tipo_input = "variable",     grupo = "datos"),
       list(name = "cruce",              label = "Dividir por",       tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "chip_decimales",     label = "Decimales",         tipo_input = "number",       grupo = "filtro"),
+      # C40: el formal de `p_media_rango()` es `decimales_promedio` (lo traduce a `chip_decimales` del graficador); con
+      # el nombre del graficador el slot lo descartaba en `.clean_rebuild_args`. Default 1 = graficador y recetario.
+      list(name = "decimales_promedio", label = "Decimales",         tipo_input = "number",       grupo = "filtro",
+           default = 1, min = 0, max = 2, step = 1,
+           descripcion = "Decimales de la media que se escribe junto a cada grupo («Media 21,4»)."),
+      # C40: un solo default, el del recetario (la lámina 82 dibuja mínimo a máximo, recetario_m3b.R:48-66); el suelo de
+      # la casa (`.PRESETS_DEFAULT_PULSO$media_rango`) lo pone en el render. La leyenda de la lámina declara el rango.
+      list(name = "tipo_rango",         label = "Qué abarca la barra", tipo_input = "choice",     grupo = "datos",
+           default = "minmax",
+           choices = .MEDIA_RANGO_TIPOS_RANGO,
+           descripcion = "La barra de cada grupo va del mínimo al máximo, cubre el 50 % central o los percentiles 10 a 90. La leyenda de la lámina lo dice."),
       list(name = "mostrar_ref_label",  label = "Mostrar referencia",tipo_input = "bool",         grupo = "filtro",
            descripcion = "Muestra una línea o etiqueta con el promedio global como referencia."),
       list(name = "cortes_chip",        label = "Cortes del semáforo", tipo_input = "codigos_list", grupo = "semaforo"),
@@ -1528,7 +1561,7 @@
            default = TRUE,
            descripcion = "Escribe al margen la diferencia entre el lado positivo y el negativo, en puntos porcentuales."),
       list(name = "umbral_etiqueta_pct", label = "Umbral de etiqueta (%)", tipo_input = "number", grupo = "valores",
-           default = 3, min = 0, max = 20, step = 1,
+           default = 3, min = 0, max = 20, step = 1, unidad = "%",
            descripcion = "Los segmentos por debajo de este porcentaje no llevan cifra: no cabe."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Retira estas respuestas antes de calcular los porcentajes y el saldo; cambia el denominador.")
@@ -1640,8 +1673,12 @@
            default = TRUE,
            descripcion = "Escribe al margen la primera fuente menos la segunda (+6 pts si la primera está 6 puntos arriba). En antes/después declara primero la medición más reciente."),
       list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
-           default = 0, min = 0, max = 50, step = 1,
-           descripcion = "Sólo se rotulan las brechas de al menos este tamaño.")
+           default = 0, min = 0, max = 50, step = 1, unidad = "pp",
+           descripcion = "Sólo se rotulan las brechas de al menos este tamaño."),
+      # C40: formal de `p_dumbbell()`; «pts» = motor (`graficar_dumbbell()`) y recetario.
+      list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
+           default = "pts",
+           descripcion = "Se escribe junto a la diferencia: «+6 pts».")
     ), .args_graf_comunes())
   ),
 
@@ -1800,7 +1837,7 @@
            min = 0, max = 3,
            descripcion = "0 muestra enteros. En el modo Entre públicos manda también sobre la tabla, para que la cifra del vértice y la de la celda sean la misma."),
       list(name = "valores_umbral_pct", label = "Umbral de valores (%)", tipo_input = "number", grupo = "valores",
-           default = 3,
+           default = 3, unidad = "%",
            descripcion = "Los vértices por debajo de este porcentaje no se etiquetan — evita el amontonamiento con muchos ejes de valores chicos. 0 etiqueta todos.")
     ), .args_graf_comunes())
   ),
@@ -2292,13 +2329,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = TRUE,
            descripcion = "Dibuja el triángulo que compara contra la medición anterior. Sin cambio no se dibuja nada."),
       list(name = "barra_extra_tolerancia_pp", label = "Tolerancia de la flecha (pp)", tipo_input = "number", grupo = "estilo",
-           default = 0,
+           default = 0, min = 0, max = 100, step = 1, unidad = "pp",
            descripcion = "Diferencia mínima en puntos porcentuales para dibujar la flecha. Con 1, un 91 % contra 90 % no marca cambio."),
       list(name = "barra_extra_umbral_alto", label = "Umbral verde del Top 2 Box", tipo_input = "number", grupo = "estilo",
-           default = 80,
+           default = 80, min = 0, max = 100, step = 1, unidad = "%",
            descripcion = "Desde este valor la cifra va en verde. Vara del informe de acreditación: 80."),
       list(name = "barra_extra_umbral_medio", label = "Umbral ámbar del Top 2 Box", tipo_input = "number", grupo = "estilo",
-           default = 70,
+           default = 70, min = 0, max = 100, step = 1, unidad = "%",
            descripcion = "Desde este valor la cifra va en ámbar; por debajo, en rojo. Vara del informe de acreditación: 70."),
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
            descripcion = "Texto que aparece encima de la columna extra. Déjalo vacío para usar el título automático del indicador."),
@@ -2608,13 +2645,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = TRUE,
            descripcion = "Dibuja el triángulo que compara contra la medición anterior. Sin cambio no se dibuja nada."),
       list(name = "barra_extra_tolerancia_pp", label = "Tolerancia de la flecha (pp)", tipo_input = "number", grupo = "estilo",
-           default = 0,
+           default = 0, min = 0, max = 100, step = 1, unidad = "pp",
            descripcion = "Diferencia mínima en puntos porcentuales para dibujar la flecha. Con 1, un 91 % contra 90 % no marca cambio."),
       list(name = "barra_extra_umbral_alto", label = "Umbral verde del Top 2 Box", tipo_input = "number", grupo = "estilo",
-           default = 80,
+           default = 80, min = 0, max = 100, step = 1, unidad = "%",
            descripcion = "Desde este valor la cifra va en verde. Vara del informe de acreditación: 80."),
       list(name = "barra_extra_umbral_medio", label = "Umbral ámbar del Top 2 Box", tipo_input = "number", grupo = "estilo",
-           default = 70,
+           default = 70, min = 0, max = 100, step = 1, unidad = "%",
            descripcion = "Desde este valor la cifra va en ámbar; por debajo, en rojo. Vara del informe de acreditación: 70."),
 
       # --- Eje Y + separación --------------------------------------------
@@ -3120,12 +3157,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "etiquetas_negrita",     label = "Etiquetas en negrita", tipo_input = "bool",   grupo = "estilo", default = TRUE),
 
       # --- Leyenda -------------------------------------------------------
+      # `graficar_pie()` solo acepta abajo o derecha; «Ocultar» (`ninguna`)
+      # reventaba su `match.arg` y se retiró del catálogo.
       list(name = "leyenda_posicion",      label = "Posición leyenda",     tipo_input = "choice", grupo = "estilo",
            default = "abajo",
            choices = list(
              list(value = "abajo",   label = "Abajo"),
-             list(value = "derecha", label = "Derecha"),
-             list(value = "ninguna", label = "Ocultar")
+             list(value = "derecha", label = "Derecha")
            )),
       list(name = "size_leyenda",         label = "Tamaño leyenda",        tipo_input = "number", grupo = "estilo", default = 11),
       list(name = "tamano_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
@@ -3340,9 +3378,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = "#C7D2E0"),
       list(name = "size_valores", label = "Tamaño de las cifras", tipo_input = "number", grupo = "valores",
            default = 3.0, min = 1.5, max = 8, step = 0.1),
+      # «pts» y no «pp»: es lo que escriben el motor (`graficar_dumbbell()`) y el recetario (C40).
       list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
-           default = "pp",
-           descripcion = "Se escribe junto a la diferencia. Por defecto puntos porcentuales."),
+           default = "pts",
+           descripcion = "Se escribe junto a la diferencia: «+6 pts»."),
       list(name = "mostrar_leyenda", label = "Mostrar leyenda", tipo_input = "bool", grupo = "estilo",
            default = TRUE),
       list(name = "leyenda_posicion", label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
@@ -3440,8 +3479,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "escala_valor",         label = "Escala de valores",      tipo_input = "choice", grupo = "filtro",
            default = "proporcion_1",
            choices = list(
-             list(value = "proporcion_1",  label = "Proporción 0-1",  hint = "Los valores van de 0 a 1."),
-             list(value = "porcentaje_100",label = "Porcentaje 0-100",hint = "Los valores van de 0 a 100.")
+             # Solo lo que acepta `graficar_radar()`; el viejo `porcentaje_100`
+             # se normaliza en el motor (graficador_radar_compat.R).
+             list(value = "proporcion_1",   label = "Proporción (0 a 1)",   hint = "Los valores van de 0 a 1: 0,85 es el 85 %."),
+             list(value = "proporcion_100", label = "Porcentaje (0 a 100)", hint = "Los valores van de 0 a 100: 85 es el 85 %.")
            )),
       list(name = "limites",              label = "Límites del radar",     tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Mínimo y máximo, separados por coma. Ej: 0, 1 o 0, 100. Si vacío, se deduce de escala_valor."),
@@ -3466,11 +3507,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       # --- Leyenda -------------------------------------------------------
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo", default = TRUE),
+      # El radar dibuja la leyenda abajo o a la derecha; «Arriba» se ofrecía
+      # sin que el motor lo aceptara (el viejo `arriba` cae a abajo en el motor).
       list(name = "leyenda_posicion",     label = "Posición leyenda",      tipo_input = "choice", grupo = "estilo",
            default = "abajo",
            choices = list(
              list(value = "abajo",   label = "Abajo"),
-             list(value = "arriba",  label = "Arriba"),
+             list(value = "derecha", label = "Derecha"),
              list(value = "ninguna", label = "Ocultar")
            )),
       list(name = "legend_n_por_fila",    label = "Items por fila",        tipo_input = "number", grupo = "estilo", default = 3),
@@ -3581,10 +3624,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            descripcion = "Decimales de la media que se muestra en el chip de cada categoría."),
       list(name = "mostrar_rango",        label = "Mostrar rango",         tipo_input = "bool",   grupo = "estilo", default = TRUE),
       list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
-           choices = list(
-             list(value = "iqr",     label = "IQR (P25-P75)"),
-             list(value = "minmax", label = "Min-Max")
-           )),
+           default = "minmax",
+           choices = .MEDIA_RANGO_TIPOS_RANGO),
       list(name = "mostrar_ref_label",    label = "Mostrar línea/etiqueta de referencia", tipo_input = "bool", grupo = "estilo",
            default = TRUE,
            descripcion = "Añade una línea o texto con el promedio global como referencia visual."),
@@ -4147,6 +4188,11 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
     pos_titulo               = "centro",
     size_titulo              = 14
+  ),
+
+  # C40: la lámina 82 del recetario dibuja mínimo a máximo; sin este suelo el plan caía al «iqr» del motor desnudo.
+  media_rango = list(
+    tipo_rango               = "minmax"
   ),
 
   radar_tabla = list(
@@ -4719,6 +4765,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       descripcion = "Proporción del alto disponible que ocupa la tabla dentro del placeholder. Ej. 0.72 usa 72%."
     ),
     umbral_rojo_pct = list(
+      unidad = "%",
       descripcion = "Marca celdas por debajo del porcentaje indicado. Usa 0 para desactivar el marcado. Ej. 60 marca valores menores a 60%."
     ),
     leyenda_posicion = list(
@@ -4884,7 +4931,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     umbral_posicion = list(
       label = "Ubicación de etiquetas pequeñas",
       descripcion = "Por debajo de este valor relativo, la etiqueta se mueve fuera de la barra para que porcentajes como 1% o 2% se lean mejor.",
-      unidad = "%",
+      unidad = "proporción",
       min = 0,
       max = 1,
       step = 0.0001,
@@ -4969,9 +5016,11 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     list()
   )
 
+  # `umbral_*` sin `_pct` guarda una proporción 0–1: se declara así y el editor la pinta ×100 con «%»
+  # (`escalaVisualDeArg`). Declararla «%» con rango 0–1 pintaba 0.01 como «0,01 %».
   if (grepl("^umbral_", nm) && !grepl("_pct$", nm)) {
     patch <- utils::modifyList(list(
-      unidad = "%",
+      unidad = "proporción",
       min = 0,
       max = 1,
       step = 0.0001,
@@ -5110,6 +5159,11 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     # motor; la pestaña «Cálculos» lo lee de aquí en vez de repetir la lista.
     calculos <- .calculos_meta_de_preset(nm, args)
     if (!is.null(calculos)) out$calculos <- calculos
+    # Lo que el Word del recetario fija y el editor de ajustes Word no debe ofrecer como si mandara (C5): una lista por
+    # preset y no un campo en cada `args[]`, porque varios fijados (size_leyenda, size_ejes…) no son args del preset.
+    # Sale de las mismas constantes que lee el renderer (`reporte_word_escala_fijados.R`).
+    word_fijado <- .word_fijado_de_preset(nm)
+    if (!is.null(word_fijado)) out$word_fijado <- word_fijado
     out
   })
   list(presets = presets)

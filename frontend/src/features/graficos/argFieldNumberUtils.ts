@@ -1,4 +1,5 @@
 import { ArgMetadata } from "../../api/client";
+import { seMuestraComoPorcentajeDeProporcion } from "./argEscalaVisual";
 
 export type NumberValidationKind = "default" | "warning" | "error";
 
@@ -129,7 +130,7 @@ export function inferNumberStep(meta: ArgMetadata, value: unknown): number {
   const unit = String(meta.unidad ?? "").toLowerCase();
   const name = String(meta.name ?? "").toLowerCase();
 
-  if (isProportionThreshold(meta)) return 0.0001;
+  if (seMuestraComoPorcentajeDeProporcion(meta)) return 0.0001;
   if (unit.includes("propor") || name.startsWith("canvas_w_")) return 0.01;
   if (unit.includes("pulgada") || name.endsWith("_in") || name.includes("_in_")) return 0.02;
   if (Number.isFinite(span) && span > 0 && span <= 2) return 0.01;
@@ -164,11 +165,6 @@ function normalizeNumericInput(value: string): string {
 function normalizeNumberDisplay(value: number): string {
   const fixed = Number(value.toFixed(6));
   return String(fixed);
-}
-
-function isProportionThreshold(meta: ArgMetadata): boolean {
-  const name = String(meta.name ?? "").toLowerCase();
-  return (name.startsWith("umbral_") || name.includes("_umbral_") || name.includes("_threshold")) && !name.endsWith("_pct");
 }
 
 export function clampNumber(value: number, min: number | undefined, max: number | undefined): number {

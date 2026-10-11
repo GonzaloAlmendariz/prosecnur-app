@@ -13,7 +13,7 @@ describe("aviso de variable que no resolvió", () => {
     const aviso = avisoDeVariableNoResuelta("p7", ["docentes"]);
     expect(aviso.code).toBe("var-sin-base");
     expect(aviso.severity).toBe("error");
-    expect(aviso.detalle).toContain('"docentes"');
+    expect(aviso.detalle).toContain("la base «docentes»");
     expect(aviso.detalle).not.toContain("renombraste");
   });
 
@@ -21,7 +21,7 @@ describe("aviso de variable que no resolvió", () => {
     const aviso = avisoDeVariableNoResuelta("sexo", ["docentes", "estudiantes", "egresados"]);
     expect(aviso.code).toBe("var-sin-base");
     expect(aviso.severity).toBe("error");
-    expect(aviso.detalle).toContain('"docentes", "estudiantes" y "egresados"');
+    expect(aviso.detalle).toContain("las bases «docentes», «estudiantes» y «egresados»");
   });
 
   test("no existe en ninguna base: se mantiene el aviso de variable perdida", () => {

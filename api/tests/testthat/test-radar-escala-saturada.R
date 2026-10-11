@@ -36,7 +36,8 @@ test_that("porcentajes declarados como proporcion se detectan y se avisan", {
     }
   )
   txt <- paste(msgs, collapse = " ")
-  expect_true(grepl("proporcion", txt))
+  expect_true(grepl("proporción", txt, fixed = TRUE))
+  expect_false(grepl("escala_valor|proporcion_100", txt))   # sin nombre de argumento ni valor crudo (A8 B-g)
   expect_true(grepl("100", txt))
 })
 

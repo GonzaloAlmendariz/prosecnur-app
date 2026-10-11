@@ -298,3 +298,25 @@ test_that("cada columna de publico trae el desplegable de SUS variables", {
   expect_true(any(grepl("radar", literales, fixed = TRUE)))
   expect_true(any(grepl("auditoria", literales, fixed = TRUE)))
 })
+
+# ADR 0096 decisión 5: GET /api/carga/equivalencias publica la revisión nueva
+# (`r2:`), calculada con los instrumentos de cada público. Es uno de los cuatro
+# productores que tienen que coincidir (los otros tres en
+# test-graficos-plan-consolidado.R, R9).
+test_that("R9: GET /api/carga/equivalencias devuelve la revisión r2: con los instrumentos", {
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "equivalencias_publicos", .req_equiv())
+  testthat::local_mocked_bindings(session_header = function(req) sid, .package = "prosecnurapp")
+  pr <- mount_equivalencias(plumber::pr())
+  endpoints <- unlist(pr$endpoints, recursive = FALSE)
+  ep <- endpoints[[which(vapply(endpoints, function(e) {
+    identical(e$path, "/api/carga/equivalencias") && "GET" %in% e$verbs
+  }, logical(1)))]]
+  res <- new.env(parent = emptyenv()); res$status <- 200L; res$setHeader <- function(...) invisible(NULL)
+  out <- ep$getFunc()(new.env(parent = emptyenv()), res)
+
+  expect_identical(as.integer(res$status), 200L)
+  expect_match(out$revision, "^r2:")
+  expect_identical(out$revision, .equiv_declaracion_revision(.req_equiv(), .equiv_inst_por_base(sid)))
+})

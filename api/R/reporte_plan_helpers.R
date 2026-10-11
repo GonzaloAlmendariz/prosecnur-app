@@ -2060,39 +2060,6 @@
   trimws(x)
 }
 
-# ---- paleta auto (paleta_<listname>) desde env_diapos -----------------------
-# (usa el mismo patrón que tu .paleta_auto() del exportador)
-.paleta_auto_local <- function(list_name, env) {
-  if (is.null(env) || !is.environment(env)) env <- parent.frame()
-  ln <- as.character(list_name)[1]
-  ln <- trimws(ln)
-  if (is.na(ln) || !nzchar(ln)) return(NULL)
-
-  .paleta_candidates <- function(x) {
-    x <- trimws(as.character(x))
-    x <- x[!is.na(x) & nzchar(x)]
-    if (!length(x)) return(character(0))
-    out <- x
-    if (grepl("s$", x[1])) out <- c(out, sub("s$", "", x[1]))
-    if (grepl("es$", x[1])) out <- c(out, sub("es$", "", x[1]))
-    out <- c(out, paste0(x[1], "s"), paste0(x[1], "es"))
-    out <- trimws(as.character(out))
-    unique(out[!is.na(out) & nzchar(out)])
-  }
-
-  obj_candidates <- paste0("paleta_", .paleta_candidates(ln))
-  hit <- obj_candidates[vapply(
-    obj_candidates,
-    function(obj_name) exists(obj_name, envir = env, inherits = TRUE),
-    logical(1)
-  )]
-  if (!length(hit)) return(NULL)
-
-  pal <- get(hit[1], envir = env, inherits = TRUE)
-  if (!is.atomic(pal) || is.null(names(pal))) return(NULL)
-  pal
-}
-
 # ---- list_name de una var (survey) ------------------------------------------
 .list_name_of_var_local <- function(v, survey) {
   if (!is.data.frame(survey)) return(NA_character_)
@@ -2147,7 +2114,8 @@
 
   # paleta por list_name del CRUCE
   ln_cruce <- .list_name_of_var_local(cruce, survey)
-  pal <- .paleta_auto_local(ln_cruce, env = env_paletas)
+  # Por nombre, vínculo o firma de las opciones del cruce (graficos_paleta_resolver.R, ADR 0097).
+  pal <- .paleta_resolver_colores(ln_cruce, estr_labels, env = if (is.environment(env_paletas)) env_paletas else parent.frame())
 
   # si paleta existe:
   # - idealmente nombres de paleta son labels (como sueles hacer en listas)
@@ -2212,6 +2180,12 @@
 
   codes_row  <- .as_chr(cats$codes)
   labels_row <- .as_chr(cats$labels)
+
+  # Base (C40 D1): el denominador usa TODOS los códigos válidos de la pregunta; omit y top_n sólo deciden qué ejes
+  # se muestran. Recortar antes sacaría de la base a quien sólo eligió lo omitido e inflaría el %.
+  base_valida <- !(trimws(tolower(codes_row)) == "total" | trimws(tolower(labels_row)) == "total" |
+                     is.na(labels_row) | !nzchar(trimws(labels_row)))
+  codes_den  <- codes_row[base_valida]
 
   # 1) Omit manual (por codes / labels)
   if (!is.null(sm_omit_codes) || !is.null(sm_omit_labels)) {
@@ -2324,7 +2298,7 @@
     N_g <- denominador_validos(
       data       = data,
       var        = var,
-      codes      = codes_row,
+      codes      = codes_den,
       tp         = tp,
       mask       = mask_g,
       weight_col = "peso"
@@ -2365,7 +2339,7 @@
     N_g <- denominador_validos(
       data       = data,
       var        = var,
-      codes      = codes_row,
+      codes      = codes_den,
       tp         = tp,
       mask       = mask_g,
       weight_col = "peso"
@@ -3058,7 +3032,7 @@ p_reset <- function(
   # W-5 (B54): un pedido explicito de columna extra en la lamina sobrevive al
   # default Word; particion multiactor (0.30 etiquetas + 0.54 barras + 0.14).
   block_clean$overrides <- .word_conservar_barra_extra_pedida(
-    block_clean$overrides, w_extra = 0.14, w_bars = 0.54
+    .word_barra_extra_solo_word(block_clean$overrides), w_extra = 0.14, w_bars = 0.54
   )
   # W-6 (B54): panel proporcional al numero de actores del bloque.
   block_clean <- .word_escalar_panel_multi(block_clean)
@@ -3086,7 +3060,7 @@ p_reset <- function(
   if (etype %in% c("barras_apiladas", "barras_multiapiladas")) {
     # W-5 (B54): el pedido de columna extra de la lamina sobrevive al default
     # Word que la apaga (el default solo rige cuando nadie la pidio).
-    ov <- .word_conservar_barra_extra_pedida(ov)
+    ov <- .word_conservar_barra_extra_pedida(.word_barra_extra_solo_word(ov))
   }
   if (identical(etype, "media_rango")) {
     size_ejes_orig <- ov$size_ejes %||% 9

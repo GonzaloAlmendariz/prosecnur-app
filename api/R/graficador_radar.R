@@ -74,7 +74,8 @@
 #' @param colores_series Vector nombrado de colores por etiqueta final de grupo.
 #'
 #' @param mostrar_leyenda Si `TRUE`, muestra la leyenda.
-#' @param leyenda_posicion Posición de leyenda: `"abajo"` o `"derecha"`.
+#' @param leyenda_posicion Posición de leyenda: `"abajo"`, `"derecha"` o
+#'   `"ninguna"` (oculta la leyenda, igual que `mostrar_leyenda = FALSE`).
 #' @param invertir_leyenda Si `TRUE`, invierte el orden visual de la leyenda.
 #' @param legend_n_por_fila Ítems por fila de leyenda.
 #' @param legend_key_cm Tamaño de key de leyenda (cm).
@@ -205,7 +206,7 @@ graficar_radar <- function(
     colores_series   = NULL,     # named por etiqueta final
 
     mostrar_leyenda   = TRUE,
-    leyenda_posicion  = c("abajo", "derecha"),
+    leyenda_posicion  = c("abajo", "derecha", "ninguna"),
     invertir_leyenda  = FALSE,
     legend_n_por_fila = 6L,
 
@@ -383,9 +384,16 @@ graficar_radar <- function(
   if (!requireNamespace("grid", quietly = TRUE))   stop("Requiere grid.",   call. = FALSE)
   if (!requireNamespace("tibble", quietly = TRUE)) stop("Requiere tibble.", call. = FALSE)
 
+  # Valores viejos del catálogo (graficador_radar_compat.R).
+  escala_valor     <- .radar_escala_valor_compat(escala_valor)
+  leyenda_posicion <- .radar_leyenda_posicion_compat(leyenda_posicion)
   escala_valor     <- match.arg(escala_valor)
   exportar         <- match.arg(exportar)
   leyenda_posicion <- match.arg(leyenda_posicion)
+  if (identical(leyenda_posicion, "ninguna")) {
+    mostrar_leyenda  <- FALSE
+    leyenda_posicion <- "abajo"
+  }
   icono_modo       <- match.arg(icono_modo)
   icono_color_radar <- normalize_optional_color(icono_color_radar, arg_name = "icono_color_radar")
   icono_color_leyenda_radar <- normalize_optional_color(
@@ -729,13 +737,13 @@ graficar_radar <- function(
   esc <- as.character(escala_valor)[1]
   max_val <- suppressWarnings(max(df0$.valor, na.rm = TRUE))
   if (identical(esc, "proporcion_1") && is.finite(max_val) && max_val > 1.5) {
-    .pulso_aviso(sprintf(
-      paste0("El radar recibió valores de hasta %.1f declarados como ",
-             "proporción (0 a 1). Se leen como porcentaje: sin esto los %d ",
-             "vértices saldrían todos al 100 %%. Declara ",
-             "`escala_valor = \"proporcion_100\"` para quitar este aviso."),
+    .pulso_aviso(.aviso_en_lamina(sprintf(   # «Lámina N · …:» si se dibuja dentro de un mazo
+      paste0("el radar recibió valores de hasta %.1f con la escala de valores ",
+             "en proporción (0 a 1). Se leen como porcentaje: sin esto los %d ",
+             "vértices saldrían todos al 100 %%. Para quitar este aviso, ",
+             "declara la escala de valores como porcentaje (0 a 100)."),
       max_val, nrow(df0)
-    ))
+    )))
     esc <- "proporcion_100"
   }
 

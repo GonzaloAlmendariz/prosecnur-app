@@ -32,12 +32,12 @@ test_that("las cifras calculadas arman una banda válida", {
   expect_true(.lam_cifras_cabe(e)); expect_identical(e$items[[2]]$valor, "23 años")
 })
 
-test_that("con peso del estudio el porcentaje y la media van ponderados, y el detalle lo dice", {
+test_that("con peso del estudio el porcentaje y la media van ponderados, y el detalle dice la base en casos", {
   b <- data.frame(titulo = c(1, 2, 2, 2), edad = c(20, 30, 30, 30), w = c(3, 1, 1, 1))
   attr(b, "var_peso") <- "w"
   c1 <- .cifra_desde_datos(b, "titulo", "porcentaje", categoria = "1", rotulo = "x")
   expect_identical(c1$valor, "50%")                                            # 3 de 6 por peso; sin peso sería 25%
-  expect_identical(c1$detalle, "Con el peso del estudio")                         # sin una segunda base en la lámina
+  expect_identical(c1$detalle, "Base: 4 respuestas")                              # la base en casos, como el pie (F6 §3)
   expect_identical(.cifra_desde_datos(b, "edad", "media", rotulo = "x")$valor, "25.0")
   expect_identical(.cifra_desde_datos(b, "edad", "mediana", rotulo = "x")$valor, "25")       # punto medio exacto: promedia 20 y 30
 })

@@ -1,0 +1,481 @@
+/* Pestaña «Estilo del cliente» de Procesamiento › Gráficos (F6.4; dirección F6 §4.6). Barra fija y un solo dueño de
+   desplazamiento: el cuerpo (C4, No Scroll Jail). Logos, pasos, roles y páginas son grupos `equal` de marco fijo (C2):
+   el vacío vive dentro de cada caja (C3). Sólo tokens existentes: el sello «Del recetario» usa los neutros hasta que la
+   Meta B publique `--pulso-recetario-*`. */
+
+.pulso-graficos-pestana > .pulso-f6-estilo {
+  flex: 1;
+  min-height: 0;
+}
+
+.pulso-f6-estilo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.pulso-f6-estilo-barra {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  min-height: 44px;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-estilo-titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-estilo-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--pulso-space-4);
+}
+
+.pulso-f6-estilo-cuerpo.is-vacio {
+  display: grid;
+  place-items: center;
+}
+
+.pulso-f6-estilo-no-disponible {
+  max-width: 52ch;
+  margin: 0;
+  padding: var(--pulso-space-5);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.pulso-f6-estilo-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-5);
+  align-items: start;
+}
+
+@media (min-width: 1280px) {
+  .pulso-f6-estilo-columnas {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+
+  .pulso-f6-estilo-lateral {
+    position: sticky;
+    top: 0;
+  }
+}
+
+.pulso-f6-estilo-secciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+.pulso-f6-estilo-seccion,
+.pulso-f6-estilo-previa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-estilo-seccion-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-height: var(--pulso-control-height-md);
+}
+
+.pulso-f6-estilo-seccion-cabecera h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-estilo-seccion-cabecera .pulso-button {
+  margin-left: auto;
+}
+
+.pulso-f6-estilo-ayuda {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-estilo-tenue {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-estilo-error {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius);
+  font-size: 12px;
+  color: var(--pulso-danger-fg);
+}
+
+/* --- Sellos ---------------------------------------------------------------------------------------------------- */
+
+.pulso-f6-estilo-sello,
+.pulso-f6-estilo-modificado {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.pulso-f6-estilo-sello.is-recetario {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-estilo-sello.is-propio {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-estilo-modificado {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+/* --- Opciones (ámbito y paso general): radios nativos con tarjeta ------------------------------------------------ */
+
+.pulso-f6-estilo-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.pulso-f6-estilo-opciones.is-pasos {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pulso-f6-estilo-leyenda {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-bottom: var(--pulso-space-2);
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-estilo-opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  min-height: 72px;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-estilo-opciones.is-pasos .pulso-f6-estilo-opcion {
+  min-height: 56px;
+}
+
+.pulso-f6-estilo-opcion:hover {
+  border-color: var(--module-accent-border);
+}
+
+.pulso-f6-estilo-opcion.is-activa {
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 5%, transparent);
+}
+
+.pulso-f6-estilo-opcion:focus-within {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-f6-estilo-opcion input {
+  margin: 2px 0 0;
+  accent-color: var(--module-accent);
+}
+
+.pulso-f6-estilo-opcion-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-estilo-opcion-texto strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-estilo-por-defecto {
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-estilo-volver {
+  align-self: flex-start;
+}
+
+/* --- Logos --------------------------------------------------------------------------------------------------- */
+
+.pulso-f6-estilo-logos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.pulso-f6-estilo-logo {
+  display: grid;
+  grid-template-rows: auto 104px minmax(56px, auto) auto;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-estilo-logo-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-estilo-logo-cabecera h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-f6-estilo-logo-vista {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: var(--pulso-space-2);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.pulso-f6-estilo-logo-vista img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.pulso-f6-estilo-logo-vacio {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-estilo-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-estilo-campo input {
+  min-height: var(--pulso-control-height-md);
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.pulso-f6-estilo-logo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  align-self: end;
+}
+
+/* --- Roles de letra --------------------------------------------------------------------------------------------- */
+
+.pulso-f6-estilo-subtitulo {
+  margin: var(--pulso-space-2) 0 0;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-estilo-roles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-estilo-rol {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(150px, 200px) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-height: 52px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+@media (max-width: 1180px) {
+  .pulso-f6-estilo-rol {
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 200px);
+  }
+
+  .pulso-f6-estilo-rol-tamanos {
+    grid-column: 1 / -1;
+  }
+}
+
+.pulso-f6-estilo-rol-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-estilo-rol select {
+  min-height: var(--pulso-control-height-md);
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.pulso-f6-estilo-rol select:focus-visible,
+.pulso-f6-estilo-campo input:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-f6-estilo-rol-tamanos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  margin: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.pulso-f6-estilo-token {
+  color: var(--pulso-text-faint);
+}
+
+/* --- Vista previa del Word ------------------------------------------------------------------------------------- */
+
+.pulso-f6-estilo-previa > .pulso-button {
+  align-self: flex-start;
+}
+
+.pulso-f6-estilo-paginas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.pulso-f6-estilo-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  min-width: 0;
+}
+
+.pulso-f6-estilo-pagina-hoja {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 210 / 297;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.pulso-f6-estilo-pagina-hoja img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-estilo-pagina figcaption {
+  font-size: 11.5px;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-estilo-opcion {
+    transition: none;
+  }
+}

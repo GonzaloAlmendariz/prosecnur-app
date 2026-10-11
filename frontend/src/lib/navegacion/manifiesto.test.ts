@@ -124,7 +124,7 @@ describe("manifiesto de navegación", () => {
     );
   });
 
-  it("expone las 32 pestañas de Muestra, 28 de Procesamiento y 4 de Dashboard", () => {
+  it("expone las 32 pestañas de Muestra, 29 de Procesamiento y 4 de Dashboard", () => {
     const muestra = nodosDe("calc-muestra").filter(
       (nodo) =>
         nodo.nivel === "pestana"
@@ -148,7 +148,13 @@ describe("manifiesto de navegación", () => {
     expect(
       nodoPorClave("calc-muestra/opinion-universitaria/aulas/aulas-relato"),
     ).not.toBeNull();
-    expect(procesamiento).toHaveLength(28);
+    // F6.3 (2026-10-11): Gráficos gana «Vista general» (`vista-general`). 28 → 29.
+    // F6.4 (A6 R3, 2026-10-11): Gráficos gana «Estilo del cliente» (`estilo`). 29 → 30.
+    // A10 W-E (2026-10-11): Gráficos gana «Estilo del informe» (`estilo-informe`). 30 → 31.
+    expect(procesamiento).toHaveLength(31);
+    expect(nodoPorClave("procesamiento/graficos/vista-general")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/graficos/estilo")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/graficos/estilo-informe")).not.toBeNull();
     expect(dashboard).toHaveLength(4);
   });
 

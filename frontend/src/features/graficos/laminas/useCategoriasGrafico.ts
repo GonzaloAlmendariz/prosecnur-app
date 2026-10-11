@@ -1,6 +1,6 @@
 // Categorías de la pregunta de un gráfico (GET /api/graficos/categorias) para la fila «Orden» (D8). Se piden al abrir
 // la tarjeta y se recuerdan por sesión, alcance y pregunta mientras la página vive: la frecuencia es de la base, no de
-// la lámina, y no cambia al reordenar.
+// la lámina, y no cambia al reordenar. El graficador entra en la clave: el backend avisa distinto si es una escala.
 
 import { useCallback, useEffect, useState } from "react";
 import { apiGraficosCategorias, type GraficosCategorias } from "../../../api/graficos";
@@ -20,8 +20,20 @@ function mensajeDe(e: unknown): string {
   return e instanceof Error ? e.message : "No se pudieron leer las categorías.";
 }
 
-export function useCategoriasGrafico(variable: string, scope: "active" | "consolidated"): EstadoCategorias & { reintentar: () => void } {
-  const clave = `${getSession() ?? ""}|${scope}|${variable}`;
+export function claveCategorias(sesion: string, scope: "active" | "consolidated", variable: string, graficador: string): string {
+  return `${sesion}|${scope}|${graficador}|${variable}`;
+}
+
+/**
+ * `variable` debe llegar calificada (`base$var`, `varCalificada`); `graficador` es el id del gráfico. Opcional para
+ * quien sólo lee las categorías (Two Box) y no muestra los avisos del orden.
+ */
+export function useCategoriasGrafico(
+  variable: string,
+  scope: "active" | "consolidated",
+  graficador = "",
+): EstadoCategorias & { reintentar: () => void } {
+  const clave = claveCategorias(getSession() ?? "", scope, variable, graficador);
   const [intento, setIntento] = useState(0);
   const [estado, setEstado] = useState<EstadoCategorias>(() => {
     const c = cache.get(clave);
@@ -33,7 +45,7 @@ export function useCategoriasGrafico(variable: string, scope: "active" | "consol
     if (c) { setEstado({ fase: "lista", datos: c }); return; }
     let vivo = true;
     setEstado({ fase: "cargando" });
-    apiGraficosCategorias(variable, scope)
+    apiGraficosCategorias(variable, scope, graficador || undefined)
       .then((datos) => {
         if (!vivo) return;
         cache.set(clave, datos);
@@ -44,7 +56,7 @@ export function useCategoriasGrafico(variable: string, scope: "active" | "consol
         setEstado(e instanceof ApiError && e.code === "E_CATEGORIAS_SIN_LISTA" ? { fase: "sin_lista" } : { fase: "error", mensaje: mensajeDe(e) });
       });
     return () => { vivo = false; };
-  }, [clave, variable, scope, intento]);
+  }, [clave, variable, scope, graficador, intento]);
   const reintentar = useCallback(() => { cache.delete(clave); setIntento((n) => n + 1); }, [clave]);
   return { ...estado, reintentar };
 }

@@ -266,6 +266,9 @@
         n        = 0,
         pct      = if (!is.null(denom) && denom > 0) 0 else NA_real_
       )
+      # Con la base sin ponderar pedida (`casos = TRUE`), la categoría
+      # completada también tiene cero casos (no NA).
+      if ("n_casos" %in% names(body)) add$n_casos <- 0L
       body <- dplyr::bind_rows(body, add)
     }
   }
@@ -1302,10 +1305,17 @@ mk_styles_spss <- function() {
 #' con filas de `n = 0` cuando `mostrar_todo = TRUE` si no hay casos en la
 #' variable.
 #'
+#' `casos = TRUE` (opt-in; lo piden las láminas y el Word, no los tabulados
+#' XLSX) añade la columna entera `n_casos`: filas con peso > 0 por categoría y
+#' en el Total. En select_one el Total es la suma; en select_multiple son las
+#' personas con al menos una marca y peso > 0, no la suma de las opciones. Sin
+#' `peso` (o con pesos 1) `n_casos == n` en cada fila.
+#'
 #' @export
 freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
                             orders_list = NULL, mostrar_todo = FALSE,
-                            codigos_solo_si_presentes = NULL) {
+                            codigos_solo_si_presentes = NULL,
+                            casos = FALSE) {
 
   if (!is.data.frame(data)) {
     stop("`data` debe ser un data.frame o tibble.", call. = FALSE)
@@ -1333,6 +1343,11 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
   }
 
   w <- .peso_vec(data)
+  # Base sin ponderar (S1, contrato base-sin-ponderar F6): `n_casos` cuenta
+  # filas con peso > 0 sobre las MISMAS filas que suman `n`. Se calcula siempre
+  # y `.freq_casos_final()` lo quita cuando no se pidió, para que el default
+  # (tabulados XLSX) quede byte-idéntico.
+  fin <- function(tab) .freq_casos_final(tab, casos)
 
   # ----------------------------
   # select_multiple
@@ -1353,11 +1368,12 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
         dplyr::distinct(id, op)
 
       if (!nrow(df_long)) {
-        return(tibble::tibble(Opciones = character(), n = numeric(), pct = numeric()))
+        return(fin(.freq_tab_vacia()))
       }
 
       ids_con_marca <- sort(unique(df_long$id))
       denom <- sum(w[ids_con_marca], na.rm = TRUE)
+      denom_casos <- sum(w[ids_con_marca] > 0)
 
       tab <- df_long |>
         dplyr::left_join(
@@ -1365,12 +1381,14 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
           by = "id"
         ) |>
         dplyr::group_by(op) |>
-        dplyr::summarise(n = sum(peso, na.rm = TRUE), .groups = "drop") |>
+        dplyr::summarise(n = sum(peso, na.rm = TRUE), n_casos = sum(peso > 0),
+                         .groups = "drop") |>
         dplyr::arrange(dplyr::desc(n)) |>
         dplyr::transmute(
           Opciones = op,
           n        = as.numeric(n),
-          pct      = if (denom > 0) n / denom else NA_real_
+          pct      = if (denom > 0) n / denom else NA_real_,
+          n_casos  = n_casos
         )
 
       tab <- .map_from_attr_labels(tab, var, data)
@@ -1383,13 +1401,14 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
       tab <- .reordenar_por_instrumento(tab, var, orders_list)
       tab <- .move_ns_pref_last(tab)
 
-      total_row <- tibble::tibble(Opciones = "Total", n = as.numeric(denom), pct = 1)
-      return(dplyr::bind_rows(tab, total_row))
+      total_row <- tibble::tibble(Opciones = "Total", n = as.numeric(denom), pct = 1,
+                                  n_casos = denom_casos)
+      return(fin(dplyr::bind_rows(tab, total_row)))
     }
 
     # Caso 2: solo dummies
     if (!length(subvars_all)) {
-      return(tibble::tibble(Opciones = character(), n = numeric(), pct = numeric()))
+      return(fin(.freq_tab_vacia()))
     }
 
     mat <- as.data.frame(data[, subvars_all, drop = FALSE])
@@ -1397,13 +1416,19 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
 
     has_any <- rowSums(mat == 1, na.rm = TRUE) > 0
     denom   <- sum(w[has_any], na.rm = TRUE)
+    denom_casos <- sum(has_any & w > 0)
 
     n_w <- vapply(subvars_all, function(sv) {
       v <- suppressWarnings(as.numeric(as.character(mat[[sv]])))
       sum(w[v == 1 & !is.na(v)], na.rm = TRUE)
     }, numeric(1))
+    nc_w <- vapply(subvars_all, function(sv) {
+      v <- mat[[sv]]
+      sum(v == 1 & !is.na(v) & w > 0)
+    }, integer(1))
 
-    tab <- tibble::tibble(subvar = subvars_all, n = as.numeric(n_w)) |>
+    tab <- tibble::tibble(subvar = subvars_all, n = as.numeric(n_w),
+                          n_casos = unname(nc_w)) |>
       dplyr::mutate(
         Opciones = sub(paste0("^", var_escaped, "[/\\.]"), "", subvar)
       ) |>
@@ -1411,7 +1436,8 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
       dplyr::transmute(
         Opciones,
         n,
-        pct = if (denom > 0) n / denom else NA_real_
+        pct = if (denom > 0) n / denom else NA_real_,
+        n_casos
       )
 
     tab <- .map_to_labels(tab, var, orders_list)
@@ -1423,8 +1449,9 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
     tab <- .reordenar_por_instrumento(tab, var, orders_list)
     tab <- .move_ns_pref_last(tab)
 
-    total_row <- tibble::tibble(Opciones = "Total", n = as.numeric(denom), pct = 1)
-    return(dplyr::bind_rows(tab, total_row))
+    total_row <- tibble::tibble(Opciones = "Total", n = as.numeric(denom), pct = 1,
+                                n_casos = denom_casos)
+    return(fin(dplyr::bind_rows(tab, total_row)))
   }
 
   # ----------------------------
@@ -1449,14 +1476,15 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
     dplyr::filter(!is.na(.op) & nzchar(.op) & .op != "NA")
 
   if (!nrow(tib)) {
-    return(tibble::tibble(Opciones = character(), n = numeric(), pct = numeric()))
+    return(fin(.freq_tab_vacia()))
   }
 
   denom <- sum(tib$peso, na.rm = TRUE)
 
   tab <- tib |>
     dplyr::group_by(.op) |>
-    dplyr::summarise(n = sum(peso, na.rm = TRUE), .groups = "drop") |>
+    dplyr::summarise(n = sum(peso, na.rm = TRUE), n_casos = sum(peso > 0),
+                     .groups = "drop") |>
     dplyr::arrange(dplyr::desc(n)) |>
     dplyr::mutate(pct = if (denom > 0) n / denom else NA_real_) |>
     dplyr::rename(Opciones = .op)
@@ -1471,9 +1499,36 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
   tab <- .reordenar_por_instrumento(tab, var, orders_list)
   tab <- .move_ns_pref_last(tab)
 
-  total_row <- tibble::tibble(Opciones = "Total", n = sum(tab$n, na.rm = TRUE), pct = 1)
-  dplyr::bind_rows(tab, total_row)
+  total_row <- tibble::tibble(Opciones = "Total", n = sum(tab$n, na.rm = TRUE), pct = 1,
+                              n_casos = sum(tab$n_casos, na.rm = TRUE))
+  fin(dplyr::bind_rows(tab, total_row))
 }
+
+#' Tabla de frecuencias vacía con la columna de casos (la quita `.freq_casos_final`).
+#' @noRd
+.freq_tab_vacia <- function() {
+  tibble::tibble(Opciones = character(), n = numeric(), pct = numeric(), n_casos = integer())
+}
+
+#' Cierra la tabla de `freq_table_spss()` según `casos`.
+#'
+#' Con `casos = FALSE` (default de los tabulados XLSX, S1) quita `n_casos` y la
+#' tabla queda idéntica a la histórica. Con `casos = TRUE` lo deja al final y
+#' entero: es un conteo de filas con peso > 0, nunca una cifra ponderada.
+#' @noRd
+.freq_casos_final <- function(tab, casos = FALSE) {
+  if (!"n_casos" %in% names(tab)) return(tab)
+  if (!isTRUE(casos)) {
+    tab$n_casos <- NULL
+    return(tab)
+  }
+  nc <- tab$n_casos
+  nc[is.na(nc)] <- 0L
+  tab$n_casos <- NULL
+  tab$n_casos <- as.integer(nc)
+  tab
+}
+
 
 
 # =============================================================================

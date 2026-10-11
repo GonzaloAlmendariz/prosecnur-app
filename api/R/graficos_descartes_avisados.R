@@ -132,20 +132,29 @@
   switch(
     d$clase,
     cerrada_descartada = sprintf(
-      "%s es una pregunta cerrada y quedo fuera del mazo por «%s». Una cerrada responde con su lista de opciones: revisa el filtro, no el instrumento.",
+      "%s es una pregunta cerrada y quedó fuera del mazo por «%s». Una cerrada responde con su lista de opciones: revisa el filtro, no el instrumento.",
       quien, d$exclusion_reason
     ),
     sin_lamina_posible = sprintf(
-      "%s es %s y no tiene lamina posible. Tramificala en Codificacion —crea «%s_recod»— para que entre al mazo.",
-      quien, d$tipo, d$var
+      "%s es una pregunta %s y no tiene lámina posible. Tramifícala en Codificación —crea «%s_recod»— para que entre al mazo.",
+      quien, .graficos_tipo_pregunta_visible(d$tipo), d$var
     ),
-    sprintf("%s quedo fuera del mazo.", quien)
+    sprintf("%s quedó fuera del mazo.", quien)
   )
+}
+
+#' Tipo XLSForm de una pregunta como se lee en un aviso: «numérica», no `integer`
+#' @keywords internal
+.graficos_tipo_pregunta_visible <- function(tipo) {
+  t <- tolower(as.character(tipo %||% "")[1])
+  if (is.na(t)) t <- ""
+  switch(t, integer = , decimal = , range = "numérica", text = "de texto abierto", date = , datetime = , time = "de fecha u hora",
+         geopoint = , geotrace = , geoshape = "de ubicación", "de un tipo que no se grafica")
 }
 
 .graficos_frase_catalogo_numerado <- function(c) {
   sprintf(
-    "El catalogo de «%s» (%s) saldria numerado: %d de %d opciones tienen el codigo como etiqueta. Revisa la recodificacion antes de exportar.",
+    "El catálogo de «%s» (%s) saldría numerado: %d de %d opciones tienen el código como etiqueta. Revisa la recodificación antes de exportar.",
     c$label, c$list_name, c$n_numeradas, c$n_opciones
   )
 }

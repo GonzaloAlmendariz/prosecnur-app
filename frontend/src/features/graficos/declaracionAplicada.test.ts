@@ -39,4 +39,24 @@ describe("desfase entre el mazo aplicado y la declaración", () => {
       revisionAplicada: "abc", revisionActual: "abc", declarada: false,
     })).toBe("declaracion-retirada");
   });
+  // F5 (ADR 0096 decisión 5): la revisión nueva lleva prefijo `r2:`. Un mazo aplicado con una revisión vieja (sin
+  // prefijo) no se puede comparar contra la nueva: informarlo como desfase sería una alarma falsa en todo proyecto
+  // abierto tras actualizar. Mata: comparar las cadenas a secas.
+  it("revisión guardada sin prefijo contra una r2: es «revisión anterior», no desfase", () => {
+    const estado = estadoDeclaracionAplicada({
+      revisionAplicada: "3ecc6df6490869d2", revisionActual: "r2:abc", declarada: true,
+    });
+    expect(estado).toBe("revision-anterior");
+    expect(avisoDeclaracionAplicada(estado)).not.toBe(avisoDeclaracionAplicada("desfasada"));
+    expect(avisoDeclaracionAplicada(estado)).not.toMatch(/cambiaron/);
+  });
+
+  it("entre dos r2: distintas sí hay desfase, y la misma r2: está al día", () => {
+    expect(estadoDeclaracionAplicada({
+      revisionAplicada: "r2:abc", revisionActual: "r2:xyz", declarada: true,
+    })).toBe("desfasada");
+    expect(estadoDeclaracionAplicada({
+      revisionAplicada: "r2:abc", revisionActual: "r2:abc", declarada: true,
+    })).toBe("al-dia");
+  });
 });
