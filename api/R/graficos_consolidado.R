@@ -210,6 +210,23 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   rules
 }
 
+# Marco con que el export consolidado dibuja: orden de las releases del catálogo y sus reglas metodológicas. Lo comparten
+# el preflight y la vista previa consolidada (graficos_miniaturas.R): misma base, mismo orden, mismos denominadores.
+.graficos_consolidado_marco <- function(sid) {
+  catalog <- .processing_release_catalog(session_get(sid))
+  list(
+    catalog = catalog,
+    source_order = vapply(catalog$entries %||% list(), `[[`, character(1), "base"),
+    rules = .graficos_consolidado_methodology_rules(catalog)
+  )
+}
+
+# El plan como lo dibuja el export consolidado: reglas metodológicas del catálogo y normalización.
+.graficos_consolidado_plan_entregable <- function(plan, rules) {
+  methodology <- .graficos_consolidado_apply_methodology(plan %||% list(), rules)
+  list(plan = .normalize_plan(methodology$plan %||% list()), warnings = methodology$warnings)
+}
+
 .graficos_consolidado_parse_eligibility <- function(expression) {
   expression <- .graficos_scalar_chr(expression, "")
   if (!nzchar(expression)) return(NULL)
@@ -566,11 +583,8 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
     .graficos_suggested_plan(sid, config = cfg)
   }
   methodology_rules <- .graficos_consolidado_methodology_rules(catalog)
-  methodology <- .graficos_consolidado_apply_methodology(
-    suggested$plan %||% list(),
-    methodology_rules
-  )
-  plan <- .normalize_plan(methodology$plan %||% list())
+  methodology <- .graficos_consolidado_plan_entregable(suggested$plan %||% list(), methodology_rules)
+  plan <- methodology$plan
   validation <- .validar_plan_json(plan)
   if (!isTRUE(validation$ok)) {
     blockers[[length(blockers) + 1L]] <- list(

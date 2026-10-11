@@ -148,3 +148,65 @@ test_that("cancelar un lote lo deja cancelado y sin entradas a medias; los error
   sin_slide <- http_post_json(srv, "/api/graficos/preview-slide-job", body = list(include_images = FALSE), sid = base$sid)
   expect_identical(sin_slide$json$error$code %||% sin_slide$json$code, "E_NO_SLIDE")
 })
+
+test_that("cambiar la ponderación o el orden de categorías de Analítica invalida la vista previa y la nueva lo refleja", {
+  srv <- http_contract_server()
+  base <- http_contract_upload_base(srv)
+  lamina <- list(id = "w1", tipo = "p_slide_1_grafico",
+                 payload = list(titulo = "Región", grafico = list(graficador = "p_barras_categoricas", args = list(var = "region"))))
+  cuerpo <- list(slide = lamina, include_images = FALSE)
+  previa <- function() {
+    r <- http_post_json(srv, "/api/graficos/preview-slide", body = cuerpo, sid = base$sid)
+    expect_identical(r$status, 200L)
+    r$json
+  }
+  rotulos <- function(file_id) {
+    dl <- http_get(srv, sprintf("/api/files/%s/download", file_id), sid = base$sid)
+    f <- tempfile(fileext = ".pptx"); writeBin(dl$raw, f)
+    xml <- xml2::read_xml(.pptx_leer_parte(f, .pptx_slide_paths(f)[[1]]))
+    xml2::xml_text(xml2::xml_find_all(xml, "//a:t"))
+  }
+  r0 <- previa()
+  t0 <- rotulos(r0$file_id)
+  expect_identical(previa()$cache$pptx, "hit")
+
+  # Ponderación: la región «norte» pasa a pesar 25 %.
+  pond <- list(enabled = TRUE, rake = list(margins = list(list(var = "region", targets = list(norte = 0.25, sur = 0.75)))))
+  cfg <- http_post_json(srv, "/api/analitica/config", body = list(config = list(ponderacion = pond)), sid = base$sid)
+  expect_identical(cfg$status, 200L)
+  r1 <- previa()
+  expect_false(identical(r1$hash, r0$hash))
+  expect_identical(r1$cache$pptx, "miss")
+  t1 <- rotulos(r1$file_id)
+  expect_false(identical(t1, t0))                                              # los porcentajes cambian
+  expect_true(any(grepl("25", t1, fixed = TRUE)))
+
+  # Orden de categorías: sur antes que norte.
+  cfg2 <- http_post_json(srv, "/api/analitica/config",
+                         body = list(config = list(ponderacion = pond, orden_categorias = list(lst_region = list("sur", "norte")))),
+                         sid = base$sid)
+  expect_identical(cfg2$status, 200L)
+  r2 <- previa()
+  expect_false(identical(r2$hash, r1$hash))
+  t2 <- rotulos(r2$file_id)
+  pos <- function(t, x) which(grepl(x, t, fixed = TRUE))[1]
+  expect_lt(pos(t2, "Sur"), pos(t2, "Norte"))
+  expect_lt(pos(t1, "Norte"), pos(t1, "Sur"))
+})
+
+test_that("M1: cada lámina del lote publica `graficos` {pedidos, vacios, motivo}", {
+  srv <- http_contract_server()
+  base <- http_contract_upload_base(srv)
+  l1 <- .mh_lamina("g1")
+  l2 <- .mh_lamina("g2"); l2$payload$grafico$args$filtros <- list(region = "oeste")
+  r <- http_post_json(srv, "/api/graficos/miniaturas", body = list(slides = list(l1, l2)), sid = base$sid)
+  snap <- http_wait_job(srv, r$json$job_id, timeout_secs = 400)
+  por <- stats::setNames(snap$result_data$laminas, vapply(snap$result_data$laminas, `[[`, "", "slide_id"))
+  expect_identical(as.integer(por$g1$graficos$pedidos), 1L)
+  expect_identical(as.integer(por$g1$graficos$vacios), 0L)
+  expect_length(por$g1$graficos$motivo, 0L)
+  expect_identical(por$g2$estado, "sin_datos")
+  expect_identical(unlist(por$g2$graficos$motivo), "n0")
+  expect_match(rawToChar(http_get(srv, paste0("/api/graficos/miniaturas/", r$json$lote_id), sid = base$sid)$raw),
+               '"motivo":["n0"]', fixed = TRUE)                              # arreglo aunque tenga uno
+})
