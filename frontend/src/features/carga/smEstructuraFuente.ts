@@ -158,6 +158,12 @@ export function smRefreshStructureDetail(
  * (ADR 0061/0062): bases declaradas separadas o independientes y más de una
  * base primaria. Si no existe, el enlace llevaría a una pestaña que el rail no
  * lista, así que solo se ofrece el texto.
+ *
+ * Fuente única: `equivalencias.disponible` de `GET /api/carga/fuentes/emparejamiento`
+ * (`api/cargaFuentes.ts`), que el backend calcula con el predicado de la
+ * pestaña. Quien ya tenga ese payload lo usa y no llama a esta copia; queda
+ * solo para el diagnóstico del refresh (`SmEstructuraFuenteAccion`), que no lo
+ * pide.
  */
 export function equivalenciasDisponibleEnEstudio(
   estudio: Pick<EstudioPayload, "topology_declared" | "bases"> | null | undefined,

@@ -35,6 +35,8 @@ export function SmEstructuraFuenteAccion({
     return <small className="pulso-sm-instrumento-distinto-accion">{SM_ACCION_BASE_POR_POSICION}</small>;
   }
   if (!smTieneInstrumentoDistinto(diffs)) return null;
+  // Copia local del predicado: este diagnóstico no pide el emparejamiento. La
+  // fuente única es `equivalencias.disponible` de `apiCargaFuentesEmparejamiento`.
   const href = equivalenciasDisponibleEnEstudio(estudio) ? carga.hrefDe("pestana", "equivalencias") : null;
   return <SmInstrumentoDistintoAccion hrefEquivalencias={href} />;
 }
