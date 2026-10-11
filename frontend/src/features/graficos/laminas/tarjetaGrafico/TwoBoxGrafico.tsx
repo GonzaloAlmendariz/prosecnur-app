@@ -23,7 +23,7 @@ import {
   type Caja,
   type CambioTwoBox,
 } from "./twoBox";
-import { leerTopEnWord, patchTopEnWord } from "./twoBoxWord";
+import { NOTA_TOP_EN_WORD, leerTopEnWord, patchTopEnWord } from "./twoBoxWord";
 import "./tarjetaGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef; onAbrirBloques: () => void };
@@ -128,8 +128,8 @@ function CajasDeEscala({ slideId, slot, valor }: Omit<Props, "onAbrirBloques">) 
             ariaLabel="Top Two Box también en el Word"
             onToggle={() => updateSlotArgs(slideId, slot, patchTopEnWord(valor.graficador, args, presets, wPresets, !enWord.sale))}
           />
-          {!enWord.sale && (
-            <span className="pulso-f6-dato-ayuda pulso-f6-twobox-nota">Los ajustes Word del informe quitan esta columna en las barras apiladas.</span>
+          {enWord.motivo && (
+            <span className="pulso-f6-dato-ayuda pulso-f6-twobox-nota">{NOTA_TOP_EN_WORD[enWord.motivo]}</span>
           )}
         </div>
       )}
