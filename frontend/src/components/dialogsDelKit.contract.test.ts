@@ -93,7 +93,6 @@ const SNAPSHOT_DIALOGOS: Record<string, number> = {
   "features/xlsformEditor/shell/DiagnosticsPopover.tsx": 1,
   "features/xlsformEditor/shell/FormSimulator.tsx": 1,
   "features/xlsformEditor/shell/FormSummaryView.tsx": 1,
-  "features/xlsformEditor/shell/ImportSurveyMonkeyDialog.tsx": 1,
   "features/xlsformEditor/shell/MatrizPulsoDialog.tsx": 1,
 };
 

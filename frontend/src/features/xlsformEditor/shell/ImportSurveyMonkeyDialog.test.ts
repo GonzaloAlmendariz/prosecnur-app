@@ -30,26 +30,34 @@ describe("FinalImportReviewModal", () => {
     expect(markup).toContain("borrador editable");
     expect(markup).toContain("no publica");
     expect(markup).toContain("no confirma");
-    expect(markup).toContain('autofocus=""');
+    // La confirmación es un switch (K1), no una casilla; el foco inicial lo da
+    // `useFocoInicialDeSwitch` (cubierto en ImportSurveyMonkeyDialog.foco.test.tsx).
+    expect(markup).toContain('role="switch"');
+    expect(markup).not.toContain('type="checkbox"');
     expect(markup).not.toMatch(/aprobad[oa]/i);
   });
 });
 
 describe("ImportSurveyMonkeyDialog", () => {
-  test("se renderiza por encima del chrome fijo del editor", () => {
+  test("monta sobre el Dialog del kit, que da portal, capa modal y trap de foco", () => {
     const markup = renderToStaticMarkup(createElement(ImportSurveyMonkeyDialog, {
       fileName: "",
       onCancel: vi.fn(),
       onComplete: vi.fn(),
     }));
 
-    expect(markup).toContain("z-index:2300");
+    expect(markup).toContain("pulso-dialog");
+    expect(markup).toContain('aria-modal="true"');
+    expect(markup).toContain("Traducir encuesta de SurveyMonkey");
   });
 
-  test("escapa de los contextos de apilado del editor mediante un portal", () => {
+  test("ya no escribe un overlay artesanal ni conecta al montar", () => {
     const source = readFileSync(new URL("./ImportSurveyMonkeyDialog.tsx", import.meta.url), "utf8");
 
-    expect(source).toContain("createPortal(dialog, document.body)");
+    expect(source).toContain("<Dialog");
+    expect(source).not.toContain("createPortal(");
+    expect(source).not.toMatch(/role=["']dialog["']/);
+    expect(source).not.toContain("apiXlsformEditorSmCheckToken");
   });
 });
 
@@ -67,6 +75,33 @@ describe("surveyMonkeyTokenUiState", () => {
     expect(ui.hasUsableToken).toBe(true);
     expect(ui.displayMask).toBe("sm_1...abcdef");
     expect(ui.storageLabel).toBe("cifrado en este equipo");
+  });
+
+  test("sin consultar (estado inicial) permite intentar sin afirmar que hay token", () => {
+    const ui = surveyMonkeyTokenUiState({
+      ok: true,
+      has_token: false,
+      masked_token: "",
+      persisted: false,
+      ephemeral: false,
+    }, "", false);
+
+    expect(ui.hasUsableToken).toBe(false);
+    expect(ui.canAttempt).toBe(true);
+    expect(ui.pendingLookup).toBe(true);
+  });
+
+  test("consultado y sin token, las acciones quedan deshabilitadas", () => {
+    const ui = surveyMonkeyTokenUiState({
+      ok: true,
+      has_token: false,
+      masked_token: "",
+      persisted: false,
+      ephemeral: false,
+    }, "", true);
+
+    expect(ui.canAttempt).toBe(false);
+    expect(ui.pendingLookup).toBe(false);
   });
 });
 
