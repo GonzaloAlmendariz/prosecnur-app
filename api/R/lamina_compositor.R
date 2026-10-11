@@ -50,7 +50,7 @@
   premisas <- .lam_escala_premisas(espec)
   # Con fila Total o Bottom Two Box el recetario compone filas bajo cada pregunta (lámina 77); se parte por
   # bloques y, si hace falta, por filas repitiendo la Total (verificador de N2).
-  en_filas <- .lam_escala_en_filas(espec)
+  en_filas <- .lam_escala_modo_filas(espec)
   partes <- if (en_filas) .lam_filas_planear(espec, premisas) else .lam_escala_partir(premisas)
   .lam_aviso_partes(titulo, list(premisas), length(partes))
   for (k in seq_along(partes)) {
@@ -291,16 +291,28 @@
   }
   # Con fila Total o Bottom Two Box la pregunta encabeza el bloque (lámina 77) cuando la lámina tiene su
   # propio título; si no lo tiene, su título ya es la pregunta y no se repite.
-  if (.lam_escala_en_filas(espec) && !is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
+  if (.lam_escala_modo_filas(espec) && !is.null(slide$title) && is.function(titulo_de_var) && !is.null(el_plot$var)) {
     espec$pregunta <- tryCatch(as.character(.plan_titulo_corto(titulo_de_var, el_plot))[1], error = function(e) NULL)
+    # La apilada sola en filas (Bottom Two Box con la premisa corta, decisión «2c»): si la pregunta es su único
+    # rótulo, no se escribe dos veces.
+    if (NROW(espec$filas) == 1L && identical(trimws(espec$pregunta %||% ""), trimws(as.character(espec$filas$rotulo[1])))) espec$pregunta <- NULL
   }
   # Una afirmación de un solo público: el recetario la encabeza con la pregunta y nombra al público junto a
   # la barra («Estudiantes · 172 respuestas», lámina 216). El público es la base de la variable
   # («estudiantes$p16_6»).
-  if (!.lam_escala_en_filas(espec) && NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)) {
+  # En filas (Bottom Two Box con la premisa corta, decisión «2c») el criterio es el mismo: la premisa encabeza como
+  # pregunta y la fila lleva el público con sus respuestas a la izquierda de la barra. La forma se decide antes de
+  # cambiar el rótulo, con la premisa.
+  un_publico <- NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && grepl("$", el_plot$var %||% "", fixed = TRUE) && nzchar(base_var)
+  publico <- paste0(toupper(substr(base_var, 1, 1)), substr(base_var, 2, nchar(base_var)))
+  if (un_publico && .lam_escala_modo_filas(espec)) {
+    espec$pregunta <- as.character(espec$filas$rotulo[1])
+    espec$filas$rotulo <- publico
+    espec$filas_respuestas <- TRUE
+  } else if (un_publico) {
     espec$filas$grupo_id <- base_var
     espec$filas$grupo_titulo <- espec$filas$rotulo
-    espec$filas$rotulo <- paste0(toupper(substr(base_var, 1, 1)), substr(base_var, 2, nchar(base_var)))
+    espec$filas$rotulo <- publico
   }
   attr(p, "pulso_espec") <- espec
   .lam_compositor_slide_1(doc, p, titulo, subtitulo, base, pie, antetitulo, layout = layout, master = master,

@@ -7,6 +7,9 @@ import { normalizarAvisosConfig, publicarAvisosConfig } from "./graficosAvisosCo
 import { normalizeGraficosCategorias, type GraficosCategorias } from "./graficosCategoriasNormalizer";
 import { normalizeGraficosConfigBundle } from "./graficosConfigNormalizer";
 import type { JobStart } from "./jobs";
+import type { WordFijado } from "./graficosWordFijado";
+
+export type { WordFijado, WordFijadoValor } from "./graficosWordFijado";
 
 // ---------- Gráficos (PPT/Word) ----------
 //
@@ -17,6 +20,8 @@ import type { JobStart } from "./jobs";
 
 // Nombres canónicos de los tipos de slide en prosecnur (en español).
 // Reemplaza los nombres viejos en inglés (p_slide_title, p_slide_1, etc.).
+// Los 33 tipos de `.SLIDES_META` (api/R/graficos_metadata.R), espejo de api/inst/catalogos/graficos_tipos.json.
+// `laminas/selectores/tiposLamina.test.ts` falla si el registro gana o pierde un tipo y este union no lo sigue.
 export type SlideType =
   // Estructurales (sin slots de gráfico)
   | "p_slide_portada"
@@ -26,6 +31,7 @@ export type SlideType =
   | "p_slide_texto"
   | "p_slide_tabla_tecnica"
   | "p_slide_top_two_box"
+  | "p_slide_redondeo"
   | "p_slide_cierre"
   // 1 gráfico
   | "p_slide_1_grafico"
@@ -37,13 +43,26 @@ export type SlideType =
   | "p_slide_2_graficos_narrativo"
   | "p_slide_2_graficos_texto_izquierda"
   | "p_slide_2_graficos_texto_derecha"
+  | "p_slide_2_graficos_vertical"
+  | "p_slide_2_graficos_asimetrico"
+  | "p_slide_cifras_y_graficos"
+  // 3 gráficos
+  | "p_slide_3_graficos_2mas1"
+  | "p_slide_3_graficos_1mas2"
+  | "p_slide_3_graficos_fila"
+  | "p_slide_3_graficos_1arriba"
   // Grid 4
   | "p_slide_4_graficos"
-  // Población (con ícono central)
-  | "p_slide_2_graficos_poblacion"
-  | "p_slide_4_graficos_poblacion"
+  // Población
+  | "p_slide_3_graficos_poblacion_tira"
+  | "p_slide_3_graficos_poblacion_corona"
+  | "p_slide_3_graficos_poblacion_cifras"
   | "p_slide_5_graficos_poblacion"
-  | "p_slide_6_graficos_poblacion";
+  | "p_slide_6_graficos_poblacion"
+  // Población antigua (fuera del selector; los planes que la usan la siguen editando)
+  | "p_slide_2_graficos_poblacion"
+  | "p_slide_3_graficos_poblacion"
+  | "p_slide_4_graficos_poblacion";
 
 export type SlideCategoria =
   | "estructural"
@@ -407,6 +426,8 @@ export type PresetMetadata = {
   icono_ui: string;
   args: ArgMetadata[];
   calculos?: PresetCalculosMeta;
+  /** Ajustes del Word que fija el recetario (`normalizeWordFijado`). Ausente = el Word respeta todos los args. */
+  word_fijado?: WordFijado[];
 };
 
 export type PresetsRegistry = {
@@ -886,6 +907,8 @@ export type PreviewSlideOptions = {
   render_slide_preview?: boolean;
   /** Rasterizar todas las partes «(cont.)», no sólo la primera. */
   preview_partes?: boolean;
+  /** K11: devolver las formas de cada parte y las ranuras del estándar (guías del visor, `graficos_preview_formas.R`). */
+  preview_formas?: boolean;
   scope?: "consolidated";
 };
 
@@ -902,6 +925,8 @@ export type PreviewSlideResponse = {
   slide_previews?: Array<(SlideRenderedPreview & { indice?: number }) | Record<string, never>>;
   /** Avisos del motor para esta lámina (columna omitida, lámina partida…). */
   avisos?: string[] | string;
+  /** K11, sólo con `preview_formas`: las ranuras del estándar del tipo, en pulgadas. Leer con `normalizePreviewFormas`. */
+  ranuras_estandar?: unknown;
 };
 
 export type PreviewSlideParte = {
@@ -910,9 +935,100 @@ export type PreviewSlideParte = {
   /** «marco»: el gráfico se dibuja aparte (nube de palabras, serie de 3+ mediciones) y la lámina lleva título y pie del recetario. */
   estado: "nativa" | "estructura" | "ruta_anterior" | "sin_grafico" | "marco";
   continuacion: boolean;
+  /** K11, sólo con `preview_formas`: las formas de la parte leídas del PPTX. Leer con `normalizePreviewFormas`. */
+  formas?: unknown;
 };
 
 export type PreviewSlidePartes = { n: number; partes: PreviewSlideParte[]; truncado?: boolean };
+
+/** Rol de una forma de la lámina, como lo deriva `.pf_rol` (graficos_preview_formas.R). */
+export type RolFormaPreview =
+  | "titulo" | "antetitulo" | "grafico" | "cifra" | "texto" | "leyenda" | "base" | "pie" | "icono" | "otro";
+
+const ROLES_FORMA_PREVIEW: ReadonlySet<string> = new Set([
+  "titulo", "antetitulo", "grafico", "cifra", "texto", "leyenda", "base", "pie", "icono", "otro",
+]);
+
+/** Una forma de la lámina (K11). Medidas en pulgadas; `null` es «no se pudo leer o medir», nunca un cero. */
+export type PreviewForma = {
+  nombre: string;
+  rol: RolFormaPreview;
+  x: number | null;
+  y: number | null;
+  w: number | null;
+  h: number | null;
+  ptMin: number | null;
+  ptMax: number | null;
+  lineas: number | null;
+  /** `null`: la medición no es confiable (ver `.pf_recortado`). */
+  recortado: boolean | null;
+  /** Nombre del grupo que la contiene; `null` en primer nivel. */
+  grupo: string | null;
+  /**
+   * Cuerpo en pt que pide el recetario para esta forma. El backend AÚN NO lo envía (contrato pendiente
+   * `partes[].formas[].pt_estandar`); mientras falte es `null` y la capa Tipografía no compara.
+   */
+  ptEstandar: number | null;
+};
+
+/** Una ranura del estándar del tipo de lámina (`/api/graficos/estandar`), en pulgadas. */
+export type PreviewRanuraEstandar = { rol: string; x: number; y: number; w: number; h: number };
+
+export type PreviewFormas = {
+  /** ¿La respuesta trajo formas? `false` = no se pidieron o el backend no las conoce (no es «lámina vacía»). */
+  disponible: boolean;
+  /** Formas por índice de parte (1-based). */
+  porParte: Record<number, PreviewForma[]>;
+  ranuras: PreviewRanuraEstandar[];
+};
+
+const objetoPlano = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+/** El serializador unboxed de R: una lista de un elemento puede llegar como objeto suelto; una vacía, como `{}`. */
+const listaDeObjetos = (v: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(v)) return v.filter(objetoPlano);
+  return objetoPlano(v) && Object.keys(v).length > 0 ? [v] : [];
+};
+const numeroONulo = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const textoONulo = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
+
+function normalizePreviewForma(f: Record<string, unknown>): PreviewForma {
+  const rol = typeof f.rol === "string" && ROLES_FORMA_PREVIEW.has(f.rol) ? (f.rol as RolFormaPreview) : "otro";
+  return {
+    nombre: typeof f.nombre === "string" ? f.nombre : "",
+    rol,
+    x: numeroONulo(f.x),
+    y: numeroONulo(f.y),
+    w: numeroONulo(f.w),
+    h: numeroONulo(f.h),
+    ptMin: numeroONulo(f.pt_min),
+    ptMax: numeroONulo(f.pt_max),
+    lineas: numeroONulo(f.lineas),
+    recortado: typeof f.recortado === "boolean" ? f.recortado : null,
+    grupo: textoONulo(f.grupo),
+    ptEstandar: numeroONulo(f.pt_estandar),
+  };
+}
+
+/** Formas y ranuras del estándar de una vista previa pedida con `preview_formas` (K11; patrón `normalizeGraficosShareInspect`). */
+export function normalizePreviewFormas(raw: unknown): PreviewFormas {
+  const r = objetoPlano(raw) ? raw : {};
+  const partes = listaDeObjetos(objetoPlano(r.partes) ? r.partes.partes : undefined);
+  const porParte: Record<number, PreviewForma[]> = {};
+  let disponible = false;
+  partes.forEach((p, i) => {
+    if (!("formas" in p)) return;
+    disponible = true;
+    const indice = typeof p.indice === "number" && Number.isInteger(p.indice) && p.indice > 0 ? p.indice : i + 1;
+    porParte[indice] = listaDeObjetos(p.formas).map(normalizePreviewForma);
+  });
+  const ranuras: PreviewRanuraEstandar[] = [];
+  for (const q of listaDeObjetos(r.ranuras_estandar)) {
+    const [x, y, w, h] = [q.x, q.y, q.w, q.h].map(numeroONulo);
+    if (x === null || y === null || w === null || h === null || w <= 0 || h <= 0) continue;
+    ranuras.push({ rol: typeof q.rol === "string" ? q.rol : "", x, y, w, h });
+  }
+  return { disponible: disponible || "ranuras_estandar" in r, porParte, ranuras };
+}
 
 export type GraficosPreviewRendererStatus = {
   ok: true;
@@ -1072,12 +1188,20 @@ export type VariablesBySource = {
   processing_mode?: string | null;
 };
 
-export type { CategoriaGrafico, GraficosCategorias } from "./graficosCategoriasNormalizer";
+export type { AvisoCategorias, CategoriaGrafico, GraficosCategorias } from "./graficosCategoriasNormalizer";
 
-/** Categorías de una pregunta para el orden por gráfico (D8): código, etiqueta, frecuencia y el orden de cada modo. */
-export async function apiGraficosCategorias(variable: string, scope: "active" | "consolidated" = "active"): Promise<GraficosCategorias> {
+/**
+ * Categorías de una pregunta para el orden por gráfico (D8): código, etiqueta, frecuencia, el orden de cada modo y sus
+ * avisos. Con `graficador`, el backend avisa además si el orden no aplica a ese gráfico (escalas, contrato §7).
+ */
+export async function apiGraficosCategorias(
+  variable: string,
+  scope: "active" | "consolidated" = "active",
+  graficador?: string,
+): Promise<GraficosCategorias> {
   const params = new URLSearchParams({ var: variable });
   if (scope === "consolidated") params.set("scope", "consolidado");
+  if (graficador) params.set("graficador", graficador);
   const raw = await handle<unknown>(await apiFetch(`/api/graficos/categorias?${params.toString()}`, { headers: headers() }));
   return normalizeGraficosCategorias(raw);
 }
@@ -1174,8 +1298,84 @@ export type GraficosSuggestedPlanResponse = {
   revision?: string;
   n_diapositivas?: number;
   /** Filas que no entraron al mazo, con su motivo. */
-  fuera?: { etiqueta: string; motivo: string; detalle?: string }[];
+  fuera?: { etiqueta: string; motivo: string; detalle?: string; variables?: string[] }[];
+  /** B42/G-18: lo que el plan propone para las láminas de «Otros». Se propone; nunca cambia el interruptor sin avisar. */
+  auto_otros_slides?: boolean;
+  /**
+   * ADR 0096: la propuesta del informe compartido es compuesta (`fuente: "consolidado"`); esto dice si trae láminas de
+   * la matriz y, por tanto, si `revision` es un sello que grabar.
+   */
+  contiene_equivalencias?: boolean;
+  radar_pendiente?: unknown[];
+  bases_incluidas?: string[];
+  bases_excluidas?: GraficosPlanBaseExcluida[];
+  cobertura_reducida?: GraficosPlanCoberturaReducida[];
+  avisos_equivalencias?: GraficosAvisoEquivalencias[];
 };
+
+/** ADR 0096: aviso de la siembra/propuesta del compartido desde la matriz. */
+export type GraficosAvisoEquivalencias = {
+  code: "sin_matriz" | "matriz_no_disponible" | "bases_excluidas" | "cobertura_reducida" | "escala_incompatible" | string;
+  message: string;
+};
+
+export type GraficosPlanBaseExcluida = {
+  base: string;
+  actor: string;
+  motivo: "release_no_aprobada" | "release_desfasada" | "sin_fuente" | string;
+};
+
+export type GraficosPlanCoberturaReducida = { etiqueta: string; declaradas: number; incluidas: number };
+
+function esRegistroApi(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+const textoApi = (value: unknown): string => (value == null ? "" : String(value));
+const numeroApi = (value: unknown): number => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+/** jsonlite serializa un escalar de longitud 1 sin corchetes: se acepta escalar o arreglo. */
+const arregloApi = (value: unknown): unknown[] => (Array.isArray(value) ? value : value == null ? [] : [value]);
+
+/** Avisos `{code, message}` de la matriz; descarta los que llegan sin mensaje. */
+export function normalizeGraficosAvisosEquivalencias(value: unknown): GraficosAvisoEquivalencias[] {
+  return arregloApi(value)
+    .filter(esRegistroApi)
+    .map((a) => ({ code: textoApi(a.code), message: textoApi(a.message) }))
+    .filter((a) => a.message !== "");
+}
+
+/** Normalizador defensivo de la propuesta (patrón `normalizeGraficosShareInspect`): sólo toca los campos de ADR 0096. */
+export function normalizeGraficosSuggestedPlan(raw: unknown): GraficosSuggestedPlanResponse {
+  const r = (esRegistroApi(raw) ? raw : {}) as GraficosSuggestedPlanResponse & Record<string, unknown>;
+  const out: GraficosSuggestedPlanResponse = { ...r, warnings: arregloApi(r.warnings).map(textoApi) };
+  if (r.contiene_equivalencias !== undefined) out.contiene_equivalencias = r.contiene_equivalencias === true;
+  if (r.revision !== undefined) out.revision = textoApi(r.revision);
+  if (r.fuera !== undefined) {
+    out.fuera = arregloApi(r.fuera).filter(esRegistroApi).map((f) => ({
+      etiqueta: textoApi(f.etiqueta),
+      motivo: textoApi(f.motivo),
+      ...(f.detalle != null ? { detalle: textoApi(f.detalle) } : {}),
+      ...(f.variables != null ? { variables: arregloApi(f.variables).map(textoApi) } : {}),
+    }));
+  }
+  if (r.bases_incluidas !== undefined) out.bases_incluidas = arregloApi(r.bases_incluidas).map(textoApi);
+  if (r.bases_excluidas !== undefined) {
+    out.bases_excluidas = arregloApi(r.bases_excluidas).filter(esRegistroApi).map((b) => ({
+      base: textoApi(b.base), actor: textoApi(b.actor), motivo: textoApi(b.motivo),
+    }));
+  }
+  if (r.cobertura_reducida !== undefined) {
+    out.cobertura_reducida = arregloApi(r.cobertura_reducida).filter(esRegistroApi).map((c) => ({
+      etiqueta: textoApi(c.etiqueta), declaradas: numeroApi(c.declaradas), incluidas: numeroApi(c.incluidas),
+    }));
+  }
+  if (r.avisos_equivalencias !== undefined) out.avisos_equivalencias = normalizeGraficosAvisosEquivalencias(r.avisos_equivalencias);
+  if (r.radar_pendiente !== undefined) out.radar_pendiente = arregloApi(r.radar_pendiente);
+  return out;
+}
 
 export async function apiGraficosPlanCoverage(
   plan: PlanJson,
@@ -1195,14 +1395,25 @@ export async function apiGraficosPlanCoverage(
   );
 }
 
-export async function apiGraficosPlanSugerido(config?: unknown) {
-  return handle<GraficosSuggestedPlanResponse>(
+/**
+ * Propuesta de plan. ADR 0096: en el informe compartido (`scope = "consolidated"`) se pide con `scope: "consolidado"`
+ * en la RAÍZ del cuerpo (igual que `/plan/coverage`); en la base activa el campo se omite.
+ */
+export async function apiGraficosPlanSugerido(
+  config?: unknown,
+  scope: "active" | "consolidated" = "active",
+) {
+  const raw = await handle<unknown>(
     await apiFetch("/api/graficos/plan/sugerido", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify({
+        config,
+        ...(scope === "consolidated" ? { scope: "consolidado" } : {}),
+      }),
     })
   );
+  return normalizeGraficosSuggestedPlan(raw);
 }
 
 export async function apiGraficosValidar(plan: PlanJson) {
@@ -1285,7 +1496,31 @@ export type GraficosConsolidadoPreflight = {
   warnings: string[];
   /** Solo con `includePlan`: el plan sugerido que respalda `n_slides`. */
   plan?: { slides: unknown[] };
+  /** ADR 0096: de dónde sale la siembra y con qué revisión de la matriz. */
+  equivalencias?: GraficosConsolidadoEquivalencias;
 };
+
+export type GraficosConsolidadoEquivalencias = {
+  declarada: boolean;
+  /** `r2:…` cuando la siembra trae láminas de la matriz; vacía si no. */
+  revision: string;
+  origen_plan: "derivado" | "autorado" | string;
+  contiene_equivalencias: boolean;
+  n_diapositivas: number;
+  avisos: GraficosAvisoEquivalencias[];
+};
+
+export function normalizeGraficosConsolidadoEquivalencias(value: unknown): GraficosConsolidadoEquivalencias | undefined {
+  if (!esRegistroApi(value)) return undefined;
+  return {
+    declarada: value.declarada === true,
+    revision: textoApi(value.revision),
+    origen_plan: textoApi(value.origen_plan) || "derivado",
+    contiene_equivalencias: value.contiene_equivalencias === true,
+    n_diapositivas: numeroApi(value.n_diapositivas),
+    avisos: normalizeGraficosAvisosEquivalencias(value.avisos),
+  };
+}
 
 /**
  * Un único PPTX que compone todas las bases hermanas aprobadas.
@@ -1299,9 +1534,11 @@ export async function apiGraficosConsolidadoPreflight(
   options: { includePlan?: boolean } = {},
 ) {
   const query = options.includePlan ? "?include_plan=1" : "";
-  return handle<GraficosConsolidadoPreflight>(
+  const result = await handle<GraficosConsolidadoPreflight>(
     await apiFetch(`/api/graficos/consolidado/preflight${query}`, { headers: headers() }),
   );
+  const equivalencias = normalizeGraficosConsolidadoEquivalencias((result as { equivalencias?: unknown }).equivalencias);
+  return equivalencias ? { ...result, equivalencias } : { ...result, equivalencias: undefined };
 }
 
 export async function apiGraficosPptConsolidado(

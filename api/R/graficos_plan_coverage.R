@@ -1245,9 +1245,13 @@
   "sin_usar"
 }
 
-.graficos_plan_coverage <- function(sid, plan = NULL, config = NULL, scoped = TRUE) {
+# `resolver_config = FALSE` toma `config` tal cual, ya resuelta: es el modo del
+# informe compartido (ADR 0096), cuya config es la del cuerpo y nunca se mezcla
+# con la de la base activa (ADR 0040 §6.1).
+.graficos_plan_coverage <- function(sid, plan = NULL, config = NULL, scoped = TRUE,
+                                    resolver_config = TRUE) {
   plan <- .normalize_plan(plan %||% (.graficos_config_get(sid)$plan %||% list(slides = list())))
-  cfg <- .graficos_effective_config(sid, config)
+  cfg <- if (isTRUE(resolver_config)) .graficos_effective_config(sid, config) else config
   payload <- .graficos_variables_sources_payload(sid, scoped = isTRUE(scoped))
   included_refs <- .graficos_collect_plan_refs(plan)
   exclusions <- .graficos_coverage_exclusions(cfg)
@@ -1613,149 +1617,6 @@
   FALSE
 }
 
-.graficos_multisource_choice_signature <- function(v) {
-  .graficos_scalar_chr(v$scale_signature, "")
-}
-
-.graficos_multisource_candidate_rows <- function(coverage) {
-  rows <- list()
-  for (src in (coverage$sources %||% list())) {
-    source <- .graficos_scalar_chr(src$name, "default")
-    for (v in (src$variables %||% list())) {
-      tipo <- .graficos_base_type(v$tipo)
-      if (!identical(tipo, "select_one")) next
-      if (!isTRUE(v$graphable) || !isTRUE(v$is_preferred) || !isTRUE(v$data_available)) next
-      if (identical(v$suggest_as_primary, FALSE)) next
-      if (identical(v$status, "excluida_intencionalmente")) next
-      choice_n <- .graficos_var_choice_n(v)
-      if (choice_n < 2L || choice_n > 8L) next
-      label <- .graficos_scalar_chr(v$label, v$name)
-      label_key <- .graficos_norm_text_key(label)
-      signature <- .graficos_multisource_choice_signature(v)
-      if (!nzchar(label_key) || !nzchar(signature)) next
-      rows[[length(rows) + 1L]] <- list(
-        source = source,
-        name = .graficos_scalar_chr(v$name, ""),
-        label = label,
-        label_key = label_key,
-        signature = signature,
-        choice_n = choice_n
-      )
-    }
-  }
-  rows
-}
-
-.graficos_multisource_comparison_candidates <- function(coverage, max_slides = 4L) {
-  rows <- .graficos_multisource_candidate_rows(coverage)
-  if (!length(rows)) return(list())
-  group_key <- vapply(rows, function(row) paste(row$label_key, row$signature, sep = "::"), character(1))
-  groups <- split(rows, group_key)
-  candidates <- list()
-  for (group in groups) {
-    seen_sources <- character(0)
-    unique_rows <- list()
-    for (row in group) {
-      if (!nzchar(row$source) || row$source %in% seen_sources) next
-      seen_sources <- c(seen_sources, row$source)
-      unique_rows[[length(unique_rows) + 1L]] <- row
-    }
-    if (length(unique_rows) < 2L) next
-    refs <- vapply(unique_rows, function(row) {
-      .graficos_ref_for_source(row$source, row$name)
-    }, character(1))
-    key <- unique_rows[[1]]$label_key
-    candidates[[length(candidates) + 1L]] <- list(
-      key = key,
-      label = unique_rows[[1]]$label,
-      refs = refs,
-      source_count = length(unique_rows),
-      choice_n = unique_rows[[1]]$choice_n
-    )
-  }
-  if (!length(candidates)) return(list())
-  ord <- order(
-    -vapply(candidates, `[[`, integer(1), "source_count"),
-    vapply(candidates, function(x) .graficos_norm_text_key(x$label), character(1))
-  )
-  candidates[ord][seq_len(min(length(candidates), as.integer(max_slides %||% 4L)))]
-}
-
-.graficos_multisource_comparison_overrides <- function(choice_n) {
-  show_top2 <- as.integer(choice_n %||% 0L) %in% c(4L, 5L)
-  common <- list(
-    canvas_w_grupo = 0,
-    canvas_w_buf_grupo_etq = 0,
-    canvas_w_etiquetas = 0.18,
-    canvas_w_buf_etq_bars = 0.02,
-    canvas_h_header_in = 0,
-    canvas_h_legend_in = 0.38,
-    canvas_h_caption_in = 0,
-    nota_pie = "",
-    size_ejes = 19,
-    size_texto_barras = 7,
-    size_texto_barras_peq = 7,
-    size_leyenda = 18,
-    size_barra_extra = 18,
-    size_titulo_extra = 17,
-    mostrar_n_en_etiquetas = FALSE,
-    etiquetas_arriba_si_no_caben = FALSE,
-    repeler_etiquetas_peq = TRUE,
-    desplazamiento_max_etiquetas_peq = 0.12
-  )
-  utils::modifyList(common, if (show_top2) {
-    list(
-      canvas_w_bars = 0.66,
-      canvas_w_buf_bars_extra = 0.02,
-      canvas_w_extra = 0.12,
-      mostrar_barra_extra = TRUE
-    )
-  } else {
-    list(
-      canvas_w_bars = 0.80,
-      canvas_w_buf_bars_extra = 0,
-      canvas_w_extra = 0,
-      mostrar_barra_extra = FALSE
-    )
-  })
-}
-
-.graficos_multisource_comparison_slides <- function(coverage, max_slides = 4L) {
-  candidates <- .graficos_multisource_comparison_candidates(coverage, max_slides = max_slides)
-  if (!length(candidates)) return(list(slides = list(), refs = character(0)))
-  slides <- list()
-  slides <- .graficos_add_section_slide(slides, "Comparativo por actor")
-  refs <- character(0)
-  for (candidate in candidates) {
-    vars <- stats::setNames(list(unname(candidate$refs)), candidate$key)
-    titulos_grupo <- stats::setNames(candidate$label, candidate$key)
-    slides[[length(slides) + 1L]] <- list(
-      id = .graficos_plan_slide_id("auto"),
-      tipo = "p_slide_1_grafico",
-      payload = list(
-        titulo = paste("Comparativo por actor:", candidate$label),
-        grafico = list(
-          graficador = "p_barras_multiapiladas",
-          args = list(
-            modo = "var_cruce",
-            vars = vars,
-            titulos_grupo = titulos_grupo,
-            titulo = "",
-            top2box = candidate$choice_n %in% c(4L, 5L),
-            wrap_y = 60,
-            overrides = .graficos_multisource_comparison_overrides(candidate$choice_n)
-          )
-        ),
-        base = "",
-        pie = "",
-        etiqueta = ""
-      )
-    )
-    refs <- c(refs, candidate$refs)
-  }
-  list(slides = slides, refs = unique(refs))
-}
-
 .graficos_acnur_intro_slides <- function(sid, include_coverage_maps = FALSE, acnur_mode = "general",
                                          coverage = NULL, index_single_limit = 8L,
                                          index_per_slide = 8L,
@@ -1958,9 +1819,20 @@
   )
 }
 
-.graficos_suggested_plan <- function(sid, config = NULL) {
+# ADR 0096 decisión 7: ningún generador de plan empareja variables de bases
+# distintas por parecido de etiqueta (lo invalida el ADR 0062). La comparación
+# entre públicos sólo sale de la matriz declarada; en el plan por base, de
+# `fuente = "equivalencias"`. Reabrir la heurística exige enmendar el ADR 0096.
+#
+# `alcance` (informe compartido, `graficos_plan_consolidado.R`):
+# `list(config, fuentes, bloque)` con la config ya resuelta y portable, las
+# fuentes que participan (releases aprobadas) y el bloque de la matriz
+# (`list(slides, refs)`), que ocupa el lugar de la sección comparativa y cuyas
+# refs no se repiten en las láminas por fuente.
+.graficos_suggested_plan <- function(sid, config = NULL, alcance = NULL) {
   raw_cfg <- config %||% list()
-  cfg <- .graficos_effective_config(sid, config)
+  consolidado <- !is.null(alcance)
+  cfg <- if (consolidado) alcance$config else .graficos_effective_config(sid, config)
   profile_id <- .graficos_scalar_chr(raw_cfg$profile_id %||% raw_cfg$profileId %||% cfg$profile_id, "")
   if (!nzchar(profile_id) && .graficos_is_acnur_study(sid, raw_cfg = raw_cfg, cfg = cfg)) {
     profile_id <- "acnur_kobo_cruncher_plus"
@@ -2029,9 +1901,16 @@
   requested_coverage_maps <- isTRUE(include_coverage_maps)
   if (!isTRUE(coverage_caps$has_coverage_maps)) include_coverage_maps <- FALSE
   if (!nzchar(comparison_mode)) comparison_mode <- "none"
-  coverage <- .graficos_plan_coverage(sid, plan = list(slides = list()), config = cfg)
-  all_coverage <- .graficos_plan_coverage(sid, plan = list(slides = list()), config = cfg, scoped = FALSE)
-  use_multisource_report <- .graficos_should_use_multisource_report(
+  coverage <- .graficos_plan_coverage(sid, plan = list(slides = list()), config = cfg,
+                                      resolver_config = !consolidado)
+  all_coverage <- .graficos_plan_coverage(sid, plan = list(slides = list()), config = cfg, scoped = FALSE,
+                                          resolver_config = !consolidado)
+  if (consolidado) {
+    all_coverage$sources <- Filter(function(src) {
+      .graficos_scalar_chr(src$name, "") %in% as.character(alcance$fuentes %||% character(0))
+    }, all_coverage$sources %||% list())
+  }
+  use_multisource_report <- consolidado || .graficos_should_use_multisource_report(
     sid,
     all_coverage,
     raw_cfg = raw_cfg,
@@ -2039,7 +1918,8 @@
     profile_id = profile_id
   )
   coverage_for_plan <- if (isTRUE(use_multisource_report)) all_coverage else coverage
-  warnings <- coverage$warnings %||% list()
+  # El compartido no hereda los avisos del alcance de la base activa.
+  warnings <- if (consolidado) list() else coverage$warnings %||% list()
   if (isTRUE(use_multisource_report)) {
     warnings <- c(warnings, all_coverage$warnings %||% list())
   }
@@ -2072,8 +1952,8 @@
   } else {
     list()
   }
-  multisource_pack <- if (isTRUE(use_multisource_report)) {
-    .graficos_multisource_comparison_slides(all_coverage)
+  multisource_pack <- if (consolidado) {
+    alcance$bloque %||% list(slides = list(), refs = character(0))
   } else {
     list(slides = list(), refs = character(0))
   }
@@ -2286,7 +2166,8 @@
     sid,
     plan = plan,
     config = cfg,
-    scoped = !isTRUE(use_multisource_report)
+    scoped = !isTRUE(use_multisource_report),
+    resolver_config = !consolidado
   )
   report_inputs <- NULL
   if (identical(profile_id, "acnur_kobo_cruncher_plus") &&

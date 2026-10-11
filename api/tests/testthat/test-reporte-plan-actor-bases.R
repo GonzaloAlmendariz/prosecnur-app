@@ -86,10 +86,7 @@ test_that("caption por actor conserva los N efectivos de cuatro fuentes", {
     path_ppt = path,
     mensajes_progreso = FALSE
   ))
-  slide_xml <- paste(
-    readLines(unz(path, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"),
-    collapse = "\n"
-  )
+  slide_xml <- .leer_parte_zip(path, "ppt/slides/slide1.xml")
 
   # Doctrina B36/G-17: los captions por bloque estan apagados por defecto —
   # la Base vive en el placeholder del SLIDE (prorrateada global).

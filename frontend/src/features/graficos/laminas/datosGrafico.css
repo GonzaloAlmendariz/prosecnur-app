@@ -99,3 +99,8 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* La ayuda (guarda C40) ocupa la fila entera bajo rótulo y control, también en las filas de una línea. */
+.pulso-f6-dato > .pulso-f6-dato-ayuda {
+  grid-column: 1 / -1;
+}

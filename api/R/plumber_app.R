@@ -24,6 +24,31 @@
   plumber::serializer_unboxed_json(na = "null")
 }
 
+#' Override de etiquetas con alcance de pedido (label_overrides.R).
+#'
+#' `preroute` publica el override de la sesión del pedido y `postserialize` lo
+#' retira: ninguna sesión hereda el override que otra dejó en el slot global.
+#' Interno: sólo lo llama `build_plumber_app()`.
+#' @noRd
+.api_label_overrides_hooks <- function(pr) {
+  plumber::pr_hooks(pr, list(
+    preroute = function(data, req, res) {
+      # Un override persistido malformado no puede tumbar todos los pedidos de
+      # la sesión: se falla cerrado (slot vacío, nunca el de otra sesión) y el
+      # motivo queda en stderr.
+      tryCatch(.label_overrides_activate_for_request(req), error = function(e) {
+        .label_overrides_activate(NULL)
+        message(sprintf("[prosecnur-app] label_overrides no publicado: %s", conditionMessage(e)))
+      })
+      invisible(NULL)
+    },
+    postserialize = function(data, req, res, value) {
+      .label_overrides_activate(NULL)
+      value
+    }
+  ))
+}
+
 #' Build the Plumber app with all routers mounted.
 #'
 #' @param static_dir Path to the directory containing the frontend build
@@ -40,7 +65,8 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
 
   pr <- plumber::pr() |>
     plumber::pr_set_serializer(.api_serializer()) |>
-    plumber::pr_set_error(function(req, res, err) handle_api_error(req, res, err))
+    plumber::pr_set_error(function(req, res, err) handle_api_error(req, res, err)) |>
+    .api_label_overrides_hooks()
 
   pr <- mount_sistema(pr)
   if (is_public_mode()) {
@@ -88,6 +114,8 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_graficos_consolidado(pr)
     pr <- mount_graficos_estandar(pr)
     pr <- mount_graficos_categorias(pr)
+    pr <- mount_graficos_miniaturas(pr)
+    pr <- mount_graficos_estilo(pr)
     pr <- mount_dashboard(pr)
   }
 

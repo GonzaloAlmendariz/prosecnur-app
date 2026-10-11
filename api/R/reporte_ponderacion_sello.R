@@ -11,7 +11,8 @@
 #   - el texto canonico del sello (funcion pura, testeable, sin side effects).
 #
 # Textos canonicos del sello:
-#   "Base ponderada (n_eff = X)"                              -> aplicada
+#   "Resultados ponderados (n efectivo = X)"                  -> aplicada (S4)
+#   "Resultados ponderados"                                   -> aplicada sin n efectivo
 #   "Base sin ponderar"                                       -> sin config
 #   "Base sin ponderar (ponderación configurada no aplicada)" -> fallback
 # =============================================================================
@@ -76,13 +77,15 @@ reporte_ponderacion_sello <- function(estado = NULL) {
   status <- if (is.list(estado)) as.character(estado$status %||% "sin_config")[1] else "sin_config"
   if (identical(status, "aplicada")) {
     n_eff <- suppressWarnings(as.numeric((estado %||% list())$n_eff %||% NA_real_)[1])
+    # S4 (contrato base-sin-ponderar F6, §3): la base de cada lámina es casos sin ponderar; lo ponderado son los
+    # resultados, y el n efectivo de Kish se declara una vez, aquí (ficha técnica).
     if (is.finite(n_eff) && n_eff > 0) {
       return(sprintf(
-        "Base ponderada (n_eff = %s)",
-        format(round(n_eff), big.mark = ",", scientific = FALSE, trim = TRUE)
+        "Resultados ponderados (n efectivo = %s)",
+        format(round(n_eff), big.mark = ",", trim = TRUE)
       ))
     }
-    return("Base ponderada")
+    return("Resultados ponderados")
   }
   if (identical(status, "no_aplicada")) {
     return("Base sin ponderar (ponderación configurada no aplicada)")

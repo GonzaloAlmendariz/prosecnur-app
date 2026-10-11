@@ -2,7 +2,7 @@
 // así que escuchar sólo en su raíz lo dejaba sordo (D5). Al cerrar, el foco vuelve a quien lo abrió o a un respaldo.
 
 type ObjetivoTeclado = Pick<EventTarget, "addEventListener" | "removeEventListener">;
-type Enfocable = { focus: () => void; isConnected?: boolean };
+type Enfocable = { focus: (opciones?: FocusOptions) => void; isConnected?: boolean };
 
 /**
  * Escucha Escape en `documento` mientras el panel vive. Un Escape cierra sólo la capa superior: no cierra si otra capa

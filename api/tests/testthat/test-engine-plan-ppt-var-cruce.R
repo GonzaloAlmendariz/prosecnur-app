@@ -860,7 +860,7 @@ test_that("objetivos educacionales se numeran como OE por orden visible", {
     mensajes_progreso = FALSE
   )
 
-  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   expect_match(slide_xml, "OE 1: Formula soluciones de ingenieria", fixed = TRUE)
   expect_match(slide_xml, "OE 2: Gestiona proyectos con enfoque", fixed = TRUE)
 
@@ -935,7 +935,7 @@ test_that("objetivos educacionales continuan numeracion desde sufijo de variable
     mensajes_progreso = FALSE
   )
 
-  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   expect_match(slide_xml, "OE 4: Contribuye a la creacion de empresas", fixed = TRUE)
   expect_match(slide_xml, "OE 5: Reconoce responsabilidades eticas", fixed = TRUE)
   expect_false(grepl("OE 1: Contribuye a la creacion de empresas", slide_xml, fixed = TRUE))
@@ -1003,6 +1003,8 @@ test_that("barras agrupadas excluyen egresados sin grado y recalculan porcentaje
 test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abiertas", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
+  # Selección de respuestas con pocos casos: se baja el umbral H46 (5) sólo para mirarla (test-otros-recetario.R).
+  withr::local_options(prosecnur.otros_minimo = 1L)
 
   dat <- data.frame(
     p12 = c("1", "99", "99", "2", "1"),
@@ -1040,14 +1042,14 @@ test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abierta
   )
 
   expect_length(out$plan, 2L)
-  expect_identical(out$plan[[2]]$title, "Otros: Actividad preferida")
+  expect_identical(out$plan[[2]]$title, "Respuestas «Otros»: actividad preferida")
   expect_identical(out$plan[[2]]$.slide_type, "text_slide")
 
   txt <- out$plan[[2]]$slots$text
   expect_true(grepl("\u2022 Puentes verdes", txt, fixed = TRUE))
   expect_true(grepl("\u2022 Laboratorio vial", txt, fixed = TRUE))
   expect_false(grepl("texto fuera", txt, fixed = TRUE))
-  expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas en «Otros»", txt, fixed = TRUE))
 
   out_off <- reporte_ppt_plan(
     data = dat,
@@ -1059,6 +1061,14 @@ test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abierta
     mensajes_progreso = FALSE
   )
   expect_length(out_off$plan, 1L)
+  withr::local_options(prosecnur.otros_minimo = NULL)   # H46: con 2 respuestas no hay lámina
+  out_umbral <- reporte_ppt_plan(
+    data = dat, instrumento = inst,
+    plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
+    presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
+    solo_lista = TRUE, auto_otros_slides = TRUE, mensajes_progreso = FALSE
+  )
+  expect_length(out_umbral$plan, 1L)
 })
 
 test_that("slide Otros paginada mantiene titulo sin contador entre parentesis", {
@@ -1099,12 +1109,12 @@ test_that("slide Otros paginada mantiene titulo sin contador entre parentesis", 
   )
 
   expect_length(out$plan, 3L)
-  expect_identical(out$plan[[2]]$title, "Otros: Actividad preferida")
-  expect_identical(out$plan[[3]]$title, "Otros: Actividad preferida")
+  expect_identical(out$plan[[2]]$title, "Respuestas «Otros»: actividad preferida")
+  expect_identical(out$plan[[3]]$title, "Respuestas «Otros»: actividad preferida (cont.)")
   expect_false(grepl("\\([0-9]+/[0-9]+\\)", out$plan[[2]]$title))
   expect_false(grepl("\\([0-9]+/[0-9]+\\)", out$plan[[3]]$title))
-  expect_true(grepl("Base: 45 respuestas en Otros", out$plan[[2]]$slots$text, fixed = TRUE))
-  expect_true(grepl("Base: 45 respuestas en Otros", out$plan[[3]]$slots$text, fixed = TRUE))
+  expect_true(grepl("Base: 45 respuestas en «Otros»", out$plan[[2]]$slots$text, fixed = TRUE))
+  expect_true(grepl("Base: 45 respuestas en «Otros»", out$plan[[3]]$slots$text, fixed = TRUE))
 })
 
 test_that("reporte_ppt_plan explica Otros agrupado por maximo de categorias", {
@@ -1151,19 +1161,21 @@ test_that("reporte_ppt_plan explica Otros agrupado por maximo de categorias", {
   )
 
   expect_length(out$plan, 2L)
-  expect_identical(out$plan[[2]]$title, "Otros: Puesto actual")
+  expect_identical(out$plan[[2]]$title, "Respuestas «Otros»: puesto actual")
   expect_identical(out$plan[[2]]$meta$kind, "grouped_otros")
 
   txt <- out$plan[[2]]$slots$text
   expect_true(grepl("\u2022 Cargo 5 (8)", txt, fixed = TRUE))
   expect_true(grepl("\u2022 Cargo 12 (1)", txt, fixed = TRUE))
   expect_false(grepl("Cargo 1 (30)", txt, fixed = TRUE))
-  expect_true(grepl("Base: 36 respuestas agrupadas en Otros", txt, fixed = TRUE))
+  expect_true(grepl("Base: 36 respuestas en «Otros»", txt, fixed = TRUE))
 })
 
 test_that("slide Otros lista solo respuestas aun no categorizadas", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
+  # Selección de respuestas con pocos casos: se baja el umbral H46 (5) sólo para mirarla (test-otros-recetario.R).
+  withr::local_options(prosecnur.otros_minimo = 1L)
 
   dat <- data.frame(
     p12 = c("99", "99", "99", "1"),
@@ -1205,12 +1217,14 @@ test_that("slide Otros lista solo respuestas aun no categorizadas", {
   expect_true(grepl("\u2022 Queda otro", txt, fixed = TRUE))
   expect_true(grepl("\u2022 Sin recod", txt, fixed = TRUE))
   expect_false(grepl("texto fuera", txt, fixed = TRUE))
-  expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas en «Otros»", txt, fixed = TRUE))
 })
 
 test_that("slide Otros (select_multiple) incluye a quien marco una opcion nombrada y Otros a la vez", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
+  # Selección de respuestas con pocos casos: se baja el umbral H46 (5) sólo para mirarla (test-otros-recetario.R).
+  withr::local_options(prosecnur.otros_minimo = 1L)
 
   # select_multiple recodificada, normalizada a columnas dummy
   # p12_recod.<code>. En una select_multiple marcar una opcion NOMBRADA (.1) y
@@ -1264,12 +1278,14 @@ test_that("slide Otros (select_multiple) incluye a quien marco una opcion nombra
   expect_false(grepl("ya categorizado", txt, fixed = TRUE))
   # Persona 4: no marco Otros -> excluida.
   expect_false(grepl("texto fuera", txt, fixed = TRUE))
-  expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas en «Otros»", txt, fixed = TRUE))
 })
 
 test_that("slide Otros usa variable madre cuando la recodificada queda en Otros", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
+  # Selección de respuestas con pocos casos: se baja el umbral H46 (5) sólo para mirarla (test-otros-recetario.R).
+  withr::local_options(prosecnur.otros_minimo = 1L)
 
   dat <- data.frame(
     puesto = c("growth manager", "site reliability", "analista", "coordinador"),
@@ -1308,13 +1324,13 @@ test_that("slide Otros usa variable madre cuando la recodificada queda en Otros"
   )
 
   expect_length(out$plan, 2L)
-  expect_identical(out$plan[[2]]$title, "Otros: ¿Cuál es su puesto actual?")
+  expect_identical(out$plan[[2]]$title, "Respuestas «Otros»: ¿cuál es su puesto actual?")
   txt <- out$plan[[2]]$slots$text
   expect_true(grepl("\u2022 Growth manager", txt, fixed = TRUE))
   expect_true(grepl("\u2022 Site reliability", txt, fixed = TRUE))
   expect_false(grepl("analista", txt, fixed = TRUE))
   expect_false(grepl("coordinador", txt, fixed = TRUE))
-  expect_true(grepl("Base: 2 respuestas en Otros", txt, fixed = TRUE))
+  expect_true(grepl("Base: 2 respuestas en «Otros»", txt, fixed = TRUE))
 })
 
 test_that("slide Otros no se genera si el campo abierto esta vacio", {
@@ -1400,6 +1416,8 @@ test_that("slide Otros no se genera si el campo abierto queda vacio tras limpiez
 test_that("slide Otros respeta fuente y filtros del grafico original", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
+  # Selección de respuestas con pocos casos: se baja el umbral H46 (5) sólo para mirarla (test-otros-recetario.R).
+  withr::local_options(prosecnur.otros_minimo = 1L)
 
   docentes <- data.frame(
     p12 = c("99", "99", "1"),

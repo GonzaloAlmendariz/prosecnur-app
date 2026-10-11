@@ -77,4 +77,17 @@ describe("avisos del plan al abrirlo", () => {
       .toEqual({ sid: "s1", avisos: ["a"], visto: false });
     expect(leerAvisosPlan(null, "s1").avisos).toEqual([]);
   });
+
+  it("el toast es un recordatorio que se cierra solo y remite al panel; verlo no borra los avisos", async () => {
+    const a = await cargar("s1", almacenEnMemoria());
+    const t = a.toastAvisosPlan(["Lámina 3 migrada", "Lámina 9 migrada"]);
+    expect(t.duracion).toBe(a.DURACION_TOAST_AVISOS_PLAN);
+    expect(t.duracion).toBeGreaterThanOrEqual(6000);
+    expect(t.duracion).toBeLessThanOrEqual(15000);
+    expect(t.mensaje).toBe("El plan de gráficos cambió al abrirlo (2 avisos)");
+    expect(t.detalle).toContain("Láminas › Avisos");
+    a.publicarAvisosConfig("s1", ["Lámina 3 migrada"]);
+    a.useAvisosPlan.getState().marcarVisto(); // lo que pasa cuando el toast se cierra por tiempo
+    expect(a.useAvisosPlan.getState()).toMatchObject({ avisos: ["Lámina 3 migrada"], visto: true });
+  });
 });

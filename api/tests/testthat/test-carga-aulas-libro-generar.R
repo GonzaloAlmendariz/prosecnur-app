@@ -143,8 +143,7 @@ test_that("el libro sale con desplegables, panel congelado y anchos", {
   # asi que la hoja de agenda es la segunda. Buscarla por posicion fija es
   # justo lo que rompio este test al anadir la portada.
   hoja_agenda <- which(hojas == "Aulas Agendadas")
-  xml <- paste(readLines(unz(path, sprintf("xl/worksheets/sheet%d.xml", hoja_agenda)),
-                         warn = FALSE), collapse = "")
+  xml <- .leer_parte_zip(path, sprintf("xl/worksheets/sheet%d.xml", hoja_agenda), colapsar = "")
   # Las validaciones con formula a otra hoja las escribe `openxlsx` en el
   # namespace de extension `x14`, NO como `<dataValidation `. Buscar la etiqueta
   # simple daba CERO sobre un libro que si las llevaba, y con ese cero casi

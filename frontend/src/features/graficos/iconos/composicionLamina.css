@@ -1,0 +1,87 @@
+/* Composición de una lámina (F6.2). Todo en tokens `--pulso-*`: la tinta y el coral del recetario se nombran aquí una
+   sola vez (`--composicion-tinta`, `--composicion-titulo`) para que, cuando existan los `--pulso-recetario-*`
+   (plan F6 §2.2, Meta B), se cambien en un solo lugar. La caja es la del contenedor: el SVG llena el ancho en 16:9. */
+
+.pulso-composicion {
+  --composicion-papel: var(--pulso-surface);
+  --composicion-borde: var(--pulso-border-strong);
+  --composicion-tinta: var(--pulso-text-soft);
+  --composicion-titulo: var(--pulso-accent-rose);
+  --composicion-suave: var(--pulso-border-strong);
+  --composicion-acento: var(--module-accent, var(--pulso-module-processing));
+  --composicion-ranura: var(--pulso-surface-3);
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.pulso-composicion__papel {
+  fill: var(--composicion-papel);
+  stroke: var(--composicion-borde);
+  stroke-width: 0.03;
+}
+
+.pulso-composicion__tinta { fill: var(--composicion-tinta); }
+.pulso-composicion__titulo { fill: var(--composicion-titulo); }
+.pulso-composicion__suave { fill: var(--composicion-suave); }
+.pulso-composicion__acento { fill: var(--composicion-acento); }
+.pulso-composicion__acento.is-suave { fill: color-mix(in srgb, var(--composicion-acento) 45%, var(--composicion-papel)); }
+.pulso-composicion__ilustracion { fill: color-mix(in srgb, var(--composicion-acento) 16%, var(--composicion-papel)); }
+.pulso-composicion__banda { fill: var(--composicion-tinta); }
+.pulso-composicion__banda-clara { fill: color-mix(in srgb, var(--composicion-tinta) 12%, var(--composicion-papel)); }
+.pulso-composicion__papel-claro { fill: var(--composicion-papel); }
+.pulso-composicion__logo { fill: color-mix(in srgb, var(--composicion-tinta) 22%, var(--composicion-papel)); }
+.pulso-composicion__cifra { fill: var(--composicion-acento); }
+
+.pulso-composicion__llave {
+  fill: none;
+  stroke: var(--composicion-tinta);
+  stroke-width: 0.04;
+}
+
+.pulso-composicion__narrativa {
+  fill: none;
+}
+
+.pulso-composicion__ranura {
+  fill: var(--composicion-ranura);
+  stroke: var(--composicion-borde);
+  stroke-width: 0.025;
+}
+
+.pulso-composicion__ranura.is-vacia {
+  fill: var(--composicion-papel);
+  stroke-dasharray: 0.12 0.1;
+}
+
+.pulso-composicion__ranura.is-cifras {
+  fill: color-mix(in srgb, var(--composicion-acento) 7%, var(--composicion-papel));
+}
+
+.pulso-composicion__ranura.is-activa {
+  stroke: var(--composicion-acento);
+  stroke-width: 0.07;
+  stroke-dasharray: none;
+}
+
+/* Dentro de la composición, el glifo toma el acento de la composición y su papel es el de la ranura. */
+.pulso-composicion .pulso-glifo-anidado {
+  --glifo-principal: var(--composicion-acento);
+  --glifo-papel: var(--composicion-ranura);
+}
+
+.pulso-composicion__numero circle {
+  fill: var(--composicion-tinta);
+}
+
+.pulso-composicion__numero text {
+  fill: var(--composicion-papel);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .pulso-composicion__papel { stroke: CanvasText; }
+  .pulso-composicion__ranura.is-activa { stroke: Highlight; }
+}

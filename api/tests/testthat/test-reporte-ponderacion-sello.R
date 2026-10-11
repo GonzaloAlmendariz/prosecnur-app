@@ -64,12 +64,20 @@ test_that("ponderacion aplicada produce sello con n_eff y sin warning", {
   expect_identical(estado$status, "aplicada")
   expect_true(is.finite(estado$n_eff) && estado$n_eff > 0 && estado$n_eff <= 200)
   sello <- reporte_ponderacion_sello(estado)
-  expect_match(sello, "^Base ponderada \\(n_eff = [0-9,]+\\)$")
+  expect_match(sello, "^Resultados ponderados \\(n efectivo = [0-9,]+\\)$")
   esperado <- sprintf(
-    "Base ponderada (n_eff = %s)",
-    format(round(estado$n_eff), big.mark = ",", scientific = FALSE, trim = TRUE)
+    "Resultados ponderados (n efectivo = %s)",
+    format(round(estado$n_eff), big.mark = ",", trim = TRUE)
   )
   expect_identical(sello, esperado)
+})
+
+test_that("S4: aplicada sin n efectivo dice «Resultados ponderados»; fallback y sin config no cambian", {
+  expect_identical(reporte_ponderacion_sello(reporte_ponderacion_estado("aplicada")), "Resultados ponderados")
+  expect_identical(reporte_ponderacion_sello(reporte_ponderacion_estado("aplicada", diagnostics = list(n_eff = 12345.6))),
+                   "Resultados ponderados (n efectivo = 12,346)")
+  expect_identical(reporte_ponderacion_sello(reporte_ponderacion_estado("no_aplicada")),
+                   "Base sin ponderar (ponderación configurada no aplicada)")
 })
 
 test_that("sin config el sello canonico es 'Base sin ponderar'", {
@@ -92,7 +100,7 @@ test_that("una base hija que hereda `peso` deriva estado aplicado sin atributo",
   estado <- reporte_ponderacion_estado_corrida(data, cfg)
   expect_identical(estado$status, "aplicada")
   expect_true(is.finite(estado$n_eff))
-  expect_match(reporte_ponderacion_sello(estado), "^Base ponderada \\(n_eff = ")
+  expect_match(reporte_ponderacion_sello(estado), "^Resultados ponderados \\(n efectivo = ")
 })
 
 test_that("config habilitada sin pesos adjuntos deriva fallback en la corrida", {
@@ -115,12 +123,12 @@ test_that("la ficha tecnica consume el sello cuando la corrida trae ponderacion"
   rows <- .ficha_tecnica_rows(data = data)
   pond <- rows$Detalle[rows$Campo == "Ponderacion"]
   expect_length(pond, 1L)
-  expect_identical(pond[[1]], "Base ponderada (n_eff = 2)")
+  expect_identical(pond[[1]], "Resultados ponderados (n efectivo = 2)")
 
   # La vista Word toma el sello bajo el label oficial.
   drows <- .ficha_tecnica_docx_rows(data = data)
   det <- drows$Detalle[drows$Campo == "Ponderación"]
-  expect_identical(det[[1]], "Base ponderada (n_eff = 2)")
+  expect_identical(det[[1]], "Resultados ponderados (n efectivo = 2)")
 
   # El texto explicito del usuario manda sobre el sello automatico.
   cfg_usuario <- list(ficha_tecnica = list(ponderacion = "Ponderacion por raking descrita en el anexo."))
@@ -192,7 +200,23 @@ test_that("los estados por fuente se leen del attr y las hijas repeat heredan", 
   expect_true(all(vapply(sin_info, is.null, logical(1))))
 })
 
-test_that("la nota de base se sella por fuente y es idempotente y conservadora", {
+test_that("S2: el sello por lámina está apagado y la nota vuelve intacta", {
+  madre <- data.frame(x = 1:4)
+  attr(madre, "ponderacion_estado") <- reporte_ponderacion_estado(
+    "aplicada", diagnostics = list(n = 4, n_eff = 150, deff = 1.1)
+  )
+  expect_false(isTRUE(.REPORTE_PLAN_SELLO_POR_LAMINA))
+  expect_identical(
+    .reporte_plan_nota_base_sellada("Base: 4 de 4 (100.0%).", list(default = madre)),
+    "Base: 4 de 4 (100.0%)."
+  )
+})
+
+test_that("la nota de base se sella por fuente y es idempotente y conservadora (sellar = TRUE)", {
+  # Mecanismo conservado para un llamador que lo pida explícitamente (S2).
+  .reporte_plan_nota_base_sellada <- function(...) {
+    prosecnurapp:::.reporte_plan_nota_base_sellada(..., sellar = TRUE)
+  }
   madre <- data.frame(x = 1:4)
   attr(madre, "ponderacion_estado") <- reporte_ponderacion_estado(
     "aplicada", diagnostics = list(n = 4, n_eff = 150, deff = 1.1)
@@ -203,12 +227,12 @@ test_that("la nota de base se sella por fuente y es idempotente y conservadora",
   # Sin fuente atribuible (nota de pie): manda la fuente principal.
   expect_identical(
     .reporte_plan_nota_base_sellada("Base: 4 de 4 (100.0%).", ds),
-    "Base: 4 de 4 (100.0%). · Base ponderada (n_eff = 150)"
+    "Base: 4 de 4 (100.0%). · Resultados ponderados (n efectivo = 150)"
   )
   # Con fuente (slot de base): manda el estado de ESA base (n_eff propio).
   expect_identical(
     .reporte_plan_nota_base_sellada("Base: 2 de 4 (50.0%)", ds, source = "rep"),
-    "Base: 2 de 4 (50.0%) · Base ponderada (n_eff = 3)"
+    "Base: 2 de 4 (50.0%) · Resultados ponderados (n efectivo = 3)"
   )
   # Idempotencia: una nota ya sellada no duplica el sello.
   sellada <- .reporte_plan_nota_base_sellada("Base: 4 de 4 (100.0%).", ds)
@@ -265,9 +289,9 @@ test_that("la nota de base se sella por fuente y es idempotente y conservadora",
   )
 }
 
-.sello_deck_xml <- function(fx) {
+.sello_deck_xml <- function(fx, con_resultado = FALSE) {
   out_ppt <- tempfile(fileext = ".pptx")
-  reporte_ppt_plan(
+  res <- reporte_ppt_plan(
     data = fx$data,
     instrumento = fx$inst,
     plan = fx$plan,
@@ -276,40 +300,54 @@ test_that("la nota de base se sella por fuente y es idempotente y conservadora",
     mensajes_progreso = FALSE
   )
   on.exit(unlink(out_ppt), add = TRUE)
-  paste(
-    readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"),
-    collapse = "\n"
-  )
+  xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
+  if (isTRUE(con_resultado)) list(xml = xml, res = res) else xml
 }
 
-test_that("render real: la lámina con ponderación aplicada sella la nota de base", {
+test_that("render real (S2): la lámina ponderada NO sella su nota de base", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
 
   fx <- .sello_deck_fixture(reporte_ponderacion_estado(
     "aplicada", diagnostics = list(n = 4, n_eff = 187.4, deff = 1.05)
   ))
-  xml <- .sello_deck_xml(fx)
-  expect_match(
-    xml,
-    "Base: 4 de 4 (100.0%). · Base ponderada (n_eff = 187)",
-    fixed = TRUE
-  )
+  out <- .sello_deck_xml(fx, con_resultado = TRUE)
+  expect_match(out$xml, "Base: 4 de 4 (100.0%).", fixed = TRUE)
+  expect_false(grepl(" · ", out$xml, fixed = TRUE))
+  expect_false(grepl("n_eff", out$xml, fixed = TRUE))
+  # Aplicada: no hay aviso de corrida.
+  expect_identical(out$res$ponderacion_avisos, character(0))
 })
 
-test_that("render real: la corrida con fallback declara la base sin ponderar", {
+test_that("render real (D-c): el fallback sube a aviso de corrida, no al pie", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
 
   fx <- .sello_deck_fixture(reporte_ponderacion_estado(
     "no_aplicada", motivo = "el cálculo de pesos falló (targets incompatibles)"
   ))
-  xml <- .sello_deck_xml(fx)
-  expect_match(
-    xml,
-    "Base: 4 de 4 (100.0%). · Base sin ponderar (ponderación configurada no aplicada)",
-    fixed = TRUE
+  out <- .sello_deck_xml(fx, con_resultado = TRUE)
+  expect_match(out$xml, "Base: 4 de 4 (100.0%).", fixed = TRUE)
+  expect_false(grepl("Base sin ponderar", out$xml, fixed = TRUE))
+  expect_identical(
+    out$res$ponderacion_avisos,
+    "Base sin ponderar (ponderación configurada no aplicada)"
   )
+})
+
+test_that("D-c: el aviso de corrida nombra la fuente en multibase y calla sin ponderación", {
+  avisos <- prosecnurapp:::.reporte_plan_pond_avisos_corrida
+  madre <- data.frame(x = 1:3, peso = c(1, 2, 1))
+  attr(madre, "ponderacion_estado") <- reporte_ponderacion_estado(
+    "aplicada", diagnostics = list(n = 3, n_eff = 2.7)
+  )
+  sin_peso <- data.frame(y = 1:2)
+  expect_identical(
+    avisos(list(docentes = madre, estudiantes = sin_peso)),
+    "Base sin ponderar (ponderación configurada no aplicada) (estudiantes)"
+  )
+  expect_identical(avisos(list(default = data.frame(x = 1))), character(0))
+  expect_identical(avisos(list(default = madre)), character(0))
 })
 
 test_that("render real: la corrida sin config deja la nota histórica intacta", {
@@ -319,6 +357,7 @@ test_that("render real: la corrida sin config deja la nota histórica intacta", 
   xml <- .sello_deck_xml(.sello_deck_fixture(NULL))
   expect_match(xml, "Base: 4 de 4 (100.0%).", fixed = TRUE)
   expect_false(grepl("Base ponderada", xml, fixed = TRUE))
+  expect_false(grepl("Resultados ponderados", xml, fixed = TRUE))
   expect_false(grepl("Base sin ponderar", xml, fixed = TRUE))
   expect_false(grepl(" · ", xml, fixed = TRUE))
 })
@@ -342,6 +381,6 @@ test_that("p_base_nota_con_sello anexa el sello sin tocar notas sin estado", {
   estado_ok <- reporte_ponderacion_estado("aplicada", diagnostics = list(n_eff = 187.4))
   expect_identical(
     p_base_nota_con_sello(nota, estado_ok),
-    paste0(nota, " · Base ponderada (n_eff = 187)")
+    paste0(nota, " · Resultados ponderados (n efectivo = 187)")
   )
 })

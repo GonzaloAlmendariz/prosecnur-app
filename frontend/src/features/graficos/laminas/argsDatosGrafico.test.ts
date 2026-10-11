@@ -16,7 +16,8 @@ const agrupadas = [
 describe("camposDeDatos", () => {
   it("sólo la lista blanca, en su orden, sin estilo ggplot", () => {
     expect(camposDeDatos(agrupadas, {}).map((c) => c.arg.name)).toEqual([
-      "var", "cruces", "orden_barras", "max_categorias", "agrupar_resto_en_otros", "excluir_opciones", "mostrar_significancia",
+      "var", "cruces", "orden_barras", "max_categorias", "agrupar_resto_en_otros", "mostrar_ceros", "excluir_opciones",
+      "mostrar_significancia",
     ]);
   });
   it("el nivel de significancia aparece sólo con la marca encendida", () => {

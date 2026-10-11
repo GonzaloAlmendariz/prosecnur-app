@@ -31,7 +31,7 @@ test_that("también se impone dentro de base$args, que es lo que hereda el motor
 
 test_that("el render avisa con nombre qué cambió, y calla si ya estaba conforme", {
   expect_message(.std_imponer_base(presets_viejos(), avisar = TRUE),
-                 "size_nota_pie 14 → 10.*size_leyenda 16 → 12")
+                 "tamaño de la base 14 → 10.*tamaño de la leyenda 16 → 12")
   conforme <- .std_imponer_base(presets_viejos())
   expect_silent(.std_imponer_base(conforme, avisar = TRUE))
 })
@@ -49,7 +49,7 @@ test_that("la migración del normalizador y la del render dejan la base en el es
 test_that("la regla de cifras chicas se impone por tipo y se avisa", {
   v <- list(barras_apiladas = list(args = list(etiquetas_arriba_si_no_caben = FALSE)),
             multi_apiladas = list(etiquetas_arriba_si_no_caben = FALSE))
-  expect_message(p <- .std_imponer_base(v, avisar = TRUE), "etiquetas_arriba_si_no_caben de barras_apiladas FALSE → TRUE")
+  expect_message(p <- .std_imponer_base(v, avisar = TRUE), "cifras que no caben en su barra en barras apiladas")
   expect_true(p$barras_apiladas$args$etiquetas_arriba_si_no_caben)
   expect_true(p$multi_apiladas$etiquetas_arriba_si_no_caben)
   # sin base, la imposición por tipo no inventa una base
@@ -59,7 +59,7 @@ test_that("la regla de cifras chicas se impone por tipo y se avisa", {
 test_that("los valores de fábrica viejos del histograma y del radar migran, los propios se respetan", {
   p <- list(histograma = list(bins = 8L, ancho_bin = list()),
             radar_tabla = list(limites = list(0L, 1L), mostrar_niveles = FALSE))
-  expect_message(out <- .std_imponer_base(p, avisar = TRUE), "bins de histograma 8")
+  expect_message(out <- .std_imponer_base(p, avisar = TRUE), "histograma con una barra por valor")
   expect_null(out$histograma$bins)
   expect_null(out$radar_tabla$limites)
   expect_true(out$radar_tabla$mostrar_niveles)

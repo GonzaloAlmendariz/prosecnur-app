@@ -100,11 +100,11 @@
 # `report = NULL` omite el progreso por-slide (el worker multibase reporta
 # por base, no por slide — divergencia deliberada que se conserva).
 # `item_label` conserva el vocabulario de cada entregable en el mensaje de
-# progreso: "slide" para PPT, "seccion" para Word.
+# progreso: «la lámina» para PPT, «la sección» para Word.
 .graficos_job_rebuild_slides <- function(plan, slide_registry, graficador_registry,
                                          icon_registry, report = NULL,
                                          base_error = identity,
-                                         item_label = "slide") {
+                                         item_label = "la lámina") {
   slides <- plan$slides %||% list()
   total_slides <- length(slides)
   slides_r <- vector("list", total_slides)
@@ -115,16 +115,16 @@
         current = i,
         total = total_slides,
         percent = 5 + round(45 * (i - 1) / max(1, total_slides)),
-        message = sprintf("Armando %s %s de %s...", item_label, i, total_slides)
+        message = sprintf("Armando %s %s de %s…", item_label, i, total_slides)
       )
     }
     slides_r[[i]] <- tryCatch(
-      .graficos_rebuild_slide_json(
+      .aviso_con_lamina(i, .aviso_titulo_payload(slides[[i]]), .graficos_rebuild_slide_json(   # avisos «Lámina i · …»
         slides[[i]],
         slide_registry = slide_registry,
         graficador_registry = graficador_registry,
         icon_registry = icon_registry
-      ),
+      )),
       error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
     )
   }
@@ -155,7 +155,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
-    report = report, base_error = base_error, item_label = "slide"
+    report = report, base_error = base_error, item_label = "la lámina"
   )
   report("render", percent = 60, message = "Renderizando presentación...")
   tryCatch(
@@ -173,6 +173,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
     ),
     error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
   )
+  for (m in graficos_avisos_ponderacion_mazo(slides_r, readRDS(rp_data_path))) .pulso_aviso(m)   # D-b/D-c (S1–S4): en el job, no en la vista previa
   report("export", percent = 96, message = "Guardando PPTX...")
   list(path = result_path, n_slides = .graficos_laminas_entregadas(result_path, length(slides_r)))
 }
@@ -230,6 +231,7 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
       )),
       error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
     )
+    for (m in graficos_avisos_ponderacion_mazo(slides_r, stats::setNames(list(all_data[[base]]), base))) .pulso_aviso(sprintf("%s: %s", base, m))
     results[[i]] <- list(nombre = base, filename = info$filename,
                          n_slides = .graficos_laminas_entregadas(out_path, length(slides_r)))
   }
@@ -245,21 +247,31 @@ attr(graficos_job_worker_ppt_all, "prosecnur_job_function_name") <- "graficos_jo
 
 # Worker del job `graficos.word` (POST /api/graficos/word): mismo pipeline
 # que /ppt pero renderiza con reporte_word_plan (presets Word aparte y sin
-# plantilla PPTX ni slides automáticas de "otros").
+# plantilla PPTX). Con `auto_otros_slides`, la tabla «Otros» del recetario
+# Word va tras cada gráfico con abierta (decisión 21, reporte_word_otros.R).
 graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, w_presets,
                                      paletas, slide_registry, graficador_registry,
                                      icon_registry, active_base,
-                                     result_path, progress_path = NULL, opciones_documento = list()) {
+                                     result_path, progress_path = NULL, opciones_documento = list(),
+                                     estilo_cliente = list(), auto_otros_slides = FALSE) {
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
   fuente_documento <- opciones_documento$fuente
   opciones_documento$fuente <- NULL
+  # Estilo del cliente (A6 R3, graficos_estilo_cliente.R): llega ya resuelto a rutas y desplazamientos, y sólo si hay algo.
+  # Los logos van a la portada y la contraportada; la letra K13 se fija como opción y se repone al salir.
+  if (length(estilo_cliente)) {
+    for (aviso in estilo_cliente$avisos %||% character(0)) .pulso_aviso(aviso)
+    if (length(estilo_cliente$logos)) opciones_documento$logos <- estilo_cliente$logos
+    letra_previa <- .graficos_estilo_cliente_aplicar_letra(estilo_cliente$letra)
+    on.exit(options(letra_previa), add = TRUE)
+  }
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
-    report = report, base_error = base_error, item_label = "seccion"
+    report = report, base_error = base_error, item_label = "la sección"
   )
   report("render", percent = 60, message = "Renderizando documento...")
   tryCatch(
@@ -273,7 +285,8 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
       env_diapos = palette_env,
       mensajes_progreso = FALSE,
       fuente = fuente_documento,
-      opciones_documento = opciones_documento %||% list()
+      opciones_documento = opciones_documento %||% list(),
+      auto_otros_slides = isTRUE(auto_otros_slides)
     ),
     error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
   )

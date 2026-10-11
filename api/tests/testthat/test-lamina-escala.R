@@ -204,6 +204,10 @@ test_that("con actores y Bottom Two Box cada premisa conserva su título", {
                        var_grupo_titulo = "titulo", colores_grupos = as.list(setNames(.std_paleta("likert"), .niv_esc)),
                        barra_extra_preset = "top2box", top2box_labels = .niv_esc[3:4], columna_bottom2box = TRUE, bottom2box_labels = .niv_esc[1:2])
   o <- .lam_laminas_escala(.doc_vacio(), e, "Premisas", base = "Base", folio = 1)
-  textos <- unlist(lapply(seq_len(o$partes), function(k) .textos(o$doc, length(o$doc) - o$partes + k, "pregunta")))
+  # Sin fila Total la Bottom Two Box no cambia la composición (F-d): la premisa encabeza su bloque de actores como sin
+  # ella, y los actores conservan su nombre.
+  textos <- unlist(lapply(seq_len(o$partes), function(k) .textos(o$doc, length(o$doc) - o$partes + k, "premisa")))
   expect_setequal(textos, c("Premisa uno larga", "Premisa dos larga"))
+  actores <- unlist(lapply(seq_len(o$partes), function(k) .textos(o$doc, length(o$doc) - o$partes + k, "actor")))
+  expect_identical(sort(actores), sort(c("Alumnos", "Docentes", "Alumnos", "Docentes")))
 })

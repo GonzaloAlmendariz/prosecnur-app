@@ -195,6 +195,16 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [N8 — Word completo: inventario y hitos](inventario-n8-word-2026-10-09.md): la propuesta Word como norma frente al motor actual.
 - [Checklist — editor de Gráficos F6](checklist-editor-graficos-f6-2026-10-10.md): etapas de la nueva UI de Láminas y del motor nativo.
 - [Decisiones pendientes de Gonzalo — loop F6](decisiones-pendientes-f6-2026-10-10.md): preguntas con la recomendación del lead.
+- [A0 — Inventario de cierre del Editor anterior](inventario-cierre-a0-2026-10-11.md): lista de paridad C1–C55, R1–R10, O1–O5.
+- [Contrato — miniaturas en lote y vista previa asíncrona](contrato-miniaturas-preview-f6-2026-10-11.md): A4, caché por huella y jobs.
+- [Contrato A6 — Word y Estilo del cliente](contrato-word-estilo-f6-2026-10-11.md): guardar decisiones, no defaults (ADR 0094).
+- [Contrato A7 — Informe compartido y multibase en Láminas](contrato-consolidado-laminas-f6-2026-10-11.md): huecos H1–H9 y decisiones D1–D4.
+- [Contrato A5 rebanada 2b — Vista general](contrato-vista-general-2b-f6-2026-10-11.md): «Otros» automáticos, índice, «Armar desde…» y E2.
+- [Contrato — base sin ponderar en Gráficos](contrato-base-sin-ponderar-graficos-f6-2026-10-11.md): S1–S4, n_casos junto a n, S4 y n efectivo.
+- [Revisión C40 — argumentos sin control en Láminas](revision-c40-args-sin-control-f6-2026-10-11.md): veredictos por argumento, defectos D1 (denominador con `top_n`) y D2 (90–99 con ceros), tests de guarda.
+- [Estudio — paletas por lista en el PPT nativo y el Word](estudio-paletas-por-lista-f6-2026-10-11.md): qué familias honran la paleta por lista, listas que no calzan con el recetario y qué falta.
+- [Pendientes al cierre de la Meta A (Gráficos)](pendientes-cierre-meta-a-graficos-f6-2026-10-11.md): gate final, deuda con dónde vive y qué la bloquea, y notas de versión.
+- [Paridad para el retiro del Editor anterior (A10)](paridad-retiro-editor-anterior-f6-2026-10-11.md): huecos, prerrequisitos del borrado y decisiones 28–33.
 
 ## Reemplazados
 

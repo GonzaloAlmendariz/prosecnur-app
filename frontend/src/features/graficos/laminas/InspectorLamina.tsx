@@ -1,15 +1,22 @@
 // Columna derecha de la pestaña Láminas (F6.1; dirección F6 §4.1 «Inspector»). Cuatro secciones fijas con tabs
 // reales: Contenido (abre por defecto, decisión provisional §10) · Composición · Gráficos · Estado. Lo que esta parte
-// no construye se declara como tal y apunta al Editor anterior, que sigue accesible mientras se completa F6.
+// no construye se declara como tal («todavía no está en Láminas»), sin mandar al Editor anterior (C32/O3).
+// «Cambiar» (cabecera y Composición) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2).
 
-import { useId, useMemo, useRef } from "react";
-import { ChevronRight, History, LayoutTemplate, Lock, X } from "../../../vendor/lucide-react";
+import { useId, useMemo } from "react";
+import { ChevronRight, History, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Switch } from "../../../components/Switch";
-import { getSlotLabel } from "../GraficadorSlot";
-import { useGraficosLibraries } from "../GraficosLibrariesHost";
+import { EditorIndice } from "../indice/EditorIndice";
+import { FijadosIndice } from "../indice/FijadosIndice";
+import { ARGS_FIJADOS_INDICE } from "../indice/fijadosIndice";
+import { useVariables } from "../useVariables";
+import { ContenidoEspecialLamina } from "./contenidoEspecial/ContenidoEspecialLamina";
+import { contenidoEspecialDe, esArgEspecial, tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
 import { DatosGrafico } from "./DatosGrafico";
+import { SeccionComposicion } from "./SeccionComposicion";
+import { nombreSlot } from "./selectores/etiquetas";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { conSlideMeta, leerSlideMeta } from "../slideMeta";
 import { IconoTipo } from "../iconos/IconoTipo";
@@ -20,6 +27,7 @@ import { contenidoDeLamina } from "./contenidoLamina";
 import { ETIQUETA_ESTADO, estadoDeLamina, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { useLaminasUi, type SeccionInspector } from "./laminasStore";
+import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import "./inspectorLamina.css";
 
 const SECCIONES: { key: SeccionInspector; label: string }[] = [
@@ -29,20 +37,28 @@ const SECCIONES: { key: SeccionInspector; label: string }[] = [
   { key: "estado", label: "Estado" },
 ];
 
-const ARGS_DEL_INDICE = new Set(["secciones", "subtemas", "subindices", "iconos_focos"]);
+// Los capítulos e íconos tienen su editor; los ajustes del dibujo de los focos, su candado (decisión 32).
+const ARGS_DEL_INDICE = new Set<string>(["secciones", "subtemas", "subindices", "iconos_focos", ...ARGS_FIJADOS_INDICE]);
 
 type Props = {
   slide: Slide;
   lamina: LaminaEnEstructura;
-  /** Ranura seleccionada (1-based) desde `foco=l-NN:gK`. */
+  /** Ranura seleccionada (1-based) desde `foco=<slide.id>:gK`. */
   ranura: number | null;
   onRanura: (ranura: number | null) => void;
   visor: LaminaVisor | null;
   onCerrar: () => void;
-  onIrEditorAnterior: () => void;
+  /** Ya no se usa en el Inspector (C32/O3: sus textos no mandan al Editor anterior); queda por compatibilidad. */
+  onIrEditorAnterior?: () => void;
+  /** Abre «¿Qué lámina?» para cambiar el tipo de esta lámina. */
+  onCambiarLamina: () => void;
+  /** Abre «¿Qué gráfico?» para la ranura k (1-based). */
+  onCambiarGrafico: (k: number) => void;
 };
 
-export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerrar, onIrEditorAnterior }: Props) {
+export function InspectorLamina({
+  slide, lamina, ranura, onRanura, visor, onCerrar, onCambiarLamina, onCambiarGrafico,
+}: Props) {
   const seccion = useLaminasUi((s) => s.seccionInspector);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
   const baseId = useId();
@@ -67,6 +83,9 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
               : `Lámina ${lamina.posicion}`}
           </span>
         </span>
+        <button type="button" className="pulso-f6-boton pulso-f6-inspector-cambiar" onClick={onCambiarLamina} aria-label={`Cambiar el tipo de la lámina ${lamina.posicion}`}>
+          Cambiar
+        </button>
         <button type="button" className="pulso-f6-icono-boton" aria-label="Ocultar los ajustes" title="Ocultar los ajustes: la lámina gana su ancho" onClick={onCerrar}>
           <X size={16} aria-hidden="true" />
         </button>
@@ -102,10 +121,10 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
         aria-labelledby={tabId(seccion)}
         tabIndex={0}
       >
-        {seccion === "contenido" && <SeccionContenido slide={slide} lamina={lamina} onIrEditorAnterior={onIrEditorAnterior} />}
-        {seccion === "composicion" && <SeccionComposicion lamina={lamina} />}
+        {seccion === "contenido" && <SeccionContenido slide={slide} lamina={lamina} />}
+        {seccion === "composicion" && <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />}
         {seccion === "graficos" && (
-          <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onIrEditorAnterior={onIrEditorAnterior} />
+          <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onCambiarGrafico={onCambiarGrafico} />
         )}
         {seccion === "estado" && <SeccionEstado slide={slide} visor={visor} />}
       </div>
@@ -113,18 +132,26 @@ export function InspectorLamina({ slide, lamina, ranura, onRanura, visor, onCerr
   );
 }
 
-function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide; lamina: LaminaEnEstructura; onIrEditorAnterior: () => void }) {
+function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEstructura }) {
   // Campos de texto de alto propio (una línea, varias líneas, con o sin ayuda): grupo intrínseco.
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const { slidesById } = useGraficosRegistry();
   const meta = leerSlideMeta(slide);
   const esIndice = slide.tipo === "p_slide_indice";
-  const contenido = useMemo(() => {
-    const args = (slidesById[slide.tipo]?.args ?? []).filter((a) => !(esIndice && ARGS_DEL_INDICE.has(a.name)));
-    const c = contenidoDeLamina(args, SLIDE_GRAF_SLOTS[slide.tipo] ?? []);
-    return esIndice ? { ...c, pendientes: ["Capítulos e íconos del índice", ...c.pendientes] } : c;
-  }, [slidesById, slide.tipo, esIndice]);
+  const { variables } = useVariables();
+  const argsDelTipo = slidesById[slide.tipo]?.args;
+  // Los capítulos, subcapítulos e íconos del índice tienen su editor (A5 rebanada 2b), y las filas de la ficha técnica y
+  // el ícono subido, el suyo (C38): no son campos de texto sueltos.
+  const { contenido, especial } = useMemo(() => {
+    const args = (argsDelTipo ?? []).filter((a) => !(esIndice && ARGS_DEL_INDICE.has(a.name)));
+    return {
+      contenido: contenidoDeLamina(args.filter((a) => !esArgEspecial(a)), SLIDE_GRAF_SLOTS[slide.tipo] ?? []),
+      especial: contenidoEspecialDe(args),
+    };
+  }, [argsDelTipo, slide.tipo, esIndice]);
   const payload = slide.payload as Record<string, unknown>;
+  // C35: sin título escrito sale el nombre de la pregunta del gráfico, como en el editor anterior y en el motor.
+  const titulo = tituloPorDefecto(slide, variables, lamina.tipoLabel);
   const idAnte = useId();
 
   return (
@@ -157,17 +184,22 @@ function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide;
           key={c.name}
           campo={c}
           valor={typeof payload[c.name] === "string" ? (payload[c.name] as string) : ""}
-          placeholder={c.name === "titulo" ? lamina.tipoLabel : ""}
+          placeholder={c.name === "titulo" ? titulo.placeholder : ""}
+          ayuda={c.name === "titulo" ? titulo.ayuda : null}
           onCambio={(v) => updatePayload(slide.id, { [c.name]: v })}
         />
       ))}
+
+      <ContenidoEspecialLamina slide={slide} especial={especial} />
+
+      {esIndice && <EditorIndice slide={slide} />}
+      {esIndice && <FijadosIndice slide={slide} args={argsDelTipo ?? []} />}
 
       {contenido.pendientes.length > 0 && (
         <p className="pulso-f6-pendiente">
           <History size={14} aria-hidden="true" />
           <span>
-            {contenido.pendientes.join(" · ")}: todavía se edita en el{" "}
-            <button type="button" className="pulso-f6-texto-boton" onClick={onIrEditorAnterior}>Editor anterior</button>.
+            {contenido.pendientes.join(" · ")}: este ajuste todavía no está en Láminas.
           </span>
         </p>
       )}
@@ -175,65 +207,41 @@ function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide;
   );
 }
 
-function CampoTexto({ campo, valor, placeholder, onCambio }: {
+function CampoTexto({ campo, valor, placeholder, ayuda = null, onCambio }: {
   campo: { name: string; label: string; multilinea: boolean; descripcion: string };
   valor: string;
   placeholder: string;
+  /** Ayuda que no viene del registro (qué sale si queda vacío). */
+  ayuda?: string | null;
   onCambio: (v: string) => void;
 }) {
   const id = useId();
   const idAyuda = `${id}-ayuda`;
+  const textoAyuda = [campo.descripcion, ayuda].filter((t): t is string => !!t).join(" ");
   return (
     <div className="pulso-f6-campo">
       <label htmlFor={id}>{campo.label}</label>
       {campo.multilinea ? (
         <textarea id={id} className="pulso-f6-input" rows={3} value={valor} placeholder={placeholder}
-          aria-describedby={campo.descripcion ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
+          aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
       ) : (
         <input id={id} className="pulso-f6-input" value={valor} placeholder={placeholder}
-          aria-describedby={campo.descripcion ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
+          aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
       )}
-      {campo.descripcion && <span id={idAyuda} className="pulso-f6-ayuda">{campo.descripcion}</span>}
+      {textoAyuda && <span id={idAyuda} className="pulso-f6-ayuda">{textoAyuda}</span>}
     </div>
   );
 }
 
-function SeccionComposicion({ lamina }: { lamina: LaminaEnEstructura }) {
-  return (
-    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-composicion" data-qa-geometry-contract="intrinsic">
-      <div className="pulso-f6-tarjeta">
-        <span className="pulso-f6-tarjeta-icono" aria-hidden="true"><LayoutTemplate size={18} /></span>
-        <div>
-          <strong id="pulso-f6-inspector-titulo">{lamina.tipoLabel}</strong>
-          <p>
-            {lamina.ranuras > 0
-              ? `${lamina.ranuras} ${lamina.ranuras === 1 ? "ranura de gráfico" : "ranuras de gráfico"}, ${lamina.ranurasLlenas} con gráfico.`
-              : "Lámina de estructura, sin ranuras de gráfico."}
-          </p>
-        </div>
-      </div>
-      <p className="pulso-f6-pendiente">
-        <LayoutTemplate size={14} aria-hidden="true" />
-        <span>
-          Cambiar el tipo de lámina y elegir sus variantes (portada, índice, cierre) llega con el selector de tipos de
-          lámina, en la siguiente parte del editor nuevo.
-        </span>
-      </p>
-    </div>
-  );
-}
-
-function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }: {
+function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   slide: Slide;
   slots: string[];
   ranura: number | null;
   onRanura: (r: number | null) => void;
-  onIrEditorAnterior: () => void;
+  onCambiarGrafico: (k: number) => void;
 }) {
-  const { graficadoresById } = useGraficosRegistry();
-  const { openGraficadoresLibrary } = useGraficosLibraries();
-  // Una sola tarjeta abierta a la vez: un solo botón «Cambiar» al que devolver el foco al cerrar la biblioteca.
-  const cambiarRef = useRef<HTMLButtonElement>(null);
+  const { graficadoresById, slidesById } = useGraficosRegistry();
+  const { irA } = useSeccion("procesamiento");
   if (slots.length === 0) {
     return (
       <p className="pulso-f6-vacio-col">Esta lámina no lleva gráficos: su contenido se edita en Contenido.</p>
@@ -250,7 +258,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
           const nombre = tecnico ? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
           const variable = firstVariableRefFromGraph(valor);
           const abierta = ranura === k || (slots.length === 1 && ranura === null);
-          const rotulo = `Gráfico ${k}${slots.length > 1 ? ` · ${getSlotLabel(slot)}` : ""}`;
+          const rotulo = `Gráfico ${k}${slots.length > 1 ? ` · ${nombreSlot(slot, slidesById[slide.tipo])}` : ""}`;
           return (
             <li key={slot} className={`pulso-f6-ranura${abierta ? " is-abierta" : ""}`}>
               <div className="pulso-f6-ranura-fila">
@@ -270,9 +278,9 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
                 {abierta && (
                   <button
                     type="button"
-                    ref={cambiarRef}
                     className="pulso-f6-boton pulso-f6-ranura-cambiar"
-                    onClick={() => openGraficadoresLibrary({ slideId: slide.id, slotName: slot, slotLabel: rotulo, returnFocusRef: cambiarRef })}
+                    aria-label={`${tecnico ? "Cambiar" : "Elegir"} el ${rotulo.toLowerCase()}`}
+                    onClick={() => onCambiarGrafico(k)}
                   >
                     {tecnico ? "Cambiar" : "Elegir"}
                   </button>
@@ -300,8 +308,8 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior }:
       <p className="pulso-f6-pendiente">
         <History size={14} aria-hidden="true" />
         <span>
-          El Top Two Box de las escalas y las opciones del Word siguen en el{" "}
-          <button type="button" className="pulso-f6-texto-boton" onClick={onIrEditorAnterior}>Editor anterior</button>.
+          Los logos y la letra del Word de todo el informe se fijan en la pestaña{" "}
+          <button type="button" className="pulso-f6-texto-boton" onClick={() => irA("pestana", "estilo")}>Estilo del cliente</button>.
         </span>
       </p>
     </div>

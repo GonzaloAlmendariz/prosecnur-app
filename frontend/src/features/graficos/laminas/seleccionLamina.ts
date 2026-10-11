@@ -1,37 +1,40 @@
-// Quién manda sobre la lámina seleccionada (F6.1, parte 2): la URL (`foco=l-NN`) o el plan (`selectedSlideId`).
+// Quién manda sobre la lámina seleccionada (F6.1, parte 2): la URL (`foco=<id>`) o el plan (`selectedSlideId`).
 //
-// `foco` es posicional: al mover, duplicar, insertar o eliminar, la lámina 14 pasa a ser otra. Si la URL mandara
-// siempre, mover la lámina con Alt+↑ seleccionaría a su vecina. Regla: cuando el `foco` acaba de cambiar (enlace,
-// clic, flechas), manda la URL y se selecciona esa lámina; si lo que cambió fue el plan, manda la lámina seleccionada y
-// el `foco` se reescribe a su nueva posición.
+// `foco` nombra el id de la lámina (`../focoLamina.ts`), así que mover, duplicar o insertar no lo desvía: tras Alt+↑ el
+// enlace sigue en la misma lámina. Regla: cuando el `foco` acaba de cambiar (enlace, clic, flechas) manda la URL y se
+// selecciona esa lámina; si lo que cambió fue el plan, manda la lámina seleccionada y el `foco` se reescribe sólo si no
+// la nombra (duplicar elige la copia, eliminar la vecina). Un `foco` heredado `l-NN` se resuelve por posición UNA vez y
+// se reescribe al id.
 
 export type Reconciliacion = {
   /** Posición 1-based que se muestra, o null con el plan vacío. */
   posicion: number | null;
   /** Id que hay que pasar a `select()`, si cambia. */
   seleccionar: string | null;
-  /** El `foco` de la URL no dice la posición mostrada y hay que reescribirlo. */
+  /** El `foco` de la URL no es el id de la lámina mostrada (o vino heredado) y hay que reescribirlo. */
   escribirFoco: boolean;
 };
 
-export function reconciliarSeleccion({ ids, focoPos, focoCambio, selectedId }: {
+export function reconciliarSeleccion({ ids, focoId, focoHeredado = false, focoCambio, selectedId }: {
   ids: readonly string[];
-  focoPos: number | null;
+  /** Id que nombra el `foco` ya resuelto (`resolverFocoLamina`), o null si no nombra ninguna lámina del plan. */
+  focoId: string | null;
+  /** El `foco` vino en la forma heredada `l-NN`. */
+  focoHeredado?: boolean;
   /** El `foco` es distinto del que se vio en la reconciliación anterior (o es la primera). */
   focoCambio: boolean;
   selectedId: string | null;
 }): Reconciliacion {
   const n = ids.length;
   if (n === 0) return { posicion: null, seleccionar: null, escribirFoco: false };
-  const focoValido = focoPos !== null && focoPos >= 1 && focoPos <= n;
+  const posFoco = focoId ? ids.indexOf(focoId) + 1 : 0;
   const posSel = selectedId ? ids.indexOf(selectedId) + 1 : 0;
 
-  if (focoCambio && focoValido) {
-    const id = ids[focoPos - 1];
-    return { posicion: focoPos, seleccionar: id !== selectedId ? id : null, escribirFoco: false };
+  if (focoCambio && posFoco > 0) {
+    return { posicion: posFoco, seleccionar: focoId !== selectedId ? focoId : null, escribirFoco: focoHeredado };
   }
-  if (posSel > 0) return { posicion: posSel, seleccionar: null, escribirFoco: focoPos !== posSel };
-  if (focoValido) return { posicion: focoPos, seleccionar: ids[focoPos - 1], escribirFoco: false };
+  if (posSel > 0) return { posicion: posSel, seleccionar: null, escribirFoco: focoHeredado || focoId !== selectedId };
+  if (posFoco > 0) return { posicion: posFoco, seleccionar: focoId, escribirFoco: focoHeredado };
   return { posicion: 1, seleccionar: ids[0], escribirFoco: true };
 }
 

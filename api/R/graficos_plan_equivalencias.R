@@ -72,17 +72,36 @@
 #' Devuelve `list(declarada, plan, fuera, n_diapositivas)`. `fuera` lleva lo que no
 #' entró y por qué: un mazo más corto de lo esperado sin explicación se lee como
 #' un fallo del generador, no como una decisión del analista.
+#'
+#' Es el ÚNICO generador del bloque comparativo (ADR 0063); el informe compartido
+#' lo reusa con dos acotaciones (ADR 0096, `graficos_plan_consolidado.R`):
+#' - `bases`: públicos que pueden participar (los de release aprobada). `NULL` =
+#'   todos. Una fila pierde las bases fuera; con menos de dos públicos de los que
+#'   declaró sale a `fuera` (`release_no_aprobada`), nunca degradada a una lámina
+#'   de un público; con dos o más pero menos que los declarados entra y se reporta
+#'   en `cobertura_reducida`.
+#' - `vetadas`: lista nombrada por índice de fila → `list(motivo, detalle)`, filas
+#'   que el llamador sabe que no pueden entrar (p. ej. el bloqueo de escala del
+#'   consolidado). Se aplican después de los filtros propios del generador.
+#' `inst_por_base` acota los instrumentos con que se miden firma y graficabilidad;
+#' la revisión se calcula SIEMPRE con todos, para que los productores coincidan.
 #' @noRd
-.graficos_plan_desde_equivalencias <- function(sid) {
+.graficos_plan_desde_equivalencias <- function(sid, bases = NULL, inst_por_base = NULL,
+                                               vetadas = NULL) {
   s <- session_get(sid, required = FALSE)
   equiv <- (s %||% list())$equivalencias_publicos
   vacio <- list(declarada = FALSE, plan = list(slides = list()),
-                fuera = list(), n_diapositivas = 0L, revision = "")
+                fuera = list(), n_diapositivas = 0L, revision = "",
+                cobertura_reducida = list())
   if (is.null(equiv) || !length(equiv$filas %||% list())) return(vacio)
 
-  inst_por_base <- if (exists(".equiv_inst_por_base", mode = "function")) {
+  inst_todas <- if (exists(".equiv_inst_por_base", mode = "function")) {
     .equiv_inst_por_base(sid)
   } else list()
+  revision <- .equiv_declaracion_revision(equiv, inst_todas)
+  inst_por_base <- inst_por_base %||% inst_todas
+  vetadas <- vetadas %||% list()
+  cobertura_reducida <- list()
 
   fuera <- list()
   anota_fuera <- function(fila, motivo, detalle = "") {
@@ -96,7 +115,8 @@
 
   # 1) Filtrar y agrupar por diapositiva, conservando el orden de las filas.
   por_diapositiva <- list()
-  for (fila in equiv$filas) {
+  for (idx_fila in seq_along(equiv$filas)) {
+    fila <- equiv$filas[[idx_fila]]
     vars <- fila$variables %||% list()
     if (!length(vars)) {
       anota_fuera(fila, "sin_variables")
@@ -116,6 +136,25 @@
       # completar: rellenarla produciría diapositivas que nadie pidió.
       anota_fuera(fila, "sin_diapositiva")
       next
+    }
+
+    if (!is.null(bases)) {
+      fuera_bases <- setdiff(names(vars), bases)
+      if (length(fuera_bases)) {
+        incluidas <- vars[names(vars) %in% bases]
+        if (!length(incluidas) || (length(incluidas) < 2L && length(vars) >= 2L)) {
+          anota_fuera(fila, "release_no_aprobada", paste(fuera_bases, collapse = ", "))
+          next
+        }
+        cobertura_reducida[[length(cobertura_reducida) + 1L]] <- list(
+          etiqueta = as.character(fila$etiqueta_estandar %||% ""),
+          declaradas = length(vars),
+          incluidas = length(incluidas),
+          bases_fuera = as.list(fuera_bases)
+        )
+        vars <- incluidas
+        fila$variables <- incluidas
+      }
     }
 
     # Una pregunta cuyos públicos no comparten escala no se grafica. El guard de
@@ -155,13 +194,19 @@
       next
     }
 
+    veto <- vetadas[[as.character(idx_fila)]]
+    if (!is.null(veto)) {
+      anota_fuera(fila, as.character(veto$motivo %||% "vetada"), as.character(veto$detalle %||% ""))
+      next
+    }
+
     por_diapositiva[[diapositiva]] <- c(por_diapositiva[[diapositiva]] %||% list(), list(fila))
   }
 
   if (!length(por_diapositiva)) {
     return(list(declarada = TRUE, plan = list(slides = list()),
                 fuera = fuera, n_diapositivas = 0L,
-                revision = .equiv_declaracion_revision(equiv)))
+                revision = revision, cobertura_reducida = cobertura_reducida))
   }
 
   # 2) Una diapositiva por clave declarada; un tema por pregunta.
@@ -449,7 +494,8 @@
     radar_pendiente = radar_pendiente,
     # Viaja con la propuesta para que, al aplicarla, quede grabada junto al plan
     # y el desfase posterior sea comprobable en vez de sospechado.
-    revision = .equiv_declaracion_revision(equiv)
+    revision = revision,
+    cobertura_reducida = cobertura_reducida
   )
 }
 
@@ -460,8 +506,16 @@
 # ADR 0063: la declaracion es una fuente MAS de `plan/sugerido`, no un generador
 # aparte. Asi la previsualizacion, la validacion y el aplicar siguen siendo los
 # que ya existen y estan probados.
-.graficos_plan_sugerido_por_fuente <- function(sid, config = NULL) {
+#
+# ADR 0096: `scope` viene de la RAÍZ del cuerpo, igual que en `/plan/coverage`.
+# ""/ausente = alcance actual; "consolidado" = informe compartido, que vive en
+# `graficos_plan_consolidado.R`; cualquier otro valor es un 400.
+.graficos_plan_sugerido_por_fuente <- function(sid, config = NULL, scope = "") {
   fuente <- tolower(trimws(as.character((config %||% list())$fuente %||% "")[1]))
+  if (identical(.graficos_plan_scope(scope), "consolidado")) {
+    .graficos_plan_consolidado_requiere(sid)
+    return(.graficos_plan_sugerido_consolidado(sid, config = config, fuente = fuente))
+  }
   if (!identical(fuente, "equivalencias")) {
     return(.graficos_suggested_plan(sid, config = config))
   }

@@ -12,6 +12,7 @@ import VariablePicker from "./VariablePicker";
 import VarsListPicker from "./VarsListPicker";
 import { humanizeIdentifier } from "./graficadorDisplay";
 import { safeText, safeTrimmedText } from "./safeText";
+import { escalaVisualDeArg } from "./argEscalaVisual";
 import {
   clampNumber,
   coerceNumber,
@@ -935,8 +936,7 @@ function NumberControl({
   onChange: (v: ArgValue) => void;
 }) {
   const label = safeText(meta.label, safeText(meta.name, "campo"));
-  const displayAsPercent = isProportionThreshold(meta);
-  const displayScale = displayAsPercent ? 100 : 1;
+  const { escala: displayScale, unidad: displayUnit } = escalaVisualDeArg(meta);
   const step = inferNumberStep(meta, value);
   const displayStep = step * displayScale;
   const min = typeof meta.min === "number" ? meta.min : undefined;
@@ -944,7 +944,6 @@ function NumberControl({
   const hasSlider = meta.control === "slider" && typeof min === "number" && typeof max === "number";
   const displayMin = typeof min === "number" ? min * displayScale : undefined;
   const displayMax = typeof max === "number" ? max * displayScale : undefined;
-  const displayUnit = displayAsPercent ? "%" : meta.unidad;
   const useThreeDecimals = meta.grupo === "espacio" || /^(canvas_|tabla_)/.test(meta.name ?? "") || meta.name === "alto_por_categoria";
   const baseHint = buildNumberStatusHint(meta);
   const [status, setStatus] = useState<FieldStatus>(() => ({
@@ -1282,9 +1281,9 @@ function NumberControl({
         </div>
       )}
 
-      {quickPresetsFor(meta.name).length > 0 && (
+      {quickPresetsFor(meta).length > 0 && (
         <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${label}`}>
-          {quickPresetsFor(meta.name).map((preset) => (
+          {quickPresetsFor(meta).map((preset) => (
               <button
                 key={`${preset.label}-${preset.value}`}
                 type="button"
@@ -1761,7 +1760,7 @@ export function resolveArgumentDescription(meta: ArgMetadata, options: {
   const typeHint = buildTypeHint(meta, options);
   const nameHint = resolveArgumentHintByName(meta, options);
   const groupContext = groupHint(meta.grupo);
-  const numberContext = options.forNumber ? relatedNumericHint(meta.name ?? "", meta.grupo ?? "") : "";
+  const numberContext = options.forNumber ? relatedNumericHint(meta) : "";
   const fallbackHint = buildTextualLabelHint(meta);
 
   if (nameHint) return joinHints([nameHint, rangeHint]);
@@ -1825,15 +1824,12 @@ function FieldStatusRow({
   );
 }
 
-function isProportionThreshold(meta: ArgMetadata): boolean {
-  const name = String(meta.name ?? "").toLowerCase();
-  return (name.startsWith("umbral_") || name.includes("_umbral_")) && !name.endsWith("_pct");
-}
-
-function relatedNumericHint(name: string, grupo: string): string {
+function relatedNumericHint(meta: ArgMetadata): string {
+  const name = meta.name ?? "";
+  const grupo = meta.grupo ?? "";
   if (name === "canvas_w_etiquetas") return "útil para ajustar ancho de etiquetas.";
   if (name === "ancho_max_eje_y" || name === "wrap_y") return "trabaja junto al espacio de etiquetas.";
-  if ((name.startsWith("umbral_") || name.includes("_umbral_")) && !name.endsWith("_pct")) {
+  if (escalaVisualDeArg(meta).escala === 100) {
     return "usa proporción de datos (por ejemplo, 0.05 = 5%).";
   }
   if (grupo === "espacio" || grupo === "canvas") return "controla el espacio de dibujo y separación visual.";
@@ -1857,7 +1853,8 @@ function groupHint(grupo: string): string {
   return "";
 }
 
-function quickPresetsFor(name: string): { label: string; value: number }[] {
+function quickPresetsFor(meta: ArgMetadata): { label: string; value: number }[] {
+  const name = meta.name;
   if (name === "canvas_w_etiquetas") {
     return [
       { label: "Compacto", value: 0.12 },
@@ -1879,7 +1876,7 @@ function quickPresetsFor(name: string): { label: string; value: number }[] {
       { label: "Alto", value: 0.65 },
     ];
   }
-  if ((name.startsWith("umbral_") || name.includes("_umbral_")) && !name.endsWith("_pct")) {
+  if (escalaVisualDeArg(meta).escala === 100) {
     return [
       { label: "0.05%", value: 0.0005 },
       { label: "1%", value: 0.01 },

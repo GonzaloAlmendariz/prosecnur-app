@@ -1,0 +1,325 @@
+/* Pestaña «Estilo del informe» de Procesamiento › Gráficos (A10 W-E). Misma gramática que «Estilo del cliente»: barra
+   fija y un solo dueño de desplazamiento, el cuerpo (C4, No Scroll Jail). Las secciones son un grupo `intrinsic`: cada
+   una mide lo que trae y su vacío vive dentro de su caja (C3). Sólo tokens existentes. */
+
+.pulso-graficos-pestana > .pulso-f6-informe {
+  flex: 1;
+  min-height: 0;
+}
+
+.pulso-f6-informe {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.pulso-f6-informe-barra {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  min-height: 44px;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-informe-titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-informe-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--pulso-space-4);
+}
+
+.pulso-f6-informe-secciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+  max-width: 1120px;
+}
+
+.pulso-f6-informe-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-informe-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-height: var(--pulso-control-height-md);
+}
+
+.pulso-f6-informe-cabecera h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-informe-cabecera .pulso-button {
+  margin-left: auto;
+}
+
+.pulso-f6-informe-ayuda,
+.pulso-f6-informe-motivo {
+  margin: 0;
+  max-width: 78ch;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.pulso-f6-informe-error {
+  margin: 0;
+  color: var(--pulso-danger-fg);
+  font-size: 12.5px;
+}
+
+.pulso-f6-informe-estado {
+  margin: 0;
+  padding: var(--pulso-space-4);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  text-align: center;
+}
+
+.pulso-f6-informe-conteo {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.pulso-f6-informe-subtitulo {
+  margin: var(--pulso-space-2) 0 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+/* --- Texto de la base ---------------------------------------------------------------------------------------------- */
+
+.pulso-f6-informe-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--pulso-space-3) var(--pulso-space-4);
+  align-items: start;
+}
+
+.pulso-f6-informe-campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-informe-campo-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: var(--pulso-control-height-md);
+}
+
+.pulso-f6-informe-campo-etiqueta {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-informe-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.pulso-f6-informe-ejemplo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  font-size: 12.5px;
+}
+
+.pulso-f6-informe-ejemplo-rotulo {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-informe-ejemplo-texto {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* --- Cálculos y Word: casilla con texto y sello -------------------------------------------------------------------- */
+
+.pulso-f6-informe-nota {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text);
+}
+
+.pulso-f6-informe-nota input {
+  margin-top: 3px;
+}
+
+.pulso-f6-informe-aplicar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-informe-tabla-marco {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+}
+
+.pulso-f6-informe-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.pulso-f6-informe-tabla th,
+.pulso-f6-informe-tabla td {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.pulso-f6-informe-tabla thead th {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-f6-informe-tabla tbody th {
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-informe-tabla tbody tr:last-child > * {
+  border-bottom: none;
+}
+
+.pulso-f6-informe-familia,
+.pulso-f6-informe-procedencia {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-informe-fijo {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-informe-numero {
+  width: 64px;
+}
+
+/* --- Reusados (línea visual y paletas): crecen dentro del único dueño de desplazamiento ---------------------------- */
+
+.pulso-f6-informe-incrustado {
+  min-width: 0;
+}
+
+.pulso-f6-informe-paletas .pulso-gv2-paletas-editor {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  min-height: 0;
+}
+
+/* La lista de listas no crece con la cantidad (C2: con 76 listas la sección medía 5400 px): es un panel acotado con su
+   propio desplazamiento, alcanzable en todo viewport (C4). El detalle y su tabla crecen en el cuerpo. QA qa-f6-4. */
+.pulso-f6-informe-paletas .pulso-gv2-paletas-sidebar {
+  flex: 0 0 238px;
+  height: auto;
+  max-height: min(560px, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pulso-f6-informe-paletas .pulso-gv2-paletas-list {
+  max-height: none;
+  height: auto;
+  overflow: visible;
+}
+
+.pulso-f6-informe-paletas .pulso-gv2-paleta-table-shell,
+.pulso-f6-informe-paletas .pulso-gv2-paletas-detail {
+  max-height: none;
+  overflow: visible;
+}
+
+.pulso-f6-informe-paletas .pulso-gv2-paletas-detail {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+@media (max-width: 1040px) {
+  .pulso-f6-informe-paletas .pulso-gv2-paletas-sidebar {
+    flex: 0 0 auto;
+    width: auto;
+    max-height: min(320px, 50vh);
+  }
+}
+
+/* --- Word: candados por tipo de gráfico --------------------------------------------------------------------------- */
+
+.pulso-f6-informe-fijados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--pulso-space-3) var(--pulso-space-4);
+  align-items: start;
+}
+
+.pulso-f6-informe-fijado-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-informe * {
+    transition: none !important;
+  }
+}

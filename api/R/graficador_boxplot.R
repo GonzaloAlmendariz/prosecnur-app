@@ -180,7 +180,7 @@ graficar_boxplot <- function(
   if (identical(modo_semaforo, "degradado_manual")) {
     # El analista eligio un modo y le sale otro: si no se lo decimos, lee el
     # resultado como si fuera lo que pidio. Vara V4.
-    msg <- "Semaforo 'degradado_manual' no esta soportado en boxplot: se usa 'degradado_automatico'."
+    msg <- "El boxplot no admite el semáforo con degradado manual: se usa el degradado automático."
     warning(msg, call. = FALSE)
     .pulso_aviso(msg)
     modo_semaforo <- "degradado_automatico"

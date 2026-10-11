@@ -6,6 +6,11 @@ describe("resolverPestanaGraficos", () => {
     expect(resolverPestanaGraficos(null)).toBe("laminas");
     expect(resolverPestanaGraficos("timeline")).toBe("laminas");
   });
+  // Mata: que la pestaña nueva no esté en el catálogo y su enlace aterrice mudo en Láminas.
+  it("abre Vista general", () => {
+    expect(resolverPestanaGraficos("vista-general")).toBe("vista-general");
+    expect(resolverPestanaGraficos("Vista-General")).toBe("vista-general");
+  });
   it("respeta el editor anterior", () => {
     expect(resolverPestanaGraficos("clasico")).toBe("clasico");
     expect(resolverPestanaGraficos("Clasico")).toBe("clasico");

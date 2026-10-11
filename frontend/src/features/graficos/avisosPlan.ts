@@ -2,8 +2,10 @@
 // lo haga quien lo haga (el calentamiento de arranque, la hidratación, un reintento). Este store es su único destino:
 // - los guarda en sessionStorage con su sesión, así sobreviven a recargar la ventana y se descartan al cambiar de sesión;
 // - en Láminas van al canal de Avisos (contador de la barra y panel);
-// - mientras Gráficos está montado y nadie los vio, un toast que no se cierra solo los anuncia (también en el Editor
-//   anterior). Fuera de Gráficos no hay toast. Se dan por vistos al cerrar ese toast o al abrir el panel de Avisos.
+// - mientras Gráficos está montado y nadie los vio, un toast los anuncia (también en el Editor anterior). Es sólo un
+//   recordatorio: el detalle vive en Láminas › Avisos, así que se cierra solo a los `DURACION_TOAST_AVISOS_PLAN` ms (antes
+//   no se cerraba y tapaba las últimas miniaturas de la tira e interceptaba sus clics). Fuera de Gráficos no hay toast.
+//   Se dan por vistos al cerrarse ese toast (a mano o por tiempo) o al abrir el panel de Avisos; los avisos no se borran.
 
 import { useEffect } from "react";
 import { create } from "zustand";
@@ -93,19 +95,30 @@ export function useAvisosPlanSesion(): string[] {
 }
 const VACIO: string[] = [];
 
-/** Monta el toast persistente mientras Gráficos está abierto y los avisos no se vieron; se quita al salir. */
+/** Recordatorio: más que el aviso estándar (6 s) porque trae una segunda línea que hay que leer. */
+export const DURACION_TOAST_AVISOS_PLAN = 10_000;
+
+/** Título y opciones del toast; puro para fijar en test que se cierra solo y que remite al panel de Avisos. */
+export function toastAvisosPlan(avisos: readonly string[]): { mensaje: string; detalle: string; duracion: number } {
+  return {
+    mensaje: avisos.length === 1 ? "El plan de gráficos cambió al abrirlo" : `El plan de gráficos cambió al abrirlo (${avisos.length} avisos)`,
+    detalle: `${avisos[0]}${avisos.length > 1 ? " …" : ""} Detalle en Láminas › Avisos.`,
+    duracion: DURACION_TOAST_AVISOS_PLAN,
+  };
+}
+
+/** Monta el toast recordatorio mientras Gráficos está abierto y los avisos no se vieron; se quita al salir. */
 export function useAnuncioAvisosPlan(): void {
   const avisos = useAvisosPlanSesion();
   const visto = useAvisosPlan((s) => s.visto);
   const marcarVisto = useAvisosPlan((s) => s.marcarVisto);
   useEffect(() => {
     if (!avisos.length || visto) return;
-    const id = toast.aviso(
-      avisos.length === 1 ? "El plan de gráficos cambió al abrirlo" : `El plan de gráficos cambió al abrirlo (${avisos.length} avisos)`,
-      { detalle: `${avisos[0]}${avisos.length > 1 ? " …" : ""} Detalle en Láminas › Avisos.`, duracion: 0 },
-    );
+    const { mensaje, detalle, duracion } = toastAvisosPlan(avisos);
+    const id = toast.aviso(mensaje, { detalle, duracion });
     let propio = false;
-    // Si el usuario lo cierra, queda visto; si lo quitamos al salir de Gráficos, no.
+    // Si el usuario lo cierra (o se cierra solo), queda visto; si lo quitamos al salir de Gráficos, no. Abrir Avisos lo
+    // marca visto y este efecto, al re-correr, lo cierra.
     const soltar = useToasterStore.subscribe((s) => {
       if (!propio && !s.toasts.some((t) => t.id === id)) marcarVisto();
     });

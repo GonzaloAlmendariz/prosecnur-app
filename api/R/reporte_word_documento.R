@@ -47,17 +47,29 @@
   paste0(sub("[,;:]$", "", corte), "…")
 }
 
+#' Opciones del documento Word del recetario cuando el editor no decide nada
+#'
+#' La autoridad del default (ADR 0094): `config.documento_word` guarda sólo lo que difiere de aquí
+#' (`.graficos_documento_word_solo_decisiones`). `redondeo` es el suelo de esta función, pero `reporte_word_plan` lo
+#' deduce siempre del informe antes de llamarla (`.word_redondeo_documento`), así que en el proyecto no tiene default
+#' fijo: un «estandar» elegido es una decisión.
+#' @keywords internal
+.DOCUMENTO_WORD_DEFAULTS <- list(portada = "A", apertura = "B", como_leer = NULL, redondeo = "estandar",
+                                 contacto = list(), meta_portada = list())
+
 #' Arma el Word del recetario desde `render_meta`
 #'
 #' @param render_meta Lista de entradas de `reporte_ppt_plan(solo_lista = TRUE, build_render_meta = TRUE)`.
 #' @param path_docx Archivo de salida.
 #' @param fuente Fuente que cierra cada base («Fuente: PULSO PUCP 2026.»).
 #' @param opciones Lista: `portada` («A», «B», «C»), `apertura` («B», «A»), `como_leer` (`NULL` = si hay escalas),
-#'   `redondeo` («estandar», «resto_mayor»), `contacto` (para la contraportada), `meta_portada` (ante, para, version...).
+#'   `redondeo` («estandar», «resto_mayor»), `contacto` (para la contraportada), `meta_portada` (ante, para, version...),
+#'   `logos` (rutas de los logos propios del cliente por lugar: `portada_izquierda`, `portada_derecha`, `contraportada`;
+#'   sólo las pone el worker desde `estilo_cliente`, nunca el body).
 #' @return Invisible: `list(path, figuras, tablas, avisos)`.
 #' @keywords internal
 .word_documento <- function(render_meta, path_docx, fuente = NULL, opciones = list(), mensajes = FALSE) {
-  op <- utils::modifyList(list(portada = "A", apertura = "B", como_leer = NULL, redondeo = "estandar", contacto = list(), meta_portada = list()), opciones)
+  op <- utils::modifyList(.DOCUMENTO_WORD_DEFAULTS, opciones)
   avisos <- character(0); avisar <- function(...) { m <- paste0(...); avisos <<- c(avisos, m); message("[PULSO-AVISO] ", m) }
   base_de <- function(e) {
     partes <- c(if (nzchar(trimws(as.character(e$base %||% "")[1]))) trimws(as.character(e$base)[1]),
@@ -72,7 +84,7 @@
   hay_bottom <- any(vapply(render_meta, function(e) {
     esp <- attr(e$plot_word, "pulso_espec"); is.list(esp) && !is.null(esp$box2)
   }, TRUE))
-  con_tablas <- any(vapply(render_meta, function(e) identical(e$kind, "technical_table"), TRUE))
+  con_tablas <- any(vapply(render_meta, function(e) isTRUE(e$kind %in% c("technical_table", "otros_tabla")), TRUE))
 
   # B55: los PNG de cada figura (y la copia que officer hace al insertarlos) viven en tempdir() hasta que print(doc)
   # empaqueta el docx; se borran al salir, también si algo falla antes.
@@ -83,7 +95,7 @@
   t1 <- if (length(tit)) tit[[1]] else list()
   meta <- utils::modifyList(list(titulo = titulo_informe, sub = .word_txt1(t1$subtitle), fecha = .word_txt1(t1$date)), op$meta_portada)
   doc <- .word_portada(doc, meta, op$portada)
-  doc <- .word_cerrar_capitulo(doc, "", titulo_corto, primera = .word_logos())
+  doc <- .word_cerrar_capitulo(doc, "", titulo_corto, primera = .word_logos(logos = op$logos %||% list()))
   doc <- .word_indices(doc, con_tablas = con_tablas)
   doc <- .word_cerrar_capitulo(doc, "Contenido", titulo_corto)
 
@@ -101,7 +113,7 @@
     if (!falta_como_leer) return(doc)
     falta_como_leer <<- FALSE
     doc <- cerrar(doc); cap <<- cap + 1L
-    doc <- .word_como_leer(doc, numero = cap, redondeo = op$redondeo, con_bottom = hay_bottom, figura = figura, tabla = tabla, variante_apertura = op$apertura)
+    doc <- .word_como_leer(doc, numero = cap, redondeo = op$redondeo, con_bottom = hay_bottom, figura = figura, tabla = tabla, variante_apertura = op$apertura, ponderada = isTRUE(op$ponderacion$ponderada))
     sig <- attr(doc, "siguientes"); figura <<- sig[["figura"]]; tabla <<- sig[["tabla"]]
     cap_titulo <<- "Cómo leer este informe"
     doc
@@ -138,6 +150,7 @@
       else avisar("La tabla técnica «", e$title %||% "", "» no trae filas y no entra al Word.")
       next
     }
+    if (identical(kind, "otros_tabla")) { doc <- .word_otros_tabla(doc, tabla, e); tabla <- tabla + 1L; next }   # decisión 21: reporte_word_otros.R
     if (!identical(kind, "chart")) next
     # Un gráfico es un resultado: si todavía no hay capítulo de resultados (plan sin secciones, o gráficos antes de la
     # primera), primero va «Cómo leer» y después un capítulo «Resultados» (verificador de N8.15).
@@ -169,8 +182,9 @@
     figura <- figura + 1L
   }
   doc <- poner_como_leer(doc)      # un plan sin secciones igual lleva «Cómo leer» si tiene escalas
+  for (m in .word_avisos_ponderacion(op$ponderacion, render_meta, como_leer = isTRUE(op$como_leer %||% hay_escalas))) avisar(m)   # D-b/D-c
   doc <- cerrar(doc)
-  doc <- .word_contraportada(doc, op$contacto)
+  doc <- .word_contraportada(doc, op$contacto, logo = (op$logos %||% list())$contraportada)
   print(doc, target = path_docx)
   .docx_conformar(path_docx, revista = TRUE)
   invisible(list(path = path_docx, figuras = figura - 1L, tablas = tabla - 1L, avisos = avisos))

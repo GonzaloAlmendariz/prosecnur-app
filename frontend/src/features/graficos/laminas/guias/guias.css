@@ -1,0 +1,490 @@
+/* Guías del visor por capas (plan F6 §8). Capa de dibujo sobre la hoja (nunca recibe eventos) y panel de capas.
+   Colores: el acento del módulo para cajas, info para espacios, éxito para el recetario, peligro para el cuerpo que se
+   aparta del recetario. Movimiento: tokens de movimiento.css; con movimiento reducido sólo hay fundidos. */
+
+/* ---- botón ------------------------------------------------------------- */
+
+.pulso-f6-guias-boton.is-activo {
+  background: var(--module-accent-soft);
+  border-color: var(--module-accent-border);
+  color: var(--module-accent);
+}
+
+.pulso-f6-guias-cuenta {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent);
+  color: var(--pulso-nav-selected-fg);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ---- capa sobre la hoja ---------------------------------------------- */
+
+.pulso-f6-guias-capa {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  font-size: 10px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-guias-capa > * {
+  position: absolute;
+  box-sizing: border-box;
+  /* Entrada escalonada y corta: cada pieza llega con fundido; las cotas, además, se trazan desde su origen. */
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out) calc(var(--pulso-f6-guia-i, 0) * 12ms),
+    transform var(--motion-dur-base) var(--motion-ease-out) calc(var(--pulso-f6-guia-i, 0) * 12ms);
+}
+
+@starting-style {
+  .pulso-f6-guias-capa > * {
+    opacity: 0;
+    transform: scale(var(--motion-scale-entrada));
+  }
+}
+
+.pulso-f6-guia-caja {
+  border: 1px solid color-mix(in srgb, var(--module-accent) 72%, transparent);
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--module-accent) 4%, transparent);
+}
+
+.pulso-f6-guia-caja.is-anidada {
+  border-style: dashed;
+  background: transparent;
+}
+
+.pulso-f6-guia-caja.is-hover,
+.pulso-f6-guia-caja.is-senalada {
+  border-width: 1.5px;
+  border-style: solid;
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 8%, transparent);
+  box-shadow: 0 0 0 3px var(--module-accent-soft);
+}
+
+.pulso-f6-guia-ranura {
+  border: 1.5px dashed var(--pulso-success-fg);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-success-fg) 6%, transparent);
+}
+
+.pulso-f6-guia-rotulo {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: calc(var(--pulso-radius) / 2);
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* La posición de cada rótulo la decide `colocarRotulos` (rotulosGuias.ts): uno por caja, sólo en cajas que superan el
+   umbral, dentro de la hoja y sin pisarse. Aquí no hay desplazamientos: el estilo trae left/top ya resueltos. */
+.pulso-f6-guia-rotulo.is-ranura {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-f6-guia-rotulo {
+  transform-origin: top left;
+}
+
+.pulso-f6-guia-rotulo.is-pt.is-fuera {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-f6-guia-parte.is-recorte {
+  color: var(--pulso-warn-fg);
+}
+
+/* Medidas: en tono suave, sola o detrás del cuerpo en el rótulo combinado. */
+.pulso-f6-guia-parte.is-medida {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-f6-guia-rotulo.is-fuera .pulso-f6-guia-parte.is-medida {
+  color: var(--pulso-danger-fg);
+}
+
+/* Cotas de Espacios: una línea con topes en los extremos y su medida al centro. */
+.pulso-f6-guia-cota {
+  --pulso-f6-cota: var(--pulso-info-fg);
+}
+
+.pulso-f6-guia-cota.is-margen {
+  --pulso-f6-cota: color-mix(in srgb, var(--pulso-info-fg) 70%, var(--pulso-text-faint));
+}
+
+.pulso-f6-guia-cota.is-h {
+  height: 0;
+  border-top: 1px dashed var(--pulso-f6-cota);
+  transform-origin: left center;
+}
+
+.pulso-f6-guia-cota.is-v {
+  width: 0;
+  border-left: 1px dashed var(--pulso-f6-cota);
+  transform-origin: center top;
+}
+
+.pulso-f6-guia-cota::before,
+.pulso-f6-guia-cota::after {
+  content: "";
+  position: absolute;
+  background: var(--pulso-f6-cota);
+}
+
+.pulso-f6-guia-cota.is-h::before,
+.pulso-f6-guia-cota.is-h::after {
+  top: -4px;
+  width: 1px;
+  height: 7px;
+}
+
+.pulso-f6-guia-cota.is-h::before { left: 0; }
+.pulso-f6-guia-cota.is-h::after { right: 0; }
+
+.pulso-f6-guia-cota.is-v::before,
+.pulso-f6-guia-cota.is-v::after {
+  left: -4px;
+  width: 7px;
+  height: 1px;
+}
+
+.pulso-f6-guia-cota.is-v::before { top: 0; }
+.pulso-f6-guia-cota.is-v::after { bottom: 0; }
+
+@starting-style {
+  .pulso-f6-guias-capa > .pulso-f6-guia-cota.is-h { transform: scaleX(0); }
+  .pulso-f6-guias-capa > .pulso-f6-guia-cota.is-v { transform: scaleY(0); }
+}
+
+.pulso-f6-guia-rotulo.is-cota {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+/* Nombre de la caja bajo el puntero (o señalada desde la lista): encima de la caja; dentro si no cabe arriba. */
+.pulso-f6-guia-nombre {
+  z-index: 2;
+  display: grid;
+  gap: 1px;
+  max-width: 40%;
+  padding: 2px 6px;
+  border-radius: calc(var(--pulso-radius) / 2);
+  background: var(--module-accent);
+  color: var(--pulso-nav-selected-fg);
+  translate: 0 calc(-100% - 4px);
+  box-shadow: var(--pulso-shadow-med);
+  transition: opacity var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-f6-guia-nombre.is-dentro {
+  translate: 4px 4px;
+}
+
+.pulso-f6-guia-nombre strong {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-guia-nombre span {
+  opacity: 0.85;
+}
+
+.pulso-f6-guia-nombre .pulso-f6-guia-nombre-dato {
+  font-variant-numeric: tabular-nums;
+  opacity: 1;
+}
+
+/* ---- panel de capas --------------------------------------------------- */
+
+.pulso-f6-guias-panel {
+  position: fixed;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-lens);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.45;
+  transform-origin: top right;
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@starting-style {
+  .pulso-f6-guias-panel {
+    opacity: 0;
+    transform: translateY(-4px) scale(var(--motion-scale-entrada));
+  }
+}
+
+.pulso-f6-guias-panel[data-state="closing"] {
+  opacity: 0;
+  transform: scale(0.98);
+  pointer-events: none;
+  transition-duration: var(--motion-dur-salida-corta);
+}
+
+.pulso-f6-guias-panel-cabeza {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-guias-panel-cabeza h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* El cuerpo es el único dueño de desplazamiento del panel (C4): con poco alto se recorre entero. */
+.pulso-f6-guias-panel-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.pulso-f6-guias-capas {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-guias-capa-fila {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-radius);
+  transition: background-color var(--motion-dur-hover) var(--motion-ease-out);
+}
+
+.pulso-f6-guias-capa-fila.is-on {
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-guias-capa-icono {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-guias-capa-fila.is-on .pulso-f6-guias-capa-icono {
+  color: var(--module-accent);
+}
+
+.pulso-f6-guias-capa-texto {
+  display: grid;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.pulso-f6-guias-capa-texto strong {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-guias-capa-texto span {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-guias-roles {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-f6-guias-roles legend {
+  margin-bottom: var(--pulso-space-1);
+  padding: 0;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-guias-roles-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-guias-rol {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  height: var(--pulso-control-height-sm);
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-dur-hover) var(--motion-ease-out),
+    border-color var(--motion-dur-hover) var(--motion-ease-out),
+    color var(--motion-dur-hover) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-f6-guias-rol.is-on {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-guias-rol:active {
+  transform: scale(0.97);
+}
+
+.pulso-f6-guias-rol-n {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-guias-rol:focus-visible,
+.pulso-f6-guias-elemento:focus-visible,
+.pulso-f6-guias-elementos summary:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-guias-estado {
+  display: grid;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+}
+
+.pulso-f6-guias-estado p {
+  margin: 0;
+}
+
+.pulso-f6-guias-elementos summary {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.pulso-f6-guias-elementos ul {
+  display: grid;
+  gap: 2px;
+  margin: var(--pulso-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-guias-elemento {
+  display: grid;
+  width: 100%;
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-f6-guias-elemento.is-senalado {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-guias-elemento-nombre {
+  overflow-wrap: anywhere;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-f6-guias-elemento-dato {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-guias-elemento-dato .is-fuera {
+  color: var(--pulso-danger-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-guias-rol:not(.is-on):hover,
+  .pulso-f6-guias-elemento:not(.is-senalado):hover {
+    background: var(--pulso-surface-3);
+  }
+}
+
+/* Movimiento reducido: sin escalas ni trazos; los fundidos y el desplazamiento del panel siguen. */
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-guias-capa > * {
+    transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+  }
+
+  @starting-style {
+    .pulso-f6-guias-capa > *,
+    .pulso-f6-guias-capa > .pulso-f6-guia-cota.is-h,
+    .pulso-f6-guias-capa > .pulso-f6-guia-cota.is-v {
+      transform: none;
+    }
+
+    .pulso-f6-guias-panel {
+      transform: none;
+    }
+  }
+
+  .pulso-f6-guias-panel[data-state="closing"] {
+    transform: none;
+  }
+
+  .pulso-f6-guias-rol:active {
+    transform: none;
+  }
+}

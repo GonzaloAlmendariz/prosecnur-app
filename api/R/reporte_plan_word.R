@@ -4,16 +4,23 @@
 
 .WORD_CHART_PRESETS_DEFAULT_PULSO <- list(
   barras_apiladas = list(
-    mostrar_barra_extra      = FALSE,
-    barra_extra_preset       = "ninguno",
+    # El recetario manda: toda escala apilada del Word del recetario lleva su columna Top Two Box (figuras 13, 44, 45 y
+    # 47 de docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx; `g_apilada(ttb = TRUE)` de
+    # recetario_word_graficos.R). Antes el Word la apagaba de fábrica (B54/W-5). La columna sólo se dibuja con las
+    # categorías declaradas (`.box_decidir`), y un informe que la apaga la sigue teniendo apagada en el Word
+    # (`.word_patch_respetar_apagado`). Espejo en DEFAULT_WORD_PRESETS (frontend/src/api/graficosConfigNormalizer.ts).
+    mostrar_barra_extra      = TRUE,
+    barra_extra_preset       = "top2box",
     prefijo_barra_extra      = "",
     titulo_barra_extra       = "",
 
+    # Con la columna encendida, el lienzo clásico le da 0.16 de 6.1in (~1in), la partición que ya usaba un pedido
+    # explícito (`.word_conservar_barra_extra_pedida`).
     canvas_w_etiquetas       = 0.18,
     canvas_w_buf_etq_bars    = 0,
-    canvas_w_bars            = 0.82,
-    canvas_w_buf_bars_extra  = 0,
-    canvas_w_extra           = 0,
+    canvas_w_bars            = 0.64,
+    canvas_w_buf_bars_extra  = 0.02,
+    canvas_w_extra           = 0.16,
 
     canvas_h_toprow_in       = 0,
     canvas_h_legend_in       = 0.42,
@@ -100,6 +107,49 @@
   }
 
   out
+}
+
+#' El Word no enciende la columna extra que el informe apagó
+#'
+#' Desde que el Word lleva de fábrica el Top Two Box del recetario, su patch la encendería también donde el preset del
+#' informe la apagó (`mostrar_barra_extra = FALSE` o `barra_extra_preset = "ninguno"` en las barras apiladas, cuyo
+#' suelo de fábrica es `TRUE`/`"top2box"`). Ese apagado es una decisión del analista y el Word la respeta: se quitan
+#' del patch las claves que encienden la columna; la tipografía y el resto del patch siguen.
+#' @keywords internal
+.word_patch_respetar_apagado <- function(patch, ppt_args, tipo = "barras_apiladas") {
+  if (!is.list(patch) || !identical(tipo, "barras_apiladas") || !is.list(ppt_args)) return(patch)
+  preset <- trimws(as.character(ppt_args$barra_extra_preset %||% "")[1])
+  apagado <- isFALSE(ppt_args$mostrar_barra_extra) || identical(preset, "ninguno")
+  if (!apagado || !isTRUE(patch$mostrar_barra_extra)) return(patch)
+  patch[setdiff(names(patch), c("mostrar_barra_extra", "barra_extra_preset"))]
+}
+
+#' La columna extra de un gráfico, decidida sólo para el Word
+#'
+#' Los `overrides` del gráfico mandan igual en la lámina y en el Word; las claves `word_*` son la excepción, y sólo las
+#' lee el camino del Word (`.word_ajustar_el`, `.word_preparar_block_multi`). `word_mostrar_barra_extra`:
+#' - `FALSE` apaga la columna en el Word aunque la lámina la lleve (por sus overrides, su preset o el default Word del
+#'   recetario);
+#' - `TRUE` la enciende en el Word aunque la lámina no la lleve; sin un preset de columna en los overrides (vacío o
+#'   `"ninguno"`), la columna es el Top Two Box del recetario (`"top2box"`), que sigue exigiendo sus categorías
+#'   declaradas (`.box_decidir`);
+#' - ausente (o no lógica) hereda lo de la lámina.
+#' La clave se consume aquí y no viaja al graficador. Llamar ANTES de `.word_conservar_barra_extra_pedida`, que con el
+#' `TRUE` resultante reserva su ancho en el lienzo del Word.
+#' @param ov `overrides` del elemento o bloque ya copiado para el Word.
+#' @return `ov` con `mostrar_barra_extra`/`barra_extra_preset` resueltos para el Word y sin `word_mostrar_barra_extra`.
+#' @keywords internal
+.word_barra_extra_solo_word <- function(ov) {
+  if (!is.list(ov) || is.null(ov$word_mostrar_barra_extra)) return(ov)
+  pedido <- ov$word_mostrar_barra_extra
+  ov$word_mostrar_barra_extra <- NULL
+  if (!is.logical(pedido) || length(pedido) != 1L || is.na(pedido)) return(ov)
+  ov$mostrar_barra_extra <- pedido
+  if (isTRUE(pedido)) {
+    preset <- trimws(as.character(ov$barra_extra_preset %||% "")[1])
+    if (is.na(preset) || !nzchar(preset) || identical(preset, "ninguno")) ov$barra_extra_preset <- "top2box"
+  }
+  ov
 }
 
 #' @title Definir presets para Word (imagen + estilos de párrafo)
@@ -206,6 +256,7 @@ w_presets <- function(
       # declara; solo re-escala el resto (tipografia, alturas, leyenda).
       if (nm %in% c("barras_apiladas", "multi_apiladas")) {
         patch <- .word_patch_conservar_barra_extra(patch, presets_ppt[[nm]]$args, tipo = nm)
+        patch <- .word_patch_respetar_apagado(patch, presets_ppt[[nm]]$args, tipo = nm)
       }
       presets_ppt[[nm]]$args <- utils::modifyList(
         presets_ppt[[nm]]$args %||% list(),
@@ -256,6 +307,9 @@ w_presets <- function(
 #'   (ADR 0093, N8.15; Gonzalo, R9: «El documento completo»). \code{"clasico"} conserva el Word anterior.
 #' @param opciones_documento Opciones del documento del recetario (ver \code{.word_documento}): portada, apertura,
 #'   como_leer, redondeo, contacto, meta_portada.
+#' @param auto_otros_slides Si \code{TRUE}, tras cada gráfico con respuestas «Otros» va su tabla de dos bloques del
+#'   recetario Word (decisión 21, \code{reporte_word_otros.R}); la misma opción del proyecto que el PPT, apagada por
+#'   defecto.
 #'
 #' @return Invisiblemente una lista con \code{doc}, \code{plan}, \code{log}. Con \code{estilo_documento = "recetario"},
 #'   \code{doc} y \code{log} son \code{NULL} y se suman \code{figuras}, \code{tablas} y \code{avisos}.
@@ -274,7 +328,8 @@ reporte_word_plan <- function(
     mensajes_progreso  = TRUE,
     solo_lista         = FALSE,
     estilo_documento   = c("recetario", "clasico"),
-    opciones_documento = list()
+    opciones_documento = list(),
+    auto_otros_slides  = FALSE
 ) {
   estilo_documento <- match.arg(estilo_documento)
 
@@ -309,15 +364,18 @@ reporte_word_plan <- function(
     strict_diapos      = strict_diapos,
     solo_lista         = TRUE,
     build_render_meta  = TRUE,
-    mensajes_progreso  = mensajes_progreso
+    mensajes_progreso  = mensajes_progreso,
+    auto_otros_slides  = auto_otros_slides
   )
 
   render_meta <- ppt_result$render_meta %||% list()
   if (!length(render_meta)) stop("El plan no produjo ningún elemento para Word.", call. = FALSE)
+  if (isTRUE(auto_otros_slides)) render_meta <- .word_otros_insertar(render_meta, ppt_result$plan, fuente = fuente)   # decisión 21
 
   # ADR 0093 (N8.15): el documento del recetario, desde la misma render_meta. El clásico sigue debajo.
   if (identical(estilo_documento, "recetario") && !isTRUE(solo_lista)) {
     opciones_documento$redondeo <- .word_redondeo_documento(opciones_documento, presets_ppt_word)
+    opciones_documento$ponderacion <- opciones_documento$ponderacion %||% .word_ponderacion_de_corrida(data)   # S1–S4 §3
     res <- .word_documento(render_meta, path_docx, fuente = fuente, opciones = opciones_documento, mensajes = mensajes_progreso)
     if (isTRUE(mensajes_progreso)) message("DOCX generado en: ", normalizePath(path_docx, winslash = "/"))
     return(invisible(list(doc = NULL, plan = ppt_result$plan, log = NULL, figuras = res$figuras, tablas = res$tablas, avisos = res$avisos)))

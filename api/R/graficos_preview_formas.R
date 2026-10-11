@@ -72,8 +72,9 @@
 #'
 #' @param doc `xml_document` de la lámina.
 #' @param layout `xml_document` de su layout, o `NULL`.
-#' @return Lista de `{nombre, rol, x, y, w, h, pt_min, pt_max, lineas, recortado, grupo}`. `grupo` es el nombre del
-#'   grupo que la contiene (`NA` en primer nivel). Las medidas van en pulgadas con tres decimales; lo que no se puede
+#' @return Lista de `{nombre, rol, x, y, w, h, pt_min, pt_max, lineas, recortado, grupo, pt_estandar}`. `grupo` es el
+#'   nombre del grupo que la contiene (`NA` en primer nivel); `pt_estandar`, el cuerpo que pide el recetario
+#'   (`.pf_pt_estandar`). Las medidas van en pulgadas con tres decimales; lo que no se puede
 #'   leer o medir es `NA`.
 #' @keywords internal
 .preview_formas_de_xml <- function(doc, layout = NULL) {
@@ -287,8 +288,99 @@
   caja <- if (is.null(caja)) NULL else round(unname(caja), 3)
   xywh <- if (is.null(caja)) rep(NA_real_, 4) else caja
   texto <- if (tipo == "sp") .pf_texto(h, caja, ns) else list(pt_min = NA, pt_max = NA, lineas = NA, recortado = NA)
-  list(nombre = nombre, rol = .pf_rol(nombre, tipo, h, grupo, grupo_rol, ns),
+  rol <- .pf_rol(nombre, tipo, h, grupo, grupo_rol, ns)
+  list(nombre = nombre, rol = rol,
        x = xywh[1], y = xywh[2], w = xywh[3], h = xywh[4],
        pt_min = texto$pt_min, pt_max = texto$pt_max, lineas = texto$lineas, recortado = texto$recortado,
-       grupo = grupo %||% NA_character_)
+       grupo = grupo %||% NA_character_,
+       pt_estandar = .pf_pt_estandar(nombre, rol, grupo, con_texto = !is.na(texto$pt_max)))
+}
+
+# ---- cuerpo que pide el recetario (A3, guías del visor) ----------------------
+#
+# `pt_estandar` es el cuerpo en pt que el recetario pide para ESA forma; el visor pinta en rojo el texto que se aparta
+# (`fueraDeRecetario` en frontend/src/features/graficos/laminas/guias/modeloGuias.ts compara pt_min y pt_max contra él).
+# Se resuelve por el nombre que el motor da a la pieza (`.lam_txt(..., nombre = )`) y el grupo `prosecnur:*` que la
+# contiene, porque el rol no basta: un «cifra» de la escala va a `cifra` (14) y uno de la categórica a 16 o al cuerpo
+# variable del rótulo; un `box:cifra` de la escala va a 14 en filas y a 28 en la lámina de una sola afirmación.
+#
+# Regla de la tabla: una entrada existe sólo si TODAS las llamadas del motor que escriben ese nombre en esos grupos usan
+# el mismo token `.std_pt(...)` (auditado por grep sobre api/R/lamina_*.R, 2026-10-11). Si no hay token o hay variantes
+# deliberadas del recetario, no hay entrada y sale `NA` (la API escribe `null`, el visor no compara):
+#   - `pregunta` (escala): 20 pt literal en la afirmación sola, 13 (`pregunta`) en filas con Total.
+#   - `box:cifra`/`box2:cifra` en la escala: 28 literal en la afirmación sola (lámina 97), 14 (`cifra`) en el resto.
+#   - `Subtitulo lamina`: 12.5 literal, sin token.
+#   - `cifra` en `prosecnur:grafico:categorica`/`mixta`: 16 literal o el cuerpo variable del rótulo (11/12).
+#   - `leyenda:texto` del mapa: 11 literal; la leyenda de la ruta anterior (`prosecnur:leyenda:texto:k`) encoge
+#     12 → 11 → 10 a propósito para caber (`.ppt_leyenda_plan`), así que tampoco tiene un cuerpo fijo.
+# Desplazamiento de letra: el motor nativo no encoge la letra («si no cabe, la lámina se parte», lamina_piezas.R);
+# `prosecnur.lam_desplazo` sólo baja la zona de datos (`.std_geom("zona_datos_y0")`), no cambia ningún cuerpo, así que
+# la referencia es la misma con o sin narrativa. Por eso `pt_estandar` se lee del token, nunca del PPTX medido.
+
+.PF_G_ESCALA <- c("prosecnur:grafico:escala", "prosecnur:grafico:multilista")
+.PF_G_BARRA <- c(.PF_G_ESCALA, "prosecnur:grafico:paneles", "prosecnur:top_two_box")   # piezas de `.lam_barra_apilada`
+
+#' Tabla nombre (+ grupos que lo contienen) → token de `ppt.tipografia`
+#'
+#' `grupos` es el vector de grupos donde la entrada vale; `grupo_patron` (regex perl) se usa cuando la lista exacta no
+#' cabe. Es la única fuente de la correspondencia; agregar una entrada exige el mismo grep de la regla de arriba.
+#' @keywords internal
+.pf_tabla_pt_estandar <- function() {
+  e <- function(nombres, token, grupos = NULL, grupo_patron = NULL) list(nombres = nombres, token = token, grupos = grupos, grupo_patron = grupo_patron)
+  list(
+    # cabecera y pie del compositor (lamina_compositor.R `.lam_titulo`, `.lam_pie`)
+    e("Titulo lamina", "titulo", grupos = "prosecnur:titulo"),
+    e("Antetitulo lamina", "antetitulo", grupos = "prosecnur:titulo"),
+    e(c("Base lamina", "Folio lamina"), "base", grupos = "prosecnur:pie"),
+    # narrativa (lamina_piezas.R `.lam_narrativa`, 15 = `narrativa`)
+    e("narrativa:texto", "narrativa", grupos = "prosecnur:narrativa"),
+    # bloque de escala (lamina_escala.R `.lam_bloque_escala`, `.lam_etiqueta_box`; multilista con `solo = FALSE`)
+    e("premisa", "pregunta", grupos = .PF_G_ESCALA),
+    e(c("premisa:n", "respuestas", "box:casos", "box2:casos"), "n", grupos = .PF_G_ESCALA),
+    e("actor", "actor", grupos = .PF_G_ESCALA),
+    e(c("box:rotulo", "box2:rotulo"), "rotulo_top_two_box", grupos = c(.PF_G_ESCALA, "prosecnur:grafico:paneles")),
+    e(c("box:cifra", "box2:cifra"), "cifra", grupos = c("prosecnur:grafico:multilista", "prosecnur:grafico:paneles")),
+    # barra apilada (lamina_escala.R `.lam_barra_apilada`): dentro a `cifra`, encima con guía a `cifra_fuera`
+    e("cifra", "cifra", grupos = .PF_G_BARRA),
+    e("cifra_fuera", "cifra_fuera", grupos = .PF_G_BARRA),
+    # leyenda nativa (`.lam_leyenda`, `.lam_leyenda_panel`: 12 = `leyenda`); el mapa escribe 11 literal
+    e("leyenda:texto", "leyenda", grupo_patron = "^prosecnur:(?!grafico:mapa)"),
+    # multilista (lamina_multilista.R)
+    e("bloque:titulo", "pregunta", grupos = "prosecnur:grafico:multilista"),
+    e("bloque:subtitulo", "leyenda", grupos = "prosecnur:grafico:multilista"),
+    # categórica y paneles
+    e("n", "n", grupos = "prosecnur:grafico:categorica"),
+    e("encabezado", "antetitulo", grupos = "prosecnur:grafico:categorica"),
+    e("panel:base", "n", grupos = "prosecnur:grafico:paneles")
+  )
+}
+
+# Roles con referencia cuando la forma no está en la tabla y va en primer nivel (ruta anterior): el título en el marcador
+# `title` y la base en `prosecnur:slide_N:base`, con los presets `size_titulo_slide`/`size_nota_pie`, cuyos valores por
+# defecto son `titulo`/`base` (estandar_presets.R). Dentro de un grupo el rol no basta (ver la tabla) y no se usa; la
+# leyenda de primer nivel de la ruta anterior encoge a propósito y queda fuera.
+.PF_PT_POR_ROL <- c(titulo = "titulo", antetitulo = "antetitulo", base = "base")
+
+#' Cuerpo en pt que el recetario pide para una forma, o `NA` si no hay referencia honesta
+#'
+#' @param nombre `cNvPr name` de la forma.
+#' @param rol Rol de `.pf_rol`.
+#' @param grupo Nombre del grupo que la contiene, o `NULL`/`NA` en primer nivel.
+#' @param con_texto ¿La forma lleva texto con cuerpo leído? Sin texto no hay letra que comparar.
+#' @param tabla Tabla de `.pf_tabla_pt_estandar` (inyectable para los tests).
+#' @keywords internal
+.pf_pt_estandar <- function(nombre, rol, grupo, con_texto = TRUE, tabla = .pf_tabla_pt_estandar()) {
+  if (!isTRUE(con_texto)) return(NA_real_)
+  nombre <- as.character(nombre %||% "")[1]
+  grupo <- as.character(grupo %||% NA_character_)[1]
+  for (ent in tabla) {
+    if (!nombre %in% ent$nombres) next
+    vale <- if (!is.null(ent$grupo_patron)) !is.na(grupo) && grepl(ent$grupo_patron, grupo, perl = TRUE) else
+      !is.na(grupo) && grupo %in% ent$grupos
+    if (vale) return(as.numeric(.std_pt(ent$token)))
+  }
+  if (is.na(grupo) && isTRUE(rol %in% names(.PF_PT_POR_ROL))) {
+    return(as.numeric(.std_pt(.PF_PT_POR_ROL[[rol]])))
+  }
+  NA_real_
 }

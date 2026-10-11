@@ -1,0 +1,68 @@
+/* Top/Bottom Two Box y «En el Word» en la tarjeta de un gráfico (F6.2, F-d). Siguen las filas planas de
+   datosGrafico.css: un filete arriba, sin cajas internas. Intrínsecas: crecen con sus chips; el scroll es del cuerpo
+   del inspector (C4). Nada se recorta: min-width: 0 y overflow-wrap. */
+
+.pulso-f6-twobox,
+.pulso-f6-word {
+  display: grid;
+  min-width: 0;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-twobox > .pulso-f6-dato:first-child {
+  border-top: 0;
+}
+
+.pulso-f6-twobox-caja {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: 0 0 var(--pulso-space-2);
+}
+
+.pulso-f6-twobox-estado {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0 0 var(--pulso-space-2);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-twobox-estado.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+/* Columna encendida sin categorías: el motor la omite y la tarjeta lo dice (C5); mismo tono que «Elige las dos…». */
+.pulso-f6-twobox-estado.is-pendiente {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-twobox-nota {
+  grid-column: 1 / -1;
+}
+
+.pulso-f6-word {
+  gap: var(--pulso-space-1);
+  padding-top: var(--pulso-space-2);
+}
+
+/* El párrafo de «cómo sale» es el último hijo cuando no hay controles: sin margen propio (C3), su aire va dentro. */
+.pulso-f6-word > p.pulso-f6-dato-ayuda {
+  margin: 0;
+  padding-bottom: var(--pulso-space-2);
+}
+
+.pulso-f6-word-cabeza {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}

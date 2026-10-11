@@ -30,9 +30,12 @@
   .lam_registrar(lz, xml, l, t, d, d)
 }
 
-#' Colores de las porciones: la paleta dicotómica para dos, la de categorías para más
+#' Colores de las porciones: la paleta del usuario si la espec la trae (ADR 0097); si no, la dicotómica para dos y la
+#' de categorías para más
 #' @keywords internal
-.lam_colores_pie <- function(k) {
+.lam_colores_pie <- function(k, espec = NULL) {
+  propios <- if (!is.null(espec)) .espec_colores_de(espec)
+  if (length(propios) == k) return(propios)
   if (k <= 2L) return(unname(.std_paleta("dicotomica"))[seq_len(k)])
   rep_len(c(.std_color("azul"), .std_color("azul_medio"), .std_color("tenue"), .std_color("azul_rango"), .std_color("texto_tenue")), k)
 }
@@ -47,7 +50,7 @@
                                layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   g_ <- .std_geom; ml <- g_("margen_izq"); yt <- g_("zona_datos_y0")
-  azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k)
+  azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k, espec)
   # El disco ocupa el 79.5 % de su caja de 4.4 in, como el coord_polar del recetario.
   d <- 4.4; xp <- ml + 1.0; yp <- yt + 0.25; cx <- xp + d / 2; cy <- yp + d / 2; r <- d / 2 * 0.795
   doc <- officer::add_slide(doc, layout = layout, master = master)
@@ -61,7 +64,7 @@
     dentro <- 100 * f[i] >= 12
     rr <- if (dentro) r * 0.5 else r * 1.22   # dentro, a media distancia del centro; fuera, junto al borde
     tx <- cx + rr * sin(a); ty <- cy - rr * cos(a)
-    col_t <- if (dentro) (if (i == 1L) "#FFFFFF" else azul) else azul
+    col_t <- if (!dentro) azul else if (!is.null(espec$colores)) .lam_texto_sobre(cols[i]) else if (i == 1L) "#FFFFFF" else azul
     .lam_txt(lz, espec$cifras[i], tx - 0.4, ty - 0.15, 0.8, 0.3, if (dentro) .std_pt("cifra") else .std_pt("cifra_fuera"), col_t, bold = TRUE,
              align = "center", nombre = "torta:cifra")
   }
@@ -70,8 +73,8 @@
     .lam_caja(lz, 6.7, yk + 0.12, 0.3, 0.3, cols[i], nombre = "torta:cuadro")
     .lam_txt(lz, espec$cifras[i], 7.15, yk - 0.05, 2.2, 0.62, 34, if (i == 1L) azul else .std_color("azul_medio"), bold = TRUE, nombre = "torta:cifra_leyenda")
     .lam_txt(lz, espec$rotulos[i], 7.15, yk + 0.58, 5.5, 0.3, 13, azul, bold = TRUE, nombre = "torta:rotulo")
-    if (is.finite(espec$n[i]) && is.finite(espec$total_n)) {
-      .lam_txt(lz, sprintf("%s de %s %s", format(round(espec$n[i]), big.mark = ",", trim = TRUE), format(round(espec$total_n), big.mark = ",", trim = TRUE), unidad_n),
+    if (is.finite(.espec_casos(espec)[i]) && is.finite(.espec_total_casos(espec))) {
+      .lam_txt(lz, sprintf("%s de %s %s", format(round(.espec_casos(espec)[i]), big.mark = ",", trim = TRUE), format(round(.espec_total_casos(espec)), big.mark = ",", trim = TRUE), unidad_n),
                7.15, yk + 0.86, 5.5, 0.26, 11, .std_color("texto_tenue"), nombre = "torta:casos")
     }
   }
@@ -87,7 +90,7 @@
                               rotulo_centro = NULL, layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   g_ <- .std_geom; ml <- g_("margen_izq"); yt <- g_("zona_datos_y0")
-  azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k)
+  azul <- .std_color("azul"); k <- length(espec$valores); cols <- .lam_colores_pie(k, espec)
   d <- 4.0; xd <- ml + 1.2; yd <- yt + 0.35; cx <- xd + d / 2; cy <- yd + d / 2; r <- d / 2 * 0.79
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
@@ -97,11 +100,11 @@
   .lam_txt(lz, espec$cifras[1], xd, cy - 0.45, d, 0.66, 34, azul, bold = TRUE, align = "center", nombre = "dona:cifra")
   .lam_txt(lz, rotulo_centro %||% espec$rotulos[1], xd, cy + 0.2, d, 0.3, 12, azul, align = "center", nombre = "dona:rotulo")
   # Lectura con filete coral (narrativa del recetario): «De N <unidad>, n1 <rótulo 1> y n2 (p2) <rótulo 2>».
-  if (all(is.finite(espec$n)) && is.finite(espec$total_n) && k == 2L) {
+  if (all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) && k == 2L) {
     .lam_caja(lz, 6.9, yt + 1.05, 0.05, 2.5, .std_color("coral"), nombre = "dona:filete")
     fmt <- function(x) format(round(x), big.mark = ",", trim = TRUE)
-    tramos <- list(list("De ", FALSE), list(paste(fmt(espec$total_n), unidad_n), TRUE), list(", ", FALSE), list(fmt(espec$n[1]), TRUE),
-                   list(sprintf(" responden «%s» y ", espec$rotulos[1]), FALSE), list(sprintf("%s (%s)", fmt(espec$n[2]), espec$cifras[2]), TRUE),
+    tramos <- list(list("De ", FALSE), list(paste(fmt(.espec_total_casos(espec)), unidad_n), TRUE), list(", ", FALSE), list(fmt(.espec_casos(espec)[1]), TRUE),
+                   list(sprintf(" responden «%s» y ", espec$rotulos[1]), FALSE), list(sprintf("%s (%s)", fmt(.espec_casos(espec)[2]), espec$cifras[2]), TRUE),
                    list(sprintf(" responden «%s».", espec$rotulos[2]), FALSE))
     .lam_txt_tramos(lz, tramos, 7.12, yt + 1.0, 5.68, 2.6, 17, azul, nombre = "dona:lectura")
   }
@@ -120,7 +123,7 @@
   # La dona del recetario es una dicotomía: la cifra clave al centro y la otra en la lectura, que necesita las
   # frecuencias. Con más porciones o sin n se perderían cifras (verificador de N6): ruta anterior. El rótulo del
   # centro debe caber en el hueco (≈ 1.8 in).
-  k == 2L && all(is.finite(espec$n)) && is.finite(espec$total_n) &&
+  k == 2L && all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) &&
     .lam_ancho_tinta(espec$rotulos[1], 12) <= 1.6 &&
     sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0
 }

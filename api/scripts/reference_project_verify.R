@@ -3,9 +3,12 @@
 # Gate de los fixtures de referencia
 # =============================================================================
 #
-# Por cada fixture instalado comprueba tres cosas, y falla si alguna cede:
+# Por cada fixture instalado comprueba cuatro cosas, y falla si alguna cede:
 #
 #   - Sin PII detectable en las columnas que el anonimizador no garantiza.
+#   - Sin logos del cliente: todo `estilo_cliente.logos` es el PNG neutro del
+#     anonimizador con nombre «Logo del cliente» (pulso_anonimizar_logos.R,
+#     vía `pulso_detectar_pii()`).
 #   - El sha256 coincide con el declarado: el fixture no fue tocado a mano.
 #   - Los módulos declarados como cubiertos siguen poblados de verdad. Un
 #     fixture que dice cubrir analítica y ya no la trae miente sobre el alcance

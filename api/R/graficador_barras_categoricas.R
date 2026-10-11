@@ -120,7 +120,8 @@
     c("valor", "n", "porcentaje", "porcentaje_n", "valor_n")
   )
   pct <- df$pct %||% rep(NA_real_, nrow(df))
-  n <- df$n %||% rep(NA_real_, nrow(df))
+  # La frecuencia que se ESCRIBE es casos sin ponderar (contrato base-sin-ponderar F6); sin columna de casos, `n`.
+  n <- .espec_casos(df) %||% rep(NA_real_, nrow(df))
   val <- df$valor %||% rep(NA_real_, nrow(df))
   pct_lab <- .barras_categoricas_etiquetas_pct(pct, decimales, metodo_redondeo)
   switch(
@@ -239,7 +240,12 @@ graficar_barras_categoricas <- function(
     path_salida               = NULL,
     ancho                     = 10,
     alto                      = 6,
-    dpi                       = 300
+    dpi                       = 300,
+    # Contrato base-sin-ponderar F6: casos sin ponderar por categoría. El porcentaje y el promedio siguen con `var_n`
+    # (ponderado); la frecuencia que se escribe («56% (33)», `mostrar_frecuencia`) va en casos. Sin ella, `var_n`.
+    var_n_casos               = NULL,
+    # Base de la pregunta en casos (en selección múltiple, personas y no marcas), para el público de la lámina nativa.
+    n_base_casos              = NULL
 ) {
   if (!is.data.frame(data)) stop("`data` debe ser data.frame.", call. = FALSE)
   var_categoria <- .barras_categoricas_as_name(var_categoria, "var_categoria")
@@ -269,6 +275,7 @@ graficar_barras_categoricas <- function(
   df$categoria <- .barras_categoricas_normalizar(df$categoria_raw, normalizar_etiquetas)
   df$valor <- if (!is.null(var_valor)) suppressWarnings(as.numeric(data[[var_valor]])) else NA_real_
   df$n <- if (!is.null(var_n)) suppressWarnings(as.numeric(data[[var_n]])) else NA_real_
+  df$n_casos <- if (!is.null(var_n_casos) && var_n_casos %in% names(data)) suppressWarnings(as.numeric(data[[var_n_casos]])) else df$n
   df$pct <- if (!is.null(var_pct)) suppressWarnings(as.numeric(data[[var_pct]])) else NA_real_
 
   df <- df[!is.na(df$categoria) & nzchar(trimws(df$categoria)), , drop = FALSE]
@@ -277,17 +284,19 @@ graficar_barras_categoricas <- function(
   if (is.null(var_valor)) {
     if (is.null(var_n)) {
       df <- stats::aggregate(list(n = rep(1, nrow(df))), list(categoria = df$categoria), sum)
+      df$n_casos <- df$n
       df$categoria_raw <- df$categoria
       df$pct <- df$n / sum(df$n, na.rm = TRUE)
     } else {
       df$n[!is.finite(df$n)] <- 0
-      df <- stats::aggregate(list(n = df$n), list(categoria = df$categoria), sum)
+      df$n_casos[!is.finite(df$n_casos)] <- 0
+      df <- stats::aggregate(list(n = df$n, n_casos = df$n_casos), list(categoria = df$categoria), sum)
       df$categoria_raw <- df$categoria
       df$pct <- df$n / sum(df$n, na.rm = TRUE)
     }
     df$valor <- if (identical(modo_valor, "porcentaje")) df$pct else df$n
   } else {
-    keep_cols <- c("categoria", "categoria_raw", "valor", "n", "pct")
+    keep_cols <- c("categoria", "categoria_raw", "valor", "n", "n_casos", "pct")
     df <- df[, keep_cols, drop = FALSE]
     df$valor <- suppressWarnings(as.numeric(df$valor))
     if (all(is.na(df$n)) && is.finite(sum(df$valor, na.rm = TRUE)) && sum(df$valor, na.rm = TRUE) > 0) {
@@ -329,6 +338,7 @@ graficar_barras_categoricas <- function(
         categoria_raw = etiqueta_otros,
         valor = sum(rest$valor, na.rm = TRUE),
         n = sum(rest$n, na.rm = TRUE),
+        n_casos = sum(rest$n_casos, na.rm = TRUE),
         pct = sum(rest$pct, na.rm = TRUE),
         stringsAsFactors = FALSE
       )
@@ -422,7 +432,7 @@ graficar_barras_categoricas <- function(
   espec_categorica <- tryCatch(preparar_categorica(
     df$categoria, df$pct %||% df$valor,
     .barras_categoricas_etiquetas_pct(df$pct %||% df$valor, decimales, metodo_redondeo), df$n,
-    residuales_al_final = isTRUE(residuales_al_final)
+    residuales_al_final = isTRUE(residuales_al_final), n_casos = df$n_casos, n_base_casos = n_base_casos
   ), error = function(e) { message("[espec categorica] ", conditionMessage(e)); NULL })
   # La nota del gráfico («Base: 176 respuestas») vivía sólo en el caption del ggplot; la lámina nativa la necesita.
   if (!is.null(espec_categorica)) espec_categorica$nota <- label_note

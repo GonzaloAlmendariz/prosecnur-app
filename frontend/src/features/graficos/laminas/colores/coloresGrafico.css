@@ -1,0 +1,78 @@
+/* «Colores por serie» en la tarjeta de un gráfico (C45). Fila plana de datosGrafico.css; una línea por serie: muestra,
+   nombre, color legible, sello y «Volver al recetario». Intrínseca: crece con sus series; nada se recorta (min-width: 0
+   y overflow-wrap). Sólo tokens: el color de cada serie es un valor del gráfico, no del CSS. */
+
+.pulso-f6-colores-lista {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-colores-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto var(--pulso-control-height-md);
+  grid-template-areas:
+    "muestra nombre sello accion"
+    "muestra valor sello accion";
+  align-items: center;
+  column-gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-colores-muestra {
+  grid-area: muestra;
+  width: var(--pulso-control-height-sm);
+  height: var(--pulso-control-height-sm);
+  padding: 0;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  cursor: pointer;
+}
+
+.pulso-f6-colores-muestra::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.pulso-f6-colores-muestra::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--pulso-radius) - 2px);
+}
+
+/* Más series que la paleta: el color lo decide la rampa del motor; la muestra no lo afirma. */
+.pulso-f6-colores-muestra.is-automatico {
+  opacity: 0.35;
+}
+
+.pulso-f6-colores-muestra:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-colores-nombre {
+  grid-area: nombre;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-colores-valor {
+  grid-area: valor;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-colores-fila > .pulso-f6-estilo-sello {
+  grid-area: sello;
+}
+
+.pulso-f6-colores-fila > .pulso-f6-icono-boton,
+.pulso-f6-colores-hueco {
+  grid-area: accion;
+}

@@ -67,6 +67,7 @@ import {
   apiGraficosPpt,
   apiGraficosConsolidadoPreflight,
   apiGraficosPptConsolidado,
+  apiGraficosPlanSugerido,
   apiGraficosSlideLayoutMatrix,
   apiGraficosSlideLayoutPreview,
   apiGraficosPreviewSlide,
@@ -1066,6 +1067,41 @@ describe("consolidated graphics client", () => {
       "/api/graficos/consolidado/preflight",
       expect.objectContaining({ headers: expect.any(Object) }),
     );
+  });
+
+  // F7 (ADR 0096 decisión 1): `scope` va en la RAÍZ del cuerpo, igual que /plan/coverage, y se omite en el alcance activo.
+  test("plan sugerido: scope consolidado en la raíz del cuerpo", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({ ok: true, plan: { slides: [] }, report_scope: "consolidado", fuente: "consolidado" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiGraficosPlanSugerido({ fuente: "equivalencias" }, "consolidated");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/graficos/plan/sugerido");
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      config: { fuente: "equivalencias" },
+      scope: "consolidado",
+    });
+  });
+
+  test("plan sugerido: en el alcance activo no se envía scope", async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return jsonResponse({ ok: true, plan: { slides: [] } });
+    }));
+
+    await apiGraficosPlanSugerido({ fuente: "equivalencias" });
+    await apiGraficosPlanSugerido({ fuente: "equivalencias" }, "active");
+
+    expect(bodies).toEqual([
+      { config: { fuente: "equivalencias" } },
+      { config: { fuente: "equivalencias" } },
+    ]);
   });
 
   test("starts one consolidated PPT job with global style", async () => {

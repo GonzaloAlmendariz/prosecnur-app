@@ -48,14 +48,14 @@ export function PlanHealthBadge() {
       ? `${warnings.length} aviso${warnings.length === 1 ? "" : "s"}`
       : "Plan listo";
   const headline = errors.length > 0
-    ? "Export bloqueado"
+    ? "Exportación bloqueada"
     : warnings.length > 0
       ? "Plan con avisos"
       : "Plan listo";
   const detail = errors.length > 0
-    ? "Corrige los slides señalados antes de generar PPTX o Word."
+    ? "Corrige las láminas señaladas antes de generar el PowerPoint o el Word."
     : warnings.length > 0
-      ? "El export está habilitado, pero conviene revisar estas señales."
+      ? "Se puede exportar, pero conviene revisar estas señales."
       : "Sin errores ni avisos detectados.";
   const pillLabel = total === 0
     ? "Limpio"
@@ -63,9 +63,9 @@ export function PlanHealthBadge() {
       ? `${total} temas`
       : label;
   const triggerTitle = !canExport
-    ? "El plan tiene errores que bloquean el export"
+    ? "El plan tiene errores que impiden exportar"
     : warnings.length > 0
-      ? "Validación del plan: export habilitado con avisos"
+      ? "Validación del plan: se puede exportar, con avisos"
       : "Validación del plan: listo para exportar";
 
   function handleJumpTo(issue: ValidationIssue) {
@@ -127,7 +127,7 @@ export function PlanHealthBadge() {
               {errors.length > 0 && (
                 <IssueGroup
                   title={`Errores (${errors.length})`}
-                  hint="Bloquean el export. Abre el slide indicado y corrige el campo faltante."
+                  hint="Impiden exportar. Abre la lámina indicada y corrige lo que falta."
                   issues={errors}
                   severity="error"
                   onJump={handleJumpTo}
@@ -136,7 +136,7 @@ export function PlanHealthBadge() {
               {warnings.length > 0 && (
                 <IssueGroup
                   title={`Avisos (${warnings.length})`}
-                  hint="No bloquean el export, pero conviene revisarlos."
+                  hint="No impiden exportar, pero conviene revisarlos."
                   issues={warnings}
                   severity="warning"
                   onJump={handleJumpTo}
@@ -176,12 +176,12 @@ function IssueGroup({
                 onClick={() => onJump(issue)}
                 disabled={!jumpable}
                 className={`pulso-gv2-health-row${jumpable ? " is-jumpable" : ""}`}
-                aria-label={jumpable ? `${issue.message}. Ir al slide relacionado.` : issue.message}
+                aria-label={jumpable ? `${issue.message} Ir a la lámina.` : issue.message}
               >
                 <span className="pulso-gv2-health-row-marker" aria-hidden="true" />
                 <span className="pulso-gv2-health-row-copy">
                   <span>{issue.message}</span>
-                  <small>{jumpable ? "Abrir slide relacionado" : "Revisión global del plan"}</small>
+                  <small>{jumpable ? "Ir a la lámina" : "Revisión global del plan"}</small>
                 </span>
                 {jumpable && <ChevronRight size={13} strokeWidth={2.2} aria-hidden="true" />}
               </button>

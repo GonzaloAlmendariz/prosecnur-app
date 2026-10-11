@@ -66,15 +66,13 @@ test_that("la lamina se renderiza en el PPT", {
     )
   )
 
-  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"),
-                               warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   expect_match(slide_xml, "CÓMO SE REDONDEAN LAS CIFRAS", fixed = TRUE)
 
   ppt_files <- utils::unzip(out_ppt, list = TRUE)$Name
   svg_files <- ppt_files[grepl("^ppt/media/.*[.]svg$", ppt_files)]
   expect_length(svg_files, 1)
-  svg_txt <- paste(readLines(unz(out_ppt, svg_files[[1]]),
-                             warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  svg_txt <- .leer_parte_zip(out_ppt, svg_files[[1]])
   expect_match(svg_txt, "Suman 101%", fixed = TRUE)
 })
 

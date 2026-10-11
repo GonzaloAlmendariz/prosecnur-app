@@ -1,7 +1,8 @@
 // Datos de un gráfico en su tarjeta del inspector (F6.1, parte 2). Reemplaza al editor de ranura viejo incrustado:
 // una sola superficie con filas planas (rótulo y control en una línea), sólo los datos que la salida nativa lee
 // (lista blanca, argsDatosGrafico.ts), sin buscador de ajustes ni descripciones largas. Lo que no cabe en el inspector
-// (bloques de multiapiladas, filtros) se edita en un panel ancho.
+// (bloques de multiapiladas, filtros) se edita en un panel ancho. Cierran la tarjeta el Top/Bottom Two Box de las
+// escalas y «En el Word» (F6.2, F-d; tarjetaGrafico/).
 
 import { useId } from "react";
 import { useLocation } from "react-router-dom";
@@ -15,6 +16,7 @@ import {
   camposDeDatos,
   codigosATexto,
   conEtiquetaCorta,
+  interruptorEncendido,
   leerEtiquetaCorta,
   textoACodigos,
   type CampoDato,
@@ -24,6 +26,12 @@ import { useGraficosReportScope } from "../reportScope";
 import { aplicaOrden, varCalificada } from "./ordenCategorias";
 import { useSession } from "../../../lib/SessionContext";
 import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
+import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
+import { EnElWord } from "./tarjetaGrafico/EnElWord";
+import { ColoresGrafico } from "./colores/ColoresGrafico";
+import { NombresPorBase } from "./datosBase/NombresPorBase";
+import { NotaBaseCompartido } from "./datosBase/NotaBaseCompartido";
+import { faltaBaseEnCompartido } from "./datosBase/baseEnCompartido";
 import "./datosGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
@@ -36,11 +44,13 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const args = (valor.args ?? {}) as Record<string, unknown>;
   // Donde aplica el orden por gráfico (D8), su fila reemplaza al «Orden» anterior del registro.
   const conOrden = aplicaOrden(valor.graficador);
-  const campos = camposDeDatos(meta?.args ?? [], args).filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)));
+  const campos = camposDeDatos(meta?.args ?? [], args, valor.graficador).filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)));
   const scope = useGraficosReportScope(useLocation().search);
   const baseActiva = useSession().state?.active_base;
   const set = (patch: Record<string, unknown>) => updateSlotArgs(slideId, slot, patch);
   const variable = typeof args.var === "string" ? args.var : "";
+  // En el informe compartido una pregunta sin base no se califica con la activa: se pide elegirla (H9).
+  const sinBaseCompartido = faltaBaseEnCompartido(variable, scope);
   const esMulti = valor.graficador === "p_barras_multiapiladas";
   const nVars = Array.isArray(args.vars) ? args.vars.length : 0;
   const filtros = Array.isArray(args.filtros) ? args.filtros.length : 0;
@@ -60,8 +70,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {campos.map((c) => (
         <Fila key={c.arg.name} campo={c} valor={args[c.arg.name]} onCambio={(v) => set({ [c.arg.name]: v })} />
       ))}
-      {conOrden && variable && (
-        <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva)} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
+      {sinBaseCompartido && <NotaBaseCompartido />}
+      {conOrden && variable && !sinBaseCompartido && (
+        <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
       )}
       {variable && (
         <FilaTexto
@@ -80,6 +91,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           </button>
         </div>
       )}
+      <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
+      <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
+      <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
     </div>
   );
 }
@@ -97,7 +111,11 @@ function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
 
 function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; onCambio: (v: unknown) => void }) {
   const id = useId();
-  const { arg, rotulo, ayuda, detalle, control } = campo;
+  const idAyuda = `${id}-ayuda`;
+  const { arg, rotulo, ayuda, detalle, control, placeholder } = campo;
+  const describe = ayuda ? idAyuda : undefined;
+  // La guarda (C40) se lee junto al control, en todas las formas de fila: no sólo en las apiladas.
+  const nota = ayuda ? <span id={idAyuda} className="pulso-f6-dato-ayuda">{ayuda}</span> : null;
   const etiqueta = (
     <label className="pulso-f6-dato-rotulo" htmlFor={id}>
       {rotulo}
@@ -116,27 +134,38 @@ function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; on
             placeholder={control === "variable_opcional" ? "Sin dividir" : "Elige una pregunta…"}
           />
         </div>
-        {ayuda && <span className="pulso-f6-dato-ayuda">{ayuda}</span>}
+        {nota}
       </div>
     );
   }
+  if (control === "nombres_base") {
+    return <NombresPorBase argName={arg.name} rotulo={rotulo} ayuda={ayuda} valor={valor} onCambio={(p) => onCambio(p[arg.name])} />;
+  }
   if (control === "interruptor") {
+    // Sin valor guardado manda el default del registro: un interruptor apagado sobre un dibujo encendido mentiría.
+    const encendido = interruptorEncendido(arg, valor);
     return (
       <div className="pulso-f6-dato">
         <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} /></span>
-        <Switch checked={valor === true} ariaLabel={rotulo} onToggle={() => onCambio(!(valor === true))} />
+        <Switch checked={encendido} ariaLabel={rotulo} onToggle={() => onCambio(!encendido)} />
+        {nota}
       </div>
     );
   }
   if (control === "opciones") {
-    const opciones = arg.choices ?? [];
+    // Un valor guardado con una opción retirada (6a) se ve como actual y lleva su aviso; al cambiarlo ya no vuelve.
+    const idAviso = `${id}-aviso`;
+    const describeSelect = [describe, campo.aviso ? idAviso : undefined].filter(Boolean).join(" ") || undefined;
     return (
       <div className="pulso-f6-dato">
         {etiqueta}
-        <select id={id} className="pulso-f6-input pulso-f6-dato-select" value={typeof valor === "string" ? valor : String(arg.default ?? "")}
+        <select id={id} className="pulso-f6-input pulso-f6-dato-select" aria-describedby={describeSelect}
+          value={typeof valor === "string" ? valor : String(arg.default ?? "")}
           onChange={(e) => onCambio(e.target.value)}>
-          {opciones.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {campo.opciones.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+        {nota}
+        {campo.aviso && <span id={idAviso} className="pulso-f6-dato-ayuda" role="note">{campo.aviso}</span>}
       </div>
     );
   }
@@ -144,11 +173,12 @@ function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; on
     return (
       <div className="pulso-f6-dato">
         {etiqueta}
-        <input id={id} type="number" className="pulso-f6-input pulso-f6-dato-numero"
+        <input id={id} type="number" className="pulso-f6-input pulso-f6-dato-numero" aria-describedby={describe}
           value={typeof valor === "number" ? valor : ""}
-          placeholder={arg.default !== undefined && arg.default !== null ? String(arg.default) : ""}
+          placeholder={placeholder ?? (arg.default !== undefined && arg.default !== null ? String(arg.default) : "")}
           min={arg.min} max={arg.max} step={arg.step ?? "any"}
           onChange={(e) => onCambio(e.target.value === "" ? null : Number(e.target.value))} />
+        {nota}
       </div>
     );
   }
@@ -156,22 +186,25 @@ function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; on
     return (
       <div className="pulso-f6-dato is-apilado">
         {etiqueta}
-        <input id={id} className="pulso-f6-input" value={codigosATexto(valor)} placeholder="Ninguna"
+        <input id={id} className="pulso-f6-input" value={codigosATexto(valor)} placeholder={placeholder ?? "Ninguna"} aria-describedby={describe}
           onChange={(e) => onCambio(textoACodigos(e.target.value))} />
-        {ayuda && <span className="pulso-f6-dato-ayuda">{ayuda}</span>}
+        {nota}
       </div>
     );
   }
-  return <FilaTexto rotulo={rotulo} ayuda={ayuda} valor={typeof valor === "string" ? valor : ""} onCambio={(t) => onCambio(t)} />;
+  return <FilaTexto rotulo={rotulo} ayuda={ayuda} placeholder={placeholder} valor={typeof valor === "string" ? valor : ""} onCambio={(t) => onCambio(t)} />;
 }
 
-function FilaTexto({ rotulo, ayuda, valor, onCambio }: { rotulo: string; ayuda: string | null; valor: string; onCambio: (t: string) => void }) {
+function FilaTexto({ rotulo, ayuda, placeholder = null, valor, onCambio }: {
+  rotulo: string; ayuda: string | null; placeholder?: string | null; valor: string; onCambio: (t: string) => void;
+}) {
   const id = useId();
   return (
     <div className="pulso-f6-dato is-apilado">
       <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}</label>
-      <input id={id} className="pulso-f6-input" value={valor} onChange={(e) => onCambio(e.target.value)} />
-      {ayuda && <span className="pulso-f6-dato-ayuda">{ayuda}</span>}
+      <input id={id} className="pulso-f6-input" value={valor} placeholder={placeholder ?? undefined}
+        aria-describedby={ayuda ? `${id}-ayuda` : undefined} onChange={(e) => onCambio(e.target.value)} />
+      {ayuda && <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">{ayuda}</span>}
     </div>
   );
 }

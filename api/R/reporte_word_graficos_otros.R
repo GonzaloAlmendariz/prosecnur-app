@@ -20,6 +20,7 @@
   # repite color; se siguen los colores de actores del estándar que no estén ya y, si aún faltan, una rampa.
   pal <- unique(c(.WORD_PALETA_TORTA, toupper(.std_paleta("actores"))))
   pal <- if (n <= length(pal)) pal[seq_len(n)] else grDevices::colorRampPalette(pal)(n)
+  pal <- as.vector(.word_colores_de_espec(espec, rot, pal))                 # paleta por lista (ADR 0097) por rótulo
   # Dona y leyenda se centran JUNTAS en el ancho de la página («la leyenda no usa todo el espacio y no está centrada»).
   tl <- 9.5; panel <- alto - 0.5; leg <- max(nchar(rot)) * tl * 0.55 / 72 + 0.4
   m <- max(0.1, (.std_word("pagina", "ancho_util") - panel - leg - 0.35) / 2)
@@ -79,7 +80,7 @@
   V <- espec$valores; a <- as.numeric(V[, 1]); b <- as.numeric(V[, 2]); d <- a - b
   .word_g_pesas(list(rotulos = espec$filas, a = a, b = b, cifras_a = paste0(a, "%"), cifras_b = paste0(b, "%"), diferencia = d,
                      textos_diferencia = sprintf("%+d pts", as.integer(d)), mostrar_diferencia = TRUE,
-                     grupos = as.character(espec$grupos), leyenda = as.character(espec$grupos)))
+                     grupos = as.character(espec$grupos), leyenda = as.character(espec$grupos), colores = espec$colores))
 }
 
 #' Puntos por competencia, en lugar del radar (`g_competencias()` moderna): por eje, un punto por grupo sobre la línea que

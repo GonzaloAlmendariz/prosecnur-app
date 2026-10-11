@@ -768,16 +768,30 @@
 # después de aplicar el mazo— a cambio de que la diferencia sea visible en vez
 # de sospechada. Esta huella es lo que la vuelve comprobable.
 #
-# Entra lo que cambia el mazo: qué preguntas, con qué variables, en qué diapositiva y
-# con qué etiqueta. NO entra el sello de instrumentos ni la fecha de importación:
-# reimportar la misma matriz sin tocar nada no debe pintar el mazo como
-# desfasado, porque no lo está.
-.equiv_declaracion_revision <- function(equiv) {
+# Entra lo que cambia el mazo: qué preguntas, con qué variables, en qué diapositiva,
+# con qué etiqueta, si sigue siendo propuesta (`sugerida` no entra al mazo), con
+# qué `estilo` de radar y, con los instrumentos, una huella de las LISTAS de
+# opciones de cada variable declarada en su base (ADR 0096 decisión 5). La huella
+# es `.equiv_firma_escala`: cambiar sólo la caja de una opción no la mueve (ADR
+# 0064). NO entra el sello de instrumentos ni la fecha de importación: reimportar
+# la misma matriz sin tocar nada no debe pintar el mazo como desfasado.
+#
+# El prefijo `r2:` distingue esta huella de las guardadas antes del ADR 0096: una
+# revisión sin prefijo se informa como «revisión anterior», no como desfase.
+# Los productores (Carga, `/plan/sugerido`, preflight) pasan `inst_por_base`
+# completo —todas las bases, aprobadas o no— para devolver el mismo valor.
+.equiv_declaracion_revision <- function(equiv, inst_por_base = NULL) {
   filas <- (equiv %||% list())$filas %||% list()
   if (!length(filas)) return("")
+  inst_por_base <- inst_por_base %||% list()
   partes <- vapply(filas, function(f) {
     vars <- f$variables %||% list()
     orden <- order(names(vars))
+    listas <- vapply(names(vars)[orden], function(b) {
+      inst <- inst_por_base[[b]]
+      if (is.null(inst)) return("")
+      .equiv_firma_escala(inst, vars[[b]])
+    }, character(1))
     paste(
       as.character(f$diapositiva %||% ""),
       # El enunciado titula la diapositiva (ADR 0064), así que cambiarlo cambia el
@@ -786,10 +800,13 @@
       as.character(f$grafico %||% ""),
       as.character(f$corte %||% ""),
       as.character(f$etiqueta_estandar %||% ""),
+      if (isTRUE(f$sugerida)) "sugerida" else "",
+      tolower(trimws(as.character(f$estilo %||% ""))),
       paste(names(vars)[orden], unlist(vars)[orden], sep = "=", collapse = ","),
+      paste(listas, collapse = "\u001d"),
       sep = "\u001e"
     )
   }, character(1))
   # Ordenado: reordenar las filas sin cambiar su contenido no cambia el mazo.
-  .equiv_hash_estable(sort(partes))
+  paste0("r2:", .equiv_hash_estable(sort(partes)))
 }

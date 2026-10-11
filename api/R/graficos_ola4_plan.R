@@ -467,6 +467,9 @@ p_barras_divergentes <- function(vars = NULL,
     escala_valor = "proporcion_1",
     titulo = el$title_slide %||% NULL
   )
+  # ADR 0097: la paleta de la lista de la escala, si es del usuario, pinta cada nivel por su etiqueta (la de un
+  # perfil no cambia el recetario). Un color elegido en la tarjeta (`colores_grupos`) sigue mandando.
+  base_args$colores_grupos <- .ola4_paleta_niveles(el$vars[[1]], tabla$etiquetas_grupos)
   args <- utils::modifyList(base_args, args_usuario)
   # El reparto derivado de la escala original no es reemplazable por presets o
   # overrides: hacerlo reintroduciria la reclasificacion por indices visibles.
@@ -525,6 +528,8 @@ p_barras_divergentes <- function(vars = NULL,
 #' Brecha entre dos bases, tema por tema
 #'
 #' Declara lo mismo que `p_radar(modo = "publicos")` y lo dibuja como brecha.
+#' @param etiqueta_brecha Unidad junto a la diferencia («+6 pts»). `NULL` hereda
+#'   el preset o el motor («pts», como el recetario).
 #' @export
 p_dumbbell <- function(vars,
                        corte,
@@ -535,7 +540,8 @@ p_dumbbell <- function(vars,
                        titulo = NULL,
                        overrides = list(),
                        base = list(),
-                       filtros = list()) {
+                       filtros = list(),
+                       etiqueta_brecha = NULL) {
   orden <- match.arg(orden)
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_dumbbell(): `vars` debe ser una lista nombrada no vacia.")
@@ -582,6 +588,7 @@ p_dumbbell <- function(vars,
   ov$orden <- orden
   ov$mostrar_brecha <- isTRUE(mostrar_brecha)
   ov$umbral_brecha_pct <- suppressWarnings(as.numeric(umbral_brecha_pct)[1])
+  ov <- .ppt_slot_override(ov, "etiqueta_brecha", etiqueta_brecha, "texto")
 
   el <- list(
     .element_type = "dumbbell",
@@ -707,5 +714,27 @@ p_lollipop <- function(var,
   )
   args <- utils::modifyList(base_args, args_usuario)
   args <- .keep_formals(graficar_lollipop, args, contexto = "graficar_lollipop")
-  do.call(graficar_lollipop, args)
+  .paleta_en_espec(do.call(graficar_lollipop, args), .ola4_paleta_de_ref(el$var))   # ADR 0097: espec$colores
+}
+
+#' La paleta resuelta de la lista de una pregunta (`.paleta_auto` del motor), o `NULL` fuera del motor
+#' @keywords internal
+.ola4_paleta_de_ref <- function(ref) {
+  paleta_auto <- dynGet(".paleta_auto", ifnotfound = NULL)
+  lista_de <- dynGet(".list_name_of_var", ifnotfound = NULL)
+  if (!is.function(paleta_auto) || !is.function(lista_de)) return(NULL)
+  ln <- tryCatch(lista_de(as.character(ref)[1]), error = function(e) NA_character_)
+  if (is.null(ln) || is.na(ln) || !nzchar(ln)) return(NULL)
+  tryCatch(paleta_auto(ln), error = function(e) NULL)
+}
+
+#' Colores de los niveles de una escala por columna (`pct_1` = hex), sólo si la paleta de su lista es del usuario
+#' @keywords internal
+.ola4_paleta_niveles <- function(ref, etiquetas) {
+  pal <- .ola4_paleta_de_ref(ref)
+  if (!.paleta_es_de_usuario(pal) || !length(etiquetas)) return(NULL)
+  rot <- unname(as.character(etiquetas))
+  por_rotulo <- .paleta_colores_para(rot, pal)
+  if (is.null(por_rotulo)) return(NULL)
+  .paleta_heredar_attrs(stats::setNames(unname(por_rotulo[rot]), names(etiquetas)), pal)
 }

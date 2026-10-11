@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import { modoMultibaseDelPlan } from "../modoMultibase";
 
@@ -27,5 +30,27 @@ describe("modo multibase del plan de gráficos", () => {
 
   test("un modo desconocido se lee como conjunto, que es el histórico", () => {
     expect(modoMultibaseDelPlan("otro_modo", 3).clave).toBe("conjunto");
+  });
+
+  test("informe compartido: nombra el conjunto y nunca la base activa (A7-1 H2)", () => {
+    const modo = modoMultibaseDelPlan("independent_siblings", 4, "docentes", "consolidated");
+    expect(modo.clave).toBe("compartido");
+    expect(modo.etiqueta).toBe("Informe compartido · 4 bases");
+    expect(`${modo.etiqueta} ${modo.explicacion}`).not.toMatch(/base activa|docentes/);
+  });
+
+  test("con alcance activo, o sin el 4.º argumento, el chip es el de siempre", () => {
+    expect(modoMultibaseDelPlan("independent_siblings", 4, "docentes", "active").etiqueta)
+      .toBe("Un informe por base · docentes");
+    expect(modoMultibaseDelPlan("independent_siblings", 4, "docentes").clave).toBe("por-base");
+    expect(modoMultibaseDelPlan("multibase", 4, null, "consolidated").clave).toBe("conjunto");
+    expect(modoMultibaseDelPlan("independent_siblings", 1, "docentes", "consolidated").visible).toBe(false);
+  });
+
+  test("la barra de Láminas le pasa el alcance del informe", () => {
+    const dir = path.dirname(fileURLToPath(import.meta.url));
+    const source = fs.readFileSync(path.join(dir, "..", "laminas", "BarraLaminas.tsx"), "utf8");
+    expect(source).toContain("const reportScope = useGraficosReportScope(useLocation().search)");
+    expect(source).toMatch(/modoMultibaseDelPlan\([^)]*state\?\.active_base, reportScope\)/);
   });
 });

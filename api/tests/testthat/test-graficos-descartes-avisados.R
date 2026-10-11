@@ -46,7 +46,9 @@ test_that("una numerica con datos avisa que hay que tramificarla", {
   avisos <- .graficos_avisos_de_descarte(sources)
   expect_length(avisos, 2L)
   expect_true(any(grepl("NowSalary_recod", avisos, fixed = TRUE)))
-  expect_true(all(grepl("Tramificala en Codificacion", avisos, fixed = TRUE)))
+  expect_true(all(grepl("Tramifícala en Codificación", avisos, fixed = TRUE)))
+  expect_true(all(grepl("es una pregunta numérica", avisos, fixed = TRUE)))   # no el tipo XLSForm crudo
+  expect_false(any(grepl("integer", sub("\\(tipo no graficable.*$", "", avisos), fixed = TRUE)))
 })
 
 test_that("el canal calla ante la metadata del formulario", {
@@ -102,7 +104,7 @@ test_that("un catalogo cuya etiqueta es el codigo avisa antes de exportar", {
   ))
   avisos <- .graficos_avisos_de_descarte(roto)
   expect_length(avisos, 1L)
-  expect_true(grepl("saldria numerado", avisos[[1]], fixed = TRUE))
+  expect_true(grepl("saldría numerado", avisos[[1]], fixed = TRUE))
   expect_true(grepl("6 de 6 opciones", avisos[[1]], fixed = TRUE))
 
   sano <- fuente(var_cov(

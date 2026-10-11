@@ -1,0 +1,90 @@
+/* Candado «Lo fija el recetario» del índice (decisión 32): una línea cerrada por ajuste, sin control, con lo que sale. */
+
+.pulso-f6-fijados {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-fijados > .pulso-f6-subtitulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-fijados > .pulso-f6-subtitulo svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-fijado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-3);
+}
+
+.pulso-f6-fijado-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-fijado-rotulo {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-f6-fijado-sello {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-f6-fijado-sello svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-fijado-valor {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-fijado-valor.is-sin-efecto {
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-fijado-motivo {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-fijado-nota {
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-warn-fg);
+  overflow-wrap: anywhere;
+}

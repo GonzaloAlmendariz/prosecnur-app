@@ -132,3 +132,22 @@ test_that("el plan sugerido narrativo no repite una base global", {
   expect_true(slides[[1]]$payload$meta$suppress_base_placeholder)
   expect_true(slides[[2]]$payload$meta$suppress_base_placeholder)
 })
+
+test_that("ADR 0096: sembrar desde la matriz no avanza la revisión del borrador ni marca sucio", {
+  # La siembra es una derivación del preflight: el borrador sigue en revisión 0
+  # hasta el primer guardado real, que es lo que distingue «nunca compuesto» de
+  # «vaciado a propósito» (sharedPlanSeed.ts).
+  sid <- .hce_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .hce_declarar(sid)
+  s <- session_get(sid); s$project_dirty <- FALSE; .session_env[[sid]] <- s
+  antes <- graficos_consolidado_draft_get(sid)
+
+  preflight <- graficos_consolidado_preflight(sid)
+
+  expect_identical(preflight$equivalencias$origen_plan, "derivado")
+  expect_gt(as.integer(preflight$equivalencias$n_diapositivas), 0L)
+  expect_identical(graficos_consolidado_draft_get(sid), antes)
+  expect_identical(antes$revision, 0L)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+})

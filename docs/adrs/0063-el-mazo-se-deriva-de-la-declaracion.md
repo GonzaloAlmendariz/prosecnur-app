@@ -10,7 +10,7 @@ Fecha de decision: 2026-08-06
 
 Reemplaza: —
 
-Enmendado por: ADR 0064 (el enunciado vive en la diapositiva) — la diapositiva derivada
+Enmendado por: ADR 0096 (la propuesta también se ofrece al informe compartido con `scope:"consolidado"`; la revisión incluye `sugerida`, `estilo` y huella de listas); ADR 0064 (el enunciado vive en la diapositiva) — la diapositiva derivada
 deja de salir con `titulo = ""`: toma el enunciado que la declaración pasa a
 llevar
 
