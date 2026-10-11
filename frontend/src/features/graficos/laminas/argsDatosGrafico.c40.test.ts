@@ -1,6 +1,9 @@
 // C40 en Gráficos > Láminas > tarjeta de un gráfico (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md). Las firmas
 // de abajo copian `name`, `tipo_input`, `default` y `depende` de api/R/graficos_metadata.R (sólo los args que importan);
 // cada asignado es además formal de su constructor del plan (los que no lo son quedan pendientes en el registro).
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { ArgMetadata } from "../../../api/graficos";
 import { mergeSlotArgsPatch } from "../store";
@@ -12,6 +15,8 @@ import {
   AYUDA_LIMITE_SUPERIOR,
   AYUDA_MIN_N,
   AYUDA_TIPO_RANGO,
+  AVISO_RANGO_CUSTOM,
+  GRAFICADORES_NO_NATIVOS,
   RETIRADOS,
   camposDeDatos,
   esRetirado,
@@ -124,9 +129,10 @@ describe("C40 · ASIGNAR", () => {
       expect(nombres(args, { modo: "sm" }, g)).not.toContain("sm_omit_codes");
     }
   });
-  it("incluir_total sólo en el heatmap", () => {
+  it("incluir_total en el heatmap y en la FODA (ruta anterior, 5a); nunca en comparativo ni radar por dimensiones", () => {
     expect(nombres(dims, {}, "p_dim_heatmap")).toContain("incluir_total");
-    for (const g of ["p_dim_comparativo_radarbar", "p_dim_radar", "p_dim_foda"]) expect(nombres(dims, {}, g)).not.toContain("incluir_total");
+    expect(nombres(dims, {}, "p_dim_foda")).toContain("incluir_total");
+    for (const g of ["p_dim_comparativo_radarbar", "p_dim_radar"]) expect(nombres(dims, {}, g)).not.toContain("incluir_total");
   });
   it("mapa de cobertura: alcance, UBIGEO (sólo con alcance distrito), unidad y cobertura", () => {
     expect(nombres(mapa, {}, "p_mapa_cobertura_territorial")).toEqual(["scope", "ubigeo", "unit", "coverage_mode"]);
@@ -186,9 +192,9 @@ describe("C40 · ASIGNAR", () => {
 
 describe("C40 · RETIRAR", () => {
   const todos = [...RETIRADOS, "brecha_filas", "brecha_cols", "brecha_cortes", "modo_foda", "usar_pesos", "corte_score", "titulos_areas_foda"];
-  it("ningún retirado vuelve a mostrarse, en ningún graficador", () => {
+  it("ningún retirado vuelve a mostrarse, en ningún graficador nativo", () => {
     const args = todos.map((n) => a(n, "bool"));
-    for (const g of ["p_barras_agrupadas", "p_radar", "p_tabla", "p_histograma", "p_dim_heatmap", "p_dim_foda", "p_media_rango", "p_dumbbell"]) {
+    for (const g of ["p_barras_agrupadas", "p_radar", "p_histograma", "p_dim_heatmap", "p_media_rango", "p_dumbbell", "p_dim_comparativo_radarbar"]) {
       expect(nombres(args, {}, g)).toEqual([]);
     }
   });
@@ -223,5 +229,85 @@ describe("C40 · modelo", () => {
   });
   it("sin graficador, lo restringido a un graficador no sale", () => {
     expect(camposDeDatos(lollipop, {}).map((c) => c.arg.name)).not.toContain("top_n");
+  });
+});
+
+// 5a: los graficadores que salen por la ruta anterior (o en el marco con el dibujo ggplot) conservan sus controles.
+const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../..");
+const leer = (rel: string) => fs.readFileSync(path.join(RAIZ, rel), "utf8");
+
+describe("5a · graficadores no nativos", () => {
+  it("la lista es exactamente la de salida no nativa del registro R (.GRAFICOS_SALIDA_EDITOR)", () => {
+    const fuente = leer("api/R/graficos_metadata.R");
+    const bloque = fuente.slice(fuente.indexOf(".GRAFICOS_SALIDA_EDITOR <- list("), fuente.indexOf("stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR)"));
+    const filas = [...bloque.matchAll(/^\s*(p_\w+) = list\("\w+", "(\w+)"/gm)].map((m) => [m[1], m[2]] as const);
+    expect(filas.length).toBeGreaterThan(20);
+    const noNativos = filas.filter(([, salida]) => salida !== "nativa").map(([g]) => g);
+    expect([...GRAFICADORES_NO_NATIVOS].sort()).toEqual(noNativos.sort());
+  });
+  it("y la del catálogo generado (api/inst/catalogos/graficos_tipos.json)", () => {
+    const cat = JSON.parse(leer("api/inst/catalogos/graficos_tipos.json")) as { graficadores: Array<{ name: string; salida: string }> };
+    const noNativos = cat.graficadores.filter((g) => g.salida !== "nativa").map((g) => g.name);
+    expect([...GRAFICADORES_NO_NATIVOS].sort()).toEqual(noNativos.sort());
+  });
+  it("lo retirado no se les oculta (esRetirado = false), sí a los nativos", () => {
+    for (const g of GRAFICADORES_NO_NATIVOS) {
+      for (const n of ["sm_omit_na", "umbral_rojo_pct", "cortes_chip", "brecha_filas", "modo_foda", "incluir_total"]) expect(esRetirado(n, g)).toBe(false);
+    }
+    expect(esRetirado("sm_omit_na", "p_radar")).toBe(true);
+    expect(esRetirado("cortes_chip", "p_media_rango")).toBe(true);
+    expect(esRetirado("modo_foda")).toBe(false);
+    expect(esRetirado("sm_omit_na")).toBe(true);
+  });
+  const tablaReal = [a("modo", "choice"), a("var", "variable_opt", { depende: { arg: "modo", valores: ["sm"] } }), a("cruce", "variable_opt"),
+    a("top_n", "number"), a("sm_omit_codes", "codigos_list"), a("sm_omit_na", "bool"), a("umbral_rojo_pct", "number", { default: 60 })];
+  it("tabla: «Omitir sin respuesta» encendido sin guardar (formal TRUE) y el umbral rojo; top_n y sm_omit_codes siguen fuera (D1)", () => {
+    expect(nombres(tablaReal, { modo: "sm" }, "p_tabla")).toEqual(["var", "modo", "cruce", "sm_omit_na", "umbral_rojo_pct"]);
+    const omitir = campo(tablaReal, {}, "p_tabla", "sm_omit_na");
+    expect(omitir && interruptorEncendido(omitir.arg, undefined)).toBe(true);
+    expect(omitir && interruptorEncendido(omitir.arg, false)).toBe(false);
+    expect(campo(tablaReal, {}, "p_tabla", "umbral_rojo_pct")?.arg.default).toBe(60);
+    expect(nombres(tablaReal, { modo: "sm" }, "p_radar")).not.toContain("sm_omit_na");
+  });
+  const DISPOSICION = [{ value: "matriz", label: "Matriz 2×2" }, { value: "dispersion", label: "Dispersión" }];
+  const foda = [a("nivel", "choice"), a("objetivo", "string"), a("modo_foda", "choice", { choices: DISPOSICION }), a("cruce", "variable_opt"),
+    a("incluir_total", "bool"), a("usar_pesos", "bool"), a("cortes_chip", "codigos_list"), a("corte_score", "number"),
+    a("titulos_areas_foda", "textarea"), a("iter_var", "variable_opt"), a("iter_level", "string")];
+  it("FODA: sus args vuelven; corte de puntaje sólo en «Dispersión»; total y pesos encendidos sin guardar (formales TRUE)", () => {
+    expect(nombres(foda, {}, "p_dim_foda")).toEqual(["cruce", "objetivo", "incluir_total", "nivel", "modo_foda", "usar_pesos", "cortes_chip"]);
+    expect(nombres(foda, { modo_foda: "dispersion" }, "p_dim_foda")).toContain("corte_score");
+    expect(campo(foda, {}, "p_dim_foda", "modo_foda")?.arg.default).toBe("matriz");
+    expect(campo(foda, {}, "p_dim_foda", "nivel")?.arg.default).toBe("subindices");
+    for (const n of ["incluir_total", "usar_pesos"]) {
+      const c = campo(foda, {}, "p_dim_foda", n);
+      expect(c && interruptorEncendido(c.arg, undefined)).toBe(true);
+    }
+    expect(campo(foda, {}, "p_dim_foda", "cortes_chip")?.placeholder).toBe("60, 80");
+    // En el heatmap el total no hereda el default de la FODA.
+    const total = campo(dims, {}, "p_dim_heatmap", "incluir_total");
+    expect(total && interruptorEncendido(total.arg, undefined)).toBe(false);
+    // Los args propios de la FODA no salen en ningún otro graficador.
+    expect(nombres(foda, {}, "p_dim_heatmap")).toEqual(["cruce", "objetivo", "incluir_total"]);
+  });
+});
+
+describe("6a · tipo_rango «custom»", () => {
+  it("no se ofrece: tres opciones y sin aviso", () => {
+    const tipo = campo(mediaRango, {}, "p_media_rango", "tipo_rango");
+    expect(tipo?.opciones.map((o) => o.value)).toEqual(["minmax", "iqr", "p10_p90"]);
+    expect(tipo?.aviso).toBeNull();
+    expect(campo(mediaRango, { tipo_rango: "iqr" }, "p_media_rango", "tipo_rango")?.aviso).toBeNull();
+  });
+  it("un «custom» guardado se conserva como opción actual, con su aviso", () => {
+    const tipo = campo(mediaRango, { tipo_rango: "custom" }, "p_media_rango", "tipo_rango");
+    expect(tipo?.opciones.map((o) => o.value)).toEqual(["minmax", "iqr", "p10_p90", "custom"]);
+    expect(tipo?.aviso).toBe(AVISO_RANGO_CUSTOM);
+    expect(AVISO_RANGO_CUSTOM).toBe("Personalizado: se dibuja con los percentiles guardados.");
+    expect(mergeSlotArgsPatch({ tipo_rango: "custom", probs_rango: [0.2, 0.8] }, { decimales_promedio: 2 }))
+      .toEqual({ tipo_rango: "custom", probs_rango: [0.2, 0.8], decimales_promedio: 2 });
+  });
+  it("otro select no pierde opciones", () => {
+    const orden = campo([a("orden", "choice", { choices: [{ value: "custom", label: "x" }] })], {}, "p_lollipop", "orden");
+    expect(orden?.opciones.map((o) => o.value)).toEqual(["custom"]);
   });
 });

@@ -153,16 +153,19 @@ function Fila({ campo, valor, onCambio }: { campo: CampoDato; valor: unknown; on
     );
   }
   if (control === "opciones") {
-    const opciones = arg.choices ?? [];
+    // Un valor guardado con una opción retirada (6a) se ve como actual y lleva su aviso; al cambiarlo ya no vuelve.
+    const idAviso = `${id}-aviso`;
+    const describeSelect = [describe, campo.aviso ? idAviso : undefined].filter(Boolean).join(" ") || undefined;
     return (
       <div className="pulso-f6-dato">
         {etiqueta}
-        <select id={id} className="pulso-f6-input pulso-f6-dato-select" aria-describedby={describe}
+        <select id={id} className="pulso-f6-input pulso-f6-dato-select" aria-describedby={describeSelect}
           value={typeof valor === "string" ? valor : String(arg.default ?? "")}
           onChange={(e) => onCambio(e.target.value)}>
-          {opciones.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {campo.opciones.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         {nota}
+        {campo.aviso && <span id={idAviso} className="pulso-f6-dato-ayuda" role="note">{campo.aviso}</span>}
       </div>
     );
   }
