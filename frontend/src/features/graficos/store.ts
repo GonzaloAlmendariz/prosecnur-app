@@ -345,7 +345,8 @@ export function payloadPorDefecto(tipo: SlideType): Record<string, unknown> {
   return { ...DEFAULT_PAYLOADS[tipo] };
 }
 
-function newId() {
+/** Id estable de una lámina nueva (`s-` + 8 caracteres): el que nombra `foco=<id>` (ver `focoLamina.ts`). */
+export function nuevoIdLamina(): string {
   return `s-${Math.random().toString(36).slice(2, 10)}`;
 }
 
@@ -540,7 +541,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   markClean: () => set({ dirty: false }),
 
   addSlide: (tipo) => {
-    const s: Slide = { id: newId(), tipo, payload: { ...DEFAULT_PAYLOADS[tipo] } };
+    const s: Slide = { id: nuevoIdLamina(), tipo, payload: { ...DEFAULT_PAYLOADS[tipo] } };
     set((state) => dirty(state, {
       plan: { slides: [...state.plan.slides, s] },
       selectedSlideId: s.id,
@@ -565,7 +566,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (i < 0) return state;
       const source = state.plan.slides[i];
       const copy: Slide = {
-        id: newId(),
+        id: nuevoIdLamina(),
         tipo: source.tipo,
         payload: JSON.parse(JSON.stringify(source.payload)),
       };
@@ -607,7 +608,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   },
 
   insertSlideAt: (tipo, payload, index) => {
-    const s: Slide = { id: newId(), tipo, payload };
+    const s: Slide = { id: nuevoIdLamina(), tipo, payload };
     set((state) => {
       const i = Math.max(0, Math.min(state.plan.slides.length, Math.floor(index)));
       const slides = [...state.plan.slides.slice(0, i), s, ...state.plan.slides.slice(i)];

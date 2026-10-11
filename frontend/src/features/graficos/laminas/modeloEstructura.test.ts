@@ -4,8 +4,6 @@ import {
   construirEstructura,
   contarLaminas,
   filtrarEstructura,
-  focoDeLamina,
-  parsearFocoLamina,
 } from "./modeloEstructura";
 
 const s = (id: string, tipo: SlideType, payload: Record<string, unknown> = {}): Slide => ({ id, tipo, payload });
@@ -62,26 +60,29 @@ describe("construirEstructura", () => {
     expect(porId.e).toMatchObject({ ranuras: 4, ranurasLlenas: 1, posicion: 5 });
   });
 
+  // Mata (F1 del QA de Vista general): armar los bloques por TIPO. Con la lámina de apertura detrás de «Cómo leer», la
+  // fila Apertura se la quedaba y el orden pintado (1,2,3,5 | 4 | 6…) contradecía el plan.
+  it("cada nodo es un tramo contiguo del plan: recorrerlos da el orden del plan", () => {
+    const movido: Slide[] = [plan[0], plan[1], plan[2], plan[4], plan[3], ...plan.slice(5)];
+    const est = construirEstructura(movido);
+    const recorrido = est.nodos.flatMap((n) => n.clase === "bloque"
+      ? n.laminas.map((l) => l.id)
+      : [n.separador.id, ...n.laminas.map((l) => l.id), ...n.subcapitulos.flatMap((x) => [x.separador.id, ...x.laminas.map((l) => l.id)])]);
+    expect(recorrido).toEqual(movido.map((x) => x.id));
+    expect(est.nodos.map((n) => n.titulo)).toEqual(["Apertura", "Cómo leer este informe", "Perfil", "Cuerpo académico", "Cierre"]);
+    const comoLeer = est.nodos[1];
+    expect(comoLeer.clase === "bloque" && comoLeer.laminas.map((l) => l.id)).toEqual(["c", "e"]);
+  });
+
+  it("un cierre a mitad del plan corta el capítulo y no se lleva láminas de otro lado", () => {
+    const conCierre: Slide[] = [s("d", "p_slide_seccion", { titulo: "Perfil" }), s("x", "p_slide_cierre"), s("y", "p_slide_1_grafico"), s("h", "p_slide_seccion", { titulo: "Otro" }), s("z", "p_slide_cierre")];
+    const est = construirEstructura(conCierre);
+    expect(est.nodos.map((n) => `${n.id}:${n.clase === "bloque" ? n.laminas.map((l) => l.id).join(",") : n.laminas.map((l) => l.id).join(",")}`))
+      .toEqual(["cap-d:", "bloque-cierre:x,y", "cap-h:", "bloque-cierre-2:z"]);
+  });
+
   it("un plan vacío no inventa nodos", () => {
     expect(construirEstructura([])).toEqual({ nodos: [], laminas: [] });
-  });
-});
-
-describe("foco de lámina", () => {
-  it("lee l-NN y l-NN:gK y rechaza lo demás", () => {
-    expect(parsearFocoLamina("l-07")).toEqual({ posicion: 7, ranura: null });
-    expect(parsearFocoLamina("l-67:g2")).toEqual({ posicion: 67, ranura: 2 });
-    expect(parsearFocoLamina("p-14")).toBeNull();
-    expect(parsearFocoLamina("l-0")).toBeNull();
-    expect(parsearFocoLamina("slide-7")).toBeNull();
-    expect(parsearFocoLamina(null)).toBeNull();
-  });
-
-  it("escribe con dos cifras y ida y vuelta estable", () => {
-    expect(focoDeLamina(7)).toBe("l-07");
-    expect(focoDeLamina(7, 2)).toBe("l-07:g2");
-    expect(focoDeLamina(123)).toBe("l-123");
-    expect(parsearFocoLamina(focoDeLamina(14, 3))).toEqual({ posicion: 14, ranura: 3 });
   });
 });
 

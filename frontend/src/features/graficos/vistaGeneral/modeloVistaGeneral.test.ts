@@ -9,15 +9,17 @@ import {
   duplicarSlides,
   eliminarSlides,
   filaDeLamina,
-  focoEnLaminas,
+  destinosParaMover,
   ladoDeSoltar,
+  marcaCapituloEnHueco,
+  moverAlCapitulo,
   moverIds,
   ordenTrasSoltar,
   ranuraAlFinalDeFila,
   ranuraParaCapitulo,
   reordenarSlides,
-  resolverFocoVistaGeneral,
 } from "./modeloVistaGeneral";
+import { focoDeId, resolverFocoLamina } from "../focoLamina";
 
 const s = (id: string, tipo: SlideType, payload: Record<string, unknown> = {}): Slide => ({ id, tipo, payload });
 const graf = (g = "p_barras_apiladas") => ({ graficador: g, args: { var: "P1" } });
@@ -144,23 +146,111 @@ describe("acciones en bloque", () => {
   });
 });
 
-describe("foco por id", () => {
+describe("foco por id (resolución compartida con Láminas, `../focoLamina.ts`)", () => {
+  const idDe = (foco: string | null, slides: readonly Slide[]) => resolverFocoLamina(foco, slides)?.id ?? null;
   // Mata: resolver `foco` por posición cuando hay id (tras reordenar apuntaría a otra lámina), o ignorar el `l-NN` heredado.
   it("el id sigue a su lámina tras reordenar; `l-NN` se traduce a la de ahora", () => {
     const reordenado = reordenarSlides(plan, desplazarIds(ids, new Set(["g"]), -1));
-    expect(resolverFocoVistaGeneral("g", reordenado)).toBe("g");
-    expect(resolverFocoVistaGeneral("l-03", plan)).toBe("e");
-    expect(resolverFocoVistaGeneral("l-03:g2", plan)).toBe("e");
-    expect(resolverFocoVistaGeneral("l-99", plan)).toBeNull();
-    expect(resolverFocoVistaGeneral("otra", plan)).toBeNull();
-    expect(resolverFocoVistaGeneral(null, plan)).toBeNull();
+    expect(idDe("g", reordenado)).toBe("g");
+    expect(idDe("l-03", plan)).toBe("e");
+    expect(idDe("l-03:g2", plan)).toBe("e");
+    expect(idDe("l-99", plan)).toBeNull();
+    expect(idDe("otra", plan)).toBeNull();
+    expect(idDe(null, plan)).toBeNull();
   });
 
-  // Mata: abrir en Láminas con la posición vieja.
-  it("Enter abre en Láminas con la posición vigente", () => {
+  // Mata: abrir en Láminas con la posición del momento (tras reordenar, otro enlace a la misma lámina diría otra).
+  it("Enter abre en Láminas con el id, que sobrevive a reordenar", () => {
     const reordenado = reordenarSlides(plan, desplazarIds(ids, new Set(["g"]), -1));
-    expect(focoEnLaminas(plan, "g")).toBe("l-05");
-    expect(focoEnLaminas(reordenado, "g")).toBe("l-04");
-    expect(focoEnLaminas(plan, "nada")).toBeNull();
+    expect(focoDeId("g")).toBe("g");
+    expect(resolverFocoLamina(focoDeId("g"), plan)?.posicion).toBe(5);
+    expect(resolverFocoLamina(focoDeId("g"), reordenado)).toMatchObject({ id: "g", posicion: 4, heredado: false });
+  });
+});
+
+describe("invariante de orden (F1 del QA: el clasificador pinta el orden del plan)", () => {
+  const TIPOS: { tipo: SlideType; payload?: Record<string, unknown> }[] = [
+    { tipo: "p_slide_portada" }, { tipo: "p_slide_indice" }, { tipo: "p_slide_top_two_box" }, { tipo: "p_slide_redondeo" },
+    { tipo: "p_slide_seccion", payload: { titulo: "Cap" } }, { tipo: "p_slide_seccion", payload: { titulo: "Sub", meta: { nivel: "subcapitulo" } } },
+    { tipo: "p_slide_1_grafico" }, { tipo: "p_slide_texto" }, { tipo: "p_slide_cierre" },
+  ];
+  // Generador determinista (LCG): la misma semilla reproduce el mismo plan si falla.
+  const azar = (semilla: number) => {
+    let x = semilla >>> 0;
+    return (n: number) => { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return x % n; };
+  };
+  const visual = (slides: readonly Slide[]) => construirFilas(construirEstructura(slides), slides).flatMap((f) => f.tarjetas.map((t) => t.lamina.id));
+
+  // Mata: cualquier regla de agrupación que no respete la contigüidad (por tipo, por bloque fijo, splice al inicio…).
+  it("para todo plan y toda secuencia de Alt+←/→ las filas concatenadas son el plan y cada paso avanza una posición", () => {
+    for (let semilla = 1; semilla <= 200; semilla += 1) {
+      const r = azar(semilla);
+      let slides: Slide[] = Array.from({ length: 3 + r(14) }, (_, i) => {
+        const t = TIPOS[r(TIPOS.length)];
+        return s(`x${i}`, t.tipo, { ...(t.payload ?? {}) });
+      });
+      for (let paso = 0; paso < 25; paso += 1) {
+        const orden = slides.map((x) => x.id);
+        expect(visual(slides), `semilla ${semilla}, paso ${paso}`).toEqual(orden);
+        const id = orden[r(orden.length)];
+        const dir = r(2) === 0 ? -1 : 1;
+        const antes = visual(slides).indexOf(id);
+        const siguiente = reordenarSlides(slides, desplazarIds(orden, new Set([id]), dir));
+        const despues = visual(siguiente).indexOf(id);
+        const enBorde = (dir === -1 && antes === 0) || (dir === 1 && antes === orden.length - 1);
+        expect(despues - antes, `semilla ${semilla}, paso ${paso}`).toBe(enBorde ? 0 : dir);
+        slides = siguiente;
+      }
+    }
+  });
+});
+
+describe("«Mover al capítulo» con separadores (F2 del QA)", () => {
+  const filasTras = (orden: string[]) => filasDe(orden).map((f) => `${f.id}:${f.ids.join(",")}`);
+
+  // Mata: mover el separador solo (quedaba como capítulo vacío tras el destino y sus láminas se fundían con el anterior).
+  it("un separador elegido mueve su capítulo entero detrás del destino, y el anuncio nombra el destino", () => {
+    const r = moverAlCapitulo(ids, filas, ["c1"], "cap-c2");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.orden).toEqual(["a", "c2", "h", "i", "c1", "e", "f", "g", "z"]);
+    expect(filasTras(r.orden)).toEqual(["bloque-apertura:a", "cap-c2:c2,h,i", "cap-c1:c1,e,f,g", "bloque-cierre:z"]);
+    expect(r.anuncio).toBe("Movido el capítulo «Perfil» detrás de «Docentes».");
+  });
+
+  it("un separador de subcapítulo se lleva su subcapítulo", () => {
+    const r = moverAlCapitulo(ids, filas, ["f"], "cap-c2");
+    expect(r.ok && r.orden).toEqual(["a", "c1", "e", "c2", "h", "i", "f", "g", "z"]);
+  });
+
+  // Mata: dejar caer un capítulo al final de un bloque (el separador se tragaría el Cierre) o dentro de sí mismo.
+  it("con separadores sólo valen otros capítulos como destino", () => {
+    expect([...destinosParaMover(filas, ["c1", "h"])]).toEqual(["cap-c2"]);
+    expect([...destinosParaMover(filas, ["c1"])]).toEqual(["cap-c2"]);
+    expect([...destinosParaMover(filas, ["e"])]).toEqual(filas.map((f) => f.id));
+    expect(moverAlCapitulo(ids, filas, ["c1"], "bloque-cierre")).toMatchObject({ ok: false });
+    expect(moverAlCapitulo(ids, filas, ["c1"], "cap-c1")).toMatchObject({ ok: false });
+  });
+
+  it("láminas sueltas siguen yendo al final de cualquier fila, y el anuncio nombra el destino", () => {
+    const r = moverAlCapitulo(ids, filas, ["h"], "bloque-apertura");
+    expect(r).toMatchObject({ ok: true, orden: ["a", "h", "c1", "e", "f", "g", "c2", "i", "z"], anuncio: "1 lámina movida al final de «Apertura»." });
+    expect(moverAlCapitulo(ids, filas, ["i"], "cap-c2")).toMatchObject({ ok: false, anuncio: "Las elegidas ya están al final de «Docentes»." });
+  });
+});
+
+describe("marcaCapituloEnHueco (soltar un capítulo en el hueco entre filas)", () => {
+  const rects = [
+    { id: "bloque-apertura", clase: "bloque" as const, top: 0, bottom: 100 },
+    { id: "cap-c1", clase: "capitulo" as const, top: 112, bottom: 300 },
+    { id: "cap-c2", clase: "capitulo" as const, top: 312, bottom: 500 },
+  ];
+  // Mata: ignorar el hueco (los ~12 px muertos del QA).
+  it("el hueco cuenta: antes de la fila de abajo si es capítulo, o después de la de arriba", () => {
+    expect(marcaCapituloEnHueco(rects, 309)).toEqual({ clase: "capitulo", filaId: "cap-c2", lado: "antes" });
+    expect(marcaCapituloEnHueco(rects, 302)).toEqual({ clase: "capitulo", filaId: "cap-c1", lado: "despues" });
+    expect(marcaCapituloEnHueco(rects, 104)).toEqual({ clase: "capitulo", filaId: "cap-c1", lado: "antes" });
+    expect(marcaCapituloEnHueco(rects, 520)).toEqual({ clase: "capitulo", filaId: "cap-c2", lado: "despues" });
+    expect(marcaCapituloEnHueco(rects.slice(0, 1), 120)).toBeNull();
   });
 });

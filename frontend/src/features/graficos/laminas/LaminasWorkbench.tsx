@@ -1,5 +1,6 @@
 // Pestaña Láminas de Procesamiento › Gráficos (F6.1, parte 1): Estructura · Visor · Inspector.
-// Dirección: `/graficos?pestana=laminas&foco=l-07[:g2]&panel=inspector`. `foco` es la fuente de verdad de la lámina
+// Dirección: `/graficos?pestana=laminas&foco=<slide.id>[:g2]&panel=inspector` (`../focoLamina.ts`; el heredado `l-07` se
+// lee y se reescribe al id). `foco` es la fuente de verdad de la lámina
 // seleccionada; se refleja en `usePlanStore.select` para que el Editor anterior abra en la misma lámina.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -21,7 +22,8 @@ import { TiraMiniaturas } from "./TiraMiniaturas";
 import { PanelAvisos } from "./PanelAvisos";
 import { EditorAmplio } from "./EditorAmplio";
 import { agruparAvisos } from "./resumenInforme";
-import { construirEstructura, focoDeLamina, parsearFocoLamina } from "./modeloEstructura";
+import { construirEstructura } from "./modeloEstructura";
+import { focoDeId, resolverFocoLamina } from "../focoLamina";
 import { useLaminasUi } from "./laminasStore";
 import { reconciliarSeleccion, vecinaAlEliminar } from "./seleccionLamina";
 import { esLateral, resolverLateral, type Lateral } from "./lateralLaminas";
@@ -74,7 +76,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
 
   const estructura = useMemo(() => construirEstructura(slides), [slides]);
   const direccion = useSeccion("procesamiento");
-  const foco = useMemo(() => parsearFocoLamina(direccion.foco), [direccion.foco]);
+  const foco = useMemo(() => resolverFocoLamina(direccion.foco, slides), [direccion.foco, slides]);
   const total = estructura.laminas.length;
   const ids = useMemo(() => slides.map((x) => x.id), [slides]);
   // `foco` (URL) contra `selectedSlideId` (plan): ver seleccionLamina.ts. El foco visto la vez anterior dice si lo que
@@ -82,24 +84,35 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const focoVisto = useRef<string | null | undefined>(undefined);
   const reconciliacion = reconciliarSeleccion({
     ids,
-    focoPos: foco?.posicion ?? null,
+    focoId: foco?.id ?? null,
+    focoHeredado: foco?.heredado ?? false,
     focoCambio: focoVisto.current !== direccion.foco,
     selectedId: selectedSlideId,
   });
   const posicionSeleccionada = reconciliacion.posicion;
   const lamina = posicionSeleccionada ? estructura.laminas[posicionSeleccionada - 1] : null;
   const slide = lamina ? slides[lamina.posicion - 1] ?? null : null;
-  const ranura = foco && foco.posicion === posicionSeleccionada ? foco.ranura : null;
+  const ranura = foco && foco.id === lamina?.id ? foco.ranura : null;
 
   const escribirFoco = useCallback((valor: string | null) => {
     navigate({ pathname: location.pathname, search: conNivel(location.search, "foco", valor) }, { replace: true });
   }, [location.pathname, location.search, navigate]);
 
+  // El `foco` cuenta como visto sólo con el plan cargado: un enlace (`l-13` o un id) que llega antes que las láminas
+  // sigue mandando cuando éstas llegan, en vez de perder contra la primera que `loadPlan` deja seleccionada.
   useEffect(() => {
-    focoVisto.current = direccion.foco;
+    if (ids.length) focoVisto.current = direccion.foco;
     if (reconciliacion.seleccionar) select(reconciliacion.seleccionar);
-    if (reconciliacion.escribirFoco && reconciliacion.posicion) escribirFoco(focoDeLamina(reconciliacion.posicion));
+    const mostrada = reconciliacion.posicion ? ids[reconciliacion.posicion - 1] : undefined;
+    if (reconciliacion.escribirFoco && mostrada) escribirFoco(focoDeId(mostrada, foco?.id === mostrada ? foco.ranura : null));
   });
+
+  // Los hijos (estructura, tira, visor, avisos, selectores) hablan en posiciones del plan vigente; la URL, en ids. Se
+  // traduce al navegar con el plan del store en ese instante (un selector que acaba de insertar ya lo ve).
+  const focoDePosicion = useCallback((posicion: number, k?: number | null): string | null => {
+    const id = usePlanStore.getState().plan.slides[posicion - 1]?.id;
+    return id ? focoDeId(id, k ?? null) : null;
+  }, []);
 
   // Un enlace a una ranura (`foco=l-NN:gK`) abre la sección Gráficos con su tarjeta.
   useEffect(() => { if (ranura !== null) setSeccion("graficos"); }, [ranura, setSeccion]);
@@ -109,8 +122,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
 
   const irA = useCallback((posicion: number) => {
     if (posicion < 1 || posicion > total) return;
-    escribirFoco(focoDeLamina(posicion));
-  }, [escribirFoco, total]);
+    escribirFoco(focoDePosicion(posicion));
+  }, [escribirFoco, focoDePosicion, total]);
 
   const prepOk = !!state?.analitica_prep_ok || parseGraficosReportScope(location.search) === "consolidated";
   const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk);
@@ -153,22 +166,23 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     if (!lamina) return;
     useSelectoresUi.getState().prepararGrafico();
     setSeccion("graficos");
-    const search = searchConPanel(conNivel(location.search, "foco", focoDeLamina(lamina.posicion, k)), PANEL_TIPO_GRAFICO);
+    const search = searchConPanel(conNivel(location.search, "foco", focoDeId(lamina.id, k)), PANEL_TIPO_GRAFICO);
     navigate({ pathname: location.pathname, search }, { replace: true });
   }, [lamina, location.pathname, location.search, navigate, setSeccion]);
   const cerrarSelector = useCallback((panel: PanelDeclarado, posicion?: number, k?: number | null) => {
     let search = searchSinPanel(location.search, panel);
-    if (posicion !== undefined) search = conNivel(search, "foco", focoDeLamina(posicion, k ?? null));
+    const valor = posicion !== undefined ? focoDePosicion(posicion, k) : null;
+    if (valor) search = conNivel(search, "foco", valor);
     if (lateralPreferido) search = searchConPanel(search, panelDe(lateralPreferido));
     navigate({ pathname: location.pathname, search }, { replace: true });
-  }, [lateralPreferido, location.pathname, location.search, navigate]);
+  }, [focoDePosicion, lateralPreferido, location.pathname, location.search, navigate]);
   const cerrarSelectorLamina = useCallback((posicion?: number) => cerrarSelector(PANEL_TIPO_LAMINA, posicion), [cerrarSelector]);
   const cerrarSelectorGrafico = useCallback((posicion?: number, k?: number | null) => cerrarSelector(PANEL_TIPO_GRAFICO, posicion, k), [cerrarSelector]);
 
   // Una sola navegación: foco de la ranura y, si hace falta, el inspector abierto (dos `navigate` seguidos se pisan).
   const elegirRanura = useCallback((k: number | null) => {
     if (!lamina) return;
-    let search = conNivel(location.search, "foco", focoDeLamina(lamina.posicion, k));
+    let search = conNivel(location.search, "foco", focoDeId(lamina.id, k));
     if (k !== null) {
       setSeccion("graficos");
       setLateralPreferido("inspector");
@@ -307,7 +321,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
           slide={slide}
           lamina={lamina}
           ranura={ranura}
-          onRanura={(r) => escribirFoco(focoDeLamina(lamina.posicion, r))}
+          onRanura={(r) => escribirFoco(focoDeId(lamina.id, r))}
           visor={vista.lamina}
           onCerrar={cerrarInspectorConFoco}
           onIrEditorAnterior={onIrEditorAnterior}
