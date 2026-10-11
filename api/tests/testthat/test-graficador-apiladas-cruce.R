@@ -46,7 +46,7 @@ test_that("apiladas con cruce rinde una fila apilada por grupo (H29)", {
     )),
     presets = p_presets(), path_ppt = out_ppt, mensajes_progreso = FALSE
   )
-  xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   # una fila por grupo: las etiquetas de los grupos del cruce estan en la lamina
   expect_match(xml, "Lima Norte", fixed = TRUE)
   expect_match(xml, "Callao", fixed = TRUE)
@@ -63,7 +63,7 @@ test_that("apiladas sin cruce sigue rindiendo la barra unica de siempre", {
     plan = list(d1 = p_slide_1_grafico(p_barras_apiladas(var = "p1"), titulo = "Simple")),
     presets = p_presets(), path_ppt = out_ppt, mensajes_progreso = FALSE
   )
-  xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   expect_false(grepl("Lima Norte", xml, fixed = TRUE))
   expect_match(xml, "Medio", fixed = TRUE)
 })

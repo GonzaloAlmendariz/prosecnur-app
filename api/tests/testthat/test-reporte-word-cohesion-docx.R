@@ -54,10 +54,7 @@ test_that("el docx lleva keepNext en titulo e imagen del bloque grafico", {
   ))
   expect_true(file.exists(path_docx))
 
-  xml <- paste(
-    readLines(unz(path_docx, "word/document.xml"), warn = FALSE, encoding = "UTF-8"),
-    collapse = "\n"
-  )
+  xml <- .leer_parte_zip(path_docx, "word/document.xml")
   paras <- strsplit(xml, "<w:p>|<w:p [^>]*>")[[1]][-1]
 
   idx_titulo <- which(vapply(paras, function(p) grepl("Gráfico Nº 1", p, fixed = TRUE), logical(1)))

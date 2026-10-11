@@ -79,7 +79,7 @@ test_that("el slide de un grafico agrupadas muestra la Base una sola vez", {
     plan = list(d1 = p_slide_1_grafico(p_barras_agrupadas(var = "p1"), titulo = "T")),
     presets = p_presets(), path_ppt = out_ppt, mensajes_progreso = FALSE
   )
-  slide_xml <- paste(readLines(unz(out_ppt, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide_xml <- .leer_parte_zip(out_ppt, "ppt/slides/slide1.xml")
   expect_identical(lengths(regmatches(slide_xml, gregexpr("Base:", slide_xml, fixed = TRUE)))[[1]], 1L)
 
   # La base manual del analista si se materializa en el placeholder.
@@ -90,7 +90,7 @@ test_that("el slide de un grafico agrupadas muestra la Base una sola vez", {
                                        base = "Base: censo docente")),
     presets = p_presets(), path_ppt = out_ppt2, mensajes_progreso = FALSE
   )
-  slide_xml2 <- paste(readLines(unz(out_ppt2, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  slide_xml2 <- .leer_parte_zip(out_ppt2, "ppt/slides/slide1.xml")
   expect_match(slide_xml2, "censo docente", fixed = TRUE)
 })
 

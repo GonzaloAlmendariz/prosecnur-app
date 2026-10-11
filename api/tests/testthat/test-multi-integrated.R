@@ -309,7 +309,7 @@ test_that("word de fraseos conserva referencias completas y bloques juntos", {
 
   out <- tempfile(fileext = ".docx")
   .mi_decisions_docx(audit, list(), out)
-  xml <- paste(readLines(unz(out, "word/document.xml"), warn = FALSE), collapse = "\n")
+  xml <- .leer_parte_zip(out, "word/document.xml")
 
   expect_true(all(vapply(
     c("Mexico", "Peru", "Chile", "Colombia"),

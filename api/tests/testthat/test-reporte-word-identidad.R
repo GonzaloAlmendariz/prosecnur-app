@@ -34,8 +34,8 @@ test_that("el encabezado interior lleva el título corto, el capítulo a la dere
   doc <- officer::body_end_block_section(doc, officer::block_section(.word_props_pagina(.word_cabecera("1. Perfil", "Informe"), .word_pie())))
   out <- tempfile(fileext = ".docx"); print(doc, target = out)
   nombres <- utils::unzip(out, list = TRUE)$Name
-  hdr <- paste(vapply(grep("^word/header", nombres, value = TRUE), function(p) paste(readLines(unz(out, p), warn = FALSE), collapse = ""), ""), collapse = "")
-  ftr <- paste(vapply(grep("^word/footer", nombres, value = TRUE), function(p) paste(readLines(unz(out, p), warn = FALSE), collapse = ""), ""), collapse = "")
+  hdr <- paste(vapply(grep("^word/header", nombres, value = TRUE), function(p) .leer_parte_zip(out, p, colapsar = ""), ""), collapse = "")
+  ftr <- paste(vapply(grep("^word/footer", nombres, value = TRUE), function(p) .leer_parte_zip(out, p, colapsar = ""), ""), collapse = "")
   expect_match(hdr, "1. Perfil", fixed = TRUE); expect_match(hdr, "Informe", fixed = TRUE)
   expect_match(ftr, "PAGE", fixed = TRUE)
 })
