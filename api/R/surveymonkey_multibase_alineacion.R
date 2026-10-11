@@ -68,8 +68,42 @@
   on.exit(unlink(path), add = TRUE)
   .sm_mb_write_xlsform_model(model, path)
   inst <- reporte_instrumento(path = path)
+  attr(inst, "sm_paginas") <- .sm_mb_paginas_por_variable(details, inst)
   if (usar_cache) assign(clave, inst, envir = cache)
   inst
+}
+
+# Título de cada página SurveyMonkey, limpio de HTML y espacios; «Página N» si
+# la página no tiene título. Solo describe (ítem 15): no interviene en la clave.
+.sm_mb_titulo_pagina <- function(page, i) {
+  titulo <- .sm_api_clean_text(.sm_or(page$title, NA_character_))
+  if (!is.na(titulo) && nzchar(titulo)) return(titulo)
+  n <- suppressWarnings(as.integer(.sm_or(page$position, i)))
+  paste("Página", if (length(n) && !is.na(n)) n else i)
+}
+
+# variable -> título de su página. `sm_api_xlsform` abre un `begin_group` por
+# página y en el orden de las páginas: el k-ésimo grupo es la k-ésima página.
+.sm_mb_paginas_por_variable <- function(details, inst) {
+  pages <- .sm_or((details %||% list())$pages, list())
+  sv <- (inst %||% list())$survey
+  if (!length(pages) || is.null(sv) || !NROW(sv) || !all(c("type", "name") %in% names(sv))) {
+    return(character(0))
+  }
+  titulos <- vapply(seq_along(pages), function(i) .sm_mb_titulo_pagina(pages[[i]], i), character(1))
+  tipos <- sub("\\s+.*$", "", trimws(ifelse(is.na(sv$type), "", as.character(sv$type))))
+  nombres <- ifelse(is.na(sv$name), "", trimws(as.character(sv$name)))
+  k <- 0L
+  out <- character(0)
+  for (i in seq_along(tipos)) {
+    if (identical(tipos[i], "begin_group")) {
+      k <- k + 1L
+      next
+    }
+    if (tipos[i] %in% c("end_group", "note") || !nzchar(nombres[i]) || k < 1L || k > length(titulos)) next
+    if (!nombres[i] %in% names(out)) out[[nombres[i]]] <- titulos[k]
+  }
+  out
 }
 
 # Instrumento para comparar dos tablas de preguntas. La tabla trae los details
@@ -131,14 +165,78 @@
   claves[!es_other]
 }
 
-.sm_mb_alin_tabla <- function(variables, claves) {
+# Sección legible de cada variable de un instrumento (ítem 15): el título de
+# su página SurveyMonkey cuando el instrumento es el generado por la plataforma
+# (`attr(, "sm_paginas")`). Si no, la columna `section`; si nombra un
+# `begin_group`, el rótulo de ese grupo; si viene vacía, el rótulo del grupo que
+# contiene a la variable. Solo describe: no interviene en el emparejado.
+.sm_mb_alin_secciones <- function(inst) {
+  sv <- (inst %||% list())$survey
+  if (is.null(sv) || !NROW(sv) || !"name" %in% names(sv)) return(character(0))
+  col <- function(nm) if (nm %in% names(sv)) as.character(sv[[nm]]) else rep("", NROW(sv))
+  limpiar <- function(x) ifelse(is.na(x), "", trimws(x))
+  tipos <- sub("\\s+.*$", "", limpiar(col("type")))
+  nombres <- limpiar(col("name"))
+  etiquetas <- limpiar(col("label"))
+  secciones <- limpiar(col("section"))
+  es_grupo <- tipos %in% c("begin_group", "begin_repeat")
+  rotulo_grupo <- stats::setNames(ifelse(nzchar(etiquetas[es_grupo]), etiquetas[es_grupo], nombres[es_grupo]),
+                                  nombres[es_grupo])
+  rotulo_grupo <- rotulo_grupo[nzchar(names(rotulo_grupo)) & !duplicated(names(rotulo_grupo))]
+  pila <- character(0)
+  out <- character(0)
+  for (i in seq_along(tipos)) {
+    if (es_grupo[i]) {
+      pila <- c(pila, if (nzchar(etiquetas[i])) etiquetas[i] else nombres[i])
+      next
+    }
+    if (tipos[i] %in% c("end_group", "end_repeat")) {
+      if (length(pila)) pila <- pila[-length(pila)]
+      next
+    }
+    if (!nzchar(nombres[i]) || nombres[i] %in% names(out)) next
+    sec <- secciones[i]
+    out[[nombres[i]]] <- if (nzchar(sec)) {
+      if (sec %in% names(rotulo_grupo)) unname(rotulo_grupo[[sec]]) else sec
+    } else if (length(pila)) {
+      pila[length(pila)]
+    } else ""
+  }
+  paginas <- attr(inst, "sm_paginas", exact = TRUE)
+  if (length(paginas)) {
+    comunes <- intersect(names(paginas), names(out))
+    out[comunes] <- paginas[comunes]
+  }
+  out
+}
+
+.sm_mb_alin_tabla <- function(variables, claves, secciones = character(0)) {
   variables <- as.character(variables %||% character(0))
   data.frame(
     variable = variables,
     etiqueta = vapply(variables, function(v) as.character(claves[[v]]$etiqueta %||% "")[1], character(1),
                       USE.NAMES = FALSE),
+    seccion = vapply(variables, function(v) {
+      x <- if (v %in% names(secciones)) secciones[[v]] else ""
+      if (is.na(x)) "" else as.character(x)
+    }, character(1), USE.NAMES = FALSE),
     stringsAsFactors = FALSE
   )
+}
+
+# Pares pregunta a pregunta que decidió la alineación (ítem 15), en el orden de
+# la base. Salen del MISMO `mapa` que se aplica a la data, antes de sumarle los
+# `_other` (que viajan con su pregunta y no son una pregunta).
+.sm_mb_alin_pares <- function(mapa, claves_base, secciones_base) {
+  if (!length(mapa)) {
+    return(data.frame(base = character(0), fuente = character(0), etiqueta = character(0),
+                      seccion = character(0), stringsAsFactors = FALSE))
+  }
+  orden <- order(match(unname(mapa), names(claves_base)))
+  base <- unname(mapa)[orden]
+  tabla <- .sm_mb_alin_tabla(base, claves_base, secciones_base)
+  data.frame(base = base, fuente = names(mapa)[orden], etiqueta = tabla$etiqueta, seccion = tabla$seccion,
+             stringsAsFactors = FALSE)
 }
 
 .sm_mb_alinear_fuente <- function(inst_base, inst_fuente) {
@@ -165,6 +263,9 @@
   emparejadas <- !is.na(hit)
   mapa <- stats::setNames(names(kb)[hit[emparejadas]], names(kf)[emparejadas])
   preguntas_movidas <- sum(names(mapa) != unname(mapa))
+  sec_b <- .sm_mb_alin_secciones(inst_base)
+  sec_f <- .sm_mb_alin_secciones(inst_fuente)
+  pares <- .sm_mb_alin_pares(mapa, pb, sec_b)
 
   # El `_other` sigue al padre. Si la base no tiene dónde guardarlo, el texto
   # no entra y se declara como pregunta sin par: nada se descarta en silencio.
@@ -176,20 +277,21 @@
     if (.sm_mb_var_exists(inst_base, bo)) mapa[[fo]] <- bo else others_sin_par <- c(others_sin_par, fo)
   }
 
-  sin_par_fuente <- .sm_mb_alin_tabla(names(kf)[!emparejadas & !ambigua_f], pf)
+  sin_par_fuente <- .sm_mb_alin_tabla(names(kf)[!emparejadas & !ambigua_f], pf, sec_f)
   if (length(others_sin_par)) {
     claves_f <- .equiv_claves_de_base(inst_fuente)
-    sin_par_fuente <- rbind(sin_par_fuente, .sm_mb_alin_tabla(others_sin_par, claves_f))
+    sin_par_fuente <- rbind(sin_par_fuente, .sm_mb_alin_tabla(others_sin_par, claves_f, sec_f))
   }
-  sin_par_base <- .sm_mb_alin_tabla(setdiff(names(kb)[!ambigua_b], unname(mapa)), pb)
+  sin_par_base <- .sm_mb_alin_tabla(setdiff(names(kb)[!ambigua_b], unname(mapa)), pb, sec_b)
   # Se listan en el espacio de la base: quedan vacías para esta fuente, y las
   # respuestas de sus gemelas en la fuente no entran.
-  ambiguas <- .sm_mb_alin_tabla(names(kb)[ambigua_b], pb)
+  ambiguas <- .sm_mb_alin_tabla(names(kb)[ambigua_b], pb, sec_b)
   n_base <- length(kb)
   n_emparejadas <- as.integer(sum(emparejadas))
   cobertura <- if (n_base > 0L) n_emparejadas / n_base else 0
   list(
     mapa = mapa,
+    pares = pares,
     sin_par_fuente = sin_par_fuente,
     sin_par_base = sin_par_base,
     ambiguas = ambiguas,
@@ -449,9 +551,21 @@
 
 .sm_mb_alin_filas <- function(df) {
   if (is.null(df) || !NROW(df)) return(list())
+  con_seccion <- "seccion" %in% names(df)
+  lapply(seq_len(NROW(df)), function(i) {
+    fila <- list(variable = as.character(df$variable[i]), etiqueta = as.character(df$etiqueta[i]))
+    if (con_seccion) fila$seccion <- as.character(df$seccion[i])
+    fila
+  })
+}
+
+.sm_mb_alin_pares_lista <- function(df) {
+  if (is.null(df) || !NROW(df)) return(list())
   lapply(seq_len(NROW(df)), function(i) list(
-    variable = as.character(df$variable[i]),
-    etiqueta = as.character(df$etiqueta[i])
+    base = as.character(df$base[i]),
+    fuente = as.character(df$fuente[i]),
+    etiqueta = as.character(df$etiqueta[i]),
+    seccion = as.character(df$seccion[i])
   ))
 }
 
@@ -491,6 +605,9 @@
     sin_par_fuente = .sm_mb_alin_filas(al$sin_par_fuente),
     sin_par_base = .sm_mb_alin_filas(al$sin_par_base),
     ambiguas = .sm_mb_alin_filas(al$ambiguas),
+    # Ítem 15: pares del MISMO `mapa` que se aplicó. Siempre presente (lista
+    # vacía si nada emparejó) para distinguir esta forma de una base anterior.
+    pares = .sm_mb_alin_pares_lista(al$pares),
     opciones_sin_par = .sm_mb_opciones_lista(attr(df, "sm_opciones_sin_par", exact = TRUE))
   )
 }
