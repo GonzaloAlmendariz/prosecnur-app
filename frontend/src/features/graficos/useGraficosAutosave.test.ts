@@ -161,11 +161,20 @@ describe("ack de persistencia para composición", () => {
     ]);
   });
 
-  it("el flush captura un config y sólo marca limpio después del PUT acreditado", () => {
+  it("el flush respeta el alcance hidratado: el compartido nunca va a /graficos/config (A7-1 H1)", () => {
+    // Antes este test exigía `scope: "active"` incondicional y fijaba el bug: guardar el proyecto con el borrador
+    // compartido hidratado copiaba ese plan sobre la config de la base activa (ADR 0040 §6.1). El comportamiento se
+    // prueba con la API mockeada en `configSnapshot.alcance.test.ts`; aquí se fija el orden del flush.
     const source = fs.readFileSync(path.join(featureDir, "configSnapshot.ts"), "utf8");
     const flush = source.slice(source.indexOf("export async function flushGraficosConfigIfHydrated"));
+    const consolidado = sourceSection(flush, 'if (alcance?.scope === "consolidated") {', "\n  }\n");
 
     expectFragmentsInOrder(flush, [
+      "const alcance = leerAlcanceHidratado()",
+      'if (alcance?.scope === "consolidated") {',
+      "await persistir(",
+      "markClean()",
+      "return true;",
       "const config = buildGraficosConfigFromStore()",
       "persistWithSlideCompositionAck({",
       "sid: getSession()",
@@ -174,7 +183,29 @@ describe("ack de persistencia para composición", () => {
       "persist: () => apiGraficosConfigPut(config)",
       "markClean()",
     ]);
-    expect(flush.match(/getSession\(\)/g)).toHaveLength(1);
+    expect(consolidado).not.toContain("apiGraficosConfigPut");
+    expect(consolidado).toContain("alcance.sid !== getSession()");
+  });
+
+  it("el autosave registra el alcance en las dos hidrataciones y en la siembra", () => {
+    const source = fs.readFileSync(path.join(featureDir, "useGraficosAutosave.ts"), "utf8");
+    const hidratar = sourceSection(source, "async function hydrateFromBackend(", "} catch {");
+    const [compartido, activa] = hidratar.split("const r = await apiGraficosConfigGet()");
+    const siembra = sourceSection(source, "const seedConsolidatedPlan = useCallback(", "return { saveConsolidatedNow");
+
+    expectFragmentsInOrder(compartido ?? "", [
+      "apiGraficosConsolidadoDraftGet()",
+      "hydrate(config)",
+      'registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated })',
+    ]);
+    expectFragmentsInOrder(activa ?? "", [
+      "hydrate(config)",
+      'registrarAlcanceHidratado({ scope: "active", sid: getSession() })',
+    ]);
+    expectFragmentsInOrder(siembra, [
+      "hydrate(buildGraficosConfig(",
+      'registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated })',
+    ]);
   });
 
   it("los imports invalidan el sid inicial y sólo reackean el snapshot releído", () => {

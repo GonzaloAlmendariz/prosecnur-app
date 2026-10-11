@@ -11,6 +11,7 @@ import { normalizeGraficosConfigDefaults } from "../../api/graficosConfigDefault
 import { GraficosConfig, usePlanStore } from "./store";
 import { buildGraficosConfig, buildGraficosConfigFromStore, graficosConfigFromRemote } from "./configSnapshot";
 import type { GraficosReportScope } from "./reportScope";
+import { registrarAlcanceHidratado } from "./alcanceHidratado";
 import {
   acknowledgeSlideCompositionConfig,
   invalidateSlideCompositionPersistenceAck,
@@ -138,6 +139,8 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
             const config = mergeWithDefaults(r.config);
             rememberRevision(r.revision);
             hydrate(config);
+            // El flush de guardar proyecto debe saber que esto es el borrador compartido (A7-1 H1).
+            registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated });
             acknowledgeSlideCompositionConfig(getSession(), reportScope, config);
           }
           return;
@@ -147,6 +150,8 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
           const config = mergeWithDefaults(r.config);
           usePlanStore.getState().setConfigDefaults(normalizeGraficosConfigDefaults(r));
           hydrate(config);
+          // Reemplaza (olvida) un alcance compartido anterior: desde aquí el flush vuelve a escribir la base activa.
+          registrarAlcanceHidratado({ scope: "active", sid: getSession() });
           acknowledgeSlideCompositionConfig(getSession(), reportScope, config);
         }
       } catch {
@@ -248,7 +253,8 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
       plan: seededPlan,
       selectedSlideId: seededPlan.slides.length ? null : state.selectedSlideId,
     }));
-  }, [hydrate]);
+    registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated });
+  }, [hydrate, persistConsolidated]);
 
   return { saveConsolidatedNow, consolidatedDraftRevision, seedConsolidatedPlan };
 }

@@ -8,6 +8,7 @@ import {
 import type { GraficosConfig } from "./store";
 import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, usePlanStore } from "./store";
 import { persistWithSlideCompositionAck } from "./slideCompositionPersistence";
+import { leerAlcanceHidratado } from "./alcanceHidratado";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -111,8 +112,24 @@ export function buildGraficosConfigFromStore(): GraficosConfig {
   return buildGraficosConfig(usePlanStore.getState());
 }
 
+/**
+ * Guarda lo que el editor tenga pendiente antes de guardar, guardar como o duplicar el proyecto (`useProject.ts`) y antes
+ * del paquete por bases. Respeta el alcance de lo hidratado (`alcanceHidratado.ts`, contrato A7-1 H1): el borrador del
+ * informe compartido NUNCA se escribe en `/graficos/config`, que es la config de la base activa (ADR 0040 §6.1). Con el
+ * compartido hidratado delega en su persistidor —con su `expected_revision`— sólo si hay cambios: sin ellos no hay
+ * nada que guardar y la siembra del plan sugerido sigue siendo una propuesta (revisión 0). Devuelve si escribió.
+ */
 export async function flushGraficosConfigIfHydrated(): Promise<boolean> {
   if (!usePlanStore.getState().hydrated) return false;
+  const alcance = leerAlcanceHidratado();
+  if (alcance?.scope === "consolidated") {
+    const persistir = alcance.persistirConsolidado;
+    if (!usePlanStore.getState().dirty || !persistir || alcance.sid !== getSession()) return false;
+    const config = buildGraficosConfigFromStore();
+    await persistir(normalizeGraficosConfig(config, { includeLegacyAliases: true }));
+    usePlanStore.getState().markClean();
+    return true;
+  }
   const config = buildGraficosConfigFromStore();
   await persistWithSlideCompositionAck({
     sid: getSession(),
