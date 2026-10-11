@@ -60,11 +60,36 @@ dónde vive y su estado. Sólo el usuario lo da por terminado.
   que sus horarios no calcen: es que el criterio llena la jornada de quien ya
   está antes de abrir a otra persona, y con pocos días de operativo nunca se
   llega a ellos. Es el precio de concentrar, y ahora se ve.
-- **Los tres switches del repo.** El estilo canónico es `.pulso-switch` en
-  `app/theme.css` (44×24, encendido en `--pulso-primary`). `analitica` escribía
-  el botón a mano y `calcMuestra/universidad/criterios` mantiene una geometría
-  propia de 34×20 con acento morado. `components/Switch.tsx` es ahora la pieza a
-  la que las dos deberían converger; migrarlas es otra tanda.
+- **Los tres switches del repo — convergidos (2026-09-04).** Queda uno:
+  `components/Switch.tsx`, con `Switch` y `SwitchTri`. `analitica` dejó de
+  escribir el botón a mano y los 11 usos de `calcMuestra/universidad/criterios`
+  pasaron al compartido; `criterios/Switch.tsx` se borró. La geometría y el
+  acento salen ahora de cinco variables (`--pulso-switch-w/-h/-knob-size/`
+  `-accent/-accent-ring`) y el recorrido de la perilla se deriva de ellas
+  (`ancho − perilla − 4px`), que es lo que permitió a cada superficie quedarse
+  con su piel sin reimplementar la mecánica. **La suite de criterios conserva
+  34×20 y su morado** porque `--cmv2-accent` es `--pulso-module-sample`, el tono
+  del módulo por contrato de paleta, no una desviación: decisión de Gonzalo en
+  esa sesión. Medido en `hsvg2026` contra los valores previos: criterios 34×20 /
+  perilla 14 / on 16px / `#7260ae`, indeterminado en 9px; maestro 44×24 / 18 /
+  22px; analítica 36×21 / 15 / 17px. Ni un pixel movido.
+- **El pane multibase de Analítica no es observable con los proyectos de
+  referencia.** Migrarlo fue el ítem de menor riesgo, pero no se pudo mirar
+  montado: los cinco `.pulso` versionados responden `available=false /
+  not_single_integrated` a `.analitica_multibase_info`, así que
+  `analitica-tab-multibase` no llega a existir en la UI. Se verificó por diff
+  (el DOM emitido es el mismo salvo `aria-label`/`aria-hidden`, y ningún
+  selector del switch depende de esos atributos) y midiendo en la app real que
+  `.analitica-switch-row .pulso-switch` sigue computando 36×21 / perilla 15 /
+  on 17px. Falta un proyecto de referencia con instrumento único integrado y
+  varias bases si se quiere cubrir esa superficie.
+- **Lo que NO se tocó y sigue abierto: las réplicas del switch en CSS.** La
+  convergencia fue de las tres implementaciones en *JSX*. En *CSS* hay al menos
+  ocho superficies que redibujan el switch maestro con clase propia —carga,
+  validación, gráficos, motor de calc-muestra, monitoreo (×2), perfiles (×2) y
+  el espejo de tokens del dashboard—, todas rotuladas «Pista al switch maestro
+  44×24». Ahora que la escala y el acento son variables, esas réplicas podrían
+  reducirse a piel como se hizo con criterios; es otra tanda, y más grande.
 - **La identidad del aplicador es el nombre crudo del motor.** `fijadas` mapea
   código a ese nombre exacto, así que el ítem 7 se resolvió en presentación y
   nunca normalizando lo que viaja de vuelta.

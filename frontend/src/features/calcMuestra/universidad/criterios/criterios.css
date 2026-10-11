@@ -469,68 +469,45 @@
   opacity: 0.8;
 }
 
-/* --- Switch (toggle) macOS · escalera del kit 36x16 (Mn) ------------------- */
+/* --- Switch: piel de la suite sobre el interruptor de la casa --------------
+ * Esto YA NO reimplementa el switch. `components/Switch` pone la mecánica
+ * (`.pulso-switch` en theme.css) y aquí sólo se declara la piel: la escala
+ * compacta que necesitan estas listas —hasta tres columnas de facultades, donde
+ * los 44px del maestro le comen 10px a cada etiqueta— y el acento del módulo,
+ * que es `--pulso-module-sample` por contrato de paleta, no un morado suelto.
+ * Decisión de 2026-09-04: converger el componente conservando la piel.
+ * El recorrido de la perilla NO se declara: sale de las variables de escala. */
 .cmv2-crit-switch {
-  position: relative;
-  display: inline-block;
-  flex: none;
-  box-sizing: border-box;
-  width: 34px;
-  height: 20px;
-  min-height: 20px;
-  padding: 0;
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: 999px;
-  background: var(--pulso-surface-3);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-text-muted) 18%, transparent);
-  cursor: pointer;
-  transition: background 120ms ease;
-  -webkit-appearance: none;
-  appearance: none;
+  --pulso-switch-w: 34px;
+  --pulso-switch-h: 20px;
+  --pulso-switch-knob-size: 14px;
+  --pulso-switch-accent: var(--cmv2-accent);
+  /* Track plano, sin el relieve cóncavo del maestro. */
+  --pulso-switch-track: var(--pulso-surface-3);
+  --pulso-switch-track-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-text-muted) 18%, transparent);
+  --pulso-switch-border: var(--pulso-border-strong);
+  --pulso-switch-knob-shadow: var(--pulso-shadow-low);
 }
-.cmv2-crit-switch:hover,
-.cmv2-crit-switch:active {
-  transform: none;
-  box-shadow: none;
-}
-.cmv2-crit-switch:hover {
-  background: color-mix(in srgb, var(--pulso-text-muted) 44%, transparent);
-}
+/* El encendido de la suite es color plano, no el degradado del maestro. */
 .cmv2-crit-switch[aria-checked="true"] {
   background: var(--cmv2-accent);
   border-color: var(--cmv2-accent);
   box-shadow: none;
 }
-.cmv2-crit-switch[aria-checked="true"]:hover {
-  background: color-mix(in srgb, var(--cmv2-accent) 84%, var(--pulso-text) 16%);
+/* Hover sin anillo: oscurece la propia pista, como venía haciendo la suite. */
+.cmv2-crit-switch:hover:not(:disabled) {
+  transform: none;
+  background: color-mix(in srgb, var(--pulso-text-muted) 44%, transparent);
+  box-shadow: none;
 }
-.cmv2-crit-switch[aria-checked="mixed"],
-.cmv2-crit-switch[data-mixed="true"] {
-  background: color-mix(in srgb, var(--cmv2-accent) 42%, var(--pulso-text-muted) 20%);
+.cmv2-crit-switch[aria-checked="true"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cmv2-accent) 84%, var(--pulso-text) 16%);
+  box-shadow: none;
 }
 .cmv2-crit-switch:disabled { opacity: 0.5; cursor: not-allowed; }
 .cmv2-crit-switch:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
   outline-offset: 2px;
-}
-
-.cmv2-crit-switch-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--pulso-switch-knob, var(--pulso-surface));
-  box-shadow: var(--pulso-shadow-low);
-  transition: transform 130ms var(--motion-ease-productive);
-}
-.cmv2-crit-switch[aria-checked="true"] .cmv2-crit-switch-thumb {
-  transform: translateX(14px);
-}
-.cmv2-crit-switch[aria-checked="mixed"] .cmv2-crit-switch-thumb,
-.cmv2-crit-switch[data-mixed="true"] .cmv2-crit-switch-thumb {
-  transform: translateX(7px);
 }
 
 /* --- Grupos jerárquicos ---------------------------------------------------- */

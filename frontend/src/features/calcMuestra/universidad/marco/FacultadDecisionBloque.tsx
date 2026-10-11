@@ -32,7 +32,7 @@ import { ControlUmbral } from "../criterios/ControlUmbral";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
 import { evidenciaPorCategoria } from "../criterios/evidenciaPorCategoria";
 import { tasaAsistencia } from "../criterios/minElegiblesModel";
-import { Switch } from "../criterios/Switch";
+import { Switch } from "../../../../components/Switch";
 import { filasPorFacultad, SESSION_TYPE_VARIABLE_ID } from "../criterios/tipoSesionModel";
 import { minimoFacultad, minimoSugerido, presentesEsperados } from "../criterios/minElegiblesModel";
 import {
@@ -384,6 +384,7 @@ function NivelFacultadCard({
           )}
           <label className="cmv2-chfp-nivel-toggle">
             <Switch
+              className="cmv2-crit-switch"
               checked={activo}
               ariaLabel={`Limitar el nivel del curso en ${facLabel}`}
               onToggle={() => onRango(facKey, activo ? [] : [[desde, hasta]])}

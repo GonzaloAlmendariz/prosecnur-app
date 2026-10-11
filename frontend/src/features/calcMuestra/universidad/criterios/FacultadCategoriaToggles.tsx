@@ -11,7 +11,7 @@
 import { useState } from "react";
 import type { CriterioSeleccion, CriterioVariable } from "../../../../api/client";
 import { fmtInt, fmtPct } from "../../sharedCore";
-import { Switch } from "./Switch";
+import { Switch } from "../../../../components/Switch";
 import { heredarFacultad, toggleTipoEnFacultad, type FilaFacultad } from "./tipoSesionModel";
 import { CategoriaEvidencia, dominioCategorias, EjeCategorias } from "./CategoriaEvidencia";
 import type { AporteCategoria } from "./controles";
@@ -147,6 +147,7 @@ export function FacultadCategoriaToggles({
             >
               <div className="cmv2-crit-item-main">
                 <Switch
+                  className="cmv2-crit-switch"
                   checked={t.activo}
                   ariaLabel={`${t.label} en ${fila.facLabel}`}
                   onToggle={() => onSel(toggleTipoEnFacultad(variable, sel, fila.facKey, t.key))}
