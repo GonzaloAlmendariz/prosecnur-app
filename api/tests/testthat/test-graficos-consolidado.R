@@ -515,7 +515,7 @@ test_that("preflight consume exclusiones y denominador de la revision", {
   expect_type(income[[1]]$args$excluir_opciones, "character")
   expect_equal(income[[1]]$args$excluir_opciones, c("99", "Prefiero no responder"))
   expect_equal(income[[1]]$args$filtros$p10, "1")
-  expect_true(any(grepl("methodology_zero_denominator.*egresados\\$p12", unlist(preflight$warnings))))
+  expect_true(any(grepl("«p12» de la base «egresados» no tiene casos válidos", unlist(preflight$warnings), fixed = TRUE)))
   egresados_release <- Filter(function(x) identical(x$base, "egresados"), preflight$releases)[[1]]
   expect_match(egresados_release$methodology_sha256, "^[0-9a-f]{64}$")
 

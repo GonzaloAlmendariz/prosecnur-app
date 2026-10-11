@@ -169,12 +169,12 @@
   tryCatch(
     .plan_con_sin_datos_por_grafico(el, .plan_con_etiquetas_cortas(el, impl(el))),  # K12a: etiqueta corta mientras se dibuja
     pulso_slide_render_error = function(cnd) {
-      msg <- paste0("Lamina degradada a canvas 'Sin datos': ", conditionMessage(cnd))
+      msg <- .aviso_en_lamina(paste0("no se pudo dibujar y sale con «Sin datos».", .aviso_motivo(conditionMessage(cnd))))
       # El `warning()` es el rastro del log; el `.pulso_aviso()` es lo que llega
       # al analista. Sin el segundo, el mazo sale con una lamina en blanco y la
       # razon se queda en el stderr del subproceso: el renderer se traga los
-      # `warning()` (ver jobs.R). Vara V4.
-      warning(msg, call. = FALSE)
+      # `warning()` (ver jobs.R). Vara V4. El log conserva siempre el mensaje técnico, aunque el aviso lo calle.
+      warning(paste0(msg, " Detalle: ", conditionMessage(cnd)), call. = FALSE)
       .pulso_aviso(msg)
       .pulso_senal_degradado("error_render", msg)
       .plan_canvas_sin_datos()
@@ -186,8 +186,10 @@
 #' Reemplaza 1:1 a los `stop("No se pudo renderizar ...")` historicos.
 #' @keywords internal
 .plan_canvas_render_nulo <- function(...) {
-  msg <- paste0(paste0(...), " La lamina se degrada a canvas 'Sin datos'.")
-  warning(msg, call. = FALSE)
+  # El detalle de quien llama va al aviso sólo si se lee (`.aviso_motivo`); «No se pudo renderizar `icono` en `p_slide_…()`»
+  # se queda en el log.
+  warning(paste0(paste0(...), " La lámina sale con «Sin datos»."), call. = FALSE)
+  msg <- .aviso_en_lamina(paste0("un gráfico no se pudo dibujar y su espacio sale con «Sin datos».", .aviso_motivo(paste0(...))))
   .pulso_aviso(msg)
   .pulso_senal_degradado("render_nulo", msg)
   .plan_canvas_sin_datos()
@@ -199,8 +201,9 @@
 #' sale degradada con warning en vez de matar el deck completo.
 #' @keywords internal
 .plan_elemento_degradado <- function(...) {
-  msg <- paste0(paste0(...), " La lamina se degrada a canvas 'Sin datos'.")
-  warning(msg, call. = FALSE)
+  warning(paste0(paste0(...), " La lámina sale con «Sin datos»."), call. = FALSE)   # el log, con el detalle técnico
+  msg <- .aviso_en_lamina(paste0("un gráfico quedó incompleto en el plan y su espacio sale con «Sin datos».", .aviso_motivo(paste0(...)),
+                                 " Vuelve a elegir su tipo de gráfico en el editor."))
   .pulso_aviso(msg)
   .pulso_senal_degradado("elemento_invalido", msg)
   el <- list(
@@ -223,10 +226,9 @@
   tryCatch(
     impl(el, sufijo_auto = sufijo_auto, formato = formato),
     error = function(cnd) {
-      .pulso_aviso(
-        "No se pudo calcular la base del elemento; la lámina sale sin rótulo de base: ",
-        conditionMessage(cnd)
-      )
+      .pulso_aviso(.aviso_en_lamina(paste0(
+        "no se pudo calcular la base de un gráfico y sale sin rótulo de base.", .aviso_motivo(conditionMessage(cnd))
+      )))
       warning(
         paste0(
           "No se pudo calcular la base del elemento; la lámina sale sin rótulo de base: ",

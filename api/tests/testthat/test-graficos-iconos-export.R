@@ -54,7 +54,9 @@ test_that("slides de poblacion avisan y siguen cuando el icono no existe", {
     out <- .graficos_rebuild_slide_json(slide, icon_registry = list())
   )
   expect_false(is.null(out))
-  expect_true(any(grepl("icono-borrado", avisos, fixed = TRUE)))
+  # Dice qué pasó sin la referencia interna del ícono (A8 B-g, test-avisos-sin-jerga.R).
+  expect_true(any(grepl("ya no está en el catálogo de íconos", avisos, fixed = TRUE)))
+  expect_false(any(grepl("icono-borrado", avisos, fixed = TRUE)))
 })
 
 test_that("slides que requieren icono caen al integrado con aviso accionable", {

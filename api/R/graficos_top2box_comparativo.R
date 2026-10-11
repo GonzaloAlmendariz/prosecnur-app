@@ -164,7 +164,7 @@
   .pulso_aviso(
     "Top 2 Box · comparativo: ninguna clave del histórico coincidió con una fila, ",
     "así que se alineó por ORDEN de declaración. Si tus filas no siguen el orden ",
-    "de `vars`, declara el histórico con la etiqueta de fila tal como aparece."
+    "de las variables, declara el histórico con la etiqueta de fila tal como aparece."
   )
   message(
     "Top 2 Box · comparativo: se alineó por ORDEN de declaración.\n",

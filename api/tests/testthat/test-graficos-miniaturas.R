@@ -482,7 +482,7 @@ test_that("I-N2: la vista previa consolidada lleva el aviso de denominador cero 
   reglas <- .graficos_consolidado_methodology_rules(catalogo)
   fuentes <- list(data_sources = list(estudiantes = f$df, docentes = f$df), inst_sources = list(estudiantes = f$inst, docentes = f$inst))
   del_export <- .graficos_consolidado_denominator_warnings(fuentes, reglas)
-  expect_true(any(grepl("methodology_zero_denominator", del_export, fixed = TRUE)))
+  expect_true(any(grepl("no tiene casos válidos", del_export, fixed = TRUE)))
   slide <- list(id = "c1", tipo = "p_slide_1_grafico", payload = list(titulo = "Región", grafico = list(
     graficador = "p_barras_agrupadas", args = list(var = "estudiantes$region"))))
   comun <- list(plan_slides = list(slide), scope = "consolidated", base = "", data_sources = fuentes$data_sources,
@@ -493,11 +493,11 @@ test_that("I-N2: la vista previa consolidada lleva el aviso de denominador cero 
   raiz <- withr::local_tempdir()
   it <- suppressWarnings(.mini_lote_item(ctx, raiz, .mt_opts(render = FALSE)))
   meta <- .mini_entrada_leer(raiz, it$hash)
-  expect_true(any(grepl("methodology_zero_denominator", meta$avisos, fixed = TRUE)))
+  expect_true(any(grepl("no tiene casos válidos", meta$avisos, fixed = TRUE)))
   expect_identical(it$estado, "sin_datos")                                     # todo excluido: el canvas vacío cuenta
   # Una lámina que no toca la regla no hereda el aviso.
   otra <- slide; otra$payload$grafico$args$var <- "docentes$region"
-  expect_false(any(grepl("methodology_zero_denominator", .graficos_preview_lamina_ctx(comun, otra)$avisos_previos, fixed = TRUE)))
+  expect_false(any(grepl("no tiene casos válidos", .graficos_preview_lamina_ctx(comun, otra)$avisos_previos, fixed = TRUE)))
 })
 
 test_that("M-N1: variable toda NA, NA en los casos filtrados, excluir_opciones total y pesos 0 → sin_datos (sin_respuestas_validas)", {

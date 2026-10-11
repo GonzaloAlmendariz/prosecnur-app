@@ -119,12 +119,12 @@
       )
     }
     slides_r[[i]] <- tryCatch(
-      .graficos_rebuild_slide_json(
+      .aviso_con_lamina(i, .aviso_titulo_payload(slides[[i]]), .graficos_rebuild_slide_json(   # avisos «Lámina i · …»
         slides[[i]],
         slide_registry = slide_registry,
         graficador_registry = graficador_registry,
         icon_registry = icon_registry
-      ),
+      )),
       error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
     )
   }

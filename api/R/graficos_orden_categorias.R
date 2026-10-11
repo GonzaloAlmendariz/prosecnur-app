@@ -200,7 +200,7 @@
   cats <- .goc_categorias(ctx$inst, ctx$var)
   pregunta <- if (is.null(ctx$inst)) ctx$var else .goc_pregunta(ctx$inst, ctx$var)
   if (!is.null(oc$modo_invalido)) {
-    .pulso_aviso(sprintf("“%s”: el orden de categorías «%s» no existe; se usa el del recetario.", pregunta, oc$modo_invalido))
+    .pulso_aviso(sprintf("“%s”: el orden de categorías guardado no existe en esta versión; se usa el del recetario.", pregunta))
   }
   if (!nrow(cats)) return(el)
   modo <- oc$modo
@@ -261,7 +261,9 @@
       # Un fallo al resolver el orden no corta el mazo: el gráfico sale con el orden que traía y el analista lo sabe por el
       # aviso (un export completo con un orden que no pidió es mejor que ninguno; el aviso le dice cuál y por qué).
       slide$slots[[nm]] <- tryCatch(.goc_traducir(el, ctx, presets), error = function(e) {
-        .pulso_aviso(sprintf("“%s”: no se pudo aplicar el orden de categorías (%s); sale en el orden que traía.", ctx$var, conditionMessage(e)))
+        message("orden de categorías de ", ctx$var, ": ", conditionMessage(e))   # el motivo, siempre al log; al aviso si se lee
+        .pulso_aviso(sprintf("«%s»: no se pudo aplicar el orden de categorías%s; sale en el orden que traía.", ctx$var,
+                             .aviso_motivo(conditionMessage(e), " (%s)")))
         el
       })
     }
@@ -280,9 +282,9 @@
   oc <- .graficos_orden_cat_normalizar(args$orden_categorias)
   if (is.null(oc)) return(character())
   graf <- as.character(slot$graficador %||% "")[1]
-  c(if (!is.null(oc$modo_invalido)) sprintf("%s: el orden de categorías «%s» no existe; se usa el del recetario", tag, oc$modo_invalido),
+  c(if (!is.null(oc$modo_invalido)) sprintf("%s: el orden de categorías guardado no existe en esta versión; se usa el del recetario", tag),
     if (graf %in% .GOC_ESCALAS && !identical(oc$modo, "recetario"))
-      sprintf("%s: el orden de categorías no aplica a una escala (%s); sus categorías van en el orden de la escala", tag, graf))
+      sprintf("%s: el orden de categorías no aplica a una escala (%s); sus categorías van en el orden de la escala", tag, .aviso_tipo_grafico(graf)))
 }
 
 # ---- endpoint -----------------------------------------------------------------

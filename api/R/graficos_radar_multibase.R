@@ -506,8 +506,8 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   nuevo <- max(0, floor((minimo - 5) / 5) * 5)
   culpable <- datos[is.finite(datos$valor) & datos$valor == minimo, , drop = FALSE][1, ]
   .pulso_aviso(sprintf(
-    "radar_publicos: el piso del eje baja de %s a %s — «%s» en %s vale %.1f%% y en %s quedaría en el centro.",
-    format(piso), format(nuevo), as.character(culpable$eje), as.character(culpable$grupo),
+    "Radar entre públicos: el eje ahora arranca en %s y no en %s — «%s» en %s vale %.1f%% y en %s quedaría en el centro.",
+    format(nuevo), format(piso), as.character(culpable$eje), as.character(culpable$grupo),
     minimo, format(piso)))
   nuevo
 }
