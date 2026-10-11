@@ -242,7 +242,7 @@ function EstadoGuias({ modelo, disponible, hayRanuras, recetario, tipografia }: 
   modelo: ModeloGuias; disponible: boolean; hayRanuras: boolean; recetario: boolean; tipografia: boolean;
 }) {
   // C5: cada vacío dice de dónde viene. Sin formas es una desconexión, no una lámina vacía.
-  if (!disponible) return <p>Esta vista previa no trae las medidas de los elementos; las guías aparecen cuando el motor las informa.</p>;
+  if (!disponible) return <p>Las guías aparecen cuando el motor termina de dibujar la lámina.</p>;
   const { resumen } = modelo;
   if (!resumen.elementos) return <p>El motor no informó elementos medibles en esta parte, o el filtro los oculta todos.</p>;
   const lineas: string[] = [`${resumen.elementos} ${resumen.elementos === 1 ? "elemento" : "elementos"}, ${resumen.textos} con texto.`];

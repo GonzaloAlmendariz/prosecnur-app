@@ -11,8 +11,9 @@
 #     ni a state.rds, no se exporta al lado del proyecto), con la huella de graficos_miniaturas_hash.R;
 #   - el PPTX es la entrada; el raster (por calidad, partes y renderer) y la miniatura PNG son productos derivados de esa
 #     entrada, de modo que la miniatura del lote y la vista previa de la lámina activa comparten el render.
-# Audiencia: interna del editor. Las guías de depuración (`debug_ph`) se dibujan en la vista previa como hasta hoy; el
-# entregable no pasa por aquí (D17 lo cuida `/ppt`).
+# Audiencia: interna del editor. Las guías de depuración heredadas (`debug_ph`) tampoco se hornean en la vista previa: el
+# visor tiene su capa de guías (F6, «Guías de la lámina»), que se prende y apaga sin redibujar; horneadas, aparecían
+# con todas las guías apagadas y no había cómo quitarlas. El entregable tampoco las lleva (D17, `/ppt`).
 
 # ---- Contexto: todo lo que el render lee ------------------------------------------------------------------------------
 
@@ -113,8 +114,8 @@
     huella_estandar = .mini_huella_estandar(),
     version_paquete = .mini_version_paquete(),
     opciones_motor = .mini_opciones_motor(),
-    # Presets con canvas + guías globales: la vista previa del editor sí dibuja las guías (D17 rige el entregable).
-    presets_json = .enriquecer_presets(cfg$presets %||% list(), cfg$debug_ph),
+    # Presets con canvas y SIN las guías heredadas: las del visor son una capa aparte (ver cabecera).
+    presets_json = .enriquecer_presets(cfg$presets %||% list(), NULL),
     paletas = cfg$paletas %||% list(),
     icon_registry = .graficos_icon_registry(sid, cfg),
     template_pptx = template_pptx,
