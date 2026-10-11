@@ -136,6 +136,7 @@
   --pulso-danger-bg: #fef2f2;
   --pulso-danger-border: #fecaca;
   --pulso-danger-fg: #991b1b;
+  --pulso-danger-solid: #d4321c; /* D13: rojo vivo del botón danger (4,9:1 sobre blanco), distinto del carmesí de Monitoreo */
 
   --pulso-info-bg: rgba(0, 36, 87, 0.04);
   --pulso-info-border: var(--pulso-primary-border);

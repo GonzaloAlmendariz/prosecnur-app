@@ -7,6 +7,11 @@ import {
   type SeccionDetectada,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoField, PulsoFieldRow } from "../../../components/PulsoField";
+import { PulsoInput } from "../../../components/PulsoInput";
+import { PulsoSelect } from "../../../components/PulsoSelect";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { describirCobertura, padresConDummies } from "../coberturaVariable";
 import { useAnaliticaStore, type SeccionConfig } from "../store";
@@ -145,6 +150,116 @@ export function buildDataReviewSectionGroups(
   return groups;
 }
 
+/**
+ * ¿La variable tiene ediciones, confirmadas o en borrador? Es la misma regla
+ * que habilita «Restaurar» en su fila y la que usa el filtro «Solo editadas».
+ */
+export function dataReviewVariableHasEdits(
+  variable: DataReviewVariable,
+  draftVariableLabels: Record<string, string>,
+  draftValueLabels: Record<string, Record<string, string>>,
+  baselineDraft: DataReviewDraft,
+): boolean {
+  const originalLabel = dataReviewEffectiveVariableLabel(variable);
+  const draftLabel = draftVariableLabels[variable.name] ?? originalLabel;
+  const baselineLabel = baselineDraft.variableLabels[variable.name] ?? originalLabel;
+  if (draftLabel !== baselineLabel || baselineLabel !== originalLabel) return true;
+  if (!dataReviewHasEditableOptions(variable)) return false;
+  return variable.opciones.some((option) => {
+    const originalOption = dataReviewEffectiveOptionLabel(option);
+    const draftOption = draftValueLabels[variable.name]?.[option.code] ?? originalOption;
+    const baselineOption = baselineDraft.valueLabels[variable.name]?.[option.code] ?? originalOption;
+    return draftOption !== baselineOption || baselineOption !== originalOption;
+  });
+}
+
+/** Valor del select de sección que no filtra. Radix no admite la cadena vacía. */
+export const DATA_REVIEW_TODAS_LAS_SECCIONES = "__todas";
+
+export type DataReviewFiltro = {
+  texto: string;
+  seccion: string;
+  soloEditadas: boolean;
+};
+
+export const DATA_REVIEW_FILTRO_INICIAL: DataReviewFiltro = {
+  texto: "",
+  seccion: DATA_REVIEW_TODAS_LAS_SECCIONES,
+  soloEditadas: false,
+};
+
+export function dataReviewFiltroActivo(filtro: DataReviewFiltro): boolean {
+  return (
+    filtro.texto.trim() !== "" ||
+    filtro.seccion !== DATA_REVIEW_TODAS_LAS_SECCIONES ||
+    filtro.soloEditadas
+  );
+}
+
+const sinAcentos = (valor: string) =>
+  valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/**
+ * Las variables visibles de cada sección bajo el filtro. No toca los grupos
+ * (sus acciones siguen actuando sobre la sección entera); devuelve, por id,
+ * qué variables se pintan. Una sección elegida que ya no existe no filtra.
+ */
+export function filterDataReviewGroups(
+  groups: DataReviewSectionGroup[],
+  filtro: DataReviewFiltro,
+  labelOf: (variable: DataReviewVariable) => string,
+  isEdited: (variable: DataReviewVariable) => boolean,
+): Array<{ group: DataReviewSectionGroup; visibles: DataReviewVariable[] }> {
+  const texto = sinAcentos(filtro.texto.trim());
+  const seccionExiste = groups.some((group) => group.id === filtro.seccion);
+  return groups
+    .filter((group) => !seccionExiste || group.id === filtro.seccion)
+    .map((group) => ({
+      group,
+      visibles: group.variables.filter((variable) => {
+        if (filtro.soloEditadas && !isEdited(variable)) return false;
+        if (!texto) return true;
+        return [variable.name, labelOf(variable), variable.tipo_xlsform ?? ""]
+          .some((campo) => sinAcentos(campo).includes(texto));
+      }),
+    }))
+    .filter(({ visibles }) => visibles.length > 0);
+}
+
+/**
+ * Lista visible congelada: mientras un input de la tabla tiene foco, las filas
+ * que se pintan son las que estaban a la vista al tomar el foco, aunque la
+ * edición haga que una deje de pasar el filtro («Solo editadas»: volver al
+ * valor original la sacaría bajo el cursor y se perdería el foco). Se resuelve
+ * contra los grupos actuales para pintar siempre los datos frescos.
+ */
+export type DataReviewListaCongelada = Array<{ groupId: string; names: string[] }>;
+
+export function congelarDataReviewVisibles(
+  visibles: Array<{ group: DataReviewSectionGroup; visibles: DataReviewVariable[] }>,
+): DataReviewListaCongelada {
+  return visibles.map(({ group, visibles: vars }) => ({
+    groupId: group.id,
+    names: vars.map((variable) => variable.name),
+  }));
+}
+
+export function resolverDataReviewCongelada(
+  groups: DataReviewSectionGroup[],
+  congelada: DataReviewListaCongelada,
+): Array<{ group: DataReviewSectionGroup; visibles: DataReviewVariable[] }> {
+  const byId = new Map(groups.map((group) => [group.id, group]));
+  return congelada.flatMap(({ groupId, names }) => {
+    const group = byId.get(groupId);
+    if (!group) return [];
+    const byName = new Map(group.variables.map((variable) => [variable.name, variable]));
+    const visibles = names
+      .map((name) => byName.get(name))
+      .filter((variable): variable is DataReviewVariable => Boolean(variable));
+    return visibles.length > 0 ? [{ group, visibles }] : [];
+  });
+}
+
 export function DataReviewPane() {
   const [variables, setVariables] = useState<DataReviewVariable[]>([]);
   const [openOptions, setOpenOptions] = useState<Set<string>>(new Set());
@@ -156,6 +271,8 @@ export function DataReviewPane() {
   const [draftVariableLabels, setDraftVariableLabels] = useState<Record<string, string>>({});
   const [draftValueLabels, setDraftValueLabels] = useState<Record<string, Record<string, string>>>({});
   const [draftError, setDraftError] = useState("");
+  const [filtro, setFiltro] = useState<DataReviewFiltro>(DATA_REVIEW_FILTRO_INICIAL);
+  const [listaCongelada, setListaCongelada] = useState<DataReviewListaCongelada | null>(null);
   const config = useAnaliticaStore((s) => s.config);
   const setSecciones = useAnaliticaStore((s) => s.setSecciones);
   const renameSeccion = useAnaliticaStore((s) => s.renameSeccion);
@@ -262,6 +379,35 @@ export function DataReviewPane() {
   const draftStatus = useMemo(
     () => dataReviewDraftStatus(variables, currentDraft, baselineDraft),
     [variables, currentDraft, baselineDraft],
+  );
+  const filteredGroups = useMemo(
+    () =>
+      filterDataReviewGroups(
+        groups,
+        filtro,
+        (variable) => draftVariableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable),
+        (variable) => dataReviewVariableHasEdits(variable, draftVariableLabels, draftValueLabels, baselineDraft),
+      ),
+    [groups, filtro, draftVariableLabels, draftValueLabels, baselineDraft],
+  );
+  const visibleGroups = useMemo(
+    () => (listaCongelada ? resolverDataReviewCongelada(groups, listaCongelada) : filteredGroups),
+    [groups, listaCongelada, filteredGroups],
+  );
+  const visibleCount = visibleGroups.reduce((sum, item) => sum + item.visibles.length, 0);
+  const filtroActivo = dataReviewFiltroActivo(filtro);
+  const seccionOptions = useMemo(
+    () => [
+      {
+        value: DATA_REVIEW_TODAS_LAS_SECCIONES,
+        label: `Todas las secciones (${groups.length})`,
+      },
+      ...groups.map((group) => ({
+        value: group.id,
+        label: `${group.name} (${group.variables.length})`,
+      })),
+    ],
+    [groups],
   );
   const includedCount = variables.filter((v) => !excluded.has(v.name)).length;
   const excludedCount = Math.max(variables.length - includedCount, 0);
@@ -458,15 +604,70 @@ export function DataReviewPane() {
                 No hay variables preparadas para revisar. Verifica la fuente activa o vuelve a preparar Analítica.
               </div>
             ) : null}
+            {variables.length > 0 ? (
+              <PulsoFieldRow
+                className="pulso-data-review-filtros"
+                role="search"
+                ariaLabel="Filtrar variables"
+                geometryGroup="analitica/datos-filtros"
+              >
+                <PulsoField label="Buscar variable">
+                  <PulsoInput
+                    type="search"
+                    size="sm"
+                    value={filtro.texto}
+                    placeholder={`nombre, etiqueta o tipo · ${variables.length} variables`}
+                    onChange={(e) => {
+                      const texto = e.currentTarget.value;
+                      setFiltro((prev) => ({ ...prev, texto }));
+                    }}
+                  />
+                </PulsoField>
+                <PulsoField label="Sección">
+                  <PulsoSelect
+                    size="sm"
+                    value={filtro.seccion}
+                    options={seccionOptions}
+                    onValueChange={(seccion) => setFiltro((prev) => ({ ...prev, seccion }))}
+                  />
+                </PulsoField>
+                <PulsoField label="Mostrar" className="is-compact">
+                  <PulsoSwitch
+                    label="Solo editadas"
+                    checked={filtro.soloEditadas}
+                    onCheckedChange={(soloEditadas) => setFiltro((prev) => ({ ...prev, soloEditadas }))}
+                  />
+                </PulsoField>
+              </PulsoFieldRow>
+            ) : null}
+            {variables.length > 0 && filtroActivo && visibleCount === 0 ? (
+              <div className="pulso-data-review-empty-note">
+                Ninguna variable coincide con los filtros.{" "}
+                <PulsoButton variant="link" size="sm" onClick={() => setFiltro(DATA_REVIEW_FILTRO_INICIAL)}>
+                  Limpiar filtros
+                </PulsoButton>
+              </div>
+            ) : null}
             <div
               className="pulso-data-review-section-list"
               data-qa-geometry-group="analitica/data-review-sections"
               data-qa-geometry-contract="intrinsic"
+              onFocusCapture={(event) => {
+                if (!(event.target instanceof HTMLInputElement) || listaCongelada) return;
+                setListaCongelada(congelarDataReviewVisibles(filteredGroups));
+              }}
+              onBlurCapture={(event) => {
+                const next = event.relatedTarget;
+                if (next instanceof HTMLInputElement && event.currentTarget.contains(next)) return;
+                setListaCongelada(null);
+              }}
             >
-              {groups.map((group) => (
+              {visibleGroups.map(({ group, visibles }) => (
                 <DataReviewSection
                   key={group.id}
                   group={group}
+                  visibleVariables={visibles}
+                  filtroActivo={filtroActivo}
                   excluded={excluded}
                   padresRepartidos={padresRepartidos}
                   baselineDraft={baselineDraft}
@@ -496,6 +697,8 @@ export function DataReviewPane() {
 
 function DataReviewSection({
   group,
+  visibleVariables,
+  filtroActivo,
   excluded,
   padresRepartidos,
   baselineDraft,
@@ -512,6 +715,10 @@ function DataReviewSection({
   onResetVariable,
 }: {
   group: DataReviewSectionGroup;
+  /** Las variables que pasan el filtro; las acciones de sección usan `group.variables`. */
+  visibleVariables: DataReviewVariable[];
+  /** Con filtro activo, las acciones de sección rotulan su alcance real. */
+  filtroActivo: boolean;
   excluded: Set<string>;
   padresRepartidos: Set<string>;
   baselineDraft: DataReviewDraft;
@@ -532,6 +739,13 @@ function DataReviewSection({
   const includedInSection = group.variables.filter((variable) => !excluded.has(variable.name)).length;
   const allIncluded = includedInSection === group.variables.length;
   const variableNames = group.variables.map((variable) => variable.name);
+  // C5: las acciones de sección actúan sobre TODA la sección, también sobre
+  // las variables que el filtro esconde. Con filtro activo lo dicen.
+  const alcanceOculto = filtroActivo && visibleVariables.length < group.variables.length;
+  const alcance = alcanceOculto ? ` toda la sección · ${group.variables.length}` : "";
+  const alcanceTitle = alcanceOculto
+    ? `Actúa sobre las ${group.variables.length} variables de la sección, incluidas las ${group.variables.length - visibleVariables.length} que el filtro oculta.`
+    : undefined;
 
   useEffect(() => {
     if (editing) setDraft(group.name);
@@ -549,8 +763,10 @@ function DataReviewSection({
         <div className="pulso-data-review-section-copy">
           <div className="pulso-data-review-section-title-row">
             {editing && !group.synthetic ? (
-              <input
+              <PulsoInput
+                size="sm"
                 autoFocus
+                aria-label={`Nombre de la sección ${group.name}`}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={commitSectionName}
@@ -558,7 +774,7 @@ function DataReviewSection({
                   if (e.key === "Enter") commitSectionName();
                   if (e.key === "Escape") setEditing(false);
                 }}
-                className="pulso-data-review-input pulso-data-review-section-input"
+                className="pulso-data-review-section-input"
               />
             ) : (
               <button
@@ -586,16 +802,18 @@ function DataReviewSection({
             className="pulso-ghost"
             onClick={() => onSetSectionIncluded(variableNames, !allIncluded)}
             disabled={group.variables.length === 0}
+            title={alcanceTitle}
           >
-            {allIncluded ? "Excluir variables" : "Incluir variables"}
+            {allIncluded ? "Excluir" : "Incluir"}{alcanceOculto ? alcance : " variables"}
           </button>
           {!group.synthetic ? (
             <button
               type="button"
               className="pulso-ghost"
               onClick={() => onToggleSectionHidden(group.id, variableNames, !group.hidden)}
+              title={alcanceTitle}
             >
-              {group.hidden ? "Mostrar sección" : "Ocultar sección"}
+              {group.hidden ? "Mostrar" : "Ocultar"}{alcanceOculto ? alcance : " sección"}
             </button>
           ) : null}
         </div>
@@ -610,11 +828,9 @@ function DataReviewSection({
         data-qa-geometry-group="analitica/datos-variables"
         data-qa-geometry-contract="intrinsic"
       >
-        {group.variables.map((variable) => {
+        {visibleVariables.map((variable) => {
           const included = !excluded.has(variable.name);
           const draftLabel = draftVariableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable);
-          const baselineLabel = baselineDraft.variableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable);
-          const originalLabel = dataReviewEffectiveVariableLabel(variable);
           const canEditOptions = dataReviewHasEditableOptions(variable);
           const optionsOpen = openOptions.has(variable.name);
           const variableLocked = group.hidden && !group.synthetic;
@@ -626,28 +842,23 @@ function DataReviewSection({
           const typeCaption = isDummyOption
             ? `dummy de ${dummyParent} · ${cobertura.texto}`
             : `${variable.tipo_xlsform || "data"} · ${cobertura.texto}`;
-          const hasOptionDraftChanges = canEditOptions && variable.opciones.some((option) => {
-            const draftOption = draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
-            const baselineOption = baselineDraft.valueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
-            const originalOption = dataReviewEffectiveOptionLabel(option);
-            return draftOption !== baselineOption || baselineOption !== originalOption;
-          });
-          const hasEdits = draftLabel !== baselineLabel || baselineLabel !== originalLabel || Boolean(hasOptionDraftChanges);
+          const hasEdits = dataReviewVariableHasEdits(variable, draftVariableLabels, draftValueLabels, baselineDraft);
           return (
             <div
               key={variable.name}
               className={`pulso-data-review-card${included ? "" : " is-excluded"}${variableLocked ? " is-section-hidden" : ""}`}
             >
               <div className="pulso-data-review-row">
-                <label className="pulso-data-review-include">
-                  <span>{variableLocked ? "Oculta" : "Incluir"}</span>
-                  <input
-                    type="checkbox"
-                    checked={variableLocked ? false : included}
-                    disabled={variableLocked}
-                    onChange={() => onToggleVariable(variable.name)}
-                  />
-                </label>
+                <PulsoSwitch
+                  size="sm"
+                  className="pulso-data-review-incluir"
+                  label={variableLocked ? "Oculta" : "Incluir"}
+                  ariaLabel={`Incluir ${variable.name}`}
+                  checked={variableLocked ? false : included}
+                  disabled={variableLocked}
+                  title={variableLocked ? "La sección está oculta: muéstrala para incluir esta variable." : undefined}
+                  onCheckedChange={() => onToggleVariable(variable.name)}
+                />
                 <div className="pulso-data-review-variable-copy">
                   <code className="pulso-data-review-variable-code">
                     {variable.name}
@@ -683,11 +894,11 @@ function DataReviewSection({
                 </div>
                 <label className="pulso-data-review-label">
                   <span>Etiqueta de pregunta</span>
-                  <input
-                    type="text"
+                  <PulsoInput
+                    size="sm"
                     value={draftLabel}
                     onChange={(e) => onSetVariableLabel(variable.name, e.target.value)}
-                    className={`pulso-data-review-input${draftLabel.trim() ? "" : " is-empty"}`}
+                    invalid={!draftLabel.trim()}
                     aria-label={`Etiqueta de ${variable.name}`}
                   />
                 </label>
@@ -727,7 +938,11 @@ function DataReviewSection({
                         <span>Etiqueta editable</span>
                         <span>Conteo</span>
                       </div>
-                      <div className="pulso-data-review-option-list">
+                      <div
+                        className="pulso-data-review-option-list"
+                        data-qa-geometry-group="analitica/datos-opciones"
+                        data-qa-geometry-contract="equal"
+                      >
                         {variable.opciones.map((option) => {
                           const optionDraft = draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
                           return (
@@ -738,11 +953,11 @@ function DataReviewSection({
                               <code className="pulso-data-review-option-code">
                                 {option.code}
                               </code>
-                              <input
-                                type="text"
+                              <PulsoInput
+                                size="sm"
                                 value={optionDraft}
                                 onChange={(e) => onSetValueLabel(variable.name, option.code, e.target.value)}
-                                className={`pulso-data-review-input${optionDraft.trim() ? "" : " is-empty"}`}
+                                invalid={!optionDraft.trim()}
                                 aria-label={`Etiqueta de ${variable.name} código ${option.code}`}
                               />
                               <span className="pulso-data-review-option-count">

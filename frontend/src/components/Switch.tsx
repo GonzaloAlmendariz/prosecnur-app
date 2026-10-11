@@ -1,3 +1,5 @@
+import { PulsoSwitch } from "./PulsoSwitch";
+
 /**
  * **El interruptor de la casa**, en un componente.
  *
@@ -17,6 +19,10 @@
  *
  * Presentacional y accesible: no guarda estado, y la etiqueta visible va AL
  * LADO, nunca dentro.
+ *
+ * Desde L26 es un adaptador fino de `PulsoSwitch` (el switch del kit, con
+ * variantes chica y chip, etiqueta y `PulsoField`). Se conserva para sus
+ * importadores; el código nuevo usa `PulsoSwitch` directamente.
  */
 export function Switch({
   checked,
@@ -34,17 +40,12 @@ export function Switch({
   id?: string;
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      id={id}
-      aria-checked={checked}
-      aria-label={ariaLabel}
+    <PulsoSwitch
+      checked={checked}
+      onCheckedChange={() => onToggle()}
+      ariaLabel={ariaLabel}
       disabled={disabled}
-      className="pulso-switch"
-      onClick={onToggle}
-    >
-      <span className="pulso-switch-thumb" aria-hidden="true" />
-    </button>
+      id={id}
+    />
   );
 }

@@ -625,7 +625,7 @@
       "frontend/src/features/hojasRuta/HojasRutaPage.tsx": 8994,
       "frontend/src/features/recopiladores/RecopiladoresPage.tsx": 2208,
       "frontend/src/features/recopiladores/recopiladores.css": 3311,
-      "frontend/src/app/tokens.css": 556,
+      "frontend/src/app/tokens.css": 557,
       "api/R/calc_muestra_aulas.R": 4723,
       "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3002,
       "api/R/graficador_dimensiones.R": 5007,

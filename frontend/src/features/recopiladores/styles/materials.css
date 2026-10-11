@@ -69,7 +69,9 @@
   padding: 6px;
 }
 
-.rec-outline button {
+/* K2: solo los botones propios del outline (las filas de bloque). Los
+   PulsoButton de reordenar conservan borde, fondo y sombra del kit. */
+.rec-outline button:not(.pulso-button) {
   align-items: center;
   background: transparent;
   border: 0;
@@ -78,24 +80,25 @@
   cursor: pointer;
   display: flex;
   gap: 8px;
+  justify-content: flex-start;
   padding: 7px;
   text-align: left;
   transition: background-color var(--motion-dur-fast) ease;
   width: 100%;
 }
 
-.rec-outline button.is-selected {
+.rec-outline button:not(.pulso-button).is-selected {
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary-strong);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .rec-outline button:not(.is-selected):hover {
+  .rec-outline button:not(.pulso-button):not(.is-selected):hover {
     background: var(--pulso-surface-2);
   }
 }
 
-.rec-outline button > span {
+.rec-outline button:not(.pulso-button) > span {
   align-items: center;
   background: var(--pulso-surface-2);
   border-radius: var(--pulso-radius-chip);
@@ -105,14 +108,14 @@
   justify-content: center;
 }
 
-.rec-outline button div,
-.rec-outline button strong,
-.rec-outline button small {
+.rec-outline button:not(.pulso-button) div,
+.rec-outline button:not(.pulso-button) strong,
+.rec-outline button:not(.pulso-button) small {
   display: block;
   min-width: 0;
 }
 
-.rec-outline button small {
+.rec-outline button:not(.pulso-button) small {
   color: var(--pulso-text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -134,6 +137,7 @@
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
+  gap: 2px;
 }
 
 .rec-canvas-wrap {

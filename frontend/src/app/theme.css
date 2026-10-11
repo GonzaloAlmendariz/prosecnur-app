@@ -12330,26 +12330,6 @@ h1.pulso-page-title {
   align-items: center;
 }
 
-.pulso-data-review-include {
-  min-height: 42px;
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, #cfd7e6);
-  border-radius: 8px;
-  background: linear-gradient(180deg, #fff, #fbfdff);
-  color: var(--pulso-text);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-  cursor: pointer;
-  transition:
-    background var(--motion-dur-fast) ease,
-    border-color var(--motion-dur-fast) ease,
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-}
-
 .pulso-data-review-variable-list,
 .pulso-data-review-section-list,
 .pulso-data-review-option-list {
@@ -12411,16 +12391,6 @@ h1.pulso-page-title {
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text-soft);
-}
-.pulso-data-review-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 7px 9px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 6px;
-  background: #fff;
-  color: var(--pulso-text);
-  font-size: 12px;
 }
 .pulso-data-review-section-input {
   max-width: 320px;
@@ -12494,10 +12464,6 @@ h1.pulso-page-title {
   .pulso-data-review-option-head,
   .pulso-data-review-option-row {
     grid-template-columns: 1fr;
-  }
-
-  .pulso-data-review-include {
-    min-height: 48px;
   }
 
   .pulso-data-review-options-toggle {

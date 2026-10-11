@@ -1896,12 +1896,11 @@
   opacity: 0.66;
 }
 
-.pulso-data-review-card.is-section-hidden .pulso-data-review-include {
-  cursor: not-allowed;
-}
-
-.pulso-data-review-card.is-section-hidden .pulso-data-review-include input {
-  cursor: not-allowed;
+/* L26: «Incluir» es un switch chico SIN caja. Toda su superficie visible
+   (pista + rótulo) conmuta; no queda un marco alrededor que parezca clicable
+   y no lo sea. La columna se alinea a la izquierda de la fila. */
+.pulso-data-review-incluir {
+  justify-self: start;
 }
 
 .pulso-data-review-section.is-hidden {
@@ -1910,18 +1909,6 @@
 
 .pulso-data-review-section-title:disabled {
   cursor: default;
-}
-
-.pulso-data-review-include:hover {
-  border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
-}
-
-.pulso-data-review-include input {
-  width: var(--pulso-control-check-size);
-  height: var(--pulso-control-check-size);
-  margin: 0;
-  cursor: pointer;
 }
 
 .pulso-data-review-variable-code {
@@ -1947,16 +1934,6 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.35;
-}
-
-.pulso-data-review-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--pulso-primary) 22%, transparent);
-  border-color: var(--pulso-primary-border);
-}
-
-.pulso-data-review-input.is-empty {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
 }
 
 .pulso-data-review-options-toggle:hover {

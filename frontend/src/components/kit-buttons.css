@@ -1,0 +1,155 @@
+/* Reglas de botón del kit (L26) — spec §4 K2–K4 y decisión D13.
+   La base de PulsoButton (alturas, acento del módulo, física de presión)
+   sigue en app/theme.css entre «PulsoButton —» y «/PulsoButton»; aquí se
+   sobreescribe con un nivel más de especificidad (.pulso-button.pulso-button--x)
+   para no depender del orden de las hojas en el bundle. */
+
+/* ---------- D13 · danger ----------
+   Contorno en el rojo vivo --pulso-danger-solid (más puro/anaranjado que el
+   carmesí de Monitoreo, que no se toca). El relleno sólido es solo del botón
+   final de confirmación (`confirm`). */
+.pulso-button.pulso-button--danger {
+  border-color: var(--pulso-danger-solid);
+  background: var(--pulso-surface);
+  color: var(--pulso-danger-solid);
+  box-shadow: none;
+}
+
+.pulso-button.pulso-button--danger:hover:not(:disabled) {
+  border-color: var(--pulso-danger-solid);
+  background: color-mix(in srgb, var(--pulso-danger-solid) 8%, var(--pulso-surface));
+  color: var(--pulso-danger-solid);
+}
+
+.pulso-button.pulso-button--danger.pulso-button--danger-confirm {
+  border-color: var(--pulso-danger-solid);
+  background: var(--pulso-danger-solid);
+  color: var(--pulso-surface);
+  box-shadow: 0 3px 9px color-mix(in srgb, var(--pulso-danger-solid) 22%, transparent);
+}
+
+.pulso-button.pulso-button--danger.pulso-button--danger-confirm:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--pulso-danger-solid) 84%, var(--pulso-text));
+  background: color-mix(in srgb, var(--pulso-danger-solid) 84%, var(--pulso-text));
+  color: var(--pulso-surface);
+}
+
+.pulso-button.pulso-button--danger:focus-visible {
+  outline: 2px solid var(--pulso-danger-solid);
+  outline-offset: 2px;
+  border-color: var(--pulso-danger-solid);
+  box-shadow: none;
+}
+
+/* ---------- K2 · botón de ícono ----------
+   Caja hairline con superficie en reposo; al hover sube el contraste.
+   `data-intent="remove"` enrojece solo al hover. */
+.pulso-button.pulso-button--icon {
+  justify-content: center;
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  box-shadow: var(--pulso-shadow-low);
+  transition:
+    background var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-button.pulso-button--icon:hover:not(:disabled) {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-button.pulso-button--icon[data-intent="remove"]:hover:not(:disabled) {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-button.pulso-button--icon:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* ---------- K3 · botón de texto ----------
+   Sin subrayado; gana caja al hover. Dos vecinos llevan un filete fino. */
+.pulso-button.pulso-button--link {
+  --pulso-button-height: 26px;
+  gap: 4px;
+  padding-inline: 8px;
+  border-color: transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--pulso-button-accent);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  text-decoration: none;
+  box-shadow: none;
+}
+
+.pulso-button.pulso-button--link:hover:not(:disabled) {
+  border-color: var(--pulso-button-accent-border);
+  background: var(--pulso-button-accent-soft);
+  color: var(--pulso-button-accent-strong);
+}
+
+.pulso-button.pulso-button--link:focus-visible {
+  outline: 2px solid var(--pulso-button-accent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.pulso-button.pulso-button--link + .pulso-button.pulso-button--link {
+  position: relative;
+  margin-left: 7px;
+}
+
+.pulso-button.pulso-button--link + .pulso-button.pulso-button--link::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  width: 1px;
+  height: 12px;
+  transform: translateY(-50%);
+  background: var(--pulso-border-strong);
+  pointer-events: none;
+}
+
+/* El subrayado se reserva a la prosa. */
+p .pulso-button.pulso-button--link {
+  height: auto;
+  min-height: 0;
+  padding: 0 2px;
+  border: 0;
+}
+
+p .pulso-button.pulso-button--link:hover:not(:disabled) {
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---------- K4 · navegación ---------- */
+.pulso-button-nav-arrow {
+  flex: none;
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-button.pulso-button--nav:hover:not(:disabled) .pulso-button-nav-arrow {
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-button.pulso-button--icon,
+  .pulso-button-nav-arrow {
+    transition: none;
+  }
+
+  .pulso-button.pulso-button--icon:active:not(:disabled),
+  .pulso-button.pulso-button--nav:hover:not(:disabled) .pulso-button-nav-arrow {
+    transform: none;
+  }
+}
