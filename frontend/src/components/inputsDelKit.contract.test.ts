@@ -37,11 +37,21 @@ import { describe, expect, test } from "vitest";
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Migrados por completo (L26 Analítica › Datos, L27 Cálculo de muestra › Marco). */
+/**
+ * Migrados por completo (L26 Analítica › Datos, L27 Cálculo de muestra › Marco,
+ * Aulas y Salida, y Validación › Roles).
+ */
 const ARCHIVOS_MIGRADOS = [
   "features/analitica/panes/DataReviewPane.tsx",
+  "features/calcMuestra/universidad/aulas/AulasObjetivoTab.tsx",
+  "features/calcMuestra/universidad/aulas/AulasRerandomizacionTab.tsx",
+  "features/calcMuestra/universidad/aulas/DescuentoRepetidosControl.tsx",
+  "features/calcMuestra/universidad/aulas/VariablesBalanceControl.tsx",
   "features/calcMuestra/universidad/criterios/FacultadesExcluidasCard.tsx",
   "features/calcMuestra/universidad/marco/GruposTamanoEditor.tsx",
+  "features/calcMuestra/universidad/salidas/SalidasEntregablesTab.tsx",
+  "features/calcMuestra/universidad/salidas/SalidasResultadosTab.tsx",
+  "features/validacion/components/RolesDeclarados.tsx",
 ] as const;
 
 /** Las primitivas del kit: no son consumidores, no entran al ratchet. */
@@ -54,7 +64,8 @@ const KIT = new Set([
 ]);
 
 /**
- * Casillas por archivo a fecha de 2026-10-11 (L26), 105 en total. Solo baja.
+ * Casillas por archivo a fecha de 2026-10-11 (L27, segunda tanda: Cálculo de
+ * muestra › Aulas/Salida y Validación), 85 en total (105 en L26; ImportSurveyMonkeyDialog bajó a 0 en L8). Solo baja.
  */
 const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/analitica/dimensiones/shared/CombinarVarsPanel.tsx": 1,
@@ -65,12 +76,6 @@ const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/analitica/panes/FrecuenciasPane.tsx": 2,
   "features/analitica/panes/MultibaseTablasPane.tsx": 1,
   "features/analitica/panes/PanelBasePane.tsx": 3,
-  "features/calcMuestra/universidad/aulas/AulasObjetivoTab.tsx": 2,
-  "features/calcMuestra/universidad/aulas/AulasRerandomizacionTab.tsx": 1,
-  "features/calcMuestra/universidad/aulas/DescuentoRepetidosControl.tsx": 1,
-  "features/calcMuestra/universidad/aulas/VariablesBalanceControl.tsx": 1,
-  "features/calcMuestra/universidad/salidas/SalidasEntregablesTab.tsx": 3,
-  "features/calcMuestra/universidad/salidas/SalidasResultadosTab.tsx": 1,
   "features/carga/AcreditacionBatchPanel.tsx": 1,
   "features/carga/BasesPanel.tsx": 8,
   "features/carga/CargaPage.tsx": 1,
@@ -103,16 +108,9 @@ const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/monitoreo/salidas/MonitoreoOutputsWorkbench.tsx": 2,
   "features/recopiladores/AccessSection.tsx": 1,
   "features/recopiladores/MaterialsSection.tsx": 1,
-  "features/validacion/components/FiltroCascada.tsx": 1,
-  "features/validacion/components/InstrumentoOperationalControls.tsx": 1,
-  "features/validacion/components/ReglaEditor.tsx": 4,
-  "features/validacion/components/RolesDeclarados.tsx": 1,
-  "features/validacion/tabs/InstrumentoTab.tsx": 1,
-  "features/validacion/tabs/LimpiezaTab.tsx": 1,
   "features/xlsformEditor/canvas/FocusedWorkspace.tsx": 2,
   "features/xlsformEditor/inspector/BasicTab.tsx": 1,
   "features/xlsformEditor/inspector/MoreTab.tsx": 1,
-  "features/xlsformEditor/shell/ImportSurveyMonkeyDialog.tsx": 2,
   "features/xlsformEditor/shell/MatrizPulsoDialog.tsx": 1,
 };
 

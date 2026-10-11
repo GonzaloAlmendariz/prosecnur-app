@@ -9,6 +9,7 @@ import type {
   CalcMuestraComponente,
   CalcMuestraWorkspace,
 } from "../../../../api/client";
+import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { DistribucionFacultadSexo } from "../../didactica/DistribucionFacultadSexo";
 import { BadgeMotor } from "../../didactica/PasoDidactico";
 import { fmtInt, fmtPct } from "../../sharedCore";
@@ -83,14 +84,14 @@ export function SalidasResultadosTab({
                     <h3>{comp.actor}</h3>
                     {rows.length > 0 && <BadgeMotor estado="validado" />}
                   </div>
-                  <label className="cmv2-report-check">
-                    <input
-                      type="checkbox"
-                      checked={scenario?.incluir_reporte ?? false}
-                      onChange={(e) => toggleReporte(comp.id, e.currentTarget.checked)}
-                    />
-                    Incluir en reporte
-                  </label>
+                  <PulsoSwitch
+                    variant="chip"
+                    className="cmv2-report-check"
+                    label="Incluir en reporte"
+                    ariaLabel={`Incluir ${comp.actor} en el reporte`}
+                    checked={scenario?.incluir_reporte ?? false}
+                    onCheckedChange={(incluir) => toggleReporte(comp.id, incluir)}
+                  />
                 </div>
                 {rows.length === 0 ? (
                   <div className="cmv2-result-empty">Pendiente de cálculo</div>
