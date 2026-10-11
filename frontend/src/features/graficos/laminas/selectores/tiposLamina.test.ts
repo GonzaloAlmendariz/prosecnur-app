@@ -16,7 +16,7 @@ import { composicionDe } from "../../iconos/composicion";
 import { tieneDibujoEstructura } from "../../iconos/dibujosEstructura";
 import { payloadPorDefecto, SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "../../store";
 import { isInsertableSlideType } from "../../v2/timeline/SlidePicker";
-import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, TIPOS_FUERA_DEL_SELECTOR, varianteDe, VARIANTES_LAMINA, variantesDe } from "./tiposLamina";
+import { conVariante, defectoEfectivoDe, INTENCIONES, intencionDe, rotuloRanuras, TIPOS_FUERA_DEL_SELECTOR, varianteDe, VARIANTES_LAMINA, variantesDe } from "./tiposLamina";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const nombres = CATALOGO_LAMINAS.map((s) => s.name);
@@ -132,5 +132,35 @@ describe("variantes", () => {
         .replace(/data-composicion-variante="[^"]*"/, ""));
       expect(new Set(dibujos).size, tipo).toBe(v.opciones.length);
     }
+  });
+});
+
+describe("E2: la composición del índice es la que exporta el motor (hecho 4)", () => {
+  const conFocos = { tipo: "p_slide_indice" as const, payload: { secciones: "A\nB", iconos_focos: "target-arrow\nlightbulb" } };
+
+  it("con iconos_focos y sin composición declarada se ve «Círculos», que es lo que sale", () => {
+    expect(defectoEfectivoDe(conFocos)).toBe("circulos");
+    expect(varianteDe(conFocos)).toBe("circulos");
+    expect(variantesDe("p_slide_indice", undefined, defectoEfectivoDe(conFocos))?.defecto).toBe("circulos");
+    expect(varianteDe({ tipo: "p_slide_indice", payload: {} })).toBe("arcos");
+  });
+
+  it("elegir «Arcos» con focos la declara; elegir la efectiva borra la clave", () => {
+    // Mutante «conVariante compara con el defecto fijo del recetario»: «arcos» borraría la clave y saldría «círculos».
+    const arcos = conVariante(conFocos, "arcos");
+    expect(arcos.meta).toEqual({ composicion: "arcos" });
+    expect(varianteDe({ tipo: "p_slide_indice", payload: arcos })).toBe("arcos");
+    expect(conVariante(conFocos, "circulos").meta).toBeUndefined();
+    expect(varianteDe({ tipo: "p_slide_indice", payload: conVariante(conFocos, "circulos") })).toBe("circulos");
+  });
+
+  it("«focos» declarado se muestra como tal (ruta anterior) y no como una opción del recetario", () => {
+    const focos = { tipo: "p_slide_indice" as const, payload: { meta: { composicion: "focos" } } };
+    expect(varianteDe(focos)).toBe("focos");
+    expect(VARIANTES_LAMINA.p_slide_indice?.opciones.some((o) => o.valor === "focos")).toBe(false);
+  });
+
+  it("un defecto efectivo que no es opción del tipo se ignora", () => {
+    expect(variantesDe("p_slide_portada", undefined, "inventada")?.defecto).toBe("centrada");
   });
 });

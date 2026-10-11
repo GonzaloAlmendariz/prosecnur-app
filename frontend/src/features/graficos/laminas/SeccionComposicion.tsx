@@ -12,8 +12,9 @@ import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { graficosDeLamina } from "./selectores/cambioTipoLamina";
-import { conVariante, rotuloRanuras, varianteDe, variantesDe } from "./selectores/tiposLamina";
+import { conVariante, defectoEfectivoDe, rotuloRanuras, varianteDe, variantesDe } from "./selectores/tiposLamina";
 import "./selectores/selectores.css";
+import "../indice/editorIndice.css";
 import "./seccionComposicion.css";
 
 type Props = {
@@ -29,8 +30,12 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
   const id = useId();
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const graficos = Object.fromEntries(graficosDeLamina(slide).map((g) => [g.slot, g.grafico.graficador]));
-  const variantes = variantesDe(slide.tipo, slidesById[slide.tipo]?.args.find((a) => a.name === "variante")?.choices);
-  const variante = varianteDe(slide);
+  // E2: la opción por defecto es la que el motor usaría para ESTA lámina (en el índice con focos, «círculos») y la
+  // marcada es la que se exporta; nunca otra (`composicionIndiceEfectiva`, hecho 4 del contrato 2b).
+  const defecto = defectoEfectivoDe(slide);
+  const variantes = variantesDe(slide.tipo, slidesById[slide.tipo]?.args.find((a) => a.name === "variante")?.choices, defecto);
+  const variante = varianteDe(slide, defecto);
+  const fueraDeOpciones = variantes !== null && variante !== null && !variantes.opciones.some((o) => o.valor === variante);
   const comp = composicionDe(slide.tipo, slots);
   const uso = comp.base ? ESTANDAR_LAMINAS[comp.base]?.uso : undefined;
 
@@ -69,13 +74,26 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
                 name={`${id}-variante`}
                 value={o.valor}
                 checked={variante === o.valor}
-                onChange={() => setSlideTipo(slide.id, slide.tipo, conVariante(slide, o.valor))}
+                onChange={() => setSlideTipo(slide.id, slide.tipo, conVariante(slide, o.valor, defecto))}
               />
               <ComposicionLamina tipo={slide.tipo} slots={slots} variante={o.valor} />
               <span>{o.label}</span>
               {o.detalle && <small>{o.detalle}</small>}
+              {o.valor === variantes.defecto && (
+                <span className="pulso-f6-chip pulso-f6-sello-recetario" title="La que el motor usa si no eliges otra">Del recetario</span>
+              )}
             </label>
           ))}
+          {fueraDeOpciones && (
+            <p className="pulso-f6-candado pulso-f6-variantes-fuera" role="note">
+              <Lock size={14} aria-hidden="true" />
+              <span>
+                {variante === "focos"
+                  ? "Sale con el estilo de focos de la ruta anterior, que el recetario no dibuja. Elige una composición para pasar al recetario."
+                  : "Sale con una composición que el recetario no ofrece. Elige una para fijarla."}
+              </span>
+            </p>
+          )}
         </fieldset>
       )}
 

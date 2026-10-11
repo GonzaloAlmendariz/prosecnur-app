@@ -8,6 +8,7 @@ import { ChevronRight, History, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Switch } from "../../../components/Switch";
+import { EditorIndice } from "../indice/EditorIndice";
 import { DatosGrafico } from "./DatosGrafico";
 import { SeccionComposicion } from "./SeccionComposicion";
 import { nombreSlot } from "./selectores/etiquetas";
@@ -129,10 +130,10 @@ function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide;
   const { slidesById } = useGraficosRegistry();
   const meta = leerSlideMeta(slide);
   const esIndice = slide.tipo === "p_slide_indice";
+  // Los capítulos, subcapítulos e íconos del índice tienen su editor (A5 rebanada 2b): no son campos de texto sueltos.
   const contenido = useMemo(() => {
     const args = (slidesById[slide.tipo]?.args ?? []).filter((a) => !(esIndice && ARGS_DEL_INDICE.has(a.name)));
-    const c = contenidoDeLamina(args, SLIDE_GRAF_SLOTS[slide.tipo] ?? []);
-    return esIndice ? { ...c, pendientes: ["Capítulos e íconos del índice", ...c.pendientes] } : c;
+    return contenidoDeLamina(args, SLIDE_GRAF_SLOTS[slide.tipo] ?? []);
   }, [slidesById, slide.tipo, esIndice]);
   const payload = slide.payload as Record<string, unknown>;
   const idAnte = useId();
@@ -171,6 +172,8 @@ function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide;
           onCambio={(v) => updatePayload(slide.id, { [c.name]: v })}
         />
       ))}
+
+      {esIndice && <EditorIndice slide={slide} />}
 
       {contenido.pendientes.length > 0 && (
         <p className="pulso-f6-pendiente">

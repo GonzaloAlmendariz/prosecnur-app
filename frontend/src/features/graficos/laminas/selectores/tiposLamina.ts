@@ -10,6 +10,7 @@ import type { Slide, SlideType } from "../../../../api/graficos";
 import { conSlideMeta, leerSlideMeta, type SlideMeta } from "../../slideMeta";
 import { SLIDE_GRAF_SLOTS } from "../../store";
 import { esSlotCifra } from "../../iconos/composicion";
+import { composicionIndiceEfectiva, composicionIndicePorDefecto } from "../../indice/modeloIndice";
 
 export type IntencionLamina = "una" | "dos" | "varias" | "publico" | "cifras" | "mensaje" | "estructura";
 
@@ -156,39 +157,64 @@ export const VARIANTES_LAMINA: Partial<Record<SlideType, VariantesTipo>> = {
   },
 };
 
-/** Las variantes del tipo, con las etiquetas del registro cuando las declara (`choices` del arg). */
+/**
+ * El defecto que el motor aplica a ESTA lámina cuando no se declara variante (E2). Hoy sólo difiere en el índice —con
+ * ajustes de focos el motor elige «círculos» (`.lam_indice_composicion`)—; A6 pasará el del Estilo del cliente.
+ */
+export function defectoEfectivoDe(slide: Pick<Slide, "tipo" | "payload">): string | undefined {
+  if (slide.tipo === "p_slide_indice") return composicionIndicePorDefecto(slide.payload ?? {});
+  return undefined;
+}
+
+function defectoDe(slide: Pick<Slide, "tipo" | "payload">, v: VariantesTipo, defectoEfectivo?: string): string {
+  const d = defectoEfectivo ?? defectoEfectivoDe(slide);
+  return d && v.opciones.some((o) => o.valor === d) ? d : v.defecto;
+}
+
+/**
+ * Las variantes del tipo, con las etiquetas del registro cuando las declara (`choices` del arg). Con `defectoEfectivo`
+ * la opción por defecto es la que el motor usaría para la lámina (la del recetario o, desde A6, la del cliente).
+ */
 export function variantesDe(
   tipo: SlideType,
   choicesRegistro?: ReadonlyArray<{ value: string; label: string }>,
+  defectoEfectivo?: string,
 ): VariantesTipo | null {
   const base = VARIANTES_LAMINA[tipo];
   if (!base) return null;
-  if (!choicesRegistro?.length) return base;
+  const defecto = defectoEfectivo && base.opciones.some((o) => o.valor === defectoEfectivo) ? defectoEfectivo : base.defecto;
+  if (!choicesRegistro?.length) return { ...base, defecto };
   const porValor = new Map(base.opciones.map((o) => [o.valor, o]));
   return {
     ...base,
+    defecto,
     opciones: choicesRegistro.map((c) => ({ valor: c.value, label: c.label, detalle: porValor.get(c.value)?.detalle })),
   };
 }
 
-/** Variante guardada en la lámina (o la de por defecto). `null` si el tipo no tiene variantes. */
-export function varianteDe(slide: Pick<Slide, "tipo" | "payload">): string | null {
+/**
+ * La variante con la que sale la lámina. `null` si el tipo no tiene variantes. En el índice es la composición efectiva
+ * del motor (`composicionIndiceEfectiva`), que puede ser «focos» (ruta anterior) y no estar entre las opciones.
+ */
+export function varianteDe(slide: Pick<Slide, "tipo" | "payload">, defectoEfectivo?: string): string | null {
   const v = VARIANTES_LAMINA[slide.tipo];
   if (!v) return null;
+  if (slide.tipo === "p_slide_indice") return composicionIndiceEfectiva(slide);
   const valor = v.donde.en === "meta"
     ? leerSlideMeta(slide)[v.donde.clave]
     : (slide.payload as Record<string, unknown>)[v.donde.clave];
-  return typeof valor === "string" && v.opciones.some((o) => o.valor === valor) ? valor : v.defecto;
+  return typeof valor === "string" && v.opciones.some((o) => o.valor === valor) ? valor : defectoDe(slide, v, defectoEfectivo);
 }
 
 /**
- * El payload con la variante puesta. En `meta`, la de por defecto borra la clave (el motor ya la usa sin ella); el arg
- * del cierre se escribe siempre, como lo nace `DEFAULT_PAYLOADS`.
+ * El payload con la variante puesta. En `meta`, la de por defecto EFECTIVA borra la clave (el motor ya la usa sin ella);
+ * cualquier otra se declara, también la del recetario cuando el motor elegiría otra (índice con focos → «círculos»: sin
+ * declarar «arcos», se exportaría «círculos»). El arg del cierre se escribe siempre, como lo nace `DEFAULT_PAYLOADS`.
  */
-export function conVariante(slide: Pick<Slide, "tipo" | "payload">, valor: string): Record<string, unknown> {
+export function conVariante(slide: Pick<Slide, "tipo" | "payload">, valor: string, defectoEfectivo?: string): Record<string, unknown> {
   const v = VARIANTES_LAMINA[slide.tipo];
   if (!v) return { ...slide.payload };
   if (v.donde.en === "payload") return { ...slide.payload, [v.donde.clave]: valor };
-  const cambio: Partial<SlideMeta> = { [v.donde.clave]: valor === v.defecto ? undefined : valor };
+  const cambio: Partial<SlideMeta> = { [v.donde.clave]: valor === defectoDe(slide, v, defectoEfectivo) ? undefined : valor };
   return conSlideMeta(slide, cambio).payload;
 }

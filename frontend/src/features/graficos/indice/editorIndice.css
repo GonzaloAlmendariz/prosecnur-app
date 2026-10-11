@@ -1,0 +1,346 @@
+/* Editor del índice (Inspector › Contenido de `p_slide_indice`) y biblioteca de íconos de capítulo (A5 rebanada 2b).
+   El editor es una superficie intrínseca: crece con sus capítulos y el dueño del desplazamiento es el cuerpo del
+   inspector (C4); su vacío se dibuja dentro de su propio marco (C3). La biblioteca es un diálogo con una sola zona que
+   desplaza (las opciones) entre la búsqueda y el pie fijos. */
+
+.pulso-f6-indice {
+  display: grid;
+  gap: var(--pulso-space-2);
+  align-content: start;
+  min-width: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-indice-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-indice-cabeza .pulso-f6-subtitulo {
+  margin: 0;
+}
+
+.pulso-f6-indice-desfase,
+.pulso-f6-indice-avisos li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-indice-desfase {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-indice-desfase svg,
+.pulso-f6-indice-avisos svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.pulso-f6-indice-tomar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-indice-tomar .pulso-f6-boton[aria-disabled="true"] {
+  color: var(--pulso-text-faint);
+  cursor: default;
+}
+
+.pulso-f6-indice-avisos {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-indice-avisos li {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-indice-avisos li.is-bloquea {
+  color: var(--pulso-danger-fg);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-f6-indice-vacio {
+  margin: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-3);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.pulso-f6-indice-lista {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.pulso-f6-indice-capitulo {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-indice-capitulo:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-indice-fila {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-indice-numero {
+  min-width: 18px;
+  color: var(--module-accent);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: center;
+}
+
+.pulso-f6-indice-icono {
+  display: inline-grid;
+  place-items: center;
+  width: var(--pulso-control-height-md);
+  height: var(--pulso-control-height-md);
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pulso-f6-indice-icono img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.pulso-f6-indice-icono:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-indice-subs {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-left: calc(18px + var(--pulso-space-1));
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-indice-anadir {
+  justify-self: start;
+}
+
+/* ---- Biblioteca de íconos (panel=iconos) ---------------------------------------------------------------------- */
+
+.pulso-f6-selector.pulso-f6-iconos {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(760px, calc(100vw - var(--pulso-space-7)));
+  height: min(640px, calc(100vh - var(--pulso-space-7)));
+}
+
+.pulso-f6-iconos-cuerpo {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  min-height: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4) 0;
+}
+
+.pulso-f6-iconos-buscar {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-iconos-opciones {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 var(--pulso-space-3);
+  border: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pulso-f6-iconos-especiales {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-iconos-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-icono-opcion {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  height: 88px;
+  padding: var(--pulso-space-2) var(--pulso-space-1);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  cursor: pointer;
+}
+
+.pulso-f6-icono-opcion.is-especial {
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-items: start;
+  align-items: center;
+  height: auto;
+  min-height: 56px;
+  padding: var(--pulso-space-2);
+}
+
+.pulso-f6-icono-opcion:has(input:checked) {
+  border-color: var(--module-accent);
+  box-shadow: inset 0 0 0 1px var(--module-accent);
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-icono-opcion:has(input:focus-visible) {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-iconos-opciones:disabled .pulso-f6-icono-opcion {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pulso-f6-icono-muestra {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-icono-muestra img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pulso-f6-icono-nombre {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-f6-icono-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.pulso-f6-icono-texto small {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-iconos-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: var(--pulso-space-4) 0;
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.pulso-f6-iconos-estado.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-f6-iconos-pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+/* Sello «Del recetario» de la opción por defecto en Composición (E2). */
+.pulso-f6-sello-recetario {
+  align-self: flex-start;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulso-f6-icono-opcion,
+  .pulso-f6-indice-icono {
+    transition:
+      border-color var(--motion-dur-press) var(--motion-ease-out),
+      background-color var(--motion-dur-press) var(--motion-ease-out),
+      box-shadow var(--motion-dur-press) var(--motion-ease-out);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-icono-opcion:hover,
+  .pulso-f6-indice-icono:hover {
+    border-color: var(--module-accent-border);
+  }
+}
+
+.pulso-f6-variantes-fuera {
+  grid-column: 1 / -1;
+}
