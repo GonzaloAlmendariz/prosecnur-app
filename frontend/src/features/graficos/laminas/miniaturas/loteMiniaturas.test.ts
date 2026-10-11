@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { normalizeMiniaturasLote, type MiniaturasLote } from "../../../../api/graficosMiniaturas";
 import {
-  avanceLote, avisoVacios, fallarLote, fusionarLote, laminasAPedir, marcarPedidas, mensajeLegible, MENSAJE_INTERRUMPIDA, olvidarPendientes,
+  agregarVigente, avanceLote, avisoVacios, fallarLote, fusionarLote, marcarPedidas, MAX_LOTES_SIMULTANEOS, mensajeLegible, MENSAJE_INTERRUMPIDA,
+  olvidarPendientes, planPedido,
   type Entradas, type LoteVigente,
 } from "./loteMiniaturas";
 
@@ -13,34 +14,71 @@ function lote(status: MiniaturasLote["status"], laminas: Array<Record<string, un
 }
 const ok = (id: string) => ({ slide_id: id, estado: "ok", miniatura: { file_id: `f-${id}`, url: `/api/files/f-${id}/download` } });
 
-describe("laminasAPedir", () => {
+describe("planPedido", () => {
   const laminas = [L("a"), L("b"), L("c")];
+  const claves = (ls: Array<{ id: string; clave: string }>) => Object.fromEntries(ls.map((l) => [l.id, l.clave]));
 
   it("sin entradas pide todas, en orden", () => {
-    expect(laminasAPedir(laminas, {}, { loteCorriendo: false })).toEqual(laminas);
+    expect(planPedido(laminas, {}, { lotesCorriendo: 0 })).toEqual({ laminas, reemplazar: true });
   });
 
-  it("al editar una lámina pide sólo ésa más las pendientes del lote que va a reemplazar", () => {
+  it("al editar reemplaza y arrastra UNA vez las pendientes de los lotes que cancela", () => {
     let e = marcarPedidas({}, laminas);
-    e = fusionarLote(e, lote("running", [ok("a")]), { loteId: "l1", jobId: "j1", claves: Object.fromEntries(laminas.map((l) => [l.id, l.clave])) }, src);
+    e = fusionarLote(e, lote("running", [ok("a")]), { loteId: "l1", jobId: "j1", claves: claves(laminas) }, src);
     const editado = [L("a", "a@2"), L("b"), L("c")];
-    expect(laminasAPedir(editado, e, { loteCorriendo: true })).toEqual([L("a", "a@2"), L("b"), L("c")]);
+    expect(planPedido(editado, e, { lotesCorriendo: 1 })).toEqual({ laminas: [L("a", "a@2"), L("b"), L("c")], reemplazar: true });
     // Si la editada es una ya resuelta y no hay pendientes, sólo viaja ésa.
-    const resueltas = fusionarLote(e, lote("done", [ok("a"), ok("b"), ok("c")]), { loteId: "l1", jobId: "j1", claves: { a: "a@1", b: "b@1", c: "c@1" } }, src);
-    expect(laminasAPedir([L("a"), L("b", "b@2"), L("c")], resueltas, { loteCorriendo: false })).toEqual([L("b", "b@2")]);
+    const resueltas = fusionarLote(e, lote("done", [ok("a"), ok("b"), ok("c")]), { loteId: "l1", jobId: "j1", claves: claves(laminas) }, src);
+    expect(planPedido([L("a"), L("b", "b@2"), L("c")], resueltas, { lotesCorriendo: 0 })).toEqual({ laminas: [L("b", "b@2")], reemplazar: true });
   });
 
   it("sin cambios y con lote corriendo no pide nada; sin lote, retoma las pendientes", () => {
     const e = marcarPedidas({}, laminas);
-    expect(laminasAPedir(laminas, e, { loteCorriendo: true })).toEqual([]);
-    expect(laminasAPedir(laminas, e, { loteCorriendo: false })).toEqual(laminas);
+    expect(planPedido(laminas, e, { lotesCorriendo: 1 })).toBeNull();
+    expect(planPedido(laminas, e, { lotesCorriendo: 0 })).toEqual({ laminas, reemplazar: true });
   });
 
-  it("los errores no se reintentan solos, sí al forzar o al editar", () => {
-    const e = fallarLote(marcarPedidas({}, laminas), { claves: { a: "a@1", b: "b@1", c: "c@1" } }, "x");
-    expect(laminasAPedir(laminas, e, { loteCorriendo: false })).toEqual([]);
-    expect(laminasAPedir(laminas, e, { loteCorriendo: false, forzar: new Set(["b"]) })).toEqual([L("b")]);
-    expect(laminasAPedir([L("a"), L("b"), L("c", "c@2")], e, { loteCorriendo: false })).toEqual([L("c", "c@2")]);
+  describe("al desplazarse con un lote en curso (Vista general)", () => {
+    // a, b pedidas por el lote l1 (a ya llegó, b a medio dibujar); c y d recién vistas.
+    const enCurso = fusionarLote(marcarPedidas({}, [L("a"), L("b")]), lote("running", [ok("a")]), { loteId: "l1", jobId: "j1", claves: claves([L("a"), L("b")]) }, src);
+    const visibles = [L("a"), L("b"), L("c"), L("d")];
+
+    it("no vuelve a pedir lo ya pedido ni lo resuelto", () => {
+      const plan = planPedido(visibles, enCurso, { lotesCorriendo: 1 });
+      expect(plan?.laminas.map((l) => l.id)).toEqual(["c", "d"]);
+    });
+
+    it("no cancela el lote en curso", () => {
+      expect(planPedido(visibles, enCurso, { lotesCorriendo: 1 })?.reemplazar).toBe(false);
+    });
+
+    it("no pierde ninguna lámina visible sin pedir", () => {
+      const plan = planPedido(visibles, enCurso, { lotesCorriendo: 1 });
+      const pedidasOVivas = new Set([...Object.keys(enCurso), ...(plan?.laminas.map((l) => l.id) ?? [])]);
+      expect(visibles.every((l) => pedidasOVivas.has(l.id))).toBe(true);
+    });
+
+    it("con el tope de lotes alcanzado espera, y al liberarse uno pide las nuevas", () => {
+      expect(planPedido(visibles, enCurso, { lotesCorriendo: MAX_LOTES_SIMULTANEOS })).toBeNull();
+      expect(planPedido(visibles, enCurso, { lotesCorriendo: MAX_LOTES_SIMULTANEOS - 1 })).toEqual({ laminas: [L("c"), L("d")], reemplazar: false });
+    });
+  });
+
+  it("los errores no se reintentan solos; «Reintentar» va como nueva (no cancela), editar sí reemplaza", () => {
+    const e = fallarLote(marcarPedidas({}, laminas), { claves: claves(laminas) }, "x");
+    expect(planPedido(laminas, e, { lotesCorriendo: 0 })).toBeNull();
+    expect(planPedido(laminas, e, { lotesCorriendo: 0, forzar: new Set(["b"]) })).toEqual({ laminas: [L("b")], reemplazar: true });
+    expect(planPedido(laminas, e, { lotesCorriendo: 1, forzar: new Set(["b"]) })).toEqual({ laminas: [L("b")], reemplazar: false });
+    expect(planPedido([L("a"), L("b"), L("c", "c@2")], e, { lotesCorriendo: 1 })).toEqual({ laminas: [L("c", "c@2")], reemplazar: true });
+  });
+});
+
+describe("agregarVigente", () => {
+  it("une las claves de los lotes vivos; sin lotes, null", () => {
+    expect(agregarVigente([])).toBeNull();
+    const l1: LoteVigente = { loteId: "l1", jobId: "j1", claves: { a: "a@1" } };
+    expect(agregarVigente([l1])).toBe(l1);
+    expect(agregarVigente([l1, { loteId: "l2", jobId: "j2", claves: { c: "c@1" } }])).toEqual({ loteId: "l2", jobId: "j2", claves: { a: "a@1", c: "c@1" } });
   });
 });
 

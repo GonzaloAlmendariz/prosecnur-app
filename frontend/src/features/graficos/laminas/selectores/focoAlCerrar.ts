@@ -1,5 +1,5 @@
 // Adónde vuelve el foco al cerrar «¿Qué lámina?» o «¿Qué gráfico?» cuando nadie lo abrió con un clic (se llegó por
-// enlace: `?panel=tipo-lamina&foco=l-09`). Sin esto caía en el ancla oculta «Pestaña Láminas» (verificador de F6.2):
+// enlace: `?panel=tipo-lamina&foco=<slide.id>`). Sin esto caía en el ancla oculta «Pestaña Láminas» (verificador de F6.2):
 // el destino es la ranura del foco, si está a la vista, y si no la lámina del foco (su lienzo, que es enfocable).
 // Si el selector sí se abrió con un clic, manda quien lo abrió (`useLibraryDialogA11y`).
 

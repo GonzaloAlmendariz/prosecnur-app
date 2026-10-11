@@ -35,7 +35,7 @@ const ARGS_DEL_INDICE = new Set(["secciones", "subtemas", "subindices", "iconos_
 type Props = {
   slide: Slide;
   lamina: LaminaEnEstructura;
-  /** Ranura seleccionada (1-based) desde `foco=l-NN:gK`. */
+  /** Ranura seleccionada (1-based) desde `foco=<slide.id>:gK`. */
   ranura: number | null;
   onRanura: (ranura: number | null) => void;
   visor: LaminaVisor | null;

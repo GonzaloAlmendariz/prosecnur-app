@@ -4,8 +4,15 @@
 // Cada lámina tiene una entrada con la CLAVE con la que se pidió (lámina + antetítulo + estilo global + alcance, la misma
 // que usa la vista previa). Reglas:
 //  - Se piden las láminas sin entrada o cuya clave cambió (edición): el backend decide por huella si re-renderiza.
-//  - Un lote nuevo reemplaza al anterior (`reemplazar = true` cancela el job viejo); por eso el pedido nuevo arrastra las
-//    láminas que el anterior dejó pendientes — si no, quedarían en esqueleto para siempre. Las ya resueltas no viajan.
+//  - Pueden correr varios lotes a la vez (hasta `MAX_LOTES_SIMULTANEOS`). Una lámina NUEVA (sin entrada: la Vista general
+//    la acaba de ver al desplazarse) va en un lote propio con `reemplazar = false`: NO cancela el lote en curso ni vuelve
+//    a pedir lo que ése ya tiene pendiente (cancelarlo tiraba la lámina a medio dibujar y obligaba a otro arranque del
+//    worker, ~40 s en la nube). En el tope, espera a que uno termine.
+//  - Un «Reintentar» cuenta como lámina nueva (la reintentada no está en ningún lote vivo).
+//  - Una EDICIÓN (clave cambiada) sí reemplaza (`reemplazar = true`, contrato §6.4): el backend
+//    cancela TODOS los lotes de miniaturas de la sesión, así que el pedido arrastra una sola vez las pendientes de todos
+//    — si no, quedarían en esqueleto para siempre. Las ya resueltas no viajan y lo ya dibujado por el lote cancelado está
+//    en la caché del backend (vuelve al instante).
 //  - Un estado del lote sólo actualiza la entrada si la clave con que ESE lote pidió la lámina sigue siendo la vigente:
 //    un lote viejo nunca pisa una lámina editada después.
 //  - Cuando el lote vigente termina (done/error/cancelled), lo que siga pendiente pasa a error reintentable.
@@ -36,22 +43,54 @@ export type LoteVigente = { loteId: string; jobId: string; claves: Record<string
 
 export const MENSAJE_INTERRUMPIDA = "La miniatura no llegó a dibujarse.";
 
+/** Lotes de miniaturas que pueden correr a la vez (cada uno es un worker `callr`). */
+export const MAX_LOTES_SIMULTANEOS = 2;
+
+/** Pedido a lanzar: qué láminas, en orden, y si reemplaza (cancela) los lotes en curso. */
+export type PlanPedido = { laminas: LaminaClave[]; reemplazar: boolean };
+
 /**
- * Láminas a pedir ahora, en este orden: primero las cambiadas (o sin entrada, o las forzadas por «Reintentar»), luego —
- * sólo si hay alguna de ésas o no hay lote corriendo— las que siguen pendientes. Vacío = no hace falta lote.
+ * Qué pedir ahora. `lotesCorriendo`: lotes vivos de esta tira/vista. Reglas (cabecera del archivo):
+ *  - edición → reemplaza: [editadas, nuevas, pendientes de los lotes que cancela];
+ *  - sólo nuevas → lote aparte sin reemplazar, sólo con las nuevas (las pendientes ya están en un lote vivo); con el tope
+ *    de lotes alcanzado, espera (null);
+ *  - sin lote vivo → retoma también las pendientes huérfanas.
+ * null = no hace falta lote ahora.
  */
-export function laminasAPedir(laminas: readonly LaminaClave[], entradas: Entradas, opciones: { loteCorriendo: boolean; forzar?: ReadonlySet<string> }): LaminaClave[] {
+export function planPedido(
+  laminas: readonly LaminaClave[],
+  entradas: Entradas,
+  opciones: { lotesCorriendo: number; forzar?: ReadonlySet<string>; maxSimultaneos?: number },
+): PlanPedido | null {
   const forzar = opciones.forzar ?? new Set<string>();
-  const cambiadas = laminas.filter((l) => {
+  const max = opciones.maxSimultaneos ?? MAX_LOTES_SIMULTANEOS;
+  const editadas: LaminaClave[] = [];
+  const nuevas: LaminaClave[] = [];
+  const pendientes: LaminaClave[] = [];
+  for (const l of laminas) {
     const e = entradas[l.id];
-    return !e || e.clave !== l.clave || forzar.has(l.id);
-  });
-  const pendientes = laminas.filter((l) => {
-    const e = entradas[l.id];
-    return !!e && e.clave === l.clave && e.estado === "pendiente" && !forzar.has(l.id);
-  });
-  if (!cambiadas.length && (opciones.loteCorriendo || !pendientes.length)) return [];
-  return [...cambiadas, ...pendientes];
+    if (e && e.clave !== l.clave) editadas.push(l);
+    // «Reintentar» de una lámina resuelta o en error: no está en ningún lote vivo, así que va como nueva.
+    else if (!e || (forzar.has(l.id) && e.estado !== "pendiente")) nuevas.push(l);
+    else if (e.estado === "pendiente") pendientes.push(l);
+  }
+  const corriendo = opciones.lotesCorriendo > 0;
+  if (editadas.length) return { laminas: [...editadas, ...nuevas, ...pendientes], reemplazar: true };
+  if (!corriendo) {
+    const todas = [...nuevas, ...pendientes];
+    // Sin lote propio vivo, `reemplazar` sólo limpia restos de la sesión: no hay progreso nuestro que perder.
+    return todas.length ? { laminas: todas, reemplazar: true } : null;
+  }
+  if (!nuevas.length || opciones.lotesCorriendo >= max) return null;
+  return { laminas: nuevas, reemplazar: false };
+}
+
+/** Lotes vivos vistos como uno (lo que leen el anuncio y el avance de la tira): unión de claves; id/job del último. */
+export function agregarVigente(lotes: readonly LoteVigente[]): LoteVigente | null {
+  if (!lotes.length) return null;
+  if (lotes.length === 1) return lotes[0];
+  const ultimo = lotes[lotes.length - 1];
+  return { loteId: ultimo.loteId, jobId: ultimo.jobId, claves: Object.assign({}, ...lotes.map((l) => l.claves)) };
 }
 
 /** Marca como pendientes las láminas recién pedidas, conservando su última imagen como «anterior». */
@@ -128,7 +167,7 @@ export function fallarLote(entradas: Entradas, vigente: LoteVigente | { claves: 
   return sig ?? entradas;
 }
 
-/** Avance del lote vigente para la línea de estado de la tira. */
+/** Avance del lote vigente (o de la unión de los vivos, `agregarVigente`) para la línea de estado de la tira. */
 export function avanceLote(entradas: Entradas, vigente: LoteVigente | null): { listas: number; total: number } | null {
   if (!vigente) return null;
   const ids = Object.keys(vigente.claves);

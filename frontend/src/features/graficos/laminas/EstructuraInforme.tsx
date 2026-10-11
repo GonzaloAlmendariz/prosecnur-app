@@ -1,5 +1,5 @@
 // Columna izquierda de la pestaña Láminas: el informe como documento (F6.1; dirección F6 §4.1 «Estructura»).
-// Sólo lectura en esta parte: seleccionar escribe `foco=l-NN`. Insertar, reordenar y arrastrar llegan en la parte 2;
+// Sólo lectura en esta parte: seleccionar escribe `foco=<slide.id>` (`../focoLamina.ts`). Insertar, reordenar y arrastrar llegan en la parte 2;
 // mientras tanto siguen en el Editor anterior.
 
 import { useEffect, useMemo, useRef, type ReactNode } from "react";

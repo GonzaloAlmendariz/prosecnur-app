@@ -1,5 +1,5 @@
 // Ranuras seleccionables sobre la lámina rasterizada (F6.1, parte 2): cada gráfico de la lámina es un botón encima de
-// su zona; seleccionarlo escribe `foco=l-NN:gK` y abre su tarjeta en el inspector. La geometría es la de la plantilla
+// su zona; seleccionarlo escribe `foco=<slide.id>:gK` y abre su tarjeta en el inspector. La geometría es la de la plantilla
 // (composición efectiva), así que el marco es aproximado al dibujo nativo; sirve para elegir, no para medir. El doble
 // clic abre «¿Qué gráfico?» para esa ranura (dirección F6 §4.1); el teclado llega al mismo selector desde su tarjeta.
 

@@ -1,5 +1,5 @@
 // Panel «¿Qué gráfico?» (`panel=tipo-grafico`; dirección F6 §4.4). La ranura que se llena la nombra el foco
-// (`foco=l-07:g2`). Izquierda, las siete familias; centro, los gráficos de la familia con su glifo; derecha, el
+// (`foco=<slide.id>:g2`). Izquierda, las siete familias; centro, los gráficos de la familia con su glifo; derecha, el
 // detalle. Usar un gráfico conserva los argumentos compatibles del anterior (`compatibleGraficadorRef`).
 
 import { useId, useMemo, useRef } from "react";
