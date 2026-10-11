@@ -46,8 +46,12 @@ export function TarjetaTipoLamina({
         <ComposicionLamina tipo={tipo} slots={SLIDE_GRAF_SLOTS[tipo] ?? []} graficos={graficos} variante={variante} />
       </span>
       <span className="pulso-f6-tarjeta-nombre">{nombre}</span>
-      <span className="pulso-f6-tarjeta-meta">{meta}</span>
-      <span className="pulso-f6-tarjeta-meta">{uso}</span>
+      {/* Dos renglones independientes (cuántos gráficos admite · para qué se usa): cada uno mide su línea, sin heredar
+          el alto del otro (C1 intrínseco). El marco de la tarjeta lo fija la grilla, no estos renglones. */}
+      <span className="pulso-f6-tarjeta-metas" data-qa-geometry-group="graficos/f6-tarjeta-lamina-meta" data-qa-geometry-contract="intrinsic">
+        <span className="pulso-f6-tarjeta-meta" data-qa-geometry-member>{meta}</span>
+        <span className="pulso-f6-tarjeta-meta" data-qa-geometry-member>{uso}</span>
+      </span>
       {(actual || sobrantes > 0) && (
         <span className="pulso-f6-tarjeta-chips">
           {actual && <span className="pulso-f6-chip is-actual">Actual</span>}

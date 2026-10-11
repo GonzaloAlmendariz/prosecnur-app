@@ -8,12 +8,15 @@ import { AlertTriangle, ArrowDown, ArrowUp, GripVertical, Loader2, RefreshCw } f
 import { Switch } from "../../../components/Switch";
 import type { GraficosCategorias } from "../../../api/graficos";
 import {
+  ATRIBUTO_ACCION_ORDEN,
+  categoriasSinRespuestas,
+  enfocarTrasMover,
   leerOrden,
   listaDesdeMostrado,
   listaPersonalizada,
   ordenMostrado,
-  botonTrasMover,
   mover,
+  NO_SE_DIBUJA,
   ordenAGuardar,
   rotuloRecetario,
   tieneOrdenHeredado,
@@ -106,6 +109,7 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
 
 function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCategorias; lista: string[]; invertido: boolean; onLista: (l: string[]) => void }) {
   const etiqueta = new Map(datos.categorias.map((c) => [c.codigo, c.etiqueta]));
+  const sinRespuestas = categoriasSinRespuestas(datos);
   const items = useRef(new Map<string, HTMLLIElement>());
   const [arrastrado, setArrastrado] = useState<number | null>(null);
   const [anuncio, setAnuncio] = useState("");
@@ -122,10 +126,8 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
     requestAnimationFrame(() => {
       const item = items.current.get(codigo);
       if (!item) return;
-      if (enfocar === "item") { item.focus(); return; }
-      const accion = botonTrasMover(enfocar, hasta, lista.length);
-      const boton = accion ? item.querySelector<HTMLButtonElement>(`button[data-orden-accion="${accion}"]`) : null;
-      (boton ?? item).focus();
+      if (enfocar === "item") item.focus();
+      else enfocarTrasMover(item, enfocar, hasta, lista.length);
     });
   };
   const onTecla = (i: number) => (e: KeyboardEvent<HTMLLIElement>) => {
@@ -150,14 +152,15 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
         data-qa-geometry-group="graficos/f6-orden-lista" data-qa-geometry-contract="intrinsic">
         {lista.map((codigo, i) => {
           const texto = etiqueta.get(codigo) ?? codigo;
+          const vacia = sinRespuestas.has(codigo);
           return (
             <li
               key={codigo}
               ref={(el) => { if (el) items.current.set(codigo, el); else items.current.delete(codigo); }}
-              className={`pulso-f6-orden-item${arrastrado === i ? " is-arrastrado" : ""}`}
+              className={`pulso-f6-orden-item${arrastrado === i ? " is-arrastrado" : ""}${vacia ? " is-sin-respuestas" : ""}`}
               tabIndex={0}
               draggable
-              aria-label={`${i + 1}. ${texto}`}
+              aria-label={`${i + 1}. ${texto}${vacia ? `. ${NO_SE_DIBUJA}` : ""}`}
               onKeyDown={onTecla(i)}
               onDragStart={(e) => { setArrastrado(i); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", codigo); }}
               onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
@@ -166,11 +169,14 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
             >
               <GripVertical size={14} aria-hidden="true" className="pulso-f6-orden-asa" />
               <span className="pulso-f6-orden-posicion" aria-hidden="true">{i + 1}</span>
-              <span className="pulso-f6-orden-etiqueta">{texto}</span>
-              <button type="button" className="pulso-f6-icono-boton" data-orden-accion="subir" aria-label={`Subir «${texto}»`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
+              <span className="pulso-f6-orden-etiqueta">
+                {texto}
+                {vacia && <span className="pulso-f6-orden-sin-respuestas" aria-hidden="true">{NO_SE_DIBUJA}</span>}
+              </span>
+              <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }} aria-label={`Subir «${texto}»`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
                 <ArrowUp size={14} aria-hidden="true" />
               </button>
-              <button type="button" className="pulso-f6-icono-boton" data-orden-accion="bajar" aria-label={`Bajar «${texto}»`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, "bajar")}>
+              <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "bajar" }} aria-label={`Bajar «${texto}»`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, "bajar")}>
                 <ArrowDown size={14} aria-hidden="true" />
               </button>
             </li>

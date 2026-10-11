@@ -269,6 +269,13 @@
   white-space: nowrap;
 }
 
+.pulso-f6-tarjeta-metas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .pulso-f6-tarjeta-meta {
   overflow: hidden;
   color: var(--pulso-text-faint);

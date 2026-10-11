@@ -4,6 +4,7 @@
 // clic abre «¿Qué gráfico?» para esa ranura (dirección F6 §4.1); el teclado llega al mismo selector desde su tarjeta.
 
 import type { RanuraSobreLamina } from "./ranurasLamina";
+import { ATRIBUTO_RANURA } from "./selectores/focoAlCerrar";
 
 type Props = {
   ranuras: readonly RanuraSobreLamina[];
@@ -34,6 +35,7 @@ export function RanurasSobreLamina({ ranuras, activa, nombre, onRanura, onCambia
             }}
             aria-label={etiqueta}
             aria-pressed={activa === r.k}
+            {...{ [ATRIBUTO_RANURA]: r.k }}
             onClick={() => onRanura(r.k)}
             onDoubleClick={() => onCambiar(r.k)}
           >
