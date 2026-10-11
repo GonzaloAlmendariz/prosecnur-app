@@ -6,7 +6,9 @@
 // resuelve con tokens `--pulso-*`.
 
 type Tono = "p" | "a" | "e1" | "e2" | "e3" | "e4" | "n" | "v";
-type DibujoGlifo = () => JSX.Element;
+/** Lo que el dibujo puede reflejar del gráfico real (la maqueta de la lámina); sin opciones, el dibujo del catálogo. */
+export type OpcionesGlifo = { ttb?: boolean; btb?: boolean };
+type DibujoGlifo = (o?: OpcionesGlifo) => JSX.Element;
 
 export const GLIFO = { w: 160, h: 100 } as const;
 
@@ -173,11 +175,18 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
     );
   },
   // Escala por premisa, de la más intensa a SIN INF, con su columna Top Two Box (p78).
-  p_barras_multiapiladas: () => {
+  // Con opciones (maqueta), la columna Top Two Box sólo si el gráfico la lleva, y la Bottom Two Box a su lado.
+  p_barras_multiapiladas: (o) => {
     const filas = [[30, 24, 14, 10, 6], [22, 26, 20, 10, 6], [36, 20, 14, 8, 6], [18, 22, 24, 14, 6]];
+    const ttb = o?.ttb ?? true;
+    const btb = ttb && !!o?.btb;
+    // Ancho para las barras: sin columnas llegan al borde; cada columna resta 24.
+    const fin = 149 - (ttb ? 24 : 0) - (btb ? 24 : 0);
+    const escala = (fin - 40) / 84;
     return (
       <>
-        <rect x={129} y={10} width={20} height={80} rx={2} className="pulso-glifo__ttb" />
+        {btb && <rect x={fin + 4} y={10} width={20} height={80} rx={2} className="pulso-glifo__btb" />}
+        {ttb && <rect x={129} y={10} width={20} height={80} rx={2} className="pulso-glifo__ttb" />}
         {filas.map((seg, i) => {
           const y = 14 + i * 18;
           let x = 40;
@@ -185,11 +194,12 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
             <g key={y}>
               <Rotulo x={12} y={y + 4} w={22} />
               {seg.map((w, j) => {
-                const b = <Barra key={j} x={x} y={y} w={w - 0.8} h={11} t={ESCALA[j]} rx={0.5} />;
-                x += w;
+                const b = <Barra key={j} x={x} y={y} w={w * escala - 0.8} h={11} t={ESCALA[j]} rx={0.5} />;
+                x += w * escala;
                 return b;
               })}
-              <Valor x={132} y={y + 3.75} w={14} verde />
+              {btb && <Valor x={fin + 7} y={y + 3.75} w={14} />}
+              {ttb && <Valor x={132} y={y + 3.75} w={14} verde />}
             </g>
           );
         })}

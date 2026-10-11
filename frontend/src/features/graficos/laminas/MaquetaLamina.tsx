@@ -10,7 +10,7 @@ import { composicionDe } from "../iconos/composicion";
 import { GlifoGrafico } from "../iconos/GlifoGrafico";
 import { IconoTipo } from "../iconos/IconoTipo";
 import { graficadorDisplayName } from "../graficadorDisplay";
-import { SLIDE_GRAF_SLOTS } from "../store";
+import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { useVariables } from "../useVariables";
 import type { LaminaEnEstructura } from "./modeloEstructura";
@@ -33,7 +33,8 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const { graficadoresById, slidesById } = useGraficosRegistry();
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const estructura = composicionDe(slide.tipo, slots).fuente === "estructura";
-  const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables), [slide, variables]);
+  const presets = usePlanStore((s) => s.presets);
+  const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables, presets), [slide, variables, presets]);
   const antetitulo = lamina.antetituloHeredado;
   const campos = camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, !estructura);
 
@@ -73,7 +74,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         const activa = r.k !== null && r.k === ranuraActiva;
         const contenido = (
           <>
-            {r.graficador && <GlifoGrafico tipo={r.graficador} className="pulso-f6-maqueta-glifo" />}
+            {r.graficador && <GlifoGrafico tipo={r.graficador} className="pulso-f6-maqueta-glifo" opciones={r.twoBox} />}
             <span className="pulso-f6-maqueta-info">
             <span className="pulso-f6-maqueta-tipo">
               {r.graficador && <IconoTipo clase="grafico" tipo={r.graficador} size={16} />}

@@ -15,6 +15,16 @@ describe("maqueta: qué muestra cada ranura", () => {
     }), []);
     expect(r).toMatchObject({ k: 1, graficador: "p_barras_multiapiladas", pregunta: "¿Conoce los propósitos?", masPreguntas: 1, bases: ["Docentes", "Estudiantes"] });
     expect(r.rect.w).toBeGreaterThan(0.5);
+    // Ningún bloque declara su Top Two Box: la maqueta no dibuja la columna (el motor tampoco).
+    expect(r.twoBox).toEqual({ ttb: false, btb: false });
+  });
+
+  it("un bloque con Top Two Box enciende la columna en la maqueta", () => {
+    const [r] = ranurasDeMaqueta(slide({
+      graficador: "p_barras_multiapiladas",
+      args: { modo: "multilista", bloques: [{ vars: { tema_1: ["docentes$p11"] }, top2box: true }] },
+    }), []);
+    expect(r.twoBox.ttb).toBe(true);
   });
 
   it("una sola base no se lista, y la pregunta sale de la etiqueta de la variable", () => {
