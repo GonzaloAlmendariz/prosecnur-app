@@ -90,6 +90,14 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
             </ul>
           </section>
         )}
+        {grupos.equivalencias.length > 0 && (
+          <section className="pulso-f6-avisos-grupo" aria-label="Equivalencias entre bases">
+            <h3>Equivalencias entre bases <span>{grupos.equivalencias.length}</span></h3>
+            <ul data-qa-geometry-group="graficos/f6-avisos-equivalencias" data-qa-geometry-contract="intrinsic">
+              {grupos.equivalencias.map((a) => <li key={a}><span>{a}</span></li>)}
+            </ul>
+          </section>
+        )}
         <section className="pulso-f6-avisos-grupo is-bloquea" aria-label="Bloquean la exportación">
           <h3>Bloquean la exportación <span>{grupos.bloquean.length}</span></h3>
           {grupos.bloquean.length ? <ul data-qa-geometry-group="graficos/f6-avisos-bloquean" data-qa-geometry-contract="intrinsic">{grupos.bloquean.map(fila)}</ul> : <p>Nada bloquea la exportación.</p>}

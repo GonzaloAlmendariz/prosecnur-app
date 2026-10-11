@@ -269,4 +269,21 @@ describe("ack de persistencia para composición", () => {
     // Una hidratación correcta desde el backend sale del conflicto (cambio de sesión o de alcance).
     expect(source.match(/hydrate\(config\);\n\s*limpiarConflictoBorrador\(\);/g)).toHaveLength(2);
   });
+  // F4 (ADR 0096 decisión 6): la siembra graba `equivalencias_revision`. Antes `seedConsolidatedPlan(plan)` sólo
+  // hidrataba el plan y el aviso de desfase del compartido quedaba mudo. Mata: sembrar sin la revisión o fijarla con
+  // un setter que marque el borrador como sucio.
+  it("la siembra del compartido hidrata el plan junto con la revisión del preflight", () => {
+    const source = fs.readFileSync(path.join(featureDir, "useGraficosAutosave.ts"), "utf8");
+    const siembra = sourceSection(source, "const seedConsolidatedPlan = useCallback(", "return { saveConsolidatedNow");
+    expect(siembra).toMatch(/useCallback\(\(seededPlan: [^,]+,\s*revision/);
+    expectFragmentsInOrder(siembra, [
+      "hydrate(buildGraficosConfig(",
+      "plan: seededPlan",
+      "equivalenciasRevision: revision",
+    ]);
+    expect(siembra).not.toContain("setEquivalenciasRevision");
+
+    const page = fs.readFileSync(path.join(featureDir, "GraficosPage.tsx"), "utf8");
+    expect(page).toMatch(/seedConsolidatedPlan\(\s*suggested as GraficosConfig\["plan"\],\s*[^)]*equivalencias\??\.revision/);
+  });
 });

@@ -282,12 +282,15 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   // propuesta, no una edición, así que no marca `dirty` ni dispara autosave.
   // Se persiste recién cuando el usuario toca algo o exporta (que llama a
   // `saveConsolidatedNow`), y hasta entonces el borrador sigue en revision 0.
-  const seedConsolidatedPlan = useCallback((seededPlan: GraficosConfig["plan"]) => {
+  // ADR 0096 decisión 6: la revisión de la matriz entra en la MISMA hidratación (un setter marcaría `dirty`), así el
+  // aviso de desfase del compartido tiene con qué comparar y el primer guardado real la envía.
+  const seedConsolidatedPlan = useCallback((seededPlan: GraficosConfig["plan"], revision = "") => {
     const state = usePlanStore.getState();
     hydrate(buildGraficosConfig({
       ...state,
       plan: seededPlan,
       selectedSlideId: seededPlan.slides.length ? null : state.selectedSlideId,
+      equivalenciasRevision: revision,
     }));
     registrarAlcanceHidratado({ scope: "consolidated", sid: getSession(), persistirConsolidado: persistConsolidated });
   }, [hydrate, persistConsolidated]);

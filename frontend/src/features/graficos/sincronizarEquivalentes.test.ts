@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sincronizarEquivalentes } from "./sincronizarEquivalentes";
+import { esEquivalente, sincronizarEquivalentes } from "./sincronizarEquivalentes";
 import type { PlanJson, Slide } from "../../api/graficos";
 
 const manual = (id: string): Slide => ({
@@ -74,5 +74,20 @@ describe("sincronizarEquivalentes", () => {
     const sinMarca: Slide = { id: "s-equiv-1", tipo: "p_slide_1_grafico", payload: {} };
     const out = sincronizarEquivalentes(plan(), [sinMarca]);
     expect(out.plan.slides[0].origen).toBe("equivalencias");
+  });
+  // F3 (ADR 0096 decisión 6): en el informe compartido la propuesta es COMPUESTA —bloque de la matriz + láminas por
+  // fuente del generador genérico—. «Sincronizar» sólo pone al día el bloque de la matriz: las láminas por fuente de la
+  // propuesta no entran (si entraran, `sincronizarEquivalentes` las marcaría como derivadas y se duplicarían con las
+  // que el analista ya tiene). SuggestedPlanButton filtra con `esEquivalente` antes de sincronizar.
+  it("de una propuesta compuesta sólo entra el bloque de la matriz", () => {
+    const porFuente = manual("docentes-p_con");
+    const propuesta = [derivada("s-equiv-1"), porFuente, derivada("s-equiv-2")];
+    const actual = plan(manual("portada"), derivada("s-equiv-1"), manual("docentes-p_con"));
+
+    const out = sincronizarEquivalentes(actual, propuesta.filter(esEquivalente));
+
+    expect(out.plan.slides.map((s) => s.id)).toEqual(["portada", "s-equiv-1", "s-equiv-2", "docentes-p_con"]);
+    expect(out.plan.slides.filter(esEquivalente).map((s) => s.id)).toEqual(["s-equiv-1", "s-equiv-2"]);
+    expect(out.conservadas).toBe(2);
   });
 });

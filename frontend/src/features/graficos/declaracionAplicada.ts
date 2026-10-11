@@ -17,7 +17,17 @@ export type EstadoDeclaracionAplicada =
   /** El mazo salió de la declaración y la declaración ya no existe. */
   | "declaracion-retirada"
   | "al-dia"
-  | "desfasada";
+  | "desfasada"
+  /**
+   * ADR 0096 decisión 5: el mazo se aplicó con una revisión de otro formato (sin prefijo `r2:`) que la de ahora. No
+   * hay con qué comparar: llamarlo desfase sería una alarma falsa en todo proyecto abierto tras actualizar.
+   */
+  | "revision-anterior";
+
+/** Prefijo de la revisión de la declaración vigente (ADR 0096). */
+export const PREFIJO_REVISION_DECLARACION = "r2:";
+
+const formatoRevision = (revision: string) => (revision.startsWith(PREFIJO_REVISION_DECLARACION) ? "r2" : "r1");
 
 export function estadoDeclaracionAplicada({
   revisionAplicada,
@@ -32,6 +42,7 @@ export function estadoDeclaracionAplicada({
 }): EstadoDeclaracionAplicada {
   if (!revisionAplicada) return "sin-mazo-derivado";
   if (!declarada || !revisionActual) return "declaracion-retirada";
+  if (formatoRevision(revisionAplicada) !== formatoRevision(revisionActual)) return "revision-anterior";
   return revisionAplicada === revisionActual ? "al-dia" : "desfasada";
 }
 
@@ -44,6 +55,9 @@ export function avisoDeclaracionAplicada(estado: EstadoDeclaracionAplicada): str
     case "declaracion-retirada":
       return "Estas diapositivas salieron de una declaración de equivalencias que ya no existe. "
         + "Siguen funcionando, pero no hay con qué contrastarlas.";
+    case "revision-anterior":
+      return "Estas diapositivas se armaron con una versión anterior de la app, así que no se pueden contrastar con la "
+        + "declaración de equivalencias de ahora. Vuelve a proponer el mazo si quieres que se vigile su desfase.";
     default:
       return "";
   }

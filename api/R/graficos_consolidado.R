@@ -415,12 +415,21 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   list_name <- .graficos_list_name_for_row(ctx$survey, ctx$row_idx)
   choices <- (ctx$inst %||% list())$choices %||% (ctx$inst %||% list())$choices_raw %||% NULL
   levels <- .reporte_plan_choice_levels_for_list(list_name, choices)
-  signature <- if (nrow(levels)) {
-    paste(paste(levels$code, levels$label, sep = "="), collapse = "|")
-  } else {
-    ""
-  }
+  # ADR 0096 decisión 4: la misma regla que la matriz (`escala_firma.R`). La caja y
+  # los espacios de una opción no son otra escala; el código sigue literal.
+  signature <- if (nrow(levels)) .escala_firma(levels$code, levels$label) else ""
   list(list_name = list_name, signature = signature)
+}
+
+# Unidades de comparación de un gráfico multi-apiladas: el propio `var_cruce`, o
+# cada bloque `var_cruce` de un `multilista` (grano de bloque: un bloque de un
+# público no se compara con nada).
+.graficos_consolidado_comparison_units <- function(args) {
+  args <- args %||% list()
+  modo <- .graficos_scalar_chr(args$modo, "")
+  if (identical(modo, "var_cruce")) return(list(args))
+  if (!identical(modo, "multilista") || !is.list(args$bloques)) return(list())
+  Filter(function(b) is.list(b) && identical(.graficos_scalar_chr(b$modo, ""), "var_cruce"), args$bloques)
 }
 
 .graficos_consolidado_scale_blockers <- function(plan, source_names, sources) {
@@ -436,36 +445,35 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
       graph <- payload[[payload_idx]]
       if (!is.list(graph) ||
           !identical(.graficos_scalar_chr(graph$graficador, ""), "p_barras_multiapiladas")) next
-      args <- graph$args %||% list()
-      if (
-          !identical(.graficos_scalar_chr(args$modo, ""), "var_cruce")) next
-      refs <- .graficos_collect_refs_from_args(args)
-      parts <- lapply(refs, .graficos_ref_parts)
-      qualified <- vapply(parts, function(part) {
-        nzchar(part$source) && part$source %in% source_names
-      }, logical(1))
-      if (!length(refs) || !all(qualified)) next
-      if (length(unique(vapply(parts, `[[`, character(1), "source"))) < 2L) next
+      for (unit in .graficos_consolidado_comparison_units(graph$args)) {
+        refs <- .graficos_collect_refs_from_args(unit)
+        parts <- lapply(refs, .graficos_ref_parts)
+        qualified <- vapply(parts, function(part) {
+          nzchar(part$source) && part$source %in% source_names
+        }, logical(1))
+        if (!length(refs) || !all(qualified)) next
+        if (length(unique(vapply(parts, `[[`, character(1), "source"))) < 2L) next
 
-      contexts <- lapply(refs, .graficos_consolidado_ref_context, sources = sources)
-      if (!all(vapply(contexts, `[[`, logical(1), "exists"))) next
-      scales <- lapply(contexts, .graficos_consolidado_scale_spec)
-      signatures <- vapply(scales, `[[`, character(1), "signature")
-      if (all(nzchar(signatures)) && length(unique(signatures)) == 1L) next
+        contexts <- lapply(refs, .graficos_consolidado_ref_context, sources = sources)
+        if (!all(vapply(contexts, `[[`, logical(1), "exists"))) next
+        scales <- lapply(contexts, .graficos_consolidado_scale_spec)
+        signatures <- vapply(scales, `[[`, character(1), "signature")
+        if (all(nzchar(signatures)) && length(unique(signatures)) == 1L) next
 
-      blockers[[length(blockers) + 1L]] <- list(
-        code = "incompatible_comparison_scale",
-        message = "Las referencias de la comparacion deben compartir exactamente la misma escala codigo=etiqueta.",
-        slide_id = .graficos_scalar_chr(slide$id, sprintf("slide-%s", slide_idx)),
-        slide_index = as.integer(slide_idx),
-        slot = slot,
-        refs = as.list(refs),
-        scales = unname(lapply(seq_along(refs), function(i) list(
-          ref = refs[[i]],
-          list_name = scales[[i]]$list_name,
-          signature = signatures[[i]]
-        )))
-      )
+        blockers[[length(blockers) + 1L]] <- list(
+          code = "incompatible_comparison_scale",
+          message = "Las referencias de la comparacion deben compartir la misma escala (mismos codigos y etiquetas).",
+          slide_id = .graficos_scalar_chr(slide$id, sprintf("slide-%s", slide_idx)),
+          slide_index = as.integer(slide_idx),
+          slot = slot,
+          refs = as.list(refs),
+          scales = unname(lapply(seq_along(refs), function(i) list(
+            ref = refs[[i]],
+            list_name = scales[[i]]$list_name,
+            signature = signatures[[i]]
+          )))
+        )
+      }
     }
   }
   blockers
@@ -531,7 +539,7 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
     any(vapply(payload, function(value) {
       is.list(value) &&
         identical(.graficos_scalar_chr(value$graficador, ""), "p_barras_multiapiladas") &&
-        identical(.graficos_scalar_chr((value$args %||% list())$modo, ""), "var_cruce")
+        length(.graficos_consolidado_comparison_units(value$args)) > 0L
     }, logical(1)))
   }, logical(1))))
 }
@@ -582,10 +590,13 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
   cfg <- .graficos_consolidado_portable_config(config %||% list(), s$files %||% list())
   cfg$multi_actor_comparisons <- TRUE
   authored <- .graficos_config_has_slides(cfg)
+  # ADR 0096 decisión 3: con el borrador vacío el plan se deriva de la MISMA
+  # función que `/plan/sugerido` con `scope:"consolidado"` (matriz + láminas por
+  # fuente), así la siembra de Láminas, el job y la propuesta coinciden.
   suggested <- if (isTRUE(authored)) {
     list(plan = cfg$plan, warnings = list())
   } else {
-    .graficos_suggested_plan(sid, config = cfg)
+    .graficos_plan_sugerido_consolidado(sid, config = cfg, fuente = "", sources = sources)
   }
   methodology_rules <- .graficos_consolidado_methodology_rules(catalog)
   methodology <- .graficos_consolidado_plan_entregable(suggested$plan %||% list(), methodology_rules)
@@ -623,6 +634,8 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
     input_fingerprint = input_fingerprint,
     n_slides = as.integer(length(plan$slides %||% list())),
     n_comparison_slides = .graficos_consolidado_comparison_slide_count(plan),
+    # Bloque aditivo (ADR 0096): revisión vigente de la matriz y avisos de la siembra.
+    equivalencias = .graficos_plan_consolidado_resumen(sid, plan, if (isTRUE(authored)) NULL else suggested),
     warnings = as.list(unique(c(
       unlist(suggested$warnings %||% list(), use.names = FALSE),
       methodology$warnings,

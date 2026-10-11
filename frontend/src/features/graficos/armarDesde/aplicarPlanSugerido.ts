@@ -23,19 +23,20 @@ export type ModoAplicarPlan = "reemplazar" | "fusionar" | "sincronizar";
 
 type RespuestaPlan = Pick<
   GraficosSuggestedPlanResponse,
-  "fuente" | "revision" | "profile_id" | "template_id" | "acnur_mode" | "report_scope" | "meta" | "auto_otros_slides"
+  | "fuente" | "revision" | "profile_id" | "template_id" | "acnur_mode" | "report_scope" | "meta" | "auto_otros_slides"
+  | "contiene_equivalencias"
 >;
 
-/** Motivo visible del botón deshabilitado en el informe compartido (decisión 17 de Gonzalo, G7 provisional). */
-export const MOTIVO_ARMAR_DESDE_CONSOLIDADO =
-  "El informe compartido se arma desde la matriz de equivalencias de Carga; esta opción queda deshabilitada hasta conectarla.";
-
-/** `null` si «Armar desde…» se puede usar en este alcance; el motivo si no. */
-export function motivoArmarDesdeDeshabilitado(scope: GraficosReportScope): string | null {
-  return scope === "consolidated" ? MOTIVO_ARMAR_DESDE_CONSOLIDADO : null;
+/**
+ * `null` si «Armar desde…» se puede usar en este alcance; el motivo si no. ADR 0096 decisión 9: el informe compartido
+ * ya se arma desde la matriz (`scope: "consolidado"`), así que hoy ningún alcance lo deshabilita; la firma se conserva
+ * para que un motivo futuro tenga dónde vivir.
+ */
+export function motivoArmarDesdeDeshabilitado(_scope: GraficosReportScope): string | null {
+  return null;
 }
 
-/** ¿Se pide la propuesta al backend? Sólo con el popover abierto y fuera del informe compartido (0 llamadas ahí). */
+/** ¿Se pide la propuesta al backend? Sólo con el popover abierto y sin motivo que lo impida. */
 export function debePedirPropuesta(abierto: boolean, motivo: string | null): boolean {
   return abierto && motivo === null;
 }
@@ -47,7 +48,11 @@ export function debePedirPropuesta(abierto: boolean, motivo: string | null): boo
  * - sincronizar: el del mazo, siempre (sólo existe con la declaración).
  */
 export function revisionAlAplicar(modo: ModoAplicarPlan, respuesta: RespuestaPlan): string | undefined {
-  const deLaDeclaracion = respuesta.fuente === "equivalencias";
+  // ADR 0096: la propuesta compuesta del compartido (`fuente: "consolidado"`) dice si trae láminas de la matriz con
+  // `contiene_equivalencias`; sin ese campo (base activa) manda la fuente.
+  const deLaDeclaracion = typeof respuesta.contiene_equivalencias === "boolean"
+    ? respuesta.contiene_equivalencias
+    : respuesta.fuente === "equivalencias";
   if (modo === "sincronizar") return respuesta.revision ?? "";
   if (deLaDeclaracion) return respuesta.revision ?? "";
   return modo === "reemplazar" ? "" : undefined;

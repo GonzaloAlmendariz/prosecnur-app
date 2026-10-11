@@ -11,6 +11,7 @@ import { useLaminasUi } from "../laminas/laminasStore";
 import type { EstructuraInforme } from "../laminas/modeloEstructura";
 import { PanelAvisos } from "../laminas/PanelAvisos";
 import { agruparAvisos } from "../laminas/resumenInforme";
+import { useDeclaracionAplicada } from "../useDeclaracionAplicada";
 
 type Props = {
   estructura: EstructuraInforme;
@@ -31,7 +32,8 @@ function PanelAvisosAbierto({ panel, estructura, onIr }: Props & { panel: Return
   const avisosPlan = useAvisosPlanSesion();
   const { issues } = usePlanValidator();
   const ids = useMemo(() => slides.map((s) => s.id), [slides]);
-  const grupos = useMemo(() => agruparAvisos(issues, resumenes, ids, avisosPlan), [issues, resumenes, ids, avisosPlan]);
+  const { avisos: avisosEquivalencias } = useDeclaracionAplicada();
+  const grupos = useMemo(() => agruparAvisos(issues, resumenes, ids, avisosPlan, avisosEquivalencias), [issues, resumenes, ids, avisosPlan, avisosEquivalencias]);
   const irAPosicion = (posicion: number) => {
     const id = estructura.laminas[posicion - 1]?.id;
     if (id) onIr(id);

@@ -22,9 +22,14 @@ export type GrupoAvisos = {
   motor: { slideId: string; avisos: string[] }[];
   /** Lo que el backend cambió en el plan al abrirlo (p. ej. la población antigua migrada); llega una vez por sesión. */
   plan: string[];
+  /**
+   * ADR 0096 decisión 8: avisos de la matriz de equivalencias —desfase de la declaración aplicada y lo que avisó la
+   * siembra del informe compartido (sin matriz, bases excluidas, cobertura reducida, escala incompatible)—.
+   */
+  equivalencias: string[];
 };
 
-export function agruparAvisos(issues: readonly ValidationIssue[], resumenes: Readonly<Record<string, ResumenLamina>>, orden: readonly string[], plan: readonly string[] = []): GrupoAvisos {
+export function agruparAvisos(issues: readonly ValidationIssue[], resumenes: Readonly<Record<string, ResumenLamina>>, orden: readonly string[], plan: readonly string[] = [], equivalencias: readonly string[] = []): GrupoAvisos {
   const motor = orden
     .map((slideId) => ({ slideId, avisos: resumenes[slideId]?.avisosTexto ?? [] }))
     .filter((m) => m.avisos.length > 0);
@@ -33,9 +38,10 @@ export function agruparAvisos(issues: readonly ValidationIssue[], resumenes: Rea
     revisar: issues.filter((i) => i.severity !== "error"),
     motor,
     plan: [...plan],
+    equivalencias: [...equivalencias],
   };
 }
 
 export function totalAvisos(g: GrupoAvisos): number {
-  return g.bloquean.length + g.revisar.length + g.motor.reduce((t, m) => t + m.avisos.length, 0) + g.plan.length;
+  return g.bloquean.length + g.revisar.length + g.motor.reduce((t, m) => t + m.avisos.length, 0) + g.plan.length + g.equivalencias.length;
 }
