@@ -48,3 +48,46 @@ Acreditación Arte y Diseño PUCP (Docentes, Administrativos, Estudiantes).
   «Personalizado» tienen una pregunta extra al inicio (código PUCP): toda la numeración `pN` se
   corre en uno respecto de Telefónico/Egresados/Docentes (34 de 42 y 32 de 40 nombres comunes
   son otra pregunta). Comparar códigos por nombre entre esas encuestas da verde por ausencia.
+
+## Contrato congelado del ítem 13 (ADR 0094)
+
+**Motor** — archivo nuevo `api/R/surveymonkey_multibase_alineacion.R`:
+
+- `.sm_mb_alinear_fuente(inst_base, inst_fuente)` → `list(mapa = c(<var_fuente> = <var_base>, …),
+  sin_par_fuente = data.frame(variable, etiqueta), sin_par_base = data.frame(variable, etiqueta),
+  reordenada = lgl, cobertura = n_emparejadas / n_preguntas_base, instrumento_distinto = cobertura < 0.8)`.
+  Clave: `.equiv_claves_de_base` sobre los XLSForm GENERADOS por la plataforma (antes de adoptar el orden
+  del editor), así la firma de escala compara las listas tal como SM las publica.
+- `.sm_mb_codificar_fuente(details_fuente, responses, inst_base, …)` — único punto por el que pasa una
+  encuesta distinta de la principal: codifica contra su propio instrumento, renombra con `mapa` (padre,
+  `_other`, dummies), descarta `sin_par_fuente`, recodifica por etiqueta a los códigos de `inst_base`
+  (select_one y tokens de select_multiple). Devuelve el data.frame con `attr(, "sm_alineacion")`.
+- Llamadores que deben usarlo cuando `survey_id` de la fuente ≠ el de la base: el bucle de fuentes de
+  `.sm_mb_prepare_refresh_snapshot`, `.sm_mb_build_effective_from_snapshot`, y las fuentes de
+  `sm_multibase_import_independent`.
+- `.sm_mb_compare_to_ref` compara pares ALINEADOS. Kinds nuevos: `question_order` (info: emparejada en
+  otro orden), `unpaired_source` y `unpaired_base` (review), `different_instrument` (blocking).
+- `.sm_mb_code_for_label`: etiqueta sin par y código de respaldo fuera de la lista → `NA` y conteo en
+  `attr(, "sm_opciones_sin_par")` (variable → n).
+
+**Persistencia** — `s$estudio$bases[[b]]$sm_alineacion_fuentes`: lista por fuente
+`{survey_id, titulo, n_emparejadas, n_preguntas_base, cobertura, reordenada, instrumento_distinto,
+sin_par_fuente: [{variable, etiqueta}], sin_par_base: [{variable, etiqueta}], opciones_sin_par:
+[{variable, n}]}`. Solo fuentes distintas de la principal.
+
+**Revisión** — `.carga_review_payload()$fuentes` (NULL si la base no junta encuestas):
+`{fuentes: [{survey_id, titulo, n_emparejadas, n_preguntas_base, reordenada, instrumento_distinto,
+sin_par_fuente: [{variable, etiqueta}], sin_par_base: [{variable, etiqueta}], n_opciones_sin_par}]}`.
+No entra en `ready`.
+
+**UI**:
+
+- Carga › Revisión: un aviso por fuente con preguntas sin par u opciones sin par («Telefónico: 3
+  preguntas no existen en la base y no entraron · Cod Pulso, Celular, Enumerador»), y un dato neutro cuando
+  solo se reordenó («Telefónico: 73 preguntas emparejadas por texto, en otro orden»). Los avisos
+  informativos (orden del editor adoptado, fuentes emparejadas) dejan de pintarse como advertencia: clase
+  `is-info` con tokens neutros.
+- Diagnóstico del refresh (`BasesPanel`, wizard de fuentes independientes): etiquetas legibles para los
+  kinds nuevos; `different_instrument` dice qué hacer («impórtala como base separada y relaciónala en
+  Equivalencias») con enlace a `/carga?pestana=equivalencias` cuando esa pestaña existe. Componentes
+  nuevos en archivo propio (BasesPanel supera 1000 líneas).
