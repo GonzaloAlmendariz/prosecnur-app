@@ -514,7 +514,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
   stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Extensión de datos no soportada: %s. Usa CSV, XLSX, XLS o SAV.", ext))
 }
 
-estudio_init_default_base <- function(sid) {
+estudio_init_default_base <- function(sid, choice_code_maps) {
   session_before_init <- session_get(sid)
   tryCatch({
   s <- session_get(sid)
@@ -548,10 +548,13 @@ estudio_init_default_base <- function(sid) {
   # Computar reportes (caros: parsea xlsform + lee data completa).
   rp_inst <- reporte_instrumento(path = xls_meta$path)
   data_df <- .read_data_any_path(dat_meta$path, dat_meta$ext)
+  # Los imports de plataforma pasan los mapas resueltos por procedencia (N4);
+  # la carga manual sigue usando los del editor / confirmados de sesión.
+  if (missing(choice_code_maps)) choice_code_maps <- .carga_editor_choice_code_maps(sid)
   data_df <- normalize_data_for_xlsform(
     data_df,
     rp_inst,
-    choice_code_maps = .carga_editor_choice_code_maps(sid)
+    choice_code_maps = choice_code_maps
   )
   norm_attr <- attr(data_df, "xlsform_normalized")
   maps_payload <- .carga_choice_code_maps_payload(norm_attr %||% list())
@@ -1005,7 +1008,8 @@ estudio_init_default_base <- function(sid) {
   )
 }
 
-.carga_platform_finalize <- function(sid, inst_meta, data_meta, source_meta = list()) {
+.carga_platform_finalize <- function(sid, inst_meta, data_meta, source_meta = list(),
+                                     choice_code_maps = NULL) {
   inst <- leer_instrumento_xlsform(inst_meta$path)
   session_set(sid, "instrumento", inst)
   session_set(sid, "inst_limpieza", NULL)
@@ -1015,7 +1019,7 @@ estudio_init_default_base <- function(sid) {
     data_meta$path,
     data_meta$ext,
     instrumento = preview_inst,
-    choice_code_maps = .carga_editor_choice_code_maps(sid)
+    choice_code_maps = choice_code_maps
   )
   .carga_store_choice_code_maps(
     sid,
@@ -1023,7 +1027,7 @@ estudio_init_default_base <- function(sid) {
     confirmed = FALSE
   )
   session_set(sid, "data_raw_meta", list(file_id = data_meta$file_id, path = data_meta$path, ext = data_meta$ext))
-  estudio_init_default_base(sid)
+  estudio_init_default_base(sid, choice_code_maps = choice_code_maps)
 
   s <- session_get(sid)
   if (!is.null(s$estudio$bases$default) && length(source_meta)) {
@@ -1062,7 +1066,7 @@ estudio_init_default_base <- function(sid) {
     response_filter = prep$response_filter,
     surveymonkey_source_spec = source_spec,
     surveymonkey_effective_data_file_id = prep$data_meta$file_id
-  ))
+  ), choice_code_maps = prep$choice_code_maps)
   c(list(
     ok = TRUE,
     provider = "surveymonkey",
@@ -1083,7 +1087,7 @@ estudio_init_default_base <- function(sid) {
     response_filter = prep$source_meta,
     kobo_source_spec = prep$source_spec,
     kobo_effective_data_file_id = prep$data_meta$file_id
-  ))
+  ), choice_code_maps = prep$choice_code_maps)
   # Registramos las bases hijas de repeat DESPUÉS de finalize: así los archivos
   # del hijo no existen aún cuando estudio_init_default_base re-lee el ÚLTIMO
   # xlsform+data del file store como base "default" (evita que tome al hijo).
@@ -1094,7 +1098,7 @@ estudio_init_default_base <- function(sid) {
     parent_base_name = "default",
     title = prep$title,
     downloads_dir = prep$downloads_dir,
-    choice_code_maps = .carga_editor_choice_code_maps(sid)
+    choice_code_maps = prep$choice_code_maps
   )
   c(list(
     ok = TRUE,
@@ -1225,7 +1229,7 @@ estudio_init_default_base <- function(sid) {
     has_repeats <- length(.kobo_repeat_specs(rp_inst)) > 0L
     repeat_source_df <- if (has_repeats) .kobo_ensure_wide_index(data_df) else NULL
     data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
-      normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+      normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_platform_choice_code_maps(sid, "kobo", asset$asset_uid))
     } else {
       .carga_empty_data_for_instrument(rp_inst)
     }
@@ -1382,7 +1386,7 @@ estudio_init_default_base <- function(sid) {
       parent_base_name = item$base_name,
       title = item$title,
       downloads_dir = downloads_dir,
-      choice_code_maps = .carga_editor_choice_code_maps(sid)
+      choice_code_maps = .carga_platform_choice_code_maps(sid, "kobo", NULL)
     )
     if (length(child)) child_bases <- c(child_bases, child)
   }
@@ -1640,7 +1644,7 @@ estudio_init_default_base <- function(sid) {
     repeat_source_df <- if (has_repeats) .kobo_ensure_wide_index(data_df) else NULL
     data_df <- .carga_backfill_missing_expected(data_df, rp_inst)
     data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
-      normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+      normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_platform_choice_code_maps(sid, "kobo", asset_uid))
     } else {
       .carga_empty_data_for_instrument(rp_inst)
     }
@@ -1734,7 +1738,7 @@ estudio_init_default_base <- function(sid) {
         rp_inst = rp_inst,
         parent_base_name = base_name,
         downloads_dir = downloads_dir,
-        choice_code_maps = .carga_editor_choice_code_maps(sid)
+        choice_code_maps = .carga_platform_choice_code_maps(sid, "kobo", NULL)
       )
     } else {
       list()
