@@ -1,6 +1,6 @@
 // Columna izquierda de la pestaña Láminas: el informe como documento (F6.1; dirección F6 §4.1 «Estructura»).
-// Sólo lectura en esta parte: seleccionar escribe `foco=<slide.id>` (`../focoLamina.ts`). Insertar, reordenar y arrastrar llegan en la parte 2;
-// mientras tanto siguen en el Editor anterior.
+// Seleccionar escribe `foco=<slide.id>` (`../focoLamina.ts`); insertar, duplicar, mover y eliminar van en la barra de
+// acciones de la lámina activa (`acciones`, ver AccionesLamina). «/» enfoca la búsqueda (useAtajosLaminas.ts).
 
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ChevronRight, PanelLeftClose, Search } from "../../../vendor/lucide-react";
@@ -14,6 +14,7 @@ import {
 } from "./modeloEstructura";
 import { ETIQUETA_ESTADO } from "./estadoLamina";
 import { useLaminasUi, type ResumenLamina } from "./laminasStore";
+import { ID_BUSQUEDA_ESTRUCTURA } from "./useAtajosLaminas";
 import "./estructuraInforme.css";
 
 export type MarcaValidacion = "error" | "warning";
@@ -93,6 +94,8 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
           <span className="pulso-sr-only">Buscar lámina</span>
           <input
             ref={busquedaRef}
+            id={ID_BUSQUEDA_ESTRUCTURA}
+            aria-keyshortcuts="/"
             aria-label="Buscar lámina"
             type="search"
             value={consulta}
@@ -105,7 +108,7 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
       {acciones}
       <nav ref={cuerpoRef} className="pulso-f6-estructura-cuerpo" aria-label="Láminas del informe" data-qa-scroll-owner="estructura">
         {estructura.laminas.length === 0 ? (
-          <p className="pulso-f6-vacio-col">El informe todavía no tiene láminas. Agrégalas desde el Editor anterior.</p>
+          <p className="pulso-f6-vacio-col">El informe todavía no tiene láminas. Inserta la primera o arma el informe desde un plan sugerido.</p>
         ) : nodos.length === 0 ? (
           <p className="pulso-f6-vacio-col">Ninguna lámina coincide con «{consulta.trim()}».</p>
         ) : (

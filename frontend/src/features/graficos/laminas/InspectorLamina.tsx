@@ -1,6 +1,6 @@
 // Columna derecha de la pestaña Láminas (F6.1; dirección F6 §4.1 «Inspector»). Cuatro secciones fijas con tabs
 // reales: Contenido (abre por defecto, decisión provisional §10) · Composición · Gráficos · Estado. Lo que esta parte
-// no construye se declara como tal y apunta al Editor anterior, que sigue accesible mientras se completa F6.
+// no construye se declara como tal («todavía no está en Láminas»), sin mandar al Editor anterior (C32/O3).
 // «Cambiar» (cabecera y Composición) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2).
 
 import { useId, useMemo } from "react";
@@ -22,6 +22,7 @@ import { contenidoDeLamina } from "./contenidoLamina";
 import { ETIQUETA_ESTADO, estadoDeLamina, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { useLaminasUi, type SeccionInspector } from "./laminasStore";
+import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import "./inspectorLamina.css";
 
 const SECCIONES: { key: SeccionInspector; label: string }[] = [
@@ -41,7 +42,8 @@ type Props = {
   onRanura: (ranura: number | null) => void;
   visor: LaminaVisor | null;
   onCerrar: () => void;
-  onIrEditorAnterior: () => void;
+  /** Ya no se usa en el Inspector (C32/O3: sus textos no mandan al Editor anterior); queda por compatibilidad. */
+  onIrEditorAnterior?: () => void;
   /** Abre «¿Qué lámina?» para cambiar el tipo de esta lámina. */
   onCambiarLamina: () => void;
   /** Abre «¿Qué gráfico?» para la ranura k (1-based). */
@@ -49,7 +51,7 @@ type Props = {
 };
 
 export function InspectorLamina({
-  slide, lamina, ranura, onRanura, visor, onCerrar, onIrEditorAnterior, onCambiarLamina, onCambiarGrafico,
+  slide, lamina, ranura, onRanura, visor, onCerrar, onCambiarLamina, onCambiarGrafico,
 }: Props) {
   const seccion = useLaminasUi((s) => s.seccionInspector);
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
@@ -113,10 +115,10 @@ export function InspectorLamina({
         aria-labelledby={tabId(seccion)}
         tabIndex={0}
       >
-        {seccion === "contenido" && <SeccionContenido slide={slide} lamina={lamina} onIrEditorAnterior={onIrEditorAnterior} />}
+        {seccion === "contenido" && <SeccionContenido slide={slide} lamina={lamina} />}
         {seccion === "composicion" && <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />}
         {seccion === "graficos" && (
-          <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onIrEditorAnterior={onIrEditorAnterior} onCambiarGrafico={onCambiarGrafico} />
+          <SeccionGraficos slide={slide} slots={slots} ranura={ranura} onRanura={onRanura} onCambiarGrafico={onCambiarGrafico} />
         )}
         {seccion === "estado" && <SeccionEstado slide={slide} visor={visor} />}
       </div>
@@ -124,7 +126,7 @@ export function InspectorLamina({
   );
 }
 
-function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide; lamina: LaminaEnEstructura; onIrEditorAnterior: () => void }) {
+function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEstructura }) {
   // Campos de texto de alto propio (una línea, varias líneas, con o sin ayuda): grupo intrínseco.
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const { slidesById } = useGraficosRegistry();
@@ -179,8 +181,7 @@ function SeccionContenido({ slide, lamina, onIrEditorAnterior }: { slide: Slide;
         <p className="pulso-f6-pendiente">
           <History size={14} aria-hidden="true" />
           <span>
-            {contenido.pendientes.join(" · ")}: todavía se edita en el{" "}
-            <button type="button" className="pulso-f6-texto-boton" onClick={onIrEditorAnterior}>Editor anterior</button>.
+            {contenido.pendientes.join(" · ")}: este ajuste todavía no está en Láminas.
           </span>
         </p>
       )}
@@ -211,15 +212,15 @@ function CampoTexto({ campo, valor, placeholder, onCambio }: {
   );
 }
 
-function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior, onCambiarGrafico }: {
+function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   slide: Slide;
   slots: string[];
   ranura: number | null;
   onRanura: (r: number | null) => void;
-  onIrEditorAnterior: () => void;
   onCambiarGrafico: (k: number) => void;
 }) {
   const { graficadoresById, slidesById } = useGraficosRegistry();
+  const { irA } = useSeccion("procesamiento");
   if (slots.length === 0) {
     return (
       <p className="pulso-f6-vacio-col">Esta lámina no lleva gráficos: su contenido se edita en Contenido.</p>
@@ -286,8 +287,8 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onIrEditorAnterior, o
       <p className="pulso-f6-pendiente">
         <History size={14} aria-hidden="true" />
         <span>
-          El estilo Word de todo el informe sigue en el{" "}
-          <button type="button" className="pulso-f6-texto-boton" onClick={onIrEditorAnterior}>Editor anterior</button>.
+          Los logos y la letra del Word de todo el informe se fijan en la pestaña{" "}
+          <button type="button" className="pulso-f6-texto-boton" onClick={() => irA("pestana", "estilo")}>Estilo del cliente</button>.
         </span>
       </p>
     </div>

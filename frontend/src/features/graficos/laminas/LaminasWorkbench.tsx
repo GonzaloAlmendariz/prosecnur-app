@@ -30,6 +30,7 @@ import { esLateral, resolverLateral, type Lateral } from "./lateralLaminas";
 import { useAnchoCompacto, useSideoverModal } from "./useSideoverModal";
 import { useReencajeLienzo } from "./useReencajeLienzo";
 import { AccionesLamina } from "./AccionesLamina";
+import { enfocarBusquedaEstructura, useAtajosLaminas } from "./useAtajosLaminas";
 import { BotonArmarDesdeVacio } from "../armarDesde/BotonArmarDesdeVacio";
 import { toast } from "../../../components/toasterStore";
 import { SelectorTipoLamina } from "./selectores/SelectorTipoLamina";
@@ -221,6 +222,19 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [alternarLateral, panelSelector]);
+
+  // J/K, Alt+↑/↓ y «/» (C21). Consumen la tecla antes de que la vea `useShortcutsV2`: ver useAtajosLaminas.ts.
+  useAtajosLaminas({
+    activo: !panelSelector,
+    posicion: posicionSeleccionada,
+    total,
+    onIr: irA,
+    onMover: (dir) => { if (slide) moveSlide(slide.id, dir); },
+    onBuscar: () => {
+      if (lateral !== "estructura" && lamina) ponerLateral("estructura");
+      enfocarBusquedaEstructura();
+    },
+  });
 
   const validacion = useMemo(() => {
     const m: Record<string, MarcaValidacion> = {};
