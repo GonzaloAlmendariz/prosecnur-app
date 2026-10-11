@@ -43,6 +43,12 @@
 .pulso-f6-barra .pulso-gv2-suggest-popover {
   left: auto;
   right: 0;
+  /* La base resta 170 px al alto de la ventana, pero aquí el popover nace más abajo: su borde superior real queda a
+     176 px (chrome + pestañas + barra de 44 px + 8 px de separación; medido a 1024x600, QA Meta A) y su borde inferior
+     salía a 606 > 600. Se resta ese top más un margen de 24 px, de modo que el borde inferior queda dentro de la ventana;
+     lo que no cabe se desplaza dentro del propio popover (dueño de overflow: él, `overflow-y: auto` de la base). */
+  max-height: min(650px, calc(100dvh - 200px));
+  overscroll-behavior: contain;
 }
 
 /* El diálogo recibe el foco al abrirse (tabIndex -1): el anillo lo llevan sus controles, no el contenedor. */
