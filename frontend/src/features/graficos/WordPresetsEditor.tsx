@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Circle, FileText, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
-import { createDefaultWordPresets } from "../../api/graficosConfigNormalizer";
+import { resolveWordPresetsDefaults, wordChartPresetsDecisiones } from "../../api/graficosConfigDefaults";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, ARG_GROUP_ORDER, GRUPO_META, normalizeArgGroup } from "./ArgGroup";
@@ -24,18 +24,12 @@ function wordChartOptions(wPresets: Record<string, Record<string, unknown>>) {
   return isPlainRecord(raw) ? raw : {};
 }
 
-function hasValue(v: unknown) {
-  if (v === null || v === undefined || v === "") return false;
-  if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === "object") return Object.keys(v as Record<string, unknown>).length > 0;
-  return true;
-}
-
 export function WordPresetsEditor() {
   const { presets, loading, error } = usePresetsMetadata();
   const pptPresets = usePlanStore((s) => s.presets);
   const wPresets = usePlanStore((s) => s.wPresets);
   const setWPresets = usePlanStore((s) => s.setWPresets);
+  const configDefaults = usePlanStore((s) => s.configDefaults);
   const [selected, setSelected] = useState<string>("barras_apiladas");
 
   if (loading) return <LoadingBlock label="Cargando catálogo de ajustes…" />;
@@ -43,7 +37,11 @@ export function WordPresetsEditor() {
 
   const chartPresets = wordChartPresets(wPresets);
   const chartOptions = wordChartOptions(wPresets);
-  const defaultChartPresets = wordChartPresets(createDefaultWordPresets());
+  // Decisión 5a (ADR 0094): «Modificado» compara contra el default (el del backend si llegó en el GET), no cuenta
+  // valores no vacíos: con el default completo en el estado, todo tipo parecía ajustado.
+  const referencia = resolveWordPresetsDefaults(configDefaults);
+  const defaultChartPresets = wordChartPresets(referencia);
+  const decisiones = wordChartPresetsDecisiones(wPresets, referencia);
   const hideDuplicateLabel = chartOptions.ocultar_etiqueta_si_titulo !== false;
   const editablePresets = presets.filter((p) => p.name !== "base" && p.name !== "debug");
   const meta = editablePresets.find((p) => p.name === selected) ?? editablePresets[0];
@@ -51,12 +49,9 @@ export function WordPresetsEditor() {
 
   const selectedPatch = chartPresets[meta.name] ?? defaultChartPresets[meta.name] ?? {};
   const inherited = pptPresets[meta.name] ?? {};
-  const hasSelectedChanges = Object.keys(selectedPatch).some((k) => hasValue(selectedPatch[k]));
-  const wordTunedCount = editablePresets.filter((p) => {
-    const patch = chartPresets[p.name] ?? defaultChartPresets[p.name] ?? {};
-    return Object.keys(patch).some((k) => hasValue(patch[k]));
-  }).length;
-  const selectedPatchCount = Object.keys(selectedPatch).filter((k) => hasValue(selectedPatch[k])).length;
+  const selectedPatchCount = Object.keys(decisiones[meta.name] ?? {}).length;
+  const hasSelectedChanges = selectedPatchCount > 0;
+  const wordTunedCount = editablePresets.filter((p) => decisiones[p.name] !== undefined).length;
   const layoutOrigin = resolveActiveChartLayoutOrigin(selectedPatch);
 
   function setChartOptions(nextOptions: Record<string, unknown>) {
@@ -110,7 +105,9 @@ export function WordPresetsEditor() {
     });
   }
 
-  const gruposDeArgs = useMemo(() => {
+  // Sin useMemo: este cálculo va después de los return tempranos de carga y error, y un hook ahí rompe el orden de
+  // hooks de React cuando el catálogo pasa de cargando a listo. Agrupar unos pocos args por render es barato.
+  const gruposDeArgs = (() => {
     const byGrupo: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
     for (const a of meta.args) {
       const g = normalizeArgGroup(a.grupo as ArgGrupo);
@@ -120,7 +117,7 @@ export function WordPresetsEditor() {
       .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
       .map((g) => ({ grupo: g, args: byGrupo[g]! }));
-  }, [meta]);
+  })();
 
   return (
     <div className="pulso-gv2-word-presets">
@@ -172,8 +169,7 @@ export function WordPresetsEditor() {
           {editablePresets.map((p) => {
             const Icon = resolveGraphLucideIcon(p.icono_ui, "Sliders");
             const isActive = p.name === meta.name;
-            const patch = chartPresets[p.name] ?? {};
-            const modified = Object.keys(patch).some((k) => hasValue(patch[k]));
+            const modified = decisiones[p.name] !== undefined;
             return (
               <button
                 key={p.name}

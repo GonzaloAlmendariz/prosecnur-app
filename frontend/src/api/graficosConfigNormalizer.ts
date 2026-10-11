@@ -105,6 +105,10 @@ const KNOWN_KEYS = new Set([
   "scopeRules",
   "auto_otros_slides",
   "autoOtrosSlides",
+  // ADR 0094 / contrato A6 §0.4: las opciones del documento Word son campo de primera clase. Desde `_unknown` el store
+  // las descartaba al hidratar y sólo las salvaba el backend (`.graficos_conservar_campos_backend`).
+  "documento_word",
+  "documentoWord",
   "_unknown",
 ]);
 
@@ -116,13 +120,53 @@ function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+// jsonlite serializa una lista R vacía con nombres como `[]`: sobre un bloque que tiene default, `[]` significa «sin
+// decisiones» y no «reemplazar el bloque por una lista vacía».
 function deepMerge(base: Dict, override: Dict): Dict {
   const out: Dict = { ...base };
-  for (const [key, value] of Object.entries(override)) {
+  for (const [key, raw] of Object.entries(override)) {
     const prev = out[key];
+    const value = isObj(prev) && Array.isArray(raw) && raw.length === 0 ? {} : raw;
     out[key] = isObj(prev) && isObj(value) ? deepMerge(prev, value) : value;
   }
   return out;
+}
+
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => sameValue(v, b[i]));
+  }
+  if (isObj(a) && isObj(b)) {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const key of keys) if (!sameValue(a[key], b[key])) return false;
+    return true;
+  }
+  return false;
+}
+
+function decisiones(actual: Dict, defaults: Dict): Dict {
+  const out: Dict = {};
+  for (const [key, value] of Object.entries(actual)) {
+    const def = defaults[key];
+    if (Array.isArray(value) && value.length === 0 && isObj(def)) continue;
+    if (isObj(value) && (isObj(def) || def === undefined)) {
+      const inner = decisiones(value, isObj(def) ? def : {});
+      if (Object.keys(inner).length > 0) out[key] = inner;
+    } else if (!sameValue(value, def)) {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+/**
+ * Decisión 5a (ADR 0094): sólo lo que difiere del default. Las hojas iguales al default y los contenedores que quedan
+ * vacíos desaparecen; lo que no tiene default se conserva. Pura: no muta sus argumentos.
+ */
+export function wordPresetsDecisiones(actual: unknown, defaults: unknown): Record<string, Record<string, unknown>> {
+  if (!isObj(actual)) return {};
+  return decisiones(actual, isObj(defaults) ? defaults : {}) as Record<string, Record<string, unknown>>;
 }
 
 export function createDefaultWordPresets(): Record<string, Record<string, unknown>> {
@@ -134,6 +178,70 @@ export function normalizeWordPresets(input: unknown): Record<string, Record<stri
   return isObj(input)
     ? deepMerge(defaults as Dict, input) as Record<string, Record<string, unknown>>
     : defaults;
+}
+
+// Espejo de `.graficos_opciones_documento` (api/R/graficos_documento_word.R). Defensivo: lo inválido se descarta en vez
+// de viajar y provocar el 400 del backend; lo ausente usa el default del recetario.
+export type DocumentoWordContacto = Partial<Record<"correo" | "direccion" | "web", string>>;
+export type DocumentoWordMetaPortada = Partial<Record<"ante" | "sub" | "para" | "por" | "fecha" | "version", string>>;
+export type DocumentoWordOpciones = {
+  portada?: "A" | "B" | "C";
+  apertura?: "A" | "B";
+  redondeo?: "estandar" | "resto_mayor" | "ambos";
+  como_leer?: boolean;
+  titulo_corto?: string;
+  fuente?: string;
+  contacto?: DocumentoWordContacto;
+  meta_portada?: DocumentoWordMetaPortada;
+};
+
+const DOCUMENTO_WORD_ENUMS = {
+  portada: ["A", "B", "C"],
+  apertura: ["B", "A"],
+  redondeo: ["estandar", "resto_mayor", "ambos"],
+} as const;
+const DOCUMENTO_WORD_CONTACTO = ["correo", "direccion", "web"] as const;
+const DOCUMENTO_WORD_META_PORTADA = ["ante", "sub", "para", "por", "fecha", "version"] as const;
+
+function texto(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function subTextos<K extends string>(value: unknown, claves: readonly K[]): Partial<Record<K, string>> | undefined {
+  if (!isObj(value)) return undefined;
+  const out: Partial<Record<K, string>> = {};
+  for (const clave of claves) {
+    const v = texto(value[clave]);
+    if (v) out[clave] = v;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function enumValido<T extends string>(value: unknown, admitidos: readonly T[]): T | undefined {
+  const v = texto(value);
+  return (admitidos as readonly string[]).includes(v) ? v as T : undefined;
+}
+
+export function normalizeDocumentoWord(input: unknown): DocumentoWordOpciones {
+  if (!isObj(input)) return {};
+  const out: DocumentoWordOpciones = {};
+  const portada = enumValido(input.portada, DOCUMENTO_WORD_ENUMS.portada);
+  if (portada) out.portada = portada;
+  const apertura = enumValido(input.apertura, DOCUMENTO_WORD_ENUMS.apertura);
+  if (apertura) out.apertura = apertura;
+  const redondeo = enumValido(input.redondeo, DOCUMENTO_WORD_ENUMS.redondeo);
+  if (redondeo) out.redondeo = redondeo;
+  // `"auto"` equivale a ausente.
+  if (typeof input.como_leer === "boolean") out.como_leer = input.como_leer;
+  const tituloCorto = texto(input.titulo_corto);
+  if (tituloCorto) out.titulo_corto = tituloCorto;
+  const fuente = texto(input.fuente);
+  if (fuente) out.fuente = fuente;
+  const contacto = subTextos(input.contacto, DOCUMENTO_WORD_CONTACTO);
+  if (contacto) out.contacto = contacto;
+  const metaPortada = subTextos(input.meta_portada, DOCUMENTO_WORD_META_PORTADA);
+  if (metaPortada) out.meta_portada = metaPortada;
+  return out;
 }
 
 function pick(source: Dict, canonical: string, aliases: string[] = []): unknown {
@@ -187,12 +295,16 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
   const scopeRules = pick(source, "scope_rules", ["scopeRules"]);
   const equivalenciasRevision = pick(source, "equivalencias_revision", ["equivalenciasRevision"]);
   const autoOtrosSlides = pick(source, "auto_otros_slides", ["autoOtrosSlides"]);
+  const documentoWord = pick(source, "documento_word", ["documentoWord"]);
 
   const config: Dict = {
     version: "graficos/4",
     plan: isObj(plan) && Array.isArray(plan.slides) ? plan : { slides: [] },
     presets: isObj(presets) ? presets : {},
     w_presets: normalizeWordPresets(wPresets),
+    // Siempre presente (aunque sea `{}`): una clave ausente hace que el backend conserve lo guardado, y `{}` es lo que
+    // dice «volver al default» (contrato A6 §3, vitest 4).
+    documento_word: normalizeDocumentoWord(documentoWord),
     selected_slide_id: typeof selectedSlideId === "string" ? selectedSlideId : null,
     paletas: isObj(paletas) ? paletas : {},
     iconos: Array.isArray(iconos) ? iconos : [],
