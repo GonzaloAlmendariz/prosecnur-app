@@ -84,7 +84,7 @@ function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerrar, onU
       {...panelProps}
       {...a11y}
       className="pulso-f6-selector pulso-f6-iconos"
-      data-audit-ready={iconos.nombres || iconos.error ? "f6-iconos-indice" : undefined}
+      data-audit-ready={iconos.nombres || iconos.error ? "f6-iconos-indice" : "false"}
       data-qa-surface="graficos/f6-iconos-indice"
       aria-modal="true"
     >

@@ -1,0 +1,133 @@
+/* Contenido especial de la lámina en Inspector › Contenido (A10 W-B, C38): filas de la ficha técnica e ícono subido. */
+
+.pulso-f6-especial {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-f6-especial-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-especial-vacio {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-filas {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-fila-tecnica {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-fila-tecnica > textarea {
+  grid-column: 1;
+  height: auto;
+  min-height: calc(var(--pulso-control-height-md) * 1.6);
+  padding-block: var(--pulso-space-1);
+  resize: vertical;
+}
+
+.pulso-f6-fila-tecnica > button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: start;
+}
+
+.pulso-f6-especial-anadir {
+  justify-self: start;
+}
+
+.pulso-f6-icono-subido > legend {
+  margin-bottom: var(--pulso-space-1);
+  padding: 0;
+}
+
+.pulso-f6-icono-subido-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-icono-subido-opcion {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  height: 76px;
+  padding: var(--pulso-space-2) var(--pulso-space-1);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  cursor: pointer;
+}
+
+.pulso-f6-icono-subido-opcion.is-desconocido {
+  border-style: dashed;
+}
+
+.pulso-f6-icono-subido-opcion:has(input:checked) {
+  border-color: var(--module-accent);
+  box-shadow: inset 0 0 0 1px var(--module-accent);
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-icono-subido-opcion:has(input:focus-visible) {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-icono-subido-muestra {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-icono-subido-muestra img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pulso-f6-icono-subido-nombre {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
