@@ -50,30 +50,8 @@ export function atajosDePestana(pestana: GraficosTabId, mod: string): Atajo[] {
     case "estilo":
     case "estilo-informe":
     case "word":
+    case "powerpoint":
       return [...deshacer, AYUDA];
-    case "clasico":
-      return [
-        ...deshacer,
-        { keys: [mod, "D"], label: "Duplicar el slide activo", group: "Edición" },
-        { keys: ["Alt", "↑"], label: "Mover slide activo arriba", group: "Edición" },
-        { keys: ["Alt", "↓"], label: "Mover slide activo abajo", group: "Edición" },
-        { keys: ["J"], label: "Slide siguiente", group: "Navegación" },
-        { keys: ["K"], label: "Slide anterior", group: "Navegación" },
-        { keys: ["/"], label: "Foco al buscador del timeline", group: "Navegación" },
-        { keys: ["N"], label: "Abrir picker para agregar slide", group: "Navegación" },
-        { keys: ["T"], label: "Modo Timeline", group: "Vista" },
-        { keys: ["V"], label: "Modo Canvas", group: "Vista" },
-        { keys: ["1"], label: "Tab Contenido (en modo Timeline)", group: "Vista" },
-        { keys: ["2"], label: "Tab Datos", group: "Vista" },
-        { keys: ["3"], label: "Tab Estilo", group: "Vista" },
-        { keys: ["4"], label: "Tab Avanzado", group: "Vista" },
-        { keys: ["F"], label: "Ajustar canvas al lienzo", group: "Canvas" },
-        { keys: ["+", "/", "-"], label: "Zoom in / out", group: "Canvas" },
-        { keys: ["0"], label: "Reset zoom 100%", group: "Canvas" },
-        { keys: ["Esc"], label: "Limpiar selección", group: "Canvas" },
-        { keys: ["Shift", "+ Click"], label: "Añadir/quitar slide de la selección", group: "Canvas" },
-        AYUDA,
-      ];
   }
 }
 

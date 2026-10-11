@@ -103,7 +103,7 @@ describe("Inspector › Contenido especial", () => {
   it("C38: un ícono guardado que ya no está se conserva elegido y sin íconos subidos se dice", () => {
     const html = pintar({ id: "o", tipo: "p_slide_objetivo_icono", payload: { icono: "perdido" } });
     expect(html).toContain("ya no está entre los subidos: perdido");
-    expect(html).toContain("subirlos todavía no está en Láminas");
+    expect(html).toContain("Súbelos en Estilo del cliente");
   });
 
   it("C35: el título vacío muestra el nombre de la pregunta del gráfico", () => {

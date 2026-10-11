@@ -24,7 +24,6 @@ import { useGraficosShortcuts } from "./useGraficosShortcuts";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { humanizeGraficosExportError, HumanizedError } from "./humanizeExportError";
 import { GraficosHeader } from "./GraficosHeader";
-import { EditorShell } from "./v2/shell/EditorShell";
 import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { GraficosReportScopeProvider, parseGraficosReportScope } from "./reportScope";
@@ -47,6 +46,7 @@ const VistaGeneral = lazyWithReload(() => import("./vistaGeneral/VistaGeneral"),
 const PestanaEstilo = lazyWithReload(() => import("./estilo/PestanaEstilo"), "graficos-estilo");
 const PestanaEstiloInforme = lazyWithReload(() => import("./estiloInforme/PestanaEstiloInforme"), "graficos-estilo-informe");
 const PestanaWord = lazyWithReload(() => import("./word/PestanaWord"), "graficos-word");
+const PestanaPowerPoint = lazyWithReload(() => import("./powerpoint/PestanaPowerPoint"), "graficos-powerpoint");
 
 type ExportResult = {
   ok: true; file_id: string; filename?: string; size: number; n_slides: number;
@@ -315,7 +315,7 @@ export default function GraficosPage() {
             </Alert>
           )}
 
-          {pestana !== "clasico" && bodyState === "editor" ? (
+          {bodyState === "editor" ? (
             <BarraLaminas
               onExportPpt={() => onExport("ppt")}
               onExportWord={() => onExport("word")}
@@ -328,7 +328,6 @@ export default function GraficosPage() {
               canExport={canExport}
               isSharedReport={isSharedReport}
               prepBlocked={!isSharedReport && !prepOk}
-              onIrEditorAnterior={() => irPestana("clasico")}
             />
           ) : (
             <GraficosHeader
@@ -448,16 +447,18 @@ export default function GraficosPage() {
               aria-labelledby={`graficos-tab-${pestana}`}
             >
               {pestana === "laminas"
-                ? <LaminasWorkbench onIrEditorAnterior={() => irPestana("clasico")} />
+                ? <LaminasWorkbench />
                 : pestana === "vista-general"
                   ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la vista general…" /></div>}><VistaGeneral /></Suspense>
                   : pestana === "estilo"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del cliente…" /></div>}><PestanaEstilo /></Suspense>
                   : pestana === "estilo-informe"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del informe…" /></div>}><PestanaEstiloInforme /></Suspense>
+                  : pestana === "powerpoint"
+                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el PowerPoint…" /></div>}><PestanaPowerPoint /></Suspense>
                   : pestana === "word"
                     ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el Word…" /></div>}><PestanaWord /></Suspense>
-                  : <EditorShell />}
+                  : <LaminasWorkbench />}
             </div>
           </AdaptiveSplitView>
         </GraficosLibrariesHost>

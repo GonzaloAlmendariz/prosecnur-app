@@ -50,8 +50,8 @@ import "./laminasWorkbench.css";
 const panelDe = (l: Lateral) => (l === "estructura" ? PANEL_ESTRUCTURA_LAMINAS : PANEL_INSPECTOR_LAMINA);
 
 type Props = {
-  /** Lleva a la pestaña del editor anterior conservando la lámina. */
-  onIrEditorAnterior: () => void;
+  /** Sin uso desde el retiro del Editor anterior; se acepta para no romper llamadores. */
+  onIrEditorAnterior?: () => void;
 };
 
 export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
