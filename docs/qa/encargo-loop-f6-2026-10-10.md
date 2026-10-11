@@ -61,7 +61,10 @@ R_LD_LIBRARY_PATH=/usr/lib/R/lib` y `Rscript scripts/gate-area.R` (el Makefile f
 
 - `GraficosPage.tsx:419` (archivo con L17 de B): el botón dice «Ir al slide "{label}"»; con el rótulo nuevo debe decir «Ir a la {label}» o «Ir a la lámina».
 - Tokens `--pulso-recetario-*` (plan §2.2): hoy `ComposicionLamina` los nombra una vez como `--composicion-tinta` / `--composicion-titulo`.
-- jsdom + `@testing-library/react` como devDependencies del frontend (tests de componente; `package.json` compartido), si Gonzalo lo aprueba.
+- jsdom + `@testing-library/react` como devDependencies del frontend (tests de componente; `package.json` compartido): **Gonzalo lo aprobó el 2026-10-11 («3 sí»)**; A los añade cuando no haya un writer de frontend activo, salvo que B prefiera hacerlo.
+- `components/Switch`: aceptar `aria-describedby` y foco con `aria-disabled` en lugar de `disabled` nativo, para que la nota del interruptor Bottom Two Box deshabilitado (`TwoBoxGrafico.tsx`, `FilaBottom`) se anuncie y se alcance con teclado.
+- `HumanizedError.detalle`: pintarlo con «Copiar detalle técnico» en el componente de error compartido.
+- **Aviso, no pedido** (2026-10-11, 461394b): A añadió en `GraficosPage.tsx` el montaje de la pestaña «Vista general» (+4 líneas netas: `Suspense`, `lazyWithReload` y la rama `pestana === "vista-general"`). Revísalo al integrar.
 
 ## Avisos de la Fase 0 (cambios hechos en zona de A para dejar Quality verde)
 
