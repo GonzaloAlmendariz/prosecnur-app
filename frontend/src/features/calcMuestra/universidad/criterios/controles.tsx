@@ -24,7 +24,7 @@ import {
 } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { analizarEtiquetaCategoria, type EtiquetaCategoria } from "./etiquetaCategoria";
-import { Switch, SwitchTri } from "./Switch";
+import { Switch, SwitchTri } from "../../../../components/Switch";
 
 type SelChange = (next: CriterioSeleccion) => void;
 
@@ -237,6 +237,7 @@ export function ControlFlat({
             >
               <div className="cmv2-crit-item-main">
                 <Switch
+                  className="cmv2-crit-switch"
                   checked={checked}
                   onToggle={() => onSel(toggleCategoria(sel, cat.key))}
                   ariaLabel={etiquetaAgrupada(cat.label).agrupadas.length
@@ -321,7 +322,7 @@ export function ControlHierarchical({
           <div key={group.key} className="cmv2-crit-group" data-estado={estado}>
             <div className="cmv2-crit-group-head">
               <div className="cmv2-crit-item-main">
-                <SwitchTri estado={estado} onToggle={() => onSel(toggleGrupo(sel, childKeys))} ariaLabel={group.label} />
+                <SwitchTri className="cmv2-crit-switch" estado={estado} onToggle={() => onSel(toggleGrupo(sel, childKeys))} ariaLabel={group.label} />
                 <span className="cmv2-crit-group-title">{group.label}</span>
               </div>
               <span className="cmv2-crit-item-count">
@@ -344,7 +345,7 @@ export function ControlHierarchical({
                     data-qa-geometry-capacity="owned"
                   >
                     <div className="cmv2-crit-item-main">
-                      <Switch checked={checked} onToggle={() => onSel(toggleCategoria(sel, child.key))} ariaLabel={child.label} />
+                      <Switch className="cmv2-crit-switch" checked={checked} onToggle={() => onSel(toggleCategoria(sel, child.key))} ariaLabel={child.label} />
                       <span className="cmv2-crit-item-label">{child.label}</span>
                     </div>
                     <span className="cmv2-crit-item-count">
@@ -493,6 +494,7 @@ export function ControlOrdinal({
       </div>
       <div className="cmv2-crit-from">
         <Switch
+          className="cmv2-crit-switch"
           checked={usaFrom}
           ariaLabel="Desde un valor en adelante"
           onToggle={() => onSel(setFromValue(sel, usaFrom ? undefined : valores[Math.min(1, valores.length - 1)] ?? valores[0]))}

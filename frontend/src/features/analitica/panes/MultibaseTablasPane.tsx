@@ -7,6 +7,7 @@ import {
   apiAnaliticaMultibaseTablas,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
+import { Switch } from "../../../components/Switch";
 import { useAnaliticaStore } from "../store";
 import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
@@ -242,15 +243,7 @@ function SwitchRow({
         {icon}
         {label}
       </span>
-      <button
-        type="button"
-        className="pulso-switch"
-        aria-checked={checked}
-        role="switch"
-        onClick={() => onChange(!checked)}
-      >
-        <span className="pulso-switch-thumb" />
-      </button>
+      <Switch checked={checked} onToggle={() => onChange(!checked)} ariaLabel={label} />
     </div>
   );
 }

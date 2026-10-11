@@ -11908,10 +11908,10 @@ h1.pulso-page-title {
 }
 .pulso-switch {
   position: relative;
-  width: 44px;
-  min-width: 44px;
-  height: 24px;
-  min-height: 24px;
+  width: var(--pulso-switch-w);
+  min-width: var(--pulso-switch-w);
+  height: var(--pulso-switch-h);
+  min-height: var(--pulso-switch-h);
   border-radius: var(--pulso-radius-chip);
   border: 1px solid var(--pulso-switch-border);
   background: var(--pulso-switch-track);
@@ -11926,9 +11926,9 @@ h1.pulso-page-title {
     box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-switch[aria-checked="true"] {
-  border-color: color-mix(in srgb, var(--pulso-primary) 84%, #fff 16%);
+  border-color: color-mix(in srgb, var(--pulso-switch-accent) 84%, #fff 16%);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 88%, #fff 12%), var(--pulso-primary));
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-switch-accent) 88%, #fff 12%), var(--pulso-switch-accent));
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.2),
     0 1px 2px rgba(0, 36, 87, 0.12);
@@ -11937,13 +11937,13 @@ h1.pulso-page-title {
   transform: none;
   box-shadow:
     var(--pulso-switch-track-shadow),
-    0 0 0 4px var(--pulso-primary-ring);
+    0 0 0 4px var(--pulso-switch-accent-ring);
 }
 .pulso-switch[aria-checked="true"]:hover:not(:disabled) {
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.2),
     0 1px 2px rgba(0, 36, 87, 0.12),
-    0 0 0 4px var(--pulso-primary-ring);
+    0 0 0 4px var(--pulso-switch-accent-ring);
 }
 .pulso-switch:active:not(:disabled) {
   transform: scale(0.97);
@@ -11955,15 +11955,30 @@ h1.pulso-page-title {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 18px;
-  height: 18px;
+  width: var(--pulso-switch-knob-size);
+  height: var(--pulso-switch-knob-size);
   border-radius: 50%;
   background: #fff;
   box-shadow: var(--pulso-switch-knob-shadow);
   transition: left var(--motion-dur-fast) var(--motion-ease-out);
 }
+/* El recorrido se deriva de la escala en vez de fijarse: la perilla apoya a 2px
+ * de cada extremo, así que encendida arranca en `ancho - perilla - 4px`. Con el
+ * maestro (44/18) da los 22px de siempre; con criterios (34/14) da 16, que es
+ * donde su `translateX(14px)` la dejaba. Fijar el número obligaba a cada piel a
+ * redeclararlo, y era media razón de que existieran switches paralelos. */
 .pulso-switch[aria-checked="true"] .pulso-switch-thumb {
-  left: 22px;
+  left: calc(var(--pulso-switch-w) - var(--pulso-switch-knob-size) - 4px);
+}
+/* Indeterminado: la perilla se queda a medio camino entre apagado y encendido.
+ * Lo pedía el `SwitchTri` de criterios (un grupo con algunos hijos marcados),
+ * que era la otra media razón de que esa suite no pudiera usar el de la casa. */
+.pulso-switch[aria-checked="mixed"] {
+  border-color: color-mix(in srgb, var(--pulso-switch-accent) 60%, var(--pulso-switch-border));
+  background: color-mix(in srgb, var(--pulso-switch-accent) 42%, var(--pulso-text-muted) 20%);
+}
+.pulso-switch[aria-checked="mixed"] .pulso-switch-thumb {
+  left: calc((var(--pulso-switch-w) - var(--pulso-switch-knob-size) - 2px) / 2);
 }
 
 .pulso-upload-card {

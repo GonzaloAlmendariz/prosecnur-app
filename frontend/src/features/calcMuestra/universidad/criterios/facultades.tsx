@@ -17,7 +17,7 @@ import {
   upsertExcepcion,
 } from "../../dominio";
 import { ControlRango } from "./ControlRango";
-import { Switch } from "./Switch";
+import { Switch } from "../../../../components/Switch";
 
 export type FacultadRef = { key: string; label: string };
 
@@ -70,6 +70,7 @@ export function ControlRange({
             <span className="cmv2-crit-range-fac" role="rowheader" title={fac.label}>{fac.label}</span>
             <span className="cmv2-crit-range-apply">
               <Switch
+                className="cmv2-crit-switch"
                 checked={activo}
                 ariaLabel={`Aplicar rango de nivel en ${fac.label}`}
                 onToggle={() => onRango(fac.key, activo ? [] : [[desde, hasta]])}
