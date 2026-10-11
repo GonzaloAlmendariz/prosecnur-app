@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Gráficos]]"]
-orden: 2
+orden: 5
 documentacion: parcial
 ruta_app: "/graficos?pestana=clasico"
 nodo: "procesamiento/graficos/clasico"
