@@ -2466,55 +2466,9 @@
   .png_preview_payload(png_path, "artifact-tool")
 }
 
+# La conversión y su diagnóstico (timeout, ausente, fallida) viven en graficos_preview_reintento.R.
 .pptx_to_pdf_soffice <- function(pptx_path, out_dir, timeout = 30) {
-  cmd <- .soffice_cmd()
-  if (!nzchar(cmd)) return(NULL)
-  pptx_path <- tryCatch(normalizePath(pptx_path, winslash = "/", mustWork = TRUE), error = function(e) pptx_path)
-
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  perfil <- .preview_perfil_tomar(out_dir)   # perfil de LibreOffice reutilizado: ~1 s menos por vista previa
-  on.exit(perfil$liberar(), add = TRUE)
-  convertir <- function() {
-    profile_uri <- .preview_profile_uri(perfil$dir)
-    t0 <- Sys.time()
-    ok <- tryCatch({
-      system2(
-        cmd,
-        c(
-          "--headless",
-          "--invisible",
-          "--nodefault",
-          "--nofirststartwizard",
-          "--nolockcheck",
-          "--norestore",
-          .preview_arg(paste0("-env:UserInstallation=", profile_uri)),
-          "--convert-to",
-          "pdf",
-          "--outdir",
-          .preview_arg(out_dir),
-          .preview_arg(pptx_path)
-        ),
-        stdout = TRUE,
-        stderr = TRUE,
-        timeout = timeout
-      )
-      TRUE
-    }, error = function(e) FALSE)
-    pdfs <- if (isTRUE(ok)) list.files(out_dir, pattern = "\\.pdf$", full.names = TRUE, ignore.case = TRUE) else character()
-    list(pdf = if (length(pdfs)) pdfs[[1]] else NULL, segundos = as.numeric(difftime(Sys.time(), t0, units = "secs")))
-  }
-  r <- convertir()
-  # Un perfil compartido dañado haría fallar todas las vistas previas de la sesión (verificadores de 9bce4f10e y
-  # ebe1c1699): si la conversión falla, el perfil se borra siempre —también tras un timeout, que es como se manifiesta un
-  # perfil que cuelga a soffice— para que la siguiente arranque con uno nuevo; sólo se reintenta aquí si falló rápido.
-  if (is.null(r$pdf) && isTRUE(perfil$compartido)) {
-    unlink(perfil$dir, recursive = TRUE, force = TRUE)
-    if (r$segundos < timeout) {
-      dir.create(perfil$dir, recursive = TRUE, showWarnings = FALSE)
-      r <- convertir()
-    }
-  }
-  r$pdf
+  .pptx_to_pdf_soffice_info(pptx_path, out_dir, timeout = timeout)$pdf
 }
 
 .render_pptx_slide_png_soffice <- function(pptx_path, out_dir, slide_index = 1L, timeout = 30, dpi = 220) {

@@ -150,22 +150,26 @@
 #' @return Lista alineada con las partes: el elemento k es el payload de la parte k (`png_base64`, `width`, `height`,
 #'   `renderer`, `indice`) o `NULL` si esa parte no se pudo rasterizar (la API lo serializa como `{}`: un objeto sin
 #'   `indice` es un hueco); vacía si no hay renderer. El atributo `truncado`
-#'   vale `TRUE` cuando había más partes que `max_partes`.
+#'   vale `TRUE` cuando había más partes que `max_partes`; el atributo `motivo` (sólo si la parte 1 quedó sin imagen)
+#'   es uno de `.PREVIEW_MOTIVOS_SIN_IMAGEN`.
 #' @keywords internal
 .render_pptx_preview_partes <- function(pptx_path, n_partes, preview_quality = "quick", max_partes = 6L) {
   preview_quality <- if (identical(tolower(as.character(preview_quality %||% "quick")), "normal")) "normal" else "quick"
   dpi <- if (preview_quality == "quick") 160L else 220L
-  timeout <- if (preview_quality == "quick") 12L else 30L
+  plazos <- .PREVIEW_PLAZOS[[preview_quality]]   # plazo y reintento: graficos_preview_reintento.R
+  timeout <- plazos[[1]]
   total <- suppressWarnings(as.integer(n_partes %||% 1L))
   if (is.na(total) || total < 1L) total <- 1L
   n <- min(total, as.integer(max_partes))
   tmpdir <- tempfile("pptx_preview_partes_")
   dir.create(tmpdir, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(tmpdir, recursive = TRUE, force = TRUE), add = TRUE)
-  .con_indice <- function(out) {
+  .con_indice <- function(out, motivo = NA_character_) {
     out <- lapply(seq_along(out), function(i) if (is.null(out[[i]])) NULL else c(out[[i]], list(indice = i)))
+    if ((!length(out) || is.null(out[[1]])) && is.na(motivo)) motivo <- "raster_fallido"
     if (all(vapply(out, is.null, logical(1)))) out <- list()
     attr(out, "truncado") <- total > n
+    if (!is.na(motivo)) attr(out, "motivo") <- motivo
     out
   }
 
@@ -173,9 +177,9 @@
     out <- lapply(seq_len(n), function(i) .render_pptx_slide_png_artifact(pptx_path, tmpdir, slide_index = i, timeout = timeout, scale = max(1, dpi / 96)))
     if (!is.null(out[[1]])) return(.con_indice(out))
   }
-  pdf_path <- .pptx_to_pdf_soffice(pptx_path, tmpdir, timeout = timeout + 4L * (n - 1L))
-  if (is.null(pdf_path)) return(.con_indice(list(NULL)))
-  .con_indice(lapply(seq_len(n), function(i) .pdf_page_to_png(pdf_path, tmpdir, "soffice", page = i, dpi = dpi, timeout = timeout)))
+  conv <- .preview_pdf_con_reintento(pptx_path, tmpdir, plazos, extra = 4L * (n - 1L))
+  if (is.null(conv$pdf)) return(.con_indice(list(NULL), motivo = conv$motivo))
+  .con_indice(lapply(seq_len(n), function(i) .pdf_page_to_png(conv$pdf, tmpdir, "soffice", page = i, dpi = dpi, timeout = timeout)))
 }
 
 #' Perfil de LibreOffice para una conversión: el de la sesión R si está libre, uno nuevo si no

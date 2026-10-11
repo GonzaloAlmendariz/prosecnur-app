@@ -86,6 +86,11 @@ export function crearCoordinadorPreviewLamina(cargar: CargaPreview, opciones: { 
         }, espera);
       });
     },
+    /** La próxima solicitud vuelve a pedir aunque la clave no haya cambiado (Reintentar). La última respuesta sigue
+     *  sirviendo de «anterior» mientras llega la nueva. */
+    olvidar() {
+      if (ultima) ultima = { ...ultima, clave: "" };
+    },
     /** Cancela lo pendiente (al salir de la lámina o desmontar). */
     cancelar() {
       turno++;

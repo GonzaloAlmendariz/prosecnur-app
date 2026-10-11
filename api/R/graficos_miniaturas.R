@@ -445,11 +445,12 @@
 #'
 #' Llave: calidad, número máximo de partes y renderer. Una miniatura (1 parte) reutiliza el raster de 6 partes que ya armó
 #' la vista previa de la lámina activa. Un raster incompleto (renderer caído, timeout) no se guarda: se reintenta.
-#' @return `list(slide_previews, cache = "hit"|"miss"|"sin_renderer")`; `slide_previews` lleva el atributo `truncado`.
+#' @return `list(slide_previews, cache = "hit"|"miss"|"sin_renderer", motivo)`; `slide_previews` lleva el atributo
+#'   `truncado`; `motivo` dice por qué no hay imagen de la parte 1 (`.PREVIEW_MOTIVOS_SIN_IMAGEN`) o es `NA`.
 #' @keywords internal
 .mini_asegurar_raster <- function(raiz, hash, meta, quality = "quick", max_partes = 1L, renderer_id = .mini_renderer_id()) {
   vacio <- structure(list(), truncado = FALSE)
-  if (is.na(renderer_id)) return(list(slide_previews = vacio, cache = "sin_renderer"))
+  if (is.na(renderer_id)) return(list(slide_previews = vacio, cache = "sin_renderer", motivo = "renderer_ausente"))
   e <- .mini_entrada(raiz, hash)
   ruta <- function(m) file.path(e$dir, sprintf("raster_%s_%d_%s.rds", quality, as.integer(m), renderer_id))
   n_partes <- as.integer(meta$partes$n %||% 1L)
@@ -464,12 +465,12 @@
       sp <- sp[seq_len(min(length(sp), as.integer(max_partes)))]
       attr(sp, "truncado") <- truncado
     }
-    return(list(slide_previews = sp, cache = "hit"))
+    return(list(slide_previews = sp, cache = "hit", motivo = NA_character_))
   }
   sp <- .render_pptx_preview_partes(e$pptx, n_partes, preview_quality = quality, max_partes = as.integer(max_partes))
   completo <- length(sp) > 0L && !any(vapply(sp, is.null, logical(1)))
   if (isTRUE(completo)) .mini_escribir_atomico(ruta(max_partes), function(tmp) saveRDS(sp, tmp, version = 3))
-  list(slide_previews = sp, cache = "miss")
+  list(slide_previews = sp, cache = "miss", motivo = .preview_motivo_publico(attr(sp, "motivo")))
 }
 
 #' Ancho de la miniatura del lote, en px. El raster de la vista previa (2133×1200, ~263 KB) en una caja de 96×54 px eran
@@ -534,7 +535,8 @@
     list(slide_previews = structure(list(), truncado = FALSE), cache = "no_pedido")
   }
   list(hash = ctx$hash, pptx = .mini_entrada(raiz, ctx$hash)$pptx, meta = pptx$meta,
-       slide_previews = raster$slide_previews, cache = list(pptx = pptx$cache, raster = raster$cache))
+       slide_previews = raster$slide_previews, motivo_sin_imagen = .preview_motivo_publico(raster$motivo),
+       cache = list(pptx = pptx$cache, raster = raster$cache))
 }
 
 #' Poda la caché a las `max` entradas usadas más recientemente (opción `pulso.miniaturas_cache_max`, 400 por defecto; fuera
@@ -602,6 +604,8 @@
     type = "pptx",
     images = if (isTRUE(opts$include_images)) .extract_pptx_images(r$pptx) else list(),
     slide_preview = slide_preview %||% NA,
+    # Por qué no hay imagen (graficos_preview_reintento.R); NA si la hay. La UI no confunde un timeout con «sin LibreOffice».
+    motivo_sin_imagen = if (is.null(slide_preview)) .preview_motivo_publico(r$motivo_sin_imagen) else NA_character_,
     partes = partes,
     slide_previews = slide_previews,
     avisos = r$meta$avisos %||% character(0),

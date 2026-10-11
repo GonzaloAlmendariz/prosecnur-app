@@ -62,6 +62,18 @@ describe("normalizeMiniaturasLote", () => {
   });
 });
 
+describe("motivo_sin_imagen del lote", () => {
+  it("normaliza el motivo tipado y descarta lo desconocido", () => {
+    const r = normalizeMiniaturasLote({ laminas: [
+      { slide_id: "a", estado: "sin_imagen", motivo_sin_imagen: "renderer_timeout" },
+      { slide_id: "b", estado: "sin_imagen", motivo_sin_imagen: ["renderer_ausente"] },
+      { slide_id: "c", estado: "sin_imagen", motivo_sin_imagen: "inventado" },
+      { slide_id: "d", estado: "ok", miniatura: { file_id: "f" }, motivo_sin_imagen: "renderer_timeout" },
+    ] });
+    expect(r.laminas.map((l) => l.motivo_sin_imagen)).toEqual(["renderer_timeout", "renderer_ausente", null, null]);
+  });
+});
+
 describe("miniaturaSrc", () => {
   it("agrega el sid en la query (un <img> no manda headers)", () => {
     expect(miniaturaSrc({ url: "/api/files/f1/download" }, "s 1")).toMatch(/\/api\/files\/f1\/download\?sid=s%201$/);
