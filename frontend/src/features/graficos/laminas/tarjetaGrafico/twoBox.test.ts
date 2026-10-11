@@ -293,7 +293,7 @@ describe("ida y vuelta: volver a lo heredado deja el gráfico como estaba", () =
       }
     }
     expect(casos).toBeGreaterThan(1000);
-  });
+  }, 30_000); // barrido exhaustivo (cientos de casos): bajo carga del gate completo pasa de los 5 s por defecto
 });
 
 describe("preguntaDeEscala y categoriasElegibles", () => {
