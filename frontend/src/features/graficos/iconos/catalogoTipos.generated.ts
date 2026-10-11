@@ -1,0 +1,72 @@
+// GENERADO desde api/inst/catalogos/graficos_tipos.json (a su vez generado de api/R/graficos_metadata.R). No editar a mano:
+// generados.contract.test.ts falla si se desvía del JSON y muestra el valor esperado.
+
+export type SalidaGrafico = "nativa" | "marco" | "ruta_anterior";
+
+export type TipoLaminaCatalogo = { name: string; categoria: string; estandar: string | null; en_selector: boolean };
+export type TipoGraficoCatalogo = { name: string; familia_editor: string; salida: SalidaGrafico; en_selector: boolean };
+
+export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
+  { name: "p_slide_portada", categoria: "estructural", estandar: null, en_selector: true },
+  { name: "p_slide_indice", categoria: "estructural", estandar: null, en_selector: true },
+  { name: "p_slide_top_two_box", categoria: "estructural", estandar: null, en_selector: true },
+  { name: "p_slide_redondeo", categoria: "estructural", estandar: null, en_selector: true },
+  { name: "p_slide_seccion", categoria: "estructural", estandar: null, en_selector: true },
+  { name: "p_slide_objetivo_icono", categoria: "estructural", estandar: null, en_selector: true },
+  { name: "p_slide_texto", categoria: "estructural", estandar: "p_slide_texto", en_selector: true },
+  { name: "p_slide_tabla_tecnica", categoria: "estructural", estandar: null, en_selector: true },
+  { name: "p_slide_1_grafico", categoria: "1grafico", estandar: "p_slide_1_grafico", en_selector: true },
+  { name: "p_slide_1_grafico_narrativo", categoria: "1grafico", estandar: "p_slide_1_grafico_narrativo", en_selector: true },
+  { name: "p_slide_grafico_texto_derecha", categoria: "1grafico", estandar: "p_slide_grafico_texto_derecha", en_selector: true },
+  { name: "p_slide_grafico_texto_izquierda", categoria: "1grafico", estandar: "p_slide_grafico_texto_izquierda", en_selector: true },
+  { name: "p_slide_2_graficos", categoria: "2graficos", estandar: "p_slide_2_graficos", en_selector: true },
+  { name: "p_slide_2_graficos_narrativo", categoria: "2graficos", estandar: "p_slide_2_graficos_narrativo", en_selector: true },
+  { name: "p_slide_2_graficos_texto_izquierda", categoria: "2graficos", estandar: "p_slide_2_graficos_texto_izquierda", en_selector: true },
+  { name: "p_slide_2_graficos_texto_derecha", categoria: "2graficos", estandar: "p_slide_2_graficos_texto_derecha", en_selector: true },
+  { name: "p_slide_4_graficos", categoria: "4graficos", estandar: "p_slide_4_graficos", en_selector: true },
+  { name: "p_slide_2_graficos_poblacion", categoria: "poblacion", estandar: null, en_selector: false },
+  { name: "p_slide_3_graficos_poblacion_tira", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_tira", en_selector: true },
+  { name: "p_slide_3_graficos_poblacion_corona", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_corona", en_selector: true },
+  { name: "p_slide_3_graficos_poblacion_cifras", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_cifras", en_selector: true },
+  { name: "p_slide_cifras_y_graficos", categoria: "2graficos", estandar: "p_slide_cifras_y_graficos", en_selector: true },
+  { name: "p_slide_3_graficos_2mas1", categoria: "3graficos", estandar: "p_slide_3_graficos_2mas1", en_selector: true },
+  { name: "p_slide_3_graficos_1mas2", categoria: "3graficos", estandar: "p_slide_3_graficos_1mas2", en_selector: true },
+  { name: "p_slide_3_graficos_fila", categoria: "3graficos", estandar: "p_slide_3_graficos_fila", en_selector: true },
+  { name: "p_slide_3_graficos_1arriba", categoria: "3graficos", estandar: "p_slide_3_graficos_1arriba", en_selector: true },
+  { name: "p_slide_2_graficos_vertical", categoria: "2graficos", estandar: "p_slide_2_graficos_vertical", en_selector: true },
+  { name: "p_slide_2_graficos_asimetrico", categoria: "2graficos", estandar: "p_slide_2_graficos_asimetrico", en_selector: true },
+  { name: "p_slide_3_graficos_poblacion", categoria: "poblacion", estandar: null, en_selector: false },
+  { name: "p_slide_4_graficos_poblacion", categoria: "poblacion", estandar: null, en_selector: false },
+  { name: "p_slide_5_graficos_poblacion", categoria: "poblacion", estandar: "p_slide_5_graficos_poblacion", en_selector: true },
+  { name: "p_slide_6_graficos_poblacion", categoria: "poblacion", estandar: "p_slide_6_graficos_poblacion", en_selector: true },
+  { name: "p_slide_cierre", categoria: "estructural", estandar: null, en_selector: true },
+];
+
+export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
+  { name: "p_barras_agrupadas", familia_editor: "categorias", salida: "nativa", en_selector: true },
+  { name: "p_barras_categoricas", familia_editor: "categorias", salida: "nativa", en_selector: true },
+  { name: "p_barras_apiladas", familia_editor: "escalas", salida: "nativa", en_selector: true },
+  { name: "p_barras_multiapiladas", familia_editor: "escalas", salida: "nativa", en_selector: true },
+  { name: "p_nube_palabras", familia_editor: "texto", salida: "marco", en_selector: true },
+  { name: "p_mapa_cobertura_territorial", familia_editor: "territorio", salida: "nativa", en_selector: true },
+  { name: "p_pie", familia_editor: "categorias", salida: "nativa", en_selector: true },
+  { name: "p_donut", familia_editor: "categorias", salida: "nativa", en_selector: true },
+  { name: "p_numerico", familia_editor: "numeros", salida: "nativa", en_selector: true },
+  { name: "p_histograma", familia_editor: "numeros", salida: "nativa", en_selector: true },
+  { name: "p_boxplot", familia_editor: "numeros", salida: "nativa", en_selector: true },
+  { name: "p_media_rango", familia_editor: "numeros", salida: "nativa", en_selector: true },
+  { name: "p_barras_divergentes", familia_editor: "escalas", salida: "nativa", en_selector: true },
+  { name: "p_puntos_comparativos", familia_editor: "comparar", salida: "ruta_anterior", en_selector: true },
+  { name: "p_mapa_resultado_distrital", familia_editor: "territorio", salida: "nativa", en_selector: true },
+  { name: "p_cifra", familia_editor: "numeros", salida: "nativa", en_selector: true },
+  { name: "p_dumbbell", familia_editor: "comparar", salida: "nativa", en_selector: true },
+  { name: "p_lollipop", familia_editor: "categorias", salida: "nativa", en_selector: true },
+  { name: "p_serie_temporal", familia_editor: "comparar", salida: "nativa", en_selector: true },
+  { name: "p_radar", familia_editor: "comparar", salida: "nativa", en_selector: true },
+  { name: "p_tabla", familia_editor: "comparar", salida: "ruta_anterior", en_selector: true },
+  { name: "p_dim_radar", familia_editor: "dimensiones", salida: "ruta_anterior", en_selector: true },
+  { name: "p_dim_heatmap", familia_editor: "dimensiones", salida: "nativa", en_selector: true },
+  { name: "p_dim_comparativo_radarbar", familia_editor: "dimensiones", salida: "nativa", en_selector: true },
+  { name: "p_dim_foda", familia_editor: "dimensiones", salida: "ruta_anterior", en_selector: false },
+  { name: "p_dim_heatmap_criterios", familia_editor: "dimensiones", salida: "nativa", en_selector: true },
+];

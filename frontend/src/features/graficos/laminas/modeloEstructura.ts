@@ -52,7 +52,8 @@ export type EstructuraInforme = {
   laminas: LaminaEnEstructura[];
 };
 
-const COMO_LEER: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_top_two_box"]);
+// Láminas metodológicas del capítulo «Cómo leer este informe» del recetario (Top Two Box p19, redondeo p20–21).
+const COMO_LEER: ReadonlySet<SlideType> = new Set<SlideType>(["p_slide_top_two_box", "p_slide_redondeo"]);
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 

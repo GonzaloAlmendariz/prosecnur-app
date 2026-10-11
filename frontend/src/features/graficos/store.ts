@@ -172,6 +172,10 @@ type PlanStore = {
   duplicateSlide: (id: string) => void;
   moveSlide: (id: string, direction: "up" | "down") => void;
   updateSlidePayload: (id: string, patch: Record<string, unknown>) => void;
+  /** Cambia el tipo de una lámina con el payload ya reacomodado (laminas/selectores/cambioTipoLamina.ts). */
+  setSlideTipo: (id: string, tipo: SlideType, payload: Record<string, unknown>) => void;
+  /** Inserta una lámina en `index` (0-based) con su payload, la selecciona y devuelve su id (un paso deshacible). */
+  insertSlideAt: (tipo: SlideType, payload: Record<string, unknown>, index: number) => string;
   setSlot: (id: string, slot: string, graf: GraficadorRef | null) => void;
   updateSlotArgs: (id: string, slot: string, patch: Record<string, unknown>) => void;
   setPresets: (presets: Record<string, Record<string, unknown>>) => void;
@@ -245,6 +249,8 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_texto:          { titulo: "", texto: "", bullets: "", base: "" },
   p_slide_tabla_tecnica:  { titulo: "", filas: "", pie: "" },
   p_slide_top_two_box:    {},
+  // Sin título: el constructor trae el de la casa («CÓMO SE REDONDEAN LAS CIFRAS»).
+  p_slide_redondeo:       {},
   p_slide_cierre:         { variante: "contraportada" },
 
   // ---- 1 gráfico ------------------------------------------------------
@@ -258,6 +264,19 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_2_graficos_narrativo:    { titulo: "", izquierda: null, derecha: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_2_graficos_texto_izquierda: { titulo: "", grafico_1: null, grafico_2: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_2_graficos_texto_derecha:   { titulo: "", grafico_1: null, grafico_2: null, texto: "", base: "", pie: "", etiqueta: "" },
+  p_slide_2_graficos_vertical:        { titulo: "", base: "", superior: null, inferior: null },
+  p_slide_2_graficos_asimetrico:      { titulo: "", base: "", principal: null, apoyo: null },
+  p_slide_cifras_y_graficos: {
+    titulo: "", base: "",
+    cifra_izquierda: null, cifra_centro: null, cifra_derecha: null,
+    grafico_izquierda: null, grafico_derecha: null,
+  },
+
+  // ---- 3 gráficos -----------------------------------------------------
+  p_slide_3_graficos_2mas1:  { titulo: "", base: "", superior_izquierda: null, inferior_izquierda: null, derecha: null },
+  p_slide_3_graficos_1mas2:  { titulo: "", base: "", izquierda: null, superior_derecha: null, inferior_derecha: null },
+  p_slide_3_graficos_fila:   { titulo: "", base: "", izquierda: null, centro: null, derecha: null },
+  p_slide_3_graficos_1arriba: { titulo: "", base: "", superior: null, inferior_izquierda: null, inferior_derecha: null },
 
   // ---- Grids ----------------------------------------------------------
   p_slide_4_graficos: {
@@ -267,6 +286,19 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   },
 
   // ---- Población (con ícono central) ----------------------------------
+  p_slide_3_graficos_poblacion_tira: { titulo: "", base: "", icono: null, superior: null, medio: null, inferior: null },
+  p_slide_3_graficos_poblacion_corona: {
+    titulo: "", base: "", icono: null,
+    superior_izquierda: null, superior_derecha: null, inferior: null,
+  },
+  p_slide_3_graficos_poblacion_cifras: {
+    titulo: "", base: "", icono: null,
+    superior_izquierda: null, derecha: null, cifra_superior: null, inferior_izquierda: null, cifra_inferior: null,
+  },
+  p_slide_3_graficos_poblacion: {
+    titulo: "", base: "", icono: null,
+    superior_izquierda: null, inferior_izquierda: null, derecha: null,
+  },
   p_slide_2_graficos_poblacion: {
     titulo: "", base: "", pie: "", etiqueta: "",
     izquierda: null, derecha: null, icono: null,
@@ -290,6 +322,11 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
     icono: null,
   },
 };
+
+/** Payload con el que nace una lámina de `tipo` (copia: se puede mutar). */
+export function payloadPorDefecto(tipo: SlideType): Record<string, unknown> {
+  return { ...DEFAULT_PAYLOADS[tipo] };
+}
 
 function newId() {
   return `s-${Math.random().toString(36).slice(2, 10)}`;
@@ -541,6 +578,22 @@ export const usePlanStore = create<PlanStore>((set) => ({
     }));
   },
 
+  setSlideTipo: (id, tipo, payload) => {
+    set((state) => dirty(state, {
+      plan: { slides: state.plan.slides.map((s) => (s.id === id ? { ...s, tipo, payload } : s)) },
+    }));
+  },
+
+  insertSlideAt: (tipo, payload, index) => {
+    const s: Slide = { id: newId(), tipo, payload };
+    set((state) => {
+      const i = Math.max(0, Math.min(state.plan.slides.length, Math.floor(index)));
+      const slides = [...state.plan.slides.slice(0, i), s, ...state.plan.slides.slice(i)];
+      return dirty(state, { plan: { slides }, selectedSlideId: s.id });
+    });
+    return s.id;
+  },
+
   setSlot: (id, slot, graf) => {
     set((state) => dirty(state, {
       plan: {
@@ -780,6 +833,7 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_texto:                        "Bloque de texto",
   p_slide_tabla_tecnica:                "Tabla técnica",
   p_slide_top_two_box:                  "Explicación Top Two Box",
+  p_slide_redondeo:                     "Explicación del redondeo",
   p_slide_cierre:                       "Cierre",
   p_slide_1_grafico:                    "Un gráfico",
   p_slide_1_grafico_narrativo:          "Un gráfico + narrativa",
@@ -789,8 +843,19 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_2_graficos_narrativo:         "Dos gráficos + narrativa",
   p_slide_2_graficos_texto_izquierda:   "Dos gráficos + texto izquierda",
   p_slide_2_graficos_texto_derecha:     "Dos gráficos + texto derecha",
+  p_slide_2_graficos_vertical:          "Dos gráficos apilados",
+  p_slide_2_graficos_asimetrico:        "Dos gráficos: principal y apoyo",
+  p_slide_cifras_y_graficos:            "Banda de cifras + dos gráficos",
+  p_slide_3_graficos_2mas1:             "Tres gráficos: dos apilados + uno alto",
+  p_slide_3_graficos_1mas2:             "Tres gráficos: uno alto + dos apilados",
+  p_slide_3_graficos_fila:              "Tres gráficos en fila",
+  p_slide_3_graficos_1arriba:           "Tres gráficos: uno ancho arriba",
   p_slide_4_graficos:                   "Cuatro gráficos",
+  p_slide_3_graficos_poblacion_tira:    "Tres franjas + ícono (población)",
+  p_slide_3_graficos_poblacion_corona:  "Tres gráficos alrededor del ícono",
+  p_slide_3_graficos_poblacion_cifras:  "Tres gráficos + cifras + ícono",
   p_slide_2_graficos_poblacion:         "2 gráficos + ícono (población)",
+  p_slide_3_graficos_poblacion:         "3 gráficos + ícono (población)",
   p_slide_4_graficos_poblacion:         "4 gráficos + ícono (población)",
   p_slide_5_graficos_poblacion:         "5 gráficos + ícono (población)",
   p_slide_6_graficos_poblacion:         "6 gráficos + ícono (población)",
@@ -806,6 +871,7 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_texto:                        [],
   p_slide_tabla_tecnica:                [],
   p_slide_top_two_box:                  [],
+  p_slide_redondeo:                     [],
   p_slide_cierre:                       [],
   p_slide_1_grafico:                    ["grafico"],
   p_slide_1_grafico_narrativo:          ["grafico"],
@@ -815,8 +881,19 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_2_graficos_narrativo:         ["izquierda", "derecha"],
   p_slide_2_graficos_texto_izquierda:   ["grafico_1", "grafico_2"],
   p_slide_2_graficos_texto_derecha:     ["grafico_1", "grafico_2"],
+  p_slide_2_graficos_vertical:          ["superior", "inferior"],
+  p_slide_2_graficos_asimetrico:        ["principal", "apoyo"],
+  p_slide_cifras_y_graficos:            ["cifra_izquierda", "cifra_centro", "cifra_derecha", "grafico_izquierda", "grafico_derecha"],
+  p_slide_3_graficos_2mas1:             ["superior_izquierda", "inferior_izquierda", "derecha"],
+  p_slide_3_graficos_1mas2:             ["izquierda", "superior_derecha", "inferior_derecha"],
+  p_slide_3_graficos_fila:              ["izquierda", "centro", "derecha"],
+  p_slide_3_graficos_1arriba:           ["superior", "inferior_izquierda", "inferior_derecha"],
   p_slide_4_graficos:                   ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"],
+  p_slide_3_graficos_poblacion_tira:    ["superior", "medio", "inferior"],
+  p_slide_3_graficos_poblacion_corona:  ["superior_izquierda", "superior_derecha", "inferior"],
+  p_slide_3_graficos_poblacion_cifras:  ["superior_izquierda", "derecha", "cifra_superior", "inferior_izquierda", "cifra_inferior"],
   p_slide_2_graficos_poblacion:         ["izquierda", "derecha"],
+  p_slide_3_graficos_poblacion:         ["superior_izquierda", "inferior_izquierda", "derecha"],
   p_slide_4_graficos_poblacion:         ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"],
   p_slide_5_graficos_poblacion:         ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2"],
   p_slide_6_graficos_poblacion:         ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3"],

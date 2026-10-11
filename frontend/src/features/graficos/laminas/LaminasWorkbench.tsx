@@ -8,7 +8,7 @@ import { useSession } from "../../../lib/SessionContext";
 import { useAvisosPlanSesion } from "../avisosPlan";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
-import { searchConPanel, searchSinPanel, usePanelDireccionable } from "../../../lib/navegacion/paneles";
+import { searchConPanel, searchSinPanel, usePanelDireccionable, type PanelDeclarado } from "../../../lib/navegacion/paneles";
 import { PANEL_AVISOS_INFORME, PANEL_ESTRUCTURA_LAMINAS, PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
 import { parseGraficosReportScope } from "../reportScope";
 import { leerSlideMeta } from "../slideMeta";
@@ -28,9 +28,11 @@ import { esLateral, resolverLateral, type Lateral } from "./lateralLaminas";
 import { useAnchoCompacto, useSideoverModal } from "./useSideoverModal";
 import { useReencajeLienzo } from "./useReencajeLienzo";
 import { AccionesLamina } from "./AccionesLamina";
-import { useGraficosLibraries } from "../GraficosLibrariesHost";
-import { PANEL_BIBLIOTECA_SLIDES } from "../panelesGraficos";
 import { toast } from "../../../components/toasterStore";
+import { SelectorTipoLamina } from "./selectores/SelectorTipoLamina";
+import { SelectorTipoGrafico } from "./selectores/SelectorTipoGrafico";
+import { esPanelSelector, PANEL_TIPO_GRAFICO, PANEL_TIPO_LAMINA } from "./selectores/panelesSelectores";
+import { useSelectoresUi, type ModoSelectorLamina } from "./selectores/selectoresStore";
 import { usePreviewLamina } from "./usePreviewLamina";
 import { useRanurasLamina } from "./useRanurasLamina";
 import { graficadorDisplayName } from "../graficadorDisplay";
@@ -65,14 +67,10 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const setSeccion = useLaminasUi((s) => s.setSeccionInspector);
   const lateralPreferido = useLaminasUi((s) => s.lateral);
   const setLateralPreferido = useLaminasUi((s) => s.setLateral);
-  const insercion = useLaminasUi((s) => s.insercion);
-  const setInsercion = useLaminasUi((s) => s.setInsercion);
   const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
   const moveSlide = usePlanStore((s) => s.moveSlide);
-  const moveSlideTo = usePlanStore((s) => s.moveSlideTo);
   const removeSlide = usePlanStore((s) => s.removeSlide);
   const undo = usePlanStore((s) => s.undo);
-  const { openSlidesLibrary } = useGraficosLibraries();
 
   const estructura = useMemo(() => construirEstructura(slides), [slides]);
   const direccion = useSeccion("procesamiento");
@@ -102,25 +100,6 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     if (reconciliacion.seleccionar) select(reconciliacion.seleccionar);
     if (reconciliacion.escribirFoco && reconciliacion.posicion) escribirFoco(focoDeLamina(reconciliacion.posicion));
   });
-
-  // Lo que la biblioteca inserta (al final del plan) se acomoda detrás de la lámina desde la que se pidió.
-  useEffect(() => {
-    if (!insercion) return;
-    const bibliotecaAbierta = direccion.panel === PANEL_BIBLIOTECA_SLIDES.id;
-    const nuevos = ids.filter((id) => !insercion.previos.includes(id));
-    if (nuevos.length) {
-      let despues = insercion.despuesDe;
-      for (const id of nuevos) {
-        const destino = usePlanStore.getState().plan.slides.findIndex((x) => x.id === despues) + 1;
-        if (destino > 0) moveSlideTo(id, destino);
-        despues = id;
-      }
-      setInsercion({ despuesDe: despues, previos: usePlanStore.getState().plan.slides.map((x) => x.id), vioPanel: insercion.vioPanel || bibliotecaAbierta });
-      return;
-    }
-    if (bibliotecaAbierta && !insercion.vioPanel) setInsercion({ ...insercion, vioPanel: true });
-    else if (!bibliotecaAbierta && insercion.vioPanel) setInsercion(null);
-  }, [insercion, ids, direccion.panel, moveSlideTo, setInsercion]);
 
   // Un enlace a una ranura (`foco=l-NN:gK`) abre la sección Gráficos con su tarjeta.
   useEffect(() => { if (ranura !== null) setSeccion("graficos"); }, [ranura, setSeccion]);
@@ -163,6 +142,29 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   }, [location.pathname, location.search, navigate, searchConLateral, setLateralPreferido]);
   const alternarLateral = useCallback((l: Lateral) => ponerLateral(lateral === l ? null : l), [lateral, ponerLateral]);
 
+  // Selectores de tipo (F6.2): abren sobre el lateral (que sigue en la sesión) y cierran en UNA navegación que quita el
+  // panel, deja el foco en la lámina o ranura resultante y repone el lateral: dos `navigate` seguidos se pisan.
+  const panelSelector = esPanelSelector(direccion.panel);
+  const abrirSelectorLamina = useCallback((modo: ModoSelectorLamina) => {
+    useSelectoresUi.getState().prepararLamina(modo);
+    navigate({ pathname: location.pathname, search: searchConPanel(location.search, PANEL_TIPO_LAMINA) }, { replace: true });
+  }, [location.pathname, location.search, navigate]);
+  const abrirSelectorGrafico = useCallback((k: number) => {
+    if (!lamina) return;
+    useSelectoresUi.getState().prepararGrafico();
+    setSeccion("graficos");
+    const search = searchConPanel(conNivel(location.search, "foco", focoDeLamina(lamina.posicion, k)), PANEL_TIPO_GRAFICO);
+    navigate({ pathname: location.pathname, search }, { replace: true });
+  }, [lamina, location.pathname, location.search, navigate, setSeccion]);
+  const cerrarSelector = useCallback((panel: PanelDeclarado, posicion?: number, k?: number | null) => {
+    let search = searchSinPanel(location.search, panel);
+    if (posicion !== undefined) search = conNivel(search, "foco", focoDeLamina(posicion, k ?? null));
+    if (lateralPreferido) search = searchConPanel(search, panelDe(lateralPreferido));
+    navigate({ pathname: location.pathname, search }, { replace: true });
+  }, [lateralPreferido, location.pathname, location.search, navigate]);
+  const cerrarSelectorLamina = useCallback((posicion?: number) => cerrarSelector(PANEL_TIPO_LAMINA, posicion), [cerrarSelector]);
+  const cerrarSelectorGrafico = useCallback((posicion?: number, k?: number | null) => cerrarSelector(PANEL_TIPO_GRAFICO, posicion, k), [cerrarSelector]);
+
   // Una sola navegación: foco de la ranura y, si hace falta, el inspector abierto (dos `navigate` seguidos se pisan).
   const elegirRanura = useCallback((k: number | null) => {
     if (!lamina) return;
@@ -180,7 +182,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const ajustesRef = useRef<HTMLButtonElement>(null);
   // Bajo 1120 px de contenedor (mismo umbral que el CSS) el inspector se superpone a la lámina: es un diálogo modal.
   const compacto = useAnchoCompacto(hostRef, 1120);
-  const inspectorModal = compacto && lateral === "inspector";
+  // Con un selector abierto, su diálogo es el modal: el inspector suelta su trampa de foco y su Escape.
+  const inspectorModal = compacto && lateral === "inspector" && !panelSelector;
   const cerrarInspector = useCallback(() => ponerLateral(null), [ponerLateral]);
   // La X y el velo cierran por la misma vía que Escape: el foco vuelve a «Ajustes» (D2).
   const cerrarInspectorConFoco = useSideoverModal({ activo: inspectorModal, contenedor: marcoInspectorRef, retorno: ajustesRef, onCerrar: cerrarInspector });
@@ -196,13 +199,13 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   // Cmd/Ctrl+1 alterna la Estructura; Cmd/Ctrl+. los Ajustes.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (panelSelector || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
       if (e.key === ".") { e.preventDefault(); alternarLateral("inspector"); }
       else if (e.key === "1") { e.preventDefault(); alternarLateral("estructura"); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [alternarLateral]);
+  }, [alternarLateral, panelSelector]);
 
   const validacion = useMemo(() => {
     const m: Record<string, MarcaValidacion> = {};
@@ -223,10 +226,14 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         <EstructuraInforme onCerrar={() => undefined} estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
         <div className="pulso-f6-vacio-informe" role="status">
           <strong>El informe todavía no tiene láminas</strong>
-          <p>Arma el plan desde el Editor anterior o con un plan sugerido; aquí verás cada lámina tal como sale.</p>
-          <button type="button" className="pulso-f6-boton" onClick={onIrEditorAnterior}>Ir al Editor anterior</button>
+          <p>Inserta la primera lámina, o arma el plan desde el Editor anterior o con un plan sugerido; aquí verás cada lámina tal como sale.</p>
+          <div className="pulso-f6-vacio-acciones">
+            <button type="button" className="pulso-f6-boton" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</button>
+            <button type="button" className="pulso-f6-boton" onClick={onIrEditorAnterior}>Ir al Editor anterior</button>
+          </div>
         </div>
       </div>
+      <SelectorTipoLamina slide={null} posicion={null} cerrar={cerrarSelectorLamina} />
       </div>
     );
   }
@@ -243,10 +250,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
           <AccionesLamina
             posicion={lamina.posicion}
             total={total}
-            onInsertar={() => {
-              setInsercion({ despuesDe: slide.id, previos: ids, vioPanel: false });
-              openSlidesLibrary();
-            }}
+            onInsertar={() => abrirSelectorLamina("insertar")}
             onDuplicar={() => duplicateSlide(slide.id)}
             onMover={(dir) => moveSlide(slide.id, dir)}
             onEliminar={() => {
@@ -288,6 +292,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         ranuraActiva={ranura}
         nombreRanura={nombreRanura}
         onRanura={elegirRanura}
+        onCambiarGrafico={abrirSelectorGrafico}
         tira={<TiraMiniaturas estructura={estructura} posicionActiva={lamina.posicion} onIr={irA} />}
       />
       <div
@@ -305,6 +310,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
           visor={vista.lamina}
           onCerrar={cerrarInspectorConFoco}
           onIrEditorAnterior={onIrEditorAnterior}
+          onCambiarLamina={() => abrirSelectorLamina("cambiar")}
+          onCambiarGrafico={abrirSelectorGrafico}
         />
       </div>
       <EditorAmplio />
@@ -313,6 +320,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspectorConFoco} />
       )}
     </div>
+    <SelectorTipoLamina slide={slide} posicion={lamina.posicion} cerrar={cerrarSelectorLamina} />
+    <SelectorTipoGrafico slide={slide} posicion={lamina.posicion} ranura={ranura} cerrar={cerrarSelectorGrafico} />
     </div>
   );
 }
