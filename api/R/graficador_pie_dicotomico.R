@@ -234,6 +234,8 @@ graficar_pie <- function(
   pos_titulo         <- match.arg(pos_titulo)
   pos_subtitulo      <- match.arg(pos_subtitulo)
   pos_nota_pie       <- match.arg(pos_nota_pie)
+  # Planes viejos guardaron «ninguna» (la opción «Ocultar» que el catálogo ofrecía y el motor nunca aceptó): apaga la leyenda.
+  if (identical(as.character(leyenda_posicion)[1], "ninguna")) { mostrar_leyenda <- FALSE; leyenda_posicion <- "derecha" }
   leyenda_posicion   <- match.arg(leyenda_posicion)
   exportar           <- match.arg(exportar)
   # En paneles compartidos (el motor inyecta el ancho fisico del cajon, P14)
