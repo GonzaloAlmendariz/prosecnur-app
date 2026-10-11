@@ -235,7 +235,7 @@ export type SurveyMonkeyMultibaseDiff = {
   survey_id: string;
   pos: number;
   variable: string;
-  severity: "blocking" | "review" | "special";
+  severity: "blocking" | "review" | "special" | "info";
   kind: "missing_or_extra" | "structure" | "options" | "wording" | "company_list" | "company_logic" | string;
   message: string;
   ref: string;

@@ -68,7 +68,12 @@ export function CargaReviewSummary({
   // ADR 0094: cómo se emparejó cada fuente de una base que junta encuestas.
   // Avisa o informa; no entra en `ready`.
   const fuentes = review?.fuentes ?? null;
-  const hasFuentesFindings = cargaReviewFuentesHallazgos(fuentes).length > 0;
+  const fuentesHallazgos = cargaReviewFuentesHallazgos(fuentes);
+  const hasFuentesFindings = fuentesHallazgos.length > 0;
+  // Una fuente de otro instrumento no entró a la base: no bloquea (la base quedó
+  // con las que sí calzan), pero el encabezado no puede decir «sin bloqueos» al
+  // lado de esa tarjeta.
+  const fuenteRechazada = fuentesHallazgos.some((hallazgo) => hallazgo.tono === "incompatible");
   const choiceMappingPending = pendingChoiceMapping || Boolean(review?.choice_mapping.pending);
   const hasDecision = choiceMappingPending || pendingExtraCount > 0;
   const selectedReviewReady = Boolean(review?.ready && allReady && !hasPartialCoverage);
@@ -77,7 +82,7 @@ export function CargaReviewSummary({
   // En multibase el resumen es la única autoridad de avance. El detalle puede
   // llegar antes o después y no debe volver a imponer un gate local obsoleto.
   const reviewReady = isMultiBase ? aggregateReady : selectedReviewReady;
-  const state = incompatible || hasDecision || hasPartialCoverage || aggregateIncomplete
+  const state = incompatible || hasDecision || hasPartialCoverage || aggregateIncomplete || fuenteRechazada
     ? "attention"
     : reviewReady
       ? "ready"
@@ -94,6 +99,8 @@ export function CargaReviewSummary({
         : "El estudio todavía tiene bases bloqueadas"
     : isMultiBase && !reviewSummary
       ? "Verificando todas las bases"
+    : fuenteRechazada
+      ? "Una fuente no entró a la base"
     : reviewReady
       ? isMultiBase ? "Estudio sin incidencias bloqueantes" : "Carga sin incidencias bloqueantes"
       : allReady
@@ -111,6 +118,8 @@ export function CargaReviewSummary({
         ? "Revisa las bases bloqueadas antes de continuar a Validación."
       : isMultiBase && !reviewSummary
         ? "La base elegida se describe abajo; el avance depende del estudio completo."
+      : fuenteRechazada
+        ? "La base quedó con las fuentes que sí calzan. Revisa la que quedó fuera."
       : reviewReady
         ? "Comprueba el universo aplicado y continúa a la auditoría de respuestas."
         : allReady
@@ -169,7 +178,7 @@ export function CargaReviewSummary({
           <Database size={15} aria-hidden="true" />
           <span><strong>Respuestas</strong><small>{coverageMeta(dataBaseCount, totalBases)}</small></span>
         </li>
-        <li className={incompatible || hasDecision || aggregateIncomplete ? "is-attention" : reviewReady ? "is-ready" : "is-pending"}>
+        <li className={incompatible || hasDecision || aggregateIncomplete || fuenteRechazada ? "is-attention" : reviewReady ? "is-ready" : "is-pending"}>
           <ShieldCheck size={15} aria-hidden="true" />
           <span>
             <strong>Incidencias</strong>
@@ -178,6 +187,8 @@ export function CargaReviewSummary({
                 ? "Estructura incompatible"
                 : hasDecision
                   ? "Requieren decisión"
+                  : fuenteRechazada
+                    ? "Una fuente quedó fuera"
                   : reviewReady
                     ? "Sin bloqueos"
                     : "En espera"}

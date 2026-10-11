@@ -403,6 +403,8 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
     sin_par_fuente: [],
     sin_par_base: [],
     n_opciones_sin_par: 0,
+    excluida: false,
+    n_filas_excluidas: 0,
   };
   const items = (html: string) => html.match(/<li\b[\s\S]*?<\/li>/gu) ?? [];
   const finding = (html: string, text: string) => items(html).find((item) => item.includes(text)) ?? "";
@@ -416,7 +418,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
     );
     const item = finding(html, "en otro orden");
     expect(item).toContain('class="is-info"');
-    expect(item).toContain("Telefónico · 73 preguntas emparejadas por pregunta, en otro orden");
+    expect(item).toContain("Telefónico · 73 de 74 preguntas emparejadas, en otro orden");
     expect(html).toContain('data-qa-geometry-group="carga-review-findings"');
     expect(html).toContain("Sin bloqueos");
   });
@@ -438,11 +440,10 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
         }}
       />,
     );
-    const item = finding(html, "no entraron");
+    const item = finding(html, "No entraron");
     expect(item).toContain('class="is-pending"');
-    expect(item).toContain(
-      "Telefónico · 4 preguntas no están en la base y no entraron, y 1 pregunta de la base queda vacía para sus respuestas",
-    );
+    expect(item).toContain("Telefónico · 73 de 74 preguntas emparejadas");
+    expect(item).toContain("Sin respuesta en esta fuente: Edad");
     expect(item).toContain("No entraron: Cod Pulso, Celular del egresado, Enumerador +1");
     expect(item).not.toMatch(/survey_id|firma|ordinal/u);
     expect(html).toContain("Sin bloqueos");
@@ -454,14 +455,19 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
         {...baseProps}
         review={{
           ...reviewLimpio,
-          fuentes: { fuentes: [{ ...fuente, instrumento_distinto: true, n_emparejadas: 30 }] },
+          fuentes: { fuentes: [{ ...fuente, instrumento_distinto: true, excluida: true, n_emparejadas: 30, n_filas_excluidas: 48 }] },
         }}
       />,
     );
-    const item = finding(html, "coinciden con la base");
+    const item = finding(html, "no entró a la base");
     expect(item).toContain('class="is-incompatible"');
-    expect(item).toContain("Telefónico · solo 30 de 74 preguntas coinciden con la base");
+    expect(item).toContain("Telefónico · no entró a la base");
+    expect(item).toContain("Solo coinciden 30 de 74 preguntas con la base. 48 respuestas quedaron fuera.");
     expect(item).toContain("Impórtala como base separada y relaciónala en Equivalencias.");
+    // No bloquea, pero el encabezado no dice «sin bloqueos» junto a una fuente fuera.
+    expect(html).toContain("Una fuente no entró a la base");
+    expect(html).toContain("Una fuente quedó fuera");
+    expect(html).not.toContain("Sin bloqueos");
   });
 
   it("el orden del editor adoptado es neutro, va después de los avisos y acota la lista", () => {
