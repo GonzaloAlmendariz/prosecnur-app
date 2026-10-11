@@ -464,6 +464,12 @@ test_that("las respuestas de la fuente llevan los códigos de la base cuando el 
     source = list(survey_id = "REFE"),
     workbook = list(surveyMonkeyLogic = list(choice_code_maps = .sma_mapas_editor()))
   ))
+  # ADR 0094, decisión 7: el orden se fija al importar. La base trae la receta
+  # que guardó su import; el refresh la reaplica (sin receta no adoptaría nada).
+  receta <- .carga_sm_adoptar_y_recetar(
+    sm_api_xlsform(ref, style = .sm_api_default_style(), lang = "es"), .sma_mapas_editor()
+  )$resumen
+  session_set(sid, "estudio", list(bases = list(egresados = list(choice_order_editor = receta))))
 
   snap <- .sm_mb_prepare_refresh_snapshot(sid, "egresados", .sma_spec("REFE", "FUEE"), token = "tok")
   inst <- snap$rp_inst

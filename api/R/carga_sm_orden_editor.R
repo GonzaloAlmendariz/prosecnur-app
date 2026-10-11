@@ -148,3 +148,96 @@
   model$choices <- choices
   list(model = model, resumen = resumen)
 }
+
+# --- Receta: el orden se fija al importar (ADR 0094, decisión 7) -------------
+#
+# Lo que una base adoptó del editor al importarse se guarda como receta en
+# `choice_order_editor$receta`: por cada lista adoptada, la variable, su
+# list_name y la correspondencia etiqueta normalizada -> código. El refresh
+# reaplica ESA receta contra el XLSForm recién generado (por etiqueta) y no
+# vuelve a leer los mapas del editor: un cambio posterior en el editor no
+# recodifica una base que ya tiene datos. Si el editor hoy pide otro orden, se
+# declara en `editor_distinto` para que Revisión avise.
+
+# Códigos de una variable en el modelo: etiqueta normalizada -> código.
+.carga_sm_orden_codigos <- function(model, var) {
+  survey <- model$survey
+  choices <- model$choices
+  lab_col <- .carga_sm_orden_label_col(choices %||% data.frame())
+  if (is.null(survey) || is.null(choices) || is.na(lab_col)) return(character(0))
+  fila <- which(as.character(survey$name) == var)
+  if (!length(fila)) return(character(0))
+  tipo <- as.character(survey$type[fila[1]])
+  if (!grepl("^select_(one|multiple)\\s+", tipo)) return(character(0))
+  ln <- trimws(sub("^select_(one|multiple)\\s+", "", tipo))
+  idx <- which(as.character(choices$list_name) == ln)
+  stats::setNames(as.character(choices$name[idx]), .sm_mb_norm(as.character(choices[[lab_col]][idx])))
+}
+
+.carga_sm_orden_receta <- function(model, vars) {
+  survey <- model$survey
+  unname(lapply(unique(as.character(vars)), function(v) {
+    fila <- which(as.character(survey$name) == v)[1]
+    ln <- if (is.na(fila)) "" else trimws(sub("^select_(one|multiple)\\s+", "", as.character(survey$type[fila])))
+    codigos <- .carga_sm_orden_codigos(model, v)
+    list(
+      variable = v,
+      list_name = ln,
+      opciones = unname(lapply(seq_along(codigos), function(i) list(etiqueta = names(codigos)[i], codigo = unname(codigos[i]))))
+    )
+  }))
+}
+
+# Adopta mapas y deja en el resumen la receta de lo adoptado.
+.carga_sm_adoptar_y_recetar <- function(model, maps) {
+  res <- .carga_sm_adoptar_orden_editor(model, maps)
+  adoptadas <- as.character(unlist(res$resumen$adoptadas %||% list(), use.names = FALSE))
+  res$resumen$receta <- .carga_sm_orden_receta(res$model, adoptadas)
+  res
+}
+
+# La receta guardada como mapas que `.carga_sm_adoptar_orden_editor` entiende.
+.carga_sm_receta_mapas <- function(receta) {
+  lapply(receta %||% list(), function(r) list(
+    variable = as.character(r$variable %||% "")[1],
+    list_name = as.character(r$list_name %||% "")[1],
+    mappings = lapply(r$opciones %||% list(), function(o) list(
+      xls_code = as.character(o$codigo %||% "")[1],
+      xls_label = as.character(o$etiqueta %||% "")[1],
+      source_label = as.character(o$etiqueta %||% "")[1]
+    ))
+  ))
+}
+
+# Refresh: reaplica la receta guardada en la base; nunca la del editor de hoy.
+# Sin receta no adopta nada (los códigos quedan los de la plataforma).
+.carga_sm_orden_reaplicar <- function(model, orden_guardado, editor_maps = NULL) {
+  receta <- (orden_guardado %||% list())$receta %||% list()
+  res <- if (length(receta)) {
+    .carga_sm_adoptar_orden_editor(model, .carga_sm_receta_mapas(receta))
+  } else {
+    list(model = model, resumen = list(adoptadas = list(), omitidas = list()))
+  }
+  res$resumen$receta <- receta
+  distintas <- character(0)
+  if (length(editor_maps)) {
+    con_editor <- .carga_sm_adoptar_orden_editor(model, editor_maps)$model
+    vars <- unique(c(
+      vapply(editor_maps, function(m) as.character(m$variable %||% "")[1], character(1)),
+      vapply(receta, function(r) as.character(r$variable %||% "")[1], character(1))
+    ))
+    vars <- vars[!is.na(vars) & nzchar(vars)]
+    for (v in vars) {
+      actual <- .carga_sm_orden_codigos(res$model, v)
+      pedido <- .carga_sm_orden_codigos(con_editor, v)
+      if (!identical(actual[order(names(actual))], pedido[order(names(pedido))])) {
+        distintas <- c(distintas, v)
+      }
+    }
+  }
+  if (length(distintas)) {
+    res$resumen$editor_distinto <- TRUE
+    res$resumen$editor_distinto_variables <- as.list(distintas)
+  }
+  res
+}
