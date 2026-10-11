@@ -65,3 +65,33 @@ ranuras, categorías, Two Box, variables y cobertura respetan `scope`.
 - D3 (19): corrida en vivo sobre proyecto temporal `independent_siblings`, sin commitear.
 - D4 (20): Compartir deshabilitado con motivo en consolidado.
 
+## Estudio de la decisión 17 — matriz de equivalencias (guardian-contratos, 2026-10-11)
+
+Veredicto: requiere ADR. Deshabilitar «Armar desde…» en consolidado es compatible ya; pero **la siembra actual del informe
+compartido no usa la matriz**: empareja por parecido de etiqueta + firma de escala
+(`.graficos_multisource_comparison_candidates`, `graficos_plan_coverage.R:1649-1757`, máx. 4 láminas «Comparativo por
+actor», toma la primera variable de cada fuente), lo que el ADR 0062 invalida («inferir equivalencia entre públicos por
+similitud de etiquetas»; «comparar variables de bases distintas sin declaración previa»).
+
+- Matriz: clave de proyecto `s$equivalencias_publicos` (`equivalencias_publicos/v1`), editada en
+  `procesamiento/carga/equivalencias`; revisión `.equiv_declaracion_revision` (`equivalencias_publicos.R:775-795`) y sello
+  por base sólo de nombres (`:153-162`).
+- Consumidores: `/plan/sugerido` con `fuente:"equivalencias"` (`graficos_plan_equivalencias.R:76-165`, todas las bases);
+  `SuggestedPlanButton` sin `scope` (Fusionar no graba la revisión); aviso de desfase `declaracionAplicada.ts`;
+  `seedConsolidatedPlan` no graba `equivalencias_revision` (queda «» → sin aviso si la matriz cambia).
+- Incoherencias si se reutiliza el generador: bases sin release aprobada → `unknown_multisource_reference`; la matriz usa
+  `.escala_firma` (normaliza caja, `escala_firma.R:28-32`) y el bloqueo del consolidado compara `codigo=etiqueta` literal
+  (`graficos_consolidado.R:407-455`) → bloquea lo que la matriz aprueba (56/58 temas de ACRD Conta difieren sólo en caja);
+  recodificadas resueltas vs declaradas; las fuentes del consolidado no aplican las etiquetas curadas
+  (`graficos_consolidado.R:138-155`).
+- Puntos ciegos de la revisión: no incluye `sugerida` ni `estilo`; el sello no ve cambios de listas de opciones; no se ata a
+  la release. Hipótesis sin test: `equivalencias_revision` cae en `_unknown` en la config por base
+  (`router_graficos.R:1404-1416`) y el aviso de desfase moriría al recargar.
+
+Opciones para Gonzalo: **A (recomendada)** deshabilitar ya con motivo y, con enmienda de ADR 0063/0040, que el consolidado
+siembre y proponga desde la matriz (`/plan/sugerido` con `scope:"consolidado"` reusando el generador, filtrado a las
+releases; firma de escala unificada en `.escala_firma`; revisión con `sugerida`, `estilo` y huella de listas; la siembra y
+Reemplazar/Fusionar/Sincronizar graban la revisión; aviso de desfase en Láminas); la heurística por etiqueta queda sólo
+como respaldo avisado o se retira. **B** deshabilitado indefinido (mantiene la violación del ADR 0062 en un entregable).
+**C** reusar `/plan/sugerido` sin scope (desaconsejada: H4, ADR 0040 §6.1).
+
