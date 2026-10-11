@@ -13,8 +13,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { graficosBodyLoadingLabel, graficosBodyState } from "./graficosBodyState";
-import { avisoDeclaracionAplicada, estadoDeclaracionAplicada } from "./declaracionAplicada";
-import { getEquivalencias } from "../../api/equivalencias";
+import { fijarAvisosSiembraCompartido, useDeclaracionAplicada } from "./useDeclaracionAplicada";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
@@ -69,34 +68,8 @@ export default function GraficosPage() {
   const wPresets = usePlanStore((s) => s.wPresets);
   const hydrated = usePlanStore((s) => s.hydrated);
   const hydrationRetrying = usePlanStore((s) => s.hydrationRetrying);
-  const equivalenciasRevision = usePlanStore((s) => s.equivalenciasRevision);
-  // Declaración de ahora, para contrastarla con la que armó el mazo. Sólo se
-  // pide cuando el plan salió de ahí: un proyecto que armó sus diapositivas a mano no
-  // tiene por qué pagar la consulta ni ver el aviso.
-  const [declaracionActual, setDeclaracionActual] = useState<{ revision: string; declarada: boolean } | null>(null);
-  useEffect(() => {
-    if (!equivalenciasRevision) { setDeclaracionActual(null); return; }
-    let cancelado = false;
-    void (async () => {
-      try {
-        const est = await getEquivalencias();
-        if (!cancelado) setDeclaracionActual({ revision: est.revision ?? "", declarada: Boolean(est.declarada) });
-      } catch {
-        // Sin respuesta no se afirma nada: callar es preferible a avisar de un
-        // desfase que no se pudo comprobar.
-        if (!cancelado) setDeclaracionActual(null);
-      }
-    })();
-    return () => { cancelado = true; };
-  }, [equivalenciasRevision]);
-
-  const avisoDeclaracion = declaracionActual
-    ? avisoDeclaracionAplicada(estadoDeclaracionAplicada({
-        revisionAplicada: equivalenciasRevision,
-        revisionActual: declaracionActual.revision,
-        declarada: declaracionActual.declarada,
-      }))
-    : "";
+  // Declaración de ahora contra la que armó el mazo: un solo cálculo, compartido con Láminas (ADR 0096 decisión 8).
+  const { aviso: avisoDeclaracion } = useDeclaracionAplicada();
 
   // Autosave: hidrata al montar + guarda debounced 2s en cada cambio.
   const { saveConsolidatedNow, consolidatedDraftRevision, seedConsolidatedPlan } =
@@ -176,12 +149,19 @@ export default function GraficosPage() {
       alreadySeeded: seededRef.current,
     })) return;
     seededRef.current = true;
-    seedConsolidatedPlan(suggested as GraficosConfig["plan"]);
+    // ADR 0096 decisión 6: la siembra graba la revisión de la matriz de la que salió (vacía si no trae láminas de ahí).
+    seedConsolidatedPlan(suggested as GraficosConfig["plan"], sharedPreflight?.equivalencias?.revision ?? "");
     setSeededSlideCount(suggestedSlides.length);
   }, [
     consolidatedDraftRevision, dirty, hydrated, plan.slides.length,
     reportScope, seedConsolidatedPlan, sharedPreflight,
   ]);
+
+  // Los avisos de la siembra (sin matriz, bases excluidas…) van a «Avisos del informe» de Láminas; fuera del compartido
+  // no hay siembra que avisar.
+  useEffect(() => {
+    fijarAvisosSiembraCompartido(isSharedReport ? sharedPreflight?.equivalencias?.avisos ?? [] : []);
+  }, [isSharedReport, sharedPreflight]);
 
   // Una sesión nueva estrena su propio borrador: la semilla vuelve a estar
   // disponible.

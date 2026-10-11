@@ -54,3 +54,28 @@ test_that("la etiqueta que se MUESTRA conserva su caja original", {
 test_that("una escala vacia no produce firma", {
   expect_equal(.escala_firma(character(0), character(0)), "")
 })
+
+# ADR 0096 decisión 4: el bloqueo del consolidado usaba una TERCERA regla
+# —`codigo=etiqueta` literal en `.graficos_consolidado_scale_spec`— y rechazaba lo
+# que la matriz aprueba (56 de 58 temas en ACRD Conta difieren sólo en la caja).
+
+.ef_ctx <- function(labels, codigos = as.character(seq_along(labels))) {
+  inst <- .ef_inst(labels)
+  inst$choices$name <- codigos
+  inst$survey$list_name <- "lk"
+  dat <- data.frame(p1 = codigos[1], stringsAsFactors = FALSE)
+  .graficos_consolidado_ref_context("a$p1", list(data_sources = list(a = dat), inst_sources = list(a = inst)))
+}
+
+test_that("R5: el bloqueo del consolidado firma con .escala_firma, igual que la matriz", {
+  labels_a <- c("Totalmente en desacuerdo", "De acuerdo")
+  labels_b <- c("Totalmente en Desacuerdo", "  De   acuerdo ")
+  firma_a <- .graficos_consolidado_scale_spec(.ef_ctx(labels_a))$signature
+  firma_b <- .graficos_consolidado_scale_spec(.ef_ctx(labels_b))$signature
+  expect_identical(firma_a, firma_b)
+  # Y es la misma firma que calcula Equivalencias para esa variable.
+  expect_identical(firma_a, .equiv_firma_escala(.ef_inst(labels_a), "p1"))
+  # El código sigue comparándose literal: «1» y «01» son escalas distintas.
+  firma_c <- .graficos_consolidado_scale_spec(.ef_ctx(labels_a, codigos = c("01", "02")))$signature
+  expect_false(identical(firma_a, firma_c))
+})

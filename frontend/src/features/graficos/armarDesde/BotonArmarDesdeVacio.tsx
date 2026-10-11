@@ -1,6 +1,6 @@
 // CTA «Armar desde un plan sugerido» de los vacíos de Láminas y Vista general (contrato A5 2b). Abre el mismo popover
-// direccionable de la barra (`panel=armar-desde`); en el informe compartido queda `aria-disabled` con el motivo a la
-// vista, sin abrir nada ni llamar al backend.
+// direccionable de la barra (`panel=armar-desde`), también en el informe compartido (ADR 0096 decisión 9). Si algún
+// alcance vuelve a tener motivo (`motivoArmarDesdeDeshabilitado`), queda `aria-disabled` con el motivo a la vista.
 
 import { useId } from "react";
 import { useLocation } from "react-router-dom";

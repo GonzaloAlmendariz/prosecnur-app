@@ -3010,7 +3010,9 @@ mount_graficos <- function(pr) {
       }
       # ADR 0063: la fuente decide el generador (perfiles o declaracion de
       # equivalencias); la eleccion vive en graficos_plan_equivalencias.R.
-      .graficos_plan_sugerido_por_fuente(sid, config = parsed$config %||% NULL)
+      # ADR 0096: `scope` en la raiz del cuerpo, igual que /plan/coverage.
+      .graficos_plan_sugerido_por_fuente(sid, config = parsed$config %||% NULL,
+                                         scope = parsed$scope %||% "")
     })) |>
     plumber::pr_get("/api/graficos/paletas-sugeridas", wrap_endpoint(function(req, res) {
       # Devuelve todas las listas de choices del instrumento con sus

@@ -32,6 +32,7 @@ import { useLaminasUi } from "./laminasStore";
 import { useAvisosPlanSesion } from "../avisosPlan";
 import { ACCION_RECARGAR_BORRADOR, MENSAJE_CONFLICTO_BORRADOR, recargarBorradorCompartido, useConflictoBorrador } from "../conflictoBorrador";
 import { agruparAvisos, rotuloLaminasYPartes, totalAvisos } from "./resumenInforme";
+import { useDeclaracionAplicada } from "../useDeclaracionAplicada";
 import "./movimiento.css";
 import "./barraLaminas.css";
 
@@ -80,7 +81,8 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
   }, [slides]);
   const modo = modoMultibaseDelPlan(state?.estudio_processing_mode, state?.n_bases, state?.active_base, reportScope);
   const avisosPlan = useAvisosPlanSesion();
-  const grupos = useMemo(() => agruparAvisos(validator.issues, resumenes, ids, avisosPlan), [validator.issues, resumenes, ids, avisosPlan]);
+  const { avisos: avisosEquivalencias } = useDeclaracionAplicada();   // ADR 0096: los avisos de la siembra cuentan en «N avisos»
+  const grupos = useMemo(() => agruparAvisos(validator.issues, resumenes, ids, avisosPlan, avisosEquivalencias), [validator.issues, resumenes, ids, avisosPlan, avisosEquivalencias]);
   const nAvisos = totalAvisos(grupos);
 
   return (

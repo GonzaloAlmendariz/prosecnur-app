@@ -119,7 +119,9 @@ export function SuggestedPlanButton() {
   // Abierto = la URL lo pide (`panel=armar-desde`): el enlace reproduce lo que se ve y cerrar borra el param.
   const panel = usePanelDireccionable(PANEL_ARMAR_DESDE);
   const open = panel.abierto;
-  const motivo = motivoArmarDesdeDeshabilitado(useGraficosReportScope(useLocation().search));
+  // ADR 0096: en el informe compartido la propuesta se pide con su alcance (la siembra desde la matriz).
+  const alcance = useGraficosReportScope(useLocation().search);
+  const motivo = motivoArmarDesdeDeshabilitado(alcance);
   const motivoId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -186,7 +188,7 @@ export function SuggestedPlanButton() {
     }
   }, [acnurMode, canIncludeCoverageMaps, territorialCoverageMeta]);
 
-  // Abrir (por clic o por enlace) pide la propuesta una vez; en el informe compartido no se pide nada.
+  // Abrir (por clic o por enlace) pide la propuesta una vez, en la base activa y en el informe compartido.
   const generar = useRef<() => void>(() => undefined);
   useEffect(() => {
     if (debePedirPropuesta(open, motivo)) generar.current();
@@ -217,7 +219,7 @@ export function SuggestedPlanButton() {
               comparison_mode: acnurMode === "territorial" ? comparisonMode : "none",
             }
           : {}),
-      });
+      }, alcance);
       setResult(next);
       setAceptarOtros(false);
     } catch (e) {
@@ -276,13 +278,17 @@ export function SuggestedPlanButton() {
    */
   function sincronizarPlan() {
     if (!result) return;
+    // ADR 0096: en el compartido la propuesta es compuesta (matriz + láminas por fuente); sólo entra el bloque de la
+    // matriz, si no las láminas por fuente quedarían marcadas como derivadas y duplicadas.
     const suggested = clonePlanWithFreshIds(result.plan);
-    aplicar("sincronizar", sincronizarEquivalentes(currentPlan, suggested.slides).plan);
+    const bloque = suggested.slides.filter(esEquivalente);
+    aplicar("sincronizar", sincronizarEquivalentes(currentPlan, bloque).plan);
   }
 
   const derivadasEnPlan = currentPlan.slides.filter(esEquivalente).length;
   const puedeSincronizar =
-    result?.fuente === "equivalencias" && (result?.plan.slides.length ?? 0) > 0;
+    (result?.fuente === "equivalencias" || result?.contiene_equivalencias === true)
+    && (result?.plan.slides.some(esEquivalente) ?? false);
   const ayudaSincronizar = derivadasEnPlan > 0
     ? `Reemplaza las ${derivadasEnPlan} diapositivas que salieron de la matriz y deja el resto del mazo intacto.`
     : "Añade las diapositivas de la matriz como un bloque propio, que podrás actualizar sin tocar el resto.";

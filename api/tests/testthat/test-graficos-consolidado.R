@@ -140,23 +140,39 @@ library(testthat)
   }), recursive = FALSE)
 }
 
-.gcc_test_with_comparison_refs <- function(plan, refs) {
-  slides <- plan$slides %||% list()
-  for (slide_idx in seq_along(slides)) {
-    payload <- (slides[[slide_idx]] %||% list())$payload %||% list()
-    for (slot in names(payload)) {
-      graph <- payload[[slot]]
-      if (!is.list(graph) ||
-          !identical(graph$graficador %||% "", "p_barras_multiapiladas") ||
-          !identical((graph$args %||% list())$modo %||% "", "var_cruce")) next
-      graph$args$vars <- stats::setNames(list(refs), "satisfaccion")
-      payload[[slot]] <- graph
-      slides[[slide_idx]]$payload <- payload
-      plan$slides <- slides
-      return(plan)
-    }
-  }
-  stop("El plan de prueba no contiene una comparacion multifuente.")
+# Plan autorado con UNA comparacion multifuente. Antes se tomaba del plan sugerido,
+# que la traia por la heuristica de etiquetas que el ADR 0096 retira: sin matriz
+# el preflight ya no siembra comparaciones, asi que el caso se construye explicito.
+.gcc_test_comparison_plan <- function(refs) {
+  list(slides = list(list(
+    id = "slide-comparacion",
+    tipo = "p_slide_1_grafico",
+    payload = list(
+      titulo = "Comparacion entre actores",
+      grafico = list(
+        graficador = "p_barras_multiapiladas",
+        args = list(
+          modo = "var_cruce",
+          vars = stats::setNames(list(as.list(refs)), "satisfaccion"),
+          titulos_grupo = list(satisfaccion = "Satisfaccion con el servicio")
+        )
+      )
+    )
+  )))
+}
+
+# ADR 0096: las comparaciones del compartido salen de la matriz declarada.
+.gcc_test_declarar_satisfaccion <- function(sid) {
+  s <- session_get(sid)
+  vars <- c(docentes = "p_sat", estudiantes = "q_sat", administrativos = "r_sat", egresados = "s_sat")
+  vars <- vars[names(vars) %in% names(s$estudio$bases)]
+  session_set(sid, "equivalencias_publicos", list(
+    schema = "equivalencias_publicos/v1",
+    bases = names(vars),
+    filas = list(list(etiqueta_estandar = "Satisfaccion con el servicio", diapositiva = "1",
+                      variables = as.list(vars))),
+    n_filas = 1L
+  ))
 }
 
 .gcc_test_release_projection <- function(sid) {
@@ -181,6 +197,7 @@ library(testthat)
 test_that("preflight usa todas las releases sin cambiar active_base", {
   sid <- .gcc_test_setup()
   on.exit(session_delete(sid), add = TRUE)
+  .gcc_test_declarar_satisfaccion(sid)
   before <- session_get(sid)
 
   preflight <- graficos_consolidado_preflight(sid)
@@ -224,11 +241,7 @@ test_that("preflight consolidado repetido preserva releases y codificacion aprob
 test_that("preflight bloquea una variable inexistente antes del job", {
   sid <- .gcc_test_setup()
   on.exit(session_delete(sid), add = TRUE)
-  suggested <- graficos_consolidado_preflight(sid)
-  plan <- .gcc_test_with_comparison_refs(
-    suggested$plan,
-    c("docentes$p_sat", "estudiantes$variable_ausente")
-  )
+  plan <- .gcc_test_comparison_plan(c("docentes$p_sat", "estudiantes$variable_ausente"))
 
   preflight <- graficos_consolidado_preflight(sid, config = list(plan = plan))
   blockers <- Filter(
@@ -251,11 +264,7 @@ test_that("preflight bloquea una variable inexistente antes del job", {
 test_that("preflight bloquea comparaciones con escala codigo-etiqueta incompatible", {
   sid <- .gcc_test_setup()
   on.exit(session_delete(sid), add = TRUE)
-  suggested <- graficos_consolidado_preflight(sid)
-  plan <- .gcc_test_with_comparison_refs(
-    suggested$plan,
-    c("docentes$p_sat", "estudiantes$q_sat")
-  )
+  plan <- .gcc_test_comparison_plan(c("docentes$p_sat", "estudiantes$q_sat"))
   s <- session_get(sid)
   s$rp_inst_sources$docentes$survey$list_name[] <- "likert_compartida"
   s$rp_inst_sources$docentes$choices$list_name[] <- "likert_compartida"
@@ -718,4 +727,76 @@ test_that("n_slides del preflight cuenta el mismo plan que el editor siembra", {
   expect_true(preflight$ready)
   expect_gt(preflight$n_slides, 0L)
   expect_identical(preflight$n_slides, as.integer(length(preflight$plan$slides)))
+})
+
+# ---------------------------------------------------------------------------
+# ADR 0096 decisión 4 — firma de escala única en el bloqueo del consolidado.
+# El fixture `.hce_setup` vive en helper-consolidado-equivalencias.R.
+# ---------------------------------------------------------------------------
+
+.gcc_multilista_plan <- function(bloque_refs) {
+  list(slides = list(list(
+    id = "slide-multilista",
+    tipo = "p_slide_1_grafico",
+    payload = list(
+      titulo = "Bloques",
+      grafico = list(
+        graficador = "p_barras_multiapiladas",
+        args = list(
+          modo = "multilista",
+          bloques = list(
+            list(modo = "var_cruce",
+                 vars = list(tema_1 = as.list(bloque_refs)),
+                 titulos_grupo = list(tema_1 = "Satisfaccion")),
+            list(modo = "var", vars = list("docentes$p_con"))
+          )
+        )
+      )
+    )
+  )))
+}
+
+test_that("R5: escalas que difieren sólo en caja no bloquean; con código distinto sí", {
+  caja <- .hce_setup(aprobadas = names(.HCE_BASES), variante_estudiantes = "caja")
+  on.exit(session_delete(caja), add = TRUE)
+  plan <- .gcc_test_comparison_plan(c("docentes$p_sat", "estudiantes$q_sat"))
+  expect_length(.hce_bloqueos_escala(graficos_consolidado_preflight(caja, config = list(plan = plan))), 0L)
+
+  codigo <- .hce_setup(aprobadas = names(.HCE_BASES), variante_estudiantes = "codigo")
+  on.exit(session_delete(codigo), add = TRUE)
+  bloqueos <- .hce_bloqueos_escala(graficos_consolidado_preflight(codigo, config = list(plan = plan)))
+  expect_length(bloqueos, 1L)
+  expect_identical(unlist(bloqueos[[1]]$refs), c("docentes$p_sat", "estudiantes$q_sat"))
+  # La firma que se informa es la de `.escala_firma` (etiqueta normalizada).
+  firmas <- vapply(bloqueos[[1]]$scales, function(x) as.character(x$signature), character(1))
+  expect_identical(firmas[[1]], "1=muy en desacuerdo|2=en desacuerdo|3=de acuerdo|4=muy de acuerdo")
+})
+
+test_that("R7: un bloque de multilista con escalas incompatibles también se bloquea", {
+  codigo <- .hce_setup(aprobadas = names(.HCE_BASES), variante_estudiantes = "codigo")
+  on.exit(session_delete(codigo), add = TRUE)
+  plan <- .gcc_multilista_plan(c("docentes$p_sat", "estudiantes$q_sat"))
+
+  bloqueos <- .hce_bloqueos_escala(graficos_consolidado_preflight(codigo, config = list(plan = plan)))
+  expect_length(bloqueos, 1L)
+  expect_identical(bloqueos[[1]]$slide_id, "slide-multilista")
+  # Grano de bloque: sólo las refs del bloque comparativo, no las del bloque de un público.
+  expect_identical(unlist(bloqueos[[1]]$refs), c("docentes$p_sat", "estudiantes$q_sat"))
+
+  igual <- .hce_setup(aprobadas = names(.HCE_BASES), variante_estudiantes = "caja")
+  on.exit(session_delete(igual), add = TRUE)
+  expect_length(.hce_bloqueos_escala(graficos_consolidado_preflight(igual, config = list(plan = plan))), 0L)
+})
+
+test_that("R13: n_comparison_slides cuenta las comparaciones dentro de multilista", {
+  sid <- .hce_setup(aprobadas = names(.HCE_BASES))
+  on.exit(session_delete(sid), add = TRUE)
+  plan <- .gcc_multilista_plan(c("docentes$p_sat", "estudiantes$q_sat"))
+  expect_identical(graficos_consolidado_preflight(sid, config = list(plan = plan))$n_comparison_slides, 1L)
+  expect_identical(.graficos_consolidado_comparison_slide_count(plan), 1L)
+  # Un multilista de un solo público no es una comparación.
+  solo <- plan
+  solo$slides[[1]]$payload$grafico$args$bloques[[1]]$vars$tema_1 <- list("docentes$p_sat")
+  solo$slides[[1]]$payload$grafico$args$bloques[[1]]$modo <- "var"
+  expect_identical(.graficos_consolidado_comparison_slide_count(solo), 0L)
 })

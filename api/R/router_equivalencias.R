@@ -133,8 +133,9 @@
     bases = as.character(equiv$bases %||% character(0)),
     importada_en = as.character(equiv$importada_en %||% ""),
     # Huella del contenido: Gráficos la compara contra la que quedó grabada al
-    # aplicar el mazo para saber si la propuesta envejeció (ADR 0063).
-    revision = .equiv_declaracion_revision(equiv),
+    # aplicar el mazo para saber si la propuesta envejeció (ADR 0063). Con los
+    # instrumentos: la huella de listas es parte de la revisión (ADR 0096).
+    revision = .equiv_declaracion_revision(equiv, inst_por_base),
     cobertura = cobertura,
     desfasadas = desfasadas,
     # Catalogo de estilos de radar, para que el editor los ofrezca sin

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../../../lib/SessionContext";
 import { useAvisosPlanSesion } from "../avisosPlan";
+import { useDeclaracionAplicada } from "../useDeclaracionAplicada";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { searchConPanel, searchSinPanel, usePanelDireccionable, type PanelDeclarado } from "../../../lib/navegacion/paneles";
@@ -57,6 +58,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const { state } = useSession();
   // Lo que el backend cambió en el plan al abrirlo (población antigua migrada) va al canal de Avisos (ver avisosPlan.ts).
   const avisosPlan = useAvisosPlanSesion();
+  // Desfase de la declaración aplicada y avisos de la siembra del compartido (ADR 0096 decisión 8): grupo propio en Avisos.
+  const { avisos: avisosEquivalencias } = useDeclaracionAplicada();
   const location = useLocation();
   const navigate = useNavigate();
   const slides = usePlanStore((s) => s.plan.slides);
@@ -246,7 +249,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     return m;
   }, [issues]);
 
-  const grupos = useMemo(() => agruparAvisos(issues, resumenes, slides.map((x) => x.id), avisosPlan), [issues, resumenes, slides, avisosPlan]);
+  const grupos = useMemo(() => agruparAvisos(issues, resumenes, slides.map((x) => x.id), avisosPlan, avisosEquivalencias), [issues, resumenes, slides, avisosPlan, avisosEquivalencias]);
 
   if (!lamina || !slide) {
     return (

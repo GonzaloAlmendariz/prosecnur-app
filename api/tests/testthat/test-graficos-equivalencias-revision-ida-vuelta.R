@@ -89,3 +89,27 @@ test_that("export → import de la config (/config/export, /config/import) conse
   expect_identical(got$equivalencias_revision, "def")
   expect_null(got$`_unknown`$equivalencias_revision)
 })
+
+test_that("R10: equivalencias_revision r2: del borrador compartido sobrevive .pulso → reapertura", {
+  # ADR 0096 decisión 6: la siembra y «Armar desde…» graban la revisión en el
+  # borrador compartido. Sin cambio de format_version: sólo cambia el valor.
+  sid <- .eqr_sesion_multibase()
+  tmp <- tempfile(fileext = ".pulso")
+  withr::defer(unlink(tmp, force = TRUE))
+  plan <- list(slides = list(list(id = "s-equiv-1", origen = "equivalencias", tipo = "p_slide_titulo",
+                                  payload = list(titulo = "Derivada de la matriz"))))
+  inicial <- graficos_consolidado_draft_get(sid)
+  graficos_consolidado_draft_set(sid, list(plan = plan, equivalencias_revision = "r2:abc123"),
+                                 expected_revision = inicial$revision)
+  guardado <- graficos_consolidado_draft_get(sid)
+
+  build_pulso(sid, tmp, project_name = "Revision r2 ida y vuelta")
+  loaded <- load_pulso(tmp)
+  withr::defer(session_delete(loaded$session_id))
+  reabierto <- graficos_consolidado_draft_get(loaded$session_id)
+
+  expect_identical(reabierto$config$equivalencias_revision, "r2:abc123")
+  expect_null(reabierto$config$`_unknown`$equivalencias_revision)
+  expect_identical(reabierto$revision, guardado$revision)
+  expect_identical(reabierto$config$plan$slides[[1]]$origen, "equivalencias")
+})

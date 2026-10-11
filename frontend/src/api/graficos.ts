@@ -1298,10 +1298,84 @@ export type GraficosSuggestedPlanResponse = {
   revision?: string;
   n_diapositivas?: number;
   /** Filas que no entraron al mazo, con su motivo. */
-  fuera?: { etiqueta: string; motivo: string; detalle?: string }[];
+  fuera?: { etiqueta: string; motivo: string; detalle?: string; variables?: string[] }[];
   /** B42/G-18: lo que el plan propone para las láminas de «Otros». Se propone; nunca cambia el interruptor sin avisar. */
   auto_otros_slides?: boolean;
+  /**
+   * ADR 0096: la propuesta del informe compartido es compuesta (`fuente: "consolidado"`); esto dice si trae láminas de
+   * la matriz y, por tanto, si `revision` es un sello que grabar.
+   */
+  contiene_equivalencias?: boolean;
+  radar_pendiente?: unknown[];
+  bases_incluidas?: string[];
+  bases_excluidas?: GraficosPlanBaseExcluida[];
+  cobertura_reducida?: GraficosPlanCoberturaReducida[];
+  avisos_equivalencias?: GraficosAvisoEquivalencias[];
 };
+
+/** ADR 0096: aviso de la siembra/propuesta del compartido desde la matriz. */
+export type GraficosAvisoEquivalencias = {
+  code: "sin_matriz" | "matriz_no_disponible" | "bases_excluidas" | "cobertura_reducida" | "escala_incompatible" | string;
+  message: string;
+};
+
+export type GraficosPlanBaseExcluida = {
+  base: string;
+  actor: string;
+  motivo: "release_no_aprobada" | "release_desfasada" | "sin_fuente" | string;
+};
+
+export type GraficosPlanCoberturaReducida = { etiqueta: string; declaradas: number; incluidas: number };
+
+function esRegistroApi(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+const textoApi = (value: unknown): string => (value == null ? "" : String(value));
+const numeroApi = (value: unknown): number => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+/** jsonlite serializa un escalar de longitud 1 sin corchetes: se acepta escalar o arreglo. */
+const arregloApi = (value: unknown): unknown[] => (Array.isArray(value) ? value : value == null ? [] : [value]);
+
+/** Avisos `{code, message}` de la matriz; descarta los que llegan sin mensaje. */
+export function normalizeGraficosAvisosEquivalencias(value: unknown): GraficosAvisoEquivalencias[] {
+  return arregloApi(value)
+    .filter(esRegistroApi)
+    .map((a) => ({ code: textoApi(a.code), message: textoApi(a.message) }))
+    .filter((a) => a.message !== "");
+}
+
+/** Normalizador defensivo de la propuesta (patrón `normalizeGraficosShareInspect`): sólo toca los campos de ADR 0096. */
+export function normalizeGraficosSuggestedPlan(raw: unknown): GraficosSuggestedPlanResponse {
+  const r = (esRegistroApi(raw) ? raw : {}) as GraficosSuggestedPlanResponse & Record<string, unknown>;
+  const out: GraficosSuggestedPlanResponse = { ...r, warnings: arregloApi(r.warnings).map(textoApi) };
+  if (r.contiene_equivalencias !== undefined) out.contiene_equivalencias = r.contiene_equivalencias === true;
+  if (r.revision !== undefined) out.revision = textoApi(r.revision);
+  if (r.fuera !== undefined) {
+    out.fuera = arregloApi(r.fuera).filter(esRegistroApi).map((f) => ({
+      etiqueta: textoApi(f.etiqueta),
+      motivo: textoApi(f.motivo),
+      ...(f.detalle != null ? { detalle: textoApi(f.detalle) } : {}),
+      ...(f.variables != null ? { variables: arregloApi(f.variables).map(textoApi) } : {}),
+    }));
+  }
+  if (r.bases_incluidas !== undefined) out.bases_incluidas = arregloApi(r.bases_incluidas).map(textoApi);
+  if (r.bases_excluidas !== undefined) {
+    out.bases_excluidas = arregloApi(r.bases_excluidas).filter(esRegistroApi).map((b) => ({
+      base: textoApi(b.base), actor: textoApi(b.actor), motivo: textoApi(b.motivo),
+    }));
+  }
+  if (r.cobertura_reducida !== undefined) {
+    out.cobertura_reducida = arregloApi(r.cobertura_reducida).filter(esRegistroApi).map((c) => ({
+      etiqueta: textoApi(c.etiqueta), declaradas: numeroApi(c.declaradas), incluidas: numeroApi(c.incluidas),
+    }));
+  }
+  if (r.avisos_equivalencias !== undefined) out.avisos_equivalencias = normalizeGraficosAvisosEquivalencias(r.avisos_equivalencias);
+  if (r.radar_pendiente !== undefined) out.radar_pendiente = arregloApi(r.radar_pendiente);
+  return out;
+}
 
 export async function apiGraficosPlanCoverage(
   plan: PlanJson,
@@ -1321,14 +1395,25 @@ export async function apiGraficosPlanCoverage(
   );
 }
 
-export async function apiGraficosPlanSugerido(config?: unknown) {
-  return handle<GraficosSuggestedPlanResponse>(
+/**
+ * Propuesta de plan. ADR 0096: en el informe compartido (`scope = "consolidated"`) se pide con `scope: "consolidado"`
+ * en la RAÍZ del cuerpo (igual que `/plan/coverage`); en la base activa el campo se omite.
+ */
+export async function apiGraficosPlanSugerido(
+  config?: unknown,
+  scope: "active" | "consolidated" = "active",
+) {
+  const raw = await handle<unknown>(
     await apiFetch("/api/graficos/plan/sugerido", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify({
+        config,
+        ...(scope === "consolidated" ? { scope: "consolidado" } : {}),
+      }),
     })
   );
+  return normalizeGraficosSuggestedPlan(raw);
 }
 
 export async function apiGraficosValidar(plan: PlanJson) {
@@ -1411,7 +1496,31 @@ export type GraficosConsolidadoPreflight = {
   warnings: string[];
   /** Solo con `includePlan`: el plan sugerido que respalda `n_slides`. */
   plan?: { slides: unknown[] };
+  /** ADR 0096: de dónde sale la siembra y con qué revisión de la matriz. */
+  equivalencias?: GraficosConsolidadoEquivalencias;
 };
+
+export type GraficosConsolidadoEquivalencias = {
+  declarada: boolean;
+  /** `r2:…` cuando la siembra trae láminas de la matriz; vacía si no. */
+  revision: string;
+  origen_plan: "derivado" | "autorado" | string;
+  contiene_equivalencias: boolean;
+  n_diapositivas: number;
+  avisos: GraficosAvisoEquivalencias[];
+};
+
+export function normalizeGraficosConsolidadoEquivalencias(value: unknown): GraficosConsolidadoEquivalencias | undefined {
+  if (!esRegistroApi(value)) return undefined;
+  return {
+    declarada: value.declarada === true,
+    revision: textoApi(value.revision),
+    origen_plan: textoApi(value.origen_plan) || "derivado",
+    contiene_equivalencias: value.contiene_equivalencias === true,
+    n_diapositivas: numeroApi(value.n_diapositivas),
+    avisos: normalizeGraficosAvisosEquivalencias(value.avisos),
+  };
+}
 
 /**
  * Un único PPTX que compone todas las bases hermanas aprobadas.
@@ -1425,9 +1534,11 @@ export async function apiGraficosConsolidadoPreflight(
   options: { includePlan?: boolean } = {},
 ) {
   const query = options.includePlan ? "?include_plan=1" : "";
-  return handle<GraficosConsolidadoPreflight>(
+  const result = await handle<GraficosConsolidadoPreflight>(
     await apiFetch(`/api/graficos/consolidado/preflight${query}`, { headers: headers() }),
   );
+  const equivalencias = normalizeGraficosConsolidadoEquivalencias((result as { equivalencias?: unknown }).equivalencias);
+  return equivalencias ? { ...result, equivalencias } : { ...result, equivalencias: undefined };
 }
 
 export async function apiGraficosPptConsolidado(
