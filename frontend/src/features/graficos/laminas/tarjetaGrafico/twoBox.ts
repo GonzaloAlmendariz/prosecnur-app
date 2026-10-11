@@ -114,6 +114,16 @@ export function leerTwoBox(graficador: string, args: Readonly<Registro>, presets
   };
 }
 
+/**
+ * Lo que la tarjeta dice cuando la columna está encendida y no tiene categorías: el motor la omite
+ * (`.box_decidir`, motivo «sin_declaracion»: «la columna … se omite: no hay categorías declaradas»), así que el
+ * interruptor encendido sin chips marcados no basta. `null`: hay categorías (propias o del informe) o está apagada.
+ */
+export function avisoSinCategorias(caja: Readonly<Caja>, nombre: "Top Two Box" | "Bottom Two Box"): string | null {
+  if (!caja.activa || caja.etiquetas.length > 0) return null;
+  return `Sin categorías elegidas: la columna ${nombre} no sale hasta que elijas al menos una.`;
+}
+
 export type CambioTwoBox =
   | { caja: "top" | "bottom"; activa: boolean }
   | { caja: "top" | "bottom"; etiquetas: string[] };

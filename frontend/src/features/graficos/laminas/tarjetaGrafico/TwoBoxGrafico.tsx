@@ -12,9 +12,9 @@ import { Switch } from "../../../../components/Switch";
 import { useSession } from "../../../../lib/SessionContext";
 import { useGraficosReportScope } from "../../reportScope";
 import { usePlanStore } from "../../store";
-import { Top2BoxSelector } from "../../Top2BoxSelector";
 import { varCalificada } from "../ordenCategorias";
 import { useCategoriasGrafico } from "../useCategoriasGrafico";
+import { ChipsTwoBox } from "./ChipsTwoBox";
 import {
   bottomDisponible,
   categoriasElegibles,
@@ -123,15 +123,7 @@ function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbr
       return <p className="pulso-f6-twobox-estado">Con {categorias.length === 1 ? "una categoría" : "dos categorías"} el {nombre} sumaría la escala entera: el motor no lo dibuja.</p>;
     }
     return (
-      <>
-        <Top2BoxSelector
-          nombre={nombre}
-          categorias={categorias}
-          seleccion={caja.etiquetas}
-          onChange={(etiquetas) => cambiar({ caja: clave, etiquetas })}
-        />
-        {caja.delInforme && <span className="pulso-f6-dato-ayuda">Las categorías vienen del estilo del informe; elegir otras las cambia sólo en este gráfico.</span>}
-      </>
+      <ChipsTwoBox caja={caja} nombre={nombre} categorias={categorias} onChange={(etiquetas) => cambiar({ caja: clave, etiquetas })} />
     );
   };
 

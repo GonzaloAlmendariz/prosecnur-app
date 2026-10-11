@@ -254,14 +254,20 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
 /** «La paleta de «Satisfacción»» (y cuántas preguntas más la comparten), por la etiqueta visible de la pregunta. */
 export function nombrePaleta(listName: string, variables: readonly Pick<VarWithSource, "name" | "label" | "list_name">[]): string {
   const etiquetas: string[] = [];
+  // Preguntas sin etiqueta visible: se cuentan, pero su nombre interno (`conf_p31`) nunca se muestra.
+  const sinTitulo = new Set<string>();
   for (const v of variables) {
     if (v.list_name !== listName) continue;
-    const etiqueta = (v.label || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim() || v.name;
-    if (etiqueta && !etiquetas.includes(etiqueta)) etiquetas.push(etiqueta);
+    const etiqueta = (v.label || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+    if (!etiqueta) sinTitulo.add(v.name);
+    else if (!etiquetas.includes(etiqueta)) etiquetas.push(etiqueta);
   }
-  if (!etiquetas.length) return "Una paleta de colores que ya no usa ninguna pregunta";
+  if (!etiquetas.length) {
+    if (!sinTitulo.size) return "Una paleta de colores que ya no usa ninguna pregunta";
+    return sinTitulo.size === 1 ? "La paleta de una pregunta sin título" : `La paleta de ${sinTitulo.size} preguntas sin título`;
+  }
   const primera = etiquetas[0].length > 80 ? `${etiquetas[0].slice(0, 79).trimEnd()}…` : etiquetas[0];
-  const resto = etiquetas.length - 1;
+  const resto = etiquetas.length - 1 + sinTitulo.size;
   return `La paleta de «${primera}»${resto ? ` (y ${resto} ${resto === 1 ? "pregunta más" : "preguntas más"})` : ""}`;
 }
 
