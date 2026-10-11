@@ -12,6 +12,10 @@ const styleSource = fs.readFileSync(
   fileURLToPath(new URL("./carga-v2.css", import.meta.url)),
   "utf8",
 );
+const findingsStyleSource = fs.readFileSync(
+  fileURLToPath(new URL("./CargaReviewFindings.css", import.meta.url)),
+  "utf8",
+);
 
 function reviewCheck(html: string, label: "Instrumento" | "Respuestas") {
   const item = html
@@ -139,6 +143,7 @@ describe("superficie de Revisión en Carga", () => {
           },
           procedencia: null,
           orden_editor: null,
+          fuentes: null,
           ready: false,
         }}
         action={<a href="/validacion">Ir a Validación</a>}
@@ -200,6 +205,7 @@ describe("superficie de Revisión en Carga", () => {
       },
       procedencia: null,
       orden_editor: null,
+      fuentes: null,
       ready: true,
     };
     const common = {
@@ -302,6 +308,7 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
     reconciliation: { extra: [], reviewed: true, n_extra: 0, n_incluidas: 0, n_excluidas: 0, n_pendientes: 0 },
     procedencia: null,
     orden_editor: null,
+    fuentes: null,
     ready: true,
   };
 
@@ -356,5 +363,133 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
     expect(html).toContain("p1: las etiquetas del mapa no calzan");
     expect(html).toContain("1 pregunta usa el orden de opciones del editor");
     expect(html).toContain("Sin bloqueos");
+  });
+});
+
+describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", () => {
+  const baseProps = {
+    pendingChoiceMapping: false,
+    extraVariableCount: 0,
+    allReady: true,
+    isMultiBase: false,
+    bases: 1,
+    instrumentBaseCount: 1,
+    dataBaseCount: 1,
+  };
+  const reviewLimpio = {
+    ok: true as const,
+    base_nombre: "egresados",
+    compatibility: {
+      applied: true, ok: true, status: "ok", missing_columns: [], extra_columns: [],
+      matched_columns: 74, expected_columns: 74, n_missing: 0, n_extra: 0, message: "",
+    },
+    choice_mapping: {
+      status: "confirmed", pending: false, applied: true,
+      requires_confirmation: false, n_questions: 0, maps: [],
+    },
+    reconciliation: { extra: [], reviewed: true, n_extra: 0, n_incluidas: 0, n_excluidas: 0, n_pendientes: 0 },
+    procedencia: null,
+    orden_editor: null,
+    fuentes: null,
+    ready: true,
+  };
+  const fuente = {
+    survey_id: "s2",
+    titulo: "Telefónico",
+    n_emparejadas: 73,
+    n_preguntas_base: 74,
+    reordenada: false,
+    instrumento_distinto: false,
+    sin_par_fuente: [],
+    sin_par_base: [],
+    n_opciones_sin_par: 0,
+  };
+  const items = (html: string) => html.match(/<li\b[\s\S]*?<\/li>/gu) ?? [];
+  const finding = (html: string, text: string) => items(html).find((item) => item.includes(text)) ?? "";
+
+  it("una fuente solo reordenada es un dato neutro y no altera el estado listo", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{ ...reviewLimpio, fuentes: { fuentes: [{ ...fuente, reordenada: true }] } }}
+      />,
+    );
+    const item = finding(html, "en otro orden");
+    expect(item).toContain('class="is-info"');
+    expect(item).toContain("Telefónico · 73 preguntas emparejadas por pregunta, en otro orden");
+    expect(html).toContain('data-qa-geometry-group="carga-review-findings"');
+    expect(html).toContain("Sin bloqueos");
+  });
+
+  it("una fuente con preguntas sin par avisa, nombra las primeras y no bloquea", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          fuentes: {
+            fuentes: [{
+              ...fuente,
+              sin_par_fuente: ["Cod Pulso", "Celular del egresado", "Enumerador", "DNI"]
+                .map((etiqueta, i) => ({ variable: `q${i}`, etiqueta })),
+              sin_par_base: [{ variable: "p7", etiqueta: "Edad" }],
+            }],
+          },
+        }}
+      />,
+    );
+    const item = finding(html, "no entraron");
+    expect(item).toContain('class="is-pending"');
+    expect(item).toContain(
+      "Telefónico · 4 preguntas no están en la base y no entraron, y 1 pregunta de la base queda vacía para sus respuestas",
+    );
+    expect(item).toContain("No entraron: Cod Pulso, Celular del egresado, Enumerador +1");
+    expect(item).not.toMatch(/survey_id|firma|ordinal/u);
+    expect(html).toContain("Sin bloqueos");
+  });
+
+  it("instrumento distinto se pinta como incompatibilidad y dice qué hacer", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          fuentes: { fuentes: [{ ...fuente, instrumento_distinto: true, n_emparejadas: 30 }] },
+        }}
+      />,
+    );
+    const item = finding(html, "coinciden con la base");
+    expect(item).toContain('class="is-incompatible"');
+    expect(item).toContain("Telefónico · solo 30 de 74 preguntas coinciden con la base");
+    expect(item).toContain("Impórtala como base separada y relaciónala en Equivalencias.");
+  });
+
+  it("el orden del editor adoptado es neutro, va después de los avisos y acota la lista", () => {
+    const adoptadas = Array.from({ length: 11 }, (_, i) => `p${i + 1}`);
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          orden_editor: { adoptadas, omitidas: [{ variable: "p20", motivo: "la etiqueta no calza" }] },
+        }}
+      />,
+    );
+    const adoptado = finding(html, "usan el orden de opciones del editor");
+    expect(adoptado).toContain('class="is-info"');
+    expect(adoptado).not.toContain("is-pending");
+    expect(adoptado).toContain("p1, p2, p3, p4, p5, p6, p7, p8 +3");
+    const omitida = finding(html, "no sigue el orden de opciones del editor");
+    expect(omitida).toContain('class="is-pending"');
+    expect(html.indexOf("no sigue el orden")).toBeLessThan(html.indexOf("usan el orden"));
+  });
+
+  it("el dato neutro usa tokens neutros y el aviso sigue con los de advertencia", () => {
+    const info = findingsStyleSource.match(/\.pulso-carga-review-findings li\.is-info \{([^}]*)\}/u)?.[1] ?? "";
+    expect(info).toMatch(/border-color: var\(--pulso-border\)/u);
+    expect(info).not.toMatch(/--pulso-warn-|#[0-9a-f]{3,8}\b/iu);
+    const base = styleSource.match(/\.pulso-carga-review-findings li \{([^}]*)\}/u)?.[1] ?? "";
+    expect(base).toMatch(/--pulso-warn-bg/u);
+    expect(styleSource).not.toMatch(/\.pulso-carga-review-findings li\.is-pending \{/u);
   });
 });
