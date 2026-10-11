@@ -62,7 +62,7 @@ export function SelectorIconoSubido({ arg, valor, iconos, onCambio }: Props) {
       {iconos.length === 0 && (
         <p className="pulso-f6-pendiente">
           <History size={14} aria-hidden="true" />
-          <span>El proyecto no tiene íconos subidos, y subirlos todavía no está en Láminas.</span>
+          <span>El proyecto no tiene íconos subidos. Súbelos en Estilo del cliente.</span>
         </p>
       )}
     </fieldset>

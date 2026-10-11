@@ -43,6 +43,7 @@ import {
 } from "./modeloEstilo";
 import { SeccionAmbito } from "./SeccionAmbito";
 import { SeccionLetra } from "./SeccionLetra";
+import { IconosEditor } from "../IconosEditor";
 import { MarcaModificado } from "./SelloProcedencia";
 import { TarjetaLogo } from "./TarjetaLogo";
 import { VistaPreviaWord } from "./VistaPreviaWord";
@@ -189,6 +190,12 @@ export default function PestanaEstilo() {
               onSinRol={(rol) => cambiar((e) => sinRol(e, rol))}
               onSinLetra={() => cambiar(sinLetra)}
             />
+
+            {/* Los íconos del cliente (láminas de objetivo y de población) se suben aquí; antes sólo en el editor anterior. */}
+            <section className="pulso-f6-estilo-seccion" aria-labelledby="f6-estilo-iconos-titulo" data-qa-geometry-member>
+              <h3 id="f6-estilo-iconos-titulo" className="pulso-f6-subtitulo">Íconos</h3>
+              <IconosEditor />
+            </section>
           </div>
           <aside className="pulso-f6-estilo-lateral" aria-label="Vista previa del estilo">
             <VistaPreviaWord prepOk={prepOk} />

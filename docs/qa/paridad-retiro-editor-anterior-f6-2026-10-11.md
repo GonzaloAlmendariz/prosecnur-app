@@ -85,3 +85,18 @@ Veredicto en 194c102: **A10 bloqueado** (✅ 40 · ◐ 13 · ☐ 13 · ⛔ 4); r
 - 32: argumentos del índice que hoy se pierden: fijados por el recetario con candado visible.
 - 33: el borrado de la población antigua (B-i) va en un ADR propio con doble confirmación.
 
+
+## Retiro (2026-10-11, pedido explícito de Gonzalo: «Hazlo, sí»)
+
+La pestaña «Editor anterior» (`clasico`) sale del catálogo; un enlace viejo `?pestana=clasico` abre Láminas. Lo que sólo vivía en su «Configuración global» pasó a pestañas propias:
+
+| Del editor anterior | Ahora |
+|---|---|
+| Base PPT (ajustes por tipo de gráfico) | Pestaña **PowerPoint** |
+| Base Word | Pestaña **Word** (incluye «no repetir el título como etiqueta del eje») |
+| Cálculos, Paletas, Líneas visuales | Estilo del informe (ya estaban) |
+| Íconos (subir) | Estilo del cliente › Íconos |
+| Contenido («Otros») | Interruptor «Otros» de Láminas (ya estaba) |
+| Estilos guardados (compacto, grande…) | No se trae: el motor nativo dibuja la versión compacta de cada pieza según la ranura (1, 2 o 4 gráficos por lámina) y no lee esos ajustes de tamaño; los ya aplicados siguen copiados en cada gráfico |
+
+Pendiente: borrar el código que sólo usaba el editor anterior (`v2/shell/EditorShell` y su árbol, `GraficosHeader` en los estados sin plan), cuidando las piezas que Láminas reutiliza (FiltersPanel, GraficadorPicker, SlidePicker, getSlotLabel).

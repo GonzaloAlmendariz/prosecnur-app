@@ -205,6 +205,7 @@ export { default as Percent } from "lucide-react/dist/esm/icons/percent.mjs";
 export { default as Phone } from "lucide-react/dist/esm/icons/phone.mjs";
 export { default as PhoneCall } from "lucide-react/dist/esm/icons/phone-call.mjs";
 export { default as PieChart } from "lucide-react/dist/esm/icons/chart-pie.mjs";
+export { default as Presentation } from "lucide-react/dist/esm/icons/presentation.mjs";
 export { default as Pipette } from "lucide-react/dist/esm/icons/pipette.mjs";
 export { default as Play } from "lucide-react/dist/esm/icons/play.mjs";
 export { default as PlugZap } from "lucide-react/dist/esm/icons/plug-zap.mjs";

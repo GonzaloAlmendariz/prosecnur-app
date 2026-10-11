@@ -11,7 +11,6 @@ import {
   GitCompare,
   GitMerge,
   Grid3X3,
-  History,
   Layers,
   LayoutGrid,
   LayoutTemplate,
@@ -22,6 +21,7 @@ import {
   Paintbrush,
   Palette,
   PieChart,
+  Presentation,
   PlugZap,
   Scale,
   ShieldAlert,
@@ -143,8 +143,8 @@ export const PROCESAMIENTO_PESTANAS = {
     // A10 W-E (decisión 28): texto de la base, cálculos, paletas, línea visual y la parte del Word que se decide. A
     // diferencia de «Estilo del cliente», también en el informe compartido (cambia su PPT consolidado).
     pestana("graficos", "estilo-informe", "Estilo del informe", "Texto de la base, cálculos, paletas y línea visual del informe", Paintbrush),
+    pestana("graficos", "powerpoint", "PowerPoint", "Cómo sale cada tipo de gráfico en el PowerPoint", Presentation),
     pestana("graficos", "word", "Word", "Cómo sale cada gráfico en el documento Word", FileText),
-    pestana("graficos", "clasico", "Editor anterior", "El editor de siempre, mientras se completa el nuevo", History),
   ],
 } as const satisfies Record<ProcesamientoSeccionId, readonly PestanaProcesamiento[]>;
 

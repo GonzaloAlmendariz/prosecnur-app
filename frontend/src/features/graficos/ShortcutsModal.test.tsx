@@ -27,12 +27,8 @@ describe("atajosDePestana", () => {
     expect(lista.map((a) => a.label).join(" ")).not.toMatch(DEL_CLASICO);
   });
 
-  it("el Editor anterior conserva los suyos", () => {
-    expect(teclas("clasico")).toEqual(expect.arrayContaining(["N", "F", "T", "V", "0"]));
-  });
-
   it("todas las pestañas ofrecen deshacer y la ayuda", () => {
-    for (const p of ["laminas", "vista-general", "estilo", "clasico"] as const) {
+    for (const p of ["laminas", "vista-general", "estilo", "estilo-informe", "powerpoint", "word"] as const) {
       expect(teclas(p)).toEqual(expect.arrayContaining(["Ctrl+Z", "?"]));
     }
   });
@@ -52,10 +48,10 @@ describe("ShortcutsModal", () => {
     }
   });
 
-  it("en el Editor anterior pinta los del clásico", () => {
+  it("un enlace viejo al Editor anterior abre Láminas", () => {
     const html = pintar("?pestana=clasico");
-    expect(html).toContain("Modo Timeline");
-    expect(html).toContain("Ajustar canvas al lienzo");
+    expect(html).toContain("Lámina siguiente");
+    expect(html).not.toContain("Modo Timeline");
   });
 
   it("en Vista general pinta su recorrido", () => {

@@ -11,8 +11,8 @@ describe("resolverPestanaGraficos", () => {
     expect(resolverPestanaGraficos("vista-general")).toBe("vista-general");
     expect(resolverPestanaGraficos("Vista-General")).toBe("vista-general");
   });
-  it("respeta el editor anterior", () => {
-    expect(resolverPestanaGraficos("clasico")).toBe("clasico");
-    expect(resolverPestanaGraficos("Clasico")).toBe("clasico");
+  it("el Editor anterior se retiró: un enlace viejo abre Láminas", () => {
+    expect(resolverPestanaGraficos("clasico")).toBe("laminas");
+    expect(resolverPestanaGraficos("Clasico")).toBe("laminas");
   });
 });
