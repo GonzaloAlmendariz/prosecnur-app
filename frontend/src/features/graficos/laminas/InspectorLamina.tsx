@@ -9,6 +9,11 @@ import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { Switch } from "../../../components/Switch";
 import { EditorIndice } from "../indice/EditorIndice";
+import { FijadosIndice } from "../indice/FijadosIndice";
+import { ARGS_FIJADOS_INDICE } from "../indice/fijadosIndice";
+import { useVariables } from "../useVariables";
+import { ContenidoEspecialLamina } from "./contenidoEspecial/ContenidoEspecialLamina";
+import { contenidoEspecialDe, esArgEspecial, tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
 import { DatosGrafico } from "./DatosGrafico";
 import { SeccionComposicion } from "./SeccionComposicion";
 import { nombreSlot } from "./selectores/etiquetas";
@@ -32,7 +37,8 @@ const SECCIONES: { key: SeccionInspector; label: string }[] = [
   { key: "estado", label: "Estado" },
 ];
 
-const ARGS_DEL_INDICE = new Set(["secciones", "subtemas", "subindices", "iconos_focos"]);
+// Los capítulos e íconos tienen su editor; los ajustes del dibujo de los focos, su candado (decisión 32).
+const ARGS_DEL_INDICE = new Set<string>(["secciones", "subtemas", "subindices", "iconos_focos", ...ARGS_FIJADOS_INDICE]);
 
 type Props = {
   slide: Slide;
@@ -132,12 +138,20 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
   const { slidesById } = useGraficosRegistry();
   const meta = leerSlideMeta(slide);
   const esIndice = slide.tipo === "p_slide_indice";
-  // Los capítulos, subcapítulos e íconos del índice tienen su editor (A5 rebanada 2b): no son campos de texto sueltos.
-  const contenido = useMemo(() => {
-    const args = (slidesById[slide.tipo]?.args ?? []).filter((a) => !(esIndice && ARGS_DEL_INDICE.has(a.name)));
-    return contenidoDeLamina(args, SLIDE_GRAF_SLOTS[slide.tipo] ?? []);
-  }, [slidesById, slide.tipo, esIndice]);
+  const { variables } = useVariables();
+  const argsDelTipo = slidesById[slide.tipo]?.args;
+  // Los capítulos, subcapítulos e íconos del índice tienen su editor (A5 rebanada 2b), y las filas de la ficha técnica y
+  // el ícono subido, el suyo (C38): no son campos de texto sueltos.
+  const { contenido, especial } = useMemo(() => {
+    const args = (argsDelTipo ?? []).filter((a) => !(esIndice && ARGS_DEL_INDICE.has(a.name)));
+    return {
+      contenido: contenidoDeLamina(args.filter((a) => !esArgEspecial(a)), SLIDE_GRAF_SLOTS[slide.tipo] ?? []),
+      especial: contenidoEspecialDe(args),
+    };
+  }, [argsDelTipo, slide.tipo, esIndice]);
   const payload = slide.payload as Record<string, unknown>;
+  // C35: sin título escrito sale el nombre de la pregunta del gráfico, como en el editor anterior y en el motor.
+  const titulo = tituloPorDefecto(slide, variables, lamina.tipoLabel);
   const idAnte = useId();
 
   return (
@@ -170,12 +184,16 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
           key={c.name}
           campo={c}
           valor={typeof payload[c.name] === "string" ? (payload[c.name] as string) : ""}
-          placeholder={c.name === "titulo" ? lamina.tipoLabel : ""}
+          placeholder={c.name === "titulo" ? titulo.placeholder : ""}
+          ayuda={c.name === "titulo" ? titulo.ayuda : null}
           onCambio={(v) => updatePayload(slide.id, { [c.name]: v })}
         />
       ))}
 
+      <ContenidoEspecialLamina slide={slide} especial={especial} />
+
       {esIndice && <EditorIndice slide={slide} />}
+      {esIndice && <FijadosIndice slide={slide} args={argsDelTipo ?? []} />}
 
       {contenido.pendientes.length > 0 && (
         <p className="pulso-f6-pendiente">
@@ -189,25 +207,28 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
   );
 }
 
-function CampoTexto({ campo, valor, placeholder, onCambio }: {
+function CampoTexto({ campo, valor, placeholder, ayuda = null, onCambio }: {
   campo: { name: string; label: string; multilinea: boolean; descripcion: string };
   valor: string;
   placeholder: string;
+  /** Ayuda que no viene del registro (qué sale si queda vacío). */
+  ayuda?: string | null;
   onCambio: (v: string) => void;
 }) {
   const id = useId();
   const idAyuda = `${id}-ayuda`;
+  const textoAyuda = [campo.descripcion, ayuda].filter((t): t is string => !!t).join(" ");
   return (
     <div className="pulso-f6-campo">
       <label htmlFor={id}>{campo.label}</label>
       {campo.multilinea ? (
         <textarea id={id} className="pulso-f6-input" rows={3} value={valor} placeholder={placeholder}
-          aria-describedby={campo.descripcion ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
+          aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
       ) : (
         <input id={id} className="pulso-f6-input" value={valor} placeholder={placeholder}
-          aria-describedby={campo.descripcion ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
+          aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
       )}
-      {campo.descripcion && <span id={idAyuda} className="pulso-f6-ayuda">{campo.descripcion}</span>}
+      {textoAyuda && <span id={idAyuda} className="pulso-f6-ayuda">{textoAyuda}</span>}
     </div>
   );
 }
