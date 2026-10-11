@@ -113,7 +113,7 @@
     if (!falta_como_leer) return(doc)
     falta_como_leer <<- FALSE
     doc <- cerrar(doc); cap <<- cap + 1L
-    doc <- .word_como_leer(doc, numero = cap, redondeo = op$redondeo, con_bottom = hay_bottom, figura = figura, tabla = tabla, variante_apertura = op$apertura)
+    doc <- .word_como_leer(doc, numero = cap, redondeo = op$redondeo, con_bottom = hay_bottom, figura = figura, tabla = tabla, variante_apertura = op$apertura, ponderada = isTRUE(op$ponderacion$ponderada))
     sig <- attr(doc, "siguientes"); figura <<- sig[["figura"]]; tabla <<- sig[["tabla"]]
     cap_titulo <<- "Cómo leer este informe"
     doc
@@ -182,6 +182,7 @@
     figura <- figura + 1L
   }
   doc <- poner_como_leer(doc)      # un plan sin secciones igual lleva «Cómo leer» si tiene escalas
+  for (m in .word_avisos_ponderacion(op$ponderacion, render_meta, como_leer = isTRUE(op$como_leer %||% hay_escalas))) avisar(m)   # D-b/D-c
   doc <- cerrar(doc)
   doc <- .word_contraportada(doc, op$contacto, logo = (op$logos %||% list())$contraportada)
   print(doc, target = path_docx)
