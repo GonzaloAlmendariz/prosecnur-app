@@ -70,8 +70,15 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
         style={avance ? ({ "--pulso-f6-tira-avance": `${Math.round((avance.listas / Math.max(1, avance.total)) * 100)}%` } as CSSProperties) : undefined}
       >
         {grupos.map((g) => (
-          <section key={g.id} className="pulso-f6-tira-grupo" aria-label={g.rotulo}>
-            <span className="pulso-f6-tira-rotulo" title={g.rotulo}>{g.rotulo}</span>
+          <section
+            key={g.id}
+            className={`pulso-f6-tira-grupo${g.laminas.some((l) => l.posicion === posicionActiva) ? " is-actual" : ""}`}
+            aria-label={`${g.rotulo}, ${g.laminas.length} ${g.laminas.length === 1 ? "lámina" : "láminas"}`}
+          >
+            <span className="pulso-f6-tira-cabeza">
+              <span className="pulso-f6-tira-rotulo" title={g.rotulo}>{g.rotulo}</span>
+              <span className="pulso-f6-tira-cuenta" aria-hidden="true">{g.laminas.length}</span>
+            </span>
             <ul className="pulso-f6-tira-fila" data-qa-geometry-group="graficos/f6-tira" data-qa-geometry-contract="equal">
               {g.laminas.map((l) => {
                 const entrada = entradas[l.id];

@@ -43,19 +43,32 @@ export function TwoBoxGrafico({ slideId, slot, valor, onAbrirBloques }: Props) {
   if (!forma) return null;
   if (forma === "por_bloque") {
     const bottom = bottomDisponible(valor.graficador, args, presets, composicion);
+    const topEnBloques = topDeBloques(args.bloques);
     return (
       <div className="pulso-f6-twobox" data-qa-geometry-group="graficos/f6-twobox" data-qa-geometry-contract="intrinsic" data-qa="twobox-por-bloque">
         <div className="pulso-f6-dato">
           <span className="pulso-f6-dato-rotulo">Top Two Box</span>
-          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={onAbrirBloques}>
-            <Rows3 size={14} aria-hidden="true" />
-            Cada bloque el suyo · Editar…
-          </button>
+          {/* Encender o apagar aquí vale para todos los bloques; con bloques distintos, el detalle va en «Por bloque». */}
+          <Switch
+            checked={topEnBloques === "todos"}
+            ariaLabel="Columna Top Two Box en todos los bloques"
+            onToggle={() => updateSlotArgs(slideId, slot, { bloques: conTopEnBloques(args.bloques, topEnBloques !== "todos") })}
+          />
+          <span className="pulso-f6-dato-ayuda">
+            {topEnBloques === "algunos" ? "Encendida sólo en algunos bloques. " : ""}
+            {bloquesSinCategorias(args.bloques) > 0 ? `Falta elegir sus categorías en ${bloquesSinCategorias(args.bloques)} ${bloquesSinCategorias(args.bloques) === 1 ? "bloque" : "bloques"}. ` : ""}
+            <button type="button" className="pulso-f6-texto-boton" onClick={onAbrirBloques}>
+              <Rows3 size={13} aria-hidden="true" /> Ajustar por bloque…
+            </button>
+          </span>
         </div>
-        <FilaBottom
-          bottom={bottom}
-          onToggle={() => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, { caja: "bottom", activa: !bottom.activa }, composicion))}
-        />
+        {/* Donde la lámina no puede dibujarla, no se ofrece un interruptor muerto; si ya venía encendida, sí, para quitarla. */}
+        {(bottom.editable || bottom.activa) && (
+          <FilaBottom
+            bottom={bottom}
+            onToggle={() => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, { caja: "bottom", activa: !bottom.activa }, composicion))}
+          />
+        )}
       </div>
     );
   }
@@ -168,4 +181,25 @@ function CajasDeEscala({ slideId, slot, valor, composicion }: Omit<Props, "onAbr
       )}
     </div>
   );
+}
+
+type TopEnBloques = "todos" | "algunos" | "ninguno";
+
+/** Cuántos bloques de una multilista llevan su columna Top Two Box. */
+export function topDeBloques(bloques: unknown): TopEnBloques {
+  const lista = Array.isArray(bloques) ? bloques.filter((b) => b && typeof b === "object") as Record<string, unknown>[] : [];
+  const n = lista.filter((b) => b.top2box === true).length;
+  return lista.length > 0 && n === lista.length ? "todos" : n > 0 ? "algunos" : "ninguno";
+}
+
+/** Los bloques con su Top Two Box encendido o apagado; lo demás de cada bloque (preguntas, categorías) se conserva. */
+export function conTopEnBloques(bloques: unknown, activa: boolean): unknown[] {
+  const lista = Array.isArray(bloques) ? bloques : [];
+  return lista.map((b) => (b && typeof b === "object" ? { ...(b as Record<string, unknown>), top2box: activa } : b));
+}
+
+/** Bloques con la columna encendida pero sin categorías elegidas: el motor la omite en ellos. */
+export function bloquesSinCategorias(bloques: unknown): number {
+  const lista = Array.isArray(bloques) ? bloques.filter((b) => b && typeof b === "object") as Record<string, unknown>[] : [];
+  return lista.filter((b) => b.top2box === true && !(Array.isArray(b.top2box_labels) && b.top2box_labels.length > 0)).length;
 }
