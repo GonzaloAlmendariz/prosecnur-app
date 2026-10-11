@@ -64,3 +64,13 @@ asignada. 10. Fixture §6 del contrato S1–S4 (n=55, n_casos=30) en `min_n` del
 1. Tipos por la ruta anterior (puntos comparativos, p_tabla, dim_radar): ¿conservan controles? (lead/Gonzalo).
 2. ¿`bins = 8` del preset de histograma (`graficos_metadata.R:3002`) apaga siempre la ruta del recetario?
 3. `destacar_ultimo` (serie) y `titulos_grupo`/`prefijo_grupos` (escala) sin verificar.
+
+## Decisiones de Gonzalo (2026-10-11, ~11:30 Perú): «1a 2a 3a 4a»
+
+- 1a: los ceros en Word siguen el default del registro (apagados), igual que en PPT.
+- 2a: `colores_categorias` por gráfico se retira (la lámina categórica nativa no lo dibuja). Preocupación expresa de
+  Gonzalo: «que no podamos determinar unas paletas con colores particulares cuando la lista de opciones no es la misma
+  que el recetario pone, porque a veces hay listas de otros proyectos» → se estudia si las paletas por lista
+  (`paleta_<list_name>`, Estilo del informe › Paletas) llegan a las láminas nativas y al Word.
+- 3a: la heurística por etiqueta se retira también del plan por base (ADR 0096, decisión 7 completa).
+- 4a: extraer el CSS del editor anterior (W-F) y la corrida en vivo del informe compartido pasan a deuda posterior.

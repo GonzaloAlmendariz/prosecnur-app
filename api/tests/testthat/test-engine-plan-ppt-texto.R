@@ -698,7 +698,7 @@ test_that("barras agrupadas Word conservan opciones sin casos", {
     instrumento = inst,
     plan = list(
       diapo_001 = p_slide_1_grafico(
-        grafico = p_barras_agrupadas("p2")
+        grafico = p_barras_agrupadas("p2", mostrar_ceros = TRUE)   # decisión «1a»: en Word los ceros se piden, como en PPT
       )
     ),
     presets = p_presets(),
