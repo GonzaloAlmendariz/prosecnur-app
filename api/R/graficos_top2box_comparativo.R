@@ -161,11 +161,11 @@
 
   # El aviso al analista va en UNA línea y sellado; el detalle se queda en el
   # log, que es donde sirve para depurar.
-  .pulso_aviso(
-    "Top 2 Box · comparativo: ninguna clave del histórico coincidió con una fila, ",
+  .pulso_aviso(.aviso_en_lamina(paste0(
+    "en el Top 2 Box comparativo ninguna clave del histórico coincidió con una fila, ",
     "así que se alineó por ORDEN de declaración. Si tus filas no siguen el orden ",
     "de las variables, declara el histórico con la etiqueta de fila tal como aparece."
-  )
+  )))
   message(
     "Top 2 Box · comparativo: se alineó por ORDEN de declaración.\n",
     "  Declarado : ", paste(recorta(declaradas), collapse = ", "), "\n",

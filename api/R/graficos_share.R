@@ -801,7 +801,7 @@
   blocked <- selected_bases[vapply(selected_bases, function(b) isTRUE(rows_by_base[[b]]$blocking), logical(1))]
   if (length(blocked)) {
     stop_api(409, "E_GRAFICOS_SHARE_BLOCKED",
-             sprintf("Estas bases no tienen slides aplicables: %s", paste(blocked, collapse = ", ")))
+             sprintf("Estas bases no tienen láminas que se puedan aplicar: %s", paste(blocked, collapse = ", ")))
   }
 
   materialized <- .graficos_share_materialize_assets(sid, meta)

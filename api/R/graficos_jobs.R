@@ -100,11 +100,11 @@
 # `report = NULL` omite el progreso por-slide (el worker multibase reporta
 # por base, no por slide — divergencia deliberada que se conserva).
 # `item_label` conserva el vocabulario de cada entregable en el mensaje de
-# progreso: "slide" para PPT, "seccion" para Word.
+# progreso: «la lámina» para PPT, «la sección» para Word.
 .graficos_job_rebuild_slides <- function(plan, slide_registry, graficador_registry,
                                          icon_registry, report = NULL,
                                          base_error = identity,
-                                         item_label = "slide") {
+                                         item_label = "la lámina") {
   slides <- plan$slides %||% list()
   total_slides <- length(slides)
   slides_r <- vector("list", total_slides)
@@ -115,7 +115,7 @@
         current = i,
         total = total_slides,
         percent = 5 + round(45 * (i - 1) / max(1, total_slides)),
-        message = sprintf("Armando %s %s de %s...", item_label, i, total_slides)
+        message = sprintf("Armando %s %s de %s…", item_label, i, total_slides)
       )
     }
     slides_r[[i]] <- tryCatch(
@@ -155,7 +155,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
-    report = report, base_error = base_error, item_label = "slide"
+    report = report, base_error = base_error, item_label = "la lámina"
   )
   report("render", percent = 60, message = "Renderizando presentación...")
   tryCatch(
@@ -259,7 +259,7 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
-    report = report, base_error = base_error, item_label = "seccion"
+    report = report, base_error = base_error, item_label = "la sección"
   )
   report("render", percent = 60, message = "Renderizando documento...")
   tryCatch(
