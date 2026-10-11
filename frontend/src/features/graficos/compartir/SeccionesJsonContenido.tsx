@@ -2,10 +2,11 @@
 // importación se valida primero y se escribe sólo tras confirmar. Mismo cuerpo en el diálogo de Láminas y en el
 // popover del Editor anterior («Selección avanzada»).
 
-import { useId, useRef } from "react";
+import { useId, useMemo, useRef } from "react";
 import { Download, Upload } from "../../../vendor/lucide-react";
 import { ConfirmacionCompartir, MotivoNoDisponible } from "./ConfirmacionCompartir";
-import { GRAFICOS_JSON_SECTIONS } from "./seccionesJson";
+import { usePlanStore } from "../store";
+import { GRAFICOS_JSON_SECTIONS, resumenImportacion } from "./seccionesJson";
 import { textoConfirmarImportacion } from "./textosConfirmacion";
 import type { ControlCompartir } from "./useCompartirPlan";
 
@@ -19,6 +20,13 @@ export function SeccionesJsonContenido({ control }: { control: ControlCompartir 
   const archivoRef = useRef<HTMLInputElement>(null);
   const pendiente = estado.importacionPendiente;
   const preparando = estado.ocupado === "preparar-json";
+  // El estilo del cliente del editor es el del proyecto hidratado: sus logos son los que existen aquí. La composición
+  // (`componerImportacion`) aplica la misma regla sobre lo que relee del backend, así que el aviso dice lo que pasará.
+  const estiloCliente = usePlanStore((s) => s.estiloCliente);
+  const resumen = useMemo(
+    () => (pendiente ? resumenImportacion({ estilo_cliente: estiloCliente }, pendiente.entrante, pendiente.secciones) : null),
+    [estiloCliente, pendiente],
+  );
 
   return (
     <div className="pulso-gv2-share-advanced-panel">
@@ -106,7 +114,10 @@ export function SeccionesJsonContenido({ control }: { control: ControlCompartir 
 
           {pendiente && importar.habilitado && (
             <ConfirmacionCompartir
-              texto={textoConfirmarImportacion(pendiente.modo, pendiente.seccionIds.length, pendiente.nombreArchivo)}
+              texto={textoConfirmarImportacion(pendiente.modo, pendiente.seccionIds.length, pendiente.nombreArchivo, {
+                ausentes: resumen?.ausentes.map((s) => s.label),
+                logosDescartados: resumen?.logosDescartados.map((l) => l.rotulo),
+              })}
               ocupado={estado.ocupado === "importar-json"}
               onConfirmar={() => void control.confirmarImportacion()}
               onCancelar={control.cancelarConfirmacion}
