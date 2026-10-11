@@ -234,3 +234,34 @@ test_that("refresh SurveyMonkey sin universe_filter conserva la ruta directa", {
   expect_null(base$universe_filter)
   expect_equal(base$n_filas, 4L)
 })
+
+test_that("el refresh marca su archivo como ya normalizado (no se reaplican mapas al releer)", {
+  fx <- .smruf_fixture()
+  on.exit(session_delete(fx$sid), add = TRUE)
+  refreshed <- data.frame(testreal = c("real", "test"), value = 1:2, stringsAsFactors = FALSE)
+  dm <- .smruf_refresh(fx, refreshed)
+  b <- session_get(fx$sid)$estudio$bases$sm_base
+  expect_identical(b$data_file_id, dm$file_id)
+  expect_identical(b$choice_codes_applied_data_file_id, b$data_file_id)
+  expect_true(.carga_codigos_ya_aplicados(b))
+})
+
+test_that("el commit del SAV bundle marca su archivo como ya normalizado", {
+  fx <- .smruf_fixture()
+  on.exit(session_delete(fx$sid), add = TRUE)
+  datos <- data.frame(testreal = c("real", "test"), value = 1:2, stringsAsFactors = FALSE)
+  prepared <- list(
+    base_name = "sm_base", entry_name = "x.sav", bundle_file_id = "bf", inst = fx$rp_inst,
+    rp_data = reporte_data(datos, instrumento = fx$rp_inst), audit = list(), change_plan = list(),
+    source_spec = list(survey_id = "survey-1"), response_filter = list()
+  )
+  ns <- .sm_sav_state_with_base_import(
+    session_get(fx$sid), prepared,
+    data_meta = list(file_id = "SAVDATA", ext = "xlsx"),
+    snapshot_meta = list(file_id = "SNAP"),
+    imported_at = "2026-10-11T00:00:00Z"
+  )
+  b <- ns$estudio$bases$sm_base
+  expect_identical(b$choice_codes_applied_data_file_id, "SAVDATA")
+  expect_true(.carga_codigos_ya_aplicados(b))
+})
