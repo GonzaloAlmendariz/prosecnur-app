@@ -3326,7 +3326,7 @@ reporte_ppt_plan <- function(
   }
 
   .blank_canvas <- function(preset_args = list(), overrides = list(), mensaje = "Sin datos para mostrar") {
-    dbg <- .merge_args(presets$base$args %||% list(), preset_args %||% list(), overrides %||% list())
+    dbg <- .pulso_senal_sin_datos(.merge_args(presets$base$args %||% list(), preset_args %||% list(), overrides %||% list()), mensaje)  # sello: reporte_plan_condiciones.R
     if (exists(".dim_blank_canvas", mode = "function", inherits = TRUE)) {
       return(.dim_blank_canvas(
         mensaje = mensaje,

@@ -426,3 +426,117 @@ test_that(".pptx_leer_parte lee una parte de una sola línea sin salto final (of
   expect_identical(.pptx_leer_parte(z, "ppt/dos.xml"), "linea 1\nlinea 2")
   expect_error(.pptx_leer_parte(z, "ppt/no.xml"), "no está")
 })
+
+# ---- Re-revisión metodológica (2026-10-11, segunda ronda) ------------------------------------------------------------
+
+.mt_base_n <- function(texto) regmatches(texto, regexpr("Base: [0-9]+", texto))
+
+test_that("I-N1: la vista previa consolidada usa la config del borrador consolidado, no la de la base activa (paridad con el export)", {
+  f <- .mt_fuentes()
+  activa <- .graficos_default_config(NULL)
+  activa$presets$barras_categoricas$excluir_opciones <- "sur"                  # decisión SOLO de la base activa
+  borrador <- .graficos_default_config(NULL)                                    # el borrador consolidado no la declara
+  local_mocked_bindings(
+    .graficos_config_get = function(sid, ...) activa,
+    graficos_consolidado_draft_get = function(sid) list(ok = TRUE, revision = 1L, config = borrador),
+    session_get = function(sid, ...) list(dir = tempdir(), files = list())
+  )
+  fuentes <- list(data_sources = list(estudiantes = f$df), inst_sources = list(estudiantes = f$inst),
+                  consolidado = TRUE, reglas_metodologia = list())
+  comun <- .graficos_preview_comun("sid-x", list(), fuentes)
+  expect_identical(comun$presets_json, .enriquecer_presets(borrador$presets %||% list(), borrador$debug_ph))
+  expect_null(comun$presets_json$barras_categoricas$excluir_opciones)
+  # La de la base activa SÍ la tiene: es la fuga que se cierra.
+  expect_identical(.graficos_effective_config("sid-x", NULL)$presets$barras_categoricas$excluir_opciones, "sur")
+
+  slide <- list(id = "c1", tipo = "p_slide_1_grafico", payload = list(titulo = "Región", grafico = list(
+    graficador = "p_barras_categoricas", args = list(var = "estudiantes$region"))))
+  ctx <- .graficos_preview_lamina_ctx(comun, slide)
+  raiz <- withr::local_tempdir()
+  previa <- .mt_texto_pptx(suppressWarnings(.mini_resolver(ctx, raiz, .mt_opts(render = FALSE)))$pptx)
+
+  # El export consolidado de la misma lámina, por su propio worker y su propia receta.
+  dir <- withr::local_tempdir()
+  saveRDS(fuentes$data_sources, file.path(dir, "d.rds")); saveRDS(fuentes$inst_sources, file.path(dir, "i.rds"))
+  receta <- list(plan = .graficos_consolidado_plan_entregable(list(slides = list(slide)), list())$plan,
+                 presets = .enriquecer_presets(borrador$presets %||% list(), NULL), paletas = borrador$paletas %||% list(),
+                 auto_otros_slides = FALSE, icon_registry = list())
+  saveRDS(receta, file.path(dir, "r.rds"))
+  out <- file.path(dir, "export.pptx")
+  suppressWarnings(suppressMessages(graficos_consolidado_job_runner(
+    file.path(dir, "d.rds"), file.path(dir, "i.rds"), file.path(dir, "r.rds"),
+    template_pptx = .graficos_resolve_template_pptx(), template_id = "generic_16_9", result_path = out)))
+  export <- .mt_texto_pptx(out)
+  expect_identical(.mt_base_n(previa), .mt_base_n(export))
+  expect_identical(.mt_base_n(previa), "Base: 10")
+  expect_match(previa, "Sur", fixed = TRUE)
+})
+
+test_that("I-N2: la vista previa consolidada lleva el aviso de denominador cero del export", {
+  f <- .mt_fuentes()
+  catalogo <- list(detected = TRUE, entries = list(
+    list(base = "estudiantes", pins = list(methodology = list(configured = TRUE,
+      ppt_plan_defaults = list(region = list(excluir_opciones = list("norte", "sur"))),
+      denominator_rules = list(region = list(zero_denominator = "report_na_with_warning"))))),
+    list(base = "docentes", pins = list(methodology = list(configured = FALSE)))))
+  reglas <- .graficos_consolidado_methodology_rules(catalogo)
+  fuentes <- list(data_sources = list(estudiantes = f$df, docentes = f$df), inst_sources = list(estudiantes = f$inst, docentes = f$inst))
+  del_export <- .graficos_consolidado_denominator_warnings(fuentes, reglas)
+  expect_true(any(grepl("methodology_zero_denominator", del_export, fixed = TRUE)))
+  slide <- list(id = "c1", tipo = "p_slide_1_grafico", payload = list(titulo = "Región", grafico = list(
+    graficador = "p_barras_agrupadas", args = list(var = "estudiantes$region"))))
+  comun <- list(plan_slides = list(slide), scope = "consolidated", base = "", data_sources = fuentes$data_sources,
+                inst_sources = fuentes$inst_sources, reglas_metodologia = reglas,
+                template_pptx = .graficos_resolve_template_pptx(), template_id = "generic_16_9")
+  ctx <- .graficos_preview_lamina_ctx(comun, slide)
+  expect_true(all(del_export %in% ctx$avisos_previos))
+  raiz <- withr::local_tempdir()
+  it <- suppressWarnings(.mini_lote_item(ctx, raiz, .mt_opts(render = FALSE)))
+  meta <- .mini_entrada_leer(raiz, it$hash)
+  expect_true(any(grepl("methodology_zero_denominator", meta$avisos, fixed = TRUE)))
+  expect_identical(it$estado, "sin_datos")                                     # todo excluido: el canvas vacío cuenta
+  # Una lámina que no toca la regla no hereda el aviso.
+  otra <- slide; otra$payload$grafico$args$var <- "docentes$region"
+  expect_false(any(grepl("methodology_zero_denominator", .graficos_preview_lamina_ctx(comun, otra)$avisos_previos, fixed = TRUE)))
+})
+
+test_that("M-N1: variable toda NA, NA en los casos filtrados, excluir_opciones total y pesos 0 → sin_datos (sin_respuestas_validas)", {
+  raiz <- withr::local_tempdir()
+  ver <- function(slide, fuentes = .mt_fuentes()) {
+    it <- suppressWarnings(.mini_lote_item(.mt_ctx(slide = slide, fuentes = fuentes), raiz, .mt_opts(render = FALSE)))
+    g <- .mini_graficos_publico(.mini_entrada_leer(raiz, it$hash))
+    list(estado = it$estado, vacios = g$vacios, motivo = as.character(g$motivo))
+  }
+  todo_na <- .mt_fuentes(); todo_na$df$region <- NA_character_
+  expect_identical(ver(.mt_slide(), todo_na), list(estado = "sin_datos", vacios = 1L, motivo = "sin_respuestas_validas"))
+  parcial <- .mt_fuentes(); parcial$df$zona <- rep(c("a", "b"), c(6, 4)); parcial$df$region[parcial$df$zona == "b"] <- NA
+  s <- .mt_slide(); s$payload$grafico$args$filtros <- list(zona = "b")
+  expect_identical(ver(s, parcial)$motivo, "sin_respuestas_validas")
+  s <- .mt_slide(); s$payload$grafico$args$excluir_opciones <- c("norte", "sur")
+  expect_identical(ver(s)$estado, "sin_datos")
+  s <- .mt_slide(); s$payload$grafico$graficador <- "p_barras_apiladas"; s$payload$grafico$args$peso <- "peso"
+  expect_identical(ver(s, .mt_fuentes(peso = 0))$estado, "sin_datos")
+  # Control: con datos, ok/sin_imagen y 0 vacíos.
+  expect_identical(ver(.mt_slide())$vacios, 0L)
+})
+
+test_that("M-N1: el embudo .blank_canvas señala pulso_grafico_sin_datos, que hereda de pulso_lamina_degradada", {
+  senales <- list()
+  withCallingHandlers(.pulso_senal_sin_datos(1, "Sin datos para mostrar"),
+                      pulso_lamina_degradada = function(c) senales[[length(senales) + 1L]] <<- c)
+  expect_length(senales, 1L)
+  expect_s3_class(senales[[1]], "pulso_grafico_sin_datos")
+  expect_identical(senales[[1]]$motivo, "sin_respuestas_validas")
+  expect_identical(.pulso_senal_sin_datos(list(a = 1)), list(a = 1))           # devuelve su argumento intacto
+  # Un n = 0 diagnosticado no se cuenta dos veces aunque el canvas vacío también señale.
+  expect_identical(.mini_resumen_graficos(2L, c("n0", NA), degradados = 0L, sin_respuestas = 1L)$graficos_vacios, 1L)
+  expect_identical(.mini_resumen_graficos(2L, c(NA, NA), degradados = 0L, sin_respuestas = 1L)$graficos_motivos, "sin_respuestas_validas")
+})
+
+test_that("M-N2: un filtro sobre una columna que no está en la base es variable_fuera_de_base, no n0", {
+  raiz <- withr::local_tempdir()
+  s <- .mt_slide(); s$payload$grafico$args$filtros <- list(no_existe = "x")
+  it <- suppressWarnings(.mini_lote_item(.mt_ctx(slide = s), raiz, .mt_opts(render = FALSE)))
+  expect_identical(it$estado, "sin_datos")
+  expect_identical(as.character(.mini_graficos_publico(.mini_entrada_leer(raiz, it$hash))$motivo), "variable_fuera_de_base")
+})

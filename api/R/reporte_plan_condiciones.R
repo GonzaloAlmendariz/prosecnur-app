@@ -92,6 +92,22 @@
   invisible(NULL)
 }
 
+#' Sello de un gráfico que el motor dibuja como «Sin datos para mostrar» (embudo `.blank_canvas` de reporte_plan_ppt.R)
+#'
+#' Cubre lo que no es una degradación por error: la tabla quedó vacía porque no hay respuestas válidas (variable toda NA,
+#' filtro con casos pero NA en la variable, `excluir_opciones` que cubre todo, pesos en cero) o `.tab_freq` falló y
+#' devolvió NULL. Señala `pulso_grafico_sin_datos`, que hereda de `pulso_lamina_degradada` con
+#' `motivo = "sin_respuestas_validas"`, y devuelve `x` intacto (la llamada envuelve una expresión existente para no crecer
+#' reporte_plan_ppt.R, congelado). Sin nadie escuchando no hace nada.
+#' @keywords internal
+.pulso_senal_sin_datos <- function(x, mensaje = "Sin datos para mostrar") {
+  signalCondition(structure(
+    class = c("pulso_grafico_sin_datos", "pulso_lamina_degradada", "condition"),
+    list(message = as.character(mensaje %||% "")[1], motivo = "sin_respuestas_validas", call = NULL)
+  ))
+  x
+}
+
 #' Canvas minimo "Sin datos" para laminas degradadas. Mismo rol que la rama
 #' "Sin datos" natural de los graficadores: la lamina existe, el deck no muere.
 #' @keywords internal
