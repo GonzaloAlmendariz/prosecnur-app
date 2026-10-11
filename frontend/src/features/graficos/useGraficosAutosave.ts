@@ -8,6 +8,7 @@ import {
 import { getSession } from "../../api/core";
 import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
 import { normalizeGraficosConfigDefaults } from "../../api/graficosConfigDefaults";
+import { normalizeEstiloClienteDefaults } from "../../api/graficosEstilo";
 import { GraficosConfig, usePlanStore } from "./store";
 import { buildGraficosConfig, buildGraficosConfigFromStore, graficosConfigFromRemote } from "./configSnapshot";
 import type { GraficosReportScope } from "./reportScope";
@@ -160,6 +161,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
         if (isCurrent()) {
           const config = mergeWithDefaults(r.config);
           usePlanStore.getState().setConfigDefaults(normalizeGraficosConfigDefaults(r));
+          usePlanStore.getState().setEstiloClienteDefaults(normalizeEstiloClienteDefaults(r));
           hydrate(config);
           limpiarConflictoBorrador();
           // Reemplaza (olvida) un alcance compartido anterior: desde aquí el flush vuelve a escribir la base activa.

@@ -83,15 +83,16 @@ export default function PestanaEstilo() {
     return () => { vigente = false; };
   }, [motivoNoDisponible, opciones, setOpciones]);
 
-  // Los defaults dependen del perfil y del ámbito por defecto de la base: se vuelven a pedir al cambiar de base.
+  // Los defaults dependen del perfil y del ámbito por defecto de la base. El autosave ya los publica con cada GET de la
+  // config (también al cambiar de base); sólo se piden aquí si todavía no llegaron por esa vía.
   useEffect(() => {
-    if (motivoNoDisponible) return;
+    if (motivoNoDisponible || defaults) return;
     let vigente = true;
     apiGraficosEstiloDefaults()
       .then((d) => { if (vigente) setDefaults(d); })
       .catch(() => { /* Sin defaults del backend se compara contra el recetario (`referenciaEstilo`). */ });
     return () => { vigente = false; };
-  }, [motivoNoDisponible, setDefaults, state?.active_base, state?.session_id]);
+  }, [motivoNoDisponible, defaults, setDefaults, state?.active_base, state?.session_id]);
 
   const ref = referenciaEstilo(defaults);
   const decisiones = useMemo(() => decisionesEstilo(estilo, defaults), [estilo, defaults]);
