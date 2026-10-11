@@ -150,6 +150,8 @@ export function patchTwoBox(graficador: string, args: Readonly<Registro>, preset
       } else {
         if (ov.barra_extra_preset !== "top2box") delete ov.barra_extra_preset;
         if (h.mostrar) ov.mostrar_barra_extra = false;
+        // Sin columna en la lámina, tampoco la lleva el Word: `word_mostrar_barra_extra = TRUE` la encendería sólo allí.
+        if (ov.word_mostrar_barra_extra === true) delete ov.word_mostrar_barra_extra;
       }
     } else {
       apartar(ov, "top2box_labels", [...cambio.etiquetas], h.top);

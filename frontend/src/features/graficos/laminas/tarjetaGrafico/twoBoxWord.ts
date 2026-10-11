@@ -10,11 +10,15 @@
 // - `.word_patch_respetar_apagado` (sólo `barras_apiladas`): si el preset PPT del informe la apagó
 //   (`mostrar_barra_extra = FALSE` o `barra_extra_preset = "ninguno"`), el Word no la enciende.
 //
-// Por gráfico, el único canal que el motor lee son los `overrides`, compartidos con la lámina: fijar
-// `mostrar_barra_extra = TRUE` + `barra_extra_preset = "top2box"` la lleva al Word cuando sus ajustes la quitan, y borrar
-// esas claves vuelve a lo heredado. No hay clave que la apague SÓLO en el Word (ni `.word_ajustar_el` ni
-// `.word_conservar_barra_extra_pedida` leen una): cuando el Word la da solo, apagarla es un pedido de motor y aquí se
-// informa con `motivo = "word_lo_da"`, sin fingir un control que el motor ignoraría.
+// Por gráfico, el Word lee los `overrides`, que mandan igual en la lámina, y además una clave que sólo lee el Word:
+// `overrides.word_mostrar_barra_extra` (`.word_barra_extra_solo_word`, reporte_plan_word.R). `FALSE` apaga la columna
+// sólo en el Word; `TRUE` la enciende sólo en el Word (sin preset de columna en los overrides, `top2box`); ausente
+// hereda lo de la lámina. La lámina PPT no la lee. El Top Two Box sigue exigiendo sus categorías declaradas. El control
+// «También en el Word» escribe sólo esa clave, y la borra cuando lo pedido coincide con lo heredado.
+//
+// Antes de esa clave, la tarjeta llevaba la columna al Word fijando el par `mostrar_barra_extra = TRUE` +
+// `barra_extra_preset = "top2box"` en los overrides. Ese par sólo se limpia cuando es redundante para la lámina (la
+// lámina hereda igual el Top Two Box): borrarlo no cambia la lámina, y una elección de la lámina nunca se toca.
 //
 // En la multiapilada el constructor de bloques ya fija `overrides.mostrar_barra_extra` con `top2box`, y su ajuste Word
 // no cambia el preset: el Top Two Box llega al Word sin control aparte.
@@ -38,14 +42,10 @@ function columnaDe(fuente: Registro): Registro {
 
 const chartFabrica = registro(DEFAULT_WORD_PRESETS.chart_presets);
 
-// `multi_apiladas` del Word de R (`mostrar_barra_extra = FALSE`) todavía no tiene espejo en DEFAULT_WORD_PRESETS; hasta
-// que lo tenga, éste es el suelo y el espejo lo pisa en cuanto lo declare.
-const MULTI_APILADAS_SIN_ESPEJO: Registro = { mostrar_barra_extra: false };
-
 /** Lo que fija de fábrica el Word para cada familia, derivado de DEFAULT_WORD_PRESETS (espejo de R). */
 export const WORD_FABRICA: Readonly<Record<string, Readonly<Registro>>> = {
   barras_apiladas: columnaDe(registro(chartFabrica.barras_apiladas)),
-  multi_apiladas: { ...MULTI_APILADAS_SIN_ESPEJO, ...columnaDe(registro(chartFabrica.multi_apiladas)) },
+  multi_apiladas: columnaDe(registro(chartFabrica.multi_apiladas)),
 };
 
 function familias(args: Readonly<Registro>): string[] {
@@ -94,22 +94,27 @@ export function topHeredadoEnWord(args: Readonly<Registro>, presets: Presets, wP
   return w.mostrar && w.preset === "top2box";
 }
 
+/** La clave que sólo lee el Word (`.word_barra_extra_solo_word`). */
+export const CLAVE_SOLO_WORD = "word_mostrar_barra_extra";
+
 /**
- * Por qué el Word saca o no la columna, y si se puede cambiar desde el gráfico:
- * - `fijado`: el gráfico la fija para el Word (se vuelve a lo heredado borrando las claves);
- * - `word_lo_da`: los ajustes Word la dan solos; apagarla sólo en el Word no tiene canal en el motor;
- * - `lamina_lo_necesita`: las fijaciones del gráfico son las que encienden la lámina; quitarlas la apagaría también;
+ * Por qué el Word saca o no la columna. Todos se pueden cambiar desde el gráfico sin tocar la lámina:
+ * - `fijado`: el gráfico la lleva sólo al Word (`word_mostrar_barra_extra = TRUE`);
+ * - `quitado`: el gráfico la quita sólo del Word (`word_mostrar_barra_extra = FALSE`);
+ * - `word_lo_da`: los ajustes Word la dan solos;
+ * - `lamina_lo_necesita`: las fijaciones del gráfico la encienden en la lámina y el Word las hereda;
  * - `word_la_quita`: lo heredado en el Word no la lleva (ajustes Word del informe, o el informe la apagó y el Word lo
- *   respeta); el gráfico puede fijarla.
+ *   respeta).
  */
-export type MotivoTopEnWord = "fijado" | "word_lo_da" | "lamina_lo_necesita" | "word_la_quita";
+export type MotivoTopEnWord = "fijado" | "quitado" | "word_lo_da" | "lamina_lo_necesita" | "word_la_quita";
 
 /** La nota que acompaña al control «También en el Word» según su motivo. */
 export const NOTA_TOP_EN_WORD: Readonly<Record<MotivoTopEnWord, string>> = {
-  fijado: "Este gráfico la lleva al Word aunque los ajustes Word no la den; apagarla vuelve a lo del informe.",
-  word_lo_da: "El Word la lleva por defecto, como el recetario. Para quitarla del Word, apágala en los ajustes Word del informe: este gráfico no puede quitarla sólo del Word.",
-  lamina_lo_necesita: "Este gráfico la enciende también para la lámina, y el Word lee lo mismo: no se puede quitar sólo del Word.",
-  word_la_quita: "Lo que el Word hereda no la lleva (sus ajustes, o el informe la apagó). Encenderla aquí la lleva al Word sólo para este gráfico.",
+  fijado: "Este gráfico la lleva al Word aunque lo heredado no la dé; la lámina no cambia. Apagarla vuelve a lo heredado.",
+  quitado: "Este gráfico la quita sólo del Word; la lámina la conserva. Encenderla vuelve a lo heredado.",
+  word_lo_da: "El Word la lleva por defecto, como el recetario. Apagarla aquí la quita sólo del Word para este gráfico; la lámina la conserva.",
+  lamina_lo_necesita: "Este gráfico la enciende en la lámina y el Word la hereda. Apagarla aquí la quita sólo del Word; la lámina la conserva.",
+  word_la_quita: "Lo que el Word hereda no la lleva (sus ajustes, o el informe la apagó). Encenderla aquí la lleva al Word sólo para este gráfico; la lámina no cambia.",
 };
 
 export type TopEnWord = {
@@ -121,35 +126,52 @@ export type TopEnWord = {
   motivo?: MotivoTopEnWord;
 };
 
+/** Lo que el Word saca sin la clave sólo-Word: lo heredado en el Word con los overrides del gráfico encima. */
+function saleSinClaveWord(ov: Registro, w: ReturnType<typeof heredadoEnWord>) {
+  const mostrar = typeof ov.mostrar_barra_extra === "boolean" ? ov.mostrar_barra_extra : w.mostrar;
+  const preset = texto(ov.barra_extra_preset) ?? w.preset;
+  return mostrar && preset === "top2box";
+}
+
+/** `.word_barra_extra_solo_word` con `TRUE`: sin preset de columna en los overrides (o `"ninguno"`), `top2box`. */
+function presetConClaveWord(ov: Registro): string {
+  const p = texto(ov.barra_extra_preset);
+  return p && p !== "ninguno" ? p : "top2box";
+}
+
 export function leerTopEnWord(graficador: string, args: Readonly<Registro>, presets: Presets, wPresets: Readonly<Registro>): TopEnWord {
   const estado = leerTwoBox(graficador, args, presets);
   if (formaTwoBox(graficador, args) !== "apiladas" || !estado?.top.activa) return { aplica: false, sale: false, editable: false };
   const ov = registro(args.overrides);
+  const clave = ov[CLAVE_SOLO_WORD];
+  if (clave === false) return { aplica: true, sale: false, editable: true, motivo: "quitado" };
+  if (clave === true) {
+    const sale = presetConClaveWord(ov) === "top2box";
+    return { aplica: true, sale, editable: true, motivo: sale ? "fijado" : "word_la_quita" };
+  }
   const w = heredadoEnWord(args, presets, wPresets);
-  const mostrar = typeof ov.mostrar_barra_extra === "boolean" ? ov.mostrar_barra_extra : w.mostrar;
-  const preset = texto(ov.barra_extra_preset) ?? w.preset;
-  const sale = mostrar && preset === "top2box";
-  const wordLoDaSolo = w.mostrar && w.preset === "top2box";
+  const sale = saleSinClaveWord(ov, w);
   if (!sale) return { aplica: true, sale, editable: true, motivo: "word_la_quita" };
-  if (wordLoDaSolo) return { aplica: true, sale, editable: false, motivo: "word_lo_da" };
-  // Sale por las fijaciones del gráfico: quitarlas sólo es posible si la lámina no las necesita.
-  const laminaLasNecesita = !(w.hereda.mostrar && w.hereda.preset === "top2box");
-  return laminaLasNecesita
-    ? { aplica: true, sale, editable: false, motivo: "lamina_lo_necesita" }
-    : { aplica: true, sale, editable: true, motivo: "fijado" };
+  if (w.mostrar && w.preset === "top2box") return { aplica: true, sale, editable: true, motivo: "word_lo_da" };
+  return { aplica: true, sale, editable: true, motivo: "lamina_lo_necesita" };
 }
 
-/** Patch de args: fija o quita en el gráfico el par que el Word lee. */
+/**
+ * Patch de args: decide la columna sólo para el Word con `word_mostrar_barra_extra`, o borra la clave cuando lo pedido
+ * coincide con lo heredado. El par que la tarjeta escribía antes para el Word se limpia sólo si es redundante para la
+ * lámina.
+ */
 export function patchTopEnWord(graficador: string, args: Readonly<Registro>, presets: Presets, wPresets: Readonly<Registro>, sale: boolean): Registro {
   const actual = leerTopEnWord(graficador, args, presets, wPresets);
   if (!actual.aplica || !actual.editable || actual.sale === sale) return {};
   const ov: Registro = { ...registro(args.overrides) };
-  if (sale) {
-    ov.mostrar_barra_extra = true;
-    ov.barra_extra_preset = "top2box";
-  } else {
+  const w = heredadoEnWord(args, presets, wPresets);
+  const laminaHeredaTop = w.hereda.mostrar && w.hereda.preset === "top2box";
+  if (laminaHeredaTop && ov.mostrar_barra_extra === true && ov.barra_extra_preset === "top2box") {
     delete ov.mostrar_barra_extra;
     delete ov.barra_extra_preset;
   }
+  delete ov[CLAVE_SOLO_WORD];
+  if (sale !== saleSinClaveWord(ov, w)) ov[CLAVE_SOLO_WORD] = sale;
   return { overrides: Object.keys(ov).length ? ov : null };
 }
