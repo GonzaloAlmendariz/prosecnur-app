@@ -295,3 +295,17 @@ test_that("el techo de la azul es MAS ancho que el de la rampa", {
   expect_gt(.VERIF_UMBRALES$barras_por_grafico_categorico,
             .VERIF_UMBRALES$barras_por_grafico)
 })
+
+
+test_that("un .pptx inexistente cae como E_ARCHIVO_NO_EXISTE, no como error crudo", {
+  # Regresión: la llamada pasaba `detalle=` a stop_api, cuyo argumento real es
+  # `message` (posicional). En runtime la ruta reventaba con "unused argument"
+  # en vez de devolver el error de API limpio.
+  err <- tryCatch(
+    .verif_laminas_xml(file.path(tempfile("no_existe_"), "mazo.pptx")),
+    api_error = function(e) e
+  )
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_ARCHIVO_NO_EXISTE")
+  expect_identical(err$status, 400L)
+})
