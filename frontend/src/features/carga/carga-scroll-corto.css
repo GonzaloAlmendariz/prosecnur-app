@@ -1,0 +1,21 @@
+/* Carga en escritorios bajos: UN solo dueño de scroll (C4).
+   En modo `short` y en alturas <= 720 px, carga-v2.css degrada el workbench
+   multibase a un único scroll del cuerpo del PageFrame. Pero la regla global
+   `.pulso-page-frame--scroll-panels .pulso-page-frame-body > :is(.pulso-adaptive-split, …)`
+   (0,3,0) le seguía fijando `height: 100%`: el workbench medía el alto del
+   cuerpo, su fila de grid quedaba en ~451 px y `.pulso-carga-content--framed`
+   (overflow visible) desbordaba su propia caja sin scroll (681 vs 451 en
+   1024x600). Aquí el workbench vuelve a su alto de contenido, y el excedente
+   lo recibe el cuerpo del PageFrame, que es el scroll declarado. */
+
+:root[data-pulso-layout-mode="short"] .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--multibase {
+  flex: 0 0 auto;
+  height: auto;
+}
+
+@media (max-height: 720px) {
+  .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench--multibase {
+    flex: 0 0 auto;
+    height: auto;
+  }
+}

@@ -46,9 +46,11 @@ describe("Carga workspace integration semantics", () => {
     expect(pageSource).toContain('title="Aún no hay datos de Carga para explorar"');
   });
 
-  it("publishes a stable QA readiness marker after the active topology loads", () => {
+  it("publishes a stable QA readiness marker only after the session and bases hydrate", () => {
     expect(pageSource).toContain(
-      'auditReady={isMultiBase && !estudio ? false : `carga-${activeCargaTab}`}',
+      "auditReady={marcaReadinessCarga(hidratacion, activeCargaTab)}",
     );
+    expect(pageSource).toContain("hayEstadoSesion: state !== null");
+    expect(pageSource).toContain('{!isMultiBase && hidratacion.fase === "lista" && (');
   });
 });
