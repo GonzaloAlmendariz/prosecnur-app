@@ -43,7 +43,9 @@ import { lazyWithReload } from "../../lib/lazyWithReload";
 import "./graficosPestanas.css";
 import { resolverPestanaGraficos, PESTANAS_GRAFICOS, type GraficosTabId } from "./pestanaGraficos";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { conDisponibilidadEstilo } from "./estilo/disponibilidadEstilo";
 const VistaGeneral = lazyWithReload(() => import("./vistaGeneral/VistaGeneral"), "graficos-vista-general");
+const PestanaEstilo = lazyWithReload(() => import("./estilo/PestanaEstilo"), "graficos-estilo");
 
 type ExportResult = {
   ok: true; file_id: string; filename?: string; size: number; n_slides: number;
@@ -331,7 +333,7 @@ export default function GraficosPage() {
             </Alert>
           )}
 
-          {(pestana === "laminas" || pestana === "vista-general") && bodyState === "editor" ? (
+          {(pestana === "laminas" || pestana === "vista-general" || pestana === "estilo") && bodyState === "editor" ? (
             <BarraLaminas
               onExportPpt={() => onExport("ppt")}
               onExportWord={() => onExport("word")}
@@ -450,7 +452,7 @@ export default function GraficosPage() {
               <ContextTabRail
                 ariaLabel="Pestañas de gráficos"
                 activeKey={pestana}
-                items={PESTANAS_GRAFICOS}
+                items={conDisponibilidadEstilo(PESTANAS_GRAFICOS, reportScope)}
                 panelId="graficos-panel"
                 tabId={(key) => `graficos-tab-${key}`}
                 onChange={irPestana}
@@ -467,6 +469,8 @@ export default function GraficosPage() {
                 ? <LaminasWorkbench onIrEditorAnterior={() => irPestana("clasico")} />
                 : pestana === "vista-general"
                   ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la vista general…" /></div>}><VistaGeneral /></Suspense>
+                  : pestana === "estilo"
+                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el estilo del cliente…" /></div>}><PestanaEstilo /></Suspense>
                   : <EditorShell />}
             </div>
           </AdaptiveSplitView>
