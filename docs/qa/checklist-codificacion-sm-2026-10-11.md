@@ -13,7 +13,7 @@ Acreditación Arte y Diseño PUCP (Docentes, Administrativos, Estudiantes).
 |---|---|---|---|
 | 1 | Llevar N4 (mapas solo de la misma encuesta) y «bases separadas» a `main` | `carga_platform_separate.R`, `router_carga.R` | Hecho antes de esta sesión: PR #10 (`88ea0a8c9`) ya los trae |
 | 2 | Triple aplicación de mapas en base única (preview y `rp_data` invertidos) | `.carga_codigos_ya_aplicados` (`router_carga.R`), `project_pulso.R` | Hecho en PR #10; test l.906/l.923 de `test-carga-platform-jobs.R` |
-| 3 | Gate de Carga sobre `main` | `make gate-area AREA=carga …` | Verde: 1491 pass, 0 fallos (janitor instalado) |
+| 3 | Gate de Carga | `make gate-area AREA=carga …` | Verde sobre `main`: 1491 pass. Verde en la rama al cierre (verificador 2026-10-11): 2562 pass R, 558 front, tsc, `--audit`, docs |
 | 4 | **H2**: los mapas del editor se aplican contra el instrumento generado y no contra el del editor; una pregunta reordenada queda con la etiqueta equivocada | `carga_sm_orden_editor.R`, `.carga_sm_prepare_import` | Hecho (`198d429`): el instrumento adopta códigos y orden del editor por etiqueta antes de codificar; re-revisión metodológica aprobada con supuestos |
 | 5 | **H3**: `select_multiple` no recibe el reordenamiento | ídem | Hecho (`198d429`), test `"1 2","3","2"` |
 | 6 | **H1**: la confirmación de Carga › Revisión quedó sin efecto tras PR #10 | `carga_review.R`, `CargaReviewSummary.tsx` | Hecho: no hay recode que confirmar (`not_required` es correcto); Revisión declara adoptadas y omitidas con su motivo, sin bloquear |

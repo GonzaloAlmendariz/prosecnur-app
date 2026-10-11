@@ -13,14 +13,14 @@
 
 ## Contexto
 
-Una base SurveyMonkey puede juntar varias encuestas: los canales de un mismo público (Egresados
-Personalizado, Telefónico y web) o campañas sucesivas. El motor canónico
+Una base SurveyMonkey puede juntar varias encuestas: los canales de un mismo público (una versión
+personalizada, una telefónica y una web) o campañas sucesivas. El motor canónico
 (`sm_multibase_api_responses_to_canonical_data`) asignaba cada pregunta de la fuente a la variable
 `p<posición>` del instrumento de la base. Las encuestas hermanas no tienen la misma posición para la misma
-pregunta: en Acreditación Contabilidad las versiones «Personalizado» llevan «Indique su código PUCP» en la
-posición 3, y desde ahí toda la numeración se corre.
+pregunta: en un estudio de acreditación real, la versión personalizada lleva una pregunta de código
+institucional en la posición 3, y desde ahí toda la numeración se corre.
 
-Medido con los datos reales (2026-10-11), juntando Egresados Telefónico a Egresados Personalizado:
+Medido con los datos reales (2026-10-11), juntando la versión telefónica a la personalizada de un mismo público:
 
 - la columna «¿Cuántos años tiene?» recibía los códigos de género;
 - «¿Cuál es su género?» recibía los años de egreso, incluido un `2015` crudo que no es una opción de la
