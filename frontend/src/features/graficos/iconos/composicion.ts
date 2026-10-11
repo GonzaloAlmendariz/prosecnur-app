@@ -81,7 +81,7 @@ function repartirCifras(r: { x: number; y: number; w: number; h: number }, slots
 
 /**
  * La composición de `tipo` con sus slots asignados. `slots` son los slots de gráfico del tipo (`SLIDE_GRAF_SLOTS`), en
- * el orden que numera las ranuras (`foco=l-NN:gK`).
+ * el orden que numera las ranuras (`foco=<slide.id>:gK`).
  */
 export function composicionDe(tipo: string, slots: readonly string[]): Composicion {
   const base = RANURAS_ESTANDAR[tipo] ? tipo : BASE_DERIVADA[tipo] ?? null;
@@ -98,7 +98,7 @@ export function composicionDe(tipo: string, slots: readonly string[]): Composici
   return { fuente: base === tipo ? "estandar" : "derivada", base, ranuras, poblacion };
 }
 
-/** Número de la ranura de `slot` (1-based, el de `foco=l-NN:gK`), o `null` si no es un slot del tipo. */
+/** Número de la ranura de `slot` (1-based, el de `foco=<slide.id>:gK`), o `null` si no es un slot del tipo. */
 export function numeroDeRanura(slots: readonly string[], slot: string | null): number | null {
   if (!slot) return null;
   const i = slots.indexOf(slot);

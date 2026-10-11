@@ -1,7 +1,7 @@
 // Ranuras de gráfico de una lámina sobre su imagen (F6.1, parte 2). La geometría sale de la matriz de composición
 // efectiva (`slide-layout-matrix`, la misma que usa el Editor anterior), con coordenadas relativas a la lámina (0–1).
 // Sólo se toman las regiones de gráfico visibles que corresponden a ranuras del tipo, en el orden de las ranuras:
-// la ranura k es la que nombra `foco=l-NN:gK`.
+// la ranura k es la que nombra `foco=<slide.id>:gK` (`../focoLamina.ts`).
 
 import type { GraficosSlideLayoutRegion } from "../../../api/graficos";
 

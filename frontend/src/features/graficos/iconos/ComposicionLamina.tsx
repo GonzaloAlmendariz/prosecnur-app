@@ -19,7 +19,7 @@ export type ComposicionLaminaProps = {
   graficos?: Readonly<Record<string, string | null | undefined>>;
   /** Variante de las láminas de estructura (portada, índice, separador, cierre). */
   variante?: string | null;
-  /** Ranura resaltada (1-based, la de `foco=l-NN:gK`). */
+  /** Ranura resaltada (1-based, la de `foco=<slide.id>:gK`). */
   ranuraActiva?: number | null;
   /** Numera las ranuras (vista de detalle; en miniatura no se lee). */
   numerar?: boolean;

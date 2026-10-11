@@ -1,10 +1,12 @@
 // Orquesta las miniaturas reales de la tira (F6 §5.3; contrato docs/qa/contrato-miniaturas-preview-f6-2026-10-11.md §6):
-// pide un lote con `POST /api/graficos/miniaturas` (estado vivo del editor, `reemplazar = true`) y pollea
-// `GET /api/graficos/miniaturas/<lote_id>` para pintar cada lámina conforme llega. Nunca un render masivo síncrono.
-// Al editar una lámina sólo vuelve a pedirse ésa (más las que el lote reemplazado dejó pendientes); el backend decide
-// por huella si re-renderiza. La lógica vive en `loteMiniaturas.ts` (pura) y el estado en `miniaturasStore.ts`.
+// pide un lote con `POST /api/graficos/miniaturas` (estado vivo del editor) y pollea cada `GET
+// /api/graficos/miniaturas/<lote_id>` vivo para pintar cada lámina conforme llega. Nunca un render masivo síncrono.
+// Al desplazarse (Vista general), las láminas recién vistas van en un lote propio con `reemplazar = false`: el lote en
+// curso sigue y nada se pide dos veces. Al editar una lámina se reemplaza (`reemplazar = true`) y viajan ésa y, una sola
+// vez, las pendientes de los lotes cancelados; el backend decide por huella si re-renderiza. Reglas en
+// `loteMiniaturas.ts` (`planPedido`, pura) y estado en `miniaturasStore.ts`.
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import type { Slide } from "../../../../api/graficos";
 import { apiGraficosMiniaturas, apiGraficosMiniaturasLote, miniaturaSrc } from "../../../../api/graficosMiniaturas";
@@ -15,11 +17,11 @@ import { clavePreview } from "../../previewLaminaCoordinador";
 import { useGraficosReportScope } from "../../reportScope";
 import { usePlanStore } from "../../store";
 import type { LaminaEnEstructura } from "../modeloEstructura";
-import { avanceLote, laminasAPedir, type LaminaClave } from "./loteMiniaturas";
+import { avanceLote, planPedido, type LaminaClave } from "./loteMiniaturas";
 import { useMiniaturasLoteStore } from "./miniaturasStore";
 import { iniciarPollLote } from "./pollLote";
 
-/** Primer lote casi de inmediato; tras una edición se espera a que el analista deje de teclear. */
+/** Primer lote (y los de láminas recién vistas) casi de inmediato; tras una edición se espera a que deje de teclear. */
 export const ESPERA_PRIMER_LOTE_MS = 400;
 export const ESPERA_EDICION_MS = 1500;
 
@@ -47,6 +49,7 @@ export function useMiniaturasLote(laminas: readonly LaminaEnEstructura[], visibl
   const overrides = usePlanStore((s) => s.overridesReusables);
   const entradas = useMiniaturasLoteStore((s) => s.entradas);
   const vigente = useMiniaturasLoteStore((s) => s.vigente);
+  const lotes = useMiniaturasLoteStore((s) => s.lotes);
   const forzadas = useMiniaturasLoteStore((s) => s.forzadas);
   const enVuelo = useMiniaturasLoteStore((s) => s.enVuelo);
 
@@ -65,8 +68,9 @@ export function useMiniaturasLote(laminas: readonly LaminaEnEstructura[], visibl
     if (!habilitada || enVuelo || !pedibles.length) return;
     const store = useMiniaturasLoteStore.getState();
     const forzar = new Set(Object.keys(forzadas));
-    const aPedir = laminasAPedir(pedibles, store.entradas, { loteCorriendo: !!vigente, forzar });
-    if (!aPedir.length) return;
+    const plan = planPedido(pedibles, store.entradas, { lotesCorriendo: lotes.length, forzar });
+    if (!plan) return;
+    const aPedir = plan.laminas;
     const primero = Object.keys(store.entradas).length === 0;
     const id = setTimeout(() => {
       const porId = new Map(pedibles.map((p) => [p.id, p]));
@@ -78,33 +82,45 @@ export function useMiniaturasLote(laminas: readonly LaminaEnEstructura[], visibl
         slides: pedidas.map((p) => p.slide),
         config: buildGraficosConfigFromStore(),
         preview_quality: "quick",
-        reemplazar: true,
+        reemplazar: plan.reemplazar,
         ...(scope === "consolidated" ? { scope: "consolidated" as const } : {}),
       }).then(
-        (r) => useMiniaturasLoteStore.getState().iniciarLote({ loteId: r.lote_id, jobId: r.job_id, claves }),
+        (r) => useMiniaturasLoteStore.getState().iniciarLote({ loteId: r.lote_id, jobId: r.job_id, claves }, { reemplazo: plan.reemplazar }),
         (e: unknown) => useMiniaturasLoteStore.getState().fallar(claves, e instanceof Error ? e.message : String(e)),
       );
-    }, primero ? ESPERA_PRIMER_LOTE_MS : forzar.size && aPedir.every((l) => forzar.has(l.id)) ? 0 : ESPERA_EDICION_MS);
+      // Un lote que no reemplaza (láminas recién vistas) no cancela nada: basta la espera corta para agrupar el scroll.
+    }, forzar.size && aPedir.every((l) => forzar.has(l.id)) ? 0 : primero || !plan.reemplazar ? ESPERA_PRIMER_LOTE_MS : ESPERA_EDICION_MS);
     return () => clearTimeout(id);
-  }, [habilitada, enVuelo, pedibles, vigente, forzadas, scope]);
+  }, [habilitada, enVuelo, pedibles, lotes, forzadas, scope]);
 
-  // Poll del lote vigente: cada lámina se pinta en cuanto llega.
-  const loteId = vigente?.loteId ?? null;
+  // Un poll por lote vivo: cada lámina se pinta en cuanto llega. Los polls ya iniciados no se reinician al sumarse otro
+  // lote (perderían su cadencia); se paran al salir el lote del store (terminado, fallido o reemplazado).
+  const polls = useRef(new Map<string, () => void>());
   useEffect(() => {
-    if (!loteId) return;
     const src = (url: string) => miniaturaSrc({ url });
-    return iniciarPollLote(loteId, (u) => {
-      const s = useMiniaturasLoteStore.getState();
-      if (u.tipo === "estado") s.aplicarLote(u.lote, src);
-      else if (s.vigente?.loteId === loteId) s.fallar(s.vigente.claves, u.mensaje);
-    }, { leer: (id) => apiGraficosMiniaturasLote(id) });
-  }, [loteId]);
+    const vivos = new Set(lotes.map((l) => l.loteId));
+    for (const [id, parar] of polls.current) if (!vivos.has(id)) { parar(); polls.current.delete(id); }
+    for (const id of vivos) {
+      if (polls.current.has(id)) continue;
+      polls.current.set(id, iniciarPollLote(id, (u) => {
+        const s = useMiniaturasLoteStore.getState();
+        if (u.tipo === "estado") s.aplicarLote(u.lote, src);
+        else {
+          const propio = s.lotes.find((l) => l.loteId === id);
+          if (propio) s.fallar(propio.claves, u.mensaje, id);
+        }
+      }, { leer: (loteId) => apiGraficosMiniaturasLote(loteId) }));
+    }
+  }, [lotes]);
 
-  // Salir de Láminas cancela el lote (cola cancelable); lo ya dibujado queda en la caché del backend y en la tira.
-  useEffect(() => () => {
-    const s = useMiniaturasLoteStore.getState();
-    const jobId = s.abandonarLote();
-    if (jobId) void apiJobCancel(jobId).catch(() => undefined);
+  // Salir de Láminas cancela los lotes (cola cancelable); lo ya dibujado queda en la caché del backend y en la tira.
+  useEffect(() => {
+    const activos = polls.current;
+    return () => {
+      for (const parar of activos.values()) parar();
+      activos.clear();
+      for (const jobId of useMiniaturasLoteStore.getState().abandonarLotes()) void apiJobCancel(jobId).catch(() => undefined);
+    };
   }, []);
 
   // Otra sesión (otro proyecto): las imágenes llevan el sid viejo y las claves no valen.

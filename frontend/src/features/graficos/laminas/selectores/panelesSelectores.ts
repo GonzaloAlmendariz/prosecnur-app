@@ -1,5 +1,5 @@
 // Paneles de los selectores de tipo de la pestaña Láminas (F6.2; dirección F6 §3: `panel=tipo-lamina`,
-// `panel=tipo-grafico`). La lámina y la ranura que se cambian las nombra `foco` (`l-07`, `l-07:g2`).
+// `panel=tipo-grafico`). La lámina y la ranura que se cambian las nombra `foco` (`<slide.id>`, `<slide.id>:g2`; `l-07[:g2]` sólo se lee como heredado).
 
 import type { PanelDeclarado } from "../../../../lib/navegacion/paneles";
 
