@@ -267,6 +267,17 @@ export function CargaReviewSummary({
             </li>
           )}
           {/* Datos neutros al final: informan, no piden nada. */}
+          {ordenEditor && ordenEditor.editor_distinto.length > 0 && (
+            <li className="is-pending">
+              <AlertTriangle size={15} aria-hidden="true" />
+              <span>
+                <strong>El editor tiene hoy otro orden de opciones</strong>
+                <small title={ordenEditor.editor_distinto.join(", ")}>
+                  La base conserva el orden con que se importó en {smListaAcotada(ordenEditor.editor_distinto, ADOPTADAS_VISIBLES)}.
+                </small>
+              </span>
+            </li>
+          )}
           {ordenEditor && ordenEditor.adoptadas.length > 0 && (
             <li className="is-info">
               <FileSpreadsheet size={15} aria-hidden="true" />

@@ -360,6 +360,7 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
           orden_editor: {
             adoptadas: ["p2"],
             omitidas: [{ variable: "p1", motivo: "las etiquetas del mapa no calzan con las opciones de la encuesta" }],
+            editor_distinto: [],
           },
         }}
       />,
@@ -410,6 +411,9 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
     n_opciones_sin_par: 0,
     excluida: false,
     n_filas_excluidas: 0,
+    ambiguas: [],
+    consentimiento_sin_par: false,
+    n_excluidas_consentimiento: 0,
   };
   const items = (html: string) => html.match(/<li\b[\s\S]*?<\/li>/gu) ?? [];
   const finding = (html: string, text: string) => items(html).find((item) => item.includes(text)) ?? "";
@@ -482,7 +486,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
         {...baseProps}
         review={{
           ...reviewLimpio,
-          orden_editor: { adoptadas, omitidas: [{ variable: "p20", motivo: "la etiqueta no calza" }] },
+          orden_editor: { adoptadas, omitidas: [{ variable: "p20", motivo: "la etiqueta no calza" }], editor_distinto: [] },
         }}
       />,
     );
@@ -502,5 +506,17 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", ()
     const base = styleSource.match(/\.pulso-carga-review-findings li \{([^}]*)\}/u)?.[1] ?? "";
     expect(base).toMatch(/--pulso-warn-bg/u);
     expect(styleSource).not.toMatch(/\.pulso-carga-review-findings li\.is-pending \{/u);
+  });
+
+  it("avisa cuando el editor tiene hoy otro orden: la base conserva el del import", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{ ...reviewLimpio, orden_editor: { adoptadas: ["p5"], omitidas: [], editor_distinto: ["p5"] } }}
+      />,
+    );
+    const item = finding(html, "otro orden de opciones");
+    expect(item).toContain('class="is-pending"');
+    expect(item).toContain("La base conserva el orden con que se importó en p5.");
   });
 });

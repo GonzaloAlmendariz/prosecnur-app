@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { EstudioPayload, SurveyMonkeyMultibaseDiff, SurveyMonkeyRefreshBasePlan } from "../../api/client";
 import { SmEstructuraFuenteAccion } from "./SmEstructuraFuenteAccion";
 import {
+  SM_ACCION_BASE_POR_POSICION,
   SM_ACCION_INSTRUMENTO_DISTINTO,
   equivalenciasDisponibleEnEstudio,
   smDiffAccion,
@@ -47,7 +48,7 @@ function estudio(partial: Partial<EstudioPayload>): Pick<EstudioPayload, "topolo
 
 describe("smEstructuraFuente · etiquetas de los kinds de emparejado (ADR 0094)", () => {
   it("nombra los cuatro kinds nuevos sin jerga", () => {
-    expect(smDiffKindLabel("question_order")).toBe("Preguntas en otro orden (se emparejan por pregunta)");
+    expect(smDiffKindLabel("question_order")).toBe("Preguntas en otro orden");
     expect(smDiffKindLabel("unpaired_source")).toBe("Preguntas de la fuente sin par");
     expect(smDiffKindLabel("unpaired_base")).toBe("Preguntas de la base sin par");
     expect(smDiffKindLabel("different_instrument")).toBe("Instrumento distinto");
@@ -64,6 +65,7 @@ describe("smEstructuraFuente · etiquetas de los kinds de emparejado (ADR 0094)"
 
   it("solo el instrumento distinto trae una acción", () => {
     expect(smDiffAccion("different_instrument")).toBe(SM_ACCION_INSTRUMENTO_DISTINTO);
+    expect(smDiffAccion("legacy_positional")).toBe(SM_ACCION_BASE_POR_POSICION);
     expect(smDiffAccion("unpaired_source")).toBeNull();
   });
 });
@@ -92,7 +94,7 @@ describe("smRefreshStructureDetail", () => {
 
   it("una fuente solo reordenada se informa sin pedir revisión", () => {
     const detail = smRefreshStructureDetail(row([diff({ severity: "special", kind: "question_order", variable: "" })]));
-    expect(detail?.label).toBe("Preguntas en otro orden (se emparejan por pregunta)");
+    expect(detail?.label).toBe("Preguntas en otro orden");
   });
 
   it("conserva las lecturas previas: bloqueos con +N y metadata opcional", () => {
@@ -144,5 +146,18 @@ describe("enlace a Equivalencias desde el diagnóstico", () => {
       </MemoryRouter>,
     );
     expect(html).toBe("");
+  });
+});
+
+describe("bloqueos que son una sola decisión", () => {
+  it("una base armada por posición se nombra como tal y nunca dice «pos. null»", () => {
+    const detail = smRefreshStructureDetail({
+      base_name: "egresados",
+      refresh_action: "blocked",
+      updateable: false,
+      structure: { n_blocking: 1, diffs: [{ kind: "legacy_positional", severity: "blocking", pos: Number.NaN, variable: "", message: "Regenera la base" }] },
+    } as unknown as Parameters<typeof smRefreshStructureDetail>[0]);
+    expect(detail?.label).toBe("Base armada por posición");
+    expect(detail?.title).not.toMatch(/pos\. (null|NaN)/u);
   });
 });

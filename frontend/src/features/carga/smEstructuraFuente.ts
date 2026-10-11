@@ -17,6 +17,10 @@ import type {
 export const SM_ACCION_INSTRUMENTO_DISTINTO =
   "Impórtala como base separada y relaciónala en Equivalencias.";
 
+/** Qué hacer con una base que juntó encuestas por posición, antes del ADR 0094. */
+export const SM_ACCION_BASE_POR_POSICION =
+  "Regénerala desde SurveyMonkey para corregir las respuestas que ya estaban.";
+
 const SM_DIFF_KIND_LABELS: Readonly<Record<string, string>> = {
   missing_or_extra: "Variables propias",
   structure: "Estructura distinta",
@@ -25,14 +29,19 @@ const SM_DIFF_KIND_LABELS: Readonly<Record<string, string>> = {
   company_list: "Lista de empresas",
   company_logic: "Lógica de empresas",
   metadata_optional: "Metadata opcional",
-  question_order: "Preguntas en otro orden (se emparejan por pregunta)",
+  question_order: "Preguntas en otro orden",
   unpaired_source: "Preguntas de la fuente sin par",
   unpaired_base: "Preguntas de la base sin par",
+  ambiguous: "Preguntas ambiguas",
   different_instrument: "Instrumento distinto",
+  legacy_positional: "Base armada por posición",
 };
 
 /** Kinds de emparejado que se agrupan por tipo en vez de «Revisar …». */
-const SM_UNPAIRED_KINDS = ["unpaired_source", "unpaired_base"] as const;
+const SM_UNPAIRED_KINDS = ["unpaired_source", "unpaired_base", "ambiguous"] as const;
+
+/** Bloqueos que son UNA decisión sobre la fuente o la base, no variables rotas. */
+const SM_DECISION_KINDS = ["legacy_positional", "different_instrument"] as const;
 
 export function smDiffKindLabel(kind: string): string {
   return SM_DIFF_KIND_LABELS[kind] ?? kind.replace(/_/g, " ");
@@ -50,7 +59,9 @@ export function smDiffSeverityLabel(severity: string, kind?: string): string {
 }
 
 export function smDiffAccion(kind: string): string | null {
-  return kind === "different_instrument" ? SM_ACCION_INSTRUMENTO_DISTINTO : null;
+  if (kind === "different_instrument") return SM_ACCION_INSTRUMENTO_DISTINTO;
+  if (kind === "legacy_positional") return SM_ACCION_BASE_POR_POSICION;
+  return null;
 }
 
 export function smTieneInstrumentoDistinto(
@@ -65,7 +76,10 @@ export function smRefreshAction(row: SurveyMonkeyRefreshBasePlan): string {
 }
 
 function smDiffRef(diff: SurveyMonkeyMultibaseDiff): string {
-  return diff.variable || `pos. ${diff.pos}`;
+  // Los diffs de fuente entera (otro instrumento, base por posición) no tienen
+  // posición: nunca «pos. null».
+  if (diff.variable) return diff.variable;
+  return typeof diff.pos === "number" && diff.pos > 0 ? `pos. ${diff.pos}` : "";
 }
 
 function smDiffTitle(diffs: readonly SurveyMonkeyMultibaseDiff[]): string {
@@ -88,10 +102,11 @@ export function smRefreshStructureDetail(
   const blocking = diffs.filter((diff) => diff.severity === "blocking");
   const warningOnly = smRefreshAction(row) === "noop_structure_warning" || row.structure_warning_only === true;
   if (blocking.length) {
-    // Otro instrumento no es una lista de variables rotas: es una sola decisión.
-    const distinto = blocking.filter((diff) => diff.kind === "different_instrument");
-    if (distinto.length) {
-      return { label: smDiffKindLabel("different_instrument"), title: smDiffTitle(distinto) };
+    // Otro instrumento o una base armada por posición no son listas de
+    // variables rotas: son una sola decisión.
+    for (const kind of SM_DECISION_KINDS) {
+      const decision = blocking.filter((diff) => diff.kind === kind);
+      if (decision.length) return { label: smDiffKindLabel(kind), title: smDiffTitle(decision) };
     }
     const vars = blocking.map(smDiffRef).filter(Boolean);
     const visible = smListaAcotada(vars, 4);

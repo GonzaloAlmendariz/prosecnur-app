@@ -1962,6 +1962,11 @@ export type CargaReviewProcedencia = {
 export type CargaReviewOrdenEditor = {
   adoptadas: string[];
   omitidas: Array<{ variable: string; motivo: string }>;
+  /**
+   * El orden de una base se fija al importarla (ADR 0094, decisión 7). Si el
+   * editor tiene hoy otro orden en estas variables, la base conserva el suyo.
+   */
+  editor_distinto: string[];
 };
 
 /**
@@ -1991,6 +1996,11 @@ export type CargaReviewFuente = {
   /** Otro instrumento: sus respuestas no entraron a la base (ADR 0094). */
   excluida: boolean;
   n_filas_excluidas: number;
+  /** Preguntas con la misma clave repetida distinto: no se emparejan. */
+  ambiguas: CargaReviewPreguntaSinPar[];
+  /** La fuente no tiene una pregunta de consentimiento que calce con la base. */
+  consentimiento_sin_par: boolean;
+  n_excluidas_consentimiento: number;
 };
 
 export type CargaReviewFuentes = {
@@ -2032,11 +2042,12 @@ function normalizeCargaReviewOrdenEditor(raw: unknown): CargaReviewOrdenEditor |
     .map((entry) => reconRecord(entry))
     .filter((entry) => typeof entry.variable === "string" && entry.variable.trim().length > 0)
     .map((entry) => ({
-      variable: String(entry.variable).trim(),
-      motivo: typeof entry.motivo === "string" ? entry.motivo : "",
+      variable: String(reviewScalar(entry.variable)).trim(),
+      motivo: String(reviewScalar(entry.motivo) ?? ""),
     }));
-  if (!adoptadas.length && !omitidas.length) return null;
-  return { adoptadas, omitidas };
+  const editorDistinto = reviewStrings(r.editor_distinto);
+  if (!adoptadas.length && !omitidas.length && !editorDistinto.length) return null;
+  return { adoptadas, omitidas, editor_distinto: editorDistinto };
 }
 
 // R puede entregar un escalar como vector de largo uno.
@@ -2086,6 +2097,9 @@ export function normalizeCargaReviewFuentes(raw: unknown): CargaReviewFuentes | 
         n_opciones_sin_par: Math.max(0, reconNumber(reviewScalar(entry.n_opciones_sin_par))),
         excluida: reviewBoolean(reviewScalar(entry.excluida)),
         n_filas_excluidas: Math.max(0, reconNumber(reviewScalar(entry.n_filas_excluidas))),
+        ambiguas: normalizeCargaReviewSinPar(entry.ambiguas),
+        consentimiento_sin_par: reviewBoolean(reviewScalar(entry.consentimiento_sin_par)),
+        n_excluidas_consentimiento: Math.max(0, reconNumber(reviewScalar(entry.n_excluidas_consentimiento))),
       };
     });
   if (!fuentes.length) return null;
