@@ -499,3 +499,112 @@ test_that("already_promoted general es TRUE solo tras promover ESA fuente Kobo",
   after <- .carga_monitoreo_handoff_status(sid)
   expect_true(after$already_promoted)
 })
+
+# --- H5: mapas de códigos del editor sólo con procedencia (regla N4) ---------
+# Un formulario del editor con mapas que invierten códigos. Si el handoff los
+# aplicara sin mirar de qué encuesta son, invertiría categorías en silencio.
+.handoff_mapa_invertido <- function(variable, a, b, list_name) {
+  list(list(variable = variable, type = "select_one", list_name = list_name, mappings = list(
+    list(source_code = a, xls_code = b),
+    list(source_code = b, xls_code = a)
+  )))
+}
+
+.handoff_form_con_mapas <- function(survey_id, maps) {
+  list(source = list(survey_id = survey_id),
+       workbook = list(surveyMonkeyLogic = list(choice_code_maps = maps)))
+}
+
+test_that("H5: un formulario de OTRA encuesta activo no presta sus mapas al handoff", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state",
+              .handoff_form_con_mapas("sm_otra", .handoff_mapa_invertido("q1", "Si", "No", "sino")))
+  session_set(sid, "choice_code_maps_confirmed",
+              list(confirmed = TRUE, maps = .handoff_mapa_invertido("q1", "Si", "No", "sino")))
+
+  mapas <- .carga_handoff_choice_maps(sid, list(kind = "surveymonkey", survey_id = "sm_1"))
+
+  expect_null(mapas$maps)
+  expect_false(mapas$aplicados)
+  expect_equal(mapas$mapas_omitidos, "sin formulario de la misma encuesta")
+  expect_equal(mapas$fuente_id, "sm_1")
+})
+
+test_that("H5: el formulario de la MISMA encuesta sí aporta sus mapas y recodifica", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state",
+              .handoff_form_con_mapas("sm_otra", .handoff_mapa_invertido("q1", "Si", "No", "sino")))
+  session_set(sid, "xlsform_forms", list(
+    f2 = .handoff_form_con_mapas("sm_1", .handoff_mapa_invertido("q1", "1", "2", "sino"))
+  ))
+
+  mapas <- .carga_handoff_choice_maps(sid, list(kind = "surveymonkey", survey_id = "sm_1"))
+
+  expect_true(mapas$aplicados)
+  expect_null(mapas$mapas_omitidos)
+  expect_length(mapas$maps, 1L)
+  # Son los del formulario de sm_1 (1<->2), no los del activo (Si<->No).
+  expect_equal(mapas$maps[[1]]$mappings[[1]]$source_code, "1")
+  rec <- .dn_recode_select_one_choice_maps(
+    data.frame(q1 = c("1", "2", "1"), stringsAsFactors = FALSE),
+    .dn_choice_code_maps_named(mapas$maps)
+  )
+  expect_equal(rec$data$q1, c("2", "1", "2"))
+  payload <- .carga_handoff_mapas_payload(mapas)
+  expect_true(payload$aplicados)
+  expect_equal(payload$proveedor, "surveymonkey")
+})
+
+test_that("H5: sin proveedor o sin identificador no hay procedencia; no aplica y lo declara", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state",
+              .handoff_form_con_mapas("sm_1", .handoff_mapa_invertido("q1", "Si", "No", "sino")))
+
+  for (src in list(list(kind = "surveymonkey", survey_id = ""),
+                   list(kind = "", survey_id = "sm_1"),
+                   list(kind = "google_sheets", survey_id = "sm_1"),
+                   NULL)) {
+    mapas <- .carga_handoff_choice_maps(sid, src)
+    expect_null(mapas$maps)
+    expect_false(mapas$aplicados)
+    expect_equal(mapas$mapas_omitidos, "sin procedencia")
+    expect_equal(.carga_handoff_mapas_payload(mapas)$mapas_omitidos, "sin procedencia")
+  }
+})
+
+test_that("H5: promote general (Kobo) nunca aplica mapas del editor y lo declara en el resultado", {
+  sid <- .handoff_setup_general(c("Completa", "Completa", "Parcial", "Completa"),
+                                with_local_xlsform = TRUE)
+  on.exit(session_delete(sid), add = TRUE)
+  # Formulario activo con mapas que invierten 30<->40 en `edad` (madre) y 4<->5
+  # en la pregunta del repeat, y que dice venir del MISMO identificador que el
+  # asset: Kobo igual no hereda. Antes del arreglo la madre salía con 40/30.
+  inv <- c(.handoff_mapa_invertido("edad", "30", "40", "edad"),
+           .handoff_mapa_invertido("srv_claridad", "4", "5", "claridad"))
+  session_set(sid, "xlsform_state", .handoff_form_con_mapas("ASSET123", inv))
+  session_set(sid, "choice_code_maps_confirmed", list(confirmed = TRUE, maps = inv))
+
+  res <- .carga_monitoreo_handoff_promote(sid, list())
+
+  expect_true(res$ok)
+  expect_equal(res$mapas_omitidos, "fuente kobo")
+  expect_false(res$mapas_codigos$aplicados)
+  expect_equal(res$mapas_codigos$proveedor, "kobo")
+  expect_equal(res$mapas_codigos$fuente_id, "ASSET123")
+
+  # La madre conserva los códigos de origen de las filas válidas k1, k2, k4.
+  s <- session_get(sid)
+  madre <- .read_data_any_path(s$files[[res$data$file_id]]$path, "xlsx")
+  expect_equal(as.character(madre$edad), c("30", "40", "50"))
+
+  # La hija del repeat conserva los códigos de origen: filas válidas k1, k2, k4
+  # traen srv_claridad 4, 5, 3, 5 (sin invertir).
+  expect_length(res$child_bases, 1L)
+  s <- session_get(sid)
+  child <- s$estudio$bases[[res$child_bases[[1]]$base]]
+  df <- .read_data_any_path(s$files[[child$data_file_id]]$path, "xlsx")
+  expect_equal(sort(as.character(df$srv_claridad)), sort(c("4", "5", "3", "5")))
+})
