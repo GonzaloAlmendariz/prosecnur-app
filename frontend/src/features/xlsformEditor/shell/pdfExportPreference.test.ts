@@ -36,6 +36,16 @@ describe("pdfExportPreference", () => {
   it("etiqueta de columnas", () => {
     expect(columnsLabel(1)).toBe("una columna");
     expect(columnsLabel(2)).toBe("dos columnas");
+    // "auto" es un valor del motor (reparto por tramos) que hasta ahora no se
+    // podía elegir desde el editor: el tipo era `1 | 2` y ni siquiera era
+    // representable. Sin etiqueta propia caería en el `else` y el botón de
+    // exportar diría "dos columnas" mientras genera otra cosa.
+    expect(columnsLabel("auto")).toBe("columnas automáticas");
+  });
+
+  it("el título del botón refleja «auto» en vez de mentir con «dos columnas»", () => {
+    expect(exportButtonTitle({ ...DEFAULT_PDF_EXPORT_PREFERENCE, columns: "auto" }))
+      .toContain("columnas automáticas");
   });
 
   it("etiqueta de lenguaje de lógica", () => {

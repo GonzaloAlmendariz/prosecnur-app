@@ -14,6 +14,23 @@
   tolower(trimws(.form_pdf_chr(x))) %in% c("1", "yes", "true", "si", "s\u00ed", "x")
 }
 
+# Limpieza INOCUA y reversible: homogeneiza espacios y puntuacion tipografica
+# sin borrar ningun caracter con significado. Es la unica que puede tocar una
+# ETIQUETA DE CATEGORIA (checklist item 11 y "regla que no se negocia": las
+# categorias de respuesta existentes no se tocan).
+.form_pdf_clean_text_safe <- function(x) {
+  x <- .form_pdf_chr(x)
+  x <- gsub("\u00a0", " ", x, fixed = TRUE)
+  x <- gsub("\u2013|\u2014|\u2212", "-", x, perl = TRUE)
+  x <- gsub("\u2018|\u2019", "'", x, perl = TRUE)
+  x <- gsub("\u201c|\u201d", "\"", x, perl = TRUE)
+  x <- gsub("\\s+", " ", x, perl = TRUE)
+  trimws(x)
+}
+
+# Limpieza COMPLETA: la inocua mas el desmarcado de markdown (`**`, `__`) y el
+# borrado de backticks y asteriscos sueltos. Con PERDIDA: `De 5* a 10*` sale
+# `De 5 a 10`. Se aplica a enunciados y titulos, NUNCA a categorias.
 .form_pdf_clean_text <- function(x) {
   x <- .form_pdf_chr(x)
   x <- gsub("\u00a0", " ", x, fixed = TRUE)
@@ -87,28 +104,157 @@
   as.character(fallback)
 }
 
+# Elige el primer valor no vacio. Limpia con la variante que CONSERVA el enfasis:
+# su trabajo es elegir, no decidir el formato — de eso se encarga el llamador, y
+# si aqui se borran los `**` ya no llegan. Esta era la CUARTA capa que re-limpiaba
+# el mismo texto (las otras: clean_text, paper_text y strip_leading_number), y
+# basto una para perder el enfasis del instrumento entero.
 .form_pdf_first_nonempty <- function(...) {
   vals <- list(...)
   for (val in vals) {
-    txt <- .form_pdf_clean_text(val)
+    txt <- .form_pdf_clean_text_enfasis(val)
     if (nzchar(txt)) return(txt)
   }
   ""
 }
 
+# Quita del enunciado el prefijo de numeracion que trae el XLSForm, para que no
+# se imprima dos veces junto al numero que impone el motor (item 6 del
+# checklist: salieron "C. C. SOLEDAD" y "3. P6.").
+#
+# CUBIERTO (se quita):
+#   "6. ", "6) ", "6: ", "6- ", "6.- " (separador de dos caracteres),
+#   "6.¿"  (sin espacio tras el separador), "(6) " (entre parentesis),
+#   "P6. ", "P.6 ", "Pregunta 6. " (prefijo con letra),
+#   "C. ", "A) " (letra suelta) y "IV. " (romano) SOLO si coinciden con el
+#   identificador que el motor va a imponer.
+#
+# NO CUBIERTO A PROPOSITO (se conserva):
+#   "3 de cada 5 jovenes..."  -> sin separador el digito es parte del enunciado;
+#                                solo se quita sin separador si lo que sigue abre
+#                                pregunta o exclamacion (¿ ¡ « ").
+#   "2. ° piso"               -> tras el separador viene un ordinal: no es
+#                                numeracion, y quitarlo rompe el texto.
+#   "1990. Ano de nacimiento" -> mas de tres digitos no es numero de pregunta.
+#   "12.3 Item de bateria"    -> sin separador; y el "12." de en medio no se
+#                                quita solo, que dejaria el enunciado en "3 Item".
+#   "A. DATOS GENERALES"      -> letra suelta que el motor NO impone (las bandas
+#                                de seccion no reciben numero): es la unica
+#                                fuente de esa letra, no se toca.
+#   Cualquier prefijo cuyo retiro deje la etiqueta vacia.
 .form_pdf_strip_leading_number <- function(label, number) {
-  label <- .form_pdf_clean_text(label)
+  # Limpieza que CONSERVA el enfasis: esta funcion corre ANTES de
+  # `paper_text_enfasis`, asi que si aqui se borran los `**` el enfasis ya no
+  # llega. Van tres capas re-limpiando el mismo texto; esta es la primera.
+  label <- .form_pdf_clean_text_enfasis(label)
   number <- .form_pdf_clean_text(number)
   if (!nzchar(label)) return(label)
-  if (nzchar(number)) {
-    escaped <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", number, perl = TRUE)
-    label <- gsub(paste0("^", escaped, "\\s*[).:-]?\\s+"), "", label, perl = TRUE)
+
+  # Aplica `rx` solo si el resultado sigue siendo una etiqueta legible.
+  try_strip <- function(lbl, rx) {
+    out <- sub(rx, "", lbl, perl = TRUE)
+    if (identical(out, lbl)) return(lbl)
+    out <- trimws(out)
+    if (!nzchar(out)) return(lbl)                                   # no vaciar
+    if (grepl("^[\u00b0\u00ba\u00aa]", out, perl = TRUE)) return(lbl)  # "2. ° piso"
+    out
   }
-  trimws(gsub("^\\s*[0-9]+\\s*[).:-]\\s+", "", label, perl = TRUE))
+
+  if (nzchar(number)) {
+    esc <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", number, perl = TRUE)
+    # Con separador: "(6)", "P.6.-", "Pregunta 6:", "6.¿", "IV.", "C)".
+    before <- paste0(
+      "^\\s*\\(?\\s*(?:[Pp](?:regunta|REGUNTA)?\\s*\\.?\\s*)?", esc, "\\s*\\)?"
+    )
+    label <- try_strip(label, paste0(before, "\\s*[).:\u2013-]{1,2}\\s*"))
+    # Sin separador: solo cuando lo que sigue abre pregunta/exclamacion/cita.
+    label <- try_strip(label, paste0(before, "\\s+(?=[\u00bf\u00a1\u00ab\"])"))
+    # Sin separador pero CON letra de pregunta ("P.6 ", "P6 ", "Pregunta 6 "):
+    # la letra ya hace inequivoco que es numeracion.
+    label <- try_strip(label, paste0(
+      "^\\s*[Pp](?:regunta|REGUNTA)?\\s*\\.?\\s*", esc, "\\s*[).:\u2013-]{0,2}\\s+"))
+    # Sin separador pero con SUBNUMERO impuesto ("12.3 Afirmacion"): un numero
+    # compuesto al inicio ya es inequivocamente numeracion, no enunciado.
+    if (grepl(".", number, fixed = TRUE)) {
+      label <- try_strip(label, paste0("^\\s*", esc, "\\s+"))
+    }
+    # Entre parentesis cerrados sin separador extra: "(6) Edad".
+    label <- try_strip(label, paste0("^\\s*\\(\\s*", esc, "\\s*\\)\\s*"))
+  }
+
+  # Prefijo INEQUIVOCO de numeracion (digito de 1 a 3 cifras con separador
+  # explicito), aunque no coincida con el numero impuesto: "P6.-", "6.1)", "6.\u00bf".
+  # La unica letra admitida sin coincidencia es la P de "P6"/"Pregunta 6": otra
+  # letra suelta seria texto del enunciado ("De 5. ..." no se toca).
+  # El `(?![0-9])` tras el separador evita comerse la mitad de un numero
+  # compuesto: en "12.3 Item" el "12." NO es prefijo, el numero es "12.3".
+  num_rx <- "(?:[Pp](?:regunta|REGUNTA)?\\s*\\.?\\s*)?[0-9]{1,3}(?:\\.[0-9]{1,2})?"
+  label <- try_strip(label, paste0("^\\s*", num_rx, "\\s*[).:\u2013-]{1,2}\\s*(?![0-9])"))
+  # Con letra de pregunta no hace falta separador: "P.6 ", "Pregunta 6 ".
+  label <- try_strip(
+    label,
+    "^\\s*[Pp](?:regunta|REGUNTA)\\s*\\.?\\s*[0-9]{1,3}(?:\\.[0-9]{1,2})?\\s*[).:\u2013-]{0,2}\\s+(?![0-9])")
+  # Entre parentesis: "(12) Edad" (el parentesis ya hace de separador).
+  label <- try_strip(label, paste0("^\\s*\\(\\s*", num_rx, "\\s*\\)\\s*[.:\u2013-]?\\s*"))
+  trimws(label)
+}
+
+# Limpieza que CONSERVA el enfasis del autor. La completa borra `**palabra**` y
+# deja texto plano; la referencia usa esa negrita para el sujeto de cada item
+# («Mi **mama/cuidadora** se da cuenta de lo que necesito»), asi que borrarla
+# pierde intencion del instrumento, igual que borrar un `*` de una categoria
+# perdia contenido. Los renderers la pintan; el resto de la limpieza es la misma.
+.form_pdf_clean_text_enfasis <- function(x) {
+  x <- .form_pdf_chr(x)
+  x <- gsub("\u00a0", " ", x, fixed = TRUE)
+  x <- gsub("\u2013|\u2014|\u2212", "-", x, perl = TRUE)
+  x <- gsub("\u2018|\u2019", "'", x, perl = TRUE)
+  x <- gsub("\u201c|\u201d", "\"", x, perl = TRUE)
+  x <- gsub("__([^_]+)__", "\\1", x, perl = TRUE)
+  # Se van los backticks y los asteriscos SUELTOS; los pares `**` sobreviven.
+  x <- gsub("`", "", x, perl = TRUE)
+  x <- gsub("(?<!\\*)\\*(?!\\*)", "", x, perl = TRUE)
+  x <- gsub("\\s+", " ", x, perl = TRUE)
+  trimws(x)
+}
+
+.form_pdf_paper_text_enfasis <- function(text, blank = "__________") {
+  text <- .form_pdf_clean_text_enfasis(text)
+  if (!nzchar(text)) return(text)
+  gsub("\\$\\{[^}]+\\}", blank, text, perl = TRUE)
+}
+
+# Parte un texto en tramos `list(texto, negrita)` segun los pares `**`. Es lo que
+# consumen los renderers para pintar el enfasis en vez de tirarlo.
+.form_pdf_tramos_enfasis <- function(txt) {
+  txt <- .form_pdf_chr(txt)
+  if (!nzchar(txt)) return(list())
+  piezas <- strsplit(txt, "\\*\\*", fixed = FALSE)[[1]]
+  if (length(piezas) < 2L) return(list(list(texto = txt, negrita = FALSE)))
+  # Los pares alternan: fuera, dentro, fuera, dentro...
+  # Con un numero IMPAR de marcadores el ultimo no cierra nada, asi que su tramo
+  # va en redonda. Si no, un `**` suelto pondria en negrita todo el resto de la
+  # etiqueta, que es peor que ignorarlo.
+  n_marcas <- lengths(regmatches(txt, gregexpr("\\*\\*", txt)))
+  cierra <- (n_marcas %% 2L) == 0L
+  out <- list()
+  for (i in seq_along(piezas)) {
+    if (!nzchar(piezas[i])) next
+    dentro <- (i %% 2L == 0L) && (cierra || i < length(piezas))
+    out[[length(out) + 1L]] <- list(texto = piezas[i], negrita = dentro)
+  }
+  out
 }
 
 .form_pdf_paper_text <- function(text, blank = "__________") {
   text <- .form_pdf_clean_text(text)
+  if (!nzchar(text)) return(text)
+  gsub("\\$\\{[^}]+\\}", blank, text, perl = TRUE)
+}
+
+# Variante sin perdida para etiquetas de categoria (ver `.form_pdf_clean_text_safe`).
+.form_pdf_paper_text_safe <- function(text, blank = "__________") {
+  text <- .form_pdf_clean_text_safe(text)
   if (!nzchar(text)) return(text)
   gsub("\\$\\{[^}]+\\}", blank, text, perl = TRUE)
 }
@@ -119,20 +265,36 @@
   if (length(m) >= 2L) m[2] else ""
 }
 
+# Las ETIQUETAS DE CATEGORIA pasan por la limpieza SEGURA (item 11): la
+# completa borraba `*` y backticks en silencio (`De 5* a 10*` -> `De 5 a 10`).
+# Cuando ambas limpiezas difieren se declara el caso en un warning del modelo
+# (atributo "warnings" del resultado): declarado y reversible, nunca en silencio.
 .form_pdf_options_by_list <- function(choices) {
   choices <- .form_pdf_ensure_cols(choices, c("list_name", "name", "label", "paper_skip"))
-  if (!nrow(choices)) return(list())
+  if (!nrow(choices)) return(structure(list(), warnings = character(0)))
   rows <- split(choices, choices$list_name)
   rows <- rows[nzchar(names(rows))]
-  lapply(rows, function(df) {
+  warnings <- character(0)
+  out <- lapply(names(rows), function(list_name) {
+    df <- rows[[list_name]]
     lapply(seq_len(nrow(df)), function(i) {
+      label_safe <- .form_pdf_paper_text_safe(df$label[i])
+      label_full <- .form_pdf_paper_text(df$label[i])
+      if (!identical(label_safe, label_full)) {
+        warnings <<- c(warnings, sprintf(
+          "Categoria conservada tal cual en la lista `%s`, codigo `%s`: «%s» (la limpieza de enunciados la habria dejado como «%s»).",
+          list_name, .form_pdf_chr(df$name[i]), label_safe, label_full
+        ))
+      }
       list(
         code = .form_pdf_chr(df$name[i]),
-        label = .form_pdf_paper_text(df$label[i]),
+        label = label_safe,
         paper_skip = .form_pdf_clean_text(df$paper_skip[i])
       )
     })
   })
+  names(out) <- names(rows)
+  structure(out, warnings = unique(warnings))
 }
 
 .form_pdf_parse_simple_relevant <- function(expr) {
@@ -167,6 +329,13 @@
   out <- rep("", n)
   last_num <- 0L
   assign_top <- function(row) {
+    # Item 7: una instruccion (`note`) NUNCA es pregunta. No recibe numero ni
+    # mueve el contador, aunque traiga `paper_number` explicito: si lo hiciera,
+    # le robaria su numero a la matriz que viene detras.
+    if (identical(.form_pdf_type_base(survey$type[row]), "note")) {
+      out[row] <<- ""
+      return(invisible(NULL))
+    }
     explicit <- .form_pdf_clean_text(survey$paper_number[row])
     # Sentinel "-": pregunta SIN numero (datos generales), no avanza el contador.
     if (identical(explicit, "-")) { out[row] <<- ""; return(invisible(NULL)) }
@@ -195,6 +364,10 @@
       next
     }
     base <- .form_pdf_type_base(survey$type[i])
+    # Item 7: la instruccion previa a una bateria no es una pregunta. Se evalua
+    # ANTES del `paper_number` explicito; si no, un `note` numerado adelantaba
+    # `last_num` y la matriz siguiente perdia su numero.
+    if (identical(base, "note")) { out[i] <- ""; i <- i + 1L; next }
     explicit <- .form_pdf_clean_text(survey$paper_number[i])
     if (identical(explicit, "-")) { out[i] <- ""; i <- i + 1L; next }
     if (nzchar(explicit)) {
@@ -352,8 +525,23 @@
 .form_pdf_matrix_keys <- function(survey) {
   n <- nrow(survey)
   keys <- rep("", n)
+  warnings <- character(0)
   explicit <- survey$paper_group
-  keys[nzchar(explicit)] <- paste0("manual:", explicit[nzchar(explicit)])
+  # Item 7: una fila que no es pregunta (tipicamente la instruccion `note` que
+  # encabeza la bateria) NO entra a la matriz aunque comparta `paper_group`;
+  # si entrara, se dibujaria como fila 1 con celdas de escala.
+  bases <- vapply(seq_len(n), function(i) .form_pdf_type_base(survey$type[i]), character(1))
+  eligible <- bases %in% .form_pdf_question_bases()
+  dropped <- nzchar(explicit) & !eligible
+  if (any(dropped)) {
+    warnings <- c(warnings, sprintf(
+      "Excluidas de la matriz `%s` filas que no son preguntas: %s.",
+      paste(unique(explicit[dropped]), collapse = ", "),
+      paste(survey$name[dropped], collapse = ", ")
+    ))
+  }
+  keep <- nzchar(explicit) & eligible
+  keys[keep] <- paste0("manual:", explicit[keep])
 
   i <- 1L
   while (i <= n) {
@@ -381,7 +569,7 @@
     if ((j - i) >= 3L) keys[i:(j - 1L)] <- paste0("auto:", prefix, ":", list_name)
     i <- max(j, i + 1L)
   }
-  keys
+  structure(keys, warnings = unique(warnings))
 }
 
 # Construye `matrix_keys` a partir de una agrupacion EXPLICITA enviada por el
@@ -429,6 +617,18 @@
       next
     }
     rows <- sort(unique(rows))
+    # Item 7: las filas que no son preguntas (la instruccion `note` que encabeza
+    # la bateria) salen del grupo antes de comprobar contiguidad. Si al quitarlas
+    # el resto deja de ser contiguo, el grupo se ignora por la via de siempre.
+    not_q <- vapply(rows, function(r) {
+      !(.form_pdf_type_base(survey$type[r]) %in% .form_pdf_question_bases())
+    }, logical(1))
+    if (any(not_q)) {
+      warnings <- c(warnings, sprintf(
+        "Excluidas del grupo de matriz filas que no son preguntas: %s.",
+        paste(survey$name[rows[not_q]], collapse = ", ")))
+      rows <- rows[!not_q]
+    }
     if (length(rows) < 1L) {
       warnings <- c(warnings, sprintf(
         "Grupo de matriz ignorado: sin preguntas válidas (%s).",
@@ -492,8 +692,8 @@
   opts <- choices_by_list[[list_name]] %||% list()
   lbl <- parsed$value
   for (o in opts) {
-    if (identical(.form_pdf_clean_text(o$code), .form_pdf_clean_text(parsed$value))) {
-      cand <- .form_pdf_clean_text(o$label %||% "")
+    if (identical(.form_pdf_clean_text_safe(o$code), .form_pdf_clean_text_safe(parsed$value))) {
+      cand <- .form_pdf_clean_text_safe(o$label %||% "")
       if (nzchar(cand)) lbl <- cand
       break
     }
@@ -584,9 +784,24 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   footer_title <- .form_pdf_clean_text(options$footer_title %||% title)
   max_options_per_question <- suppressWarnings(as.integer(options$max_options_per_question %||% 18L))
   if (is.na(max_options_per_question) || max_options_per_question < 4L) max_options_per_question <- 18L
-  # Toggle 1 o 2 columnas al exportar (default 2 = comportamiento historico).
-  columns <- suppressWarnings(as.integer(options$columns %||% 2L))
-  if (is.na(columns) || !columns %in% c(1L, 2L)) columns <- 2L
+  # Toggle de columnas al exportar: 1 | 2 (default = comportamiento historico) |
+  # "auto" (tramos por seccion decididos por ancho medido, items 1 y 2 del
+  # checklist; ver `reporte_formulario_tramos.R`). Cualquier otro valor cae a 2
+  # como antes, pero ahora lo DECLARA en `warnings` en vez de tragarselo.
+  option_warnings <- character(0)
+  columns_raw <- options$columns %||% 2L
+  columns_is_auto <- identical(tolower(trimws(.form_pdf_chr(columns_raw))), "auto")
+  if (columns_is_auto) {
+    columns <- "auto"
+  } else {
+    columns <- suppressWarnings(as.integer(columns_raw))
+    if (is.na(columns) || !columns %in% c(1L, 2L)) {
+      option_warnings <- c(option_warnings, sprintf(
+        "Opcion `columns` no reconocida: se recibio «%s» y se usa 2 (valores validos: 1, 2, \"auto\").",
+        .form_pdf_chr(columns_raw)))
+      columns <- 2L
+    }
+  }
   # Ancho de las matrices: "full" (default, ancho completo) | "column" (fluyen
   # dentro de UNA columna en render de 2 columnas, como la referencia Polarizacion).
   matrix_layout <- tolower(trimws(.form_pdf_chr(options$matrix_layout %||% "full")))
@@ -612,6 +827,29 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     else !(tolower(trimws(as.character(sht)[[1]])) %in% c("false", "0", "no", "f", "n"))
 
   choices_by_list <- .form_pdf_options_by_list(choices)
+  # Categorias de la pregunta de consentimiento (vacio si no se declaro
+  # `consent_var`). El renderer las usa para rotular las casillas de acuerdo SIN
+  # inventarlas: salen del instrumento.
+  consent_opts <- local({
+    if (!nzchar(consent_var)) return(list())
+    cr <- which(as.character(survey$name) == consent_var)
+    if (!length(cr)) return(list())
+    choices_by_list[[.form_pdf_type_list(survey$type[cr[1]])]] %||% list()
+  })
+  # Categoria sin rotulo: la celda de etiqueta sale VACIA en el papel y el
+  # encuestado marca un codigo cuyo significado el instrumento nunca define.
+  # Es un defecto del instrumento, no de formato, asi que se declara. (Ademas
+  # una etiqueta vacia cambia en silencio el modo de cabecera de la matriz:
+  # `.form_pdf_matrix_header_mode` cae a "extremos" si CUALQUIERA falta.)
+  categorias_mudas <- character(0)
+  for (ln in names(choices_by_list)) {
+    for (o in choices_by_list[[ln]]) {
+      if (!nzchar(.form_pdf_clean_text_safe(o$label %||% ""))) {
+        categorias_mudas <- c(categorias_mudas, sprintf("`%s` / codigo `%s`", ln, .form_pdf_chr(o$code)))
+      }
+    }
+  }
+  option_warnings <- c(option_warnings, attr(choices_by_list, "warnings") %||% character(0))
   # Agrupacion de matrices: si el frontend manda `matrix_groups` (aunque sea []),
   # se respeta EXACTAMENTE y se ignora la autodeteccion; si esta AUSENTE, autodetecta.
   group_warnings <- character(0)
@@ -627,6 +865,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     group_warnings <- mg$warnings
   } else {
     matrix_keys <- .form_pdf_matrix_keys(survey)
+    group_warnings <- c(group_warnings, attr(matrix_keys, "warnings") %||% character(0))
   }
   # Las matrices con tenor no vacio consumen un solo numero (subnumeracion X.j);
   # el resto (autodeteccion, grupos sin tenor) numera secuencialmente.
@@ -636,11 +875,53 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     inferred <- list(skips = list(), warnings = character(0))
     opened <- .form_pdf_compute_openings(survey, choices_by_list, numbers, consent_var)
     openings <- opened$openings
-    warnings <- c(group_warnings, opened$warnings)
+    warnings <- c(option_warnings, group_warnings, opened$warnings)
+    if (length(categorias_mudas)) warnings <- c(warnings, sprintf(
+      "Categorias sin rotulo (saldran como celda vacia en el papel): %s.",
+      paste(unique(categorias_mudas), collapse = "; ")))
+    # `header_mode = "auto"` manda a "extremos" toda escala de mas de 6 puntos, y
+    # en ese modo solo se imprimen los dos polos: una escala de 7 rotulada pierde
+    # CINCO rotulos en el papel. Es perdida silenciosa de texto de categoria, la
+    # misma familia que la limpieza con perdida, asi que se declara. Se corrige
+    # poniendo `header_mode = "categorias"` en el grupo de la matriz.
+    escalas_podadas <- character(0)
+    for (ln in names(choices_by_list)) {
+      sc <- .form_pdf_matrix_partition_options(choices_by_list[[ln]], "auto")$scale
+      if (length(sc) > 6L) {
+        labs <- vapply(sc, function(o) .form_pdf_clean_text_safe(o$label %||% ""), character(1))
+        if (all(nzchar(labs)) && !all(grepl("^[0-9]+$", labs))) {
+          escalas_podadas <- c(escalas_podadas, sprintf("`%s` (%d puntos)", ln, length(sc)))
+        }
+      }
+    }
+    if (length(escalas_podadas)) warnings <- c(warnings, sprintf(
+      "Escala de mas de 6 puntos: en modo automatico se rotulan solo los extremos y se pierden los rotulos intermedios en el papel: %s. Use `header_mode = \"categorias\"` para conservarlos.",
+      paste(unique(escalas_podadas), collapse = "; ")))
   } else {
     inferred <- .form_pdf_infer_choice_skips(survey, choices_by_list, numbers, consent_var)
     openings <- rep("", nrow(survey))
-    warnings <- c(group_warnings, inferred$warnings)
+    warnings <- c(option_warnings, group_warnings, inferred$warnings)
+    if (length(categorias_mudas)) warnings <- c(warnings, sprintf(
+      "Categorias sin rotulo (saldran como celda vacia en el papel): %s.",
+      paste(unique(categorias_mudas), collapse = "; ")))
+    # `header_mode = "auto"` manda a "extremos" toda escala de mas de 6 puntos, y
+    # en ese modo solo se imprimen los dos polos: una escala de 7 rotulada pierde
+    # CINCO rotulos en el papel. Es perdida silenciosa de texto de categoria, la
+    # misma familia que la limpieza con perdida, asi que se declara. Se corrige
+    # poniendo `header_mode = "categorias"` en el grupo de la matriz.
+    escalas_podadas <- character(0)
+    for (ln in names(choices_by_list)) {
+      sc <- .form_pdf_matrix_partition_options(choices_by_list[[ln]], "auto")$scale
+      if (length(sc) > 6L) {
+        labs <- vapply(sc, function(o) .form_pdf_clean_text_safe(o$label %||% ""), character(1))
+        if (all(nzchar(labs)) && !all(grepl("^[0-9]+$", labs))) {
+          escalas_podadas <- c(escalas_podadas, sprintf("`%s` (%d puntos)", ln, length(sc)))
+        }
+      }
+    }
+    if (length(escalas_podadas)) warnings <- c(warnings, sprintf(
+      "Escala de mas de 6 puntos: en modo automatico se rotulan solo los extremos y se pierden los rotulos intermedios en el papel: %s. Use `header_mode = \"categorias\"` para conservarlos.",
+      paste(unique(escalas_podadas), collapse = "; ")))
   }
 
   blocks <- list()
@@ -658,9 +939,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     paper <- paper[order(pos), , drop = FALSE]
     for (i in seq_len(nrow(paper))) {
       kind <- .form_pdf_clean_text(paper$kind[i])
+      # Las categorias de la pregunta de consentimiento viajan CON el bloque que
+      # las va a pintar, no por un argumento que cruce medio renderer. Solo en
+      # el bloque de consentimiento: son suyas, no del documento.
+      es_consent <- grepl("consent|consentimiento|asentimiento",
+                          tolower(paste(kind, .form_pdf_clean_text(paper$layout[i]))))
       add_block(list(
         kind = "paper",
         paper_kind = if (nzchar(kind)) kind else "note",
+        consent_options = if (es_consent) consent_opts else list(),
         title = .form_pdf_paper_text(paper$title[i]),
         body = .form_pdf_paper_text(paper$body[i]),
         layout = .form_pdf_clean_text(paper$layout[i]),
@@ -682,11 +969,36 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
 
   i <- 1L
+  # L17 — SUBSECCION COMO SEGUNDO NIVEL DE BANDA. La referencia tiene dos niveles
+  # («D. FAMILIA» y debajo «D.4. SOBRE EL APOYO DE TU MAMA Y PAPA») y los separa
+  # por TONO, no por forma: misma caja, misma negrita, mismo cuerpo, relleno mas
+  # claro (D9D9D9 la seccion, DBE5F1 la subseccion — luma 217 vs 227). En
+  # monocromo el equivalente es E8E8E8, que ademas ya esta en el inventario de
+  # grises de la referencia: no se inventa un gris nuevo.
+  #
+  # Hasta aqui `paper_subgroup` solo llegaba a las matrices, metido en la esquina
+  # de su cabecera; una pregunta suelta con subgrupo no lo mostraba en ninguna
+  # parte. Ahora emite banda, y por eso los renderers DEJAN de pintarlo en la
+  # esquina: enunciarlo en los dos sitios es duplicarlo.
+  cur_subgroup <- ""
   while (i <= nrow(survey)) {
     base <- .form_pdf_type_base(survey$type[i])
     if (base %in% .form_pdf_skip_bases()) {
       i <- i + 1L
       next
+    }
+    if (base %in% c("begin_group", "begin_repeat")) {
+      # Una seccion nueva reabre la subseccion: si la siguiente repite etiqueta,
+      # la banda se vuelve a emitir, que es lo que hace la referencia (D.1 y E.1
+      # comparten forma y las dos se anuncian).
+      cur_subgroup <- ""
+    } else {
+      sub_i <- .form_pdf_paper_text(.form_pdf_clean_text(
+        (survey$paper_subgroup %||% rep("", nrow(survey)))[i]))
+      if (!identical(sub_i, cur_subgroup)) {
+        cur_subgroup <- sub_i
+        if (nzchar(sub_i)) add_block(list(kind = "subsection", title = sub_i, full_width = TRUE))
+      }
     }
 
     key <- matrix_keys[i]
@@ -710,7 +1022,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       # de escala+especial (> 6) se queda full_width para no romper la legibilidad.
       mat_opts <- choices_by_list[[list_name]] %||% list()
       mat_full <- TRUE
-      if (identical(matrix_layout, "column") && columns == 2L) {
+      if (identical(matrix_layout, "column") && identical(columns, 2L)) {
         mat_part <- suppressWarnings(.form_pdf_matrix_partition_options(mat_opts, special_override))
         mat_total_cols <- length(mat_part$scale) + (if (!is.null(mat_part$special)) 1L else 0L)
         mat_full <- mat_total_cols > 6L  # umbral de legibilidad en una columna
@@ -726,7 +1038,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         if (!length(sk)) return("")
         lopts <- choices_by_list[[.form_pdf_type_list(survey$type[r])]] %||% list()
         lbl_by_code <- stats::setNames(
-          vapply(lopts, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1)),
+          vapply(lopts, function(o) .form_pdf_clean_text_safe(o$label %||% o$code), character(1)),
           vapply(lopts, function(o) .form_pdf_chr(o$code), character(1)))
         parts <- character(0)
         for (code in names(sk)) {
@@ -748,14 +1060,14 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
           list(
             number = item_num,
             name = .form_pdf_chr(survey$name[r]),
-            label = .form_pdf_paper_text(.form_pdf_strip_leading_number(
+            label = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
               .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), item_num)),
             skip = mk_item_skip(r)
           )
         })
       } else {
         # Sin tenor: numeracion secuencial, cada fila su propio entero.
-        mat_title <- .form_pdf_paper_text(.form_pdf_strip_leading_number(
+        mat_title <- .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
           .form_pdf_first_nonempty(survey$paper_label[i], survey$label[i]), mat_number))
         subletters <- (survey$paper_subletter %||% rep("", nrow(survey)))
         mat_items <- lapply(idx, function(r) {
@@ -767,7 +1079,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
             subletter = if (is_parent) "" else subl,
             is_parent = is_parent,
             name = .form_pdf_chr(survey$name[r]),
-            label = .form_pdf_paper_text(.form_pdf_strip_leading_number(
+            label = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
               .form_pdf_first_nonempty(survey$paper_label[r], survey$label[r]), numbers[r])),
             skip = mk_item_skip(r)
           )
@@ -805,7 +1117,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         kind = "section",
         number = numbers[i],
         name = .form_pdf_chr(survey$name[i]),
-        title = .form_pdf_paper_text(.form_pdf_strip_leading_number(
+        title = .form_pdf_paper_text_enfasis(.form_pdf_strip_leading_number(
           .form_pdf_first_nonempty(survey$paper_label[i], survey$label[i]),
           numbers[i]
         )),
@@ -888,19 +1200,62 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     }
   }
 
+  # Ancho minimo medido de cada bloque (item 2): es la cota que decide si un
+  # tramo cabe en dos columnas. Se publica en el modelo para que el gate y los
+  # dos renderers puedan auditar la decision sin recalcularla.
+  usable_twips <- .FORM_TRAMOS_USABLE_TWIPS
+  gutter_twips <- .FORM_TRAMOS_GUTTER_TWIPS
+  for (bi in seq_along(blocks)) {
+    blocks[[bi]]$min_width_twips <- .form_tramos_min_width(blocks[[bi]], usable_twips)
+  }
+
   # Columna unica: tratar TODOS los bloques como full_width y reutilizar la
   # maquinaria de ancho completo del render (sin divisor central ni 2a columna).
-  if (columns == 1L) {
+  if (identical(columns, 1L)) {
     blocks <- lapply(blocks, function(b) { b$full_width <- TRUE; b })
+  }
+
+  # Plan de columnas por tramos. Con 1 o 2 el plan es UN tramo que cubre todo,
+  # para que el consumidor sea uniforme y no tenga rama especial. Con "auto"
+  # sale de `formulario_tramos_plan()` y los tramos de 1 columna se marcan
+  # full_width: asi el ITEM 1 lo implementa la maquinaria de ancho completo que
+  # el renderer PDF ya tiene, sin tocar el render.
+  column_plan <- if (!length(blocks)) {
+    list()
+  } else if (columns_is_auto) {
+    formulario_tramos_plan(blocks, usable_twips, gutter_twips)
+  } else {
+    list(list(columns = as.integer(columns), from = 1L, to = length(blocks),
+              reason = "opcion-explicita"))
+  }
+  if (columns_is_auto) {
+    for (tr in column_plan) {
+      if (identical(tr$columns, 1L)) {
+        for (bi in seq.int(tr$from, tr$to)) blocks[[bi]]$full_width <- TRUE
+      }
+    }
   }
 
   list(
     title = title,
     footer_title = footer_title,
     columns = columns,
+    column_plan = column_plan,
     matrix_layout = matrix_layout,
     logic_language = logic_language,
     show_questionnaire_number = show_qnum,
+    # Categorias de la pregunta de consentimiento, para que un renderer pueda
+    # pintar la casilla de acuerdo bajo el texto del consentimiento SIN inventar
+    # sus etiquetas: salen del instrumento, no del motor. Vacio si no se declaro
+    # `consent_var` o si esa pregunta no tiene lista de opciones.
+    consent_options = local({
+      if (!nzchar(consent_var)) return(list())
+      # `.form_pdf_chr` es ESCALAR (devuelve x[[1]]): sobre la columna entera
+      # colapsaria a un solo nombre y la busqueda no encontraria nada.
+      cr <- which(as.character(survey$name) == consent_var)
+      if (!length(cr)) return(list())
+      choices_by_list[[.form_pdf_type_list(survey$type[cr[1]])]] %||% list()
+    }),
     show_header_title = show_header_title,
     blocks = blocks,
     warnings = unique(warnings),
@@ -913,8 +1268,19 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   )
 }
 
+# OJO: limpieza INOCUA. Esta capa corre al DIBUJAR, sobre texto que el modelo ya
+# limpio con el criterio que le tocaba (enunciados con la completa, categorias
+# con la segura). Re-limpiar aqui con perdida borraba `*` y backticks de las
+# categorias justo antes de pintarlas, despues de que el modelo las conservara.
+# Quita los marcadores de enfasis sin tocar nada mas. El PDF dibuja cada cadena
+# con un solo `gpar`, asi que todavia NO sabe pintar negrita dentro de una
+# etiqueta (eso es L15 y esta hecho solo en Word): aqui se retiran para que no
+# salgan `**` impresos en el papel. Cuando el PDF aprenda a trocear, esto se
+# sustituye por el dibujo tramo a tramo, NO se borra.
+.form_pdf_sin_marcas <- function(x) gsub("\\*\\*", "", .form_pdf_chr(x), perl = TRUE)
+
 .form_pdf_wrap <- function(text, chars) {
-  text <- .form_pdf_clean_text(text)
+  text <- .form_pdf_sin_marcas(.form_pdf_clean_text_safe(text))
   if (!nzchar(text)) return(character(0))
   unlist(strwrap(text, width = max(12L, as.integer(chars)), simplify = FALSE), use.names = FALSE)
 }
@@ -926,7 +1292,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # grafico abierto (lo hay durante `formulario_pdf_render`, y block_height corre
 # despues de abrir el pdf); si la medicion falla, cae al wrap por caracteres.
 .form_pdf_wrap_fit <- function(text, w, fontsize = 7.3, fontface = "plain") {
-  text <- .form_pdf_clean_text(text)
+  text <- .form_pdf_sin_marcas(.form_pdf_clean_text_safe(text))
   if (!nzchar(text)) return(character(0))
   if (!is.finite(w) || w <= 0) return(.form_pdf_wrap(text, 40L))
   gp0 <- grid::gpar(fontsize = fontsize, fontface = fontface, lineheight = 1.05)
@@ -969,11 +1335,31 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 .form_pdf_block_height <- function(block, width) {
   chars <- if (isTRUE(block$full_width)) 118L else 56L
   if (identical(block$kind, "cover")) {
-    return(0.030 + .form_pdf_lines_height(.form_pdf_wrap(block$title, 46), 0.026) + 0.026)
+    # L19: la cuenta EXACTA de `.form_pdf_draw_cover()` —mismo envoltorio a 46
+    # caracteres, mismo 0.023 por linea, mismos 0.011 + 0.005 + 0.011 de
+    # margenes—. Antes eran 0.056 + lineas * 0.026: 90.9 pt reservados para
+    # dibujar 61.5.
+    return(0.027 + length(.form_pdf_wrap(block$title, 46)) * 0.023)
   }
   if (identical(block$kind, "section")) {
-    return(0.058 + .form_pdf_lines_height(.form_pdf_wrap(block$title, chars), 0.014) +
-             .form_pdf_opening_height(block$opening_condition, chars))
+    # L19 — LA RESERVA SIGUE AL DIBUJO. Aqui habia un `0.058` fijo (48.8 pt) mas
+    # las lineas del titulo a 0.014: 60.6 pt reservados para dibujar 27.6. El
+    # exceso no deja hueco DENTRO de la pagina —la `y` la fija el dibujo— pero
+    # adelanta el salto, y medido sobre un instrumento de 6 secciones dejaba
+    # 144.8 pt de holgura al pie de la pagina 1: un 17% de pagina en blanco.
+    # Ahora sale de `.form_pdf_band_height()`, que es lo que dibuja la banda, mas
+    # el sufijo de repetible (que el dibujo anade al titulo) y el `- 0.008` final.
+    etiqueta <- paste0(block$title,
+                       .repeat_pdf_section_suffix(isTRUE(block$repeatable), block$repeat_count))
+    return(.form_pdf_band_height(etiqueta, 112) + 0.008 +
+             .form_pdf_opening_height(block$opening_condition, chars) +
+             .form_pdf_lines_height(.form_pdf_wrap(block$hint, 112), 0.012))
+  }
+  if (identical(block$kind, "subsection")) {
+    # Misma cuenta que la banda de seccion menos lo que esta no lleva (pista y
+    # condicion de apertura). La banda mide `lineas * 0.0138 + 0.011` y el dibujo
+    # descuenta 0.006 mas.
+    return(.form_pdf_band_height(block$title, 112) + 0.006)
   }
   if (identical(block$kind, "paper")) {
     return(0.042 + .form_pdf_lines_height(.form_pdf_wrap(block$title, 118), 0.014) +
@@ -1002,7 +1388,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       } else if (nzchar(subl)) {
         lbl <- paste0(subl, ")  ", it$label %||% ""); txt_w <- lbl_w_txt - 0.012
       } else {
-        lbl <- if (nzchar(num)) paste0(num, ".  ", it$label) else (it$label %||% ""); txt_w <- lbl_w_txt
+        # El numero ya no viaja en la etiqueta: tiene columna propia (L5).
+        lbl <- it$label %||% ""; txt_w <- lbl_w_txt - .FORM_PDF_MATRIX_NUM_W
       }
       sk <- .form_pdf_clean_text(it$skip %||% "")
       lbl_n <- length(.form_pdf_wrap_fit(lbl, txt_w, fontsize = 7.3))
@@ -1012,21 +1399,30 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # Alto de cabecera segun el modo (misma resolucion que el dibujo).
     header_mode <- .form_pdf_matrix_header_mode(part$scale, block$header_mode %||% "auto")
     if (identical(header_mode, "categorias")) {
-      cat_labels <- vapply(part$scale, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1))
-      sp_label <- if (has_special) .form_pdf_clean_text(part$special$label %||% part$special$code) else ""
+      cat_labels <- vapply(part$scale, function(o) .form_pdf_clean_text_safe(o$label %||% o$code), character(1))
+      sp_label <- if (has_special) .form_pdf_clean_text_safe(part$special$label %||% part$special$code) else ""
       geom <- .form_pdf_matrix_cat_header_geom(cat_labels, sp_label, has_special, col_w, total_cols)
       header_h <- geom$height + 0.006
     } else {
       header_h <- 0.050  # cabecera de anclas (hasta ~3 lineas) + margenes
     }
-    # Sin tenor no se dibuja el encabezado/titulo: no reservar su altura.
-    title_h <- if (nzchar(block$tenor %||% ""))
-      .form_pdf_lines_height(.form_pdf_wrap(block$title, 118), 0.014) else 0
-    return(header_h + rows_h + 0.022 + title_h +
-             .form_pdf_lines_height(.form_pdf_wrap(block$hint, 118), 0.011) +
+    # L16: el enunciado ya NO reserva altura PROPIA encima de la tabla — vive en
+    # la esquina, asi que lo que hace es EMPUJAR la cabecera. Con `title_h`
+    # suelto aqui el paginado reservaba el enunciado dos veces y dejaba un hueco
+    # del alto del enunciado al pie de cada matriz.
+    esq_h <- .form_pdf_matrix_esquina(block, label_w, inner)$height
+    header_h <- max(header_h, esq_h)
+    hint_h <- if (nzchar(block$tenor %||% "")) 0 else
+      .form_pdf_lines_height(.form_pdf_wrap(block$hint, 118), 0.011)
+    return(header_h + rows_h + 0.022 + hint_h +
              .form_pdf_opening_height(block$opening_condition, 112L))
   }
-  label_h <- .form_pdf_lines_height(.form_pdf_wrap(block$label, chars), 0.014, 0.02)
+  # La cabecera de enunciado (L4) es un recuadro con su propio padding; sin
+  # contarlo aqui, el reparto en columnas y el salto de pagina se descuadran.
+  # L19: el piso era 0.02 (16.8 pt) para un enunciado de UNA linea que dibuja
+  # 0.0142 (12 pt). Un piso por encima de lo que ocupa una linea es reserva
+  # fantasma en TODA pregunta corta, que son la mayoria.
+  label_h <- .form_pdf_lines_height(.form_pdf_wrap(block$label, chars), 0.0142, 0.0142) + 0.009
   hint_h <- .form_pdf_lines_height(.form_pdf_wrap(block$hint, chars), 0.011)
   opt_count <- length(block$options %||% list())
   options_h <- if (opt_count) {
@@ -1034,18 +1430,33 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # desincronizar el paginado: el area de opciones es `width - 0.012`.
     cm <- .form_pdf_options_code_mark(block$options, identical(block$type %||% "", "select_multiple"))
     w_opt <- width - 0.012
-    sum(vapply(block$options, function(opt) {
-      .form_pdf_option_row_geom(opt, w_opt, cm$code_w, cm$mark_w)$h
-    }, numeric(1)))
+    if (.form_pdf_options_horizontal(block$options, w_opt, cm$code_w)) {
+      # Una sola fila (L8). MISMO helper que el dibujo: decidirlo dos veces por
+      # separado es como se descuadra el paginado.
+      0.0178
+    } else {
+      sum(vapply(block$options, function(opt) {
+        .form_pdf_option_row_geom(opt, w_opt, cm$code_w, cm$mark_w)$h
+      }, numeric(1)))
+    }
   } else if (isTRUE(block$coded_list)) {
     0.044
   } else if ((block$type %||% "") %in% c("text", "integer", "decimal", "date", "time", "datetime")) {
     0.04
+  } else if (identical(block$type %||% "", "note")) {
+    # L19: una nota es texto corrido — no dibuja caja ni fila de opciones. Este
+    # 0.02 era reserva de un cuerpo que no existe (61.5 pt reservados para 28.8).
+    0
   } else {
     0.02
   }
   skip_h <- .form_pdf_lines_height(.form_pdf_wrap(block$skip, chars), 0.012)
-  0.024 + label_h + hint_h + options_h + skip_h +
+  # L19: el cierre era 0.024 (20 pt) y el dibujo acaba con `y - 0.013` (11 pt).
+  # Se deja 0.016: los 11 del dibujo y 4 pt de holgura, porque el envoltorio de
+  # la reserva se estima por caracteres y el del dibujo por ancho medido, y ahi
+  # puede haber una linea de diferencia. Quedarse corto seria peor que sobrar:
+  # sacaria contenido del marco, que es lo que vigila el gate del §4.
+  0.016 + label_h + hint_h + options_h + skip_h +
     .form_pdf_opening_height(block$opening_condition, chars)
 }
 
@@ -1133,12 +1544,12 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   grid::grid.text("PULSO PUCP", x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
                   just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 8.5, fontface = "bold", col = pulso_pdf_tokens()$navy))
+                  gp = grid::gpar(fontsize = 8.5, fontface = "bold", col = .form_pdf_tokens()$navy))
   invisible(FALSE)
 }
 
 .form_pdf_header <- function(model, page_no) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   .form_pdf_draw_logo(0.052, 0.962, width_npc = 0.115)
   if (!identical(model$show_header_title, FALSE)) {
     .form_pdf_text(toupper(model$title), 0.190, 0.976, 0.480, chars = 62, fontsize = 8.4,
@@ -1154,11 +1565,16 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   invisible(page_no)
 }
 
-.form_pdf_footer <- function(model, page_no) {
-  tk <- pulso_pdf_tokens()
+.form_pdf_footer <- function(model, page_no, total_pages = NA_integer_) {
+  tk <- .form_pdf_tokens()
   grid::grid.lines(x = grid::unit(c(0.052, 0.930), "npc"), y = grid::unit(0.056, "npc"),
                    gp = grid::gpar(col = tk$line, lwd = 0.7))
-  grid::grid.text(as.character(page_no), x = grid::unit(0.052, "npc"), y = grid::unit(0.034, "npc"),
+  # «Pagina N de M»: el total llega de la primera pasada de
+  # `formulario_pdf_render`. En la pasada de conteo aun no se sabe y se omite,
+  # que es lo correcto — NUNCA se inventa un total.
+  folio <- if (is.na(total_pages)) as.character(page_no)
+    else sprintf("%d de %d", page_no, total_pages)
+  grid::grid.text(folio, x = grid::unit(0.052, "npc"), y = grid::unit(0.034, "npc"),
                   just = c("left", "center"), gp = grid::gpar(fontsize = 8, col = tk$soft))
   .form_pdf_text(toupper(model$footer_title), 0.16, 0.039, 0.58, chars = 105,
                  fontsize = 6.2, align = "center", col = tk$soft, line_h = 0.008)
@@ -1167,17 +1583,54 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
                   gp = grid::gpar(fontsize = 6.6, fontface = "bold", col = tk$navy))
 }
 
-.form_pdf_band <- function(title, x, y, w, chars, kicker = "") {
-  # Banda navy fina; titulo en blanco CENTRADO (sin kicker "SECCION N").
-  tk <- pulso_pdf_tokens()
+# Ancho de un texto en npc para la pagina A4 del motor (8.27 in de ancho).
+.form_pdf_ancho_npc <- function(txt, fontsize) {
+  txt <- .form_pdf_clean_text_safe(txt %||% "")
+  if (!nzchar(txt)) return(0)
+  pt <- tryCatch(
+    grid::convertWidth(grid::grobWidth(grid::textGrob(txt, gp = grid::gpar(fontsize = fontsize))),
+                       "points", valueOnly = TRUE),
+    error = function(e) nchar(txt) * fontsize * 0.45)
+  if (!is.finite(pt)) pt <- nchar(txt) * fontsize * 0.45
+  pt / (8.27 * 72)
+}
+
+# Alto de una banda. UNA cuenta para el dibujo y para el paginado (L19): tenerlas
+# separadas es como `section` acabo reservando 60.6 pt para dibujar 27.6.
+.form_pdf_band_height <- function(title, chars) {
+  lines <- .form_pdf_wrap(toupper(title %||% ""), chars)
+  if (!length(lines)) return(0)
+  length(lines) * 0.0138 + 0.011
+}
+
+.form_pdf_band <- function(title, x, y, w, chars, kicker = "", fill = NULL, align = "center") {
+  # Banda de seccion: caja GRIS con borde y titulo NEGRO centrado.
+  # Antes era navy solido con el titulo en blanco. En monocromo ese relleno cae a
+  # negro puro: 100% de tinta a todo el ancho por ejemplar, peor que el navy
+  # (88%), y el texto reversado es lo primero que se empasta al fotocopiar. El
+  # relleno no sale del token de acento sino del de banda, como en el renderer
+  # Word.
+  tk <- .form_pdf_tokens()
   lines <- .form_pdf_wrap(toupper(title), chars)
   if (!length(lines)) return(y)
-  band_h <- length(lines) * 0.0138 + 0.011
-  .form_pdf_rect(x, y, w, band_h, fill = tk$navy, col = NA, lwd = 0)
+  band_h <- .form_pdf_band_height(title, chars)
+  .form_pdf_rect(x, y, w, band_h, fill = fill %||% tk$tbl_header, col = tk$ink, lwd = 0.6)
   .form_pdf_text(paste(lines, collapse = "\n"), x, y - 0.0088, w,
-                 chars = chars, fontsize = 8.5, fontface = "bold", col = "white",
-                 align = "center", line_h = 0.0138)
+                 chars = chars, fontsize = 8.5, fontface = "bold", col = tk$ink,
+                 align = align, line_h = 0.0138)
   y - band_h
+}
+
+# Banda de SUBSECCION (L17). Misma caja y mismo cuerpo que la de seccion: lo
+# unico que cambia es el tono del relleno y que va alineada a la izquierda, como
+# en la referencia («D. FAMILIA» centrada arriba, «D.4. SOBRE EL APOYO...»
+# pegada al margen). Distinguirlas por forma —caja contra linea, o cuerpo mayor—
+# habria roto la lectura de que las dos son el mismo tipo de rotulo.
+.form_pdf_draw_subsection <- function(block, x, y, w) {
+  tk <- .form_pdf_tokens()
+  y <- .form_pdf_band(block$title, x, y, w, chars = 112,
+                      fill = tk$tbl_header_sub, align = "left")
+  y - 0.006
 }
 
 # Glifo vectorial de "rama" (una L navy con punta a la derecha), dibujado con
@@ -1199,7 +1652,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # roundrect ni glyph). Tinte navy tenue para diferenciarlo del cuerpo.
 .form_pdf_draw_opening <- function(text, x, y, w, chars_factor = 112) {
   if (!nzchar(text %||% "")) return(y)
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   cw <- max(20L, floor((w - 0.012) * chars_factor))
   lines <- .form_pdf_wrap(text, cw)
   if (!length(lines)) return(y)
@@ -1209,27 +1662,59 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 .form_pdf_draw_cover <- function(block, x, y, w) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   cx <- x + w / 2
-  y <- y - 0.018
+  # Portada mas apretada (L6): el contenido arrancaba 105 pt mas abajo que en el
+  # .docx sobre el mismo instrumento, y buena parte era aire de la portada.
+  y <- y - 0.011
   lines <- .form_pdf_wrap(block$title, 46)
   grid::grid.text(paste(lines, collapse = "\n"), x = grid::unit(cx, "npc"),
                   y = grid::unit(y, "npc"), just = c("center", "top"),
-                  gp = grid::gpar(fontsize = 16.5, fontface = "bold", col = tk$navy, lineheight = 1.06))
-  y <- y - length(lines) * 0.026 - 0.008
+                  gp = grid::gpar(fontsize = 15, fontface = "bold", col = tk$ink, lineheight = 1.04))
+  y <- y - length(lines) * 0.023 - 0.005
   grid::grid.lines(x = grid::unit(c(cx - 0.055, cx + 0.055), "npc"),
-                   y = grid::unit(y, "npc"), gp = grid::gpar(col = tk$navy, lwd = 1.4))
-  y - 0.018
+                   y = grid::unit(y, "npc"), gp = grid::gpar(col = tk$ink, lwd = 1.2))
+  y - 0.011
 }
 
 .form_pdf_draw_paper <- function(block, x, y, w) {
+  tk <- .form_pdf_tokens()
+  opts <- block$consent_options %||% list()
+  y0 <- y
   if (nzchar(block$title %||% "")) {
     y <- .form_pdf_band(block$title, x, y, w, chars = 118)
     y <- y - 0.008
   }
   if (nzchar(block$body %||% "")) {
     y <- .form_pdf_text(block$body, x + 0.008, y, w - 0.016, chars = 122,
-                        fontsize = 8.1, align = "justify", col = pulso_pdf_tokens()$ink, line_h = 0.012)
+                        fontsize = 8.1, align = "justify", col = tk$ink, line_h = 0.012)
+  }
+  if (length(opts)) {
+    # CASILLA DE ACUERDO (L13). Una celda marcable por categoria, rotulada con SU
+    # PROPIA etiqueta: salen de `consent_options`, que el modelo arma desde la
+    # pregunta declarada en `consent_var`. Escribir "Si"/"No" aqui seria inventar
+    # las categorias de respuesta de un instrumento acordado con el cliente.
+    y <- y - 0.010
+    caja <- 0.016
+    xx <- x + w - 0.008
+    for (k in rev(seq_along(opts))) {
+      lbl <- .form_pdf_clean_text_safe(opts[[k]]$label %||% opts[[k]]$code %||% "")
+      .form_pdf_rect(xx - caja, y, caja, caja, fill = "white", col = tk$ink, lwd = 0.7)
+      grid::grid.text(lbl, x = grid::unit(xx - caja - 0.006, "npc"),
+                      y = grid::unit(y - caja / 2, "npc"), just = c("right", "center"),
+                      gp = grid::gpar(fontsize = 8.1, fontface = "bold", col = tk$ink))
+      # El rotulo se dibuja a 0.006 a la IZQUIERDA de su casilla, asi que el
+      # avance tiene que descontar ese hueco ademas del ancho del texto; sin eso
+      # el rotulo siguiente se monta sobre la casilla anterior.
+      xx <- xx - caja - 0.006 - .form_pdf_ancho_npc(lbl, 8.1) - 0.016
+    }
+    y <- y - caja
+    # MARCO en TABLA, nunca caja dibujada flotante: el consentimiento del
+    # instrumento a mano desaparecio en Word por ser una caja de texto sin
+    # `mc:Fallback`. Aqui el marco es un rectangulo del propio flujo, que es el
+    # equivalente en este motor.
+    .form_pdf_rect(x, y0, w, y0 - y + 0.006, fill = NA, col = tk$ink, lwd = 0.7)
+    y <- y - 0.006
   }
   y - 0.012
 }
@@ -1245,7 +1730,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   if (nzchar(block$hint %||% "")) {
     y <- .form_pdf_text(block$hint, x + 0.008, y - 0.006, w - 0.016, chars = 112,
-                        fontsize = 7.5, fontface = "italic", col = pulso_pdf_tokens()$soft, line_h = 0.012)
+                        fontsize = 7.5, fontface = "italic", col = .form_pdf_tokens()$soft, line_h = 0.012)
   }
   y - 0.008
 }
@@ -1255,8 +1740,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # opciones y del flag `multiple`, no del ancho.
 .form_pdf_options_code_mark <- function(options, multiple) {
   code_visible <- vapply(options, function(opt) {
-    code <- .form_pdf_clean_text(opt$code %||% "")
-    label <- .form_pdf_clean_text(opt$label %||% "")
+    code <- .form_pdf_clean_text_safe(opt$code %||% "")
+    label <- .form_pdf_clean_text_safe(opt$label %||% "")
     nzchar(code) &&
       !identical(tolower(code), tolower(label)) &&
       nchar(code, type = "width") <= 8L &&
@@ -1279,6 +1764,30 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # Geometria por-fila de una opcion: decide si el chip de salto cabe a la DERECHA
 # de la fila o baja bajo el label, y calcula lineas del label y alto de la fila.
 # Idéntica en dibujo y en `.form_pdf_block_height` (sincroniza el paginado).
+# FILA HORIZONTAL para opciones cortas (L8 del GOAL). En la referencia una
+# pregunta de pocas opciones con etiquetas breves no gasta una fila por opcion:
+# van todas en UNA, alternando etiqueta y codigo.
+#
+# El corte es por ANCHO MEDIDO, nunca por `length(options)`: un umbral tipo «tres
+# o menos» es la clase de criterio a ojo que el §2 del checklist ya se comio una
+# vez. Consecuencia buscada: el mismo juego de opciones puede ir horizontal en un
+# tramo de una columna y vertical en uno de dos, porque el ancho util es la mitad.
+#
+# Helper COMPARTIDO por el dibujo (.form_pdf_draw_options) y por la medida del
+# alto (.form_pdf_block_height). Si cada uno decidiera por su cuenta, el reparto
+# en columnas y el salto de pagina se descuadrarian en cuanto alguien tocara uno.
+.form_pdf_options_horizontal <- function(options, w, code_w) {
+  if (length(options) < 2L) return(FALSE)
+  # Con saltos por opcion se queda vertical: cada salto necesita su propio sitio.
+  if (any(vapply(options, function(o) nzchar(.form_pdf_clean_text(o$paper_skip %||% "")),
+                 logical(1)))) return(FALSE)
+  total <- sum(vapply(options, function(o) {
+    .form_pdf_ancho_npc(.form_pdf_clean_text_safe(o$label %||% o$code %||% ""), 7.9) +
+      code_w + 0.010
+  }, numeric(1)))
+  total <= w
+}
+
 .form_pdf_option_row_geom <- function(opt, w, code_w, mark_w) {
   skip <- .form_pdf_clean_text(opt$paper_skip %||% "")
   has_skip <- nzchar(skip)
@@ -1287,9 +1796,14 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   chip_right <- has_skip && chip_w <= label_area * 0.5
   lbl_w <- if (chip_right) max(0.05, label_area - chip_w - 0.006) else label_area
   label_chars <- max(6L, floor(lbl_w * 125))
-  n_lines <- max(1L, length(.form_pdf_wrap(.form_pdf_clean_text(opt$label %||% ""), label_chars)))
+  n_lines <- max(1L, length(.form_pdf_wrap(.form_pdf_clean_text_safe(opt$label %||% ""), label_chars)))
   chip_below <- has_skip && !chip_right
-  h <- max(0.021, n_lines * 0.013 + (if (chip_below) 0.015 else 0) + 0.008)
+  # DENSIDAD (L6). Medido contra el .docx sobre el mismo instrumento: el PDF
+  # gastaba 61,4 pt por pregunta frente a 51,6 del Word, un 19 % mas, y el
+  # exceso estaba aqui — 0,021 npc de alto minimo de fila son 17,7 pt en A4,
+  # contra los ~14 que usa el .docx. Un formulario en papel no es un documento
+  # de oficina: la densidad ES la funcion.
+  h <- max(0.0178, n_lines * 0.0125 + (if (chip_below) 0.014 else 0) + 0.0055)
   list(skip = skip, has_skip = has_skip, chip_w = chip_w, chip_right = chip_right,
        chip_below = chip_below, lbl_w = lbl_w, label_chars = label_chars,
        n_lines = n_lines, h = h)
@@ -1305,12 +1819,42 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 
 .form_pdf_draw_options <- function(options, x, y, w, multiple = FALSE) {
   if (!length(options)) return(y)
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   cm <- .form_pdf_options_code_mark(options, multiple)
   code_visible <- cm$code_visible
   show_code <- cm$show_code
   code_w <- cm$code_w
   mark_w <- cm$mark_w
+
+  if (.form_pdf_options_horizontal(options, w, code_w)) {
+    h <- 0.0178
+    .form_pdf_rect(x, y, w, h, fill = NA, col = tk$tbl_frame, lwd = 0.5)
+    xx <- x
+    for (idx in seq_along(options)) {
+      opt <- options[[idx]]
+      lbl <- .form_pdf_clean_text_safe(opt$label %||% "")
+      lw <- .form_pdf_ancho_npc(lbl, 7.9) + 0.008
+      grid::grid.text(lbl, x = grid::unit(xx + 0.004, "npc"),
+                      y = grid::unit(y - h / 2, "npc"), just = c("left", "center"),
+                      gp = grid::gpar(fontsize = 7.9, col = tk$ink))
+      xx <- xx + lw
+      grid::grid.lines(x = grid::unit(c(xx, xx), "npc"),
+                       y = grid::unit(c(y, y - h), "npc"),
+                       gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
+      grid::grid.text(.form_pdf_clean_text_safe(opt$code %||% ""),
+                      x = grid::unit(xx + code_w / 2, "npc"),
+                      y = grid::unit(y - h / 2, "npc"), just = c("center", "center"),
+                      gp = grid::gpar(fontsize = 7.7, fontface = "bold", col = tk$ink))
+      xx <- xx + code_w
+      if (idx < length(options)) {
+        grid::grid.lines(x = grid::unit(c(xx, xx), "npc"),
+                         y = grid::unit(c(y, y - h), "npc"),
+                         gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
+      }
+    }
+    return(y - h)
+  }
+
   y_start <- y
   for (idx in seq_along(options)) {
     opt <- options[[idx]]
@@ -1335,7 +1879,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       }
     }
     # Label de la opcion (sin el salto pegado: el salto ahora es un chip aparte).
-    .form_pdf_text(.form_pdf_clean_text(opt$label %||% ""), xx + code_w + 0.004, y - 0.005,
+    .form_pdf_text(.form_pdf_clean_text_safe(opt$label %||% ""), xx + code_w + 0.004, y - 0.005,
                    geom$lbl_w, chars = geom$label_chars, fontsize = 7.9,
                    col = tk$ink, line_h = 0.012)
     if (geom$has_skip) {
@@ -1347,6 +1891,16 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       }
     }
     y <- y - h
+    # REJILLA (L3): linea entre filas. Antes las filas se separaban SOLO por la
+    # zebra (F2F2F2, 5% de tinta), y en fotocopia ese relleno desaparece: la
+    # lista quedaba como texto suelto sin rejilla. El instrumento se imprime y se
+    # fotocopia, asi que la estructura tiene que colgar de las lineas, no del
+    # relleno. La referencia lleva insideH en 46 de sus 50 tablas.
+    if (idx < length(options)) {
+      grid::grid.lines(x = grid::unit(c(x, x + w), "npc"),
+                       y = grid::unit(c(y, y), "npc"),
+                       gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
+    }
   }
   # Marco exterior fino + divisor bajo el codigo.
   grid::grid.rect(x = grid::unit(x + w / 2, "npc"), y = grid::unit((y_start + y) / 2, "npc"),
@@ -1356,31 +1910,65 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     div_x <- x + mark_w + code_w
     grid::grid.lines(x = grid::unit(c(div_x, div_x), "npc"),
                      y = grid::unit(c(y, y_start), "npc"),
-                     gp = grid::gpar(col = tk$tbl_div, lwd = 0.4))
+                     gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
   }
   y
 }
 
 .form_pdf_draw_question <- function(block, x, y, w) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   chars_lbl <- if (isTRUE(block$full_width)) 118 else 54
   if (nzchar(block$opening_condition %||% "")) {
     y <- .form_pdf_draw_opening(block$opening_condition, x, y, w,
                                 chars_factor = if (isTRUE(block$full_width)) 112 else 108)
     y <- y - 0.002
   }
-  prefix <- if (nzchar(block$number %||% "")) paste0(block$number, ".  ") else ""
+  # Item 7: una nota informativa no se numera NUNCA (el modelo ya le deja el
+  # numero vacio; esto lo hace explicito para no depender de eso, y para que el
+  # PDF no diverja del Word, que nunca la numero).
+  is_note <- identical(block$type %||% "", "note")
+  prefix <- if (!is_note && nzchar(block$number %||% "")) paste0(block$number, ".  ") else ""
   # Notas informativas: texto justificado (como el modelo). Preguntas: izquierda.
   lbl_align <- if (identical(block$type %||% "", "note")) "justify" else "left"
-  y <- .form_pdf_text(paste0(prefix, block$label), x + 0.006, y, w - 0.012,
-                      chars = chars_lbl, align = lbl_align,
-                      fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
-  if (nzchar(block$hint %||% "")) {
-    y <- .form_pdf_text(block$hint, x + 0.006, y - 0.002, w - 0.012,
-                        chars = chars_lbl,
-                        fontsize = 7.3, fontface = "italic", col = tk$soft, line_h = 0.011)
+  # ENUNCIADO DENTRO DE LA TABLA (L4). En la referencia una pregunta no es «un
+  # parrafo y debajo una tabla»: es UNA tabla cuya primera fila, sombreada, lleva
+  # el enunciado. La diferencia no es estetica — suelto, el enunciado no tiene
+  # relacion estructural con sus opciones, y si la columna corta justo ahi se
+  # queda arriba y las opciones abajo: media pregunta sin texto.
+  # Solo cuando la pregunta TIENE cuerpo tabular donde alojarse; una nota
+  # informativa sigue siendo texto corrido.
+  tiene_cuerpo <- !is_note &&
+    (isTRUE(block$coded_list) ||
+       (block$type %||% "") %in% c("select_one", "select_multiple",
+                                   "text", "integer", "decimal", "date", "time", "datetime"))
+  bx <- x + 0.006
+  bw <- w - 0.012
+  if (tiene_cuerpo) {
+    lbl_lines <- .form_pdf_wrap(paste0(prefix, block$label), chars_lbl)
+    hint_lines <- if (nzchar(block$hint %||% "")) .form_pdf_wrap(block$hint, chars_lbl) else character(0)
+    head_h <- length(lbl_lines) * 0.0142 + length(hint_lines) * 0.011 + 0.009
+    .form_pdf_rect(bx, y, bw, head_h, fill = tk$tbl_zebra, col = tk$tbl_frame, lwd = 0.5)
+    yt <- .form_pdf_text(paste0(prefix, block$label), bx + 0.005, y - 0.002, bw - 0.010,
+                         lines = lbl_lines, align = lbl_align,
+                         fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
+    if (length(hint_lines)) {
+      .form_pdf_text(block$hint, bx + 0.005, yt - 0.001, bw - 0.010,
+                     lines = hint_lines,
+                     fontsize = 7.3, fontface = "italic", col = tk$ink, line_h = 0.011)
+    }
+    # Sin hueco: la cabecera y el cuerpo son la MISMA tabla.
+    y <- y - head_h
+  } else {
+    y <- .form_pdf_text(paste0(prefix, block$label), bx, y, bw,
+                        chars = chars_lbl, align = lbl_align,
+                        fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
+    if (nzchar(block$hint %||% "")) {
+      y <- .form_pdf_text(block$hint, bx, y - 0.002, bw,
+                          chars = chars_lbl,
+                          fontsize = 7.3, fontface = "italic", col = tk$ink, line_h = 0.011)
+    }
+    y <- y - 0.007
   }
-  y <- y - 0.007
   if (isTRUE(block$coded_list)) {
     grid::grid.rect(x = grid::unit(x + 0.006 + (w - 0.012) / 2, "npc"), y = grid::unit(y - 0.017, "npc"),
                     width = grid::unit(w - 0.012, "npc"), height = grid::unit(0.034, "npc"),
@@ -1512,6 +2100,16 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # Fraccion de ancho para la columna de etiqueta segun nº de columnas de escala:
 # con pocas columnas la etiqueta puede ser mas ancha; con muchas se acota para que
 # la escala respire.
+# Ancho de la columna del numero de item en la matriz (L5 del GOAL). En la
+# referencia el numero vive en su propia columna estrecha a la izquierda de la
+# etiqueta (~276 twips de sus 10 549 utiles = 0.026 del ancho); pegado al texto,
+# las etiquetas arrancan a alturas distintas segun el numero tenga una o dos
+# cifras. Constante UNICA porque la consumen dos sitios que deben coincidir: el
+# dibujo (.form_pdf_draw_matrix) y la medida del alto (.form_pdf_block_height).
+# Holgada a proposito: en el renderer Word una columna ajustada al milimetro
+# partia "10" y "11" en dos lineas, y eso solo se ve en el render.
+.FORM_PDF_MATRIX_NUM_W <- 0.021
+
 .form_pdf_matrix_label_frac <- function(total_cols) {
   # El label del item se lleva la mayor parte del ancho: las columnas de escala
   # solo imprimen el codigo (1-2 digitos), asi que con pocas columnas la
@@ -1611,22 +2209,42 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   "categorias"  # etiquetas presentes (aunque largas): categorias con wrap
 }
 
+# ESQUINA DE LA MATRIZ (L16) — el enunciado de la bateria y lo que lo acompana,
+# en la celda superior izquierda de la cabecera. UNA sola cuenta para el dibujo
+# y para el paginado: tenerlas separadas es lo que descuadro L4 y L5, y aqui el
+# riesgo es el mismo porque la cabecera tiene que CRECER hasta que la esquina
+# quepa. Devuelve las lineas ya envueltas y la altura que reservan.
+#
+# El ancho de caracteres se deriva de la fraccion de etiqueta, no de una
+# constante: en un tramo de dos columnas `label_w` es la mitad y una cifra fija
+# haria que el enunciado se saliera de su celda solo en ese tramo.
+.form_pdf_matrix_esquina <- function(block, label_w, inner) {
+  tenor <- .form_pdf_clean_text(block$tenor %||% "")
+  hint <- .form_pdf_clean_text(block$hint %||% "")
+  chars <- max(10L, floor(118 * (label_w - 0.012) / max(1e-6, inner)))
+  # El sub-grupo YA NO entra aqui: desde L17 tiene banda propia encima de la
+  # matriz, y decirlo en los dos sitios es duplicarlo.
+  if (!nzchar(tenor)) return(list(lineas = character(0), height = 0))
+  num <- .form_pdf_clean_text(block$number %||% "")
+  texto <- if (nzchar(num)) paste0(num, ".  ", tenor) else tenor
+  lineas <- .form_pdf_wrap(texto, chars)
+  if (nzchar(hint)) lineas <- c(lineas, .form_pdf_wrap(hint, chars))
+  list(lineas = lineas, height = length(lineas) * 0.0134 + 0.012)
+}
+
 .form_pdf_draw_matrix <- function(block, x, y, w) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   if (nzchar(block$opening_condition %||% "")) {
     y <- .form_pdf_draw_opening(block$opening_condition, x, y, w)
     y <- y - 0.002
   }
-  # Encabezado solo CON tenor: "X. {tenor}" sobre la tabla. Sin tenor, el titulo
-  # es la etiqueta del 1er item y ademas ese item ya aparece como fila 1 -> se
-  # omite el encabezado para no duplicarlo (la tabla numerada se basta sola).
+  # L16: CON tenor el enunciado ya NO va encima de la tabla — vive en la celda
+  # superior izquierda de la cabecera, junto a la escala (patron P20..P22 de la
+  # referencia). Se dibuja mas abajo, cuando `label_w` y `header_h` existen.
+  # Sin tenor el titulo es la etiqueta del 1er item, que ademas ya aparece como
+  # fila 1: no se dibuja nada para no duplicarlo.
   has_tenor <- nzchar(block$tenor %||% "")
-  if (has_tenor) {
-    prefix <- if (nzchar(block$number %||% "")) paste0(block$number, ".  ") else ""
-    y <- .form_pdf_text(paste0(prefix, block$title), x + 0.006, y, w - 0.012,
-                        chars = 118, fontsize = 8.4, fontface = "bold", col = tk$ink, line_h = 0.0142)
-  }
-  if (nzchar(block$hint %||% "")) {
+  if (!has_tenor && nzchar(block$hint %||% "")) {
     y <- .form_pdf_text(block$hint, x + 0.006, y - 0.002, w - 0.012,
                         chars = 118, fontsize = 7.2, fontface = "italic", col = tk$soft, line_h = 0.011)
   }
@@ -1656,14 +2274,20 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   code_fs <- if (total_cols >= 10L) 6.0 else if (total_cols >= 8L) 6.6 else 7.4
   header_mode <- .form_pdf_matrix_header_mode(scale, block$header_mode %||% "auto")
 
+  # ESQUINA (L16): el enunciado numerado, y debajo la pista y el sub-grupo si los
+  # hay. Se mide ANTES de las ramas porque la cabecera tiene que crecer hasta
+  # caber: si no, el enunciado se sale por debajo de su banda y pisa la 1a fila.
+  esq <- .form_pdf_matrix_esquina(block, label_w, inner)
+  esq_h <- esq$height
+
   if (total_cols > 0L && identical(header_mode, "categorias")) {
     # --- Cabecera CATEGORIAS: cada label de escala rotulada SOBRE su columna. Si
     # la etiqueta cabe en el ancho de columna se dibuja HORIZONTAL (Si/No,
     # escalas cortas); si es larga se rota 90° (categorias estilo Polarizacion). ---
-    cat_labels <- vapply(scale, function(o) .form_pdf_clean_text(o$label %||% o$code), character(1))
-    sp_label <- if (has_special) .form_pdf_clean_text(special$label %||% special$code) else ""
+    cat_labels <- vapply(scale, function(o) .form_pdf_clean_text_safe(o$label %||% o$code), character(1))
+    sp_label <- if (has_special) .form_pdf_clean_text_safe(special$label %||% special$code) else ""
     geom <- .form_pdf_matrix_cat_header_geom(cat_labels, sp_label, has_special, col_w, total_cols)
-    header_h <- geom$height
+    header_h <- max(geom$height, esq_h)
     cat_fs <- geom$cat_fs
 
     grid::grid.rect(x = grid::unit(x0 + inner / 2, "npc"), y = grid::unit(y - header_h / 2, "npc"),
@@ -1706,9 +2330,9 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     special_cw <- max(6L, floor(col_w * 118))
     left_lines <- if (n_scale >= 1L) .form_pdf_wrap(scale[[1]]$label %||% scale[[1]]$code, anchor_cw) else character(0)
     right_lines <- if (n_scale >= 2L) .form_pdf_wrap(scale[[n_scale]]$label %||% scale[[n_scale]]$code, anchor_cw) else character(0)
-    special_lines <- if (has_special) .form_pdf_wrap(.form_pdf_clean_text(special$label %||% special$code), special_cw) else character(0)
+    special_lines <- if (has_special) .form_pdf_wrap(.form_pdf_clean_text_safe(special$label %||% special$code), special_cw) else character(0)
     hdr_lines <- max(1L, length(left_lines), length(right_lines), length(special_lines))
-    header_h <- hdr_lines * 0.0110 + 0.010
+    header_h <- max(hdr_lines * 0.0110 + 0.010, esq_h)
     hy <- y - header_h / 2
 
     grid::grid.rect(x = grid::unit(x0 + inner / 2, "npc"), y = grid::unit(hy, "npc"),
@@ -1736,14 +2360,16 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   } else {
     header_h <- 0
   }
-  # Etiqueta de sub-grupo (subcriterio) en la celda superior-izquierda del header,
-  # como los bloques grises de la referencia. Navy bold, alineada a la izquierda.
-  if (nzchar(block$group_label %||% "") && header_h > 0) {
-    glbl_chars <- max(8L, floor((label_w - 0.012) * 118))
-    grid::grid.text(paste(.form_pdf_wrap(block$group_label, glbl_chars), collapse = "\n"),
-                    x = grid::unit(x0 + 0.006, "npc"), y = grid::unit(y_top_tbl - header_h / 2, "npc"),
-                    just = c("left", "center"),
-                    gp = grid::gpar(fontsize = 6.8, fontface = "bold", col = tk$navy, lineheight = 0.95))
+  # Celda superior-izquierda del header: enunciado de la bateria (L16) y/o
+  # etiqueta de sub-grupo. Con enunciado se ancla ARRIBA —puede ocupar varias
+  # lineas y centrarlo lo descuadraria respecto a la escala—; solo con
+  # sub-grupo se mantiene el centrado que habia.
+  if (length(esq$lineas) && header_h > 0) {
+    grid::grid.text(paste(esq$lineas, collapse = "\n"),
+                    x = grid::unit(x0 + 0.006, "npc"),
+                    y = grid::unit(y_top_tbl - 0.006, "npc"),
+                    just = c("left", "top"),
+                    gp = grid::gpar(fontsize = 8.0, fontface = "bold", col = tk$ink, lineheight = 0.95))
   }
   y_body_top <- y
 
@@ -1764,8 +2390,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       lbl <- paste0(subl, ")  ", item$label)
       txt_w <- lbl_w_txt - 0.012; indent <- 0.012
     } else {
-      lbl <- if (nzchar(num)) paste0(num, ".  ", item$label) else item$label
-      txt_w <- lbl_w_txt; indent <- 0
+      # Numero en columna propia: la etiqueta empieza despues de ella.
+      lbl <- item$label
+      txt_w <- lbl_w_txt - .FORM_PDF_MATRIX_NUM_W
+      indent <- .FORM_PDF_MATRIX_NUM_W
     }
     # Wrap por ancho real: corta exacto al borde. Debe igualar a .form_pdf_block_height.
     lines <- .form_pdf_wrap_fit(lbl, txt_w, fontsize = 7.3)
@@ -1776,6 +2404,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       grid::grid.rect(x = grid::unit(x0 + inner / 2, "npc"), y = grid::unit(y - h / 2, "npc"),
                       width = grid::unit(inner, "npc"), height = grid::unit(h, "npc"),
                       gp = grid::gpar(fill = tk$tbl_zebra, col = NA))
+    }
+    if (!is_parent && nzchar(num)) {
+      # Alineado por ARRIBA con la etiqueta, no centrado en la caja de linea:
+      # centrar deja el numero un par de puntos por debajo de su texto, porque el
+      # centro visual de una cifra no es el centro de su caja.
+      grid::grid.text(num, x = grid::unit(x0 + 0.006 + .FORM_PDF_MATRIX_NUM_W / 2, "npc"),
+                      y = grid::unit(y - 0.004, "npc"),
+                      just = c("center", "top"),
+                      gp = grid::gpar(fontsize = 7.3, col = tk$ink))
     }
     .form_pdf_text(lbl, x0 + 0.006 + indent, y - 0.004, txt_w,
                    lines = lines, fontsize = 7.3, col = tk$ink, line_h = 0.012)
@@ -1803,6 +2440,15 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       }
     }
     y <- y - h
+    # REJILLA (L3): linea entre filas de la matriz. Igual que en la lista de
+    # opciones, las filas se separaban SOLO por zebra y ese relleno no sobrevive
+    # a una fotocopia: una bateria de 15 items quedaba como texto flotando sobre
+    # columnas de digitos, que en papel es donde mas se necesita la guia.
+    if (row_idx < length(block$items %||% list())) {
+      grid::grid.lines(x = grid::unit(c(x0, x0 + inner), "npc"),
+                       y = grid::unit(c(y, y), "npc"),
+                       gp = grid::gpar(col = tk$tbl_div, lwd = 0.5))
+    }
   }
 
   # Marco exterior + reglas (marco fino; divisores de escala punteados suaves;
@@ -1849,6 +2495,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     cover = .form_pdf_draw_cover(block, x, y, w),
     paper = .form_pdf_draw_paper(block, x, y, w),
     section = .form_pdf_draw_section(block, x, y, w),
+    subsection = .form_pdf_draw_subsection(block, x, y, w),
     matrix = .form_pdf_draw_matrix(block, x, y, w),
     question = .form_pdf_draw_question(block, x, y, w),
     y
@@ -1856,12 +2503,37 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 formulario_pdf_render <- function(model, output_file) {
-  grDevices::pdf(output_file, paper = "a4", width = 8.27, height = 11.69, onefile = TRUE)
-  on.exit(grDevices::dev.off(), add = TRUE)
-
+  # DOS PASADAS para el «Pagina N de M» del pie (L10). En un PDF dibujado con
+  # `grid` el total NO es un campo que el lector resuelva —como el NUMPAGES del
+  # .docx—: el motor pinta pagina a pagina y no sabe cuantas habra hasta
+  # terminar. Se recorre una vez sobre un dispositivo nulo SOLO para contarlas y
+  # otra para dibujar de verdad.
+  #
+  # Se recorre DOS VECES EL MISMO codigo, no una simulacion aparte: el reparto en
+  # columnas depende de lo que devuelve `.form_pdf_draw_block()`, no solo de
+  # `.form_pdf_block_height()`, asi que una copia «solo para medir» divergiria del
+  # dibujo en cuanto alguien tocara uno de los dos. Es el mismo motivo por el que
+  # el ancho de la columna del numero es una constante compartida.
+  .recorrer <- function(total_pages) {
+  # TIPOGRAFIA ESTRECHA (L2). La referencia usa Arial Narrow, y es estrecha a
+  # proposito: es lo que permite meter una matriz de nueve columnas en un A4 sin
+  # partir los rotulos de la escala.
+  #
+  # Se usa Helvetica-Narrow y NO Arial Narrow, a sabiendas de que la vara pedia
+  # la segunda. Motivo medido: `cairo_pdf(family = "Arial Narrow")` funciona en
+  # esta maquina y hasta embebe la fuente, pero Arial Narrow es una fuente del
+  # SISTEMA — en el runner Linux del CI no existe, y cairo cae a otra EN
+  # SILENCIO. Un PDF que sale distinto segun la maquina que lo genera es peor
+  # que uno con otra tipografia: el defecto no avisa y no es reproducible.
+  # Helvetica-Narrow viene con el dispositivo `pdf()` de R (`pdfFonts()`), es
+  # metricamente muy cercana y sale igual en todas partes.
   page_no <- 0L
-  y_top <- 0.885
-  y_bottom <- 0.072
+  # Caja de texto (L6). La regla de cabecera esta en 0.922 y el contenido
+  # arrancaba en 0.885: 31 pt de aire entre una y otro. El pie deja el suyo en
+  # .form_pdf_footer. Medido contra el .docx sobre el mismo instrumento, el
+  # contenido del PDF empezaba 105 pt mas abajo.
+  y_top <- 0.906
+  y_bottom <- 0.058
   col_x <- c(0.058, 0.525)
   col_w <- 0.405
   full_x <- 0.058
@@ -1876,7 +2548,7 @@ formulario_pdf_render <- function(model, output_file) {
       grid::grid.lines(
         x = grid::unit(c(0.5, 0.5), "npc"),
         y = grid::unit(c(bottom_y, divider_top), "npc"),
-        gp = grid::gpar(col = pulso_pdf_tokens()$faint, lwd = 0.5)
+        gp = grid::gpar(col = .form_pdf_tokens()$faint, lwd = 0.5)
       )
     }
     divider_top <<- NA_real_
@@ -1888,7 +2560,7 @@ formulario_pdf_render <- function(model, output_file) {
     page_no <<- page_no + 1L
     grid::grid.newpage()
     .form_pdf_header(model, page_no)
-    .form_pdf_footer(model, page_no)
+    .form_pdf_footer(model, page_no, total_pages)
     current_col <<- 1L
     y <<- c(y_top, y_top)
     divider_top <<- NA_real_
@@ -1896,6 +2568,14 @@ formulario_pdf_render <- function(model, output_file) {
   new_page()
 
   blocks <- model$blocks
+  # Reparto equilibrado de los tramos de dos columnas (L12): sin esto la columna
+  # izquierda se llena hasta el fondo y la derecha queda vacia. Las alturas se
+  # miden una vez, con el ancho de columna.
+  alturas <- vapply(blocks, function(b) {
+    .form_pdf_block_height(b, if (isTRUE(b$full_width)) full_w else col_w)
+  }, numeric(1))
+  cortes <- .form_pdf_corte_equilibrado(blocks, alturas, y_top - y_bottom)
+
   for (bi in seq_along(blocks)) {
     block <- blocks[[bi]]
     nxt <- if (bi < length(blocks)) blocks[[bi + 1L]] else NULL
@@ -1903,12 +2583,24 @@ formulario_pdf_render <- function(model, output_file) {
     if (isTRUE(block$full_width)) {
       flush_divider(min(y))
       yy <- min(y)
-      # Control de viudas/huerfanas: una banda de seccion no debe quedar sola al
-      # pie; debe caber con el inicio de su primer bloque siguiente.
+      # Control de viudas/huerfanas: una banda no debe quedar sola al pie.
+      #
+      # L20 — AQUI HABIA UN TOPE, `min(nxt_h, 0.085)`, y era justo lo que dejaba
+      # pasar la viuda que la regla existe para impedir. El tope tenia sentido si
+      # el bloque siguiente pudiera EMPEZAR al pie y continuar en la pagina
+      # siguiente, pero ningun bloque de ancho completo se parte: o cabe entero o
+      # se va entero (el gate del §4 lo exige para las matrices). Asi que con un
+      # siguiente mas alto que 71.6 pt —cualquier matriz— la banda se quedaba, el
+      # bloque no cabia y la banda amanecia sola al pie. Medido: con 9 y con 10
+      # preguntas de relleno antes de una seccion seguida de matriz, la banda
+      # quedaba huerfana; con el tope fuera, no pasa en ningun relleno de 6 a 13.
+      #
+      # La excepcion es real y hay que dejarla: si el bloque siguiente no cabe ni
+      # en una pagina entera, saltar no arregla nada y encima gastaria una pagina.
       keep <- h
-      if (identical(block$kind, "section") && !is.null(nxt)) {
+      if (block$kind %in% c("section", "subsection") && !is.null(nxt)) {
         nxt_h <- .form_pdf_block_height(nxt, full_w)
-        keep <- h + min(nxt_h, 0.085)
+        if (nxt_h <= (y_top - y_bottom)) keep <- h + nxt_h
       }
       if (yy - h < y_bottom || (yy - keep < y_bottom && yy < (y_top - 0.001))) {
         new_page()
@@ -1920,6 +2612,11 @@ formulario_pdf_render <- function(model, output_file) {
       next
     }
 
+    # Corte equilibrado: este bloque abre la segunda columna aunque en la primera
+    # todavia quepa.
+    if (current_col == 1L && bi %in% cortes && y[1] < (y_top - 0.001)) {
+      current_col <- 2L
+    }
     if (y[current_col] - h < y_bottom) {
       if (current_col == 1L) {
         current_col <- 2L
@@ -1936,6 +2633,18 @@ formulario_pdf_render <- function(model, output_file) {
   }
 
   flush_divider(y_bottom)
+    page_no
+  }
+
+  # Pasada 1: contar. `pdf(NULL)` no escribe nada.
+  grDevices::pdf(NULL)
+  total <- tryCatch(.recorrer(NA_integer_), finally = grDevices::dev.off())
+
+  # Pasada 2: dibujar con el total ya conocido.
+  grDevices::pdf(output_file, paper = "a4", width = 8.27, height = 11.69,
+                 onefile = TRUE, family = "Helvetica-Narrow")
+  on.exit(grDevices::dev.off(), add = TRUE)
+  .recorrer(total)
   invisible(output_file)
 }
 
