@@ -104,11 +104,16 @@ function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReview
     return { key, surveyId, fuenteNombre: nombre, tono: "pending", titulo, lineas };
   }
 
-  if (fuente.reordenada) {
-    return { key, surveyId, fuenteNombre: nombre, tono: "info", titulo: `${titulo}, en otro orden`, lineas: [] };
-  }
-
-  return null;
+  // Toda fuente tiene su tarjeta, aunque no haya nada que avisar: es la puerta
+  // a «Ver preguntas» y la prueba visible de que se emparejó entera.
+  return {
+    key,
+    surveyId,
+    fuenteNombre: nombre,
+    tono: "info",
+    titulo: fuente.reordenada ? `${titulo}, en otro orden` : titulo,
+    lineas: [],
+  };
 }
 
 const ORDEN_TONO: Record<CargaReviewHallazgoTono, number> = {
