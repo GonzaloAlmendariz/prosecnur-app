@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { ChevronDown, Database, Plus } from "lucide-react";
 import * as Select from "@radix-ui/react-select";
 import { useSession } from "../lib/SessionContext";
@@ -24,6 +24,10 @@ import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
 import { coberturaGraficos } from "../features/graficos/coberturaBases";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
 import { BrandMark } from "./BrandMark";
+import { ModuleDockOverflow } from "./ModuleDockOverflow";
+import { repartirDock } from "./moduleDockModel";
+import { useCupoDelDock } from "./useCupoDelDock";
+import "./module-dock.css";
 
 // Layout global de la app. El header muestra marca, navegación, proyecto
 // activo y errores de sesión solo cuando existen. El topbar local de etapas
@@ -258,23 +262,29 @@ function activeModuleRoute(pathname: string): string {
   return match?.to ?? "/";
 }
 
-function ModuleSwitcher() {
+export function ModuleSwitcher() {
   const location = useLocation();
   const { addedSlugs } = useProjectModules();
+  const navRef = useRef<HTMLElement | null>(null);
   const active = activeModuleRoute(location.pathname);
-  const activeItem = MODULE_SWITCHER_ITEMS.find((item) => item.to === active) ?? null;
 
   // El rail solo muestra los módulos agregados al proyecto. Además incluimos el
   // módulo activo aunque no esté agregado, para no perder el "dónde estás".
-  const visibleItems = MODULE_SWITCHER_ITEMS.filter(
+  const candidatos = MODULE_SWITCHER_ITEMS.filter(
     (item) => addedSlugs.includes(item.slug) || item.to === active,
   );
+  // L35: el dock mide lo que sus módulos (sin tope); si el header no alcanza,
+  // los que no caben pasan a «Más módulos». Activo y «Agregar» nunca se recogen.
+  const { cupo, geometria } = useCupoDelDock(navRef, `${active}|${candidatos.length}`);
+  const { visibles: visibleItems, ocultos } = repartirDock(candidatos, active, cupo, geometria);
 
   return (
     <nav
+      ref={navRef}
       className="pulso-module-switcher"
       aria-label="Cambiar módulo"
-      title={activeItem ? `Módulo actual: ${activeItem.title}` : "Cambiar módulo"}
+      data-dock-destinos={candidatos.length + 1}
+      data-dock-recogidos={ocultos.length}
     >
       <ul className="pulso-module-dock">
         {visibleItems.map((item) => {
@@ -286,7 +296,6 @@ function ModuleSwitcher() {
                 to={item.to}
                 aria-current={isCurrent ? "page" : undefined}
                 aria-label={item.title}
-                title={item.title}
                 style={moduleChromeVars(item)}
                 className={[
                   "pulso-module-tile",
@@ -296,23 +305,34 @@ function ModuleSwitcher() {
                 <span className="pulso-module-tile-icon" aria-hidden="true">
                   <Icon size={16} strokeWidth={2.25} />
                 </span>
-                <span className="pulso-module-tile-label">{item.shortLabel}</span>
+                {isCurrent ? (
+                  <span className="pulso-module-tile-name" aria-hidden="true">{item.shortLabel}</span>
+                ) : (
+                  <span className="pulso-module-tile-label" aria-hidden="true">{item.shortLabel}</span>
+                )}
               </NavLink>
             </li>
           );
         })}
+        {ocultos.length > 0 && (
+          <li className="pulso-module-dock-item">
+            <ModuleDockOverflow items={ocultos} activo={active} />
+          </li>
+        )}
         <li className="pulso-module-dock-item">
-          <NavLink
+          {/* `Link`, no `NavLink`: apunta a la ruta actual con `?agregar=1`, y
+              un NavLink se marcaba activo y anunciaba «Agregar» como página
+              actual junto al módulo de verdad. */}
+          <Link
             to={{ pathname: location.pathname, search: withAgregar(location.search) }}
             className="pulso-module-tile pulso-module-tile-add"
             aria-label="Agregar módulo"
-            title="Agregar módulo"
           >
             <span className="pulso-module-tile-icon" aria-hidden="true">
               <Plus size={16} strokeWidth={2.4} />
             </span>
-            <span className="pulso-module-tile-label">Agregar</span>
-          </NavLink>
+            <span className="pulso-module-tile-label" aria-hidden="true">Agregar</span>
+          </Link>
         </li>
       </ul>
     </nav>
