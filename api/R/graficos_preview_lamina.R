@@ -33,10 +33,18 @@
 
 #' Lee una parte del zip como texto UTF-8
 #' @keywords internal
+#'
+#' Se lee en binario: con R 4.3.3, `readLines()` sobre `unz()` devuelve 0 líneas cuando la parte es una sola línea sin salto
+#' final (lo normal en el XML que escribe officer por la ruta anterior), y la lámina salía «sin_grafico» sin serlo.
 .pptx_leer_parte <- function(pptx_path, parte) {
-  con <- unz(pptx_path, parte, encoding = "UTF-8")
+  info <- utils::unzip(pptx_path, list = TRUE)
+  n <- info$Length[match(parte, info$Name)]
+  if (is.na(n)) stop(sprintf("La parte '%s' no está en %s.", parte, basename(pptx_path)), call. = FALSE)
+  con <- unz(pptx_path, parte, open = "rb")
   on.exit(close(con), add = TRUE)
-  paste(readLines(con, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  texto <- rawToChar(readBin(con, "raw", n = max(1, n)))
+  Encoding(texto) <- "UTF-8"
+  sub("\n$", "", gsub("\r\n", "\n", texto, fixed = TRUE))
 }
 
 #' Grupos del motor nativo que no son gráficos: encabezado, pie y láminas de estructura
