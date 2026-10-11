@@ -95,3 +95,18 @@ defecto de la app; es como la constitución o como el libro de reglas de todos l
 | 11 P2 | «ok» | Multilista con bloque sin variable: igual que el export |
 | 12 Radar «arriba» | «ok» | La leyenda arriba pasa abajo sin aviso (manda lo dibujado) |
 | 13 Heredadas | «13 todo ok» | Se adoptan todas las recomendaciones de este doc y de `hallazgo-base-ponderada-2026-10-10.md`: S1–S4, D1–D7, D9–D17 (D17: la salida ignora las guías de depuración), E1 (el inspector abre en Contenido), E2 (provisional en el inspector), etiquetas cortas por categoría, «Masculino (33)» y plantilla ACNUR. D6 y D9 con ADR |
+| Lote de decisiones 14–26 (2026-10-11) | «14.Por base o por proyecto, depende del usuario. 15. a 16. si, a. 17. Ahi hay que tenrr cuidado porque tmabien depende de la amtriz de equivalencias en procesamiento. 18.a 19. a 20. a. 21. a apagadas, pero si seria interesante tener ocmo un featuray mostrarlas porque el recetairo ya tiene una forma de hacerlo pero por defecto no. 22. a pero permtirle hacerle cambios si lo considera neecsario 23. a. 24. a pero es solo una opcion por defecto apagada. 25. no hacerlo automatico, avisar. 26. a» (~08:20 Perú) | Ver filas siguientes |
+| 14 Ámbito de `estilo_cliente` | «Por base o por proyecto, depende del usuario» | El usuario elige el ámbito (por base o por proyecto) en Estilo del cliente; A6 R3 lo modela como opción explícita, no como regla fija |
+| 15 Perfil de letra K13 | «a» | Por proyecto, con el default del perfil del catálogo; no se guarda entre proyectos |
+| 16 Logo propio en el PPT | «si, a» | Sí, en una rebanada posterior vía la plantilla, sin crecer `reporte_plan_ppt.R` |
+| 17 «Armar desde…» en consolidado | «hay que tener cuidado porque también depende de la matriz de equivalencias en procesamiento» | Sin decisión cerrada: sigue deshabilitado con motivo (provisional) hasta estudiar cómo la matriz de equivalencias de Procesamiento alimenta el plan compartido; ningún endpoint nuevo antes de ese estudio |
+| 18 Conflicto de revisión del borrador compartido | «a» | Recargar el borrador con aviso explícito |
+| 19 Evidencia de consolidado y `/ppt-all` | «a» | Corrida en vivo ahora sobre un proyecto temporal `independent_siblings` rehecho desde los `.sav` de acrconta_mazo, sin commitear; el séptimo proyecto de referencia queda como deuda |
+| 20 Compartir en consolidado | «a» | Deshabilitado con motivo |
+| 21 Láminas de «Otros» automáticas | «a apagadas, pero sí sería interesante tener como un feature y mostrarlas porque el recetario ya tiene una forma de hacerlo pero por defecto no» | Apagadas por defecto; el interruptor queda como feature visible y las láminas de «Otros» deben salir con la forma que dibuja el recetario (ubicar esa lámina en el recetario y alinear el motor) |
+| 22 Índice desde los capítulos | «a pero permitirle hacerle cambios si lo considera necesario» | Botón explícito «Tomar los capítulos del informe» + aviso de desfase; el analista puede editar el índice resultante |
+| 23 Migrar `iconos_focos` | «a» | Sí, con la composición explícita para que la salida no cambie |
+| 24 Fila Total por actores | «a pero es solo una opción por defecto apagada» | La fila Total es una opción apagada por defecto; cuando se enciende: misma base → suma de pesos, varias bases → casos sin ponderar |
+| 25 Declarar la ponderación sin el sello por lámina | «no hacerlo automático, avisar» | No se enciende nada solo: un entregable ponderado que no declara su ponderación (sin «Cómo leer» ni ficha) da una advertencia al exportar |
+| 26 Fallback «Base sin ponderar (ponderación configurada no aplicada)» | «a» | Pasa al nivel del documento con una advertencia de la corrida |
+

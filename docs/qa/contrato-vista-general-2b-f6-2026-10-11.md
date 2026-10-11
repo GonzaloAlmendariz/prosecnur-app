@@ -88,3 +88,12 @@ como capítulos); >13 capítulos avisa (tope 5 heredado); el inspector ya no dic
 
 Riesgos a verificar aparte en backend: vista previa con `auto_otros_slides=TRUE` puede devolver las láminas de «Otros»
 como partes extra; cambiar el interruptor invalida todas las miniaturas visibles (huella).
+
+## Decisiones de Gonzalo (2026-10-11, preguntas 17, 21–23)
+
+- 21 (G1): «Otros» apagado por defecto, pero como feature visible; las láminas deben salir con la forma que el recetario ya
+  dibuja (ubicarla en `recetario-moderna.pptx` y alinear el motor; el contrato decía que no había: se corrige).
+- 22 (G3): botón explícito + aviso de desfase, y el analista puede editar el índice resultante.
+- 23 (G5): sí.
+- 17 (G7): sin decisión cerrada; deshabilitado con motivo hasta estudiar la matriz de equivalencias de Procesamiento.
+

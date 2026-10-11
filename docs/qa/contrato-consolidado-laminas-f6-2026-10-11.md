@@ -56,3 +56,12 @@ ranuras, categorías, Two Box, variables y cobertura respetan `scope`.
   rehecho desde los `.sav` de acrconta_mazo, sin commitear (recomendado ahora) o séptimo proyecto de referencia
   anonimizado (deuda).
 - D4 (H7) Share en consolidado: deshabilitarlo con motivo (recomendado).
+
+## Decisiones de Gonzalo (2026-10-11, preguntas 17–20)
+
+- D1 (17): «hay que tener cuidado porque también depende de la matriz de equivalencias en procesamiento» → sin cerrar;
+  deshabilitado con motivo hasta estudiar la matriz.
+- D2 (18): recargar el borrador con aviso explícito.
+- D3 (19): corrida en vivo sobre proyecto temporal `independent_siblings`, sin commitear.
+- D4 (20): Compartir deshabilitado con motivo en consolidado.
+
