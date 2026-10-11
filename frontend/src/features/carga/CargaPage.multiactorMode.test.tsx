@@ -27,7 +27,7 @@ describe("origen multiactor deliberado en Carga", () => {
 
   it("mantiene el batch de Monitoreo alcanzable al reabrir un estudio multibase", () => {
     const multiStart = source.indexOf("{isMultiBase && estudio && (");
-    const multiEnd = source.indexOf("{isMultiBase && !estudio && (", multiStart);
+    const multiEnd = source.indexOf('{hidratacion.fase !== "lista" && (', multiStart);
     expect(multiStart).toBeGreaterThan(-1);
     expect(multiEnd).toBeGreaterThan(multiStart);
     const multiBlock = source.slice(multiStart, multiEnd);
