@@ -9,7 +9,7 @@ import {
 
 /**
  * La línea accionable de una fuente que resultó ser otro instrumento (ADR
- * 0094). Con la pestaña Equivalencias disponible, «Equivalencias» es un enlace
+ * 0099). Con la pestaña Equivalencias disponible, «Equivalencias» es un enlace
  * a su dirección canónica; sin ella, solo se dice qué hacer.
  */
 export function SmInstrumentoDistintoAccion({ hrefEquivalencias }: { hrefEquivalencias: string | null }) {

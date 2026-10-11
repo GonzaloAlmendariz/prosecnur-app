@@ -1,4 +1,4 @@
-// Cuerpo del panel «Cómo se emparejaron las preguntas» (ADR 0094, ítem 15).
+// Cuerpo del panel «Cómo se emparejaron las preguntas» (ADR 0099, ítem 15).
 //
 // Sin router ni diálogo: recibe el estado de la carga y los callbacks, y pinta.
 // El anfitrión (`FuentesEmparejamientoPanel`) lo monta dentro del sideover.

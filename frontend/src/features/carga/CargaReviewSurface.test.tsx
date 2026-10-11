@@ -380,7 +380,7 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
   });
 });
 
-describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0094)", () => {
+describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0099)", () => {
   const baseProps = {
     pendingChoiceMapping: false,
     extraVariableCount: 0,

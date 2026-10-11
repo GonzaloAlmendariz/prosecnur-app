@@ -1,4 +1,4 @@
-# Fuentes de una base SurveyMonkey emparejadas por pregunta (ADR 0094, ítem 13
+# Fuentes de una base SurveyMonkey emparejadas por pregunta (ADR 0099, ítem 13
 # del checklist de codificación SM 2026-10-11).
 #
 # Una base que junta varias encuestas asignaba cada pregunta de la fuente a la
@@ -464,7 +464,7 @@ test_that("las respuestas de la fuente llevan los códigos de la base cuando el 
     source = list(survey_id = "REFE"),
     workbook = list(surveyMonkeyLogic = list(choice_code_maps = .sma_mapas_editor()))
   ))
-  # ADR 0094, decisión 7: el orden se fija al importar. La base trae la receta
+  # ADR 0099, decisión 7: el orden se fija al importar. La base trae la receta
   # que guardó su import; el refresh la reaplica (sin receta no adoptaría nada).
   receta <- .carga_sm_adoptar_y_recetar(
     sm_api_xlsform(ref, style = .sm_api_default_style(), lang = "es"), .sma_mapas_editor()

@@ -1,4 +1,4 @@
-// Panel lateral «Cómo se emparejaron las preguntas de <fuente>» (ADR 0094,
+// Panel lateral «Cómo se emparejaron las preguntas de <fuente>» (ADR 0099,
 // ítem 15 del checklist `codificacion-sm-2026-10-11`).
 //
 // Direccionable: `?panel=emparejamiento&foco=<base>:<survey_id>`. Lo abre «Ver

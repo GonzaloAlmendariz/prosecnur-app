@@ -46,7 +46,7 @@ function estudio(partial: Partial<EstudioPayload>): Pick<EstudioPayload, "topolo
   };
 }
 
-describe("smEstructuraFuente · etiquetas de los kinds de emparejado (ADR 0094)", () => {
+describe("smEstructuraFuente · etiquetas de los kinds de emparejado (ADR 0099)", () => {
   it("nombra los cuatro kinds nuevos sin jerga", () => {
     expect(smDiffKindLabel("question_order")).toBe("Preguntas en otro orden");
     expect(smDiffKindLabel("unpaired_source")).toBe("Preguntas de la fuente sin par");

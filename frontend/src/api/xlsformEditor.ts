@@ -1963,14 +1963,14 @@ export type CargaReviewOrdenEditor = {
   adoptadas: string[];
   omitidas: Array<{ variable: string; motivo: string }>;
   /**
-   * El orden de una base se fija al importarla (ADR 0094, decisión 7). Si el
+   * El orden de una base se fija al importarla (ADR 0099, decisión 7). Si el
    * editor tiene hoy otro orden en estas variables, la base conserva el suyo.
    */
   editor_distinto: string[];
 };
 
 /**
- * ADR 0094. Una base SurveyMonkey que junta varias encuestas empareja cada
+ * ADR 0099. Una base SurveyMonkey que junta varias encuestas empareja cada
  * fuente con la base pregunta por pregunta (clave de Equivalencias). Por cada
  * fuente distinta de la principal: cuánto calzó, si llegó en otro orden y qué
  * quedó sin par. No entra en `ready`. `null` cuando la base no junta encuestas.
@@ -1993,7 +1993,7 @@ export type CargaReviewFuente = {
   sin_par_base: CargaReviewPreguntaSinPar[];
   /** Respuestas con una opción que no existe en la lista: quedaron vacías. */
   n_opciones_sin_par: number;
-  /** Otro instrumento: sus respuestas no entraron a la base (ADR 0094). */
+  /** Otro instrumento: sus respuestas no entraron a la base (ADR 0099). */
   excluida: boolean;
   n_filas_excluidas: number;
   /** Respuestas de la fuente que entraron a la base. `null` si el payload no lo trae. */

@@ -67,7 +67,7 @@
     keep_missing_status = keep_missing
   )
   response_filter <- attr(data_df, "sm_response_filter", exact = TRUE) %||% list()
-  # Opciones que no están en su lista quedan NA y se declaran (ADR 0094).
+  # Opciones que no están en su lista quedan NA y se declaran (ADR 0099).
   opciones_sin_par <- .sm_mb_opciones_lista(attr(data_df, "sm_opciones_sin_par", exact = TRUE))
   data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
     # Sin mapas: los datos ya vienen codificados por etiqueta contra el

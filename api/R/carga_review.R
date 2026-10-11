@@ -175,7 +175,7 @@
 # (`carga_sm_orden_editor.R`). Las omitidas son el dato que importa: esas
 # preguntas quedaron con los códigos de la plataforma, no con los del
 # formulario del editor. `editor_distinto`: el editor pide HOY otro orden que el
-# fijado al importar (ADR 0094, decisión 7); la base no se recodifica, se avisa.
+# fijado al importar (ADR 0099, decisión 7); la base no se recodifica, se avisa.
 # Advierte, no bloquea: código y etiqueta siguen coherentes. NULL cuando la
 # base no adoptó, omitió ni difiere en nada.
 .carga_review_orden_editor <- function(base) {
@@ -214,7 +214,7 @@
   as.integer(sum(vapply(x %||% list(), function(o) as.integer(o$n %||% 0L)[1], integer(1))))
 }
 
-# Fuentes de una base SurveyMonkey que junta varias encuestas (ADR 0094).
+# Fuentes de una base SurveyMonkey que junta varias encuestas (ADR 0099).
 # Cada fuente distinta de la principal se emparejó por pregunta con la base:
 # lo que quedó sin par (preguntas de la fuente que no entraron, preguntas de la
 # base vacías para esas filas, preguntas ambiguas, opciones que quedaron
@@ -277,7 +277,7 @@
   orden_editor <- if (nzchar(as.character(pair$base_nombre %||% "")[1])) {
     .carga_review_orden_editor(s$estudio$bases[[pair$base_nombre]])
   } else NULL
-  # Fuentes emparejadas por pregunta (ADR 0094). Tampoco entra en `ready`.
+  # Fuentes emparejadas por pregunta (ADR 0099). Tampoco entra en `ready`.
   fuentes <- if (nzchar(as.character(pair$base_nombre %||% "")[1])) {
     .carga_review_fuentes(s$estudio$bases[[pair$base_nombre]])
   } else NULL

@@ -35,7 +35,7 @@ function FuenteFinding({ hallazgo, baseNombre }: { hallazgo: CargaReviewHallazgo
 }
 
 /**
- * Los `<li>` de las fuentes de una base que junta encuestas (ADR 0094), para
+ * Los `<li>` de las fuentes de una base que junta encuestas (ADR 0099), para
  * insertar en `.pulso-carga-review-findings`. `tonos` deja que el resumen
  * ponga los avisos antes y los datos neutros al final de la lista.
  */

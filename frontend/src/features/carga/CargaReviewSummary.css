@@ -41,7 +41,7 @@
  *
  * `carga-v2.css` está congelado a crecimiento y pinta todo
  * `.pulso-carga-review-findings li` con `--pulso-warn-*`. Un dato neutro (orden
- * del editor adoptado, fuente emparejada en otro orden, ADR 0094) informa y no
+ * del editor adoptado, fuente emparejada en otro orden, ADR 0099) informa y no
  * pide nada: no puede heredar el tono de advertencia. El selector con clase gana
  * por especificidad, no por orden de carga.
  */

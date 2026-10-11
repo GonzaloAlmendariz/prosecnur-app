@@ -1,6 +1,6 @@
 /**
  * Carga › Revisión: qué dice cada fuente de una base que junta encuestas
- * (ADR 0094). Avisa lo que no entró o quedó vacío, informa lo que solo cambió
+ * (ADR 0099). Avisa lo que no entró o quedó vacío, informa lo que solo cambió
  * de orden y no bloquea: `fuentes` no entra en `ready`.
  */
 import type {
@@ -131,7 +131,7 @@ const ORDEN_TONO: Record<CargaReviewHallazgoTono, number> = {
 
 /**
  * Respuestas de la encuesta principal con una opción que no está en su lista:
- * quedaron vacías en vez de tomar un código de otra lista (ADR 0094).
+ * quedaron vacías en vez de tomar un código de otra lista (ADR 0099).
  */
 function hallazgoPrincipal(fuentes: CargaReviewFuentes | null | undefined): CargaReviewHallazgoFuente | null {
   const principal = fuentes?.principal;

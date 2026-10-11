@@ -1,5 +1,5 @@
 // «Ver preguntas»: abre el detalle de cómo se emparejó cada pregunta de una
-// fuente (ADR 0094, ítem 15). Escribe la dirección
+// fuente (ADR 0099, ítem 15). Escribe la dirección
 // —`?panel=emparejamiento&foco=<base>:<survey_id>`— en vez de abrir un estado
 // local, para que el panel sea enlazable y recargarlo abra la misma base.
 

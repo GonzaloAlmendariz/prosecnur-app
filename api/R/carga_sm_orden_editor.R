@@ -191,7 +191,7 @@
   list(model = model, resumen = resumen)
 }
 
-# --- Receta: el orden se fija al importar (ADR 0094, decisión 7) -------------
+# --- Receta: el orden se fija al importar (ADR 0099, decisión 7) -------------
 #
 # Lo que una base adoptó del editor al importarse se guarda como receta en
 # `choice_order_editor$receta`: por cada lista adoptada, la variable, su

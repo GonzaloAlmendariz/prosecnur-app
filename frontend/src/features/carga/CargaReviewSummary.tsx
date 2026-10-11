@@ -76,7 +76,7 @@ export function CargaReviewSummary({
   // Tampoco bloquea: código y etiqueta siguen coherentes. Lo que importa son
   // las omitidas, que no tienen los códigos del formulario del editor.
   const ordenEditor = review?.orden_editor ?? null;
-  // ADR 0094: cómo se emparejó cada fuente de una base que junta encuestas.
+  // ADR 0099: cómo se emparejó cada fuente de una base que junta encuestas.
   // Avisa o informa; no entra en `ready`.
   const fuentes = review?.fuentes ?? null;
   const fuentesHallazgos = cargaReviewFuentesHallazgos(fuentes);

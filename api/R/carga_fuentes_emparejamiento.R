@@ -1,6 +1,6 @@
 # =============================================================================
 # Cómo se emparejó cada pregunta de una fuente (ítem 15 del checklist de
-# codificación SM 2026-10-11; ADR 0094)
+# codificación SM 2026-10-11; ADR 0099)
 #
 # Motor puro detrás de `GET /api/carga/fuentes/emparejamiento`. Solo EXPONE lo
 # que la alineación ya decidió y dejó en `s$estudio$bases[[b]]$sm_alineacion_fuentes`:

@@ -1,4 +1,4 @@
-// Tabla del panel «Cómo se emparejaron las preguntas» (ADR 0094, ítem 15).
+// Tabla del panel «Cómo se emparejaron las preguntas» (ADR 0099, ítem 15).
 //
 // Una fila por pregunta, agrupada por sección en el orden del instrumento de la
 // base: texto completo, la variable en la base, la variable en la fuente y el
