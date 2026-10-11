@@ -15,7 +15,8 @@ job_submit <- function(sid,
                        args = list(),
                        result_filename = NULL,
                        on_complete = NULL,
-                       libpath = .libPaths()) {
+                       libpath = .libPaths(),
+                       on_cleanup = NULL) {
   sess <- session_get(sid)
   jobs_dir <- file.path(sess$dir, "jobs")
   dir.create(jobs_dir, showWarnings = FALSE, recursive = TRUE)
@@ -180,9 +181,45 @@ job_submit <- function(sid,
     result_data = NULL,
     result_public = NULL,
     on_complete = on_complete,
+    # `on_cleanup(j)`: higiene de insumos efímeros (RDS de secretos/estado en
+    # jobs/inputs). Corre UNA vez en cualquier final — done, error, cancelado o
+    # matado al apagar — y después de `on_complete` cuando éste aplica. Ver
+    # .job_run_cleanup().
+    on_cleanup = on_cleanup,
+    cleaned = FALSE,
     error = NULL
   )
   job_id
+}
+
+# Borra archivos de insumo de un job. Nunca falla: la higiene no debe tumbar el
+# cierre de un job. Uso típico como `on_cleanup` de job_submit().
+job_unlink_inputs <- function(paths) {
+  paths <- as.character(unlist(paths, use.names = FALSE))
+  paths <- paths[!is.na(paths) & nzchar(paths)]
+  for (path in paths) {
+    tryCatch(unlink(path, force = TRUE), error = function(e) NULL)
+  }
+  invisible(NULL)
+}
+
+# Corre el `on_cleanup` del job una sola vez (idempotente vía `cleaned`) y
+# devuelve el job actualizado; quien llama lo persiste en `.jobs`. Un fallo del
+# cleanup se registra en stderr y no cambia el status del job.
+.job_run_cleanup <- function(j) {
+  if (is.null(j) || isTRUE(j$cleaned)) return(j)
+  j$cleaned <- TRUE
+  if (is.function(j$on_cleanup)) {
+    tryCatch(
+      j$on_cleanup(j),
+      error = function(e) {
+        message(sprintf("[jobs] on_cleanup de %s falló: %s",
+                        as.character(j$id %||% "?"), conditionMessage(e)))
+        NULL
+      }
+    )
+  }
+  j
 }
 
 job_submit_completed <- function(sid,
@@ -299,6 +336,9 @@ job_poll <- function(job_id) {
       if (!is.null(public)) j$result_public <- public
     }
   }
+  # Higiene en todo final cosechado (done o error del worker): los insumos
+  # efímeros no sobreviven al job aunque on_complete no haya corrido.
+  j <- .job_run_cleanup(j)
   .jobs[[job_id]] <- j
   j
 }
@@ -329,6 +369,9 @@ job_cancel <- function(job_id) {
       try(j$rx$kill(), silent = TRUE)
       j$status <- "cancelled"
       j$finished_at <- Sys.time()
+      # Cancelar no aplica on_complete, pero SÍ limpia los insumos efímeros
+      # (secretos/estado serializados para el worker).
+      j <- .job_run_cleanup(j)
       .jobs[[job_id]] <- j
     }
   }
@@ -352,6 +395,7 @@ jobs_kill_all <- function() {
       try(j$rx$kill(), silent = TRUE)
       j$status <- "cancelled"
       j$finished_at <- Sys.time()
+      j <- .job_run_cleanup(j)
       .jobs[[id]] <- j
     }
   }
