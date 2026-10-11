@@ -101,6 +101,12 @@
 }
 
 /* Columna Top Two Box del recetario: verde, con la cifra «x de y» dentro. */
+.pulso-glifo__btb {
+  fill: color-mix(in srgb, var(--pulso-danger-fg) 10%, transparent);
+  stroke: var(--pulso-danger-fg);
+  stroke-width: 1;
+}
+
 .pulso-glifo__ttb {
   fill: color-mix(in srgb, var(--glifo-verde) 14%, transparent);
   stroke: var(--glifo-verde);

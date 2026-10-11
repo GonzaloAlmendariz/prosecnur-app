@@ -6,6 +6,7 @@ import { composicionDe, LAMINA_PULGADAS, numeroDeRanura } from "../iconos/compos
 import { cleanInferredVariableTitle } from "../slideAutoTitle";
 import { SLIDE_GRAF_SLOTS } from "../store";
 import { parseVarRef } from "../useVariables";
+import { formaTwoBox, leerTwoBox } from "./tarjetaGrafico/twoBox";
 
 type VarLike = VarInfo & { source?: string };
 
@@ -22,7 +23,25 @@ export type RanuraMaqueta = {
   masPreguntas: number;
   /** Bases (actores) que cruza, sólo cuando son más de una. */
   bases: string[];
+  /** Columnas encendidas en el gráfico: Top Two Box y, a su lado, Bottom Two Box. */
+  twoBox: { ttb: boolean; btb: boolean };
 };
+
+type Presets = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+
+/** Las columnas Two Box encendidas en el gráfico. Sin categorías elegidas el motor la omite, pero la tarjeta ya lo avisa:
+ *  la maqueta la muestra en cuanto se enciende, para que el cambio se vea. */
+export function twoBoxDeGrafico(graficador: string | null, args: Record<string, unknown>, presets: Presets): { ttb: boolean; btb: boolean } {
+  if (!graficador) return { ttb: false, btb: false };
+  if (formaTwoBox(graficador, args) === "por_bloque") {
+    const bloques = Array.isArray(args.bloques) ? args.bloques : [];
+    const ttb = bloques.some((b) => !!b && typeof b === "object" && (b as Record<string, unknown>).top2box === true);
+    return { ttb, btb: false };
+  }
+  const e = leerTwoBox(graficador, args, presets);
+  if (!e) return { ttb: false, btb: false };
+  return { ttb: e.top.activa, btb: e.top.activa && e.bottom.activa };
+}
 
 function refsDe(v: unknown): string[] {
   if (typeof v === "string") return v.trim() ? [v.trim()] : [];
@@ -61,7 +80,7 @@ function gruposDe(args: Record<string, unknown>): Grupo[] {
   return [...porNombre.values()].map((rs) => ({ titulo: null, refs: rs }));
 }
 
-export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variables: readonly VarLike[]): RanuraMaqueta[] {
+export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variables: readonly VarLike[], presets: Presets = {}): RanuraMaqueta[] {
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const comp = composicionDe(slide.tipo, slots);
   if (comp.fuente === "estructura") return [];
@@ -87,6 +106,7 @@ export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variabl
         pregunta,
         masPreguntas: Math.max(0, grupos.length - 1),
         bases: bases.length > 1 ? bases.map(nombreBase) : [],
+        twoBox: twoBoxDeGrafico(ref?.graficador ?? null, args as Record<string, unknown>, presets),
       };
     });
 }

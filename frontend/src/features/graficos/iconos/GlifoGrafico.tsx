@@ -3,13 +3,13 @@
 // `ComposicionLamina`. No es una captura ni un ícono agrandado: los íconos de 16–24 px viven en IconoTipo.
 
 import { useId } from "react";
-import { dibujoGlifo, GLIFO } from "./glifosGrafico";
+import { dibujoGlifo, GLIFO, type OpcionesGlifo } from "./glifosGrafico";
 import "./glifoGrafico.css";
 
 /** El dibujo sin su `<svg>`, en el espacio 160 × 100; un tipo desconocido es una ranura punteada. */
-export function CuerpoGlifo({ tipo }: { tipo: string }): JSX.Element {
+export function CuerpoGlifo({ tipo, opciones }: { tipo: string; opciones?: OpcionesGlifo }): JSX.Element {
   const dibujo = dibujoGlifo(tipo);
-  if (dibujo) return dibujo();
+  if (dibujo) return dibujo(opciones);
   return <rect x={40} y={22} width={80} height={56} rx={4} className="pulso-glifo__desconocido" />;
 }
 
@@ -19,9 +19,11 @@ export type GlifoGraficoProps = {
   /** Con título: `role="img"` y nombre accesible; sin él, decorativo. */
   titulo?: string;
   className?: string;
+  /** Lo que el dibujo refleja del gráfico real (columnas Top/Bottom Two Box). */
+  opciones?: OpcionesGlifo;
 };
 
-export function GlifoGrafico({ tipo, titulo, className }: GlifoGraficoProps): JSX.Element {
+export function GlifoGrafico({ tipo, titulo, className, opciones }: GlifoGraficoProps): JSX.Element {
   const idTitulo = useId();
   return (
     <svg
@@ -35,7 +37,7 @@ export function GlifoGrafico({ tipo, titulo, className }: GlifoGraficoProps): JS
       focusable="false"
     >
       {titulo && <title id={idTitulo}>{titulo}</title>}
-      <CuerpoGlifo tipo={tipo} />
+      <CuerpoGlifo tipo={tipo} opciones={opciones} />
     </svg>
   );
 }
