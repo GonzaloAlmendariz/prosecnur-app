@@ -2977,11 +2977,11 @@ reporte_ppt_plan <- function(
     explicit <- !is.null(overrides$mostrar_ceros)
     show <- if (explicit) {
       isTRUE(overrides$mostrar_ceros)
-    } else if (isTRUE(word_render)) {
-      TRUE   # Word enciende los ceros por defecto; alinearlo con PPT espera decisión de Gonzalo (C40, test 9)
     } else {
+      # Decisión de Gonzalo (C40 «1a»): Word y PPT comparten el default del registro (= recetario, apagado).
       isTRUE(preset_args$mostrar_ceros %||% FALSE)
     }
+    # (`word_render` se conserva en la firma por compatibilidad de los llamadores.)
     if (show && !explicit && .is_company_name_catalog(var, tab = tab, source = source)) {
       show <- FALSE
     }

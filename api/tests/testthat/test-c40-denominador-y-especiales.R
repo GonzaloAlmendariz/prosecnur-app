@@ -146,7 +146,6 @@ test_that("D2 guarda: con mostrar_ceros = FALSE ningún cero aparece y PPT y Wor
 })
 
 test_that("D2 default: PPT y Word dibujan el mismo conjunto de categorías y ninguno resucita 98/99", {
-  skip("Pendiente de decisión de Gonzalo: default de ceros en Word (hoy encendido) frente a PPT y registro (apagado); 98/99 ya cubierto por los tests de Word y PPT")
   r <- .c40_render(NULL)
   expect_false(any(.C40_ESPECIALES %in% r$word))
   expect_setequal(r$word, r$ppt)
