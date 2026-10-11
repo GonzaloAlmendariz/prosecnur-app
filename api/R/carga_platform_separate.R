@@ -39,6 +39,11 @@
   .carga_job_progress("fetch", message = "SurveyMonkey: leyendo estructura de la encuesta...")
   details <- sm_api_fetch_survey_details(survey_id, token, base_url = base_url)
   xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+  # El orden de opciones del editor (formulario de ESTA encuesta) se lleva al
+  # instrumento antes de codificar: las respuestas se codifican por etiqueta y
+  # salen ya en los códigos del editor (`carga_sm_orden_editor.R`).
+  orden_editor <- .carga_sm_adoptar_orden_editor(xls_model, .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id))
+  xls_model <- orden_editor$model
   downloads_dir <- file.path(session_get(sid)$dir, "downloads")
   dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -63,14 +68,14 @@
   )
   response_filter <- attr(data_df, "sm_response_filter", exact = TRUE) %||% list()
   data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
-    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id))
+    # Sin mapas: los datos ya vienen codificados por etiqueta contra el
+    # instrumento que se registra. Recodificar aquí desalinearía código y
+    # etiqueta. Ninguna lectura posterior debe aplicar mapas a este archivo
+    # (ver `.carga_codigos_ya_aplicados`).
+    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = list())
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
-  # Única pasada con mapas: el archivo se guarda YA recodificado. Este payload
-  # es lo que se aplicó y lo que Carga › Revisión pide confirmar; ninguna
-  # lectura posterior debe volver a aplicar mapas a este archivo (ver
-  # `.carga_codigos_ya_aplicados`).
   choice_code_maps_payload <- .carga_choice_code_maps_payload(attr(data_df, "xlsform_normalized", exact = TRUE) %||% list())
   # Backfill benigno (import por API): una columna esperada ausente = pregunta
   # sin respuestas en el mismo asset, no un desajuste de versión.
@@ -110,7 +115,8 @@
     response_filter = response_filter,
     imported_at = imported_at,
     choice_code_maps = .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id),
-    choice_code_maps_payload = choice_code_maps_payload
+    choice_code_maps_payload = choice_code_maps_payload,
+    choice_order_editor = orden_editor$resumen
   )
 }
 
@@ -298,7 +304,8 @@
     n_columnas = as.integer(ncol(prep$data_df)),
     extra_meta = c(list(
       imported_at = prep$imported_at,
-      choice_codes_applied_data_file_id = prep$data_meta$file_id
+      choice_codes_applied_data_file_id = prep$data_meta$file_id,
+      choice_order_editor = prep$choice_order_editor
     ), extra_meta)
   )
   # Mismo contrato que POST /api/estudio/base: la primera base del estudio
