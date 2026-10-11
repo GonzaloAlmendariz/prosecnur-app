@@ -112,12 +112,63 @@
   )
   hit <- Reduce(`|`, lapply(patrones, function(p) grepl(p, textos, perl = TRUE)))
   fuera <- gsub("«[^»]*»|“[^”]*”", "«»", textos)
-  hit | grepl("`[A-Za-z_.][A-Za-z0-9_.]*`|\\b[a-z][a-z0-9]*(_[a-z0-9]+)+\\b", fuera, perl = TRUE)
+  hit <- hit | grepl("`[A-Za-z_.][A-Za-z0-9_.]*`|\\b[a-z][a-z0-9]*(_[a-z0-9]+)+\\b", fuera, perl = TRUE)
+  hit | .aviso_tiene_voseo(fuera)
+}
+
+# Verbos de las acciones que piden los avisos y la UI. El voseo se reconoce por la forma, no por una tilde suelta:
+# «aquí», «así», «leí», «está» o «será» no son imperativos de esta lista.
+.AVISO_VOSEO_AR_ER <- c("revis", "carg", "us", "prob", "volv", "hac", "toc", "pon", "seleccion", "agreg", "quit", "borr",
+                        "guard", "export", "import", "declar", "aplic", "cambi", "mir", "sac", "complet", "ingres",
+                        "reintent", "ten", "and", "esper", "ajust", "activ", "desactiv", "asign", "marc", "confirm",
+                        "verific", "comprob", "cre", "edit", "renombr", "mov", "dej", "busc", "filtr", "orden", "reorden",
+                        "ocult", "mostr", "eleg", "sub", "abr", "escrib", "correg", "repet", "defin", "ped", "dec",
+                        "ven", "recarg", "actualiz", "descarg", "pas", "dibuj", "tramific", "recodific", "fij", "asegur",
+                        "acord", "aceler", "acort", "ensanch", "baj", "volc")
+.AVISO_VOSEO_ER <- c("volv", "hac", "pon", "ten", "mov")
+# Los de -ir en «-í» coinciden con el pretérito («yo elegí»): sólo cuentan como imperativo al empezar una frase.
+.AVISO_VOSEO_IR <- c("sub", "eleg", "abr", "escrib", "correg", "repet", "defin", "ped", "dec", "ven", "imprim", "permit",
+                     "divid", "reun", "añad", "inclu", "exclu", "distribu", "constru", "prove", "segu", "consegu", "invert")
+
+#' ¿Hay voseo («Subí», «Elegí», «Revisá», «Subilo», «Fijate») en el texto?
+#'
+#' Tres formas, sin falsos positivos en español neutro: el imperativo de -ar/-er con tilde final («Revisá», «Volvé»)
+#' en cualquier lugar; el de -ir con «-í» final («Subí», «Elegí») sólo al inicio de frase (o tras «:», «;», «—»), que es
+#' donde no puede ser el pretérito «yo subí»; y el enclítico sin tilde («Subilo», «Elegila», «Fijate»), que en neutro
+#' lleva la tilde en la raíz («Súbelo», «Fíjate»).
+#' @keywords internal
+.aviso_tiene_voseo <- function(textos) {
+  textos <- as.character(textos)
+  if (!length(textos)) return(logical(0))
+  # -er en «-é» y -ar en «-á», cada uno con la suya: «creé», «usé» o «andé» son pretéritos, no imperativos.
+  er <- intersect(.AVISO_VOSEO_AR_ER, .AVISO_VOSEO_ER)
+  ar <- setdiff(.AVISO_VOSEO_AR_ER, c(.AVISO_VOSEO_IR, .AVISO_VOSEO_ER))
+  izq <- "(?<![\\p{L}])"; der <- "(?![\\p{L}])"
+  p_ar_er <- sprintf("(?i)%s((%s)á|(%s)é)%s", izq, paste(ar, collapse = "|"), paste(er, collapse = "|"), der)
+  p_ir <- sprintf("(?i)(^|[.:;!?¡¿—–]\\s*|\\n\\s*)(%s)í%s", paste(.AVISO_VOSEO_IR, collapse = "|"), der)
+  p_enclitico <- sprintf("(?i)%s(%s)[aei](lo|la|los|las|le|les|me|te|nos)%s",
+                         izq, paste(unique(c(.AVISO_VOSEO_AR_ER, .AVISO_VOSEO_IR)), collapse = "|"), der)
+  grepl(p_ar_er, textos, perl = TRUE) | grepl(p_ir, textos, perl = TRUE) | grepl(p_enclitico, textos, perl = TRUE)
+}
+
+#' Deja el detalle técnico de un aviso en el stderr del proceso, que en un job es su `.err`
+#'
+#' El aviso que lee el analista calla el `conditionMessage()`, el id del ícono o la función que falló; el diagnóstico
+#' no puede perderse por eso. Va por `message()` —que acaba en el stderr del subproceso callr y en el `.err` del job,
+#' como los avisos sellados— pero con su propio prefijo y SIN el sello `[PULSO-AVISO]`, así `.pulso_avisos_de_job()` no
+#' lo recoge y nunca llega al texto del analista. El `warning()` no sirve: el renderer se los traga (jobs.R).
+#' @keywords internal
+.AVISO_DETALLE_SELLO <- "[detalle-aviso]"
+.aviso_detalle <- function(...) {
+  rotulo <- .aviso_lamina_en_curso()
+  detalle <- gsub("[\r\n]+", " ", paste0(...))
+  message(.AVISO_DETALLE_SELLO, " ", if (is.null(rotulo)) "" else paste0(rotulo, " | "), detalle)
+  invisible(TRUE)
 }
 
 #' « Motivo: …» con un motivo que se lee, o "" si trae jerga (entonces sólo va al log)
 #' @keywords internal
-.aviso_motivo <- function(motivo, formato = " Motivo: %s") {
+.aviso_motivo <- function(motivo, formato = " Motivo: %s.") {
   m <- trimws(as.character(motivo %||% "")[1])
   if (is.na(m) || !nzchar(m) || isTRUE(.aviso_tiene_jerga(m))) return("")
   sprintf(formato, sub("[.]$", "", m))

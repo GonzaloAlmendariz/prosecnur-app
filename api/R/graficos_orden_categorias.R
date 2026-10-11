@@ -261,7 +261,7 @@
       # Un fallo al resolver el orden no corta el mazo: el gráfico sale con el orden que traía y el analista lo sabe por el
       # aviso (un export completo con un orden que no pidió es mejor que ninguno; el aviso le dice cuál y por qué).
       slide$slots[[nm]] <- tryCatch(.goc_traducir(el, ctx, presets), error = function(e) {
-        message("orden de categorías de ", ctx$var, ": ", conditionMessage(e))   # el motivo, siempre al log; al aviso si se lee
+        .aviso_detalle("orden de categorías de ", ctx$var, ": ", conditionMessage(e))   # siempre al `.err`; al aviso si se lee
         .pulso_aviso(sprintf("«%s»: no se pudo aplicar el orden de categorías%s; sale en el orden que traía.", ctx$var,
                              .aviso_motivo(conditionMessage(e), " (%s)")))
         el

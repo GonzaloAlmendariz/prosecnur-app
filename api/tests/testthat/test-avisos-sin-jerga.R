@@ -36,7 +36,22 @@ test_that("el detector de jerga reconoce los casos reales y respeta lo que el an
   expect_true(all(.aviso_tiene_jerga(viejos)))
   expect_false(any(.aviso_tiene_jerga(c("Lámina 3 · “PERFIL_2026”: crea «p3_recod»", "El radar recibió valores de hasta 98.1"))))
   expect_identical(.aviso_motivo("No se pudo renderizar `icono`"), "")
-  expect_identical(.aviso_motivo("la variable P7 no existe."), " Motivo: la variable P7 no existe")
+  expect_identical(.aviso_motivo("la variable P7 no existe."), " Motivo: la variable P7 no existe.")
+})
+
+test_that("el detector de jerga reconoce el voseo y no el español neutro (mutantes del verificador de B-g)", {
+  # Los dos mutantes que sobrevivían: router_graficos.R, avisos del ícono.
+  mutantes <- c("Lámina 4: su ícono ya no está en el catálogo de íconos y sale sin él. Subilo de nuevo en Configuración global > Íconos.",
+                "Lámina 3: necesita un ícono y no había ninguno disponible: se usó el integrado. Elegí un PNG en Configuración global > Íconos.")
+  expect_true(all(.aviso_tiene_jerga(mutantes)))
+  voseo <- c("Revisá la base", "Volvé a intentar", "Fijate en el filtro", "Probá con otra", "Cargá el archivo", "Usá otro",
+             "Subí uno nuevo o elige otro.", "Elegilo en el editor", "Poné un título", "Tramificala en Codificación")
+  expect_true(all(.aviso_tiene_voseo(voseo)))
+  neutro <- c("Aquí está así", "Leí el plan", "Ayer subí el archivo y lo elegí", "Lo creé, usé el mismo y andé bien",
+              "Súbelo de nuevo", "Elige un PNG", "Revisa la base", "Vuelve a intentar", "Fíjate en el filtro",
+              "se usará la variable original", "Ponlo así", "fijamente", "Tramifícala en Codificación",
+              "Motivo: la variable P7 no existe.", "Elige redondeo estándar, reparto a 100 % o ambos.")
+  expect_false(any(.aviso_tiene_voseo(neutro)))
 })
 
 test_that("el rótulo de una lámina es número + título, como la numera la UI", {
@@ -123,8 +138,64 @@ test_that("la degradación a «Sin datos» nombra la lámina en curso y deja el 
   falla <- function(el) stop(structure(class = c("pulso_slide_render_error", "error", "condition"),
                                        list(message = "la variable no está en la base", call = NULL)))
   av3 <- .avisos_de(.plan_render_element_degradable(falla, structure(list(.element_type = "barras_apiladas"), class = c("ppt_element", "list"))))
-  expect_match(av3, "^Lámina 7 · “Bienestar universitario”: no se pudo dibujar y sale con «Sin datos»\\. Motivo: la variable no está en la base$")
+  expect_match(av3, "^Lámina 7 · “Bienestar universitario”: no se pudo dibujar y sale con «Sin datos»\\. Motivo: la variable no está en la base\\.$")
   expect_length(.jerga_en(c(av, av2, av3)), 0L)
+})
+
+test_that("el detalle técnico queda en el stderr del proceso (el `.err` del job) y no en el aviso", {
+  # Bloqueante 1 del verificador de B-g: el renderer se traga los `warning()`, así que el `conditionMessage()` callado en
+  # el aviso tenía que ir a algún log. En un proceso aparte, como el worker callr, con el stderr a un archivo: la
+  # variable inexistente y el id del ícono están en el stderr con su prefijo, y los avisos sellados no los nombran.
+  skip_if_not_installed("callr")
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+  err <- withr::local_tempfile(fileext = ".err")
+  raiz <- normalizePath(testthat::test_path("..", ".."))
+  callr::r(function(raiz, uuid) {
+    suppressMessages(pkgload::load_all(raiz, quiet = TRUE))
+    data <- data.frame(p1 = c("si", "no", "si"), stringsAsFactors = FALSE)   # el fixture de test-reporte-plan-condiciones.R
+    inst <- list(survey = data.frame(name = "p1", type = "select_one lst_sino", list_name = "lst_sino", stringsAsFactors = FALSE),
+                 choices = data.frame(list_name = "lst_sino", name = c("si", "no"), label = c("Sí", "No"), stringsAsFactors = FALSE),
+                 orders_list = NULL)
+    plan <- list(diapo_001 = p_slide_1_grafico(grafico = p_barras_apiladas("var_fantasma"), titulo = "Rota"),
+                 diapo_002 = p_slide_1_grafico(grafico = p_barras_apiladas("p1")))
+    suppressWarnings(reporte_ppt_plan(data = data, instrumento = inst, plan = plan, presets = p_presets(),
+                                      path_ppt = tempfile(fileext = ".pptx"), mensajes_progreso = FALSE))
+    .aviso_con_lamina(3, "Objetivo", .graficos_rebuild_icon(uuid, list()))
+    invisible(NULL)
+  }, args = list(raiz = raiz, uuid = .UUID_TEST), stderr = err, stdout = NULL)
+  lineas <- readLines(err, warn = FALSE, encoding = "UTF-8")
+  detalle <- grep(.AVISO_DETALLE_SELLO, lineas, fixed = TRUE, value = TRUE)
+  avisos <- trimws(sub(paste0(".*\\", .PULSO_AVISO_SELLO), "", grep(.PULSO_AVISO_SELLO, lineas, fixed = TRUE, value = TRUE)))
+  expect_true(any(grepl("var_fantasma", detalle, fixed = TRUE)))
+  expect_true(any(grepl(.UUID_TEST, detalle, fixed = TRUE)))
+  expect_true(any(grepl("^Lámina 1 · “Rota”: no se pudo dibujar", avisos)))
+  expect_false(any(grepl("var_fantasma", avisos, fixed = TRUE)))
+  expect_false(any(grepl(.UUID_TEST, avisos, fixed = TRUE)))
+  # El prefijo del detalle no es el sello: `.pulso_avisos_de_job()` no lo recoge.
+  expect_false(any(grepl(.PULSO_AVISO_SELLO, detalle, fixed = TRUE)))
+})
+
+test_that("los avisos numeran por la posición en el plan, no en el PPTX (particiones y «Otros» no corren el número)", {
+  pieza <- function(id) structure(list(title = "Bienestar"), pulso_particion = list(id = id, titulo = "Bienestar", barras = 14L, techo = 7L))
+  plan <- list(list(title = "Portada"), pieza("p2"), pieza("p2"), list(title = "Otros", meta = list(auto_otros = TRUE)),
+               list(title = "Satisfacción"))
+  expect_identical(vapply(seq_along(plan), function(i) .lam_posicion_usuario(plan, i), 1L), c(1L, 2L, 2L, 2L, 3L))
+  # Con un PPTX que ya lleva 40 diapositivas, la lámina 5 del plan sigue siendo la 3 del usuario.
+  e <- .lam_avisos_estado
+  rotulos <- local({
+    out <- character(0)
+    for (i in seq_along(plan)) {
+      .lam_avisos_paso(plan, i, as.list(seq_len(40L + i)))
+      out <- c(out, .aviso_lamina_en_curso())
+    }
+    cierre <- .avisos_de(.lam_avisos_cierre(plan, NULL))
+    c(out, cierre)
+  })
+  expect_match(rotulos[6], "^Lámina 2 · “Bienestar”: salió en 2 partes")   # el de líneas, con el mismo número
+  expect_identical(rotulos[5], "Lámina 3 · “Satisfacción”")
+  expect_identical(rotulos[3], "Lámina 2 · “Bienestar”")
+  expect_null(e$rotulo)
 })
 
 test_that("el radar no pide declarar un argumento ni un valor crudo", {

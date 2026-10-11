@@ -641,7 +641,7 @@ graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
   slides <- recipe$plan$slides %||% list()
   rebuilt <- vector("list", length(slides))
   for (i in seq_along(slides)) {
-    report("rebuild", current = i, total = length(slides), percent = 8 + round(42 * i / max(1, length(slides))), message = sprintf("Armando lámina %s de %s...", i, length(slides)))
+    report("rebuild", current = i, total = length(slides), percent = 8 + round(42 * i / max(1, length(slides))), message = sprintf("Armando la lámina %s de %s…", i, length(slides)))
     rebuilt[[i]] <- .pkg_fn(".aviso_con_lamina")(i, .pkg_fn(".aviso_titulo_payload")(slides[[i]]), .pkg_fn(".graficos_rebuild_slide_json")(
       slides[[i]], icon_registry = icon_registry
     ))

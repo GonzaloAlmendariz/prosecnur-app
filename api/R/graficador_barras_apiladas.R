@@ -2636,12 +2636,12 @@ graficar_barras_apiladas <- function(
       # pidiendo lo mismo y ninguno accionable; el ruido tapaba los que si lo
       # son.
       if (identical(.box_dec$motivo, "sin_declaracion")) {
-        .pulso_aviso(sprintf(
-          paste0("La columna «%s» se omite: no hay categorías declaradas. Decláralas ",
+        .pulso_aviso(.aviso_en_lamina(sprintf(
+          paste0("la columna «%s» se omite: no hay categorías declaradas. Decláralas ",
                  "por nombre en Configuración global > Estilo > Multi-apiladas; el ",
                  "motor ya no las deduce del orden de la escala."),
           c(top2box = "Top Two Box", top3box = "Top Three Box", bottom2box = "Bottom Two Box")[[barra_extra_preset]]
-        ))
+        )))
       }
       barra_extra_preset <- "ninguno"
       mostrar_barra_extra <- FALSE
@@ -2815,7 +2815,7 @@ graficar_barras_apiladas <- function(
                             cols_porcentaje = cols_porcentaje, minimo = 3L)
     if (!isTRUE(btb_dec$dibujar)) {
       if (identical(btb_dec$motivo, "sin_declaracion")) {
-        .pulso_aviso("La columna «Bottom Two Box» se omite: no hay categorías declaradas. Decláralas en «Categorías del Bottom 2 Box».")
+        .pulso_aviso(.aviso_en_lamina("la columna «Bottom Two Box» se omite: no hay categorías declaradas. Decláralas en «Categorías del Bottom 2 Box»."))
       }
       btb_activa <- FALSE
     }

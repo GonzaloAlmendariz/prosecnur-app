@@ -737,13 +737,13 @@ graficar_radar <- function(
   esc <- as.character(escala_valor)[1]
   max_val <- suppressWarnings(max(df0$.valor, na.rm = TRUE))
   if (identical(esc, "proporcion_1") && is.finite(max_val) && max_val > 1.5) {
-    .pulso_aviso(sprintf(
-      paste0("El radar recibió valores de hasta %.1f con la escala de valores ",
+    .pulso_aviso(.aviso_en_lamina(sprintf(   # «Lámina N · …:» si se dibuja dentro de un mazo
+      paste0("el radar recibió valores de hasta %.1f con la escala de valores ",
              "en proporción (0 a 1). Se leen como porcentaje: sin esto los %d ",
              "vértices saldrían todos al 100 %%. Para quitar este aviso, ",
              "declara la escala de valores como porcentaje (0 a 100)."),
       max_val, nrow(df0)
-    ))
+    )))
     esc <- "proporcion_100"
   }
 

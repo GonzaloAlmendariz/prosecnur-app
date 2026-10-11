@@ -68,9 +68,22 @@
   e$inicio[i] <- if (is.null(doc)) NA_integer_ else length(doc)
   e$actual <- i
   # Rótulo de la lámina que se dibuja, para los avisos que no son de líneas (`.aviso_en_lamina`, graficos_avisos_texto.R).
-  e$rotulo <- list(numero = if (is.null(doc)) NULL else length(doc) + 1L + as.integer(getOption("prosecnur.lam_folio_desplazo", 0L)),
+  # Su número es la posición en el plan del usuario —la que navega la UI—, no la del PPTX: con particiones y «Otros» el
+  # PPTX llega a 91 en un plan de 67 (verificador de B-g).
+  e$rotulo <- list(numero = .lam_posicion_usuario(plan, i) + as.integer(getOption("prosecnur.lam_folio_desplazo", 0L)),
                    titulo = if (is.list(plan[[i]])) .lam_avisos_titulo_de(plan[[i]]), base = getOption("prosecnur.lam_avisos_base"))
   plan[[i]]
+}
+
+#' Posición de la lámina `i` en el plan del usuario: las piezas de una partición cuentan una vez y las «Otros» que inserta
+#' el motor (`meta$auto_otros`) no cuentan —la «Otros» lleva el número de la lámina a la que sigue—
+#' @keywords internal
+.lam_posicion_usuario <- function(plan, i) {
+  idx <- seq_len(i)
+  ids <- vapply(idx, function(k) as.character((attr(plan[[k]], "pulso_particion") %||% list(id = paste0("l", k)))$id)[1], "")
+  primeras <- match(unique(ids), ids)
+  insertada <- vapply(primeras, function(k) { s <- plan[[k]]; is.list(s) && isTRUE((s$meta %||% list())$auto_otros) }, logical(1))
+  max(1L, sum(!insertada))
 }
 
 #' Emite los avisos de líneas del mazo, uno por lámina lógica, y cierra el registro
@@ -100,9 +113,8 @@
     titulo <- notas[[1]]$titulo %||% part$titulo %||% .lam_avisos_titulo_de(plan[[idx[1]]])
     k <- sum(salieron[idx])
     # Número de la lámina donde empieza: con títulos repetidos («BIENESTAR UNIVERSITARIO» tres veces) es lo único que
-    # distingue un aviso de otro, y `.pulso_avisos_de_job` no los colapsa. Sin archivo (Word), su lugar en el plan del
-    # usuario.
-    numero <- if (is.null(doc) || anyNA(inicio)) pos_usuario[[g]] else inicio[idx[1]] + 1L + as.integer(getOption("prosecnur.lam_folio_desplazo", 0L))
+    # distingue un aviso de otro, y `.pulso_avisos_de_job` no los colapsa. Siempre su lugar en el plan del usuario.
+    numero <- pos_usuario[[g]] + as.integer(getOption("prosecnur.lam_folio_desplazo", 0L))   # posición en el plan, como `.lam_avisos_paso`
     # En /ppt-all cada base sale en su PPTX con su numeración: el aviso dice de cuál (`.lam_avisos_con_base`).
     nombre <- .aviso_lamina(numero, titulo, getOption("prosecnur.lam_avisos_base"))   # graficos_avisos_texto.R
     lineas <- max(0L, unlist(lapply(notas, `[[`, "lineas")))

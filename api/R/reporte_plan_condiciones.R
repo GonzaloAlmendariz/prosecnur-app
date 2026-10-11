@@ -173,8 +173,10 @@
       # El `warning()` es el rastro del log; el `.pulso_aviso()` es lo que llega
       # al analista. Sin el segundo, el mazo sale con una lamina en blanco y la
       # razon se queda en el stderr del subproceso: el renderer se traga los
-      # `warning()` (ver jobs.R). Vara V4. El log conserva siempre el mensaje técnico, aunque el aviso lo calle.
+      # `warning()` (ver jobs.R). Vara V4. El mensaje técnico, aunque el aviso lo calle, queda en el stderr del
+      # proceso —el `.err` del job— por `.aviso_detalle` (graficos_avisos_texto.R).
       warning(paste0(msg, " Detalle: ", conditionMessage(cnd)), call. = FALSE)
+      .aviso_detalle("render degradado a «Sin datos»: ", conditionMessage(cnd))
       .pulso_aviso(msg)
       .pulso_senal_degradado("error_render", msg)
       .plan_canvas_sin_datos()
@@ -189,6 +191,7 @@
   # El detalle de quien llama va al aviso sólo si se lee (`.aviso_motivo`); «No se pudo renderizar `icono` en `p_slide_…()`»
   # se queda en el log.
   warning(paste0(paste0(...), " La lámina sale con «Sin datos»."), call. = FALSE)
+  .aviso_detalle("render nulo: ", ...)   # al `.err` del job: el `warning()` se lo traga el renderer
   msg <- .aviso_en_lamina(paste0("un gráfico no se pudo dibujar y su espacio sale con «Sin datos».", .aviso_motivo(paste0(...))))
   .pulso_aviso(msg)
   .pulso_senal_degradado("render_nulo", msg)
@@ -201,7 +204,8 @@
 #' sale degradada con warning en vez de matar el deck completo.
 #' @keywords internal
 .plan_elemento_degradado <- function(...) {
-  warning(paste0(paste0(...), " La lámina sale con «Sin datos»."), call. = FALSE)   # el log, con el detalle técnico
+  warning(paste0(paste0(...), " La lámina sale con «Sin datos»."), call. = FALSE)
+  .aviso_detalle("elemento inválido: ", ...)   # el detalle técnico, al `.err` del job
   msg <- .aviso_en_lamina(paste0("un gráfico quedó incompleto en el plan y su espacio sale con «Sin datos».", .aviso_motivo(paste0(...)),
                                  " Vuelve a elegir su tipo de gráfico en el editor."))
   .pulso_aviso(msg)
@@ -226,6 +230,7 @@
   tryCatch(
     impl(el, sufijo_auto = sufijo_auto, formato = formato),
     error = function(cnd) {
+      .aviso_detalle("base del elemento: ", conditionMessage(cnd))
       .pulso_aviso(.aviso_en_lamina(paste0(
         "no se pudo calcular la base de un gráfico y sale sin rótulo de base.", .aviso_motivo(conditionMessage(cnd))
       )))

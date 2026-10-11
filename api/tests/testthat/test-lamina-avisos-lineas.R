@@ -149,8 +149,9 @@ test_that("dos láminas con el mismo título que se parten dan dos avisos distin
   sobre <- grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE)
   expect_length(unique(sobre), 2L)
   expect_match(sobre[1], "^Lámina 2 · ")
-  n1 <- as.integer(sub(".*salió en ([0-9]+) partes.*", "\\1", sobre[1]))
-  expect_match(sobre[2], sprintf("^Lámina %d · ", 2L + n1))                    # la segunda empieza tras las partes de la primera
+  # Numera por la posición en el plan —la que navega la UI—, no por la del PPTX (verificador de B-g: un mazo de 67
+  # láminas avisaba la 91). Las partes de la primera no corren el número de la segunda.
+  expect_match(sobre[2], "^Lámina 3 · ")
 })
 
 test_that("un job con muchas particiones conserva todos los demás avisos y agrupa los de partición", {
