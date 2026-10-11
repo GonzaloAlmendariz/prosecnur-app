@@ -47,6 +47,16 @@
   paste0(sub("[,;:]$", "", corte), "…")
 }
 
+#' Opciones del documento Word del recetario cuando el editor no decide nada
+#'
+#' La autoridad del default (ADR 0094): `config.documento_word` guarda sólo lo que difiere de aquí
+#' (`.graficos_documento_word_solo_decisiones`). `redondeo` es el suelo de esta función, pero `reporte_word_plan` lo
+#' deduce siempre del informe antes de llamarla (`.word_redondeo_documento`), así que en el proyecto no tiene default
+#' fijo: un «estandar» elegido es una decisión.
+#' @keywords internal
+.DOCUMENTO_WORD_DEFAULTS <- list(portada = "A", apertura = "B", como_leer = NULL, redondeo = "estandar",
+                                 contacto = list(), meta_portada = list())
+
 #' Arma el Word del recetario desde `render_meta`
 #'
 #' @param render_meta Lista de entradas de `reporte_ppt_plan(solo_lista = TRUE, build_render_meta = TRUE)`.
@@ -57,7 +67,7 @@
 #' @return Invisible: `list(path, figuras, tablas, avisos)`.
 #' @keywords internal
 .word_documento <- function(render_meta, path_docx, fuente = NULL, opciones = list(), mensajes = FALSE) {
-  op <- utils::modifyList(list(portada = "A", apertura = "B", como_leer = NULL, redondeo = "estandar", contacto = list(), meta_portada = list()), opciones)
+  op <- utils::modifyList(.DOCUMENTO_WORD_DEFAULTS, opciones)
   avisos <- character(0); avisar <- function(...) { m <- paste0(...); avisos <<- c(avisos, m); message("[PULSO-AVISO] ", m) }
   base_de <- function(e) {
     partes <- c(if (nzchar(trimws(as.character(e$base %||% "")[1]))) trimws(as.character(e$base)[1]),

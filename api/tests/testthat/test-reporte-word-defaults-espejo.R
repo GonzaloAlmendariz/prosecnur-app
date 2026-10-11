@@ -62,6 +62,53 @@ test_that("DEFAULT_WORD_PRESETS del front espeja también el default Word de las
   expect_false(isTRUE(ts$mostrar_barra_extra))
 })
 
+# El árbol COMPLETO de DEFAULT_WORD_PRESETS (chart_options incluido) como lista de R. Con el diff del ADR 0094 una deriva
+# del espejo ya no es inocua: lo que el front crea default y el motor no, se guardaría como decisión del analista.
+.wde_ts_arbol <- function(path) {
+  src <- readLines(path, warn = FALSE, encoding = "UTF-8")
+  ini <- grep("export const DEFAULT_WORD_PRESETS", src, fixed = TRUE)
+  expect_length(ini, 1L)
+  fin <- ini + which(grepl("^\\};\\s*$", src[(ini + 1):length(src)]))[1]
+  cuerpo <- src[ini:fin]
+  cuerpo[1] <- sub("^.*?=\\s*\\{", "{", cuerpo[1], perl = TRUE)
+  cuerpo <- sub("\\s*//.*$", "", cuerpo)                                       # comentarios de línea
+  txt <- paste(cuerpo, collapse = "\n")
+  txt <- sub(";\\s*$", "", txt)
+  txt <- gsub("([{,]\\s*)([A-Za-z_][A-Za-z_0-9]*)\\s*:", "\\1\"\\2\":", txt, perl = TRUE)   # claves sin comillas
+  txt <- gsub(",(\\s*[}\\]])", "\\1", txt, perl = TRUE)                        # comas finales
+  jsonlite::fromJSON(txt, simplifyVector = FALSE)
+}
+
+.wde_num <- function(x) if (is.list(x)) lapply(x, .wde_num) else if (is.numeric(x)) as.numeric(x) else x
+.wde_ord <- function(x) { if (!is.list(x)) return(x); if (!is.null(names(x))) x <- x[order(names(x))]; lapply(x, .wde_ord) }
+
+test_that("DEFAULT_WORD_PRESETS del front espeja el árbol entero de .WORD_PRESETS_DEFAULT_PULSO (ADR 0094)", {
+  path <- .wde_ts_path()
+  skip_if_not(file.exists(path), "sin el árbol del frontend (R CMD check)")
+  ts <- .wde_ts_arbol(path)
+  r <- .WORD_PRESETS_DEFAULT_PULSO
+  expect_setequal(names(ts), names(r))
+  expect_setequal(names(ts$chart_presets), names(r$chart_presets))
+  expect_equal(.wde_ord(.wde_num(ts)), .wde_ord(.wde_num(r)))
+})
+
+test_that("GET /api/graficos/config publica como defaults el mismo default Word que guarda el diff", {
+  skip_if_not_installed("plumber")
+  sid <- session_create(); withr::defer(session_delete(sid))
+  testthat::local_mocked_bindings(session_header = function(req) sid, .package = "prosecnurapp")
+  pr <- mount_graficos(plumber::pr())
+  endpoints <- unlist(pr$endpoints, recursive = FALSE)
+  ep <- endpoints[[which(vapply(endpoints, function(e) identical(e$path, "/api/graficos/config") && "GET" %in% e$verbs, TRUE))]]
+  res <- new.env(parent = emptyenv()); res$status <- 200L; res$setHeader <- function(...) invisible(NULL)
+  out <- ep$getFunc()(new.env(parent = emptyenv()), res)
+  expect_identical(out$defaults$w_presets, .WORD_PRESETS_DEFAULT_PULSO)
+  expect_identical(out$defaults$documento_word, list(portada = "A", apertura = "B", como_leer = "auto"))
+  expect_false("defaults" %in% names(out$config))   # hermano de config, no dentro: no se persiste
+  # Viaja por JSON con la forma que lee el front.
+  j <- jsonlite::fromJSON(as.character(jsonlite::toJSON(out$defaults, auto_unbox = TRUE)), simplifyVector = FALSE)
+  expect_identical(j$w_presets$chart_presets$barras_apiladas$barra_extra_preset, "top2box")
+})
+
 .wde_inst <- function() {
   list(
     survey = data.frame(name = "p12", type = "select_one likert5", list_name = "likert5",
