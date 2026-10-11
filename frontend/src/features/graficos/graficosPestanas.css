@@ -1,5 +1,12 @@
 /* Pestañas de Procesamiento › Gráficos (F6): rail icon-only + panel. El panel llena el alto de la página y cede el
-   scroll a sus columnas (No Scroll Jail: un dueño por columna, nunca el panel entero). */
+   scroll a sus columnas (No Scroll Jail: un dueño por columna, nunca el panel entero).
+
+   Encaje junto al rail (el mismo que Carga y Analítica): el marco redondeado es del workbench
+   (`.pulso-adaptive-split--workbench`); ninguna pestaña dibuja dentro otra tarjeta con borde ni radio propios, porque su
+   esquina abría una muesca junto al primer botón del rail. La primera barra de cada pestaña arranca en el borde superior
+   del panel, mide un control más el respiro del rail arriba y abajo (28 + 2 × 8 = 44 px) y su fila de controles empieza
+   a la altura del primer botón del rail (`--pulso-rail-bubble-offset`). El filete inferior se pinta con una sombra
+   interior para no comerle un píxel a esa fila. Contrato vivo: graficosEncajeRail.contract.test.ts. */
 
 .pulso-graficos-pestanas {
   flex: 1;
@@ -20,9 +27,17 @@
   min-height: 0;
 }
 
-/* El editor anterior conserva el ajuste que tenía como hijo directo del cuerpo de la página. */
+/* El editor anterior conserva el ajuste que tenía como hijo directo del cuerpo de la página. Dentro de la pestaña pierde
+   su marco propio (borde, radio y sombra de editor-v2.css, congelado) y su primera tarjeta baja al primer botón del rail. */
 .pulso-graficos-frame .pulso-graficos-pestana > .pulso-gv2-shell {
   flex: 1 1 auto;
   height: 100%;
   min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.pulso-graficos-frame .pulso-graficos-pestana > .pulso-gv2-shell .pulso-gv2-timeline {
+  padding-top: var(--pulso-rail-bubble-offset);
 }

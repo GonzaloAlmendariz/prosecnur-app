@@ -15,8 +15,9 @@
   grid-template-columns: 44px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--pulso-space-2);
-  padding: var(--pulso-space-3);
-  border-bottom: 1px solid var(--pulso-border);
+  min-height: calc(var(--pulso-control-height-md) + 2 * var(--pulso-rail-bubble-offset));
+  padding: 0 var(--pulso-space-3);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
 }
 
 .pulso-f6-inspector-icono {
