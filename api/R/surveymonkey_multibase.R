@@ -3684,6 +3684,8 @@ sm_multibase_apply_canonical_xlsform_logic <- function(sid,
     base$xlsform_file_id <- inst_meta$file_id
     base$data_file_id <- data_meta$file_id
     base$data_ext <- data_meta$ext
+    # Archivo ya normalizado por el refresh: no reaplicar mapas al releerlo.
+    base$choice_codes_applied_data_file_id <- data_meta$file_id
     s$rp_inst_sources[[base_name]] <- rp_inst
     s$rp_data_sources[[base_name]] <- rp_data
     base$n_filas <- nrow(rp_data)

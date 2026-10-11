@@ -63,7 +63,13 @@
   )
   response_filter <- attr(data_df, "sm_response_filter", exact = TRUE) %||% list()
   data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
-    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id))
+    # Sin mapas del editor: la API ya entrega cada respuesta en el código del
+    # instrumento, resuelto por ETIQUETA (`.sm_mb_code_for_label`). El mapa del
+    # editor traduce POSICIÓN visual → código y sirve para archivos exportados
+    # por posición (SAV/XLSX), no para la API: aplicarlo aquí permutaba
+    # categorías siempre que el orden visual difería del de la API (F1, revisión
+    # metodológica 2026-10-11). Solo actúan los mapas detectados (idempotentes).
+    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = NULL)
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
@@ -109,7 +115,7 @@
     source_spec = source_spec,
     response_filter = response_filter,
     imported_at = imported_at,
-    choice_code_maps = .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id),
+    choice_code_maps = NULL,
     choice_code_maps_payload = choice_code_maps_payload
   )
 }
