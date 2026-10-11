@@ -226,3 +226,27 @@
   max-height: 45%;
   align-self: center;
 }
+
+/* Ranura vacía: la acción a la vista, sin doble clic que adivinar. */
+.pulso-f6-maqueta-elegir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: auto;
+  padding: 0.7em 1.4em;
+  border-radius: 999px;
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-size: 1.5em;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-maqueta-ranura.is-vacia {
+  justify-content: center;
+}
+
+.pulso-f6-maqueta-falta {
+  color: var(--module-accent);
+  font-size: 1.25em;
+  font-weight: var(--pulso-weight-semibold);
+}

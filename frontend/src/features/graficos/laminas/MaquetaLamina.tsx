@@ -9,6 +9,7 @@ import { ComposicionLamina } from "../iconos/ComposicionLamina";
 import { composicionDe } from "../iconos/composicion";
 import { GlifoGrafico } from "../iconos/GlifoGrafico";
 import { IconoTipo } from "../iconos/IconoTipo";
+import { Plus } from "../../../vendor/lucide-react";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
@@ -76,11 +77,16 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
           <>
             {r.graficador && <GlifoGrafico tipo={r.graficador} className="pulso-f6-maqueta-glifo" opciones={r.twoBox} />}
             <span className="pulso-f6-maqueta-info">
+            {r.k !== null && !r.graficador ? (
+              <span className="pulso-f6-maqueta-elegir"><Plus size={16} aria-hidden="true" /> Elegir gráfico</span>
+            ) : (
             <span className="pulso-f6-maqueta-tipo">
               {r.graficador && <IconoTipo clase="grafico" tipo={r.graficador} size={16} />}
-              <span>{nombreTipo ?? (r.k === null ? "Cifra" : "Sin gráfico")}</span>
+              <span>{nombreTipo ?? "Cifra"}</span>
               {r.k !== null && slots.length > 1 && <span className="pulso-f6-maqueta-num">{r.k}</span>}
             </span>
+            )}
+            {r.graficador && !r.pregunta && <span className="pulso-f6-maqueta-falta">Falta elegir la pregunta</span>}
             {r.pregunta && (
               <span className="pulso-f6-maqueta-pregunta">
                 {r.pregunta}
@@ -104,7 +110,8 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
             style={estilo}
             aria-pressed={activa}
             aria-label={`Gráfico ${r.k}: ${nombreTipo ?? "sin gráfico"}${r.pregunta ? `, ${r.pregunta}` : ""}${r.bases.length ? `, ${r.bases.join(", ")}` : ""}`}
-            onClick={() => onRanura(r.k as number)}
+            // Una ranura vacía va directo a «¿Qué gráfico?»; una con gráfico abre su tarjeta.
+            onClick={() => (r.graficador ? onRanura(r.k as number) : onCambiar(r.k as number))}
             onDoubleClick={() => onCambiar(r.k as number)}
           >
             {contenido}
