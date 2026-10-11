@@ -10,7 +10,7 @@ import type { CargaReviewPayload, CargaReviewSummaryPayload } from "../../api/cl
 import { CargaReviewFuentesFindings } from "./CargaReviewFuentesFindings";
 import { cargaReviewFuentesHallazgos } from "./cargaReviewFuentesModel";
 import { smListaAcotada } from "./smEstructuraFuente";
-import "./CargaReviewFindings.css";
+import "./CargaReviewSummary.css";
 
 // Una lista larga no puede desbordar la tarjeta: los primeros y «+N».
 const OMITIDAS_VISIBLES = 3;

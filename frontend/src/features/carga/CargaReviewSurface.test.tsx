@@ -13,7 +13,7 @@ const styleSource = fs.readFileSync(
   "utf8",
 );
 const findingsStyleSource = fs.readFileSync(
-  fileURLToPath(new URL("./CargaReviewFindings.css", import.meta.url)),
+  fileURLToPath(new URL("./CargaReviewSummary.css", import.meta.url)),
   "utf8",
 );
 
