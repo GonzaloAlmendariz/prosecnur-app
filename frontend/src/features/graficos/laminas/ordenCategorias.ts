@@ -73,6 +73,37 @@ export function listaPersonalizada(lista: readonly string[], datos: GraficosCate
   return [...base, ...resto.filter((k) => !residual.get(k)), ...resto.filter((k) => residual.get(k))];
 }
 
+/**
+ * WYSIWYG (F-a): la lista personalizada se MUESTRA en el orden en que se dibuja. Con `invertir`, el motor invierte la
+ * parte listada y deja detrás las no listadas (contrato §4), así que eso es lo que se ve.
+ */
+export function ordenMostrado(lista: readonly string[], datos: GraficosCategorias, invertir: boolean): string[] {
+  const completa = listaPersonalizada(lista, datos);
+  if (!invertir) return completa;
+  const existe = new Set(datos.categorias.map((c) => c.codigo));
+  const listados = lista.length ? lista.filter((k) => existe.has(k)).length : completa.length;
+  return [...completa.slice(0, listados).reverse(), ...completa.slice(listados)];
+}
+
+/**
+ * De la lista mostrada (ya reordenada por el analista) a la `lista` que se guarda: tras mover, todas quedan listadas, y
+ * con `invertir` el motor la leerá al revés, así que se guarda invertida para que se dibuje tal como se ve.
+ */
+export function listaDesdeMostrado(mostrado: readonly string[], invertir: boolean): string[] {
+  return invertir ? [...mostrado].reverse() : [...mostrado];
+}
+
+/**
+ * Botón de la fila movida que recibe el foco tras Subir/Bajar: el mismo, salvo que la fila quedara en el borde y ese botón
+ * esté disabled —un disabled tira el foco a BODY—; entonces el opuesto. Con una sola categoría ninguno sirve: `null`.
+ */
+export function botonTrasMover(accion: "subir" | "bajar", posicion: number, total: number): "subir" | "bajar" | null {
+  const habilitado = (a: "subir" | "bajar") => (a === "subir" ? posicion > 0 : posicion < total - 1);
+  if (habilitado(accion)) return accion;
+  const opuesto = accion === "subir" ? "bajar" : "subir";
+  return habilitado(opuesto) ? opuesto : null;
+}
+
 /** Mueve el elemento `desde` a la posición `hasta` (índices de la lista mostrada). */
 export function mover(lista: readonly string[], desde: number, hasta: number): string[] {
   if (desde === hasta || desde < 0 || desde >= lista.length) return [...lista];
@@ -86,17 +117,6 @@ export function mover(lista: readonly string[], desde: number, hasta: number): s
  * La pregunta siempre calificada con su base (`base$var`): sin calificar, el backend resolvería la primera base. En un
  * plan multibase el gráfico ya la declara; si no, es la base activa.
  */
-/**
- * Botón de la fila movida que recibe el foco tras Subir/Bajar: el mismo, salvo que la fila quedara en el borde y ese botón
- * esté disabled —un disabled tira el foco a BODY—; entonces el opuesto. Con una sola categoría ninguno sirve: `null`.
- */
-export function botonTrasMover(accion: "subir" | "bajar", posicion: number, total: number): "subir" | "bajar" | null {
-  const habilitado = (a: "subir" | "bajar") => (a === "subir" ? posicion > 0 : posicion < total - 1);
-  if (habilitado(accion)) return accion;
-  const opuesto = accion === "subir" ? "bajar" : "subir";
-  return habilitado(opuesto) ? opuesto : null;
-}
-
 export function varCalificada(variable: string, baseActiva: string | null | undefined): string {
   const v = variable.trim();
   const b = (baseActiva ?? "").trim();
