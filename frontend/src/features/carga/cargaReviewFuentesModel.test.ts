@@ -13,6 +13,8 @@ function fuente(partial: Partial<CargaReviewFuente>): CargaReviewFuente {
     sin_par_fuente: [],
     sin_par_base: [],
     n_opciones_sin_par: 0,
+    excluida: false,
+    n_filas_excluidas: 0,
     ...partial,
   };
 }
@@ -50,6 +52,8 @@ describe("normalizeCargaReviewFuentes", () => {
       sin_par_fuente: [{ variable: "p3", etiqueta: "Cod Pulso" }],
       sin_par_base: [{ variable: "p9", etiqueta: "Edad" }, { variable: "p10", etiqueta: "" }],
       n_opciones_sin_par: 0,
+      excluida: false,
+      n_filas_excluidas: 0,
     });
   });
 });
@@ -63,11 +67,11 @@ describe("cargaReviewFuentesHallazgos", () => {
   it("una fuente solo reordenada es un dato neutro", () => {
     const [h] = cargaReviewFuentesHallazgos({ fuentes: [fuente({ reordenada: true })] });
     expect(h.tono).toBe("info");
-    expect(h.titulo).toBe("Telefónico · 73 preguntas emparejadas por pregunta, en otro orden");
+    expect(h.titulo).toBe("Telefónico · 73 de 74 preguntas emparejadas, en otro orden");
     expect(h.lineas).toEqual([]);
   });
 
-  it("avisa lo que no entró con sus nombres, sin repetir rótulos innecesarios", () => {
+  it("el titular da la cifra y el detalle dice qué no entró", () => {
     const [h] = cargaReviewFuentesHallazgos({
       fuentes: [fuente({
         reordenada: true,
@@ -75,8 +79,8 @@ describe("cargaReviewFuentesHallazgos", () => {
       })],
     });
     expect(h.tono).toBe("pending");
-    expect(h.titulo).toBe("Telefónico · 3 preguntas no están en la base y no entraron");
-    expect(h.lineas).toEqual([{ texto: "Cod Pulso, Celular del egresado, Enumerador" }]);
+    expect(h.titulo).toBe("Telefónico · 73 de 74 preguntas emparejadas");
+    expect(h.lineas).toEqual([{ texto: "No entraron: Cod Pulso, Celular del egresado, Enumerador" }]);
   });
 
   it("junta los dos lados y las opciones, y acota con +N", () => {
@@ -87,19 +91,18 @@ describe("cargaReviewFuentesHallazgos", () => {
         n_opciones_sin_par: 12,
       })],
     });
-    expect(h.titulo).toBe(
-      "Telefónico · 5 preguntas no están en la base y no entraron, y 1 pregunta de la base queda vacía para sus respuestas",
-    );
+    expect(h.titulo).toBe("Telefónico · 73 de 74 preguntas emparejadas");
     expect(h.lineas).toEqual([
       { texto: "No entraron: A, B, C +2", completo: "No entraron: A, B, C, p_d, E" },
-      { texto: "Vacía: Edad" },
-      { texto: "12 respuestas con una opción que no existe en la lista quedaron vacías." },
+      { texto: "Sin respuesta en esta fuente: Edad" },
+      { texto: "12 respuestas quedaron vacías por una opción que no existe en la lista." },
     ]);
   });
 
-  it("solo opciones sin par: el título lo dice", () => {
+  it("solo opciones sin par: avisa con la cifra en el detalle", () => {
     const [h] = cargaReviewFuentesHallazgos({ fuentes: [fuente({ n_opciones_sin_par: 1 })] });
-    expect(h.titulo).toBe("Telefónico · 1 respuesta con una opción que no existe en la lista quedó vacía");
+    expect(h.tono).toBe("pending");
+    expect(h.lineas).toEqual([{ texto: "1 respuesta quedó vacía por una opción que no existe en la lista." }]);
   });
 
   it("instrumento distinto va primero, como incompatibilidad, con la acción", () => {
@@ -110,7 +113,19 @@ describe("cargaReviewFuentesHallazgos", () => {
       ],
     });
     expect(hallazgos.map((h) => h.tono)).toEqual(["incompatible", "info"]);
-    expect(hallazgos[0].titulo).toBe("Fuente 2 · solo 30 de 74 preguntas coinciden con la base");
-    expect(hallazgos[0].lineas[0].texto).toBe("Impórtala como base separada y relaciónala en Equivalencias.");
+    expect(hallazgos[0].titulo).toBe("Fuente 2 · es otro instrumento");
+    expect(hallazgos[0].lineas.map((l) => l.texto)).toEqual([
+      "Solo coinciden 30 de 74 preguntas con la base.",
+      "Impórtala como base separada y relaciónala en Equivalencias.",
+    ]);
+  });
+
+  it("una fuente rechazada dice que no entró y cuántas respuestas quedaron fuera", () => {
+    const [h] = cargaReviewFuentesHallazgos({
+      fuentes: [fuente({ titulo: "Docentes", instrumento_distinto: true, excluida: true, n_emparejadas: 28, n_preguntas_base: 73, n_filas_excluidas: 48 })],
+    });
+    expect(h.tono).toBe("incompatible");
+    expect(h.titulo).toBe("Docentes · no entró a la base");
+    expect(h.lineas[0].texto).toBe("Solo coinciden 28 de 73 preguntas con la base. 48 respuestas quedaron fuera.");
   });
 });

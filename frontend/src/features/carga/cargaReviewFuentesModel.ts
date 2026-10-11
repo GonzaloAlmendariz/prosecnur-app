@@ -50,55 +50,48 @@ function lineaDeNombres(
 function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReviewHallazgoFuente | null {
   const nombre = nombreFuente(fuente, index);
   const key = fuente.survey_id || `fuente-${index}`;
+  const nEmp = fuente.n_emparejadas;
+  const nTotal = fuente.n_preguntas_base;
+  const coinciden = nTotal > 0 ? `${nEmp} de ${nTotal} preguntas` : "";
 
-  if (fuente.instrumento_distinto) {
-    const coincidencia = fuente.n_preguntas_base > 0
-      ? `solo ${fuente.n_emparejadas} de ${fuente.n_preguntas_base} preguntas coinciden con la base`
-      : "es otro instrumento";
+  // Otro instrumento: el titular dice qué pasó con sus respuestas; el detalle,
+  // por qué y qué hacer.
+  if (fuente.instrumento_distinto || fuente.excluida) {
+    const lineas: CargaReviewHallazgoLinea[] = [];
+    const porque = coinciden ? `Solo coinciden ${coinciden} con la base.` : "Es otro instrumento.";
+    const fuera = fuente.n_filas_excluidas > 0
+      ? ` ${fuente.n_filas_excluidas} ${plural(fuente.n_filas_excluidas, "respuesta quedó fuera", "respuestas quedaron fuera")}.`
+      : "";
+    lineas.push({ texto: `${porque}${fuera}` });
+    lineas.push({ texto: SM_ACCION_INSTRUMENTO_DISTINTO });
     return {
       key,
       tono: "incompatible",
-      titulo: `${nombre} · ${coincidencia}`,
-      lineas: [{ texto: SM_ACCION_INSTRUMENTO_DISTINTO }],
+      titulo: fuente.excluida ? `${nombre} · no entró a la base` : `${nombre} · es otro instrumento`,
+      lineas,
     };
   }
 
   const nFuente = fuente.sin_par_fuente.length;
   const nBase = fuente.sin_par_base.length;
   const nOpciones = fuente.n_opciones_sin_par;
+  const titulo = coinciden ? `${nombre} · ${coinciden} emparejadas` : nombre;
 
+  // Lo que se perdió o quedó vacío va en el detalle, una línea por cosa.
   if (nFuente || nBase || nOpciones) {
-    const fraseFuente = `${nFuente} ${plural(nFuente, "pregunta no está", "preguntas no están")} en la base y no ${plural(nFuente, "entró", "entraron")}`;
-    const fraseBase = `${nBase} ${plural(nBase, "pregunta de la base queda vacía", "preguntas de la base quedan vacías")} para sus respuestas`;
-    const fraseOpciones = `${nOpciones} ${plural(
-      nOpciones,
-      "respuesta con una opción que no existe en la lista quedó vacía",
-      "respuestas con una opción que no existe en la lista quedaron vacías",
-    )}`;
-    const titulo = nFuente && nBase
-      ? `${fraseFuente}, y ${fraseBase}`
-      : nFuente
-        ? fraseFuente
-        : nBase
-          ? fraseBase
-          : fraseOpciones;
     const lineas: CargaReviewHallazgoLinea[] = [];
-    // Con las dos listas a la vista, cada una dice cuál es; con una sola, el
-    // título ya lo dijo.
-    if (nFuente) lineas.push(lineaDeNombres(fuente.sin_par_fuente, nBase ? "No entraron: " : ""));
-    if (nBase) lineas.push(lineaDeNombres(fuente.sin_par_base, nFuente ? `${plural(nBase, "Vacía", "Vacías")}: ` : ""));
-    if ((nFuente || nBase) && nOpciones) lineas.push({ texto: `${fraseOpciones}.` });
-    return { key, tono: "pending", titulo: `${nombre} · ${titulo}`, lineas };
+    if (nFuente) lineas.push(lineaDeNombres(fuente.sin_par_fuente, "No entraron: "));
+    if (nBase) lineas.push(lineaDeNombres(fuente.sin_par_base, "Sin respuesta en esta fuente: "));
+    if (nOpciones) {
+      lineas.push({
+        texto: `${nOpciones} ${plural(nOpciones, "respuesta quedó vacía", "respuestas quedaron vacías")} por una opción que no existe en la lista.`,
+      });
+    }
+    return { key, tono: "pending", titulo, lineas };
   }
 
   if (fuente.reordenada) {
-    const n = fuente.n_emparejadas;
-    return {
-      key,
-      tono: "info",
-      titulo: `${nombre} · ${n} ${plural(n, "pregunta emparejada", "preguntas emparejadas")} por pregunta, en otro orden`,
-      lineas: [],
-    };
+    return { key, tono: "info", titulo: `${titulo}, en otro orden`, lineas: [] };
   }
 
   return null;
