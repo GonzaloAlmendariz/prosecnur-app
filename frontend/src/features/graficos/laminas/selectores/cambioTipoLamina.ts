@@ -45,6 +45,29 @@ export function esGraficadorRef(v: unknown): v is GraficadorRef {
 
 const esCifra = (g: GraficadorRef): boolean => g.graficador === "p_cifra";
 
+/** Regla 2: un gráfico nunca va a una ranura de cifra; una cifra entra en cualquiera. */
+export function admiteRanura(grafico: GraficadorRef, slot: string): boolean {
+  return !esSlotCifra(slot) || esCifra(grafico);
+}
+
+/** Regla 2: cada cosa busca primero una ranura de su clase (la cifra, la de cifra; el gráfico, la de gráfico). */
+export function prefiereRanura(grafico: GraficadorRef, slot: string): boolean {
+  return esSlotCifra(slot) === esCifra(grafico);
+}
+
+/**
+ * ¿Hay que pedir confirmación antes de aplicar? Sólo al cambiar de tipo con algo que se pierde (gráficos que no caben o
+ * textos que el tipo nuevo no recibe) y mientras el analista no la haya dado (dirección F6 §4.3: «lo dice antes de
+ * aplicar»). Cambiar sólo la variante nunca pierde nada.
+ */
+export function requiereConfirmacion(
+  cambio: Pick<CambioTipoLamina, "mismoTipo" | "sobrantes" | "textosSobrantes">,
+  confirmado: boolean,
+): boolean {
+  if (cambio.mismoTipo || confirmado) return false;
+  return cambio.sobrantes.length > 0 || cambio.textosSobrantes.length > 0;
+}
+
 function tieneContenido(v: unknown): boolean {
   if (v === null || v === undefined) return false;
   if (typeof v === "string") return v.trim() !== "";
@@ -90,8 +113,8 @@ export function planearCambioTipo(
   const libres = new Set(slotsDestino);
   const destinoDe = new Map<GraficoEnSlot, string>();
   const asignar = (g: GraficoEnSlot, slot: string) => { destinoDe.set(g, slot); libres.delete(slot); };
-  const admite = (g: GraficoEnSlot, slot: string) => !esSlotCifra(slot) || esCifra(g.grafico);
-  const prefiere = (g: GraficoEnSlot, slot: string) => esSlotCifra(slot) === esCifra(g.grafico);
+  const admite = (g: GraficoEnSlot, slot: string) => admiteRanura(g.grafico, slot);
+  const prefiere = (g: GraficoEnSlot, slot: string) => prefiereRanura(g.grafico, slot);
 
   // 1. Mismo nombre.
   for (const g of graficos) if (libres.has(g.slot) && admite(g, g.slot)) asignar(g, g.slot);

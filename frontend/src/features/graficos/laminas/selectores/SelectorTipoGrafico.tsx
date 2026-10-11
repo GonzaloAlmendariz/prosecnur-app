@@ -15,6 +15,7 @@ import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { esGraficadorRef } from "./cambioTipoLamina";
 import { DetalleTipoGrafico } from "./DetalleTipoGrafico";
 import { DialogoSelector } from "./DialogoSelector";
+import { destinoAlCerrarEnDocumento } from "./focoAlCerrar";
 import { nombreSlot } from "./etiquetas";
 import { PANEL_TIPO_GRAFICO } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
@@ -101,6 +102,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
         ? `Hoy: ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}. Al cambiarlo se conservan los datos que el nuevo entienda.`
         : "Elige cómo se dibuja la pregunta de esta ranura."}
       focoInicialRef={focoInicialRef}
+      destinoAlCerrar={() => destinoAlCerrarEnDocumento(k)}
       pregunta={(
         <fieldset className="pulso-f6-opciones">
           <legend className="pulso-f6-selector-leyenda">Familia</legend>

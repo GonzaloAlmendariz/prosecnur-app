@@ -12,9 +12,10 @@ import { ESTANDAR_LAMINAS } from "../../iconos/estandarLaminas.generated";
 import { BASE_DERIVADA } from "../../iconos/composicion";
 import { payloadPorDefecto, usePlanStore } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
-import { graficosDeLamina, graficosPorSlot, planearCambioTipo, type CambioTipoLamina } from "./cambioTipoLamina";
+import { graficosDeLamina, graficosPorSlot, planearCambioTipo, requiereConfirmacion, type CambioTipoLamina } from "./cambioTipoLamina";
 import { DetalleTipoLamina } from "./DetalleTipoLamina";
 import { DialogoSelector } from "./DialogoSelector";
+import { destinoAlCerrarEnDocumento } from "./focoAlCerrar";
 import { nombreCampo, nombreGrafico, nombreLamina, nombreSlot } from "./etiquetas";
 import { PANEL_TIPO_LAMINA } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
@@ -100,8 +101,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
       return;
     }
     if (!slide || !cambio || posicion === null) return;
-    const pierde = cambio.sobrantes.length > 0 || cambio.textosSobrantes.length > 0;
-    if (!cambio.mismoTipo && pierde && !ui.confirmando) {
+    if (requiereConfirmacion(cambio, ui.confirmando)) {
       ui.setConfirmando(true);
       return;
     }
@@ -142,6 +142,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
         ? "Elige qué quieres mostrar y la composición que lo resuelve."
         : "Cambia la composición: los gráficos que ya configuraste pasan a la lámina nueva."}
       focoInicialRef={focoInicialRef}
+      destinoAlCerrar={() => destinoAlCerrarEnDocumento(null)}
       pregunta={(
         <fieldset className="pulso-f6-opciones">
           <legend className="pulso-f6-selector-leyenda">¿Qué quieres mostrar?</legend>

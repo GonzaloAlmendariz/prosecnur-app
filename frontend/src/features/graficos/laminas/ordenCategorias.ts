@@ -75,14 +75,47 @@ export function listaPersonalizada(lista: readonly string[], datos: GraficosCate
 
 /**
  * WYSIWYG (F-a): la lista personalizada se MUESTRA en el orden en que se dibuja. Con `invertir`, el motor invierte la
- * parte listada y deja detrás las no listadas (contrato §4), así que eso es lo que se ve.
+ * parte listada y deja detrás las no listadas (contrato §4), así que eso es lo que se ve. Sin ningún código listado que
+ * exista (lista guardada vacía o sólo con códigos que ya no están), el motor no tiene parte listada: dibuja todo en orden
+ * del instrumento con los residuales al final, invierta o no (`.goc_orden_codigos`, api/R/graficos_orden_categorias.R).
  */
 export function ordenMostrado(lista: readonly string[], datos: GraficosCategorias, invertir: boolean): string[] {
+  const existe = new Set(datos.categorias.map((c) => c.codigo));
+  const listados = lista.filter((k) => existe.has(k)).length;
+  if (listados === 0) {
+    return [...datos.categorias.filter((c) => !c.residual), ...datos.categorias.filter((c) => c.residual)].map((c) => c.codigo);
+  }
   const completa = listaPersonalizada(lista, datos);
   if (!invertir) return completa;
-  const existe = new Set(datos.categorias.map((c) => c.codigo));
-  const listados = lista.length ? lista.filter((k) => existe.has(k)).length : completa.length;
   return [...completa.slice(0, listados).reverse(), ...completa.slice(listados)];
+}
+
+/** Lo que la lista dice de una categoría sin respuestas. */
+export const NO_SE_DIBUJA = "no se dibuja: 0 respuestas";
+
+/** Códigos sin respuestas: el gráfico no los dibuja, aunque la lista los ordene. */
+export function categoriasSinRespuestas(datos: GraficosCategorias): Set<string> {
+  return new Set(datos.categorias.filter((c) => c.n === 0).map((c) => c.codigo));
+}
+
+/** Atributo que nombra el botón Subir/Bajar de cada fila; el markup lo pone y el foco lo busca con el mismo nombre. */
+export const ATRIBUTO_ACCION_ORDEN = "data-orden-accion";
+
+export const selectorAccionOrden = (accion: "subir" | "bajar"): string => `button[${ATRIBUTO_ACCION_ORDEN}="${accion}"]`;
+
+type Enfocable = { focus: (opciones?: FocusOptions) => void };
+type FilaEnfocable = Enfocable & { querySelector: (selector: string) => Enfocable | null };
+
+/**
+ * Tras Subir/Bajar el foco queda en el botón que corresponde de la fila movida (`botonTrasMover`); si no hay botón
+ * habilitado, en la fila. Devuelve lo que enfocó.
+ */
+export function enfocarTrasMover(fila: FilaEnfocable, accion: "subir" | "bajar", posicion: number, total: number): Enfocable {
+  const destino = botonTrasMover(accion, posicion, total);
+  const boton = destino ? fila.querySelector(selectorAccionOrden(destino)) : null;
+  const objetivo = boton ?? fila;
+  objetivo.focus();
+  return objetivo;
 }
 
 /**

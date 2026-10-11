@@ -73,3 +73,15 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* Categoría sin respuestas: sigue en la lista (el orden se guarda con ella) pero el gráfico no la dibuja. */
+.pulso-f6-orden-item.is-sin-respuestas .pulso-f6-orden-etiqueta {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-orden-sin-respuestas {
+  display: block;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--pulso-text-faint);
+}

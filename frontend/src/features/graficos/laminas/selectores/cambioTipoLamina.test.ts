@@ -2,7 +2,7 @@
 // principio 3 y §4.3).
 import { describe, expect, it } from "vitest";
 import type { GraficadorRef, Slide } from "../../../../api/graficos";
-import { graficosDeLamina, graficosPorSlot, planearCambioTipo } from "./cambioTipoLamina";
+import { admiteRanura, graficosDeLamina, graficosPorSlot, planearCambioTipo, prefiereRanura, requiereConfirmacion } from "./cambioTipoLamina";
 
 const g = (graficador: string, v = "P1"): GraficadorRef => ({ graficador, args: { var: v } });
 
@@ -103,5 +103,54 @@ describe("planearCambioTipo", () => {
 
   it("graficosDeLamina ignora ranuras vacías o mal formadas", () => {
     expect(graficosDeLamina({ tipo: "p_slide_2_graficos", payload: { izquierda: { graficador: "" }, derecha: g("p_pie") } }).map((x) => x.slot)).toEqual(["derecha"]);
+  });
+
+  it("regla 1: el gráfico conserva la ranura de su mismo nombre aunque en orden le tocara otra", () => {
+    // Sólo `derecha` lleva gráfico: en orden iría a la primera libre (`izquierda`), pero el nombre manda.
+    const c = planearCambioTipo({ tipo: "p_slide_3_graficos_fila", payload: { izquierda: null, centro: null, derecha: g("p_pie") } }, "p_slide_2_graficos");
+    expect(graficosPorSlot(c)).toEqual({ derecha: "p_pie" });
+    expect(c.payload.izquierda).toBeNull();
+  });
+
+  it("regla 2: una cifra busca primero una ranura de cifra aunque antes haya una de gráfico libre", () => {
+    // En «población con cifras» las ranuras de gráfico van antes que las de cifra.
+    const c = planearCambioTipo({ tipo: "p_slide_1_grafico", payload: { grafico: g("p_cifra", "N") } }, "p_slide_3_graficos_poblacion_cifras");
+    expect(graficosPorSlot(c)).toEqual({ cifra_superior: "p_cifra" });
+    // Y un gráfico, la primera libre de gráfico.
+    const d = planearCambioTipo({ tipo: "p_slide_2_graficos_vertical", payload: { superior: null, inferior: g("p_pie") } }, "p_slide_3_graficos_poblacion_cifras");
+    expect(graficosPorSlot(d)).toEqual({ superior_izquierda: "p_pie" });
+  });
+});
+
+describe("admiteRanura / prefiereRanura", () => {
+  it("un gráfico nunca entra a una ranura de cifra; una cifra entra en cualquiera", () => {
+    expect(admiteRanura(g("p_pie"), "cifra_izquierda")).toBe(false);
+    expect(admiteRanura(g("p_pie"), "cifra_superior")).toBe(false);
+    expect(admiteRanura(g("p_pie"), "grafico_izquierda")).toBe(true);
+    expect(admiteRanura(g("p_cifra"), "cifra_izquierda")).toBe(true);
+    expect(admiteRanura(g("p_cifra"), "grafico")).toBe(true);
+  });
+  it("cada cosa prefiere su clase de ranura", () => {
+    expect(prefiereRanura(g("p_cifra"), "cifra_centro")).toBe(true);
+    expect(prefiereRanura(g("p_cifra"), "superior_izquierda")).toBe(false);
+    expect(prefiereRanura(g("p_pie"), "cifra_centro")).toBe(false);
+    expect(prefiereRanura(g("p_pie"), "derecha")).toBe(true);
+  });
+});
+
+describe("requiereConfirmacion (dirección F6 §4.3: lo dice antes de aplicar)", () => {
+  it("al cambiar de tipo perdiendo un gráfico o un texto, pide confirmación hasta que se da", () => {
+    const pierdeGrafico = planearCambioTipo(cuatro, "p_slide_2_graficos");
+    expect(pierdeGrafico.sobrantes).toHaveLength(1);
+    expect(requiereConfirmacion(pierdeGrafico, false)).toBe(true);
+    expect(requiereConfirmacion(pierdeGrafico, true)).toBe(false);
+    const pierdeTexto = planearCambioTipo({ tipo: "p_slide_portada", payload: { titulo: "Informe", subtitulo: "Consolidado" } }, "p_slide_1_grafico");
+    expect(pierdeTexto.sobrantes).toEqual([]);
+    expect(requiereConfirmacion(pierdeTexto, false)).toBe(true);
+  });
+  it("sin pérdidas, o con el mismo tipo (sólo cambia la variante), aplica directo", () => {
+    expect(requiereConfirmacion(planearCambioTipo(cuatro, "p_slide_4_graficos_poblacion"), false)).toBe(false);
+    expect(requiereConfirmacion(planearCambioTipo(cuatro, "p_slide_4_graficos"), false)).toBe(false);
+    expect(requiereConfirmacion({ mismoTipo: true, sobrantes: [{ slot: "x", grafico: g("p_pie") }], textosSobrantes: ["t"] }, false)).toBe(false);
   });
 });

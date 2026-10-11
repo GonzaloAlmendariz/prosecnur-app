@@ -25,6 +25,7 @@ import { estadoDeLamina, ETIQUETA_ESTADO, motivoDeEstado, type LaminaVisor } fro
 import type { VistaPreviaLamina } from "./usePreviewLamina";
 import { useLaminasUi, type ZoomVisor } from "./laminasStore";
 import { RanurasSobreLamina } from "./RanurasSobreLamina";
+import { ATRIBUTO_LIENZO } from "./selectores/focoAlCerrar";
 import type { RanuraSobreLamina } from "./ranurasLamina";
 import "./visorLamina.css";
 
@@ -195,6 +196,7 @@ export function VisorLamina({
         style={{ "--pulso-f6-zoom": factor } as CSSProperties}
         tabIndex={0}
         onKeyDown={onTecla}
+        {...{ [ATRIBUTO_LIENZO]: lamina.posicion }}
         aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. Flechas izquierda y derecha cambian de lámina${nPartes > 1 ? "; arriba y abajo, de parte" : ""}.`}
       >
         <figure className={`pulso-f6-hoja${cargando && actual?.imagen ? " is-desactualizada" : ""}`}>

@@ -3,7 +3,7 @@ import { normalizeGraficosConfig } from "../../../api/graficosConfigNormalizer";
 import type { GraficosCategorias } from "../../../api/graficos";
 import { mergeSlotArgsPatch } from "../store";
 import { mergeWithDefaults } from "../useGraficosAutosave";
-import { aplicaOrden, botonTrasMover, listaDesdeMostrado, ordenMostrado, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado } from "./ordenCategorias";
+import { aplicaOrden, botonTrasMover, categoriasSinRespuestas, listaDesdeMostrado, ordenMostrado, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado } from "./ordenCategorias";
 
 const datos: GraficosCategorias = {
   var: "p7", base: "", pregunta: "", ordinal: false, tipo: "select_one", modo_recetario: "frecuencia",
@@ -119,3 +119,26 @@ describe("Personalizado + Invertir: la lista se muestra en el orden en que se di
     }
   });
 });
+
+describe("Personalizado sin parte listada: se muestra lo que el motor dibuja (instrumento, residuales al final)", () => {
+  it("con la lista vacía, invierta o no, el orden es el del instrumento (no el del recetario)", () => {
+    expect(ordenMostrado([], datos, false)).toEqual(dibujado([], datos, false));
+    expect(ordenMostrado([], datos, true)).toEqual(dibujado([], datos, true));
+    expect(ordenMostrado([], datos, true)).toEqual(["1", "2", "3", "0"]);
+    const otroRecetario: GraficosCategorias = { ...datos, orden: { ...datos.orden, recetario: ["3", "2", "1", "0"] } };
+    expect(ordenMostrado([], otroRecetario, false)).toEqual(["1", "2", "3", "0"]);
+    expect(ordenMostrado([], otroRecetario, true)).toEqual(["1", "2", "3", "0"]);
+  });
+  it("una lista con sólo códigos que ya no existen se comporta como vacía", () => {
+    expect(ordenMostrado(["99"], datos, true)).toEqual(dibujado(["99"], datos, true));
+  });
+});
+
+describe("categoriasSinRespuestas", () => {
+  it("devuelve los códigos con n = 0", () => {
+    const d: GraficosCategorias = { ...datos, categorias: datos.categorias.map((c) => (c.codigo === "3" ? { ...c, n: 0 } : c)) };
+    expect([...categoriasSinRespuestas(d)]).toEqual(["3"]);
+    expect(categoriasSinRespuestas(datos).size).toBe(0);
+  });
+});
+
