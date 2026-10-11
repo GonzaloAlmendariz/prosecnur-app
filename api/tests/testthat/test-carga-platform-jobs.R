@@ -809,3 +809,87 @@ test_that("contrato HTTP: POST import-separate existe y pasa por el gate async",
     expect_equal(captured$parsed$base_name, "b1")
   }
 })
+
+# ---------------------------------------------------------------------------
+# N4 (revisión metodológica 2026-10-11): una base separada se normaliza solo
+# con mapas de códigos de SU instrumento. Heredar los del formulario activo
+# invertía Si↔No en silencio cuando dos encuestas comparten nombres.
+# ---------------------------------------------------------------------------
+
+.cpj_mapa_si_no_invertido <- function() {
+  list(list(variable = "q1", type = "select_one", list_name = "sino_otro", mappings = list(
+    list(source_code = "Si", xls_code = "No"),
+    list(source_code = "No", xls_code = "Si")
+  )))
+}
+
+.cpj_form_con_mapas <- function(survey_id) {
+  list(source = list(survey_id = survey_id),
+       workbook = list(surveyMonkeyLogic = list(choice_code_maps = .cpj_mapa_si_no_invertido())))
+}
+
+.cpj_q1_importado <- function(sid, out) {
+  f <- session_get(sid)$files[[out$data_file_id]]
+  readxl::read_excel(f$path)$q1
+}
+
+test_that("kobo_import_separate no hereda mapas de códigos del formulario activo", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- .cpj_kobo_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("otro"))
+  session_set(sid, "choice_code_maps_confirmed", list(confirmed = TRUE, maps = .cpj_mapa_si_no_invertido()))
+
+  out <- .carga_import_kobo_separate(sid, list(asset_uid = "asset_a"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No"))
+})
+
+test_that("surveymonkey_import_separate aplica mapas solo del formulario de la misma encuesta", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  # Formulario activo de OTRA encuesta (y mapas confirmados de sesión): no aplican.
+  sid <- session_create()
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
+  session_set(sid, "choice_code_maps_confirmed", list(confirmed = TRUE, maps = .cpj_mapa_si_no_invertido()))
+  out <- .carga_import_surveymonkey_separate(sid, list(survey_id = "sm_1"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No", "Si"))
+  session_delete(sid)
+
+  # El formulario de ESTA encuesta, aunque no sea el activo, sí aplica.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
+  session_set(sid, "xlsform_forms", list(f2 = .cpj_form_con_mapas("sm_1")))
+  out <- .carga_import_surveymonkey_separate(sid, list(survey_id = "sm_1"))
+  expect_equal(.cpj_q1_importado(sid, out), c("No", "Si", "No"))
+})
+
+test_that("base única: el import SM aplica solo mapas del formulario de la misma encuesta", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  sid <- session_create()
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_otra"))
+  out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No", "Si"))
+  session_delete(sid)
+
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_1"))
+  out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
+  expect_equal(.cpj_q1_importado(sid, out), c("No", "Si", "No"))
+})
+
+test_that("base única: el import Kobo no hereda mapas del formulario activo", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  restores <- .cpj_kobo_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("otro"))
+
+  out <- .carga_import_kobo(sid, list(asset_uid = "asset_a"))
+  expect_equal(.cpj_q1_importado(sid, out), c("Si", "No"))
+})

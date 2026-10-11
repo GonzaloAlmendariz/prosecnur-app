@@ -63,7 +63,7 @@
   )
   response_filter <- attr(data_df, "sm_response_filter", exact = TRUE) %||% list()
   data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
-    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id))
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
@@ -103,7 +103,8 @@
     data_df = data_df,
     source_spec = source_spec,
     response_filter = response_filter,
-    imported_at = imported_at
+    imported_at = imported_at,
+    choice_code_maps = .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id)
   )
 }
 
@@ -151,7 +152,7 @@
   # esperada ausente = pregunta sin respuestas (Kobo omite columnas vacías).
   data_df <- .carga_backfill_missing_expected(data_df, rp_inst)
   data_df <- if (is.data.frame(data_df) && nrow(data_df)) {
-    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_editor_choice_code_maps(sid))
+    normalize_data_for_xlsform(data_df, rp_inst, choice_code_maps = .carga_platform_choice_code_maps(sid, "kobo", asset_uid))
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
@@ -195,13 +196,37 @@
     repeat_source_df = repeat_source_df,
     source_spec = source_spec,
     source_meta = source_meta,
-    imported_at = imported_at
+    imported_at = imported_at,
+    choice_code_maps = .carga_platform_choice_code_maps(sid, "kobo", asset_uid)
   )
 }
 
 # ---------------------------------------------------------------------------
 # Registro «bases separadas»
 # ---------------------------------------------------------------------------
+
+# Mapas de códigos del editor SOLO si el formulario es el instrumento de esta
+# fuente (N4, revisión metodológica 2026-10-11; Gonzalo aprobó el mismo criterio
+# para base única). Heredar los mapas del formulario activo —o los confirmados
+# de sesión— recodifica en silencio (Si↔No) cuando dos encuestas SurveyMonkey
+# comparten nombres `p<N>`. Se busca en toda la colección `xlsform_forms` el
+# formulario cuyo `source$survey_id` coincide; sin coincidencia no hay mapas.
+# Kobo no produce `surveyMonkeyLogic`, así que en Kobo nunca aplica.
+.carga_platform_choice_code_maps <- function(sid, provider, source_id) {
+  if (!identical(provider, "surveymonkey")) return(NULL)
+  source_id <- as.character(source_id %||% "")[1]
+  if (is.na(source_id) || !nzchar(source_id)) return(NULL)
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(NULL)
+  candidatos <- c(list(s$xlsform_state %||% list()), unname(s$xlsform_forms %||% list()))
+  for (form in candidatos) {
+    if (!identical(as.character((form$source %||% list())$survey_id %||% "")[1], source_id)) next
+    logic <- (form$workbook %||% list())$surveyMonkeyLogic %||% list()
+    maps <- logic$choice_code_maps %||% logic$choiceCodeMaps %||% NULL
+    if (length(maps)) return(maps)
+  }
+  NULL
+}
 
 # Un estudio de hermanas independientes tiene su propio flujo de import; mezclar
 # una base separada lo dejaría en un modo que ninguno de los dos motores entiende.
@@ -341,7 +366,8 @@
     parent_base_name = base_name,
     title = prep$title,
     downloads_dir = prep$downloads_dir,
-    choice_code_maps = .carga_editor_choice_code_maps(sid, base_name)
+    # Mismo resolutor que la madre (I3): Kobo no hereda mapas del editor.
+    choice_code_maps = prep$choice_code_maps
   )
   .carga_separate_payload(sid, "kobo", base_name, prep, child_bases = child_bases)
 }
