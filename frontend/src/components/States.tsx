@@ -66,26 +66,53 @@ export function ErrorBlock({
   );
 }
 
+/**
+ * Variantes de `EmptyState`.
+ *
+ * - `"en-superficie"` — grande, para el cuerpo de una sección o panel. NO
+ *   dibuja marco: el marco del vacío es de la SUPERFICIE que lo contiene
+ *   (decisión D4 de la remasterización, L24). Si el vacío necesita borde, se
+ *   lo da el panel/carril que lo aloja, no el estado.
+ * - `"inline"` — compacto, con borde discontinuo, para columnas o sidebars.
+ * - `"panel"` — **@deprecated** alias de `"en-superficie"`. El nombre prometía
+ *   un panel que nunca se dibujó. No usar en código nuevo; lo vigila
+ *   `estadosDelKit.contract.test.ts`.
+ */
+export type EmptyStateVariant = "en-superficie" | "inline" | "panel"; // "panel": deprecado
+
+/**
+ * Clases de la variante. `en-superficie` emite también la clase vieja
+ * `pulso-empty-state--panel` como alias de transición: hay hojas de feature
+ * que aún la seleccionan (bitácora, cálculo de muestra) y no se migran en L24.
+ */
+export function emptyStateClasses(variant: EmptyStateVariant): string {
+  if (variant === "inline") return "pulso-empty-state pulso-empty-state--inline";
+  return "pulso-empty-state pulso-empty-state--en-superficie pulso-empty-state--panel";
+}
+
+/**
+ * Vacío honesto: dice qué falta y cómo se llena. El MARCO es de la superficie
+ * que lo contiene (D4): `EmptyState` aporta contenido centrado y su capacidad
+ * mínima, nunca un borde que simule un panel.
+ */
 export function EmptyState({
   icon,
   title,
   hint,
   cta,
-  variant = "panel",
+  variant = "en-superficie",
 }: {
   icon: JSX.Element;
   title: string;
   hint?: string;
   cta?: JSX.Element;
-  // "panel" — grande, para secciones principales
-  // "inline" — compacto, para columnas o sidebars
-  variant?: "panel" | "inline";
+  variant?: EmptyStateVariant;
 }) {
   return (
     <div
-      className={`pulso-empty-state pulso-empty-state--${variant}`}
+      className={emptyStateClasses(variant)}
       /*
-       * La altura mínima del vacío (240 px en `panel`, 140 en `inline`) es
+       * La altura mínima del vacío (240 px en `en-superficie`, 140 en `inline`) es
        * capacidad RESERVADA a propósito: un estado vacío sin presencia se lee
        * como una franja rota. El gate visual audita «capacidad interior que
        * nadie usa» y un `min-height` deliberado la produce siempre que el
