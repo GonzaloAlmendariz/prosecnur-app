@@ -318,6 +318,7 @@ const huella = (indice: IndiceEditable): string => JSON.stringify(
 /** ¿El índice dejó de reflejar los capítulos del informe? Sin capítulos en el informe no hay con qué comparar. */
 export function indiceDesfasado(indice: IndiceEditable, estructura: EstructuraInforme): boolean {
   const informe = indiceDesdeEstructura(estructura);
-  if (!informe.capitulos.length) return false;
+  // Un índice vacío sigue al informe (el motor toma sus capítulos): no hay desfase que avisar.
+  if (!informe.capitulos.length || !indice.capitulos.length) return false;
   return huella(indice) !== huella(informe);
 }
