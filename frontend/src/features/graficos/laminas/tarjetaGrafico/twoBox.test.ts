@@ -3,12 +3,14 @@ import { mergeSlotArgsPatch } from "../../store";
 import {
   bottomDisponible,
   categoriasElegibles,
-  NOTA_BOTTOM_MULTIAPILADAS,
+  composicionDeLamina,
+  NOTA_BOTTOM_NO_NATIVO,
   formaTwoBox,
   leerTwoBox,
   patchTwoBox,
   preguntaDeEscala,
   type CambioTwoBox,
+  type Composicion,
 } from "./twoBox";
 
 type R = Record<string, unknown>;
@@ -23,8 +25,8 @@ const GRAFICADORES = [
 ];
 
 /** Aplica el patch como lo hace el store y simula guardar y leer el plan (JSON). */
-function aplicar(graficador: string, args: R, presets: Record<string, R>, cambio: CambioTwoBox): R {
-  const next = mergeSlotArgsPatch(args, patchTwoBox(graficador, args, presets, cambio));
+function aplicar(graficador: string, args: R, presets: Record<string, R>, cambio: CambioTwoBox, composicion: Composicion = "sola"): R {
+  const next = mergeSlotArgsPatch(args, patchTwoBox(graficador, args, presets, cambio, composicion));
   return JSON.parse(JSON.stringify(next)) as R;
 }
 
@@ -126,23 +128,69 @@ describe("multiapiladas: el par top2box + top2box_labels del constructor de bloq
     expect(leerTwoBox("p_barras_multiapiladas", { modo: "var", vars: ["p1"] }, {})?.top).toEqual({ activa: true, etiquetas: [], delInforme: false });
   });
 
-  it("el Bottom Two Box no se puede encender (el motor aún no lo dibuja bien en la multiapilada)", () => {
-    const args = { modo: "cruce", var: "p1", top2box: true, top2box_labels: ["X", "Y"], overrides: { mostrar_barra_extra: true } };
-    expect(patchTwoBox("p_barras_multiapiladas", args, {}, { caja: "bottom", activa: true })).toEqual({});
-    expect(bottomDisponible("p_barras_multiapiladas", args, {})).toEqual({ ofrecer: true, editable: false, nota: NOTA_BOTTOM_MULTIAPILADAS });
+  it.each(["var", "cruce", "var_cruce"])("modo %s solo en su lámina: el Bottom Two Box se ofrece y se enciende", (modo) => {
+    const args = { modo, var: "p1", vars: ["p1"], top2box: true, top2box_labels: ["X", "Y"] };
+    expect(bottomDisponible("p_barras_multiapiladas", args, {})).toEqual({ ofrecer: true, editable: true, activa: false });
+    const on = aplicar("p_barras_multiapiladas", args, {}, { caja: "bottom", activa: true });
+    expect(on.overrides).toEqual({ columna_bottom2box: true });
+    expect(leerTwoBox("p_barras_multiapiladas", on, {})?.bottom.activa).toBe(true);
+    expect(bottomDisponible("p_barras_multiapiladas", on, {})).toEqual({ ofrecer: true, editable: true, activa: true });
+    expect(aplicar("p_barras_multiapiladas", on, {}, { caja: "bottom", activa: false })).toEqual(args);
   });
 
-  it("si ya lo tiene guardado se muestra y se deja quitar", () => {
+  it("en una lámina de varios gráficos (mixtas, paneles) no se enciende: aún no sale en la lámina nativa", () => {
+    const args = { modo: "cruce", var: "p1", top2box: true, top2box_labels: ["X", "Y"] };
+    expect(patchTwoBox("p_barras_multiapiladas", args, {}, { caja: "bottom", activa: true }, "varios")).toEqual({});
+    expect(bottomDisponible("p_barras_multiapiladas", args, {}, "varios")).toEqual({ ofrecer: true, editable: false, activa: false, nota: NOTA_BOTTOM_NO_NATIVO });
+    // Barras apiladas no cambia: se sigue ofreciendo como hasta ahora.
+    expect(bottomDisponible("p_barras_apiladas", {}, {}, "varios")).toEqual({ ofrecer: true, editable: false, activa: false, nota: NOTA_BOTTOM_NO_NATIVO });
+    expect(bottomDisponible("p_barras_apiladas", {}, {}, "sola")).toEqual({ ofrecer: true, editable: true, activa: false });
+  });
+
+  it("composicionDeLamina: las de 2 o más gráficos son «varios»", () => {
+    expect(composicionDeLamina("p_slide_1_grafico")).toBe("sola");
+    expect(composicionDeLamina("p_slide_1_grafico_narrativo")).toBe("sola");
+    expect(composicionDeLamina(undefined)).toBe("sola");
+    for (const t of ["p_slide_2_graficos", "p_slide_2_graficos_vertical", "p_slide_3_graficos_fila", "p_slide_4_graficos", "p_slide_5_graficos_poblacion", "p_slide_cifras_y_graficos"]) {
+      expect(composicionDeLamina(t)).toBe("varios");
+    }
+  });
+
+  it("si ya lo tiene guardado en una lámina de varios gráficos se muestra y se deja quitar", () => {
     const args = { modo: "cruce", var: "p1", top2box: true, top2box_labels: ["X", "Y"], overrides: { columna_bottom2box: true } };
     expect(leerTwoBox("p_barras_multiapiladas", args, {})?.bottom.activa).toBe(true);
-    expect(bottomDisponible("p_barras_multiapiladas", args, {})).toMatchObject({ ofrecer: true, editable: true });
-    const off = aplicar("p_barras_multiapiladas", args, {}, { caja: "bottom", activa: false });
+    expect(bottomDisponible("p_barras_multiapiladas", args, {}, "varios")).toMatchObject({ ofrecer: true, editable: true, activa: true });
+    const off = aplicar("p_barras_multiapiladas", args, {}, { caja: "bottom", activa: false }, "varios");
     expect(off).toEqual({ modo: "cruce", var: "p1", top2box: true, top2box_labels: ["X", "Y"] });
+    expect(bottomDisponible("p_barras_multiapiladas", off, {}, "varios")).toMatchObject({ editable: false });
+  });
+
+  it("multilista: deshabilitado con nota; uno guardado se deja quitar y no se vuelve a encender", () => {
+    const args = { modo: "multilista", vars: { a: ["p1"], b: ["p2"] } };
+    expect(bottomDisponible("p_barras_multiapiladas", args, {})).toEqual({ ofrecer: true, editable: false, activa: false, nota: NOTA_BOTTOM_NO_NATIVO });
+    expect(patchTwoBox("p_barras_multiapiladas", args, {}, { caja: "bottom", activa: true })).toEqual({});
+    const guardado = { ...args, overrides: { columna_bottom2box: true } };
+    expect(bottomDisponible("p_barras_multiapiladas", guardado, {})).toMatchObject({ editable: true, activa: true });
+    const off = aplicar("p_barras_multiapiladas", guardado, {}, { caja: "bottom", activa: false });
+    expect(off).toEqual(args);
+    expect(bottomDisponible("p_barras_multiapiladas", off, {})).toMatchObject({ editable: false, activa: false });
+    // Las categorías y el Top Two Box de la multilista son de cada bloque: la tarjeta no escribe nada.
+    expect(patchTwoBox("p_barras_multiapiladas", args, {}, { caja: "top", activa: false })).toEqual({});
+    expect(patchTwoBox("p_barras_multiapiladas", args, {}, { caja: "bottom", etiquetas: ["N"] })).toEqual({});
+  });
+
+  it("multilista con el estilo del informe pidiéndolo: apagar y volver a encender es volver a lo heredado", () => {
+    const presets = { multi_apiladas: { columna_bottom2box: true } };
+    const args = { modo: "multilista", vars: { a: ["p1"] } };
+    expect(bottomDisponible("p_barras_multiapiladas", args, presets)).toMatchObject({ editable: true, activa: true });
+    const off = aplicar("p_barras_multiapiladas", args, presets, { caja: "bottom", activa: false });
+    expect(off.overrides).toEqual({ columna_bottom2box: false });
+    expect(aplicar("p_barras_multiapiladas", off, presets, { caja: "bottom", activa: true })).toEqual(args);
   });
 
   it("en barras apiladas el Bottom Two Box sí se ofrece, y nunca sin Top Two Box", () => {
-    expect(bottomDisponible("p_barras_apiladas", {}, {})).toEqual({ ofrecer: true, editable: true });
-    expect(bottomDisponible("p_barras_apiladas", { overrides: { mostrar_barra_extra: false } }, {})).toEqual({ ofrecer: false, editable: false });
+    expect(bottomDisponible("p_barras_apiladas", {}, {})).toEqual({ ofrecer: true, editable: true, activa: false });
+    expect(bottomDisponible("p_barras_apiladas", { overrides: { mostrar_barra_extra: false } }, {})).toEqual({ ofrecer: false, editable: false, activa: false });
   });
 
   it("si el estilo del informe lo pide, apagarlo en el gráfico y volver a encenderlo es volver a lo heredado", () => {
@@ -158,8 +206,8 @@ describe("multiapiladas: el par top2box + top2box_labels del constructor de bloq
 
 describe("ida y vuelta: volver a lo heredado deja el gráfico como estaba", () => {
   const MULTI = "p_barras_multiapiladas";
-  const recorrer = (g: string, args: R, presets: Record<string, R>, cambios: CambioTwoBox[]) =>
-    cambios.reduce((acc, c) => aplicar(g, acc, presets, c), args);
+  const recorrer = (g: string, args: R, presets: Record<string, R>, cambios: CambioTwoBox[], composicion: Composicion = "sola") =>
+    cambios.reduce((acc, c) => aplicar(g, acc, presets, c, composicion), args);
 
   it("multiapiladas {top2box} → poner etiquetas → quitarlas: no deja overrides.mostrar_barra_extra", () => {
     const fin = recorrer(MULTI, { modo: "var", vars: ["p1"], top2box: true }, {}, [
@@ -210,29 +258,37 @@ describe("ida y vuelta: volver a lo heredado deja el gráfico como estaba", () =
     { caja: "bottom", etiquetas: [] },
   ];
   /** Toques que devuelven cada caja a lo heredado (estado y categorías). */
-  function volver(g: string, args: R, presets: Record<string, R>): R {
+  function volver(g: string, args: R, presets: Record<string, R>, k: Composicion): R {
     const ini = leerTwoBox(g, {}, presets)!;
-    let a = aplicar(g, args, presets, { caja: "bottom", etiquetas: ini.bottom.etiquetas });
-    a = aplicar(g, a, presets, { caja: "bottom", activa: ini.bottom.activa });
-    a = aplicar(g, a, presets, { caja: "top", activa: true });
-    a = aplicar(g, a, presets, { caja: "top", etiquetas: ini.top.etiquetas });
-    return aplicar(g, a, presets, { caja: "top", activa: ini.top.activa });
+    let a = aplicar(g, args, presets, { caja: "bottom", etiquetas: ini.bottom.etiquetas }, k);
+    a = aplicar(g, a, presets, { caja: "bottom", activa: ini.bottom.activa }, k);
+    a = aplicar(g, a, presets, { caja: "top", activa: true }, k);
+    a = aplicar(g, a, presets, { caja: "top", etiquetas: ini.top.etiquetas }, k);
+    return aplicar(g, a, presets, { caja: "top", activa: ini.top.activa }, k);
   }
-  const BASES: [string, R][] = [["p_barras_apiladas", { var: "p1" }], [MULTI, { modo: "var", vars: ["p1"] }], [MULTI, { modo: "cruce", var: "p1" }]];
+  const BASES: [string, R][] = [
+    ["p_barras_apiladas", { var: "p1" }],
+    [MULTI, { modo: "var", vars: ["p1"] }],
+    [MULTI, { modo: "cruce", var: "p1" }],
+    [MULTI, { modo: "var_cruce", vars: { a: ["p1"], b: ["p2"] } }],
+  ];
+  const COMPOSICIONES: Composicion[] = ["sola", "varios"];
 
   it("para toda secuencia de hasta tres toques y su vuelta, el patch acumulado es vacío", () => {
     let casos = 0;
+    const secuencias: CambioTwoBox[][] = [[]];
+    for (let n = 0; n < 3; n += 1) {
+      for (const s of secuencias.filter((x) => x.length === n)) for (const t of TOQUES) secuencias.push([...s, t]);
+    }
     for (const presets of PRESETS) {
       for (const [g, base] of BASES) {
-        const secuencias: CambioTwoBox[][] = [[]];
-        for (let n = 0; n < 3; n += 1) {
-          for (const s of secuencias.filter((x) => x.length === n)) for (const t of TOQUES) secuencias.push([...s, t]);
-        }
-        for (const s of secuencias) {
-          const fin = volver(g, recorrer(g, base, presets, s), presets);
-          expect({ presets, g, s, fin }).toEqual({ presets, g, s, fin: base });
-          expect(leerTwoBox(g, fin, presets)).toEqual(leerTwoBox(g, base, presets));
-          casos += 1;
+        for (const k of COMPOSICIONES) {
+          for (const s of secuencias) {
+            const fin = volver(g, recorrer(g, base, presets, s, k), presets, k);
+            expect({ presets, g, k, s, fin }).toEqual({ presets, g, k, s, fin: base });
+            expect(leerTwoBox(g, fin, presets)).toEqual(leerTwoBox(g, base, presets));
+            casos += 1;
+          }
         }
       }
     }

@@ -16,9 +16,12 @@
 //   multiapilada modo «cruce» con los mismos overrides, y hereda también el preset `multi_apiladas`.
 // - Multiapiladas (var, cruce, var_cruce): el Top Two Box es `top2box` + `top2box_labels` del plan, el mismo par que
 //   escribe el constructor de bloques (`MultiApiladasBuilder`). Las etiquetas sólo llegan al motor con `top2box = TRUE`
-//   (`.apply_top2box_alias`, reporte_plan_ppt.R). La Bottom Two Box va por overrides, y por ahora sólo se deja quitar
+//   (`.apply_top2box_alias`, reporte_plan_ppt.R). La Bottom Two Box va por overrides (`columna_bottom2box`): en la
+//   lámina de un gráfico el motor la compone igual que sin ella (`.lam_escala_modo_filas`, lamina_escala.R).
+// - Multiapiladas «multilista»: cada bloque declara su Top Two Box en el editor de bloques. Las láminas de varios
+//   bloques (multilista) o de varios gráficos (mixtas, paneles) todavía no dibujan la segunda columna en nativo
+//   (`.lam_escala_en_filas` las saca de la ruta nativa): ahí la Bottom Two Box no se enciende, sólo se quita
 //   (`bottomDisponible`).
-// - Multiapiladas «multilista»: cada bloque declara su Top Two Box en el editor de bloques.
 
 import { categoriasDeEscala } from "../../top2boxSeleccion";
 
@@ -126,16 +129,30 @@ function apartar(ov: Registro, clave: string, valor: unknown, hereda: unknown) {
 }
 
 /** El patch de args (para `updateSlotArgs`) que expresa el cambio en lo que lee el motor. */
-export function patchTwoBox(graficador: string, args: Readonly<Registro>, presets: Presets, cambio: CambioTwoBox): Registro {
+export function patchTwoBox(
+  graficador: string,
+  args: Readonly<Registro>,
+  presets: Presets,
+  cambio: CambioTwoBox,
+  composicion: Composicion = "sola",
+): Registro {
   const forma = formaTwoBox(graficador, args);
-  if (forma !== "apiladas" && forma !== "multiapiladas") return {};
+  if (!forma) return {};
   const h = heredado(presetHeredado(forma, args, presets));
   const ov: Registro = { ...registro(args.overrides) };
 
+  if (forma === "por_bloque") {
+    // Multilista: el Top Two Box es de cada bloque (editor de bloques); aquí sólo se quita la Bottom Two Box.
+    if (cambio.caja !== "bottom" || !("activa" in cambio)) return {};
+    if (cambio.activa && !h.bottom) return {};
+    apartar(ov, "columna_bottom2box", cambio.activa, h.bottom);
+    return { overrides: cerrar(ov) };
+  }
+
   if (cambio.caja === "bottom") {
-    // Encender el Bottom Two Box en una multiapilada no se ofrece (`bottomDisponible`); quitarlo sí.
+    // Donde la lámina nativa no dibuja la segunda columna no se ofrece encenderla (`bottomDisponible`); quitarla sí.
     // Volver a un Bottom Two Box heredado sí se deja: es borrar el apagado del gráfico.
-    if ("activa" in cambio && cambio.activa && forma === "multiapiladas" && !h.bottom) return {};
+    if ("activa" in cambio && cambio.activa && !bottomNativo(forma, args, composicion) && !h.bottom) return {};
     if ("activa" in cambio) apartar(ov, "columna_bottom2box", cambio.activa, h.bottom);
     else apartar(ov, "bottom2box_labels", [...cambio.etiquetas], h.bottomEtiquetas);
     return { overrides: cerrar(ov) };
@@ -200,23 +217,55 @@ function multiapiladas(ov: Registro, h: Heredado, activa: boolean, propias: stri
   return { top2box, top2box_labels: propias.length ? propias : null };
 }
 
-export type BottomDisponible = { ofrecer: boolean; editable: boolean; nota?: string };
+export type BottomDisponible = { ofrecer: boolean; editable: boolean; activa: boolean; nota?: string };
 
-export const NOTA_BOTTOM_MULTIAPILADAS =
-  "En esta composición el Bottom Two Box todavía no se dibuja bien en la lámina; disponible en barras apiladas.";
+/** Cómo compone la lámina al gráfico: solo, o junto a otros (mixtas y paneles: láminas de 2 o más gráficos). */
+export type Composicion = "sola" | "varios";
+
+/** Láminas de varios gráficos: las de 2 a 6 ranuras y la de cifras con gráficos (`SlideType`, api/graficos.ts). */
+export function composicionDeLamina(tipo: string | undefined): Composicion {
+  return tipo && (/^p_slide_[2-9]_graficos/.test(tipo) || tipo === "p_slide_cifras_y_graficos") ? "varios" : "sola";
+}
+
+export const NOTA_BOTTOM_NO_NATIVO = "En esta composición el Bottom Two Box aún no sale en la lámina nativa.";
 
 /**
- * Si se ofrece «Bottom Two Box al lado». En las multiapiladas el motor todavía no lo dibuja bien (la lámina pierde su
- * paginación y los rótulos de fila se solapan): no se ofrece encenderlo, pero si el gráfico ya lo tiene (o lo pide el
- * estilo del informe) se muestra y se deja quitar y volver a poner.
+ * ¿La lámina nativa dibuja la Bottom Two Box de este gráfico? Barras apiladas, siempre (como hasta ahora); la
+ * multiapilada (var, cruce, var_cruce) sola en su lámina, sí. La multilista y las láminas de varios gráficos no:
+ * `.lam_escala_en_filas` las saca de la ruta nativa (lamina_multilista.R, lamina_mixtas.R, lamina_compositor.R).
  */
-export function bottomDisponible(graficador: string, args: Readonly<Registro>, presets: Presets): BottomDisponible {
-  const estado = leerTwoBox(graficador, args, presets);
-  if (!estado?.top.activa) return { ofrecer: false, editable: false };
-  if (estado.forma === "apiladas") return { ofrecer: true, editable: true };
+function bottomNativo(forma: FormaTwoBox, args: Readonly<Registro>, composicion: Composicion): boolean {
+  // Paneles y mixtas mandan a la ruta anterior toda escala con Bottom Two Box (`.lam_escala_en_filas`,
+  // lamina_compositor.R / lamina_mixtas.R): tampoco una apilada la dibuja nativa en una lámina de varios gráficos.
+  if (composicion !== "sola") return false;
+  if (forma === "apiladas") return true;
+  return !(forma === "por_bloque" || args.modo === "multilista");
+}
+
+/**
+ * Si se ofrece «Bottom Two Box al lado». Donde la lámina nativa no la dibuja no se ofrece encenderla, pero si el
+ * gráfico ya la tiene (o la pide el estilo del informe) se muestra y se deja quitar y volver a poner.
+ */
+export function bottomDisponible(
+  graficador: string,
+  args: Readonly<Registro>,
+  presets: Presets,
+  composicion: Composicion = "sola",
+): BottomDisponible {
+  const forma = formaTwoBox(graficador, args);
+  if (!forma) return { ofrecer: false, editable: false, activa: false };
+  const heredaBottom = heredado(presetHeredado(forma, args, presets)).bottom;
+  let activa: boolean;
+  if (forma === "por_bloque") {
+    activa = booleano(registro(args.overrides).columna_bottom2box) ?? heredaBottom;
+  } else {
+    const estado = leerTwoBox(graficador, args, presets);
+    if (!estado?.top.activa) return { ofrecer: false, editable: false, activa: false };
+    activa = estado.bottom.activa;
+  }
+  if (bottomNativo(forma, args, composicion)) return { ofrecer: true, editable: true, activa };
   // Encender sólo se deja si es volver a lo que el estilo del informe ya pide (borrar el apagado del gráfico).
-  const heredaBottom = heredado(presetHeredado(estado.forma, args, presets)).bottom;
-  return { ofrecer: true, editable: estado.bottom.activa || heredaBottom, nota: NOTA_BOTTOM_MULTIAPILADAS };
+  return { ofrecer: true, editable: activa || heredaBottom, activa, nota: NOTA_BOTTOM_NO_NATIVO };
 }
 
 /** Pregunta de la que salen las categorías de la escala (la primera de la multiapilada). */
