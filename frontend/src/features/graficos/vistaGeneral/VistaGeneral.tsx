@@ -19,6 +19,8 @@ import { enfocarSinDesplazar } from "../laminas/enfocarSinDesplazar";
 import { useLaminasUi } from "../laminas/laminasStore";
 import { construirEstructura } from "../laminas/modeloEstructura";
 import { useMiniaturasLote } from "../laminas/miniaturas/useMiniaturasLote";
+import { BotonArmarDesdeVacio } from "../armarDesde/BotonArmarDesdeVacio";
+import { AvisosVistaGeneral } from "./AvisosVistaGeneral";
 import { BarraVistaGeneral } from "./BarraVistaGeneral";
 import { ConfirmarEliminar } from "./ConfirmarEliminar";
 import { FilaCapitulo } from "./FilaCapitulo";
@@ -41,7 +43,7 @@ import {
   type FilaVistaGeneral,
 } from "./modeloVistaGeneral";
 import { objetivoDeAccion, reconciliarSeleccionVG, seleccionar, seleccionarTodo, SELECCION_VACIA } from "./seleccionVistaGeneral";
-import { destinoDeFoco, intencionDeTecla } from "./tecladoVistaGeneral";
+import { destinoDeFoco, intencionDeTecla, objetivoDeReenfoque } from "./tecladoVistaGeneral";
 import { useFlipTarjetas } from "./useFlipTarjetas";
 import { useTarjetasVistas } from "./useTarjetasVistas";
 import { useVistaGeneralUi } from "./vistaGeneralStore";
@@ -147,7 +149,9 @@ export default function VistaGeneral() {
   /** Aplica un plan nuevo en un paso deshacible y conserva la lámina seleccionada del editor si sigue viva. */
   const aplicar = useCallback((nuevos: Slide[], seleccionPlan?: string | null) => {
     const previa = usePlanStore.getState().selectedSlideId;
-    reenfocar.current = (document.activeElement as HTMLElement | null) ?? null;
+    // El id de la tarjeta y no su nodo: cruzar de capítulo desmonta el `<li>` (ver `objetivoDeReenfoque`).
+    const activo = document.activeElement;
+    reenfocar.current = activo instanceof HTMLElement ? objetivoDeReenfoque(activo) : null;
     loadPlan({ slides: nuevos });
     const vigente = seleccionPlan ?? (previa && nuevos.some((s) => s.id === previa) ? previa : nuevos[0]?.id ?? null);
     select(vigente);
@@ -385,9 +389,10 @@ export default function VistaGeneral() {
         <div className="pulso-f6-vg-cuerpo is-vacio" data-qa-scroll-owner="vista-general">
           <div className="pulso-f6-vacio-informe pulso-f6-vg-vacio" role="status">
             <strong>El informe todavía no tiene láminas</strong>
-            <p>Aquí verás el informe por capítulos, con cada lámina como tarjeta, para ordenarlo de un vistazo. Empieza por insertar la primera lámina en Láminas.</p>
+            <p>Aquí verás el informe por capítulos, con cada lámina como tarjeta, para ordenarlo de un vistazo. Empieza por insertar la primera lámina en Láminas o arma el informe desde un plan sugerido.</p>
             <div className="pulso-f6-vacio-acciones">
               <button type="button" className="pulso-f6-boton" onClick={() => direccion.irA("pestana", "laminas")}>Ir a Láminas</button>
+              <BotonArmarDesdeVacio />
             </div>
           </div>
         </div>
@@ -457,6 +462,7 @@ export default function VistaGeneral() {
           })}
         </div>
       </div>
+      <AvisosVistaGeneral estructura={estructura} onIr={abrir} />
       <ConfirmarEliminar
         titulos={titulosAEliminar}
         onConfirmar={confirmarEliminacion}

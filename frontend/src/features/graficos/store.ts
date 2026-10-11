@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { GraficadorRef, PlanJson, PptStyleProfileMeta, Slide, SlideType } from "../../api/client";
+import { scopeRulesConIdentidad, type PlanSugeridoAplicable } from "./armarDesde/aplicarPlanSugerido";
 import {
   createDefaultWordPresets,
   normalizeDocumentoWord,
@@ -114,6 +115,10 @@ type Snapshot = {
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
   scopeRules: ScopeRulesConfig;
+  /** ADR 0063: el sello de la declaración viaja con el plan que salió de ella; deshacer el plan deshace el sello. */
+  equivalenciasRevision: string;
+  /** G6: el interruptor de «Otros» cambia la salida, así que se deshace con Ctrl/⌘+Z como cualquier edición. */
+  autoOtrosSlides: boolean;
 };
 
 // Tope del stack. 30 acciones cubre el flujo típico de edición (crear
@@ -155,6 +160,11 @@ type PlanStore = {
    */
   autoOtrosSlides: boolean;
   setAutoOtrosSlides: (value: boolean) => void;
+  /**
+   * Aplica un plan sugerido en UN paso deshacible (contrato A5 2b): plan, sello de la declaración, perfil de estilo,
+   * identidad en `scope_rules.global` y, sólo si el analista lo aceptó, el «Otros» que propone el plan.
+   */
+  aplicarPlanSugerido: (entrada: PlanSugeridoAplicable) => void;
   hydrated: boolean;
   /**
    * La carga de la config reintenta con backoff (hasta 15 s) y hasta ahora lo
@@ -362,6 +372,8 @@ function snapshotFromState(state: PlanStore): Snapshot {
     overridesReusables: state.overridesReusables,
     debugPh: state.debugPh,
     scopeRules: state.scopeRules,
+    equivalenciasRevision: state.equivalenciasRevision,
+    autoOtrosSlides: state.autoOtrosSlides,
   };
 }
 
@@ -449,6 +461,19 @@ function mergeOverrides(current: OverrideReusable[], incoming: OverrideReusable[
   return order.map((id) => byId.get(id)).filter(Boolean) as OverrideReusable[];
 }
 
+/** Lo que un perfil de estilo PPT funde en el estado (mismo resultado en `applyPptStyleProfile` y al aplicar un plan). */
+function estiloDePerfil(state: PlanStore, profile: PptStyleProfileMeta) {
+  return {
+    presets: mergePresetMaps(state.presets, profile.presets ?? {}),
+    paletas: mergePaletas(state.paletas, profile.paletas ?? {}),
+    overridesReusables: mergeOverrides(
+      state.overridesReusables,
+      (profile.overrides_reusables ?? []) as OverrideReusable[],
+    ),
+    scopeRules: mergeDeepRecord(state.scopeRules, profile.scope_rules ?? {}) as ScopeRulesConfig,
+  };
+}
+
 export const usePlanStore = create<PlanStore>((set) => ({
   plan: { slides: [] },
   presets: {},
@@ -469,7 +494,20 @@ export const usePlanStore = create<PlanStore>((set) => ({
   equivalenciasRevision: "",
   setEquivalenciasRevision: (revision) => set({ equivalenciasRevision: revision, dirty: true }),
   autoOtrosSlides: false,
-  setAutoOtrosSlides: (value) => set({ autoOtrosSlides: value, dirty: true }),
+  setAutoOtrosSlides: (value) => set((state) => (
+    state.autoOtrosSlides === value ? state : dirty(state, { autoOtrosSlides: value })
+  )),
+  aplicarPlanSugerido: ({ plan, revision, perfil, identidad, autoOtrosSlides }) => set((state) => {
+    const estilo = perfil ? estiloDePerfil(state, perfil) : null;
+    return dirty(state, {
+      plan,
+      selectedSlideId: plan.slides[0]?.id ?? null,
+      ...(estilo ?? {}),
+      scopeRules: scopeRulesConIdentidad(estilo?.scopeRules ?? state.scopeRules, identidad) as ScopeRulesConfig,
+      ...(revision !== undefined ? { equivalenciasRevision: revision } : {}),
+      ...(autoOtrosSlides !== undefined ? { autoOtrosSlides } : {}),
+    });
+  }),
   hydrated: false,
   hydrationRetrying: false,
   setHydrationRetrying: (retrying) => set({ hydrationRetrying: retrying }),
@@ -650,19 +688,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setWPresets: (wPresets) => set((state) => dirty(state, { wPresets })),
   setDocumentoWord: (documentoWord) => set((state) => dirty(state, { documentoWord: normalizeDocumentoWord(documentoWord) })),
 
-  applyPptStyleProfile: (profile) =>
-    set((state) => dirty(state, {
-      presets: mergePresetMaps(state.presets, profile.presets ?? {}),
-      paletas: mergePaletas(state.paletas, profile.paletas ?? {}),
-      overridesReusables: mergeOverrides(
-        state.overridesReusables,
-        (profile.overrides_reusables ?? []) as OverrideReusable[],
-      ),
-      scopeRules: mergeDeepRecord(
-        state.scopeRules,
-        profile.scope_rules ?? {},
-      ) as ScopeRulesConfig,
-    })),
+  applyPptStyleProfile: (profile) => set((state) => dirty(state, estiloDePerfil(state, profile))),
 
   setPresetArg: (tipo, arg, value) => {
     set((state) => {

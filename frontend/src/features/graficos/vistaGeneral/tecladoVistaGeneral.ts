@@ -76,3 +76,17 @@ export function destinoDeFoco(
     }
   }
 }
+
+/** Lo mínimo de un elemento del DOM que necesita `objetivoDeReenfoque` (así se prueba sin DOM). */
+export type ElementoEnfocable = { closest(selector: string): { getAttribute(nombre: string): string | null } | null };
+
+/**
+ * A quién devolver el foco tras aplicar un plan nuevo (F1-bis, C4 de teclado). Si el foco está en una tarjeta (o dentro
+ * de ella) se guarda su id y no el nodo: al cruzar de capítulo con Alt+flecha React desmonta ese `<li>` y monta otro en
+ * la fila de destino, así que el nodo guardado queda desconectado, el foco cae en BODY y el siguiente Alt+flecha se
+ * pierde. Fuera de una tarjeta (asa o botones de un capítulo, que sobreviven por su `key`) se guarda el nodo.
+ */
+export function objetivoDeReenfoque<T extends ElementoEnfocable>(activo: T | null): string | T | null {
+  const id = activo?.closest("[data-vg-tarjeta]")?.getAttribute("data-vg-tarjeta");
+  return id ? id : activo;
+}

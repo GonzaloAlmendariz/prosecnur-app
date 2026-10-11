@@ -1,10 +1,12 @@
 // Barra de la Vista general (F6.3): la cobertura del informe a la vista (cuántas láminas, cuántas con gráfico, cuántas
 // incompletas, cuántos capítulos) y las acciones sobre la selección (inventario A0 C31): mover a un capítulo, duplicar y
-// eliminar con confirmación. El marco no cambia con la selección (C2): sin láminas elegidas, la barra explica cómo
+// eliminar con confirmación. En el grupo de cobertura va también el interruptor de «Otros» (`InterruptorOtros`, contrato
+// A5 2b). El marco no cambia con la selección (C2): sin láminas elegidas, la barra explica cómo
 // elegir y las acciones quedan deshabilitadas en su sitio.
 
 import { useState } from "react";
 import { Copy, ListTree, Trash2, X } from "../../../vendor/lucide-react";
+import { InterruptorOtros } from "./InterruptorOtros";
 import type { CoberturaInforme, FilaVistaGeneral } from "./modeloVistaGeneral";
 
 const esMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -38,6 +40,7 @@ export function BarraVistaGeneral({ cobertura, filas, seleccionadas, destinosHab
           <span className="pulso-f6-vg-dato is-aviso" data-qa-geometry-member><strong>{cobertura.incompletas}</strong> {cobertura.incompletas === 1 ? "incompleta" : "incompletas"}</span>
         )}
         <span className="pulso-f6-vg-dato" data-qa-geometry-member><strong>{cobertura.capitulos}</strong> {cobertura.capitulos === 1 ? "capítulo" : "capítulos"}</span>
+        <InterruptorOtros />
       </div>
       <span className="pulso-f6-col-sp" />
       <div className="pulso-f6-vg-acciones" role="toolbar" aria-label="Acciones sobre las láminas elegidas">

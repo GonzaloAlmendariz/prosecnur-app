@@ -30,6 +30,7 @@ import { esLateral, resolverLateral, type Lateral } from "./lateralLaminas";
 import { useAnchoCompacto, useSideoverModal } from "./useSideoverModal";
 import { useReencajeLienzo } from "./useReencajeLienzo";
 import { AccionesLamina } from "./AccionesLamina";
+import { BotonArmarDesdeVacio } from "../armarDesde/BotonArmarDesdeVacio";
 import { toast } from "../../../components/toasterStore";
 import { SelectorTipoLamina } from "./selectores/SelectorTipoLamina";
 import { SelectorTipoGrafico } from "./selectores/SelectorTipoGrafico";
@@ -240,10 +241,10 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         <EstructuraInforme onCerrar={() => undefined} estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
         <div className="pulso-f6-vacio-informe" role="status">
           <strong>El informe todavía no tiene láminas</strong>
-          <p>Inserta la primera lámina, o arma el plan desde el Editor anterior o con un plan sugerido; aquí verás cada lámina tal como sale.</p>
+          <p>Inserta la primera lámina o arma el informe desde un plan sugerido; aquí verás cada lámina tal como sale.</p>
           <div className="pulso-f6-vacio-acciones">
             <button type="button" className="pulso-f6-boton" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</button>
-            <button type="button" className="pulso-f6-boton" onClick={onIrEditorAnterior}>Ir al Editor anterior</button>
+            <BotonArmarDesdeVacio />
           </div>
         </div>
       </div>

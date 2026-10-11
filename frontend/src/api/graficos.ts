@@ -1299,6 +1299,8 @@ export type GraficosSuggestedPlanResponse = {
   n_diapositivas?: number;
   /** Filas que no entraron al mazo, con su motivo. */
   fuera?: { etiqueta: string; motivo: string; detalle?: string }[];
+  /** B42/G-18: lo que el plan propone para las láminas de «Otros». Se propone; nunca cambia el interruptor sin avisar. */
+  auto_otros_slides?: boolean;
 };
 
 export async function apiGraficosPlanCoverage(
