@@ -35,6 +35,20 @@ export const PANEL_AVISOS_INFORME: PanelDeclarado = {
   clase: "sideover",
 };
 
+/** «Armar desde…» (planes sugeridos, perfiles y sincronizar equivalencias): popover direccionable (A5 rebanada 2b). */
+export const PANEL_ARMAR_DESDE: PanelDeclarado = {
+  id: "armar-desde",
+  label: "Armar desde un plan sugerido",
+  clase: "popover",
+};
+
+/** Biblioteca de íconos de un capítulo del índice (A5 rebanada 2b). */
+export const PANEL_ICONOS: PanelDeclarado = {
+  id: "iconos",
+  label: "Íconos del índice",
+  clase: "dialogo",
+};
+
 export const PANELES_GRAFICOS = [
   PANEL_BIBLIOTECA_SLIDES,
   PANEL_BIBLIOTECA_GRAFICADORES,
@@ -44,4 +58,6 @@ export const PANELES_GRAFICOS = [
   PANEL_TIPO_LAMINA,
   PANEL_TIPO_GRAFICO,
   PANEL_GUIAS_LAMINA,
+  PANEL_ARMAR_DESDE,
+  PANEL_ICONOS,
 ] as const satisfies readonly PanelDeclarado[];

@@ -331,7 +331,7 @@ export default function GraficosPage() {
             </Alert>
           )}
 
-          {pestana === "laminas" && bodyState === "editor" ? (
+          {(pestana === "laminas" || pestana === "vista-general") && bodyState === "editor" ? (
             <BarraLaminas
               onExportPpt={() => onExport("ppt")}
               onExportWord={() => onExport("word")}
