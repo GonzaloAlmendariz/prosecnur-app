@@ -288,3 +288,97 @@ test_that("tras refrescar, la base nueva queda marcada y ninguna relectura le ap
   .sor_check(sid, base$xlsform_file_id,
              as.data.frame(.carga_normalized_data_for_export(sid, "default")$data), "Ver base tras refrescar")
 })
+
+# --- Ítem 12: formas de la lógica que cita los códigos ------------------------
+
+test_that("reescribe la comparación invertida y las comillas dobles en todas las formas", {
+  r <- c("1" = "2", "2" = "1")
+  f <- .carga_sm_orden_reescribir_expr
+  expect_equal(f("'1' = ${p1}", "p1", r), "'2' = ${p1}")
+  expect_equal(f("'2' != ${p1}", "p1", r), "'1' != ${p1}")
+  expect_equal(f("${p1} = \"1\"", "p1", r), "${p1} = \"2\"")
+  expect_equal(f("${p1} != \"2\"", "p1", r), "${p1} != \"1\"")
+  expect_equal(f("\"1\" = ${p1}", "p1", r), "\"2\" = ${p1}")
+  expect_equal(f("selected(${p1}, \"2\")", "p1", r), "selected(${p1}, \"1\")")
+  expect_equal(f("selected( ${p1} , '1' ) and not(selected(${p1}, '2'))", "p1", r),
+               "selected( ${p1} , '2' ) and not(selected(${p1}, '1'))")
+  # Otra variable con prefijo común no se toca.
+  expect_equal(f("${p1} = '1' and ${p10} = '1'", "p1", r), "${p1} = '2' and ${p10} = '1'")
+})
+
+test_that("count-selected, string-length y la cadena vacía no dependen del código: no omiten la lista", {
+  r <- c("1" = "2", "2" = "1")
+  f <- .carga_sm_orden_reescribir_expr
+  for (e in c("count-selected(${p1}) >= 1", "string-length(${p1}) > 0", "${p1} != ''", "'' = ${p1}",
+              "${p1} = \"\"", "count-selected(${p1}) <= 2 and ${p1} != ''")) {
+    expect_equal(f(e, "p1", r), e, info = e)
+  }
+  expect_equal(f("count-selected(${p1}) > 0 and selected(${p1}, '1')", "p1", r),
+               "count-selected(${p1}) > 0 and selected(${p1}, '2')")
+})
+
+test_that("la autorreferencia `.` solo se reconoce en el constraint o relevant de la propia variable", {
+  r <- c("1" = "2", "2" = "1")
+  f <- .carga_sm_orden_reescribir_expr
+  expect_equal(f("selected(., '1')", "p1", r, propia = TRUE), "selected(., '2')")
+  expect_equal(f(". != '2'", "p1", r, propia = TRUE), ". != '1'")
+  expect_equal(f("\"1\" = .", "p1", r, propia = TRUE), "\"2\" = .")
+  expect_equal(f("not(selected(., '1') and selected(., '2')) and count-selected(.) <= 2", "p1", r, propia = TRUE),
+               "not(selected(., '2') and selected(., '1')) and count-selected(.) <= 2")
+  expect_equal(f("${p1} = '1'", "p1", r, propia = TRUE), "${p1} = '2'")
+  # En la fila de otra variable `.` es ESA variable: no se toca.
+  expect_equal(f("selected(., '1')", "p1", r, propia = FALSE), "selected(., '1')")
+  # Un decimal no es autorreferencia; `. > 0.5` sí lo es, y no se sabe reescribir.
+  expect_null(f(". > 0.5", "p1", r, propia = TRUE))
+})
+
+test_that("una forma desconocida sigue devolviendo NULL: nunca reescribe a ciegas", {
+  r <- c("1" = "2", "2" = "1")
+  f <- .carga_sm_orden_reescribir_expr
+  expect_null(f("${p1} > 2", "p1", r))
+  expect_null(f("${p1} = 1", "p1", r))
+  expect_null(f("${p1} = '1' or ${p1} >= '2'", "p1", r))
+  expect_null(f("cf = ${p1}", "p1", r))
+  expect_null(f("selected(., 1)", "p1", r, propia = TRUE))
+})
+
+test_that("adoptar el orden reescribe el constraint con `.` de la propia fila y la lógica invertida de otra", {
+  model <- list(
+    survey = tibble::tibble(
+      type = c("select_multiple lst_p1", "text", "select_one lst_p3"),
+      name = c("p1", "p2", "p3"),
+      `label::es` = c("Servicios", "Otro", "Cargo"),
+      relevant = c(NA, "\"3\" = ${p1} or selected(${p1}, \"1\")", NA),
+      constraint = c("not(selected(., '3') and count-selected(.) > 1)", NA, "selected(., '1') or . = '2'")
+    ),
+    choices = tibble::tibble(
+      list_name = c(rep("lst_p1", 3), rep("lst_p3", 2)),
+      name = c("1", "2", "3", "1", "2"),
+      `label::es` = c("Préstamo", "Sala", "Ninguno", "Docente", "Otro")
+    )
+  )
+  maps <- list(list(variable = "p1", list_name = "lst_p1", mappings = list(
+    .sor_item("1", "Préstamo", "3"), .sor_item("2", "Sala", "2"), .sor_item("3", "Ninguno", "1"))))
+  out <- .carga_sm_adoptar_orden_editor(model, maps)
+  expect_equal(unlist(out$resumen$adoptadas), "p1")
+  expect_length(out$resumen$omitidas, 0L)
+  expect_equal(out$model$survey$constraint[1], "not(selected(., '1') and count-selected(.) > 1)")
+  expect_equal(out$model$survey$relevant[2], "\"1\" = ${p1} or selected(${p1}, \"3\")")
+  # El `.` de la fila de p3 es p3, que no cambió de lista.
+  expect_equal(out$model$survey$constraint[3], "selected(., '1') or . = '2'")
+})
+
+test_that("un `.` usado de forma desconocida en el constraint propio omite la lista con su motivo", {
+  model <- list(
+    survey = tibble::tibble(type = "select_one lst_p1", name = "p1", `label::es` = "P1",
+                            constraint = ". < '3'"),
+    choices = tibble::tibble(list_name = "lst_p1", name = c("1", "2", "3"), `label::es` = c("A", "B", "C"))
+  )
+  maps <- list(list(variable = "p1", list_name = "lst_p1", mappings = list(
+    .sor_item("1", "A", "1"), .sor_item("2", "B", "3"), .sor_item("3", "C", "2"))))
+  out <- .carga_sm_adoptar_orden_editor(model, maps)
+  expect_length(out$resumen$adoptadas, 0L)
+  expect_equal(out$resumen$omitidas[[1]]$variable, "p1")
+  expect_match(out$resumen$omitidas[[1]]$motivo, "no se puede reescribir")
+  expect_identical(out$model, model)
+})
