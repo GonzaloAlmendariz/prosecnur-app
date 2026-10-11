@@ -297,9 +297,7 @@
 .graficos_categorias_payload <- function(sources, ref, base_activa = NULL) {
   ref <- trimws(as.character(ref %||% "")[1])
   if (is.na(ref) || !nzchar(ref)) stop_api(400, "E_BAD_CATEGORIAS_VAR", "Falta `var`: la variable cuyas categorías se piden.")
-  por_defecto <- if (!is.null(base_activa) && nzchar(base_activa) && base_activa %in% names(sources$inst_sources)) base_activa else
-    names(sources$inst_sources)[1]
-  ctx <- .goc_resolver_ref(ref, sources$inst_sources, por_defecto)
+  ctx <- .goc_resolver_ref(ref, sources$inst_sources, .goc_base_por_defecto(sources$inst_sources, base_activa, ref))
   data <- sources$data_sources[[ctx$base]]
   if (is.null(ctx$inst) || (!ctx$var %in% names(data %||% list()) && is.na(.goc_survey(ctx$inst, ctx$var)$tipo))) {
     stop_api(404, "E_CATEGORIAS_VAR_NO_EXISTE", sprintf("La variable «%s» no está en la base «%s».", ctx$var, ctx$base %||% ""))
@@ -323,6 +321,24 @@
       frecuencia = I(.goc_orden_codigos(cats, "frecuencia", n = n)$codigos)
     )
   )
+}
+
+#' Base de una referencia sin calificar: la activa si está entre las fuentes; si no, la primera, y lo avisa
+#'
+#' Verificador de D8-2: si la base activa no estaba entre las fuentes de Gráficos se caía en silencio a la primera y el
+#' editor mostraba las categorías de otra base como si fueran de la activa. Sin base activa (consolidado, una sola base)
+#' la primera es lo esperado y no se avisa; una referencia calificada (`docentes$p7`) no usa la base por defecto.
+#' @keywords internal
+.goc_base_por_defecto <- function(inst_sources, base_activa, ref) {
+  bases <- names(inst_sources)
+  activa <- as.character(base_activa %||% "")[1]
+  if (is.na(activa) || !nzchar(activa)) return(bases[1])
+  if (activa %in% bases) return(activa)
+  if (!grepl("$", ref, fixed = TRUE)) {
+    .pulso_aviso(sprintf("La base activa «%s» no tiene datos listos para Gráficos: las categorías de «%s» se muestran con la base «%s».",
+                         activa, ref, bases[1] %||% ""))
+  }
+  bases[1]
 }
 
 #' Frecuencia de cada código en la base (sin filtros de lámina)
