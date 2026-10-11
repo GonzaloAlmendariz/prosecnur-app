@@ -141,3 +141,9 @@ Deriva vecina fuera de alcance: `equivalencias_revision`, `profile_id`, `templat
   `size_texto_barras_peq`, `size_barra_extra`, `size_titulo_extra`, 28 claves) en `acrconta_mazo`. Con los cuatro el diff
   da `list()` y el Word sale con leyenda de 8 pt y Top Two Box.
 
+## 7. Decisiones de Gonzalo para R3 (2026-10-11, preguntas 14–16)
+
+- 14: el ámbito de `estilo_cliente` (por base o por proyecto) lo elige el usuario; R3 lo modela como opción explícita.
+- 15: perfil de letra por proyecto con el default del perfil del catálogo.
+- 16: el logo propio sale también en el PPT, en una rebanada posterior vía plantilla.
+

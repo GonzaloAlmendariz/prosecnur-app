@@ -113,3 +113,11 @@ Ningún proyecto de referencia trae pesos: inyectar `peso` sintético en memoria
 - Fuera de alcance (ítems aparte): medias numéricas sin peso (`reporte_plan_numerico.R:88-97`, viola I2); tres
   resolutores de peso (I5); base de `dim_heatmap_criterios` ignora `el$filtros`; `freq_table_spss` duplicada; n efectivo de
   hijas repeat.
+
+## 8. Decisiones de Gonzalo (2026-10-11, preguntas 24–26)
+
+- D-a (24): la fila Total es una opción **apagada por defecto**; encendida: misma base → ΣW, varias bases → `n_casos`.
+- D-b (25): **no automático, avisar**: un entregable ponderado sin «Cómo leer» ni ficha que declare la ponderación da
+  advertencia al exportar (`graficos_verificar_mazo.R` y su par Word); no se enciende «Cómo leer» solo.
+- D-c (26): el fallback «Base sin ponderar (ponderación configurada no aplicada)» pasa al documento con advertencia de corrida.
+
