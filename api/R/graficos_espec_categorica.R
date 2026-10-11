@@ -26,7 +26,9 @@
 #' @param n_casos Casos sin ponderar de cada categoría (contrato base-sin-ponderar F6, I1); sin él, `n_casos := n`.
 #' @param n_base_casos Base de la pregunta en casos (los que respondieron; en selección múltiple, personas y no
 #'   marcas). Sin ella `.espec_n_base()` la reconstruye.
-#' @return Lista con `version`, `tipo`, `rotulos`, `valores`, `cifras`, `n`, `n_casos`, `n_base_casos`, `realce`.
+#' @return Lista con `version`, `tipo`, `rotulos`, `valores`, `cifras`, `n`, `n_casos`, `n_base_casos`, `realce`. El
+#'   motor le agrega `colores` (rótulo = hex) sólo si el usuario definió una paleta que resuelve para la lista
+#'   (`.paleta_en_espec()`, ADR 0097); sin ella la lámina es monocroma, como el recetario.
 #' @keywords internal
 preparar_categorica <- function(rotulos, valores, cifras, n = NULL, residuales_al_final = TRUE, sin_ceros = TRUE,
                                 n_casos = NULL, n_base_casos = NULL) {

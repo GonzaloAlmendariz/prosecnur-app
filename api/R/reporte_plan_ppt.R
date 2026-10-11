@@ -3069,37 +3069,9 @@ reporte_ppt_plan <- function(
     any(grepl("^select_multiple(\\s|$)", tps))
   }
 
-  # ---------------------------------------------------------------------------
-  # 4) Helpers  -  paleta_<listname> auto desde env_diapos
-  # ---------------------------------------------------------------------------
-  .paleta_auto <- function(list_name, env = env_diapos) {
-    ln <- as.character(list_name %||% NA_character_)[1]
-    ln <- trimws(ln)
-    if (is.na(ln) || !nzchar(ln)) return(NULL)
-
-    .paleta_candidates <- function(x) {
-      x <- trimws(as.character(x))
-      x <- x[!is.na(x) & nzchar(x)]
-      if (!length(x)) return(character(0))
-      out <- x
-      if (grepl("s$", x[1])) out <- c(out, sub("s$", "", x[1]))
-      if (grepl("es$", x[1])) out <- c(out, sub("es$", "", x[1]))
-      out <- c(out, paste0(x[1], "s"), paste0(x[1], "es"))
-      out <- trimws(as.character(out))
-      unique(out[!is.na(out) & nzchar(out)])
-    }
-
-    obj_candidates <- paste0("paleta_", .paleta_candidates(ln))
-    hit <- obj_candidates[vapply(
-      obj_candidates,
-      function(obj_name) exists(obj_name, envir = env, inherits = TRUE),
-      logical(1)
-    )]
-    if (!length(hit)) return(NULL)
-
-    pal <- get(hit[1], envir = env, inherits = TRUE)
-    if (!is.atomic(pal) || is.null(names(pal))) return(NULL)
-    pal
+  # 4) paleta_<listname> desde env_diapos: por nombre, vínculo o firma de opciones (graficos_paleta_resolver.R, ADR 0097)
+  .paleta_auto <- function(list_name, env = env_diapos, opciones = NULL) {
+    .paleta_resolver_colores(list_name, opciones %||% .paleta_opciones_de_lista(list_name, instrument_sources), env)
   }
 
   .inject_dimensiones_palette <- function(dsrc, cruce = NULL, source = NULL) {
@@ -5537,10 +5509,8 @@ reporte_ppt_plan <- function(
           ifelse(grepl("comparaci", series_keys), "#00A98F", "#B8C4CE")
         ), unname(etiquetas_series))
       } else {
-        # Cruce sin marca institucional: dejar que .graficos_mk_palette asigne
-        # colores distinguibles de la casa. El gris #B8C4CE uniforme para toda
-        # serie no-ACNUR hacia ilegible cualquier cruce (P9 del GOAL loop).
-        NULL
+        # Cruce sin marca institucional: la paleta de la lista del cruce (ADR 0097) o, sin ella, los colores de la casa.
+        .reporte_plan_palette_for_levels(cruce_list, unname(etiquetas_series), ctx_cruce$choices, .paleta_auto(cruce_list, env_diapos))
       }
     }
 
@@ -5647,7 +5617,7 @@ reporte_ppt_plan <- function(
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)
 
-    plot <- suppressWarnings(do.call(fun, args))
+    plot <- .paleta_en_espec(suppressWarnings(do.call(fun, args)), colores_categorias)   # ADR 0097: espec$colores
     attr(plot, "pulso_barras_series") <- unname(etiquetas_series)
     attr(plot, "pulso_barras_cruce") <- if (length(etiquetas_series) > 1L) cruce_ref else NULL
     attr(plot, "pulso_barras_bases") <- stats::setNames(
@@ -5753,7 +5723,7 @@ reporte_ppt_plan <- function(
     fun <- graficar_barras_categoricas
     args <- .keep_formals(fun, args)
 
-    suppressWarnings(do.call(fun, args))
+    .paleta_en_espec(suppressWarnings(do.call(fun, args)), colores_categorias)   # ADR 0097: espec$colores
   }
 
   .render_pie <- function(el, preset_args, tipo_pie = c("pie", "donut")) {
@@ -5805,7 +5775,7 @@ reporte_ppt_plan <- function(
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)
 
-    suppressWarnings(do.call(fun, args))
+    .paleta_en_espec(suppressWarnings(do.call(fun, args)), colores_grupos)   # ADR 0097: espec$colores
   }
 
   .render_donut <- function(el, preset_args) {

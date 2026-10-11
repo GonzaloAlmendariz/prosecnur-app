@@ -1416,7 +1416,7 @@
   known <- c(
     "ok", "version", "exported_at", "exportedAt", "imported_at", "importedAt",
     "config", "plan", "presets", "w_presets", "wPresets",
-    "selected_slide_id", "selectedSlideId", "paletas", "iconos",
+    "selected_slide_id", "selectedSlideId", "paletas", "paletas_vinculos", "paletasVinculos", "iconos",
     "overrides_reusables", "overridesReusables", "debug_ph", "debugPh",
     "view_mode", "viewMode", "inspector_tab", "inspectorTab", "density",
     "canvas_viewport", "canvasViewport", "scope_rules", "scopeRules",
@@ -1526,6 +1526,11 @@
   } else {
     defaults$paletas
   }
+  # ADR 0097: vínculo lista del instrumento → paleta; sólo decisiones (ausente = sin vínculo). Viaja también como
+  # atributo de `paletas`, que es lo que reciben los workers, para que `.graficos_palette_env()` lo vea.
+  vinculos <- .graficos_normalize_paletas_vinculos(.graficos_pick_alias(src, "paletas_vinculos", "paletasVinculos"))
+  if (length(vinculos)) cfg$paletas_vinculos <- vinculos else cfg$paletas_vinculos <- NULL
+  attr(cfg$paletas, "paletas_vinculos") <- cfg$paletas_vinculos
 
   iconos <- .graficos_pick_alias(src, "iconos")
   cfg$iconos <- if (is.list(iconos) && is.null(names(iconos))) iconos else defaults$iconos
@@ -1668,7 +1673,8 @@
   out[!duplicated(names(out))]
 }
 
-.graficos_palette_env <- function(paletas, parent = parent.frame()) {
+.graficos_palette_env <- function(paletas, parent = parent.frame(),
+                                  vinculos = attr(paletas, "paletas_vinculos", exact = TRUE)) {
   env <- new.env(parent = parent)
   if (!is.list(paletas) || !length(paletas)) return(env)
 
@@ -1679,6 +1685,9 @@
     if (is.null(pal) || !length(pal)) next
     assign(paste0("paleta_", ln), pal, envir = env)
   }
+  # ADR 0097: los vínculos y el origen (usuario o perfil) de cada paleta, para `.paleta_resolver()`.
+  assign(".paletas_vinculos", .graficos_normalize_paletas_vinculos(vinculos), envir = env)
+  assign(".paletas_origen", .paleta_origenes(paletas), envir = env)
 
   env
 }

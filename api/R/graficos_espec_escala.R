@@ -179,7 +179,7 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   por_box <- !is.null(box$unidades) && (identical(orden, "top_two_box") || (identical(orden, "auto") && un_publico))
   aplicado <- if (por_box) .espec_orden_por_box(origen, filas$es_total, box$unidades) else origen
 
-  list(
+  espec <- list(
     version = .ESPEC_ESCALA_VERSION, tipo = "escala",
     categorias = categorias, leyenda = leyenda, filas = filas,
     unidades = unidades, cifras = cifras, anchos = anchos, dibujar = dibujar,
@@ -187,6 +187,10 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
     orden = list(criterio = if (por_box) "top_two_box" else "declarado", origen = origen, aplicado = aplicado),
     redondeo = list(metodo = metodo, decimales = dec)
   )
+  # ADR 0097: con una paleta del usuario la espec dice el color de cada rótulo; la dicotomía en que cae una escala de
+  # dos categorías lo lee (sin ella sigue la dicotómica del recetario).
+  if (.paleta_es_de_usuario(colores_grupos)) espec$colores <- stats::setNames(as.character(categorias$color), categorias$rotulo)
+  espec
 }
 
 #' Orden por Top Two Box de mayor a menor (lámina 221 del recetario)
