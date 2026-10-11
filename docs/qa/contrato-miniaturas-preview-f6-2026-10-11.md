@@ -124,7 +124,7 @@ datos; `motivo` = arreglo (siempre arreglo, vacío si todos dibujan) con:
 | `variable_fuera_de_base` | Al reconstruir: alguna ref del gráfico no está en los datos de su base (`.graficos_consolidado_ref_context`) |
 | `variable_fuera_de_base` (filtro) | Al reconstruir: un `filtro` sobre una columna que no está en la base (`pulso_filter_missing_column` de `.apply_named_filters`; el motor la vuelve 0 filas con un warning) |
 | `n0` | Al reconstruir: los `filtros` del gráfico dejan 0 filas, filtrando con `.apply_named_filters` (el mismo filtro del motor) |
-| `sin_respuestas_validas` | El motor dibujó «Sin datos para mostrar» por el embudo `.blank_canvas` (reporte_plan_ppt.R), que señala `pulso_grafico_sin_datos`: variable toda NA, filtro con casos pero NA en la variable, `excluir_opciones` que cubre todo, pesos en 0, o filtros que dejan 0 filas (`.tab_freq` devuelve NULL sólo en ese caso; los errores de `freq_table_spss` se propagan y degradan por `pulso_slide_render_error` → `degradado`). Se cuenta **una vez por gráfico**: las señales de los bloques de una multilista se silencian y sólo cuenta si TODOS sus bloques quedaron vacíos (`.plan_con_sin_datos_por_grafico`, reporte_plan_condiciones.R) |
+| `sin_respuestas_validas` | El motor dibujó «Sin datos para mostrar» por el embudo `.blank_canvas` (reporte_plan_ppt.R), que señala `pulso_grafico_sin_datos`: variable toda NA, filtro con casos pero NA en la variable, `excluir_opciones` que cubre todo, pesos en 0, o filtros que dejan 0 filas (`.tab_freq` devuelve NULL sólo en ese caso; los errores de `freq_table_spss` se propagan y degradan por `pulso_slide_render_error` → `degradado`). Se cuenta **una vez por gráfico**: las señales de los bloques de una multilista se silencian y sólo cuenta si TODOS los bloques que el motor dibujó quedaron vacíos (`.plan_con_sin_datos_por_grafico`, reporte_plan_condiciones.R; un bloque para el que el motor devuelve NULL y salta no cuenta como parte). Un filtro de BLOQUE que deja 0 casos llega por aquí, no como `n0` (que sólo mira los filtros del gráfico) |
 | `degradado` | El motor señaló `pulso_lamina_degradada` (reporte_plan_condiciones.R) sin diagnóstico previo |
 
 Las degradaciones se cuentan por la condición `pulso_lamina_degradada` (`motivo`: `error_render`, `render_nulo`,
@@ -134,7 +134,10 @@ propia señal: no se cuenta dos veces. `pulso_grafico_sin_datos` hereda de `puls
 variable fuera de la base diagnosticados no se cuentan otra vez cuando el canvas vacío también señala. Supuestos: refs
 sin base en un estudio multibase no se diagnostican en el rebuild (cuentan si el motor degrada o dibuja el canvas
 vacío); los graficadores de dimensiones (`.dim_blank_canvas` directo, graficador_dimensiones.R congelado) no pasan por
-`.blank_canvas` y su «Sin datos» no se detecta. Una lámina con 2 gráficos y 1 vacío es `ok` con `graficos.vacios = 1`.
+`.blank_canvas` y su «Sin datos» no se detecta. Una multilista con un bloque de variable vacía es `borrador_incompleto` y cuenta vacía
+entera: así la dibuja también el export, porque el rebuild de la app (vista previa y `/ppt`) reemplaza el gráfico
+completo por el elemento en blanco cuando falta una ref requerida; si algún día el export dibuja los bloques con datos,
+este criterio cambia con él. Una lámina con 2 gráficos y 1 vacío es `ok` con `graficos.vacios = 1`.
 
 El 404 del lote es `E_MINIATURAS_LOTE_NO_EXISTE` (también si el lote es de otra sesión). Progreso del job:
 `{phase: "running", current: k-1, total: N, message: "Lámina <id> (k de N)"}` y `{phase: "done", percent: 100}`.

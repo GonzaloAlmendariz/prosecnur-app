@@ -119,8 +119,13 @@
 #' Dibuja un elemento de primer nivel deduplicando sus señales `pulso_grafico_sin_datos`
 #'
 #' Un gráfico es una unidad: sus bloques (multilista: `el$bloques`) pueden caer cada uno al canvas vacío. Las señales de
-#' adentro se silencian y, si cubren todas las partes del gráfico (todos sus bloques, o el gráfico simple), se emite UNA
-#' sola al salir. Un gráfico con algún bloque con datos no cuenta como vacío.
+#' adentro se silencian y, si cubren todas las partes que el gráfico DIBUJÓ, se emite UNA sola al salir. Un gráfico con
+#' algún bloque con datos no cuenta como vacío.
+#'
+#' Las partes dibujadas son los bloques que quedaron en la grilla de la multilista (`attr(out, "pulso_multilista")$bloques`,
+#' de `.lam_multilista_adjuntar`): un bloque para el que `.render_barras_multiapiladas` devolvió NULL se salta y no cuenta.
+#' Si el resultado no es una grilla de multilista (gráfico simple, o el canvas vacío final cuando no quedó ningún bloque)
+#' es una sola parte.
 #' @keywords internal
 .plan_con_sin_datos_por_grafico <- function(el, expr) {
   senales <- 0L
@@ -128,9 +133,15 @@
     senales <<- senales + 1L
     invokeRestart("pulso_silenciar_sin_datos")
   })
-  partes <- max(1L, length(if (is.list(el)) el$bloques else NULL))
-  if (senales >= partes) .pulso_senal_sin_datos(NULL)
+  if (senales > 0L && senales >= .plan_partes_dibujadas(out)) .pulso_senal_sin_datos(NULL)
   out
+}
+
+#' Partes que dibujó un elemento: bloques en la grilla de una multilista, o 1
+#' @keywords internal
+.plan_partes_dibujadas <- function(out) {
+  bloques <- (attr(out, "pulso_multilista", exact = TRUE) %||% list())$bloques
+  max(1L, length(bloques))
 }
 
 #' Canvas minimo "Sin datos" para laminas degradadas. Mismo rol que la rama
