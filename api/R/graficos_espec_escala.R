@@ -29,6 +29,10 @@
 #' @param data Tabla ancha.
 #' @param var_categoria,var_n,cols_porcentaje,etiquetas_grupos Como en
 #'   `graficar_barras_apiladas()`.
+#' @param var_n_casos,cols_n_casos Columnas de casos sin ponderar de la fila y de cada segmento (contrato
+#'   base-sin-ponderar F6): «x de y», la base chica y «N respuestas» se cuentan ahí; los porcentajes siguen ponderados.
+#'   Sin ellas, los casos son `var_n` y el box se estima desde la proporción, como antes.
+#' @param fila_total_bases `"una"` o `"varias"`: cómo pesa cada fila en la fila Total (`.apiladas_fila_total`, D-a).
 #' @param orden `"declarado"` (por defecto: filas que son públicos o niveles de un
 #'   cruce no se reordenan), `"auto"` (por Top Two Box si ninguna premisa tiene
 #'   varias barras y hay box) o `"top_two_box"`. La batería de afirmaciones la pide
@@ -45,7 +49,8 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
                             top2box_labels = NULL, top3box_labels = NULL, bottom2box_labels = NULL,
                             columna_bottom2box = FALSE, sufijos_etiqueta = NULL, fila_total = FALSE,
                             orden = c("declarado", "auto", "top_two_box"),
-                            invertir_barras = FALSE, invertir_segmentos = FALSE, invertir_leyenda = FALSE) {
+                            invertir_barras = FALSE, invertir_segmentos = FALSE, invertir_leyenda = FALSE,
+                            var_n_casos = NULL, cols_n_casos = NULL, fila_total_bases = "una") {
   escala_valor <- match.arg(escala_valor)
   orden <- match.arg(orden)
   metodo <- .pulso_pct_metodo(metodo_redondeo)
@@ -53,8 +58,13 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   df <- as.data.frame(data, stringsAsFactors = FALSE)
   if (is.null(var_etiqueta_categoria)) var_etiqueta_categoria <- var_categoria
 
+  var_n_casos <- .graficos_col_casos(df, var_n, var_n_casos)
+  cols_n_casos <- .graficos_cols_casos(df, stats::setNames(cols_porcentaje, cols_porcentaje), cols_n_casos)
+  con_casos_seg <- !identical(unname(cols_n_casos), cols_porcentaje)
   if (isTRUE(fila_total)) {
-    df <- .apiladas_fila_total(df, var_categoria, var_etiqueta_categoria, var_n, cols_porcentaje)
+    df <- .apiladas_fila_total(df, var_categoria, var_etiqueta_categoria, var_n, cols_porcentaje,
+                               cols_n = if (con_casos_seg) cols_n_casos, var_n_casos = var_n_casos,
+                               varias_bases = identical(fila_total_bases, "varias"))
   }
   es_total <- rep(FALSE, nrow(df))
   if (isTRUE(fila_total) && nrow(df) > nrow(data)) es_total[1] <- TRUE
@@ -85,7 +95,8 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
     id = as.character(df[[var_categoria]]), rotulo = rot_fila,
     grupo_id = if (!is.null(var_grupo_id)) as.character(df[[var_grupo_id]]) else NA_character_,
     grupo_titulo = if (!is.null(var_grupo_titulo)) trimws(gsub("\\s*\n\\s*", " ", as.character(df[[var_grupo_titulo]]))) else NA_character_,
-    n = suppressWarnings(as.numeric(df[[var_n]])), es_total = es_total, stringsAsFactors = FALSE
+    n = suppressWarnings(as.numeric(df[[var_n]])), n_casos = suppressWarnings(as.numeric(df[[var_n_casos]])),
+    es_total = es_total, stringsAsFactors = FALSE
   )
   origen <- seq_len(nrow(filas)); if (isTRUE(invertir_barras)) origen <- rev(origen)
 
@@ -133,9 +144,16 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
     cols <- setdiff(intersect(dec_box$cols, cols_seg), categorias$col[categorias$especial])
     u <- rowSums(unidades[, cols, drop = FALSE])
     # Casos del box sobre la base de la fila: el recetario escribe «x de y» bajo la cifra cuando la base es
-    # chica (recetario.R:238-244).
-    sumas <- rowSums(prop); pn <- prop / ifelse(sumas > 0, sumas, 1)
-    casos <- floor(rowSums(pn[, cols, drop = FALSE]) * filas$n + 0.5)
+    # chica (recetario.R:238-244). Son personas que contestaron esas categorías, sin ponderar: la suma de los casos
+    # crudos de sus columnas (`nc_i`), no `prop × n` (con peso, la proporción ponderada por los casos no es un conteo).
+    casos <- if (con_casos_seg) {
+      crudos <- matrix(0, nrow(df), length(cols))
+      for (k in seq_along(cols)) { v <- suppressWarnings(as.numeric(df[[cols_n_casos[[cols[k]]]]])); v[!is.finite(v)] <- 0; crudos[, k] <- v }
+      rowSums(crudos)
+    } else {
+      sumas <- rowSums(prop); pn <- prop / ifelse(sumas > 0, sumas, 1)
+      floor(rowSums(pn[, cols, drop = FALSE]) * .espec_casos(filas) + 0.5)
+    }
     list(preset = preset, rotulo = rotulo, cols = cols, unidades = u,
          cifras = .pulso_fmt_pct_unidades(u, dec), casos = unname(casos), motivo = NULL)
   }

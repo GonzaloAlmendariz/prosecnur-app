@@ -16,6 +16,10 @@
   if (abs(acum[k] - 0.5) < 1e-12 && k < length(x)) (x[k] + x[k + 1L]) / 2 else x[k]
 }
 
+#' «Base: n respuestas»: `n` son los casos válidos con peso > 0, sin ponderar
+#' @keywords internal
+.cifra_base_respuestas <- function(n) sprintf("Base: %s respuestas", format(n, big.mark = ","))
+
 #' Una cifra destacada desde una variable
 #'
 #' @param data Data frame de la base.
@@ -53,9 +57,9 @@
       }
       k <- sum(codigos == cat_)
       wv <- w[validos]
-      # Con peso no se repite una base en el detalle: la lámina ya declara la suya al pie y serían dos bases distintas
-      # para la misma lámina (casos frente a suma de pesos; verificador de F6.0b).
-      if (is.null(detalle)) detalle <- if (isTRUE(pesos$ponderado)) "Con el peso del estudio"
+      # Con peso, «k de n» (casos) no reproduce el porcentaje ponderado: el detalle dice la base en casos, la misma unidad
+      # que el pie de la lámina (contrato base-sin-ponderar F6, §3; antes «Con el peso del estudio»).
+      if (is.null(detalle)) detalle <- if (isTRUE(pesos$ponderado)) .cifra_base_respuestas(n)
                                        else sprintf("%s de %s", format(k, big.mark = ","), format(n, big.mark = ","))
       paste0(.pulso_fmt_half_up(100 * sum(wv[codigos == cat_]) / sum(wv), decimales %||% 0L), "%")
     },
@@ -76,7 +80,7 @@
         trimws(paste(txt_v, unidad %||% ""))
       }
     })
-  if (is.null(detalle) && modo != "n") detalle <- if (isTRUE(pesos$ponderado)) "Con el peso del estudio" else sprintf("Base: %s respuestas", format(n, big.mark = ","))
+  if (is.null(detalle) && modo != "n") detalle <- .cifra_base_respuestas(n)   # en casos, con peso o sin él (F6 §3)
   list(valor = valor, valor_word = valor_word %||% valor, rotulo = rotulo, detalle = detalle %||% "", icono = icono %||% "", base = n)
 }
 

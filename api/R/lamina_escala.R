@@ -25,11 +25,11 @@
   for (k in unique(claves)) {
     ii <- idx[claves == k]
     texto <- if (con_actor) (f$grupo_titulo[ii[1]] %||% f$grupo_id[ii[1]]) else f$rotulo[ii[1]]
-    filas <- lapply(ii, function(i) list(i = i, actor = if (con_actor) f$rotulo[i] else "", valid = f$n[i]))
+    filas <- lapply(ii, function(i) list(i = i, actor = if (con_actor) f$rotulo[i] else "", valid = .espec_casos(f)[i]))
     # Sin actores, una fila marcada con `n_nota` (salto de cuestionario, lo decide quien compone: hoy la multilista)
     # lleva su N bajo la premisa con el rótulo de la ruta anterior, «N = 80». Con actores cada barra ya dice sus
     # respuestas.
-    nota <- if (!con_actor && isTRUE(f$n_nota[ii[1]])) .n_barra_texto(f$n[ii[1]]) else NULL
+    nota <- if (!con_actor && isTRUE(f$n_nota[ii[1]])) .n_barra_texto(.espec_casos(f)[ii[1]]) else NULL
     out[[length(out) + 1L]] <- list(texto = texto, filas = filas, nota = nota)
   }
   out
@@ -159,18 +159,18 @@
 #' Se mira la especificación ENTERA, no la parte de una partición: si una fila tiene menos de 30 casos, todas las
 #' filas de todas sus láminas («(cont.)» incluida) dicen «x de y». Una fila sin casos (n = 0 o `NA`) no cuenta: no
 #' tiene base que señalar.
-#' TODO(base ponderada): `espec$filas$n` es hoy la suma de pesos cuando la base tiene peso, no el n sin ponderar;
-#' ver docs/qa/hallazgo-base-ponderada-2026-10-10.md (S1–S4, I1). Se resuelve aparte.
+#' El umbral se mira sobre CASOS sin ponderar (`filas$n_casos`, contrato base-sin-ponderar F6): 20 personas con peso
+#' 2.25 suman 45 y siguen siendo 20 personas, base chica; 40 con peso 0.5 suman 20 y no lo son.
 #' @keywords internal
 .lam_base_chica <- function(espec) {
-  n <- suppressWarnings(as.numeric(espec$filas$n))
+  n <- suppressWarnings(as.numeric(.espec_casos(espec$filas)))
   any(is.finite(n) & n > 0 & n < .LAM_BASE_CHICA_N)
 }
 
 #' «x de y» de una fila, o `NULL` si la fila no tiene base o casos que decir (nunca «NA de NA»)
 #' @keywords internal
 .lam_casos_texto <- function(caja, espec, i) {
-  x <- suppressWarnings(as.numeric(caja$casos[i])); y <- suppressWarnings(as.numeric(espec$filas$n[i]))
+  x <- suppressWarnings(as.numeric(caja$casos[i])); y <- suppressWarnings(as.numeric(.espec_casos(espec$filas)[i]))
   if (!length(x) || !length(y) || !is.finite(x) || !is.finite(y) || y <= 0) return(NULL)
   sprintf("%d de %d", as.integer(round(x)), as.integer(round(y)))
 }
@@ -352,7 +352,7 @@
     lab <- espec$filas$rotulo[i]; hl <- .lam_alto_txt(lab, wlab, .std_pt("actor"), TRUE)
     if (con_respuestas) {   # el público y sus respuestas, como junto a la barra de la lámina 216
       .lam_txt(lz, lab, x, yb + g / 2 - 0.25, wlab, 0.3, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")
-      .lam_txt(lz, paste(format(as.integer(espec$filas$n[i]), big.mark = ","), "respuestas"), x, yb + g / 2, wlab, 0.26, .std_pt("n"),
+      .lam_txt(lz, paste(format(as.integer(.espec_casos(espec$filas)[i]), big.mark = ","), "respuestas"), x, yb + g / 2, wlab, 0.26, .std_pt("n"),
                .std_color("texto_tenue"), align = "right", nombre = "respuestas")
     } else {
       .lam_txt(lz, lab, x, yb + (g - hl) / 2, wlab, hl, .std_pt("actor"), azul, bold = TRUE, align = "right", nombre = "actor")

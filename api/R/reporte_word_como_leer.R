@@ -53,13 +53,21 @@
   attr(g, "alto") <- 1.9 - 0.22; g
 }
 
+# La frase de una corrida ponderada (contrato base-sin-ponderar F6, §3; supuesto S-b).
+.WORD_COMO_LEER_PONDERADA <- paste(
+  "Los porcentajes están ponderados. La base de cada gráfico es el número de personas que respondieron, sin ponderar;",
+  "por eso, en grupos chicos, “12 de 15” puede no coincidir con el porcentaje.")
+
 #' Capítulo «Cómo leer este informe»
 #'
 #' @param redondeo `"estandar"`, `"resto_mayor"` o `"ambos"`: el método que usa el informe (el recuadro final lo dice).
 #' @param con_bottom Si el informe muestra el Bottom Two Box.
 #' @param figura,tabla Contadores de numeración: el capítulo devuelve los siguientes en `attr(doc, "siguientes")`.
+#' @param ponderada Si la corrida está ponderada: el recuadro lo dice (contrato base-sin-ponderar F6, §3; D-b: el
+#'   capítulo no se enciende solo por estar ponderada, pero si está, lo declara).
 #' @keywords internal
-.word_como_leer <- function(doc, numero = 2, redondeo = c("estandar", "resto_mayor", "ambos"), con_bottom = TRUE, figura = 1L, tabla = 1L, variante_apertura = "B") {
+.word_como_leer <- function(doc, numero = 2, redondeo = c("estandar", "resto_mayor", "ambos"), con_bottom = TRUE, figura = 1L, tabla = 1L, variante_apertura = "B",
+                            ponderada = FALSE) {
   redondeo <- match.arg(redondeo); coral <- .std_word("colores", "acento")
   doc <- .word_apertura(doc, numero, "Cómo leer este informe", paste(
     "Las páginas que explican al lector cómo leer las cifras del informe: el Top Two Box", if (con_bottom) "y el Bottom Two Box," else ",",
@@ -126,6 +134,7 @@
                             "Cada gráfico dice su base debajo. Si una pregunta sólo se hizo a una parte, la base lo indica, por ejemplo «Base: 20 estudiantes que respondieron Sí en la pregunta anterior»."))
   doc <- .word_recuadro(doc, "Cómo leer este informe", c(
     "Los porcentajes se calculan sobre quienes respondieron cada pregunta. La base va debajo de cada gráfico.",
+    if (isTRUE(ponderada)) .WORD_COMO_LEER_PONDERADA,
     "Top Two Box es la suma de las dos respuestas de acuerdo de la escala.",
     "Con menos de 30 casos, junto al porcentaje va el número de personas entre paréntesis.",
     if (identical(redondeo, "resto_mayor")) "Las cifras se redondean al entero con el método del resto mayor, de modo que cada barra suma 100%."
