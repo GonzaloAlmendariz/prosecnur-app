@@ -926,7 +926,6 @@
   territorial_report_cache_info <- NULL
   territorial_report_cache_entry <- NULL
   territorial_report_cache_meta <- NULL
-  territorial_report_cache_built <- FALSE
   report_scope <- if (isTRUE(include_reports)) .monitoreo_report_scope(report_scope) else "light"
   s <- session_get(sid)
   sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
@@ -1062,9 +1061,6 @@
               backend_ms = dashboard_build_ms,
               payload_size = payload_size
             )
-            if (report_scope %in% c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "full")) {
-              territorial_report_cache_built <- TRUE
-            }
           }
           # El dashboard y sus reportes son caches derivados de un GET. Usar
           # session_set() aqui marcaria el .pulso como editado solo por abrir
@@ -1223,9 +1219,6 @@
   ))
   if (!is.null(territorial_report_cache_meta)) {
     territorial_report_cache_meta$total_ms <- .monitoreo_timing_ms(started_at)
-  }
-  if (isTRUE(territorial_report_cache_built)) {
-    tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
   }
   include_snapshot_artifacts <- isTRUE(include_reports) && !identical(family, "territorial")
   # El plan no viaja dentro de `config` (333 KB medidos): queda `plan_rows`,
@@ -2971,39 +2964,7 @@ mount_monitoreo <- function(pr) {
           phase = phase,
           scopes = scopes
         ),
-        on_complete = function(j) {
-          result <- j$result_data
-          if (!is.list(result)) return(result)
-          patch <- result$session_patch %||% list()
-          s_current <- session_get(j$sid)
-          snapshot_current <- s_current$monitoreo_snapshot %||% list()
-          incoming_report_cache <- patch$territorial_report_cache %||% NULL
-          if (is.list(incoming_report_cache)) {
-            snapshot_current <- .monitoreo_territorial_report_cache_merge(snapshot_current, incoming_report_cache)
-            session_set(j$sid, "monitoreo_snapshot", snapshot_current)
-          }
-          incoming_map_cache <- patch$territorial_map_cache %||% NULL
-          if (is.list(incoming_map_cache)) {
-            merged_map_cache <- .monitoreo_territorial_map_cache_merge(
-              s_current$monitoreo_territorial_map_cache %||% list(),
-              incoming_map_cache,
-              phase = result$phase %||% phase
-            )
-            session_set(j$sid, "monitoreo_territorial_map_cache", merged_map_cache)
-          }
-          should_autosave_cache <- any(vapply(result$scopes %||% list(), function(item) {
-            is.list(item) && !isTRUE(item$cache_hit)
-          }, logical(1))) || !isTRUE(result$map_cache$skipped)
-          if (isTRUE(should_autosave_cache)) {
-            tryCatch(.monitoreo_mark_project_dirty_if_open(j$sid), error = function(e) NULL)
-          }
-          public <- .monitoreo_territorial_prewarm_public_result(result)
-          public$state <- tryCatch(
-            .monitoreo_state_payload(j$sid, include_reports = FALSE),
-            error = function(e) public$state %||% NULL
-          )
-          public
-        }
+        on_complete = function(j) .monitoreo_territorial_prewarm_on_complete(j, phase = phase)
       )
       list(ok = TRUE, job_id = job_id, kind = "monitoreo.territorial_prewarm")
     })) |>

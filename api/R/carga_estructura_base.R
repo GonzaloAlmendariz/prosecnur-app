@@ -48,7 +48,8 @@
 
   cache <- s$inst_estructura_por_base %||% list()
   cache[[base]] <- inst
-  session_set(sid, "inst_estructura_por_base", cache)
+  # Cache derivado del XLSForm ya guardado, poblado desde un GET: no ensucia.
+  session_set_cache(sid, "inst_estructura_por_base", cache)
   inst
 }
 
@@ -76,7 +77,7 @@
     meta_files <- Filter(function(f) f$kind == "xlsform", s$files)
     if (length(meta_files) == 0) stop_api(409, "E_NO_XLSFORM", "No XLSForm uploaded yet")
     x <- leer_xlsform_limpieza(meta_files[[length(meta_files)]]$path, verbose = FALSE)
-    session_set(sid, "inst_limpieza", x)
+    session_set_cache(sid, "inst_limpieza", x)
     x
   }
   estructura_instrumento(inst)

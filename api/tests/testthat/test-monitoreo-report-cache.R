@@ -367,3 +367,69 @@ test_that("cache ligero derivado no ensucia un proyecto abierto", {
   session_set(sid, "monitoreo_config", changed_config)
   expect_true(isTRUE(session_get(sid)$project_dirty))
 })
+
+# Reportes y mapa territoriales son caches derivados: viajan en el .pulso para
+# acelerar la próxima apertura, pero construirlos no es una edición del usuario.
+# QA 2026-10-11: abrir un proyecto territorial y recargar dejaba el chip en
+# «sin guardar» porque el GET de estado (y los on_complete de prewarm y de
+# map/prepare) marcaban `project_dirty` al poblar estos caches.
+.monitoreo_report_cache_abrir_limpio <- function(sid) {
+  s <- session_get(sid)
+  s$project_path <- file.path(s$dir, "proyecto-abierto.pulso")
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+  invisible(sid)
+}
+
+test_that("construir el cache territorial de reportes en un GET no ensucia el proyecto", {
+  sid <- .monitoreo_report_cache_abrir_limpio(.monitoreo_report_cache_test_session("pilot"))
+  on.exit(session_delete(sid), add = TRUE)
+
+  for (scope in c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary")) {
+    .monitoreo_state_payload(sid, include_reports = TRUE, report_scope = scope)
+    expect_false(
+      isTRUE(session_get(sid)$project_dirty),
+      info = paste("GET de estado territorial, scope", scope)
+    )
+  }
+  cache <- session_get(sid)$monitoreo_snapshot$territorial_report_cache
+  expect_gt(length(cache$entries %||% list()), 0L)
+
+  session_set(sid, "monitoreo_config", session_get(sid)$monitoreo_config)
+  expect_true(isTRUE(session_get(sid)$project_dirty))
+})
+
+test_that("on_complete de prewarm y de map/prepare fusionan caches sin ensuciar el proyecto", {
+  origen <- .monitoreo_report_cache_test_session("pilot")
+  on.exit(session_delete(origen), add = TRUE)
+  prewarm <- .monitoreo_territorial_prewarm_scopes(
+    origen,
+    phase = "pilot",
+    scopes = c("source", "route_summary", "validation_summary")
+  )
+  patch <- prewarm$session_patch
+  expect_true(is.list(patch$territorial_report_cache))
+  expect_true(is.list(patch$territorial_map_cache))
+
+  destino <- .monitoreo_report_cache_abrir_limpio(.monitoreo_report_cache_test_session("pilot"))
+  on.exit(session_delete(destino), add = TRUE)
+
+  publico <- .monitoreo_territorial_prewarm_on_complete(
+    list(sid = destino, result_data = prewarm),
+    phase = "pilot"
+  )
+  s <- session_get(destino)
+  expect_false(isTRUE(s$project_dirty), info = "prewarm territorial")
+  expect_gt(length(s$monitoreo_snapshot$territorial_report_cache$entries %||% list()), 0L)
+  expect_true(length(s$monitoreo_territorial_map_cache %||% list()) > 0L)
+  expect_null(publico$session_patch)
+
+  .monitoreo_report_cache_abrir_limpio(destino)
+  map_result <- list(
+    ok = TRUE,
+    phase = "pilot",
+    session_patch = list(territorial_map_cache = patch$territorial_map_cache)
+  )
+  .monitoreo_territorial_map_prepare_on_complete(list(sid = destino, result_data = map_result))
+  expect_false(isTRUE(session_get(destino)$project_dirty), info = "map/prepare territorial")
+})
