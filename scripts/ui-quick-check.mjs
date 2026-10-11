@@ -1186,7 +1186,8 @@ async function clickNamedControl(page, label, timeoutMs, { opcional = false } = 
 }
 
 async function runCaptures(opts, stack) {
-  const browser = await chromium.launch({ headless: !opts.headed });
+  // En la nube no hay headless_shell propio: PW_CHROMIUM=/opt/pw-browsers/chromium (nunca `playwright install`).
+  const browser = await chromium.launch({ headless: !opts.headed, ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
   const results = [];
   const focusedWarmupModuleIds = opts.focusedWarmup ? warmupModuleIdsForRoutes(opts.routes) : [];
   try {
