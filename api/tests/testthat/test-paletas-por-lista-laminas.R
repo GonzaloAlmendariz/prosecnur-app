@@ -46,7 +46,8 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
                    "c2057c23e6f8219cc1b0be9eed3b5cd11a3c146fdb82309d6ff86d4eb35d7848")
   expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3, "Nivel", base = "Base: 100", folio = 68, forma = "barras")),
                    "89e50ad2dc8d9363403922241b32af71980d40ae98b150caca8eae628797590c")
-  expect_identical(.pll_hash(.lam_laminas_dicotomia(.pll_doc(), e2, "Dico", base = "Base: 100", folio = 74)),
+  # La dicotomía rotulaba «Sí (62)» siempre; desde «Casos junto al porcentaje» eso es el modo «siempre» (golden intacto).
+  expect_identical(withr::with_options(list(prosecnur.casos_junto = list(cuando = "siempre")), .pll_hash(.lam_laminas_dicotomia(.pll_doc(), e2, "Dico", base = "Base: 100", folio = 74))),
                    "1a69d8efcacfc4703a7254eedff5d0d9c1c045ae295bede9e75814d42c8e6b8a")
   expect_identical(.pll_hash(.lam_laminas_torta(.pll_doc(), pie3, "Torta", folio = 69, unidad_n = "egresados")),
                    "ac570e9ae137e339c3d9f218f12c26ae64c3e289793e856ce187439c5e2ee669")

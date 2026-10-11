@@ -130,7 +130,8 @@ test_that("la corona calza con la p160 también a lo ancho: dicotomía con n a t
   .cerca(cif$w, rep(E$dico_cifra_w, 2), "ancho de las cifras")
   .cerca(cif$y, rep(E$dico_cifra_y, 2), "y de las cifras")
   rot <- .cr_off(xml, "dicotomia:rotulo"); rot <- rot[order(rot$x), ]
-  expect_identical(rot$texto, E$dico_rotulo)
+  # La p160 rotula «Masculino (79)»; desde «Casos junto al porcentaje» el «(n)» sale sólo con base chica o en «siempre».
+  expect_identical(rot$texto, sub("\\s*\\([0-9]+\\)$", "", E$dico_rotulo))
   .cerca(rot$x, E$dico_rotulo_x, "x de los rótulos de la dicotomía")
   .cerca(rot$w, rep(E$dico_rotulo_w, 2), "ancho de los rótulos")
   .cerca(rot$y, rep(E$dico_rotulo_y, 2), "y de los rótulos")
