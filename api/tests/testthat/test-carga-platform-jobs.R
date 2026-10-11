@@ -893,3 +893,62 @@ test_that("base única: el import Kobo no hereda mapas del formulario activo", {
   out <- .carga_import_kobo(sid, list(asset_uid = "asset_a"))
   expect_equal(.cpj_q1_importado(sid, out), c("Si", "No"))
 })
+
+# ---------------------------------------------------------------------------
+# Triple aplicación (traspaso 2026-10-11): el archivo de un import de
+# plataforma se guarda YA recodificado. La preview, el rp_data de la base,
+# «Ver base» y la reconstrucción al reabrir no pueden volver a aplicar los
+# mapas: con mapas que se cruzan (Si↔No) invertían las categorías.
+# ---------------------------------------------------------------------------
+
+.cpj_q1_chr <- function(x) as.character(unlist(lapply(x, function(v) as.character(v))))
+
+test_that("base única SM: la base default y «Ver base» no recodifican dos veces", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_1"))
+
+  out <- .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
+  esperado <- c("No", "Si", "No")
+  expect_equal(.cpj_q1_importado(sid, out), esperado)
+  s <- session_get(sid)
+  expect_equal(.cpj_q1_chr(s$rp_data_sources$default$q1), esperado)
+  expect_equal(.cpj_q1_chr(.carga_normalized_data_for_export(sid, "default")$data$q1), esperado)
+  # Lo que se aplicó queda pendiente de confirmar en Carga › Revisión.
+  expect_true(length(s$choice_code_maps_pending$maps %||% list()) > 0L)
+})
+
+test_that("base única SM: confirmar el mapeo y reabrir el .pulso no invierte categorías", {
+  restores <- .cpj_sm_mocks()
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "xlsform_state", .cpj_form_con_mapas("sm_1"))
+  .carga_import_surveymonkey(sid, list(survey_id = "sm_1"))
+
+  estudio <- session_get(sid)$estudio
+  estudio$bases$default$choice_code_mapping <- list(
+    version = 1L, confirmed = TRUE, confirmed_at = "2026-10-11T00:00:00Z",
+    n_questions = 1L, maps = .cpj_mapa_si_no_invertido()
+  )
+  session_set(sid, "estudio", estudio)
+  esperado <- c("No", "Si", "No")
+  expect_equal(.cpj_q1_chr(.carga_normalized_data_for_export(sid, "default")$data$q1), esperado)
+
+  destino <- tempfile(fileext = ".pulso")
+  on.exit(unlink(destino), add = TRUE)
+  build_pulso(sid, destino, project_name = "cpj-triple")
+  reabierto <- load_pulso(destino)
+  on.exit(session_delete(reabierto$session_id), add = TRUE)
+  s2 <- session_get(reabierto$session_id)
+  expect_equal(.cpj_q1_chr(s2$rp_data_sources$default$q1), esperado)
+})
+
+test_that("si el archivo de la base cambia, la marca de códigos aplicados deja de valer", {
+  base <- list(data_file_id = "nuevo", choice_codes_applied_data_file_id = "viejo")
+  expect_false(.carga_codigos_ya_aplicados(base))
+  expect_true(.carga_codigos_ya_aplicados(list(data_file_id = "a", choice_codes_applied_data_file_id = "a")))
+  expect_false(.carga_codigos_ya_aplicados(list(data_file_id = "a")))
+})

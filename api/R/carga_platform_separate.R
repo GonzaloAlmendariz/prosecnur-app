@@ -67,6 +67,11 @@
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
+  # Única pasada con mapas: el archivo se guarda YA recodificado. Este payload
+  # es lo que se aplicó y lo que Carga › Revisión pide confirmar; ninguna
+  # lectura posterior debe volver a aplicar mapas a este archivo (ver
+  # `.carga_codigos_ya_aplicados`).
+  choice_code_maps_payload <- .carga_choice_code_maps_payload(attr(data_df, "xlsform_normalized", exact = TRUE) %||% list())
   # Backfill benigno (import por API): una columna esperada ausente = pregunta
   # sin respuestas en el mismo asset, no un desajuste de versión.
   data_df <- .carga_backfill_missing_expected(data_df, rp_inst)
@@ -104,7 +109,8 @@
     source_spec = source_spec,
     response_filter = response_filter,
     imported_at = imported_at,
-    choice_code_maps = .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id)
+    choice_code_maps = .carga_platform_choice_code_maps(sid, "surveymonkey", survey_id),
+    choice_code_maps_payload = choice_code_maps_payload
   )
 }
 
@@ -156,6 +162,7 @@
   } else {
     .carga_empty_data_for_instrument(rp_inst)
   }
+  choice_code_maps_payload <- .carga_choice_code_maps_payload(attr(data_df, "xlsform_normalized", exact = TRUE) %||% list())
   # Los repeat groups de Kobo llegan como una columna JSON-string; la base ancha
   # no puede representarlos. Quitamos ese blob del padre (se expande aparte).
   data_df <- .kobo_drop_repeat_blob_columns(data_df, rp_inst)
@@ -197,7 +204,8 @@
     source_spec = source_spec,
     source_meta = source_meta,
     imported_at = imported_at,
-    choice_code_maps = .carga_platform_choice_code_maps(sid, "kobo", asset_uid)
+    choice_code_maps = .carga_platform_choice_code_maps(sid, "kobo", asset_uid),
+    choice_code_maps_payload = choice_code_maps_payload
   )
 }
 
@@ -288,7 +296,10 @@
     rp_inst = prep$rp_inst,
     n_filas = as.integer(nrow(prep$data_df)),
     n_columnas = as.integer(ncol(prep$data_df)),
-    extra_meta = c(list(imported_at = prep$imported_at), extra_meta)
+    extra_meta = c(list(
+      imported_at = prep$imported_at,
+      choice_codes_applied_data_file_id = prep$data_meta$file_id
+    ), extra_meta)
   )
   # Mismo contrato que POST /api/estudio/base: la primera base del estudio
   # habilita analítica y queda como fuente.

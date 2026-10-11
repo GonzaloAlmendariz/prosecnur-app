@@ -402,6 +402,17 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
   )
 }
 
+# Una base cuyo archivo de datos salió de un import de plataforma ya trae los
+# códigos aplicados (la normalización con mapas corrió una sola vez, al
+# importar). Volver a aplicar mapas sobre ese MISMO archivo recodifica dos veces
+# y, con mapas que se cruzan (1↔2, Si↔No), invierte las categorías en la
+# preview, en el rp_data de la base, en «Ver base» y en la reconstrucción al
+# reabrir el .pulso. Si el archivo de la base cambia, la marca deja de valer.
+.carga_codigos_ya_aplicados <- function(base) {
+  fid <- as.character((base %||% list())$choice_codes_applied_data_file_id %||% "")[1]
+  !is.na(fid) && nzchar(fid) && identical(fid, as.character(base$data_file_id %||% "")[1])
+}
+
 .carga_editor_choice_code_maps <- function(sid, base_nombre = NULL) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(NULL)
@@ -409,6 +420,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
   if (is.na(requested)) requested <- ""
   if (nzchar(requested)) {
     base <- (((s$estudio %||% list())$bases %||% list())[[requested]]) %||% list()
+    if (.carga_codigos_ya_aplicados(base)) return(NULL)
     confirmed <- base$choice_code_mapping %||% list()
     if (isTRUE(confirmed$confirmed) && length(confirmed$maps %||% list())) {
       return(confirmed$maps)
@@ -1009,7 +1021,7 @@ estudio_init_default_base <- function(sid, choice_code_maps) {
 }
 
 .carga_platform_finalize <- function(sid, inst_meta, data_meta, source_meta = list(),
-                                     choice_code_maps = NULL) {
+                                     choice_code_maps_payload = NULL) {
   inst <- leer_instrumento_xlsform(inst_meta$path)
   session_set(sid, "instrumento", inst)
   session_set(sid, "inst_limpieza", NULL)
@@ -1019,15 +1031,16 @@ estudio_init_default_base <- function(sid, choice_code_maps) {
     data_meta$path,
     data_meta$ext,
     instrumento = preview_inst,
-    choice_code_maps = choice_code_maps
+    # El archivo ya viene recodificado del import: sin mapas externos aquí.
+    choice_code_maps = list()
   )
   .carga_store_choice_code_maps(
     sid,
-    preview$normalizacion$choice_code_maps %||% list(),
+    choice_code_maps_payload %||% preview$normalizacion$choice_code_maps %||% list(),
     confirmed = FALSE
   )
   session_set(sid, "data_raw_meta", list(file_id = data_meta$file_id, path = data_meta$path, ext = data_meta$ext))
-  estudio_init_default_base(sid, choice_code_maps = choice_code_maps)
+  estudio_init_default_base(sid, choice_code_maps = list())
 
   s <- session_get(sid)
   if (!is.null(s$estudio$bases$default) && length(source_meta)) {
@@ -1065,8 +1078,9 @@ estudio_init_default_base <- function(sid, choice_code_maps) {
     source_channel = source_spec$source_channel,
     response_filter = prep$response_filter,
     surveymonkey_source_spec = source_spec,
-    surveymonkey_effective_data_file_id = prep$data_meta$file_id
-  ), choice_code_maps = prep$choice_code_maps)
+    surveymonkey_effective_data_file_id = prep$data_meta$file_id,
+    choice_codes_applied_data_file_id = prep$data_meta$file_id
+  ), choice_code_maps_payload = prep$choice_code_maps_payload)
   c(list(
     ok = TRUE,
     provider = "surveymonkey",
@@ -1086,8 +1100,9 @@ estudio_init_default_base <- function(sid, choice_code_maps) {
     source_alias = prep$title,
     response_filter = prep$source_meta,
     kobo_source_spec = prep$source_spec,
-    kobo_effective_data_file_id = prep$data_meta$file_id
-  ), choice_code_maps = prep$choice_code_maps)
+    kobo_effective_data_file_id = prep$data_meta$file_id,
+    choice_codes_applied_data_file_id = prep$data_meta$file_id
+  ), choice_code_maps_payload = prep$choice_code_maps_payload)
   # Registramos las bases hijas de repeat DESPUÉS de finalize: así los archivos
   # del hijo no existen aún cuando estudio_init_default_base re-lee el ÚLTIMO
   # xlsform+data del file store como base "default" (evita que tome al hijo).
