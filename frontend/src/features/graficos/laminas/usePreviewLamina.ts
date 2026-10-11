@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { apiGraficosPreviewSlide, type Slide } from "../../../api/graficos";
+import { apiGraficosPreviewSlide, normalizePreviewFormas, type PreviewFormas, type Slide } from "../../../api/graficos";
 import { apiGraficosPreviewSlideJob } from "../../../api/graficosMiniaturas";
 import { apiJobCancel } from "../../../api/jobs";
 import { iniciarJobPoll } from "../../../hooks/useJob";
@@ -36,6 +36,8 @@ export type VistaPreviaLamina = {
   /** Progreso del job mientras la fase es «cargando»; null en las demás. */
   progreso: ProgresoPreview | null;
   reintentar: () => void;
+  /** Formas y ranuras del estándar de lo que se dibuja (K11), para las guías del visor; null sin respuesta. */
+  formas: PreviewFormas | null;
 };
 
 type Coordinador = ReturnType<typeof crearCoordinadorPreviewLamina>;
@@ -79,6 +81,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
           preview_quality: calidadParaPantalla(),
           render_slide_preview: true,
           preview_partes: true,
+          preview_formas: true,
           ...(alcance.current === "consolidated" ? { scope: "consolidated" as const } : {}),
         },
         signal,
@@ -109,6 +112,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
 
   const respuesta = estado.estado === "lista" ? estado.respuesta : "anterior" in estado ? estado.anterior : undefined;
   const lamina = useMemo(() => (respuesta ? leerLaminaVisor(respuesta) : null), [respuesta]);
+  const formas = useMemo(() => (respuesta ? normalizePreviewFormas(respuesta) : null), [respuesta]);
   return {
     fase: estado.estado,
     lamina,
@@ -116,6 +120,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
     error: estado.estado === "error" ? estado.mensaje : null,
     progreso: estado.estado === "cargando" ? progreso : null,
     reintentar: () => setIntento((n) => n + 1),
+    formas,
   };
 }
 

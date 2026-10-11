@@ -902,6 +902,8 @@ export type PreviewSlideOptions = {
   render_slide_preview?: boolean;
   /** Rasterizar todas las partes «(cont.)», no sólo la primera. */
   preview_partes?: boolean;
+  /** K11: devolver las formas de cada parte y las ranuras del estándar (guías del visor, `graficos_preview_formas.R`). */
+  preview_formas?: boolean;
   scope?: "consolidated";
 };
 
@@ -918,6 +920,8 @@ export type PreviewSlideResponse = {
   slide_previews?: Array<(SlideRenderedPreview & { indice?: number }) | Record<string, never>>;
   /** Avisos del motor para esta lámina (columna omitida, lámina partida…). */
   avisos?: string[] | string;
+  /** K11, sólo con `preview_formas`: las ranuras del estándar del tipo, en pulgadas. Leer con `normalizePreviewFormas`. */
+  ranuras_estandar?: unknown;
 };
 
 export type PreviewSlideParte = {
@@ -926,9 +930,100 @@ export type PreviewSlideParte = {
   /** «marco»: el gráfico se dibuja aparte (nube de palabras, serie de 3+ mediciones) y la lámina lleva título y pie del recetario. */
   estado: "nativa" | "estructura" | "ruta_anterior" | "sin_grafico" | "marco";
   continuacion: boolean;
+  /** K11, sólo con `preview_formas`: las formas de la parte leídas del PPTX. Leer con `normalizePreviewFormas`. */
+  formas?: unknown;
 };
 
 export type PreviewSlidePartes = { n: number; partes: PreviewSlideParte[]; truncado?: boolean };
+
+/** Rol de una forma de la lámina, como lo deriva `.pf_rol` (graficos_preview_formas.R). */
+export type RolFormaPreview =
+  | "titulo" | "antetitulo" | "grafico" | "cifra" | "texto" | "leyenda" | "base" | "pie" | "icono" | "otro";
+
+const ROLES_FORMA_PREVIEW: ReadonlySet<string> = new Set([
+  "titulo", "antetitulo", "grafico", "cifra", "texto", "leyenda", "base", "pie", "icono", "otro",
+]);
+
+/** Una forma de la lámina (K11). Medidas en pulgadas; `null` es «no se pudo leer o medir», nunca un cero. */
+export type PreviewForma = {
+  nombre: string;
+  rol: RolFormaPreview;
+  x: number | null;
+  y: number | null;
+  w: number | null;
+  h: number | null;
+  ptMin: number | null;
+  ptMax: number | null;
+  lineas: number | null;
+  /** `null`: la medición no es confiable (ver `.pf_recortado`). */
+  recortado: boolean | null;
+  /** Nombre del grupo que la contiene; `null` en primer nivel. */
+  grupo: string | null;
+  /**
+   * Cuerpo en pt que pide el recetario para esta forma. El backend AÚN NO lo envía (contrato pendiente
+   * `partes[].formas[].pt_estandar`); mientras falte es `null` y la capa Tipografía no compara.
+   */
+  ptEstandar: number | null;
+};
+
+/** Una ranura del estándar del tipo de lámina (`/api/graficos/estandar`), en pulgadas. */
+export type PreviewRanuraEstandar = { rol: string; x: number; y: number; w: number; h: number };
+
+export type PreviewFormas = {
+  /** ¿La respuesta trajo formas? `false` = no se pidieron o el backend no las conoce (no es «lámina vacía»). */
+  disponible: boolean;
+  /** Formas por índice de parte (1-based). */
+  porParte: Record<number, PreviewForma[]>;
+  ranuras: PreviewRanuraEstandar[];
+};
+
+const objetoPlano = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+/** El serializador unboxed de R: una lista de un elemento puede llegar como objeto suelto; una vacía, como `{}`. */
+const listaDeObjetos = (v: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(v)) return v.filter(objetoPlano);
+  return objetoPlano(v) && Object.keys(v).length > 0 ? [v] : [];
+};
+const numeroONulo = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const textoONulo = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
+
+function normalizePreviewForma(f: Record<string, unknown>): PreviewForma {
+  const rol = typeof f.rol === "string" && ROLES_FORMA_PREVIEW.has(f.rol) ? (f.rol as RolFormaPreview) : "otro";
+  return {
+    nombre: typeof f.nombre === "string" ? f.nombre : "",
+    rol,
+    x: numeroONulo(f.x),
+    y: numeroONulo(f.y),
+    w: numeroONulo(f.w),
+    h: numeroONulo(f.h),
+    ptMin: numeroONulo(f.pt_min),
+    ptMax: numeroONulo(f.pt_max),
+    lineas: numeroONulo(f.lineas),
+    recortado: typeof f.recortado === "boolean" ? f.recortado : null,
+    grupo: textoONulo(f.grupo),
+    ptEstandar: numeroONulo(f.pt_estandar),
+  };
+}
+
+/** Formas y ranuras del estándar de una vista previa pedida con `preview_formas` (K11; patrón `normalizeGraficosShareInspect`). */
+export function normalizePreviewFormas(raw: unknown): PreviewFormas {
+  const r = objetoPlano(raw) ? raw : {};
+  const partes = listaDeObjetos(objetoPlano(r.partes) ? r.partes.partes : undefined);
+  const porParte: Record<number, PreviewForma[]> = {};
+  let disponible = false;
+  partes.forEach((p, i) => {
+    if (!("formas" in p)) return;
+    disponible = true;
+    const indice = typeof p.indice === "number" && Number.isInteger(p.indice) && p.indice > 0 ? p.indice : i + 1;
+    porParte[indice] = listaDeObjetos(p.formas).map(normalizePreviewForma);
+  });
+  const ranuras: PreviewRanuraEstandar[] = [];
+  for (const q of listaDeObjetos(r.ranuras_estandar)) {
+    const [x, y, w, h] = [q.x, q.y, q.w, q.h].map(numeroONulo);
+    if (x === null || y === null || w === null || h === null || w <= 0 || h <= 0) continue;
+    ranuras.push({ rol: typeof q.rol === "string" ? q.rol : "", x, y, w, h });
+  }
+  return { disponible: disponible || "ranuras_estandar" in r, porParte, ranuras };
+}
 
 export type GraficosPreviewRendererStatus = {
   ok: true;
