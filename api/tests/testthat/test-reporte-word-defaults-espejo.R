@@ -10,13 +10,15 @@ source("setup-load-all.R")
                 mustWork = FALSE)
 }
 
-# Bloque `barras_apiladas` de DEFAULT_WORD_PRESETS como lista nombrada de R (literales true/false, "texto" y números).
-.wde_ts_apiladas <- function(path) {
+# Bloque `familia` de DEFAULT_WORD_PRESETS como lista nombrada de R (literales true/false, "texto" y números); `NULL`
+# si el espejo no declara la familia.
+.wde_ts_bloque <- function(path, familia = "barras_apiladas") {
   src <- readLines(path, warn = FALSE, encoding = "UTF-8")
   ini <- grep("export const DEFAULT_WORD_PRESETS", src, fixed = TRUE)
   expect_length(ini, 1L)
-  bloque <- grep("^\\s*barras_apiladas:\\s*\\{", src)
+  bloque <- grep(paste0("^\\s*", familia, ":\\s*\\{"), src)
   bloque <- bloque[bloque > ini][1]
+  if (is.na(bloque)) return(NULL)
   fin <- bloque + which(grepl("^\\s*\\},?\\s*$", src[(bloque + 1):length(src)]))[1]
   lineas <- src[(bloque + 1):(fin - 1)]
   lineas <- lineas[grepl("^\\s*[a-z_0-9]+:\\s*", lineas)]
@@ -32,7 +34,7 @@ source("setup-load-all.R")
 test_that("DEFAULT_WORD_PRESETS del front es el mismo default Word de las apiladas que el del motor", {
   path <- .wde_ts_path()
   skip_if_not(file.exists(path), "sin el árbol del frontend (R CMD check)")
-  ts <- .wde_ts_apiladas(path)
+  ts <- .wde_ts_bloque(path, "barras_apiladas")
   r <- .WORD_CHART_PRESETS_DEFAULT_PULSO$barras_apiladas
   expect_setequal(names(ts), names(r))
   for (k in intersect(names(ts), names(r))) {
@@ -43,6 +45,21 @@ test_that("DEFAULT_WORD_PRESETS del front es el mismo default Word de las apilad
   expect_identical(ts$barra_extra_preset, "top2box")
   expect_gt(ts$canvas_w_extra, 0)
   expect_equal(ts$canvas_w_etiquetas + ts$canvas_w_buf_etq_bars + ts$canvas_w_bars + ts$canvas_w_buf_bars_extra + ts$canvas_w_extra, 1)
+})
+
+test_that("DEFAULT_WORD_PRESETS del front espeja también el default Word de las multiapiladas", {
+  # Sin este espejo el editor no sabía que el Word de fábrica apaga la columna extra de los bloques multiactor
+  # (twoBoxWord.ts la suplía con un suelo propio) ni con qué lienzo los calibra.
+  path <- .wde_ts_path()
+  skip_if_not(file.exists(path), "sin el árbol del frontend (R CMD check)")
+  ts <- .wde_ts_bloque(path, "multi_apiladas")
+  expect_false(is.null(ts), info = "DEFAULT_WORD_PRESETS.chart_presets.multi_apiladas")
+  r <- .WORD_CHART_PRESETS_DEFAULT_PULSO$multi_apiladas
+  expect_setequal(names(ts), names(r))
+  for (k in intersect(names(ts), names(r))) {
+    expect_equal(ts[[k]], if (is.numeric(r[[k]])) as.numeric(r[[k]]) else r[[k]], info = k)
+  }
+  expect_false(isTRUE(ts$mostrar_barra_extra))
 })
 
 .wde_inst <- function() {
