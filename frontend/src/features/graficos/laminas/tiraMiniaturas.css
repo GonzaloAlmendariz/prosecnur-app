@@ -209,16 +209,22 @@
 }
 
 .pulso-f6-miniatura-error {
+  /* La caja útil es 94×52 y «Reintentar» (24×24) ocupa su esquina superior derecha. Fila 1 (24 px, a la altura del
+     botón): el ícono, a la izquierda. Fila 2: el texto a todo el ancho (82 px), que parte en dos líneas («No se pudo /
+     dibujar») por debajo del botón: 2 + 24 + 2 × 12,65 = 51,3 px. `white-space: normal` revierte el `nowrap` que la
+     regla global de `button` le pasa a todo su contenido. */
   display: grid;
+  grid-template-rows: 24px auto;
   justify-items: start;
+  align-items: center;
   align-content: start;
-  gap: 2px;
   height: 100%;
-  padding: var(--pulso-space-1) var(--pulso-space-2);
+  padding: 2px 6px 0;
   color: var(--pulso-danger-fg);
   font-size: 11px;
-  line-height: 1.2;
+  line-height: 1.15;
   text-align: left;
+  white-space: normal;
 }
 
 .pulso-f6-miniatura.is-error {
@@ -226,20 +232,27 @@
   background: var(--pulso-danger-bg);
 }
 
-/* Reintentar va fuera del botón de la miniatura (no se anidan botones) y se superpone en su esquina. */
+/* Reintentar va fuera del botón de la miniatura (no se anidan botones) y se superpone en su esquina, junto al ícono
+   (fila 1 del aviso de error, que no lleva texto). 24×24 de blanco: se anulan el min-height y el padding de la regla global de
+   `button` (que lo estiraban a 20×28 y lo montaban sobre el texto). */
 .pulso-f6-miniatura-reintentar {
   position: absolute;
   top: 2px;
   right: 2px;
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   border: 1px solid var(--pulso-danger-border);
   border-radius: calc(var(--pulso-radius) / 3);
   background: var(--pulso-surface);
   color: var(--pulso-danger-fg);
+  line-height: 0;
+  box-shadow: none;
   cursor: pointer;
   transition: transform var(--motion-dur-press) var(--motion-ease-out);
 }
@@ -247,12 +260,29 @@
 @media (hover: hover) and (pointer: fine) {
   .pulso-f6-miniatura-reintentar:hover {
     border-color: var(--pulso-danger-fg);
+    transition:
+      border-color var(--motion-dur-hover) var(--motion-ease-out),
+      transform var(--motion-dur-press) var(--motion-ease-out);
   }
 }
 
 .pulso-f6-miniatura-reintentar:focus-visible {
   outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
   outline-offset: var(--pulso-nav-focus-offset);
+}
+
+/* Movimiento reducido: sin desplazamientos (ni el levantamiento de 1 px del hover global de `button`, ni la escala de
+   :active), con fundido de color. El hover de la miniatura reintroducía la transición de transform (M3/M4, RM). */
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-miniatura,
+  .pulso-f6-miniatura:hover,
+  .pulso-f6-miniatura:active,
+  .pulso-f6-miniatura-reintentar,
+  .pulso-f6-miniatura-reintentar:hover,
+  .pulso-f6-miniatura-reintentar:active {
+    transform: none;
+    transition: border-color var(--motion-dur-hover) var(--motion-ease-out);
+  }
 }
 
 /* En el marco compacto la tira se pliega: la Estructura ya lista las láminas y el lienzo conserva el alto. */

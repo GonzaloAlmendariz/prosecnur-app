@@ -39,8 +39,8 @@ describe("crearCargaPreviewPorJob", () => {
     emitir({ snapshot: snap("done", { result_data: respuesta }) });
     await expect(p).resolves.toBe(respuesta);
     expect(deps.sincrono).not.toHaveBeenCalled();
-    expect(progreso).toHaveBeenCalledWith({ mensaje: "Dibujando la lámina", porcentaje: 0 });
-    expect(progreso).toHaveBeenLastCalledWith({ mensaje: "Listo", porcentaje: 100 });
+    expect(progreso).toHaveBeenCalledWith({ mensaje: "Dibujando la lámina", porcentaje: null });
+    expect(progreso).toHaveBeenLastCalledWith({ mensaje: "Listo", porcentaje: null });
     expect(parar).toHaveBeenCalled();
   });
 
@@ -120,5 +120,16 @@ describe("auxiliares", () => {
     expect(progresoDeJob(null)).toEqual({ mensaje: "Dibujando la lámina", porcentaje: null });
     expect(progresoDeJob({ phase: "done", percent: 140 })).toEqual({ mensaje: "Listo", porcentaje: 100 });
     expect(progresoDeJob({ current: 1, total: 4 })).toEqual({ mensaje: "Dibujando la lámina", porcentaje: 25 });
+  });
+
+  it("progresoDeJob no inventa un «0 %» fijo cuando el job es de una sola lámina (total ≤ 1)", () => {
+    // Lo que escribe el worker durante todo el render de una lámina (job_progress_writer calcula percent = 0).
+    expect(progresoDeJob({ phase: "running", current: 0, total: 1, percent: 0, message: "Lámina s-1 (1 de 1)" }))
+      .toEqual({ mensaje: "Dibujando la lámina", porcentaje: null });
+    expect(progresoDeJob({ phase: "running", current: 0, total: 0 })).toEqual({ mensaje: "Dibujando la lámina", porcentaje: null });
+    // Con varias unidades sí hay avance; al terminar un job de una lámina tampoco se muestra número.
+    expect(progresoDeJob({ phase: "running", current: 1, total: 2, percent: 50 })).toEqual({ mensaje: "Dibujando la lámina", porcentaje: 50 });
+    expect(progresoDeJob({ phase: "done", current: 1, total: 1, percent: 100 })).toEqual({ mensaje: "Listo", porcentaje: null });
+    expect(progresoDeJob({ phase: "done", current: 3, total: 3 })).toEqual({ mensaje: "Listo", porcentaje: 100 });
   });
 });

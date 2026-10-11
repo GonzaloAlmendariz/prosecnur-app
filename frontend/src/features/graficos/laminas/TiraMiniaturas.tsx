@@ -9,7 +9,10 @@ import { usePlanStore } from "../store";
 import type { EstructuraInforme, LaminaEnEstructura } from "./modeloEstructura";
 import { useLaminasUi } from "./laminasStore";
 import { ContenidoMiniatura } from "./miniaturas/ContenidoMiniatura";
+import { ANUNCIO_INICIAL, siguienteAnuncio } from "./miniaturas/anuncioTira";
 import { avisoVacios } from "./miniaturas/loteMiniaturas";
+import { useMiniaturasLoteStore } from "./miniaturas/miniaturasStore";
+import { reintentarConFoco } from "./miniaturas/reintentarConFoco";
 import { rotuloEstado, vistaDeMiniatura } from "./miniaturas/vistaMiniatura";
 import { useMiniaturasLote } from "./miniaturas/useMiniaturasLote";
 import "./tiraMiniaturas.css";
@@ -37,6 +40,10 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
   const [visible, setVisible] = useState(true);
   const { entradas, avance, reintentar } = useMiniaturasLote(estructura.laminas, visible);
   const porId = useMemo(() => new Map(slides.map((s) => [s.id, s])), [slides]);
+  // Un anuncio por lote, no por lámina; recuerda el último lote para decir cómo terminó (anuncioTira.ts).
+  const vigente = useMiniaturasLoteStore((s) => s.vigente);
+  const anuncio = useRef(ANUNCIO_INICIAL);
+  anuncio.current = siguienteAnuncio(anuncio.current, vigente, entradas);
 
   useEffect(() => {
     const el = ref.current;
@@ -51,62 +58,63 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
   }, [posicionActiva]);
 
   return (
-    <nav
-      ref={ref}
-      className="pulso-f6-tira"
-      aria-label="Miniaturas de las láminas"
-      aria-busy={avance ? avance.listas < avance.total : undefined}
-      data-avance={avance ? "" : undefined}
-      style={avance ? ({ "--pulso-f6-tira-avance": `${Math.round((avance.listas / Math.max(1, avance.total)) * 100)}%` } as CSSProperties) : undefined}
-    >
-      <span className="pulso-sr-only" role="status">
-        {avance && avance.listas < avance.total ? `Miniaturas: ${avance.listas} de ${avance.total} listas` : ""}
-      </span>
-      {grupos.map((g) => (
-        <section key={g.id} className="pulso-f6-tira-grupo" aria-label={g.rotulo}>
-          <span className="pulso-f6-tira-rotulo" title={g.rotulo}>{g.rotulo}</span>
-          <ul className="pulso-f6-tira-fila" data-qa-geometry-group="graficos/f6-tira" data-qa-geometry-contract="equal">
-            {g.laminas.map((l) => {
-              const entrada = entradas[l.id];
-              const { vista, src } = vistaDeMiniatura(entrada, miniaturas[l.id]);
-              const activa = l.posicion === posicionActiva;
-              const parcial = avisoVacios(entrada);
-              const motivo = parcial && entrada?.vacios?.motivo ? ` (${entrada.vacios.motivo})` : "";
-              return (
-                <li key={l.id} className="pulso-f6-tira-item">
-                  <button
-                    type="button"
-                    className={`pulso-f6-miniatura is-${vista}${activa ? " is-activa" : ""}`}
-                    aria-current={activa ? "true" : undefined}
-                    aria-label={`Lámina ${l.posicion}: ${l.titulo}${rotuloEstado(vista)}${parcial ? ` · ${parcial}${motivo}` : ""}`}
-                    title={vista === "error" && entrada?.error ? entrada.error : parcial ? `${parcial}${motivo}` : undefined}
-                    data-miniatura={l.posicion}
-                    data-miniatura-estado={entrada?.estado ?? "sin_lote"}
-                    onClick={() => onIr(l.posicion)}
-                  >
-                    <ContenidoMiniatura vista={vista} src={src} slide={porId.get(l.id)} lamina={l} />
-                    {parcial && entrada?.vacios && (
-                      <span className="pulso-f6-miniatura-parcial" aria-hidden="true">{entrada.vacios.vacios} de {entrada.vacios.pedidos} sin datos</span>
-                    )}
-                    <span className="pulso-f6-miniatura-num" aria-hidden="true">{l.posicion}</span>
-                  </button>
-                  {vista === "error" && (
+    <>
+      {/* La región viva va FUERA del nav con aria-busy: varios lectores callan las regiones bajo un ancestro ocupado. */}
+      <span className="pulso-sr-only" role="status">{visible ? anuncio.current.texto : ""}</span>
+      <nav
+        ref={ref}
+        className="pulso-f6-tira"
+        aria-label="Miniaturas de las láminas"
+        aria-busy={avance ? avance.listas < avance.total : undefined}
+        data-avance={avance ? "" : undefined}
+        style={avance ? ({ "--pulso-f6-tira-avance": `${Math.round((avance.listas / Math.max(1, avance.total)) * 100)}%` } as CSSProperties) : undefined}
+      >
+        {grupos.map((g) => (
+          <section key={g.id} className="pulso-f6-tira-grupo" aria-label={g.rotulo}>
+            <span className="pulso-f6-tira-rotulo" title={g.rotulo}>{g.rotulo}</span>
+            <ul className="pulso-f6-tira-fila" data-qa-geometry-group="graficos/f6-tira" data-qa-geometry-contract="equal">
+              {g.laminas.map((l) => {
+                const entrada = entradas[l.id];
+                const { vista, src } = vistaDeMiniatura(entrada, miniaturas[l.id]);
+                const activa = l.posicion === posicionActiva;
+                const parcial = avisoVacios(entrada);
+                const motivo = parcial && entrada?.vacios?.motivo ? ` (${entrada.vacios.motivo})` : "";
+                return (
+                  <li key={l.id} className="pulso-f6-tira-item">
                     <button
                       type="button"
-                      className="pulso-f6-miniatura-reintentar"
-                      aria-label={`Reintentar la miniatura de la lámina ${l.posicion}`}
-                      title={entrada?.error ? `${entrada.error} Reintentar.` : "Reintentar"}
-                      onClick={() => reintentar(l.id)}
+                      className={`pulso-f6-miniatura is-${vista}${activa ? " is-activa" : ""}`}
+                      aria-current={activa ? "true" : undefined}
+                      aria-label={`Lámina ${l.posicion}: ${l.titulo}${rotuloEstado(vista)}${parcial ? ` · ${parcial}${motivo}` : ""}`}
+                      title={vista === "error" && entrada?.error ? entrada.error : parcial ? `${parcial}${motivo}` : undefined}
+                      data-miniatura={l.posicion}
+                      data-miniatura-estado={entrada?.estado ?? "sin_lote"}
+                      onClick={() => onIr(l.posicion)}
                     >
-                      <RotateCw size={12} aria-hidden="true" />
+                      <ContenidoMiniatura vista={vista} src={src} slide={porId.get(l.id)} lamina={l} />
+                      {parcial && entrada?.vacios && (
+                        <span className="pulso-f6-miniatura-parcial" aria-hidden="true">{entrada.vacios.vacios} de {entrada.vacios.pedidos} sin datos</span>
+                      )}
+                      <span className="pulso-f6-miniatura-num" aria-hidden="true">{l.posicion}</span>
                     </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
-    </nav>
+                    {vista === "error" && (
+                      <button
+                        type="button"
+                        className="pulso-f6-miniatura-reintentar"
+                        aria-label={`Reintentar la miniatura de la lámina ${l.posicion}`}
+                        title={entrada?.error ? `${entrada.error} Reintentar.` : "Reintentar"}
+                        onClick={(e) => reintentarConFoco(e.currentTarget.parentElement, () => reintentar(l.id))}
+                      >
+                        <RotateCw size={12} aria-hidden="true" />
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </nav>
+    </>
   );
 }
