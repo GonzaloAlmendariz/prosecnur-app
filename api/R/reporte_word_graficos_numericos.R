@@ -11,7 +11,8 @@
 #' @keywords internal
 .word_g_pesas <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
-  a <- espec$a; b <- espec$b; n <- length(a); gr <- espec$grupos; cols <- c(T$navy, T$celeste)
+  a <- espec$a; b <- espec$b; n <- length(a); gr <- espec$grupos
+  cols <- .word_colores_de_espec(espec, gr, c(T$navy, T$celeste)); cb_col <- if (isTRUE(attr(cols, "de_paleta")[2])) cols[2] else T$medio; cols <- as.vector(cols)
   it <- .word_envolver_holgado(espec$rotulos, 34); pd <- .word_posiciones(it); y <- pd$y
   lim <- 100; lo <- floor(min(a, b, na.rm = TRUE) / 10) * 10 - 10; rng <- lim - lo
   xd <- lim + rng * 0.2; sep <- rng * 0.025; cerca <- abs(a - b) < rng * 0.12
@@ -29,7 +30,7 @@
     ggplot2::geom_text(ggplot2::aes(x = ifelse(.data$a >= .data$b, .data$a + sep, .data$a - sep), y = .data$y, label = .data$ca,
                                     hjust = ifelse(.data$a >= .data$b, 0, 1)), size = .word_pt(8.5), fontface = "bold", colour = cols[1], family = "Arial") +
     ggplot2::geom_text(ggplot2::aes(x = ifelse(.data$a >= .data$b, .data$b - sep, .data$b + sep), y = .data$y, label = .data$cb,
-                                    hjust = ifelse(.data$a >= .data$b, 1, 0)), size = .word_pt(8.5), fontface = "bold", colour = T$medio, family = "Arial") +
+                                    hjust = ifelse(.data$a >= .data$b, 1, 0)), size = .word_pt(8.5), fontface = "bold", colour = cb_col, family = "Arial") +
     ggplot2::annotate("text", x = lo - rng * 0.03, y = y, label = it, hjust = 1, size = .word_pt(8.5), fontface = "bold", colour = navy,
                       family = "Arial", lineheight = 0.9) +
     ggplot2::scale_x_continuous(limits = c(.word_xmin(it, 8.5, lim + rng * 0.3, lo - rng * 0.03), lim + rng * 0.3), expand = c(0, 0)) +

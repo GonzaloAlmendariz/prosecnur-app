@@ -48,6 +48,7 @@
   resid <- grepl(.CATEGORIAS_RESIDUALES, espec$rotulos, ignore.case = TRUE)
   ps <- .word_posiciones(l); mx <- which.max(ifelse(resid, -1, p))
   col <- if (isTRUE(espec$realce)) ifelse(resid, T$gris, ifelse(seq_along(p) == mx, T$navy, T$tenue)) else ifelse(resid, T$gris, T$navy)
+  col <- as.vector(.word_colores_de_espec(espec, espec$rotulos, col))          # paleta por lista (ADR 0097), recetario de respaldo
   marcas <- isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)
   esc <- if (isTRUE(espec$escala_completa)) max(100, max(p)) * 1.12 else max(p) * (if (any(grepl("\\(", espec$cifras))) 1.34 else 1.18)
   d <- data.frame(l = l, p = p, y = ps$y, col = col, et = espec$cifras, negrita = isTRUE(espec$realce) & seq_along(p) == mx, stringsAsFactors = FALSE)
@@ -74,7 +75,7 @@
   n <- .espec_casos(espec)[1:2]; et <- ifelse(is.finite(n), sprintf("%s (%s)", rot, format(n, big.mark = ",", trim = TRUE)), rot)
   d <- data.frame(x0 = c(0, p1), x1 = c(p1, 100), k = factor(rot, levels = rot))
   g <- ggplot2::ggplot(d) + ggplot2::geom_rect(ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = 0, ymax = 1, fill = .data$k)) +
-    ggplot2::scale_fill_manual(values = stats::setNames(c(T$navy, T$celeste), rot)) +
+    ggplot2::scale_fill_manual(values = stats::setNames(as.vector(.word_colores_de_espec(espec, rot, c(T$navy, T$celeste))), rot)) +
     ggplot2::annotate("text", x = 0, y = 2.0, label = espec$cifras[1], hjust = 0, size = .word_pt(22), fontface = "bold", colour = T$navy, family = "Arial") +
     ggplot2::annotate("text", x = 100, y = 2.0, label = espec$cifras[2], hjust = 1, size = .word_pt(22), fontface = "bold", colour = T$medio, family = "Arial") +
     ggplot2::annotate("text", x = 0, y = 1.3, label = et[1], hjust = 0, size = .word_pt(9), colour = navy, family = "Arial") +
@@ -92,7 +93,7 @@
   d <- data.frame(l = factor(w[o], levels = unique(w[o])), p = p[o], et = espec$cifras[o]); top <- nrow(d)
   g <- ggplot2::ggplot(d, ggplot2::aes(y = .data$l)) +
     ggplot2::geom_segment(ggplot2::aes(x = 0, xend = .data$p, yend = .data$l), colour = T$tenue, linewidth = 0.9) +
-    ggplot2::geom_point(ggplot2::aes(x = .data$p), size = 3, colour = ifelse(seq_len(top) == top, T$navy, T$tenue)) +
+    ggplot2::geom_point(ggplot2::aes(x = .data$p), size = 3, colour = as.vector(.word_colores_de_espec(espec, espec$rotulos[o], ifelse(seq_len(top) == top, T$navy, T$tenue)))) +
     ggplot2::geom_text(ggplot2::aes(x = .data$p + max(.data$p) * 0.04, label = .data$et), hjust = 0, size = .word_pt(8.5), fontface = "bold", colour = navy, family = "Arial") +
     ggplot2::scale_x_continuous(limits = c(0, max(d$p) * 1.15), expand = c(0, 0)) + .word_tema() +
     ggplot2::theme(axis.text.y = ggplot2::element_text(size = max(8, 8.5 * 0.95), colour = navy, family = "Arial", hjust = 1, lineheight = 0.9, margin = ggplot2::margin(r = 8)))
@@ -112,7 +113,7 @@
   }))
   tn <- espec$total_neg; tp <- espec$total_pos; xl <- -max(tn) - 22
   g <- ggplot2::ggplot(d) + ggplot2::geom_rect(ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = .data$y - 0.3, ymax = .data$y + 0.3, fill = .data$k)) +
-    ggplot2::scale_fill_manual(values = stats::setNames(C$color, C$rotulo), breaks = C$rotulo[C$lado %in% c("neg", "pos")]) +
+    ggplot2::scale_fill_manual(values = stats::setNames(as.vector(.word_colores_de_espec(espec, C$rotulo, C$color)), C$rotulo), breaks = C$rotulo[C$lado %in% c("neg", "pos")]) +
     ggplot2::geom_text(data = d[d$p >= 8, , drop = FALSE], ggplot2::aes(x = (.data$x0 + .data$x1) / 2, y = .data$y, label = .data$cifra), size = .word_pt(8.5), fontface = "bold",
                        colour = navy, family = "Arial") +
     ggplot2::geom_vline(xintercept = 0, colour = navy, linewidth = 0.4) +
