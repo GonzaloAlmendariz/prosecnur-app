@@ -1528,7 +1528,7 @@
            default = TRUE,
            descripcion = "Escribe al margen la diferencia entre el lado positivo y el negativo, en puntos porcentuales."),
       list(name = "umbral_etiqueta_pct", label = "Umbral de etiqueta (%)", tipo_input = "number", grupo = "valores",
-           default = 3, min = 0, max = 20, step = 1,
+           default = 3, min = 0, max = 20, step = 1, unidad = "%",
            descripcion = "Los segmentos por debajo de este porcentaje no llevan cifra: no cabe."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Retira estas respuestas antes de calcular los porcentajes y el saldo; cambia el denominador.")
@@ -1640,7 +1640,7 @@
            default = TRUE,
            descripcion = "Escribe al margen la primera fuente menos la segunda (+6 pts si la primera está 6 puntos arriba). En antes/después declara primero la medición más reciente."),
       list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
-           default = 0, min = 0, max = 50, step = 1,
+           default = 0, min = 0, max = 50, step = 1, unidad = "pp",
            descripcion = "Sólo se rotulan las brechas de al menos este tamaño.")
     ), .args_graf_comunes())
   ),
@@ -1800,7 +1800,7 @@
            min = 0, max = 3,
            descripcion = "0 muestra enteros. En el modo Entre públicos manda también sobre la tabla, para que la cifra del vértice y la de la celda sean la misma."),
       list(name = "valores_umbral_pct", label = "Umbral de valores (%)", tipo_input = "number", grupo = "valores",
-           default = 3,
+           default = 3, unidad = "%",
            descripcion = "Los vértices por debajo de este porcentaje no se etiquetan — evita el amontonamiento con muchos ejes de valores chicos. 0 etiqueta todos.")
     ), .args_graf_comunes())
   ),
@@ -2292,13 +2292,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = TRUE,
            descripcion = "Dibuja el triángulo que compara contra la medición anterior. Sin cambio no se dibuja nada."),
       list(name = "barra_extra_tolerancia_pp", label = "Tolerancia de la flecha (pp)", tipo_input = "number", grupo = "estilo",
-           default = 0,
+           default = 0, min = 0, max = 100, step = 1, unidad = "pp",
            descripcion = "Diferencia mínima en puntos porcentuales para dibujar la flecha. Con 1, un 91 % contra 90 % no marca cambio."),
       list(name = "barra_extra_umbral_alto", label = "Umbral verde del Top 2 Box", tipo_input = "number", grupo = "estilo",
-           default = 80,
+           default = 80, min = 0, max = 100, step = 1, unidad = "%",
            descripcion = "Desde este valor la cifra va en verde. Vara del informe de acreditación: 80."),
       list(name = "barra_extra_umbral_medio", label = "Umbral ámbar del Top 2 Box", tipo_input = "number", grupo = "estilo",
-           default = 70,
+           default = 70, min = 0, max = 100, step = 1, unidad = "%",
            descripcion = "Desde este valor la cifra va en ámbar; por debajo, en rojo. Vara del informe de acreditación: 70."),
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
            descripcion = "Texto que aparece encima de la columna extra. Déjalo vacío para usar el título automático del indicador."),
@@ -2608,13 +2608,13 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = TRUE,
            descripcion = "Dibuja el triángulo que compara contra la medición anterior. Sin cambio no se dibuja nada."),
       list(name = "barra_extra_tolerancia_pp", label = "Tolerancia de la flecha (pp)", tipo_input = "number", grupo = "estilo",
-           default = 0,
+           default = 0, min = 0, max = 100, step = 1, unidad = "pp",
            descripcion = "Diferencia mínima en puntos porcentuales para dibujar la flecha. Con 1, un 91 % contra 90 % no marca cambio."),
       list(name = "barra_extra_umbral_alto", label = "Umbral verde del Top 2 Box", tipo_input = "number", grupo = "estilo",
-           default = 80,
+           default = 80, min = 0, max = 100, step = 1, unidad = "%",
            descripcion = "Desde este valor la cifra va en verde. Vara del informe de acreditación: 80."),
       list(name = "barra_extra_umbral_medio", label = "Umbral ámbar del Top 2 Box", tipo_input = "number", grupo = "estilo",
-           default = 70,
+           default = 70, min = 0, max = 100, step = 1, unidad = "%",
            descripcion = "Desde este valor la cifra va en ámbar; por debajo, en rojo. Vara del informe de acreditación: 70."),
 
       # --- Eje Y + separación --------------------------------------------
@@ -4724,6 +4724,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       descripcion = "Proporción del alto disponible que ocupa la tabla dentro del placeholder. Ej. 0.72 usa 72%."
     ),
     umbral_rojo_pct = list(
+      unidad = "%",
       descripcion = "Marca celdas por debajo del porcentaje indicado. Usa 0 para desactivar el marcado. Ej. 60 marca valores menores a 60%."
     ),
     leyenda_posicion = list(
@@ -4889,7 +4890,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     umbral_posicion = list(
       label = "Ubicación de etiquetas pequeñas",
       descripcion = "Por debajo de este valor relativo, la etiqueta se mueve fuera de la barra para que porcentajes como 1% o 2% se lean mejor.",
-      unidad = "%",
+      unidad = "proporción",
       min = 0,
       max = 1,
       step = 0.0001,
@@ -4974,9 +4975,11 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     list()
   )
 
+  # `umbral_*` sin `_pct` guarda una proporción 0–1: se declara así y el editor la pinta ×100 con «%»
+  # (`escalaVisualDeArg`). Declararla «%» con rango 0–1 pintaba 0.01 como «0,01 %».
   if (grepl("^umbral_", nm) && !grepl("_pct$", nm)) {
     patch <- utils::modifyList(list(
-      unidad = "%",
+      unidad = "proporción",
       min = 0,
       max = 1,
       step = 0.0001,
@@ -5115,6 +5118,11 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     # motor; la pestaña «Cálculos» lo lee de aquí en vez de repetir la lista.
     calculos <- .calculos_meta_de_preset(nm, args)
     if (!is.null(calculos)) out$calculos <- calculos
+    # Lo que el Word del recetario fija y el editor de ajustes Word no debe ofrecer como si mandara (C5): una lista por
+    # preset y no un campo en cada `args[]`, porque varios fijados (size_leyenda, size_ejes…) no son args del preset.
+    # Sale de las mismas constantes que lee el renderer (`reporte_word_escala_fijados.R`).
+    word_fijado <- .word_fijado_de_preset(nm)
+    if (!is.null(word_fijado)) out$word_fijado <- word_fijado
     out
   })
   list(presets = presets)
