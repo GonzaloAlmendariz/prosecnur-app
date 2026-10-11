@@ -37,7 +37,7 @@ function row(diffs: SurveyMonkeyMultibaseDiff[], extra: Partial<SurveyMonkeyRefr
   };
 }
 
-function estudio(partial: Partial<EstudioPayload>): Pick<EstudioPayload, "topology_declared" | "bases"> {
+function estudio(partial: Partial<EstudioPayload>): Pick<EstudioPayload, "topology_declared" | "processing_mode" | "bases"> {
   const base = { nombre: "x" } as EstudioPayload["bases"][string];
   return {
     topology_declared: "independent",
@@ -117,6 +117,14 @@ describe("enlace a Equivalencias desde el diagnóstico", () => {
     const unaPrimaria = estudio({});
     unaPrimaria.bases.b = { ...unaPrimaria.bases.b, source_kind: "kobo_repeat", parent_base: "a" };
     expect(equivalenciasDisponibleEnEstudio(unaPrimaria)).toBe(false);
+  });
+
+  it("un estudio de hermanos independientes la tiene aunque no declare topología", () => {
+    // Espejo de `estudio_is_independent_siblings` en el backend: el estudio
+    // medido (3 públicos, topología null) servía la pestaña y el enlace no salía.
+    expect(equivalenciasDisponibleEnEstudio(
+      estudio({ topology_declared: null, processing_mode: "independent_siblings" }),
+    )).toBe(true);
   });
 
   it("enlaza a la dirección canónica cuando la pestaña existe", () => {

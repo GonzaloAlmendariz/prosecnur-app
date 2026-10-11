@@ -47,8 +47,10 @@ describe("Carga workspace integration semantics", () => {
   });
 
   it("publishes a stable QA readiness marker after the active topology loads", () => {
-    expect(pageSource).toContain(
-      'auditReady={isMultiBase && !estudio ? false : `carga-${activeCargaTab}`}',
+    // Revisión además espera la lectura de la base elegida, y la marca se
+    // escribe "false" (omitirla dejaba que una marca descendiente dijera "true").
+    expect(pageSource).toMatch(
+      /auditReady=\{\s*\(isMultiBase && !estudio\) \|\| \(activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\? "false"\s*: `carga-\$\{activeCargaTab\}`\s*\}/u,
     );
   });
 });

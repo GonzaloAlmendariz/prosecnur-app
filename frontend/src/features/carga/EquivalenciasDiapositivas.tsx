@@ -276,6 +276,7 @@ export function EquivalenciasDiapositivas({
                           )}
                           <input
                             value={fila.etiqueta_estandar}
+                            title={fila.etiqueta_estandar || undefined}
                             placeholder="Nombre corto de la barra"
                             aria-label={`Etiqueta del tema ${fila.id}`}
                             onChange={(e) =>
@@ -372,7 +373,9 @@ export function EquivalenciasDiapositivas({
             data-qa-geometry-contract="intrinsic"
             aria-label={sinDiapositiva ? "Temas sin diapositiva" : `Diapositiva ${diapo.clave}`}
           >
-            <header className="pulso-equiv-diapositiva-head">
+            {/* C1: miembros = cabecera, avisos y tabla. «Añadir tema» es una
+                acción al pie, no una sección de la tarjeta. */}
+            <header className="pulso-equiv-diapositiva-head" data-qa-geometry-member>
               <div className="pulso-equiv-diapositiva-id">
                 <Layers size={14} aria-hidden="true" />
                 <span>{sinDiapositiva ? "Sin diapositiva" : diapo.clave}</span>
@@ -418,7 +421,7 @@ export function EquivalenciasDiapositivas({
               (diapo.bloques.length > 1 ||
                 diapo.temasEscalaRota.length > 0 ||
                 diapo.etiquetasRepetidas.length > 0) && (
-              <div className="pulso-equiv-avisos">
+              <div className="pulso-equiv-avisos" data-qa-geometry-member>
                 {diapo.temasEscalaRota.slice(0, MAX_AVISOS_TEMA).map((tema, i) => (
                   <p className="pulso-equiv-aviso-caja" key={`escala-${i}`}>
                     <Info size={13} aria-hidden="true" />
@@ -469,7 +472,7 @@ export function EquivalenciasDiapositivas({
                 cuenta, así que las columnas de un bloque no caían donde las del
                 bloque de arriba. Con una sola tabla hay un único modelo de
                 columnas y todo queda alineado. */}
-            <table className="pulso-equiv-diapositiva-tabla">
+            <table className="pulso-equiv-diapositiva-tabla" data-qa-geometry-member>
               <thead>
                 <tr>
                   <th scope="col" className="pulso-equiv-col-etiqueta">Tema</th>

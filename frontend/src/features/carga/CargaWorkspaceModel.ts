@@ -24,6 +24,11 @@ export type CargaWorkspaceContext = {
   basesSeparadas?: boolean;
   /** Filas de la equivalencia ya declarada, si el estudio la tiene. */
   equivalenciasDeclaradas?: number;
+  /**
+   * Revisión está leyendo el resultado de la base elegida. Mientras tanto la
+   * pestaña no afirma «Listo» ni «Sin incidencias»: no lo sabe todavía.
+   */
+  revisionLeyendo?: boolean;
 };
 
 export type CargaWorkspaceMetadata = {
@@ -192,7 +197,16 @@ function sourcesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   );
 }
 
+export const CARGA_REVISION_LEYENDO = "Revisando…";
+
 function reviewItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
+  if (context.revisionLeyendo) {
+    return {
+      ...item("revision", "neutral", "Leyendo el resultado de la revisión de la base elegida."),
+      statusLabel: CARGA_REVISION_LEYENDO,
+    };
+  }
+
   if (context.hasReviewIssues) {
     return item(
       "revision",
@@ -299,6 +313,35 @@ function equivalencesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
     "pending",
     "Declara qué pregunta de un público equivale a cuál de otro para poder compararlos.",
   );
+}
+
+/**
+ * ¿Existe la pestaña Equivalencias en este estudio? Espejo exacto de
+ * `.analitica_config_es_por_base` (router_analitica.R), que es lo que el
+ * backend usa para servir la pestaña (ADR 0061/0062):
+ *
+ * - un estudio de hermanos independientes (`independent_siblings`) la tiene
+ *   siempre: sus bases no comparten instrumento por construcción;
+ * - si no, hace falta topología declarada `separate`/`independent` y más de
+ *   una base primaria.
+ *
+ * La versión anterior sólo miraba la topología declarada. Un estudio armado
+ * como hermanos independientes —topología `null`— servía la pestaña desde el
+ * backend mientras el rail no la listaba: encabezado «Pestaña 1 de 5 · Plan»
+ * sobre el contenido de Equivalencias y ningún ícono activo.
+ */
+export function equivalenciasDisponibles({
+  topologiaDeclarada,
+  modoProcesamiento,
+  basesPrimarias,
+}: {
+  topologiaDeclarada: string | null | undefined;
+  modoProcesamiento: string | null | undefined;
+  basesPrimarias: number;
+}): boolean {
+  if (modoProcesamiento === "independent_siblings") return true;
+  return (topologiaDeclarada === "separate" || topologiaDeclarada === "independent")
+    && basesPrimarias > 1;
 }
 
 export function cargaWorkspaceItems(

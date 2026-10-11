@@ -37,6 +37,16 @@
   cursor: pointer;
 }
 
+/*
+ * C4: la regla global `button > span { min-width: 0 }` dejaba que el rótulo se
+ * encogiera dentro del botón y recortara 2 px de «Ver preguntas». El rótulo
+ * mide lo que mide su texto.
+ */
+.pulso-carga-ver-preguntas > span {
+  flex: none;
+  min-width: max-content;
+}
+
 .pulso-carga-ver-preguntas:hover {
   background: var(--pulso-module-processing-soft);
 }

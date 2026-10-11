@@ -20,7 +20,11 @@ export type EmparejamientoFiltro = "diferencias" | "todas";
 
 export type EmparejamientoEstadoMeta = {
   estado: EmparejamientoEstadoFila;
-  /** Texto de la insignia: nunca se deja el estado solo al color. */
+  /**
+   * Texto de la insignia: nunca se deja el estado solo al color. Es el
+   * singular de `cifra`, para que la tabla, la leyenda y las cifras nombren el
+   * estado con las mismas palabras.
+   */
   insignia: string;
   /** Rótulo de la cifra del encabezado. */
   cifra: string;
@@ -43,7 +47,7 @@ export const EMPAREJAMIENTO_ESTADOS: Record<EmparejamientoEstadoFila, Emparejami
   },
   no_entro: {
     estado: "no_entro",
-    insignia: "No entró a la base",
+    insignia: "No entró",
     cifra: "No entraron",
     leyenda: "Solo existe en la fuente: sus respuestas no se incorporaron.",
   },
@@ -55,7 +59,7 @@ export const EMPAREJAMIENTO_ESTADOS: Record<EmparejamientoEstadoFila, Emparejami
   },
   ambigua: {
     estado: "ambigua",
-    insignia: "Ambigua — no se emparejó",
+    insignia: "Ambigua",
     cifra: "Ambiguas",
     leyenda: "La pregunta se repite un número distinto de veces en la base y en la fuente; no se emparejó para no cruzarla.",
   },
@@ -199,15 +203,50 @@ export function fuenteEnFoco(
 }
 
 // ---------------------------------------------------------------------------
-// Dirección: `?panel=emparejamiento&foco=<survey_id>`
+// Dirección: `?panel=emparejamiento&foco=<base>:<survey_id>`
 // ---------------------------------------------------------------------------
 //
 // Se escribe con `conNivel` y se lee con `panelAbiertoEn`, de la gramática
 // compartida: este módulo no conoce los nombres de los params.
+//
+// El `foco` identifica la fuente DENTRO de su base: el mismo `survey_id` no
+// dice nada sin la base, y un enlace recargado abriría contra la base que el
+// selector tuviera por defecto. Se corta en el ÚLTIMO «:» porque un
+// `survey_id` de SurveyMonkey es numérico y nunca lo lleva; un foco sin «:»
+// (enlaces anteriores) se lee como fuente de la base que se esté revisando.
 
-/** Abre el panel sobre una fuente, conservando el resto de la dirección. */
-export function searchConEmparejamiento(search: string, surveyId: string): string {
-  return conNivel(conNivel(search, "panel", PANEL_EMPAREJAMIENTO_FUENTE.id), "foco", surveyId || null);
+export type FocoFuente = { base: string | null; surveyId: string };
+
+/** El `foco` de una fuente: `<base>:<survey_id>`, o solo el id si no hay base. */
+export function focoDeFuente(base: string | null | undefined, surveyId: string): string {
+  const id = surveyId.trim();
+  const nombre = base?.trim();
+  return nombre && id ? `${nombre}:${id}` : id;
+}
+
+/** Lee el `foco`; `null` si no nombra ninguna fuente. */
+export function leerFocoFuente(foco: string | null | undefined): FocoFuente | null {
+  const valor = foco?.trim();
+  if (!valor) return null;
+  const corte = valor.lastIndexOf(":");
+  if (corte <= 0) return { base: null, surveyId: valor };
+  const surveyId = valor.slice(corte + 1).trim();
+  if (!surveyId) return null;
+  return { base: valor.slice(0, corte).trim() || null, surveyId };
+}
+
+/**
+ * La base que nombra la dirección cuando el panel está abierto sobre una de
+ * sus fuentes. Revisión la adopta como «Base revisada».
+ */
+export function baseDeLaDireccion(panel: string | null | undefined, foco: string | null | undefined): string | null {
+  if (panel !== PANEL_EMPAREJAMIENTO_FUENTE.id) return null;
+  return leerFocoFuente(foco)?.base ?? null;
+}
+
+/** Abre el panel sobre una fuente de una base, conservando el resto de la dirección. */
+export function searchConEmparejamiento(search: string, surveyId: string, base?: string | null): string {
+  return conNivel(conNivel(search, "panel", PANEL_EMPAREJAMIENTO_FUENTE.id), "foco", focoDeFuente(base, surveyId) || null);
 }
 
 /**

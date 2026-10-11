@@ -34,6 +34,8 @@ export function CargaReviewSummary({
   review,
   reviewSummary,
   action,
+  leyendo = false,
+  baseSeleccionada,
 }: {
   instrumentBaseCount: number;
   dataBaseCount: number;
@@ -45,6 +47,14 @@ export function CargaReviewSummary({
   review?: CargaReviewPayload | null;
   reviewSummary?: CargaReviewSummaryPayload | null;
   action?: ReactNode;
+  /**
+   * La revisión de la base elegida todavía no llega (o la que hay es de otra
+   * base). La tarjeta no afirma nada: ni «Listo» ni «Sin bloqueos», ni los
+   * hallazgos de la base anterior.
+   */
+  leyendo?: boolean;
+  /** «Base revisada», para nombrarla mientras se lee. */
+  baseSeleccionada?: string;
 }) {
   const totalBases = isMultiBase ? Math.max(0, bases) : 1;
   const instrumentReady = totalBases > 0 && instrumentBaseCount >= totalBases;
@@ -83,12 +93,16 @@ export function CargaReviewSummary({
   // En multibase el resumen es la única autoridad de avance. El detalle puede
   // llegar antes o después y no debe volver a imponer un gate local obsoleto.
   const reviewReady = isMultiBase ? aggregateReady : selectedReviewReady;
-  const state = incompatible || hasDecision || hasPartialCoverage || aggregateIncomplete || fuenteRechazada
+  const state = leyendo
+    ? "pending"
+    : incompatible || hasDecision || hasPartialCoverage || aggregateIncomplete || fuenteRechazada
     ? "attention"
     : reviewReady
       ? "ready"
       : "pending";
-  const title = incompatible
+  const title = leyendo
+    ? "Revisando la base"
+    : incompatible
     ? "Incompatible con el formulario"
     : hasDecision
     ? "Hay decisiones que revisar"
@@ -107,7 +121,9 @@ export function CargaReviewSummary({
       : allReady
         ? "La revisión todavía no está lista"
         : "Completa los insumos antes de revisar";
-  const detail = incompatible
+  const detail = leyendo
+    ? "Leyendo el resultado de la revisión; el avance se muestra cuando termine."
+    : incompatible
     ? "La base no coincide con la estructura requerida por el instrumento."
     : choiceMappingPending
     ? "Confirma el mapeo de códigos detectado en las respuestas."
@@ -126,7 +142,11 @@ export function CargaReviewSummary({
         : allReady
           ? "Espera el resultado autoritativo antes de continuar."
           : "La bandeja se habilita cuando el formulario y las respuestas están disponibles.";
-  const reviewScope = review?.base_nombre
+  const reviewScope = leyendo
+    ? baseSeleccionada
+      ? `Base revisada: ${baseSeleccionada}`
+      : "Base por revisar"
+    : review?.base_nombre
     ? `Base revisada: ${review.base_nombre}`
     : isMultiBase
       ? "Base por revisar"
@@ -137,6 +157,7 @@ export function CargaReviewSummary({
       className={`pulso-carga-review-summary is-${state}`}
       data-carga-surface="review"
       aria-labelledby="carga-review-title"
+      aria-busy={leyendo || undefined}
     >
       <header className="pulso-carga-review-head">
         <span className="pulso-carga-review-icon" aria-hidden="true">
@@ -155,7 +176,7 @@ export function CargaReviewSummary({
         </span>
       </header>
 
-      {isMultiBase && reviewSummary && (
+      {isMultiBase && reviewSummary && !leyendo && (
         <div
           className={`pulso-carga-review-study-status${reviewSummary.all_ready ? " is-ready" : " is-attention"}`}
           role="status"
@@ -170,7 +191,13 @@ export function CargaReviewSummary({
         </div>
       )}
 
-      <ul className="pulso-carga-review-checks" aria-label="Comprobaciones de carga">
+      {/* C1: tres comprobaciones pares; comparten marco aunque una diga más. */}
+      <ul
+        className="pulso-carga-review-checks"
+        aria-label="Comprobaciones de carga"
+        data-qa-geometry-group="carga-review-checks"
+        data-qa-geometry-contract="equal"
+      >
         <li className={instrumentReady ? "is-ready" : instrumentBaseCount > 0 ? "is-attention" : "is-pending"}>
           <FileSpreadsheet size={15} aria-hidden="true" />
           <span><strong>Instrumento</strong><small>{coverageMeta(instrumentBaseCount, totalBases)}</small></span>
@@ -179,12 +206,20 @@ export function CargaReviewSummary({
           <Database size={15} aria-hidden="true" />
           <span><strong>Respuestas</strong><small>{coverageMeta(dataBaseCount, totalBases)}</small></span>
         </li>
-        <li className={incompatible || hasDecision || aggregateIncomplete || fuenteRechazada ? "is-attention" : reviewReady ? "is-ready" : "is-pending"}>
+        <li
+          className={leyendo
+            ? "is-pending"
+            : incompatible || hasDecision || aggregateIncomplete || fuenteRechazada
+              ? "is-attention"
+              : reviewReady ? "is-ready" : "is-pending"}
+        >
           <ShieldCheck size={15} aria-hidden="true" />
           <span>
             <strong>Incidencias</strong>
             <small>
-              {incompatible
+              {leyendo
+                ? "Revisando…"
+                : incompatible
                 ? "Estructura incompatible"
                 : hasDecision
                   ? "Requieren decisión"
@@ -198,7 +233,7 @@ export function CargaReviewSummary({
         </li>
       </ul>
 
-      {(incompatible || hasDecision || procedencia || ordenEditor || hasFuentesFindings) && (
+      {!leyendo && (incompatible || hasDecision || procedencia || ordenEditor || hasFuentesFindings) && (
         <ul
           className="pulso-carga-review-findings"
           aria-label="Incidencias de la base revisada"
@@ -248,7 +283,7 @@ export function CargaReviewSummary({
               </span>
             </li>
           )}
-          <CargaReviewFuentesFindings fuentes={fuentes} tonos={["incompatible", "pending"]} />
+          <CargaReviewFuentesFindings fuentes={fuentes} tonos={["incompatible", "pending"]} baseNombre={review?.base_nombre ?? null} />
           {pendingExtraCount > 0 && (
             <li className="is-pending">
               <Database size={15} aria-hidden="true" />
@@ -294,13 +329,14 @@ export function CargaReviewSummary({
               </span>
             </li>
           )}
-          <CargaReviewFuentesFindings fuentes={fuentes} tonos={["info"]} />
+          <CargaReviewFuentesFindings fuentes={fuentes} tonos={["info"]} baseNombre={review?.base_nombre ?? null} />
         </ul>
       )}
 
-      {action && reviewReady && <div className="pulso-carga-review-action">{action}</div>}
+      {action && reviewReady && !leyendo && <div className="pulso-carga-review-action">{action}</div>}
       {/* «Ver preguntas» de cada fuente; también lo abre un enlace guardado. */}
-      <FuentesEmparejamientoPanel baseNombre={review ? review.base_nombre : undefined} />
+      {/* La base de la dirección manda en el panel; esta es el respaldo. */}
+      <FuentesEmparejamientoPanel baseNombre={review && !leyendo ? review.base_nombre : undefined} />
     </section>
   );
 }

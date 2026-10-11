@@ -423,6 +423,24 @@ function ordenarClaves(claves: readonly string[]): string[] {
   });
 }
 
+/**
+ * Sección que el grupo puede rotular sin mentir. La de la primera fila no basta:
+ * el grupo «Sin diapositiva» junta temas de todo el instrumento, y mostrar la
+ * sección de uno («Pag3» sobre 52 temas de muchas) se leía como si todos fueran
+ * de ella.
+ *
+ * - Una diapositiva declarada muestra su sección si sus temas que la tienen
+ *   coinciden; si dicen dos distintas, no muestra ninguna.
+ * - El grupo sin diapositiva exige unanimidad, vacíos incluidos: un tema sin
+ *   sección también es un tema que esa sección no describe.
+ */
+export function seccionDelGrupo(clave: string, filas: readonly FilaEditor[]): string {
+  const secciones = new Set(filas.map((f) => (f.seccion ?? "").trim()));
+  if (clave === "") return secciones.size === 1 ? [...secciones][0] : "";
+  secciones.delete("");
+  return secciones.size === 1 ? [...secciones][0] : "";
+}
+
 export function agruparEnDiapositivas(
   filas: readonly FilaEditor[],
   cat: CatalogoEscalas,
@@ -525,7 +543,7 @@ export function agruparEnDiapositivas(
     return {
       clave,
       enunciado: propias.find((f) => (f.enunciado ?? "").trim())?.enunciado?.trim() ?? "",
-      seccion: propias.find((f) => f.seccion.trim())?.seccion.trim() ?? "",
+      seccion: seccionDelGrupo(clave, propias),
       filas: propias,
       bloques,
       temasEscalaRota,

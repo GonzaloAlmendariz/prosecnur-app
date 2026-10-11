@@ -21,6 +21,23 @@ export type EquivalenciasTablaProps = {
   onAgregarFila: () => void;
 };
 
+/**
+ * Ancho de cada columna de público, en % de la tabla. Entre todas no pasan de
+ * ~42 %: el resto es de la etiqueta estándar, que es el campo que se escribe.
+ * Antes la etiqueta medía 260 px fijos y cada público 362–370 a 1710 px, y la
+ * etiqueta —el único texto largo de la fila— salía cortada sin aviso.
+ */
+export function anchoColumnaPublico(nBases: number): string {
+  const n = Math.max(1, nBases);
+  return `${Math.min(14, 42 / n).toFixed(2)}%`;
+}
+
+function textoVariable(opciones: readonly VariableDeBase[], valor: string): string {
+  if (!valor) return "";
+  const v = opciones.find((o) => o.name === valor);
+  return v ? `${v.name} · ${v.label}` : valor;
+}
+
 export function EquivalenciasTabla({
   bases,
   filas,
@@ -33,7 +50,19 @@ export function EquivalenciasTabla({
 }: EquivalenciasTablaProps) {
   return (
     <div className="pulso-equiv-tabla-wrap">
+      {/* `table-layout: fixed` con columnas declaradas: el reparto lo decide el
+          rol de cada columna y no el texto más largo que traiga una fila, y la
+          tabla nunca empuja la página en horizontal. */}
       <table className="pulso-equiv-tabla">
+        <colgroup>
+          <col />
+          <col className="pulso-equiv-col-diapo" />
+          {bases.map((base) => (
+            <col key={base} style={{ width: anchoColumnaPublico(bases.length) }} />
+          ))}
+          <col className="pulso-equiv-col-n" />
+          <col className="pulso-equiv-col-acciones" />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col" className="pulso-equiv-col-etiqueta">Etiqueta estándar</th>
@@ -61,6 +90,7 @@ export function EquivalenciasTabla({
                   )}
                   <input
                     value={fila.etiqueta_estandar}
+                    title={fila.etiqueta_estandar || undefined}
                     placeholder="Cómo se llama esta pregunta en el informe"
                     aria-label={`Etiqueta estándar de la fila ${fila.id}`}
                     onChange={(e) => onEditar(fila.id, "etiqueta_estandar", e.target.value)}
@@ -83,6 +113,7 @@ export function EquivalenciasTabla({
                   <td key={base}>
                     <select
                       value={valor}
+                      title={textoVariable(opciones, valor) || undefined}
                       aria-label={`Variable de ${base} en la fila ${fila.id}`}
                       onChange={(e) => onAsignar(fila.id, base, e.target.value)}
                     >

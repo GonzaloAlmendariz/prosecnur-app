@@ -7,7 +7,7 @@ import {
   type CargaReviewHallazgoTono,
 } from "./cargaReviewFuentesModel";
 
-function FuenteFinding({ hallazgo }: { hallazgo: CargaReviewHallazgoFuente }) {
+function FuenteFinding({ hallazgo, baseNombre }: { hallazgo: CargaReviewHallazgoFuente; baseNombre: string | null }) {
   const Icon = hallazgo.tono === "incompatible" ? AlertTriangle : GitCompare;
   const surveyId = hallazgo.surveyId;
   return (
@@ -23,7 +23,13 @@ function FuenteFinding({ hallazgo }: { hallazgo: CargaReviewHallazgoFuente }) {
           <small key={index} title={linea.completo}>{linea.texto}</small>
         ))}
       </span>
-      {surveyId && <VerPreguntasFuenteBoton surveyId={surveyId} titulo={hallazgo.fuenteNombre ?? hallazgo.titulo} />}
+      {surveyId && (
+        <VerPreguntasFuenteBoton
+          surveyId={surveyId}
+          titulo={hallazgo.fuenteNombre ?? hallazgo.titulo}
+          baseNombre={baseNombre}
+        />
+      )}
     </li>
   );
 }
@@ -36,14 +42,17 @@ function FuenteFinding({ hallazgo }: { hallazgo: CargaReviewHallazgoFuente }) {
 export function CargaReviewFuentesFindings({
   fuentes,
   tonos,
+  baseNombre = null,
 }: {
   fuentes: CargaReviewFuentes | null | undefined;
   tonos: readonly CargaReviewHallazgoTono[];
+  /** Base revisada: «Ver preguntas» la escribe en la dirección. */
+  baseNombre?: string | null;
 }) {
   const hallazgos = cargaReviewFuentesHallazgos(fuentes).filter((h) => tonos.includes(h.tono));
   return (
     <>
-      {hallazgos.map((hallazgo) => <FuenteFinding key={hallazgo.key} hallazgo={hallazgo} />)}
+      {hallazgos.map((hallazgo) => <FuenteFinding key={hallazgo.key} hallazgo={hallazgo} baseNombre={baseNombre} />)}
     </>
   );
 }

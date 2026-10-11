@@ -27,9 +27,6 @@ export type EmparejamientoCarga =
   | { tipo: "error"; mensaje: string }
   | { tipo: "listo"; datos: CargaFuentesEmparejamiento };
 
-export const EMPAREJAMIENTO_TITULO_ID = "pulso-emparejamiento-titulo";
-export const EMPAREJAMIENTO_DESCRIPCION_ID = "pulso-emparejamiento-descripcion";
-
 const OPCIONES_FILTRO: readonly { id: EmparejamientoFiltro; label: string }[] = [
   { id: "diferencias", label: "Solo diferencias" },
   { id: "todas", label: "Todas" },
@@ -45,7 +42,13 @@ export type FuentesEmparejamientoVistaProps = {
   onCerrar: () => void;
   /** Enlace a la pestaña Equivalencias; solo se usa si el backend dice que existe. */
   hrefEquivalencias: string;
-  /** Envoltorios del título y la línea, para que el diálogo los reconozca. */
+  /**
+   * Envoltorios del título y la línea, para que el diálogo los reconozca. Con
+   * `Dialog.Title`/`Dialog.Description` en `asChild`, Radix les pone su propio
+   * `id` y conecta `aria-labelledby`/`aria-describedby`: por eso los nodos no
+   * traen `id` propio (si lo trajeran, pisaría el de Radix y el diálogo se
+   * quedaría sin nombre accesible).
+   */
   renderTitulo?: (contenido: ReactNode) => ReactNode;
   renderDescripcion?: (contenido: ReactNode) => ReactNode;
 };
@@ -257,7 +260,7 @@ export function FuentesEmparejamientoVista({
       <header className="pulso-emparejamiento-cabecera">
         <div className="pulso-emparejamiento-titular">
           {renderTitulo(
-            <h2 id={EMPAREJAMIENTO_TITULO_ID} tabIndex={-1} data-emparejamiento-titulo="">
+            <h2 tabIndex={-1} data-emparejamiento-titulo="">
               {titulo}
             </h2>,
           )}
@@ -277,7 +280,7 @@ export function FuentesEmparejamientoVista({
           </p>
         )}
         {renderDescripcion(
-          <p id={EMPAREJAMIENTO_DESCRIPCION_ID} className="pulso-emparejamiento-regla">
+          <p className="pulso-emparejamiento-regla">
             Cada pregunta se empareja con la de la base por su texto y su escala, la misma regla que usa Equivalencias.
           </p>,
         )}

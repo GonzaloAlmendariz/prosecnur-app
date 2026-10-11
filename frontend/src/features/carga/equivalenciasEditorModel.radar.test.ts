@@ -54,3 +54,33 @@ describe("elegibilidad del radar por largo de etiqueta", () => {
     expect(bloqueDe(largas, 0).elegibleRadar).toBe(true);
   });
 });
+
+describe("sección que rotula cada grupo", () => {
+  const conSeccion = (i: number, seccion: string, diapositiva = ""): FilaEditor => ({
+    ...fila(`Tema ${i}`, i),
+    seccion,
+    diapositiva,
+  });
+  const cat = {} as never;
+
+  it("el grupo sin diapositiva no toma la sección de una sola fila", () => {
+    const filas = [conSeccion(1, "Pag3"), conSeccion(2, ""), conSeccion(3, "Pag7")];
+    const sin = agruparEnDiapositivas(filas, cat).find((d) => d.clave === "");
+    expect(sin?.seccion).toBe("");
+  });
+
+  it("el grupo sin diapositiva sí la muestra si todos sus temas la comparten", () => {
+    const filas = [conSeccion(1, "Servicios"), conSeccion(2, "Servicios")];
+    expect(agruparEnDiapositivas(filas, cat)[0].seccion).toBe("Servicios");
+  });
+
+  it("una diapositiva con dos secciones distintas no muestra ninguna", () => {
+    const filas = [conSeccion(1, "A", "1"), conSeccion(2, "B", "1"), conSeccion(3, "", "1")];
+    expect(agruparEnDiapositivas(filas, cat)[0].seccion).toBe("");
+  });
+
+  it("una diapositiva conserva su sección aunque un tema nuevo aún no la tenga", () => {
+    const filas = [conSeccion(1, "Servicios", "1"), conSeccion(2, "", "1")];
+    expect(agruparEnDiapositivas(filas, cat)[0].seccion).toBe("Servicios");
+  });
+});
