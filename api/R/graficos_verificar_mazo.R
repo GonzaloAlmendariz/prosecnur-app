@@ -2287,3 +2287,32 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
   for (i in seq_along(sl)) rec(sl[[i]]$payload, "", i)
   out
 }
+
+
+# ---- Ponderación declarada (contrato base-sin-ponderar F6, D-b y D-c) ---------
+#
+# Con S2 la ponderación se declara una vez, en la ficha técnica. Un mazo ponderado sin ficha sale sin decirle al lector
+# que los porcentajes van ponderados y las bases son casos: no se enciende nada solo (D-b, Gonzalo: «no automático,
+# avisar»), se avisa al exportar. Es una regla del PLAN y de las FUENTES, no del XML del .pptx, así que no entra en
+# `verificar_mazo()` (la misma razón que `.verif_plan_etiqueta_truncada`): la llama el generador del mazo, que tiene las
+# dos cosas, y la emite por el canal sellado (`.pulso_aviso`). No se cuelga de `reporte_ppt_plan` porque ahí la vista
+# previa de una lámina suelta también pasaría y avisaría que «falta la ficha» en cada miniatura.
+
+#' ¿El plan del mazo declara la ponderación? Tiene una lámina de ficha técnica (su fila «Ponderación» la agrega
+#' `.lam_ficha_con_ponderacion` si el analista no la escribió)
+#' @keywords internal
+.verif_plan_declara_ponderacion <- function(plan) {
+  sl <- if (is.list(plan) && !is.null(plan$slides)) plan$slides else plan
+  if (!is.list(sl) || !length(sl)) return(FALSE)
+  any(vapply(sl, function(s) is.list(s) && identical(as.character(s$.slide_type %||% "")[1], "technical_table"), logical(1)))
+}
+
+#' Advertencias de ponderación de un mazo al exportarlo (D-b y D-c)
+#'
+#' @param plan Plan del mazo (`p_plan()` o su lista de láminas).
+#' @param data Las bases de la corrida (data frame o lista nombrada), con su estado de ponderación adjunto.
+#' @return Vector de textos para `.pulso_aviso()`; vacío sin ponderación configurada.
+#' @keywords internal
+graficos_avisos_ponderacion_mazo <- function(plan, data) {
+  .lam_ponderacion_avisos(data, declarada = .verif_plan_declara_ponderacion(plan), entregable = "PPT")
+}

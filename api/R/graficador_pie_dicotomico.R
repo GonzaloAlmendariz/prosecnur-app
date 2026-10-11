@@ -216,7 +216,10 @@ graficar_pie <- function(
     ancho       = 10,
     alto        = 6,
     dpi         = 300,
-    color_fondo = NA
+    color_fondo = NA,
+    # Contrato base-sin-ponderar F6: casos sin ponderar por porción. El porcentaje sigue con `var_pct` (ponderado);
+    # lo que se cuenta («31% (56)», «56 de 176 respuestas», «De 176 respuestas, 120…») va en casos. Sin ella, `var_n`.
+    var_n_casos = NULL
 ) {
 
   `%||%` <- function(x, y) if (!is.null(x)) x else y
@@ -293,12 +296,15 @@ graficar_pie <- function(
     dplyr::transmute(
       categoria = as.character(.data[[var_categoria]]),
       pct       = suppressWarnings(as.numeric(.data[[var_pct]])),
-      n         = if (has_n) suppressWarnings(as.numeric(.data[[var_n]])) else NA_real_
+      n         = if (has_n) suppressWarnings(as.numeric(.data[[var_n]])) else NA_real_,
+      n_casos   = if (!is.null(var_n_casos) && var_n_casos %in% names(data)) suppressWarnings(as.numeric(.data[[var_n_casos]]))
+                  else if (has_n) suppressWarnings(as.numeric(.data[[var_n]])) else NA_real_
     ) |>
     dplyr::filter(!is.na(.data$categoria), .data$categoria != "") |>
     dplyr::mutate(
       pct = dplyr::if_else(is.finite(.data$pct), .data$pct, 0),
-      n   = dplyr::if_else(is.finite(.data$n), .data$n, NA_real_)
+      n   = dplyr::if_else(is.finite(.data$n), .data$n, NA_real_),
+      n_casos = dplyr::if_else(is.finite(.data$n_casos), .data$n_casos, NA_real_)
     )
 
   if (!nrow(df)) stop("No hay filas válidas para graficar.", call. = FALSE)
@@ -328,7 +334,8 @@ graficar_pie <- function(
         dplyr::tibble(
           categoria = etiqueta_otros,
           pct       = sum(df_oth$pct, na.rm = TRUE),
-          n         = if (has_n) sum(df_oth$n, na.rm = TRUE) else NA_real_
+          n         = if (has_n) sum(df_oth$n, na.rm = TRUE) else NA_real_,
+          n_casos   = if (has_n) sum(df_oth$n_casos, na.rm = TRUE) else NA_real_
         )
       )
     }
@@ -348,6 +355,7 @@ graficar_pie <- function(
     list(version = "pie/1", tipo = "pie", forma = tipo_pie[1], rotulos = as.character(df$categoria), valores = df$pct,
          cifras = .pulso_fmt_pct_unidades(u, decimales_pct), unidades = u, n = df$n,
          total_n = if (all(is.finite(df$n))) sum(df$n) else NA_real_,
+         n_casos = df$n_casos, total_n_casos = if (all(is.finite(df$n_casos))) sum(df$n_casos) else NA_real_,
          nota = nota_pie)   # la base viaja en el caption del gráfico (ruta anterior): la lámina nativa la necesita
   }, error = function(e) NULL)
 
@@ -388,8 +396,8 @@ graficar_pie <- function(
       y_mid   = (.data$ymin + .data$ymax) / 2
     )
 
-  if (isTRUE(mostrar_n_en_etiquetas) && any(is.finite(df$n))) {
-    n_txt <- .fmt_n(df$n)
+  if (isTRUE(mostrar_n_en_etiquetas) && any(is.finite(df$n_casos))) {
+    n_txt <- .fmt_n(df$n_casos)
     has_n_txt <- nzchar(n_txt)
     df$pct_txt[has_n_txt] <- paste0(df$pct_txt[has_n_txt], " (", n_txt[has_n_txt], ")")
   }

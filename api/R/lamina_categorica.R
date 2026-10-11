@@ -19,8 +19,9 @@
     xk <- x0 + (k - 1) * paso + (paso - wcol) / 2
     if (hk > 0.004) .lam_caja(lz, xk, ybase - hk, wcol, hk, azul, nombre = "columna")
     .lam_txt(lz, espec$cifras[k], xk - 0.3, ybase - hk - 0.42, wcol + 0.6, 0.36, 16, azul, bold = TRUE, align = "center", nombre = "cifra")
-    if (is.finite(espec$n[k])) {
-      .lam_txt(lz, sprintf("%s %s", format(as.integer(espec$n[k]), big.mark = ","), unidad_n), xk - 0.4, ybase - hk - 0.68,
+    nk <- .espec_casos(espec)[k]   # casos sin ponderar (contrato base-sin-ponderar F6)
+    if (is.finite(nk)) {
+      .lam_txt(lz, sprintf("%s %s", format(as.integer(nk), big.mark = ","), unidad_n), xk - 0.4, ybase - hk - 0.68,
                wcol + 0.8, 0.26, .std_pt("n"), tenue, align = "center", nombre = "n")
     }
     .lam_txt(lz, espec$rotulos[k], xk - 0.4, ybase + 0.1, wcol + 0.8, max(0.3, .lam_alto_txt(espec$rotulos[k], wcol + 0.8, 12, TRUE)), 12,
@@ -168,7 +169,7 @@
 .lam_dicotomia_datos <- function(espec) {
   if (identical(espec$tipo, "categorica")) {
     # La frecuencia va en el rótulo («Sí (172)»): si la cifra la trae («62% (124)», mostrar_n_en_etiquetas), se quita.
-    return(list(rotulos = espec$rotulos, cifras = sub("\\s*\\([^)]*\\)\\s*$", "", espec$cifras), largos = espec$largos, n = espec$n))
+    return(list(rotulos = espec$rotulos, cifras = sub("\\s*\\([^)]*\\)\\s*$", "", espec$cifras), largos = espec$largos, n = .espec_casos(espec)))
   }
   k <- which(espec$dibujar[1, ])
   # La especificación de escala no guarda la frecuencia de cada categoría: los rótulos van sin «(n)».
@@ -199,12 +200,16 @@
 
 #' Casos de la base de una categórica: los que respondieron, no la suma de marcas
 #'
-#' En selección múltiple las frecuencias suman marcas; la base se recupera de cualquier categoría con
-#' frecuencia y porcentaje (n / proporción).
+#' Casos sin ponderar (contrato base-sin-ponderar F6): manda `n_base_casos` cuando la especificación la trae. Sin ella
+#' se reconstruye desde los casos de cada categoría: en respuesta única es su suma; en selección múltiple las
+#' frecuencias suman marcas y la base se recupera de cualquier categoría con frecuencia y porcentaje (n / proporción),
+#' exacta sólo sin peso (con peso la proporción es ponderada y los casos no).
 #' @keywords internal
 .espec_n_base <- function(espec) {
-  if (identical(espec$tipo, "escala")) return(if (NROW(espec$filas) == 1L) espec$filas$n[1] else NA_real_)
-  n <- suppressWarnings(as.numeric(espec$n)); v <- suppressWarnings(as.numeric(espec$valores))
+  if (identical(espec$tipo, "escala")) return(if (NROW(espec$filas) == 1L) .espec_casos(espec$filas)[1] else NA_real_)
+  nb <- suppressWarnings(as.numeric(espec[["n_base_casos"]] %||% NA_real_)[1])
+  if (is.finite(nb) && nb > 0) return(nb)
+  n <- suppressWarnings(as.numeric(.espec_casos(espec))); v <- suppressWarnings(as.numeric(espec$valores))
   ok <- is.finite(n) & is.finite(v) & v > 0
   if (!any(ok)) return(NA_real_)
   if (sum(v) <= 1.02) return(sum(n[ok]))

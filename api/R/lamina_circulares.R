@@ -70,8 +70,8 @@
     .lam_caja(lz, 6.7, yk + 0.12, 0.3, 0.3, cols[i], nombre = "torta:cuadro")
     .lam_txt(lz, espec$cifras[i], 7.15, yk - 0.05, 2.2, 0.62, 34, if (i == 1L) azul else .std_color("azul_medio"), bold = TRUE, nombre = "torta:cifra_leyenda")
     .lam_txt(lz, espec$rotulos[i], 7.15, yk + 0.58, 5.5, 0.3, 13, azul, bold = TRUE, nombre = "torta:rotulo")
-    if (is.finite(espec$n[i]) && is.finite(espec$total_n)) {
-      .lam_txt(lz, sprintf("%s de %s %s", format(round(espec$n[i]), big.mark = ",", trim = TRUE), format(round(espec$total_n), big.mark = ",", trim = TRUE), unidad_n),
+    if (is.finite(.espec_casos(espec)[i]) && is.finite(.espec_total_casos(espec))) {
+      .lam_txt(lz, sprintf("%s de %s %s", format(round(.espec_casos(espec)[i]), big.mark = ",", trim = TRUE), format(round(.espec_total_casos(espec)), big.mark = ",", trim = TRUE), unidad_n),
                7.15, yk + 0.86, 5.5, 0.26, 11, .std_color("texto_tenue"), nombre = "torta:casos")
     }
   }
@@ -97,11 +97,11 @@
   .lam_txt(lz, espec$cifras[1], xd, cy - 0.45, d, 0.66, 34, azul, bold = TRUE, align = "center", nombre = "dona:cifra")
   .lam_txt(lz, rotulo_centro %||% espec$rotulos[1], xd, cy + 0.2, d, 0.3, 12, azul, align = "center", nombre = "dona:rotulo")
   # Lectura con filete coral (narrativa del recetario): «De N <unidad>, n1 <rótulo 1> y n2 (p2) <rótulo 2>».
-  if (all(is.finite(espec$n)) && is.finite(espec$total_n) && k == 2L) {
+  if (all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) && k == 2L) {
     .lam_caja(lz, 6.9, yt + 1.05, 0.05, 2.5, .std_color("coral"), nombre = "dona:filete")
     fmt <- function(x) format(round(x), big.mark = ",", trim = TRUE)
-    tramos <- list(list("De ", FALSE), list(paste(fmt(espec$total_n), unidad_n), TRUE), list(", ", FALSE), list(fmt(espec$n[1]), TRUE),
-                   list(sprintf(" responden «%s» y ", espec$rotulos[1]), FALSE), list(sprintf("%s (%s)", fmt(espec$n[2]), espec$cifras[2]), TRUE),
+    tramos <- list(list("De ", FALSE), list(paste(fmt(.espec_total_casos(espec)), unidad_n), TRUE), list(", ", FALSE), list(fmt(.espec_casos(espec)[1]), TRUE),
+                   list(sprintf(" responden «%s» y ", espec$rotulos[1]), FALSE), list(sprintf("%s (%s)", fmt(.espec_casos(espec)[2]), espec$cifras[2]), TRUE),
                    list(sprintf(" responden «%s».", espec$rotulos[2]), FALSE))
     .lam_txt_tramos(lz, tramos, 7.12, yt + 1.0, 5.68, 2.6, 17, azul, nombre = "dona:lectura")
   }
@@ -120,7 +120,7 @@
   # La dona del recetario es una dicotomía: la cifra clave al centro y la otra en la lectura, que necesita las
   # frecuencias. Con más porciones o sin n se perderían cifras (verificador de N6): ruta anterior. El rótulo del
   # centro debe caber en el hueco (≈ 1.8 in).
-  k == 2L && all(is.finite(espec$n)) && is.finite(espec$total_n) &&
+  k == 2L && all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) &&
     .lam_ancho_tinta(espec$rotulos[1], 12) <= 1.6 &&
     sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0
 }

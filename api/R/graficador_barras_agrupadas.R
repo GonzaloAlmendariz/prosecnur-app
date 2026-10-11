@@ -519,8 +519,17 @@ graficar_barras_agrupadas <- function(
 
     ppt_append                = TRUE,
     ppt_layout                = "Blank",
-    ppt_master                = "Office Theme"
+    ppt_master                = "Office Theme",
+    # Contrato base-sin-ponderar F6: columnas de casos sin ponderar de la base (`N_casos`) y de cada serie (`n_casos`
+    # o `nc_j`, nombradas por la columna de porcentaje). Aquí `var_n` y `cols_n` sólo se ESCRIBEN («N =», «(33)», el
+    # 0 % con casos): los porcentajes llegan hechos en `cols_porcentaje`. Por eso, con ellas, se cuentan en casos.
+    var_n_casos               = NULL,
+    cols_n_casos              = NULL
 ) {
+  # Base en casos de la pregunta (una serie): la lámina nativa nombra con ella al público de la base.
+  n_base_casos_agr <- if (!is.null(var_n_casos) && var_n_casos %in% names(data)) unique(suppressWarnings(as.numeric(data[[var_n_casos]]))) else NULL
+  var_n <- .graficos_col_casos(data, var_n, var_n_casos)
+  cols_n <- .graficos_cols_casos(data, cols_n, cols_n_casos)
 
   `%||%` <- function(x, y) if (!is.null(x)) x else y
   prefijo_barra_extra <- prefijo_barra_extra %||% ""
@@ -936,7 +945,8 @@ graficar_barras_agrupadas <- function(
     v1 <- suppressWarnings(as.numeric(d1$.valor_plot)); v1[!is.finite(v1)] <- 0
     preparar_categorica(as.character(d1[[var_categoria]]), v1, .pulso_fmt_pct_half_up(v1, 0),
                         if (".n_label_val" %in% names(d1)) d1$.n_label_val else NULL,
-                        residuales_al_final = FALSE)   # «Otros» y los residuales ya van donde los puso el gráfico (otros_al_final)
+                        residuales_al_final = FALSE,
+                        n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr)   # «Otros» y los residuales ya van donde los puso el gráfico (otros_al_final)
   }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
   # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
   # nativa escala a 100 % salvo que se pida el eje libre, como ya hacía el eje de este ggplot.
@@ -1258,7 +1268,8 @@ graficar_barras_agrupadas <- function(
       o_lab <- order(match(as.character(df_lab[[var_categoria]]), cat_lvls_lectura))
       espec_agrupada <- tryCatch(
         preparar_categorica(as.character(df_lab[[var_categoria]])[o_lab], df_lab$.valor_plot[o_lab], cifra_lab[o_lab],
-                            if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE),
+                            if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE,
+                            n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr),
         error = function(e) espec_agrupada)
       if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) }
     }
