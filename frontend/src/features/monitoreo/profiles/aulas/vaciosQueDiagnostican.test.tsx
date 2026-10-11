@@ -73,6 +73,20 @@ describe("un vacío nombra su causa, no la más grave", () => {
     expect(todasDormidas).toContain("los 2 del plan están citados, en reserva o ya reemplazados");
     expect(todasDormidas).not.toContain("declara su ciclo");
   });
+
+  it("y un titular con ese mismo estado sí entra a la cola: no duerme por este eje", () => {
+    // La otra mitad de la regla, que es la que el fixture de arriba probaba sin
+    // querer mientras le faltaba el rol. Mismo `sample_status` y ningún rol
+    // declarado —o sea, titular—: la cola tiene que mandarlo a llamar, y el
+    // vacío de «no queda a quién llamar» sería aquí una pérdida de trabajo.
+    const titularEnReserva = renderToStaticMarkup(
+      <AulasColaDeContacto filas={[
+        { operational_code: "CH 1", sample_status: "en reserva" },
+      ] as unknown as MonitoreoAulasPlanRow[]} />);
+    expect(titularEnReserva).toContain("Por contactar");
+    expect(titularEnReserva).toContain("CH 1");
+    expect(titularEnReserva).not.toContain("No queda ningún curso-horario a quien llamar");
+  });
 });
 
 describe("el vacío usa lo que el motor ya contó", () => {

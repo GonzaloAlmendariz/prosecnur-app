@@ -61,6 +61,14 @@ describe("los gráficos vecinos de Resumen no se confunden entre sí", () => {
   // vive en la cabecera de `AulasEstadoChart` —«separa sin agendar de agendada
   // y aún sin empezar, que la cobertura mete en el mismo saco»— y no llegaba a
   // la pantalla.
+  //
+  // **La literal se actualizó, no el contrato.** Decía «cada una» —el femenino
+  // de «aula»— y hoy la pantalla dice «cada uno», porque la unidad que el
+  // subtítulo acaba de nombrar es el CURSO-HORARIO, masculino. Es el contrato
+  // de género del perfil (E17), que caza participios y al que estos dos
+  // pronombres se le escaparon; el propio `AulasPestanaResumen` lo deja dicho
+  // en línea. Los dos subtítulos siguen existiendo y siguen siendo distintos,
+  // que es lo único que este bloque vigila.
   const resumen = fs.readFileSync(path.join(aqui, "AulasPestanaResumen.tsx"), "utf8")
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 
@@ -85,10 +93,15 @@ describe("los gráficos vecinos de Resumen no se confunden entre sí", () => {
     expect(resumen).toContain("ya aplicados");
   });
 
-  it("y sus subtítulos ya no son idénticos", () => {
-    // El guard que importa: si alguien vuelve a dejarlos iguales, esto salta.
-    const subtitulos = [...resumen.matchAll(/<span>\{contadorDeAulas\(aulaRows\.length\)\}([^<]*)<\/span>/g)]
-      .map((m) => m[1].trim());
-    expect(new Set(subtitulos).size).toBe(subtitulos.length);
+  it("y el de cobertura es el único reparto con contador en Resumen", () => {
+    // Este bloque vigilaba que los subtítulos de los DOS gráficos vecinos
+    // (estado y cobertura) no fueran idénticos. Desde el 2026-09-10 el panel de
+    // estado se dibuja por ROL en `AulasEstadoPorRol`, sin subtítulo con
+    // contador, así que la pareja ya no existe en este archivo. Lo que queda por
+    // vigilar es que el de cobertura siga declarando su contador una sola vez:
+    // el regex de antes buscaba `contadorDeAulas`, que ya no está en los
+    // subtítulos, y pasaba sin comparar nada (verde por ausencia).
+    const subtitulos = [...resumen.matchAll(/<span>\{contadorDelReparto\(/g)];
+    expect(subtitulos).toHaveLength(1);
   });
 });
