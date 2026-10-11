@@ -47,7 +47,13 @@ export function TeacherTypeOrden({
         El curso-horario se cataloga con su docente de mayor jerarquía; ordena los tipos de mayor a menor. Para incluir el
         curso-horario basta con que UN docente sea de un tipo aceptado (no se descarta por tener jefes de práctica).
       </p>
-      <ol className="cmv2-crit-ttorden-list">
+      <ol
+        className="cmv2-crit-ttorden-list"
+        data-qa-geometry-group="calc-muestra/teacher-type-orden"
+        // `intrinsic`: el nombre del tipo de docente envuelve a anchos chicos y
+        // la fila crece con él; son hermanas de la misma variante.
+        data-qa-geometry-contract="intrinsic"
+      >
         {display.map((cat, index) => {
           const first = index === 0;
           const last = index === display.length - 1;
