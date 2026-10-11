@@ -15,6 +15,7 @@ import { Top2BoxSelector } from "../../Top2BoxSelector";
 import { varCalificada } from "../ordenCategorias";
 import { useCategoriasGrafico } from "../useCategoriasGrafico";
 import {
+  bottomDisponible,
   categoriasElegibles,
   formaTwoBox,
   leerTwoBox,
@@ -59,6 +60,7 @@ function CajasDeEscala({ slideId, slot, valor }: Omit<Props, "onAbrirBloques">) 
   const cats = useCategoriasGrafico(pregunta ? varCalificada(pregunta, baseActiva) : "", scope);
   if (!estado) return null;
   const enWord = leerTopEnWord(valor.graficador, args, presets, wPresets);
+  const bottom = bottomDisponible(valor.graficador, args, presets);
 
   const cambiar = (c: CambioTwoBox) => updateSlotArgs(slideId, slot, patchTwoBox(valor.graficador, args, presets, c));
   const categorias = cats.fase === "lista" ? categoriasElegibles(cats.datos.categorias, args.excluir_opciones) : [];
@@ -133,15 +135,17 @@ function CajasDeEscala({ slideId, slot, valor }: Omit<Props, "onAbrirBloques">) 
           )}
         </div>
       )}
-      {estado.top.activa && (
+      {bottom.ofrecer && (
         <>
-          <div className="pulso-f6-dato">
+          <div className="pulso-f6-dato" data-qa="twobox-bottom">
             <span className="pulso-f6-dato-rotulo" id={`${id}-bottom`}>Bottom Two Box al lado</span>
             <Switch
               checked={estado.bottom.activa}
+              disabled={!bottom.editable}
               ariaLabel="Columna Bottom Two Box al lado del Top Two Box"
               onToggle={() => cambiar({ caja: "bottom", activa: !estado.bottom.activa })}
             />
+            {bottom.nota && <span className="pulso-f6-dato-ayuda pulso-f6-twobox-nota">{bottom.nota}</span>}
           </div>
           {estado.bottom.activa && (
             <div className="pulso-f6-twobox-caja" role="group" aria-labelledby={`${id}-bottom`}>{escala(estado.bottom, "Bottom Two Box", "bottom")}</div>
