@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import type { GraficadorRef, PlanJson, PptStyleProfileMeta, Slide, SlideType } from "../../api/client";
-import { createDefaultWordPresets, normalizeWordPresets } from "../../api/graficosConfigNormalizer";
+import {
+  createDefaultWordPresets,
+  normalizeDocumentoWord,
+  normalizeWordPresets,
+  type DocumentoWordOpciones,
+} from "../../api/graficosConfigNormalizer";
+import type { GraficosConfigDefaults } from "../../api/graficosConfigDefaults";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -66,6 +72,8 @@ export type GraficosConfig = {
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
   w_presets: Record<string, Record<string, unknown>>;
+  /** ADR 0094: opciones del documento Word (portada, apertura, …); sólo lo que el usuario decidió. */
+  documento_word?: DocumentoWordOpciones;
   selected_slide_id: string | null;
 
   // Bloque 2: configuración global de estilo
@@ -100,6 +108,7 @@ type Snapshot = {
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
   wPresets: Record<string, Record<string, unknown>>;
+  documentoWord: DocumentoWordOpciones;
   paletas: Record<string, PaletaPorLista>;
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
@@ -117,6 +126,7 @@ type PlanStore = {
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
   wPresets: Record<string, Record<string, unknown>>;
+  documentoWord: DocumentoWordOpciones;
   selectedSlideId: string | null;
   paletas: Record<string, PaletaPorLista>;
   iconos: IconoConfig[];
@@ -154,6 +164,12 @@ type PlanStore = {
    */
   hydrationRetrying: boolean;
   setHydrationRetrying: (retrying: boolean) => void;
+  /**
+   * Defaults que declara el backend en el GET de la config (ADR 0094 §6). No se persisten ni se historizan; `null`
+   * cuando el backend no los manda, y entonces «Modificado» compara contra el espejo local.
+   */
+  configDefaults: GraficosConfigDefaults | null;
+  setConfigDefaults: (defaults: GraficosConfigDefaults | null) => void;
   dirty: boolean;
 
   // --- Undo/redo ---
@@ -180,6 +196,7 @@ type PlanStore = {
   updateSlotArgs: (id: string, slot: string, patch: Record<string, unknown>) => void;
   setPresets: (presets: Record<string, Record<string, unknown>>) => void;
   setWPresets: (wPresets: Record<string, Record<string, unknown>>) => void;
+  setDocumentoWord: (documentoWord: DocumentoWordOpciones) => void;
   applyPptStyleProfile: (profile: PptStyleProfileMeta) => void;
   // Merge granular de args en el preset `tipo`. Si `patch[arg] === null`
   // (o undefined después de merge), borra ese arg para que el backend
@@ -338,6 +355,7 @@ function snapshotFromState(state: PlanStore): Snapshot {
     plan: state.plan,
     presets: state.presets,
     wPresets: state.wPresets,
+    documentoWord: state.documentoWord,
     paletas: state.paletas,
     iconos: state.iconos,
     overridesReusables: state.overridesReusables,
@@ -434,6 +452,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   plan: { slides: [] },
   presets: {},
   wPresets: createDefaultWordPresets(),
+  documentoWord: {},
   selectedSlideId: null,
   paletas: {},
   iconos: [],
@@ -453,6 +472,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
   hydrated: false,
   hydrationRetrying: false,
   setHydrationRetrying: (retrying) => set({ hydrationRetrying: retrying }),
+  configDefaults: null,
+  setConfigDefaults: (configDefaults) => set({ configDefaults }),
   dirty: false,
 
   past: [],
@@ -494,6 +515,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     plan: cfg.plan ?? { slides: [] },
     presets: cfg.presets ?? {},
     wPresets: normalizeWordPresets(cfg.w_presets),
+    documentoWord: normalizeDocumentoWord(cfg.documento_word),
     selectedSlideId: cfg.selected_slide_id ?? null,
     paletas: cfg.paletas ?? {},
     iconos: cfg.iconos ?? [],
@@ -625,6 +647,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setPresets: (presets) => set((state) => dirty(state, { presets })),
   setWPresets: (wPresets) => set((state) => dirty(state, { wPresets })),
+  setDocumentoWord: (documentoWord) => set((state) => dirty(state, { documentoWord: normalizeDocumentoWord(documentoWord) })),
 
   applyPptStyleProfile: (profile) =>
     set((state) => dirty(state, {
@@ -692,6 +715,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   reset: () => set((state) => dirty(state, {
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: createDefaultWordPresets(),
+    // `{}` y no `undefined`: la clave debe viajar para que el backend borre lo guardado (contrato A6, vitest 4).
+    documentoWord: {},
     paletas: {}, iconos: [], overridesReusables: [],
     debugPh: DEFAULT_DEBUG_PH,
     scopeRules: {},
