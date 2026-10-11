@@ -30,6 +30,7 @@ import type {
   LimpiezaSummary,
   ReglaTreatmentScope,
 } from "../types";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { EmptyState, LoadingBlock } from "../../../components/States";
 import PromocionBase from "../components/PromocionBase";
 import ImpactoDecisiones from "../components/ImpactoDecisiones";
@@ -2174,16 +2175,12 @@ function OptionChecklist({
 
   return (
     <div className={`pulso-option-picker${compact ? " is-compact" : ""}`}>
-      <div className="pulso-option-picker-list">
+      <div className="pulso-option-picker-list" data-qa-geometry-group="validacion/limpieza-opciones" data-qa-geometry-contract="equal">
         {options.map((option) => {
           const checked = selected.has(option.code);
           return (
             <label key={option.code} className={`pulso-option-picker-row${checked ? " is-selected" : ""}`}>
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggle(option.code)}
-              />
+              <PulsoSwitch size="sm" ariaLabel={option.label || option.code} checked={checked} onCheckedChange={() => toggle(option.code)} />
               <span>
                 <strong>{option.label || option.code}</strong>
                 {option.code !== option.label && <small>{option.code}</small>}

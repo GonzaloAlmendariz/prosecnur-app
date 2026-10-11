@@ -28,7 +28,11 @@ import type {
   CalcMuestraWorkspacePublicationConfig,
 } from "../../../../api/client";
 import { Popover } from "../../../../components/Popover";
+import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
+import { PulsoField, PulsoFieldRow } from "../../../../components/PulsoField";
+import { PulsoInput } from "../../../../components/PulsoInput";
+import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { ReporteMetodologicoCard } from "../../didactica/ReporteMetodologicoCard";
 import { SustentoCoberturaCard } from "./SustentoCoberturaCard";
 import { AvisoModulo } from "../shared/AvisoModulo";
@@ -180,6 +184,13 @@ const SHEET_NAME_FIELDS: Array<[keyof CalcMuestraWorkspacePublicationConfig, str
   ["methodology_sheet_name", "Sustento", "fuentes, advertencias y bitácora"],
 ];
 
+const PUBLICATION_MODE_OPTIONS = [
+  { id: "single_spreadsheet_multi_sheet", label: "Un Sheets con varias hojas" },
+  { id: "separate_outputs", label: "Entregables separados" },
+] as const;
+
+type PublicationMode = (typeof PUBLICATION_MODE_OPTIONS)[number]["id"];
+
 const WORKBOOK_TABLE_TOGGLES: Array<[keyof CalcMuestraWorkspacePublicationConfig, string]> = [
   ["include_methodology", "Reporte metodológico"],
   ["include_frame_audit", "Auditoría del marco"],
@@ -227,6 +238,8 @@ export function SalidasEntregablesTab({
   const pii = config.pii_policy === "interno_trazabilidad" ? "interno_trazabilidad" : "sin_pii_cliente";
   const sheetsConfigured = Boolean(config.google_sheets_enabled && (config.spreadsheet_id || config.spreadsheet_url));
   const workbookOn = Boolean(config.include_workbook);
+  const publicationMode: PublicationMode =
+    config.publication_mode === "separate_outputs" ? "separate_outputs" : "single_spreadsheet_multi_sheet";
   const notaPiiCambiando = useValorSwap(pii);
 
   // El badge de desactualización se pinta FUERA de la tarjeta (didactica/ es
@@ -274,27 +287,31 @@ export function SalidasEntregablesTab({
               texto={workbookOn ? (selectionReady ? "listo para exportar" : "configurado") : "desactivado"}
             />
           </header>
-          <label className="cmv2-classroom-toggle">
-            <input
-              type="checkbox"
+          {/* K1 (L27): el destino se enciende con el switch del kit y cada tabla
+              del libro es un switch-chip; los chips declaran su grupo (C1). */}
+          <div className="cmv2-classroom-toggle">
+            <PulsoSwitch
+              label="Generar Excel de trabajo"
+              description={<em>Todas las tablas del diseño en un solo archivo local, sin depender de internet.</em>}
               checked={workbookOn}
-              onChange={(e) => updateConfig({ include_workbook: e.currentTarget.checked })}
+              onCheckedChange={(on) => updateConfig({ include_workbook: on })}
             />
-            <span>
-              <strong>Generar Excel de trabajo</strong>
-              <em>Todas las tablas del diseño en un solo archivo local, sin depender de internet.</em>
-            </span>
-          </label>
-          <div className="cmv2-sal-tablas" aria-label="Tablas incluidas en el libro">
+          </div>
+          <div
+            className="cmv2-sal-tablas"
+            role="group"
+            aria-label="Tablas incluidas en el libro"
+            data-qa-geometry-group="calc-muestra/salidas-tablas-libro"
+            data-qa-geometry-contract="equal"
+          >
             {WORKBOOK_TABLE_TOGGLES.map(([key, label]) => (
-              <label key={key}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(config[key])}
-                  onChange={(e) => updateConfig({ [key]: e.currentTarget.checked } as Partial<CalcMuestraWorkspacePublicationConfig>)}
-                />
-                <span>{label}</span>
-              </label>
+              <PulsoSwitch
+                key={key}
+                variant="chip"
+                label={label}
+                checked={Boolean(config[key])}
+                onCheckedChange={(on) => updateConfig({ [key]: on } as Partial<CalcMuestraWorkspacePublicationConfig>)}
+              />
             ))}
           </div>
           <p className="cmv2-sal-nota">
@@ -315,38 +332,38 @@ export function SalidasEntregablesTab({
               texto={sheetsConfigured ? "configurado" : config.google_sheets_enabled ? "falta el enlace" : "opcional"}
             />
           </header>
-          <label className="cmv2-classroom-toggle">
-            <input
-              type="checkbox"
+          <div className="cmv2-classroom-toggle">
+            <PulsoSwitch
+              label="Preparar publicación en Sheets"
+              description={<em>Comparte cálculo, selección y cierre sin depender solo del PDF.</em>}
               checked={Boolean(config.google_sheets_enabled)}
-              onChange={(e) => updateConfig({ google_sheets_enabled: e.currentTarget.checked })}
+              onCheckedChange={(on) => updateConfig({ google_sheets_enabled: on })}
             />
-            <span>
-              <strong>Preparar publicación en Sheets</strong>
-              <em>Comparte cálculo, selección y cierre sin depender solo del PDF.</em>
-            </span>
-          </label>
+          </div>
           {config.google_sheets_enabled && (
-            <div className="cmv2-sal-campos">
-              <label className="cmv2-compact-field">
-                <span>Enlace o ID de Sheets</span>
-                <input
+            <PulsoFieldRow className="cmv2-sal-campos" geometryGroup="calc-muestra/salidas-sheets">
+              <PulsoField label="Enlace o ID de Sheets">
+                <PulsoInput
+                  size="sm"
                   value={config.spreadsheet_id || config.spreadsheet_url || ""}
                   placeholder="Pega el enlace o ID de Sheets"
                   onChange={(e) => updateConfig({ spreadsheet_id: e.currentTarget.value, spreadsheet_url: e.currentTarget.value })}
                 />
-              </label>
-              <label className="cmv2-compact-field">
-                <span>Modo de publicación</span>
-                <select
-                  value={config.publication_mode ?? "single_spreadsheet_multi_sheet"}
-                  onChange={(e) => updateConfig({ publication_mode: e.currentTarget.value })}
+              </PulsoField>
+              {/* Dos opciones excluyentes: segmentado, no select (L27). */}
+              <PulsoField label="Modo de publicación" group>
+                <GlidingRadioGroup
+                  value={publicationMode}
+                  options={PUBLICATION_MODE_OPTIONS}
+                  getOptionValue={(option) => option.id}
+                  onValueChange={(mode) => updateConfig({ publication_mode: mode })}
+                  className="pulso-segmented cmv2-sal-pii-segment"
+                  aria-label="Modo de publicación"
                 >
-                  <option value="single_spreadsheet_multi_sheet">Un Sheets con varias hojas</option>
-                  <option value="separate_outputs">Entregables separados</option>
-                </select>
-              </label>
-            </div>
+                  {(option) => option.label}
+                </GlidingRadioGroup>
+              </PulsoField>
+            </PulsoFieldRow>
           )}
         </article>
       </div>
@@ -355,35 +372,34 @@ export function SalidasEntregablesTab({
         titulo="Nombres de hojas y detalles"
         descripcion="renombra las hojas de salida y las versiones interna/cliente"
       >
-        <div className="cmv2-sal-campos cmv2-sal-campos--hojas">
-          <label className="cmv2-compact-field">
-            <span>Hoja interna</span>
-            <input
+        <PulsoFieldRow className="cmv2-sal-campos cmv2-sal-campos--hojas" geometryGroup="calc-muestra/salidas-nombres-hojas">
+          <PulsoField label="Hoja interna">
+            <PulsoInput
+              size="sm"
               value={config.internal_sheet_name ?? ""}
               placeholder="Calculo muestra - interno"
               onChange={(e) => updateConfig({ internal_sheet_name: e.currentTarget.value })}
             />
-          </label>
-          <label className="cmv2-compact-field">
-            <span>Hoja cliente</span>
-            <input
+          </PulsoField>
+          <PulsoField label="Hoja cliente">
+            <PulsoInput
+              size="sm"
               value={config.client_sheet_name ?? ""}
               placeholder="Calculo muestra - cliente"
               onChange={(e) => updateConfig({ client_sheet_name: e.currentTarget.value })}
             />
-          </label>
+          </PulsoField>
           {SHEET_NAME_FIELDS.map(([key, label, detail]) => (
-            <label key={key} className="cmv2-compact-field">
-              <span>{label}</span>
-              <input
+            <PulsoField key={key} label={label} hint={detail}>
+              <PulsoInput
+                size="sm"
                 value={String(config[key] ?? "")}
                 placeholder={label}
                 onChange={(e) => updateConfig({ [key]: e.currentTarget.value } as Partial<CalcMuestraWorkspacePublicationConfig>)}
               />
-              <em>{detail}</em>
-            </label>
+            </PulsoField>
           ))}
-        </div>
+        </PulsoFieldRow>
       </PanelAvanzado>
 
       {/* K2: la privacidad al pie — es una POLÍTICA transversal, no un paso

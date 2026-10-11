@@ -5,7 +5,6 @@
 .cmv2-vbal header span { display: block; color: var(--pulso-text-muted); font-size: 11px; margin-bottom: var(--pulso-space-2); }
 .cmv2-vbal ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 .cmv2-vbal li { display: flex; align-items: center; gap: var(--pulso-space-1); flex-wrap: wrap; font-size: 12px; }
-.cmv2-vbal label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .cmv2-vbal-niveles { color: var(--pulso-text-muted); font-variant-numeric: tabular-nums; }
 .cmv2-vbal em { font-style: normal; font-size: 10.5px; color: var(--pulso-text-muted); }
 .cmv2-vbal li[data-riesgo] em { color: var(--pulso-warn-fg); }

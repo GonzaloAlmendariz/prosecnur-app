@@ -13,6 +13,9 @@
  * sale sigue siendo un diseño sobre el que se puede razonar.
  */
 import { Shuffle, TriangleAlert } from "../../../../vendor/lucide-react";
+import { PulsoField, PulsoFieldRow } from "../../../../components/PulsoField";
+import { PulsoInput } from "../../../../components/PulsoInput";
+import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { CalcMuestraAulasSelection, CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
@@ -119,28 +122,26 @@ export function AulasRerandomizacionTab({
             Son <b>{fmtInt(criterio.celdas.length * 2)}</b> celdas de{" "}
             <b>{fmtInt(criterio.celdas.length)}</b> facultades.
           </p>
-          <div className="cmv2-rr-controles">
-            <label className="cmv2-rr-switch">
-              <input
-                type="checkbox"
-                checked={rr?.activa === true}
-                disabled={!onConfig}
-                onChange={(e) => cambiar({ activa: e.target.checked })}
-              />
-              <span>
-                <Shuffle size={13} aria-hidden="true" /> Rerandomizar al sortear
-              </span>
-            </label>
-            <label className="cmv2-rr-tope">
-              Tope de sorteos
-              <input
-                type="number" min={1} max={1000}
+          {/* K1 (L27): el interruptor es el switch del kit y el tope, un campo
+              numérico del kit en línea; la fila declara su grupo (C1). */}
+          <PulsoFieldRow className="cmv2-rr-controles" geometryGroup="aulas-rerandomizacion-controles">
+            <PulsoSwitch
+              className="cmv2-rr-switch"
+              label={<><Shuffle size={13} aria-hidden="true" /> Rerandomizar al sortear</>}
+              ariaLabel="Rerandomizar al sortear"
+              checked={rr?.activa === true}
+              disabled={!onConfig}
+              onCheckedChange={(activa) => cambiar({ activa })}
+            />
+            <PulsoField label="Tope de sorteos" inline className="is-compact">
+              <PulsoInput
+                type="number" min={1} max={1000} size="sm" numeric
                 value={rr?.tope ?? 50}
                 disabled={!onConfig || rr?.activa !== true}
                 onChange={(e) => cambiar({ tope: Number(e.target.value) || 1 })}
               />
-            </label>
-          </div>
+            </PulsoField>
+          </PulsoFieldRow>
           <small className="cmv2-rr-nota">
             Con el interruptor apagado el sorteo se comporta como siempre: sale el primero
             y no se rechaza ninguno. Encenderlo cambia el diseño, y por eso es una decisión
