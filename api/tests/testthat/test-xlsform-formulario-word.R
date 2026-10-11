@@ -180,3 +180,550 @@ test_that("reporte_formulario_word rinde end-to-end desde la Matriz PULSO IAC-CI
   txt <- paste(officer::docx_summary(doc)$text, collapse = "\n")
   expect_true(grepl("Docentes", txt, fixed = TRUE))
 })
+
+# =============================================================================
+# Contrato OOXML del artefacto y regresiones del render (checklist
+# `docs/qa/checklist-motor-formulario-papel-2026-09-24.md`, items 6, 9, 10 y 11
+# mas la compatibilidad prometida de `columns`).
+#
+# El `.docx` se genera DENTRO del test, con el motor. Nunca contra un archivo
+# del cliente ni contra una ruta de una maquina: `test-reporte-ppt-saneo-ooxml.R:70`
+# apunta a un path absoluto local y por eso en CI se salta SIEMPRE.
+# =============================================================================
+
+# Instrumento minimo que produce los tres tipos de tramo del plan de columnas:
+# prologo (portada + instrucciones, 1 columna), una seccion de preguntas cortas
+# que cabe en media pagina (2 columnas) y una seccion con matriz de escala que
+# no cabe (1 columna). Es la alternancia del instrumento de referencia.
+.form_word_fixture_tramos <- function() {
+  survey <- data.frame(
+    type = c(
+      "begin_group", "select_one sino", "select_one sino", "select_one sino", "end_group",
+      "begin_group", "note",
+      "select_one esc5", "select_one esc5", "select_one esc5", "select_one esc5", "end_group"
+    ),
+    name = c("gA", "q1", "q2", "q3", "gAe",
+             "gB", "instr", "m1", "m2", "m3", "m4", "gBe"),
+    label = c(
+      "Datos generales", "¿Trabajas?", "¿Estudias?", "¿Vives solo?", "",
+      "Percepciones", "Por favor señala cuán de acuerdo estás con cada frase.",
+      "Me siento seguro en mi barrio", "Confío en las autoridades",
+      "La escuela me escucha", "Participo en actividades", ""
+    ),
+    paper_group = c("", "", "", "", "", "", "bat", "bat", "bat", "bat", "bat", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("sino", "sino", rep("esc5", 5)),
+    name = c("1", "2", as.character(1:5)),
+    label = c("Sí", "No",
+              "Totalmente en desacuerdo", "En desacuerdo", "Indiferente",
+              "De acuerdo", "Totalmente de acuerdo"),
+    stringsAsFactors = FALSE
+  )
+  list(survey = survey, choices = choices,
+       settings = list(form_title = "Instrumento de tramos"))
+}
+
+# Genera el .docx del fixture con el valor de `columns` pedido.
+.form_word_fixture_docx <- function(columns) {
+  fx <- .form_word_fixture_tramos()
+  out <- tempfile(fileext = ".docx")
+  reporte_formulario_word(
+    survey = fx$survey, choices = fx$choices, settings = fx$settings,
+    output_file = out,
+    options = list(columns = columns, matrix_groups = list(list(
+      members = c("m1", "m2", "m3", "m4"), tenor = "Grado de acuerdo", special = "auto")))
+  )
+  out
+}
+
+# `word/document.xml` ya parseado, con el namespace w: resuelto.
+.form_word_document_xml <- function(path) {
+  d <- tempfile("docx_xml_")
+  utils::unzip(path, files = "word/document.xml", exdir = d)
+  xml2::read_xml(file.path(d, "word", "document.xml"))
+}
+
+test_that("item 10: el .docx del motor pasa el verificador OOXML", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  skip_if_not_installed("zip")
+
+  for (cols in list(1L, "auto")) {
+    out <- .form_word_fixture_docx(cols)
+    rep <- expect_docx_ooxml_valid(out)
+
+    # El inventario de desorden se afirma ENTERO, no solo "no hay nuevos": asi
+    # el dia que officer corrija uno de estos, el test avisa de que la lista de
+    # excepciones quedo rancia en vez de seguir en verde por no mirar.
+    expect_setequal(rep$desorden, .OOXML_DESORDEN_OFFICER_071)
+    expect_identical(rep$desorden_nuevo, character(0))
+    expect_identical(unname(rep$comentarios), c(0L, 0L, 0L))
+  }
+})
+
+test_that("item 10 (defecto conocido aguas arriba): officer 0.7.1 emite sectPr fuera de secuencia", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # ECMA-376 CT_SectPr pide `... type, pgSz, pgMar, ..., cols, ...`; officer
+  # 0.7.1 escribe `headerReference footerReference pgMar pgSz type cols`. Es un
+  # defecto de la libreria, no del motor: reordenar el XML en memoria rompe el
+  # post-proceso de officer (documentado en reporte_formulario_word.R). Se
+  # DECLARA aqui, con su version, en vez de dar verde por no mirarlo. El dia que
+  # officer lo arregle, este test cae y hay que quitar la excepcion.
+  expect_identical(as.character(utils::packageVersion("officer")), "0.7.1")
+
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  ordenes <- unique(vapply(
+    xml2::xml_find_all(doc, "//w:sectPr", ns),
+    function(s) paste(xml2::xml_name(xml2::xml_children(s)), collapse = " "),
+    character(1)
+  ))
+  expect_identical(ordenes, "headerReference footerReference pgMar pgSz type cols")
+})
+
+test_that("compatibilidad de `columns`: 1 y 2 no cambian la forma del .docx de hoy", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # Promesa hecha al usuario en el item 12 del checklist: mientras la decision
+  # de honrar `columns = 2` en Word siga bloqueada, NINGUN export existente
+  # cambia de forma. Una sola seccion y cero columnas de texto.
+  for (cols in list(1L, 2L)) {
+    out <- .form_word_fixture_docx(cols)
+    doc <- .form_word_document_xml(out)
+    ns <- xml2::xml_ns(doc)
+    expect_length(xml2::xml_find_all(doc, "//w:sectPr", ns), 1L)
+    nums <- xml2::xml_attr(xml2::xml_find_all(doc, "//w:cols", ns), "num")
+    expect_true(all(is.na(nums)), info = sprintf("columns=%s emitio w:cols w:num", cols))
+  }
+
+  # Y "auto" SI corta en tramos: secciones continuas, con al menos una a dos
+  # columnas con la canaleta del instrumento de referencia (425 twips).
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
+  expect_gt(length(sect), 1L)
+  tipos <- vapply(sect, function(s) {
+    xml2::xml_attr(xml2::xml_find_first(s, "./w:type", ns), "val")
+  }, character(1))
+  expect_true(all(tipos == "continuous"))
+
+  dos_col <- Filter(function(s) {
+    identical(xml2::xml_attr(xml2::xml_find_first(s, "./w:cols", ns), "num"), "2")
+  }, sect)
+  expect_gte(length(dos_col), 1L)
+  cols_node <- xml2::xml_find_first(dos_col[[1]], "./w:cols", ns)
+  expect_identical(xml2::xml_attr(cols_node, "sep"), "1")
+  expect_identical(xml2::xml_attr(cols_node, "space"), "425")
+})
+
+test_that("item 9: el pie sobrevive en todas las secciones y ninguna lleva titlePg", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # Se mide por XML, no por PDF: convertir el .docx exige LibreOffice, que NO
+  # esta en el CI (poppler si, LibreOffice no). El mobiliario es propiedad del
+  # `sectPr`: una seccion nueva sin `footerReference` se queda sin pie, y
+  # `titlePg` deja sin pie la PRIMERA pagina de cada seccion.
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
+  expect_gte(length(sect), 2L)  # con una sola seccion esto no prueba nada
+
+  expect_length(xml2::xml_find_all(doc, "//w:titlePg", ns), 0L)
+  for (k in seq_along(sect)) {
+    expect_length(xml2::xml_find_all(sect[[k]], "./w:footerReference", ns), 1L)
+    expect_length(xml2::xml_find_all(sect[[k]], "./w:headerReference", ns), 1L)
+  }
+})
+
+test_that("cantSplit solo vive en tramos de una columna (es contenido perdido, no estetica)", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # En una seccion con `w:cols num=2`, una tabla con `cantSplit` cuyas filas no
+  # caben en lo que resta de columna hace que LibreOffice las DESCARTE en vez de
+  # pasarlas a la columna siguiente: las filas estan en el document.xml y no
+  # llegan al PDF. Perder contenido es peor que una tabla partida.
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+
+  # Se recorre el cuerpo en orden: un parrafo que lleva `sectPr` CIERRA su
+  # tramo, asi que cada tabla pertenece al tramo que se cierra despues de ella.
+  hijos <- xml2::xml_children(xml2::xml_find_first(doc, "//w:body", ns))
+  tramo <- 1L
+  tablas <- list()
+  for (nodo in hijos) {
+    nombre <- xml2::xml_name(nodo)
+    if (identical(nombre, "tbl")) {
+      tablas[[length(tablas) + 1L]] <- list(
+        tramo = tramo,
+        filas = length(xml2::xml_find_all(nodo, "./w:tr", ns)),
+        cant_split = length(xml2::xml_find_all(nodo, ".//w:cantSplit", ns))
+      )
+    } else if (identical(nombre, "p") &&
+               length(xml2::xml_find_all(nodo, "./w:pPr/w:sectPr", ns))) {
+      tramo <- tramo + 1L
+    }
+  }
+  sect <- xml2::xml_find_all(doc, "//w:sectPr", ns)
+  cols_de <- vapply(sect, function(s) {
+    n <- xml2::xml_attr(xml2::xml_find_first(s, "./w:cols", ns), "num")
+    if (is.na(n)) 1L else as.integer(n)
+  }, integer(1))
+
+  expect_gt(length(tablas), 0L)
+  expect_true(any(cols_de == 2L))  # sin tramo de dos columnas esto no discrimina
+  for (t in tablas) {
+    if (identical(cols_de[[t$tramo]], 2L)) {
+      expect_identical(t$cant_split, 0L,
+                       info = "tabla con cantSplit dentro de un tramo de dos columnas")
+    } else {
+      # En un tramo de una columna si va, y en TODAS las filas (item 3).
+      expect_identical(t$cant_split, t$filas)
+    }
+  }
+})
+
+test_that("item 11: las categorias con asteriscos llegan literales al .docx", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+
+  # Este test nacio EN ROJO y destapo un defecto real: el modelo conservaba la
+  # categoria y lo declaraba en `warnings`, pero el RENDERER la volvia a limpiar
+  # (`.form_word_options_flextable()` aplicaba `.form_pdf_clean_text()` sobre
+  # etiquetas que ya venian conservadas), asi que el .docx imprimia «De 5 a 10»
+  # mientras el warning afirmaba «Categoria conservada tal cual». Rojo literal:
+  #   Failure: categoria que no llego literal al .docx: De 5* a 10*
+  #   Failure: categoria que no llego literal al .docx: Nota al pie (*)
+  #   Failure: categoria que no llego literal al .docx: 3 * a la semana
+  # Reparado en `f28f84f02`. Se mide sobre el ARTEFACTO a proposito: el gate
+  # anterior se detenia en `block$options$label` y por eso daba verde.
+  #
+  # LAS DOS MITADES DEL INVARIANTE VIVEN JUNTAS, y por eso el enunciado con
+  # markdown esta en el MISMO test: «la categoria se conserva **y** el enunciado
+  # se limpia». Comprobar solo la primera mitad deja la suite verde si alguien
+  # "arregla" esto volviendo inocua la limpieza para todo, que es romper la
+  # separacion por el otro lado.
+  survey <- data.frame(
+    type = "select_one frec", name = "q1",
+    label = "¿Cuántas veces **comes** fruta? Usa `código` exacto",
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("frec", 3), name = c("1", "2", "3"),
+    label = c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"),
+    stringsAsFactors = FALSE
+  )
+  out <- tempfile(fileext = ".docx")
+  res <- reporte_formulario_word(
+    survey = survey, choices = choices, settings = list(form_title = "Categorias"),
+    output_file = out, options = list(columns = 1)
+  )
+  doc <- .form_word_document_xml(out)
+  textos <- xml2::xml_text(xml2::xml_find_all(doc, "//w:t", xml2::xml_ns(doc)))
+  # Mitad 1: la CATEGORIA se conserva tal cual.
+  for (lbl in choices$label) {
+    expect_true(any(textos == lbl),
+                info = sprintf("categoria que no llego literal al .docx: %s", lbl))
+  }
+  expect_true(any(grepl("De 5 a 10", res$warnings, fixed = TRUE)))
+
+  # Mitad 2 (control inverso): el ENUNCIADO se desmarca. Se mira SOLO el run del
+  # enunciado: un "cero asteriscos en todo el .docx" seria falso —las categorias
+  # de arriba llevan los suyos a proposito—, y confundir las dos mitades es
+  # justamente como se rompe esto.
+  enunciado <- textos[grepl("comes", textos, fixed = TRUE)]
+  expect_length(enunciado, 1L)
+  expect_true(grepl("comes fruta", enunciado, fixed = TRUE))
+  expect_true(grepl("código exacto", enunciado, fixed = TRUE))
+  expect_false(grepl("*", enunciado, fixed = TRUE),
+               label = "el enunciado conserva el markdown `**`")
+  expect_false(grepl("`", enunciado, fixed = TRUE),
+               label = "el enunciado conserva los backticks")
+})
+
+# --- Regresion del renderer Word (GOAL replica Ser Adolescente) ---------------
+#
+# La suite tenia 85 aserciones y ninguna cubria lo que este GOAL cambio. Aqui ya
+# hubo una fuga real que NINGUN test vio: tres tablas escritas despues de
+# centralizar la tipografia no aplicaban `font()`, y el .docx salia con 14 runs
+# en Helvetica. La cazo medir el documento ENTERO, no el sitio recien tocado.
+#
+# Todo se mide sobre el ARTEFACTO (`word/document.xml`), nunca sobre el modelo.
+
+.form_word_es_gris <- function(hex) {
+  h <- toupper(hex)
+  substr(h, 1, 2) == substr(h, 3, 4) & substr(h, 3, 4) == substr(h, 5, 6)
+}
+
+test_that("Word: el instrumento es monocromo — texto negro y rellenos en gris", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx("auto"))
+  ns <- xml2::xml_ns(doc)
+  cols <- xml2::xml_attr(xml2::xml_find_all(doc, "//w:color", ns), "val")
+  fills <- xml2::xml_attr(xml2::xml_find_all(doc, "//*[@w:fill]", ns), "fill")
+  cols <- cols[!is.na(cols) & cols != "auto"]
+  fills <- fills[!is.na(fills) & fills != "auto"]
+  expect_gt(length(cols), 50L)
+  expect_setequal(unique(cols), "000000")
+  expect_true(all(.form_word_es_gris(fills)),
+              label = paste("rellenos no grises:", paste(unique(fills[!.form_word_es_gris(fills)]), collapse = ", ")))
+})
+
+test_that("Word: TODO el cuerpo va en Arial Narrow", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx("auto"))
+  ns <- xml2::xml_ns(doc)
+  fuentes <- xml2::xml_attr(xml2::xml_find_all(doc, "//w:rFonts", ns), "ascii")
+  fuentes <- fuentes[!is.na(fuentes)]
+  expect_gt(length(fuentes), 50L)
+  # Centralizar la fuente en una constante NO basta: cada tabla nueva tiene que
+  # acordarse de aplicarla, y tres no lo hicieron. Este test es el que lo caza.
+  expect_setequal(unique(fuentes), "Arial Narrow")
+})
+
+test_that("Word: todas las celdas llevan sus cuatro bordes", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx("auto"))
+  ns <- xml2::xml_ns(doc)
+  celdas <- xml2::xml_find_all(doc, "//w:tc", ns)
+  expect_gt(length(celdas), 20L)
+  # La estructura de las filas cuelga de los BORDES, no del relleno: el relleno
+  # (F2F2F2, 5 % de tinta) desaparece en una fotocopia y el instrumento es un
+  # insumo que se fotocopia.
+  con_cuatro <- vapply(celdas, function(tc) {
+    b <- xml2::xml_find_all(tc, "./w:tcPr/w:tcBorders/*", ns)
+    sum(xml2::xml_attr(b, "val") == "single", na.rm = TRUE) >= 4L
+  }, logical(1))
+  expect_identical(sum(!con_cuatro), 0L,
+                   label = "celdas sin sus cuatro caras")
+})
+
+test_that("Word: el enunciado vive DENTRO de la tabla, en celda sombreada", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx(1))
+  ns <- xml2::xml_ns(doc)
+  tablas <- xml2::xml_find_all(doc, "//w:tbl", ns)
+  expect_gt(length(tablas), 1L)
+  # Al menos una tabla de pregunta arranca con su enunciado en `F2F2F2`. Suelto
+  # encima, el enunciado se separaba de sus opciones al cortar la columna.
+  con_enunciado <- vapply(tablas, function(t) {
+    fila <- xml2::xml_find_first(t, "./w:tr", ns)
+    shd <- xml2::xml_attr(xml2::xml_find_first(fila, ".//w:shd", ns), "fill")
+    txt <- paste(xml2::xml_text(xml2::xml_find_all(fila, ".//w:t", ns)), collapse = "")
+    !is.na(shd) && identical(shd, "F2F2F2") && nzchar(trimws(txt))
+  }, logical(1))
+  expect_gt(sum(con_enunciado), 0L)
+})
+
+test_that("Word: margenes de la referencia y ancho util por encima de 10 500 twips", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  skip_if_not_installed("xml2")
+  doc <- .form_word_document_xml(.form_word_fixture_docx("auto"))
+  ns <- xml2::xml_ns(doc)
+  sect <- xml2::xml_find_first(doc, "//w:sectPr", ns)
+  pg <- xml2::xml_find_first(sect, "./w:pgSz", ns)
+  pm <- xml2::xml_find_first(sect, "./w:pgMar", ns)
+  izq <- as.integer(xml2::xml_attr(pm, "left"))
+  der <- as.integer(xml2::xml_attr(pm, "right"))
+  util <- as.integer(xml2::xml_attr(pg, "w")) - izq - der
+  # Un formulario en papel no es un documento de oficina: la densidad ES la
+  # funcion. La referencia deja 10 549 twips utiles.
+  expect_identical(c(izq, der), c(680L, 680L))
+  expect_gte(util, 10500L)
+})
+
+test_that("Word: el pie lleva el campo del TOTAL de paginas", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  out <- .form_word_fixture_docx("auto")
+  d <- tempfile("docx_ftr_")
+  pies <- grep("^word/footer[0-9]+\\.xml$", utils::unzip(out, list = TRUE)$Name, value = TRUE)
+  expect_gt(length(pies), 0L)
+  utils::unzip(out, files = pies, exdir = d)
+  txt <- paste(vapply(file.path(d, pies), function(f) paste(readLines(f, warn = FALSE), collapse = ""),
+                      character(1)), collapse = "")
+  # «Pagina N de M»: el total es otro campo de Word. Un campo no se calcula hasta
+  # que el documento se abre, asi que aqui se comprueba que ESTA, no su valor.
+  expect_true(grepl("NUMPAGES", txt, fixed = TRUE))
+  expect_true(grepl("PAGE", txt, fixed = TRUE))
+})
+
+test_that("B4: la rejilla va en NEGRO, y los rellenos NO", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  # El criterio de Gonzalo (2026-09-25), textual: «que vaya en negro lo mas
+  # adecuado como bordes de tablas, pero cosas con fondo usar negro por
+  # completo gastaria mucha tinta». Son las DOS mitades y el test mide las dos:
+  # una linea de 0,5 pt cubre un area despreciable y es lo unico que sostiene la
+  # estructura en fotocopia; un relleno cubre area de verdad. Este test existe
+  # porque el color de la rejilla no lo fijaba NADA: un pase de «fidelidad a la
+  # referencia» podia devolverla al A6A6A6 (luma 166, se borra por debajo del
+  # umbral 166 de la copiadora) sin poner un solo test en rojo.
+  out <- .form_word_fixture_docx("auto")
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+
+  bordes <- xml2::xml_find_all(doc, "//w:tcBorders/*", ns)
+  expect_gt(length(bordes), 100L)
+  colores <- unique(xml2::xml_attr(bordes, "color"))
+  colores <- toupper(colores[!is.na(colores) & colores != "auto"])
+  expect_identical(colores, "000000")
+
+  # La otra mitad: ningun relleno se fue a negro ni a un gris que gaste tinta.
+  # F2F2F2 (cebra y enunciado) y D9D9D9 (banda de seccion) son los de la
+  # referencia; cualquier otro relleno solido es gasto nuevo que hay que mirar.
+  rellenos <- xml2::xml_find_all(doc, "//w:shd", ns)
+  fills <- toupper(xml2::xml_attr(rellenos, "fill"))
+  fills <- unique(fills[!is.na(fills) & !fills %in% c("AUTO", "FFFFFF")])
+  expect_setequal(fills, c("F2F2F2", "D9D9D9"))
+})
+
+# Fixture con TENOR: la matriz autodetectada por `paper_group` NO trae tenor
+# (su titulo es la etiqueta del primer item), asi que no ejercita L16. El tenor
+# entra por la opcion `matrix_groups`, que es de donde sale en un estudio real.
+.form_word_fixture_tenor <- function(tenor = "Por favor senala que tan de acuerdo estas con las siguientes afirmaciones:") {
+  list(
+    survey = data.frame(
+      type = rep("select_one ac", 4L), name = paste0("a", 1:4),
+      label = c("Me siento satisfecho conmigo mismo.",
+                "Creo que tengo buenas cualidades.",
+                "Soy capaz de hacer las cosas tan bien como los demas.",
+                "A veces pienso que no sirvo para nada."),
+      stringsAsFactors = FALSE),
+    choices = data.frame(
+      list_name = "ac", name = as.character(1:4),
+      label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+      stringsAsFactors = FALSE),
+    settings = list(form_title = "L16"),
+    options = list(columns = 1, matrix_groups = list(list(
+      members = paste0("a", 1:4), tenor = tenor)))
+  )
+}
+
+test_that("L16: el enunciado de la bateria vive DENTRO de la matriz, no encima", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  fx <- .form_word_fixture_tenor()
+  out <- tempfile(fileext = ".docx")
+  reporte_formulario_word(fx$survey, fx$choices, fx$settings, output_file = out,
+                          options = fx$options)
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  body <- xml2::xml_find_first(doc, "//w:body", ns)
+  hijos <- xml2::xml_children(body)
+  texto <- function(n) paste(xml2::xml_text(xml2::xml_find_all(n, ".//w:t", ns)), collapse = "")
+
+  # 1. NINGUN parrafo suelto del cuerpo repite el enunciado. Es la mitad que
+  #    importa: dejarlo arriba Y ponerlo dentro seria duplicarlo, y un test que
+  #    solo mire la esquina daria verde igual.
+  sueltos <- Filter(function(n) identical(xml2::xml_name(n), "p") &&
+                      grepl("Por favor senala", texto(n), fixed = TRUE), hijos)
+  expect_length(sueltos, 0L)
+
+  # 2. El enunciado esta en la PRIMERA celda de la PRIMERA fila de la matriz,
+  #    y esa celda abarca la columna del numero y la de la etiqueta (gridSpan),
+  #    que es donde la referencia arranca su "P20." .
+  tablas <- Filter(function(n) identical(xml2::xml_name(n), "tbl"), hijos)
+  mat <- Filter(function(t) grepl("Por favor senala", texto(t), fixed = TRUE), tablas)
+  expect_length(mat, 1L)
+  esquina <- xml2::xml_find_first(mat[[1]], ".//w:tr[1]/w:tc[1]", ns)
+  expect_true(grepl("Por favor senala", texto(esquina), fixed = TRUE))
+  expect_true(grepl("^1\\.", trimws(texto(esquina))))   # se lleva su numero consigo
+  span <- xml2::xml_find_first(esquina, "./w:tcPr/w:gridSpan", ns)
+  expect_false(is.na(xml2::xml_attr(span, "val")))
+  expect_identical(xml2::xml_attr(span, "val"), "2")
+})
+
+.form_word_fixture_subgrupo <- function() {
+  list(
+    survey = data.frame(
+      type = c("begin_group", rep("select_one ac", 3L), "end_group"),
+      name = c("g", "a1", "a2", "a3", "ge"),
+      label = c("B. BIENESTAR", "Me siento satisfecho conmigo mismo.",
+                "Creo que tengo buenas cualidades.", "A veces pienso que no sirvo para nada.", ""),
+      paper_subgroup = c("", rep("Como te sientes", 3L), ""),
+      stringsAsFactors = FALSE),
+    choices = data.frame(
+      list_name = "ac", name = as.character(1:4),
+      label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+      stringsAsFactors = FALSE),
+    settings = list(form_title = "L17")
+  )
+}
+
+test_that("L17: la subseccion es una banda propia, y se distingue de la seccion por TONO", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  fx <- .form_word_fixture_subgrupo()
+  out <- tempfile(fileext = ".docx")
+  reporte_formulario_word(fx$survey, fx$choices, fx$settings, output_file = out,
+                          options = list(columns = 1))
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  bandas <- list()
+  for (p in xml2::xml_find_all(doc, "//w:body/w:p", ns)) {
+    shd <- xml2::xml_find_first(p, "./w:pPr/w:shd", ns)
+    if (is.na(xml2::xml_attr(shd, "fill"))) next
+    bandas[[length(bandas) + 1L]] <- list(
+      fill = toupper(xml2::xml_attr(shd, "fill")),
+      texto = paste(xml2::xml_text(xml2::xml_find_all(p, ".//w:t", ns)), collapse = ""))
+  }
+  sub <- Filter(function(b) grepl("COMO TE SIENTES", b$texto, fixed = TRUE), bandas)
+  sec <- Filter(function(b) grepl("BIENESTAR", b$texto, fixed = TRUE), bandas)
+  expect_length(sub, 1L)
+  expect_length(sec, 1L)
+  # MISMA FORMA, distinto tono: es como los separa la referencia (D9D9D9 contra
+  # DBE5F1, luma 217 y 227). Que sean DISTINTOS es la mitad que importa; un test
+  # que solo comprobara "la subseccion tiene relleno" pasaria con los dos iguales.
+  expect_identical(sub[[1]]$fill, "E8E8E8")
+  expect_identical(sec[[1]]$fill, "D9D9D9")
+  expect_false(identical(sub[[1]]$fill, sec[[1]]$fill))
+  # Y la subseccion conserva la caja: sin bordes seria un parrafo sombreado, no
+  # una banda, y en fotocopia dura no se leeria como rotulo.
+  p_sub <- Filter(function(p) grepl("COMO TE SIENTES",
+                    paste(xml2::xml_text(xml2::xml_find_all(p, ".//w:t", ns)), collapse = ""), fixed = TRUE),
+                  xml2::xml_find_all(doc, "//w:body/w:p", ns))
+  expect_length(xml2::xml_find_all(p_sub[[1]], "./w:pPr/w:pBdr/*", ns) , 4L)
+})
+
+test_that("L17: el sub-grupo se enuncia UNA vez — la esquina de la matriz ya no lo repite", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("flextable")
+  fx <- .form_word_fixture_subgrupo()
+  out <- tempfile(fileext = ".docx")
+  reporte_formulario_word(fx$survey, fx$choices, fx$settings, output_file = out,
+                          options = list(columns = 1))
+  doc <- .form_word_document_xml(out)
+  ns <- xml2::xml_ns(doc)
+  # Hasta L17 el sub-grupo vivia en la celda superior izquierda de la matriz.
+  # Ahora tiene banda; dejarlo tambien en la esquina seria decirlo dos veces, que
+  # es el modo tipico de "cerrar" este tipo de item mal.
+  tablas <- xml2::xml_find_all(doc, "//w:body/w:tbl", ns)
+  esquinas <- vapply(tablas, function(t) {
+    tc <- xml2::xml_find_first(t, "./w:tr[1]/w:tc[1]", ns)
+    if (inherits(tc, "xml_missing")) return("")
+    paste(xml2::xml_text(xml2::xml_find_all(tc, ".//w:t", ns)), collapse = "")
+  }, character(1))
+  expect_false(any(grepl("Como te sientes", esquinas, ignore.case = TRUE)))
+  cuerpo <- xml2::xml_text(xml2::xml_find_first(doc, "//w:body", ns))
+  expect_identical(lengths(regmatches(cuerpo, gregexpr("(?i)como te sientes", cuerpo, perl = TRUE))), 1L)
+})

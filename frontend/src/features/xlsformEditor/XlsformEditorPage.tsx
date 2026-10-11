@@ -2112,7 +2112,7 @@ export default function XlsformEditorPage() {
 
   async function onExportForm(
     format: "pdf" | "word" = "pdf",
-    columns: 1 | 2 = 2,
+    columns: 1 | 2 | "auto" = 2,
     logicLanguage: "saltos" | "condiciones" = "saltos",
     showQuestionnaireNumber: boolean = true,
     matrixGroups: Array<{ members: string[]; tenor?: string; special?: string; header?: string }> = [],

@@ -1108,3 +1108,875 @@ test_that("la cabecera por categorias nunca deja un rotulo mas ancho que su colu
   # La particion solo toca lo que no entra.
   expect_identical(.form_pdf_break_long_words("En desacuerdo", 20L), "En desacuerdo")
 })
+
+# =============================================================================
+# Cambios de comportamiento deliberados de 4ab248a4 (checklist
+# `docs/qa/checklist-motor-formulario-papel-2026-09-24.md`). Cada uno se fija
+# con la entrada LITERAL que lo motivo.
+# =============================================================================
+
+test_that("item 11 (gate): las categorias de respuesta sobreviven literales y toda diferencia se declara", {
+  # REGLA QUE NO SE NEGOCIA del checklist: "las categorias de respuesta
+  # existentes no se tocan". `.form_pdf_clean_text()` aplicaba `gsub("[`*]", "")`
+  # a TODO texto, y las etiquetas de categoria pasaban por ahi: `De 5* a 10*` se
+  # imprimia `De 5 a 10`, sin warning y sin rastro en el artefacto. Un cambio de
+  # etiqueta no consultado rompe la comparabilidad del cuestionario y nadie lo
+  # detecta hasta el analisis; por eso esto es un gate, no un detalle.
+  choices <- data.frame(
+    list_name = rep("frec", 3),
+    name = c("1", "2", "3"),
+    label = c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"),
+    stringsAsFactors = FALSE
+  )
+  survey <- data.frame(type = "select_one frec", name = "q1",
+                       label = "Frecuencia semanal", stringsAsFactors = FALSE)
+
+  model <- formulario_pdf_build_model(survey, choices, settings = list(form_title = "T"))
+  bloque <- Filter(function(b) identical(b$name, "q1"), model$blocks)[[1]]
+  etiquetas <- vapply(bloque$options, function(o) o$label, character(1))
+
+  expect_identical(etiquetas, c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"))
+
+  # Y la diferencia se DECLARA: silencio y normalizacion son la misma falta.
+  for (cat_lbl in etiquetas) {
+    expect_true(
+      any(grepl(cat_lbl, model$warnings, fixed = TRUE)),
+      info = sprintf("sin warning declarado para la categoria conservada: %s", cat_lbl)
+    )
+  }
+  expect_true(any(grepl("De 5 a 10", model$warnings, fixed = TRUE)))
+})
+
+test_that("item 6: el despojador de prefijos no se come texto legitimo del enunciado", {
+  # Tabla literal del checklist. A la izquierda lo que el XLSForm trae, a la
+  # derecha lo que debe quedar tras quitar la numeracion que el motor va a
+  # imponer el mismo. Las tres primeras filas son PERDIDA DE CONTENIDO: el
+  # despojador anterior se comia el "3", el "1990" y rompia el ordinal.
+  conserva <- list(
+    list(label = "3 de cada 5 jóvenes trabajan", number = "3",
+         esperado = "3 de cada 5 jóvenes trabajan",
+         porque = "sin separador, el digito es parte del enunciado"),
+    list(label = "1990. Año de nacimiento", number = "12",
+         esperado = "1990. Año de nacimiento",
+         porque = "mas de tres digitos no es numero de pregunta"),
+    list(label = "2. ° piso del edificio", number = "2",
+         esperado = "2. ° piso del edificio",
+         porque = "tras el separador viene un ordinal, no un enunciado")
+  )
+  for (caso in conserva) {
+    expect_identical(
+      .form_pdf_strip_leading_number(caso$label, caso$number), caso$esperado,
+      info = sprintf("%s (%s)", caso$label, caso$porque)
+    )
+  }
+
+  # Y los prefijos que SI son numeracion y deben irse (el motor pone el suyo).
+  destino <- "¿Cuántos hermanos tienes?"
+  quita <- list(
+    list(label = paste0("6.- ", destino), number = "6"),
+    list(label = paste0("6.", destino), number = "6"),
+    list(label = paste0("(6) ", destino), number = "6"),
+    list(label = paste0("P6. ", destino), number = "6"),
+    list(label = paste0("P.6 ", destino), number = "6"),
+    list(label = paste0("Pregunta 6. ", destino), number = "6"),
+    list(label = "C. SOLEDAD", number = "C", esperado = "SOLEDAD"),
+    list(label = "A) Datos del hogar", number = "A", esperado = "Datos del hogar"),
+    list(label = "IV. Ciudadanía", number = "IV", esperado = "Ciudadanía")
+  )
+  for (caso in quita) {
+    expect_identical(
+      .form_pdf_strip_leading_number(caso$label, caso$number),
+      caso$esperado %||% destino,
+      info = caso$label
+    )
+  }
+})
+
+test_that("item 7: la pregunta es la matriz, no la instruccion que la precede", {
+  # Criterio textual del usuario: "estas considerando los enunciados como
+  # preguntas tipo P, cuando solo la matriz deberia ser pregunta". La nota trae
+  # `paper_number = "6"` a proposito: antes se lo quedaba y la matriz se
+  # numeraba 7, que es el numero que el cliente ve impreso en el papel.
+  survey <- data.frame(
+    type = c("select_one sino", "note",
+             "select_one esc4", "select_one esc4", "select_one esc4"),
+    name = c("q5", "instr", "b1", "b2", "b3"),
+    label = c(
+      "¿Trabajas?",
+      "Por favor señala cuán de acuerdo estás con cada frase.",
+      "Me siento seguro", "Confío en la policía", "Participo en la comunidad"
+    ),
+    paper_number = c("5", "6", "", "", ""),
+    paper_group = c("", "bat", "bat", "bat", "bat"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("sino", "sino", rep("esc4", 4)),
+    name = c("1", "2", as.character(1:4)),
+    label = c("Sí", "No", "Nada", "Poco", "Bastante", "Mucho"),
+    stringsAsFactors = FALSE
+  )
+
+  model <- formulario_pdf_build_model(survey, choices, settings = list(form_title = "T"))
+  nota <- Filter(function(b) identical(b$name, "instr"), model$blocks)[[1]]
+  matriz <- Filter(function(b) identical(b$kind, "matrix"), model$blocks)[[1]]
+
+  # 1) La nota sale SIN numero aunque lo pidiera explicitamente.
+  expect_identical(nota$number %||% "", "")
+  # 2) La matriz se queda con el numero que la nota intentaba llevarse.
+  expect_identical(matriz$number, "6")
+  # 3) La instruccion NO es fila de la matriz (si lo fuera, se dibujaria con
+  #    celdas de escala, como si se pudiera responder).
+  expect_identical(
+    vapply(matriz$items, function(it) it$name, character(1)),
+    c("b1", "b2", "b3")
+  )
+  # 4) Y la exclusion se declara.
+  expect_true(any(grepl("instr", model$warnings, fixed = TRUE)))
+  expect_true(any(grepl("no son preguntas", model$warnings, fixed = TRUE)))
+})
+
+# =============================================================================
+# Gate del §4 del checklist — medido sobre el PDF que el motor produce DIRECTO
+# =============================================================================
+#
+# El §4 esta REPLANTEADO CON MEDICION y no es el que parece: el umbral de 40 pt
+# de holgura al pie **reprobaria al documento objetivo** (nueve de sus once
+# paginas estan por debajo, la minima en 1.6 pt). En un documento a dos columnas
+# el texto fluye hasta llenar la pagina: holgura cercana a cero es el estado
+# NORMAL, no una senal de peligro. Ese umbral no se implementa.
+#
+# Lo que si discrimina —lo que de verdad rompe un instrumento en papel— es que
+# se parta lo que debe ir junto, y que haya texto fuera de la caja. Se mide con
+# `pdftotext -bbox` sobre el PDF del motor, NUNCA sobre un `.docx` convertido:
+# convertir exige LibreOffice, que no esta en el CI.
+
+# Instrumento del gate: seis preguntas sueltas que empujan la bateria hacia el
+# final de la primera pagina, y una matriz de ocho items —el caso en el que una
+# matriz se parte si nadie lo impide—.
+# OJO al tamano del fixture: el gate del §4 exige que el PDF ocupe DOS paginas,
+# porque con una sola no discrimina (una palabra fuera del marco en la pagina 2
+# es justo lo que se quiere cazar). Cuando el motor se hizo mas denso —L6 del
+# GOAL, que metio el instrumento de ejemplo en una pagina— este fixture cupo en
+# una y el gate se cayo. Se agranda el fixture, NUNCA se relaja la asercion: un
+# gate que pasa por haberse quedado sin material no es un gate.
+.form_gate_fixture <- function() {
+  n_q <- 14L
+  survey <- data.frame(
+    type = c(rep("select_one sino", n_q), rep("select_one esc5", 8)),
+    name = c(paste0("q", seq_len(n_q)), paste0("m", 1:8)),
+    label = c(
+      "\u00bfTrabajas actualmente en algo remunerado?", "\u00bfEstudias?",
+      "\u00bfVives solo?", "\u00bfTienes hijos?",
+      "\u00bfUsas transporte p\u00fablico?", "\u00bfTienes seguro de salud?",
+      "\u00bfHas cambiado de domicilio en el \u00faltimo a\u00f1o?",
+      "\u00bfPerteneces a alguna organizaci\u00f3n vecinal?",
+      "\u00bfHas necesitado atenci\u00f3n m\u00e9dica este a\u00f1o?",
+      "\u00bfCuentas con conexi\u00f3n a internet en casa?",
+      "\u00bfHas participado en alguna votaci\u00f3n?",
+      "\u00bfRecibes alg\u00fan apoyo del Estado?",
+      "\u00bfTrabajas y estudias a la vez?",
+      "\u00bfTienes alguna discapacidad reconocida?",
+      "Me siento seguro en mi barrio durante el d\u00eda",
+      "Conf\u00edo en las autoridades de mi distrito",
+      "La escuela escucha a los estudiantes",
+      "Participo en actividades de mi comunidad",
+      "Puedo expresar mi opini\u00f3n libremente",
+      "Conozco mis derechos como ciudadano",
+      "Las decisiones del municipio me afectan",
+      "Me interesa la pol\u00edtica local"
+    ),
+    paper_group = c(rep("", n_q), rep("bat", 8)),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("sino", "sino", rep("esc5", 5)),
+    name = c("1", "2", as.character(1:5)),
+    label = c("S\u00ed", "No", "Totalmente en desacuerdo", "En desacuerdo",
+              "Indiferente", "De acuerdo", "Totalmente de acuerdo"),
+    stringsAsFactors = FALSE
+  )
+  list(survey = survey, choices = choices,
+       matrix_groups = list(list(members = paste0("m", 1:8),
+                                 tenor = "Grado de acuerdo", special = "auto")))
+}
+
+# `pdftotext`, con la trampa de este item cerrada: **poppler-utils SI esta en el
+# CI** desde `918aded84` (`.github/workflows/quality.yml:175`). Si el binario
+# falta EN CI no es que "no se pueda medir": es que alguien lo quito del
+# workflow, y saltarse el test ahi apagaria el gate en silencio — verde por
+# ausencia. En CI falla; en local, donde puede faltar de verdad, se salta.
+.form_gate_pdftotext <- function() {
+  bin <- Sys.which("pdftotext")
+  if (nzchar(bin)) return(bin)
+  if (nzchar(Sys.getenv("CI"))) {
+    testthat::fail(paste(
+      "pdftotext no esta en el PATH del CI. poppler-utils es dependencia",
+      "declarada del workflow (quality.yml): si desaparecio, el gate del §4",
+      "se habria apagado en silencio. No se salta."
+    ))
+  }
+  testthat::skip("pdftotext no esta disponible (entorno local sin poppler-utils)")
+}
+
+# Palabras del PDF con su caja, en coordenadas NPC de la pagina (0-1, origen
+# abajo-izquierda, como las que usa el propio renderer). `pdftotext -bbox`
+# devuelve XHTML con `<page width height>` y `<word xMin yMin xMax yMax>`; sus
+# `y` crecen hacia ABAJO, asi que se voltean aqui una sola vez.
+.form_gate_palabras <- function(path) {
+  bin <- .form_gate_pdftotext()
+  xhtml <- system2(bin, c("-bbox", shQuote(path), "-"), stdout = TRUE)
+  doc <- xml2::read_xml(paste(xhtml, collapse = "\n"))
+  ns <- xml2::xml_ns(doc)
+  paginas <- xml2::xml_find_all(doc, "//d1:page", ns)
+  filas <- lapply(seq_along(paginas), function(i) {
+    p <- paginas[[i]]
+    W <- as.numeric(xml2::xml_attr(p, "width"))
+    H <- as.numeric(xml2::xml_attr(p, "height"))
+    w <- xml2::xml_find_all(p, ".//d1:word", ns)
+    if (!length(w)) return(NULL)
+    data.frame(
+      page = i, texto = xml2::xml_text(w),
+      x0 = as.numeric(xml2::xml_attr(w, "xMin")) / W,
+      x1 = as.numeric(xml2::xml_attr(w, "xMax")) / W,
+      y0 = 1 - as.numeric(xml2::xml_attr(w, "yMax")) / H,
+      y1 = 1 - as.numeric(xml2::xml_attr(w, "yMin")) / H,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, filas)
+}
+
+# Marco de pagina, en NPC. Sale del mobiliario que dibuja el propio renderer
+# (`formulario_pdf_render` y `.form_pdf_header`/`.form_pdf_footer`): la regla
+# del encabezado va de x 0.052 a 0.930, las casillas del n.º de cuestionario
+# llegan a y 0.982 y el texto del pie se centra en y 0.034. El marco es ese
+# mobiliario con holgura; lo que se salga de aqui **no esta en la pagina
+# impresa**, que es el accidente que este gate busca.
+#
+# Mide el MARCO, no la columna: el mobiliario (cabecera y pie) vive fuera de la
+# caja de texto del cuerpo a proposito, asi que exigir la caja del cuerpo a
+# todas las palabras seria un falso positivo garantizado.
+.FORM_GATE_MARCO <- list(x0 = 0.045, x1 = 0.940, y0 = 0.025, y1 = 0.990)
+
+.form_gate_fuera_del_marco <- function(pal, marco = .FORM_GATE_MARCO) {
+  fuera <- pal$x0 < marco$x0 | pal$x1 > marco$x1 |
+    pal$y0 < marco$y0 | pal$y1 > marco$y1
+  pal[fuera, , drop = FALSE]
+}
+
+# Palabra mas larga de una etiqueta (>= 5 caracteres): sirve de ancla para
+# localizar esa etiqueta en el PDF. **No se busca la etiqueta entera como
+# cadena**: dentro de la cabecera de una matriz cada celda se envuelve en varias
+# lineas y `pdftotext` las devuelve intercaladas con las celdas vecinas
+# ("Totalmente En Indiferente De Totalmente / en desacuerdo ..."), asi que una
+# busqueda por frase contigua no encuentra NADA y daria verde por ausencia.
+.form_gate_ancla <- function(texto) {
+  ws <- strsplit(gsub("[^[:alnum:]À-ÿ ]", " ", texto), "\\s+")[[1]]
+  ws <- ws[nchar(ws) >= 5L]
+  if (!length(ws)) return(NA_character_)
+  ws[which.max(nchar(ws))]
+}
+
+.form_gate_paginas_con <- function(pal, palabra) {
+  if (is.na(palabra)) return(integer(0))
+  sort(unique(pal$page[startsWith(pal$texto, palabra)]))
+}
+
+# Paginas que comparten TODOS los items de la matriz y sus dos anclas de escala.
+# Si la matriz esta entera, la interseccion tiene al menos una pagina; si la
+# cabecera quedo en una pagina y los items en la siguiente, queda vacia.
+.form_gate_paginas_comunes <- function(pal, textos) {
+  comun <- NULL
+  for (t in textos) {
+    pg <- .form_gate_paginas_con(pal, .form_gate_ancla(t))
+    comun <- if (is.null(comun)) pg else intersect(comun, pg)
+  }
+  if (is.null(comun)) integer(0) else comun
+}
+
+test_that("item 11: las categorias con asteriscos llegan literales al PDF", {
+  # Nacio en rojo, por el mismo defecto que en Word: el modelo conservaba la
+  # etiqueta y el renderer PDF la volvia a limpiar al dibujarla. Rojo literal:
+  #   Failure: categoria que no llego literal al PDF: De 5* a 10*
+  #   Failure: categoria que no llego literal al PDF: Nota al pie (*)
+  #   Failure: categoria que no llego literal al PDF: 3 * a la semana
+  # Reparado en `f28f84f02`. Se mide sobre el ARTEFACTO: es el unico sitio donde
+  # la regla innegociable («las categorias existentes no se tocan») se cumple o
+  # no, y el gate anterior nunca llegaba hasta ahi.
+  #
+  # LAS DOS MITADES DEL INVARIANTE VIVEN JUNTAS, y por eso el enunciado con
+  # markdown esta en el MISMO test: «la categoria se conserva **y** el enunciado
+  # se limpia». Comprobar solo la primera mitad deja la suite verde si alguien
+  # "arregla" esto volviendo inocua la limpieza para todo, que es romper la
+  # separacion por el otro lado.
+  survey <- data.frame(
+    type = "select_one frec", name = "q1",
+    label = "¿Cuántas veces **comes** fruta? Usa `código` exacto",
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = rep("frec", 3), name = c("1", "2", "3"),
+    label = c("De 5* a 10*", "Nota al pie (*)", "3 * a la semana"),
+    stringsAsFactors = FALSE
+  )
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "Categorias"),
+                         output_file = tmp, options = list(columns = 1))
+  pdftotext <- .form_gate_pdftotext()
+  txt <- paste(system2(pdftotext, c(shQuote(tmp), "-"), stdout = TRUE), collapse = "\n")
+
+  # Mitad 1: la CATEGORIA se conserva tal cual.
+  for (lbl in choices$label) {
+    expect_true(grepl(lbl, txt, fixed = TRUE),
+                info = sprintf("categoria que no llego literal al PDF: %s", lbl))
+  }
+  # Mitad 2 (control inverso): el ENUNCIADO se desmarca.
+  expect_true(grepl("comes", txt, fixed = TRUE))
+  expect_true(grepl("código", txt, fixed = TRUE))
+  expect_false(grepl("**comes**", txt, fixed = TRUE),
+               label = "el enunciado conserva el markdown `**`")
+  expect_false(grepl("`código`", txt, fixed = TRUE),
+               label = "el enunciado conserva los backticks")
+})
+
+test_that("gate §4: ninguna palabra del PDF cae fuera del marco de pagina", {
+  fx <- .form_gate_fixture()
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(
+    fx$survey, fx$choices, settings = list(form_title = "Gate de caja"),
+    output_file = tmp, options = list(columns = 1, matrix_groups = fx$matrix_groups)
+  )
+  pal <- .form_gate_palabras(tmp)
+  expect_gt(nrow(pal), 50L)          # sin palabras no hay nada que medir
+  expect_gte(max(pal$page), 2L)      # y con una sola pagina el gate no discrimina
+
+  fuera <- .form_gate_fuera_del_marco(pal)
+  expect_identical(
+    nrow(fuera), 0L,
+    info = if (nrow(fuera)) paste(
+      sprintf("pag %d «%s» x[%.3f, %.3f] y[%.3f, %.3f]",
+              fuera$page, fuera$texto, fuera$x0, fuera$x1, fuera$y0, fuera$y1),
+      collapse = "\n") else ""
+  )
+})
+
+test_that("gate §4 (auto-verificacion): el detector de marco ve una palabra fuera de caja", {
+  # Un gate que nunca ha visto un rojo no es un gate. Aqui se le fabrica el rojo
+  # con un PDF de verdad —dos palabras dibujadas a proposito fuera del marco— en
+  # vez de suponer que discriminaria.
+  fab <- tempfile(fileext = ".pdf")
+  grDevices::pdf(fab, paper = "a4", width = 8.27, height = 11.69, onefile = TRUE)
+  grid::grid.newpage()
+  grid::grid.text("DENTRO", x = grid::unit(0.5, "npc"), y = grid::unit(0.5, "npc"))
+  grid::grid.text("DERRAMADA", x = grid::unit(0.965, "npc"), y = grid::unit(0.5, "npc"),
+                  just = c("left", "center"))
+  grid::grid.text("HUNDIDA", x = grid::unit(0.5, "npc"), y = grid::unit(0.008, "npc"))
+  grDevices::dev.off()
+
+  pal <- .form_gate_palabras(fab)
+  fuera <- .form_gate_fuera_del_marco(pal)
+  # «DERRAMADA» llega recortada («DERRA»): el borde de la pagina se come los
+  # glifos que no caben, y eso es precisamente lo que el gate existe para ver —
+  # la palabra no esta "un poco fuera", esta perdida a medias en el papel.
+  expect_length(fuera$texto, 2L)
+  expect_true(any(startsWith(fuera$texto, "DERRA")))
+  expect_true("HUNDIDA" %in% fuera$texto)
+  expect_false("DENTRO" %in% fuera$texto)
+})
+
+test_that("gate §4: ninguna matriz reparte cabecera e items entre dos paginas", {
+  # Lo que rompe un instrumento en papel no es que el texto llegue al pie: es
+  # que la cabecera de la escala quede en una pagina y los items en la
+  # siguiente, porque el encuestador pierde los rotulos y la bateria es
+  # inservible (item 3 del checklist, medido aqui sobre el artefacto).
+  fx <- .form_gate_fixture()
+  opciones <- list(columns = 1, matrix_groups = fx$matrix_groups)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, settings = list(form_title = "Gate de caja"),
+                         output_file = tmp, options = opciones)
+  model <- formulario_pdf_build_model(fx$survey, fx$choices,
+                                      settings = list(form_title = "Gate de caja"),
+                                      options = opciones)
+  pal <- .form_gate_palabras(tmp)
+
+  matrices <- Filter(function(b) identical(b$kind, "matrix"), model$blocks)
+  expect_gt(length(matrices), 0L)
+  for (b in matrices) {
+    part <- .form_pdf_matrix_partition_options(b$options, b$special_override %||% "auto")
+    # Las dos anclas de escala se imprimen en los dos modos de cabecera
+    # ("categorias" y "extremos"); las intermedias, solo en uno.
+    anclas <- c(part$scale[[1]]$label, part$scale[[length(part$scale)]]$label)
+    items <- vapply(b$items, function(it) it$label %||% "", character(1))
+    comun <- .form_gate_paginas_comunes(pal, c(anclas, items))
+    expect_gte(
+      length(comun), 1L,
+      label = sprintf("la matriz «%s» reparte cabecera e items entre paginas distintas",
+                      b$title %||% b$tenor %||% "")
+    )
+  }
+})
+
+test_that("gate §4 (auto-verificacion): el detector ve una matriz repartida en dos paginas", {
+  # Rojo fabricado sobre el predicado: la cabecera en la pagina 1 y los items en
+  # la 2 es exactamente el accidente que el gate promete detectar.
+  partida <- data.frame(
+    page = c(1L, 1L, 2L, 2L),
+    texto = c("Totalmente", "desacuerdo", "autoridades", "estudiantes"),
+    x0 = 0.1, x1 = 0.2, y0 = 0.5, y1 = 0.52, stringsAsFactors = FALSE
+  )
+  entera <- transform(partida, page = c(2L, 2L, 2L, 2L))
+  textos <- c("Totalmente en desacuerdo", "Confío en las autoridades",
+              "La escuela escucha a los estudiantes")
+
+  expect_length(.form_gate_paginas_comunes(partida, textos), 0L)
+  expect_identical(.form_gate_paginas_comunes(entera, textos), 2L)
+})
+
+# --- Regresion del renderer PDF (GOAL replica Ser Adolescente) ----------------
+#
+# Todo el trabajo visual del PDF —monocromo, rejilla, pie «N de M», columna del
+# numero, fila horizontal— no tenia NI UN test propio: la suite cubria el modelo
+# y el gate del §4, y un motor sin regresion vuelve atras solo.
+#
+# Se mide el ARTEFACTO, nunca el modelo. Esa leccion costo un falso verde de 216
+# aserciones: el modelo conservaba `De 5* a 10*` y el papel imprimia `De 5 a 10`.
+
+# Rasteriza una pagina del PDF y devuelve la matriz RGB. `pdftoppm` viene con
+# poppler, que el CI instala desde 918aded84.
+.form_pdf_raster <- function(path, pagina = 1L, dpi = 110) {
+  bin <- Sys.which("pdftoppm")
+  if (!nzchar(bin)) {
+    if (nzchar(Sys.getenv("CI"))) testthat::fail("pdftoppm no esta disponible en el CI")
+    testthat::skip("pdftoppm no esta disponible (entorno local sin poppler-utils)")
+  }
+  pre <- tempfile()
+  system2(bin, c("-r", dpi, "-png", "-f", pagina, "-l", pagina, shQuote(path), shQuote(pre)))
+  f <- list.files(dirname(pre), pattern = paste0("^", basename(pre)), full.names = TRUE)
+  if (!length(f)) testthat::fail("pdftoppm no genero ninguna imagen")
+  png::readPNG(f[[1]])
+}
+
+.form_pdf_fixture_demo <- function() {
+  survey <- data.frame(
+    type = c("begin_group", "integer", "select_one sexo", "select_one nivel", "end_group"),
+    name = c("g", "edad", "sexo", "nivel", "ge"),
+    label = c("A. DATOS", "¿Cuántos años cumplidos tienes?", "Sexo",
+              "¿Cuál es el último nivel educativo que aprobaste?", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- rbind(
+    data.frame(list_name = "sexo", name = c("1", "2"), label = c("Mujer", "Hombre"),
+               stringsAsFactors = FALSE),
+    data.frame(list_name = "nivel", name = as.character(1:5),
+               label = c("Sin nivel", "Primaria", "Secundaria", "Superior técnica",
+                         "Superior universitaria"), stringsAsFactors = FALSE)
+  )
+  list(survey = survey, choices = choices)
+}
+
+test_that("PDF: el instrumento es monocromo salvo el logo", {
+  fx <- .form_pdf_fixture_demo()
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, settings = list(form_title = "Monocromo"),
+                         output_file = tmp, options = list(columns = "auto"))
+  img <- .form_pdf_raster(tmp)
+  h <- dim(img)[1]; w <- dim(img)[2]
+  sat <- abs(img[, , 1] - img[, , 2]) + abs(img[, , 2] - img[, , 3])
+  coloreados <- which(sat > 0.05, arr.ind = TRUE)
+  # El logo SI lleva color, y es correcto: la referencia tambien. Vive en la
+  # esquina superior izquierda; fuera de ahi no puede haber un solo pixel de color.
+  fuera_del_logo <- coloreados[
+    coloreados[, 1] > h * 0.11 | coloreados[, 2] > w * 0.22, , drop = FALSE]
+  expect_identical(nrow(fuera_del_logo), 0L,
+                   label = "pixeles con color fuera del area del logo")
+})
+
+test_that("PDF: las filas de opciones se separan por LINEA, no por relleno", {
+  # Etiquetas LARGAS a proposito: con opciones cortas el motor las pone en una
+  # sola fila horizontal (L8) y entonces no hay filas que separar. El fixture
+  # tiene que forzar la lista vertical, que es donde vive la rejilla.
+  survey <- data.frame(
+    type = "select_one largo", name = "q", label = "Pregunta de lista larga",
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = "largo", name = as.character(1:4),
+    label = c("Primera alternativa de la lista con texto largo",
+              "Segunda alternativa de la lista con texto largo",
+              "Tercera alternativa de la lista con texto largo",
+              "Cuarta alternativa de la lista con texto largo"),
+    stringsAsFactors = FALSE
+  )
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "Rejilla"),
+                         output_file = tmp, options = list(columns = 1))
+  pal <- .form_gate_palabras(tmp)
+  a <- pal[pal$texto == "Segunda", , drop = FALSE]
+  b <- pal[pal$texto == "Tercera", , drop = FALSE]
+  expect_identical(nrow(a), 1L); expect_identical(nrow(b), 1L)
+
+  # OJO AL EJE. `.form_gate_palabras()` normaliza con `1 - yMax/H`, es decir mide
+  # DESDE ABAJO: una palabra mas baja en la pagina tiene `y` MENOR. La imagen de
+  # `pdftoppm`, en cambio, se indexa desde arriba. Confundirlos deja la banda
+  # invertida y el test rojo sobre un motor que dibuja la linea perfectamente.
+  expect_lt(b$y1, a$y0)   # "Tercera" va DEBAJO: son dos filas, no una horizontal
+
+  img <- .form_pdf_raster(tmp)
+  gris <- (img[, , 1] + img[, , 2] + img[, , 3]) / 3
+  h <- nrow(gris); w <- ncol(gris)
+  # Banda estrictamente ENTRE las dos etiquetas, ya en filas de pixel (desde
+  # arriba): del pie de la de arriba a la cabeza de la de abajo.
+  y0 <- round((1 - a$y0) * h) + 2L
+  y1 <- round((1 - b$y1) * h) - 2L
+  expect_gt(y1, y0)
+  franja <- gris[seq(y0, y1), seq(round(w * 0.10), round(w * 0.50)), drop = FALSE]
+  # Binarizado a 1 BIT con umbral 200: es lo que sobrevive a una fotocopia, que
+  # es el motivo entero de la rejilla — el relleno F2F2F2 desaparece ahi.
+  oscuro <- franja < (200 / 255)
+  corrida <- apply(oscuro, 1, function(fila) {
+    r <- rle(fila); if (!any(r$values)) 0L else max(r$lengths[r$values])
+  })
+  expect_gt(max(corrida), ncol(oscuro) * 0.9)
+})
+
+test_that("PDF: el pie dice «N de M» y M es el total real de paginas", {
+  fx <- .form_gate_fixture()
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, settings = list(form_title = "Folio"),
+                         output_file = tmp,
+                         options = list(columns = 1, matrix_groups = fx$matrix_groups))
+  pal <- .form_gate_palabras(tmp)
+  total <- max(pal$page)
+  # En un PDF de `grid` el total NO es un campo que resuelva el lector: lo cuenta
+  # el motor en una primera pasada. Si esa pasada se rompe, aqui se ve.
+  for (p in seq_len(total)) {
+    txt <- paste(pal$texto[pal$page == p], collapse = " ")
+    expect_true(grepl(sprintf("%d de %d", p, total), txt, fixed = TRUE),
+                label = sprintf("pie de la pagina %d", p))
+  }
+})
+
+test_that("PDF: el numero del item vive en su columna, no pegado a la etiqueta", {
+  # Fixture SIN tenor: los items se numeran 6..15, con una y dos cifras. Con
+  # tenor se subnumeran 1.1/1.2 y todos los numeros miden lo mismo, con lo que
+  # el defecto no se puede ver.
+  n <- 10L
+  survey <- data.frame(
+    type = rep("select_one sino", n),
+    name = paste0("m", seq_len(n)),
+    label = sprintf("Afirmacion numero %d del bloque", seq_len(n)),
+    paper_group = rep("bat", n),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(list_name = "sino", name = c("1", "2"),
+                        label = c("S\u00ed", "No"), stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "Numeros"),
+                         output_file = tmp,
+                         options = list(columns = 1,
+                                        matrix_groups = list(list(members = paste0("m", seq_len(n)),
+                                                                  tenor = "", special = "auto"))))
+  pal <- .form_gate_palabras(tmp)
+
+  # La discriminacion: con columna propia, la etiqueta arranca SIEMPRE en la
+  # misma x, tenga el numero una cifra o dos. Pegado a la etiqueta, la x se
+  # desplazaba con el ancho del numero — por eso los enunciados no alineaban.
+  etiq <- pal[pal$texto == "Afirmacion", , drop = FALSE]
+  expect_gte(nrow(etiq), 9L)
+  expect_lt(max(etiq$x0) - min(etiq$x0), 0.002,
+            label = "desviacion de la x donde arranca la etiqueta entre filas")
+
+  # Y el numero va a su izquierda, no dentro.
+  for (i in seq_len(nrow(etiq))) {
+    izq <- pal[pal$page == etiq$page[i] &
+                 abs(pal$y0 - etiq$y0[i]) < 0.004 &
+                 pal$x1 <= etiq$x0[i], , drop = FALSE]
+    expect_gt(nrow(izq), 0L)
+    expect_true(grepl("^[0-9]{1,2}$", izq$texto[which.max(izq$x1)]),
+                label = sprintf("lo que precede a la etiqueta en la fila %d", i))
+  }
+})
+
+test_that("B4: la rejilla del PDF sobrevive al umbral DURO de la copiadora", {
+  # Hermano del test de Word. El test de rejilla de mas arriba binariza a 200 y
+  # por eso NO discrimina: el gris A6A6A6 de la referencia (luma 166) tambien lo
+  # pasa. Una copiadora tipica corta mas abajo, y medido sobre el instrumento de
+  # ejemplo la rejilla gris desaparecia entera por debajo de 166. Aqui el umbral
+  # es 128: solo pasa una linea realmente negra.
+  survey <- data.frame(
+    type = "select_one largo", name = "q", label = "Pregunta de lista larga",
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = "largo", name = as.character(1:4),
+    label = c("Primera alternativa de la lista con texto largo",
+              "Segunda alternativa de la lista con texto largo",
+              "Tercera alternativa de la lista con texto largo",
+              "Cuarta alternativa de la lista con texto largo"),
+    stringsAsFactors = FALSE
+  )
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "Rejilla dura"),
+                         output_file = tmp, options = list(columns = 1))
+  pal <- .form_gate_palabras(tmp)
+  a <- pal[pal$texto == "Segunda", , drop = FALSE]
+  b <- pal[pal$texto == "Tercera", , drop = FALSE]
+  expect_identical(nrow(a), 1L); expect_identical(nrow(b), 1L)
+
+  img <- .form_pdf_raster(tmp)
+  gris <- (img[, , 1] + img[, , 2] + img[, , 3]) / 3
+  h <- nrow(gris); w <- ncol(gris)
+  # `.form_gate_palabras()` mide DESDE ABAJO y `pdftoppm` indexa DESDE ARRIBA.
+  y0 <- round((1 - a$y0) * h) + 2L
+  y1 <- round((1 - b$y1) * h) - 2L
+  expect_gt(y1, y0)
+  franja <- gris[seq(y0, y1), seq(round(w * 0.10), round(w * 0.50)), drop = FALSE]
+  oscuro <- franja < (128 / 255)
+  corrida <- apply(oscuro, 1, function(fila) {
+    r <- rle(fila); if (!any(r$values)) 0L else max(r$lengths[r$values])
+  })
+  expect_gt(max(corrida), ncol(oscuro) * 0.9)
+})
+
+.form_pdf_fixture_tenor <- function(tenor) {
+  list(
+    survey = data.frame(
+      type = rep("select_one ac", 4L), name = paste0("a", 1:4),
+      label = c("Me siento satisfecho conmigo mismo.",
+                "Creo que tengo buenas cualidades.",
+                "Soy capaz de hacer las cosas tan bien como los demas.",
+                "A veces pienso que no sirvo para nada."),
+      stringsAsFactors = FALSE),
+    choices = data.frame(
+      list_name = "ac", name = as.character(1:4),
+      label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+      stringsAsFactors = FALSE),
+    settings = list(form_title = "L16"),
+    options = list(columns = 1, matrix_groups = list(list(
+      members = paste0("a", 1:4), tenor = tenor)))
+  )
+}
+
+test_that("L16: el enunciado comparte banda con la escala, no vive encima de ella", {
+  tenor <- "Por favor senala que tan de acuerdo estas con las siguientes afirmaciones:"
+  fx <- .form_pdf_fixture_tenor(tenor)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp,
+                         options = fx$options)
+  pal <- .form_gate_palabras(tmp)
+  favor <- pal[pal$texto == "favor", , drop = FALSE]
+  tot <- pal[pal$texto == "Totalmente", , drop = FALSE]
+  expect_identical(nrow(favor), 1L)
+  expect_gte(nrow(tot), 1L)
+
+  # La prueba de que esta DENTRO de la cabecera y no encima: su banda vertical se
+  # solapa con la de las etiquetas de escala. Antes el enunciado iba en un
+  # parrafo por encima y las dos bandas eran disjuntas. `.form_gate_palabras()`
+  # mide DESDE ABAJO (y mayor = mas arriba).
+  esc_top <- max(tot$y1); esc_bot <- min(tot$y0)
+  expect_lt(favor$y0, esc_top)
+  expect_gt(favor$y1, esc_bot)
+
+  # Y la otra mitad, que es la que un test perezoso se salta: CABER NO ES NO
+  # PISARSE. El enunciado se queda a la izquierda de la primera columna de
+  # escala; si invadiera, se leeria montado sobre las etiquetas.
+  expect_lt(favor$x1, min(tot$x0))
+})
+
+test_that("L16: el paginado no reserva DOS VECES el enunciado de la matriz", {
+  # GUARD, no regresion de L16: el motor anterior tampoco reservaba de mas —
+  # reservaba `title_h` porque DIBUJABA el titulo encima. Verificado contra un
+  # mutante deliberado (title_h restaurado SOBRE la cabecera ya crecida), que es
+  # el error real al que se expone este cambio: dejar la reserva vieja abriria un
+  # hueco del alto del enunciado al pie de cada matriz. Contra el motor anterior
+  # este test pasa, y decirlo aqui evita que alguien lo lea como cobertura de L16.
+  tenor <- paste("Por favor senala que tan de acuerdo estas con cada una de las",
+                 "siguientes afirmaciones sobre tu vida cotidiana, marcando un numero",
+                 "en la escala segun tu experiencia personal")
+  fx <- .form_pdf_fixture_tenor(tenor)
+  m <- formulario_pdf_build_model(fx$survey, fx$choices, fx$settings, options = fx$options)
+  blk <- Filter(function(b) identical(b$kind, "matrix"), m$blocks)[[1]]
+  alto <- .form_pdf_block_height(blk, width = 0.90)
+
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp,
+                         options = fx$options)
+  pal <- .form_gate_palabras(tmp)
+  arriba <- pal[pal$texto == "favor", , drop = FALSE]
+  abajo <- pal[pal$texto == "sirvo", , drop = FALSE]   # ultimo item
+  expect_identical(nrow(arriba), 1L); expect_identical(nrow(abajo), 1L)
+  pintado <- arriba$y1 - abajo$y0
+
+  # La reserva incluye padding y el chip de condicion, asi que no es igual al
+  # dibujo; lo que NO puede es doblarlo. Con la reserva duplicada el cociente se
+  # iba por encima de 1.6.
+  expect_gt(alto, pintado)
+  expect_lt(alto / pintado, 1.45)
+})
+
+test_that("L17: la subseccion sale de la matriz y pasa a banda propia encima", {
+  survey <- data.frame(
+    type = c("begin_group", rep("select_one ac", 3L), "end_group"),
+    name = c("g", "a1", "a2", "a3", "ge"),
+    label = c("B. BIENESTAR", "Me siento satisfecho conmigo mismo.",
+              "Creo que tengo buenas cualidades.", "A veces pienso que no sirvo para nada.", ""),
+    paper_subgroup = c("", rep("Como te sientes", 3L), ""),
+    stringsAsFactors = FALSE)
+  choices <- data.frame(
+    list_name = "ac", name = as.character(1:4),
+    label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"),
+    stringsAsFactors = FALSE)
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(survey, choices, settings = list(form_title = "L17"),
+                         output_file = tmp, options = list(columns = 1))
+  pal <- .form_gate_palabras(tmp)
+  sub <- pal[toupper(pal$texto) == "SIENTES", , drop = FALSE]
+  esc <- pal[pal$texto == "Totalmente", , drop = FALSE]
+  expect_identical(nrow(sub), 1L)
+  expect_gte(nrow(esc), 1L)
+
+  # La prueba de que SALIO de la matriz: hasta aqui el sub-grupo se pintaba en la
+  # esquina de la cabecera, o sea COMPARTIENDO banda vertical con las etiquetas
+  # de escala. Como banda propia las dos franjas son disjuntas y la subseccion
+  # queda ENCIMA. Es el mismo criterio que L16 pero al reves, y por eso no se
+  # puede comprobar con "aparece el texto": aparecia antes tambien.
+  # `.form_gate_palabras()` mide DESDE ABAJO: y mayor = mas arriba.
+  expect_gt(sub$y0, max(esc$y1))
+
+  # Y esta dentro de una caja mas clara que la de seccion, no sobre papel blanco.
+  img <- .form_pdf_raster(tmp)
+  gris <- (img[, , 1] + img[, , 2] + img[, , 3]) / 3
+  h <- nrow(gris); w <- ncol(gris)
+  fondo <- function(fila) {
+    y <- round((1 - fila) * h)
+    franja <- gris[max(1L, y - 1L):min(h, y + 1L), round(w * 0.72):round(w * 0.92), drop = FALSE]
+    stats::median(franja)   # lejos del texto: mide el RELLENO, no las letras
+  }
+  bienestar <- pal[pal$texto == "BIENESTAR", , drop = FALSE]
+  expect_identical(nrow(bienestar), 1L)
+  g_sub <- fondo((sub$y0 + sub$y1) / 2)
+  g_sec <- fondo((bienestar$y0 + bienestar$y1) / 2)
+  expect_lt(g_sub, 0.99)          # tiene relleno: no es papel blanco
+  expect_gt(g_sub, g_sec + 0.01)  # y es MAS CLARO que el de seccion
+})
+
+test_that("L19: la reserva de paginado sigue al dibujo en TODO bloque", {
+  # Este contrato no lo tenia nadie, y por eso `section` llego a reservar 60.6 pt
+  # para dibujar 27.6 y una nota 61.5 para dibujar 28.8. El exceso no abre hueco
+  # DENTRO de la pagina —la `y` la fija el dibujo— pero adelanta el salto:
+  # medido sobre un instrumento de 6 secciones x 6 preguntas dejaba 144.8 pt de
+  # holgura al pie de la pagina 1, un 17 % de pagina en blanco.
+  #
+  # Las DOS cotas importan y por motivos opuestos. Reservar de MENOS saca
+  # contenido del marco (lo que vigila el gate del §4). Reservar de MAS deja la
+  # pagina a medias. Un test que solo comprobara `reserva >= dibujo` habria
+  # pasado durante todo el tiempo que el defecto estuvo vivo.
+  # Fixture PROPIO, y no `.form_pdf_fixture_demo()`: ese no trae matriz ni
+  # sub-grupo, asi que dos de los tipos que este contrato tiene que cubrir no
+  # llegarian a medirse y el test daria verde sin haberlos visto. (Fijar los
+  # umbrales con un fixture y aplicarlos a otro es como se fabrican defectos
+  # imaginarios; aqui se midio sobre ESTE.)
+  fx <- list(
+    survey = data.frame(
+      type = c("begin_group", "integer", "select_one sn",
+               rep("select_one ac", 3L), "end_group"),
+      name = c("g", "edad", "sexo", "a1", "a2", "a3", "ge"),
+      label = c("A. DATOS", "Cuantos anos cumplidos tienes?", "Sexo",
+                "Me siento satisfecho conmigo mismo.",
+                "Creo que tengo buenas cualidades.",
+                "A veces pienso que no sirvo para nada.", ""),
+      paper_subgroup = c("", "", "", rep("Como te sientes", 3L), ""),
+      stringsAsFactors = FALSE),
+    choices = rbind(
+      data.frame(list_name = "sn", name = c("1", "2"),
+                 label = c("Hombre", "Mujer"), stringsAsFactors = FALSE),
+      data.frame(list_name = "ac", name = as.character(1:4),
+                 label = c("Totalmente en desacuerdo", "En desacuerdo",
+                           "De acuerdo", "Totalmente de acuerdo"),
+                 stringsAsFactors = FALSE)),
+    settings = list(form_title = "Contrato de reserva del paginado"))
+  medidas <- list()
+  original <- .form_pdf_draw_block
+  testthat::local_mocked_bindings(
+    .form_pdf_draw_block = function(block, x, y, w) {
+      y2 <- original(block, x, y, w)
+      clave <- if (identical(block$kind, "question"))
+        paste0("question/", block$type %||% "?") else block$kind
+      medidas[[clave]] <<- c(dibuja = (y - y2), reserva = .form_pdf_block_height(block, w))
+      y2
+    },
+    .package = "prosecnurapp")
+
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(fx$survey, fx$choices, fx$settings, output_file = tmp,
+                         options = list(columns = 1))
+  expect_gt(length(medidas), 4L)   # si el mock no entro, esto lo delata
+
+  cortos <- names(Filter(function(v) v[["reserva"]] < v[["dibuja"]] - 0.0006, medidas))
+  expect_identical(cortos, character(0))
+
+  # Techo. Los dos que siguen por encima del 15 % —`question/integer` (+29 %) y
+  # `paper` (+20 %)— estan declarados como hallazgo ABIERTO en el GOAL con su
+  # cifra, no disimulados aqui. El techo va justo encima del peor para que
+  # cualquier EMPEORAMIENTO caiga.
+  exceso <- vapply(medidas, function(v) v[["reserva"]] / v[["dibuja"]], numeric(1))
+  expect_lt(max(exceso), 1.35)
+  # Y los que ya comparten UNA cuenta entre dibujo y paginado tienen que seguir
+  # clavados: son la vara de que el patron funciona, y lo unico que distingue
+  # "lo arregle" de "le subi el techo".
+  for (k in c("cover", "section", "subsection")) {
+    expect_true(k %in% names(exceso))
+    expect_lt(exceso[[k]], 1.02)
+  }
+})
+
+test_that("L20: una banda de seccion nunca amanece sola al pie de la pagina", {
+  # El control de viudas tenia un tope, `min(nxt_h, 0.085)` (71.6 pt), y era JUSTO
+  # lo que dejaba pasar la viuda que la regla existe para impedir: con un bloque
+  # siguiente mas alto que el tope —cualquier matriz— la banda se quedaba, el
+  # bloque no cabia, y la banda amanecia sola al pie. El tope tendria sentido si
+  # el bloque siguiente pudiera EMPEZAR ahi y continuar en la otra pagina, pero
+  # ningun bloque de ancho completo se parte.
+  #
+  # El relleno de 10 no es arbitrario: es la cantidad que deja la banda a esa
+  # distancia exacta del pie. Con 9 la matriz todavia cabe y con 11 la banda ya
+  # salta entera, asi que un fixture "razonable" no toca el defecto. Se encontro
+  # barriendo de 6 a 13.
+  relleno <- data.frame(
+    type = c("begin_group", rep("select_one sn", 10L), "end_group"),
+    name = c("g0", paste0("r", 1:10), "ge0"),
+    label = c("A. RELLENO", sprintf("Pregunta de relleno numero %d", 1:10), ""),
+    stringsAsFactors = FALSE)
+  bateria <- data.frame(
+    type = c("begin_group", rep("select_one ac", 6L), "end_group"),
+    name = c("g1", paste0("b", 1:6), "ge1"),
+    label = c("B. BATERIA", sprintf("Afirmacion numero %d de la bateria", 1:6), ""),
+    stringsAsFactors = FALSE)
+  choices <- rbind(
+    data.frame(list_name = "sn", name = c("1", "2"), label = c("Si", "No"),
+               stringsAsFactors = FALSE),
+    data.frame(list_name = "ac", name = as.character(1:5),
+               label = c("Totalmente en desacuerdo", "En desacuerdo", "Ni si ni no",
+                         "De acuerdo", "Totalmente de acuerdo"), stringsAsFactors = FALSE))
+  tmp <- tempfile(fileext = ".pdf")
+  reporte_formulario_pdf(rbind(relleno, bateria), choices,
+                         settings = list(form_title = "Viuda"), output_file = tmp,
+                         options = list(columns = 1, matrix_groups = list(list(
+                           members = paste0("b", 1:6),
+                           tenor = "Senala tu grado de acuerdo con cada afirmacion"))))
+  pal <- .form_gate_palabras(tmp)
+  expect_true(any(pal$page == 2L))   # si cupiera en una pagina, el caso no se da
+  # El CUERPO, no el pie: el pie tambien son palabras y vive por debajo de
+  # `y_bottom` (0.058). Sin este filtro la ultima linea siempre seria «PULSO PUCP
+  # · Pagina 1 de 2» y el test no podria fallar nunca.
+  p1 <- pal[pal$page == 1L & pal$y0 > 0.058, , drop = FALSE]
+  expect_gt(nrow(p1), 10L)
+
+  # La ultima LINEA del cuerpo de la pagina 1 no puede ser la banda y nada mas.
+  # `.form_gate_palabras()` mide DESDE ABAJO: y menor = mas abajo.
+  y_ultima <- min(p1$y0)
+  ultima <- p1[abs(p1$y0 - y_ultima) < 0.004, , drop = FALSE]
+  texto <- trimws(paste(ultima$texto, collapse = " "))
+  expect_false(grepl("^B\\.?\\s*BATERIA$", texto))
+})
